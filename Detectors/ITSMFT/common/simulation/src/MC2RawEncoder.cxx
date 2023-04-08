@@ -164,7 +164,6 @@ void MC2RawEncoder<Mapping>::fillGBTLinks(RUDecodeData& ru)
 {
   // fill data of the RU to links buffer, return the number of pages in the link with smallest amount of pages
   constexpr uint8_t zero16[GBTPaddedWordLength] = {0}; // to speedup padding
-  ru.nCables = ru.ruInfo->nCables;
 
   // trigger word
   GBTTrigger gbtTrigger;
@@ -180,7 +179,7 @@ void MC2RawEncoder<Mapping>::fillGBTLinks(RUDecodeData& ru)
     }
     // estimate real payload size in GBT words
     int nPayLoadWordsNeeded = 0;           // number of payload words filled to link buffer (RDH not included) for current IR
-    for (int icab = ru.nCables; icab--;) { // calculate number of GBT words per link
+    for (int icab = ru.ruInfo->nCables; icab--;) { // calculate number of GBT words per link
       if ((link->lanes & (0x1 << mMAP.cablePos(ru.ruInfo->ruType, icab)))) {
         int nb = ru.cableData[mMAP.cablePos(ru.ruInfo->ruType, icab)].getSize();
         nPayLoadWordsNeeded += nb ? 1 + (nb - 1) / 9 : 0; // single GBT word carries at most 9 payload bytes
@@ -195,7 +194,7 @@ void MC2RawEncoder<Mapping>::fillGBTLinks(RUDecodeData& ru)
     bool hasData = true;
     while (hasData) {
       hasData = false;
-      for (int icab = 0; icab < ru.nCables; icab++) {
+      for (int icab = 0; icab < ru.ruInfo->nCables; icab++) {
         if ((link->lanes & (0x1 << mMAP.cablePos(ru.ruInfo->ruType, icab)))) {
           auto& cableData = ru.cableData[mMAP.cablePos(ru.ruInfo->ruType, icab)];
           int nb = cableData.getUnusedSize();
@@ -286,6 +285,7 @@ int MC2RawEncoder<Mapping>::carryOverMethod(const header::RDHAny* rdh, const gsl
   // During the carry-over ITS needs to repeat the GBTTrigger and GBTDataTrailer words.
   // Also the GBTDataHeader needs to be repeated right after continuation RDH, but it will be provided in the newRDHMethod
   const int wordSize = RDHUtils::getDataFormat(rdh) == 0 ? o2::itsmft::GBTPaddedWordLength : o2::itsmft::GBTWordLength;
+  uint feed = RDHUtils::getFEEID(rdh);
 
   int offs = ptr - &data[0]; // offset wrt the head of the payload
   // make sure ptr and end of the suggested block are within the payload
@@ -293,6 +293,9 @@ int MC2RawEncoder<Mapping>::carryOverMethod(const header::RDHAny* rdh, const gsl
 
   // this is where we would usually split: account for the trailer to add
   int actualSize = maxSize - wordSize;
+  // make sure we don't split the GBT word
+  actualSize -= actualSize % wordSize;
+
   char* trailPtr = &data[data.size() - wordSize]; // pointer on the payload trailer
 
   if ((maxSize <= 2 * wordSize)) {   // we cannot split trigger+header
@@ -303,6 +306,8 @@ int MC2RawEncoder<Mapping>::carryOverMethod(const header::RDHAny* rdh, const gsl
   } else {
     if (ptr + actualSize >= trailPtr) { // we need to split at least 1 GBT word before the trailer
       actualSize = trailPtr - ptr - wordSize;
+      // make sure we don't split the GBT word
+      actualSize -= actualSize % wordSize;
     }
   }
   // copy the GBTTrigger and GBTHeader from the head of the payload

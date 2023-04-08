@@ -142,8 +142,8 @@ void Dispatcher::reportStats(Monitoring& monitoring) const
     dispatcherTotalAcceptedMessages += policy->getTotalAcceptedMessages();
   }
 
-  monitoring.send(Metric{dispatcherTotalEvaluatedMessages, "Dispatcher_messages_evaluated"}.addTag(tags::Key::Subsystem, tags::Value::DataSampling));
-  monitoring.send(Metric{dispatcherTotalAcceptedMessages, "Dispatcher_messages_passed"}.addTag(tags::Key::Subsystem, tags::Value::DataSampling));
+  monitoring.send(Metric{dispatcherTotalEvaluatedMessages, "Dispatcher_messages_evaluated", Verbosity::Prod}.addTag(tags::Key::Subsystem, tags::Value::DataSampling));
+  monitoring.send(Metric{dispatcherTotalAcceptedMessages, "Dispatcher_messages_passed", Verbosity::Prod}.addTag(tags::Key::Subsystem, tags::Value::DataSampling));
 }
 
 DataSamplingHeader Dispatcher::prepareDataSamplingHeader(const DataSamplingPolicy& policy)

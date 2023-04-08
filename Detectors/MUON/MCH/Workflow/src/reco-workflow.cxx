@@ -12,7 +12,6 @@
 #include "ClusterFinderGEMSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
-#include "DigitReaderSpec.h"
 #include "ErrorMergerSpec.h"
 #include "EventFinderSpec.h"
 #include "Framework/CallbacksPolicy.h"
@@ -24,13 +23,16 @@
 #include "MCHClustering/ClusterizerParam.h"
 #include "MCHDigitFiltering/DigitFilteringSpec.h"
 #include "MCHGeometryTransformer/ClusterTransformerSpec.h"
+#include "MCHIO/ClusterWriterSpec.h"
+#include "MCHIO/DigitReaderSpec.h"
+#include "MCHIO/TrackWriterSpec.h"
 #include "MCHPreClustering/PreClusterFinderSpec.h"
+#include "MCHStatus/StatusMapCreatorParam.h"
+#include "MCHStatus/StatusMapCreatorSpec.h"
 #include "MCHTimeClustering/TimeClusterFinderSpec.h"
 #include "MCHTracking/TrackFinderSpec.h"
 #include "MCHWorkflow/ClusterFinderOriginalSpec.h"
-#include "MCHWorkflow/ClusterWriterSpec.h"
 #include "MCHWorkflow/ErrorWriterSpec.h"
-#include "MCHWorkflow/TrackWriterSpec.h"
 #include "TrackMCLabelFinderSpec.h"
 
 using namespace o2::framework;
@@ -52,6 +54,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"do not write output root files"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
+    {"enable-clusters-root-output", o2::framework::VariantType::Bool, false, {"write output root file containing all clusters"}},
     {"disable-clustering", o2::framework::VariantType::Bool, false, {"disable clustering (and tracking) steps (for debug)"}},
     {"disable-tracking", o2::framework::VariantType::Bool, false, {"disable tracking step (for debug)"}},
     {"digits", VariantType::Bool, false, {"Write digits associated to tracks"}},
@@ -74,11 +77,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto disableClustering = configcontext.options().get<bool>("disable-clustering");
   auto disableTracking = disableClustering || configcontext.options().get<bool>("disable-tracking");
+  auto disableAllClustersRootOutput = !configcontext.options().get<bool>("enable-clusters-root-output");
 
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
 
   if (!disableRootInput) {
-    specs.emplace_back(o2::mch::getDigitReaderSpec(useMC, "mch-sim-digit-reader"));
+    specs.emplace_back(o2::mch::getDigitReaderSpec(useMC, "mch-digit-reader"));
+  }
+
+  if (o2::mch::StatusMapCreatorParam::Instance().isActive()) {
+    specs.emplace_back(o2::mch::getStatusMapCreatorSpec("mch-statusmap-creator"));
   }
 
   specs.emplace_back(o2::mch::getDigitFilteringSpec(useMC, "mch-digit-filtering",
@@ -109,7 +117,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       specs.emplace_back(o2::mch::getClusterFinderGEMSpec("mch-cluster-finder"));
     }
     specs.emplace_back(o2::mch::getClusterTransformerSpec("mch-cluster-transformer", false));
-    if (!disableRootOutput) {
+    if (!disableRootOutput && !disableAllClustersRootOutput) {
       specs.emplace_back(o2::mch::getClusterWriterSpec(false, "mch-global-cluster-writer", true, true));
     }
     if (!disableTracking) {

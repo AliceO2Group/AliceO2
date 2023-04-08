@@ -45,6 +45,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <csignal>
+#include <fairmq/Device.h>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
@@ -102,18 +103,39 @@ struct ExpirationHandlerHelpers {
   static RouteConfigurator::CreationConfigurator timeDrivenConfigurator(InputSpec const& matcher)
   {
     return [matcher](DeviceState& state, ServiceRegistryRef, ConfigParamRegistry const& options) {
-      std::string rateName = std::string{"period-"} + matcher.binding;
-      auto period = options.get<int>(rateName.c_str());
+      // A vector of all the available timer periods
+      std::vector<std::chrono::microseconds> periods;
+      // How long a ginven period should be active
+      std::vector<std::chrono::seconds> durations;
+      auto prefix = std::string{"period-"};
+      for (auto& meta : matcher.metadata) {
+        if (strncmp(meta.name.c_str(), prefix.c_str(), prefix.size()) == 0) {
+          // Parse the number after the prefix and consider it the duration
+          std::string_view duration(meta.name.c_str() + prefix.size(), meta.name.size() - prefix.size());
+          durations.emplace_back(std::chrono::seconds(std::stoi(std::string(duration))));
+          periods.emplace_back(std::chrono::microseconds(meta.defaultValue.get<uint64_t>() / 1000));
+        }
+      }
+      if (periods.empty()) {
+        std::string defaultRateName = std::string{"period-"} + matcher.binding;
+        auto defaultRate = std::chrono::milliseconds(options.get<int>(defaultRateName.c_str()));
+        LOGP(detail, "Using default rate of {} ms as specified by option period-{}", defaultRate.count(), matcher.binding);
+        periods.emplace_back(defaultRate.count());
+        durations.emplace_back(std::chrono::seconds((std::size_t)-1));
+      } else {
+        // If we have multiple periods, the last one gets the remaining interval
+        durations.back() = std::chrono::seconds((std::size_t)-1);
+      }
       // We create a timer to wake us up. Notice the actual
       // timeslot creation and record expiration still happens
       // in a synchronous way.
       auto* timer = (uv_timer_t*)(malloc(sizeof(uv_timer_t)));
       timer->data = &state;
       uv_timer_init(state.loop, timer);
-      uv_timer_start(timer, detail::timer_callback, period / 1000, period / 1000);
+      uv_timer_start(timer, detail::timer_callback, periods.front().count(), periods.front().count());
       state.activeTimers.push_back(timer);
 
-      return LifetimeHelpers::timeDrivenCreation(std::chrono::microseconds(period), detail::timer_fired(timer), detail::timer_set_period(timer));
+      return LifetimeHelpers::timeDrivenCreation(periods, durations, detail::timer_fired(timer), detail::timer_set_period(timer));
     };
   }
 
@@ -405,6 +427,53 @@ std::string DeviceSpecHelpers::outputChannel2String(const OutputChannelSpec& cha
                      channel.rateLogging,
                      channel.recvBufferSize,
                      channel.sendBufferSize);
+}
+
+void DeviceSpecHelpers::validate(std::vector<DataProcessorSpec> const& workflow)
+{
+  // Iterate on all the DataProcessorSpecs in the altered_workflow
+  // and check for duplicates outputs among those who have lifetime == Timeframe
+  // Do so by:
+  //
+  // * Get the list of all Lifetime::Timeframe outputs for the workflow.
+  //   Only those who are concrete matchers are considered for now, because
+  //   it becomes to complicate to check for the wildcard case.
+  // * Sort the associated matchers by origin, description, subSpec
+  // * Check that the next element is not the same
+  std::vector<std::pair<int, std::string>> timeframeOutputs;
+  for (size_t i = 0; i < workflow.size(); ++i) {
+    auto& spec = workflow[i];
+    // We do not want to check for pipelining
+    if (spec.inputTimeSliceId != 0) {
+      continue;
+    }
+    for (auto& output : spec.outputs) {
+      if (output.lifetime != Lifetime::Timeframe) {
+        continue;
+      }
+      std::optional<ConcreteDataMatcher> matcher = DataSpecUtils::asOptionalConcreteDataMatcher(output);
+      if (!matcher) {
+        continue;
+      }
+      timeframeOutputs.emplace_back(i, DataSpecUtils::describe(*matcher));
+    }
+  }
+  std::stable_sort(timeframeOutputs.begin(), timeframeOutputs.end(), [](auto const& a, auto const& b) {
+    return a.second < b.second;
+  });
+
+  auto it = std::adjacent_find(timeframeOutputs.begin(), timeframeOutputs.end(), [](auto const& a, auto const& b) {
+    return a.second == b.second;
+  });
+  if (it != timeframeOutputs.end()) {
+    // Tell which are the two duplicates
+    auto device1 = workflow[it->first].name;
+    auto device2 = workflow[(it + 1)->first].name;
+    auto output1 = it->second;
+    auto output2 = (it + 1)->second;
+    throw std::runtime_error(fmt::format("Found duplicate outputs {} in device {} ({}) and {} in {} ({})",
+                                         output1, device1, it->first, output2, device2, (it + 1)->first));
+  }
 }
 
 void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
@@ -968,6 +1037,8 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
                                                        std::string const& channelPrefix,
                                                        OverrideServiceSpecs const& overrideServices)
 {
+  // Always check for validity of the workflow before instanciating it
+  DeviceSpecHelpers::validate(workflow);
   std::vector<LogicalForwardInfo> availableForwardsInfo;
   std::vector<DeviceConnectionEdge> logicalEdges;
   std::vector<DeviceConnectionId> connections;

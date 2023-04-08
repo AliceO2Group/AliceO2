@@ -9,11 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test Framework PtrHelpers
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include "Framework/TypeTraits.h"
 #include <memory>
 
@@ -33,17 +29,17 @@ struct B : public Base {
   int vb;
 };
 
-BOOST_AUTO_TEST_CASE(MatchingPtrMaker)
+TEST_CASE("MatchingPtrMaker")
 {
 
   std::shared_ptr<Base> s = std::move(o2::framework::make_matching<decltype(s), A>(1, 3));
   std::unique_ptr<Base> u = std::move(o2::framework::make_matching<decltype(u), B>(2, 4));
 
-  BOOST_REQUIRE(s != nullptr);
-  BOOST_REQUIRE(u != nullptr);
-  BOOST_CHECK_EQUAL(s->v, 1);
-  BOOST_CHECK_EQUAL(u->v, 2);
-  BOOST_CHECK_EQUAL(static_cast<A*>(s.get())->va, 3);
-  BOOST_CHECK_EQUAL(static_cast<B*>(u.get())->vb, 4);
+  REQUIRE(s != nullptr);
+  REQUIRE(u != nullptr);
+  REQUIRE(s->v == 1);
+  REQUIRE(u->v == 2);
+  REQUIRE(static_cast<A*>(s.get())->va == 3);
+  REQUIRE(static_cast<B*>(u.get())->vb == 4);
 }
 // @endcond

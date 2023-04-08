@@ -100,10 +100,14 @@ void IntegratedClusterReader<DataT>::run(ProcessingContext& pc)
   if (mChainEntry == 0) {
     mIndices.clear();
     mIndices.reserve(mChain->GetEntries());
+    // disable all branches except the firstTForbit branch to significantly speed up the loop over the TTree
+    mChain->SetBranchStatus("*", 0);
+    mChain->SetBranchStatus("firstTForbit", 1);
     for (unsigned long i = 0; i < mChain->GetEntries(); i++) {
       mChain->GetEntry(i);
       mIndices.emplace_back(std::make_pair(mTFinfo.firstTForbit, i));
     }
+    mChain->SetBranchStatus("*", 1);
     std::sort(mIndices.begin(), mIndices.end());
   }
 

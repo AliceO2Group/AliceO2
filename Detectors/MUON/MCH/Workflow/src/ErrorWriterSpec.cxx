@@ -28,7 +28,7 @@ DataProcessorSpec getErrorWriterSpec(const char* specName)
   return MakeRootTreeWriterSpec(specName,
                                 "mcherrors.root",
                                 MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree MCH Errors"},
-                                BranchDefinition<std::vector<Error>>{InputSpec{"errors", "MCH", "ERRORS"}, "errors"})();
+                                BranchDefinition<std::vector<Error>>{InputSpec{"errors", "MCH", "PROCERRORS"}, "errors"})();
 }
 
 } // namespace o2::mch

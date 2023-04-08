@@ -39,8 +39,10 @@ struct ClusterConfig {
   // static double minChargeOfClusterPerCathode = 1.0 * minChargeOfPads; // Lowest Charge of a Group
   //
   // ClusterResolution
-  float SDefaultClusterResolution; ///< default cluster resolution (cm)
-  float SBadClusterResolution;     ///< bad (e.g. mono-cathode) cluster resolution (cm)
+  float SDefaultClusterResolutionX; ///< default cluster resolution in x direction (cm)
+  float SDefaultClusterResolutionY; ///< default cluster resolution in y direction (cm)
+  float SBadClusterResolutionX;     ///< bad (e.g. mono-cathode) cluster resolution in x direction (cm)
+  float SBadClusterResolutionY;     ///< bad (e.g. mono-cathode) cluster resolution in y direction (cm)
 
   // Large Clusters
   int nbrPadLimit = 600;
@@ -62,7 +64,7 @@ struct ClusterConfig {
     debug = 0x3   ///< Ful details
   };
   VerboseMode fittingLog = no;
-  VerboseMode processingLog = info; // Global
+  VerboseMode processingLog = no;
   VerboseMode padMappingLog = no;
   VerboseMode groupsLog = no;
   VerboseMode EMLocalMaxLog = no;

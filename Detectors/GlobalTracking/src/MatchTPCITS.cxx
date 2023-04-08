@@ -84,8 +84,8 @@ void MatchTPCITS::run(const o2::globaltracking::RecoContainer& inp)
       break;
     }
     if (mVDriftCalibOn) { // in the beginning of the output vector we send the full and reference VDrift used for this TF
-      mTglITSTPC.emplace_back(mTPCVDrift, mTPCDrift.refVDrift);
-      mTglITSTPC.emplace_back(mTPCDriftTimeOffset, mTPCDrift.refTimeOffset);
+      mTglITSTPC.emplace_back(mTPCVDrift, mTPCDrift.refVDrift, -999.);
+      mTglITSTPC.emplace_back(mTPCDriftTimeOffset, mTPCDrift.refTimeOffset, -999.);
     }
 
     mTimer[SWDoMatching].Start(false);
@@ -144,7 +144,6 @@ void MatchTPCITS::clear()
   mITSWork.clear();
   mTPCWork.clear();
   mInteractions.clear();
-  mITSROFIntCandEntries.clear();
   mITSROFTimes.clear();
   mITSTrackROFContMapping.clear();
   mITSClustersArray.clear();
@@ -156,6 +155,7 @@ void MatchTPCITS::clear()
   mABTrackletClusterIDs.clear();
   mABTrackletLabels.clear();
   mTglITSTPC.clear();
+  mNMatchesControl = 0;
 
   for (int sec = o2::constants::math::NSectors; sec--;) {
     mITSSectIndexCache[sec].clear();
@@ -288,7 +288,7 @@ void MatchTPCITS::selectBestMatches()
   } while (nValidated);
 
   mTimer[SWSelectBest].Stop();
-  LOGP(info, "Validated {} matches for {} TPC tracks in {} iterations", nValidatedTotal, mTPCWork.size(), iter);
+  LOGP(info, "Validated {} matches out of {} for {} TPC and {} ITS tracks in {} iterations", nValidatedTotal, mNMatchesControl, mTPCWork.size(), mITSWork.size(), iter);
 }
 
 //______________________________________________
@@ -451,7 +451,7 @@ bool MatchTPCITS::prepareTPCData()
     }
     if constexpr (isTPCTrack<decltype(trk)>()) {
       // unconstrained TPC track, with t0 = TrackTPC.getTime0+0.5*(DeltaFwd-DeltaBwd) and terr = 0.5*(DeltaFwd+DeltaBwd) in TimeBins
-      if (!this->mSkipTPCOnly) {
+      if (!this->mSkipTPCOnly && trk.getNClusters() > 0) {
         this->addTPCSeed(trk, this->tpcTimeBin2MUS(time0) - this->mTPCDriftTimeOffset, this->tpcTimeBin2MUS(terr), gid, gid.getIndex());
       }
     }
@@ -500,7 +500,7 @@ bool MatchTPCITS::prepareTPCData()
     timeStart[0] = 0;
     for (int itr = 0; itr < (int)indexCache.size(); itr++) {
       auto& trc = mTPCWork[indexCache[itr]];
-      while (itsROF < nITSROFs && !(trc.tBracket < mITSROFTimes[itsROF])) { // 1st ITS frame afte max allowed time for this TPC track
+      while (itsROF < nITSROFs && !(trc.tBracket < mITSROFTimes[itsROF])) { // 1st ITS frame after max allowed time for this TPC track
         itsROF++;
       }
       int itsROFMatch = itsROF;
@@ -532,7 +532,8 @@ bool MatchTPCITS::prepareTPCData()
   }
 */
   mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCCorrMapsHelper, mBz, mTPCTrackClusIdx.data(), mTPCRefitterShMap.data(), nullptr, o2::base::Propagator::Instance());
-
+  mInteractionMUSLUT.clear();
+  mInteractionMUSLUT.resize(maxTime + 3 * o2::constants::lhc::LHCOrbitMUS, -1);
   mTimer[SWPrepTPC].Stop();
   return mTPCWork.size() > 0;
 }
@@ -821,22 +822,22 @@ void MatchTPCITS::doMatching(int sec)
             continue;
           }
         }
-        if (checkInteractionCandidates) {
+        if (checkInteractionCandidates && mInteractions.size()) {
           // check if corrected TPC track time is compatible with any of interaction times
-          auto interactionRefs = mITSROFIntCandEntries[trefITS.roFrame]; // reference on interaction candidates compatible with this track
-          int nic = interactionRefs.getEntries();
-          if (nic) {
-            int idIC = interactionRefs.getFirstEntry(), maxIC = idIC + nic;
-            for (; idIC < maxIC; idIC++) {
-              auto cmp = mInteractions[idIC].tBracket.isOutside(trange);
-              if (cmp == o2::math_utils::Bracketf_t::Above) { // trange is above this interaction candidate, the following ones may match
-                continue;
-              }
-              if (cmp == o2::math_utils::Bracketf_t::Inside) {
-                matchedIC = idIC;
-              }
-              break; // we loop till 1st matching IC or the one above the trange (since IC are ordered, all others will be above too)
+          int tmus = trange.getMin();
+          if (tmus < 0) {
+            tmus = 0;
+          }
+          auto entStart = tmus < int(mInteractionMUSLUT.size()) ? mInteractionMUSLUT[tmus] : (mInteractionMUSLUT.size() ? mInteractionMUSLUT.back() : 0);
+          for (int ent = entStart; ent < (int)mInteractions.size(); ent++) {
+            auto cmp = mInteractions[ent].tBracket.isOutside(trange);
+            if (cmp == o2::math_utils::Bracketf_t::Above) { // trange is above this interaction candidate, the following ones may match
+              continue;
             }
+            if (cmp == o2::math_utils::Bracketf_t::Inside) {
+              matchedIC = ent;
+            }
+            break; // we loop till 1st matching IC or the one above the trange (since IC are ordered, all others will be above too)
           }
         }
         if (mParams->validateMatchByFIT == MatchTPCITSParams::Require && matchedIC == MinusOne) {
@@ -852,6 +853,7 @@ void MatchTPCITS::doMatching(int sec)
               << " N TPC tracks checked: " << nCheckTPCControl << " (starting from " << idxMinTPC
               << "), checks: " << nCheckITSControl << ", matches:" << nMatchesControl;
   }
+  mNMatchesControl += nMatchesControl;
 }
 
 //______________________________________________
@@ -1391,35 +1393,51 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
   trfit.setRefTPC({unsigned(tTPC.sourceID), o2::dataformats::GlobalTrackID::TPC});
   trfit.setRefITS({unsigned(tITS.sourceID), o2::dataformats::GlobalTrackID::ITS});
 
-#ifdef _ALLOW_DEBUG_TREES_
-  if (mDBGOut) {
-    auto tpcOrigC = mTPCTracksArray[tTPC.sourceID];
-    auto itsOrigC = itsTrOrig;
-    auto tITSC = tITS;
-    auto tTPCC = tTPC;
-    o2::MCCompLabel lblITS, lblTPC;
-    (*mDBGOut) << "refit"
-               << "tpcOrig=" << tpcOrigC << "itsOrig=" << itsOrigC << "itsRef=" << tITSC << "tpcRef=" << tTPCC << "matchRefit=" << trfit << "timeCorr=" << timeC;
-    if (mMCTruthON) {
-      lblITS = mITSLblWork[iITS];
-      lblTPC = mTPCLblWork[iTPC];
-      (*mDBGOut) << "refit"
-                 << "itsLbl=" << lblITS << "tpcLbl=" << lblTPC;
-    }
-    (*mDBGOut) << "refit"
-               << "\n";
-  }
-#endif
-
   if (mMCTruthON) { // store MC info: we assign TPC track label and declare the match fake if the ITS and TPC labels are different (their fake flag is ignored)
     auto& lbl = mOutLabels.emplace_back(mTPCLblWork[iTPC]);
     lbl.setFakeFlag(mITSLblWork[iITS] != mTPCLblWork[iTPC]);
   }
 
   // if requested, fill the difference of ITS and TPC tracks tgl for vdrift calibation
+  float minDiffFT0 = -999.;
+  std::vector<float> dtimes;
   if (mVDriftCalibOn && (!mFieldON || std::abs(trfit.getQ2Pt()) < mParams->maxVDriftTrackQ2Pt)) {
-    mTglITSTPC.emplace_back(tITS.getTgl(), tTPC.getTgl());
+    // find closest FIT record
+    float minDiffA = mParams->maxVDritTimeOffset;
+    if (mInteractions.size()) {
+      int timeC0 = timeC - minDiffA;
+      if (timeC0 < 0) {
+        timeC0 = 0;
+      }
+      auto entStart = timeC0 < int(mInteractionMUSLUT.size()) ? mInteractionMUSLUT[timeC0] : (mInteractionMUSLUT.size() ? mInteractionMUSLUT.back() : 0);
+      for (int ent = entStart; ent < (int)mInteractions.size(); ent++) {
+        float diff = mInteractions[ent].tBracket.mean() - timeC;
+        if (diff > minDiffA) {
+          break; // all following will be the same
+        }
+        if (diff < -minDiffA) {
+          continue;
+        }
+        dtimes.push_back(diff);
+        minDiffFT0 = diff;
+        minDiffA = std::abs(minDiffFT0);
+      }
+    }
+    mTglITSTPC.emplace_back(tITS.getTgl(), tTPC.getTgl(), minDiffFT0);
   }
+#ifdef _ALLOW_DEBUG_TREES_
+  if (mDBGOut) {
+    (*mDBGOut) << "refit"
+               << "tpcOrig=" << mTPCTracksArray[tTPC.sourceID] << "itsOrig=" << itsTrOrig << "itsRef=" << tITS << "tpcRef=" << tTPC << "matchRefit=" << trfit << "timeCorr=" << timeC << "dTimeFT0=" << minDiffFT0 << "dTimes=" << dtimes;
+    if (mMCTruthON) {
+      (*mDBGOut) << "refit"
+                 << "itsLbl=" << mITSLblWork[iITS] << "tpcLbl=" << mTPCLblWork[iTPC];
+    }
+    (*mDBGOut) << "refit"
+               << "\n";
+  }
+#endif
+
   //  trfit.print(); // DBG
 
   return true;
@@ -1619,8 +1637,6 @@ int MatchTPCITS::prepareInteractionTimes()
   // guess interaction times from various sources and relate with ITS rofs
   const float ft0Uncertainty = 0.5e-3;
   int nITSROFs = mITSROFTimes.size();
-  mITSROFIntCandEntries.resize(nITSROFs);
-
   if (mFITInfo.size()) {
     int rof = 0;
     for (const auto& ft : mFITInfo) {
@@ -1628,24 +1644,32 @@ int MatchTPCITS::prepareInteractionTimes()
         continue;
       }
       auto fitTime = ft.getInteractionRecord().differenceInBCMUS(mStartIR);
-      // find corresponding ITS ROF, works both in cont. and trigg. modes (ignore T0 MeanTime within the BC)
+      if (fitTime < 0) { // should not happen
+        continue;
+      }
+      if (size_t(fitTime) >= mInteractionMUSLUT.size()) {
+        mInteractionMUSLUT.resize(size_t(fitTime) + 1, -1);
+      }
+      if (mInteractionMUSLUT[fitTime] < 0) {
+        mInteractionMUSLUT[fitTime] = mInteractions.size();
+      }
       for (; rof < nITSROFs; rof++) {
         if (mITSROFTimes[rof] < fitTime) {
           continue;
         }
-        if (fitTime >= mITSROFTimes[rof].getMin()) { // belongs to this ROF
-          auto& ref = mITSROFIntCandEntries[rof];
-          if (!ref.getEntries()) {
-            ref.setFirstEntry(mInteractions.size()); // register entry
-          }
-          ref.changeEntriesBy(1); // increment counter
-          mInteractions.emplace_back(ft.getInteractionRecord(), fitTime, ft0Uncertainty, rof, o2::detectors::DetID::FT0);
-        }
-        break; // this or next ITSrof in time is > fitTime
+        break;
       }
+      mInteractions.emplace_back(ft.getInteractionRecord(), fitTime, ft0Uncertainty, rof, o2::detectors::DetID::FT0);
     }
   }
-
+  int ent = 0;
+  for (auto& val : mInteractionMUSLUT) {
+    if (val < 0) { // was not assigned == no interactions in this mus, assign previous one
+      val = ent;
+    } else {
+      ent = val > 0 ? val - 1 : val;
+    }
+  }
   return mInteractions.size();
 }
 
@@ -1667,6 +1691,7 @@ void MatchTPCITS::runAfterBurner()
 #endif
   for (int ic = 0; ic < nIntCand; ic++) {
     const auto& intCand = mInteractions[ic];
+    LOGP(debug, "cand T {} Entries: {} : {} : {} | ITS ROF: {}", intCand.tBracket.mean(), intCand.seedsRef.getEntries(), intCand.seedsRef.getFirstEntry(), intCand.seedsRef.getEntriesBound(), intCand.rofITS);
     if (!intCand.seedsRef.getEntries()) {
       continue;
     }
@@ -2208,11 +2233,12 @@ void MatchTPCITS::setBunchFilling(const o2::BunchFilling& bf)
   // find closest (from above) filled bunch
   int minBC = bf.getFirstFilledBC(), maxBC = bf.getLastFilledBC();
   if (minBC < 0 && mUseBCFilling) {
-    mUseBCFilling = false;
-    LOG(warning) << "Disabling match validation by BunchFilling as no interacting bunches found";
+    if (mUseBCFilling) {
+      mUseBCFilling = false;
+      LOG(warning) << "Disabling match validation by BunchFilling as no interacting bunches found";
+    }
     return;
   }
-  mUseBCFilling = true;
   int bcAbove = minBC;
   for (int i = o2::constants::lhc::LHCMaxBunches; i--;) {
     if (bf.testBC(i)) {

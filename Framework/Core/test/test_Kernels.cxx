@@ -9,21 +9,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test Framework Kernels
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-
 #include "Framework/Kernels.h"
 #include "Framework/TableBuilder.h"
 #include "Framework/Pack.h"
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include <arrow/util/config.h>
 
 using namespace o2::framework;
 using namespace arrow;
 using namespace arrow::compute;
 
-BOOST_AUTO_TEST_CASE(TestSlicing)
+TEST_CASE("TestSlicing")
 {
   TableBuilder builder;
   auto rowWriter = builder.persist<int32_t, int32_t>({"x", "y"});
@@ -49,12 +45,12 @@ BOOST_AUTO_TEST_CASE(TestSlicing)
   std::array<int, 4> c{4, 1, 1, 2};
 
   for (auto i = 0; i < arr0.length(); ++i) {
-    BOOST_REQUIRE_EQUAL(arr0.Value(i), v[i]);
-    BOOST_REQUIRE_EQUAL(arr1.Value(i), c[i]);
+    REQUIRE(arr0.Value(i) == v[i]);
+    REQUIRE(arr1.Value(i) == c[i]);
   }
 }
 
-BOOST_AUTO_TEST_CASE(TestSlicingFramework)
+TEST_CASE("TestSlicingFramework")
 {
   TableBuilder builder;
   auto rowWriter = builder.persist<int32_t, int32_t>({"x", "y"});
@@ -72,15 +68,15 @@ BOOST_AUTO_TEST_CASE(TestSlicingFramework)
   std::vector<uint64_t> offsets;
   std::vector<arrow::Datum> slices;
   auto status = sliceByColumn("x", "xy", table, 12, &slices, &offsets);
-  BOOST_REQUIRE(status.ok());
-  BOOST_REQUIRE_EQUAL(slices.size(), 12);
+  REQUIRE(status.ok());
+  REQUIRE(slices.size() == 12);
   std::array<int, 12> sizes{0, 4, 1, 0, 1, 2, 0, 0, 0, 0, 0, 0};
   for (auto i = 0u; i < slices.size(); ++i) {
-    BOOST_REQUIRE_EQUAL(slices[i].table()->num_rows(), sizes[i]);
+    REQUIRE(slices[i].table()->num_rows() == sizes[i]);
   }
 }
 
-BOOST_AUTO_TEST_CASE(TestSlicingException)
+TEST_CASE("TestSlicingException")
 {
   TableBuilder builder;
   auto rowWriter = builder.persist<int32_t, int32_t>({"x", "y"});
@@ -100,9 +96,9 @@ BOOST_AUTO_TEST_CASE(TestSlicingException)
   try {
     auto status = sliceByColumn("x", "xy", table, 12, &slices, &offsets);
   } catch (RuntimeErrorRef re) {
-    BOOST_REQUIRE_EQUAL(std::string{error_from_ref(re).what}, "Table xy index x is not sorted: next value 4 < previous value 5!");
+    REQUIRE(std::string{error_from_ref(re).what} == "Table xy index x is not sorted: next value 4 < previous value 5!");
     return;
   } catch (...) {
-    BOOST_FAIL("Slicing should have failed due to unsorted index");
+    FAIL("Slicing should have failed due to unsorted index");
   }
 }

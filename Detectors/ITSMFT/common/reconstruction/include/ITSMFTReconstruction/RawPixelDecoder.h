@@ -29,6 +29,7 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTReconstruction/PixelData.h"
 #include "ITSMFTReconstruction/GBTWord.h"
+#include <unordered_map>
 
 namespace o2
 {
@@ -56,9 +57,8 @@ class RawPixelDecoder final : public PixelReader
   ChipPixelData* getNextChipData(std::vector<ChipPixelData>& chipDataVec) final;
   void ensureChipOrdering() {}
   void startNewTF(o2::framework::InputRecord& inputs);
-
+  void collectROFCableData(int iru);
   int decodeNextTrigger() final;
-  int decodeNextTrigger(int il);
 
   template <class DigitContainer, class ROFContainer>
   int fillDecodedDigits(DigitContainer& digits, ROFContainer& rofs);
@@ -91,7 +91,7 @@ class RawPixelDecoder final : public PixelReader
   void printReport(bool decstat = true, bool skipNoErr = true) const;
   void produceRawDataDumps(int dump, const o2::framework::TimingInfo& tinfo);
 
-  void clearStat();
+  void clearStat(bool resetRaw = false);
 
   TStopwatch& getTimerTFStart() { return mTimerTFStart; }
   TStopwatch& getTimerDecode() { return mTimerDecode; }
@@ -100,6 +100,9 @@ class RawPixelDecoder final : public PixelReader
   uint32_t getNPixelsFiredROF() const { return mNPixelsFiredROF; }
   size_t getNChipsFired() const { return mNChipsFired; }
   size_t getNPixelsFired() const { return mNPixelsFired; }
+
+  void setAllowEmptyROFs(bool v) { mAlloEmptyROFs = v; }
+  bool getAllowEmptyROFs() const { return mAlloEmptyROFs; }
 
   void setInstanceID(size_t i) { mInstanceID = i; }
   void setNInstances(size_t n) { mNInstances = n; }
@@ -117,6 +120,8 @@ class RawPixelDecoder final : public PixelReader
   };
 
   uint16_t getSquashingDepth() { return 0; }
+  bool doIRMajorityPoll();
+  void reset();
 
  private:
   void setupLinks(o2::framework::InputRecord& inputs);
@@ -133,6 +138,7 @@ class RawPixelDecoder final : public PixelReader
   std::array<short, Mapping::getNRUs()> mRUEntry;                                     // entry of the RU with given SW ID in the mRUDecodeVec
   std::vector<ChipPixelData*> mOrderedChipsPtr;                                       // special ordering helper used for the MFT (its chipID is not contiguous in RU)
   std::vector<PhysTrigger> mExtTriggers;                                              // external triggers
+  GBTLink* mLinkForTriggers = nullptr;                                                // link assigned to collect the triggers
   std::string mSelfName{};                                                            // self name
   std::string mRawDumpDirectory;                                                      // destination directory for dumps
   header::DataOrigin mUserDataOrigin = o2::header::gDataOriginInvalid;                // alternative user-provided data origin to pick
@@ -140,7 +146,9 @@ class RawPixelDecoder final : public PixelReader
   uint16_t mCurRUDecodeID = NORUDECODED;                                              // index of currently processed RUDecode container
   int mLastReadChipID = -1;                                                           // chip ID returned by previous getNextChipData call, used for ordering checks
   Mapping mMAP;                                                                       // chip mapping
+  std::unordered_map<o2::InteractionRecord, int> mIRPoll;                             // poll for links IR used for synchronization
   bool mFillCalibData = false;                                                        // request to fill calib data from GBT
+  bool mAlloEmptyROFs = false;                                                        // do not skip empty ROFs
   int mVerbosity = 0;
   int mNThreads = 1; // number of decoding threads
   // statistics

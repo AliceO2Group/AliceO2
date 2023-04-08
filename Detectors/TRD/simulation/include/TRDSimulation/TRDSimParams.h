@@ -37,6 +37,10 @@ struct TRDSimParams : public o2::conf::ConfigurableParamHelper<TRDSimParams> {
   float maxMCStepSize = 0.1;                              ///< maximum size of MC steps
   bool doTR = true;                                       ///< switch for transition radiation
   SimParam::GasMixture gas = SimParam::GasMixture::Xenon; ///< the gas mixture in the TRD
+  // TRF parameters
+  int trf = 0;                  // Sampled TRF function. 0: default TRF, 1: TRF described in TRF TDR, 2: No TRF, 3: Landau dist as TRF (parameters specified below)
+  float trf_landau_mu = 0.;     // Mu of the Landau distribution used to describe TRF
+  float trf_landau_sigma = .03; // Sigma of the Landau distribution used to describe TRF
   O2ParamDef(TRDSimParams, "TRDSimParams");
 };
 

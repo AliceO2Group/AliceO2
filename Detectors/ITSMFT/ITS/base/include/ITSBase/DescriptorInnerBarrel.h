@@ -56,10 +56,12 @@ class DescriptorInnerBarrel : public TObject
   double mWrapperZSpan{70.};
 
   // layer properties
-  double mSensorLayerThickness{};           // sensor thickness
-  std::vector<double> mLayerRadii{};        // Vector of layer radius
-  std::vector<double> mDetectorThickness{}; // Vector of detector thickness
+  double mSensorLayerThickness{};           //! sensor thickness
+  std::vector<double> mLayerRadii{};        //! Vector of layer radius
+  std::vector<double> mDetectorThickness{}; //! Vector of detector thickness
   std::vector<int> mChipTypeID{};           //! Vector of unique chip ID
+
+  std::vector<int> mBuildLevel; //! Vector of Material Budget Studies
 
   /// \cond CLASSIMP
   ClassDef(DescriptorInnerBarrel, 1); /// ITS inner barrel geometry descriptor

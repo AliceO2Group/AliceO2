@@ -68,24 +68,24 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, valu
   if (gpu::CAMath::Abs(r2) < constants::math::Almost0) {
     return false;
   }
-  this->setX(xk);
   double dy2dx = (f1 + f2) / (r1 + r2);
+  bool arcz = gpu::CAMath::Abs(x2r) > 0.05f;
   params_t dP{0.f};
-  dP[kY] = dx * dy2dx;
-  dP[kSnp] = x2r;
-  if (gpu::CAMath::Abs(x2r) < 0.05f) {
-    dP[kZ] = dx * (r2 + f2 * dy2dx) * this->getTgl();
-  } else {
+  if (arcz) {
     // for small dx/R the linear apporximation of the arc by the segment is OK,
     // but at large dx/R the error is very large and leads to incorrect Z propagation
     // angle traversed delta = 2*asin(dist_start_end / R / 2), hence the arc is: R*deltaPhi
     // The dist_start_end is obtained from sqrt(dx^2+dy^2) = x/(r1+r2)*sqrt(2+f1*f2+r1*r2)
     //    double chord = dx*TMath::Sqrt(1+dy2dx*dy2dx);   // distance from old position to new one
     //    double rot = 2*TMath::ASin(0.5*chord*crv); // angular difference seen from the circle center
-    //    mP1 += rot/crv*mP3;
+    //    track1 += rot/crv*track3;
     //
-    value_t rot = gpu::CAMath::ASin(r1 * f2 - r2 * f1); // more economic version from Yura.
-    if (f1 * f1 + f2 * f2 > 1.f && f1 * f2 < 0.f) {     // special cases of large rotations or large abs angles
+    auto arg = r1 * f2 - r2 * f1;
+    if (gpu::CAMath::Abs(arg) > constants::math::Almost1) {
+      return false;
+    }
+    value_t rot = gpu::CAMath::ASin(arg);           // more economic version from Yura.
+    if (f1 * f1 + f2 * f2 > 1.f && f1 * f2 < 0.f) { // special cases of large rotations or large abs angles
       if (f2 > 0.f) {
         rot = constants::math::PI - rot; //
       } else {
@@ -93,7 +93,12 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, valu
       }
     }
     dP[kZ] = this->getTgl() / crv * rot;
+  } else {
+    dP[kZ] = dx * (r2 + f2 * dy2dx) * this->getTgl();
   }
+  this->setX(xk);
+  dP[kY] = dx * dy2dx;
+  dP[kSnp] = x2r;
 
   this->updateParams(dP); // apply corrections
 

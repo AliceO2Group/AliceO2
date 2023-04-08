@@ -21,11 +21,9 @@ namespace o2::utilities
 
 using DataHeader = o2::header::DataHeader;
 
-static std::atomic<unsigned int> blockId = 0;
-
 InjectorFunction dataSamplingReadoutAdapter(OutputSpec const& spec)
 {
-  return [spec](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever) {
+  return [spec](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId, bool& stop) {
     for (size_t i = 0; i < parts.Size(); ++i) {
 
       DataHeader dh;
@@ -36,7 +34,7 @@ InjectorFunction dataSamplingReadoutAdapter(OutputSpec const& spec)
       dh.payloadSize = parts.At(i)->GetSize();
       dh.payloadSerializationMethod = o2::header::gSerializationMethodNone;
 
-      DataProcessingHeader dph{++blockId, 0};
+      DataProcessingHeader dph{newTimesliceId, 0};
       o2::header::Stack headerStack{dh, dph};
       sendOnChannel(device, std::move(headerStack), std::move(parts.At(i)), spec, channelRetriever);
     }

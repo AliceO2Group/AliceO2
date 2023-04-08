@@ -20,6 +20,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cxxabi.h>
+#include <stdexcept>
 
 namespace o2::framework
 {
@@ -62,6 +63,9 @@ RuntimeErrorRef runtime_error_f(const char* format, ...)
   bool expected = false;
   while (gErrorBooking[i].compare_exchange_strong(expected, true) == false) {
     ++i;
+    if (i >= RuntimeError::MAX_RUNTIME_ERRORS) {
+      throw std::runtime_error("Too many o2::framework::runtime_error thrown without proper cleanup.");
+    }
   }
   va_list args;
   va_start(args, format);
@@ -154,7 +158,18 @@ void demangled_backtrace_symbols(void** stackTrace, unsigned int stackDepth, int
       if (stackTrace[i] && hasExe) {
         char syscom[4096 + PATH_MAX];
 
-        snprintf(syscom, 4096, "addr2line %p -p -s -f -e %.*s 2>/dev/null | c++filt -r ", stackTrace[i], exeSize, exe); // last parameter is the name of this app
+        // Find c++filt from the environment
+        // This is needed for platforms where we still need c++filt -r
+        char const* cxxfilt = getenv("CXXFILT");
+        if (cxxfilt == nullptr) {
+          cxxfilt = "c++filt";
+        }
+        // Do the same for addr2line, just in case we wanted to pass some options
+        char const* addr2line = getenv("ADDR2LINE");
+        if (addr2line == nullptr) {
+          addr2line = "addr2line";
+        }
+        snprintf(syscom, 4096, "%s %p -p -s -f -e %.*s 2>/dev/null | %s ", addr2line, stackTrace[i], exeSize, exe, cxxfilt); // last parameter is the name of this app
 
         FILE* fp;
         char path[1024];

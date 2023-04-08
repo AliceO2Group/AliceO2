@@ -19,8 +19,7 @@
 #include "Framework/Logger.h"
 #include "ITSMFTReconstruction/GBTWord.h"
 #include "ITSMFTReconstruction/GBTLink.h"
-#include "ITSMFTReconstruction/RUDecodeData.h"
-#include "ITSMFTReconstruction/RUInfo.h"
+#include "ITSMFTReconstruction/DecodingStat.h"
 #include "ITSMFTReconstruction/RUDecodeData.h"
 
 namespace o2
@@ -32,11 +31,11 @@ namespace itsmft
 /// reset RU and its links
 void RUDecodeData::clear()
 {
-  for (int i = nCables; i--;) {
+  for (int i = ruInfo->nCables; i--;) {
     cableData[i].clear();
   }
-  nCables = 0;
   nChipsFired = 0;
+  nNonEmptyLinks = 0;
   calibData.clear();
 }
 
@@ -86,6 +85,46 @@ void RUDecodeData::dumpcabledata(int icab)
   if (!dmp.empty()) {
     LOGP(info, "wrd#{}: {}", cdi / 9 - 1, dmp);
   }
+}
+
+///_________________________________________________________________
+/// check if the link data is in sync with majority
+bool RUDecodeData::checkLinkInSync(int icab, const o2::InteractionRecord ir)
+{
+  auto* link = cableLinkPtr[icab];
+  if (link->ir == ir) {
+    link->rofJumpWasSeen = false;
+    return true;
+  }
+  // apparently there was desynchronization
+  if (link->ir > ir) {
+    link->rofJumpWasSeen = true;
+#ifdef _RAW_READER_ERROR_CHECKS_
+    link->statistics.errorCounts[GBTLinkDecodingStat::ErrMissingROF]++;
+    linkHBFToDump[(uint64_t(link->subSpec) << 32) + link->hbfEntry] = link->irHBF.orbit;
+    if (link->needToPrintError(link->statistics.errorCounts[GBTLinkDecodingStat::ErrMissingROF])) {
+      LOGP(info, "{} (cable {}) has IR={} > current majority IR={} -> {}", link->describe(),
+           cableHWID[icab], link->ir.asString(), ir.asString(), link->statistics.ErrNames[GBTLinkDecodingStat::ErrMissingROF]);
+    }
+#endif
+  } else { // link IR is behind the majority IR? In principle, this should never happen
+#ifdef _RAW_READER_ERROR_CHECKS_
+    link->statistics.errorCounts[GBTLinkDecodingStat::ErrOldROF]++;
+    linkHBFToDump[(uint64_t(link->subSpec) << 32) + link->hbfEntry] = link->irHBF.orbit;
+    if (link->needToPrintError(link->statistics.errorCounts[GBTLinkDecodingStat::ErrOldROF])) {
+      LOGP(error, "{} (cable {}) has IR={} for current majority IR={} -> {}", link->describe(),
+           cableHWID[icab], link->ir.asString(), ir.asString(), link->statistics.ErrNames[GBTLinkDecodingStat::ErrOldROF]);
+    }
+#endif
+    // clean data of cables of this link
+    for (int i = 0; i < ruInfo->nCables; i++) {
+      if (cableLinkPtr[i] == link) {
+        cableData[i].clear();
+      }
+    }
+    link->rofJumpWasSeen = false;
+  }
+  return false;
 }
 
 } // namespace itsmft

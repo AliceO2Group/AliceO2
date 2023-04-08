@@ -57,7 +57,13 @@ class TriCubicInterpolator
   /// Constructor for a tricubic interpolator
   /// \param gridData struct containing access to the values of the grid
   /// \param gridProperties properties of the 3D grid
-  TriCubicInterpolator(const DataContainer& gridData, const Grid3D& gridProperties) : mGridData{gridData}, mGridProperties{gridProperties} {};
+  TriCubicInterpolator(const DataContainer& gridData, const Grid3D& gridProperties) : mGridData{&gridData}, mGridProperties{&gridProperties} {};
+
+  /// move constructor
+  TriCubicInterpolator(TriCubicInterpolator<DataT>&&);
+
+  /// move assignment
+  TriCubicInterpolator<DataT>& operator=(TriCubicInterpolator<DataT>&&);
 
   enum class ExtrapolationType {
     Linear = 0,   ///< assume linear dependency at the boundaries of the grid
@@ -84,8 +90,8 @@ class TriCubicInterpolator
   static constexpr unsigned int FZ = Grid3D::getFZ();                 ///< index for z coordinate
   static constexpr unsigned int FR = Grid3D::getFR();                 ///< index for r coordinate
   static constexpr unsigned int FPHI = Grid3D::getFPhi();             ///< index for phi coordinate
-  const DataContainer& mGridData{};                                   ///< adress to the data container of the grid
-  const Grid3D& mGridProperties{};                                    ///< adress to the properties of the grid
+  const DataContainer* mGridData{};                                   ///< adress to the data container of the grid
+  const Grid3D* mGridProperties{};                                    ///< adress to the properties of the grid
   ExtrapolationType mExtrapolationType = ExtrapolationType::Parabola; ///< sets which type of extrapolation for missing points at boundary is used
 
   //                 DEFINITION OF enum GridPos
@@ -153,7 +159,7 @@ class TriCubicInterpolator
   void getDataIndexCircularArray(const int index0, const int dim, int arr[]) const;
 
   // this helps to get circular and non circular padding indices
-  int getRegulatedDelta(const int index0, const int delta, const unsigned int dim, const int offs) const { return mGridProperties.isIndexInGrid(index0 + delta, dim) ? delta : offs; }
+  int getRegulatedDelta(const int index0, const int delta, const unsigned int dim, const int offs) const { return mGridProperties->isIndexInGrid(index0 + delta, dim) ? delta : offs; }
 
   DataT extrapolation(const DataT valk, const DataT valk1, const DataT valk2) const;
 

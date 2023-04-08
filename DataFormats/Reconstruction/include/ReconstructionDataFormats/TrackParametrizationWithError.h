@@ -413,7 +413,7 @@ GPUdi() void TrackParametrizationWithError<value_T>::updateCovCorr(const value_t
     auto diagI = DiagMap[i];
     oldDiag[i] = mC[diagI];
     mC[diagI] += delta2[i];
-    for (int j = 0; j < i; i++) {
+    for (int j = 0; j < i; j++) {
       mC[CovarMap[i][j]] *= gpu::CAMath::Sqrt(mC[diagI] * mC[DiagMap[j]] / (oldDiag[i] * oldDiag[j]));
     }
   }

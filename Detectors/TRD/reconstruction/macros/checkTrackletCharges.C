@@ -1,3 +1,20 @@
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// \file checkTrackletCharges.C
+/// \brief Simple macro to display the tracklet charge information.
+//
+//  outputs a png
+//
+
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 // ROOT header
 #include <TROOT.h>
@@ -23,9 +40,9 @@ using namespace o2::trd;
 std::vector<TH1F*> createTrdChargeHists()
 {
   std::vector<TH1F*> hCharges;
-  hCharges.push_back(new TH1F("Charge0", "Charge window 0;charge;counts", 64, 0, 63));
-  hCharges.push_back(new TH1F("Charge1", "Charge window 1;charge;counts", 256, 0, 255));
-  hCharges.push_back(new TH1F("Charge2", "Charge window 2;charge;counts", 256, 0, 255));
+  hCharges.push_back(new TH1F("Charge0", "Charge window 0;charge;counts", 128, -0.5, 127.5));
+  hCharges.push_back(new TH1F("Charge1", "Charge window 1;charge;counts", 128, -0.5, 127.5));
+  hCharges.push_back(new TH1F("Charge2", "Charge window 2;charge;counts", 64, -0.5, 63.5));
   return hCharges;
 }
 
@@ -111,7 +128,7 @@ void checkTrackletCharges(int sector = -1)
     //pad->SetLogz();
   }
   c->Update();
-  c->SaveAs("tracklet-charges.png");
+  c->SaveAs(Form("tracklet_charges_sector%d.png", sector));
 
   printf("Got in total %i trigger from %i TFs\n", countTrigger, countEntries);
 }

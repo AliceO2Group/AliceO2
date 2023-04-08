@@ -67,7 +67,8 @@ struct GBTLink {
   enum CollectedDataStatus : int8_t { None,
                                       AbortedOnError,
                                       StoppedOnEndOfData,
-                                      DataSeen }; // None is set before starting collectROFCableData
+                                      DataSeen,
+                                      CachedDataExist }; // None is set before starting collectROFCableData
 
   enum ErrorType : uint8_t { NoError = 0x0,
                              Warning = 0x1,
@@ -104,6 +105,8 @@ struct GBTLink {
 
   // transient data filled from current RDH
   int wordLength = o2::itsmft::GBTPaddedWordLength; // padded (16bytes) vs non-padded (10bytes) words
+  bool expectPadding = true;
+  bool rofJumpWasSeen = false; // this link had jump in ROF IR
   uint32_t lanesActive = 0;   // lanes declared by the payload header
   uint32_t lanesStop = 0;     // lanes received stop in the payload trailer
   uint32_t lanesTimeOut = 0;  // lanes received timeout
@@ -113,6 +116,7 @@ struct GBTLink {
   uint32_t errorBits = 0;     // bits of the error code of last frame decoding (if any)
   uint32_t hbfEntry = 0;      // entry of the current HBF page in the rawData SG list
   const RDH* lastRDH = nullptr;
+  const PayLoadSG::SGPiece* currRawPiece = nullptr;
   o2::InteractionRecord ir;       // interaction record of the ROF
   o2::InteractionRecord irHBF;    // interaction record of the HBF
   GBTLinkDecodingStat statistics; // link decoding statistics
@@ -136,8 +140,9 @@ struct GBTLink {
     rawData.add(reinterpret_cast<const PayLoadSG::DataType*>(ptr), sz);
   }
 
- private:
   bool needToPrintError(uint32_t count) { return verbosity == Silent ? false : (verbosity > VerboseErrors || count == 1); }
+
+ private:
   void discardData() { rawData.setDone(); }
   void printTrigger(const GBTTrigger* gbtTrg, int offs);
   void printHeader(const GBTDataHeader* gbtH, int offs);
@@ -148,6 +153,16 @@ struct GBTLink {
   void printCalibrationWord(const GBTCalibration* gbtCal, int offs);
   void printCableStatus(const GBTCableStatus* gbtS);
   bool nextCRUPage();
+
+  bool isAlignmentPadding()
+  {
+    if ((!expectPadding) &&                         // page alignment padding is expected only for GBT words w/o padding
+        (currRawPiece->data[dataOffset] == 0xff) && //
+        (dataOffset + CRUPageAlignment >= lastPageSize)) {
+      return (((dataOffset + GBTWordLength) <= lastPageSize) && currRawPiece->data[dataOffset + GBTWordLength - 1] != 0xff) ? false : true;
+    }
+    return false;
+  }
 
 #ifndef _RAW_READER_ERROR_CHECKS_ // define dummy inline check methods, will be compiled out
   bool checkErrorsRDH(const RDH& rdh) const
@@ -197,10 +212,13 @@ template <class Mapping>
 GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
 {
   status = None;
-  auto* currRawPiece = rawData.currentPiece();
+  if (rofJumpWasSeen) { // make sure this link does not have yet unused data due to the ROF/HBF jump
+    status = CachedDataExist;
+    return status;
+  }
+  currRawPiece = rawData.currentPiece();
   uint8_t errRes = uint8_t(GBTLink::NoError);
   bool expectPacketDone = false;
-  bool expectPadding = wordLength == o2::itsmft::GBTPaddedWordLength;
   ir.clear();
   while (currRawPiece) { // we may loop over multiple CRU page
     if (dataOffset >= currRawPiece->size) {
@@ -254,8 +272,6 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
 
       continue;
     }
-
-    ruPtr->nCables = ruPtr->ruInfo->nCables; // RSTODO is this needed? TOREMOVE
     bool cruPageAlignmentPaddingSeen = false;
 
     // then we expect GBT trigger word
@@ -307,9 +323,9 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
           return status;
         }
       }
-      if (dataOffset >= currRawPiece->size || (!expectPadding && (cruPageAlignmentPaddingSeen = (currRawPiece->data[dataOffset] == 0xff)))) { // end of CRU page was reached while scanning triggers
+      if (dataOffset >= currRawPiece->size || (cruPageAlignmentPaddingSeen = isAlignmentPadding())) { // end of CRU page was reached while scanning triggers
         if (cruPageAlignmentPaddingSeen) {
-          GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsAlignmentPadding());
+          // GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsAlignmentPadding());
           dataOffset = lastPageSize;
         }
         if (verbosity >= VerboseHeaders) {
@@ -321,9 +337,9 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
     auto gbtD = reinterpret_cast<const o2::itsmft::GBTData*>(&currRawPiece->data[dataOffset]);
     expectPacketDone = true;
 
-    while (!gbtD->isDataTrailer() && (expectPadding || !(cruPageAlignmentPaddingSeen = (currRawPiece->data[dataOffset] == 0xff)))) { // start reading real payload
+    while (!gbtD->isDataTrailer() && !(cruPageAlignmentPaddingSeen = isAlignmentPadding())) { // start reading real payload
       if (verbosity >= VerboseData) {
-        gbtD->printX(wordLength == o2::itsmft::GBTPaddedWordLength);
+        gbtD->printX(expectPadding);
       }
       GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsGBTDataID(gbtD));
       if (errRes != uint8_t(GBTLink::Skip)) {
@@ -341,14 +357,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
       gbtD = reinterpret_cast<const o2::itsmft::GBTData*>(&currRawPiece->data[dataOffset]);
     } // we are at the trailer, packet is over, check if there are more data on the next page
     if (cruPageAlignmentPaddingSeen) {
-      GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsAlignmentPadding());
-      /*
-      LOGP(info, "ERROR L:{} | {:x}", std::min(32, (int)(lastPageSize - dataOffset)), currRawPiece->data[dataOffset]);
-      for (int i=0;i<std::min(32, (int)(lastPageSize - dataOffset)); i++) {
-  LOGP(info, "0x{:x}", currRawPiece->data[dataOffset+i]);
-      }
-      printf("\n");
-      */
+      // GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsAlignmentPadding());
       dataOffset = lastPageSize;
     } else {
       auto gbtT = reinterpret_cast<const o2::itsmft::GBTDataTrailer*>(&currRawPiece->data[dataOffset]); // process GBT trailer
@@ -360,7 +369,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
       GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsTrailerWord(gbtT));
       // we finished the GBT page, but there might be continuation on the next CRU page
       if (!gbtT->packetDone) {
-        GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsPacketDoneMissing(gbtT, (dataOffset < currRawPiece->size && (!expectPadding && currRawPiece->data[dataOffset] != 0xff))));
+        GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsPacketDoneMissing(gbtT, (dataOffset < currRawPiece->size && !isAlignmentPadding())));
         continue; // keep reading next CRU page
       }
       // accumulate packet states

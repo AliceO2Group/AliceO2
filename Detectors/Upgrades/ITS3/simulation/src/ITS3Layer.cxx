@@ -14,6 +14,7 @@
 /// \author Fabrizio Grosa <fgrosa@cern.ch>
 
 #include "ITSBase/GeometryTGeo.h"
+#include "ITS3Base/SegmentationSuperAlpide.h"
 #include "ITS3Simulation/ITS3Layer.h"
 
 #include <fairlogger/Logger.h> // for LOG
@@ -32,6 +33,9 @@ ITS3Layer::ITS3Layer(int lay)
   : TObject(),
     mLayerNumber(lay)
 {
+  SegmentationSuperAlpide seg(lay);
+  mChipThickness = seg.mDetectorLayerThickness;
+  mSensorThickness = seg.mSensorLayerThickness;
 }
 
 ITS3Layer::~ITS3Layer() = default;
@@ -42,8 +46,9 @@ void ITS3Layer::createLayer(TGeoVolume* motherVolume)
   TGeoMedium* medAir = gGeoManager->GetMedium("IT3_AIR$");
 
   double rmin = mRadius;
-  double rmax = rmin + mSensorThickness;
-  double radiusBetweenLayer = 0.6 - mSensorThickness; // FIXME: hard coded distance between layers
+  double rmax = rmin + mChipThickness;
+  double rminSensor = rmax - mSensorThickness;
+  double radiusBetweenLayer = 0.6 - mChipThickness; // FIXME: hard-coded distance between layers
 
   const int nElements = 7;
   std::string names[nElements];
@@ -60,7 +65,7 @@ void ITS3Layer::createLayer(TGeoVolume* motherVolume)
   TGeoTubeSeg* halfLayer[nElements - 1];
   TGeoVolume* volHalfLayer[nElements - 1];
   for (int iEl{0}; iEl < nElements - 1; ++iEl) {
-    TGeoMedium* med = (iEl == 0) ? medSi : medAir;
+    TGeoMedium* med = (iEl <= 2) ? medSi : medAir;
     if (iEl == 4) {
       halfLayer[iEl] = new TGeoTubeSeg(rmin, rmax + radiusBetweenLayer, mZLen / 2, 0., TMath::RadToDeg() * TMath::Pi());
       volHalfLayer[iEl] = new TGeoVolume(names[iEl].data(), halfLayer[iEl], med);
@@ -68,6 +73,11 @@ void ITS3Layer::createLayer(TGeoVolume* motherVolume)
       volHalfLayer[iEl]->SetVisibility(true);
       volHalfLayer[iEl]->SetLineColor(kGray + 2);
     } else if (iEl < 2) {
+      halfLayer[iEl] = new TGeoTubeSeg(rminSensor, rmax, mZLen / 2, 0., TMath::RadToDeg() * TMath::Pi());
+      volHalfLayer[iEl] = new TGeoVolume(names[iEl].data(), halfLayer[iEl], med);
+      volHalfLayer[iEl]->SetVisibility(true);
+      volHalfLayer[iEl]->SetLineColor(kRed + 1);
+    } else if (iEl == 2) {
       halfLayer[iEl] = new TGeoTubeSeg(rmin, rmax, mZLen / 2, 0., TMath::RadToDeg() * TMath::Pi());
       volHalfLayer[iEl] = new TGeoVolume(names[iEl].data(), halfLayer[iEl], med);
       volHalfLayer[iEl]->SetVisibility(true);
@@ -109,11 +119,12 @@ void ITS3Layer::createLayerWithDeadZones(TGeoVolume* motherVolume)
   TGeoMedium* medAir = gGeoManager->GetMedium("IT3_AIR$");
 
   double rmin = mRadius;
-  double rmax = rmin + mSensorThickness;
+  double rmax = rmin + mChipThickness;
+  double rminSensor = rmax - mSensorThickness;
   double rmed = (rmax + rmin) / 2;
   // width of sensors of layers is calculated from r and chips' widths
   double widthSensor = (TMath::Pi() * rmed - (mNumSubSensorsHalfLayer - 1) * mMiddleChipWidth - 2 * mFringeChipWidth) / mNumSubSensorsHalfLayer;
-  double radiusBetweenLayer = 0.6 - mSensorThickness; // FIXME: hard coded distance between layers
+  double radiusBetweenLayer = 0.6 - mChipThickness; // FIXME: hard coded distance between layers
 
   const int nElements = 7;
   std::string names[nElements];
@@ -131,17 +142,21 @@ void ITS3Layer::createLayerWithDeadZones(TGeoVolume* motherVolume)
   TGeoVolume* volHalfLayer[nElements - 1];
 
   for (int iEl{0}; iEl < nElements - 1; ++iEl) {
-    TGeoMedium* med = (iEl == 0) ? medSi : medAir;
+    TGeoMedium* med = (iEl <= 2) ? medSi : medAir;
 
     for (int iObj{0}; iObj < nObjPerElement[iEl]; ++iObj) {
       if (iEl == 0) { // subsensors (mNumSubSensorsHalfLayer sectors with dead zones)
         if (iObj == 0) {
-          halfLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rmin, rmax, mZLen / 2, TMath::RadToDeg() * mFringeChipWidth / rmed, TMath::RadToDeg() * (mFringeChipWidth + widthSensor) / rmed));
+          halfLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rminSensor, rmax, mZLen / 2, TMath::RadToDeg() * mFringeChipWidth / rmed, TMath::RadToDeg() * (mFringeChipWidth + widthSensor) / rmed));
         } else if (iObj == mNumSubSensorsHalfLayer - 1) {
-          halfLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rmin, rmax, mZLen / 2, TMath::RadToDeg() * (mFringeChipWidth + iObj * widthSensor + iObj * mMiddleChipWidth) / rmed, TMath::RadToDeg() * TMath::Pi() - TMath::RadToDeg() * mFringeChipWidth / rmed));
+          halfLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rminSensor, rmax, mZLen / 2, TMath::RadToDeg() * (mFringeChipWidth + iObj * widthSensor + iObj * mMiddleChipWidth) / rmed, TMath::RadToDeg() * TMath::Pi() - TMath::RadToDeg() * mFringeChipWidth / rmed));
         } else {
-          halfLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rmin, rmax, mZLen / 2, TMath::RadToDeg() * (mFringeChipWidth + iObj * widthSensor + iObj * mMiddleChipWidth) / rmed, TMath::RadToDeg() * (mFringeChipWidth + (iObj + 1) * widthSensor + iObj * mMiddleChipWidth) / rmed));
+          halfLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rminSensor, rmax, mZLen / 2, TMath::RadToDeg() * (mFringeChipWidth + iObj * widthSensor + iObj * mMiddleChipWidth) / rmed, TMath::RadToDeg() * (mFringeChipWidth + (iObj + 1) * widthSensor + iObj * mMiddleChipWidth) / rmed));
         }
+      } else if (iEl == 1) {
+        halfLayer[iEl].push_back(new TGeoTubeSeg(rminSensor, rmax, mZLen / 2, 0., TMath::RadToDeg() * TMath::Pi()));
+      } else if (iEl == 2) {
+        halfLayer[iEl].push_back(new TGeoTubeSeg(rmin, rmax, mZLen / 2, 0., TMath::RadToDeg() * TMath::Pi()));
       } else { // all the others are simply half cylinders filling all the space
         halfLayer[iEl].push_back(new TGeoTubeSeg(rmin, rmax + radiusBetweenLayer, mZLen / 2, 0., TMath::RadToDeg() * TMath::Pi()));
       }
@@ -191,13 +206,111 @@ void ITS3Layer::createLayerWithDeadZones(TGeoVolume* motherVolume)
   motherVolume->AddNode(volLayer, 1, nullptr);
 }
 
+void ITS3Layer::create4thLayer(TGeoVolume* motherVolume)
+{
+  TGeoMedium* medSi = gGeoManager->GetMedium("IT3_SI$");
+  TGeoMedium* medAir = gGeoManager->GetMedium("IT3_AIR$");
+
+  double rmin = mRadius;
+  double rmax = rmin + mChipThickness;
+  double rminSensor = rmax - mSensorThickness;
+  double rmed = (rmax + rmin) / 2;
+  // width of sensors of layers is calculated from r and chips' widths
+  double widthSensor = (0.5 * TMath::Pi() * rmed - (mNumSubSensorsHalfLayer - 1) * mMiddleChipWidth - 2 * mFringeChipWidth) / mNumSubSensorsHalfLayer;
+
+  const int nElements = 7;
+  std::string names[nElements];
+  int nObjPerElement[nElements] = {mNumSubSensorsHalfLayer, 1, 1, 1, 1, 1, 1}; // mNumSubSensorsHalfLayer chips and sensors per half layer
+
+  names[0] = Form("%s%d", o2::its::GeometryTGeo::getITS3SensorPattern(), mLayerNumber);
+  names[1] = Form("%s%d", o2::its::GeometryTGeo::getITS3ChipPattern(), mLayerNumber);
+  names[2] = Form("%s%d", o2::its::GeometryTGeo::getITS3ModulePattern(), mLayerNumber);
+  names[3] = Form("%s%d", o2::its::GeometryTGeo::getITS3HalfStavePattern(), mLayerNumber);
+  names[4] = Form("%s%d", o2::its::GeometryTGeo::getITS3StavePattern(), mLayerNumber);
+  names[5] = Form("%s%d", o2::its::GeometryTGeo::getITS3HalfBarrelPattern(), mLayerNumber);
+  names[6] = Form("%s%d", o2::its::GeometryTGeo::getITS3LayerPattern(), mLayerNumber);
+
+  std::array<std::vector<TGeoTubeSeg*>, nElements - 1> quarterLayer{};
+  TGeoVolume* volQuarterLayer[nElements - 1];
+
+  for (int iEl{0}; iEl < nElements - 1; ++iEl) {
+    TGeoMedium* med = (iEl <= 2) ? medSi : medAir;
+
+    for (int iObj{0}; iObj < nObjPerElement[iEl]; ++iObj) {
+      if (iEl == 0) { // subsensors (mNumSubSensorsHalfLayer sectors with dead zones)
+        if (iObj == 0) {
+          quarterLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rminSensor, rmax, mZLen / 2, TMath::RadToDeg() * mFringeChipWidth / rmed, TMath::RadToDeg() * (mFringeChipWidth + widthSensor) / rmed));
+        } else if (iObj == mNumSubSensorsHalfLayer - 1) {
+          quarterLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rminSensor, rmax, mZLen / 2, TMath::RadToDeg() * (mFringeChipWidth + iObj * widthSensor + iObj * mMiddleChipWidth) / rmed, TMath::RadToDeg() * 0.5 * TMath::Pi() - TMath::RadToDeg() * mFringeChipWidth / rmed));
+        } else {
+          quarterLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rminSensor, rmax, mZLen / 2, TMath::RadToDeg() * (mFringeChipWidth + iObj * widthSensor + iObj * mMiddleChipWidth) / rmed, TMath::RadToDeg() * (mFringeChipWidth + (iObj + 1) * widthSensor + iObj * mMiddleChipWidth) / rmed));
+        }
+      } else if (iEl == 1) {
+        quarterLayer[iEl].push_back(new TGeoTubeSeg(rminSensor, rmax, mZLen / 2, 0., TMath::RadToDeg() * 0.5 * TMath::Pi()));
+      } else if (iEl == 2) {
+        quarterLayer[iEl].push_back(new TGeoTubeSeg(rmin, rmax, mZLen / 2, 0., TMath::RadToDeg() * 0.5 * TMath::Pi()));
+      } else { // all the others are simply quarter cylinders filling all the space
+        quarterLayer[iEl].push_back(new TGeoTubeSeg(rmin, rmax, mZLen / 2, 0., TMath::RadToDeg() * 0.5 * TMath::Pi()));
+      }
+    }
+
+    if (iEl == 0) {
+      std::string subSensNames = "";
+      for (int iObj{0}; iObj < nObjPerElement[iEl] - 1; ++iObj) {
+        subSensNames += Form("subsens%dlayer%d+", iObj, mLayerNumber);
+      }
+      subSensNames += Form("subsens%dlayer%d", nObjPerElement[iEl] - 1, mLayerNumber);
+      TGeoCompositeShape* sensor = new TGeoCompositeShape(subSensNames.data());
+      volQuarterLayer[iEl] = new TGeoVolume(names[iEl].data(), sensor, med);
+      volQuarterLayer[iEl]->SetUniqueID(mChipTypeID);
+      volQuarterLayer[iEl]->SetVisibility(true);
+      volQuarterLayer[iEl]->SetLineColor(kRed + 1);
+    } else {
+      volQuarterLayer[iEl] = new TGeoVolume(names[iEl].data(), quarterLayer[iEl][0], med);
+      volQuarterLayer[iEl]->SetUniqueID(mChipTypeID);
+      if (iEl == 1) {
+        volQuarterLayer[iEl]->SetVisibility(true);
+        volQuarterLayer[iEl]->SetLineColor(kBlue + 2);
+      }
+
+      int id = (iEl == 1) ? 1 : 0;
+      LOGP(debug, "Inserting {} id {} inside {}", volQuarterLayer[iEl - 1]->GetName(), id, volQuarterLayer[iEl]->GetName());
+      volQuarterLayer[iEl]->AddNode(volQuarterLayer[iEl - 1], id, nullptr);
+    }
+  }
+
+  TGeoTranslation* translationTopRight = new TGeoTranslation(mGapXDirection / 2, mGap / 2, 0.);
+
+  TGeoTranslation* translationTopLeft = new TGeoTranslation(-mGapXDirection / 2, mGap / 2, 0.);
+  TGeoRotation* rotationTopLeft = new TGeoRotation("", 90., 0., 0.);
+  TGeoCombiTrans* rotoTranslationTopLeft = new TGeoCombiTrans(*translationTopLeft, *rotationTopLeft);
+
+  TGeoTranslation* translationBottomLeft = new TGeoTranslation(-mGapXDirection / 2, -mGap / 2, 0.);
+  TGeoRotation* rotationBottomLeft = new TGeoRotation("", 180., 0., 0.);
+  TGeoCombiTrans* rotoTranslationBottomLeft = new TGeoCombiTrans(*translationBottomLeft, *rotationBottomLeft);
+
+  TGeoTranslation* translationBottomRight = new TGeoTranslation(mGapXDirection / 2, -mGap / 2, 0.);
+  TGeoRotation* rotationBottomRight = new TGeoRotation("", 270., 0., 0.);
+  TGeoCombiTrans* rotoTranslationBottomRight = new TGeoCombiTrans(*translationBottomRight, *rotationBottomRight);
+
+  TGeoVolumeAssembly* volLayer = new TGeoVolumeAssembly(names[nElements - 1].data());
+  volLayer->AddNode(volQuarterLayer[nElements - 2], 0, translationTopRight);
+  volLayer->AddNode(volQuarterLayer[nElements - 2], 1, rotoTranslationTopLeft);
+  volLayer->AddNode(volQuarterLayer[nElements - 2], 2, rotoTranslationBottomLeft);
+  volLayer->AddNode(volQuarterLayer[nElements - 2], 3, rotoTranslationBottomRight);
+
+  // Finally put everything in the mother volume
+  LOGP(debug, "Inserting {} inside {}", volLayer->GetName(), motherVolume->GetName());
+  motherVolume->AddNode(volLayer, 1, nullptr);
+}
+
 void ITS3Layer::createCarbonFoamStructure(TGeoVolume* motherVolume)
 {
-  TGeoMedium* medCarbonFoam = gGeoManager->GetMedium("IT3_ERGDUOCEL$");
-  TGeoMedium* medGlue = gGeoManager->GetMedium("IT3_IMPREG_FLEECE$");
+  TGeoMedium* medCarbonFoam = (mBuildLevel < 1) ? gGeoManager->GetMedium("IT3_ERGDUOCEL$") : gGeoManager->GetMedium("IT3_AIR$"); // if build level >= 1 we do not put carbon foam but air
+  TGeoMedium* medGlue = (mBuildLevel < 2) ? gGeoManager->GetMedium("IT3_IMPREG_FLEECE$") : gGeoManager->GetMedium("IT3_AIR$");   // if build level >= 2 we do not put glue but air
 
-  double rmax = mRadius + mSensorThickness;
-  double radiusBetweenLayer = 0.6 - mSensorThickness; // FIXME: hard coded distance between layers
+  double rmax = mRadius + mChipThickness;
+  double radiusBetweenLayer = 0.6 - mChipThickness; // FIXME: hard coded distance between layers
   double rmedFoam = rmax + radiusBetweenLayer / 2;
 
   TGeoTranslation* transSemicircle[2];

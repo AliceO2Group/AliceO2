@@ -219,6 +219,7 @@ class Clusterer
 
   void print() const;
   void clear();
+  void reset();
 
   void setNChips(int n)
   {

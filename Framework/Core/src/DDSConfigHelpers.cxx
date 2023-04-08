@@ -112,6 +112,7 @@ std::string xmlEncode(std::string const& source)
 }
 
 void DDSConfigHelpers::dumpDeviceSpec2DDS(std::ostream& out,
+                                          DriverMode driverMode,
                                           std::string const& workflowSuffix,
                                           std::vector<DataProcessorSpec> const& workflow,
                                           std::vector<DataProcessorInfo> const& dataProcessorInfos,
@@ -121,9 +122,23 @@ void DDSConfigHelpers::dumpDeviceSpec2DDS(std::ostream& out,
 {
   std::ostringstream asset;
   WorkflowSerializationHelpers::dump(asset, workflow, dataProcessorInfos, commandInfo);
+  // Check if any expendable task is present
+  bool hasExpendableTask = false;
+  for (auto& spec : specs) {
+    for (auto& label : spec.labels) {
+      if (label.value == "expendable") {
+        hasExpendableTask = true;
+        break;
+      }
+    }
+  }
   out << R"(<topology name="o2-dataflow">)"
-         "\n"
-      << fmt::format(R"(<asset name="dpl_json{}" type="inline" visibility="global" value="{}"/>)",
+         "\n";
+  if (hasExpendableTask) {
+    out << R"(<declrequirement name="odc_expendable_task" type="custom" value="true" />)"
+           "\n";
+  }
+  out << fmt::format(R"(<asset name="dpl_json{}" type="inline" visibility="global" value="{}"/>)",
                      workflowSuffix,
                      xmlEncode(asset.str()))
       << "\n";
@@ -153,6 +168,19 @@ void DDSConfigHelpers::dumpDeviceSpec2DDS(std::ostream& out,
       out << "   "
           << fmt::format("<property name=\"fmqchan_{}\" />\n", rewriter.properties[rewriter.names[ci]].value);
     }
+  }
+
+  if (driverMode == DriverMode::EMBEDDED) {
+    out << "   "
+        << fmt::format("<decltask name=\"{}{}\">\n", "dplDriver", workflowSuffix);
+    out << "       "
+        << fmt::format(R"(<assets><name>dpl_json{}</name></assets>)", workflowSuffix) << "\n";
+    out << "       "
+        << R"(<exe reachable="true">)";
+    out << fmt::format("cat ${{DDS_LOCATION}}/dpl_json{}.asset | o2-dpl-run --driver-mode embedded", workflowSuffix);
+    out << R"(</exe>)"
+        << "\n";
+    out << "</decltask>";
   }
 
   for (size_t di = 0; di < specs.size(); ++di) {
@@ -218,6 +246,15 @@ void DDSConfigHelpers::dumpDeviceSpec2DDS(std::ostream& out,
       out << " --channel-config \"" << accumulatedChannelPrefix << "\"";
     }
     out << "</exe>\n";
+    // Check if the expendable label is there, and if so, add
+    // the requirement to the XML.
+    if (std::find_if(spec.labels.begin(), spec.labels.end(), [](const auto& label) {
+          return label.value == "expendable";
+        }) != spec.labels.end()) {
+      out << "       <requirements>\n";
+      out << "           <requirement name=\"odc_expendable_task\" />\n";
+      out << "       </requirements>\n";
+    }
     auto& rewriter = rewriters[di];
     if (rewriter.requiresProperties.empty() == false) {
       out << "   <properties>\n";

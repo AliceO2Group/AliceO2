@@ -37,7 +37,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "CommonDataFormat/BunchFilling.h"
-#include "CommonDataFormat/Pair.h"
+#include "CommonDataFormat/Triplet.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "DataFormatsITSMFT/Cluster.h"
@@ -293,6 +293,7 @@ class MatchTPCITS
   using BracketIR = o2::math_utils::Bracket<o2::InteractionRecord>;
   using Params = o2::globaltracking::MatchTPCITSParams;
   using MatCorrType = o2::base::Propagator::MatCorrType;
+  using VDTriplet = o2::dataformats::Triplet<float, float, float>;
 
   MatchTPCITS(); // std::unique_ptr to forward declared type needs constructor / destructor in .cxx
   ~MatchTPCITS();
@@ -365,7 +366,7 @@ class MatchTPCITS
   const MCLabContTr& getABTrackletLabels() const { return mABTrackletLabels; }
   const std::vector<int>& getABTrackletClusterIDs() const { return mABTrackletClusterIDs; }
   const std::vector<o2::itsmft::TrkClusRef>& getABTrackletRefs() const { return mABTrackletRefs; }
-  const std::vector<o2::dataformats::Pair<float, float>>& getTglITSTPC() const { return mTglITSTPC; }
+  const std::vector<VDTriplet>& getTglITSTPC() const { return mTglITSTPC; }
 
   //>>> ====================== options =============================>>>
   void setUseMatCorrFlag(MatCorrType f) { mUseMatCorrFlag = f; }
@@ -565,7 +566,6 @@ class MatchTPCITS
 
   float mMinTPCTrackPtInv = 999.; ///< cutoff on TPC track inverse pT
   float mMinITSTrackPtInv = 999.; ///< cutoff on ITS track inverse pT
-
   bool mVDriftCalibOn = false;                                ///< flag to produce VDrift calibration data
   o2::tpc::VDriftCorrFact mTPCDrift{};
   o2::gpu::CorrectionMapsHelper* mTPCCorrMapsHelper = nullptr;
@@ -601,8 +601,9 @@ class MatchTPCITS
   MCLabSpan mTPCTrkLabels;                    ///< input TPC Track MC labels
   /// <<<-----
 
+  size_t mNMatchesControl = 0;
   std::vector<InteractionCandidate> mInteractions;                     ///< possible interaction times
-  std::vector<o2::dataformats::RangeRefComp<8>> mITSROFIntCandEntries; ///< entries of InteractionCandidate vector for every ITS ROF bin
+  std::vector<int> mInteractionMUSLUT;                                 ///< LUT for interactions in 1MUS bins
 
   ///< container for record the match of TPC track to single ITS track
   std::vector<MatchRecord> mMatchRecordsTPC;
@@ -645,8 +646,8 @@ class MatchTPCITS
   std::vector<o2::dataformats::TrackTPCITS> mMatchedTracks;
   MCLabContTr mOutLabels; ///< Labels: = TPC labels with flag isFake set in case of fake matching
 
-  ///< container for <tglITS, tglTPC> pairs for vdrift calibration
-  std::vector<o2::dataformats::Pair<float, float>> mTglITSTPC;
+  ///< container for <tglITS, tglTPC, dT> for vdrift calibration
+  std::vector<VDTriplet> mTglITSTPC;
 
   o2::its::RecoGeomHelper mRGHelper; ///< helper for cluster and geometry access
 

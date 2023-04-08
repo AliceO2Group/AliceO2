@@ -60,6 +60,7 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
                                        Vc::Vc
                                        ROOT::Core ROOT::Matrix ROOT::Tree ROOT::Gpad ROOT::Minuit
                              )
+  target_compile_definitions(${targetName} PRIVATE GPUCA_HAVE_O2HEADERS)
 
   o2_target_root_dictionary(${MODULE}
                             HEADERS ${HDRS_CINT_O2}

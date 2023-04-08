@@ -16,6 +16,26 @@ using namespace o2::focal;
 
 IndexExceptionEvent::IndexExceptionEvent(unsigned int index, unsigned int maxindex, IndexType_t source)
 {
+  std::string nameIndexType;
+  switch (source) {
+    case IndexType_t::PAD_CHANNEL:
+      nameIndexType = "channel";
+      break;
+    case IndexType_t::PAD_LAYER:
+      nameIndexType = "pad layer";
+      break;
+    case IndexType_t::PAD_NHALVES:
+      nameIndexType = "pad half stave";
+      break;
+    case IndexType_t::PIXEL_LAYER:
+      nameIndexType = "pixel layer";
+      break;
+    case IndexType_t::TRIGGER_WINDOW:
+      nameIndexType = "trigger window";
+    default:
+      break;
+  }
+  mMessageBuffer = "Accessing invalid entry of type " + nameIndexType + ": " + std::to_string(index) + " ( max " + std::to_string(maxindex) + ")";
 }
 
 const char* IndexExceptionEvent::what() const noexcept

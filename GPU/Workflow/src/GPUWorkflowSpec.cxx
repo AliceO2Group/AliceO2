@@ -69,6 +69,7 @@
 #include "TRDBase/Geometry.h"
 #include "TRDBase/GeometryFlat.h"
 #include "CommonUtils/VerbosityConfig.h"
+#include "CommonUtils/DebugStreamer.h"
 #include <filesystem>
 #include <memory> // for make_shared
 #include <vector>
@@ -86,6 +87,7 @@
 #include <TH1F.h>
 #include <TH2F.h>
 #include <TH1D.h>
+#include <TGraphAsymmErrors.h>
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -207,7 +209,7 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
     if (mSpecConfig.outputSharedClusterMap) {
       mConfig->configProcessing.outputSharedClusterMap = true;
     }
-    mConfig->configProcessing.createO2Output = mSpecConfig.outputTracks ? 2 : 0; // Skip GPU-formatted output if QA is not requested
+    mConfig->configProcessing.createO2Output = mSpecConfig.outputTracks ? 2 : 0; // Disable O2 TPC track format output if no track output requested
 
     if (mConfParam->transformationFile.size() || mConfParam->transformationSCFile.size()) {
       LOG(fatal) << "Deprecated configurable param options GPU_global.transformationFile or transformationSCFile used\n"
@@ -257,7 +259,7 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
   }
 
   auto& callbacks = ic.services().get<CallbackService>();
-  callbacks.set(CallbackService::Id::RegionInfoCallback, [this](fair::mq::RegionInfo const& info) {
+  callbacks.set<CallbackService::Id::RegionInfoCallback>([this](fair::mq::RegionInfo const& info) {
     if (info.size == 0) {
       return;
     }
@@ -628,15 +630,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   int retVal = mTracker->RunTracking(&ptrs, &outputRegions);
 
   // flushing debug output to file
-  using Streamer = o2::utils::DebugStreamer;
-  if (Streamer::checkStream(o2::utils::StreamFlags::streamFastTransform)) {
-    if (mFastTransform) {
-      mFastTransform->flushStreamer();
-    }
-    if (mFastTransformNew) {
-      mFastTransformNew->flushStreamer();
-    }
-  }
+  o2::utils::DebugStreamer::instance()->flush();
 
   // setting TPC calibration objects
   storeUpdatedCalibsTPCPtrs();
@@ -794,8 +788,9 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     std::vector<TH1F> copy1 = getoutput(outputRegions.qa.hist1); // Internally, this will also be used as output, so we need a non-const copy
     std::vector<TH2F> copy2 = getoutput(outputRegions.qa.hist2);
     std::vector<TH1D> copy3 = getoutput(outputRegions.qa.hist3);
+    std::vector<TGraphAsymmErrors> copy4 = getoutput(outputRegions.qa.hist4);
     if (sendQAOutput) {
-      mQA->postprocessExternal(copy1, copy2, copy3, out, mQATaskMask ? mQATaskMask : -1);
+      mQA->postprocessExternal(copy1, copy2, copy3, copy4, out, mQATaskMask ? mQATaskMask : -1);
     }
     pc.outputs().snapshot({gDataOriginTPC, "TRACKINGQA", 0, Lifetime::Timeframe}, out);
     if (sendQAOutput) {
@@ -939,7 +934,6 @@ Outputs GPURecoWorkflowSpec::outputs()
     for (auto const& sector : mTPCSectors) {
       mClusterOutputIds.emplace_back(sector);
     }
-    outputSpecs.emplace_back(gDataOriginTPC, "CLUSTERNATIVE", mSpecConfig.sendClustersPerSector ? 0 : NSectors, Lifetime::Timeframe);
     if (mSpecConfig.sendClustersPerSector) {
       outputSpecs.emplace_back(gDataOriginTPC, "CLUSTERNATIVETMP", NSectors, Lifetime::Timeframe); // Dummy buffer the TPC tracker writes the inital linear clusters to
       for (const auto sector : mTPCSectors) {

@@ -170,7 +170,7 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
         continue;
       }
       // propagate original track
-      if (!tr.rotate(tr.getPhi())) {
+      if (!tr.rotate(o2::math_utils::sector2Angle(o2::math_utils::angle2Sector(tr.getPhiPos())))) {
         continue;
       }
       float curR2 = tr.getX() * tr.getX() + tr.getY() * tr.getY();
@@ -180,12 +180,12 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
           xtgt = 0;
         }
         prop->PropagateToXBxByBz(tr, xtgt); // propagation will not necessarilly converge, but we don't care
-        if (!tr.rotate(tr.getPhi())) {
+        if (!tr.rotate(o2::math_utils::sector2Angle(o2::math_utils::angle2Sector(tr.getPhiPos())))) {
           continue;
         }
       }
       // propagate original/refitted track
-      if (!trf.rotate(tr.getPhi())) {
+      if (!trf.rotate(tr.getAlpha())) {
         continue;
       }
       curR2 = trf.getX() * trf.getX() + trf.getY() * trf.getY();
@@ -215,7 +215,7 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
       if (!pPDG) {
         continue;
       }
-      o2::track::TrackPar mctrO2(xyz, pxyz, (pPDG->Charge() + 0.1) / 3, false);
+      o2::track::TrackPar mctrO2(xyz, pxyz, TMath::Nint(pPDG->Charge() / 3), false);
       //
       // propagate it to the alpha/X of the reconstructed track
       if (!mctrO2.rotate(tr.getAlpha()) || !prop->PropagateToXBxByBz(mctrO2, tr.getX())) {

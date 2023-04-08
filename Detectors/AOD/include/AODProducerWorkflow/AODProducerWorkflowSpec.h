@@ -274,8 +274,8 @@ class AODProducerWorkflowDPL : public Task
 
   // zdc helper maps to avoid a number of "if" statements
   // when filling ZDC table
-  map<string, float> mZDCEnergyMap; // mapping detector name to a corresponding energy
-  map<string, float> mZDCTDCMap;    // mapping TDC channel to a corresponding TDC value
+  std::array<float, o2::zdc::NChannels> mZDCEnergyMap; // mapping detector id to a corresponding energy
+  std::array<float, o2::zdc::NTDCChannels> mZDCTDCMap; // mapping TDC channel id to a corresponding TDC value
 
   std::vector<uint16_t> mITSTPCTRDTriggers; // mapping from TRD tracks ID to corresponding trigger (for tracks time extraction)
   std::vector<uint16_t> mTPCTRDTriggers;    // mapping from TRD tracks ID to corresponding trigger (for tracks time extraction)
@@ -442,7 +442,7 @@ class AODProducerWorkflowDPL : public Task
   uint64_t getTFNumber(const o2::InteractionRecord& tfStartIR, int runNumber);
   template <typename TracksCursorType, typename TracksCovCursorType>
   void addToTracksTable(TracksCursorType& tracksCursor, TracksCovCursorType& tracksCovCursor,
-                        const o2::track::TrackParCov& track, int collisionID);
+                        const o2::track::TrackParCov& track, int collisionID, aod::track::TrackTypeEnum type = aod::track::TrackIU);
 
   template <typename TracksExtraCursorType>
   void addToTracksExtraTable(TracksExtraCursorType& tracksExtraCursor, TrackExtraInfo& extraInfoHolder);
@@ -487,6 +487,9 @@ class AODProducerWorkflowDPL : public Task
   template <typename V0CursorType, typename CascadeCursorType, typename Decay3bodyCursorType>
   void fillSecondaryVertices(const o2::globaltracking::RecoContainer& data, V0CursorType& v0Cursor, CascadeCursorType& cascadeCursor, Decay3bodyCursorType& decay3bodyCursor);
 
+  template <typename V0C, typename CC, typename D3BC, typename TC, typename TCC, typename TEC>
+  void fillStrangenessTrackingTables(const o2::globaltracking::RecoContainer& data, V0C& v0Cursor, CC& cascadeCursor, D3BC& decay3bodyCursor, TC& tracksCursor, TCC& tracksCovCursor, TEC& tracksExtraCursor);
+
   template <typename MCParticlesCursorType>
   void fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader,
                             const MCParticlesCursorType& mcParticlesCursor,
@@ -522,7 +525,7 @@ class AODProducerWorkflowDPL : public Task
 };
 
 /// create a processor spec
-framework::DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, bool useMC, bool CTPConfigPerRun);
+framework::DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, bool enableST, bool useMC, bool CTPConfigPerRun);
 
 // helper interface for calo cells to "befriend" emcal and phos cells
 class CellHelper

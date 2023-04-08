@@ -40,7 +40,7 @@ class DescriptorInnerBarrelITS2 : public o2::its::DescriptorInnerBarrel
   DescriptorInnerBarrelITS2(const DescriptorInnerBarrelITS2& src) = delete;
   DescriptorInnerBarrelITS2& operator=(const DescriptorInnerBarrelITS2& geom) = delete;
 
-  void configure();
+  void configure(int buildLevel = 0);
 
   V3Layer* createLayer(int idLayer, TGeoVolume* dest);
   void createServices(TGeoVolume* dest);
@@ -62,7 +62,6 @@ class DescriptorInnerBarrelITS2 : public o2::its::DescriptorInnerBarrel
   std::vector<double> mChipThickness{}; //! Vector of chip thicknesses
   std::vector<double> mStaveWidth{};    //! Vector of stave width (only used for turbo)
   std::vector<double> mStaveTilt{};     //! Vector of stave tilt (only used for turbo)
-  std::vector<int> mBuildLevel{};       //! Vector of build level
   std::vector<V3Layer*> mLayer{};       //! Vector of layers
 
   /// \cond CLASSIMP

@@ -50,17 +50,20 @@ void TrackReader::run(ProcessingContext& pc)
       (trackTune.useTPCInnerCorr || trackTune.useTPCOuterCorr ||
        trackTune.tpcCovInnerType != TrackTunePar::AddCovType::Disable || trackTune.tpcCovOuterType != TrackTunePar::AddCovType::Disable)) {
     for (auto& trc : mTracksOut) {
+      if (trc.getNClusters() == 0) {
+        continue; // filtered/reduced track
+      }
       if (trackTune.useTPCInnerCorr) {
         trc.updateParams(trackTune.tpcParInner);
       }
       if (trackTune.tpcCovInnerType != TrackTunePar::AddCovType::Disable) {
-        trc.updateCov(trackTune.tpcCovInner, trackTune.tpcCovInnerType);
+        trc.updateCov(trackTune.tpcCovInner, trackTune.tpcCovInnerType == TrackTunePar::AddCovType::WithCorrelations);
       }
       if (trackTune.useTPCOuterCorr) {
         trc.getParamOut().updateParams(trackTune.tpcParOuter);
       }
       if (trackTune.tpcCovOuterType != TrackTunePar::AddCovType::Disable) {
-        trc.getParamOut().updateCov(trackTune.tpcCovOuter, trackTune.tpcCovOuterType);
+        trc.getParamOut().updateCov(trackTune.tpcCovOuter, trackTune.tpcCovOuterType == TrackTunePar::AddCovType::WithCorrelations);
       }
     }
   }

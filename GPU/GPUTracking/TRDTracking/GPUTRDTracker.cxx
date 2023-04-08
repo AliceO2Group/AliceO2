@@ -302,12 +302,13 @@ GPUdi() const typename PROP::propagatorParam* GPUTRDTracker_t<TRDTRK, PROP>::get
 #elif defined GPUCA_ALIROOT_LIB
   return nullptr;
 #else
+#ifdef GPUCA_HAVE_O2HEADERS
   if (externalDefaultO2Propagator) {
     return o2::base::Propagator::Instance();
-  } else {
-    return GetConstantMem()->calibObjects.o2Propagator;
   }
 #endif
+#endif
+  return GetConstantMem()->calibObjects.o2Propagator;
 }
 
 template <class TRDTRK, class PROP>
@@ -820,9 +821,6 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
       trkWork->setChi2(mHypothesis[iUpdate + hypothesisIdxOffset].mChi2);
       trkWork->setIsFindable(iLayer);
       trkWork->setCollisionId(collisionId);
-      if (iUpdate == 0 && mNCandidates > 1) {
-        *t = mCandidates[2 * iUpdate + nextIdx];
-      }
       // check if track crosses padrows
       float projZEntry, projYEntry;
       // Get Z for Entry of Track
@@ -851,6 +849,9 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
           trkWork->setHasNeighbor();
           break;
         }
+      }
+      if (iUpdate == 0 && mNCandidates > 1) {
+        *t = mCandidates[2 * iUpdate + nextIdx];
       }
     } // end update loop
 
@@ -1166,7 +1167,9 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 // instantiate version for AliExternalTrackParam / o2::TrackParCov data types
+#if defined(GPUCA_ALIROOT_LIB) || defined(GPUCA_HAVE_O2HEADERS)
 template class GPUTRDTracker_t<GPUTRDTrack, GPUTRDPropagator>;
+#endif
 // always instantiate version for GPU Track Model
 template class GPUTRDTracker_t<GPUTRDTrackGPU, GPUTRDPropagatorGPU>;
 } // namespace gpu

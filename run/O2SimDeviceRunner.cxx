@@ -43,8 +43,9 @@ void sigaction_handler(int signal, siginfo_t* signal_info, void*)
   auto pid = getpid();
   LOG(info) << pid << " caught signal " << signal << " from source " << signal_info->si_pid;
   auto groupid = getpgrp();
-  if (pid == gMasterProcess) {
+  if (pid == gMasterProcess && signal_info->si_pid != gDriverProcess) {
     // master worker forwards signal to whole worker process group
+    // (do this only if not coming from gDriverProcess since this uses killpg and already affected all children)
     killpg(pid, signal);
   } else {
     if (signal_info->si_pid != gDriverProcess) {
@@ -255,7 +256,7 @@ int main(int argc, char* argv[])
   act.sa_sigaction = &sigaction_handler;
   act.sa_flags = SA_SIGINFO; // <--- enable sigaction
 
-  std::vector<int> handledsignals = {SIGTERM, SIGINT, SIGQUIT, SIGSEGV, SIGBUS, SIGFPE}; // <--- may need to be completed
+  std::vector<int> handledsignals = {SIGTERM, SIGINT, SIGQUIT, SIGSEGV, SIGBUS, SIGFPE, SIGABRT}; // <--- may need to be completed
   // remember that SIGKILL can't be handled
   for (auto s : handledsignals) {
     if (sigaction(s, &act, nullptr)) {

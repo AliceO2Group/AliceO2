@@ -170,7 +170,7 @@ GPUd() bool PropagatorImpl<value_T>::PropagateToXBxByBz(TrackParCov_t& track, va
     signCorr = -dir; // sign of eloss correction is not imposed
   }
 
-  gpu::gpustd::array<value_type, 3> b;
+  gpu::gpustd::array<value_type, 3> b{};
   while (math_utils::detail::abs<value_type>(dx) > Epsilon) {
     auto step = math_utils::detail::min<value_type>(math_utils::detail::abs<value_type>(dx), maxStep);
     if (dir < 0) {
@@ -231,7 +231,7 @@ GPUd() bool PropagatorImpl<value_T>::PropagateToXBxByBz(TrackPar_t& track, value
     signCorr = -dir; // sign of eloss correction is not imposed
   }
 
-  gpu::gpustd::array<value_type, 3> b;
+  gpu::gpustd::array<value_type, 3> b{};
   while (math_utils::detail::abs<value_type>(dx) > Epsilon) {
     auto step = math_utils::detail::min<value_type>(math_utils::detail::abs<value_type>(dx), maxStep);
     if (dir < 0) {
@@ -698,7 +698,7 @@ GPUd() void PropagatorImpl<value_T>::getFieldXYZImpl(const math_utils::Point3D<T
 #else
     const auto* f = mGPUField;
 #endif
-    float bxyzF[3];
+    float bxyzF[3] = {};
     f->GetField(xyz.X(), xyz.Y(), xyz.Z(), bxyzF);
     // copy and convert
     constexpr value_type kCLight1 = 1. / o2::gpu::gpu_common_constants::kCLight;

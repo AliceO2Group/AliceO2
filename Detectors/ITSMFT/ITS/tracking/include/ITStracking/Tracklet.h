@@ -38,6 +38,8 @@ struct Tracklet final {
   }
   GPUhdi() void dump();
   GPUhdi() void dump() const;
+  GPUhdi() void dump(const int, const int);
+  GPUhdi() void dump(const int, const int) const;
   GPUhdi() unsigned char operator<(const Tracklet&) const;
 
   int firstClusterIndex;
@@ -49,6 +51,8 @@ struct Tracklet final {
 
 GPUhdi() Tracklet::Tracklet() : firstClusterIndex{-1}, secondClusterIndex{-1}, tanLambda{0.0f}, phi{0.0f}
 {
+  rof[0] = 0;
+  rof[1] = 0;
 }
 
 GPUhdi() Tracklet::Tracklet(const int firstClusterOrderingIndex, const int secondClusterOrderingIndex,
@@ -100,6 +104,36 @@ GPUhdi() unsigned char Tracklet::operator<(const Tracklet& t) const
   return true;
 }
 
+// GPUhdi() void Tracklet::dump()
+// {
+//   printf("fClIdx: %d sClIdx: %d  rof1: %hu rof2: %hu phi: %f tl: %f \n", firstClusterIndex, secondClusterIndex, rof[0], rof[1], phi, tanLambda);
+// }
+
+// GPUhdi() void Tracklet::dump() const
+// {
+//   printf("fClIdx: %d sClIdx: %d  rof1: %hu rof2: %hu phi: %f tl: %f \n", firstClusterIndex, secondClusterIndex, rof[0], rof[1], phi, tanLambda);
+// }
+
+// GPUhdi() void Tracklet::dump(const int offsetFirst, const int offsetSecond)
+// {
+//   printf("fClIdx: %d sClIdx: %d  rof1: %hu rof2: %hu phi: %f tl: %f \n", firstClusterIndex + offsetFirst, secondClusterIndex + offsetSecond, rof[0], rof[1], phi, tanLambda);
+// }
+
+// GPUhdi() void Tracklet::dump(const int offsetFirst, const int offsetSecond) const
+// {
+//   printf("fClIdx: %d sClIdx: %d  rof1: %hu rof2: %hu phi: %f tl: %f \n", firstClusterIndex + offsetFirst, secondClusterIndex + offsetSecond, rof[0], rof[1], phi, tanLambda);
+// }
+
+GPUhdi() void Tracklet::dump(const int offsetFirst, const int offsetSecond)
+{
+  printf("fClIdx: %d sClIdx: %d  rof1: %hu rof2: %hu\n", firstClusterIndex + offsetFirst, secondClusterIndex + offsetSecond, rof[0], rof[1]);
+}
+
+GPUhdi() void Tracklet::dump(const int offsetFirst, const int offsetSecond) const
+{
+  printf("fClIdx: %d sClIdx: %d  rof1: %hu rof2: %hu\n", firstClusterIndex + offsetFirst, secondClusterIndex + offsetSecond, rof[0], rof[1]);
+}
+
 GPUhdi() void Tracklet::dump()
 {
   printf("fClIdx: %d sClIdx: %d  rof1: %hu rof2: %hu\n", firstClusterIndex, secondClusterIndex, rof[0], rof[1]);
@@ -109,8 +143,6 @@ GPUhdi() void Tracklet::dump() const
 {
   printf("fClIdx: %d sClIdx: %d  rof1: %hu rof2: %hu\n", firstClusterIndex, secondClusterIndex, rof[0], rof[1]);
 }
-// tanL: %f phi: %f
-// tanLambda, phi,
 
 } // namespace its
 } // namespace o2

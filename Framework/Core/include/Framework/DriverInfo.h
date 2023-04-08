@@ -164,6 +164,8 @@ struct DriverInfo {
 
   /// The last error reported by the driver itself
   std::string lastError;
+  /// Driver mode
+  DriverMode mode = DriverMode::STANDALONE;
 };
 
 struct DriverInfoHelper {

@@ -10,3 +10,8 @@
 # or submit itself to any jurisdiction.
 
 o2_add_header_only_library(FrameworkFoundation3rdparty)
+
+o2_add_library(Catch2
+               SOURCES catch2/catch_amalgamated.cxx
+               TARGETVARNAME targetName
+               PUBLIC_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}/catch2)

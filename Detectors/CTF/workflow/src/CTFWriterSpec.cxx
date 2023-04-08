@@ -267,15 +267,13 @@ void CTFWriterSpec::init(InitContext& ic)
 //___________________________________________________________________
 void CTFWriterSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
-  static bool initOnceDone = false;
   namespace GRPECS = o2::parameters::GRPECS;
-  if (!initOnceDone) {
-    initOnceDone = true;
+  mTimingInfo = pc.services().get<o2::framework::TimingInfo>();
+  if (mTimingInfo.globalRunNumberChanged) {
     mDataTakingContext = pc.services().get<DataTakingContext>();
     // determine the output type for the CTF metadata
     mMetaDataType = GRPECS::getRawDataPersistencyMode(mDataTakingContext.runType, mDataTakingContext.forcedRaw);
   }
-  mTimingInfo = pc.services().get<o2::framework::TimingInfo>();
 }
 
 //___________________________________________________________________
@@ -293,7 +291,7 @@ size_t CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det
   const o2::ctf::BufferType* bdata = ctfBuffer.data();
   if (bdata) {
     if (warnedEmpty) {
-      throw std::runtime_error(fmt::format("Non-empty input was seen at {}-th TF after empty one for {}, this will lead misalignment of detectors in CTF", mNCTF, det.getName()));
+      throw std::runtime_error(fmt::format("Non-empty input was seen at {}-th TF after empty one for {}, this will lead to misalignment of detectors in CTF", mNCTF, det.getName()));
     }
     const auto ctfImage = C::getImage(bdata);
     ctfImage.print(o2::utils::Str::concat_string(det.getName(), ": "), mVerbosity);
@@ -324,7 +322,7 @@ size_t CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det
                   try {
                     freq.addFrequencies(bl.getDict(), bl.getDict() + bl.getNDict(), md.min);
                   } catch (const std::overflow_error& e) {
-                    LOGP(warning, "unable to frequency table for {}, block {} due to overflow", det.getName(), ib);
+                    LOGP(warning, "unable to add frequency table for {}, block {} due to overflow", det.getName(), ib);
                     mIsSaturatedFrequencyTable[det][ib] = true;
                     return false;
                   }
@@ -341,7 +339,7 @@ size_t CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det
   } else {
     if (!warnedEmpty) {
       if (mNCTF) {
-        throw std::runtime_error(fmt::format("Empty input was seen at {}-th TF after non-empty one for {}, this will lead misalignment of detectors in CTF", mNCTF, det.getName()));
+        throw std::runtime_error(fmt::format("Empty input was seen at {}-th TF after non-empty one for {}, this will lead to misalignment of detectors in CTF", mNCTF, det.getName()));
       }
       LOGP(important, "Empty CTF provided for {}, skipping and will not report anymore", det.getName());
       warnedEmpty = true;
@@ -408,6 +406,9 @@ size_t CTFWriterSpec::estimateCTFSize(ProcessingContext& pc)
 void CTFWriterSpec::run(ProcessingContext& pc)
 {
   const std::string NAStr = "NA";
+  if (pc.services().get<o2::framework::TimingInfo>().globalRunNumberChanged) {
+    mTimer.Reset();
+  }
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
   updateTimeDependentParams(pc);
@@ -489,6 +490,8 @@ void CTFWriterSpec::finalize()
   LOGF(info, "CTF writing total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
   mFinalized = true;
+  mNCTF = 0;
+  mNCTFFiles = 0;
 }
 
 //___________________________________________________________________

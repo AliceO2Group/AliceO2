@@ -10,8 +10,8 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(MCHDigitIO
-            SOURCES DigitWriter.cxx DigitReader.cxx DigitFileFormat.cxx
-                    DigitReaderImpl.cxx DigitWriterImpl.cxx
+            SOURCES DigitSink.cxx DigitSampler.cxx DigitFileFormat.cxx
+                    DigitSamplerImpl.cxx DigitSinkImpl.cxx
                     DigitIOV0.cxx DigitIOV1.cxx
                     DigitIOV2.cxx DigitIOV3.cxx
                     DigitIOV4.cxx
@@ -43,16 +43,16 @@ target_link_libraries(MCHDigitIOBaseTask PUBLIC O2::DataFormatsMCH O2::Framework
 target_sources(MCHDigitIOBaseTask PRIVATE DigitIOBaseTask.cxx)
 
 o2_add_executable(
-        digits-writer-workflow
-        SOURCES digits-writer-workflow.cxx
+        digits-sink-workflow
+        SOURCES digits-sink-workflow.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::DPLUtils Boost::program_options
                               O2::MCHBase O2::MCHRawDecoder
                               O2::MCHDigitIO O2::MCHDigitIOBaseTask)
 
 o2_add_executable(
-        digits-file-reader-workflow
-        SOURCES digits-file-reader-workflow.cxx
+        digits-sampler-workflow
+        SOURCES digits-sampler-workflow.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::MCHBase O2::MCHDigitIO O2::MCHDigitIOBaseTask)
 
@@ -63,8 +63,8 @@ o2_add_executable(
         PUBLIC_LINK_LIBRARIES O2::MCHBase O2::MCHMappingImpl4 O2::MCHDigitIO O2::MCHDigitIOBaseTask)
 
 o2_add_executable(
-        digits-file-dumper
-        SOURCES digits-file-dumper.cxx
+        digits-dumper
+        SOURCES digits-dumper.cxx
         COMPONENT_NAME mch
         PUBLIC_LINK_LIBRARIES O2::MCHDigitIO Boost::program_options)
 

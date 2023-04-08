@@ -14,6 +14,7 @@
 
 #include "CommonConstants/PhysicsConstants.h"
 #include "CommonConstants/LHCConstants.h"
+#include "CommonConstants/ZDCConstants.h"
 #include <cstdint>
 #include <cstdlib>
 #include <array>
@@ -128,41 +129,6 @@ constexpr float getTOFCorrection(int det)
     11253.3 / o2::constants::physics::LightSpeedCm2NS};
   return TOFCorr[det - DetIDOffs];
 }
-
-//< map detector/tower to continuous channel Id
-constexpr int IdDummy = -1;
-constexpr int IdVoid = -2;
-
-constexpr int IdZNAC = 0;
-constexpr int IdZNA1 = 1;
-constexpr int IdZNA2 = 2;
-constexpr int IdZNA3 = 3;
-constexpr int IdZNA4 = 4;
-constexpr int IdZNASum = 5;
-//
-constexpr int IdZPAC = 6;
-constexpr int IdZPA1 = 7;
-constexpr int IdZPA2 = 8;
-constexpr int IdZPA3 = 9;
-constexpr int IdZPA4 = 10;
-constexpr int IdZPASum = 11;
-//
-constexpr int IdZEM1 = 12;
-constexpr int IdZEM2 = 13;
-//
-constexpr int IdZNCC = 14;
-constexpr int IdZNC1 = 15;
-constexpr int IdZNC2 = 16;
-constexpr int IdZNC3 = 17;
-constexpr int IdZNC4 = 18;
-constexpr int IdZNCSum = 19;
-//
-constexpr int IdZPCC = 20;
-constexpr int IdZPC1 = 21;
-constexpr int IdZPC2 = 22;
-constexpr int IdZPC3 = 23;
-constexpr int IdZPC4 = 24;
-constexpr int IdZPCSum = 25;
 
 constexpr uint32_t MaskZNA = 0x0000001f;
 constexpr uint32_t MaskAllZNA = 0x0000003f;

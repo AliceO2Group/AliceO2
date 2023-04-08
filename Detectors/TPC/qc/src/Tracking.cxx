@@ -77,12 +77,12 @@ void Tracking::processTracks(const std::vector<o2::tpc::TrackTPC>* tracks, const
   }
 }
 
-int Tracking::postprocess(std::vector<TH1F>& in1, std::vector<TH2F>& in2, std::vector<TH1D>& in3, TObjArray& out)
+int Tracking::postprocess(std::vector<TH1F>& in1, std::vector<TH2F>& in2, std::vector<TH1D>& in3, std::vector<TGraphAsymmErrors>& in4, TObjArray& out)
 {
-  return mQA->postprocessExternal(in1, in2, in3, out, QAMODE);
+  return mQA->postprocessExternal(in1, in2, in3, in4, out, QAMODE);
 }
 
-void Tracking::getHists(const std::vector<TH1F>*& h1, const std::vector<TH2F>*& h2, const std::vector<TH1D>*& h3) const
+void Tracking::getHists(const std::vector<TH1F>*& h1, const std::vector<TH2F>*& h2, const std::vector<TH1D>*& h3, const std::vector<TGraphAsymmErrors>*& h4) const
 {
-  mQA->getHists(h1, h2, h3);
+  mQA->getHists(h1, h2, h3, h4);
 }

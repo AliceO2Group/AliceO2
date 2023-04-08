@@ -35,7 +35,7 @@ o2_add_executable(gpu-memory-benchmark-hip
                                         Boost::program_options
                                         ROOT::Tree
                   TARGETVARNAME targetName)
-if(HIP_AMDGPUTARGET)
+if(O2_HIP_CMAKE_LINK_FLAGS)
   # Need to add gpu target also to link flags due to gpu-rdc option
-  target_link_options(${targetName} PUBLIC --amdgpu-target=${HIP_AMDGPUTARGET})
+  target_link_options(${targetName} PUBLIC ${O2_HIP_CMAKE_LINK_FLAGS})
 endif()

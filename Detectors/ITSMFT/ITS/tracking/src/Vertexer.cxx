@@ -58,6 +58,7 @@ void Vertexer::findVertices()
 void Vertexer::getGlobalConfiguration()
 {
   auto& vc = o2::its::VertexerParamConfig::Instance();
+  auto& grc = o2::its::GpuRecoParamConfig::Instance();
 
   VertexingParameters verPar;
   verPar.allowSingleContribClusters = vc.allowSingleContribClusters;
@@ -76,7 +77,11 @@ void Vertexer::getGlobalConfiguration()
   verPar.ZBins = vc.ZBins;
   verPar.PhiBins = vc.PhiBins;
 
-  mTraits->updateVertexingParameters(verPar);
+  TimeFrameGPUParameters tfGPUpar;
+  tfGPUpar.maxGPUMemoryGB = grc.maxGPUMemoryGB;
+  tfGPUpar.maxVerticesCapacity = grc.maxVerticesCapacity;
+
+  mTraits->updateVertexingParameters(verPar, tfGPUpar);
 }
 
 void Vertexer::adoptTimeFrame(TimeFrame& tf)
@@ -87,7 +92,7 @@ void Vertexer::adoptTimeFrame(TimeFrame& tf)
 
 void Vertexer::printEpilog(std::function<void(std::string s)> logger, const float total)
 {
-  logger(fmt::format(" - Timeframe {} vertexing completed in: {}ms, using {} thread(s).", mTimeFrameCounter++, total, mTraits->getNThreads()));
+  logger(fmt::format(" - Timeframe {} vertexing completed in: {} ms, using {} thread(s).", mTimeFrameCounter++, total, mTraits->getNThreads()));
 }
 
 } // namespace its

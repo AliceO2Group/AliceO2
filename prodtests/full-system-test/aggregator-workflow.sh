@@ -4,10 +4,10 @@
 #ENABLE_METRICS=1
 [ -d "$O2DPG_ROOT" ] || { echo "O2DPG_ROOT not set" 1>&2; exit 1; }
 
-source $O2DPG_ROOT/DATA/common/setenv.sh
-source $O2_ROOT/prodtests/full-system-test/workflow-setup.sh
-source $O2DPG_ROOT/DATA/common/getCommonArgs.sh
-source $O2DPG_ROOT/DATA/common/setenv_calib.sh
+source $O2DPG_ROOT/DATA/common/setenv.sh || { echo "setenv.sh failed" 1>&2 && exit 1; }
+source $O2_ROOT/prodtests/full-system-test/workflow-setup.sh || { echo "workflow-setup.sh failed" 1>&2 && exit 1; }
+source $O2DPG_ROOT/DATA/common/getCommonArgs.sh || { echo "getCommonArgs.sh failed" 1>&2 && exit 1; }
+source $O2DPG_ROOT/DATA/common/setenv_calib.sh || { echo "setenv_calib.sh failed" 1>&2 && exit 1; }
 
 # check that WORKFLOW_DETECTORS is needed, otherwise the wrong calib wf will be built
 if [[ -z $WORKFLOW_DETECTORS ]]; then echo "WORKFLOW_DETECTORS must be defined" 1>&2; exit 1; fi
@@ -127,6 +127,7 @@ if workflow_has_parameter CALIB_PROXIES; then
       [[ -z $TPC_IDC_FLP_PORT ]] && TPC_IDC_FLP_PORT=47900
       # expand FLPs; TPC uses from 001 to 145, but 145 is reserved for SAC
       for flp in $(seq -f "%03g" 1 144); do
+        [[ ! $FLP_IDS =~ (^|,)"$flp"(,|$) ]] && continue
         [[ $EPNSYNCMODE == 1 ]] && FLP_ADDRESS="tcp://alio2-cr1-flp${flp}-ib:${TPC_IDC_FLP_PORT}"
         CHANNELS_LIST+="type=pull,name=tpcidc_flp${flp},transport=zeromq,address=$FLP_ADDRESS,method=connect,rateLogging=10;"
       done
@@ -304,7 +305,7 @@ if [[ "0$GEN_TOPO_VERBOSE" == "01" ]]; then
   fi
 fi
 
-if [[ $CCDB_POPULATOR_UPLOAD_PATH != "none" ]] && [[ ! -z $WORKFLOW ]]; then add_W o2-calibration-ccdb-populator-workflow "--ccdb-path $CCDB_POPULATOR_UPLOAD_PATH"; fi
+if [[ $CCDB_POPULATOR_UPLOAD_PATH != "none" ]] && [[ ! -z $WORKFLOW ]]; then add_W o2-calibration-ccdb-populator-workflow "--ccdb-path $CCDB_POPULATOR_UPLOAD_PATH --environment \"DPL_DONT_DROP_OLD_TIMESLICE=1\""; fi
 
 if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
   WORKFLOW+="o2-dpl-run $ARGS_ALL $GLOBALDPLOPT"

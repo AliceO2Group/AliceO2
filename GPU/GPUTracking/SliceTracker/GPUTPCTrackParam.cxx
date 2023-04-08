@@ -728,6 +728,42 @@ GPUd() bool MEM_LG(GPUTPCTrackParam)::CheckNumericalQuality() const
 }
 
 MEM_CLASS_PRE()
+GPUd() void MEM_LG(GPUTPCTrackParam)::ConstrainZ(float& z, int sector, float& z0, float& lastZ)
+{
+  if (sector < GPUCA_NSLICES / 2) {
+    if (z < 0) {
+      mParam.mZOffset += z;
+      mParam.mP[1] -= z;
+      z0 -= z;
+      lastZ -= z;
+      z = 0;
+    } else if (z > GPUTPCGeometry::TPCLength()) {
+      float shift = z - GPUTPCGeometry::TPCLength();
+      mParam.mZOffset += shift;
+      mParam.mP[1] -= shift;
+      z0 -= shift;
+      lastZ -= shift;
+      z = GPUTPCGeometry::TPCLength();
+    }
+  } else {
+    if (z > 0) {
+      mParam.mZOffset += z;
+      mParam.mP[1] -= z;
+      z0 -= z;
+      lastZ -= z;
+      z = 0;
+    } else if (z < -GPUTPCGeometry::TPCLength()) {
+      float shift = -GPUTPCGeometry::TPCLength() - z;
+      mParam.mZOffset -= shift;
+      mParam.mP[1] += shift;
+      z0 += shift;
+      lastZ += shift;
+      z = -GPUTPCGeometry::TPCLength();
+    }
+  }
+}
+
+MEM_CLASS_PRE()
 GPUd() void MEM_LG(GPUTPCTrackParam)::ShiftZ(float z1, float z2, float x1, float x2, float bz, float defaultZOffsetOverR)
 {
   const float r1 = CAMath::Max(0.0001f, CAMath::Abs(mParam.mP[4] * bz));
@@ -799,4 +835,42 @@ GPUd() void MEM_LG(GPUTPCTrackParam)::Print() const
   std::cout << "track: x=" << GetX() << " c=" << GetSignCosPhi() << ", P= " << GetY() << " " << GetZ() << " " << GetSinPhi() << " " << GetDzDs() << " " << GetQPt() << std::endl;
   std::cout << "errs2: " << Err2Y() << " " << Err2Z() << " " << Err2SinPhi() << " " << Err2DzDs() << " " << Err2QPt() << std::endl;
 #endif
+}
+
+MEM_CLASS_PRE()
+GPUd() int MEM_LG(GPUTPCTrackParam)::GetPropagatedYZ(float bz, float x, float& projY, float& projZ) const
+{
+  float k = mParam.mP[4] * bz;
+  float dx = x - mParam.mX;
+  float ey = mParam.mP[2];
+  float ex = CAMath::Sqrt(1 - ey * ey);
+  if (SignCosPhi() < 0) {
+    ex = -ex;
+  }
+  float ey1 = ey - k * dx;
+  if (CAMath::Abs(ey1) > GPUCA_MAX_SIN_PHI) {
+    return 0;
+  }
+  float ss = ey + ey1;
+  float ex1 = CAMath::Sqrt(1.f - ey1 * ey1);
+  if (SignCosPhi() < 0) {
+    ex1 = -ex1;
+  }
+  float cc = ex + ex1;
+  float dxcci = dx / cc;
+  float dy = dxcci * ss;
+  float norm2 = 1.f + ey * ey1 + ex * ex1;
+  float dl = dxcci * CAMath::Sqrt(norm2 + norm2);
+  float dS;
+  {
+    float dSin = 0.5f * k * dl;
+    float a = dSin * dSin;
+    const float k2 = 1.f / 6.f;
+    const float k4 = 3.f / 40.f;
+    dS = dl + dl * a * (k2 + a * (k4));
+  }
+  float dz = dS * mParam.mP[3];
+  projY = mParam.mP[0] + dy;
+  projZ = mParam.mP[1] + dz;
+  return 1;
 }

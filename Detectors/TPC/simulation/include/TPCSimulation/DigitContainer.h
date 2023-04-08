@@ -96,7 +96,7 @@ inline DigitContainer::DigitContainer()
   mTmaxTriggered = detParam.TmaxTriggered;
 
   // always have 50 % contingency for the size of the container depending on the input
-  mOffset = static_cast<TimeBin>(1.5 * detParam.TPClength / gasParam.DriftV / eleParam.ZbinWidth);
+  mOffset = static_cast<TimeBin>(detParam.TPCRecoWindowSim * detParam.TPClength / gasParam.DriftV / eleParam.ZbinWidth);
   mTimeBins.resize(mOffset, nullptr);
 }
 

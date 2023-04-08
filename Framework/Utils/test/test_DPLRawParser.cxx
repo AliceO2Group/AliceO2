@@ -9,10 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test Framework Utils DPLRawParser
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include "DPLUtils/DPLRawParser.h"
 #include "RawPageTestData.h"
 #include "Framework/InputRecord.h"
@@ -46,14 +43,14 @@ DataSet createData()
   return test::createData(inputspecs, dataheaders);
 }
 
-BOOST_AUTO_TEST_CASE(test_DPLRawParser)
+TEST_CASE("test_DPLRawParser")
 {
   auto dataset = createData();
   InputRecord& inputs = dataset.record;
-  BOOST_REQUIRE(dataset.messages.size() > 0);
-  BOOST_REQUIRE(dataset.messages[0].at(0) != nullptr);
-  BOOST_REQUIRE(inputs.size() > 0);
-  BOOST_CHECK((*inputs.begin()).header == dataset.messages[0].at(0)->data());
+  REQUIRE(dataset.messages.size() > 0);
+  REQUIRE(dataset.messages[0].at(0) != nullptr);
+  REQUIRE(inputs.size() > 0);
+  REQUIRE((*inputs.begin()).header == dataset.messages[0].at(0)->data());
   DPLRawParser parser(inputs);
   int count = 0;
   o2::header::DataHeader const* last = nullptr;
@@ -70,19 +67,19 @@ BOOST_AUTO_TEST_CASE(test_DPLRawParser)
     size_t payloadSize = it.size();
     // offset of payload in the raw page
     size_t offset = it.offset();
-    BOOST_REQUIRE(rdh != nullptr);
-    BOOST_REQUIRE(offset == sizeof(test::RAWDataHeader));
-    BOOST_REQUIRE(payload == raw + offset);
-    BOOST_REQUIRE(*reinterpret_cast<int const*>(payload) == dataset.values[count]);
-    BOOST_REQUIRE(payloadSize == PAGESIZE - sizeof(test::RAWDataHeader));
+    REQUIRE(rdh != nullptr);
+    REQUIRE(offset == sizeof(test::RAWDataHeader));
+    REQUIRE(payload == raw + offset);
+    REQUIRE(*reinterpret_cast<int const*>(payload) == dataset.values[count]);
+    REQUIRE(payloadSize == PAGESIZE - sizeof(test::RAWDataHeader));
     auto const* dh = it.o2DataHeader();
     if (last != dh) {
       // this is a special wrapper to print the RDU info and table header, this will
       // be extended
-      std::cout << DPLRawParser::RDHInfo(it) << std::endl;
+      INFO(DPLRawParser::RDHInfo(it));
       last = dh;
     }
-    std::cout << it << " payload size " << it.size() << std::endl;
+    INFO(it << " payload size " << it.size());
   }
 
   // test the parser with filter on data specs, this will filter out the first input
@@ -91,7 +88,7 @@ BOOST_AUTO_TEST_CASE(test_DPLRawParser)
   count = 5;
   for (auto it = filteredparser.begin(), end = filteredparser.end(); it != end; ++it, ++count) {
     LOG(info) << "data " << count << " " << *((int*)it.data());
-    BOOST_REQUIRE(*reinterpret_cast<int const*>(it.data()) == dataset.values[count]);
+    REQUIRE(*reinterpret_cast<int const*>(it.data()) == dataset.values[count]);
   }
 
   // test with filter not matching any input route
@@ -100,5 +97,5 @@ BOOST_AUTO_TEST_CASE(test_DPLRawParser)
   for (auto it = nomatchingparser.begin(), end = nomatchingparser.end(); it != end; ++it, ++count) {
     LOG(info) << "data " << count << " " << *((int*)it.data());
   }
-  BOOST_CHECK(count == 0);
+  REQUIRE(count == 0);
 }

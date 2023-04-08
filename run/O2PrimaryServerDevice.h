@@ -54,7 +54,13 @@ class O2PrimaryServerDevice final : public fair::mq::Device
 {
  public:
   /// constructor
-  O2PrimaryServerDevice() = default;
+  O2PrimaryServerDevice()
+  {
+    mUseFixedChunkSeed = getenv("ALICEO2_O2SIM_SUBEVENTSEED") && atoi(getenv("ALICEO2_O2SIM_SUBEVENTSEED"));
+    if (mUseFixedChunkSeed) {
+      mFixedChunkSeed = atol(getenv("ALICEO2_O2SIM_SUBEVENTSEED"));
+    }
+  }
 
   /// Default destructor
   ~O2PrimaryServerDevice() final
@@ -106,6 +112,18 @@ class O2PrimaryServerDevice final : public fair::mq::Device
     if (mPrimGen == nullptr) {
       mPrimGen = new o2::eventgen::PrimaryGenerator;
       o2::eventgen::GeneratorFactory::setPrimaryGenerator(conf, mPrimGen);
+
+      // setup vertexing
+      auto vtxMode = conf.getVertexMode();
+      using o2::conf::VertexMode;
+      if (vtxMode == VertexMode::kNoVertex || vtxMode == VertexMode::kDiamondParam) {
+        mPrimGen->setVertexMode(vtxMode);
+      } else if (vtxMode == VertexMode::kCCDB) {
+        // we need to fetch the CCDB object
+        mPrimGen->setVertexMode(vtxMode, ccdbmgr.getForTimeStamp<o2::dataformats::MeanVertexObject>("GLO/Calib/MeanVertex", conf.getTimestamp()));
+      } else {
+        LOG(fatal) << "Unsupported vertex mode";
+      }
 
       auto embedinto_filename = conf.getEmbedIntoFileName();
       if (!embedinto_filename.empty()) {
@@ -461,7 +479,8 @@ class O2PrimaryServerDevice final : public fair::mq::Device
     i.maxEvents = mMaxEvents;
     i.part = mPartCounter + 1;
     i.nparts = numberofparts;
-    i.seed = mEventCounter + mInitialSeed;
+
+    i.seed = mUseFixedChunkSeed ? mFixedChunkSeed : mEventCounter + mInitialSeed;
     i.index = m.mParticles.size();
     i.mMCEventHeader = mEventHeader;
     m.mSubEventInfo = i;
@@ -588,6 +607,8 @@ class O2PrimaryServerDevice final : public fair::mq::Device
   bool mNeedNewEvent = true;
   int mMaxEvents = 2;
   ULong_t mInitialSeed = 0;
+  bool mUseFixedChunkSeed = false;
+  ULong_t mFixedChunkSeed = 0;
   int mPipeToDriver = -1; // handle for direct piper to driver (to communicate meta info)
   int mEventCounter = 0;
 

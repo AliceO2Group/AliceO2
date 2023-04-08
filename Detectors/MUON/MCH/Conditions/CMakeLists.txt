@@ -24,6 +24,18 @@ o2_add_library(
           src/SolarCrate.cxx
   PUBLIC_LINK_LIBRARIES fmt::fmt O2::MCHConstants)
 
+o2_add_executable(
+  bad-channels-ccdb
+  COMPONENT_NAME mch
+  SOURCES src/bad-channels-ccdb.cxx
+  PUBLIC_LINK_LIBRARIES
+    O2::CCDB
+    O2::DataFormatsMCH
+    O2::Framework
+    O2::MCHMappingImpl4
+    O2::MCHRawElecMap
+    )
+
 if(BUILD_TESTING)
   o2_add_test(
     dcs-aliases

@@ -104,7 +104,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     mergersBuilder.setOutputSpec({{ "main" }, "TST", "HISTO", 0 });
     MergerConfig mergerConfig;
     mergerConfig.inputObjectTimespan = { mergersInputObjectTimespan };
-    mergerConfig.publicationDecision = { mergersPublicationDecision, mergersPublicationDecision == PublicationDecision::EachNSeconds ? mergersPublicationInterval : 1.0 };
+    std::vector<std::pair<size_t, size_t>> param = {{mergersPublicationInterval, 1}};
+    mergerConfig.publicationDecision = { mergersPublicationDecision, param };
     mergerConfig.mergedObjectTimespan = { MergedObjectTimespan::FullHistory };
     mergerConfig.topologySize = { TopologySize::NumberOfLayers, mergersLayers };
     mergersBuilder.setConfig(mergerConfig);

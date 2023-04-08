@@ -27,6 +27,6 @@ std::ostream& o2::focal::operator<<(std::ostream& stream, const ASICHeader& head
 
 std::ostream& o2::focal::operator<<(std::ostream& stream, const TriggerWord& trigger)
 {
-  stream << "(HEADER) 0x" << std::hex << trigger.mHeader << std::dec << ": " << trigger.mTrigger0 << ", " << trigger.mTrigger1 << ", " << trigger.mTrigger2 << ", " << trigger.mTrigger3 << ", " << trigger.mTrigger4 << ", " << trigger.mTrigger5 << ", " << trigger.mTrigger6 << ", " << trigger.mTrigger7;
+  stream << "(HEADER0) 0x" << std::hex << trigger.mHeader0 << ", (HEADER1) 0x" << trigger.mHeader1 << std::dec << ": " << trigger.mTrigger0 << ", " << trigger.mTrigger1 << ", " << trigger.mTrigger2 << ", " << trigger.mTrigger3 << ", " << trigger.mTrigger4 << ", " << trigger.mTrigger5 << ", " << trigger.mTrigger6 << ", " << trigger.mTrigger7;
   return stream;
 }

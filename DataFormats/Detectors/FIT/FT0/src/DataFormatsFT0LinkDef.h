@@ -40,7 +40,6 @@
 #pragma link C++ class o2::ft0::HitType + ;
 #pragma link C++ class vector < o2::ft0::HitType> + ;
 
-#pragma link C++ class o2::ft0::RawEventData + ;
 #pragma link C++ class o2::ft0::CTFHeader + ;
 #pragma link C++ class o2::ft0::CompressedDigits + ;
 #pragma link C++ class o2::ft0::CTF + ;

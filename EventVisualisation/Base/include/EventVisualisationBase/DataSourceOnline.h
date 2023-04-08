@@ -43,7 +43,7 @@ class DataSourceOnline : public DataSource
   std::string mFileTime;
 
  public:
-  DataSourceOnline(const std::string path);
+  DataSourceOnline(const std::vector<std::string>& path);
 
   ~DataSourceOnline() override = default;
   DataSourceOnline(DataSourceOnline const&) = delete;
@@ -59,7 +59,7 @@ class DataSourceOnline : public DataSource
 
   std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> getVisualisationList(int no, float minTime, float maxTime, float range) override;
   void rollToNext() override { mFileWatcher.rollToNext(); };
-  void changeDataFolder(std::string newFolder) override { mFileWatcher.changeFolder(newFolder); };
+  void changeDataFolder(const std::vector<std::string>& newFolders) override { mFileWatcher.changeFolder(newFolders); };
   void saveCurrentEvent(std::string targetFolder) override { mFileWatcher.saveCurrentFileToFolder(targetFolder); };
   int getRunNumber() const override { return this->mRunNumber; }
   void setRunNumber(int runNumber) override { this->mRunNumber = runNumber; }

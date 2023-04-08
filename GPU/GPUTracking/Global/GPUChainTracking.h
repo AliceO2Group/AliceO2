@@ -295,6 +295,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
  private:
   int RunChainFinalize();
+  void SanityCheck();
   int RunTPCTrackingSlices_internal();
   int RunTPCClusterizer_prepare(bool restorePointers);
 #ifdef GPUCA_TPC_GEOMETRY_O2

@@ -164,9 +164,15 @@ class CCDBManagerInstance
   /// set the fatal property (when false; nullptr object responses will not abort)
   void setFatalWhenNull(bool b) { mFatalWhenNull = b; }
 
-  /// a convenience function for MC to fetch
-  /// valid timestamps given an ALICE run number
-  std::pair<uint64_t, uint64_t> getRunDuration(int runnumber) const;
+  /// A convenience function for MC to fetch
+  /// valid start and end timestamps given an ALICE run number.
+  /// On error it fatals (if fatal == true) or else returns the pair -1, -1.
+  std::pair<int64_t, int64_t> getRunDuration(int runnumber, bool fatal = true) const;
+
+  /// A convenience function for MC to fetch
+  /// valid start and end timestamps given an ALICE run number.
+  /// On error it fatals (if fatal == true) or else returns the pair -1, -1.
+  static std::pair<int64_t, int64_t> getRunDuration(o2::ccdb::CcdbApi const& api, int runnumber, bool fatal = true);
 
   std::string getSummaryString() const;
 
@@ -232,8 +238,12 @@ T* CCDBManagerInstance::getForTimeStamp(std::string const& path, long timestamp)
         cached.objPtr.reset(ptr);
       }
       cached.uuid = mHeaders["ETag"];
-      cached.startvalidity = std::stol(mHeaders["Valid-From"]);
-      cached.endvalidity = std::stol(mHeaders["Valid-Until"]);
+      try { // this conversion can throw, better to catch immediately
+        cached.startvalidity = std::stol(mHeaders["Valid-From"]);
+        cached.endvalidity = std::stol(mHeaders["Valid-Until"]);
+      } catch (std::exception const& e) {
+        reportFatal("Failed to read validity from CCDB response (Valid-From :  " + mHeaders["Valid-From"] + std::string(" Valid-Until: ") + mHeaders["Valid-Until"] + std::string(")"));
+      }
     } else if (mHeaders.count("Error")) { // in case of errors the pointer is 0 and headers["Error"] should be set
       cached.failures++;
       cached.clear(); // in case of any error clear cache for this object

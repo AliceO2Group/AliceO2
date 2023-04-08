@@ -66,10 +66,7 @@ auto getDataOriginFromFilename(const std::string& filename)
 
 InjectorFunction dcs2dpl(const std::string& acknowledge)
 {
-
-  auto timesliceId = std::make_shared<size_t>(0);
-
-  return [acknowledge, timesliceId](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever) {
+  return [acknowledge](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId, bool&) {
     if (parts.Size() == 0) { // received at ^c, ignore
       LOG(info) << "ignoring empty message";
       return;
@@ -93,21 +90,21 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
     o2::header::DataHeader hdrF("DCS_CONFIG_FILE", dataOrigin, 0);
     o2::header::DataHeader hdrN("DCS_CONFIG_NAME", dataOrigin, 0);
     OutputSpec outsp{hdrF.dataOrigin, hdrF.dataDescription, hdrF.subSpecification};
-    auto channel = channelRetriever(outsp, *timesliceId);
+    auto channel = channelRetriever(outsp, newTimesliceId);
     if (channel.empty()) {
       LOG(error) << "No output channel found for OutputSpec " << outsp;
       sendAnswer(fmt::format("{}:error2: no channel to send", filename), acknowledge, device);
       return;
     }
 
-    hdrF.tfCounter = *timesliceId;
+    hdrF.tfCounter = newTimesliceId;
     hdrF.payloadSerializationMethod = o2::header::gSerializationMethodNone;
     hdrF.splitPayloadParts = 1;
     hdrF.splitPayloadIndex = 0;
     hdrF.payloadSize = filesize;
     hdrF.firstTForbit = 0; // this should be irrelevant for DCS
 
-    hdrN.tfCounter = *timesliceId;
+    hdrN.tfCounter = newTimesliceId;
     hdrN.payloadSerializationMethod = o2::header::gSerializationMethodNone;
     hdrN.splitPayloadParts = 1;
     hdrN.splitPayloadIndex = 0;
@@ -117,13 +114,13 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
     auto fmqFactory = device.GetChannel(channel).Transport();
     std::uint64_t creation = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
 
-    o2::header::Stack headerStackF{hdrF, DataProcessingHeader{*timesliceId, 1, creation}};
+    o2::header::Stack headerStackF{hdrF, DataProcessingHeader{newTimesliceId, 1, creation}};
     auto hdMessageF = fmqFactory->CreateMessage(headerStackF.size(), fair::mq::Alignment{64});
     auto plMessageF = fmqFactory->CreateMessage(hdrF.payloadSize, fair::mq::Alignment{64});
     memcpy(hdMessageF->GetData(), headerStackF.data(), headerStackF.size());
     memcpy(plMessageF->GetData(), parts.At(1)->GetData(), hdrF.payloadSize);
 
-    o2::header::Stack headerStackN{hdrN, DataProcessingHeader{*timesliceId, 1, creation}};
+    o2::header::Stack headerStackN{hdrN, DataProcessingHeader{newTimesliceId, 1, creation}};
     auto hdMessageN = fmqFactory->CreateMessage(headerStackN.size(), fair::mq::Alignment{64});
     auto plMessageN = fmqFactory->CreateMessage(hdrN.payloadSize, fair::mq::Alignment{64});
     memcpy(hdMessageN->GetData(), headerStackN.data(), headerStackN.size());
@@ -137,11 +134,10 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
     fair::mq::Parts outPartsN;
     outPartsN.AddPart(std::move(hdMessageN));
     outPartsN.AddPart(std::move(plMessageN));
-    sendOnChannel(device, outPartsN, channel, *timesliceId);
+    sendOnChannel(device, outPartsN, channel, newTimesliceId);
 
     sendAnswer(fmt::format("{}:ok", filename), acknowledge, device);
     LOG(info) << "Sent DPL message and acknowledgment for file " << filename;
-    (*timesliceId)++;
   };
 }
 

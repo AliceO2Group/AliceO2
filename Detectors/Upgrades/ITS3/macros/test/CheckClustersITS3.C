@@ -28,7 +28,6 @@
 #include "ITS3Base/SegmentationSuperAlpide.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "DataFormatsITS3/CompCluster.h"
-#include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "ITS3Reconstruction/TopologyDictionary.h"
 #include "ITSMFTSimulation/Hit.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
@@ -98,17 +97,16 @@ void CheckClustersITS3(int nITS3layers = 3, std::string clusfile = "o2clus_it3.r
     pattBranch->SetAddress(&patternsPtr);
   }
   if (dictfile.empty()) {
-    dictfile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::IT3, "", ".bin");
+    dictfile = o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::IT3, "", "root");
   }
-  o2::itsmft::TopologyDictionary dict2;
+  o2::its3::TopologyDictionary dict;
   std::ifstream file(dictfile.c_str());
   if (file.good()) {
     LOG(info) << "Running with dictionary: " << dictfile.c_str();
-    dict2.readFromFile(dictfile);
+    dict.readFromFile(dictfile);
   } else {
     LOG(info) << "Running without dictionary !";
   }
-  o2::its3::TopologyDictionary dict = dict2;
 
   // ROFrecords
   std::vector<ROFRec> rofRecVec, *rofRecVecP = &rofRecVec;
@@ -170,6 +168,7 @@ void CheckClustersITS3(int nITS3layers = 3, std::string clusfile = "o2clus_it3.r
         }
       }
     }
+
     // << cache MC events contributing to this ROF
     for (int icl = 0; icl < rofRec.getNEntries(); icl++) {
       int clEntry = rofRec.getFirstEntry() + icl; // entry of icl-th cluster of this ROF in the vector of clusters
@@ -184,18 +183,20 @@ void CheckClustersITS3(int nITS3layers = 3, std::string clusfile = "o2clus_it3.r
       auto chipID = cluster.getSensorID();
       if (pattID == o2::its3::CompCluster::InvalidPatternID || dict.isGroup(pattID)) {
         o2::itsmft::ClusterPattern patt(pattIt);
-        locC = dict.getClusterCoordinates(chipID, cluster, patt, false);
+        locC = dict.getClusterCoordinates(cluster, patt, false);
+        LOGP(info, "I am invalid and I am on chip {}", chipID);
       } else {
-        locC = dict.getClusterCoordinates(chipID, cluster);
+        locC = dict.getClusterCoordinates(cluster);
         errX = dict.getErrX(pattID);
         errZ = dict.getErrZ(pattID);
+        if (chipID / nChipsPerLayer >= nITS3layers) {
+          errX *= Segmentation::PitchRow;
+          errZ *= Segmentation::PitchCol;
+        } else {
+          errX *= segs[chipID].mPitchRow;
+          errZ *= segs[chipID].mPitchCol;
+        }
         npix = dict.getNpixels(pattID);
-        LOGP(info, "I am invalid and I am on chip {}", chipID);
-      }
-      if (chipID / nChipsPerLayer < nITS3layers) {
-        float xCurved{0.f}, yCurved{0.f};
-        segs[chipID].flatToCurved(locC.X(), locC.Y(), xCurved, yCurved);
-        locC.SetXYZ(xCurved, yCurved, locC.Z());
       }
 
       // Transformation to the local --> global
@@ -262,10 +263,10 @@ void CheckClustersITS3(int nITS3layers = 3, std::string clusfile = "o2clus_it3.r
 
   auto canvdXdZ = new TCanvas("canvdXdZ", "", 1600, 800);
   canvdXdZ->Divide(2, 1);
-  canvdXdZ->cd(1);
-  nt.Draw("dx:dz>>h_dx_vs_dz_IB(1000, -0.0025, 0.0025, 1000, -0.0025, 0.0025)", "id < 6", "colz");
-  canvdXdZ->cd(2);
-  nt.Draw("dx:dz>>h_dx_vs_dz_OB(1000, -0.0025, 0.0025, 1000, -0.0025, 0.0025)", "id >= 6", "colz");
+  canvdXdZ->cd(1)->SetLogz();
+  nt.Draw("dx:dz>>h_dx_vs_dz_IB(1000, -0.026, 0.026, 1000, -0.026, 0.026)", "id < 6", "colz");
+  canvdXdZ->cd(2)->SetLogz();
+  nt.Draw("dx:dz>>h_dx_vs_dz_OB(1000, -0.026, 0.026, 1000, -0.026, 0.026)", "id >= 6", "colz");
   canvdXdZ->SaveAs("it3clusters_dx_vs_dz.pdf");
 
   // auto c1 = new TCanvas("p1", "pullX");

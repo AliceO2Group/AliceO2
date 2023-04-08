@@ -70,7 +70,7 @@ class ClusterFinderOriginalTask
     mAttachInitalPrecluster = ic.options().get<bool>("attach-initial-precluster");
 
     /// Print the timer and clear the clusterizer when the processing is over
-    ic.services().get<CallbackService>().set(CallbackService::Id::Stop, [this]() {
+    ic.services().get<CallbackService>().set<CallbackService::Id::Stop>([this]() {
       LOG(info) << "cluster finder duration = " << mTimeClusterFinder.count() << " s";
       mErrorMap.forEach([](Error error) {
         LOGP(warning, error.asString());

@@ -77,6 +77,7 @@ class TrackerDPL : public framework::Task
   std::unique_ptr<o2::gpu::GPUChainITS> mChainITS = nullptr;
   std::unique_ptr<Tracker> mTracker = nullptr;
   std::unique_ptr<Vertexer> mVertexer = nullptr;
+  TimeFrame* mTimeFrame = nullptr;
   const o2::dataformats::MeanVertexObject* mMeanVertex;
   TStopwatch mTimer;
 };

@@ -12,15 +12,15 @@
 #ifndef O2_MCH_DEVIO_DIGITS_DIGIT_IO_V4_H
 #define O2_MCH_DEVIO_DIGITS_DIGIT_IO_V4_H
 
-#include "DigitReaderImpl.h"
+#include "DigitSamplerImpl.h"
 #include <vector>
 #include "DataFormatsMCH/ROFRecord.h"
 #include <utility>
-#include "DigitWriterImpl.h"
+#include "DigitSinkImpl.h"
 
 namespace o2::mch::io::impl
 {
-class DigitReaderV4 : public DigitReaderImpl
+class DigitSamplerV4 : public DigitSamplerImpl
 {
  public:
   void count(std::istream& in, size_t& ntfs, size_t& nrofs, size_t& ndigits) override;
@@ -30,12 +30,12 @@ class DigitReaderV4 : public DigitReaderImpl
   void rewind(std::istream& in);
 };
 
-struct DigitWriterV4 : public DigitWriterImpl {
+struct DigitSinkV4 : public DigitSinkImpl {
   /** write rofs, digits at the current position in the output stream
-  * @param digits vector of Digits, must not be empty
-  * @param rofs vector of ROFRecord, might be empty
-  * @returns true if writing was successull, false otherwise
-  */
+   * @param digits vector of Digits, must not be empty
+   * @param rofs vector of ROFRecord, might be empty
+   * @returns true if writing was successull, false otherwise
+   */
   bool write(std::ostream& out,
              gsl::span<const Digit> digits,
              gsl::span<const ROFRecord> rofs) override;

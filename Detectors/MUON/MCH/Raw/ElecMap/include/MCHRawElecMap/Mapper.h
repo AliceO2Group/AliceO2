@@ -125,6 +125,14 @@ extern std::array<int, 13> deIdsOfCH10L;
 template <typename T>
 std::vector<std::string> solar2FeeLinkConsistencyCheck();
 
+/** Convert a solar index into a solarId */
+template <typename T>
+std::optional<uint16_t> solarIndex2Id(uint16_t solarIndex);
+
+/** Convert a solarId into a solar index */
+template <typename T>
+std::optional<uint16_t> solarId2Index(uint16_t solarId);
+
 } // namespace o2::mch::raw
 
 #endif

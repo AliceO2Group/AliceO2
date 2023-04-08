@@ -17,5 +17,7 @@
 
 #pragma link C++ class o2::its3::Clusterer + ;
 #pragma link C++ class o2::its3::TopologyDictionary + ;
+#pragma link C++ class o2::its3::BuildTopologyDictionary + ;
+#pragma link C++ class o2::its3::LookUp + ;
 
 #endif

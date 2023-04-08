@@ -25,7 +25,6 @@ o2_add_library(TRDWorkflow
                        include/TRDWorkflow/VdAndExBCalibSpec.h
                        include/TRDWorkflow/TRDGlobalTrackingQCSpec.h
                        include/TRDWorkflow/NoiseCalibSpec.h
-                       include/TRDWorkflow/NoiseCalibAggregatorSpec.h
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils
                                      O2::Steer
                                      O2::Algorithm

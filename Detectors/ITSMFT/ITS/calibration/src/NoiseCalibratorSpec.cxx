@@ -54,13 +54,24 @@ void NoiseCalibratorSpec::init(InitContext& ic)
 
 void NoiseCalibratorSpec::run(ProcessingContext& pc)
 {
-  updateTimeDependentParams(pc);
-  mTimer.Start(false);
+  const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
   static bool firstCall = true;
-  static bool done = false;
-  if (done) {
+  if (tinfo.globalRunNumberChanged) { // new run is starting
+    mRunStopRequested = false;
+    mInitOnceDone = false;
+    mStrobeCounter = 0;
+    mDataSizeStat = 0;
+    mNClustersProc = 0;
+    if (firstCall) {
+      mCalibrator->reset();
+    }
+  }
+  if (mRunStopRequested) {
     return;
   }
+  updateTimeDependentParams(pc);
+  mTimer.Start(false);
+  bool done = false;
   if (firstCall) {
     firstCall = false;
     mCalibrator->setInstanceID((int)pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId);
@@ -96,8 +107,12 @@ void NoiseCalibratorSpec::run(ProcessingContext& pc)
     mCalibrator->setNStrobes(mStrobeCounter);
     LOGP(info, "Received accumulated map {} of {} with {} ROFs, total number of maps = {} and strobes = {}", partInfo[0] + 1, partInfo[1], partInfo[2], mNPartsDone, mCalibrator->getNStrobes());
   }
-  if (done) {
-    LOG(info) << "Minimum number of noise counts has been reached !";
+  if (done || pc.transitionState() == TransitionHandlingState::Requested) {
+    if (done) {
+      LOG(info) << "Minimum number of noise counts has been reached !";
+    } else {
+      LOG(info) << "Run stop is requested, sending output";
+    }
     if (mMode == ProcessingMode::Full || mMode == ProcessingMode::Normalize) {
       sendOutput(pc.outputs());
       // pc.services().get<ControlService>().readyToQuit(mStopMeOnly ? QuitRequest::Me : QuitRequest::All);
@@ -105,6 +120,7 @@ void NoiseCalibratorSpec::run(ProcessingContext& pc)
       sendAccumulatedMap(pc.outputs());
       // pc.services().get<o2::framework::ControlService>().endOfStream();
     }
+    mRunStopRequested = true;
   }
 
   mTimer.Stop();
@@ -112,11 +128,6 @@ void NoiseCalibratorSpec::run(ProcessingContext& pc)
 
 void NoiseCalibratorSpec::sendAccumulatedMap(DataAllocator& output)
 {
-  static bool done = false;
-  if (done) {
-    return;
-  }
-  done = true;
   output.snapshot(Output{"ITS", "NOISEMAPPART", (unsigned int)mCalibrator->getInstanceID()}, mCalibrator->getNoiseMap());
   std::vector<int> outInf;
   outInf.push_back(mCalibrator->getInstanceID());
@@ -128,11 +139,6 @@ void NoiseCalibratorSpec::sendAccumulatedMap(DataAllocator& output)
 
 void NoiseCalibratorSpec::sendOutput(DataAllocator& output)
 {
-  static bool done = false;
-  if (done) {
-    return;
-  }
-  done = true;
   mCalibrator->finalize(mNoiseCutIB);
 
   long tstart = o2::ccdb::getCurrentTimestamp();
@@ -193,20 +199,23 @@ void NoiseCalibratorSpec::addDatabaseEntry(int chip, int row, int col)
 
 void NoiseCalibratorSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
 {
+  if (mRunStopRequested) {
+    return;
+  }
   if (mMode == ProcessingMode::Accumulate) {
     sendAccumulatedMap(ec.outputs());
   } else {
     sendOutput(ec.outputs());
   }
+  mRunStopRequested = true;
 }
 
 ///_______________________________________
 void NoiseCalibratorSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-  static bool initOnceDone = false;
-  if (!initOnceDone) {
-    initOnceDone = true;
+  if (!mInitOnceDone) {
+    mInitOnceDone = true;
     if (mUseClusters) {
       pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
     }

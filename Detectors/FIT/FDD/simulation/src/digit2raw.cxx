@@ -10,18 +10,13 @@
 // or submit itself to any jurisdiction.
 
 /// \file digit2raw.cxx
-/// \author ruben.shahoyan@cern.ch
+/// \author ruben.shahoyan@cern.ch afurs@cern.ch
 
 #include <boost/program_options.hpp>
-#include <filesystem>
-#include <TFile.h>
 #include <TStopwatch.h>
-#include "Framework/Logger.h"
 #include <string>
-#include <iomanip>
 #include "CommonUtils/StringUtils.h"
 #include "CommonUtils/ConfigurableParam.h"
-#include "CommonUtils/NameConf.h"
 #include "DetectorsRaw/HBFUtils.h"
 #include "FDDRaw/RawWriterFDD.h"
 #include "DataFormatsParameters/GRPObject.h"
@@ -29,9 +24,40 @@
 /// MC->raw conversion for FDD
 
 namespace bpo = boost::program_options;
+struct Configuration {
+  Configuration(const bpo::variables_map& vm)
+  {
+    mInputFile = vm["input-file"].as<std::string>();
+    mOutputDir = vm["output-dir"].as<std::string>();
+    mVerbosity = vm["verbosity"].as<int>();
+    mFileFor = vm["file-for"].as<std::string>();
+    mRdhVersion = vm["rdh-version"].as<uint32_t>();
+    mEnablePadding = vm["enable-padding"].as<bool>();
+    mNoEmptyHBF = vm["no-empty-hbf"].as<bool>();
+    mFlpName = vm["flp-name"].as<std::string>();
+    mCcdbPath = vm["ccdb-path"].as<std::string>();
+    mChannelMapPath = vm["lut-path"].as<std::string>();
+    if (mRdhVersion < 7 && !mEnablePadding) {
+      mEnablePadding = true;
+      LOG(info) << "padding is always ON for RDH version " << mRdhVersion;
+    }
+    mDataFormat = mEnablePadding ? 0 : 2;
+  }
+  bool mNoEmptyHBF;
+  bool mEnablePadding;
+  int mVerbosity;
+  uint32_t mRdhVersion;
+  uint32_t mDataFormat;
+  std::string mInputFile;
+  std::string mOutputDir;
+  std::string mFileFor;
+  std::string mFlpName;
+  std::string mCcdbPath;
+  std::string mChannelMapPath;
+};
 
-void digit2raw(const std::string& inpName, const std::string& outDir, int verbosity, const std::string& fileFor, uint32_t rdhV, bool noEmptyHBF, const std::string& flpName,
-               const std::string& ccdbUrl, const std::string& lutPath, int superPageSizeInB = 1024 * 1024);
+template <typename RawWriterType>
+void digit2raw(const Configuration& cfg);
 
 int main(int argc, char** argv)
 {
@@ -46,9 +72,8 @@ int main(int argc, char** argv)
     auto add_option = opt_general.add_options();
     add_option("help,h", "Print this help message");
     add_option("verbosity,v", bpo::value<int>()->default_value(0), "verbosity level");
-    //    add_option("input-file,i", bpo::value<std::string>()->default_value(o2::base::NameConf::getDigitsFileName(o2::detectors::DetID::FDD)),"input FDD digits file"); // why not used?
     add_option("input-file,i", bpo::value<std::string>()->default_value("fdddigits.root"), "input FDD digits file");
-    add_option("flp-name", bpo::value<std::string>()->default_value("alio2-cr1-flp201"), "single file per: all,flp,cru,link"); // temporary, beacause FIT deployed only on one node
+    add_option("flp-name", bpo::value<std::string>()->default_value("alio2-cr1-flp201"), "single file per: all,flp,cru,link");
     add_option("file-for,f", bpo::value<std::string>()->default_value("all"), "single file per: all,flp,cruendpoint,link");
     add_option("output-dir,o", bpo::value<std::string>()->default_value("./"), "output directory for raw data");
     uint32_t defRDH = o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>();
@@ -58,6 +83,7 @@ int main(int argc, char** argv)
     add_option("configKeyValues", bpo::value<std::string>()->default_value(""), "comma-separated configKeyValues");
     add_option("ccdb-path", bpo::value<std::string>()->default_value(""), "CCDB url which contains LookupTable");
     add_option("lut-path", bpo::value<std::string>()->default_value(""), "LookupTable path, e.g. FDD/LookupTable");
+    add_option("enable-padding", bpo::value<bool>()->default_value(false)->implicit_value(true), "enable GBT word padding to 128 bits even for RDH V7");
     opt_all.add(opt_general).add(opt_hidden);
     bpo::store(bpo::command_line_parser(argc, argv).options(opt_all).positional(opt_pos).run(), vm);
 
@@ -82,51 +108,54 @@ int main(int argc, char** argv)
     o2::conf::ConfigurableParam::updateFromFile(confDig, "HBFUtils");
   }
   o2::conf::ConfigurableParam::updateFromString(vm["configKeyValues"].as<std::string>());
-  digit2raw(vm["input-file"].as<std::string>(),
-            vm["output-dir"].as<std::string>(),
-            vm["verbosity"].as<int>(),
-            vm["file-for"].as<std::string>(),
-            vm["rdh-version"].as<uint32_t>(),
-            vm["no-empty-hbf"].as<bool>(),
-            vm["flp-name"].as<std::string>(),
-            vm["ccdb-path"].as<std::string>(),
-            vm["lut-path"].as<std::string>());
 
+  const Configuration cfg(vm);
+  if (!cfg.mEnablePadding) {
+    digit2raw<o2::fdd::RawWriterFDD>(cfg);
+  } else {
+    digit2raw<o2::fdd::RawWriterFDD_padded>(cfg);
+  }
   o2::raw::HBFUtils::Instance().print();
 
   return 0;
 }
 
-void digit2raw(const std::string& inpName, const std::string& outDir, int verbosity, const std::string& fileFor, uint32_t rdhV, bool noEmptyHBF, const std::string& flpName, const std::string& ccdbUrl, const std::string& lutPath, int superPageSizeInB)
+template <typename RawWriterType>
+void digit2raw(const Configuration& cfg)
 {
   TStopwatch swTot;
   swTot.Start();
-  o2::fdd::RawWriterFDD m2r;
-  m2r.setFileFor(fileFor);
-  m2r.setFlpName(flpName);
-  m2r.setVerbosity(verbosity);
-  if (ccdbUrl != "") {
-    m2r.setCCDBurl(ccdbUrl);
+  RawWriterType m2r;
+  m2r.setFileFor(cfg.mFileFor);
+  m2r.setFlpName(cfg.mFlpName);
+  m2r.setVerbosity(cfg.mVerbosity);
+  if (cfg.mCcdbPath != "") {
+    m2r.setCCDBurl(cfg.mCcdbPath);
   }
-  if (lutPath != "") {
-    m2r.setLUTpath(lutPath);
+  if (cfg.mChannelMapPath != "") {
+    m2r.setLUTpath(cfg.mChannelMapPath);
   }
   auto& wr = m2r.getWriter();
   std::string inputGRP = o2::base::NameConf::getGRPFileName();
   const auto grp = o2::parameters::GRPObject::loadFrom(inputGRP);
   wr.setContinuousReadout(grp->isDetContinuousReadOut(o2::detectors::DetID::FDD)); // must be set explicitly
+  const int superPageSizeInB = 1024 * 1024;
   wr.setSuperPageSize(superPageSizeInB);
-  wr.useRDHVersion(rdhV);
-  wr.setDontFillEmptyHBF(noEmptyHBF);
+  wr.useRDHVersion(cfg.mRdhVersion);
+  wr.setDontFillEmptyHBF(cfg.mNoEmptyHBF);
+  wr.useRDHDataFormat(cfg.mDataFormat);
+  if (!cfg.mEnablePadding) { // CRU page alignment padding is used only if no GBT word padding is used
+    wr.setAlignmentSize(16); // change to constexpr static field from class?
+    wr.setAlignmentPaddingFiller(0xff);
+  }
+  o2::raw::assertOutputDirectory(cfg.mOutputDir);
 
-  o2::raw::assertOutputDirectory(outDir);
-
-  std::string outDirName(outDir);
+  std::string outDirName(cfg.mOutputDir);
   if (outDirName.back() != '/') {
     outDirName += '/';
   }
 
-  m2r.convertDigitsToRaw(outDirName, inpName);
+  m2r.convertDigitsToRaw(outDirName, cfg.mInputFile);
   wr.writeConfFile(wr.getOrigin().str, "RAWDATA", o2::utils::Str::concat_string(outDirName, wr.getOrigin().str, "raw.cfg"));
   //
   swTot.Stop();

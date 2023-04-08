@@ -248,6 +248,7 @@ class O2SimDevice final : public fair::mq::Device
             LOG(info) << workerStr() << " Processing " << chunk->mParticles.size() << " primary particles "
                       << "for event " << info.eventID << "/" << info.maxEvents << " "
                       << "part " << info.part << "/" << info.nparts;
+            LOG(info) << "Setting seed for this sub-event to " << chunk->mSubEventInfo.seed;
             gRandom->SetSeed(chunk->mSubEventInfo.seed);
 
             // Process one event

@@ -14,7 +14,7 @@
 namespace o2::framework
 {
 enum BasicOp : unsigned int {
-  LogicalAnd,
+  LogicalAnd, // 2-ar operations
   LogicalOr,
   Addition,
   Subtraction,
@@ -29,9 +29,9 @@ enum BasicOp : unsigned int {
   GreaterThanOrEqual,
   Equal,
   NotEqual,
-  Atan2,
+  Atan2, // 2-ar functions
   Power,
-  Sqrt,
+  Sqrt, // 1-ar functions
   Exp,
   Log,
   Log10,
@@ -42,8 +42,9 @@ enum BasicOp : unsigned int {
   Acos,
   Atan,
   Abs,
+  Round,
   BitwiseNot,
-  Conditional
+  Conditional // 3-ar functions
 };
 } // namespace o2::framework
 

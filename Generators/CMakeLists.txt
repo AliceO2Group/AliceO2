@@ -23,18 +23,17 @@ endif()
 
 o2_add_library(Generators
                SOURCES src/Generator.cxx
-	       	       src/Trigger.cxx
-	       	       src/TriggerParticle.cxx
+                       src/Trigger.cxx
+                       src/TriggerParticle.cxx
                        src/GeneratorTGenerator.cxx
                        src/GeneratorExternalParam.cxx
                        src/GeneratorFromFile.cxx
                        src/GeneratorFromO2KineParam.cxx
                        src/PrimaryGenerator.cxx
-                       src/InteractionDiamondParam.cxx
                        src/TriggerExternalParam.cxx
                        src/TriggerParticleParam.cxx
                        src/BoxGunParam.cxx
-		       src/QEDGenParam.cxx
+                       src/QEDGenParam.cxx
                        src/GenCosmicsParam.cxx
                        src/GeneratorFactory.cxx
                        src/GeneratorGeantinos.cxx
@@ -46,7 +45,7 @@ o2_add_library(Generators
                        $<$<BOOL:${pythia_FOUND}>:src/DecayerPythia8Param.cxx>
                        $<$<BOOL:${HepMC3_FOUND}>:src/GeneratorHepMC.cxx>
                        $<$<BOOL:${HepMC3_FOUND}>:src/GeneratorHepMCParam.cxx>
-               PUBLIC_LINK_LIBRARIES FairRoot::Base O2::SimConfig O2::CommonUtils O2::DetectorsBase
+               PUBLIC_LINK_LIBRARIES FairRoot::Base O2::SimConfig O2::CommonUtils O2::DetectorsBase O2::ZDCBase
                                      O2::SimulationDataFormat ${pythia6Target} ${pythiaTarget} ${hepmcTarget}
                                      FairRoot::Gen
                TARGETVARNAME targetName)
@@ -72,7 +71,6 @@ set(headers
     include/Generators/GeneratorFromFile.h
     include/Generators/GeneratorFromO2KineParam.h
     include/Generators/PrimaryGenerator.h
-    include/Generators/InteractionDiamondParam.h
     include/Generators/TriggerExternalParam.h
     include/Generators/TriggerParticleParam.h
     include/Generators/BoxGunParam.h

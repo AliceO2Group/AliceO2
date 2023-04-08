@@ -5,4 +5,4 @@ if [ "0$O2DPG_ROOT" == "0" ]; then
     exit 1
 fi
 
-source $O2DPG_ROOT/DATA/common/gen_topo_helper_functions.sh
+source $O2DPG_ROOT/DATA/common/gen_topo_helper_functions.sh || { echo "gen_topo_helper_functions.sh failed" 1>&2 && exit 1; }

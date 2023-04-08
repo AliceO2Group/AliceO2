@@ -9,14 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test Framework Logger
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include "Framework/Logger.h"
 
-BOOST_AUTO_TEST_CASE(TestLogF)
+TEST_CASE("TestLogF")
 {
   LOGF(error, "%s", "Hello world");
   LOGF(info, "%s", "Hello world");

@@ -19,7 +19,6 @@
 #include "MCHRawDecoder/DataDecoder.h"
 
 #include "CommonConstants/LHCConstants.h"
-#include "DetectorsRaw/HBFUtils.h"
 #include "DetectorsRaw/RDHUtils.h"
 #include "Framework/Logger.h"
 #include "Headers/RAWDataHeader.h"
@@ -242,8 +241,10 @@ bool DataDecoder::TimeFrameStartRecord::check(int32_t orbit, uint32_t bc, int32_
 
 DataDecoder::DataDecoder(SampaChannelHandler channelHandler, RdhHandler rdhHandler,
                          std::string mapCRUfile, std::string mapFECfile,
-                         bool ds2manu, bool verbose, bool useDummyElecMap, TimeRecoMode timeRecoMode)
-  : mChannelHandler(channelHandler), mRdhHandler(rdhHandler), mMapCRUfile(mapCRUfile), mMapFECfile(mapFECfile), mDs2manu(ds2manu), mDebug(verbose), mUseDummyElecMap(useDummyElecMap), mTimeRecoMode(timeRecoMode)
+                         bool ds2manu, bool verbose, bool useDummyElecMap,
+                         TimeRecoMode timeRecoMode,
+                         uint32_t nofOrbitsPerTF)
+  : mChannelHandler(channelHandler), mRdhHandler(rdhHandler), mMapCRUfile(mapCRUfile), mMapFECfile(mapFECfile), mDs2manu(ds2manu), mDebug(verbose), mUseDummyElecMap(useDummyElecMap), mTimeRecoMode(timeRecoMode), mOrbitsInTF(nofOrbitsPerTF)
 {
   init();
 }
@@ -898,7 +899,6 @@ void DataDecoder::init()
   initFee2SolarMapper(mMapCRUfile);
   initElec2DetMapper(mMapFECfile);
 
-  mOrbitsInTF = o2::raw::HBFUtils::Instance().getNOrbitsPerTF();
   mBcInOrbit = o2::constants::lhc::LHCMaxBunches;
 
   mTimeFrameStartRecords.resize(sReadoutChipsNum);

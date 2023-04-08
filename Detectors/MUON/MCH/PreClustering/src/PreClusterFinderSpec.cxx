@@ -86,7 +86,7 @@ class PreClusterFinderTask
         LOGP(warning, error.asString());
       });
     };
-    ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
+    ic.services().get<CallbackService>().set<CallbackService::Id::Stop>(stop);
 
     auto checkNoLeftoverDigits = ic.options().get<std::string>("check-no-leftover-digits");
     if (checkNoLeftoverDigits == "quiet") {

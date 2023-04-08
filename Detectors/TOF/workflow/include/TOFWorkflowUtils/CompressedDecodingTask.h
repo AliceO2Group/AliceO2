@@ -24,6 +24,7 @@
 #include "TOFReconstruction/Decoder.h"
 #include "TOFBase/Digit.h"
 #include "TStopwatch.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 using namespace o2::framework;
 
@@ -37,7 +38,7 @@ using namespace compressed;
 class CompressedDecodingTask : public DecoderBase, public Task
 {
  public:
-  CompressedDecodingTask(bool conet, o2::header::DataDescription dataDesc)
+  CompressedDecodingTask(bool conet, o2::header::DataDescription dataDesc, std::shared_ptr<o2::base::GRPGeomRequest> gr) : mGGCCDBRequest(gr)
   {
     mConetMode = conet;
     mDataDesc = dataDesc;
@@ -50,6 +51,7 @@ class CompressedDecodingTask : public DecoderBase, public Task
   void decodeTF(ProcessingContext& pc);
   void endOfStream(EndOfStreamContext& ec) final;
   void postData(ProcessingContext& pc);
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final { o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj); }
 
  private:
   /** decoding handlers **/
@@ -60,6 +62,8 @@ class CompressedDecodingTask : public DecoderBase, public Task
   void trailerHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit,
                       const CrateTrailer_t* crateTrailer, const Diagnostic_t* diagnostics,
                       const Error_t* errors) override;
+
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
 
   o2::tof::compressed::Decoder mDecoder;
   std::vector<std::vector<o2::tof::Digit>> mDigits;

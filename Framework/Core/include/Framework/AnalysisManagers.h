@@ -326,7 +326,7 @@ struct OutputManager<Spawns<T>> {
   {
     auto originalTable = soa::ArrowHelpers::joinTables(extractOriginals(what.sources_pack(), pc));
     if (originalTable->schema()->fields().empty() == true) {
-      using base_table_t = typename Spawns<T>::base_table_t;
+      using base_table_t = typename Spawns<T>::base_table_t::table_t;
       originalTable = makeEmptyTable<base_table_t>(aod::MetadataTrait<typename Spawns<T>::extension_t>::metadata::tableLabel());
     }
 
@@ -492,6 +492,35 @@ struct ServiceManager<Service<T>> {
 };
 
 template <typename T>
+struct CacheManager {
+  template <typename ANY>
+  static bool initialize(InitContext&, ANY&)
+  {
+    return false;
+  }
+  template <typename ANY>
+  static bool initialize(ProcessingContext&, ANY&)
+  {
+    return false;
+  }
+};
+
+template <>
+struct CacheManager<SliceCache> {
+  static bool initialize(InitContext&, SliceCache&)
+  {
+    return false;
+  }
+  static bool initialize(ProcessingContext& pc, SliceCache& cache)
+  {
+    if (cache.ptr == nullptr) {
+      cache.ptr = &pc.services().get<ArrowTableSlicingCache>();
+    }
+    return true;
+  }
+};
+
+template <typename T>
 struct OptionManager {
   template <typename ANY>
   static bool appendOption(std::vector<ConfigParamSpec>& options, ANY& x)
@@ -612,30 +641,31 @@ struct IndexManager<Builds<IDX>> {
 /// Manager template to handle slice caching
 template <typename T>
 struct PresliceManager {
-  template <typename T1>
-  static bool processTable(T&, T1&)
+  static bool registerCache(T&, std::vector<std::pair<std::string, std::string>>&)
   {
     return false;
   }
 
-  static bool setNewDF(T&) { return false; };
+  static bool updateSliceInfo(T&, ArrowTableSlicingCache&)
+  {
+    return false;
+  }
 };
 
 template <typename T>
 struct PresliceManager<Preslice<T>> {
-  template <typename T1>
-  static bool processTable(Preslice<T>& container, T1& table)
+  static bool registerCache(Preslice<T>& container, std::vector<std::pair<std::string, std::string>>& bsks)
   {
-    if constexpr (o2::soa::is_binding_compatible_v<T, std::decay_t<T1>>()) {
-      return container.processTable(table.asArrowTable()).ok();
-    } else {
-      return false;
+    auto locate = std::find_if(bsks.begin(), bsks.end(), [&](auto const& entry) { return (entry.first == container.bindingKey.first) && (entry.second == container.bindingKey.second); });
+    if (locate == bsks.end()) {
+      bsks.emplace_back(container.getBindingKey());
     }
+    return true;
   }
 
-  static bool setNewDF(Preslice<T>& container)
+  static bool updateSliceInfo(Preslice<T>& container, ArrowTableSlicingCache& cache)
   {
-    container.setNewDF();
+    container.updateSliceInfo(cache.getCacheFor(container.getBindingKey()));
     return true;
   }
 };

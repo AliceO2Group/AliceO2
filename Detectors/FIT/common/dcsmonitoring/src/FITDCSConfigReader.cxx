@@ -47,6 +47,7 @@ void FITDCSConfigReader::updateDChMCcdbObjectInfo()
 {
   std::map<std::string, std::string> metadata;
   o2::calibration::Utils::prepareCCDBobjectInfo(mDChM, mCcdbObjectInfoDChM, mCcdbPathDChM, metadata, getStartValidityDChM(), getEndValidityDChM());
+  mCcdbObjectInfoDChM.setValidateUpload(getValidateUploadMode());
 }
 
 const o2::fit::DeadChannelMap& FITDCSConfigReader::getDChM() const { return mDChM; }
@@ -54,7 +55,7 @@ void FITDCSConfigReader::resetDChM() { mDChM.clear(); }
 const std::string& FITDCSConfigReader::getCcdbPathDChm() const { return mCcdbPathDChM; }
 void FITDCSConfigReader::setCcdbPathDChM(const std::string& ccdbPath) { mCcdbPathDChM = ccdbPath; }
 const long FITDCSConfigReader::getStartValidityDChM() const { return mStartValidityDChM; }
-const long FITDCSConfigReader::getEndValidityDChM() const { return mStartValidityDChM + o2::ccdb::CcdbObjectInfo::MONTH; }
+const long FITDCSConfigReader::getEndValidityDChM() const { return mStartValidityDChM + getValidDaysDChM() * o2::ccdb::CcdbObjectInfo::DAY; }
 void FITDCSConfigReader::setStartValidityDChM(const long startValidity) { mStartValidityDChM = startValidity; }
 const bool FITDCSConfigReader::isStartValidityDChMSet() const { return mStartValidityDChM != o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP; }
 void FITDCSConfigReader::resetStartValidityDChM() { mStartValidityDChM = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP; }
@@ -64,5 +65,11 @@ o2::ccdb::CcdbObjectInfo& FITDCSConfigReader::getObjectInfoDChM() { return mCcdb
 const std::string& FITDCSConfigReader::getFileNameDChM() const { return mFileNameDChM; }
 void FITDCSConfigReader::setFileNameDChM(const std::string& fileName) { mFileNameDChM = fileName; }
 
+const uint FITDCSConfigReader::getValidDaysDChM() const { return mValidDaysDChM; }
+void FITDCSConfigReader::setValidDaysDChM(const uint validDays) { mValidDaysDChM = validDays; }
+
 const bool FITDCSConfigReader::getVerboseMode() const { return mVerbose; }
 void FITDCSConfigReader::setVerboseMode(const bool verboseMode) { mVerbose = verboseMode; }
+
+const bool FITDCSConfigReader::getValidateUploadMode() const { return mValidateUpload; }
+void FITDCSConfigReader::setValidateUploadMode(const bool validateUpload) { mValidateUpload = validateUpload; };

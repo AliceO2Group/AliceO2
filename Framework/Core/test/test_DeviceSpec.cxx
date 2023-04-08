@@ -8,12 +8,9 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#define BOOST_TEST_MODULE Test Framework DeviceSpec
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
 
 #include "Mocking.h"
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include "Framework/ChannelSpecHelpers.h"
 #include "../src/DeviceSpecHelpers.h"
 #include "../src/GraphvizHelpers.h"
@@ -39,47 +36,47 @@ WorkflowSpec defineDataProcessing1()
           }};
 }
 
-BOOST_AUTO_TEST_CASE(TestDeviceSpec1)
+TEST_CASE("TestDeviceSpec1")
 {
   auto workflow = defineDataProcessing1();
   auto configContext = makeEmptyConfigContext();
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(*configContext);
   auto completionPolicies = CompletionPolicy::createDefaultPolicies();
   auto callbacksPolicies = CallbacksPolicy::createDefaultPolicies();
-  BOOST_REQUIRE_EQUAL(channelPolicies.empty(), false);
-  BOOST_REQUIRE_EQUAL(completionPolicies.empty(), false);
+  REQUIRE(channelPolicies.empty() == false);
+  REQUIRE(completionPolicies.empty() == false);
   std::vector<DeviceSpec> devices;
 
   std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource()};
-  BOOST_REQUIRE_EQUAL(resources.size(), 1);
-  BOOST_CHECK_EQUAL(resources[0].startPort, 22000);
+  REQUIRE(resources.size() == 1);
+  REQUIRE(resources[0].startPort == 22000);
   SimpleResourceManager rm(resources);
   auto offers = rm.getAvailableOffers();
-  BOOST_REQUIRE_EQUAL(offers.size(), 1);
-  BOOST_CHECK_EQUAL(offers[0].startPort, 22000);
-  BOOST_CHECK_EQUAL(offers[0].rangeSize, 5000);
+  REQUIRE(offers.size() == 1);
+  REQUIRE(offers[0].startPort == 22000);
+  REQUIRE(offers[0].rangeSize == 5000);
 
   DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, callbacksPolicies, devices, rm, "workflow-id", *configContext);
-  BOOST_REQUIRE_EQUAL(devices.size(), 2);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels.size(), 1);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[0].method, ChannelMethod::Bind);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[0].type, ChannelType::Push);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[0].name, "from_A_to_B");
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[0].port, 22000);
-  BOOST_CHECK_EQUAL(devices[0].outputs.size(), 1);
+  REQUIRE(devices.size() == 2);
+  REQUIRE(devices[0].outputChannels.size() == 1);
+  REQUIRE(devices[0].outputChannels[0].method == ChannelMethod::Bind);
+  REQUIRE(devices[0].outputChannels[0].type == ChannelType::Push);
+  REQUIRE(devices[0].outputChannels[0].name == "from_A_to_B");
+  REQUIRE(devices[0].outputChannels[0].port == 22000);
+  REQUIRE(devices[0].outputs.size() == 1);
 
-  BOOST_REQUIRE_EQUAL(devices[1].inputChannels.size(), 1);
-  BOOST_CHECK_EQUAL(devices[1].inputChannels[0].method, ChannelMethod::Connect);
-  BOOST_CHECK_EQUAL(devices[1].inputChannels[0].type, ChannelType::Pull);
-  BOOST_CHECK_EQUAL(devices[1].inputChannels[0].name, "from_A_to_B");
-  BOOST_CHECK_EQUAL(devices[1].inputChannels[0].port, 22000);
+  REQUIRE(devices[1].inputChannels.size() == 1);
+  REQUIRE(devices[1].inputChannels[0].method == ChannelMethod::Connect);
+  REQUIRE(devices[1].inputChannels[0].type == ChannelType::Pull);
+  REQUIRE(devices[1].inputChannels[0].name == "from_A_to_B");
+  REQUIRE(devices[1].inputChannels[0].port == 22000);
 
-  BOOST_REQUIRE_EQUAL(devices[1].inputs.size(), 1);
-  BOOST_CHECK_EQUAL(devices[1].inputs[0].sourceChannel, "from_A_to_B");
+  REQUIRE(devices[1].inputs.size() == 1);
+  REQUIRE(devices[1].inputs[0].sourceChannel == "from_A_to_B");
 }
 
 // Same as before, but using PUSH/PULL as policy
-BOOST_AUTO_TEST_CASE(TestDeviceSpec1PushPull)
+TEST_CASE("TestDeviceSpec1PushPull")
 {
   auto workflow = defineDataProcessing1();
   ChannelConfigurationPolicy pushPullPolicy;
@@ -92,31 +89,33 @@ BOOST_AUTO_TEST_CASE(TestDeviceSpec1PushPull)
   auto completionPolicies = CompletionPolicy::createDefaultPolicies();
   auto callbacksPolicies = CallbacksPolicy::createDefaultPolicies();
 
-  BOOST_REQUIRE_EQUAL(channelPolicies.empty(), false);
+  REQUIRE(channelPolicies.empty() == false);
   std::vector<DeviceSpec> devices;
   std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource()};
   SimpleResourceManager rm(resources);
   DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, callbacksPolicies, devices, rm, "workflow-id", *configContext);
-  BOOST_CHECK_EQUAL(devices.size(), 2);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels.size(), 1);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[0].method, ChannelMethod::Bind);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[0].type, ChannelType::Push);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[0].name, "from_A_to_B");
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[0].port, 22000);
-  BOOST_CHECK_EQUAL(devices[0].outputs.size(), 1);
+  REQUIRE(devices.size() == 2);
+  REQUIRE(devices[0].outputChannels.size() == 1);
+  REQUIRE(devices[0].outputChannels[0].method == ChannelMethod::Bind);
+  REQUIRE(devices[0].outputChannels[0].type == ChannelType::Push);
+  REQUIRE(devices[0].outputChannels[0].name == "from_A_to_B");
+  REQUIRE(devices[0].outputChannels[0].port == 22000);
+  REQUIRE(devices[0].outputs.size() == 1);
 
-  BOOST_CHECK_EQUAL(devices[1].inputChannels.size(), 1);
-  BOOST_CHECK_EQUAL(devices[1].inputChannels[0].method, ChannelMethod::Connect);
-  BOOST_CHECK_EQUAL(devices[1].inputChannels[0].type, ChannelType::Pull);
-  BOOST_CHECK_EQUAL(devices[1].inputChannels[0].name, "from_A_to_B");
-  BOOST_CHECK_EQUAL(devices[1].inputChannels[0].port, 22000);
+  REQUIRE(devices[1].inputChannels.size() == 1);
+  REQUIRE(devices[1].inputChannels[0].method == ChannelMethod::Connect);
+  REQUIRE(devices[1].inputChannels[0].type == ChannelType::Pull);
+  REQUIRE(devices[1].inputChannels[0].name == "from_A_to_B");
+  REQUIRE(devices[1].inputChannels[0].port == 22000);
 
-  BOOST_CHECK_EQUAL(devices[1].inputs.size(), 1);
-  BOOST_CHECK_EQUAL(devices[1].inputs[0].sourceChannel, "from_A_to_B");
+  REQUIRE(devices[1].inputs.size() == 1);
+  REQUIRE(devices[1].inputs[0].sourceChannel == "from_A_to_B");
 }
 
 // This should still define only one channel, since there is only
 // two devices to connect
+namespace
+{
 WorkflowSpec defineDataProcessing2()
 {
   return {{"A", Inputs{},
@@ -130,8 +129,9 @@ WorkflowSpec defineDataProcessing2()
             },
           }};
 }
+} // namespace
 
-BOOST_AUTO_TEST_CASE(TestDeviceSpec2)
+TEST_CASE("TestDeviceSpec2")
 {
   auto workflow = defineDataProcessing2();
   auto configContext = makeEmptyConfigContext();
@@ -143,18 +143,18 @@ BOOST_AUTO_TEST_CASE(TestDeviceSpec2)
   std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource()};
   SimpleResourceManager rm(resources);
   DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, callbacksPolicies, devices, rm, "workflow-id", *configContext);
-  BOOST_CHECK_EQUAL(devices.size(), 2);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels.size(), 1);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[0].method, ChannelMethod::Bind);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[0].type, ChannelType::Push);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[0].name, "from_A_to_B");
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[0].port, 22000);
+  REQUIRE(devices.size() == 2);
+  REQUIRE(devices[0].outputChannels.size() == 1);
+  REQUIRE(devices[0].outputChannels[0].method == ChannelMethod::Bind);
+  REQUIRE(devices[0].outputChannels[0].type == ChannelType::Push);
+  REQUIRE(devices[0].outputChannels[0].name == "from_A_to_B");
+  REQUIRE(devices[0].outputChannels[0].port == 22000);
 
-  BOOST_CHECK_EQUAL(devices[1].inputChannels.size(), 1);
-  BOOST_CHECK_EQUAL(devices[1].inputChannels[0].method, ChannelMethod::Connect);
-  BOOST_CHECK_EQUAL(devices[1].inputChannels[0].type, ChannelType::Pull);
-  BOOST_CHECK_EQUAL(devices[1].inputChannels[0].name, "from_A_to_B");
-  BOOST_CHECK_EQUAL(devices[1].inputChannels[0].port, 22000);
+  REQUIRE(devices[1].inputChannels.size() == 1);
+  REQUIRE(devices[1].inputChannels[0].method == ChannelMethod::Connect);
+  REQUIRE(devices[1].inputChannels[0].type == ChannelType::Pull);
+  REQUIRE(devices[1].inputChannels[0].name == "from_A_to_B");
+  REQUIRE(devices[1].inputChannels[0].port == 22000);
 }
 
 // This should still define only one channel, since there is only
@@ -175,7 +175,7 @@ WorkflowSpec defineDataProcessing3()
                 }}};
 }
 
-BOOST_AUTO_TEST_CASE(TestDeviceSpec3)
+TEST_CASE("TestDeviceSpec3")
 {
   auto workflow = defineDataProcessing3();
   auto configContext = makeEmptyConfigContext();
@@ -187,28 +187,28 @@ BOOST_AUTO_TEST_CASE(TestDeviceSpec3)
   std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource()};
   SimpleResourceManager rm(resources);
   DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, callbacksPolicies, devices, rm, "workflow-id", *configContext);
-  BOOST_CHECK_EQUAL(devices.size(), 3);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels.size(), 2);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[0].method, ChannelMethod::Bind);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[0].type, ChannelType::Push);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[0].name, "from_A_to_B");
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[0].port, 22000);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[1].method, ChannelMethod::Bind);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[1].type, ChannelType::Push);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[1].name, "from_A_to_C");
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[1].port, 22001);
+  REQUIRE(devices.size() == 3);
+  REQUIRE(devices[0].outputChannels.size() == 2);
+  REQUIRE(devices[0].outputChannels[0].method == ChannelMethod::Bind);
+  REQUIRE(devices[0].outputChannels[0].type == ChannelType::Push);
+  REQUIRE(devices[0].outputChannels[0].name == "from_A_to_B");
+  REQUIRE(devices[0].outputChannels[0].port == 22000);
+  REQUIRE(devices[0].outputChannels[1].method == ChannelMethod::Bind);
+  REQUIRE(devices[0].outputChannels[1].type == ChannelType::Push);
+  REQUIRE(devices[0].outputChannels[1].name == "from_A_to_C");
+  REQUIRE(devices[0].outputChannels[1].port == 22001);
 
-  BOOST_CHECK_EQUAL(devices[1].inputChannels.size(), 1);
-  BOOST_CHECK_EQUAL(devices[1].inputChannels[0].method, ChannelMethod::Connect);
-  BOOST_CHECK_EQUAL(devices[1].inputChannels[0].type, ChannelType::Pull);
-  BOOST_CHECK_EQUAL(devices[1].inputChannels[0].name, "from_A_to_B");
-  BOOST_CHECK_EQUAL(devices[1].inputChannels[0].port, 22000);
+  REQUIRE(devices[1].inputChannels.size() == 1);
+  REQUIRE(devices[1].inputChannels[0].method == ChannelMethod::Connect);
+  REQUIRE(devices[1].inputChannels[0].type == ChannelType::Pull);
+  REQUIRE(devices[1].inputChannels[0].name == "from_A_to_B");
+  REQUIRE(devices[1].inputChannels[0].port == 22000);
 
-  BOOST_CHECK_EQUAL(devices[2].inputChannels.size(), 1);
-  BOOST_CHECK_EQUAL(devices[2].inputChannels[0].method, ChannelMethod::Connect);
-  BOOST_CHECK_EQUAL(devices[2].inputChannels[0].type, ChannelType::Pull);
-  BOOST_CHECK_EQUAL(devices[2].inputChannels[0].name, "from_A_to_C");
-  BOOST_CHECK_EQUAL(devices[2].inputChannels[0].port, 22001);
+  REQUIRE(devices[2].inputChannels.size() == 1);
+  REQUIRE(devices[2].inputChannels[0].method == ChannelMethod::Connect);
+  REQUIRE(devices[2].inputChannels[0].type == ChannelType::Pull);
+  REQUIRE(devices[2].inputChannels[0].name == "from_A_to_C");
+  REQUIRE(devices[2].inputChannels[0].port == 22001);
 }
 
 // Diamond shape.
@@ -225,7 +225,7 @@ WorkflowSpec defineDataProcessing4()
                        InputSpec{"b", "TST", "C1"}}}};
 }
 
-BOOST_AUTO_TEST_CASE(TestDeviceSpec4)
+TEST_CASE("TestDeviceSpec4")
 {
   auto workflow = defineDataProcessing4();
   auto configContext = makeEmptyConfigContext();
@@ -237,48 +237,48 @@ BOOST_AUTO_TEST_CASE(TestDeviceSpec4)
   SimpleResourceManager rm(resources);
 
   DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, callbacksPolicies, devices, rm, "workflow-id", *configContext);
-  BOOST_CHECK_EQUAL(devices.size(), 4);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels.size(), 2);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[0].method, ChannelMethod::Bind);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[0].type, ChannelType::Push);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[0].name, "from_A_to_B");
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[0].port, 22000);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[1].method, ChannelMethod::Bind);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[1].type, ChannelType::Push);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[1].name, "from_A_to_C");
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[1].port, 22001);
+  REQUIRE(devices.size() == 4);
+  REQUIRE(devices[0].outputChannels.size() == 2);
+  REQUIRE(devices[0].outputChannels[0].method == ChannelMethod::Bind);
+  REQUIRE(devices[0].outputChannels[0].type == ChannelType::Push);
+  REQUIRE(devices[0].outputChannels[0].name == "from_A_to_B");
+  REQUIRE(devices[0].outputChannels[0].port == 22000);
+  REQUIRE(devices[0].outputChannels[1].method == ChannelMethod::Bind);
+  REQUIRE(devices[0].outputChannels[1].type == ChannelType::Push);
+  REQUIRE(devices[0].outputChannels[1].name == "from_A_to_C");
+  REQUIRE(devices[0].outputChannels[1].port == 22001);
 
-  BOOST_CHECK_EQUAL(devices[1].inputChannels.size(), 1);
-  BOOST_CHECK_EQUAL(devices[1].inputChannels[0].method, ChannelMethod::Connect);
-  BOOST_CHECK_EQUAL(devices[1].inputChannels[0].type, ChannelType::Pull);
-  BOOST_CHECK_EQUAL(devices[1].inputChannels[0].name, "from_A_to_B");
-  BOOST_CHECK_EQUAL(devices[1].inputChannels[0].port, 22000);
-  BOOST_CHECK_EQUAL(devices[1].outputChannels.size(), 1);
-  BOOST_CHECK_EQUAL(devices[1].outputChannels[0].method, ChannelMethod::Bind);
-  BOOST_CHECK_EQUAL(devices[1].outputChannels[0].type, ChannelType::Push);
-  BOOST_CHECK_EQUAL(devices[1].outputChannels[0].name, "from_B_to_D");
-  BOOST_CHECK_EQUAL(devices[1].outputChannels[0].port, 22002);
+  REQUIRE(devices[1].inputChannels.size() == 1);
+  REQUIRE(devices[1].inputChannels[0].method == ChannelMethod::Connect);
+  REQUIRE(devices[1].inputChannels[0].type == ChannelType::Pull);
+  REQUIRE(devices[1].inputChannels[0].name == "from_A_to_B");
+  REQUIRE(devices[1].inputChannels[0].port == 22000);
+  REQUIRE(devices[1].outputChannels.size() == 1);
+  REQUIRE(devices[1].outputChannels[0].method == ChannelMethod::Bind);
+  REQUIRE(devices[1].outputChannels[0].type == ChannelType::Push);
+  REQUIRE(devices[1].outputChannels[0].name == "from_B_to_D");
+  REQUIRE(devices[1].outputChannels[0].port == 22002);
 
-  BOOST_CHECK_EQUAL(devices[2].inputChannels.size(), 1);
-  BOOST_CHECK_EQUAL(devices[2].inputChannels[0].method, ChannelMethod::Connect);
-  BOOST_CHECK_EQUAL(devices[2].inputChannels[0].type, ChannelType::Pull);
-  BOOST_CHECK_EQUAL(devices[2].inputChannels[0].name, "from_A_to_C");
-  BOOST_CHECK_EQUAL(devices[2].inputChannels[0].port, 22001);
-  BOOST_CHECK_EQUAL(devices[2].outputChannels.size(), 1);
-  BOOST_CHECK_EQUAL(devices[2].outputChannels[0].method, ChannelMethod::Bind);
-  BOOST_CHECK_EQUAL(devices[2].outputChannels[0].type, ChannelType::Push);
-  BOOST_CHECK_EQUAL(devices[2].outputChannels[0].name, "from_C_to_D");
-  BOOST_CHECK_EQUAL(devices[2].outputChannels[0].port, 22003);
+  REQUIRE(devices[2].inputChannels.size() == 1);
+  REQUIRE(devices[2].inputChannels[0].method == ChannelMethod::Connect);
+  REQUIRE(devices[2].inputChannels[0].type == ChannelType::Pull);
+  REQUIRE(devices[2].inputChannels[0].name == "from_A_to_C");
+  REQUIRE(devices[2].inputChannels[0].port == 22001);
+  REQUIRE(devices[2].outputChannels.size() == 1);
+  REQUIRE(devices[2].outputChannels[0].method == ChannelMethod::Bind);
+  REQUIRE(devices[2].outputChannels[0].type == ChannelType::Push);
+  REQUIRE(devices[2].outputChannels[0].name == "from_C_to_D");
+  REQUIRE(devices[2].outputChannels[0].port == 22003);
 
-  BOOST_CHECK_EQUAL(devices[3].inputChannels.size(), 2);
-  BOOST_CHECK_EQUAL(devices[3].inputChannels[0].method, ChannelMethod::Connect);
-  BOOST_CHECK_EQUAL(devices[3].inputChannels[0].type, ChannelType::Pull);
-  BOOST_CHECK_EQUAL(devices[3].inputChannels[0].name, "from_B_to_D");
-  BOOST_CHECK_EQUAL(devices[3].inputChannels[0].port, 22002);
-  BOOST_CHECK_EQUAL(devices[3].inputChannels[1].method, ChannelMethod::Connect);
-  BOOST_CHECK_EQUAL(devices[3].inputChannels[1].type, ChannelType::Pull);
-  BOOST_CHECK_EQUAL(devices[3].inputChannels[1].name, "from_C_to_D");
-  BOOST_CHECK_EQUAL(devices[3].inputChannels[1].port, 22003);
+  REQUIRE(devices[3].inputChannels.size() == 2);
+  REQUIRE(devices[3].inputChannels[0].method == ChannelMethod::Connect);
+  REQUIRE(devices[3].inputChannels[0].type == ChannelType::Pull);
+  REQUIRE(devices[3].inputChannels[0].name == "from_B_to_D");
+  REQUIRE(devices[3].inputChannels[0].port == 22002);
+  REQUIRE(devices[3].inputChannels[1].method == ChannelMethod::Connect);
+  REQUIRE(devices[3].inputChannels[1].type == ChannelType::Pull);
+  REQUIRE(devices[3].inputChannels[1].name == "from_C_to_D");
+  REQUIRE(devices[3].inputChannels[1].port == 22003);
 }
 
 // This defines two consumers for the sameproduct, therefore we
@@ -296,7 +296,7 @@ WorkflowSpec defineDataProcessing5()
           }};
 }
 
-BOOST_AUTO_TEST_CASE(TestTopologyForwarding)
+TEST_CASE("TestTopologyForwarding")
 {
   auto workflow = defineDataProcessing5();
   auto configContext = makeEmptyConfigContext();
@@ -308,46 +308,46 @@ BOOST_AUTO_TEST_CASE(TestTopologyForwarding)
   std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource()};
   SimpleResourceManager rm(resources);
   DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, callbacksPolicies, devices, rm, "workflow-id", *configContext);
-  BOOST_CHECK_EQUAL(devices.size(), 3);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels.size(), 1);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[0].method, ChannelMethod::Bind);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[0].type, ChannelType::Push);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[0].name, "from_A_to_B");
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[0].port, 22000);
+  REQUIRE(devices.size() == 3);
+  REQUIRE(devices[0].outputChannels.size() == 1);
+  REQUIRE(devices[0].outputChannels[0].method == ChannelMethod::Bind);
+  REQUIRE(devices[0].outputChannels[0].type == ChannelType::Push);
+  REQUIRE(devices[0].outputChannels[0].name == "from_A_to_B");
+  REQUIRE(devices[0].outputChannels[0].port == 22000);
 
-  BOOST_CHECK_EQUAL(devices[1].inputChannels.size(), 1);
-  BOOST_CHECK_EQUAL(devices[1].inputChannels[0].method, ChannelMethod::Connect);
-  BOOST_CHECK_EQUAL(devices[1].inputChannels[0].type, ChannelType::Pull);
-  BOOST_CHECK_EQUAL(devices[1].inputChannels[0].name, "from_A_to_B");
-  BOOST_CHECK_EQUAL(devices[1].inputChannels[0].port, 22000);
-  BOOST_CHECK_EQUAL(devices[1].outputChannels.size(), 1);
-  BOOST_CHECK_EQUAL(devices[1].outputChannels[0].method, ChannelMethod::Bind);
-  BOOST_CHECK_EQUAL(devices[1].outputChannels[0].type, ChannelType::Push);
-  BOOST_CHECK_EQUAL(devices[1].outputChannels[0].name, "from_B_to_C");
-  BOOST_CHECK_EQUAL(devices[1].outputChannels[0].port, 22001);
+  REQUIRE(devices[1].inputChannels.size() == 1);
+  REQUIRE(devices[1].inputChannels[0].method == ChannelMethod::Connect);
+  REQUIRE(devices[1].inputChannels[0].type == ChannelType::Pull);
+  REQUIRE(devices[1].inputChannels[0].name == "from_A_to_B");
+  REQUIRE(devices[1].inputChannels[0].port == 22000);
+  REQUIRE(devices[1].outputChannels.size() == 1);
+  REQUIRE(devices[1].outputChannels[0].method == ChannelMethod::Bind);
+  REQUIRE(devices[1].outputChannels[0].type == ChannelType::Push);
+  REQUIRE(devices[1].outputChannels[0].name == "from_B_to_C");
+  REQUIRE(devices[1].outputChannels[0].port == 22001);
 
-  BOOST_CHECK_EQUAL(devices[2].inputChannels.size(), 1);
-  BOOST_CHECK_EQUAL(devices[2].inputChannels[0].method, ChannelMethod::Connect);
-  BOOST_CHECK_EQUAL(devices[2].inputChannels[0].type, ChannelType::Pull);
-  BOOST_CHECK_EQUAL(devices[2].inputChannels[0].name, "from_B_to_C");
-  BOOST_CHECK_EQUAL(devices[2].inputChannels[0].port, 22001);
+  REQUIRE(devices[2].inputChannels.size() == 1);
+  REQUIRE(devices[2].inputChannels[0].method == ChannelMethod::Connect);
+  REQUIRE(devices[2].inputChannels[0].type == ChannelType::Pull);
+  REQUIRE(devices[2].inputChannels[0].name == "from_B_to_C");
+  REQUIRE(devices[2].inputChannels[0].port == 22001);
 
-  BOOST_CHECK_EQUAL(devices[0].inputs.size(), 0);
-  BOOST_CHECK_EQUAL(devices[1].inputs.size(), 1);
-  BOOST_CHECK_EQUAL(devices[2].inputs.size(), 1);
+  REQUIRE(devices[0].inputs.size() == 0);
+  REQUIRE(devices[1].inputs.size() == 1);
+  REQUIRE(devices[2].inputs.size() == 1);
 
   // The outputs of device[1] are 0 because all
   // it has is really forwarding rules!
-  BOOST_CHECK_EQUAL(devices[0].outputs.size(), 1);
-  BOOST_CHECK_EQUAL(devices[1].outputs.size(), 0);
-  BOOST_CHECK_EQUAL(devices[2].outputs.size(), 0);
+  REQUIRE(devices[0].outputs.size() == 1);
+  REQUIRE(devices[1].outputs.size() == 0);
+  REQUIRE(devices[2].outputs.size() == 0);
 
-  BOOST_CHECK_EQUAL(devices[1].inputs[0].sourceChannel, "from_A_to_B");
-  BOOST_CHECK_EQUAL(devices[2].inputs[0].sourceChannel, "from_B_to_C");
+  REQUIRE(devices[1].inputs[0].sourceChannel == "from_A_to_B");
+  REQUIRE(devices[2].inputs[0].sourceChannel == "from_B_to_C");
 
-  BOOST_CHECK_EQUAL(devices[0].forwards.size(), 0);
-  BOOST_CHECK_EQUAL(devices[1].forwards.size(), 1);
-  BOOST_CHECK_EQUAL(devices[2].forwards.size(), 0);
+  REQUIRE(devices[0].forwards.size() == 0);
+  REQUIRE(devices[1].forwards.size() == 1);
+  REQUIRE(devices[2].forwards.size() == 0);
 }
 
 // This defines two consumers for the sameproduct, therefore we
@@ -373,7 +373,7 @@ WorkflowSpec defineDataProcessing7()
           timePipeline({"C", Inputs{InputSpec{"x", "TST", "B"}}}, 2)};
 }
 
-BOOST_AUTO_TEST_CASE(TestOutEdgeProcessingHelpers)
+TEST_CASE("TestOutEdgeProcessingHelpers")
 {
   // Logical edges for:
   //    b0---\
@@ -431,32 +431,33 @@ BOOST_AUTO_TEST_CASE(TestOutEdgeProcessingHelpers)
                                            actions, workflow, globalOutputs, channelPolicies, "", defaultOffer);
 
   std::vector<DeviceId> expectedDeviceIndex = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {1, 0, 1}, {1, 0, 1}, {1, 1, 2}, {1, 1, 2}, {1, 2, 3}, {1, 2, 3}};
-  BOOST_REQUIRE_EQUAL(devices.size(), 4); // For producers
-  BOOST_REQUIRE_EQUAL(expectedDeviceIndex.size(), deviceIndex.size());
+  REQUIRE(devices.size() == 4);
+  ; // For producers
+  REQUIRE(expectedDeviceIndex.size() == deviceIndex.size());
 
   for (size_t i = 0; i < expectedDeviceIndex.size(); ++i) {
     DeviceId& expected = expectedDeviceIndex[i];
     DeviceId& actual = deviceIndex[i];
-    BOOST_CHECK_EQUAL_MESSAGE(expected.processorIndex, actual.processorIndex, i);
-    BOOST_CHECK_EQUAL_MESSAGE(expected.timeslice, actual.timeslice, i);
-    BOOST_CHECK_EQUAL_MESSAGE(expected.deviceIndex, actual.deviceIndex, i);
+    REQUIRE(expected.processorIndex == actual.processorIndex);
+    REQUIRE(expected.timeslice == actual.timeslice);
+    REQUIRE(expected.deviceIndex == actual.deviceIndex);
   }
 
   // Check that all the required channels are there.
-  BOOST_REQUIRE_EQUAL(devices[0].outputChannels.size(), 3);
-  BOOST_REQUIRE_EQUAL(devices[1].outputChannels.size(), 2);
-  BOOST_REQUIRE_EQUAL(devices[2].outputChannels.size(), 2);
-  BOOST_REQUIRE_EQUAL(devices[3].outputChannels.size(), 2);
+  REQUIRE(devices[0].outputChannels.size() == 3);
+  REQUIRE(devices[1].outputChannels.size() == 2);
+  REQUIRE(devices[2].outputChannels.size() == 2);
+  REQUIRE(devices[3].outputChannels.size() == 2);
 
   // Check that the required output routes are there
-  BOOST_REQUIRE_EQUAL(devices[0].outputs.size(), 3);
-  BOOST_REQUIRE_EQUAL(devices[1].outputs.size(), 2);
-  BOOST_REQUIRE_EQUAL(devices[2].outputs.size(), 2);
-  BOOST_REQUIRE_EQUAL(devices[3].outputs.size(), 2);
+  REQUIRE(devices[0].outputs.size() == 3);
+  REQUIRE(devices[1].outputs.size() == 2);
+  REQUIRE(devices[2].outputs.size() == 2);
+  REQUIRE(devices[3].outputs.size() == 2);
 
   auto offers = rm.getAvailableOffers();
-  BOOST_REQUIRE_EQUAL(offers.size(), 1);
-  BOOST_CHECK_EQUAL(offers[0].startPort, 22009);
+  REQUIRE(offers.size() == 1);
+  REQUIRE(offers[0].startPort == 22009);
 
   // Not sure this is correct, but lets assume that's the case..
   std::vector<size_t> edgeInIndex{0, 1, 2, 3, 4, 5, 6, 7, 8};
@@ -479,40 +480,40 @@ BOOST_AUTO_TEST_CASE(TestOutEdgeProcessingHelpers)
                                           inActions, workflow, availableForwardsInfo, channelPolicies, "", defaultOffer);
   //
   std::vector<DeviceId> expectedDeviceIndexFinal = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {1, 0, 1}, {1, 0, 1}, {1, 1, 2}, {1, 1, 2}, {1, 2, 3}, {1, 2, 3}, {2, 0, 4}, {2, 1, 5}};
-  BOOST_REQUIRE_EQUAL(expectedDeviceIndexFinal.size(), deviceIndex.size());
+  REQUIRE(expectedDeviceIndexFinal.size() == deviceIndex.size());
 
   for (size_t i = 0; i < expectedDeviceIndexFinal.size(); ++i) {
     DeviceId& expected = expectedDeviceIndexFinal[i];
     DeviceId& actual = deviceIndex[i];
-    BOOST_CHECK_EQUAL_MESSAGE(expected.processorIndex, actual.processorIndex, i);
-    BOOST_CHECK_EQUAL_MESSAGE(expected.timeslice, actual.timeslice, i);
-    BOOST_CHECK_EQUAL_MESSAGE(expected.deviceIndex, actual.deviceIndex, i);
+    REQUIRE(expected.processorIndex == actual.processorIndex);
+    REQUIRE(expected.timeslice == actual.timeslice);
+    REQUIRE(expected.deviceIndex == actual.deviceIndex);
   }
 
   // Iterating over the in edges should have created the final 2
   // devices.
-  BOOST_CHECK_EQUAL(devices.size(), 6);
+  REQUIRE(devices.size() == 6);
   std::vector<std::string> expectedDeviceNames = {"A", "B_t0", "B_t1", "B_t2", "C_t0", "C_t1"};
 
   for (size_t i = 0; i < devices.size(); ++i) {
-    BOOST_CHECK_EQUAL(devices[i].id, expectedDeviceNames[i]);
+    REQUIRE(devices[i].id == expectedDeviceNames[i]);
   }
 
   // Check that all the required output channels are there.
-  BOOST_REQUIRE_EQUAL(devices[0].outputChannels.size(), 3);
-  BOOST_REQUIRE_EQUAL(devices[1].outputChannels.size(), 2);
-  BOOST_REQUIRE_EQUAL(devices[2].outputChannels.size(), 2);
-  BOOST_REQUIRE_EQUAL(devices[3].outputChannels.size(), 2);
-  BOOST_REQUIRE_EQUAL(devices[4].outputChannels.size(), 0);
-  BOOST_REQUIRE_EQUAL(devices[5].outputChannels.size(), 0);
+  REQUIRE(devices[0].outputChannels.size() == 3);
+  REQUIRE(devices[1].outputChannels.size() == 2);
+  REQUIRE(devices[2].outputChannels.size() == 2);
+  REQUIRE(devices[3].outputChannels.size() == 2);
+  REQUIRE(devices[4].outputChannels.size() == 0);
+  REQUIRE(devices[5].outputChannels.size() == 0);
 
   // Check that the required routes are there
-  BOOST_REQUIRE_EQUAL(devices[0].outputs.size(), 3);
-  BOOST_REQUIRE_EQUAL(devices[1].outputs.size(), 2);
-  BOOST_REQUIRE_EQUAL(devices[2].outputs.size(), 2);
-  BOOST_REQUIRE_EQUAL(devices[3].outputs.size(), 2);
-  BOOST_REQUIRE_EQUAL(devices[4].outputs.size(), 0);
-  BOOST_REQUIRE_EQUAL(devices[5].outputs.size(), 0);
+  REQUIRE(devices[0].outputs.size() == 3);
+  REQUIRE(devices[1].outputs.size() == 2);
+  REQUIRE(devices[2].outputs.size() == 2);
+  REQUIRE(devices[3].outputs.size() == 2);
+  REQUIRE(devices[4].outputs.size() == 0);
+  REQUIRE(devices[5].outputs.size() == 0);
 
   // Check that the output specs and the timeframe ids are correct
   std::vector<std::vector<OutputRoute>> expectedRoutes = {
@@ -542,42 +543,42 @@ BOOST_AUTO_TEST_CASE(TestOutEdgeProcessingHelpers)
       // FIXME: check that the matchers are the same
       auto concreteA = DataSpecUtils::asConcreteDataTypeMatcher(device.outputs[ri].matcher);
       auto concreteB = DataSpecUtils::asConcreteDataTypeMatcher(routes[ri].matcher);
-      BOOST_CHECK_EQUAL(std::string(concreteA.origin.as<std::string>()), std::string(concreteB.origin.as<std::string>()));
-      BOOST_CHECK_EQUAL(device.outputs[ri].channel, routes[ri].channel);
-      BOOST_CHECK_EQUAL(device.outputs[ri].timeslice, routes[ri].timeslice);
+      REQUIRE(std::string(concreteA.origin.as<std::string>()) == std::string(concreteB.origin.as<std::string>()));
+      REQUIRE(device.outputs[ri].channel == routes[ri].channel);
+      REQUIRE(device.outputs[ri].timeslice == routes[ri].timeslice);
     }
   }
 
   // Check that we have all the needed input connections
-  BOOST_REQUIRE_EQUAL(devices[0].inputChannels.size(), 0);
-  BOOST_REQUIRE_EQUAL(devices[1].inputChannels.size(), 1);
-  BOOST_REQUIRE_EQUAL(devices[2].inputChannels.size(), 1);
-  BOOST_REQUIRE_EQUAL(devices[3].inputChannels.size(), 1);
-  BOOST_REQUIRE_EQUAL(devices[4].inputChannels.size(), 3);
-  BOOST_REQUIRE_EQUAL(devices[5].inputChannels.size(), 3);
+  REQUIRE(devices[0].inputChannels.size() == 0);
+  REQUIRE(devices[1].inputChannels.size() == 1);
+  REQUIRE(devices[2].inputChannels.size() == 1);
+  REQUIRE(devices[3].inputChannels.size() == 1);
+  REQUIRE(devices[4].inputChannels.size() == 3);
+  REQUIRE(devices[5].inputChannels.size() == 3);
 
   // Check that the required input routes are there
-  BOOST_REQUIRE_EQUAL(devices[0].inputs.size(), 0);
-  BOOST_REQUIRE_EQUAL(devices[1].inputs.size(), 1);
-  BOOST_REQUIRE_EQUAL(devices[2].inputs.size(), 1);
-  BOOST_REQUIRE_EQUAL(devices[3].inputs.size(), 1);
-  BOOST_REQUIRE_EQUAL(devices[4].inputs.size(), 3);
-  BOOST_REQUIRE_EQUAL(devices[5].inputs.size(), 3);
+  REQUIRE(devices[0].inputs.size() == 0);
+  REQUIRE(devices[1].inputs.size() == 1);
+  REQUIRE(devices[2].inputs.size() == 1);
+  REQUIRE(devices[3].inputs.size() == 1);
+  REQUIRE(devices[4].inputs.size() == 3);
+  REQUIRE(devices[5].inputs.size() == 3);
 
-  BOOST_CHECK_EQUAL(devices[1].inputs[0].sourceChannel, "from_A_to_B_t0");
-  BOOST_CHECK_EQUAL(devices[2].inputs[0].sourceChannel, "from_A_to_B_t1");
-  BOOST_CHECK_EQUAL(devices[3].inputs[0].sourceChannel, "from_A_to_B_t2");
+  REQUIRE(devices[1].inputs[0].sourceChannel == "from_A_to_B_t0");
+  REQUIRE(devices[2].inputs[0].sourceChannel == "from_A_to_B_t1");
+  REQUIRE(devices[3].inputs[0].sourceChannel == "from_A_to_B_t2");
 
-  BOOST_CHECK_EQUAL(devices[4].inputs[0].sourceChannel, "from_B_t0_to_C_t0");
-  BOOST_CHECK_EQUAL(devices[4].inputs[1].sourceChannel, "from_B_t1_to_C_t0");
-  BOOST_CHECK_EQUAL(devices[4].inputs[2].sourceChannel, "from_B_t2_to_C_t0");
+  REQUIRE(devices[4].inputs[0].sourceChannel == "from_B_t0_to_C_t0");
+  REQUIRE(devices[4].inputs[1].sourceChannel == "from_B_t1_to_C_t0");
+  REQUIRE(devices[4].inputs[2].sourceChannel == "from_B_t2_to_C_t0");
 
-  BOOST_CHECK_EQUAL(devices[5].inputs[0].sourceChannel, "from_B_t0_to_C_t1");
-  BOOST_CHECK_EQUAL(devices[5].inputs[1].sourceChannel, "from_B_t1_to_C_t1");
-  BOOST_CHECK_EQUAL(devices[5].inputs[2].sourceChannel, "from_B_t2_to_C_t1");
+  REQUIRE(devices[5].inputs[0].sourceChannel == "from_B_t0_to_C_t1");
+  REQUIRE(devices[5].inputs[1].sourceChannel == "from_B_t1_to_C_t1");
+  REQUIRE(devices[5].inputs[2].sourceChannel == "from_B_t2_to_C_t1");
 }
 
-BOOST_AUTO_TEST_CASE(TestTopologyLayeredTimePipeline)
+TEST_CASE("TestTopologyLayeredTimePipeline")
 {
   auto workflow = defineDataProcessing7();
   std::vector<DeviceSpec> devices;
@@ -588,103 +589,103 @@ BOOST_AUTO_TEST_CASE(TestTopologyLayeredTimePipeline)
   std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource()};
   SimpleResourceManager rm(resources);
   DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(workflow, channelPolicies, completionPolicies, callbacksPolicies, devices, rm, "workflow-id", *configContext);
-  BOOST_CHECK_EQUAL(devices.size(), 6);
-  BOOST_CHECK_EQUAL(devices[0].id, "A");
-  BOOST_CHECK_EQUAL(devices[1].id, "B_t0");
-  BOOST_CHECK_EQUAL(devices[2].id, "B_t1");
-  BOOST_CHECK_EQUAL(devices[3].id, "B_t2");
-  BOOST_CHECK_EQUAL(devices[4].id, "C_t0");
-  BOOST_CHECK_EQUAL(devices[5].id, "C_t1");
+  REQUIRE(devices.size() == 6);
+  REQUIRE(devices[0].id == "A");
+  REQUIRE(devices[1].id == "B_t0");
+  REQUIRE(devices[2].id == "B_t1");
+  REQUIRE(devices[3].id == "B_t2");
+  REQUIRE(devices[4].id == "C_t0");
+  REQUIRE(devices[5].id == "C_t1");
 
-  BOOST_REQUIRE_EQUAL(devices[0].inputChannels.size(), 0);
-  BOOST_REQUIRE_EQUAL(devices[0].outputChannels.size(), 3);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[0].method, ChannelMethod::Bind);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[0].type, ChannelType::Push);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[0].name, "from_A_to_B_t0");
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[0].port, 22000);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[1].method, ChannelMethod::Bind);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[1].type, ChannelType::Push);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[1].name, "from_A_to_B_t1");
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[1].port, 22001);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[2].method, ChannelMethod::Bind);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[2].type, ChannelType::Push);
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[2].name, "from_A_to_B_t2");
-  BOOST_CHECK_EQUAL(devices[0].outputChannels[2].port, 22002);
+  REQUIRE(devices[0].inputChannels.size() == 0);
+  REQUIRE(devices[0].outputChannels.size() == 3);
+  REQUIRE(devices[0].outputChannels[0].method == ChannelMethod::Bind);
+  REQUIRE(devices[0].outputChannels[0].type == ChannelType::Push);
+  REQUIRE(devices[0].outputChannels[0].name == "from_A_to_B_t0");
+  REQUIRE(devices[0].outputChannels[0].port == 22000);
+  REQUIRE(devices[0].outputChannels[1].method == ChannelMethod::Bind);
+  REQUIRE(devices[0].outputChannels[1].type == ChannelType::Push);
+  REQUIRE(devices[0].outputChannels[1].name == "from_A_to_B_t1");
+  REQUIRE(devices[0].outputChannels[1].port == 22001);
+  REQUIRE(devices[0].outputChannels[2].method == ChannelMethod::Bind);
+  REQUIRE(devices[0].outputChannels[2].type == ChannelType::Push);
+  REQUIRE(devices[0].outputChannels[2].name == "from_A_to_B_t2");
+  REQUIRE(devices[0].outputChannels[2].port == 22002);
 
-  BOOST_REQUIRE_EQUAL(devices[1].inputChannels.size(), 1);
-  BOOST_CHECK_EQUAL(devices[1].inputChannels[0].method, ChannelMethod::Connect);
-  BOOST_CHECK_EQUAL(devices[1].inputChannels[0].type, ChannelType::Pull);
-  BOOST_CHECK_EQUAL(devices[1].inputChannels[0].name, "from_A_to_B_t0");
-  BOOST_CHECK_EQUAL(devices[1].inputChannels[0].port, 22000);
-  BOOST_CHECK_EQUAL(devices[1].outputChannels.size(), 2);
-  BOOST_CHECK_EQUAL(devices[1].outputChannels[0].method, ChannelMethod::Bind);
-  BOOST_CHECK_EQUAL(devices[1].outputChannels[0].type, ChannelType::Push);
-  BOOST_CHECK_EQUAL(devices[1].outputChannels[0].name, "from_B_t0_to_C_t0");
-  BOOST_CHECK_EQUAL(devices[1].outputChannels[0].port, 22003);
-  BOOST_CHECK_EQUAL(devices[1].outputChannels[1].method, ChannelMethod::Bind);
-  BOOST_CHECK_EQUAL(devices[1].outputChannels[1].type, ChannelType::Push);
-  BOOST_CHECK_EQUAL(devices[1].outputChannels[1].name, "from_B_t0_to_C_t1");
-  BOOST_CHECK_EQUAL(devices[1].outputChannels[1].port, 22004);
+  REQUIRE(devices[1].inputChannels.size() == 1);
+  REQUIRE(devices[1].inputChannels[0].method == ChannelMethod::Connect);
+  REQUIRE(devices[1].inputChannels[0].type == ChannelType::Pull);
+  REQUIRE(devices[1].inputChannels[0].name == "from_A_to_B_t0");
+  REQUIRE(devices[1].inputChannels[0].port == 22000);
+  REQUIRE(devices[1].outputChannels.size() == 2);
+  REQUIRE(devices[1].outputChannels[0].method == ChannelMethod::Bind);
+  REQUIRE(devices[1].outputChannels[0].type == ChannelType::Push);
+  REQUIRE(devices[1].outputChannels[0].name == "from_B_t0_to_C_t0");
+  REQUIRE(devices[1].outputChannels[0].port == 22003);
+  REQUIRE(devices[1].outputChannels[1].method == ChannelMethod::Bind);
+  REQUIRE(devices[1].outputChannels[1].type == ChannelType::Push);
+  REQUIRE(devices[1].outputChannels[1].name == "from_B_t0_to_C_t1");
+  REQUIRE(devices[1].outputChannels[1].port == 22004);
 
-  BOOST_REQUIRE_EQUAL(devices[2].inputChannels.size(), 1);
-  BOOST_CHECK_EQUAL(devices[2].inputChannels[0].method, ChannelMethod::Connect);
-  BOOST_CHECK_EQUAL(devices[2].inputChannels[0].type, ChannelType::Pull);
-  BOOST_CHECK_EQUAL(devices[2].inputChannels[0].name, "from_A_to_B_t1");
-  BOOST_CHECK_EQUAL(devices[2].inputChannels[0].port, 22001);
-  BOOST_REQUIRE_EQUAL(devices[2].outputChannels.size(), 2);
-  BOOST_CHECK_EQUAL(devices[2].outputChannels[0].method, ChannelMethod::Bind);
-  BOOST_CHECK_EQUAL(devices[2].outputChannels[0].type, ChannelType::Push);
-  BOOST_CHECK_EQUAL(devices[2].outputChannels[0].name, "from_B_t1_to_C_t0");
-  BOOST_CHECK_EQUAL(devices[2].outputChannels[0].port, 22005);
-  BOOST_CHECK_EQUAL(devices[2].outputChannels[1].method, ChannelMethod::Bind);
-  BOOST_CHECK_EQUAL(devices[2].outputChannels[1].type, ChannelType::Push);
-  BOOST_CHECK_EQUAL(devices[2].outputChannels[1].name, "from_B_t1_to_C_t1");
-  BOOST_CHECK_EQUAL(devices[2].outputChannels[1].port, 22006);
+  REQUIRE(devices[2].inputChannels.size() == 1);
+  REQUIRE(devices[2].inputChannels[0].method == ChannelMethod::Connect);
+  REQUIRE(devices[2].inputChannels[0].type == ChannelType::Pull);
+  REQUIRE(devices[2].inputChannels[0].name == "from_A_to_B_t1");
+  REQUIRE(devices[2].inputChannels[0].port == 22001);
+  REQUIRE(devices[2].outputChannels.size() == 2);
+  REQUIRE(devices[2].outputChannels[0].method == ChannelMethod::Bind);
+  REQUIRE(devices[2].outputChannels[0].type == ChannelType::Push);
+  REQUIRE(devices[2].outputChannels[0].name == "from_B_t1_to_C_t0");
+  REQUIRE(devices[2].outputChannels[0].port == 22005);
+  REQUIRE(devices[2].outputChannels[1].method == ChannelMethod::Bind);
+  REQUIRE(devices[2].outputChannels[1].type == ChannelType::Push);
+  REQUIRE(devices[2].outputChannels[1].name == "from_B_t1_to_C_t1");
+  REQUIRE(devices[2].outputChannels[1].port == 22006);
 
-  BOOST_REQUIRE_EQUAL(devices[3].inputChannels.size(), 1);
-  BOOST_CHECK_EQUAL(devices[3].inputChannels[0].method, ChannelMethod::Connect);
-  BOOST_CHECK_EQUAL(devices[3].inputChannels[0].type, ChannelType::Pull);
-  BOOST_CHECK_EQUAL(devices[3].inputChannels[0].name, "from_A_to_B_t2");
-  BOOST_CHECK_EQUAL(devices[3].inputChannels[0].port, 22002);
-  BOOST_REQUIRE_EQUAL(devices[3].outputChannels.size(), 2);
-  BOOST_CHECK_EQUAL(devices[3].outputChannels[0].method, ChannelMethod::Bind);
-  BOOST_CHECK_EQUAL(devices[3].outputChannels[0].type, ChannelType::Push);
-  BOOST_CHECK_EQUAL(devices[3].outputChannels[0].name, "from_B_t2_to_C_t0");
-  BOOST_CHECK_EQUAL(devices[3].outputChannels[0].port, 22007);
-  BOOST_CHECK_EQUAL(devices[3].outputChannels[1].method, ChannelMethod::Bind);
-  BOOST_CHECK_EQUAL(devices[3].outputChannels[1].type, ChannelType::Push);
-  BOOST_CHECK_EQUAL(devices[3].outputChannels[1].name, "from_B_t2_to_C_t1");
-  BOOST_CHECK_EQUAL(devices[3].outputChannels[1].port, 22008);
+  REQUIRE(devices[3].inputChannels.size() == 1);
+  REQUIRE(devices[3].inputChannels[0].method == ChannelMethod::Connect);
+  REQUIRE(devices[3].inputChannels[0].type == ChannelType::Pull);
+  REQUIRE(devices[3].inputChannels[0].name == "from_A_to_B_t2");
+  REQUIRE(devices[3].inputChannels[0].port == 22002);
+  REQUIRE(devices[3].outputChannels.size() == 2);
+  REQUIRE(devices[3].outputChannels[0].method == ChannelMethod::Bind);
+  REQUIRE(devices[3].outputChannels[0].type == ChannelType::Push);
+  REQUIRE(devices[3].outputChannels[0].name == "from_B_t2_to_C_t0");
+  REQUIRE(devices[3].outputChannels[0].port == 22007);
+  REQUIRE(devices[3].outputChannels[1].method == ChannelMethod::Bind);
+  REQUIRE(devices[3].outputChannels[1].type == ChannelType::Push);
+  REQUIRE(devices[3].outputChannels[1].name == "from_B_t2_to_C_t1");
+  REQUIRE(devices[3].outputChannels[1].port == 22008);
 
-  BOOST_REQUIRE_EQUAL(devices[4].inputChannels.size(), 3);
-  BOOST_CHECK_EQUAL(devices[4].inputChannels[0].method, ChannelMethod::Connect);
-  BOOST_CHECK_EQUAL(devices[4].inputChannels[0].type, ChannelType::Pull);
-  BOOST_CHECK_EQUAL(devices[4].inputChannels[0].name, "from_B_t0_to_C_t0");
-  BOOST_CHECK_EQUAL(devices[4].inputChannels[0].port, 22003);
-  BOOST_CHECK_EQUAL(devices[4].inputChannels[1].method, ChannelMethod::Connect);
-  BOOST_CHECK_EQUAL(devices[4].inputChannels[1].type, ChannelType::Pull);
-  BOOST_CHECK_EQUAL(devices[4].inputChannels[1].name, "from_B_t1_to_C_t0");
-  BOOST_CHECK_EQUAL(devices[4].inputChannels[1].port, 22005);
-  BOOST_CHECK_EQUAL(devices[4].inputChannels[2].method, ChannelMethod::Connect);
-  BOOST_CHECK_EQUAL(devices[4].inputChannels[2].type, ChannelType::Pull);
-  BOOST_CHECK_EQUAL(devices[4].inputChannels[2].name, "from_B_t2_to_C_t0");
-  BOOST_CHECK_EQUAL(devices[4].inputChannels[2].port, 22007);
-  BOOST_REQUIRE_EQUAL(devices[4].outputChannels.size(), 0);
+  REQUIRE(devices[4].inputChannels.size() == 3);
+  REQUIRE(devices[4].inputChannels[0].method == ChannelMethod::Connect);
+  REQUIRE(devices[4].inputChannels[0].type == ChannelType::Pull);
+  REQUIRE(devices[4].inputChannels[0].name == "from_B_t0_to_C_t0");
+  REQUIRE(devices[4].inputChannels[0].port == 22003);
+  REQUIRE(devices[4].inputChannels[1].method == ChannelMethod::Connect);
+  REQUIRE(devices[4].inputChannels[1].type == ChannelType::Pull);
+  REQUIRE(devices[4].inputChannels[1].name == "from_B_t1_to_C_t0");
+  REQUIRE(devices[4].inputChannels[1].port == 22005);
+  REQUIRE(devices[4].inputChannels[2].method == ChannelMethod::Connect);
+  REQUIRE(devices[4].inputChannels[2].type == ChannelType::Pull);
+  REQUIRE(devices[4].inputChannels[2].name == "from_B_t2_to_C_t0");
+  REQUIRE(devices[4].inputChannels[2].port == 22007);
+  REQUIRE(devices[4].outputChannels.size() == 0);
 
-  BOOST_REQUIRE_EQUAL(devices[5].inputChannels.size(), 3);
-  BOOST_CHECK_EQUAL(devices[5].inputChannels[0].method, ChannelMethod::Connect);
-  BOOST_CHECK_EQUAL(devices[5].inputChannels[0].type, ChannelType::Pull);
-  BOOST_CHECK_EQUAL(devices[5].inputChannels[0].name, "from_B_t0_to_C_t1");
-  BOOST_CHECK_EQUAL(devices[5].inputChannels[0].port, 22004);
-  BOOST_CHECK_EQUAL(devices[5].inputChannels[1].method, ChannelMethod::Connect);
-  BOOST_CHECK_EQUAL(devices[5].inputChannels[1].type, ChannelType::Pull);
-  BOOST_CHECK_EQUAL(devices[5].inputChannels[1].name, "from_B_t1_to_C_t1");
-  BOOST_CHECK_EQUAL(devices[5].inputChannels[1].port, 22006);
-  BOOST_CHECK_EQUAL(devices[5].inputChannels[2].method, ChannelMethod::Connect);
-  BOOST_CHECK_EQUAL(devices[5].inputChannels[2].type, ChannelType::Pull);
-  BOOST_CHECK_EQUAL(devices[5].inputChannels[2].name, "from_B_t2_to_C_t1");
-  BOOST_CHECK_EQUAL(devices[5].inputChannels[2].port, 22008);
-  BOOST_REQUIRE_EQUAL(devices[5].outputChannels.size(), 0);
+  REQUIRE(devices[5].inputChannels.size() == 3);
+  REQUIRE(devices[5].inputChannels[0].method == ChannelMethod::Connect);
+  REQUIRE(devices[5].inputChannels[0].type == ChannelType::Pull);
+  REQUIRE(devices[5].inputChannels[0].name == "from_B_t0_to_C_t1");
+  REQUIRE(devices[5].inputChannels[0].port == 22004);
+  REQUIRE(devices[5].inputChannels[1].method == ChannelMethod::Connect);
+  REQUIRE(devices[5].inputChannels[1].type == ChannelType::Pull);
+  REQUIRE(devices[5].inputChannels[1].name == "from_B_t1_to_C_t1");
+  REQUIRE(devices[5].inputChannels[1].port == 22006);
+  REQUIRE(devices[5].inputChannels[2].method == ChannelMethod::Connect);
+  REQUIRE(devices[5].inputChannels[2].type == ChannelType::Pull);
+  REQUIRE(devices[5].inputChannels[2].name == "from_B_t2_to_C_t1");
+  REQUIRE(devices[5].inputChannels[2].port == 22008);
+  REQUIRE(devices[5].outputChannels.size() == 0);
 }
 
 // Test the case in which we have one source with two
@@ -702,7 +703,7 @@ WorkflowSpec defineDataProcessing8()
     {"B", {InputSpec{"x", DataSpecUtils::dataDescriptorMatcherFrom(o2::header::DataOrigin{"A"})}}},
     {"internal-dpl-timer", {}, {OutputSpec{"DPL", "TIMER", 0, Lifetime::Timer}}}};
 }
-BOOST_AUTO_TEST_CASE(TestSimpleWildcard)
+TEST_CASE("TestSimpleWildcard")
 {
   auto workflow = defineDataProcessing8();
   std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource()};
@@ -749,32 +750,43 @@ BOOST_AUTO_TEST_CASE(TestSimpleWildcard)
   DeviceSpecHelpers::processOutEdgeActions(devices, deviceIndex, connections, rm, edgeOutIndex, logicalEdges,
                                            outActions, workflow, globalOutputs, channelPolicies, "", defaultOffer);
 
-  BOOST_REQUIRE_EQUAL(devices.size(), 2); // Two devices have outputs: A and Timer
-  BOOST_CHECK_EQUAL(devices[0].name, "A");
-  BOOST_CHECK_EQUAL(devices[1].name, "internal-dpl-timer");
-  BOOST_REQUIRE_EQUAL(deviceIndex.size(), 2);
-  BOOST_CHECK_EQUAL(deviceIndex[0].processorIndex, 0); // A is the first processor in the workflow
-  BOOST_CHECK_EQUAL(deviceIndex[0].timeslice, 0);      // There is no time pipelining
-  BOOST_CHECK_EQUAL(deviceIndex[0].deviceIndex, 0);    // It's also the first device created
-  BOOST_CHECK_EQUAL(deviceIndex[1].processorIndex, 2); // TIMER is added only at the end
-  BOOST_CHECK_EQUAL(deviceIndex[1].timeslice, 0);      // There is no time pipelining
-  BOOST_CHECK_EQUAL(deviceIndex[1].deviceIndex, 1);    // It's the second device created
+  REQUIRE(devices.size() == 2);
+  ; // Two devices have outputs: A and Timer
+  REQUIRE(devices[0].name == "A");
+  REQUIRE(devices[1].name == "internal-dpl-timer");
+  REQUIRE(deviceIndex.size() == 2);
+  REQUIRE(deviceIndex[0].processorIndex == 0);
+  ; // A is the first processor in the workflow
+  REQUIRE(deviceIndex[0].timeslice == 0);
+  ; // There is no time pipelining
+  REQUIRE(deviceIndex[0].deviceIndex == 0);
+  ; // It's also the first device created
+  REQUIRE(deviceIndex[1].processorIndex == 2);
+  ; // TIMER is added only at the end
+  REQUIRE(deviceIndex[1].timeslice == 0);
+  ; // There is no time pipelining
+  REQUIRE(deviceIndex[1].deviceIndex == 1);
+  ; // It's the second device created
 
   std::sort(connections.begin(), connections.end());
 
   DeviceSpecHelpers::processInEdgeActions(devices, deviceIndex, connections, rm, edgeInIndex, logicalEdges,
                                           inActions, workflow, availableForwardsInfo, channelPolicies, "", defaultOffer);
 
-  BOOST_REQUIRE_EQUAL(devices.size(), 3); // Now we also have B
-  BOOST_CHECK_EQUAL(devices[0].name, "A");
-  BOOST_CHECK_EQUAL(devices[1].name, "internal-dpl-timer");
-  BOOST_CHECK_EQUAL(devices[2].name, "B");
-  BOOST_REQUIRE_EQUAL(deviceIndex.size(), 3);
-  BOOST_CHECK_EQUAL(deviceIndex[1].processorIndex, 1); // B is the second processor in the workflow
-  BOOST_CHECK_EQUAL(deviceIndex[1].timeslice, 0);      // There is no time pipelining
-  BOOST_CHECK_EQUAL(deviceIndex[1].deviceIndex, 2);    // It's the last device created because it's a sink
+  REQUIRE(devices.size() == 3);
+  ; // Now we also have B
+  REQUIRE(devices[0].name == "A");
+  REQUIRE(devices[1].name == "internal-dpl-timer");
+  REQUIRE(devices[2].name == "B");
+  REQUIRE(deviceIndex.size() == 3);
+  REQUIRE(deviceIndex[1].processorIndex == 1);
+  ; // B is the second processor in the workflow
+  REQUIRE(deviceIndex[1].timeslice == 0);
+  ; // There is no time pipelining
+  REQUIRE(deviceIndex[1].deviceIndex == 2);
+  ; // It's the last device created because it's a sink
 
   // We should have only one input, because the two outputs of A can
   // be captured by the generic matcher in B
-  BOOST_REQUIRE_EQUAL(devices[2].inputs.size(), 1);
+  REQUIRE(devices[2].inputs.size() == 1);
 }

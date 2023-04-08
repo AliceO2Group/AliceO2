@@ -28,7 +28,6 @@
 #include "ResourceManager.h"
 #include "WorkflowHelpers.h"
 
-#include <fairmq/Device.h>
 #include <boost/program_options.hpp>
 
 #include <vector>
@@ -62,6 +61,7 @@ struct DeviceSpecHelpers {
     std::string const& channelPrefix = "",
     OverrideServiceSpecs const& overrideServices = {});
 
+  static void validate(WorkflowSpec const& workflow);
   static void dataProcessorSpecs2DeviceSpecs(
     const WorkflowSpec& workflow,
     std::vector<ChannelConfigurationPolicy> const& channelPolicies,

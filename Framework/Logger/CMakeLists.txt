@@ -12,9 +12,12 @@
 o2_add_header_only_library(FrameworkLogger
                INTERFACE_LINK_LIBRARIES fmt::fmt FairLogger::FairLogger)
 
-# FIXME: the NAME parameter is just there to ease the comparison with previous
-# test names, can be omitted later on
-o2_add_test(Logger NAME test_FrameworkLogger_unittest_Logger
-            SOURCES test/unittest_Logger.cxx
-            COMPONENT_NAME framework
-            PUBLIC_LINK_LIBRARIES O2::FrameworkLogger)
+add_executable(o2-test-framework-logger
+               test/unittest_Logger.cxx)
+             target_link_libraries(o2-test-framework-logger PRIVATE O2::FrameworkLogger)
+target_link_libraries(o2-test-framework-logger PRIVATE O2::Catch2)
+
+get_filename_component(outdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/../tests ABSOLUTE)
+set_property(TARGET o2-test-framework-logger PROPERTY RUNTIME_OUTPUT_DIRECTORY ${outdir})
+
+add_test(NAME framework:logger COMMAND o2-test-framework-logger)

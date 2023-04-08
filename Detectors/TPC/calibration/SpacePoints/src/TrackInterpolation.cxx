@@ -17,6 +17,7 @@
 
 #include "SpacePoints/TrackInterpolation.h"
 #include "SpacePoints/TrackResiduals.h"
+#include "ITStracking/IOUtils.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTPC/Defs.h"
@@ -77,6 +78,20 @@ void TrackInterpolation::process(const o2::globaltracking::RecoContainer& inp, c
   mTrackTimes = &trkTimes;
   mTPCTracksClusIdx = mRecoCont->getTPCTracksClusterRefs();
   mTPCClusterIdxStruct = &mRecoCont->getTPCClusters();
+  if (mDumpTrackPoints) {
+    if (!mITSDict) {
+      LOG(error) << "No ITS dictionary available";
+      return;
+    }
+    mITSTrackClusIdx = mRecoCont->getITSTracksClusterRefs();
+    const auto clusITS = mRecoCont->getITSClusters();
+    const auto patterns = mRecoCont->getITSClustersPatterns();
+    auto pattIt = patterns.begin();
+    mITSClustersArray.clear();
+    mITSClustersArray.reserve(clusITS.size());
+    LOGP(info, "We have {} ITS clusters and the number of patterns is {}", clusITS.size(), patterns.size());
+    o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray, mITSDict);
+  }
 
   int nSeeds = mSeeds->size();
   mTrackData.reserve(nSeeds);
@@ -157,12 +172,26 @@ void TrackInterpolation::process(const o2::globaltracking::RecoContainer& inp, c
 
 void TrackInterpolation::interpolateTrack(int iSeed)
 {
+  LOGP(debug, "Starting track interpolation for seed {}", iSeed);
   TrackData trackData;
+  std::unique_ptr<TrackDataExtended> trackDataExtended;
   std::vector<TPCClusterResiduals> clusterResiduals;
   auto propagator = o2::base::Propagator::Instance();
   const auto& gidTable = (*mGIDtables)[iSeed];
   const auto& trkTPC = mRecoCont->getTPCTrack(gidTable[GTrackID::TPC]);
   const auto& trkITS = mRecoCont->getITSTrack(gidTable[GTrackID::ITS]);
+  if (mDumpTrackPoints) {
+    trackDataExtended = std::make_unique<TrackDataExtended>();
+    (*trackDataExtended).gid = (*mGIDs)[iSeed];
+    (*trackDataExtended).clIdx.setFirstEntry(mClRes.size());
+    (*trackDataExtended).trkITS = trkITS;
+    auto nCl = trkITS.getNumberOfClusters();
+    auto clEntry = trkITS.getFirstClusterEntry();
+    for (int iCl = nCl - 1; iCl >= 0; iCl--) { // clusters are stored from outer to inner layers
+      const auto& clsITS = mITSClustersArray[mITSTrackClusIdx[clEntry + iCl]];
+      (*trackDataExtended).clsITS.push_back(clsITS);
+    }
+  }
   auto& trkWork = (*mSeeds)[iSeed];
   // reset the cache array (sufficient to set cluster available to zero)
   for (auto& elem : mCache) {
@@ -212,6 +241,10 @@ void TrackInterpolation::interpolateTrack(int iSeed)
   if (gidTable[GTrackID::TOF].isIndexSet()) {
     LOG(debug) << "TOF point available";
     const auto& clTOF = mRecoCont->getTOFClusters()[gidTable[GTrackID::TOF]];
+    if (mDumpTrackPoints) {
+      (*trackDataExtended).clsTOF = clTOF;
+      (*trackDataExtended).matchTOF = mRecoCont->getTOFMatch((*mGIDs)[iSeed]);
+    }
     const int clTOFSec = clTOF.getCount();
     const float clTOFAlpha = o2::math_utils::sector2Angle(clTOFSec);
     if (!trkWork.rotate(clTOFAlpha)) {
@@ -235,6 +268,9 @@ void TrackInterpolation::interpolateTrack(int iSeed)
   if (gidTable[GTrackID::TRD].isIndexSet()) {
     LOG(debug) << "TRD available";
     const auto& trkTRD = mRecoCont->getITSTPCTRDTrack<o2::trd::TrackTRD>(gidTable[GTrackID::ITSTPCTRD]);
+    if (mDumpTrackPoints) {
+      (*trackDataExtended).trkTRD = trkTRD;
+    }
     for (int iLayer = o2::trd::constants::NLAYER - 1; iLayer >= 0; --iLayer) {
       int trkltIdx = trkTRD.getTrackletIndex(iLayer);
       if (trkltIdx < 0) {
@@ -243,6 +279,10 @@ void TrackInterpolation::interpolateTrack(int iSeed)
       }
       const auto& trdSP = mRecoCont->getTRDCalibratedTracklets()[trkltIdx];
       const auto& trdTrklt = mRecoCont->getTRDTracklets()[trkltIdx];
+      if (mDumpTrackPoints) {
+        (*trackDataExtended).trkltTRD.push_back(trdTrklt);
+        (*trackDataExtended).clsTRD.push_back(trdSP);
+      }
       auto trkltDet = trdTrklt.getDetector();
       auto trkltSec = trkltDet / (o2::trd::constants::NLAYER * o2::trd::constants::NSTACK);
       if (trkltSec != o2::math_utils::angle2Sector(trkWork.getAlpha())) {
@@ -272,6 +312,10 @@ void TrackInterpolation::interpolateTrack(int iSeed)
         return;
       }
     }
+  }
+
+  if (mDumpTrackPoints) {
+    (*trackDataExtended).trkOuter = trkWork;
   }
 
   // go back through the TPC and store updated track positions
@@ -350,6 +394,10 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     }
     trackData.clIdx.setEntries(nClValidated);
     mTrackData.push_back(std::move(trackData));
+    if (mDumpTrackPoints) {
+      (*trackDataExtended).clIdx.setEntries(nClValidated);
+      mTrackDataExtended.push_back(std::move(*trackDataExtended));
+    }
     mGIDsSuccess.push_back((*mGIDs)[iSeed]);
     mTrackDataCompact.emplace_back(mClRes.size() - nClValidated, nClValidated, (*mGIDs)[iSeed].getSource());
   }
@@ -374,12 +422,20 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
   auto& trkWork = (*mSeeds)[iSeed];
   float clusterTimeBinOffset = (*mTrackTimes)[iSeed] / mTPCTimeBinMUS;
   auto propagator = o2::base::Propagator::Instance();
-  unsigned short rowPrev = 0;
+  unsigned short rowPrev = 0; // used to calculate dRow of two consecutive cluster residuals
   unsigned short nMeasurements = 0;
+  uint8_t clRowPrev = -1; // used to identify and skip split clusters on the same pad row
   for (int iCl = trkTPC.getNClusterReferences(); iCl--;) {
     uint8_t sector, row;
     uint32_t clusterIndexInRow;
     const auto& cl = trkTPC.getCluster(mTPCTracksClusIdx, iCl, *mTPCClusterIdxStruct, sector, row);
+    if (clRowPrev == row) {
+      // if there are split clusters we only take the first one on the pad row
+      continue;
+    } else {
+      // this is the first cluster we see on this pad row
+      clRowPrev = row;
+    }
     float x = 0, y = 0, z = 0;
     mFastTransform->TransformIdeal(sector, row, cl.getPad(), cl.getTime(), x, y, z, clusterTimeBinOffset);
     if (!trkWork.rotate(o2::math_utils::sector2Angle(sector))) {
@@ -807,6 +863,7 @@ void TrackInterpolation::reset()
 {
   mTrackData.clear();
   mTrackDataCompact.clear();
+  mTrackDataExtended.clear();
   mClRes.clear();
   mTrackDataUnfiltered.clear();
   mClResUnfiltered.clear();

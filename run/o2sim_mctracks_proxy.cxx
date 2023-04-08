@@ -35,6 +35,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   workflowOptions.push_back(ConfigParamSpec{"enable-test-consumer", o2::framework::VariantType::Bool, false, {"enable a simple test consumer for injected MC tracks"}});
   workflowOptions.push_back(ConfigParamSpec{"o2sim-pid", o2::framework::VariantType::Int, -1, {"The process id of the source o2-sim"}});
+  workflowOptions.push_back(ConfigParamSpec{"nevents", o2::framework::VariantType::Int, -1, {"The number of events expected to arrive on the proxy"}});
 }
 
 #include "Framework/runDataProcessing.h"
@@ -61,13 +62,15 @@ class ConsumerTask
 
 /// Function converting raw input data to DPL data format. Uses knowledge of how MCTracks and MCEventHeaders
 /// are sent from the o2sim side.
-InjectorFunction o2simKinematicsConverter(std::vector<OutputSpec> const& specs, uint64_t startTime, uint64_t step)
+InjectorFunction o2simKinematicsConverter(std::vector<OutputSpec> const& specs, uint64_t startTime, uint64_t step, int nevents)
 {
   auto timesliceId = std::make_shared<size_t>(startTime);
 
-  return [timesliceId, specs, step](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever) {
+  return [timesliceId, specs, step, nevents](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId, bool& stop) {
     // We iterate on all the parts and we send them two by two,
     // adding the appropriate O2 header.
+    static int eventcounter = 0;
+
     for (int i = 0; i < parts.Size(); ++i) {
       DataHeader dh;
       ConcreteDataMatcher matcher = DataSpecUtils::asConcreteDataMatcher(specs[i]);
@@ -80,12 +83,21 @@ InjectorFunction o2simKinematicsConverter(std::vector<OutputSpec> const& specs, 
       } else if (i == 1) {
         dh.payloadSerializationMethod = gSerializationMethodROOT;
       }
-      DataProcessingHeader dph{*timesliceId, 0};
+      if (*timesliceId != newTimesliceId) {
+        LOG(fatal) << "Time slice ID provided from oldestPossible mechanism " << newTimesliceId << " is out of sync with expected value " << *timesliceId;
+      }
+      DataProcessingHeader dph{newTimesliceId, 0};
       // we have to move the incoming data
       o2::header::Stack headerStack{dh, dph};
       sendOnChannel(device, std::move(headerStack), std::move(parts.At(i)), specs[i], channelRetriever);
     }
     *timesliceId += step;
+    eventcounter++;
+    if (eventcounter == nevents) {
+      // I am done (I don't expect more events to convert); so tell the proxy device to shut-down
+      stop = true;
+    }
+    return;
   };
 }
 
@@ -98,7 +110,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("MC", "MCHEADER", 0, Lifetime::Timeframe);
   outputs.emplace_back("MC", "MCTRACKS", 0, Lifetime::Timeframe);
-  o2::framework::InjectorFunction f = o2simKinematicsConverter(outputs, 0, 1);
+
+  // fetch the number of events to expect
+  auto nevents = configcontext.options().get<int>("nevents");
+  o2::framework::InjectorFunction f = o2simKinematicsConverter(outputs, 0, 1, nevents);
 
   // construct the input channel to listen on
   // use given pid

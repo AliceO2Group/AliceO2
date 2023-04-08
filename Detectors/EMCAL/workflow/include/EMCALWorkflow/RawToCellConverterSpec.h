@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include <chrono>
+#include <exception>
 #include <vector>
 
 #include "Framework/ConcreteDataMatcher.h"
@@ -21,6 +22,8 @@
 #include "EMCALBase/Geometry.h"
 #include "EMCALBase/Mapper.h"
 #include "EMCALReconstruction/CaloRawFitter.h"
+#include "EMCALReconstruction/RecoContainer.h"
+#include "EMCALReconstruction/ReconstructionErrors.h"
 
 namespace o2
 {
@@ -93,27 +96,88 @@ class RawToCellConverterSpec : public framework::Task
   header::DataHeader::SubSpecificationType getSubspecification() const { return mSubspecification; }
 
  private:
-  /// \struct RecCellInfo
-  /// \brief Internal bookkeeping for cell double counting
-  ///
-  /// In case the energy is in the overlap region between the
-  /// two digitizers 2 channels exist for the same cell. In this
-  /// case the low gain cells are used above a certain threshold.
-  /// In certain error cases the information from the other digitizer
-  /// might be missing. Such cases must be fitered out, however this
-  /// can be done only after all cells are processed. The overlap information
-  /// needs to be propagated for the filtering but is not part of the
-  /// final cell object
-  struct RecCellInfo {
-    o2::emcal::Cell mCellData; ///< Cell information
-    bool mIsLGnoHG;            ///< Cell has only LG digits
-    bool mHGOutOfRange;        ///< Cell has only HG digits which are out of range
-    int mFecID;                ///< FEC ID of the channel (for monitoring)
-    int mDDLID;                ///< DDL of the channel (for monitoring)
-    int mHWAddressLG;          ///< HW address of LG (for monitoring)
-    int mHWAddressHG;          ///< HW address of HG (for monitoring)
+  /// \class ModuleIndexException
+  /// \brief Exception handling errors in calculation of the absolute module ID
+  class ModuleIndexException : public std::exception
+  {
+   public:
+    /// \enum ModuleType_t
+    /// \brief Type of module raising the exception
+    enum class ModuleType_t {
+      CELL_MODULE,  ///< Cell module type
+      LEDMON_MODULE ///< LEDMON module type
+    };
+
+    /// \brief Constructor for cell indices
+    /// \param moduleIndex Index of the module raising the exception
+    /// \param column Column of the cell
+    /// \param row Row of the cell
+    /// \param columnshifted Shifted column index
+    /// \param rowshifted Shifted row index
+    ModuleIndexException(int moduleIndex, int column, int row, int columnshifted, int rowshifted);
+
+    /// \brief Constructor for LEDMON indices
+    /// \param moduleIndex Index of the module raising the exception
+    ModuleIndexException(int moduleIndex);
+
+    /// \brief Destructor
+    ~ModuleIndexException() noexcept final = default;
+
+    /// \brief Access to error message
+    /// \return Error message
+    const char* what() const noexcept final { return "Invalid cell / LEDMON index"; }
+
+    /// \brief Get type of module raising the exception
+    /// \return Module type
+    ModuleType_t getModuleType() const { return mModuleType; }
+
+    /// \brief Get index of the module raising the exception
+    /// \return Index of the module
+    int getIndex() const { return mIndex; }
+
+    /// \brief Get column raising the exception (cell-case)
+    /// \return Column
+    int getColumn() const { return mColumn; }
+
+    /// \brief Get row raising the exception (cell-case)
+    /// \return Row
+    int getRow() const { return mRow; }
+
+    /// \brief Get shifted column raising the exception (cell-case)
+    /// \return Shifted column
+    int getColumnShifted() const { return mColumnShifted; }
+
+    /// \brief Get shifted row raising the exception (cell-case)
+    /// \return Shifted row
+    int getRowShifted() const { return mRowShifted; }
+
+   private:
+    ModuleType_t mModuleType; ///< Type of the module raising the exception
+    int mIndex = -1;          ///< Index raising the exception
+    int mColumn = -1;         ///< Column of the module (cell-case)
+    int mRow = -1;            ///< Row of the module (cell-case)
+    int mColumnShifted = -1;  ///< shifted column of the module (cell-case)
+    int mRowShifted = -1;     /// << shifted row of the module (cell-case)
   };
+
+  /// \brief Check if the timeframe is empty
+  /// \param ctx Processing context of timeframe
+  /// \return True if the timeframe is empty, false otherwise
+  ///
+  /// Emtpy timeframes do not have RAWDATA from any physical link in the
+  /// processing context, instead they contain RAWDATA from link 0xDEADBEEF
+  /// and a message in FLP/DISTSUBTIMEFRAME
   bool isLostTimeframe(framework::ProcessingContext& ctx) const;
+
+  /// \brief Select cells and put them on the output container
+  /// \param cells Cells to select
+  /// \param isLEDMON Distinction whether input is cell or LEDMON
+  /// \return Number of accepted cells
+  ///
+  /// Cells or LEDMONs are rejected if
+  /// - They have a low gain but no high gain channel
+  /// - They only have a high gain channel which is out of range
+  int bookEventCells(const gsl::span<const o2::emcal::RecCellInfo>& cells, bool isLELDMON);
 
   /// \brief Send data to output channels
   /// \param cells Container with output cells for timeframe
@@ -124,6 +188,28 @@ class RawToCellConverterSpec : public framework::Task
   /// is determined on the fly in the run method and therefore used as parameter. Consumers
   /// must use wildcard subspecification via ConcreteDataTypeMatcher.
   void sendData(framework::ProcessingContext& ctx, const std::vector<o2::emcal::Cell>& cells, const std::vector<o2::emcal::TriggerRecord>& triggers, const std::vector<ErrorTypeFEE>& decodingErrors) const;
+
+  /// \brief Get absolute Cell ID from column/row in supermodule
+  /// \param supermoduleID Index of the supermodule
+  /// \param column Column of the tower within the supermodule
+  /// \param row Row of the tower within the supermodule
+  /// \return Cell absolute ID
+  /// \throw ModuleIndexException in case of invalid module indices
+  int getCellAbsID(int supermoduleID, int column, int row);
+
+  /// \brief Get the absoulte ID of LEDMON from the module ID in supermodule
+  /// \param supermoduleID Index of the supermodule
+  /// \param module Index of the module within the supermodule
+  /// \return LEDMON absolute ID
+  /// \throw ModuleIndexException in case of invalid module indices
+  int geLEDMONAbsID(int supermoduleID, int module);
+
+  /// \brief handler function for gain type errors
+  /// \param errortype Gain error type
+  /// \param ddlID ID of the DDL
+  /// \param fecID ID of the FEC
+  /// \param hwaddress Hardware address
+  void handleGainError(o2::emcal::reconstructionerrors::GainError_t errortype, int ddlID, int fecID, int hwaddress);
 
   header::DataHeader::SubSpecificationType mSubspecification = 0;    ///< Subspecification for output channels
   int mNoiseThreshold = 0;                                           ///< Noise threshold in raw fit
@@ -136,6 +222,7 @@ class RawToCellConverterSpec : public framework::Task
   bool mCreateRawDataErrors = false;                                 ///< Create raw data error objects for monitoring
   std::chrono::time_point<std::chrono::system_clock> mReferenceTime; ///< Reference time for muting messages
   Geometry* mGeometry = nullptr;                                     ///!<! Geometry pointer
+  RecoContainer mCellHandler;                                        ///< Manager for reconstructed cells
   std::unique_ptr<MappingHandler> mMapper = nullptr;                 ///!<! Mapper
   std::unique_ptr<CaloRawFitter> mRawFitter;                         ///!<! Raw fitter
   std::vector<Cell> mOutputCells;                                    ///< Container with output cells

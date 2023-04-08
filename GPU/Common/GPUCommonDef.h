@@ -91,6 +91,16 @@
     #error Invalid settings
   #endif
 #endif
+#if !defined(GPUCA_HAVE_O2HEADERS) && (defined(GPUCA_O2_LIB) || (!defined(GPUCA_ALIROOT_LIB) && !defined(GPUCA_STANDALONE)))
+  #define GPUCA_HAVE_O2HEADERS
+#endif
+
+#if defined(GPUCA_HAVE_O2HEADERS) && !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) && defined(DEBUG_STREAMER)
+#define GPUCA_DEBUG_STREAMER_CHECK(...) __VA_ARGS__
+#else
+#define GPUCA_DEBUG_STREAMER_CHECK(...)
+#endif
+
 
 //API Definitions for GPU Compilation
 #include "GPUCommonDefAPI.h"

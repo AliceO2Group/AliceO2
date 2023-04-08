@@ -100,16 +100,20 @@ void ClusterFinderGEM::init(int _mode, bool run2Config)
   clusterConfig.minChargeOfClusterPerCathode = 2 * clusterConfig.minChargeOfPads;
   //
   // ClusterResolution
-  clusterConfig.SDefaultClusterResolution = 0.2f;
-  clusterConfig.SBadClusterResolution = 10.f;
+  clusterConfig.SDefaultClusterResolutionX = 0.2f;
+  clusterConfig.SDefaultClusterResolutionY = 0.2f;
+  clusterConfig.SBadClusterResolutionX = 10.f;
+  clusterConfig.SBadClusterResolutionY = 10.f;
   if (!run2Config) {
     // Run 3 case
     clusterConfig.minChargeOfPads = ClusterizerParam::Instance().lowestPadCharge;
     clusterConfig.minChargeOfClusterPerCathode = 1.0 * clusterConfig.minChargeOfPads;
     //
     // Cluster resolution (for the tracking)
-    clusterConfig.SDefaultClusterResolution = ClusterizerParam::Instance().defaultClusterResolution;
-    clusterConfig.SBadClusterResolution = ClusterizerParam::Instance().badClusterResolution;
+    clusterConfig.SDefaultClusterResolutionX = ClusterizerParam::Instance().defaultClusterResolutionX;
+    clusterConfig.SDefaultClusterResolutionY = ClusterizerParam::Instance().defaultClusterResolutionY;
+    clusterConfig.SBadClusterResolutionX = ClusterizerParam::Instance().badClusterResolutionX;
+    clusterConfig.SBadClusterResolutionY = ClusterizerParam::Instance().badClusterResolutionY;
   }
   // Inv ???  LOG(info) << "Init lowestPadCharge = " << clusterConfig.minChargeOfPads ;
 }
@@ -359,8 +363,8 @@ void ClusterFinderGEM::setClusterResolution(Cluster& cluster) const
   if (cluster.getChamberId() < 4) {
 
     // do not consider mono-cathode clusters in stations 1 and 2
-    cluster.ex = clusterConfig.SDefaultClusterResolution;
-    cluster.ey = clusterConfig.SDefaultClusterResolution;
+    cluster.ex = clusterConfig.SDefaultClusterResolutionX;
+    cluster.ey = clusterConfig.SDefaultClusterResolutionY;
   } else {
 
     // find pads below the cluster
@@ -380,10 +384,10 @@ void ClusterFinderGEM::setClusterResolution(Cluster& cluster) const
     }
 
     // set the cluster resolution accordingly
-    cluster.ex = (itPadNB == mUsedDigits.end()) ? clusterConfig.SBadClusterResolution
-                                                : clusterConfig.SDefaultClusterResolution;
-    cluster.ey = (itPadB == mUsedDigits.end()) ? ClusterizerParam::Instance().badClusterResolution
-                                               : ClusterizerParam::Instance().defaultClusterResolution;
+    cluster.ex = (itPadNB == mUsedDigits.end()) ? clusterConfig.SBadClusterResolutionX
+                                                : clusterConfig.SDefaultClusterResolutionX;
+    cluster.ey = (itPadB == mUsedDigits.end()) ? clusterConfig.SBadClusterResolutionY
+                                               : clusterConfig.SDefaultClusterResolutionY;
   }
 }
 
@@ -465,16 +469,16 @@ void ClusterFinderGEM::findClusters(gsl::span<const Digit> digits,
           // ??? value of chID
           // ??? To do later
           if (chId <= 4) {
-            dx = SDefaultClusterResolution;
-            dy = SDefaultClusterResolution;
+            dx = SDefaultClusterResolutionX;
+            dy = SDefaultClusterResolutionY;
           } else {
             // Find the associated pads
             // set the cluster resolution accordingly
-            // cluster.ex = (NBPad) ? SBadClusterResolution : SDefaultClusterResolution;
-            // cluster.ey = (BPad) ? SBadClusterResolution : SDefaultClusterResolution;
+            // cluster.ex = (NBPad) ? SBadClusterResolutionX : SDefaultClusterResolutionX;
+            // cluster.ey = (BPad) ? SBadClusterResolutionY : SDefaultClusterResolutionY;
             // ???
-            dx = SDefaultClusterResolution;
-            dy = SDefaultClusterResolution;
+            dx = SDefaultClusterResolutionX;
+            dy = SDefaultClusterResolutionY;
           }
            */
         // ??? uint32_t uid = Cluster::buildUniqueId(digits[0].getDetID() / 100 - 1, digits[0].getDetID(), thetaToGroup[s]);

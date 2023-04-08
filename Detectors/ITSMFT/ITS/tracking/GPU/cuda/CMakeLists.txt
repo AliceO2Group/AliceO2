@@ -11,20 +11,24 @@
 
 # CUDA
 if(CUDA_ENABLED)
+find_package(CUDAToolkit)
 
 message(STATUS "Building ITS CUDA tracker")
+
 o2_add_library(ITStrackingCUDA
                SOURCES ClusterLinesGPU.cu
                        Context.cu
                        Stream.cu
                        TrackerTraitsGPU.cu
                        TimeFrameGPU.cu
+                       TracerGPU.cu
                        VertexerTraitsGPU.cu
                        Utils.cu
                PUBLIC_INCLUDE_DIRECTORIES ../
                PUBLIC_LINK_LIBRARIES O2::ITStracking
                                      O2::SimConfig
                                      O2::SimulationDataFormat
+                                     CUDA::nvToolsExt # TODO: change to CUDA::nvtx3 when CMake bump >= 3.25
                TARGETVARNAME targetName)
 
 set_property(TARGET ${targetName} PROPERTY CUDA_SEPARABLE_COMPILATION ON)

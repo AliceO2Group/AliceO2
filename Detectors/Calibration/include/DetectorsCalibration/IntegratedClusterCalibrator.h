@@ -313,8 +313,8 @@ class IntegratedClusters
   /// merging TOF currents with previous interval
   void merge(const IntegratedClusters* prev);
 
-  /// \return returns if already all expected TFs are received
-  bool hasEnoughData() const { return mRemainingData ? false : true; }
+  /// \return always return true. To specify the number of time slot intervals to wait for one should use the --max-delay option
+  bool hasEnoughData() const { return true; }
 
   /// \return returns accumulated currents
   const auto& getCurrents() const& { return mCurrents; }

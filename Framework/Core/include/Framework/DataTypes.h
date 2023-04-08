@@ -28,8 +28,9 @@ enum CollisionFlagsRun2 : uint16_t {
 namespace o2::aod::track
 {
 enum TrackTypeEnum : uint8_t {
-  TrackIU = 0, // track at point of innermost update (not propagated)
-  Track = 1,   // propagated track
+  TrackIU = 0,      // track at point of innermost update (not propagated)
+  Track = 1,        // propagated track
+  StrangeTrack = 2, // track found by strangeness tracking at point of innermost update
   Run2Track = 254,
   Run2Tracklet = 255
 };

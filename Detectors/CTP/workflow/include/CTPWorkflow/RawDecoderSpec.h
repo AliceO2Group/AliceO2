@@ -45,7 +45,6 @@ class RawDecoderSpec : public framework::Task
   /// \brief Initializing the RawDecoderSpec
   /// \param ctx Init context
   void init(framework::InitContext& ctx) final;
-
   /// \brief Run conversion of raw data to cells
   /// \param ctx Processing context
   ///
@@ -55,6 +54,7 @@ class RawDecoderSpec : public framework::Task
   void run(framework::ProcessingContext& ctx) final;
   static void makeGBTWordInverse(std::vector<gbtword80_t>& diglets, gbtword80_t& GBTWord, gbtword80_t& remnant, uint32_t& size_gbt, uint32_t Npld);
   int addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword80_t& diglet, gbtword80_t& pldmask, std::map<o2::InteractionRecord, CTPDigit>& digits);
+  gbtword80_t subbitset(int pos1, int pos2, gbtword128_t& bs, int shift = 0);
 
  protected:
  private:
@@ -75,6 +75,7 @@ class RawDecoderSpec : public framework::Task
   uint32_t mNHBIntegratedV = 0;
   uint32_t mIRRejected = 0;
   uint32_t mTCRRejected = 0;
+  bool mPadding = true;
   std::deque<size_t> mHistoryT;
   std::deque<size_t> mHistoryV;
 };

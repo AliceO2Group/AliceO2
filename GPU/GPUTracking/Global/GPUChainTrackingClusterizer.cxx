@@ -146,7 +146,7 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
         } else if (mCFContext->zsVersion != (int)hdr->version) {
           if (GetProcessingSettings().ignoreNonFatalGPUErrors) {
             mCFContext->abandonTimeframe = true;
-            GPUError("Received TPC ZS data of mixed versions");
+            GPUAlarm("Received TPC ZS data of mixed versions");
             return {0, 0};
           } else {
             GPUFatal("Received TPC ZS data of mixed versions");
