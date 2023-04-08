@@ -231,7 +231,7 @@ class AODProducerWorkflowDPL : public Task
 
   int mNThreads = 1;
   bool mUseMC = true;
-  bool mEnableSV = true;             // enable secondary vertices
+  bool mEnableSV = true; // enable secondary vertices
   bool mFieldON = false;
   const float cSpeed = 0.029979246f; // speed of light in TOF units
 
@@ -548,6 +548,9 @@ class CellHelper
 
   static int16_t getCellNumber(const o2::phos::Cell& cell)
   {
+    if (cell.getTRU()) {
+      return cell.getTRUId();
+    }
     return cell.getAbsId();
   }
   // If this cell - trigger one?

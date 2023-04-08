@@ -62,7 +62,6 @@ void Clusterer::process(gsl::span<const Digit> digits, gsl::span<const TriggerRe
   for (const auto& tr : dtr) {
     int indexStart = clusters.size(); // final out list of clusters
 
-    LOG(debug) << "Starting clusteriztion digits from " << mFirstElememtInEvent << " to " << mLastElementInEvent;
     // Convert digits to cluelements
     int firstDigitInEvent = tr.getFirstEntry();
     int lastDigitInEvent = firstDigitInEvent + tr.getNumberOfObjects();
@@ -118,7 +117,6 @@ void Clusterer::processCells(gsl::span<const Cell> cells, gsl::span<const Trigge
     int firstCellInEvent = tr.getFirstEntry();
     int lastCellInEvent = firstCellInEvent + tr.getNumberOfObjects();
     int indexStart = clusters.size(); // final out list of clusters
-    LOG(debug) << "Starting clusteriztion cells from " << firstCellInEvent << " to " << lastCellInEvent;
     // convert cells to cluelements
     mFirstElememtInEvent = cluelements.size();
     mCluEl.clear();
@@ -157,7 +155,6 @@ void Clusterer::makeClusters(std::vector<Cluster>& clusters, std::vector<CluElem
   // Cluster contains first and (next-to) last index of the combined list of clusterelements, so
   // add elements to final list and mark element in internal list as used (zero energy)
 
-  LOG(debug) << "makeClusters: clusters size=" << clusters.size() << " elements=" << cluelements.size();
   int iFirst = 0; // first index of digit which potentially can be a part of cluster
   int n = mCluEl.size();
   for (int i = iFirst; i < n; i++) {
@@ -212,7 +209,6 @@ void Clusterer::makeClusters(std::vector<Cluster>& clusters, std::vector<CluElem
       }
     } // loop over cluster
     clu->setLastCluEl(cluelements.size());
-    LOG(debug) << "Cluster: elements from " << clu->getFirstCluEl() << " last=" << cluelements.size();
 
     // Unfold overlapped clusters
     // Split clusters with several local maxima if necessary
