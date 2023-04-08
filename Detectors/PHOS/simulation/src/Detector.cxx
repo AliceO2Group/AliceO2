@@ -206,7 +206,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   fMC->TrackPosition(posX, posY, posZ);
   fMC->TrackMomentum(momX, momY, momZ, energy);
   Double_t estart = fMC->Etot();
-  Double_t time = fMC->TrackTime() * 1.e+9; // time in ns
+  Double_t time = fMC->TrackTime(); // time in s
 
   mCurrentHit = addHit(superParent, detID, math_utils::Point3D<float>(posX, posY, posZ), math_utils::Vector3D<float>(momX, momY, momZ), estart,
                        time, lostenergy);
