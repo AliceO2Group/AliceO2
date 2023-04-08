@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include <catch_amalgamated.hpp>
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include "Framework/FairOptionsRetriever.h"
 #include "Framework/ConfigParamStore.h"
 

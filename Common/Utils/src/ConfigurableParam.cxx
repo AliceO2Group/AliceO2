@@ -14,6 +14,7 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/StringUtils.h"
 #include "CommonUtils/KeyValParam.h"
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/ini_parser.hpp>
