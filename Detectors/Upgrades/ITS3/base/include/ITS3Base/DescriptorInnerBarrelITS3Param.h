@@ -17,7 +17,6 @@
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
-#include <string>
 
 namespace o2
 {
@@ -40,6 +39,10 @@ enum class ITS3Version {
 struct DescriptorInnerBarrelITS3Param : public o2::conf::ConfigurableParamHelper<DescriptorInnerBarrelITS3Param> {
   ITS3Version mVersion = ITS3Version::None;
   int mBuildLevel{0};
+  std::array<double, 4> mGapZ{0.1f, 0.1f, 0.1f, 0.1f};
+  std::array<double, 4> mGapPhi{0.f, 0.f, 0.f, 0.f};
+  std::array<double, 4> mRadii{1.8f, 2.4f, 3.0f, 6.0f};
+  double mLength{27.f};
   std::string const& getITS3LayerConfigString() const;
   O2ParamDef(DescriptorInnerBarrelITS3Param, "DescriptorInnerBarrelITS3");
 };
