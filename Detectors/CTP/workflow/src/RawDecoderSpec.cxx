@@ -40,9 +40,9 @@ void RawDecoderSpec::endOfStream(framework::EndOfStreamContext& ec)
   std::cout << "Missing orbits:";
   for (int i = 1; i < l; i++) {
     if ((mTFOrbits[i] - o0) > 0x20) {
-      if( nprt < 20)
+      if (nprt < 20)
         std::cout << " " << o0 << "-" << mTFOrbits[i];
-      nmiss += (mTFOrbits[i] - o0) /0x20;
+      nmiss += (mTFOrbits[i] - o0) / 0x20;
       nprt++;
     }
     o0 = mTFOrbits[i];
@@ -369,7 +369,7 @@ int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
     LOG(debug) << "tcr ir ori:" << ir;
     // if ((int32_t)ir.bc < offset) {
     if ((ir.orbit <= mTFOrbit) && ((int32_t)ir.bc < offset)) {
-    //if (0) {
+      // if (0) {
       LOG(warning) << "Loosing tclass:" << ir;
       mTCRRejected++;
       return 0;
