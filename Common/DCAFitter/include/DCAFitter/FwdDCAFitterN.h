@@ -1275,7 +1275,7 @@ inline bool FwdDCAFitterN<N, Args...>::propagateToVtx(o2::track::TrackParCovFwd&
 {
   // propagate track to vertex including MCS effects if material budget included, simple propagation to Z otherwise
   if (mUseMatBudget) {
-    float x2x0=0;
+    float x2x0 = 0;
     if (mTGeoFallBackAllowed) {
       auto geoMan = o2::base::GeometryManager::meanMaterialBudget(t.getX(), t.getY(), t.getZ(), p[0], p[1], p[2]);
       x2x0 = (float)geoMan.meanX2X0;
