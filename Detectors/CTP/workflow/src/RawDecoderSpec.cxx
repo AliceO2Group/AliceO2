@@ -35,14 +35,20 @@ void RawDecoderSpec::endOfStream(framework::EndOfStreamContext& ec)
   uint32_t o0 = 0;
   if (l)
     o0 = mTFOrbits[0];
+  int nmiss = 0;
+  int nprt = 0;
   std::cout << "Missing orbits:";
   for (int i = 1; i < l; i++) {
     if ((mTFOrbits[i] - o0) > 0x20) {
-      std::cout << " " << o0 << "-" << mTFOrbits[i];
+      if( nprt < 20)
+        std::cout << " " << o0 << "-" << mTFOrbits[i];
+      nmiss += (mTFOrbits[i] - o0) /0x20;
+      nprt++;
     }
     o0 = mTFOrbits[i];
   }
   std::cout << std::endl;
+  std::cout << "Number of missing TF:" << nmiss << std::endl;
 }
 void RawDecoderSpec::run(framework::ProcessingContext& ctx)
 {
@@ -362,8 +368,8 @@ int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
     int32_t offset = BCShiftCorrection + o2::ctp::TriggerOffsetsParam::Instance().LM_L0 + o2::ctp::TriggerOffsetsParam::Instance().L0_L1 - 1;
     LOG(debug) << "tcr ir ori:" << ir;
     // if ((int32_t)ir.bc < offset) {
-    // if ((ir.orbit <= mTFOrbit) && ((int32_t)ir.bc < offset)) {
-    if (0) {
+    if ((ir.orbit <= mTFOrbit) && ((int32_t)ir.bc < offset)) {
+    //if (0) {
       LOG(warning) << "Loosing tclass:" << ir;
       mTCRRejected++;
       return 0;
