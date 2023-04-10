@@ -116,7 +116,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     bool hb = (triggerType & HB_TRIGGERTYPE_MASK) && (packetCounter == 0);
     if (tf) {
       mTFOrbit = rdhOrbit;
-      //std::cout << "tforbit==================>" << mTFOrbit << " " << std::hex << mTFOrbit << std::endl;
+      // std::cout << "tforbit==================>" << mTFOrbit << " " << std::hex << mTFOrbit << std::endl;
       mTFOrbits.push_back(mTFOrbit);
     }
     static bool prt = true;
@@ -153,7 +153,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
       remnant = 0;
       size_gbt = 0;
       orbit0 = rdhOrbit;
-      //std::cout << "orbit0============>" << std::dec << orbit0 << " " << std::hex << orbit0 << std::endl;
+      // std::cout << "orbit0============>" << std::dec << orbit0 << " " << std::hex << orbit0 << std::endl;
     }
     // Create 80 bit words
     gsl::span<const uint8_t> payload(it.data(), it.size());
@@ -337,11 +337,11 @@ int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
     LOG(debug) << "ir ir ori:" << ir;
     // if ((int32_t)ir.bc < BCShiftCorrection) {
     if ((ir.orbit <= mTFOrbit) && ((int32_t)ir.bc < BCShiftCorrection)) {
-      //LOG(warning) << "Loosing ir:" << ir;
+      // LOG(warning) << "Loosing ir:" << ir;
       mIRRejected++;
       return 0;
     }
-    ir-= BCShiftCorrection;
+    ir -= BCShiftCorrection;
     LOG(debug) << "ir ir corrected:" << ir;
     digit.intRecord = ir;
     if (digits.count(ir) == 0) {
@@ -362,8 +362,8 @@ int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
     int32_t offset = BCShiftCorrection + o2::ctp::TriggerOffsetsParam::Instance().LM_L0 + o2::ctp::TriggerOffsetsParam::Instance().L0_L1 - 1;
     LOG(debug) << "tcr ir ori:" << ir;
     // if ((int32_t)ir.bc < offset) {
-    //if ((ir.orbit <= mTFOrbit) && ((int32_t)ir.bc < offset)) {
-    if(0) {
+    // if ((ir.orbit <= mTFOrbit) && ((int32_t)ir.bc < offset)) {
+    if (0) {
       LOG(warning) << "Loosing tclass:" << ir;
       mTCRRejected++;
       return 0;
