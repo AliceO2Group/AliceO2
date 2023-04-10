@@ -301,7 +301,7 @@ class FwdDCAFitterN
   float mMinRelChi2Change = 0.98;   // stop iterations is chi2/chi2old > this
   float mMaxChi2 = 100;             // abs cut on chi2 or abs distance
   float mMaxDist2ToMergeSeeds = 1.; // merge 2 seeds to their average if their distance^2 is below the threshold
-  o2::base::MatLayerCylSet* mMatLUT; // use to compute material budget to include MCS effects
+  const o2::base::MatLayerCylSet* mMatLUT = nullptr; // use to compute material budget to include MCS effects
 
   ClassDefNV(FwdDCAFitterN, 1);
 };
