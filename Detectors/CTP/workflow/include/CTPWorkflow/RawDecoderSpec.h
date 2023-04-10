@@ -20,7 +20,6 @@
 #include "DataFormatsCTP/Digits.h"
 #include "DataFormatsCTP/LumiInfo.h"
 #include "DataFormatsCTP/TriggerOffsetsParam.h"
-#include "CommonDataFormat/InteractionRecord.h"
 
 namespace o2
 {
@@ -54,9 +53,6 @@ class RawDecoderSpec : public framework::Task
   void run(framework::ProcessingContext& ctx) final;
   static void makeGBTWordInverse(std::vector<gbtword80_t>& diglets, gbtword80_t& GBTWord, gbtword80_t& remnant, uint32_t& size_gbt, uint32_t Npld);
   int addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword80_t& diglet, gbtword80_t& pldmask, std::map<o2::InteractionRecord, CTPDigit>& digits);
-  gbtword80_t subbitset(int pos1, int pos2, gbtword128_t& bs, int shift = 0);
-  void addIR(InteractionRecord& ir, int64_t offset);
-
  protected:
  private:
   static constexpr uint32_t TF_TRIGGERTYPE_MASK = 0x800;

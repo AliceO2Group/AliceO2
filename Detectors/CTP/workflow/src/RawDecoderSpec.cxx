@@ -116,7 +116,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     bool hb = (triggerType & HB_TRIGGERTYPE_MASK) && (packetCounter == 0);
     if (tf) {
       mTFOrbit = rdhOrbit;
-      std::cout << "tforbit==================>" << mTFOrbit << " " << std::hex << mTFOrbit << std::endl;
+      //std::cout << "tforbit==================>" << mTFOrbit << " " << std::hex << mTFOrbit << std::endl;
       mTFOrbits.push_back(mTFOrbit);
     }
     static bool prt = true;
@@ -136,7 +136,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     } else {
       LOG(error) << "Unxpected  CTP CRU link:" << linkCRU;
     }
-    LOG(info) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << rdhOrbit << " triggerType:" << triggerType;
+    LOG(debug) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << rdhOrbit << " triggerType:" << triggerType;
     // LOG(info) << "remnant :" << remnant.count();
     gbtword80_t pldmask = 0;
     for (uint32_t i = 0; i < payloadCTP; i++) {
@@ -153,7 +153,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
       remnant = 0;
       size_gbt = 0;
       orbit0 = rdhOrbit;
-      std::cout << "orbit0============>" << std::dec << orbit0 << " " << std::hex << orbit0 << std::endl;
+      //std::cout << "orbit0============>" << std::dec << orbit0 << " " << std::hex << orbit0 << std::endl;
     }
     // Create 80 bit words
     gsl::span<const uint8_t> payload(it.data(), it.size());
@@ -166,12 +166,12 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     if (mPadding == 1) {
       wordSize = 16;
     }
-    if (payload.size()) {
-      LOG(info) << "payload size:" << payload.size();
+    /* if (payload.size()) {
+      //LOG(info) << "payload size:" << payload.size();
       // LOG(info) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << triggerOrbit << " stopbit:" << stopBit << " packet:" << packetCounter;
       // LOGP(info, "RDH FEEid: {} CRU link: {}, Orbit: {}", feeID, linkCRU, triggerOrbit);
       std::cout << std::hex << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << rdhOrbit << std::endl;
-    }
+    } */
     gbtword80_t bcmask = std::bitset<80>("111111111111");
     for (auto payloadWord : payload) {
       int wc = wordCount % wordSize;
@@ -179,14 +179,14 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
       if ((wc == 0) && (wordCount != 0)) {
         if (gbtWord80.count() != 80) {
           gbtwords80.push_back(gbtWord80);
-          uint64_t bcid = (gbtWord80 & bcmask).to_ullong();
+          /* uint64_t bcid = (gbtWord80 & bcmask).to_ullong();
           if (bcid < 279)
             bcid += 3564 - 279;
           else
             bcid += -279;
           std::string ss = fmt::format("{:x}", bcid);
           LOG(info) << "w80:" << gbtWord80 << " " << ss;
-          // LOGP(info,"w80: {} bcid:{%x}", gbtWord80,bcid);
+          // LOGP(info,"w80: {} bcid:{%x}", gbtWord80,bcid); */
         }
         gbtWord80.set();
       }
@@ -199,13 +199,13 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     }
     if ((gbtWord80.count() != 80) && (gbtWord80.count() > 0)) {
       gbtwords80.push_back(gbtWord80);
-      uint64_t bcid = (gbtWord80 & bcmask).to_ullong();
+      /*uint64_t bcid = (gbtWord80 & bcmask).to_ullong();
       if (bcid < 279)
         bcid += 3564 - 279;
       else
         bcid += -279;
       std::string ss = fmt::format("{:x}", bcid);
-      LOG(info) << "w80l:" << gbtWord80 << " " << ss;
+      LOG(info) << "w80l:" << gbtWord80 << " " << ss;  */
     }
     // decode 80 bits payload
     for (auto word : gbtwords80) {
@@ -226,7 +226,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
         if (!mDoDigits) {
           continue;
         }
-        LOG(info) << "diglet:" << diglet << " " << (diglet & bcmask).to_ullong();
+        LOG(debug) << "diglet:" << diglet << " " << (diglet & bcmask).to_ullong();
         addCTPDigit(linkCRU, rdhOrbit, diglet, pldmask, digits);
       }
     }
@@ -246,7 +246,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
         continue;
       }
       addCTPDigit(linkCRU, rdhOrbit, remnant, pldmask, digits);
-      LOG(info) << "diglet:" << remnant << " " << (remnant & bcmask).to_ullong();
+      LOG(debug) << "diglet:" << remnant << " " << (remnant & bcmask).to_ullong();
       remnant = 0;
     }
   }
@@ -337,12 +337,11 @@ int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
     LOG(debug) << "ir ir ori:" << ir;
     // if ((int32_t)ir.bc < BCShiftCorrection) {
     if ((ir.orbit <= mTFOrbit) && ((int32_t)ir.bc < BCShiftCorrection)) {
-      LOG(warning) << "Loosing ir:" << ir;
+      //LOG(warning) << "Loosing ir:" << ir;
       mIRRejected++;
       return 0;
     }
-    // ir -= BCShiftCorrection;
-    addIR(ir, -BCShiftCorrection);
+    ir-= BCShiftCorrection;
     LOG(debug) << "ir ir corrected:" << ir;
     digit.intRecord = ir;
     if (digits.count(ir) == 0) {
@@ -363,13 +362,13 @@ int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
     int32_t offset = BCShiftCorrection + o2::ctp::TriggerOffsetsParam::Instance().LM_L0 + o2::ctp::TriggerOffsetsParam::Instance().L0_L1 - 1;
     LOG(debug) << "tcr ir ori:" << ir;
     // if ((int32_t)ir.bc < offset) {
-    if ((ir.orbit <= mTFOrbit) && ((int32_t)ir.bc < offset)) {
+    //if ((ir.orbit <= mTFOrbit) && ((int32_t)ir.bc < offset)) {
+    if(0) {
       LOG(warning) << "Loosing tclass:" << ir;
       mTCRRejected++;
       return 0;
     }
-    // ir -= offset;
-    addIR(ir, -offset);
+    ir -= offset;
     LOG(debug) << "tcr ir corrected:" << ir;
     digit.intRecord = ir;
     if (digits.count(ir) == 0) {
@@ -389,24 +388,6 @@ int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
     LOG(error) << "Unxpected  CTP CRU link:" << linkCRU;
   }
   return 0;
-}
-//
-//  000 pos2 00000 pos1 0000
-std::bitset<80> RawDecoderSpec::subbitset(int pos, int len, gbtword128_t& bs, int shift)
-{
-  gbtword80_t word;
-  std::string str = bs.to_string();
-  pos = 128 - pos - len;
-  str = str.substr(pos, len);
-  word = std::bitset<80>(str);
-  word = word << shift;
-  return word;
-}
-void RawDecoderSpec::addIR(InteractionRecord& ir, int64_t offset)
-{
-  auto l = ir.toLong();
-  l += offset;
-  ir = InteractionRecord::long2IR(l);
 }
 o2::framework::DataProcessorSpec o2::ctp::reco_workflow::getRawDecoderSpec(bool askDISTSTF, bool digits, bool lumi)
 {
