@@ -104,8 +104,8 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
 void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
 {
   LOG(debug) << "[EMCALRawToCellConverter - run] called";
-  // for reading the reco param object from the ccdb
-  ctx.inputs().get<o2::emcal::RecoParam*>("EMC_RecoParam");
+  mCalibHandler->checkUpdates(ctx);
+  updateCalibrationObjects();
 
   double timeshift = RecoParam::Instance().getCellTimeShiftNanoSec(); // subtract offset in ns in order to center the time peak around the nominal delay
   constexpr auto originEMC = o2::header::gDataOriginEMC;
@@ -490,12 +490,20 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
 
 void RawToCellConverterSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
 {
-  // check if calib params need to be updated
-  if (matcher == framework::ConcreteDataMatcher("EMC", "EMCALRECOPARAM", 0)) {
-    LOG(info) << "RecoParams updated";
-    o2::emcal::RecoParam::Instance().printKeyValues(true, true);
+  if (mCalibHandler->finalizeCCDB(matcher, obj)) {
     return;
   }
+}
+
+void RawToCellConverterSpec::updateCalibrationObjects()
+{
+  if (mCalibHandler->hasUpdateRecoParam()) {
+    LOG(info) << "RecoParams updated";
+    o2::emcal::RecoParam::Instance().printKeyValues(true, true);
+  }
+  // if (mCalibHandler->hasUpdateFEEDCS()) {
+  //   LOG(info) << "DCS params updated";
+  // }
 }
 
 bool RawToCellConverterSpec::isLostTimeframe(framework::ProcessingContext& ctx) const
@@ -630,12 +638,15 @@ o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverter
     inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe);
   }
   // CCDB objects
-  inputs.emplace_back("EMC_RecoParam", o2::header::gDataOriginEMC, "EMCALRECOPARAM", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("EMC/Config/RecoParam"));
+  auto calibhandler = std::make_shared<o2::emcal::CalibLoader>();
+  calibhandler->enableRecoParams(true);
+  // calibhandler->enableFEEDCS(true);
+  calibhandler->defineInputSpecs(inputs);
 
   return o2::framework::DataProcessorSpec{"EMCALRawToCellConverterSpec",
                                           inputs,
                                           outputs,
-                                          o2::framework::adaptFromTask<o2::emcal::reco_workflow::RawToCellConverterSpec>(subspecification, !disableDecodingErrors),
+                                          o2::framework::adaptFromTask<o2::emcal::reco_workflow::RawToCellConverterSpec>(subspecification, !disableDecodingErrors, calibhandler),
                                           o2::framework::Options{
                                             {"fitmethod", o2::framework::VariantType::String, "gamma2", {"Fit method (standard or gamma2)"}},
                                             {"maxmessage", o2::framework::VariantType::Int, 100, {"Max. amout of error messages to be displayed"}},

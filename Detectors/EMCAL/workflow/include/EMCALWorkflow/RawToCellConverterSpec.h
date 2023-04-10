@@ -24,6 +24,7 @@
 #include "EMCALReconstruction/CaloRawFitter.h"
 #include "EMCALReconstruction/RecoContainer.h"
 #include "EMCALReconstruction/ReconstructionErrors.h"
+#include "EMCALWorkflow/CalibLoader.h"
 
 namespace o2
 {
@@ -46,7 +47,8 @@ class RawToCellConverterSpec : public framework::Task
   /// \param subspecification Output subspecification for parallel running on multiple nodes
   /// \param hasDecodingErrors Option to swich on/off creating raw decoding error objects for later monitoring
   /// \param loadRecoParamsFromCCDB Option to load the RecoParams from the CCDB
-  RawToCellConverterSpec(int subspecification, bool hasDecodingErrors) : framework::Task(), mSubspecification(subspecification), mCreateRawDataErrors(hasDecodingErrors){};
+  /// \param calibhandler Calibration object handler
+  RawToCellConverterSpec(int subspecification, bool hasDecodingErrors, std::shared_ptr<CalibLoader> calibhandler) : framework::Task(), mSubspecification(subspecification), mCreateRawDataErrors(hasDecodingErrors), mCalibHandler(calibhandler){};
 
   /// \brief Destructor
   ~RawToCellConverterSpec() override;
@@ -169,6 +171,9 @@ class RawToCellConverterSpec : public framework::Task
   /// and a message in FLP/DISTSUBTIMEFRAME
   bool isLostTimeframe(framework::ProcessingContext& ctx) const;
 
+  /// \brief Update calibration objects
+  void updateCalibrationObjects();
+
   /// \brief Select cells and put them on the output container
   /// \param cells Cells to select
   /// \param isLEDMON Distinction whether input is cell or LEDMON
@@ -223,6 +228,7 @@ class RawToCellConverterSpec : public framework::Task
   std::chrono::time_point<std::chrono::system_clock> mReferenceTime; ///< Reference time for muting messages
   Geometry* mGeometry = nullptr;                                     ///!<! Geometry pointer
   RecoContainer mCellHandler;                                        ///< Manager for reconstructed cells
+  std::shared_ptr<CalibLoader> mCalibHandler;                        ///< Handler for calibration objects
   std::unique_ptr<MappingHandler> mMapper = nullptr;                 ///!<! Mapper
   std::unique_ptr<CaloRawFitter> mRawFitter;                         ///!<! Raw fitter
   std::vector<Cell> mOutputCells;                                    ///< Container with output cells
