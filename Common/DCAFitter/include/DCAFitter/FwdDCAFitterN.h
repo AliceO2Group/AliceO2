@@ -160,11 +160,12 @@ class FwdDCAFitterN
   void setMinParamChange(float x = 1e-3) { mMinParamChange = x > 1e-4 ? x : 1.e-4; }
   void setMinRelChi2Change(float r = 0.9) { mMinRelChi2Change = r > 0.1 ? r : 999.; }
   void setUseAbsDCA(bool v) { mUseAbsDCA = v; }
-  void setMatLUT(o2::base::MatLayerCylSet* m)
+  void setMatLUT(const o2::base::MatLayerCylSet* m)
   {
     mMatLUT = m;
     mUseMatBudget = true;
   }
+  void setTGeoMat(bool v = true) { mTGeoFallBackAllowed = v; }
   void setMaxDistance2ToMerge(float v) { mMaxDist2ToMergeSeeds = v; }
 
   int getNCandidates() const { return mCurHyp; }
@@ -291,6 +292,7 @@ class FwdDCAFitterN
   bool mUseAbsDCA = false;          // use abs. distance minimization rather than chi2
   bool mPropagateToPCA = true;      // create tracks version propagated to PCA
   bool mUseMatBudget = false;       // include MCS effects in track propagation
+  bool mTGeoFallBackAllowed = true; // use TGeo for precise estimate of mat. budget
   int mMaxIter = 60;                // max number of iterations
   float mBz = 0;                    // bz field, to be set by user
   float mMaxR2 = 200. * 200.;       // reject PCA's above this radius
@@ -1273,8 +1275,14 @@ inline bool FwdDCAFitterN<N, Args...>::propagateToVtx(o2::track::TrackParCovFwd&
 {
   // propagate track to vertex including MCS effects if material budget included, simple propagation to Z otherwise
   if (mUseMatBudget) {
-    auto mb = mMatLUT->getMatBudget(t.getX(), t.getY(), t.getZ(), p[0], p[1], p[2]);
-    float x2x0 = (float)mb.meanX2X0;
+    float x2x0=0;
+    if (mTGeoFallBackAllowed) {
+      auto geoMan = o2::base::GeometryManager::meanMaterialBudget(t.getX(), t.getY(), t.getZ(), p[0], p[1], p[2]);
+      x2x0 = (float)geoMan.meanX2X0;
+    } else {
+      auto mb = mMatLUT->getMatBudget(t.getX(), t.getY(), t.getZ(), p[0], p[1], p[2]);
+      x2x0 = (float)mb.meanX2X0;
+    }
     return t.propagateToVtxhelixWithMCS(p[2], {p[0], p[1]}, cov, mBz, x2x0);
   } else {
     t.propagateToZhelix(p[2], mBz);
