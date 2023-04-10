@@ -1274,15 +1274,14 @@ template <int N, typename... Args>
 inline bool FwdDCAFitterN<N, Args...>::propagateToVtx(o2::track::TrackParCovFwd& t, const std::array<float, 3>& p, const std::array<float, 2>& cov) const
 {
   // propagate track to vertex including MCS effects if material budget included, simple propagation to Z otherwise
+  float x2x0 = 0;
   if (mUseMatBudget) {
-    float x2x0 = 0;
-    if (mTGeoFallBackAllowed) {
-      auto geoMan = o2::base::GeometryManager::meanMaterialBudget(t.getX(), t.getY(), t.getZ(), p[0], p[1], p[2]);
-      x2x0 = (float)geoMan.meanX2X0;
-    } else {
-      auto mb = mMatLUT->getMatBudget(t.getX(), t.getY(), t.getZ(), p[0], p[1], p[2]);
-      x2x0 = (float)mb.meanX2X0;
-    }
+    auto mb = mMatLUT->getMatBudget(t.getX(), t.getY(), t.getZ(), p[0], p[1], p[2]);
+    x2x0 = (float)mb.meanX2X0;
+    return t.propagateToVtxhelixWithMCS(p[2], {p[0], p[1]}, cov, mBz, x2x0);
+  } else if (mTGeoFallBackAllowed) {
+    auto geoMan = o2::base::GeometryManager::meanMaterialBudget(t.getX(), t.getY(), t.getZ(), p[0], p[1], p[2]);
+    x2x0 = (float)geoMan.meanX2X0;
     return t.propagateToVtxhelixWithMCS(p[2], {p[0], p[1]}, cov, mBz, x2x0);
   } else {
     t.propagateToZhelix(p[2], mBz);
