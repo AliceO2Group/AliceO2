@@ -27,7 +27,7 @@ namespace o2
 namespace trd
 {
 
-std::array<float, constants::NCHARGES> PIDBase::getCharges(const Tracklet64& tracklet, const int layer, const TrackTRD& trk, const o2::globaltracking::RecoContainer& input) const noexcept
+std::array<float, constants::NCHARGES> PIDBase::getCharges(const Tracklet64& tracklet, const int layer, const TrackTRD trk, const o2::globaltracking::RecoContainer& input) const noexcept
 {
   // Check z-row merging needs to be performed to recover full charge information
   if (trk.getIsCrossingNeighbor(layer) && trk.getHasNeighbor()) { // tracklet needs correction
