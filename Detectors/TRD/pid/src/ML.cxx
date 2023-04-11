@@ -140,9 +140,10 @@ std::vector<float> ML::prepareModelInput(const TrackTRD& trkTRD, const o2::globa
         LOGF(debug, "Track propagation failed in layer %i (pt=%f, xTrk=%f, xToGo=%f)", iLayer, trk.getPt(), trk.getX(), xCalib);
         continue;
       }
-      auto trklt = trackletsRaw[trkltId];
-      const auto [q0, q1, q2] = getCharges(trklt, iLayer, trk, inputTracks);
-
+      const auto snp = trk.getSnp();
+      const auto tgl = trk.getTgl();
+      const auto& trklt = trackletsRaw[trkltId];
+      const auto [q0, q1, q2] = getCharges(trklt, iLayer, trkTRD, input, snp, tgl); // correct charges
       in[iLayer * NCHARGES + 0] = q0;
       in[iLayer * NCHARGES + 1] = q1;
       in[iLayer * NCHARGES + 2] = q2;

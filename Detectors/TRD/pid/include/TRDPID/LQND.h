@@ -111,8 +111,10 @@ class LQND : public PIDBase
         LOGF(debug, "Track propagation failed in layer %i (pt=%f, xTrk=%f, xToGo=%f)", iLayer, trk.getPt(), trk.getX(), xCalib);
         continue;
       }
+      const auto snp = trk.getSnp();
+      const auto tgl = trk.getTgl();
       const auto& trklt = trackletsRaw[trkltId];
-      const auto [q0, q1, q2] = getCharges(trklt, iLayer, trk, input); // correct charges
+      const auto [q0, q1, q2] = getCharges(trklt, iLayer, trkIn, input, snp, tgl); // correct charges
       if constexpr (nDim == 1) {
         auto lut = mLUTs.get(trk.getP(), isNegative);
         auto ll1{1.f};

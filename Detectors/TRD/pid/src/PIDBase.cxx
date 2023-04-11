@@ -27,7 +27,7 @@ namespace o2
 namespace trd
 {
 
-std::array<float, constants::NCHARGES> PIDBase::getCharges(const Tracklet64& tracklet, const int layer, const TrackTRD trk, const o2::globaltracking::RecoContainer& input) const noexcept
+std::array<float, constants::NCHARGES> PIDBase::getCharges(const Tracklet64& tracklet, const int layer, const TrackTRD& trk, const o2::globaltracking::RecoContainer& input, float snp, float tgl) const noexcept
 {
   // Check z-row merging needs to be performed to recover full charge information
   if (trk.getIsCrossingNeighbor(layer) && trk.getHasNeighbor()) { // tracklet needs correction
@@ -38,17 +38,17 @@ std::array<float, constants::NCHARGES> PIDBase::getCharges(const Tracklet64& tra
         }
 
         // Add charge information
-        const auto [aQ0, aQ1, aQ2] = correctCharges(tracklet, trk);
-        const auto [bQ0, bQ1, bQ2] = correctCharges(tracklet, trk);
+        const auto [aQ0, aQ1, aQ2] = correctCharges(tracklet, snp, tgl);
+        const auto [bQ0, bQ1, bQ2] = correctCharges(tracklet, snp, tgl);
         return {aQ0 + bQ0, aQ1 + bQ1, aQ2 + bQ2};
       }
     }
   }
 
-  return correctCharges(tracklet, trk);
+  return correctCharges(tracklet, snp, tgl);
 }
 
-std::array<float, constants::NCHARGES> PIDBase::correctCharges(const Tracklet64& trklt, const TrackTRD& trk) const noexcept
+std::array<float, constants::NCHARGES> PIDBase::correctCharges(const Tracklet64& trklt, float snp, float tgl) const noexcept
 {
   auto tphi = trk.getSnp() / std::sqrt((1.f - trk.getSnp()) + (1.f + trk.getSnp()));
   auto trackletLength = std::sqrt(1.f + tphi * tphi + trk.getTgl() * trk.getTgl());
