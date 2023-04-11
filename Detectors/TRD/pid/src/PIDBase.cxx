@@ -29,17 +29,19 @@ namespace o2
 namespace trd
 {
 
-std::array<float, constants::NCHARGES> PIDBase::getCharges(const Tracklet64& tracklet, const int layer, const TrackTRD& trkSeed, const o2::globaltracking::RecoContainer& input) const noexcept
+void PIDBase::propagateTrack(TrackTRD& trk, int layer, const o2::globaltracking::RecoContainer& input) const
 {
   // propagate track
   auto propagator = o2::base::Propagator::Instance();
-  auto trk = trkSeed;
   const auto xCalib = input.getTRDCalibratedTracklets()[trk.getTrackletIndex(layer)].getX();
   if (!propagator->PropagateToXBxByBz(trk, xCalib, o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, o2::base::Propagator::MatCorrType::USEMatCorrNONE)) {
     LOGF(debug, "Track propagation failed in layer %i (pt=%f, xTrk=%f, xToGo=%f)", layer, trk.getPt(), trk.getX(), xCalib);
     return {0.f, 0.f, 0.f};
   }
+}
 
+std::array<float, constants::NCHARGES> PIDBase::getCharges(const Tracklet64& tracklet, const int layer, const TrackTRD& trk, const o2::globaltracking::RecoContainer& input) const noexcept
+{
   // Check z-row merging needs to be performed to recover full charge information
   if (trk.getIsCrossingNeighbor(layer) && trk.getHasNeighbor()) {  // tracklet needs correction
     for (const auto& trklt : input.getTRDTracklets()) {            // search for nearby tracklet

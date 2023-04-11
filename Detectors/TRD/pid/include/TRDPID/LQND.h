@@ -33,6 +33,44 @@ namespace o2
 {
 namespace trd
 {
+namespace detail
+{
+/// Lookup Table class for ccdb upload
+template <int nDim>
+class LUT
+{
+ public:
+  LUT(std::vector<float> p, std::vector<TGraph> l) : mIntervalsP(p), mLUTs(l) {}
+
+  //
+  const TGraph& get(float p, bool isNegative, int iDim = 0)
+  {
+    auto upper = std::upper_bound(mIntervalsP.begin(), mIntervalsP.end(), p);
+    auto index = std::distance(mIntervalsP.begin(), upper);
+    index += (isNegative) ? 0 : mIntervalsP.size() * nDim;
+    if (upper == mIntervalsP.end()) {
+      return mLUTs[0];
+    }
+    if constexpr (nDim == 1) {
+      return mLUTs[index];
+    } else {
+      if (iDim == 0) {
+        return mLUTs[index + 0];
+      } else if (iDim == 1) {
+        return mLUTs[index + 1];
+      } else {
+        return mLUTs[index + 2];
+      }
+    }
+  }
+
+ private:
+  std::vector<float> mIntervalsP; ///< half-open interval upper bounds starting at 0, e.g., for {1.0,2.0,...} is (-inf,1.0], (1.0,2.0], (2.0, ...)
+  std::vector<TGraph> mLUTs;      ///< corresponding likelihood lookup tables
+
+  ClassDefNV(LUT, 1);
+};
+} // namespace detail
 
 /// This is the ML Base class which defines the interface all machine learning
 /// models.
@@ -48,13 +86,15 @@ class LQND : public PIDBase
   void init(o2::framework::ProcessingContext& pc) final
   {
     // retrieve lookup tables (LUTs) from ccdb
-    mLUTs = *(pc.inputs().get<std::vector<TGraph>*>(Form("lq%ddlut", nDim)));
+    mLUTs = *(pc.inputs().get<detail::LUT<nDim>*>(Form("lq%ddlut", nDim)));
   }
 
-  float process(const TrackTRD& trk, const o2::globaltracking::RecoContainer& input, bool isTPCTRD) const final
+  float process(const TrackTRD& trkIn, const o2::globaltracking::RecoContainer& input, bool isTPCTRD) const final
   {
-    const auto& trkSeed = isTPCTRD ? input.getTPCTracks()[trk.getRefGlobalTrackId()].getParamOut() : input.getTPCITSTracks()[trk.getRefGlobalTrackId()].getParamOut();
-    const auto isNegative = std::signbit(trkSeed.getQ2Pt()); // positive and negative charged particles are treated differently since ExB effects the charge distributions
+    const auto& trkSeed = isTPCTRD ? input.getTPCTracks()[trkIn.getRefGlobalTrackId()].getParamOut() : input.getTPCITSTracks()[trkIn.getRefGlobalTrackId()].getParamOut(); // seeding track
+    auto trk = trkSeed;
+
+    const auto isNegative = std::signbit(trkSeed.getSign()); // positive and negative charged particles are treated differently since ExB effects the charge distributions
     const auto& trackletsRaw = input.getTRDTracklets();
     float lei0{1.f}, lei1{1.f}, lei2{1.f}, lpi0{1.f}, lpi1{1.f}, lpi2{1.f}; // likelihood per layer
     for (int iLayer = 0; iLayer < constants::NLAYER; ++iLayer) {
@@ -62,30 +102,25 @@ class LQND : public PIDBase
       if (trkltId < 0) { // no tracklet attached
         continue;
       }
+      propagateTrack(trk, iLayer, input);
       const auto& trklt = trackletsRaw[trkltId];
       const auto [q0, q1, q2] = getCharges(trklt, iLayer, trk, input); // correct charges
       if constexpr (nDim == 1) {
+        auto lut = mLUTs.get(trk.getP(), isNegative);
         auto ll1{1.f};
-        if (isNegative) { // particle is negativily charged
-          ll1 = mLUTs[0].Eval(q0 + q1 + q2);
-        } else { // particle is positivily charged
-          ll1 = mLUTs[0 + nDim].Eval(q0 + q1 + q2);
-        }
+        ll1 = lut.Eval(q0 + q1 + q2);
         lei0 *= ll1;
         lpi0 *= (1.f - ll1);
       } else {
+        auto lut1 = mLUTs.get(trk.getP(), isNegative, 0);
+        auto lut2 = mLUTs.get(trk.getP(), isNegative, 1);
+        auto lut3 = mLUTs.get(trk.getP(), isNegative, 2);
         auto ll1{1.f};
         auto ll2{1.f};
         auto ll3{1.f};
-        if (isNegative) {
-          ll1 = mLUTs[0].Eval(q0);
-          ll2 = mLUTs[1].Eval(q1);
-          ll3 = mLUTs[2].Eval(q2);
-        } else {
-          ll1 = mLUTs[0 + nDim].Eval(q0);
-          ll2 = mLUTs[1 + nDim].Eval(q1);
-          ll3 = mLUTs[2 + nDim].Eval(q2);
-        }
+        ll1 = lut1.Eval(q0);
+        ll2 = lut2.Eval(q1);
+        ll3 = lut3.Eval(q2);
         lei0 *= ll1;
         lei1 *= ll2;
         lei2 *= ll3;
@@ -99,7 +134,7 @@ class LQND : public PIDBase
   }
 
  private:
-  std::vector<TGraph> mLUTs; ///< likelihood lookup tables, there are 2 * nDim LUTs, first are the one for negativly charged particles then for positively charged ones
+  detail::LUT<nDim> mLUTs; ///< likelihood lookup tables
 };
 
 using LQ1D = LQND<1>;

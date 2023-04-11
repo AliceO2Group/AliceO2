@@ -119,27 +119,29 @@ std::string ML::fetchModelCCDB(o2::framework::ProcessingContext& pc, const char*
 
 std::vector<float> ML::prepareModelInput(const TrackTRD& trkTRD, const o2::globaltracking::RecoContainer& inputTracks) const noexcept
 {
-  // input is [charge0.0, charge0.1, charge0.2, charge1.0, ..., charge5.2, p]
+  // input is [charge0.0, charge0.1, charge0.2, charge1.0, ..., charge5.2, p0, ..., p5]
   std::vector<float> in(mInputShapes[0][1]);
   const auto& trackletsRaw = inputTracks.getTRDTracklets();
-  in.back() = trkTRD.getP();
-
-  for (int iLayer = 0; iLayer < NLAYER; ++iLayer) {
+  auto trk = trdTRD;
+  for (int iLayer = 0; iLayer < constants::NLAYER; ++iLayer) {
     int trkltId = trkTRD.getTrackletIndex(iLayer);
     if (trkltId < 0) {
       // no tracklet attached, fill with default values e.g. charge=-1.,
       in[iLayer * NCHARGES + 0] = -1.f;
       in[iLayer * NCHARGES + 1] = -1.f;
       in[iLayer * NCHARGES + 2] = -1.f;
+      in[18 + iLayer] = -1.f;
       continue;
+    } else {
+      propagateTrack(trk, iLayer, input);
+      auto trklt = trackletsRaw[trkltId];
+      const auto [q0, q1, q2] = getCharges(trklt, iLayer, trk, inputTracks);
+
+      in[iLayer * NCHARGES + 0] = q0;
+      in[iLayer * NCHARGES + 1] = q1;
+      in[iLayer * NCHARGES + 2] = q2;
+      in[18 + iLayer] = trk.getP();
     }
-
-    auto trklt = trackletsRaw[trkltId];
-    const auto [q0, q1, q2] = getCharges(trklt, iLayer, trkTRD, inputTracks);
-
-    in[iLayer * NCHARGES + 0] = q0;
-    in[iLayer * NCHARGES + 1] = q1;
-    in[iLayer * NCHARGES + 2] = q2;
   }
 
   return in;
