@@ -43,6 +43,8 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
 {
   LOG(info) << "Running FOCAL decoding";
   resetContainers();
+  mTimeframeHasPadData = false;
+  mTimeframeHasPixelData = false;
 
   int inputs = 0;
   std::vector<char> rawbuffer;
@@ -80,6 +82,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
                 if (mUsePadData) {
                   LOG(debug) << "Processing PAD data";
                   auto nEventsPads = decodePadData(rawbuffer, currentIR);
+                  mTimeframeHasPadData = true;
                   auto found = mNumEventsHBFPads.find(nEventsPads);
                   if (found != mNumEventsHBFPads.end()) {
                     found->second += 1;
@@ -102,6 +105,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
                   }
                   LOG(debug) << "Processing Pixel data from FEE " << feeID;
                   auto neventsPixels = decodePixelData(rawbuffer, currentIR, feeID);
+                  mTimeframeHasPixelData = true;
                   auto found = numHBFFEE.find(feeID);
                   if (found != numHBFFEE.end()) {
                     found->second++;
@@ -136,7 +140,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
             currentIR.orbit = o2::raw::RDHUtils::getTriggerOrbit(rdh);
             currentendpoint = o2::raw::RDHUtils::getEndPointID(rdh);
             currentsource = o2::raw::RDHUtils::getSourceID(rdh);
-            std::cout << "Source ID: " << static_cast<int>(currentsource) << " (0x" << std::hex << static_cast<int>(currentsource) << std::dec << ")" << std::endl;
+            LOG(debug) << "Source ID: " << static_cast<int>(currentsource) << " (0x" << std::hex << static_cast<int>(currentsource) << std::dec << ")";
             LOG(debug) << "New HBF " << currentIR.orbit << " / " << currentIR.bc << ", endpoint " << currentendpoint;
           }
         }
@@ -168,43 +172,48 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     inputs++;
   }
 
-  // Consistency check PixelEvents
-  if (!consistencyCheckPixelFEE(numHBFFEE)) {
-    LOG(alarm) << "Mismatch in number of HBF / TF between pixel FEEs";
-    if (mDisplayInconsistent) {
-      printCounters(numHBFFEE);
+  int numHBFPixelsTF = 0;
+  if (mTimeframeHasPixelData) {
+    // Consistency check PixelEvents
+    if (!consistencyCheckPixelFEE(numHBFFEE)) {
+      LOG(alarm) << "Mismatch in number of HBF / TF between pixel FEEs";
+      if (mDisplayInconsistent) {
+        printCounters(numHBFFEE);
+      }
+      mNumInconsistencyPixelHBF++;
     }
-    mNumInconsistencyPixelHBF++;
-  }
-  int numHBFPixelsTF = maxCounter(numHBFFEE);
-  mNumHBFPixels += numHBFPixelsTF;
-  if (!consistencyCheckPixelFEE(numEventsFEE)) {
-    LOG(alarm) << "Mismatch in number of events / TF between pixel FEEs";
-    if (mDisplayInconsistent) {
-      printCounters(numEventsFEE);
+    numHBFPixelsTF = maxCounter(numHBFFEE);
+    mNumHBFPixels += numHBFPixelsTF;
+    if (!consistencyCheckPixelFEE(numEventsFEE)) {
+      LOG(alarm) << "Mismatch in number of events / TF between pixel FEEs";
+      if (mDisplayInconsistent) {
+        printCounters(numEventsFEE);
+      }
+      mNumInconsistencyPixelEvent++;
     }
-    mNumInconsistencyPixelEvent++;
-  }
-  mNumEventsPixels += maxCounter(numEventsFEE);
-  if (!checkEventsHBFConsistency(numEventsHBFFEE)) {
-    LOG(alarm) << "Mistmatch number of events / HBF between pixel FEEs";
-    if (mDisplayInconsistent) {
-      printEvents(numEventsHBFFEE);
+    mNumEventsPixels += maxCounter(numEventsFEE);
+    if (!checkEventsHBFConsistency(numEventsHBFFEE)) {
+      LOG(alarm) << "Mistmatch number of events / HBF between pixel FEEs";
+      if (mDisplayInconsistent) {
+        printEvents(numEventsHBFFEE);
+      }
+      mNumInconsistencyPixelEventHBF++;
     }
-    mNumInconsistencyPixelEventHBF++;
-  }
-  fillPixelEventHBFCount(numEventsHBFFEE);
+    fillPixelEventHBFCount(numEventsHBFFEE);
 
-  if (mUsePixelData && mFilterIncomplete) {
-    LOG(debug) << "Filtering incomplete pixel events";
-    for (auto& hbf : mHBFs) {
-      auto numErased = filterIncompletePixelsEventsHBF(hbf.second, expectFEEs);
-      mNumEventsPixels -= numErased;
+    if (mFilterIncomplete) {
+      LOG(debug) << "Filtering incomplete pixel events";
+      for (auto& hbf : mHBFs) {
+        auto numErased = filterIncompletePixelsEventsHBF(hbf.second, expectFEEs);
+        mNumEventsPixels -= numErased;
+      }
     }
   }
 
   LOG(info) << "Found " << mHBFs.size() << " HBFs in timeframe";
 
+  LOG(debug) << "EventBuilder: Pixels: " << (mTimeframeHasPixelData ? "yes" : "no");
+  LOG(debug) << "EventBuilder: Pads:   " << (mTimeframeHasPadData ? "yes" : "no");
   buildEvents();
 
   LOG(info) << "Found " << mOutputTriggerRecords.size() << " events in timeframe";
@@ -425,7 +434,7 @@ void RawDecoderSpec::buildEvents()
 {
   LOG(debug) << "Start building events" << std::endl;
   for (const auto& [hbir, hbf] : mHBFs) {
-    if (mUsePadData && mUsePixelData) {
+    if (mTimeframeHasPadData && mTimeframeHasPixelData) {
       LOG(debug) << "Processing HBF with IR: " << hbir.orbit << " / " << hbir.bc << std::endl;
       // check consistency in number of events between triggers, pixels and pads
       // in case all events are in the stream
@@ -451,7 +460,7 @@ void RawDecoderSpec::buildEvents()
         // std::cout << "Orbit " << hbf.mPixelTriggers[itrg].orbit << ", BC " << hbf.mPixelTriggers[itrg].bc << ": " << eventPixels.size() << " chips with " << eventHits.size() << " hits ..." << std::endl;
         mOutputTriggerRecords.emplace_back(hbf.mPixelTriggers[itrg], startPads, constants::PADS_NLAYERS, startChips, eventPixels.size(), startHits, eventHits.size());
       }
-    } else if (mUsePixelData) {
+    } else if (mTimeframeHasPixelData) {
       // only pixel data available, merge pixel layers and interaction record
       if (!(hbf.mPixelEvent.size() == hbf.mPixelTriggers.size())) {
         LOG(error) << "Inconsistent number of pixel events (" << hbf.mPixelEvent.size() << ") and triggers (" << hbf.mPixelTriggers.size() << ") in HBF";
@@ -470,7 +479,7 @@ void RawDecoderSpec::buildEvents()
         std::copy(eventPixels.begin(), eventPixels.end(), std::back_inserter(mOutputPixelChips));
         mOutputTriggerRecords.emplace_back(hbf.mPixelTriggers[itrg], startPads, 0, startHits, eventPixels.size(), startHits, eventHits.size());
       }
-    } else if (mUsePadData) {
+    } else if (mTimeframeHasPadData) {
       // only pad data available, set pad layers and use IR of the HBF
       for (std::size_t itrg = 0; itrg < hbf.mPadEvents.size(); itrg++) {
         auto startPads = mOutputPadLayers.size(),
