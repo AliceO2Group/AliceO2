@@ -627,10 +627,18 @@ float ClusterFactory<InputType>::getECross(short towerId, float energy, float co
   short towerId2 = -1;
 
   if (iphi < o2::emcal::EMCAL_ROWS - 1) {
-    towerId1 = mGeomPtr->GetAbsCellIdFromCellIndexes(iSM, iphi + 1, ieta);
+    try {
+      towerId1 = mGeomPtr->GetAbsCellIdFromCellIndexes(iSM, iphi + 1, ieta);
+    } catch (InvalidCellIDException& e) {
+      towerId1 = -1 * e.getCellID();
+    }
   }
   if (iphi > 0) {
-    towerId2 = mGeomPtr->GetAbsCellIdFromCellIndexes(iSM, iphi - 1, ieta);
+    try {
+      towerId2 = mGeomPtr->GetAbsCellIdFromCellIndexes(iSM, iphi - 1, ieta);
+    } catch (InvalidCellIDException& e) {
+      towerId2 = -1 * e.getCellID();
+    }
   }
 
   // In case of cell in eta = 0 border, depending on SM shift the cross cell index
@@ -639,17 +647,41 @@ float ClusterFactory<InputType>::getECross(short towerId, float energy, float co
   short towerId4 = -1;
 
   if (ieta == o2::emcal::EMCAL_COLS - 1 && !(iSM % 2)) {
-    towerId3 = mGeomPtr->GetAbsCellIdFromCellIndexes(iSM + 1, iphi, 0);
-    towerId4 = mGeomPtr->GetAbsCellIdFromCellIndexes(iSM, iphi, ieta - 1);
+    try {
+      towerId3 = mGeomPtr->GetAbsCellIdFromCellIndexes(iSM + 1, iphi, 0);
+    } catch (InvalidCellIDException& e) {
+      towerId3 = -1 * e.getCellID();
+    }
+    try {
+      towerId4 = mGeomPtr->GetAbsCellIdFromCellIndexes(iSM, iphi, ieta - 1);
+    } catch (InvalidCellIDException& e) {
+      towerId4 = -1 * e.getCellID();
+    }
   } else if (ieta == 0 && iSM % 2) {
-    towerId3 = mGeomPtr->GetAbsCellIdFromCellIndexes(iSM, iphi, ieta + 1);
-    towerId4 = mGeomPtr->GetAbsCellIdFromCellIndexes(iSM - 1, iphi, o2::emcal::EMCAL_COLS - 1);
+    try {
+      towerId3 = mGeomPtr->GetAbsCellIdFromCellIndexes(iSM, iphi, ieta + 1);
+    } catch (InvalidCellIDException& e) {
+      towerId3 = -1 * e.getCellID();
+    }
+    try {
+      towerId4 = mGeomPtr->GetAbsCellIdFromCellIndexes(iSM - 1, iphi, o2::emcal::EMCAL_COLS - 1);
+    } catch (InvalidCellIDException& e) {
+      towerId4 = -1 * e.getCellID();
+    }
   } else {
     if (ieta < o2::emcal::EMCAL_COLS - 1) {
-      towerId3 = mGeomPtr->GetAbsCellIdFromCellIndexes(iSM, iphi, ieta + 1);
+      try {
+        towerId3 = mGeomPtr->GetAbsCellIdFromCellIndexes(iSM, iphi, ieta + 1);
+      } catch (InvalidCellIDException& e) {
+        towerId3 = -1 * e.getCellID();
+      }
     }
     if (ieta > 0) {
-      towerId4 = mGeomPtr->GetAbsCellIdFromCellIndexes(iSM, iphi, ieta - 1);
+      try {
+        towerId4 = mGeomPtr->GetAbsCellIdFromCellIndexes(iSM, iphi, ieta - 1);
+      } catch (InvalidCellIDException& e) {
+        towerId4 = -1 * e.getCellID();
+      }
     }
   }
 
