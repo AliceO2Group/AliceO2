@@ -30,13 +30,12 @@ namespace trd
 std::array<float, constants::NCHARGES> PIDBase::getCharges(const Tracklet64& tracklet, const int layer, const TrackTRD& trk, const o2::globaltracking::RecoContainer& input) const noexcept
 {
   // Check z-row merging needs to be performed to recover full charge information
-  if (trk.getIsCrossingNeighbor(layer) && trk.getHasNeighbor()) {  // tracklet needs correction
-    for (const auto& trklt : input.getTRDTracklets()) {            // search for nearby tracklet
-      if (tracklet.getTrackletWord() == trklt.getTrackletWord()) { // skip original tracklet
-        continue;
-      }
-
+  if (trk.getIsCrossingNeighbor(layer) && trk.getHasNeighbor()) { // tracklet needs correction
+    for (const auto& trklt : input.getTRDTracklets()) {           // search for nearby tracklet
       if (std::abs(tracklet.getPadCol() - trklt.getPadCol()) <= 1 && std::abs(tracklet.getPadRow() - trklt.getPadRow()) == 1) {
+        if (tracklet.getTrackletWord() == trklt.getTrackletWord()) { // skip original tracklet
+          continue;
+        }
 
         // Add charge information
         const auto [aQ0, aQ1, aQ2] = correctCharges(tracklet, trk);

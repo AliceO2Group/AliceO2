@@ -135,7 +135,7 @@ std::vector<float> ML::prepareModelInput(const TrackTRD& trkTRD, const o2::globa
       in[18 + iLayer] = -1.f;
       continue;
     } else {
-      const auto xCalib = input.getTRDCalibratedTracklets()[trk.getTrackletIndex(iLayer)].getX();
+      const auto xCalib = input.getTRDCalibratedTracklets()[trkTRD.getTrackletIndex(iLayer)].getX();
       if (!o2::base::Propagator::Instance()->PropagateToXBxByBz(trk, xCalib, o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, o2::base::Propagator::MatCorrType::USEMatCorrNONE)) {
         LOGF(debug, "Track propagation failed in layer %i (pt=%f, xTrk=%f, xToGo=%f)", iLayer, trk.getPt(), trk.getX(), xCalib);
         continue;

@@ -106,7 +106,7 @@ class LQND : public PIDBase
       if (trkltId < 0) { // no tracklet attached
         continue;
       }
-      const auto xCalib = input.getTRDCalibratedTracklets()[trk.getTrackletIndex(iLayer)].getX();
+      const auto xCalib = input.getTRDCalibratedTracklets()[trkIn.getTrackletIndex(iLayer)].getX();
       if (!o2::base::Propagator::Instance()->PropagateToXBxByBz(trk, xCalib, o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, o2::base::Propagator::MatCorrType::USEMatCorrNONE)) {
         LOGF(debug, "Track propagation failed in layer %i (pt=%f, xTrk=%f, xToGo=%f)", iLayer, trk.getPt(), trk.getX(), xCalib);
         continue;
