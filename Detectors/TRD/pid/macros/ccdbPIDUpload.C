@@ -35,38 +35,6 @@ constexpr int fileError{-42};
 o2::ccdb::CcdbApi ccdb;
 std::map<std::string, std::string> metadata{{"UploadedBy", "Felix Schlepper"}, {"EMail", "felix.schlepper@cern.ch"}, {"default", "false"}, {"Created", "1"}};
 
-int ccdbONNXUpload(std::string inFileName, std::string ccdbPath, uint64_t timeStampStart,
-                   uint64_t timeStampEnd);
-int ccdbLQNDUpload(std::string inFileName, std::string ccdbPath, int dim, uint64_t timeStampStart, uint64_t timeStampEnd);
-
-void ccdbPIDUpload(std::string inFileName, std::string ccdbPath, bool testCCDB = true, bool ml = false, int dim = 1, uint64_t timeStampStart = 1577833200000UL /* 1.1.2020 */, uint64_t timeStampEnd = 2208985200000UL /* 1.1.2040 */)
-{
-  if (testCCDB) {
-    ccdb.init("http://ccdb-test.cern.ch:8080");
-  } else {
-    ccdb.init("http://alice-ccdb.cern.ch");
-  }
-
-  int res{0};
-  if (ml) {
-    res = ccdbONNXUpload(inFileName, ccdbPath, timeStampStart, timeStampEnd);
-  } else {
-    res = ccdbLQNDUpload(inFileName, ccdbPath, dim, timeStampStart, timeStampEnd);
-  }
-
-  if (res == 0) {
-    LOG(info) << "Upload: OKAY";
-  } else if (res == -1) {
-    LOG(error) << "object bigger than maxSize";
-  } else if (res == -2) {
-    LOG(error) << "curl initialization error";
-  } else if (res == fileError) {
-    LOG(error) << "File reading error";
-  } else {
-    LOG(error) << "see curl error codes: " << res;
-  }
-}
-
 /// Upload an ONNX model to the ccdb.
 /// This reads the file as a binary file and stores it as such.
 int ccdbONNXUpload(std::string inFileName, std::string ccdbPath, uint64_t timeStampStart, uint64_t timeStampEnd)
@@ -95,7 +63,8 @@ int ccdbONNXUpload(std::string inFileName, std::string ccdbPath, uint64_t timeSt
 }
 
 /// Upload LQND LUTs as std::vector<TGraph>
-int ccdbLQNDUpload(std::string inFileName, std::string ccdbPath, int dim, uint64_t timeStampStart, uint64_t timeStampEnd)
+template <int dim>
+int ccdbLQNDUpload(std::string inFileName, std::string ccdbPath, uint64_t timeStampStart, uint64_t timeStampEnd)
 {
   metadata["Description"] = Form("LQ%dD model for TRD PID", dim);
 
@@ -108,4 +77,36 @@ int ccdbLQNDUpload(std::string inFileName, std::string ccdbPath, int dim, uint64
   auto luts = *(inFile->Get<o2::trd::detail::LUT<dim>>("luts"));
 
   return ccdb.storeAsTFileAny(&luts, ccdbPath, metadata, timeStampStart, timeStampEnd);
+}
+
+void ccdbPIDUpload(std::string inFileName, std::string ccdbPath, bool testCCDB = true, bool ml = false, int dim = 1, uint64_t timeStampStart = 1577833200000UL /* 1.1.2020 */, uint64_t timeStampEnd = 2208985200000UL /* 1.1.2040 */)
+{
+  if (testCCDB) {
+    ccdb.init("http://ccdb-test.cern.ch:8080");
+  } else {
+    ccdb.init("http://alice-ccdb.cern.ch");
+  }
+
+  int res{0};
+  if (ml) {
+    res = ccdbONNXUpload(inFileName, ccdbPath, timeStampStart, timeStampEnd);
+  } else {
+    if (dim == 1) {
+      res = ccdbLQNDUpload<1>(inFileName, ccdbPath, timeStampStart, timeStampEnd);
+    } else {
+      res = ccdbLQNDUpload<3>(inFileName, ccdbPath, timeStampStart, timeStampEnd);
+    }
+  }
+
+  if (res == 0) {
+    LOG(info) << "Upload: OKAY";
+  } else if (res == -1) {
+    LOG(error) << "object bigger than maxSize";
+  } else if (res == -2) {
+    LOG(error) << "curl initialization error";
+  } else if (res == fileError) {
+    LOG(error) << "File reading error";
+  } else {
+    LOG(error) << "see curl error codes: " << res;
+  }
 }

@@ -20,8 +20,10 @@
 #include <memory>
 #endif
 
+constexpr int dim = 1;
+
 /// Generate very simple luts for testing
-void makeTestLUTs(int dim = 1)
+void makeTestLUTs()
 {
   std::vector<float> p{1.0, 2.0, 3.0, 100.0};
   std::vector<TGraph> g;
