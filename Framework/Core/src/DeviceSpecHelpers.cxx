@@ -1649,4 +1649,19 @@ bool DeviceSpecHelpers::hasLabel(DeviceSpec const& spec, char const* label)
   return std::find_if(spec.labels.begin(), spec.labels.end(), sameLabel) != spec.labels.end();
 }
 
+std::string DeviceSpecHelpers::reworkEnv(std::string const& str, DeviceSpec const& spec)
+{
+  // find all the possible timeslice variables, extract N and replace
+  // the variable with the value of spec.inputTimesliceId + N.
+  std::regex re("\\{timeslice([0-9]+)\\}");
+  std::smatch match;
+  std::string fmt = str;
+  while (std::regex_search(fmt, match, re)) {
+    auto timeslice = std::stoi(match[1]);
+    auto replacement = std::to_string(spec.inputTimesliceId + timeslice);
+    fmt = match.prefix().str() + replacement + match.suffix().str();
+  }
+  return fmt;
+}
+
 } // namespace o2::framework

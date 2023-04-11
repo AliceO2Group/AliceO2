@@ -127,6 +127,10 @@ struct DeviceSpecHelpers {
     std::vector<DeviceControl>& deviceControls,
     std::string const& uniqueWorkflowId);
 
+  /// Rework the environment string
+  /// * Substitute {timeslice<N>} with the actual value of the timeslice.
+  static std::string reworkEnv(std::string const& str, DeviceSpec const& spec);
+
   /// This takes the list of preprocessed edges of a graph
   /// and creates Devices and Channels which are related
   /// to the outgoing edges i.e. those which refer
