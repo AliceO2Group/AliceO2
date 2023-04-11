@@ -77,6 +77,8 @@ class RawDecoderSpec : public framework::Task
   bool mUsePadData = true;
   bool mUsePixelData = true;
   bool mFilterIncomplete = false;
+  bool mTimeframeHasPadData = false;
+  bool mTimeframeHasPixelData = false;
   uint32_t mOutputSubspec = 0;
   PadDecoder mPadDecoder;
   PixelDecoder mPixelDecoder;
