@@ -50,6 +50,8 @@ struct ArrowTableSlicingCache {
 
   // get slice from cache for a given value
   SliceInfoPtr getCacheFor(std::pair<std::string, std::string> const& bindingKey) const;
+
+  static void validateOrder(std::pair<std::string, std::string> const& bindingKey, std::shared_ptr<arrow::Table> const& input);
 };
 } // namespace o2::framework
 

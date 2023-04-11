@@ -62,6 +62,7 @@ arrow::Status ArrowTableSlicingCache::updateCacheEntry(int pos, std::shared_ptr<
     counts[pos].reset();
     return arrow::Status::OK();
   }
+  validateOrder(bindingsKeys[pos], table);
   arrow::Datum value_counts;
   auto options = arrow::compute::ScalarAggregateOptions::Defaults();
   ARROW_ASSIGN_OR_RAISE(value_counts,
@@ -94,5 +95,43 @@ SliceInfoPtr ArrowTableSlicingCache::getCacheFor(std::pair<std::string, std::str
     {reinterpret_cast<int const*>(values[i]->values()->data()), static_cast<size_t>(values[i]->length())},
     {reinterpret_cast<int64_t const*>(counts[i]->values()->data()), static_cast<size_t>(counts[i]->length())} //
   };
+}
+
+void ArrowTableSlicingCache::validateOrder(const std::pair<std::string, std::string>& bindingKey, const std::shared_ptr<arrow::Table>& input)
+{
+  auto& [target, key] = bindingKey;
+  auto column = input->GetColumnByName(key.c_str());
+  auto array0 = static_cast<arrow::NumericArray<arrow::Int32Type>>(column->chunk(0)->data());
+  int32_t prev = 0;
+  int32_t cur = array0.Value(0);
+  int32_t lastNeg = cur < 0 ? cur : 0;
+  int32_t lastPos = cur < 0 ? -1 : cur;
+  for (auto i = 0; i < column->num_chunks(); ++i) {
+    auto array = static_cast<arrow::NumericArray<arrow::Int32Type>>(column->chunk(i)->data());
+    for (auto e = 0; e < array.length(); ++e) {
+      prev = cur;
+      if (prev >= 0) {
+        lastPos = prev;
+      } else {
+        lastNeg = prev;
+      }
+      cur = array.Value(e);
+      if (cur >= 0) {
+        if (lastPos > cur) {
+          throw runtime_error_f("Table %s index %s is not sorted: next value %d < previous value %d!", target.c_str(), key.c_str(), cur, lastPos);
+        }
+        if (lastPos == cur && prev < 0) {
+          throw runtime_error_f("Table %s index %s has a group with index %d that is split by %d", target.c_str(), key.c_str(), cur, prev);
+        }
+      } else {
+        if (lastNeg < cur) {
+          throw runtime_error_f("Table %s index %s is not sorted: next negative value %d > previous negative value %d!", target.c_str(), key.c_str(), cur, lastNeg);
+        }
+        if (lastNeg == cur && prev >= 0) {
+          throw runtime_error_f("Table %s index %s has a group with index %d that is split by %d", target.c_str(), key.c_str(), cur, prev);
+        }
+      }
+    }
+  }
 }
 } // namespace o2::framework

@@ -415,8 +415,7 @@ TEST_CASE("GroupSlicerMismatchedUnsortedFilteredGroups")
   REQUIRE(t.size() == 10 * (20 - 4));
 
   auto tt = std::make_tuple(t);
-  ArrowTableSlicingCache slices({{soa::getLabelFromType<aod::TrksXU>(), "fIndex" + o2::framework::cutString(soa::getLabelFromType<aod::Events>())}});
-  auto s = slices.updateCacheEntry(0, trkTable);
+  ArrowTableSlicingCache slices({});
   o2::framework::GroupSlicer g(e, tt, slices);
 
   unsigned int count = 0;
@@ -440,7 +439,6 @@ TEST_CASE("GroupSlicerMismatchedUnsortedFilteredGroups")
   std::vector<int64_t> sele;
   soa::SmallGroups<aod::TrksXU> te{{trkTableE}, std::move(sele)};
   auto tte = std::make_tuple(te);
-  s = slices.updateCacheEntry(0, trkTableE);
   o2::framework::GroupSlicer ge(e, tte, slices);
 
   count = 0;
@@ -455,7 +453,6 @@ TEST_CASE("GroupSlicerMismatchedUnsortedFilteredGroups")
 
   soa::SmallGroupsUnfiltered<aod::TrksXU> tu{{trkTable}, std::vector<int64_t>{}};
   auto ttu = std::make_tuple(tu);
-  s = slices.updateCacheEntry(0, trkTable);
   o2::framework::GroupSlicer gu(e, ttu, slices);
 
   count = 0;
