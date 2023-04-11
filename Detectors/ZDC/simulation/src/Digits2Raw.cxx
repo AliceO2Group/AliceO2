@@ -561,7 +561,7 @@ void Digits2Raw::print_gbt_word(const uint32_t* word, const ModuleConfig* module
   ULong64_t msb = val >> 64;
   uint32_t a = word[0];
   uint32_t b = word[1];
-  uint16_t c = *((uint16_t *)&word[2]);
+  uint16_t c = *((uint16_t*)&word[2]);
   // printf("\nGBTW: %04x %08x %08x\n",c,b,a);
   if ((a & 0x3) == 0) {
     uint32_t myorbit = (val >> 48) & 0xffffffff;

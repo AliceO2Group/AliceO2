@@ -228,13 +228,13 @@ int DumpRaw::processWord(const uint32_t* word)
   }
   // LOGF(info, "GBT word %04x %08x %08x id=%u", *((uint16_t*)&word[2]), word[1], word[0], word[0] & 0x3);
   if ((word[0] & 0x3) == Id_w0) {
-    mCh.w[0][NWPerGBTW-1] = 0;
-    mCh.w[0][NWPerGBTW-2] = 0;
+    mCh.w[0][NWPerGBTW - 1] = 0;
+    mCh.w[0][NWPerGBTW - 2] = 0;
     memcpy((void*)&mCh.w[0][0], (const void*)word, PayloadPerGBTW);
   } else if ((word[0] & 0x3) == Id_w1) {
     if (mCh.f.fixed_0 == Id_w0) {
-      mCh.w[1][NWPerGBTW-1] = 0;
-      mCh.w[1][NWPerGBTW-2] = 0;
+      mCh.w[1][NWPerGBTW - 1] = 0;
+      mCh.w[1][NWPerGBTW - 2] = 0;
       memcpy((void*)&mCh.w[1][0], (const void*)word, PayloadPerGBTW);
     } else {
       LOGF(error, "Wrong word sequence: %04x %08x %08x id=%u *%u*", *((uint16_t*)&word[2]), word[1], word[0], mCh.f.fixed_0, word[0] & 0x3);
@@ -244,8 +244,8 @@ int DumpRaw::processWord(const uint32_t* word)
     }
   } else if ((word[0] & 0x3) == Id_w2) {
     if (mCh.f.fixed_0 == Id_w0 && mCh.f.fixed_1 == Id_w1) {
-      mCh.w[2][NWPerGBTW-1] = 0;
-      mCh.w[2][NWPerGBTW-2] = 0;
+      mCh.w[2][NWPerGBTW - 1] = 0;
+      mCh.w[2][NWPerGBTW - 2] = 0;
       memcpy((void*)&mCh.w[2][0], (const void*)word, PayloadPerGBTW);
       process(mCh);
     } else {
