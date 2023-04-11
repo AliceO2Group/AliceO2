@@ -145,6 +145,7 @@ void CTFReaderSpec::init(InitContext& ic)
   mInput.ctfIDs = o2::RangeTokenizer::tokenize<int>(ic.options().get<std::string>("select-ctf-ids"));
   mUseLocalTFCounter = ic.options().get<bool>("local-tf-counter");
   mImposeRunStartMS = ic.options().get<int64_t>("impose-run-start-timstamp");
+  mInput.checkTFLimitBeforeReading = ic.options().get<bool>("limit-tf-before-reading");
   mRunning = true;
   mFileFetcher = std::make_unique<o2::utils::FileFetcher>(mInput.inpdata, mInput.tffileRegex, mInput.remoteRegex, mInput.copyCmd);
   mFileFetcher->setMaxFilesInQueue(mInput.maxFileCache);
@@ -187,11 +188,9 @@ void CTFReaderSpec::openCTFFile(const std::string& flname)
 ///_______________________________________
 void CTFReaderSpec::run(ProcessingContext& pc)
 {
-  static bool initOnceDone = false;
-  if (!initOnceDone) {
+  if (mInput.tfRateLimit == -999) {
     mInput.tfRateLimit = std::stoi(pc.services().get<RawDeviceService>().device()->fConfig->GetValue<std::string>("timeframes-rate-limit"));
   }
-
   std::string tfFileName;
   if (mCTFCounter >= mInput.maxTFs || (!mInput.ctfIDs.empty() && mSelIDEntry >= mInput.ctfIDs.size())) { // done
     LOG(info) << "All CTFs from selected range were injected, stopping";
@@ -272,12 +271,16 @@ bool CTFReaderSpec::processTF(ProcessingContext& pc)
       LOGP(info, "Skimming did not define any selection for TF [{}] : [{}]", ir0.asString(), ir1.asString());
       return false;
     } else {
-      limiter.check(pc, mInput.tfRateLimit, mInput.minSHM);
+      if (mInput.checkTFLimitBeforeReading) {
+        limiter.check(pc, mInput.tfRateLimit, mInput.minSHM);
+      }
       LOGP(info, "{} IR-Frames are selected for TF [{}] : [{}]", irSpan.size(), ir0.asString(), ir1.asString());
     }
     auto outVec = pc.outputs().make<std::vector<o2::dataformats::IRFrame>>(OutputRef{"selIRFrames"}, irSpan.begin(), irSpan.end());
   } else {
-    limiter.check(pc, mInput.tfRateLimit, mInput.minSHM);
+    if (mInput.checkTFLimitBeforeReading) {
+      limiter.check(pc, mInput.tfRateLimit, mInput.minSHM);
+    }
   }
 
   // send CTF Header
@@ -312,13 +315,16 @@ bool CTFReaderSpec::processTF(ProcessingContext& pc)
   checkTreeEntries();
   mTimer.Stop();
 
-  // do we need to way to respect the delay ?
+  // do we need to wait to respect the delay ?
   long tNow = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
   if (mCTFCounter) {
     auto tDiff = tNow - mLastSendTime;
     if (tDiff < mInput.delay_us) {
       pc.services().get<RawDeviceService>().waitFor((mInput.delay_us - tDiff) / 1000); // respect requested delay before sending
     }
+  }
+  if (!mInput.checkTFLimitBeforeReading) {
+    limiter.check(pc, mInput.tfRateLimit, mInput.minSHM);
   }
   tNow = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
   LOGP(info, "Read CTF {} {} in {:.3f} s, {:.4f} s elapsed from previous CTF", mCTFCounter, entryStr, mTimer.CpuTime() - cput, mCTFCounter ? 1e-6 * (tNow - mLastSendTime) : 0.);
@@ -443,7 +449,8 @@ DataProcessorSpec getCTFReaderSpec(const CTFReaderInp& inp)
   options.emplace_back(ConfigParamSpec{"select-ctf-ids", VariantType::String, "", {"comma-separated list CTF IDs to inject (from cumulative counter of CTFs seen)"}});
   options.emplace_back(ConfigParamSpec{"impose-run-start-timstamp", VariantType::Int64, 0L, {"impose run start time stamp (ms), ignored if 0"}});
   options.emplace_back(ConfigParamSpec{"local-tf-counter", VariantType::Bool, false, {"reassign header.tfCounter from local TF counter"}});
-  options.emplace_back(ConfigParamSpec{"fetch-failure-threshold", VariantType::Float, 0.f, {"Fatil if too many failures( >0: fraction, <0: abs number, 0: no threshold)"}});
+  options.emplace_back(ConfigParamSpec{"fetch-failure-threshold", VariantType::Float, 0.f, {"Fail if too many failures( >0: fraction, <0: abs number, 0: no threshold)"}});
+  options.emplace_back(ConfigParamSpec{"limit-tf-before-reading", VariantType::Bool, false, {"Check TF limiting before reading new TF, otherwhise before injecting it"}});
   if (!inp.metricChannel.empty()) {
     options.emplace_back(ConfigParamSpec{"channel-config", VariantType::String, inp.metricChannel, {"Out-of-band channel config for TF throttling"}});
   }

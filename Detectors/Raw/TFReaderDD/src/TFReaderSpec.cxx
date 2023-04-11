@@ -117,8 +117,7 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
   if (device != mDevice) {
     throw std::runtime_error(fmt::format("FMQDevice has changed, old={} new={}", fmt::ptr(mDevice), fmt::ptr(device)));
   }
-  static bool initOnceDone = false;
-  if (!initOnceDone) {
+  if (mInput.tfRateLimit == -999) {
     mInput.tfRateLimit = std::stoi(device->fConfig->GetValue<std::string>("timeframes-rate-limit"));
   }
   auto acknowledgeOutput = [this](fair::mq::Parts& parts, bool verbose = false) {
