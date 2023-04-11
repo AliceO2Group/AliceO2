@@ -14,6 +14,8 @@
 #include <TFile.h>
 #include <TGraph.h>
 
+#include "TRDPID/LQND.h"
+
 #include <vector>
 #include <memory>
 #endif
@@ -21,12 +23,15 @@
 /// Generate very simple luts for testing
 void makeTestLUTs(int dim = 1)
 {
-  std::vector<TGraph> luts;
+  std::vector<float> p{1.0, 2.0, 3.0, 100.0};
+  std::vector<TGraph> g;
   double x[4] = {0.0, 10, 70, 317};
   double y[4] = {0.0, 0.0, 1.0, 1.0};
-  for (int i = 0; i < dim * 2; ++i) {
-    luts.emplace_back(4, x, y);
+  for (int i = 0; i < dim * 2 * p.size(); ++i) {
+    g.emplace_back(4, x, y);
   }
+
+  o2::trd::detail::LUT<dim> luts(p, g);
 
   std::unique_ptr<TFile> outFile(TFile::Open("LQND_LUTS.root", "RECREATE"));
   outFile->WriteObject(&luts, "luts");

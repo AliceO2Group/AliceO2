@@ -22,6 +22,7 @@
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CcdbObjectInfo.h"
 #include "Framework/Logger.h"
+#include "TRDPID/LQND.h"
 
 // ROOT header
 #include <TFile.h>
@@ -104,7 +105,7 @@ int ccdbLQNDUpload(std::string inFileName, std::string ccdbPath, int dim, uint64
     return fileError;
   }
   // copy vector from file
-  auto luts = *(inFile->Get<std::vector<TGraph>>("luts"));
+  auto luts = *(inFile->Get<o2::trd::detail::LUT<dim>>("luts"));
 
   return ccdb.storeAsTFileAny(&luts, ccdbPath, metadata, timeStampStart, timeStampEnd);
 }
