@@ -330,7 +330,7 @@ ChipPixelData* RawPixelDecoder<Mapping>::getNextChipData(std::vector<ChipPixelDa
     }
   }
   // will need to decode new trigger
-  if (!mDecodeNextAuto || !decodeNextTrigger()) { // no more data to decode
+  if (!mDecodeNextAuto || decodeNextTrigger() < 0) { // no more data to decode
     return nullptr;
   }
   return getNextChipData(chipDataVec);
@@ -352,7 +352,7 @@ bool RawPixelDecoder<Mapping>::getNextChipData(ChipPixelData& chipData)
     }
   }
   // will need to decode new trigger
-  if (!mDecodeNextAuto || !decodeNextTrigger()) { // no more data to decode
+  if (!mDecodeNextAuto || decodeNextTrigger() < 0) { // no more data to decode
     return false;
   }
   return getNextChipData(chipData); // is it ok to use recursion here?
@@ -389,7 +389,7 @@ ChipPixelData* RawPixelDecoder<ChipMappingMFT>::getNextChipData(std::vector<Chip
     return &chipDataVec[mLastReadChipID];
   }
   // will need to decode new trigger
-  if (!mDecodeNextAuto || !decodeNextTrigger()) { // no more data to decode
+  if (!mDecodeNextAuto || decodeNextTrigger() < 0) { // no more data to decode
     return nullptr;
   }
   return getNextChipData(chipDataVec);
@@ -408,7 +408,7 @@ bool RawPixelDecoder<ChipMappingMFT>::getNextChipData(ChipPixelData& chipData)
     return true;
   }
   // will need to decode new trigger
-  if (!mDecodeNextAuto || !decodeNextTrigger()) { // no more data to decode
+  if (!mDecodeNextAuto || decodeNextTrigger() < 0) { // no more data to decode
     return false;
   }
   return getNextChipData(chipData); // is it ok to use recursion here?
