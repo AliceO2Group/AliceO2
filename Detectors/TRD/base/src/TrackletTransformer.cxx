@@ -23,13 +23,8 @@ void TrackletTransformer::init()
   mGeo->createPadPlaneArray();
   mGeo->createClusterMatrixArray();
 
-  // 3 cm
-  mXCathode = mGeo->cdrHght();
-  // 3.35
+  // 3.35 cm
   mXAnode = mGeo->cdrHght() + mGeo->camHght() / 2;
-  // 5mm below cathode plane to reduce error propogation from tracklet fit and driftV
-  mXDrift = mGeo->cdrHght() - 0.5;
-  mXtb0 = -100;
 }
 
 float TrackletTransformer::calculateY(int hcid, int column, int position, const PadPlane* padPlane) const
@@ -62,7 +57,7 @@ float TrackletTransformer::calculateDy(int detector, int slope, const PadPlane* 
 
   // dy = slope * nTimeBins * padWidth * GRANULARITYTRKLSLOPE;
   // nTimeBins should be number of timebins in drift region. 1 timebin is 100 nanosecond
-  double rawDy = slope * ((mXCathode / vDrift) * 10.) * padWidth * GRANULARITYTRKLSLOPE / ADDBITSHIFTSLOPE;
+  double rawDy = slope * ((mGeo->cdrHght() / vDrift) * 10.) * padWidth * GRANULARITYTRKLSLOPE / ADDBITSHIFTSLOPE;
 
   // NOTE: check what drift height is used in calibration code to ensure consistency
   // NOTE: check sign convention of Lorentz angle
@@ -117,7 +112,8 @@ CalibratedTracklet TrackletTransformer::transformTracklet(Tracklet64 tracklet, b
   // calculate raw local chamber space point
   const auto padPlane = mGeo->getPadPlane(detector);
 
-  float x = getXDrift();
+  // 5mm below cathode plane to reduce error propogation from tracklet fit and driftV
+  float x = mGeo->cdrHght() - 0.5;
   float y = calculateY(hcid, column, position, padPlane);
   float z = calculateZ(padrow, padPlane);
 
