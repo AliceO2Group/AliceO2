@@ -143,8 +143,6 @@ class LQND : public PIDBase
 
  private:
   detail::LUT<nDim> mLUTs; ///< likelihood lookup tables
-
-  ClassDefNV(LQND, 1);
 };
 
 using LQ1D = LQND<1>;
