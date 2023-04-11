@@ -3029,6 +3029,8 @@ namespace o2::framework
 {
 std::string cutString(std::string&& str);
 
+using ListVector = std::vector<std::vector<int64_t>>;
+
 void sliceByColumnGeneric(
   char const* key,
   char const* target,
