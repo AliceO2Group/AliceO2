@@ -33,15 +33,17 @@ void RawDecoderSpec::endOfStream(framework::EndOfStreamContext& ec)
   std::sort(mTFOrbits.begin(), mTFOrbits.end());
   size_t l = mTFOrbits.size();
   uint32_t o0 = 0;
-  if (l)
+  if (l) {
     o0 = mTFOrbits[0];
+  }
   int nmiss = 0;
   int nprt = 0;
   std::cout << "Missing orbits:";
   for (int i = 1; i < l; i++) {
     if ((mTFOrbits[i] - o0) > 0x20) {
-      if (nprt < 20)
+      if (nprt < 20) {
         std::cout << " " << o0 << "-" << mTFOrbits[i];
+      }
       nmiss += (mTFOrbits[i] - o0) / 0x20;
       nprt++;
     }
