@@ -138,9 +138,7 @@ void AnalysisClusterSpec<InputType>::run(framework::ProcessingContext& ctx)
     auto inputEvent = mEventHandler->buildEvent(iev);
 
     mClusterFactory->reset();
-    mClusterFactory->setClustersContainer(inputEvent.mClusters);
-    mClusterFactory->setCellsContainer(Inputs);
-    mClusterFactory->setCellsIndicesContainer(inputEvent.mCellIndices);
+    mClusterFactory->setContainer(inputEvent.mClusters, Inputs, inputEvent.mCellIndices);
 
     //for (const auto& analysisCluster : mClusterFactory) {
     for (int icl = 0; icl < mClusterFactory->getNumberOfClusters(); icl++) {

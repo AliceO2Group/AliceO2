@@ -331,21 +331,6 @@ class ClusterFactory
   bool getUseWeightExotic() const { return mUseWeightExotic; }
   void setUseWeightExotic(float useWeightExotic) { mUseWeightExotic = useWeightExotic; }
 
-  void setClustersContainer(gsl::span<const o2::emcal::Cluster> clusterContainer)
-  {
-    mClustersContainer = clusterContainer;
-  }
-
-  void setCellsContainer(gsl::span<const InputType> cellContainer)
-  {
-    mInputsContainer = cellContainer;
-  }
-
-  void setCellsIndicesContainer(gsl::span<const int> indicesContainer)
-  {
-    mCellsIndices = indicesContainer;
-  }
-
   void setContainer(gsl::span<const o2::emcal::Cluster> clusterContainer, gsl::span<const InputType> cellContainer, gsl::span<const int> indicesContainer)
   {
     mClustersContainer = clusterContainer;
