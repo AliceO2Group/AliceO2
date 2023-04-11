@@ -36,7 +36,7 @@ struct TFReaderInp {
   o2::detectors::DetID::mask_t detMaskRawOnly{};
   o2::detectors::DetID::mask_t detMaskNonRawOnly{};
   size_t minSHM = 0;
-  int tfRateLimit = 0;
+  int tfRateLimit = -999;
   int maxTFCache = 1;
   int maxFileCache = 1;
   int verbosity = 0;
