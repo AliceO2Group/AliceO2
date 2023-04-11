@@ -32,8 +32,9 @@ struct VertexerParamConfig : public o2::conf::ConfigurableParamHelper<VertexerPa
   float histPairCut = 0.04f;
   float tanLambdaCut = 0.002f;      // tanLambda = deltaZ/deltaR
   float lowMultBeamDistCut = 0.1f;  // XY cut for low-multiplicity pile up
-  int vertRadiusNsigmaCut = 4;      // N sigma cut for vertex XY
-  float vertRadiusSigma = 0.495f;   // sigma of vertex XY
+  int vertNsigmaCut = 4;            // N sigma cut for vertex XY
+  float vertRadiusSigma = 0.05f;    // sigma of vertex XY
+  float trackletSigma = 0.01f;      // tracklet to vertex sigma
   float maxZPositionAllowed = 25.f; // 4x sZ of the beam
 
   // Artefacts selections
