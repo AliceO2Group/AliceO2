@@ -22,6 +22,9 @@
 #include "DataFormatsTRD/Constants.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/InputRecord.h"
+#include "DataFormatsTRD/CalibratedTracklet.h"
+#include "DetectorsBase/Propagator.h"
+#include "Framework/Logger.h"
 
 #include <memory>
 #include <vector>
@@ -40,10 +43,11 @@ template <int nDim>
 class LUT
 {
  public:
+  LUT() = default;
   LUT(std::vector<float> p, std::vector<TGraph> l) : mIntervalsP(p), mLUTs(l) {}
 
   //
-  const TGraph& get(float p, bool isNegative, int iDim = 0)
+  const TGraph& get(float p, bool isNegative, int iDim = 0) const
   {
     auto upper = std::upper_bound(mIntervalsP.begin(), mIntervalsP.end(), p);
     auto index = std::distance(mIntervalsP.begin(), upper);
@@ -98,11 +102,15 @@ class LQND : public PIDBase
     const auto& trackletsRaw = input.getTRDTracklets();
     float lei0{1.f}, lei1{1.f}, lei2{1.f}, lpi0{1.f}, lpi1{1.f}, lpi2{1.f}; // likelihood per layer
     for (int iLayer = 0; iLayer < constants::NLAYER; ++iLayer) {
-      int trkltId = trk.getTrackletIndex(iLayer);
+      int trkltId = trkIn.getTrackletIndex(iLayer);
       if (trkltId < 0) { // no tracklet attached
         continue;
       }
-      propagateTrack(trk, iLayer, input);
+      const auto xCalib = input.getTRDCalibratedTracklets()[trk.getTrackletIndex(iLayer)].getX();
+      if (!o2::base::Propagator::Instance()->PropagateToXBxByBz(trk, xCalib, o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, o2::base::Propagator::MatCorrType::USEMatCorrNONE)) {
+        LOGF(debug, "Track propagation failed in layer %i (pt=%f, xTrk=%f, xToGo=%f)", iLayer, trk.getPt(), trk.getX(), xCalib);
+        continue;
+      }
       const auto& trklt = trackletsRaw[trkltId];
       const auto [q0, q1, q2] = getCharges(trklt, iLayer, trk, input); // correct charges
       if constexpr (nDim == 1) {

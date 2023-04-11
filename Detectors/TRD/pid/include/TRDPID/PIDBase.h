@@ -61,10 +61,6 @@ class PIDBase
   void setLocalGainFactors(const LocalGainFactor* localGain) { mLocalGain = localGain; }
 
  protected:
-  /// Propagate the TRD track to a given layer.
-  /// This gives access to precise momentum information.
-  void propagateTrack(TrackTRD& trk, int layer, const o2::globaltracking::RecoContainer& input) const;
-
   /// Getter for pid information, applies Z-Row merging of tracklets and gain correction.
   /// Some tracklets due to their inclination cross over two pads in z-row, where MCMs do not share ADC lanes.
   /// This can be recovered in software, by taking the attached tracklets and looking for nearby tracklets.

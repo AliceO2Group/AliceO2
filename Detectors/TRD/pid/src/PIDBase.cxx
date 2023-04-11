@@ -14,8 +14,6 @@
 
 #include "TRDPID/PIDBase.h"
 #include "DataFormatsTRD/PID.h"
-#include "DataFormatsTRD/CalibratedTracklet.h"
-#include "DetectorsBase/Propagator.h"
 #include "Framework/Logger.h"
 
 #ifdef TRDPID_WITH_ONNX
@@ -28,17 +26,6 @@ namespace o2
 {
 namespace trd
 {
-
-void PIDBase::propagateTrack(TrackTRD& trk, int layer, const o2::globaltracking::RecoContainer& input) const
-{
-  // propagate track
-  auto propagator = o2::base::Propagator::Instance();
-  const auto xCalib = input.getTRDCalibratedTracklets()[trk.getTrackletIndex(layer)].getX();
-  if (!propagator->PropagateToXBxByBz(trk, xCalib, o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, o2::base::Propagator::MatCorrType::USEMatCorrNONE)) {
-    LOGF(debug, "Track propagation failed in layer %i (pt=%f, xTrk=%f, xToGo=%f)", layer, trk.getPt(), trk.getX(), xCalib);
-    return {0.f, 0.f, 0.f};
-  }
-}
 
 std::array<float, constants::NCHARGES> PIDBase::getCharges(const Tracklet64& tracklet, const int layer, const TrackTRD& trk, const o2::globaltracking::RecoContainer& input) const noexcept
 {
