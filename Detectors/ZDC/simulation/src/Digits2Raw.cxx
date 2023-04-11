@@ -239,14 +239,7 @@ inline void Digits2Raw::updatePedestalReference(int bc)
       for (int32_t ic = 0; ic < NChPerModule; ic++) {
         // Identify connected channel
         auto id = mModuleConfig->modules[im].channelID[ic];
-        double myped = mzdcPedData[io].data[id] + 32768.;
-        if (myped < 0) {
-          myped = 0;
-        }
-        if (myped > 65535) {
-          myped = 65535;
-        }
-        mPed[im][ic] = myped;
+        mPed[im][ic] = *((uint16_t*)&mzdcPedData[io].data[id]);
       }
     }
   } else if (mEmpty[bc] > 0 && mEmpty[bc] != mLastNEmpty) {
@@ -568,10 +561,8 @@ void Digits2Raw::print_gbt_word(const uint32_t* word, const ModuleConfig* module
   ULong64_t msb = val >> 64;
   uint32_t a = word[0];
   uint32_t b = word[1];
-  uint32_t c = word[2];
-  // uint32_t d=(msb>>32)&0xffffffff;
-  // printf("\n%016llx %016llx ",lsb,msb);
-  // printf("\nGBTW: %08x %08x %08x %08x\n",d,c,b,a);
+  uint16_t c = *((uint16_t *)&word[2]);
+  // printf("\nGBTW: %04x %08x %08x\n",c,b,a);
   if ((a & 0x3) == 0) {
     uint32_t myorbit = (val >> 48) & 0xffffffff;
     uint32_t mybc = (val >> 36) & 0xfff;
