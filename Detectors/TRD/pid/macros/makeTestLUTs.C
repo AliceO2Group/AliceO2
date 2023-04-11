@@ -29,7 +29,7 @@ void makeTestLUTs()
   std::vector<TGraph> g;
   double x[4] = {0.0, 10, 70, 317};
   double y[4] = {0.0, 0.0, 1.0, 1.0};
-  for (int i = 0; i < dim * 2 * p.size(); ++i) {
+  for (auto i = 0; i < dim * 2 * p.size(); ++i) {
     g.emplace_back(4, x, y);
   }
 
