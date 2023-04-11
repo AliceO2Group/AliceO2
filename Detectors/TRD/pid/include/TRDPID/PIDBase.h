@@ -65,14 +65,14 @@ class PIDBase
   /// Some tracklets due to their inclination cross over two pads in z-row, where MCMs do not share ADC lanes.
   /// This can be recovered in software, by taking the attached tracklets and looking for nearby tracklets.
   /// Only modifies the tracklet if the flag is set.
-  std::array<float, constants::NCHARGES> PIDBase::getCharges(const Tracklet64& tracklet, const int layer, const TrackTRD& trk, const o2::globaltracking::RecoContainer& input, float snp, float tgl) const noexcept;
+  std::array<float, constants::NCHARGES> getCharges(const Tracklet64& tracklet, const int layer, const TrackTRD& trk, const o2::globaltracking::RecoContainer& input, float snp, float tgl) const noexcept;
 
   const TRDPIDParams& mParams{TRDPIDParams::Instance()}; ///< parameters
   const PIDPolicy mPolicy;                               ///< policy
 
  private:
   /// Correct the charges of the tracklet
-  std::array<float, constants::NCHARGES> PIDBase::correctCharges(const Tracklet64& trklt, float snp, float tgl) const noexcept;
+  std::array<float, constants::NCHARGES> correctCharges(const Tracklet64& trklt, float snp, float tgl) const noexcept;
 
   // correction factors
   const LocalGainFactor* mLocalGain; ///< local gain factors from krypton calibration

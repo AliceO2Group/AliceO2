@@ -50,8 +50,8 @@ std::array<float, constants::NCHARGES> PIDBase::getCharges(const Tracklet64& tra
 
 std::array<float, constants::NCHARGES> PIDBase::correctCharges(const Tracklet64& trklt, float snp, float tgl) const noexcept
 {
-  auto tphi = trk.getSnp() / std::sqrt((1.f - trk.getSnp()) + (1.f + trk.getSnp()));
-  auto trackletLength = std::sqrt(1.f + tphi * tphi + trk.getTgl() * trk.getTgl());
+  auto tphi = snp / std::sqrt((1.f - snp) + (1.f + snp));
+  auto trackletLength = std::sqrt(1.f + tphi * tphi + tgl * tgl);
   const float correction = mLocalGain->getValue(trklt.getHCID() / 2, trklt.getPadCol(), trklt.getPadRow()) * trackletLength;
   return {
     trklt.getQ0() / correction,
