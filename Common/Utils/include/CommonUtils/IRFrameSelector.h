@@ -32,8 +32,8 @@ class IRFrameSelector
   void setSelectedIRFrames(const SPAN& sp, size_t bwd = 0, size_t fwd = 0, bool removeOverlaps = true)
   {
     mFrames = gsl::span<const o2::dataformats::IRFrame>(sp.data(), sp.size());
-    applyMargins(bwd, fwd, removeOverlaps);
     mIsSet = true;
+    applyMargins(bwd, fwd, removeOverlaps);
     mLastIRFrameChecked.getMin().clear(); // invalidate
     mLastBoundID = -1;
   }

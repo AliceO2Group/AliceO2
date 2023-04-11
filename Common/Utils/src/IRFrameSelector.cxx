@@ -189,6 +189,7 @@ void IRFrameSelector::clear()
 void IRFrameSelector::applyMargins(size_t bwd, size_t fwd, bool removeOverlaps)
 {
   // apply margin to all IRFrames by converting them to IRFrame.getMin()-fwd, IRFrame.getMax()-bwd
+  LOGP(debug, "applyMargins({},{},{})", bwd, fwd, removeOverlaps);
   if ((!fwd && !bwd) || !mIsSet || !mFrames.size()) {
     return;
   }
@@ -197,6 +198,7 @@ void IRFrameSelector::applyMargins(size_t bwd, size_t fwd, bool removeOverlaps)
   for (const auto& fr : mFrames) {
     auto irmin = fr.getMin().toLong() > bwd ? fr.getMin() - bwd : o2::InteractionRecord{0, 0};
     auto irmax = (o2::InteractionRecord::MaxGlobalBCs - fr.getMax().toLong()) > fwd ? fr.getMax() + fwd : o2::InteractionRecord::getIRMaxBC();
+    LOGP(debug, "before removerlap: {}:{} -> {}:{}", fr.getMin().toLong(), fr.getMax().toLong(), irmin.toLong(), irmax.toLong());
     if (removeOverlaps && lst.size() && lst.back().getMax() >= irmin) {
       lst.back().setMax(irmax);
     } else {
