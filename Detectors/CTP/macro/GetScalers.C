@@ -36,13 +36,15 @@ void GetScalers(std::string srun, long time, std::string ccdbHost = "http://ccdb
   CTPRunManager mng;
   mng.setCCDBHost(ccdbHost);
   bool ok;
+  // ctpcfg = mng.getConfigFromCCDB(time, srun);
+  // ctpcfg.printStream(std::cout);
+  // return;
   scl = mng.getScalersFromCCDB(time, srun, ok);
   if (ok == 1) {
     scl.convertRawToO2();
     scl.printO2(std::cout);
     scl.printFromZero(std::cout);
     scl.printIntegrals();
-    ctpcfg = mng.getConfigFromCCDB(time, srun);
     scl.printRates();
     //  std::vector<int> clsses;
     //  clsses = ctpcfg.getTriggerClassList();

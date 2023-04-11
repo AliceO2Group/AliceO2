@@ -38,13 +38,12 @@ class RawDecoderSpec : public framework::Task
   /// \brief Constructor
   /// \param propagateMC If true the MCTruthContainer is propagated to the output
   RawDecoderSpec(bool digits, bool lumi) : mDoDigits(digits), mDoLumi(lumi) {}
-
   /// \brief Destructor
   ~RawDecoderSpec() override = default;
-
   /// \brief Initializing the RawDecoderSpec
   /// \param ctx Init context
   void init(framework::InitContext& ctx) final;
+  void endOfStream(o2::framework::EndOfStreamContext& ec) final;
   /// \brief Run conversion of raw data to cells
   /// \param ctx Processing context
   ///
@@ -54,10 +53,11 @@ class RawDecoderSpec : public framework::Task
   void run(framework::ProcessingContext& ctx) final;
   static void makeGBTWordInverse(std::vector<gbtword80_t>& diglets, gbtword80_t& GBTWord, gbtword80_t& remnant, uint32_t& size_gbt, uint32_t Npld);
   int addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword80_t& diglet, gbtword80_t& pldmask, std::map<o2::InteractionRecord, CTPDigit>& digits);
-  gbtword80_t subbitset(int pos1, int pos2, gbtword128_t& bs, int shift = 0);
 
  protected:
  private:
+  static constexpr uint32_t TF_TRIGGERTYPE_MASK = 0x800;
+  static constexpr uint32_t HB_TRIGGERTYPE_MASK = 0x2;
   // for digits
   bool mDoDigits = true;
   std::vector<CTPDigit> mOutputDigits;
@@ -76,8 +76,10 @@ class RawDecoderSpec : public framework::Task
   uint32_t mIRRejected = 0;
   uint32_t mTCRRejected = 0;
   bool mPadding = true;
+  uint32_t mTFOrbit = 0;
   std::deque<size_t> mHistoryT;
   std::deque<size_t> mHistoryV;
+  std::vector<uint32_t> mTFOrbits;
 };
 
 /// \brief Creating DataProcessorSpec for the CTP
