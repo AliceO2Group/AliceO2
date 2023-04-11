@@ -21,15 +21,11 @@
 #include "Framework/Expressions.h"
 #include "Framework/ArrowTypes.h"
 #include "Framework/RuntimeError.h"
-#include "Framework/Kernels.h"
 #include "Framework/ArrowTableSlicingCache.h"
 #include "Framework/SliceCache.h"
 #include <arrow/table.h>
 #include <arrow/array.h>
 #include <arrow/util/config.h>
-#if ARROW_VERSION_MAJOR < 10
-#include <arrow/util/variant.h>
-#endif
 #include <gandiva/selection_vector.h>
 #include <cassert>
 #include <fmt/format.h>
@@ -1413,18 +1409,6 @@ class Table
     return t;
   }
 
-  auto sliceByCached(framework::expressions::BindingNode const& node, int value)
-  {
-    uint64_t offset = 0;
-    std::shared_ptr<arrow::Table> result = nullptr;
-    if (!this->getSliceFor(value, node.name.c_str(), result, offset).ok()) {
-      o2::framework::throw_error(o2::framework::runtime_error("Failed to slice table"));
-    }
-    auto t = table_t({result}, offset);
-    copyIndexBindings(t);
-    return t;
-  }
-
   auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
   {
     auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<decltype(*this)>(node.name), node.name});
@@ -1487,36 +1471,6 @@ class Table
   unfiltered_iterator mBegin;
   /// Cached end iterator for this table.
   RowViewSentinel mEnd;
-  std::string mCurrentKey;
-  std::shared_ptr<arrow::NumericArray<arrow::Int32Type>> mValues = nullptr;
-  std::shared_ptr<arrow::NumericArray<arrow::Int64Type>> mCounts = nullptr;
-
-  arrow::Status initializeSliceCaches(char const* key)
-  {
-    mCurrentKey = key;
-    return o2::framework::getSlices(key, mTable, mValues, mCounts);
-  }
-
- public:
-  arrow::Status getSliceFor(int value, const char* key, std::shared_ptr<arrow::Table>& output, uint64_t& offset)
-  {
-    arrow::Status status;
-    if (mCurrentKey != key) {
-      status = initializeSliceCaches(key);
-    }
-    if (!status.ok()) {
-      return status;
-    }
-    for (auto slice = 0; slice < mValues->length(); ++slice) {
-      if (mValues->Value(slice) == value) {
-        output = mTable->Slice(offset, mCounts->Value(slice));
-        return arrow::Status::OK();
-      }
-      offset += mCounts->Value(slice);
-    }
-    output = mTable->Slice(offset, 0);
-    return arrow::Status::OK();
-  }
 };
 
 template <typename T>
@@ -2389,18 +2343,6 @@ struct Join : JoinBase<Ts...> {
   using filtered_iterator = typename table_t::template RowViewFiltered<Join<Ts...>, Ts...>;
   using filtered_const_iterator = filtered_iterator;
 
-  auto sliceByCached(framework::expressions::BindingNode const& node, int value)
-  {
-    uint64_t offset = 0;
-    std::shared_ptr<arrow::Table> result = nullptr;
-    if (!this->getSliceFor(value, node.name.c_str(), result, offset).ok()) {
-      o2::framework::throw_error(o2::framework::runtime_error("Failed to slice table"));
-    }
-    auto t = Join<Ts...>({result}, offset);
-    this->copyIndexBindings(t);
-    return t;
-  }
-
   auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
   {
     auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<decltype(*this)>(node.name), node.name});
@@ -2630,32 +2572,6 @@ class FilteredBase : public T
     return (table_t)this->sliceBy(container, value);
   }
 
-  auto sliceByCached(framework::expressions::BindingNode const& node, int value)
-  {
-    uint64_t offset = 0;
-    std::shared_ptr<arrow::Table> result = nullptr;
-    if (!((table_t*)this)->getSliceFor(value, node.name.c_str(), result, offset).ok()) {
-      o2::framework::throw_error(o2::framework::runtime_error("Failed to slice table"));
-    }
-    if (offset >= this->tableSize()) {
-      self_t fresult{{result}, SelectionVector{}, 0}; // empty slice
-      this->copyIndexBindings(fresult);
-      return fresult;
-    }
-    auto start = offset;
-    auto end = start + result->num_rows();
-    auto start_iterator = std::lower_bound(mSelectedRows.begin(), mSelectedRows.end(), start);
-    auto stop_iterator = std::lower_bound(start_iterator, mSelectedRows.end(), end);
-    SelectionVector slicedSelection{start_iterator, stop_iterator};
-    std::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(),
-                   [&start](int64_t idx) {
-                     return idx - static_cast<int64_t>(start);
-                   });
-    self_t fresult{{result}, std::move(slicedSelection), start};
-    this->copyIndexBindings(fresult);
-    return fresult;
-  }
-
   auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
   {
     auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<decltype(*this)>(node.name), node.name});
@@ -2879,32 +2795,6 @@ class Filtered : public FilteredBase<T>
     return operator*=(other.getSelectedRows());
   }
 
-  auto sliceByCached(framework::expressions::BindingNode const& node, int value)
-  {
-    uint64_t offset = 0;
-    std::shared_ptr<arrow::Table> result = nullptr;
-    if (!((table_t*)this)->getSliceFor(value, node.name.c_str(), result, offset).ok()) {
-      o2::framework::throw_error(o2::framework::runtime_error("Failed to slice table"));
-    }
-    if (offset >= this->tableSize()) {
-      self_t fresult{{result}, SelectionVector{}, 0}; // empty slice
-      this->copyIndexBindings(fresult);
-      return fresult;
-    }
-    auto start = offset;
-    auto end = start + result->num_rows();
-    auto start_iterator = std::lower_bound(this->getSelectedRows().begin(), this->getSelectedRows().end(), start);
-    auto stop_iterator = std::lower_bound(start_iterator, this->getSelectedRows().end(), end);
-    SelectionVector slicedSelection{start_iterator, stop_iterator};
-    std::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(),
-                   [&start](int64_t idx) {
-                     return idx - static_cast<int64_t>(start);
-                   });
-    self_t fresult{{result}, std::move(slicedSelection), start};
-    this->copyIndexBindings(fresult);
-    return fresult;
-  }
-
   auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
   {
     auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<decltype(*this)>(node.name), node.name});
@@ -3034,30 +2924,6 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
     return operator*=(other.getSelectedRows());
   }
 
-  auto sliceByCached(framework::expressions::BindingNode const& node, int value)
-  {
-    uint64_t offset = 0;
-    std::shared_ptr<arrow::Table> result = nullptr;
-    if (!((table_t*)this)->getSliceFor(value, node.name.c_str(), result, offset).ok()) {
-      o2::framework::throw_error(o2::framework::runtime_error("Failed to slice table"));
-    }
-    auto start = offset;
-    auto end = start + result->num_rows();
-    auto start_iterator = std::lower_bound(this->getSelectedRows().begin(), this->getSelectedRows().end(), start);
-    auto stop_iterator = std::lower_bound(start_iterator, this->getSelectedRows().end(), end);
-    SelectionVector slicedSelection{start_iterator, stop_iterator};
-    std::transform(slicedSelection.begin(), slicedSelection.end(), slicedSelection.begin(),
-                   [&start](int64_t idx) {
-                     return idx - static_cast<int64_t>(start);
-                   });
-    SelectionVector copy = slicedSelection;
-    Filtered<T> filteredTable{{result}, std::move(slicedSelection), start};
-    std::vector<Filtered<T>> filtered{filteredTable};
-    self_t fresult{std::move(filtered), std::move(copy), start};
-    this->copyIndexBindings(fresult);
-    return fresult;
-  }
-
   auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
   {
     auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<decltype(*this)>(node.name), node.name});
@@ -3162,6 +3028,14 @@ constexpr bool is_smallgroups_v = is_smallgroups_t<T>::value;
 namespace o2::framework
 {
 std::string cutString(std::string&& str);
+
+void sliceByColumnGeneric(
+  char const* key,
+  char const* target,
+  std::shared_ptr<arrow::Table> const& input,
+  int32_t fullSize,
+  ListVector* groups,
+  ListVector* unassigned = nullptr);
 }
 
 #endif // O2_FRAMEWORK_ASOA_H_

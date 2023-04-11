@@ -13,7 +13,6 @@
 #define FRAMEWORK_GROUP_SLICER_H_
 
 #include "Framework/Pack.h"
-#include "Framework/Kernels.h"
 #include "Framework/ASoA.h"
 
 #include <arrow/util/config.h>
@@ -23,7 +22,6 @@
 
 namespace o2::framework
 {
-
 template <typename G, typename... A>
 struct GroupSlicer {
   using grouping_t = std::decay_t<G>;

@@ -64,7 +64,7 @@ struct GroupedCombinationsGenerator {
     {
     }
     template <typename... T2s>
-    GroupedIterator(const GroupingPolicy& groupingPolicy, const G& grouping, std::tuple<T2s...>& associated, SliceCache* cache_ = nullptr)
+    GroupedIterator(const GroupingPolicy& groupingPolicy, const G& grouping, std::tuple<T2s...>& associated, SliceCache* cache_)
       : GroupingPolicy(groupingPolicy),
         mGrouping{std::make_shared<G>(std::vector{grouping.asArrowTable()})},
         mAssociated{std::make_shared<std::tuple<As...>>(std::make_tuple(std::get<has_type_at<As>(pack<T2s...>{})>(associated)...))},
@@ -165,9 +165,6 @@ struct GroupedCombinationsGenerator {
       if (std::get<I>(*mAssociated).size() == 0) {
         return std::get<I>(*mAssociated);
       }
-      if (cache == nullptr) {
-        return std::get<I>(*mAssociated).sliceByCached(mIndexColumns[I], ind);
-      }
       return std::get<I>(*mAssociated).sliceByCached(mIndexColumns[I], ind, *cache);
     }
 
@@ -185,7 +182,7 @@ struct GroupedCombinationsGenerator {
     std::shared_ptr<std::tuple<As...>> mAssociated;
     std::optional<std::tuple<As...>> mSlices;
     std::optional<GroupedIteratorType> mCurrentGrouped;
-    SliceCache* cache = nullptr;
+    SliceCache* cache;
   };
 
   using iterator = GroupedIterator;
