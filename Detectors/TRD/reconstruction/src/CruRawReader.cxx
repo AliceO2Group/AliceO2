@@ -293,10 +293,11 @@ bool CruRawReader::parseDigitHCHeaders(int hcid)
 
         headersfound.set(0);
         if ((header1.numtimebins > TIMEBINS) || (header1.numtimebins < 3)) {
-          if (mMaxWarnPrinted > 0) {
-            LOGF(alarm, "According to Digit HC Header 1 there are %i time bins configured", (int)header1.numtimebins);
-            checkNoWarn(false);
+          if (mOptions[TRDVerboseErrorsBit]) {
+            LOGF(warn, "According to Digit HC Header 1 there are %i time bins configured", (int)header1.numtimebins);
+            printDigitHCHeader(mDigitHCHeader, headers.data());
           }
+          incrementErrors(DigitHCHeader1Problem, hcid);
           return false;
         }
         mTimeBins = header1.numtimebins;
