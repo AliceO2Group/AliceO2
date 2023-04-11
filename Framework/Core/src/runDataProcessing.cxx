@@ -673,12 +673,7 @@ void spawnDevice(DeviceRef ref,
       }
     }
     for (auto& env : execution.environ) {
-      char* formatted = strdup(fmt::format(env,
-                                           fmt::arg("timeslice0", spec.inputTimesliceId),
-                                           fmt::arg("timeslice1", spec.inputTimesliceId + 1),
-                                           fmt::arg("timeslice4", spec.inputTimesliceId + 4))
-                                 .c_str());
-      putenv(formatted);
+      putenv(strdup(DeviceSpecHelpers::reworkEnv(env, spec).data()));
     }
     execvp(execution.args[0], execution.args.data());
   }

@@ -11,6 +11,7 @@
 #include "DDSConfigHelpers.h"
 #include "Framework/ChannelSpecHelpers.h"
 #include "WorkflowSerializationHelpers.h"
+#include "DeviceSpecHelpers.h"
 #include <map>
 #include <iostream>
 #include <cstring>
@@ -198,11 +199,7 @@ void DDSConfigHelpers::dumpDeviceSpec2DDS(std::ostream& out,
         << R"(<exe reachable="true">)";
     out << fmt::format("cat ${{DDS_LOCATION}}/dpl_json{}.asset | ", workflowSuffix);
     for (auto ei : execution.environ) {
-      out << fmt::format(ei,
-                         fmt::arg("timeslice0", spec.inputTimesliceId),
-                         fmt::arg("timeslice1", spec.inputTimesliceId + 1),
-                         fmt::arg("timeslice4", spec.inputTimesliceId + 4))
-          << " ";
+      out << DeviceSpecHelpers::reworkEnv(ei, spec) << " ";
     }
     std::string accumulatedChannelPrefix;
     char* s = strdup(execution.args[0]);
