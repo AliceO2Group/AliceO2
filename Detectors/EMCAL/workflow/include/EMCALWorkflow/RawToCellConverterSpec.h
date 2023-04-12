@@ -32,6 +32,10 @@ namespace o2
 namespace emcal
 {
 
+class AltroDecoderError;
+class MinorAltroDecodingError;
+class RawDecodingError;
+
 namespace reco_workflow
 {
 
@@ -209,12 +213,26 @@ class RawToCellConverterSpec : public framework::Task
   /// \throw ModuleIndexException in case of invalid module indices
   int geLEDMONAbsID(int supermoduleID, int module);
 
+  void handleAddressError(const Mapper::AddressNotFoundException& error, int ddlID, int hwaddress);
+
+  void handleAltroError(const o2::emcal::AltroDecoderError& altroerror, int ddlID);
+
+  void handleMinorAltroError(const o2::emcal::MinorAltroDecodingError& altroerror, int ddlID);
+
+  void handleDDLError(const MappingHandler::DDLInvalid& error, int feeID);
+
+  void handleGeometryError(const ModuleIndexException& e, int supermoduleID, int cellID, int hwaddress, ChannelType_t chantype);
+
+  void handleFitError(const o2::emcal::CaloRawFitter::RawFitterError_t& fiterror, int ddlID, int cellID, int hwaddress);
+
   /// \brief handler function for gain type errors
   /// \param errortype Gain error type
   /// \param ddlID ID of the DDL
   /// \param fecID ID of the FEC
   /// \param hwaddress Hardware address
-  void handleGainError(o2::emcal::reconstructionerrors::GainError_t errortype, int ddlID, int fecID, int hwaddress);
+  void handleGainError(const o2::emcal::reconstructionerrors::GainError_t& errortype, int ddlID, int fecID, int hwaddress);
+
+  void handlePageError(const RawDecodingError& e);
 
   header::DataHeader::SubSpecificationType mSubspecification = 0;    ///< Subspecification for output channels
   int mNoiseThreshold = 0;                                           ///< Noise threshold in raw fit
