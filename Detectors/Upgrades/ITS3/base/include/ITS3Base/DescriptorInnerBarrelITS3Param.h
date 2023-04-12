@@ -39,10 +39,11 @@ enum class ITS3Version {
 struct DescriptorInnerBarrelITS3Param : public o2::conf::ConfigurableParamHelper<DescriptorInnerBarrelITS3Param> {
   ITS3Version mVersion = ITS3Version::None;
   int mBuildLevel{0};
-  double mGapZ[4] = {0.1f, 0.1f, 0.1f, 0.1f};
+  double mGapY[4] = {0.1f, 0.1f, 0.1f, 0.1f};
   double mGapPhi[4] = {0.f, 0.f, 0.f, 0.f};
   double mRadii[4] = {1.8f, 2.4f, 3.0f, 6.0f};
   double mLength{27.f};
+  double mGapXDirection4thLayer{0.05f};
   std::string const& getITS3LayerConfigString() const;
   O2ParamDef(DescriptorInnerBarrelITS3Param, "DescriptorInnerBarrelITS3");
 };

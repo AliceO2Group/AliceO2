@@ -100,8 +100,8 @@ void ITS3Layer::createLayer(TGeoVolume* motherVolume)
     }
   }
 
-  TGeoTranslation* translationTop = new TGeoTranslation(0., mGapZ / 2, 0.);
-  TGeoTranslation* translationBottom = new TGeoTranslation(0., -mGapZ / 2, 0.);
+  TGeoTranslation* translationTop = new TGeoTranslation(0., mGapY / 2, 0.);
+  TGeoTranslation* translationBottom = new TGeoTranslation(0., -mGapY / 2, 0.);
   TGeoRotation* rotationBottom = new TGeoRotation("", 180., 0., 0.);
   TGeoCombiTrans* rotoTranslationBottom =
     new TGeoCombiTrans(*translationBottom, *rotationBottom);
@@ -195,8 +195,8 @@ void ITS3Layer::createLayerWithDeadZones(TGeoVolume* motherVolume)
     }
   }
 
-  TGeoTranslation* translationTop = new TGeoTranslation(0., mGapZ / 2, 0.);
-  TGeoTranslation* translationBottom = new TGeoTranslation(0., -mGapZ / 2, 0.);
+  TGeoTranslation* translationTop = new TGeoTranslation(0., mGapY / 2, 0.);
+  TGeoTranslation* translationBottom = new TGeoTranslation(0., -mGapY / 2, 0.);
   TGeoRotation* rotationBottom = new TGeoRotation("", 180., 0., 0.);
   TGeoCombiTrans* rotoTranslationBottom =
     new TGeoCombiTrans(*translationBottom, *rotationBottom);
@@ -285,17 +285,17 @@ void ITS3Layer::create4thLayer(TGeoVolume* motherVolume)
     }
   }
 
-  TGeoTranslation* translationTopRight = new TGeoTranslation(mGapXDirection / 2, mGapZ / 2, 0.);
+  TGeoTranslation* translationTopRight = new TGeoTranslation(mGapXDirection / 2, mGapY / 2, 0.);
 
-  TGeoTranslation* translationTopLeft = new TGeoTranslation(-mGapXDirection / 2, mGapZ / 2, 0.);
+  TGeoTranslation* translationTopLeft = new TGeoTranslation(-mGapXDirection / 2, mGapY / 2, 0.);
   TGeoRotation* rotationTopLeft = new TGeoRotation("", 90., 0., 0.);
   TGeoCombiTrans* rotoTranslationTopLeft = new TGeoCombiTrans(*translationTopLeft, *rotationTopLeft);
 
-  TGeoTranslation* translationBottomLeft = new TGeoTranslation(-mGapXDirection / 2, -mGapZ / 2, 0.);
+  TGeoTranslation* translationBottomLeft = new TGeoTranslation(-mGapXDirection / 2, -mGapY / 2, 0.);
   TGeoRotation* rotationBottomLeft = new TGeoRotation("", 180., 0., 0.);
   TGeoCombiTrans* rotoTranslationBottomLeft = new TGeoCombiTrans(*translationBottomLeft, *rotationBottomLeft);
 
-  TGeoTranslation* translationBottomRight = new TGeoTranslation(mGapXDirection / 2, -mGapZ / 2, 0.);
+  TGeoTranslation* translationBottomRight = new TGeoTranslation(mGapXDirection / 2, -mGapY / 2, 0.);
   TGeoRotation* rotationBottomRight = new TGeoRotation("", 270., 0., 0.);
   TGeoCombiTrans* rotoTranslationBottomRight = new TGeoCombiTrans(*translationBottomRight, *rotationBottomRight);
 
