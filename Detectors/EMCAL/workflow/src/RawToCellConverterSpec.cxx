@@ -298,12 +298,11 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
             if (isLowGain) {
               amp *= o2::emcal::constants::EMCAL_HGLGFACTOR;
             }
-            int fecID = mMapper->getFEEForChannelInDDL(feeID, chan.getFECIndex(), chan.getBranchIndex());
             if (chantype == o2::emcal::ChannelType_t::LEDMON) {
               // Mark LEDMONs as HIGH_GAIN/LOW_GAIN for gain type merging - will be flagged as LEDMON later when pushing to the output container
-              currentEvent.setLEDMONCell(CellID, amp, celltime, isLowGain ? o2::emcal::ChannelType_t::LOW_GAIN : o2::emcal::ChannelType_t::HIGH_GAIN, chan.getHardwareAddress(), fecID, feeID, mMergeLGHG);
+              currentEvent.setLEDMONCell(CellID, amp, celltime, isLowGain ? o2::emcal::ChannelType_t::LOW_GAIN : o2::emcal::ChannelType_t::HIGH_GAIN, chan.getHardwareAddress(), feeID, mMergeLGHG);
             } else {
-              currentEvent.setCell(CellID, amp, celltime, chantype, chan.getHardwareAddress(), fecID, feeID, mMergeLGHG);
+              currentEvent.setCell(CellID, amp, celltime, chantype, chan.getHardwareAddress(), feeID, mMergeLGHG);
             }
           } catch (CaloRawFitter::RawFitterError_t& fiterror) {
             handleFitError(fiterror, feeID, CellID, chan.getHardwareAddress());
@@ -397,12 +396,12 @@ int RawToCellConverterSpec::bookEventCells(const gsl::span<const o2::emcal::RecC
       int ampLG = cell.mCellData.getAmplitude() / (o2::emcal::constants::EMCAL_ADCENERGY * o2::emcal::constants::EMCAL_HGLGFACTOR);
       // use cut at 3 sigma where sigma for the LG digitizer is 0.4 ADC counts (EMCAL-502)
       if (ampLG > noiseThresholLGnoHG) {
-        handleGainError(reconstructionerrors::GainError_t::LGNOHG, cell.mDDLID, cell.mFecID, cell.mHWAddressLG);
+        handleGainError(reconstructionerrors::GainError_t::LGNOHG, cell.mDDLID, cell.mHWAddressLG);
       }
       continue;
     }
     if (cell.mHGOutOfRange) {
-      handleGainError(reconstructionerrors::GainError_t::HGNOLG, cell.mDDLID, cell.mFecID, cell.mHWAddressHG);
+      handleGainError(reconstructionerrors::GainError_t::HGNOLG, cell.mDDLID, cell.mHWAddressHG);
       continue;
     }
     ncellsSelected++;
@@ -560,8 +559,9 @@ void RawToCellConverterSpec::handleFitError(const o2::emcal::CaloRawFitter::RawF
   }
 }
 
-void RawToCellConverterSpec::handleGainError(const o2::emcal::reconstructionerrors::GainError_t& errortype, int ddlID, int fecID, int hwaddress)
+void RawToCellConverterSpec::handleGainError(const o2::emcal::reconstructionerrors::GainError_t& errortype, int ddlID, int hwaddress)
 {
+  int fecID = mMapper->getFEEForChannelInDDL(ddlID, Channel::getFecIndexFromHwAddress(hwaddress), Channel::getBranchIndexFromHwAddress(hwaddress));
   if (mNumErrorMessages < mMaxErrorMessages) {
     switch (errortype) {
       case reconstructionerrors::GainError_t::HGNOLG:

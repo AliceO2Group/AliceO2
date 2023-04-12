@@ -228,9 +228,8 @@ class RawToCellConverterSpec : public framework::Task
   /// \brief handler function for gain type errors
   /// \param errortype Gain error type
   /// \param ddlID ID of the DDL
-  /// \param fecID ID of the FEC
   /// \param hwaddress Hardware address
-  void handleGainError(const o2::emcal::reconstructionerrors::GainError_t& errortype, int ddlID, int fecID, int hwaddress);
+  void handleGainError(const o2::emcal::reconstructionerrors::GainError_t& errortype, int ddlID, int hwaddress);
 
   void handlePageError(const RawDecodingError& e);
 
