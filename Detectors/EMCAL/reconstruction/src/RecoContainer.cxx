@@ -18,7 +18,7 @@ using namespace o2::emcal;
 
 EventContainer::EventContainer(const o2::InteractionRecord& currentIR) : mInteractionRecord(currentIR) {}
 
-void EventContainer::setCellCommon(int tower, double energy, double time, ChannelType_t celltype, bool isLEDmon, int hwaddress, int fecID, int ddlID, bool doMergeHGLG)
+void EventContainer::setCellCommon(int tower, double energy, double time, ChannelType_t celltype, bool isLEDmon, int hwaddress, int ddlID, bool doMergeHGLG)
 {
   auto updateCell = [energy, time, celltype](Cell& cell) {
     cell.setEnergy(energy);
@@ -68,7 +68,7 @@ void EventContainer::setCellCommon(int tower, double energy, double time, Channe
       datacontainer.push_back({o2::emcal::Cell(tower, energy, time, celltype),
                                lgNoHG,
                                hgOutOfRange,
-                               fecID, ddlID, hwAddressLG, hwAddressHG});
+                               ddlID, hwAddressLG, hwAddressHG});
     }
   } else {
     // No merge of HG/LG cells (usually MC where either
@@ -79,7 +79,7 @@ void EventContainer::setCellCommon(int tower, double energy, double time, Channe
     datacontainer.push_back({o2::emcal::Cell(tower, energy, time, celltype),
                              false,
                              false,
-                             fecID, ddlID, hwAddressLG, hwAddressHG});
+                             ddlID, hwAddressLG, hwAddressHG});
   }
 }
 
