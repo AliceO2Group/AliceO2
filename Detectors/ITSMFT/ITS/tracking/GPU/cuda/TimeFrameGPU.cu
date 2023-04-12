@@ -65,6 +65,9 @@ GpuTimeFrameChunk<nLayers>::~GpuTimeFrameChunk()
     checkGPUError(cudaFree(mCUBTmpBufferDevice));
     checkGPUError(cudaFree(mFoundTrackletsDevice));
     checkGPUError(cudaFree(mNFoundCellsDevice));
+    checkGPUError(cudaFree(mCellsDeviceArray));
+    checkGPUError(cudaFree(mNeighboursCellDeviceArray));
+    checkGPUError(cudaFree(mNeighboursCellLookupTablesDeviceArray));
   }
 }
 
@@ -104,6 +107,10 @@ void GpuTimeFrameChunk<nLayers>::allocate(const size_t nrof, Stream& stream)
   /// Invariant allocations
   checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&mFoundTrackletsDevice), (nLayers - 1) * sizeof(int) * nrof, stream.get())); // No need to reset, we always read it after writing
   checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&mNFoundCellsDevice), (nLayers - 2) * sizeof(int) * nrof, stream.get()));
+
+  checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&mCellsDeviceArray), (nLayers - 2) * sizeof(Cell*), stream.get()));
+  checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&mNeighboursCellDeviceArray), (nLayers - 3) * sizeof(int*), stream.get()));
+  checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&mNeighboursCellLookupTablesDeviceArray), (nLayers - 3) * sizeof(int*), stream.get()));
 
   mAllocated = true;
 }

@@ -119,6 +119,9 @@ class GpuTimeFrameChunk
   unsigned char* getDeviceUsedTracklets() { return mUsedTrackletsDevice; }
   int* getDeviceClusteredLines() { return mClusteredLinesDevice; }
   size_t getNPopulatedRof() const { return mNPopulatedRof; }
+  Cell** getArrayCells() const { return mCellsDeviceArray; }
+  int** getArrayNeighboursCell() const { return mNeighboursCellDeviceArray; }
+  int** getArrayNeighboursCellLUT() const { return mNeighboursCellLookupTablesDeviceArray; }
 
  private:
   /// Host
@@ -141,7 +144,7 @@ class GpuTimeFrameChunk
   // These are to make them accessible using layer index
   Cell** mCellsDeviceArray;
   int** mNeighboursCellDeviceArray;
-  int** mNeighboursCellLookupTablesDeviceDeviceArray;
+  int** mNeighboursCellLookupTablesDeviceArray;
 
   int* mCUBTmpBufferDevice;
   int* mFoundTrackletsDevice;
