@@ -154,18 +154,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       try {
         rawreader.next();
       } catch (RawDecodingError& e) {
-        if (mCreateRawDataErrors) {
-          mOutputDecoderErrors.emplace_back(e.getFECID(), ErrorTypeFEE::ErrorSource_t::PAGE_ERROR, RawDecodingError::ErrorTypeToInt(e.getErrorType()), -1, -1);
-        }
-        if (mNumErrorMessages < mMaxErrorMessages) {
-          LOG(warning) << " Page decoding: " << e.what() << " in FEE ID " << e.getFECID() << std::endl;
-          mNumErrorMessages++;
-          if (mNumErrorMessages == mMaxErrorMessages) {
-            LOG(warning) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
-          }
-        } else {
-          mErrorMessagesSuppressed++;
-        }
+        handlePageError(e);
         // We must skip the page as payload is not consistent
         // otherwise the next functions will rethrow the exceptions as
         // the page format does not follow the expected format
@@ -221,75 +210,11 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       try {
         decoder.decode();
       } catch (AltroDecoderError& e) {
-        if (mNumErrorMessages < mMaxErrorMessages) {
-          std::string errormessage;
-          using AltroErrType = AltroDecoderError::ErrorType_t;
-          switch (e.getErrorType()) {
-            case AltroErrType::RCU_TRAILER_ERROR:
-              errormessage = " RCU Trailer Error ";
-              break;
-            case AltroErrType::RCU_VERSION_ERROR:
-              errormessage = " RCU Version Error ";
-              break;
-            case AltroErrType::RCU_TRAILER_SIZE_ERROR:
-              errormessage = " RCU Trailer Size Error ";
-              break;
-            case AltroErrType::ALTRO_BUNCH_HEADER_ERROR:
-              errormessage = " ALTRO Bunch Header Error ";
-              break;
-            case AltroErrType::ALTRO_BUNCH_LENGTH_ERROR:
-              errormessage = " ALTRO Bunch Length Error ";
-              break;
-            case AltroErrType::ALTRO_PAYLOAD_ERROR:
-              errormessage = " ALTRO Payload Error ";
-              break;
-            case AltroErrType::ALTRO_MAPPING_ERROR:
-              errormessage = " ALTRO Mapping Error ";
-              break;
-            case AltroErrType::CHANNEL_ERROR:
-              errormessage = " Channel Error ";
-              break;
-            default:
-              break;
-          };
-          LOG(warning) << " EMCAL raw task: " << errormessage << " in DDL " << feeID;
-          mNumErrorMessages++;
-          if (mNumErrorMessages == mMaxErrorMessages) {
-            LOG(warning) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
-          }
-        } else {
-          mErrorMessagesSuppressed++;
-        }
-        if (mCreateRawDataErrors) {
-          // fill histograms  with error types
-          ErrorTypeFEE errornum(feeID, ErrorTypeFEE::ErrorSource_t::ALTRO_ERROR, AltroDecoderError::errorTypeToInt(e.getErrorType()), -1, -1);
-          mOutputDecoderErrors.push_back(errornum);
-        }
+        handleAltroError(e, feeID);
         continue;
       }
-      for (auto minorerror : decoder.getMinorDecodingErrors()) {
-        if (mNumErrorMessages < mMaxErrorMessages) {
-          LOG(warning) << " EMCAL raw task - Minor error in DDL " << feeID << ": " << minorerror.what();
-          mNumErrorMessages++;
-          if (mNumErrorMessages == mMaxErrorMessages) {
-            LOG(warning) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
-          }
-        } else {
-          mErrorMessagesSuppressed++;
-        }
-        if (mCreateRawDataErrors) {
-          int fecID = -1, hwaddress = -1;
-          try {
-            hwaddress = Channel::getHardwareAddressFromChannelHeader(minorerror.getChannelHeader());
-            fecID = mMapper->getFEEForChannelInDDL(feeID, Channel::getFecIndexFromHwAddress(hwaddress), Channel::getBranchIndexFromHwAddress(hwaddress));
-          } catch (Mapper::AddressNotFoundException& e) {
-            // Unfortunately corrupted FEC IDs will not have useful information, so we need to initalize with -1
-          } catch (MappingHandler::DDLInvalid& e) {
-            // Unfortunately corrupted FEC IDs will not have useful information, so we need to initalize with -1
-          }
-          ErrorTypeFEE errornum(feeID, ErrorTypeFEE::ErrorSource_t::MINOR_ALTRO_ERROR, MinorAltroDecodingError::errorTypeToInt(minorerror.getErrorType()), fecID, hwaddress);
-          mOutputDecoderErrors.push_back(errornum);
-        }
+      for (const auto& minorerror : decoder.getMinorDecodingErrors()) {
+        handleMinorAltroError(minorerror, feeID);
       }
 
       if (mPrintTrailer) {
@@ -327,17 +252,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
             iCol = map.getColumn(chan.getHardwareAddress());
             chantype = map.getChannelType(chan.getHardwareAddress());
           } catch (Mapper::AddressNotFoundException& ex) {
-            ErrorTypeFEE mappingError{feeID, ErrorTypeFEE::ErrorSource_t::ALTRO_ERROR, AltroDecoderError::errorTypeToInt(AltroDecoderError::ErrorType_t::ALTRO_MAPPING_ERROR), -1, chan.getHardwareAddress()};
-            mOutputDecoderErrors.push_back(mappingError);
-            if (mNumErrorMessages < mMaxErrorMessages) {
-              LOG(warning) << "Mapping error DDL " << feeID << ": " << ex.what();
-              mNumErrorMessages++;
-              if (mNumErrorMessages == mMaxErrorMessages) {
-                LOG(warning) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
-              }
-            } else {
-              mErrorMessagesSuppressed++;
-            }
+            handleAddressError(ex, feeID, chan.getHardwareAddress());
             continue;
           }
 
@@ -362,40 +277,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
               isLowGain = iRow == 0;             // For LEDMONs gain type is encoded in the row (0 - low gain, 1 - high gain)
             }
           } catch (ModuleIndexException& e) {
-            if (mNumErrorMessages < mMaxErrorMessages) {
-              std::string celltypename;
-              switch (chantype) {
-                case o2::emcal::ChannelType_t::HIGH_GAIN:
-                  celltypename = "high gain";
-                  break;
-                case o2::emcal::ChannelType_t::LOW_GAIN:
-                  celltypename = "low-gain";
-                  break;
-                case o2::emcal::ChannelType_t::TRU:
-                  celltypename = "TRU";
-                  break;
-                case o2::emcal::ChannelType_t::LEDMON:
-                  celltypename = "LEDMON";
-                  break;
-              };
-              switch (e.getModuleType()) {
-                case ModuleIndexException::ModuleType_t::CELL_MODULE:
-                  LOG(warning) << "Sending invalid or negative cell ID " << e.getIndex() << " (SM " << iSM << ", row " << e.getRow() << " - shift " << e.getRowShifted() << ", col " << e.getColumn() << " - shift " << e.getColumnShifted() << ") of type " << celltypename;
-                  break;
-                case ModuleIndexException::ModuleType_t::LEDMON_MODULE:
-                  LOG(warning) << "Sending invalid or negative LEDMON module ID " << e.getIndex() << "( SM" << iSM << ")";
-                  break;
-              };
-              mNumErrorMessages++;
-              if (mNumErrorMessages == mMaxErrorMessages) {
-                LOG(warning) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
-              }
-            } else {
-              mErrorMessagesSuppressed++;
-            }
-            if (mCreateRawDataErrors) {
-              mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::GEOMETRY_ERROR, reconstructionerrors::getErrorCodeFromGeometryError(CellID < 0 ? reconstructionerrors::GeometryError_t::CELL_INDEX_NEGATIVE : reconstructionerrors::GeometryError_t::CELL_RANGE_EXCEED), CellID, chan.getHardwareAddress()); // 0 -> Cell ID out of range
-            }
+            handleGeometryError(e, iSM, CellID, chan.getHardwareAddress(), chantype);
             continue;
           }
 
@@ -424,39 +306,12 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
               currentEvent.setCell(CellID, amp, celltime, chantype, chan.getHardwareAddress(), fecID, feeID, mMergeLGHG);
             }
           } catch (CaloRawFitter::RawFitterError_t& fiterror) {
-            if (fiterror != CaloRawFitter::RawFitterError_t::BUNCH_NOT_OK) {
-              // Display
-              if (mNumErrorMessages < mMaxErrorMessages) {
-                LOG(warning) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
-                mNumErrorMessages++;
-                if (mNumErrorMessages == mMaxErrorMessages) {
-                  LOG(warning) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
-                }
-              } else {
-                mErrorMessagesSuppressed++;
-              }
-              // Exclude BUNCH_NOT_OK also from raw error objects
-              if (mCreateRawDataErrors) {
-                mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::FIT_ERROR, CaloRawFitter::getErrorNumber(fiterror), CellID, chan.getHardwareAddress());
-              }
-            } else {
-              LOG(debug2) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
-              nBunchesNotOK++;
-            }
+            handleFitError(fiterror, feeID, CellID, chan.getHardwareAddress());
           }
         }
       } catch (o2::emcal::MappingHandler::DDLInvalid& ddlerror) {
         // Unable to catch mapping
-        if (mNumErrorMessages < mMaxErrorMessages) {
-          LOG(error) << "Failed obtaining mapping for DDL " << ddlerror.getDDDL();
-          mNumErrorMessages++;
-          if (mNumErrorMessages == mMaxErrorMessages) {
-            LOG(error) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
-          }
-        }
-        if (mCreateRawDataErrors) {
-          mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::ALTRO_ERROR, AltroDecoderError::errorTypeToInt(AltroDecoderError::ErrorType_t::ALTRO_MAPPING_ERROR), -1, -1);
-        }
+        handleDDLError(ddlerror, feeID);
       }
     }
   }
@@ -578,7 +433,134 @@ int RawToCellConverterSpec::geLEDMONAbsID(int supermoduleID, int moduleID)
   return supermoduleID * o2::emcal::EMCAL_LEDREFS + moduleID;
 }
 
-void RawToCellConverterSpec::handleGainError(o2::emcal::reconstructionerrors::GainError_t errortype, int ddlID, int fecID, int hwaddress)
+void RawToCellConverterSpec::handleAddressError(const Mapper::AddressNotFoundException& error, int feeID, int hwaddress)
+{
+  if (mNumErrorMessages < mMaxErrorMessages) {
+    LOG(warning) << "Mapping error DDL " << feeID << ": " << error.what();
+    mNumErrorMessages++;
+    if (mNumErrorMessages == mMaxErrorMessages) {
+      LOG(warning) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+    }
+  } else {
+    mErrorMessagesSuppressed++;
+  }
+  if (mCreateRawDataErrors) {
+    ErrorTypeFEE mappingError{feeID, ErrorTypeFEE::ErrorSource_t::ALTRO_ERROR, AltroDecoderError::errorTypeToInt(AltroDecoderError::ErrorType_t::ALTRO_MAPPING_ERROR), -1, hwaddress};
+    mOutputDecoderErrors.push_back(mappingError);
+  }
+}
+
+void RawToCellConverterSpec::handleAltroError(const o2::emcal::AltroDecoderError& altroerror, int ddlID)
+{
+  if (mNumErrorMessages < mMaxErrorMessages) {
+    std::string errormessage;
+    using AltroErrType = AltroDecoderError::ErrorType_t;
+    switch (altroerror.getErrorType()) {
+      case AltroErrType::RCU_TRAILER_ERROR:
+        errormessage = " RCU Trailer Error ";
+        break;
+      case AltroErrType::RCU_VERSION_ERROR:
+        errormessage = " RCU Version Error ";
+        break;
+      case AltroErrType::RCU_TRAILER_SIZE_ERROR:
+        errormessage = " RCU Trailer Size Error ";
+        break;
+      case AltroErrType::ALTRO_BUNCH_HEADER_ERROR:
+        errormessage = " ALTRO Bunch Header Error ";
+        break;
+      case AltroErrType::ALTRO_BUNCH_LENGTH_ERROR:
+        errormessage = " ALTRO Bunch Length Error ";
+        break;
+      case AltroErrType::ALTRO_PAYLOAD_ERROR:
+        errormessage = " ALTRO Payload Error ";
+        break;
+      case AltroErrType::ALTRO_MAPPING_ERROR:
+        errormessage = " ALTRO Mapping Error ";
+        break;
+      case AltroErrType::CHANNEL_ERROR:
+        errormessage = " Channel Error ";
+        break;
+      default:
+        break;
+    };
+    LOG(warning) << " EMCAL raw task: " << errormessage << " in DDL " << ddlID;
+    mNumErrorMessages++;
+    if (mNumErrorMessages == mMaxErrorMessages) {
+      LOG(warning) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+    }
+  } else {
+    mErrorMessagesSuppressed++;
+  }
+  if (mCreateRawDataErrors) {
+    // fill histograms  with error types
+    ErrorTypeFEE errornum(ddlID, ErrorTypeFEE::ErrorSource_t::ALTRO_ERROR, AltroDecoderError::errorTypeToInt(altroerror.getErrorType()), -1, -1);
+    mOutputDecoderErrors.push_back(errornum);
+  }
+}
+
+void RawToCellConverterSpec::handleMinorAltroError(const o2::emcal::MinorAltroDecodingError& minorerror, int ddlID)
+{
+  if (mNumErrorMessages < mMaxErrorMessages) {
+    LOG(warning) << " EMCAL raw task - Minor error in DDL " << ddlID << ": " << minorerror.what();
+    mNumErrorMessages++;
+    if (mNumErrorMessages == mMaxErrorMessages) {
+      LOG(warning) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+    }
+  } else {
+    mErrorMessagesSuppressed++;
+  }
+  if (mCreateRawDataErrors) {
+    int fecID = -1, hwaddress = -1;
+    try {
+      hwaddress = Channel::getHardwareAddressFromChannelHeader(minorerror.getChannelHeader());
+      fecID = mMapper->getFEEForChannelInDDL(ddlID, Channel::getFecIndexFromHwAddress(hwaddress), Channel::getBranchIndexFromHwAddress(hwaddress));
+    } catch (Mapper::AddressNotFoundException& e) {
+      // Unfortunately corrupted FEC IDs will not have useful information, so we need to initalize with -1
+    } catch (MappingHandler::DDLInvalid& e) {
+      // Unfortunately corrupted FEC IDs will not have useful information, so we need to initalize with -1
+    }
+    ErrorTypeFEE errornum(ddlID, ErrorTypeFEE::ErrorSource_t::MINOR_ALTRO_ERROR, MinorAltroDecodingError::errorTypeToInt(minorerror.getErrorType()), fecID, hwaddress);
+    mOutputDecoderErrors.push_back(errornum);
+  }
+}
+
+void RawToCellConverterSpec::handleDDLError(const MappingHandler::DDLInvalid& error, int feeID)
+{
+  if (mNumErrorMessages < mMaxErrorMessages) {
+    LOG(error) << "Failed obtaining mapping for DDL " << error.getDDDL();
+    mNumErrorMessages++;
+    if (mNumErrorMessages == mMaxErrorMessages) {
+      LOG(error) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+    }
+  }
+  if (mCreateRawDataErrors) {
+    mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::ALTRO_ERROR, AltroDecoderError::errorTypeToInt(AltroDecoderError::ErrorType_t::ALTRO_MAPPING_ERROR), -1, -1);
+  }
+}
+
+void RawToCellConverterSpec::handleFitError(const o2::emcal::CaloRawFitter::RawFitterError_t& fiterror, int ddlID, int cellID, int hwaddress)
+{
+  if (fiterror != CaloRawFitter::RawFitterError_t::BUNCH_NOT_OK) {
+    // Display
+    if (mNumErrorMessages < mMaxErrorMessages) {
+      LOG(warning) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
+      mNumErrorMessages++;
+      if (mNumErrorMessages == mMaxErrorMessages) {
+        LOG(warning) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+      }
+    } else {
+      mErrorMessagesSuppressed++;
+    }
+    // Exclude BUNCH_NOT_OK also from raw error objects
+    if (mCreateRawDataErrors) {
+      mOutputDecoderErrors.emplace_back(ddlID, ErrorTypeFEE::ErrorSource_t::FIT_ERROR, CaloRawFitter::getErrorNumber(fiterror), cellID, hwaddress);
+    }
+  } else {
+    LOG(debug2) << "Failure in raw fitting: " << CaloRawFitter::createErrorMessage(fiterror);
+  }
+}
+
+void RawToCellConverterSpec::handleGainError(const o2::emcal::reconstructionerrors::GainError_t& errortype, int ddlID, int fecID, int hwaddress)
 {
   if (mNumErrorMessages < mMaxErrorMessages) {
     switch (errortype) {
@@ -599,6 +581,61 @@ void RawToCellConverterSpec::handleGainError(o2::emcal::reconstructionerrors::Ga
   }
   if (mCreateRawDataErrors) {
     mOutputDecoderErrors.emplace_back(ddlID, ErrorTypeFEE::GAIN_ERROR, reconstructionerrors::getErrorCodeFromGainError(errortype), fecID, hwaddress);
+  }
+}
+
+void RawToCellConverterSpec::handleGeometryError(const ModuleIndexException& error, int feeID, int cellID, int hwaddress, ChannelType_t chantype)
+{
+  if (mNumErrorMessages < mMaxErrorMessages) {
+    std::string celltypename;
+    switch (chantype) {
+      case o2::emcal::ChannelType_t::HIGH_GAIN:
+        celltypename = "high gain";
+        break;
+      case o2::emcal::ChannelType_t::LOW_GAIN:
+        celltypename = "low-gain";
+        break;
+      case o2::emcal::ChannelType_t::TRU:
+        celltypename = "TRU";
+        break;
+      case o2::emcal::ChannelType_t::LEDMON:
+        celltypename = "LEDMON";
+        break;
+    };
+    int supermoduleID = feeID / 2;
+    switch (error.getModuleType()) {
+      case ModuleIndexException::ModuleType_t::CELL_MODULE:
+        LOG(warning) << "Sending invalid or negative cell ID " << error.getIndex() << " (SM " << supermoduleID << ", row " << error.getRow() << " - shift " << error.getRowShifted() << ", col " << error.getColumn() << " - shift " << error.getColumnShifted() << ") of type " << celltypename;
+        break;
+      case ModuleIndexException::ModuleType_t::LEDMON_MODULE:
+        LOG(warning) << "Sending invalid or negative LEDMON module ID " << error.getIndex() << "( SM" << supermoduleID << ")";
+        break;
+    };
+    mNumErrorMessages++;
+    if (mNumErrorMessages == mMaxErrorMessages) {
+      LOG(warning) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+    }
+  } else {
+    mErrorMessagesSuppressed++;
+  }
+  if (mCreateRawDataErrors) {
+    mOutputDecoderErrors.emplace_back(feeID, ErrorTypeFEE::ErrorSource_t::GEOMETRY_ERROR, reconstructionerrors::getErrorCodeFromGeometryError(cellID < 0 ? reconstructionerrors::GeometryError_t::CELL_INDEX_NEGATIVE : reconstructionerrors::GeometryError_t::CELL_RANGE_EXCEED), cellID, hwaddress); // 0 -> Cell ID out of range
+  }
+}
+
+void RawToCellConverterSpec::handlePageError(const RawDecodingError& e)
+{
+  if (mCreateRawDataErrors) {
+    mOutputDecoderErrors.emplace_back(e.getFECID(), ErrorTypeFEE::ErrorSource_t::PAGE_ERROR, RawDecodingError::ErrorTypeToInt(e.getErrorType()), -1, -1);
+  }
+  if (mNumErrorMessages < mMaxErrorMessages) {
+    LOG(warning) << " Page decoding: " << e.what() << " in FEE ID " << e.getFECID();
+    mNumErrorMessages++;
+    if (mNumErrorMessages == mMaxErrorMessages) {
+      LOG(warning) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+    }
+  } else {
+    mErrorMessagesSuppressed++;
   }
 }
 
