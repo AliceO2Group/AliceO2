@@ -310,7 +310,6 @@ void MatchGlobalFwd::loadMatches()
     LOG(debug) << "     ==> MFTId = " << MFTId << " MCHId =  " << MCHId << std::endl;
 
     auto& thisMCHTrack = mMCHWork[mMCHID2Work[MCHId]];
-    LOG(info) << " MFTId: " << MFTId << " MCHId: " << MCHId << " --> mMCHID2Work[MCHId]:" << mMCHID2Work[MCHId];
     thisMCHTrack.setMatchInfo(match);
     mMatchedTracks.emplace_back(thisMCHTrack);
     if (mMCTruthON) {
