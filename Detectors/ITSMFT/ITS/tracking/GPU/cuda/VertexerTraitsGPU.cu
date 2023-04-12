@@ -48,8 +48,14 @@ using constants::its::VertexerHistogramVolume;
 using constants::math::TwoPi;
 using gpu::utils::checkGPUError;
 using math_utils::getNormalizedPhi;
-
 using namespace constants::its2;
+
+GPUd() float smallestAngleDifference(float a, float b)
+{
+  float diff = fmod(b - a + constants::math::Pi, constants::math::TwoPi) - constants::math::Pi;
+  return (diff < -constants::math::Pi) ? diff + constants::math::TwoPi : ((diff > constants::math::Pi) ? diff - constants::math::TwoPi : diff);
+}
+
 GPUd() const int4 getBinsRect(const Cluster& currentCluster, const int layerIndex,
                               const float z1, float maxdeltaz, float maxdeltaphi)
 {
@@ -270,7 +276,7 @@ GPUg() void trackleterKernelMultipleRof(
           // loop on clusters next layer
           for (int iNextLayerClusterIndex{firstRowClusterIndex}; iNextLayerClusterIndex < maxRowClusterIndex && iNextLayerClusterIndex < nClustersNextLayerRof; ++iNextLayerClusterIndex) {
             const Cluster& nextCluster = clustersNextLayerRof[iNextLayerClusterIndex];
-            if (o2::gpu::GPUCommonMath::Abs(currentCluster.phi - nextCluster.phi) < phiCut) {
+            if (o2::gpu::GPUCommonMath::Abs(smallestAngleDifference(currentCluster.phi, nextCluster.phi)) < phiCut) {
               if (storedTracklets < maxTrackletsPerCluster) {
                 if constexpr (Mode == TrackletMode::Layer0Layer1) {
                   new (TrackletsRof + stride + storedTracklets) Tracklet{iNextLayerClusterIndex, iCurrentLayerClusterIndex, nextCluster, currentCluster, static_cast<int>(rof), static_cast<int>(rof)};
@@ -314,7 +320,7 @@ GPUg() void trackletSelectionKernelSingleRof(
     for (int iTracklet12{0}; iTracklet12 < nFoundTracklet12[iCurrentLayerClusterIndex]; ++iTracklet12) {
       for (int iTracklet01{0}; iTracklet01 < nFoundTracklet01[iCurrentLayerClusterIndex] && validTracklets < maxTrackletsPerCluster; ++iTracklet01) {
         const float deltaTanLambda{o2::gpu::GPUCommonMath::Abs(tracklets01[stride + iTracklet01].tanLambda - tracklets12[stride + iTracklet12].tanLambda)};
-        const float deltaPhi{o2::gpu::GPUCommonMath::Abs(tracklets01[stride + iTracklet01].phi - tracklets12[stride + iTracklet12].phi)};
+        const float deltaPhi{o2::gpu::GPUCommonMath::Abs(smallestAngleDifference(tracklets01[stride + iTracklet01].phi, tracklets12[stride + iTracklet12].phi))};
         if (!usedTracklets[stride + iTracklet01] && deltaTanLambda < tanLambdaCut && deltaPhi < phiCut && validTracklets != maxTrackletsPerCluster) {
           usedTracklets[stride + iTracklet01] = true;
           if constexpr (!initRun) {
