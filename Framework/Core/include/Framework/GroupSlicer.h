@@ -22,6 +22,7 @@
 
 namespace o2::framework
 {
+
 template <typename G, typename... A>
 struct GroupSlicer {
   using grouping_t = std::decay_t<G>;
