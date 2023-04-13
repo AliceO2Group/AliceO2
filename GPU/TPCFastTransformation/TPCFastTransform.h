@@ -192,6 +192,9 @@ class TPCFastTransform : public FlatObject
   /// Inverse transformation: Transformed Y and Z -> Y and Z, transformed w/o space charge correction
   GPUd() void InverseTransformYZtoNominalYZ(int slice, int row, float y, float z, float& ny, float& nz, const TPCFastTransform* ref = nullptr, float scale = 0.f) const;
 
+  /// Inverse transformation: Transformed X, Y and Z -> X, Y and Z, transformed w/o space charge correction
+  GPUd() void InverseTransformXYZtoNominalXYZ(int slice, int row, float x, float y, float z, float& nx, float& ny, float& nz, const TPCFastTransform* ref = nullptr, float scale = 0.f) const;
+
   /// Ideal transformation with Vdrift only - without calibration
   GPUd() void TransformIdeal(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime) const;
   GPUd() void TransformIdealZ(int slice, float time, float& z, float vertexTime) const;
@@ -773,6 +776,26 @@ GPUdi() void TPCFastTransform::InverseTransformYZtoNominalYZ(int slice, int row,
                                                                                        << "vn=" << vn
                                                                                        << "\n";
   })
+}
+
+GPUdi() void TPCFastTransform::InverseTransformXYZtoNominalXYZ(int slice, int row, float x, float y, float z, float& nx, float& ny, float& nz, const TPCFastTransform* ref, float scale) const
+{
+  /// Inverse transformation: Transformed X, Y and Z -> X, Y and Z, transformed w/o space charge correction
+  int row2 = row + 1;
+  if (row2 >= getGeometry().getNumberOfRows()) {
+    row2 = row - 1;
+  }
+  float nx1, ny1, nz1; // nominal coordinates for row
+  float nx2, ny2, nz2; // nominal coordinates for row2
+  nx1 = getGeometry().getRowInfo(row).x;
+  nx2 = getGeometry().getRowInfo(row2).x;
+  InverseTransformYZtoNominalYZ(slice, row, y, z, ny1, nz1, ref, scale);
+  InverseTransformYZtoNominalYZ(slice, row2, y, z, ny1, nz1, ref, scale);
+  float c1 = (nx2 - nx) / (nx2 - nx1);
+  float c2 = (nx - nx1) / (nx2 - nx1);
+  nx = x;
+  ny = (ny1 * c1 + ny2 * c2);
+  nz = (nz1 * c1 + nz2 * c2);
 }
 
 } // namespace gpu

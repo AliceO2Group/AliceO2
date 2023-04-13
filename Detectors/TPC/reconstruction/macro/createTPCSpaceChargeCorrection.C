@@ -38,6 +38,7 @@
 #include "CommonConstants/MathConstants.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
+#include "TPCCalibration/TPCFastSpaceChargeCorrectionHelper.h"
 
 using namespace o2;
 using namespace tpc;
@@ -82,9 +83,11 @@ void createTPCSpaceChargeCorrection(
   const int debug = 0)
 {
   initSpaceCharge(histoFileName, histoName);
-  TPCFastTransformHelperO2::instance()->setGlobalSpaceChargeCorrection(getGlobalSpaceChargeCorrection);
 
-  std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
+  TPCFastSpaceChargeCorrectionHelper::instance()->setGlobalSpaceChargeCorrection(getGlobalSpaceChargeCorrection);
+  std::unique_ptr<TPCFastSpaceChargeCorrection> spCorrection = TPCFastSpaceChargeCorrectionHelper::instance()->create();
+
+  std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0, *spCorrection));
 
   fastTransform->writeToFile(outputFileName);
 
