@@ -375,6 +375,10 @@ DCSConfigDevice::TagInfos DCSConfigDevice::readTagInfos(gsl::span<const char> co
       LOGP(warning, "Ill formatted line in 'TPC{}.txt': {}, expecting <tag,comment>, skipping", TagInfoName, line);
       continue;
     }
+    if (tag == 0) {
+      LOGP(warning, "Tag '{}' not accepted, must be > 0, skipping", tag);
+      continue;
+    }
     infos.emplace_back(tag, comment);
   }
 
