@@ -126,7 +126,7 @@ void CalibratorVdExB::initProcessing()
   mFitter.Config().SetMinimizerOptions(opt);
 
   // set tree addresses
-  if (mEnableOutput && mOutTree) {
+  if (mEnableOutput) {
     mOutTree->Branch("lorentzAngle", &mFitFunctor.laPreCorr);
     mOutTree->Branch("vDrift", &mFitFunctor.vdPreCorr);
     for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
@@ -139,30 +139,24 @@ void CalibratorVdExB::initProcessing()
 
 void CalibratorVdExB::retrievePrev(o2::framework::ProcessingContext& pc)
 {
-  static bool doneOnce = false;
-  if (!doneOnce) {
-    doneOnce = true;
-    mFitFunctor.vdPreCorr.fill(constants::VDRIFTDEFAULT);
-    mFitFunctor.laPreCorr.fill(constants::EXBDEFAULT);
-    // We either get a pointer to a valid object from the last ~hour or to the default object
-    // which is always present. The first has precedence over the latter.
-    auto dataCalVdriftExB = pc.inputs().get<o2::trd::CalVdriftExB*>("calvdexb");
-    std::string msg = "Default Object";
-    // We check if the object we got is the default one by comparing it to the defaults.
-    for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
-      if (dataCalVdriftExB->getVdrift(iDet) != constants::VDRIFTDEFAULT ||
-          dataCalVdriftExB->getExB(iDet) != constants::EXBDEFAULT) {
-        msg = "Previous Object";
-        break;
-      }
+  // We either get a pointer to a valid object from the last ~hour or to the default object
+  // which is always present. The first has precedence over the latter.
+  auto dataCalVdriftExB = pc.inputs().get<o2::trd::CalVdriftExB*>("calvdexb");
+  std::string msg = "Default Object";
+  // We check if the object we got is the default one by comparing it to the defaults.
+  for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
+    if (dataCalVdriftExB->getVdrift(iDet) != VDRIFTDEFAULT ||
+        dataCalVdriftExB->getExB(iDet) != EXBDEFAULT) {
+      msg = "Previous Object";
+      break;
     }
-    LOG(info) << "Calibrator: From CCDB retrieved " << msg;
+  }
+  LOG(info) << "Calibrator: From CCDB retrieved " << msg;
 
-    // Here we set each entry regardless if it is the default or not.
-    for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
-      mFitFunctor.laPreCorr[iDet] = dataCalVdriftExB->getExB(iDet);
-      mFitFunctor.vdPreCorr[iDet] = dataCalVdriftExB->getVdrift(iDet);
-    }
+  // Here we set each entry regardless if it is the default or not.
+  for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
+    mFitFunctor.laPreCorr[iDet] = dataCalVdriftExB->getExB(iDet);
+    mFitFunctor.vdPreCorr[iDet] = dataCalVdriftExB->getVdrift(iDet);
   }
 }
 
@@ -209,7 +203,7 @@ void CalibratorVdExB::finalizeSlot(Slot& slot)
   LOGF(info, "Done fitting angular residual histograms. CPU time: %f, real time: %f", timer.CpuTime(), timer.RealTime());
 
   // Fill Tree and log to debug
-  if (mEnableOutput && mOutTree) {
+  if (mEnableOutput) {
     mOutTree->Fill();
     for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
       LOGF(debug, "Fit result for chamber %i: vd=%f, la=%f", iDet, vdFitResults[iDet], laFitResults[iDet] * TMath::RadToDeg());
@@ -242,25 +236,20 @@ Slot& CalibratorVdExB::emplaceNewSlot(bool front, TFType tStart, TFType tEnd)
 
 void CalibratorVdExB::createOutputFile()
 {
-  if (!mEnableOutput) {
-    return;
-  }
-
+  mEnableOutput = true;
   mOutFile = std::make_unique<TFile>("trd_calibVdriftExB.root", "RECREATE");
   if (mOutFile->IsZombie()) {
     LOG(error) << "Failed to create output file!";
     mEnableOutput = false;
     return;
   }
-
   mOutTree = std::make_unique<TTree>("calib", "VDrift&ExB calibration");
-
-  LOG(info) << "Created output file";
+  LOG(info) << "Created output file trd_calibVdriftExB.root";
 }
 
 void CalibratorVdExB::closeOutputFile()
 {
-  if (!mEnableOutput || !mOutTree) {
+  if (!mEnableOutput) {
     return;
   }
 
@@ -273,6 +262,8 @@ void CalibratorVdExB::closeOutputFile()
   } catch (std::exception const& e) {
     LOG(error) << "Failed to write calibration data file, reason: " << e.what();
   }
+  // after closing, we won't open a new file
+  mEnableOutput = false;
 }
 
 } // namespace o2::trd

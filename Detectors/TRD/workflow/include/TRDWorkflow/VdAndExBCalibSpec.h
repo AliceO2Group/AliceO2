@@ -44,13 +44,14 @@ class VdAndExBCalibDevice : public o2::framework::Task
   void init(o2::framework::InitContext& ic) final
   {
     o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
-    auto enableOutput = ic.options().get<bool>("enable-root-output");
     auto slotL = ic.options().get<uint32_t>("sec-per-slot");
     auto delay = ic.options().get<uint32_t>("max-delay");
-    mCalibrator = std::make_unique<o2::trd::CalibratorVdExB>(enableOutput);
+    mCalibrator = std::make_unique<o2::trd::CalibratorVdExB>();
     mCalibrator->setSlotLengthInSeconds(slotL);
     mCalibrator->setMaxSlotsDelay(delay);
-    mCalibrator->createOutputFile(); // internally checks if output is enabled
+    if (ic.options().get<bool>("enable-root-output")) {
+      mCalibrator->createOutputFile();
+    }
   }
 
   void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
@@ -60,21 +61,33 @@ class VdAndExBCalibDevice : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
-    auto runStartTime = std::chrono::high_resolution_clock::now();
+    const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
+    if (tinfo.globalRunNumberChanged) { // new run is starting
+      mRunStopRequested = false;
+      mCalibrator->retrievePrev(pc); // SOR initialization is performed here
+    }
+    if (mRunStopRequested) {
+      return;
+    }
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-    mCalibrator->retrievePrev(pc);
     auto dataAngRes = pc.inputs().get<o2::trd::AngularResidHistos>("input");
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
-    LOG(info) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << dataAngRes.getNEntries() << " AngularResidHistos entries";
+    LOG(detail) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << dataAngRes.getNEntries() << " AngularResidHistos entries";
     mCalibrator->process(dataAngRes);
+    if (pc.transitionState() == TransitionHandlingState::Requested) {
+      LOG(info) << "Run stop requested, finalizing";
+      mRunStopRequested = true;
+      mCalibrator->checkSlotsToFinalize(o2::calibration::INFINITE_TF);
+      mCalibrator->closeOutputFile();
+    }
     sendOutput(pc.outputs());
-    std::chrono::duration<double, std::milli> runDuration = std::chrono::high_resolution_clock::now() - runStartTime;
-    LOGP(debug, "Duration for run method: {} ms", std::chrono::duration_cast<std::chrono::milliseconds>(runDuration).count());
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
-    LOG(info) << "Finalizing calibration";
+    if (mRunStopRequested) {
+      return;
+    }
     mCalibrator->checkSlotsToFinalize(o2::calibration::INFINITE_TF);
     mCalibrator->closeOutputFile();
     sendOutput(ec.outputs());
@@ -88,6 +101,7 @@ class VdAndExBCalibDevice : public o2::framework::Task
  private:
   std::unique_ptr<o2::trd::CalibratorVdExB> mCalibrator;
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
+  bool mRunStopRequested = false; // flag that run was stopped (and the last output is sent)
   //________________________________________________________________
   void sendOutput(DataAllocator& output)
   {
