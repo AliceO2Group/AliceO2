@@ -108,7 +108,7 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger()
       }
     }
 
-    if (mNChipsFiredROF || (mAlloEmptyROFs && mNLinksDone < mGBTLinks.size())) { // fill some statistics
+    if (mNChipsFiredROF || (mAlloEmptyROFs && mNLinksDone < mNLinksInTF)) { // fill some statistics
       mTrigger = mLinkForTriggers ? mLinkForTriggers->trigger : 0;
       mROFCounter++;
       mNChipsFired += mNChipsFiredROF;
@@ -118,11 +118,12 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger()
       break;
     }
 
-  } while (mNLinksDone < mGBTLinks.size());
+  } while (mNLinksDone < mNLinksInTF);
   mNExtTriggers += mExtTriggers.size() - prevNTrig;
   ensureChipOrdering();
   mTimerDecode.Stop();
-  return (mNLinksDone < mGBTLinks.size()) ? mNChipsFiredROF : -1;
+
+  return (mNLinksDone < mNLinksInTF) ? mNChipsFiredROF : -1;
 }
 
 ///______________________________________________________________
@@ -156,7 +157,7 @@ void RawPixelDecoder<Mapping>::collectROFCableData(int iru)
   ru.clear();
   for (int il = 0; il < RUDecodeData::MaxLinksPerRU; il++) {
     auto* link = getGBTLink(ru.links[il]);
-    if (link) {
+    if (link && link->statusInTF == GBTLink::DataSeen) {
       auto res = link->collectROFCableData(mMAP);
       if (res == GBTLink::DataSeen || res == GBTLink::CachedDataExist) { // at the moment process only DataSeen
         ru.nNonEmptyLinks++;
@@ -175,10 +176,13 @@ bool RawPixelDecoder<Mapping>::doIRMajorityPoll()
   mIRPoll.clear();
   mInteractionRecord.clear();
   for (auto& link : mGBTLinks) {
-    if (link.status == GBTLink::DataSeen || link.status == GBTLink::CachedDataExist) {
-      mIRPoll[link.ir]++;
-    } else if (link.status == GBTLink::StoppedOnEndOfData || link.status == GBTLink::AbortedOnError) {
-      mNLinksDone++;
+    if (link.statusInTF == GBTLink::DataSeen) {
+      if (link.status == GBTLink::DataSeen || link.status == GBTLink::CachedDataExist) {
+        mIRPoll[link.ir]++;
+      } else if (link.status == GBTLink::StoppedOnEndOfData || link.status == GBTLink::AbortedOnError) {
+        link.statusInTF = GBTLink::StoppedOnEndOfData;
+        mNLinksDone++;
+      }
     }
   }
   int majIR = -1;
@@ -201,6 +205,7 @@ bool RawPixelDecoder<Mapping>::doIRMajorityPoll()
 template <class Mapping>
 void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
 {
+  mNLinksInTF = 0;
   mCurRUDecodeID = NORUDECODED;
   auto nLinks = mGBTLinks.size();
   auto origin = (mUserDataOrigin == o2::header::gDataOriginInvalid) ? mMAP.getOrigin() : mUserDataOrigin;
@@ -252,8 +257,17 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
     }
     auto& link = mGBTLinks[lnkref.entry];
     if (currSSpec != dh->subSpecification) { // this is the 1st part for this link in this TF, next parts must follow contiguously!!!
-      link.clear(false, true);               // clear link data except statistics
       currSSpec = dh->subSpecification;
+      if (link.statusInTF == GBTLink::DataSeen) {
+        static bool errorDone = false;
+        if (!errorDone) {
+          LOGP(error, "{} was already registered, inform PDP on-call about error!!!", link.describe());
+          errorDone = true;
+        }
+      }
+      link.statusInTF = GBTLink::DataSeen;
+      mNLinksInTF++;
+
       if (!linksSeen) { // designate 1st link to register triggers
         link.extTrigVec = &mExtTriggers;
         mLinkForTriggers = &link;
@@ -525,6 +539,7 @@ void RawPixelDecoder<Mapping>::reset()
   }
   for (auto& link : mGBTLinks) {
     link.rofJumpWasSeen = false;
+    link.statusInTF = GBTLink::None;
   }
   clearStat(true);
 }
