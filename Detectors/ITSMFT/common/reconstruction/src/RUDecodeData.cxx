@@ -96,6 +96,9 @@ bool RUDecodeData::checkLinkInSync(int icab, const o2::InteractionRecord ir)
     link->rofJumpWasSeen = false;
     return true;
   }
+  if (link->statusInTF == GBTLink::CollectedDataStatus::None || link->statusInTF == GBTLink::CollectedDataStatus::StoppedOnEndOfData) { // link was not seen in this TF or data was over
+    return true;
+  }
   // apparently there was desynchronization
   if (link->ir > ir) {
     link->rofJumpWasSeen = true;

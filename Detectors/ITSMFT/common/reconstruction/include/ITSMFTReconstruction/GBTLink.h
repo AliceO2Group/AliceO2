@@ -85,6 +85,8 @@ struct GBTLink {
   using RDHUtils = o2::raw::RDHUtils;
   static constexpr int CRUPageAlignment = 16; // use such alignment (in bytes) for CRU pages
   CollectedDataStatus status = None;
+  CollectedDataStatus statusInTF = None; // this link was seen or not in the TF or its data were exhausted
+
   Verbosity verbosity = VerboseErrors;
   std::vector<PhysTrigger>* extTrigVec = nullptr;
   uint8_t idInRU = 0;     // link ID within the RU
