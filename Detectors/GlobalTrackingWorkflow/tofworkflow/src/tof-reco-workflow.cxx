@@ -59,6 +59,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"tof-sectors", o2::framework::VariantType::String, "0-17", {"TOF sector range, e.g. 5-7,8,9 ,TBI"}},
     {"tof-lanes", o2::framework::VariantType::Int, 1, {"number of parallel lanes up to the matcher, TBI"}},
     {"use-ccdb", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}},
+    {"local-cmp", o2::framework::VariantType::Bool, false, {"if compressor is running in the same chain (e.g. epn)"}},
     {"input-desc", o2::framework::VariantType::String, "CRAWDATA", {"Input specs description string"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input readers"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writers"}},
@@ -67,6 +68,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-row-writing", o2::framework::VariantType::Bool, false, {"disable ROW in Digit writing"}},
     {"write-decoding-errors", o2::framework::VariantType::Bool, false, {"trace errors in digits output when decoding"}},
     {"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
+    {"orbits-per-tf", VariantType::Int, -1, {"default(-1) from GRP/CCDB, a valid value is required to run compressor for epn"}},
     {"calib-cluster", VariantType::Bool, false, {"to enable calib info production from clusters"}},
     {"for-calib", VariantType::Bool, false, {"to disable check on problematic, otherwise masked for new calibrations"}},
     {"cosmics", VariantType::Bool, false, {"to enable cosmics utils"}}};
@@ -141,6 +143,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   auto isCalibFromCluster = cfgc.options().get<bool>("calib-cluster");
   auto isCosmics = cfgc.options().get<bool>("cosmics");
   auto ignoreDistStf = cfgc.options().get<bool>("ignore-dist-stf");
+  auto localCmp = cfgc.options().get<bool>("local-cmp");
+  auto orbitPerTF = cfgc.options().get<int>("orbits-per-tf");
   auto ccdb_url = o2::base::NameConf::getCCDBServer();
   auto isForCalib = cfgc.options().get<bool>("for-calib");
 
@@ -158,6 +162,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   LOG(debug) << "TOF disable-root-output = " << disableRootOutput;
   LOG(debug) << "TOF conet-mode = " << conetmode;
   LOG(debug) << "TOF ignore Dist Stf = " << ignoreDistStf;
+  LOG(debug) << "Is tof compressor in the chain = " << localCmp;
+  if (orbitPerTF == -1) {
+    LOG(debug) << "Orbit per TF read from CCDB";
+  } else {
+    LOG(debug) << "Orbit per TF = " << orbitPerTF;
+  }
   LOG(debug) << "TOF disable-row-writing = " << disableROWwriting;
   LOG(debug) << "TOF write-decoding-errors = " << writeerr;
 
@@ -177,7 +187,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   } else if (rawinput) {
     LOG(debug) << "Insert TOF Compressed Raw Decoder";
     auto inputDesc = cfgc.options().get<std::string>("input-desc");
-    specs.emplace_back(o2::tof::getCompressedDecodingSpec(inputDesc, conetmode, !ignoreDistStf));
+    specs.emplace_back(o2::tof::getCompressedDecodingSpec(inputDesc, conetmode, !ignoreDistStf, orbitPerTF, localCmp));
     useMC = 0;
   }
   if ((!dgtinput || disableRootInput) && writedigit && !disableRootOutput) {
