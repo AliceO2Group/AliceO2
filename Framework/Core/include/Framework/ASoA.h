@@ -3027,9 +3027,9 @@ constexpr bool is_smallgroups_v = is_smallgroups_t<T>::value;
 
 namespace o2::framework
 {
-std::string cutString(std::string&& str);
-
 using ListVector = std::vector<std::vector<int64_t>>;
+
+std::string cutString(std::string&& str);
 
 void sliceByColumnGeneric(
   char const* key,
@@ -3038,6 +3038,6 @@ void sliceByColumnGeneric(
   int32_t fullSize,
   ListVector* groups,
   ListVector* unassigned = nullptr);
-}
+} // namespace o2::framework
 
 #endif // O2_FRAMEWORK_ASOA_H_
