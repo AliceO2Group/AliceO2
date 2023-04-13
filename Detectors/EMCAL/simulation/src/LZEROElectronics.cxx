@@ -203,7 +203,7 @@ void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o
         foundPeak = true;
     }
 
-    if (foundPeak == true) LOG(info) << "DIG SIMONE fill in LZEROElectronics: foundPeak = " << foundPeak;
+    // if (foundPeak == true) LOG(info) << "DIG SIMONE fill in LZEROElectronics: foundPeak = " << foundPeak;
     // LOG(info) << "DIG SIMONE fill in LZEROElectronics: before EMCALTriggerInputs";
     EMCALTriggerInputs TriggerInputsForL1;
     if (foundPeak) {
@@ -253,7 +253,7 @@ void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o
       }
     }
 
-    if( TriggerInputsForL1.mLastTimesumAllFastOrs.size() != 0 ) LOG(info) << "DIG SIMONE fill in LZEROElectronics: size of  TriggerInputsForL1.mLastTimesumAllFastOrs = " << TriggerInputsForL1.mLastTimesumAllFastOrs.size();
+    // if( TriggerInputsForL1.mLastTimesumAllFastOrs.size() != 0 ) LOG(info) << "DIG SIMONE fill in LZEROElectronics: size of  TriggerInputsForL1.mLastTimesumAllFastOrs = " << TriggerInputsForL1.mLastTimesumAllFastOrs.size();
 
 
     // mTriggers.clear();
@@ -263,7 +263,7 @@ void LZEROElectronics::fill(std::deque<o2::emcal::DigitTimebinTRU>& digitlist, o
       mTriggersPatch.push_back(TriggerInputsPatch);
     }
 
-    if( mTriggers.size() != 0 ) LOG(info) << "DIG SIMONE fill in LZEROElectronics: size of  mTriggers = " << mTriggers.size();
+    // if( mTriggers.size() != 0 ) LOG(info) << "DIG SIMONE fill in LZEROElectronics: size of  mTriggers = " << mTriggers.size();
     // if( mTriggers.size() != 0 ) LOG(info) << "DIG SIMONE fill in LZEROElectronics: size of  mTriggers = " << mTriggers.size();
 
   }

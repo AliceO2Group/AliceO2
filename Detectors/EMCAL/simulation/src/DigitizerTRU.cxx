@@ -93,7 +93,7 @@ void DigitizerTRU::init()
   // }
 
   // Parameters from data (@Martin Poghosyan)
-  tau = 61.45; // 61.45 ns, according to the fact that the
+  tau = 0.6145; // 61.45 ns, according to the fact that the
                // RawResponse.SetParameter(1, 0.25 * i); where 0.25 are 25 ns
   N = 2.;
   // for each phase create a template distribution
@@ -104,6 +104,7 @@ void DigitizerTRU::init()
   std::vector<double> sf;
   for (int j = 0; j < constants::EMCAL_MAXTIMEBINS; j++) {
     sf.push_back(RawResponse.Eval(j - mTimeWindowStart));
+    LOG(info) << "DIG SIMONE init in DigitizerTRU: amplitueds[" << j << "] = " << sf[j];
   }
   mAmplitudeInTimeBins.push_back(sf);
 
@@ -238,7 +239,7 @@ void DigitizerTRU::sampleSDigit(const Digit& sDigit)
   if (mSimulateTimeResponse) {
     // LOG(info) << "DIG SIMONE sampleSDigit in digitizer: in TimeResponse ";
     for (int j = 0; j < mAmplitudeInTimeBins.at(0).size(); j++) {
-      // LOG(info) << "DIG SIMONE sampleSDigit in digitizer: in TimeResponse mAmplitudeInTimeBins";
+      LOG(info) << "DIG SIMONE sampleSDigit in digitizer: in TimeResponse mAmplitudeInTimeBins";
       double val = energy * (mAmplitudeInTimeBins.at(0).at(j));
       energies[j] = val;
       // LOG(info) << "DIG SIMONE sampleSDigit in digitizer: in TimeResponse digitTime";
