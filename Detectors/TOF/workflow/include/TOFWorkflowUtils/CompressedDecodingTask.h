@@ -38,7 +38,7 @@ using namespace compressed;
 class CompressedDecodingTask : public DecoderBase, public Task
 {
  public:
-  CompressedDecodingTask(bool conet, o2::header::DataDescription dataDesc, std::shared_ptr<o2::base::GRPGeomRequest> gr) : mGGCCDBRequest(gr)
+  CompressedDecodingTask(bool conet, o2::header::DataDescription dataDesc, std::shared_ptr<o2::base::GRPGeomRequest> gr, int norbitPerTF = -1, bool localCmp = false) : mGGCCDBRequest(gr), mNorbitsPerTF(norbitPerTF), mLocalCmp(localCmp)
   {
     mConetMode = conet;
     mDataDesc = dataDesc;
@@ -51,7 +51,12 @@ class CompressedDecodingTask : public DecoderBase, public Task
   void decodeTF(ProcessingContext& pc);
   void endOfStream(EndOfStreamContext& ec) final;
   void postData(ProcessingContext& pc);
-  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final { o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj); }
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
+  {
+    if (mNorbitsPerTF == -1) {
+      o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
+    }
+  }
 
  private:
   /** decoding handlers **/
@@ -77,12 +82,14 @@ class CompressedDecodingTask : public DecoderBase, public Task
   uint32_t mCurrentOrbit = 0;
   bool mRowFilter = false;
   bool mMaskNoise = false;
+  bool mLocalCmp = false;
   int mNoiseRate = 1000;
   unsigned long mCreationTime = 0;
+  int mNorbitsPerTF = -1;
   TStopwatch mTimer;
 };
 
-framework::DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc, bool conet = false, bool askDISTSTF = true);
+framework::DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc, bool conet = false, bool askDISTSTF = true, int norbitPerTF = -1, bool localCmp = false);
 
 } // namespace tof
 } // namespace o2

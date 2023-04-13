@@ -178,7 +178,7 @@ fi
 [[ -z $DISABLE_ROOT_OUTPUT ]] || needs_root_output o2-gpu-reco-workflow && GPU_OUTPUT+=",send-clusters-per-sector"
 
 has_detector_flp_processing CPV && CPV_INPUT=digits
-! has_detector_flp_processing TOF && TOF_CONFIG+=" --ignore-dist-stf"
+! has_detector_flp_processing TOF && TOF_CONFIG+=" --orbits-per-tf ${NHBPERTF:-32} --ignore-dist-stf --local-cmp"
 
 if [[ $EPNSYNCMODE == 1 ]]; then
   EVE_CONFIG+=" --eve-dds-collection-index 0"
