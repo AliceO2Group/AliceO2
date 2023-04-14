@@ -12,7 +12,7 @@
 /// \file DescriptorInnerBarrelITS3Param.h
 /// \brief Implementation of the DescriptorInnerBarrelITS3Param class
 
-#include "ITS3Simulation/DescriptorInnerBarrelITS3Param.h"
+#include "ITS3Base/DescriptorInnerBarrelITS3Param.h"
 O2ParamImpl(o2::its3::DescriptorInnerBarrelITS3Param);
 
 namespace o2
