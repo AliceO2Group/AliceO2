@@ -41,7 +41,7 @@
 #include <type_traits>
 #endif
 
-#ifndef GPUCA_ALIGPUCODE //Used only by functions that are hidden on the GPU
+#ifndef GPUCA_ALIGPUCODE // Used only by functions that are hidden on the GPU
 #include "ReconstructionDataFormats/BaseCluster.h"
 #include <string>
 #endif
@@ -551,7 +551,7 @@ GPUdi() auto TrackParametrization<value_T>::getP2Inv() const -> value_t
 {
   // return the inverted track momentum^2
   const value_t p2 = mP[kQ2Pt] * mP[kQ2Pt] / (1.f + getTgl() * getTgl());
-  return (mAbsCharge > 1) ? p2 * mAbsCharge * mAbsCharge : p2;
+  return (mAbsCharge > 1) ? p2 / (mAbsCharge * mAbsCharge) : p2;
 }
 
 //____________________________________________________________
