@@ -55,6 +55,14 @@ class DescriptorInnerBarrelITS3 : public o2::its::DescriptorInnerBarrel
 
   std::vector<ITS3Layer*> mLayer{}; //! Vector of layers
 
+  double mCyssCylInnerD;       //! CYSS cylinder inner diameter
+  double mCyssCylOuterD;       //! CYSS cylinder outer diameter
+  double mCyssCylFabricThick;  //! CYSS cylinder fabric thickness
+  double mCyssConeIntSectDmin; //! CYSS cone internal section min diameter
+  double mCyssConeIntSectDmax; //! CYSS cone internal section max diameter
+  double mCyssConeFabricThick; //! CYSS cone fabric thickness
+  double mCyssFlangeCDExt;     //! CYSS flange on side C external diameter
+
   /// \cond CLASSIMP
   ClassDef(DescriptorInnerBarrelITS3, 1); /// ITS3 inner barrel geometry descriptor
   /// \endcond
