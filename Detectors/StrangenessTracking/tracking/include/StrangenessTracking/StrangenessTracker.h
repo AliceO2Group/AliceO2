@@ -17,7 +17,6 @@
 #define _ALICEO2_STRANGENESS_TRACKER_
 
 #include <gsl/gsl>
-#include <TVector3.h>
 
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "StrangenessTracking/IndexTableUtils.h"
@@ -110,18 +109,13 @@ class StrangenessTracker
 
   double calcV0alpha(const V0& v0)
   {
-    std::array<float, 3> fV0mom, fPmom, fNmom = {0, 0, 0};
-    v0.getProng(0).getPxPyPzGlo(fPmom);
-    v0.getProng(1).getPxPyPzGlo(fNmom);
-    v0.getPxPyPzGlo(fV0mom);
-
-    TVector3 momNeg(fNmom[0], fNmom[1], fNmom[2]);
-    TVector3 momPos(fPmom[0], fPmom[1], fPmom[2]);
-    TVector3 momTot(fV0mom[0], fV0mom[1], fV0mom[2]);
-
-    Double_t lQlNeg = momNeg.Dot(momTot) / momTot.Mag();
-    Double_t lQlPos = momPos.Dot(momTot) / momTot.Mag();
-    return (lQlPos - lQlNeg) / (lQlPos + lQlNeg);
+    std::array<float, 3> momT, momP, momN;
+    v0.getProng(0).getPxPyPzGlo(momP);
+    v0.getProng(1).getPxPyPzGlo(momN);
+    v0.getPxPyPzGlo(momT);
+    float qNeg = momN[0] * momT[0] + momN[1] * momT[1] + momN[2] * momT[2];
+    float qPos = momP[0] * momT[0] + momP[1] * momT[1] + momP[2] * momT[2];
+    return (qPos - qNeg) / (qPos + qNeg);
   };
 
   double calcMotherMass(double p2Mother, double p2DauFirst, double p2DauSecond, PID pidDauFirst, PID pidDauSecond)
@@ -202,14 +196,10 @@ class StrangenessTracker
     // LOG(info) << " Patt Npixel: " << pattVec[0].getNPixels();
   }
 
-  float getMatchingChi2(o2::track::TrackParCovF v0, const TrackITS ITStrack, ITSCluster matchingClus)
+  float getMatchingChi2(o2::track::TrackParCovF v0, const TrackITS& itsTrack)
   {
-    auto geom = o2::its::GeometryTGeo::Instance();
-    float alpha = geom->getSensorRefAlpha(matchingClus.getSensorID()), x = matchingClus.getX();
-    if (v0.rotate(alpha)) {
-      if (v0.propagateTo(x, mBz)) {
-        return v0.getPredictedChi2(ITStrack.getParamOut());
-      }
+    if (v0.rotate(itsTrack.getParamOut().getAlpha()) && v0.propagateTo(itsTrack.getX(), mBz)) {
+      return v0.getPredictedChi2(itsTrack.getParamOut());
     }
     return -100;
   };

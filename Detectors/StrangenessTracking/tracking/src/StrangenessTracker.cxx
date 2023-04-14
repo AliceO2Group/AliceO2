@@ -244,7 +244,7 @@ bool StrangenessTracker::matchDecayToITStrack(float decayR)
   auto trackClusters = getTrackClusters();
   auto trackClusSizes = getTrackClusterSizes();
   auto& lastClus = trackClusters[0];
-  mStrangeTrack.mMatchChi2 = getMatchingChi2(mStrangeTrack.mMother, mITStrack, lastClus);
+  mStrangeTrack.mMatchChi2 = getMatchingChi2(mStrangeTrack.mMother, mITStrack);
 
   auto radTol = decayR < 4 ? mStrParams->mRadiusTolIB : mStrParams->mRadiusTolOB;
   auto nMinClusMother = trackClusters.size() < 4 ? 2 : mStrParams->mMinMotherClus;
