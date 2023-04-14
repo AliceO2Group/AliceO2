@@ -33,7 +33,6 @@ workflow_has_parameter GPU && { export GPUTYPE=HIP; export NGPUS=4; }
 # ---------------------------------------------------------------------------------------------------------------------
 # Set general arguments
 source $GEN_TOPO_MYDIR/getCommonArgs.sh || { echo "getCommonArgs.sh failed" 1>&2 && exit 1; }
-source $GEN_TOPO_MYDIR/workflow-setup.sh || { echo "workflow-setup.sh failed" 1>&2 && exit 1; }
 workflow_has_parameter CALIB && { source $O2DPG_ROOT/DATA/common/setenv_calib.sh; [[ $? != 0 ]] && echo "setenv_calib.sh failed" 1>&2 && exit 1; }
 
 [[ -z ${SHM_MANAGER_SHMID:-} ]] && ( [[ $EXTINPUT == 1 ]] || [[ $NUMAGPUIDS != 0 ]] ) && ARGS_ALL+=" --no-cleanup"
