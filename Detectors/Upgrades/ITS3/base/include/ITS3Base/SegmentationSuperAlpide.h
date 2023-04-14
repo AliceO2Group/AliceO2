@@ -33,7 +33,7 @@ class SegmentationSuperAlpide
  public:
   SegmentationSuperAlpide(int layer, float pitchCol, float pitchRow, float detThick, double length, const double radii[4]) : mLayer{layer}, mPitchCol{pitchCol}, mPitchRow{pitchRow}, mDetectorLayerThickness{detThick}, mLength{length}
   {
-    for (int iL{0}; iL<4; ++iL) {
+    for (int iL{0}; iL < 4; ++iL) {
       mRadii[iL] = radii[iL];
     }
     print();
