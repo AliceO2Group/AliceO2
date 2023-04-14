@@ -42,7 +42,6 @@ void Digitizer::init()
   mSuperSegmentations.clear();
   for (int iLayer{0}; iLayer < mGeometry->getNumberOfLayers() - 4; ++iLayer) {
     for (int iChip{0}; iChip < mGeometry->getNumberOfChipsPerLayer(iLayer); ++iChip) {
-      LOGP(info, "layer: {} chip: {}", iLayer, iChip);
       mSuperSegmentations.push_back(SegmentationSuperAlpide(iLayer));
       mLayerID.push_back(iLayer);
     }
@@ -260,7 +259,6 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
     // get entrance pixel row and col
     while (!mSuperSegmentations[detID].localToDetector(xyzLocS.X(), xyzLocS.Z(), rowS, colS)) { // guard-ring ?
       if (++nSkip >= nSteps) {
-        LOGP(info, "Start: detId {}", detID);
         return; // did not enter to sensitive matrix
       }
       xyzLocS += step;
@@ -268,7 +266,6 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
     // get exit pixel row and col
     while (!mSuperSegmentations[detID].localToDetector(xyzLocE.X(), xyzLocE.Z(), rowE, colE)) { // guard-ring ?
       if (++nSkip >= nSteps) {
-        LOGP(info, "End: detId {}", detID);
         return; // did not enter to sensitive matrix
       }
       xyzLocE -= step;
