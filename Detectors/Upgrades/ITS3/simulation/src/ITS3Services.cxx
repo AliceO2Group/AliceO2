@@ -787,8 +787,8 @@ double ITS3Services::yFrom2Points(double x0, double y0, double x1, double y1, do
 
 double ITS3Services::yOntheLine(double x0, double y0, double x1, double y1, double x) const
 {
-  /// Given the line defined by the two points (x0,y0) and (x1,y1) and a point
-  /// on the line which x(y)-axis is x(y), returns the y(x) value of the point on the line
+  /// Given the line defined by the two points (x0,y0) and (x1,y1) and a point on
+  /// the line which x(y)-axis is x(y), returns the y(x) value of the point on the line
 
   double m = (y1 - y0) / (x1 - x0);
   double b = y0 - m * x0;
