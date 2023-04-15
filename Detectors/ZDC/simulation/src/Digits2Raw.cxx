@@ -61,6 +61,8 @@ void Digits2Raw::processDigits(const std::string& outDir, const std::string& fil
   mFLPID = uint16_t(0);
   mEndPointID = uint32_t(0);
   // TODO: assign FeeID from configuration object
+  // N.B. Now the electronics has the possibility to reconfigure FEE ID in order to match
+  // what is expected from simulation. The FEE ID should never change in the future
   for (int ilink = 0; ilink < NLinks; ilink++) {
     uint64_t FeeID = uint64_t(ilink);
     std::string outFileLink = o2::utils::Str::concat_string(outDir, "/", "ZDC");
@@ -237,14 +239,7 @@ inline void Digits2Raw::updatePedestalReference(int bc)
       for (int32_t ic = 0; ic < NChPerModule; ic++) {
         // Identify connected channel
         auto id = mModuleConfig->modules[im].channelID[ic];
-        double myped = mzdcPedData[io].data[id] + 32768.;
-        if (myped < 0) {
-          myped = 0;
-        }
-        if (myped > 65535) {
-          myped = 65535;
-        }
-        mPed[im][ic] = myped;
+        mPed[im][ic] = *((uint16_t*)&mzdcPedData[io].data[id]);
       }
     }
   } else if (mEmpty[bc] > 0 && mEmpty[bc] != mLastNEmpty) {
@@ -495,8 +490,14 @@ void Digits2Raw::writeDigits()
         uint64_t FeeID = 2 * im + ic / 2;
         if (mModuleConfig->modules[im].readChannel[ic]) {
           for (int32_t iw = 0; iw < o2::zdc::NWPerBc; iw++) {
-            gsl::span<char> payload{reinterpret_cast<char*>(&mZDC.data[im][ic].w[iw][0]), data_size};
-            mWriter.addData(FeeID, mCruID, mLinkID, mEndPointID, ir, payload);
+            if (mEnablePadding) {
+              gsl::span<char> payload{reinterpret_cast<char*>(&mZDC.data[im][ic].w[iw][0]), data_size};
+              mWriter.addData(FeeID, mCruID, mLinkID, mEndPointID, ir, payload);
+            } else {
+              gsl::span<char> payload{reinterpret_cast<char*>(&mZDC.data[im][ic].w[iw][0]), PayloadPerGBTW};
+              o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&mZDC.data[im][ic].w[iw][0]);
+              mWriter.addData(FeeID, mCruID, mLinkID, mEndPointID, ir, payload);
+            }
           }
           addedChData[ic] = true;
         }
@@ -560,10 +561,8 @@ void Digits2Raw::print_gbt_word(const uint32_t* word, const ModuleConfig* module
   ULong64_t msb = val >> 64;
   uint32_t a = word[0];
   uint32_t b = word[1];
-  uint32_t c = word[2];
-  // uint32_t d=(msb>>32)&0xffffffff;
-  // printf("\n%llx %llx ",lsb,msb);
-  // printf("\n%8x %8x %8x %8x ",d,c,b,a);
+  uint16_t c = *((uint16_t*)&word[2]);
+  // printf("\nGBTW: %04x %08x %08x\n",c,b,a);
   if ((a & 0x3) == 0) {
     uint32_t myorbit = (val >> 48) & 0xffffffff;
     uint32_t mybc = (val >> 36) & 0xfff;

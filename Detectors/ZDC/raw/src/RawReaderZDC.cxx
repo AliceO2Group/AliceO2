@@ -32,25 +32,48 @@ void RawReaderZDC::clear()
   mOrbitData.clear();
 }
 
-void RawReaderZDC::processBinaryData(gsl::span<const uint8_t> payload, int linkID)
+int RawReaderZDC::processBinaryData(gsl::span<const uint8_t> payload, int linkID, uint8_t dataFormat)
 {
   if (0 <= linkID && linkID < 16) {
     size_t payloadSize = payload.size();
-    for (int32_t ip = 0; ip < payloadSize; ip += 16) {
+    if (dataFormat == 2) {
+      for (int32_t ip = 0; (ip + PayloadPerGBTW) <= payloadSize; ip += PayloadPerGBTW) {
 #ifndef O2_ZDC_DEBUG
-      if (mVerbosity >= DbgExtra) {
-        o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&payload[ip]);
-      }
+        if (mVerbosity >= DbgExtra) {
+          o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&payload[ip]);
+        }
 #else
-      o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&payload[ip]);
+        o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&payload[ip]);
 #endif
-      processWord((const uint32_t*)&payload[ip]);
+        const uint32_t* gbtw = (const uint32_t*)&payload[ip];
+        if (gbtw[0] != 0xffffffff && gbtw[1] != 0xffffffff && (*((const uint16_t*)&gbtw[2])) != 0xffff) {
+          if (processWord(gbtw)) {
+            return 1;
+          }
+        }
+      }
+    } else if (dataFormat == 0) {
+      for (int32_t ip = 0; ip < payloadSize; ip += NBPerGBTW) {
+#ifndef O2_ZDC_DEBUG
+        if (mVerbosity >= DbgExtra) {
+          o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&payload[ip]);
+        }
+#else
+        o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&payload[ip]);
+#endif
+        if (processWord((const uint32_t*)&payload[ip])) {
+          return 1;
+        }
+      }
+    } else {
+      LOG(fatal) << "RawReaderZDC::processBinaryData - Unsupported DataFormat " << dataFormat;
     }
   } else {
     // put here code in case of bad rdh.linkID value
     LOG(info) << "WARNING! WRONG LINK ID! " << linkID;
-    return;
+    return 1;
   }
+  return 0;
 }
 
 int RawReaderZDC::processWord(const uint32_t* word)
@@ -59,36 +82,37 @@ int RawReaderZDC::processWord(const uint32_t* word)
     LOG(error) << "NULL pointer";
     return 1;
   }
+  // LOGF(info, "GBT word %04x %08x %08x id=%u", *((uint16_t*)&word[2]), word[1], word[0], word[0] & 0x3);
   if ((word[0] & 0x3) == Id_w0) {
-    for (int32_t iw = 0; iw < NWPerGBTW; iw++) {
-      mCh.w[0][iw] = word[iw];
-    }
+    mCh.w[0][NWPerGBTW - 1] = 0;
+    mCh.w[0][NWPerGBTW - 2] = 0;
+    memcpy((void*)&mCh.w[0][0], (const void*)word, PayloadPerGBTW);
   } else if ((word[0] & 0x3) == Id_w1) {
     if (mCh.f.fixed_0 == Id_w0) {
-      for (int32_t iw = 0; iw < NWPerGBTW; iw++) {
-        mCh.w[1][iw] = word[iw];
-      }
+      mCh.w[1][NWPerGBTW - 1] = 0;
+      mCh.w[1][NWPerGBTW - 2] = 0;
+      memcpy((void*)&mCh.w[1][0], (const void*)word, PayloadPerGBTW);
     } else {
-      LOG(error) << "Wrong word sequence";
+      LOGF(error, "Wrong word sequence: %04x %08x %08x id=%u *%u*", *((uint16_t*)&word[2]), word[1], word[0], mCh.f.fixed_0, word[0] & 0x3);
       mCh.f.fixed_0 = Id_wn;
       mCh.f.fixed_1 = Id_wn;
       mCh.f.fixed_2 = Id_wn;
     }
   } else if ((word[0] & 0x3) == Id_w2) {
     if (mCh.f.fixed_0 == Id_w0 && mCh.f.fixed_1 == Id_w1) {
-      for (int32_t iw = 0; iw < NWPerGBTW; iw++) {
-        mCh.w[2][iw] = word[iw];
-      }
+      mCh.w[2][NWPerGBTW - 1] = 0;
+      mCh.w[2][NWPerGBTW - 2] = 0;
+      memcpy((void*)&mCh.w[2][0], (const void*)word, PayloadPerGBTW);
       process(mCh);
     } else {
-      LOG(error) << "Wrong word sequence";
+      LOGF(error, "Wrong word sequence: %04x %08x %08x id=%u %u *%u*", *((uint16_t*)&word[2]), word[1], word[0], mCh.f.fixed_0, mCh.f.fixed_1, word[0] & 0x3);
     }
     mCh.f.fixed_0 = Id_wn;
     mCh.f.fixed_1 = Id_wn;
     mCh.f.fixed_2 = Id_wn;
   } else {
-    // Word not present in payload
-    LOG(fatal) << "Event format error";
+    // Word id not foreseen in payload
+    LOGF(error, "Event format error on word %04x %08x %08x id=%u", *((uint16_t*)&word[2]), word[1], word[0], word[0] & 0x3);
     return 1;
   }
   return 0;
