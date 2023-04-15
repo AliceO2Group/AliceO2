@@ -33,12 +33,14 @@
 #include "DataFormatsZDC/ChannelData.h"
 #include "DataFormatsZDC/OrbitData.h"
 #include "DataFormatsZDC/RecEvent.h"
+#include "DataFormatsZDC/RawEventData.h"
 #include "CommonUtils/NameConf.h"
 #include "CommonUtils/MemFileHelper.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "ZDCBase/ModuleConfig.h"
 #include "ZDCRaw/ZDCRawParserDPLSpec.h"
+#include "ZDCSimulation/Digits2Raw.h"
 
 using namespace o2::framework;
 
@@ -104,12 +106,30 @@ void ZDCRawParserDPLSpec::run(ProcessingContext& pc)
         size_t payloadSize = it.size();
         // offset of payload in the raw page
         size_t offset = it.offset();
+        int dataFormat = o2::raw::RDHUtils::getDataFormat(rdhPtr);
 #ifdef O2_ZDC_DEBUG
-        LOG(info) << count << " processBinaryData: size=" << it.size() << " link=" << o2::raw::RDHUtils::getLinkID(rdhPtr);
+        int linkID = o2::raw::RDHUtils::getLinkID(rdhPtr);
+        LOG(info) << count << " ZDCRawParserDPLSpec::run: fmt=" << dataFormat << " size=" << it.size() << " link=" << linkID;
 #endif
-        for (int32_t ip = 0; ip < payloadSize; ip += 16) {
-          // o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&payload[ip]);
-          mWorker.processWord((const uint32_t*)&payload[ip]);
+        if (dataFormat == 2) {
+          for (int32_t ip = 0; (ip + PayloadPerGBTW) <= payloadSize; ip += PayloadPerGBTW) {
+            // Assign only the actual payload
+            uint32_t gbtw[4] = {0x0, 0x0, 0x0, 0x0};
+            memcpy((void*)gbtw, (const void*)&payload[ip], PayloadPerGBTW);
+#ifdef O2_ZDC_DEBUG
+            o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)gbtw);
+#endif
+            if (gbtw[0] != 0xffffffff && gbtw[1] != 0xffffffff && (gbtw[2] & 0xffff) != 0xffff) {
+              mWorker.processWord(gbtw);
+            }
+          }
+        } else if (dataFormat == 0) {
+          for (int32_t ip = 0; ip < payloadSize; ip += NBPerGBTW) {
+            // o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&payload[ip]);
+            mWorker.processWord((const uint32_t*)&payload[ip]);
+          }
+        } else {
+          LOG(error) << "ZDCDataReaderDPLSpec::run - Unsupported DataFormat " << dataFormat;
         }
       }
     }
