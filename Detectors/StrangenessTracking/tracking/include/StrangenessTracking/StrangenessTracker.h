@@ -220,21 +220,21 @@ class StrangenessTracker
   }
 
  protected:
-  bool mMCTruthON = false;                          /// flag availability of MC truth
-  gsl::span<const TrackITS> mInputITStracks;        // input ITS tracks
-  std::vector<VBracket> mITSvtxBrackets;            // time brackets for ITS tracks
-  std::vector<int> mTracksIdxTable;                 // index table for ITS tracks
-  std::vector<int> mInputClusterSizes;              // input cluster sizes
-  std::vector<ITSCluster> mInputITSclusters;        // input ITS clusters
-  gsl::span<const int> mInputITSidxs;               // input ITS track-cluster indexes
-  gsl::span<const V0> mInputV0tracks;               // input V0 of decay daughters
-  gsl::span<const Cascade> mInputCascadeTracks;     // input V0 of decay daughters
-  const MCLabContCl* mITSClsLabels = nullptr;       /// input ITS Cluster MC labels
-  MCLabSpan mITSTrkLabels;                          /// input ITS Track MC labels
+  bool mMCTruthON = false;                      /// flag availability of MC truth
+  gsl::span<const TrackITS> mInputITStracks;    // input ITS tracks
+  std::vector<VBracket> mITSvtxBrackets;        // time brackets for ITS tracks
+  std::vector<int> mTracksIdxTable;             // index table for ITS tracks
+  std::vector<int> mInputClusterSizes;          // input cluster sizes
+  std::vector<ITSCluster> mInputITSclusters;    // input ITS clusters
+  gsl::span<const int> mInputITSidxs;           // input ITS track-cluster indexes
+  gsl::span<const V0> mInputV0tracks;           // input V0 of decay daughters
+  gsl::span<const Cascade> mInputCascadeTracks; // input V0 of decay daughters
+  const MCLabContCl* mITSClsLabels = nullptr;   /// input ITS Cluster MC labels
+  MCLabSpan mITSTrkLabels;                      /// input ITS Track MC labels
 
-  std::vector<o2::its::TrackITS> mSortedITStracks;  // sorted ITS tracks
-  std::vector<int> mSortedITSindexes;               // indexes of sorted ITS tracks
-  IndexTableUtils mUtils;                           // structure for computing eta/phi matching selections
+  std::vector<o2::its::TrackITS> mSortedITStracks; // sorted ITS tracks
+  std::vector<int> mSortedITSindexes;              // indexes of sorted ITS tracks
+  IndexTableUtils mUtils;                          // structure for computing eta/phi matching selections
 
   std::vector<StrangeTrack> mStrangeTrackVec;       // structure containing updated mother and daughter tracks
   std::vector<ClusAttachments> mClusAttachments;    // # of attached tracks, -1 not attached, 0 for the mother, > 0 for the daughters
@@ -244,16 +244,16 @@ class StrangenessTracker
   float mBz = -5; // Magnetic field
   const o2::itsmft::TopologyDictionary* mDict = nullptr;
 
-  DCAFitter2 mFitterV0;                                                                                                  // optional DCA Fitter for recreating V0 with hypertriton mass hypothesis
-  DCAFitter3 mFitter3Body;                                                                                               // optional DCA Fitter for final 3 Body refit
+  DCAFitter2 mFitterV0;    // optional DCA Fitter for recreating V0 with hypertriton mass hypothesis
+  DCAFitter3 mFitter3Body; // optional DCA Fitter for final 3 Body refit
 
   o2::base::PropagatorImpl<float>::MatCorrType mCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE; // use mat correction
 
-  std::vector<o2::track::TrackParCovF> mDaughterTracks;                                                                  // vector of daughter tracks
-  StrangeTrack mStrangeTrack;                                                                                            // structure containing updated mother and daughter track refs
-  ClusAttachments mStructClus;                                                                                           // # of attached tracks, 1 for mother, 2 for daughter
-  o2::its::TrackITS mITStrack;                                                                                           // ITS track
-  std::array<GIndex, 2> mV0dauIDs;                                                                                       // V0 daughter IDs
+  std::vector<o2::track::TrackParCovF> mDaughterTracks; // vector of daughter tracks
+  StrangeTrack mStrangeTrack;                           // structure containing updated mother and daughter track refs
+  ClusAttachments mStructClus;                          // # of attached tracks, 1 for mother, 2 for daughter
+  o2::its::TrackITS mITStrack;                          // ITS track
+  std::array<GIndex, 2> mV0dauIDs;                      // V0 daughter IDs
 
   ClassDefNV(StrangenessTracker, 1);
 };
