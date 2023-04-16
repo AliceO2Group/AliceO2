@@ -75,7 +75,7 @@ void ITSThresholdAggregator::run(ProcessingContext& pc)
     LOG(info) << "LHC period: " << mLHCPeriod;
     LOG(info) << "Scan type : " << mScanType;
     LOG(info) << "Fit type  : " << std::to_string(mFitType);
-    LOG(info) << "DB version: " << mDBversion;
+    LOG(info) << "DB version (no sense in pulse length 2D): " << mDBversion;
   }
   for (auto const& inputRef : InputRecordWalker(pc.inputs(), {{"check", ConcreteDataTypeMatcher{"ITS", "TSTR"}}})) {
     // Read strings with tuning info
@@ -123,12 +123,15 @@ void ITSThresholdAggregator::finalize(EndOfStreamContext* ec)
   std::string ft = this->mFitType == 0 ? "derivative" : this->mFitType == 1 ? "fit"
                                                       : this->mFitType == 2 ? "hitcounting"
                                                                             : "null";
-  if (mScanType == 'D' || mScanType == 'A' || mScanType == 'P') {
+  if (mScanType == 'D' || mScanType == 'A' || mScanType == 'P' || mScanType == 'p') {
     ft = "null";
   }
 
   std::map<std::string, std::string> md = {
     {"fittype", ft}, {"runtype", std::to_string(this->mRunType)}, {"confDBversion", std::to_string(this->mDBversion)}};
+  if (mScanType == 'p') {
+    md["confDBversion"] = "null";
+  }
   if (!(this->mLHCPeriod.empty())) {
     md.insert({"LHC_period", this->mLHCPeriod});
   }
@@ -145,6 +148,7 @@ void ITSThresholdAggregator::finalize(EndOfStreamContext* ec)
                                                     : mScanType == 'A' ? "ANA"
                                                     : mScanType == 'T' ? "THR"
                                                     : mScanType == 'P' ? "PULSELENGTH"
+                                                    : mScanType == 'p' ? "PULSELENGTH2D"
                                                                        : "NULL";
   o2::ccdb::CcdbObjectInfo info((path + name_str), "threshold_map", "calib_scan.root", md, tstart, tend);
   o2::ccdb::CcdbObjectInfo info_pixtyp((path + name_str), "threshold_map", "calib_scan.root", md, tstart, tend);
@@ -188,6 +192,9 @@ void ITSThresholdAggregator::finalize(EndOfStreamContext* ec)
     } else if (this->mScanType == 'P') {
       ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "PULSELENGTH", 0}, *image);
       ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "PULSELENGTH", 0}, info);
+    } else if (this->mScanType == 'p') {
+      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "PULSELENGTH2D", 0}, *image);
+      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "PULSELENGTH2D", 0}, info);
     } else {
       LOG(error) << "Nothing sent to ccdb-populator, mScanType" << mScanType << "does not match any known scan type";
     }
@@ -290,6 +297,9 @@ DataProcessorSpec getITSThresholdAggregatorSpec()
 
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "PULSELENGTH"});
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "PULSELENGTH"});
+
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "PULSELENGTH2D"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "PULSELENGTH2D"});
 
   return DataProcessorSpec{
     "its-aggregator",

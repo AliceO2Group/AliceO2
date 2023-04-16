@@ -85,6 +85,7 @@ enum RunTypes {
   DIGITAL_SCAN_100HZ = 31,
   ANALOGUE_SCAN = 14,
   PULSELENGTH_SCAN = 32,
+  TOT_CALIBRATION = 36,
   END_RUN = 0
 };
 
@@ -125,10 +126,12 @@ class ITSThresholdCalibrator : public Task
   // detector information
   static constexpr short int N_COL = 1024; // column number in Alpide chip
 
-  const short int N_RU = o2::itsmft::ChipMappingITS::getNRUs();
+  static const short int N_RU = o2::itsmft::ChipMappingITS::getNRUs();
 
   // Number of scan points in a calibration scan
   short int N_RANGE = 51;
+  // Number of scan points in case of 2D calibration
+  short int N_RANGE2 = 1;
   // Min number of noisy pix in a dcol for bad dcol tagging
   static constexpr short int N_PIX_DCOL = 50;
 
@@ -136,7 +139,7 @@ class ITSThresholdCalibrator : public Task
   float* mX = nullptr;
 
   // Hash tables to store the hit and threshold information per pixel
-  std::map<short int, std::map<int, std::vector<std::vector<unsigned short int>>>> mPixelHits;
+  std::map<short int, std::map<int, std::vector<std::vector<std::vector<unsigned short int>>>>> mPixelHits;
   std::map<short int, std::deque<short int>> mForbiddenRows;
   // Unordered map for saving sum of values (thr/ithr/vcasn) for avg calculation
   std::map<short int, std::array<long int, 6>> mThresholds;
@@ -151,12 +154,16 @@ class ITSThresholdCalibrator : public Task
   // Tree to save threshold info in full threshold scan case
   TFile* mRootOutfile = nullptr;
   TTree* mThresholdTree = nullptr;
+  TTree* mSlopeTree = nullptr;
   short int vChipid[N_COL];
   short int vRow[N_COL];
   short int vThreshold[N_COL];
   bool vSuccess[N_COL];
   unsigned char vNoise[N_COL];
   short int vStrobeDel[N_COL];
+  unsigned char vCharge[N_COL];
+  float vSlope[N_COL];
+  float vIntercept[N_COL];
 
   // Initialize pointers for doing error function fits
   TH1F* mFitHist = nullptr;
@@ -165,7 +172,8 @@ class ITSThresholdCalibrator : public Task
   // Some private helper functions
   // Helper functions related to the running over data
   void extractAndUpdate(const short int&, const short int&);
-  void calculatePulseParams(const short int&, const short int&);
+  std::vector<float> calculatePulseParams(const short int&);
+  std::vector<float> calculatePulseParams2D(const short int&);
   void extractThresholdRow(const short int&, const short int&);
   void finalizeOutput();
 
@@ -173,27 +181,31 @@ class ITSThresholdCalibrator : public Task
 
   // Helper functions related to threshold extraction
   void initThresholdTree(bool recreate = true);
-  bool findUpperLower(const unsigned short int*, const short int&, short int&, short int&, bool);
-  bool findThreshold(const short int&, const unsigned short int*, const float*, short int&, float&, float&);
-  bool findThresholdFit(const short int&, const unsigned short int*, const float*, const short int&, float&, float&);
-  bool findThresholdDerivative(const unsigned short int*, const float*, const short int&, float&, float&);
-  bool findThresholdHitcounting(const unsigned short int*, const float*, const short int&, float&);
+  bool findUpperLower(std::vector<std::vector<unsigned short int>>, const short int&, short int&, short int&, bool);
+  bool findThreshold(const short int&, std::vector<std::vector<unsigned short int>>, const float*, short int&, float&, float&);
+  bool findThresholdFit(const short int&, std::vector<std::vector<unsigned short int>>, const float*, const short int&, float&, float&);
+  bool findThresholdDerivative(std::vector<std::vector<unsigned short int>>, const float*, const short int&, float&, float&);
+  bool findThresholdHitcounting(std::vector<std::vector<unsigned short int>>, const float*, const short int&, float&);
   bool isScanFinished(const short int&, const short int&, const short int&);
   void findAverage(const std::array<long int, 6>&, float&, float&, float&, float&);
   void saveThreshold();
 
   // Helper functions for writing to the database
-  void addDatabaseEntry(const short int&, const char*, const float&,
-                        const float&, const float&, const float&, const float&, bool);
+  void addDatabaseEntry(const short int&, const char*, std::vector<float>, bool);
   void sendToAggregator(EndOfStreamContext*);
 
   // Utils
   std::vector<short int> getIntegerVect(std::string&);
+  short int getRUID(short int chipID);
+  std::vector<short int> getChipBoundariesFromRu(short int, bool*);
+  short int getLinkID(short int, short int);
+  short int getActiveLinks(bool*);
 
   std::string mSelfName;
   std::string mDictName;
   std::string mNoiseName;
 
+  int mTFCounter = 0;
   bool mVerboseOutput = false;
   std::string mMetaType;
   std::string mOutputDir;
@@ -209,12 +221,16 @@ class ITSThresholdCalibrator : public Task
 
   short int mRunType = -1;
   short int mRunTypeUp = -1;
+  short int mRunTypeRU[N_RU] = {0};
   short int mRunTypeChip[24120] = {0};
+  bool mActiveLinks[N_RU][3] = {{false}};
+  std::set<short int> mRuSet;
+  short int mRu = 0;
   bool mIsChipDone[24120] = {false};
   // Either "T" for threshold, "V" for VCASN, or "I" for ITHR
   char mScanType = '\0';
-  short int mMin = -1, mMax = -1;
-  short int mStep = 1;
+  short int mMin = -1, mMax = -1, mMin2 = 0, mMax2 = 0;
+  short int mStep = 1, mStep2 = 1;
   short int mStrobeWindow = 5; // 5 means 5*25ns = 125 ns
 
   // Get threshold method (fit == 1, derivative == 0, or hitcounting == 2)
@@ -265,9 +281,9 @@ class ITSThresholdCalibrator : public Task
   // parameters for manual mode: if run type is not among the listed one
   bool isManualMode = false;
   bool saveTree;
-  short int manualMin;
-  short int manualMax;
-  short int manualStep = 1;
+  short int manualMin, manualMin2 = 0;
+  short int manualMax, manualMax2 = 0;
+  short int manualStep = 1, manualStep2 = 1;
   std::string manualScanType;
   short int manualStrobeWindow = 5;
 
@@ -285,6 +301,14 @@ class ITSThresholdCalibrator : public Task
   int dumpCounterS[24120] = {0};       // count dumps for every chip
   TFile* fileDumpS;                    // file where to store the s-curves on disk
   std::vector<short int> chipDumpList; // vector of chips to dump
+
+  // Run stop requested flag for EoS operations
+  bool mRunStopRequested = false;
+
+  // Flag to calculate the slope in pulse shape 2d scans, y of the 1st point, y of the second point
+  bool doSlopeCalculation = false;
+  int chargeA = 0;
+  int chargeB = 0;
 };
 
 // Create a processor spec
