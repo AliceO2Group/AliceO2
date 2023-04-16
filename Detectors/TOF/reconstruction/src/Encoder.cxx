@@ -228,7 +228,9 @@ void Encoder::encodeTRM(const std::vector<Digit>& summary, Int_t icrate, Int_t i
 
   // set TRM data size
   int neventwords = getSize(trmheader, mUnion[icrate]) / 4 + 1;
-  neventwords -= neventwords / 4 * 2;
+  if (mOldFormat) {
+    neventwords -= neventwords / 4 * 2;
+  }
   trmheader->trmDataHeader.eventWords = neventwords;
 
   // TRM TRAILER
@@ -359,7 +361,10 @@ bool Encoder::encode(std::vector<std::vector<o2::tof::Digit>> digitWindow, int t
       mUnion[i]->drmDataTrailer.mbz = 0;
       mUnion[i]->drmDataTrailer.dataId = 5;
       int neventwords = getSize(mDRMDataHeader[i], mUnion[i]) / 4 + 1;
-      neventwords -= neventwords / 4 * 2 + 6;
+      if (mOldFormat) {
+        neventwords -= neventwords / 4 * 2;
+      }
+      neventwords -= 6;
       mDRMDataHeader[i]->eventWords = neventwords;
       nextWord(i);
       mUnion[i]->data = 0x70000000;
