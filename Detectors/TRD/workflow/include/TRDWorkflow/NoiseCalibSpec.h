@@ -63,7 +63,7 @@ class TRDNoiseCalibSpec : public o2::framework::Task
         sendOutput(pc.outputs());
         mHaveSentOutput = true;
       } else {
-        if ((mNTFsProcessed % 1000) == 0) {
+        if ((mNTFsProcessed % 50) == 0) {
           LOGP(important, "Not processing anymore. Seen {} TFs in total. Run can be stopped", mNTFsProcessed);
         }
       }
