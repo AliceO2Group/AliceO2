@@ -14,10 +14,12 @@ o2_add_library(GlobalTrackingStudy
                        src/TrackingStudy.cxx
                        src/TPCDataFilter.cxx
                        src/ITSOffsStudy.cxx
+                       src/DumpTracks.cxx
                PUBLIC_LINK_LIBRARIES O2::GlobalTracking
                                      O2::GlobalTrackingWorkflowReaders
                                      O2::GlobalTrackingWorkflowHelpers
                                      O2::DataFormatsGlobalTracking
+                                     O2::DetectorsVertexing
                                      O2::SimulationDataFormat)
 
 o2_add_executable(study-workflow
@@ -35,8 +37,12 @@ o2_add_executable(filter-workflow
                   SOURCES src/tpc-data-filter-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::GlobalTrackingStudy)
 
-
 o2_add_executable(study-workflow
                   COMPONENT_NAME its-offset
                   SOURCES src/its-offset-study-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::GlobalTrackingStudy)
+
+o2_add_executable(dump-workfow
+                  COMPONENT_NAME bc-tracks
+                  SOURCES src/track-dump-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::GlobalTrackingStudy)
