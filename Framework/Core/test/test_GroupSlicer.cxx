@@ -621,6 +621,7 @@ TEST_CASE("TestSlicingException")
 
   auto bk = std::make_pair(soa::getLabelFromType<aod::Events>(), "fID");
   ArrowTableSlicingCache cache({bk});
+  
   try {
     auto s = cache.updateCacheEntry(0, {evtTable});
   } catch (RuntimeErrorRef re) {
