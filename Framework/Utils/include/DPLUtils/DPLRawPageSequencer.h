@@ -68,14 +68,26 @@ class DPLRawPageSequencer
   DPLRawPageSequencer() = delete;
   DPLRawPageSequencer(InputRecord& inputs, std::vector<InputSpec> filterSpecs = {}) : mInput(inputs, filterSpecs) {}
 
+  template <typename Predicate, typename Inserter, typename Precheck>
+  void operator()(Predicate&& pred, Inserter&& inserter, Precheck preCheck)
+  {
+    return binary(std::forward<Predicate>(pred), std::forward<Inserter>(inserter), std::forward<Precheck>(preCheck));
+  }
+
   template <typename Predicate, typename Inserter>
   void operator()(Predicate&& pred, Inserter&& inserter)
   {
-    return binary(std::forward<Predicate>(pred), std::forward<Inserter>(inserter));
+    return binary(std::forward<Predicate>(pred), std::forward<Inserter>(inserter), [](...) { return true; });
   }
 
   template <typename Predicate, typename Inserter>
   void binary(Predicate pred, Inserter inserter)
+  {
+    return binary(std::forward<Predicate>(pred), std::forward<Inserter>(inserter), [](...) { return true; });
+  }
+
+  template <typename Predicate, typename Inserter, typename Precheck>
+  void binary(Predicate pred, Inserter inserter, Precheck preCheck)
   {
     for (auto const& ref : mInput) {
       auto size = DataRefUtils::getPayloadSize(ref);
@@ -83,6 +95,9 @@ class DPLRawPageSequencer
       auto const pageSize = rawparser_type::max_size;
       auto nPages = size / pageSize + (size % pageSize ? 1 : 0);
       if (nPages == 0) {
+        continue;
+      }
+      if (!preCheck(ref.payload, nPages, dh->subSpecification)) {
         continue;
       }
       // FIXME: automatic type from inserter/predicate?

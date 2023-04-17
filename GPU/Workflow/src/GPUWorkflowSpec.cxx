@@ -409,7 +409,10 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     auto isSameRdh = [](const char* left, const char* right) -> bool {
       return o2::raw::RDHUtils::getFEEID(left) == o2::raw::RDHUtils::getFEEID(right) && o2::raw::RDHUtils::getDetectorField(left) == o2::raw::RDHUtils::getDetectorField(right);
     };
-    auto insertPages = [&tpcZSmetaPointers, &tpcZSmetaSizes](const char* ptr, size_t count, uint32_t subSpec) -> void {
+    auto preCheck = [](const char* ptr, size_t count, uint32_t subSpec) -> bool {
+      return (rdh_utils::getLink(ptr) == rdh_utils::UserLogicLinkID || rdh_utils::getLink(ptr) == rdh_utils::ILBZSLinkID || rdh_utils::getLink(ptr) == rdh_utils::DLBZSLinkID) && o2::raw::RDHUtils::getDetectorField(ptr) == 2;
+    };
+    auto insertPages = [&tpcZSmetaPointers, &tpcZSmetaSizes, preCheck](const char* ptr, size_t count, uint32_t subSpec) -> void {
       if (subSpec == 0xdeadbeef) {
         auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
         static int contDeadBeef = 0;
@@ -418,16 +421,16 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
         }
         return;
       }
-      int rawcru = rdh_utils::getCRU(ptr);
-      int rawendpoint = rdh_utils::getEndPoint(ptr);
-      if ((rdh_utils::getLink(ptr) == rdh_utils::UserLogicLinkID || rdh_utils::getLink(ptr) == rdh_utils::ILBZSLinkID || rdh_utils::getLink(ptr) == rdh_utils::DLBZSLinkID) && o2::raw::RDHUtils::getDetectorField(ptr) == 2) {
+      if (preCheck(ptr, count, subSpec)) {
+        int rawcru = rdh_utils::getCRU(ptr);
+        int rawendpoint = rdh_utils::getEndPoint(ptr);
         tpcZSmetaPointers[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(ptr);
         tpcZSmetaSizes[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(count);
       }
     };
     // the sequencer processes all inputs matching the filter and finds sequences of consecutive
     // raw pages based on the matcher predicate, and calls the inserter for each sequence
-    DPLRawPageSequencer(pc.inputs(), filter)(isSameRdh, insertPages);
+    DPLRawPageSequencer(pc.inputs(), filter)(isSameRdh, insertPages, preCheck);
 
     int totalCount = 0;
     for (unsigned int i = 0; i < GPUTrackingInOutZS::NSLICES; i++) {
