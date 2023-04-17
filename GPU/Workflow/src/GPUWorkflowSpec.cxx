@@ -430,7 +430,15 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     };
     // the sequencer processes all inputs matching the filter and finds sequences of consecutive
     // raw pages based on the matcher predicate, and calls the inserter for each sequence
-    DPLRawPageSequencer(pc.inputs(), filter)(isSameRdh, insertPages, preCheck);
+    if (DPLRawPageSequencer(pc.inputs(), filter)(isSameRdh, insertPages, preCheck)) {
+      LOG(error) << "DPLRawPageSequencer failed to process TPC raw data - skipping time frame";
+      for (unsigned int i = 0; i < GPUTrackingInOutZS::NSLICES; i++) {
+        for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
+          tpcZSmetaPointers[i][j].clear();
+          tpcZSmetaSizes[i][j].clear();
+        }
+      }
+    }
 
     int totalCount = 0;
     for (unsigned int i = 0; i < GPUTrackingInOutZS::NSLICES; i++) {

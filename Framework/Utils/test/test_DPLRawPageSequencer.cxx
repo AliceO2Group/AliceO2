@@ -94,7 +94,8 @@ TEST_CASE("test_DPLRawPageSequencer")
   auto insertPages = [&pages](const char* ptr, size_t n, uint32_t subSpec) -> void {
     pages.emplace_back(ptr, n);
   };
-  parser(isSameRdh, insertPages);
+  int retVal = parser(isSameRdh, insertPages);
+  REQUIRE(retVal == 0);
 
   // a second parsing step based on forward search
   std::vector<std::pair<const char*, size_t>> pagesByForwardSearch;
