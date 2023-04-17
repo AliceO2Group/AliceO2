@@ -13,7 +13,6 @@
 #define FRAMEWORK_GROUP_SLICER_H_
 
 #include "Framework/Pack.h"
-#include "Framework/Kernels.h"
 #include "Framework/ASoA.h"
 
 #include <arrow/util/config.h>

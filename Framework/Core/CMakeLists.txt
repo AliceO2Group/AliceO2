@@ -90,7 +90,6 @@ o2_add_library(Framework
                        src/InputSpan.cxx
                        src/InputSpec.cxx
                        src/OutputSpec.cxx
-                       src/Kernels.cxx
                        src/LifetimeHelpers.cxx
                        src/LocalRootFileService.cxx
                        src/RootConfigParamHelpers.cxx
@@ -220,7 +219,6 @@ add_executable(o2-test-framework-core
               test/test_InputRecordWalker.cxx
               test/test_InputSpan.cxx
               test/test_InputSpec.cxx
-              test/test_Kernels.cxx
               test/test_LogParsingHelpers.cxx
               test/test_Mermaid.cxx
               test/test_OptionsHelpers.cxx
