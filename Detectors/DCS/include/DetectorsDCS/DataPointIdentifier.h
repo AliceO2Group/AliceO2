@@ -39,7 +39,7 @@ namespace dcs
      * DataPointIdentifier object is responsible for storing the alias and type
      * information of a data point.
      */
-class alignas(64) DataPointIdentifier final
+class DataPointIdentifier final
 {
   const uint64_t pt1;
   const uint64_t pt2;
