@@ -871,7 +871,7 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
   if (decHDR->magicWord != o2::tpc::zerosupp_link_based::CommonHeader::MagicWordLinkZSMetaHeader) {
     throw std::runtime_error("Magic word missing");
   }
-  const unsigned char* payloadEnd = ((const unsigned char*)decPage) + o2::raw::RDHUtils::getMemorySize(*rdh) - sizeof(TPCZSHDRV2) - (decHDR->flags & TPCZSHDRV2::ZSFlags::TriggerWordPresent ? TPCZSHDRV2::TRIGGER_WORD_SIZE : 0);
+  const unsigned char* payloadEnd = ((const unsigned char*)decPage) + o2::raw::RDHUtils::getMemorySize(*rdh) - sizeof(TPCZSHDRV2) - ((decHDR->flags & TPCZSHDRV2::ZSFlags::TriggerWordPresent) ? TPCZSHDRV2::TRIGGER_WORD_SIZE : 0);
   const float decodeBitsFactor = 1.f / (1 << (encodeBits - 10));
   int cruid = decHDR->cruID;
   unsigned int sector = cruid / 10;
