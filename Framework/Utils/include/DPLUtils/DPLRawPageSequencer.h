@@ -23,6 +23,12 @@
 #include "Framework/InputRecordWalker.h"
 #include <utility> // std::declval
 
+// Framework does not depend on detectors, but this file is header-only.
+// So we just include the RDH header, and the user must make sure it is
+// available. Otherwise there is no way to properly parse raw data
+// without having access to RDH info
+#include "DetectorsRaw/RDHUtils.h"
+
 namespace o2::framework
 {
 class InputRecord;
@@ -69,25 +75,25 @@ class DPLRawPageSequencer
   DPLRawPageSequencer(InputRecord& inputs, std::vector<InputSpec> filterSpecs = {}) : mInput(inputs, filterSpecs) {}
 
   template <typename Predicate, typename Inserter, typename Precheck>
-  void operator()(Predicate&& pred, Inserter&& inserter, Precheck preCheck)
+  int operator()(Predicate&& pred, Inserter&& inserter, Precheck preCheck)
   {
     return binary(std::forward<Predicate>(pred), std::forward<Inserter>(inserter), std::forward<Precheck>(preCheck));
   }
 
   template <typename Predicate, typename Inserter>
-  void operator()(Predicate&& pred, Inserter&& inserter)
+  int operator()(Predicate&& pred, Inserter&& inserter)
   {
     return binary(std::forward<Predicate>(pred), std::forward<Inserter>(inserter), [](...) { return true; });
   }
 
   template <typename Predicate, typename Inserter>
-  void binary(Predicate pred, Inserter inserter)
+  int binary(Predicate pred, Inserter inserter)
   {
     return binary(std::forward<Predicate>(pred), std::forward<Inserter>(inserter), [](...) { return true; });
   }
 
   template <typename Predicate, typename Inserter, typename Precheck>
-  void binary(Predicate pred, Inserter inserter, Precheck preCheck)
+  int binary(Predicate pred, Inserter inserter, Precheck preCheck)
   {
     for (auto const& ref : mInput) {
       auto size = DataRefUtils::getPayloadSize(ref);
@@ -132,6 +138,10 @@ class DPLRawPageSequencer
 
       size_t p = 0;
       do {
+        // check if the last block contains a valid RDH, otherwise data is corrupted or 8kb assumption is wrong
+        if (!o2::raw::RDHUtils::checkRDH(ref.payload + (nPages - 1) * pageSize, false)) {
+          return 1;
+        }
         // insert the full block if the last RDH matches the position
         if (check(p, nPages - 1)) {
           insert(p, nPages - p, dh->subSpecification);
@@ -144,6 +154,7 @@ class DPLRawPageSequencer
       // if payloads are consecutive in memory we could apply this algorithm even over
       // O2 message boundaries
     }
+    return 0;
   }
 
   template <typename Predicate, typename Inserter>
