@@ -48,7 +48,9 @@ void ITS3Layer::createLayer(TGeoVolume* motherVolume)
   double rmin = mRadius;
   double rmax = rmin + mChipThickness;
   double rminSensor = rmax - mSensorThickness;
-  double radiusBetweenLayer = 0.6 - mChipThickness; // FIXME: hard-coded distance between layers
+  double radiusBetweenLayer = 0.6 - mChipThickness;                         // FIXME: hard-coded distance between layers
+  double phiGap = TMath::ASin(mGapPhi / 2.f / mRadius) * TMath::RadToDeg(); // degrees
+  double piDeg = TMath::Pi() * TMath::RadToDeg();                           // degrees
 
   const int nElements = 7;
   std::string names[nElements];
@@ -67,23 +69,23 @@ void ITS3Layer::createLayer(TGeoVolume* motherVolume)
   for (int iEl{0}; iEl < nElements - 1; ++iEl) {
     TGeoMedium* med = (iEl <= 2) ? medSi : medAir;
     if (iEl == 4) {
-      halfLayer[iEl] = new TGeoTubeSeg(rmin, rmax + radiusBetweenLayer, mZLen / 2, 0., TMath::RadToDeg() * TMath::Pi());
+      halfLayer[iEl] = new TGeoTubeSeg(rmin, rmax + radiusBetweenLayer, mZLen / 2, phiGap, piDeg - phiGap);
       volHalfLayer[iEl] = new TGeoVolume(names[iEl].data(), halfLayer[iEl], med);
       createCarbonFoamStructure(volHalfLayer[iEl]);
       volHalfLayer[iEl]->SetVisibility(true);
       volHalfLayer[iEl]->SetLineColor(kGray + 2);
     } else if (iEl < 2) {
-      halfLayer[iEl] = new TGeoTubeSeg(rminSensor, rmax, mZLen / 2, 0., TMath::RadToDeg() * TMath::Pi());
+      halfLayer[iEl] = new TGeoTubeSeg(rminSensor, rmax, mZLen / 2, phiGap, piDeg - phiGap);
       volHalfLayer[iEl] = new TGeoVolume(names[iEl].data(), halfLayer[iEl], med);
       volHalfLayer[iEl]->SetVisibility(true);
       volHalfLayer[iEl]->SetLineColor(kRed + 1);
     } else if (iEl == 2) {
-      halfLayer[iEl] = new TGeoTubeSeg(rmin, rmax, mZLen / 2, 0., TMath::RadToDeg() * TMath::Pi());
+      halfLayer[iEl] = new TGeoTubeSeg(rmin, rmax, mZLen / 2, phiGap, piDeg - phiGap);
       volHalfLayer[iEl] = new TGeoVolume(names[iEl].data(), halfLayer[iEl], med);
       volHalfLayer[iEl]->SetVisibility(true);
       volHalfLayer[iEl]->SetLineColor(kRed + 1);
     } else { // all the others are simply half cylinders filling all the space
-      halfLayer[iEl] = new TGeoTubeSeg(rmin, rmax + radiusBetweenLayer, mZLen / 2, 0., TMath::RadToDeg() * TMath::Pi());
+      halfLayer[iEl] = new TGeoTubeSeg(rmin, rmax + radiusBetweenLayer, mZLen / 2, phiGap, piDeg - phiGap);
       volHalfLayer[iEl] = new TGeoVolume(names[iEl].data(), halfLayer[iEl], med);
     }
     volHalfLayer[iEl]->SetUniqueID(mChipTypeID);
@@ -98,8 +100,8 @@ void ITS3Layer::createLayer(TGeoVolume* motherVolume)
     }
   }
 
-  TGeoTranslation* translationTop = new TGeoTranslation(0., mGap / 2, 0.);
-  TGeoTranslation* translationBottom = new TGeoTranslation(0., -mGap / 2, 0.);
+  TGeoTranslation* translationTop = new TGeoTranslation(0., mGapY / 2, 0.);
+  TGeoTranslation* translationBottom = new TGeoTranslation(0., -mGapY / 2, 0.);
   TGeoRotation* rotationBottom = new TGeoRotation("", 180., 0., 0.);
   TGeoCombiTrans* rotoTranslationBottom =
     new TGeoCombiTrans(*translationBottom, *rotationBottom);
@@ -124,7 +126,9 @@ void ITS3Layer::createLayerWithDeadZones(TGeoVolume* motherVolume)
   double rmed = (rmax + rmin) / 2;
   // width of sensors of layers is calculated from r and chips' widths
   double widthSensor = (TMath::Pi() * rmed - (mNumSubSensorsHalfLayer - 1) * mMiddleChipWidth - 2 * mFringeChipWidth) / mNumSubSensorsHalfLayer;
-  double radiusBetweenLayer = 0.6 - mChipThickness; // FIXME: hard coded distance between layers
+  double radiusBetweenLayer = 0.6 - mChipThickness;                         // FIXME: hard coded distance between layers
+  double phiGap = TMath::ASin(mGapPhi / 2.f / mRadius) * TMath::RadToDeg(); // degrees
+  double piDeg = TMath::Pi() * TMath::RadToDeg();                           // degrees
 
   const int nElements = 7;
   std::string names[nElements];
@@ -147,18 +151,18 @@ void ITS3Layer::createLayerWithDeadZones(TGeoVolume* motherVolume)
     for (int iObj{0}; iObj < nObjPerElement[iEl]; ++iObj) {
       if (iEl == 0) { // subsensors (mNumSubSensorsHalfLayer sectors with dead zones)
         if (iObj == 0) {
-          halfLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rminSensor, rmax, mZLen / 2, TMath::RadToDeg() * mFringeChipWidth / rmed, TMath::RadToDeg() * (mFringeChipWidth + widthSensor) / rmed));
+          halfLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rminSensor, rmax, mZLen / 2, TMath::RadToDeg() * mFringeChipWidth / rmed + phiGap, TMath::RadToDeg() * (mFringeChipWidth + widthSensor) / rmed));
         } else if (iObj == mNumSubSensorsHalfLayer - 1) {
-          halfLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rminSensor, rmax, mZLen / 2, TMath::RadToDeg() * (mFringeChipWidth + iObj * widthSensor + iObj * mMiddleChipWidth) / rmed, TMath::RadToDeg() * TMath::Pi() - TMath::RadToDeg() * mFringeChipWidth / rmed));
+          halfLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rminSensor, rmax, mZLen / 2, TMath::RadToDeg() * (mFringeChipWidth + iObj * widthSensor + iObj * mMiddleChipWidth) / rmed, piDeg - TMath::RadToDeg() * mFringeChipWidth / rmed - phiGap));
         } else {
           halfLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rminSensor, rmax, mZLen / 2, TMath::RadToDeg() * (mFringeChipWidth + iObj * widthSensor + iObj * mMiddleChipWidth) / rmed, TMath::RadToDeg() * (mFringeChipWidth + (iObj + 1) * widthSensor + iObj * mMiddleChipWidth) / rmed));
         }
       } else if (iEl == 1) {
-        halfLayer[iEl].push_back(new TGeoTubeSeg(rminSensor, rmax, mZLen / 2, 0., TMath::RadToDeg() * TMath::Pi()));
+        halfLayer[iEl].push_back(new TGeoTubeSeg(rminSensor, rmax, mZLen / 2, phiGap, piDeg - phiGap));
       } else if (iEl == 2) {
-        halfLayer[iEl].push_back(new TGeoTubeSeg(rmin, rmax, mZLen / 2, 0., TMath::RadToDeg() * TMath::Pi()));
+        halfLayer[iEl].push_back(new TGeoTubeSeg(rmin, rmax, mZLen / 2, phiGap, piDeg - phiGap));
       } else { // all the others are simply half cylinders filling all the space
-        halfLayer[iEl].push_back(new TGeoTubeSeg(rmin, rmax + radiusBetweenLayer, mZLen / 2, 0., TMath::RadToDeg() * TMath::Pi()));
+        halfLayer[iEl].push_back(new TGeoTubeSeg(rmin, rmax + radiusBetweenLayer, mZLen / 2, phiGap, piDeg - phiGap));
       }
     }
 
@@ -191,8 +195,8 @@ void ITS3Layer::createLayerWithDeadZones(TGeoVolume* motherVolume)
     }
   }
 
-  TGeoTranslation* translationTop = new TGeoTranslation(0., mGap / 2, 0.);
-  TGeoTranslation* translationBottom = new TGeoTranslation(0., -mGap / 2, 0.);
+  TGeoTranslation* translationTop = new TGeoTranslation(0., mGapY / 2, 0.);
+  TGeoTranslation* translationBottom = new TGeoTranslation(0., -mGapY / 2, 0.);
   TGeoRotation* rotationBottom = new TGeoRotation("", 180., 0., 0.);
   TGeoCombiTrans* rotoTranslationBottom =
     new TGeoCombiTrans(*translationBottom, *rotationBottom);
@@ -217,6 +221,8 @@ void ITS3Layer::create4thLayer(TGeoVolume* motherVolume)
   double rmed = (rmax + rmin) / 2;
   // width of sensors of layers is calculated from r and chips' widths
   double widthSensor = (0.5 * TMath::Pi() * rmed - (mNumSubSensorsHalfLayer - 1) * mMiddleChipWidth - 2 * mFringeChipWidth) / mNumSubSensorsHalfLayer;
+  double phiGap = TMath::ASin(mGapPhi / 2.f / mRadius) * TMath::RadToDeg(); // degrees
+  double piDeg = TMath::Pi() * TMath::RadToDeg();                           // degrees
 
   const int nElements = 7;
   std::string names[nElements];
@@ -239,18 +245,18 @@ void ITS3Layer::create4thLayer(TGeoVolume* motherVolume)
     for (int iObj{0}; iObj < nObjPerElement[iEl]; ++iObj) {
       if (iEl == 0) { // subsensors (mNumSubSensorsHalfLayer sectors with dead zones)
         if (iObj == 0) {
-          quarterLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rminSensor, rmax, mZLen / 2, TMath::RadToDeg() * mFringeChipWidth / rmed, TMath::RadToDeg() * (mFringeChipWidth + widthSensor) / rmed));
+          quarterLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rminSensor, rmax, mZLen / 2, TMath::RadToDeg() * mFringeChipWidth / rmed + phiGap, TMath::RadToDeg() * (mFringeChipWidth + widthSensor) / rmed));
         } else if (iObj == mNumSubSensorsHalfLayer - 1) {
-          quarterLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rminSensor, rmax, mZLen / 2, TMath::RadToDeg() * (mFringeChipWidth + iObj * widthSensor + iObj * mMiddleChipWidth) / rmed, TMath::RadToDeg() * 0.5 * TMath::Pi() - TMath::RadToDeg() * mFringeChipWidth / rmed));
+          quarterLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rminSensor, rmax, mZLen / 2, TMath::RadToDeg() * (mFringeChipWidth + iObj * widthSensor + iObj * mMiddleChipWidth) / rmed, TMath::RadToDeg() * 0.5 * TMath::Pi() - TMath::RadToDeg() * mFringeChipWidth / rmed - phiGap));
         } else {
           quarterLayer[iEl].push_back(new TGeoTubeSeg(Form("subsens%dlayer%d", iObj, mLayerNumber), rminSensor, rmax, mZLen / 2, TMath::RadToDeg() * (mFringeChipWidth + iObj * widthSensor + iObj * mMiddleChipWidth) / rmed, TMath::RadToDeg() * (mFringeChipWidth + (iObj + 1) * widthSensor + iObj * mMiddleChipWidth) / rmed));
         }
       } else if (iEl == 1) {
-        quarterLayer[iEl].push_back(new TGeoTubeSeg(rminSensor, rmax, mZLen / 2, 0., TMath::RadToDeg() * 0.5 * TMath::Pi()));
+        quarterLayer[iEl].push_back(new TGeoTubeSeg(rminSensor, rmax, mZLen / 2, phiGap, TMath::RadToDeg() * 0.5 * TMath::Pi() - phiGap));
       } else if (iEl == 2) {
-        quarterLayer[iEl].push_back(new TGeoTubeSeg(rmin, rmax, mZLen / 2, 0., TMath::RadToDeg() * 0.5 * TMath::Pi()));
+        quarterLayer[iEl].push_back(new TGeoTubeSeg(rmin, rmax, mZLen / 2, phiGap, TMath::RadToDeg() * 0.5 * TMath::Pi() - phiGap));
       } else { // all the others are simply quarter cylinders filling all the space
-        quarterLayer[iEl].push_back(new TGeoTubeSeg(rmin, rmax, mZLen / 2, 0., TMath::RadToDeg() * 0.5 * TMath::Pi()));
+        quarterLayer[iEl].push_back(new TGeoTubeSeg(rmin, rmax, mZLen / 2, phiGap, TMath::RadToDeg() * 0.5 * TMath::Pi() - phiGap));
       }
     }
 
@@ -279,17 +285,17 @@ void ITS3Layer::create4thLayer(TGeoVolume* motherVolume)
     }
   }
 
-  TGeoTranslation* translationTopRight = new TGeoTranslation(mGapXDirection / 2, mGap / 2, 0.);
+  TGeoTranslation* translationTopRight = new TGeoTranslation(mGapXDirection / 2, mGapY / 2, 0.);
 
-  TGeoTranslation* translationTopLeft = new TGeoTranslation(-mGapXDirection / 2, mGap / 2, 0.);
+  TGeoTranslation* translationTopLeft = new TGeoTranslation(-mGapXDirection / 2, mGapY / 2, 0.);
   TGeoRotation* rotationTopLeft = new TGeoRotation("", 90., 0., 0.);
   TGeoCombiTrans* rotoTranslationTopLeft = new TGeoCombiTrans(*translationTopLeft, *rotationTopLeft);
 
-  TGeoTranslation* translationBottomLeft = new TGeoTranslation(-mGapXDirection / 2, -mGap / 2, 0.);
+  TGeoTranslation* translationBottomLeft = new TGeoTranslation(-mGapXDirection / 2, -mGapY / 2, 0.);
   TGeoRotation* rotationBottomLeft = new TGeoRotation("", 180., 0., 0.);
   TGeoCombiTrans* rotoTranslationBottomLeft = new TGeoCombiTrans(*translationBottomLeft, *rotationBottomLeft);
 
-  TGeoTranslation* translationBottomRight = new TGeoTranslation(mGapXDirection / 2, -mGap / 2, 0.);
+  TGeoTranslation* translationBottomRight = new TGeoTranslation(mGapXDirection / 2, -mGapY / 2, 0.);
   TGeoRotation* rotationBottomRight = new TGeoRotation("", 270., 0., 0.);
   TGeoCombiTrans* rotoTranslationBottomRight = new TGeoCombiTrans(*translationBottomRight, *rotationBottomRight);
 
@@ -312,6 +318,8 @@ void ITS3Layer::createCarbonFoamStructure(TGeoVolume* motherVolume)
   double rmax = mRadius + mChipThickness;
   double radiusBetweenLayer = 0.6 - mChipThickness; // FIXME: hard coded distance between layers
   double rmedFoam = rmax + radiusBetweenLayer / 2;
+  double phiGap = TMath::ASin(mGapPhi / 2.f / mRadius) * TMath::RadToDeg(); // degrees
+  double piDeg = TMath::Pi() * TMath::RadToDeg();                           // degrees
 
   TGeoTranslation* transSemicircle[2];
   transSemicircle[0] = new TGeoTranslation("transSemicircleFoam0", 0, 0, (mZLen - mLengthSemiCircleFoam) / 2);
@@ -320,15 +328,15 @@ void ITS3Layer::createCarbonFoamStructure(TGeoVolume* motherVolume)
   transSemicircle[1]->RegisterYourself();
 
   TGeoTubeSeg* subGluedFoamBottom[4];
-  subGluedFoamBottom[0] = new TGeoTubeSeg(Form("subgluedfoambottom0layer%d", mLayerNumber), rmax, rmax + mThickGluedFoam, mLengthSemiCircleFoam / 2, 0., TMath::RadToDeg() * TMath::Pi());
-  subGluedFoamBottom[1] = new TGeoTubeSeg(Form("subgluedfoambottom1layer%d", mLayerNumber), rmax, rmax + mThickGluedFoam, mLengthSemiCircleFoam / 2, 0., TMath::RadToDeg() * TMath::Pi());
-  subGluedFoamBottom[2] = new TGeoTubeSeg(Form("subgluedfoambottom2layer%d", mLayerNumber), rmax, rmax + mThickGluedFoam, (mZLen - mLengthSemiCircleFoam) / 2, 0., TMath::RadToDeg() * mHeightStripFoam / rmedFoam);
-  subGluedFoamBottom[3] = new TGeoTubeSeg(Form("subgluedfoambottom3layer%d", mLayerNumber), rmax, rmax + mThickGluedFoam, (mZLen - mLengthSemiCircleFoam) / 2, TMath::RadToDeg() * (TMath::Pi() - (mHeightStripFoam / rmedFoam)), TMath::RadToDeg() * TMath::Pi());
+  subGluedFoamBottom[0] = new TGeoTubeSeg(Form("subgluedfoambottom0layer%d", mLayerNumber), rmax, rmax + mThickGluedFoam, mLengthSemiCircleFoam / 2, phiGap, piDeg - phiGap);
+  subGluedFoamBottom[1] = new TGeoTubeSeg(Form("subgluedfoambottom1layer%d", mLayerNumber), rmax, rmax + mThickGluedFoam, mLengthSemiCircleFoam / 2, phiGap, piDeg - phiGap);
+  subGluedFoamBottom[2] = new TGeoTubeSeg(Form("subgluedfoambottom2layer%d", mLayerNumber), rmax, rmax + mThickGluedFoam, (mZLen - mLengthSemiCircleFoam) / 2, phiGap, TMath::RadToDeg() * mHeightStripFoam / rmedFoam);
+  subGluedFoamBottom[3] = new TGeoTubeSeg(Form("subgluedfoambottom3layer%d", mLayerNumber), rmax, rmax + mThickGluedFoam, (mZLen - mLengthSemiCircleFoam) / 2, TMath::RadToDeg() * (TMath::Pi() - (mHeightStripFoam / rmedFoam)), piDeg - phiGap);
   TGeoTubeSeg* subGluedFoamTop[4];
-  subGluedFoamTop[0] = new TGeoTubeSeg(Form("subgluedfoamtop0layer%d", mLayerNumber), rmax + radiusBetweenLayer - mThickGluedFoam, rmax + radiusBetweenLayer, mLengthSemiCircleFoam / 2, 0., TMath::RadToDeg() * TMath::Pi());
-  subGluedFoamTop[1] = new TGeoTubeSeg(Form("subgluedfoamtop1layer%d", mLayerNumber), rmax + radiusBetweenLayer - mThickGluedFoam, rmax + radiusBetweenLayer, mLengthSemiCircleFoam / 2, 0., TMath::RadToDeg() * TMath::Pi());
-  subGluedFoamTop[2] = new TGeoTubeSeg(Form("subgluedfoamtop2layer%d", mLayerNumber), rmax + radiusBetweenLayer - mThickGluedFoam, rmax + radiusBetweenLayer, (mZLen - mLengthSemiCircleFoam) / 2, 0., TMath::RadToDeg() * mHeightStripFoam / rmedFoam);
-  subGluedFoamTop[3] = new TGeoTubeSeg(Form("subgluedfoamtop3layer%d", mLayerNumber), rmax + radiusBetweenLayer - mThickGluedFoam, rmax + radiusBetweenLayer, (mZLen - mLengthSemiCircleFoam) / 2, TMath::RadToDeg() * (TMath::Pi() - (mHeightStripFoam / rmedFoam)), TMath::RadToDeg() * TMath::Pi());
+  subGluedFoamTop[0] = new TGeoTubeSeg(Form("subgluedfoamtop0layer%d", mLayerNumber), rmax + radiusBetweenLayer - mThickGluedFoam, rmax + radiusBetweenLayer, mLengthSemiCircleFoam / 2, phiGap, piDeg - phiGap);
+  subGluedFoamTop[1] = new TGeoTubeSeg(Form("subgluedfoamtop1layer%d", mLayerNumber), rmax + radiusBetweenLayer - mThickGluedFoam, rmax + radiusBetweenLayer, mLengthSemiCircleFoam / 2, phiGap, piDeg - phiGap);
+  subGluedFoamTop[2] = new TGeoTubeSeg(Form("subgluedfoamtop2layer%d", mLayerNumber), rmax + radiusBetweenLayer - mThickGluedFoam, rmax + radiusBetweenLayer, (mZLen - mLengthSemiCircleFoam) / 2, phiGap, TMath::RadToDeg() * mHeightStripFoam / rmedFoam);
+  subGluedFoamTop[3] = new TGeoTubeSeg(Form("subgluedfoamtop3layer%d", mLayerNumber), rmax + radiusBetweenLayer - mThickGluedFoam, rmax + radiusBetweenLayer, (mZLen - mLengthSemiCircleFoam) / 2, TMath::RadToDeg() * (TMath::Pi() - (mHeightStripFoam / rmedFoam)), piDeg - phiGap);
 
   std::string subGluedFoamsNames = "";
   for (int iObj{0}; iObj < 2; ++iObj) {
@@ -348,10 +356,10 @@ void ITS3Layer::createCarbonFoamStructure(TGeoVolume* motherVolume)
   motherVolume->AddNode(volGlue, 1, nullptr);
 
   TGeoTubeSeg* subFoam[4];
-  subFoam[0] = new TGeoTubeSeg(Form("subfoam0layer%d", mLayerNumber), rmax + mThickGluedFoam, rmax + radiusBetweenLayer - mThickGluedFoam, mLengthSemiCircleFoam / 2, 0., TMath::RadToDeg() * TMath::Pi());
-  subFoam[1] = new TGeoTubeSeg(Form("subfoam1layer%d", mLayerNumber), rmax + mThickGluedFoam, rmax + radiusBetweenLayer - mThickGluedFoam, mLengthSemiCircleFoam / 2, 0., TMath::RadToDeg() * TMath::Pi());
+  subFoam[0] = new TGeoTubeSeg(Form("subfoam0layer%d", mLayerNumber), rmax + mThickGluedFoam, rmax + radiusBetweenLayer - mThickGluedFoam, mLengthSemiCircleFoam / 2, 0., piDeg);
+  subFoam[1] = new TGeoTubeSeg(Form("subfoam1layer%d", mLayerNumber), rmax + mThickGluedFoam, rmax + radiusBetweenLayer - mThickGluedFoam, mLengthSemiCircleFoam / 2, 0., piDeg);
   subFoam[2] = new TGeoTubeSeg(Form("subfoam2layer%d", mLayerNumber), rmax + mThickGluedFoam, rmax + radiusBetweenLayer - mThickGluedFoam, (mZLen - mLengthSemiCircleFoam) / 2, 0., TMath::RadToDeg() * mHeightStripFoam / rmedFoam);
-  subFoam[3] = new TGeoTubeSeg(Form("subfoam3layer%d", mLayerNumber), rmax + mThickGluedFoam, rmax + radiusBetweenLayer - mThickGluedFoam, (mZLen - mLengthSemiCircleFoam) / 2, TMath::RadToDeg() * (TMath::Pi() - (mHeightStripFoam / rmedFoam)), TMath::RadToDeg() * TMath::Pi());
+  subFoam[3] = new TGeoTubeSeg(Form("subfoam3layer%d", mLayerNumber), rmax + mThickGluedFoam, rmax + radiusBetweenLayer - mThickGluedFoam, (mZLen - mLengthSemiCircleFoam) / 2, TMath::RadToDeg() * (TMath::Pi() - (mHeightStripFoam / rmedFoam)), piDeg);
 
   std::string subFoamNames = "";
   for (int iObj{0}; iObj < 2; ++iObj) {

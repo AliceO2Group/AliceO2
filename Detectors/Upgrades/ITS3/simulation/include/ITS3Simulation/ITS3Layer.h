@@ -52,7 +52,8 @@ class ITS3Layer : public TObject
   void setChipThick(double thick) { mChipThickness = thick; }
   void setLayerRadius(double radius) { mRadius = radius; }
   void setLayerZLen(double zLen) { mZLen = zLen; }
-  void setGapBetweenEmispheres(double gap) { mGap = gap; }
+  void setGapBetweenEmispheres(double gap) { mGapY = gap; }
+  void setGapBetweenEmispheresInPhi(double gap) { mGapPhi = gap; }
   void setChipID(int chipID) { mChipTypeID = chipID; }
   void setFringeChipWidth(double fringeChipWidth) { mFringeChipWidth = fringeChipWidth; }
   void setMiddleChipWidth(double middleChipWidth) { mMiddleChipWidth = middleChipWidth; }
@@ -69,7 +70,8 @@ class ITS3Layer : public TObject
   double mSensorThickness{0.};      //! sensor thickness
   double mRadius{0.};               //! radius of layer
   double mZLen{0.};                 //! length of a layer
-  double mGap{0.};                  //! gap between emispheres
+  double mGapY{0.};                 //! gap between emispheres in Y direction
+  double mGapPhi{0.};               //! gap between emispheres in phi (distance in Y direction)
   int mChipTypeID{0};               //! chip ID
   double mFringeChipWidth{0.};      //! fringe chip width
   double mMiddleChipWidth{0.};      //! middle chip width

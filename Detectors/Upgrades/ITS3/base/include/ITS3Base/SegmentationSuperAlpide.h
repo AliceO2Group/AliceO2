@@ -19,6 +19,7 @@
 #include "MathUtils/Cartesian.h"
 #include "CommonConstants/MathConstants.h"
 #include "ITS3Base/SuperAlpideParams.h"
+#include "ITS3Base/DescriptorInnerBarrelITS3Param.h"
 #include <Framework/Logger.h>
 
 namespace o2
@@ -30,11 +31,17 @@ namespace its3
 class SegmentationSuperAlpide
 {
  public:
-  SegmentationSuperAlpide(int layer, float pitchCol, float pitchRow, float detThick) : mLayer{layer}, mPitchCol{pitchCol}, mPitchRow{pitchRow}, mDetectorLayerThickness{detThick} { print(); }
-  SegmentationSuperAlpide(int layer = 0) : SegmentationSuperAlpide(layer, SuperAlpideParams::Instance().mPitchCol, SuperAlpideParams::Instance().mPitchRow, SuperAlpideParams::Instance().mDetectorThickness) {}
+  SegmentationSuperAlpide(int layer, float pitchCol, float pitchRow, float detThick, double length, const double radii[4]) : mLayer{layer}, mPitchCol{pitchCol}, mPitchRow{pitchRow}, mDetectorLayerThickness{detThick}, mLength{length}
+  {
+    for (int iL{0}; iL < 4; ++iL) {
+      mRadii[iL] = radii[iL];
+    }
+    print();
+  }
+  SegmentationSuperAlpide(int layer = 0) : SegmentationSuperAlpide(layer, SuperAlpideParams::Instance().mPitchCol, SuperAlpideParams::Instance().mPitchRow, SuperAlpideParams::Instance().mDetectorThickness, DescriptorInnerBarrelITS3Param::Instance().mLength, DescriptorInnerBarrelITS3Param::Instance().mRadii) {}
 
-  static constexpr std::array<float, 10> mRadii = {1.8f, 2.4f, 3.0f, 6.0f};                                                                                                       ///< radii for different layers
-  static constexpr float mLength = 27.15f;                                                                                                                                        ///< chip length
+  double mRadii[4] = {1.8f, 2.4f, 3.0f, 6.0f};                                                                                                                                    ///< radii for different layers
+  const double mLength;                                                                                                                                                           ///< chip length
   const int mLayer;                                                                                                                                                               ///< chip layer
   const float mPitchCol;                                                                                                                                                          ///< pixel column size
   const float mPitchRow;                                                                                                                                                          ///< pixel row size

@@ -845,7 +845,8 @@ void GeometryTGeo::extractSensorXAlpha(int isn, float& x, float& alp)
     // in this case we need the line tangent to the circumference
     double radius = 0.;
 #ifdef ENABLE_UPGRADES
-    radius = SegmentationITS3::mRadii[iLayer];
+    SegmentationITS3 seg(iLayer);
+    radius = seg.mRadii[iLayer];
 #endif
     locA[1] = radius;
     locB[1] = radius;
