@@ -1286,6 +1286,7 @@ void AODProducerWorkflowDPL::countTPCClusters(const o2::globaltracking::RecoCont
         for (int j = i + 1; j < lim; j++) {
           if (clMap[j]) {
             counters.crossed++;
+            break;
           }
         }
       }
