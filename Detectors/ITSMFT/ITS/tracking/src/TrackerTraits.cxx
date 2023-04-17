@@ -427,6 +427,7 @@ void TrackerTraits::findRoads(const int iteration)
     std::cout << "+++ Roads with " << iLevel + 2 << " clusters: " << nRoads << " / " << mTimeFrame->getRoads().size() << std::endl;
 #endif
   }
+  LOGP(info, "Roads found: {}", mTimeFrame->getRoads().size());
 }
 
 void TrackerTraits::findTracks()

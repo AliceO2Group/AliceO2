@@ -51,19 +51,6 @@ using namespace constants::its2;
 namespace gpu
 {
 
-GPUg() void printBufferLayerOnThread(const int layer, const int* v, size_t size, const int len = 150, const unsigned int tId = 0)
-{
-  if (blockIdx.x * blockDim.x + threadIdx.x == tId) {
-    for (int i{0}; i < size; ++i) {
-      if (!(i % len)) {
-        printf("\n layer %d: ===>%d/%d\t", layer, i, (int)size);
-      }
-      printf("%d\t", v[i]);
-    }
-    printf("\n");
-  }
-}
-
 GPUd() const int4 getBinsRect(const Cluster& currentCluster, const int layerIndex,
                               const o2::its::IndexTableUtils& utils,
                               const float z1, const float z2, float maxdeltaz, float maxdeltaphi)
@@ -85,11 +72,55 @@ GPUd() const int4 getBinsRect(const Cluster& currentCluster, const int layerInde
               utils.getPhiBinIndex(math_utils::getNormalizedPhi(phiRangeMax))};
 }
 
+template <bool dryRun>
+GPUd() void traverseCellsTreeDevice(
+  const int currentCellId,
+  const int currentLayerId,
+  const int startingCellId, // used to compile LUT
+  int& nRoadsStartingCell,
+  int* roadsLookUpTable,
+  Cell** cells,
+  Road* roads)
+{
+  Cell& currentCell{cells[currentLayerId][currentCellId]};
+  const int currentCellLevel = currentCell.getLevel();
+  if constexpr (dryRun) {
+    ++nRoadsStartingCell; // in dry run I just want to count the total number of roads
+  } else {
+    mTimeFrame->getRoads().back().addCell(currentLayerId, currentCellId);
+  }
+  if (currentLayerId > 0 && currentCellLevel > 1) {
+    const int cellNeighboursNum{static_cast<int>(
+      mTimeFrame->getCellsNeighbours()[currentLayerId - 1][currentCellId].size())};
+    bool isFirstValidNeighbour = true;
+
+    for (int iNeighbourCell{0}; iNeighbourCell < cellNeighboursNum; ++iNeighbourCell) {
+
+      const int neighbourCellId =
+        mTimeFrame->getCellsNeighbours()[currentLayerId - 1][currentCellId][iNeighbourCell];
+      const Cell& neighbourCell = mTimeFrame->getCells()[currentLayerId - 1][neighbourCellId];
+
+      if (currentCellLevel - 1 != neighbourCell.getLevel()) {
+        continue;
+      }
+
+      if (isFirstValidNeighbour) {
+        isFirstValidNeighbour = false;
+      } else {
+        mTimeFrame->getRoads().push_back(mTimeFrame->getRoads().back());
+      }
+      traverseCellsTree<dryRun>(neighbourCellId, currentLayerId - 1, cells, roads);
+      ++nRoadsStartingCell;
+    }
+  }
+}
+
 GPUhd() float Sq(float q)
 {
   return q * q;
 }
 
+// Functors to sort tracklets
 template <typename T>
 struct trackletSortEmptyFunctor : public thrust::binary_function<T, T, bool> {
   GPUhd() bool operator()(const T& lhs, const T& rhs) const
@@ -105,6 +136,20 @@ struct trackletSortIndexFunctor : public thrust::binary_function<T, T, bool> {
     return lhs.firstClusterIndex < rhs.firstClusterIndex || (lhs.firstClusterIndex == rhs.firstClusterIndex && lhs.secondClusterIndex < rhs.secondClusterIndex);
   }
 };
+
+// Print layer buffer
+GPUg() void printBufferLayerOnThread(const int layer, const int* v, size_t size, const int len = 150, const unsigned int tId = 0)
+{
+  if (blockIdx.x * blockDim.x + threadIdx.x == tId) {
+    for (int i{0}; i < size; ++i) {
+      if (!(i % len)) {
+        printf("\n layer %d: ===>%d/%d\t", layer, i, (int)size);
+      }
+      printf("%d\t", v[i]);
+    }
+    printf("\n");
+  }
+}
 
 // Dump vertices
 GPUg() void printVertices(const Vertex* v, size_t size, const unsigned int tId = 0)
@@ -490,32 +535,33 @@ template <bool dryRun, int nLayers = 7>
 GPUg() void computeLayerRoadsKernel(
   const int level,
   const int layerIndex,
-  const Cell** cells,
+  Cell** cells,
   const int* nCells,
-  const int** neighbours,
-  const int** neighboursLUT,
-  Road* roads,
-  int* roadLUT)
+  int** neighbours,
+  int** neighboursLUT,
+  Road<nLayers - 2>* roads,
+  int* roadsLookupTable)
 {
   for (int iCurrentCellIndex = blockIdx.x * blockDim.x + threadIdx.x; iCurrentCellIndex < nCells[layerIndex]; iCurrentCellIndex += blockDim.x * gridDim.x) {
     auto& currentCell{cells[layerIndex][iCurrentCellIndex]};
     if (currentCell.getLevel() != level) {
       continue;
     }
-    int nRoads{0};
+    int nRoadsCurrentCell{0};
     if constexpr (dryRun) {
-      roadLUT[iCurrentCellIndex]++;
+      roadsLookupTable[iCurrentCellIndex]++;
     } else {
-      roads[roadLUT[iCurrentCellIndex] + nRoads++] = Road{layerIndex, iCurrentCellIndex};
+      roads[roadsLookupTable[iCurrentCellIndex] + nRoadsCurrentCell++] = Road<nLayers - 2>{layerIndex, iCurrentCellIndex};
     }
     if (level == 1) {
       continue;
     }
     // **** check! I'm tired
-    const int cellNeighboursNum{neighboursLUT[layerIndex - 1][iCurrentCellIndex + 1] - neighboursLUT[layerIndex - 1][iCurrentCellIndex]};
+    const auto currentCellNeighOffset{neighboursLUT[layerIndex - 1][iCurrentCellIndex]};
+    const int cellNeighboursNum{neighboursLUT[layerIndex - 1][iCurrentCellIndex + 1] - currentCellNeighOffset};
     bool isFirstValidNeighbour{true};
     for (int iNeighbourCell{0}; iNeighbourCell < cellNeighboursNum; ++iNeighbourCell) {
-      const int neighbourCellId = neighbours[layerIndex - 1][neighboursLUT[layerIndex - 1][iCurrentCellIndex + iNeighbourCell]];
+      const int neighbourCellId = neighbours[layerIndex - 1][currentCellNeighOffset + iNeighbourCell];
       const Cell& neighbourCell = cells[layerIndex - 1][neighbourCellId];
       if (level - 1 != neighbourCell.getLevel()) {
         continue;
@@ -523,11 +569,14 @@ GPUg() void computeLayerRoadsKernel(
       if (isFirstValidNeighbour) {
         isFirstValidNeighbour = false;
       } else {
-        roads[roadLUT[iCurrentCellIndex] + nRoads++] = Road{layerIndex, iCurrentCellIndex};
+        if constexpr (dryRun) {
+          roadsLookupTable[iCurrentCellIndex]++; // dry run we just count the number of roads
+        } else {
+          roads[roadsLookupTable[iCurrentCellIndex] + nRoadsCurrentCell++] = Road<nLayers - 2>{layerIndex, iCurrentCellIndex};
+        }
       }
-      // traverseCellsTree(neighbourCellId, layerIndex - 1);
+      traverseCellsTreeDevice<dryRun>(neighbourCellId, layerIndex - 1, iCurrentCellIndex, nRoadsCurrentCell, roadsLookupTable, cells, roads);
     }
-    /*   ------------------------ */
   }
 }
 
@@ -737,9 +786,14 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration)
           for (int iLevel{nLayers - 2}; iLevel >= mTrkParams[iteration].CellMinimumLevel(); --iLevel) {
             const int minimumLevel{iLevel - 1};
             for (int iLayer{nLayers - 3}; iLayer >= minimumLevel; --iLayer) {
-              // gpu::computeLayerRoadsKernel<<<1, 1, 0, mTimeFrameGPU->getStream(chunkId).get()>>>(
-              //   iLevel,
-              //   iLayer, );
+              gpu::computeLayerRoadsKernel<true><<<1, 1, 0, mTimeFrameGPU->getStream(chunkId).get()>>>(iLevel,                                                               // const int level,
+                                                                                                       iLayer,                                                               // const int layerIndex,
+                                                                                                       mTimeFrameGPU->getChunk(chunkId).getDeviceArrayCells(),               // const Cell** cells,
+                                                                                                       mTimeFrameGPU->getChunk(chunkId).getDeviceNFoundCells(),              // const int* nCells,
+                                                                                                       mTimeFrameGPU->getChunk(chunkId).getDeviceArrayNeighboursCell(),      // const int** neighbours,
+                                                                                                       mTimeFrameGPU->getChunk(chunkId).getDeviceArrayNeighboursCellLUT(),   // const int** neighboursLUT,
+                                                                                                       mTimeFrameGPU->getChunk(chunkId).getDeviceRoads(),                    // Road* roads,
+                                                                                                       mTimeFrameGPU->getChunk(chunkId).getDeviceRoadsLookupTables(iLayer)); // int* roadsLookupTable
             }
           }
         }
@@ -761,21 +815,6 @@ template <int nLayers>
 void TrackerTraitsGPU<nLayers>::computeLayerCells(const int iteration)
 {
 }
-
-// void TrackerTraitsGPU::refitTracks(const std::vector<std::vector<TrackingFrameInfo>>& tf, std::vector<TrackITSExt>& tracks)
-// {
-//   PrimaryVertexContextNV* pvctx = static_cast<PrimaryVertexContextNV*>(nullptr); //TODO: FIX THIS with Time Frames
-//   std::array<const Cell*, 5> cells;
-//   for (int iLayer = 0; iLayer < 5; iLayer++) {
-//     cells[iLayer] = pvctx->getDeviceCells()[iLayer].get();
-//   }
-//   std::array<const Cluster*, 7> clusters;
-//   for (int iLayer = 0; iLayer < 7; iLayer++) {
-//     clusters[iLayer] = pvctx->getDeviceClusters()[iLayer].get();
-//   }
-//   //TODO: restore this
-//   // mChainRunITSTrackFit(*mChain, mPrimaryVertexContext->getRoads(), clusters, cells, tf, tracks);
-// }
 
 template <int nLayers>
 void TrackerTraitsGPU<nLayers>::findCellsNeighbours(const int iteration){};

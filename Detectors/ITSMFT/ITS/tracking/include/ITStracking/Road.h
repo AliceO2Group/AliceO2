@@ -82,18 +82,6 @@ inline int Road<maxRoadSize>::getRoadSize() const
   return mRoadSize;
 }
 
-// template <unsigned char maxRoadSize>
-// inline int Road<maxRoadSize>::getLabel() const
-// {
-//   return mLabel;
-// }
-
-// template <unsigned char maxRoadSize>
-// inline void Road<maxRoadSize>::setLabel(const int label)
-// {
-//   mLabel = label;
-// }
-
 template <unsigned char maxRoadSize>
 GPUhdi() int& Road<maxRoadSize>::operator[](const int& i)
 {

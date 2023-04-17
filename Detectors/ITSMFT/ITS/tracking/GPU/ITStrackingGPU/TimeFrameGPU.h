@@ -103,6 +103,8 @@ class GpuTimeFrameChunk
   int* getDeviceTrackletsLookupTables(const int);
   Cell* getDeviceCells(const int);
   int* getDeviceCellsLookupTables(const int);
+  Road<nLayers - 2>* getDeviceRoads() { return mRoadsDevice; }
+  int* getDeviceRoadsLookupTables(const int);
   TimeFrameGPUParameters* getTimeFrameGPUParameters() const { return mTFGPUParams; }
 
   int* getDeviceCUBTmpBuffer() { return mCUBTmpBufferDevice; }
@@ -110,6 +112,9 @@ class GpuTimeFrameChunk
   int* getDeviceNFoundCells() { return mNFoundCellsDevice; }
   int* getDeviceCellNeigboursLookupTables(const int);
   int* getDeviceCellNeighbours(const int);
+  Cell** getDeviceArrayCells() const { return mCellsDeviceArray; }
+  int** getDeviceArrayNeighboursCell() const { return mNeighboursCellDeviceArray; }
+  int** getDeviceArrayNeighboursCellLUT() const { return mNeighboursCellLookupTablesDeviceArray; }
 
   /// Vertexer only
   int* getDeviceNTrackletCluster(const int combid) { return mNTrackletsPerClusterDevice[combid]; }
@@ -119,9 +124,6 @@ class GpuTimeFrameChunk
   unsigned char* getDeviceUsedTracklets() { return mUsedTrackletsDevice; }
   int* getDeviceClusteredLines() { return mClusteredLinesDevice; }
   size_t getNPopulatedRof() const { return mNPopulatedRof; }
-  Cell** getArrayCells() const { return mCellsDeviceArray; }
-  int** getArrayNeighboursCell() const { return mNeighboursCellDeviceArray; }
-  int** getArrayNeighboursCellLUT() const { return mNeighboursCellLookupTablesDeviceArray; }
 
  private:
   /// Host
@@ -136,16 +138,18 @@ class GpuTimeFrameChunk
   std::array<Tracklet*, nLayers - 1> mTrackletsDevice;
   std::array<int*, nLayers - 1> mTrackletsLookupTablesDevice;
   std::array<Cell*, nLayers - 2> mCellsDevice;
-  Road* mRoadsDevice;
+  Road<nLayers - 2>* mRoadsDevice;
   std::array<int*, nLayers - 2> mCellsLookupTablesDevice;
   std::array<int*, nLayers - 3> mNeighboursCellDevice;
   std::array<int*, nLayers - 3> mNeighboursCellLookupTablesDevice;
+  std::array<int*, nLayers - 2> mRoadsLookupTablesDevice;
 
   // These are to make them accessible using layer index
   Cell** mCellsDeviceArray;
   int** mNeighboursCellDeviceArray;
   int** mNeighboursCellLookupTablesDeviceArray;
 
+  // Small accessory buffers
   int* mCUBTmpBufferDevice;
   int* mFoundTrackletsDevice;
   int* mNFoundCellsDevice;
