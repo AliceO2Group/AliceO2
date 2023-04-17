@@ -121,9 +121,10 @@ class StrangenessTracker
   double calcMotherMass(double p2Mother, double p2DauFirst, double p2DauSecond, PID pidDauFirst, PID pidDauSecond)
   {
 
-    double m2DauFirst = PID::getMass2(pidDauFirst) * PID::getMass2(pidDauFirst);
-    double m2DauSecond = PID::getMass2(pidDauSecond) * PID::getMass2(pidDauSecond);
-    double e2Mother = p2DauFirst + m2DauFirst + p2DauSecond + m2DauSecond;
+    double m2DauFirst = PID::getMass2(pidDauFirst);
+    double m2DauSecond = PID::getMass2(pidDauSecond);
+    float ePos = std::sqrt(p2DauFirst + m2DauFirst), eNeg = std::sqrt(p2DauSecond + m2DauSecond);
+    double e2Mother = (ePos + eNeg) * (ePos + eNeg);
     return std::sqrt(e2Mother - p2Mother);
   }
 
@@ -198,7 +199,7 @@ class StrangenessTracker
 
   float getMatchingChi2(o2::track::TrackParCovF v0, const TrackITS& itsTrack)
   {
-    if (v0.rotate(itsTrack.getParamOut().getAlpha()) && v0.propagateTo(itsTrack.getX(), mBz)) {
+    if (v0.rotate(itsTrack.getParamOut().getAlpha()) && v0.propagateTo(itsTrack.getParamOut().getX(), mBz)) {
       return v0.getPredictedChi2(itsTrack.getParamOut());
     }
     return -100;
