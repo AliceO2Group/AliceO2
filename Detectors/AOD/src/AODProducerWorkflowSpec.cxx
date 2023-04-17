@@ -473,6 +473,22 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
       }
     }
   }
+  /// Add strangeness tracks to the table
+  auto sTracks = data.getStrangeTracks();
+  for (auto& collStrTrk : mCollisionStrTrk) {
+    if (collStrTrk.first < collisionID) {
+      continue;
+    }
+    if (collStrTrk.first > collisionID) {
+      break;
+    }
+    auto& sTrk = sTracks[collStrTrk.second];
+    TrackExtraInfo extraInfo;
+    extraInfo.itsChi2NCl = sTrk.mTopoChi2; // TODO: this is the total chi2 of adding the ITS clusters, the topology chi2 meaning might change in the future
+    addToTracksTable(tracksCursor, tracksCovCursor, sTrk.mMother, collisionID, aod::track::StrangeTrack);
+    addToTracksExtraTable(tracksExtraCursor, extraInfo);
+    mStrTrkIndices[collStrTrk.second] = mTableTrID++;
+  }
 }
 
 void AODProducerWorkflowDPL::fillIndexTablesPerCollision(const o2::dataformats::VtxTrackRef& trackRef, const gsl::span<const GIndex>& GIndices, const o2::globaltracking::RecoContainer& data)
@@ -1192,24 +1208,17 @@ void AODProducerWorkflowDPL::fillSecondaryVertices(const o2::globaltracking::Rec
   }
 }
 
-template <typename V0C, typename CC, typename D3BC, typename TC, typename TCC, typename TEC>
-void AODProducerWorkflowDPL::fillStrangenessTrackingTables(const o2::globaltracking::RecoContainer& recoData, V0C& v0Curs, CC& cascCurs, D3BC& d3BodyCurs, TC& tracksCursor, TCC& tracksCovCursor, TEC& tracksExtraCursor)
+void AODProducerWorkflowDPL::prepareStrangenessTracking(const o2::globaltracking::RecoContainer& recoData)
 {
   auto v0s = recoData.getV0s();
   auto cascades = recoData.getCascades();
   auto decays3Body = recoData.getDecays3Body();
 
-  int itsTableIdx = -1;
+  int sTrkID = 0;
+  mCollisionStrTrk.clear();
+  mCollisionStrTrk.reserve(recoData.getStrangeTracks().size());
   for (auto& sTrk : recoData.getStrangeTracks()) {
     auto ITSIndex = GIndex{sTrk.mITSRef, GIndex::ITS};
-    auto item = mGIDToTableID.find(ITSIndex);
-    if (item != mGIDToTableID.end()) {
-      itsTableIdx = item->second;
-    } else {
-      LOG(warn) << "Could not find a ITS strange track index";
-      continue;
-    }
-    auto& mtr = sTrk.mMother;
     int vtxId{0};
     if (sTrk.mPartType == dataformats::kStrkV0) {
       vtxId = v0s[sTrk.mDecayRef].getVertexID();
@@ -1220,14 +1229,34 @@ void AODProducerWorkflowDPL::fillStrangenessTrackingTables(const o2::globaltrack
     }
     auto itemV = mVtxToTableCollID.find(vtxId);
     int collisionId = itemV != mVtxToTableCollID.end() ? itemV->second : -1;
+    mCollisionStrTrk.emplace_back(collisionId, sTrkID++);
+  }
 
-    TrackExtraInfo extraInfo;
-    // extraInfo.itsClusterMap = sTrk.mITSClusterMap; // TODO: add this to the AOD
-    extraInfo.itsChi2NCl = sTrk.mTopoChi2; // TODO: this is the total chi2 of adding the ITS clusters, the topology chi2 meaning might change in the future
-    addToTracksTable(tracksCursor, tracksCovCursor, sTrk.mMother, collisionId, aod::track::StrangeTrack);
-    addToTracksExtraTable(tracksExtraCursor, extraInfo);
+  // sort by collision ID
+  std::sort(mCollisionStrTrk.begin(), mCollisionStrTrk.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+  mStrTrkIndices.clear();
+  mStrTrkIndices.resize(mCollisionStrTrk.size(), -1);
+}
+
+template <typename V0C, typename CC, typename D3BC>
+void AODProducerWorkflowDPL::fillStrangenessTrackingTables(const o2::globaltracking::RecoContainer& recoData, V0C& v0Curs, CC& cascCurs, D3BC& d3BodyCurs)
+{
+  auto v0s = recoData.getV0s();
+  auto cascades = recoData.getCascades();
+  auto decays3Body = recoData.getDecays3Body();
+  int itsTableIdx = -1;
+  int sTrkID = 0;
+  for (auto& sTrk : recoData.getStrangeTracks()) {
+    auto ITSIndex = GIndex{sTrk.mITSRef, GIndex::ITS};
+    auto item = mGIDToTableID.find(ITSIndex);
+    if (item != mGIDToTableID.end()) {
+      itsTableIdx = item->second;
+    } else {
+      LOG(warn) << "Could not find a ITS strange track index";
+      continue;
+    }
     (sTrk.mPartType == dataformats::kStrkV0 ? v0Curs : (sTrk.mPartType == dataformats::kStrkCascade ? cascCurs : d3BodyCurs))(0,
-                                                                                                                              mTableTrID++,
+                                                                                                                              mStrTrkIndices[sTrkID++],
                                                                                                                               itsTableIdx,
                                                                                                                               sTrk.mDecayRef,
                                                                                                                               sTrk.mDecayVtx[0],
@@ -1931,6 +1960,9 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     collisionID++;
   }
 
+  /// Strangeness tracking requires its index LUTs to be filled before the tracks are filled
+  prepareStrangenessTracking(recoData);
+
   mGIDToTableFwdID.clear(); // reset the tables to be used by 'fillTrackTablesPerCollision'
   mGIDToTableMFTID.clear();
 
@@ -1987,7 +2019,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   }
 
   fillSecondaryVertices(recoData, v0sCursor, cascadesCursor, decay3BodyCursor);
-  fillStrangenessTrackingTables(recoData, trackedV0Cursor, trackedCascadeCursor, tracked3BodyCurs, tracksCursor, tracksCovCursor, tracksExtraCursor);
+  fillStrangenessTrackingTables(recoData, trackedV0Cursor, trackedCascadeCursor, tracked3BodyCurs);
 
   // helper map for fast search of a corresponding class mask for a bc
   std::unordered_map<uint64_t, uint64_t> bcToClassMask;
