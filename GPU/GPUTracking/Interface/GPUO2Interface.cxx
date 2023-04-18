@@ -52,6 +52,9 @@ int GPUO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
   if (mConfig->configWorkflow.inputs.isSet(GPUDataTypes::InOutType::TPCRaw)) {
     mConfig->configGRP.needsClusterer = 1;
   }
+  if (mConfig->configWorkflow.inputs.isSet(GPUDataTypes::InOutType::TPCCompressedClusters)) {
+    mConfig->configGRP.doCompClusterDecode = 1;
+  }
   mRec->SetSettings(&mConfig->configGRP, &mConfig->configReconstruction, &mConfig->configProcessing, &mConfig->configWorkflow);
   mChain->SetCalibObjects(mConfig->configCalib);
   mOutputRegions.reset(new GPUTrackingOutputs);
@@ -98,14 +101,14 @@ int GPUO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutp
     mChain->mIOPtrs = *data;
 
     char fname[1024];
-    sprintf(fname, "event.%d.dump", nEvent);
+    snprintf(fname, 1024, "event.%d.dump", nEvent);
     mChain->DumpData(fname);
     if (nEvent == 0) {
       mRec->DumpSettings();
 #ifdef GPUCA_BUILD_QA
       if (mConfig->configProcessing.runMC) {
         mChain->ForceInitQA();
-        sprintf(fname, "mc.%d.dump", nEvent);
+        snprintf(fname, 1024, "mc.%d.dump", nEvent);
         mChain->GetQA()->DumpO2MCData(fname);
       }
 #endif
@@ -141,6 +144,7 @@ int GPUO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutp
     outputs->qa.hist1 = &mChain->GetQA()->getHistograms1D();
     outputs->qa.hist2 = &mChain->GetQA()->getHistograms2D();
     outputs->qa.hist3 = &mChain->GetQA()->getHistograms1Dd();
+    outputs->qa.hist4 = &mChain->GetQA()->getGraphs();
     outputs->qa.newQAHistsCreated = true;
   }
   *data = mChain->mIOPtrs;

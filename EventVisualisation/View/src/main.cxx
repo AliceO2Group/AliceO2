@@ -42,6 +42,7 @@ int main(int argc, char** argv)
   srand(static_cast<unsigned int>(time(nullptr)));
 
   TEnv settings;
+  ConfigurationManager::setOptionsFileName(Options::Instance()->optionsFileName());
   ConfigurationManager::getInstance().getConfig(settings);
 
   std::array<const char*, 7> keys = {"Gui.DefaultFont", "Gui.MenuFont", "Gui.MenuHiFont",

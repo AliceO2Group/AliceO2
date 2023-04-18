@@ -300,6 +300,12 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   /// Sym name of the chip in the given layer/halfbarrel/stave/substave/module
   static const char* composeSymNameChip(int lr, int hba, int sta, int ssta, int mod, int chip, bool isITS3 = false);
 
+  // get tracking frame alpha for ITS3 clusters in global coordinates
+  float getAlphaFromGlobalITS3(int isn, o2::math_utils::Point3D<float> gloXYZ);
+
+  // create matrix for transformation from tracking frame to local one for ITS3
+  const Mat3D getT2LMatrixITS3(int isn, float alpha);
+
  protected:
   /// Get the transformation matrix of the SENSOR (not necessary the same as the chip)
   /// for a given chip 'index' by quering the TGeoManager
@@ -308,7 +314,7 @@ class GeometryTGeo : public o2::itsmft::GeometryTGeo
   // create matrix for transformation from sensor local frame to global one
   TGeoHMatrix& createT2LMatrix(int isn);
 
-  // get sensor tracking frame alpha and
+  // get sensor tracking frame alpha and x
   void extractSensorXAlpha(int isn, float& x, float& alp);
 
   /// This routine computes the layer number a given the chip index

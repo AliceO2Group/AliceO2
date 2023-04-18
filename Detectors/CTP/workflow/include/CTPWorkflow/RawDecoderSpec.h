@@ -19,6 +19,7 @@
 #include "Framework/Task.h"
 #include "DataFormatsCTP/Digits.h"
 #include "DataFormatsCTP/LumiInfo.h"
+#include "DataFormatsCTP/TriggerOffsetsParam.h"
 
 namespace o2
 {
@@ -37,14 +38,12 @@ class RawDecoderSpec : public framework::Task
   /// \brief Constructor
   /// \param propagateMC If true the MCTruthContainer is propagated to the output
   RawDecoderSpec(bool digits, bool lumi) : mDoDigits(digits), mDoLumi(lumi) {}
-
   /// \brief Destructor
   ~RawDecoderSpec() override = default;
-
   /// \brief Initializing the RawDecoderSpec
   /// \param ctx Init context
   void init(framework::InitContext& ctx) final;
-
+  void endOfStream(o2::framework::EndOfStreamContext& ec) final;
   /// \brief Run conversion of raw data to cells
   /// \param ctx Processing context
   ///
@@ -57,19 +56,30 @@ class RawDecoderSpec : public framework::Task
 
  protected:
  private:
+  static constexpr uint32_t TF_TRIGGERTYPE_MASK = 0x800;
+  static constexpr uint32_t HB_TRIGGERTYPE_MASK = 0x2;
   // for digits
   bool mDoDigits = true;
   std::vector<CTPDigit> mOutputDigits;
   // for lumi
   bool mDoLumi = true;
   //
-  gbtword80_t mTVXMask = 0x4; // TVX is 3rd input
+  gbtword80_t mTVXMask = 0x4;  // TVX is 3rd input
+  gbtword80_t mVBAMask = 0x20; // VBA is 6 th input
   LumiInfo mOutputLumiInfo;
   bool mVerbose = false;
-  uint64_t mCounts = 0;
+  uint64_t mCountsT = 0;
+  uint64_t mCountsV = 0;
   uint32_t mNTFToIntegrate = 1;
-  uint32_t mNHBIntegrated = 0;
-  std::deque<size_t> mHistory;
+  uint32_t mNHBIntegratedT = 0;
+  uint32_t mNHBIntegratedV = 0;
+  uint32_t mIRRejected = 0;
+  uint32_t mTCRRejected = 0;
+  bool mPadding = true;
+  uint32_t mTFOrbit = 0;
+  std::deque<size_t> mHistoryT;
+  std::deque<size_t> mHistoryV;
+  std::vector<uint32_t> mTFOrbits;
 };
 
 /// \brief Creating DataProcessorSpec for the CTP

@@ -40,7 +40,7 @@ class Response
   /** Converts energy deposition into a charge.
    *
    * @param edepos deposited energy from Geant (in GeV)
-   * @returns an equivalent charge (roughyl in ADC units)
+   * @returns an equivalent charge (roughly in ADC units)
    *
    */
   float etocharge(float edepos) const;
@@ -61,8 +61,8 @@ class Response
   /// return a randomized charge correlation between cathodes
   float chargeCorr() const;
 
-  /// compute the number of samples corresponding to the ADC value
-  uint32_t nSamples(uint32_t adc) const;
+  /// compute the number of samples corresponding to the charge in ADC units
+  uint32_t nSamples(float charge) const;
 
  private:
   MathiesonOriginal mMathieson{}; ///< Mathieson function

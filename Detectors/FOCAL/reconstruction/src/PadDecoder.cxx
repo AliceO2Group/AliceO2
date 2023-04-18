@@ -34,7 +34,7 @@ void PadDecoder::decodeEvent(gsl::span<const PadGBTWord> gbtdata)
   // Other words: Trigger data
   std::size_t asicsize = 39 * PadData::NASICS;
   auto asicwords = gbtdata.subspan(0, asicsize);
-  auto triggerwords = gbtdata.subspan(39, gbtdata.size() - asicsize);
+  auto triggerwords = gbtdata.subspan(asicsize, gbtdata.size() - asicsize);
   for (int iasic = 0; iasic < PadData::NASICS; iasic++) {
     // First part: ASIC words
     auto& asicdata = mData[iasic].getASIC();

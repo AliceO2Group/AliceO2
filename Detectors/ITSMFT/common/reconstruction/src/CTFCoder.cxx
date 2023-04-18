@@ -50,7 +50,6 @@ void CTFCoder::compress(CompressedClusters& cc,
   if (!rofRecVec.size()) {
     return;
   }
-
   uint32_t firstROF = rofRecVec.size(), nrofSel = rofRecVec.size(), nClusSel = cclusVec.size();
   std::vector<bool> reject(rofRecVec.size());
   if (mIRFrameSelector.isSet()) {
@@ -103,7 +102,6 @@ void CTFCoder::compress(CompressedClusters& cc,
   uint32_t prevOrbit = cc.header.firstOrbit;
   int irofOut = 0, iclOut = 0;
   auto pattIt = pattVec.begin(), pattIt0 = pattVec.begin();
-
   for (uint32_t irof = 0; irof < rofRecVec.size(); irof++) {
     const auto& rofRec = rofRecVec[irof];
     const auto& intRec = rofRec.getBCData();
@@ -116,9 +114,10 @@ void CTFCoder::compress(CompressedClusters& cc,
       for (int icl = rofRec.getFirstEntry(); icl < rofRec.getFirstEntry() + rofRec.getNEntries(); icl++) {
         const auto& clus = cclusVec[icl];
         if (clus.getPatternID() == o2::itsmft::CompCluster::InvalidPatternID || clPattLookup.isGroup(clus.getPatternID())) {
-          o2::itsmft::ClusterPattern::skipPattern(pattIt);
+          o2::itsmft::ClusterPattern::skipPattern(pattIt0);
         }
       }
+      pattIt = pattIt0;
       continue;
     }
     if (intRec.orbit == prevOrbit) {
@@ -159,6 +158,9 @@ void CTFCoder::compress(CompressedClusters& cc,
       const auto& cl = cclusVec[icl];
       cc.row[iclOut] = cl.getRow(); // row is practically random, store it as it is
       cc.pattID[iclOut] = cl.getPatternID();
+      if (selectPatterns && (cc.pattID[iclOut] == o2::itsmft::CompCluster::InvalidPatternID || clPattLookup.isGroup(cl.getPatternID()))) {
+        o2::itsmft::ClusterPattern::skipPattern(pattIt);
+      }
       if (cl.getChipID() == prevChip) { // for the same chip store column increment
         // cc.chipInc[iclOut] = 0;  // this is the version with chipInc stored for every pixel
         cc.chipMul.back()++; // this is the version with chipInc stored once per new chip

@@ -15,10 +15,10 @@
 #ifndef O2_TRD_CALIBRATORNOISE_H
 #define O2_TRD_CALIBRATORNOISE_H
 
-#include "DetectorsCalibration/TimeSlotCalibration.h"
-#include "DetectorsCalibration/TimeSlot.h"
-#include "TRDBase/PadCalibrationsAliases.h"
 #include "DataFormatsTRD/NoiseCalibration.h"
+#include "DataFormatsTRD/Digit.h"
+#include "DataFormatsTRD/Constants.h"
+#include "TRDCalibration/CalibrationParams.h"
 #include "CCDB/CcdbObjectInfo.h"
 #include "Rtypes.h"
 
@@ -27,27 +27,58 @@ namespace o2
 namespace trd
 {
 
-class CalibratorNoise final : public o2::calibration::TimeSlotCalibration<PadAdcInfo>
+struct ChannelInfoDetailed {
+  ChannelInfoDetailed() = default;
+  ChannelInfoDetailed(const ChannelInfoDetailed&) = default;
+  ChannelInfoDetailed& operator=(const ChannelInfoDetailed& rhs) = default;
+
+  float getRMS() { return nEntries > 0 ? std::sqrt(variance / nEntries) : -1.f; }
+
+  uint32_t det{0};           ///< detector number
+  uint32_t sec{0};           ///< sector
+  uint32_t stack{0};         ///< stack
+  uint32_t layer{0};         ///< layer
+  uint32_t row{0};           ///< pad row
+  int col{0};                ///< pad column, not unsigned, since outer shared pads get negative value assigned
+  uint32_t channelGlb{0};    ///< global channel number within pad row 0..NCHANNELSPERROW
+  uint32_t indexGlb{0};      ///< global channel index 0..NCHANNELSTOTAL
+  float adcMean{0};          ///< mean ADC value for this pad
+  uint64_t adcSum{0};        ///< sum of ADC_i values
+  uint64_t adcSumSquared{0}; ///< sum of ADC_i^2
+  uint32_t nEntries{0};      ///< number of ADC values stored
+  float variance{0};         ///< the sum of (ADC_i - ADC_mean)^2
+  bool isShared{false};      ///< flag, whether this is a shared pad
+  ClassDefNV(ChannelInfoDetailed, 1);
+};
+
+class CalibratorNoise
 {
-  using Slot = o2::calibration::TimeSlot<PadAdcInfo>;
 
  public:
-  CalibratorNoise() = default;
-  ~CalibratorNoise() final = default;
+  // Default c'tor
+  CalibratorNoise() { mChannelInfosDetailed.resize(constants::NCHANNELSTOTAL); };
 
-  // TODO implement these methods
-  bool hasEnoughData(const Slot& slot) const final { return false; }
-  void initOutput() final {}
-  void finalizeSlot(Slot& slot) final {}
-  Slot& emplaceNewSlot(bool front, TFType tStart, TFType tEnd) final;
+  // Check if total number of digits seen is higher than threshold
+  bool hasEnoughData() const { return (mNDigitsSeen > mParams.minNumberOfDigits); }
 
-  const std::vector<PadNoise>& getCcdbObjectVector() const { return mObjectVector; }
-  std::vector<o2::ccdb::CcdbObjectInfo>& getCcdbObjectInfoVector() { return mInfoVector; }
+  // Add information from digits to mChannelInfosDetailed
+  void process(const gsl::span<const Digit>& digits);
+
+  // Getter for internal data when this is run from a macro
+  const std::vector<ChannelInfoDetailed>& getInternalChannelInfos() { return mChannelInfosDetailed; }
+
+  // Fill mean and RMS for each channel into mCCDBObject
+  void collectChannelInfo();
+
+  // Make CCDB object accessible from outside
+  const ChannelInfoContainer& getCcdbObject() const { return mCCDBObject; }
 
  private:
-  std::vector<o2::ccdb::CcdbObjectInfo> mInfoVector; ///< vector of CCDB infos; each element is filled with CCDB description of accompanying CCDB calibration object
-  std::vector<PadNoise> mObjectVector;               ///< vector of CCDB calibration objects; the extracted pad noise value for given slot
-  ClassDefOverride(CalibratorNoise, 1);
+  ChannelInfoContainer mCCDBObject{};                        ///< array with information for each TRD readout channel (to be put in the CCDB)
+  std::vector<ChannelInfoDetailed> mChannelInfosDetailed{};  ///< used to collect detailed information from each channel
+  uint64_t mNDigitsSeen{0};                                  ///< counter to decide when to stop processing input data
+  const TRDCalibParams& mParams{TRDCalibParams::Instance()}; ///< reference to calibration parameters
+  ClassDefNV(CalibratorNoise, 1);
 };
 
 } // namespace trd

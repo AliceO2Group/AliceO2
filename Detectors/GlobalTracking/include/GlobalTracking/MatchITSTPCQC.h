@@ -16,6 +16,7 @@
 #ifndef ALICEO2_GLOBTRACKING_MATCHTPCITS_QC_
 #define ALICEO2_GLOBTRACKING_MATCHTPCITS_QC_
 
+#include <TH1D.h>
 #include <TH1F.h>
 #include <TH2F.h>
 #include <TEfficiency.h>
@@ -55,8 +56,8 @@ class MatchITSTPCQC
   void finalize();
   void reset();
 
-  TH1F* getHistoPt() const { return mPt; }
-  TH1F* getHistoPtTPC() const { return mPtTPC; }
+  TH1D* getHistoPt() const { return mPt; }
+  TH1D* getHistoPtTPC() const { return mPtTPC; }
   TEfficiency* getFractionITSTPCmatch() const { return mFractionITSTPCmatch; }
 
   TH1F* getHistoPhi() const { return mPhi; }
@@ -91,8 +92,6 @@ class MatchITSTPCQC
   void setUseMC(bool b) { mUseMC = b; }
   bool getUseMC() const { return mUseMC; }
   void deleteHistograms();
-  void setGRPFileName(std::string fn) { mGRPFileName = fn; }
-  void setGeomFileName(std::string fn) { mGeomFileName = fn; }
   void setBz(float bz) { mBz = bz; }
 
   // track selection
@@ -118,8 +117,6 @@ class MatchITSTPCQC
   // ITS-TPC
   gsl::span<const o2::dataformats::TrackTPCITS> mITSTPCTracks;
   bool mUseMC = false;
-  std::string mGRPFileName = "o2sim_grp.root";
-  std::string mGeomFileName = "o2sim_geometry-aligned.root";
   float mBz = 0;                                              ///< nominal Bz
   std::unordered_map<o2::MCCompLabel, LblInfo> mMapLabels;    // map with labels that have been found for the matched ITSTPC tracks; key is the label,
                                                               // value is the LbLinfo with the id of the track with the highest pT found with that label so far,
@@ -129,9 +126,9 @@ class MatchITSTPCQC
                                                               // with that label so far, and the flag to say if it is a physical primary or not
   o2::steer::MCKinematicsReader mcReader;                     // reader of MC information
 
-  // Pt
-  TH1F* mPt = nullptr;
-  TH1F* mPtTPC = nullptr;
+  // Pt.
+  TH1D* mPt = nullptr;
+  TH1D* mPtTPC = nullptr;
   TEfficiency* mFractionITSTPCmatch = nullptr;
   TH1F* mPtPhysPrim = nullptr;
   TH1F* mPtTPCPhysPrim = nullptr;

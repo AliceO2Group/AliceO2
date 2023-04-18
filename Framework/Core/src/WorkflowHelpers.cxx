@@ -25,6 +25,7 @@
 #include "Framework/ChannelSpecHelpers.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/Plugins.h"
+#include "Framework/DataTakingContext.h"
 #include "ArrowSupport.h"
 
 #include "Headers/DataHeader.h"
@@ -212,10 +213,15 @@ void WorkflowHelpers::addMissingOutputsToBuilder(std::vector<InputSpec> const& r
 // get the default value for condition-backend
 std::string defaultConditionBackend()
 {
-  if (getenv("DDS_SESSION_ID") != nullptr || getenv("OCC_CONTROL_PORT") != nullptr) {
-    return getenv("DPL_CONDITION_BACKEND") ? getenv("DPL_CONDITION_BACKEND") : "http://o2-ccdb.internal";
+  static bool explicitBackend = getenv("DPL_CONDITION_BACKEND");
+  static DeploymentMode deploymentMode = CommonServices::getDeploymentMode();
+  if (explicitBackend) {
+    return getenv("DPL_CONDITION_BACKEND");
+  } else if (deploymentMode == DeploymentMode::OnlineDDS || deploymentMode == DeploymentMode::OnlineECS) {
+    return "http://o2-ccdb.internal";
+  } else {
+    return "http://alice-ccdb.cern.ch";
   }
-  return getenv("DPL_CONDITION_BACKEND") ? getenv("DPL_CONDITION_BACKEND") : "https://alice-ccdb.cern.ch";
 }
 
 // get the default value for condition query rate
@@ -374,7 +380,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
           auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
           auto hasOption = std::any_of(processor.options.begin(), processor.options.end(), [&input](auto const& option) { return (option.name == "period-" + input.binding); });
           if (hasOption == false) {
-            processor.options.push_back(ConfigParamSpec{"period-" + input.binding, VariantType::Int, 1000, {"period of the timer"}});
+            processor.options.push_back(ConfigParamSpec{"period-" + input.binding, VariantType::Int, 1000, {"period of the timer in milliseconds"}});
           }
           timer.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, Lifetime::Timer});
         } break;
@@ -541,18 +547,33 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     } else if (providesDISTSTF) {
       ccdbBackend.inputs.push_back(InputSpec{"tfn", dstf, Lifetime::Timeframe});
     } else {
-      for (auto& dp : workflow) {
-        bool enumOnly = dp.inputs.size() == 1 && dp.inputs[0].lifetime == Lifetime::Enumeration;
-        bool timerOnly = dp.inputs.size() == 1 && dp.inputs[0].lifetime == Lifetime::Timer;
-        if (enumOnly == true) {
-          dp.outputs.push_back(OutputSpec{{"ccdb-diststf"}, dstf, Lifetime::Timeframe});
-          ccdbBackend.inputs.push_back(InputSpec{"tfn", dstf, Lifetime::Timeframe});
-          break;
-        } else if (timerOnly == true) {
-          dstf = DataSpecUtils::asConcreteDataMatcher(dp.outputs[0]);
-          ccdbBackend.inputs.push_back(InputSpec{{"tfn"}, dstf, Lifetime::Timeframe});
-          break;
+      // We find the first device which has either just enumerations or
+      // just timers, and we add the DISTSUBTIMEFRAME to it.
+      // Notice how we do so in a stable manner by sorting the devices
+      // by name.
+      int enumCandidate = -1;
+      int timerCandidate = -1;
+      for (size_t wi = 0; wi < workflow.size(); wi++) {
+        auto& dp = workflow[wi];
+        if (dp.inputs.size() != 1) {
+          continue;
         }
+        auto lifetime = dp.inputs[0].lifetime;
+        if (lifetime == Lifetime::Enumeration && (enumCandidate == -1 || workflow[enumCandidate].name > dp.name)) {
+          enumCandidate = wi;
+        }
+        if (lifetime == Lifetime::Timer && (timerCandidate == -1 || workflow[timerCandidate].name > dp.name)) {
+          timerCandidate = wi;
+        }
+      }
+      if (enumCandidate != -1) {
+        auto& dp = workflow[enumCandidate];
+        dp.outputs.push_back(OutputSpec{{"ccdb-diststf"}, dstf, Lifetime::Timeframe});
+        ccdbBackend.inputs.push_back(InputSpec{"tfn", dstf, Lifetime::Timeframe});
+      } else if (timerCandidate != -1) {
+        auto& dp = workflow[timerCandidate];
+        dstf = DataSpecUtils::asConcreteDataMatcher(dp.outputs[0]);
+        ccdbBackend.inputs.push_back(InputSpec{{"tfn"}, dstf, Lifetime::Timeframe});
       }
     }
 
@@ -573,18 +594,33 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       }
     }
     if (requiresDISTSUBTIMEFRAME) {
-      for (auto& dp : workflow) {
-        bool enumOnly = dp.inputs.size() == 1 && dp.inputs[0].lifetime == Lifetime::Enumeration;
-        bool timerOnly = dp.inputs.size() == 1 && dp.inputs[0].lifetime == Lifetime::Timer;
-        if (enumOnly == true) {
-          dp.outputs.push_back(OutputSpec{{"ccdb-diststf"}, dstf, Lifetime::Timeframe});
-          ccdbBackend.inputs.push_back(InputSpec{"tfn", dstf, Lifetime::Timeframe});
-          break;
-        } else if (timerOnly == true) {
-          dstf = DataSpecUtils::asConcreteDataMatcher(dp.outputs[0]);
-          ccdbBackend.inputs.push_back(InputSpec{{"tfn"}, dstf, Lifetime::Timeframe});
-          break;
+      // We find the first device which has either just enumerations or
+      // just timers, and we add the DISTSUBTIMEFRAME to it.
+      // Notice how we do so in a stable manner by sorting the devices
+      // by name.
+      int enumCandidate = -1;
+      int timerCandidate = -1;
+      for (size_t wi = 0; wi < workflow.size(); wi++) {
+        auto& dp = workflow[wi];
+        if (dp.inputs.size() != 1) {
+          continue;
         }
+        auto lifetime = dp.inputs[0].lifetime;
+        if (lifetime == Lifetime::Enumeration && (enumCandidate == -1 || workflow[enumCandidate].name > dp.name)) {
+          enumCandidate = wi;
+        }
+        if (lifetime == Lifetime::Timer && (timerCandidate == -1 || workflow[timerCandidate].name > dp.name)) {
+          timerCandidate = wi;
+        }
+      }
+      if (enumCandidate != -1) {
+        auto& dp = workflow[enumCandidate];
+        dp.outputs.push_back(OutputSpec{{"ccdb-diststf"}, dstf, Lifetime::Timeframe});
+        ccdbBackend.inputs.push_back(InputSpec{"tfn", dstf, Lifetime::Timeframe});
+      } else if (timerCandidate != -1) {
+        auto& dp = workflow[timerCandidate];
+        dstf = DataSpecUtils::asConcreteDataMatcher(dp.outputs[0]);
+        ccdbBackend.inputs.push_back(InputSpec{{"tfn"}, dstf, Lifetime::Timeframe});
       }
     }
   }
@@ -614,7 +650,11 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   // ATTENTION: if there are dangling outputs the getGlobalAODSink
   // has to be created in any case!
   std::vector<InputSpec> outputsInputsAOD;
-  auto isAOD = [](InputSpec const& spec) { return (DataSpecUtils::partialMatch(spec, header::DataOrigin("AOD")) || DataSpecUtils::partialMatch(spec, header::DataOrigin("DYN"))); };
+  auto isAOD = [](InputSpec const& spec) {
+    return (DataSpecUtils::partialMatch(spec, header::DataOrigin("AOD")) ||
+            DataSpecUtils::partialMatch(spec, header::DataOrigin("DYN")) ||
+            DataSpecUtils::partialMatch(spec, header::DataOrigin("AMD")));
+  };
   for (auto ii = 0u; ii < outputsInputs.size(); ii++) {
     if (isAOD(outputsInputs[ii])) {
       auto ds = dod->getDataOutputDescriptors(outputsInputs[ii]);

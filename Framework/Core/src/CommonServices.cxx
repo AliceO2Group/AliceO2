@@ -24,6 +24,7 @@
 #include "Framework/DataRelayer.h"
 #include "Framework/Signpost.h"
 #include "Framework/DataProcessingStats.h"
+#include "Framework/TimingHelpers.h"
 #include "Framework/CommonMessageBackends.h"
 #include "Framework/DanglingContext.h"
 #include "Framework/DataProcessingHelpers.h"
@@ -37,6 +38,10 @@
 #include "Framework/Plugins.h"
 #include "Framework/DeviceContext.h"
 #include "Framework/DataProcessingContext.h"
+#include "Framework/StreamContext.h"
+#include "Framework/DeviceState.h"
+#include "Framework/DeviceConfig.h"
+
 #include "TextDriverClient.h"
 #include "WSDriverClient.h"
 #include "HTTPParser.h"
@@ -105,11 +110,14 @@ o2::framework::ServiceSpec CommonServices::monitoringSpec()
     },
     .configure = noConfiguration(),
     .start = [](ServiceRegistryRef services, void* service) {
-      auto* monitoring = (o2::monitoring::Monitoring *) service;
-      auto& context = services.get<DataTakingContext>();
+      auto* monitoring = (o2::monitoring::Monitoring*)service;
 
+      auto extRunNumber = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
+      if (extRunNumber == "unspecified") {
+        return;
+      }
       try {
-        monitoring->setRunNumber(std::stoul(context.runNumber.c_str()));
+        monitoring->setRunNumber(std::stoul(extRunNumber));
       } catch (...) {
       } },
     .exit = [](ServiceRegistryRef registry, void* service) {
@@ -141,11 +149,28 @@ o2::framework::ServiceSpec CommonServices::timingInfoSpec()
     .kind = ServiceKind::Stream};
 }
 
+o2::framework::ServiceSpec CommonServices::streamContextSpec()
+{
+  return ServiceSpec{
+    .name = "stream-context",
+    .uniqueId = simpleServiceId<StreamContext>(),
+    .init = simpleServiceInit<StreamContext, StreamContext, ServiceKind::Stream>(),
+    .configure = noConfiguration(),
+    .kind = ServiceKind::Stream};
+}
+
+o2::framework::DeploymentMode o2::framework::CommonServices::getDeploymentMode()
+{
+  static DeploymentMode retVal = getenv("DDS_SESSION_ID") != nullptr ? DeploymentMode::OnlineDDS : (getenv("OCC_CONTROL_PORT") != nullptr ? DeploymentMode::OnlineECS : (getenv("ALIEN_JOB_ID") != nullptr ? DeploymentMode::Grid : (getenv("ALICE_O2_FST") ? DeploymentMode::FST : (DeploymentMode::Local))));
+  return retVal;
+}
+
 o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
 {
   return ServiceSpec{
     .name = "datataking-contex",
-    .init = simpleServiceInit<DataTakingContext, DataTakingContext>(),
+    .uniqueId = simpleServiceId<DataTakingContext>(),
+    .init = simpleServiceInit<DataTakingContext, DataTakingContext, ServiceKind::Stream>(),
     .configure = noConfiguration(),
     .preProcessing = [](ProcessingContext& processingContext, void* service) {
       auto& context = processingContext.services().get<DataTakingContext>();
@@ -158,8 +183,12 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
         context.runNumber = fmt::format("{}", dh->runNumber);
         break;
       } },
+    // Notice this will be executed only once, because the service is declared upfront.
     .start = [](ServiceRegistryRef services, void* service) {
       auto& context = services.get<DataTakingContext>();
+
+      context.deploymentMode = getDeploymentMode();
+
       auto extRunNumber = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
       if (extRunNumber != "unspecified" || context.runNumber == "0") {
         context.runNumber = extRunNumber;
@@ -191,7 +220,7 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
       context.forcedRaw = forcedRaw == "true";
 
       context.nOrbitsPerTF = services.get<RawDeviceService>().device()->fConfig->GetProperty<uint64_t>("Norbits_per_TF", 128); },
-    .kind = ServiceKind::Serial};
+    .kind = ServiceKind::Stream};
 }
 
 struct MissingService {
@@ -210,12 +239,12 @@ o2::framework::ServiceSpec CommonServices::configurationSpec()
                            ConfigurationFactory::getConfiguration(backend).release()};
     },
     .configure = noConfiguration(),
-    .driverStartup = [](ServiceRegistryRef registry, boost::program_options::variables_map const& vmap) {
-      if (vmap.count("configuration") == 0) {
+    .driverStartup = [](ServiceRegistryRef registry, DeviceConfig const& dc) {
+      if (dc.options.count("configuration") == 0) {
         registry.registerService(ServiceHandle{0, nullptr});
         return;
       }
-      auto backend = vmap["configuration"].as<std::string>();
+      auto backend = dc.options["configuration"].as<std::string>();
       registry.registerService(ServiceHandle{TypeIdHelpers::uniqueId<ConfigurationInterface>(),
                                              ConfigurationFactory::getConfiguration(backend).release()}); },
     .kind = ServiceKind::Global};
@@ -304,8 +333,8 @@ o2::framework::ServiceSpec CommonServices::dataRelayer()
       return ServiceHandle{TypeIdHelpers::uniqueId<DataRelayer>(),
                            new DataRelayer(spec.completionPolicy,
                                            spec.inputs,
-                                           services.get<Monitoring>(),
-                                           services.get<TimesliceIndex>())};
+                                           services.get<TimesliceIndex>(),
+                                           services)};
     },
     .configure = noConfiguration(),
     .kind = ServiceKind::Serial};
@@ -321,6 +350,16 @@ o2::framework::ServiceSpec CommonServices::dataSender()
                            new DataSender(services, spec.sendingPolicy)};
     },
     .configure = noConfiguration(),
+    .preProcessing = [](ProcessingContext&, void* service) {
+      auto& dataSender = *reinterpret_cast<DataSender*>(service);
+      dataSender.reset(); },
+    .postDispatching = [](ProcessingContext& ctx, void* service) {
+      auto& dataSender = *reinterpret_cast<DataSender*>(service);
+      // If the quit was requested, the post dispatching can still happen
+      // but with an empty set of data.
+      if (ctx.services().get<DeviceState>().quitRequested == false) {
+        dataSender.verifyMissingSporadic();
+      } },
     .kind = ServiceKind::Serial};
 }
 
@@ -411,7 +450,7 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
   return ServiceSpec{
     .name = "decongestion",
     .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
-      DecongestionService* decongestion = new DecongestionService();
+      auto* decongestion = new DecongestionService();
       for (auto& input : services.get<DeviceSpec const>().inputs) {
         if (input.matcher.lifetime == Lifetime::Timeframe) {
           LOGP(detail, "Found a Timeframe input, we cannot update the oldest possible timeslice");
@@ -424,7 +463,7 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
       return ServiceHandle{TypeIdHelpers::uniqueId<DecongestionService>(), decongestion, ServiceKind::Serial};
     },
     .postForwarding = [](ProcessingContext& ctx, void* service) {
-      DecongestionService* decongestion = reinterpret_cast<DecongestionService*>(service);
+      auto* decongestion = reinterpret_cast<DecongestionService*>(service);
       if (decongestion->isFirstInTopology == false) {
         LOGP(debug, "We are not the first in the topology, do not update the oldest possible timeslice");
         return;
@@ -444,9 +483,9 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
         return;
       }
 
-      LOGP(debug, "Broadcasting possible output {} due to {} ({})", oldestPossibleOutput.timeslice.value,
+      LOGP(debug, "Broadcasting oldest possible output {} due to {} ({})", oldestPossibleOutput.timeslice.value,
            oldestPossibleOutput.slot.index == -1 ? "channel" : "slot",
-           oldestPossibleOutput.slot.index == -1 ? oldestPossibleOutput.channel.value: oldestPossibleOutput.slot.index);
+           oldestPossibleOutput.slot.index == -1 ? oldestPossibleOutput.channel.value : oldestPossibleOutput.slot.index);
       DataProcessingHelpers::broadcastOldestPossibleTimeslice(proxy, oldestPossibleOutput.timeslice.value);
 
       for (int fi = 0; fi < proxy.getNumForwardChannels(); fi++) {
@@ -463,7 +502,7 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
       }
       decongestion->lastTimeslice = oldestPossibleOutput.timeslice.value; },
     .domainInfoUpdated = [](ServiceRegistryRef services, size_t oldestPossibleTimeslice, ChannelIndex channel) {
-      DecongestionService& decongestion = services.get<DecongestionService>();
+      auto& decongestion = services.get<DecongestionService>();
       auto& relayer = services.get<DataRelayer>();
       auto& timesliceIndex = services.get<TimesliceIndex>();
       auto& proxy = services.get<FairMQDeviceProxy>();
@@ -481,11 +520,10 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
              oldestPossibleOutput.timeslice.value, decongestion.lastTimeslice);
         return;
       }
-      LOGP(debug, "Broadcasting possible output {}", oldestPossibleOutput.timeslice.value);
       auto &queue = services.get<AsyncQueue>();
-      DeviceSpec const& spec = services.get<DeviceSpec const>();
+      auto& spec = services.get<DeviceSpec const>();
       auto *device = services.get<RawDeviceService>().device();
-      /// We use the oldest possible timeslice to debuounce, so that only the latest one
+      /// We use the oldest possible timeslice to debounce, so that only the latest one
       /// at the end of one iteration is sent.
       LOGP(debug, "Queueing oldest possible timeslice {} propagation for execution.", oldestPossibleOutput.timeslice.value);
       AsyncQueueHelpers::post(
@@ -524,13 +562,13 @@ o2::framework::ServiceSpec CommonServices::threadPool(int numWorkers)
   return ServiceSpec{
     .name = "threadpool",
     .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
-      ThreadPool* pool = new ThreadPool();
+      auto* pool = new ThreadPool();
       // FIXME: this will require some extra argument for the configuration context of a service
       pool->poolSize = 1;
       return ServiceHandle{TypeIdHelpers::uniqueId<ThreadPool>(), pool};
     },
     .configure = [](InitContext&, void* service) -> void* {
-      ThreadPool* t = reinterpret_cast<ThreadPool*>(service);
+      auto* t = reinterpret_cast<ThreadPool*>(service);
       // FIXME: this will require some extra argument for the configuration context of a service
       t->poolSize = 1;
       return service;
@@ -545,15 +583,10 @@ o2::framework::ServiceSpec CommonServices::threadPool(int numWorkers)
 
 namespace
 {
-/// This will send metrics for the relayer at regular intervals of
-/// 15 seconds, in order to avoid overloading the system.
 auto sendRelayerMetrics(ServiceRegistryRef registry, DataProcessingStats& stats) -> void
 {
-  auto timeSinceLastUpdate = stats.beginIterationTimestamp - stats.lastSlowMetricSentTimestamp;
-  auto timeSinceLastLongUpdate = stats.beginIterationTimestamp - stats.lastVerySlowMetricSentTimestamp;
-  if (timeSinceLastUpdate < 15000) {
-    return;
-  }
+  // Update the timer to make sure we have  the correct time when sending out the stats.
+  uv_update_time(registry.get<DeviceState>().loop);
   // Derive the amount of shared memory used
   auto& runningWorkflow = registry.get<RunningWorkflowInfo const>();
   using namespace fair::mq::shmem;
@@ -573,113 +606,64 @@ auto sendRelayerMetrics(ServiceRegistryRef registry, DataProcessingStats& stats)
       } catch (...) {
       }
     }
-    if (freeMemory != -1) {
-      stats.availableManagedShm.store(freeMemory);
-    }
+    stats.updateStats({static_cast<unsigned short>(static_cast<int>(ProcessingStatsId::AVAILABLE_MANAGED_SHM_BASE) + (runningWorkflow.shmSegmentId % 512)), DataProcessingStats::Op::SetIfPositive, freeMemory});
   }
-
-  auto performedComputationsSinceLastUpdate = stats.performedComputations - stats.lastReportedPerformedComputations;
 
   ZoneScopedN("send metrics");
-  auto& relayerStats = registry.get<DataRelayer>().getStats();
-  auto& monitoring = registry.get<Monitoring>();
-
-  O2_SIGNPOST_START(MonitoringStatus::ID, MonitoringStatus::SEND, 0, 0, O2_SIGNPOST_BLUE);
-
-  monitoring.send(Metric{(int)relayerStats.malformedInputs, "malformed_inputs"}.addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{(int)relayerStats.droppedComputations, "dropped_computations"}.addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{(int)relayerStats.droppedIncomingMessages, "dropped_incoming_messages"}.addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{(int)relayerStats.relayedMessages, "relayed_messages"}.addTag(Key::Subsystem, Value::DPL));
-
-  monitoring.send(Metric{(int)stats.errorCount, "errors"}.addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{(int)stats.exceptionCount, "exceptions"}.addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{(int)stats.pendingInputs, "inputs/relayed/pending"}.addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{(int)stats.incomplete, "inputs/relayed/incomplete"}.addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{(int)stats.inputParts, "inputs/relayed/total"}.addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{stats.lastElapsedTimeMs, "elapsed_time_ms"}.addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{stats.lastProcessedSize, "last_processed_input_size_byte"}
-                    .addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{stats.totalProcessedSize, "total_processed_input_size_byte"}
-                    .addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{stats.totalSigusr1.load(), "total_sigusr1"}.addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{(stats.lastProcessedSize.load() / (stats.lastElapsedTimeMs.load() ? stats.lastElapsedTimeMs.load() : 1) / 1000),
-                         "processing_rate_mb_s"}
-                    .addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{stats.lastLatency.minLatency, "min_input_latency_ms"}
-                    .addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{stats.lastLatency.maxLatency, "max_input_latency_ms"}
-                    .addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{(stats.lastProcessedSize / (stats.lastLatency.maxLatency ? stats.lastLatency.maxLatency : 1) / 1000), "input_rate_mb_s"}
-                    .addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{((float)performedComputationsSinceLastUpdate / (float)timeSinceLastUpdate) * 1000, "processing_rate_hz"}.addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{(uint64_t)stats.performedComputations, "performed_computations"}.addTag(Key::Subsystem, Value::DPL));
-
-  if (stats.availableManagedShm) {
-    monitoring.send(Metric{(uint64_t)stats.availableManagedShm, fmt::format("available_managed_shm_{}", runningWorkflow.shmSegmentId)}.addTag(Key::Subsystem, Value::DPL));
-  }
-
-  if (stats.consumedTimeframes) {
-    monitoring.send(Metric{(uint64_t)stats.consumedTimeframes, "consumed-timeframes"}.addTag(Key::Subsystem, Value::DPL));
-  }
-
-  stats.lastSlowMetricSentTimestamp.store(stats.beginIterationTimestamp.load());
-  stats.lastReportedPerformedComputations.store(stats.performedComputations.load());
-  O2_SIGNPOST_END(MonitoringStatus::ID, MonitoringStatus::SEND, 0, 0, O2_SIGNPOST_BLUE);
-
   auto device = registry.get<RawDeviceService>().device();
 
-  uint64_t lastTotalBytesIn = stats.totalBytesIn.exchange(0);
-  uint64_t lastTotalBytesOut = stats.totalBytesOut.exchange(0);
-  uint64_t totalBytesIn = 0;
-  uint64_t totalBytesOut = 0;
+  int64_t totalBytesIn = 0;
+  int64_t totalBytesOut = 0;
 
   for (auto& channel : device->fChannels) {
     totalBytesIn += channel.second[0].GetBytesRx();
     totalBytesOut += channel.second[0].GetBytesTx();
   }
 
-  monitoring.send(Metric{(float)(totalBytesOut - lastTotalBytesOut) / 1000000.f / (timeSinceLastUpdate / 1000.f), "total_rate_out_mb_s"}
-                    .addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{(float)(totalBytesIn - lastTotalBytesIn) / 1000000.f / (timeSinceLastUpdate / 1000.f), "total_rate_in_mb_s"}
-                    .addTag(Key::Subsystem, Value::DPL));
-  stats.totalBytesIn.store(totalBytesIn);
-  stats.totalBytesOut.store(totalBytesOut);
-  // Things which we report every 30s
-  if (timeSinceLastLongUpdate < 30000) {
-    return;
-  }
-  stats.lastVerySlowMetricSentTimestamp.store(stats.beginIterationTimestamp.load());
+  stats.updateStats({static_cast<short>(ProcessingStatsId::TOTAL_BYTES_IN), DataProcessingStats::Op::Set, totalBytesIn / 1000000});
+  stats.updateStats({static_cast<short>(ProcessingStatsId::TOTAL_BYTES_OUT), DataProcessingStats::Op::Set, totalBytesOut / 1000000});
+
+  stats.updateStats({static_cast<short>(ProcessingStatsId::TOTAL_RATE_IN_MB_S), DataProcessingStats::Op::InstantaneousRate, totalBytesIn / 1000000});
+  stats.updateStats({static_cast<short>(ProcessingStatsId::TOTAL_RATE_OUT_MB_S), DataProcessingStats::Op::InstantaneousRate, totalBytesOut / 1000000});
 };
 
 /// This will flush metrics only once every second.
 auto flushMetrics(ServiceRegistryRef registry, DataProcessingStats& stats) -> void
 {
-  auto timeSinceLastUpdate = stats.beginIterationTimestamp - stats.lastMetricFlushedTimestamp;
-  static int counter = 0;
-  if (timeSinceLastUpdate < 1000) {
-    if (counter++ > 10) {
-      return;
-    }
-  } else {
-    counter = 0;
-  }
-
   ZoneScopedN("flush metrics");
   auto& monitoring = registry.get<Monitoring>();
   auto& relayer = registry.get<DataRelayer>();
 
   O2_SIGNPOST_START(MonitoringStatus::ID, MonitoringStatus::FLUSH, 0, 0, O2_SIGNPOST_RED);
   // Send all the relevant metrics for the relayer to update the GUI
-  // FIXME: do a delta with the previous version if too many metrics are still
-  // sent...
-  for (size_t si = 0; si < stats.statesSize.load(); ++si) {
-    auto value = std::atomic_load_explicit(&stats.relayerState[si], std::memory_order_relaxed);
-    std::atomic_thread_fence(std::memory_order_acquire);
-    monitoring.send({value, fmt::format("data_relayer/{}", si), o2::monitoring::Verbosity::Debug});
-  }
+  stats.flushChangedMetrics([&monitoring](DataProcessingStats::MetricSpec const& spec, int64_t timestamp, int64_t value) mutable -> void {
+    // convert timestamp to a time_point
+    auto tp = std::chrono::time_point<std::chrono::system_clock, std::chrono::milliseconds>(std::chrono::milliseconds(timestamp));
+    auto metric = o2::monitoring::Metric{spec.name, Metric::DefaultVerbosity, tp};
+    if (spec.kind == DataProcessingStats::Kind::UInt64) {
+      if (value < 0) {
+        LOG(debug) << "Value for " << spec.name << " is negative, setting to 0";
+        value = 0;
+      }
+      metric.addValue((uint64_t)value, "value");
+    } else {
+      if (value > (int64_t)std::numeric_limits<int>::max()) {
+        LOG(warning) << "Value for " << spec.name << " is too large, setting to INT_MAX";
+        value = (int64_t)std::numeric_limits<int>::max();
+      }
+      if (value < (int64_t)std::numeric_limits<int>::min()) {
+        value = (int64_t)std::numeric_limits<int>::min();
+        LOG(warning) << "Value for " << spec.name << " is too small, setting to INT_MIN";
+      }
+      metric.addValue((int)value, "value");
+    }
+    if (spec.scope == DataProcessingStats::Scope::DPL) {
+      metric.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL);
+    }
+    monitoring.send(std::move(metric));
+  });
   relayer.sendContextState();
   monitoring.flushBuffer();
-  stats.lastMetricFlushedTimestamp.store(stats.beginIterationTimestamp.load());
   O2_SIGNPOST_END(MonitoringStatus::ID, MonitoringStatus::FLUSH, 0, 0, O2_SIGNPOST_RED);
 };
 } // namespace
@@ -688,24 +672,148 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
 {
   return ServiceSpec{
     .name = "data-processing-stats",
-    .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
-      DataProcessingStats* stats = new DataProcessingStats();
+    .init = [](ServiceRegistryRef services, DeviceState& state, fair::mq::ProgOptions& options) -> ServiceHandle {
+      timespec now;
+      clock_gettime(CLOCK_REALTIME, &now);
+      uv_update_time(state.loop);
+      uint64_t offset = now.tv_sec * 1000 - uv_now(state.loop);
+      auto* stats = new DataProcessingStats(TimingHelpers::defaultRealtimeBaseConfigurator(offset, state.loop),
+                                            TimingHelpers::defaultCPUTimeConfigurator(state.loop));
+      auto& runningWorkflow = services.get<RunningWorkflowInfo const>();
+
+      // It makes no sense to update the stats more often than every 5s
+      int quickUpdateInterval = 5000;
+      uint64_t quickRefreshInterval = 7000;
+      uint64_t onlineRefreshLatency = 60000; // For metrics which are reported online, we flush them every 60s regardless of their state.
+      using MetricSpec = DataProcessingStats::MetricSpec;
+      using Kind = DataProcessingStats::Kind;
+      using Scope = DataProcessingStats::Scope;
+
+      std::vector<DataProcessingStats::MetricSpec> metrics = {
+        MetricSpec{.name = "errors",
+                   .metricId = (int)ProcessingStatsId::ERROR_COUNT,
+                   .kind = Kind::UInt64,
+                   .scope = Scope::Online,
+                   .minPublishInterval = quickUpdateInterval,
+                   .maxRefreshLatency = quickRefreshInterval},
+        MetricSpec{.name = "exceptions",
+                   .metricId = (int)ProcessingStatsId::EXCEPTION_COUNT,
+                   .kind = Kind::UInt64,
+                   .scope = Scope::Online,
+                   .minPublishInterval = quickUpdateInterval},
+        MetricSpec{.name = "inputs/relayed/pending",
+                   .metricId = (int)ProcessingStatsId::PENDING_INPUTS,
+                   .kind = Kind::UInt64,
+                   .minPublishInterval = quickUpdateInterval},
+        MetricSpec{.name = "inputs/relayed/incomplete",
+                   .metricId = (int)ProcessingStatsId::INCOMPLETE_INPUTS,
+                   .kind = Kind::UInt64,
+                   .minPublishInterval = quickUpdateInterval},
+        MetricSpec{.name = "inputs/relayed/total",
+                   .metricId = (int)ProcessingStatsId::TOTAL_INPUTS,
+                   .kind = Kind::UInt64,
+                   .minPublishInterval = quickUpdateInterval},
+        MetricSpec{.name = "elapsed_time_ms",
+                   .metricId = (int)ProcessingStatsId::LAST_ELAPSED_TIME_MS,
+                   .kind = Kind::UInt64,
+                   .minPublishInterval = quickUpdateInterval},
+        MetricSpec{.name = "last_processed_input_size_byte",
+                   .metricId = (int)ProcessingStatsId::LAST_PROCESSED_SIZE,
+                   .kind = Kind::UInt64,
+                   .minPublishInterval = quickUpdateInterval},
+        MetricSpec{.name = "total_processed_input_size_byte",
+                   .metricId = (int)ProcessingStatsId::TOTAL_PROCESSED_SIZE,
+                   .kind = Kind::UInt64,
+                   .scope = Scope::Online,
+                   .minPublishInterval = quickUpdateInterval},
+        MetricSpec{.name = "total_sigusr1",
+                   .metricId = (int)ProcessingStatsId::TOTAL_SIGUSR1,
+                   .kind = Kind::UInt64,
+                   .minPublishInterval = quickUpdateInterval},
+        MetricSpec{.name = "min_input_latency_ms",
+                   .metricId = (int)ProcessingStatsId::LAST_MIN_LATENCY,
+                   .kind = Kind::UInt64,
+                   .scope = Scope::Online,
+                   .minPublishInterval = quickUpdateInterval},
+        MetricSpec{.name = "max_input_latency_ms",
+                   .metricId = (int)ProcessingStatsId::LAST_MAX_LATENCY,
+                   .kind = Kind::UInt64,
+                   .minPublishInterval = quickUpdateInterval},
+        MetricSpec{.name = "total_rate_in_mb_s",
+                   .metricId = (int)ProcessingStatsId::TOTAL_RATE_IN_MB_S,
+                   .kind = Kind::Rate,
+                   .scope = Scope::Online,
+                   .minPublishInterval = quickUpdateInterval,
+                   .maxRefreshLatency = onlineRefreshLatency,
+                   .sendInitialValue = true},
+        MetricSpec{.name = "total_rate_out_mb_s",
+                   .metricId = (int)ProcessingStatsId::TOTAL_RATE_OUT_MB_S,
+                   .kind = Kind::Rate,
+                   .scope = Scope::Online,
+                   .minPublishInterval = quickUpdateInterval,
+                   .maxRefreshLatency = onlineRefreshLatency,
+                   .sendInitialValue = true},
+        MetricSpec{.name = "processing_rate_hz",
+                   .metricId = (int)ProcessingStatsId::PROCESSING_RATE_HZ,
+                   .kind = Kind::Rate,
+                   .scope = Scope::Online,
+                   .minPublishInterval = quickUpdateInterval,
+                   .maxRefreshLatency = onlineRefreshLatency,
+                   .sendInitialValue = true},
+        MetricSpec{.name = "performed_computations",
+                   .metricId = (int)ProcessingStatsId::PERFORMED_COMPUTATIONS,
+                   .kind = Kind::UInt64,
+                   .scope = Scope::Online,
+                   .minPublishInterval = quickUpdateInterval,
+                   .maxRefreshLatency = onlineRefreshLatency,
+                   .sendInitialValue = true},
+        MetricSpec{.name = "total_bytes_in",
+                   .metricId = (int)ProcessingStatsId::TOTAL_BYTES_IN,
+                   .kind = Kind::UInt64,
+                   .scope = Scope::Online,
+                   .minPublishInterval = quickUpdateInterval,
+                   .maxRefreshLatency = onlineRefreshLatency,
+                   .sendInitialValue = true},
+        MetricSpec{.name = "total_bytes_out",
+                   .metricId = (int)ProcessingStatsId::TOTAL_BYTES_OUT,
+                   .kind = Kind::UInt64,
+                   .scope = Scope::Online,
+                   .minPublishInterval = quickUpdateInterval,
+                   .maxRefreshLatency = onlineRefreshLatency,
+                   .sendInitialValue = true},
+        MetricSpec{.name = fmt::format("available_managed_shm_{}", runningWorkflow.shmSegmentId),
+                   .metricId = (int)ProcessingStatsId::AVAILABLE_MANAGED_SHM_BASE + (runningWorkflow.shmSegmentId % 512),
+                   .kind = Kind::UInt64,
+                   .scope = Scope::Online,
+                   .minPublishInterval = 500,
+                   .maxRefreshLatency = onlineRefreshLatency,
+                   .sendInitialValue = true},
+        MetricSpec{.name = "malformed_inputs", .metricId = static_cast<short>(ProcessingStatsId::MALFORMED_INPUTS), .kind = Kind::UInt64, .minPublishInterval = quickUpdateInterval},
+        MetricSpec{.name = "dropped_computations", .metricId = static_cast<short>(ProcessingStatsId::DROPPED_COMPUTATIONS), .kind = Kind::UInt64, .minPublishInterval = quickUpdateInterval},
+        MetricSpec{.name = "dropped_incoming_messages", .metricId = static_cast<short>(ProcessingStatsId::DROPPED_INCOMING_MESSAGES), .kind = Kind::UInt64, .minPublishInterval = quickUpdateInterval},
+        MetricSpec{.name = "relayed_messages", .metricId = static_cast<short>(ProcessingStatsId::RELAYED_MESSAGES), .kind = Kind::UInt64, .minPublishInterval = quickUpdateInterval},
+      };
+
+      for (auto& metric : metrics) {
+        stats->registerMetric(metric);
+      }
+
       return ServiceHandle{TypeIdHelpers::uniqueId<DataProcessingStats>(), stats};
     },
     .configure = noConfiguration(),
     .postProcessing = [](ProcessingContext& context, void* service) {
-      DataProcessingStats* stats = (DataProcessingStats*)service;
-      stats->performedComputations++; },
+      auto* stats = (DataProcessingStats*)service;
+      stats->updateStats({(short)ProcessingStatsId::PERFORMED_COMPUTATIONS, DataProcessingStats::Op::Add, 1}); },
     .preDangling = [](DanglingContext& context, void* service) {
-      DataProcessingStats* stats = (DataProcessingStats*)service;
-      sendRelayerMetrics(context.services(), *stats);
-      flushMetrics(context.services(), *stats); },
+       auto* stats = (DataProcessingStats*)service;
+       sendRelayerMetrics(context.services(), *stats);
+       flushMetrics(context.services(), *stats); },
     .postDangling = [](DanglingContext& context, void* service) {
-      DataProcessingStats* stats = (DataProcessingStats*)service;
-      sendRelayerMetrics(context.services(), *stats);
-      flushMetrics(context.services(), *stats); },
+       auto* stats = (DataProcessingStats*)service;
+       sendRelayerMetrics(context.services(), *stats);
+       flushMetrics(context.services(), *stats); },
     .preEOS = [](EndOfStreamContext& context, void* service) {
-      DataProcessingStats* stats = (DataProcessingStats*)service;
+      auto* stats = (DataProcessingStats*)service;
       sendRelayerMetrics(context.services(), *stats);
       flushMetrics(context.services(), *stats); },
     .kind = ServiceKind::Serial};
@@ -719,7 +827,7 @@ o2::framework::ServiceSpec CommonServices::guiMetricsSpec()
   return ServiceSpec{
     .name = "gui-metrics",
     .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
-      GUIMetrics* stats = new GUIMetrics();
+      auto* stats = new GUIMetrics();
       auto& monitoring = services.get<Monitoring>();
       auto& spec = services.get<DeviceSpec const>();
       monitoring.send({(int)spec.inputChannels.size(), fmt::format("oldest_possible_timeslice/h"), o2::monitoring::Verbosity::Debug});
@@ -801,6 +909,7 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
 {
   std::vector<ServiceSpec> specs{
     dataProcessorContextSpec(),
+    streamContextSpec(),
     dataAllocatorSpec(),
     asyncQueue(),
     timingInfoSpec(),
@@ -813,21 +922,21 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     rootFileSpec(),
     parallelSpec(),
     callbacksSpec(),
+    dataProcessingStats(),
     dataRelayer(),
     CommonMessageBackends::fairMQDeviceProxy(),
     dataSender(),
-    dataProcessingStats(),
     objectCache(),
     ccdbSupportSpec(),
-    CommonMessageBackends::fairMQBackendSpec(),
     ArrowSupport::arrowBackendSpec(),
+    CommonMessageBackends::fairMQBackendSpec(),
     CommonMessageBackends::stringBackendSpec(),
-    decongestionSpec(),
-    CommonMessageBackends::rawBufferBackendSpec()};
+    decongestionSpec()};
 
   std::string loadableServicesStr;
   // Do not load InfoLogger by default if we are not at P2.
-  if (getenv("DDS_SESSION_ID") != nullptr || getenv("OCC_CONTROL_PORT") != nullptr) {
+  DeploymentMode deploymentMode = getDeploymentMode();
+  if (deploymentMode == DeploymentMode::OnlineDDS || deploymentMode == DeploymentMode::OnlineECS) {
     loadableServicesStr += "O2FrameworkDataTakingSupport:InfoLoggerContext,O2FrameworkDataTakingSupport:InfoLogger";
   }
   // Load plugins depending on the environment
@@ -850,6 +959,14 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     specs.push_back(threadPool(numThreads));
   }
   return specs;
+}
+
+std::vector<ServiceSpec> CommonServices::arrowServices()
+{
+  return {
+    ArrowSupport::arrowTableSlicingCacheDefSpec(),
+    ArrowSupport::arrowTableSlicingCacheSpec() //
+  };
 }
 
 } // namespace o2::framework

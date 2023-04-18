@@ -33,7 +33,7 @@
 
 void readFITDeadChannelMap(std::string detectorName = "FT0",
                            long timestamp = -1,
-                           const std::string& ccdbUrl = "https://alice-ccdb.cern.ch",
+                           const std::string& ccdbUrl = "http://alice-ccdb.cern.ch",
                            const bool verbose = false)
 {
   // Parse and check detector name

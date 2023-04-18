@@ -108,7 +108,7 @@ void CosmicsMatchingSpec::run(ProcessingContext& pc)
 void CosmicsMatchingSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-  o2::tpc::VDriftHelper::extractCCDBInputs(pc);
+  mTPCVDriftHelper.extractCCDBInputs(pc);
   o2::tpc::CorrectionMapsLoader::extractCCDBInputs(pc);
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
@@ -133,14 +133,16 @@ void CosmicsMatchingSpec::updateTimeDependentParams(ProcessingContext& pc)
     updateMaps = true;
   }
   if (mTPCVDriftHelper.isUpdated()) {
-    LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} from source {}",
-         mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getSourceName());
+    LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
+         mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift,
+         mTPCVDriftHelper.getVDriftObject().timeOffsetCorr, mTPCVDriftHelper.getVDriftObject().refTimeOffset,
+         mTPCVDriftHelper.getSourceName());
     mMatching.setTPCVDrift(mTPCVDriftHelper.getVDriftObject());
     mTPCVDriftHelper.acknowledgeUpdate();
     updateMaps = true;
   }
   if (updateMaps) {
-    mTPCCorrMapsLoader.updateVDrift(mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift);
+    mTPCCorrMapsLoader.updateVDrift(mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getVDriftObject().getTimeOffset());
   }
 }
 
@@ -183,7 +185,7 @@ DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool useMC)
   }
 
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
-                                                              false,                             // GRPECS=true
+                                                              true,                              // GRPECS=true
                                                               false,                             // GRPLHCIF
                                                               true,                              // GRPMagField
                                                               true,                              // askMatLUT

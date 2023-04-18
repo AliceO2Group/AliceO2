@@ -41,6 +41,7 @@ class AlignableDetectorTRD : public AlignableDetector
   const char* getCalibDOFName(int i) const final;
   //
   void writePedeInfo(FILE* parOut, const Option_t* opt = "") const final;
+  void writeLabeledPedeResults(FILE* parOut) const final;
   //
   void setNonRCCorrDzDtgl(double v = 0.) { mNonRCCorrDzDtgl = v; }
   double getNonRCCorrDzDtgl() const { return mNonRCCorrDzDtgl; }

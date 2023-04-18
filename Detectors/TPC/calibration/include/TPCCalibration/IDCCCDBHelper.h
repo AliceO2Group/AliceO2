@@ -15,11 +15,12 @@
 
 #ifndef ALICEO2_TPC_IDCCCDBHELPER_H_
 #define ALICEO2_TPC_IDCCCDBHELPER_H_
-
+#include <Framework/Logger.h>
 #include "DataFormatsTPC/Defs.h"
 #include "TPCBase/Sector.h"
 #include "Rtypes.h"
 
+#include <fmt/format.h>
 class TCanvas;
 
 namespace o2::tpc
@@ -38,7 +39,7 @@ class CalDet;
 
 /*
  Usage
- o2::tpc::IDCCCDBHelper<short> helper;
+ o2::tpc::IDCCCDBHelper<unsigned short> helper;
  // setting the IDC members manually
  helper.setIDCDelta(IDCDelta<DataT>* idcDelta);
  helper.setIDCZero(IDCZero* idcZero);
@@ -73,6 +74,10 @@ class IDCCCDBHelper
 
   /// setting the fourier coefficients
   void setFourierCoeffs(FourierCoeff* fourier, const Side side = Side::A) { mFourierCoeff[side] = fourier; }
+
+  /// set scaling of IDC0 to 1
+  /// \param rejectOutlier do not take outlier into account
+  void setIDCZeroScale(const bool rejectOutlier = true);
 
   /// setting the grouping parameters
   void setGroupingParameter(IDCGroupHelperSector* helperSector, const Side side = Side::A) { mHelperSector[side] = helperSector; }
@@ -162,6 +167,8 @@ class IDCCCDBHelper
 
   TCanvas* drawIDCZeroCanvas(TCanvas* outputCanvas, std::string_view type, int nbins1D, float xMin1D, float xMax1D, int integrationInterval = -1) const;
 
+  TCanvas* drawIDCZeroScale(TCanvas* outputCanvas, const bool rejectOutlier = true) const;
+
   TCanvas* drawIDCZeroRadialProfile(TCanvas* outputCanvas, int nbinsY, float yMin, float yMax) const;
 
   TCanvas* drawIDCZeroStackCanvas(TCanvas* outputCanvas, Side side, std::string_view type, int nbins1D, float xMin1D, float xMax1D, int integrationInterval = -1) const;
@@ -171,16 +178,18 @@ class IDCCCDBHelper
   TCanvas* drawFourierCoeff(TCanvas* outputCanvas, Side side, int nbins1D, float xMin1D, float xMax1D) const;
 
   /// dumping the loaded IDC0, IDC1 to a tree for debugging
+  /// \param side TPC side of the data which will be dumped
   /// \param outFileName name of the output file
-  void dumpToTree(const char* outFileName = "IDCCCDBTree.root") const;
+  void dumpToTree(const Side side, const char* outFileName = "IDCCCDBTree.root") const;
 
   /// dumping the loaded fourier coefficients to a tree
   /// \param outFileName name of the output file
   void dumpToFourierCoeffToTree(const char* outFileName = "FourierCCDBTree.root") const;
 
   /// dumping the loaded IDC0, IDC1 to a tree for debugging
+  /// \param side TPC side of the data which will be dumped
   /// \param outFileName name of the output file
-  void dumpToTreeIDCDelta(const char* outFileName = "IDCCCDBTreeDeltaIDC.root") const;
+  void dumpToTreeIDCDelta(const Side side, const char* outFileName = "IDCCCDBTreeDeltaIDC.root") const;
 
   /// convert the loaded IDC0 map to a CalDet<float>
   /// \return returns CalDet containing the IDCZero
@@ -190,12 +199,40 @@ class IDCCCDBHelper
   /// \return returns std vector of CalDets containing the IDCDelta
   std::vector<CalDet<float>> getIDCDeltaCalDet() const;
 
+  /// \return returns pointer to pad status map
+  CalDet<PadFlags>* getPadStatusMap() const { return mPadFlagsMap.get(); }
+
+  /// \return returns pointer to pad status map
+  void setPadStatusMap(const CalDet<PadFlags>& outliermap) { mPadFlagsMap = std::make_unique<CalDet<PadFlags>>(outliermap); }
+
   /// scale the stored IDC0 to 1
-  /// \param rejectOutlier do not take outlier into account
   /// \return returns the scaling factor which was used to scale the IDC0
-  float scaleIDC0(const Side side, const bool rejectOutlier = true);
+  /// \param factor to scale the IDC0s with (IDC0/=factor)
+  /// \param side TPC side of the IDCs
+  void scaleIDC0(const float factor, const Side side);
+
+  /// \returns mean of IDC0
+  /// \param side TPC side of the IDCs
+  /// \param idcZero IDCZero object for which to get the mean
+  /// \param outlierMap possible map containing the outliers which will not be taken into account (if nullptr all IDCs are taken into account)
+  static float getMeanIDC0(const Side side, const IDCZero& idcZero, const CalDet<PadFlags>* outlierMap);
+
+  /// get median of IDC0 for given stack and sector
+  /// \param idcZero IDCZero object for which to get the mean
+  /// \param sector TPC sector
+  /// \param stack stack in sector
+  static float getStackMedian(const IDCZero& idczero, const Sector sector, const GEMstack stack);
+
+  /// get medians per stack for given side
+  /// \param idcZero IDCZero object for which to get the mean
+  /// \param side TPC side of the IDCZero
+  static std::array<float, o2::tpc::GEMSTACKSPERSECTOR * o2::tpc::SECTORSPERSIDE> getStackMedian(const IDCZero& idczero, const Side side);
 
  private:
+  ///\ to scale IDC0 from its total
+  float mScaleIDC0Aside = 1.0;
+  float mScaleIDC0Cside = 1.0;
+
   std::array<IDCZero*, SIDES> mIDCZero = {nullptr, nullptr};                   ///< 0D-IDCs: ///< I_0(r,\phi) = <I(r,\phi,t)>_t
   std::array<IDCDelta<DataT>*, SIDES> mIDCDelta = {nullptr, nullptr};          ///< compressed or uncompressed Delta IDC: \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
   std::array<IDCOne*, SIDES> mIDCOne = {nullptr, nullptr};                     ///< I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
@@ -229,7 +266,7 @@ class IDCCCDBHelper
   /// \param urow row of the ungrouped IDCs
   /// \param upad pad number of the ungrouped IDCs
   /// \param integrationInterval integration interval
-  unsigned int getUngroupedIndexGlobal(const unsigned int sector, const unsigned int region, unsigned int urow, unsigned int upad, unsigned int integrationInterval) const;
+  static unsigned int getUngroupedIndexGlobal(const unsigned int sector, const unsigned int region, unsigned int urow, unsigned int upad, unsigned int integrationInterval);
 
   ClassDefNV(IDCCCDBHelper, 3)
 };

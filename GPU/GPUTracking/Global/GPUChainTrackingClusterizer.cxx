@@ -146,7 +146,7 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
         } else if (mCFContext->zsVersion != (int)hdr->version) {
           if (GetProcessingSettings().ignoreNonFatalGPUErrors) {
             mCFContext->abandonTimeframe = true;
-            GPUError("Received TPC ZS data of mixed versions");
+            GPUAlarm("Received TPC ZS data of mixed versions");
             return {0, 0};
           } else {
             GPUFatal("Received TPC ZS data of mixed versions");
@@ -384,7 +384,7 @@ int GPUChainTracking::RunTPCClusterizer_prepare(bool restorePointers)
     for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
       if (mIOPtrs.tpcZS->slice[iSlice].count[0]) {
         const void* rdh = mIOPtrs.tpcZS->slice[iSlice].zsPtr[0][0];
-        if (rdh && o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>() != o2::raw::RDHUtils::getVersion(rdh)) {
+        if (rdh && o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeaderV6>() > o2::raw::RDHUtils::getVersion(rdh)) {
           GPUError("Data has invalid RDH version %d, %d required\n", o2::raw::RDHUtils::getVersion(rdh), o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>());
           return 1;
         }

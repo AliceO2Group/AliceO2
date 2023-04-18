@@ -39,7 +39,7 @@
 using namespace o2::tpc;
 using namespace o2::gpu;
 
-void TPCFastTransformInit(const char* fileName = "debugVoxRes.root")
+void TPCFastTransformInit(const int nKnotsY = 10, const int nKnotsZ = 20, const char* fileName = "debugVoxRes.root", const char* outFileName = "TPCFastTransform_VoxRes.root")
 {
   // Initialise TPCFastTransform object from "voxRes" tree of
   // o2::tpc::TrackResiduals::VoxRes track residual voxels
@@ -98,7 +98,7 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root")
     //    << " dx dy dz " << correctionX << " " << correctionY << " " << correctionZ << endl;
   }
 
-  std::unique_ptr<o2::gpu::TPCFastTransform> fastTransform(helper->create(0));
+  std::unique_ptr<o2::gpu::TPCFastTransform> fastTransform(helper->create(0, nKnotsY, nKnotsZ));
   o2::gpu::TPCFastSpaceChargeCorrection& corr = fastTransform->getCorrection();
 
   // check the difference
@@ -152,4 +152,7 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root")
   std::cout << "Mean difference in x,y,z : " << sumDiff[0] << " " << sumDiff[1] << " " << sumDiff[2] << endl;
 
   file->Close();
+  if (*outFileName) {
+    fastTransform->writeToFile(outFileName);
+  }
 }

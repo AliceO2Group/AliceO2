@@ -82,47 +82,48 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger()
   mNChipsFiredROF = 0;
   mNPixelsFiredROF = 0;
   mInteractionRecord.clear();
-  int nLinksWithData = 0, nru = mRUDecodeVec.size();
-  size_t prevNTrig = mExtTriggers.size();
+  int nru = mRUDecodeVec.size();
+  int prevNTrig = mExtTriggers.size();
   do {
 #ifdef WITH_OPENMP
-#pragma omp parallel for schedule(dynamic) num_threads(mNThreads) reduction(+ \
-                                                                            : nLinksWithData, mNChipsFiredROF, mNPixelsFiredROF)
+#pragma omp parallel for schedule(dynamic) num_threads(mNThreads)
 #endif
     for (int iru = 0; iru < nru; iru++) {
-      nLinksWithData += decodeNextTrigger(iru);
-      mNChipsFiredROF += mRUDecodeVec[iru].nChipsFired;
-      int npix = 0;
-      for (int ic = mRUDecodeVec[iru].nChipsFired; ic--;) {
-        npix += mRUDecodeVec[iru].chipsData[ic].getData().size();
-      }
-      mNPixelsFiredROF += npix;
+      collectROFCableData(iru);
     }
 
-    if (nLinksWithData) { // fill some statistics
+    if (!doIRMajorityPoll()) {
+      continue; // no links with data
+    }
+
+#ifdef WITH_OPENMP
+#pragma omp parallel for schedule(dynamic) num_threads(mNThreads) reduction(+ \
+                                                                            : mNChipsFiredROF, mNPixelsFiredROF)
+#endif
+    for (int iru = 0; iru < nru; iru++) {
+      auto& ru = mRUDecodeVec[iru];
+      if (ru.nNonEmptyLinks) {
+        mNPixelsFiredROF += ru.decodeROF(mMAP, mInteractionRecord);
+        mNChipsFiredROF += ru.nChipsFired;
+      }
+    }
+
+    if (mNChipsFiredROF || (mAlloEmptyROFs && mNLinksDone < mNLinksInTF)) { // fill some statistics
+      mTrigger = mLinkForTriggers ? mLinkForTriggers->trigger : 0;
       mROFCounter++;
       mNChipsFired += mNChipsFiredROF;
       mNPixelsFired += mNPixelsFiredROF;
       mCurRUDecodeID = 0; // getNextChipData will start from here
       mLastReadChipID = -1;
-      // set IR and trigger from the 1st non empty link
-      int cnt = 0;
-      for (const auto& link : mGBTLinks) {
-        if (link.status == GBTLink::DataSeen) {
-          mInteractionRecord = link.ir;
-          mInteractionRecordHB = o2::raw::RDHUtils::getHeartBeatIR(*link.lastRDH);
-          mTrigger = link.trigger;
-          break;
-        }
-      }
       break;
     }
 
-  } while (mNLinksDone < mGBTLinks.size());
+  } while (mNLinksDone < mNLinksInTF);
   mNExtTriggers += mExtTriggers.size() - prevNTrig;
   ensureChipOrdering();
   mTimerDecode.Stop();
-  return nLinksWithData;
+
+  return (mNLinksDone < mNLinksInTF) ? mNChipsFiredROF : -1;
 }
 
 ///______________________________________________________________
@@ -139,6 +140,7 @@ void RawPixelDecoder<Mapping>::startNewTF(InputRecord& inputs)
     ru.clear();
     // ru.chipErrorsTF.clear(); // will be cleared in the collectDecodingErrors
     ru.linkHBFToDump.clear();
+    ru.nLinksDone = 0;
   }
   setupLinks(inputs);
   mNLinksDone = 0;
@@ -147,28 +149,55 @@ void RawPixelDecoder<Mapping>::startNewTF(InputRecord& inputs)
 }
 
 ///______________________________________________________________
-/// Decode next trigger for given RU, return number of decoded GBT words
+/// Collect cable data for the next ROF for given RU
 template <class Mapping>
-int RawPixelDecoder<Mapping>::decodeNextTrigger(int iru)
+void RawPixelDecoder<Mapping>::collectROFCableData(int iru)
 {
   auto& ru = mRUDecodeVec[iru];
   ru.clear();
-  int ndec = 0; // number of yet non-empty links
   for (int il = 0; il < RUDecodeData::MaxLinksPerRU; il++) {
     auto* link = getGBTLink(ru.links[il]);
-    if (link) {
+    if (link && link->statusInTF == GBTLink::DataSeen) {
       auto res = link->collectROFCableData(mMAP);
-      if (res == GBTLink::DataSeen) { // at the moment process only DataSeen
-        ndec++;
+      if (res == GBTLink::DataSeen || res == GBTLink::CachedDataExist) { // at the moment process only DataSeen
+        ru.nNonEmptyLinks++;
       } else if (res == GBTLink::StoppedOnEndOfData || res == GBTLink::AbortedOnError) { // this link has exhausted its data or it has to be discarded due to the error
+        ru.nLinksDone++;
+      }
+    }
+  }
+}
+
+///______________________________________________________________
+// do majority IR poll for synchronization
+template <class Mapping>
+bool RawPixelDecoder<Mapping>::doIRMajorityPoll()
+{
+  mIRPoll.clear();
+  mInteractionRecord.clear();
+  for (auto& link : mGBTLinks) {
+    if (link.statusInTF == GBTLink::DataSeen) {
+      if (link.status == GBTLink::DataSeen || link.status == GBTLink::CachedDataExist) {
+        mIRPoll[link.ir]++;
+      } else if (link.status == GBTLink::StoppedOnEndOfData || link.status == GBTLink::AbortedOnError) {
+        link.statusInTF = GBTLink::StoppedOnEndOfData;
         mNLinksDone++;
       }
     }
   }
-  if (ndec) {
-    ru.decodeROF(mMAP);
+  int majIR = -1;
+  for (const auto& entIR : mIRPoll) {
+    if (entIR.second > majIR) {
+      majIR = entIR.second;
+      mInteractionRecord = entIR.first;
+    }
   }
-  return ndec;
+  mInteractionRecordHB = mInteractionRecord;
+  if (mInteractionRecord.isDummy()) {
+    return false;
+  }
+  mInteractionRecordHB.bc = 0;
+  return true;
 }
 
 ///______________________________________________________________
@@ -176,6 +205,7 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger(int iru)
 template <class Mapping>
 void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
 {
+  mNLinksInTF = 0;
   mCurRUDecodeID = NORUDECODED;
   auto nLinks = mGBTLinks.size();
   auto origin = (mUserDataOrigin == o2::header::gDataOriginInvalid) ? mMAP.getOrigin() : mUserDataOrigin;
@@ -219,18 +249,28 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
       lnkref.entry = int(mGBTLinks.size());
       auto& lnk = mGBTLinks.emplace_back(RDHUtils::getCRUID(rdh), RDHUtils::getFEEID(rdh), RDHUtils::getEndPointID(rdh), RDHUtils::getLinkID(rdh), lnkref.entry);
       lnk.subSpec = dh->subSpecification;
+      lnk.wordLength = (lnk.expectPadding = (RDHUtils::getDataFormat(rdh) == 0)) ? o2::itsmft::GBTPaddedWordLength : o2::itsmft::GBTWordLength;
       getCreateRUDecode(mMAP.FEEId2RUSW(RDHUtils::getFEEID(rdh))); // make sure there is a RU for this link
       lnk.verbosity = GBTLink::Verbosity(mVerbosity);
-      lnk.format = mFormat;
       LOG(info) << mSelfName << " registered new link " << lnk.describe() << " RUSW=" << int(mMAP.FEEId2RUSW(lnk.feeID));
       linksAdded++;
     }
     auto& link = mGBTLinks[lnkref.entry];
     if (currSSpec != dh->subSpecification) { // this is the 1st part for this link in this TF, next parts must follow contiguously!!!
-      link.clear(false, true);               // clear link data except statistics
       currSSpec = dh->subSpecification;
+      if (link.statusInTF == GBTLink::DataSeen) {
+        static bool errorDone = false;
+        if (!errorDone) {
+          LOGP(error, "{} was already registered, inform PDP on-call about error!!!", link.describe());
+          errorDone = true;
+        }
+      }
+      link.statusInTF = GBTLink::DataSeen;
+      mNLinksInTF++;
+
       if (!linksSeen) { // designate 1st link to register triggers
         link.extTrigVec = &mExtTriggers;
+        mLinkForTriggers = &link;
       } else {
         link.extTrigVec = nullptr;
       }
@@ -265,6 +305,7 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
       }
       link.idInRU = linkInRU;
       link.ruPtr->links[linkInRU] = il; // RU to link reference
+      link.ruPtr->nLinks++;
     }
   }
 }
@@ -303,7 +344,7 @@ ChipPixelData* RawPixelDecoder<Mapping>::getNextChipData(std::vector<ChipPixelDa
     }
   }
   // will need to decode new trigger
-  if (!mDecodeNextAuto || !decodeNextTrigger()) { // no more data to decode
+  if (!mDecodeNextAuto || decodeNextTrigger() < 0) { // no more data to decode
     return nullptr;
   }
   return getNextChipData(chipDataVec);
@@ -325,7 +366,7 @@ bool RawPixelDecoder<Mapping>::getNextChipData(ChipPixelData& chipData)
     }
   }
   // will need to decode new trigger
-  if (!mDecodeNextAuto || !decodeNextTrigger()) { // no more data to decode
+  if (!mDecodeNextAuto || decodeNextTrigger() < 0) { // no more data to decode
     return false;
   }
   return getNextChipData(chipData); // is it ok to use recursion here?
@@ -362,7 +403,7 @@ ChipPixelData* RawPixelDecoder<ChipMappingMFT>::getNextChipData(std::vector<Chip
     return &chipDataVec[mLastReadChipID];
   }
   // will need to decode new trigger
-  if (!mDecodeNextAuto || !decodeNextTrigger()) { // no more data to decode
+  if (!mDecodeNextAuto || decodeNextTrigger() < 0) { // no more data to decode
     return nullptr;
   }
   return getNextChipData(chipDataVec);
@@ -381,7 +422,7 @@ bool RawPixelDecoder<ChipMappingMFT>::getNextChipData(ChipPixelData& chipData)
     return true;
   }
   // will need to decode new trigger
-  if (!mDecodeNextAuto || !decodeNextTrigger()) { // no more data to decode
+  if (!mDecodeNextAuto || decodeNextTrigger() < 0) { // no more data to decode
     return false;
   }
   return getNextChipData(chipData); // is it ok to use recursion here?
@@ -411,20 +452,14 @@ void RawPixelDecoder<Mapping>::setNThreads(int n)
 
 ///______________________________________________________________________
 template <class Mapping>
-void RawPixelDecoder<Mapping>::setFormat(GBTLink::Format f)
-{
-  assert(int(f) >= 0 && int(f) < GBTLink::NFormats);
-  mFormat = f;
-}
-
-///______________________________________________________________________
-template <class Mapping>
-void RawPixelDecoder<Mapping>::clearStat()
+void RawPixelDecoder<Mapping>::clearStat(bool resetRaw)
 {
   // clear statistics
   for (auto& lnk : mGBTLinks) {
-    lnk.clear(true, false);
+    lnk.clear(true, resetRaw);
   }
+  mNChipsFiredROF = mNPixelsFiredROF = 0;
+  mNChipsFired = mNPixelsFired = mNExtTriggers = 0;
 }
 
 ///______________________________________________________________________
@@ -488,6 +523,25 @@ void RawPixelDecoder<Mapping>::produceRawDataDumps(int dump, const o2::framework
     LOG(info) << "produced " << std::filesystem::current_path().c_str() << '/' << fnm;
     break;
   }
+}
+
+///______________________________________________________________________
+template <class Mapping>
+void RawPixelDecoder<Mapping>::reset()
+{
+  mTimerTFStart.Reset();
+  mTimerDecode.Reset();
+  mTimerFetchData.Reset();
+  for (auto& ru : mRUDecodeVec) {
+    for (auto& cab : ru.cableData) {
+      cab.clear();
+    }
+  }
+  for (auto& link : mGBTLinks) {
+    link.rofJumpWasSeen = false;
+    link.statusInTF = GBTLink::None;
+  }
+  clearStat(true);
 }
 
 template class o2::itsmft::RawPixelDecoder<o2::itsmft::ChipMappingITS>;

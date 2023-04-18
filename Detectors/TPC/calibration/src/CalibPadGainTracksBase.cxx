@@ -226,8 +226,8 @@ void CalibPadGainTracksBase::finalize(const int minEntries, const float minRelga
 
       mNClMap->getCalArray(roc).getData()[pad] = entries;
       if ((entries >= minEntries) && (stat.mStdDev > minStDev)) {
-        mGainMap->getCalArray(roc).getData()[pad] = cog;
-        mSigmaMap->getCalArray(roc).getData()[pad] = stat.mStdDev;
+        mGainMap->getCalArray(roc).getData()[pad] = mLogTransformQ ? (std::exp(cog) - 1) : cog;
+        mSigmaMap->getCalArray(roc).getData()[pad] = mLogTransformQ ? (std::exp(stat.mStdDev) - 1) : stat.mStdDev;
       } else {
         mGainMap->getCalArray(roc).getData()[pad] = 1;
         mSigmaMap->getCalArray(roc).getData()[pad] = 0;

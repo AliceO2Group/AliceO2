@@ -237,6 +237,10 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
   } else {
     static_assert("Invalid template");
   }
+  if constexpr (std::is_same_v<S, GPUTPCGMTrackParam>) {
+    CADEBUG(printf("\t%21sInit    Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f)   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f\n", "", prop.GetAlpha(), trk.GetX(), trk.Par()[0], trk.Par()[1], trk.Par()[4], prop.GetQPt0(), trk.Par()[2], prop.GetSinPhi0(), sqrtf(trk.Cov()[0]), sqrtf(trk.Cov()[2]), sqrtf(trk.Cov()[5]), sqrtf(trk.Cov()[14])));
+  }
+
   int direction = outward ? -1 : 1;
   int start = outward ? count - 1 : begin;
   int stop = outward ? begin - 1 : count;
@@ -282,7 +286,7 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
         }
         if (clusters == 0) {
           mPfastTransformHelper->Transform(sector, row, cl->getPad(), cl->getTime(), x, y, z, tOffset);
-          CADEBUG(printf("\tHit %3d/%3d Row %3d: Cluster Alpha %8.3f %3d, X %8.3f - Y %8.3f, Z %8.3f\n", ii, count, row, mPparam->Alpha(sector), (int)sector, x, y, z));
+          CADEBUG(printf("\tHit %3d/%3d Row %3d: Cluster Alpha %8.3f %3d, X %8.3f - Y %8.3f, Z %8.3f - State %d\n", ii, count, row, mPparam->Alpha(sector), (int)sector, x, y, z, (int)nextState));
           currentRow = row;
           currentSector = sector;
           charge = cl->qTot;
@@ -290,7 +294,7 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
         } else {
           float xx, yy, zz;
           mPfastTransformHelper->Transform(sector, row, cl->getPad(), cl->getTime(), xx, yy, zz, tOffset);
-          CADEBUG(printf("\tHit %3d/%3d Row %3d: Cluster Alpha %8.3f %3d, X %8.3f - Y %8.3f, Z %8.3f\n", ii, count, row, mPparam->Alpha(sector), (int)sector, xx, yy, zz));
+          CADEBUG(printf("\tHit %3d/%3d Row %3d: Cluster Alpha %8.3f %3d, X %8.3f - Y %8.3f, Z %8.3f - State %d\n", ii, count, row, mPparam->Alpha(sector), (int)sector, xx, yy, zz, (int)nextState));
           x += xx * cl->qTot;
           y += yy * cl->qTot;
           z += zz * cl->qTot;
@@ -312,7 +316,7 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
       x /= charge;
       y /= charge;
       z /= charge;
-      CADEBUG(printf("\tMerged Hit  Row %3d: Cluster Alpha %8.3f %3d, X %8.3f - Y %8.3f, Z %8.3f\n", row, mPparam->Alpha(sector), (int)sector, x, y, z));
+      CADEBUG(printf("\tMerged Hit  Row %3d: Cluster Alpha %8.3f %3d, X %8.3f - Y %8.3f, Z %8.3f - State %d\n", row, mPparam->Alpha(sector), (int)sector, x, y, z, (int)clusterState));
     }
 
     if constexpr (std::is_same_v<S, GPUTPCGMTrackParam>) {
@@ -340,6 +344,10 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
       }
       if (resetCov) {
         trk.resetCovariance();
+        float bzkG = prop->getNominalBz(), qptB5Scale = CAMath::Abs(bzkG) > 0.1 ? CAMath::Abs(bzkG) / 5.006680f : 1.f;
+        float q2pt2 = trk.getQ2Pt() * trk.getQ2Pt(), q2pt2Wgh = q2pt2 * qptB5Scale * qptB5Scale;
+        float err2 = (100.f + q2pt2Wgh) / (1.f + q2pt2Wgh) * q2pt2; // -> 100 for high pTs, -> 1 for low pTs.
+        trk.setCov(err2, 14);                                       // 100% error
         TrackParCovChi2 = 0.f;
       }
       CADEBUG(printf("\t%21sPropaga Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f)   ---   Res %8.3f %8.3f   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f\n", "", trk.getAlpha(), x, trk.getParams()[0], trk.getParams()[1], trk.getParams()[4], trk.getParams()[4], trk.getParams()[2], trk.getParams()[2], trk.getParams()[0] - y, trk.getParams()[1] - z, sqrtf(trk.getCov()[0]), sqrtf(trk.getCov()[2]), sqrtf(trk.getCov()[5]), sqrtf(trk.getCov()[14]), trk.getCov()[10]));

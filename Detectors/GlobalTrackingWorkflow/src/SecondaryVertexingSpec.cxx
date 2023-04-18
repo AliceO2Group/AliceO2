@@ -29,6 +29,7 @@
 #include "TPCCalibration/VDriftHelper.h"
 #include "TPCCalibration/CorrectionMapsLoader.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/DeviceSpec.h"
 
 using namespace o2::framework;
 
@@ -128,12 +129,15 @@ void SecondaryVertexingSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* ob
 void SecondaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-  o2::tpc::VDriftHelper::extractCCDBInputs(pc);
+  mTPCVDriftHelper.extractCCDBInputs(pc);
   o2::tpc::CorrectionMapsLoader::extractCCDBInputs(pc);
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
     mVertexer.init();
+    if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
+      SVertexerParams::Instance().printKeyValues();
+    }
   }
   // we may have other params which need to be queried regularly
   bool updateMaps = false;
@@ -143,14 +147,16 @@ void SecondaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
     updateMaps = true;
   }
   if (mTPCVDriftHelper.isUpdated()) {
-    LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} from source {}",
-         mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getSourceName());
+    LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
+         mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift,
+         mTPCVDriftHelper.getVDriftObject().timeOffsetCorr, mTPCVDriftHelper.getVDriftObject().refTimeOffset,
+         mTPCVDriftHelper.getSourceName());
     mVertexer.setTPCVDrift(mTPCVDriftHelper.getVDriftObject());
     mTPCVDriftHelper.acknowledgeUpdate();
     updateMaps = true;
   }
   if (updateMaps) {
-    mTPCCorrMapsLoader.updateVDrift(mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift);
+    mTPCCorrMapsLoader.updateVDrift(mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getVDriftObject().getTimeOffset());
   }
 }
 

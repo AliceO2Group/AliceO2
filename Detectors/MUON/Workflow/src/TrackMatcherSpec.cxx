@@ -62,7 +62,7 @@ class TrackMatcherTask
     auto stop = [this]() {
       LOG(info) << "track matching duration = " << mElapsedTime.count() << " s";
     };
-    ic.services().get<CallbackService>().set(CallbackService::Id::Stop, stop);
+    ic.services().get<CallbackService>().set<CallbackService::Id::Stop>(stop);
   }
 
   //_________________________________________________________________________________________________

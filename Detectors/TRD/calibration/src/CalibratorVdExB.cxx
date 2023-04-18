@@ -14,7 +14,6 @@
 /// \author Ole Schmidt
 
 #include "TRDCalibration/CalibratorVdExB.h"
-#include "TRDCalibration/CalibrationParams.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/TimingInfo.h"
 #include "Framework/InputRecord.h"
@@ -134,11 +133,6 @@ void CalibratorVdExB::initProcessing()
       mOutTree->Branch(fmt::format("residuals_{:d}", iDet).c_str(), mFitFunctor.profiles[iDet].get());
     }
   }
-
-  // get parameters
-  auto& params = TRDCalibParams::Instance();
-  mMinEntriesChamber = params.minEntriesChamber;
-  mMinEntriesTotal = params.minEntriesTotal;
 
   mInitDone = true;
 }

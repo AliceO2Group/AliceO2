@@ -14,6 +14,7 @@
 /// \author Barthelemy von Haller
 ///
 
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #define BOOST_TEST_MODULE CCDB
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
@@ -63,6 +64,8 @@ struct Fixture {
     char hostname[_POSIX_HOST_NAME_MAX];
     gethostname(hostname, _POSIX_HOST_NAME_MAX);
     basePath = string("Test/TestCcdbApi/") + hostname + "/pid" + getpid() + "/";
+    // Replace dashes by underscores to avoid problems in the creation of local directories
+    std::replace(basePath.begin(), basePath.end(), '-','_');
     cout << "Path we will use in this test suite : " + basePath << endl;
   }
   ~Fixture()

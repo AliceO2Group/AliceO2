@@ -81,6 +81,11 @@ o2_add_executable(sim-run5
                   SOURCES o2sim_parallel.cxx
                   PUBLIC_LINK_LIBRARIES internal::allsim O2::Version
                   TARGETVARNAME simdriverrun5)
+
+o2_add_executable(evalmat-run5
+                  COMPONENT_NAME sim
+                  SOURCES o2sim_evalmat.cxx
+                  PUBLIC_LINK_LIBRARIES internal::allsim)
 endif()
 if(NOT APPLE)
   set_property(TARGET ${simexe} PROPERTY LINK_WHAT_YOU_USE ON)
@@ -94,7 +99,12 @@ o2_add_executable(hit-merger-runner
 o2_add_executable(g4-determine-unknown-pdg-properties
                   COMPONENT_NAME sim
                   SOURCES g4DetermineUnknownPdgProperties.cxx
-                  PUBLIC_LINK_LIBRARIES MC::Geant4 MC::Geant4VMC internal::allsim)
+                  PUBLIC_LINK_LIBRARIES O2::O2TrivialMC MC::Geant4 MC::Geant4VMC O2::SimConfig)
+
+o2_add_executable(mctracks-proxy
+                  COMPONENT_NAME sim
+                  SOURCES o2sim_mctracks_proxy.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::SimulationDataFormat)
 
 o2_data_file(COPY o2simtopology_template.json DESTINATION config)
 
@@ -117,9 +127,11 @@ o2_name_target(sim-serial NAME o2simSerialExecutable IS_EXE)
 if(ENABLE_UPGRADES)
 o2_name_target(sim-serial-run5 NAME o2simSerialRun5Executable IS_EXE)
 o2_name_target(sim-run5 NAME o2simRun5Executable IS_EXE)
+o2_name_target(sim-evalmat-run5 NAME o2simEvalmatRun5Executable IS_EXE)
 
 target_compile_definitions(${o2simSerialRun5Executable} PUBLIC SIM_RUN5)
 target_compile_definitions(${o2simRun5Executable} PUBLIC SIM_RUN5)
+target_compile_definitions(${o2simEvalmatRun5Executable} PUBLIC SIM_RUN5)
 endif()
 if (BUILD_TESTING)
 o2_add_test_command(NAME o2sim_G4

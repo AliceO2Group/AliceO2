@@ -16,6 +16,7 @@
 #include "GPUO2DataTypes.h"
 #include "GPUParam.h"
 #include "GPUTPCCompressionTrackModel.h"
+#include "GPULogging.h"
 #include <algorithm>
 #include <cstring>
 #include <atomic>
@@ -67,12 +68,17 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
   ClusterNative* clusterBuffer = allocator(nTotalClusters);
   unsigned int offsets[NSLICES][GPUCA_ROW_COUNT];
   offset = 0;
+  unsigned int decodedAttachedClusters = 0;
   for (unsigned int i = 0; i < NSLICES; i++) {
     for (unsigned int j = 0; j < GPUCA_ROW_COUNT; j++) {
       clustersNative.nClusters[i][j] = clusters[i][j].size() + ((i * GPUCA_ROW_COUNT + j >= clustersCompressed->nSliceRows) ? 0 : clustersCompressed->nSliceRowClusters[i * GPUCA_ROW_COUNT + j]);
       offsets[i][j] = offset;
       offset += (i * GPUCA_ROW_COUNT + j >= clustersCompressed->nSliceRows) ? 0 : clustersCompressed->nSliceRowClusters[i * GPUCA_ROW_COUNT + j];
+      decodedAttachedClusters += clusters[i][j].size();
     }
+  }
+  if (decodedAttachedClusters != clustersCompressed->nAttachedClusters) {
+    GPUWarning("%u / %u clusters failed track model decoding (%f %%)", clustersCompressed->nAttachedClusters - decodedAttachedClusters, clustersCompressed->nAttachedClusters, 100.f * (float)(clustersCompressed->nAttachedClusters - decodedAttachedClusters) / (float)clustersCompressed->nAttachedClusters);
   }
   clustersNative.clustersLinear = clusterBuffer;
   clustersNative.setOffsetPtrs();
@@ -83,9 +89,22 @@ int TPCClusterDecompressor::decompress(const CompressedClusters* clustersCompres
       if (clusters[i][j].size()) {
         memcpy((void*)buffer, (const void*)clusters[i][j].data(), clusters[i][j].size() * sizeof(clusterBuffer[0]));
       }
-      ClusterNative* cl = buffer + clusters[i][j].size();
+      ClusterNative* clout = buffer + clusters[i][j].size();
       unsigned int end = offsets[i][j] + ((i * GPUCA_ROW_COUNT + j >= clustersCompressed->nSliceRows) ? 0 : clustersCompressed->nSliceRowClusters[i * GPUCA_ROW_COUNT + j]);
-      decompressHits(clustersCompressed, offsets[i][j], end, cl);
+      decompressHits(clustersCompressed, offsets[i][j], end, clout);
+      if (param.rec.tpc.clustersShiftTimebins != 0.f) {
+        for (unsigned int k = 0; k < clustersNative.nClusters[i][j]; k++) {
+          auto& cl = buffer[k];
+          float t = cl.getTime() + param.rec.tpc.clustersShiftTimebins;
+          if (t < 0) {
+            t = 0;
+          }
+          if (param.par.continuousMaxTimeBin > 0 && t > param.par.continuousMaxTimeBin) {
+            t = param.par.continuousMaxTimeBin;
+          }
+          cl.setTime(t);
+        }
+      }
       std::sort(buffer, buffer + clustersNative.nClusters[i][j]);
     }
   }

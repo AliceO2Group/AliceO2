@@ -22,6 +22,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataRefUtils.h"
+#include "Framework/DeviceStateEnums.h"
 #include "Framework/InputRecordWalker.h"
 #include "Framework/InputSpec.h"
 #include "Framework/Logger.h"
@@ -68,7 +69,6 @@ class ChannelCalibratorDeviceDPL
     }
   }
 
-  //_________________________________________________________________
   void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
   {
     o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
@@ -76,32 +76,49 @@ class ChannelCalibratorDeviceDPL
 
   void run(of::ProcessingContext& pc)
   {
+    if (mRunStopRequested) {
+      return;
+    }
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
 
     std::array<gsl::span<const ColumnData>, 2> calibData{pc.inputs().get<gsl::span<ColumnData>>("mid_noise"), pc.inputs().get<gsl::span<ColumnData>>("mid_dead")};
     auto deadRof = pc.inputs().get<gsl::span<ROFRecord>>("mid_dead_rof");
-    std::array<double, 2> timeOrTriggers{mHBFsPerTF * o2::constants::lhc::LHCOrbitNS * 1e-9, static_cast<double>(deadRof.size())};
+    std::array<double, 2> timeOrTriggers{o2::base::GRPGeomHelper::instance().getGRPECS()->getNHBFPerTF() * o2::constants::lhc::LHCOrbitNS * 1e-9, static_cast<double>(deadRof.size())};
 
     for (size_t idx = 0; idx < calibData.size(); ++idx) {
       o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrators[idx].getCurrentTFInfo());
       mCalibrators[idx].addTimeOrTriggers(timeOrTriggers[idx]);
       mCalibrators[idx].process(calibData[idx]);
     }
+    if (pc.transitionState() == of::TransitionHandlingState::Requested) {
+      LOG(info) << "Run stop requested, finalizing";
+      mRunStopRequested = true;
+      finalise(pc.outputs());
+    }
   }
 
   void endOfStream(of::EndOfStreamContext& ec)
   {
-    for (auto& calib : mCalibrators) {
-      calib.checkSlotsToFinalize(ChannelCalibrator::INFINITE_TF);
+    if (mRunStopRequested) {
+      return;
     }
-    sendOutput(ec.outputs());
+    LOG(info) << "EOS sent, finalizing";
+    finalise(ec.outputs());
   }
 
  private:
-  std::array<ChannelCalibrator, 2> mCalibrators{}; ///< Channels calibrators
-  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
-  std::vector<ColumnData> mRefMasks{}; ///< Reference masks
-  int mHBFsPerTF = 128.;               ///< Number of HBFs per TF
+  std::array<ChannelCalibrator, 2> mCalibrators{};        ///! Channels calibrators
+  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest; ///! CCDB request
+  std::vector<ColumnData> mRefMasks{};                    ///! Reference masks
+  bool mRunStopRequested = false;                         ///! Flag that the run was stopped
+
+  void finalise(of::DataAllocator& output)
+  {
+    for (auto& calib : mCalibrators) {
+      calib.checkSlotsToFinalize(ChannelCalibrator::INFINITE_TF);
+    }
+    sendOutput(output);
+  }
 
   void sendOutput(of::DataAllocator& output)
   {

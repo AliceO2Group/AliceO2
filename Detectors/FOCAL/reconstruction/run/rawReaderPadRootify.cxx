@@ -12,6 +12,7 @@
 /// \file rawReaderFileNew.cxx
 /// \author Markus Fasel <markus.fasel@cern.ch>, Oak Ridge National Laboratory
 
+#include <bitset>
 #include <iostream>
 #include <boost/program_options.hpp>
 #include <gsl/span>
@@ -142,8 +143,8 @@ struct PadTreeData {
       }
       auto triggerdata = asicdata.getTriggerWords();
       for (auto iwin = 0; iwin < WINDUR; iwin++) {
-        mTriggerhead0[iasic][iwin] = triggerdata[iwin].mHeader;
-        mTriggerhead1[iasic][iwin] = triggerdata[iwin].mHeader;
+        mTriggerhead0[iasic][iwin] = triggerdata[iwin].mHeader0;
+        mTriggerhead1[iasic][iwin] = triggerdata[iwin].mHeader1;
         mTriggerdata[iasic][0][iwin] = triggerdata[iwin].mTrigger0;
         mTriggerdata[iasic][1][iwin] = triggerdata[iwin].mTrigger1;
         mTriggerdata[iasic][2][iwin] = triggerdata[iwin].mTrigger2;
@@ -162,7 +163,7 @@ struct PadTreeData {
   }
 };
 
-void convertPadData(gsl::span<const char> padrawdata, const o2::InteractionRecord& currentir, PadTreeData& rootified)
+int convertPadData(gsl::span<const char> padrawdata, const o2::InteractionRecord& currentir, PadTreeData& rootified)
 {
   auto payloadsizeGBT = padrawdata.size() * sizeof(char) / sizeof(o2::focal::PadGBTWord);
   auto gbtdata = gsl::span<const o2::focal::PadGBTWord>(reinterpret_cast<const o2::focal::PadGBTWord*>(padrawdata.data()), payloadsizeGBT);
@@ -178,6 +179,7 @@ void convertPadData(gsl::span<const char> padrawdata, const o2::InteractionRecor
     rootified.fill(decoder.getData());
     rootified.fillTree();
   }
+  return nevents;
 }
 
 int main(int argc, char** argv)
@@ -196,8 +198,9 @@ int main(int argc, char** argv)
     add_option("help,h", "Print this help message");
     add_option("verbose,v", bpo::value<uint32_t>()->default_value(0), "Select verbosity level [0 = no output]");
     add_option("version", "Print version information");
-    add_option("input-file,i", bpo::value<std::string>()->required(), "Specifies input file.");
+    add_option("input-file,i", bpo::value<std::string>()->required(), "Specifies input file. Multiple files can be parsed separated by ,");
     add_option("output-file,o", bpo::value<std::string>()->default_value("FOCALPadData.root"), "Output file for rootified data");
+    add_option("readout,r", bpo::value<std::string>()->default_value("RORC"), "Readout mode (RORC or CRU)");
     add_option("debug,d", bpo::value<uint32_t>()->default_value(0), "Select debug output level [0 = no debug output]");
 
     opt_all.add(opt_general).add(opt_hidden);
@@ -226,12 +229,44 @@ int main(int argc, char** argv)
 
   auto rawfilename = vm["input-file"].as<std::string>();
   auto rootfilename = vm["output-file"].as<std::string>();
+  auto readoutmode = vm["readout"].as<std::string>();
+
+  std::vector<std::string> inputfiles;
+  if (rawfilename.find(",") != std::string::npos) {
+    // Multiple input file mode
+    std::stringstream parser(rawfilename);
+    std::string buffer;
+    while (std::getline(parser, buffer, ',')) {
+      LOG(info) << "Adding " << buffer;
+      inputfiles.push_back(buffer);
+    }
+    LOG(info) << "Found " << inputfiles.size() << " input files to process";
+  } else {
+    // Processing just a single input file
+    LOG(info) << "Adding " << rawfilename;
+    inputfiles.push_back(rawfilename);
+  }
+
+  o2::raw::RawFileReader::ReadoutCardType readout = o2::raw::RawFileReader::RORC;
+  if (readoutmode != "RORC" && readoutmode != "CRU") {
+    LOG(error) << "Unknown readout mode - select RORC or CRU";
+    exit(3);
+  } else if (readoutmode == "RORC") {
+    LOG(info) << "Reconstructing in C-RORC mode";
+    readout = o2::raw::RawFileReader::RORC;
+  } else {
+    LOG(info) << "Reconstructing in CRU mode";
+    readout = o2::raw::RawFileReader::CRU;
+  }
 
   o2::raw::RawFileReader reader;
   reader.setDefaultDataOrigin(o2::header::gDataOriginFOC);
   reader.setDefaultDataDescription(o2::header::gDataDescriptionRawData);
-  reader.setDefaultReadoutCardType(o2::raw::RawFileReader::RORC);
-  reader.addFile(rawfilename);
+  reader.setDefaultReadoutCardType(readout);
+  for (auto rawfile : inputfiles) {
+    LOG(debug) << "Adding " << rawfile << " to raw reader";
+    reader.addFile(rawfile);
+  }
   reader.init();
 
   std::unique_ptr<TFile> rootfilewriter(TFile::Open(rootfilename.data(), "RECREATE"));
@@ -240,6 +275,8 @@ int main(int argc, char** argv)
   PadTreeData rootified;
   rootified.connectTree(padtree);
 
+  int nHBFprocessed = 0, nTFprocessed = 0, nEventsProcessed = 0;
+  std::map<int, int> nEvnetsHBF;
   while (1) {
     int tfID = reader.getNextTFToRead();
     if (tfID >= reader.getNTimeFrames()) {
@@ -267,17 +304,30 @@ int main(int argc, char** argv)
           if (trigger & o2::trigger::SOT || trigger & o2::trigger::HB) {
             if (o2::raw::RDHUtils::getStop(rdh)) {
               LOG(debug) << "Stop bit received - processing payload";
-              convertPadData(hbfbuffer, currentir, rootified);
+              auto nevents = convertPadData(hbfbuffer, currentir, rootified);
               hbfbuffer.clear();
+              nHBFprocessed++;
+              nEventsProcessed += nevents;
+              auto found = nEvnetsHBF.find(nevents);
+              if (found == nEvnetsHBF.end()) {
+                nEvnetsHBF[nevents] = 1;
+              } else {
+                found->second++;
+              }
             } else {
               LOG(debug) << "New HBF or Timeframe";
               hbfbuffer.clear();
               currentir.bc = o2::raw::RDHUtils::getTriggerBC(rdh);
               currentir.orbit = o2::raw::RDHUtils::getTriggerOrbit(rdh);
             }
+          } else {
+            LOG(error) << "Found unknown trigger" << std::bitset<32>(trigger);
           }
           currentpos += o2::raw::RDHUtils::getOffsetToNext(rdh);
           continue;
+        }
+        if (o2::raw::RDHUtils::getStop(rdh)) {
+          LOG(error) << "Unexpected stop";
         }
 
         // non-0 payload size:
@@ -297,5 +347,13 @@ int main(int argc, char** argv)
       }
     }
     reader.setNextTFToRead(++tfID);
+    nTFprocessed++;
+  }
+  rootfilewriter->Write();
+  LOG(info) << "Processed " << nTFprocessed << " timeframes, " << nHBFprocessed << " HBFs";
+  LOG(info) << "Analyzed " << nEventsProcessed << " events:";
+  LOG(info) << "=============================================================";
+  for (auto& [nevents, nHBF] : nEvnetsHBF) {
+    LOG(info) << "  " << nevents << " event(s)/HBF: " << nHBF << " HBFs ...";
   }
 }

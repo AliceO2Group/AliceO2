@@ -41,7 +41,6 @@
 #include "DataFormatsParameters/GRPECSObject.h"
 #include "Headers/DataHeader.h"
 #include "CommonDataFormat/BunchFilling.h"
-#include "CommonDataFormat/Pair.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "ITSMFTReconstruction/ClustererParam.h"
 #include "DetectorsBase/GRPGeomHelper.h"
@@ -150,7 +149,7 @@ void TPCITSMatchingDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 void TPCITSMatchingDPL::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-  o2::tpc::VDriftHelper::extractCCDBInputs(pc);
+  mTPCVDriftHelper.extractCCDBInputs(pc);
   o2::tpc::CorrectionMapsLoader::extractCCDBInputs(pc);
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
@@ -163,7 +162,7 @@ void TPCITSMatchingDPL::updateTimeDependentParams(ProcessingContext& pc)
     } else {
       mMatching.setITSROFrameLengthInBC(alpParams.roFrameLengthInBC); // ITS ROFrame duration in \mus
     }
-
+    mMatching.setITSTimeBiasInBC(alpParams.roFrameBiasInBC);
     mMatching.setSkipTPCOnly(mSkipTPCOnly);
     mMatching.setITSTriggered(!o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::ITS));
     mMatching.setMCTruthOn(mUseMC);
@@ -184,14 +183,16 @@ void TPCITSMatchingDPL::updateTimeDependentParams(ProcessingContext& pc)
     updateMaps = true;
   }
   if (mTPCVDriftHelper.isUpdated()) {
-    LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} from source {}",
-         mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getSourceName());
+    LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
+         mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift,
+         mTPCVDriftHelper.getVDriftObject().timeOffsetCorr, mTPCVDriftHelper.getVDriftObject().refTimeOffset,
+         mTPCVDriftHelper.getSourceName());
     mMatching.setTPCVDrift(mTPCVDriftHelper.getVDriftObject());
     mTPCVDriftHelper.acknowledgeUpdate();
     updateMaps = true;
   }
   if (updateMaps) {
-    mTPCCorrMapsLoader.updateVDrift(mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift);
+    mTPCCorrMapsLoader.updateVDrift(mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getVDriftObject().getTimeOffset());
   }
 }
 

@@ -22,15 +22,22 @@ o2_add_library(G4Setup
 o2_add_library(FLUKASetup
                SOURCES src/FlukaConfig.cxx
                PUBLIC_LINK_LIBRARIES FairRoot::Base O2::SimulationDataFormat O2::Generators ROOT::EGPythia6 O2::SimSetup
-	      )
+)
+
 o2_add_library(MCReplaySetup
                SOURCES src/MCReplayConfig.cxx
                PUBLIC_LINK_LIBRARIES MC::MCReplay FairRoot::Base O2::SimulationDataFormat O2::Generators O2::SimSetup
 )
+
+o2_add_library(O2TrivialMCEngineSetup
+               SOURCES src/O2TrivialMCConfig.cxx
+               PUBLIC_LINK_LIBRARIES O2::O2TrivialMC FairRoot::Base O2::SimulationDataFormat O2::Generators O2::SimSetup
+)
+
 o2_add_library(SimSetup
                SOURCES  src/GlobalProcessCutSimParam.cxx src/SimSetup.cxx src/SetCuts.cxx src/FlukaParam.cxx src/MCReplayParam.cxx
-	       PUBLIC_LINK_LIBRARIES O2::CommonUtils O2::DetectorsBase O2::SimConfig
-              )
+               PUBLIC_LINK_LIBRARIES O2::CommonUtils O2::DetectorsBase O2::SimConfig
+)
 
 o2_target_root_dictionary(SimSetup
                           HEADERS include/SimSetup/SimSetup.h

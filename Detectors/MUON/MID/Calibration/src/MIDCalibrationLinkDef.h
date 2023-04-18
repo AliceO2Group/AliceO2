@@ -19,6 +19,6 @@
 #pragma link C++ class o2::mid::CalibData + ;
 #pragma link C++ class o2::mid::ChannelCalibrator + ;
 #pragma link C++ class o2::calibration::TimeSlot < o2::mid::CalibData> + ;
-#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::mid::ColumnData, o2::mid::CalibData> + ;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::mid::CalibData> + ;
 
 #endif

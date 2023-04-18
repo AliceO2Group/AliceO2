@@ -14,12 +14,14 @@ o2_add_library(SpacePoints
                        src/TrackResiduals.cxx
                        src/TrackInterpolation.cxx
                        src/ResidualAggregator.cxx
+                       src/SpacePointsCalibConfParam.cxx
                PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC
                                      O2::CommonUtils
                                      O2::TPCBase
                                      O2::TRDBase
                                      O2::TPCReconstruction
                                      O2::TPCFastTransformation
+                                     O2::ITStracking
                                      O2::DetectorsCalibration
                                      O2::DataFormatsITS
                                      O2::DataFormatsITSMFT
@@ -31,4 +33,12 @@ o2_target_root_dictionary(SpacePoints
                           HEADERS include/SpacePoints/TrackResiduals.h
                                   include/SpacePoints/TrackInterpolation.h
                                   include/SpacePoints/ResidualAggregator.h
+                                  include/SpacePoints/SpacePointsCalibConfParam.h
                           LINKDEF src/SpacePointCalibLinkDef.h)
+
+o2_add_test_root_macro(macro/staticMapCreator.C
+                       PUBLIC_LINK_LIBRARIES O2::SpacePoints
+                       LABELS tpc COMPILE_ONLY)
+
+install(FILES macro/staticMapCreator.C
+        DESTINATION share/macro/)

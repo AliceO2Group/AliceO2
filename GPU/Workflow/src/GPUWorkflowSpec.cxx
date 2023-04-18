@@ -33,6 +33,7 @@
 #include "DataFormatsTPC/Helpers.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
+#include "DataFormatsGlobalTracking/TrackTuneParams.h"
 #include "TPCReconstruction/TPCTrackingDigitsPreCheck.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "DataFormatsTPC/Digit.h"
@@ -68,6 +69,7 @@
 #include "TRDBase/Geometry.h"
 #include "TRDBase/GeometryFlat.h"
 #include "CommonUtils/VerbosityConfig.h"
+#include "CommonUtils/DebugStreamer.h"
 #include <filesystem>
 #include <memory> // for make_shared
 #include <vector>
@@ -85,6 +87,7 @@
 #include <TH1F.h>
 #include <TH2F.h>
 #include <TH1D.h>
+#include <TGraphAsymmErrors.h>
 
 using namespace o2::framework;
 using namespace o2::header;
@@ -206,7 +209,7 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
     if (mSpecConfig.outputSharedClusterMap) {
       mConfig->configProcessing.outputSharedClusterMap = true;
     }
-    mConfig->configProcessing.createO2Output = mSpecConfig.outputTracks ? 2 : 0; // Skip GPU-formatted output if QA is not requested
+    mConfig->configProcessing.createO2Output = mSpecConfig.outputTracks ? 2 : 0; // Disable O2 TPC track format output if no track output requested
 
     if (mConfParam->transformationFile.size() || mConfParam->transformationSCFile.size()) {
       LOG(fatal) << "Deprecated configurable param options GPU_global.transformationFile or transformationSCFile used\n"
@@ -256,7 +259,7 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
   }
 
   auto& callbacks = ic.services().get<CallbackService>();
-  callbacks.set(CallbackService::Id::RegionInfoCallback, [this](fair::mq::RegionInfo const& info) {
+  callbacks.set<CallbackService::Id::RegionInfoCallback>([this](fair::mq::RegionInfo const& info) {
     if (info.size == 0) {
       return;
     }
@@ -400,6 +403,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
       }
     }
   }
+  std::unique_ptr<char[]> tmpEmptyCompClusters;
   if (mSpecConfig.zsDecoder) {
     std::vector<InputSpec> filter = {{"check", ConcreteDataTypeMatcher{gDataOriginTPC, "RAWDATA"}, Lifetime::Timeframe}};
     auto isSameRdh = [](const char* left, const char* right) -> bool {
@@ -443,6 +447,11 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
       pCompClustersFlat = &compClustersFlatDummy;
     } else {
       pCompClustersFlat = pc.inputs().get<CompressedClustersFlat*>("input").get();
+    }
+    if (pCompClustersFlat == nullptr) {
+      tmpEmptyCompClusters.reset(new char[sizeof(CompressedClustersFlat)]);
+      memset(tmpEmptyCompClusters.get(), 0, sizeof(CompressedClustersFlat));
+      pCompClustersFlat = (CompressedClustersFlat*)tmpEmptyCompClusters.get();
     }
   } else if (!mSpecConfig.zsOnTheFly) {
     if (mVerbosity) {
@@ -620,6 +629,9 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
 
   int retVal = mTracker->RunTracking(&ptrs, &outputRegions);
 
+  // flushing debug output to file
+  o2::utils::DebugStreamer::instance()->flush();
+
   // setting TPC calibration objects
   storeUpdatedCalibsTPCPtrs();
 
@@ -688,6 +700,33 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     downSizeBufferToSpan(outputRegions.tpcTracksO2ClusRefs, spanOutputClusRefs);
     downSizeBufferToSpan(outputRegions.tpcTracksO2Labels, spanOutputTracksMCTruth);
 
+    // if requested, tune TPC tracks
+    using TrackTunePar = o2::globaltracking::TrackTuneParams;
+    const auto& trackTune = TrackTunePar::Instance();
+    if (ptrs.nOutputTracksTPCO2 && trackTune.sourceLevelTPC &&
+        (trackTune.useTPCInnerCorr || trackTune.useTPCOuterCorr ||
+         trackTune.tpcCovInnerType != TrackTunePar::AddCovType::Disable || trackTune.tpcCovOuterType != TrackTunePar::AddCovType::Disable)) {
+      auto buffout = outputBuffers[outputRegions.getIndex(outputRegions.tpcTracksO2)].first->get().data();
+      if (((const void*)ptrs.outputTracksTPCO2) != ((const void*)buffout)) {
+        throw std::runtime_error("Buffer does not match span");
+      }
+      o2::tpc::TrackTPC* tpcTracks = reinterpret_cast<o2::tpc::TrackTPC*>(buffout);
+      for (unsigned int itr = 0; itr < ptrs.nOutputTracksTPCO2; itr++) {
+        auto& trc = tpcTracks[itr];
+        if (trackTune.useTPCInnerCorr) {
+          trc.updateParams(trackTune.tpcParInner);
+        }
+        if (trackTune.tpcCovInnerType != TrackTunePar::AddCovType::Disable) {
+          trc.updateCov(trackTune.tpcCovInner, trackTune.tpcCovInnerType == TrackTunePar::AddCovType::WithCorrelations);
+        }
+        if (trackTune.useTPCOuterCorr) {
+          trc.getParamOut().updateParams(trackTune.tpcParOuter);
+        }
+        if (trackTune.tpcCovOuterType != TrackTunePar::AddCovType::Disable) {
+          trc.getParamOut().updateCov(trackTune.tpcCovOuter, trackTune.tpcCovOuterType == TrackTunePar::AddCovType::WithCorrelations);
+        }
+      }
+    }
     if (mClusterOutputIds.size() > 0 && (void*)ptrs.clustersNative->clustersLinear != (void*)(outputBuffers[outputRegions.getIndex(outputRegions.clustersNative)].second + sizeof(ClusterCountIndex))) {
       throw std::runtime_error("cluster native output ptrs out of sync"); // sanity check
     }
@@ -749,8 +788,9 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     std::vector<TH1F> copy1 = getoutput(outputRegions.qa.hist1); // Internally, this will also be used as output, so we need a non-const copy
     std::vector<TH2F> copy2 = getoutput(outputRegions.qa.hist2);
     std::vector<TH1D> copy3 = getoutput(outputRegions.qa.hist3);
+    std::vector<TGraphAsymmErrors> copy4 = getoutput(outputRegions.qa.hist4);
     if (sendQAOutput) {
-      mQA->postprocessExternal(copy1, copy2, copy3, out, mQATaskMask ? mQATaskMask : -1);
+      mQA->postprocessExternal(copy1, copy2, copy3, copy4, out, mQATaskMask ? mQATaskMask : -1);
     }
     pc.outputs().snapshot({gDataOriginTPC, "TRACKINGQA", 0, Lifetime::Timeframe}, out);
     if (sendQAOutput) {
@@ -894,7 +934,6 @@ Outputs GPURecoWorkflowSpec::outputs()
     for (auto const& sector : mTPCSectors) {
       mClusterOutputIds.emplace_back(sector);
     }
-    outputSpecs.emplace_back(gDataOriginTPC, "CLUSTERNATIVE", mSpecConfig.sendClustersPerSector ? 0 : NSectors, Lifetime::Timeframe);
     if (mSpecConfig.sendClustersPerSector) {
       outputSpecs.emplace_back(gDataOriginTPC, "CLUSTERNATIVETMP", NSectors, Lifetime::Timeframe); // Dummy buffer the TPC tracker writes the inital linear clusters to
       for (const auto sector : mTPCSectors) {
@@ -1123,24 +1162,25 @@ bool GPURecoWorkflowSpec::fetchCalibsCCDBTPC(ProcessingContext& pc, T& newCalibO
       }
 
       if (mSpecConfig.outputTracks) {
-        o2::tpc::VDriftHelper::extractCCDBInputs(pc);
+        mTPCVDriftHelper->extractCCDBInputs(pc);
         o2::tpc::CorrectionMapsLoader::extractCCDBInputs(pc);
       }
       if (mTPCVDriftHelper->isUpdated() || mFastTransformHelper->isUpdated()) {
-        LOGP(info, "Updating{}TPC fast transform map and/or VDrift factor of {} wrt reference {} from source {}",
+        const auto& vd = mTPCVDriftHelper->getVDriftObject();
+        LOGP(info, "Updating{}TPC fast transform map and/or VDrift factor of {} wrt reference {} and TDrift offset {} wrt reference {} from source {}",
              mFastTransformHelper->isUpdated() ? " new " : " old ",
-             mTPCVDriftHelper->getVDriftObject().corrFact, mTPCVDriftHelper->getVDriftObject().refVDrift, mTPCVDriftHelper->getSourceName());
+             vd.corrFact, vd.refVDrift, vd.timeOffsetCorr, vd.refTimeOffset, mTPCVDriftHelper->getSourceName());
 
         if (mTPCVDriftHelper->isUpdated() || mFastTransformHelper->isUpdatedMap()) {
           mFastTransformNew.reset(new TPCFastTransform);
           mFastTransformNew->cloneFromObject(*mFastTransformHelper->getCorrMap(), nullptr);
-          TPCFastTransformHelperO2::instance()->updateCalibration(*mFastTransformNew, 0, mTPCVDriftHelper->getVDriftObject().corrFact, mTPCVDriftHelper->getVDriftObject().refVDrift);
+          TPCFastTransformHelperO2::instance()->updateCalibration(*mFastTransformNew, 0, vd.corrFact, vd.refVDrift, vd.getTimeOffset());
           newCalibObjects.fastTransform = mFastTransformNew.get();
         }
         if (mTPCVDriftHelper->isUpdated() || mFastTransformHelper->isUpdatedMapRef()) {
           mFastTransformRefNew.reset(new TPCFastTransform);
           mFastTransformRefNew->cloneFromObject(*mFastTransformHelper->getCorrMapRef(), nullptr);
-          TPCFastTransformHelperO2::instance()->updateCalibration(*mFastTransformRefNew, 0, mTPCVDriftHelper->getVDriftObject().corrFact, mTPCVDriftHelper->getVDriftObject().refVDrift);
+          TPCFastTransformHelperO2::instance()->updateCalibration(*mFastTransformRefNew, 0, vd.corrFact, vd.refVDrift, vd.getTimeOffset());
           newCalibObjects.fastTransformRef = mFastTransformRefNew.get();
         }
         if (mFastTransformNew || mFastTransformRefNew || mFastTransformHelper->isUpdatedLumi()) {

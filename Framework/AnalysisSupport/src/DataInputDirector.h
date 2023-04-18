@@ -76,7 +76,7 @@ class DataInputDescriptor
 
   uint64_t getTimeFrameNumber(int counter, int numTF);
   FileAndFolder getFileFolder(int counter, int numTF);
-  DataInputDescriptor* getParentFile(int counter, int numTF);
+  DataInputDescriptor* getParentFile(int counter, int numTF, std::string treename);
   int getTimeFramesInFile(int counter);
   int getReadTimeFramesInFile(int counter);
 

@@ -17,6 +17,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
 #include "ZDCWorkflow/EntropyDecoderSpec.h"
+#include "CommonConstants/LHCConstants.h"
 
 using namespace o2::framework;
 
@@ -36,6 +37,11 @@ EntropyDecoderSpec::EntropyDecoderSpec(int verbosity) : mCTFCoder(o2::ctf::CTFCo
 void EntropyDecoderSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
 {
   if (mCTFCoder.finaliseCCDB<CTF>(matcher, obj)) {
+    if (mCTFCoder.getBCShift()) {
+      long norb = mCTFCoder.getBCShift() / o2::constants::lhc::LHCMaxBunches;
+      mCTFCoder.setBCShiftOrbits(norb * o2::constants::lhc::LHCMaxBunches);
+      LOGP(info, "BCs 0 and 3563 will be corrected only for {} BCs (= {} integer orbits)", mCTFCoder.getBCShiftOrbits(), norb);
+    }
     return;
   }
 }

@@ -9,9 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "ClusterFinderGEMSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
-#include "DigitReaderSpec.h"
+#include "ErrorMergerSpec.h"
 #include "EventFinderSpec.h"
 #include "Framework/CallbacksPolicy.h"
 #include "Framework/CompletionPolicyHelpers.h"
@@ -19,15 +20,19 @@
 #include "Framework/Logger.h"
 #include "Framework/Variant.h"
 #include "Framework/WorkflowSpec.h"
+#include "MCHClustering/ClusterizerParam.h"
 #include "MCHDigitFiltering/DigitFilteringSpec.h"
 #include "MCHGeometryTransformer/ClusterTransformerSpec.h"
+#include "MCHIO/ClusterWriterSpec.h"
+#include "MCHIO/DigitReaderSpec.h"
+#include "MCHIO/TrackWriterSpec.h"
 #include "MCHPreClustering/PreClusterFinderSpec.h"
+#include "MCHStatus/StatusMapCreatorParam.h"
+#include "MCHStatus/StatusMapCreatorSpec.h"
 #include "MCHTimeClustering/TimeClusterFinderSpec.h"
+#include "MCHTracking/TrackFinderSpec.h"
 #include "MCHWorkflow/ClusterFinderOriginalSpec.h"
-#include "MCHWorkflow/TrackWriterSpec.h"
-#include "MCHWorkflow/ClusterWriterSpec.h"
-#include "TrackFinderSpec.h"
-#include "TrackFitterSpec.h"
+#include "MCHWorkflow/ErrorWriterSpec.h"
 #include "TrackMCLabelFinderSpec.h"
 
 using namespace o2::framework;
@@ -49,6 +54,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"do not write output root files"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
+    {"enable-clusters-root-output", o2::framework::VariantType::Bool, false, {"write output root file containing all clusters"}},
     {"disable-clustering", o2::framework::VariantType::Bool, false, {"disable clustering (and tracking) steps (for debug)"}},
     {"disable-tracking", o2::framework::VariantType::Bool, false, {"disable tracking step (for debug)"}},
     {"digits", VariantType::Bool, false, {"Write digits associated to tracks"}},
@@ -71,11 +77,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto disableClustering = configcontext.options().get<bool>("disable-clustering");
   auto disableTracking = disableClustering || configcontext.options().get<bool>("disable-tracking");
+  auto disableAllClustersRootOutput = !configcontext.options().get<bool>("enable-clusters-root-output");
 
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
 
   if (!disableRootInput) {
-    specs.emplace_back(o2::mch::getDigitReaderSpec(useMC, "mch-sim-digit-reader"));
+    specs.emplace_back(o2::mch::getDigitReaderSpec(useMC, "mch-digit-reader"));
+  }
+
+  if (o2::mch::StatusMapCreatorParam::Instance().isActive()) {
+    specs.emplace_back(o2::mch::getStatusMapCreatorSpec("mch-statusmap-creator"));
   }
 
   specs.emplace_back(o2::mch::getDigitFilteringSpec(useMC, "mch-digit-filtering",
@@ -88,7 +99,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
                                                    "F-DIGITS", "E-F-DIGITS",
                                                    "F-DIGITROFS", "E-F-DIGITROFS",
                                                    "F-DIGITLABELS", "E-F-DIGITLABELS"));
-  } else if (!useMC) {
+  } else {
     specs.emplace_back(o2::mch::getTimeClusterFinderSpec("mch-time-cluster-finder",
                                                          "F-DIGITS",
                                                          "F-DIGITROFS",
@@ -97,19 +108,23 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   specs.emplace_back(o2::mch::getPreClusterFinderSpec("mch-precluster-finder",
                                                       triggered ? "E-F-DIGITS" : "F-DIGITS",
-                                                      triggered ? "E-F-DIGITROFS" : (useMC ? "F-DIGITROFS" : "TC-F-DIGITROFS")));
+                                                      triggered ? "E-F-DIGITROFS" : "TC-F-DIGITROFS"));
 
   if (!disableClustering) {
-    specs.emplace_back(o2::mch::getClusterFinderOriginalSpec("mch-cluster-finder"));
+    if (o2::mch::ClusterizerParam::Instance().legacy) {
+      specs.emplace_back(o2::mch::getClusterFinderOriginalSpec("mch-cluster-finder"));
+    } else {
+      specs.emplace_back(o2::mch::getClusterFinderGEMSpec("mch-cluster-finder"));
+    }
     specs.emplace_back(o2::mch::getClusterTransformerSpec("mch-cluster-transformer", false));
-    if (!disableRootOutput) {
-      specs.emplace_back(o2::mch::getClusterWriterSpec(false, "mch-global-cluster-writer", true, digits)); // RS cannot find who produces MCH/CLUSTERLABELS/0
+    if (!disableRootOutput && !disableAllClustersRootOutput) {
+      specs.emplace_back(o2::mch::getClusterWriterSpec(false, "mch-global-cluster-writer", true, true));
     }
     if (!disableTracking) {
-      specs.emplace_back(o2::mch::getTrackFinderSpec("mch-track-finder", digits));
+      specs.emplace_back(o2::mch::getTrackFinderSpec("mch-track-finder", true, digits, false, false));
       if (useMC) {
         specs.emplace_back(o2::mch::getTrackMCLabelFinderSpec("mch-track-mc-label-finder",
-                                                              triggered ? "E-F-DIGITROFS" : "F-DIGITROFS",
+                                                              triggered ? "E-F-DIGITROFS" : "TC-F-DIGITROFS",
                                                               triggered ? "E-F-DIGITLABELS" : "F-DIGITLABELS"));
       }
 
@@ -117,6 +132,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
         specs.emplace_back(o2::mch::getTrackWriterSpec(useMC, "mch-track-writer", "mchtracks.root", digits));
       }
     }
+  }
+
+  specs.emplace_back(o2::mch::getErrorMergerSpec("mch-error-merger", true, !disableClustering,
+                                                 !(disableClustering || disableTracking)));
+  if (!disableRootOutput) {
+    specs.emplace_back(o2::mch::getErrorWriterSpec("mch-error-writer"));
   }
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit

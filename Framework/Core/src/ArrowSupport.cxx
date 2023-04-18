@@ -12,6 +12,8 @@
 
 #include "Framework/AODReaderHelpers.h"
 #include "Framework/ArrowContext.h"
+#include "Framework/ArrowTableSlicingCache.h"
+#include "Framework/SliceCache.h"
 #include "Framework/DataProcessor.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/ConfigContext.h"
@@ -23,6 +25,8 @@
 #include "Framework/DeviceMetricsHelper.h"
 #include "Framework/DeviceInfo.h"
 #include "Framework/DevicesManager.h"
+#include "Framework/DeviceConfig.h"
+#include "Framework/ServiceMetricsInfo.h"
 #include "WorkflowHelpers.h"
 #include "Framework/WorkflowSpecNode.h"
 
@@ -111,10 +115,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
     .preEOS = CommonMessageBackendsHelpers<ArrowContext>::clearContextEOS(),
     .postEOS = CommonMessageBackendsHelpers<ArrowContext>::sendCallbackEOS(),
     .metricHandling = [](ServiceRegistryRef registry,
-                         std::vector<DeviceMetricsInfo>& allDeviceMetrics,
-                         std::vector<DeviceSpec>& specs,
-                         std::vector<DeviceInfo>& infos,
-                         DeviceMetricsInfo& driverMetrics,
+                         ServiceMetricsInfo const& sm,
                          size_t timestamp) {
                        int64_t totalBytesCreated = 0;
                        int64_t shmOfferConsumed = 0;
@@ -124,6 +125,11 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        int64_t totalMessagesDestroyed = 0;
                        int64_t totalTimeframesRead = 0;
                        int64_t totalTimeframesConsumed = 0;
+                       auto &driverMetrics = sm.driverMetricsInfo;
+                       auto &allDeviceMetrics = sm.deviceMetricsInfos;
+                       auto &specs = sm.deviceSpecs;
+                       auto &infos = sm.deviceInfos;
+
                        static auto stateMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "rate-limit-state");
                        static auto totalBytesCreatedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-arrow-bytes-created");
                        static auto shmOfferConsumedMetric = DeviceMetricsHelper::createNumericMetric<uint64_t>(driverMetrics, "total-shm-offer-bytes-consumed");
@@ -329,7 +335,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        offeredSharedMemoryMetric(driverMetrics, offeredSharedMemory, timestamp); },
     .postDispatching = [](ProcessingContext& ctx, void* service) {
                        using DataHeader = o2::header::DataHeader;
-                       ArrowContext* arrow = reinterpret_cast<ArrowContext*>(service);
+                       auto* arrow = reinterpret_cast<ArrowContext*>(service);
                        auto totalBytes = 0;
                        auto totalMessages = 0;
                        for (auto& input : ctx.inputs()) {
@@ -364,18 +370,18 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        monitoring.send(Metric{(uint64_t)arrow->bytesDestroyed(), "arrow-bytes-destroyed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
                        monitoring.send(Metric{(uint64_t)arrow->messagesDestroyed(), "arrow-messages-destroyed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
                        monitoring.flushBuffer(); },
-    .driverInit = [](ServiceRegistryRef registry, boost::program_options::variables_map const& vm) {
+    .driverInit = [](ServiceRegistryRef registry, DeviceConfig const& dc) {
                        auto config = new RateLimitConfig{};
-                       int readers = std::stoll(vm["readers"].as<std::string>());
-                       if (vm.count("aod-memory-rate-limit") && vm["aod-memory-rate-limit"].defaulted() == false) {
-                         config->maxMemory = std::stoll(vm["aod-memory-rate-limit"].as<std::string>()) / 1000000;
+                       int readers = std::stoll(dc.options["readers"].as<std::string>());
+                       if (dc.options.count("aod-memory-rate-limit") && dc.options["aod-memory-rate-limit"].defaulted() == false) {
+                         config->maxMemory = std::stoll(dc.options["aod-memory-rate-limit"].as<std::string>()) / 1000000;
                        } else {
                          config->maxMemory = readers * 500;
                        }
-                       if (vm.count("timeframes-rate-limit") && vm["timeframes-rate-limit"].as<std::string>() == "readers") {
+                       if (dc.options.count("timeframes-rate-limit") && dc.options["timeframes-rate-limit"].as<std::string>() == "readers") {
                          config->maxTimeframes = readers;
                        } else {
-                         config->maxTimeframes = std::stoll(vm["timeframes-rate-limit"].as<std::string>());
+                         config->maxTimeframes = std::stoll(dc.options["timeframes-rate-limit"].as<std::string>());
                        }
                        static bool once = false;
                        // Until we guarantee this is called only once...
@@ -386,10 +392,10 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        } },
     .adjustTopology = [](WorkflowSpecNode& node, ConfigContext const& ctx) {
       auto& workflow = node.specs;
-      auto spawner = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-spawner"; });
-      auto builder = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-index-builder"; });
-      auto reader = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-reader"; });
-      auto writer = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec& spec) { return spec.name == "internal-dpl-aod-writer"; });
+      auto spawner = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec const& spec) { return spec.name == "internal-dpl-aod-spawner"; });
+      auto builder = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec const& spec) { return spec.name == "internal-dpl-aod-index-builder"; });
+      auto reader = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec const& spec) { return spec.name == "internal-dpl-aod-reader"; });
+      auto writer = std::find_if(workflow.begin(), workflow.end(), [](DataProcessorSpec const& spec) { return spec.name == "internal-dpl-aod-writer"; });
       std::vector<InputSpec> requestedAODs;
       std::vector<InputSpec> requestedDYNs;
       std::vector<OutputSpec> providedDYNs;
@@ -502,11 +508,41 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         // file sink for any AOD output
         if (!outputsInputsAOD.empty()) {
           // add TFNumber and TFFilename as input to the writer
-          outputsInputsAOD.emplace_back(InputSpec{"tfn", "TFN", "TFNumber"});
-          outputsInputsAOD.emplace_back(InputSpec{"tff", "TFF", "TFFilename"});
+          outputsInputsAOD.emplace_back("tfn", "TFN", "TFNumber");
+          outputsInputsAOD.emplace_back("tff", "TFF", "TFFilename");
           workflow.push_back(CommonDataProcessors::getGlobalAODSink(dod, outputsInputsAOD));
         } },
     .kind = ServiceKind::Global};
+}
+
+o2::framework::ServiceSpec ArrowSupport::arrowTableSlicingCacheDefSpec()
+{
+  return ServiceSpec{
+    .name = "arrow-slicing-cache-def",
+    .uniqueId = CommonServices::simpleServiceId<ArrowTableSlicingCacheDef>(),
+    .init = CommonServices::simpleServiceInit<ArrowTableSlicingCacheDef, ArrowTableSlicingCacheDef, ServiceKind::Global>(),
+    .kind = ServiceKind::Global};
+}
+
+o2::framework::ServiceSpec ArrowSupport::arrowTableSlicingCacheSpec()
+{
+  return ServiceSpec{
+    .name = "arrow-slicing-cache",
+    .uniqueId = CommonServices::simpleServiceId<ArrowTableSlicingCache>(),
+    .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions&) { return ServiceHandle{TypeIdHelpers::uniqueId<ArrowTableSlicingCache>(), new ArrowTableSlicingCache(std::vector<std::pair<std::string, std::string>>{services.get<ArrowTableSlicingCacheDef>().bindingsKeys}), ServiceKind::Stream, typeid(ArrowTableSlicingCache).name()}; },
+    .configure = CommonServices::noConfiguration(),
+    .preProcessing = [](ProcessingContext& pc, void* service_ptr) {
+      auto* service = static_cast<ArrowTableSlicingCache*>(service_ptr);
+      auto& caches = service->bindingsKeys;
+      for (auto i = 0; i < caches.size(); ++i) {
+        if (pc.inputs().getPos(caches[i].first.c_str()) >= 0) {
+          auto status = service->updateCacheEntry(i, pc.inputs().get<TableConsumer>(caches[i].first.c_str())->asArrowTable());
+          if (!status.ok()) {
+            throw runtime_error_f("Failed to update slice cache for %s/%s", caches[i].first.c_str(), caches[i].second.c_str());
+          }
+        }
+      } },
+    .kind = ServiceKind::Stream};
 }
 
 } // namespace o2::framework

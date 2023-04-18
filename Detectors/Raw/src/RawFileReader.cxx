@@ -378,10 +378,10 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
         reader->imposeFirstTF(irOfSOX.orbit);
       }
     }
-    auto newTFCalc = blocks.empty() || HBU.getTF(blocks.back().ir) < HBU.getTF(ir);
+    auto newTFCalc = reader->getTFAutodetect() != FirstTFDetection::Pending && (blocks.empty() || HBU.getTF(blocks.back().ir) < HBU.getTF(ir));
     if (cruDetector) {
       newTF = (triggerType & o2::trigger::TF);
-      newHB = (triggerType & (o2::trigger::ORBIT | o2::trigger::HB)) == (o2::trigger::ORBIT | o2::trigger::HB);
+      newHB = (triggerType & o2::trigger::HB);
       if (newTFCalc != newTF && (reader->mCheckErrors & (0x1 << ErrMismatchTF))) {
         LOG(error) << ErrNames[ErrMismatchTF];
         ok = false;
@@ -460,7 +460,7 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
       }
       if ((reader->mCheckErrors & (0x1 << ErrHBFJump)) &&
           (nCRUPages && // skip this check for the very 1st RDH
-           !(hbIR.bc == hblIR.bc && hbIR.orbit == hblIR.orbit + 1)) &&
+           !(/*hbIR.bc == hblIR.bc &&*/ hbIR.orbit == hblIR.orbit + 1)) &&
           cruDetector) {
         LOG(error) << ErrNames[ErrHBFJump] << " @ HBF#" << nHBFrames << " New HB orbit/bc=" << hbIR.orbit << '/' << int(hbIR.bc)
                    << " is not incremented by 1 orbit wrt Old HB orbit/bc=" << hblIR.orbit << '/' << int(hblIR.bc);
@@ -475,20 +475,27 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
     openHB = false;
   }
 
+  if (cruDetector &&
+      ((reader->getTFAutodetect() == FirstTFDetection::Pending && !newTF) ||
+       (reader->getTFAutodetect() == FirstTFDetection::Done && ir.orbit < HBU.orbitFirst))) { // skip data until TF start is seen or orbit is less than determined 1st TF orbit
+    LOG(error) << "skipping RDH w/o newTF flag until TF start is found";
+    ok = false;
+    newTF = newSPage = newHB = false;
+  }
+
   if (newTF || newSPage || newHB) {
+    if (newTF && reader->getTFAutodetect() == FirstTFDetection::Pending) {
+      if (cruDetector) {
+        reader->imposeFirstTF(hbIR.orbit);
+      } else {
+        throw std::runtime_error("HBFUtil first orbit/bc autodetection cannot be done with first link from CRORC detector");
+      }
+    }
     int nbl = blocks.size();
     auto& bl = blocks.emplace_back(reader->mCurrentFileID, reader->mPosInFile);
     bl.ir = hbIR;
     bl.tfID = HBU.getTF(hbIR); // nTimeFrames - 1;
     if (newTF) {
-      if (reader->getTFAutodetect() == FirstTFDetection::Pending) { // impose first TF
-        if (cruDetector) {
-          reader->imposeFirstTF(hbIR.orbit);
-          bl.tfID = HBU.getTF(hbIR); // update
-        } else {
-          throw std::runtime_error("HBFUtil first orbit/bc autodetection cannot be done with first link from CRORC detector");
-        }
-      }
       tfStartBlock.emplace_back(nbl, bl.tfID);
       nTimeFrames++;
       bl.setFlag(LinkBlock::StartTF);
@@ -509,10 +516,12 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
       bl.setFlag(LinkBlock::StartHB);
     }
   }
-  blocks.back().setFlag(LinkBlock::EndHB, stop); // last processed RDH defines this flag
-  blocks.back().size += RDHUtils::getOffsetToNext(rdh);
-  rdhl = rdh;
-  nCRUPages++;
+  if (blocks.size()) {
+    blocks.back().setFlag(LinkBlock::EndHB, stop); // last processed RDH defines this flag
+    blocks.back().size += RDHUtils::getOffsetToNext(rdh);
+    rdhl = rdh;
+    nCRUPages++;
+  }
   if (!ok) {
     LOG(error) << " ^^^Problem(s) was encountered at offset " << reader->mPosInFile << " of file " << reader->mCurrentFileID;
     RDHUtils::printRDH(rdh);
@@ -530,10 +539,10 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
 //====================== methods of RawFileReader ========================
 
 //_____________________________________________________________________
-RawFileReader::RawFileReader(const std::string& config, int verbosity, size_t buffSize) : mVerbosity(verbosity), mBufferSize(buffSize)
+RawFileReader::RawFileReader(const std::string& config, int verbosity, size_t buffSize, const std::string& onlyDet) : mVerbosity(verbosity), mBufferSize(buffSize)
 {
   if (!config.empty()) {
-    auto inp = parseInput(config);
+    auto inp = parseInput(config, onlyDet, true);
     loadFromInputsMap(inp);
   }
 }
@@ -782,12 +791,12 @@ bool RawFileReader::init()
 //_____________________________________________________________________
 o2h::DataOrigin RawFileReader::getDataOrigin(const std::string& ors)
 {
-  constexpr int NGoodOrigins = 20;
+  constexpr int NGoodOrigins = 21;
   constexpr std::array<o2h::DataOrigin, NGoodOrigins> goodOrigins{
     o2h::gDataOriginFLP, o2h::gDataOriginTST, o2h::gDataOriginCPV, o2h::gDataOriginCTP, o2h::gDataOriginEMC,
     o2h::gDataOriginFT0, o2h::gDataOriginFV0, o2h::gDataOriginFDD, o2h::gDataOriginHMP, o2h::gDataOriginITS,
     o2h::gDataOriginMCH, o2h::gDataOriginMFT, o2h::gDataOriginMID, o2h::gDataOriginPHS, o2h::gDataOriginTOF,
-    o2h::gDataOriginTPC, o2h::gDataOriginTRD, o2h::gDataOriginZDC};
+    o2h::gDataOriginTPC, o2h::gDataOriginTRD, o2h::gDataOriginZDC, o2h::gDataOriginFOC};
 
   for (auto orgood : goodOrigins) {
     if (ors == orgood.as<std::string>()) {
@@ -835,7 +844,7 @@ void RawFileReader::loadFromInputsMap(const RawFileReader::InputsMap& inp)
 }
 
 //_____________________________________________________________________
-RawFileReader::InputsMap RawFileReader::parseInput(const std::string& confUri)
+RawFileReader::InputsMap RawFileReader::parseInput(const std::string& confUri, const std::string& onlyDet, bool verbose)
 {
   // read input files from configuration
   std::map<OrigDescCard, std::vector<std::string>> entries;
@@ -855,6 +864,14 @@ RawFileReader::InputsMap RawFileReader::parseInput(const std::string& confUri)
     throw std::runtime_error(std::string("Failed to parse configuration ") + confFile + " : " + e);
   }
   //
+  std::unordered_map<std::string, int> detFilter;
+  auto msk = DetID::getMask(onlyDet);
+  for (DetID::ID id = DetID::First; id <= DetID::Last; id++) {
+    if (msk[id]) {
+      detFilter[DetID::getName(id)] = 1;
+    }
+  }
+
   try {
     std::string origStr, descStr, cardStr, defstr = "defaults";
     cfg.getOptionalValue<std::string>(defstr + ".dataOrigin", origStr, DEFDataOrigin.as<std::string>());
@@ -894,7 +911,16 @@ RawFileReader::InputsMap RawFileReader::parseInput(const std::string& confUri)
       if (dataOrigin == o2h::gDataOriginInvalid) {
         throw std::runtime_error(std::string("Invalid data origin ") + origStr + " for " + flsect);
       }
-
+      if (!detFilter.empty()) {
+        int& sdet = detFilter[dataOrigin.as<std::string>()];
+        if (sdet < 1) {
+          if (sdet == 0 && verbose) { // print only once
+            LOG(info) << "discarding data of detector " << dataOrigin.as<std::string>();
+            sdet--;
+          }
+          continue;
+        }
+      }
       auto dataDescription = getDataDescription(descStr);
       if (dataDescription == o2h::gDataDescriptionInvalid) {
         throw std::runtime_error(std::string("Invalid data description ") + descStr + " for " + flsect);
@@ -908,7 +934,6 @@ RawFileReader::InputsMap RawFileReader::parseInput(const std::string& confUri)
       } else {
         throw std::runtime_error(std::string("Invalid default readout card ") + cardStr + " for " + flsect);
       }
-
       entries[{dataOrigin, dataDescription, cardType}].push_back(flNameStr);
       LOG(debug) << "adding file " << flNameStr << " to dataOrigin/Description " << dataOrigin.as<std::string>() << '/' << dataDescription.as<std::string>();
     }

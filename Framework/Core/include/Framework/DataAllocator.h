@@ -12,15 +12,14 @@
 #define FRAMEWORK_DATAALLOCATOR_H
 
 #include "Framework/MessageContext.h"
+#include "Framework/RootMessageContext.h"
 #include "Framework/StringContext.h"
-#include "Framework/RawBufferContext.h"
 #include "Framework/Output.h"
 #include "Framework/OutputRef.h"
 #include "Framework/OutputRoute.h"
 #include "Framework/DataChunk.h"
 #include "Framework/FairMQDeviceProxy.h"
 #include "Framework/TimingInfo.h"
-#include "Framework/TMessageSerializer.h"
 #include "Framework/TypeTraits.h"
 #include "Framework/Traits.h"
 #include "Framework/SerializationMethods.h"
@@ -94,6 +93,12 @@ class DataAllocator
 
   void adoptChunk(const Output&, char*, size_t, fair::mq::FreeFn*, void*);
 
+  // This method can be used to send a 0xdeadbeef message associated to a given
+  // output. The @a spec will be used to determine the channel to which the
+  // output will need to be sent, however the actual message will be empty
+  // and with subspecification 0xdeadbeef.
+  void cookDeadBeef(const Output& spec);
+
   /// Generic helper to create an object which is owned by the framework and
   /// returned as a reference to the own object.
   /// Note: decltype(auto) will deduce the return type from the expression and it
@@ -132,10 +137,14 @@ class DataAllocator
       auto& timingInfo = mRegistry.get<TimingInfo>();
       auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
       auto& context = mRegistry.get<MessageContext>();
+      if constexpr (enable_root_serialization<T>::value) {
+        fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodROOT, 0);
 
+        return context.add<typename enable_root_serialization<T>::object_type>(std::move(headerMessage), routeIndex, std::forward<Args>(args)...).get();
+      } else {
+        static_assert(enable_root_serialization<T>::value, "Please make sure you include RootMessageContext.h");
+      }
       // Note: initial payload size is 0 and will be set by the context before sending
-      fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodROOT, 0);
-      return context.add<MessageContext::RootSerializedObject<T>>(std::move(headerMessage), routeIndex, std::forward<Args>(args)...).get();
     } else if constexpr (std::is_base_of_v<std::string, T>) {
       auto* s = new std::string(args...);
       adopt(spec, s);
@@ -317,9 +326,9 @@ class DataAllocator
                                   typeid(WrappedType).name());
           }
         }
-        TMessageSerializer().Serialize(*payloadMessage, &object(), cl);
+        typename root_serializer<T>::serializer().Serialize(*payloadMessage, &object(), cl);
       } else {
-        TMessageSerializer().Serialize(*payloadMessage, &object, TClass::GetClass(typeid(T)));
+        typename root_serializer<T>::serializer().Serialize(*payloadMessage, &object, TClass::GetClass(typeid(T)));
       }
       serializationType = o2::header::gSerializationMethodROOT;
     } else {
@@ -439,8 +448,7 @@ class DataAllocator
 
   int countDeviceOutputs(bool excludeDPLOrigin = false)
   {
-    return mRegistry.get<MessageContext>().countDeviceOutputs(excludeDPLOrigin) +
-           mRegistry.get<RawBufferContext>().countDeviceOutputs(excludeDPLOrigin);
+    return mRegistry.get<MessageContext>().countDeviceOutputs(excludeDPLOrigin);
   }
 
  private:

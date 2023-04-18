@@ -119,14 +119,21 @@ void EventManager::displayCurrentEvent()
       restoreVisualisationSettings();
     }
 
-    if (this->mShowDate) {
-      multiView->getAnnotationTop()->SetText(
-        TString::Format("Run %d %s\n%s", dataSource->getRunNumber(), std::string(parameters::GRPECS::RunTypeNames[dataSource->getRunType()]).c_str(), dataSource->getFileTime().c_str()));
+    if (dataSource->getRunNumber() != -1) {
+      if (this->mShowDate) {
+        multiView->getAnnotationTop()->SetText(
+          TString::Format("Run %d %s\n%s", dataSource->getRunNumber(),
+                          std::string(parameters::GRPECS::RunTypeNames[dataSource->getRunType()]).c_str(),
+                          dataSource->getFileTime().c_str()));
+      } else {
+        multiView->getAnnotationTop()->SetText(TString::Format("Run %d", dataSource->getRunNumber()));
+      }
+      auto detectors = detectors::DetID::getNames(dataSource->getDetectorsMask());
+      multiView->getAnnotationBottom()->SetText(
+        TString::Format("TFOrbit: %d\nDetectors: %s", dataSource->getFirstTForbit(), detectors.c_str()));
     } else {
-      multiView->getAnnotationTop()->SetText(TString::Format("Run %d", dataSource->getRunNumber()));
+      multiView->getAnnotationTop()->SetText("No Available Data to Display");
     }
-    auto detectors = detectors::DetID::getNames(dataSource->getDetectorsMask());
-    multiView->getAnnotationBottom()->SetText(TString::Format("TFOrbit: %d\nDetectors: %s", dataSource->getFirstTForbit(), detectors.c_str()));
   }
   multiView->redraw3D();
 }
@@ -281,9 +288,7 @@ void EventManager::displayVisualisationEvent(VisualisationEvent& event, const st
 
 void EventManager::displayCalorimeters(VisualisationEvent& event, const std::string& detectorName)
 {
-  int size = event.getCaloCount();
-  if (size > 0) {
-    const std::string detector = detectorName == "EMC" ? "emcal" : "phos";
+  if (event.getCaloCount() > 0) {
     struct CaloInfo {
       std::string name;
       std::string configColor;
@@ -333,9 +338,7 @@ void EventManager::displayCalorimeters(VisualisationEvent& event, const std::str
     };
     std::unordered_map<std::pair<float, float>, float, pair_hash> map; // sum up entries for the same tower
     for (const auto& calo : event.getCalorimetersSpan()) {
-      auto key = std::make_pair(calo.getEta(), calo.getPhi());
-      map.try_emplace(key, 0);
-      map[key] = map[key] + calo.getEnergy();
+      map[std::make_pair(calo.getEta(), calo.getPhi())] += calo.getEnergy();
     }
 
     for (const auto& entry : map) {

@@ -155,12 +155,11 @@ void GPUTPCGMMerger::DumpRefit(std::ostream& out)
   out << "\nTPC Merger Refit\n";
   for (unsigned int i = 0; i < mMemory->nOutputTracks; i++) {
     const auto& trk = mOutputTracks[trackOrder[i]];
-    const auto& trkdEdx = mOutputTracksdEdx[trackOrder[i]];
     const auto& p = trk.GetParam();
     const auto& po = trk.OuterParam();
     out << "  Track " << i << ": OK " << trk.OK() << " Alpha " << trk.GetAlpha() << " X " << p.GetX() << " Y " << p.GetY() << " Z " << p.GetZ() << " SPhi " << p.GetSinPhi() << " Tgl " << p.GetDzDs() << " QPt " << p.GetQPt() << " NCl " << trk.NClusters() << " / " << trk.NClustersFitted() << " Cov " << p.GetErr2Y() << "/" << p.GetErr2Z()
 #ifdef GPUCA_HAVE_O2HEADERS
-        << " dEdx " << trkdEdx.dEdxTotTPC << "/" << trkdEdx.dEdxMaxTPC
+        << " dEdx " << mOutputTracksdEdx[trackOrder[i]].dEdxTotTPC << "/" << mOutputTracksdEdx[trackOrder[i]].dEdxMaxTPC
 #endif
         << " Outer " << po.P[0] << "/" << po.P[1] << "/" << po.P[2] << "/" << po.P[3] << "/" << po.P[4] << "\n";
   }

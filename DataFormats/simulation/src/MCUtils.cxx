@@ -14,6 +14,7 @@
 //
 
 #include <SimulationDataFormat/MCUtils.h>
+#include <SimulationDataFormat/MCGenStatus.h>
 
 namespace o2::mcutils
 {
@@ -77,17 +78,17 @@ bool MCTrackNavigator::isPhysicalPrimary(o2::MCTrack const& p, std::vector<o2::M
   // particles.
   //
 
-  const int ist = p.getStatusCode(); // the generator status code
+  const int hepmcStatusCode = o2::mcgenstatus::getHepMCStatusCode(p.getStatusCode()); // the HepMC status code
   const int pdg = std::abs(p.GetPdgCode());
   //
   // Initial state particle
   // Solution for K0L decayed by Pythia6
   // ->
   // ist > 1 --> essentially means unstable
-  if ((ist > 1) && (pdg != 130) && p.isPrimary()) {
+  if ((hepmcStatusCode > 1) && (pdg != 130) && p.isPrimary()) {
     return false;
   }
-  if ((ist > 1) && p.isSecondary()) {
+  if ((hepmcStatusCode > 1) && p.isSecondary()) {
     return false;
   }
   // <-
@@ -205,6 +206,21 @@ bool MCTrackNavigator::isKeepPhysics(o2::MCTrack const& p, std::vector<o2::MCTra
   };
   //
   return p.isPrimary() || isFromPrimaryPairProduction(p) || isFromPrimaryDecayChain(p, pcontainer);
+}
+
+void MCGenHelper::encodeParticleStatusAndTracking(TParticle& particle, bool wanttracking)
+{
+  auto status = particle.GetStatusCode();
+  if (!mcgenstatus::isEncoded(status)) {
+    particle.SetStatusCode(mcgenstatus::MCGenStatusEncoding(status, 0).fullEncoding);
+  }
+  particle.SetBit(ParticleStatus::kToBeDone, wanttracking);
+}
+
+void MCGenHelper::encodeParticleStatusAndTracking(TParticle& particle, int hepmcStatus, int genStatus, bool wanttracking)
+{
+  particle.SetStatusCode(mcgenstatus::MCGenStatusEncoding(hepmcStatus, genStatus).fullEncoding);
+  particle.SetBit(ParticleStatus::kToBeDone, wanttracking);
 }
 
 } // namespace o2::mcutils

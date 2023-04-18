@@ -21,6 +21,7 @@
 #include <fairmq/Message.h>
 #include <DetectorsBase/Stack.h>
 #include <SimulationDataFormat/MCEventHeader.h>
+#include <SimulationDataFormat/DigitizationContext.h>
 #include <TMessage.h>
 #include <TClass.h>
 #include <SimulationDataFormat/PrimaryChunk.h>
@@ -53,7 +54,13 @@ class O2PrimaryServerDevice final : public fair::mq::Device
 {
  public:
   /// constructor
-  O2PrimaryServerDevice() = default;
+  O2PrimaryServerDevice()
+  {
+    mUseFixedChunkSeed = getenv("ALICEO2_O2SIM_SUBEVENTSEED") && atoi(getenv("ALICEO2_O2SIM_SUBEVENTSEED"));
+    if (mUseFixedChunkSeed) {
+      mFixedChunkSeed = atol(getenv("ALICEO2_O2SIM_SUBEVENTSEED"));
+    }
+  }
 
   /// Default destructor
   ~O2PrimaryServerDevice() final
@@ -106,6 +113,18 @@ class O2PrimaryServerDevice final : public fair::mq::Device
       mPrimGen = new o2::eventgen::PrimaryGenerator;
       o2::eventgen::GeneratorFactory::setPrimaryGenerator(conf, mPrimGen);
 
+      // setup vertexing
+      auto vtxMode = conf.getVertexMode();
+      using o2::conf::VertexMode;
+      if (vtxMode == VertexMode::kNoVertex || vtxMode == VertexMode::kDiamondParam) {
+        mPrimGen->setVertexMode(vtxMode);
+      } else if (vtxMode == VertexMode::kCCDB) {
+        // we need to fetch the CCDB object
+        mPrimGen->setVertexMode(vtxMode, ccdbmgr.getForTimeStamp<o2::dataformats::MeanVertexObject>("GLO/Calib/MeanVertex", conf.getTimestamp()));
+      } else {
+        LOG(fatal) << "Unsupported vertex mode";
+      }
+
       auto embedinto_filename = conf.getEmbedIntoFileName();
       if (!embedinto_filename.empty()) {
         mPrimGen->embedInto(embedinto_filename);
@@ -116,6 +135,25 @@ class O2PrimaryServerDevice final : public fair::mq::Device
       mPrimGeneratorCache[conf.getGenerator()] = mPrimGen;
     }
     mPrimGen->SetEvent(&mEventHeader);
+
+    // A good moment to couple to collision context
+    auto collContextFileName = mSimConfig.getConfigData().mFromCollisionContext;
+    if (collContextFileName.size() > 0) {
+      LOG(info) << "Simulation has collission context";
+      mCollissionContext = o2::steer::DigitizationContext::loadFromFile(collContextFileName);
+      if (mCollissionContext) {
+        const auto& vertices = mCollissionContext->getInteractionVertices();
+        LOG(info) << "We found " << vertices.size() << " vertices included ";
+
+        // initialize the eventID to collID mapping
+        const auto source = mCollissionContext->findSimPrefix(mSimConfig.getOutPrefix());
+        if (source == -1) {
+          LOG(fatal) << "Wrong simulation prefix";
+        }
+        mEventID_to_CollID.clear();
+        mEventID_to_CollID = mCollissionContext->getCollisionIndicesForSource(source);
+      }
+    }
 
     LOG(info) << "Generator initialization took " << timer.CpuTime() << "s";
     if (mMaxEvents > 0) {
@@ -135,6 +173,16 @@ class O2PrimaryServerDevice final : public fair::mq::Device
     timer.Start();
     try {
       mStack->Reset();
+      // see if we the vertex comes from the collision context
+      if (mCollissionContext) {
+        const auto& vertices = mCollissionContext->getInteractionVertices();
+        if (vertices.size() > 0) {
+          auto collisionindex = mEventID_to_CollID.at(mEventCounter);
+          auto& vertex = vertices.at(collisionindex);
+          LOG(info) << "Setting vertex " << vertex << " for event " << mEventCounter << " for prefix " << mSimConfig.getOutPrefix();
+          mPrimGen->setExternalVertexForNextEvent(vertex.X(), vertex.Y(), vertex.Z());
+        }
+      }
       mPrimGen->GenerateEvent(mStack);
     } catch (std::exception const& e) {
       LOG(error) << " Exception occurred during event gen ";
@@ -201,10 +249,6 @@ class O2PrimaryServerDevice final : public fair::mq::Device
       conf.setRun5();
     }
     conf.resetFromParsedMap(vm);
-    // output varmap
-    // for (auto& keyvalue : vm) {
-    //  LOG(info) << "///// " << keyvalue.first << " " << keyvalue.second.value().type().name();
-    //}
 
     // update the parameters from an INI/JSON file, if given (overrides code-based version)
     o2::conf::ConfigurableParam::updateFromFile(conf.getConfigFile());
@@ -435,7 +479,8 @@ class O2PrimaryServerDevice final : public fair::mq::Device
     i.maxEvents = mMaxEvents;
     i.part = mPartCounter + 1;
     i.nparts = numberofparts;
-    i.seed = mEventCounter + mInitialSeed;
+
+    i.seed = mUseFixedChunkSeed ? mFixedChunkSeed : mEventCounter + mInitialSeed;
     i.index = m.mParticles.size();
     i.mMCEventHeader = mEventHeader;
     m.mSubEventInfo = i;
@@ -469,7 +514,9 @@ class O2PrimaryServerDevice final : public fair::mq::Device
       if (mPartCounter == numberofparts) {
         mNeedNewEvent = true;
         // start generation of a new event
-        mGeneratorThread = std::thread(&O2PrimaryServerDevice::generateEvent, this);
+        if (mEventCounter < mMaxEvents) {
+          mGeneratorThread = std::thread(&O2PrimaryServerDevice::generateEvent, this);
+        }
       }
 
       TMessage* tmsg = new TMessage(kMESS_OBJECT);
@@ -560,6 +607,8 @@ class O2PrimaryServerDevice final : public fair::mq::Device
   bool mNeedNewEvent = true;
   int mMaxEvents = 2;
   ULong_t mInitialSeed = 0;
+  bool mUseFixedChunkSeed = false;
+  ULong_t mFixedChunkSeed = 0;
   int mPipeToDriver = -1; // handle for direct piper to driver (to communicate meta info)
   int mEventCounter = 0;
 
@@ -580,6 +629,10 @@ class O2PrimaryServerDevice final : public fair::mq::Device
   std::atomic<bool> mInfoThreadStopped{false};
 
   bool mAsService = false;
+
+  // some information specific to use case when we have a collision context
+  o2::steer::DigitizationContext* mCollissionContext = nullptr; //!
+  std::unordered_map<int, int> mEventID_to_CollID;              //!
 };
 
 } // namespace devices

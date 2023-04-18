@@ -79,7 +79,7 @@ void CompressedInspectorTask<RDH>::init(InitContext& ic)
     }
     mFile->Close();
   };
-  ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);
+  ic.services().get<CallbackService>().set<CallbackService::Id::Stop>(finishFunction);
 }
 
 template <typename RDH>
@@ -181,6 +181,7 @@ void CompressedInspectorTask<RDH>::trailerHandler(const CrateHeader_t* crateHead
 
 template class CompressedInspectorTask<o2::header::RAWDataHeaderV4>;
 template class CompressedInspectorTask<o2::header::RAWDataHeaderV6>;
+template class CompressedInspectorTask<o2::header::RAWDataHeaderV7>;
 
 } // namespace tof
 } // namespace o2

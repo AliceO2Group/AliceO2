@@ -238,7 +238,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
   if (param().rec.tpc.mergeLoopersAfterburner) {
     runKernel<GPUTPCGMMergerMergeLoopers, 0>(doGPUall ? GetGrid(Merger.NOutputTracks(), 0, deviceType) : GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone);
     TransferMemoryResourceLinkToHost(RecoStep::TPCMerging, Merger.MemoryResMemory(), 0);
-    SynchronizeStream(0);
+    SynchronizeStream(0); // TODO: could probably synchronize on an event after runKernel<GPUTPCGMMergerMergeLoopers, 1>
     runKernel<GPUTPCGMMergerMergeLoopers, 1>(GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone);
     runKernel<GPUTPCGMMergerMergeLoopers, 2>(doGPUall ? GetGrid(Merger.Memory()->nLooperMatchCandidates, 0, deviceType) : GetGridAuto(0, deviceType), krnlRunRangeNone, krnlEventNone);
   }
@@ -259,7 +259,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
       }
       GPUMemCpy(RecoStep::TPCMerging, Merger.OutputTracks(), MergerShadowAll.OutputTracks(), Merger.NOutputTracks() * sizeof(*Merger.OutputTracks()), outputStream, 0, nullptr, &mEvents->single);
       if (param().par.dodEdx) {
-        GPUMemCpy(RecoStep::TPCMerging, Merger.OutputTracksdEdx(), MergerShadowAll.OutputTracksdEdx(), Merger.NOutputTracks() * sizeof(*Merger.OutputTracksdEdx()), outputStream, 0, nullptr, &mEvents->single);
+        GPUMemCpy(RecoStep::TPCMerging, Merger.OutputTracksdEdx(), MergerShadowAll.OutputTracksdEdx(), Merger.NOutputTracks() * sizeof(*Merger.OutputTracksdEdx()), outputStream, 0);
       }
       GPUMemCpy(RecoStep::TPCMerging, Merger.Clusters(), MergerShadowAll.Clusters(), Merger.NOutputTrackClusters() * sizeof(*Merger.Clusters()), outputStream, 0);
       if (param().par.earlyTpcTransform) {

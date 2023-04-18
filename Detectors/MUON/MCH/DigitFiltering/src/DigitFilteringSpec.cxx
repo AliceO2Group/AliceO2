@@ -126,7 +126,7 @@ class DigitFilteringTask
 
     auto labelMsg = mUseMC ? fmt::format("| {} labels (out of {})", oLabels->getNElements(), iLabels->getNElements()) : "";
 
-    LOGP(info, "Kept after filtering : {} rofs (out of {}) | {} digits (out of {}) {}\n",
+    LOGP(info, "Kept after filtering : {} rofs (out of {}) | {} digits (out of {}) {}",
          oRofs.size(), iRofs.size(),
          oDigits.size(), iDigits.size(),
          labelMsg);

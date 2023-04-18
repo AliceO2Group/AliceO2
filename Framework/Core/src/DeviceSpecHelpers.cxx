@@ -45,6 +45,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <csignal>
+#include <fairmq/Device.h>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
@@ -64,6 +65,24 @@ void timer_callback(uv_timer_t* handle)
   auto* state = (DeviceState*)handle->data;
   state->loopReason |= DeviceState::TIMER_EXPIRED;
   state->loopReason |= DeviceState::DATA_INCOMING;
+  if (std::find(state->firedTimers.begin(), state->firedTimers.end(), handle) == state->firedTimers.end()) {
+    state->firedTimers.push_back(handle);
+  }
+}
+
+auto timer_fired(uv_timer_t* timer)
+{
+  return [timer]() -> bool {
+    auto* state = (DeviceState*)timer->data;
+    return std::find(state->firedTimers.begin(), state->firedTimers.end(), timer) != state->firedTimers.end();
+  };
+}
+
+auto timer_set_period(uv_timer_t* timer)
+{
+  return [timer](uint64_t timeout_ms, uint64_t repeat_ms) -> void {
+    uv_timer_start(timer, detail::timer_callback, timeout_ms, repeat_ms);
+  };
 }
 
 void signal_callback(uv_signal_t* handle, int)
@@ -84,18 +103,39 @@ struct ExpirationHandlerHelpers {
   static RouteConfigurator::CreationConfigurator timeDrivenConfigurator(InputSpec const& matcher)
   {
     return [matcher](DeviceState& state, ServiceRegistryRef, ConfigParamRegistry const& options) {
-      std::string rateName = std::string{"period-"} + matcher.binding;
-      auto period = options.get<int>(rateName.c_str());
+      // A vector of all the available timer periods
+      std::vector<std::chrono::microseconds> periods;
+      // How long a ginven period should be active
+      std::vector<std::chrono::seconds> durations;
+      auto prefix = std::string{"period-"};
+      for (auto& meta : matcher.metadata) {
+        if (strncmp(meta.name.c_str(), prefix.c_str(), prefix.size()) == 0) {
+          // Parse the number after the prefix and consider it the duration
+          std::string_view duration(meta.name.c_str() + prefix.size(), meta.name.size() - prefix.size());
+          durations.emplace_back(std::chrono::seconds(std::stoi(std::string(duration))));
+          periods.emplace_back(std::chrono::microseconds(meta.defaultValue.get<uint64_t>() / 1000));
+        }
+      }
+      if (periods.empty()) {
+        std::string defaultRateName = std::string{"period-"} + matcher.binding;
+        auto defaultRate = std::chrono::milliseconds(options.get<int>(defaultRateName.c_str()));
+        LOGP(detail, "Using default rate of {} ms as specified by option period-{}", defaultRate.count(), matcher.binding);
+        periods.emplace_back(defaultRate.count());
+        durations.emplace_back(std::chrono::seconds((std::size_t)-1));
+      } else {
+        // If we have multiple periods, the last one gets the remaining interval
+        durations.back() = std::chrono::seconds((std::size_t)-1);
+      }
       // We create a timer to wake us up. Notice the actual
       // timeslot creation and record expiration still happens
       // in a synchronous way.
       auto* timer = (uv_timer_t*)(malloc(sizeof(uv_timer_t)));
       timer->data = &state;
       uv_timer_init(state.loop, timer);
-      uv_timer_start(timer, detail::timer_callback, period / 1000, period / 1000);
+      uv_timer_start(timer, detail::timer_callback, periods.front().count(), periods.front().count());
       state.activeTimers.push_back(timer);
 
-      return LifetimeHelpers::timeDrivenCreation(std::chrono::microseconds(period));
+      return LifetimeHelpers::timeDrivenCreation(periods, durations, detail::timer_fired(timer), detail::timer_set_period(timer));
     };
   }
 
@@ -141,16 +181,25 @@ struct ExpirationHandlerHelpers {
       std::string startName = std::string{"start-value-"} + matcher.binding;
       std::string endName = std::string{"end-value-"} + matcher.binding;
       std::string stepName = std::string{"step-value-"} + matcher.binding;
-      auto start = options.get<int64_t>(startName.c_str());
-      auto stop = options.get<int64_t>(endName.c_str());
-      auto step = options.get<int64_t>(stepName.c_str());
-      auto repetitions = 1;
+      int64_t defaultStart = 0;
+      int64_t defaultStop = std::numeric_limits<int64_t>::max();
+      int64_t defaultStep = 1;
+      int defaultRepetitions = 1;
       for (auto& meta : matcher.metadata) {
         if (meta.name == "repetitions") {
-          repetitions = meta.defaultValue.get<int64_t>();
-          break;
+          defaultRepetitions = meta.defaultValue.get<int64_t>();
+        } else if (meta.name == "start-value") {
+          defaultStart = meta.defaultValue.get<int64_t>();
+        } else if (meta.name == "end-value") {
+          defaultStop = meta.defaultValue.get<int64_t>();
+        } else if (meta.name == "step-value") {
+          defaultStep = meta.defaultValue.get<int64_t>();
         }
       }
+      auto start = options.hasOption(startName.c_str()) ? options.get<int64_t>(startName.c_str()) : defaultStart;
+      auto stop = options.hasOption(endName.c_str()) ? options.get<int64_t>(endName.c_str()) : defaultStop;
+      auto step = options.hasOption(stepName.c_str()) ? options.get<int64_t>(stepName.c_str()) : defaultStep;
+      auto repetitions = defaultRepetitions;
       return LifetimeHelpers::enumDrivenCreation(start, stop, step, inputTimeslice, maxInputTimeslices, repetitions);
     };
   }
@@ -294,9 +343,18 @@ struct ExpirationHandlerHelpers {
       throw runtime_error("InputSpec for Enumeration must be fully qualified");
     }
     // We copy the matcher to avoid lifetime issues.
-    return [matcher = *m, sourceChannel](DeviceState&, ConfigParamRegistry const& config) {
-      size_t orbitOffset = config.get<int64_t>("orbit-offset-enumeration");
-      size_t orbitMultiplier = config.get<int64_t>("orbit-multiplier-enumeration");
+    return [matcher = *m, &spec, sourceChannel](DeviceState&, ConfigParamRegistry const& config) {
+      int defaultOrbitOffset = 0;
+      int defaultOrbitMultiplier = 1;
+      for (auto& meta : spec.metadata) {
+        if (meta.name == "orbit-offset") {
+          defaultOrbitOffset = meta.defaultValue.get<int64_t>();
+        } else if (meta.name == "orbit-multiplier") {
+          defaultOrbitMultiplier = meta.defaultValue.get<int64_t>();
+        }
+      }
+      size_t orbitOffset = config.hasOption("orbit-offset-enumeration") ? config.get<int64_t>("orbit-offset-enumeration") : defaultOrbitOffset;
+      size_t orbitMultiplier = config.hasOption("orbit-multiplier-enumeration") ? config.get<int64_t>("orbit-multiplier-enumeration") : defaultOrbitMultiplier;
       return LifetimeHelpers::enumerate(matcher, sourceChannel, orbitOffset, orbitMultiplier);
     };
   }
@@ -369,6 +427,53 @@ std::string DeviceSpecHelpers::outputChannel2String(const OutputChannelSpec& cha
                      channel.rateLogging,
                      channel.recvBufferSize,
                      channel.sendBufferSize);
+}
+
+void DeviceSpecHelpers::validate(std::vector<DataProcessorSpec> const& workflow)
+{
+  // Iterate on all the DataProcessorSpecs in the altered_workflow
+  // and check for duplicates outputs among those who have lifetime == Timeframe
+  // Do so by:
+  //
+  // * Get the list of all Lifetime::Timeframe outputs for the workflow.
+  //   Only those who are concrete matchers are considered for now, because
+  //   it becomes to complicate to check for the wildcard case.
+  // * Sort the associated matchers by origin, description, subSpec
+  // * Check that the next element is not the same
+  std::vector<std::pair<int, std::string>> timeframeOutputs;
+  for (size_t i = 0; i < workflow.size(); ++i) {
+    auto& spec = workflow[i];
+    // We do not want to check for pipelining
+    if (spec.inputTimeSliceId != 0) {
+      continue;
+    }
+    for (auto& output : spec.outputs) {
+      if (output.lifetime != Lifetime::Timeframe) {
+        continue;
+      }
+      std::optional<ConcreteDataMatcher> matcher = DataSpecUtils::asOptionalConcreteDataMatcher(output);
+      if (!matcher) {
+        continue;
+      }
+      timeframeOutputs.emplace_back(i, DataSpecUtils::describe(*matcher));
+    }
+  }
+  std::stable_sort(timeframeOutputs.begin(), timeframeOutputs.end(), [](auto const& a, auto const& b) {
+    return a.second < b.second;
+  });
+
+  auto it = std::adjacent_find(timeframeOutputs.begin(), timeframeOutputs.end(), [](auto const& a, auto const& b) {
+    return a.second == b.second;
+  });
+  if (it != timeframeOutputs.end()) {
+    // Tell which are the two duplicates
+    auto device1 = workflow[it->first].name;
+    auto device2 = workflow[(it + 1)->first].name;
+    auto output1 = it->second;
+    auto output2 = (it + 1)->second;
+    throw std::runtime_error(fmt::format("Found duplicate outputs {} in device {} ({}) and {} in {} ({})",
+                                         output1, device1, it->first, output2, device2, (it + 1)->first));
+  }
 }
 
 void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
@@ -932,6 +1037,8 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
                                                        std::string const& channelPrefix,
                                                        OverrideServiceSpecs const& overrideServices)
 {
+  // Always check for validity of the workflow before instanciating it
+  DeviceSpecHelpers::validate(workflow);
   std::vector<LogicalForwardInfo> availableForwardsInfo;
   std::vector<DeviceConnectionEdge> logicalEdges;
   std::vector<DeviceConnectionId> connections;

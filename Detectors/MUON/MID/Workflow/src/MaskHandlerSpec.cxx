@@ -51,7 +51,7 @@ class MaskHandlerDeviceDPL
     auto stop = [this]() {
       printSummary();
     };
-    ic.services().get<of::CallbackService>().set(of::CallbackService::Id::Stop, stop);
+    ic.services().get<of::CallbackService>().set<of::CallbackService::Id::Stop>(stop);
   }
 
   void printSummary()

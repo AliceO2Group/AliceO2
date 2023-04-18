@@ -58,6 +58,8 @@ void SimSetup::setup(const char* engine)
     setupFromPlugin("libO2FLUKASetup", "_ZN2o211flukaconfig11FlukaConfigEv");
   } else if (strcmp(engine, "MCReplay") == 0) {
     setupFromPlugin("libO2MCReplaySetup", "_ZN2o214mcreplayconfig14MCReplayConfigEv");
+  } else if (strcmp(engine, "O2TrivialMCEngine") == 0) {
+    setupFromPlugin("libO2O2TrivialMCEngineSetup", "_ZN2o223o2trivialmcengineconfig23O2TrivialMCEngineConfigEv");
   } else {
     LOG(fatal) << "Unsupported engine " << engine;
   }

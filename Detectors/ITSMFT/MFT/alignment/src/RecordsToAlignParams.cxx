@@ -36,6 +36,14 @@ RecordsToAlignParams::RecordsToAlignParams()
   if (mWithConstraintsRecReader) {
     mConstraintsRecReader = new MilleRecordReader();
   }
+
+  // allocate memory in vectors to store the results of the global fit
+
+  double default_value = 0;
+  mPedeOutParams = std::vector<double>(mNumberOfGlobalParam, default_value);
+  mPedeOutParamsErrors = std::vector<double>(mNumberOfGlobalParam, default_value);
+  mPedeOutParamsPulls = std::vector<double>(mNumberOfGlobalParam, default_value);
+
   LOGF(debug, "RecordsToAlignParams instantiated");
 }
 
@@ -117,23 +125,9 @@ void RecordsToAlignParams::globalFit()
     mMillepede->InitChi2Storage(mNEntriesAutoSave);
   }
 
-  // allocate memory in arrays to temporarily store the results of the global fit
-
-  double* params = (double*)malloc(sizeof(double) * mNumberOfGlobalParam);
-  double* paramsErrors = (double*)malloc(sizeof(double) * mNumberOfGlobalParam);
-  double* paramsPulls = (double*)malloc(sizeof(double) * mNumberOfGlobalParam);
-
-  // initialise the content of each array
-
-  for (int ii = 0; ii < mNumberOfGlobalParam; ii++) {
-    params[ii] = 0.;
-    paramsErrors[ii] = 0.;
-    paramsPulls[ii] = 0.;
-  }
-
   // perform the simultaneous fit of track and alignement parameters
 
-  mMillepede->GlobalFit(params, paramsErrors, paramsPulls);
+  mMillepede->GlobalFit(mPedeOutParams, mPedeOutParamsErrors, mPedeOutParamsPulls);
 
   if (mWithControl) {
     mMillepede->EndChi2Storage();
@@ -154,10 +148,10 @@ void RecordsToAlignParams::globalFit()
   for (int chipId = 0; chipId < mNumberOfSensors; chipId++) {
     chipHelper.setSensorOnlyInfo(chipId);
     std::stringstream name = chipHelper.getSensorFullName(withSymName);
-    dx = params[chipId * mNDofPerSensor + 0];
-    dy = params[chipId * mNDofPerSensor + 1];
-    dz = params[chipId * mNDofPerSensor + 3];
-    dRz = params[chipId * mNDofPerSensor + 2];
+    dx = mPedeOutParams[chipId * mNDofPerSensor + 0];
+    dy = mPedeOutParams[chipId * mNDofPerSensor + 1];
+    dz = mPedeOutParams[chipId * mNDofPerSensor + 3];
+    dRz = mPedeOutParams[chipId * mNDofPerSensor + 2];
     LOGF(info,
          "%s, %.3e, %.3e, %.3e, %.3e",
          name.str().c_str(), dx, dy, dz, dRz);
@@ -168,12 +162,6 @@ void RecordsToAlignParams::globalFit()
       dRx, dRy, dRz,
       global);
   }
-
-  // free allocated memory
-
-  free(params);
-  free(paramsErrors);
-  free(paramsPulls);
 }
 
 //__________________________________________________________________________

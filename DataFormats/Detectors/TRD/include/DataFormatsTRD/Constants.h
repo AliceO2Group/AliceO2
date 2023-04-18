@@ -50,6 +50,12 @@ constexpr int NROBC0 = 6;       ///< the number of ROBs per C0 chamber
 constexpr int NROBC1 = 8;       ///< the number of ROBs per C1 chamber
 constexpr int NADCMCM = 21;     ///< the number of ADC channels per MCM
 constexpr int NCOLMCM = 18;     ///< the number of pads per MCM
+constexpr int NCHANNELSPERROW = NMCMROBINCOL * 2 * NADCMCM;                                                    ///< the number of readout channels per pad row
+constexpr int NCHANNELSC0 = NROWC0 * NCHANNELSPERROW;                                                          ///< the number of readout channels per C0 chamber
+constexpr int NCHANNELSC1 = NROWC1 * NCHANNELSPERROW;                                                          ///< the number of readout channels per C1 chamber
+constexpr int NCHANNELSTOTAL = NSECTOR * NLAYER * (NSTACK - 1) * NCHANNELSC1 + NSECTOR * NLAYER * NCHANNELSC0; ///< the total number of readout channels for TRD
+constexpr int NCHANNELSPERSECTOR = NCHANNELSTOTAL / NSECTOR;                                                   ///< then number of readout channels per sector
+constexpr int NCHANNELSPERLAYER = NCHANNELSPERSECTOR / NLAYER;                                                 ///< then number of readout channels per layer
 constexpr int NCPU = 4;         ///< the number of CPUs inside the TRAP chip
 constexpr int NCHARGES = 3;     ///< the number of charges per tracklet (Q0/1/2)
 
@@ -69,11 +75,6 @@ constexpr float MAXIMPACTANGLE = 25.f;  ///< the maximum impact angle for tracks
 constexpr int NBINSANGLEDIFF = 25;      ///< the number of bins for the track angle used for the vDrift and ExB calibration based on the tracking
 constexpr double VDRIFTDEFAULT = 1.546; ///< default value for vDrift
 constexpr double EXBDEFAULT = 0.0;      ///< default value for LorentzAngle
-
-// Trigger parameters
-constexpr double READOUT_TIME = 3000;                  ///< the time the readout takes, as 30 TB = 3 micro-s.
-constexpr double DEAD_TIME = 200;                      ///< trigger deadtime, 2 micro-s
-constexpr double BUSY_TIME = READOUT_TIME + DEAD_TIME; ///< the time for which no new trigger can be received in nanoseconds
 
 // array size to store incoming half cru payload.
 constexpr int HBFBUFFERMAX = 1048576;                 ///< max buffer size for data read from a half cru, (all events)

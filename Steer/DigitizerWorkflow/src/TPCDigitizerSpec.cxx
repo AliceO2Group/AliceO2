@@ -37,6 +37,7 @@
 #include "DataFormatsTPC/Digit.h"
 #include "TPCSimulation/Digitizer.h"
 #include "TPCSimulation/Detector.h"
+#include "TPCSpaceCharge/SpaceCharge.h"
 #include "DetectorsBase/BaseDPLDigitizer.h"
 #include "DetectorsBase/Detector.h"
 #include "TPCCalibration/VDriftHelper.h"
@@ -139,13 +140,13 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
       }
       if (readSpaceCharge[0].size() != 0) { // use pre-calculated space-charge object
         if (std::filesystem::exists(readSpaceCharge[0])) {
-          TFile fileSC(readSpaceCharge[0].data(), "READ");
-          mDigitizer.setUseSCDistortions(fileSC);
+          LOGP(info, "Reading space-charge object from file {}", readSpaceCharge[0].data());
+          mDigitizer.setUseSCDistortions(readSpaceCharge[0]);
         } else {
           LOG(error) << "Space-charge object or file not found!";
         }
       } else { // create new space-charge object either with empty TPC or an initial space-charge density provided by histogram
-        SC::SCDistortionType distortionType = useDistortions == 2 ? SC::SCDistortionType::SCDistortionsConstant : SC::SCDistortionType::SCDistortionsRealistic;
+        SCDistortionType distortionType = useDistortions == 2 ? SCDistortionType::SCDistortionsConstant : SCDistortionType::SCDistortionsRealistic;
         auto inputHistoString = ic.options().get<std::string>("initialSpaceChargeDensity");
         std::vector<std::string> inputHisto;
         std::stringstream ssHisto(inputHistoString);
@@ -166,7 +167,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
           LOG(info) << "TPC: Providing initial space-charge density histogram: " << hisSCDensity->GetName();
           mDigitizer.setUseSCDistortions(distortionType, hisSCDensity.get());
         } else {
-          if (distortionType == SC::SCDistortionType::SCDistortionsConstant) {
+          if (distortionType == SCDistortionType::SCDistortionsConstant) {
             LOG(error) << "Input space-charge density histogram or file not found!";
           }
         }
@@ -245,11 +246,13 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     auto& cdb = o2::tpc::CDBInterface::instance();
     cdb.setUseDefaults(!mUseCalibrationsFromCCDB);
     // whatever are global settings for CCDB usage, we have to extract the TPC vdrift from CCDB for anchored simulations
-    //    o2::tpc::VDriftHelper::extractCCDBInputs(pc);
+    //    mTPCVDriftHelper.extractCCDBInputs(pc);
     if (mTPCVDriftHelper.isUpdated()) {
       const auto& vd = mTPCVDriftHelper.getVDriftObject();
-      LOGP(info, "Updating TPC VDrift with factor of {} wrt reference {} from source {}", vd.corrFact, vd.refVDrift, mTPCVDriftHelper.getSourceName());
-      mDigitizer.setVDrift(vd.corrFact * vd.refVDrift);
+      LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
+           vd.corrFact, vd.refVDrift, vd.timeOffsetCorr, vd.refTimeOffset, mTPCVDriftHelper.getSourceName());
+      mDigitizer.setVDrift(vd.getVDrift());
+      mDigitizer.setTDriftOffset(vd.getTimeOffset());
       mTPCVDriftHelper.acknowledgeUpdate();
     }
 

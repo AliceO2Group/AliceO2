@@ -31,7 +31,7 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
   }
 
   bool continuous = true;          ///< flag for continuous simulation
-  float noisePerPixel = 1.e-7;     ///< ALPIDE Noise per channel
+  float noisePerPixel = DEFNoisePerPixel(); ///< ALPIDE Noise per channel
   float strobeFlatTop = 7500.;     ///< strobe shape flat top
   float strobeMaxRiseTime = 1100.; ///< strobe max rise time
   float strobeQRiseTime0 = 450.;   ///< q @ which strobe rise time is 0
@@ -42,9 +42,9 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
   int nSimSteps = 7;                      ///< number of steps in response simulation
   float energyToNElectrons = 1. / 3.6e-9; // conversion of eloss to Nelectrons
 
-  float Vbb = 3.0;   ///< back bias absolute value for MFT (in Volt)
-  float IBVbb = 3.0; ///< back bias absolute value for ITS Inner Barrel (in Volt)
-  float OBVbb = 3.0; ///< back bias absolute value for ITS Outter Barrel (in Volt)
+  float Vbb = 0.0;   ///< back bias absolute value for MFT (in Volt)
+  float IBVbb = 0.0; ///< back bias absolute value for ITS Inner Barrel (in Volt)
+  float OBVbb = 0.0; ///< back bias absolute value for ITS Outter Barrel (in Volt)
 
   std::string noiseFilePath{}; ///< optional noise masks file path. FIXME to be removed once switch to CCDBFetcher
 
@@ -52,6 +52,11 @@ struct DPLDigitizerParam : public o2::conf::ConfigurableParamHelper<DPLDigitizer
   O2ParamDef(DPLDigitizerParam, getParamName().data());
 
  private:
+  static constexpr float DEFNoisePerPixel()
+  {
+    return N == o2::detectors::DetID::ITS ? 1e-8 : 1e-8;
+  }
+
   static constexpr std::string_view ParamName[2] = {"ITSDigitizerParam", "MFTDigitizerParam"};
 };
 

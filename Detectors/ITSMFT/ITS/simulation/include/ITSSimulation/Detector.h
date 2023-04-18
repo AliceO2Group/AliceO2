@@ -77,7 +77,7 @@ class Detector : public o2::base::DetImpl<Detector>
   /// Name : Detector Name
   /// Active: kTRUE for active detectors (ProcessHits() will be called)
   ///         kFALSE for inactive detectors
-  Detector(Bool_t active, TString name = "ITS");
+  Detector(Bool_t active, TString name = "ITS", TString its3Version = "");
 
   /// Default constructor
   Detector();
@@ -95,7 +95,7 @@ class Detector : public o2::base::DetImpl<Detector>
   void Register() override;
 
   /// We need this as a method to access members
-  void configOuterBarrelITS(int nInnerBarrelLayers);
+  void configOuterBarrelITS(int nInnerBarrelLayers, int buildLevel = 0);
 
   /// Gets the produced collections
   std::vector<o2::itsmft::Hit>* getHits(Int_t iColl) const

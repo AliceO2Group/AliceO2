@@ -64,6 +64,9 @@ void GBTLink::clear(bool resetStat, bool resetTFRaw)
     rawData.clear();
     dataOffset = 0;
     gbtErrStatUpadated = false;
+    rofJumpWasSeen = false;
+    statusInTF = None;
+    ir.clear();
   }
   //  lastRDH = nullptr;
   if (resetStat) {
@@ -80,14 +83,14 @@ void GBTLink::printTrigger(const GBTTrigger* gbtTrg, int offs)
   std::bitset<12> trb(gbtTrg->triggerType);
   LOG(info) << "Offs: " << offs << " Trigger : Orbit " << gbtTrg->orbit << " BC: " << gbtTrg->bc << " Trigger: " << trb << " noData:"
             << gbtTrg->noData << " internal:" << gbtTrg->internal << " continuation:" << gbtTrg->continuation << " on " << describe();
-  gbtTrg->printX();
+  gbtTrg->printX(expectPadding);
 }
 
 ///_________________________________________________________________
 void GBTLink::printCalibrationWord(const GBTCalibration* gbtCal, int offs)
 {
   LOGP(info, "Offs: {} Calibration word {:5} | user_data {:#08x} on {}", offs, gbtCal->calibCounter, gbtCal->calibUserField, describe());
-  gbtCal->printX();
+  gbtCal->printX(expectPadding);
 }
 
 ///_________________________________________________________________
@@ -95,7 +98,7 @@ void GBTLink::printHeader(const GBTDataHeader* gbtH, int offs)
 {
   std::bitset<28> LA(gbtH->activeLanes);
   LOG(info) << "Offs: " << offs << " Header : Active Lanes " << LA << " on " << describe();
-  gbtH->printX();
+  gbtH->printX(expectPadding);
 }
 
 ///_________________________________________________________________
@@ -103,7 +106,7 @@ void GBTLink::printHeader(const GBTDataHeaderL* gbtH, int offs)
 {
   std::bitset<28> LA(gbtH->activeLanesL);
   LOG(info) << "Offs: " << offs << " HeaderL : Active Lanes " << LA << " on " << describe();
-  gbtH->printX();
+  gbtH->printX(expectPadding);
 }
 
 ///_________________________________________________________________
@@ -111,28 +114,28 @@ void GBTLink::printTrailer(const GBTDataTrailer* gbtT, int offs)
 {
   std::bitset<28> LT(gbtT->lanesTimeout), LS(gbtT->lanesStops); // RSTODO
   LOG(info) << "Offs: " << offs << " Trailer: Done=" << gbtT->packetDone << " Lanes TO: " << LT << " | Lanes ST: " << LS << " on " << describe();
-  gbtT->printX();
+  gbtT->printX(expectPadding);
 }
 
 ///_________________________________________________________________
 void GBTLink::printDiagnostic(const GBTDiagnostic* gbtD, int offs)
 {
   LOG(info) << "Offs: " << offs << " Diagnostic word on " << describe();
-  gbtD->printX();
+  gbtD->printX(expectPadding);
 }
 
 ///_________________________________________________________________
 void GBTLink::printCableDiagnostic(const GBTCableDiagnostic* gbtD)
 {
   LOGP(info, "Diagnostic for {} Lane {} | errorID: {} data {:#018x} on {}", gbtD->isIB() ? "IB" : "OB", gbtD->getCableID(), gbtD->laneErrorID, gbtD->diagnosticData, describe());
-  gbtD->printX();
+  gbtD->printX(expectPadding);
 }
 
 ///_________________________________________________________________
 void GBTLink::printCableStatus(const GBTCableStatus* gbtS)
 {
   LOGP(info, "Status data, not processed at the moment, on {}", describe());
-  gbtS->printX();
+  gbtS->printX(expectPadding);
 }
 
 ///====================================================================
@@ -155,16 +158,8 @@ uint8_t GBTLink::checkErrorsRDH(const RDH& rdh)
     err |= uint8_t(Abort);
     return err; // fatal error
   }
-  if (format == OldFormat && RDHUtils::getVersion(rdh) > 4) {
-    if (verbosity >= VerboseErrors) {
-      LOG(info) << "Requested old format requires data with RDH version 3 or 4, RDH version "
-                << RDHUtils::getVersion(rdh) << " is found";
-      err |= uint8_t(ErrorPrinted);
-    }
-    err |= uint8_t(Abort);
-    return err;
-  }
-  if ((RDHUtils::getPacketCounter(rdh) > packetCounter + 1) && packetCounter >= 0) {
+  /*
+  if (expectPadding && (RDHUtils::getPacketCounter(rdh) > packetCounter + 1) && packetCounter >= 0) { // packet counter check makes sense only for data with padding (no UL)
     if (irHBF.isDummy()) {
       irHBF = RDHUtils::getHeartBeatIR(rdh);
     }
@@ -179,6 +174,25 @@ uint8_t GBTLink::checkErrorsRDH(const RDH& rdh)
     err |= uint8_t(Warning);
   }
   packetCounter = RDHUtils::getPacketCounter(rdh);
+  */
+  return err;
+}
+
+/// Check encountered alignment padding word correctness
+uint8_t GBTLink::checkErrorsAlignmentPadding()
+{
+  uint8_t err = uint8_t(NoError);
+  if (lastPageSize - dataOffset >= CRUPageAlignment) {
+    statistics.errorCounts[GBTLinkDecodingStat::ErrWrongAlignmentWord]++;
+    gbtErrStatUpadated = true;
+    if (needToPrintError(statistics.errorCounts[GBTLinkDecodingStat::ErrWrongAlignmentWord])) {
+      err |= uint8_t(ErrorPrinted);
+      LOG(info) << describe() << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrWrongAlignmentWord] << " at offset " << dataOffset << " for page size " << lastPageSize;
+    }
+    errorBits |= 0x1 << int(GBTLinkDecodingStat::ErrWrongAlignmentWord);
+    err |= uint8_t(Warning);
+    return err; // fatal error
+  }
   return err;
 }
 
@@ -187,7 +201,7 @@ uint8_t GBTLink::checkErrorsRDH(const RDH& rdh)
 uint8_t GBTLink::checkErrorsRDHStop(const RDH& rdh)
 {
   uint8_t err = uint8_t(NoError);
-  if (format == NewFormat && lastRDH && RDHUtils::getHeartBeatOrbit(*lastRDH) != RDHUtils::getHeartBeatOrbit(rdh) // new HB starts
+  if (lastRDH && RDHUtils::getHeartBeatOrbit(*lastRDH) != RDHUtils::getHeartBeatOrbit(rdh) // new HB starts
       && !RDHUtils::getStop(*lastRDH)) {
     statistics.errorCounts[GBTLinkDecodingStat::ErrPageNotStopped]++;
     gbtErrStatUpadated = true;
@@ -208,7 +222,7 @@ uint8_t GBTLink::checkErrorsRDHStop(const RDH& rdh)
 uint8_t GBTLink::checkErrorsRDHStopPageEmpty(const RDH& rdh)
 {
   uint8_t err = uint8_t(NoError);
-  if (format == NewFormat && RDHUtils::getStop(rdh) && RDHUtils::getMemorySize(rdh) != sizeof(RDH) + sizeof(GBTDiagnostic)) {
+  if (RDHUtils::getStop(rdh) && RDHUtils::getMemorySize(rdh) != sizeof(RDH) + wordLength) { // there could be only 1 diagnostic GBTWord after stop
     statistics.errorCounts[GBTLinkDecodingStat::ErrStopPageNotEmpty]++;
     gbtErrStatUpadated = true;
     if (needToPrintError(statistics.errorCounts[GBTLinkDecodingStat::ErrStopPageNotEmpty])) {
@@ -231,7 +245,7 @@ uint8_t GBTLink::checkErrorsTriggerWord(const GBTTrigger* gbtTrg)
     statistics.errorCounts[GBTLinkDecodingStat::ErrMissingGBTTrigger]++;
     gbtErrStatUpadated = true;
     if (needToPrintError(statistics.errorCounts[GBTLinkDecodingStat::ErrMissingGBTTrigger])) {
-      gbtTrg->printX();
+      gbtTrg->printX(expectPadding);
       LOG(info) << describe() << ' ' << irHBF << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrMissingGBTTrigger];
       err |= uint8_t(ErrorPrinted);
     }
@@ -258,7 +272,7 @@ uint8_t GBTLink::checkErrorsHeaderWord(const GBTDataHeader* gbtH)
     statistics.errorCounts[GBTLinkDecodingStat::ErrMissingGBTHeader]++;
     gbtErrStatUpadated = true;
     if (needToPrintError(statistics.errorCounts[GBTLinkDecodingStat::ErrMissingGBTHeader])) {
-      gbtH->printX();
+      gbtH->printX(expectPadding);
       LOG(info) << describe() << ' ' << irHBF << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrMissingGBTHeader];
       err |= uint8_t(ErrorPrinted);
     }
@@ -277,7 +291,7 @@ uint8_t GBTLink::checkErrorsHeaderWord(const GBTDataHeaderL* gbtH)
     statistics.errorCounts[GBTLinkDecodingStat::ErrMissingGBTHeader]++;
     gbtErrStatUpadated = true;
     if (verbosity >= VerboseErrors) {
-      gbtH->printX();
+      gbtH->printX(expectPadding);
       LOG(info) << describe() << ' ' << irHBF << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrMissingGBTHeader];
       err |= uint8_t(ErrorPrinted);
     }
@@ -373,7 +387,7 @@ uint8_t GBTLink::checkErrorsGBTDataID(const GBTData* gbtD)
     } else if (gbtD->isStatus()) {
       printCableStatus((GBTCableStatus*)gbtD);
     }
-    gbtD->printX(true);
+    gbtD->printX(expectPadding);
     LOG(info) << describe() << ' ' << irHBF << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrGBTWordNotRecognized];
     err |= uint8_t(ErrorPrinted);
   }
@@ -387,7 +401,7 @@ uint8_t GBTLink::checkErrorsTrailerWord(const GBTDataTrailer* gbtT)
 {
   uint8_t err = uint8_t(NoError);
   if (!gbtT->isDataTrailer()) {
-    gbtT->printX();
+    gbtT->printX(expectPadding);
     statistics.errorCounts[GBTLinkDecodingStat::ErrMissingGBTTrailer]++;
     gbtErrStatUpadated = true;
     if (needToPrintError(statistics.errorCounts[GBTLinkDecodingStat::ErrMissingGBTTrailer])) {
@@ -462,11 +476,11 @@ uint8_t GBTLink::checkErrorsLanesStops()
 uint8_t GBTLink::checkErrorsDiagnosticWord(const GBTDiagnostic* gbtD)
 {
   uint8_t err = uint8_t(NoError);
-  if (RDHUtils::getMemorySize(lastRDH) != sizeof(RDH) + sizeof(GBTDiagnostic) || !gbtD->isDiagnosticWord()) { //
+  if (!gbtD->isDiagnosticWord() || (lastPageSize > sizeof(RDH) + CRUPageAlignment)) {
     statistics.errorCounts[GBTLinkDecodingStat::ErrMissingDiagnosticWord]++;
     gbtErrStatUpadated = true;
     if (needToPrintError(statistics.errorCounts[GBTLinkDecodingStat::ErrMissingDiagnosticWord])) {
-      gbtD->printX();
+      gbtD->printX(expectPadding);
       LOG(info) << describe() << ' ' << irHBF << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrMissingDiagnosticWord];
       err |= uint8_t(ErrorPrinted);
     }
@@ -485,7 +499,7 @@ uint8_t GBTLink::checkErrorsCableID(const GBTData* gbtD, uint8_t cableSW)
     statistics.errorCounts[GBTLinkDecodingStat::ErrWrongeCableID]++;
     gbtErrStatUpadated = true;
     if (needToPrintError(statistics.errorCounts[GBTLinkDecodingStat::ErrWrongeCableID])) {
-      gbtD->printX();
+      gbtD->printX(expectPadding);
       LOG(info) << describe() << ' ' << irHBF << ' ' << statistics.ErrNames[GBTLinkDecodingStat::ErrWrongeCableID] << ' ' << gbtD->getCableID();
       err |= uint8_t(ErrorPrinted);
     }

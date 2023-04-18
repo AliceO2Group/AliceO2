@@ -235,6 +235,7 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
     digipar.setNSimSteps(dopt.nSimSteps);
     digipar.setIBVbb(dopt.IBVbb);
     digipar.setOBVbb(dopt.OBVbb);
+    digipar.setVbb(dopt.Vbb);
 
     mROMode = digipar.isContinuous() ? o2::parameters::GRPObject::CONTINUOUS : o2::parameters::GRPObject::PRESENT;
     LOG(info) << mID.getName() << " simulated in "

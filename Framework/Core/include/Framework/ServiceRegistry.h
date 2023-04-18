@@ -17,7 +17,6 @@
 #include "Framework/ServiceRegistryHelpers.h"
 #include "Framework/CompilerBuiltins.h"
 #include "Framework/TypeIdHelpers.h"
-#include "Framework/RuntimeError.h"
 
 #include <algorithm>
 #include <array>
@@ -31,6 +30,8 @@
 
 namespace o2::framework
 {
+
+struct DeviceState;
 
 struct ServiceMeta {
   ServiceKind kind = ServiceKind::Serial;
@@ -178,37 +179,11 @@ struct ServiceRegistry {
     return Index{static_cast<int32_t>(id.id & MAX_SERVICES_MASK)};
   }
 
-  /// Callbacks for services to be executed before every process method invokation
-  mutable std::vector<ServiceProcessingHandle> mPreProcessingHandles;
-  /// Callbacks for services to be executed after every process method invokation
-  mutable std::vector<ServiceProcessingHandle> mPostProcessingHandles;
-  /// Callbacks for services to be executed before every dangling check
-  mutable std::vector<ServiceDanglingHandle> mPreDanglingHandles;
-  /// Callbacks for services to be executed after every dangling check
-  mutable std::vector<ServiceDanglingHandle> mPostDanglingHandles;
-  /// Callbacks for services to be executed before every EOS user callback invokation
-  mutable std::vector<ServiceEOSHandle> mPreEOSHandles;
-  /// Callbacks for services to be executed after every EOS user callback invokation
-  mutable std::vector<ServiceEOSHandle> mPostEOSHandles;
-  /// Callbacks for services to be executed after every dispatching
-  mutable std::vector<ServiceDispatchingHandle> mPostDispatchingHandles;
-  /// Callbacks for services to be executed after every dispatching
-  mutable std::vector<ServiceForwardingHandle> mPostForwardingHandles;
-  /// Callbacks for services to be executed before Start
-  mutable std::vector<ServiceStartHandle> mPreStartHandles;
-  /// Callbacks for services to be executed on the Stop transition
-  mutable std::vector<ServiceStopHandle> mPostStopHandles;
-  /// Callbacks for services to be executed on exit
-  mutable std::vector<ServiceExitHandle> mPreExitHandles;
-  /// Callbacks for services to be executed on exit
-  mutable std::vector<ServiceDomainInfoHandle> mDomainInfoHandles;
-  /// Callbacks for services to be executed before sending messages
-  mutable std::vector<ServicePreSendingMessagesHandle> mPreSendingMessagesHandles;
   /// Callbacks to be executed after the main GUI has been drawn
   mutable std::vector<ServicePostRenderGUIHandle> mPostRenderGUIHandles;
 
   /// To hide exception throwing from QC
-  void throwError(RuntimeErrorRef const& ref) const;
+  void throwError(const char* name, int64_t hash, int64_t streamId, int64_t dataprocessorId) const;
 
  public:
   using hash_type = decltype(TypeIdHelpers::uniqueId<void>());
@@ -217,36 +192,8 @@ struct ServiceRegistry {
   ServiceRegistry(ServiceRegistry const& other);
   ServiceRegistry& operator=(ServiceRegistry const& other);
 
-  /// Invoke callbacks to be executed in PreRun(), before the User Start callbacks
-  void preStartCallbacks();
-  /// Invoke callbacks to be executed before every process method invokation
-  void preProcessingCallbacks(ProcessingContext&);
-  /// Invoke callbacks to be executed after every process method invokation
-  void postProcessingCallbacks(ProcessingContext&);
-  /// Invoke callbacks to be executed before every dangling check
-  void preDanglingCallbacks(DanglingContext&);
-  /// Invoke callbacks to be executed after every dangling check
-  void postDanglingCallbacks(DanglingContext&);
-  /// Invoke callbacks to be executed before every EOS user callback invokation
-  void preEOSCallbacks(EndOfStreamContext&);
-  /// Invoke callbacks to be executed after every EOS user callback invokation
-  void postEOSCallbacks(EndOfStreamContext&);
-  /// Invoke callbacks to monitor inputs after dispatching, regardless of them
-  /// being discarded, consumed or processed.
-  void postDispatchingCallbacks(ProcessingContext&);
-  /// Callback invoked after the late forwarding has been done
-  void postForwardingCallbacks(ProcessingContext&);
-
-  /// Invoke callbacks on stop.
-  void postStopCallbacks();
   /// Invoke callbacks on exit.
   void preExitCallbacks();
-
-  /// Invoke whenever we get a new DomainInfo message
-  void domainInfoUpdatedCallback(ServiceRegistry& registry, size_t oldestPossibleTimeslice, ChannelIndex channelIndex);
-
-  /// Invoke before sending messages @a parts on a channel @a channelindex
-  void preSendingMessagesCallbacks(ServiceRegistry& registry, fair::mq::Parts& parts, ChannelIndex channelindex);
 
   /// Invoke after rendering the GUI. Can be used to
   /// add custom GUI elements associated to a given service.
@@ -262,9 +209,9 @@ struct ServiceRegistry {
   /// FIXME: for now we create everything in the global context
   void declareService(ServiceSpec const& spec, DeviceState& state, fair::mq::ProgOptions& options, ServiceRegistry::Salt salt = ServiceRegistry::globalDeviceSalt());
 
-  /// Bind the callbacks of a service spec to a given service.
-  /// Notice that
-  void bindService(ServiceSpec const& spec, void* service) const;
+  void bindService(ServiceRegistry::Salt salt, ServiceSpec const& spec, void* service) const;
+
+  void lateBindStreamServices(DeviceState& state, fair::mq::ProgOptions& options, ServiceRegistry::Salt salt);
 
   /// Type erased service registration. @a typeHash is the
   /// hash used to identify the service, @a service is
@@ -357,9 +304,14 @@ struct ServiceRegistry {
         return *reinterpret_cast<T*>(ptr);
       }
     }
-    throwError(runtime_error_f("Unable to find service of kind %s (%d) in stream %d and dataprocessor %d. Make sure you use const / non-const correctly.", typeid(T).name(), typeHash.hash, salt.streamId, salt.dataProcessorId));
+    throwError(typeid(T).name(), typeHash.hash, salt.streamId, salt.dataProcessorId);
     O2_BUILTIN_UNREACHABLE();
   }
+
+  /// Callback invoked by the driver after rendering.
+  /// FIXME: Needs to stay here for the moment as it is used by
+  /// the driver and not by one of the data processors.
+  void postRenderGUICallbacks(ServiceRegistryRef ref);
 };
 
 } // namespace o2::framework

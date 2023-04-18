@@ -252,7 +252,11 @@ bool AlignmentTrack::calcResidDeriv(double* extendedParams, bool invert, int pFr
     // while the variation should be done for parameters in the frame where the vector
     // of material corrections has diagonal cov. matrix -> rotate the delta to this frame
     double deltaMatD[kNKinParBON];
-    pnt->diagMatCorr(delta, deltaMatD);
+    //    pnt->diagMatCorr(delta, deltaMatD);
+    for (int ipar = 0; ipar < nParFreeI; ipar++) {
+      double d = pnt->getMatCorrCov()[ipar];
+      deltaMatD[ipar] = d > 0. ? Sqrt(d) * 5 : delta[ipar];
+    }
     //
     //    printf("Vary %d [%+.3e %+.3e %+.3e %+.3e] ",ip,deltaMatD[0],deltaMatD[1],deltaMatD[2],deltaMatD[3]); pnt->print();
 
@@ -607,7 +611,7 @@ bool AlignmentTrack::applyMatCorr(trackParam_t& trPar, const double* corrPar, co
   // DIAGONALIZING ITS  COVARIANCE MATRIX!
   // transform parameters from the frame diagonalizing the errors to track frame
   double corr[kNKinParBON] = {0};
-  if (pnt->containsMaterial()) { // are there free params from meterials?
+  if (pnt->containsMaterial()) { // are there free params from materials?
     int nCorrPar = pnt->getNMatPar();
     const double* corrDiag = &corrPar[pnt->getMaxLocVarID() - nCorrPar]; // material corrections for this point start here
     pnt->unDiagMatCorr(corrDiag, corr);                                  // this is to account for MS and RANDOM Eloss (if varied)
@@ -743,6 +747,9 @@ void AlignmentTrack::richardsonDeriv(const trackParam_t* trSet, const double* de
   }
   derY = richardsonExtrap(derRichY, kRichardsonOrd); // dY/dPar
   derZ = richardsonExtrap(derRichZ, kRichardsonOrd); // dZ/dPar
+  if (TMath::IsNaN(derY) || TMath::IsNaN(derZ)) {
+    LOGP(error, "NAN encounterd: DerY {}  : DerZ {}", derY, derZ);
+  }
   //
 }
 
@@ -1293,7 +1300,10 @@ bool AlignmentTrack::processMaterials(trackParam_t& trc, int pFrom, int pTo)
   covMat_t dcov{0};
   matTL.setTimeNotNeeded();
   const auto& algConf = AlignConfig::Instance();
-  ;
+  // calculate min X/X0 to treat the point as having materials
+  double minX2X0 = algConf.minScatteringAngleToAccount / 0.014 * trc.getPt();
+  minX2X0 *= minX2X0;
+
   //
   int pinc, signELoss = 0;
   if (pTo > pFrom) { // fit inward: cosmics upper leg
@@ -1323,7 +1333,7 @@ bool AlignmentTrack::processMaterials(trackParam_t& trc, int pFrom, int pTo)
     }
     //
     // is there enough material to consider the point as a scatterer?
-    bool hasMaterial = matTL.getX2X0() * Abs(trc.getQ2Pt()) > algConf.minX2X0Pt2Account;
+    bool hasMaterial = matTL.getX2X0() > minX2X0;
     if (!propagateToPoint(tr0, pnt, algConf.maxStep, algConf.maxSnp, MatCorrType::USEMatCorrNONE, nullptr, signELoss)) { // no material corrections
       if (algConf.verbose > 2) {
         LOG(error) << "Failed to take track to point" << ip << " (dir: " << pFrom << "->" << pTo << ") with mat.corr.";
@@ -1361,7 +1371,6 @@ bool AlignmentTrack::processMaterials(trackParam_t& trc, int pFrom, int pTo)
           matCov(i, j) = matCov(j, i) = err2;
         }
       }
-      pnt->setContainsMaterial(hasMaterial);
       if (hasMaterial) {
         TMatrixDSymEigen matDiag(matCov); // find eigenvectors
         const TMatrixD& matEVec = matDiag.GetEigenVectors();
@@ -1372,14 +1381,28 @@ bool AlignmentTrack::processMaterials(trackParam_t& trc, int pFrom, int pTo)
             return false;
           }
         }
-        pnt->setMatCovDiagonalizationMatrix(matEVec); // store diagonalization matrix
-        pnt->setMatCovDiag(matDiag.GetEigenValues()); // store E.Values: diagonalized cov.matrix
-        if (!eLossFree) {
-          pnt->setMatCovDiagElem(kParQ2Pt, dcov[14]);
+        for (int ix = 0; ix < matDiag.GetEigenValues().GetNrows(); ix++) {
+          if (matDiag.GetEigenValues()[ix] < 1e-18) {
+            LOG(warn) << "Too small " << ix << "-th eignevalue " << matDiag.GetEigenValues()[ix] << " for cov.matrix !!!";
+            LOG(warn) << "Track with mat.corr: " << trc.asString();
+            LOG(warn) << "Track w/o  mat.corr: " << tr0.asString();
+            matCov.Print();
+            matDiag.GetEigenValues().Print();
+            hasMaterial = false;
+            break;
+          }
         }
-        pnt->setX2X0(matTL.getX2X0());
-        pnt->setXTimesRho(matTL.getXRho());
+        if (hasMaterial) {
+          pnt->setMatCovDiagonalizationMatrix(matEVec); // store diagonalization matrix
+          pnt->setMatCovDiag(matDiag.GetEigenValues()); // store E.Values: diagonalized cov.matrix
+          if (!eLossFree) {
+            pnt->setMatCovDiagElem(kParQ2Pt, dcov[14]);
+          }
+          pnt->setX2X0(matTL.getX2X0());
+          pnt->setXTimesRho(matTL.getXRho());
+        }
       }
+      pnt->setContainsMaterial(hasMaterial);
     }
     if (pnt->containsMeasurement()) { // update track to have best possible kinematics
       const double* yz = pnt->getYZTracking();

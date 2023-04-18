@@ -57,7 +57,8 @@ class PreClusterFinder
 
   void getPreClusters(std::vector<o2::mch::PreCluster>& preClusters, std::vector<Digit>& digits);
 
-  ErrorMap errorMap() const { return mErrorMap; }
+  /// return the counting of encountered errors
+  ErrorMap& getErrorMap() { return mErrorMap; }
 
  private:
   struct DetectionElement;
@@ -93,9 +94,7 @@ class PreClusterFinder
   int mNPreClusters[SNDEs][2]{};                                     ///< number of preclusters in each cathods of each DE
   std::vector<std::unique_ptr<PreCluster>> mPreClusters[SNDEs][2]{}; ///< preclusters in each cathods of each DE
 
-  enum ErrorTypes : uint32_t { kMultipleDigitInSamePad = 0 };
-
-  ErrorMap mErrorMap; ///< counting of encountered errors
+  ErrorMap mErrorMap{}; ///< counting of encountered errors
 };
 
 } // namespace mch

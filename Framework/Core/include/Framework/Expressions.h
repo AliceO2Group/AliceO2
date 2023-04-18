@@ -63,6 +63,8 @@ struct ExpressionInfo {
 
 namespace o2::framework::expressions
 {
+const char* stringType(atype::type t);
+
 template <typename... T>
 struct LiteralStorage {
   using stored_type = std::variant<T...>;
@@ -338,6 +340,11 @@ inline Node npow(Node left, T right)
 BINARY_FUNC_NODES(Atan2, natan2);
 
 /// unary functions on nodes
+inline Node nround(Node left)
+{
+  return Node{OpNode{BasicOp::Round}, std::move(left)};
+}
+
 inline Node nsqrt(Node left)
 {
   return Node{OpNode{BasicOp::Sqrt}, std::move(left)};

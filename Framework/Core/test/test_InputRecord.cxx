@@ -9,11 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test Framework InputRecord
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include "Framework/InputRecord.h"
 #include "Framework/InputSpan.h"
 #include "Framework/DataProcessingHeader.h"
@@ -26,7 +22,7 @@ using Stack = o2::header::Stack;
 
 bool any_exception(RuntimeErrorRef const&) { return true; }
 
-BOOST_AUTO_TEST_CASE(TestInputRecord)
+TEST_CASE("TestInputRecord")
 {
   // Create the routes we want for the InputRecord
   InputSpec spec1{"x", "TPC", "CLUSTERS", 0, Lifetime::Timeframe};
@@ -56,12 +52,12 @@ BOOST_AUTO_TEST_CASE(TestInputRecord)
   ServiceRegistry registry;
   InputRecord emptyRecord(schema, span, registry);
 
-  BOOST_CHECK_EXCEPTION(emptyRecord.get("x"), RuntimeErrorRef, any_exception);
-  BOOST_CHECK_EXCEPTION(emptyRecord.get("y"), RuntimeErrorRef, any_exception);
-  BOOST_CHECK_EXCEPTION(emptyRecord.get("z"), RuntimeErrorRef, any_exception);
-  BOOST_CHECK_EXCEPTION((void)emptyRecord.getByPos(0), RuntimeErrorRef, any_exception);
-  BOOST_CHECK_EXCEPTION((void)emptyRecord.getByPos(1), RuntimeErrorRef, any_exception);
-  BOOST_CHECK_EXCEPTION((void)emptyRecord.getByPos(2), RuntimeErrorRef, any_exception);
+  REQUIRE_THROWS_AS(emptyRecord.get("x"), RuntimeErrorRef);
+  REQUIRE_THROWS_AS(emptyRecord.get("y"), RuntimeErrorRef);
+  REQUIRE_THROWS_AS(emptyRecord.get("z"), RuntimeErrorRef);
+  REQUIRE_THROWS_AS((void)emptyRecord.getByPos(0), RuntimeErrorRef);
+  REQUIRE_THROWS_AS((void)emptyRecord.getByPos(1), RuntimeErrorRef);
+  REQUIRE_THROWS_AS((void)emptyRecord.getByPos(2), RuntimeErrorRef);
   // Then we actually check with a real set of inputs.
 
   std::vector<void*> inputs;
@@ -99,68 +95,68 @@ BOOST_AUTO_TEST_CASE(TestInputRecord)
   InputRecord record{schema, span2, registry};
 
   // Checking we can get the whole ref by name
-  BOOST_CHECK_NO_THROW(record.get("x"));
-  BOOST_CHECK_NO_THROW(record.get("y"));
-  BOOST_CHECK_NO_THROW(record.get("z"));
+  REQUIRE_NOTHROW(record.get("x"));
+  REQUIRE_NOTHROW(record.get("y"));
+  REQUIRE_NOTHROW(record.get("z"));
   auto ref00 = record.get("x");
   auto ref10 = record.get("y");
-  BOOST_CHECK_EXCEPTION(record.get("err"), RuntimeErrorRef, any_exception);
+  REQUIRE_THROWS_AS(record.get("err"), RuntimeErrorRef);
 
   // Or we can get it positionally
-  BOOST_CHECK_NO_THROW(record.get("x"));
+  REQUIRE_NOTHROW(record.get("x"));
   auto ref01 = record.getByPos(0);
   auto ref11 = record.getByPos(1);
-  BOOST_CHECK_EXCEPTION((void)record.getByPos(10), RuntimeErrorRef, any_exception);
+  REQUIRE_THROWS_AS((void)record.getByPos(10), RuntimeErrorRef);
 
   // This should be exactly the same pointers
-  BOOST_CHECK_EQUAL(ref00.header, ref01.header);
-  BOOST_CHECK_EQUAL(ref00.payload, ref01.payload);
-  BOOST_CHECK_EQUAL(ref10.header, ref11.header);
-  BOOST_CHECK_EQUAL(ref10.payload, ref11.payload);
+  REQUIRE(ref00.header == ref01.header);
+  REQUIRE(ref00.payload == ref01.payload);
+  REQUIRE(ref10.header == ref11.header);
+  REQUIRE(ref10.payload == ref11.payload);
 
-  BOOST_CHECK_EQUAL(record.isValid("x"), true);
-  BOOST_CHECK_EQUAL(record.isValid("y"), true);
-  BOOST_CHECK_EQUAL(record.isValid("z"), false);
-  BOOST_CHECK_EQUAL(record.size(), 3);
-  BOOST_CHECK_EQUAL(record.countValidInputs(), 2);
+  REQUIRE(record.isValid("x") == true);
+  REQUIRE(record.isValid("y") == true);
+  REQUIRE(record.isValid("z") == false);
+  REQUIRE(record.size() == 3);
+  REQUIRE(record.countValidInputs() == 2);
 
-  BOOST_CHECK_EQUAL(record.isValid(0), true);
-  BOOST_CHECK_EQUAL(record.isValid(1), true);
-  BOOST_CHECK_EQUAL(record.isValid(2), false);
+  REQUIRE(record.isValid(0) == true);
+  REQUIRE(record.isValid(1) == true);
+  REQUIRE(record.isValid(2) == false);
   // This by default is a shortcut for
   //
   // *static_cast<int const *>(record.get("x").payload);
   //
-  BOOST_CHECK_EQUAL(record.get<int>("x"), 1);
-  BOOST_CHECK_EQUAL(record.get<int>("y"), 2);
+  REQUIRE(record.get<int>("x") == 1);
+  REQUIRE(record.get<int>("y") == 2);
   // A few more time just to make sure we are not stateful..
-  BOOST_CHECK_EQUAL(record.get<int>("x"), 1);
-  BOOST_CHECK_EQUAL(record.get<int>("x"), 1);
+  REQUIRE(record.get<int>("x") == 1);
+  REQUIRE(record.get<int>("x") == 1);
 
   // test the iterator
   int position = 0;
   for (auto input = record.begin(), end = record.end(); input != end; input++, position++) {
     if (position == 0) {
-      BOOST_CHECK(input.matches("TPC") == true);
-      BOOST_CHECK(input.matches("TPC", "CLUSTERS") == true);
-      BOOST_CHECK(input.matches("ITS", "CLUSTERS") == false);
+      REQUIRE(input.matches("TPC") == true);
+      REQUIRE(input.matches("TPC", "CLUSTERS") == true);
+      REQUIRE(input.matches("ITS", "CLUSTERS") == false);
     }
     if (position == 1) {
-      BOOST_CHECK(input.matches("ITS") == true);
-      BOOST_CHECK(input.matches("ITS", "CLUSTERS") == true);
-      BOOST_CHECK(input.matches("TPC", "CLUSTERS") == false);
+      REQUIRE(input.matches("ITS") == true);
+      REQUIRE(input.matches("ITS", "CLUSTERS") == true);
+      REQUIRE(input.matches("TPC", "CLUSTERS") == false);
     }
     // check if invalid slots are filtered out by the iterator
-    BOOST_CHECK(position != 2);
+    REQUIRE(position != 2);
   }
 
   // the 2-level iterator to access inputs and their parts
   // all inputs have 1 part, we check the first input
-  BOOST_CHECK(record.begin().size() == 1);
+  REQUIRE(record.begin().size() == 1);
   // the end-instance of the inputs has no parts
-  BOOST_CHECK(record.end().size() == 0);
+  REQUIRE(record.end().size() == 0);
   // thus there is no element and begin == end
-  BOOST_CHECK(record.end().begin() == record.end().end());
+  REQUIRE(record.end().begin() == record.end().end());
 }
 
 // TODO:

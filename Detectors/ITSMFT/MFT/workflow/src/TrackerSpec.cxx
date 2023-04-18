@@ -44,6 +44,7 @@ namespace o2
 {
 namespace mft
 {
+//#define _TIMING_
 
 void TrackerDPL::init(InitContext& ic)
 {
@@ -111,8 +112,8 @@ void TrackerDPL::run(ProcessingContext& pc)
   auto& allTracksMFT = pc.outputs().make<std::vector<o2::mft::TrackMFT>>(Output{"MFT", "TRACKS", 0, Lifetime::Timeframe});
 
   std::uint32_t roFrameId = 0;
-  auto nROFs = rofs.size();
-  auto rofsPerWorker = nROFs / mNThreads;
+  int nROFs = rofs.size();
+  auto rofsPerWorker = std::max(1, nROFs / mNThreads);
   LOG(debug) << "nROFs = " << nROFs << " rofsPerWorker = " << rofsPerWorker;
 
   auto loadData = [&, this](auto& trackerVec, auto& roFrameDataVec) {
@@ -125,50 +126,48 @@ void TrackerDPL::run(ProcessingContext& pc)
       int worker = std::min(int(iROF / rofsPerWorker), mNThreads - 1);
       auto& roFrameData = roFrameDataVec[worker].emplace_back();
       int nclUsed = ioutils::loadROFrameData(rof, roFrameData, compClusters, pattIt, mDict, labels, tracker.get(), filter);
-      roFrameData.initialize(trackingParam.FullClusterScan);
       LOG(debug) << "ROframeId: " << iROF << ", clusters loaded : " << nclUsed << " on worker " << worker;
       iROF++;
     }
   };
 
-  auto launchLTF = [](auto* tracker, auto* workerROFs) {
+  auto launchTrackFinder = [](auto* tracker, auto* workerROFs) {
+#ifdef _TIMING_
+    long tStart = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count(), tStartROF = tStart, tEnd = tStart;
+    size_t rofCNT = 0;
+#endif
     for (auto& rofData : *workerROFs) {
-      tracker->findLTFTracks(rofData);
+      tracker->findTracks(rofData);
+#ifdef _TIMING_
+      long tEndROF = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+      LOGP(info, "launchTrackFinder| tracker:{} did {}-th ROF in {} mus: {} clusters -> {} tracks", tracker->getTrackerID(), ++rofCNT, tEndROF - tStartROF, rofData.getTotalClusters(), rofData.getTracks().size());
+      tStartROF = tEnd = tEndROF;
+#endif
     }
-  };
-
-  auto launchCA = [](auto* tracker, auto* workerROFs) {
-    for (auto& rofData : *workerROFs) {
-      tracker->findCATracks(rofData);
-    }
+#ifdef _TIMING_
+    LOGP(info, "launchTrackFinder| done: tracker:{} processed {} ROFS in {} mus", tracker->getTrackerID(), workerROFs->size(), tEnd - tStart);
+#endif
   };
 
   auto launchFitter = [](auto* tracker, auto* workerROFs) {
+#ifdef _TIMING_
+    long tStart = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+#endif
     for (auto& rofData : *workerROFs) {
       tracker->fitTracks(rofData);
     }
+#ifdef _TIMING_
+    long tEnd = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+    LOGP(info, "launchTrackFitter| done: tracker:{} fitted  {} ROFS in {} mus", tracker->getTrackerID(), workerROFs->size(), tEnd - tStart);
+#endif
   };
 
-  auto runLTFTrackFinder = [&, this](auto& trackerVec, auto& roFrameDataVec) {
+  auto runMFTTrackFinder = [&, this](auto& trackerVec, auto& roFrameDataVec) {
     std::vector<std::future<void>> finder;
     for (int i = 0; i < mNThreads; i++) {
       auto& tracker = trackerVec[i];
       auto& workerData = roFrameDataVec[i];
-      auto f = std::async(std::launch::async, launchLTF, tracker.get(), &workerData);
-      finder.push_back(std::move(f));
-    }
-
-    for (int i = 0; i < mNThreads; i++) {
-      finder[i].wait();
-    }
-  };
-
-  auto runCATrackFinder = [&, this](auto& trackerVec, auto& roFrameDataVec) {
-    std::vector<std::future<void>> finder;
-    for (int i = 0; i < mNThreads; i++) {
-      auto& tracker = trackerVec[i];
-      auto& workerData = roFrameDataVec[i];
-      auto f = std::async(std::launch::async, launchCA, tracker.get(), &workerData);
+      auto f = std::async(std::launch::async, launchTrackFinder, tracker.get(), &workerData);
       finder.push_back(std::move(f));
     }
 
@@ -218,17 +217,11 @@ void TrackerDPL::run(ProcessingContext& pc)
     loadData(mTrackerVec, roFrameVec);
     mTimer[SWLoadData].Stop();
 
-    LOG(debug) << "Running LTF Finder.";
+    LOG(debug) << "Running MFT Track finder.";
 
-    mTimer[SWFindLTFTracks].Start(false);
-    runLTFTrackFinder(mTrackerVec, roFrameVec);
-    mTimer[SWFindLTFTracks].Stop();
-
-    LOG(debug) << "Running CA finder.";
-
-    mTimer[SWFindCATracks].Start(false);
-    runCATrackFinder(mTrackerVec, roFrameVec);
-    mTimer[SWFindCATracks].Stop();
+    mTimer[SWFindMFTTracks].Start(false);
+    runMFTTrackFinder(mTrackerVec, roFrameVec);
+    mTimer[SWFindMFTTracks].Stop();
 
     LOG(debug) << "Runnig track fitter.";
 
@@ -279,13 +272,9 @@ void TrackerDPL::run(ProcessingContext& pc)
     loadData(mTrackerLVec, roFrameVec);
     mTimer[SWLoadData].Stop();
 
-    mTimer[SWFindLTFTracks].Start(false);
-    runLTFTrackFinder(mTrackerLVec, roFrameVec);
-    mTimer[SWFindLTFTracks].Stop();
-
-    mTimer[SWFindCATracks].Start(false);
-    runCATrackFinder(mTrackerLVec, roFrameVec);
-    mTimer[SWFindCATracks].Stop();
+    mTimer[SWFindMFTTracks].Start(false);
+    runMFTTrackFinder(mTrackerLVec, roFrameVec);
+    mTimer[SWFindMFTTracks].Stop();
 
     mTimer[SWFitTracks].Start(false);
     runTrackFitter(mTrackerLVec, roFrameVec);
@@ -313,8 +302,7 @@ void TrackerDPL::run(ProcessingContext& pc)
         int ntracksROF = 0, firstROFTrackEntry = allTracksMFT.size();
         tracksL.swap(rofData.getTracks());
         ntracksROF = tracks.size();
-        copyTracks(tracks, allTracksMFT, allClusIdx);
-
+        copyTracks(tracksL, allTracksMFT, allClusIdx);
         rof->setFirstEntry(firstROFTrackEntry);
         rof->setNEntries(ntracksROF);
         *rof++;
@@ -371,8 +359,8 @@ void TrackerDPL::updateTimeDependentParams(ProcessingContext& pc)
       mFieldOn = false;
       for (auto i = 0; i < mNThreads; i++) {
         auto& tracker = mTrackerLVec.emplace_back(std::make_unique<o2::mft::Tracker<TrackLTFL>>(mUseMC));
-        tracker->initConfig(trackingParam, !i);
-        tracker->initialize(trackingParam.FullClusterScan);
+        tracker->setBz(0);
+        tracker->configure(trackingParam, i);
       }
     } else {
       LOG(info) << "Starting MFT tracker: Field is on! Bz = " << Bz;
@@ -381,8 +369,7 @@ void TrackerDPL::updateTimeDependentParams(ProcessingContext& pc)
       for (auto i = 0; i < mNThreads; i++) {
         auto& tracker = mTrackerVec.emplace_back(std::make_unique<o2::mft::Tracker<TrackLTF>>(mUseMC));
         tracker->setBz(Bz);
-        tracker->initConfig(trackingParam, !i);
-        tracker->initialize(trackingParam.FullClusterScan);
+        tracker->configure(trackingParam, i);
       }
     }
   }

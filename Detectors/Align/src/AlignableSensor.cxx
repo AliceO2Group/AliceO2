@@ -145,7 +145,7 @@ void AlignableSensor::dPosTraDParGeomTRA(const AlignmentPoint* pnt, double* deri
   // tra' = tau*tra
   //
   // Result is stored in array deriv as linearized matrix 6x3
-  const double kDelta[kNDOFGeom] = {0.1, 0.1, 0.1, 0.5, 0.5, 0.5};
+  const double kDelta[kNDOFGeom] = {0.1, 0.1, 0.1, 0.5 * DegToRad(), 0.5 * DegToRad(), 0.5 * DegToRad()}; // changed angles to radians
   double delta[kNDOFGeom], pos0[3], pos1[3], pos2[3], pos3[3];
   TGeoHMatrix matMod;
   //
@@ -405,10 +405,9 @@ void AlignableSensor::dPosTraDParCalib(const AlignmentPoint* pnt, double* deriv,
 }
 
 //______________________________________________________
-int AlignableSensor::finalizeStat(DOFStatistics& st)
+int AlignableSensor::finalizeStat()
 {
   // finalize statistics on processed points
-  fillDOFStat(st);
   return mNProcPoints;
 }
 

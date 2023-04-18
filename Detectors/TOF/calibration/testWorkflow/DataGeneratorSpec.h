@@ -27,7 +27,7 @@
 #include "TOFBase/Geo.h"
 #include "CommonConstants/MathConstants.h"
 #include "DataFormatsTOF/Diagnostic.h"
-#include "DetectorsRaw/HBFUtils.h"
+#include "TOFBase/Utils.h"
 
 namespace o2
 {
@@ -185,7 +185,7 @@ class TFProcessorDiagnostic : public o2::framework::Task
 
     // push dummy output
     auto& outputDiagnostic = pc.outputs().make<o2::tof::Diagnostic>(o2::framework::OutputRef{"output", 0});
-    for (int iOrbit = 0; iOrbit < o2::raw::HBFUtils::Instance().getNOrbitsPerTF(); ++iOrbit) {
+    for (int iOrbit = 0; iOrbit < o2::tof::Utils::getNOrbitInTF(); ++iOrbit) {
       for (int iROwindow = 0; iROwindow < o2::tof::Geo::NWINDOW_IN_ORBIT; ++iROwindow) {
         outputDiagnostic.fillROW();
         for (int i = 0; i < mDiagnosticPattern.size(); ++i) {

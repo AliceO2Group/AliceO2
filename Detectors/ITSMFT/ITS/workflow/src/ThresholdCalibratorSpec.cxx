@@ -28,13 +28,13 @@ namespace its
 // Define error function for ROOT fitting
 double erf(double* xx, double* par)
 {
-  return (N_INJ / 2) * TMath::Erf((xx[0] - par[0]) / (sqrt(2) * par[1])) + (N_INJ / 2);
+  return (nInj / 2) * TMath::Erf((xx[0] - par[0]) / (sqrt(2) * par[1])) + (nInj / 2);
 }
 
 // ITHR erf is reversed
 double erf_ithr(double* xx, double* par)
 {
-  return (N_INJ / 2) * (1 - TMath::Erf((xx[0] - par[0]) / (sqrt(2) * par[1])));
+  return (nInj / 2) * (1 - TMath::Erf((xx[0] - par[0]) / (sqrt(2) * par[1])));
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -142,6 +142,9 @@ void ITSThresholdCalibrator::init(InitContext& ic)
     throw std::runtime_error("Min VCASN/ITHR is larger than Max VCASN/ITHR: check the settings, analysis not possible");
   }
 
+  // Get flag to enable most-probable value calculation
+  isMpv = ic.options().get<bool>("enable-mpv");
+
   // Parameters to operate in manual mode (when run type is not recognized automatically)
   isManualMode = ic.options().get<bool>("manual-mode");
   if (isManualMode) {
@@ -168,7 +171,19 @@ void ITSThresholdCalibrator::init(InitContext& ic)
     } catch (std::exception const& e) {
       throw std::runtime_error("Please specify if you want to save the ROOT trees, mandatory in manual mode");
     }
+
+    // this is not mandatory since it's 1 by default
+    manualStep = ic.options().get<short int>("manual-step");
+
+    // this is not mandatory since it's 5 by default
+    manualStrobeWindow = ic.options().get<short int>("manual-strobewindow");
   }
+
+  // Flag to enable the analysis of CRU_ITS data
+  isCRUITS = ic.options().get<bool>("enable-cru-its");
+
+  // Number of injections
+  nInj = ic.options().get<int>("ninj");
 
   // flag to set the url ccdb mgr
   this->mCcdbMgrUrl = ic.options().get<std::string>("ccdb-mgr-url");
@@ -180,7 +195,44 @@ void ITSThresholdCalibrator::init(InitContext& ic)
   mgr.setTimestamp(ts);
   mConfDBmap = mgr.get<std::vector<int>>("ITS/Calib/Confdbmap");
 
+  // Parameters to dump s-curves on disk
+  isDumpS = ic.options().get<bool>("dump-scurves");
+  maxDumpS = ic.options().get<int>("max-dump");
+  chipDumpS = ic.options().get<std::string>("chip-dump"); // comma-separated list of chips
+  chipDumpList = getIntegerVect(chipDumpS);
+  if (isDumpS && mFitType != FIT) {
+    LOG(error) << "S-curve dump enabled but `fittype` is not fit. Please check";
+  }
+  if (isDumpS) {
+    fileDumpS = TFile::Open(Form("s-curves_%d.root", mChipModSel), "RECREATE"); // in case of multiple processes, every process will have it's own file
+    if (maxDumpS < 0) {
+      LOG(info) << "`max-dump` " << maxDumpS << ". Dumping all s-curves";
+    } else {
+      LOG(info) << "`max-dump` " << maxDumpS << ". Dumping " << maxDumpS << " s-curves";
+    }
+    if (!chipDumpList.size()) {
+      LOG(info) << "Dumping s-curves for all chips";
+    } else {
+      LOG(info) << "Dumping s-curves for chips: " << chipDumpS;
+    }
+  }
+
   return;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Convert comma-separated list of integers to a vector of int
+std::vector<short int> ITSThresholdCalibrator::getIntegerVect(std::string& s)
+{
+  std::stringstream ss(s);
+  std::vector<short int> result;
+  char ch;
+  short int tmp;
+  while (ss >> tmp) {
+    result.push_back(tmp);
+    ss >> ch;
+  }
+  return result;
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -215,8 +267,11 @@ void ITSThresholdCalibrator::initThresholdTree(bool recreate /*=true*/)
     this->mThresholdTree->Branch("thr", &vThreshold, "vThreshold[1024]/S");
     this->mThresholdTree->Branch("noise", &vNoise, "vNoise[1024]/b");
     this->mThresholdTree->Branch("success", &vSuccess, "vSuccess[1024]/O");
-  } else { // this->mScanType == 'D' and this->mScanType == 'A'
+  } else if (mScanType == 'D' || mScanType == 'A') { // this->mScanType == 'D' and this->mScanType == 'A'
     this->mThresholdTree->Branch("n_hits", &vThreshold, "vThreshold[1024]/S");
+  } else if (mScanType == 'P') {
+    this->mThresholdTree->Branch("n_hits", &vThreshold, "vThreshold[1024]/S");
+    this->mThresholdTree->Branch("strobedel", &vStrobeDel, "vStrobeDel[1024]/S");
   }
 
   return;
@@ -228,7 +283,7 @@ void ITSThresholdCalibrator::initThresholdTree(bool recreate /*=true*/)
 // x is the array of charge injected values;
 // NPoints is the length of both arrays.
 bool ITSThresholdCalibrator::findUpperLower(
-  const unsigned short int* data, const short int* x, const short int& NPoints,
+  const unsigned short int* data, const short int& NPoints,
   short int& lower, short int& upper, bool flip)
 {
   // Initialize (or re-initialize) upper and lower
@@ -248,7 +303,7 @@ bool ITSThresholdCalibrator::findUpperLower(
       return false;
     }
     for (int i = upper; i > 0; i--) {
-      if (data[i] >= N_INJ) {
+      if (data[i] >= nInj) {
         lower = i;
         break;
       }
@@ -257,7 +312,7 @@ bool ITSThresholdCalibrator::findUpperLower(
   } else { // not flipped
 
     for (int i = 0; i < NPoints; i++) {
-      if (data[i] >= N_INJ) {
+      if (data[i] >= nInj) {
         upper = i;
         break;
       }
@@ -284,7 +339,7 @@ bool ITSThresholdCalibrator::findUpperLower(
 //////////////////////////////////////////////////////////////////////////////
 // Main findThreshold function which calls one of the three methods
 bool ITSThresholdCalibrator::findThreshold(
-  const unsigned short int* data, const short int* x, short int& NPoints,
+  const short int& chipID, const unsigned short int* data, const float* x, short int& NPoints,
   float& thresh, float& noise)
 {
   bool success = false;
@@ -295,7 +350,7 @@ bool ITSThresholdCalibrator::findThreshold(
       break;
 
     case FIT: // Fit method
-      success = this->findThresholdFit(data, x, NPoints, thresh, noise);
+      success = this->findThresholdFit(chipID, data, x, NPoints, thresh, noise);
       break;
 
     case HITCOUNTING: // Hit-counting method
@@ -314,17 +369,29 @@ bool ITSThresholdCalibrator::findThreshold(
 // NPoints is the length of both arrays.
 // thresh, noise, chi2 pointers are updated with results from the fit
 bool ITSThresholdCalibrator::findThresholdFit(
-  const unsigned short int* data, const short int* x, const short int& NPoints,
+  const short int& chipID, const unsigned short int* data, const float* x, const short int& NPoints,
   float& thresh, float& noise)
 {
   // Find lower & upper values of the S-curve region
   short int lower, upper;
   bool flip = (this->mScanType == 'I');
-  if (!this->findUpperLower(data, x, NPoints, lower, upper, flip) || lower == upper) {
+  if (!this->findUpperLower(data, NPoints, lower, upper, flip) || lower == upper) {
     if (this->mVerboseOutput) {
       LOG(warning) << "Start-finding unsuccessful: (lower, upper) = ("
                    << lower << ", " << upper << ")";
     }
+
+    if (isDumpS && (dumpCounterS[chipID] < maxDumpS || maxDumpS < 0)) { // save bad s-curves
+      for (int i = 0; i < NPoints; i++) {
+        this->mFitHist->SetBinContent(i + 1, data[i]);
+      }
+      fileDumpS->cd();
+      mFitHist->Write();
+    }
+    if (isDumpS) {
+      dumpCounterS[chipID]++;
+    }
+
     return false;
   }
   float start = (this->mX[upper] + this->mX[lower]) / 2;
@@ -344,7 +411,14 @@ bool ITSThresholdCalibrator::findThresholdFit(
   this->mFitFunction->SetParameter(0, start);
   this->mFitFunction->SetParameter(1, 8);
 
-  this->mFitHist->Fit("mFitFunction", "QL");
+  this->mFitHist->Fit("mFitFunction", "RQL");
+  if (isDumpS && (dumpCounterS[chipID] < maxDumpS || maxDumpS < 0)) { // save good s-curves
+    fileDumpS->cd();
+    mFitHist->Write();
+  }
+  if (isDumpS) {
+    dumpCounterS[chipID]++;
+  }
 
   noise = this->mFitFunction->GetParameter(1);
   thresh = this->mFitFunction->GetParameter(0);
@@ -362,13 +436,13 @@ bool ITSThresholdCalibrator::findThresholdFit(
 // x is the array of charge injected values;
 // NPoints is the length of both arrays.
 
-bool ITSThresholdCalibrator::findThresholdDerivative(const unsigned short int* data, const short int* x, const short int& NPoints,
+bool ITSThresholdCalibrator::findThresholdDerivative(const unsigned short int* data, const float* x, const short int& NPoints,
                                                      float& thresh, float& noise)
 {
   // Find lower & upper values of the S-curve region
   short int lower, upper;
   bool flip = (this->mScanType == 'I');
-  if (!this->findUpperLower(data, x, NPoints, lower, upper, flip) || lower == upper) {
+  if (!this->findUpperLower(data, NPoints, lower, upper, flip) || lower == upper) {
     if (this->mVerboseOutput) {
       LOG(warning) << "Start-finding unsuccessful: (lower, upper) = (" << lower << ", " << upper << ")";
     }
@@ -381,7 +455,7 @@ bool ITSThresholdCalibrator::findThresholdDerivative(const unsigned short int* d
 
   // Fill array with derivatives
   for (int i = lower; i < upper; i++) {
-    deriv[i - lower] = std::abs(data[i + 1] - data[i]) / float(this->mX[i + 1] - mX[i]);
+    deriv[i - lower] = std::abs(data[i + 1] - data[i]) / (this->mX[i + 1] - mX[i]);
     xfx += this->mX[i] * deriv[i - lower];
     fx += deriv[i - lower];
   }
@@ -406,19 +480,18 @@ bool ITSThresholdCalibrator::findThresholdDerivative(const unsigned short int* d
 // x is the array of charge injected values;
 // NPoints is the length of both arrays.
 bool ITSThresholdCalibrator::findThresholdHitcounting(
-  const unsigned short int* data, const short int* x, const short int& NPoints, float& thresh)
+  const unsigned short int* data, const float* x, const short int& NPoints, float& thresh)
 {
   unsigned short int numberOfHits = 0;
   bool is50 = false;
   for (unsigned short int i = 0; i < NPoints; i++) {
     numberOfHits += data[i];
-    if (!is50 && data[i] == N_INJ) {
+    if (!is50 && data[i] == nInj) {
       is50 = true;
     }
   }
 
   // If not enough counts return a failure
-  // if (numberOfHits < N_INJ) { return false; }
   if (!is50) {
     if (this->mVerboseOutput) {
       LOG(warning) << "Calculation unsuccessful: too few hits. Skipping this pixel";
@@ -427,11 +500,11 @@ bool ITSThresholdCalibrator::findThresholdHitcounting(
   }
 
   if (this->mScanType == 'T') {
-    thresh = this->mX[N_RANGE - 1] - numberOfHits / float(N_INJ);
+    thresh = this->mX[N_RANGE - 1] - numberOfHits / float(nInj);
   } else if (this->mScanType == 'V') {
-    thresh = (this->mX[N_RANGE - 1] * N_INJ - numberOfHits) / float(N_INJ);
+    thresh = (this->mX[N_RANGE - 1] * nInj - numberOfHits) / float(nInj);
   } else if (this->mScanType == 'I') {
-    thresh = (numberOfHits + N_INJ * this->mX[0]) / float(N_INJ);
+    thresh = (numberOfHits + nInj * this->mX[0]) / float(nInj);
   } else {
     LOG(error) << "Unexpected runtype encountered in findThresholdHitcounting()";
     return false;
@@ -450,15 +523,26 @@ void ITSThresholdCalibrator::extractThresholdRow(const short int& chipID, const 
       vChipid[col_i] = chipID;
       vRow[col_i] = row;
       vThreshold[col_i] = this->mPixelHits[chipID][row][col_i][0];
-      if (vThreshold[col_i] > N_INJ) {
+      if (vThreshold[col_i] > nInj) {
         this->mNoisyPixID[chipID].push_back(col_i * 1000 + row);
-      } else if (vThreshold[col_i] > 0 && vThreshold[col_i] < N_INJ) {
+      } else if (vThreshold[col_i] > 0 && vThreshold[col_i] < nInj) {
         this->mIneffPixID[chipID].push_back(col_i * 1000 + row);
       } else if (vThreshold[col_i] == 0) {
         this->mDeadPixID[chipID].push_back(col_i * 1000 + row);
       }
     }
-  } else {
+  } else if (this->mScanType == 'P') {
+    // Loop over all columns (pixels) in the row
+    for (short int sdel_i = 0; sdel_i < this->N_RANGE; sdel_i++) {
+      for (short int col_i = 0; col_i < this->N_COL; col_i++) {
+        vChipid[col_i] = chipID;
+        vRow[col_i] = row;
+        vThreshold[col_i] = this->mPixelHits[chipID][row][col_i][sdel_i];
+        vStrobeDel[col_i] = (sdel_i * this->mStep) + 1; // +1 because a delay of n correspond to a real delay of n+1 (from ALPIDE manual)
+      }
+      this->saveThreshold();
+    }
+  } else { // threshold, vcasn, ithr
 
 #ifdef WITH_OPENMP
     omp_set_num_threads(mNThreads);
@@ -470,7 +554,10 @@ void ITSThresholdCalibrator::extractThresholdRow(const short int& chipID, const 
       // Do the threshold fit
       float thresh = 0., noise = 0.;
       bool success = false;
-      success = this->findThreshold(&(this->mPixelHits[chipID][row][col_i][0]),
+      if (isDumpS) { // already protected for multi-thread in the init
+        mFitHist->SetName(Form("scurve_chip%d_row%d_col%d", chipID, row, col_i));
+      }
+      success = this->findThreshold(chipID, &(this->mPixelHits[chipID][row][col_i][0]),
                                     this->mX, N_RANGE, thresh, noise);
 
       vChipid[col_i] = chipID;
@@ -482,21 +569,23 @@ void ITSThresholdCalibrator::extractThresholdRow(const short int& chipID, const 
   }
 
   // Saves threshold information to internal memory
-  this->saveThreshold();
+  if (mScanType != 'P') {
+    this->saveThreshold();
+  }
 }
 
 //////////////////////////////////////////////////////////////////////////////
 void ITSThresholdCalibrator::saveThreshold()
 {
   // In the case of a full threshold scan, write to TTree
-  if (this->mScanType == 'T' || this->mScanType == 'D' || this->mScanType == 'A') {
+  if (this->mScanType == 'T' || this->mScanType == 'D' || this->mScanType == 'A' || this->mScanType == 'P') {
     this->mThresholdTree->Fill();
   }
 
-  if (this->mScanType != 'D' && this->mScanType != 'A') {
+  if (this->mScanType != 'D' && this->mScanType != 'A' && this->mScanType != 'P') {
     // Save info in a map for later averaging
     int sumT = 0, sumSqT = 0, sumN = 0, sumSqN = 0;
-    int countSuccess = 0;
+    int countSuccess = 0, countUnsuccess = 0;
     for (int i = 0; i < this->N_COL; i++) {
       if (vSuccess[i]) {
         sumT += vThreshold[i];
@@ -504,14 +593,19 @@ void ITSThresholdCalibrator::saveThreshold()
         sumSqT += (vThreshold[i]) * (vThreshold[i]);
         sumSqN += ((int)vNoise[i]) * ((int)vNoise[i]);
         countSuccess++;
+        if (vThreshold[i] >= mMin && vThreshold[i] <= mMax && (mScanType == 'I' || mScanType == 'V')) {
+          mpvCounter[vChipid[0]][vThreshold[i] - mMin]++;
+        }
+      } else {
+        countUnsuccess++;
       }
     }
     short int chipID = vChipid[0];
-    std::array<long int, 5> dataSum{{sumT, sumSqT, sumN, sumSqN, countSuccess}};
+    std::array<long int, 6> dataSum{{sumT, sumSqT, sumN, sumSqN, countSuccess, countUnsuccess}};
     if (!(this->mThresholds.count(chipID))) {
       this->mThresholds[chipID] = dataSum;
     } else {
-      std::array<long int, 5> dataAll{{this->mThresholds[chipID][0] + dataSum[0], this->mThresholds[chipID][1] + dataSum[1], this->mThresholds[chipID][2] + dataSum[2], this->mThresholds[chipID][3] + dataSum[3], this->mThresholds[chipID][4] + dataSum[4]}};
+      std::array<long int, 6> dataAll{{this->mThresholds[chipID][0] + dataSum[0], this->mThresholds[chipID][1] + dataSum[1], this->mThresholds[chipID][2] + dataSum[2], this->mThresholds[chipID][3] + dataSum[3], this->mThresholds[chipID][4] + dataSum[4], this->mThresholds[chipID][5] + dataSum[5]}};
       this->mThresholds[chipID] = dataAll;
     }
   }
@@ -619,9 +713,10 @@ void ITSThresholdCalibrator::setRunType(const short int& runtype)
     this->N_RANGE = 51;
     this->mCheckExactRow = true;
 
-  } else if (runtype == VCASN150 || runtype == VCASN100 || runtype == VCASN100_100HZ || runtype == VCASN130) {
+  } else if (runtype == VCASN150 || runtype == VCASN100 || runtype == VCASN100_100HZ || runtype == VCASN130 || runtype == VCASNBB) {
     // VCASN tuning for different target thresholds
     // Store average VCASN for each chip into CCDB
+    // ATTENTION: with back bias (VCASNBB) put max vcasn to 130 (default is 80)
     // 4 rows per chip
     this->mScanType = 'V';
     this->mMin = inMinVcasn; // 30 is the default
@@ -654,12 +749,22 @@ void ITSThresholdCalibrator::setRunType(const short int& runtype)
     this->mScanType = 'A';
     this->initThresholdTree();
     this->mFitType = NO_FIT;
-    this->mScanType = 'A';
     this->mMin = 0;
     this->mMax = 0;
     this->N_RANGE = mMax - mMin + 1;
     this->mCheckExactRow = false;
 
+  } else if (runtype == PULSELENGTH_SCAN) {
+    // Pulse length scan
+    this->mScanType = 'P';
+    this->initThresholdTree();
+    this->mFitType = NO_FIT;
+    this->mMin = 0;
+    this->mMax = 400; // strobe delay goes from 0 to 400 (included) in steps of 4
+    this->mStep = 4;
+    this->mStrobeWindow = 5;
+    this->N_RANGE = (mMax - mMin) / mStep + 1;
+    this->mCheckExactRow = true;
   } else {
     // No other run type recognized by this workflow
     LOG(warning) << "Runtype " << runtype << " not recognized by calibration workflow.";
@@ -668,20 +773,22 @@ void ITSThresholdCalibrator::setRunType(const short int& runtype)
       this->mScanType = manualScanType[0];
       this->mMin = manualMin;
       this->mMax = manualMax;
-      this->N_RANGE = mMax - mMin + 1;
+      this->mStep = manualStep;                 // 1 by default
+      this->mStrobeWindow = manualStrobeWindow; // 5 = 125 ns by default
+      this->N_RANGE = (mMax - mMin) / mStep + 1;
       if (saveTree) {
         this->initThresholdTree();
       }
-      this->mFitType = (mScanType == 'D' || mScanType == 'A') ? NO_FIT : mFitType;
+      this->mFitType = (mScanType == 'D' || mScanType == 'A' || mScanType == 'P') ? NO_FIT : mFitType;
       this->mCheckExactRow = (mScanType == 'D' || mScanType == 'A') ? false : true;
     } else {
       throw runtype;
     }
   }
 
-  this->mX = new short int[N_RANGE];
-  for (short int i = this->mMin; i <= this->mMax; i++) {
-    this->mX[i - this->mMin] = i;
+  this->mX = new float[N_RANGE];
+  for (short int i = this->mMin; i <= this->mMax / mStep; i++) {
+    this->mX[i - this->mMin] = (float)i + 0.5;
   }
 
   // Initialize objects for doing the threshold fits
@@ -689,12 +796,12 @@ void ITSThresholdCalibrator::setRunType(const short int& runtype)
     // Initialize the histogram used for error function fits
     // Will initialize the TF1 in setRunType (it is different for different runs)
     this->mFitHist = new TH1F(
-      "mFitHist", "mFitHist", N_RANGE, this->mX[0], this->mX[N_RANGE - 1]);
+      "mFitHist", "mFitHist", N_RANGE, mX[0] - 1., mX[N_RANGE - 1]);
 
     // Initialize correct fit function for the scan type
     this->mFitFunction = (this->mScanType == 'I')
-                           ? new TF1("mFitFunction", erf_ithr, 0, 1500, 2)
-                           : new TF1("mFitFunction", erf, 0, 1500, 2);
+                           ? new TF1("mFitFunction", erf_ithr, mMin, mMax, 2)
+                           : new TF1("mFitFunction", erf, mScanType == 'T' ? 3 : mMin, mMax, 2);
     this->mFitFunction->SetParName(0, "Threshold");
     this->mFitFunction->SetParName(1, "Noise");
   }
@@ -711,7 +818,65 @@ bool ITSThresholdCalibrator::isScanFinished(const short int& chipID, const short
   short int chg = (mScanType == 'I' || mScanType == 'D' || mScanType == 'A') ? 0 : (N_RANGE - 1);
 
   // check 2 pixels in case one of them is dead
-  return ((this->mPixelHits[chipID][row][col][chg] >= N_INJ || this->mPixelHits[chipID][row][col + 100][chg] >= N_INJ) && (!mCheckCw || cwcnt == N_INJ - 1));
+  return ((this->mPixelHits[chipID][row][col][chg] >= nInj || this->mPixelHits[chipID][row][col + 100][chg] >= nInj) && (!mCheckCw || cwcnt == nInj - 1));
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// Calculate pulse parameters: time over threshold, rise time, ...
+void ITSThresholdCalibrator::calculatePulseParams(const short int& chipID, const short int& row)
+{
+
+  int rt_mindel = -1, rt_maxdel = -1, tot_mindel = -1, tot_maxdel = -1;
+  int sumRt = 0, sumSqRt = 0, countRt = 0, sumTot = 0, sumSqTot = 0, countTot = 0;
+  for (short int col_i = 0; col_i < this->N_COL; col_i++) {
+    for (short int sdel_i = 0; sdel_i < this->N_RANGE; sdel_i++) {
+      if (mPixelHits[chipID][row][col_i][sdel_i] > 0 && mPixelHits[chipID][row][col_i][sdel_i] < nInj && rt_mindel < 0) { // from left, the last bin with 0 hits or the first with some hits
+        rt_mindel = sdel_i > 0 ? ((sdel_i - 1) * mStep) + 1 : (sdel_i * mStep) + 1;                                       // + 1 because if delay = n, we get n+1 in reality (ALPIDE feature)
+      }
+      if (mPixelHits[chipID][row][col_i][sdel_i] == nInj) {
+        rt_maxdel = (sdel_i * mStep) + 1;
+        tot_mindel = (sdel_i * mStep) + 1;
+        break;
+      }
+    }
+
+    for (short int sdel_i = N_RANGE - 1; sdel_i >= 0; sdel_i--) { // from right, the first bin with nInj hits
+      if (mPixelHits[chipID][row][col_i][sdel_i] == nInj) {
+        tot_maxdel = (sdel_i * mStep) + 1;
+        break;
+      }
+    }
+
+    if (tot_maxdel > tot_mindel && tot_mindel >= 0 && tot_maxdel >= 0) {
+      sumTot += tot_maxdel - tot_mindel - (int)(mStrobeWindow / 2);
+      sumSqTot += (tot_maxdel - tot_mindel - (int)(mStrobeWindow / 2)) * (tot_maxdel - tot_mindel - (int)(mStrobeWindow / 2));
+      countTot++;
+    }
+
+    if (rt_maxdel > rt_mindel && rt_maxdel > 0) {
+      if (rt_mindel < 0) {
+        sumRt += mStep + (int)(mStrobeWindow / 2); // resolution -> in case the rise is "instantaneous"
+        sumSqRt += (mStep + (int)(mStrobeWindow / 2)) * (mStep + (int)(mStrobeWindow / 2));
+      } else {
+        sumRt += rt_maxdel - rt_mindel + (int)(mStrobeWindow / 2);
+        sumSqRt += (rt_maxdel - rt_mindel + (int)(mStrobeWindow / 2)) * (rt_maxdel - rt_mindel + (int)(mStrobeWindow / 2));
+      }
+      countRt++;
+    }
+
+    rt_mindel = -1;
+    rt_maxdel = -1;
+    tot_maxdel = -1;
+    tot_mindel = -1;
+  }
+  // Store the sums and counters
+  std::array<long int, 6> dataSum{{sumRt, sumSqRt, sumTot, sumSqTot, countRt, countTot}};
+  if (!(this->mThresholds.count(chipID))) {
+    this->mThresholds[chipID] = dataSum;
+  } else {
+    std::array<long int, 6> dataAll{{this->mThresholds[chipID][0] + dataSum[0], this->mThresholds[chipID][1] + dataSum[1], this->mThresholds[chipID][2] + dataSum[2], this->mThresholds[chipID][3] + dataSum[3], this->mThresholds[chipID][4] + dataSum[4], this->mThresholds[chipID][5] + dataSum[5]}};
+    this->mThresholds[chipID] = dataAll;
+  }
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -719,7 +884,7 @@ bool ITSThresholdCalibrator::isScanFinished(const short int& chipID, const short
 void ITSThresholdCalibrator::extractAndUpdate(const short int& chipID, const short int& row)
 {
   // In threshold scan case, reset mThresholdTree before writing to a new file
-  if ((this->mScanType == 'T' || this->mScanType == 'D' || this->mScanType == 'A') && ((this->mRowCounter)++ == N_ROWS_PER_FILE)) {
+  if ((this->mScanType == 'T' || this->mScanType == 'D' || this->mScanType == 'A' || this->mScanType == 'P') && ((this->mRowCounter)++ == N_ROWS_PER_FILE)) {
     // Finalize output and create a new TTree and ROOT file
     this->finalizeOutput();
     this->initThresholdTree();
@@ -748,7 +913,6 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
 
   // Store some lengths for convenient looping
   const unsigned int nROF = (unsigned int)ROFs.size();
-
   // Loop over readout frames (usually only 1, sometimes 2)
   for (unsigned int iROF = 0; iROF < nROF; iROF++) {
 
@@ -759,16 +923,23 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
     short int charge = -1;
     short int row = -1;
     short int cwcnt = -1;
+    bool isAllZero = true;
     for (short int iRU = 0; iRU < this->N_RU; iRU++) {
       const auto& calib = calibs[iROF * this->N_RU + iRU];
       if (calib.calibUserField != 0) {
+
+        isAllZero = false;
+
         if (charge >= 0) {
           LOG(warning) << "More than one charge detected!";
         }
 
         if (this->mRunType == -1) {
-          short int runtype = ((short int)(calib.calibUserField >> 24)) & 0xff;
-          mConfDBv = ((short int)(calib.calibUserField >> 32)) & 0xffff; // confDB version
+          mCdwVersion = isCRUITS ? 0 : ((short int)(calib.calibUserField >> 45)) & 0x7;
+          LOG(info) << "CDW version: " << mCdwVersion;
+          short int runtype = isCRUITS ? -2 : !mCdwVersion ? ((short int)(calib.calibUserField >> 24)) & 0xff
+                                                           : ((short int)(calib.calibUserField >> 9)) & 0x7f;
+          mConfDBv = !mCdwVersion ? ((short int)(calib.calibUserField >> 32)) & 0xffff : ((short int)(calib.calibUserField >> 32)) & 0x1fff; // confDB version
           this->setRunType(runtype);
           LOG(info) << "Calibrator will ship these run parameters to aggregator:";
           LOG(info) << "Run type  : " << mRunType;
@@ -776,28 +947,48 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
           LOG(info) << "Fit type  : " << std::to_string(mFitType);
           LOG(info) << "DB version: " << mConfDBv;
         }
-        this->mRunTypeUp = ((short int)(calib.calibUserField >> 24)) & 0xff;
+        this->mRunTypeUp = isCRUITS ? -1 : !mCdwVersion ? ((short int)(calib.calibUserField >> 24)) & 0xff
+                                                        : ((short int)(calib.calibUserField >> 9)) & 0x7f;
+        ;
         // Divide calibration word (24-bit) by 2^16 to get the first 8 bits
         if (this->mScanType == 'T') {
           // For threshold scan have to subtract from 170 to get charge value
-          charge = (short int)(170 - (calib.calibUserField >> 16) & 0xff);
+          charge = isCRUITS ? (short int)((calib.calibUserField >> 16) & 0xff) : !mCdwVersion ? (short int)(170 - (calib.calibUserField >> 16) & 0xff)
+                                                                                              : (short int)(170 - (calib.calibUserField >> 16) & 0xffff);
         } else if (this->mScanType == 'D' || this->mScanType == 'A') { // Digital scan
           charge = 0;
-        } else { // VCASN or ITHR tuning
-          charge = (short int)((calib.calibUserField >> 16) & 0xff);
+        } else { // VCASN / ITHR tuning and Pulse length scan
+          charge = !mCdwVersion ? (short int)((calib.calibUserField >> 16) & 0xff) : (short int)((calib.calibUserField >> 16) & 0xffff);
         }
 
         // Last 16 bits should be the row (only uses up to 9 bits)
-        row = (short int)(calib.calibUserField & 0xffff);
+        row = !mCdwVersion ? (short int)(calib.calibUserField & 0xffff) : (short int)(calib.calibUserField & 0x1ff);
         // cw counter
         cwcnt = (short int)(calib.calibCounter);
 
         break;
       }
     }
+
+    if (isCRUITS && isAllZero) {
+      if (mRunType == -1) {
+        short int runtype = -2;
+        mConfDBv = 0;
+        this->setRunType(runtype);
+        LOG(info) << "Running with CRU_ITS data - Calibrator will ship these run parameters to aggregator:";
+        LOG(info) << "Run type (non-sense) : " << mRunType;
+        LOG(info) << "Scan type : " << mScanType;
+        LOG(info) << "Fit type  : " << std::to_string(mFitType);
+        LOG(info) << "DB version (non-sense): " << mConfDBv;
+      }
+      charge = 0;
+      row = 0;
+      cwcnt = 0;
+    }
+
     if (charge > this->mMax || charge < this->mMin) {
       if (this->mVerboseOutput) {
-        LOG(warning) << "CW missing - charge value " << charge << " out of range for min " << this->mMin
+        LOG(warning) << "CW missing - charge/dac/delay value " << charge << " out of range for min " << this->mMin
                      << " and max " << this->mMax << " (range: " << N_RANGE << ")";
       }
     } else {
@@ -848,7 +1039,7 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
       }
 
       // loop to count hits from digits
-      short int chgPoint = charge - this->mMin;
+      short int chgPoint = (charge - this->mMin) / mStep;
       for (unsigned int idig = rofIndex; idig < rofIndex + rofNEntries; idig++) {
         auto& d = digits[idig];
         short int chipID = (short int)d.getChipIndex();
@@ -874,7 +1065,17 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
           continue;
         }
 
-        if (mScanType != 'D' && mScanType != 'A' && this->isScanFinished(chipID, row, cwcnt)) { // for D and A we do it at the end in finalize()
+        bool passCondition = false;
+        if (isDumpS) {
+          auto fndVal = std::find(chipDumpList.begin(), chipDumpList.end(), chipID);
+          int checkR = (mScanType == 'I') ? mMin : mMax;
+          passCondition = (cwcnt == nInj - 1) && (charge == checkR) && (fndVal != chipDumpList.end() || !chipDumpList.size()); // in this way we dump any s-curve, bad and good
+          LOG(info) << "checkR: " << charge << " counter: " << cwcnt << " checkR: " << checkR << " chipID: " << chipID << " pass: " << passCondition;
+        } else {
+          passCondition = isScanFinished(chipID, row, cwcnt);
+        }
+
+        if (mScanType != 'D' && mScanType != 'A' && mScanType != 'P' && passCondition) { // for D,A,P we do it at the end in finalize()
           this->extractAndUpdate(chipID, row);
           // remove entry for this row whose scan is completed
           mPixelHits[chipID].erase(row);
@@ -883,7 +1084,7 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
       }
 
       for (auto& chipID : mChips) {
-        if (mRunTypeChip[chipID] == N_INJ) {
+        if (mRunTypeChip[chipID] == nInj) {
           this->addDatabaseEntry(chipID, "", 0, 0, 0, 0, 0, true); // output for QC (mainly)
           if (mCheckEos) {
             mRunTypeChip[chipID] = 0; // to avoid to re-write the chip in the DCSConfigObject
@@ -934,7 +1135,7 @@ void ITSThresholdCalibrator::finaliseCCDB(o2::framework::ConcreteDataMatcher& ma
 
 //////////////////////////////////////////////////////////////////////////////
 // Calculate the average threshold given a vector of threshold objects
-void ITSThresholdCalibrator::findAverage(const std::array<long int, 5>& data, float& avgT, float& rmsT, float& avgN, float& rmsN)
+void ITSThresholdCalibrator::findAverage(const std::array<long int, 6>& data, float& avgT, float& rmsT, float& avgN, float& rmsN)
 {
   avgT = (!data[4]) ? 0. : (float)data[0] / (float)data[4];
   rmsT = (!data[4]) ? 0. : std::sqrt((float)data[1] / (float)data[4] - avgT * avgT);
@@ -946,7 +1147,7 @@ void ITSThresholdCalibrator::findAverage(const std::array<long int, 5>& data, fl
 //////////////////////////////////////////////////////////////////////////////
 void ITSThresholdCalibrator::addDatabaseEntry(
   const short int& chipID, const char* name, const float& avgT,
-  const float& rmsT, const float& avgN, const float& rmsN, bool status, bool isQC)
+  const float& rmsT, const float& avgN, const float& rmsN, const float& status, bool isQC)
 {
   // Obtain specific chip information from the chip ID (layer, stave, ...)
   int lay, sta, ssta, mod, chipInMod; // layer, stave, sub stave, module, chip
@@ -1065,16 +1266,25 @@ void ITSThresholdCalibrator::addDatabaseEntry(
       o2::dcs::addConfigItem(this->mPixStat, "DcolNos", nDcols);
     }
   }
-  if (this->mScanType != 'D' && this->mScanType != 'A') {
+  if (this->mScanType != 'D' && this->mScanType != 'A' && this->mScanType != 'P') {
     o2::dcs::addConfigItem(this->mTuning, "O2ChipID", std::to_string(chipID));
     o2::dcs::addConfigItem(this->mTuning, "ChipDbID", std::to_string(confDBid));
     o2::dcs::addConfigItem(this->mTuning, name, (strcmp(name, "ITHR") == 0 || strcmp(name, "VCASN") == 0) ? std::to_string((int)avgT) : std::to_string(avgT));
     o2::dcs::addConfigItem(this->mTuning, "Rms", std::to_string(rmsT));
-    o2::dcs::addConfigItem(this->mTuning, "Status", std::to_string(status)); // pass or fail
+    o2::dcs::addConfigItem(this->mTuning, "Status", std::to_string(status)); // percentage of unsuccess
   }
   if (this->mScanType == 'T') {
     o2::dcs::addConfigItem(this->mTuning, "Noise", std::to_string(avgN));
     o2::dcs::addConfigItem(this->mTuning, "NoiseRms", std::to_string(rmsN));
+  }
+
+  if (this->mScanType == 'P') {
+    o2::dcs::addConfigItem(this->mTuning, "O2ChipID", std::to_string(chipID));
+    o2::dcs::addConfigItem(this->mTuning, "ChipDbID", std::to_string(confDBid));
+    o2::dcs::addConfigItem(this->mTuning, "Tot", std::to_string(avgN));    // time over threshold
+    o2::dcs::addConfigItem(this->mTuning, "TotRms", std::to_string(rmsN)); // time over threshold rms
+    o2::dcs::addConfigItem(this->mTuning, "Rt", std::to_string(avgT));     // rise time
+    o2::dcs::addConfigItem(this->mTuning, "RtRms", std::to_string(rmsT));  // rise time rms
   }
 
   return;
@@ -1118,14 +1328,19 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
     name = "VCASN";
     auto it = this->mThresholds.cbegin();
     while (it != this->mThresholds.cend()) {
-      if (!this->mCheckEos && this->mRunTypeChip[it->first] < N_INJ) {
+      if (!this->mCheckEos && this->mRunTypeChip[it->first] < nInj) {
         ++it;
         continue;
       }
-      float avgT, rmsT, avgN, rmsN;
+      float avgT, rmsT, avgN, rmsN, mpvT, outVal;
       this->findAverage(it->second, avgT, rmsT, avgN, rmsN);
-      bool status = (this->mX[0] < avgT && avgT < this->mX[N_RANGE - 1]);
-      this->addDatabaseEntry(it->first, name, avgT, rmsT, avgN, rmsN, status, false);
+      outVal = avgT;
+      if (isMpv) {
+        mpvT = std::distance(mpvCounter[it->first].begin(), std::max_element(mpvCounter[it->first].begin(), mpvCounter[it->first].end())) + mMin;
+        outVal = mpvT;
+      }
+      float status = ((float)it->second[5] / (float)(it->second[4] + it->second[5])) * 100.; // percentage of unsuccessful threshold extractions
+      this->addDatabaseEntry(it->first, name, outVal, rmsT, avgN, rmsN, status, false);
       if (!this->mCheckEos) {
         this->mRunTypeChip[it->first] = 0; // so that this chip will never appear again in the DCSconfigObject_t
         it = this->mThresholds.erase(it);
@@ -1139,14 +1354,19 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
     name = "ITHR";
     auto it = this->mThresholds.cbegin();
     while (it != this->mThresholds.cend()) {
-      if (!this->mCheckEos && this->mRunTypeChip[it->first] < N_INJ) {
+      if (!this->mCheckEos && this->mRunTypeChip[it->first] < nInj) {
         ++it;
         continue;
       }
-      float avgT, rmsT, avgN, rmsN;
+      float avgT, rmsT, avgN, rmsN, mpvT, outVal;
       this->findAverage(it->second, avgT, rmsT, avgN, rmsN);
-      bool status = (this->mX[0] < avgT && avgT < this->mX[N_RANGE - 1]);
-      this->addDatabaseEntry(it->first, name, avgT, rmsT, avgN, rmsN, status, false);
+      outVal = avgT;
+      if (isMpv) {
+        mpvT = std::distance(mpvCounter[it->first].begin(), std::max_element(mpvCounter[it->first].begin(), mpvCounter[it->first].end())) + mMin;
+        outVal = mpvT;
+      }
+      float status = ((float)it->second[5] / (float)(it->second[4] + it->second[5])) * 100.; // percentage of unsuccessful threshold extractions
+      this->addDatabaseEntry(it->first, name, outVal, rmsT, avgN, rmsN, status, false);
       if (!this->mCheckEos) {
         this->mRunTypeChip[it->first] = 0; // so that this chip will never appear again in the DCSconfigObject_t
         it = this->mThresholds.erase(it);
@@ -1160,13 +1380,13 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
     name = "THR";
     auto it = this->mThresholds.cbegin();
     while (it != this->mThresholds.cend()) {
-      if (!this->mCheckEos && this->mRunTypeChip[it->first] < N_INJ) {
+      if (!this->mCheckEos && this->mRunTypeChip[it->first] < nInj) {
         ++it;
         continue;
       }
       float avgT, rmsT, avgN, rmsN;
       this->findAverage(it->second, avgT, rmsT, avgN, rmsN);
-      bool status = (this->mX[0] < avgT && avgT < this->mX[N_RANGE - 1] * 10);
+      float status = ((float)it->second[5] / (float)(it->second[4] + it->second[5])) * 100.; // percentage of unsuccessful threshold extractions
       this->addDatabaseEntry(it->first, name, avgT, rmsT, avgN, rmsN, status, false);
       if (!this->mCheckEos) {
         this->mRunTypeChip[it->first] = 0; // so that this chip will never appear again in the DCSconfigObject_t
@@ -1183,7 +1403,7 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
     // Extract hits from the full matrix
     auto itchip = this->mPixelHits.cbegin();
     while (itchip != this->mPixelHits.cend()) { // loop over chips collected
-      if (!this->mCheckEos && this->mRunTypeChip[itchip->first] < N_INJ) {
+      if (!this->mCheckEos && this->mRunTypeChip[itchip->first] < nInj) {
         ++itchip;
         continue;
       }
@@ -1234,6 +1454,50 @@ void ITSThresholdCalibrator::finalize(EndOfStreamContext* ec)
         it_ineff = this->mIneffPixID.erase(it_ineff);
       } else {
         ++it_ineff;
+      }
+    }
+  } else if (this->mScanType == 'P') { // pulse length scan
+    name = "Pulse";
+    // extract hits for the available row(s)
+    auto itchip = this->mPixelHits.cbegin();
+    while (itchip != mPixelHits.cend()) {
+      if (!this->mCheckEos && this->mRunTypeChip[itchip->first] < nInj) {
+        ++itchip;
+        continue;
+      }
+      LOG(info) << "Extracting hits from strobe delay scan, chip " << itchip->first;
+      auto itrow = this->mPixelHits[itchip->first].cbegin();
+      while (itrow != mPixelHits[itchip->first].cend()) { // in case there are multiple rows, for now it's 1 row
+        this->extractAndUpdate(itchip->first, itrow->first);
+        this->calculatePulseParams(itchip->first, itrow->first);
+        ++itrow;
+      }
+      if (this->mVerboseOutput) {
+        LOG(info) << "Chip " << itchip->first << " hits extracted";
+      }
+      ++itchip;
+    }
+
+    // save averages: create ccdb strings
+    auto it = this->mThresholds.cbegin();
+    while (it != this->mThresholds.cend()) {
+      if (!this->mCheckEos && this->mRunTypeChip[it->first] < nInj) {
+        ++it;
+        continue;
+      }
+      float avgRt, rmsRt, avgTot, rmsTot;
+      avgRt = (!it->second[4]) ? 0. : (float)it->second[0] / (float)it->second[4];
+      rmsRt = (!it->second[4]) ? 0. : (std::sqrt((float)it->second[1] / (float)it->second[4] - avgRt * avgRt)) * 25.;
+      avgRt *= 25.; // times 25ns
+      avgTot = (!it->second[5]) ? 0. : (float)it->second[2] / (float)it->second[5];
+      rmsTot = (!it->second[5]) ? 0. : (std::sqrt((float)it->second[3] / (float)it->second[5] - avgTot * avgTot)) * 25.;
+      avgTot *= 25.; // times 25ns
+      this->addDatabaseEntry(it->first, name, avgRt, rmsRt, avgTot, rmsTot, 1, false);
+      if (!this->mCheckEos) {
+        this->mRunTypeChip[it->first] = 0; // so that this chip will never appear again in the DCSconfigObject_t
+        it = this->mThresholds.erase(it);
+      } else {
+        ++it;
       }
     }
   }
@@ -1313,8 +1577,16 @@ DataProcessorSpec getITSThresholdCalibratorSpec(const ITSCalibInpConf& inpConf)
             {"manual-mode", VariantType::Bool, false, {"Flag to activate the manual mode in case run type is not recognized"}},
             {"manual-min", VariantType::Int, 0, {"Min value of the variable used for the scan: use only in manual mode"}},
             {"manual-max", VariantType::Int, 50, {"Max value of the variable used for the scan: use only in manual mode"}},
+            {"manual-step", VariantType::Int, 1, {"Step value: defines the steps between manual-min and manual-max. Default is 1. Use only in manual mode"}},
             {"manual-scantype", VariantType::String, "T", {"scan type, can be D, T, I, V: use only in manual mode"}},
-            {"save-tree", VariantType::Bool, false, {"Flag to save ROOT tree on disk: use only in manual mode"}}}};
+            {"manual-strobewindow", VariantType::Int, 5, {"strobe duration in clock cycles, default is 5 = 125 ns: use only in manual mode"}},
+            {"save-tree", VariantType::Bool, false, {"Flag to save ROOT tree on disk: use only in manual mode"}},
+            {"enable-mpv", VariantType::Bool, false, {"Flag to enable calculation of most-probable value in vcasn/ithr scans"}},
+            {"enable-cru-its", VariantType::Bool, false, {"Flag to enable the analysis of raw data on disk produced by CRU_ITS IB commissioning tools"}},
+            {"ninj", VariantType::Int, 50, {"Number of injections per change, default is 50"}},
+            {"dump-scurves", VariantType::Bool, false, {"Dump any s-curve to disk in ROOT file. Works only with fit option."}},
+            {"max-dump", VariantType::Int, -1, {"Maximum number of s-curves to dump in ROOT file per chip. Works with fit option and dump-scurves flag enabled. Default: dump all"}},
+            {"chip-dump", VariantType::String, "", {"Dump s-curves only for these Chip IDs (0 to 24119). If multiple IDs, write them separated by comma. Default is empty string: dump all"}}}};
 }
 } // namespace its
 } // namespace o2

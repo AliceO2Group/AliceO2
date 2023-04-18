@@ -12,6 +12,7 @@
 o2_add_library(Framework
                SOURCES src/AODReaderHelpers.cxx
                        src/ArrowSupport.cxx
+                       src/ArrowTableSlicingCache.cxx
                        src/AnalysisDataModel.cxx
                        src/ASoA.cxx
                        src/AsyncQueue.cxx
@@ -39,6 +40,8 @@ o2_add_library(Framework
                        src/ControlWebSocketHandler.cxx
                        src/DispatchPolicy.cxx
                        src/DataSender.cxx
+                       src/DataProcessingStats.cxx
+                       src/DataProcessingStates.cxx
                        src/DomainInfoHeader.cxx
                        src/ProcessingPoliciesHelpers.cxx
                        src/ConfigParamStore.cxx
@@ -53,6 +56,7 @@ o2_add_library(Framework
                        src/DataProcessingHelpers.cxx
                        src/DataProcessorSpecHelpers.cxx
                        src/DataProcessorMatchers.cxx
+                       src/DataProcessingContext.cxx
                        src/DataRefUtils.cxx
                        src/SourceInfoHeader.cxx
                        src/DataProcessor.cxx
@@ -90,7 +94,6 @@ o2_add_library(Framework
                        src/LifetimeHelpers.cxx
                        src/LocalRootFileService.cxx
                        src/RootConfigParamHelpers.cxx
-                       src/RawBufferContext.cxx
                        src/StringContext.cxx
                        src/LogParsingHelpers.cxx
                        src/MessageContext.cxx
@@ -98,9 +101,11 @@ o2_add_library(Framework
                        src/SimpleOptionsRetriever.cxx
                        src/O2ControlHelpers.cxx
                        src/O2ControlLabels.cxx
+                       src/O2DataModelHelpers.cxx
                        src/OutputSpec.cxx
                        src/OptionsHelpers.cxx
                        src/PropertyTreeHelpers.cxx
+                       src/ProcessingContext.cxx
                        src/Plugins.cxx
                        src/RateLimiter.cxx
                        src/ReadoutAdapter.cxx
@@ -113,6 +118,7 @@ o2_add_library(Framework
                        src/SimpleResourceManager.cxx
                        src/SimpleRawDeviceService.cxx
                        src/StreamOperators.cxx
+                       src/StreamContext.cxx
                        src/TMessageSerializer.cxx
                        src/TableBuilder.cxx
                        src/TableConsumer.cxx
@@ -120,6 +126,7 @@ o2_add_library(Framework
                        src/TopologyPolicy.cxx
                        src/TextDriverClient.cxx
                        src/TimesliceIndex.cxx
+                       src/TimingHelpers.cxx
                        src/DataOutputDirector.cxx
                        src/Task.cxx
                        src/Array2D.cxx
@@ -136,7 +143,9 @@ o2_add_library(Framework
                        src/StepTHn.cxx
                        src/Base64.cxx
                        src/DPLWebSocket.cxx
+                       src/TimerParamSpec.cxx
                        test/TestClasses.cxx
+               TARGETVARNAME targetName
                PRIVATE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_LIST_DIR}/src
                PUBLIC_LINK_LIBRARIES AliceO2::Configuration
                                      AliceO2::Monitoring
@@ -154,91 +163,118 @@ o2_add_library(Framework
                                      Arrow::arrow_shared
                                      Microsoft.GSL::GSL
                                      O2::FrameworkLogger
-                                     ${BOOST_FILESYSTEM}
                                      Gandiva::gandiva_shared
                                      LibUV::LibUV
                                      )
+
+# To get the necessary include for the MC status codes. Needs to be public, for instance O2Physics heavily depends on Framework
+target_include_directories(${targetName} PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/DataFormats/simulation/include>)
 
 o2_target_root_dictionary(Framework
                           HEADERS test/TestClasses.h
                           include/Framework/StepTHn.h
                           LINKDEF test/FrameworkCoreTestLinkDef.h)
 
-foreach(t
-        AlgorithmSpec
-        AlgorithmWrapper
-        AnalysisTask
-        AnalysisDataModel
-        AsyncQueue
-        ASoA
-        ASoAHelpers
-        BoostOptionsRetriever
-        ConfigurationOptionsRetriever
-        CallbackRegistry
-        ChannelSpecHelpers
-        CheckTypes
-        CompletionPolicy
-        ComputingResourceHelpers
-        ComputingQuotaEvaluator
-        ConfigParamStore
-        ConfigParamRegistry
-        DataDescriptorMatcher
-        DataDescriptorQueryBuilder
-        DataProcessorSpec
-        DataRefUtils
-        DataRelayer
-        DeviceConfigInfo
-        DeviceMetricsInfo
-        DeviceSpec
-        DeviceSpecHelpers
-        DeviceStateHelpers
-        Expressions
-        ExternalFairMQDeviceProxy
-        FairMQOptionsRetriever
-        FairMQResizableBuffer
-        FairMQ
-        FrameworkDataFlowToDDS
-        FrameworkDataFlowToO2Control
-        Graphviz
-        GroupSlicer
-        HistogramRegistry
-        HTTPParser
-        IndexBuilder
-        InputRecord
-        InputRecordWalker
-        InputSpan
-        InputSpec
-        Kernels
-        LogParsingHelpers
-        Mermaid
-        OptionsHelpers
-        OverrideLabels
-        PtrHelpers
-        RootConfigParamHelpers
-        Services
-        StringHelpers
-        StaticFor
-        SuppressionGenerator
-        TMessageSerializer
-        TableBuilder
-        TimeParallelPipelining
-        TimesliceIndex
-        TypeTraits
-        Variants
-        WorkflowHelpers
-        WorkflowSerialization
-        TreeToTable
-        DataOutputDirector)
+add_executable(o2-test-framework-core
+              test/test_AlgorithmSpec.cxx
+              test/test_AnalysisTask.cxx
+              test/test_AnalysisDataModel.cxx
+              test/test_AsyncQueue.cxx
+              test/test_ASoA.cxx
+              test/test_ASoAHelpers.cxx
+              test/test_BoostOptionsRetriever.cxx
+              test/test_ConfigurationOptionsRetriever.cxx
+              test/test_ChannelSpecHelpers.cxx
+              test/test_CheckTypes.cxx
+              test/test_CompletionPolicy.cxx
+              test/test_ComputingResourceHelpers.cxx
+              test/test_ComputingQuotaEvaluator.cxx
+              test/test_ControlServiceHelpers.cxx
+              test/test_ConfigParamStore.cxx
+              test/test_ConfigParamRegistry.cxx
+              test/test_DataDescriptorMatcher.cxx
+              test/test_DataDescriptorQueryBuilder.cxx
+              test/test_DataProcessingStats.cxx
+              test/test_DataProcessingStates.cxx
+              test/test_DataProcessorSpec.cxx
+              test/test_DataRefUtils.cxx
+              test/test_DataRelayer.cxx
+              test/test_DeviceConfigInfo.cxx
+              test/test_DeviceMetricsInfo.cxx
+              test/test_DeviceSpec.cxx
+              test/test_DeviceSpecHelpers.cxx
+              test/test_DeviceStateHelpers.cxx
+              test/test_Expressions.cxx
+              test/test_ExternalFairMQDeviceProxy.cxx
+              test/test_FairMQOptionsRetriever.cxx
+              test/test_FairMQResizableBuffer.cxx
+              test/test_FairMQ.cxx
+              test/test_FrameworkDataFlowToDDS.cxx
+              test/test_FrameworkDataFlowToO2Control.cxx
+              test/test_Graphviz.cxx
+              test/test_GroupSlicer.cxx
+              test/test_HistogramRegistry.cxx
+              test/test_HTTPParser.cxx
+              test/test_IndexBuilder.cxx
+              test/test_InputRecord.cxx
+              test/test_InputRecordWalker.cxx
+              test/test_InputSpan.cxx
+              test/test_InputSpec.cxx
+              test/test_Kernels.cxx
+              test/test_LogParsingHelpers.cxx
+              test/test_Mermaid.cxx
+              test/test_OptionsHelpers.cxx
+              test/test_OverrideLabels.cxx
+              test/test_O2DataModelHelpers.cxx
+              test/test_PtrHelpers.cxx
+              test/test_RootConfigParamHelpers.cxx
+              test/test_Services.cxx
+              test/test_StringHelpers.cxx
+              test/test_StaticFor.cxx
+              test/test_TMessageSerializer.cxx
+              test/test_TableBuilder.cxx
+              test/test_TimeParallelPipelining.cxx
+              test/test_TimesliceIndex.cxx
+              test/test_TypeTraits.cxx
+              test/test_Variants.cxx
+              test/test_WorkflowHelpers.cxx
+              test/test_WorkflowSerialization.cxx
+              test/test_TreeToTable.cxx
+              test/test_DataOutputDirector.cxx
+              test/unittest_SimpleOptionsRetriever.cxx
+              test/unittest_DataSpecUtils.cxx
+            )
+target_link_libraries(o2-test-framework-core PRIVATE O2::Framework)
+target_link_libraries(o2-test-framework-core PRIVATE O2::Catch2)
 
-  # FIXME ? The NAME parameter of o2_add_test is only needed to help the current
-  # o2.sh recipe. If the recipe is changed, those params can go away, if needed.
+get_filename_component(outdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/../tests ABSOLUTE)
+set_property(TARGET o2-test-framework-core PROPERTY RUNTIME_OUTPUT_DIRECTORY ${outdir})
 
-  o2_add_test(${t} NAME test_Framework_test_${t}
-              SOURCES test/test_${t}.cxx
-              COMPONENT_NAME Framework
-              LABELS framework
-              PUBLIC_LINK_LIBRARIES O2::Framework)
-endforeach()
+add_test(NAME framework:core COMMAND o2-test-framework-core)
+
+o2_add_test(AlgorithmWrapper NAME test_Framework_test_AlgorithmWrapper
+            SOURCES test/test_AlgorithmWrapper.cxx
+            COMPONENT_NAME Framework
+            LABELS framework
+            PUBLIC_LINK_LIBRARIES O2::Framework)
+
+o2_add_test(Timers NAME test_Framework_test_Timers
+            SOURCES test/test_Timers.cxx
+            COMPONENT_NAME Framework
+            LABELS framework
+            PUBLIC_LINK_LIBRARIES O2::Framework)
+
+o2_add_test(SuppressionGenerator NAME test_Framework_test_SuppressionGenerator
+            SOURCES test/test_SuppressionGenerator.cxx
+            COMPONENT_NAME Framework
+            LABELS framework
+            PUBLIC_LINK_LIBRARIES O2::Framework)
+
+o2_add_test(O2DatabasePDG NAME test_Framework_test_O2DatabasePDG
+            SOURCES test/test_O2DatabasePDG.cxx
+            COMPONENT_NAME Framework
+            LABELS framework
+            PUBLIC_LINK_LIBRARIES O2::Framework O2::FrameworkPhysicsSupport)
 
 o2_add_test(Root2ArrowTable NAME test_Framework_test_Root2ArrowTable
             SOURCES test/test_Root2ArrowTable.cxx
@@ -266,21 +302,6 @@ o2_add_executable(verify-aod-file
                   SOURCES src/verifyAODFile.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework ROOT::TreePlayer
                   COMPONENT_NAME Framework)
-
-# tests with a name not starting with test_...
-
-o2_add_test(unittest_DataSpecUtils NAME test_Framework_unittest_DataSpecUtils
-            SOURCES test/unittest_DataSpecUtils.cxx
-            COMPONENT_NAME Framework
-            LABELS framework
-            PUBLIC_LINK_LIBRARIES O2::Framework)
-
-o2_add_test(unittest_SimpleOptionsRetriever NAME
-            test_Framework_unittest_SimpleOptionsRetriever
-            SOURCES test/unittest_SimpleOptionsRetriever.cxx
-            COMPONENT_NAME Framework
-            LABELS framework
-            PUBLIC_LINK_LIBRARIES O2::Framework)
 
 # benchmarks
 
@@ -319,6 +340,7 @@ foreach(w
         ParallelPipeline
         ParallelProducer
         SlowConsumer
+        SlowProducerWithWildCard
         SimpleDataProcessingDevice01
         SimpleStatefulProcessing01
         SimpleStringProcessing

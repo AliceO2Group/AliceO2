@@ -20,6 +20,8 @@
 #include "Framework/ControlService.h"
 #include "Framework/WorkflowSpec.h"
 #include "DataFormatsTRD/NoiseCalibration.h"
+#include "DetectorsBase/TFIDInfoHelper.h"
+#include "TRDCalibration/CalibratorNoise.h"
 
 using namespace o2::framework;
 
@@ -42,19 +44,67 @@ class TRDNoiseCalibSpec : public o2::framework::Task
     auto digits = pc.inputs().get<gsl::span<Digit>>("trddigits");
     auto trigRecs = pc.inputs().get<gsl::span<TriggerRecord>>("trdtriggerrec");
 
-    // TODO:
-    // Here we have the digits and trigger records available for a given time frame.
-    // We should extract the relevant information (ADC sum per pad and number of ADC values added for each pad)
-    // and store that in padAdcInfo which is then send to the aggregator were another device needs to be prepared
-    // which combines the information from all different EPNs and creates the CCDB object
+    // Obtain rough time from the data header (done only once)
+    if (mStartTime == 0) {
+      o2::dataformats::TFIDInfo ti;
+      o2::base::TFIDInfoHelper::fillTFIDInfo(pc, ti);
+      if (!ti.isDummy()) {
+        mStartTime = ti.creation;
+      }
+    }
 
-    PadAdcInfo padAdcInfo;
+    // process the digits, as long as we have not reached the limit
+    if (!mCalibrator.hasEnoughData()) {
+      mCalibrator.process(digits);
+    } else {
+      if (!mHaveSentOutput) {
+        LOGP(important, "Enough data received after {} TFs seen, finalizing noise calibration", mNTFsProcessed);
+        mCalibrator.collectChannelInfo();
+        sendOutput(pc.outputs());
+        mHaveSentOutput = true;
+      } else {
+        if ((mNTFsProcessed % 1000) == 0) {
+          LOGP(important, "Not processing anymore. Seen {} TFs in total. Run can be stopped", mNTFsProcessed);
+        }
+      }
+    }
+    ++mNTFsProcessed;
+  }
 
-    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "PADADCS", 0, Lifetime::Timeframe}, padAdcInfo);
+  void sendOutput(DataAllocator& output)
+  {
+    // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
+
+    const auto& payload = mCalibrator.getCcdbObject();
+
+    auto clName = o2::utils::MemFileHelper::getClassName(payload);
+    auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
+    std::map<std::string, std::string> metadata; // do we want to add something?
+    long startValidity = mStartTime;
+    o2::ccdb::CcdbObjectInfo info("TRD/Calib/ChannelStatus", clName, flName, metadata, startValidity, startValidity + 3 * o2::ccdb::CcdbObjectInfo::MONTH);
+
+    auto image = o2::ccdb::CcdbApi::createObjectImage(&payload, &info);
+    LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
+              << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
+
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "PADSTATUS", 0}, *image.get()); // vector<char>
+    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "PADSTATUS", 0}, info);         // root-serialized
+  }
+
+  void endOfStream(o2::framework::EndOfStreamContext& ec) final
+  {
+    if (mHaveSentOutput) {
+      LOGP(important, "Received EoS after sending calibration object. All OK");
+    } else {
+      LOGP(alarm, "Received EoS before sending calibration object. Not enough digits received");
+    }
   }
 
  private:
-  // Do we need any private members here, some settings for example?
+  CalibratorNoise mCalibrator{};
+  size_t mNTFsProcessed{0};
+  bool mHaveSentOutput{false};
+  uint64_t mStartTime{0};
 };
 
 o2::framework::DataProcessorSpec getTRDNoiseCalibSpec()
@@ -63,10 +113,14 @@ o2::framework::DataProcessorSpec getTRDNoiseCalibSpec()
   inputs.emplace_back("trddigits", o2::header::gDataOriginTRD, "DIGITS", 0, Lifetime::Timeframe);
   inputs.emplace_back("trdtriggerrec", o2::header::gDataOriginTRD, "TRKTRGRD", 0, Lifetime::Timeframe);
 
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "PADSTATUS"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "PADSTATUS"}, Lifetime::Sporadic);
+
   return DataProcessorSpec{
     "trd-noise-calib",
     inputs,
-    Outputs{{o2::header::gDataOriginTRD, "PADADCS", 0, Lifetime::Timeframe}},
+    outputs,
     AlgorithmSpec{adaptFromTask<TRDNoiseCalibSpec>()},
     Options{}};
 }

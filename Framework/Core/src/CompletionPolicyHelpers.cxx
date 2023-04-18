@@ -92,7 +92,7 @@ CompletionPolicy CompletionPolicyHelpers::defineByName(std::string const& name, 
       return CompletionPolicy{"always-wait", matcher, callback};
       break;
     case CompletionPolicy::CompletionOp::Discard:
-      return CompletionPolicy{"always-discard", matcher, callback};
+      return CompletionPolicy{"always-discard", matcher, callback, false};
       break;
     case CompletionPolicy::CompletionOp::ConsumeAndRescan:
       return CompletionPolicy{"always-rescan", matcher, callback};
@@ -125,7 +125,12 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAllOrdered(const char* name
       if (input.header == nullptr) {
         return CompletionPolicy::CompletionOp::Wait;
       }
-      if (framework::DataRefUtils::isValid(input) && framework::DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(input)->startTime != *nextTimeSlice) {
+      long int startTime = framework::DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(input)->startTime;
+      if (startTime == 0) {
+        LOGP(debug, "startTime is 0, which means we have the first message, so we can process it.");
+        *nextTimeSlice = 0;
+      }
+      if (framework::DataRefUtils::isValid(input) && startTime != *nextTimeSlice) {
         return CompletionPolicy::CompletionOp::Retry;
       }
     }
@@ -201,7 +206,7 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAny(const char* name, Compl
     }
     return CompletionPolicy::CompletionOp::Wait;
   };
-  return CompletionPolicy{name, matcher, callback};
+  return CompletionPolicy{name, matcher, callback, false};
 }
 
 CompletionPolicy CompletionPolicyHelpers::consumeWhenAny(std::string matchName)

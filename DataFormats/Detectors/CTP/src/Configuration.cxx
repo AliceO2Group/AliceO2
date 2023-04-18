@@ -202,7 +202,7 @@ int CTPConfiguration::loadConfigurationRun3(const std::string& ctpconfiguration)
       }
     }
   }
-  // createInputsInDecriptorsFromNames();
+  createInputsInDecriptorsFromNames();
   return ret;
 }
 int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level, std::map<int, std::vector<int>>& descInputsIndex)
@@ -244,7 +244,11 @@ int CTPConfiguration::processConfigurationLineRun3(std::string& line, int& level
   LOG(info) << "Level:" << level;
   switch (level) {
     case RUN: {
-      mRunNumber = std::stoul(tokens[1]);
+      try {
+        mRunNumber = std::stoul(tokens[1]);
+      } catch (...) {
+        LOG(error) << "RUN:" << tokens[1] << std::endl;
+      }
       level = RUN;
       break;
     }
@@ -521,6 +525,7 @@ void CTPConfiguration::createInputsInDecriptorsFromNames()
         index = index - 100;
       }
       // CTPInput* inp = const_cast<CTPInput*>(isInputInConfig(index));
+      LOG(info) << "Desc index:" << index;
       const CTPInput* inp = isInputInConfig(index);
       if (inp) {
         des.inputs.push_back(inp);
@@ -591,6 +596,13 @@ uint64_t CTPConfiguration::getClassMaskForInputMask(uint64_t inputMask) const
     }
   }
   return clsmask;
+}
+int CTPConfiguration::assignDescriptors()
+{
+  for (auto& cls : mCTPClasses) {
+    cls.descriptor = &mDescriptors[cls.descriptorIndex];
+  }
+  return 0;
 }
 ///
 /// Run Managet to manage Config and Scalers
@@ -864,7 +876,8 @@ CTPConfiguration CTPRunManager::getConfigFromCCDB(long timestamp, std::string ru
   if (ctpconfigdb == nullptr) {
     LOG(info) << "CTP config not in database, timestamp:" << timestamp;
   } else {
-    ctpconfigdb->printStream(std::cout);
+    // ctpconfigdb->printStream(std::cout);
+    LOG(info) << "CTP config found. Run:" << run;
   }
   return *ctpconfigdb;
 }

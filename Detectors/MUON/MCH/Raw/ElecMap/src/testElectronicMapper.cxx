@@ -17,12 +17,13 @@
 #include <boost/test/unit_test.hpp>
 
 #include "MCHRawElecMap/Mapper.h"
-#include <fmt/format.h>
-#include <set>
-#include <boost/mpl/list.hpp>
-#include <gsl/span>
-#include <array>
+
 #include "dslist.h"
+#include <array>
+#include <boost/mpl/list.hpp>
+#include <fmt/format.h>
+#include <gsl/span>
+#include <set>
 
 using namespace o2::mch::raw;
 
@@ -101,7 +102,7 @@ std::set<int> nofDualSampasFromMapper(gsl::span<int> deids)
   return ds;
 }
 
-//BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
+// BOOST_TEST_DECORATOR(*boost::unit_test::disabled())
 BOOST_AUTO_TEST_CASE_TEMPLATE(MustContainAllSampaCH1R, T, testTypes)
 {
   auto check = nofDualSampasFromMapper<T>(o2::mch::raw::deIdsOfCH1R);
@@ -679,4 +680,17 @@ BOOST_AUTO_TEST_CASE(NumberOfDualSampasPerFeeId)
   }
 
   BOOST_CHECK_EQUAL(n, 16820);
+}
+
+BOOST_AUTO_TEST_CASE(CircularSolarId2IndexCheck)
+{
+  auto solarIds = o2::mch::raw::getSolarUIDs<ElectronicMapperGenerated>();
+  for (const auto& solarId : solarIds) {
+    BOOST_TEST_INFO_SCOPE(fmt::format("SolarId {}", solarId));
+    auto index = o2::mch::raw::solarId2Index<ElectronicMapperGenerated>(solarId);
+    BOOST_CHECK_EQUAL(index.has_value(), true);
+    auto id = o2::mch::raw::solarIndex2Id<ElectronicMapperGenerated>(index.value());
+    BOOST_CHECK_EQUAL(id.has_value(), true);
+    BOOST_CHECK_EQUAL(id.value(), solarId);
+  }
 }

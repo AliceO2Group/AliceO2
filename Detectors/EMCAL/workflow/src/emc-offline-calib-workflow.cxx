@@ -21,8 +21,10 @@ using namespace o2::framework;
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
-  std::vector<ConfigParamSpec> options{{"makeCellIDTimeEnergy", VariantType::Bool, true, {"list whether or not to make the cell ID, time, energy THnSparse"}},
+  std::vector<ConfigParamSpec> options{{"makeCellIDTimeEnergy", VariantType::Bool, false, {"list whether or not to make the cell ID, time, energy THnSparse"}},
                                        {"no-rejectCalibTrigg", VariantType::Bool, false, {"if set to true, all events, including calibration triggered events, will be accepted"}},
+                                       {"input-subspec", VariantType::UInt32, 0U, {"Subspecification for input objects"}},
+                                       {"applyGainCalib", VariantType::Bool, false, {"Apply the gain calibration parameters for the bad channel calibration"}},
                                        {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   workflowOptions.insert(workflowOptions.end(), options.begin(), options.end());
 }
@@ -37,7 +39,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   // Update the (declared) parameters if changed from the command line
   bool makeCellIDTimeEnergy = cfgc.options().get<bool>("makeCellIDTimeEnergy");
   bool rejectCalibTrigg = !cfgc.options().get<bool>("no-rejectCalibTrigg");
+  bool doApplyGainCalib = cfgc.options().get<bool>("applyGainCalib");
+
+  // subpsecs for input
+  auto inputsubspec = cfgc.options().get<uint32_t>("input-subspec");
+
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
-  wf.emplace_back(o2::emcal::getEmcalOfflineCalibSpec(makeCellIDTimeEnergy, rejectCalibTrigg));
+  wf.emplace_back(o2::emcal::getEmcalOfflineCalibSpec(makeCellIDTimeEnergy, rejectCalibTrigg, inputsubspec, doApplyGainCalib));
   return wf;
 }

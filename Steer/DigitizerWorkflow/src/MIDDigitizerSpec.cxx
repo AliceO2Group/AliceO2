@@ -34,6 +34,7 @@
 
 using namespace o2::framework;
 using SubSpecificationType = o2::framework::DataAllocator::SubSpecificationType;
+using DPMAP = std::unordered_map<o2::dcs::DataPointIdentifier, std::vector<o2::dcs::DataPointValue>>;
 
 namespace o2
 {
@@ -59,6 +60,11 @@ class MIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
       mDigitizer->setChamberEfficiency(*chEffCounters);
       return;
     }
+    if (matcher == ConcreteDataMatcher(header::gDataOriginMID, "CHAMBER_HV", 0)) {
+      auto* dpMap = static_cast<DPMAP*>(obj);
+      mDigitizer->getChamberResponse().setHV(*dpMap);
+      return;
+    }
   }
 
   void run(framework::ProcessingContext& pc)
@@ -73,6 +79,7 @@ class MIDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
     // Triggers reading from CCDB
     pc.inputs().get<std::vector<ChEffCounter>*>("mid_ch_eff");
+    pc.inputs().get<DPMAP*>("mid_ch_hv");
     context->initSimChains(o2::detectors::DetID::MID, mSimChains);
     auto& irecords = context->getEventRecords();
 
@@ -142,6 +149,7 @@ o2::framework::DataProcessorSpec getMIDDigitizerSpec(int channel, bool mctruth)
   std::vector<InputSpec> inputSpecs;
   inputSpecs.emplace_back("collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
   inputSpecs.emplace_back("mid_ch_eff", header::gDataOriginMID, "CHAMBER_EFF", 0, Lifetime::Condition, ccdbParamSpec("MID/Calib/ChamberEfficiency"));
+  inputSpecs.emplace_back("mid_ch_hv", header::gDataOriginMID, "CHAMBER_HV", 0, Lifetime::Condition, ccdbParamSpec("MID/Calib/HV"));
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("MID", "DIGITS", 0, Lifetime::Timeframe);

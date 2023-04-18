@@ -165,7 +165,12 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
     if (mSeeds[poolEntryID[btm]].origID.getSource() == GTrackID::TPC) {
       const auto& tpcTrOrig = data.getTPCTrack(mSeeds[poolEntryID[btm]].origID);
       trCosm = outerLegs[btm];
-      int retVal = tpcRefitter->RefitTrackAsTrackParCov(trCosm, tpcTrOrig.getClusterRef(), t0 * tpcTBinMUSInv, &chi2, false, true); // inward refit, reset
+      trCosm.resetCovariance();
+      // in case of cosmics, constrain the momentum
+      if (!mFieldON) {
+        trCosm.setQ2Pt(-o2::track::kMostProbablePt);
+      }
+      int retVal = tpcRefitter->RefitTrackAsTrackParCov(trCosm, tpcTrOrig.getClusterRef(), (t0 + mTPCDriftTimeOffset) * tpcTBinMUSInv, &chi2, false, false); // inward refit, reset
       if (retVal < 0) {                                                                                                             // refit failed
         LOG(debug) << "Inward refit of btm TPC track failed.";
         continue;
@@ -173,6 +178,10 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
       nclTot += retVal;
       LOG(debug) << "chi2 after btm TPC refit with " << retVal << " clusters : " << chi2 << " orig.chi2 was " << tpcTrOrig.getChi2();
     } else { // just collect NClusters and chi2
+      // since we did not refit bottom track, we just invert its conventional q/pT in case of B=0, so that after the inversion it gets correct sign
+      if (!mFieldON) {
+        trCosm.setQ2Pt(-trCosm.getQ2Pt());
+      }
       auto gidxListBtm = data.getSingleDetectorRefs(mSeeds[poolEntryID[btm]].origID);
       if (gidxListBtm[GTrackID::TPC].isIndexSet()) {
         const auto& tpcTrOrig = data.getTPCTrack(gidxListBtm[GTrackID::TPC]);
@@ -219,7 +228,7 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
         }
       }
       const auto& tpcTrOrig = data.getTPCTrack(gidxListTop[GTrackID::TPC]);
-      int retVal = tpcRefitter->RefitTrackAsTrackParCov(trCosm, tpcTrOrig.getClusterRef(), t0 * tpcTBinMUSInv, &chi2, true, false); // outward refit, no reset
+      int retVal = tpcRefitter->RefitTrackAsTrackParCov(trCosm, tpcTrOrig.getClusterRef(), (t0 + mTPCDriftTimeOffset) * tpcTBinMUSInv, &chi2, true, false); // outward refit, no reset
       if (retVal < 0) {                                                                                                             // refit failed
         LOG(debug) << "Outward refit of top TPC track failed.";
         continue;
@@ -233,7 +242,7 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
     auto trCosmTop = outerLegs[top];
     if (gidxListTop[GTrackID::TPC].isIndexSet()) { // inward refit in TPC
       const auto& tpcTrOrig = data.getTPCTrack(gidxListTop[GTrackID::TPC]);
-      int retVal = tpcRefitter->RefitTrackAsTrackParCov(trCosmTop, tpcTrOrig.getClusterRef(), t0 * tpcTBinMUSInv, &chi2Dummy, false, true); // inward refit, reset
+      int retVal = tpcRefitter->RefitTrackAsTrackParCov(trCosmTop, tpcTrOrig.getClusterRef(), (t0 + mTPCDriftTimeOffset) * tpcTBinMUSInv, &chi2Dummy, false, true); // inward refit, reset
       if (retVal < 0) {                                                                                                                     // refit failed
         LOG(debug) << "Outward refit of top TPC track failed.";
         continue;
@@ -491,6 +500,7 @@ void MatchCosmics::createSeeds(const o2::globaltracking::RecoContainer& data)
       if constexpr (isTPCTrack<decltype(_tr)>()) {
         // unconstrained TPC track, with t0 = TrackTPC.getTime0+0.5*(DeltaFwd-DeltaBwd) and terr = 0.5*(DeltaFwd+DeltaBwd) in TimeBins
         t0 *= this->mTPCTBinMUS;
+        t0 -= this->mTPCDriftTimeOffset;
         terr *= this->mTPCTBinMUS;
       } else if (isITSTrack<decltype(_tr)>()) {
         t0 += 0.5 * this->mITSROFrameLengthMUS; // time 0 is supplied as beginning of ROF in \mus
@@ -580,6 +590,7 @@ void MatchCosmics::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
   mTPCVDrift = v.refVDrift * v.corrFact;
   mTPCVDriftCorrFact = v.corrFact;
   mTPCVDriftRef = v.refVDrift;
+  mTPCDriftTimeOffset = v.getTimeOffset();
 }
 
 //______________________________________________

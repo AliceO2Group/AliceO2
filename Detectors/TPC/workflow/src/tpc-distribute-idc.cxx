@@ -24,7 +24,7 @@ using namespace o2::framework;
 void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
   using o2::framework::CompletionPolicy;
-  policies.push_back(CompletionPolicyHelpers::defineByName("tpc-distribute-idc.*", CompletionPolicy::CompletionOp::Consume));
+  policies.push_back(CompletionPolicyHelpers::defineByName("tpc-distribute-*.*", CompletionPolicy::CompletionOp::Consume));
 }
 
 // we need to add workflow options before including Framework/runDataProcessing
@@ -41,7 +41,6 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"send-precise-timestamp", VariantType::Bool, false, {"Send precise timestamp which can be used for writing to CCDB"}},
     {"n-TFs-buffer", VariantType::Int, 1, {"Buffer which was defined in the TPCFLPIDCSpec."}},
     {"output-lanes", VariantType::Int, 2, {"Number of parallel pipelines which will be used in the factorization device."}}};
-
   std::swap(workflowOptions, options);
 }
 

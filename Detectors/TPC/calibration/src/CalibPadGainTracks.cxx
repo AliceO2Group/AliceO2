@@ -202,7 +202,10 @@ void CalibPadGainTracks::processTrack(o2::tpc::TrackTPC track, o2::gpu::GPUO2Int
       }
 
       // fill the normalizes charge in pad histogram
-      const float fillVal = mDoNotNormCharge ? std::get<3>(x) : std::get<3>(x) / dedxTmp;
+      float fillVal = mDoNotNormCharge ? std::get<3>(x) : std::get<3>(x) / dedxTmp;
+      if (getLogTransformQ()) {
+        fillVal = std::log(1 + fillVal);
+      }
       fillPadByPadHistogram(roc.getRoc(), index, fillVal);
     }
   } else {
@@ -395,9 +398,10 @@ int CalibPadGainTracks::getIndex(o2::tpc::PadSubset padSub, int padSubsetNumber,
 //______________________________________________
 void CalibPadGainTracks::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
 {
-  mTPCVDrift = v.refVDrift * v.corrFact;
+  mTPCVDrift = v.getVDrift();
   mTPCVDriftCorrFact = v.corrFact;
   mTPCVDriftRef = v.refVDrift;
+  mTPCDriftTimeOffset = v.getTimeOffset();
 }
 
 //______________________________________________

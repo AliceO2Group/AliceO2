@@ -2407,6 +2407,11 @@
                   "node": {
                     "path": "CCDB/test/testCcdbApiMultipleUrls.cxx"
                   }
+                },
+                {
+                  "node": {
+                    "path": "CCDB/test/testCcdbApiDownloader.cxx"
+                  }
                 }
               ]
             }

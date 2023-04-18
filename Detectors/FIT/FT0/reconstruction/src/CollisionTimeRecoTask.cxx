@@ -19,6 +19,8 @@
 #include "FT0Base/FT0DigParam.h"
 #include <DataFormatsFT0/ChannelData.h>
 #include <DataFormatsFT0/Digit.h>
+#include <DataFormatsFT0/DigitFilterParam.h>
+#include <DataFormatsFT0/CalibParam.h>
 #include <cmath>
 #include <bitset>
 #include <cassert>
@@ -29,36 +31,49 @@
 using namespace o2::ft0;
 using RP = o2::ft0::RecPoints;
 
-RP CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
-                                  gsl::span<const o2::ft0::ChannelData> inChData,
-                                  gsl::span<o2::ft0::ChannelDataFloat> outChData)
+void CollisionTimeRecoTask::processTF(const gsl::span<const o2::ft0::Digit>& digits,
+                                      const gsl::span<const o2::ft0::ChannelData>& channels,
+                                      std::vector<o2::ft0::RecPoints>& vecRecPoints,
+                                      std::vector<o2::ft0::ChannelDataFloat>& vecChData)
+{
+  //  vecRecPoints.reserve(digits.size());
+  //  vecChData.reserve(channels.size());
+  for (const auto& digit : digits) {
+    if (!ChannelFilterParam::Instance().checkTCMbits(digit.getTriggers().getTriggersignals())) {
+      continue;
+    }
+    const auto channelsPerDigit = digit.getBunchChannelData(channels);
+    vecRecPoints.emplace_back(processDigit(digit, channelsPerDigit, vecChData));
+  }
+}
+RP CollisionTimeRecoTask::processDigit(const o2::ft0::Digit& digit,
+                                       const gsl::span<const o2::ft0::ChannelData> inChData,
+                                       std::vector<o2::ft0::ChannelDataFloat>& outChData)
 {
   LOG(debug) << "Running reconstruction on new event";
+  const int firstEntry = outChData.size();
+  unsigned int ndigitsA = 0;
+  unsigned int ndigitsC = 0;
+  float sideAtime = 0;
+  float sideCtime = 0;
 
-  Int_t ndigitsA = 0;
-  Int_t ndigitsC = 0;
-  Float_t sideAtime = 0;
-  Float_t sideCtime = 0;
-
-  constexpr Int_t nMCPsA = 4 * Geometry::NCellsA;
+  constexpr int nMCPsA = 4 * Geometry::NCellsA;
   const auto parInv = FT0DigParam::Instance().mMV_2_NchannelsInverse;
 
-  int nch = inChData.size();
-  for (int ich = 0; ich < nch; ich++) {
-    int offsetChannel = getOffset(int(inChData[ich].ChId), inChData[ich].QTCAmpl);
-    outChData[ich] = o2::ft0::ChannelDataFloat{inChData[ich].ChId,
-                                               (inChData[ich].CFDTime - offsetChannel) * Geometry::ChannelWidth,
-                                               (float)inChData[ich].QTCAmpl,
-                                               inChData[ich].ChainQTC};
-
+  int nch{0};
+  for (const auto& channelData : inChData) {
+    const float timeInPS = getTimeInPS(channelData);
+    if (ChannelFilterParam::Instance().checkAll(channelData)) {
+      outChData.emplace_back(channelData.ChId, timeInPS, (float)channelData.QTCAmpl, channelData.ChainQTC);
+      nch++;
+    }
     //  only signals with amplitude participate in collision time
-    if (outChData[ich].QTCAmpl > FT0DigParam::Instance().mAmpThresholdForReco && std::abs(outChData[ich].CFDTime) < FT0DigParam::Instance().mTimeThresholdForReco) {
-      if (outChData[ich].ChId < nMCPsA) {
-        sideAtime += outChData[ich].CFDTime;
+    if (TimeFilterParam::Instance().checkAll(channelData)) {
+      if (channelData.ChId < nMCPsA) {
+        sideAtime += timeInPS;
         ndigitsA++;
-      } else {
-        sideCtime += outChData[ich].CFDTime;
-        LOG(debug) << "cfd " << outChData[ich].ChId << " dig " << 13.2 * inChData[ich].CFDTime << " rec " << outChData[ich].CFDTime << " amp " << (float)inChData[ich].QTCAmpl << " offset " << offsetChannel;
+      } else if (channelData.ChId < NCHANNELS) {
+        sideCtime += timeInPS;
         ndigitsC++;
       }
     }
@@ -74,9 +89,7 @@ RP CollisionTimeRecoTask::process(o2::ft0::Digit const& bcd,
   } else {
     mCollisionTime[TimeMean] = std::min(mCollisionTime[TimeA], mCollisionTime[TimeC]);
   }
-  LOG(debug) << " Nch " << nch << " Collision time " << mCollisionTime[TimeA] << " " << mCollisionTime[TimeC] << " " << mCollisionTime[TimeMean] << " " << mCollisionTime[Vertex];
-  return RecPoints{
-    mCollisionTime, bcd.ref.getFirstEntry(), bcd.ref.getEntries(), bcd.mIntRecord, bcd.mTriggers};
+  return RecPoints{mCollisionTime, firstEntry, nch, digit.mIntRecord, digit.mTriggers};
 }
 //______________________________________________________
 void CollisionTimeRecoTask::FinishTask()
@@ -84,18 +97,37 @@ void CollisionTimeRecoTask::FinishTask()
   // finalize digitization, if needed, flash remaining digits
   // if (!mContinuous)   return;
 }
-//______________________________________________________
-int CollisionTimeRecoTask::getOffset(int channel, int amp)
+
+float CollisionTimeRecoTask::getTimeInPS(const o2::ft0::ChannelData& channelData)
 {
-  if (!mCalibOffset) {
-    return 0;
+  float offsetChannel{0};
+  float slewoffset{0};
+  if (mTimeCalibObject && channelData.ChId < NCHANNELS) {
+    // Temporary, will be changed to status bit checking
+    // Check statistics
+    const auto& stat = mTimeCalibObject->mTime[channelData.ChId].mStat;
+    const bool isEnoughStat = stat > CalibParam::Instance().mMaxEntriesThreshold;
+    const bool isNotGoogStat = stat > CalibParam::Instance().mMinEntriesThreshold && !isEnoughStat;
+    // Check fit quality
+    const auto& meanGaus = mTimeCalibObject->mTime[channelData.ChId].mGausMean;
+    const auto& meanHist = mTimeCalibObject->mTime[channelData.ChId].mStatMean;
+    const auto& sigmaGaus = mTimeCalibObject->mTime[channelData.ChId].mGausRMS;
+    const auto& rmsHist = mTimeCalibObject->mTime[channelData.ChId].mStatRMS;
+    const bool isGoodFitResult = (mTimeCalibObject->mTime[channelData.ChId].mStatusBits & 1) > 0;
+    const bool isBadFit = std::abs(meanGaus - meanHist) > CalibParam::Instance().mMaxDiffMean || rmsHist < CalibParam::Instance().mMinRMS || sigmaGaus > CalibParam::Instance().mMaxSigma;
+
+    if (isEnoughStat && isGoodFitResult && !isBadFit) {
+      offsetChannel = meanGaus;
+    } else if ((isNotGoogStat || isEnoughStat) && isBadFit) {
+      offsetChannel = meanHist;
+    }
   }
-  int offsetChannel = mCalibOffset->mTimeOffsets[channel];
-  double slewoffset = 0;
-  if (mCalibSlew) {
-    TGraph& gr = mCalibSlew->at(channel);
-    slewoffset = gr.Eval(amp);
+  /*
+  if (mCalibSlew  && channelData.ChId < NCHANNELS) {
+    TGraph& gr = mCalibSlew->at(channelData.ChId);
+    slewoffset = gr.Eval(channelData.QTCAmpl);
   }
-  LOG(debug) << "CollisionTimeRecoTask::getOffset(int channel, int amp) " << channel << " " << amp << " " << offsetChannel << " " << slewoffset;
-  return offsetChannel + int(slewoffset);
+  */
+  const float globalOffset = (offsetChannel + slewoffset) * Geometry::ChannelWidth;
+  return float(channelData.CFDTime) * Geometry::ChannelWidth - globalOffset;
 }

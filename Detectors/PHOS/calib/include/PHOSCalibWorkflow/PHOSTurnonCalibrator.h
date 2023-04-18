@@ -67,7 +67,7 @@ class PHOSTurnonSlot
 };
 
 //==========================================================================================
-class PHOSTurnonCalibrator final : public o2::calibration::TimeSlotCalibration<o2::phos::Cluster, o2::phos::PHOSTurnonSlot>
+class PHOSTurnonCalibrator final : public o2::calibration::TimeSlotCalibration<o2::phos::PHOSTurnonSlot>
 {
   using Slot = o2::calibration::TimeSlot<o2::phos::PHOSTurnonSlot>;
 

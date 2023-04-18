@@ -39,7 +39,7 @@ void customize(std::vector<CallbacksPolicy>& policies)
   policies.push_back(CallbacksPolicy{
     .matcher = DeviceMatchers::matchByName("A"),
     .policy = [](CallbackService& service, InitContext&) {
-      service.set(CallbackService::Id::Start, []() { LOG(info) << "invoked at start"; });
+      service.set<CallbackService::Id::Start>([]() { LOG(info) << "invoked at start"; });
     }});
 }
 
@@ -77,7 +77,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
      {OutputSpec{{"a1"}, "TST", "A1"},
       OutputSpec{{"a2"}, "TST", "A2"}},
      AlgorithmSpec{adaptStateless(
-       [](DataAllocator& outputs, RawDeviceService& device, DataTakingContext& context) {
+       [](DataAllocator& outputs, RawDeviceService& device) {
          auto r = rand() % 2;
          device.device()->WaitFor(std::chrono::seconds(r));
          if (r == 0) {

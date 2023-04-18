@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 //
-//file RawWriterFIT.h Base class for RAW data writing
+// file RawWriterFIT.h Base class for RAW data writing
 //
 // Artur.Furs
 // afurs@cern.ch
@@ -33,9 +33,8 @@ namespace o2
 {
 namespace fit
 {
-
 // Raw writer for FIT, based on RawReader
-template <typename DigitBlockFITtype, typename DataBlockPMtype, typename DataBlockTCMtype>
+template <typename DigitBlockFITtype, typename DataBlockPMtype, typename DataBlockTCMtype, typename = typename std::enable_if_t<DataBlockPMtype::sIsPadded == DataBlockTCMtype::sIsPadded>>
 class RawWriterFIT
 {
  public:
@@ -66,10 +65,10 @@ class RawWriterFIT
     LOG(info) << "Converting Digits to Raw data...";
     mWriter.setCarryOverCallBack(this);
     LookupTable_t::Instance().printFullMap();
-    //Preparing topo2FEEmetadata map
+    // Preparing topo2FEEmetadata map
     mMapTopo2FEEmetadata.clear();
     mMapTopo2FEEmetadata = LookupTable_t::Instance().template makeMapFEEmetadata<o2::header::RAWDataHeader, RDHUtils>();
-    //Preparing filenames
+    // Preparing filenames
     std::string detName = LookupTable_t::sDetectorName;
     auto makeFilename = [&](const o2::header::RAWDataHeader& rdh) -> std::string {
       std::string maskName{};
@@ -88,13 +87,13 @@ class RawWriterFIT
       std::string outputFilename = o2::utils::Str::concat_string(outputDir, detName, maskName, ".raw");
       return outputFilename;
     };
-    //Registering links
+    // Registering links
     for (const auto& metadataPair : mMapTopo2FEEmetadata) {
       const auto& rdh = metadataPair.second;
       const auto outputFilename = makeFilename(rdh);
       mWriter.registerLink(RDHUtils::getFEEID(rdh), RDHUtils::getCRUID(rdh), RDHUtils::getLinkID(rdh), RDHUtils::getEndPointID(rdh), outputFilename);
     }
-    //Processing digits into raw data
+    // Processing digits into raw data
     TFile* inputFile = TFile::Open(filenameDigits.c_str());
     assert(inputFile != nullptr);
     LOG(info) << "Source file: " << filenameDigits;
@@ -107,7 +106,7 @@ class RawWriterFIT
   void processDigitBlockPerTF(const std::vector<DigitBlockFIT_t>& vecDigitBlock) // Is used in DigitBlockFIT_t::processDigitBlocks for each TF (TTree entry)
   {
     for (const auto& digitBlock : vecDigitBlock) {
-      //Processing PM data
+      // Processing PM data
       auto mapDataBlockPM = digitBlock.template decomposeDigits<DataBlockPM_t>();
       if (mVerbosity > 0) {
         digitBlock.print();
@@ -128,7 +127,7 @@ class RawWriterFIT
         auto data = dataBlock.serialize();
         mWriter.addData(RDHUtils::getFEEID(rdh), RDHUtils::getCRUID(rdh), RDHUtils::getLinkID(rdh), RDHUtils::getEndPointID(rdh), dataBlock.getInteractionRecord(), data);
       }
-      //Processing TCM data
+      // Processing TCM data
       const auto dataBlockPair = digitBlock.template decomposeDigits<DataBlockTCM_t>();
       const auto& topo = dataBlockPair.first;
       const auto& dataBlock = dataBlockPair.second;
@@ -150,8 +149,9 @@ class RawWriterFIT
   o2::raw::RawFileWriter mWriter{LookupTable_t::sDetectorName};
   std::string mFlpName{};
   std::string mFileFor{};
+  int mDataFormat{0}; // RDH::dataFormat field, 0 - padded, 2 - no padding
   std::map<Topo_t, o2::header::RAWDataHeader> mMapTopo2FEEmetadata;
-  //const o2::raw::HBFUtils& mSampler = o2::raw::HBFUtils::Instance();
+  // const o2::raw::HBFUtils& mSampler = o2::raw::HBFUtils::Instance();
   bool mOutputPerLink = false;
   int mVerbosity = 0;
 };

@@ -12,6 +12,7 @@
 #include "ControlWebSocketHandler.h"
 #include "DriverServerContext.h"
 #include "Framework/DeviceMetricsHelper.h"
+#include "Framework/ServiceMetricsInfo.h"
 #include <regex>
 #include "Framework/Logger.h"
 #include "Framework/DeviceConfigInfo.h"
@@ -21,23 +22,23 @@ namespace o2::framework
 void ControlWebSocketHandler::frame(char const* frame, size_t s)
 {
   bool hasNewMetric = false;
-  auto updateMetricsViews = Metric2DViewIndex::getUpdater({&(*mContext.infos)[mIndex].dataRelayerViewIndex,
-                                                           &(*mContext.infos)[mIndex].variablesViewIndex,
-                                                           &(*mContext.infos)[mIndex].queriesViewIndex,
-                                                           &(*mContext.infos)[mIndex].outputsViewIndex,
-                                                           &(*mContext.infos)[mIndex].inputChannelMetricsViewIndex,
-                                                           &(*mContext.infos)[mIndex].outputChannelMetricsViewIndex});
+  std::array<Metric2DViewIndex*, 6> model = {&(*mContext.infos)[mIndex].dataRelayerViewIndex,
+                                             &(*mContext.infos)[mIndex].variablesViewIndex,
+                                             &(*mContext.infos)[mIndex].queriesViewIndex,
+                                             &(*mContext.infos)[mIndex].outputsViewIndex,
+                                             &(*mContext.infos)[mIndex].inputChannelMetricsViewIndex,
+                                             &(*mContext.infos)[mIndex].outputChannelMetricsViewIndex};
+  auto updateMetricsViews = Metric2DViewIndex::getUpdater();
 
-  auto newMetricCallback = [&updateMetricsViews, &metrics = mContext.metrics, &hasNewMetric](std::string const& name, MetricInfo const& metric, int value, size_t metricIndex) {
-    updateMetricsViews(name, metric, value, metricIndex);
+  auto newMetricCallback = [&](std::string const& name, MetricInfo const& metric, int value, size_t metricIndex) {
+    updateMetricsViews(model, name, metric, value, metricIndex);
     hasNewMetric = true;
   };
   std::string_view tokenSV(frame, s);
   ParsedMetricMatch metricMatch;
 
-  auto doParseConfig = [](std::string const& token, ParsedConfigMatch& configMatch, DeviceInfo& info) -> bool {
-    auto ts = "                 " + token;
-    if (DeviceConfigHelper::parseConfig(ts, configMatch)) {
+  auto doParseConfig = [](std::string_view const& token, ParsedConfigMatch& configMatch, DeviceInfo& info) -> bool {
+    if (DeviceConfigHelper::parseConfig(token, configMatch)) {
       DeviceConfigHelper::processConfig(configMatch, info);
       return true;
     }
@@ -55,8 +56,8 @@ void ControlWebSocketHandler::frame(char const* frame, size_t s)
   }
 
   ParsedConfigMatch configMatch;
-  std::string token(frame, s);
-  std::smatch match;
+  std::string_view const token(frame, s);
+  std::match_results<std::string_view::const_iterator> match;
 
   if (ControlServiceHelpers::parseControl(token, match) && mContext.infos) {
     ControlServiceHelpers::processCommand(*mContext.infos, mPid, match[1].str(), match[2].str());
@@ -78,7 +79,7 @@ void ControlWebSocketHandler::endChunk()
   }
   size_t timestamp = uv_now(mContext.loop);
   for (auto& callback : *mContext.metricProcessingCallbacks) {
-    callback(mContext.registry, *mContext.metrics, *mContext.specs, *mContext.infos, mContext.driver->metrics, timestamp);
+    callback(mContext.registry, ServiceMetricsInfo{*mContext.metrics, *mContext.specs, *mContext.infos, mContext.driver->metrics}, timestamp);
   }
   for (auto& metricsInfo : *mContext.metrics) {
     std::fill(metricsInfo.changed.begin(), metricsInfo.changed.end(), false);

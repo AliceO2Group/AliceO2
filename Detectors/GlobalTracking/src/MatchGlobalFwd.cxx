@@ -21,6 +21,12 @@ void MatchGlobalFwd::init()
 
   auto& matchingParam = GlobalFwdMatchingParam::Instance();
 
+  setMFTRadLength(matchingParam.MFTRadLength);
+  LOG(info) << "MFT Radiation Length = " << mMFTDiskThicknessInX0 * 5.;
+
+  setAlignResiduals(matchingParam.alignResidual);
+  LOG(info) << "MFT Align residuals = " << mAlignResidual;
+
   mMatchingPlaneZ = matchingParam.matchPlaneZ;
   LOG(info) << "MFTMCH matchingPlaneZ = " << mMatchingPlaneZ;
 
@@ -145,6 +151,8 @@ bool MatchGlobalFwd::prepareMCHData()
     return false;
   }
   mMCHWork.reserve(mMCHTracks.size());
+  mMCHID2Work.clear();
+  mMCHID2Work.resize(mMCHTracks.size(), -1);
   static int BCDiffErrCount = 0;
   constexpr int MAXBCDiffErrCount = 2;
 
@@ -167,6 +175,7 @@ bool MatchGlobalFwd::prepareMCHData()
     for (int it = rofRec.getFirstIdx(); it < trlim; it++) {
       auto& trcOrig = mMCHTracks[it];
       int nWorkTracks = mMCHWork.size();
+      mMCHID2Work[it] = nWorkTracks;
       // working copy MCH track propagated to matching plane and converted to the forward track format
       o2::mch::TrackParam tempParam(trcOrig.getZ(), trcOrig.getParameters(), trcOrig.getCovariances());
       if (!o2::mch::TrackExtrap::extrapToVertexWithoutBranson(tempParam, mMatchingPlaneZ)) {
@@ -196,7 +205,8 @@ bool MatchGlobalFwd::processMCHMIDMatches()
     for (const auto& MIDMatch : mMCHMIDMatches) {
       const auto& MCHId = MIDMatch.getMCHRef().getIndex();
       const auto& MIDId = MIDMatch.getMIDRef().getIndex();
-      auto& thisMuonTrack = mMCHWork[MCHId];
+      auto& thisMuonTrack = mMCHWork[mMCHID2Work[MCHId]];
+      LOG(debug) << " MCHId: " << MCHId << " --> mMCHID2Work[MCHId]:" << mMCHID2Work[MCHId];
       const auto& IR = MIDMatch.getIR();
       int nBC = IR.differenceInBC(mStartIR);
       float tMin = nBC * o2::constants::lhc::LHCBunchSpacingMUS;
@@ -245,7 +255,6 @@ bool MatchGlobalFwd::prepareMFTData()
 
   for (int irof = 0; irof < nROFs; irof++) {
     const auto& rofRec = mMFTTrackROFRec[irof];
-
     int nBC = rofRec.getBCData().differenceInBC(mStartIR);
     if (nBC < 0) {
       if (BCDiffErrCount++ < MAXBCDiffErrCount) {
@@ -300,7 +309,7 @@ void MatchGlobalFwd::loadMatches()
     auto MCHId = match.getMCHTrackID();
     LOG(debug) << "     ==> MFTId = " << MFTId << " MCHId =  " << MCHId << std::endl;
 
-    auto& thisMCHTrack = mMCHWork[MCHId];
+    auto& thisMCHTrack = mMCHWork[mMCHID2Work[MCHId]];
     thisMCHTrack.setMatchInfo(match);
     mMatchedTracks.emplace_back(thisMCHTrack);
     if (mMCTruthON) {
@@ -326,6 +335,8 @@ void MatchGlobalFwd::doMatching()
   // ROFrame of first MFT track
   auto firstMFTTrackIdInROF = 0;
   auto MFTROFId = mMFTWork.front().roFrame;
+  LOG(debug) << "(*) nMCHROFs: " << nMCHROFs << ", mMFTTracks.size(): " << mMFTTracks.size() << " MFTROFId: " << MFTROFId << ",  mMFTTrackROFRec.size(): " << mMFTTrackROFRec.size();
+
   while ((firstMFTTrackIdInROF < mMFTTracks.size()) && (MFTROFId < mMFTTrackROFRec.size())) {
     auto MFTROFId = mMFTWork[firstMFTTrackIdInROF].roFrame;
     const auto& thisMFTBracket = mMFTROFTimes[MFTROFId];
@@ -496,7 +507,7 @@ void MatchGlobalFwd::doMCMatching()
   // loop over all MCH tracks
   for (auto MCHId = 0; MCHId < mMCHWork.size(); MCHId++) {
     auto& thisMCHTrack = mMCHWork[MCHId];
-    const o2::MCCompLabel& thisMCHLabel = mMCHTrkLabels[MCHId];
+    const o2::MCCompLabel& thisMCHLabel = mMCHTrkLabels[mMCHID2Work[MCHId]];
 
     LOG(debug) << "   MCH Track # " << MCHId << " Label: " << thisMCHLabel;
     if (!((thisMCHLabel).isSet())) {
@@ -555,22 +566,9 @@ void MatchGlobalFwd::fitGlobalMuonTrack(o2::dataformats::GlobalFwdTrack& gTrack)
   const auto& mftTrackOut = mMFTWork[MFTMatchId];
   auto ncls = mftTrack.getNumberOfPoints();
   auto offset = mftTrack.getExternalClusterIndexOffset();
-  auto invQPt0 = gTrack.getInvQPt();
-  auto sigmainvQPtsq = gTrack.getCovariances()(4, 4);
-
-  // initialize the starting track parameters and cluster
-  auto k = TMath::Abs(o2::constants::math::B2C * mBz);
-  auto Hz = std::copysign(1, mBz);
 
   LOG(debug) << "***************************** Start Fitting new track *****************************";
   LOG(debug) << "N Clusters = " << ncls << "  Best MFT Track Match ID " << gTrack.getMFTTrackID() << "  MCHTrack: X = " << gTrack.getX() << " Y = " << gTrack.getY() << " Z = " << gTrack.getZ() << " Tgl = " << gTrack.getTanl() << "  Phi = " << gTrack.getPhi() << " pz = " << gTrack.getPz() << " qpt = " << 1.0 / gTrack.getInvQPt();
-
-  gTrack.setX(mftTrackOut.getX());
-  gTrack.setY(mftTrackOut.getY());
-  gTrack.setZ(mftTrackOut.getZ());
-  gTrack.setPhi(mftTrackOut.getPhi());
-  gTrack.setTanl(mftTrackOut.getTanl());
-  gTrack.setInvQPt(gTrack.getInvQPt());
 
   LOG(debug) << "MFTTrack: X = " << mftTrackOut.getX()
              << " Y = " << mftTrackOut.getY() << " Z = " << mftTrackOut.getZ()
@@ -578,10 +576,6 @@ void MatchGlobalFwd::fitGlobalMuonTrack(o2::dataformats::GlobalFwdTrack& gTrack)
              << "  Phi = " << mftTrackOut.getPhi() << " pz = " << mftTrackOut.getPz()
              << " qpt = " << 1.0 / mftTrackOut.getInvQPt();
   LOG(debug) << "  initTrack GlobalTrack: q/pt = " << gTrack.getInvQPt() << std::endl;
-
-  SMatrix55Sym lastParamCov;
-  Double_t tanlsigma = TMath::Max(std::abs(mftTrackOut.getTanl()), .5);
-  Double_t qptsigma = TMath::Max(std::abs(mftTrackOut.getInvQPt()), .5);
 
   auto lastLayer = mMFTMapping.ChipID2Layer[mMFTClusters[offset + ncls - 1].getSensorID()];
   LOG(debug) << "Starting by MFTCluster offset " << offset + ncls - 1 << " at lastLayer " << lastLayer;
@@ -606,8 +600,10 @@ bool MatchGlobalFwd::computeCluster(o2::dataformats::GlobalFwdTrack& track, cons
   const auto& clx = cluster.getX();
   const auto& cly = cluster.getY();
   const auto& clz = cluster.getZ();
-  const auto& sigmaX2 = cluster.getSigmaY2(); // ALPIDE local Y coordinate => MFT global X coordinate (ALPIDE rows)
-  const auto& sigmaY2 = cluster.getSigmaZ2(); // ALPIDE local Z coordinate => MFT global Y coordinate (ALPIDE columns)
+  const auto& sigmaX2 = cluster.getSigmaY2() * mAlignResidual * mAlignResidual;
+  ; // ALPIDE local Y coordinate => MFT global X coordinate (ALPIDE rows)
+  const auto& sigmaY2 = cluster.getSigmaZ2() * mAlignResidual * mAlignResidual;
+  ; // ALPIDE local Z coordinate => MFT global Y coordinate (ALPIDE columns)
 
   const auto& newLayerID = mMFTMapping.ChipID2Layer[cluster.getSensorID()];
   LOG(debug) << "computeCluster:     X = " << clx << " Y = " << cly << " Z = " << clz << " nCluster = " << newLayerID;

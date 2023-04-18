@@ -34,7 +34,7 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "skipModules", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>({""}), ""), "list of modules excluded in geometry (precendence over -m")(
     "readoutDetectors", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>(), ""), "list of detectors creating hits, all if not given; added to to active modules")(
     "skipReadoutDetectors", bpo::value<std::vector<std::string>>()->multitoken()->default_value(std::vector<std::string>(), ""), "list of detectors to skip hit creation (precendence over --readoutDetectors")(
-    "nEvents,n", bpo::value<unsigned int>()->default_value(1), "number of events")(
+    "nEvents,n", bpo::value<unsigned int>()->default_value(0), "number of events")(
     "startEvent", bpo::value<unsigned int>()->default_value(0), "index of first event to be used (when applicable)")(
     "extKinFile", bpo::value<std::string>()->default_value("Kinematics.root"),
     "name of kinematics file for event generator from file (when applicable)")(
@@ -50,14 +50,16 @@ void SimConfig::initOptions(boost::program_options::options_description& options
     "chunkSize", bpo::value<unsigned int>()->default_value(500), "max size of primary chunk (subevent) distributed by server")(
     "chunkSizeI", bpo::value<int>()->default_value(-1), "internalChunkSize")(
     "seed", bpo::value<ULong_t>()->default_value(0), "initial seed as ULong_t (default: 0 == random)")(
-    "field", bpo::value<std::string>()->default_value("-5"), "L3 field rounded to kGauss, allowed values +-2,+-5 and 0; +-<intKGaus>U for uniform field; \"ccdb\" for taking it from CCDB ")(
+    "field", bpo::value<std::string>()->default_value("-5"), "L3 field rounded to kGauss, allowed values +-2,+-5 and 0; +-<intKGaus>U for uniform field; \"ccdb\" for taking it from CCDB ")("vertexMode", bpo::value<std::string>()->default_value("kDiamondParam"), "Where the beam-spot vertex should come from. Must be one of kNoVertex, kDiamondParam, kCCDB")(
     "nworkers,j", bpo::value<int>()->default_value(nsimworkersdefault), "number of parallel simulation workers (only for parallel mode)")(
     "noemptyevents", "only writes events with at least one hit")(
-    "CCDBUrl", bpo::value<std::string>()->default_value("https://alice-ccdb.cern.ch"), "URL for CCDB to be used.")(
+    "CCDBUrl", bpo::value<std::string>()->default_value("http://alice-ccdb.cern.ch"), "URL for CCDB to be used.")(
     "timestamp", bpo::value<uint64_t>(), "global timestamp value in ms (for anchoring) - default is now ... or beginning of run if ALICE run number was given")(
     "run", bpo::value<int>()->default_value(-1), "ALICE run number")(
     "asservice", bpo::value<bool>()->default_value(false), "run in service/server mode")(
-    "noGeant", bpo::bool_switch(), "prohibits any Geant transport/physics (by using tight cuts)");
+    "noGeant", bpo::bool_switch(), "prohibits any Geant transport/physics (by using tight cuts)")(
+    "forwardKine", bpo::bool_switch(), "forward kinematics on a FairMQ channel")(
+    "noDiscOutput", bpo::bool_switch(), "switch off writing sim results to disc (useful in combination with forwardKine)");
   options.add_options()("fromCollContext", bpo::value<std::string>()->default_value(""), "Use a pregenerated collision context to infer number of events to simulate, how to embedd them, the vertex position etc. Takes precedence of other options such as \"--nEvents\".");
 }
 
@@ -72,14 +74,14 @@ void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs
   if (activeModules[0] != "all") {
     if (mIsRun5) {
       for (int i = 0; i < activeModules.size(); ++i) {
-        if (activeModules[i] != "IT3" && activeModules[i] != "TRK" && activeModules[i] != "FT3" && activeModules[i] != "FCT") {
+        if (activeModules[i] != "IT3" && activeModules[i] != "TRK" && activeModules[i] != "FT3" && activeModules[i] != "FCT" && activeModules[i] != "A3IP") {
           LOGP(fatal, "List of active modules contains {}, which is not a run 5 module", activeModules[i]);
         }
       }
     }
     if (!mIsRun5) {
       for (int i = 0; i < activeModules.size(); ++i) {
-        if (activeModules[i] == "TRK" || activeModules[i] == "FT3" || activeModules[i] == "FCT") {
+        if (activeModules[i] == "TRK" || activeModules[i] == "FT3" || activeModules[i] == "FCT" || activeModules[i] == "A3IP") {
           LOGP(fatal, "List of active modules contains {}, which is not a run 3 module", activeModules[i]);
         }
       }
@@ -95,6 +97,7 @@ void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs
           activeModules.emplace_back(DetID::getName(d));
         }
       }
+      activeModules.emplace_back("A3IP");
     } else {
 #endif
       // add passive components manually (make a PassiveDetID for them!)
@@ -178,9 +181,20 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
 {
   using o2::detectors::DetID;
   mConfigData.mMCEngine = vm["mcEngine"].as<std::string>();
+  mConfigData.mNoGeant = vm["noGeant"].as<bool>();
 
   // get final set of active Modules
   determineActiveModules(vm["modules"].as<std::vector<std::string>>(), vm["skipModules"].as<std::vector<std::string>>(), mConfigData.mActiveModules, mConfigData.mIsRun5);
+  if (mConfigData.mNoGeant) {
+    // CAVE is all that's needed (and that will be built either way), so clear all modules and set the O2TrivialMCEngine
+    mConfigData.mActiveModules.clear();
+    // force usage of O2TrivialMCEngine, no overhead from actual transport engine initialisation
+    mConfigData.mMCEngine = "O2TrivialMCEngine";
+  } else if (mConfigData.mMCEngine.compare("O2TrivialMCEngine") == 0) {
+    LOG(error) << "The O2TrivialMCEngine engine can only be used with --noGeant option";
+    return false;
+  }
+
   const auto& activeModules = mConfigData.mActiveModules;
 
   // get final set of detectors which are readout
@@ -205,20 +219,26 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   mConfigData.mSimWorkers = vm["nworkers"].as<int>();
   if (vm.count("timestamp")) {
     mConfigData.mTimestamp = vm["timestamp"].as<uint64_t>();
-    mConfigData.mTimestampMode = kManual;
+    mConfigData.mTimestampMode = TimeStampMode::kManual;
   } else {
     mConfigData.mTimestamp = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
-    mConfigData.mTimestampMode = kNow;
+    mConfigData.mTimestampMode = TimeStampMode::kNow;
   }
   mConfigData.mRunNumber = vm["run"].as<int>();
   mConfigData.mCCDBUrl = vm["CCDBUrl"].as<std::string>();
   mConfigData.mAsService = vm["asservice"].as<bool>();
-  mConfigData.mNoGeant = vm["noGeant"].as<bool>();
+  mConfigData.mForwardKine = vm["forwardKine"].as<bool>();
+  mConfigData.mWriteToDisc = !vm["noDiscOutput"].as<bool>();
   if (vm.count("noemptyevents")) {
     mConfigData.mFilterNoHitEvents = true;
   }
   mConfigData.mFromCollisionContext = vm["fromCollContext"].as<std::string>();
   adjustFromCollContext();
+
+  // analyse vertex options
+  if (!parseVertexModeString(vm["vertexMode"].as<std::string>(), mConfigData.mVertexMode)) {
+    return false;
+  }
 
   // analyse field options
   // either: "ccdb" or +-2[U],+-5[U] and 0[U]; +-<intKGaus>U
@@ -241,6 +261,23 @@ bool SimConfig::resetFromParsedMap(boost::program_options::variables_map const& 
   }
 
   return true;
+}
+
+bool SimConfig::parseVertexModeString(std::string const& vertexstring, VertexMode& mode)
+{
+  // vertexstring must be either kNoVertex, kDiamondParam, kCCDB
+  if (vertexstring == "kNoVertex") {
+    mode = VertexMode::kNoVertex;
+    return true;
+  } else if (vertexstring == "kDiamondParam") {
+    mode = VertexMode::kDiamondParam;
+    return true;
+  } else if (vertexstring == "kCCDB") {
+    mode = VertexMode::kCCDB;
+    return true;
+  }
+  LOG(error) << "Vertex mode must be one of kNoVertex, kDiamondParam, kCCDB";
+  return false;
 }
 
 bool SimConfig::parseFieldString(std::string const& fieldstring, int& fieldvalue, SimFieldMode& mode)
@@ -302,7 +339,7 @@ void SimConfig::adjustFromCollContext()
         // we take what is specified in the context
         mConfigData.mNEvents = collisionmap.size();
       } else {
-        LOG(warning) << "The number of events on the command line and in the collision context differ. Taking the min of the 2";
+        LOG(warning) << "The number of events on the command line " << mConfigData.mNEvents << " and in the collision context differ. Taking the min of the 2";
         mConfigData.mNEvents = std::min((size_t)mConfigData.mNEvents, collisionmap.size());
       }
       LOG(info) << "Setting number of events to simulate to " << mConfigData.mNEvents;

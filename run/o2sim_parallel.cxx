@@ -17,6 +17,7 @@
 
 #include <cstdlib>
 #include <unistd.h>
+#include <ctime>
 #include <sstream>
 #include <iostream>
 #include <cstdio>
@@ -39,9 +40,11 @@
 #include <cstdio>
 #include <unordered_map>
 #include <filesystem>
+#include <atomic>
 
 #include "SimPublishChannelHelper.h"
 #include <CommonUtils/FileSystemUtils.h>
+#include <CCDB/BasicCCDBManager.h>
 
 std::string getServerLogName()
 {
@@ -122,6 +125,9 @@ int checkresult()
   // We can put more or less complex things
   // here.
   auto& conf = o2::conf::SimConfig::Instance();
+  if (!conf.writeToDisc()) {
+    return 0;
+  }
   // easy check: see if we have number of entries in output tree == number of events asked
   std::string filename = o2::base::NameConf::getMCKinematicsFileName(conf.getOutPrefix().c_str());
   TFile f(filename.c_str(), "OPEN");
@@ -315,6 +321,72 @@ void launchThreadMonitoringEvents(
   threads.back().detach();
 }
 
+void launchShutdownThread()
+{
+  static std::vector<std::thread> threads;
+  auto lambda = []() {
+    // once started ... we are waiting for some seconds
+    // then **force** shutdown all remaining children by killing them.
+    // This is to make sure that the process does not hang during a final wait
+    // and interrupted/blocked signal delivery.
+
+    struct timespec initial, remaining;
+    initial.tv_sec = 5;
+    // for for specified time ... (and account for possible signal interruptions)
+    while (nanosleep(&initial, &remaining) == -1 && remaining.tv_sec > 0) {
+      initial = remaining;
+    }
+    LOG(info) << "Shutdown timer expired ... force killing remaining children";
+    for (auto p : gChildProcesses) {
+      killpg(p, SIGKILL);
+    }
+  };
+  threads.push_back(std::thread(lambda));
+  threads.back().detach();
+}
+
+// We do some early checks on the arguments passed. In particular we fix
+// missing timestamps for consistent application in all sub-processes. An empty
+// vector is returned upon errors.
+std::vector<char*> checkArgs(int argc, char* argv[])
+{
+  auto conf = o2::conf::SimConfig::make();
+  std::vector<std::string> modifiedArgs;
+#ifdef SIM_RUN5
+  conf.setRun5();
+#endif
+  if (conf.resetFromArguments(argc, argv)) {
+    for (int i = 0; i < argc; ++i) {
+      modifiedArgs.push_back(argv[i]);
+    }
+
+    // Check the run and the time arguments and enforce consistency.
+    // This is important as queries to CCDB are done using the timestamp.
+    if (conf.getRunNumber() != -1) {
+      // if we have a run number we should fix or check the timestamp
+
+      // fetch the actual timestamp ranges for this run
+      auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
+      auto soreor = ccdbmgr.getRunDuration(conf.getRunNumber());
+      auto timestamp = conf.getTimestamp();
+      if (conf.getConfigData().mTimestampMode == o2::conf::TimeStampMode::kNow) {
+        timestamp = soreor.first;
+        LOG(info) << "Fixing timestamp to " << timestamp << " based on run number";
+        modifiedArgs.push_back("--timestamp");
+        modifiedArgs.push_back(std::to_string(timestamp));
+      } else if (conf.getConfigData().mTimestampMode == o2::conf::TimeStampMode::kManual && (timestamp < soreor.first || timestamp > soreor.second)) {
+        LOG(fatal) << "The given timestamp is incompatible with the given run number";
+      }
+    }
+  }
+  std::vector<char*> final(modifiedArgs.size(), nullptr);
+  for (int i = 0; i < modifiedArgs.size(); ++i) {
+    final[i] = new char[modifiedArgs[i].size() + 1];
+    strcpy(final[i], modifiedArgs[i].c_str());
+  }
+  return final;
+}
+
 // helper executable to launch all the devices/processes
 // for parallel simulation
 int main(int argc, char* argv[])
@@ -363,18 +435,24 @@ int main(int argc, char* argv[])
   // auto factory = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
   auto externalpublishchannel = o2::simpubsub::createPUBChannel(o2::simpubsub::getPublishAddress("o2sim-notifications"));
 
+  // check initial arguments and complete
+  auto finalArgs = checkArgs(argc, argv);
+  if (finalArgs.size() == 0) {
+    return 1;
+  }
+
   auto& conf = o2::conf::SimConfig::Instance();
 #ifdef SIM_RUN5
   conf.setRun5();
 #endif
-  if (!conf.resetFromArguments(argc, argv)) {
+  if (!conf.resetFromArguments(finalArgs.size(), &finalArgs[0])) {
     return 1;
   }
   // in case of zero events asked (only setup geometry etc) we just call the non-distributed version
   // (otherwise we would need to add more synchronization between the actors)
   if (conf.getNEvents() <= 0 && !conf.asService()) {
     LOG(info) << "No events to be simulated; Switching to non-distributed mode";
-    const int Nargs = argc + 1;
+    const int Nargs = finalArgs.size() + 1;
 #ifdef SIM_RUN5
     std::string name("o2-sim-serial-run5");
 #else
@@ -382,10 +460,10 @@ int main(int argc, char* argv[])
 #endif
     const char* arguments[Nargs];
     arguments[0] = name.c_str();
-    for (int i = 1; i < argc; ++i) {
-      arguments[i] = argv[i];
+    for (int i = 1; i < finalArgs.size(); ++i) {
+      arguments[i] = finalArgs[i];
     }
-    arguments[argc] = nullptr;
+    arguments[finalArgs.size()] = nullptr;
     std::string path = installpath + "/" + name;
     auto r = execv(path.c_str(), (char* const*)arguments);
     if (r != 0) {
@@ -440,7 +518,7 @@ int main(int argc, char* argv[])
 #else
     const int addNArgs = 9;
 #endif
-    const int Nargs = argc + addNArgs;
+    const int Nargs = finalArgs.size() + addNArgs;
     const char* arguments[Nargs];
     arguments[0] = name.c_str();
     arguments[1] = "--control";
@@ -454,8 +532,8 @@ int main(int argc, char* argv[])
 #ifdef SIM_RUN5
     arguments[9] = "--isRun5";
 #endif
-    for (int i = 1; i < argc; ++i) {
-      arguments[addNArgs - 1 + i] = argv[i];
+    for (int i = 1; i < finalArgs.size(); ++i) {
+      arguments[addNArgs - 1 + i] = finalArgs[i];
     }
     arguments[Nargs - 1] = nullptr;
     for (int i = 0; i < Nargs; ++i) {
@@ -528,6 +606,8 @@ int main(int argc, char* argv[])
   }
 
   pid = fork();
+
+  std::atomic<bool> shutdown_initiated = false;
   if (pid == 0) {
     int fd = open(getMergerLogName().c_str(), O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
     dup2(fd, 1); // make stdout go to file
@@ -550,7 +630,7 @@ int main(int argc, char* argv[])
     // A simple callback that determines if the simulation is complete and triggers
     // a shutdown of all child processes. This appears to be more robust than leaving
     // that decision upon the children (sometimes there are problems with that).
-    auto finishCallback = [&conf, &externalpublishchannel](std::vector<int> const& v) {
+    auto finishCallback = [&shutdown_initiated, &conf, &externalpublishchannel](std::vector<int> const& v) {
       std::stringstream str;
       str << "EVENT " << v.back() << " FINISHED " << gAskedEvents << " " << v.size();
       o2::simpubsub::publishMessage(externalpublishchannel, o2::simpubsub::simStatusString("O2SIM", "INFO", str.str()));
@@ -558,8 +638,11 @@ int main(int argc, char* argv[])
         o2::simpubsub::publishMessage(externalpublishchannel, o2::simpubsub::simStatusString("O2SIM", "STATE", "DONE"));
         if (!conf.asService()) {
           LOG(info) << "SIMULATION IS DONE. INITIATING SHUTDOWN.";
-          for (auto p : gChildProcesses) {
-            killpg(p, SIGTERM);
+          if (!shutdown_initiated) {
+            shutdown_initiated = true;
+            for (auto p : gChildProcesses) {
+              killpg(p, SIGTERM);
+            }
           }
         } else {
           LOG(info) << "SIMULATION DONE. STAYING AS DAEMON.";
@@ -578,35 +661,41 @@ int main(int argc, char* argv[])
   bool errored = false;
   while ((cpid = wait(&status)) != mergerpid) {
     if (WEXITSTATUS(status) || WIFSIGNALED(status)) {
-      LOG(info) << "Process " << cpid << " EXITED WITH CODE " << WEXITSTATUS(status) << " SIGNALED "
-                << WIFSIGNALED(status) << " SIGNAL " << WTERMSIG(status);
+      if (!shutdown_initiated) {
+        LOG(info) << "Process " << cpid << " EXITED WITH CODE " << WEXITSTATUS(status) << " SIGNALED "
+                  << WIFSIGNALED(status) << " SIGNAL " << WTERMSIG(status);
 
-      // we bring down all processes if one of them had problems or got a termination signal
-      // if (WTERMSIG(status) == SIGABRT || WTERMSIG(status) == SIGSEGV || WTERMSIG(status) == SIGBUS || WTERMSIG(status) == SIGTERM) {
-      LOG(info) << "Problem detected (or child received termination signal) ... shutting down whole system ";
-      for (auto p : gChildProcesses) {
-        LOG(info) << "TERMINATING " << p;
-        killpg(p, SIGTERM); // <--- makes sure to shutdown "unknown" child pids via the group property
+        // we bring down all processes if one of them had problems or got a termination signal
+        // if (WTERMSIG(status) == SIGABRT || WTERMSIG(status) == SIGSEGV || WTERMSIG(status) == SIGBUS || WTERMSIG(status) == SIGTERM) {
+        LOG(info) << "Problem detected (or child received termination signal) ... shutting down whole system ";
+        for (auto p : gChildProcesses) {
+          LOG(info) << "TERMINATING " << p;
+          killpg(p, SIGTERM); // <--- makes sure to shutdown "unknown" child pids via the group property
+        }
+        LOG(error) << "SHUTTING DOWN DUE TO SIGNALED EXIT IN COMPONENT " << cpid;
+        errored = true;
       }
-      LOG(error) << "SHUTTING DOWN DUE TO SIGNALED EXIT IN COMPONENT " << cpid;
-      errored = true;
     }
   }
   // This marks the actual end of the computation (since results are available)
   LOG(info) << "Merger process " << mergerpid << " returned";
   LOG(info) << "Simulation process took " << timer.RealTime() << " s";
 
-  if (!errored) {
+  if (!errored && !shutdown_initiated) {
+    shutdown_initiated = true;
     // ordinary shutdown of the rest
     for (auto p : gChildProcesses) {
       if (p != mergerpid) {
-        LOG(info) << "SHUTTING DOWN CHILD PROCESS " << p;
+        LOG(info) << "SHUTTING DOWN CHILD PROCESS (normal thread)" << p;
         killpg(p, SIGTERM);
       }
     }
   }
-  // definitely wait on all children
-  // otherwise this breaks accounting in the /usr/bin/time command
+
+  // Final shutdown section. Here we definitely wait on all children
+  // otherwise this breaks accounting in the /usr/bin/time command. But we install
+  // an asynchronous timeout thread which triggers an emergency kill after some seconds in order to not block.
+  launchShutdownThread();
   while ((cpid = wait(&status))) {
     if (cpid == -1) {
       break;
@@ -626,11 +715,12 @@ int main(int argc, char* argv[])
     // later stages (digitization).
 
     auto& conf = o2::conf::SimConfig::Instance();
-    // easy check: see if we have number of entries in output tree == number of events asked
-    std::string kinefilename = o2::base::NameConf::getMCKinematicsFileName(conf.getOutPrefix().c_str());
-    std::string headerfilename = o2::base::NameConf::getMCHeadersFileName(conf.getOutPrefix().c_str());
-    o2::dataformats::MCEventHeader::extractFileFromKinematics(kinefilename, headerfilename);
-
+    if (conf.writeToDisc()) {
+      // easy check: see if we have number of entries in output tree == number of events asked
+      std::string kinefilename = o2::base::NameConf::getMCKinematicsFileName(conf.getOutPrefix().c_str());
+      std::string headerfilename = o2::base::NameConf::getMCHeadersFileName(conf.getOutPrefix().c_str());
+      o2::dataformats::MCEventHeader::extractFileFromKinematics(kinefilename, headerfilename);
+    }
     LOG(info) << "SIMULATION RETURNED SUCCESFULLY";
   }
 

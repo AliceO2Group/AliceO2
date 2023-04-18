@@ -1,16 +1,22 @@
 #!/bin/bash
 
+# Non-zero exit code already if one command in a pipe fails
+set -o pipefail
+
+# Abort in case any variable is not bound
+if [[ ${IGNORE_UNBOUND_VARIABLES:-} != 1 ]]; then  set -u; fi
+
 #SEVERITY="detail"
 #ENABLE_METRICS=1
-[ -d "$O2DPG_ROOT" ] || { echo "O2DPG_ROOT not set" 1>&2; exit 1; }
+[ -d "${O2DPG_ROOT:-}" ] || { echo "O2DPG_ROOT not set" 1>&2; exit 1; }
 
-source $O2DPG_ROOT/DATA/common/setenv.sh
-source $O2_ROOT/prodtests/full-system-test/workflow-setup.sh
-source $O2DPG_ROOT/DATA/common/getCommonArgs.sh
-source $O2DPG_ROOT/DATA/common/setenv_calib.sh
+source $O2DPG_ROOT/DATA/common/setenv.sh || { echo "setenv.sh failed" 1>&2 && exit 1; }
+source $O2_ROOT/prodtests/full-system-test/workflow-setup.sh || { echo "workflow-setup.sh failed" 1>&2 && exit 1; }
+source $O2DPG_ROOT/DATA/common/getCommonArgs.sh || { echo "getCommonArgs.sh failed" 1>&2 && exit 1; }
+source $O2DPG_ROOT/DATA/common/setenv_calib.sh || { echo "setenv_calib.sh failed" 1>&2 && exit 1; }
 
 # check that WORKFLOW_DETECTORS is needed, otherwise the wrong calib wf will be built
-if [[ -z $WORKFLOW_DETECTORS ]]; then echo "WORKFLOW_DETECTORS must be defined" 1>&2; exit 1; fi
+if [[ -z ${WORKFLOW_DETECTORS:-} ]]; then echo "WORKFLOW_DETECTORS must be defined" 1>&2; exit 1; fi
 
 # CCDB destination for uploads
 if [[ -z ${CCDB_POPULATOR_UPLOAD_PATH+x} ]]; then
@@ -26,29 +32,27 @@ if [[ -z ${CCDB_POPULATOR_UPLOAD_PATH+x} ]]; then
     CCDB_POPULATOR_UPLOAD_PATH="none"
   fi
 fi
-if [[ "0$GEN_TOPO_VERBOSE" == "01" ]]; then
+if [[ "${GEN_TOPO_VERBOSE:-}" == "1" ]]; then
   echo "CCDB_POPULATOR_UPLOAD_PATH = $CCDB_POPULATOR_UPLOAD_PATH" 1>&2
 fi
 
-# Additional settings for calibration workflows
-if [[ -z $CALIB_DIR ]]; then CALIB_DIR=$FILEWORKDIR; fi # Directory where to store output from calibration workflows
-
-# All meta files go into the same directory
-if [[ -z $CALIB_METAFILES_DIR ]]; then
-  if [[ ! -z $CTF_METAFILES_DIR ]]; then
-    CALIB_METAFILES_DIR=$CTF_METAFILES_DIR
+# Avoid writing calibration data for run types different than physics
+if [[ $RUNTYPE != "PHYSICS" ]] && [[ $CALIB_DIR == "/data/calibration" ]]; then
+  if [[ ${FORCE_LOCAL_CALIBRATION_OUTPUT:-} != 1 ]]; then
+    export CALIB_DIR="/dev/null"
   else
-    CALIB_METAFILES_DIR="/dev/null"
+    # Special setting to allow for expert tests. In this case output is written to the current working directory
+    # Since in this case also a meta file would be written we need to disable that explicitly
+    export CALIB_DIR=$FILEWORKDIR
+    export EPN2EOS_METAFILES_DIR="/dev/null"
   fi
 fi
-
-if [[ $RUNTYPE == "SYNTHETIC" ]]; then DISABLE_CALIB_OUTPUT="--disable-root-output"; fi
 
 
 # Adding calibrations
 EXTRA_WORKFLOW_CALIB=
 
-if [[ "0$GEN_TOPO_VERBOSE" == "01" ]]; then
+if [[ "${GEN_TOPO_VERBOSE:-}" == "1" ]]; then
   echo "CALIB_PRIMVTX_MEANVTX = $CALIB_PRIMVTX_MEANVTX" 1>&2
   echo "CALIB_TOF_LHCPHASE = $CALIB_TOF_LHCPHASE" 1>&2
   echo "CALIB_TOF_CHANNELOFFSETS = $CALIB_TOF_CHANNELOFFSETS" 1>&2
@@ -85,24 +89,25 @@ if [[ $BEAMTYPE == "PbPb" ]]; then
 fi
 
 # special settings for aggregator workflows
-if [[ "0$CALIB_TPC_SCDCALIB_SENDTRKDATA" == "01" ]]; then ENABLE_TRACK_INPUT="--enable-track-input"; fi
-if [[ -z "$RESIDUAL_AGGREGATOR_AUTOSAVE" ]]; then RESIDUAL_AGGREGATOR_AUTOSAVE=0; fi
+ENABLE_TRACK_INPUT=
+TPCSCD_CONFIG=
+if [[ "${CALIB_TPC_SCDCALIB_SENDTRKDATA:-}" == "1" ]]; then ENABLE_TRACK_INPUT="--enable-track-input"; fi
+: ${RESIDUAL_AGGREGATOR_AUTOSAVE:=0}
+[[ -z ${CALIB_TPC_SCDCALIB_SLOTLENGTH:-} ]] && TPCSCD_CONFIG="--sec-per-slot $CALIB_TPC_SCDCALIB_SLOTLENGTH"
 
 # Calibration workflows
 if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
   WORKFLOW=
 else
-  if [[ -z $AGGREGATOR_TASKS ]]; then
-    AGGREGATOR_TASKS=ALL
-  fi
+  : ${AGGREGATOR_TASKS:=ALL}
 fi
 
-if [[ -z $AGGREGATOR_TASKS ]]; then
+if [[ -z ${AGGREGATOR_TASKS:-} ]]; then
   echo "ERROR: AGGREGATOR_TASKS is empty, you need to define it to run!" 1>&2
   exit 1
 fi
 
-if [[ "0$GEN_TOPO_VERBOSE" == "01" ]]; then
+if [[ "${GEN_TOPO_VERBOSE:-}" == "1" ]]; then
   # Which calibrations are we aggregating
   echo "AGGREGATOR_TASKS = $AGGREGATOR_TASKS" 1>&2
 fi
@@ -110,53 +115,66 @@ fi
 # adding input proxies
 if workflow_has_parameter CALIB_PROXIES; then
   if [[ $AGGREGATOR_TASKS == BARREL_TF ]]; then
-    if [[ ! -z $CALIBDATASPEC_BARREL_TF ]]; then
+    if [[ ! -z ${CALIBDATASPEC_BARREL_TF:-} ]]; then
       add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_BARREL_TF\" $(get_proxy_connection barrel_tf input timeframe)" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == BARREL_SPORADIC ]]; then
-    if [[ ! -z $CALIBDATASPEC_BARREL_SPORADIC ]]; then
+    if [[ ! -z ${CALIBDATASPEC_BARREL_SPORADIC:-} ]]; then
       add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_BARREL_SPORADIC\" $(get_proxy_connection barrel_sp input sporadic)" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC ]]; then
-    if [[ ! -z $CALIBDATASPEC_TPCIDC_A ]] || [[ ! -z $CALIBDATASPEC_TPCIDC_C ]]; then
-      if [[ $EPNSYNCMODE != 1 ]]; then
-        echo "ERROR: You cannot run the TPC IDCs if you are not in EPNSYNCMODE" 1>&2
-        exit 2
-      fi
+    if [[ $EPNSYNCMODE != 1 ]]; then
+      echo "ERROR: TPC IDC / SAC calib workflow enabled without EPNSYNCMODE, please note that there will not be input data for it" 1>&2
+    fi
+    CHANNELS_LIST=
+    [[ $EPNSYNCMODE == 0 ]] && FLP_ADDRESS="tcp://localhost:47900"
+    if [[ ! -z ${CALIBDATASPEC_TPCIDC_A:-} ]] || [[ ! -z ${CALIBDATASPEC_TPCIDC_C:-} ]]; then
       # define port for FLP; should be in 47900 - 47999; if nobody defined it, we use 47900
-      [[ -z $TPC_IDC_FLP_PORT ]] && TPC_IDC_FLP_PORT=47900
+      : ${TPC_IDC_FLP_PORT:=47900}
       # expand FLPs; TPC uses from 001 to 145, but 145 is reserved for SAC
       for flp in $(seq -f "%03g" 1 144); do
-        FLP_ADDRESS="tcp://alio2-cr1-flp${flp}-ib:${TPC_IDC_FLP_PORT}"
+        [[ ! $FLP_IDS =~ (^|,)"$flp"(,|$) ]] && continue
+        [[ $EPNSYNCMODE == 1 ]] && FLP_ADDRESS="tcp://alio2-cr1-flp${flp}-ib:${TPC_IDC_FLP_PORT}"
         CHANNELS_LIST+="type=pull,name=tpcidc_flp${flp},transport=zeromq,address=$FLP_ADDRESS,method=connect,rateLogging=10;"
       done
-      add_W o2-dpl-raw-proxy "--proxy-name tpcidc --io-threads 2 --dataspec \"$CALIBDATASPEC_TPCIDC_A;$CALIBDATASPEC_TPCIDC_C\" --channel-config \"$CHANNELS_LIST\" --timeframes-shm-limit $TIMEFRAME_SHM_LIMIT" "" 0
     fi
-    if [[ ! -z $CALIBDATASPEC_TPCSAC ]]; then
+    if [[ ! -z ${CALIBDATASPEC_TPCSAC:-} ]]; then
       # define port for FLP; should be in 47900 - 47999; if nobody defined it, we use 47901
-      [[ -z $TPC_SAC_FLP_PORT ]] && TPC_SAC_FLP_PORT=47901
-      FLP_ADDRESS_SAC="tcp://alio2-cr1-flp145-ib:${TPC_SAC_FLP_PORT}"
-      CHANNEL_SAC="type=pull,name=tpcsac,transport=zeromq,address=$FLP_ADDRESS_SAC,method=connect,rateLogging=10;"
-      add_W o2-dpl-raw-proxy "--proxy-name tpcsac --dataspec \"$CALIBDATASPEC_TPCSAC\" --channel-config \"$CHANNEL_SAC\" --timeframes-shm-limit $TIMEFRAME_SHM_LIMIT" "" 0
+      [[ -z ${TPC_SAC_FLP_PORT:-} ]] && TPC_SAC_FLP_PORT=47901
+      [[ $EPNSYNCMODE == 1 ]] && FLP_ADDRESS="tcp://alio2-cr1-flp145-ib:${TPC_SAC_FLP_PORT}"
+      CHANNELS_LIST+="type=pull,name=tpcidc_sac,transport=zeromq,address=$FLP_ADDRESS,method=connect,rateLogging=10;"
+    fi
+    if [[ ! -z $CHANNELS_LIST ]]; then
+      DATASPEC_LIST=
+      if [[ ! -z ${CALIBDATASPEC_TPCIDC_A:-} ]]; then
+        add_semicolon_separated DATASPEC_LIST "\"$CALIBDATASPEC_TPCIDC_A\""
+      fi
+      if [[ ! -z ${CALIBDATASPEC_TPCIDC_C:-} ]]; then
+        add_semicolon_separated DATASPEC_LIST "\"$CALIBDATASPEC_TPCIDC_C\""
+      fi
+      if [[ ! -z ${CALIBDATASPEC_TPCSAC:-} ]]; then
+        add_semicolon_separated DATASPEC_LIST "\"$CALIBDATASPEC_TPCSAC\""
+      fi
+      add_W o2-dpl-raw-proxy "--proxy-name tpcidc --io-threads 2 --dataspec \"$DATASPEC_LIST\" --channel-config \"$CHANNELS_LIST\" ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} $TIMEFRAME_SHM_LIMIT" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == CALO_TF ]]; then
-    if [[ ! -z $CALIBDATASPEC_CALO_TF ]]; then
+    if [[ ! -z ${CALIBDATASPEC_CALO_TF:-} ]]; then
       add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_CALO_TF\" $(get_proxy_connection calo_tf input timeframe)" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == CALO_SPORADIC ]]; then
-    if [[ ! -z $CALIBDATASPEC_CALO_SPORADIC ]]; then
+    if [[ ! -z ${CALIBDATASPEC_CALO_SPORADIC:-} ]]; then
       add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_CALO_SPORADIC\" $(get_proxy_connection calo_sp input sporadic)" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == MUON_TF ]]; then
-    if [[ ! -z $CALIBDATASPEC_MUON_TF ]]; then
+    if [[ ! -z ${CALIBDATASPEC_MUON_TF:-} ]]; then
       add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_MUON_TF\" $(get_proxy_connection muon_tf input timeframe)" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == MUON_SPORADIC ]]; then
-    if [[ ! -z $CALIBDATASPEC_MUON_SPORADIC ]]; then
+    if [[ ! -z ${CALIBDATASPEC_MUON_SPORADIC:-} ]]; then
       add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_MUON_SPORADIC\" $(get_proxy_connection muon_sp input sporadic)" "" 0
     fi
   elif [[ $AGGREGATOR_TASKS == FORWARD_TF ]]; then
-    if [[ ! -z $CALIBDATASPEC_FORWARD_TF ]]; then
+    if [[ ! -z ${CALIBDATASPEC_FORWARD_TF:-} ]]; then
       add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_FORWARD_TF\" $(get_proxy_connection fwd_tf input timeframe)" "" 0
     fi
   fi
@@ -166,8 +184,8 @@ fi
 if [[ $AGGREGATOR_TASKS == BARREL_TF ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
   # PrimVertex
   if [[ $CALIB_PRIMVTX_MEANVTX == 1 ]]; then
-    if [[ -z $TFPERSLOTS_MEANVTX ]]; then TFPERSLOTS_MEANVTX=55000; fi
-    DELAYINTFS_MEANVTX="10"
+    : ${TFPERSLOTS_MEANVTX:=55000}
+    : ${DELAYINTFS_MEANVTX:=10}
     add_W o2-calibration-mean-vertex-calibration-workflow "" "MeanVertexCalib.tfPerSlot=$TFPERSLOTS_MEANVTX;MeanVertexCalib.maxTFdelay=$DELAYINTFS_MEANVTX"
   fi
 
@@ -185,7 +203,7 @@ if [[ $AGGREGATOR_TASKS == BARREL_TF ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
   fi
   # TPC
   if [[ $CALIB_TPC_SCDCALIB == 1 ]]; then
-    add_W o2-calibration-residual-aggregator "--disable-root-input $DISABLE_CALIB_OUTPUT $ENABLE_TRACK_INPUT $CALIB_TPC_SCDCALIB_CTP_INPUT --output-dir $CALIB_DIR --meta-output-dir $CALIB_METAFILES_DIR --autosave-interval $RESIDUAL_AGGREGATOR_AUTOSAVE"
+    add_W o2-calibration-residual-aggregator "--disable-root-input $TPCSCD_CONFIG $ENABLE_TRACK_INPUT $CALIB_TPC_SCDCALIB_CTP_INPUT --output-dir $CALIB_DIR --meta-output-dir $EPN2EOS_METAFILES_DIR --autosave-interval $RESIDUAL_AGGREGATOR_AUTOSAVE"
   fi
   if [[ $CALIB_TPC_VDRIFTTGL == 1 ]]; then
     # options available via ARGS_EXTRA_PROCESS_o2_tpc_vdrift_tgl_calibration_workflow="--nbins-tgl 20 --nbins-dtgl 50 --max-tgl-its 2. --max-dtgl-itstpc 0.15 --min-entries-per-slot 1000 --time-slot-seconds 600 <--vdtgl-histos-file-name name> "
@@ -216,7 +234,7 @@ nTFs_SAC=1000
 nBuffer=100
 IDC_DELTA="--disable-IDCDelta true" # off by default
 # deltas are on by default; you need to request explicitly to switch them off;
-if [[ "0$DISABLE_IDC_DELTA" == "01" ]]; then IDC_DELTA=""; fi
+if [[ "${DISABLE_IDC_DELTA:-}" == "1" ]]; then IDC_DELTA=""; fi
 
 if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
   if [[ $CALIB_TPC_IDC == 1 ]] && [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC || $AGGREGATOR_TASKS == ALL ]]; then
@@ -244,7 +262,7 @@ if [[ $AGGREGATOR_TASKS == CALO_TF || $AGGREGATOR_TASKS == ALL ]]; then
 
   # PHS
   if [[ $CALIB_PHS_ENERGYCALIB == 1 ]]; then
-    add_W o2-phos-calib-workflow "--energy"
+    add_W o2-phos-calib-workflow "--energy --phoscalib-output-dir $CALIB_DIR --phoscalib-meta-output-dir $EPN2EOS_METAFILES_DIR"
   fi
   if [[ $CALIB_PHS_BADMAPCALIB == 1 ]]; then
     add_W o2-phos-calib-workflow "--badmap --mode 0"
@@ -253,7 +271,7 @@ if [[ $AGGREGATOR_TASKS == CALO_TF || $AGGREGATOR_TASKS == ALL ]]; then
     add_W o2-phos-calib-workflow "--turnon"
   fi
   if [[ $CALIB_PHS_RUNBYRUNCALIB == 1 ]]; then
-    add_W o2-phos-calib-workflow "--runbyrun"
+    add_W o2-phos-calib-workflow "--runbyrun --phoscalib-output-dir $CALIB_DIR --phoscalib-meta-output-dir $EPN2EOS_METAFILES_DIR"
   fi
   if [[ $CALIB_PHS_L1PHASE == 1 ]]; then
     add_W o2-phos-calib-workflow "--l1phase"
@@ -269,14 +287,14 @@ fi
 if [[ $AGGREGATOR_TASKS == FORWARD_TF || $AGGREGATOR_TASKS == ALL ]]; then
   # ZDC
   if [[ $CALIB_ZDC_TDC == 1 ]]; then
-    add_W o2-zdc-tdccalib-workflow
+    add_W o2-zdc-tdccalib-workflow "" "CalibParamZDC.outputDir=$CALIB_DIR;CalibParamZDC.metaFileDir=$EPN2EOS_METAFILES_DIR"
   fi
-  if [[ $CALIB_FT0_TIMEOFFSET == 1 ]]; then
+  if [[ ${CALIB_FT0_TIMEOFFSET:-} == 1 ]]; then
     add_W o2-calibration-ft0-time-offset-calib "--tf-per-slot $FT0_TIMEOFFSET_TF_PER_SLOT --max-delay 0" "FT0CalibParam.mNExtraSlots=0;FT0CalibParam.mRebinFactorPerChID[180]=4;"
   fi
 fi
 
-if [[ "0$GEN_TOPO_VERBOSE" == "01" ]]; then
+if [[ "${GEN_TOPO_VERBOSE:-}" == "1" ]]; then
   # calibrations for AGGREGATOR_TASKS == CALO_SPORADIC
   if [[ $AGGREGATOR_TASKS == CALO_SPORADIC ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
     echo "AGGREGATOR_TASKS == CALO_SPORADIC not defined for the time being" 1>&2
@@ -293,11 +311,11 @@ if [[ "0$GEN_TOPO_VERBOSE" == "01" ]]; then
   fi
 fi
 
-if [[ $CCDB_POPULATOR_UPLOAD_PATH != "none" ]] && [[ ! -z $WORKFLOW ]]; then add_W o2-calibration-ccdb-populator-workflow "--ccdb-path $CCDB_POPULATOR_UPLOAD_PATH"; fi
+if [[ $CCDB_POPULATOR_UPLOAD_PATH != "none" ]] && [[ ! -z $WORKFLOW ]]; then add_W o2-calibration-ccdb-populator-workflow "--ccdb-path $CCDB_POPULATOR_UPLOAD_PATH --environment \"DPL_DONT_DROP_OLD_TIMESLICE=1\""; fi
 
 if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
   WORKFLOW+="o2-dpl-run $ARGS_ALL $GLOBALDPLOPT"
-  [[ $WORKFLOWMODE != "print" ]] && WORKFLOW+=" --${WORKFLOWMODE} ${WORKFLOWMODE_FILE}"
-  [[ $WORKFLOWMODE == "print" || "0$PRINT_WORKFLOW" == "01" ]] && echo "#Aggregator Workflow command:\n\n${WORKFLOW}\n" | sed -e "s/\\\\n/\n/g" -e"s/| */| \\\\\n/g" | eval cat $( [[ $WORKFLOWMODE == "dds" ]] && echo '1>&2')
+  [[ $WORKFLOWMODE != "print" ]] && WORKFLOW+=" --${WORKFLOWMODE} ${WORKFLOWMODE_FILE:-}"
+  [[ $WORKFLOWMODE == "print" || "${PRINT_WORKFLOW:-}" == "1" ]] && echo "#Aggregator Workflow command:\n\n${WORKFLOW}\n" | sed -e "s/\\\\n/\n/g" -e"s/| */| \\\\\n/g" | eval cat $( [[ $WORKFLOWMODE == "dds" ]] && echo '1>&2')
   if [[ $WORKFLOWMODE != "print" ]]; then eval $WORKFLOW; else true; fi
 fi

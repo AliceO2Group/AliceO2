@@ -78,8 +78,13 @@ namespace align
 class BarrelAlignmentSpec : public Task
 {
  public:
-  BarrelAlignmentSpec(GTrackID::mask_t srcMP, std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> ggrec, DetID::mask_t detmask, int postprocess, bool useMC)
-    : mDataRequest(dr), mGRPGeomRequest(ggrec), mMPsrc{srcMP}, mDetMask{detmask}, mPostProcessing(postprocess), mUseMC(useMC) {}
+  enum PostProc { WriteResults = 0x1 << 0,
+                  CheckConstaints = 0x1 << 1,
+                  GenPedeFiles = 0x1 << 2,
+                  LabelPedeResults = 0x1 << 3 };
+  BarrelAlignmentSpec(GTrackID::mask_t srcMP, std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> ggrec,
+                      DetID::mask_t detmask, bool cosmic, int postprocess, bool useMC)
+    : mDataRequest(dr), mGRPGeomRequest(ggrec), mMPsrc{srcMP}, mDetMask{detmask}, mCosmic(cosmic), mPostProcessing(postprocess), mUseMC(useMC) {}
   ~BarrelAlignmentSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -92,6 +97,7 @@ class BarrelAlignmentSpec : public Task
   bool mUseIniParErrors = true;
   bool mUseMC = false;
   bool mIgnoreCCDBAlignment = false;
+  bool mCosmic = false;
   int mPostProcessing = 0; // special mode of extracting alignment or constraints check
   GTrackID::mask_t mMPsrc{};
   DetID::mask_t mDetMask{};
@@ -111,9 +117,8 @@ void BarrelAlignmentSpec::init(InitContext& ic)
   mTimer.Stop();
   mTimer.Reset();
   o2::base::GRPGeomHelper::instance().setRequest(mGRPGeomRequest);
-  mController = std::make_unique<Controller>(mDetMask, mMPsrc, mUseMC);
   int dbg = ic.options().get<int>("debug-output"), inst = ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
-  mController->setInstanceID(inst);
+  mController = std::make_unique<Controller>(mDetMask, mMPsrc, mCosmic, mUseMC, inst);
   if (dbg) {
     mDBGOut = std::make_unique<o2::utils::TreeStreamRedirector>(fmt::format("mpDebug_{}.root", inst).c_str(), "recreate");
     mController->setDebugOutputLevel(dbg);
@@ -175,7 +180,7 @@ void BarrelAlignmentSpec::init(InitContext& ic)
   }
   mIniParFile = ic.options().get<std::string>("initial-params-file");
   mUseIniParErrors = !ic.options().get<bool>("ignore-initial-params-errors");
-  if (mPostProcessing && (mIniParFile.empty() || mIniParFile == "none")) {
+  if (mPostProcessing && !(mPostProcessing != GenPedeFiles) && (mIniParFile.empty() || mIniParFile == "none")) {
     LOGP(warn, "Postprocessing {} is requested but the initial-params-file is not provided", mPostProcessing);
   }
 }
@@ -204,6 +209,11 @@ void BarrelAlignmentSpec::updateTimeDependentParams(ProcessingContext& pc)
       mTRDTransformer->init();
     }
 
+    if (!(mIniParFile.empty() || mIniParFile == "none")) {
+      mController->readParameters(mIniParFile, mUseIniParErrors);
+      mController->applyAlignmentFromMPSol();
+    }
+
     // call this in the very end
     if (mUsrConfMethod) {
       int dummyPar = 0, ret = 0;
@@ -216,9 +226,6 @@ void BarrelAlignmentSpec::updateTimeDependentParams(ProcessingContext& pc)
     }
     AlignConfig::Instance().printKeyValues(true);
     o2::base::PropagatorD::Instance()->setTGeoFallBackAllowed(false);
-    if (!(mIniParFile.empty() || mIniParFile == "none")) {
-      mController->readParameters(mIniParFile, mUseIniParErrors);
-    }
   }
   if (GTrackID::includesDet(DetID::TRD, mMPsrc) && mTRDTransformer) {
     pc.inputs().get<o2::trd::CalVdriftExB*>("calvdexb"); // just to trigger the finaliseCCDB
@@ -249,43 +256,55 @@ void BarrelAlignmentSpec::run(ProcessingContext& pc)
   updateTimeDependentParams(pc);
   if (mPostProcessing) { // special mode, no data processing
     if (mController->getInstanceID() == 0) {
-      if (mPostProcessing & 0x2) {
+      if (mPostProcessing & PostProc::CheckConstaints) {
+        mController->addAutoConstraints();
         mController->checkConstraints();
       }
-      if (mPostProcessing & 0x1) {
+      if (mPostProcessing & PostProc::WriteResults) {
         mController->writeCalibrationResults();
       }
     }
-    pc.services().get<o2::framework::ControlService>().endOfStream();
     pc.services().get<o2::framework::ControlService>().readyToQuit(framework::QuitRequest::Me);
   } else {
     RecoContainer recoData;
     recoData.collectData(pc, *mDataRequest.get());
     mController->setRecoContainer(&recoData);
     mController->setTimingInfo(pc.services().get<o2::framework::TimingInfo>());
-    mController->process();
+    if (mCosmic) {
+      mController->processCosmic();
+    } else {
+      mController->process();
+    }
   }
   mTimer.Stop();
 }
 
 void BarrelAlignmentSpec::endOfStream(EndOfStreamContext& ec)
 {
+  auto inst = ec.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
   if (!mPostProcessing) {
-    auto inst = ec.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
     LOGP(info, "Barrel alignment data pereparation total timing: Cpu: {:.3e} Real: {:.3e}  s in {} slots, instance {}", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1, inst);
     mController->closeMPRecOutput();
     mController->closeMilleOutput();
     mController->closeResidOutput();
-    if (inst == 0) {
+  }
+  if (inst == 0) {
+    if (!mPostProcessing || (mPostProcessing & PostProc::GenPedeFiles)) {
       LOG(info) << "Writing millepede control files";
+      if (!mPostProcessing) {
+        mController->terminate(); // finalize data stat
+      }
       mController->addAutoConstraints();
       mController->genPedeSteerFile();
+      mController->getStat().print();
+    } else if (mPostProcessing & PostProc::LabelPedeResults) {
+      mController->writeLabeledPedeResults();
     }
   }
   mDBGOut.reset();
 }
 
-DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_t src, DetID::mask_t dets, DetID::mask_t skipDetClusters, int postprocess, bool useMC)
+DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_t src, DetID::mask_t dets, DetID::mask_t skipDetClusters, bool enableCosmic, int postprocess, bool useMC)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
@@ -295,6 +314,9 @@ DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_
     dataRequest->requestPrimaryVertertices(useMC);
     if (GTrackID::includesDet(DetID::TRD, srcMP)) {
       dataRequest->inputs.emplace_back("calvdexb", "TRD", "CALVDRIFTEXB", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/CalVdriftExB"));
+    }
+    if (enableCosmic) {
+      dataRequest->requestCoscmicTracks(useMC);
     }
   }
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                                 // orbitResetTime
@@ -310,7 +332,7 @@ DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_
     "barrel-alignment",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<BarrelAlignmentSpec>(srcMP, dataRequest, ccdbRequest, dets, postprocess, useMC)},
+    AlgorithmSpec{adaptFromTask<BarrelAlignmentSpec>(srcMP, dataRequest, ccdbRequest, dets, enableCosmic, postprocess, useMC)},
     Options{
       ConfigParamSpec{"apply-xor", o2::framework::VariantType::Bool, false, {"flip the 8-th bit of slope and position (for processing TRD CTFs from 2021 pilot beam)"}},
       ConfigParamSpec{"allow-afterburner-tracks", VariantType::Bool, false, {"allow using ITS-TPC afterburner tracks"}},

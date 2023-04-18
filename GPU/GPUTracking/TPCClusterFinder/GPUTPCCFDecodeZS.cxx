@@ -302,7 +302,7 @@ GPUd() void GPUTPCCFDecodeZSLink::DecodeTBSingleThread(
 {
   const CfFragment& fragment = clusterer.mPmemory->fragment;
 
-  if CONSTEXPR17 (TPCZSHDRV2::TIGHTLY_PACKED_V3) {
+  if CONSTEXPR (TPCZSHDRV2::TIGHTLY_PACKED_V3) {
 
     unsigned int byte = 0, bits = 0, nSamplesWritten = 0, rawFECChannel = 0;
 
@@ -398,7 +398,7 @@ GPUd() void GPUTPCCFDecodeZSLink::DecodeTBMultiThread(
 
     unsigned int adc = 0;
 
-    if CONSTEXPR17 (TPCZSHDRV2::TIGHTLY_PACKED_V3) {
+    if CONSTEXPR (TPCZSHDRV2::TIGHTLY_PACKED_V3) {
 
       // Try to access adcData with 4 byte reads instead of 1 byte.
       // You'd think this would improve performace, but it's actually slower...
@@ -516,6 +516,7 @@ GPUd() void GPUTPCCFDecodeZSLinkBase::Decode(int nBlocks, int nThreads, int iBlo
 
 GPUd() o2::tpc::PadPos GPUTPCCFDecodeZSLinkBase::GetPadAndRowFromFEC(processorType& clusterer, int cru, int rawFECChannel, int fecInPartition)
 {
+#ifdef GPUCA_TPC_GEOMETRY_O2
   // Ported from tpc::Mapper (Not available on GPU...)
   const GPUTPCGeometry& geo = clusterer.Param().tpcGeometry;
 
@@ -536,6 +537,9 @@ GPUd() o2::tpc::PadPos GPUTPCCFDecodeZSLinkBase::GetPadAndRowFromFEC(processorTy
   const o2::tpc::PadPos pos = gpuMapping->FECIDToPadPos[globalSAMPAId];
 
   return pos;
+#else
+  return o2::tpc::PadPos{};
+#endif
 }
 
 GPUd() void GPUTPCCFDecodeZSLinkBase::WriteCharge(processorType& clusterer, float charge, PadPos padAndRow, TPCFragmentTime localTime, size_t positionOffset)
@@ -602,7 +606,7 @@ GPUd() uint32_t GPUTPCCFDecodeZSDenseLink::DecodePage(GPUSharedMemory& smem, pro
   const auto* payloadEnd = Peek(pageStart, raw::RDHUtils::getMemorySize(*rawDataHeader) - sizeof(TPCZSHDRV2) - ((decHeader->flags & TPCZSHDRV2::ZSFlags::TriggerWordPresent) ? TPCZSHDRV2::TRIGGER_WORD_SIZE : 0));
   const auto* nextPage = Peek(pageStart, TPCZSHDR::TPC_ZS_PAGE_SIZE);
 
-  ConsumeBytes(page, decHeader->firstZSDataOffset);
+  ConsumeBytes(page, decHeader->firstZSDataOffset - sizeof(o2::header::RAWDataHeader));
 
   for (unsigned short i = 0; i < decHeader->nTimebinHeaders; i++) {
     [[maybe_unused]] ptrdiff_t sizeLeftInPage = payloadEnd - page;
@@ -661,7 +665,7 @@ GPUd() unsigned short GPUTPCCFDecodeZSDenseLink::DecodeTB(
   [[maybe_unused]] const unsigned char* nextPage)
 {
 
-  if CONSTEXPR17 (DecodeInParallel) {
+  if CONSTEXPR (DecodeInParallel) {
     return DecodeTBMultiThread<PayloadExtendsToNextPage>(clusterer, smem, iThread, page, pageDigitOffset, rawDataHeader, firstHBF, cru, payloadEnd, nextPage);
   } else {
     unsigned short nSamplesWritten = 0;
@@ -686,7 +690,7 @@ GPUd() unsigned short GPUTPCCFDecodeZSDenseLink::DecodeTBMultiThread(
   [[maybe_unused]] const unsigned char* nextPage)
 {
 #define MAYBE_PAGE_OVERFLOW(pagePtr)                               \
-  if CONSTEXPR17 (PayloadExtendsToNextPage) {                      \
+  if CONSTEXPR (PayloadExtendsToNextPage) {                        \
     if (pagePtr >= payloadEnd && pagePtr < nextPage) {             \
       ptrdiff_t diff = pagePtr - payloadEnd;                       \
       pagePtr = nextPage;                                          \
@@ -824,7 +828,7 @@ GPUd() unsigned short GPUTPCCFDecodeZSDenseLink::DecodeTBSingleThread(
   [[maybe_unused]] const unsigned char* nextPage)
 {
 #define MAYBE_PAGE_OVERFLOW(pagePtr)                               \
-  if CONSTEXPR17 (PayloadExtendsToNextPage) {                      \
+  if CONSTEXPR (PayloadExtendsToNextPage) {                        \
     if (pagePtr >= payloadEnd && pagePtr < nextPage) {             \
       ptrdiff_t diff = pagePtr - payloadEnd;                       \
       pagePtr = nextPage;                                          \

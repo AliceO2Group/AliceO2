@@ -21,6 +21,7 @@
 #include "Framework/ServiceSpec.h"
 #include "Framework/CommonServices.h"
 #include "Framework/GuiCallbackContext.h"
+#include "Framework/DataProcessingContext.h"
 #include "SpyService.h"
 #include "SpyServiceHelpers.h"
 #include <fairmq/Channel.h>
@@ -77,13 +78,9 @@ struct ImGUIDebugGUI : o2::framework::DebugGUI {
   {
     o2::framework::disposeGUI();
   }
-  void getFrameJSON(void* data, std::ostream& json_data) override
+  void getFrameRaw(void* data, void** raw_data, int* size, bool updateTextures = false) override
   {
-    o2::framework::getFrameJSON(data, json_data);
-  }
-  void getFrameRaw(void* data, void** raw_data, int* size) override
-  {
-    o2::framework::getFrameRaw(data, raw_data, size);
+    o2::framework::getFrameRaw(data, raw_data, size, updateTextures);
   }
   bool pollGUIPreRender(void* context, float delta) override
   {

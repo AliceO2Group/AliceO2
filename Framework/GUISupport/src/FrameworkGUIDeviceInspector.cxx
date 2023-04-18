@@ -54,11 +54,23 @@ void deviceInfoTable(char const* label, Metric2DViewIndex const& index, DeviceMe
 {
   if (index.indexes.empty() == false && ImGui::CollapsingHeader(label, ImGuiTreeNodeFlags_DefaultOpen)) {
     for (size_t i = 0; i < index.indexes.size(); ++i) {
-      auto& metric = metrics.metrics[index.indexes[i]];
-      ImGui::Text("%zu: %s", i, metrics.stringMetrics[metric.storeIdx][0].data);
+      if (metrics.metrics.size() <= index.indexes.at(i)) {
+        ImGui::Text("Missing data_queries/%zu metric", i);
+        continue;
+      }
+      auto& metric = metrics.metrics.at(index.indexes.at(i));
+      if (metrics.stringMetrics.size() <= metric.storeIdx) {
+        continue;
+      }
+      if (metrics.stringMetrics.at(metric.storeIdx).empty()) {
+        continue;
+      }
+      char const* name = metrics.stringMetrics.at(metric.storeIdx).at(0).data;
+      assert(name);
+      ImGui::Text("%zu: %s", i, name);
       if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
-        ImGui::Text("%zu: %s", i, metrics.stringMetrics[metric.storeIdx][0].data);
+        ImGui::Text("%zu: %s", i, name);
         ImGui::EndTooltip();
       }
     }
@@ -263,6 +275,26 @@ void displayDeviceInspector(DeviceSpec const& spec,
     (void)retVal;
   }
 
+#ifdef __APPLE__
+  if (ImGui::Button("Profile Allocations 30s")) {
+    std::string pid = std::to_string(info.pid);
+    setenv("O2PROFILEDPID", pid.c_str(), 1);
+    auto defaultAppleProfileCommand = fmt::format(
+      "osascript -e 'tell application \"Terminal\"'"
+      " -e 'activate'"
+      " -e 'do script \"xcrun xctrace record --output dpl-profile-{0}.trace"
+      " --time-limit 30s --template Allocations --attach {0} "
+      " && open dpl-profile-{0}.trace && exit\"'"
+      " -e 'end tell'",
+      pid);
+
+    setenv("O2DPLPROFILE", defaultAppleProfileCommand.c_str(), 0);
+    LOG(error) << getenv("O2DPLPROFILE");
+    int retVal = system(getenv("O2DPLPROFILE"));
+    (void)retVal;
+  }
+#endif
+
 #if DPL_ENABLE_TRACING
   ImGui::SameLine();
   if (ImGui::Button("Tracy")) {
@@ -308,9 +340,11 @@ void displayDeviceInspector(DeviceSpec const& spec,
     ChannelsTableHelper::channelsTable("Inputs:", spec.inputChannels);
     ChannelsTableHelper::channelsTable("Outputs:", spec.outputChannels);
   }
-  if (ImGui::CollapsingHeader("Data relayer")) {
-    ImGui::Text("Completion policy: %s", spec.completionPolicy.name.c_str());
+  if (ImGui::CollapsingHeader("Policies")) {
+    ImGui::Text("Completion: %s", spec.completionPolicy.name.c_str());
+    ImGui::Text("Sending: %s", spec.sendingPolicy.name.c_str());
   }
+
   if (ImGui::CollapsingHeader("Signals", ImGuiTreeNodeFlags_DefaultOpen)) {
     if (ImGui::Button("SIGSTOP")) {
       kill(info.pid, SIGSTOP);

@@ -128,6 +128,11 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
       mProcessor->setStartValidity(dataTime);
     }
 
+    if (mLocalTest == true) {
+      // ef: temporary solution since ec.services() crashes
+      testTimeStamp = (long)(pc.services().get<o2::framework::TimingInfo>().creation);
+    }
+
     if (mCheckRunStartStop) {
       const auto* grp = mRunChecker.check(); // check if there is a run with HMP
       // this is an example of what it will return
@@ -140,7 +145,11 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
       } else if (mRunChecker.getRunStatus() ==
                  RunStatus::START) { // saw new run with wanted detectors
         LOGP(info, "Run {} has started", mRunChecker.getFollowedRun());
-        grp->print();
+        if (grp) {
+          grp->print();
+        } else {
+          LOG(error) << "GRPECS pointer is null";
+        }
         mProcessor->setRunNumberFromGRP(mRunChecker.getFollowedRun()); // ef: just the same as for emcal ef: set startValidity here if run-specific object
         if (mProcessor->getStartValidity() == o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP) {
           mProcessor->setStartValidity(dataTime);
@@ -179,10 +188,13 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
+
     // ef : only for local testing of Fits etc.:
     if (mLocalTest) {
       auto timeNow = HighResClock::now();
-      long dataTime = (long)(ec.services().get<o2::framework::TimingInfo>().creation);
+
+      // ef: NB! crashes when using ec.services().get ...
+      long dataTime = testTimeStamp; //(long)(ec.services().get<o2::framework::TimingInfo>().creation);
       if (dataTime == 0xffffffffffffffff) {
         dataTime = std::chrono::duration_cast<std::chrono::milliseconds>(timeNow.time_since_epoch()).count(); // in ms
       }
@@ -242,18 +254,19 @@ class HMPIDDCSDataProcessor : public o2::framework::Task
       info);
   }
 
-  std::vector<std::string> aliases = {
-    "HMP_ENV_PENV",
-    "HMP_MP_[0..6]_GAS_PMWPC",
-    "HMP_MP_[0..6]_LIQ_LOOP_RAD_[0..2]_IN_TEMP",
-    "HMP_MP_[0..6]_LIQ_LOOP_RAD_[0..2]_OUT_TEMP",
-    "HMP_MP_[0..6]_SEC_[0..5]_HV_VMON",
-    "HMP_TRANPLANT_MEASURE_[0..29]_WAVELENGHT",
-    "HMP_TRANPLANT_MEASURE_[0..29]_ARGONREFERENCE",
-    "HMP_TRANPLANT_MEASURE_[0..29]_ARGONCELL",
-    "HMP_TRANPLANT_MEASURE_[0..29]_C6F14REFERENCE",
-    "HMP_TRANPLANT_MEASURE_[0..29]_C6F14CELL"};
+  std::vector<std::string> aliases = {/*"HMP_MP_[0..6]_STATUSW",*/
+                                      "HMP_ENV_PENV",
+                                      "HMP_MP_[0..6]_GAS_PMWPC",
+                                      "HMP_MP_[0..6]_LIQ_LOOP_RAD_[0..2]_IN_TEMP",
+                                      "HMP_MP_[0..6]_LIQ_LOOP_RAD_[0..2]_OUT_TEMP",
+                                      "HMP_MP_[0..6]_SEC_[0..5]_HV_VMON",
+                                      "HMP_TRANPLANT_MEASURE_[0..29]_WAVELENGHT",
+                                      "HMP_TRANPLANT_MEASURE_[0..29]_ARGONREFERENCE",
+                                      "HMP_TRANPLANT_MEASURE_[0..29]_ARGONCELL",
+                                      "HMP_TRANPLANT_MEASURE_[0..29]_C6F14REFERENCE",
+                                      "HMP_TRANPLANT_MEASURE_[0..29]_C6F14CELL"};
 
+  long testTimeStamp; // ef: ec.services Timetamp crashes
   bool isRunStarted = false;
   bool mLocalTest = false;
   bool mCheckRunStartStop = true;

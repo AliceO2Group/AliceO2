@@ -77,7 +77,7 @@ void writeRoadsReport(std::ofstream&, std::ofstream&, std::ofstream&, const std:
                       const std::unordered_map<int, Label>&);
 
 template <class iterator, typename T>
-o2::math_utils::Point3D<T> extractClusterData(const itsmft::CompClusterExt& c, iterator iter, const itsmft::TopologyDictionary* dict, T& sig2y, T& sig2z)
+o2::math_utils::Point3D<T> extractClusterData(const itsmft::CompClusterExt& c, iterator& iter, const itsmft::TopologyDictionary* dict, T& sig2y, T& sig2z)
 {
   auto pattID = c.getPatternID();
   sig2y = ioutils::DefClusError2Row;
@@ -99,7 +99,7 @@ o2::math_utils::Point3D<T> extractClusterData(const itsmft::CompClusterExt& c, i
 
 // same method returning coordinates as an array (suitable for the TGeoMatrix)
 template <class iterator, typename T>
-std::array<T, 3> extractClusterDataA(const itsmft::CompClusterExt& c, iterator iter, const itsmft::TopologyDictionary* dict, T& sig2y, T& sig2z)
+std::array<T, 3> extractClusterDataA(const itsmft::CompClusterExt& c, iterator& iter, const itsmft::TopologyDictionary* dict, T& sig2y, T& sig2z)
 {
   auto pattID = c.getPatternID();
   sig2y = ioutils::DefClusError2Row;

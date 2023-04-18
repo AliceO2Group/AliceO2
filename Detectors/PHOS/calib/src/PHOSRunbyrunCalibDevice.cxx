@@ -27,6 +27,13 @@ void PHOSRunbyrunCalibDevice::init(o2::framework::InitContext& ic)
   o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
   mCalibrator.reset(new PHOSRunbyrunCalibrator());
 
+  if (mOutputDir.compare("/dev/null")) {
+    mOutputDir = o2::utils::Str::rectifyDirectory(mOutputDir);
+  }
+  if (mMetaFileDir.compare("/dev/null")) {
+    mMetaFileDir = o2::utils::Str::rectifyDirectory(mMetaFileDir);
+  }
+
   // mCalibrator->setSlotLength(slotL);
   // mCalibrator->setMaxSlotsDelay(delay);
   mCalibrator->setUpdateAtTheEndOfRunOnly();
@@ -100,7 +107,7 @@ void PHOSRunbyrunCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
     ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "PHOS_Runbyrun", 0}, *image.get());
     ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "PHOS_Runbyrun", 0}, info);
   } else {
-    LOG(error) << "Incorrect fit results: " << mRunByRun[0] << "+-" << mRunByRun[1] << ", "
+    LOG(alarm) << "Incorrect fit results: " << mRunByRun[0] << "+-" << mRunByRun[1] << ", "
                << mRunByRun[2] << "+-" << mRunByRun[3] << ", "
                << mRunByRun[4] << "+-" << mRunByRun[5] << ", "
                << mRunByRun[6] << "+-" << mRunByRun[7];

@@ -10,12 +10,13 @@
 // or submit itself to any jurisdiction.
 
 #include "FT0Calibration/FT0TimeOffsetSlotContainer.h"
-#include "FT0Calibration/CalibParam.h"
+#include "DataFormatsFT0/CalibParam.h"
 #include "CommonDataFormat/FlatHisto1D.h"
 
 #include <Framework/Logger.h>
 
 #include "TH1.h"
+#include "TFile.h"
 #include "TFitResult.h"
 
 using namespace o2::ft0;
@@ -29,16 +30,17 @@ bool FT0TimeOffsetSlotContainer::hasEnoughEntries() const
     LOG(info) << "RESULT: ready";
     print();
     return true;
-  } else if (mCurrentSlot > CalibParam::Instance().mNExtraSlots) {
-    LOG(info) << "RESULT: Extra slots are used";
+  } else if (mCurrentSlot >= CalibParam::Instance().mNExtraSlots) {
+    LOG(info) << "RESULT: Extra slots(" << CalibParam::Instance().mNExtraSlots << ") are used";
     print();
     return true;
-  } else if (mCurrentSlot == 0) {
+  } else if (mCurrentSlot < CalibParam::Instance().mNExtraSlots) {
     for (int iCh = 0; iCh < sNCHANNELS; iCh++) {
       const auto nEntries = mArrEntries[iCh];
       if (nEntries >= CalibParam::Instance().mMinEntriesThreshold && nEntries < CalibParam::Instance().mMaxEntriesThreshold) {
         // Check if there are any pending channel in first slot
         LOG(info) << "RESULT: pending channels";
+        print();
         return false;
       }
     }
@@ -47,10 +49,10 @@ bool FT0TimeOffsetSlotContainer::hasEnoughEntries() const
     print();
     return true;
   } else {
-    // Probably will never happen, all other conditions are already checked
+    // Probably will be never happen, all other conditions are already checked
     LOG(info) << "RESULT: should be never happen";
     print();
-    return false;
+    return true;
   }
 }
 
@@ -64,27 +66,25 @@ void FT0TimeOffsetSlotContainer::fill(const gsl::span<const float>& data)
     mIsFirstTF = false;
   }
   mHistogram.add(histView);
-  if (!mIsReady) {
-    // This part should at the stage `hasEnoughData()` but it is const method
-    for (int iCh = 0; iCh < sNCHANNELS; iCh++) {
-      if (mBitsetGoodChIDs.test(iCh) || mBitsetBadChIDs.test(iCh)) {
-        // No need in checking entries at channels with enough data or at channels which marked as bad in first slot
-        continue;
-      }
-      auto sliceChID = mHistogram.getSliceY(iCh);
-      FlatHistoValue_t nEntries{};
-      for (auto& en : sliceChID) {
-        nEntries += en;
-      }
-      mArrEntries[iCh] = nEntries;
-      if (nEntries >= CalibParam::Instance().mMaxEntriesThreshold) {
-        mBitsetGoodChIDs.set(iCh);
-      }
+  // This part should at the stage `hasEnoughData()` but it is const method
+  for (int iCh = 0; iCh < sNCHANNELS; iCh++) {
+    if (mBitsetGoodChIDs.test(iCh) || mBitsetBadChIDs.test(iCh)) {
+      // No need in checking entries at channels with enough data or at channels which marked as bad in first slot
+      continue;
     }
-    const auto totalNCheckedChIDs = mBitsetGoodChIDs.count() + mBitsetBadChIDs.count();
-    if (totalNCheckedChIDs == sNCHANNELS) {
-      mIsReady = true;
+    auto sliceChID = mHistogram.getSliceY(iCh);
+    FlatHistoValue_t nEntries{};
+    for (auto& en : sliceChID) {
+      nEntries += en;
     }
+    mArrEntries[iCh] = nEntries;
+    if (nEntries >= CalibParam::Instance().mMaxEntriesThreshold) {
+      mBitsetGoodChIDs.set(iCh);
+    }
+  }
+  const auto totalNCheckedChIDs = mBitsetGoodChIDs.count() + mBitsetBadChIDs.count();
+  if (totalNCheckedChIDs == sNCHANNELS) {
+    mIsReady = true;
   }
 }
 
@@ -105,18 +105,20 @@ void FT0TimeOffsetSlotContainer::merge(FT0TimeOffsetSlotContainer* prev)
   mCurrentSlot++;
 }
 
-int16_t FT0TimeOffsetSlotContainer::getMeanGaussianFitValue(std::size_t channelID) const
+SpectraInfoObject FT0TimeOffsetSlotContainer::getSpectraInfoObject(std::size_t channelID, TList* listHists) const
 {
-  double meanGaus{0};
-  double sigmaGaus{0};
+  uint32_t statusBits{};
   double minFitRange{0};
   double maxFitRange{0};
   auto hist = mHistogram.createSliceYTH1F(channelID);
-  if (CalibParam::Instance().mRebinFactorPerChID[channelID] > 0) {
-    hist->Rebin(CalibParam::Instance().mRebinFactorPerChID[channelID]);
+  if (channelID < sNCHANNELS) {
+    if (CalibParam::Instance().mRebinFactorPerChID[channelID] > 0) {
+      hist->Rebin(CalibParam::Instance().mRebinFactorPerChID[channelID]);
+    }
   }
-  const auto meanHist = hist->GetMean();
-  const auto rmsHist = hist->GetRMS();
+  const float meanHist = hist->GetMean();
+  const float rmsHist = hist->GetRMS();
+  const float stat = hist->Integral();
   if (CalibParam::Instance().mUseDynamicRange) {
     minFitRange = meanHist - CalibParam::Instance().mRangeInRMS * rmsHist;
     maxFitRange = meanHist + CalibParam::Instance().mRangeInRMS * rmsHist;
@@ -124,28 +126,57 @@ int16_t FT0TimeOffsetSlotContainer::getMeanGaussianFitValue(std::size_t channelI
     minFitRange = CalibParam::Instance().mMinFitRange;
     maxFitRange = CalibParam::Instance().mMaxFitRange;
   }
-  TFitResultPtr resultFit = hist->Fit("gaus", "0SQ", "", minFitRange, maxFitRange);
-  if (((int)resultFit) == 0) {
-    meanGaus = resultFit->Parameters()[1];
-    sigmaGaus = resultFit->Parameters()[2];
+  float constantGaus{};
+  float meanGaus{};
+  float sigmaGaus{};
+  float fitChi2{};
+  if (stat > 0) {
+    TFitResultPtr resultFit = hist->Fit("gaus", "0SQ", "", minFitRange, maxFitRange);
+    if (((int)resultFit) == 0) {
+      constantGaus = resultFit->Parameters()[0];
+      meanGaus = resultFit->Parameters()[1];
+      sigmaGaus = resultFit->Parameters()[2];
+      fitChi2 = resultFit->Chi2();
+      statusBits |= (1 << 0);
+    }
+    if (((int)resultFit) != 0 || std::abs(meanGaus - meanHist) > CalibParam::Instance().mMaxDiffMean || rmsHist < CalibParam::Instance().mMinRMS || sigmaGaus > CalibParam::Instance().mMaxSigma) {
+      statusBits |= (2 << 0);
+      LOG(debug) << "Bad gaus fit: meanGaus " << meanGaus << " sigmaGaus " << sigmaGaus << " meanHist " << meanHist << " rmsHist " << rmsHist << "resultFit " << ((int)resultFit);
+    }
   }
-  if (((int)resultFit) != 0 || std::abs(meanGaus - meanHist) > CalibParam::Instance().mMaxDiffMean || rmsHist < CalibParam::Instance().mMinRMS || sigmaGaus > CalibParam::Instance().mMaxSigma) {
-    LOG(debug) << "Bad gaus fit: meanGaus " << meanGaus << " sigmaGaus " << sigmaGaus << " meanHist " << meanHist << " rmsHist " << rmsHist << "resultFit " << ((int)resultFit);
-    meanGaus = meanHist;
+  if (listHists != nullptr) {
+    auto histPtr = hist.release();
+    const std::string histName = "histCh" + std::to_string(channelID);
+    histPtr->SetName(histName.c_str());
+    listHists->Add(histPtr);
   }
-  return static_cast<int16_t>(meanGaus);
+  return SpectraInfoObject{meanGaus, sigmaGaus, constantGaus, fitChi2, meanHist, rmsHist, stat, statusBits};
 }
 
-FT0ChannelTimeCalibrationObject FT0TimeOffsetSlotContainer::generateCalibrationObject() const
+TimeSpectraInfoObject FT0TimeOffsetSlotContainer::generateCalibrationObject(long tsStartMS, long tsEndMS, const std::string& extraInfo) const
 {
-  FT0ChannelTimeCalibrationObject calibrationObject;
+  TList* listHists = nullptr;
+  bool storeHists{false};
+  if (extraInfo.size() > 0) {
+    storeHists = true;
+    listHists = new TList();
+    listHists->SetOwner(true);
+    listHists->SetName("output");
+  }
+  TimeSpectraInfoObject calibrationObject;
   for (unsigned int iCh = 0; iCh < sNCHANNELS; ++iCh) {
-    if (mBitsetGoodChIDs.test(iCh)) {
-      calibrationObject.mTimeOffsets[iCh] = getMeanGaussianFitValue(iCh);
-    } else {
-      // If channel is bad, set zero offset(or use histogram mean?). Later will be hidden value for tagging as bad channel
-      calibrationObject.mTimeOffsets[iCh] = 0;
-    }
+    calibrationObject.mTime[iCh] = getSpectraInfoObject(iCh, listHists);
+  }
+  calibrationObject.mTimeA = getSpectraInfoObject(sNCHANNELS, listHists);
+  calibrationObject.mTimeC = getSpectraInfoObject(sNCHANNELS + 1, listHists);
+  calibrationObject.mSumTimeAC = getSpectraInfoObject(sNCHANNELS + 2, listHists);
+  calibrationObject.mDiffTimeCA = getSpectraInfoObject(sNCHANNELS + 3, listHists);
+  if (storeHists) {
+    const std::string filename = extraInfo + "/histsTimeSpectra" + std::to_string(tsStartMS) + "_" + std::to_string(tsEndMS) + ".root";
+    TFile fileHists(filename.c_str(), "RECREATE");
+    fileHists.WriteObject(listHists, listHists->GetName(), "SingleKey");
+    fileHists.Close();
+    delete listHists;
   }
   return calibrationObject;
 }

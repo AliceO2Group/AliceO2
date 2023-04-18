@@ -59,7 +59,7 @@ class MaskMakerDeviceDPL
       double scaleFactor = (mCounter == 0) ? 0 : 1.e6 / mCounter;
       LOG(info) << "Processing time / " << mCounter << " events: full: " << mTimer.count() * scaleFactor << " us  mask maker: " << mTimerMaskMaker.count() * scaleFactor << " us";
     };
-    ic.services().get<of::CallbackService>().set(of::CallbackService::Id::Stop, stop);
+    ic.services().get<of::CallbackService>().set<of::CallbackService::Id::Stop>(stop);
   }
 
   void run(of::ProcessingContext& pc)

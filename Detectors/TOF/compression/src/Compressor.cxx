@@ -114,6 +114,9 @@ bool Compressor<RDH, verbose, paranoid>::processHBF()
               << std::endl;
   }
 
+  uint8_t rdhFormat = o2::raw::RDHUtils::getDataFormat(mDecoderPointer);
+  setDecoderCRUZEROES(!rdhFormat);
+
   mDecoderRDH = reinterpret_cast<const RDH*>(mDecoderPointer);
   mEncoderRDH = reinterpret_cast<RDH*>(mEncoderPointer);
   auto rdh = mDecoderRDH;
@@ -436,7 +439,7 @@ bool Compressor<RDH, verbose, paranoid>::processDRM()
       decoderNext();
 
       /** filler detected **/
-      if ((mDecoderPointer < mDecoderPointerMax) && IS_FILLER(*mDecoderPointer)) {
+      while ((mDecoderPointer < mDecoderPointerMax) && IS_FILLER(*mDecoderPointer)) {
         if (verbose && mDecoderVerbose) {
           printf(" %08x Filler \n", *mDecoderPointer);
         }
@@ -791,7 +794,9 @@ bool Compressor<RDH, verbose, paranoid>::decoderParanoid()
   /** decoder paranoid **/
 
   if (mDecoderPointer >= mDecoderPointerMax) {
-    printf("%s %08x [ERROR] fatal error: beyond memory size %s \n", colorRed, *mDecoderPointer, colorReset);
+    if (verbose) {
+      printf("%s %08x [ERROR] fatal error: beyond memory size %s \n", colorRed, *mDecoderPointer, colorReset);
+    }
     mDecoderFatal = true;
     return true;
   }
@@ -1038,7 +1043,7 @@ bool Compressor<RDH, verbose, paranoid>::checkerCheck()
 
   /** check DRM event words (careful with pointers because we have 64 bits extra! only for CRU data! **/
   auto drmEventWords = mDecoderSummary.drmDataTrailer - mDecoderSummary.drmDataHeader + 1;
-  if (!mDecoderCONET) {
+  if (mDecoderNextWordStep) {
     drmEventWords -= (drmEventWords / 4) * 2;
   }
   drmEventWords -= 6;
@@ -1199,7 +1204,7 @@ bool Compressor<RDH, verbose, paranoid>::checkerCheck()
 
     /** check TRM event words (careful with pointers because we have 64 bits extra! only for CRU data! **/
     auto trmEventWords = mDecoderSummary.trmDataTrailer[itrm] - mDecoderSummary.trmDataHeader[itrm] + 1;
-    if (!mDecoderCONET) {
+    if (mDecoderNextWordStep) {
       trmEventWords -= (trmEventWords / 4) * 2;
     }
     if (verbose && mCheckerVerbose) {
@@ -1435,10 +1440,10 @@ void Compressor<RDH, verbose, paranoid>::checkSummary()
   printf("\n");
 }
 
-template class Compressor<o2::header::RAWDataHeaderV6, false, false>;
-template class Compressor<o2::header::RAWDataHeaderV6, false, true>;
-template class Compressor<o2::header::RAWDataHeaderV6, true, false>;
-template class Compressor<o2::header::RAWDataHeaderV6, true, true>;
+template class Compressor<o2::header::RAWDataHeader, false, false>;
+template class Compressor<o2::header::RAWDataHeader, false, true>;
+template class Compressor<o2::header::RAWDataHeader, true, false>;
+template class Compressor<o2::header::RAWDataHeader, true, true>;
 
 } // namespace tof
 } // namespace o2

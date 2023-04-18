@@ -23,26 +23,19 @@ namespace o2
 {
 namespace fit
 {
-
 struct EventHeader {
   static constexpr size_t PayloadSize = 10;
   static constexpr size_t PayloadPerGBTword = 10;
   static constexpr size_t MinNelements = 1;
   static constexpr size_t MaxNelements = 1;
-  union {
-    uint64_t word[2] = {};
-    struct {
-      uint64_t bc : 12;
-      uint64_t orbit : 32;
-      uint64_t phase : 3;
-      uint64_t errorPhase : 1;
-      uint64_t reservedField1 : 16;
-      uint64_t reservedField2 : 8;
-      uint64_t nGBTWords : 4;
-      uint64_t startDescriptor : 4;
-      uint64_t reservedField3 : 48;
-    };
-  };
+  uint64_t bc : 12;
+  uint64_t orbit : 32;
+  uint64_t phase : 3;
+  uint64_t errorPhase : 1;
+  uint64_t reservedField1 : 16;
+  uint64_t reservedField2 : 8;
+  uint64_t nGBTWords : 4;
+  uint64_t startDescriptor : 4;
   InteractionRecord getIntRec() const { return InteractionRecord{(uint16_t)bc, (uint32_t)orbit}; }
   uint16_t getBC() const { return static_cast<uint16_t>(bc); }
   uint32_t getOrbit() const { return static_cast<uint32_t>(orbit); }
@@ -52,56 +45,40 @@ struct EventHeader {
     orbit = intRec.orbit;
   }
   void print() const;
-};
+} __attribute__((__packed__));
 
 struct EventData {
   static constexpr size_t PayloadSize = 5;
   static constexpr size_t PayloadPerGBTword = 10;
   static constexpr size_t MinNelements = 0;
   static constexpr size_t MaxNelements = 12;
-  //
-  static constexpr int BitFlagPos = 25; // position of first bit flag(numberADC)
-
-  union {
-    uint64_t word = {0};
-    struct {
-      int64_t time : 12;
-      int64_t charge : 13;
-      uint64_t numberADC : 1, // 25 bit
-        isDoubleEvent : 1,
-        isTimeInfoNOTvalid : 1,
-        isCFDinADCgate : 1,
-        isTimeInfoLate : 1,
-        isAmpHigh : 1,
-        isEventInTVDC : 1,
-        isTimeInfoLost : 1,
-        reservedField : 3,
-        channelID : 4;
-    };
-  };
+  int16_t time : 12;
+  int16_t charge : 13;
+  uint8_t pmBits : 8;
+  uint8_t reservedField : 3;
+  uint8_t channelID : 4;
   void generateFlags()
   {
-    numberADC = std::rand() % 2;
-    isDoubleEvent = 0;
-    isTimeInfoNOTvalid = 0;
-    isCFDinADCgate = 1;
-    isTimeInfoLate = 0;
-    isAmpHigh = 0;
-    isEventInTVDC = 1;
-    isTimeInfoLost = 0;
-  }
-  uint8_t getFlagWord() const
-  {
-    return uint8_t(word >> BitFlagPos);
+    /*
+        numberADC = std::rand() % 2;
+        isDoubleEvent = 0;
+        isTimeInfoNOTvalid = 0;
+        isCFDinADCgate = 1;
+        isTimeInfoLate = 0;
+        isAmpHigh = 0;
+        isEventInTVDC = 1;
+        isTimeInfoLost = 0;
+    */
   }
   void print() const;
-};
+} __attribute__((__packed__));
 
 struct TCMdata {
   static constexpr size_t PayloadSize = 10;
   static constexpr size_t PayloadPerGBTword = 10;
   static constexpr size_t MinNelements = 1;
   static constexpr size_t MaxNelements = 1;
+
   uint64_t orA : 1,        // 0 bit (0 byte)
     orC : 1,               // 1 bit
     sCen : 1,              // 2 bit
@@ -118,13 +95,11 @@ struct TCMdata {
     reservedField4 : 1,    // 41 bit
     amplC : 17,            // 42 bit.
     reservedField5 : 1,    // 59 bit.
-    // in standard case(without __atribute__((packed)) macros, or packing by using union)
-    // here will be empty 4 bits, end next field("timeA") will start from 64 bit.
-    timeA : 9,           // 60 bit
-    reservedField6 : 1,  // 69 bit
-    timeC : 9,           // 70 bit
-    reservedField7 : 1,  // 79 bit
-    reservedField8 : 48; // 80 bit
+    timeA : 9,             // 60 bit
+    reservedField6 : 1,    // 69 bit
+    timeC : 9,             // 70 bit
+    reservedField7 : 1,    // 79 bit
+    reservedField8 : 48;   // 80 bit
 
   void print() const;
 } __attribute__((__packed__));
@@ -134,11 +109,7 @@ struct TCMdataExtended {
   static constexpr size_t PayloadPerGBTword = 10;
   static constexpr size_t MinNelements = 0;
   static constexpr size_t MaxNelements = 20;
-  union {
-    uint32_t word[1] = {};
-    uint32_t triggerWord;
-  };
-
+  uint32_t triggerWord;
   void print() const;
 };
 

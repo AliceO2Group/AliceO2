@@ -21,6 +21,8 @@
 #include <iosfwd>
 
 #include "CommonDataFormat/RangeReference.h"
+#include "CommonDataFormat/InteractionRecord.h"
+#include "CommonDataFormat/TimeStamp.h"
 
 namespace o2
 {
@@ -33,9 +35,11 @@ class TrackMCH
   using ClusRef = o2::dataformats::RangeRefComp<5>;
 
  public:
+  using Time = o2::dataformats::TimeStampWithError<float, float>;
+
   TrackMCH() = default;
   TrackMCH(double z, const TMatrixD& param, const TMatrixD& cov, double chi2, int firstClIdx, int nClusters,
-           double zAtMID, const TMatrixD& paramAtMID, const TMatrixD& covAtMID);
+           double zAtMID, const TMatrixD& paramAtMID, const TMatrixD& covAtMID, const Time& time);
   ~TrackMCH() = default;
 
   TrackMCH(const TrackMCH& track) = default;
@@ -107,6 +111,19 @@ class TrackMCH
   /// set the number of the clusters attached to the track and the index of the first one
   void setClusterRef(int firstClusterIdx, int nClusters) { mClusRef.set(firstClusterIdx, nClusters); }
 
+  /// mean time associated to this track, with error
+  const Time& getTimeMUS() const { return mTimeMUS; }
+  Time& getTimeMUS() { return mTimeMUS; }
+  void setTimeMUS(const Time& t) { mTimeMUS = t; }
+  void setTimeMUS(float t, float te)
+  {
+    mTimeMUS.setTimeStamp(t);
+    mTimeMUS.setTimeStampError(te);
+  }
+
+  /// interaction record corresponding to the mean track time
+  InteractionRecord getMeanIR(uint32_t refOrbit) const;
+
  private:
   static constexpr int SNParams = 5;  ///< number of track parameters
   static constexpr int SCovSize = 15; ///< number of different elements in the symmetric covariance matrix
@@ -136,8 +153,9 @@ class TrackMCH
   double mZAtMID = 0.;                 ///< z position on the MID side where the parameters are evaluated
   double mParamAtMID[SNParams] = {0.}; ///< 5 parameters: X (cm), SlopeX, Y (cm), SlopeY, q/pYZ ((GeV/c)^-1)
   double mCovAtMID[SCovSize] = {0.};   ///< reduced covariance matrix of track parameters, formated as above
+  Time mTimeMUS{};                     ///< associated time in microseconds from the TF start
 
-  ClassDefNV(TrackMCH, 2);
+  ClassDefNV(TrackMCH, 3);
 };
 
 std::ostream& operator<<(std::ostream& os, const TrackMCH& t);

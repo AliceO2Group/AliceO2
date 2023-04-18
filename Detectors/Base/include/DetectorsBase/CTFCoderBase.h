@@ -128,7 +128,7 @@ class CTFCoderBase
 
   void setBCShift(int64_t n) { mBCShift = n; }
   void setFirstTFOrbit(uint32_t n) { mFirstTFOrbit = n; }
-  auto getBCShist() const { return mBCShift; }
+  auto getBCShift() const { return mBCShift; }
   auto getFirstTFOrbit() const { return mFirstTFOrbit; }
   void setSupportBCShifts(bool v = true) { mSupportBCShifts = v; }
   bool getSupportBCShifts() const { return mSupportBCShifts; }
@@ -137,11 +137,13 @@ class CTFCoderBase
   std::string getPrefix() const { return o2::utils::Str::concat_string(mDet.getName(), "_CTF: "); }
   void checkDictVersion(const CTFDictHeader& h) const;
   bool isTreeDictionary(const void* buff) const;
-  bool canApplyBCShift(const o2::InteractionRecord& ir) const
+  bool canApplyBCShift(const o2::InteractionRecord& ir, long shift) const
   {
     auto diff = ir.differenceInBC({0, mFirstTFOrbit});
-    return diff < 0 ? true : diff >= mBCShift;
+    return diff < 0 ? true : diff >= shift;
   }
+  bool canApplyBCShift(const o2::InteractionRecord& ir) const { return canApplyBCShift(ir, mBCShift); }
+
   template <typename CTF>
   std::vector<char> loadDictionaryFromTree(TTree* tree);
   std::vector<std::shared_ptr<void>> mCoders; // encoders/decoders

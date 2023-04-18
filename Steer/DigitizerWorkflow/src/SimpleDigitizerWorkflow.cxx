@@ -40,11 +40,11 @@
 #include "ITSMFTDigitizerSpec.h"
 #include "ITSMFTWorkflow/DigitWriterSpec.h"
 
-// #ifdef ENABLE_UPGRADES
-// // for ITS3
-// #include "ITS3DigitizerSpec.h"
-// #include "ITS3Workflow/DigitWriterSpec.h"
-// #endif
+#ifdef ENABLE_UPGRADES
+// for ITS3
+#include "ITS3DigitizerSpec.h"
+#include "ITS3Workflow/DigitWriterSpec.h"
+#endif
 
 // for TOF
 #include "TOFDigitizerSpec.h"
@@ -82,7 +82,7 @@
 
 // for MUON MCH
 #include "MCHDigitizerSpec.h"
-#include "MCHDigitWriterSpec.h"
+#include "MCHIO/DigitWriterSpec.h"
 
 // for MID
 #include "MIDDigitizerSpec.h"
@@ -189,7 +189,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
   // option to use/not use CCDB for TOF
   workflowOptions.push_back(ConfigParamSpec{"use-ccdb-tof", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}});
-  workflowOptions.push_back(ConfigParamSpec{"ccdb-tof-sa", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects via CCDBManager (standalone)"}});
+  workflowOptions.push_back(ConfigParamSpec{"ccdb-tof-sa", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects via CCDBManager (obsolete remap to use-ccdb-tof)"}});
 
   // option to use/not use CCDB for FT0
   workflowOptions.push_back(ConfigParamSpec{"use-ccdb-ft0", o2::framework::VariantType::Bool, true, {"enable access to ccdb ft0 calibration objects"}});
@@ -223,20 +223,20 @@ void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
     },
     [](o2::framework::CallbackService& service, o2::framework::InitContext& context) {
       // simple linear enumeration from already updated HBFUtils (set via config key values)
-      service.set(o2::framework::CallbackService::Id::NewTimeslice,
-                  [](o2::header::DataHeader& dh, o2::framework::DataProcessingHeader& dph) {
-                    const auto& hbfu = o2::raw::HBFUtils::Instance();
-                    const auto offset = int64_t(hbfu.getFirstIRofTF({0, hbfu.orbitFirstSampled}).orbit);
-                    const auto increment = int64_t(hbfu.nHBFPerTF);
-                    const auto startTime = hbfu.startTime;
-                    const auto orbitFirst = hbfu.orbitFirst;
-                    dh.firstTForbit = offset + increment * dh.tfCounter;
-                    LOG(info) << "Setting firstTForbit to " << dh.firstTForbit;
-                    dh.runNumber = hbfu.runNumber;
-                    LOG(info) << "Setting runNumber to " << dh.runNumber;
-                    dph.creation = startTime + (dh.firstTForbit - orbitFirst) * o2::constants::lhc::LHCOrbitMUS * 1.e-3;
-                    LOG(info) << "Setting timeframe creation time to " << dph.creation;
-                  });
+      service.set<o2::framework::CallbackService::Id::NewTimeslice>(
+        [](o2::header::DataHeader& dh, o2::framework::DataProcessingHeader& dph) {
+          const auto& hbfu = o2::raw::HBFUtils::Instance();
+          const auto offset = int64_t(hbfu.getFirstIRofTF({0, hbfu.orbitFirstSampled}).orbit);
+          const auto increment = int64_t(hbfu.nHBFPerTF);
+          const auto startTime = hbfu.startTime;
+          const auto orbitFirst = hbfu.orbitFirst;
+          dh.firstTForbit = offset + increment * dh.tfCounter;
+          LOG(info) << "Setting firstTForbit to " << dh.firstTForbit;
+          dh.runNumber = hbfu.runNumber;
+          LOG(info) << "Setting runNumber to " << dh.runNumber;
+          dph.creation = startTime + (dh.firstTForbit - orbitFirst) * o2::constants::lhc::LHCOrbitMUS * 1.e-3;
+          LOG(info) << "Setting timeframe creation time to " << dph.creation;
+        });
     }} // end of struct
   );
 }
@@ -474,7 +474,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     // this will only be needed until digitizers take CCDB objects via DPL mechanism
     o2::ccdb::BasicCCDBManager::instance().setTimestamp(hbfu.startTime);
     // activate caching
-    o2::ccdb::BasicCCDBManager::instance().setCaching(true);
+    o2::ccdb::BasicCCDBManager::instance().setCaching(false);
     // without this, caching does not seem to work
     o2::ccdb::BasicCCDBManager::instance().setLocalObjectValidityChecking(true);
   }
@@ -590,16 +590,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     writerSpecs.emplace_back(o2::itsmft::getITSDigitWriterSpec(mctruth));
   }
 
-  // #ifdef ENABLE_UPGRADES
-  //   // the ITS3 part
-  //   if (isEnabled(o2::detectors::DetID::IT3)) {
-  //     detList.emplace_back(o2::detectors::DetID::IT3);
-  //     // connect the ITS digitization
-  //     specs.emplace_back(o2::its3::getITS3DigitizerSpec(fanoutsize++, mctruth));
-  //     // // connect ITS digit writer
-  //     specs.emplace_back(o2::its3::getITS3DigitWriterSpec(mctruth));
-  //   }
-  // #endif
+#ifdef ENABLE_UPGRADES
+  // the ITS3 part
+  if (isEnabled(o2::detectors::DetID::IT3)) {
+    detList.emplace_back(o2::detectors::DetID::IT3);
+    // connect the ITS digitization
+    specs.emplace_back(o2::its3::getITS3DigitizerSpec(fanoutsize++, mctruth));
+    // // connect ITS digit writer
+    specs.emplace_back(o2::its3::getITS3DigitWriterSpec(mctruth));
+  }
+#endif
 
   // the MFT part
   if (isEnabled(o2::detectors::DetID::MFT)) {
@@ -613,17 +613,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // the TOF part
   if (isEnabled(o2::detectors::DetID::TOF)) {
     auto useCCDB = configcontext.options().get<bool>("use-ccdb-tof");
-    auto CCDBsa = configcontext.options().get<bool>("ccdb-tof-sa");
+    useCCDB |= configcontext.options().get<bool>("ccdb-tof-sa");
     auto ccdb_url_tof = o2::base::NameConf::getCCDBServer();
     auto timestamp = o2::raw::HBFUtils::Instance().startTime / 1000;
     detList.emplace_back(o2::detectors::DetID::TOF);
     // connect the TOF digitization
     // printf("TOF Setting: use-ccdb = %d ---- ccdb url=%s  ----   timestamp=%ld\n", useCCDB, ccdb_url_tof.c_str(), timestamp);
 
-    if (CCDBsa) {
-      useCCDB = true;
-    }
-    digitizerSpecs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++, useCCDB, mctruth, ccdb_url_tof.c_str(), timestamp, CCDBsa));
+    digitizerSpecs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++, useCCDB, mctruth, ccdb_url_tof.c_str(), timestamp));
     // add TOF digit writer
     writerSpecs.emplace_back(o2::tof::getTOFDigitWriterSpec(mctruth));
   }

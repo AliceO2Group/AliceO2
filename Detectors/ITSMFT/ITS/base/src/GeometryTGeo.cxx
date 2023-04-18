@@ -374,8 +374,11 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
   if (mNumberOfModules[lay] > 0) {
     path += Form("%s%d_%d/", mIsLayerITS3[lay] ? getITS3ModulePattern() : getITSModulePattern(), lay, mod);
   }
-  path +=
-    Form("%s%d_%d/%s%d_1", mIsLayerITS3[lay] ? getITS3ChipPattern() : getITSChipPattern(), lay, chipInMod, mIsLayerITS3[lay] ? getITS3SensorPattern() : getITSSensorPattern(), lay);
+  if (!mIsLayerITS3[lay]) {
+    path += Form("%s%d_%d/%s%d_1", getITSChipPattern(), lay, chipInMod, getITSSensorPattern(), lay);
+  } else {
+    path += Form("%s%d_%d", getITS3ChipPattern(), lay, chipInMod); // for ITS3 currently we might have more sensors than chips, so we have to take the chip to avoid mismatches with chipId
+  }
 
   static TGeoHMatrix matTmp;
   gGeoManager->PushPath();
@@ -388,8 +391,8 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
 
   matTmp = *gGeoManager->GetCurrentMatrix(); // matrix may change after cd
   // RSS
-  //  printf("%d/%d/%d %s\n",lay,stav,detInSta,path.Data());
-  //  mat->Print();
+  // printf("%d/%d/%d %s\n", lay, stav, detInSta, path.Data());
+  // matTmp.Print();
   // Restore the modeler state.
   gGeoManager->PopPath();
 
@@ -397,16 +400,44 @@ TGeoHMatrix* GeometryTGeo::extractMatrixSensor(int index) const
   double delta = 0.;
   if (mIsLayerITS3[lay]) {
 #ifdef ENABLE_UPGRADES
-    delta = SegmentationITS3::SensorLayerThickness - SegmentationITS3::SensorLayerThicknessEff;
+    return &matTmp;
 #endif
-  } else {
-    delta = Segmentation::SensorLayerThickness - Segmentation::SensorLayerThicknessEff;
   }
+
+  delta = Segmentation::SensorLayerThickness - Segmentation::SensorLayerThicknessEff;
   static TGeoTranslation tra(0., 0.5 * delta, 0.);
 
   matTmp *= tra;
 
   return &matTmp;
+}
+
+//__________________________________________________________________________
+float GeometryTGeo::getAlphaFromGlobalITS3(int isn, o2::math_utils::Point3D<float> gloXYZ)
+{
+  // calculate the tracking alpha of the ITS3 cluster in global coordinates
+  const TGeoHMatrix* matL2G = extractMatrixSensor(isn);
+  auto matG2L = matL2G->Inverse();
+  auto translation = matG2L.GetTranslation(); // we only need the translation
+  o2::math_utils::Point3D<float> gloXYZtra{gloXYZ.x() + (float)translation[0], gloXYZ.y() + (float)translation[1], gloXYZ.z() + (float)translation[2]};
+
+  float alp = ATan2(gloXYZtra.y(), gloXYZtra.x());
+  o2::math_utils::bringTo02Pi(alp);
+
+  return alp;
+}
+
+//__________________________________________________________________________
+const o2::math_utils::Transform3D GeometryTGeo::getT2LMatrixITS3(int isn, float alpha)
+{
+  // create for sensor isn the TGeo matrix for Tracking to Local frame transformations
+  static TGeoHMatrix t2l;
+  t2l.Clear();
+  t2l.RotateZ(alpha * RadToDeg()); // rotate in direction of normal to the tangent to the cylinder
+  const TGeoHMatrix* matL2G = extractMatrixSensor(isn);
+  const TGeoHMatrix& matL2Gi = matL2G->Inverse();
+  t2l.MultiplyLeft(&matL2Gi);
+  return Mat3D(t2l);
 }
 
 //__________________________________________________________________________
@@ -723,8 +754,7 @@ int GeometryTGeo::extractNumberOfChipsPerModule(int lay, int& nrow) const
   double dx = -1, dz = -1;
 
   for (int j = 0; j < nNodes; j++) {
-    //    AliInfo(Form("L%d %d of %d %s %s ->
-    // %d",lay,j,nNodes,volLd->GetNodes()->At(j)->GetName(),mIsLayerITS3[lay] ? getITS3ChipPattern() : getITSChipPattern(),numberOfChips));
+    LOGP(debug, "layer={}, node/nodes={}/{}, node name={}, pattern={}, number of chips={}, is ITS3 layer={}", lay, j, nNodes, volLd->GetNodes()->At(j)->GetName(), mIsLayerITS3[lay] ? getITS3ChipPattern() : getITSChipPattern(), numberOfChips, mIsLayerITS3[lay]);
     TGeoNodeMatrix* node = (TGeoNodeMatrix*)volLd->GetNodes()->At(j);
     if (!strstr(node->GetName(), mIsLayerITS3[lay] ? getITS3ChipPattern() : getITSChipPattern())) {
       continue;
@@ -807,8 +837,19 @@ void GeometryTGeo::extractSensorXAlpha(int isn, float& x, float& alp)
   // calculate r and phi of the impact of the normal on the sensor
   // (i.e. phi of the tracking frame alpha and X of the sensor in this frame)
 
-  double locA[3] = {-100., 0., 0.}, locB[3] = {100., 0., 0.}, gloA[3], gloB[3];
   const TGeoHMatrix* matL2G = extractMatrixSensor(isn);
+  double locA[3] = {-100., 0., 0.}, locB[3] = {100., 0., 0.}, gloA[3], gloB[3];
+  int iLayer = getLayer(isn);
+
+  if (mIsLayerITS3[iLayer]) {
+    // in this case we need the line tangent to the circumference
+    double radius = 0.;
+#ifdef ENABLE_UPGRADES
+    radius = SegmentationITS3::mRadii[iLayer];
+#endif
+    locA[1] = radius;
+    locB[1] = radius;
+  }
 
   matL2G->LocalToMaster(locA, gloA);
   matL2G->LocalToMaster(locB, gloB);

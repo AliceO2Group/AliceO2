@@ -455,3 +455,11 @@ void Clusterer::print() const
 
 #endif
 }
+
+//__________________________________________________
+void Clusterer::reset()
+{
+  // reset for new run
+  clear();
+  mNHugeClus = 0;
+}

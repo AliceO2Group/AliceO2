@@ -19,10 +19,13 @@ o2_add_library(SimulationDataFormat
                        src/CustomStreamers.cxx
                        src/MCUtils.cxx
                        src/O2DatabasePDG.cxx
+                       src/InteractionSampler.cxx
+                       src/ConstMCTruthContainer.cxx
                PUBLIC_LINK_LIBRARIES Microsoft.GSL::GSL
                                      FairRoot::Base
                                      O2::DetectorsCommonDataFormats
                                      O2::DataFormatsParameters
+                                     O2::DataFormatsCalibration
                                      O2::GPUCommon
                                      ROOT::TreePlayer)
 
@@ -44,6 +47,7 @@ o2_target_root_dictionary(
           include/SimulationDataFormat/IOMCTruthContainerView.h
           include/SimulationDataFormat/MCUtils.h
           include/SimulationDataFormat/O2DatabasePDG.h
+          include/SimulationDataFormat/InteractionSampler.h
   LINKDEF src/SimulationDataLinkDef.h)
 # note the explicit LINKDEF as the linkdef in src is
 #
@@ -72,5 +76,10 @@ o2_add_test(MCEventLabel
 
 o2_add_test(MCTrack
             SOURCES test/MCTrack.cxx
+            COMPONENT_NAME SimulationDataFormat
+            PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat)
+
+o2_add_test(MCGenStatus
+            SOURCES test/testMCGenStatus.cxx
             COMPONENT_NAME SimulationDataFormat
             PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat)

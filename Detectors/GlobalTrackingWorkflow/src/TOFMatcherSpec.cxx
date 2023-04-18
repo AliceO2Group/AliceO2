@@ -58,7 +58,7 @@ namespace globaltracking
 class TOFMatcherSpec : public Task
 {
  public:
-  TOFMatcherSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, bool useFIT, bool tpcRefit, bool strict) : mDataRequest(dr), mGGCCDBRequest(gr), mUseMC(useMC), mUseFIT(useFIT), mDoTPCRefit(tpcRefit), mStrict(strict) {}
+  TOFMatcherSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool useMC, bool useFIT, bool tpcRefit, bool strict, bool pushMatchable) : mDataRequest(dr), mGGCCDBRequest(gr), mUseMC(useMC), mUseFIT(useFIT), mDoTPCRefit(tpcRefit), mStrict(strict), mPushMatchable(pushMatchable) {}
   ~TOFMatcherSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -75,6 +75,7 @@ class TOFMatcherSpec : public Task
   bool mUseFIT = false;
   bool mDoTPCRefit = false;
   bool mStrict = false;
+  bool mPushMatchable = false;
   float mExtraTolTRD = 0.;
   MatchTOF mMatcher; ///< Cluster finder
   TStopwatch mTimer;
@@ -88,13 +89,15 @@ void TOFMatcherSpec::init(InitContext& ic)
   if (mStrict) {
     mMatcher.setHighPurity();
   }
+  mMatcher.storeMatchable(mPushMatchable);
+
   mMatcher.setExtraTimeToleranceTRD(mExtraTolTRD);
 }
 
 void TOFMatcherSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-  o2::tpc::VDriftHelper::extractCCDBInputs(pc);
+  mTPCVDriftHelper.extractCCDBInputs(pc);
   o2::tpc::CorrectionMapsLoader::extractCCDBInputs(pc);
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
@@ -113,14 +116,16 @@ void TOFMatcherSpec::updateTimeDependentParams(ProcessingContext& pc)
     updateMaps = true;
   }
   if (mTPCVDriftHelper.isUpdated()) {
-    LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} from source {}",
-         mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getSourceName());
+    LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
+         mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift,
+         mTPCVDriftHelper.getVDriftObject().timeOffsetCorr, mTPCVDriftHelper.getVDriftObject().refTimeOffset,
+         mTPCVDriftHelper.getSourceName());
     mMatcher.setTPCVDrift(mTPCVDriftHelper.getVDriftObject());
     mTPCVDriftHelper.acknowledgeUpdate();
     updateMaps = true;
-    if (updateMaps) {
-      mTPCCorrMapsLoader.updateVDrift(mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift);
-    }
+  }
+  if (updateMaps) {
+    mTPCCorrMapsLoader.updateVDrift(mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getVDriftObject().getTimeOffset());
   }
 }
 
@@ -202,6 +207,27 @@ void TOFMatcherSpec::run(ProcessingContext& pc)
   // TODO: TRD-matched tracks
   pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "CALIBDATA", 0, Lifetime::Timeframe}, mMatcher.getCalibVector());
 
+  if (mPushMatchable) {
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_0", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(0));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_1", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(1));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_2", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(2));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_3", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(3));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_4", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(4));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_5", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(5));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_6", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(6));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_7", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(7));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_8", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(8));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_9", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(9));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_10", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(10));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_11", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(11));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_12", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(12));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_13", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(13));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_14", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(14));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_15", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(15));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_16", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(16));
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MATCHABLES_17", 0, Lifetime::Timeframe}, mMatcher.getMatchedTracksPair(17));
+  }
+
   mTimer.Stop();
 }
 
@@ -211,7 +237,7 @@ void TOFMatcherSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTOFMatcherSpec(GID::mask_t src, bool useMC, bool useFIT, bool tpcRefit, bool strict, float extratolerancetrd)
+DataProcessorSpec getTOFMatcherSpec(GID::mask_t src, bool useMC, bool useFIT, bool tpcRefit, bool strict, float extratolerancetrd, bool pushMatchable)
 {
   uint32_t ss = o2::globaltracking::getSubSpec(strict ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
   auto dataRequest = std::make_shared<DataRequest>();
@@ -262,11 +288,32 @@ DataProcessorSpec getTOFMatcherSpec(GID::mask_t src, bool useMC, bool useFIT, bo
   }
   outputs.emplace_back(o2::header::gDataOriginTOF, "CALIBDATA", 0, Lifetime::Timeframe);
 
+  if (pushMatchable) {
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHABLES_0", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHABLES_1", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHABLES_2", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHABLES_3", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHABLES_4", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHABLES_5", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHABLES_6", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHABLES_7", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHABLES_8", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHABLES_9", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHABLES_10", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHABLES_11", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHABLES_12", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHABLES_13", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHABLES_14", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHABLES_15", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHABLES_16", 0, Lifetime::Timeframe);
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MATCHABLES_17", 0, Lifetime::Timeframe);
+  }
+
   return DataProcessorSpec{
     "tof-matcher",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TOFMatcherSpec>(dataRequest, ggRequest, useMC, useFIT, tpcRefit, strict)},
+    AlgorithmSpec{adaptFromTask<TOFMatcherSpec>(dataRequest, ggRequest, useMC, useFIT, tpcRefit, strict, pushMatchable)},
     Options{}};
 }
 

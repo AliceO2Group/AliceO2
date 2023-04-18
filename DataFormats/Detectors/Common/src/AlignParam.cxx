@@ -43,12 +43,26 @@ AlignParam::AlignParam(const char* symname, int algID,       // volume symbolic 
 }
 
 //___________________________________________________
+AlignParam::AlignParam(const char* symname, int algID, TGeoMatrix& m, bool global)
+  : mSymName(symname), mAlignableID(algID)
+{
+  setTranslation(m);
+  if (!setRotation(m)) {
+    const double* rot = m.GetRotationMatrix();
+    throw std::runtime_error(fmt::format("Failed to extract roll-pitch-yall angles from [[{},{},{}], [{},{},{}], [{},{},{}] for {}", rot[0], rot[1], rot[2], rot[3], rot[4], rot[5], rot[6], rot[7], rot[8], symname));
+  }
+  if (!global && !setLocalParams(mX, mY, mZ, mPsi, mTheta, mPhi)) {
+    throw std::runtime_error(fmt::format("Alignment creation for {} failed: geomManager is absent", symname));
+  }
+}
+
+//___________________________________________________
 TGeoHMatrix AlignParam::createMatrix() const
 {
   /// create a copy of alignment global delta matrix
   TGeoHMatrix mat;
   setMatrixTranslation(mX, mY, mZ, mat);
-  setMatrixRotation(mPhi, mTheta, mPsi, mat);
+  setMatrixRotation(mPsi, mTheta, mPhi, mat);
   return mat;
 }
 
@@ -433,4 +447,34 @@ bool AlignParam::setLocalRotation(const TGeoMatrix& m)
   TGeoHMatrix rotm;
   rotm.SetRotation(m.GetRotationMatrix());
   return setLocalParams(rotm);
+}
+
+//_____________________________________________________________________________
+int AlignParam::rectify(double zero)
+{
+  int nonZero = 6;
+  if (std::abs(mX) < zero) {
+    mX = 0.;
+  }
+  if (std::abs(mY) < zero) {
+    mY = 0.;
+    nonZero--;
+  }
+  if (std::abs(mZ) < zero) {
+    mZ = 0.;
+    nonZero--;
+  }
+  if (std::abs(mPsi) < zero) {
+    mPsi = 0.;
+    nonZero--;
+  }
+  if (std::abs(mTheta) < zero) {
+    mTheta = 0.;
+    nonZero--;
+  }
+  if (std::abs(mPhi) < zero) {
+    mPhi = 0.;
+    nonZero--;
+  }
+  return nonZero;
 }

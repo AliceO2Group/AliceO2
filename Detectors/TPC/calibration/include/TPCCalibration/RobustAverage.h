@@ -71,7 +71,8 @@ class RobustAverage
 
   /// returns the filtered average value
   /// \param sigma maximum accepted standard deviation: sigma*stdev
-  float getFilteredAverage(const float sigma = 3);
+  ///\param interQuartileRange number of points in inner quartile to consider
+  std::pair<float, float> getFilteredAverage(const float sigma = 3, const float interQuartileRange = 0.9);
 
   /// \return returns mean of stored values
   float getMean() const { return mValues.empty() ? 0 : getMean(mValues.begin(), mValues.end()); }
@@ -83,7 +84,10 @@ class RobustAverage
   float getWeightedMean() const { return getWeightedMean(mValues.begin(), mValues.end(), mWeights.begin(), mWeights.end()); }
 
   /// \return returns standard deviation of stored values
-  float getStdDev() { return getStdDev(getMean()); }
+  float getStdDev() { return getStdDev(getMean(), mValues.begin(), mValues.end()); }
+
+  /// \return returns stored values
+  const auto& getValues() { return mValues; }
 
   /// values which will be averaged and filtered
   void print() const;
@@ -99,13 +103,13 @@ class RobustAverage
 
   /// \return returns standard deviation of stored values
   /// \param mean mean of stored values
-  float getStdDev(const float mean);
+  float getStdDev(const float mean, std::vector<float>::const_iterator begin, std::vector<float>::const_iterator end);
 
   /// performing outlier filtering of the stored values by defining range of included values in terms of standard deviation
   /// \param mean mean of the stored values
   /// \param stdev standard deviation of the values
   /// \param sigma maximum accepted standard deviation: sigma*stdev
-  float getFilteredMean(const float mean, const float stdev, const float sigma);
+  float getFilteredMean(const float mean, const float stdev, const float sigma) const;
 };
 
 } // namespace o2::tpc

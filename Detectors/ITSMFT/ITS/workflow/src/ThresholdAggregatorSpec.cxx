@@ -123,7 +123,7 @@ void ITSThresholdAggregator::finalize(EndOfStreamContext* ec)
   std::string ft = this->mFitType == 0 ? "derivative" : this->mFitType == 1 ? "fit"
                                                       : this->mFitType == 2 ? "hitcounting"
                                                                             : "null";
-  if (mScanType == 'D' || mScanType == 'A') {
+  if (mScanType == 'D' || mScanType == 'A' || mScanType == 'P') {
     ft = "null";
   }
 
@@ -144,6 +144,7 @@ void ITSThresholdAggregator::finalize(EndOfStreamContext* ec)
                                                     : mScanType == 'D' ? "DIG"
                                                     : mScanType == 'A' ? "ANA"
                                                     : mScanType == 'T' ? "THR"
+                                                    : mScanType == 'P' ? "PULSELENGTH"
                                                                        : "NULL";
   o2::ccdb::CcdbObjectInfo info((path + name_str), "threshold_map", "calib_scan.root", md, tstart, tend);
   o2::ccdb::CcdbObjectInfo info_pixtyp((path + name_str), "threshold_map", "calib_scan.root", md, tstart, tend);
@@ -182,8 +183,11 @@ void ITSThresholdAggregator::finalize(EndOfStreamContext* ec)
       ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ANA", 0}, *image);
       ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ANA", 0}, info);
 
-      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ANA", 0}, *image_pixtyp);
-      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ANA", 0}, info_pixtyp);
+      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ANA", 1}, *image_pixtyp);
+      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ANA", 1}, info_pixtyp);
+    } else if (this->mScanType == 'P') {
+      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "PULSELENGTH", 0}, *image);
+      ec->outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "PULSELENGTH", 0}, info);
     } else {
       LOG(error) << "Nothing sent to ccdb-populator, mScanType" << mScanType << "does not match any known scan type";
     }
@@ -283,6 +287,9 @@ DataProcessorSpec getITSThresholdAggregatorSpec()
 
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ANA"});
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "ANA"});
+
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "PULSELENGTH"});
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "PULSELENGTH"});
 
   return DataProcessorSpec{
     "its-aggregator",

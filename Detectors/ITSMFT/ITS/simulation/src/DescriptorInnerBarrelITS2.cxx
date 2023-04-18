@@ -27,6 +27,7 @@
 
 #include "ITSMFTBase/SegmentationAlpide.h"
 #include "ITSBase/GeometryTGeo.h"
+#include "ITSBase/ITSBaseParam.h"
 #include "ITSSimulation/DescriptorInnerBarrelITS2.h"
 #include "ITSSimulation/V3Services.h"
 #include "ITSSimulation/V3Layer.h"
@@ -58,7 +59,7 @@ DescriptorInnerBarrelITS2::DescriptorInnerBarrelITS2(int nlayers) : DescriptorIn
 }
 
 //________________________________________________________________
-void DescriptorInnerBarrelITS2::configure()
+void DescriptorInnerBarrelITS2::configure(int buildLevel)
 {
   // build ITS2 upgrade detector
   mTurboLayer.resize(mNumLayers);
@@ -91,7 +92,7 @@ void DescriptorInnerBarrelITS2::configure()
     mStaveTilt[idLayer] = radii2Turbo(IBdat[idLayer][0], IBdat[idLayer][1], IBdat[idLayer][2], o2::itsmft::SegmentationAlpide::SensorSizeRows);
     mDetectorThickness[idLayer] = mSensorLayerThickness;
     mChipTypeID[idLayer] = 0;
-    mBuildLevel[idLayer] = 0;
+    mBuildLevel[idLayer] = buildLevel;
 
     LOG(info) << "L# " << idLayer << " Phi:" << mLayerPhi0[idLayer] << " R:" << mLayerRadii[idLayer] << " Nst:" << mStavePerLayer[idLayer] << " Nunit:" << mUnitPerStave[idLayer]
               << " W:" << mStaveWidth[idLayer] << " Tilt:" << mStaveTilt[idLayer] << " Lthick:" << mChipThickness[idLayer] << " Dthick:" << mDetectorThickness[idLayer]
@@ -159,20 +160,24 @@ void DescriptorInnerBarrelITS2::createServices(TGeoVolume* dest)
   // Updated:      21 Oct 2019  Mario Sitta  CYSS added
   //
 
+  auto& itsBaseParam = ITSBaseParam::Instance();
+
   std::unique_ptr<V3Services> mServicesGeometry(new V3Services("ITS"));
 
-  // Create the End Wheels on Side A
-  TGeoVolume* endWheelsA = mServicesGeometry.get()->createIBEndWheelsSideA();
-  dest->AddNode(endWheelsA, 1, nullptr);
+  if (itsBaseParam.buildEndWheels) {
+    // Create the End Wheels on Side A
+    TGeoVolume* endWheelsA = mServicesGeometry.get()->createIBEndWheelsSideA();
+    dest->AddNode(endWheelsA, 1, nullptr);
 
-  // Create the End Wheels on Side C
-  TGeoVolume* endWheelsC = mServicesGeometry.get()->createIBEndWheelsSideC();
-  dest->AddNode(endWheelsC, 1, nullptr);
-
-  // Create the CYSS Assembly (i.e. the supporting half cylinder and cone)
-  TGeoVolume* cyss = mServicesGeometry.get()->createCYSSAssembly();
-  dest->AddNode(cyss, 1, nullptr);
-
+    // Create the End Wheels on Side C
+    TGeoVolume* endWheelsC = mServicesGeometry.get()->createIBEndWheelsSideC();
+    dest->AddNode(endWheelsC, 1, nullptr);
+  }
+  if (itsBaseParam.buildCYSSAssembly) {
+    // Create the CYSS Assembly (i.e. the supporting half cylinder and cone)
+    TGeoVolume* cyss = mServicesGeometry.get()->createCYSSAssembly();
+    dest->AddNode(cyss, 1, nullptr);
+  }
   mServicesGeometry.get()->createIBGammaConvWire(dest);
 }
 

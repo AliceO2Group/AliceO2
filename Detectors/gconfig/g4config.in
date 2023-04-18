@@ -11,6 +11,7 @@
 #//control/cout/ignoreThreadsExcept 0
 
 /mcPhysics/rangeCuts 0.001 mm
+/mcRegions/setRangePrecision 5
 /mcTracking/skipNeutrino true
 /mcDet/setIsMaxStepInLowDensityMaterials true
 /mcDet/setMaxStepInLowDensityMaterials 10 m

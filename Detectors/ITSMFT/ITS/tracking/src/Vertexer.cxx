@@ -40,6 +40,8 @@ float Vertexer::clustersToVertices(std::function<void(std::string s)> logger)
 {
   float total{0.f};
   TrackingParameters trkPars;
+  trkPars.PhiBins = mTraits->getVertexingParameters().PhiBins;
+  trkPars.ZBins = mTraits->getVertexingParameters().ZBins;
   total += evaluateTask(&Vertexer::initialiseVertexer, "Vertexer initialisation", logger, trkPars);
   total += evaluateTask(&Vertexer::findTracklets, "Vertexer tracklet finding", logger);
   total += evaluateTask(&Vertexer::validateTracklets, "Vertexer adjacent tracklets validation", logger);
@@ -56,20 +58,30 @@ void Vertexer::findVertices()
 void Vertexer::getGlobalConfiguration()
 {
   auto& vc = o2::its::VertexerParamConfig::Instance();
+  auto& grc = o2::its::GpuRecoParamConfig::Instance();
 
   VertexingParameters verPar;
+  verPar.allowSingleContribClusters = vc.allowSingleContribClusters;
   verPar.zCut = vc.zCut;
   verPar.phiCut = vc.phiCut;
   verPar.pairCut = vc.pairCut;
   verPar.clusterCut = vc.clusterCut;
   verPar.histPairCut = vc.histPairCut;
   verPar.tanLambdaCut = vc.tanLambdaCut;
+  verPar.lowMultXYcut2 = vc.lowMultXYcut2;
+  verPar.maxZPositionAllowed = vc.maxZPositionAllowed;
   verPar.clusterContributorsCut = vc.clusterContributorsCut;
   verPar.maxTrackletsPerCluster = vc.maxTrackletsPerCluster;
   verPar.phiSpan = vc.phiSpan;
   verPar.nThreads = vc.nThreads;
+  verPar.ZBins = vc.ZBins;
+  verPar.PhiBins = vc.PhiBins;
 
-  mTraits->updateVertexingParameters(verPar);
+  TimeFrameGPUParameters tfGPUpar;
+  tfGPUpar.maxGPUMemoryGB = grc.maxGPUMemoryGB;
+  tfGPUpar.maxVerticesCapacity = grc.maxVerticesCapacity;
+
+  mTraits->updateVertexingParameters(verPar, tfGPUpar);
 }
 
 void Vertexer::adoptTimeFrame(TimeFrame& tf)
@@ -80,7 +92,7 @@ void Vertexer::adoptTimeFrame(TimeFrame& tf)
 
 void Vertexer::printEpilog(std::function<void(std::string s)> logger, const float total)
 {
-  logger(fmt::format(" - Timeframe {} vertexing completed in: {}ms, using {} thread(s).", mTimeFrameCounter++, total, mTraits->getNThreads()));
+  logger(fmt::format(" - Timeframe {} vertexing completed in: {} ms, using {} thread(s).", mTimeFrameCounter++, total, mTraits->getNThreads()));
 }
 
 } // namespace its

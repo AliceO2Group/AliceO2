@@ -21,7 +21,7 @@ RESULTS_FILE='data-sampling-benchmark-'$(date +"%y-%m-%d_%H%M")
 # \param 1 : fractions array name
 # \param 2 : payload sizes array name
 # \param 3 : number of producers array name
-# \param 4 : number of dispatchers array name
+# \param 4 : number of dispatchers array name (not supported atm)
 # \param 5 : repetitions
 # \param 6 : test duration
 # \param 7 : warm up cycles - how many first metrics should be ignored (they are sent each 10s)
@@ -60,20 +60,19 @@ function benchmark() {
   local repo_branch=$(git rev-parse --abbrev-ref HEAD)
   local results_filename='data-sampling-benchmark-'$(date +"%y-%m-%d_%H%M")'-'$test_name
   local test_date=$(date +"%y-%m-%d %H:%M:%S")
-  local memory_soft_limit_mbytes=$((available_memory_bytes / 5000000)) # we stop creating new messages at 4/5 of the maximum allowed usage
+  local run_log='run_log'
 
-  printf "DATA SAMPLING BENCHMARK RESULTS\n" > $results_filename
-  printf "Test date:              %s\n" "$test_date" >> $results_filename
-  printf "Latest commit:          %s\n" "$repo_latest_commit" >> $results_filename
-  printf "Branch:                 %s\n" "$repo_branch" >> $results_filename
-  printf "Repetitions:            %s\n" "$repetitions" >> $results_filename
-  printf "Test duration [s]:      %s\n" "$test_duration" >> $results_filename
-  printf "Warm up cycles:         %s\n" "$warm_up_cycles" >> $results_filename
-  printf "Available memory [B]:   %s\n" "$available_memory_bytes" >> $results_filename
-  printf "Memory soft limit [MB]: %s\n" "$memory_soft_limit_mbytes" >> $results_filename
-  echo "fraction       , payload size   , nb producers   , nb dispatchers , messages per second" >> $results_filename
+  printf "DATA SAMPLING BENCHMARK RESULTS\n" > "$results_filename"
+  printf "Test date:              %s\n" "$test_date" >> "$results_filename"
+  printf "Latest commit:          %s\n" "$repo_latest_commit" >> "$results_filename"
+  printf "Branch:                 %s\n" "$repo_branch" >> "$results_filename"
+  printf "Repetitions:            %s\n" "$repetitions" >> "$results_filename"
+  printf "Test duration [s]:      %s\n" "$test_duration" >> "$results_filename"
+  printf "Warm up cycles:         %s\n" "$warm_up_cycles" >> "$results_filename"
+  printf "Available memory [B]:   %s\n" "$available_memory_bytes" >> "$results_filename"
+  echo "fraction       , payload size   , nb producers   , nb dispatchers , messages per second" >> "$results_filename"
 
-  local common_args="--run -b --infologger-severity info --shm-segment-size "$available_memory_bytes" --test-duration "$test_duration" --throttling "$memory_soft_limit_mbytes
+  local common_args="--run -b --shm-throw-bad-alloc false --monitoring-backend infologger:///prod?metric --shm-segment-size "$available_memory_bytes
   if [[ $fill == "yes" ]]; then
     common_args=$common_args' --fill'
   fi
@@ -84,12 +83,12 @@ function benchmark() {
         for nb_dispatchers in ${number_of_dispatchers[@]}; do
           for ((rep=0;rep<repetitions;rep++)); do
             echo "************************************************************"
-            echo "Launching test for payload size $payload_size bytes, $nb_producers producers, $nb_dispatchers dispatchers, sampling fraction $fraction"
+            echo "Launching test for payload size $payload_size bytes, $nb_producers producers, 1 dispatchers, sampling fraction $fraction"
 
             printf "%15s," "$fraction" >> $results_filename
             printf "%16s," "$payload_size" >> $results_filename
             printf "%16s," "$nb_producers" >> $results_filename
-            printf "%16s," "$nb_dispatchers" >> $results_filename
+            printf "%16s," "1" >> $results_filename
 
             messages_per_second=
             while [ "$messages_per_second" == 'error' ] || [ -z "$messages_per_second" ]; do
@@ -97,40 +96,31 @@ function benchmark() {
                 echo "Retrying the test because of an error"
               fi
 
-              # running the benchmark, extracting an array of metrics, ignoring the first warm_up_cycles-1
-              # fixme: we assume that the metrics are produced in even (10s) time intervals and all are printed,
-              #        we should at least be able notice when something doesn't seem right
-
-              metrics=
-              mapfile -t metrics < \
-                <( timeout -k 60s $test_duration_timeout o2-testworkflows-datasampling-benchmark $common_args --payload-size $payload_size --producers $nb_producers --dispatchers $nb_dispatchers --sampling-fraction $fraction \
-                 | grep -o 'Dispatcher_messages_evaluated,[0-9] [0-9]\{1,\}' \
-                 | sed -e 's/Dispatcher_messages_evaluated,[0-9]\{1,\} //'   \
-                 | tail -n +$((warm_up_cycles * nb_dispatchers + 1)) )
-
+              rm -f $run_log
+              echo "Starting the DPL workflow..."
+              timeout -k 60s $test_duration_timeout o2-datasampling-datasampling-benchmark $common_args --payload-size $payload_size --producers $nb_producers --dispatchers 1 --sampling-fraction $fraction > "$run_log"
+              echo "...done, performing cleanups."
+              pkill -f o2-testworkflows-datasampling-benchmark
+              sleep 5
               pkill -9 -f o2-testworkflows-datasampling-benchmark
 
-              if [ ${#metrics[@]} -ge $(( 2 * nb_dispatchers )) ]; then
+              mapfile -t metrics_messages_evaluated < \
+                <( grep -o 'Dispatcher_messages_evaluated,[0-9] [0-9]\{1,\}' "$run_log" \
+                 | sed -e 's/Dispatcher_messages_evaluated,[0-9]\{1,\} //'   \
+                 | tail -n +$((warm_up_cycles + 1)) )
+              mapfile -t metrics_test_duration < \
+                <( grep -a 'Dispatcher_messages_evaluated' "$run_log" \
+                 | grep -o -e '[0-9]\{1,\} pipeline_id' \
+                 | sed -e 's/ pipeline_id//' \
+                 | tail -n +$((warm_up_cycles + 1)) )
 
-                total_start=0
-                for ((i = 0; i < nb_dispatchers; i++))
-                do
-                  (( total_start+=metrics[i] ))
-                done
 
-                total_end=0
-                for ((i = 1; i < $((1 + nb_dispatchers)); i++))
-                do
-                  (( total_end+=metrics[-i] ))
-                done
+              if [ ${#metrics_messages_evaluated[@]} -ge 2 ] && [ ${#metrics_test_duration[@]} -ge 2 ]; then
 
-                (( messages_per_second = (total_end - total_start) / (${#metrics[@]} / nb_dispatchers - 1 ) ))
-                # divide by 10, keeping the last digit
-                if [ $messages_per_second -gt 9 ]; then
-                  messages_per_second=${messages_per_second:0:-1}.${messages_per_second: -1}
-                else
-                  messages_per_second=0.$messages_per_second
-                fi
+                (( total_metrics_messages_evaluated = metrics_messages_evaluated[-1] - metrics_messages_evaluated[0] ))
+                (( total_test_duration_ms = metrics_test_duration[-1] - metrics_test_duration[0] ))
+
+                messages_per_second=`echo "scale=3; $total_metrics_messages_evaluated*1000/$total_test_duration_ms" | bc -l`
               else
                 messages_per_second='error'
               fi
@@ -140,10 +130,10 @@ function benchmark() {
             printf "\n" >> $results_filename
 
             echo "Dispatcher_messages_evaluated metrics:"
-            if [ ${#metrics[@]} -gt 0 ]; then
-              printf '%s\n' "${metrics[@]}"
+            if [ ${#metrics_messages_evaluated[@]} -gt 0 ]; then
+              printf '%s\n' "${metrics_messages_evaluated[@]}"
             else
-              echo $metrics
+              echo $metrics_messages_evaluated
             fi
             printf 'Messages per second: %s\n' "${messages_per_second}"
           done
@@ -201,12 +191,13 @@ while getopts 'hfm:t:' option; do
   esac
 done
 
+REPETITIONS=1;
+TEST_DURATION=300;
+
 FRACTIONS=(1.00);
 PAYLOAD_SIZE=(16777216 67108864 268435456 1073741824);
 NB_PRODUCERS=(8);
 NB_DISPATCHERS=(1);
-REPETITIONS=1;
-TEST_DURATION=300;
 WARM_UP_CYCLES=2;
 TEST_NAME='memory'
 
@@ -216,8 +207,6 @@ FRACTIONS=(0.00 1.00);
 PAYLOAD_SIZE=(1 256 1024 4096 16384 65536 262144 1048576 4194304 16777216 67108864 268435456 1073741824);
 NB_PRODUCERS=(8);
 NB_DISPATCHERS=(1);
-REPETITIONS=1;
-TEST_DURATION=300;
 WARM_UP_CYCLES=6;
 TEST_NAME='payloads'
 
@@ -227,8 +216,6 @@ FRACTIONS=(0.00 1.00);
 PAYLOAD_SIZE=(2097152);
 NB_PRODUCERS=(1 2 4 8 16 32);
 NB_DISPATCHERS=(1);
-REPETITIONS=1;
-TEST_DURATION=300;
 WARM_UP_CYCLES=6;
 TEST_NAME='producers-2MiB'
 
@@ -238,20 +225,7 @@ FRACTIONS=(0.0000 0.0001 0.0010 0.0100 0.1000 0.5000 1.0000);
 PAYLOAD_SIZE=(2097152);
 NB_PRODUCERS=(8);
 NB_DISPATCHERS=(1);
-REPETITIONS=1;
-TEST_DURATION=300;
 WARM_UP_CYCLES=6;
 TEST_NAME='fractions'
-
-benchmark FRACTIONS PAYLOAD_SIZE NB_PRODUCERS NB_DISPATCHERS $REPETITIONS $TEST_DURATION $WARM_UP_CYCLES $TEST_NAME $MEMORY_USAGE $FILL
-
-FRACTIONS=(0.0000 1.0000);
-PAYLOAD_SIZE=(256 2097152);
-NB_PRODUCERS=(8);
-NB_DISPATCHERS=(1 2 4 8);
-REPETITIONS=1;
-TEST_DURATION=300;
-WARM_UP_CYCLES=6;
-TEST_NAME='dispatchers'
 
 benchmark FRACTIONS PAYLOAD_SIZE NB_PRODUCERS NB_DISPATCHERS $REPETITIONS $TEST_DURATION $WARM_UP_CYCLES $TEST_NAME $MEMORY_USAGE $FILL

@@ -80,7 +80,7 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   }
 
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-  mgr.setURL("https://alice-ccdb.cern.ch");
+  mgr.setURL("http://alice-ccdb.cern.ch");
   mgr.setTimestamp(timestamp ? timestamp : o2::ccdb::getCurrentTimestamp());
   const o2::itsmft::TopologyDictionary* dict = mgr.get<o2::itsmft::TopologyDictionary>("ITS/Calib/ClusterDictionary");
 

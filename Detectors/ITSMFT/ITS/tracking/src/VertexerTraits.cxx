@@ -35,6 +35,12 @@ namespace its
 using boost::histogram::indexed;
 using constants::math::TwoPi;
 
+float smallestAngleDifference(float a, float b)
+{
+  float diff = fmod(b - a + constants::math::Pi, constants::math::TwoPi) - constants::math::Pi;
+  return (diff < -constants::math::Pi) ? diff + constants::math::TwoPi : ((diff > constants::math::Pi) ? diff - constants::math::TwoPi : diff);
+}
+
 template <TrackletMode Mode, bool DryRun>
 void trackleterKernelHost(
   const gsl::span<const Cluster>& clustersNextLayer,    // 0 2
@@ -69,7 +75,7 @@ void trackleterKernelHost(
         // loop on clusters next layer
         for (int iNextLayerClusterIndex{firstRowClusterIndex}; iNextLayerClusterIndex < maxRowClusterIndex && iNextLayerClusterIndex < static_cast<int>(clustersNextLayer.size()); ++iNextLayerClusterIndex) {
           const Cluster& nextCluster{clustersNextLayer[iNextLayerClusterIndex]};
-          if (o2::gpu::GPUCommonMath::Abs(currentCluster.phi - nextCluster.phi) < phiCut) {
+          if (o2::gpu::GPUCommonMath::Abs(smallestAngleDifference(currentCluster.phi, nextCluster.phi)) < phiCut) {
             if (storedTracklets < maxTrackletsPerCluster) {
               if constexpr (!DryRun) {
                 if constexpr (Mode == TrackletMode::Layer0Layer1) {
@@ -113,7 +119,7 @@ void trackletSelectionKernelHost(
     for (int iTracklet12{offset12}; iTracklet12 < offset12 + foundTracklets12[iCurrentLayerClusterIndex]; ++iTracklet12) {
       for (int iTracklet01{offset01}; iTracklet01 < offset01 + foundTracklets01[iCurrentLayerClusterIndex]; ++iTracklet01) {
         const float deltaTanLambda{o2::gpu::GPUCommonMath::Abs(tracklets01[iTracklet01].tanLambda - tracklets12[iTracklet12].tanLambda)};
-        const float deltaPhi{o2::gpu::GPUCommonMath::Abs(tracklets01[iTracklet01].phi - tracklets12[iTracklet12].phi)};
+        const float deltaPhi{o2::gpu::GPUCommonMath::Abs(smallestAngleDifference(tracklets01[iTracklet01].phi, tracklets12[iTracklet12].phi))};
         if (!usedTracklets[iTracklet01] && deltaTanLambda < tanLambdaCut && deltaPhi < phiCut && validTracklets != maxTracklets) {
           usedTracklets[iTracklet01] = true;
           destTracklets.emplace_back(tracklets01[iTracklet01], clusters0.data(), clusters1.data());
@@ -149,7 +155,7 @@ const std::vector<std::pair<int, int>> VertexerTraits::selectClusters(const int*
   return filteredBins;
 }
 
-void VertexerTraits::updateVertexingParameters(const VertexingParameters& vrtPar)
+void VertexerTraits::updateVertexingParameters(const VertexingParameters& vrtPar, const TimeFrameGPUParameters& tfPar)
 {
   mVrtParams = vrtPar;
   mIndexTableUtils.setTrackingParameters(vrtPar);
@@ -336,12 +342,14 @@ void VertexerTraits::computeTrackletMatching()
 
 void VertexerTraits::computeVertices()
 {
+  std::vector<Vertex> vertices;
 #ifdef VTX_DEBUG
   std::vector<std::vector<ClusterLines>> dbg_clusLines(mTimeFrame->getNrof());
 #endif
   std::vector<int> noClustersVec(mTimeFrame->getNrof(), 0);
   for (int rofId{0}; rofId < mTimeFrame->getNrof(); ++rofId) {
     const int numTracklets{static_cast<int>(mTimeFrame->getLines(rofId).size())};
+
     std::vector<bool> usedTracklets(numTracklets, false);
     for (int line1{0}; line1 < numTracklets; ++line1) {
       if (usedTracklets[line1]) {
@@ -351,7 +359,8 @@ void VertexerTraits::computeVertices()
         if (usedTracklets[line2]) {
           continue;
         }
-        if (Line::getDCA(mTimeFrame->getLines(rofId)[line1], mTimeFrame->getLines(rofId)[line2]) < mVrtParams.pairCut) {
+        auto dca{Line::getDCA(mTimeFrame->getLines(rofId)[line1], mTimeFrame->getLines(rofId)[line2])};
+        if (dca < mVrtParams.pairCut) {
           mTimeFrame->getTrackletClusters(rofId).emplace_back(line1, mTimeFrame->getLines(rofId)[line1], line2, mTimeFrame->getLines(rofId)[line2]);
           std::array<float, 3> tmpVertex{mTimeFrame->getTrackletClusters(rofId).back().getVertex()};
           if (tmpVertex[0] * tmpVertex[0] + tmpVertex[1] * tmpVertex[1] > 4.f) {
@@ -374,6 +383,19 @@ void VertexerTraits::computeVertices()
         }
       }
     }
+    if (mVrtParams.allowSingleContribClusters) {
+      auto beamLine = Line{{mTimeFrame->getBeamX(), mTimeFrame->getBeamY(), -50.f}, {mTimeFrame->getBeamX(), mTimeFrame->getBeamY(), 50.f}}; // use beam position as contributor
+      for (size_t iLine{0}; iLine < numTracklets; ++iLine) {
+        if (!usedTracklets[iLine]) {
+          auto dca = Line::getDCA(mTimeFrame->getLines(rofId)[iLine], beamLine);
+          if (dca < mVrtParams.pairCut) {
+            mTimeFrame->getTrackletClusters(rofId).emplace_back(iLine, mTimeFrame->getLines(rofId)[iLine], -1, beamLine); // beamline must be passed as second line argument
+          }
+        }
+      }
+    }
+
+    // Cluster merging
     std::sort(mTimeFrame->getTrackletClusters(rofId).begin(), mTimeFrame->getTrackletClusters(rofId).end(),
               [](ClusterLines& cluster1, ClusterLines& cluster2) { return cluster1.getSize() > cluster2.getSize(); });
     noClustersVec[rofId] = static_cast<int>(mTimeFrame->getTrackletClusters(rofId).size());
@@ -391,38 +413,48 @@ void VertexerTraits::computeVertices()
               mTimeFrame->getTrackletClusters(rofId)[iCluster1].add(label, mTimeFrame->getLines(rofId)[label]);
               vertex1 = mTimeFrame->getTrackletClusters(rofId)[iCluster1].getVertex();
             }
+            mTimeFrame->getTrackletClusters(rofId).erase(mTimeFrame->getTrackletClusters(rofId).begin() + iCluster2);
+            --iCluster2;
+            --noClustersVec[rofId];
           }
-          mTimeFrame->getTrackletClusters(rofId).erase(mTimeFrame->getTrackletClusters(rofId).begin() + iCluster2);
-          --iCluster2;
-          --noClustersVec[rofId];
         }
       }
     }
   }
-
   for (int rofId{0}; rofId < mTimeFrame->getNrof(); ++rofId) {
+    vertices.clear();
+    std::sort(mTimeFrame->getTrackletClusters(rofId).begin(), mTimeFrame->getTrackletClusters(rofId).end(),
+              [](ClusterLines& cluster1, ClusterLines& cluster2) { return cluster1.getSize() > cluster2.getSize(); }); // ensure clusters are ordered by contributors, so that we can cat after the first.
 #ifdef VTX_DEBUG
     for (auto& cl : mTimeFrame->getTrackletClusters(rofId)) {
       dbg_clusLines[rofId].push_back(cl);
     }
 #endif
+    bool atLeastOneFound{false};
     for (int iCluster{0}; iCluster < noClustersVec[rofId]; ++iCluster) {
-      if (mTimeFrame->getTrackletClusters(rofId)[iCluster].getSize() < mVrtParams.clusterContributorsCut && noClustersVec[rofId] > 1) {
-        mTimeFrame->getTrackletClusters(rofId).erase(mTimeFrame->getTrackletClusters(rofId).begin() + iCluster);
-        noClustersVec[rofId]--;
-        continue;
+      bool lowMultCandidate{false};
+      if (atLeastOneFound && (lowMultCandidate = mTimeFrame->getTrackletClusters(rofId)[iCluster].getSize() < mVrtParams.clusterContributorsCut)) { // We might have pile up with nContr > cut.
+        float beamDistance2{(mTimeFrame->getBeamX() - mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0]) * (mTimeFrame->getBeamX() - mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0]) +
+                            (mTimeFrame->getBeamY() - mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[1]) * (mTimeFrame->getBeamY() - mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[1])};
+        lowMultCandidate &= beamDistance2 < mVrtParams.lowMultXYcut2;
+        if (!lowMultCandidate) { // Not the first cluster and not a low multiplicity candidate, we can remove it
+          mTimeFrame->getTrackletClusters(rofId).erase(mTimeFrame->getTrackletClusters(rofId).begin() + iCluster);
+          noClustersVec[rofId]--;
+          continue;
+        }
       }
-      if (mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0] * mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0] +
-            mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[1] * mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[1] <
-          1.98 * 1.98) {
-        mVertices.emplace_back(mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0],
-                               mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[1],
-                               mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[2],
-                               mTimeFrame->getTrackletClusters(rofId)[iCluster].getRMS2(),         // Symm matrix. Diagonal: RMS2 components,
+      float rXY{std::hypot(mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0], mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[1])};
+      if (rXY < 1.98 && std::abs(mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[2]) < mVrtParams.maxZPositionAllowed) {
+        atLeastOneFound = true;
+        vertices.emplace_back(o2::math_utils::Point3D<float>(mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0],
+                                                             mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[1],
+                                                             mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[2]),
+                              mTimeFrame->getTrackletClusters(rofId)[iCluster].getRMS2(),          // Symm matrix. Diagonal: RMS2 components,
                                                                                                    // off-diagonal: square mean of projections on planes.
-                               mTimeFrame->getTrackletClusters(rofId)[iCluster].getSize(),         // Contributors
-                               mTimeFrame->getTrackletClusters(rofId)[iCluster].getAvgDistance2(), // In place of chi2
-                               rofId);
+                              mTimeFrame->getTrackletClusters(rofId)[iCluster].getSize(),          // Contributors
+                              mTimeFrame->getTrackletClusters(rofId)[iCluster].getAvgDistance2()); // In place of chi2
+
+        vertices.back().setTimeStamp(rofId);
         if (mTimeFrame->hasMCinformation()) {
           mTimeFrame->getVerticesLabels().emplace_back();
           for (auto& index : mTimeFrame->getTrackletClusters(rofId)[iCluster].getLabels()) {
@@ -431,13 +463,7 @@ void VertexerTraits::computeVertices()
         }
       }
     }
-    std::vector<Vertex> vertices;
-    for (auto& vertex : mVertices) {
-      vertices.emplace_back(o2::math_utils::Point3D<float>(vertex.mX, vertex.mY, vertex.mZ), vertex.mRMS2, vertex.mContributors, vertex.mAvgDistance2);
-      vertices.back().setTimeStamp(vertex.mTimeStamp);
-    }
     mTimeFrame->addPrimaryVertices(vertices);
-    mVertices.clear();
   }
 #ifdef VTX_DEBUG
   TFile* dbg_file = TFile::Open("artefacts_tf.root", "update");
@@ -473,120 +499,121 @@ void VertexerTraits::setNThreads(int n)
   LOGP(info, "Setting seeding vertexer with {} threads.", mNThreads);
 }
 
-// void VertexerTraits::computeHistVertices()
-// {
-//   o2::its::VertexerHistogramsConfiguration histConf;
-//   std::vector<boost::histogram::axis::regular<float>> axes;
-//   axes.reserve(3);
-//   for (size_t iAxis{0}; iAxis < 3; ++iAxis) {
-//     axes.emplace_back(histConf.nBinsXYZ[iAxis] - 1, histConf.lowHistBoundariesXYZ[iAxis], histConf.highHistBoundariesXYZ[iAxis]);
-//   }
+void VertexerTraits::computeVerticesInRof(int rofId,
+                                          gsl::span<const o2::its::Line>& lines,
+                                          std::vector<bool>& usedLines,
+                                          std::vector<o2::its::ClusterLines>& clusterLines,
+                                          std::array<float, 2>& beamPosXY,
+                                          std::vector<Vertex>& vertices,
+                                          std::vector<int>& verticesInRof,
+                                          TimeFrame* tf,
+                                          std::vector<o2::MCCompLabel>* labels)
+{
+  int foundVertices{0};
+  const int numTracklets{static_cast<int>(lines.size())};
+  for (int line1{0}; line1 < numTracklets; ++line1) {
+    if (usedLines[line1]) {
+      continue;
+    }
+    for (int line2{line1 + 1}; line2 < numTracklets; ++line2) {
+      if (usedLines[line2]) {
+        continue;
+      }
+      auto dca{Line::getDCA(lines[line1], lines[line2])};
+      if (dca < mVrtParams.pairCut) {
+        clusterLines.emplace_back(line1, lines[line1], line2, lines[line2]);
+        std::array<float, 3> tmpVertex{clusterLines.back().getVertex()};
+        if (tmpVertex[0] * tmpVertex[0] + tmpVertex[1] * tmpVertex[1] > 4.f) {
+          clusterLines.pop_back();
+          break;
+        }
+        usedLines[line1] = true;
+        usedLines[line2] = true;
+        for (int tracklet3{0}; tracklet3 < numTracklets; ++tracklet3) {
+          if (usedLines[tracklet3]) {
+            continue;
+          }
+          if (Line::getDistanceFromPoint(lines[tracklet3], tmpVertex) < mVrtParams.pairCut) {
+            clusterLines.back().add(tracklet3, lines[tracklet3]);
+            usedLines[tracklet3] = true;
+            tmpVertex = clusterLines.back().getVertex();
+          }
+        }
+        break;
+      }
+    }
+  }
+  if (mVrtParams.allowSingleContribClusters) {
+    auto beamLine = Line{{mTimeFrame->getBeamX(), mTimeFrame->getBeamY(), -50.f}, {mTimeFrame->getBeamX(), mTimeFrame->getBeamY(), 50.f}}; // use beam position as contributor
+    for (size_t iLine{0}; iLine < numTracklets; ++iLine) {
+      if (!usedLines[iLine]) {
+        auto dca = Line::getDCA(lines[iLine], beamLine);
+        if (dca < mVrtParams.pairCut) {
+          clusterLines.emplace_back(iLine, lines[iLine], -1, beamLine); // beamline must be passed as second line argument
+        }
+      }
+    }
+  }
 
-//   auto histX = boost::histogram::make_histogram(axes[0]);
-//   auto histY = boost::histogram::make_histogram(axes[1]);
-//   auto histZ = boost::histogram::make_histogram(axes[2]);
-
-//   // Loop over lines, calculate transverse vertices within beampipe and fill XY histogram to find pseudobeam projection
-//   for (size_t iTracklet1{0}; iTracklet1 < mTracklets.size(); ++iTracklet1) {
-//     for (size_t iTracklet2{iTracklet1 + 1}; iTracklet2 < mTracklets.size(); ++iTracklet2) {
-//       if (Line::getDCA(mTracklets[iTracklet1], mTracklets[iTracklet2]) < mVrtParams.histPairCut) {
-//         ClusterLines cluster{mTracklets[iTracklet1], mTracklets[iTracklet2]};
-//         if (cluster.getVertex()[0] * cluster.getVertex()[0] + cluster.getVertex()[1] * cluster.getVertex()[1] < 1.98f * 1.98f) {
-//           histX(cluster.getVertex()[0]);
-//           histY(cluster.getVertex()[1]);
-//         }
-//       }
-//     }
-//   }
-
-//   // Try again to use std::max_element as soon as boost is upgraded to 1.71...
-//   // atm you can iterate over histograms, not really possible to get bin index. Need to use iterate(histogram)
-//   int maxXBinContent{0};
-//   int maxYBinContent{0};
-//   int maxXIndex{0};
-//   int maxYIndex{0};
-//   for (auto x : indexed(histX)) {
-//     if (x.get() > maxXBinContent) {
-//       maxXBinContent = x.get();
-//       maxXIndex = x.index();
-//     }
-//   }
-
-//   for (auto y : indexed(histY)) {
-//     if (y.get() > maxYBinContent) {
-//       maxYBinContent = y.get();
-//       maxYIndex = y.index();
-//     }
-//   }
-
-//   // Compute weighted average around XY to smooth the position
-//   if (maxXBinContent || maxYBinContent) {
-//     float tmpX{histConf.lowHistBoundariesXYZ[0] + histConf.binSizeHistX * maxXIndex + histConf.binSizeHistX / 2};
-//     float tmpY{histConf.lowHistBoundariesXYZ[1] + histConf.binSizeHistY * maxYIndex + histConf.binSizeHistY / 2};
-//     int sumX{maxXBinContent};
-//     int sumY{maxYBinContent};
-//     float wX{tmpX * static_cast<float>(maxXBinContent)};
-//     float wY{tmpY * static_cast<float>(maxYBinContent)};
-//     for (int iBinX{std::max(0, maxXIndex - histConf.binSpanXYZ[0])}; iBinX < std::min(maxXIndex + histConf.binSpanXYZ[0] + 1, histConf.nBinsXYZ[0] - 1); ++iBinX) {
-//       if (iBinX != maxXIndex) {
-//         wX += (histConf.lowHistBoundariesXYZ[0] + histConf.binSizeHistX * iBinX + histConf.binSizeHistX / 2) * histX.at(iBinX);
-//         sumX += histX.at(iBinX);
-//       }
-//     }
-//     for (int iBinY{std::max(0, maxYIndex - histConf.binSpanXYZ[1])}; iBinY < std::min(maxYIndex + histConf.binSpanXYZ[1] + 1, histConf.nBinsXYZ[1] - 1); ++iBinY) {
-//       if (iBinY != maxYIndex) {
-//         wY += (histConf.lowHistBoundariesXYZ[1] + histConf.binSizeHistY * iBinY + histConf.binSizeHistY / 2) * histY.at(iBinY);
-//         sumY += histY.at(iBinY);
-//       }
-//     }
-
-//     const float beamCoordinateX{wX / sumX};
-//     const float beamCoordinateY{wY / sumY};
-
-//     // create actual pseudobeam line
-//     Line pseudoBeam{std::array<float, 3>{beamCoordinateX, beamCoordinateY, 1}, std::array<float, 3>{beamCoordinateX, beamCoordinateY, -1}};
-
-//     // Fill z coordinate histogram
-//     for (auto& line : mTracklets) {
-//       if (Line::getDCA(line, pseudoBeam) < mVrtParams.histPairCut) {
-//         ClusterLines cluster{line, pseudoBeam};
-//         histZ(cluster.getVertex()[2]);
-//       }
-//     }
-//     for (int iVertex{0};; ++iVertex) {
-//       int maxZBinContent{0};
-//       int maxZIndex{0};
-//       // find maximum
-//       for (auto z : indexed(histZ)) {
-//         if (z.get() > maxZBinContent) {
-//           maxZBinContent = z.get();
-//           maxZIndex = z.index();
-//         }
-//       }
-//       float tmpZ{histConf.lowHistBoundariesXYZ[2] + histConf.binSizeHistZ * maxZIndex + histConf.binSizeHistZ / 2};
-//       int sumZ{maxZBinContent};
-//       float wZ{tmpZ * static_cast<float>(maxZBinContent)};
-//       for (int iBinZ{std::max(0, maxZIndex - histConf.binSpanXYZ[2])}; iBinZ < std::min(maxZIndex + histConf.binSpanXYZ[2] + 1, histConf.nBinsXYZ[2] - 1); ++iBinZ) {
-//         if (iBinZ != maxZIndex) {
-//           wZ += (histConf.lowHistBoundariesXYZ[2] + histConf.binSizeHistZ * iBinZ + histConf.binSizeHistZ / 2) * histZ.at(iBinZ);
-//           sumZ += histZ.at(iBinZ);
-//           histZ.at(iBinZ) = 0;
-//         }
-//       }
-//       if ((sumZ < mVrtParams.clusterContributorsCut) && (iVertex != 0)) {
-//         break;
-//       }
-//       histZ.at(maxZIndex) = 0;
-//       const float vertexZCoordinate{wZ / sumZ};
-//       mVertices.emplace_back(beamCoordinateX,
-//                              beamCoordinateY,
-//                              vertexZCoordinate,
-//                              std::array<float, 6>{0., 0., 0., 0., 0., 0.},
-//                              sumZ,
-//                              0.,
-//                              mEvent->getROFrameId());
-//     }
-//   }
-// }
+  // Cluster merging
+  std::sort(clusterLines.begin(), clusterLines.end(), [](ClusterLines& cluster1, ClusterLines& cluster2) { return cluster1.getSize() > cluster2.getSize(); });
+  size_t nClusters{clusterLines.size()};
+  for (int iCluster1{0}; iCluster1 < nClusters; ++iCluster1) {
+    std::array<float, 3> vertex1{clusterLines[iCluster1].getVertex()};
+    std::array<float, 3> vertex2{};
+    for (int iCluster2{iCluster1 + 1}; iCluster2 < nClusters; ++iCluster2) {
+      vertex2 = clusterLines[iCluster2].getVertex();
+      if (std::abs(vertex1[2] - vertex2[2]) < mVrtParams.clusterCut) {
+        float distance{(vertex1[0] - vertex2[0]) * (vertex1[0] - vertex2[0]) +
+                       (vertex1[1] - vertex2[1]) * (vertex1[1] - vertex2[1]) +
+                       (vertex1[2] - vertex2[2]) * (vertex1[2] - vertex2[2])};
+        if (distance < mVrtParams.pairCut * mVrtParams.pairCut) {
+          for (auto label : clusterLines[iCluster2].getLabels()) {
+            clusterLines[iCluster1].add(label, lines[label]);
+            vertex1 = clusterLines[iCluster1].getVertex();
+          }
+          clusterLines.erase(clusterLines.begin() + iCluster2);
+          --iCluster2;
+          --nClusters;
+        }
+      }
+    }
+  }
+  std::sort(clusterLines.begin(), clusterLines.end(),
+            [](ClusterLines& cluster1, ClusterLines& cluster2) { return cluster1.getSize() > cluster2.getSize(); }); // ensure clusters are ordered by contributors, so that we can cut after the first.
+  bool atLeastOneFound{false};
+  for (int iCluster{0}; iCluster < nClusters; ++iCluster) {
+    bool lowMultCandidate{false};
+    if (atLeastOneFound && (lowMultCandidate = clusterLines[iCluster].getSize() < mVrtParams.clusterContributorsCut)) { // We might have pile up with nContr > cut.
+      float beamDistance2{(beamPosXY[0] - clusterLines[iCluster].getVertex()[0]) * (beamPosXY[0] - clusterLines[iCluster].getVertex()[0]) +
+                          (beamPosXY[1] - clusterLines[iCluster].getVertex()[1]) * (beamPosXY[1] - clusterLines[iCluster].getVertex()[1])};
+      lowMultCandidate &= beamDistance2 < mVrtParams.lowMultXYcut2;
+      if (!lowMultCandidate) { // Not the first cluster and not a low multiplicity candidate, we can remove it
+        clusterLines.erase(clusterLines.begin() + iCluster);
+        nClusters--;
+        continue;
+      }
+    }
+    float rXY{std::hypot(clusterLines[iCluster].getVertex()[0], clusterLines[iCluster].getVertex()[1])};
+    if (rXY < 1.98 && std::abs(clusterLines[iCluster].getVertex()[2]) < mVrtParams.maxZPositionAllowed) {
+      atLeastOneFound = true;
+      ++foundVertices;
+      vertices.emplace_back(o2::math_utils::Point3D<float>(clusterLines[iCluster].getVertex()[0],
+                                                           clusterLines[iCluster].getVertex()[1],
+                                                           clusterLines[iCluster].getVertex()[2]),
+                            clusterLines[iCluster].getRMS2(),          // Symm matrix. Diagonal: RMS2 components,
+                                                                       // off-diagonal: square mean of projections on planes.
+                            clusterLines[iCluster].getSize(),          // Contributors
+                            clusterLines[iCluster].getAvgDistance2()); // In place of chi2
+      vertices.back().setTimeStamp(rofId);
+      if (labels) {
+        for (auto& index : clusterLines[iCluster].getLabels()) {
+          labels->push_back(tf->getLinesLabel(rofId)[index]); // then we can use nContributors from vertices to get the labels
+        }
+      }
+    }
+  }
+  verticesInRof.push_back(foundVertices);
+}
 } // namespace its
 } // namespace o2

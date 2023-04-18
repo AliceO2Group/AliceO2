@@ -102,7 +102,7 @@ void* GPUTRDTracker_t<TRDTRK, PROP>::SetPointersTracks(void* base)
 }
 
 template <class TRDTRK, class PROP>
-GPUTRDTracker_t<TRDTRK, PROP>::GPUTRDTracker_t() : mR(nullptr), mIsInitialized(false), mGenerateSpacePoints(false), mProcessPerTimeFrame(false), mNAngleHistogramBins(25), mAngleHistogramRange(50), mMemoryPermanent(-1), mMemoryTracklets(-1), mMemoryTracks(-1), mNMaxCollisions(0), mNMaxTracks(0), mNMaxSpacePoints(0), mTracks(nullptr), mTrackAttribs(nullptr), mNCandidates(1), mNTracks(0), mNEvents(0), mMaxThreads(100), mTrackletIndexArray(nullptr), mHypothesis(nullptr), mCandidates(nullptr), mSpacePoints(nullptr), mGeo(nullptr), mRPhiA2(0), mRPhiB(0), mRPhiC2(0), mDyA2(0), mDyB(0), mDyC2(0), mAngleToDyA(0), mAngleToDyB(0), mAngleToDyC(0), mDebugOutput(false), mMaxEta(0.84f), mRoadZ(18.f), mZCorrCoefNRC(1.4f), mTPCVdrift(2.58f), mDebug(new GPUTRDTrackerDebug<TRDTRK>())
+GPUTRDTracker_t<TRDTRK, PROP>::GPUTRDTracker_t() : mR(nullptr), mIsInitialized(false), mGenerateSpacePoints(false), mProcessPerTimeFrame(false), mNAngleHistogramBins(25), mAngleHistogramRange(50), mMemoryPermanent(-1), mMemoryTracklets(-1), mMemoryTracks(-1), mNMaxCollisions(0), mNMaxTracks(0), mNMaxSpacePoints(0), mTracks(nullptr), mTrackAttribs(nullptr), mNCandidates(1), mNTracks(0), mNEvents(0), mMaxThreads(100), mTrackletIndexArray(nullptr), mHypothesis(nullptr), mCandidates(nullptr), mSpacePoints(nullptr), mGeo(nullptr), mRPhiA2(0), mRPhiB(0), mRPhiC2(0), mDyA2(0), mDyB(0), mDyC2(0), mAngleToDyA(0), mAngleToDyB(0), mAngleToDyC(0), mDebugOutput(false), mMaxEta(0.84f), mRoadZ(18.f), mZCorrCoefNRC(1.4f), mTPCVdrift(2.58f), mTPCTDriftOffset(0.f), mDebug(new GPUTRDTrackerDebug<TRDTRK>())
 {
   //--------------------------------------------------------------------
   // Default constructor
@@ -302,12 +302,13 @@ GPUdi() const typename PROP::propagatorParam* GPUTRDTracker_t<TRDTRK, PROP>::get
 #elif defined GPUCA_ALIROOT_LIB
   return nullptr;
 #else
+#ifdef GPUCA_HAVE_O2HEADERS
   if (externalDefaultO2Propagator) {
     return o2::base::Propagator::Instance();
-  } else {
-    return GetConstantMem()->calibObjects.o2Propagator;
   }
 #endif
+#endif
+  return GetConstantMem()->calibObjects.o2Propagator;
 }
 
 template <class TRDTRK, class PROP>
@@ -820,9 +821,6 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
       trkWork->setChi2(mHypothesis[iUpdate + hypothesisIdxOffset].mChi2);
       trkWork->setIsFindable(iLayer);
       trkWork->setCollisionId(collisionId);
-      if (iUpdate == 0 && mNCandidates > 1) {
-        *t = mCandidates[2 * iUpdate + nextIdx];
-      }
       // check if track crosses padrows
       float projZEntry, projYEntry;
       // Get Z for Entry of Track
@@ -851,6 +849,9 @@ GPUd() bool GPUTRDTracker_t<TRDTRK, PROP>::FollowProlongation(PROP* prop, TRDTRK
           trkWork->setHasNeighbor();
           break;
         }
+      }
+      if (iUpdate == 0 && mNCandidates > 1) {
+        *t = mCandidates[2 * iUpdate + nextIdx];
       }
     } // end update loop
 
@@ -1166,7 +1167,9 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 // instantiate version for AliExternalTrackParam / o2::TrackParCov data types
+#if defined(GPUCA_ALIROOT_LIB) || defined(GPUCA_HAVE_O2HEADERS)
 template class GPUTRDTracker_t<GPUTRDTrack, GPUTRDPropagator>;
+#endif
 // always instantiate version for GPU Track Model
 template class GPUTRDTracker_t<GPUTRDTrackGPU, GPUTRDPropagatorGPU>;
 } // namespace gpu

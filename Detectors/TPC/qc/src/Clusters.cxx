@@ -147,6 +147,9 @@ void Clusters::reset()
   mSigmaTime = 0;
   mSigmaPad = 0;
   mTimeBin = 0;
+
+  mIsNormalized = false;
+  mProcessedTFs = 0;
 }
 
 //______________________________________________________________________________

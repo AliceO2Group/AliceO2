@@ -65,15 +65,13 @@ class TrackerDPL : public o2::framework::Task
 
   enum TimerIDs { SWTot,
                   SWLoadData,
-                  SWFindLTFTracks,
-                  SWFindCATracks,
+                  SWFindMFTTracks,
                   SWFitTracks,
                   SWComputeLabels,
                   NStopWatches };
   static constexpr std::string_view TimerName[] = {"TotalProcessing",
                                                    "LoadData",
-                                                   "FindLTFTracks",
-                                                   "FindCATracks",
+                                                   "FindTracks",
                                                    "FitTracks",
                                                    "ComputeLabels"};
   TStopwatch mTimer[NStopWatches];

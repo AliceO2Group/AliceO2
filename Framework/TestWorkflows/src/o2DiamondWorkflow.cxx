@@ -40,7 +40,7 @@ void customize(std::vector<CallbacksPolicy>& policies)
   policies.push_back(CallbacksPolicy{
     .matcher = DeviceMatchers::matchByName("A"),
     .policy = [](CallbackService& service, InitContext&) {
-      service.set(CallbackService::Id::Start, []() { LOG(info) << "invoked at start"; });
+      service.set<CallbackService::Id::Start>([]() { LOG(info) << "invoked at start"; });
     }});
 }
 
@@ -104,7 +104,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
                           auto ref = inputs.get("b");
                           auto header = o2::header::get<const DataProcessingHeader*>(ref.header);
                           LOG(info) << "Start time: " << header->startTime;
-                        })}};
+                        })},
+                      .labels = {{"expendable"}}};
 
   return workflow::concat(WorkflowSpec{a},
                           workflow::combine("combined", {b, c}, false),

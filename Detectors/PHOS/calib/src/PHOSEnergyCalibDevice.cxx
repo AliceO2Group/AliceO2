@@ -38,6 +38,13 @@ void PHOSEnergyCalibDevice::init(o2::framework::InitContext& ic)
   mEDigMin = ic.options().get<float>("ecalibdigitmin");
   mECluMin = ic.options().get<float>("ecalibclumin");
 
+  if (mOutputDir.compare("/dev/null")) {
+    mOutputDir = o2::utils::Str::rectifyDirectory(mOutputDir);
+  }
+  if (mMetaFileDir.compare("/dev/null")) {
+    mMetaFileDir = o2::utils::Str::rectifyDirectory(mMetaFileDir);
+  }
+
   LOG(info) << "Energy calibration options";
   LOG(info) << " output-dif=" << mOutputDir;
   bool toFillDigits = mOutputDir.compare("/dev/null");

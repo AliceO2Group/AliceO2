@@ -433,6 +433,22 @@ void TrackParFwd::getCircleParams(float bz, o2::math_utils::CircleXY<float>& c, 
     c.yC = getY();
   }
 }
+//________________________________________________________________
+bool TrackParCovFwd::propagateToVtxhelixWithMCS(double z, const std::array<float, 2>& p, const std::array<float, 2>& cov, double field, double x_over_X0)
+{
+  // Propagate fwd track to vertex using helix model, adding MCS effects
+  addMCSEffect(x_over_X0);
+  propagateToZhelix(z, field);
+  return update(p, cov);
+}
+//________________________________________________________________
+bool TrackParCovFwd::propagateToVtxlinearWithMCS(double z, const std::array<float, 2>& p, const std::array<float, 2>& cov, double x_over_X0)
+{
+  // Propagate fwd track to vertex using linear model, adding MCS effects
+  addMCSEffect(x_over_X0);
+  propagateToZlinear(z);
+  return update(p, cov);
+}
 
 } // namespace track
 } // namespace o2

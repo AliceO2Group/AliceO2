@@ -26,6 +26,7 @@
 #include "ReconstructionDataFormats/V0.h"
 #include "ReconstructionDataFormats/Cascade.h"
 #include "ReconstructionDataFormats/DecayNbody.h"
+#include "ReconstructionDataFormats/StrangeTrack.h"
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "ReconstructionDataFormats/TrackCosmics.h"
@@ -400,6 +401,15 @@ void DataRequest::requestSecondaryVertertices(bool)
   requestMap["SVertex"] = false; // no MC provided for secondary vertices
 }
 
+void DataRequest::requestStrangeTracks(bool mc)
+{
+  addInput({"strangetracks", "GLO", "STRANGETRACKS", 0, Lifetime::Timeframe});
+  if (mc) {
+    addInput({"strack_mc", "GLO", "STRANGETRACKS_MC", 0, Lifetime::Timeframe});
+  }
+  requestMap["STracker"] = mc; // no MC for the time being
+}
+
 void DataRequest::requestCTPDigits(bool mc)
 {
   addInput({"CTPDigits", "CTP", "DIGITS", 0, Lifetime::Timeframe});
@@ -747,6 +757,11 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
     addSVertices(pc, req->second);
   }
 
+  req = reqMap.find("STracker");
+  if (req != reqMap.end()) {
+    addStrangeTracks(pc, req->second);
+  }
+
   req = reqMap.find("IRFramesITS");
   if (req != reqMap.end()) {
     addIRFramesITS(pc);
@@ -784,6 +799,15 @@ void RecoContainer::addPVertices(ProcessingContext& pc, bool mc)
 }
 
 //____________________________________________________________
+void RecoContainer::addStrangeTracks(ProcessingContext& pc, bool mc)
+{
+  strkPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::StrangeTrack>>("strangetracks"), STRACK);
+  if (mc) {
+    strkPool.registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("strack_mc"), STRACK_MC);
+  }
+}
+
+//____________________________________________________________
 void RecoContainer::addPVerticesTMP(ProcessingContext& pc, bool mc)
 {
   if (!pvtxPool.isLoaded(PVTX)) { // in case was loaded via addPVertices
@@ -809,9 +833,7 @@ void RecoContainer::addCosmicTracks(ProcessingContext& pc, bool mc)
 //____________________________________________________________
 void RecoContainer::addITSTracks(ProcessingContext& pc, bool mc)
 {
-  static bool initOnceDone = false;
-  if (!initOnceDone) { // this params need to be queried only once
-    initOnceDone = true;
+  if (pc.services().get<o2::framework::TimingInfo>().globalRunNumberChanged) {            // this params need to be queried only once
     pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>*>("alpparITS"); // note: configurable param does not need finaliseCCDB
   }
   commonPool[GTrackID::ITS].registerContainer(pc.inputs().get<gsl::span<o2::its::TrackITS>>("trackITS"), TRACKS);
@@ -831,9 +853,7 @@ void RecoContainer::addIRFramesITS(ProcessingContext& pc)
 //____________________________________________________________
 void RecoContainer::addMFTTracks(ProcessingContext& pc, bool mc)
 {
-  static bool initOnceDone = false;
-  if (!initOnceDone) { // this params need to be queried only once
-    initOnceDone = true;
+  if (pc.services().get<o2::framework::TimingInfo>().globalRunNumberChanged) {            // this params need to be queried only once
     pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>*>("alpparMFT"); // note: configurable param does not need finaliseCCDB
   }
   commonPool[GTrackID::MFT].registerContainer(pc.inputs().get<gsl::span<o2::mft::TrackMFT>>("trackMFT"), TRACKS);
@@ -999,9 +1019,7 @@ void RecoContainer::addHMPMatches(ProcessingContext& pc, bool mc)
 //__________________________________________________________
 void RecoContainer::addITSClusters(ProcessingContext& pc, bool mc)
 {
-  static bool initOnceDone = false;
-  if (!initOnceDone) { // this params need to be queried only once
-    initOnceDone = true;
+  if (pc.services().get<o2::framework::TimingInfo>().globalRunNumberChanged) {            // this params need to be queried only once
     pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldictITS");                        // just to trigger the finaliseCCDB
     pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>*>("alpparITS"); // note: configurable param does not need finaliseCCDB
   }
@@ -1016,9 +1034,7 @@ void RecoContainer::addITSClusters(ProcessingContext& pc, bool mc)
 //__________________________________________________________
 void RecoContainer::addMFTClusters(ProcessingContext& pc, bool mc)
 {
-  static bool initOnceDone = false;
-  if (!initOnceDone) { // this params need to be queried only once
-    initOnceDone = true;
+  if (pc.services().get<o2::framework::TimingInfo>().globalRunNumberChanged) {            // this params need to be queried only once
     pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldictMFT");                        // just to trigger the finaliseCCDB
     pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>*>("alpparMFT"); // note: configurable param does not need finaliseCCDB
   }
@@ -1391,6 +1407,10 @@ GTrackID RecoContainer::getTPCContributorGID(GTrackID gidx) const
   } else if (src == GTrackID::TPCTOF) {
     const auto& parent0 = getTPCTOFMatch(gidx); // TPC : TOF
     return parent0.getTrackRef();
+  } else if (src == GTrackID::TPCTRDTOF) {
+    const auto& parent0 = getTOFMatch(gidx); // TPC/TRD : TOF
+    const auto& parent1 = getTPCTRDTrack<o2::trd::TrackTRD>(parent0.getTrackRef());
+    return parent1.getRefGlobalTrackId();
   } else if (src == GTrackID::TPCTRD) {
     const auto& parent0 = getTPCTRDTrack<o2::trd::TrackTRD>(gidx);
     return parent0.getRefGlobalTrackId();

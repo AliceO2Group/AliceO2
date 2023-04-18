@@ -54,7 +54,6 @@ namespace itsmft
 {
 
 constexpr int MaxGBTPacketBytes = 8 * 1024;                                   // Max size of GBT packet in bytes (8KB)
-constexpr int MaxGBTWordsPerPacket = MaxGBTPacketBytes / GBTPaddedWordLength; // Max N of GBT words per CRU page
 constexpr int NCRUPagesPerSuperpage = 256;                                    // Expected max number of CRU pages per superpage
 using RDHUtils = o2::raw::RDHUtils;
 
@@ -336,7 +335,6 @@ class RawPixelReader : public PixelReader
     const int dummyNPages = 0xffffff;                                // any large number
     int minPages = dummyNPages;
     auto& ruData = mRUDecodeVec[mCurRUDecodeID];
-    ruData.nCables = ruData.ruInfo->nCables;
     o2::header::RAWDataHeader rdh;
 
     RDHUtils::setTriggerOrbit(rdh, mInteractionRecord.orbit);
@@ -346,7 +344,7 @@ class RawPixelReader : public PixelReader
     RDHUtils::setTriggerType(rdh, o2::trigger::PhT); // ??
     RDHUtils::setDetectorField(rdh, mMAP.getRUDetectorField());
 
-    int maxGBTWordsPerPacket = (MaxGBTPacketBytes - RDHUtils::getHeaderSize(rdh)) / o2::itsmft::GBTPaddedWordLength - 2;
+    int maxGBTWordsPerPacket = (MaxGBTPacketBytes - RDHUtils::getHeaderSize(rdh)) / mGBTWordSize - 2;
 
     int nGBTW[RUDecodeData::MaxLinksPerRU] = {0};
     for (int il = 0; il < RUDecodeData::MaxLinksPerRU; il++) {
@@ -356,7 +354,7 @@ class RawPixelReader : public PixelReader
         continue;
       }
       int nGBTWordsNeeded = 0;
-      for (int icab = ruData.nCables; icab--;) { // calculate number of GBT words per link
+      for (int icab = ruData.ruInfo->nCables; icab--;) { // calculate number of GBT words per link
         if ((link->lanes & (0x1 << icab))) {
           int nb = ruData.cableData[icab].getSize();
           nGBTWordsNeeded += nb ? 1 + (nb - 1) / 9 : 0;
@@ -367,7 +365,7 @@ class RawPixelReader : public PixelReader
       RDHUtils::setLinkID(rdh, il);
       RDHUtils::setPageCounter(rdh, 0);
       RDHUtils::setStop(rdh, 0);
-      int loadsize = RDHUtils::getHeaderSize(rdh) + (nGBTWordsNeeded + 2) * o2::itsmft::GBTPaddedWordLength; // total data to dump
+      int loadsize = RDHUtils::getHeaderSize(rdh) + (nGBTWordsNeeded + 2) * mGBTWordSize; // total data to dump
       RDHUtils::setMemorySize(rdh, loadsize < MaxGBTPacketBytes ? loadsize : MaxGBTPacketBytes);
       RDHUtils::setOffsetToNext(rdh, mImposeMaxPage ? MaxGBTPacketBytes : RDHUtils::getMemorySize(rdh));
 
@@ -388,7 +386,7 @@ class RawPixelReader : public PixelReader
       // now loop over the lanes served by this link, writing each time at most 9 bytes, untill all lanes are copied
       int nGBTWordsInPacket = 0;
       do {
-        for (int icab = 0; icab < ruData.nCables; icab++) {
+        for (int icab = 0; icab < ruData.ruInfo->nCables; icab++) {
           if ((link->lanes & (0x1 << icab))) {
             auto& cableData = ruData.cableData[icab];
             int nb = cableData.getUnusedSize();
@@ -422,7 +420,7 @@ class RawPixelReader : public PixelReader
           RDHUtils::setPageCounter(rdh, RDHUtils::getPageCounter(rdh) + 1); // flag new page
           RDHUtils::setStop(rdh, nGBTWordsNeeded < maxGBTWordsPerPacket);   // flag if this is the last packet of multi-packet
           // update remaining size, using padded GBT words (as CRU writes)
-          loadsize = RDHUtils::getHeaderSize(rdh) + (nGBTWordsNeeded + 2) * o2::itsmft::GBTPaddedWordLength; // update remaining size
+          loadsize = RDHUtils::getHeaderSize(rdh) + (nGBTWordsNeeded + 2) * mGBTWordSize; // update remaining size
           RDHUtils::setMemorySize(rdh, loadsize < MaxGBTPacketBytes ? loadsize : MaxGBTPacketBytes);
           RDHUtils::setOffsetToNext(rdh, mImposeMaxPage ? MaxGBTPacketBytes : RDHUtils::getMemorySize(rdh));
           link->data.ensureFreeCapacity(MaxGBTPacketBytes);
@@ -675,7 +673,7 @@ class RawPixelReader : public PixelReader
         }
       }
     }
-    if (ruDecData.nCables) {       // there are cables with data to decode
+    if (ruDecData.ruInfo->nCables) { // there are cables with data to decode
       decodeAlpideData(ruDecData); // decode Alpide data from the compressed RU Data
     }
     return res;
@@ -700,7 +698,7 @@ class RawPixelReader : public PixelReader
         ptr = buffer.getPtr();
       }
       scan++;
-      ptr += o2::itsmft::GBTPaddedWordLength;
+      ptr += mGBTWordSize;
       buffer.setPtr(ptr);
       if (!buffer.isEmpty()) {
         rdh = reinterpret_cast<o2::header::RAWDataHeader*>(ptr);
@@ -774,8 +772,6 @@ class RawPixelReader : public PixelReader
       RDHUtils::printRDH(rdh);
     }
 #endif
-
-    ruDecData.nCables = ruDecData.ruInfo->nCables;
     while (1) {
       ruLink->packetCounter = RDHUtils::getPacketCounter(rdh);
 
@@ -1026,8 +1022,6 @@ class RawPixelReader : public PixelReader
 
     mTrigger = RDHUtils::getTriggerType(rdh);
 
-    mInteractionRecordHB = RDHUtils::getHeartBeatIR(rdh);
-
     auto ruLink = getGBTLink(ruDecode.links[linkIDinRU]);
     auto& ruLinkStat = ruLink->statistics;
     ruLink->lastRDH = reinterpret_cast<o2::header::RDHAny*>(rdh); // hack but this reader should be outphased anyway
@@ -1241,7 +1235,7 @@ class RawPixelReader : public PixelReader
 
     decData.nChipsFired = decData.lastChipChecked = 0;
     int ntot = 0;
-    for (int icab = 0; icab < decData.nCables; icab++) {
+    for (int icab = 0; icab < decData.ruInfo->nCables; icab++) {
       auto& cableData = decData.cableData[icab];
       int res = 0;
 

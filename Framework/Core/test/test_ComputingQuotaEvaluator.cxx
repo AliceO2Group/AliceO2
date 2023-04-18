@@ -9,11 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test Framework ComputingQuotaEvaluator
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include "Framework/ComputingQuotaEvaluator.h"
 #include "Framework/ResourcePolicyHelpers.h"
 #include "Framework/Logger.h"
@@ -22,7 +18,7 @@
 #pragma GCC diagnostic ignored "-Wpedantic"
 using namespace o2::framework;
 
-BOOST_AUTO_TEST_CASE(TestBasics)
+TEST_CASE("TestComputingQuotaEvaluator")
 {
   static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats&)> reportConsumedOffer = [](ComputingQuotaOffer const& accumulatedConsumed, ComputingQuotaStats& stats) {
     stats.totalConsumedBytes += accumulatedConsumed.sharedMemory;
@@ -77,73 +73,73 @@ BOOST_AUTO_TEST_CASE(TestBasics)
   ComputingQuotaEvaluator evaluator{0};
   std::vector<ComputingQuotaOffer> offers{{.sharedMemory = 1000000}};
   evaluator.updateOffers(offers, 1);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[1].sharedMemory, 1000000);
+  REQUIRE(evaluator.mOffers[1].sharedMemory == 1000000);
   std::vector<ComputingQuotaOffer> offers2{{.sharedMemory = 1000000}};
   evaluator.updateOffers(offers2, 2);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[2].sharedMemory, 1000000);
+  REQUIRE(evaluator.mOffers[2].sharedMemory == 1000000);
   std::vector<ComputingQuotaOffer> offers3{{.sharedMemory = 2000000}, {.sharedMemory = 3000000}};
   evaluator.updateOffers(offers3, 3);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[3].sharedMemory, 3000000);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[4].sharedMemory, 2000000);
+  REQUIRE(evaluator.mOffers[3].sharedMemory == 3000000);
+  REQUIRE(evaluator.mOffers[4].sharedMemory == 2000000);
   auto policy = ResourcePolicyHelpers::sharedMemoryBoundTask("internal-dpl-aod-reader.*", 2000000);
   bool selected = evaluator.selectOffer(1, policy.request, 3);
-  BOOST_CHECK(selected);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[0].user, -1);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[1].user, -1);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[2].user, -1);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[3].user, 1);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[4].user, -1);
+  REQUIRE(selected);
+  REQUIRE(evaluator.mOffers[0].user == -1);
+  REQUIRE(evaluator.mOffers[1].user == -1);
+  REQUIRE(evaluator.mOffers[2].user == -1);
+  REQUIRE(evaluator.mOffers[3].user == 1);
+  REQUIRE(evaluator.mOffers[4].user == -1);
 
   evaluator.consume(1, dispose2MB, reportConsumedOffer);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[3].sharedMemory, 1000000);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[3].user, 1);
+  REQUIRE(evaluator.mOffers[3].sharedMemory == 1000000);
+  REQUIRE(evaluator.mOffers[3].user == 1);
 
   static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats const&)> reportExpiredOffer = [](ComputingQuotaOffer const& offer, ComputingQuotaStats const& stats) {
   };
 
-  BOOST_CHECK_EQUAL(evaluator.mOffers[2].sharedMemory, 1000000);
+  REQUIRE(evaluator.mOffers[2].sharedMemory == 1000000);
   evaluator.handleExpired(reportExpiredOffer);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[2].sharedMemory, -1);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[3].sharedMemory, 1000000);
+  REQUIRE(evaluator.mOffers[2].sharedMemory == -1);
+  REQUIRE(evaluator.mOffers[3].sharedMemory == 1000000);
   evaluator.dispose(1);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[3].user, -1);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[3].sharedMemory, 1000000);
-  BOOST_CHECK_EQUAL(evaluator.mStats.totalExpiredBytes, 2000000);
-  BOOST_CHECK_EQUAL(evaluator.mStats.totalConsumedBytes, 2000000);
+  REQUIRE(evaluator.mOffers[3].user == -1);
+  REQUIRE(evaluator.mOffers[3].sharedMemory == 1000000);
+  REQUIRE(evaluator.mStats.totalExpiredBytes == 2000000);
+  REQUIRE(evaluator.mStats.totalConsumedBytes == 2000000);
 
   selected = evaluator.selectOffer(1, policy.request, 3);
-  BOOST_CHECK(selected);
+  REQUIRE(selected);
 
-  BOOST_CHECK_EQUAL(evaluator.mOffers[0].user, -1);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[1].user, -1);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[2].user, -1);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[3].user, 1);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[3].valid, true);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[3].sharedMemory, 1000000);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[4].user, 1);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[4].sharedMemory, 2000000);
+  REQUIRE(evaluator.mOffers[0].user == -1);
+  REQUIRE(evaluator.mOffers[1].user == -1);
+  REQUIRE(evaluator.mOffers[2].user == -1);
+  REQUIRE(evaluator.mOffers[3].user == 1);
+  REQUIRE(evaluator.mOffers[3].valid == true);
+  REQUIRE(evaluator.mOffers[3].sharedMemory == 1000000);
+  REQUIRE(evaluator.mOffers[4].user == 1);
+  REQUIRE(evaluator.mOffers[4].sharedMemory == 2000000);
 
   evaluator.consume(1, dispose2MB, reportConsumedOffer);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[2].sharedMemory, -1);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[3].sharedMemory, 0);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[4].sharedMemory, 1000000);
+  REQUIRE(evaluator.mOffers[2].sharedMemory == -1);
+  REQUIRE(evaluator.mOffers[3].sharedMemory == 0);
+  REQUIRE(evaluator.mOffers[4].sharedMemory == 1000000);
   evaluator.handleExpired(reportExpiredOffer);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[3].sharedMemory, 0);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[4].sharedMemory, 1000000);
+  REQUIRE(evaluator.mOffers[3].sharedMemory == 0);
+  REQUIRE(evaluator.mOffers[4].sharedMemory == 1000000);
   evaluator.dispose(1);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[3].user, -1);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[4].user, -1);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[3].sharedMemory, 0);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[4].sharedMemory, 1000000);
-  BOOST_CHECK_EQUAL(evaluator.mStats.totalExpiredBytes, 2000000);
-  BOOST_CHECK_EQUAL(evaluator.mStats.totalConsumedBytes, 4000000);
+  REQUIRE(evaluator.mOffers[3].user == -1);
+  REQUIRE(evaluator.mOffers[4].user == -1);
+  REQUIRE(evaluator.mOffers[3].sharedMemory == 0);
+  REQUIRE(evaluator.mOffers[4].sharedMemory == 1000000);
+  REQUIRE(evaluator.mStats.totalExpiredBytes == 2000000);
+  REQUIRE(evaluator.mStats.totalConsumedBytes == 4000000);
 
   std::vector<ComputingQuotaOffer> offers4{{.sharedMemory = 1000000, .runtime = 100}};
   evaluator.updateOffers(offers4, 2);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[1].sharedMemory, 1000000);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[2].sharedMemory, -1);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[3].sharedMemory, 0);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[4].sharedMemory, 1000000);
+  REQUIRE(evaluator.mOffers[1].sharedMemory == 1000000);
+  REQUIRE(evaluator.mOffers[2].sharedMemory == -1);
+  REQUIRE(evaluator.mOffers[3].sharedMemory == 0);
+  REQUIRE(evaluator.mOffers[4].sharedMemory == 1000000);
 
   selected = evaluator.selectOffer(1, policy.request, 10);
   evaluator.handleExpired(reportExpiredOffer);
@@ -155,29 +151,29 @@ BOOST_AUTO_TEST_CASE(TestBasics)
   evaluator.consume(1, dispose2MB, reportConsumedOffer);
   evaluator.handleExpired(reportExpiredOffer);
   evaluator.dispose(1);
-  BOOST_CHECK_EQUAL(evaluator.mStats.totalExpiredBytes, 3000000);
-  BOOST_CHECK_EQUAL(evaluator.mStats.totalConsumedBytes, 6000000);
+  REQUIRE(evaluator.mStats.totalExpiredBytes == 3000000);
+  REQUIRE(evaluator.mStats.totalConsumedBytes == 6000000);
 
-  BOOST_CHECK_EQUAL(evaluator.mOffers[1].sharedMemory, 0);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[2].sharedMemory, 0);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[3].sharedMemory, 0);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[4].sharedMemory, -1);
+  REQUIRE(evaluator.mOffers[1].sharedMemory == 0);
+  REQUIRE(evaluator.mOffers[2].sharedMemory == 0);
+  REQUIRE(evaluator.mOffers[3].sharedMemory == 0);
+  REQUIRE(evaluator.mOffers[4].sharedMemory == -1);
 
   std::vector<ComputingQuotaOffer> offers6{{.sharedMemory = 2000000, .runtime = 100}, {.sharedMemory = 1000000, .runtime = 100}};
   evaluator.updateOffers(offers6, 19);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[1].sharedMemory, 1000000);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[2].sharedMemory, 2000000);
+  REQUIRE(evaluator.mOffers[1].sharedMemory == 1000000);
+  REQUIRE(evaluator.mOffers[2].sharedMemory == 2000000);
   /// Check if we request 2MB and consume 10 works
   selected = evaluator.selectOffer(1, policy.request, 20);
   evaluator.consume(1, dispose10MB, reportConsumedOffer);
   evaluator.handleExpired(reportExpiredOffer);
   evaluator.dispose(1);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[1].sharedMemory, 0);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[2].sharedMemory, 0);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[1].user, -1);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[2].user, -1);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[1].valid, false);
-  BOOST_CHECK_EQUAL(evaluator.mOffers[2].valid, false);
+  REQUIRE(evaluator.mOffers[1].sharedMemory == 0);
+  REQUIRE(evaluator.mOffers[2].sharedMemory == 0);
+  REQUIRE(evaluator.mOffers[1].user == -1);
+  REQUIRE(evaluator.mOffers[2].user == -1);
+  REQUIRE(evaluator.mOffers[1].valid == false);
+  REQUIRE(evaluator.mOffers[2].valid == false);
 }
 
 #pragma GGC diagnostic pop

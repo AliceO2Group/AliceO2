@@ -35,7 +35,7 @@ class ROFRecord;
 namespace its
 {
 
-class NoiseSlotCalibrator : public o2::calibration::TimeSlotCalibration<o2::itsmft::CompClusterExt, o2::itsmft::NoiseMap>
+class NoiseSlotCalibrator : public o2::calibration::TimeSlotCalibration<o2::itsmft::NoiseMap>
 {
   using Slot = calibration::TimeSlot<o2::itsmft::NoiseMap>;
 

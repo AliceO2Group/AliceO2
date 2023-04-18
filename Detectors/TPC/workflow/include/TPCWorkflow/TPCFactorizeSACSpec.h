@@ -78,8 +78,7 @@ class TPCFactorizeSACSpec : public o2::framework::Task
   }
 
   static constexpr header::DataDescription getDataDescriptionSAC1() { return header::DataDescription{"SAC1"}; }
-  static constexpr header::DataDescription getDataDescriptionTimeStamp() { return header::DataDescription{"FOURIERTS"}; }
-  static constexpr header::DataDescription getDataDescriptionFourier() { return header::DataDescription{"FOURIER"}; }
+  static constexpr header::DataDescription getDataDescriptionTimeStamp() { return header::DataDescription{"FOURIERTSSAC"}; }
   static constexpr header::DataDescription getDataDescriptionLane() { return header::DataDescription{"SACLANE"}; }
 
   // for CCDB
@@ -88,59 +87,64 @@ class TPCFactorizeSACSpec : public o2::framework::Task
   static constexpr header::DataDescription getDataDescriptionCCDBSACDelta() { return header::DataDescription{"TPC_SACDelta"}; }
 
  private:
-  SACFactorization mSACFactorization;                                                                                                                                      ///< object for performing the factorization of the SACs
-  const SACFactorization::SACDeltaCompression mCompressionDeltaSAC{};                                                                                                      ///< compression type for SAC Delta
-  const bool mDebug{false};                                                                                                                                                ///< dump SACs to tree for debugging
-  const int mLaneId{0};                                                                                                                                                    ///< the id of the current process within the parallel pipeline
-  uint64_t mCCDBTimeStamp{0};                                                                                                                                              ///< time stamp of first SACs which are received for the current aggreagtion interval, which is used for setting the time when writing to the CCDB
-  const std::vector<InputSpec> mFilter = {{"sac", ConcreteDataTypeMatcher{gDataOriginTPC, TPCDistributeSACSpec::getDataDescriptionSACVec(mLaneId)}, Lifetime::Timeframe}}; ///< filter for looping over input data
+  SACFactorization mSACFactorization;                                                                                                                                     ///< object for performing the factorization of the SACs
+  const SACFactorization::SACDeltaCompression mCompressionDeltaSAC{};                                                                                                     ///< compression type for SAC Delta
+  const bool mDebug{false};                                                                                                                                               ///< dump SACs to tree for debugging
+  const int mLaneId{0};                                                                                                                                                   ///< the id of the current process within the parallel pipeline
+  uint64_t mCCDBTimeStamp{0};                                                                                                                                             ///< time stamp of first SACs which are received for the current aggreagtion interval, which is used for setting the time when writing to the CCDB
+  const std::vector<InputSpec> mFilter = {{"sac", ConcreteDataTypeMatcher{gDataOriginTPC, TPCDistributeSACSpec::getDataDescriptionSACVec(mLaneId)}, Lifetime::Sporadic}}; ///< filter for looping over input data
 
   void sendOutput(DataAllocator& output)
   {
     const uint64_t timeStampStart = mCCDBTimeStamp;
     const uint64_t timeStampEnd = timeStampStart + o2::ccdb::CcdbObjectInfo::DAY;
 
-    output.snapshot(Output{gDataOriginTPC, getDataDescriptionSAC1(), header::DataHeader::SubSpecificationType{Side::A}}, mSACFactorization.getSACOne(Side::A));
-    output.snapshot(Output{gDataOriginTPC, getDataDescriptionSAC1(), header::DataHeader::SubSpecificationType{Side::C}}, mSACFactorization.getSACOne(Side::C));
-    output.snapshot(Output{gDataOriginTPC, getDataDescriptionTimeStamp()}, std::vector<uint64_t>{timeStampStart, timeStampEnd});
-    output.snapshot(Output{gDataOriginTPC, getDataDescriptionLane()}, mLaneId);
+    // do check if received data is empty
+    if (timeStampStart != 0) {
+      output.snapshot(Output{gDataOriginTPC, getDataDescriptionSAC1(), header::DataHeader::SubSpecificationType{Side::A}}, mSACFactorization.getSACOne(Side::A));
+      output.snapshot(Output{gDataOriginTPC, getDataDescriptionSAC1(), header::DataHeader::SubSpecificationType{Side::C}}, mSACFactorization.getSACOne(Side::C));
+      output.snapshot(Output{gDataOriginTPC, getDataDescriptionTimeStamp()}, std::vector<uint64_t>{timeStampStart, timeStampEnd});
+      output.snapshot(Output{gDataOriginTPC, getDataDescriptionLane()}, mLaneId);
 
-    o2::ccdb::CcdbObjectInfo ccdbInfoSAC0(CDBTypeMap.at(CDBType::CalSAC0), std::string{}, std::string{}, std::map<std::string, std::string>{}, timeStampStart, timeStampEnd);
-    auto imageSAC0 = o2::ccdb::CcdbApi::createObjectImage(&mSACFactorization.getSACZero(), &ccdbInfoSAC0);
-    LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", ccdbInfoSAC0.getPath(), ccdbInfoSAC0.getFileName(), imageSAC0->size(), ccdbInfoSAC0.getStartValidityTimestamp(), ccdbInfoSAC0.getEndValidityTimestamp());
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, getDataDescriptionCCDBSAC0(), 0}, *imageSAC0.get());
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, getDataDescriptionCCDBSAC0(), 0}, ccdbInfoSAC0);
+      o2::ccdb::CcdbObjectInfo ccdbInfoSAC0(CDBTypeMap.at(CDBType::CalSAC0), std::string{}, std::string{}, std::map<std::string, std::string>{}, timeStampStart, timeStampEnd);
+      auto imageSAC0 = o2::ccdb::CcdbApi::createObjectImage(&mSACFactorization.getSACZero(), &ccdbInfoSAC0);
+      LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", ccdbInfoSAC0.getPath(), ccdbInfoSAC0.getFileName(), imageSAC0->size(), ccdbInfoSAC0.getStartValidityTimestamp(), ccdbInfoSAC0.getEndValidityTimestamp());
+      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, getDataDescriptionCCDBSAC0(), 0}, *imageSAC0.get());
+      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, getDataDescriptionCCDBSAC0(), 0}, ccdbInfoSAC0);
 
-    o2::ccdb::CcdbObjectInfo ccdbInfoSAC1(CDBTypeMap.at(CDBType::CalSAC1), std::string{}, std::string{}, std::map<std::string, std::string>{}, timeStampStart, timeStampEnd);
-    auto imageSAC1 = o2::ccdb::CcdbApi::createObjectImage(&mSACFactorization.getSACOne(), &ccdbInfoSAC1);
-    LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", ccdbInfoSAC1.getPath(), ccdbInfoSAC1.getFileName(), imageSAC1->size(), ccdbInfoSAC1.getStartValidityTimestamp(), ccdbInfoSAC1.getEndValidityTimestamp());
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, getDataDescriptionCCDBSAC1(), 0}, *imageSAC1.get());
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, getDataDescriptionCCDBSAC1(), 0}, ccdbInfoSAC1);
+      o2::ccdb::CcdbObjectInfo ccdbInfoSAC1(CDBTypeMap.at(CDBType::CalSAC1), std::string{}, std::string{}, std::map<std::string, std::string>{}, timeStampStart, timeStampEnd);
+      auto imageSAC1 = o2::ccdb::CcdbApi::createObjectImage(&mSACFactorization.getSACOne(), &ccdbInfoSAC1);
+      LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", ccdbInfoSAC1.getPath(), ccdbInfoSAC1.getFileName(), imageSAC1->size(), ccdbInfoSAC1.getStartValidityTimestamp(), ccdbInfoSAC1.getEndValidityTimestamp());
+      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, getDataDescriptionCCDBSAC1(), 0}, *imageSAC1.get());
+      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, getDataDescriptionCCDBSAC1(), 0}, ccdbInfoSAC1);
 
-    o2::ccdb::CcdbObjectInfo ccdbInfoSACDelta(CDBTypeMap.at(CDBType::CalSACDelta), std::string{}, std::string{}, std::map<std::string, std::string>{}, timeStampStart, timeStampEnd);
+      o2::ccdb::CcdbObjectInfo ccdbInfoSACDelta(CDBTypeMap.at(CDBType::CalSACDelta), std::string{}, std::string{}, std::map<std::string, std::string>{}, timeStampStart, timeStampEnd);
 
-    std::unique_ptr<std::vector<char>> imageSACDelta{};
-    switch (mCompressionDeltaSAC) {
-      case SACFactorization::SACDeltaCompression::MEDIUM:
-      default: {
-        const SACDelta<unsigned short> sacDelta = mSACFactorization.getSACDeltaMediumCompressed();
-        imageSACDelta = o2::ccdb::CcdbApi::createObjectImage(&sacDelta, &ccdbInfoSACDelta);
-        break;
+      std::unique_ptr<std::vector<char>> imageSACDelta{};
+      switch (mCompressionDeltaSAC) {
+        case SACFactorization::SACDeltaCompression::MEDIUM:
+        default: {
+          const SACDelta<unsigned short> sacDelta = mSACFactorization.getSACDeltaMediumCompressed();
+          imageSACDelta = o2::ccdb::CcdbApi::createObjectImage(&sacDelta, &ccdbInfoSACDelta);
+          break;
+        }
+        case SACFactorization::SACDeltaCompression::HIGH: {
+          const SACDelta<unsigned char> sacDelta = mSACFactorization.getSACDeltaHighCompressed();
+          imageSACDelta = o2::ccdb::CcdbApi::createObjectImage(&sacDelta, &ccdbInfoSACDelta);
+          break;
+        }
+        case SACFactorization::SACDeltaCompression::NO:
+          SACDelta<float> sacDelta = std::move(mSACFactorization).getSACDeltaUncompressed();
+          imageSACDelta = o2::ccdb::CcdbApi::createObjectImage(&sacDelta, &ccdbInfoSACDelta);
+          break;
       }
-      case SACFactorization::SACDeltaCompression::HIGH: {
-        const SACDelta<unsigned char> sacDelta = mSACFactorization.getSACDeltaHighCompressed();
-        imageSACDelta = o2::ccdb::CcdbApi::createObjectImage(&sacDelta, &ccdbInfoSACDelta);
-        break;
-      }
-      case SACFactorization::SACDeltaCompression::NO:
-        SACDelta<float> sacDelta = std::move(mSACFactorization).getSACDeltaUncompressed();
-        imageSACDelta = o2::ccdb::CcdbApi::createObjectImage(&sacDelta, &ccdbInfoSACDelta);
-        break;
+
+      LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", ccdbInfoSACDelta.getPath(), ccdbInfoSACDelta.getFileName(), imageSACDelta->size(), ccdbInfoSACDelta.getStartValidityTimestamp(), ccdbInfoSACDelta.getEndValidityTimestamp());
+      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, getDataDescriptionCCDBSACDelta(), 0}, *imageSACDelta.get());
+      output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, getDataDescriptionCCDBSACDelta(), 0}, ccdbInfoSACDelta);
+    } else {
+      LOGP(warning, "Received empty data for SACs! SACs will not be stored for the current aggregation interval!");
     }
-
-    LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", ccdbInfoSACDelta.getPath(), ccdbInfoSACDelta.getFileName(), imageSACDelta->size(), ccdbInfoSACDelta.getStartValidityTimestamp(), ccdbInfoSACDelta.getEndValidityTimestamp());
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, getDataDescriptionCCDBSACDelta(), 0}, *imageSACDelta.get());
-    output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, getDataDescriptionCCDBSACDelta(), 0}, ccdbInfoSACDelta);
 
     mSACFactorization.reset();
   }

@@ -84,8 +84,20 @@ class GPUTRDTrack_t : public T
   // This method is only defined in TrackTRD.h and is intended to be used only with that TRD track type
   GPUd() o2::dataformats::GlobalTrackID getRefGlobalTrackId() const;
   GPUd() short getCollisionId() const { return mCollisionId; }
-  GPUd() int getNtracklets() const;
+  GPUd() int getNtracklets() const
+  {
+    // returns number of tracklets attached to this track
+    int retVal = 0;
+    for (int iLy = 0; iLy < kNLayers; ++iLy) {
+      if (mAttachedTracklets[iLy] >= 0) {
+        ++retVal;
+      }
+    }
+    return retVal;
+  }
+
   GPUd() float getChi2() const { return mChi2; }
+  GPUd() float getSignal() const { return mSignal; }
   GPUd() unsigned char getIsCrossingNeighbor() const { return mIsCrossingNeighbor; }
   GPUd() bool getIsCrossingNeighbor(int iLayer) const { return mIsCrossingNeighbor & (1 << iLayer); }
   GPUd() bool getHasNeighbor() const { return mIsCrossingNeighbor & (1 << 6); }
@@ -110,6 +122,7 @@ class GPUTRDTrack_t : public T
   GPUd() void setIsStopped() { mFlags |= (1U << kStopFlag); }
   GPUd() void setIsAmbiguous() { mFlags |= (1U << kAmbiguousFlag); }
   GPUd() void setChi2(float chi2) { mChi2 = chi2; }
+  GPUd() void setSignal(float signal) { mSignal = signal; }
   GPUd() void setIsCrossingNeighbor(int iLayer) { mIsCrossingNeighbor |= (1U << iLayer); }
   GPUd() void setHasNeighbor() { mIsCrossingNeighbor |= (1U << 6); }
   GPUd() void setHasPadrowCrossing() { mIsCrossingNeighbor |= (1U << 7); }
@@ -120,6 +133,7 @@ class GPUTRDTrack_t : public T
 
  protected:
   float mChi2;                       // total chi2.
+  float mSignal{-1.f};               // electron Likelihood for track
   unsigned int mRefGlobalTrackId;    // raw GlobalTrackID of the seeding track (either ITS-TPC or TPC)
   int mAttachedTracklets[kNLayers];  // indices of the tracklets attached to this track; -1 means no tracklet in that layer
   short mCollisionId;                // the collision ID of the tracklets attached to this track; is used to retrieve the BC information for this track after the tracking is done
@@ -129,7 +143,7 @@ class GPUTRDTrack_t : public T
  private:
   GPUd() void initialize();
 #if !defined(GPUCA_STANDALONE) && !defined(GPUCA_ALIROOT_LIB)
-  ClassDefNV(GPUTRDTrack_t, 3);
+  ClassDefNV(GPUTRDTrack_t, 4);
 #endif
 };
 

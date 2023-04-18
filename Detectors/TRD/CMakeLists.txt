@@ -12,6 +12,7 @@
 add_subdirectory(base)
 add_subdirectory(calibration)
 add_subdirectory(simulation)
+add_subdirectory(pid)
 add_subdirectory(reconstruction)
 add_subdirectory(macros)
 add_subdirectory(qc)

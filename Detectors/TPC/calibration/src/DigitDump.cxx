@@ -94,7 +94,7 @@ Int_t DigitDump::updateCRU(const CRU& cru, const Int_t row, const Int_t pad,
   if (mPadMask.size() && std::find(mPadMask.begin(), mPadMask.end(), std::array<int, 3>({int(cru.roc()), sectorRow, pad})) != mPadMask.end()) {
     return 1;
   }
-  //printf("updateCRU: %d, %d (%d, %d), %d, %d, %f, %f\n", int(cru), row, globalRow, sectorRow, pad, timeBin, signal, pedestal);
+  // printf("updateCRU: %d, %d (%d, %d), %d, %d, %f, %f\n", int(cru), row, globalRow, sectorRow, pad, timeBin, signal, pedestal);
 
   // fill digits
   addDigit(cru, signalCorr, globalRow, pad, timeBin);
@@ -232,7 +232,7 @@ void DigitDump::checkDuplicates(bool removeDuplicates)
 void DigitDump::removeCEdigits(uint32_t removeNtimeBinsBefore, uint32_t removeNtimeBinsAfter, std::array<std::vector<Digit>, Sector::MAXSECTOR>* removedDigits)
 {
   if (!mInitialized || !mTimeBinOccupancy.size()) {
-    LOGP(info, "Cannot calculate CE psition, mInitialized = {}, mTimeBinOccupancy.size() = {}", mInitialized, mTimeBinOccupancy.size());
+    LOGP(info, "Cannot calculate CE position, mInitialized = {}, mTimeBinOccupancy.size() = {}", mInitialized, mTimeBinOccupancy.size());
     return;
   }
   // ===| check if proper CE signal was found |===
@@ -271,14 +271,14 @@ void DigitDump::removeCEdigits(uint32_t removeNtimeBinsBefore, uint32_t removeNt
       continue;
     }
 
-    //LOGP(info, "processing sector iSec");
+    // LOGP(info, "processing sector iSec");
     const auto itFirstTB = std::lower_bound(digits.begin(), digits.end(),
                                             firstTimeBin,
                                             [](const auto& digit, const auto val) {
                                               return digit.getTimeStamp() < val;
                                             });
 
-    //LOGP(info, "first time bin to remove is {} at position {} / {}", *itFirstTB, std::distance(digits.begin(), itFirstTB), digits.size());
+    // LOGP(info, "first time bin to remove is {} at position {} / {}", *itFirstTB, std::distance(digits.begin(), itFirstTB), digits.size());
     if (itFirstTB == digits.end()) {
       continue;
     }
@@ -289,15 +289,15 @@ void DigitDump::removeCEdigits(uint32_t removeNtimeBinsBefore, uint32_t removeNt
                                              return val < digit.getTimeStamp();
                                            });
 
-    //LOGP(info, "last time bin to remove is {} at position {} / {}", *(itLastTB - 1), std::distance(digits.begin(), itLastTB), digits.size());
+    // LOGP(info, "last time bin to remove is {} at position {} / {}", *(itLastTB - 1), std::distance(digits.begin(), itLastTB), digits.size());
     if (removedDigits) {
-      //LOGP(info, "copy removed digits");
+      // LOGP(info, "copy removed digits");
       auto& cpDigits = (*removedDigits)[iSec];
       cpDigits.clear();
       std::copy(itFirstTB, itLastTB, std::back_inserter(cpDigits));
     }
 
-    //LOGP(info, "erasing {} digits", std::distance(itFirstTB, itLastTB));
+    // LOGP(info, "erasing {} digits", std::distance(itFirstTB, itLastTB));
     digits.erase(itFirstTB, itLastTB);
   }
 }

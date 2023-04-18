@@ -24,6 +24,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <sstream>
 
 // Boost library for easy access of host name
 #include <boost/asio/ip/host_name.hpp>
@@ -51,6 +52,7 @@
 #include "TTree.h"
 #include "TH1F.h"
 #include "TF1.h"
+#include "TFile.h"
 
 using namespace o2::framework;
 using namespace o2::itsmft;
@@ -60,27 +62,29 @@ namespace o2
 namespace its
 {
 
-constexpr int N_INJ = 50;
+int nInj = 50;
 
 // List of the possible run types for reference
 enum RunTypes {
-  THR_SCAN = 42,
-  THR_SCAN_SHORT = 43,
-  THR_SCAN_SHORT_33 = 45,
-  THR_SCAN_SHORT_2_10HZ = 46,
-  THR_SCAN_SHORT_100HZ = 101,
-  THR_SCAN_SHORT_200HZ = 102,
-  VCASN150 = 61,
-  VCASN100 = 81,
-  VCASN100_100HZ = 103,
-  VCASN130 = 135,
-  ITHR150 = 62,
-  ITHR100 = 82,
-  ITHR100_100HZ = 104,
-  ITHR130 = 136,
-  DIGITAL_SCAN = 44,
-  DIGITAL_SCAN_100HZ = 105,
-  ANALOGUE_SCAN = 63,
+  THR_SCAN = 15,
+  THR_SCAN_SHORT = 2,
+  THR_SCAN_SHORT_33 = 16,
+  THR_SCAN_SHORT_2_10HZ = 18,
+  THR_SCAN_SHORT_100HZ = 19,
+  THR_SCAN_SHORT_200HZ = 20,
+  VCASN150 = 23,
+  VCASN100 = 10,
+  VCASN100_100HZ = 21,
+  VCASN130 = 22,
+  VCASNBB = 24,
+  ITHR150 = 27,
+  ITHR100 = 11,
+  ITHR100_100HZ = 25,
+  ITHR130 = 26,
+  DIGITAL_SCAN = 13,
+  DIGITAL_SCAN_100HZ = 31,
+  ANALOGUE_SCAN = 14,
+  PULSELENGTH_SCAN = 32,
   END_RUN = 0
 };
 
@@ -129,19 +133,21 @@ class ITSThresholdCalibrator : public Task
   static constexpr short int N_PIX_DCOL = 50;
 
   // The x-axis of the correct data fit chosen above
-  short int* mX = nullptr;
+  float* mX = nullptr;
 
   // Hash tables to store the hit and threshold information per pixel
   std::map<short int, std::map<int, std::vector<std::vector<unsigned short int>>>> mPixelHits;
   std::map<short int, std::deque<short int>> mForbiddenRows;
   // Unordered map for saving sum of values (thr/ithr/vcasn) for avg calculation
-  std::map<short int, std::array<long int, 5>> mThresholds;
+  std::map<short int, std::array<long int, 6>> mThresholds;
   // Map including PixID for noisy pixels
   std::map<short int, std::vector<int>> mNoisyPixID;
   // Map including PixID for Inefficient pixels
   std::map<short int, std::vector<int>> mIneffPixID;
   // Map including PixID for Dead pixels
   std::map<short int, std::vector<int>> mDeadPixID;
+  // Vector for the calculation of the most probable value
+  std::map<short int, std::array<int, 200>> mpvCounter;
   // Tree to save threshold info in full threshold scan case
   TFile* mRootOutfile = nullptr;
   TTree* mThresholdTree = nullptr;
@@ -150,6 +156,7 @@ class ITSThresholdCalibrator : public Task
   short int vThreshold[N_COL];
   bool vSuccess[N_COL];
   unsigned char vNoise[N_COL];
+  short int vStrobeDel[N_COL];
 
   // Initialize pointers for doing error function fits
   TH1F* mFitHist = nullptr;
@@ -158,6 +165,7 @@ class ITSThresholdCalibrator : public Task
   // Some private helper functions
   // Helper functions related to the running over data
   void extractAndUpdate(const short int&, const short int&);
+  void calculatePulseParams(const short int&, const short int&);
   void extractThresholdRow(const short int&, const short int&);
   void finalizeOutput();
 
@@ -165,19 +173,22 @@ class ITSThresholdCalibrator : public Task
 
   // Helper functions related to threshold extraction
   void initThresholdTree(bool recreate = true);
-  bool findUpperLower(const unsigned short int*, const short int*, const short int&, short int&, short int&, bool);
-  bool findThreshold(const unsigned short int*, const short int*, short int&, float&, float&);
-  bool findThresholdFit(const unsigned short int*, const short int*, const short int&, float&, float&);
-  bool findThresholdDerivative(const unsigned short int*, const short int*, const short int&, float&, float&);
-  bool findThresholdHitcounting(const unsigned short int*, const short int*, const short int&, float&);
+  bool findUpperLower(const unsigned short int*, const short int&, short int&, short int&, bool);
+  bool findThreshold(const short int&, const unsigned short int*, const float*, short int&, float&, float&);
+  bool findThresholdFit(const short int&, const unsigned short int*, const float*, const short int&, float&, float&);
+  bool findThresholdDerivative(const unsigned short int*, const float*, const short int&, float&, float&);
+  bool findThresholdHitcounting(const unsigned short int*, const float*, const short int&, float&);
   bool isScanFinished(const short int&, const short int&, const short int&);
-  void findAverage(const std::array<long int, 5>&, float&, float&, float&, float&);
+  void findAverage(const std::array<long int, 6>&, float&, float&, float&, float&);
   void saveThreshold();
 
   // Helper functions for writing to the database
   void addDatabaseEntry(const short int&, const char*, const float&,
-                        const float&, const float&, const float&, bool, bool);
+                        const float&, const float&, const float&, const float&, bool);
   void sendToAggregator(EndOfStreamContext*);
+
+  // Utils
+  std::vector<short int> getIntegerVect(std::string&);
 
   std::string mSelfName;
   std::string mDictName;
@@ -203,6 +214,8 @@ class ITSThresholdCalibrator : public Task
   // Either "T" for threshold, "V" for VCASN, or "I" for ITHR
   char mScanType = '\0';
   short int mMin = -1, mMax = -1;
+  short int mStep = 1;
+  short int mStrobeWindow = 5; // 5 means 5*25ns = 125 ns
 
   // Get threshold method (fit == 1, derivative == 0, or hitcounting == 2)
   char mFitType = -1;
@@ -218,6 +231,9 @@ class ITSThresholdCalibrator : public Task
   o2::dcs::DCSconfigObject_t mPixStat;
   // DCS config object shipped only to QC to know when scan is done
   o2::dcs::DCSconfigObject_t mChipDoneQc;
+
+  // CDW version
+  short int mCdwVersion = 0; // for now: v0, v1
 
   // Flag to check if endOfStream is available
   bool mCheckEos = false;
@@ -243,16 +259,32 @@ class ITSThresholdCalibrator : public Task
   short int inMinIthr = 30;
   short int inMaxIthr = 100;
 
+  // Flag to enable most-probable value calculation
+  bool isMpv = false;
+
   // parameters for manual mode: if run type is not among the listed one
   bool isManualMode = false;
   bool saveTree;
   short int manualMin;
   short int manualMax;
+  short int manualStep = 1;
   std::string manualScanType;
+  short int manualStrobeWindow = 5;
+
+  // for CRU_ITS data processing
+  bool isCRUITS = false;
 
   // map to get confDB id
   std::vector<int>* mConfDBmap;
   short int mConfDBv;
+
+  // Parameters useful to dump s-scurves on disk + file
+  bool isDumpS = false;                // dump or not dump
+  int maxDumpS = -1;                   // maximum number of s-curves to be dumped, default -1 = dump all
+  std::string chipDumpS = "";          // list of comma-separated O2 chipIDs to be dumped, default is empty = dump all
+  int dumpCounterS[24120] = {0};       // count dumps for every chip
+  TFile* fileDumpS;                    // file where to store the s-curves on disk
+  std::vector<short int> chipDumpList; // vector of chips to dump
 };
 
 // Create a processor spec

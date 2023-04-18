@@ -11,7 +11,6 @@
 
 #include <string>
 #include <fairlogger/Logger.h>
-#include "CommonDataFormat/InteractionRecord.h"
 #include "Framework/InputRecordWalker.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/WorkflowSpec.h"
@@ -27,8 +26,32 @@ void RawDecoderSpec::init(framework::InitContext& ctx)
 {
   mNTFToIntegrate = ctx.options().get<int>("ntf-to-average");
   mVerbose = ctx.options().get<bool>("use-verbose-mode");
+  LOG(info) << "CTP reco init done";
 }
-
+void RawDecoderSpec::endOfStream(framework::EndOfStreamContext& ec)
+{
+  std::sort(mTFOrbits.begin(), mTFOrbits.end());
+  size_t l = mTFOrbits.size();
+  uint32_t o0 = 0;
+  if (l) {
+    o0 = mTFOrbits[0];
+  }
+  int nmiss = 0;
+  int nprt = 0;
+  std::cout << "Missing orbits:";
+  for (int i = 1; i < l; i++) {
+    if ((mTFOrbits[i] - o0) > 0x20) {
+      if (nprt < 20) {
+        std::cout << " " << o0 << "-" << mTFOrbits[i];
+      }
+      nmiss += (mTFOrbits[i] - o0) / 0x20;
+      nprt++;
+    }
+    o0 = mTFOrbits[i];
+  }
+  std::cout << std::endl;
+  std::cout << "Number of missing TF:" << nmiss << std::endl;
+}
 void RawDecoderSpec::run(framework::ProcessingContext& ctx)
 {
   mOutputDigits.clear();
@@ -39,6 +62,15 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
 
   // setUpDummyLink
   auto& inputs = ctx.inputs();
+  auto dummyOutput = [&ctx, this]() {
+    if (this->mDoDigits) {
+      ctx.outputs().snapshot(o2::framework::Output{"CTP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, this->mOutputDigits);
+    }
+    if (this->mDoLumi) {
+      ctx.outputs().snapshot(o2::framework::Output{"CTP", "LUMI", 0, o2::framework::Lifetime::Timeframe}, this->mOutputLumiInfo);
+    }
+  };
+
   // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
   // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
   {
@@ -54,12 +86,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
                dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit, payloadSize,
                contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
         }
-        if (mDoDigits) {
-          ctx.outputs().snapshot(o2::framework::Output{"CTP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mOutputDigits);
-        }
-        if (mDoLumi) {
-          ctx.outputs().snapshot(o2::framework::Output{"CTP", "LUMI", 0, o2::framework::Lifetime::Timeframe}, mOutputLumiInfo);
-        }
+        dummyOutput();
         return;
       }
     }
@@ -69,21 +96,41 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
   std::vector<InputSpec> filter{InputSpec{"filter", ConcreteDataTypeMatcher{"CTP", "RAWDATA"}, Lifetime::Timeframe}};
   o2::framework::DPLRawParser parser(ctx.inputs(), filter);
   std::vector<LumiInfo> lumiPointsHBF1;
-  uint64_t countsMB = 0;
+  uint64_t countsMBT = 0;
+  uint64_t countsMBV = 0;
   uint32_t payloadCTP;
-  uint32_t orbit0 = 0;
-  bool first = true;
   gbtword80_t remnant = 0;
   uint32_t size_gbt = 0;
+  mTFOrbit = 0;
+  uint32_t orbit0 = 0;
   for (auto it = parser.begin(); it != parser.end(); ++it) {
-    auto rdh = it.get_if<o2::header::RAWDataHeader>();
-    auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(rdh);
+    const o2::header::RDHAny* rdh = nullptr;
+    try {
+      rdh = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
+      mPadding = (o2::raw::RDHUtils::getDataFormat(rdh) == 0);
+    } catch (std::exception& e) {
+      LOG(error) << "Failed to extract RDH, abandoning TF sending dummy output, exception was: " << e.what();
+      dummyOutput();
+      return;
+    }
+    // auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(rdh);
     uint32_t stopBit = o2::raw::RDHUtils::getStop(rdh);
     uint32_t packetCounter = o2::raw::RDHUtils::getPageCounter(rdh);
-    // std::cout << "==================>" << std::hex << triggerOrbit << std::endl;
-    if (first) {
-      orbit0 = triggerOrbit;
-      first = false;
+    uint32_t version = o2::raw::RDHUtils::getVersion(rdh);
+    uint32_t rdhOrbit = o2::raw::RDHUtils::getHeartBeatOrbit(rdh);
+    uint32_t triggerType = o2::raw::RDHUtils::getTriggerType(rdh);
+    // std::cout << "diff orbits:" << triggerOrbit - rdhOrbit << std::endl;
+    bool tf = (triggerType & TF_TRIGGERTYPE_MASK) && (packetCounter == 0);
+    bool hb = (triggerType & HB_TRIGGERTYPE_MASK) && (packetCounter == 0);
+    if (tf) {
+      mTFOrbit = rdhOrbit;
+      // std::cout << "tforbit==================>" << mTFOrbit << " " << std::hex << mTFOrbit << std::endl;
+      mTFOrbits.push_back(mTFOrbit);
+    }
+    static bool prt = true;
+    if (prt) {
+      LOG(info) << "RDH version:" << version << " Padding:" << mPadding;
+      prt = false;
     }
     auto feeID = o2::raw::RDHUtils::getFEEID(rdh); // 0 = IR, 1 = TCR
     auto linkCRU = (feeID & 0xf00) >> 8;
@@ -91,81 +138,123 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
       payloadCTP = o2::ctp::NIntRecPayload;
     } else if (linkCRU == o2::ctp::GBTLinkIDClassRec) {
       payloadCTP = o2::ctp::NClassPayload;
-      if (!mDoDigits) {
+      if (!mDoDigits) { // Do not do TCR if only lumi
         continue;
       }
     } else {
       LOG(error) << "Unxpected  CTP CRU link:" << linkCRU;
     }
-    LOG(debug) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << triggerOrbit << " stopbit:" << stopBit << " packet:" << packetCounter;
+    LOG(debug) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << rdhOrbit << " triggerType:" << triggerType;
     // LOG(info) << "remnant :" << remnant.count();
     gbtword80_t pldmask = 0;
     for (uint32_t i = 0; i < payloadCTP; i++) {
       pldmask[12 + i] = 1;
     }
-    //  TF in 128 bits words
-    gsl::span<const uint8_t> payload(it.data(), it.size());
-    gbtword80_t gbtWord = 0;
-    int wordCount = 0;
-    std::vector<gbtword80_t> diglets;
-    if (orbit0 != triggerOrbit) {
+    // std::cout << (orbit0 != rdhOrbit) << " comp " << (mTFOrbit==rdhOrbit) << std::endl;
+    // if(orbit0 != rdhOrbit) {
+    if (hb) {
       if (mDoLumi && payloadCTP == o2::ctp::NIntRecPayload) { // create lumi per HB
-        lumiPointsHBF1.emplace_back(LumiInfo{triggerOrbit, 0, countsMB});
-        countsMB = 0;
+        lumiPointsHBF1.emplace_back(LumiInfo{rdhOrbit, 0, 0, countsMBT, countsMBV});
+        countsMBT = 0;
+        countsMBV = 0;
       }
       remnant = 0;
       size_gbt = 0;
-      orbit0 = triggerOrbit;
+      orbit0 = rdhOrbit;
+      // std::cout << "orbit0============>" << std::dec << orbit0 << " " << std::hex << orbit0 << std::endl;
     }
-    // LOG(info) << "payload size:" << payload.size();
+    // Create 80 bit words
+    gsl::span<const uint8_t> payload(it.data(), it.size());
+    gbtword80_t gbtWord80;
+    gbtWord80.set();
+    int wordCount = 0;
+    int wordSize = 10;
+    std::vector<gbtword80_t> gbtwords80;
+    // mPadding = 0;
+    if (mPadding == 1) {
+      wordSize = 16;
+    }
+    /* if (payload.size()) {
+      //LOG(info) << "payload size:" << payload.size();
+      // LOG(info) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << triggerOrbit << " stopbit:" << stopBit << " packet:" << packetCounter;
+      // LOGP(info, "RDH FEEid: {} CRU link: {}, Orbit: {}", feeID, linkCRU, triggerOrbit);
+      std::cout << std::hex << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << rdhOrbit << std::endl;
+    } */
+    gbtword80_t bcmask = std::bitset<80>("111111111111");
     for (auto payloadWord : payload) {
-      // LOG(info) << wordCount << " payload:" << int(payloadWord);
-      if (wordCount == 15) {
-        wordCount = 0;
-      } else if (wordCount > 9) {
-        wordCount++;
-      } else if (wordCount == 9) {
+      int wc = wordCount % wordSize;
+      // LOG(info) << wordCount << ":" << wc << " payload:" << int(payloadWord);
+      if ((wc == 0) && (wordCount != 0)) {
+        if (gbtWord80.count() != 80) {
+          gbtwords80.push_back(gbtWord80);
+          /* uint64_t bcid = (gbtWord80 & bcmask).to_ullong();
+          if (bcid < 279)
+            bcid += 3564 - 279;
+          else
+            bcid += -279;
+          std::string ss = fmt::format("{:x}", bcid);
+          LOG(info) << "w80:" << gbtWord80 << " " << ss;
+          // LOGP(info,"w80: {} bcid:{%x}", gbtWord80,bcid); */
+        }
+        gbtWord80.set();
+      }
+      if (wc < 10) {
         for (int i = 0; i < 8; i++) {
-          gbtWord[wordCount * 8 + i] = bool(int(payloadWord) & (1 << i));
+          gbtWord80[wc * 8 + i] = bool(int(payloadWord) & (1 << i));
         }
-        wordCount++;
-        diglets.clear();
-        // LOG(info) << " gbtword:" << gbtWord;
-        makeGBTWordInverse(diglets, gbtWord, remnant, size_gbt, payloadCTP);
-        // save digit in buffer recs
-        // LOG(info) << "diglets size:" << diglets.size();
-        for (auto diglet : diglets) {
-          if (mDoLumi && payloadCTP == o2::ctp::NIntRecPayload) {
-            gbtword80_t pld = (diglet >> 12) & mTVXMask;
-            if (pld.count() != 0) {
-              countsMB++;
-            }
+      }
+      wordCount++;
+    }
+    if ((gbtWord80.count() != 80) && (gbtWord80.count() > 0)) {
+      gbtwords80.push_back(gbtWord80);
+      /*uint64_t bcid = (gbtWord80 & bcmask).to_ullong();
+      if (bcid < 279)
+        bcid += 3564 - 279;
+      else
+        bcid += -279;
+      std::string ss = fmt::format("{:x}", bcid);
+      LOG(info) << "w80l:" << gbtWord80 << " " << ss;  */
+    }
+    // decode 80 bits payload
+    for (auto word : gbtwords80) {
+      std::vector<gbtword80_t> diglets;
+      gbtword80_t gbtWord = word;
+      makeGBTWordInverse(diglets, gbtWord, remnant, size_gbt, payloadCTP);
+      for (auto diglet : diglets) {
+        if (mDoLumi && payloadCTP == o2::ctp::NIntRecPayload) {
+          gbtword80_t pld = (diglet >> 12) & mTVXMask;
+          if (pld.count() != 0) {
+            countsMBT++;
           }
-          if (!mDoDigits) {
-            continue;
+          pld = (diglet >> 12) & mVBAMask;
+          if (pld.count() != 0) {
+            countsMBV++;
           }
-          addCTPDigit(linkCRU, triggerOrbit, diglet, pldmask, digits);
         }
-        gbtWord = 0;
-      } else {
-        for (int i = 0; i < 8; i++) {
-          gbtWord[wordCount * 8 + i] = bool(int(payloadWord) & (1 << i));
+        if (!mDoDigits) {
+          continue;
         }
-        wordCount++;
+        LOG(debug) << "diglet:" << diglet << " " << (diglet & bcmask).to_ullong();
+        addCTPDigit(linkCRU, rdhOrbit, diglet, pldmask, digits);
       }
     }
-    // LOG(info) << "remnant:" << remnant;
-    if ((remnant.count() > 0) && stopBit) {
+    // if ((remnant.count() > 0) && stopBit) {
+    if (remnant.count() > 0) {
       if (mDoLumi && payloadCTP == o2::ctp::NIntRecPayload) {
         gbtword80_t pld = (remnant >> 12) & mTVXMask;
         if (pld.count() != 0) {
-          countsMB++;
+          countsMBT++;
+        }
+        pld = (remnant >> 12) & mVBAMask;
+        if (pld.count() != 0) {
+          countsMBV++;
         }
       }
       if (!mDoDigits) {
         continue;
       }
-      addCTPDigit(linkCRU, triggerOrbit, remnant, pldmask, digits);
+      addCTPDigit(linkCRU, rdhOrbit, remnant, pldmask, digits);
+      LOG(debug) << "diglet:" << remnant << " " << (remnant & bcmask).to_ullong();
       remnant = 0;
     }
   }
@@ -173,31 +262,46 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     for (auto const digmap : digits) {
       mOutputDigits.push_back(digmap.second);
     }
-    LOG(info) << "[CTPRawToDigitConverter - run] Writing " << mOutputDigits.size() << " digits ...";
+    LOG(info) << "[CTPRawToDigitConverter - run] Writing " << mOutputDigits.size() << " digits. IR rejected:" << mIRRejected << " TCR rejected:" << mTCRRejected;
     ctx.outputs().snapshot(o2::framework::Output{"CTP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mOutputDigits);
   }
   if (mDoLumi) {
-    lumiPointsHBF1.emplace_back(LumiInfo{orbit0, 0, countsMB});
-    uint32_t tfCounts = 0;
+    lumiPointsHBF1.emplace_back(LumiInfo{orbit0, 0, 0, countsMBT, countsMBV});
+    uint32_t tfCountsT = 0;
+    uint32_t tfCountsV = 0;
     for (auto const& lp : lumiPointsHBF1) {
-      tfCounts += lp.counts;
+      tfCountsT += lp.counts;
+      tfCountsV += lp.countsFV0;
     }
     // LOG(info) << "Lumi rate:" << tfCounts/(128.*88e-6);
-    mHistory.push_back(tfCounts);
-    mCounts += tfCounts;
-    if (mHistory.size() <= mNTFToIntegrate) {
-      mNHBIntegrated += lumiPointsHBF1.size();
+    // FT0
+    mHistoryT.push_back(tfCountsT);
+    mCountsT += tfCountsT;
+    if (mHistoryT.size() <= mNTFToIntegrate) {
+      mNHBIntegratedT += lumiPointsHBF1.size();
     } else {
-      mCounts -= mHistory.front();
-      mHistory.pop_front();
+      mCountsT -= mHistoryT.front();
+      mHistoryT.pop_front();
     }
-    if (mNHBIntegrated) {
+    // FV0
+    mHistoryV.push_back(tfCountsV);
+    mCountsV += tfCountsV;
+    if (mHistoryV.size() <= mNTFToIntegrate) {
+      mNHBIntegratedV += lumiPointsHBF1.size();
+    } else {
+      mCountsV -= mHistoryV.front();
+      mHistoryV.pop_front();
+    }
+    //
+    if (mNHBIntegratedT || mNHBIntegratedV) {
       mOutputLumiInfo.orbit = lumiPointsHBF1[0].orbit;
     }
-    mOutputLumiInfo.counts = mCounts;
-    mOutputLumiInfo.nHBFCounted = mNHBIntegrated;
+    mOutputLumiInfo.counts = mCountsT;
+    mOutputLumiInfo.countsFV0 = mCountsV;
+    mOutputLumiInfo.nHBFCounted = mNHBIntegratedT;
+    mOutputLumiInfo.nHBFCountedFV0 = mNHBIntegratedV;
     if (mVerbose) {
-      LOGP(info, "Orbit {}: {} counts in {} HBFs -> lumi = {:.3e}+-{:.3e}", mOutputLumiInfo.orbit, mCounts, mNHBIntegrated, mOutputLumiInfo.getLumi(), mOutputLumiInfo.getLumiError());
+      LOGP(info, "Orbit {}: {}/{} counts T/V in {}/{} HBFs -> lumiT = {:.3e}+-{:.3e} lumiV = {:.3e}+-{:.3e}", mOutputLumiInfo.orbit, mCountsT, mCountsV, mNHBIntegratedT, mNHBIntegratedV, mOutputLumiInfo.getLumi(), mOutputLumiInfo.getLumiError(), mOutputLumiInfo.getLumiFV0(), mOutputLumiInfo.getLumiFV0Error());
     }
     ctx.outputs().snapshot(o2::framework::Output{"CTP", "LUMI", 0, o2::framework::Lifetime::Timeframe}, mOutputLumiInfo);
   }
@@ -223,7 +327,7 @@ void RawDecoderSpec::makeGBTWordInverse(std::vector<gbtword80_t>& diglets, gbtwo
   size_gbt = NGBT - i;
   remnant = GBTWord;
 }
-int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword80_t& diglet, gbtword80_t& pldmask, std::map<o2::InteractionRecord, CTPDigit>& digits)
+int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& diglet, gbtword80_t& pldmask, std::map<o2::InteractionRecord, CTPDigit>& digits)
 {
   gbtword80_t pld = (diglet & pldmask);
   if (pld.count() == 0) {
@@ -232,22 +336,30 @@ int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword
   pld >>= 12;
   CTPDigit digit;
   const gbtword80_t bcidmask = 0xfff;
-  uint32_t bcid = (diglet & bcidmask).to_ulong();
-  // LOG(info) << bcid << "    pld:" << pld;
-  o2::InteractionRecord ir;
-  ir.orbit = triggerOrbit;
-  ir.bc = bcid;
-  digit.intRecord = ir;
+  uint16_t bcid = (diglet & bcidmask).to_ulong();
+  LOG(debug) << bcid << "    pld:" << pld;
+  o2::InteractionRecord ir = {bcid, orbit};
+  int32_t BCShiftCorrection = o2::ctp::TriggerOffsetsParam::Instance().customOffset[o2::detectors::DetID::CTP];
   if (linkCRU == o2::ctp::GBTLinkIDIntRec) {
     LOG(debug) << "InputMaskCount:" << digits[ir].CTPInputMask.count();
+    LOG(debug) << "ir ir ori:" << ir;
+    // if ((int32_t)ir.bc < BCShiftCorrection) {
+    if ((ir.orbit <= mTFOrbit) && ((int32_t)ir.bc < BCShiftCorrection)) {
+      // LOG(warning) << "Loosing ir:" << ir;
+      mIRRejected++;
+      return 0;
+    }
+    ir -= BCShiftCorrection;
+    LOG(debug) << "ir ir corrected:" << ir;
+    digit.intRecord = ir;
     if (digits.count(ir) == 0) {
       digit.setInputMask(pld);
       digits[ir] = digit;
-      LOG(debug) << bcid << " inputs case 0 bcid orbit " << triggerOrbit << " pld:" << pld;
+      LOG(debug) << bcid << " inputs case 0 bcid orbit " << orbit << " pld:" << pld;
     } else if (digits.count(ir) == 1) {
       if (digits[ir].CTPInputMask.count() == 0) {
         digits[ir].setInputMask(pld);
-        LOG(debug) << bcid << " inputs bcid vase 1 orbit " << triggerOrbit << " pld:" << pld;
+        LOG(debug) << bcid << " inputs bcid vase 1 orbit " << orbit << " pld:" << pld;
       } else {
         LOG(error) << "Two CTP IRs with the same timestamp:" << ir.bc << " " << ir.orbit;
       }
@@ -255,14 +367,26 @@ int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword
       LOG(error) << "Two digits with the same rimestamp:" << ir.bc << " " << ir.orbit;
     }
   } else if (linkCRU == o2::ctp::GBTLinkIDClassRec) {
+    int32_t offset = BCShiftCorrection + o2::ctp::TriggerOffsetsParam::Instance().LM_L0 + o2::ctp::TriggerOffsetsParam::Instance().L0_L1 - 1;
+    LOG(debug) << "tcr ir ori:" << ir;
+    // if ((int32_t)ir.bc < offset) {
+    if ((ir.orbit <= mTFOrbit) && ((int32_t)ir.bc < offset)) {
+      // if (0) {
+      LOG(warning) << "Loosing tclass:" << ir;
+      mTCRRejected++;
+      return 0;
+    }
+    ir -= offset;
+    LOG(debug) << "tcr ir corrected:" << ir;
+    digit.intRecord = ir;
     if (digits.count(ir) == 0) {
       digit.setClassMask(pld);
       digits[ir] = digit;
-      LOG(debug) << bcid << " class bcid case 0 orbit " << triggerOrbit << " pld:" << pld;
+      LOG(debug) << bcid << " class bcid case 0 orbit " << orbit << " pld:" << pld;
     } else if (digits.count(ir) == 1) {
       if (digits[ir].CTPClassMask.count() == 0) {
         digits[ir].setClassMask(pld);
-        LOG(debug) << bcid << " class bcid case 1 orbit " << triggerOrbit << " pld:" << pld;
+        LOG(debug) << bcid << " class bcid case 1 orbit " << orbit << " pld:" << pld;
       } else {
         LOG(error) << "Two CTP Class masks for same timestamp";
       }
@@ -273,7 +397,6 @@ int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword
   }
   return 0;
 }
-
 o2::framework::DataProcessorSpec o2::ctp::reco_workflow::getRawDecoderSpec(bool askDISTSTF, bool digits, bool lumi)
 {
   if (!digits && !lumi) {

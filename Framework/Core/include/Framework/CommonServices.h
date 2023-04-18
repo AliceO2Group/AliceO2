@@ -15,10 +15,10 @@
 #include "Framework/ServiceRegistryRef.h"
 #include "Framework/TypeIdHelpers.h"
 
-class TDatabasePDG;
-
 namespace o2::framework
 {
+
+enum struct DeploymentMode;
 
 struct ThreadPool {
   int poolSize;
@@ -58,6 +58,7 @@ struct CommonServices {
     return [](InitContext&, void* service) -> void* { return service; };
   }
 
+  static DeploymentMode getDeploymentMode();
   static ServiceSpec deviceContextSpec();
   static ServiceSpec dataProcessorContextSpec();
   static ServiceSpec driverClientSpec();
@@ -83,20 +84,11 @@ struct CommonServices {
   static ServiceSpec asyncQueue();
   static ServiceSpec guiMetricsSpec();
   static ServiceSpec dataAllocatorSpec();
+  static ServiceSpec streamContextSpec();
 
   static std::vector<ServiceSpec> defaultServices(int numWorkers = 0);
+  static std::vector<ServiceSpec> arrowServices();
   static std::vector<ServiceSpec> requiredServices();
-};
-
-struct CommonAnalysisServices {
-  template <typename T>
-  static void addAnalysisService(std::vector<ServiceSpec>& specs)
-  {
-    std::vector<LoadableService> loadableServices = {};
-    char const* analysisServices = "O2FrameworkPhysicsSupport:PDGSupport";
-    loadableServices = ServiceHelpers::parseServiceSpecString(analysisServices);
-    ServiceHelpers::loadFromPlugin(loadableServices, specs);
-  }
 };
 
 } // namespace o2::framework

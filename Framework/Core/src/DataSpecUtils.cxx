@@ -415,6 +415,19 @@ ConcreteDataMatcher DataSpecUtils::asConcreteDataMatcher(OutputSpec const& spec)
   return std::get<ConcreteDataMatcher>(spec.matcher);
 }
 
+std::optional<ConcreteDataMatcher> DataSpecUtils::asOptionalConcreteDataMatcher(OutputSpec const& spec)
+{
+  return std::visit(overloaded{
+                      [](ConcreteDataMatcher const& concrete) {
+                        return std::optional<ConcreteDataMatcher>{concrete};
+                      },
+                      [](DataDescriptorMatcher const& matcher) {
+                        return DataSpecUtils::optionalConcreteDataMatcherFrom(matcher);
+                      },
+                      [](auto const&) { return std::optional<ConcreteDataMatcher>{std::nullopt}; }},
+                    spec.matcher);
+}
+
 ConcreteDataTypeMatcher DataSpecUtils::asConcreteDataTypeMatcher(OutputSpec const& spec)
 {
   return std::visit([](auto const& concrete) {

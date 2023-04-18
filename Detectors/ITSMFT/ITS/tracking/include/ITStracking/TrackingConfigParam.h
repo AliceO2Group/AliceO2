@@ -22,6 +22,8 @@ namespace its
 
 struct VertexerParamConfig : public o2::conf::ConfigurableParamHelper<VertexerParamConfig> {
 
+  bool allowSingleContribClusters = false;
+
   // geometrical cuts
   float zCut = 0.002f;   // 0.002f
   float phiCut = 0.005f; // 0.005f
@@ -29,10 +31,15 @@ struct VertexerParamConfig : public o2::conf::ConfigurableParamHelper<VertexerPa
   float clusterCut = 0.8f;
   float histPairCut = 0.04f;
   float tanLambdaCut = 0.002f; // tanLambda = deltaZ/deltaR
+  float lowMultXYcut2 = 0.25f; // XY cut for low-multiplicity pile up
+  float baseBeamError = 0.005f;
+  float maxZPositionAllowed = 25.f; // 4x sZ of the beam
   int clusterContributorsCut = 16;
   int maxTrackletsPerCluster = 1e2;
   int phiSpan = -1;
   int zSpan = -1;
+  int ZBins = 1;
+  int PhiBins = 128;
 
   int nThreads = 1;
 
@@ -46,6 +53,8 @@ struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerPara
   bool useFastMaterial = false;
   float sysErrY2[7] = {0}; // systematic error^2 in Y per layer
   float sysErrZ2[7] = {0}; // systematic error^2 in Z per layer
+  float maxChi2ClusterAttachment = -1.f;
+  float maxChi2NDF = -1.f;
   float nSigmaCut = -1.f;
   float deltaTanLres = -1.f;
   float minPt = -1.f;
@@ -62,6 +71,25 @@ struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerPara
   int nThreads = 1;
 
   O2ParamDef(TrackerParamConfig, "ITSCATrackerParam");
+};
+
+struct GpuRecoParamConfig : public o2::conf::ConfigurableParamHelper<GpuRecoParamConfig> {
+  // GPU-specific parameters
+  size_t tmpCUBBufferSize = 1e5; // In average in pp events there are required 4096 bytes
+  size_t maxTrackletsPerCluster = 1e2;
+  size_t clustersPerLayerCapacity = 2.5e5;
+  size_t clustersPerROfCapacity = 1.5e3;
+  size_t trackletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
+  size_t validatedTrackletsCapacity = 1e5;
+  size_t cellsLUTsize = validatedTrackletsCapacity;
+  size_t maxNeighboursSize = 1e4;
+  size_t neighboursLUTsize = maxNeighboursSize;
+  size_t maxLinesCapacity = 1e2;
+  size_t maxVerticesCapacity = 5e4;
+  size_t nTimeFramePartitions = 3;
+  int maxGPUMemoryGB = -1;
+
+  O2ParamDef(GpuRecoParamConfig, "ITSGpuRecoParam");
 };
 
 } // namespace its

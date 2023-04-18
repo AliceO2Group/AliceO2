@@ -17,6 +17,7 @@
 
 #include "GPUChainTracking.h"
 #include "GPUDataTypes.h"
+#include "GPUTPCGeometry.h"
 #include <vector>
 #include <random>
 #include <tuple>
@@ -43,7 +44,7 @@ class GPUReconstructionTimeframe
 
   static constexpr int ORBIT_RATE = 11245;
   static constexpr int DRIFT_TIME = 93000;
-  static constexpr int TPCZ = 250;
+  static constexpr int TPCZ = GPUTPCGeometry::TPCLength();
   static constexpr int TIME_ORBIT = 1000000000 / ORBIT_RATE;
 
  private:

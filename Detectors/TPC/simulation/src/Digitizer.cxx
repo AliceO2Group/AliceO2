@@ -25,7 +25,7 @@
 #include "TPCSimulation/Point.h"
 #include "TPCSimulation/SAMPAProcessing.h"
 #include "TPCBase/CDBInterface.h"
-
+#include "TPCSpaceCharge/SpaceCharge.h"
 #include "TPCBase/Mapper.h"
 
 #include <fairlogger/Logger.h>
@@ -33,6 +33,10 @@
 ClassImp(o2::tpc::Digitizer);
 
 using namespace o2::tpc;
+
+Digitizer::~Digitizer() = default;
+
+Digitizer::Digitizer() = default;
 
 void Digitizer::init()
 {
@@ -106,7 +110,7 @@ void Digitizer::process(const std::vector<o2::tpc::HitGroup>& hits,
           LOG(warning) << "Skipping electron with driftTime " << driftTime << " from hit at time " << hitTime;
           continue;
         }
-        const float absoluteTime = eleTime + (mEventTime - mOutputDigitTimeOffset); /// in us
+        const float absoluteTime = eleTime + mTDriftOffset + (mEventTime - mOutputDigitTimeOffset); /// in us
 
         /// Attachment
         if (electronTransport.isElectronAttachment(driftTime)) {
@@ -163,9 +167,13 @@ void Digitizer::flush(std::vector<o2::tpc::Digit>& digits,
 {
   SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
   mDigitContainer.fillOutputContainer(digits, labels, commonModeOutput, mSector, sampaProcessing.getTimeBinFromTime(mEventTime - mOutputDigitTimeOffset), mIsContinuous, finalFlush);
+  // flushing debug output to file
+  if (((finalFlush && mIsContinuous) || (!mIsContinuous)) && mSpaceCharge) {
+    o2::utils::DebugStreamer::instance()->flush();
+  }
 }
 
-void Digitizer::setUseSCDistortions(SC::SCDistortionType distortionType, const TH3* hisInitialSCDensity)
+void Digitizer::setUseSCDistortions(const SCDistortionType& distortionType, const TH3* hisInitialSCDensity)
 {
   mUseSCDistortions = true;
   if (!mSpaceCharge) {
@@ -184,16 +192,19 @@ void Digitizer::setUseSCDistortions(SC* spaceCharge)
   mSpaceCharge.reset(spaceCharge);
 }
 
-void Digitizer::setUseSCDistortions(TFile& finp)
+void Digitizer::setUseSCDistortions(std::string_view finp)
 {
   mUseSCDistortions = true;
   if (!mSpaceCharge) {
     mSpaceCharge = std::make_unique<SC>();
   }
-  mSpaceCharge->setGlobalDistortionsFromFile(finp, Side::A);
-  mSpaceCharge->setGlobalDistortionsFromFile(finp, Side::C);
-  mSpaceCharge->setGlobalCorrectionsFromFile(finp, Side::A);
-  mSpaceCharge->setGlobalCorrectionsFromFile(finp, Side::C);
+
+  // in case analytical distortions are loaded from file they are applied
+  mSpaceCharge->setAnalyticalCorrectionsDistortionsFromFile(finp);
+  if (!mSpaceCharge->getUseAnalyticalDistCorr()) {
+    mSpaceCharge->setGlobalDistortionsFromFile(finp, Side::A);
+    mSpaceCharge->setGlobalDistortionsFromFile(finp, Side::C);
+  }
 }
 
 void Digitizer::setStartTime(double time)
