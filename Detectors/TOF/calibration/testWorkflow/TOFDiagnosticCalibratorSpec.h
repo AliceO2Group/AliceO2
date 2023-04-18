@@ -59,7 +59,7 @@ class TOFDiagnosticCalibDevice : public o2::framework::Task
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
     auto const data = pc.inputs().get<o2::tof::Diagnostic*>("input");
-    LOG(info) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter;
+    LOG(debug) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter;
     mCalibrator->process<o2::tof::Diagnostic>(*data);
     sendOutput(pc.outputs());
   }

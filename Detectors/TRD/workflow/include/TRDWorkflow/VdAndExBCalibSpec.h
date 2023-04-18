@@ -69,7 +69,7 @@ class VdAndExBCalibDevice : public o2::framework::Task
     mCalibrator->process(dataAngRes);
     sendOutput(pc.outputs());
     std::chrono::duration<double, std::milli> runDuration = std::chrono::high_resolution_clock::now() - runStartTime;
-    LOGP(info, "Duration for run method: {} ms", std::chrono::duration_cast<std::chrono::milliseconds>(runDuration).count());
+    LOGP(debug, "Duration for run method: {} ms", std::chrono::duration_cast<std::chrono::milliseconds>(runDuration).count());
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final

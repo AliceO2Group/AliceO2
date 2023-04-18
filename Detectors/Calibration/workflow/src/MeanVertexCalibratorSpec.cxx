@@ -47,11 +47,11 @@ void MeanVertexCalibDevice::run(o2::framework::ProcessingContext& pc)
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   auto data = pc.inputs().get<gsl::span<o2::dataformats::PrimaryVertex>>("input");
   o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
-  LOG(info) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << data.size() << " vertices";
+  LOG(debug) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << data.size() << " vertices";
   mCalibrator->process(data);
   sendOutput(pc.outputs());
   const auto& infoVec = mCalibrator->getMeanVertexObjectInfoVector();
-  LOG(info) << "Created " << infoVec.size() << " objects for TF " << mCalibrator->getCurrentTFInfo().tfCounter;
+  LOG(info) << "Processed TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << data.size() << " vertices, for which we created " << infoVec.size() << " objects for TF " << mCalibrator->getCurrentTFInfo().tfCounter;
 }
 
 //_________________________________________________________________

@@ -141,7 +141,7 @@ class ResidualAggregatorDevice : public o2::framework::Task
     LOG(info) << "Processing TF " << mAggregator->getCurrentTFInfo().tfCounter << " with " << trkData->size() << " tracks and " << residualsData.size() << " unbinned residuals associated to them";
     mAggregator->process(residualsData, trackRefs, orbitResetTime, trkDataPtr, lumi);
     std::chrono::duration<double, std::milli> runDuration = std::chrono::high_resolution_clock::now() - runStartTime;
-    LOGP(info, "Duration for run method: {} ms. From this taken for time dependent param update: {} ms",
+    LOGP(debug, "Duration for run method: {} ms. From this taken for time dependent param update: {} ms",
          std::chrono::duration_cast<std::chrono::milliseconds>(runDuration).count(),
          std::chrono::duration_cast<std::chrono::milliseconds>(ccdbUpdateTime).count());
   }
