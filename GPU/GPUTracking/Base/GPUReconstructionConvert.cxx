@@ -1120,7 +1120,7 @@ inline unsigned int zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vecto
         size = CAMath::nextMultipleOf<o2::raw::RDHUtils::GBTWord128>(size);
 #ifdef GPUCA_O2_LIB
         if (raw) {
-          raw->addData(rawfeeid, rawcru, this->RAWLNK, rawendpoint, *ir + hbf * o2::constants::lhc::LHCMaxBunches, gsl::span<char>((char*)page + sizeof(o2::header::RAWDataHeader), (char*)page + size), true, 0, 2);
+          raw->addData(rawfeeid, rawcru, 0, rawendpoint, *ir + hbf * o2::constants::lhc::LHCMaxBunches, gsl::span<char>((char*)page + sizeof(o2::header::RAWDataHeader), (char*)page + size), true, 0, 2);
           maxhbf = std::max<int>(maxhbf, hbf);
           minhbf = std::min<int>(minhbf, hbf);
         } else
