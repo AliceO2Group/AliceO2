@@ -28,24 +28,32 @@ namespace o2::framework
 
 CallbacksPolicy epnProcessReporting()
 {
+  int prescale = 0;
+  bool forceReport = false;
+  if (getenv("DPL_REPORT_PROCESSING") != nullptr && (prescale = std::abs(atoi(getenv("DPL_REPORT_PROCESSING"))))) {
+    forceReport = true;
+  }
+  if (!prescale) {
+    prescale = 1;
+  }
   return {
-    .matcher = [](DeviceSpec const&, ConfigContext const& context) -> bool {
-      static bool report = CommonServices::getDeploymentMode() == DeploymentMode::OnlineDDS || (getenv("DPL_REPORT_PROCESSING") != nullptr && atoi(getenv("DPL_REPORT_PROCESSING")));
+    .matcher = [forceReport](DeviceSpec const&, ConfigContext const& context) -> bool {
+      static bool report = CommonServices::getDeploymentMode() == DeploymentMode::OnlineDDS || forceReport;
       return report;
     },
-    .policy = [](CallbackService& callbacks, InitContext& context) -> void {
-      callbacks.set<CallbackService::Id::PreProcessing>([](ServiceRegistryRef registry, int op) {
+    .policy = [prescale](CallbackService& callbacks, InitContext& context) -> void {
+      callbacks.set<CallbackService::Id::PreProcessing>([prescale](ServiceRegistryRef registry, int op) {
         auto& info = registry.get<TimingInfo>();
-        if ((int)info.firstTForbit != -1) {
+        if ((int)info.firstTForbit != -1 && (info.isTimer() || !(info.timeslice % prescale))) {
           char const* what = info.isTimer() ? "timer" : "timeslice";
           LOGP(info, "Processing {}:{}, tfCounter:{}, firstTForbit:{}, runNumber:{}, creation:{}, action:{}",
                what, info.timeslice, info.tfCounter, info.firstTForbit, info.runNumber, info.creation, op);
         }
         info.lapse = uv_hrtime();
       });
-      callbacks.set<CallbackService::Id::PostProcessing>([](ServiceRegistryRef registry, int op) {
+      callbacks.set<CallbackService::Id::PostProcessing>([prescale](ServiceRegistryRef registry, int op) {
         auto& info = registry.get<TimingInfo>();
-        if ((int)info.firstTForbit != -1) {
+        if ((int)info.firstTForbit != -1 && (info.isTimer() || !(info.timeslice % prescale))) {
           char const* what = info.isTimer() ? "timer" : "timeslice";
           LOGP(info, "Done processing {}:{}, tfCounter:{}, firstTForbit:{}, runNumber:{}, creation:{}, action:{}, wall:{}",
                what, info.timeslice, info.tfCounter, info.firstTForbit, info.runNumber, info.creation, op, uv_hrtime() - info.lapse);
