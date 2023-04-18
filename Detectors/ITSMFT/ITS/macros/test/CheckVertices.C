@@ -140,7 +140,7 @@ void RofInfo::access_vertex( TH2F * h2x, TH2F * h2y, TH2F * h2z )
             int contrib_rec_fake = 0;
 
             for (auto& l : vertLabels[iV]) {
-                contrib_rec++;	
+                contrib_rec++;
                 if(l.isFake())
                     contrib_rec_fake++;
             }
@@ -223,7 +223,7 @@ o2::MCCompLabel getMainLabel(std::vector<o2::MCCompLabel>& labs)
 // ============================================================================================================================
 // Main function
 void CheckVertices(
-        const int dumprof = -1, 
+        const int dumprof = -1,
         std::string path = "./",
         std::string tracfile = "o2trac_its.root",
         std::string clusfile = "o2clus_its.root",
