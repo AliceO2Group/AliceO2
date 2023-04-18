@@ -186,18 +186,30 @@ void IRFrameSelector::clear()
   mFrames = {};
 }
 
-void IRFrameSelector::applyMargins(size_t bwd, size_t fwd, bool removeOverlaps)
+void IRFrameSelector::applyMargins(size_t bwd, size_t fwd, long shift, bool removeOverlaps)
 {
-  // apply margin to all IRFrames by converting them to IRFrame.getMin()-fwd, IRFrame.getMax()-bwd
+  // apply shift and margin to all IRFrames by converting them to IRFrame.getMin() - fwd + shift, IRFrame.getMax() + bwd + shift
   LOGP(debug, "applyMargins({},{},{})", bwd, fwd, removeOverlaps);
-  if ((!fwd && !bwd) || !mIsSet || !mFrames.size()) {
+  if ((!fwd && !bwd && !shift) || !mIsSet || !mFrames.size()) {
     return;
   }
   mLastBoundID = -1;
   std::vector<o2::dataformats::IRFrame> lst;
+  long shiftBwd = bwd - shift, shiftFwd = fwd + shift;
+
   for (const auto& fr : mFrames) {
-    auto irmin = fr.getMin().toLong() > bwd ? fr.getMin() - bwd : o2::InteractionRecord{0, 0};
-    auto irmax = (o2::InteractionRecord::MaxGlobalBCs - fr.getMax().toLong()) > fwd ? fr.getMax() + fwd : o2::InteractionRecord::getIRMaxBC();
+    auto irmin = fr.getMin();
+    auto irmax = fr.getMax();
+    if (shiftBwd > 0) {
+      irmin = fr.getMin().toLong() > shiftBwd ? fr.getMin() - shiftBwd : o2::InteractionRecord{0, 0};
+    } else {
+      irmin = (o2::InteractionRecord::MaxGlobalBCs - fr.getMin().toLong()) > -shiftBwd ? fr.getMin() - shiftBwd : o2::InteractionRecord::getIRMaxBC();
+    }
+    if (shiftFwd > 0) {
+      irmax = (o2::InteractionRecord::MaxGlobalBCs - fr.getMax().toLong()) > shiftFwd ? fr.getMax() + shiftFwd : o2::InteractionRecord::getIRMaxBC();
+    } else {
+      irmax = fr.getMax().toLong() > -shiftBwd ? fr.getMax() + shiftBwd : o2::InteractionRecord{0, 0};
+    }
     LOGP(debug, "before removerlap: {}:{} -> {}:{}", fr.getMin().toLong(), fr.getMax().toLong(), irmin.toLong(), irmax.toLong());
     if (removeOverlaps && lst.size() && lst.back().getMax() >= irmin) {
       lst.back().setMax(irmax);

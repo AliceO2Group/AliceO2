@@ -86,3 +86,12 @@ bool CTFCoderBase::isTreeDictionary(const void* buff) const
   }
   return found;
 }
+
+void CTFCoderBase::reportIRFrames()
+{
+  static bool repDone = false;
+  if (!repDone) {
+    LOGP(info, "IRFrames will be selected with shift {}, forward {} margin and backward {} margin (in BCs)", mIRFrameSelShift, mIRFrameSelMarginBwd, mIRFrameSelMarginFwd);
+    repDone = true;
+  }
+}
