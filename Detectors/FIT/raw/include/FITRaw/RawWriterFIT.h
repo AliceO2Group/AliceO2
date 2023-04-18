@@ -60,11 +60,11 @@ class RawWriterFIT
   {
     return 0; // do not split, always start new CRU page
   }
-  void convertDigitsToRaw(const std::string& outputDir, const std::string& filenameDigits)
+  void convertDigitsToRaw(const std::string& outputDir, const std::string& filenameDigits, long timestamp = -1)
   {
     LOG(info) << "Converting Digits to Raw data...";
     mWriter.setCarryOverCallBack(this);
-    LookupTable_t::Instance().printFullMap();
+    LookupTable_t::Instance(nullptr, timestamp).printFullMap();
     // Preparing topo2FEEmetadata map
     mMapTopo2FEEmetadata.clear();
     mMapTopo2FEEmetadata = LookupTable_t::Instance().template makeMapFEEmetadata<o2::header::RAWDataHeader, RDHUtils>();

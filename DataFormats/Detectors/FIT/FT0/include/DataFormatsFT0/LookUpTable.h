@@ -68,7 +68,7 @@ class SingleLUT : public LUT
 
   using Table_t = typename LUT::Table_t;
   bool mFirstUpdate{true}; // option in case if LUT should be updated during workflow initialization
-  static SingleLUT& Instance(const Table_t* table = nullptr)
+  static SingleLUT& Instance(const Table_t* table = nullptr, long timestamp = -1)
   {
     if (sCurrentCCDBpath == "") {
       sCurrentCCDBpath = o2::base::NameConf::getCCDBServer();
@@ -78,7 +78,7 @@ class SingleLUT : public LUT
       instanceLUT.initFromTable(table);
       instanceLUT.mFirstUpdate = false;
     } else if (instanceLUT.mFirstUpdate) {
-      instanceLUT.initCCDB(sCurrentCCDBpath, sCurrentLUTpath);
+      instanceLUT.initCCDB(sCurrentCCDBpath, sCurrentLUTpath, timestamp);
       instanceLUT.mFirstUpdate = false;
     }
     return instanceLUT;
