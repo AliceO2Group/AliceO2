@@ -15,6 +15,7 @@
 #include <boost/program_options.hpp>
 #include <TStopwatch.h>
 #include <string>
+#include <chrono>
 #include "CommonUtils/StringUtils.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "DetectorsRaw/HBFUtils.h"
@@ -154,8 +155,9 @@ void digit2raw(const Configuration& cfg)
   if (outDirName.back() != '/') {
     outDirName += '/';
   }
-
-  m2r.convertDigitsToRaw(outDirName, cfg.mInputFile);
+  const auto& hbfu = o2::raw::HBFUtils::Instance();
+  long startTime = hbfu.startTime > 0 ? hbfu.startTime : std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+  m2r.convertDigitsToRaw(outDirName, cfg.mInputFile, startTime);
   wr.writeConfFile(wr.getOrigin().str, "RAWDATA", o2::utils::Str::concat_string(outDirName, wr.getOrigin().str, "raw.cfg"));
   //
   swTot.Stop();
