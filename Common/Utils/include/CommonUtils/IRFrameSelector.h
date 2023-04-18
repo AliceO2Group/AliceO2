@@ -29,18 +29,18 @@ class IRFrameSelector
   gsl::span<const o2::dataformats::IRFrame> getMatchingFrames(const o2::dataformats::IRFrame& fr);
 
   template <typename SPAN>
-  void setSelectedIRFrames(const SPAN& sp, size_t bwd = 0, size_t fwd = 0, bool removeOverlaps = true)
+  void setSelectedIRFrames(const SPAN& sp, size_t bwd = 0, size_t fwd = 0, long shift = 0, bool removeOverlaps = true)
   {
     mFrames = gsl::span<const o2::dataformats::IRFrame>(sp.data(), sp.size());
     mIsSet = true;
-    applyMargins(bwd, fwd, removeOverlaps);
+    applyMargins(bwd, fwd, shift, removeOverlaps);
     mLastIRFrameChecked.getMin().clear(); // invalidate
     mLastBoundID = -1;
   }
 
   void clear();
   size_t loadIRFrames(const std::string& fname);
-  void applyMargins(size_t bwd, size_t fwd, bool removeOverlaps = true);
+  void applyMargins(size_t bwd, size_t fwd, long shift, bool removeOverlaps = true);
   void print(bool lst = false) const;
 
   auto getIRFrames() const { return mFrames; }
