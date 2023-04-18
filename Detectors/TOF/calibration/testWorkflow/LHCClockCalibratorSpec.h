@@ -81,7 +81,7 @@ class LHCClockCalibDevice : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) final
   {
 
-    LOG(info) << "We are running LHCPhase";
+    LOG(debug) << "We are running LHCPhase";
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     auto data = pc.inputs().get<gsl::span<o2::dataformats::CalibInfoTOF>>("input");
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
@@ -111,7 +111,7 @@ class LHCClockCalibDevice : public o2::framework::Task
     }
 
     mCalibrator->setCalibTOFapi(mcalibTOFapi);
-    LOG(info) << "Data size = " << data.size();
+    LOG(debug) << "Data size = " << data.size();
     if (data.size() == 0) {
       return;
     }
@@ -121,11 +121,11 @@ class LHCClockCalibDevice : public o2::framework::Task
       mcalibTOFapi->setTimeStamp(0.001 * (o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS() + tfOrbitFirst * o2::constants::lhc::LHCOrbitMUS * 0.001)); // in seconds
     }
 
-    LOG(info) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << data.size() << " tracks";
+    LOG(debug) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << data.size() << " tracks";
     mCalibrator->process(data);
     sendOutput(pc.outputs());
     const auto& infoVec = mCalibrator->getLHCphaseInfoVector();
-    LOG(info) << "Created " << infoVec.size() << " objects for TF " << mCalibrator->getCurrentTFInfo().tfCounter;
+    LOG(info) << "Processed TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << data.size() << " tracks, for which we created " << infoVec.size() << " objects";
   }
 
   void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
