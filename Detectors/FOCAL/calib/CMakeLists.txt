@@ -9,7 +9,12 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(base)
-add_subdirectory(calib)
-add_subdirectory(reconstruction)
-add_subdirectory(workflow)
+o2_add_library(FOCALCalib
+    SOURCES src/PadPedestal.cxx
+    PUBLIC_LINK_LIBRARIES O2::DataFormatsFOCAL Boost::serialization
+)
+
+o2_target_root_dictionary(
+    FOCALCalib
+    HEADERS include/FOCALCalib/PadPedestal.h
+)
