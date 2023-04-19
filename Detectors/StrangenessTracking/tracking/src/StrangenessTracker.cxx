@@ -111,11 +111,10 @@ void StrangenessTracker::process()
 
   for (int iV0{0}; iV0 < mInputV0tracks.size(); iV0++) {
     LOG(debug) << "Analysing V0: " << iV0 + 1 << "/" << mInputV0tracks.size();
-    auto& DecIndexRef = iV0;
     auto& v0 = mInputV0tracks[iV0];
-    mV0dauIDs[0] = v0.getProngID(0), mV0dauIDs[1] = v0.getProngID(1);
-    auto posTrack = v0.getProng(0);
-    auto negTrack = v0.getProng(1);
+    mV0dauIDs[kV0DauPos] = v0.getProngID(kV0DauPos), mV0dauIDs[kV0DauNeg] = v0.getProngID(kV0DauNeg);
+    auto posTrack = v0.getProng(kV0DauPos);
+    auto negTrack = v0.getProng(kV0DauNeg);
     auto alphaV0 = calcV0alpha(v0);
     alphaV0 > 0 ? posTrack.setAbsCharge(2) : negTrack.setAbsCharge(2);
     V0 correctedV0; // recompute V0 for Hypertriton
@@ -131,11 +130,11 @@ void StrangenessTracker::process()
     for (int& iBinV0 : iBinsV0) {
       for (int iTrack{mTracksIdxTable[iBinV0]}; iTrack < TMath::Min(mTracksIdxTable[iBinV0 + 1], int(mSortedITStracks.size())); iTrack++) {
         mStrangeTrack.mMother = (o2::track::TrackParCovF)correctedV0;
-        mDaughterTracks[0] = correctedV0.getProng(0);
-        mDaughterTracks[1] = correctedV0.getProng(1);
+        mDaughterTracks[kV0DauPos] = correctedV0.getProng(kV0DauPos);
+        mDaughterTracks[kV0DauNeg] = correctedV0.getProng(kV0DauNeg);
         mITStrack = mSortedITStracks[iTrack];
         auto& ITSindexRef = mSortedITSindexes[iTrack];
-        LOG(debug) << "V0 pos: " << v0.getProngID(0) << " V0 neg: " << v0.getProngID(1) << ", ITS track ref: " << mSortedITSindexes[iTrack];
+
         if (mStrParams->mVertexMatching && (mITSvtxBrackets[ITSindexRef].getMin() > v0.getVertexID() ||
                                             mITSvtxBrackets[ITSindexRef].getMax() < v0.getVertexID())) {
           continue;
@@ -152,8 +151,8 @@ void StrangenessTracker::process()
 
           decayVtxTrackClone.getPxPyPzGlo(mStrangeTrack.mDecayMom);
           auto p2mom = decayVtxTrackClone.getP2();
-          auto p2pos = mFitter3Body.getTrack(0).getP2(); // positive V0 daughter
-          auto p2neg = mFitter3Body.getTrack(1).getP2(); // negative V0 daughter
+          auto p2pos = mFitter3Body.getTrack(kV0DauPos).getP2();                                     // positive V0 daughter
+          auto p2neg = mFitter3Body.getTrack(kV0DauNeg).getP2();                                     // negative V0 daughter
           if (alphaV0 > 0) {
             mStrangeTrack.mMasses[0] = calcMotherMass(p2mom, p2pos, p2neg, PID::Helium3, PID::Pion); // Hypertriton invariant mass at decay vertex
             mStrangeTrack.mMasses[1] = calcMotherMass(p2mom, p2pos, p2neg, PID::Alpha, PID::Pion);   // Hyperhydrogen4Lam invariant mass at decay vertex
@@ -182,10 +181,11 @@ void StrangenessTracker::process()
 
   for (int iCasc{0}; iCasc < mInputCascadeTracks.size(); iCasc++) {
     LOG(debug) << "Analysing Cascade: " << iCasc + 1 << "/" << mInputCascadeTracks.size();
-    auto& DecIndexRef = iCasc;
+
     auto& casc = mInputCascadeTracks[iCasc];
     auto& cascV0 = mInputV0tracks[casc.getV0ID()];
-    mV0dauIDs[0] = cascV0.getProngID(0), mV0dauIDs[1] = cascV0.getProngID(1);
+    mV0dauIDs[kV0DauPos] = cascV0.getProngID(kV0DauPos);
+    mV0dauIDs[kV0DauNeg] = cascV0.getProngID(kV0DauNeg);
 
     mStrangeTrack.mPartType = dataformats::kStrkCascade;
     // first: bachelor, second: V0 pos, third: V0 neg
@@ -194,7 +194,9 @@ void StrangenessTracker::process()
     for (int& iBinCasc : iBinsCasc) {
       for (int iTrack{mTracksIdxTable[iBinCasc]}; iTrack < TMath::Min(mTracksIdxTable[iBinCasc + 1], int(mSortedITStracks.size())); iTrack++) {
         mStrangeTrack.mMother = (o2::track::TrackParCovF)casc;
-        mDaughterTracks[0] = casc.getBachelorTrack(), mDaughterTracks[1] = cascV0.getProng(0), mDaughterTracks[2] = cascV0.getProng(1);
+        mDaughterTracks[kV0DauPos] = cascV0.getProng(kV0DauPos);
+        mDaughterTracks[kV0DauNeg] = cascV0.getProng(kV0DauNeg);
+        mDaughterTracks[kBach] = casc.getBachelorTrack();
         mITStrack = mSortedITStracks[iTrack];
         auto& ITSindexRef = mSortedITSindexes[iTrack];
         LOG(debug) << "----------------------";
@@ -216,8 +218,8 @@ void StrangenessTracker::process()
           }
           decayVtxTrackClone.getPxPyPzGlo(mStrangeTrack.mDecayMom);
           auto p2mom = decayVtxTrackClone.getP2();
-          auto p2V0 = mFitter3Body.getTrack(0).getP2();
-          auto p2bach = mFitter3Body.getTrack(1).getP2();
+          auto p2V0 = mFitter3Body.getTrack(0).getP2();                                           // V0 momentum at decay vertex
+          auto p2bach = mFitter3Body.getTrack(1).getP2();                                         // bachelor momentum at decay vertex
           mStrangeTrack.mMasses[0] = calcMotherMass(p2mom, p2V0, p2bach, PID::Lambda, PID::Pion); // Xi invariant mass at decay vertex
           mStrangeTrack.mMasses[1] = calcMotherMass(p2mom, p2V0, p2bach, PID::Lambda, PID::Kaon); // Omega invariant mass at decay vertex
 
@@ -330,12 +332,12 @@ bool StrangenessTracker::matchDecayToITStrack(float decayR)
   // refit cascade
   if (mStrangeTrack.mPartType == dataformats::kStrkCascade) {
     V0 cascV0Upd;
-    if (!recreateV0(mDaughterTracks[1], mDaughterTracks[2], cascV0Upd)) {
+    if (!recreateV0(mDaughterTracks[kV0DauPos], mDaughterTracks[kV0DauNeg], cascV0Upd)) {
       LOG(debug) << "Cascade V0 refit failed";
       return false;
     }
     try {
-      nCand = mFitter3Body.process(cascV0Upd, mDaughterTracks[0], motherTrackClone);
+      nCand = mFitter3Body.process(cascV0Upd, mDaughterTracks[kBach], motherTrackClone);
     } catch (std::runtime_error& e) {
       LOG(debug) << "Fitter3Body failed: " << e.what();
       return false;
@@ -349,7 +351,7 @@ bool StrangenessTracker::matchDecayToITStrack(float decayR)
   // refit V0
   else if (mStrangeTrack.mPartType == dataformats::kStrkV0) {
     try {
-      nCand = mFitter3Body.process(mDaughterTracks[0], mDaughterTracks[1], motherTrackClone);
+      nCand = mFitter3Body.process(mDaughterTracks[kV0DauPos], mDaughterTracks[kV0DauNeg], motherTrackClone);
     } catch (std::runtime_error& e) {
       LOG(debug) << "Fitter3Body failed: " << e.what();
       return false;
