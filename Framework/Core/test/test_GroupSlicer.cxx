@@ -415,7 +415,8 @@ TEST_CASE("GroupSlicerMismatchedUnsortedFilteredGroups")
   REQUIRE(t.size() == 10 * (20 - 4));
 
   auto tt = std::make_tuple(t);
-  ArrowTableSlicingCache slices({});
+  ArrowTableSlicingCache slices({}, {{soa::getLabelFromType<aod::TrksXU>(), "fIndex" + o2::framework::cutString(soa::getLabelFromType<aod::Events>())}});
+  slices.updateCacheEntryUnsorted(0, trkTable);
   o2::framework::GroupSlicer g(e, tt, slices);
 
   unsigned int count = 0;

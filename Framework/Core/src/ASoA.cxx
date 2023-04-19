@@ -32,7 +32,7 @@ std::shared_ptr<arrow::Table> ArrowHelpers::joinTables(std::vector<std::shared_p
   if (tables.size() == 1) {
     return tables[0];
   }
-  for (auto i = 0u; i < tables.size() - 1; ++i) {
+  for (auto i = 0U; i < tables.size() - 1; ++i) {
     if (tables[i]->num_rows() != tables[i + 1]->num_rows()) {
       throw o2::framework::runtime_error_f("Tables %s and %s have different sizes (%d vs %d) and cannot be joined!",
                                            tables[i]->schema()->metadata()->Get("label").ValueOrDie().c_str(),
@@ -103,7 +103,7 @@ std::shared_ptr<arrow::Table> ArrowHelpers::concatTables(std::vector<std::shared
 arrow::ChunkedArray* getIndexFromLabel(arrow::Table* table, const char* label)
 {
   auto index = table->schema()->GetAllFieldIndices(label);
-  if (index.empty() == true) {
+  if (index.empty()) {
     o2::framework::throw_error(o2::framework::runtime_error_f("Unable to find column with label %s", label));
   }
   return table->column(index[0]).get();
