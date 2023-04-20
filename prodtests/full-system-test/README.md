@@ -5,7 +5,7 @@
 ## Full system test overview and quickstart guide
 
 The full system test consists of 2 parts (detailed below):
-* The time frame generation part, which runs the simulation, digitization, raw conversion, and other misc tasks.
+* The time frame generation part, which runs the simulation, embedding (if needed), digitization, raw conversion, and other misc tasks.
 * A DPL workflow, which can run the synchronous and the asynchronous reconstruction.
 
 The relevant scripts are `/prodtests/full_system_test.sh` and all scripts in `/prodtests/full-system-test`.
@@ -30,12 +30,17 @@ For a simulation of a full 128 orbit time frame, run
 ```
 NEvents=650 NEventsQED=30000 SHMSIZE=128000000000 TPCTRACKERSCRATCHMEMORY=30000000000 $O2_ROOT/prodtests/full_system_test.sh
 ```
+To simulate collisions with an embedded signal one can set 'D0_EMBEDDING=1' while also supplying a config file with the desired settings using 'FST_EMBEDDING_CONFIG'. For an example configuration see '/prodtests/pythia8.cfg' and to generate a specific configuration one can use '${O2DPG_ROOT}/MC/config/common/pythia8/utils/mkpy8cfg.py'. Additional examples can be found in '/run/SimExamples/'
+```
+DO_EMBEDDING=1 NEvents=5 NEventsQED=100 $O2_ROOT/prodtests/full_system_test.sh
+```
 
 ## Full system test time frame generation part
 
 The generation part (in `prodtests/full_system_test.sh` runs the following steps:
 * Simulate the QED collisions
 * Simulate the collisions
+* Simulate a signal to embed (optional)
 * Digitize all data, by default split between in 2 phases for TRD and non-TRD to reduce the memory footprint (configured via `$SPLITTRDDIGI`).
 * Run TRD trap simulation
 * Optionally create optimized dictionaries for ITS and MFT
