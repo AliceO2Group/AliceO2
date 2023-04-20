@@ -509,7 +509,8 @@ class AODProducerWorkflowDPL : public Task
                               const MCFwdTrackLabelCursorType& mcFwdTrackLabelCursor,
                               const o2::dataformats::VtxTrackRef& trackRef,
                               const gsl::span<const GIndex>& primVerGIs,
-                              const o2::globaltracking::RecoContainer& data);
+                              const o2::globaltracking::RecoContainer& data,
+                              int vertexId = -1);
 
   std::uint64_t fillBCSlice(int (&slice)[2], double tmin, double tmax, const std::map<uint64_t, int>& bcsMap) const;
 
