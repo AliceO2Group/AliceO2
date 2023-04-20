@@ -30,7 +30,7 @@
 /DataFormats/Detectors/CTP                     @lietava
 /DataFormats/Detectors/EMCAL                   @mfasDa @jokonig
 /DataFormats/Detectors/FIT                     @jotwinow @afurs @andreasmolander @arvindkhuntia @mslupeck
-/DataFormats/FOCAL                             @maxrauch @mfasDa
+/DataFormats/Detectors/FOCAL                   @maxrauch @mfasDa
 /DataFormats/Detectors/GlobalTracking          @shahor02
 /DataFormats/Detectors/GlobalTrackingWorkflow  @shahor02
 /DataFormats/Detectors/HMPID                   @gvolpe79
