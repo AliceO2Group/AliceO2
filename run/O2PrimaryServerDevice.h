@@ -255,6 +255,10 @@ class O2PrimaryServerDevice final : public fair::mq::Device
     // update the parameters from stuff given at command line (overrides file-based version)
     o2::conf::ConfigurableParam::updateFromString(conf.getKeyValueString());
 
+    // customize the level of log output
+    FairLogger::GetLogger()->SetLogScreenLevel(conf.getLogSeverity().c_str());
+    FairLogger::GetLogger()->SetLogVerbosityLevel(conf.getLogVerbosity().c_str());
+
     // from now on mSimConfig should be used within this process
     mSimConfig = conf;
 
@@ -404,7 +408,7 @@ class O2PrimaryServerDevice final : public fair::mq::Device
     TStopwatch timer;
     timer.Start();
     auto& r = *((PrimaryChunkRequest*)(request->GetData()));
-    LOG(info) << "PARTICLE REQUEST IN STATE " << PrimStateToString[(int)mState.load()] << " from " << r.workerid << ":" << r.requestid;
+    LOG(debug) << "PARTICLE REQUEST IN STATE " << PrimStateToString[(int)mState.load()] << " from " << r.workerid << ":" << r.requestid;
 
     auto prestate = mState.load();
     auto more = HandleRequest(request, 0, channel);
@@ -419,7 +423,7 @@ class O2PrimaryServerDevice final : public fair::mq::Device
     }
     timer.Stop();
     auto time = timer.CpuTime();
-    LOG(info) << "COND-RUN TOOK " << time << " s";
+    LOG(debug) << "COND-RUN TOOK " << time << " s";
     return mState != O2PrimaryServerState::Stopped;
   }
 
@@ -451,7 +455,7 @@ class O2PrimaryServerDevice final : public fair::mq::Device
     std::unique_ptr<fair::mq::Message> headermsg(channel.NewSimpleMessage(header));
     reply.AddPart(std::move(headermsg));
 
-    LOG(info) << "Received request for work " << mEventCounter << " " << mMaxEvents << " " << mNeedNewEvent << " available " << workavailable;
+    LOG(debug) << "Received request for work " << mEventCounter << " " << mMaxEvents << " " << mNeedNewEvent << " available " << workavailable;
     if (mNeedNewEvent) {
       // we need a newly generated event now
       if (mGeneratorThread.joinable()) {
@@ -471,7 +475,7 @@ class O2PrimaryServerDevice final : public fair::mq::Device
     // number of parts should be at least 1 (even if empty)
     numberofparts = std::max(1, numberofparts);
 
-    LOG(info) << "Have " << prims.size() << " " << numberofparts;
+    LOG(debug) << "Have " << prims.size() << " " << numberofparts;
 
     o2::data::PrimaryChunk m;
     o2::data::SubEventInfo i;
@@ -488,7 +492,7 @@ class O2PrimaryServerDevice final : public fair::mq::Device
     if (workavailable) {
       int endindex = prims.size() - mPartCounter * mChunkGranularity;
       int startindex = prims.size() - (mPartCounter + 1) * mChunkGranularity;
-      LOG(info) << "indices " << startindex << " " << endindex;
+      LOG(debug) << "indices " << startindex << " " << endindex;
 
       if (startindex < 0) {
         startindex = 0;
@@ -536,7 +540,7 @@ class O2PrimaryServerDevice final : public fair::mq::Device
     timer.Stop();
     auto time = timer.CpuTime();
     if (code > 0) {
-      LOG(info) << "Reply send in " << time << "s";
+      LOG(debug) << "Reply send in " << time << "s";
       return workavailable;
     } else {
       LOG(warn) << "Sending process had problems. Return code : " << code << " time " << time << "s";
