@@ -410,7 +410,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     auto isSameRdh = [](const char* left, const char* right) -> bool {
       return o2::raw::RDHUtils::getFEEID(left) == o2::raw::RDHUtils::getFEEID(right) && o2::raw::RDHUtils::getDetectorField(left) == o2::raw::RDHUtils::getDetectorField(right);
     };
-    auto checkForZSData = [](const char* ptr, size_t count, uint32_t subSpec) -> bool {
+    auto checkForZSData = [](const char* ptr, uint32_t subSpec) -> bool {
       const auto rdhLink = o2::raw::RDHUtils::getLinkID(ptr);
       const auto detField = o2::raw::RDHUtils::getDetectorField(ptr);
       const auto feeID = o2::raw::RDHUtils::getFEEID(ptr);
@@ -429,7 +429,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
         }
         return;
       }
-      if (checkForZSData(ptr, count, subSpec)) {
+      if (checkForZSData(ptr, subSpec)) {
         int rawcru = rdh_utils::getCRU(ptr);
         int rawendpoint = rdh_utils::getEndPoint(ptr);
         tpcZSmetaPointers[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(ptr);
@@ -439,12 +439,10 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     // the sequencer processes all inputs matching the filter and finds sequences of consecutive
     // raw pages based on the matcher predicate, and calls the inserter for each sequence
     if (DPLRawPageSequencer(pc.inputs(), filter)(isSameRdh, insertPages, checkForZSData)) {
-      LOG(error) << "DPLRawPageSequencer failed to process TPC raw data - skipping time frame";
-      for (unsigned int i = 0; i < GPUTrackingInOutZS::NSLICES; i++) {
-        for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
-          tpcZSmetaPointers[i][j].clear();
-          tpcZSmetaSizes[i][j].clear();
-        }
+      static bool alarmShown = false;
+      if (alarmShown == false) {
+        LOG(alarm) << "DPLRawPageSequencer failed to process TPC raw data - data most likely not padded correctly - Using slow page scan instead (this alarm is suppressed from now on)";
+        alarmShown = true;
       }
     }
 
