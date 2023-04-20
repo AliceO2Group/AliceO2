@@ -81,6 +81,7 @@ void LZEROElectronics::init()
   mRandomGenerator = new TRandom3(std::chrono::high_resolution_clock::now().time_since_epoch().count());
   mSimulateNoiseDigits = mSimParam->doSimulateNoiseDigits();
   mTriggerMap = new TriggerMappingV2(mGeometry);
+  setThreshold(132.);
 }
 //________________________________________________________
 void LZEROElectronics::clear()

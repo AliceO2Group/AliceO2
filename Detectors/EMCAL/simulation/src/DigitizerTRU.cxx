@@ -93,7 +93,7 @@ void DigitizerTRU::init()
   // }
 
   // Parameters from data (@Martin Poghosyan)
-  tau = 0.6145; // 61.45 ns, according to the fact that the
+  tau = 61.45 / 25.; // 61.45 ns, according to the fact that the
                // RawResponse.SetParameter(1, 0.25 * i); where 0.25 are 25 ns
   N = 2.;
   // for each phase create a template distribution
