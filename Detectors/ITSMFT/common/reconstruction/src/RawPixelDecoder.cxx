@@ -181,7 +181,7 @@ bool RawPixelDecoder<Mapping>::doIRMajorityPoll()
         mIRPoll[link.ir]++;
       } else if (link.status == GBTLink::StoppedOnEndOfData || link.status == GBTLink::AbortedOnError) {
         link.statusInTF = GBTLink::StoppedOnEndOfData;
-        if (mVerbosity) {
+        if (mVerbosity != GBTLink::Verbosity::Silent) {
           LOGP(info, "doIRMajorityPoll: {} DONE, status = {}", link.describe(), int(link.status));
         }
         mNLinksDone++;
@@ -197,13 +197,13 @@ bool RawPixelDecoder<Mapping>::doIRMajorityPoll()
   }
   mInteractionRecordHB = mInteractionRecord;
   if (mInteractionRecord.isDummy()) {
-    if (mVerbosity) {
+    if (mVerbosity != GBTLink::Verbosity::Silent) {
       LOG(info) << "doIRMajorityPoll: did not find any valid IR";
     }
     return false;
   }
   mInteractionRecordHB.bc = 0;
-  if (mVerbosity) {
+  if (mVerbosity != GBTLink::Verbosity::Silent) {
     LOG(info) << "doIRMajorityPoll: " << mInteractionRecordHB.asString() << " majority = " << majIR << " for " << mNLinksInTF << " links seen, LinksDone = " << mNLinksDone;
   }
   return true;
