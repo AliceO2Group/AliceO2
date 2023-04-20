@@ -32,7 +32,9 @@ namespace itsmft
 void RUDecodeData::clear()
 {
   for (int i = ruInfo->nCables; i--;) {
-    cableData[i].clear();
+    if (cableLinkPtr[i] && !cableLinkPtr[i]->rofJumpWasSeen) {
+      cableData[i].clear();
+    }
   }
   nChipsFired = 0;
   nNonEmptyLinks = 0;
