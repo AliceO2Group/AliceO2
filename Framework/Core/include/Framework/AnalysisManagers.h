@@ -641,7 +641,7 @@ struct IndexManager<Builds<IDX>> {
 /// Manager template to handle slice caching
 template <typename T>
 struct PresliceManager {
-  static bool registerCache(T&, std::vector<StringPair>&, std::vector<StringPair>& )
+  static bool registerCache(T&, std::vector<StringPair>&, std::vector<StringPair>&)
   {
     return false;
   }
