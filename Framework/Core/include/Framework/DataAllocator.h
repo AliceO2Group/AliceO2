@@ -8,8 +8,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_DATAALLOCATOR_H
-#define FRAMEWORK_DATAALLOCATOR_H
+#ifndef O2_FRAMEWORK_DATAALLOCATOR_H_
+#define O2_FRAMEWORK_DATAALLOCATOR_H_
 
 #include "Framework/MessageContext.h"
 #include "Framework/RootMessageContext.h"
@@ -390,8 +390,13 @@ class DataAllocator
     int64_t value;
   };
 
+  enum struct CacheStrategy : int {
+    Never = 0,
+    Always = 1
+  };
+
   template <typename ContainerT>
-  CacheId adoptContainer(const Output& /*spec*/, ContainerT& /*container*/, bool /* cache  = false */, o2::header::SerializationMethod /* method = header::gSerializationMethodNone*/)
+  CacheId adoptContainer(const Output& /*spec*/, ContainerT& /*container*/, CacheStrategy /* cache  = false */, o2::header::SerializationMethod /* method = header::gSerializationMethodNone*/)
   {
     static_assert(always_static_assert_v<ContainerT>, "Container cannot be moved. Please make sure it is backed by a o2::pmr::FairMQMemoryResource");
     return {0};
@@ -407,7 +412,7 @@ class DataAllocator
   /// @return a unique id of the adopted message which can be used to resend the
   ///         message or can be pruned via the DataAllocator::prune() method.
   template <typename ContainerT>
-  CacheId adoptContainer(const Output& spec, ContainerT&& container, bool cache = false, o2::header::SerializationMethod method = header::gSerializationMethodNone);
+  CacheId adoptContainer(const Output& spec, ContainerT&& container, CacheStrategy cache = CacheStrategy::Never, o2::header::SerializationMethod method = header::gSerializationMethodNone);
 
   /// Adopt an already cached message, using an already provided CacheId.
   void adoptFromCache(Output const& spec, CacheId id, header::SerializationMethod method = header::gSerializationMethodNone);
@@ -467,7 +472,7 @@ class DataAllocator
 };
 
 template <typename ContainerT>
-DataAllocator::CacheId DataAllocator::adoptContainer(const Output& spec, ContainerT&& container, bool cache, header::SerializationMethod method)
+DataAllocator::CacheId DataAllocator::adoptContainer(const Output& spec, ContainerT&& container, CacheStrategy cache, header::SerializationMethod method)
 {
   // Find a matching channel, extract the message for it form the container
   // and put it in the queue to be sent at the end of the processing
@@ -483,7 +488,7 @@ DataAllocator::CacheId DataAllocator::adoptContainer(const Output& spec, Contain
   );
 
   CacheId cacheId{0}; //
-  if (cache) {
+  if (cache == CacheStrategy::Always) {
     // The message will be shallow cloned in the cache. Since the
     // clone is indistinguishable from the original, we can keep sending
     // the original.
@@ -496,4 +501,4 @@ DataAllocator::CacheId DataAllocator::adoptContainer(const Output& spec, Contain
 
 } // namespace o2::framework
 
-#endif //FRAMEWORK_DATAALLOCATOR_H
+#endif // O2_FRAMEWORK_DATAALLOCATOR_H_
