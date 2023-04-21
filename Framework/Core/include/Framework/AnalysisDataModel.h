@@ -1454,7 +1454,7 @@ DECLARE_SOA_COLUMN(AmplitudeA, amplitudeA, std::vector<float>); //! Energy fract
 DECLARE_SOA_TABLE(McCaloLabels_000, "AOD", "MCCALOLABEL", //! Table joined to the calo table containing the MC index (version 000, Run 2 format)
                   mccalolabel::McParticleId, mccalolabel::McMask);
 DECLARE_SOA_TABLE_VERSIONED(McCaloLabels_001, "AOD", "MCCALOLABEL", 1, //! Table joined to the calo table containing multiple MC indices and the amplitude fraction (version 001)
-                            mccalolabel::McParticleIds, mccalolabel::McMask, mccalolabel::AmplitudeA);
+                            mccalolabel::McParticleIds, mccalolabel::AmplitudeA);
 using McCaloLabels = McCaloLabels_000;
 using McCaloLabel = McCaloLabels::iterator;
 
