@@ -23,7 +23,10 @@ if [[ $CALIB_TPC_TIMEGAIN == 1 ]]; then
   : ${SCALETRACKS_TPC_TIMEGAIN:=1000}
   add_W o2-tpc-miptrack-filter "--processEveryNthTF $SCALEEVENTS_TPC_TIMEGAIN --maxTracksPerTF $SCALETRACKS_TPC_TIMEGAIN" "" 0
 fi
-if [[ $CALIB_TPC_RESPADGAIN == 1 ]]; then add_W o2-tpc-calib-gainmap-tracks "--publish-after-tfs 30"; fi
+if [[ $CALIB_TPC_RESPADGAIN == 1 ]]; then
+  : ${SCALEEVENTS_TPC_RESPADGAIN:=40}
+  add_W o2-tpc-calib-gainmap-tracks "--publish-after-tfs 30 --useEveryNthTF $SCALEEVENTS_TPC_RESPADGAIN"
+fi
 if [[ $CALIB_ZDC_TDC == 1 ]]; then add_W o2-zdc-tdccalib-epn-workflow "" "" 0; fi
 if [[ $CALIB_FT0_TIMEOFFSET == 1 ]]; then add_W o2-calibration-ft0-time-spectra-processor; fi
 # for async calibrations
