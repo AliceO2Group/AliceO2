@@ -102,9 +102,14 @@ void DigitizerTRU::init()
 
   // only one phase
   std::vector<double> sf;
+  double integralTimeResponse = 0.;
   for (int j = 0; j < constants::EMCAL_MAXTIMEBINS; j++) {
     sf.push_back(RawResponse.Eval(j - mTimeWindowStart));
+    integralTimeResponse += (RawResponse.Eval(j - mTimeWindowStart));
     LOG(info) << "DIG SIMONE init in DigitizerTRU: amplitueds[" << j << "] = " << sf[j];
+  }
+  for( auto &elem : sf){
+    elem /= integralTimeResponse;
   }
   mAmplitudeInTimeBins.push_back(sf);
 
@@ -152,7 +157,7 @@ void DigitizerTRU::clear()
 // void DigitizerTRU::process(const std::vector<Digit>& labeledSDigits)
 void DigitizerTRU::process(const gsl::span<const Digit> labeledSDigits)
 {
-  LOG(info) << "DIG SIMONE process in digitizer ";
+  // LOG(info) << "DIG SIMONE process in digitizer ";
   // int i = 0;
 
   auto processedSDigits = makeAnaloguesFastorSums(labeledSDigits);
@@ -239,7 +244,7 @@ void DigitizerTRU::sampleSDigit(const Digit& sDigit)
   if (mSimulateTimeResponse) {
     // LOG(info) << "DIG SIMONE sampleSDigit in digitizer: in TimeResponse ";
     for (int j = 0; j < mAmplitudeInTimeBins.at(0).size(); j++) {
-      LOG(info) << "DIG SIMONE sampleSDigit in digitizer: in TimeResponse mAmplitudeInTimeBins";
+      // LOG(info) << "DIG SIMONE sampleSDigit in digitizer: in TimeResponse mAmplitudeInTimeBins";
       double val = energy * (mAmplitudeInTimeBins.at(0).at(j));
       energies[j] = val;
       // LOG(info) << "DIG SIMONE sampleSDigit in digitizer: in TimeResponse digitTime";
@@ -303,14 +308,20 @@ void DigitizerTRU::setEventTime(o2::InteractionTimeRecord record)
 
 
   if (mEnableDebugStreaming) {
-    LOG(info) << "DIG SIMONE setEventTime in digitizer: before  mEnableDebugStreaming";
+    // LOG(info) << "DIG SIMONE setEventTime in digitizer: before  mEnableDebugStreaming";
     auto TriggerInputsAll        = LZERO.getTriggerInputs();
     auto TriggerInputsPatchesAll = LZERO.getTriggerInputsPatches();
 
     std::vector<o2::emcal::EMCALTriggerInputs> TriggerInputs;
-    if(TriggerInputsAll.size() > 0) TriggerInputs.push_back(TriggerInputsAll.back());
+    if( TriggerInputsAll.size() != mPreviousTriggerSize ) { 
+      mWasTriggerFound = true;
+      mPreviousTriggerSize = TriggerInputsAll.size();
+    } else {
+      mWasTriggerFound = false;
+    }
+    if(TriggerInputsAll.size() > 0 && mWasTriggerFound == true) TriggerInputs.push_back(TriggerInputsAll.back());
     std::vector<o2::emcal::EMCALTriggerInputsPatch> TriggerInputsPatches;
-    if(TriggerInputsPatchesAll.size() > 0) TriggerInputsPatches.push_back(TriggerInputsPatchesAll.back());
+    if(TriggerInputsPatchesAll.size() > 0 && mWasTriggerFound == true) TriggerInputsPatches.push_back(TriggerInputsPatchesAll.back());
     int nIter = TriggerInputs.size(); 
 
     // for (int i = 0; i < nIter; i++)
@@ -341,6 +352,9 @@ void DigitizerTRU::setEventTime(o2::InteractionTimeRecord record)
       // LOG(info) << "DIG SIMONE setEventTime in digitizer: before  loop TriggerInputs";
       // LOG(info) << "DIG SIMONE setEventTime in digitizer: size of TriggerInputs = " << TriggerInputs.size();
       // LOG(info) << "DIG SIMONE setEventTime in digitizer: size of trigger.mLastTimesumAllFastOrs = " << trigger.mLastTimesumAllFastOrs.size();
+      auto InteractionRecordData = trigger.mInterRecord;
+      auto bc = InteractionRecordData.bc;
+      auto orbit = InteractionRecordData.orbit;
       for(auto& fastor : trigger.mLastTimesumAllFastOrs){
         // LOG(info) << "DIG SIMONE setEventTime in digitizer: inside loop";
         auto WhichTRU    = std::get<0>(fastor);
@@ -349,6 +363,8 @@ void DigitizerTRU::setEventTime(o2::InteractionTimeRecord record)
         // LOG(info) << "DIG SIMONE setEventTime in digitizer: before filling";
         (*mDebugStream).GetFile()->cd();
         (*mDebugStream) << "L0Timesums" 
+          << "bc=" << bc
+          << "orbit=" << orbit
           << "WhichTRU=" << WhichTRU
           << "WhichFastOr=" << WhichFastOr
           << "FastOrAmp=" << FastOrAmp
@@ -403,21 +419,21 @@ void DigitizerTRU::setPatches()
   FullCside.init();
   ThirdAside.init();
   ThirdCside.init();
-  LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: FullAside.mPatchIDSeedFastOrIDs[0] = " << std::get<1>(FullAside.mPatchIDSeedFastOrIDs[0]);
-  LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: FullAside.mPatchIDSeedFastOrIDs[1] = " << std::get<1>(FullAside.mPatchIDSeedFastOrIDs[1]);
-  LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: FullAside.mPatchIDSeedFastOrIDs[2] = " << std::get<1>(FullAside.mPatchIDSeedFastOrIDs[2]);
+  // LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: FullAside.mPatchIDSeedFastOrIDs[0] = " << std::get<1>(FullAside.mPatchIDSeedFastOrIDs[0]);
+  // LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: FullAside.mPatchIDSeedFastOrIDs[1] = " << std::get<1>(FullAside.mPatchIDSeedFastOrIDs[1]);
+  // LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: FullAside.mPatchIDSeedFastOrIDs[2] = " << std::get<1>(FullAside.mPatchIDSeedFastOrIDs[2]);
 
-  LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: FullCside.mPatchIDSeedFastOrIDs[0] = " << std::get<1>(FullCside.mPatchIDSeedFastOrIDs[0]);
-  LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: FullCside.mPatchIDSeedFastOrIDs[1] = " << std::get<1>(FullCside.mPatchIDSeedFastOrIDs[1]);
-  LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: FullCside.mPatchIDSeedFastOrIDs[2] = " << std::get<1>(FullCside.mPatchIDSeedFastOrIDs[2]);
+  // LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: FullCside.mPatchIDSeedFastOrIDs[0] = " << std::get<1>(FullCside.mPatchIDSeedFastOrIDs[0]);
+  // LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: FullCside.mPatchIDSeedFastOrIDs[1] = " << std::get<1>(FullCside.mPatchIDSeedFastOrIDs[1]);
+  // LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: FullCside.mPatchIDSeedFastOrIDs[2] = " << std::get<1>(FullCside.mPatchIDSeedFastOrIDs[2]);
 
-  LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: ThirdAside.mPatchIDSeedFastOrIDs[0] = " << std::get<1>(ThirdAside.mPatchIDSeedFastOrIDs[0]);
-  LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: ThirdAside.mPatchIDSeedFastOrIDs[1] = " << std::get<1>(ThirdAside.mPatchIDSeedFastOrIDs[1]);
-  LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: ThirdAside.mPatchIDSeedFastOrIDs[2] = " << std::get<1>(ThirdAside.mPatchIDSeedFastOrIDs[2]);
+  // LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: ThirdAside.mPatchIDSeedFastOrIDs[0] = " << std::get<1>(ThirdAside.mPatchIDSeedFastOrIDs[0]);
+  // LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: ThirdAside.mPatchIDSeedFastOrIDs[1] = " << std::get<1>(ThirdAside.mPatchIDSeedFastOrIDs[1]);
+  // LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: ThirdAside.mPatchIDSeedFastOrIDs[2] = " << std::get<1>(ThirdAside.mPatchIDSeedFastOrIDs[2]);
 
-  LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: ThirdCside.mPatchIDSeedFastOrIDs[0] = " << std::get<1>(ThirdCside.mPatchIDSeedFastOrIDs[0]);
-  LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: ThirdCside.mPatchIDSeedFastOrIDs[1] = " << std::get<1>(ThirdCside.mPatchIDSeedFastOrIDs[1]);
-  LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: ThirdCside.mPatchIDSeedFastOrIDs[2] = " << std::get<1>(ThirdCside.mPatchIDSeedFastOrIDs[2]);
+  // LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: ThirdCside.mPatchIDSeedFastOrIDs[0] = " << std::get<1>(ThirdCside.mPatchIDSeedFastOrIDs[0]);
+  // LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: ThirdCside.mPatchIDSeedFastOrIDs[1] = " << std::get<1>(ThirdCside.mPatchIDSeedFastOrIDs[1]);
+  // LOG(info) << "DIG SIMONE setPatches in DigitizerTRU: ThirdCside.mPatchIDSeedFastOrIDs[2] = " << std::get<1>(ThirdCside.mPatchIDSeedFastOrIDs[2]);
 
   // EMCAL
   for (int i = 0; i < 5; i++) {

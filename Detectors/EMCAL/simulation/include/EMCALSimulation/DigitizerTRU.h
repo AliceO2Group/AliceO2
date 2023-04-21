@@ -140,6 +140,8 @@ class DigitizerTRU : public TObject
 
   int mTimeWindowStart = 7; ///< The start of the time window
   int mDelay = 7;           ///< number of (full) time bins corresponding to the signal time delay
+  bool mWasTriggerFound = false; ///< To save the data
+  int mPreviousTriggerSize = 0; ///< To save the data
 
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDebugStream = nullptr;
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDebugStreamPatch = nullptr;

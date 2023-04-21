@@ -123,9 +123,9 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
     LOG(info) << "DIG SIMONE in SPEC: before mDigitizerTRU.setEventTime  collN = " << collisionN;
     collisionN++;
 
-    LOG(info) << "DIG SIMONE in SPEC: before mDigitizerTRU.setEventTime ";
+    // LOG(info) << "DIG SIMONE in SPEC: before mDigitizerTRU.setEventTime ";
     mDigitizerTRU.setEventTime(timesview[collID]);
-    LOG(info) << "DIG SIMONE in SPEC: after mDigitizerTRU.setEventTime ";
+    // LOG(info) << "DIG SIMONE in SPEC: after mDigitizerTRU.setEventTime ";
 
     // if (!mDigitizerTRU.isLive()) {
     //   continue;
@@ -151,17 +151,17 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
         summedDigits.push_back(labeledsummeddigit.getDigit());
       }
 
-      LOG(info) << "DIG SIMONE in SPEC: before mDigitizerTRU.process ";
+      // LOG(info) << "DIG SIMONE in SPEC: before mDigitizerTRU.process ";
 
       // call actual digitization procedure
       mDigitizerTRU.process(summedDigits);
-      LOG(info) << "DIG SIMONE in SPEC: after mDigitizerTRU.process ";
+      // LOG(info) << "DIG SIMONE in SPEC: after mDigitizerTRU.process ";
     }
   }
 
-  LOG(info) << "DIG SIMONE in SPEC: before  mDigitizerTRU.finish ";
+  // LOG(info) << "DIG SIMONE in SPEC: before  mDigitizerTRU.finish ";
   mDigitizerTRU.finish();
-  LOG(info) << "DIG SIMONE in SPEC: after  mDigitizerTRU.finish ";
+  // LOG(info) << "DIG SIMONE in SPEC: after  mDigitizerTRU.finish ";
 
   // loop over all composite collisions given from context
   // (aka loop over all the interaction records)
