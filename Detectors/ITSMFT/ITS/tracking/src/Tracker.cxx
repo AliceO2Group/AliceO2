@@ -153,7 +153,7 @@ void Tracker::computeRoadsMClabels()
 
   for (int iRoad{0}; iRoad < roadsNum; ++iRoad) {
 
-    Road& currentRoad{mTimeFrame->getRoads()[iRoad]};
+    Road<5>& currentRoad{mTimeFrame->getRoads()[iRoad]};
     std::vector<std::pair<MCCompLabel, size_t>> occurrences;
     bool isFakeRoad{false};
     bool isFirstRoadCell{true};

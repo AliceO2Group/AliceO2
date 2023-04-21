@@ -46,7 +46,7 @@ namespace its
 {
 
 class TrackITSExt;
-typedef std::function<int(o2::gpu::GPUChainITS&, std::vector<Road>& roads, std::vector<const Cluster*>&, std::vector<const Cell*>&, const std::vector<std::vector<TrackingFrameInfo>>&, std::vector<TrackITSExt>&)> FuncRunITSTrackFit_t;
+typedef std::function<int(o2::gpu::GPUChainITS&, std::vector<Road<5>>& roads, std::vector<const Cluster*>&, std::vector<const Cell*>&, const std::vector<std::vector<TrackingFrameInfo>>&, std::vector<TrackITSExt>&)> FuncRunITSTrackFit_t;
 
 class TrackerTraits
 {

@@ -195,7 +195,7 @@ std::vector<std::unordered_map<int, Label>> ioutils::loadLabels(const int events
 }
 
 void ioutils::writeRoadsReport(std::ofstream& correctRoadsOutputStream, std::ofstream& duplicateRoadsOutputStream,
-                               std::ofstream& fakeRoadsOutputStream, const std::vector<std::vector<Road>>& roads,
+                               std::ofstream& fakeRoadsOutputStream, const std::vector<std::vector<Road<5>>>& roads,
                                const std::unordered_map<int, Label>& labelsMap)
 {
   const int numVertices{static_cast<int>(roads.size())};
@@ -206,12 +206,12 @@ void ioutils::writeRoadsReport(std::ofstream& correctRoadsOutputStream, std::ofs
 
   for (int iVertex{0}; iVertex < numVertices; ++iVertex) {
 
-    const std::vector<Road>& currentVertexRoads{roads[iVertex]};
+    const std::vector<Road<5>>& currentVertexRoads{roads[iVertex]};
     const int numRoads{static_cast<int>(currentVertexRoads.size())};
 
     for (int iRoad{0}; iRoad < numRoads; ++iRoad) {
 
-      const Road& currentRoad{currentVertexRoads[iRoad]};
+      const Road<5>& currentRoad{currentVertexRoads[iRoad]};
       const int currentRoadLabel{currentRoad.getLabel()};
 
       if (!labelsMap.count(currentRoadLabel)) {
