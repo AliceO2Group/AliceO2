@@ -133,7 +133,8 @@ DataProcessorSpec getEntropyEncoderSpec(o2::header::DataOrigin orig, bool selIR)
     Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
             {"irframe-margin-bwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame lower boundary when selection is requested"}},
             {"irframe-margin-fwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame upper boundary when selection is requested"}},
-            {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}}}};
+            {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}},
+            {"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
 }
 
 } // namespace itsmft

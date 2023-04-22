@@ -46,7 +46,7 @@ void CTFCoder::createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBa
   int32_t tfTime;
   int16_t detID, padID;
   uint8_t isSaturated;
-#define MAKECODER(part, slot) createCoder(op, ctf.getFrequencyTable<decltype(part)>(slot), int(slot))
+#define MAKECODER(part, slot) createCoder(op, ctf.getFrequencyTable<decltype(part)>(slot, mANSVersion), int(slot))
 
   // clang-format off
   MAKECODER(bcInc,       CTF::BLC_bcIncROF);

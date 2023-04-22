@@ -91,16 +91,16 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>&
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation
   constexpr MD optField[CTF::getNBlocks()] = {
-    MD::EENCODE, //BLCfirstChipROF
-    MD::EENCODE, //BLCbcIncROF
-    MD::EENCODE, //BLCorbitIncROF
-    MD::EENCODE, //BLCnclusROF
-    MD::EENCODE, //BLCchipInc
-    MD::EENCODE, //BLCchipMul
-    MD::EENCODE, //BLCrow
-    MD::EENCODE, //BLCcolInc
-    MD::EENCODE, //BLCpattID
-    MD::EENCODE  //BLCpattMap
+    MD::EENCODE_OR_PACK, //BLCfirstChipROF
+    MD::EENCODE_OR_PACK, //BLCbcIncROF
+    MD::EENCODE_OR_PACK, //BLCorbitIncROF
+    MD::EENCODE_OR_PACK, //BLCnclusROF
+    MD::EENCODE_OR_PACK, //BLCchipInc
+    MD::EENCODE_OR_PACK, //BLCchipMul
+    MD::EENCODE_OR_PACK, //BLCrow
+    MD::EENCODE_OR_PACK, //BLCcolInc
+    MD::EENCODE_OR_PACK, //BLCpattID
+    MD::EENCODE_OR_PACK  //BLCpattMap
   };
   CompressedClusters compCl;
   compress(compCl, rofRecVec, cclusVec, pattVec, clPattLookup, strobeLength);
@@ -113,8 +113,7 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>&
 
   ec->setHeader(compCl.header);
   assignDictVersion(static_cast<o2::ctf::CTFDictHeader&>(ec->getHeader()));
-  ec->getANSHeader().majorVersion = 0;
-  ec->getANSHeader().minorVersion = 1;
+  ec->setANSHeader(mANSVersion);
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
   o2::ctf::CTFIOSize iosize;
 #define ENCODEITSMFT(part, slot, bits) CTF::get(buff.data())->encode(part, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get(), getMemMarginFactor());

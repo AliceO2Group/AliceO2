@@ -60,9 +60,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_computePackingBufferSize, buffer_T, buffer_ty
   size_t packingWidth = internal::toBits<internal::packing_type>() - 3;
 
   BOOST_CHECK_EQUAL(0, (computePackingBufferSize<buffer_T>(0, packingWidth)));
-  BOOST_CHECK_EQUAL(sizeof(internal::packing_type) / sizeof(buffer_T), (computePackingBufferSize<buffer_T>(1, packingWidth)));
-  BOOST_CHECK_EQUAL(sizeof(internal::packing_type) * 61 / sizeof(buffer_T), (computePackingBufferSize<buffer_T>(64, packingWidth)));
-  BOOST_CHECK_EQUAL(sizeof(internal::packing_type) * 22 / sizeof(buffer_T), (computePackingBufferSize<buffer_T>(23, packingWidth)));
+  BOOST_CHECK_EQUAL(sizeof(internal::packing_type) / sizeof(buffer_T), (computePackingBufferSize<buffer_T>(1, packingWidth)));       // space it takes to pack 1 element takes 4 B
+  BOOST_CHECK_EQUAL(sizeof(internal::packing_type) * 62 / sizeof(buffer_T), (computePackingBufferSize<buffer_T>(64, packingWidth))); // space it takes to pack 64 elements takes 62 * packingType = 496 B
+  BOOST_CHECK_EQUAL(sizeof(internal::packing_type) * 22 / sizeof(buffer_T), (computePackingBufferSize<buffer_T>(23, packingWidth))); // space it takes to pack 23 elements takes 22 * packingType = 176 B
 }
 
 BOOST_AUTO_TEST_CASE(test_packUnpack)

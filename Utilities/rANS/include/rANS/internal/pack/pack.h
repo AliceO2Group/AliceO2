@@ -22,8 +22,6 @@
 
 #include <iostream>
 
-#include <immintrin.h>
-
 #include "rANS/internal/common/utils.h"
 #include "rANS/internal/containers/BitPtr.h"
 #include "rANS/internal/pack/utils.h"
@@ -35,13 +33,17 @@ template <typename storageBuffer_T = uint8_t>
 [[nodiscard]] constexpr size_t computePackingBufferSize(size_t extent, size_t packingWidthBits) noexcept
 {
   using namespace internal;
-  constexpr size_t PackingBufferBits = toBits<packing_type>();
-  const size_t packedSizeBits = extent * packingWidthBits;
+  if (extent > 0) {
+    constexpr size_t PackingBufferBits = toBits<packing_type>();
+    const size_t packedSizeBits = extent * packingWidthBits;
 
-  const size_t packingBufferElems = packedSizeBits / PackingBufferBits + ((packedSizeBits % PackingBufferBits) > 0); // cheap way to calculate integer ceiling as these are all pow2
-  const size_t packingBufferBytes = packingBufferElems * sizeof(packing_type);
-  const size_t storageBufferElems = packingBufferBytes / sizeof(storageBuffer_T) + ((packingBufferBytes % sizeof(storageBuffer_T)) > 0);
-  return storageBufferElems;
+    const size_t packingBufferElems = packedSizeBits / PackingBufferBits + 1;
+    const size_t packingBufferBytes = packingBufferElems * sizeof(packing_type);
+    const size_t storageBufferElems = internal::nBytesTo<storageBuffer_T>(packingBufferBytes);
+    return storageBufferElems;
+  } else {
+    return 0;
+  }
 }
 
 namespace internal
