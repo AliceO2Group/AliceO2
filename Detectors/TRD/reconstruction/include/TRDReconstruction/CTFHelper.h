@@ -68,7 +68,7 @@ class CTFHelper
   class _Iter
   {
    public:
-    using difference_type = int64_t;
+    using difference_type = std::ptrdiff_t;
     using value_type = T;
     using pointer = const T*;
     using reference = const T&;
@@ -77,76 +77,70 @@ class CTFHelper
     _Iter(const gsl::span<const D>& data, bool end = false) : mData(data), mIndex(end ? M * data.size() : 0){};
     _Iter() = default;
 
-    const I& operator++()
+    inline I& operator++() noexcept
     {
       ++mIndex;
-      return (I&)(*this);
+      return static_cast<I&>(*this);
     }
 
-    const I& operator--()
+    inline I operator++(int)
     {
-      mIndex--;
-      return (I&)(*this);
-    }
-
-    const I operator++(int)
-    {
-      auto res = *this;
+      I res = *(static_cast<I*>(this));
       ++mIndex;
       return res;
     }
 
-    const I operator--(int)
+    inline I& operator--() noexcept
     {
-      auto res = *this;
+      mIndex--;
+      return static_cast<I&>(*this);
+    }
+
+    inline I operator--(int)
+    {
+      I res = *(static_cast<I*>(this));
       --mIndex;
       return res;
     }
 
-    const I& operator+=(difference_type i)
+    I& operator+=(difference_type i) noexcept
     {
       mIndex += i;
-      return (I&)(*this);
+      return static_cast<I&>(*this);
     }
 
-    const I operator+=(difference_type i) const
+    I operator+(difference_type i) const
     {
-      auto tmp = *const_cast<I*>(this);
-      return tmp += i;
+      I res = *(const_cast<I*>(static_cast<const I*>(this)));
+      return res += i;
     }
 
-    const I& operator-=(difference_type i)
+    I& operator-=(difference_type i) noexcept
     {
       mIndex -= i;
-      return (I&)(*this);
+      return static_cast<I&>(*this);
     }
 
-    const I operator-=(difference_type i) const
+    I operator-(difference_type i) const
     {
-      auto tmp = *const_cast<I*>(this);
-      return tmp -= i;
+      I res = *(const_cast<I*>(static_cast<const I*>(this)));
+      return res -= i;
     }
 
-    difference_type operator-(const I& other) const { return mIndex - other.mIndex; }
+    difference_type operator-(const I& other) const noexcept { return mIndex - other.mIndex; }
 
-    difference_type operator-(size_t idx) const { return mIndex - idx; }
+    inline friend I operator+(difference_type i, const I& iter) { return iter + i; };
 
-    const I& operator-(size_t idx)
-    {
-      mIndex -= idx;
-      return (I&)(*this);
-    }
-
-    bool operator!=(const I& other) const { return mIndex != other.mIndex; }
-    bool operator==(const I& other) const { return mIndex == other.mIndex; }
-    bool operator>(const I& other) const { return mIndex > other.mIndex; }
-    bool operator<(const I& other) const { return mIndex < other.mIndex; }
-    bool operator>=(const I& other) const { return mIndex >= other.mIndex; }
-    bool operator<=(const I& other) const { return mIndex <= other.mIndex; }
+    bool operator!=(const I& other) const noexcept { return mIndex != other.mIndex; }
+    bool operator==(const I& other) const noexcept { return mIndex == other.mIndex; }
+    bool operator>(const I& other) const noexcept { return mIndex > other.mIndex; }
+    bool operator<(const I& other) const noexcept { return mIndex < other.mIndex; }
+    bool operator>=(const I& other) const noexcept { return mIndex >= other.mIndex; }
+    bool operator<=(const I& other) const noexcept { return mIndex <= other.mIndex; }
 
    protected:
     gsl::span<const D> mData{};
-    size_t mIndex = 0;
+    difference_type mIndex = 0;
   };
 
   //_______________________________________________

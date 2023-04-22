@@ -195,7 +195,7 @@ void CTFCoder::createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBa
 {
   const auto ctf = CTF::getImage(bufVec.data());
   CompressedClusters cc; // just to get member types
-#define MAKECODER(part, slot) createCoder(op, ctf.getFrequencyTable<decltype(part)::value_type>(slot), int(slot))
+#define MAKECODER(part, slot) createCoder(op, ctf.getFrequencyTable<decltype(part)::value_type>(slot, mANSVersion), int(slot))
   // clang-format off
   MAKECODER(cc.firstChipROF, CTF::BLCfirstChipROF);
   MAKECODER(cc.bcIncROF,     CTF::BLCbcIncROF    );

@@ -276,13 +276,13 @@ inline size_t getAlphabetRangeBits(const SymbolTable<source_T, symbol_T>& symbol
   return internal::numBitsForNSymbols(symbolTable.size() + hasIncompressibleSymbol);
 };
 
-inline size_t calculateMaxBufferSize(size_t num, size_t rangeBits)
+inline size_t calculateMaxBufferSizeB(size_t nElements, size_t rangeBits)
 {
   constexpr size_t sizeofStreamT = sizeof(uint32_t);
   //  // RS: w/o safety margin the o2-test-ctf-io produces an overflow in the Encoder::process
   //  constexpr size_t SaferyMargin = 16;
   //  return std::ceil(1.20 * (num * rangeBits * 1.0) / (sizeofStreamT * 8.0)) + SaferyMargin;
-  return num * sizeofStreamT;
+  return nElements * sizeofStreamT;
 }
 
 template <typename source_T>

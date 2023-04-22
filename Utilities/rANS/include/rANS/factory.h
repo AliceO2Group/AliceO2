@@ -267,6 +267,12 @@ class makeDecoder
   };
 };
 
+template <typename source_T>
+using defaultEncoder_type = decltype(makeEncoder<>::fromRenormed(RenormedHistogram<source_T>{}));
+
+template <typename source_T>
+using defaultDecoder_type = decltype(makeDecoder<>::fromRenormed(RenormedHistogram<source_T>{}));
+
 } // namespace o2::rans
 
 #endif /* RANS_FACTORY_H_ */

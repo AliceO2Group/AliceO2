@@ -87,15 +87,15 @@ o2::ctf::CTFIOSize CTFCoder::encode_impl(VEC& buff, const gsl::span<const ROFRec
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation
   constexpr MD optField[CTF::getNBlocks()] = {
-    MD::EENCODE, // BLC_bcIncROF
-    MD::EENCODE, // BLC_orbitIncROF
-    MD::EENCODE, // BLC_nDigitsROF
-    MD::EENCODE, // BLC_tfTime
-    MD::EENCODE, // BLC_nSamples
-    MD::EENCODE, // BLC_isSaturated
-    MD::EENCODE, // BLC_detID
-    MD::EENCODE, // BLC_padID
-    MD::EENCODE  // BLC_ADC
+    MD::EENCODE_OR_PACK, // BLC_bcIncROF
+    MD::EENCODE_OR_PACK, // BLC_orbitIncROF
+    MD::EENCODE_OR_PACK, // BLC_nDigitsROF
+    MD::EENCODE_OR_PACK, // BLC_tfTime
+    MD::EENCODE_OR_PACK, // BLC_nSamples
+    MD::EENCODE_OR_PACK, // BLC_isSaturated
+    MD::EENCODE_OR_PACK, // BLC_detID
+    MD::EENCODE_OR_PACK, // BLC_padID
+    MD::EENCODE_OR_PACK  // BLC_ADC
   };
   CTFHelper helper(rofData, digData);
   // book output size with some margin
@@ -107,8 +107,7 @@ o2::ctf::CTFIOSize CTFCoder::encode_impl(VEC& buff, const gsl::span<const ROFRec
 
   ec->setHeader(helper.createHeader());
   assignDictVersion(static_cast<o2::ctf::CTFDictHeader&>(ec->getHeader()));
-  ec->getANSHeader().majorVersion = 0;
-  ec->getANSHeader().minorVersion = 1;
+  ec->setANSHeader(mANSVersion);
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
   o2::ctf::CTFIOSize iosize;
 #define ENCODEMCH(beg, end, slot, bits) CTF::get(buff.data())->encode(beg, end, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get(), getMemMarginFactor());

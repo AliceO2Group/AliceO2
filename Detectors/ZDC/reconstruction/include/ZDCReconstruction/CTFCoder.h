@@ -98,20 +98,20 @@ o2::ctf::CTFIOSize CTFCoder::encode_impl(VEC& buff, const gsl::span<const BCData
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation
   constexpr MD optField[CTF::getNBlocks()] = {
-    MD::EENCODE, // _bcIncTrig
-    MD::EENCODE, // _orbitIncTrig,
-    MD::EENCODE, // _moduleTrig,
-    MD::EENCODE, // _channelsHL,
-    MD::EENCODE, // _triggersHL,
-    MD::EENCODE, // _extTriggers,
-    MD::EENCODE, // _nchanTrig,
+    MD::EENCODE_OR_PACK, // _bcIncTrig
+    MD::EENCODE_OR_PACK, // _orbitIncTrig,
+    MD::EENCODE_OR_PACK, // _moduleTrig,
+    MD::EENCODE_OR_PACK, // _channelsHL,
+    MD::EENCODE_OR_PACK, // _triggersHL,
+    MD::EENCODE_OR_PACK, // _extTriggers,
+    MD::EENCODE_OR_PACK, // _nchanTrig,
     //
-    MD::EENCODE, // _chanID,
-    MD::EENCODE, // _chanData,
+    MD::EENCODE_OR_PACK, // _chanID,
+    MD::EENCODE_OR_PACK, // _chanData,
     //
-    MD::EENCODE, // _orbitIncEOD,
-    MD::EENCODE, // _pedData
-    MD::EENCODE, // _sclInc
+    MD::EENCODE_OR_PACK, // _orbitIncEOD,
+    MD::EENCODE_OR_PACK, // _pedData
+    MD::EENCODE_OR_PACK, // _sclInc
   };
 
   CTFHelper helper(trigData, chanData, pedData);
@@ -125,8 +125,7 @@ o2::ctf::CTFIOSize CTFCoder::encode_impl(VEC& buff, const gsl::span<const BCData
 
   ec->setHeader(helper.createHeader());
   assignDictVersion(static_cast<o2::ctf::CTFDictHeader&>(ec->getHeader()));
-  ec->getANSHeader().majorVersion = 0;
-  ec->getANSHeader().minorVersion = 1;
+  ec->setANSHeader(mANSVersion);
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
   o2::ctf::CTFIOSize iosize;
 #define ENCODEZDC(beg, end, slot, bits) CTF::get(buff.data())->encode(beg, end, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get(), getMemMarginFactor());

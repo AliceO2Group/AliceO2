@@ -73,6 +73,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
     mCTFCoder.setSelectedIRFrames(pc.inputs().get<gsl::span<o2::dataformats::IRFrame>>("selIRFrames"));
   }
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"HMP", "CTFDATA", 0, Lifetime::Timeframe});
+
   auto iosize = mCTFCoder.encode(buffer, triggers, digits);
   pc.outputs().snapshot({"ctfrep", 0}, iosize);
   if (mSelIR) {
@@ -106,7 +107,8 @@ DataProcessorSpec getEntropyEncoderSpec(bool selIR)
     Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
             {"irframe-margin-bwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame lower boundary when selection is requested"}},
             {"irframe-margin-fwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame upper boundary when selection is requested"}},
-            {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}}}};
+            {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}},
+            {"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
 }
 
 } // namespace hmpid

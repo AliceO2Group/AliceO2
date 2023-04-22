@@ -129,7 +129,8 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
     Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
             {"correct-trd-trigger-offset", VariantType::Bool, false, {"Correct decoded IR by TriggerOffsetsParam::LM_L0"}},
-            {"bogus-trigger-rejection", VariantType::Int, 10, {">0 : discard, warn N times, <0 : warn only, =0: no check for triggers with no tracklets or bogus IR"}}}};
+            {"bogus-trigger-rejection", VariantType::Int, 10, {">0 : discard, warn N times, <0 : warn only, =0: no check for triggers with no tracklets or bogus IR"}},
+            {"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
 }
 
 } // namespace trd

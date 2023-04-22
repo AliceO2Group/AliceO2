@@ -26,7 +26,6 @@
 #include <gsl/span>
 
 #include "rANS/internal/common/utils.h"
-#include "rANS/internal/common/typetraits.h"
 #include "rANS/internal/encode/EncoderSymbolMapper.h"
 
 namespace o2::rans

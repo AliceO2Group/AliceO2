@@ -112,7 +112,8 @@ DataProcessorSpec getEntropyEncoderSpec(bool selIR)
             {"irframe-margin-bwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame lower boundary when selection is requested"}},
             {"irframe-margin-fwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame upper boundary when selection is requested"}},
             {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}},
-            {"bogus-trigger-check", VariantType::Int, 10, {"max bogus triggers to report, all if < 0"}}}};
+            {"bogus-trigger-check", VariantType::Int, 10, {"max bogus triggers to report, all if < 0"}},
+            {"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
 }
 
 } // namespace trd
