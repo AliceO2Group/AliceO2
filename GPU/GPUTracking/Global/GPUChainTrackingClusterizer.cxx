@@ -145,13 +145,14 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
           mCFContext->zsVersion = hdr->version;
         } else if (mCFContext->zsVersion != (int)hdr->version) {
           GPUAlarm("Received TPC ZS 8kb page of mixed versions, expected %d, received %d (linkid %d)", mCFContext->zsVersion, (int)hdr->version, (int)o2::raw::RDHUtils::getLinkID(*rdh));
-          char dumpBuffer[3 * std::max(sizeof(*rdh), sizeof(*hdr)) + 1];
+          constexpr size_t bufferSize = 3 * std::max(sizeof(*rdh), sizeof(*hdr)) + 1;
+          char dumpBuffer[bufferSize];
           for (size_t i = 0; i < sizeof(*rdh); i++) {
-            sprintf(dumpBuffer + 3 * i, "%02X ", (int)((unsigned char*)rdh)[i]);
+            snprintf(dumpBuffer + 3 * i, bufferSize, "%02X ", (int)((unsigned char*)rdh)[i]);
           }
           GPUAlarm("RDH of page: %s", dumpBuffer);
           for (size_t i = 0; i < sizeof(*hdr); i++) {
-            sprintf(dumpBuffer + 3 * i, "%02X ", (int)((unsigned char*)hdr)[i]);
+            snprintf(dumpBuffer + 3 * i, bufferSize, "%02X ", (int)((unsigned char*)hdr)[i]);
           }
           GPUAlarm("Metainfo of page: %s", dumpBuffer);
           if (GetProcessingSettings().ignoreNonFatalGPUErrors) {
