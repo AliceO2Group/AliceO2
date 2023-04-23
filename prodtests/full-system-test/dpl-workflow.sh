@@ -198,14 +198,14 @@ if [[ ! -z ${EVE_NTH_EVENT:-} ]]; then
   EVE_CONFIG+=" --only-nth-event=$EVE_NTH_EVENT"
 fi
 
-if [[ $GPUTYPE != "CPU" && $NUMAGPUIDS != 0 ]] && [[ -z ${ROCR_VISIBLE_DEVICES:=} || $ROCR_VISIBLE_DEVICES = "0,1,2,3,4,5,6,7" || $ROCR_VISIBLE_DEVICES = "0,1,2,3" || $ROCR_VISIBLE_DEVICES = "4,5,6,7" ]]; then
+if [[ $GPUTYPE != "CPU" && $NUMAGPUIDS != 0 ]] && [[ -z ${ROCR_VISIBLE_DEVICES:-} || ${ROCR_VISIBLE_DEVICES:-} = "0,1,2,3,4,5,6,7" || ${ROCR_VISIBLE_DEVICES:-} = "0,1,2,3" || ${ROCR_VISIBLE_DEVICES:-} = "4,5,6,7" ]]; then
   GPU_CONFIG_KEY+="GPU_global.registerSelectedSegmentIds=$NUMAID;"
 fi
 
 if [[ $GPUTYPE == "HIP" ]]; then
   GPU_CONFIG_KEY+="GPU_proc.deviceNum=0;"
   if [[ $NGPUS != 1 || $NUMAID != 0 ]]; then
-    if [[ -z $ROCR_VISIBLE_DEVICES ]]; then
+    if [[ -z ${ROCR_VISIBLE_DEVICES:-} ]]; then
       GPU_FIRST_ID=0
     else
       GPU_FIRST_ID=$(echo ${ROCR_VISIBLE_DEVICES//,/ } | awk '{print $1}')
