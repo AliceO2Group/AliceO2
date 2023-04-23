@@ -49,6 +49,7 @@
 #include "Framework/Monitoring.h"
 #include "Framework/DataProcessorInfo.h"
 #include "Framework/DriverInfo.h"
+#include "Framework/DriverConfig.h"
 #include "Framework/DriverControl.h"
 #include "Framework/DataTakingContext.h"
 #include "Framework/CommandInfo.h"
@@ -941,6 +942,7 @@ void doDefaultWorkflowTerminationHook()
 int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
             RunningWorkflowInfo const& runningWorkflow,
             RunningDeviceRef ref,
+            DriverConfig const& driverConfig,
             ProcessingPolicies processingPolicies,
             std::string const& defaultDriverClient,
             uv_loop_t* loop)
@@ -954,7 +956,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
 
   // Populate options from the command line. Notice that only the options
   // declared in the workflow definition are allowed.
-  runner.AddHook<fair::mq::hooks::SetCustomCmdLineOptions>([&spec, defaultDriverClient](fair::mq::DeviceRunner& r) {
+  runner.AddHook<fair::mq::hooks::SetCustomCmdLineOptions>([&spec, driverConfig, defaultDriverClient](fair::mq::DeviceRunner& r) {
     std::string defaultExitTransitionTimeout = "0";
     std::string defaultInfologgerMode = "";
     o2::framework::DeploymentMode deploymentMode = o2::framework::DefaultsHelpers::deploymentMode();
@@ -996,6 +998,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
                                      &deviceProxy,
                                      &processingPolicies,
                                      &deviceContext,
+                                     &driverConfig,
                                      &loop](fair::mq::DeviceRunner& r) {
     ServiceRegistryRef serviceRef = {serviceRegistry};
     simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr, spec);
@@ -1013,6 +1016,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
     serviceRef.registerService(ServiceRegistryHelpers::handleForService<DeviceSpec const>(&spec));
     serviceRef.registerService(ServiceRegistryHelpers::handleForService<RunningWorkflowInfo const>(&runningWorkflow));
     serviceRef.registerService(ServiceRegistryHelpers::handleForService<DeviceContext>(deviceContext.get()));
+    serviceRef.registerService(ServiceRegistryHelpers::handleForService<DriverConfig const>(&driverConfig));
 
     // The decltype stuff is to be able to compile with both new and old
     // FairMQ API (one which uses a shared_ptr, the other one a unique_ptr.
@@ -1125,6 +1129,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                     CommandInfo const& commandInfo,
                     DriverControl& driverControl,
                     DriverInfo& driverInfo,
+                    DriverConfig& driverConfig,
                     std::vector<DeviceMetricsInfo>& metricsInfos,
                     boost::program_options::variables_map& varmap,
                     std::vector<ServiceSpec>& driverServices,
@@ -1185,10 +1190,10 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   // different versions of the service
   ServiceRegistry serviceRegistry;
 
-  if ((driverInfo.batch == false || getenv("DPL_DRIVER_REMOTE_GUI") != nullptr) && frameworkId.empty()) {
+  if ((driverConfig.batch == false || getenv("DPL_DRIVER_REMOTE_GUI") != nullptr) && frameworkId.empty()) {
     debugGUI = initDebugGUI();
     if (debugGUI) {
-      if (driverInfo.batch == false) {
+      if (driverConfig.batch == false) {
         window = debugGUI->initGUI("O2 Framework debug GUI", serviceRegistry);
       } else {
         window = debugGUI->initGUI(nullptr, serviceRegistry);
@@ -1206,9 +1211,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
       window = debugGUI->initGUI(nullptr, serviceRegistry);
     }
   }
-  if (driverInfo.batch == false && window == nullptr && frameworkId.empty()) {
+  if (driverConfig.batch == false && window == nullptr && frameworkId.empty()) {
     LOG(warn) << "Could not create GUI. Switching to batch mode. Do you have GLFW on your system?";
-    driverInfo.batch = true;
+    driverConfig.batch = true;
   }
   bool guiQuitRequested = false;
   bool hasError = false;
@@ -1222,7 +1227,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
 
   uv_timer_t* gui_timer = nullptr;
 
-  if (!driverInfo.batch) {
+  if (!driverConfig.batch) {
     gui_timer = (uv_timer_t*)malloc(sizeof(uv_timer_t));
     uv_timer_init(loop, gui_timer);
   }
@@ -1448,7 +1453,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
       case DriverState::MATERIALISE_WORKFLOW:
         try {
           auto workflowState = WorkflowHelpers::verifyWorkflow(workflow);
-          if (driverInfo.batch == true && varmap["dds"].as<std::string>().empty() && !varmap["dump-workflow"].as<bool>() && workflowState == WorkflowParsingState::Empty) {
+          if (driverConfig.batch == true && varmap["dds"].as<std::string>().empty() && !varmap["dump-workflow"].as<bool>() && workflowState == WorkflowParsingState::Empty) {
             LOGP(error, "Empty workflow provided while running in batch mode.");
             return 1;
           }
@@ -1720,6 +1725,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             return doChild(driverInfo.argc, driverInfo.argv,
                            serviceRegistry,
                            runningWorkflow, ref,
+                           driverConfig,
                            driverInfo.processingPolicies,
                            driverInfo.defaultDriverClient,
                            loop);
@@ -1751,7 +1757,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         // case the GUI runs in interactive mode, however we deploy the
         // GUI in both interactive and non-interactive mode, if the
         // DPL_DRIVER_REMOTE_GUI environment variable is set.
-        if (!driverInfo.batch || getenv("DPL_DRIVER_REMOTE_GUI")) {
+        if (!driverConfig.batch || getenv("DPL_DRIVER_REMOTE_GUI")) {
           if (gui_timer) {
             uv_timer_stop(gui_timer);
           }
@@ -1818,6 +1824,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                                               driverControl.defaultStopped,
                                               driverInfo.processingPolicies.termination == TerminationPolicy::WAIT,
                                               driverInfo.port,
+                                              driverConfig,
                                               dataProcessorInfos,
                                               runningWorkflow.devices,
                                               deviceExecutions,
@@ -1920,11 +1927,11 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           driverInfo.states.push_back(DriverState::REDEPLOY_GUI);
           driverInfo.states.push_back(DriverState::SCHEDULE);
           driverInfo.states.push_back(DriverState::MERGE_CONFIGS);
-        } else if (runningWorkflow.devices.empty() && driverInfo.batch == true) {
+        } else if (runningWorkflow.devices.empty() && driverConfig.batch == true) {
           LOG(info) << "No device resulting from the workflow. Quitting.";
           // If there are no deviceSpecs, we exit.
           driverInfo.states.push_back(DriverState::EXIT);
-        } else if (runningWorkflow.devices.empty() && driverInfo.batch == false && !guiDeployedOnce) {
+        } else if (runningWorkflow.devices.empty() && driverConfig.batch == false && !guiDeployedOnce) {
           // In case of an empty workflow, we need to deploy the GUI at least once.
           driverInfo.states.push_back(DriverState::RUNNING);
           driverInfo.states.push_back(DriverState::REDEPLOY_GUI);
@@ -2793,13 +2800,18 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   driverInfo.resourcePolicies = resourcePolicies;
   driverInfo.argc = argc;
   driverInfo.argv = argv;
-  driverInfo.batch = evaluateBatchOption();
   driverInfo.noSHMCleanup = varmap["no-cleanup"].as<bool>();
   driverInfo.processingPolicies.termination = varmap["completion-policy"].as<TerminationPolicy>();
   driverInfo.processingPolicies.earlyForward = varmap["early-forward-policy"].as<EarlyForwardPolicy>();
   driverInfo.mode = varmap["driver-mode"].as<DriverMode>();
 
-  if (varmap["error-policy"].defaulted() && driverInfo.batch == false) {
+  auto batch = evaluateBatchOption();
+  DriverConfig driverConfig{
+    .batch = batch,
+    .driverHasGUI = (batch == false) || getenv("DPL_DRIVER_REMOTE_GUI") != nullptr,
+  };
+
+  if (varmap["error-policy"].defaulted() && driverConfig.batch == false) {
     driverInfo.processingPolicies.error = TerminationPolicy::WAIT;
   } else {
     driverInfo.processingPolicies.error = varmap["error-policy"].as<TerminationPolicy>();
@@ -2841,6 +2853,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
                          commandInfo,
                          driverControl,
                          driverInfo,
+                         driverConfig,
                          gDeviceMetricsInfos,
                          varmap,
                          driverServices,

@@ -13,6 +13,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DeviceExecution.h"
+#include "Framework/DriverConfig.h"
 #include "../src/DeviceSpecHelpers.h"
 #include <catch_amalgamated.hpp>
 #include <algorithm>
@@ -72,7 +73,9 @@ void check(const std::vector<std::string>& arguments,
       workflowOptions,
     });
   }
+  DriverConfig driverConfig{};
   DeviceSpecHelpers::prepareArguments(true, true, false, 8080,
+                                      driverConfig,
                                       dataProcessorInfos,
                                       deviceSpecs,
                                       deviceExecutions,

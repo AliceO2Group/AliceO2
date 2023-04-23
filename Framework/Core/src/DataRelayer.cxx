@@ -11,6 +11,7 @@
 #include "Framework/RootSerializationSupport.h"
 #include "Framework/DataRelayer.h"
 #include "Framework/DataProcessingStats.h"
+#include "Framework/DriverConfig.h"
 
 #include "Framework/CompilerBuiltins.h"
 #include "Framework/DataDescriptorMatcher.h"
@@ -893,6 +894,7 @@ void DataRelayer::publishMetrics()
 
   mCachedStateMetrics.resize(mCache.size());
 
+  LOGP(detail, "DriverConfig::batch is {}. DataRelayer state will not be propagated to driver.", mContext.get<DriverConfig const>().batch);
   // There is maximum 16 variables available. We keep them row-wise so that
   // that we can take mod 16 of the index to understand which variable we
   // are talking about.

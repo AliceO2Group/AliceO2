@@ -40,6 +40,7 @@ namespace o2::framework
 struct InputChannelSpec;
 struct OutputChannelSpec;
 struct ConfigContext;
+struct DriverConfig;
 
 struct DeviceSpecHelpers {
   /// Helper to convert from an abstract dataflow specification, @a workflow,
@@ -121,6 +122,7 @@ struct DeviceSpecHelpers {
     bool defaultStopped,
     bool intereactive,
     unsigned short driverPort,
+    DriverConfig const& driverConfig,
     std::vector<DataProcessorInfo> const& processorInfos,
     std::vector<DeviceSpec> const& deviceSpecs,
     std::vector<DeviceExecution>& deviceExecutions,

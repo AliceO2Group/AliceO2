@@ -17,6 +17,7 @@
 #include "Framework/DataRelayer.h"
 #include "Framework/DataProcessingStats.h"
 #include "Framework/DataProcessingStates.h"
+#include "Framework/DriverConfig.h"
 #include "Framework/TimingHelpers.h"
 #include "../src/DataRelayerHelpers.h"
 #include "Framework/DataProcessingHeader.h"
@@ -38,6 +39,9 @@ TEST_CASE("DataRelayer")
   ServiceRegistry registry;
   ServiceRegistryRef ref{registry};
   Monitoring monitoring;
+  const DriverConfig driverConfig{
+    .batch = false,
+  };
   DataProcessingStates states(
     TimingHelpers::defaultRealtimeBaseConfigurator(0, uv_default_loop()),
     TimingHelpers::defaultCPUTimeConfigurator(uv_default_loop()));
@@ -59,6 +63,7 @@ TEST_CASE("DataRelayer")
   ref.registerService(ServiceRegistryHelpers::handleForService<Monitoring>(&monitoring));
   ref.registerService(ServiceRegistryHelpers::handleForService<DataProcessingStats>(&stats));
   ref.registerService(ServiceRegistryHelpers::handleForService<DataProcessingStates>(&states));
+  ref.registerService(ServiceRegistryHelpers::handleForService<DriverConfig const>(&driverConfig));
   // A simple test where an input is provided
   // and the subsequent InputRecord is immediately requested.
   SECTION("TestNoWait")
