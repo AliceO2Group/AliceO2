@@ -25,6 +25,7 @@
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceState.h"
+#include "Framework/DriverConfig.h"
 #include "Framework/Lifetime.h"
 #include "Framework/LifetimeHelpers.h"
 #include "Framework/ProcessingPolicies.h"
@@ -1287,6 +1288,7 @@ void split(const std::string& str, Container& cont)
 
 void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped, bool interactive,
                                          unsigned short driverPort,
+                                         o2::framework::DriverConfig const& driverConfig,
                                          std::vector<DataProcessorInfo> const& processorInfos,
                                          std::vector<DeviceSpec> const& deviceSpecs,
                                          std::vector<DeviceExecution>& deviceExecutions,
@@ -1341,6 +1343,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
                                         "--control", interactive ? "gui" : "static",
                                         "--shm-monitor", "false",
                                         "--log-color", "false",
+                                        driverConfig.batch ? "--batch" : "--no-batch",
                                         "--color", "false"};
 
     // we maintain options in a map so that later occurrences of the same

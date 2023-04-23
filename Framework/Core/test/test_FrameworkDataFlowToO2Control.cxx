@@ -20,6 +20,7 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/WorkflowSpec.h"
+#include "Framework/DriverConfig.h"
 
 #include <sstream>
 
@@ -190,6 +191,7 @@ command:
     - "'false'"
     - "--log-color"
     - "'false'"
+    - "--no-batch"
     - "--bad-alloc-attempt-interval"
     - "'50'"
     - "--bad-alloc-max-attempts"
@@ -280,6 +282,7 @@ command:
     - "'false'"
     - "--log-color"
     - "'false'"
+    - "--no-batch"
     - "--bad-alloc-attempt-interval"
     - "'50'"
     - "--bad-alloc-max-attempts"
@@ -370,6 +373,7 @@ command:
     - "'false'"
     - "--log-color"
     - "'false'"
+    - "--no-batch"
     - "--bad-alloc-attempt-interval"
     - "'50'"
     - "--bad-alloc-max-attempts"
@@ -459,6 +463,7 @@ command:
     - "'false'"
     - "--log-color"
     - "'false'"
+    - "--no-batch"
     - "--bad-alloc-attempt-interval"
     - "'50'"
     - "--bad-alloc-max-attempts"
@@ -525,7 +530,12 @@ TEST_CASE("TestO2ControlDump")
       {"C", "foo", {}, workflowOptions},
       {"D", "foo", {}, workflowOptions},
     }};
+
+  DriverConfig driverConfig{
+    .batch = false,
+  };
   DeviceSpecHelpers::prepareArguments(false, false, false, 8080,
+                                      driverConfig,
                                       dataProcessorInfos,
                                       devices, executions, controls,
                                       "workflow-id");
