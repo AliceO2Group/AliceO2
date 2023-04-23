@@ -1511,7 +1511,6 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
     mFDDAmplitude = 0xFFFFFFFF;
     mT0Amplitude = 0xFFFFFFFF;
   }
-#ifdef O2_ZDC_NEWDATAMODEL
   // Initialize ZDC helper maps
   for (int ic = 0; ic < o2::zdc::NChannels; ic++) {
     mZDCEnergyMap[ic] = -std::numeric_limits<float>::infinity();
@@ -1519,7 +1518,6 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   for (int ic = 0; ic < o2::zdc::NTDCChannels; ic++) {
     mZDCTDCMap[ic] = -std::numeric_limits<float>::infinity();
   }
-#endif
 
   mTimer.Reset();
 }
@@ -1595,11 +1593,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto& ambigMFTTracksBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "AMBIGUOUSMFTTR"});
   auto& ambigFwdTracksBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "AMBIGUOUSFWDTR"});
   auto& v0sBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "V0_001"});
-#ifdef O2_ZDC_NEWDATAMODEL
-  auto& zdcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "ZDC_001"});
-#else
-  auto& zdcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "ZDC"});
-#endif
+  auto& zdcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "ZDC", 1});
   auto& caloCellsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CALO"});
   auto& caloCellsTRGTableBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CALOTRIGGER"});
   auto& cpvClustersBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CPVCLUSTER"});
@@ -1686,81 +1680,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
                fv0RecPoint.getTrigger().getTriggersignals());
   }
 
-#ifndef O2_ZDC_NEWDATAMODEL
-  for (auto zdcRecData : zdcBCRecData) {
-    uint64_t bc = zdcRecData.ir.toLong();
-    auto item = bcsMap.find(bc);
-    int bcID = -1;
-    if (item != bcsMap.end()) {
-      bcID = item->second;
-    } else {
-      LOG(fatal) << "Error: could not find a corresponding BC ID for a ZDC rec. point; BC = " << bc;
-    }
-    int fe, ne, ft, nt, fi, ni;
-    zdcRecData.getRef(fe, ne, ft, nt, fi, ni);
-    // initialize zdc helper maps
-    for (int ic = 0; ic < o2::zdc::NChannels; ic++) {
-      mZDCEnergyMap[ic] = -std::numeric_limits<float>::infinity();
-    }
-    for (int ic = 0; ic < o2::zdc::NTDCChannels; ic++) {
-      mZDCTDCMap[ic] = -std::numeric_limits<float>::infinity();
-    }
-    for (int ie = 0; ie < ne; ie++) {
-      auto& zdcEnergyData = zdcEnergies[fe + ie];
-      int ch = zdcEnergyData.ch();
-      float energy = zdcEnergyData.energy();
-      if (ch >= 0 && ch < o2::zdc::NChannels) {
-        mZDCEnergyMap[ch] = energy;
-      }
-    }
-    for (int it = 0; it < nt; it++) {
-      auto& tdc = zdcTDCData[ft + it];
-      int ch = tdc.ch();
-      float tdcValue = tdc.value();
-      if (ch >= 0 && ch < o2::zdc::NTDCChannels) {
-        mZDCTDCMap[ch] = tdcValue;
-      }
-    }
-    float energySectorZNA[4];
-    float energySectorZNC[4];
-    float energySectorZPA[4];
-    float energySectorZPC[4];
-    energySectorZNA[0] = mZDCEnergyMap[o2::zdc::IdZNA1];
-    energySectorZNA[1] = mZDCEnergyMap[o2::zdc::IdZNA2];
-    energySectorZNA[2] = mZDCEnergyMap[o2::zdc::IdZNA3];
-    energySectorZNA[3] = mZDCEnergyMap[o2::zdc::IdZNA4];
-    energySectorZNC[0] = mZDCEnergyMap[o2::zdc::IdZNC1];
-    energySectorZNC[1] = mZDCEnergyMap[o2::zdc::IdZNC2];
-    energySectorZNC[2] = mZDCEnergyMap[o2::zdc::IdZNC3];
-    energySectorZNC[3] = mZDCEnergyMap[o2::zdc::IdZNC4];
-    energySectorZPA[0] = mZDCEnergyMap[o2::zdc::IdZPA1];
-    energySectorZPA[1] = mZDCEnergyMap[o2::zdc::IdZPA2];
-    energySectorZPA[2] = mZDCEnergyMap[o2::zdc::IdZPA3];
-    energySectorZPA[3] = mZDCEnergyMap[o2::zdc::IdZPA4];
-    energySectorZPC[0] = mZDCEnergyMap[o2::zdc::IdZPC1];
-    energySectorZPC[1] = mZDCEnergyMap[o2::zdc::IdZPC2];
-    energySectorZPC[2] = mZDCEnergyMap[o2::zdc::IdZPC3];
-    energySectorZPC[3] = mZDCEnergyMap[o2::zdc::IdZPC4];
-    zdcCursor(0,
-              bcID,
-              mZDCEnergyMap[o2::zdc::IdZEM1],
-              mZDCEnergyMap[o2::zdc::IdZEM2],
-              mZDCEnergyMap[o2::zdc::IdZNAC],
-              mZDCEnergyMap[o2::zdc::IdZNCC],
-              mZDCEnergyMap[o2::zdc::IdZPAC],
-              mZDCEnergyMap[o2::zdc::IdZPCC],
-              energySectorZNA,
-              energySectorZNC,
-              energySectorZPA,
-              energySectorZPC,
-              mZDCTDCMap[o2::zdc::TDCChannelID::TDCZEM1],
-              mZDCTDCMap[o2::zdc::TDCChannelID::TDCZEM2],
-              mZDCTDCMap[o2::zdc::TDCChannelID::TDCZNAC],
-              mZDCTDCMap[o2::zdc::TDCChannelID::TDCZNCC],
-              mZDCTDCMap[o2::zdc::TDCChannelID::TDCZPAC],
-              mZDCTDCMap[o2::zdc::TDCChannelID::TDCZPCC]);
-  }
-#else
   std::vector<float> zdcEnergy, zdcAmplitudes, zdcTime;
   std::vector<uint8_t> zdcChannelsE, zdcChannelsT;
   for (auto zdcRecData : zdcBCRecData) {
@@ -1798,7 +1717,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
               zdcTime,
               zdcChannelsT);
   }
-#endif
 
   // keep track event/source id for each mc-collision
   // using map and not unordered_map to ensure
@@ -2678,11 +2596,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   outputs.emplace_back(OutputLabel{"O2ambiguousMFTtrack"}, "AOD", "AMBIGUOUSMFTTR", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2ambiguousFwdtrack"}, "AOD", "AMBIGUOUSFWDTR", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2v0_001"}, "AOD", "V0_001", 0, Lifetime::Timeframe);
-#ifdef O2_ZDC_NEWDATAMODEL
-  outputs.emplace_back(OutputLabel{"O2zdc_001"}, "AOD", "ZDC", 1, Lifetime::Timeframe);
-#else
-  outputs.emplace_back(OutputLabel{"O2zdc"}, "AOD", "ZDC", 0, Lifetime::Timeframe);
-#endif
+  outputs.emplace_back(OutputLabel{"O2zdc"}, "AOD", "ZDC", 1, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2caloCell"}, "AOD", "CALO", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2caloCellTRGR"}, "AOD", "CALOTRIGGER", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2cpvCluster"}, "AOD", "CPVCLUSTER", 0, Lifetime::Timeframe);
