@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -32,7 +32,9 @@
 #include "rANS/internal/decode/Decoder.h"
 #include "rANS/internal/decode/DecoderImpl.h"
 
-namespace o2::rans::internal
+namespace o2::rans
+{
+namespace internal
 {
 
 template <typename T>
@@ -149,6 +151,14 @@ struct getStreamingLowerBound<DecoderImpl<lowerBound_V>> : public std::integral_
 template <typename T>
 inline constexpr size_t getStreamingLowerBound_v = getStreamingLowerBound<T>::value;
 
-} // namespace o2::rans::internal
+} // namespace internal
+
+namespace utils
+{
+using internal::getStreamingLowerBound;
+using internal::getStreamingLowerBound_v;
+
+} // namespace utils
+} // namespace o2::rans
 
 #endif /* RANS_INTERNAL_COMMON_TYPETRAITS_H_ */

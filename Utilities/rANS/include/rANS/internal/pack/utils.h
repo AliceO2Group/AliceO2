@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -31,9 +32,9 @@ namespace o2::rans::internal
 
 using packing_type = uint64_t;
 
-inline constexpr std::array<packing_type, (toBits<packing_type>() + 1)> All1BackTill = []() constexpr
+inline constexpr std::array<packing_type, (utils::toBits<packing_type>() + 1)> All1BackTill = []() constexpr
 {
-  constexpr size_t packingBufferBits = toBits<packing_type>();
+  constexpr size_t packingBufferBits = utils::toBits<packing_type>();
   std::array<packing_type, (packingBufferBits + 1)> ret{};
   for (size_t i = 0; i < packingBufferBits; ++i) {
     ret[i] = (1ull << i) - 1;
@@ -43,9 +44,9 @@ inline constexpr std::array<packing_type, (toBits<packing_type>() + 1)> All1Back
 }
 ();
 
-inline constexpr std::array<packing_type, (toBits<packing_type>() + 1)> All1FrontTill = []() constexpr
+inline constexpr std::array<packing_type, (utils::toBits<packing_type>() + 1)> All1FrontTill = []() constexpr
 {
-  constexpr size_t size = toBits<packing_type>() + 1;
+  constexpr size_t size = utils::toBits<packing_type>() + 1;
   std::array<packing_type, size> ret{};
   for (size_t i = 0; i < size; ++i) {
     ret[i] = ~0ull ^ All1BackTill[i];
@@ -70,7 +71,7 @@ inline constexpr packing_type packMultiple(const source_T* __restrict data, sour
   packing_type result{};
 
   constexpr size_t PackingWidth = width_V;
-  constexpr size_t NIterations = toBits<packing_type>() / PackingWidth;
+  constexpr size_t NIterations = utils::toBits<packing_type>() / PackingWidth;
 
   for (size_t i = 0; i < NIterations; ++i) {
     const int64_t adjustedValue = static_cast<int64_t>(data[i]) - offset;

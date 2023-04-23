@@ -380,9 +380,9 @@ template <typename source_T>
 [[nodiscard]] inline size_t estimateSize(const void* coder, const std::vector<source_T>& samples)
 {
   if (coder) {
-    const auto* encoder = reinterpret_cast<const o2::rans::compat::encoder_type<source_T>*>(coder);
+    const auto* encoder = reinterpret_cast<const rans::compat::encoder_type<source_T>*>(coder);
     const auto& symbolTable = encoder->getSymbolTable();
-    const size_t alphabetRangeBits = o2::rans::internal::toBits(symbolTable.size() - symbolTable.getOffset());
+    const size_t alphabetRangeBits = rans::utils::toBits(symbolTable.size() - symbolTable.getOffset());
     return rans::compat::calculateMaxBufferSizeB(samples.size(), alphabetRangeBits);
   } else {
     return samples.size() * sizeof(source_T);

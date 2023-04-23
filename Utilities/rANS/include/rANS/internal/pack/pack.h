@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -10,7 +11,7 @@
 
 /// @file   pack.h
 /// @author Michael Lettrich
-/// @brief  packs data into a buffer, optionally via Elias-Delta coding.
+/// @brief  packs data into a buffer
 
 #ifndef RANS_INTERNAL_PACK_PACK_H_
 #define RANS_INTERNAL_PACK_PACK_H_
@@ -33,13 +34,14 @@ template <typename storageBuffer_T = uint8_t>
 [[nodiscard]] constexpr size_t computePackingBufferSize(size_t extent, size_t packingWidthBits) noexcept
 {
   using namespace internal;
+  using namespace utils;
   if (extent > 0) {
     constexpr size_t PackingBufferBits = toBits<packing_type>();
     const size_t packedSizeBits = extent * packingWidthBits;
 
     const size_t packingBufferElems = packedSizeBits / PackingBufferBits + 1;
     const size_t packingBufferBytes = packingBufferElems * sizeof(packing_type);
-    const size_t storageBufferElems = internal::nBytesTo<storageBuffer_T>(packingBufferBytes);
+    const size_t storageBufferElems = utils::nBytesTo<storageBuffer_T>(packingBufferBytes);
     return storageBufferElems;
   } else {
     return 0;
@@ -49,9 +51,9 @@ template <typename storageBuffer_T = uint8_t>
 namespace internal
 {
 
-inline internal::BitPtr packShort(internal::BitPtr pos, uint64_t data, size_t packingWidth)
+inline BitPtr packShort(BitPtr pos, uint64_t data, size_t packingWidth)
 {
-  assert(pos != internal::BitPtr{});
+  assert(pos != BitPtr{});
   assert(packingWidth <= 58);
   uint8_t* posPtr = pos.toPtr<uint8_t>();
   const size_t posBitOffset = pos.getOffset<uint8_t>();
@@ -63,21 +65,21 @@ inline internal::BitPtr packShort(internal::BitPtr pos, uint64_t data, size_t pa
   return pos += packingWidth;
 };
 
-inline internal::BitPtr pack(internal::BitPtr pos, uint64_t data, size_t packingWidth)
+inline BitPtr pack(BitPtr pos, uint64_t data, size_t packingWidth)
 {
   return packShort(pos, data, packingWidth);
 }
 
 inline BitPtr packLong(BitPtr pos, uint64_t data, size_t packingWidth)
 {
-  assert(pos != internal::BitPtr{});
+  assert(pos != BitPtr{});
   uint8_t* posPtr = pos.toPtr<uint8_t>();
   const size_t posBitOffset = pos.getOffset<uint8_t>();
 
   const size_t bitOffsetEnd = posBitOffset + packingWidth;
   packing_type buffer = load64(reinterpret_cast<void*>(posPtr));
 
-  constexpr size_t PackingBufferBits = toBits<packing_type>();
+  constexpr size_t PackingBufferBits = utils::toBits<packing_type>();
 
   if (bitOffsetEnd <= PackingBufferBits) {
     buffer |= data << posBitOffset;
@@ -98,8 +100,8 @@ inline BitPtr packLong(BitPtr pos, uint64_t data, size_t packingWidth)
 template <typename T>
 inline T unpack(BitPtr pos, size_t packingWidth)
 {
-  assert(pos != internal::BitPtr{});
-  assert(packingWidth <= toBits<T>());
+  assert(pos != BitPtr{});
+  assert(packingWidth <= utils::toBits<T>());
   assert(packingWidth <= 58);
 
   uint8_t* posPtr = pos.toPtr<uint8_t>();
@@ -111,13 +113,13 @@ inline T unpack(BitPtr pos, size_t packingWidth)
 
 inline uint64_t unpackLong(BitPtr pos, size_t packingWidth)
 {
-  assert(pos != internal::BitPtr{});
+  assert(pos != BitPtr{});
   assert(packingWidth < 64);
 
   uint8_t* posPtr = pos.toPtr<uint8_t>();
   size_t bitOffset = pos.getOffset<uint8_t>();
 
-  constexpr size_t PackingBufferBits = toBits<packing_type>();
+  constexpr size_t PackingBufferBits = utils::toBits<packing_type>();
   const size_t bitOffsetEnd = bitOffset + packingWidth;
   packing_type buffer = load64(reinterpret_cast<void*>(posPtr));
   uint64_t ret{};
@@ -126,7 +128,7 @@ inline uint64_t unpackLong(BitPtr pos, size_t packingWidth)
   } else {
     // first part
     ret = bitExtract(buffer, bitOffset, PackingBufferBits - bitOffset);
-    //second part
+    // second part
     bitOffset = bitOffsetEnd - PackingBufferBits;
     posPtr += sizeof(packing_type);
     buffer = load64(reinterpret_cast<void*>(posPtr));
@@ -142,7 +144,7 @@ constexpr BitPtr packStreamImpl(const input_T* __restrict inputBegin, size_t ext
   assert(inputBegin != nullptr);
   assert(outputBegin != nullptr);
 
-  constexpr size_t PackingBufferBits = toBits<packing_type>();
+  constexpr size_t PackingBufferBits = utils::toBits<packing_type>();
   constexpr size_t PackingWidth = width_V;
 
   constexpr size_t NPackAtOnce = PackingBufferBits / PackingWidth;
@@ -191,9 +193,10 @@ constexpr BitPtr packStreamImpl(const input_T* __restrict inputBegin, size_t ext
 } // namespace internal
 
 template <typename input_T, typename output_T>
-inline constexpr internal::BitPtr pack(const input_T* __restrict inputBegin, size_t extent, output_T* __restrict outputBegin, size_t packingWidth, input_T offset = static_cast<input_T>(0))
+inline constexpr BitPtr pack(const input_T* __restrict inputBegin, size_t extent, output_T* __restrict outputBegin, size_t packingWidth, input_T offset = static_cast<input_T>(0))
 {
   using namespace internal;
+  using namespace utils;
 
   assert(inputBegin != nullptr);
   assert(outputBegin != nullptr);
@@ -308,10 +311,11 @@ inline constexpr internal::BitPtr pack(const input_T* __restrict inputBegin, siz
 };
 
 template <typename input_IT, typename output_T>
-inline constexpr internal::BitPtr pack(input_IT inputBegin, size_t extent, output_T* __restrict outputBegin, size_t packingWidth,
-                                       typename std::iterator_traits<input_IT>::value_type offset = 0)
+inline constexpr BitPtr pack(input_IT inputBegin, size_t extent, output_T* __restrict outputBegin, size_t packingWidth,
+                             typename std::iterator_traits<input_IT>::value_type offset = 0)
 {
   using namespace internal;
+  using namespace utils;
   using source_type = typename std::iterator_traits<input_IT>::value_type;
   input_IT inputEnd = advanceIter(inputBegin, extent);
   BitPtr outputIter{outputBegin};
@@ -335,6 +339,7 @@ template <typename input_T, typename output_IT>
 inline void unpack(const input_T* __restrict inputBegin, size_t extent, output_IT outputBegin, size_t packingWidth, typename std::iterator_traits<output_IT>::value_type offset = static_cast<typename std::iterator_traits<output_IT>::value_type>(0))
 {
   using namespace internal;
+  using namespace utils;
   using dst_type = typename std::iterator_traits<output_IT>::value_type;
 
   auto unpackImpl = [&](auto packer) {

@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -27,22 +27,25 @@
 
 #include <fairlogger/Logger.h>
 
-#include "rANS/utils.h"
 #include "rANS/internal/common/defaults.h"
 #include "rANS/internal/common/exceptions.h"
 
 #define rans_likely(x) __builtin_expect((x), 1)
 #define rans_unlikely(x) __builtin_expect((x), 0)
 
-namespace o2::rans::internal
+namespace o2::rans
 {
 
-inline constexpr std::uint8_t operator"" _u8(unsigned long long int value) { return static_cast<uint8_t>(value); };
-inline constexpr std::int8_t operator"" _i8(unsigned long long int value) { return static_cast<int8_t>(value); };
+namespace utils
+{
 
-inline constexpr std::uint16_t operator"" _u16(unsigned long long int value) { return static_cast<uint16_t>(value); };
-inline constexpr std::int16_t operator"" _i16(unsigned long long int value) { return static_cast<int16_t>(value); };
+template <typename T>
+constexpr size_t toBits() noexcept;
 
+} // namespace utils
+
+namespace internal
+{
 // taken from https://github.com/romeric/fastapprox/blob/master/fastapprox/src/fastlog.h
 [[nodiscard]] inline constexpr float_t fastlog2(float_t x) noexcept
 {
@@ -83,39 +86,18 @@ inline constexpr uintptr_t adr2Bits(T* address) noexcept
   return (reinterpret_cast<uintptr_t>(address) << 3ull);
 };
 
-inline constexpr size_t toBytes(size_t bits) noexcept { return (bits / 8) + (bits % 8 != 0); };
-
-inline constexpr size_t toBits(size_t bytes) noexcept { return bytes * 8; };
-
 template <typename T>
-inline constexpr size_t toBits() noexcept
+inline constexpr T log2UIntNZ(T x) noexcept
 {
-  return toBits(sizeof(T));
-};
+  static_assert(std::is_integral_v<T>, "Type is not integral");
+  static_assert(std::is_unsigned_v<T>, "only defined for unsigned numbers");
+  assert(x > 0);
 
-inline constexpr size_t pow2(size_t n) noexcept
-{
-  return 1ull << n;
-}
-
-inline constexpr uint32_t log2UIntNZ(uint32_t x) noexcept
-{
-  return toBits<uint32_t>() - __builtin_clz(x) - 1;
-}
-
-inline constexpr uint64_t log2UIntNZ(uint64_t x) noexcept
-{
-  return toBits<uint64_t>() - __builtin_clzl(x) - 1;
-}
-
-inline constexpr uint32_t log2UInt(uint32_t x) noexcept
-{
-  return x > 0 ? log2UIntNZ(x) : 0;
-}
-
-inline constexpr uint64_t log2UInt(uint64_t x) noexcept
-{
-  return x > 0 ? log2UIntNZ(x) : 0;
+  if constexpr (sizeof(T) <= 4) {
+    return static_cast<T>(utils::toBits<uint32_t>() - __builtin_clz(x) - 1);
+  } else {
+    return static_cast<T>(utils::toBits<uint64_t>() - __builtin_clzl(x) - 1);
+  }
 }
 
 template <typename T, std::enable_if_t<std::is_unsigned_v<T>, bool> = true>
@@ -123,21 +105,6 @@ inline constexpr bool isPow2(T x) noexcept
 {
   return x > 0 && (x & (x - 1)) == 0;
 }
-
-[[nodiscard]] inline uint32_t symbolLengthBits(uint32_t x) noexcept { return log2UInt(x); };
-
-template <typename T, std::enable_if_t<std::is_integral_v<T>, bool> = true>
-[[nodiscard]] inline constexpr uint32_t getRangeBits(T min, T max) noexcept
-{
-  assert(max >= min);
-  const int64_t diff = max - min;
-
-  if (diff == 0) {
-    return 0; // if min==max, we're empty. Compatible with the case that we need 2**0 == 1 Value.
-  } else {
-    return symbolLengthBits(diff) + 1; // otherwise add 1 to cover full interval [min,max]
-  }
-};
 
 [[nodiscard]] inline count_t roundSymbolFrequency(double_t rescaledFrequency)
 {
@@ -154,11 +121,10 @@ template <typename T, std::enable_if_t<std::is_integral_v<T>, bool> = true>
   }
 };
 
-inline constexpr size_t
-  numSymbolsWithNBits(size_t bits) noexcept
+inline constexpr size_t numSymbolsWithNBits(size_t bits) noexcept
 {
   return (static_cast<size_t>(1) << (bits + 1)) - 1;
-}
+};
 
 inline constexpr size_t numBitsForNSymbols(size_t nSymbols) noexcept
 {
@@ -175,12 +141,73 @@ inline constexpr size_t numBitsForNSymbols(size_t nSymbols) noexcept
   }
 }
 
+inline uint32_t safeadd(uint32_t a, uint32_t b)
+{
+  uint32_t result;
+  if (rans_unlikely(__builtin_uadd_overflow(a, b, &result))) {
+    throw OverflowError("arithmetic overflow during addition");
+  }
+  return result;
+}
+
+} // namespace internal
+
+inline constexpr std::uint8_t operator"" _u8(unsigned long long int value) { return static_cast<uint8_t>(value); };
+inline constexpr std::int8_t operator"" _i8(unsigned long long int value) { return static_cast<int8_t>(value); };
+
+inline constexpr std::uint16_t operator"" _u16(unsigned long long int value) { return static_cast<uint16_t>(value); };
+inline constexpr std::int16_t operator"" _i16(unsigned long long int value) { return static_cast<int16_t>(value); };
+
+namespace utils
+{
+inline constexpr size_t toBytes(size_t bits) noexcept { return (bits / 8) + (bits % 8 != 0); };
+
+inline constexpr size_t pow2(size_t n) noexcept
+{
+  return 1ull << n;
+}
+
+inline constexpr size_t toBits(size_t bytes) noexcept { return bytes * 8; };
+
+template <typename T>
+inline constexpr size_t toBits() noexcept
+{
+  return toBits(sizeof(T));
+};
+
+template <typename T>
+inline constexpr T log2UInt(T x) noexcept
+{
+  static_assert(std::is_integral_v<T>, "Type is not integral");
+  static_assert(std::is_unsigned_v<T>, "only defined for unsigned numbers");
+  if (x > static_cast<T>(0)) {
+    return internal::log2UIntNZ<T>(x);
+  } else {
+    return static_cast<T>(0);
+  }
+}
+
 template <typename Freq_IT>
 inline Freq_IT advanceIter(Freq_IT iter, std::ptrdiff_t distance)
 {
   std::advance(iter, distance);
   return iter;
 }
+
+[[nodiscard]] inline uint32_t symbolLengthBits(uint32_t x) noexcept { return log2UInt(x); };
+
+template <typename T, std::enable_if_t<std::is_integral_v<T>, bool> = true>
+[[nodiscard]] inline constexpr uint32_t getRangeBits(T min, T max) noexcept
+{
+  assert(max >= min);
+  const int64_t diff = max - min;
+
+  if (diff == 0) {
+    return 0; // if min==max, we're empty. Compatible with the case that we need 2**0 == 1 Value.
+  } else {
+    return symbolLengthBits(diff) + 1; // otherwise add 1 to cover full interval [min,max]
+  }
+};
 
 [[nodiscard]] inline size_t sanitizeRenormingBitRange(size_t renormPrecision)
 {
@@ -212,6 +239,15 @@ template <typename T>
   const bool isZeroMessage = renormPrecision == 0;
   return isInInterval || isZeroMessage;
 };
+
+template <typename IT>
+void checkBounds(IT iteratorPosition, IT upperBound)
+{
+  const auto diff = std::distance(iteratorPosition, upperBound);
+  if (diff < 0) {
+    throw OutOfBoundsError(fmt::format("Bounds of buffer violated by {} elements", std::abs(diff)));
+  }
+}
 
 class RANSTimer
 {
@@ -273,21 +309,14 @@ class JSONArrayLogger
   bool mReverse{false};
 };
 
-inline uint32_t safeadd(uint32_t a, uint32_t b)
-{
-  uint32_t result;
-  if (rans_unlikely(__builtin_uadd_overflow(a, b, &result))) {
-    throw OverflowError("arithmetic overflow during addition");
-  }
-  return result;
-}
-
 template <typename T, typename IT>
 inline constexpr bool isCompatibleIter_v = std::is_convertible_v<typename std::iterator_traits<IT>::value_type, T>;
 
 template <typename IT>
 inline constexpr bool isIntegralIter_v = std::is_integral_v<typename std::iterator_traits<IT>::value_type>;
 
-} // namespace o2::rans::internal
+} // namespace utils
+
+} // namespace o2::rans
 
 #endif /* RANS_INTERNAL_COMMON_UTILS_H_ */

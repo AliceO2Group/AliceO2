@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   factories.h
+/// @file   factory.h
 /// @author michael.lettrich@cern.ch
 /// @brief  static factory classes for building histograms, encoders and decoders.
 
@@ -115,66 +115,66 @@ class makeEncoder
   };
 
   template <typename source_T>
-  [[nodiscard]] inline static decltype(auto) fromHistogram(Histogram<source_T> histogram, bool forceEscapeSymbol = false)
+  [[nodiscard]] inline static decltype(auto) fromHistogram(Histogram<source_T> histogram, RenormingPolicy renormingPolicy = RenormingPolicy::Auto)
   {
-    const auto renormedHistogram = renorm(std::move(histogram), forceEscapeSymbol);
+    const auto renormedHistogram = renorm(std::move(histogram), renormingPolicy);
     return this_type::fromRenormed(renormedHistogram);
   };
 
   template <typename source_T>
-  [[nodiscard]] inline static decltype(auto) fromHistogram(Histogram<source_T> histogram, Metrics<source_T>& metrics, bool forceEscapeSymbol = false)
+  [[nodiscard]] inline static decltype(auto) fromHistogram(Histogram<source_T> histogram, Metrics<source_T>& metrics, RenormingPolicy renormingPolicy = RenormingPolicy::Auto)
   {
-    const auto renormedHistogram = renorm(std::move(histogram), metrics, forceEscapeSymbol);
+    const auto renormedHistogram = renorm(std::move(histogram), metrics, renormingPolicy);
     return this_type::fromRenormed(renormedHistogram);
   };
 
   template <typename source_T>
-  [[nodiscard]] inline static decltype(auto) fromHistogram(Histogram<source_T> histogram, size_t renormingPrecision, bool forceEscapeSymbol = false)
+  [[nodiscard]] inline static decltype(auto) fromHistogram(Histogram<source_T> histogram, size_t renormingPrecision, RenormingPolicy renormingPolicy = RenormingPolicy::Auto)
   {
-    const auto renormedHistogram = renorm(std::move(histogram), renormingPrecision, forceEscapeSymbol);
+    const auto renormedHistogram = renorm(std::move(histogram), renormingPrecision, renormingPolicy);
     return this_type::fromRenormed(renormedHistogram);
   };
 
   template <typename source_IT>
-  [[nodiscard]] inline static decltype(auto) fromSamples(source_IT begin, source_IT end, bool forceEscapeSymbol = false)
+  [[nodiscard]] inline static decltype(auto) fromSamples(source_IT begin, source_IT end, RenormingPolicy renormingPolicy = RenormingPolicy::Auto)
   {
     auto histogram = makeHistogram::fromSamples(begin, end);
-    return this_type::fromHistogram(std::move(histogram), forceEscapeSymbol);
+    return this_type::fromHistogram(std::move(histogram), renormingPolicy);
   };
 
   template <typename source_IT>
-  [[nodiscard]] inline static decltype(auto) fromSamples(source_IT begin, source_IT end, Metrics<typename std::iterator_traits<source_IT>::value_type>& metrics, bool forceEscapeSymbol = false)
+  [[nodiscard]] inline static decltype(auto) fromSamples(source_IT begin, source_IT end, Metrics<typename std::iterator_traits<source_IT>::value_type>& metrics, RenormingPolicy renormingPolicy = RenormingPolicy::Auto)
   {
     auto histogram = makeHistogram::fromSamples(begin, end);
-    return this_type::fromHistogram(std::move(histogram), metrics, forceEscapeSymbol);
+    return this_type::fromHistogram(std::move(histogram), metrics, renormingPolicy);
   };
 
   template <typename source_IT>
-  [[nodiscard]] inline static decltype(auto) fromSamples(source_IT begin, source_IT end, size_t renormingPrecision, bool forceEscapeSymbol = false)
+  [[nodiscard]] inline static decltype(auto) fromSamples(source_IT begin, source_IT end, size_t renormingPrecision, RenormingPolicy renormingPolicy = RenormingPolicy::Auto)
   {
     auto histogram = makeHistogram::fromSamples(begin, end);
-    return this_type::fromHistogram(std::move(histogram), renormingPrecision, forceEscapeSymbol);
+    return this_type::fromHistogram(std::move(histogram), renormingPrecision, renormingPolicy);
   };
 
   template <typename source_T>
-  [[nodiscard]] inline static decltype(auto) fromSamples(gsl::span<const source_T> range, bool forceEscapeSymbol = false)
+  [[nodiscard]] inline static decltype(auto) fromSamples(gsl::span<const source_T> range, RenormingPolicy renormingPolicy = RenormingPolicy::Auto)
   {
     auto histogram = makeHistogram::fromSamples(range);
-    return this_type::fromHistogram(std::move(histogram), forceEscapeSymbol);
+    return this_type::fromHistogram(std::move(histogram), renormingPolicy);
   };
 
   template <typename source_T>
-  [[nodiscard]] inline static decltype(auto) fromSamples(gsl::span<const source_T> range, Metrics<source_T>& metrics, bool forceEscapeSymbol = false)
+  [[nodiscard]] inline static decltype(auto) fromSamples(gsl::span<const source_T> range, Metrics<source_T>& metrics, RenormingPolicy renormingPolicy = RenormingPolicy::Auto)
   {
     auto histogram = makeHistogram::fromSamples(range);
-    return this_type::fromHistogram(std::move(histogram), metrics, forceEscapeSymbol);
+    return this_type::fromHistogram(std::move(histogram), metrics, renormingPolicy);
   };
 
   template <typename source_T>
-  [[nodiscard]] inline static decltype(auto) fromSamples(gsl::span<const source_T> range, size_t renormingPrecision, bool forceEscapeSymbol = false)
+  [[nodiscard]] inline static decltype(auto) fromSamples(gsl::span<const source_T> range, size_t renormingPrecision, RenormingPolicy renormingPolicy = RenormingPolicy::Auto)
   {
     auto histogram = makeHistogram::fromSamples(range);
-    return this_type::fromHistogram(std::move(histogram), renormingPrecision, forceEscapeSymbol);
+    return this_type::fromHistogram(std::move(histogram), renormingPrecision, renormingPolicy);
   };
 
  private:
@@ -204,66 +204,66 @@ class makeDecoder
   };
 
   template <typename source_T>
-  [[nodiscard]] inline static decltype(auto) fromHistogram(Histogram<source_T> histogram, bool forceEscapeSymbol = false)
+  [[nodiscard]] inline static decltype(auto) fromHistogram(Histogram<source_T> histogram, RenormingPolicy renormingPolicy = RenormingPolicy::Auto)
   {
-    const auto renormedHistogram = renorm(std::move(histogram), forceEscapeSymbol);
+    const auto renormedHistogram = renorm(std::move(histogram), renormingPolicy);
     return this_type::fromRenormed(renormedHistogram);
   };
 
   template <typename source_T>
-  [[nodiscard]] inline static decltype(auto) fromHistogram(Histogram<source_T> histogram, Metrics<source_T>& metrics, bool forceEscapeSymbol = false)
+  [[nodiscard]] inline static decltype(auto) fromHistogram(Histogram<source_T> histogram, Metrics<source_T>& metrics, RenormingPolicy renormingPolicy = RenormingPolicy::Auto)
   {
-    const auto renormedHistogram = renorm(std::move(histogram), metrics, forceEscapeSymbol);
+    const auto renormedHistogram = renorm(std::move(histogram), metrics, renormingPolicy);
     return this_type::fromRenormed(renormedHistogram);
   };
 
   template <typename source_T>
-  [[nodiscard]] inline static decltype(auto) fromHistogram(Histogram<source_T> histogram, size_t renormingPrecision, bool forceEscapeSymbol = false)
+  [[nodiscard]] inline static decltype(auto) fromHistogram(Histogram<source_T> histogram, size_t renormingPrecision, RenormingPolicy renormingPolicy = RenormingPolicy::Auto)
   {
     const auto renormedHistogram = renorm(std::move(histogram), renormingPrecision);
     return this_type::fromRenormed(renormedHistogram);
   };
 
   template <typename source_IT>
-  [[nodiscard]] inline static decltype(auto) fromSamples(source_IT begin, source_IT end, bool forceEscapeSymbol = false)
+  [[nodiscard]] inline static decltype(auto) fromSamples(source_IT begin, source_IT end, RenormingPolicy renormingPolicy = RenormingPolicy::Auto)
   {
     auto histogram = makeHistogram::fromSamples(begin, end);
-    return this_type::fromHistogram(std::move(histogram), forceEscapeSymbol);
+    return this_type::fromHistogram(std::move(histogram), renormingPolicy);
   };
 
   template <typename source_IT>
-  [[nodiscard]] inline static decltype(auto) fromSamples(source_IT begin, source_IT end, Metrics<typename std::iterator_traits<source_IT>::value_type>& metrics, bool forceEscapeSymbol = false)
+  [[nodiscard]] inline static decltype(auto) fromSamples(source_IT begin, source_IT end, Metrics<typename std::iterator_traits<source_IT>::value_type>& metrics, RenormingPolicy renormingPolicy = RenormingPolicy::Auto)
   {
     auto histogram = makeHistogram::fromSamples(begin, end);
-    return this_type::fromHistogram(std::move(histogram), metrics, forceEscapeSymbol);
+    return this_type::fromHistogram(std::move(histogram), metrics, renormingPolicy);
   };
 
   template <typename source_IT>
-  [[nodiscard]] inline static decltype(auto) fromSamples(source_IT begin, source_IT end, size_t renormingPrecision, bool forceEscapeSymbol = false)
+  [[nodiscard]] inline static decltype(auto) fromSamples(source_IT begin, source_IT end, size_t renormingPrecision, RenormingPolicy renormingPolicy = RenormingPolicy::Auto)
   {
     auto histogram = makeHistogram::fromSamples(begin, end);
-    return this_type::fromHistogram(std::move(histogram), renormingPrecision, forceEscapeSymbol);
+    return this_type::fromHistogram(std::move(histogram), renormingPrecision, renormingPolicy);
   };
 
   template <typename source_T>
-  [[nodiscard]] inline static decltype(auto) fromSamples(gsl::span<const source_T> range, bool forceEscapeSymbol = false)
+  [[nodiscard]] inline static decltype(auto) fromSamples(gsl::span<const source_T> range, RenormingPolicy renormingPolicy = RenormingPolicy::Auto)
   {
     auto histogram = makeHistogram::fromSamples(range);
-    return this_type::fromHistogram(std::move(histogram), forceEscapeSymbol);
+    return this_type::fromHistogram(std::move(histogram), renormingPolicy);
   };
 
   template <typename source_T>
-  [[nodiscard]] inline static decltype(auto) fromSamples(gsl::span<const source_T> range, Metrics<source_T>& metrics, bool forceEscapeSymbol = false)
+  [[nodiscard]] inline static decltype(auto) fromSamples(gsl::span<const source_T> range, Metrics<source_T>& metrics, RenormingPolicy renormingPolicy = RenormingPolicy::Auto)
   {
     auto histogram = makeHistogram::fromSamples(range);
-    return this_type::fromHistogram(std::move(histogram), metrics, forceEscapeSymbol);
+    return this_type::fromHistogram(std::move(histogram), metrics, renormingPolicy);
   };
 
   template <typename source_T>
-  [[nodiscard]] inline static decltype(auto) fromSamples(gsl::span<const source_T> range, size_t renormingPrecision, bool forceEscapeSymbol = false)
+  [[nodiscard]] inline static decltype(auto) fromSamples(gsl::span<const source_T> range, size_t renormingPrecision, RenormingPolicy renormingPolicy = RenormingPolicy::Auto)
   {
     auto histogram = makeHistogram::fromSamples(range);
-    return this_type::fromHistogram(std::move(histogram), renormingPrecision, forceEscapeSymbol);
+    return this_type::fromHistogram(std::move(histogram), renormingPrecision, renormingPolicy);
   };
 };
 

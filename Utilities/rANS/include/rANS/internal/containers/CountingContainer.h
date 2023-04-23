@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -99,7 +99,7 @@ class CountingContainer<source_T, std::enable_if_t<(sizeof(source_T) <= 2)>> : p
   using const_reverse_iterator = typename base_type::const_reverse_iterator;
   using reverse_iterator = typename base_type::reverse_iterator;
 
-  [[nodiscard]] inline constexpr size_type size() const noexcept { return internal::pow2(internal::toBits<source_type>()); };
+  [[nodiscard]] inline constexpr size_type size() const noexcept { return utils::pow2(utils::toBits<source_type>()); };
 
   friend void swap(CountingContainer& a, CountingContainer& b) noexcept
   {

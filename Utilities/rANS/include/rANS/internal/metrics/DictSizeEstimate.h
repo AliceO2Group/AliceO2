@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -33,21 +33,23 @@ class DictSizeEstimate
   inline DictSizeEstimate(size_t numSamples)
   {
     if (numSamples > 0) {
-      mScalingFactor = internal::pow2(DefaultScalingBits) / static_cast<double_t>(numSamples);
+      mScalingFactor = utils::pow2(DefaultScalingBits) / static_cast<double_t>(numSamples);
     }
   };
 
   [[nodiscard]] inline size_t getIndexSize() const noexcept { return mIndexSizeBits; };
   [[nodiscard]] inline size_t getFreqSize() const noexcept { return mFreqSizeBits; };
-  [[nodiscard]] inline size_t getIndexSizeB() const noexcept { return internal::toBytes(mIndexSizeBits); };
-  [[nodiscard]] inline size_t getFreqSizeB() const noexcept { return internal::toBytes(mFreqSizeBits); };
+  [[nodiscard]] inline size_t getIndexSizeB() const noexcept { return utils::toBytes(mIndexSizeBits); };
+  [[nodiscard]] inline size_t getFreqSizeB() const noexcept { return utils::toBytes(mFreqSizeBits); };
 
   [[nodiscard]] inline size_t getSizeB(size_t nNonzero, size_t renormingBits) const
   {
+    using namespace utils;
+
     assert(isValidRenormingPrecision(renormingBits));
-    const float_t rescalingFactor = static_cast<float_t>(internal::pow2(renormingBits)) / internal::pow2(DefaultScalingBits);
+    const float_t rescalingFactor = static_cast<float_t>(pow2(renormingBits)) / pow2(DefaultScalingBits);
     const int64_t freqRescaled = getFreqSize() + static_cast<float_t>(nNonzero) * internal::fastlog2(rescalingFactor);
-    return internal::toBytes(getIndexSize() + std::max(static_cast<int64_t>(nNonzero), freqRescaled));
+    return toBytes(getIndexSize() + std::max(static_cast<int64_t>(nNonzero), freqRescaled));
   };
 
   inline void updateIndexSize(uint32_t delta)
@@ -64,8 +66,9 @@ class DictSizeEstimate
  private:
   [[nodiscard]] inline uint32_t computeEliasDeltaLength(uint32_t x) const noexcept
   {
+    using namespace utils;
     assert(x > 0);
-    return internal::symbolLengthBits(x) + 2u * internal::symbolLengthBits(internal::symbolLengthBits(x) + 1u) + 1u;
+    return symbolLengthBits(x) + 2u * symbolLengthBits(symbolLengthBits(x) + 1u) + 1u;
   };
 
   static constexpr size_t DefaultScalingBits = defaults::MaxRenormPrecisionBits;

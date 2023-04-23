@@ -24,6 +24,7 @@
 #include <cstring>
 #include <random>
 #include <algorithm>
+#include <version>
 
 #include <boost/test/unit_test.hpp>
 #include <boost/mp11.hpp>
@@ -93,13 +94,13 @@ class SourceMessageProxy
   };
 
  private:
-  inline static constexpr size_t MessageSize = rans::internal::pow2(20);
+  inline static constexpr size_t MessageSize = rans::utils::pow2(20);
   SourceMessage<uint8_t> sourceMessage8u{MessageSize};
   SourceMessage<int8_t> sourceMessage8{MessageSize};
   SourceMessage<uint16_t> sourceMessage16u{MessageSize};
   SourceMessage<int16_t> sourceMessage16{MessageSize};
-  SourceMessage<uint32_t> sourceMessage32u{MessageSize, rans::internal::pow2(27)};
-  SourceMessage<int32_t> sourceMessage32{MessageSize, rans::internal::pow2(26), -static_cast<int32_t>(rans::internal::pow2(26))};
+  SourceMessage<uint32_t> sourceMessage32u{MessageSize, rans::utils::pow2(27)};
+  SourceMessage<int32_t> sourceMessage32{MessageSize, rans::utils::pow2(26), -static_cast<int32_t>(rans::utils::pow2(26))};
 };
 
 inline const SourceMessageProxy MessageProxy{};
@@ -109,15 +110,13 @@ void encodeInplace(source_IT begin, source_IT end)
 {
   using source_type = typename std::iterator_traits<source_IT>::value_type;
 
-  auto histogram = rans::makeHistogram::fromSamples(begin, end);
-
   ctf::InplaceEntropyCoder<source_type> entropyCoder{begin, end};
+  BOOST_CHECK_THROW(entropyCoder.getEncoder(), std::runtime_error);
+  entropyCoder.makeEncoder();
 
   const rans::Metrics<source_type>& metrics = entropyCoder.getMetrics();
-  BOOST_CHECK_THROW(entropyCoder.getEncoder(), std::runtime_error);
-
-  entropyCoder.makeEncoder();
   const rans::SizeEstimate sizeEstimate = metrics.getSizeEstimate();
+
   std::vector<buffer_type> encodeBuffer(sizeEstimate.getCompressedDatasetSize<buffer_type>(), 0);
   std::vector<buffer_type> literalSymbolsBuffer(sizeEstimate.getIncompressibleSize<buffer_type>(), 0);
   std::vector<buffer_type> dictBuffer(sizeEstimate.getCompressedDictionarySize<buffer_type>(), 0);
@@ -125,7 +124,6 @@ void encodeInplace(source_IT begin, source_IT end)
   auto encoderEnd = entropyCoder.encode(begin, end, encodeBuffer.data(), encodeBuffer.data() + encodeBuffer.size());
   auto literalsEnd = entropyCoder.writeIncompressible(literalSymbolsBuffer.data(), literalSymbolsBuffer.data() + literalSymbolsBuffer.size());
   auto dictEnd = entropyCoder.writeDictionary(dictBuffer.data(), dictBuffer.data() + dictBuffer.size());
-
   // decode
   const auto& coderProperties = metrics.getCoderProperties();
   auto decoder = rans::makeDecoder<>::fromRenormed(rans::readRenormedDictionary(dictBuffer.data(), dictEnd,
@@ -185,7 +183,7 @@ class ShiftFunctor
 template <typename iterA_T, typename iterB_T, typename F>
 auto makeInputIterators(iterA_T iterA, iterB_T iterB, size_t nElements, F functor)
 {
-  using namespace o2::rans::internal;
+  using namespace o2::rans::utils;
 
   return std::make_tuple(rans::CombinedInputIterator{iterA, iterB, functor},
                          rans::CombinedInputIterator{advanceIter(iterA, nElements), advanceIter(iterB, nElements), functor});
@@ -197,7 +195,7 @@ BOOST_AUTO_TEST_CASE(testInplaceEncoderCombinedIterator)
   const auto& testMessage1 = MessageProxy.getMessage<int8_t>();
   const auto& testMessage2 = MessageProxy.getMessage<int8_t>();
 
-  auto [begin, end] = makeInputIterators(testMessage1.data(), testMessage2.data(), testMessage1.size(), ShiftFunctor<uint16_t, rans::internal::toBits<uint8_t>()>{});
+  auto [begin, end] = makeInputIterators(testMessage1.data(), testMessage2.data(), testMessage1.size(), ShiftFunctor<uint16_t, rans::utils::toBits<uint8_t>()>{});
 
   encodeInplace(begin, end);
 };
@@ -209,12 +207,12 @@ class ExternalEncoderDecoderProxy
   {
     SourceMessageProxy proxy{};
 
-    auto renormed8u = rans::renorm(rans::makeHistogram::fromSamples(proxy.getMessage<uint8_t>().begin(), proxy.getMessage<uint8_t>().end()), true);
-    auto renormed8 = rans::renorm(rans::makeHistogram::fromSamples(proxy.getMessage<int8_t>().begin(), proxy.getMessage<int8_t>().end()), true);
-    auto renormed16u = rans::renorm(rans::makeHistogram::fromSamples(proxy.getMessage<uint16_t>().begin(), proxy.getMessage<uint16_t>().end()), true);
-    auto renormed16 = rans::renorm(rans::makeHistogram::fromSamples(proxy.getMessage<int16_t>().begin(), proxy.getMessage<int16_t>().end()), true);
-    auto renormed32u = rans::renorm(rans::makeHistogram::fromSamples(proxy.getMessage<uint32_t>().begin(), proxy.getMessage<uint32_t>().end()), true);
-    auto renormed32 = rans::renorm(rans::makeHistogram::fromSamples(proxy.getMessage<int32_t>().begin(), proxy.getMessage<int32_t>().end()), true);
+    auto renormed8u = rans::renorm(rans::makeHistogram::fromSamples(proxy.getMessage<uint8_t>().begin(), proxy.getMessage<uint8_t>().end()), rans::RenormingPolicy::ForceIncompressible);
+    auto renormed8 = rans::renorm(rans::makeHistogram::fromSamples(proxy.getMessage<int8_t>().begin(), proxy.getMessage<int8_t>().end()), rans::RenormingPolicy::ForceIncompressible);
+    auto renormed16u = rans::renorm(rans::makeHistogram::fromSamples(proxy.getMessage<uint16_t>().begin(), proxy.getMessage<uint16_t>().end()), rans::RenormingPolicy::ForceIncompressible);
+    auto renormed16 = rans::renorm(rans::makeHistogram::fromSamples(proxy.getMessage<int16_t>().begin(), proxy.getMessage<int16_t>().end()), rans::RenormingPolicy::ForceIncompressible);
+    auto renormed32u = rans::renorm(rans::makeHistogram::fromSamples(proxy.getMessage<uint32_t>().begin(), proxy.getMessage<uint32_t>().end()), rans::RenormingPolicy::ForceIncompressible);
+    auto renormed32 = rans::renorm(rans::makeHistogram::fromSamples(proxy.getMessage<int32_t>().begin(), proxy.getMessage<int32_t>().end()), rans::RenormingPolicy::ForceIncompressible);
 
     encoder8u = rans::makeEncoder<>::fromRenormed(renormed8u);
     encoder8 = rans::makeEncoder<>::fromRenormed(renormed8);
@@ -342,7 +340,7 @@ BOOST_AUTO_TEST_CASE(testExternalEncoderCombinedIterator)
   const auto& testMessage1 = MessageProxy.getMessage<int8_t>();
   const auto& testMessage2 = MessageProxy.getMessage<int8_t>();
 
-  auto [begin, end] = makeInputIterators(testMessage1.data(), testMessage2.data(), testMessage1.size(), ShiftFunctor<uint16_t, rans::internal::toBits<uint8_t>()>{});
+  auto [begin, end] = makeInputIterators(testMessage1.data(), testMessage2.data(), testMessage1.size(), ShiftFunctor<uint16_t, rans::utils::toBits<uint8_t>()>{});
 
   encodeExternal(begin, end);
 };

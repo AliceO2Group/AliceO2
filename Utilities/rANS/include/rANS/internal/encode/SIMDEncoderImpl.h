@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -61,7 +62,7 @@ class SIMDEncoderImpl : public EncoderImpl<simd::UnrolledSymbols,
   template <typename Stream_IT>
   Stream_IT putSymbols(Stream_IT outputIter, const symbol_type& encodeSymbols, size_t nActiveStreams);
 
-  [[nodiscard]] inline static constexpr state_type getStreamingLowerBound() noexcept { return static_cast<state_type>(pow2(streamingLowerBound_V)); };
+  [[nodiscard]] inline static constexpr state_type getStreamingLowerBound() noexcept { return static_cast<state_type>(utils::pow2(streamingLowerBound_V)); };
 
  private:
   size_t mSymbolTablePrecision{};
@@ -78,9 +79,9 @@ class SIMDEncoderImpl : public EncoderImpl<simd::UnrolledSymbols,
   template <typename Stream_IT>
   std::tuple<state_type, Stream_IT> renorm(state_type state, Stream_IT outputIter, uint32_t frequency);
 
-  inline static constexpr state_type LowerBound = pow2(streamingLowerBound_V); // lower bound of our normalization interval
+  inline static constexpr state_type LowerBound = utils::pow2(streamingLowerBound_V); // lower bound of our normalization interval
 
-  inline static constexpr state_type StreamBits = toBits<stream_type>(); // lower bound of our normalization interval
+  inline static constexpr state_type StreamBits = utils::toBits<stream_type>(); // lower bound of our normalization interval
 };
 
 template <size_t streamingLowerBound_V, simd::SIMDWidth simdWidth_V>
@@ -93,7 +94,7 @@ SIMDEncoderImpl<streamingLowerBound_V, simdWidth_V>::SIMDEncoderImpl(size_t symb
   mStates[0] = simd::setAll<simdWidth_V>(LowerBound);
   mStates[1] = simd::setAll<simdWidth_V>(LowerBound);
 
-  mNSamples = simd::setAll<simdWidth_V>(static_cast<double>(pow2(mSymbolTablePrecision)));
+  mNSamples = simd::setAll<simdWidth_V>(static_cast<double>(utils::pow2(mSymbolTablePrecision)));
 };
 
 template <size_t streamingLowerBound_V, simd::SIMDWidth simdWidth_V>

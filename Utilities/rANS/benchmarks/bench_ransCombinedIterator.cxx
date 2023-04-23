@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -11,8 +11,7 @@
 
 /// @file   bench_ransCombinedIterator.cxx
 /// @author Michael Lettrich
-/// @since  Nov 18, 2020
-/// @brief
+/// @brief  compares performance of on-the-fly merging of data vs copy and merge.
 
 #include <vector>
 

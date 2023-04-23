@@ -91,16 +91,16 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>&
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation
   constexpr MD optField[CTF::getNBlocks()] = {
-    MD::EENCODE_OR_PACK, //BLCfirstChipROF
-    MD::EENCODE_OR_PACK, //BLCbcIncROF
-    MD::EENCODE_OR_PACK, //BLCorbitIncROF
-    MD::EENCODE_OR_PACK, //BLCnclusROF
-    MD::EENCODE_OR_PACK, //BLCchipInc
-    MD::EENCODE_OR_PACK, //BLCchipMul
-    MD::EENCODE_OR_PACK, //BLCrow
-    MD::EENCODE_OR_PACK, //BLCcolInc
-    MD::EENCODE_OR_PACK, //BLCpattID
-    MD::EENCODE_OR_PACK  //BLCpattMap
+    MD::EENCODE_OR_PACK, // BLCfirstChipROF
+    MD::EENCODE_OR_PACK, // BLCbcIncROF
+    MD::EENCODE_OR_PACK, // BLCorbitIncROF
+    MD::EENCODE_OR_PACK, // BLCnclusROF
+    MD::EENCODE_OR_PACK, // BLCchipInc
+    MD::EENCODE_OR_PACK, // BLCchipMul
+    MD::EENCODE_OR_PACK, // BLCrow
+    MD::EENCODE_OR_PACK, // BLCcolInc
+    MD::EENCODE_OR_PACK, // BLCpattID
+    MD::EENCODE_OR_PACK  // BLCpattMap
   };
   CompressedClusters compCl;
   compress(compCl, rofRecVec, cclusVec, pattVec, clPattLookup, strobeLength);

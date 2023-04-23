@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -11,8 +11,7 @@
 
 /// @file   test_ransMetrics.cxx
 /// @author Michael Lettrich
-/// @since  Aug 1, 2020
-/// @brief
+/// @brief test the calculation of metrics required for renorming and encode/ packing decisions
 
 #define BOOST_TEST_MODULE Utility test
 #define BOOST_TEST_MAIN
@@ -34,6 +33,7 @@ BOOST_AUTO_TEST_CASE(test_initDictSizeEstimate)
 {
   using source_type = uint32_t;
   using namespace internal;
+  using namespace utils;
 
   DictSizeEstimate estimate{};
   BOOST_CHECK_EQUAL(estimate.getIndexSize(), 0);
@@ -47,10 +47,11 @@ BOOST_AUTO_TEST_CASE(test_emptyDictSizeEstimate)
 {
   using source_type = uint32_t;
   using namespace internal;
+  using namespace utils;
 
   std::vector<uint32_t> frequencies{};
   Histogram<source_type> histogram{frequencies.begin(), frequencies.end(), 0};
-  const auto view = internal::trim(makeHistogramView(histogram));
+  const auto view = trim(makeHistogramView(histogram));
 
   DictSizeEstimate estimate{histogram.getNumSamples()};
   DictSizeEstimateCounter counter{&estimate};
@@ -73,10 +74,11 @@ BOOST_AUTO_TEST_CASE(test_defaultDictSizeEstimate)
 {
   using source_type = uint32_t;
   using namespace internal;
+  using namespace utils;
 
   std::vector<uint32_t> frequencies{9, 0, 8, 0, 7, 0, 6, 0, 5, 0, 4, 0, 3, 0, 2, 0, 1};
   Histogram<source_type> histogram{frequencies.begin(), frequencies.end(), 0};
-  const auto view = internal::trim(makeHistogramView(histogram));
+  const auto view = trim(makeHistogramView(histogram));
 
   DictSizeEstimate estimate{histogram.getNumSamples()};
   DictSizeEstimateCounter counter{&estimate};
@@ -180,7 +182,7 @@ BOOST_AUTO_TEST_CASE(test_emptyMetrics)
 
   std::vector<uint32_t> frequencies{};
   Histogram<source_type> histogram{frequencies.begin(), frequencies.end(), 0};
-  const auto view = internal::trim(makeHistogramView(histogram));
+  const auto view = trim(makeHistogramView(histogram));
   const float eps = 1e-2;
   const size_t nUsedAlphabetSymbols = 0;
 
@@ -228,7 +230,7 @@ BOOST_AUTO_TEST_CASE(test_singleElementMetrics)
 
   std::vector<uint32_t> frequencies{5};
   Histogram<source_type> histogram{frequencies.begin(), frequencies.end(), 2};
-  const auto view = internal::trim(makeHistogramView(histogram));
+  const auto view = trim(makeHistogramView(histogram));
   const float eps = 1e-2;
   const size_t nUsedAlphabetSymbols = histogram.countNUsedAlphabetSymbols();
 
@@ -272,7 +274,7 @@ BOOST_AUTO_TEST_CASE(test_computeMetrics)
 
   std::vector<uint32_t> frequencies{9, 0, 8, 0, 7, 0, 6, 0, 5, 0, 4, 0, 3, 0, 2, 0, 1};
   Histogram<source_type> histogram{frequencies.begin(), frequencies.end(), 0};
-  const auto view = internal::trim(makeHistogramView(histogram));
+  const auto view = trim(makeHistogramView(histogram));
   const float eps = 1e-2;
   const size_t nUsedAlphabetSymbols = histogram.countNUsedAlphabetSymbols();
 

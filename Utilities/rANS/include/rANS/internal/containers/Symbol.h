@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -35,8 +35,8 @@ class Symbol
   using size_type = size_t;
   using difference_type = std::ptrdiff_t;
 
-  //TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
-  constexpr Symbol() noexcept {}; //NOLINT
+  // TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
+  constexpr Symbol() noexcept {}; // NOLINT
   constexpr Symbol(value_type frequency, value_type cumulative, size_t symbolTablePrecision = 0)
     : mSymbol{frequency, cumulative}
   {
@@ -67,13 +67,13 @@ class PrecomputedSymbol
   using size_type = size_t;
   using difference_type = std::ptrdiff_t;
 
-  //TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
-  constexpr PrecomputedSymbol() noexcept {}; //NOLINT
+  // TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
+  constexpr PrecomputedSymbol() noexcept {}; // NOLINT
 
   constexpr PrecomputedSymbol(value_type frequency, value_type cumulative, size_t symbolTablePrecision)
   {
-    assert(cumulative <= pow2(symbolTablePrecision));
-    assert(frequency <= pow2(symbolTablePrecision) - cumulative);
+    assert(cumulative <= utils::pow2(symbolTablePrecision));
+    assert(frequency <= utils::pow2(symbolTablePrecision) - cumulative);
 
     // Say M := 1 << symbolTablePrecision.
     //
@@ -93,7 +93,7 @@ class PrecomputedSymbol
     // the fast encoder agree.
 
     mFrequency = frequency;
-    mFrequencyComplement = static_cast<state_type>((pow2(symbolTablePrecision)) - frequency);
+    mFrequencyComplement = static_cast<state_type>((utils::pow2(symbolTablePrecision)) - frequency);
     if (frequency < 2) {
       // frequency=0 symbols are never valid to encode, so it doesn't matter what
       // we set our values to.
@@ -123,7 +123,7 @@ class PrecomputedSymbol
       //   bias = cumulative + M - 1.
       mReciprocalFrequency = static_cast<state_type>(~0ul);
       mReciprocalShift = 0;
-      mCumulative = cumulative + (pow2(symbolTablePrecision)) - 1;
+      mCumulative = cumulative + (utils::pow2(symbolTablePrecision)) - 1;
     } else {
       // Alverson, "Integer Division using reciprocals"
       const uint32_t shift = std::ceil(std::log2(frequency));

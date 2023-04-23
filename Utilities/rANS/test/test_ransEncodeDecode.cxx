@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -9,9 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   DecoderSymbol.h
+/// @file   test_ransEncodeDecode.h
 /// @author Michael Lettrich
-/// @since  2020-04-15
 /// @brief  Test rANS encoder/ decoder
 
 #define BOOST_TEST_MODULE Utility test
@@ -106,7 +105,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_encodeDecode, test_types, testCase_types)
   const auto& dictString = dictString_type::Data;
   const auto& encodeString = encodeString_type::Data;
 
-  //TODO(milettri): renorming is not satisfactory.
+  // TODO(milettri): renorming is not satisfactory.
   size_t precision = dictString.size() == 0 ? 0 : RansRenormingPrecision;
 
   auto encoder = makeEncoder<coderTag>::template fromSamples<>(dictString.begin(), dictString.end(), precision);

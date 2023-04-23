@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -58,7 +58,7 @@ inline constexpr uint32_t MaxRenormThreshold = 20;
 
 inline size_t computeRenormingPrecision(size_t nUsedAlphabetSymbols)
 {
-  const uint32_t minBits = o2::rans::internal::log2UInt(nUsedAlphabetSymbols);
+  const uint32_t minBits = o2::rans::utils::log2UInt(nUsedAlphabetSymbols);
   const uint32_t estimate = minBits * 3u / 2u;
   const uint32_t maxThreshold = std::max(minBits, compatImpl::MaxRenormThreshold);
   const uint32_t minThreshold = std::max(estimate, compatImpl::MinRenormThreshold);
@@ -110,7 +110,7 @@ RenormedHistogram<source_T> renorm(Histogram<source_T> histogram, size_t newPrec
   }();
 
   // resample distribution based on cumulative frequencies
-  const count_t newCumulatedFrequency = pow2(newPrecision);
+  const count_t newCumulatedFrequency = utils::pow2(newPrecision);
   size_t nSamples = histogram.getNumSamples() + IncompressibleSymbolFrequency;
   assert(newCumulatedFrequency >= nUsedAlphabetSymbols);
   size_t needsShift = 0;

@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -50,7 +50,7 @@ class RenormedHistogram : public internal::CountingContainer<source_T>
   inline RenormedHistogram(container_type frequencies, size_t renormingBits, value_type nIncompressible) : mNIncompressible(nIncompressible)
   {
     this->mContainer = std::move(frequencies);
-    this->mNSamples = internal::pow2(renormingBits);
+    this->mNSamples = utils::pow2(renormingBits);
 
 #if !defined(NDEBUG)
     size_t nSamples = std::accumulate(this->begin(), this->end(), 0);
@@ -60,7 +60,7 @@ class RenormedHistogram : public internal::CountingContainer<source_T>
 #endif
   };
 
-  [[nodiscard]] inline size_t getRenormingBits() const noexcept { return internal::log2UInt(this->mNSamples); };
+  [[nodiscard]] inline size_t getRenormingBits() const noexcept { return utils::log2UInt(this->mNSamples); };
 
   [[nodiscard]] inline bool isRenormedTo(size_t nBits) const noexcept { return nBits == this->getRenormingBits(); };
 
@@ -82,7 +82,7 @@ class RenormedHistogram : public internal::CountingContainer<source_T>
 template <typename source_T>
 std::pair<source_T, source_T> getMinMax(const RenormedHistogram<source_T>& histogram)
 {
-  auto view = internal::trim(internal::makeHistogramView(histogram));
+  auto view = trim(makeHistogramView(histogram));
   return {view.getMin(), view.getMax()};
 };
 

@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -11,8 +11,7 @@
 
 /// @file   bin-encode-decode.cpp
 /// @author Michael Lettrich
-/// @since  2020-06-22
-/// @brief  benchmark encode/decode using rans on binary data.
+/// @brief  run rANS encoder and decoder based on 8,16 and 32 bit binary input.
 
 #include <rANS/factory.h>
 #include <rANS/histogram.h>

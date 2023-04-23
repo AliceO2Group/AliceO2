@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -11,7 +11,6 @@
 
 /// @file   test_ransReverseSymbolLookupTable.cxx
 /// @author Michael Lettrich
-/// @since  2021-06-02
 /// @brief
 
 #define BOOST_TEST_MODULE Utility test
@@ -42,7 +41,7 @@ size_t getNUniqueSymbols(const T& container)
 
 BOOST_AUTO_TEST_CASE(test_empty)
 {
-  const auto renormedHistogram = renorm(Histogram<uint32_t>{}, true);
+  const auto renormedHistogram = renorm(Histogram<uint32_t>{}, RenormingPolicy::ForceIncompressible);
   const ReverseSymbolLookupTable<uint32_t> rLut{renormedHistogram};
 
   const auto size = 0;
@@ -59,7 +58,7 @@ BOOST_AUTO_TEST_CASE(test_buildRLUT)
   const size_t scaleBits = 17;
   const auto size = (1ull << scaleBits) - 1;
 
-  const auto renormedHistogram = renorm(makeHistogram::fromSamples(A.begin(), A.end()), scaleBits, true);
+  const auto renormedHistogram = renorm(makeHistogram::fromSamples(A.begin(), A.end()), scaleBits, RenormingPolicy::ForceIncompressible);
   const ReverseSymbolLookupTable<int32_t> rLut{renormedHistogram};
 
   BOOST_CHECK_EQUAL(rLut.size(), size);

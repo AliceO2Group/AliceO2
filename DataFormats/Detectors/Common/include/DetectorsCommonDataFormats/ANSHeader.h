@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -10,8 +10,8 @@
 // or submit itself to any jurisdiction.
 
 /// \file ANSHeader.h
-/// \brief representation of ANS Version number in a comparable way
 /// \author michael.lettrich@cern.ch
+/// \brief representation of ANS Version number in a comparable way
 
 #ifndef _ALICEO2_ANSHEADER_H_
 #define _ALICEO2_ANSHEADER_H_
