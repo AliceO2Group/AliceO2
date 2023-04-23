@@ -53,6 +53,7 @@ struct DeviceState {
     PREVIOUSLY_ACTIVE = 1 << 16,  // The previous loop was active
     TRACE_CALLBACKS = 1 << 17,    // Trace callbacks
     TRACE_USERCODE = 1 << 18,     // Trace only usercode
+    DATA_CONNECTED = 1 << 19,     // Data channel connected
   };
 
   std::vector<InputChannelInfo> inputChannelInfos;

@@ -266,8 +266,17 @@ void on_socket_polled(uv_poll_t* poller, int status, int events)
     } break;
     case UV_WRITABLE: {
       ZoneScopedN("socket writeable");
-      LOG(debug) << "socket polled UV_WRITEABLE";
-      context->state->loopReason |= DeviceState::DATA_OUTGOING;
+      if (context->read) {
+        LOG(debug) << "socket polled UV_CONNECT" << context->name;
+        uv_poll_start(poller, UV_READABLE | UV_DISCONNECT | UV_PRIORITIZED, &on_socket_polled);
+        context->state->loopReason |= DeviceState::DATA_CONNECTED;
+      } else {
+        LOG(debug) << "socket polled UV_WRITABLE" << context->name;
+        context->state->loopReason |= DeviceState::DATA_OUTGOING;
+        // If the socket is writable, fairmq will handle the rest, so we can stop polling and
+        // just wait for the disconnect.
+        uv_poll_start(poller, UV_DISCONNECT | UV_PRIORITIZED, &on_socket_polled);
+      }
     } break;
     case UV_DISCONNECT: {
       ZoneScopedN("socket disconnect");
@@ -771,7 +780,7 @@ void DataProcessingDevice::startPollers()
   auto& state = ref.get<DeviceState>();
 
   for (auto& poller : state.activeInputPollers) {
-    uv_poll_start(poller, UV_READABLE | UV_DISCONNECT, &on_socket_polled);
+    uv_poll_start(poller, UV_WRITABLE, &on_socket_polled);
   }
   for (auto& poller : state.activeOutOfBandPollers) {
     uv_poll_start(poller, UV_WRITABLE, &on_out_of_band_polled);
