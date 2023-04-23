@@ -17,6 +17,7 @@
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   workflowOptions.push_back(o2::framework::ConfigParamSpec{"use-ccdb", o2::framework::VariantType::Bool, false, {"enable access to ccdb cpv calibration objects"}});
+  workflowOptions.push_back(o2::framework::ConfigParamSpec{"debug", o2::framework::VariantType::Bool, false, {"debug mode (store calibration objects to local file)"}});
   workflowOptions.push_back(o2::framework::ConfigParamSpec{"path", o2::framework::VariantType::String, "./", {"path to store temp files"}});
   workflowOptions.push_back(o2::framework::ConfigParamSpec{"configKeyValues", o2::framework::VariantType::String, "", {"Semicolon separated key=value strings"}});
 }
@@ -28,8 +29,9 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
   o2::framework::WorkflowSpec specs;
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   auto useCCDB = configcontext.options().get<bool>("use-ccdb");
+  auto debugMode = configcontext.options().get<bool>("debug");
   auto path = configcontext.options().get<std::string>("path");
 
-  specs.emplace_back(o2::focal::getPadPedestalCalibDevice(useCCDB, path));
+  specs.emplace_back(o2::focal::getPadPedestalCalibDevice(useCCDB, path, debugMode));
   return specs;
 }
