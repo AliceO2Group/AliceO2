@@ -11,10 +11,12 @@
 
 o2_add_library(FOCALCalib
     SOURCES src/PadPedestal.cxx
+    src/PadBadChannelMap.cxx
     PUBLIC_LINK_LIBRARIES O2::DataFormatsFOCAL Boost::serialization
 )
 
 o2_target_root_dictionary(
     FOCALCalib
     HEADERS include/FOCALCalib/PadPedestal.h
+    include/FOCALCalib/PadBadChannelMap.h
 )
