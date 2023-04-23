@@ -30,7 +30,7 @@
 
 using namespace o2::focal;
 
-PadPedestalCalibDevice::PadPedestalCalibDevice(bool updateCCDB, const std::string& path) : mUpdateCCDB(updateCCDB), mPath(path) {}
+PadPedestalCalibDevice::PadPedestalCalibDevice(bool updateCCDB, const std::string& path, bool debugMode) : mUpdateCCDB(updateCCDB), mPath(path), mDebug(debugMode) {}
 
 void PadPedestalCalibDevice::init(framework::InitContext& ctx)
 {
@@ -135,6 +135,12 @@ void PadPedestalCalibDevice::sendData(o2::framework::DataAllocator& output)
     output.snapshot(framework::Output{o2::calibration::Utils::gDataOriginCDBWrapper, "FOC_PADPEDESTALS", subSpec}, info);
   }
 
+  if (mDebug) {
+    TFile pedestalWriter("FOCALPedestalCalib.root", "RECREATE");
+    pedestalWriter.cd();
+    pedestalWriter.WriteObjectAny(mPedestalContainer.get(), o2::focal::PadPedestal::Class(), "ccdb_object");
+  }
+
   // store ADC distributions in local file
   std::filesystem::path filepath(mPath);
   filepath.append("FOCALPadPedestals.root");
@@ -209,7 +215,7 @@ double PadPedestalCalibDevice::evaluatePedestal(TH1* channel)
   return pedestal;
 }
 
-o2::framework::DataProcessorSpec o2::focal::getPadPedestalCalibDevice(bool updateCCDB, const std::string& path)
+o2::framework::DataProcessorSpec o2::focal::getPadPedestalCalibDevice(bool updateCCDB, const std::string& path, bool debug)
 {
   std::vector<o2::framework::OutputSpec> outputs;
   outputs.emplace_back(framework::ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "FOC_PADPEDESTALS"}, o2::framework::Lifetime::Sporadic);
@@ -218,7 +224,7 @@ o2::framework::DataProcessorSpec o2::focal::getPadPedestalCalibDevice(bool updat
   return o2::framework::DataProcessorSpec{"FOCALPadPedestalCalibDevice",
                                           o2::framework::select("A:FOC/RAWDATA"),
                                           outputs,
-                                          o2::framework::adaptFromTask<o2::focal::PadPedestalCalibDevice>(updateCCDB, path),
+                                          o2::framework::adaptFromTask<o2::focal::PadPedestalCalibDevice>(updateCCDB, path, debug),
                                           o2::framework::Options{
                                             {"calibmethod", o2::framework::VariantType::String, "max", {"Method used for pedestal evaluation"}}}};
 }

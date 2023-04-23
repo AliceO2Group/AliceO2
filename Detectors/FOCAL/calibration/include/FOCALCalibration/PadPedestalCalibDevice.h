@@ -34,7 +34,7 @@ class PadPedestalCalibDevice : public framework::Task
     MEAN,
     FIT
   };
-  PadPedestalCalibDevice(bool updateCCDB, const std::string& path);
+  PadPedestalCalibDevice(bool updateCCDB, const std::string& path, bool debugMode);
   ~PadPedestalCalibDevice() final = default;
 
   void init(framework::InitContext& ctx) final;
@@ -50,12 +50,13 @@ class PadPedestalCalibDevice : public framework::Task
   PadDecoder mDecoder;
   std::unique_ptr<PadPedestal> mPedestalContainer;
   bool mUpdateCCDB = true;
+  bool mDebug = false;
   std::string mPath = "./";
   Method_t mExtractionMethod = Method_t::MAX;
   std::array<std::unique_ptr<TH2>, 18> mADCDistLayer;
 };
 
-o2::framework::DataProcessorSpec getPadPedestalCalibDevice(bool updateCCDB, const std::string& path);
+o2::framework::DataProcessorSpec getPadPedestalCalibDevice(bool updateCCDB, const std::string& path, bool debug);
 
 } // namespace o2::focal
 
