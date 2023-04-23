@@ -102,6 +102,10 @@ void DataProcessingStates::updateState(CommandSpec cmd)
   if (cmd.id >= updateInfos.size()) {
     throw runtime_error_f("MetricID %d is out of range", (int)cmd.id);
   }
+  // Do not update currently disabled states
+  if (enabled[cmd.id] == false) {
+    return;
+  }
   pendingStates++;
   // Add a static mutex to protect the queue
   // Get the next available operation in an atomic way.
@@ -237,6 +241,7 @@ void DataProcessingStates::registerState(StateSpec const& spec)
   int64_t currentTime = getTimestamp(realTimeBase, initialTimeOffset);
   updateInfos[spec.stateId] = UpdateInfo{currentTime, currentTime};
   updated[spec.stateId] = spec.sendInitialValue;
+  enabled[spec.stateId] = spec.defaultEnabled;
 }
 
 } // namespace o2::framework
