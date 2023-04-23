@@ -64,6 +64,7 @@ struct DataProcessingStates {
       statesBuffer(other.statesBuffer),
       statesViews(other.statesViews),
       updated(other.updated),
+      enabled(other.enabled),
       stateNames(other.stateNames),
       updateInfos(other.updateInfos),
       stateSpecs(other.stateSpecs)
@@ -118,6 +119,10 @@ struct DataProcessingStates {
     /// Wether or not to consider the metric as updated when we
     /// register it.
     bool sendInitialValue = false;
+    /// Wether or not to consider the state enabled at the beginning.
+    /// This is useful to disable some states e.g. when the GUI is not
+    /// enabled.
+    bool defaultEnabled = true;
   };
 
   struct StateView {
@@ -144,7 +149,10 @@ struct DataProcessingStates {
   std::array<int64_t, MAX_STATES> statesIndex = {};
   std::vector<char> statesBuffer;
   std::array<StateView, MAX_STATES> statesViews = {};
+  // Wether or not a given state has been updated.
   std::array<bool, MAX_STATES> updated = {};
+  // Wether or not a given state is enabled
+  std::array<bool, MAX_STATES> enabled = {};
   std::array<std::string, MAX_STATES> stateNames = {};
   std::array<UpdateInfo, MAX_STATES> updateInfos;
   std::array<StateSpec, MAX_STATES> stateSpecs;

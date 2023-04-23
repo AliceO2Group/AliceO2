@@ -94,7 +94,7 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
     queries += ";";
   }
   auto stateId = (short)ProcessingStateId::DATA_QUERIES;
-  states.registerState({.name = "data_queries", .stateId = stateId, .sendInitialValue = true});
+  states.registerState({.name = "data_queries", .stateId = stateId, .sendInitialValue = true, .defaultEnabled = true});
   states.updateState(DataProcessingStates::CommandSpec{.id = stateId, .size = (int)queries.size(), .data = queries.data()});
   states.processCommandQueue();
 }
@@ -894,7 +894,6 @@ void DataRelayer::publishMetrics()
 
   mCachedStateMetrics.resize(mCache.size());
 
-  LOGP(detail, "DriverConfig::batch is {}. DataRelayer state will not be propagated to driver.", mContext.get<DriverConfig const>().batch);
   // There is maximum 16 variables available. We keep them row-wise so that
   // that we can take mod 16 of the index to understand which variable we
   // are talking about.
@@ -904,6 +903,7 @@ void DataRelayer::publishMetrics()
       .stateId = static_cast<short>((short)(ProcessingStateId::CONTEXT_VARIABLES_BASE) + i),
       .minPublishInterval = 200, // if we publish too often we flood the GUI and we are not able to read it in any case
       .sendInitialValue = true,
+      .defaultEnabled = mContext.get<DriverConfig const>().driverHasGUI,
     });
   }
 
@@ -913,6 +913,7 @@ void DataRelayer::publishMetrics()
       .stateId = static_cast<short>((short)(ProcessingStateId::DATA_RELAYER_BASE) + (short)ci),
       .minPublishInterval = 500, // if we publish too often we flood the GUI and we are not able to read it in any case
       .sendInitialValue = true,
+      .defaultEnabled = mContext.get<DriverConfig const>().driverHasGUI,
     });
   }
 }
