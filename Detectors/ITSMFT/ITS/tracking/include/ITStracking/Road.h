@@ -28,7 +28,7 @@ namespace o2
 namespace its
 {
 
-template <int maxRoadSize = 5>
+template <unsigned char maxRoadSize = 5>
 class Road final
 {
  public:
@@ -59,46 +59,44 @@ class Road final
     mCellIds[cellLayer] = cellId;
   }
 
-  // static constexpr int maxRoadSize = 13;
-
  private:
   int mCellIds[maxRoadSize];
-  int mRoadSize;
-  int mLabel;
+  // int mLabel;
+  unsigned char mRoadSize;
   bool mIsFakeRoad;
 };
 
-template <int maxRoadSize>
+template <unsigned char maxRoadSize>
 inline int Road<maxRoadSize>::getRoadSize() const
 {
   return mRoadSize;
 }
 
-template <int maxRoadSize>
-inline int Road<maxRoadSize>::getLabel() const
-{
-  return mLabel;
-}
+// template <unsigned char maxRoadSize>
+// inline int Road<maxRoadSize>::getLabel() const
+// {
+//   return mLabel;
+// }
 
-template <int maxRoadSize>
-inline void Road<maxRoadSize>::setLabel(const int label)
-{
-  mLabel = label;
-}
+// template <unsigned char maxRoadSize>
+// inline void Road<maxRoadSize>::setLabel(const int label)
+// {
+//   mLabel = label;
+// }
 
-template <int maxRoadSize>
+template <unsigned char maxRoadSize>
 GPUhdi() int& Road<maxRoadSize>::operator[](const int& i)
 {
   return mCellIds[i];
 }
 
-template <int maxRoadSize>
+template <unsigned char maxRoadSize>
 inline bool Road<maxRoadSize>::isFakeRoad() const
 {
   return mIsFakeRoad;
 }
 
-template <int maxRoadSize>
+template <unsigned char maxRoadSize>
 inline void Road<maxRoadSize>::setFakeRoad(const bool isFakeRoad)
 {
   mIsFakeRoad = isFakeRoad;
@@ -106,4 +104,4 @@ inline void Road<maxRoadSize>::setFakeRoad(const bool isFakeRoad)
 } // namespace its
 } // namespace o2
 
-#endif /* TRACKINGCA_INCLUDE_ROAD_H */
+#endif

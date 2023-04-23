@@ -19,7 +19,7 @@
 namespace o2::its
 {
 struct Cluster;
-template <int N>
+template <unsigned char N>
 class Road;
 class Cell;
 struct TrackingFrameInfo;

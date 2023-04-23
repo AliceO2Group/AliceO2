@@ -20,7 +20,7 @@
 
 namespace o2::its
 {
-template <int N>
+template <unsigned char N>
 class Road;
 struct TrackingFrameInfo;
 struct Cluster;
