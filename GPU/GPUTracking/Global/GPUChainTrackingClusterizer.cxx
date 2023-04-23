@@ -148,11 +148,13 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
           constexpr size_t bufferSize = 3 * std::max(sizeof(*rdh), sizeof(*hdr)) + 1;
           char dumpBuffer[bufferSize];
           for (size_t i = 0; i < sizeof(*rdh); i++) {
-            snprintf(dumpBuffer + 3 * i, bufferSize, "%02X ", (int)((unsigned char*)rdh)[i]);
+            // "%02X " guaranteed to be 3 chars + ending 0.
+            snprintf(dumpBuffer + 3 * i, 4, "%02X ", (int)((unsigned char*)rdh)[i]);
           }
           GPUAlarm("RDH of page: %s", dumpBuffer);
           for (size_t i = 0; i < sizeof(*hdr); i++) {
-            snprintf(dumpBuffer + 3 * i, bufferSize, "%02X ", (int)((unsigned char*)hdr)[i]);
+            // "%02X " guaranteed to be 3 chars + ending 0.
+            snprintf(dumpBuffer + 3 * i, 4, "%02X ", (int)((unsigned char*)hdr)[i]);
           }
           GPUAlarm("Metainfo of page: %s", dumpBuffer);
           if (GetProcessingSettings().ignoreNonFatalGPUErrors) {
