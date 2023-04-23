@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -70,6 +70,7 @@ template <typename source_T>
 void Metrics<source_T>::computeMetrics(const Histogram<source_T>& histogram)
 {
   using namespace internal;
+  using namespace utils;
 
   mCoderProperties.dictSizeEstimate = DictSizeEstimate{histogram.getNumSamples()};
   DictSizeEstimateCounter dictSizeCounter{&(mCoderProperties.dictSizeEstimate)};
@@ -107,10 +108,10 @@ void Metrics<source_T>::computeMetrics(const Histogram<source_T>& histogram)
 template <typename source_T>
 inline size_t Metrics<source_T>::computeIncompressibleCount(gsl::span<uint32_t> distribution, uint32_t renormingPrecision) noexcept
 {
-  assert(internal::isValidRenormingPrecision(renormingPrecision));
+  assert(utils::isValidRenormingPrecision(renormingPrecision));
   size_t incompressibleCount = 0;
   if (renormingPrecision > 0) {
-    incompressibleCount = std::accumulate(internal::advanceIter(distribution.data(), renormingPrecision), distribution.data() + distribution.size(), incompressibleCount);
+    incompressibleCount = std::accumulate(utils::advanceIter(distribution.data(), renormingPrecision), distribution.data() + distribution.size(), incompressibleCount);
   } else {
     // In case of an empty source message we allocate a precision of 0 Bits => 2**0 = 1
     // This 1 entry is marked as the incompressible symbol, to ensure we somewhat can handle nasty surprises.
@@ -147,9 +148,9 @@ inline size_t Metrics<source_T>::computeRenormingPrecision(float_t cutoffPrecisi
     renormingBits = 0;
   } else {
     // ensure renorming is in interval [MinThreshold, MaxThreshold]
-    renormingBits = internal::sanitizeRenormingBitRange(renormingBits + SafetyMargin);
+    renormingBits = utils::sanitizeRenormingBitRange(renormingBits + SafetyMargin);
   }
-  assert(internal::isValidRenormingPrecision(renormingBits));
+  assert(utils::isValidRenormingPrecision(renormingBits));
   return renormingBits;
 };
 

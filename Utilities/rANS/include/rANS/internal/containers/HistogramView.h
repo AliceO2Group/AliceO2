@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -25,7 +25,7 @@
 
 #include "rANS/internal/common/utils.h"
 
-namespace o2::rans::internal
+namespace o2::rans
 {
 
 template <typename Hist_IT>
@@ -77,7 +77,7 @@ class HistogramView
 
   [[nodiscard]] inline const value_type& operator[](difference_type idx) const
   {
-    auto iter = advanceIter(mBegin, idx - this->getOffset());
+    auto iter = utils::advanceIter(mBegin, idx - this->getOffset());
 
     assert(iter >= this->begin());
     assert(iter < this->end());
@@ -138,8 +138,8 @@ template <typename HistA_IT, typename HistB_IT>
     // intersecting
     const std::ptrdiff_t leftOffset = getLeftOffset(histA, histB);
     const std::ptrdiff_t rightOffset = getRightOffset(histA, histB);
-    HistA_IT begin = leftOffset > 0 ? advanceIter(histA.begin(), leftOffset) : histA.begin();
-    HistA_IT end = rightOffset < 0 ? advanceIter(histA.end(), rightOffset) : histA.end();
+    HistA_IT begin = leftOffset > 0 ? utils::advanceIter(histA.begin(), leftOffset) : histA.begin();
+    HistA_IT end = rightOffset < 0 ? utils::advanceIter(histA.end(), rightOffset) : histA.end();
     std::ptrdiff_t offset = leftOffset > 0 ? histA.getOffset() + leftOffset : histA.getOffset();
     return {begin, end, offset};
   }
@@ -161,7 +161,7 @@ template <typename HistA_IT, typename HistB_IT>
     return histA;
   } else {
     // case 3 0 < leftOffset <= histA.size()
-    return {histA.begin(), advanceIter(histA.begin(), leftOffset), histA.getOffset()};
+    return {histA.begin(), utils::advanceIter(histA.begin(), leftOffset), histA.getOffset()};
   }
 };
 
@@ -182,7 +182,7 @@ template <typename HistA_IT, typename HistB_IT>
     return histA;
   } else {
     // case 3 0 < -rightOffset <= histA.size()
-    auto newBegin = advanceIter(histA.end(), rightOffset);
+    auto newBegin = utils::advanceIter(histA.end(), rightOffset);
     return {newBegin, histA.end(), *newBegin};
   }
 };
@@ -227,6 +227,6 @@ inline auto makeHistogramView(container_T& container) noexcept -> HistogramView<
   return {std::begin(container), std::end(container), container.getOffset()};
 }
 
-} // namespace o2::rans::internal
+} // namespace o2::rans
 
 #endif /* RANS_INTERNAL_CONTAINERS_HISTOGRAMVIEW_H_ */

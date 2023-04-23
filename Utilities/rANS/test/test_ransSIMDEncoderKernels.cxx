@@ -1,17 +1,17 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   test_ransSIMDEncoder.h
+/// @file   test_ransSIMDEncoderKernels.h
 /// @author Michael Lettrich
-/// @since  2020-04-15
-/// @brief  Test rANS SIMD encoder/ decoder
+/// @brief  Test rANS SIMD encoder/ decoder kernels
 
 #define BOOST_TEST_MODULE Utility test
 #define BOOST_TEST_MAIN
@@ -33,6 +33,7 @@
 
 using namespace o2::rans::internal::simd;
 using namespace o2::rans::internal;
+using namespace o2::rans::utils;
 
 // clang-format off
 using pd_types = boost::mpl::list<pd_t<SIMDWidth::SSE>
@@ -69,7 +70,7 @@ struct RANSEncodeFixture {
     const std::vector<uint32_t> cumulative{0, 321, 1, (1u << 16) - 1234};
     const uint64_t normalization = 1ul << 16;
 
-    //copy and convert to double
+    // copy and convert to double
     mState = static_cast<double>(state);
     mNormalization = static_cast<double>(normalization);
     std::copy(std::begin(frequency), std::end(frequency), std::back_inserter(mFrequency));
@@ -156,8 +157,6 @@ BOOST_AUTO_TEST_SUITE(testcmpge)
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(simd_cmpgeq_epi64, epi64_T, epi64_types)
 {
-  using namespace o2::rans::internal::simd;
-
   epi64_T a{0};
   epi64_T b{1};
   epi64_T res{0x0};
@@ -180,7 +179,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(simd_cmpgeq_epi64, epi64_T, epi64_types)
 BOOST_AUTO_TEST_SUITE_END()
 
 struct SSERenormFixture {
-
   using count_t = o2::rans::count_t;
   using ransState_t = uint64_t;
   using stream_t = uint32_t;
@@ -190,7 +188,7 @@ struct SSERenormFixture {
   static constexpr size_t LowerBoundBits = o2::rans::defaults::internal::RenormingLowerBound;
   static constexpr size_t LowerBound = pow2(LowerBoundBits);
   static constexpr size_t SymbolTablePrecisionBits = 16;
-  static constexpr size_t StreamBits = o2::rans::internal::toBits<stream_t>();
+  static constexpr size_t StreamBits = o2::rans::utils::toBits<stream_t>();
 
   uint64_t computeLimitState(count_t frequency)
   {
@@ -211,8 +209,6 @@ struct SSERenormFixture {
   };
   void runRenormingChecksSSE(const epi64_t<SIMDWidth::SSE, 2>& states, const epi32_t<SIMDWidth::SSE>& compactfrequencies)
   {
-    using namespace o2::rans::internal::simd;
-
     const size_t nElems = getElementCount<ransState_t>(SIMDWidth::SSE) * 2;
 
     std::vector<stream_t> streamOutBuffer = std::vector<stream_t>(nElems, 0);
@@ -259,12 +255,10 @@ BOOST_FIXTURE_TEST_SUITE(SSErenorm, SSERenormFixture)
 
 BOOST_AUTO_TEST_CASE(renormSSE_0000)
 {
-  using namespace o2::rans::internal::simd;
   runRenormingChecksSSE({LowerBound, LowerBound, LowerBound, LowerBound}, {0x1u, 0x1u, 0x1u, 0x1u});
 }
 BOOST_AUTO_TEST_CASE(renormSSE_0001)
 {
-  using namespace o2::rans::internal::simd;
   epi32_t<SIMDWidth::SSE> frequencies{0x1u, 0x1u, 0x1u, 0x5u};
   runRenormingChecksSSE({LowerBound,
                          LowerBound,
@@ -274,7 +268,6 @@ BOOST_AUTO_TEST_CASE(renormSSE_0001)
 }
 BOOST_AUTO_TEST_CASE(renormSSE_0010)
 {
-  using namespace o2::rans::internal::simd;
   epi32_t<SIMDWidth::SSE> frequencies{0x1u, 0x1u, 0x4u, 0x1u};
   runRenormingChecksSSE({LowerBound,
                          LowerBound,
@@ -284,7 +277,6 @@ BOOST_AUTO_TEST_CASE(renormSSE_0010)
 }
 BOOST_AUTO_TEST_CASE(renormSSE_0011)
 {
-  using namespace o2::rans::internal::simd;
   epi32_t<SIMDWidth::SSE> frequencies{0x1u, 0x1u, 0x4u, 0x5u};
   runRenormingChecksSSE({LowerBound,
                          LowerBound,
@@ -294,7 +286,6 @@ BOOST_AUTO_TEST_CASE(renormSSE_0011)
 }
 BOOST_AUTO_TEST_CASE(renormSSE_0100)
 {
-  using namespace o2::rans::internal::simd;
   epi32_t<SIMDWidth::SSE> frequencies{0x1u, 0x3u, 0x1u, 0x1u};
   runRenormingChecksSSE({LowerBound,
                          computeLimitState(frequencies(1)) + 0xF3,
@@ -304,7 +295,6 @@ BOOST_AUTO_TEST_CASE(renormSSE_0100)
 }
 BOOST_AUTO_TEST_CASE(renormSSE_0101)
 {
-  using namespace o2::rans::internal::simd;
   epi32_t<SIMDWidth::SSE> frequencies{0x1u, 0x3u, 0x1u, 0x5u};
   runRenormingChecksSSE({LowerBound,
                          computeLimitState(frequencies(1)) + 0xF3,
@@ -314,7 +304,6 @@ BOOST_AUTO_TEST_CASE(renormSSE_0101)
 }
 BOOST_AUTO_TEST_CASE(renormSSE_0110)
 {
-  using namespace o2::rans::internal::simd;
   epi32_t<SIMDWidth::SSE> frequencies{0x1u, 0x3u, 0x4u, 0x1u};
   runRenormingChecksSSE({LowerBound,
                          computeLimitState(frequencies(1)) + 0xF3,
@@ -324,7 +313,6 @@ BOOST_AUTO_TEST_CASE(renormSSE_0110)
 }
 BOOST_AUTO_TEST_CASE(renormSSE_0111)
 {
-  using namespace o2::rans::internal::simd;
   epi32_t<SIMDWidth::SSE> frequencies{0x1u, 0x3u, 0x4u, 0x5u};
   runRenormingChecksSSE({LowerBound,
                          computeLimitState(frequencies(1)) + 0xF3,
@@ -334,7 +322,6 @@ BOOST_AUTO_TEST_CASE(renormSSE_0111)
 }
 BOOST_AUTO_TEST_CASE(renormSSE_1000)
 {
-  using namespace o2::rans::internal::simd;
   epi32_t<SIMDWidth::SSE> frequencies{0x2u, 0x1u, 0x1u, 0x1u};
   runRenormingChecksSSE({computeLimitState(frequencies(0)) + 0xF2,
                          LowerBound,
@@ -344,7 +331,6 @@ BOOST_AUTO_TEST_CASE(renormSSE_1000)
 }
 BOOST_AUTO_TEST_CASE(renormSSE_1001)
 {
-  using namespace o2::rans::internal::simd;
   epi32_t<SIMDWidth::SSE> frequencies{0x2u, 0x1u, 0x1u, 0x5u};
   runRenormingChecksSSE({computeLimitState(frequencies(0)) + 0xF2,
                          LowerBound,
@@ -354,7 +340,6 @@ BOOST_AUTO_TEST_CASE(renormSSE_1001)
 }
 BOOST_AUTO_TEST_CASE(renormSSE_1010)
 {
-  using namespace o2::rans::internal::simd;
   epi32_t<SIMDWidth::SSE> frequencies{0x2u, 0x1u, 0x4u, 0x1u};
   runRenormingChecksSSE({computeLimitState(frequencies(0)) + 0xF2,
                          LowerBound,
@@ -364,7 +349,6 @@ BOOST_AUTO_TEST_CASE(renormSSE_1010)
 }
 BOOST_AUTO_TEST_CASE(renormSSE_1011)
 {
-  using namespace o2::rans::internal::simd;
   epi32_t<SIMDWidth::SSE> frequencies{0x2u, 0x1u, 04u, 0x5u};
   runRenormingChecksSSE({computeLimitState(frequencies(0)) + 0xF2,
                          LowerBound,
@@ -374,7 +358,6 @@ BOOST_AUTO_TEST_CASE(renormSSE_1011)
 }
 BOOST_AUTO_TEST_CASE(renormSSE_1100)
 {
-  using namespace o2::rans::internal::simd;
   epi32_t<SIMDWidth::SSE> frequencies{0x2u, 0x3u, 0x1u, 0x1u};
   runRenormingChecksSSE({computeLimitState(frequencies(0)) + 0xF2,
                          computeLimitState(frequencies(1)) + 0xF3,
@@ -384,7 +367,6 @@ BOOST_AUTO_TEST_CASE(renormSSE_1100)
 }
 BOOST_AUTO_TEST_CASE(renormSSE_1101)
 {
-  using namespace o2::rans::internal::simd;
   epi32_t<SIMDWidth::SSE> frequencies{0x2u, 0x3u, 0x1u, 0x5u};
   runRenormingChecksSSE({computeLimitState(frequencies(0)) + 0xF2,
                          computeLimitState(frequencies(1)) + 0xF3,
@@ -394,7 +376,6 @@ BOOST_AUTO_TEST_CASE(renormSSE_1101)
 }
 BOOST_AUTO_TEST_CASE(renormSSE_1110)
 {
-  using namespace o2::rans::internal::simd;
   epi32_t<SIMDWidth::SSE> frequencies{0x2u, 0x3u, 0x4u, 0x1u};
   runRenormingChecksSSE({computeLimitState(frequencies(0)) + 0xF2,
                          computeLimitState(frequencies(1)) + 0xF3,
@@ -404,7 +385,6 @@ BOOST_AUTO_TEST_CASE(renormSSE_1110)
 }
 BOOST_AUTO_TEST_CASE(renormSSE_1111)
 {
-  using namespace o2::rans::internal::simd;
   epi32_t<SIMDWidth::SSE> frequencies{0x2u, 0x3u, 0x4u, 0x5u};
   runRenormingChecksSSE({computeLimitState(frequencies(0)) + 0xF2,
                          computeLimitState(frequencies(1)) + 0xF3,

@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -159,13 +159,13 @@ class SourceMessageProxy
   };
 
  private:
-  inline static constexpr size_t MessageSize = internal::pow2(10);
+  inline static constexpr size_t MessageSize = utils::pow2(10);
   inline static const SourceMessage<uint8_t> sourceMessage8u{MessageSize};
   inline static const SourceMessage<int8_t> sourceMessage8{MessageSize};
   inline static const SourceMessage<uint16_t> sourceMessage16u{MessageSize};
   inline static const SourceMessage<int16_t> sourceMessage16{MessageSize};
-  inline static const SourceMessage<uint32_t> sourceMessage32u{MessageSize, internal::pow2(27)};
-  inline static const SourceMessage<int32_t> sourceMessage32{MessageSize, internal::pow2(26), -static_cast<int32_t>(internal::pow2(26))};
+  inline static const SourceMessage<uint32_t> sourceMessage32u{MessageSize, utils::pow2(27)};
+  inline static const SourceMessage<int32_t> sourceMessage32{MessageSize, utils::pow2(26), -static_cast<int32_t>(utils::pow2(26))};
 };
 
 inline const SourceMessageProxy MessageProxy{};

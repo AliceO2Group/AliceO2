@@ -1,8 +1,26 @@
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// @file   bench_ransEncode.cxx
+/// @author Michael Lettrich
+/// @brief  compares performance of different encoders
+
 #include <vector>
 #include <cstring>
 #include <random>
 #include <algorithm>
+#include <version>
+#ifdef __cpp_lib_execution
 #include <execution>
+#endif
 #include <iterator>
 
 #include <benchmark/benchmark.h>
@@ -33,7 +51,11 @@ class SourceMessageProxy
       std::binomial_distribution<source_T> dist(draws, probability);
       const size_t sourceSize = messageSize / sizeof(source_T) + 1;
       mSourceMessage.resize(sourceSize);
+#ifdef __cpp_lib_execution
       std::generate(std::execution::par_unseq, mSourceMessage.begin(), mSourceMessage.end(), [&dist, &mt]() { return dist(mt); });
+#else
+      std::generate(mSourceMessage.begin(), mSourceMessage.end(), [&dist, &mt]() { return dist(mt); });
+#endif
     }
   }
 
@@ -70,7 +92,7 @@ void ransCompressionBenchmark(benchmark::State& st)
 
   const auto histogram = makeHistogram::fromSamples(gsl::span<const source_type>(inputData));
   Metrics<source_type> metrics{histogram};
-  const auto renormedHistogram = renorm(histogram, metrics, false, 10);
+  const auto renormedHistogram = renorm(histogram, metrics, RenormingPolicy::Auto, 10);
   auto encoder = makeEncoder<coderTag_V>::fromRenormed(renormedHistogram);
 
 #ifdef ENABLE_VTUNE_PROFILER

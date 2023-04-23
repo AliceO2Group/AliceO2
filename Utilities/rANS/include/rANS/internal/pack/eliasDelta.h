@@ -1,16 +1,17 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   pack.h
+/// @file   eliasDelta.h
 /// @author Michael Lettrich
-/// @brief  packs data into a buffer, optionally via Elias-Delta coding.
+/// @brief  compress data stream using Elias-Delta coding.
 
 #ifndef RANS_INTERNAL_PACK_ELIASDELTA_H_
 #define RANS_INTERNAL_PACK_ELIASDELTA_H_
@@ -26,9 +27,10 @@
 namespace o2::rans::internal
 {
 
-[[nodiscard]] inline internal::BitPtr eliasDeltaEncode(internal::BitPtr dst, uint32_t data)
+[[nodiscard]] inline BitPtr eliasDeltaEncode(BitPtr dst, uint32_t data)
 {
   using namespace internal;
+  using namespace utils;
 
   assert(data > 0);
 
@@ -45,9 +47,10 @@ namespace o2::rans::internal
 inline constexpr size_t EliasDeltaDecodeMaxBits = 42;
 
 template <typename dst_T>
-[[nodiscard]] inline dst_T eliasDeltaDecode(internal::BitPtr& srcPos, size_t rBitOffset = EliasDeltaDecodeMaxBits)
+[[nodiscard]] inline dst_T eliasDeltaDecode(BitPtr& srcPos, size_t rBitOffset = EliasDeltaDecodeMaxBits)
 {
   using namespace internal;
+  using namespace utils;
   static_assert(sizeof(dst_T) <= sizeof(uint32_t));
   assert(rBitOffset <= EliasDeltaDecodeMaxBits);
   constexpr size_t PackingBufferBits = toBits<packing_type>();

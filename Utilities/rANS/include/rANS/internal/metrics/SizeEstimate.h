@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -36,7 +36,7 @@ inline constexpr size_t addEncoderOverheadEstimateB(size_t sizeB) noexcept
   constexpr size_t nStreams = defaults::CoderPreset<tag_V>::nStreams;
   using state_type = typename internal::CoderTraits_t<tag_V>::state_type;
   constexpr size_t minSize = nStreams * sizeof(state_type); // mandatory size of flushing
-  constexpr size_t overhead = internal::toBytes(lowerBound_V * nStreams);
+  constexpr size_t overhead = utils::toBytes(lowerBound_V * nStreams);
 
   return std::max(minSize, sizeB + overhead);
 }
@@ -80,12 +80,12 @@ inline SizeEstimate::SizeEstimate(const Metrics<source_T>& metrics) noexcept
   const auto& nSamples = datasetProperties.numSamples;
 
   if (nSamples > 0) {
-    mEntropySizeB = internal::toBytes(datasetProperties.entropy * nSamples);
+    mEntropySizeB = utils::toBytes(datasetProperties.entropy * nSamples);
     mCompressedDatasetSizeB = addEncoderOverheadEstimateB<>(mEntropySizeB);
     mCompressedDictionarySizeB = coderProperties.dictSizeEstimate.getSizeB(datasetProperties.nUsedAlphabetSymbols,
                                                                            *coderProperties.renormingPrecisionBits);
-    mIncompressibleSizeB = internal::toBytes(datasetProperties.alphabetRangeBits * (*coderProperties.nIncompressibleSamples));
-    mPackedDatasetSizeB = internal::toBytes(datasetProperties.alphabetRangeBits * nSamples);
+    mIncompressibleSizeB = utils::toBytes(datasetProperties.alphabetRangeBits * (*coderProperties.nIncompressibleSamples));
+    mPackedDatasetSizeB = utils::toBytes(datasetProperties.alphabetRangeBits * nSamples);
   } else {
     // special case: store no data for empty dataset
     mEntropySizeB = 0;
@@ -104,26 +104,26 @@ inline SizeEstimate::SizeEstimate(const Metrics<source_T>& metrics) noexcept
 template <typename T>
 [[nodiscard]] inline size_t SizeEstimate::getCompressedDatasetSize(double_t safetyFactor) const
 {
-  return internal::nBytesTo<T>(std::ceil(mCompressedDatasetSizeB * safetyFactor));
+  return utils::nBytesTo<T>(std::ceil(mCompressedDatasetSizeB * safetyFactor));
 };
 
 template <typename T>
 [[nodiscard]] inline size_t SizeEstimate::getCompressedDictionarySize(double_t safetyFactor) const
 {
   constexpr size_t MaxOverhead = 8; // maximal absolute overhead
-  return internal::nBytesTo<T>(std::ceil(mCompressedDictionarySizeB * safetyFactor) + MaxOverhead);
+  return utils::nBytesTo<T>(std::ceil(mCompressedDictionarySizeB * safetyFactor) + MaxOverhead);
 };
 
 template <typename T>
 [[nodiscard]] inline size_t SizeEstimate::getIncompressibleSize(double_t safetyFactor) const
 {
-  return internal::nBytesTo<T>(std::ceil(mIncompressibleSizeB * safetyFactor));
+  return utils::nBytesTo<T>(std::ceil(mIncompressibleSizeB * safetyFactor));
 };
 
 template <typename T>
 [[nodiscard]] inline size_t SizeEstimate::getPackedDatasetSize(double_t safetyFactor) const
 {
-  return internal::nBytesTo<T>(std::ceil(mPackedDatasetSizeB * safetyFactor));
+  return utils::nBytesTo<T>(std::ceil(mPackedDatasetSizeB * safetyFactor));
 };
 
 [[nodiscard]] inline bool SizeEstimate::preferPacking(double_t weight) const

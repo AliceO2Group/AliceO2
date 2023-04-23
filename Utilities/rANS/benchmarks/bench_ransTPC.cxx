@@ -1,3 +1,18 @@
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// @file   bench_ransTPC.h
+/// @author Michael Lettrich
+/// @brief  main benchmark executable that performs compression/decompression of TPC data while taking detailed metrics.
+
 #include <vector>
 #include <cstring>
 #include <execution>
@@ -99,7 +114,7 @@ class TimingDecorator
 
  private:
   jsonWriter_type* mWriter{};
-  internal::RANSTimer mTimer{};
+  utils::RANSTimer mTimer{};
 };
 
 // std::ofstream ofFrequencies{"frequencies.json"};
@@ -114,7 +129,7 @@ template <typename source_T, CoderTag coderTag_V>
 void ransEncodeDecode(const std::string& name, const std::vector<source_T>& inputData, rapidjson::Writer<rapidjson::OStreamWrapper>& writer)
 {
   using source_type = source_T;
-  internal::RANSTimer timer{};
+  utils::RANSTimer timer{};
   TimingDecorator t{writer};
 
   writer.Key(name.c_str());
@@ -165,9 +180,9 @@ void ransEncodeDecode(const std::string& name, const std::vector<source_T>& inpu
   std::vector<uint8_t> dict(histogram.size() * sizeof(uint64_t), 0);
   auto dictEnd = t.timeAndLog("WriteDict", "Serialized Dict", [&]() { return compressRenormedDictionary(encoder.getSymbolTable(), dict.data()); });
   LOGP(info, "Serialized Dict of {} Bytes", std::distance(dict.data(), dictEnd));
-  auto recoveredHistogram = t.timeAndLog("ReadDict", "Read Dict", [&]() { 
+  auto recoveredHistogram = t.timeAndLog("ReadDict", "Read Dict", [&]() {
     const source_type min =  encoder.getSymbolTable().getOffset();
-    const source_type max =  min+ std::max<source_type>(static_cast<int64_t>(encoder.getSymbolTable().size())-1,0);
+    const source_type max =  min + std::max<source_type>(static_cast<int64_t>(encoder.getSymbolTable().size())-1,0);
     return readRenormedDictionary(dict.data(), dictEnd,min,max,renormedHistogram.getRenormingBits()); });
   auto decoder = makeDecoder<>::fromRenormed(renormedHistogram);
   auto recoveredDecoder = makeDecoder<>::fromRenormed(recoveredHistogram);

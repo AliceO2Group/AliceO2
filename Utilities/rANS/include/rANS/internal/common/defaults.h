@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -30,6 +30,8 @@ enum class CoderTag : uint8_t { Compat,
                                 SingleStream,
                                 SSE,
                                 AVX2 };
+
+using count_t = uint32_t;
 
 namespace defaults
 {

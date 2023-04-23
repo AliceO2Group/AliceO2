@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -9,10 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   test_ransFrequencyTable.cxx
+/// @file   test_ransHistograms.cxx
 /// @author Michael Lettrich
-/// @since  Aug 1, 2020
-/// @brief
+/// @brief test class that allows to build histogram of symbols from a source message
 
 #define BOOST_TEST_MODULE Utility test
 #define BOOST_TEST_MAIN
@@ -37,16 +36,6 @@ using histogram_t = boost::mpl::vector<
   Histogram<uint16_t>,
   Histogram<int16_t>,
   Histogram<int32_t>>;
-
-namespace std
-{
-template <typename key_T, typename value_T>
-std::ostream& operator<<(std::ostream& os, const std::pair<key_T, value_T>& pair)
-{
-  os << fmt::format("{}:{}", static_cast<int64_t>(pair.first), static_cast<int64_t>(pair.second));
-  return os;
-}
-} // namespace std
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_emptyTables, histogram_T, histogram_t)
 {
@@ -278,6 +267,97 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_addFrequencies, histogram_T, histogram_t)
   BOOST_CHECK(histogram.cbegin() != histogram.cend());
 };
 
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_addFrequenciesSignChange, histogram_T, histogram_t)
+{
+  using source_type = typename histogram_T::source_type;
+  using value_type = typename histogram_T::value_type;
+  std::vector<value_type> frequencies{0, 1, 2, 3, 4, 5};
+
+  std::unordered_map<source_type, uint32_t> results{
+    {static_cast<source_type>(1), 1},
+    {static_cast<source_type>(2), 2},
+    {static_cast<source_type>(3), 3},
+    {static_cast<source_type>(4), 4},
+    {static_cast<source_type>(5), 5},
+  };
+
+  const size_t fixedtableSize = 1ul << (sizeof(source_type) * 8);
+  const size_t fixedSizeOffset = std::numeric_limits<source_type>::min();
+
+  histogram_T histogram{};
+  histogram.addFrequencies(frequencies.begin(), frequencies.end(), 0);
+
+  histogram_T histogram2{};
+  histogram2.addFrequencies(gsl::make_span(frequencies), 0);
+
+  BOOST_CHECK_EQUAL_COLLECTIONS(histogram.begin(), histogram.end(), histogram2.begin(), histogram2.end());
+
+  for (const auto [symbol, value] : results) {
+    BOOST_CHECK_EQUAL(histogram[symbol], value);
+  }
+
+  BOOST_CHECK_EQUAL(histogram.empty(), false);
+  BOOST_CHECK_EQUAL(histogram.size(), sizeof(source_type) < 4 ? fixedtableSize : 5);
+  BOOST_CHECK_EQUAL(histogram.getOffset(), sizeof(source_type) < 4 ? fixedSizeOffset : 1);
+  BOOST_CHECK(histogram.begin() != histogram.end());
+  BOOST_CHECK(histogram.cbegin() != histogram.cend());
+  BOOST_CHECK_EQUAL(histogram.countNUsedAlphabetSymbols(), 5);
+  BOOST_CHECK_EQUAL(histogram.getNumSamples(), 15);
+
+  // lets add more frequencies;
+  std::vector<value_type> frequencies2{3, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0};
+
+  if constexpr (std::is_signed_v<source_type>) {
+    const std::ptrdiff_t offset = utils::pow2(utils::toBits<source_type>() - 1);
+
+    if constexpr (std::is_same_v<source_type, int32_t>) {
+      const std::ptrdiff_t largeOffset = utils::toBits<source_type>() - 1;
+      BOOST_CHECK_THROW(histogram.addFrequencies(frequencies2.begin(), frequencies2.end(), offset), HistogramError);
+      BOOST_CHECK_THROW(histogram2.addFrequencies(gsl::make_span(frequencies2), offset), HistogramError);
+    } else {
+
+      histogram.addFrequencies(frequencies2.begin(), frequencies2.end(), offset);
+      histogram2.addFrequencies(gsl::make_span(frequencies2), offset);
+
+      results[static_cast<source_type>(0 + offset)] += 3;
+      results[static_cast<source_type>(2 + offset)] += 4;
+      results[static_cast<source_type>(11 + offset)] += 5;
+
+      BOOST_CHECK_EQUAL(histogram.size(), sizeof(source_type) < 4 ? fixedtableSize : 14);
+      BOOST_CHECK_EQUAL(histogram.getOffset(), sizeof(source_type) < 4 ? fixedSizeOffset : 1);
+      BOOST_CHECK_EQUAL(histogram.countNUsedAlphabetSymbols(), 8);
+    }
+  } else {
+    const std::ptrdiff_t offset = -1;
+    histogram.addFrequencies(frequencies2.begin(), frequencies2.end(), offset);
+    histogram2.addFrequencies(gsl::make_span(frequencies2), offset);
+
+    results[static_cast<source_type>(0 + offset)] += 3;
+    results[static_cast<source_type>(2 + offset)] += 4;
+    results[static_cast<source_type>(11 + offset)] += 5;
+
+    BOOST_CHECK_EQUAL(histogram.size(), sizeof(source_type) < 4 ? fixedtableSize : 12);
+    BOOST_CHECK_EQUAL(histogram.getOffset(), sizeof(source_type) < 4 ? fixedSizeOffset : -1);
+    BOOST_CHECK_EQUAL(histogram.countNUsedAlphabetSymbols(), 7);
+  }
+
+  if constexpr (std::is_same_v<source_type, int32_t>) {
+    // for the int32_t case we couldn't add samples, so no changes
+    BOOST_CHECK_EQUAL(histogram.getNumSamples(), 15);
+  } else {
+    BOOST_CHECK_EQUAL(histogram.getNumSamples(), 27);
+  }
+  BOOST_CHECK_EQUAL_COLLECTIONS(histogram.begin(), histogram.end(), histogram2.begin(), histogram2.end());
+
+  for (const auto [symbol, value] : results) {
+    BOOST_CHECK_EQUAL(histogram[symbol], value);
+  }
+
+  BOOST_CHECK_EQUAL(histogram.empty(), false);
+  BOOST_CHECK(histogram.begin() != histogram.end());
+  BOOST_CHECK(histogram.cbegin() != histogram.cend());
+};
+
 using countingContainer_t = boost::mpl::vector<
   Histogram<uint8_t>,
   Histogram<uint32_t>>;
@@ -289,7 +369,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_renormIncompressible, histogram_T, countingCo
 
   const size_t scaleBits = 8;
 
-  auto renormedHistogram = renorm(std::move(histogram), scaleBits, true, 1);
+  auto renormedHistogram = renorm(std::move(histogram), scaleBits, RenormingPolicy::ForceIncompressible, 1);
 
   const std::vector<uint32_t> rescaledFrequencies{1, 2, 1, 3, 2, 3, 3, 5, 6, 7, 8, 9, 10, 11, 13, 11, 12, 10, 14, 13, 10, 13, 12, 8, 12, 7, 8, 6, 7, 5, 4, 3, 4, 2, 2, 1, 2, 1, 1};
   BOOST_CHECK_EQUAL(renormedHistogram.isRenormedTo(scaleBits), true);
@@ -316,6 +396,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_renormLegacy, histogram_T, countingContainer_
 BOOST_AUTO_TEST_CASE(test_ExpectedCodewordLength)
 {
   using namespace internal;
+  using namespace utils;
   using source_type = uint32_t;
   constexpr double_t eps = 1e-2;
 

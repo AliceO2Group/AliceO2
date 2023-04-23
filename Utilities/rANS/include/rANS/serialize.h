@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -80,7 +80,7 @@ template <typename buffer_IT>
   for (buffer_IT iter = end; iter-- != begin;) {
     auto value = static_cast<value_type>(*iter);
     if (value > 0) {
-      const intptr_t offset = toBits<value_type>() - __builtin_clzl(value);
+      const intptr_t offset = utils::toBits<value_type>() - __builtin_clzl(value);
       return {iter, offset};
     }
   }
@@ -102,7 +102,7 @@ template <typename buffer_IT>
 template <typename container_T, typename jsonBuffer_T>
 void toJSON(const container_T& container, rapidjson::Writer<jsonBuffer_T>& writer)
 {
-  using namespace internal;
+  using namespace utils;
 
   writer.StartObject();
   writer.Key("Offset");
@@ -153,7 +153,7 @@ dest_IT compressRenormedDictionary(const container_T& container, dest_IT dstBuff
   BitPtr dstIter{dstBufferBegin};
   // encoding the container values back-to-front, so that the decoder can run in correct order.
 
-  //find the first non-zero entry
+  // find the first non-zero entry
   const auto begin = getNextNonzeroIter(container.cbegin(), container.cend());
   // and write it;
   auto iter = begin;
@@ -176,9 +176,9 @@ dest_IT compressRenormedDictionary(const container_T& container, dest_IT dstBuff
       ++offset;
     }
   }
-  //write out incompressibleFrequency
+  // write out incompressibleFrequency
   dstIter = eliasDeltaEncode(dstIter, getIncompressibleFrequency(container) + 1);
-  //finish off by a 1 to identify start of the sequence.
+  // finish off by a 1 to identify start of the sequence.
   dstIter = eliasDeltaEncode(dstIter, 1);
 
   // extract raw Pointer from BitPtr

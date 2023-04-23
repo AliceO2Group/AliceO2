@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -43,7 +43,7 @@ class Decoder
 
   [[nodiscard]] inline const symbolTable_type& getSymbolTable() const noexcept { return mSymbolTable; };
 
-  template <typename stream_IT, typename source_IT, typename literals_IT = std::nullptr_t, std::enable_if_t<internal::isCompatibleIter_v<typename symbolTable_T::source_type, source_IT>, bool> = true>
+  template <typename stream_IT, typename source_IT, typename literals_IT = std::nullptr_t, std::enable_if_t<utils::isCompatibleIter_v<typename symbolTable_T::source_type, source_IT>, bool> = true>
   void process(stream_IT inputEnd, source_IT outputBegin, size_t messageLength, size_t nStreams, literals_IT literalsEnd = nullptr) const
   {
     {

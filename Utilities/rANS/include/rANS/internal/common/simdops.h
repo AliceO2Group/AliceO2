@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -235,7 +236,7 @@ inline __m128d uint64ToDouble(__m128i in) noexcept
 #if !defined(NDEBUG)
   auto vec = store<uint64_t>(in);
   for (auto i : gsl::make_span(vec)) {
-    assert(i < pow2(52));
+    assert(i < utils::pow2(52));
   }
 #endif
   in = _mm_or_si128(in, _mm_castpd_si128(_mm_set1_pd(AlignMantissaMagic)));
@@ -253,7 +254,7 @@ inline __m256d uint64ToDouble(__m256i in) noexcept
 #if !defined(NDEBUG)
   auto vec = store<uint64_t>(in);
   for (auto i : gsl::make_span(vec)) {
-    assert(i < pow2(52));
+    assert(i < utils::pow2(52));
   }
 #endif
   in = _mm256_or_si256(in, _mm256_castpd_si256(_mm256_set1_pd(AlignMantissaMagic)));
@@ -267,7 +268,7 @@ inline __m128i doubleToUint64(__m128d in) noexcept
 #if !defined(NDEBUG)
   auto vec = store(in);
   for (auto i : gsl::make_span(vec)) {
-    assert(i < pow2(52));
+    assert(i < utils::pow2(52));
   }
 #endif
   in = _mm_add_pd(in, _mm_set1_pd(AlignMantissaMagic));
@@ -283,7 +284,7 @@ inline __m256i doubleToUint64(__m256d in) noexcept
 #if !defined(NDEBUG)
   auto vec = store(in);
   for (auto i : gsl::make_span(vec)) {
-    assert(i < pow2(52));
+    assert(i < utils::pow2(52));
   }
 #endif
 

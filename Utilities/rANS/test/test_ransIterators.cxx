@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -11,8 +11,7 @@
 
 /// @file   test_ransIterators.cxx
 /// @author michael.lettrich@cern.ch
-/// @since  2020-10-28
-/// @brief
+/// @brief test iterators that allow to zip/unzip data on the fly
 
 #define BOOST_TEST_MODULE Utility test
 #define BOOST_TEST_MAIN

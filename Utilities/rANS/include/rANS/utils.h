@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -27,21 +27,6 @@
 
 #include <fairlogger/Logger.h>
 #include "rANS/internal/common/exceptions.h"
-
-namespace o2::rans
-{
-
-using count_t = uint32_t;
-
-template <typename IT>
-void checkBounds(IT iteratorPosition, IT upperBound)
-{
-  const auto diff = std::distance(iteratorPosition, upperBound);
-  if (diff < 0) {
-    throw OutOfBoundsError(fmt::format("Bounds of buffer violated by {} elements", std::abs(diff)));
-  }
-}
-
-} // namespace o2::rans
+#include "rANS/internal/common/utils.h"
 
 #endif /* RANS_UTILS_H_ */

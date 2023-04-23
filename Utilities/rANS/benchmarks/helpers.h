@@ -1,3 +1,17 @@
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
+/// @file   helpers.h
+/// @author Michael Lettrich
+/// @brief  common functionality for rANS benchmarks.
 
 #ifndef RANS_BENCHMARKS_HELPERS_H_
 #define RANS_BENCHMARKS_HELPERS_H_
@@ -11,8 +25,15 @@
 #include <rapidjson/istreamwrapper.h>
 #include <rapidjson/ostreamwrapper.h>
 
+#include <fairlogger/Logger.h>
 #include <algorithm>
+
+#include "rANS/internal/common/exceptions.h"
+
+#include <version>
+#ifdef __cpp_lib_execution
 #include <execution>
+#endif
 
 struct TPCCompressedClusters {
 
@@ -282,7 +303,11 @@ struct DecodeBuffer {
   template <typename T>
   bool operator==(const T& correct)
   {
+#ifdef __cpp_lib_execution
     return std::equal(std::execution::par_unseq, buffer.begin(), buffer.end(), std::begin(correct), std::end(correct));
+#else
+    return std::equal(buffer.begin(), buffer.end(), std::begin(correct), std::end(correct));
+#endif
   }
 
   std::vector<source_T> buffer{};

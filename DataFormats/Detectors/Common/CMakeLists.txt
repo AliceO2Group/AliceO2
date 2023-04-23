@@ -60,4 +60,6 @@ o2_add_test(CTFEntropyCoder
             COMPONENT_NAME DetectorsCommonDataFormats
             TARGETVARNAME TEST_CTF_ENTROPY_CODER
             LABELS detectorsbase)
-            target_compile_options(${TEST_CTF_ENTROPY_CODER} PRIVATE -march=native)
+if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64")
+        target_compile_options(${TEST_CTF_ENTROPY_CODER} PRIVATE -march=native)
+endif()

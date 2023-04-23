@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -10,7 +11,6 @@
 
 /// @file   SingleStreamEncoderImpl.h
 /// @author Michael Lettrich
-/// @since  2019-05-10
 /// @brief  rANS encoding operations based on ryg's fast algorithm and a naive rANS implementation for all 64Bit CPUs.
 
 #ifndef RANS_INTERNAL_ENCODE_SINGLESTREAMENCODERIMPL_H_
@@ -67,7 +67,7 @@ class SingleStreamEncoderImplBase : public EncoderImpl<symbol_T,
     return putSymbols(outputIter, encodeSymbols);
   };
 
-  [[nodiscard]] inline static constexpr state_type getStreamingLowerBound() noexcept { return static_cast<state_type>(pow2(streamingLowerBound_V)); };
+  [[nodiscard]] inline static constexpr state_type getStreamingLowerBound() noexcept { return static_cast<state_type>(utils::pow2(streamingLowerBound_V)); };
 
  protected:
   state_type mState{getStreamingLowerBound()};
@@ -113,7 +113,7 @@ class CompatEncoderImpl : public SingleStreamEncoderImplBase<lowerBound_V, const
     assert(symbol->getFrequency() != 0);
 
     const auto [newState, streamPosition] = this->renorm(this->mState, outputIter, symbol->getFrequency());
-    //coding function
+    // coding function
     this->mState = ((newState / symbol->getFrequency()) << this->mSymbolTablePrecision) + symbol->getCumulative() + (newState % symbol->getFrequency());
 
     return streamPosition;
@@ -148,7 +148,7 @@ class SingleStreamEncoderImpl : public SingleStreamEncoderImplBase<lowerBound_V,
     const state_type old = this->mState;
 
     const auto [newState, streamPosition] = this->renorm(this->mState, outputIter, symbol->getFrequency());
-    //coding function
+    // coding function
     state_type quotient = static_cast<state_type>((static_cast<uint128_t>(newState) * symbol->getReciprocalFrequency()) >> 64);
     quotient = quotient >> symbol->getReciprocalShift();
     this->mState = newState + symbol->getCumulative() + quotient * symbol->getFrequencyComplement();

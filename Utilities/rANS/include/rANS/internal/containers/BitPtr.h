@@ -1,8 +1,9 @@
-// Copyright CERN and copyright holders of ALICE O2. This software is
-// distributed under the terms of the GNU General Public License v3 (GPL
-// Version 3), copied verbatim in the file "COPYING".
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
-// See http://alice-o2.web.cern.ch/license for full licensing information.
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
 //
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
@@ -23,7 +24,7 @@
 
 #include "rANS/internal/common/utils.h"
 
-namespace o2::rans::internal
+namespace o2::rans
 {
 
 class BitPtr
@@ -36,7 +37,7 @@ class BitPtr
   inline constexpr BitPtr(intptr_t bitAdr) noexcept : mBitAdr{bitAdr} {};
 
   template <typename T>
-  inline constexpr BitPtr(const T* ptr, intptr_t offset = 0) noexcept : mBitAdr{static_cast<intptr_t>(adr2Bits(ptr)) + offset}
+  inline constexpr BitPtr(const T* ptr, intptr_t offset = 0) noexcept : mBitAdr{static_cast<intptr_t>(internal::adr2Bits(ptr)) + offset}
   {
     assert(reinterpret_cast<intptr_t>(ptr) % sizeof(T) == 0); // ensure pointer alignment
   };
@@ -50,7 +51,7 @@ class BitPtr
   {
     assert(mBitAdr >= 0);
     // bit offset from next T
-    return mBitAdr % toBits<T>();
+    return mBitAdr % utils::toBits<T>();
   };
 
   template <typename T>
@@ -161,6 +162,6 @@ inline std::ostream& operator<<(std::ostream& os, const BitPtr bitPtr)
   return os << fmt::format("{:0x}", bitPtr.getBitAddress());
 }
 
-} // namespace o2::rans::internal
+} // namespace o2::rans
 
 #endif /* RANS_INTERNAL_CONTAINERS_BITPTR_H_ */

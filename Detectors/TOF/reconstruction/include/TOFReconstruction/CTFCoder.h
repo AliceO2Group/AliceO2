@@ -67,17 +67,17 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const ReadoutWind
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation
   constexpr MD optField[CTF::getNBlocks()] = {
-    MD::EENCODE_OR_PACK, //BLCbcIncROF
-    MD::EENCODE_OR_PACK, //BLCorbitIncROF
-    MD::EENCODE_OR_PACK, //BLCndigROF
-    MD::EENCODE_OR_PACK, //BLCndiaROF
-    MD::EENCODE_OR_PACK, //BLCndiaCrate
-    MD::EENCODE_OR_PACK, //BLCtimeFrameInc
-    MD::EENCODE_OR_PACK, //BLCtimeTDCInc
-    MD::EENCODE_OR_PACK, //BLCstripID
-    MD::EENCODE_OR_PACK, //BLCchanInStrip
-    MD::EENCODE_OR_PACK, //BLCtot
-    MD::EENCODE_OR_PACK, //BLCpattMap
+    MD::EENCODE_OR_PACK, // BLCbcIncROF
+    MD::EENCODE_OR_PACK, // BLCorbitIncROF
+    MD::EENCODE_OR_PACK, // BLCndigROF
+    MD::EENCODE_OR_PACK, // BLCndiaROF
+    MD::EENCODE_OR_PACK, // BLCndiaCrate
+    MD::EENCODE_OR_PACK, // BLCtimeFrameInc
+    MD::EENCODE_OR_PACK, // BLCtimeTDCInc
+    MD::EENCODE_OR_PACK, // BLCstripID
+    MD::EENCODE_OR_PACK, // BLCchanInStrip
+    MD::EENCODE_OR_PACK, // BLCtot
+    MD::EENCODE_OR_PACK, // BLCpattMap
   };
   CompressedInfos cc;
   compress(cc, rofRecVec, cdigVec, pattVec);

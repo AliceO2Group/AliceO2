@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -115,7 +115,7 @@ class ShiftableVector
 
   inline void resize(size_type newSize)
   {
-    assert(newSize <= pow2(toBits<source_type>()));
+    assert(newSize <= utils::pow2(utils::toBits<source_type>()));
     this->resize(newSize, this->getOffset());
   };
 

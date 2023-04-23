@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -117,7 +117,7 @@ class SymbolTable : public internal::Container<source_T, symbol_T, SymbolTable<s
 template <class source_T, class value_T>
 SymbolTable<source_T, value_T>::SymbolTable(const RenormedHistogram<source_type>& histogram)
 {
-  using namespace internal;
+  using namespace utils;
   using count_type = typename value_T::value_type;
 
   auto histogramView = trim(makeHistogramView(histogram));

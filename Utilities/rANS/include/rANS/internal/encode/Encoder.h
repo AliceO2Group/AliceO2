@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -79,7 +79,7 @@ class Encoder
 
   [[nodiscard]] inline static constexpr size_type getNStreams() noexcept { return NStreams; };
 
-  template <typename stream_IT, typename source_IT, typename literals_IT = std::nullptr_t, std::enable_if_t<internal::isCompatibleIter_v<typename symbolTable_T::source_type, source_IT>, bool> = true>
+  template <typename stream_IT, typename source_IT, typename literals_IT = std::nullptr_t, std::enable_if_t<utils::isCompatibleIter_v<typename symbolTable_T::source_type, source_IT>, bool> = true>
   decltype(auto) process(source_IT inputBegin, source_IT inputEnd, stream_IT outputBegin, literals_IT literalsBegin = nullptr) const;
 
   template <typename literals_IT = std::nullptr_t>
@@ -94,18 +94,19 @@ class Encoder
   static constexpr size_type NCoderStreams = coder_type::getNstreams();
   static constexpr size_type NCoders = NStreams / NCoderStreams;
 
-  //compile time preconditions:
+  // compile time preconditions:
   static_assert(internal::isPow2(nStreams_V), "the number of streams must be a power of 2");
   static_assert(coder_type::getNstreams() <= Encoder::getNStreams(), "The specified coder type has more streams than your encoder");
   static_assert(NCoders % 2 == 0, "At least 2 encoders must run in parallel");
 };
 
 template <class encoder_T, class symbolTable_T, std::size_t nStreams_V>
-template <typename stream_IT, typename source_IT, typename literals_IT, std::enable_if_t<internal::isCompatibleIter_v<typename symbolTable_T::source_type, source_IT>, bool>>
+template <typename stream_IT, typename source_IT, typename literals_IT, std::enable_if_t<utils::isCompatibleIter_v<typename symbolTable_T::source_type, source_IT>, bool>>
 decltype(auto) Encoder<encoder_T, symbolTable_T, nStreams_V>::process(source_IT inputBegin, source_IT inputEnd, stream_IT outputBegin, literals_IT literalsBegin) const
 {
 
   using namespace internal;
+  using namespace utils;
   using namespace encoderImpl;
 
   if (inputBegin == inputEnd) {

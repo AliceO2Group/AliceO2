@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -9,10 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   DecoderSymbol.h
+/// @file   test_ransPack.h
 /// @author Michael Lettrich
-/// @since  2020-04-15
-/// @brief  Test rANS encoder/ decoder
+/// @brief  test pack/unpack features
 
 #define BOOST_TEST_MODULE Utility test
 #define BOOST_TEST_MAIN
@@ -24,6 +23,7 @@
 #include <vector>
 #include <cstring>
 #include <random>
+#include <algorithm>
 
 #include <boost/test/unit_test.hpp>
 #include <boost/mp11.hpp>
@@ -35,6 +35,7 @@
 
 using namespace o2::rans;
 using namespace o2::rans::internal;
+using namespace o2::rans::utils;
 
 inline constexpr size_t BufferSize = 257;
 
@@ -45,7 +46,6 @@ std::vector<source_T>
   std::vector<source_T> result(nelems, 0);
   std::mt19937 mt(0); // same seed we want always the same distrubution of random numbers;
   std::uniform_int_distribution<source_T> dist(min, max);
-
   std::generate(result.begin(), result.end(), [&dist, &mt]() { return dist(mt); });
   return result;
 };
@@ -57,12 +57,12 @@ using source_types = boost::mp11::mp_list<uint8_t, uint16_t, uint32_t, uint64_t>
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_computePackingBufferSize, buffer_T, buffer_types)
 {
   size_t nElems{};
-  size_t packingWidth = internal::toBits<internal::packing_type>() - 3;
+  size_t packingWidth = utils::toBits<packing_type>() - 3;
 
   BOOST_CHECK_EQUAL(0, (computePackingBufferSize<buffer_T>(0, packingWidth)));
-  BOOST_CHECK_EQUAL(sizeof(internal::packing_type) / sizeof(buffer_T), (computePackingBufferSize<buffer_T>(1, packingWidth)));       // space it takes to pack 1 element takes 4 B
-  BOOST_CHECK_EQUAL(sizeof(internal::packing_type) * 62 / sizeof(buffer_T), (computePackingBufferSize<buffer_T>(64, packingWidth))); // space it takes to pack 64 elements takes 62 * packingType = 496 B
-  BOOST_CHECK_EQUAL(sizeof(internal::packing_type) * 22 / sizeof(buffer_T), (computePackingBufferSize<buffer_T>(23, packingWidth))); // space it takes to pack 23 elements takes 22 * packingType = 176 B
+  BOOST_CHECK_EQUAL(sizeof(packing_type) / sizeof(buffer_T), (computePackingBufferSize<buffer_T>(1, packingWidth)));       // space it takes to pack 1 element takes 4 B
+  BOOST_CHECK_EQUAL(sizeof(packing_type) * 62 / sizeof(buffer_T), (computePackingBufferSize<buffer_T>(64, packingWidth))); // space it takes to pack 64 elements takes 62 * packingType = 496 B
+  BOOST_CHECK_EQUAL(sizeof(packing_type) * 22 / sizeof(buffer_T), (computePackingBufferSize<buffer_T>(23, packingWidth))); // space it takes to pack 23 elements takes 22 * packingType = 176 B
 }
 
 BOOST_AUTO_TEST_CASE(test_packUnpack)
@@ -72,18 +72,18 @@ BOOST_AUTO_TEST_CASE(test_packUnpack)
   for (size_t packingWidth = 1; packingWidth <= 58; ++packingWidth) {
     BOOST_TEST_MESSAGE(fmt::format("Checking {} Bit Packing", packingWidth));
 
-    auto source = makeRandomUniformVector<source_type>(BufferSize, 0, internal::pow2(packingWidth) - 1);
+    auto source = makeRandomUniformVector<source_type>(BufferSize, 0, utils::pow2(packingWidth) - 1);
     std::vector<uint8_t> packingBuffer(source.size() * sizeof(source_type), 0);
 
-    internal::BitPtr packIter{packingBuffer.data()};
+    BitPtr packIter{packingBuffer.data()};
     for (auto i : source) {
-      packIter = internal::pack(packIter, i, packingWidth);
+      packIter = pack(packIter, i, packingWidth);
     }
 
-    internal::BitPtr unpackIter{packingBuffer.data()};
+    BitPtr unpackIter{packingBuffer.data()};
     std::vector<source_type> result(source.size(), 0);
     for (size_t i = 0; i < source.size(); ++i) {
-      result[i] = internal::unpack<uint64_t>(unpackIter, packingWidth);
+      result[i] = unpack<uint64_t>(unpackIter, packingWidth);
       unpackIter += packingWidth;
     }
 
@@ -100,18 +100,18 @@ BOOST_AUTO_TEST_CASE(test_packUnpackLong)
   for (size_t packingWidth = 1; packingWidth <= 63; ++packingWidth) {
     BOOST_TEST_MESSAGE(fmt::format("Checking {} Bit Packing", packingWidth));
 
-    auto source = makeRandomUniformVector<source_type>(BufferSize, 0, internal::pow2(packingWidth) - 1);
+    auto source = makeRandomUniformVector<source_type>(BufferSize, 0, utils::pow2(packingWidth) - 1);
     std::vector<uint8_t> packingBuffer(source.size() * sizeof(source_type), 0);
 
-    internal::BitPtr packIter{packingBuffer.data()};
+    BitPtr packIter{packingBuffer.data()};
     for (auto i : source) {
-      packIter = internal::packLong(packIter, i, packingWidth);
+      packIter = packLong(packIter, i, packingWidth);
     }
 
-    internal::BitPtr unpackIter{packingBuffer.data()};
+    BitPtr unpackIter{packingBuffer.data()};
     std::vector<source_type> result(source.size(), 0);
     for (size_t i = 0; i < source.size(); ++i) {
-      result[i] = internal::unpackLong(unpackIter, packingWidth);
+      result[i] = unpackLong(unpackIter, packingWidth);
       unpackIter += packingWidth;
     }
 
@@ -127,7 +127,7 @@ BOOST_AUTO_TEST_CASE(test_packUnpackStream)
 
   for (size_t packingWidth = 1; packingWidth <= 63; ++packingWidth) {
     BOOST_TEST_MESSAGE(fmt::format("Checking {} Bit Packing", packingWidth));
-    auto source = makeRandomUniformVector<source_type>(BufferSize, 0, internal::pow2(packingWidth) - 1);
+    auto source = makeRandomUniformVector<source_type>(BufferSize, 0, utils::pow2(packingWidth) - 1);
     std::vector<uint8_t> packingBuffer(source.size() * sizeof(source_type), 0);
 
     source_type min = *std::min_element(source.begin(), source.end());
@@ -148,15 +148,15 @@ BOOST_AUTO_TEST_CASE(test_packRUnpackEliasDelta)
 
   for (size_t packingWidth = 1; packingWidth <= 32; ++packingWidth) {
     BOOST_TEST_MESSAGE(fmt::format("Checking {} Bit Elias Delta Coder", packingWidth));
-    auto source = makeRandomUniformVector<source_type>(BufferSize, 1ull, internal::pow2(packingWidth) - 1);
+    auto source = makeRandomUniformVector<source_type>(BufferSize, 1ull, utils::pow2(packingWidth) - 1);
     std::vector<uint64_t> packingBuffer(source.size(), 0);
 
-    internal::BitPtr iter{packingBuffer.data()};
+    BitPtr iter{packingBuffer.data()};
     for (auto i : source) {
       iter = eliasDeltaEncode(iter, i);
     };
 
-    internal::BitPtr iterBegin{packingBuffer.data()};
+    BitPtr iterBegin{packingBuffer.data()};
     std::vector<source_type> unpackBuffer(source.size(), 0);
     for (size_t i = 0; i < source.size(); ++i) {
       const size_t maxOffset = std::min(static_cast<size_t>(iter - iterBegin), EliasDeltaDecodeMaxBits);

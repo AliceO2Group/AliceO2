@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -246,7 +246,7 @@ class EncoderSymbolMapper<symbolTable_T,
     aosToSoa(gsl::make_span(ret).template subspan<0, 2>(), &unpacked.frequencies[0], &unpacked.cumulativeFrequencies[0]);
     aosToSoa(gsl::make_span(ret).template subspan<2, 2>(), &unpacked.frequencies[1], &unpacked.cumulativeFrequencies[1]);
 
-    return internal::advanceIter(sourceIter, -coder_type::getNstreams());
+    return utils::advanceIter(sourceIter, -coder_type::getNstreams());
   };
 
   template <typename source_IT>
@@ -322,7 +322,7 @@ class EncoderSymbolMapper<symbolTable_T,
     aosToSoa(gsl::make_span(ret).template subspan<0, 4>(), &unpacked.frequencies[0], &unpacked.cumulativeFrequencies[0]);
     aosToSoa(gsl::make_span(ret).template subspan<4, 4>(), &unpacked.frequencies[1], &unpacked.cumulativeFrequencies[1]);
 
-    return internal::advanceIter(sourceIter, -coder_type::getNstreams());
+    return utils::advanceIter(sourceIter, -coder_type::getNstreams());
   };
 
   template <typename source_IT>
