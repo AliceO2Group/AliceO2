@@ -813,7 +813,7 @@ void VertexerTraitsGPU::computeTracklets()
         offset += rofs;
         timer.Stop();
         timer.Print();
-        LOGP(info, "{} {} {}", mTimeFrameGPU->getTotalClustersPerROFrange(offset, rofs, 0), mTimeFrameGPU->getTotalClustersPerROFrange(offset, rofs, 1), mTimeFrameGPU->getTotalClustersPerROFrange(offset, rofs, 2));
+
         timer.PrintLifetime((mTimeFrameGPU->getTotalClustersPerROFrange(offset, rofs, 0) + mTimeFrameGPU->getTotalClustersPerROFrange(offset, rofs, 1) + mTimeFrameGPU->getTotalClustersPerROFrange(offset, rofs, 2)) * sizeof(Cluster)); // Size in Bytes
       }
     };
