@@ -667,6 +667,7 @@ void DataProcessingDevice::initPollers()
           continue;
         }
         channelInfo->channel = &this->GetChannel(channelName, 0);
+        break;
       }
       if ((channelName.rfind("from_internal-dpl", 0) == 0) &&
           (channelName.rfind("from_internal-dpl-aod", 0) != 0) &&
