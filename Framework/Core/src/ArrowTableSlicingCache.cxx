@@ -34,25 +34,49 @@ std::pair<int64_t, int64_t> SliceInfoPtr::getSliceFor(int value) const
   return {offset, 0};
 }
 
-void ArrowTableSlicingCacheDef::setCaches(std::vector<std::pair<std::string, std::string>>&& bsks)
+gsl::span<const int64_t> SliceInfoUnsortedPtr::getSliceFor(int value) const
+{
+  auto locate = std::find(values.begin(), values.end(), value);
+  if (locate == values.end()) {
+    return {};
+  }
+
+  return {(*groups)[value].data(), (*groups)[value].size()};
+}
+
+void ArrowTableSlicingCacheDef::setCaches(std::vector<StringPair>&& bsks)
 {
   bindingsKeys = bsks;
 }
 
-ArrowTableSlicingCache::ArrowTableSlicingCache(std::vector<std::pair<std::string, std::string>>&& bsks)
-  : bindingsKeys{bsks}
+void ArrowTableSlicingCacheDef::setCachesUnsorted(std::vector<StringPair>&& bsks)
+{
+  bindingsKeysUnsorted = bsks;
+}
+
+ArrowTableSlicingCache::ArrowTableSlicingCache(std::vector<StringPair>&& bsks, std::vector<StringPair>&& bsksUnsorted)
+  : bindingsKeys{bsks},
+    bindingsKeysUnsorted{bsksUnsorted}
 {
   values.resize(bindingsKeys.size());
   counts.resize(bindingsKeys.size());
+
+  valuesUnsorted.resize(bindingsKeysUnsorted.size());
+  groups.resize(bindingsKeysUnsorted.size());
 }
 
-void ArrowTableSlicingCache::setCaches(std::vector<std::pair<std::string, std::string>>&& bsks)
+void ArrowTableSlicingCache::setCaches(std::vector<StringPair>&& bsks, std::vector<StringPair>&& bsksUnsorted)
 {
   bindingsKeys = bsks;
+  bindingsKeysUnsorted = bsksUnsorted;
   values.clear();
   values.resize(bindingsKeys.size());
   counts.clear();
   counts.resize(bindingsKeys.size());
+  valuesUnsorted.clear();
+  valuesUnsorted.resize(bindingsKeysUnsorted.size());
+  groups.clear();
+  groups.resize(bindingsKeysUnsorted.size());
 }
 
 arrow::Status ArrowTableSlicingCache::updateCacheEntry(int pos, std::shared_ptr<arrow::Table> const& table)
@@ -76,15 +100,89 @@ arrow::Status ArrowTableSlicingCache::updateCacheEntry(int pos, std::shared_ptr<
   return arrow::Status::OK();
 }
 
-SliceInfoPtr ArrowTableSlicingCache::getCacheFor(std::pair<std::string, std::string> const& bindingKey) const
+arrow::Status ArrowTableSlicingCache::updateCacheEntryUnsorted(int pos, const std::shared_ptr<arrow::Table>& table)
 {
-  auto locate = std::find_if(bindingsKeys.begin(), bindingsKeys.end(), [&](std::pair<std::string, std::string> const& bk) { return (bindingKey.first == bk.first) && (bindingKey.second == bk.second); });
-  if (locate == bindingsKeys.end()) {
-    throw runtime_error_f("Slicing cache miss for %s/%s", bindingKey.first.c_str(), bindingKey.second.c_str());
+  valuesUnsorted[pos].clear();
+  groups[pos].clear();
+  if (table->num_rows() == 0) {
+    return arrow::Status::OK();
   }
-  auto i = std::distance(bindingsKeys.begin(), locate);
+  auto& [b, k] = bindingsKeysUnsorted[pos];
+  auto column = table->GetColumnByName(k);
+  auto row = 0;
+  for (auto iChunk = 0; iChunk < column->num_chunks(); ++iChunk) {
+    auto chunk = static_cast<arrow::NumericArray<arrow::Int32Type>>(column->chunk(iChunk)->data());
+    for (auto iElement = 0; iElement < chunk.length(); ++iElement) {
+      auto v = chunk.Value(iElement);
+      if (v >= 0) {
+        if (std::find(valuesUnsorted[pos].begin(), valuesUnsorted[pos].end(), v) == valuesUnsorted[pos].end()) {
+          valuesUnsorted[pos].push_back(v);
+        }
+        if (groups[pos].size() <= v) {
+          groups[pos].resize(v + 1);
+        }
+        (groups[pos])[v].push_back(row);
+      }
+      ++row;
+    }
+  }
+  std::sort(valuesUnsorted[pos].begin(), valuesUnsorted[pos].end());
+  return arrow::Status::OK();
+}
 
-  if (values[i] == nullptr && counts[i] == nullptr) {
+std::pair<int, bool> ArrowTableSlicingCache::getCachePos(const StringPair& bindingKey) const
+{
+  auto pos = getCachePosSortedFor(bindingKey);
+  if (pos != -1) {
+    return {pos, true};
+  }
+  pos = getCachePosUnsortedFor(bindingKey);
+  if (pos != -1) {
+    return {pos, false};
+  }
+  throw runtime_error_f("%s/%s not found neither in sorted or unsorted cache", bindingKey.first.c_str(), bindingKey.second.c_str());
+}
+
+int ArrowTableSlicingCache::getCachePosSortedFor(StringPair const& bindingKey) const
+{
+  auto locate = std::find_if(bindingsKeys.begin(), bindingsKeys.end(), [&](StringPair const& bk) { return (bindingKey.first == bk.first) && (bindingKey.second == bk.second); });
+  if (locate != bindingsKeys.end()) {
+    return std::distance(bindingsKeys.begin(), locate);
+  }
+  return -1;
+}
+
+int ArrowTableSlicingCache::getCachePosUnsortedFor(StringPair const& bindingKey) const
+{
+  auto locate_unsorted = std::find_if(bindingsKeysUnsorted.begin(), bindingsKeysUnsorted.end(), [&](StringPair const& bk) { return (bindingKey.first == bk.first) && (bindingKey.second == bk.second); });
+  if (locate_unsorted != bindingsKeysUnsorted.end()) {
+    return std::distance(bindingsKeysUnsorted.begin(), locate_unsorted);
+  }
+  return -1;
+}
+SliceInfoPtr ArrowTableSlicingCache::getCacheFor(StringPair const& bindingKey) const
+{
+  auto [p, s] = getCachePos(bindingKey);
+  if (!s) {
+    throw runtime_error_f("%s/%s is found in unsorted cache", bindingKey.first.c_str(), bindingKey.second.c_str());
+  }
+
+  return getCacheForPos(p);
+}
+
+SliceInfoUnsortedPtr ArrowTableSlicingCache::getCacheUnsortedFor(const StringPair& bindingKey) const
+{
+  auto [p, s] = getCachePos(bindingKey);
+  if (s) {
+    throw runtime_error_f("%s/%s is found in sorted cache", bindingKey.first.c_str(), bindingKey.second.c_str());
+  }
+
+  return getCacheUnsortedForPos(p);
+}
+
+SliceInfoPtr ArrowTableSlicingCache::getCacheForPos(int pos) const
+{
+  if (values[pos] == nullptr && counts[pos] == nullptr) {
     return {
       {},
       {} //
@@ -92,15 +190,23 @@ SliceInfoPtr ArrowTableSlicingCache::getCacheFor(std::pair<std::string, std::str
   }
 
   return {
-    {reinterpret_cast<int const*>(values[i]->values()->data()), static_cast<size_t>(values[i]->length())},
-    {reinterpret_cast<int64_t const*>(counts[i]->values()->data()), static_cast<size_t>(counts[i]->length())} //
+    {reinterpret_cast<int const*>(values[pos]->values()->data()), static_cast<size_t>(values[pos]->length())},
+    {reinterpret_cast<int64_t const*>(counts[pos]->values()->data()), static_cast<size_t>(counts[pos]->length())} //
   };
 }
 
-void ArrowTableSlicingCache::validateOrder(const std::pair<std::string, std::string>& bindingKey, const std::shared_ptr<arrow::Table>& input)
+SliceInfoUnsortedPtr ArrowTableSlicingCache::getCacheUnsortedForPos(int pos) const
 {
-  auto& [target, key] = bindingKey;
-  auto column = input->GetColumnByName(key.c_str());
+  return {
+    {reinterpret_cast<int const*>(valuesUnsorted[pos].data()), valuesUnsorted[pos].size()},
+    &(groups[pos]) //
+  };
+}
+
+void ArrowTableSlicingCache::validateOrder(StringPair const& bindingKey, const std::shared_ptr<arrow::Table>& input)
+{
+  auto const& [target, key] = bindingKey;
+  auto column = input->GetColumnByName(key);
   auto array0 = static_cast<arrow::NumericArray<arrow::Int32Type>>(column->chunk(0)->data());
   int32_t prev = 0;
   int32_t cur = array0.Value(0);
