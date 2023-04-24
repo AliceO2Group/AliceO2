@@ -681,7 +681,7 @@ void DataProcessingDevice::initPollers()
         continue;
       }
 
-      if (channelName.rfind("from_") != 0) {
+      if (channelName.rfind("from_", 0) != 0) {
         LOGP(detail, "{} is not a DPL socket. Not polling.", channelName);
         continue;
       }
@@ -709,7 +709,7 @@ void DataProcessingDevice::initPollers()
       pCtx->read = true;
       poller->data = pCtx;
       uv_poll_init(state.loop, poller, zmq_fd);
-      if (channelName.rfind("from_") != 0) {
+      if (channelName.rfind("from_", 0) != 0) {
         LOGP(detail, "{} is an out of band channel.", channelName);
         state.activeOutOfBandPollers.push_back(poller);
       } else {
