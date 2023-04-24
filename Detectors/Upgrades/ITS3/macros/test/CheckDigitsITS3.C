@@ -38,7 +38,7 @@
 
 #endif
 
-void CheckDigitsITS3(int nITS3layers = 3, std::string digifile = "it3digits.root", std::string hitfile = "o2sim_HitsIT3.root", std::string inputGeom = "", std::string paramfile = "o2sim_par.root", bool batch = true)
+void CheckDigitsITS3(std::string digifile = "it3digits.root", std::string hitfile = "o2sim_HitsIT3.root", std::string inputGeom = "o2sim_geometry.root", std::string paramfile = "o2sim_par.root", bool batch = true)
 {
   gROOT->SetBatch(batch);
 
@@ -62,8 +62,8 @@ void CheckDigitsITS3(int nITS3layers = 3, std::string digifile = "it3digits.root
   const int nChipsPerLayer = 2;
 
   std::vector<SegmentationSuperAlpide> segs{};
-  for (int iLayer{0}; iLayer < nITS3layers; ++iLayer) {
-    for (int iChip{0}; iChip < nChipsPerLayer; ++iChip) {
+  for (int iLayer{0}; iLayer < gman->getNumberOfLayers() - 4; ++iLayer) {
+    for (int iChip{0}; iChip < gman->getNumberOfChipsPerLayer(iLayer); ++iChip) {
       segs.push_back(SegmentationSuperAlpide(iLayer));
     }
   }
@@ -172,7 +172,7 @@ void CheckDigitsITS3(int nITS3layers = 3, std::string digifile = "it3digits.root
 
       int chipID = (*digArr)[iDigit].getChipIndex();
 
-      if (chipID / nChipsPerLayer < nITS3layers) {
+      if (chipID < segs.size()) {
         float xFlat{0.f};
         segs[chipID].detectorToLocal(ix, iz, xFlat, z);
         segs[chipID].flatToCurved(xFlat, 0., x, y);
@@ -214,7 +214,7 @@ void CheckDigitsITS3(int nITS3layers = 3, std::string digifile = "it3digits.root
         int row, col;
         float xlc = 0., zlc = 0.;
 
-        if (chipID / nChipsPerLayer < nITS3layers) {
+        if (chipID < segs.size()) {
           segs[chipID].localToDetector(locH.X(), locH.Z(), row, col);
           segs[chipID].detectorToLocal(row, col, xlc, zlc);
         } else {

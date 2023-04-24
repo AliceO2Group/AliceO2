@@ -142,17 +142,21 @@ void TopologyDictionary::getTopologyDistribution(const its3::TopologyDictionary&
   }
 }
 
-math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(const its3::CompClusterExt& cl) const
+math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(const its3::CompClusterExt& cl, int nChipsITS3) const
 {
   LOGP(debug, "Getting cluster coordinates from TopologyDictionaryITS3");
-  static SegmentationSuperAlpide segmentations[6]{SegmentationSuperAlpide(0),
-                                                  SegmentationSuperAlpide(0),
-                                                  SegmentationSuperAlpide(1),
-                                                  SegmentationSuperAlpide(1),
-                                                  SegmentationSuperAlpide(2),
-                                                  SegmentationSuperAlpide(2)}; // TODO: fix NLayers
+  static SegmentationSuperAlpide segmentations[10]{SegmentationSuperAlpide(0),
+                                                   SegmentationSuperAlpide(0),
+                                                   SegmentationSuperAlpide(1),
+                                                   SegmentationSuperAlpide(1),
+                                                   SegmentationSuperAlpide(2),
+                                                   SegmentationSuperAlpide(2),
+                                                   SegmentationSuperAlpide(3),
+                                                   SegmentationSuperAlpide(3),
+                                                   SegmentationSuperAlpide(3),
+                                                   SegmentationSuperAlpide(3)};
   math_utils::Point3D<float> locCl;
-  if (cl.getSensorID() >= 6) { // TODO: fix NLayers
+  if (cl.getSensorID() >= nChipsITS3) {
     o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(cl.getRow(), cl.getCol(), locCl);
     locCl.SetX(locCl.X() + this->getXCOG(cl.getPatternID()) * itsmft::SegmentationAlpide::PitchRow);
     locCl.SetZ(locCl.Z() + this->getZCOG(cl.getPatternID()) * itsmft::SegmentationAlpide::PitchCol);
@@ -167,15 +171,19 @@ math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(const its3:
   return locCl;
 }
 
-math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(const its3::CompClusterExt& cl, const itsmft::ClusterPattern& patt, bool isGroup)
+math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(const its3::CompClusterExt& cl, const itsmft::ClusterPattern& patt, bool isGroup, int nChipsITS3)
 {
   LOGP(debug, "Getting cluster coordinates from TopologyDictionaryITS3");
-  static SegmentationSuperAlpide segmentations[6]{SegmentationSuperAlpide(0),
-                                                  SegmentationSuperAlpide(0),
-                                                  SegmentationSuperAlpide(1),
-                                                  SegmentationSuperAlpide(1),
-                                                  SegmentationSuperAlpide(2),
-                                                  SegmentationSuperAlpide(2)}; // TODO: fix NLayers
+  static SegmentationSuperAlpide segmentations[10]{SegmentationSuperAlpide(0),
+                                                   SegmentationSuperAlpide(0),
+                                                   SegmentationSuperAlpide(1),
+                                                   SegmentationSuperAlpide(1),
+                                                   SegmentationSuperAlpide(2),
+                                                   SegmentationSuperAlpide(2),
+                                                   SegmentationSuperAlpide(3),
+                                                   SegmentationSuperAlpide(3),
+                                                   SegmentationSuperAlpide(3),
+                                                   SegmentationSuperAlpide(3)};
 
   auto refRow = cl.getRow();
   auto refCol = cl.getCol();
@@ -186,7 +194,7 @@ math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(const its3:
     refCol -= round(zCOG);
   }
   math_utils::Point3D<float> locCl;
-  if (cl.getSensorID() >= 6) { // TODO: fix NLayers
+  if (cl.getSensorID() >= nChipsITS3) {
     o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(refRow + xCOG, refCol + zCOG, locCl);
   } else {
     segmentations[cl.getSensorID()].detectorToLocalUnchecked(refRow + xCOG, refCol + zCOG, locCl);
@@ -198,17 +206,21 @@ math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(const its3:
 }
 
 template <typename T>
-std::array<T, 3> TopologyDictionary::getClusterCoordinatesA(const its3::CompClusterExt& cl) const
+std::array<T, 3> TopologyDictionary::getClusterCoordinatesA(const its3::CompClusterExt& cl, int nChipsITS3) const
 {
   LOGP(debug, "Getting cluster coordinates from TopologyDictionaryITS3");
-  static SegmentationSuperAlpide segmentations[6]{SegmentationSuperAlpide(0),
-                                                  SegmentationSuperAlpide(0),
-                                                  SegmentationSuperAlpide(1),
-                                                  SegmentationSuperAlpide(1),
-                                                  SegmentationSuperAlpide(2),
-                                                  SegmentationSuperAlpide(2)}; // TODO: fix NLayers
+  static SegmentationSuperAlpide segmentations[10]{SegmentationSuperAlpide(0),
+                                                   SegmentationSuperAlpide(0),
+                                                   SegmentationSuperAlpide(1),
+                                                   SegmentationSuperAlpide(1),
+                                                   SegmentationSuperAlpide(2),
+                                                   SegmentationSuperAlpide(2),
+                                                   SegmentationSuperAlpide(3),
+                                                   SegmentationSuperAlpide(3),
+                                                   SegmentationSuperAlpide(3),
+                                                   SegmentationSuperAlpide(3)};
   std::array<T, 3> locCl;
-  if (cl.getSensorID() >= 6) { // TODO: fix NLayers
+  if (cl.getSensorID() >= nChipsITS3) {
     o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(cl.getRow(), cl.getCol(), locCl);
     locCl.SetX(locCl.X() + this->getXCOG(cl.getPatternID()) * itsmft::SegmentationAlpide::PitchRow);
     locCl.SetZ(locCl.Z() + this->getZCOG(cl.getPatternID()) * itsmft::SegmentationAlpide::PitchCol);
@@ -224,15 +236,19 @@ std::array<T, 3> TopologyDictionary::getClusterCoordinatesA(const its3::CompClus
 }
 
 template <typename T>
-std::array<T, 3> TopologyDictionary::getClusterCoordinatesA(const its3::CompClusterExt& cl, const itsmft::ClusterPattern& patt, bool isGroup)
+std::array<T, 3> TopologyDictionary::getClusterCoordinatesA(const its3::CompClusterExt& cl, const itsmft::ClusterPattern& patt, bool isGroup, int nChipsITS3)
 {
   LOGP(debug, "Getting cluster coordinates from TopologyDictionaryITS3");
-  static SegmentationSuperAlpide segmentations[6]{SegmentationSuperAlpide(0),
-                                                  SegmentationSuperAlpide(0),
-                                                  SegmentationSuperAlpide(1),
-                                                  SegmentationSuperAlpide(1),
-                                                  SegmentationSuperAlpide(2),
-                                                  SegmentationSuperAlpide(2)}; // TODO: fix NLayers
+  static SegmentationSuperAlpide segmentations[10]{SegmentationSuperAlpide(0),
+                                                   SegmentationSuperAlpide(0),
+                                                   SegmentationSuperAlpide(1),
+                                                   SegmentationSuperAlpide(1),
+                                                   SegmentationSuperAlpide(2),
+                                                   SegmentationSuperAlpide(2),
+                                                   SegmentationSuperAlpide(3),
+                                                   SegmentationSuperAlpide(3),
+                                                   SegmentationSuperAlpide(3),
+                                                   SegmentationSuperAlpide(3)};
 
   auto refRow = cl.getRow();
   auto refCol = cl.getCol();
@@ -243,7 +259,7 @@ std::array<T, 3> TopologyDictionary::getClusterCoordinatesA(const its3::CompClus
     refCol -= round(zCOG);
   }
   std::array<T, 3> locCl;
-  if (cl.getSensorID() >= 6) { // TODO: fix NLayers
+  if (cl.getSensorID() >= nChipsITS3) {
     o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(refRow + xCOG, refCol + zCOG, locCl);
   } else {
     segmentations[cl.getSensorID()].detectorToLocalUnchecked(refRow + xCOG, refCol + zCOG, locCl);

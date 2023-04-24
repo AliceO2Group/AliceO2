@@ -58,10 +58,10 @@ int loadROFrameDataITS3(its::TimeFrame* tf,
         sigmaY2 = dict->getErr2X(pattID) * pitchRow * pitchRow;
         sigmaZ2 = dict->getErr2Z(pattID) * pitchCol * pitchCol;
         if (!dict->isGroup(pattID)) {
-          locXYZ = dict->getClusterCoordinates(c);
+          locXYZ = dict->getClusterCoordinates(c, segITS3.size());
         } else {
           o2::itsmft::ClusterPattern patt(pattIt);
-          locXYZ = dict->getClusterCoordinates(c, patt);
+          locXYZ = dict->getClusterCoordinates(c, patt, segITS3.size());
           sigmaY2 = patt.getRowSpan() * patt.getRowSpan() * pitchRow * pitchRow / 12.;
           sigmaZ2 = patt.getColumnSpan() * patt.getColumnSpan() * pitchCol * pitchCol / 12.;
         }
@@ -69,7 +69,7 @@ int loadROFrameDataITS3(its::TimeFrame* tf,
         o2::itsmft::ClusterPattern patt(pattIt);
         sigmaY2 = patt.getRowSpan() * patt.getRowSpan() * pitchRow * pitchRow / 12.;
         sigmaZ2 = patt.getColumnSpan() * patt.getColumnSpan() * pitchCol * pitchCol / 12.;
-        locXYZ = dict->getClusterCoordinates(c, patt, false);
+        locXYZ = dict->getClusterCoordinates(c, patt, false, segITS3.size());
       }
 
       // Transformation to the local --> global
