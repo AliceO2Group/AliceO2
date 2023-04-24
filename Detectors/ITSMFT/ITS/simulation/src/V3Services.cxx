@@ -27,7 +27,7 @@
 #include <TGeoPcon.h>    // for TGeoPcon
 #include <TGeoManager.h> // for TGeoManager, gGeoManager
 #include <TGeoMatrix.h>  // for TGeoCombiTrans, TGeoRotation, etc
-//#include <TGeoTrd1.h>           // for TGeoTrd1
+// #include <TGeoTrd1.h>           // for TGeoTrd1
 #include <TGeoTube.h>           // for TGeoTube, TGeoTubeSeg
 #include <TGeoVolume.h>         // for TGeoVolume, TGeoVolumeAssembly
 #include <TGeoXtru.h>           // for TGeoXtru
@@ -2906,6 +2906,158 @@ TGeoCompositeShape* V3Services::ibConvWireOutSupport()
 
   // Finally return the support shape
   return supportShape;
+}
+
+void V3Services::createAllITSServices(TGeoVolume* mother, const TGeoManager* mgr)
+{
+  //
+  // Steering method to creates the ITS services: tubes, cables and the like
+  //
+  // Input:
+  //         motherVolume : the volume hosting the supports
+  //         mgr : the GeoManager (used only to get the proper material)
+  //
+  // Output:
+  //
+  // Return:
+  //
+  // Created:      12 Apr 2023  Mario Sitta First version (very roughly)
+  //
+
+  // The present version is very rough: all services are approximated
+  // as cylinders/cones with a proper thickness to guess the total
+  // material budget (original code by A.Morsch)
+  // (some figures are hardcoded)
+
+  // Inner Barrel
+  static const Double_t sIBServicesZIn = 35.0 * sCm;
+  static const Double_t sIBServicesZMid = 44.0 * sCm;
+  static const Double_t sIBServicesZOut = 253.45 * sCm;
+
+  static const Double_t sIBServicesR1max = 13.3 * sCm;
+  static const Double_t sIBServicesR2max = 43.63 * sCm;
+
+  static const Double_t sIBServicesCarbonThick = 0.2 * sCm;
+  static const Double_t sIBServicesCopperThick = 0.018 * sCm;
+  static const Double_t sIBServicesPolymerThick = 0.42 * sCm;
+
+  // Outer Barrel
+  static const Double_t sOBServicesZIn = 83.0 * sCm;
+  static const Double_t sOBServicesZOut = 248.00 * sCm;
+
+  static const Double_t sOBServicesRmax = 47.3 * sCm;
+
+  static const Double_t sOBServicesTotalThick = 4.42 * sCm;
+  static const Double_t sOBServicesCarbonThick = 0.25 * sCm;
+  static const Double_t sOBServicesCopperThick = 0.23 * sCm;
+  static const Double_t sOBServicesPolymerThick = 3.8 * sCm;
+
+  // Local variables
+  Double_t rmin, rmax, zlen, zpos;
+
+  // The Inner Barrel services as Pcon's
+  // Carbon
+  TGeoPcon* ibCarbonSh = new TGeoPcon(0., 360., 3);
+  rmin = sIBServicesR1max - (sIBServicesCarbonThick + 1.8 * 0.462);
+  ibCarbonSh->DefineSection(0, sIBServicesZIn, rmin, sIBServicesR1max);
+  ibCarbonSh->DefineSection(1, sIBServicesZMid, rmin, sIBServicesR1max);
+  rmin = sIBServicesR2max - (sIBServicesCarbonThick + 0.462 / 1.8);
+  ibCarbonSh->DefineSection(2, sIBServicesZOut, rmin, sIBServicesR2max);
+
+  // Copper
+  TGeoPcon* ibCopperSh = new TGeoPcon(0., 360., 3);
+  rmin = ibCarbonSh->GetRmin(0);
+  rmax = ibCarbonSh->GetRmax(0) - sIBServicesCarbonThick;
+  ibCopperSh->DefineSection(0, sIBServicesZIn, rmin, rmax);
+  ibCopperSh->DefineSection(1, sIBServicesZMid, rmin, rmax);
+  rmin = ibCarbonSh->GetRmin(2);
+  rmax = ibCarbonSh->GetRmax(2) - sIBServicesCarbonThick;
+  ibCopperSh->DefineSection(2, sIBServicesZOut, rmin, rmax);
+
+  // Polymer
+  TGeoPcon* ibPolySh = new TGeoPcon(0., 360., 3);
+  rmin = ibCarbonSh->GetRmin(0);
+  rmax = ibCopperSh->GetRmax(0) - sIBServicesCopperThick * 1.8;
+  ibPolySh->DefineSection(0, sIBServicesZIn, rmin, rmax);
+  ibPolySh->DefineSection(1, sIBServicesZMid, rmin, rmax);
+  rmin = ibCopperSh->GetRmin(2);
+  rmax = ibCopperSh->GetRmax(2) - sIBServicesCopperThick / 1.8;
+  ibPolySh->DefineSection(2, sIBServicesZOut, rmin, rmax);
+
+  // Water
+  TGeoPcon* ibWaterSh = new TGeoPcon(0., 360., 3);
+  rmin = ibCarbonSh->GetRmin(0);
+  rmax = ibPolySh->GetRmax(0) - sIBServicesPolymerThick * 1.8;
+  ibWaterSh->DefineSection(0, sIBServicesZIn, rmin, rmax);
+  ibWaterSh->DefineSection(1, sIBServicesZMid, rmin, rmax);
+  rmin = ibPolySh->GetRmin(2);
+  rmax = ibPolySh->GetRmax(2) - sIBServicesPolymerThick / 1.8;
+  ibWaterSh->DefineSection(2, sIBServicesZOut, rmin, rmax);
+
+  // The Inner Barrel services as Tube's
+  // Carbon
+  rmin = sOBServicesRmax - sOBServicesTotalThick;
+  zlen = sOBServicesZOut - sOBServicesZIn;
+  TGeoTube* obCarbonSh = new TGeoTube(rmin, sOBServicesRmax, zlen / 2);
+
+  rmax = sOBServicesRmax - sOBServicesCarbonThick;
+  TGeoTube* obCopperSh = new TGeoTube(rmin, rmax, zlen / 2);
+
+  rmax -= sOBServicesCopperThick;
+  TGeoTube* obPolySh = new TGeoTube(rmin, rmax, zlen / 2);
+
+  rmax -= sOBServicesPolymerThick;
+  TGeoTube* obWaterSh = new TGeoTube(rmin, rmax, zlen / 2);
+
+  // We have all shapes: now create the real volumes
+  TGeoMedium* medCarbon = mgr->GetMedium(Form("%s_C4SERVICES$", GetDetName()));
+  TGeoMedium* medCopper = mgr->GetMedium(Form("%s_COPPER$", GetDetName()));
+  TGeoMedium* medPolymer = mgr->GetMedium(Form("%s_POLY4SERVICES$", GetDetName()));
+  TGeoMedium* medWater = mgr->GetMedium(Form("%s_WATER$", GetDetName()));
+
+  TGeoVolume* ibCarbonVol = new TGeoVolume("ITSServicesCarbonIB", ibCarbonSh, medCarbon);
+  ibCarbonVol->SetFillColor(kGray);
+  ibCarbonVol->SetLineColor(kGray);
+
+  TGeoVolume* ibCopperVol = new TGeoVolume("ITSServicesCopperIB", ibCopperSh, medCopper);
+  ibCopperVol->SetFillColor(kRed);
+  ibCopperVol->SetLineColor(kRed);
+
+  TGeoVolume* ibPolyVol = new TGeoVolume("ITSServicesPolymerIB", ibPolySh, medPolymer);
+  ibPolyVol->SetFillColor(kYellow);
+  ibPolyVol->SetLineColor(kYellow);
+
+  TGeoVolume* ibWaterVol = new TGeoVolume("ITSServicesWaterIB", ibWaterSh, medWater);
+  ibWaterVol->SetFillColor(kBlue);
+  ibWaterVol->SetLineColor(kBlue);
+
+  TGeoVolume* obCarbonVol = new TGeoVolume("ITSServicesCarbonOB", obCarbonSh, medCarbon);
+  obCarbonVol->SetFillColor(kGray);
+  obCarbonVol->SetLineColor(kGray);
+
+  TGeoVolume* obCopperVol = new TGeoVolume("ITSServicesCopperOB", obCopperSh, medCopper);
+  obCopperVol->SetFillColor(kRed);
+  obCopperVol->SetLineColor(kRed);
+
+  TGeoVolume* obPolyVol = new TGeoVolume("ITSServicesPolymerOB", obPolySh, medPolymer);
+  obPolyVol->SetFillColor(kYellow);
+  obPolyVol->SetLineColor(kYellow);
+
+  TGeoVolume* obWaterVol = new TGeoVolume("ITSServicesWaterOB", obWaterSh, medWater);
+  obWaterVol->SetFillColor(kBlue);
+  obWaterVol->SetLineColor(kBlue);
+
+  // Finally place all volumes
+  mother->AddNode(ibCarbonVol, 1, new TGeoTranslation(0., 30., 0.));
+  ibCarbonVol->AddNode(ibCopperVol, 1, nullptr);
+  ibCopperVol->AddNode(ibPolyVol, 1, nullptr);
+  ibPolyVol->AddNode(ibWaterVol, 1, nullptr);
+
+  zpos = sOBServicesZIn + zlen / 2;
+  mother->AddNode(obCarbonVol, 1, new TGeoTranslation(0., 30., zpos));
+  obCarbonVol->AddNode(obCopperVol, 1, nullptr);
+  obCopperVol->AddNode(obPolyVol, 1, nullptr);
+  obPolyVol->AddNode(obWaterVol, 1, nullptr);
 }
 
 void V3Services::obConvWire(TGeoVolume* mother, const TGeoManager* mgr)

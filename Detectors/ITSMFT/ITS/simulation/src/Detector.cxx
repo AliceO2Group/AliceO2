@@ -502,6 +502,12 @@ void Detector::createMaterials()
   Float_t wBrass[3] = {0.58, 0.39, 0.03};
   Float_t dBrass = 8.46;
 
+  // Polymer for ITS services
+  Float_t aPoly[2] = {12.01, 1.};
+  Float_t zPoly[2] = {6., 1.};
+  Float_t wPoly[2] = {0.857, .143};
+  Float_t dPoly = 0.9;
+
   o2::base::Detector::Mixture(1, "AIR$", aAir, zAir, dAir, 4, wAir);
   o2::base::Detector::Medium(1, "AIR$", 1, 0, ifield, fieldm, tmaxfdAir, stemaxAir, deemaxAir, epsilAir, stminAir);
 
@@ -626,6 +632,14 @@ void Detector::createMaterials()
   // Titanium
   o2::base::Detector::Material(35, "TITANIUM$", 47.867, 22, 4.506, 999, 999);
   o2::base::Detector::Medium(35, "TITANIUM$", 35, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+
+  // Carbon for ITS services
+  o2::base::Detector::Material(41, "C4SERVICES$", 12.01, 6, 1.75, 999, 999);
+  o2::base::Detector::Medium(41, "C4SERVICES$", 41, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+
+  // Polymer for ITS services
+  o2::base::Detector::Mixture(42, "POLY4SERVICES", aPoly, zPoly, dPoly, 2, wPoly);
+  o2::base::Detector::Medium(42, "POLY4SERVICES", 42, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
 
   // For ITS3
 
@@ -959,6 +973,8 @@ void Detector::constructDetectorGeometry()
   createOuterBarrelServices(wrapVols[2]);
   createOuterBarrelSupports(vITSV);
 
+  createITSServices(vALIC);
+
   mServicesGeometry->createOBGammaConvWire(vITSV);
 
   // Finally create and place the cage
@@ -1036,6 +1052,24 @@ void Detector::createOuterBarrelSupports(TGeoVolume* motherVolume)
 
   // Create the CYSS Cylinder
   mServicesGeometry->createOBCYSSCylinder(motherVolume);
+}
+
+void Detector::createITSServices(TGeoVolume* motherVolume)
+{
+  //
+  // Creates the ITS services: tubes, cables and the like
+  //
+  // Input:
+  //         motherVolume : the volume hosting the supports
+  //
+  // Output:
+  //
+  // Return:
+  //
+  // Created:      12 Apr 2023  Mario Sitta
+  //
+
+  mServicesGeometry->createAllITSServices(motherVolume);
 }
 
 void Detector::addAlignableVolumes() const
