@@ -2518,7 +2518,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     service.injectTopology(node, configContext);
   }
   for (auto& dp : physicalWorkflow) {
-    if (dp.name.rfind("internal-") == 0) {
+    if (dp.name.rfind("internal-", 0) == 0) {
       rankIndex.insert(std::make_pair(dp.name, hash_fn("internal")));
     }
   }
