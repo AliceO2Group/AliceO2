@@ -34,8 +34,8 @@ using namespace std;
 
 random_device dev;
 default_random_engine gen(dev());
-uniform_int_distribution<char> uniform_dist(32, 126);
-geometric_distribution<char> geom_dist(0.1);
+uniform_int_distribution<long long> uniform_dist(32, 126);
+geometric_distribution<long long> geom_dist(0.1);
 
 constexpr char ALPHABET[39]{
   'E', 'T', 'A', 'O', 'I', '_', 'N', 'S', 'H', 'R',
