@@ -244,6 +244,10 @@ void run_completion(uv_work_t* handle, int status)
 
 // Context for polling
 struct PollerContext {
+  enum struct PollerState : char { Stopped,
+                                   Disconnected,
+                                   Connected,
+                                   Suspended };
   char const* name = nullptr;
   uv_loop_t* loop = nullptr;
   DataProcessingDevice* device = nullptr;
@@ -252,6 +256,7 @@ struct PollerContext {
   InputChannelInfo* channelInfo = nullptr;
   int fd = -1;
   bool read = true;
+  PollerState pollerState = PollerState::Stopped;
 };
 
 void on_socket_polled(uv_poll_t* poller, int status, int events)
@@ -277,6 +282,7 @@ void on_socket_polled(uv_poll_t* poller, int status, int events)
         // just wait for the disconnect.
         uv_poll_start(poller, UV_DISCONNECT | UV_PRIORITIZED, &on_socket_polled);
       }
+      context->pollerState = PollerContext::PollerState::Connected;
     } break;
     case UV_DISCONNECT: {
       ZoneScopedN("socket disconnect");
@@ -707,6 +713,7 @@ void DataProcessingDevice::initPollers()
         LOGP(detail, "{} is an out of band channel.", channelName);
         state.activeOutOfBandPollers.push_back(poller);
       } else {
+        channelInfo->pollerIndex = state.activeInputPollers.size();
         state.activeInputPollers.push_back(poller);
       }
     }
@@ -781,12 +788,15 @@ void DataProcessingDevice::startPollers()
 
   for (auto& poller : state.activeInputPollers) {
     uv_poll_start(poller, UV_WRITABLE, &on_socket_polled);
+    ((PollerContext*)poller->data)->pollerState = PollerContext::PollerState::Disconnected;
   }
   for (auto& poller : state.activeOutOfBandPollers) {
     uv_poll_start(poller, UV_WRITABLE, &on_out_of_band_polled);
+    ((PollerContext*)poller->data)->pollerState = PollerContext::PollerState::Disconnected;
   }
   for (auto& poller : state.activeOutputPollers) {
     uv_poll_start(poller, UV_WRITABLE, &on_socket_polled);
+    ((PollerContext*)poller->data)->pollerState = PollerContext::PollerState::Disconnected;
   }
 
   deviceContext.gracePeriodTimer = (uv_timer_t*)malloc(sizeof(uv_timer_t));
@@ -802,14 +812,17 @@ void DataProcessingDevice::stopPollers()
   LOGP(detail, "Stopping {} input pollers", state.activeInputPollers.size());
   for (auto& poller : state.activeInputPollers) {
     uv_poll_stop(poller);
+    ((PollerContext*)poller->data)->pollerState = PollerContext::PollerState::Stopped;
   }
   LOGP(detail, "Stopping {} out of band pollers", state.activeOutOfBandPollers.size());
   for (auto& poller : state.activeOutOfBandPollers) {
     uv_poll_stop(poller);
+    ((PollerContext*)poller->data)->pollerState = PollerContext::PollerState::Stopped;
   }
   LOGP(detail, "Stopping {} output pollers", state.activeOutOfBandPollers.size());
   for (auto& poller : state.activeOutputPollers) {
     uv_poll_stop(poller);
+    ((PollerContext*)poller->data)->pollerState = PollerContext::PollerState::Stopped;
   }
 
   uv_timer_stop(deviceContext.gracePeriodTimer);
@@ -1315,6 +1328,21 @@ void DataProcessingDevice::doPrepare(ServiceRegistryRef ref)
     auto newEnd = std::remove_if(pollOrder.begin(), pollOrder.end(), [&infos, limitNew = currentOldest.value + ahead](int a) -> bool {
       return infos[a].oldestForChannel.value > limitNew;
     });
+    for (auto it = pollOrder.begin(); it < pollOrder.end(); it++) {
+      const auto& channelInfo = state.inputChannelInfos[*it];
+      if (channelInfo.pollerIndex != -1) {
+        auto& poller = state.activeInputPollers[channelInfo.pollerIndex];
+        auto& pollerContext = *(PollerContext*)(poller->data);
+        if (pollerContext.pollerState == PollerContext::PollerState::Connected || pollerContext.pollerState == PollerContext::PollerState::Suspended) {
+          bool running = pollerContext.pollerState == PollerContext::PollerState::Connected;
+          bool shouldBeRunning = it < newEnd;
+          if (running != shouldBeRunning) {
+            uv_poll_start(poller, shouldBeRunning ? UV_READABLE | UV_DISCONNECT | UV_PRIORITIZED : 0, &on_socket_polled);
+            pollerContext.pollerState = shouldBeRunning ? PollerContext::PollerState::Connected : PollerContext::PollerState::Suspended;
+          }
+        }
+      }
+    }
     pollOrder.erase(newEnd, pollOrder.end());
   }
   LOGP(debug, "processing {} channels", pollOrder.size());
