@@ -63,6 +63,7 @@ struct InputChannelInfo {
   ChannelAccountingType channelType = ChannelAccountingType::DPL;
   /// Oldest possible timeslice for the given channel
   TimesliceId oldestForChannel;
+  int pollerIndex = -1;
 };
 
 /// Output channel information
