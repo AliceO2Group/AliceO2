@@ -66,6 +66,52 @@ struct lightVertex {
   int mTimeStamp;
 };
 
+class CpuTimer
+{
+ public:
+  CpuTimer()
+  {
+    mLifeTimeStart = std::chrono::high_resolution_clock::now();
+  }
+  void Reset(const std::string element = "vt")
+  {
+    mElement = element;
+    mLifeTimeStart = std::chrono::high_resolution_clock::now();
+  }
+
+  void Start(const std::string& taskName)
+  {
+    mTask = taskName;
+    mStart = std::chrono::high_resolution_clock::now();
+  }
+
+  void Stop()
+  {
+    mStop = std::chrono::high_resolution_clock::now();
+  }
+
+  void Print()
+  {
+    float duration = std::chrono::duration_cast<std::chrono::microseconds>(mStop - mStart).count() / 1000.f;
+    std::cout << mTask << "\t" << duration << " #?#" << std::endl;
+  }
+
+  void PrintLifeTime(size_t mem = 0)
+  {
+    mLifeTimeStop = std::chrono::high_resolution_clock::now();
+    float lifetime = std::chrono::duration_cast<std::chrono::microseconds>(mLifeTimeStop - mLifeTimeStart).count() / 1000.f;
+    printf("%sLifeTime\t%f\t%lu\t#?#\n", mElement.c_str(), lifetime, mem);
+  }
+
+ private:
+  std::string mElement;
+  std::string mTask;
+  std::chrono::time_point<std::chrono::high_resolution_clock> mStart;
+  std::chrono::time_point<std::chrono::high_resolution_clock> mStop;
+  std::chrono::time_point<std::chrono::high_resolution_clock> mLifeTimeStart;
+  std::chrono::time_point<std::chrono::high_resolution_clock> mLifeTimeStop;
+};
+
 class TimeFrame
 {
  public:
@@ -230,6 +276,8 @@ class TimeFrame
   int mNrof = 0;
   std::vector<int> mROframesPV = {0};
   std::vector<Vertex> mPrimaryVertices;
+
+  CpuTimer mTimer;
 
  private:
   float mBz = 5.;

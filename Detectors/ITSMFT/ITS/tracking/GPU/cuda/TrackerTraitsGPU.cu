@@ -92,7 +92,7 @@ class GpuTimer
     cudaEventSynchronize(mLifetimeEnd);
     float lifetime;
     cudaEventElapsedTime(&lifetime, mLifetimeStart, mLifetimeEnd);
-    printf("lifeTime_%d\t%d\t%f\t%lu\t#?#\n", mOffset, mStream, lifetime, mem);
+    printf("trLifeTime_%d\t%d\t%f\t%lu\t#?#\n", mOffset, mStream, lifetime, mem);
   }
   float getElapsedTimeMS()
   {
@@ -202,7 +202,7 @@ GPUg() void printBufferLayerOnThread(const int layer, const int* v, size_t size,
   if (blockIdx.x * blockDim.x + threadIdx.x == tId) {
     for (int i{0}; i < size; ++i) {
       if (!(i % len)) {
-        printf("\n layer %d: ===>%d/%d\t", layer, i, (int)size);
+        printf("\n layer %d: ===> %d/%d\t", layer, i, (int)size);
       }
       printf("%d\t", v[i]);
     }
@@ -353,9 +353,9 @@ GPUg() void computeLayerTrackletsKernelSingleRof(
         }
       }
     }
-    if (storedTracklets > maxTrackletsPerCluster) {
-      printf("its-gpu-tracklet finder: found more tracklets per clusters (%d) than maximum set (%d), check the configuration!\n", maxTrackletsPerCluster, storedTracklets);
-    }
+    // if (storedTracklets > maxTrackletsPerCluster) {
+    //   printf("its-gpu-tracklet finder: found more tracklets per clusters (%d) than maximum set (%d), check the configuration!\n", maxTrackletsPerCluster, storedTracklets);
+    // }
   }
 }
 
@@ -404,14 +404,14 @@ GPUg() void computeLayerTrackletsKernelMultipleRof(
   const int zBins{utils->getNzBins()};
   for (unsigned int iRof{blockIdx.x}; iRof < rofSize; iRof += gridDim.x) {
     auto rof0 = iRof + startRofId;
-    auto nClustersCurrentLayerRof = roFrameClustersCurrentLayer[rof0 + 1] - roFrameClustersCurrentLayer[rof0];
+    auto nClustersCurrentLayerRof = o2::gpu::GPUCommonMath::Min(roFrameClustersCurrentLayer[rof0 + 1] - roFrameClustersCurrentLayer[rof0], (int)maxClustersPerRof);
+    // if (nClustersCurrentLayerRof > maxClustersPerRof) {
+    //   printf("its-gpu-tracklet finder: on layer %d found more clusters per ROF (%d) than maximum set (%d), check the configuration!\n", layerIndex, nClustersCurrentLayerRof, maxClustersPerRof);
+    // }
     auto* clustersCurrentLayerRof = clustersCurrentLayer + (roFrameClustersCurrentLayer[rof0] - roFrameClustersCurrentLayer[startRofId]);
     auto nVerticesRof0 = nVertices[rof0 + 1] - nVertices[rof0];
     auto trackletsRof0 = tracklets + maxTrackletsPerCluster * maxClustersPerRof * iRof;
     for (int currentClusterIndex = threadIdx.x; currentClusterIndex < nClustersCurrentLayerRof; currentClusterIndex += blockDim.x) {
-      if (nClustersCurrentLayerRof > maxClustersPerRof) {
-        printf("its-gpu-tracklet finder: on layer %d found more clusters per ROF (%d) than maximum set (%d), check the configuration!\n", layerIndex, nClustersCurrentLayerRof, maxClustersPerRof);
-      }
       unsigned int storedTracklets{0};
       const Cluster& currentCluster{clustersCurrentLayerRof[currentClusterIndex]};
       const int currentSortedIndex{roFrameClustersCurrentLayer[rof0] + currentClusterIndex};
@@ -656,7 +656,7 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration)
   const Vertex diamondVert({mTrkParams[iteration].Diamond[0], mTrkParams[iteration].Diamond[1], mTrkParams[iteration].Diamond[2]}, {25.e-6f, 0.f, 0.f, 25.e-6f, 0.f, 36.f}, 1, 1.f);
   gsl::span<const Vertex> diamondSpan(&diamondVert, 1);
   std::vector<std::thread> threads(mTimeFrameGPU->getNChunks());
-  // std::array<std::array<int, 3>, nLayers - 1> totTrackletsChunk{std::array<int, 3>{0, 0, 0}, std::array<int, 3>{0, 0, 0}, std::array<int, 3>{0, 0, 0}, std::array<int, 3>{0, 0, 0}, std::array<int, 3>{0, 0, 0}};
+
   for (int chunkId{0}; chunkId < mTimeFrameGPU->getNChunks(); ++chunkId) {
     int maxTracklets{static_cast<int>(mTimeFrameGPU->getChunk(chunkId).getTimeFrameGPUParameters()->clustersPerROfCapacity) *
                      static_cast<int>(mTimeFrameGPU->getChunk(chunkId).getTimeFrameGPUParameters()->maxTrackletsPerCluster)};
@@ -670,7 +670,7 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration)
         ////////////////////
         /// Tracklet finding
         gpu::GpuTimer timer{offset, mTimeFrameGPU->getStream(chunkId).get()};
-        timer.Start("trTrackletFinder");
+        // timer.Start("trTrackletFinder");
         for (int iLayer{0}; iLayer < nLayers - 1; ++iLayer) {
           auto nclus = mTimeFrameGPU->getTotalClustersPerROFrange(offset, rofs, iLayer);
           const float meanDeltaR{mTrkParams[iteration].LayerRadii[iLayer + 1] - mTrkParams[iteration].LayerRadii[iLayer]};
@@ -757,11 +757,9 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration)
             checkGPUError(cudaHostUnregister(tracklets.data()));
           }
         }
-        timer.Stop();
-        timer.Print();
+
         ////////////////
         /// Cell finding
-        timer.Start("trCellFinder");
         for (int iLayer{0}; iLayer < nLayers - 2; ++iLayer) {
           // Compute layer cells.
           gpu::computeLayerCellsKernel<true><<<10, 1024, 0, mTimeFrameGPU->getStream(chunkId).get()>>>(
@@ -817,11 +815,9 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration)
             }
           }
         }
-        timer.Stop();
-        timer.Print();
+
         /////////////////////
         /// Neighbour finding
-        timer.Start("trNeighbourFinder");
         for (int iLayer{0}; iLayer < nLayers - 3; ++iLayer) {
           gpu::computeLayerCellNeighboursKernel<true><<<10, 1024, 0, mTimeFrameGPU->getStream(chunkId).get()>>>(
             mTimeFrameGPU->getChunk(chunkId).getDeviceCells(iLayer),
@@ -850,26 +846,26 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration)
             mTimeFrameGPU->getChunk(chunkId).getDeviceCellNeighbours(iLayer),
             mTimeFrameGPU->getChunk(chunkId).getDeviceNFoundCells(),
             mTimeFrameGPU->getChunk(chunkId).getTimeFrameGPUParameters()->maxNeighboursSize);
-          timer.Stop();
-          timer.Print();
-          timer.PrintLifetime(0);
+
           // if (!chunkId) {
           //   gpu::printBufferLayerOnThread<<<1, 1, 0, mTimeFrameGPU->getStream(chunkId).get()>>>(iLayer,
           //                                                                                       mTimeFrameGPU->getChunk(chunkId).getDeviceCellNeighbours(iLayer),
           //                                                                                       mTimeFrameGPU->getChunk(chunkId).getTimeFrameGPUParameters()->maxNeighboursSize * rofs);
           // }
-          for (int iLevel{nLayers - 2}; iLevel >= mTrkParams[iteration].CellMinimumLevel(); --iLevel) {
-            const int minimumLevel{iLevel - 1};
-            for (int iLayer{nLayers - 3}; iLayer >= minimumLevel; --iLayer) {
-              gpu::computeLayerRoadsKernel<true><<<1, 1, 0, mTimeFrameGPU->getStream(chunkId).get()>>>(iLevel,                                                               // const int level,
-                                                                                                       iLayer,                                                               // const int layerIndex,
-                                                                                                       mTimeFrameGPU->getChunk(chunkId).getDeviceArrayCells(),               // const Cell** cells,
-                                                                                                       mTimeFrameGPU->getChunk(chunkId).getDeviceNFoundCells(),              // const int* nCells,
-                                                                                                       mTimeFrameGPU->getChunk(chunkId).getDeviceArrayNeighboursCell(),      // const int** neighbours,
-                                                                                                       mTimeFrameGPU->getChunk(chunkId).getDeviceArrayNeighboursCellLUT(),   // const int** neighboursLUT,
-                                                                                                       mTimeFrameGPU->getChunk(chunkId).getDeviceRoads(),                    // Road* roads,
-                                                                                                       mTimeFrameGPU->getChunk(chunkId).getDeviceRoadsLookupTables(iLayer)); // int* roadsLookupTable
-            }
+        }
+        // Download cells into vectors
+
+        for (int iLevel{nLayers - 2}; iLevel >= mTrkParams[iteration].CellMinimumLevel(); --iLevel) {
+          const int minimumLevel{iLevel - 1};
+          for (int iLayer{nLayers - 3}; iLayer >= minimumLevel; --iLayer) {
+            // gpu::computeLayerRoadsKernel<true><<<1, 1, 0, mTimeFrameGPU->getStream(chunkId).get()>>>(iLevel,                                                               // const int level,
+            //  iLayer,                                                               // const int layerIndex,
+            //  mTimeFrameGPU->getChunk(chunkId).getDeviceArrayCells(),               // const Cell** cells,
+            //  mTimeFrameGPU->getChunk(chunkId).getDeviceNFoundCells(),              // const int* nCells,
+            //  mTimeFrameGPU->getChunk(chunkId).getDeviceArrayNeighboursCell(),      // const int** neighbours,
+            //  mTimeFrameGPU->getChunk(chunkId).getDeviceArrayNeighboursCellLUT(),   // const int** neighboursLUT,
+            //  mTimeFrameGPU->getChunk(chunkId).getDeviceRoads(),                    // Road* roads,
+            //  mTimeFrameGPU->getChunk(chunkId).getDeviceRoadsLookupTables(iLayer)); // int* roadsLookupTable
           }
         }
 

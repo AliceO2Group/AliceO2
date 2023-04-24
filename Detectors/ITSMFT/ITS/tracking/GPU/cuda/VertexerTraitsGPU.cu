@@ -105,66 +105,6 @@ void VertexerTraitsGPU::initialise(const TrackingParameters& trackingParams)
 namespace gpu
 {
 
-class GpuTimer
-{
- public:
-  GpuTimer() = delete;
-  GpuTimer(const int offset, cudaStream_t stream = 0) : mOffset(offset)
-  {
-    mStream = stream;
-    cudaEventCreateWithFlags(&mStart, cudaEventBlockingSync);
-    cudaEventCreateWithFlags(&mStop, cudaEventBlockingSync);
-    cudaEventCreateWithFlags(&mLifetimeStart, cudaEventBlockingSync);
-    cudaEventCreateWithFlags(&mLifetimeEnd, cudaEventBlockingSync);
-    cudaEventRecord(mLifetimeStart, mStream);
-  }
-  ~GpuTimer()
-  {
-    cudaEventDestroy(mStart);
-    cudaEventDestroy(mStop);
-    cudaEventDestroy(mLifetimeStart);
-    cudaEventDestroy(mLifetimeEnd);
-  }
-  void Start(std::string task = "undefined")
-  {
-    mTask = task;
-    cudaEventRecord(mStart, mStream);
-  }
-  void Stop()
-  {
-    cudaEventRecord(mStop, mStream);
-    cudaEventSynchronize(mStop);
-    cudaEventElapsedTime(&mElapsedTimeMS, mStart, mStop);
-  }
-  void Print()
-  {
-    printf("%s\t%d\t%f\t#?#\n", (mTask + "_" + std::to_string(mOffset)).c_str(), mStream, mElapsedTimeMS);
-  }
-  void PrintLifetime(size_t mem = 0)
-  {
-    cudaEventRecord(mLifetimeEnd, mStream);
-    cudaEventSynchronize(mLifetimeEnd);
-    float lifetime;
-    cudaEventElapsedTime(&lifetime, mLifetimeStart, mLifetimeEnd);
-    printf("lifeTime_%d\t%d\t%f\t%lu\t#?#\n", mOffset, mStream, lifetime, mem);
-  }
-  float getElapsedTimeMS()
-  {
-    return mElapsedTimeMS;
-  }
-
- private:
-  std::string mTask;
-  cudaEvent_t mStart;
-  cudaEvent_t mStop;
-  cudaEvent_t mLifetimeStart;
-  cudaEvent_t mLifetimeEnd;
-  cudaStream_t mStream;
-  float mElapsedTimeMS;
-  float mData;
-  int mOffset;
-};
-
 template <typename... Args>
 GPUd() void printOnThread(const unsigned int tId, const char* str, Args... args)
 {
@@ -684,8 +624,8 @@ void VertexerTraitsGPU::computeTracklets()
       while (offset < maxROF) {
         auto rofs = mTimeFrameGPU->loadChunkData<gpu::Task::Vertexer>(chunkId, offset, maxROF);
         RANGE("chunk_gpu_vertexing", 1);
-        gpu::GpuTimer timer{offset, mTimeFrameGPU->getStream(chunkId).get()};
-        timer.Start("vtTrackletFinder");
+        // gpu::GpuTimer timer{offset, mTimeFrameGPU->getStream(chunkId).get()};
+        // timer.Start("vtTrackletFinder");
         gpu::trackleterKernelMultipleRof<TrackletMode::Layer0Layer1><<<rofs, 1024, 0, mTimeFrameGPU->getStream(chunkId).get()>>>(
           mTimeFrameGPU->getChunk(chunkId).getDeviceClusters(0),         // const Cluster* clustersNextLayer,    // 0 2
           mTimeFrameGPU->getChunk(chunkId).getDeviceClusters(1),         // const Cluster* clustersCurrentLayer, // 1 1
@@ -713,10 +653,7 @@ void VertexerTraitsGPU::computeTracklets()
           rofs,                                                          // const unsigned int rofSize,
           mVrtParams.phiCut,                                             // const float phiCut,
           mVrtParams.maxTrackletsPerCluster);                            // const size_t maxTrackletsPerCluster = 1e2
-        timer.Stop();
-        timer.Print();
-        // Tracklet selection
-        timer.Start("vtTrackletSel");
+
         gpu::trackletSelectionKernelMultipleRof<true><<<rofs, 1024, 0, mTimeFrameGPU->getStream(chunkId).get()>>>(
           mTimeFrameGPU->getChunk(chunkId).getDeviceClusters(0),            // const Cluster* clusters0,               // Clusters on layer 0
           mTimeFrameGPU->getChunk(chunkId).getDeviceClusters(1),            // const Cluster* clusters1,               // Clusters on layer 1
@@ -768,9 +705,7 @@ void VertexerTraitsGPU::computeTracklets()
           mVrtParams.maxTrackletsPerCluster,                                // const int maxTrackletsPerCluster = 1e2, // Maximum number of tracklets per cluster
           mVrtParams.tanLambdaCut,                                          // const float tanLambdaCut = 0.025f,      // Cut on tan lambda
           mVrtParams.phiCut);                                               // const float phiCut = 0.002f)            // Cut on phi
-        timer.Stop();
-        timer.Print();
-        timer.Start("vtFinding");
+
         int nClusters = mTimeFrameGPU->getTotalClustersPerROFrange(offset, rofs, 1);
         int lastFoundLines;
         std::vector<int> exclusiveFoundLinesHost(nClusters + 1);
@@ -811,10 +746,6 @@ void VertexerTraitsGPU::computeTracklets()
                                mTimeFrameGPU->hasMCinformation() ? &mTimeFrameGPU->getLabelsInChunks()[chunkId] : nullptr);
         }
         offset += rofs;
-        timer.Stop();
-        timer.Print();
-
-        timer.PrintLifetime((mTimeFrameGPU->getTotalClustersPerROFrange(offset, rofs, 0) + mTimeFrameGPU->getTotalClustersPerROFrange(offset, rofs, 1) + mTimeFrameGPU->getTotalClustersPerROFrange(offset, rofs, 2)) * sizeof(Cluster)); // Size in Bytes
       }
     };
     // Do work
