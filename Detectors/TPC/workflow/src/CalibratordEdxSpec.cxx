@@ -87,13 +87,13 @@ class CalibratordEdxDevice : public Task
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     const auto tracks = pc.inputs().get<gsl::span<tpc::TrackTPC>>("tracks");
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
-    LOGP(info, "Processing TF {} with {} tracks", mCalibrator->getCurrentTFInfo().tfCounter, tracks.size());
+    LOGP(detail, "Processing TF {} with {} tracks", mCalibrator->getCurrentTFInfo().tfCounter, tracks.size());
     mRunNumber = mCalibrator->getCurrentTFInfo().runNumber;
     mCalibrator->process(tracks);
     sendOutput(pc.outputs());
 
     const auto& infoVec = mCalibrator->getTFinterval();
-    LOGP(info, "Created {} objects for TF {}", infoVec.size(), mCalibrator->getCurrentTFInfo().tfCounter);
+    LOGP(detail, "Created {} objects for TF {}", infoVec.size(), mCalibrator->getCurrentTFInfo().tfCounter);
   }
 
   void endOfStream(EndOfStreamContext& eos) final

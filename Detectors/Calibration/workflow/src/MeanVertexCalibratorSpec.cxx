@@ -51,7 +51,7 @@ void MeanVertexCalibDevice::run(o2::framework::ProcessingContext& pc)
   mCalibrator->process(data);
   sendOutput(pc.outputs());
   const auto& infoVec = mCalibrator->getMeanVertexObjectInfoVector();
-  LOG(info) << "Processed TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << data.size() << " vertices, for which we created " << infoVec.size() << " objects for TF " << mCalibrator->getCurrentTFInfo().tfCounter;
+  LOG(detail) << "Processed TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << data.size() << " vertices, for which we created " << infoVec.size() << " objects for TF " << mCalibrator->getCurrentTFInfo().tfCounter;
 }
 
 //_________________________________________________________________

@@ -50,7 +50,7 @@ void PHOSTurnonCalibDevice::run(o2::framework::ProcessingContext& pc)
   auto clusters = pc.inputs().get<gsl::span<Cluster>>("clusters");
   auto cluTR = pc.inputs().get<gsl::span<TriggerRecord>>("clusterTriggerRecords");
 
-  LOG(info) << "[PHOSTurnonCalibDevice - run]  Received " << cells.size() << " cells and " << clusters.size() << " clusters, running calibration";
+  LOG(detail) << "[PHOSTurnonCalibDevice - run]  Received " << cells.size() << " cells and " << clusters.size() << " clusters, running calibration";
 
   mCalibrator->process(tfcounter, cells, cellTR, clusters, cluTR);
 }
