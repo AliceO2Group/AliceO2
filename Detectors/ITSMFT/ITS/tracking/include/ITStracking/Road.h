@@ -60,7 +60,11 @@ class Road final
   }
 
  private:
+#ifndef ENABLE_ITS3_4L
   int mCellIds[maxRoadSize];
+#else
+  int mCellIds[maxRoadSize + 1];
+#endif
   // int mLabel;
   unsigned char mRoadSize;
   bool mIsFakeRoad;

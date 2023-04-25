@@ -136,7 +136,7 @@ inline const int4 TrackerTraits::getBinsRect(const Cluster& currentCluster, int 
 
 inline void TrackerTraits::initialiseTimeFrame(const int iteration)
 {
-  mTimeFrame->initialise(iteration, mTrkParams[iteration], 7);
+  mTimeFrame->initialise(iteration, mTrkParams[iteration], mTrkParams[iteration].NLayers);
   setIsGPU(false);
 }
 
