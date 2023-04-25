@@ -39,7 +39,7 @@ CallbacksPolicy epnProcessReporting()
   }
   return {
     .matcher = [forceReport](DeviceSpec const&, ConfigContext const& context) -> bool {
-      static bool report = DefaultsHelpers::getDeploymentMode() == DeploymentMode::OnlineDDS || forceReport;
+      static bool report = DefaultsHelpers::deploymentMode() == DeploymentMode::OnlineDDS || forceReport;
       return report;
     },
     .policy = [prescale](CallbackService& callbacks, InitContext& context) -> void {
