@@ -46,7 +46,7 @@ if [[ -z ${TIMEFRAME_RATE_LIMIT:-} ]] && [[ $DIGITINPUT != 1 ]]; then
   ! has_detector TPC && TIMEFRAME_RATE_LIMIT=$(($TIMEFRAME_RATE_LIMIT * 4))
   [[ ! -z ${EPN_GLOBAL_SCALING:-} ]] && TIMEFRAME_RATE_LIMIT=$(($TIMEFRAME_RATE_LIMIT * $EPN_GLOBAL_SCALING))
 fi
-[[ ! -z ${TIMEFRAME_RATE_LIMIT:-} ]] && [[ $TIMEFRAME_RATE_LIMIT != 0 ]] && ARGS_ALL+=" --timeframes-rate-limit $TIMEFRAME_RATE_LIMIT --timeframes-rate-limit-ipcid $(($NUMAID + 10 * ${O2JOBID:-0}))"
+[[ ! -z ${TIMEFRAME_RATE_LIMIT:-} ]] && [[ $TIMEFRAME_RATE_LIMIT != 0 ]] && ARGS_ALL+=" --timeframes-rate-limit $TIMEFRAME_RATE_LIMIT --timeframes-rate-limit-ipcid ${O2JOBID:-$NUMAID}"
 if [[ $EPNSYNCMODE == 1 ]]; then
   SYNCRAWMODE=1
 elif [[ -z ${SYNCRAWMODE:-} ]]; then
@@ -177,7 +177,7 @@ fi
 [[ -z $DISABLE_ROOT_OUTPUT ]] || needs_root_output o2-gpu-reco-workflow && GPU_OUTPUT+=",send-clusters-per-sector"
 
 has_detector_flp_processing CPV && CPV_INPUT=digits
-! has_detector_flp_processing TOF && TOF_CONFIG+=" --orbits-per-tf ${NHBPERTF:-32} --ignore-dist-stf --local-cmp"
+! has_detector_flp_processing TOF && TOF_CONFIG+=" --local-cmp"
 
 if [[ $EPNSYNCMODE == 1 ]]; then
   EVE_CONFIG+=" --eve-dds-collection-index 0"
@@ -198,14 +198,14 @@ if [[ ! -z ${EVE_NTH_EVENT:-} ]]; then
   EVE_CONFIG+=" --only-nth-event=$EVE_NTH_EVENT"
 fi
 
-if [[ $GPUTYPE != "CPU" && $NUMAGPUIDS != 0 ]] && [[ -z ${ROCR_VISIBLE_DEVICES:=} || $ROCR_VISIBLE_DEVICES = "0,1,2,3,4,5,6,7" || $ROCR_VISIBLE_DEVICES = "0,1,2,3" || $ROCR_VISIBLE_DEVICES = "4,5,6,7" ]]; then
+if [[ $GPUTYPE != "CPU" && $NUMAGPUIDS != 0 ]] && [[ -z ${ROCR_VISIBLE_DEVICES:-} || ${ROCR_VISIBLE_DEVICES:-} = "0,1,2,3,4,5,6,7" || ${ROCR_VISIBLE_DEVICES:-} = "0,1,2,3" || ${ROCR_VISIBLE_DEVICES:-} = "4,5,6,7" ]]; then
   GPU_CONFIG_KEY+="GPU_global.registerSelectedSegmentIds=$NUMAID;"
 fi
 
 if [[ $GPUTYPE == "HIP" ]]; then
   GPU_CONFIG_KEY+="GPU_proc.deviceNum=0;"
   if [[ $NGPUS != 1 || $NUMAID != 0 ]]; then
-    if [[ -z $ROCR_VISIBLE_DEVICES ]]; then
+    if [[ -z ${ROCR_VISIBLE_DEVICES:-} ]]; then
       GPU_FIRST_ID=0
     else
       GPU_FIRST_ID=$(echo ${ROCR_VISIBLE_DEVICES//,/ } | awk '{print $1}')
@@ -351,7 +351,7 @@ if [[ ! -z $INPUT_DETECTOR_LIST ]]; then
         PROXY_INSPEC+=";$PROXY_INNAME:$i/$j"
       done
     done
-    [[ ! -z ${TIMEFRAME_RATE_LIMIT:-} ]] && [[ $TIMEFRAME_RATE_LIMIT != 0 ]] && PROXY_CHANNEL+=";name=metric-feedback,type=pull,method=connect,address=ipc://${UDS_PREFIX}metric-feedback-$(($NUMAID + 10 * ${O2JOBID:-0})),transport=shmem,rateLogging=0"
+    [[ ! -z ${TIMEFRAME_RATE_LIMIT:-} ]] && [[ $TIMEFRAME_RATE_LIMIT != 0 ]] && PROXY_CHANNEL+=";name=metric-feedback,type=pull,method=connect,address=ipc://${UDS_PREFIX}metric-feedback-${O2JOBID:-$NUMAID},transport=shmem,rateLogging=0"
     add_W o2-dpl-raw-proxy "--dataspec \"$PROXY_INSPEC\" --readout-proxy \"--channel-config \\\"$PROXY_CHANNEL\\\"\" ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} ${TIMEFRAME_SHM_LIMIT:-}" "" 0
   elif [[ $DIGITINPUT == 1 ]]; then
     [[ $NTIMEFRAMES != 1 ]] && { echo "Digit input works only with NTIMEFRAMES=1" 1>&2; exit 1; }
@@ -407,7 +407,7 @@ has_detector_reco TRD && ! has_detector_from_global_reader TRD && add_W o2-trd-t
 has_detectors_reco ITS TPC && has_detector_matching ITSTPC && add_W o2-tpcits-match-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC $SEND_ITSTPC_DTGL --nthreads $ITSTPC_THREADS --pipeline $(get_N itstpc-track-matcher MATCH REST $ITSTPC_THREADS TPCITS)" "$ITSTPC_CONFIG_KEY;$ITSMFT_STROBES;$ITSEXTRAERR"
 has_detector_reco TRD && [[ ! -z "$TRD_SOURCES" ]] && add_W o2-trd-global-tracking "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_CONFIG $TRD_FILTER_CONFIG --track-sources $TRD_SOURCES --pipeline $(get_N trd-globaltracking_TPC_ITS-TPC_ TRD REST 1 TRDTRK),$(get_N trd-globaltracking_TPC_FT0_ITS-TPC_ TRD REST 1 TRDTRK)" "$TRD_CONFIG_KEY;$ITSMFT_STROBES;$ITSEXTRAERR"
 has_detector_reco TOF && [[ ! -z "$TOF_SOURCES" ]] && add_W o2-tof-matcher-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC --track-sources $TOF_SOURCES --pipeline $(get_N tof-matcher TOF REST 1 TOFMATCH)" "$ITSMFT_STROBES;$ITSEXTRAERR"
-has_detectors TPC && [[ -z "$DISABLE_ROOT_OUTPUT" && -z "$SKIP_TPC_CLUSTERSTRACKS_OUTPUT" ]] && add_W o2-tpc-reco-workflow "--input-type pass-through --output-type clusters,tracks,send-clusters-per-sector $DISABLE_MC"
+has_detectors TPC && [[ -z "$DISABLE_ROOT_OUTPUT" && "${SKIP_TPC_CLUSTERSTRACKS_OUTPUT:-}" != 1 ]] && add_W o2-tpc-reco-workflow "--input-type pass-through --output-type clusters,tracks,send-clusters-per-sector $DISABLE_MC"
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Reconstruction workflows normally active only in async mode in async mode ($LIST_OF_ASYNC_RECO_STEPS), but can be forced via $WORKFLOW_EXTRA_PROCESSING_STEPS

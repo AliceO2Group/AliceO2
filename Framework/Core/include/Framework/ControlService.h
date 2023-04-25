@@ -51,6 +51,8 @@ class ControlService
   void endOfStream();
   /// Report the current streaming state of a given device
   void notifyStreamingState(StreamingState state);
+  /// Push a generic key/value pair to the driver
+  void push(std::string_view key, std::string_view value, int64_t timestamp);
   /// Report the current FairMQ state of a given device
   void notifyDeviceState(std::string state);
 

@@ -70,9 +70,9 @@ uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inp
   }
 
   uint64_t activeSectors = 0;
-  bool isLinkZS = false;
-  bool readFirst = false;
   uint32_t firstOrbit = 0;
+  bool readFirst = false;
+  bool readFirstZS = false;
 
   // for LinkZS data the maximum sync offset is needed to align the data properly.
   // getBCsyncOffsetReference only works, if the full TF is seen. Alternatively, this value could be set
@@ -131,7 +131,8 @@ uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inp
 
       o2::framework::RawParser parser(raw.data(), raw.size());
       // detect decoder type by analysing first RDH
-      if (!readFirst) {
+      bool isLinkZS = false;
+      {
         auto it = parser.begin();
         auto rdhPtr = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
         const auto rdhVersion = RDHUtils::getVersion(rdhPtr);
@@ -140,16 +141,29 @@ uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inp
         }
         const auto link = RDHUtils::getLinkID(*rdhPtr);
         const auto detField = RDHUtils::getDetectorField(*rdhPtr);
-        if ((link == rdh_utils::UserLogicLinkID) || (detField == raw_data_types::LinkZS) || ((linkID == rdh_utils::ILBZSLinkID) && (detField == raw_data_types::ZS))) {
-          LOGP(info, "Detected Link-based zero suppression");
+        const auto feeID = RDHUtils::getFEEID(*rdhPtr);
+        const auto feeLinkID = rdh_utils::getLink(feeID);
+        if ((link == 0 || link == rdh_utils::UserLogicLinkID) && (detField == raw_data_types::LinkZS || ((feeLinkID == rdh_utils::ILBZSLinkID || feeLinkID == rdh_utils::DLBZSLinkID) && detField == raw_data_types::ZS))) {
           isLinkZS = true;
-          if (!reader->getManager() || !reader->getManager()->getLinkZSCallback()) {
-            LOGP(fatal, "LinkZSCallback must be set in RawReaderCRUManager");
+          if (!readFirstZS) {
+            if (feeLinkID == rdh_utils::DLBZSLinkID) {
+              LOGP(info, "Detected Dense Link-based zero suppression");
+            } else if (feeLinkID == rdh_utils::ILBZSLinkID) {
+              LOGP(info, "Detected Improved Link-based zero suppression");
+            } else {
+              LOGP(info, "Detected Link-based zero suppression");
+            }
+            if (!reader->getManager() || !reader->getManager()->getLinkZSCallback()) {
+              LOGP(fatal, "LinkZSCallback must be set in RawReaderCRUManager");
+            }
+            readFirstZS = true;
           }
         }
 
         // firstOrbit = RDHUtils::getHeartBeatOrbit(*rdhPtr);
-        LOGP(info, "First orbit in present TF: {}", firstOrbit);
+        if (!readFirst) {
+          LOGP(info, "First orbit in present TF: {}", firstOrbit);
+        }
         readFirst = true;
       }
 
@@ -255,11 +269,11 @@ void processLinkZS(o2::framework::RawParser<>& parser, std::unique_ptr<RawReader
     const auto linkID = rdh_utils::getLink(feeID);
     if (!((detField == raw_data_types::LinkZS) ||
           ((detField == raw_data_types::RAWDATA || detField == 0xdeadbeef) && (link == rdh_utils::UserLogicLinkID)) ||
-          ((linkID == rdh_utils::ILBZSLinkID) && (detField == raw_data_types::Type::ZS)))) {
+          ((linkID == rdh_utils::ILBZSLinkID || linkID == rdh_utils::DLBZSLinkID) && (detField == raw_data_types::Type::ZS)))) {
       continue;
     }
 
-    if ((decoderType == 1) && (linkID == rdh_utils::ILBZSLinkID) && (detField == raw_data_types::Type::ZS)) {
+    if ((decoderType == 1) && (linkID == rdh_utils::ILBZSLinkID || linkID == rdh_utils::DLBZSLinkID) && (detField == raw_data_types::Type::ZS)) {
       std::vector<Digit> digits;
       static o2::gpu::GPUParam gpuParam;
       static o2::gpu::GPUReconstructionZSDecoder gpuDecoder;

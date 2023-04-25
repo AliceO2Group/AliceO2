@@ -20,6 +20,7 @@ using namespace o2::framework;
 
 TEST_CASE("ConcreteData")
 {
+  o2::framework::clean_all_runtime_errors();
   OutputSpec spec{
     "TEST",
     "FOOO",

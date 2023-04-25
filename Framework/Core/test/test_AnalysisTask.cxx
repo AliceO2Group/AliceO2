@@ -143,6 +143,12 @@ struct KTask {
   std::shared_ptr<int> someSharedInt;
 };
 
+struct LTask {
+  SliceCache cache;
+  PresliceUnsorted<aod::McCollisionLabels> perMcCol = aod::mccollisionlabel::mcCollisionId;
+  void process(aod::McCollision const&, soa::SmallGroups<soa::Join<aod::Collisions, aod::McCollisionLabels>> const&) {}
+};
+
 TEST_CASE("AdaptorCompilation")
 {
   auto cfgc = makeEmptyConfigContext();
@@ -201,6 +207,9 @@ TEST_CASE("AdaptorCompilation")
   auto task11 = adaptAnalysisTask<KTask>(*cfgc, TaskName{"test11"});
   REQUIRE(task11.options.size() == 3);
   REQUIRE(task11.inputs.size() == 1);
+
+  auto task12 = adaptAnalysisTask<LTask>(*cfgc, TaskName{"test12"});
+  REQUIRE(task12.inputs.size() == 3);
 }
 
 TEST_CASE("TestPartitionIteration")

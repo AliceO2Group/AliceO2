@@ -175,7 +175,7 @@ class LookupTableBase
   LookupTableBase() = default;
   LookupTableBase(const Table_t& vecEntryFEE) { initFromTable(vecEntryFEE); }
   LookupTableBase(const std::string& pathToFile) { initFromFile(pathToFile); }
-  LookupTableBase(const std::string& urlCCDB, const std::string& pathToStorageInCCDB) { initCCDB(urlCCDB, pathToStorageInCCDB); }
+  LookupTableBase(const std::string& urlCCDB, const std::string& pathToStorageInCCDB, long timestamp = -1) { initCCDB(urlCCDB, pathToStorageInCCDB, timestamp); }
   // Map of str module names -> enum types
   const std::map<std::string, EModuleType> mMapModuleTypeStr2Enum = {{"PM", EModuleType::kPM}, {"PM-LCS", EModuleType::kPM_LCS}, {"TCM", EModuleType::kTCM}};
   // Warning! To exclude double mapping do not use isTCM and isPM in the same time
@@ -236,11 +236,11 @@ class LookupTableBase
     prepareEntriesFEE(filepath);
     prepareLUT();
   }
-  void initCCDB(const std::string& urlCCDB, const std::string& pathToStorageInCCDB)
+  void initCCDB(const std::string& urlCCDB, const std::string& pathToStorageInCCDB, long timestamp = -1)
   {
     auto& mgr = o2::ccdb::BasicCCDBManager::instance();
     mgr.setURL(urlCCDB);
-    mVecEntryFEE = *(mgr.get<Table_t>(pathToStorageInCCDB));
+    mVecEntryFEE = *(mgr.getForTimeStamp<Table_t>(pathToStorageInCCDB, timestamp));
     prepareLUT();
   }
   void initFromTable(const Table_t* vecEntryFEE)

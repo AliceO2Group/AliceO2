@@ -24,6 +24,7 @@
 #include "Framework/DataRelayer.h"
 #include "Framework/Signpost.h"
 #include "Framework/DataProcessingStats.h"
+#include "Framework/DataProcessingStates.h"
 #include "Framework/TimingHelpers.h"
 #include "Framework/CommonMessageBackends.h"
 #include "Framework/DanglingContext.h"
@@ -41,6 +42,7 @@
 #include "Framework/StreamContext.h"
 #include "Framework/DeviceState.h"
 #include "Framework/DeviceConfig.h"
+#include "Framework/DefaultsHelpers.h"
 
 #include "TextDriverClient.h"
 #include "WSDriverClient.h"
@@ -159,12 +161,6 @@ o2::framework::ServiceSpec CommonServices::streamContextSpec()
     .kind = ServiceKind::Stream};
 }
 
-o2::framework::DeploymentMode o2::framework::CommonServices::getDeploymentMode()
-{
-  static DeploymentMode retVal = getenv("DDS_SESSION_ID") != nullptr ? DeploymentMode::OnlineDDS : (getenv("OCC_CONTROL_PORT") != nullptr ? DeploymentMode::OnlineECS : (getenv("ALIEN_JOB_ID") != nullptr ? DeploymentMode::Grid : (getenv("ALICE_O2_FST") ? DeploymentMode::FST : (DeploymentMode::Local))));
-  return retVal;
-}
-
 o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
 {
   return ServiceSpec{
@@ -187,7 +183,7 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
     .start = [](ServiceRegistryRef services, void* service) {
       auto& context = services.get<DataTakingContext>();
 
-      context.deploymentMode = getDeploymentMode();
+      context.deploymentMode = DefaultsHelpers::deploymentMode();
 
       auto extRunNumber = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("runNumber", "unspecified");
       if (extRunNumber != "unspecified" || context.runNumber == "0") {
@@ -627,6 +623,14 @@ auto sendRelayerMetrics(ServiceRegistryRef registry, DataProcessingStats& stats)
   stats.updateStats({static_cast<short>(ProcessingStatsId::TOTAL_RATE_OUT_MB_S), DataProcessingStats::Op::InstantaneousRate, totalBytesOut / 1000000});
 };
 
+auto flushStates(ServiceRegistryRef registry, DataProcessingStates& states) -> void
+{
+  states.flushChangedStates([&states, registry](std::string const& spec, int64_t timestamp, std::string_view value) mutable -> void {
+    auto& client = registry.get<ControlService>();
+    client.push(spec, value, timestamp);
+  });
+}
+
 /// This will flush metrics only once every second.
 auto flushMetrics(ServiceRegistryRef registry, DataProcessingStats& stats) -> void
 {
@@ -819,6 +823,38 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
     .kind = ServiceKind::Serial};
 }
 
+// This is similar to the dataProcessingStats, but it designed to synchronize
+// history-less metrics which are e.g. used for the GUI.
+o2::framework::ServiceSpec CommonServices::dataProcessingStates()
+{
+  return ServiceSpec{
+    .name = "data-processing-states",
+    .init = [](ServiceRegistryRef services, DeviceState& state, fair::mq::ProgOptions& options) -> ServiceHandle {
+      timespec now;
+      clock_gettime(CLOCK_REALTIME, &now);
+      uv_update_time(state.loop);
+      uint64_t offset = now.tv_sec * 1000 - uv_now(state.loop);
+      auto* states = new DataProcessingStates(TimingHelpers::defaultRealtimeBaseConfigurator(offset, state.loop),
+                                              TimingHelpers::defaultCPUTimeConfigurator(state.loop));
+      states->registerState({"dummy_state", (short)ProcessingStateId::DUMMY_STATE});
+      return ServiceHandle{TypeIdHelpers::uniqueId<DataProcessingStates>(), states};
+    },
+    .configure = noConfiguration(),
+    .postProcessing = [](ProcessingContext& context, void* service) {
+      auto* states = (DataProcessingStates*)service;
+      states->processCommandQueue(); },
+    .preDangling = [](DanglingContext& context, void* service) {
+       auto* states = (DataProcessingStates*)service;
+       flushStates(context.services(), *states); },
+    .postDangling = [](DanglingContext& context, void* service) {
+       auto* states = (DataProcessingStates*)service;
+       flushStates(context.services(), *states); },
+    .preEOS = [](EndOfStreamContext& context, void* service) {
+      auto* states = (DataProcessingStates*)service;
+      flushStates(context.services(), *states); },
+    .kind = ServiceKind::Global};
+}
+
 struct GUIMetrics {
 };
 
@@ -923,6 +959,7 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
     parallelSpec(),
     callbacksSpec(),
     dataProcessingStats(),
+    dataProcessingStates(),
     dataRelayer(),
     CommonMessageBackends::fairMQDeviceProxy(),
     dataSender(),
@@ -935,7 +972,7 @@ std::vector<ServiceSpec> CommonServices::defaultServices(int numThreads)
 
   std::string loadableServicesStr;
   // Do not load InfoLogger by default if we are not at P2.
-  DeploymentMode deploymentMode = getDeploymentMode();
+  DeploymentMode deploymentMode = DefaultsHelpers::deploymentMode();
   if (deploymentMode == DeploymentMode::OnlineDDS || deploymentMode == DeploymentMode::OnlineECS) {
     loadableServicesStr += "O2FrameworkDataTakingSupport:InfoLoggerContext,O2FrameworkDataTakingSupport:InfoLogger";
   }

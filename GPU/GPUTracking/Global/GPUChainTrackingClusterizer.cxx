@@ -140,18 +140,21 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
           continue;
         }
         pageCounter++;
-        const TPCZSHDR* const hdr = (const TPCZSHDR*)(o2::raw::RDHUtils::getLinkID(*rdh) == rdh_utils::DLBZSLinkID ? (page + o2::raw::RDHUtils::getMemorySize(*rdh) - sizeof(TPCZSHDRV2)) : (page + sizeof(o2::header::RAWDataHeader)));
+        const TPCZSHDR* const hdr = (const TPCZSHDR*)(rdh_utils::getLink(o2::raw::RDHUtils::getFEEID(*rdh)) == rdh_utils::DLBZSLinkID ? (page + o2::raw::RDHUtils::getMemorySize(*rdh) - sizeof(TPCZSHDRV2)) : (page + sizeof(o2::header::RAWDataHeader)));
         if (mCFContext->zsVersion == -1) {
           mCFContext->zsVersion = hdr->version;
         } else if (mCFContext->zsVersion != (int)hdr->version) {
           GPUAlarm("Received TPC ZS 8kb page of mixed versions, expected %d, received %d (linkid %d)", mCFContext->zsVersion, (int)hdr->version, (int)o2::raw::RDHUtils::getLinkID(*rdh));
-          char dumpBuffer[3 * std::max(sizeof(*rdh), sizeof(*hdr)) + 1];
+          constexpr size_t bufferSize = 3 * std::max(sizeof(*rdh), sizeof(*hdr)) + 1;
+          char dumpBuffer[bufferSize];
           for (size_t i = 0; i < sizeof(*rdh); i++) {
-            sprintf(dumpBuffer + 3 * i, "%02X ", (int)((unsigned char*)rdh)[i]);
+            // "%02X " guaranteed to be 3 chars + ending 0.
+            snprintf(dumpBuffer + 3 * i, 4, "%02X ", (int)((unsigned char*)rdh)[i]);
           }
           GPUAlarm("RDH of page: %s", dumpBuffer);
           for (size_t i = 0; i < sizeof(*hdr); i++) {
-            sprintf(dumpBuffer + 3 * i, "%02X ", (int)((unsigned char*)hdr)[i]);
+            // "%02X " guaranteed to be 3 chars + ending 0.
+            snprintf(dumpBuffer + 3 * i, 4, "%02X ", (int)((unsigned char*)hdr)[i]);
           }
           GPUAlarm("Metainfo of page: %s", dumpBuffer);
           if (GetProcessingSettings().ignoreNonFatalGPUErrors) {

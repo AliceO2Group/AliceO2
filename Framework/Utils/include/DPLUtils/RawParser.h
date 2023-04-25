@@ -138,6 +138,19 @@ class ConcreteRawParser
     return max_size - h.headerSize;
   }
 
+  /// Get size of header + payload at current position
+  size_t sizeTotal() const
+  {
+    if (mPosition == mRawBuffer + mSize) {
+      return 0;
+    }
+    header_type const& h = header();
+    if (h.memorySize >= h.headerSize) {
+      return h.memorySize;
+    }
+    return max_size;
+  }
+
   /// Get pointer to payload data at current position
   buffer_type const* data() const
   {
@@ -483,6 +496,12 @@ class RawParser
     size_t size() const
     {
       return std::visit([](auto& parser) { return parser.size(); }, mParser);
+    }
+
+    /// get size of payload + header at current position
+    size_t sizeTotal() const
+    {
+      return std::visit([](auto& parser) { return parser.sizeTotal(); }, mParser);
     }
 
     /// get header as specific type

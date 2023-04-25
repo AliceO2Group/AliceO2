@@ -23,7 +23,7 @@ namespace o2::framework
 
 Metric2DViewIndex::Updater Metric2DViewIndex::getUpdater()
 {
-  return [](std::array<Metric2DViewIndex*, 6> const& views, std::string const& name, MetricInfo const& metric, int value, int metricsIndex) -> void {
+  return [](std::array<Metric2DViewIndex*, 2> const& views, std::string const& name, MetricInfo const& metric, int value, int metricsIndex) -> void {
     for (auto viewPtr : views) {
       auto& view = *viewPtr;
       if (view.prefix.size() > name.size()) {

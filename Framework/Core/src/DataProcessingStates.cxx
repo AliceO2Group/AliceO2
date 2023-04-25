@@ -33,7 +33,7 @@ DataProcessingStates::DataProcessingStates(std::function<void(int64_t& base, int
 
 void DataProcessingStates::processCommandQueue()
 {
-  int position = nextState.load(std::memory_order_relaxed);
+  int position = lastInsertedState.load(std::memory_order_relaxed);
   // Process the commands in the order we have just computed.
   while (position < DataProcessingStates::STATES_BUFFER_SIZE) {
     DataProcessingStates::CommandHeader header;
@@ -48,7 +48,17 @@ void DataProcessingStates::processCommandQueue()
     // because the metrics are stored in reverse insertion order.
     if (generation > update.generation) {
       // If we have enough capacity, we reuse the buffer.
-      if (statesViews[id].capacity >= size) {
+      // If the size is the same, we  mark it as updated only if different.
+      if (statesViews[id].size == size) {
+        int diff = memcmp(statesBuffer.data() + statesViews[id].first, &store[position + sizeof(DataProcessingStates::CommandHeader)], size);
+        if (diff) {
+          memcpy(statesBuffer.data() + statesViews[id].first, &store[position + sizeof(DataProcessingStates::CommandHeader)], size);
+          updated[id] = true;
+          update.timestamp = timestamp;
+          update.generation = generation;
+          pushedMetricsLapse++;
+        }
+      } else if (statesViews[id].capacity >= size) {
         memcpy(statesBuffer.data() + statesViews[id].first, &store[position + sizeof(DataProcessingStates::CommandHeader)], size);
         statesViews[id].size = size;
         updated[id] = true;
@@ -60,6 +70,7 @@ void DataProcessingStates::processCommandQueue()
         int newCapacity = std::max(size, 64);
         int first = statesBuffer.size();
         statesBuffer.resize(statesBuffer.size() + newCapacity);
+        assert(first < statesBuffer.size());
         memcpy(statesBuffer.data() + first, &store[position + sizeof(DataProcessingStates::CommandHeader)], size);
         statesViews[id].first = first;
         statesViews[id].size = size;
@@ -75,12 +86,13 @@ void DataProcessingStates::processCommandQueue()
   assert(position == DataProcessingStates::STATES_BUFFER_SIZE);
   // We reset the queue. Once again, the queue is filled in reverse order.
   nextState.store(STATES_BUFFER_SIZE, std::memory_order_relaxed);
-  insertedStates.store(0, std::memory_order_relaxed);
+  lastInsertedState.store(STATES_BUFFER_SIZE, std::memory_order_relaxed);
   generation++;
 }
 
 void DataProcessingStates::updateState(CommandSpec cmd)
 {
+  LOGP(debug, "Updating state {} with {}", cmd.id, std::string_view(cmd.data, cmd.size));
   if (stateSpecs[cmd.id].name.empty()) {
     throw runtime_error_f("StateID %d was not registered", (int)cmd.id);
   }
@@ -90,10 +102,19 @@ void DataProcessingStates::updateState(CommandSpec cmd)
   if (cmd.id >= updateInfos.size()) {
     throw runtime_error_f("MetricID %d is out of range", (int)cmd.id);
   }
+  // Do not update currently disabled states
+  if (enabled[cmd.id] == false) {
+    return;
+  }
   pendingStates++;
   // Add a static mutex to protect the queue
   // Get the next available operation in an atomic way.
-  auto size = sizeof(CommandHeader) + cmd.size;
+  int size = sizeof(CommandHeader) + cmd.size;
+  assert(size < 1000);
+  if (size > 8192) {
+    throw runtime_error_f("State size is %d for state %s. States larger than 8192 bytes not supported for now.",
+                          size, stateSpecs[cmd.id].name.c_str());
+  }
   int idx = nextState.fetch_sub(size, std::memory_order_relaxed);
   if (idx - size < 0) {
     // We abort this command
@@ -106,7 +127,7 @@ void DataProcessingStates::updateState(CommandSpec cmd)
       std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
     processCommandQueue();
-    insertedStates.store(0, std::memory_order_relaxed);
+    lastInsertedState.store(STATES_BUFFER_SIZE, std::memory_order_relaxed);
     nextState.store(STATES_BUFFER_SIZE, std::memory_order_relaxed);
     pendingStates++;
     idx = nextState.fetch_sub(size, std::memory_order_relaxed);
@@ -126,9 +147,12 @@ void DataProcessingStates::updateState(CommandSpec cmd)
   // reserved for us.
   idx -= size;
   CommandHeader header{(short)cmd.id, cmd.size, timestamp};
+  assert(idx >= 0);
+  assert(idx + sizeof(CommandHeader) + cmd.size <= store.size());
   memcpy(&store.data()[idx], &header, sizeof(CommandHeader));
   memcpy(&store.data()[idx + sizeof(CommandHeader)], cmd.data, cmd.size);
-  insertedStates++;
+
+  lastInsertedState = idx;
   pendingStates--;
   // Keep track of the number of commands we have received.
   updatedMetricsLapse++;
@@ -151,10 +175,15 @@ void DataProcessingStates::flushChangedStates(std::function<void(std::string con
       continue;
     }
     if (currentTimestamp - update.lastPublished < spec.minPublishInterval) {
+      LOGP(debug, "not publishing because of minPublishInterval");
       continue;
     }
     publish = true;
-    callback(spec.name.data(), update.timestamp, std::string_view(statesBuffer.data() + view.first, view.size));
+    assert(view.first + view.size <= statesBuffer.size());
+    assert(view.first <= statesBuffer.size());
+    auto msg = std::string_view(statesBuffer.data() + view.first, view.size);
+
+    callback(spec.name.data(), update.timestamp, msg);
     publishedMetricsLapse++;
     update.lastPublished = currentTimestamp;
     updated[mi] = false;
@@ -212,6 +241,7 @@ void DataProcessingStates::registerState(StateSpec const& spec)
   int64_t currentTime = getTimestamp(realTimeBase, initialTimeOffset);
   updateInfos[spec.stateId] = UpdateInfo{currentTime, currentTime};
   updated[spec.stateId] = spec.sendInitialValue;
+  enabled[spec.stateId] = spec.defaultEnabled;
 }
 
 } // namespace o2::framework

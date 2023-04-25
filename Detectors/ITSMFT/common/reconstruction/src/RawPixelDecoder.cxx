@@ -181,6 +181,9 @@ bool RawPixelDecoder<Mapping>::doIRMajorityPoll()
         mIRPoll[link.ir]++;
       } else if (link.status == GBTLink::StoppedOnEndOfData || link.status == GBTLink::AbortedOnError) {
         link.statusInTF = GBTLink::StoppedOnEndOfData;
+        if (mVerbosity >= GBTLink::Verbosity::VerboseHeaders) {
+          LOGP(info, "doIRMajorityPoll: {} DONE, status = {}", link.describe(), int(link.status));
+        }
         mNLinksDone++;
       }
     }
@@ -194,9 +197,15 @@ bool RawPixelDecoder<Mapping>::doIRMajorityPoll()
   }
   mInteractionRecordHB = mInteractionRecord;
   if (mInteractionRecord.isDummy()) {
+    if (mVerbosity >= GBTLink::Verbosity::VerboseHeaders) {
+      LOG(info) << "doIRMajorityPoll: did not find any valid IR";
+    }
     return false;
   }
   mInteractionRecordHB.bc = 0;
+  if (mVerbosity >= GBTLink::Verbosity::VerboseHeaders) {
+    LOG(info) << "doIRMajorityPoll: " << mInteractionRecordHB.asString() << " majority = " << majIR << " for " << mNLinksInTF << " links seen, LinksDone = " << mNLinksDone;
+  }
   return true;
 }
 
@@ -252,7 +261,9 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
       lnk.wordLength = (lnk.expectPadding = (RDHUtils::getDataFormat(rdh) == 0)) ? o2::itsmft::GBTPaddedWordLength : o2::itsmft::GBTWordLength;
       getCreateRUDecode(mMAP.FEEId2RUSW(RDHUtils::getFEEID(rdh))); // make sure there is a RU for this link
       lnk.verbosity = GBTLink::Verbosity(mVerbosity);
-      LOG(info) << mSelfName << " registered new link " << lnk.describe() << " RUSW=" << int(mMAP.FEEId2RUSW(lnk.feeID));
+      if (mVerbosity >= GBTLink::Verbosity::VerboseHeaders) {
+        LOG(info) << mSelfName << " registered new link " << lnk.describe() << " RUSW=" << int(mMAP.FEEId2RUSW(lnk.feeID));
+      }
       linksAdded++;
     }
     auto& link = mGBTLinks[lnkref.entry];
@@ -281,7 +292,9 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
 
   if (linksAdded) { // new links were added, update link<->RU mapping, usually is done for 1st TF only
     if (nLinks) {
-      LOG(warn) << mSelfName << " New links appeared although the initialization was already done";
+      if (mVerbosity >= GBTLink::Verbosity::VerboseHeaders) {
+        LOG(warn) << mSelfName << " New links appeared although the initialization was already done";
+      }
       for (auto& ru : mRUDecodeVec) { // reset RU->link references since they may have been changed
         memset(&ru.links[0], -1, RUDecodeData::MaxLinksPerRU * sizeof(int));
       }
@@ -300,8 +313,9 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
       uint16_t lr, ruOnLr, linkInRU;
       mMAP.expandFEEId(link.feeID, lr, ruOnLr, linkInRU);
       if (newLinkAdded) {
-        LOG(info) << mSelfName << " Attaching " << link.describe() << " to RU#" << int(mMAP.FEEId2RUSW(link.feeID))
-                  << " (stave " << ruOnLr << " of layer " << lr << ')';
+        if (mVerbosity >= GBTLink::Verbosity::VerboseHeaders) {
+          LOG(info) << mSelfName << " Attaching " << link.describe() << " to RU#" << int(mMAP.FEEId2RUSW(link.feeID)) << " (stave " << ruOnLr << " of layer " << lr << ')';
+        }
       }
       link.idInRU = linkInRU;
       link.ruPtr->links[linkInRU] = il; // RU to link reference
@@ -323,7 +337,9 @@ RUDecodeData& RawPixelDecoder<Mapping>::getCreateRUDecode(int ruSW)
     ru.ruInfo = mMAP.getRUInfoSW(ruSW); // info on the stave/RU
     ru.chipsData.resize(mMAP.getNChipsOnRUType(ru.ruInfo->ruType));
     ru.verbosity = mVerbosity;
-    LOG(info) << mSelfName << " Defining container for RU " << ruSW << " at slot " << mRUEntry[ruSW];
+    if (mVerbosity >= GBTLink::Verbosity::VerboseHeaders) {
+      LOG(info) << mSelfName << " Defining container for RU " << ruSW << " at slot " << mRUEntry[ruSW];
+    }
   }
   return mRUDecodeVec[mRUEntry[ruSW]];
 }

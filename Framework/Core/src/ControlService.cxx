@@ -78,6 +78,13 @@ void ControlService::notifyStreamingState(StreamingState state)
   mDriverClient.flushPending();
 }
 
+void ControlService::push(std::string_view key, std::string_view value, int64_t timestamp)
+{
+  std::scoped_lock lock(mMutex);
+  mDriverClient.tell(fmt::format("CONTROL_ACTION: PUT {} {} {}", key, timestamp, value));
+  mDriverClient.flushPending();
+}
+
 void ControlService::notifyDeviceState(std::string currentState)
 {
   std::scoped_lock lock(mMutex);

@@ -156,7 +156,7 @@ void CompressorTask<RDH, verbose, paranoid>::run(ProcessingContext& pc)
     }
 
     v.resize(headerOut.payloadSize);
-    pc.outputs().adoptContainer(output, std::move(v), true, header::gSerializationMethodNone);
+    pc.outputs().adoptContainer(output, std::move(v));
   }
 }
 

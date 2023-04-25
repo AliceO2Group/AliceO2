@@ -1659,6 +1659,9 @@ int MatchTPCITS::prepareInteractionTimes()
         }
         break;
       }
+      if (rof >= nITSROFs) {
+        break;
+      }
       mInteractions.emplace_back(ft.getInteractionRecord(), fitTime, ft0Uncertainty, rof, o2::detectors::DetID::FT0);
     }
   }

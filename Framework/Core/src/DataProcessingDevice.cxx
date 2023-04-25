@@ -18,6 +18,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/ComputingQuotaEvaluator.h"
 #include "Framework/DataProcessingHeader.h"
+#include "Framework/DataProcessingStates.h"
 #include "Framework/DataProcessor.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/DeviceState.h"
@@ -46,6 +47,7 @@
 #include "Framework/DeviceContext.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/StreamContext.h"
+#include "Framework/DefaultsHelpers.h"
 
 #include "PropertyTreeHelpers.h"
 #include "DataProcessingStatus.h"
@@ -242,6 +244,10 @@ void run_completion(uv_work_t* handle, int status)
 
 // Context for polling
 struct PollerContext {
+  enum struct PollerState : char { Stopped,
+                                   Disconnected,
+                                   Connected,
+                                   Suspended };
   char const* name = nullptr;
   uv_loop_t* loop = nullptr;
   DataProcessingDevice* device = nullptr;
@@ -250,6 +256,7 @@ struct PollerContext {
   InputChannelInfo* channelInfo = nullptr;
   int fd = -1;
   bool read = true;
+  PollerState pollerState = PollerState::Stopped;
 };
 
 void on_socket_polled(uv_poll_t* poller, int status, int events)
@@ -264,8 +271,18 @@ void on_socket_polled(uv_poll_t* poller, int status, int events)
     } break;
     case UV_WRITABLE: {
       ZoneScopedN("socket writeable");
-      LOG(debug) << "socket polled UV_WRITEABLE";
-      context->state->loopReason |= DeviceState::DATA_OUTGOING;
+      if (context->read) {
+        LOG(debug) << "socket polled UV_CONNECT" << context->name;
+        uv_poll_start(poller, UV_READABLE | UV_DISCONNECT | UV_PRIORITIZED, &on_socket_polled);
+        context->state->loopReason |= DeviceState::DATA_CONNECTED;
+      } else {
+        LOG(debug) << "socket polled UV_WRITABLE" << context->name;
+        context->state->loopReason |= DeviceState::DATA_OUTGOING;
+        // If the socket is writable, fairmq will handle the rest, so we can stop polling and
+        // just wait for the disconnect.
+        uv_poll_start(poller, UV_DISCONNECT | UV_PRIORITIZED, &on_socket_polled);
+      }
+      context->pollerState = PollerContext::PollerState::Connected;
     } break;
     case UV_DISCONNECT: {
       ZoneScopedN("socket disconnect");
@@ -650,6 +667,7 @@ void DataProcessingDevice::initPollers()
           continue;
         }
         channelInfo->channel = &this->GetChannel(channelName, 0);
+        break;
       }
       if ((channelName.rfind("from_internal-dpl", 0) == 0) &&
           (channelName.rfind("from_internal-dpl-aod", 0) != 0) &&
@@ -664,7 +682,7 @@ void DataProcessingDevice::initPollers()
         continue;
       }
 
-      if (channelName.rfind("from_") != 0) {
+      if (channelName.rfind("from_", 0) != 0) {
         LOGP(detail, "{} is not a DPL socket. Not polling.", channelName);
         continue;
       }
@@ -692,10 +710,11 @@ void DataProcessingDevice::initPollers()
       pCtx->read = true;
       poller->data = pCtx;
       uv_poll_init(state.loop, poller, zmq_fd);
-      if (channelName.rfind("from_") != 0) {
+      if (channelName.rfind("from_", 0) != 0) {
         LOGP(detail, "{} is an out of band channel.", channelName);
         state.activeOutOfBandPollers.push_back(poller);
       } else {
+        channelInfo->pollerIndex = state.activeInputPollers.size();
         state.activeInputPollers.push_back(poller);
       }
     }
@@ -769,13 +788,16 @@ void DataProcessingDevice::startPollers()
   auto& state = ref.get<DeviceState>();
 
   for (auto& poller : state.activeInputPollers) {
-    uv_poll_start(poller, UV_READABLE | UV_DISCONNECT, &on_socket_polled);
+    uv_poll_start(poller, UV_WRITABLE, &on_socket_polled);
+    ((PollerContext*)poller->data)->pollerState = PollerContext::PollerState::Disconnected;
   }
   for (auto& poller : state.activeOutOfBandPollers) {
     uv_poll_start(poller, UV_WRITABLE, &on_out_of_band_polled);
+    ((PollerContext*)poller->data)->pollerState = PollerContext::PollerState::Disconnected;
   }
   for (auto& poller : state.activeOutputPollers) {
     uv_poll_start(poller, UV_WRITABLE, &on_socket_polled);
+    ((PollerContext*)poller->data)->pollerState = PollerContext::PollerState::Disconnected;
   }
 
   deviceContext.gracePeriodTimer = (uv_timer_t*)malloc(sizeof(uv_timer_t));
@@ -791,14 +813,17 @@ void DataProcessingDevice::stopPollers()
   LOGP(detail, "Stopping {} input pollers", state.activeInputPollers.size());
   for (auto& poller : state.activeInputPollers) {
     uv_poll_stop(poller);
+    ((PollerContext*)poller->data)->pollerState = PollerContext::PollerState::Stopped;
   }
   LOGP(detail, "Stopping {} out of band pollers", state.activeOutOfBandPollers.size());
   for (auto& poller : state.activeOutOfBandPollers) {
     uv_poll_stop(poller);
+    ((PollerContext*)poller->data)->pollerState = PollerContext::PollerState::Stopped;
   }
   LOGP(detail, "Stopping {} output pollers", state.activeOutOfBandPollers.size());
   for (auto& poller : state.activeOutputPollers) {
     uv_poll_stop(poller);
+    ((PollerContext*)poller->data)->pollerState = PollerContext::PollerState::Stopped;
   }
 
   uv_timer_stop(deviceContext.gracePeriodTimer);
@@ -1299,11 +1324,26 @@ void DataProcessingDevice::doPrepare(ServiceRegistryRef ref)
   auto& infos = state.inputChannelInfos;
 
   if (context.balancingInputs) {
-    static int pipelineLength = DataRelayer::getPipelineLength();
+    static int pipelineLength = DefaultsHelpers::pipelineLength();
     static uint64_t ahead = getenv("DPL_MAX_CHANNEL_AHEAD") ? std::atoll(getenv("DPL_MAX_CHANNEL_AHEAD")) : std::max(8, std::min(pipelineLength - 48, pipelineLength / 2));
     auto newEnd = std::remove_if(pollOrder.begin(), pollOrder.end(), [&infos, limitNew = currentOldest.value + ahead](int a) -> bool {
       return infos[a].oldestForChannel.value > limitNew;
     });
+    for (auto it = pollOrder.begin(); it < pollOrder.end(); it++) {
+      const auto& channelInfo = state.inputChannelInfos[*it];
+      if (channelInfo.pollerIndex != -1) {
+        auto& poller = state.activeInputPollers[channelInfo.pollerIndex];
+        auto& pollerContext = *(PollerContext*)(poller->data);
+        if (pollerContext.pollerState == PollerContext::PollerState::Connected || pollerContext.pollerState == PollerContext::PollerState::Suspended) {
+          bool running = pollerContext.pollerState == PollerContext::PollerState::Connected;
+          bool shouldBeRunning = it < newEnd;
+          if (running != shouldBeRunning) {
+            uv_poll_start(poller, shouldBeRunning ? UV_READABLE | UV_DISCONNECT | UV_PRIORITIZED : 0, &on_socket_polled);
+            pollerContext.pollerState = shouldBeRunning ? PollerContext::PollerState::Connected : PollerContext::PollerState::Suspended;
+          }
+        }
+      }
+    }
     pollOrder.erase(newEnd, pollOrder.end());
   }
   LOGP(debug, "processing {} channels", pollOrder.size());
@@ -1980,13 +2020,16 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
 
   auto postUpdateStats = [ref](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t tStart, uint64_t tStartMilli) {
     auto& stats = ref.get<DataProcessingStats>();
+    auto& states = ref.get<DataProcessingStates>();
     std::atomic_thread_fence(std::memory_order_release);
+    char relayerSlotState[1024];
+    int written = snprintf(relayerSlotState, 1024, "%d ", DefaultsHelpers::pipelineLength());
+    char* buffer = relayerSlotState + written;
     for (size_t ai = 0; ai != record.size(); ai++) {
-      auto cacheId = action.slot.index * record.size() + ai;
-      auto state = record.isValid(ai) ? 3 : 0;
-      update_maximum(stats.statesSize, cacheId + 1);
-      stats.updateStats({static_cast<unsigned short>((int)ProcessingStatsId::RELAYER_METRIC_BASE + cacheId), DataProcessingStats::Op::Set, (int)state});
+      buffer[ai] = record.isValid(ai) ? '3' : '0';
     }
+    buffer[record.size()] = 0;
+    states.updateState({.id = short((int)ProcessingStateId::DATA_RELAYER_BASE + action.slot.index), (int)(record.size() + buffer - relayerSlotState), relayerSlotState});
     uint64_t tEnd = uv_hrtime();
     stats.updateStats({(int)ProcessingStatsId::LAST_ELAPSED_TIME_MS, DataProcessingStats::Op::Set, (int64_t)(tEnd - tStart)});
     stats.updateStats({(int)ProcessingStatsId::LAST_PROCESSED_SIZE, DataProcessingStats::Op::Set, calculateTotalInputRecordSize(record)});
@@ -2000,14 +2043,16 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
   };
 
   auto preUpdateStats = [ref](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t) {
-    auto& stats = ref.get<DataProcessingStats>();
+    auto& states = ref.get<DataProcessingStates>();
     std::atomic_thread_fence(std::memory_order_release);
+    char relayerSlotState[1024];
+    snprintf(relayerSlotState, 1024, "%d ", DefaultsHelpers::pipelineLength());
+    char* buffer = strchr(relayerSlotState, ' ') + 1;
     for (size_t ai = 0; ai != record.size(); ai++) {
-      auto cacheId = action.slot.index * record.size() + ai;
-      auto state = record.isValid(ai) ? 2 : 0;
-      update_maximum(stats.statesSize, cacheId + 1);
-      stats.updateStats({static_cast<unsigned short>((int)ProcessingStatsId::RELAYER_METRIC_BASE + cacheId), DataProcessingStats::Op::Set, (int)state});
+      buffer[ai] = record.isValid(ai) ? '2' : '0';
     }
+    buffer[record.size()] = 0;
+    states.updateState({.id = short((int)ProcessingStateId::DATA_RELAYER_BASE + action.slot.index), (int)(record.size() + buffer - relayerSlotState), relayerSlotState});
   };
 
   // This is the main dispatching loop

@@ -146,7 +146,7 @@ DataProcessorSpec getZSEncoderSpec(std::vector<int> const& tpcSectors, bool outR
         writer.useRDHVersion(rdhV);
         writer.doLazinessCheck(false); // LazinessCheck is not thread-safe
         std::string outDir = "./";
-        const unsigned int defaultLink = rdh_utils::UserLogicLinkID;
+        const unsigned int defaultLink = 0;
         enum LinksGrouping { All,
                              Sector,
                              Link };

@@ -49,7 +49,9 @@
 #include "Framework/Monitoring.h"
 #include "Framework/DataProcessorInfo.h"
 #include "Framework/DriverInfo.h"
+#include "Framework/DriverConfig.h"
 #include "Framework/DriverControl.h"
+#include "Framework/DataTakingContext.h"
 #include "Framework/CommandInfo.h"
 #include "Framework/RunningWorkflowInfo.h"
 #include "Framework/TopologyPolicy.h"
@@ -59,6 +61,7 @@
 #include "Framework/ServiceMetricsInfo.h"
 #include "Framework/DataTakingContext.h"
 #include "Framework/CommonServices.h"
+#include "Framework/DefaultsHelpers.h"
 #include "ControlServiceHelpers.h"
 #include "ProcessingPoliciesHelpers.h"
 #include "DriverServerContext.h"
@@ -159,6 +162,7 @@ using DataProcessorInfos = std::vector<DataProcessorInfo>;
 using DeviceExecutions = std::vector<DeviceExecution>;
 using DeviceSpecs = std::vector<DeviceSpec>;
 using DeviceInfos = std::vector<DeviceInfo>;
+using DataProcessingStatesInfos = std::vector<DataProcessingStates>;
 using DeviceControls = std::vector<DeviceControl>;
 using DataProcessorSpecs = std::vector<DataProcessorSpec>;
 
@@ -331,31 +335,32 @@ void cleanupSHM(std::string const& uniqueWorkflowId)
 
 static void handle_sigchld(int) { sigchld_requested = true; }
 
-void spawnRemoteDevice(std::string const&,
+void spawnRemoteDevice(uv_loop_t* loop,
+                       std::string const&,
                        DeviceSpec const& spec,
                        DeviceControl&,
                        DeviceExecution&,
-                       std::vector<DeviceInfo>& deviceInfos)
+                       DeviceInfos& deviceInfos,
+                       DataProcessingStatesInfos& allStates)
 {
   LOG(info) << "Starting " << spec.id << " as remote device";
-  DeviceInfo info;
-  // FIXME: we should make sure we do not sent a kill to pid 0.
-  info.pid = 0;
-  info.active = true;
-  info.readyToQuit = false;
-  info.historySize = 1000;
-  info.historyPos = 0;
-  info.maxLogLevel = LogParsingHelpers::LogLevel::Debug;
-  info.dataRelayerViewIndex = Metric2DViewIndex{"data_relayer", 0, 0, {}};
-  info.variablesViewIndex = Metric2DViewIndex{"matcher_variables", 0, 0, {}};
-  info.queriesViewIndex = Metric2DViewIndex{"data_queries", 0, 0, {}};
-  info.outputsViewIndex = Metric2DViewIndex{"output_matchers", 0, 0, {}};
-  info.inputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_timeslice", 0, 0, {}};
-  info.outputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_output", 0, 0, {}};
-  // FIXME: use uv_now.
-  info.lastSignal = uv_hrtime() - 10000000;
+  DeviceInfo info{
+    .pid = 0,
+    .historyPos = 0,
+    .historySize = 1000,
+    .maxLogLevel = LogParsingHelpers::LogLevel::Debug,
+    .active = true,
+    .readyToQuit = false,
+    .inputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_timeslice", 0, 0, {}},
+    .outputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_output", 0, 0, {}},
+    .lastSignal = uv_hrtime() - 10000000};
 
   deviceInfos.emplace_back(info);
+  timespec now;
+  clock_gettime(CLOCK_REALTIME, &now);
+  uint64_t offset = now.tv_sec * 1000 - uv_now(loop);
+  allStates.emplace_back(TimingHelpers::defaultRealtimeBaseConfigurator(offset, loop),
+                         TimingHelpers::defaultCPUTimeConfigurator(loop));
   // Let's add also metrics information for the given device
   gDeviceMetricsInfos.emplace_back(DeviceMetricsInfo{});
 }
@@ -606,12 +611,14 @@ void handle_crash(int sig)
 
 /// This will start a new device by forking and executing a
 /// new child
-void spawnDevice(DeviceRef ref,
+void spawnDevice(uv_loop_t* loop,
+                 DeviceRef ref,
                  std::vector<DeviceSpec> const& specs,
                  DriverInfo& driverInfo,
                  std::vector<DeviceControl>&,
                  std::vector<DeviceExecution>& executions,
                  std::vector<DeviceInfo>& deviceInfos,
+                 std::vector<DataProcessingStates>& allStates,
                  ServiceRegistryRef serviceRegistry,
                  boost::program_options::variables_map& varmap,
                  std::vector<DeviceStdioContext>& childFds,
@@ -707,24 +714,54 @@ void spawnDevice(DeviceRef ref,
   }
 
   LOG(info) << "Starting " << spec.id << " on pid " << id;
-  DeviceInfo info;
-  info.pid = id;
-  info.active = true;
-  info.readyToQuit = false;
-  info.historySize = 1000;
-  info.historyPos = 0;
-  info.maxLogLevel = LogParsingHelpers::LogLevel::Debug;
-  info.minFailureLevel = driverInfo.minFailureLevel;
-  info.dataRelayerViewIndex = Metric2DViewIndex{"data_relayer", 0, 0, {}};
-  info.variablesViewIndex = Metric2DViewIndex{"matcher_variables", 0, 0, {}};
-  info.queriesViewIndex = Metric2DViewIndex{"data_queries", 0, 0, {}};
-  info.outputsViewIndex = Metric2DViewIndex{"output_matchers", 0, 0, {}};
-  info.inputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_timeslice", 0, 0, {}};
-  info.outputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_output", 0, 0, {}};
-  info.tracyPort = driverInfo.tracyPort;
-  info.lastSignal = uv_hrtime() - 10000000;
+  deviceInfos.push_back({.pid = id,
+                         .historyPos = 0,
+                         .historySize = 1000,
+                         .maxLogLevel = LogParsingHelpers::LogLevel::Debug,
+                         .minFailureLevel = driverInfo.minFailureLevel,
+                         .active = true,
+                         .readyToQuit = false,
+                         .inputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_timeslice", 0, 0, {}},
+                         .outputChannelMetricsViewIndex = Metric2DViewIndex{"oldest_possible_output", 0, 0, {}},
+                         .tracyPort = driverInfo.tracyPort,
+                         .lastSignal = uv_hrtime() - 10000000});
+  // create the offset using uv_hrtime
+  timespec now;
+  clock_gettime(CLOCK_REALTIME, &now);
+  uint64_t offset = now.tv_sec * 1000 - uv_now(loop);
+  allStates.emplace_back(
+    TimingHelpers::defaultRealtimeBaseConfigurator(offset, loop),
+    TimingHelpers::defaultCPUTimeConfigurator(loop));
 
-  deviceInfos.emplace_back(info);
+  allStates.back().registerState(DataProcessingStates::StateSpec{
+    .name = "data_queries",
+    .stateId = (short)ProcessingStateId::DATA_QUERIES,
+    .sendInitialValue = true,
+  });
+  allStates.back().registerState(DataProcessingStates::StateSpec{
+    .name = "output_matchers",
+    .stateId = (short)ProcessingStateId::OUTPUT_MATCHERS,
+    .sendInitialValue = true,
+  });
+
+  for (size_t i = 0; i < DefaultsHelpers::pipelineLength(); ++i) {
+    allStates.back().registerState(DataProcessingStates::StateSpec{
+      .name = fmt::format("matcher_variables/{}", i),
+      .stateId = static_cast<short>((short)(ProcessingStateId::CONTEXT_VARIABLES_BASE) + i),
+      .minPublishInterval = 200, // if we publish too often we flood the GUI and we are not able to read it in any case
+      .sendInitialValue = true,
+    });
+  }
+
+  for (size_t i = 0; i < DefaultsHelpers::pipelineLength(); ++i) {
+    allStates.back().registerState(DataProcessingStates::StateSpec{
+      .name = fmt::format("data_relayer/{}", i),
+      .stateId = static_cast<short>((short)(ProcessingStateId::DATA_RELAYER_BASE) + i),
+      .minPublishInterval = 200, // if we publish too often we flood the GUI and we are not able to read it in any case
+      .sendInitialValue = true,
+    });
+  }
+
   // Let's add also metrics information for the given device
   gDeviceMetricsInfos.emplace_back(DeviceMetricsInfo{});
 }
@@ -905,6 +942,7 @@ void doDefaultWorkflowTerminationHook()
 int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
             RunningWorkflowInfo const& runningWorkflow,
             RunningDeviceRef ref,
+            DriverConfig const& driverConfig,
             ProcessingPolicies processingPolicies,
             std::string const& defaultDriverClient,
             uv_loop_t* loop)
@@ -918,10 +956,10 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
 
   // Populate options from the command line. Notice that only the options
   // declared in the workflow definition are allowed.
-  runner.AddHook<fair::mq::hooks::SetCustomCmdLineOptions>([&spec, defaultDriverClient](fair::mq::DeviceRunner& r) {
+  runner.AddHook<fair::mq::hooks::SetCustomCmdLineOptions>([&spec, driverConfig, defaultDriverClient](fair::mq::DeviceRunner& r) {
     std::string defaultExitTransitionTimeout = "0";
     std::string defaultInfologgerMode = "";
-    o2::framework::DeploymentMode deploymentMode = o2::framework::CommonServices::getDeploymentMode();
+    o2::framework::DeploymentMode deploymentMode = o2::framework::DefaultsHelpers::deploymentMode();
     if (deploymentMode == o2::framework::DeploymentMode::OnlineDDS) {
       defaultExitTransitionTimeout = "20";
       defaultInfologgerMode = "infoLoggerD";
@@ -960,6 +998,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
                                      &deviceProxy,
                                      &processingPolicies,
                                      &deviceContext,
+                                     &driverConfig,
                                      &loop](fair::mq::DeviceRunner& r) {
     ServiceRegistryRef serviceRef = {serviceRegistry};
     simpleRawDeviceService = std::make_unique<SimpleRawDeviceService>(nullptr, spec);
@@ -977,6 +1016,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
     serviceRef.registerService(ServiceRegistryHelpers::handleForService<DeviceSpec const>(&spec));
     serviceRef.registerService(ServiceRegistryHelpers::handleForService<RunningWorkflowInfo const>(&runningWorkflow));
     serviceRef.registerService(ServiceRegistryHelpers::handleForService<DeviceContext>(deviceContext.get()));
+    serviceRef.registerService(ServiceRegistryHelpers::handleForService<DriverConfig const>(&driverConfig));
 
     // The decltype stuff is to be able to compile with both new and old
     // FairMQ API (one which uses a shared_ptr, the other one a unique_ptr.
@@ -1089,6 +1129,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                     CommandInfo const& commandInfo,
                     DriverControl& driverControl,
                     DriverInfo& driverInfo,
+                    DriverConfig& driverConfig,
                     std::vector<DeviceMetricsInfo>& metricsInfos,
                     boost::program_options::variables_map& varmap,
                     std::vector<ServiceSpec>& driverServices,
@@ -1099,6 +1140,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
     .shmSegmentId = (int16_t)atoi(varmap["shm-segment-id"].as<std::string>().c_str())};
   DeviceInfos infos;
   DeviceControls controls;
+  DataProcessingStatesInfos allStates;
   auto* devicesManager = new DevicesManager{.controls = controls, .infos = infos, .specs = runningWorkflow.devices, .messages = {}};
   DeviceExecutions deviceExecutions;
   DataProcessorInfos dataProcessorInfos = previousDataProcessorInfos;
@@ -1118,7 +1160,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
 
   DebugGUI* debugGUI = nullptr;
   void* window = nullptr;
-  decltype(debugGUI->getGUIDebugger(infos, runningWorkflow.devices, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl)) debugGUICallback;
+  decltype(debugGUI->getGUIDebugger(infos, runningWorkflow.devices, allStates, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl)) debugGUICallback;
 
   // An empty frameworkId means this is the driver, so we initialise the GUI
   auto initDebugGUI = []() -> DebugGUI* {
@@ -1148,10 +1190,10 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   // different versions of the service
   ServiceRegistry serviceRegistry;
 
-  if ((driverInfo.batch == false || getenv("DPL_DRIVER_REMOTE_GUI") != nullptr) && frameworkId.empty()) {
+  if ((driverConfig.batch == false || getenv("DPL_DRIVER_REMOTE_GUI") != nullptr) && frameworkId.empty()) {
     debugGUI = initDebugGUI();
     if (debugGUI) {
-      if (driverInfo.batch == false) {
+      if (driverConfig.batch == false) {
         window = debugGUI->initGUI("O2 Framework debug GUI", serviceRegistry);
       } else {
         window = debugGUI->initGUI(nullptr, serviceRegistry);
@@ -1169,9 +1211,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
       window = debugGUI->initGUI(nullptr, serviceRegistry);
     }
   }
-  if (driverInfo.batch == false && window == nullptr && frameworkId.empty()) {
+  if (driverConfig.batch == false && window == nullptr && frameworkId.empty()) {
     LOG(warn) << "Could not create GUI. Switching to batch mode. Do you have GLFW on your system?";
-    driverInfo.batch = true;
+    driverConfig.batch = true;
   }
   bool guiQuitRequested = false;
   bool hasError = false;
@@ -1185,7 +1227,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
 
   uv_timer_t* gui_timer = nullptr;
 
-  if (!driverInfo.batch) {
+  if (!driverConfig.batch) {
     gui_timer = (uv_timer_t*)malloc(sizeof(uv_timer_t));
     uv_timer_init(loop, gui_timer);
   }
@@ -1218,6 +1260,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
     .loop = loop,
     .controls = &controls,
     .infos = &infos,
+    .states = &allStates,
     .specs = &runningWorkflow.devices,
     .metrics = &metricsInfos,
     .metricProcessingCallbacks = &metricProcessingCallbacks,
@@ -1410,7 +1453,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
       case DriverState::MATERIALISE_WORKFLOW:
         try {
           auto workflowState = WorkflowHelpers::verifyWorkflow(workflow);
-          if (driverInfo.batch == true && varmap["dds"].as<std::string>().empty() && !varmap["dump-workflow"].as<bool>() && workflowState == WorkflowParsingState::Empty) {
+          if (driverConfig.batch == true && varmap["dds"].as<std::string>().empty() && !varmap["dump-workflow"].as<bool>() && workflowState == WorkflowParsingState::Empty) {
             LOGP(error, "Empty workflow provided while running in batch mode.");
             return 1;
           }
@@ -1568,94 +1611,6 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           }
 
           // This should expand nodes so that we can build a consistent DAG.
-
-          // This updates the options in the runningWorkflow.devices
-          for (auto& device : runningWorkflow.devices) {
-            // ignore internal devices
-            if (device.name.find("internal") != std::string::npos) {
-              continue;
-            }
-            auto configStore = DeviceConfigurationHelpers::getConfiguration(serviceRegistry, device.name.c_str(), device.options);
-            if (configStore != nullptr) {
-              auto reg = std::make_unique<ConfigParamRegistry>(std::move(configStore));
-              for (auto& option : device.options) {
-                const char* name = option.name.c_str();
-                switch (option.type) {
-                  case VariantType::Int:
-                    option.defaultValue = reg->get<int32_t>(name);
-                    break;
-                  case VariantType::Int8:
-                    option.defaultValue = reg->get<int8_t>(name);
-                    break;
-                  case VariantType::Int16:
-                    option.defaultValue = reg->get<int16_t>(name);
-                    break;
-                  case VariantType::UInt8:
-                    option.defaultValue = reg->get<uint8_t>(name);
-                    break;
-                  case VariantType::UInt16:
-                    option.defaultValue = reg->get<uint16_t>(name);
-                    break;
-                  case VariantType::UInt32:
-                    option.defaultValue = reg->get<uint32_t>(name);
-                    break;
-                  case VariantType::UInt64:
-                    option.defaultValue = reg->get<uint64_t>(name);
-                    break;
-                  case VariantType::Int64:
-                    option.defaultValue = reg->get<int64_t>(name);
-                    break;
-                  case VariantType::Float:
-                    option.defaultValue = reg->get<float>(name);
-                    break;
-                  case VariantType::Double:
-                    option.defaultValue = reg->get<double>(name);
-                    break;
-                  case VariantType::String:
-                    option.defaultValue = reg->get<std::string>(name);
-                    break;
-                  case VariantType::Bool:
-                    option.defaultValue = reg->get<bool>(name);
-                    break;
-                  case VariantType::ArrayInt:
-                    option.defaultValue = reg->get<std::vector<int>>(name);
-                    break;
-                  case VariantType::ArrayFloat:
-                    option.defaultValue = reg->get<std::vector<float>>(name);
-                    break;
-                  case VariantType::ArrayDouble:
-                    option.defaultValue = reg->get<std::vector<double>>(name);
-                    break;
-                  case VariantType::ArrayBool:
-                    option.defaultValue = reg->get<std::vector<bool>>(name);
-                    break;
-                  case VariantType::ArrayString:
-                    option.defaultValue = reg->get<std::vector<std::string>>(name);
-                    break;
-                  case VariantType::Array2DInt:
-                    option.defaultValue = reg->get<Array2D<int>>(name);
-                    break;
-                  case VariantType::Array2DFloat:
-                    option.defaultValue = reg->get<Array2D<float>>(name);
-                    break;
-                  case VariantType::Array2DDouble:
-                    option.defaultValue = reg->get<Array2D<double>>(name);
-                    break;
-                  case VariantType::LabeledArrayInt:
-                    option.defaultValue = reg->get<LabeledArray<int>>(name);
-                    break;
-                  case VariantType::LabeledArrayFloat:
-                    option.defaultValue = reg->get<LabeledArray<float>>(name);
-                    break;
-                  case VariantType::LabeledArrayDouble:
-                    option.defaultValue = reg->get<LabeledArray<double>>(name);
-                    break;
-                  default:
-                    break;
-                }
-              }
-            }
-          }
         } catch (std::runtime_error& e) {
           LOGP(error, "invalid workflow in {}: {}", driverInfo.argv[0], e.what());
           return 1;
@@ -1682,6 +1637,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
             return doChild(driverInfo.argc, driverInfo.argv,
                            serviceRegistry,
                            runningWorkflow, ref,
+                           driverConfig,
                            driverInfo.processingPolicies,
                            driverInfo.defaultDriverClient,
                            loop);
@@ -1713,12 +1669,12 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         // case the GUI runs in interactive mode, however we deploy the
         // GUI in both interactive and non-interactive mode, if the
         // DPL_DRIVER_REMOTE_GUI environment variable is set.
-        if (!driverInfo.batch || getenv("DPL_DRIVER_REMOTE_GUI")) {
+        if (!driverConfig.batch || getenv("DPL_DRIVER_REMOTE_GUI")) {
           if (gui_timer) {
             uv_timer_stop(gui_timer);
           }
 
-          auto callback = debugGUI->getGUIDebugger(infos, runningWorkflow.devices, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl);
+          auto callback = debugGUI->getGUIDebugger(infos, runningWorkflow.devices, allStates, dataProcessorInfos, metricsInfos, driverInfo, controls, driverControl);
           guiContext.callback = [&serviceRegistry, &driverServices, &debugGUI, &infos, &runningWorkflow, &dataProcessorInfos, &metricsInfos, &driverInfo, &controls, &driverControl, callback]() {
             callback();
             for (auto& service : driverServices) {
@@ -1780,6 +1736,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                                               driverControl.defaultStopped,
                                               driverInfo.processingPolicies.termination == TerminationPolicy::WAIT,
                                               driverInfo.port,
+                                              driverConfig,
                                               dataProcessorInfos,
                                               runningWorkflow.devices,
                                               deviceExecutions,
@@ -1826,13 +1783,15 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           createPipes(context.childstdin);
           createPipes(context.childstdout);
           if (driverInfo.mode == DriverMode::EMBEDDED || runningWorkflow.devices[di].resource.hostname != driverInfo.deployHostname) {
-            spawnRemoteDevice(forwardedStdin.str(),
-                              runningWorkflow.devices[di], controls[di], deviceExecutions[di], infos);
+            spawnRemoteDevice(loop, forwardedStdin.str(),
+                              runningWorkflow.devices[di], controls[di], deviceExecutions[di], infos, allStates);
           } else {
             DeviceRef ref{di};
-            spawnDevice(ref,
+            spawnDevice(loop,
+                        ref,
                         runningWorkflow.devices, driverInfo,
                         controls, deviceExecutions, infos,
+                        allStates,
                         serviceRegistry, varmap,
                         childFds, parentCPU, parentNode);
           }
@@ -1880,11 +1839,11 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           driverInfo.states.push_back(DriverState::REDEPLOY_GUI);
           driverInfo.states.push_back(DriverState::SCHEDULE);
           driverInfo.states.push_back(DriverState::MERGE_CONFIGS);
-        } else if (runningWorkflow.devices.empty() && driverInfo.batch == true) {
+        } else if (runningWorkflow.devices.empty() && driverConfig.batch == true) {
           LOG(info) << "No device resulting from the workflow. Quitting.";
           // If there are no deviceSpecs, we exit.
           driverInfo.states.push_back(DriverState::EXIT);
-        } else if (runningWorkflow.devices.empty() && driverInfo.batch == false && !guiDeployedOnce) {
+        } else if (runningWorkflow.devices.empty() && driverConfig.batch == false && !guiDeployedOnce) {
           // In case of an empty workflow, we need to deploy the GUI at least once.
           driverInfo.states.push_back(DriverState::RUNNING);
           driverInfo.states.push_back(DriverState::REDEPLOY_GUI);
@@ -2559,7 +2518,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     service.injectTopology(node, configContext);
   }
   for (auto& dp : physicalWorkflow) {
-    if (dp.name.rfind("internal-") == 0) {
+    if (dp.name.rfind("internal-", 0) == 0) {
       rankIndex.insert(std::make_pair(dp.name, hash_fn("internal")));
     }
   }
@@ -2753,13 +2712,18 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   driverInfo.resourcePolicies = resourcePolicies;
   driverInfo.argc = argc;
   driverInfo.argv = argv;
-  driverInfo.batch = evaluateBatchOption();
   driverInfo.noSHMCleanup = varmap["no-cleanup"].as<bool>();
   driverInfo.processingPolicies.termination = varmap["completion-policy"].as<TerminationPolicy>();
   driverInfo.processingPolicies.earlyForward = varmap["early-forward-policy"].as<EarlyForwardPolicy>();
   driverInfo.mode = varmap["driver-mode"].as<DriverMode>();
 
-  if (varmap["error-policy"].defaulted() && driverInfo.batch == false) {
+  auto batch = evaluateBatchOption();
+  DriverConfig driverConfig{
+    .batch = batch,
+    .driverHasGUI = (batch == false) || getenv("DPL_DRIVER_REMOTE_GUI") != nullptr,
+  };
+
+  if (varmap["error-policy"].defaulted() && driverConfig.batch == false) {
     driverInfo.processingPolicies.error = TerminationPolicy::WAIT;
   } else {
     driverInfo.processingPolicies.error = varmap["error-policy"].as<TerminationPolicy>();
@@ -2801,6 +2765,7 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
                          commandInfo,
                          driverControl,
                          driverInfo,
+                         driverConfig,
                          gDeviceMetricsInfos,
                          varmap,
                          driverServices,

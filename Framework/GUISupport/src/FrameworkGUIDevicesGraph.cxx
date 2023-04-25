@@ -362,6 +362,7 @@ struct MetricLabelsContext {
 void showTopologyNodeGraph(WorkspaceGUIState& state,
                            std::vector<DeviceInfo> const& infos,
                            std::vector<DeviceSpec> const& specs,
+                           std::vector<DataProcessingStates> const& allStates,
                            std::vector<DataProcessorInfo> const& metadata,
                            std::vector<DeviceControl>& controls,
                            std::vector<DeviceMetricsInfo> const& metricsInfos)
@@ -704,7 +705,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
       default:
         break;
     }
-    gui::displayDataRelayer(metricsInfos[node->ID], infos[node->ID], ImVec2(140., 90.));
+    gui::displayDataRelayer(metricsInfos[node->ID], infos[node->ID], allStates[node->ID], ImVec2(140., 90.));
     ImGui::EndGroup();
 
     // Save the size of what we have emitted and whether any of the widgets are being used
@@ -884,6 +885,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
     if (node_selected != -1) {
       auto& node = nodes[node_selected];
       auto& spec = specs[node_selected];
+      auto& states = allStates[node_selected];
       auto& control = controls[node_selected];
       auto& info = infos[node_selected];
       auto& metrics = metricsInfos[node_selected];
@@ -891,7 +893,7 @@ void showTopologyNodeGraph(WorkspaceGUIState& state,
       auto& metadatum = metadata[group.metadataId];
 
       if (state.rightPaneVisible) {
-        gui::displayDeviceInspector(spec, info, metrics, metadatum, control);
+        gui::displayDeviceInspector(spec, info, states, metrics, metadatum, control);
       }
     } else {
       ImGui::TextWrapped("Select a node in the topology to display information about it");

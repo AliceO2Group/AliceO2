@@ -11,6 +11,7 @@
 #include "Framework/RootSerializationSupport.h"
 #include "Framework/DataRelayer.h"
 #include "Framework/DataProcessingStats.h"
+#include "Framework/DriverConfig.h"
 
 #include "Framework/CompilerBuiltins.h"
 #include "Framework/DataDescriptorMatcher.h"
@@ -31,8 +32,10 @@
 #include "DataRelayerHelpers.h"
 #include "InputRouteHelpers.h"
 #include "Framework/LifetimeHelpers.h"
-#include "Framework/DataTakingContext.h"
 #include "Framework/CommonServices.h"
+#include "Framework/DataProcessingStates.h"
+#include "Framework/DataTakingContext.h"
+#include "Framework/DefaultsHelpers.h"
 
 #include "Headers/DataHeaderHelpers.h"
 #include "Framework/Formatters.h"
@@ -57,23 +60,6 @@ namespace o2::framework
 
 constexpr int INVALID_INPUT = -1;
 
-unsigned int DataRelayer::getPipelineLength()
-{
-  static bool override = getenv("DPL_DEFAULT_PIPELINE_LENGTH");
-  if (override) {
-    static unsigned int retval = atoi(getenv("DPL_DEFAULT_PIPELINE_LENGTH"));
-    return retval;
-  }
-  DeploymentMode deploymentMode = CommonServices::getDeploymentMode();
-  // just some reasonable numers
-  // The number should really be tuned at runtime for each processor.
-  if (deploymentMode == DeploymentMode::OnlineDDS || deploymentMode == DeploymentMode::OnlineECS || deploymentMode == DeploymentMode::FST) {
-    return 256;
-  } else {
-    return 64;
-  }
-}
-
 DataRelayer::DataRelayer(const CompletionPolicy& policy,
                          std::vector<InputRoute> const& routes,
                          TimesliceIndex& index,
@@ -88,27 +74,29 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
 
   if (policy.configureRelayer == nullptr) {
-    static int pipelineLength = getPipelineLength();
+    static int pipelineLength = DefaultsHelpers::pipelineLength();
     setPipelineLength(pipelineLength);
   } else {
     policy.configureRelayer(*this);
   }
-  auto& metrics = services.get<monitoring::Monitoring>();
 
   // The queries are all the same, so we only have width 1
   auto numInputTypes = mDistinctRoutesIndex.size();
-  sQueriesMetricsNames.resize(numInputTypes * 1);
-  metrics.send({(int)numInputTypes, "data_queries/h", Verbosity::Debug});
-  metrics.send({(int)1, "data_queries/w", Verbosity::Debug});
-  for (size_t i = 0; i < numInputTypes; ++i) {
-    sQueriesMetricsNames[i] = std::string("data_queries/") + std::to_string(i);
+  auto& states = services.get<DataProcessingStates>();
+  std::string queries = "";
+  for (short i = 0; i < numInputTypes; ++i) {
     char buffer[128];
     assert(mDistinctRoutesIndex[i] < routes.size());
     mInputs.push_back(routes[mDistinctRoutesIndex[i]].matcher);
     auto& matcher = routes[mDistinctRoutesIndex[i]].matcher;
     DataSpecUtils::describe(buffer, 127, matcher);
-    metrics.send({fmt::format("{} ({})", buffer, mInputs.back().lifetime), sQueriesMetricsNames[i], Verbosity::Debug});
+    queries += std::string_view(buffer, strlen(buffer));
+    queries += ";";
   }
+  auto stateId = (short)ProcessingStateId::DATA_QUERIES;
+  states.registerState({.name = "data_queries", .stateId = stateId, .sendInitialValue = true, .defaultEnabled = true});
+  states.updateState(DataProcessingStates::CommandSpec{.id = stateId, .size = (int)queries.size(), .data = queries.data()});
+  states.processCommandQueue();
 }
 
 TimesliceId DataRelayer::getTimesliceForSlot(TimesliceSlot slot)
@@ -265,24 +253,28 @@ size_t matchToContext(void const* data,
 
 /// Send the contents of a context as metrics, so that we can examine them in
 /// the GUI.
-void sendVariableContextMetrics(VariableContext& context, TimesliceSlot slot,
-                                monitoring::Monitoring& metrics, std::vector<std::string> const& names)
+void sendVariableContextMetrics(VariableContext& context, TimesliceSlot slot, DataProcessingStates& states)
 {
   static const std::string nullstring{"null"};
 
-  context.publish([](ContextElement::Value const& var, std::string const& name, void* context) {
-    auto* metrics = reinterpret_cast<monitoring::Monitoring*>(context);
-    if (auto pval = std::get_if<uint64_t>(&var)) {
-      metrics->send(monitoring::Metric{std::to_string(*pval), name, Verbosity::Debug});
-    } else if (auto pval = std::get_if<uint32_t>(&var)) {
-      metrics->send(monitoring::Metric{std::to_string(*pval), name, Verbosity::Debug});
-    } else if (auto pval2 = std::get_if<std::string>(&var)) {
-      metrics->send(monitoring::Metric{*pval2, name, Verbosity::Debug});
-    } else {
-      metrics->send(monitoring::Metric{nullstring, name, Verbosity::Debug});
+  context.publish([](VariableContext const& variables, TimesliceSlot slot, void* context) {
+    auto& states = *static_cast<DataProcessingStates*>(context);
+    std::string state = "";
+    for (size_t i = 0; i < MAX_MATCHING_VARIABLE; ++i) {
+      auto var = variables.get(i);
+      if (auto pval = std::get_if<uint64_t>(&var)) {
+        state += std::to_string(*pval);
+      } else if (auto pval = std::get_if<uint32_t>(&var)) {
+        state += std::to_string(*pval);
+      } else if (auto pval2 = std::get_if<std::string>(&var)) {
+        state += *pval2;
+      } else {
+      }
+      state += ";";
     }
+    states.updateState({.id = short((int)ProcessingStateId::CONTEXT_VARIABLES_BASE + slot.index), (int)state.size(), state.data()});
   },
-                  &metrics, slot, names);
+                  &states, slot);
 }
 
 void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex channel)
@@ -898,39 +890,31 @@ void DataRelayer::publishMetrics()
   // maybe misleading to have the allocation in a function primarily for
   // metrics publishing, do better in setPipelineLength?
   mCache.resize(numInputTypes * mTimesliceIndex.size());
-  auto& monitoring = mContext.get<monitoring::Monitoring>();
-  monitoring.send({(int)numInputTypes, "data_relayer/h", Verbosity::Debug});
-  monitoring.send({(int)mTimesliceIndex.size(), "data_relayer/w", Verbosity::Debug});
-  sMetricsNames.resize(mCache.size());
+  auto& states = mContext.get<DataProcessingStates>();
+
   mCachedStateMetrics.resize(mCache.size());
-  for (size_t i = 0; i < sMetricsNames.size(); ++i) {
-    sMetricsNames[i] = std::string("data_relayer/") + std::to_string(i);
-  }
+
   // There is maximum 16 variables available. We keep them row-wise so that
   // that we can take mod 16 of the index to understand which variable we
   // are talking about.
-  sVariablesMetricsNames.resize(mVariableContextes.size() * 16);
-  monitoring.send({(int)16, "matcher_variables/w", Verbosity::Debug});
-  monitoring.send({(int)mVariableContextes.size(), "matcher_variables/h", Verbosity::Debug});
-  for (size_t i = 0; i < sVariablesMetricsNames.size(); ++i) {
-    sVariablesMetricsNames[i] = std::string("matcher_variables/") + std::to_string(i);
-    monitoring.send({std::string("null"), sVariablesMetricsNames[i % 16], Verbosity::Debug});
-  }
-
-  auto& stats = mContext.get<DataProcessingStats>();
-
-  for (int ci = 0; ci < mCache.size(); ci++) {
-    stats.registerMetric(DataProcessingStats::MetricSpec{
-      .name = fmt::format("data_relayer/{}", ci),
-      .metricId = static_cast<short>((short)(ProcessingStatsId::RELAYER_METRIC_BASE) + (short)ci),
-      .defaultValue = 0,
-      .minPublishInterval = 500,
+  for (size_t i = 0; i < mVariableContextes.size(); ++i) {
+    states.registerState(DataProcessingStates::StateSpec{
+      .name = fmt::format("matcher_variables/{}", i),
+      .stateId = static_cast<short>((short)(ProcessingStateId::CONTEXT_VARIABLES_BASE) + i),
+      .minPublishInterval = 200, // if we publish too often we flood the GUI and we are not able to read it in any case
       .sendInitialValue = true,
+      .defaultEnabled = mContext.get<DriverConfig const>().driverHasGUI,
     });
   }
-  for (size_t ci = 0; ci < mVariableContextes.size() * 16; ci++) {
-    assert(ci < sVariablesMetricsNames.size());
-    monitoring.send({std::string("null"), sVariablesMetricsNames[ci], Verbosity::Debug});
+
+  for (int ci = 0; ci < mTimesliceIndex.size(); ci++) {
+    states.registerState(DataProcessingStates::StateSpec{
+      .name = fmt::format("data_relayer/{}", ci),
+      .stateId = static_cast<short>((short)(ProcessingStateId::DATA_RELAYER_BASE) + (short)ci),
+      .minPublishInterval = 500, // if we publish too often we flood the GUI and we are not able to read it in any case
+      .sendInitialValue = true,
+      .defaultEnabled = mContext.get<DriverConfig const>().driverHasGUI,
+    });
   }
 }
 
@@ -961,25 +945,32 @@ uint64_t DataRelayer::getCreationTimeForSlot(TimesliceSlot slot)
 void DataRelayer::sendContextState()
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
-  auto& monitoring = mContext.get<monitoring::Monitoring>();
+  auto& states = mContext.get<DataProcessingStates>();
   for (size_t ci = 0; ci < mTimesliceIndex.size(); ++ci) {
     auto slot = TimesliceSlot{ci};
     sendVariableContextMetrics(mTimesliceIndex.getPublishedVariablesForSlot(slot), slot,
-                               monitoring, sVariablesMetricsNames);
+                               states);
   }
-  auto& stats = mContext.get<DataProcessingStats>();
-  for (size_t si = 0; si < mCachedStateMetrics.size(); ++si) {
-    int value = static_cast<int>(mCachedStateMetrics[si]);
-    stats.updateStats({static_cast<unsigned short>((int)(ProcessingStatsId::RELAYER_METRIC_BASE) + (short)si), DataProcessingStats::Op::Set, value});
-    // Anything which is done is actually already empty,
-    // so after we report it we mark it as such.
-    if (mCachedStateMetrics[si] == CacheEntryStatus::DONE) {
-      mCachedStateMetrics[si] = CacheEntryStatus::EMPTY;
+  char relayerSlotState[1024];
+  // The number of timeslices is encoded in each state
+  // We serialise the state of a Timeslot in a given state.
+  int written = snprintf(relayerSlotState, 1024, "%d ", (int)mTimesliceIndex.size());
+  char* buffer = relayerSlotState + written;
+  for (size_t ci = 0; ci < mTimesliceIndex.size(); ++ci) {
+    for (size_t si = 0; si < mDistinctRoutesIndex.size(); ++si) {
+      int index = si * mTimesliceIndex.size() + ci;
+      int value = static_cast<int>(mCachedStateMetrics[index]);
+      buffer[si] = value + '0';
+      // Anything which is done is actually already empty,
+      // so after we report it we mark it as such.
+      if (mCachedStateMetrics[index] == CacheEntryStatus::DONE) {
+        mCachedStateMetrics[index] = CacheEntryStatus::EMPTY;
+      }
     }
+    buffer[mDistinctRoutesIndex.size()] = '\0';
+    auto size = (int)(buffer - relayerSlotState + mDistinctRoutesIndex.size());
+    states.updateState({.id = short((int)ProcessingStateId::DATA_RELAYER_BASE + ci), .size = size, .data = relayerSlotState});
   }
 }
 
-std::vector<std::string> DataRelayer::sMetricsNames;
-std::vector<std::string> DataRelayer::sVariablesMetricsNames;
-std::vector<std::string> DataRelayer::sQueriesMetricsNames;
 } // namespace o2::framework

@@ -95,15 +95,16 @@ class DPLRawPageSequencer
   template <typename Predicate, typename Inserter, typename Precheck>
   int binary(Predicate pred, Inserter inserter, Precheck preCheck)
   {
+    int retVal = 0;
     for (auto const& ref : mInput) {
       auto size = DataRefUtils::getPayloadSize(ref);
-      auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-      auto const pageSize = rawparser_type::max_size;
-      auto nPages = size / pageSize + (size % pageSize ? 1 : 0);
-      if (nPages == 0) {
+      if (size == 0) {
         continue;
       }
-      if (!preCheck(ref.payload, nPages, dh->subSpecification)) {
+      const auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+      auto const pageSize = rawparser_type::max_size;
+      auto nPages = size / pageSize + (size % pageSize ? 1 : 0);
+      if (!preCheck(ref.payload, dh->subSpecification)) {
         continue;
       }
       // FIXME: automatic type from inserter/predicate?
@@ -136,12 +137,15 @@ class DPLRawPageSequencer
         return pos;
       };
 
+      // check if the last block contains a valid RDH, otherwise data is corrupted or 8kb assumption is wrong
+      if (!o2::raw::RDHUtils::checkRDH(ref.payload + (nPages - 1) * pageSize, false)) {
+        forwardInternal(std::forward<Predicate>(pred), std::forward<Inserter>(inserter), ref.payload, size, dh);
+        retVal = 1;
+        continue;
+      }
+
       size_t p = 0;
       do {
-        // check if the last block contains a valid RDH, otherwise data is corrupted or 8kb assumption is wrong
-        if (!o2::raw::RDHUtils::checkRDH(ref.payload + (nPages - 1) * pageSize, false)) {
-          return 1;
-        }
         // insert the full block if the last RDH matches the position
         if (check(p, nPages - 1)) {
           insert(p, nPages - p, dh->subSpecification);
@@ -154,39 +158,63 @@ class DPLRawPageSequencer
       // if payloads are consecutive in memory we could apply this algorithm even over
       // O2 message boundaries
     }
-    return 0;
+    return retVal;
   }
 
   template <typename Predicate, typename Inserter>
-  void forward(Predicate check, Inserter inserter)
+  int forward(Predicate pred, Inserter inserter)
+  {
+    return forward(std::forward<Predicate>(pred), std::forward<Inserter>(inserter), [](...) { return true; });
+  }
+
+  template <typename Predicate, typename Inserter, typename Precheck>
+  int forward(Predicate pred, Inserter inserter, Precheck preCheck)
   {
     for (auto const& ref : mInput) {
       auto size = DataRefUtils::getPayloadSize(ref);
-      o2::framework::RawParser parser(ref.payload, size);
+      if (size == 0) {
+        continue;
+      }
       auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-      const char* ptr = nullptr;
-      int count = 0;
-      for (auto it = parser.begin(); it != parser.end(); it++) {
-        const char* current = reinterpret_cast<const char*>(it.raw());
-        if (ptr == nullptr) {
-          ptr = current;
-        } else if (check(ptr, current) == false) {
-          if (count) {
-            inserter(ptr, count, dh->subSpecification);
-          }
-          count = 0;
-          ptr = current;
-        }
-        count++;
+      if (!preCheck(ref.payload, dh->subSpecification)) {
+        continue;
       }
-      if (count) {
-        inserter(ptr, count, dh->subSpecification);
-      }
+      forwardInternal(std::forward<Predicate>(pred), std::forward<Inserter>(inserter), ref.payload, size, dh);
     }
+    return 0;
   }
 
  private:
   InputRecordWalker mInput;
+
+  template <typename Predicate, typename Inserter>
+  void forwardInternal(Predicate pred, Inserter inserter, const char* data, size_t size, const o2::header::DataHeader* dh)
+  {
+    o2::framework::RawParser parser(data, size);
+    const char* ptr = nullptr;
+    int count = 0;
+    for (auto it = parser.begin(); it != parser.end(); it++) {
+      const char* current = reinterpret_cast<const char*>(it.raw());
+      if (ptr == nullptr) {
+        ptr = current;
+      } else if (pred(ptr, current) == false) {
+        if (count) {
+          inserter(ptr, count, dh->subSpecification);
+        }
+        count = 0;
+        ptr = current;
+      }
+      count++;
+      if (it.sizeTotal() != rawparser_type::max_size) {
+        inserter(ptr, count, dh->subSpecification);
+        count = 0;
+        ptr = nullptr;
+      }
+    }
+    if (count) {
+      inserter(ptr, count, dh->subSpecification);
+    }
+  }
 };
 
 } // namespace o2::framework
