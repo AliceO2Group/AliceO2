@@ -55,7 +55,7 @@ class TPCVDriftTglCalibSpec : public Task
     auto data = pc.inputs().get<gsl::span<o2::dataformats::Triplet<float, float, float>>>("input");
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
     if (data.size()) {
-      LOG(info) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << data.size() - 2 << " tracks"; // 1st entry is for VDrift, 2nd for the offset
+      LOG(detail) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << data.size() - 2 << " tracks"; // 1st entry is for VDrift, 2nd for the offset
     }
     mCalibrator->process(data);
     if (pc.transitionState() == TransitionHandlingState::Requested) {

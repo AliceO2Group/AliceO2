@@ -171,7 +171,7 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
     if (nTracks == 0) {
       return;
     }
-    LOGP(info, "Processing TF {} with {} tracks by considering {} tracks", currentTF, nTracks, mMaxTracksPerTF);
+    LOGP(detail, "Processing TF {} with {} tracks by considering {} tracks", currentTF, nTracks, mMaxTracksPerTF);
 
     if (!mDisablePolynomialsCCDB) {
       pc.inputs().get<o2::tpc::CalibdEdxTrackTopologyPolContainer*>("tpctopologygain");

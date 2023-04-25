@@ -76,7 +76,7 @@ class CalibdEdxDevice : public Task
     const auto tfcounter = o2::header::get<DataProcessingHeader*>(pc.inputs().get("tracks").header)->startTime;
     const auto tracks = pc.inputs().get<gsl::span<TrackTPC>>("tracks");
 
-    LOGP(info, "Processing TF {} with {} tracks", tfcounter, tracks.size());
+    LOGP(detail, "Processing TF {} with {} tracks", tfcounter, tracks.size());
     mCalib->fill(tracks);
 
     // store run number and CCDB time only once

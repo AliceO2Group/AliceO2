@@ -240,7 +240,7 @@ class DigitBlockFIT : public DigitBlockBase<DigitType, ChannelDataType>
     inputTree->SetBranchAddress(decltype(vecChannelData)::value_type::sDigitBranchName, &ptrVecChannelData);
     for (int iEntry = 0; iEntry < inputTree->GetEntries(); iEntry++) {
       inputTree->GetEntry(iEntry);
-      LOG(info) << "Processing TF " << iEntry;
+      LOG(detail) << "Processing TF " << iEntry;
       digitBlockProc.processDigitBlockPerTF(DigitBlockBase_t::template makeDigitBlock<DigitBlockFIT_t>(vecDigit, vecChannelData));
     }
   }
