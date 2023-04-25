@@ -30,6 +30,7 @@
 #include "DataFormatsTRD/TriggerRecord.h"
 #include <ITS3Reconstruction/IOUtils.h>
 #include "ITSReconstruction/FastMultEstConfig.h"
+#include "ITS3Base/DescriptorInnerBarrelITS3Param.h"
 // #include "ITS3Reconstruction/FastMultEst.h"
 
 namespace o2
@@ -57,6 +58,11 @@ void TrackerDPL::init(InitContext& ic)
   mTimer.Stop();
   mTimer.Reset();
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
+  auto& paramGeom = DescriptorInnerBarrelITS3Param::Instance();
+  if (paramGeom.getITS3LayerConfigString() == "FourLayers") {
+    mNLayers = 8;
+  }
+
   mChainITS.reset(mRecChain->AddChain<o2::gpu::GPUChainITS>());
   mVertexer = std::make_unique<Vertexer>(mChainITS->GetITSVertexerTraits());
   mTracker = std::make_unique<Tracker>(mChainITS->GetITSTrackerTraits());
@@ -120,7 +126,21 @@ void TrackerDPL::init(InitContext& ic)
 
   for (auto& params : trackParams) {
     params.CorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT;
+    params.NLayers = mNLayers;
+    if (params.NLayers > 7) { // shift by one position OB radii and lengths
+      params.LayerZ.resize(params.NLayers);
+      params.LayerRadii.resize(params.NLayers);
+      for (int iLayer{params.NLayers - 1}; iLayer >= params.NLayers - 4; iLayer--) {
+        params.LayerZ[iLayer] = params.LayerZ[iLayer - 1];
+        params.LayerRadii[iLayer] = params.LayerRadii[iLayer - 1];
+      }
+    }
+    for (int iLayer{0}; iLayer < params.NLayers - 4; ++iLayer) { // initialise ITS3 radii and lengths
+      params.LayerZ[iLayer] = paramGeom.mLength;
+      params.LayerRadii[iLayer] = paramGeom.mRadii[iLayer];
+    }
   }
+
   mTracker->setParameters(trackParams);
 }
 
@@ -181,6 +201,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{"IT3", "VERTICES", 0, Lifetime::Timeframe});
 
   TimeFrame* timeFrame = mChainITS->GetITSTimeframe();
+  timeFrame->resizeVectors(mNLayers);
   mTracker->adoptTimeFrame(*timeFrame);
 
   mTracker->setBz(o2::base::Propagator::Instance()->getNominalBz());

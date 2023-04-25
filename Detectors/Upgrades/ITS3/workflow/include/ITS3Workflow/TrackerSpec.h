@@ -56,6 +56,7 @@ class TrackerDPL : public framework::Task
   bool mRunVertexer = true;
   bool mCosmicsProcessing = false;
   int mUseTriggers = 0;
+  int mNLayers = 7;
   std::string mMode = "sync";
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   const o2::its3::TopologyDictionary* mDict = nullptr;

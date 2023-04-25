@@ -181,10 +181,10 @@ void CheckClustersITS3(std::string clusfile = "o2clus_it3.root", std::string hit
       auto chipID = cluster.getSensorID();
       if (pattID == o2::its3::CompCluster::InvalidPatternID || dict.isGroup(pattID)) {
         o2::itsmft::ClusterPattern patt(pattIt);
-        locC = dict.getClusterCoordinates(cluster, patt, false, gman->getNumberOfLayers());
+        locC = dict.getClusterCoordinates(cluster, patt, false, segs.size());
         LOGP(info, "I am invalid and I am on chip {}", chipID);
       } else {
-        locC = dict.getClusterCoordinates(cluster, gman->getNumberOfLayers());
+        locC = dict.getClusterCoordinates(cluster, segs.size());
         errX = dict.getErrX(pattID);
         errZ = dict.getErrZ(pattID);
         if (chipID >= segs.size()) {

@@ -58,6 +58,10 @@ inline void IndexTableUtils::setTrackingParameters(const T& params)
   mInversePhiBinSize = params.PhiBins / constants::math::TwoPi;
   mNzBins = params.ZBins;
   mNphiBins = params.PhiBins;
+  if (params.LayerZ.size() > 7) {
+    mLayerZ.resize(params.LayerZ.size());
+    mInverseZBinSize.resize(params.LayerZ.size());
+  }
   for (int iLayer{0}; iLayer < params.LayerZ.size(); ++iLayer) {
     mLayerZ[iLayer] = params.LayerZ[iLayer];
   }
