@@ -38,7 +38,7 @@ struct TimingInfo {
   bool streamRunNumberChanged = false;
 
   static bool timesliceIsTimer(size_t timeslice) { return timeslice > 1652945069870351; }
-  bool isTimer() { return timesliceIsTimer(timeslice); }
+  bool isTimer() const { return timesliceIsTimer(timeslice); };
 };
 
 } // namespace o2::framework
