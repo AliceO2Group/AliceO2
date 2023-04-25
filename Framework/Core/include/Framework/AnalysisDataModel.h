@@ -1034,7 +1034,7 @@ DECLARE_SOA_TABLE_VERSIONED(Zdcs_001, "AOD", "ZDC", 1, //! ZDC information, vers
                             zdc::DyAmplitudeZEM1<zdc::ChannelT, zdc::Amplitude>, zdc::DyAmplitudeZEM2<zdc::ChannelT, zdc::Amplitude>,
                             zdc::DyAmplitudeZNA<zdc::ChannelT, zdc::Amplitude>, zdc::DyAmplitudeZNC<zdc::ChannelT, zdc::Amplitude>,
                             zdc::DyAmplitudeZPA<zdc::ChannelT, zdc::Amplitude>, zdc::DyAmplitudeZPC<zdc::ChannelT, zdc::Amplitude>); //
-using Zdcs = Zdcs_001; //! new version
+using Zdcs = Zdcs_001;                                                                                                               //! new version
 using Zdc = Zdcs::iterator;
 
 namespace fv0a
