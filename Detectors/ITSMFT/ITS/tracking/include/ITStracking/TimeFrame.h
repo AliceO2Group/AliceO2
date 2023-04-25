@@ -153,7 +153,7 @@ class TimeFrame
   std::vector<std::vector<Cell>>& getCells();
   std::vector<std::vector<int>>& getCellsLookupTable();
   std::vector<std::vector<std::vector<int>>>& getCellsNeighbours();
-  std::vector<Road>& getRoads();
+  std::vector<Road<5>>& getRoads();
   std::vector<TrackITSExt>& getTracks(int rof) { return mTracks[rof]; }
   std::vector<MCCompLabel>& getTracksLabel(const int rof) { return mTracksLabel[rof]; }
   std::vector<MCCompLabel>& getLinesLabel(const int rof) { return mLinesLabels[rof]; }
@@ -247,7 +247,7 @@ class TimeFrame
   std::vector<std::vector<Cell>> mCells;
   std::vector<std::vector<int>> mCellsLookupTable;
   std::vector<std::vector<std::vector<int>>> mCellsNeighbours;
-  std::vector<Road> mRoads;
+  std::vector<Road<5>> mRoads;
   std::vector<std::vector<MCCompLabel>> mTracksLabel;
   std::vector<std::vector<TrackITSExt>> mTracks;
   std::vector<int> mBogusClusters; /// keep track of clusters with wild coordinates
@@ -538,7 +538,7 @@ inline std::vector<std::vector<std::vector<int>>>& TimeFrame::getCellsNeighbours
   return mCellsNeighbours;
 }
 
-inline std::vector<Road>& TimeFrame::getRoads() { return mRoads; }
+inline std::vector<Road<5>>& TimeFrame::getRoads() { return mRoads; }
 
 inline gsl::span<Tracklet> TimeFrame::getFoundTracklets(int rofId, int combId)
 {

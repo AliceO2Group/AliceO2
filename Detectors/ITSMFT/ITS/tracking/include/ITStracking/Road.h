@@ -13,8 +13,8 @@
 /// \brief
 ///
 
-#ifndef TRACKINGITSU_INCLUDE_ROAD_H_
-#define TRACKINGITSU_INCLUDE_ROAD_H_
+#ifndef TRACKINGCA_INCLUDE_ROAD_H
+#define TRACKINGCA_INCLUDE_ROAD_H
 
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <array>
@@ -28,11 +28,12 @@ namespace o2
 namespace its
 {
 
+template <unsigned char maxRoadSize = 5>
 class Road final
 {
  public:
-  Road();
-  Road(int, int);
+  GPUhd() Road() : mCellIds{}, mRoadSize{}, mIsFakeRoad{} { resetRoad(); }
+  GPUhd() Road(int cellLayer, int cellId) : Road() { addCell(cellLayer, cellId); }
 
   int getRoadSize() const;
   int getLabel() const;
@@ -41,30 +42,66 @@ class Road final
   void setFakeRoad(const bool);
   GPUhdni() int& operator[](const int&);
 
-  void resetRoad();
-  void addCell(int, int);
+  GPUhd() void resetRoad()
+  {
+    for (int i = 0; i < maxRoadSize; i++) {
+      mCellIds[i] = constants::its::UnusedIndex;
+    }
+    mRoadSize = 0;
+  }
 
-  static constexpr int mMaxRoadSize = 13;
+  GPUhd() void addCell(int cellLayer, int cellId)
+  {
+    if (mCellIds[cellLayer] == constants::its::UnusedIndex) {
+      ++mRoadSize;
+    }
+
+    mCellIds[cellLayer] = cellId;
+  }
 
  private:
-  int mCellIds[mMaxRoadSize];
-  int mRoadSize;
-  int mLabel;
+  int mCellIds[maxRoadSize];
+  // int mLabel;
+  unsigned char mRoadSize;
   bool mIsFakeRoad;
 };
 
-inline int Road::getRoadSize() const { return mRoadSize; }
+template <unsigned char maxRoadSize>
+inline int Road<maxRoadSize>::getRoadSize() const
+{
+  return mRoadSize;
+}
 
-inline int Road::getLabel() const { return mLabel; }
+// template <unsigned char maxRoadSize>
+// inline int Road<maxRoadSize>::getLabel() const
+// {
+//   return mLabel;
+// }
 
-inline void Road::setLabel(const int label) { mLabel = label; }
+// template <unsigned char maxRoadSize>
+// inline void Road<maxRoadSize>::setLabel(const int label)
+// {
+//   mLabel = label;
+// }
 
-GPUhdi() int& Road::operator[](const int& i) { return mCellIds[i]; }
+template <unsigned char maxRoadSize>
+GPUhdi() int& Road<maxRoadSize>::operator[](const int& i)
+{
+  return mCellIds[i];
+}
 
-inline bool Road::isFakeRoad() const { return mIsFakeRoad; }
+template <unsigned char maxRoadSize>
+inline bool Road<maxRoadSize>::isFakeRoad() const
+{
+  return mIsFakeRoad;
+}
 
-inline void Road::setFakeRoad(const bool isFakeRoad) { mIsFakeRoad = isFakeRoad; }
+template <unsigned char maxRoadSize>
+inline void Road<maxRoadSize>::setFakeRoad(const bool isFakeRoad)
+{
+  mIsFakeRoad = isFakeRoad;
+}
 } // namespace its
 } // namespace o2
 
-#endif /* TRACKINGITSU_INCLUDE_ROAD_H_ */
+#endif

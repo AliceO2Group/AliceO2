@@ -409,7 +409,7 @@ unsigned long TimeFrame::getArtefactsMemory()
       size += sizeof(int) * vec.size();
     }
   }
-  return size + sizeof(Road) * mRoads.size();
+  return size + sizeof(Road<5>) * mRoads.size();
 }
 
 void TimeFrame::fillPrimaryVerticesXandAlpha()
