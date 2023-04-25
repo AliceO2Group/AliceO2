@@ -72,7 +72,7 @@ void ClustererDPL::init(InitContext& ic)
 
 void ClustererDPL::run(ProcessingContext& pc)
 {
-  //updateTimeDependentParams(pc);
+  // updateTimeDependentParams(pc);
   auto digits = pc.inputs().get<gsl::span<o2::itsmft::Digit>>("digits");
   auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
 

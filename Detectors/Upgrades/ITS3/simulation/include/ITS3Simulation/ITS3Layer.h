@@ -47,7 +47,7 @@ class ITS3Layer : public TObject
   void createLayer(TGeoVolume* motherVolume, double radiusBetweenLayer);
   void createLayerWithDeadZones(TGeoVolume* motherVolume, double radiusBetweenLayer);
   void create4thLayer(TGeoVolume* motherVolume);
-  void createCarbonFoamStructure(TGeoVolume* motherVolume, double deltaR, bool fourthLayer=false);
+  void createCarbonFoamStructure(TGeoVolume* motherVolume, double deltaR, bool fourthLayer = false);
 
   void setChipThick(double thick) { mChipThickness = thick; }
   void setLayerRadius(double radius) { mRadius = radius; }

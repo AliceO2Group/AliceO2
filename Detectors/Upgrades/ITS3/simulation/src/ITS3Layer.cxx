@@ -275,7 +275,7 @@ void ITS3Layer::create4thLayer(TGeoVolume* motherVolume)
       volQuarterLayer[iEl] = new TGeoVolume(names[iEl].data(), quarterLayer[iEl][0], med);
       volQuarterLayer[iEl]->SetUniqueID(mChipTypeID);
       if (iEl == 4) {
-        //createCarbonFoamStructure(volQuarterLayer[iEl], 0., true);
+        // createCarbonFoamStructure(volQuarterLayer[iEl], 0., true);
         volQuarterLayer[iEl]->SetVisibility(true);
         volQuarterLayer[iEl]->SetLineColor(kGray + 2);
       } else if (iEl == 1) {
