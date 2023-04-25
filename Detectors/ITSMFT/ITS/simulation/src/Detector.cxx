@@ -638,8 +638,8 @@ void Detector::createMaterials()
   o2::base::Detector::Medium(41, "C4SERVICES$", 41, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
 
   // Polymer for ITS services
-  o2::base::Detector::Mixture(42, "POLY4SERVICES", aPoly, zPoly, dPoly, 2, wPoly);
-  o2::base::Detector::Medium(42, "POLY4SERVICES", 42, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Mixture(42, "POLY4SERVICES$", aPoly, zPoly, dPoly, 2, wPoly);
+  o2::base::Detector::Medium(42, "POLY4SERVICES$", 42, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
 
   // For ITS3
 
