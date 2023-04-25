@@ -24,8 +24,8 @@ fi
 #Some additional settings used in this workflow
 : ${CTF_DICT:="ctf_dictionary.root"}  # Local dictionary file name if its creation is request
 : ${RECO_NUM_NODES_WORKFLOW:="230"}   # Number of EPNs running this workflow in parallel, to increase multiplicities if necessary, by default assume we are 1 out of 250 servers
-: ${CTF_MINSIZE:="2000000000"}        # accumulate CTFs until file size reached
-: ${CTF_MAX_PER_FILE:="10000"}        # but no more than given number of CTFs per file
+: ${CTF_MINSIZE:="10000000000"}        # accumulate CTFs until file size reached
+: ${CTF_MAX_PER_FILE:="40000"}        # but no more than given number of CTFs per file
 
 workflow_has_parameter CTF && export SAVECTF=1
 workflow_has_parameter GPU && { export GPUTYPE=HIP; export NGPUS=4; }
