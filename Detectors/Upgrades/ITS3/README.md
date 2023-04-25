@@ -99,4 +99,7 @@ As above, it is important to provide the correct run number using `-—configKey
 
 If the `FourLayers` geometry was used in the simulation, it should be set also for the reconstruction to set properly the tracker to work with the additional layer. If something else of the geometry was set differently (`mRadii`, `mLength`, `mGapY`, `mGapPhi`, `mGapXDirection4thLayer`, or `mDetectorThickness`), it is necessary to remap the file with the geometry to replace the one on the CCDB, which would be different. This can be done by copying the `o2sim_geometry-aligned.root` file created during the simulation to a directory called `GLO/Config/GeometryAligned`, with the name `snapshot.root` in a local path of choice. Then, the following argument has to be added to the reco workflow: `--condition-remap "file://local_path=GLO/Config/GeometryAligned"`.
 
-<!-- > **_NOTE:_**  reconstruction for the `FourLayers` geometry is not implemented yet. -->
+> **_NOTE:_**  in order to make the reconstruction for the `FourLayers` geometry work, the following line has to be added to the CMake options in the [o2.sh](https://github.com/alisw/alidist/blob/master/o2.sh) recipe in alidist:
+```bash
+${ENABLE_ITS3_4L:+-DENABLE_ITS3_4L=ON}
+```
