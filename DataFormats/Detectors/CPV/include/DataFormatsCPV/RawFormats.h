@@ -115,20 +115,21 @@ class CpvTrailer
     }
   }
   CpvTrailer(unsigned short wordCounter, uint16_t bunchCrossing, bool isAllDataSent)
-  {                                               // writing
-    mBytes[0] = bunchCrossing & 0x00ff;           // bits 11 - 0 bunch crossing
-    mBytes[1] = ((bunchCrossing & 0x0f00) >> 8)   // bits 11 - 0 bunch crossing
-                + ((wordCounter & 0x0f) << 4);    // bits 20 - 12 wordCounter
-    mBytes[2] = (wordCounter & 0b111110000) >> 4; // bits 20 - 12 wordCounter
+  {                                                // writing
+    mBytes[0] = bunchCrossing & 0x00ff;            // bits 11 - 0 bunch crossing
+    mBytes[1] = ((bunchCrossing & 0x0f00) >> 8)    // bits 11 - 0 bunch crossing
+                + ((wordCounter & 0x0f) << 4);     // bits 20 - 12 wordCounter
+    mBytes[2] = (wordCounter & 0b1111110000) >> 4; // bits 21 - 12 wordCounter
+
     for (int i = 3; i < 8; i++) {
-      mBytes[i] = 0; // bits 70 - 21 reserved
+      mBytes[i] = 0; // bits 70 - 22 reserved
     }
     mBytes[8] = isAllDataSent * 0b10000000; // bit 71 all data is sent for current trigger
     mBytes[9] = char(0xf0);                 // word ID of cpv trailer
   }
   ~CpvTrailer() = default;
   bool isOK() const { return (mBytes[9] == 0xf0); }
-  uint16_t wordCounter() const { return (mBytes[1] >> 4) + ((mBytes[2] & 0b00011111) << 4); }
+  uint16_t wordCounter() const { return (mBytes[1] >> 4) + ((mBytes[2] & 0b00111111) << 4); }
   bool isAllDataSent() const { return (mBytes[8] & 0b10000000); }
   uint16_t bc() const { return mBytes[0] + ((mBytes[1] & 0x0f) << 8); }
 
