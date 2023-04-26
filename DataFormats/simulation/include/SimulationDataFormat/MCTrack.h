@@ -117,7 +117,7 @@ class MCTrackT
   {
     double mx(mStartVertexMomentumX);
     double my(mStartVertexMomentumY);
-    return (TMath::Pi() + TMath::ATan2(-mx, -my));
+    return (TMath::Pi() + TMath::ATan2(-my, -mx));
   }
 
   Double_t GetEta() const
