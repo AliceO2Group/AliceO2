@@ -36,7 +36,7 @@ using namespace o2::base;
 using namespace o2::framework;
 namespace o2d = o2::dataformats;
 
-GRPGeomRequest::GRPGeomRequest(bool orbitResetTime, bool GRPECS, bool GRPLHCIF, bool GRPMagField, bool askMatLUT, GeomRequest geom, std::vector<o2::framework::InputSpec>& inputs, bool askOnce, bool needPropD)
+GRPGeomRequest::GRPGeomRequest(bool orbitResetTime, bool GRPECS, bool GRPLHCIF, bool GRPMagField, bool askMatLUT, GeomRequest geom, std::vector<o2::framework::InputSpec>& inputs, bool askOnce, bool needPropD, std::string detMaskString)
   : askGRPECS(GRPECS), askGRPLHCIF(GRPLHCIF), askGRPMagField(GRPMagField), askMatLUT(askMatLUT), askTime(orbitResetTime), askOnceAllButField(askOnce), needPropagatorD(needPropD)
 {
   if (geom == Aligned) {
@@ -48,9 +48,12 @@ GRPGeomRequest::GRPGeomRequest(bool orbitResetTime, bool GRPECS, bool GRPLHCIF, 
   }
   if (geom == Alignments) {
     askAlignments = true;
+    o2::detectors::DetID::mask_t algDetMask = DetID::getMask(detMaskString);
     for (auto id = DetID::First; id <= DetID::Last; id++) {
-      std::string binding = fmt::format("align{}", DetID::getName(id));
-      addInput({binding, DetID::getDataOrigin(id), "ALIGNMENT", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Calib/Align", DetID::getName(id)))}, inputs);
+      if (algDetMask[id]) {
+        std::string binding = fmt::format("align{}", DetID::getName(id));
+        addInput({binding, DetID::getDataOrigin(id), "ALIGNMENT", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Calib/Align", DetID::getName(id)))}, inputs);
+      }
     }
   }
   if (askMatLUT) {
@@ -215,10 +218,10 @@ void GRPGeomHelper::checkUpdates(ProcessingContext& pc) const
     if (mRequest->askAlignments) {
       for (auto id = DetID::First; id <= DetID::Last; id++) {
         std::string binding = fmt::format("align{}", DetID::getName(id));
-        if (pc.inputs().isValid(binding.c_str())) {
-          pc.inputs().get<std::vector<o2::detectors::AlignParam>*>(binding);
-        } else {
+        if (pc.inputs().getPos(binding.c_str()) < 0) {
           return;
+        } else {
+          pc.inputs().get<std::vector<o2::detectors::AlignParam>*>(binding);
         }
       }
     }
