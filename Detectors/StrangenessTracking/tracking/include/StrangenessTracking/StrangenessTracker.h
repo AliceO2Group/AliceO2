@@ -42,6 +42,12 @@ namespace o2
 namespace strangeness_tracking
 {
 
+enum DauType : int {
+  kV0DauPos = 0,
+  kV0DauNeg = 1,
+  kBach = 2
+};
+
 struct ClusAttachments {
 
   std::array<unsigned int, 7> arr;
@@ -150,7 +156,7 @@ class StrangenessTracker
     propPos.getPxPyPzGlo(pP);
     propNeg.getPxPyPzGlo(pN);
     std::array<float, 3> pV0 = {pP[0] + pN[0], pP[1] + pN[1], pP[2] + pN[2]};
-    newV0 = V0(v0XYZ, pV0, mFitterV0.calcPCACovMatrixFlat(0), propPos, propNeg, mV0dauIDs[0], mV0dauIDs[1], PID::HyperTriton);
+    newV0 = V0(v0XYZ, pV0, mFitterV0.calcPCACovMatrixFlat(0), propPos, propNeg, mV0dauIDs[kV0DauPos], mV0dauIDs[kV0DauNeg], PID::HyperTriton);
     return true;
   };
 
