@@ -19,10 +19,12 @@ using namespace o2::utils;
 std::vector<std::string> Str::tokenize(const std::string& src, char delim, bool trimToken, bool skipEmpty)
 {
   std::stringstream ss(src);
-  std::string token;
+    std::string token
+      ;
   std::vector<std::string> tokens;
 
-  while (std::getline(ss, token, delim)) {
+  while (std::getline(ss, token, delim))
+        {
     if (trimToken) {
       trim(token);
     }
