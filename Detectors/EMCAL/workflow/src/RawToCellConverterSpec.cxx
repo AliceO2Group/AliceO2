@@ -119,7 +119,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   // must be 0x307FFFDFFFFF if all links are active
   std::bitset<46> bitSetActiveLinks((list1.to_ullong() << 32) + list0.to_ullong());
   // container with BCid and feeID
-  std::unordered_map<ULong64_t, std::bitset<46>> bcFreq;
+  std::unordered_map<int64_t, std::bitset<46>> bcFreq;
 
   double timeshift = RecoParam::Instance().getCellTimeShiftNanoSec(); // subtract offset in ns in order to center the time peak around the nominal delay
   constexpr auto originEMC = o2::header::gDataOriginEMC;
@@ -181,12 +181,6 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       auto feeID = raw::RDHUtils::getFEEID(header);
       auto triggerbits = raw::RDHUtils::getTriggerType(header);
 
-      ULong64_t BCcoll = ULong64_t(triggerBC) + ULong64_t(triggerOrbit * 3564);
-      bcFreq[BCcoll].set(feeID, true);
-
-      //      std::cout << "__ BCcoll=" << BCcoll << "   FEEID=" << feeID << std::endl;
-      //      LOG(info) << "__ BCcoll=" << BCcoll << "   FEEID=" << feeID << std::endl;
-
       int correctionShiftBCmod4 = 0;
       o2::InteractionRecord currentIR(triggerBC, triggerOrbit);
       // Correct physics triggers for the shift of the BC due to the LM-L0 delay
@@ -201,6 +195,9 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           continue;
         }
       }
+
+      bcFreq[currentIR.toLong()].set(feeID, true);
+
       // Correct the cell time for the bc mod 4 (LHC: 40 MHz clock - ALTRO: 10 MHz clock)
       // Convention: All times shifted with respect to BC % 4 = 0 for trigger BC
       // Attention: Correction only works for the permutation (0 1 2 3) of the BC % 4, if the permutation is
@@ -358,10 +355,9 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
     mOutputTriggerRecords.emplace_back(interaction, currentevent.getTriggerBits(), eventstart, ncellsEvent + nLEDMONsEvent);
   }
 
-  std::unordered_map<ULong64_t, std::bitset<46>>::iterator p;
-  for (p = bcFreq.begin(); p != bcFreq.end(); p++) {
-    if (p->second != bitSetActiveLinks) {
-      LOG(error) << "Not all EMC active links contributed in global BCid=" << p->first << ": mask=" << (p->second ^ bitSetActiveLinks);
+  for (const auto& [globalBC, activelinks] : bcFreq) {
+    if (activelinks != bitSetActiveLinks) {
+      LOG(error) << "Not all EMC active links contributed in global BCid=" << globalBC << ": mask=" << (activelinks ^ bitSetActiveLinks);
       mOutputCells.clear();
       mOutputTriggerRecords.clear();
       mOutputDecoderErrors.clear();
