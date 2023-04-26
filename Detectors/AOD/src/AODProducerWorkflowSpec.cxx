@@ -83,6 +83,7 @@
 #include "TString.h"
 #include "TObjString.h"
 #include <map>
+#include <numeric>
 #include <unordered_map>
 #include <set>
 #include <string>
@@ -473,12 +474,13 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
       }
     }
   }
+  if (collisionID < 0) {
+    return;
+  }
   /// Add strangeness tracks to the table
   auto sTracks = data.getStrangeTracks();
-  for (auto& collStrTrk : mCollisionStrTrk) {
-    if (mVtxToTableCollID.find(collStrTrk.first) == mVtxToTableCollID.end() || mVtxToTableCollID[collStrTrk.first] != collisionID) {
-      continue;
-    }
+  for (int iS{mVertexStrLUT[collisionID]}; iS < mVertexStrLUT[collisionID + 1]; ++iS) {
+    auto& collStrTrk = mCollisionStrTrk[iS];
     auto& sTrk = sTracks[collStrTrk.second];
     TrackExtraInfo extraInfo;
     extraInfo.itsChi2NCl = sTrk.mTopoChi2; // TODO: this is the total chi2 of adding the ITS clusters, the topology chi2 meaning might change in the future
@@ -1229,6 +1231,8 @@ void AODProducerWorkflowDPL::prepareStrangenessTracking(const o2::globaltracking
   int sTrkID = 0;
   mCollisionStrTrk.clear();
   mCollisionStrTrk.reserve(recoData.getStrangeTracks().size());
+  mVertexStrLUT.clear();
+  mVertexStrLUT.resize(recoData.getPrimaryVertices().size() + 1, 0);
   for (auto& sTrk : recoData.getStrangeTracks()) {
     auto ITSIndex = GIndex{sTrk.mITSRef, GIndex::ITS};
     int vtxId{0};
@@ -1240,7 +1244,9 @@ void AODProducerWorkflowDPL::prepareStrangenessTracking(const o2::globaltracking
       vtxId = decays3Body[sTrk.mDecayRef].getVertexID();
     }
     mCollisionStrTrk.emplace_back(vtxId, sTrkID++);
+    mVertexStrLUT[vtxId]++;
   }
+  std::exclusive_scan(mVertexStrLUT.begin(), mVertexStrLUT.end(), mVertexStrLUT.begin(), 0);
 
   // sort by collision ID
   std::sort(mCollisionStrTrk.begin(), mCollisionStrTrk.end(), [](const auto& a, const auto& b) { return a.first < b.first; });

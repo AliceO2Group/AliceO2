@@ -264,6 +264,7 @@ class AODProducerWorkflowDPL : public Task
   int mTableV0ID{0};
 
   // Strangeness tracking indices lookup tables
+  std::vector<int> mVertexStrLUT;    /// LUT for accessing strangeness tracks for each vertex
   std::vector<std::pair<int, int>> mCollisionStrTrk; /// collision index and original index of the strangeness track
   std::vector<int> mStrTrkIndices;                   /// indices of strangeness tracks in the track table
 
