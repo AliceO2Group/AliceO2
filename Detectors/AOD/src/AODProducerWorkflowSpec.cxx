@@ -1115,10 +1115,8 @@ void AODProducerWorkflowDPL::fillMCTrackLabelsTable(const MCTrackLabelCursorType
 
   // filling the tables with the strangeness tracking labels
   auto sTrackLabels = data.getStrangeTracksMCLabels();
-  for (auto& collStrTrk : mCollisionStrTrk) {
-    if (mVtxToTableCollID.find(collStrTrk.first) == mVtxToTableCollID.end() || mVtxToTableCollID[collStrTrk.first] != vertexId) {
-      continue;
-    }
+  for (int iS{mVertexStrLUT[vertexId]}; iS < mVertexStrLUT[vertexId + 1]; ++iS) {
+    auto& collStrTrk = mCollisionStrTrk[iS];
     auto& label = sTrackLabels[collStrTrk.second];
     MCLabels labelHolder;
     labelHolder.labelID = label.isValid() ? (*mToStore[label.getSourceID()][label.getEventID()])[label.getTrackID()] : -1;
