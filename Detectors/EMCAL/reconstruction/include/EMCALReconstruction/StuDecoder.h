@@ -92,7 +92,6 @@ class StuDecoder
   int mDebug = -3;
 
  private:
-
   RawReaderMemory& mRawReader; ///< underlying raw reader
 
   std::vector<int16_t> mL1JetHighPatchIndex;
