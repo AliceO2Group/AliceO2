@@ -51,7 +51,7 @@ class PadPedestal
     }
   };
 
-  class InvalidChannelException : public std::exception
+  class InvalidChannelException final : public std::exception
   {
    public:
     InvalidChannelException(std::size_t layer, std::size_t channel) : mLayer(layer), mChannel(channel)
@@ -71,7 +71,7 @@ class PadPedestal
     std::string mMessage;
   };
 
-  class InvalidLayerException : public std::exception
+  class InvalidLayerException final : public std::exception
   {
    public:
     InvalidLayerException(std::size_t layer) : mLayer(layer)

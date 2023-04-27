@@ -32,7 +32,7 @@ class PadBadChannelMap
     DEAD_CHANNEL = 3
   };
 
-  class ChannelIndexException : public std::exception
+  class ChannelIndexException final : public std::exception
   {
    public:
     ChannelIndexException(std::size_t layer, std::size_t channel) : mLayer(layer), mChannel(channel)
