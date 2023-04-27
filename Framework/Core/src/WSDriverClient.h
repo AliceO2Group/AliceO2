@@ -38,13 +38,12 @@ struct DeviceSpec;
 class WSDriverClient : public DriverClient
 {
  public:
-  WSDriverClient(ServiceRegistryRef registry, DeviceState& state, char const* ip, unsigned short port);
+  WSDriverClient(ServiceRegistryRef registry, char const* ip, unsigned short port);
   ~WSDriverClient();
   void tell(const char* msg, size_t s, bool flush = true) final;
   void flushPending() final;
   void setDPLClient(std::unique_ptr<WSDPLClient>);
   void setConnection(uv_connect_t* connection) { mConnection = connection; };
-  DeviceSpec const& spec() { return mSpec; }
   // Initiate a websocket session
   void sendHandshake();
   std::mutex& mutex() { return mClientMutex; }
@@ -55,7 +54,7 @@ class WSDriverClient : public DriverClient
   // Whether or not we managed to connect.
   std::atomic<bool> mConnected = false;
   std::mutex mClientMutex;
-  DeviceSpec const& mSpec;
+  ServiceRegistryRef mRegistry;
   std::vector<uv_buf_t> mBacklog;
   uv_async_t* mAwakeMainThread = nullptr;
   uv_connect_t* mConnection = nullptr;

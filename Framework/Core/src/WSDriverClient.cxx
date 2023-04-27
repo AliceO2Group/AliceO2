@@ -65,7 +65,7 @@ struct ClientWebSocketHandler : public WebSocketHandler {
 
 struct ConnectionContext {
   WSDriverClient* client;
-  DeviceState* state;
+  ServiceRegistryRef ref;
 };
 
 void on_connect(uv_connect_t* connection, int status)
@@ -76,7 +76,8 @@ void on_connect(uv_connect_t* connection, int status)
   }
   auto* context = (ConnectionContext*)connection->data;
   WSDriverClient* client = context->client;
-  context->state->loopReason |= DeviceState::WS_CONNECTED;
+  auto& state = context->ref.get<DeviceState>();
+  state.loopReason |= DeviceState::WS_CONNECTED;
   auto onHandshake = [client]() {
     client->flushPending();
   };
@@ -86,7 +87,8 @@ void on_connect(uv_connect_t* connection, int status)
     LOG(info) << "ping";
   });
   /// FIXME: for now we simply take any offer as 1GB of SHM available
-  client->observe("/shm-offer", [state = context->state](std::string_view cmd) {
+  client->observe("/shm-offer", [ref = context->ref](std::string_view cmd) {
+    auto& state = ref.get<DeviceState>();
     static constexpr int prefixSize = std::string_view{"/shm-offer "}.size();
     if (prefixSize > cmd.size()) {
       LOG(error) << "Malformed shared memory offer";
@@ -108,19 +110,22 @@ void on_connect(uv_connect_t* connection, int status)
     offer.user = -1;
     offer.valid = true;
 
-    state->pendingOffers.push_back(offer);
+    state.pendingOffers.push_back(offer);
   });
 
-  client->observe("/quit", [state = context->state](std::string_view) {
-    state->quitRequested = true;
+  client->observe("/quit", [ref = context->ref](std::string_view) {
+    auto& state = ref.get<DeviceState>();
+    state.quitRequested = true;
   });
 
-  client->observe("/restart", [state = context->state](std::string_view) {
-    state->nextFairMQState.emplace_back("RUN");
-    state->nextFairMQState.emplace_back("STOP");
+  client->observe("/restart", [ref = context->ref](std::string_view) {
+    auto& state = ref.get<DeviceState>();
+    state.nextFairMQState.emplace_back("RUN");
+    state.nextFairMQState.emplace_back("STOP");
   });
 
-  client->observe("/trace", [state = context->state](std::string_view cmd) {
+  client->observe("/trace", [ref = context->ref](std::string_view cmd) {
+    auto& state = ref.get<DeviceState>();
     static constexpr int prefixSize = std::string_view{"/trace "}.size();
     if (prefixSize > cmd.size()) {
       LOG(error) << "Malformed tracing request";
@@ -134,28 +139,12 @@ void on_connect(uv_connect_t* connection, int status)
       return;
     }
     LOGP(info, "Tracing flags set to {}", tracingFlags);
-    state->tracingFlags = tracingFlags;
+    state.tracingFlags = tracingFlags;
   });
-  auto clientContext = std::make_unique<o2::framework::DriverClientContext>(DriverClientContext{client->spec(), context->state});
+  // Client will be filled in the line after.
+  auto clientContext = std::make_unique<o2::framework::DriverClientContext>(DriverClientContext{.ref = context->ref, .client = nullptr});
   client->setDPLClient(std::make_unique<WSDPLClient>(connection->handle, std::move(clientContext), onHandshake, std::move(handler)));
   client->sendHandshake();
-}
-
-/// Helper to connect to a
-void connectToDriver(WSDriverClient* driver, DeviceState* state, char const* address, short port)
-{
-  auto* socket = (uv_tcp_t*)malloc(sizeof(uv_tcp_t));
-  uv_tcp_init(state->loop, socket);
-  auto* connection = (uv_connect_t*)malloc(sizeof(uv_connect_t));
-  auto* context = new ConnectionContext;
-  context->client = driver;
-  context->state = state;
-  connection->data = context;
-
-  struct sockaddr_in dest;
-  uv_ip4_addr(strdup(address), port, &dest);
-
-  uv_tcp_connect(connection, socket, (const struct sockaddr*)&dest, on_connect);
 }
 
 void on_awake_main_thread(uv_async_t* handle)
@@ -164,13 +153,24 @@ void on_awake_main_thread(uv_async_t* handle)
   state->loopReason |= DeviceState::ASYNC_NOTIFICATION;
 }
 
-WSDriverClient::WSDriverClient(ServiceRegistryRef registry, DeviceState& state, char const* ip, unsigned short port)
-  : mSpec{registry.get<const DeviceSpec>()}
+WSDriverClient::WSDriverClient(ServiceRegistryRef registry, char const* ip, unsigned short port)
+  : mRegistry(registry)
 {
+  auto& state = registry.get<DeviceState>();
+
   // Must connect the device to the server and send a websocket request.
   // On successful connection we can then start to send commands to the driver.
   // We keep a backlog to make sure we do not lose messages.
-  connectToDriver(this, &state, ip, port);
+  auto* socket = (uv_tcp_t*)malloc(sizeof(uv_tcp_t));
+  uv_tcp_init(state.loop, socket);
+  auto* connection = (uv_connect_t*)malloc(sizeof(uv_connect_t));
+  auto* context = new ConnectionContext{.client = this, .ref = registry};
+  connection->data = context;
+
+  struct sockaddr_in dest;
+  uv_ip4_addr(strdup(ip), port, &dest);
+  uv_tcp_connect(connection, socket, (const struct sockaddr*)&dest, on_connect);
+
   this->mAwakeMainThread = (uv_async_t*)malloc(sizeof(uv_async_t));
   this->mAwakeMainThread->data = &state;
   uv_async_init(state.loop, this->mAwakeMainThread, on_awake_main_thread);
