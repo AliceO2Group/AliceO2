@@ -78,8 +78,8 @@ void on_connect(uv_connect_t* connection, int status)
   WSDriverClient* client = context->client;
   auto& state = context->ref.get<DeviceState>();
   state.loopReason |= DeviceState::WS_CONNECTED;
-  auto onHandshake = [client]() {
-    client->flushPending();
+  auto onHandshake = [client, ref = context->ref]() {
+    client->flushPending(ref);
   };
   std::lock_guard<std::mutex> lock(client->mutex());
   auto handler = std::make_unique<ClientWebSocketHandler>(*client);
@@ -216,8 +216,11 @@ void WSDriverClient::awake()
   uv_async_send(mAwakeMainThread);
 }
 
-void WSDriverClient::flushPending()
+void WSDriverClient::flushPending(ServiceRegistryRef mainThreadRef)
 {
+  if (mainThreadRef.isMainThread() == false) {
+    LOG(error) << "flushPending not called from main thread";
+  }
   std::lock_guard<std::mutex> lock(mClientMutex);
   static bool printed1 = false;
   static bool printed2 = false;

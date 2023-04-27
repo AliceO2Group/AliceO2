@@ -31,7 +31,7 @@ class TextDriverClient : public DriverClient
   /// The text based client simply sends a message on stdout which is
   /// (potentially) captured by the driver.
   void tell(char const* msg, size_t s, bool flush = true) final;
-  void flushPending() final;
+  void flushPending(ServiceRegistryRef ref) final;
 };
 
 } // namespace o2::framework
