@@ -220,7 +220,6 @@ void StuDecoder::decodeFastOrADC(const uint32_t* buffer)
     mFastOrADC.push_back(int16_t(buffer[i] >> 16) & 0xFFFF);
   }
 
-
   return;
 }
 
