@@ -141,9 +141,12 @@ void on_connect(uv_connect_t* connection, int status)
     LOGP(info, "Tracing flags set to {}", tracingFlags);
     state.tracingFlags = tracingFlags;
   });
-  // Client will be filled in the line after.
-  auto clientContext = std::make_unique<o2::framework::DriverClientContext>(DriverClientContext{.ref = context->ref, .client = nullptr});
-  client->setDPLClient(std::make_unique<WSDPLClient>(connection->handle, std::move(clientContext), onHandshake, std::move(handler)));
+
+  // Client will be filled in the line after. I can probably have a single
+  // client per device.
+  auto dplClient = std::make_unique<WSDPLClient>();
+  dplClient->connect(context->ref, connection->handle, onHandshake, std::move(handler));
+  client->setDPLClient(std::move(dplClient));
   client->sendHandshake();
 }
 
