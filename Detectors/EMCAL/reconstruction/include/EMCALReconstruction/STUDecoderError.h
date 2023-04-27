@@ -27,7 +27,7 @@ namespace o2::emcal
 /// carries an error code which can be uniquely identified with a
 /// condition raising the excpetion. Source is always the DDL of the
 /// STU raising the exception.
-class STUDecoderError : public std::exception
+class STUDecoderError final : public std::exception
 {
  public:
   /// \enum ErrorCode_t
