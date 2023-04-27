@@ -1091,7 +1091,7 @@ void DataProcessingDevice::Run()
       ZoneScopedN("uv idle");
       TracyPlot("past activity", (int64_t)mWasActive);
       ServiceRegistryRef ref{mServiceRegistry};
-      ref.get<DriverClient>().flushPending();
+      ref.get<DriverClient>().flushPending(mServiceRegistry);
       auto shouldNotWait = (mWasActive &&
                             (state.streaming != StreamingState::Idle) && (state.activeSignals.empty())) ||
                            (state.streaming == StreamingState::EndOfStreaming);
@@ -1478,7 +1478,6 @@ void DataProcessingDevice::doRun(ServiceRegistryRef ref)
 
   if (state.streaming == StreamingState::EndOfStreaming) {
     LOGP(detail, "We are in EndOfStreaming. Flushing queues.");
-    ref.get<DriverClient>().flushPending();
     // We keep processing data until we are Idle.
     // FIXME: not sure this is the correct way to drain the queues, but
     // I guess we will see.

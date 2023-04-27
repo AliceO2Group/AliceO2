@@ -23,7 +23,7 @@ void TextDriverClient::tell(const char* msg, size_t s, bool flush)
   LOG(debug) << std::string_view{msg, s};
 }
 
-void TextDriverClient::flushPending()
+void TextDriverClient::flushPending(ServiceRegistryRef ref)
 {
 }
 
