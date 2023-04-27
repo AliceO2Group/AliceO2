@@ -258,7 +258,7 @@ o2::framework::ServiceSpec CommonServices::driverClientSpec()
       }
       auto [ip, port] = o2::framework::parse_websocket_url(backend.c_str());
       return ServiceHandle{TypeIdHelpers::uniqueId<DriverClient>(),
-                           new WSDriverClient(services, state, ip.c_str(), port)};
+                           new WSDriverClient(services, ip.c_str(), port)};
     },
     .configure = noConfiguration(),
     .kind = ServiceKind::Global};
