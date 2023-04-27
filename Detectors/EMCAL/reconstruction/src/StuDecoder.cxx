@@ -220,21 +220,7 @@ void StuDecoder::decodeFastOrADC(const uint32_t* buffer)
     mFastOrADC.push_back(int16_t(buffer[i] >> 16) & 0xFFFF);
   }
 
-  /*
-  int nTRU = getNumberOfTRUs();
-  int nTRU2 = getNumberOfTRUs() / 2;
 
-  // store the ADC from iCh of iTRU in  mFastOrADC[TRUparam::Nchannels*iTRU+iCh]
-  for (int itru = 0; itru < nTRU; itru++) {
-    for (int ich = 0; ich < TRUparam::Nchannels; ich++) {
-      if ((itru % 2) == 0) {
-        mFastOrADC.push_back((buffer[itru + nTRU2 * ich] & 0xFFFF));
-      } else {
-        mFastOrADC.push_back((buffer[itru - 1 + nTRU2 * ich] >> 16) & 0xFFFF);
-      }
-    }
-  }
-*/
   return;
 }
 
