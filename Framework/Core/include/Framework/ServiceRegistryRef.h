@@ -42,6 +42,12 @@ class ServiceRegistryRef
   {
   }
 
+  // Wether or not this is the main thread
+  bool isMainThread()
+  {
+    return mSalt.streamId == 0;
+  }
+
   /// Check if service of type T is currently active.
   template <typename T>
   std::enable_if_t<std::is_const_v<T> == false, bool> active() const
