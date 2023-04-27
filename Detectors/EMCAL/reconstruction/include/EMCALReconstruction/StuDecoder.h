@@ -12,12 +12,8 @@
 #define ALICEO2_EMCAL_STUDECODER_H
 
 #include <exception>
-// #include <gsl/span>
 #include <iosfwd>
 #include <string>
-// #include "EMCALBase/RCUTrailer.h"
-// #include "EMCALReconstruction/Bunch.h"
-// #include "EMCALReconstruction/Channel.h"
 #include "EMCALReconstruction/RawReaderMemory.h"
 #include "DataFormatsEMCAL/Constants.h"
 
@@ -29,7 +25,7 @@ namespace emcal
 /// \brief Decoder of the EMCAL/DCAL STU data
 /// \ingroup EMCALreconstruction
 /// \author Martin Poghosyan <martin.poghosyan@cern.ch>, Oak Ridge National Laboratory
-/// \since Aug. 12, 2019
+/// \since Apr. 27, 2022
 ///
 
 class StuDecoder
@@ -96,12 +92,6 @@ class StuDecoder
   int mDebug = -3;
 
  private:
-  /// \brief run checks on the RCU trailer
-  /// \throw Error if the RCU trailer has inconsistencies
-  ///
-  /// Performing various consistency checks on the RCU trailer
-  /// In case of failure an exception is thrown.
-  //  void checkRCUTrailer();
 
   RawReaderMemory& mRawReader; ///< underlying raw reader
 
