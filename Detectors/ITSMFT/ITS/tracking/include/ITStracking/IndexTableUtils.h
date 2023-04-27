@@ -48,13 +48,8 @@ class IndexTableUtils
   int mNzBins = 0;
   int mNphiBins = 0;
   float mInversePhiBinSize = 0.f;
-<<<<<<< HEAD
   float mLayerZ[8] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
   float mInverseZBinSize[8] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
-=======
-  float mLayerZ[7] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
-  float mInverseZBinSize[7] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
->>>>>>> Move modifications to ITS code in dedicated PR
 };
 
 template <class T>
