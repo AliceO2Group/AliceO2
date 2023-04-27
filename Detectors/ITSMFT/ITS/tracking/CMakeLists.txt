@@ -9,6 +9,13 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
+# see if its3 4-layer tracking option is enabled
+option(ENABLE_ITS3_4L "Enable its3 4-layer tracking option" OFF)
+if (ENABLE_ITS3_4L)
+  MESSAGE(STATUS "Enable its3 4-layer tracking option")
+  add_definitions(-DENABLE_ITS3_4L)
+endif()
+
 o2_add_library(ITStracking
                TARGETVARNAME targetName
                SOURCES src/ClusterLines.cxx

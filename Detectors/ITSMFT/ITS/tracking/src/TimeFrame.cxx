@@ -455,6 +455,20 @@ void TimeFrame::checkTrackletLUTs()
   }
 }
 
+void TimeFrame::resizeVectors(int nLayers)
+{
+  mMinR.resize(nLayers, 10000.);
+  mMaxR.resize(nLayers, -1.);
+  mClusters.resize(nLayers);
+  mUnsortedClusters.resize(nLayers);
+  mTrackingFrameInfo.resize(nLayers);
+  mClusterExternalIndices.resize(nLayers);
+  mUsedClusters.resize(nLayers);
+  mROframesClusters.resize(nLayers, {0});
+  mNClustersPerROF.resize(nLayers);
+  mTrackletsIndexROf.resize(2, {0});
+}
+
 void TimeFrame::printTrackletLUTonLayer(int i)
 {
   std::cout << "--------" << std::endl

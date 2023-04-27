@@ -202,6 +202,8 @@ class TimeFrame
   void addTrackingFrameInfoToLayer(int layer, T&&... args);
   void addClusterExternalIndexToLayer(int layer, const int idx);
 
+  void resizeVectors(int nLayers);
+
   /// Debug and printing
   void checkTrackletLUTs();
   void printROFoffsets();
