@@ -572,7 +572,7 @@ bool parseOptions(int argc, char* argv[], Options& optvalues)
     desc.add_options()("publishto", bpo::value<std::string>(&optvalues.publishto)->default_value(""), "Base path under which GRP objects should be published on disc. This path can serve as lookup for CCDB queries of the GRP objects.");
     desc.add_options()("isRun5", bpo::bool_switch(&optvalues.isRun5), "Whether or not to expect a Run5 detector configuration.");
     desc.add_options()("vertex", bpo::value<std::string>(&optvalues.vertex)->default_value("ccdb"), "How the vertex is to be initialized. Default is CCDB. Alternative is \"Diamond\" which is constructing the mean vertex from the Diamond param via the configKeyValues path");
-    desc.add_options()("timestamp", bpo::value<uint64_t>(&optvalues.timestamp)->default_value(0), "Froce timestamp to be used");
+    desc.add_options()("timestamp", bpo::value<uint64_t>(&optvalues.timestamp)->default_value(0), "Force timestamp to be used (useful when anchoring)");
     desc.add_options()("configKeyValues", bpo::value<std::string>(&optvalues.configKeyValues)->default_value(""), "Semicolon separated key=value strings (e.g.: 'TPC.gasDensity=1;...')");
     if (!subparse(desc, vm, "createGRPs")) {
       return false;
