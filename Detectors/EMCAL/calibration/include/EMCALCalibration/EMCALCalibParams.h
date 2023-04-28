@@ -37,7 +37,7 @@ struct EMCALCalibParams : public o2::conf::ConfigurableParamHelper<EMCALCalibPar
   bool enableTestMode_bc = false;       ///< enable test mode for calibration
   int nBinsEnergyAxis_bc = 1000;        ///< number of bins for boost histogram energy axis
   bool useTimeInfoForCalib_bc = true;   ///< weather to use the timing information as a criterion in the bad channel analysis
-  float maxValueEnergyAxis_bc = 10;     ///< maximum value for boost histogram energy axis (minimum is always 0)
+  float maxValueEnergyAxis_bc = 40;     ///< maximum value for boost histogram energy axis (minimum is always 0)
   int nBinsTimeAxis_bc = 1000;          ///< number of bins for boost histogram time axis
   float rangeTimeAxisLow_bc = -500;     ///< minimum value of time for histogram range
   float rangeTimeAxisHigh_bc = 500;     ///< maximum value of time for histogram range
