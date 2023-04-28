@@ -372,7 +372,7 @@ int RawDecoderSpec::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
     // if ((int32_t)ir.bc < offset) {
     if ((ir.orbit <= mTFOrbit) && ((int32_t)ir.bc < offset)) {
       // if (0) {
-      LOG(warning) << "Loosing tclass:" << ir;
+      LOG(debug) << "Loosing tclass:" << ir;
       mTCRRejected++;
       return 0;
     }
