@@ -44,10 +44,10 @@ class ITS3Layer : public TObject
   /// Default destructor
   ~ITS3Layer() override;
 
-  void createLayer(TGeoVolume* motherVolume);
-  void createLayerWithDeadZones(TGeoVolume* motherVolume);
-  void createCarbonFoamStructure(TGeoVolume* motherVolume);
+  void createLayer(TGeoVolume* motherVolume, double radiusBetweenLayer);
+  void createLayerWithDeadZones(TGeoVolume* motherVolume, double radiusBetweenLayer);
   void create4thLayer(TGeoVolume* motherVolume);
+  void createCarbonFoamStructure(TGeoVolume* motherVolume, double deltaR, bool fourthLayer = false);
 
   void setChipThick(double thick) { mChipThickness = thick; }
   void setLayerRadius(double radius) { mRadius = radius; }

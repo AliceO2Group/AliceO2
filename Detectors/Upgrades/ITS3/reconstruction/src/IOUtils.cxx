@@ -38,30 +38,32 @@ int loadROFrameDataITS3(its::TimeFrame* tf,
 
   std::vector<o2::its3::SegmentationSuperAlpide> segITS3;
   for (int iLayer{0}; iLayer < geom->getNumberOfLayers() - 4; ++iLayer) {
-    segITS3.push_back(SegmentationSuperAlpide(iLayer));
+    for (int iChip{0}; iChip < geom->getNumberOfChipsPerLayer(iLayer); ++iChip) {
+      segITS3.push_back(SegmentationSuperAlpide(iLayer));
+    }
   }
+  int nChipsITS3 = segITS3.size();
 
   tf->mNrof = 0;
   for (auto& rof : rofs) {
     for (int clusterId{rof.getFirstEntry()}; clusterId < rof.getFirstEntry() + rof.getNEntries(); ++clusterId) {
       auto& c = clusters[clusterId];
-
       auto sensorID = c.getSensorID();
       int layer = layer = geom->getLayer(sensorID);
 
       auto pattID = c.getPatternID();
       o2::math_utils::Point3D<float> locXYZ;
       float sigmaY2 = o2::its::ioutils::DefClusError2Row, sigmaZ2 = o2::its::ioutils::DefClusError2Col, sigmaYZ = 0; // Dummy COG errors (about half pixel size)
-      float pitchRow = ((layer < geom->getNumberOfLayers() - 4) ? segITS3[layer].mPitchRow : o2::itsmft::SegmentationAlpide::PitchRow);
-      float pitchCol = ((layer < geom->getNumberOfLayers() - 4) ? segITS3[layer].mPitchCol : o2::itsmft::SegmentationAlpide::PitchCol);
+      float pitchRow = ((sensorID < nChipsITS3) ? segITS3[sensorID].mPitchRow : o2::itsmft::SegmentationAlpide::PitchRow);
+      float pitchCol = ((sensorID < nChipsITS3) ? segITS3[sensorID].mPitchCol : o2::itsmft::SegmentationAlpide::PitchCol);
       if (pattID != its3::CompCluster::InvalidPatternID) {
         sigmaY2 = dict->getErr2X(pattID) * pitchRow * pitchRow;
         sigmaZ2 = dict->getErr2Z(pattID) * pitchCol * pitchCol;
         if (!dict->isGroup(pattID)) {
-          locXYZ = dict->getClusterCoordinates(c);
+          locXYZ = dict->getClusterCoordinates(c, nChipsITS3);
         } else {
           o2::itsmft::ClusterPattern patt(pattIt);
-          locXYZ = dict->getClusterCoordinates(c, patt);
+          locXYZ = dict->getClusterCoordinates(c, patt, nChipsITS3);
           sigmaY2 = patt.getRowSpan() * patt.getRowSpan() * pitchRow * pitchRow / 12.;
           sigmaZ2 = patt.getColumnSpan() * patt.getColumnSpan() * pitchCol * pitchCol / 12.;
         }
@@ -69,7 +71,7 @@ int loadROFrameDataITS3(its::TimeFrame* tf,
         o2::itsmft::ClusterPattern patt(pattIt);
         sigmaY2 = patt.getRowSpan() * patt.getRowSpan() * pitchRow * pitchRow / 12.;
         sigmaZ2 = patt.getColumnSpan() * patt.getColumnSpan() * pitchCol * pitchCol / 12.;
-        locXYZ = dict->getClusterCoordinates(c, patt, false);
+        locXYZ = dict->getClusterCoordinates(c, patt, false, nChipsITS3);
       }
 
       // Transformation to the local --> global

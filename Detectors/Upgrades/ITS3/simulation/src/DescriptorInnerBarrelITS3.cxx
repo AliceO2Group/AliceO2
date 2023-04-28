@@ -209,6 +209,9 @@ ITS3Layer* DescriptorInnerBarrelITS3::createLayer(int idLayer, TGeoVolume* dest)
     return nullptr;
   }
 
+  int maxLayer = (mVersion != "FourLayers") ? 3 : 4;
+  double deltaR = (idLayer < maxLayer - 1) ? mLayerRadii[idLayer + 1] - mLayerRadii[idLayer] : 0.6;
+
   mLayer[idLayer] = new ITS3Layer(idLayer);
   mLayer[idLayer]->setLayerRadius(mLayerRadii[idLayer]);
   mLayer[idLayer]->setLayerZLen(mLayerZLen[idLayer]);
@@ -220,19 +223,19 @@ ITS3Layer* DescriptorInnerBarrelITS3::createLayer(int idLayer, TGeoVolume* dest)
   mLayer[idLayer]->setThickGluedFoam(mThickGluedFoam[idLayer]);
   mLayer[idLayer]->setBuildLevel(mBuildLevel[idLayer]);
   if (mVersion == "ThreeLayersNoDeadZones") {
-    mLayer[idLayer]->createLayer(dest);
+    mLayer[idLayer]->createLayer(dest, deltaR);
   } else if (mVersion == "ThreeLayers") {
     mLayer[idLayer]->setFringeChipWidth(mFringeChipWidth[idLayer]);
     mLayer[idLayer]->setMiddleChipWidth(mMiddleChipWidth[idLayer]);
     mLayer[idLayer]->setNumSubSensorsHalfLayer(mNumSubSensorsHalfLayer[idLayer]);
-    mLayer[idLayer]->createLayerWithDeadZones(dest);
+    mLayer[idLayer]->createLayerWithDeadZones(dest, deltaR);
   } else if (mVersion == "FourLayers") {
     mLayer[idLayer]->setFringeChipWidth(mFringeChipWidth[idLayer]);
     mLayer[idLayer]->setMiddleChipWidth(mMiddleChipWidth[idLayer]);
     mLayer[idLayer]->setNumSubSensorsHalfLayer(mNumSubSensorsHalfLayer[idLayer]);
-    if (idLayer != 3) {
-      mLayer[idLayer]->createLayerWithDeadZones(dest);
-    } else if (idLayer == 3) {
+    if (idLayer < maxLayer - 1) {
+      mLayer[idLayer]->createLayerWithDeadZones(dest, deltaR);
+    } else {
       mLayer[idLayer]->setGapXDirection(mGapXDirection4thLayer);
       mLayer[idLayer]->create4thLayer(dest);
     }

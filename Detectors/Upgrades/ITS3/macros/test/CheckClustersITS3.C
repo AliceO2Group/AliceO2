@@ -38,8 +38,8 @@
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #endif
 
-void CheckClustersITS3(int nITS3layers = 3, std::string clusfile = "o2clus_it3.root", std::string hitfile = "o2sim_HitsIT3.root",
-                       std::string inputGeom = "", std::string dictfile = "", bool batch = true)
+void CheckClustersITS3(std::string clusfile = "o2clus_it3.root", std::string hitfile = "o2sim_HitsIT3.root",
+                       std::string inputGeom = "o2sim_geometry.root", std::string dictfile = "", bool batch = true)
 {
   gROOT->SetBatch(batch);
 
@@ -58,15 +58,6 @@ void CheckClustersITS3(int nITS3layers = 3, std::string clusfile = "o2clus_it3.r
   std::vector<HitVec*> hitVecPool;
   std::vector<MC2HITS_map> mc2hitVec;
 
-  // we assume that we have 2 chips per layer
-  const int nChipsPerLayer = 2;
-  std::vector<SegmentationSuperAlpide> segs{};
-  for (int iLayer{0}; iLayer < nITS3layers; ++iLayer) {
-    for (int iChip{0}; iChip < nChipsPerLayer; ++iChip) {
-      segs.push_back(SegmentationSuperAlpide(iLayer));
-    }
-  }
-
   const int QEDSourceID = 99; // Clusters from this MC source correspond to QED electrons
 
   TFile fout("CheckClusters.root", "recreate");
@@ -77,6 +68,13 @@ void CheckClustersITS3(int nITS3layers = 3, std::string clusfile = "o2clus_it3.r
   auto gman = o2::its::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
                                                  o2::math_utils::TransformType::L2G)); // request cached transforms
+
+  std::vector<SegmentationSuperAlpide> segs{};
+  for (int iLayer{0}; iLayer < gman->getNumberOfLayers() - 4; ++iLayer) {
+    for (int iChip{0}; iChip < gman->getNumberOfChipsPerLayer(iLayer); ++iChip) {
+      segs.push_back(SegmentationSuperAlpide(iLayer));
+    }
+  }
 
   // Hits
   TFile fileH(hitfile.data());
@@ -183,13 +181,13 @@ void CheckClustersITS3(int nITS3layers = 3, std::string clusfile = "o2clus_it3.r
       auto chipID = cluster.getSensorID();
       if (pattID == o2::its3::CompCluster::InvalidPatternID || dict.isGroup(pattID)) {
         o2::itsmft::ClusterPattern patt(pattIt);
-        locC = dict.getClusterCoordinates(cluster, patt, false);
+        locC = dict.getClusterCoordinates(cluster, patt, false, segs.size());
         LOGP(info, "I am invalid and I am on chip {}", chipID);
       } else {
-        locC = dict.getClusterCoordinates(cluster);
+        locC = dict.getClusterCoordinates(cluster, segs.size());
         errX = dict.getErrX(pattID);
         errZ = dict.getErrZ(pattID);
-        if (chipID / nChipsPerLayer >= nITS3layers) {
+        if (chipID >= segs.size()) {
           errX *= Segmentation::PitchRow;
           errZ *= Segmentation::PitchCol;
         } else {
@@ -231,7 +229,7 @@ void CheckClustersITS3(int nITS3layers = 3, std::string clusfile = "o2clus_it3.r
       auto y0 = locHsta.Y(), dlty = locH.Y() - y0;
       auto z0 = locHsta.Z(), dltz = locH.Z() - z0;
 
-      if (chipID / nChipsPerLayer >= nITS3layers) {
+      if (chipID >= segs.size()) {
         auto r = (0.5 * (Segmentation::SensorLayerThickness - Segmentation::SensorLayerThicknessEff) - y0) / dlty;
         locH.SetXYZ(x0 + r * dltx, y0 + r * dlty, z0 + r * dltz);
       } else {

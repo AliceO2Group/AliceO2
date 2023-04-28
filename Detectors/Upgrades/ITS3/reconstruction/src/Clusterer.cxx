@@ -32,7 +32,7 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
                         PatternCont* patterns, ROFRecCont* vecROFRec, MCTruth* labelsCl)
 {
 #ifdef _PERFORM_TIMING_
-  mTimer.Start(kFALSE);
+  mTimer.Start(false);
 #endif
   if (nThreads < 1) {
     nThreads = 1;
@@ -80,6 +80,7 @@ void Clusterer::process(int nThreads, PixelReader& reader, CompClusCont* compClu
       mThreads.resize(nThreads);
       for (int i = oldSz; i < nThreads; i++) {
         mThreads[i] = std::make_unique<ClustererThread>(this, i);
+        mThreads[i]->nLayersITS3 = mNlayersITS3;
       }
     }
 #ifdef WITH_OPENMP
@@ -334,8 +335,12 @@ void Clusterer::ClustererThread::initChip(const ChipPixelData* curChipData, uint
 {
   // init chip with the 1st unmasked pixel (entry "from" in the mChipData)
   size = itsmft::SegmentationAlpide::NRows + 2;
-  if (curChipData->getChipID() < 6) { // TODO Fix for mutable layouts
-    SegmentationSuperAlpide seg(curChipData->getChipID() / 2);
+  int chipId = curChipData->getChipID();
+  if (chipId < 6) {
+    SegmentationSuperAlpide seg(chipId / 2);
+    size = seg.mNRows + 2;
+  } else if (chipId < 10 && nLayersITS3 == 4) {
+    SegmentationSuperAlpide seg(3);
     size = seg.mNRows + 2;
   }
   if (column1) {
@@ -386,7 +391,7 @@ void Clusterer::ClustererThread::updateChip(const ChipPixelData* curChipData, ui
     currCol = pix.getCol();
   }
 
-  Bool_t orphan = true;
+  bool orphan = true;
 
   if (noLeftCol) { // check only the row above
     if (curr[row - 1] >= 0) {
