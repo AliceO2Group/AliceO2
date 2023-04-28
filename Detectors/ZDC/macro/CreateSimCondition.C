@@ -115,7 +115,7 @@ void CreateSimCondition(long tmin = 0, long tmax = -1, std::string ccdbHost = ""
       channel.shape[i] *= ampMinAInv;
     }
     //
-    channel.pedestal = gRandom->Gaus(1800., 30.);
+    channel.pedestal = gRandom->Gaus(-180., 30.);
     //
     std::string histoPedNoiseName = "hb_" + ShapeName[ic];
     TH1* histoPedNoise = (TH1*)sourceData.GetObjectUnchecked(histoPedNoiseName.c_str());
