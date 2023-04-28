@@ -12,6 +12,7 @@
 #ifndef STEER_DIGITIZERWORKFLOW_EMCALDIGITIZER_H_
 #define STEER_DIGITIZERWORKFLOW_EMCALDIGITIZER_H_
 
+#include <memory>
 #include <vector>
 
 #include "Framework/DataProcessorSpec.h"
@@ -29,6 +30,8 @@ namespace o2
 {
 namespace emcal
 {
+class CalibLoader;
+
 /// \brief Create new digitizer spec
 /// \return Digitizer spec
 
@@ -42,7 +45,7 @@ class DigitizerSpec final : public o2::base::BaseDPLDigitizer, public o2::framew
  public:
   using o2::base::BaseDPLDigitizer::init;
   /// \brief Constructor
-  DigitizerSpec(bool useccdb) : o2::base::BaseDPLDigitizer(o2::base::InitServices::GEOM), o2::framework::Task(), mLoadSimParamFromCCDB(useccdb) {}
+  DigitizerSpec(std::shared_ptr<CalibLoader> calibloader) : o2::base::BaseDPLDigitizer(o2::base::InitServices::GEOM), o2::framework::Task(), mCalibHandler(calibloader) {}
 
   /// \brief Destructor
   ~DigitizerSpec() final = default;
@@ -65,12 +68,12 @@ class DigitizerSpec final : public o2::base::BaseDPLDigitizer, public o2::framew
   void run(framework::ProcessingContext& ctx) override;
 
  private:
-  Bool_t mFinished = false;             ///< Flag for digitization finished
-  Bool_t mLoadSimParamFromCCDB = false; ///< Flag to load the the SimParams from CCDB
-  bool mIsConfigured = false;           ///< Initialization status of the digitizer
-  Digitizer mDigitizer;                 ///< Digitizer object
-  o2::emcal::SDigitizer mSumDigitizer;  ///< Summed digitizer
-  std::vector<Hit> mHits;               ///< Vector with input hits
+  Bool_t mFinished = false;                   ///< Flag for digitization finished
+  bool mIsConfigured = false;                 ///< Initialization status of the digitizer
+  Digitizer mDigitizer;                       ///< Digitizer object
+  o2::emcal::SDigitizer mSumDigitizer;        ///< Summed digitizer
+  std::shared_ptr<CalibLoader> mCalibHandler; ///< Handler of calibration objects
+  std::vector<Hit> mHits;                     ///< Vector with input hits
   std::vector<TChain*> mSimChains;
 };
 
@@ -78,7 +81,7 @@ class DigitizerSpec final : public o2::base::BaseDPLDigitizer, public o2::framew
 /// \return Digitizer spec
 o2::framework::DataProcessorSpec getEMCALDigitizerSpec(int channel, bool mctruth = true, bool useccdb = true);
 
-} // end namespace emcal
+} // namespace emcal
 } // end namespace o2
 
 #endif /* STEER_DIGITIZERWORKFLOW_EMCALDIGITIZER_H_ */
