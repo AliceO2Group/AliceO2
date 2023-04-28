@@ -12,6 +12,7 @@
 #ifndef ALICEO2_EMCAL_FEEDIGITIZER_H
 #define ALICEO2_EMCAL_FEEDIGITIZER_H
 
+#include <array>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -21,6 +22,7 @@
 #include "TObject.h" // for TObject
 #include "TRandom3.h"
 
+#include "DataFormatsEMCAL/Constants.h"
 #include "DataFormatsEMCAL/Digit.h"
 #include "EMCALBase/Hit.h"
 #include "EMCALSimulation/SimParam.h"
@@ -71,7 +73,6 @@ class Digitizer : public TObject
   bool isLive(double t) const { return mDigits.isLive(t); }
   bool isLive() const { return mDigits.isLive(); }
 
-  void setWindowStartTime(int time) { mTimeWindowStart = time; }
   void setDebugStreaming(bool doStreaming) { mEnableDebugStreaming = doStreaming; }
 
   // function returns true if the collision occurs 600ns before the readout window is open
@@ -81,6 +82,7 @@ class Digitizer : public TObject
 
   bool doSmearEnergy() const { return mSmearEnergy; }
   double smearEnergy(double energy);
+  double smearTime(double time, double energy);
   bool doSimulateTimeResponse() const { return mSimulateTimeResponse; }
 
   void sampleSDigit(const Digit& sdigit);
@@ -93,6 +95,7 @@ class Digitizer : public TObject
   const o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>& getMCLabels() const { return mDigits.getMCLabels(); }
 
  private:
+  static constexpr int EMC_PHASES = 4; ///< Number of phases
   short mEventTimeOffset = 0;          ///< event time difference from trigger time (in number of bins)
   short mPhase = 0;                    ///< event phase
   UInt_t mROFrameMin = 0;              ///< lowest RO frame of current digits
@@ -101,15 +104,12 @@ class Digitizer : public TObject
   bool mSimulateTimeResponse = true;   ///< simulate time response
   const SimParam* mSimParam = nullptr; ///< SimParam object
 
-  std::vector<Digit> mTempDigitVector; ///< temporary digit storage
-  // std::unordered_map<Int_t, std::list<LabeledDigit>> mDigits; ///< used to sort digits and labels by tower
+  std::vector<Digit> mTempDigitVector;     ///< temporary digit storage
   o2::emcal::DigitsWriteoutBuffer mDigits; ///< used to sort digits and labels by tower
 
-  TRandom3* mRandomGenerator = nullptr;                  ///< random number generator
-  std::vector<std::vector<double>> mAmplitudeInTimeBins; ///< amplitude of signal for each time bin
-
-  int mTimeWindowStart = 7; ///< The start of the time window
-  int mDelay = 7;           ///< number of (full) time bins corresponding to the signal time delay
+  TRandom3* mRandomGenerator = nullptr; ///< random number generator
+  std::array<std::array<double, constants::EMCAL_MAXTIMEBINS>, EMC_PHASES>
+    mAmplitudeInTimeBins; ///< template of the sampled time response function: amplitude of signal for each time bin (per phase)
 
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDebugStream = nullptr;
   bool mEnableDebugStreaming = false;
