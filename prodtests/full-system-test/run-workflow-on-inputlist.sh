@@ -102,7 +102,7 @@ if [[ "0$4" != "00" ]]; then
 fi
 
 for i in `seq 1 $NUM_PROCS`; do
-  [[ $RETVAL == 0 ]] && break
+  [[ $RETVAL != 0 ]] && break
   PID_VAR="PID$i"
   wait ${!PID_VAR}
   RETVAL=$?
