@@ -845,9 +845,6 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, boo
         inputs.emplace_back("lq3dlut", "TRD", "LQ3D", 0, Lifetime::Condition, ccdbParamSpec("TRD_test/PID/LQ3D"));
         break;
 #ifdef TRDPID_WITH_ONNX
-      case PIDPolicy::Test:
-        inputs.emplace_back("mlTest", "TRD", "MLTEST", 0, Lifetime::Condition, ccdbParamSpec("TRD_test/PID_new/xgb"));
-        break;
       case PIDPolicy::XGB:
         inputs.emplace_back("xgb", "TRD", "XGB", 0, Lifetime::Condition, ccdbParamSpec("TRD_test/PID_new/xgb"));
         break;

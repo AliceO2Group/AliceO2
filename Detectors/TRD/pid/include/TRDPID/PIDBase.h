@@ -77,7 +77,7 @@ class PIDBase
   // correction factors
   const LocalGainFactor* mLocalGain; ///< local gain factors from krypton calibration
 
-  ClassDefNV(PIDBase, 1);
+  ClassDef(PIDBase, 1);
 };
 
 /// Factory function to create a PID policy.

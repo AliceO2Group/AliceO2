@@ -33,9 +33,8 @@ enum class PIDPolicy : unsigned int {
 
 #ifdef TRDPID_WITH_ONNX
   // ML models
-  XGB,        ///< XGBOOST
-  PY,         ///< Pytorch
-  Test = XGB, ///< Load object for testing
+  XGB, ///< XGBOOST
+  PY,  ///< Pytorch
 #endif
 
   // Do not add anything after this!
@@ -61,9 +60,6 @@ inline std::ostream& operator<<(std::ostream& os, const PIDPolicy& policy)
     case PIDPolicy::PY:
       name = "PyTorch";
       break;
-    case PIDPolicy::Test:
-      name = "Test";
-      break;
 #endif
     case PIDPolicy::Dummy:
       name = "Dummy";
@@ -85,7 +81,6 @@ static const std::unordered_map<std::string, PIDPolicy> PIDPolicyString{
   // ML models
   {"XGB", PIDPolicy::XGB},
   {"PY", PIDPolicy::PY},
-  {"TEST", PIDPolicy::Test},
 #endif
 
   // General

@@ -79,7 +79,7 @@ class ML : public PIDBase
   std::vector<std::string> mOutputNames;           ///< model output names
   std::vector<std::vector<int64_t>> mOutputShapes; ///< output shape
 
-  ClassDefNV(ML, 1);
+  ClassDefOverride(ML, 1);
 };
 
 /// XGBoost Model
@@ -99,23 +99,8 @@ class XGB final : public ML
   }
 
   inline std::string getName() const noexcept { return "xgb"; }
-};
 
-/// Test Model
-class Test final : public ML
-{
-  using ML::ML;
-
- public:
-  ~Test() = default;
-
- private:
-  inline float getELikelihood(const std::vector<Ort::Value>& tensorData) const noexcept
-  {
-    return tensorData[1].GetTensorData<float>()[1];
-  }
-
-  inline std::string getName() const noexcept { return "mlTest"; }
+  ClassDefNV(XGB, 1);
 };
 
 /// PyTorch Model
@@ -133,6 +118,8 @@ class PY final : public ML
   }
 
   inline std::string getName() const noexcept { return "py"; }
+
+  ClassDefNV(PY, 1);
 };
 
 } // namespace trd

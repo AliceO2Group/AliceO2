@@ -69,8 +69,6 @@ std::unique_ptr<PIDBase> getTRDPIDPolicy(PIDPolicy policy)
     case PIDPolicy::LQ3D:
       return std::make_unique<LQ3D>(PIDPolicy::LQ3D);
 #ifdef TRDPID_WITH_ONNX // Add all policies that use ONNX in this ifdef
-    case PIDPolicy::Test:
-      return std::make_unique<XGB>(PIDPolicy::Test);
     case PIDPolicy::XGB:
       return std::make_unique<XGB>(PIDPolicy::XGB);
     case PIDPolicy::PY:
