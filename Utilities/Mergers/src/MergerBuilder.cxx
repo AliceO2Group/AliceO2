@@ -105,7 +105,7 @@ framework::DataProcessorSpec MergerBuilder::buildSpec()
 
   merger.inputs.push_back({"timer-publish", "TMR", mergerDataDescription(mName), mergerSubSpec(mLayer, mId), framework::Lifetime::Timer, timerSpecs(timers)});
   merger.labels.push_back(mergerLabel());
-  if(mConfig.expendable) {
+  if (mConfig.expendable) {
     framework::DataProcessorLabel expendableLabel = {"expendable"};
     merger.labels.emplace_back(expendableLabel);
   }
