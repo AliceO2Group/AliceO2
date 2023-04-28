@@ -119,7 +119,7 @@ void ZDCRawParserDPLSpec::run(ProcessingContext& pc)
 #ifdef O2_ZDC_DEBUG
             o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)gbtw);
 #endif
-            if (gbtw[0] != 0xffffffff && gbtw[1] != 0xffffffff && (gbtw[2] & 0xffff) != 0xffff) {
+            if (gbtw[0] != 0xffffffff || gbtw[1] != 0xffffffff || (gbtw[2] & 0xffff) != 0xffff) {
               mWorker.processWord(gbtw);
             }
           }
