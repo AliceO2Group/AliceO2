@@ -170,7 +170,7 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
       if (!mFieldON) {
         trCosm.setQ2Pt(-o2::track::kMostProbablePt);
       }
-      int retVal = tpcRefitter->RefitTrackAsTrackParCov(trCosm, tpcTrOrig.getClusterRef(), (t0 + mTPCDriftTimeOffset) * tpcTBinMUSInv, &chi2, false, false); // inward refit, reset
+      int retVal = tpcRefitter->RefitTrackAsTrackParCov(trCosm, tpcTrOrig.getClusterRef(), t0 * tpcTBinMUSInv, &chi2, false, false); // inward refit, reset
       if (retVal < 0) {                                                                                                             // refit failed
         LOG(debug) << "Inward refit of btm TPC track failed.";
         continue;
@@ -228,7 +228,7 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
         }
       }
       const auto& tpcTrOrig = data.getTPCTrack(gidxListTop[GTrackID::TPC]);
-      int retVal = tpcRefitter->RefitTrackAsTrackParCov(trCosm, tpcTrOrig.getClusterRef(), (t0 + mTPCDriftTimeOffset) * tpcTBinMUSInv, &chi2, true, false); // outward refit, no reset
+      int retVal = tpcRefitter->RefitTrackAsTrackParCov(trCosm, tpcTrOrig.getClusterRef(), t0 * tpcTBinMUSInv, &chi2, true, false); // outward refit, no reset
       if (retVal < 0) {                                                                                                             // refit failed
         LOG(debug) << "Outward refit of top TPC track failed.";
         continue;
@@ -242,7 +242,7 @@ void MatchCosmics::refitWinners(const o2::globaltracking::RecoContainer& data)
     auto trCosmTop = outerLegs[top];
     if (gidxListTop[GTrackID::TPC].isIndexSet()) { // inward refit in TPC
       const auto& tpcTrOrig = data.getTPCTrack(gidxListTop[GTrackID::TPC]);
-      int retVal = tpcRefitter->RefitTrackAsTrackParCov(trCosmTop, tpcTrOrig.getClusterRef(), (t0 + mTPCDriftTimeOffset) * tpcTBinMUSInv, &chi2Dummy, false, true); // inward refit, reset
+      int retVal = tpcRefitter->RefitTrackAsTrackParCov(trCosmTop, tpcTrOrig.getClusterRef(), t0 * tpcTBinMUSInv, &chi2Dummy, false, true); // inward refit, reset
       if (retVal < 0) {                                                                                                                     // refit failed
         LOG(debug) << "Outward refit of top TPC track failed.";
         continue;
@@ -500,7 +500,6 @@ void MatchCosmics::createSeeds(const o2::globaltracking::RecoContainer& data)
       if constexpr (isTPCTrack<decltype(_tr)>()) {
         // unconstrained TPC track, with t0 = TrackTPC.getTime0+0.5*(DeltaFwd-DeltaBwd) and terr = 0.5*(DeltaFwd+DeltaBwd) in TimeBins
         t0 *= this->mTPCTBinMUS;
-        t0 -= this->mTPCDriftTimeOffset;
         terr *= this->mTPCTBinMUS;
       } else if (isITSTrack<decltype(_tr)>()) {
         t0 += 0.5 * this->mITSROFrameLengthMUS; // time 0 is supplied as beginning of ROF in \mus
