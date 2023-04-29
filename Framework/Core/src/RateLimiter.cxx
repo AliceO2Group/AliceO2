@@ -61,8 +61,8 @@ void RateLimiter::check(ProcessingContext& ctx, int maxInFlight, size_t minSHM)
 
     bool doSmothThrottling = getenv("DPL_SMOOTH_RATE_LIMITING") && atoi(getenv("DPL_SMOOTH_RATE_LIMITING"));
     if (doSmothThrottling) {
-      constexpr float factorStart = 0.5f;
-      constexpr float factorFinal = 0.9f;
+      constexpr float factorStart = 0.7f;
+      constexpr float factorFinal = 0.98f;
       constexpr float factorOfAverage = 0.7f;
       constexpr int64_t iterationsFinal = 2;
       auto curTime = std::chrono::system_clock::now();
