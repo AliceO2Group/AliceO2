@@ -42,6 +42,7 @@
 #include <regex>
 #include <deque>
 #include <chrono>
+#include <thread>
 
 using namespace o2::rawdd;
 using namespace std::chrono_literals;
@@ -253,7 +254,7 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
       auto tNow = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
       auto tDiff = tNow - tLastTF + 2 * deltaSending;
       if (mTFCounter && tDiff < mInput.delay_us) {
-        usleep(mInput.delay_us - tDiff); // respect requested delay before sending
+        std::this_thread::sleep_for(std::chrono::microseconds((size_t)(mInput.delay_us - tDiff))); // respect requested delay before sending
       }
       auto tSend = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
       for (auto& msgIt : *tfPtr.get()) {
