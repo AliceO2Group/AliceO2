@@ -46,6 +46,8 @@
 #include <string>
 #include <climits>
 #include <regex>
+#include <chrono>
+#include <thread>
 
 using namespace o2::raw;
 using DetID = o2::detectors::DetID;
@@ -344,7 +346,7 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
   }
 
   if (mTFCounter) { // delay sending
-    usleep(mDelayUSec);
+    std::this_thread::sleep_for(std::chrono::microseconds((size_t)mDelayUSec));
   }
   for (auto& msgIt : messagesPerRoute) {
     LOG(info) << "Sending " << msgIt.second->Size() / 2 << " parts to channel " << msgIt.first;
