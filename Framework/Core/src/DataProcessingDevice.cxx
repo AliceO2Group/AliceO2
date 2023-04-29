@@ -1071,6 +1071,7 @@ void DataProcessingDevice::Run()
   ServiceRegistryRef ref{mServiceRegistry};
   auto& state = ref.get<DeviceState>();
   state.loopReason = DeviceState::LoopReason::FIRST_LOOP;
+  bool firstLoop = true;
   while (state.transitionHandling != TransitionHandlingState::Expired) {
     if (state.nextFairMQState.empty() == false) {
       this->ChangeState(state.nextFairMQState.back());
@@ -1094,6 +1095,10 @@ void DataProcessingDevice::Run()
       auto shouldNotWait = (mWasActive &&
                             (state.streaming != StreamingState::Idle) && (state.activeSignals.empty())) ||
                            (state.streaming == StreamingState::EndOfStreaming);
+      if (firstLoop) {
+        shouldNotWait = true;
+        firstLoop = false;
+      }
       if (mWasActive) {
         state.loopReason |= DeviceState::LoopReason::PREVIOUSLY_ACTIVE;
       }
