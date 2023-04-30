@@ -366,7 +366,6 @@ class CcdbApi //: public DatabaseInterface
 #endif
 
  private:
-
   // Sets the unique agent ID
   void setUniqueAgentID();
 
