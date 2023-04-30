@@ -163,8 +163,8 @@ void DumpTracksSpec::process(o2::globaltracking::RecoContainer& recoData)
   auto trackIndex = recoData.getPrimaryVertexMatchedTracks(); // Global ID's for associated tracks
   auto vtxRefs = recoData.getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
 
-  float itsBias = 0.5 * mITSROFrameLengthMUS + o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance().roFrameBiasInBC; // ITS time is supplied in \mus as beginning of ROF
-  float mftBias = 0.5 * mMFTROFrameLengthMUS + o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance().roFrameBiasInBC; // MFT time is supplied in \mus as beginning of ROF
+  float itsBias = 0.5 * mITSROFrameLengthMUS + o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance().roFrameBiasInBC * o2::constants::lhc::LHCBunchSpacingNS * 1e-3; // ITS time is supplied in \mus as beginning of ROF
+  float mftBias = 0.5 * mMFTROFrameLengthMUS + o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance().roFrameBiasInBC * o2::constants::lhc::LHCBunchSpacingNS * 1e-3; // MFT time is supplied in \mus as beginning of ROF
 
   GTrackID::Source prevSrc = GTrackID::Source(-1);
   auto creator = [this, &selBCTF, itsBias, mftBias, &recoData, &prevSrc](auto& _tr, GTrackID _origID, float t0, float terr) {

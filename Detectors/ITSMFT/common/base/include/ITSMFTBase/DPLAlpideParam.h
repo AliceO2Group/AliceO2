@@ -36,7 +36,7 @@ struct DPLAlpideParam : public o2::conf::ConfigurableParamHelper<DPLAlpideParam<
   float strobeDelay = DEFStrobeDelay;                 ///< strobe start (in ns) wrt ROF start
   float strobeLengthCont = -1.;                       ///< if < 0, full ROF length - delay
   float strobeLengthTrig = 100.;                      ///< length of the strobe in ns (sig. over threshold checked in this window only)
-  int roFrameBiasInBC = 0;                            ///< bias of the start of ROF wrt orbit start: t_irof = (irof*roFrameLengthInBC + roFrameBiasInBC)*BClengthMUS
+  int roFrameBiasInBC = DEFROFBiasInBC();             ///< bias of the start of ROF wrt orbit start: t_irof = (irof*roFrameLengthInBC + roFrameBiasInBC)*BClengthMUS
 
   // boilerplate stuff + make principal key
   O2ParamDef(DPLAlpideParam, getParamName().data());
@@ -55,6 +55,13 @@ struct DPLAlpideParam : public o2::conf::ConfigurableParamHelper<DPLAlpideParam<
     // length of RO frame in ns for triggered mode
     return N == o2::detectors::DetID::ITS ? 6000. : 6000.;
   }
+
+  static constexpr int DEFROFBiasInBC()
+  {
+    // default ROF length bias in MC, see https://github.com/AliceO2Group/AliceO2/pull/11108 for ITS
+    return N == o2::detectors::DetID::ITS ? 64 : 0;
+  }
+
   static_assert(N == o2::detectors::DetID::ITS || N == o2::detectors::DetID::MFT, "only DetID::ITS orDetID:: MFT are allowed");
   static_assert(o2::constants::lhc::LHCMaxBunches % DEFROFLengthBC() == 0); // make sure ROF length is divisor of the orbit
 };
