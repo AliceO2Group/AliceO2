@@ -366,6 +366,10 @@ class CcdbApi //: public DatabaseInterface
 #endif
 
  private:
+
+  // Sets the unique agent ID
+  void setUniqueAgentID();
+
   // internal helper function to update a CCDB file with meta information
   static void updateMetaInformationInLocalFile(std::string const& filename, std::map<std::string, std::string> const* headers, CCDBQuery const* querysummary = nullptr);
 
