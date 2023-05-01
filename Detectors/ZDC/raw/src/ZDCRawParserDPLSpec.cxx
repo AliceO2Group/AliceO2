@@ -113,19 +113,19 @@ void ZDCRawParserDPLSpec::run(ProcessingContext& pc)
 #endif
         if (dataFormat == 2) {
           for (int32_t ip = 0; (ip + PayloadPerGBTW) <= payloadSize; ip += PayloadPerGBTW) {
-            // Assign only the actual payload
-            uint32_t gbtw[4] = {0x0, 0x0, 0x0, 0x0};
-            memcpy((void*)gbtw, (const void*)&payload[ip], PayloadPerGBTW);
+            const uint32_t* gbtw = (const uint32_t*)&payload[ip];
 #ifdef O2_ZDC_DEBUG
-            o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)gbtw);
+            o2::zdc::Digits2Raw::print_gbt_word(gbtw);
 #endif
-            if (gbtw[0] != 0xffffffff && gbtw[1] != 0xffffffff && (gbtw[2] & 0xffff) != 0xffff) {
+            if (gbtw[0] != 0xffffffff || gbtw[1] != 0xffffffff || (gbtw[2] & 0xffff) != 0xffff) {
               mWorker.processWord(gbtw);
             }
           }
         } else if (dataFormat == 0) {
           for (int32_t ip = 0; ip < payloadSize; ip += NBPerGBTW) {
-            // o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&payload[ip]);
+#ifdef O2_ZDC_DEBUG
+            o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&payload[ip]);
+#endif
             mWorker.processWord((const uint32_t*)&payload[ip]);
           }
         } else {

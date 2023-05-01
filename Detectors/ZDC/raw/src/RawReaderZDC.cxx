@@ -46,7 +46,7 @@ int RawReaderZDC::processBinaryData(gsl::span<const uint8_t> payload, int linkID
         o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&payload[ip]);
 #endif
         const uint32_t* gbtw = (const uint32_t*)&payload[ip];
-        if (gbtw[0] != 0xffffffff && gbtw[1] != 0xffffffff && (*((const uint16_t*)&gbtw[2])) != 0xffff) {
+        if (gbtw[0] != 0xffffffff || gbtw[1] != 0xffffffff || (*((const uint16_t*)&gbtw[2])) != 0xffff) {
           if (processWord(gbtw)) {
             return 1;
           }

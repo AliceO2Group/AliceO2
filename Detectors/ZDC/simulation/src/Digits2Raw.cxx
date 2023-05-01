@@ -234,7 +234,6 @@ inline void Digits2Raw::updatePedestalReference(int bc)
     if (io == mzdcPedData.size()) {
       LOG(fatal) << "Cannot find orbit";
     }
-
     for (int32_t im = 0; im < NModules; im++) {
       for (int32_t ic = 0; ic < NChPerModule; ic++) {
         // Identify connected channel
@@ -260,16 +259,17 @@ inline void Digits2Raw::updatePedestalReference(int bc)
         mSumPed[im][ic] += gRandom->Gaus(12. * deltan * base_m, 12. * k * base_s * TMath::Sqrt(deltan / k));
         // Adding in quadrature the RMS of pedestal electronic noise
         mSumPed[im][ic] += gRandom->Gaus(0, base_n * TMath::Sqrt(12. * deltan));
-        double myped = mSumPed[im][ic] / double(mEmpty[bc]) / 12.;          // Average current pedestal
-        myped = TMath::Nint(myped / mModuleConfig->baselineFactor + 32768); // Convert into digitized pedestal
+        double myped = mSumPed[im][ic] / double(mEmpty[bc]) / 12.;  // Average current pedestal
+        myped = TMath::Nint(myped / mModuleConfig->baselineFactor); // Convert into digitized pedestal
+        int16_t theped = myped;
         // Correct for overflow and underflow
-        if (myped < 0) {
-          myped = 0;
+        if (myped < -32768) {
+          theped = -32768;
         }
-        if (myped > 65535) {
-          myped = 65535;
+        if (myped > 32767) {
+          myped = 32767;
         }
-        mPed[im][ic] = myped;
+        mPed[im][ic] = *((uint16_t*)&theped);
       }
     }
     mLastNEmpty = mEmpty[bc];
