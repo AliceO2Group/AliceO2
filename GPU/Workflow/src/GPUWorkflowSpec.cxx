@@ -439,10 +439,10 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     // the sequencer processes all inputs matching the filter and finds sequences of consecutive
     // raw pages based on the matcher predicate, and calls the inserter for each sequence
     if (DPLRawPageSequencer(pc.inputs(), filter)(isSameRdh, insertPages, checkForZSData)) {
-      static bool alarmShown = false;
-      if (alarmShown == false) {
-        LOG(alarm) << "DPLRawPageSequencer failed to process TPC raw data - data most likely not padded correctly - Using slow page scan instead (this alarm is suppressed from now on)";
-        alarmShown = true;
+      static bool errorShown = false;
+      if (errorShown == false) {
+        LOG(error) << "DPLRawPageSequencer failed to process TPC raw data - data most likely not padded correctly - Using slow page scan instead (this alarm is suppressed from now on)";
+        errorShown = true;
       }
     }
 
