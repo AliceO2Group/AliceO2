@@ -55,8 +55,7 @@ unique_ptr<TJAlienCredentials> CcdbApi::mJAlienCredentials = nullptr;
 
 CcdbApi::CcdbApi()
 {
-  std::string host = boost::asio::ip::host_name();
-  mUniqueAgentID = fmt::format("{}-{}-{}", host, getCurrentTimestamp() / 1000, o2::utils::Str::getRandomString(6));
+  setUniqueAgentID();
 
   mIsCCDBDownloaderEnabled = getenv("ALICEO2_ENABLE_MULTIHANDLE_CCDBAPI") && atoi(getenv("ALICEO2_ENABLE_MULTIHANDLE_CCDBAPI"));
   if (mIsCCDBDownloaderEnabled) {
@@ -69,6 +68,17 @@ CcdbApi::~CcdbApi()
   curl_global_cleanup();
   if (mDownloader) {
     delete mDownloader;
+  }
+}
+
+void CcdbApi::setUniqueAgentID()
+{
+  std::string host = boost::asio::ip::host_name();
+  char const* jobID = getenv("ALIEN_PROC_ID");
+  if (jobID) {
+    mUniqueAgentID = fmt::format("{}-{}-{}-{}", host, getCurrentTimestamp() / 1000, o2::utils::Str::getRandomString(6), jobID);
+  } else {
+    mUniqueAgentID = fmt::format("{}-{}-{}", host, getCurrentTimestamp() / 1000, o2::utils::Str::getRandomString(6));
   }
 }
 
