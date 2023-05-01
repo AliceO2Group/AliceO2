@@ -138,7 +138,7 @@ class DPLRawPageSequencer
       };
 
       // check if the last block contains a valid RDH, otherwise data is corrupted or 8kb assumption is wrong
-      if (!o2::raw::RDHUtils::checkRDH(ref.payload + (nPages - 1) * pageSize, false)) {
+      if (!o2::raw::RDHUtils::checkRDH(ref.payload, false) || (nPages > 1 && (o2::raw::RDHUtils::getMemorySize(ref.payload) != pageSize || !o2::raw::RDHUtils::checkRDH(ref.payload + (nPages - 1) * pageSize, false)))) {
         forwardInternal(std::forward<Predicate>(pred), std::forward<Inserter>(inserter), ref.payload, size, dh);
         retVal = 1;
         continue;
