@@ -1611,6 +1611,91 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           }
 
           // This should expand nodes so that we can build a consistent DAG.
+
+          // This updates the options in the runningWorkflow.devices
+          for (auto& device : runningWorkflow.devices) {
+            // ignore internal devices
+            if (device.name.find("internal") != std::string::npos) {
+              continue;
+            }
+            auto configStore = DeviceConfigurationHelpers::getConfiguration(serviceRegistry, device.name.c_str(), device.options);
+            if (configStore != nullptr) {
+              auto reg = std::make_unique<ConfigParamRegistry>(std::move(configStore));
+              for (auto& option : device.options) {
+                const char* name = option.name.c_str();
+                switch (option.type) {
+                  case VariantType::Int:
+                    option.defaultValue = reg->get<int32_t>(name);
+                    break;
+                  case VariantType::Int8:
+                    option.defaultValue = reg->get<int8_t>(name);
+                    break;
+                  case VariantType::Int16:
+                    option.defaultValue = reg->get<int16_t>(name);
+                    break;
+                  case VariantType::UInt8:
+                    option.defaultValue = reg->get<uint8_t>(name);
+                    break;
+                  case VariantType::UInt16:
+                    option.defaultValue = reg->get<uint16_t>(name);
+                    break;
+                  case VariantType::UInt32:
+                    option.defaultValue = reg->get<uint32_t>(name);
+                    break;
+                  case VariantType::UInt64:
+                    option.defaultValue = reg->get<uint64_t>(name);
+                    break;
+                  case VariantType::Int64:
+                    option.defaultValue = reg->get<int64_t>(name);
+                    break;
+                  case VariantType::Float:
+                    option.defaultValue = reg->get<float>(name);
+                    break;
+                  case VariantType::Double:
+                    option.defaultValue = reg->get<double>(name);
+                    break;
+                  case VariantType::String:
+                    option.defaultValue = reg->get<std::string>(name);
+                    break;
+                  case VariantType::Bool:
+                    option.defaultValue = reg->get<bool>(name);
+                    break;
+                  case VariantType::ArrayInt:
+                    option.defaultValue = reg->get<std::vector<int>>(name);
+                    break;
+                  case VariantType::ArrayFloat:
+                    option.defaultValue = reg->get<std::vector<float>>(name);
+                    break;
+                  case VariantType::ArrayDouble:
+                    option.defaultValue = reg->get<std::vector<double>>(name);
+                    break;
+                  case VariantType::ArrayString:
+                    option.defaultValue = reg->get<std::vector<std::string>>(name);
+                    break;
+                  case VariantType::Array2DInt:
+                    option.defaultValue = reg->get<Array2D<int>>(name);
+                    break;
+                  case VariantType::Array2DFloat:
+                    option.defaultValue = reg->get<Array2D<float>>(name);
+                    break;
+                  case VariantType::Array2DDouble:
+                    option.defaultValue = reg->get<Array2D<double>>(name);
+                    break;
+                  case VariantType::LabeledArrayInt:
+                    option.defaultValue = reg->get<LabeledArray<int>>(name);
+                    break;
+                  case VariantType::LabeledArrayFloat:
+                    option.defaultValue = reg->get<LabeledArray<float>>(name);
+                    break;
+                  case VariantType::LabeledArrayDouble:
+                    option.defaultValue = reg->get<LabeledArray<double>>(name);
+                    break;
+                  default:
+                    break;
+                }
+              }
+            }
+          }
         } catch (std::runtime_error& e) {
           LOGP(error, "invalid workflow in {}: {}", driverInfo.argv[0], e.what());
           return 1;
