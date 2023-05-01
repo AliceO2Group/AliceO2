@@ -326,6 +326,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   auto cput = mTimer->CpuTime();
   auto realt = mTimer->RealTime();
   mTimer->Start(false);
+  mNTFs++;
 
   GRPGeomHelper::instance().checkUpdates(pc);
   if (GRPGeomHelper::instance().getGRPECS()->isDetReadOut(o2::detectors::DetID::TPC) && mConfParam->tpcTriggeredMode ^ !GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::TPC)) {
@@ -439,10 +440,10 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     // the sequencer processes all inputs matching the filter and finds sequences of consecutive
     // raw pages based on the matcher predicate, and calls the inserter for each sequence
     if (DPLRawPageSequencer(pc.inputs(), filter)(isSameRdh, insertPages, checkForZSData)) {
-      static bool errorShown = false;
-      if (errorShown == false) {
-        LOG(error) << "DPLRawPageSequencer failed to process TPC raw data - data most likely not padded correctly - Using slow page scan instead (this alarm is suppressed from now on)";
-        errorShown = true;
+      static unsigned int nErrors = 0;
+      nErrors++;
+      if (nErrors == 1 || (nErrors < 100 && nErrors % 10 == 0) || nErrors % 1000 == 0 || mNTFs % 1000 == 0) {
+        LOG(error) << "DPLRawPageSequencer failed to process TPC raw data - data most likely not padded correctly - Using slow page scan instead (this alarm is downscaled from now on, so far " << nErrors << " of " << mNTFs << " affected)";
       }
     }
 
