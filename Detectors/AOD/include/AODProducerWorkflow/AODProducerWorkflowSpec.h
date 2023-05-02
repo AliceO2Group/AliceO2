@@ -264,6 +264,7 @@ class AODProducerWorkflowDPL : public Task
   int mTableV0ID{0};
 
   // Strangeness tracking indices lookup tables
+  std::vector<int> mVertexStrLUT;                    /// LUT for accessing strangeness tracks for each vertex
   std::vector<std::pair<int, int>> mCollisionStrTrk; /// collision index and original index of the strangeness track
   std::vector<int> mStrTrkIndices;                   /// indices of strangeness tracks in the track table
 
@@ -509,7 +510,8 @@ class AODProducerWorkflowDPL : public Task
                               const MCFwdTrackLabelCursorType& mcFwdTrackLabelCursor,
                               const o2::dataformats::VtxTrackRef& trackRef,
                               const gsl::span<const GIndex>& primVerGIs,
-                              const o2::globaltracking::RecoContainer& data);
+                              const o2::globaltracking::RecoContainer& data,
+                              int vertexId = -1);
 
   std::uint64_t fillBCSlice(int (&slice)[2], double tmin, double tmax, const std::map<uint64_t, int>& bcsMap) const;
 
