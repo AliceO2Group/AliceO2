@@ -1467,7 +1467,7 @@ class Table
   {
     if constexpr (o2::soa::is_binding_compatible_v<T1, std::decay_t<decltype(*this)>>()) {
       auto selection = container.getSliceFor(value);
-      auto t = soa::Filtered<table_t>({this->mTable}, selection);
+      auto t = soa::Filtered<table_t>({this->asArrowTable()}, selection);
       copyIndexBindings(t);
       t.bindInternalIndicesTo(this);
       return t;
@@ -2423,7 +2423,7 @@ struct Join : JoinBase<Ts...> {
   {
     if constexpr (o2::soa::is_binding_compatible_v<T1, std::decay_t<decltype(*this)>>()) {
       auto selection = container.getSliceFor(value);
-      auto t = soa::Filtered<decltype(*this)>({this->mTable}, selection);
+      auto t = soa::Filtered<decltype(*this)>({this->asArrowTable()}, selection);
       this->copyIndexBindings(t);
       t.bindInternalIndicesTo(this);
       return t;
