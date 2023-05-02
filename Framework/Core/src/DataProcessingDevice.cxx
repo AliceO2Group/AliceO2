@@ -744,7 +744,6 @@ void DataProcessingDevice::initPollers()
         // We assume there is always a ZeroMQ socket behind.
         int zmq_fd = 0;
         size_t zmq_fd_len = sizeof(zmq_fd);
-        // FIXME: I should probably save those somewhere... ;-)
         auto* poller = (uv_poll_t*)malloc(sizeof(uv_poll_t));
         channel[0].GetSocket().GetOption("fd", &zmq_fd, &zmq_fd_len);
         if (zmq_fd == 0) {
@@ -1098,6 +1097,12 @@ void DataProcessingDevice::Run()
       if (firstLoop) {
         shouldNotWait = true;
         firstLoop = false;
+      }
+      // There is no pollers set. We should not wait.
+      if (state.activeTimers.empty() == true &&
+          state.activeInputPollers.empty() == true &&
+          state.activeOutputPollers.empty() == true) {
+        shouldNotWait = true;
       }
       if (mWasActive) {
         state.loopReason |= DeviceState::LoopReason::PREVIOUSLY_ACTIVE;
