@@ -12,7 +12,6 @@
 #include <iomanip>
 #include <iostream>
 #include <bitset>
-#include <map>
 
 #include <InfoLogger/InfoLogger.hxx>
 
@@ -43,7 +42,6 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "CommonUtils/VerbosityConfig.h"
-#include "EMCALCalib/FeeDCS.h"
 
 using namespace o2::emcal::reco_workflow;
 
@@ -105,21 +103,9 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
 
 void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
 {
-
   LOG(debug) << "[EMCALRawToCellConverter - run] called";
   mCalibHandler->checkUpdates(ctx);
   updateCalibrationObjects();
-
-  FeeDCS* feedcs = mCalibHandler->getFEEDCS();
-  std::bitset<32> list0 = feedcs->getDDLlist0();
-  std::bitset<14> list1 = feedcs->getDDLlist1();
-  //  links 21 and 39 do not exist, but they are set active in DCS
-  list0.set(21, false);
-  list1.set(7, false);
-  // must be 0x307FFFDFFFFF if all links are active
-  std::bitset<46> bitSetActiveLinks((list1.to_ullong() << 32) + list0.to_ullong());
-  // container with BCid and feeID
-  std::unordered_map<int64_t, std::bitset<46>> bcFreq;
 
   double timeshift = RecoParam::Instance().getCellTimeShiftNanoSec(); // subtract offset in ns in order to center the time peak around the nominal delay
   constexpr auto originEMC = o2::header::gDataOriginEMC;
@@ -195,9 +181,6 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           continue;
         }
       }
-
-      bcFreq[currentIR.toLong()].set(feeID, true);
-
       // Correct the cell time for the bc mod 4 (LHC: 40 MHz clock - ALTRO: 10 MHz clock)
       // Convention: All times shifted with respect to BC % 4 = 0 for trigger BC
       // Attention: Correction only works for the permutation (0 1 2 3) of the BC % 4, if the permutation is
@@ -355,20 +338,6 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
     mOutputTriggerRecords.emplace_back(interaction, currentevent.getTriggerBits(), eventstart, ncellsEvent + nLEDMONsEvent);
   }
 
-  for (const auto& [globalBC, activelinks] : bcFreq) {
-    if (activelinks != bitSetActiveLinks) {
-      LOG(error) << "Not all EMC active links contributed in global BCid=" << globalBC << ": mask=" << (activelinks ^ bitSetActiveLinks);
-      mOutputCells.clear();
-      mOutputTriggerRecords.clear();
-      mOutputDecoderErrors.clear();
-      sendData(ctx, mOutputCells, mOutputTriggerRecords, mOutputDecoderErrors);
-      bcFreq.clear();
-      return;
-    }
-  }
-
-  bcFreq.clear();
-
   LOG(info) << "[EMCALRawToCellConverter - run] Writing " << mOutputCells.size() << " cells from " << mOutputTriggerRecords.size() << " events ...";
   sendData(ctx, mOutputCells, mOutputTriggerRecords, mOutputDecoderErrors);
 }
@@ -386,9 +355,9 @@ void RawToCellConverterSpec::updateCalibrationObjects()
     LOG(info) << "RecoParams updated";
     o2::emcal::RecoParam::Instance().printKeyValues(true, true);
   }
-  if (mCalibHandler->hasUpdateFEEDCS()) {
-    LOG(info) << "DCS params updated";
-  }
+  // if (mCalibHandler->hasUpdateFEEDCS()) {
+  //   LOG(info) << "DCS params updated";
+  // }
 }
 
 bool RawToCellConverterSpec::isLostTimeframe(framework::ProcessingContext& ctx) const
@@ -708,7 +677,7 @@ o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverter
   // CCDB objects
   auto calibhandler = std::make_shared<o2::emcal::CalibLoader>();
   calibhandler->enableRecoParams(true);
-  calibhandler->enableFEEDCS(true);
+  // calibhandler->enableFEEDCS(true);
   calibhandler->defineInputSpecs(inputs);
 
   return o2::framework::DataProcessorSpec{"EMCALRawToCellConverterSpec",
