@@ -72,7 +72,7 @@ class PadBadChannelMap
  private:
   void init();
   std::size_t getChannelIndex(std::size_t layer, std::size_t channel) const;
-  std::array<MaskType_t, constants::PADS_NLAYERS * constants::PADLAYER_MODULE_NCHANNELS> mChannelStatus;
+  std::array<uint8_t, constants::PADS_NLAYERS * constants::PADLAYER_MODULE_NCHANNELS> mChannelStatus;
 
   ClassDefNV(PadBadChannelMap, 1)
 };
