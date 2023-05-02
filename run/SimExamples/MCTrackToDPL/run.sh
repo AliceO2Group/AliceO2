@@ -10,7 +10,7 @@ SIMPROC=$!
 # launch a DPL process (having the right proxy configuration)
 # (Note that the option --o2sim-pid is not strictly necessary when only one o2-sim process is running.
 #  The socket will than be auto-determined.)
-o2-sim-mctracks-proxy --enable-test-consumer --nevents ${NEVENTS} --o2sim-pid ${SIMPROC} &
+o2-sim-mctracks-proxy -b --enable-test-consumer --nevents ${NEVENTS} --o2sim-pid ${SIMPROC} &
 TRACKANAPROC=$!
 
 wait ${SIMPROC}
