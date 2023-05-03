@@ -48,6 +48,7 @@
 #include "Framework/TableBuilder.h"
 #include "Framework/TableTreeHelpers.h"
 #include "Framework/CCDBParamSpec.h"
+#include "Framework/AnalysisManagers.h"
 #include "FDDBase/Constants.h"
 #include "FT0Base/Geometry.h"
 #include "FV0Base/Geometry.h"
@@ -313,8 +314,7 @@ template <typename TracksCursorType, typename TracksCovCursorType>
 void AODProducerWorkflowDPL::addToTracksTable(TracksCursorType& tracksCursor, TracksCovCursorType& tracksCovCursor,
                                               const o2::track::TrackParCov& track, int collisionID, aod::track::TrackTypeEnum type)
 {
-  tracksCursor(0,
-               collisionID,
+  tracksCursor(collisionID,
                type,
                truncateFloatFraction(track.getX(), mTrackX),
                truncateFloatFraction(track.getAlpha(), mTrackAlpha),
@@ -434,6 +434,7 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
     }
     int start = trackRef.getFirstEntryOfSource(src);
     int end = start + trackRef.getEntriesOfSource(src);
+    tracksCursor.reserve(end - start + tracksCursor.lastIndex());
     for (int ti = start; ti < end; ti++) {
       auto& trackIndex = GIndices[ti];
       if (GIndex::includesSource(src, mInputSources)) {
@@ -1600,7 +1601,10 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto& mcParticlesBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCPARTICLE_001"});
   auto& mcTrackLabelBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCTRACKLABEL"});
   auto& mftTracksBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MFTTRACK"});
-  auto& tracksBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACK_IU"});
+  Produces<o2::aod::StoredTracksIU> tracksCursor;
+  tracksCursor.resetCursor(pc.outputs().make<TableBuilder>(tracksCursor.ref()));
+  tracksCursor.setLabel(o2::aod::MetadataTrait<o2::aod::StoredTracksIU>::metadata::tableLabel());
+
   auto& tracksCovBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACKCOV_IU"});
   auto& tracksExtraBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "TRACKEXTRA"});
   auto& ambigTracksBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "AMBIGUOUSTRACK"});
@@ -1633,7 +1637,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto mcTrackLabelCursor = mcTrackLabelBuilder.cursor<o2::aod::McTrackLabels>();
   auto mftTracksCursor = mftTracksBuilder.cursor<o2::aod::StoredMFTTracks>();
   auto tracksCovCursor = tracksCovBuilder.cursor<o2::aod::StoredTracksCov>();
-  auto tracksCursor = tracksBuilder.cursor<o2::aod::StoredTracksIU>();
   auto tracksExtraCursor = tracksExtraBuilder.cursor<o2::aod::StoredTracksExtra>();
   auto ambigTracksCursor = ambigTracksBuilder.cursor<o2::aod::AmbiguousTracks>();
   auto ambigMFTTracksCursor = ambigMFTTracksBuilder.cursor<o2::aod::AmbiguousMFTTracks>();
@@ -2593,7 +2596,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   outputs.emplace_back(OutputLabel{"O2mcparticle_001"}, "AOD", "MCPARTICLE_001", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2mctracklabel"}, "AOD", "MCTRACKLABEL", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2mfttrack"}, "AOD", "MFTTRACK", 0, Lifetime::Timeframe);
-  outputs.emplace_back(OutputLabel{"O2track_iu"}, "AOD", "TRACK_IU", 0, Lifetime::Timeframe);
+  outputs.emplace_back(OutputLabel{"Tracks_IU"}, "AOD", "TRACK_IU", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2trackcov_iu"}, "AOD", "TRACKCOV_IU", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2trackextra"}, "AOD", "TRACKEXTRA", 0, Lifetime::Timeframe);
   outputs.emplace_back(OutputLabel{"O2trackedcascade"}, "AOD", "TRACKEDCASCADE", 0, Lifetime::Timeframe);
