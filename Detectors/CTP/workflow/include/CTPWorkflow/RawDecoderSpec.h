@@ -21,6 +21,7 @@
 #include "DataFormatsCTP/Digits.h"
 #include "DataFormatsCTP/LumiInfo.h"
 #include "DataFormatsCTP/TriggerOffsetsParam.h"
+#include "CTPReconstruction/RawDataDecoder.h"
 
 namespace o2
 {
@@ -52,21 +53,14 @@ class RawDecoderSpec : public framework::Task
   /// Input RawData: {"ROUT", "RAWDATA", 0, Lifetime::Timeframe}
   /// Output HW errors: {"CTP", "RAWHWERRORS", 0, Lifetime::Timeframe} -later
   void run(framework::ProcessingContext& ctx) final;
-  static void makeGBTWordInverse(std::vector<gbtword80_t>& diglets, gbtword80_t& GBTWord, gbtword80_t& remnant, uint32_t& size_gbt, uint32_t Npld);
-  int addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword80_t& diglet, gbtword80_t& pldmask, std::map<o2::InteractionRecord, CTPDigit>& digits);
-  int decodeRaw(o2::framework::InputRecord& inputs, std::map<o2::InteractionRecord, CTPDigit>& digits, std::vector<LumiInfo>& lumiPointsHBF1);
  protected:
  private:
-  static constexpr uint32_t TF_TRIGGERTYPE_MASK = 0x800;
-  static constexpr uint32_t HB_TRIGGERTYPE_MASK = 0x2;
   // for digits
   bool mDoDigits = true;
   std::vector<CTPDigit> mOutputDigits;
   // for lumi
   bool mDoLumi = true;
   //
-  gbtword80_t mTVXMask = 0x4;  // TVX is 3rd input
-  gbtword80_t mVBAMask = 0x20; // VBA is 6 th input
   LumiInfo mOutputLumiInfo;
   bool mVerbose = false;
   uint64_t mCountsT = 0;
@@ -74,13 +68,9 @@ class RawDecoderSpec : public framework::Task
   uint32_t mNTFToIntegrate = 1;
   uint32_t mNHBIntegratedT = 0;
   uint32_t mNHBIntegratedV = 0;
-  uint32_t mIRRejected = 0;
-  uint32_t mTCRRejected = 0;
-  bool mPadding = true;
-  uint32_t mTFOrbit = 0;
   std::deque<size_t> mHistoryT;
   std::deque<size_t> mHistoryV;
-  std::vector<uint32_t> mTFOrbits;
+  RawDataDecoder mDecoder;
 };
 
 /// \brief Creating DataProcessorSpec for the CTP
