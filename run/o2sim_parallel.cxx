@@ -177,20 +177,6 @@ std::string getInternalControlAddress()
   return controlsocketname.str();
 }
 
-// signal handler for graceful exit
-void sighandler(int signal)
-{
-  if (signal == SIGINT || signal == SIGTERM) {
-    LOG(info) << "o2-sim driver: Signal caught ... clean up and exit";
-    // forward signal to all children
-    for (auto& pid : gChildProcesses) {
-      killpg(pid, signal);
-    }
-    cleanup();
-    exit(0);
-  }
-}
-
 bool isBusy()
 {
   if (gFinishedEvents.size() != gAskedEvents) {
@@ -343,6 +329,33 @@ void launchShutdownThread()
   };
   threads.push_back(std::thread(lambda));
   threads.back().detach();
+}
+
+void empty(int) {}
+
+// signal handler for graceful exit
+void sighandler(int sig)
+{
+  if (sig == SIGINT || sig == SIGTERM) {
+    signal(sig, empty); // ignore further deliveries of these signals
+    LOG(info) << "o2-sim driver: Signal caught ... clean up and exit (please be patient)";
+    // forward signal to all children
+    for (auto& pid : gChildProcesses) {
+      killpg(pid, sig);
+    }
+    cleanup();
+
+    // make sure everyone is really shutting down
+    int status, cpid;
+    launchShutdownThread();
+    while ((cpid = wait(&status))) {
+      if (cpid == -1) {
+        break;
+      }
+    }
+
+    exit(1); // exiting upon external signal is abnormal so exit code != 0
+  }
 }
 
 // We do some early checks on the arguments passed. In particular we fix
