@@ -13,7 +13,7 @@
 /// \brief Declaration of the Readout Unite decoder class
 #ifndef ALICEO2_ITSMFT_RUDECODEDATA_H_
 #define ALICEO2_ITSMFT_RUDECODEDATA_H_
-
+#include "ITSMFTReconstruction/ChipMappingITS.h"
 #include <array>
 #include <memory>
 #include "ITSMFTReconstruction/PixelData.h"
@@ -33,7 +33,6 @@ struct RUDecodeData {
   static constexpr int MaxCablesPerRU = 28; // max number of cables RU can readout
   static constexpr int MaxChipsPerRU = 196; // max number of chips the RU can readout
   static constexpr int MaxLinksPerRU = 3;   // max number of GBT links per RU
-
   std::array<PayLoadCont, MaxCablesPerRU> cableData{};     // cable data in compressed ALPIDE format
   std::vector<o2::itsmft::ChipPixelData> chipsData{};      // fully decoded data in 1st nChipsFired chips
   std::array<int, MaxLinksPerRU> links{};                  // link entry RSTODO: consider removing this and using pointer
@@ -102,24 +101,40 @@ int RUDecodeData::decodeROF(const Mapping& mp, const o2::InteractionRecord ir)
           LOGP(debug, "re-entry into the data of the chip {} after previously detector error", chipData->getChipID());
         }
 #ifdef ALPIDE_DECODING_STAT
-        else {
-          chipData->setError(ChipStat::InterleavedChipData);
-        }
+        chipData->setError(ChipStat::InterleavedChipData);
 #endif
         ret = -1; // discard decoded data
         nhits = 0;
       }
-#ifdef ALPIDE_DECODING_STAT
-      fillChipStatistics(icab, chipData);
-#endif
       if (nhits && chipData->getChipID() < Mapping::getNChips()) {
         doneChips[chipData->getChipID()] = true;
         ntot += nhits;
+        // check ordering
+        if (nChipsFired && chipData->getChipID() < chipsData[nChipsFired - 1].getChipID()) {
+#ifdef ALPIDE_DECODING_STAT
+          chipData->setError(ChipStat::ChipsDecreasingOrder);
+          fillChipStatistics(icab, chipData);
+#endif
+          int ifired = nChipsFired;
+          while (ifired && chipsData[ifired].getChipID() < chipsData[ifired - 1].getChipID()) {
+            LOGP(debug, "Fixing order: swapping chip {} on cab {}(HW:{}) with chip {} on RU {}", chipsData[ifired].getChipID(), icab, cabHW, chipsData[ifired - 1].getChipID(), ruSWID);
+            chipsData[ifired].swap(chipsData[ifired - 1]);
+            ifired--;
+          }
+        } else {
+#ifdef ALPIDE_DECODING_STAT
+          fillChipStatistics(icab, chipData);
+#endif
+        }
         if (++nChipsFired < chipsData.size()) { // fetch next free chip
           chipData = &chipsData[nChipsFired];
         } else {
           break; // last chip decoded
         }
+      } else {
+#ifdef ALPIDE_DECODING_STAT
+        fillChipStatistics(icab, chipData);
+#endif
       }
       if (ret < 0) {
         break; // negative code was returned by decoder: abandon cable data

@@ -65,6 +65,7 @@ struct ChipStat {
     InterleavedChipData,          // Chip data interleaved on the cable
     TruncatedBuffer,              // truncated buffer, 0 padding
     TrailerAfterHeader,           // trailer seen after header w/o FE of FD set
+    ChipsDecreasingOrder,         // chips on the cable are read in decreasing order
     NErrorsDefined
   };
 
@@ -99,7 +100,8 @@ struct ChipStat {
     "DColumns non-increasing",                      // DColumns non increasing
     "Chip data interleaved on the cable",           // Chip data interleaved on the cable
     "TruncatedBuffer",                              // truncated buffer, 0 padding
-    "TrailerAfterHeader"                            // trailer seen after header w/o FE of FD set
+    "TrailerAfterHeader",                           // trailer seen after header w/o FE of FD set
+    "Swapping wrong chips order on the cable"       // chips on the cable are read in decreasing order
   };
 
   static constexpr std::array<uint32_t, NErrorsDefined> ErrActions = {

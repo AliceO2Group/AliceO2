@@ -21,7 +21,7 @@
 #include "CommonUtils/StringUtils.h"
 #include "CommonUtils/VerbosityConfig.h"
 #include <filesystem>
-
+#undef WITH_OPENMP
 #ifdef WITH_OPENMP
 #include <omp.h>
 #endif
@@ -358,7 +358,7 @@ ChipPixelData* RawPixelDecoder<Mapping>::getNextChipData(std::vector<ChipPixelDa
         const int MaxErrLog = 5;
         static int errLocCount = 0;
         if (errLocCount < MaxErrLog) {
-          LOGP(error, "Wrong order/duplication: encountered chip {} after processing chip {}, skippin. Inform PDP (message {} of max {} allowed)",
+          LOGP(error, "Wrong order/duplication: encountered chip {} after processing chip {}, skipping. Inform PDP (message {} of max {} allowed)",
                chipData.getChipID(), mLastReadChipID, ++errLocCount, MaxErrLog);
         }
         continue;
