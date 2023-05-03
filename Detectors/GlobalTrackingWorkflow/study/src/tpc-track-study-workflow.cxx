@@ -61,10 +61,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   auto requireCTPLumi = configcontext.options().get<bool>("require-ctp-lumi");
   auto useMC = !configcontext.options().get<bool>("disable-mc");
-  if (!useMC) {
-    LOG(info) << "this task requires MC info, enforcing it";
-    useMC = true;
-  }
   GID::mask_t srcTrc = allowedSourcesTrc & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
   GID::mask_t srcCls = allowedSourcesClus & GID::getSourcesMask(configcontext.options().get<std::string>("cluster-sources"));
   if (requireCTPLumi) {
