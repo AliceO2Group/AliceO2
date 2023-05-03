@@ -38,8 +38,8 @@ struct EventTimeTOFParams : public o2::conf::ConfigurableParamHelper<EventTimeTO
 
 struct eventTimeContainer {
   eventTimeContainer(const float& e, const float& err, const float& diamond) : mEventTime{e}, mEventTimeError{err}, mDiamondSpread{diamond} {};
-  // Configuration
-  static int maxNtracksInSet; /// Maximum number of tracks per set (effect on combinatorics)
+  static int getMaxNtracksInSet() { return TMath::Min(maxNtracksInSet <= 0 ? EventTimeTOFParams::Instance().maxNtracksInSet : maxNtracksInSet, 19); }
+  static void setMaxNtracksInSet(int v = -1) { maxNtracksInSet = v; }
 
   // Values
   double mEventTime = 0.f;                   /// Value of the event time
@@ -126,6 +126,10 @@ struct eventTimeContainer {
   {
     LOG(info) << "eventTimeContainer " << mEventTime << " +- " << mEventTimeError << " sum of weights " << mSumOfWeights << " tracks used " << mEventTimeMultiplicity;
   }
+
+ private:
+  // Configuration
+  static int maxNtracksInSet; /// Maximum number of tracks per set (effect on combinatorics)
 };
 
 struct eventTimeTrack {
