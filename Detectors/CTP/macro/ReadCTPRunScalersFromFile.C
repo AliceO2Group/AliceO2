@@ -26,10 +26,10 @@
 #include <iostream>
 #endif
 using namespace o2::ctp;
-void ReadCTPRunScalersFromFile(std::string name="519903.root")
+void ReadCTPRunScalersFromFile(std::string name = "519903.root")
 {
   std::cout << "Reading file:" << name << std::endl;
   TFile* myFile = TFile::Open(name.c_str());
-  CTPRunScalers *ctpscalers = myFile->Get<CTPRunScalers>("CTPRunScalers");
+  CTPRunScalers* ctpscalers = myFile->Get<CTPRunScalers>("CTPRunScalers");
   ctpscalers->printStream(std::cout);
 }

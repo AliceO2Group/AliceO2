@@ -38,13 +38,14 @@ class RawDataDecoder
   static void makeGBTWordInverse(std::vector<gbtword80_t>& diglets, gbtword80_t& GBTWord, gbtword80_t& remnant, uint32_t& size_gbt, uint32_t Npld);
   int addCTPDigit(uint32_t linkCRU, uint32_t triggerOrbit, gbtword80_t& diglet, gbtword80_t& pldmask, std::map<o2::InteractionRecord, CTPDigit>& digits);
   int decodeRaw(o2::framework::InputRecord& inputs, std::map<o2::InteractionRecord, CTPDigit>& digits, std::vector<LumiInfo>& lumiPointsHBF1);
-  void setDoLumi(bool lumi) { mDoLumi = lumi;}
-  void setDoDigits(bool digi) { mDoDigits = digi;}
-  void setVerbose(bool v) { mVerbose = v;}
-  uint32_t getIRRejected() {return mIRRejected;}
-  uint32_t getTCRRejected() {return mTCRRejected; }
+  void setDoLumi(bool lumi) { mDoLumi = lumi; }
+  void setDoDigits(bool digi) { mDoDigits = digi; }
+  void setVerbose(bool v) { mVerbose = v; }
+  uint32_t getIRRejected() { return mIRRejected; }
+  uint32_t getTCRRejected() { return mTCRRejected; }
   std::vector<uint32_t> getTFOrbits() { return mTFOrbits; }
   int init();
+
  private:
   static constexpr uint32_t TF_TRIGGERTYPE_MASK = 0x800;
   static constexpr uint32_t HB_TRIGGERTYPE_MASK = 0x2;
@@ -64,6 +65,6 @@ class RawDataDecoder
   uint32_t mTFOrbit = 0;
   std::vector<uint32_t> mTFOrbits;
 };
-}
-}
+} // namespace ctp
+} // namespace o2
 #endif

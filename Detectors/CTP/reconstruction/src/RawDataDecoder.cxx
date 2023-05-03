@@ -108,7 +108,7 @@ int RawDataDecoder::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
   return 0;
 }
 //
-int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs,std::map<o2::InteractionRecord, CTPDigit>& digits, std::vector<LumiInfo>& lumiPointsHBF1)
+int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::map<o2::InteractionRecord, CTPDigit>& digits, std::vector<LumiInfo>& lumiPointsHBF1)
 {
   uint64_t countsMBT = 0;
   uint64_t countsMBV = 0;
@@ -130,7 +130,7 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs,std::map<o2::In
       mPadding = (o2::raw::RDHUtils::getDataFormat(rdh) == 0);
     } catch (std::exception& e) {
       LOG(error) << "Failed to extract RDH, abandoning TF sending dummy output, exception was: " << e.what();
-      //dummyOutput();
+      // dummyOutput();
       return 1;
     }
     // auto triggerOrbit = o2::raw::RDHUtils::getTriggerOrbit(rdh);
