@@ -110,7 +110,6 @@ void DataProcessingStates::updateState(CommandSpec cmd)
   // Add a static mutex to protect the queue
   // Get the next available operation in an atomic way.
   int size = sizeof(CommandHeader) + cmd.size;
-  assert(size < 1000);
   if (size > 8192) {
     throw runtime_error_f("State size is %d for state %s. States larger than 8192 bytes not supported for now.",
                           size, stateSpecs[cmd.id].name.c_str());
