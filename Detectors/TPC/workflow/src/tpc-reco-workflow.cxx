@@ -68,6 +68,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g.: 'TPCHwClusterer.peakChargeThreshold=4;...')"}},
     {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}},
     {"filtered-input", VariantType::Bool, false, {"Filtered tracks, clusters input, prefix dataDescriptors with F"}},
+    {"require-ctp-lumi", o2::framework::VariantType::Bool, false, {"require CTP lumi for TPC correction scaling"}},
     {"select-ir-frames", VariantType::Bool, false, {"Subscribe and filter according to external IR Frames"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -137,7 +138,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   std::vector<int> laneConfiguration = tpcSectors; // Currently just a copy of the tpcSectors, why?
   auto nLanes = cfgc.options().get<int>("tpc-lanes");
   auto inputType = cfgc.options().get<std::string>("input-type");
-
+  auto requireCTPLumi = cfgc.options().get<bool>("require-ctp-lumi");
   // depending on whether to dispatch early (prompt) and on the input type, we
   // set the matcher. Note that this has to be in accordance with the OutputSpecs
   // configured for the PublisherSpec
@@ -177,7 +178,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
                                                 !cfgc.options().get<bool>("no-tpc-zs-on-the-fly"), //
                                                 !cfgc.options().get<bool>("ignore-dist-stf"),      //
                                                 cfgc.options().get<bool>("select-ir-frames"),
-                                                cfgc.options().get<bool>("filtered-input"));
+                                                cfgc.options().get<bool>("filtered-input"),
+                                                requireCTPLumi);
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, wf);

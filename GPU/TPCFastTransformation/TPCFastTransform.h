@@ -497,6 +497,7 @@ GPUdi() void TPCFastTransform::TransformInternal(int slice, int row, float& u, f
                                                                                          << "u=" << u
                                                                                          << "row=" << row
                                                                                          << "slice=" << slice
+                                                                                         << "scale=" << scale
                                                                                          // original local coordinates
                                                                                          << "ly=" << ly
                                                                                          << "lz=" << lz

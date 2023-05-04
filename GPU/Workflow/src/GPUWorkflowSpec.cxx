@@ -219,7 +219,7 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
     }
 
     // initialize TPC calib objects
-    initFunctionTPC();
+    initFunctionTPC(ic);
     mConfig->configCalib.fastTransform = mFastTransformHelper->getCorrMap();
     mConfig->configCalib.fastTransformRef = mFastTransformHelper->getCorrMapRef();
     mConfig->configCalib.fastTransformHelper = mFastTransformHelper.get();
@@ -868,6 +868,15 @@ void GPURecoWorkflowSpec::doCalibUpdates(o2::framework::ProcessingContext& pc)
   }
 }
 
+Options GPURecoWorkflowSpec::options()
+{
+  Options opts;
+  if (mSpecConfig.outputTracks) {
+    o2::tpc::CorrectionMapsLoader::addOptions(opts);
+  }
+  return opts;
+}
+
 Inputs GPURecoWorkflowSpec::inputs()
 {
   Inputs inputs;
@@ -879,7 +888,8 @@ Inputs GPURecoWorkflowSpec::inputs()
     inputs.emplace_back("tpctopologygain", gDataOriginTPC, "TOPOLOGYGAIN", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalTopologyGain)));
     inputs.emplace_back("tpcthreshold", gDataOriginTPC, "PADTHRESHOLD", 0, Lifetime::Condition, ccdbParamSpec("TPC/Config/FEEPad"));
     o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
-    o2::tpc::CorrectionMapsLoader::requestCCDBInputs(inputs);
+    Options optsDummy;
+    mFastTransformHelper->requestCCDBInputs(inputs, optsDummy, mSpecConfig.requireCTPLumi); // option filled here is lost
   }
   if (mSpecConfig.decompressTPC) {
     inputs.emplace_back(InputSpec{"input", ConcreteDataTypeMatcher{gDataOriginTPC, mSpecConfig.decompressTPCFromROOT ? o2::header::DataDescription("COMPCLUSTERS") : o2::header::DataDescription("COMPCLUSTERSFLAT")}, Lifetime::Timeframe});
@@ -928,6 +938,7 @@ Inputs GPURecoWorkflowSpec::inputs()
     inputs.emplace_back("trdtriggerrec", o2::header::gDataOriginTRD, "TRKTRGRD", 0, Lifetime::Timeframe);
     inputs.emplace_back("trdtrigrecmask", o2::header::gDataOriginTRD, "TRIGRECMASK", 0, Lifetime::Timeframe);
   }
+
   return inputs;
 };
 
@@ -979,7 +990,7 @@ Outputs GPURecoWorkflowSpec::outputs()
   return outputSpecs;
 };
 
-void GPURecoWorkflowSpec::initFunctionTPC()
+void GPURecoWorkflowSpec::initFunctionTPC(InitContext& ic)
 {
   mdEdxCalibContainer.reset(new o2::tpc::CalibdEdxContainer());
   mTPCVDriftHelper.reset(new o2::tpc::VDriftHelper());
@@ -988,6 +999,7 @@ void GPURecoWorkflowSpec::initFunctionTPC()
   mFastTransformRef = std::move(TPCFastTransformHelperO2::instance()->create(0));
   mFastTransformHelper->setCorrMap(mFastTransform.get()); // just to reserve the space
   mFastTransformHelper->setCorrMapRef(mFastTransformRef.get());
+  mFastTransformHelper->init(ic);
 
   if (mConfParam->dEdxDisableTopologyPol) {
     LOGP(info, "Disabling loading of track topology correction using polynomials from CCDB");
@@ -1181,7 +1193,7 @@ bool GPURecoWorkflowSpec::fetchCalibsCCDBTPC(ProcessingContext& pc, T& newCalibO
 
       if (mSpecConfig.outputTracks) {
         mTPCVDriftHelper->extractCCDBInputs(pc);
-        o2::tpc::CorrectionMapsLoader::extractCCDBInputs(pc);
+        mFastTransformHelper->extractCCDBInputs(pc);
       }
       if (mTPCVDriftHelper->isUpdated() || mFastTransformHelper->isUpdated()) {
         const auto& vd = mTPCVDriftHelper->getVDriftObject();
@@ -1205,6 +1217,9 @@ bool GPURecoWorkflowSpec::fetchCalibsCCDBTPC(ProcessingContext& pc, T& newCalibO
           mFastTransformHelperNew.reset(new o2::tpc::CorrectionMapsLoader);
           mFastTransformHelperNew->setInstLumi(mFastTransformHelper->getInstLumi());
           mFastTransformHelperNew->setMeanLumi(mFastTransformHelper->getMeanLumi());
+          mFastTransformHelperNew->setUseCTPLumi(mFastTransformHelper->getUseCTPLumi());
+          mFastTransformHelperNew->setMeanLumiOverride(mFastTransformHelper->getMeanLumiOverride());
+          mFastTransformHelperNew->setInstLumiOverride(mFastTransformHelper->getInstLumiOverride());
           mFastTransformHelperNew->setCorrMap(mFastTransformNew ? mFastTransformNew.get() : mFastTransform.get());
           mFastTransformHelperNew->setCorrMapRef(mFastTransformRefNew ? mFastTransformRefNew.get() : mFastTransformRef.get());
           newCalibObjects.fastTransformHelper = mFastTransformHelperNew.get();
