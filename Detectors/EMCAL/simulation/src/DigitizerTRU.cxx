@@ -99,7 +99,7 @@ void DigitizerTRU::init()
   // for each phase create a template distribution
   TF1 RawResponse("RawResponse", rawResponseFunction, 0, 256, 5);
   RawResponse.SetParameters(1., 0., tau, N, 0.);
-  RawResponse.SetParameter(1, SimParam->getSignalDelay() );
+  RawResponse.SetParameter(1, mSimParam->getSignalDelay() );
   // RawResponse.SetParameter(1, SimParam->getSignalDelay() ); // getSignalDelayTRU()
 
 
