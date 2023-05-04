@@ -486,7 +486,7 @@ if has_processing_step ENTROPY_ENCODER && [[ ! -z "$WORKFLOW_DETECTORS_CTF" ]] &
   if [[ $CREATECTFDICT == 1 ]] && [[ $SAVECTF == 0 ]]; then CTF_OUTPUT_TYPE="dict"; fi
   if [[ $CREATECTFDICT == 0 ]] && [[ $SAVECTF == 1 ]]; then CTF_OUTPUT_TYPE="ctf"; fi
   if [[ $EPNSYNCMODE == 1 ]]; then
-    CTF_CONFIG="--report-data-size-interval 250"
+    CTF_CONFIG="--report-data-size-interval 1000"
   else
     CTF_CONFIG="--report-data-size-interval 1"
   fi
