@@ -20,7 +20,7 @@ TextDriverClient::TextDriverClient(ServiceRegistryRef registry, DeviceState& dev
 
 void TextDriverClient::tell(const char* msg, size_t s, bool flush)
 {
-  LOG(info) << std::string_view{msg, s};
+  LOG(debug) << std::string_view{msg, s};
 }
 
 void TextDriverClient::flushPending()
