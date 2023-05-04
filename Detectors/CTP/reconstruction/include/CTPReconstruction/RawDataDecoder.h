@@ -41,9 +41,9 @@ class RawDataDecoder
   void setDoLumi(bool lumi) { mDoLumi = lumi; }
   void setDoDigits(bool digi) { mDoDigits = digi; }
   void setVerbose(bool v) { mVerbose = v; }
-  uint32_t getIRRejected() { return mIRRejected; }
-  uint32_t getTCRRejected() { return mTCRRejected; }
-  std::vector<uint32_t> getTFOrbits() { return mTFOrbits; }
+  uint32_t getIRRejected() const { return mIRRejected; }
+  uint32_t getTCRRejected() const { return mTCRRejected; }
+  std::vector<uint32_t>& getTFOrbits() { return mTFOrbits; }
   int init();
 
  private:
