@@ -89,6 +89,7 @@ void TPCTrackStudySpec::init(InitContext& ic)
   if (mRRef < 0.) {
     mRRef = 0.;
   }
+  mTPCCorrMapsLoader.init(ic);
   mDBGOut = std::make_unique<o2::utils::TreeStreamRedirector>("tpc-trackStudy.root", "recreate");
 }
 
@@ -104,7 +105,7 @@ void TPCTrackStudySpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   mTPCVDriftHelper.extractCCDBInputs(pc);
-  o2::tpc::CorrectionMapsLoader::extractCCDBInputs(pc);
+  mTPCCorrMapsLoader.extractCCDBInputs(pc);
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
@@ -312,6 +313,7 @@ void TPCTrackStudySpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 DataProcessorSpec getTPCTrackStudySpec(GTrackID::mask_t srcTracks, GTrackID::mask_t srcClusters, bool useMC)
 {
   std::vector<OutputSpec> outputs;
+  Options opts{{"target-radius", VariantType::Float, 70.f, {"Try to propagate to this radius"}}};
   auto dataRequest = std::make_shared<DataRequest>();
 
   dataRequest->requestTracks(srcTracks, useMC);
@@ -325,14 +327,14 @@ DataProcessorSpec getTPCTrackStudySpec(GTrackID::mask_t srcTracks, GTrackID::mas
                                                               dataRequest->inputs,
                                                               true);
   o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
-  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs);
+  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs, opts, srcTracks[GTrackID::CTP] || srcClusters[GTrackID::CTP]);
 
   return DataProcessorSpec{
     "tpc-track-study",
     dataRequest->inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<TPCTrackStudySpec>(dataRequest, ggRequest, srcTracks, useMC)},
-    Options{{"target-radius", VariantType::Float, 70.f, {"Try to propagate to this radius"}}}};
+  };
 }
 
 } // namespace o2::trackstudy

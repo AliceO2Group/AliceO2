@@ -41,6 +41,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"useLastExtractedMapAsReference", VariantType::Bool, false, {"enabling iterative extraction of the gain map: Using the extracted gain map from the previous iteration to correct the cluster charge"}},
     {"polynomialsFile", VariantType::String, "", {"file containing the polynomials for the track topology correction"}},
     {"disablePolynomialsCCDB", VariantType::Bool, false, {"Do not load the polynomials from the CCDB"}},
+    {"require-ctp-lumi", o2::framework::VariantType::Bool, false, {"require CTP lumi for TPC correction scaling"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
 
   std::swap(workflowOptions, options);
@@ -56,13 +57,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
   o2::conf::ConfigurableParam::updateFromFile(config.options().get<std::string>("configFile"));
   o2::conf::ConfigurableParam::updateFromString(config.options().get<std::string>("configKeyValues"));
   o2::conf::ConfigurableParam::writeINI("o2tpcpadgaintrackscalibrator_configuration.ini");
-
+  auto requireCTPLumi = config.options().get<bool>("require-ctp-lumi");
   const auto debug = config.options().get<bool>("debug");
   const auto publishAfterTFs = (uint32_t)config.options().get<int>("publish-after-tfs");
   const bool useLastExtractedMapAsReference = config.options().get<bool>("useLastExtractedMapAsReference");
   const std::string polynomialsFile = config.options().get<std::string>("polynomialsFile");
   const auto disablePolynomialsCCDB = config.options().get<bool>("disablePolynomialsCCDB");
 
-  WorkflowSpec workflow{getTPCCalibPadGainTracksSpec(publishAfterTFs, debug, useLastExtractedMapAsReference, polynomialsFile, disablePolynomialsCCDB)};
+  WorkflowSpec workflow{getTPCCalibPadGainTracksSpec(publishAfterTFs, debug, useLastExtractedMapAsReference, polynomialsFile, disablePolynomialsCCDB, requireCTPLumi)};
   return workflow;
 }
