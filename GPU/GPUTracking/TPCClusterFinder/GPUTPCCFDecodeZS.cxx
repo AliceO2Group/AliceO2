@@ -284,8 +284,6 @@ GPUd() size_t GPUTPCCFDecodeZSLink::DecodePage(GPUSharedMemory& smem, processorT
             fclose(foo);
     #endif*/
   }
-  fwrite(pageSrc, 1, o2::raw::RDHUtils::getMemorySize(*rdHdr), foo);
-  fclose(foo);
 #endif
   return pageDigitOffset;
 }
