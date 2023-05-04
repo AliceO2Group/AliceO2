@@ -106,6 +106,11 @@ o2_add_executable(mctracks-proxy
                   SOURCES o2sim_mctracks_proxy.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::SimulationDataFormat)
 
+o2_add_executable(kine-publisher
+                  COMPONENT_NAME sim
+                  SOURCES o2sim_kine_publisher.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::SimulationDataFormat O2::Steer)
+
 o2_data_file(COPY o2simtopology_template.json DESTINATION config)
 
 # * # add a complex simulation as a unit test (if simulation was enabled)
