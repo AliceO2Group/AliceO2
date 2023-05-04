@@ -17,7 +17,7 @@
 using namespace o2::framework;
 using namespace o2::steer;
 
-struct kinepublisher {
+struct KinePublisher {
 
   Configurable<std::string> kineFileName{"kineFileName", "o2sim", "name of the _Kine.root file (without '_Kine.root')"};
 
@@ -51,7 +51,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("MC", "MCHEADER", 0, Lifetime::Timeframe);
   outputs.emplace_back("MC", "MCTRACKS", 0, Lifetime::Timeframe);
-  DataProcessorSpec dSpec = adaptAnalysisTask<kinepublisher>(cfgc, TaskName{"o2sim-kine-publisher"});
+  DataProcessorSpec dSpec = adaptAnalysisTask<KinePublisher>(cfgc, TaskName{"o2sim-kine-publisher"});
   dSpec.outputs = outputs;
   specs.emplace_back(dSpec);
   return specs;
