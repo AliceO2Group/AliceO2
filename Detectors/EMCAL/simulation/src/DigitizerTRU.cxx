@@ -99,6 +99,9 @@ void DigitizerTRU::init()
   // for each phase create a template distribution
   TF1 RawResponse("RawResponse", rawResponseFunction, 0, 256, 5);
   RawResponse.SetParameters(1., 0., tau, N, 0.);
+  RawResponse.SetParameter(1, SimParam->getSignalDelay() );
+  // RawResponse.SetParameter(1, SimParam->getSignalDelay() ); // getSignalDelayTRU()
+
 
   // only one phase
   std::vector<double> sf;
@@ -250,11 +253,13 @@ void DigitizerTRU::sampleSDigit(const Digit& sDigit)
       // LOG(info) << "DIG SIMONE sampleSDigit in digitizer: in TimeResponse digitTime";
       double digitTime = (mEventTimeOffset + mDelay - mTimeWindowStart) * constants::EMCAL_TIMESAMPLE;
       Digit digit(tower, val, digitTime);
+      digit.setTRU();
       // LOG(info) << "DIG SIMONE sampleSDigit in digitizer: in TimeResponse push_back";
       mTempDigitVector.push_back(digit);
     }
   } else {
     Digit digit(tower, energy, (mDelay - mTimeWindowStart) * constants::EMCAL_TIMESAMPLE);
+    digit.setTRU();
     mTempDigitVector.push_back(digit);
   }
 
