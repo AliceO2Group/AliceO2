@@ -290,7 +290,11 @@ Output DataAllocator::getOutputByBind(OutputRef&& ref)
       return Output{dataType.origin, dataType.description, ref.subSpec, spec.lifetime, std::move(ref.headerStack)};
     }
   }
-  throw runtime_error_f("Unable to find OutputSpec with label %s", ref.label.c_str());
+  std::string availableRoutes;
+  for (auto const& route : allowedOutputRoutes) {
+    availableRoutes += "\n - " + route.matcher.binding.value + ": " + DataSpecUtils::describe(route.matcher);
+  }
+  throw runtime_error_f("Unable to find OutputSpec with label %s. Available Routes: %s", ref.label.c_str(), availableRoutes.c_str());
   O2_BUILTIN_UNREACHABLE();
 }
 
