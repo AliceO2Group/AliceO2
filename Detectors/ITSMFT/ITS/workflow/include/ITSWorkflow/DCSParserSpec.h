@@ -61,6 +61,8 @@
 #include "CCDB/CcdbObjectInfo.h"
 #include "CCDB/CcdbApi.h"
 #include "DataFormatsDCS/DCSConfigObject.h"
+#include "ITSMFTReconstruction/ChipMappingITS.h"
+#include "DataFormatsITSMFT/NoiseMap.h"
 
 using namespace o2::framework;
 using namespace o2::itsmft;
@@ -97,6 +99,10 @@ class ITSDCSParser : public Task
   void updateAndCheck(short int&, const short int);
   void writeChipInfo(const std::string&, const short int);
   std::vector<std::string> listStaves();
+  void appendDeadChipObj();
+  unsigned short int getModule(unsigned short int chipInMod);
+  bool getHS(unsigned short int chipInMod);
+  unsigned short int getGlobalChipID(unsigned short int hicPos, bool hS, unsigned short int chipInMod);
 
   std::vector<std::string> vectorizeStringList(const std::string&, const std::string&);
   std::vector<unsigned short int> vectorizeStringListInt(const std::string&, const std::string&);
@@ -130,6 +136,12 @@ class ITSDCSParser : public Task
 
   // Vector containing all the staves listed in the EOR file
   std::vector<string> mSavedStaves = {};
+
+  // Disabled chip map
+  o2::itsmft::NoiseMap mDeadMap;
+
+  // ITS Map
+  o2::itsmft::ChipMappingITS mp;
 };
 
 // Create a processor spec
