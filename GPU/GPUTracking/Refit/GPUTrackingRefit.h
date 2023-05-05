@@ -15,6 +15,7 @@
 #ifndef GPUTRACKINGREFIT_H
 #define GPUTRACKINGREFIT_H
 
+#include <cstdint>
 #include "GPUDef.h"
 #include "GPUProcessor.h"
 
