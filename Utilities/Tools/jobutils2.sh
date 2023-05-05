@@ -68,8 +68,9 @@ taskwrapper_cleanup_handler() {
   return 1 2>/dev/null || exit 1
 }
 
-# Function monitoring DPL output for signs of failure
+# Function monitoring (DPL) log output for signs of failure
 monitorlog() {
+    [[ ! "${JOBUTILS_PERFORM_MONITORING}" ]] && exit 0
     # We need to grep on multitude of things:
     # - all sorts of exceptions (may need to fine-tune)
     # - segmentation violation
