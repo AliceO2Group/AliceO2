@@ -59,7 +59,7 @@ void ReconstructionDPL::run(ProcessingContext& pc)
   if (mUseMC) {
     LOG(info) << "Ignoring MC info";
   }
-  if(mUseTimeOffsetCalib && mUpdateCCDB) {
+  if (mUseTimeOffsetCalib && mUpdateCCDB) {
     auto timeCalibObject = pc.inputs().get<o2::ft0::TimeSpectraInfoObject*>("ft0_timespectra");
     mReco.SetTimeCalibObject(timeCalibObject.get());
   }
