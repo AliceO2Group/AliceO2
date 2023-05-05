@@ -1401,7 +1401,8 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
   // if requested, fill the difference of ITS and TPC tracks tgl for vdrift calibation
   float minDiffFT0 = -999.;
   std::vector<float> dtimes;
-  if (mVDriftCalibOn && (!mFieldON || std::abs(trfit.getQ2Pt()) < mParams->maxVDriftTrackQ2Pt)) {
+  bool fillVDCalib = mVDriftCalibOn && (!mFieldON || std::abs(trfit.getQ2Pt()) < mParams->maxVDriftTrackQ2Pt);
+  if (fillVDCalib || mDBGOut) {
     // find closest FIT record
     float minDiffA = mParams->maxVDritTimeOffset;
     if (mInteractions.size()) {
@@ -1423,6 +1424,8 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
         minDiffA = std::abs(minDiffFT0);
       }
     }
+  }
+  if (fillVDCalib) {
     mTglITSTPC.emplace_back(tITS.getTgl(), tTPC.getTgl(), minDiffFT0);
   }
 #ifdef _ALLOW_DEBUG_TREES_
