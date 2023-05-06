@@ -25,7 +25,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   // option allowing to set parameters
   std::vector<ConfigParamSpec> options;
   options.push_back(ConfigParamSpec{"input-data", VariantType::String, "", {"input data (obligatory)"}});
-  options.push_back(ConfigParamSpec{"onlyDet", VariantType::String, "all", {"list of dectors"}});
+  options.push_back(ConfigParamSpec{"onlyDet", VariantType::String, "all-FOC", {"list of dectors"}});
   options.push_back(ConfigParamSpec{"raw-only-det", VariantType::String, "none", {"do not open non-raw channel for these detectors"}});
   options.push_back(ConfigParamSpec{"non-raw-only-det", VariantType::String, "none", {"do not open raw channel for these detectors"}});
   options.push_back(ConfigParamSpec{"max-tf", VariantType::Int, -1, {"max TF ID to process (<= 0 : infinite)"}});

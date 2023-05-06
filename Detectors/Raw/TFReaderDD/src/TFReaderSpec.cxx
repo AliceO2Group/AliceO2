@@ -353,7 +353,7 @@ void TFReaderSpec::TFBuilder()
     LOG(info) << "Processing file " << tfFileName;
     SubTimeFrameFileReader reader(tfFileName, mInput.detMask);
     size_t locID = 0;
-    //try
+    // try
     {
       while (mRunning && mTFBuilderCounter < mInput.maxTFs) {
         if (mTFQueue.size() >= size_t(mInput.maxTFCache)) {
@@ -388,7 +388,7 @@ o2f::DataProcessorSpec o2::rawdd::getTFReaderSpec(o2::rawdd::TFReaderInp& rinp)
   // check which inputs are present in files to read
   o2f::DataProcessorSpec spec;
   spec.name = "tf-reader";
-  const DetID::mask_t DEFMask = DetID::getMask("ITS,TPC,TRD,TOF,PHS,CPV,EMC,HMP,MFT,MCH,MID,ZDC,FT0,FV0,FDD,CTP");
+  const DetID::mask_t DEFMask = DetID::getMask("ITS,TPC,TRD,TOF,PHS,CPV,EMC,HMP,MFT,MCH,MID,ZDC,FT0,FV0,FDD,CTP,FOC");
   rinp.detMask = DetID::getMask(rinp.detList) & DEFMask;
   rinp.detMaskRawOnly = DetID::getMask(rinp.detListRawOnly) & DEFMask;
   rinp.detMaskNonRawOnly = DetID::getMask(rinp.detListNonRawOnly) & DEFMask;
