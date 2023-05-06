@@ -353,7 +353,7 @@ void TFReaderSpec::TFBuilder()
     LOG(info) << "Processing file " << tfFileName;
     SubTimeFrameFileReader reader(tfFileName, mInput.detMask);
     size_t locID = 0;
-    //try
+    // try
     {
       while (mRunning && mTFBuilderCounter < mInput.maxTFs) {
         if (mTFQueue.size() >= size_t(mInput.maxTFCache)) {
@@ -388,7 +388,7 @@ o2f::DataProcessorSpec o2::rawdd::getTFReaderSpec(o2::rawdd::TFReaderInp& rinp)
   // check which inputs are present in files to read
   o2f::DataProcessorSpec spec;
   spec.name = "tf-reader";
-  const DetID::mask_t DEFMask = DetID::getMask("ITS,TPC,TRD,TOF,PHS,CPV,EMC,HMP,MFT,MCH,MID,ZDC,FT0,FV0,FDD,CTP");
+  const DetID::mask_t DEFMask = DetID::getMask("ITS,TPC,TRD,TOF,PHS,CPV,EMC,HMP,MFT,MCH,MID,ZDC,FT0,FV0,FDD,CTP,FOC");
   rinp.detMask = DetID::getMask(rinp.detList) & DEFMask;
   rinp.detMaskRawOnly = DetID::getMask(rinp.detListRawOnly) & DEFMask;
   rinp.detMaskNonRawOnly = DetID::getMask(rinp.detListNonRawOnly) & DEFMask;
@@ -432,6 +432,15 @@ o2f::DataProcessorSpec o2::rawdd::getTFReaderSpec(o2::rawdd::TFReaderInp& rinp)
           rinp.hdVec.emplace_back(o2h::DataHeader{"CELLS", DetID::getDataOrigin(id), 0, 0});      // in abcence of real data this will be sent
           rinp.hdVec.emplace_back(o2h::DataHeader{"CELLSTRGR", DetID::getDataOrigin(id), 0, 0});  // in abcence of real data this will be sent
           rinp.hdVec.emplace_back(o2h::DataHeader{"DECODERERR", DetID::getDataOrigin(id), 0, 0}); // in abcence of real data this will be sent
+        } else if (id == DetID::FOC) {
+          spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(id), "PADLAYERS"}});
+          spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(id), "PIXELHITS"}});
+          spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(id), "PIXELCHIPS"}});
+          spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(id), "TRIGGERS"}});
+          rinp.hdVec.emplace_back(o2h::DataHeader{"PADLAYERS", DetID::getDataOrigin(id), 0, 0});  // in abcence of real data this will be sent
+          rinp.hdVec.emplace_back(o2h::DataHeader{"PIXELHITS", DetID::getDataOrigin(id), 0, 0});  // in abcence of real data this will be sent
+          rinp.hdVec.emplace_back(o2h::DataHeader{"PIXELCHIPS", DetID::getDataOrigin(id), 0, 0}); // in abcence of real data this will be sent
+          rinp.hdVec.emplace_back(o2h::DataHeader{"TRIGGERS", DetID::getDataOrigin(id), 0, 0});   // in abcence of real data this will be sent
         }
       }
     }
