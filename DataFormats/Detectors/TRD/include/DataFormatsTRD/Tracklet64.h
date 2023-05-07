@@ -27,7 +27,9 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+#ifndef GPUCA_GPUCODE_DEVICE
 #include <cstdint>
+#endif
 #include "GPUCommonDef.h"
 #include "GPUCommonRtypes.h"
 #include "DataFormatsTRD/Constants.h"
