@@ -18,36 +18,39 @@
 
 using namespace o2::framework;
 
-struct KineToAOD {
+struct McTracksToAODSpawner {
+  Spawns<o2::aod::McParticles> mcparticlesExt;
 
-  int eventNumber = 0;
+  void init(o2::framework::InitContext& ic) {}
+
+  void run(o2::framework::ProcessingContext& pc) {}
+};
+
+struct McTracksToAOD {
+
+  Produces<o2::aod::McCollisions> mcollisions;
+  Produces<o2::aod::StoredMcParticles_001> mcparticles;
+
+  Configurable<int> collisionsPerTimeFfame{"collisionsPerTimeframe", 200, "Number of McCollisions per timeframe"};
+
+  int collisionId = 0;
+  long timeframe = 0;
 
   void init(o2::framework::InitContext& ic) {}
 
   void run(o2::framework::ProcessingContext& pc)
   {
-
-    auto mctracks = pc.inputs().get<std::vector<o2::MCTrack>>("mctracks");
     auto mcheader = pc.inputs().get<o2::dataformats::MCEventHeader*>("mcheader");
+    auto mctracks = pc.inputs().get<std::vector<o2::MCTrack>>("mctracks");
 
-    auto& mcCollisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCCOLLISION"});
-    auto& mcParticlesBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCPARTICLE_001"});
-    auto& mcParticlesEBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCPARTICLE_001E"});
-
-    auto mcCollisionsCursor = mcCollisionsBuilder.cursor<o2::aod::McCollisions>();
-    auto mcParticlesCursor = mcParticlesBuilder.cursor<o2::aod::StoredMcParticles_001>();
-    auto mcParticlesECursor = mcParticlesEBuilder.cursor<o2::aod::McParticles_001>();
-
-    mcCollisionsCursor(0,
-                       0, // bc
-                       0, // generatorId
-                       mcheader->GetX(),
-                       mcheader->GetY(),
-                       mcheader->GetZ(),
-                       mcheader->GetT(),
-                       1., // weight
-                       mcheader->GetB());
-
+    mcollisions(0, // bc
+                0, // generatorId
+                mcheader->GetX(),
+                mcheader->GetY(),
+                mcheader->GetZ(),
+                mcheader->GetT(),
+                1., // weight
+                mcheader->GetB());
     for (auto& mctrack : mctracks) {
       int mothers_size = 0;
       std::vector<int> mothers;
@@ -72,7 +75,6 @@ struct KineToAOD {
       }
       int PdgCode = mctrack.GetPdgCode();
       int statusCode = mctrack.getStatusCode().fullEncoding;
-      int collisionId = 0; // or eventNumber?
       float weight = mctrack.getWeight();
       float px = mctrack.Px();
       float py = mctrack.Py();
@@ -83,92 +85,46 @@ struct KineToAOD {
       float z = mctrack.GetStartVertexCoordinatesZ();
       float t = mctrack.GetStartVertexCoordinatesT();
       int flags = 0;
-      mcParticlesCursor(0,
-                        collisionId,
-                        PdgCode,
-                        statusCode,
-                        flags,
-                        mothers,
-                        daughters,
-                        weight,
-                        px,
-                        py,
-                        pz,
-                        e,
-                        x,
-                        y,
-                        z,
-                        t);
-      float phi = PI + atan2(-1.0f * py, -1.0f * px);
-      float p = sqrt(px * px + py * py + pz * pz);
-      float pt = sqrt(px * px + py * py);
-      float eta;
-      if (p - pz < static_cast<float>(1e-7)) {
-        if (pz < 0.f) {
-          eta = -100.f;
-        } else {
-          eta = 100.f;
-        }
-      } else {
-        eta = 0.5f * log((p + pz) / (p - pz));
-      }
-      float Y;
-      if (e - pz < static_cast<float>(1e-7)) {
-        if (pz < 0.f) {
-          Y = -100.f;
-        } else {
-          Y = 100.f;
-        }
-      } else {
-        Y = 0.5f * log((e + pz) / (e - pz));
-      }
-      mcParticlesECursor(0,
-                         phi,
-                         eta,
-                         pt,
-                         p,
-                         Y,
-                         collisionId,
-                         PdgCode,
-                         statusCode,
-                         flags,
-                         mothers,
-                         daughters,
-                         weight,
-                         px,
-                         py,
-                         pz,
-                         e,
-                         x,
-                         y,
-                         z,
-                         t);
+      mcparticles(0, // collisionId,
+                  PdgCode,
+                  statusCode,
+                  flags,
+                  mothers,
+                  daughters,
+                  weight,
+                  px,
+                  py,
+                  pz,
+                  e,
+                  x,
+                  y,
+                  z,
+                  t);
     }
-    eventNumber++;
+    collisionId++;
     pc.outputs().snapshot(Output{"TFF", "TFFilename", 0, Lifetime::Timeframe}, "");
-    // pc.outputs().snapshot(Output{"TFN", "TFNumber", 0, Lifetime::Timeframe}, -1L);
-    pc.outputs().snapshot(Output{"TFN", "TFNumber", 0, Lifetime::Timeframe}, eventNumber);
+    pc.outputs().snapshot(Output{"TFN", "TFNumber", 0, Lifetime::Timeframe}, timeframe);
+    if (collisionId == collisionsPerTimeFfame) {
+      collisionId = 0;
+      timeframe++;
+    }
   }
 };
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec specs;
-  std::vector<OutputSpec> outputs;
-  outputs.emplace_back(OutputLabel{"O2mccollision"}, "AOD", "MCCOLLISION", 0, Lifetime::Timeframe);
-  outputs.emplace_back(OutputLabel{"O2mcparticle_001"}, "AOD", "MCPARTICLE_001", 0, Lifetime::Timeframe);
-  outputs.emplace_back(OutputLabel{"O2mcparticle_001E"}, "AOD", "MCPARTICLE_001E", 0, Lifetime::Timeframe);
-  outputs.emplace_back(OutputSpec{"TFF", "TFFilename"});
-  outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
   std::vector<InputSpec> inputs;
   inputs.emplace_back("mctracks", "MC", "MCTRACKS", 0., Lifetime::Timeframe);
   inputs.emplace_back("mcheader", "MC", "MCHEADER", 0., Lifetime::Timeframe);
-  DataProcessorSpec dSpec = DataProcessorSpec{
-    "mctracks-to-aod",
-    inputs,
-    outputs,
-    AlgorithmSpec{adaptFromTask<KineToAOD>()},
-    {}};
+  DataProcessorSpec dSpec = adaptAnalysisTask<McTracksToAOD>(cfgc, TaskName{"mctracks-to-aod"});
+  dSpec.inputs = inputs;
+  dSpec.outputs.emplace_back(OutputSpec{"TFF", "TFFilename"});
+  dSpec.outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
   specs.emplace_back(dSpec);
+
+  DataProcessorSpec dSpec2 = adaptAnalysisTask<McTracksToAODSpawner>(cfgc, TaskName{"mctracks-to-aod-spawner"});
+  specs.emplace_back(dSpec2);
+
   return specs;
 }

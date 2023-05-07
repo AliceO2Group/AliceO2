@@ -13,16 +13,10 @@
 #include "Framework/HistogramRegistry.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ConfigParamSpec.h"
+#include "Framework/runDataProcessing.h"
 
 using namespace o2;
 using namespace o2::framework;
-
-void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
-{
-  workflowOptions.push_back(ConfigParamSpec{"on-the-fly", o2::framework::VariantType::Bool, false, {"set the inputs for on-the-fly analysis"}});
-}
-
-#include "Framework/runDataProcessing.h"
 
 struct SimpleTask {
 
@@ -51,13 +45,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
   WorkflowSpec specs;
   DataProcessorSpec dSpec = adaptAnalysisTask<SimpleTask>(cfgc, TaskName{"mctracks-to-aod-simple-task"});
-  if (cfgc.options().get<bool>("on-the-fly")) {
-    std::vector<InputSpec> inputs;
-    inputs.emplace_back("McCollisions", "AOD", "MCCOLLISION", 0, Lifetime::Timeframe);
-    inputs.emplace_back("McParticles", "AOD", "MCPARTICLE_001", 0, Lifetime::Timeframe);
-    inputs.emplace_back("McParticles_001Extension", "AOD", "MCPARTICLE_001E", 0, Lifetime::Timeframe);
-    dSpec.inputs = inputs;
-  }
   specs.emplace_back(dSpec);
   return specs;
 }
