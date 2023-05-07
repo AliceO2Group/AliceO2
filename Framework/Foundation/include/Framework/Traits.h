@@ -55,7 +55,7 @@ using is_base_of_template = typename is_base_of_template_impl<base, derived>::ty
 template <template <typename...> class base, typename derived>
 inline constexpr bool is_base_of_template_v = is_base_of_template<base, derived>::value;
 
-template <template <typename, size_t> class base, typename derived>
+template <template <typename, std::size_t> class base, typename derived>
 struct is_gsl_span_impl {
   template <typename T, size_t S>
   static constexpr std::true_type test(const base<T, S>*);
@@ -63,10 +63,10 @@ struct is_gsl_span_impl {
   using type = decltype(test(std::declval<derived*>()));
 };
 
-template <template <typename, size_t> class base, typename derived>
+template <template <typename, std::size_t> class base, typename derived>
 using is_gsl_span_t = typename is_gsl_span_impl<base, derived>::type;
 
-template <template <typename, size_t> class base, typename derived>
+template <template <typename, std::size_t> class base, typename derived>
 inline constexpr bool is_gsl_span_v = is_gsl_span_t<base, derived>::value;
 
 } // namespace o2::framework
