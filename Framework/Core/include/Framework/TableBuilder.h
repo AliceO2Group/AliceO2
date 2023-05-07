@@ -102,7 +102,7 @@ O2_ARROW_STL_CONVERSION(std::string, StringType)
 } // namespace detail
 
 template <typename T>
-using VectorOrSpan = std::variant<std::reference_wrapper<std::vector<T>>, std::reference_wrapper<gsl::span<T>>>;//std::vector<T>
+using VectorOrSpan = std::variant<std::reference_wrapper<std::vector<T>>, std::reference_wrapper<gsl::span<T>>>; // std::vector<T>
 
 void addLabelToSchema(std::shared_ptr<arrow::Schema>& schema, const char* label);
 
