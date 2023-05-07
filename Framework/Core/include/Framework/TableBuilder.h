@@ -751,7 +751,7 @@ class TableBuilder
       using objType_t = pack_element_t<0, framework::pack<ARGS...>>;
       auto persister = persistTuple(framework::pack<objType_t>{}, columnNames);
       // Callback used to fill the builders
-      return [persister = persister](unsigned int slot, typename BuilderMaker<objType_t>::FillType const& arg) -> void {
+      return [persister = persister](unsigned int slot, typename BuilderMaker<objType_t>::FillType arg) -> void {
         persister(slot, std::forward_as_tuple(arg));
       };
     } else if constexpr (sizeof...(ARGS) >= 1) {
