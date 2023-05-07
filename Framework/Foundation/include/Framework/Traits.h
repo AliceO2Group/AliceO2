@@ -57,7 +57,7 @@ inline constexpr bool is_base_of_template_v = is_base_of_template<base, derived>
 
 template <template <typename, std::size_t> class base, typename derived>
 struct is_gsl_span_impl {
-  template <typename T, size_t S>
+  template <typename T, std::size_t S>
   static constexpr std::true_type test(const base<T, S>*);
   static constexpr std::false_type test(...);
   using type = decltype(test(std::declval<derived*>()));
