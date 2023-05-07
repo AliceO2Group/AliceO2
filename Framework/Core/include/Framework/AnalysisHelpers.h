@@ -78,10 +78,13 @@ struct WritingCursor<soa::Table<PC...>> {
 
  private:
   template <typename T>
-  static decltype(auto) extract(T const& arg)
+  static decltype(auto) extract(T& arg)
   {
     if constexpr (soa::is_soa_iterator_v<T>) {
       return arg.globalIndex();
+    } else if constexpr (framework::is_base_of_template_v<std::vector, T> ||
+                         framework::is_gsl_span_v<gsl::span, T>) {
+      return VectorOrSpan<typename T::value_type>{std::ref(arg)};
     } else {
       static_assert(!framework::has_type_v<T, framework::pack<PC...>>, "Argument type mismatch");
       return arg;
