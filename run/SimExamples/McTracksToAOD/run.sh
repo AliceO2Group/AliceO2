@@ -10,12 +10,13 @@ SIMPROC=$!
 # launch a DPL process (having the right proxy configuration)
 # (Note that the option --o2sim-pid is not strictly necessary when only one o2-sim process is running.
 #  The socket will than be auto-determined.)
-o2-sim-mctracks-proxy -b --nevents ${NEVENTS} --o2sim-pid ${SIMPROC} | o2-sim-mctracks-to-aod -b | o2-analysis-mctracks-to-aod-simple-task -b --on-the-fly &
+
+o2-sim-mctracks-proxy -b --nevents ${NEVENTS} --o2sim-pid ${SIMPROC} | o2-sim-mctracks-to-aod -b | o2-analysis-mctracks-to-aod-simple-task -b &
 TRACKANAPROC=$!
 
 wait ${SIMPROC}
 wait ${TRACKANAPROC}
 
 
-# the very same analysis task can also directly run on an AO2D with McCollisions and McParticles_001 without the '--on-the-fly' flag:
+# the very same analysis task can also directly run on an AO2D with McCollisions and McParticles:
 # o2-analysis-mctracks-to-aod-simple-task -b --aod-file <AO2DFile>
