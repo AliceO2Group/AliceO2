@@ -11,6 +11,7 @@
 
 #include "MCHConditions/Number.h"
 #include <fmt/core.h>
+#include <cstdint>
 
 namespace
 {

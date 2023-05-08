@@ -17,6 +17,7 @@
 
 #include <deque>
 #include <mutex>
+#include <stdexcept>
 
 namespace o2
 {
