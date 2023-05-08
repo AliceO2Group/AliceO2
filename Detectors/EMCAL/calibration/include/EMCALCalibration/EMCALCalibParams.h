@@ -47,6 +47,7 @@ struct EMCALCalibParams : public o2::conf::ConfigurableParamHelper<EMCALCalibPar
   bool UpdateAtEndOfRunOnly_bc = false; ///< switch to enable trigger of calibration only at end of run
   float minNHitsForMeanEnergyCut = 100; ///< mean number of hits per cell that is needed to cut on the mean energy per hit. Needed for high energy intervals as outliers can distort the distribution
   float minNHitsForNHitCut = 1;         ///< mean number of hits per cell that is needed to cut on the mean number of hits. Needed for high energy intervals as outliers can distort the distribution
+  float minCellEnergy_bc = 0.075;       ///< minimum cell energy considered for filling the histograms for bad channel calib. Should speedup the filling of the histogram to suppress noise
 
   // parameters for time calibration
   unsigned int minNEvents_tc = 1e7;      ///< minimum number of events to trigger the calibration
