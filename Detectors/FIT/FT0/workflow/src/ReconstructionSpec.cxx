@@ -59,7 +59,7 @@ void ReconstructionDPL::run(ProcessingContext& pc)
   if (mUseMC) {
     LOG(info) << "Ignoring MC info";
   }
-  if (mUpdateCCDB) {
+  if (mUseTimeOffsetCalib && mUpdateCCDB) {
     auto timeCalibObject = pc.inputs().get<o2::ft0::TimeSpectraInfoObject*>("ft0_timespectra");
     mReco.SetTimeCalibObject(timeCalibObject.get());
   }
@@ -96,7 +96,7 @@ void ReconstructionDPL::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getReconstructionSpec(bool useMC, const std::string ccdbpath)
+DataProcessorSpec getReconstructionSpec(bool useMC, const std::string ccdbpath, bool useTimeOffsetCalib)
 {
   std::vector<InputSpec> inputSpec;
   std::vector<OutputSpec> outputSpec;
@@ -117,7 +117,7 @@ DataProcessorSpec getReconstructionSpec(bool useMC, const std::string ccdbpath)
     "ft0-reconstructor",
     inputSpec,
     outputSpec,
-    AlgorithmSpec{adaptFromTask<ReconstructionDPL>(useMC, ccdbpath)},
+    AlgorithmSpec{adaptFromTask<ReconstructionDPL>(useMC, ccdbpath, useTimeOffsetCalib)},
     Options{}};
 }
 
