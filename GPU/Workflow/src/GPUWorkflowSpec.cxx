@@ -999,8 +999,9 @@ void GPURecoWorkflowSpec::initFunctionTPC(InitContext& ic)
   mFastTransformRef = std::move(TPCFastTransformHelperO2::instance()->create(0));
   mFastTransformHelper->setCorrMap(mFastTransform.get()); // just to reserve the space
   mFastTransformHelper->setCorrMapRef(mFastTransformRef.get());
-  mFastTransformHelper->init(ic);
-
+  if (mSpecConfig.outputTracks) {
+    mFastTransformHelper->init(ic);
+  }
   if (mConfParam->dEdxDisableTopologyPol) {
     LOGP(info, "Disabling loading of track topology correction using polynomials from CCDB");
     mdEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalTopologyPol);
