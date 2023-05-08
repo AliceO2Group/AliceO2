@@ -1113,7 +1113,7 @@ struct PresliceBase {
     }
   }
 
-  gsl::span<int64_t> getSliceFor(int value) const
+  gsl::span<const int64_t> getSliceFor(int value) const
   {
     if constexpr (!SORTED) {
       return sliceInfo.getSliceFor(value);
@@ -1431,7 +1431,7 @@ class Table
 
   auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
   {
-    auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<decltype(*this)>(node.name), node.name});
+    auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
     auto [offset, count] = localCache.getSliceFor(value);
     auto t = table_t({this->asArrowTable()->Slice(static_cast<uint64_t>(offset), count)}, static_cast<uint64_t>(offset));
     copyIndexBindings(t);
@@ -1440,7 +1440,7 @@ class Table
 
   auto sliceByCachedUnsorted(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
   {
-    auto localCache = cache.ptr->getCacheUnsortedFor({o2::soa::getLabelFromTypeForKey<decltype(*this)>(node.name), node.name});
+    auto localCache = cache.ptr->getCacheUnsortedFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
     auto t = soa::Filtered<table_t>({this->asArrowTable()}, localCache.getSliceFor(value));
     copyIndexBindings(t);
     return t;
@@ -2364,6 +2364,8 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
 
 namespace o2::soa
 {
+template <typename T>
+class FilteredBase;
 
 template <typename... Ts>
 struct Join : JoinBase<Ts...> {
@@ -2382,12 +2384,12 @@ struct Join : JoinBase<Ts...> {
   using persistent_columns_t = typename table_t::persistent_columns_t;
   using iterator = typename table_t::template RowView<Join<Ts...>, Ts...>;
   using const_iterator = iterator;
-  using filtered_iterator = typename table_t::template RowViewFiltered<Join<Ts...>, Ts...>;
+  using filtered_iterator = typename table_t::template RowViewFiltered<FilteredBase<Join<Ts...>>, Ts...>;
   using filtered_const_iterator = filtered_iterator;
 
   auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
   {
-    auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<decltype(*this)>(node.name), node.name});
+    auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
     auto [offset, count] = localCache.getSliceFor(value);
     auto t = Join<Ts...>({this->asArrowTable()->Slice(static_cast<uint64_t>(offset), count)}, static_cast<uint64_t>(offset));
     this->copyIndexBindings(t);
@@ -2396,7 +2398,7 @@ struct Join : JoinBase<Ts...> {
 
   auto sliceByCachedUnsorted(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
   {
-    auto localCache = cache.ptr->getCacheUnsortedFor({o2::soa::getLabelFromTypeForKey<decltype(*this)>(node.name), node.name});
+    auto localCache = cache.ptr->getCacheUnsortedFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
     auto t = Filtered<Join<Ts...>>({this->asArrowTable()}, localCache.getSliceFor(value));
     this->copyIndexBindings(t);
     return t;
@@ -2423,7 +2425,7 @@ struct Join : JoinBase<Ts...> {
   {
     if constexpr (o2::soa::is_binding_compatible_v<T1, std::decay_t<decltype(*this)>>()) {
       auto selection = container.getSliceFor(value);
-      auto t = soa::Filtered<decltype(*this)>({this->asArrowTable()}, selection);
+      auto t = soa::Filtered<std::decay_t<decltype(*this)>>({this->asArrowTable()}, selection);
       this->copyIndexBindings(t);
       t.bindInternalIndicesTo(this);
       return t;
@@ -2638,7 +2640,7 @@ class FilteredBase : public T
 
   auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
   {
-    auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<decltype(*this)>(node.name), node.name});
+    auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
     auto [offset, count] = localCache.getSliceFor(value);
     auto slice = this->asArrowTable()->Slice(static_cast<uint64_t>(offset), count);
     if (offset >= this->tableSize()) {
@@ -2662,9 +2664,9 @@ class FilteredBase : public T
 
   auto sliceByCachedUnsorted(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
   {
-    auto localCache = cache.ptr->getCacheUnsortedFor({o2::soa::getLabelFromTypeForKey<decltype(*this)>(node.name), node.name});
-    auto t = self_t{{this->asArrowTable()}, localCache.getSliceFor(value)};
-    t *= *this;
+    auto localCache = cache.ptr->getCacheUnsortedFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
+    auto t = std::decay_t<decltype(*this)>{{this->asArrowTable()}, localCache.getSliceFor(value)};
+    t.intersectWithSelection(this->getSelectedRows());
     this->copyIndexBindings(t);
     return t;
   }
@@ -2703,8 +2705,8 @@ class FilteredBase : public T
   {
     if constexpr (o2::soa::is_binding_compatible_v<T1, std::decay_t<decltype(*this)>>()) {
       auto selection = container.getSliceFor(value);
-      auto t = decltype(*this){{this->asArrowTable()}, selection};
-      t *= *this;
+      auto t = std::decay_t<decltype(*this)>{{this->asArrowTable()}, selection};
+      t.intersectWithSelection(this->getSelectedRows());
       this->copyIndexBindings(t);
       return t;
     } else {
@@ -2884,7 +2886,7 @@ class Filtered : public FilteredBase<T>
 
   auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
   {
-    auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<decltype(*this)>(node.name), node.name});
+    auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
     auto [offset, count] = localCache.getSliceFor(value);
     auto slice = this->asArrowTable()->Slice(static_cast<uint64_t>(offset), count);
     if (offset >= this->tableSize()) {
@@ -2908,9 +2910,9 @@ class Filtered : public FilteredBase<T>
 
   auto sliceByCachedUnsorted(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
   {
-    auto localCache = cache.ptr->getCacheUnsortedFor({o2::soa::getLabelFromTypeForKey<decltype(*this)>(node.name), node.name});
-    auto t = self_t{{this->asArrowTable()}, localCache.getSliceFor(value)};
-    t *= *this;
+    auto localCache = cache.ptr->getCacheUnsortedFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
+    auto t = std::decay_t<decltype(*this)>{{this->asArrowTable()}, localCache.getSliceFor(value)};
+    t.intersectWithSelection(this->getSelectedRows());
     this->copyIndexBindings(t);
     return t;
   }
@@ -3022,7 +3024,7 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
 
   auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
   {
-    auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<decltype(*this)>(node.name), node.name});
+    auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
     auto [offset, count] = localCache.getSliceFor(value);
     auto slice = this->asArrowTable()->Slice(static_cast<uint64_t>(offset), count);
     auto start = offset;
@@ -3044,10 +3046,10 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
 
   auto sliceByCachedUnsorted(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
   {
-    auto localCache = cache.ptr->getCacheUnsortedFor({o2::soa::getLabelFromTypeForKey<decltype(*this)>(node.name), node.name});
+    auto localCache = cache.ptr->getCacheUnsortedFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
     std::vector<Filtered<T>> filtered{Filtered<T>{{this->asArrowTable()}, localCache.getSliceFor(value)}};
-    auto t = self_t{std::move(filtered), localCache.getSliceFor(value)};
-    t *= *this;
+    auto t = std::decay_t<decltype(*this)>{std::move(filtered), localCache.getSliceFor(value)};
+    t.intersectWithSelection(this->getSelectedRows());
     this->copyIndexBindings(t);
     return t;
   }
