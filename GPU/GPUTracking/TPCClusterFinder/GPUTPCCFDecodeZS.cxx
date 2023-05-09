@@ -284,8 +284,6 @@ GPUd() size_t GPUTPCCFDecodeZSLink::DecodePage(GPUSharedMemory& smem, processorT
             fclose(foo);
     #endif*/
   }
-  fwrite(pageSrc, 1, o2::raw::RDHUtils::getMemorySize(*rdHdr), foo);
-  fclose(foo);
 #endif
   return pageDigitOffset;
 }
@@ -512,6 +510,13 @@ GPUd() void GPUTPCCFDecodeZSLinkBase::Decode(int nBlocks, int nThreads, int iBlo
 
     } // [CPU] for (unsigned int j = minJ; j < maxJ; j++)
   }   // [CPU] for (unsigned int i = clusterer.mMinMaxCN[endpoint].minC; i < clusterer.mMinMaxCN[endpoint].maxC; i++)
+
+#ifdef GPUCA_CHECK_TPCZS_CORRUPTION
+  unsigned int maxOffset = iBlock < nBlocks - 1 ? clusterer.mPzsOffsets[iBlock + 1].offset : clusterer.mPzsOffsets[iBlock].offset + zs.count[endpoint];
+  if (iThread == 0 && pageDigitOffset != maxOffset) {
+    clusterer.raiseError(GPUErrors::ERROR_TPCZS_INVALID_OFFSET, clusterer.mISlice, pageDigitOffset, maxOffset);
+  }
+#endif
 }
 
 GPUd() o2::tpc::PadPos GPUTPCCFDecodeZSLinkBase::GetPadAndRowFromFEC(processorType& clusterer, int cru, int rawFECChannel, int fecInPartition)
@@ -925,7 +930,7 @@ GPUd() unsigned short GPUTPCCFDecodeZSDenseLink::DecodeTBSingleThread(
   assert(PayloadExtendsToNextPage || page <= payloadEnd);
   assert(nSamplesWritten == nSamplesInTB);
 
-  return nSamplesInTB;
+  return nSamplesWritten;
 
 #undef MAYBE_PAGE_OVERFLOW
 }
