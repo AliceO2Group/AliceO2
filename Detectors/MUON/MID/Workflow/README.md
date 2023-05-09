@@ -194,23 +194,39 @@ Also, if the fraction of times a given channel did not reply to FET over the tot
 
 The common usage is:
 
-```bash
+```shell
 o2-raw-file-reader-workflow --input-conf MIDraw.cfg | o2-mid-raw-to-digits-workflow | o2-mid-calibration-workflow
 ```
 
 The noise threshold (in Hz) can be changed with:
 
-```bash
-o2-mid-calibration-workflow --configKeyValues="MIDChannelCalibratorParam.maxNoise=1000
+```shell
+o2-mid-calibration-workflow --configKeyValues="MIDChannelCalibratorParam.maxNoise=1000"
 ```
 
 The dead channel threshold (fraction) can be changed with:
 
-```bash
-o2-mid-calibration-workflow --configKeyValues="MIDChannelCalibratorParam.maxDead=1000
+```shell
+o2-mid-calibration-workflow --configKeyValues="MIDChannelCalibratorParam.maxDead=1000"
 ```
 
-Notice that the answer to the FET does not arrive at the same BC for all strips.
+The calibration data can be either sent at EOS or when a configurable threshold is reached.
+The default is currently the second.
+To send the calibration data at EOS, one can do:
+
+```shell
+o2-mid-calibration-workflow --configKeyValues="MIDChannelCalibratorParam.onlyAtEndOfStream=1"
+```
+
+Otherwise, one can configure the desired statistics in terms of number of calibration triggers with:
+
+```shell
+o2-mid-calibration-workflow --configKeyValues="MIDChannelCalibratorParam.nCalibTriggers=120000"
+```
+
+The current default is `115000`. The value was chosen based on the current configuration of a calibration run, during which we send calibration triggers at a rate of 1 kHz for 2 minutes (for a total of 120000).
+
+Finally, notice that the answer to the FET does not arrive at the same BC for all strips.
 Some channels are slightly delayed, with a dispersion that seems to be of +- 1 BC maximum.
 To avoid declaring as dead some channels whose response is simply delayed, the workflow merges into a FET event the response of strips occurring in a window around the FET.
 This window can be changed with:
