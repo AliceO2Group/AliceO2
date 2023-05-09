@@ -235,9 +235,11 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
         }
         auto handleExtends = [&](unsigned int ff) {
           if (fragmentExtends[ff]) {
-            fragments[ff].second[3]++;
-            mCFContext->fragmentData[ff].nPages[iSlice][j]++;
             if (doGPU) {
+              // Only add extended page on GPU. On CPU the pages are in consecutive memory anyway.
+              // Not adding the page prevents an issue where a page is decoded twice on CPU, when only the extend should be decoded.
+              fragments[ff].second[3]++;
+              mCFContext->fragmentData[ff].nPages[iSlice][j]++;
               mCFContext->fragmentData[ff].pageDigits[iSlice][j].emplace_back(0);
             }
             fragmentExtends[ff] = false;
