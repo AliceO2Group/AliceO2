@@ -76,7 +76,7 @@ class ChannelCalibratorDeviceDPL
 
   void run(of::ProcessingContext& pc)
   {
-    if (mRunStopRequested) {
+    if (mHasAlreadySent) {
       return;
     }
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
@@ -84,22 +84,33 @@ class ChannelCalibratorDeviceDPL
     std::array<gsl::span<const ColumnData>, 2> calibData{pc.inputs().get<gsl::span<ColumnData>>("mid_noise"), pc.inputs().get<gsl::span<ColumnData>>("mid_dead")};
     auto deadRof = pc.inputs().get<gsl::span<ROFRecord>>("mid_dead_rof");
     std::array<double, 2> timeOrTriggers{o2::base::GRPGeomHelper::instance().getGRPECS()->getNHBFPerTF() * o2::constants::lhc::LHCOrbitNS * 1e-9, static_cast<double>(deadRof.size())};
+    mNCalibTriggers += deadRof.size();
 
     for (size_t idx = 0; idx < calibData.size(); ++idx) {
       o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrators[idx].getCurrentTFInfo());
       mCalibrators[idx].addTimeOrTriggers(timeOrTriggers[idx]);
       mCalibrators[idx].process(calibData[idx]);
     }
-    if (pc.transitionState() == of::TransitionHandlingState::Requested) {
-      LOG(info) << "Run stop requested, finalizing";
-      mRunStopRequested = true;
-      finalise(pc.outputs());
+    if (!ChannelCalibratorParam::Instance().onlyAtEndOfStream) {
+      if (mNCalibTriggers > ChannelCalibratorParam::Instance().nCalibTriggers) {
+        // Periodically send the list of bad channels.
+        // This prevents issues with sending at EOR since it is extremely sensitive to DPL optimization
+        LOG(info) << "Ready to send data";
+        finalise(pc.outputs());
+        mHasAlreadySent = true;
+      }
+    } else {
+      if (pc.transitionState() == of::TransitionHandlingState::Requested) {
+        LOG(info) << "Run stop requested, finalizing";
+        finalise(pc.outputs());
+        mHasAlreadySent = true;
+      }
     }
   }
 
   void endOfStream(of::EndOfStreamContext& ec)
   {
-    if (mRunStopRequested) {
+    if (mHasAlreadySent) {
       return;
     }
     LOG(info) << "EOS sent, finalizing";
@@ -110,7 +121,8 @@ class ChannelCalibratorDeviceDPL
   std::array<ChannelCalibrator, 2> mCalibrators{};        ///! Channels calibrators
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest; ///! CCDB request
   std::vector<ColumnData> mRefMasks{};                    ///! Reference masks
-  bool mRunStopRequested = false;                         ///! Flag that the run was stopped
+  bool mHasAlreadySent = false;                           ///! Flag that the object was already sent
+  unsigned long int mNCalibTriggers = 0;                  ///! Number of calibration triggers since last send
 
   void finalise(of::DataAllocator& output)
   {
