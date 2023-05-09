@@ -146,6 +146,13 @@ class Decoder
     StreamFinalData = 0x200, ///< Stream debug output for each single FE
   };
 
+  enum class ReAlignType {
+    None = 0,                      ///< Print packe information
+    AlignOnly = 1,                 ///< Try re-alignment
+    AlignAndFillMissing = 2,       ///< Try re-alignment and fill missing packets with 0s
+    MaxType = AlignAndFillMissing, ///< Largest type number
+  };
+
   bool process(const char* data, size_t size);
 
   void runDecoding();
@@ -188,6 +195,7 @@ class Decoder
     }
   }
 
+  /// set a debug level, see `DebugFlags`
   void setDebugLevel(uint32_t level = (uint32_t)DebugFlags::PacketInfo)
   {
     mDebugLevel = level;
@@ -197,24 +205,37 @@ class Decoder
   }
 
   void clearDecodedData();
-  void streamDecodedData();
+  void streamDecodedData(bool streamAll = false);
 
   const DecodedData& getDecodedData() const { return mDecodedData; }
 
+  void setReAlignType(ReAlignType type = ReAlignType::AlignOnly) { mReAlignType = type; }
+  ReAlignType getReAlignType() const { return mReAlignType; }
+
+  /// set the number of threads used for decoding
+  /// \param nThreads number of threads
+  static void setNThreads(const int nThreads) { sNThreads = nThreads; }
+
+  /// \return returns the number of threads used for decoding
+  static int getNThreads() { return sNThreads; }
+
  private:
+  inline static int sNThreads{1};                                   ///< number of threads for decoding FEs
   size_t mCollectedDataPackets{};                                   ///< Number of collected data packets
-  std::array<uint32_t, Instances> mPktCountInstance;                ///< Packet counter for the instance
-  std::array<uint32_t, NumberFEs> mPktCountFEs;                     ///< Packet counter for the single FEs
+  std::array<uint32_t, Instances> mPktCountInstance{};              ///< Packet counter for the instance
+  std::array<uint32_t, NumberFEs> mPktCountFEs{};                   ///< Packet counter for the single FEs
   std::array<std::pair<uint32_t, uint32_t>, NumberFEs> mTSCountFEs; ///< Counter how often the time stamp was seen for the single FEs, all / valid
   std::array<std::string, NumberFEs> mDataStrings;                  ///< ASCI data sent by FE
   DecodedData mDecodedData;                                         ///< decoded data
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDebugStream;    ///< Debug output streamer
   std::string mDecodeAdditional;                                    ///< Decode these additional data for debugging purposes
   std::string mDebugOutputName{"SAC_debug.root"};                   ///< name of the debug output tree
+  ReAlignType mReAlignType{ReAlignType::None};                      ///< if data cannot be dedoced, try to re-align the stream
 
   uint32_t mDebugLevel{0}; ///< Amount of debug information to print
 
-  bool decodeChannels(DecodedDataFE& sacs, size_t& carry, int feid);
+  /// \return status message: 1 = good, 0 = data length too short, -1 = decoding error
+  int decodeChannels(DecodedDataFE& sacs, size_t& carry, int feid);
   void decode(int feid);
 
   void printPacketInfo(const sac::packet& sac);
