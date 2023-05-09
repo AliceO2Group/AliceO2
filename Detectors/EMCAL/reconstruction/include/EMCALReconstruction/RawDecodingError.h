@@ -44,7 +44,8 @@ class RawDecodingError : public std::exception
     HEADER_INVALID,     ///< Header in memory not belonging to requested superpage
     PAGE_START_INVALID, ///< Page position starting outside payload size
     PAYLOAD_INVALID,    ///< Payload in memory not belonging to requested superpage
-    TRAILER_DECODING    ///< Inconsistent trailer in memory (several trailer words missing the trailer marker)
+    TRAILER_DECODING,   ///< Inconsistent trailer in memory (several trailer words missing the trailer marker)
+    TRAILER_INCOMPLETE  ///< Incomplete trailer words (i.e. registers)
   };
 
   /// \brief Constructor
@@ -93,6 +94,8 @@ class RawDecodingError : public std::exception
         return 5;
       case ErrorType_t::TRAILER_DECODING:
         return 6;
+      case ErrorType_t::TRAILER_INCOMPLETE:
+        return 7;
     };
     // can never reach this, due to enum class
     // just to make Werror happy
@@ -101,7 +104,7 @@ class RawDecodingError : public std::exception
 
   /// \brief Get the number of error codes
   /// \return Number of error codes
-  static constexpr int getNumberOfErrorTypes() { return 7; }
+  static constexpr int getNumberOfErrorTypes() { return 8; }
 
   static ErrorType_t intToErrorType(unsigned int errortype)
   {
@@ -109,7 +112,7 @@ class RawDecodingError : public std::exception
     static constexpr std::array<ErrorType_t, getNumberOfErrorTypes()> errortypes = {{ErrorType_t::PAGE_NOTFOUND, ErrorType_t::HEADER_DECODING,
                                                                                      ErrorType_t::PAYLOAD_DECODING, ErrorType_t::HEADER_INVALID,
                                                                                      ErrorType_t::PAGE_START_INVALID, ErrorType_t::PAYLOAD_INVALID,
-                                                                                     ErrorType_t::TRAILER_DECODING}};
+                                                                                     ErrorType_t::TRAILER_DECODING, ErrorType_t::TRAILER_INCOMPLETE}};
     return errortypes[errortype];
   }
 
@@ -137,6 +140,8 @@ class RawDecodingError : public std::exception
         return "PayloadCorruption";
       case ErrorType_t::TRAILER_DECODING:
         return "TrailerDecoding";
+      case ErrorType_t::TRAILER_INCOMPLETE:
+        return "TrailerIncomplete";
     };
     return "Undefined error";
   }
@@ -177,6 +182,8 @@ class RawDecodingError : public std::exception
         return "Payload corruption";
       case ErrorType_t::TRAILER_DECODING:
         return "Trailer decoding";
+      case ErrorType_t::TRAILER_INCOMPLETE:
+        return "Trailer incomplete";
     };
     return "Undefined error";
   }
@@ -217,6 +224,8 @@ class RawDecodingError : public std::exception
         return "Access to payload not belonging to requested superpage";
       case ErrorType_t::TRAILER_DECODING:
         return "Inconsistent trailer in memory";
+      case ErrorType_t::TRAILER_INCOMPLETE:
+        return "Incomplete trailer";
     };
     return "Undefined error";
   }

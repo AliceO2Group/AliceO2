@@ -160,6 +160,10 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         // the page format does not follow the expected format
         continue;
       }
+      for (auto& e : rawreader.getMinorErrors()) {
+        handleMinorPageError(e);
+        // For minor errors we do not need to skip the page, just print and send the error to the QC
+      }
 
       auto& header = rawreader.getRawHeader();
       auto triggerBC = raw::RDHUtils::getTriggerBC(header);
@@ -630,6 +634,22 @@ void RawToCellConverterSpec::handlePageError(const RawDecodingError& e)
   }
   if (mNumErrorMessages < mMaxErrorMessages) {
     LOG(warning) << " Page decoding: " << e.what() << " in FEE ID " << e.getFECID();
+    mNumErrorMessages++;
+    if (mNumErrorMessages == mMaxErrorMessages) {
+      LOG(warning) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";
+    }
+  } else {
+    mErrorMessagesSuppressed++;
+  }
+}
+
+void RawToCellConverterSpec::handleMinorPageError(const RawReaderMemory::MinorError& e)
+{
+  if (mCreateRawDataErrors) {
+    mOutputDecoderErrors.emplace_back(e.getFEEID(), ErrorTypeFEE::ErrorSource_t::PAGE_ERROR, RawDecodingError::ErrorTypeToInt(e.getErrorType()), -1, -1);
+  }
+  if (mNumErrorMessages < mMaxErrorMessages) {
+    LOG(warning) << " Page decoding: " << RawDecodingError::getErrorCodeDescription(e.getErrorType()) << " in FEE ID " << e.getFEEID();
     mNumErrorMessages++;
     if (mNumErrorMessages == mMaxErrorMessages) {
       LOG(warning) << "Max. amount of error messages (" << mMaxErrorMessages << " reached, further messages will be suppressed";

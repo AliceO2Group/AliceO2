@@ -22,6 +22,7 @@
 #include "EMCALBase/Geometry.h"
 #include "EMCALBase/Mapper.h"
 #include "EMCALReconstruction/CaloRawFitter.h"
+#include "EMCALReconstruction/RawReaderMemory.h"
 #include "EMCALReconstruction/RecoContainer.h"
 #include "EMCALReconstruction/ReconstructionErrors.h"
 #include "EMCALWorkflow/CalibLoader.h"
@@ -232,6 +233,8 @@ class RawToCellConverterSpec : public framework::Task
   void handleGainError(const o2::emcal::reconstructionerrors::GainError_t& errortype, int ddlID, int hwaddress);
 
   void handlePageError(const RawDecodingError& e);
+
+  void handleMinorPageError(const RawReaderMemory::MinorError& e);
 
   header::DataHeader::SubSpecificationType mSubspecification = 0;    ///< Subspecification for output channels
   int mNoiseThreshold = 0;                                           ///< Noise threshold in raw fit
