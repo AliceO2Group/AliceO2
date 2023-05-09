@@ -12,7 +12,6 @@
 #include <sstream>
 #include <string>
 #include "EMCALReconstruction/RawReaderMemory.h"
-#include "EMCALReconstruction/RawDecodingError.h"
 #include "DetectorsRaw/RDHUtils.h"
 
 using namespace o2::emcal;
@@ -51,6 +50,7 @@ void RawReaderMemory::next()
 {
   mRawPayload.reset();
   mCurrentTrailer.reset();
+  mMinorErrors.clear();
   bool isDataTerminated = false;
   do {
     nextPage(false);
@@ -150,6 +150,9 @@ void RawReaderMemory::nextPage(bool doResetPayload)
             mCurrentTrailer.setPayloadSize(mCurrentTrailer.getPayloadSize() + trailer.getPayloadSize());
           }
           payloadWithoutTrailer = gsl::span<const uint32_t>(mRawBuffer.getDataWords().data(), mRawBuffer.getDataWords().size() - trailer.getTrailerSize());
+          if (trailer.getTrailerWordCorruptions()) {
+            mMinorErrors.emplace_back(RawDecodingError::ErrorType_t::TRAILER_INCOMPLETE, mCurrentFEE);
+          }
         } catch (RCUTrailer::Error& e) {
           throw RawDecodingError(RawDecodingError::ErrorType_t::TRAILER_DECODING, mCurrentFEE);
         }
