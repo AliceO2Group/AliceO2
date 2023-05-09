@@ -14,6 +14,7 @@
 #include <fmt/format.h>
 #include "CommonConstants/LHCConstants.h"
 #include "EMCALBase/RCUTrailer.h"
+#include <fairlogger/Logger.h>
 
 using namespace o2::emcal;
 
@@ -94,7 +95,8 @@ void RCUTrailer::constructFromRawPayload(const gsl::span<const uint32_t> payload
         mAltroConfig.mWord2 = parData & 0x1FFFFFF;
         break;
       default:
-        std::cerr << "Undefined parameter code " << parCode << ", ignore it !\n";
+        LOG(warning) << "RCU trailer: Undefined parameter code " << parCode << " in word " << index << " (0x" << std::hex << word << std::dec << "), ignoring word";
+        mWordCorruptions++;
         break;
     }
   }
