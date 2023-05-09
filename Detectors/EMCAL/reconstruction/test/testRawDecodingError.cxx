@@ -28,37 +28,39 @@ void testThrow(RawDecodingError::ErrorType_t errtype, unsigned int feeID)
 
 BOOST_AUTO_TEST_CASE(RawDecodingError_test)
 {
-  BOOST_CHECK_EQUAL(RawDecodingError::getNumberOfErrorTypes(), 7);
-  std::array<std::string, 7> errornames = {{"PageNotFound",
+  BOOST_CHECK_EQUAL(RawDecodingError::getNumberOfErrorTypes(), 8);
+  std::array<std::string, 8> errornames = {{"PageNotFound",
                                             "HeaderDecoding",
                                             "PayloadDecoding",
                                             "HeaderCorruption",
                                             "PageStartInvalid",
                                             "PayloadCorruption",
-                                            "TrailerDecoding"}},
+                                            "TrailerDecoding",
+                                            "TrailerIncomplete"}},
                              errortitles = {{"Page not found",
                                              "Header decoding",
                                              "Payload decoding",
                                              "Header corruption",
                                              "Page start invalid",
                                              "Payload corruption",
-                                             "Trailer decoding"}},
+                                             "Trailer decoding",
+                                             "Trailer incomplete"}},
                              errordescriptions = {{"Page with requested index not found",
                                                    "RDH of page cannot be decoded",
                                                    "Payload of page cannot be decoded",
                                                    "Access to header not belonging to requested superpage",
                                                    "Page decoding starting outside payload size",
                                                    "Access to payload not belonging to requested superpage",
-                                                   "Inconsistent trailer in memory"}};
-  std::array<RawDecodingError::ErrorType_t, 7> errortypes = {{
-    RawDecodingError::ErrorType_t::PAGE_NOTFOUND,
-    RawDecodingError::ErrorType_t::HEADER_DECODING,
-    RawDecodingError::ErrorType_t::PAYLOAD_DECODING,
-    RawDecodingError::ErrorType_t::HEADER_INVALID,
-    RawDecodingError::ErrorType_t::PAGE_START_INVALID,
-    RawDecodingError::ErrorType_t::PAYLOAD_INVALID,
-    RawDecodingError::ErrorType_t::TRAILER_DECODING,
-  }};
+                                                   "Inconsistent trailer in memory",
+                                                   "Incomplete trailer"}};
+  std::array<RawDecodingError::ErrorType_t, 8> errortypes = {{RawDecodingError::ErrorType_t::PAGE_NOTFOUND,
+                                                              RawDecodingError::ErrorType_t::HEADER_DECODING,
+                                                              RawDecodingError::ErrorType_t::PAYLOAD_DECODING,
+                                                              RawDecodingError::ErrorType_t::HEADER_INVALID,
+                                                              RawDecodingError::ErrorType_t::PAGE_START_INVALID,
+                                                              RawDecodingError::ErrorType_t::PAYLOAD_INVALID,
+                                                              RawDecodingError::ErrorType_t::TRAILER_DECODING,
+                                                              RawDecodingError::ErrorType_t::TRAILER_INCOMPLETE}};
   for (int errortype = 0; errortype < RawDecodingError::getNumberOfErrorTypes(); errortype++) {
     BOOST_CHECK_EQUAL(RawDecodingError::ErrorTypeToInt(errortypes[errortype]), errortype);
     BOOST_CHECK_EQUAL(RawDecodingError::intToErrorType(errortype), errortypes[errortype]);
