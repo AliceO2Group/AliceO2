@@ -1429,7 +1429,7 @@ class Table
     return t;
   }
 
-  auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
+  auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache) const
   {
     auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
     auto [offset, count] = localCache.getSliceFor(value);
@@ -1438,7 +1438,7 @@ class Table
     return t;
   }
 
-  auto sliceByCachedUnsorted(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
+  auto sliceByCachedUnsorted(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache) const
   {
     auto localCache = cache.ptr->getCacheUnsortedFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
     auto t = soa::Filtered<table_t>({this->asArrowTable()}, localCache.getSliceFor(value));
@@ -2387,7 +2387,7 @@ struct Join : JoinBase<Ts...> {
   using filtered_iterator = typename table_t::template RowViewFiltered<FilteredBase<Join<Ts...>>, Ts...>;
   using filtered_const_iterator = filtered_iterator;
 
-  auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
+  auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache) const
   {
     auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
     auto [offset, count] = localCache.getSliceFor(value);
@@ -2396,7 +2396,7 @@ struct Join : JoinBase<Ts...> {
     return t;
   }
 
-  auto sliceByCachedUnsorted(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
+  auto sliceByCachedUnsorted(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache) const
   {
     auto localCache = cache.ptr->getCacheUnsortedFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
     auto t = Filtered<Join<Ts...>>({this->asArrowTable()}, localCache.getSliceFor(value));
@@ -2638,7 +2638,7 @@ class FilteredBase : public T
     return (table_t)this->sliceBy(container, value);
   }
 
-  auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
+  auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache) const
   {
     auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
     auto [offset, count] = localCache.getSliceFor(value);
@@ -2662,7 +2662,7 @@ class FilteredBase : public T
     return fresult;
   }
 
-  auto sliceByCachedUnsorted(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
+  auto sliceByCachedUnsorted(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache) const
   {
     auto localCache = cache.ptr->getCacheUnsortedFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
     auto t = std::decay_t<decltype(*this)>{{this->asArrowTable()}, localCache.getSliceFor(value)};
@@ -2884,7 +2884,7 @@ class Filtered : public FilteredBase<T>
     return operator*=(other.getSelectedRows());
   }
 
-  auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
+  auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache) const
   {
     auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
     auto [offset, count] = localCache.getSliceFor(value);
@@ -2908,7 +2908,7 @@ class Filtered : public FilteredBase<T>
     return fresult;
   }
 
-  auto sliceByCachedUnsorted(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
+  auto sliceByCachedUnsorted(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache) const
   {
     auto localCache = cache.ptr->getCacheUnsortedFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
     auto t = std::decay_t<decltype(*this)>{{this->asArrowTable()}, localCache.getSliceFor(value)};
@@ -3022,7 +3022,7 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
     return operator*=(other.getSelectedRows());
   }
 
-  auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
+  auto sliceByCached(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache) const
   {
     auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
     auto [offset, count] = localCache.getSliceFor(value);
@@ -3044,7 +3044,7 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
     return fresult;
   }
 
-  auto sliceByCachedUnsorted(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache)
+  auto sliceByCachedUnsorted(framework::expressions::BindingNode const& node, int value, o2::framework::SliceCache& cache) const
   {
     auto localCache = cache.ptr->getCacheUnsortedFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
     std::vector<Filtered<T>> filtered{Filtered<T>{{this->asArrowTable()}, localCache.getSliceFor(value)}};
