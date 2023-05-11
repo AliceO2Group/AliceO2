@@ -245,7 +245,7 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
       setTimingInfo(*tfPtr.get());
       size_t nparts = 0, dataSize = 0;
       if (mInput.sendDummyForMissing) {
-        for (auto& msgIt : *tfPtr.get()) { // complete with empty output for the specs which were requested but not seen in the data
+        for (auto& msgIt : *tfPtr.get()) { // complete with empty output for the specs which were requested but were not seen in the data
           acknowledgeOutput(*msgIt.second.get(), true);
         }
         addMissingParts(*tfPtr.get());
