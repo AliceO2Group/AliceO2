@@ -79,4 +79,9 @@ void o2::zdc::CalibParamZDC::print() const
     }
     printf("descr=%s\n", descr.data());
   }
+  if (!printed) {
+    LOG(info) << "CalibParamZDC::print()";
+    printed = true;
+  }
+  printf("modTF=%d\n", modTF);
 }

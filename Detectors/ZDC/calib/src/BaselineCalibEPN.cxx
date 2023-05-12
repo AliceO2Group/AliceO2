@@ -34,6 +34,14 @@ int BaselineCalibEPN::init()
     mModuleConfig->print();
   }
 
+  static bool firstCall = true;
+  if(firstCall){
+    firstCall = false;
+  }else{
+    // Reset data structure
+    mData.clear();
+  }
+
   mInitDone = true;
   return 0;
 }
@@ -70,6 +78,7 @@ int BaselineCalibEPN::endOfRun()
   if (mSaveDebugHistos) {
     saveDebugHistos();
   }
+  mInitDone = false;
   return 0;
 }
 

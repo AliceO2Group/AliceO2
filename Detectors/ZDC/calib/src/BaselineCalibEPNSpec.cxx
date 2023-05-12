@@ -81,6 +81,17 @@ void BaselineCalibEPNSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matc
 
 void BaselineCalibEPNSpec::run(ProcessingContext& pc)
 {
+  const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
+  if (tinfo.globalRunNumberChanged) { // new run is starting
+    mRunStopRequested = false;
+    mInitialized = false;
+    mWorker.resetInitFlag();
+  }
+
+  if (mRunStopRequested) {
+    return;
+  }
+
   if (!mInitialized) {
     mInitialized = true;
     updateTimeDependentParams(pc);
@@ -96,18 +107,38 @@ void BaselineCalibEPNSpec::run(ProcessingContext& pc)
 
   // Process reconstructed data
   mWorker.process(peds);
+  mProcessed++;
 
-  // Send intermediate calibration data
-  auto& summary = mWorker.mData.getSummary();
-  o2::framework::Output outputData("ZDC", "BASECALIBDATA", 0, Lifetime::Timeframe);
-  pc.outputs().snapshot(outputData, summary);
+  // Non va bene. Deve essere eseguito in modo coerente
+  if (mModTF == 0 || mProcessed >= mModTF || pc.transitionState() == TransitionHandlingState::Requested) {
+    // Send intermediate calibration data
+    auto& summary = mWorker.mData.getSummary();
+    o2::framework::Output outputData("ZDC", "BASECALIBDATA", 0, Lifetime::Timeframe); // Da cambiare?
+    pc.outputs().snapshot(outputData, summary);
+    if(pc.transitionState() == TransitionHandlingState::Requested){
+      // End of processing for this run
+      mWorker.endOfRun();
+      mRunStopRequested = true;
+    }else{
+      // Prepare to process other time frames
+      mWorker.resetInitFlag();
+    }
+  }
 }
 
 void BaselineCalibEPNSpec::endOfStream(EndOfStreamContext& ec)
 {
+  if (mRunStopRequested) {
+    return;
+  }
+  // Send intermediate calibration data
+  auto& summary = mWorker.mData.getSummary();
+  o2::framework::Output outputData("ZDC", "BASECALIBDATA", 0, Lifetime::Timeframe);
+  ec.outputs().snapshot(outputData, summary);
   mWorker.endOfRun();
   mTimer.Stop();
   LOGF(info, "ZDC EPN Baseline calibration total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+  mRunStopRequested = true;
 }
 
 framework::DataProcessorSpec getBaselineCalibEPNSpec()
