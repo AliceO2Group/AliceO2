@@ -81,6 +81,9 @@ TOF_CHANNELOFFSETS_UPDATE=300000
 TOF_CHANNELOFFSETS_DELTA_UPDATE=50000
 : ${FT0_TIMEOFFSET_TF_PER_SLOT:=105600}
 : ${FT0_INTEGRATEDCURR_TF_PER_SLOT:=10000}
+: ${FV0_INTEGRATEDCURR_TF_PER_SLOT:=10000}
+: ${FDD_INTEGRATEDCURR_TF_PER_SLOT:=10000}
+: ${TOF_INTEGRATEDCURR_TF_PER_SLOT:=10000}
 
 if [[ $BEAMTYPE == "PbPb" ]]; then
   LHCPHASE_TF_PER_SLOT=264
@@ -224,6 +227,10 @@ if [[ $AGGREGATOR_TASKS == BARREL_SPORADIC ]] || [[ $AGGREGATOR_TASKS == ALL ]];
   if [[ $CALIB_TPC_RESPADGAIN == 1 ]]; then
     add_W o2-tpc-calibrator-gainmap-tracks "--tf-per-slot 10000 --store-RMS-CCDB true"
   fi
+  # TOF
+  if [[ $CALIB_TOF_INTEGRATEDCURR == 1 ]]; then
+    add_W o2-tof-merge-integrate-cluster-workflow "--tf-per-slot $TOF_INTEGRATEDCURR_TF_PER_SLOT"
+  fi
 fi
 
 # TPC IDCs and SAC
@@ -299,6 +306,14 @@ if [[ $AGGREGATOR_TASKS == FORWARD_SPORADIC || $AGGREGATOR_TASKS == ALL ]]; then
   # FT0
   if [[ $CALIB_FT0_INTEGRATEDCURR == 1 ]]; then
     add_W o2-ft0-merge-integrate-cluster-workflow "--tf-per-slot $FT0_INTEGRATEDCURR_TF_PER_SLOT"
+  fi
+  # FV0
+  if [[ $CALIB_FV0_INTEGRATEDCURR == 1 ]]; then
+    add_W o2-fv0-merge-integrate-cluster-workflow "--tf-per-slot $FV0_INTEGRATEDCURR_TF_PER_SLOT"
+  fi
+  # FDD
+  if [[ $CALIB_FDD_INTEGRATEDCURR == 1 ]]; then
+    add_W o2-fdd-merge-integrate-cluster-workflow "--tf-per-slot $FDD_INTEGRATEDCURR_TF_PER_SLOT"
   fi
 fi
 

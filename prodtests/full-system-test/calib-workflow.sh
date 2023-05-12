@@ -34,6 +34,9 @@ if [[ $CALIB_FT0_TIMEOFFSET == 1 ]]; then add_W o2-calibration-ft0-time-spectra-
 
 # current integration
 if [[ $CALIB_FT0_INTEGRATEDCURR == 1 ]]; then add_W o2-ft0-integrate-cluster-workflow "$DISABLE_ROOT_OUTPUT"; fi
+if [[ $CALIB_FV0_INTEGRATEDCURR == 1 ]]; then add_W o2-fv0-integrate-cluster-workflow "$DISABLE_ROOT_OUTPUT"; fi
+if [[ $CALIB_FDD_INTEGRATEDCURR == 1 ]]; then add_W o2-fdd-integrate-cluster-workflow "$DISABLE_ROOT_OUTPUT"; fi
+if [[ $CALIB_TOF_INTEGRATEDCURR == 1 ]]; then add_W o2-tof-integrate-cluster-workflow "$DISABLE_ROOT_OUTPUT"; fi
 
 # for async calibrations
 if [[ $CALIB_EMC_ASYNC_RECALIB == 1 ]]; then add_W o2-emcal-emc-offline-calib-workflow "--input-subspec 1 --applyGainCalib"; fi
