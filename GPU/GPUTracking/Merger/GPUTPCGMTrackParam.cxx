@@ -371,8 +371,8 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
   }
   ConstrainSinPhi();
 
-  GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamUpdateTrack, (size_t)this)) {
-    o2::utils::DebugStreamer::instance()->getStreamer("debug_accept_track", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("debug_accept_track").data() << "iTrk=" << iTrk << "outerParam=" << outerParam << "track=" << this << "ihitStart=" << ihitStart << "\n";
+  GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamUpdateTrack, iTrk)) {
+    o2::utils::DebugStreamer::instance()->getStreamer("debug_accept_track", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("debug_accept_track").data() << "iTrk=" << iTrk << "outerParam=" << *outerParam << "track=" << this << "ihitStart=" << ihitStart << "\n";
   })
 
   if (!(N + NTolerated >= GPUCA_TRACKLET_SELECTOR_MIN_HITS_B5(mP[4] * merger->Param().qptB5Scaler) && 2 * NTolerated <= CAMath::Max(10, N) && CheckNumericalQuality(covYYUpd))) {

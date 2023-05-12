@@ -338,7 +338,7 @@ void Decoder::clearDecodedData()
     auto& data = mDecodedData.data;
     const auto posGood = mDecodedData.getNGoodEntries();
     LOGP(info, "Clearing data of size {}, firstTS {}, lastTS {}",
-         posGood, data.front().time, (posGood > 0) ? data[posGood - 1].time : 0);
+         posGood, (data.size() > 0) ? data.front().time : -1, (posGood > 0) ? data[posGood - 1].time : 0);
   }
   mDecodedData.clearGoodData();
 }

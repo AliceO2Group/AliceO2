@@ -881,6 +881,8 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
   int region = cruid % 10;
   decPagePtr += decHDR->firstZSDataOffset - sizeof(o2::header::RAWDataHeader);
   std::vector<unsigned char> tmpBuffer;
+  bool extendFailure = false;
+  unsigned int nOutput = 0;
   for (unsigned int i = 0; i < decHDR->nTimebinHeaders; i++) {
     int sizeLeftInPage = payloadEnd - decPagePtr;
     if (sizeLeftInPage <= 0) {
@@ -895,6 +897,8 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
       const o2::header::RAWDataHeader* rdhNext = (const o2::header::RAWDataHeader*)pageNext;
 
       if ((unsigned char)(o2::raw::RDHUtils::getPacketCounter(*rdh) + 1) != o2::raw::RDHUtils::getPacketCounter(*rdhNext)) {
+        fprintf(stderr, "Incomplete HBF: Payload extended to next page, but next page missing in stream\n");
+        extendFailure = true;
         decPagePtr = payloadEnd; // Next 8kb page is missing in stream, cannot decode remaining data, skip it
         break;
       }
@@ -975,13 +979,25 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
           const auto padSecPos = mapper.padSecPos(cruid, decLink, sampaOnFEC, channelOnSAMPA);
           const auto& padPos = padSecPos.getPadPos();
           outputBuffer.emplace_back(o2::tpc::Digit{cruid, samples[samplePos++] * decodeBitsFactor, (tpccf::Row)padPos.getRow(), (tpccf::Pad)padPos.getPad(), timeBin});
+          nOutput++;
         }
       }
     }
   }
-  if (payloadEnd - decPagePtr < 0 || payloadEnd - decPagePtr >= 2 * o2::raw::RDHUtils::GBTWord128) {
+  if (!extendFailure && nOutput != decHDR->nADCsamples) {
     std::ostringstream oss;
-    oss << "Decoding didn't reach end of page (payloadEnd " << (void*)payloadEnd << " - decPagePtr " << (void*)decPagePtr << " - " << (payloadEnd - decPagePtr) << " bytes left)";
+    oss << "Number of decoded digits " << nOutput << " does not match value from MetaInfo " << decHDR->nADCsamples;
+    throw std::runtime_error(oss.str());
+  }
+  if (decHDR->nTimebinHeaders && payloadEnd - decPagePtr < 0) {
+    std::ostringstream oss;
+    oss << "Decoding ran over end of page (payloadEnd " << (void*)payloadEnd << " - decPagePtr " << (void*)decPagePtr << " - " << (payloadEnd - decPagePtr) << " bytes left, " << nOutput << " of " << decHDR->nADCsamples << " digits decoded)";
+    fprintf(stderr, "FOO nHeaders %d payload %d size %d\n", (int)decHDR->nTimebinHeaders, (int)decHDR->firstZSDataOffset, (int)o2::raw::RDHUtils::getMemorySize(*rdh));
+    throw std::runtime_error(oss.str());
+  }
+  if (decHDR->nTimebinHeaders && payloadEnd - decPagePtr >= 2 * o2::raw::RDHUtils::GBTWord128) {
+    std::ostringstream oss;
+    oss << "Decoding didn't reach end of page (payloadEnd " << (void*)payloadEnd << " - decPagePtr " << (void*)decPagePtr << " - " << (payloadEnd - decPagePtr) << " bytes left, " << nOutput << " of " << decHDR->nADCsamples << " digits decoded)";
     throw std::runtime_error(oss.str());
   }
 }
@@ -1260,11 +1276,14 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
   unsigned int totalPages = 0;
   size_t totalSize = 0;
   size_t nErrors = 0;
+  size_t digitsInput = 0;
+  size_t digitsEncoded = 0;
   // clang-format off
-  GPUCA_OPENMP(parallel for reduction(+ : totalPages, nErrors, totalSize))
+  GPUCA_OPENMP(parallel for reduction(+ : totalPages, nErrors, totalSize, digitsInput, digitsEncoded))
   // clang-format on
   for (unsigned int i = 0; i < NSLICES; i++) {
     std::vector<o2::tpc::Digit> tmpBuffer;
+    digitsInput += ZSEncoderGetNDigits(in, i);
     tmpBuffer.resize(ZSEncoderGetNDigits(in, i));
     if (threshold > 0.f && !digitsFilter) {
       auto it = std::copy_if(ZSEncoderGetDigits(in, i), ZSEncoderGetDigits(in, i) + ZSEncoderGetNDigits(in, i), tmpBuffer.begin(), [threshold](auto& v) { return v.getChargeFloat() >= threshold; });
@@ -1282,6 +1301,7 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
         tmpBuffer.resize(std::distance(tmpBuffer.begin(), it));
       }
     }
+    digitsEncoded += tmpBuffer.size();
 
     auto runZS = [&](auto& encoder) {
       encoder.zsVersion = version;
@@ -1328,7 +1348,7 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
   } else if (verify) {
     printf("ENCODING VERIFICATION PASSED\n");
   }
-  printf("TOTAL ENCODED SIZE: %lu\n", totalSize);
+  printf("TOTAL ENCODED SIZE: %lu (%lu of %lu digits encoded)\n", totalSize, digitsEncoded, digitsInput);
 #endif
 }
 

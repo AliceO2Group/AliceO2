@@ -13,6 +13,7 @@
 #define O2_MCH_RAW_BITSET_H
 
 #include <cstdlib>
+#include <cstdint>
 #include <gsl/span>
 #include <iostream>
 #include <string>
