@@ -114,12 +114,18 @@ bool Compressor<RDH, verbose, paranoid>::processHBF()
               << std::endl;
   }
 
-  uint8_t rdhFormat = o2::raw::RDHUtils::getDataFormat(mDecoderPointer);
-  setDecoderCRUZEROES(!rdhFormat);
-
   mDecoderRDH = reinterpret_cast<const RDH*>(mDecoderPointer);
   mEncoderRDH = reinterpret_cast<RDH*>(mEncoderPointer);
   auto rdh = mDecoderRDH;
+
+  if (!o2::raw::RDHUtils::checkRDH(rdh, false)) {
+    LOG(error) << "Bad RDH found in TOF compressor -> skip it";
+    o2::raw::RDHUtils::checkRDH(rdh, true);
+    return true;
+  }
+
+  uint8_t rdhFormat = o2::raw::RDHUtils::getDataFormat(mDecoderPointer);
+  setDecoderCRUZEROES(!rdhFormat);
 
   /** check that we got the first RDH open **/
   if (!rdh || rdh->stop || rdh->pageCnt != 0) {
@@ -156,6 +162,17 @@ bool Compressor<RDH, verbose, paranoid>::processHBF()
     auto memorySize = rdh->memorySize;
     auto offsetToNext = rdh->offsetToNext;
     auto drmPayload = memorySize - headerSize;
+
+    if (drmPayload < 0) {
+      LOG(error) << "link = " << rdh->feeId << ": memorySize  < headerSize (" << memorySize << " < " << headerSize << ")";
+      return true;
+    }
+
+    if (mDecoderSaveBufferDataSize + drmPayload >= mDecoderSaveBufferSize) {
+      // avoid to allocate memory out of the buffer
+      LOG(error) << "link = " << rdh->feeId << ": beyond the buffer size " << mDecoderSaveBufferSize;
+      return true;
+    }
 
     /** copy DRM payload to save buffer **/
     std::memcpy(mDecoderSaveBuffer + mDecoderSaveBufferDataSize, reinterpret_cast<const char*>(rdh) + headerSize, drmPayload);
