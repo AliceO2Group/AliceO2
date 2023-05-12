@@ -61,7 +61,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   rinp.maxLoops = configcontext.options().get<int>("loop");
   int n = configcontext.options().get<int>("max-tf");
   rinp.maxTFs = n > 0 ? n : 0x7fffffff;
-  rinp.detList = configcontext.options().get<std::string>("onlyDet");
+  auto detlistSelect = configcontext.options().get<std::string>("onlyDet");
+  if (detlistSelect == "all") {
+    // Exclude FOCAL from default detlist (must be selected on request)
+    auto msk = o2::detectors::DetID::getMask("all") & ~o2::detectors::DetID::getMask("FOC");
+    rinp.detList = o2::detectors::DetID::getNames(msk);
+  } else {
+    rinp.detList = detlistSelect;
+  }
   rinp.detListRawOnly = configcontext.options().get<std::string>("raw-only-det");
   rinp.detListNonRawOnly = configcontext.options().get<std::string>("non-raw-only-det");
   rinp.rawChannelConfig = configcontext.options().get<std::string>("raw-channel-config");
