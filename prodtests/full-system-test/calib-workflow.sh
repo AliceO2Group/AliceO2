@@ -31,6 +31,10 @@ if [[ $CALIB_TPC_RESPADGAIN == 1 ]]; then
 fi
 if [[ $CALIB_ZDC_TDC == 1 ]]; then add_W o2-zdc-tdccalib-epn-workflow "" "" 0; fi
 if [[ $CALIB_FT0_TIMEOFFSET == 1 ]]; then add_W o2-calibration-ft0-time-spectra-processor; fi
+
+# current integration
+if [[ $CALIB_FT0_INTEGRATEDCURR == 1 ]]; then add_W o2-ft0-integrate-cluster-workflow "$DISABLE_ROOT_OUTPUT"; fi
+
 # for async calibrations
 if [[ $CALIB_EMC_ASYNC_RECALIB == 1 ]]; then add_W o2-emcal-emc-offline-calib-workflow "--input-subspec 1 --applyGainCalib"; fi
 
@@ -57,7 +61,9 @@ if workflow_has_parameter CALIB_PROXIES; then
   if [[ ! -z ${CALIBDATASPEC_FORWARD_TF:-} ]]; then
     add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_FORWARD_TF\" $(get_proxy_connection fwd_tf output timeframe)" "" 0
   fi
-
+  if [[ ! -z ${CALIBDATASPEC_FORWARD_SPORADIC:-} ]]; then
+    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_FORWARD_SPORADIC\" $(get_proxy_connection fwd_sp output sporadic)" "" 0
+  fi
 fi
 
 true # everything OK up to this point, so the script should return 0 (it is !=0 already if a has_detector check fails)

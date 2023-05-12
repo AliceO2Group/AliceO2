@@ -77,9 +77,10 @@ fi
 
 # beamtype dependent settings
 LHCPHASE_TF_PER_SLOT=26400
-FT0_TIMEOFFSET_TF_PER_SLOT=105600
 TOF_CHANNELOFFSETS_UPDATE=300000
 TOF_CHANNELOFFSETS_DELTA_UPDATE=50000
+: ${FT0_TIMEOFFSET_TF_PER_SLOT:=105600}
+: ${FT0_INTEGRATEDCURR_TF_PER_SLOT:=10000}
 
 if [[ $BEAMTYPE == "PbPb" ]]; then
   LHCPHASE_TF_PER_SLOT=264
@@ -171,6 +172,10 @@ if workflow_has_parameter CALIB_PROXIES; then
   elif [[ $AGGREGATOR_TASKS == FORWARD_TF ]]; then
     if [[ ! -z ${CALIBDATASPEC_FORWARD_TF:-} ]]; then
       add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_FORWARD_TF\" $(get_proxy_connection fwd_tf input timeframe)" "" 0
+    fi
+  elif [[ $AGGREGATOR_TASKS == FORWARD_SPORADIC ]]; then
+    if [[ ! -z ${CALIBDATASPEC_FORWARD_SPORADIC:-} ]]; then
+      add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_FORWARD_SPORADIC\" $(get_proxy_connection fwd_sp input sporadic)" "" 0
     fi
   fi
 fi
@@ -284,8 +289,16 @@ if [[ $AGGREGATOR_TASKS == FORWARD_TF || $AGGREGATOR_TASKS == ALL ]]; then
   if [[ $CALIB_ZDC_TDC == 1 ]]; then
     add_W o2-zdc-tdccalib-workflow "" "CalibParamZDC.outputDir=$CALIB_DIR;CalibParamZDC.metaFileDir=$EPN2EOS_METAFILES_DIR"
   fi
-  if [[ ${CALIB_FT0_TIMEOFFSET:-} == 1 ]]; then
+  # FT0
+  if [[ $CALIB_FT0_TIMEOFFSET == 1 ]]; then
     add_W o2-calibration-ft0-time-offset-calib "--tf-per-slot $FT0_TIMEOFFSET_TF_PER_SLOT --max-delay 0" "FT0CalibParam.mNExtraSlots=0;FT0CalibParam.mRebinFactorPerChID[180]=4;"
+  fi
+fi
+
+if [[ $AGGREGATOR_TASKS == FORWARD_SPORADIC || $AGGREGATOR_TASKS == ALL ]]; then
+  # FT0
+  if [[ $CALIB_FT0_INTEGRATEDCURR == 1 ]]; then
+    add_W o2-ft0-merge-integrate-cluster-workflow "--tf-per-slot $FT0_INTEGRATEDCURR_TF_PER_SLOT"
   fi
 fi
 
