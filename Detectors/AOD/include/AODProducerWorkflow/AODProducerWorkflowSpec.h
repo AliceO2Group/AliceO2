@@ -231,7 +231,7 @@ class AODProducerWorkflowDPL : public Task
 
   int mNThreads = 1;
   bool mUseMC = true;
-  bool mEnableSV = true;             // enable secondary vertices
+  bool mEnableSV = true; // enable secondary vertices
   bool mFieldON = false;
   const float cSpeed = 0.029979246f; // speed of light in TOF units
 
@@ -262,6 +262,11 @@ class AODProducerWorkflowDPL : public Task
   // unordered map connects global indices and table indices of V0s (needed for cascades references)
   std::unordered_map<GIndex, int> mV0ToTableID;
   int mTableV0ID{0};
+
+  // Strangeness tracking indices lookup tables
+  std::vector<int> mVertexStrLUT;                    /// LUT for accessing strangeness tracks for each vertex
+  std::vector<std::pair<int, int>> mCollisionStrTrk; /// collision index and original index of the strangeness track
+  std::vector<int> mStrTrkIndices;                   /// indices of strangeness tracks in the track table
 
   //  std::unordered_map<int, int> mIndexTableFwd;
   std::vector<int> mIndexTableFwd;
@@ -487,8 +492,9 @@ class AODProducerWorkflowDPL : public Task
   template <typename V0CursorType, typename CascadeCursorType, typename Decay3bodyCursorType>
   void fillSecondaryVertices(const o2::globaltracking::RecoContainer& data, V0CursorType& v0Cursor, CascadeCursorType& cascadeCursor, Decay3bodyCursorType& decay3bodyCursor);
 
-  template <typename V0C, typename CC, typename D3BC, typename TC, typename TCC, typename TEC>
-  void fillStrangenessTrackingTables(const o2::globaltracking::RecoContainer& data, V0C& v0Cursor, CC& cascadeCursor, D3BC& decay3bodyCursor, TC& tracksCursor, TCC& tracksCovCursor, TEC& tracksExtraCursor);
+  void prepareStrangenessTracking(const o2::globaltracking::RecoContainer& recoData);
+  template <typename V0C, typename CC, typename D3BC>
+  void fillStrangenessTrackingTables(const o2::globaltracking::RecoContainer& data, V0C& v0Cursor, CC& cascadeCursor, D3BC& decay3bodyCursor);
 
   template <typename MCParticlesCursorType>
   void fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader,
@@ -504,7 +510,8 @@ class AODProducerWorkflowDPL : public Task
                               const MCFwdTrackLabelCursorType& mcFwdTrackLabelCursor,
                               const o2::dataformats::VtxTrackRef& trackRef,
                               const gsl::span<const GIndex>& primVerGIs,
-                              const o2::globaltracking::RecoContainer& data);
+                              const o2::globaltracking::RecoContainer& data,
+                              int vertexId = -1);
 
   std::uint64_t fillBCSlice(int (&slice)[2], double tmin, double tmax, const std::map<uint64_t, int>& bcsMap) const;
 
@@ -548,6 +555,9 @@ class CellHelper
 
   static int16_t getCellNumber(const o2::phos::Cell& cell)
   {
+    if (cell.getTRU()) {
+      return cell.getTRUId();
+    }
     return cell.getAbsId();
   }
   // If this cell - trigger one?

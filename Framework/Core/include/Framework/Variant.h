@@ -323,6 +323,12 @@ class Variant
   ~Variant();
   Variant& operator=(const Variant& other);
   Variant& operator=(Variant&& other) noexcept;
+  template <typename T>
+  Variant& operator=(std::vector<T>&& other) noexcept
+  {
+    *this = Variant(other);
+    return *this;
+  }
 
   template <typename T>
   T get() const

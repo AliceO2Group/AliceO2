@@ -66,7 +66,8 @@ class CTFCoderBase
   template <typename SPAN>
   void setSelectedIRFrames(const SPAN& sp)
   {
-    mIRFrameSelector.setSelectedIRFrames(sp, mIRFrameSelMarginBwd, mIRFrameSelMarginFwd, true);
+    reportIRFrames();
+    mIRFrameSelector.setSelectedIRFrames(sp, mIRFrameSelMarginBwd, mIRFrameSelMarginFwd, mIRFrameSelShift, true);
   }
 
   template <typename CTF>
@@ -125,6 +126,7 @@ class CTFCoderBase
   o2::utils::IRFrameSelector& getIRFramesSelector() { return mIRFrameSelector; }
   size_t getIRFrameSelMarginBwd() const { return mIRFrameSelMarginBwd; }
   size_t getIRFrameSelMarginFwd() const { return mIRFrameSelMarginFwd; }
+  long getIRFrameSelShift() const { return mIRFrameSelShift; }
 
   void setBCShift(int64_t n) { mBCShift = n; }
   void setFirstTFOrbit(uint32_t n) { mFirstTFOrbit = n; }
@@ -134,6 +136,7 @@ class CTFCoderBase
   bool getSupportBCShifts() const { return mSupportBCShifts; }
 
  protected:
+  void reportIRFrames();
   std::string getPrefix() const { return o2::utils::Str::concat_string(mDet.getName(), "_CTF: "); }
   void checkDictVersion(const CTFDictHeader& h) const;
   bool isTreeDictionary(const void* buff) const;
@@ -158,6 +161,7 @@ class CTFCoderBase
   uint32_t mFirstTFOrbit = 0;
   size_t mIRFrameSelMarginBwd = 0; // margin in BC to add to the IRFrame lower boundary when selection is requested
   size_t mIRFrameSelMarginFwd = 0; // margin in BC to add to the IRFrame upper boundary when selection is requested
+  long mIRFrameSelShift = 0;       // Global shift of the IRFrames, to account for e.g. detector latency
   int mVerbosity = 0;
 };
 
@@ -264,6 +268,9 @@ void CTFCoderBase::init(o2::framework::InitContext& ic)
   }
   if (ic.options().hasOption("irframe-margin-fwd")) {
     mIRFrameSelMarginFwd = ic.options().get<uint32_t>("irframe-margin-fwd");
+  }
+  if (ic.options().hasOption("irframe-shift")) {
+    mIRFrameSelShift = (long)ic.options().get<int32_t>("irframe-shift");
   }
   auto dict = ic.options().get<std::string>("ctf-dict");
   if (dict.empty() || dict == "ccdb") { // load from CCDB

@@ -138,10 +138,11 @@ class CTFWriterSpec : public o2::framework::Task
   size_t mNCTF = 0;                  // total number of CTFs written
   size_t mNCTFPrevDict = 0;          // total number of CTFs used for previous dictionary version
   size_t mNAccCTF = 0;               // total number of CTFs accumulated in the current file
-  size_t mCTFAutoSave = 0;           // if > 0, autosave after so many TFs
+  long mCTFAutoSave = 0;             // if > 0, autosave after so many TFs
   size_t mNCTFFiles = 0;             // total number of CTF files written
   int mMaxCTFPerFile = 0;            // max CTFs per files to store
   int mRejRate = 0;                  // CTF rejection rule (>0: percentage to reject randomly, <0: reject if timeslice%|value|!=0)
+  int mCTFFileCompression = 0;       // CTF file compression level (if >= 0)
   std::vector<uint32_t> mTFOrbits{}; // 1st orbits of TF accumulated in current file
   o2::framework::DataTakingContext mDataTakingContext{};
   o2::framework::TimingInfo mTimingInfo{};
@@ -210,7 +211,8 @@ void CTFWriterSpec::init(InitContext& ic)
   }
 
   mSaveDictAfter = ic.options().get<int>("save-dict-after");
-  mCTFAutoSave = ic.options().get<int>("save-ctf-after");
+  mCTFAutoSave = ic.options().get<long>("save-ctf-after");
+  mCTFFileCompression = ic.options().get<int>("ctf-file-compression");
   mCTFMetaFileDir = ic.options().get<std::string>("meta-output-dir");
   if (mCTFMetaFileDir != "/dev/null") {
     mCTFMetaFileDir = o2::utils::Str::rectifyDirectory(mCTFMetaFileDir);
@@ -445,6 +447,7 @@ void CTFWriterSpec::run(ProcessingContext& pc)
 
   if (mWriteCTF && !mRejectCurrentTF) {
     szCTF += appendToTree(*mCTFTreeOut.get(), "CTFHeader", header);
+    size_t prevSizeMB = mAccCTFSize / (1 << 20);
     mAccCTFSize += szCTF;
     mCTFTreeOut->SetEntries(++mNAccCTF);
     mTFOrbits.push_back(mTimingInfo.firstTForbit);
@@ -462,7 +465,7 @@ void CTFWriterSpec::run(ProcessingContext& pc)
 
     if (mAccCTFSize >= mMinSize || (mMaxCTFPerFile > 0 && mNAccCTF >= mMaxCTFPerFile)) {
       closeTFTreeAndFile();
-    } else if (mCTFAutoSave > 0 && mNAccCTF % mCTFAutoSave == 0) {
+    } else if ((mCTFAutoSave > 0 && mNAccCTF % mCTFAutoSave == 0) || (mCTFAutoSave < 0 && int(prevSizeMB / (-mCTFAutoSave)) != size_t(mAccCTFSize / (1 << 20)) / (-mCTFAutoSave))) {
       mCTFTreeOut->AutoSave("override");
     }
   } else {
@@ -535,6 +538,9 @@ void CTFWriterSpec::prepareTFTreeAndFile()
     mCurrentCTFFileName = o2::base::NameConf::getCTFFileName(mTimingInfo.runNumber, mTimingInfo.firstTForbit, mTimingInfo.tfCounter, mHostName);
     mCurrentCTFFileNameFull = fmt::format("{}{}", ctfDir, mCurrentCTFFileName);
     mCTFFileOut.reset(TFile::Open(fmt::format("{}{}", mCurrentCTFFileNameFull, TMPFileEnding).c_str(), "recreate")); // to prevent premature external usage, use temporary name
+    if (mCTFFileCompression >= 0) {
+      mCTFFileOut->SetCompressionLevel(mCTFFileCompression);
+    }
     mCTFTreeOut = std::make_unique<TTree>(std::string(o2::base::NameConf::CTFTREENAME).c_str(), "O2 CTF tree");
 
     mNCTFFiles++;
@@ -733,7 +739,7 @@ DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, const std::string& outTyp
     Outputs{},
     AlgorithmSpec{adaptFromTask<CTFWriterSpec>(dets, outType, verbosity, reportInterval)}, // RS FIXME once global/local options clash is solved, --output-type will become device option
     Options{                                                                               //{"output-type", VariantType::String, "ctf", {"output types: ctf (per TF) or dict (create dictionaries) or both or none"}},
-            {"save-ctf-after", VariantType::Int, 0, {"if > 0, autosave CTF tree with multiple CTFs after every N CTFs"}},
+            {"save-ctf-after", VariantType::Int64, 0ll, {"autosave CTF tree with multiple CTFs after every N CTFs if >0 or every -N MBytes if < 0"}},
             {"save-dict-after", VariantType::Int, 0, {"if > 0, in dictionary generation mode save it dictionary after certain number of TFs processed"}},
             {"ctf-dict-dir", VariantType::String, "none", {"CTF dictionary directory, must exist"}},
             {"output-dir", VariantType::String, "none", {"CTF output directory, must exist"}},
@@ -743,6 +749,7 @@ DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, const std::string& outTyp
             {"max-file-size", VariantType::Int64, 0l, {"if > 0, try to avoid exceeding given file size, also used for space check"}},
             {"max-ctf-per-file", VariantType::Int, 0, {"if > 0, avoid storing more than requested CTFs per file"}},
             {"ctf-rejection", VariantType::Int, 0, {">0: percentage to reject randomly, <0: reject if timeslice%|value|!=0"}},
+            {"ctf-file-compression", VariantType::Int, 0, {"if >= 0: impose CTF file compression level"}},
             {"ignore-partition-run-dir", VariantType::Bool, false, {"Do not creare partition-run directory in output-dir"}}}};
 }
 

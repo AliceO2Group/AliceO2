@@ -59,12 +59,12 @@ struct GroupedCombinationsGenerator {
     using pointer = GroupedIteratorType*;
     using iterator_category = std::forward_iterator_tag;
 
-    GroupedIterator(const GroupingPolicy& groupingPolicy, SliceCache* cache_ = nullptr)
+    GroupedIterator(const GroupingPolicy& groupingPolicy, SliceCache* cache_)
       : GroupingPolicy(groupingPolicy), mIndexColumns{getMatchingIndexNode<G, As>()...}, cache{cache_}
     {
     }
     template <typename... T2s>
-    GroupedIterator(const GroupingPolicy& groupingPolicy, const G& grouping, std::tuple<T2s...>& associated, SliceCache* cache_ = nullptr)
+    GroupedIterator(const GroupingPolicy& groupingPolicy, const G& grouping, std::tuple<T2s...>& associated, SliceCache* cache_)
       : GroupingPolicy(groupingPolicy),
         mGrouping{std::make_shared<G>(std::vector{grouping.asArrowTable()})},
         mAssociated{std::make_shared<std::tuple<As...>>(std::make_tuple(std::get<has_type_at<As>(pack<T2s...>{})>(associated)...))},
@@ -165,9 +165,6 @@ struct GroupedCombinationsGenerator {
       if (std::get<I>(*mAssociated).size() == 0) {
         return std::get<I>(*mAssociated);
       }
-      if (cache == nullptr) {
-        return std::get<I>(*mAssociated).sliceByCached(mIndexColumns[I], ind);
-      }
       return std::get<I>(*mAssociated).sliceByCached(mIndexColumns[I], ind, *cache);
     }
 
@@ -208,11 +205,11 @@ struct GroupedCombinationsGenerator {
     return iterator(mEnd);
   }
 
-  GroupedCombinationsGenerator(const BP& binningPolicy, int catNeighbours, const T1& outsider, SliceCache* cache = nullptr)
+  GroupedCombinationsGenerator(const BP& binningPolicy, int catNeighbours, const T1& outsider, SliceCache* cache)
     : mBegin(GroupingPolicy(binningPolicy, catNeighbours, outsider), cache),
       mEnd(GroupingPolicy(binningPolicy, catNeighbours, outsider), cache) {}
   template <typename... T2s>
-  GroupedCombinationsGenerator(const BP& binningPolicy, int catNeighbours, const T1& outsider, G& grouping, std::tuple<T2s...>& associated, SliceCache* cache = nullptr)
+  GroupedCombinationsGenerator(const BP& binningPolicy, int catNeighbours, const T1& outsider, G& grouping, std::tuple<T2s...>& associated, SliceCache* cache)
     : GroupedCombinationsGenerator(binningPolicy, catNeighbours, outsider, cache)
   {
     setTables(grouping, associated);

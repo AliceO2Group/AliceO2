@@ -32,7 +32,9 @@ namespace itsmft
 void RUDecodeData::clear()
 {
   for (int i = ruInfo->nCables; i--;) {
-    cableData[i].clear();
+    if (cableLinkPtr[i] && !cableLinkPtr[i]->rofJumpWasSeen) {
+      cableData[i].clear();
+    }
   }
   nChipsFired = 0;
   nNonEmptyLinks = 0;
@@ -94,6 +96,9 @@ bool RUDecodeData::checkLinkInSync(int icab, const o2::InteractionRecord ir)
   auto* link = cableLinkPtr[icab];
   if (link->ir == ir) {
     link->rofJumpWasSeen = false;
+    return true;
+  }
+  if (link->statusInTF == GBTLink::CollectedDataStatus::None || link->statusInTF == GBTLink::CollectedDataStatus::StoppedOnEndOfData) { // link was not seen in this TF or data was over
     return true;
   }
   // apparently there was desynchronization

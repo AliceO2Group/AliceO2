@@ -29,6 +29,8 @@ namespace framework
 class ProcessingContext;
 class ConcreteDataMatcher;
 class InputSpec;
+class ConfigParamSpec;
+class InitContext;
 } // namespace framework
 
 namespace tpc
@@ -43,10 +45,15 @@ class CorrectionMapsLoader : public o2::gpu::CorrectionMapsHelper
 
 #ifndef GPUCA_GPUCODE_DEVICE
   bool accountCCDBInputs(const o2::framework::ConcreteDataMatcher& matcher, void* obj);
-  static void requestCCDBInputs(std::vector<o2::framework::InputSpec>& inputs);
-  static void extractCCDBInputs(o2::framework::ProcessingContext& pc);
-  static void addInput(std::vector<o2::framework::InputSpec>& inputs, o2::framework::InputSpec&& isp);
+  void extractCCDBInputs(o2::framework::ProcessingContext& pc);
   void updateVDrift(float vdriftCorr, float vdrifRef, float driftTimeOffset = 0);
+  void init(o2::framework::InitContext& ic);
+  static void requestCCDBInputs(std::vector<o2::framework::InputSpec>& inputs, std::vector<o2::framework::ConfigParamSpec>& options, bool requestCTPLumi = false);
+  static void addOptions(std::vector<o2::framework::ConfigParamSpec>& options);
+
+ protected:
+  static void addOption(std::vector<o2::framework::ConfigParamSpec>& options, o2::framework::ConfigParamSpec&& osp);
+  static void addInput(std::vector<o2::framework::InputSpec>& inputs, o2::framework::InputSpec&& isp);
 #endif
 };
 

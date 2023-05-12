@@ -34,6 +34,7 @@ struct CTFReaderInp {
   std::vector<int> ctfIDs{};
   bool skipSkimmedOutTF = false;
   bool allowMissingDetectors = false;
+  bool checkTFLimitBeforeReading = false;
   bool sup0xccdb = false;
   int maxFileCache = 1;
   int64_t delay_us = 0;
@@ -41,7 +42,7 @@ struct CTFReaderInp {
   int maxTFs = -1;
   unsigned int subspec = 0;
   unsigned int decSSpecEMC = 0;
-  int tfRateLimit = 0;
+  int tfRateLimit = -999;
   size_t minSHM = 0;
 };
 

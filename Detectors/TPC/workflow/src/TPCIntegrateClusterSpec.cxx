@@ -64,7 +64,7 @@ class TPCIntegrateClusters : public Task
     const auto& clusters = getWorkflowTPCInput(pc);
     const o2::tpc::ClusterNativeAccess& clIndex = clusters->clusterIndex;
     const auto nCL = clIndex.nClustersTotal;
-    LOGP(info, "Processing TF {} with {} clusters", processing_helpers::getCurrentTF(pc), nCL);
+    LOGP(detail, "Processing TF {} with {} clusters", processing_helpers::getCurrentTF(pc), nCL);
 
     // init only once
     if (mInitICCBuffer) {

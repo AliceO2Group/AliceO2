@@ -54,6 +54,7 @@ DataSet createData(std::vector<InputSpec> const& inputspecs, std::vector<DataHea
       if (amendRdh) {
         amendRdh(*header);
       }
+      header->memorySize = PAGESIZE;
       header->offsetToNext = PAGESIZE;
       *reinterpret_cast<decltype(value)*>(wrtptr + header->headerSize) = value;
       wrtptr += PAGESIZE;

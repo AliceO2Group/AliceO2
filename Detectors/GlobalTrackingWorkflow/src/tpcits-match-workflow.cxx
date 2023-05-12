@@ -37,6 +37,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{
     {"use-ft0", o2::framework::VariantType::Bool, false, {"use FT0 in matching"}},
+    {"require-ctp-lumi", o2::framework::VariantType::Bool, false, {"require CTP lumi for TPC correction scaling"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
@@ -77,9 +78,13 @@ WorkflowSpec defineDataProcessing(o2::framework::ConfigContext const& configcont
   if (useFT0) {
     src |= GID::getSourceMask(GID::FT0);
   }
+  auto requireCTPLumi = configcontext.options().get<bool>("require-ctp-lumi");
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto calib = configcontext.options().get<bool>("produce-calibration-data");
   auto srcL = src | GID::getSourcesMask("ITS,TPC"); // ITS is neadded always, TPC must be loaded even if bare TPC tracks are not used in matching
+  if (requireCTPLumi) {
+    srcL = srcL | GID::getSourcesMask("CTP");
+  }
 
   o2::framework::WorkflowSpec specs;
   specs.emplace_back(o2::globaltracking::getTPCITSMatchingSpec(srcL, useFT0, calib, !GID::includesSource(GID::TPC, src), useMC));

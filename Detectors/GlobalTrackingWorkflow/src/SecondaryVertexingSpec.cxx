@@ -81,6 +81,7 @@ void SecondaryVertexingSpec::init(InitContext& ic)
   mVertexer.setEnableCascades(mEnableCascades);
   mVertexer.setEnable3BodyDecays(mEnable3BodyVertices);
   mVertexer.setNThreads(ic.options().get<int>("threads"));
+  mTPCCorrMapsLoader.init(ic);
 }
 
 void SecondaryVertexingSpec::run(ProcessingContext& pc)
@@ -130,7 +131,7 @@ void SecondaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   mTPCVDriftHelper.extractCCDBInputs(pc);
-  o2::tpc::CorrectionMapsLoader::extractCCDBInputs(pc);
+  mTPCCorrMapsLoader.extractCCDBInputs(pc);
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
@@ -163,6 +164,9 @@ void SecondaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
 DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCasc, bool enable3body)
 {
   std::vector<OutputSpec> outputs;
+  Options opts{
+    {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}},
+    {"threads", VariantType::Int, 1, {"Number of threads"}}};
   auto dataRequest = std::make_shared<DataRequest>();
 
   bool useMC = false;
@@ -177,7 +181,7 @@ DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCas
                                                               dataRequest->inputs,
                                                               true);
   o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
-  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs);
+  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs, opts, src[GTrackID::CTP]);
 
   outputs.emplace_back("GLO", "V0S", 0, Lifetime::Timeframe);            // found V0s
   outputs.emplace_back("GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe);    // prim.vertex -> V0s refs
@@ -191,8 +195,7 @@ DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCas
     dataRequest->inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<SecondaryVertexingSpec>(dataRequest, ggRequest, enableCasc, enable3body)},
-    Options{{"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}},
-            {"threads", VariantType::Int, 1, {"Number of threads"}}}};
+    opts};
 }
 
 } // namespace vertexing

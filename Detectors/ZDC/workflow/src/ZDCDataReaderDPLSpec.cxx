@@ -86,7 +86,7 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
   DPLRawParser parser(pc.inputs(), o2::framework::select("zdc:ZDC/RAWDATA"));
 
   uint64_t count = 0;
-  static uint64_t nErr[3] = {0};
+  static uint64_t nErr[4] = {0};
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
     // Processing each page
     auto rdhPtr = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
@@ -105,10 +105,14 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
       } else {
         gsl::span<const uint8_t> payload(it.data(), it.size());
         auto lid = o2::raw::RDHUtils::getLinkID(rdhPtr);
+        auto dataFormat = o2::raw::RDHUtils::getDataFormat(rdhPtr);
 #ifdef O2_ZDC_DEBUG
         LOG(info) << count << " processBinaryData: size=" << it.size() << " link=" << lid;
 #endif
-        mRawReader.processBinaryData(payload, lid);
+        if (mRawReader.processBinaryData(payload, lid, dataFormat)) {
+          nErr[3]++;
+          break;
+        }
       }
     }
     count++;
@@ -123,10 +127,10 @@ void ZDCDataReaderDPLSpec::run(ProcessingContext& pc)
   if (nErr[2] > 0) {
     LOG(warning) << "ZDCDataReaderDPLSpec::run - No payload occurrences " << nErr[2];
   }
-  if (nErr[0] == 0) {
+  if (nErr[0] == 0 && nErr[3] == 0) {
     mRawReader.accumulateDigits();
   } else {
-    LOG(warning) << "Not sending output ";
+    LOG(warning) << "Not sending output";
   }
   mRawReader.makeSnapshot(pc);
 }

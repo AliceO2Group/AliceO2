@@ -86,13 +86,6 @@ void CreateDictionariesITS3(bool saveDeltas = false,
     LOGP(info, "Loaded external cluster dictionary with {} entries from {}", clusDictOld.getSize(), clusDictFile);
   }
 
-  static SegmentationSuperAlpide segmentations[6]{SegmentationSuperAlpide(0),
-                                                  SegmentationSuperAlpide(0),
-                                                  SegmentationSuperAlpide(1),
-                                                  SegmentationSuperAlpide(1),
-                                                  SegmentationSuperAlpide(2),
-                                                  SegmentationSuperAlpide(2)}; // TODO: fix NLayers
-
   TFile* fout = nullptr;
   TNtuple* nt = nullptr;
   if (saveDeltas) {
@@ -109,6 +102,13 @@ void CreateDictionariesITS3(bool saveDeltas = false,
   auto gman = o2::its::GeometryTGeo::Instance();
   gman->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot,
                                                  o2::math_utils::TransformType::L2G)); // request cached transforms
+
+  std::vector<SegmentationSuperAlpide> segs{};
+  for (int iLayer{0}; iLayer < gman->getNumberOfLayers() - 4; ++iLayer) {
+    for (int iChip{0}; iChip < gman->getNumberOfChipsPerLayer(iLayer); ++iChip) {
+      segs.push_back(SegmentationSuperAlpide(iLayer));
+    }
+  }
 
   // Hits
   TFile* fileH = nullptr;
@@ -273,12 +273,12 @@ void CreateDictionariesITS3(bool saveDeltas = false,
                 locH.SetXYZ(0.5 * (locH.X() + locHsta.X()), 0.5 * (locH.Y() + locHsta.Y()), 0.5 * (locH.Z() + locHsta.Z()));
                 const auto locC = o2::its3::TopologyDictionary::getClusterCoordinates(cluster, pattern, false);
                 float locXflat, locYflat;
-                if (cluster.getSensorID() < 6)
-                  segmentations[cluster.getSensorID()].curvedToFlat(locC.X(), locC.Y(), locXflat, locYflat);
+                if (cluster.getSensorID() < segs.size())
+                  segs[cluster.getSensorID()].curvedToFlat(locC.X(), locC.Y(), locXflat, locYflat);
                 dX = locH.X() - locC.X();
                 dZ = locH.Z() - locC.Z();
-                dX /= (cluster.getSensorID() < 6) ? segmentations[cluster.getSensorID()].mPitchRow : o2::itsmft::SegmentationAlpide::PitchRow;
-                dZ /= (cluster.getSensorID() < 6) ? segmentations[cluster.getSensorID()].mPitchCol : o2::itsmft::SegmentationAlpide::PitchCol;
+                dX /= (cluster.getSensorID() < segs.size()) ? segs[cluster.getSensorID()].mPitchRow : o2::itsmft::SegmentationAlpide::PitchRow;
+                dZ /= (cluster.getSensorID() < segs.size()) ? segs[cluster.getSensorID()].mPitchCol : o2::itsmft::SegmentationAlpide::PitchCol;
                 if (saveDeltas) {
                   nt->Fill(topology.getHash(), dX, dZ);
                 }

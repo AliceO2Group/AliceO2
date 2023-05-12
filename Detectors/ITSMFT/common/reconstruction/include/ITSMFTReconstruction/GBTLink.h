@@ -85,6 +85,8 @@ struct GBTLink {
   using RDHUtils = o2::raw::RDHUtils;
   static constexpr int CRUPageAlignment = 16; // use such alignment (in bytes) for CRU pages
   CollectedDataStatus status = None;
+  CollectedDataStatus statusInTF = None; // this link was seen or not in the TF or its data were exhausted
+
   Verbosity verbosity = VerboseErrors;
   std::vector<PhysTrigger>* extTrigVec = nullptr;
   uint8_t idInRU = 0;     // link ID within the RU
@@ -293,7 +295,9 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
               extTrigVec->emplace_back(PhysTrigger{o2::InteractionRecord(uint16_t(gbtTrgTmp->bc), uint32_t(gbtTrgTmp->orbit)), uint64_t(gbtTrgTmp->triggerType)});
             }
           }
-          continue;
+          if (gbtTrgTmp->internal == 0) { // external trigger, may have others
+            continue;
+          }
         }
         auto gbtC = reinterpret_cast<const o2::itsmft::GBTCalibration*>(&currRawPiece->data[dataOffset]);
         if (gbtC->isCalibrationWord()) {

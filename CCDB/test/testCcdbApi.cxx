@@ -14,6 +14,7 @@
 /// \author Barthelemy von Haller
 ///
 
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #define BOOST_TEST_MODULE CCDB
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK

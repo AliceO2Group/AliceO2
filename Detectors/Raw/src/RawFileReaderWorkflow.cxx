@@ -46,6 +46,8 @@
 #include <string>
 #include <climits>
 #include <regex>
+#include <chrono>
+#include <thread>
 
 using namespace o2::raw;
 using DetID = o2::detectors::DetID;
@@ -78,7 +80,7 @@ class RawReaderSpecs : public o2f::Task
   uint32_t mMaxTFID = 0xffffffff; // last TF to extrct
   int mRunNumber = 0;             // run number to pass
   int mVerbosity = 0;
-  int mTFRateLimit = 0;
+  int mTFRateLimit = -999;
   bool mPreferCalcTF = false;
   size_t mMinSHM = 0;
   size_t mLoopsDone = 0;
@@ -170,8 +172,7 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
   mTimer.Start(false);
   auto device = ctx.services().get<o2f::RawDeviceService>().device();
   assert(device);
-  static bool initOnceDone = false;
-  if (!initOnceDone) {
+  if (mTFRateLimit == -999) {
     mTFRateLimit = std::stoi(device->fConfig->GetValue<std::string>("timeframes-rate-limit"));
   }
   auto findOutputChannel = [&ctx, this](o2h::DataHeader& h) {
@@ -345,7 +346,7 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
   }
 
   if (mTFCounter) { // delay sending
-    usleep(mDelayUSec);
+    std::this_thread::sleep_for(std::chrono::microseconds((size_t)mDelayUSec));
   }
   for (auto& msgIt : messagesPerRoute) {
     LOG(info) << "Sending " << msgIt.second->Size() / 2 << " parts to channel " << msgIt.first;

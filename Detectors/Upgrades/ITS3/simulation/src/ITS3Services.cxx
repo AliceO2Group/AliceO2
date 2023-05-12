@@ -86,10 +86,10 @@ TGeoVolume* ITS3Services::createCYSSCylinder()
   // Based on ITSSimulation/V3Services.cxx
   //
 
-  const double sCyssCylInnerD = 9.56;
-  const double sCyssCylOuterD = 10.;
+  const double sCyssCylInnerD = mCyssCylInnerD;
+  const double sCyssCylOuterD = mCyssCylOuterD;
   const double sCyssCylZLength = 35.3;
-  const double sCyssCylFabricThick = 0.01;
+  const double sCyssCylFabricThick = mCyssCylFabricThick;
 
   // Local variables
   double rmin, rmax, zlen, phimin, phimax, dphi;
@@ -136,8 +136,8 @@ TGeoVolume* ITS3Services::createCYSSCone()
 
   const double sCyssConeTotalLength = 15.;
 
-  const double sCyssConeIntSectDmin = 10.;
-  const double sCyssConeIntSectDmax = 10.12;
+  const double sCyssConeIntSectDmin = mCyssConeIntSectDmin;
+  const double sCyssConeIntSectDmax = mCyssConeIntSectDmax;
   const double sCyssConeIntSectZlen = 2.3;
   const double sCyssConeIntCylZlen = 1.5;
 
@@ -146,12 +146,11 @@ TGeoVolume* ITS3Services::createCYSSCone()
   const double sCyssConeExtSectZlen = 4.2;
   const double sCyssConeExtCylZlen = 4.;
 
-  const double sCyssConeOpeningAngle = 40.; // Deg
-  const double sCyssConeFabricThick = 0.03;
+  const double sCyssConeFabricThick = mCyssConeFabricThick;
 
   // Local variables
   double rmin, rmax, zlen1, zlen2, phimin, phirot, dphi;
-  double x1, y1, x2, y2, x3, y3, m, xin, yin;
+  double x0Angbist, y0Angbist, x1Angbist, y1Angbist, x2Angbist, y2Angbist, x3Angbist, y3Angbist;
 
   // The CYSS Cone is physically a single piece made by a cylindrical
   // section, a conical section, and a second cylindrical section
@@ -181,44 +180,40 @@ TGeoVolume* ITS3Services::createCYSSCone()
   // The foam cone is built from the points of the outer cone
   TGeoPcon* cyssConeFoamSh = new TGeoPcon(phimin, phirot, 5);
 
-  m = std::tan(sCyssConeOpeningAngle * TMath::DegToRad());
-  x1 = cyssConeSh->GetZ(2);
-  y1 = cyssConeSh->GetRmin(2);
-  x2 = cyssConeSh->GetZ(1);
-  y2 = cyssConeSh->GetRmin(1);
-  x3 = x1;
-  y3 = y2 + m * (x3 - x2);
+  insidePoint(cyssConeSh->GetZ(0), cyssConeSh->GetRmax(0), cyssConeSh->GetZ(1), cyssConeSh->GetRmax(1), cyssConeSh->GetZ(3), cyssConeSh->GetRmax(3), -sCyssConeFabricThick, x0Angbist, y0Angbist);
+  insidePoint(cyssConeSh->GetZ(0), cyssConeSh->GetRmin(0), cyssConeSh->GetZ(2), cyssConeSh->GetRmin(2), cyssConeSh->GetZ(4), cyssConeSh->GetRmin(4), sCyssConeFabricThick, x1Angbist, y1Angbist);
+  insidePoint(cyssConeSh->GetZ(1), cyssConeSh->GetRmax(1), cyssConeSh->GetZ(3), cyssConeSh->GetRmax(3), cyssConeSh->GetZ(4), cyssConeSh->GetRmax(4), -sCyssConeFabricThick, x2Angbist, y2Angbist);
+  insidePoint(cyssConeSh->GetZ(2), cyssConeSh->GetRmin(2), cyssConeSh->GetZ(4), cyssConeSh->GetRmin(4), cyssConeSh->GetZ(5), cyssConeSh->GetRmin(5), sCyssConeFabricThick, x3Angbist, y3Angbist);
 
-  insidePoint(x1, y1, x2, y2, x3, y3, -sCyssConeFabricThick, xin, yin);
-  cyssConeFoamSh->DefineSection(0, xin, yin, yin);
+  if (sCyssConeFabricThick < (cyssConeSh->GetRmax(1) - cyssConeSh->GetRmin(1))) {
+    zlen1 = cyssConeSh->GetZ(1);
+    rmin = cyssConeSh->GetRmin(1) + sCyssConeFabricThick;
+    rmax = rmin;
+  } else {
+    zlen1 = xOntheLine(x0Angbist, y0Angbist, x2Angbist, y2Angbist, y1Angbist);
+    rmin = y1Angbist;
+    rmax = rmin;
+  }
+  cyssConeFoamSh->DefineSection(0, zlen1, rmin, rmax);
 
-  x3 = cyssConeSh->GetZ(3);
-  y3 = cyssConeSh->GetRmin(3);
-
-  insidePoint(x3, y3, x1, y1, x2, y2, -sCyssConeFabricThick, xin, yin);
-  zlen1 = xin;
-  rmin = yin;
-  rmax = y2 + m * (zlen1 - x2);
+  zlen1 = x1Angbist;
+  rmin = y1Angbist;
+  rmax = yOntheLine(x0Angbist, y0Angbist, x2Angbist, y2Angbist, x1Angbist);
   cyssConeFoamSh->DefineSection(1, zlen1, rmin, rmax);
 
-  x1 = cyssConeSh->GetZ(5);
-  y1 = cyssConeSh->GetRmax(5);
-  x2 = cyssConeSh->GetZ(3);
-  y2 = cyssConeSh->GetRmax(3);
-  x3 = cyssConeSh->GetZ(2);
-  y3 = cyssConeSh->GetRmax(2);
-
-  insidePoint(x1, y1, x2, y2, x3, y3, -sCyssConeFabricThick, xin, yin);
-  zlen1 = xin;
-  rmin = cyssConeFoamSh->GetRmin(1) + m * (zlen1 - cyssConeFoamSh->GetZ(1));
-  rmax = sCyssConeExtSectDmax / 2 - sCyssConeFabricThick;
+  zlen1 = x2Angbist;
+  rmin = yOntheLine(x1Angbist, y1Angbist, x3Angbist, y3Angbist, x2Angbist);
+  rmax = y2Angbist;
   cyssConeFoamSh->DefineSection(2, zlen1, rmin, rmax);
 
-  rmin = sCyssConeExtSectDmin / 2 + sCyssConeFabricThick;
-  zlen1 = cyssConeSh->GetZ(4);
+  zlen1 = x3Angbist;
+  rmin = y3Angbist;
+  rmax = cyssConeSh->GetRmax(5) - sCyssConeFabricThick;
   cyssConeFoamSh->DefineSection(3, zlen1, rmin, rmax);
 
-  zlen1 = sCyssConeTotalLength - sCyssConeFabricThick;
+  zlen1 = cyssConeSh->GetZ(5) - sCyssConeFabricThick;
+  rmin = cyssConeSh->GetRmin(5) + sCyssConeFabricThick;
+  rmax = cyssConeSh->GetRmax(5) - sCyssConeFabricThick;
   cyssConeFoamSh->DefineSection(4, zlen1, rmin, rmax);
 
   // We have all shapes: now create the real volumes
@@ -457,7 +452,7 @@ TGeoVolume* ITS3Services::createCYSSFlangeC()
   const double sCyssFlangeCDWallIn = 8.9;
   const double sCyssFlangeCDWallOut = 9.56;
 
-  const double sCyssFlangeCDExt = 10.;
+  const double sCyssFlangeCDExt = mCyssFlangeCDExt;
 
   // Thicknesses and heights
   const double sCyssFlangeCTotH = 1.;
@@ -788,4 +783,21 @@ double ITS3Services::yFrom2Points(double x0, double y0, double x1, double y1, do
   double m = (y0 - y1) / (x0 - x1);
 
   return m * (x - x0) + y0;
+}
+
+double ITS3Services::yOntheLine(double x0, double y0, double x1, double y1, double x) const
+{
+  /// Given the line defined by the two points (x0,y0) and (x1,y1) and a point on
+  /// the line which x(y)-axis is x(y), returns the y(x) value of the point on the line
+
+  double m = (y1 - y0) / (x1 - x0);
+  double b = y0 - m * x0;
+  return m * x + b;
+}
+
+double ITS3Services::xOntheLine(double x0, double y0, double x1, double y1, double y) const
+{
+  double m = (y1 - y0) / (x1 - x0);
+  double b = y0 - m * x0;
+  return (y - b) / m;
 }

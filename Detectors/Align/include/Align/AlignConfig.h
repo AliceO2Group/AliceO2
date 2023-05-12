@@ -51,6 +51,10 @@ struct AlignConfig : public o2::conf::ConfigurableParamHelper<AlignConfig> {
   int minITSClusters = 4;  // min ITS clusters to accept the track
   int minTRDTracklets = 3; // min TRD tracklets to accept the track
 
+  int minTPCPadRow = 0;    // min TPC pad-row to account
+  int maxTPCPadRow = 151;  // max TPC pad-row to account
+  int minTPCClusters = 10; // discard tracks with less clusters
+
   float maxDCAforVC[2] = {-1, -1}; // DCA cut in R,Z to allow track be subjected to vertex constraint
   float maxChi2forVC = -1;         // track-vertex chi2 cut to allow the track be subjected to vertex constraint
   float alignParamZero = 1e-13;    // assign 0 to final alignment parameter if its abs val is below this threshold

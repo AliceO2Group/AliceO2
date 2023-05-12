@@ -145,6 +145,7 @@ class RawPixelDecoder final : public PixelReader
   header::DataDescription mUserDataDescription = o2::header::gDataDescriptionInvalid; // alternative user-provided description to pick
   uint16_t mCurRUDecodeID = NORUDECODED;                                              // index of currently processed RUDecode container
   int mLastReadChipID = -1;                                                           // chip ID returned by previous getNextChipData call, used for ordering checks
+  int mNLinksInTF = 0;                                                                // number of links seen in the TF
   Mapping mMAP;                                                                       // chip mapping
   std::unordered_map<o2::InteractionRecord, int> mIRPoll;                             // poll for links IR used for synchronization
   bool mFillCalibData = false;                                                        // request to fill calib data from GBT

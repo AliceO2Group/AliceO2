@@ -15,6 +15,7 @@
 #include "TCanvas.h"
 #include "TLatex.h"
 #include <fmt/format.h>
+#include <numeric>
 
 void o2::tpc::SACDrawHelper::drawSector(const SACDraw& SAC, const unsigned int sector, const std::string zAxisTitle, const std::string filename, const float minZ, const float maxZ)
 {
@@ -100,8 +101,9 @@ TH2Poly* o2::tpc::SACDrawHelper::drawSide(const SACDraw& SAC, const o2::tpc::Sid
       const float angDeg = 10.f + sector * 20;
       auto coordinate = coords[stack];
       coordinate.rotate(angDeg);
-      const float yPos = static_cast<float>(coordinate.yVals[0] + coordinate.yVals[1] + coordinate.yVals[2] + coordinate.yVals[3]) / 4;
-      const float xPos = static_cast<float>(coordinate.xVals[0] + coordinate.xVals[1] + coordinate.xVals[2] + coordinate.xVals[3]) / 4;
+      auto const count = static_cast<float>(coordinate.yVals.size());
+      const float yPos = std::reduce(coordinate.yVals.begin(), coordinate.yVals.end()) / count;
+      const float xPos = std::reduce(coordinate.xVals.begin(), coordinate.xVals.end()) / count;
       poly->Fill(xPos, yPos, SAC.getSAC(sector, stack));
     }
   }

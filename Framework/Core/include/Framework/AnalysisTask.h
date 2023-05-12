@@ -162,30 +162,36 @@ struct AnalysisDataProcessorBuilder {
   }
 
   template <typename G, typename Arg>
-  static void appendGroupingCandidate(std::vector<std::pair<std::string, std::string>>& bk, std::string& key)
+  static void appendGroupingCandidate(std::vector<StringPair>& bk, std::vector<StringPair>& bku, std::string& key)
   {
-    if constexpr (soa::relatedByIndex<std::decay_t<G>, std::decay_t<Arg>>() && !o2::soa::is_smallgroups_v<std::decay_t<Arg>>) {
+    if constexpr (soa::relatedByIndex<std::decay_t<G>, std::decay_t<Arg>>()) {
       auto binding = soa::getLabelFromTypeForKey<std::decay_t<Arg>>(key);
-      if (std::find_if(bk.begin(), bk.end(), [&binding, &key](auto const& entry) { return (entry.first == binding) && (entry.second == key); }) == bk.end()) {
-        bk.emplace_back(binding, key);
+      if constexpr (!o2::soa::is_smallgroups_v<std::decay_t<Arg>>) {
+        if (std::find_if(bk.begin(), bk.end(), [&binding, &key](auto const& entry) { return (entry.first == binding) && (entry.second == key); }) == bk.end()) {
+          bk.emplace_back(binding, key);
+        }
+      } else {
+        if (std::find_if(bku.begin(), bku.end(), [&binding, &key](auto const& entry) { return (entry.first == binding) && (entry.second == key); }) == bku.end()) {
+          bku.emplace_back(binding, key);
+        }
       }
     }
   }
 
   template <typename G, typename... Args>
-  static void appendGroupingCandidates(std::vector<std::pair<std::string, std::string>>& bk, framework::pack<G, Args...>)
+  static void appendGroupingCandidates(std::vector<StringPair>& bk, std::vector<StringPair>& bku, framework::pack<G, Args...>)
   {
     auto key = std::string{"fIndex"} + o2::framework::cutString(soa::getLabelFromType<std::decay_t<G>>());
-    (appendGroupingCandidate<G, Args>(bk, key), ...);
+    (appendGroupingCandidate<G, Args>(bk, bku, key), ...);
   }
 
   template <typename R, typename C, typename... Args>
-  static void inputsFromArgs(R (C::*)(Args...), const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos, std::vector<std::pair<std::string, std::string>>& bk)
+  static void inputsFromArgs(R (C::*)(Args...), const char* name, bool value, std::vector<InputSpec>& inputs, std::vector<ExpressionInfo>& eInfos, std::vector<StringPair>& bk, std::vector<StringPair>& bku)
   {
     int ai = 0;
     auto hash = typeHash<R (C::*)(Args...)>();
     if constexpr (soa::is_soa_iterator_v<std::decay_t<framework::pack_element_t<0, framework::pack<Args...>>>>) {
-      appendGroupingCandidates(bk, framework::pack<Args...>{});
+      appendGroupingCandidates(bk, bku, framework::pack<Args...>{});
     }
     (appendSomethingWithMetadata<Args>(ai++, name, value, inputs, eInfos, hash), ...);
   }
@@ -581,7 +587,8 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
   std::vector<InputSpec> inputs;
   std::vector<ConfigParamSpec> options;
   std::vector<ExpressionInfo> expressionInfos;
-  std::vector<std::pair<std::string, std::string>> bindingsKeys;
+  std::vector<StringPair> bindingsKeys;
+  std::vector<StringPair> bindingsKeysUnsorted;
 
   /// make sure options and configurables are set before expression infos are created
   homogeneous_apply_refs([&options, &hash](auto& x) { return OptionManager<std::decay_t<decltype(x)>>::appendOption(options, x); }, *task.get());
@@ -590,14 +597,14 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
 
   /// parse process functions defined by corresponding configurables
   if constexpr (has_process_v<T>) {
-    AnalysisDataProcessorBuilder::inputsFromArgs(&T::process, "default", true, inputs, expressionInfos, bindingsKeys);
+    AnalysisDataProcessorBuilder::inputsFromArgs(&T::process, "default", true, inputs, expressionInfos, bindingsKeys, bindingsKeysUnsorted);
   }
   homogeneous_apply_refs(
-    [name = name_str, &expressionInfos, &inputs, &bindingsKeys](auto& x) {
+    [name = name_str, &expressionInfos, &inputs, &bindingsKeys, &bindingsKeysUnsorted](auto& x) {
       using D = std::decay_t<decltype(x)>;
       if constexpr (is_base_of_template_v<ProcessConfigurable, D>) {
         // this pushes (argumentIndex,processHash,schemaPtr,nullptr) into expressionInfos for arguments that are Filtered/filtered_iterators
-        AnalysisDataProcessorBuilder::inputsFromArgs(x.process, (name + "/" + x.name).c_str(), x.value, inputs, expressionInfos, bindingsKeys);
+        AnalysisDataProcessorBuilder::inputsFromArgs(x.process, (name + "/" + x.name).c_str(), x.value, inputs, expressionInfos, bindingsKeys, bindingsKeysUnsorted);
         return true;
       }
       return false;
@@ -605,7 +612,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
     *task.get());
 
   // add preslice declarations to slicing cache definition
-  homogeneous_apply_refs([&bindingsKeys](auto& x) { return PresliceManager<std::decay_t<decltype(x)>>::registerCache(x, bindingsKeys); }, *task.get());
+  homogeneous_apply_refs([&bindingsKeys, &bindingsKeysUnsorted](auto& x) { return PresliceManager<std::decay_t<decltype(x)>>::registerCache(x, bindingsKeys, bindingsKeysUnsorted); }, *task.get());
 
   // request base tables for spawnable extended tables
   // this checks for duplications
@@ -632,7 +639,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
   requiredServices.insert(requiredServices.end(), arrowServices.begin(), arrowServices.end());
   homogeneous_apply_refs([&requiredServices](auto& x) { return ServiceManager<std::decay_t<decltype(x)>>::add(requiredServices, x); }, *task.get());
 
-  auto algo = AlgorithmSpec::InitCallback{[task = task, expressionInfos, bindingsKeys](InitContext& ic) mutable {
+  auto algo = AlgorithmSpec::InitCallback{[task = task, expressionInfos, bindingsKeys, bindingsKeysUnsorted](InitContext& ic) mutable {
     homogeneous_apply_refs([&ic](auto&& x) { return OptionManager<std::decay_t<decltype(x)>>::prepare(ic, x); }, *task.get());
     homogeneous_apply_refs([&ic](auto&& x) { return ServiceManager<std::decay_t<decltype(x)>>::prepare(ic, x); }, *task.get());
 
@@ -667,6 +674,7 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
     }
 
     ic.services().get<ArrowTableSlicingCacheDef>().setCaches(std::move(bindingsKeys));
+    ic.services().get<ArrowTableSlicingCacheDef>().setCachesUnsorted(std::move(bindingsKeysUnsorted));
     // initialize global caches
     homogeneous_apply_refs([&ic](auto& x) {
       return CacheManager<std::decay_t<decltype(x)>>::initialize(ic, x);

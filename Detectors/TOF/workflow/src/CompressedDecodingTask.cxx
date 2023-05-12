@@ -45,7 +45,9 @@ void CompressedDecodingTask::init(InitContext& ic)
 {
   LOG(debug) << "CompressedDecoding init";
 
-  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
+  if (mNorbitsPerTF == -1) {
+    o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
+  }
 
   mMaskNoise = ic.options().get<bool>("mask-noise");
   mNoiseRate = ic.options().get<int>("noise-counts");
@@ -141,9 +143,12 @@ void CompressedDecodingTask::run(ProcessingContext& pc)
 {
   mTimer.Start(false);
 
-  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-  const uint32_t norbits = o2::base::GRPGeomHelper::instance().getGRPECS()->getNHBFPerTF();
-  Utils::setNOrbitInTF(norbits);
+  int norbits = mNorbitsPerTF;
+  if (norbits == -1) {
+    o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+    norbits = o2::base::GRPGeomHelper::instance().getGRPECS()->getNHBFPerTF();
+    mNorbitsPerTF = norbits;
+  }
   mDecoder.setNOrbitInTF(norbits);
 
   static bool isFirstCall = true;
@@ -186,9 +191,10 @@ void CompressedDecodingTask::decodeTF(ProcessingContext& pc)
 {
   auto& inputs = pc.inputs();
   const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
+
   // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
   // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
-  {
+  if (!mLocalCmp) {
     static size_t contDeadBeef = 0; // number of times 0xDEADBEEF was seen continuously
     std::vector<InputSpec> dummy{InputSpec{"dummy", ConcreteDataMatcher{"TOF", mDataDesc, 0xDEADBEEF}}};
     for (const auto& ref : InputRecordWalker(inputs, dummy)) {
@@ -206,10 +212,11 @@ void CompressedDecodingTask::decodeTF(ProcessingContext& pc)
     }
     contDeadBeef = 0; // if good data, reset the counter
   }
-
   /** loop over inputs routes **/
+
   std::vector<InputSpec> sel{InputSpec{"filter", ConcreteDataTypeMatcher{"TOF", "CRAWDATA"}}};
   for (const auto& ref : InputRecordWalker(pc.inputs(), sel)) {
+    //  for (auto const& ref : o2::framework::InputRecordWalker(pc.inputs())) {
     //  for (auto iit = pc.inputs().begin(), iend = pc.inputs().end(); iit != iend; ++iit) {
     //    if (!iit.isValid()) {
     //      continue;
@@ -220,6 +227,12 @@ void CompressedDecodingTask::decodeTF(ProcessingContext& pc)
     const auto* headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
     auto payloadIn = ref.payload;
     auto payloadInSize = DataRefUtils::getPayloadSize(ref);
+
+    if (payloadInSize < 1) {
+      continue;
+    }
+
+    //    LOG(info) << "payloadInSize = " << payloadInSize;
 
     DecoderBase::setDecoderBuffer(payloadIn);
     DecoderBase::setDecoderBufferSize(payloadInSize);
@@ -425,26 +438,32 @@ void CompressedDecodingTask::frameHandler(const CrateHeader_t* crateHeader, cons
   }
 };
 
-DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc, bool conet, bool askDISTSTF)
+DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc, bool conet, bool askDISTSTF, int norbitPerTF, bool localCmp)
 {
   std::vector<InputSpec> inputs;
   if (askDISTSTF) {
     inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
   }
 
-  auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime
-                                                                true,                           // GRPECS=true for nHBF per TF
-                                                                false,                          // GRPLHCIF
-                                                                false,                          // GRPMagField
-                                                                false,                          // askMatLUT
-                                                                o2::base::GRPGeomRequest::None, // geometry
-                                                                inputs);
+  std::shared_ptr<o2::base::GRPGeomRequest> ccdbRequest;
+  if (norbitPerTF == -1) {
+    ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime
+                                                             norbitPerTF == -1,              // GRPECS=true for nHBF per TF
+                                                             false,                          // GRPLHCIF
+                                                             false,                          // GRPMagField
+                                                             false,                          // askMatLUT
+                                                             o2::base::GRPGeomRequest::None, // geometry
+                                                             inputs);
+  }
 
   //  inputs.emplace_back(std::string("x:TOF/" + inputDesc).c_str(), 0, Lifetime::Optional);
   o2::header::DataDescription dataDesc;
   dataDesc.runtimeInit(inputDesc.c_str());
-  inputs.emplace_back("x", ConcreteDataTypeMatcher{o2::header::gDataOriginTOF, dataDesc}, Lifetime::Optional);
-
+  if (localCmp) {
+    inputs.emplace_back("x", ConcreteDataTypeMatcher{o2::header::gDataOriginTOF, dataDesc}, Lifetime::Timeframe);
+  } else {
+    inputs.emplace_back("x", ConcreteDataTypeMatcher{o2::header::gDataOriginTOF, dataDesc}, Lifetime::Optional);
+  }
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::header::gDataOriginTOF, "DIGITHEADER", 0, Lifetime::Timeframe);
   outputs.emplace_back(o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe);
@@ -458,7 +477,7 @@ DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc, bool c
     inputs,
     //    select(std::string("x:TOF/" + inputDesc).c_str()),
     outputs,
-    AlgorithmSpec{adaptFromTask<CompressedDecodingTask>(conet, dataDesc, ccdbRequest)},
+    AlgorithmSpec{adaptFromTask<CompressedDecodingTask>(conet, dataDesc, ccdbRequest, norbitPerTF, localCmp)},
     Options{
       {"row-filter", VariantType::Bool, false, {"Filter empty row"}},
       {"mask-noise", VariantType::Bool, false, {"Flag to mask noisy digits"}},

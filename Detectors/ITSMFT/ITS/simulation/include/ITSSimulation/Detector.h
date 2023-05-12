@@ -286,6 +286,10 @@ class Detector : public o2::base::DetImpl<Detector>
   /// \param motherVolume the TGeoVolume owing the volume supports
   void createOuterBarrelSupports(TGeoVolume* motherVolume);
 
+  /// Creates the ITS Services (tubes, cables, and the like)
+  /// \param motherVolume the TGeoVolume owing the volume supports
+  void createITSServices(TGeoVolume* motherVolume);
+
   Detector(const Detector&);
 
   Detector& operator=(const Detector&);

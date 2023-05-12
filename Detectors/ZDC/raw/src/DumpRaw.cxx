@@ -78,9 +78,9 @@ void DumpRaw::init()
 {
   gROOT->SetBatch();
   auto& sopt = ZDCSimParam::Instance();
-  int nbx = (sopt.nBCAheadTrig + 1) * NTimeBinsPerBC;
   double xmin = -sopt.nBCAheadTrig * NTimeBinsPerBC - 0.5;
   double xmax = 2 * NTimeBinsPerBC - 0.5;
+  int nbx = std::round(xmax - xmin);
   if (mTransmitted == nullptr) {
     mTransmitted = std::make_unique<TH2F>("ht", "Transmitted channels", NModules, -0.5, NModules - 0.5, NChPerModule, -0.5, NChPerModule - 0.5);
   }
@@ -226,36 +226,37 @@ int DumpRaw::processWord(const uint32_t* word)
     printf("NULL\n");
     return 1;
   }
+  // LOGF(info, "GBT word %04x %08x %08x id=%u", *((uint16_t*)&word[2]), word[1], word[0], word[0] & 0x3);
   if ((word[0] & 0x3) == Id_w0) {
-    for (int32_t iw = 0; iw < NWPerGBTW; iw++) {
-      mCh.w[0][iw] = word[iw];
-    }
+    mCh.w[0][NWPerGBTW - 1] = 0;
+    mCh.w[0][NWPerGBTW - 2] = 0;
+    memcpy((void*)&mCh.w[0][0], (const void*)word, PayloadPerGBTW);
   } else if ((word[0] & 0x3) == Id_w1) {
     if (mCh.f.fixed_0 == Id_w0) {
-      for (int32_t iw = 0; iw < NWPerGBTW; iw++) {
-        mCh.w[1][iw] = word[iw];
-      }
+      mCh.w[1][NWPerGBTW - 1] = 0;
+      mCh.w[1][NWPerGBTW - 2] = 0;
+      memcpy((void*)&mCh.w[1][0], (const void*)word, PayloadPerGBTW);
     } else {
-      LOG(error) << "Wrong word sequence";
+      LOGF(error, "Wrong word sequence: %04x %08x %08x id=%u *%u*", *((uint16_t*)&word[2]), word[1], word[0], mCh.f.fixed_0, word[0] & 0x3);
       mCh.f.fixed_0 = Id_wn;
       mCh.f.fixed_1 = Id_wn;
       mCh.f.fixed_2 = Id_wn;
     }
   } else if ((word[0] & 0x3) == Id_w2) {
     if (mCh.f.fixed_0 == Id_w0 && mCh.f.fixed_1 == Id_w1) {
-      for (int32_t iw = 0; iw < NWPerGBTW; iw++) {
-        mCh.w[2][iw] = word[iw];
-      }
+      mCh.w[2][NWPerGBTW - 1] = 0;
+      mCh.w[2][NWPerGBTW - 2] = 0;
+      memcpy((void*)&mCh.w[2][0], (const void*)word, PayloadPerGBTW);
       process(mCh);
     } else {
-      LOG(error) << "Wrong word sequence";
+      LOGF(error, "Wrong word sequence: %04x %08x %08x id=%u %u *%u*", *((uint16_t*)&word[2]), word[1], word[0], mCh.f.fixed_0, mCh.f.fixed_1, word[0] & 0x3);
     }
     mCh.f.fixed_0 = Id_wn;
     mCh.f.fixed_1 = Id_wn;
     mCh.f.fixed_2 = Id_wn;
   } else {
-    // Word not present in payload
-    LOG(fatal) << "Event format error";
+    // Word id not foreseen in payload
+    LOGF(error, "Event format error on word %04x %08x %08x id=%u", *((uint16_t*)&word[2]), word[1], word[0], word[0] & 0x3);
     return 1;
   }
   return 0;

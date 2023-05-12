@@ -641,7 +641,7 @@ struct IndexManager<Builds<IDX>> {
 /// Manager template to handle slice caching
 template <typename T>
 struct PresliceManager {
-  static bool registerCache(T&, std::vector<std::pair<std::string, std::string>>&)
+  static bool registerCache(T&, std::vector<StringPair>&, std::vector<StringPair>&)
   {
     return false;
   }
@@ -654,7 +654,7 @@ struct PresliceManager {
 
 template <typename T>
 struct PresliceManager<Preslice<T>> {
-  static bool registerCache(Preslice<T>& container, std::vector<std::pair<std::string, std::string>>& bsks)
+  static bool registerCache(Preslice<T>& container, std::vector<StringPair>& bsks, std::vector<StringPair>&)
   {
     auto locate = std::find_if(bsks.begin(), bsks.end(), [&](auto const& entry) { return (entry.first == container.bindingKey.first) && (entry.second == container.bindingKey.second); });
     if (locate == bsks.end()) {
@@ -666,6 +666,24 @@ struct PresliceManager<Preslice<T>> {
   static bool updateSliceInfo(Preslice<T>& container, ArrowTableSlicingCache& cache)
   {
     container.updateSliceInfo(cache.getCacheFor(container.getBindingKey()));
+    return true;
+  }
+};
+
+template <typename T>
+struct PresliceManager<PresliceUnsorted<T>> {
+  static bool registerCache(PresliceUnsorted<T>& container, std::vector<StringPair>&, std::vector<StringPair>& bsksU)
+  {
+    auto locate = std::find_if(bsksU.begin(), bsksU.end(), [&](auto const& entry) { return (entry.first == container.bindingKey.first) && (entry.second == container.bindingKey.second); });
+    if (locate == bsksU.end()) {
+      bsksU.emplace_back(container.getBindingKey());
+    }
+    return true;
+  }
+
+  static bool updateSliceInfo(PresliceUnsorted<T>& container, ArrowTableSlicingCache& cache)
+  {
+    container.updateSliceInfo(cache.getCacheUnsortedFor(container.getBindingKey()));
     return true;
   }
 };

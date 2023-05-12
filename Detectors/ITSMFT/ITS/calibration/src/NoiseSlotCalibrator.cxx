@@ -29,7 +29,7 @@ bool NoiseSlotCalibrator::processTimeFrame(gsl::span<const o2::itsmft::CompClust
                                            gsl::span<const o2::itsmft::ROFRecord> const& rofs)
 {
   calibration::TFType nTF = rofs[0].getBCData().orbit / 256;
-  LOG(info) << "Processing TF# " << nTF;
+  LOG(detail) << "Processing TF# " << nTF;
 
   auto& slotTF = getSlotForTF(nTF);
   auto& noiseMap = *(slotTF.getContainer());

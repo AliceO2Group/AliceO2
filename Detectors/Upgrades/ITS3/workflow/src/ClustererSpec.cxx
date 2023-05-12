@@ -30,6 +30,7 @@
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "CommonConstants/LHCConstants.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
+#include "ITS3Base/DescriptorInnerBarrelITS3Param.h"
 
 using namespace o2::framework;
 
@@ -40,17 +41,38 @@ namespace its3
 
 void ClustererDPL::init(InitContext& ic)
 {
+  auto& paramGeom = DescriptorInnerBarrelITS3Param::Instance();
   mClusterer = std::make_unique<o2::its3::Clusterer>();
-  mClusterer->setNChips(o2::itsmft::ChipMappingITS::getNChips(o2::itsmft::ChipMappingITS::MB) + o2::itsmft::ChipMappingITS::getNChips(o2::itsmft::ChipMappingITS::OB) + 6); // FIXME
+  int nChipsOB = o2::itsmft::ChipMappingITS::getNChips(o2::itsmft::ChipMappingITS::MB) + o2::itsmft::ChipMappingITS::getNChips(o2::itsmft::ChipMappingITS::OB);
+  int nChipsIB = 6;
+  int nLayersITS3 = 3;
+  if (paramGeom.getITS3LayerConfigString() == "FourLayers") {
+    nChipsIB += 4;
+    nLayersITS3 = 4;
+  }
+  mClusterer->setNChips(nChipsOB + nChipsIB);
+  mClusterer->setNumLayersITS3(nLayersITS3);
   mUseClusterDictionary = !ic.options().get<bool>("ignore-cluster-dictionary");
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mState = 1;
+
+  auto filenameGRP = ic.options().get<std::string>("grp-file");
+  const auto grp = o2::parameters::GRPObject::loadFrom(filenameGRP.c_str());
+
+  if (grp) {
+    mClusterer->setContinuousReadOut(grp->isDetContinuousReadOut("IT3"));
+  } else {
+    LOG(error) << "Cannot retrieve GRP from the " << filenameGRP.c_str() << " file !";
+    mState = 0;
+    return;
+  }
+
   mClusterer->print();
 }
 
 void ClustererDPL::run(ProcessingContext& pc)
 {
-  updateTimeDependentParams(pc);
+  // updateTimeDependentParams(pc);
   auto digits = pc.inputs().get<gsl::span<o2::itsmft::Digit>>("digits");
   auto rofs = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
 
@@ -115,7 +137,6 @@ void ClustererDPL::updateTimeDependentParams(ProcessingContext& pc)
     pc.inputs().get<TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
     pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>*>("alppar");
     pc.inputs().get<o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>*>("cluspar");
-    mClusterer->setContinuousReadOut(o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::ITS));
     // settings for the fired pixel overflow masking
     const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
     const auto& clParams = o2::itsmft::ClustererParam<o2::detectors::DetID::ITS>::Instance();
@@ -176,7 +197,7 @@ DataProcessorSpec getClustererSpec(bool useMC)
   inputs.emplace_back("cluspar", "ITS", "CLUSPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/ClustererParam"));
   inputs.emplace_back("alppar", "ITS", "ALPIDEPARAM", 0, Lifetime::Condition, ccdbParamSpec("ITS/Config/AlpideParam"));
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime
-                                                              true,                           // GRPECS=true
+                                                              false,                          // GRPECS
                                                               false,                          // GRPLHCIF
                                                               false,                          // GRPMagField
                                                               false,                          // askMatLUT
@@ -201,6 +222,7 @@ DataProcessorSpec getClustererSpec(bool useMC)
     outputs,
     AlgorithmSpec{adaptFromTask<ClustererDPL>(ggRequest, useMC)},
     Options{
+      {"grp-file", VariantType::String, "o2sim_grp.root", {"Name of the grp file"}},
       {"ignore-cluster-dictionary", VariantType::Bool, false, {"do not use cluster dictionary, always store explicit patterns"}}}};
 }
 

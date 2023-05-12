@@ -56,6 +56,7 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
   void init(o2::framework::InitContext& ic) final
   {
     o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
+    mTPCCorrMapsLoader.init(ic);
     // setting up the histogram ranges
     const auto nBins = ic.options().get<int>("nBins");
     auto reldEdxMin = ic.options().get<float>("reldEdxMin");
@@ -171,7 +172,7 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
     if (nTracks == 0) {
       return;
     }
-    LOGP(info, "Processing TF {} with {} tracks by considering {} tracks", currentTF, nTracks, mMaxTracksPerTF);
+    LOGP(detail, "Processing TF {} with {} tracks by considering {} tracks", currentTF, nTracks, mMaxTracksPerTF);
 
     if (!mDisablePolynomialsCCDB) {
       pc.inputs().get<o2::tpc::CalibdEdxTrackTopologyPolContainer*>("tpctopologygain");
@@ -182,7 +183,7 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
       pc.inputs().get<std::unordered_map<std::string, o2::tpc::CalDet<float>>*>("tpcresidualgainmap");
     }
     mTPCVDriftHelper.extractCCDBInputs(pc);
-    o2::tpc::CorrectionMapsLoader::extractCCDBInputs(pc);
+    mTPCCorrMapsLoader.extractCCDBInputs(pc);
     bool updateMaps = false;
     if (mTPCCorrMapsLoader.isUpdated()) {
       mPadGainTracks.setTPCCorrMaps(&mTPCCorrMapsLoader);
@@ -239,7 +240,7 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
   }
 };
 
-DataProcessorSpec getTPCCalibPadGainTracksSpec(const uint32_t publishAfterTFs, const bool debug, const bool useLastExtractedMapAsReference, const std::string polynomialsFile, bool disablePolynomialsCCDB)
+DataProcessorSpec getTPCCalibPadGainTracksSpec(const uint32_t publishAfterTFs, const bool debug, const bool useLastExtractedMapAsReference, const std::string polynomialsFile, bool disablePolynomialsCCDB, bool requestCTPLumi)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("trackTPC", gDataOriginTPC, "TRACKS", 0, Lifetime::Timeframe);
@@ -259,7 +260,29 @@ DataProcessorSpec getTPCCalibPadGainTracksSpec(const uint32_t publishAfterTFs, c
   }
 
   o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
-  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(inputs);
+  Options opts{
+    {"nBins", VariantType::Int, 20, {"Number of bins per histogram"}},
+    {"reldEdxMin", VariantType::Int, 0, {"Minimum x coordinate of the histogram for Q/(dE/dx)"}},
+    {"reldEdxMax", VariantType::Int, 3, {"Maximum x coordinate of the histogram for Q/(dE/dx)"}},
+    {"underflowBin", VariantType::Bool, false, {"Using under flow bin"}},
+    {"overflowBin", VariantType::Bool, true, {"Using overflow flow bin"}},
+    {"momMin", VariantType::Float, 0.3f, {"minimum momentum of the tracks which are used for the pad-by-pad gain map"}},
+    {"momMax", VariantType::Float, 1.f, {"maximum momentum of the tracks which are used for the pad-by-pad gain map"}},
+    {"etaMax", VariantType::Float, 1.f, {"maximum eta of the tracks which are used for the pad-by-pad gain map"}},
+    {"disable-log-transform", VariantType::Bool, false, {"Disable the transformation of q/dedx -> log(1 + q/dedx)"}},
+    {"do-not-normalize", VariantType::Bool, false, {"Do not normalize the cluster charge to the dE/dx"}},
+    {"mindEdx", VariantType::Float, 0.f, {"Minimum accepted dE/dx value"}},
+    {"maxdEdx", VariantType::Float, -1.f, {"Maximum accepted dE/dx value (-1=accept all dE/dx)"}},
+    {"minClusters", VariantType::Int, 50, {"minimum number of clusters of tracks which are used for the pad-by-pad gain map"}},
+    {"gainMapFile", VariantType::String, "", {"file to reference gain map, which will be used for correcting the cluster charge"}},
+    {"dedxRegionType", VariantType::Int, 2, {"using the dE/dx per chamber (0), stack (1) or per sector (2)"}},
+    {"dedxType", VariantType::Int, 0, {"recalculating the dE/dx (0), using it from tracking (1)"}},
+    {"chargeType", VariantType::Int, 0, {"Using qMax (0) or qTot (1) for the dE/dx and the pad-by-pad histograms"}},
+    {"propagateTrack", VariantType::Bool, false, {"Propagating the track instead of performing a refit for obtaining track parameters."}},
+    {"useEveryNthTF", VariantType::Int, 10, {"Using only a fraction of the data: 1: Use every TF, 10: Use only every tenth TF."}},
+    {"maxTracksPerTF", VariantType::Int, 10000, {"Maximum number of processed tracks per TF (-1 for processing all tracks)"}},
+  };
+  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(inputs, opts, requestCTPLumi);
 
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime
                                                                 false,                          // GRPECS=true
@@ -277,28 +300,7 @@ DataProcessorSpec getTPCCalibPadGainTracksSpec(const uint32_t publishAfterTFs, c
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<TPCCalibPadGainTracksDevice>(ccdbRequest, publishAfterTFs, debug, useLastExtractedMapAsReference, polynomialsFile, disablePolynomialsCCDB)},
-    Options{
-      {"nBins", VariantType::Int, 20, {"Number of bins per histogram"}},
-      {"reldEdxMin", VariantType::Int, 0, {"Minimum x coordinate of the histogram for Q/(dE/dx)"}},
-      {"reldEdxMax", VariantType::Int, 3, {"Maximum x coordinate of the histogram for Q/(dE/dx)"}},
-      {"underflowBin", VariantType::Bool, false, {"Using under flow bin"}},
-      {"overflowBin", VariantType::Bool, true, {"Using overflow flow bin"}},
-      {"momMin", VariantType::Float, 0.3f, {"minimum momentum of the tracks which are used for the pad-by-pad gain map"}},
-      {"momMax", VariantType::Float, 1.f, {"maximum momentum of the tracks which are used for the pad-by-pad gain map"}},
-      {"etaMax", VariantType::Float, 1.f, {"maximum eta of the tracks which are used for the pad-by-pad gain map"}},
-      {"disable-log-transform", VariantType::Bool, false, {"Disable the transformation of q/dedx -> log(1 + q/dedx)"}},
-      {"do-not-normalize", VariantType::Bool, false, {"Do not normalize the cluster charge to the dE/dx"}},
-      {"mindEdx", VariantType::Float, 0.f, {"Minimum accepted dE/dx value"}},
-      {"maxdEdx", VariantType::Float, -1.f, {"Maximum accepted dE/dx value (-1=accept all dE/dx)"}},
-      {"minClusters", VariantType::Int, 50, {"minimum number of clusters of tracks which are used for the pad-by-pad gain map"}},
-      {"gainMapFile", VariantType::String, "", {"file to reference gain map, which will be used for correcting the cluster charge"}},
-      {"dedxRegionType", VariantType::Int, 2, {"using the dE/dx per chamber (0), stack (1) or per sector (2)"}},
-      {"dedxType", VariantType::Int, 0, {"recalculating the dE/dx (0), using it from tracking (1)"}},
-      {"chargeType", VariantType::Int, 0, {"Using qMax (0) or qTot (1) for the dE/dx and the pad-by-pad histograms"}},
-      {"propagateTrack", VariantType::Bool, false, {"Propagating the track instead of performing a refit for obtaining track parameters."}},
-      {"useEveryNthTF", VariantType::Int, 10, {"Using only a fraction of the data: 1: Use every TF, 10: Use only every tenth TF."}},
-      {"maxTracksPerTF", VariantType::Int, 10000, {"Maximum number of processed tracks per TF (-1 for processing all tracks)"}},
-    }}; // end DataProcessorSpec
+    opts}; // end DataProcessorSpec
 }
 
 } // namespace tpc

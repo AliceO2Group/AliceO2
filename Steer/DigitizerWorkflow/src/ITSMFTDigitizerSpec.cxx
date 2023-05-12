@@ -127,9 +127,14 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
     }; // and accumulate lambda
 
     auto& eventParts = context->getEventParts(withQED);
+    int bcShift = mDigitizer.getParams().getROFrameBiasInBC();
     // loop over all composite collisions given from context (aka loop over all the interaction records)
     for (int collID = 0; collID < timesview.size(); ++collID) {
-      const auto& irt = timesview[collID];
+      auto irt = timesview[collID];
+      if (irt.toLong() < bcShift) { // due to the ROF misalignment the collision would go to negative ROF ID, discard
+        continue;
+      }
+      irt -= bcShift; // account for the ROF start shift
 
       mDigitizer.setEventTime(irt);
       mDigitizer.resetEventROFrames(); // to estimate min/max ROF for this collID
@@ -216,6 +221,7 @@ class ITSMFTDPLDigitizerTask : BaseDPLDigitizer
     auto& aopt = o2::itsmft::DPLAlpideParam<DETID>::Instance();
     auto& digipar = mDigitizer.getParams();
     digipar.setContinuous(dopt.continuous);
+    digipar.setROFrameBiasInBC(aopt.roFrameBiasInBC);
     if (dopt.continuous) {
       auto frameNS = aopt.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS;
       digipar.setROFrameLengthInBC(aopt.roFrameLengthInBC);

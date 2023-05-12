@@ -30,16 +30,6 @@ class TrackletTransformer
 
   void init();
 
-  float getXCathode() const { return mXCathode; }
-  float getXAnode() const { return mXAnode; }
-  float getXDrift() const { return mXDrift; }
-  float getXtb0() const { return mXtb0; }
-
-  void setXCathode(float x) { mXCathode = x; }
-  void setXAnode(float x) { mXAnode = x; }
-  void setXDrift(float x) { mXDrift = x; }
-  void setXtb0(float x) { mXtb0 = x; }
-
   void setCalVdriftExB(const CalVdriftExB* cal) { mCalVdriftExB = cal; };
   void setApplyXOR() { mApplyXOR = true; }
 
@@ -61,10 +51,7 @@ class TrackletTransformer
   Geometry* mGeo{nullptr};
   bool mApplyXOR{false};
 
-  float mXCathode;
   float mXAnode;
-  float mXDrift;
-  float mXtb0;
 
   const CalVdriftExB* mCalVdriftExB{nullptr};
 };

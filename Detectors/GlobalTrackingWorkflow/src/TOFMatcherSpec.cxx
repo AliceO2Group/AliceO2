@@ -89,8 +89,8 @@ void TOFMatcherSpec::init(InitContext& ic)
   if (mStrict) {
     mMatcher.setHighPurity();
   }
+  mTPCCorrMapsLoader.init(ic);
   mMatcher.storeMatchable(mPushMatchable);
-
   mMatcher.setExtraTimeToleranceTRD(mExtraTolTRD);
 }
 
@@ -98,7 +98,7 @@ void TOFMatcherSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   mTPCVDriftHelper.extractCCDBInputs(pc);
-  o2::tpc::CorrectionMapsLoader::extractCCDBInputs(pc);
+  mTPCCorrMapsLoader.extractCCDBInputs(pc);
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     const auto bcs = o2::base::GRPGeomHelper::instance().getGRPLHCIF()->getBunchFilling().getFilledBCs();
@@ -240,6 +240,7 @@ void TOFMatcherSpec::endOfStream(EndOfStreamContext& ec)
 DataProcessorSpec getTOFMatcherSpec(GID::mask_t src, bool useMC, bool useFIT, bool tpcRefit, bool strict, float extratolerancetrd, bool pushMatchable)
 {
   uint32_t ss = o2::globaltracking::getSubSpec(strict ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
+  Options opts;
   auto dataRequest = std::make_shared<DataRequest>();
   if (strict) {
     dataRequest->setMatchingInputStrict();
@@ -259,7 +260,7 @@ DataProcessorSpec getTOFMatcherSpec(GID::mask_t src, bool useMC, bool useFIT, bo
                                                               dataRequest->inputs,
                                                               true);
   o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
-  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs);
+  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs, opts, src[GID::CTP]);
   std::vector<OutputSpec> outputs;
   if (GID::includesSource(GID::TPC, src)) {
     outputs.emplace_back(o2::header::gDataOriginTOF, "MTC_TPC", ss, Lifetime::Timeframe);
@@ -314,7 +315,7 @@ DataProcessorSpec getTOFMatcherSpec(GID::mask_t src, bool useMC, bool useFIT, bo
     dataRequest->inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<TOFMatcherSpec>(dataRequest, ggRequest, useMC, useFIT, tpcRefit, strict, pushMatchable)},
-    Options{}};
+    opts};
 }
 
 } // namespace globaltracking

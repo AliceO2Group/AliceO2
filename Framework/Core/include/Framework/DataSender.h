@@ -60,7 +60,6 @@ class DataSender
 
   std::vector<std::string> mMetricsNames;
   std::vector<std::string> mVariablesMetricsNames;
-  std::vector<std::string> mQueriesMetricsNames;
   std::vector<bool> mPresent;
   std::vector<bool> mPresentDefaults;
 

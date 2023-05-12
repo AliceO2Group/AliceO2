@@ -229,7 +229,7 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
         helper->mapURL2UUID[path].cacheMiss++;
         helper->mapURL2UUID[path].minSize = std::min(v.size(), helper->mapURL2UUID[path].minSize);
         helper->mapURL2UUID[path].maxSize = std::max(v.size(), helper->mapURL2UUID[path].maxSize);
-        auto cacheId = allocator.adoptContainer(output, std::move(v), true, header::gSerializationMethodCCDB);
+        auto cacheId = allocator.adoptContainer(output, std::move(v), DataAllocator::CacheStrategy::Always, header::gSerializationMethodCCDB);
         helper->mapURL2DPLCache[path] = cacheId;
         LOGP(debug, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
         continue;
@@ -240,11 +240,11 @@ auto populateCacheWith(std::shared_ptr<CCDBFetcherHelper> const& helper,
         helper->mapURL2UUID[path].cacheMiss++;
         helper->mapURL2UUID[path].minSize = std::min(v.size(), helper->mapURL2UUID[path].minSize);
         helper->mapURL2UUID[path].maxSize = std::max(v.size(), helper->mapURL2UUID[path].maxSize);
-        auto cacheId = allocator.adoptContainer(output, std::move(v), true, header::gSerializationMethodCCDB);
+        auto cacheId = allocator.adoptContainer(output, std::move(v), DataAllocator::CacheStrategy::Always, header::gSerializationMethodCCDB);
         helper->mapURL2DPLCache[path] = cacheId;
         LOGP(debug, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
         // one could modify the    adoptContainer to take optional old cacheID to clean:
-        // mapURL2DPLCache[URL] = ctx.outputs().adoptContainer(output, std::move(outputBuffer), true, mapURL2DPLCache[URL]);
+        // mapURL2DPLCache[URL] = ctx.outputs().adoptContainer(output, std::move(outputBuffer), DataAllocator::CacheStrategy::Always, mapURL2DPLCache[URL]);
         continue;
       }
     }
@@ -352,7 +352,7 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
               helper->mapURL2UUID[path].minSize = std::min(v.size(), helper->mapURL2UUID[path].minSize);
               helper->mapURL2UUID[path].maxSize = std::max(v.size(), helper->mapURL2UUID[path].maxSize);
               newOrbitResetTime = getOrbitResetTime(v);
-              auto cacheId = allocator.adoptContainer(output, std::move(v), true, header::gSerializationMethodNone);
+              auto cacheId = allocator.adoptContainer(output, std::move(v), DataAllocator::CacheStrategy::Always, header::gSerializationMethodNone);
               helper->mapURL2DPLCache[path] = cacheId;
               LOGP(debug, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
             } else if (v.size()) { // but should be overridden by fresh object
@@ -362,11 +362,11 @@ AlgorithmSpec CCDBHelpers::fetchFromCCDB()
               helper->mapURL2UUID[path].minSize = std::min(v.size(), helper->mapURL2UUID[path].minSize);
               helper->mapURL2UUID[path].maxSize = std::max(v.size(), helper->mapURL2UUID[path].maxSize);
               newOrbitResetTime = getOrbitResetTime(v);
-              auto cacheId = allocator.adoptContainer(output, std::move(v), true, header::gSerializationMethodNone);
+              auto cacheId = allocator.adoptContainer(output, std::move(v), DataAllocator::CacheStrategy::Always, header::gSerializationMethodNone);
               helper->mapURL2DPLCache[path] = cacheId;
               LOGP(debug, "Caching {} for {} (DPL id {})", path, headers["ETag"], cacheId.value);
               // one could modify the adoptContainer to take optional old cacheID to clean:
-              // mapURL2DPLCache[URL] = ctx.outputs().adoptContainer(output, std::move(outputBuffer), true, mapURL2DPLCache[URL]);
+              // mapURL2DPLCache[URL] = ctx.outputs().adoptContainer(output, std::move(outputBuffer), DataAllocator::CacheStrategy::Always, mapURL2DPLCache[URL]);
             }
             // cached object is fine
           }

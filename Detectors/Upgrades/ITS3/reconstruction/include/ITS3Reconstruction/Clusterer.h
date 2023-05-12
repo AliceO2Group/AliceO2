@@ -123,6 +123,7 @@ class Clusterer
 
   struct ClustererThread {
     int id = -1;
+    int nLayersITS3 = 3;         // number of ITS3 layers
     Clusterer* parent = nullptr; // parent clusterer
     // buffers for entries in preClusterIndices in 2 columns, to avoid boundary checks, we reserve
     // extra elements in the beginning and the end
@@ -236,6 +237,8 @@ class Clusterer
     mChipsOld.resize(n);
   }
 
+  void setNumLayersITS3(int n) { mNlayersITS3 = n; }
+
   ///< load the dictionary of cluster topologies
   void loadDictionary(const std::string& fileName) { mPattIdConverter.loadDictionary(fileName); }
   void setDictionary(const its3::TopologyDictionary* dict) { mPattIdConverter.setDictionary(dict); }
@@ -245,6 +248,9 @@ class Clusterer
 
  private:
   void flushClusters(CompClusCont* compClus, MCTruth* labels);
+
+  // geometry options
+  int mNlayersITS3 = 3; ///< number of ITS3 layers
 
   // clusterization options
   bool mContinuousReadout = true; ///< flag continuous readout

@@ -26,8 +26,10 @@ namespace mid
  */
 struct ChannelCalibratorParam : public o2::conf::ConfigurableParamHelper<ChannelCalibratorParam> {
 
-  float maxNoise = 10000.f; ///< maximum allowed noise value (Hz)
-  float maxDead = 0.9f;     ///< maximum fraction of time a strip was not responding to FET
+  float maxNoise = 10000.f;                  ///< maximum allowed noise value (Hz)
+  float maxDead = 0.9f;                      ///< maximum fraction of time a strip was not responding to FET
+  unsigned long int nCalibTriggers = 115000; ///< Number of calibration triggers before sending
+  bool onlyAtEndOfStream = false;            ///< Run only at end of stream
 
   O2ParamDef(ChannelCalibratorParam, "MIDChannelCalibratorParam");
 };

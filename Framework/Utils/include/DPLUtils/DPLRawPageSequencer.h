@@ -23,6 +23,12 @@
 #include "Framework/InputRecordWalker.h"
 #include <utility> // std::declval
 
+// Framework does not depend on detectors, but this file is header-only.
+// So we just include the RDH header, and the user must make sure it is
+// available. Otherwise there is no way to properly parse raw data
+// without having access to RDH info
+#include "DetectorsRaw/RDHUtils.h"
+
 namespace o2::framework
 {
 class InputRecord;
@@ -68,21 +74,37 @@ class DPLRawPageSequencer
   DPLRawPageSequencer() = delete;
   DPLRawPageSequencer(InputRecord& inputs, std::vector<InputSpec> filterSpecs = {}) : mInput(inputs, filterSpecs) {}
 
-  template <typename Predicate, typename Inserter>
-  void operator()(Predicate&& pred, Inserter&& inserter)
+  template <typename Predicate, typename Inserter, typename Precheck>
+  int operator()(Predicate&& pred, Inserter&& inserter, Precheck preCheck)
   {
-    return binary(std::forward<Predicate>(pred), std::forward<Inserter>(inserter));
+    return binary(std::forward<Predicate>(pred), std::forward<Inserter>(inserter), std::forward<Precheck>(preCheck));
   }
 
   template <typename Predicate, typename Inserter>
-  void binary(Predicate pred, Inserter inserter)
+  int operator()(Predicate&& pred, Inserter&& inserter)
   {
+    return binary(std::forward<Predicate>(pred), std::forward<Inserter>(inserter), [](...) { return true; });
+  }
+
+  template <typename Predicate, typename Inserter>
+  int binary(Predicate pred, Inserter inserter)
+  {
+    return binary(std::forward<Predicate>(pred), std::forward<Inserter>(inserter), [](...) { return true; });
+  }
+
+  template <typename Predicate, typename Inserter, typename Precheck>
+  int binary(Predicate pred, Inserter inserter, Precheck preCheck)
+  {
+    int retVal = 0;
     for (auto const& ref : mInput) {
       auto size = DataRefUtils::getPayloadSize(ref);
-      auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+      if (size == 0) {
+        continue;
+      }
+      const auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       auto const pageSize = rawparser_type::max_size;
       auto nPages = size / pageSize + (size % pageSize ? 1 : 0);
-      if (nPages == 0) {
+      if (!preCheck(ref.payload, dh->subSpecification)) {
         continue;
       }
       // FIXME: automatic type from inserter/predicate?
@@ -115,6 +137,13 @@ class DPLRawPageSequencer
         return pos;
       };
 
+      // check if the last block contains a valid RDH, otherwise data is corrupted or 8kb assumption is wrong
+      if (!o2::raw::RDHUtils::checkRDH(ref.payload, false) || (nPages > 1 && (o2::raw::RDHUtils::getMemorySize(ref.payload) != pageSize || !o2::raw::RDHUtils::checkRDH(ref.payload + (nPages - 1) * pageSize, false)))) {
+        forwardInternal(std::forward<Predicate>(pred), std::forward<Inserter>(inserter), ref.payload, size, dh);
+        retVal = 1;
+        continue;
+      }
+
       size_t p = 0;
       do {
         // insert the full block if the last RDH matches the position
@@ -129,38 +158,63 @@ class DPLRawPageSequencer
       // if payloads are consecutive in memory we could apply this algorithm even over
       // O2 message boundaries
     }
+    return retVal;
   }
 
   template <typename Predicate, typename Inserter>
-  void forward(Predicate check, Inserter inserter)
+  int forward(Predicate pred, Inserter inserter)
+  {
+    return forward(std::forward<Predicate>(pred), std::forward<Inserter>(inserter), [](...) { return true; });
+  }
+
+  template <typename Predicate, typename Inserter, typename Precheck>
+  int forward(Predicate pred, Inserter inserter, Precheck preCheck)
   {
     for (auto const& ref : mInput) {
       auto size = DataRefUtils::getPayloadSize(ref);
-      o2::framework::RawParser parser(ref.payload, size);
+      if (size == 0) {
+        continue;
+      }
       auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-      const char* ptr = nullptr;
-      int count = 0;
-      for (auto it = parser.begin(); it != parser.end(); it++) {
-        const char* current = reinterpret_cast<const char*>(it.raw());
-        if (ptr == nullptr) {
-          ptr = current;
-        } else if (check(ptr, current) == false) {
-          if (count) {
-            inserter(ptr, count, dh->subSpecification);
-          }
-          count = 0;
-          ptr = current;
-        }
-        count++;
+      if (!preCheck(ref.payload, dh->subSpecification)) {
+        continue;
       }
-      if (count) {
-        inserter(ptr, count, dh->subSpecification);
-      }
+      forwardInternal(std::forward<Predicate>(pred), std::forward<Inserter>(inserter), ref.payload, size, dh);
     }
+    return 0;
   }
 
  private:
   InputRecordWalker mInput;
+
+  template <typename Predicate, typename Inserter>
+  void forwardInternal(Predicate pred, Inserter inserter, const char* data, size_t size, const o2::header::DataHeader* dh)
+  {
+    o2::framework::RawParser parser(data, size);
+    const char* ptr = nullptr;
+    int count = 0;
+    for (auto it = parser.begin(); it != parser.end(); it++) {
+      const char* current = reinterpret_cast<const char*>(it.raw());
+      if (ptr == nullptr) {
+        ptr = current;
+      } else if (pred(ptr, current) == false) {
+        if (count) {
+          inserter(ptr, count, dh->subSpecification);
+        }
+        count = 0;
+        ptr = current;
+      }
+      count++;
+      if (it.sizeTotal() != rawparser_type::max_size) {
+        inserter(ptr, count, dh->subSpecification);
+        count = 0;
+        ptr = nullptr;
+      }
+    }
+    if (count) {
+      inserter(ptr, count, dh->subSpecification);
+    }
+  }
 };
 
 } // namespace o2::framework

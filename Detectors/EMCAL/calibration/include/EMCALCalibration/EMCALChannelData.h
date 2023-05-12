@@ -50,7 +50,7 @@ class EMCALChannelData
 {
   //using Slot = o2::calibration::TimeSlot<o2::emcal::EMCALChannelData>;
   using Cells = o2::emcal::Cell;
-  using boostHisto = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>, boost::histogram::axis::integer<>>, boost::histogram::unlimited_storage<std::allocator<char>>>;
+  using boostHisto = boost::histogram::histogram<std::tuple<boost::histogram::axis::variable<double, boost::use_default, boost::use_default, std::allocator<double>>, boost::histogram::axis::variable<double, boost::use_default, boost::use_default, std::allocator<double>>>>;
   using BadChannelMap = o2::emcal::BadChannelMap;
 
  public:
@@ -60,12 +60,27 @@ class EMCALChannelData
 
   EMCALChannelData() : mNBins(EMCALCalibParams::Instance().nBinsEnergyAxis_bc), mRange(EMCALCalibParams::Instance().maxValueEnergyAxis_bc), mNBinsTime(EMCALCalibParams::Instance().nBinsTimeAxis_bc), mRangeTimeLow(EMCALCalibParams::Instance().rangeTimeAxisLow_bc), mRangeTimeHigh(EMCALCalibParams::Instance().rangeTimeAxisHigh_bc)
   {
-    // boost histogram with amplitude vs. cell ID, specify the range and binning of the amplitude axis
-    mHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(mNBins, 0, mRange, "t-texp"), boost::histogram::axis::integer<>(0, NCELLS, "CELL ID"));
-    mHistoTime = boost::histogram::make_histogram(boost::histogram::axis::regular<>(mNBinsTime, mRangeTimeLow, mRangeTimeHigh, "t-texp"), boost::histogram::axis::integer<>(0, NCELLS, "CELL ID"));
+
     // NCELLS includes DCal, treat as one calibration
     o2::emcal::Geometry* mGeometry = o2::emcal::Geometry::GetInstanceFromRunNumber(300000);
     int NCELLS = mGeometry->GetNCells();
+
+    // boost histogram with amplitude vs. cell ID, specify the range and binning of the amplitude axis
+    std::vector<double> binEdgesCells;
+    for (int i = 0; i <= NCELLS; i++) {
+      binEdgesCells.push_back(i);
+    }
+    std::vector<double> binEdgesEnergy;
+    for (int i = 0; i <= mNBins; i++) {
+      binEdgesEnergy.push_back(static_cast<double>(i) * mRange / mNBins);
+    }
+    std::vector<double> binEdgesTime;
+    for (int i = 0; i <= mNBinsTime; i++) {
+      binEdgesTime.push_back(mRangeTimeLow + (static_cast<double>(i) * std::abs(mRangeTimeHigh - mRangeTimeLow)) / mNBinsTime);
+    }
+
+    mHisto = boost::histogram::make_histogram(boost::histogram::axis::variable<>(binEdgesEnergy), boost::histogram::axis::variable<>(binEdgesCells));
+    mHistoTime = boost::histogram::make_histogram(boost::histogram::axis::variable<>(binEdgesTime), boost::histogram::axis::variable<>(binEdgesCells));
   }
 
   ~EMCALChannelData() = default;
@@ -89,9 +104,15 @@ class EMCALChannelData
   boostHisto& getHisto() { return mHisto; }
   const boostHisto& getHisto() const { return mHisto; }
 
+  /// \brief Set new calibration histogram
+  void setHisto(boostHisto hist) { mHisto = hist; }
+
   /// \brief Get current calibration histogram with timing information
   boostHisto& getHistoTime() { return mHistoTime; }
   const boostHisto& getHistoTime() const { return mHistoTime; }
+
+  /// \brief Set new calibration histogram with timing info
+  void setHistoTime(boostHisto hist) { mHistoTime = hist; }
 
   /// \brief Peform the calibration and flag the bad channel map
   /// Average energy per hit histogram is fitted with a gaussian

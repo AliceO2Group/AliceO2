@@ -25,7 +25,7 @@ namespace o2::tpc::raw_data_types
 enum Type : char {
   RAWDATA = 0, ///< GBT raw data
   LinkZS = 1,  ///< Link-based Zero Suppression
-  ZS = 2,      ///< final Zero Suppression
+  ZS = 2,      ///< final Zero Suppression (can be ILBZS, DLBZS)
   IDC = 3,     ///< Integrated Digitial Currents, with priority bit to end up in separate buffer
   SAC = 4,     ///< Sampled Analogue Currents from the current monitor
 };

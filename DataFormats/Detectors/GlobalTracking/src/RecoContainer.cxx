@@ -1458,3 +1458,138 @@ const o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>* RecoContainer::getE
 {
   return mcEMCCells.get();
 }
+
+//________________________________________________________
+void RecoContainer::getTrackTimeITSTPCTRDTOF(GTrackID gid, float& t, float& tErr) const
+{
+  const auto& match = getITSTPCTRDTOFMatches()[gid];
+  auto gidx = match.getTrackRef(); // this should be corresponding ITS-TPC-TRD track
+  const auto& tofCl = getTOFClusters()[match.getTOFClIndex()];
+  t = (tofCl.getTime() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
+  tErr = 0.010f;
+}
+
+//________________________________________________________
+void RecoContainer::getTrackTimeTPCTRDTOF(GTrackID gid, float& t, float& tErr) const
+{
+  const auto& match = getTPCTRDTOFMatches()[gid];
+  auto gidx = match.getTrackRef(); // this should be corresponding ITS-TPC-TRD track
+  const auto& tofCl = getTOFClusters()[match.getTOFClIndex()];
+  t = (tofCl.getTime() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
+  tErr = 0.010f;
+}
+
+//________________________________________________________
+void RecoContainer::getTrackTimeITSTPCTOF(GTrackID gid, float& t, float& tErr) const
+{
+  const auto& match = getITSTPCTOFMatches()[gid];
+  auto gidx = match.getTrackRef(); // this should be corresponding ITS-TPC track
+  const auto& tofCl = getTOFClusters()[match.getTOFClIndex()];
+  t = (tofCl.getTime() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
+  tErr = 0.010f;
+}
+
+//________________________________________________________
+void RecoContainer::getTrackTimeITSTPCTRD(GTrackID gid, float& t, float& tErr) const
+{
+  const auto trigITSTPCTRD = getITSTPCTRDTriggers();
+  // very slow: find the trigger this track belongs to
+  for (const auto& trig : trigITSTPCTRD) {
+    if (trig.getTrackRefs().getEntriesBound() > gid.getIndex()) {
+      t = trig.getBCData().differenceInBC(startIR) * o2::constants::lhc::LHCBunchSpacingMUS;
+      tErr = 5.e-3;
+      const auto& trc = getITSTPCTRDTracks<o2::trd::TrackTRD>()[gid];
+      if (trc.hasPileUpInfo()) { // distance to farthest collision within the pileup integration time
+        t += trc.getPileUpTimeShiftMUS();
+        tErr += trc.getPileUpTimeErrorMUS();
+      }
+    }
+  }
+}
+
+//________________________________________________________
+void RecoContainer::getTrackTimeTPCTRD(GTrackID gid, float& t, float& tErr) const
+{
+  const auto trigTPCTRD = getITSTPCTRDTriggers();
+  // very slow: find the trigger this track belongs to
+  for (const auto& trig : trigTPCTRD) {
+    if (trig.getTrackRefs().getEntriesBound() > gid.getIndex()) {
+      t = trig.getBCData().differenceInBC(startIR) * o2::constants::lhc::LHCBunchSpacingMUS;
+      tErr = 5.e-3;
+      const auto& trc = getTPCTRDTracks<o2::trd::TrackTRD>()[gid];
+      if (trc.hasPileUpInfo()) { // distance to farthest collision within the pileup integration time
+        t += trc.getPileUpTimeShiftMUS();
+        tErr += trc.getPileUpTimeErrorMUS();
+      }
+    }
+  }
+}
+
+//________________________________________________________
+void RecoContainer::getTrackTimeITSTPC(GTrackID gid, float& t, float& tErr) const
+{
+  const auto& trc = getTPCITSTrack(gid);
+  t = trc.getTimeMUS().getTimeStamp();
+  tErr = trc.getTimeMUS().getTimeStampError();
+}
+
+//________________________________________________________
+void RecoContainer::getTrackTimeTPCTOF(GTrackID gid, float& t, float& tErr) const
+{
+  const auto& trc = getTPCTOFTrack(gid);
+  t = trc.getTimeMUS().getTimeStamp();
+  tErr = trc.getTimeMUS().getTimeStampError();
+}
+
+//________________________________________________________
+void RecoContainer::getTrackTimeITS(GTrackID gid, float& t, float& tErr) const
+{
+  const auto& rofrs = getITSTracksROFRecords();
+  for (const auto& rof : rofrs) { // slow
+    if (gid.getIndex() < rof.getFirstEntry() + rof.getNEntries()) {
+      t = rof.getBCData().differenceInBC(startIR) * o2::constants::lhc::LHCBunchSpacingMUS;
+      tErr = 0.5;
+    }
+  }
+}
+
+//________________________________________________________
+void RecoContainer::getTrackTimeTPC(GTrackID gid, float& t, float& tErr) const
+{
+  const auto& trc = getTPCTrack(gid);
+  t = trc.getTime0() + 0.5 * (trc.getDeltaTFwd() - trc.getDeltaTBwd());
+  tErr = 0.5 * (trc.getDeltaTFwd() + trc.getDeltaTBwd());
+}
+
+//________________________________________________________
+void RecoContainer::getTrackTime(GTrackID gid, float& t, float& tErr) const
+{
+  auto src = gid.getSource();
+  if (src == GTrackID::ITSTPCTRDTOF) {
+    return getTrackTimeITSTPCTRDTOF(gid, t, tErr);
+  }
+  if (src == GTrackID::TPCTRDTOF) {
+    return getTrackTimeTPCTRDTOF(gid, t, tErr);
+  }
+  if (src == GTrackID::ITSTPCTOF) {
+    return getTrackTimeITSTPCTOF(gid, t, tErr);
+  }
+  if (src == GTrackID::ITSTPCTRD) {
+    return getTrackTimeITSTPCTRD(gid, t, tErr);
+  }
+  if (src == GTrackID::TPCTRD) {
+    return getTrackTimeTPCTRD(gid, t, tErr);
+  }
+  if (src == GTrackID::ITSTPC) {
+    return getTrackTimeITSTPC(gid, t, tErr);
+  }
+  if (src == GTrackID::TPCTOF) {
+    return getTrackTimeTPCTOF(gid, t, tErr);
+  }
+  if (src == GTrackID::ITS) {
+    return getTrackTimeITS(gid, t, tErr);
+  }
+  if (src == GTrackID::TPC) {
+    return getTrackTimeTPC(gid, t, tErr);
+  }
+}

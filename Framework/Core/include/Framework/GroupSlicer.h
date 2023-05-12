@@ -13,7 +13,6 @@
 #define FRAMEWORK_GROUP_SLICER_H_
 
 #include "Framework/Pack.h"
-#include "Framework/Kernels.h"
 #include "Framework/ASoA.h"
 
 #include <arrow/util/config.h>
@@ -52,22 +51,17 @@ struct GroupSlicer {
       constexpr auto index = framework::has_type_at_v<std::decay_t<T>>(associated_pack_t{});
       if constexpr (o2::soa::relatedByIndex<std::decay_t<G>, std::decay_t<T>>()) {
         auto binding = o2::soa::getLabelFromTypeForKey<std::decay_t<T>>(mIndexColumnName);
+        auto bk = std::make_pair(binding, mIndexColumnName);
         if constexpr (!o2::soa::is_smallgroups_v<std::decay_t<T>>) {
           if (table.size() == 0) {
             return;
           }
-          auto bk = std::make_pair(binding, mIndexColumnName);
           sliceInfos[index] = mSlices->getCacheFor(bk);
         } else {
           if (table.tableSize() == 0) {
             return;
           }
-          // use generic splitting approach
-          o2::framework::sliceByColumnGeneric(mIndexColumnName.c_str(),
-                                              binding.c_str(),
-                                              table.asArrowTable(),
-                                              static_cast<int32_t>(mGt->tableSize()),
-                                              &filterGroups[index]);
+          sliceInfosUnsorted[index] = mSlices->getCacheUnsortedFor(bk);
         }
       }
     }
@@ -208,18 +202,19 @@ struct GroupSlicer {
         } else {
           // generic split
           if constexpr (soa::is_soa_filtered_v<std::decay_t<A1>>) {
+            auto selection = sliceInfosUnsorted[index].getSliceFor(pos);
             // intersect selections
             o2::soa::SelectionVector s;
             if (selections[index]->empty()) {
-              if (!filterGroups[index].empty()) {
-                std::copy((filterGroups[index])[pos].begin(), (filterGroups[index])[pos].end(), std::back_inserter(s));
+              if (!selection.empty()) {
+                std::copy(selection.begin(), selection.end(), std::back_inserter(s));
               }
             } else {
-              if (!filterGroups[index].empty()) {
+              if (!selection.empty()) {
                 if constexpr (std::decay_t<A1>::applyFilters) {
-                  std::set_intersection((filterGroups[index])[pos].begin(), (filterGroups[index])[pos].end(), selections[index]->begin(), selections[index]->end(), std::back_inserter(s));
+                  std::set_intersection(selection.begin(), selection.end(), selections[index]->begin(), selections[index]->end(), std::back_inserter(s));
                 } else {
-                  std::copy((filterGroups[index])[pos].begin(), (filterGroups[index])[pos].end(), std::back_inserter(s));
+                  std::copy(selection.begin(), selection.end(), std::back_inserter(s));
                 }
               }
             }
@@ -242,11 +237,11 @@ struct GroupSlicer {
     typename grouping_t::iterator mGroupingElement;
     uint64_t position = 0;
     gsl::span<int64_t const> groupSelection;
-    std::array<ListVector, sizeof...(A)> filterGroups;
     std::array<gsl::span<int64_t const> const*, sizeof...(A)> selections;
     std::array<gsl::span<int64_t const>::iterator, sizeof...(A)> starts;
 
     std::array<SliceInfoPtr, sizeof...(A)> sliceInfos;
+    std::array<SliceInfoUnsortedPtr, sizeof...(A)> sliceInfosUnsorted;
     ArrowTableSlicingCache* mSlices;
   };
 

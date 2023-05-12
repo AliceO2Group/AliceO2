@@ -32,7 +32,7 @@ bool NoiseCalibrator::processTimeFrameClusters(gsl::span<const o2::itsmft::CompC
                                                gsl::span<const o2::itsmft::ROFRecord> const& rofs)
 {
   static int nTF = 0;
-  LOG(info) << "Processing TF# " << nTF++ << " of " << clusters.size() << " clusters in" << rofs.size() << " ROFs";
+  LOG(detail) << "Processing TF# " << nTF++ << " of " << clusters.size() << " clusters in" << rofs.size() << " ROFs";
   // extract hits
   auto pattIt = patterns.begin();
   mChipIDs.clear();
@@ -104,7 +104,7 @@ bool NoiseCalibrator::processTimeFrameDigits(gsl::span<const o2::itsmft::Digit> 
                                              gsl::span<const o2::itsmft::ROFRecord> const& rofs)
 {
   static int nTF = 0;
-  LOG(info) << "Processing TF# " << nTF++ << " of " << digits.size() << " digits in " << rofs.size() << " ROFs";
+  LOG(detail) << "Processing TF# " << nTF++ << " of " << digits.size() << " digits in " << rofs.size() << " ROFs";
   mChipIDs.clear();
   for (const auto& rof : rofs) {
     int chipID = -1;

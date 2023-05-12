@@ -13,6 +13,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DeviceExecution.h"
+#include "Framework/DriverConfig.h"
 #include "../src/DeviceSpecHelpers.h"
 #include <catch_amalgamated.hpp>
 #include <algorithm>
@@ -72,7 +73,9 @@ void check(const std::vector<std::string>& arguments,
       workflowOptions,
     });
   }
+  DriverConfig driverConfig{};
   DeviceSpecHelpers::prepareArguments(true, true, false, 8080,
+                                      driverConfig,
                                       dataProcessorInfos,
                                       deviceSpecs,
                                       deviceExecutions,
@@ -347,6 +350,25 @@ TEST_CASE("Check validity of the workflow")
     },
   };
   REQUIRE_THROWS(DeviceSpecHelpers::validate(workflow4));
+}
+
+TEST_CASE("CheckReworkingEnv")
+{
+  DeviceSpec spec{.inputTimesliceId = 1};
+  std::string env = "FOO={timeslice0}";
+  REQUIRE(DeviceSpecHelpers::reworkEnv(env, spec) == "FOO=1");
+  env = "FOO={timeslice0} BAR={timeslice4}";
+  REQUIRE(DeviceSpecHelpers::reworkEnv(env, spec) == "FOO=1 BAR=5");
+  env = "FOO={timeslice0} BAR={timeslice4} BAZ={timeslice5}";
+  REQUIRE(DeviceSpecHelpers::reworkEnv(env, spec) == "FOO=1 BAR=5 BAZ=6");
+  env = "";
+  REQUIRE(DeviceSpecHelpers::reworkEnv(env, spec) == "");
+  env = "Plottigat";
+  REQUIRE(DeviceSpecHelpers::reworkEnv(env, spec) == "Plottigat");
+  env = "{timeslice}";
+  REQUIRE(DeviceSpecHelpers::reworkEnv(env, spec) == "{timeslice}");
+  env = "{timeslicepluto";
+  REQUIRE(DeviceSpecHelpers::reworkEnv(env, spec) == "{timeslicepluto");
 }
 
 } // namespace o2::framework

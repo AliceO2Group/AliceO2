@@ -25,10 +25,10 @@
 #include "TVirtualMC.h"      // for gMC, TVirtualMC
 #include "TVirtualMCStack.h" // for TVirtualMCStack
 
-#include "ITS3Simulation/DescriptorInnerBarrelITS3.h"
-#include "ITS3Simulation/DescriptorInnerBarrelITS3Param.h"
-#include "ITS3Simulation/ITS3Services.h"
+#include "ITS3Base/DescriptorInnerBarrelITS3Param.h"
 #include "ITS3Base/SegmentationSuperAlpide.h"
+#include "ITS3Simulation/DescriptorInnerBarrelITS3.h"
+#include "ITS3Simulation/ITS3Services.h"
 
 using namespace o2::its;
 using namespace o2::its3;
@@ -43,6 +43,11 @@ void DescriptorInnerBarrelITS3::configure()
   // set version
   auto& param = DescriptorInnerBarrelITS3Param::Instance();
   int buildLevel = param.mBuildLevel;
+  auto gapY = param.mGapY;
+  auto gapX4thlayer = param.mGapXDirection4thLayer;
+  auto gapPhi = param.mGapPhi;
+  auto radii = param.mRadii;
+  auto length = param.mLength;
   if (param.getITS3LayerConfigString() != "") {
     LOG(info) << "Instance \'DescriptorInnerBarrelITS3\' class with following parameters";
     LOG(info) << param;
@@ -68,7 +73,8 @@ void DescriptorInnerBarrelITS3::configure()
   mLayerRadii.resize(mNumLayers);
   mLayerZLen.resize(mNumLayers);
   mChipTypeID.resize(mNumLayers);
-  mGap.resize(mNumLayers);
+  mGapY.resize(mNumLayers);
+  mGapPhi.resize(mNumLayers);
   mNumSubSensorsHalfLayer.resize(mNumLayers);
   mFringeChipWidth.resize(mNumLayers);
   mMiddleChipWidth.resize(mNumLayers);
@@ -79,12 +85,16 @@ void DescriptorInnerBarrelITS3::configure()
 
   const double safety = 0.5;
 
-  // radius, length, gap, num of chips in half layer, fringe chip width, middle chip width, strip foam height, semi-cicle foam length, guled foam width, gapx for 4th layer
-  std::vector<std::array<double, 10>> IBtdr5dat;
-  IBtdr5dat.emplace_back(std::array<double, 10>{1.8f, 27.15, 0.1, 3., 0.06, 0.128, 0.25, 0.8, 0.022, -999.});
-  IBtdr5dat.emplace_back(std::array<double, 10>{2.4f, 27.15, 0.1, 4., 0.06, 0.128, 0.25, 0.8, 0.022, -999.});
-  IBtdr5dat.emplace_back(std::array<double, 10>{3.0f, 27.15, 0.1, 5., 0.06, 0.128, 0.25, 0.8, 0.022, -999.});
-  IBtdr5dat.emplace_back(std::array<double, 10>{6.0f, 27.15, 0.1, 5., 0.06, 0.128, 0.25, 0.8, 0.022, 0.05});
+  // radius, length, gap in z, gap in phi, num of chips in half layer, fringe chip width, middle chip width, strip foam height, semi-cicle foam length, guled foam width, gapx for 4th layer
+  std::vector<std::array<double, 11>> IBtdr5dat;
+  IBtdr5dat.emplace_back(std::array<double, 11>{radii[0], length, gapY[0], gapPhi[0], 3.f, 0.06f, 0.128f, 0.25f, 0.8f, 0.022f, 0.f});
+  IBtdr5dat.emplace_back(std::array<double, 11>{radii[1], length, gapY[1], gapPhi[1], 4.f, 0.06f, 0.128f, 0.25f, 0.8f, 0.022f, 0.f});
+  IBtdr5dat.emplace_back(std::array<double, 11>{radii[2], length, gapY[2], gapPhi[2], 5.f, 0.06f, 0.128f, 0.25f, 0.8f, 0.022f, 0.f});
+  IBtdr5dat.emplace_back(std::array<double, 11>{radii[3], length, gapY[3], gapPhi[3], 5.f, 0.06f, 0.128f, 0.25f, 0.8f, 0.022f, gapX4thlayer});
+
+  // cylinder inner diameter, cylinder outer diameter, cylinder fabric thickness, cone inner diameter, cone outer diameter, cone fabric thickness, flangeC external diameter
+  std::array<double, 7> IBtdr5datCYSSForThreeLayers{9.56, 10., 0.01, 10., 10.12, 0.03, 10.};
+  std::array<double, 7> IBtdr5datCYSSForFourLayers{12.56, 13., 0.01, 13., 13.12, 0.03, 13.};
 
   if (mVersion == "ThreeLayersNoDeadZones") {
 
@@ -93,16 +103,29 @@ void DescriptorInnerBarrelITS3::configure()
     for (auto idLayer{0u}; idLayer < mNumLayers; ++idLayer) {
       mLayerRadii[idLayer] = IBtdr5dat[idLayer][0];
       mLayerZLen[idLayer] = IBtdr5dat[idLayer][1];
-      mGap[idLayer] = IBtdr5dat[idLayer][2];
+      mGapY[idLayer] = IBtdr5dat[idLayer][2];
+      mGapPhi[idLayer] = IBtdr5dat[idLayer][3];
       mChipTypeID[idLayer] = 0;
-      mHeightStripFoam[idLayer] = IBtdr5dat[idLayer][6];
-      mLengthSemiCircleFoam[idLayer] = IBtdr5dat[idLayer][7];
-      mThickGluedFoam[idLayer] = IBtdr5dat[idLayer][8];
+      mHeightStripFoam[idLayer] = IBtdr5dat[idLayer][7];
+      mLengthSemiCircleFoam[idLayer] = IBtdr5dat[idLayer][8];
+      mThickGluedFoam[idLayer] = IBtdr5dat[idLayer][9];
       mBuildLevel[idLayer] = buildLevel;
       LOGP(info, "ITS3 L# {} R:{} Gap:{} StripFoamHeight:{} SemiCircleFoamLength:{} ThickGluedFoam:{}",
-           idLayer, mLayerRadii[idLayer], mGap[idLayer],
+           idLayer, mLayerRadii[idLayer], mGapY[idLayer],
            mHeightStripFoam[idLayer], mLengthSemiCircleFoam[idLayer], mThickGluedFoam[idLayer]);
     }
+
+    mCyssCylInnerD = IBtdr5datCYSSForThreeLayers[0];
+    mCyssCylOuterD = IBtdr5datCYSSForThreeLayers[1];
+    mCyssCylFabricThick = IBtdr5datCYSSForThreeLayers[2];
+    mCyssConeIntSectDmin = IBtdr5datCYSSForThreeLayers[3];
+    mCyssConeIntSectDmax = IBtdr5datCYSSForThreeLayers[4];
+    mCyssConeFabricThick = IBtdr5datCYSSForThreeLayers[5];
+    mCyssFlangeCDExt = IBtdr5datCYSSForThreeLayers[6];
+    LOGP(info, "ITS3 CYSS# CylInnerD:{} OuterD:{} CylFabricThick:{} IntSectDmin:{} IntSectDmax:{} FabricThick:{} FlangeCDExt:{}",
+         mCyssCylInnerD, mCyssCylOuterD, mCyssCylFabricThick,
+         mCyssConeIntSectDmin, mCyssConeIntSectDmax, mCyssConeFabricThick, mCyssFlangeCDExt);
+
   } else if (mVersion == "ThreeLayers") {
 
     mWrapperMinRadius = IBtdr5dat[0][0] - safety;
@@ -110,20 +133,33 @@ void DescriptorInnerBarrelITS3::configure()
     for (auto idLayer{0u}; idLayer < mNumLayers; ++idLayer) {
       mLayerRadii[idLayer] = IBtdr5dat[idLayer][0];
       mLayerZLen[idLayer] = IBtdr5dat[idLayer][1];
-      mNumSubSensorsHalfLayer[idLayer] = (int)IBtdr5dat[idLayer][3];
-      mFringeChipWidth[idLayer] = IBtdr5dat[idLayer][4];
-      mMiddleChipWidth[idLayer] = IBtdr5dat[idLayer][5];
-      mGap[idLayer] = IBtdr5dat[idLayer][2];
+      mNumSubSensorsHalfLayer[idLayer] = (int)IBtdr5dat[idLayer][4];
+      mFringeChipWidth[idLayer] = IBtdr5dat[idLayer][5];
+      mMiddleChipWidth[idLayer] = IBtdr5dat[idLayer][6];
+      mGapY[idLayer] = IBtdr5dat[idLayer][2];
+      mGapPhi[idLayer] = IBtdr5dat[idLayer][3];
       mChipTypeID[idLayer] = 0;
-      mHeightStripFoam[idLayer] = IBtdr5dat[idLayer][6];
-      mLengthSemiCircleFoam[idLayer] = IBtdr5dat[idLayer][7];
-      mThickGluedFoam[idLayer] = IBtdr5dat[idLayer][8];
+      mHeightStripFoam[idLayer] = IBtdr5dat[idLayer][7];
+      mLengthSemiCircleFoam[idLayer] = IBtdr5dat[idLayer][8];
+      mThickGluedFoam[idLayer] = IBtdr5dat[idLayer][9];
       mBuildLevel[idLayer] = buildLevel;
       LOGP(info, "ITS3 L# {} R:{} Gap:{} NSubSensors:{} FringeChipWidth:{} MiddleChipWidth:{} StripFoamHeight:{} SemiCircleFoamLength:{} ThickGluedFoam:{}",
-           idLayer, mLayerRadii[idLayer], mGap[idLayer],
+           idLayer, mLayerRadii[idLayer], mGapY[idLayer],
            mNumSubSensorsHalfLayer[idLayer], mFringeChipWidth[idLayer], mMiddleChipWidth[idLayer],
            mHeightStripFoam[idLayer], mLengthSemiCircleFoam[idLayer], mThickGluedFoam[idLayer]);
     }
+
+    mCyssCylInnerD = IBtdr5datCYSSForThreeLayers[0];
+    mCyssCylOuterD = IBtdr5datCYSSForThreeLayers[1];
+    mCyssCylFabricThick = IBtdr5datCYSSForThreeLayers[2];
+    mCyssConeIntSectDmin = IBtdr5datCYSSForThreeLayers[3];
+    mCyssConeIntSectDmax = IBtdr5datCYSSForThreeLayers[4];
+    mCyssConeFabricThick = IBtdr5datCYSSForThreeLayers[5];
+    mCyssFlangeCDExt = IBtdr5datCYSSForThreeLayers[6];
+    LOGP(info, "ITS3 CYSS# CylInnerD:{} CylOuterD:{} CylFabricThick:{} ConeIntSectDmin:{} ConeIntSectDmax:{} ConeFabricThick:{} FlangeCDExt:{}",
+         mCyssCylInnerD, mCyssCylOuterD, mCyssCylFabricThick,
+         mCyssConeIntSectDmin, mCyssConeIntSectDmax, mCyssConeFabricThick, mCyssFlangeCDExt);
+
   } else if (mVersion == "FourLayers") {
 
     mWrapperMinRadius = IBtdr5dat[0][0] - safety;
@@ -131,28 +167,33 @@ void DescriptorInnerBarrelITS3::configure()
     for (auto idLayer{0u}; idLayer < mNumLayers; ++idLayer) {
       mLayerRadii[idLayer] = IBtdr5dat[idLayer][0];
       mLayerZLen[idLayer] = IBtdr5dat[idLayer][1];
-      mNumSubSensorsHalfLayer[idLayer] = (int)IBtdr5dat[idLayer][3];
-      mFringeChipWidth[idLayer] = IBtdr5dat[idLayer][4];
-      mMiddleChipWidth[idLayer] = IBtdr5dat[idLayer][5];
-      mGap[idLayer] = IBtdr5dat[idLayer][2];
+      mNumSubSensorsHalfLayer[idLayer] = (int)IBtdr5dat[idLayer][4];
+      mFringeChipWidth[idLayer] = IBtdr5dat[idLayer][5];
+      mMiddleChipWidth[idLayer] = IBtdr5dat[idLayer][6];
+      mGapY[idLayer] = IBtdr5dat[idLayer][2];
+      mGapPhi[idLayer] = IBtdr5dat[idLayer][3];
       mChipTypeID[idLayer] = 0;
-      mHeightStripFoam[idLayer] = IBtdr5dat[idLayer][6];
-      mLengthSemiCircleFoam[idLayer] = IBtdr5dat[idLayer][7];
-      mThickGluedFoam[idLayer] = IBtdr5dat[idLayer][8];
+      mHeightStripFoam[idLayer] = IBtdr5dat[idLayer][7];
+      mLengthSemiCircleFoam[idLayer] = IBtdr5dat[idLayer][8];
+      mThickGluedFoam[idLayer] = IBtdr5dat[idLayer][9];
       mBuildLevel[idLayer] = buildLevel;
-      if (idLayer == 3) {
-        mGapXDirection4thLayer = IBtdr5dat[idLayer][9];
-        LOGP(info, "ITS3 L# {} R:{} Gap:{} NSubSensors:{} FringeChipWidth:{} MiddleChipWidth:{} StripFoamHeight:{} SemiCircleFoamLength:{} ThickGluedFoam:{}, GapXDirection4thLayer:{}",
-             3, mLayerRadii[idLayer], mGap[idLayer],
-             mNumSubSensorsHalfLayer[idLayer], mFringeChipWidth[idLayer], mMiddleChipWidth[idLayer],
-             mHeightStripFoam[idLayer], mLengthSemiCircleFoam[idLayer], mThickGluedFoam[idLayer], mGapXDirection4thLayer);
-      } else {
-        LOGP(info, "ITS3 L# {} R:{} Gap:{} NSubSensors:{} FringeChipWidth:{} MiddleChipWidth:{} StripFoamHeight:{} SemiCircleFoamLength:{} ThickGluedFoam:{}",
-             idLayer, mLayerRadii[idLayer], mGap[idLayer],
-             mNumSubSensorsHalfLayer[idLayer], mFringeChipWidth[idLayer], mMiddleChipWidth[idLayer],
-             mHeightStripFoam[idLayer], mLengthSemiCircleFoam[idLayer], mThickGluedFoam[idLayer]);
-      }
+      mGapXDirection4thLayer = IBtdr5dat[idLayer][10];
+      LOGP(info, "ITS3 L# {} R:{} Gap:{} NSubSensors:{} FringeChipWidth:{} MiddleChipWidth:{} StripFoamHeight:{} SemiCircleFoamLength:{} ThickGluedFoam:{}",
+           idLayer, mLayerRadii[idLayer], mGapY[idLayer],
+           mNumSubSensorsHalfLayer[idLayer], mFringeChipWidth[idLayer], mMiddleChipWidth[idLayer],
+           mHeightStripFoam[idLayer], mLengthSemiCircleFoam[idLayer], mThickGluedFoam[idLayer]);
     }
+    mCyssCylInnerD = IBtdr5datCYSSForFourLayers[0];
+    mCyssCylOuterD = IBtdr5datCYSSForFourLayers[1];
+    mCyssCylFabricThick = IBtdr5datCYSSForFourLayers[2];
+    mCyssConeIntSectDmin = IBtdr5datCYSSForFourLayers[3];
+    mCyssConeIntSectDmax = IBtdr5datCYSSForFourLayers[4];
+    mCyssConeFabricThick = IBtdr5datCYSSForFourLayers[5];
+    mCyssFlangeCDExt = IBtdr5datCYSSForFourLayers[6];
+    LOGP(info, "ITS3 CYSS# CylInnerD:{} CylOuterD:{} CylFabricThick:{} ConeIntSectDmin:{} ConeIntSectDmax:{} ConeFabricThick:{} FlangeCDExt:{}",
+         mCyssCylInnerD, mCyssCylOuterD, mCyssCylFabricThick,
+         mCyssConeIntSectDmin, mCyssConeIntSectDmax, mCyssConeFabricThick, mCyssFlangeCDExt);
+
   } else if (mVersion == "FiveLayers") {
     LOGP(fatal, "ITS3 version FiveLayers not yet implemented.");
   } else {
@@ -168,29 +209,33 @@ ITS3Layer* DescriptorInnerBarrelITS3::createLayer(int idLayer, TGeoVolume* dest)
     return nullptr;
   }
 
+  int maxLayer = (mVersion != "FourLayers") ? 3 : 4;
+  double deltaR = (idLayer < maxLayer - 1) ? mLayerRadii[idLayer + 1] - mLayerRadii[idLayer] : 0.6;
+
   mLayer[idLayer] = new ITS3Layer(idLayer);
   mLayer[idLayer]->setLayerRadius(mLayerRadii[idLayer]);
   mLayer[idLayer]->setLayerZLen(mLayerZLen[idLayer]);
-  mLayer[idLayer]->setGapBetweenEmispheres(mGap[idLayer]);
+  mLayer[idLayer]->setGapBetweenEmispheres(mGapY[idLayer]);
+  mLayer[idLayer]->setGapBetweenEmispheresInPhi(mGapPhi[idLayer]);
   mLayer[idLayer]->setChipID(mChipTypeID[idLayer]);
   mLayer[idLayer]->setHeightStripFoam(mHeightStripFoam[idLayer]);
   mLayer[idLayer]->setLengthSemiCircleFoam(mLengthSemiCircleFoam[idLayer]);
   mLayer[idLayer]->setThickGluedFoam(mThickGluedFoam[idLayer]);
   mLayer[idLayer]->setBuildLevel(mBuildLevel[idLayer]);
   if (mVersion == "ThreeLayersNoDeadZones") {
-    mLayer[idLayer]->createLayer(dest);
+    mLayer[idLayer]->createLayer(dest, deltaR);
   } else if (mVersion == "ThreeLayers") {
     mLayer[idLayer]->setFringeChipWidth(mFringeChipWidth[idLayer]);
     mLayer[idLayer]->setMiddleChipWidth(mMiddleChipWidth[idLayer]);
     mLayer[idLayer]->setNumSubSensorsHalfLayer(mNumSubSensorsHalfLayer[idLayer]);
-    mLayer[idLayer]->createLayerWithDeadZones(dest);
+    mLayer[idLayer]->createLayerWithDeadZones(dest, deltaR);
   } else if (mVersion == "FourLayers") {
     mLayer[idLayer]->setFringeChipWidth(mFringeChipWidth[idLayer]);
     mLayer[idLayer]->setMiddleChipWidth(mMiddleChipWidth[idLayer]);
     mLayer[idLayer]->setNumSubSensorsHalfLayer(mNumSubSensorsHalfLayer[idLayer]);
-    if (idLayer != 3) {
-      mLayer[idLayer]->createLayerWithDeadZones(dest);
-    } else if (idLayer == 3) {
+    if (idLayer < maxLayer - 1) {
+      mLayer[idLayer]->createLayerWithDeadZones(dest, deltaR);
+    } else {
       mLayer[idLayer]->setGapXDirection(mGapXDirection4thLayer);
       mLayer[idLayer]->create4thLayer(dest);
     }
@@ -207,6 +252,13 @@ void DescriptorInnerBarrelITS3::createServices(TGeoVolume* dest)
   //
 
   std::unique_ptr<ITS3Services> mServicesGeometry(new ITS3Services());
+  mServicesGeometry.get()->setCyssCylInnerD(mCyssCylInnerD);
+  mServicesGeometry.get()->setCyssCylOuterD(mCyssCylOuterD);
+  mServicesGeometry.get()->setCyssCylFabricThick(mCyssCylFabricThick);
+  mServicesGeometry.get()->setCyssConeIntSectDmin(mCyssConeIntSectDmin);
+  mServicesGeometry.get()->setCyssConeIntSectDmax(mCyssConeIntSectDmax);
+  mServicesGeometry.get()->setCyssConeFabricThick(mCyssConeFabricThick);
+  mServicesGeometry.get()->setCyssFlangeCDExt(mCyssFlangeCDExt);
   TGeoVolume* cyss = mServicesGeometry.get()->createCYSSAssembly();
   dest->AddNode(cyss, 1, nullptr);
 }

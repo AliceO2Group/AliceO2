@@ -39,7 +39,7 @@ void PHOSL1phaseCalibDevice::run(o2::framework::ProcessingContext& pc)
   auto tfcounter = o2::header::get<o2::header::DataHeader*>(pc.inputs().get("cells").header)->tfCounter;
   auto cells = pc.inputs().get<gsl::span<Cell>>("cells");
   auto cellTR = pc.inputs().get<gsl::span<TriggerRecord>>("cellTR");
-  LOG(info) << "Processing TF with " << cells.size() << " cells and " << cellTR.size() << " TrigRecords";
+  LOG(detail) << "Processing TF with " << cells.size() << " cells and " << cellTR.size() << " TrigRecords";
   mCalibrator->process(tfcounter, cells, cellTR);
 }
 

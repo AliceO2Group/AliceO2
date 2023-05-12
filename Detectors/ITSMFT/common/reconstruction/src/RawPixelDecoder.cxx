@@ -108,7 +108,7 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger()
       }
     }
 
-    if (mNChipsFiredROF || (mAlloEmptyROFs && mNLinksDone < mGBTLinks.size())) { // fill some statistics
+    if (mNChipsFiredROF || (mAlloEmptyROFs && mNLinksDone < mNLinksInTF)) { // fill some statistics
       mTrigger = mLinkForTriggers ? mLinkForTriggers->trigger : 0;
       mROFCounter++;
       mNChipsFired += mNChipsFiredROF;
@@ -118,11 +118,12 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger()
       break;
     }
 
-  } while (mNLinksDone < mGBTLinks.size());
+  } while (mNLinksDone < mNLinksInTF);
   mNExtTriggers += mExtTriggers.size() - prevNTrig;
   ensureChipOrdering();
   mTimerDecode.Stop();
-  return (mNLinksDone < mGBTLinks.size()) ? mNChipsFiredROF : -1;
+
+  return (mNLinksDone < mNLinksInTF) ? mNChipsFiredROF : -1;
 }
 
 ///______________________________________________________________
@@ -156,7 +157,7 @@ void RawPixelDecoder<Mapping>::collectROFCableData(int iru)
   ru.clear();
   for (int il = 0; il < RUDecodeData::MaxLinksPerRU; il++) {
     auto* link = getGBTLink(ru.links[il]);
-    if (link) {
+    if (link && link->statusInTF == GBTLink::DataSeen) {
       auto res = link->collectROFCableData(mMAP);
       if (res == GBTLink::DataSeen || res == GBTLink::CachedDataExist) { // at the moment process only DataSeen
         ru.nNonEmptyLinks++;
@@ -175,10 +176,16 @@ bool RawPixelDecoder<Mapping>::doIRMajorityPoll()
   mIRPoll.clear();
   mInteractionRecord.clear();
   for (auto& link : mGBTLinks) {
-    if (link.status == GBTLink::DataSeen || link.status == GBTLink::CachedDataExist) {
-      mIRPoll[link.ir]++;
-    } else if (link.status == GBTLink::StoppedOnEndOfData || link.status == GBTLink::AbortedOnError) {
-      mNLinksDone++;
+    if (link.statusInTF == GBTLink::DataSeen) {
+      if (link.status == GBTLink::DataSeen || link.status == GBTLink::CachedDataExist) {
+        mIRPoll[link.ir]++;
+      } else if (link.status == GBTLink::StoppedOnEndOfData || link.status == GBTLink::AbortedOnError) {
+        link.statusInTF = GBTLink::StoppedOnEndOfData;
+        if (mVerbosity >= GBTLink::Verbosity::VerboseHeaders) {
+          LOGP(info, "doIRMajorityPoll: {} DONE, status = {}", link.describe(), int(link.status));
+        }
+        mNLinksDone++;
+      }
     }
   }
   int majIR = -1;
@@ -190,9 +197,15 @@ bool RawPixelDecoder<Mapping>::doIRMajorityPoll()
   }
   mInteractionRecordHB = mInteractionRecord;
   if (mInteractionRecord.isDummy()) {
+    if (mVerbosity >= GBTLink::Verbosity::VerboseHeaders) {
+      LOG(info) << "doIRMajorityPoll: did not find any valid IR";
+    }
     return false;
   }
   mInteractionRecordHB.bc = 0;
+  if (mVerbosity >= GBTLink::Verbosity::VerboseHeaders) {
+    LOG(info) << "doIRMajorityPoll: " << mInteractionRecordHB.asString() << " majority = " << majIR << " for " << mNLinksInTF << " links seen, LinksDone = " << mNLinksDone;
+  }
   return true;
 }
 
@@ -201,6 +214,7 @@ bool RawPixelDecoder<Mapping>::doIRMajorityPoll()
 template <class Mapping>
 void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
 {
+  mNLinksInTF = 0;
   mCurRUDecodeID = NORUDECODED;
   auto nLinks = mGBTLinks.size();
   auto origin = (mUserDataOrigin == o2::header::gDataOriginInvalid) ? mMAP.getOrigin() : mUserDataOrigin;
@@ -247,13 +261,24 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
       lnk.wordLength = (lnk.expectPadding = (RDHUtils::getDataFormat(rdh) == 0)) ? o2::itsmft::GBTPaddedWordLength : o2::itsmft::GBTWordLength;
       getCreateRUDecode(mMAP.FEEId2RUSW(RDHUtils::getFEEID(rdh))); // make sure there is a RU for this link
       lnk.verbosity = GBTLink::Verbosity(mVerbosity);
-      LOG(info) << mSelfName << " registered new link " << lnk.describe() << " RUSW=" << int(mMAP.FEEId2RUSW(lnk.feeID));
+      if (mVerbosity >= GBTLink::Verbosity::VerboseHeaders) {
+        LOG(info) << mSelfName << " registered new link " << lnk.describe() << " RUSW=" << int(mMAP.FEEId2RUSW(lnk.feeID));
+      }
       linksAdded++;
     }
     auto& link = mGBTLinks[lnkref.entry];
     if (currSSpec != dh->subSpecification) { // this is the 1st part for this link in this TF, next parts must follow contiguously!!!
-      link.clear(false, true);               // clear link data except statistics
       currSSpec = dh->subSpecification;
+      if (link.statusInTF == GBTLink::DataSeen) {
+        static bool errorDone = false;
+        if (!errorDone) {
+          LOGP(error, "{} was already registered, inform PDP on-call about error!!!", link.describe());
+          errorDone = true;
+        }
+      }
+      link.statusInTF = GBTLink::DataSeen;
+      mNLinksInTF++;
+
       if (!linksSeen) { // designate 1st link to register triggers
         link.extTrigVec = &mExtTriggers;
         mLinkForTriggers = &link;
@@ -267,7 +292,9 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
 
   if (linksAdded) { // new links were added, update link<->RU mapping, usually is done for 1st TF only
     if (nLinks) {
-      LOG(warn) << mSelfName << " New links appeared although the initialization was already done";
+      if (mVerbosity >= GBTLink::Verbosity::VerboseHeaders) {
+        LOG(warn) << mSelfName << " New links appeared although the initialization was already done";
+      }
       for (auto& ru : mRUDecodeVec) { // reset RU->link references since they may have been changed
         memset(&ru.links[0], -1, RUDecodeData::MaxLinksPerRU * sizeof(int));
       }
@@ -286,8 +313,9 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
       uint16_t lr, ruOnLr, linkInRU;
       mMAP.expandFEEId(link.feeID, lr, ruOnLr, linkInRU);
       if (newLinkAdded) {
-        LOG(info) << mSelfName << " Attaching " << link.describe() << " to RU#" << int(mMAP.FEEId2RUSW(link.feeID))
-                  << " (stave " << ruOnLr << " of layer " << lr << ')';
+        if (mVerbosity >= GBTLink::Verbosity::VerboseHeaders) {
+          LOG(info) << mSelfName << " Attaching " << link.describe() << " to RU#" << int(mMAP.FEEId2RUSW(link.feeID)) << " (stave " << ruOnLr << " of layer " << lr << ')';
+        }
       }
       link.idInRU = linkInRU;
       link.ruPtr->links[linkInRU] = il; // RU to link reference
@@ -309,7 +337,9 @@ RUDecodeData& RawPixelDecoder<Mapping>::getCreateRUDecode(int ruSW)
     ru.ruInfo = mMAP.getRUInfoSW(ruSW); // info on the stave/RU
     ru.chipsData.resize(mMAP.getNChipsOnRUType(ru.ruInfo->ruType));
     ru.verbosity = mVerbosity;
-    LOG(info) << mSelfName << " Defining container for RU " << ruSW << " at slot " << mRUEntry[ruSW];
+    if (mVerbosity >= GBTLink::Verbosity::VerboseHeaders) {
+      LOG(info) << mSelfName << " Defining container for RU " << ruSW << " at slot " << mRUEntry[ruSW];
+    }
   }
   return mRUDecodeVec[mRUEntry[ruSW]];
 }
@@ -324,13 +354,22 @@ ChipPixelData* RawPixelDecoder<Mapping>::getNextChipData(std::vector<ChipPixelDa
     if (ru.lastChipChecked < ru.nChipsFired) {
       auto& chipData = ru.chipsData[ru.lastChipChecked++];
       assert(mLastReadChipID < chipData.getChipID());
+      if (mLastReadChipID >= chipData.getChipID()) {
+        const int MaxErrLog = 5;
+        static int errLocCount = 0;
+        if (errLocCount < MaxErrLog) {
+          LOGP(error, "Wrong order/duplication: encountered chip {} after processing chip {}, skippin. Inform PDP (message {} of max {} allowed)",
+               chipData.getChipID(), mLastReadChipID, ++errLocCount, MaxErrLog);
+        }
+        continue;
+      }
       mLastReadChipID = chipData.getChipID();
       chipDataVec[mLastReadChipID].swap(chipData);
       return &chipDataVec[mLastReadChipID];
     }
   }
   // will need to decode new trigger
-  if (!mDecodeNextAuto || !decodeNextTrigger()) { // no more data to decode
+  if (!mDecodeNextAuto || decodeNextTrigger() < 0) { // no more data to decode
     return nullptr;
   }
   return getNextChipData(chipDataVec);
@@ -352,7 +391,7 @@ bool RawPixelDecoder<Mapping>::getNextChipData(ChipPixelData& chipData)
     }
   }
   // will need to decode new trigger
-  if (!mDecodeNextAuto || !decodeNextTrigger()) { // no more data to decode
+  if (!mDecodeNextAuto || decodeNextTrigger() < 0) { // no more data to decode
     return false;
   }
   return getNextChipData(chipData); // is it ok to use recursion here?
@@ -389,7 +428,7 @@ ChipPixelData* RawPixelDecoder<ChipMappingMFT>::getNextChipData(std::vector<Chip
     return &chipDataVec[mLastReadChipID];
   }
   // will need to decode new trigger
-  if (!mDecodeNextAuto || !decodeNextTrigger()) { // no more data to decode
+  if (!mDecodeNextAuto || decodeNextTrigger() < 0) { // no more data to decode
     return nullptr;
   }
   return getNextChipData(chipDataVec);
@@ -408,7 +447,7 @@ bool RawPixelDecoder<ChipMappingMFT>::getNextChipData(ChipPixelData& chipData)
     return true;
   }
   // will need to decode new trigger
-  if (!mDecodeNextAuto || !decodeNextTrigger()) { // no more data to decode
+  if (!mDecodeNextAuto || decodeNextTrigger() < 0) { // no more data to decode
     return false;
   }
   return getNextChipData(chipData); // is it ok to use recursion here?
@@ -525,6 +564,7 @@ void RawPixelDecoder<Mapping>::reset()
   }
   for (auto& link : mGBTLinks) {
     link.rofJumpWasSeen = false;
+    link.statusInTF = GBTLink::None;
   }
   clearStat(true);
 }

@@ -51,8 +51,11 @@ void AlignableDetectorTRD::defineVolumes()
   geo->createClusterMatrixArray(); // ideal T2L matrices
 
   AlignableSensorTRD* chamb = nullptr;
-  int labDet = getDetLabel();
   AlignableVolume* sect[o2::trd::constants::NSECTOR]{};
+  AlignableVolume* volTRD = nullptr; // fictious envelope
+
+  addVolume(volTRD = new AlignableVolume("TRD_envelope", getDetLabel(), mController));
+  volTRD->setDummyEnvelope();
 
   for (int ilr = 0; ilr < o2::trd::constants::NLAYER; ilr++) {                                 // layer
     for (int ich = 0; ich < o2::trd::constants::NSTACK * o2::trd::constants::NSECTOR; ich++) { // chamber
@@ -67,6 +70,7 @@ void AlignableDetectorTRD::defineVolumes()
       }
       if (!sect[isector]) {
         sect[isector] = new AlignableVolume(Form("TRD/sm%02d", isector), getNonSensLabel(isector), mController);
+        sect[isector]->setParent(volTRD);
       }
       chamb->setParent(sect[isector]);
     } // chamber

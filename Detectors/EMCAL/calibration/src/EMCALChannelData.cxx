@@ -51,6 +51,10 @@ void EMCALChannelData::fill(const gsl::span<const o2::emcal::Cell> data)
   mEvents++;
   for (auto cell : data) {
     double cellEnergy = cell.getEnergy();
+    if (cellEnergy < o2::emcal::EMCALCalibParams::Instance().minCellEnergy_bc) {
+      LOG(debug) << "skipping cell ID " << cell.getTower() << ": with energy = " << cellEnergy << " below  threshold of " << o2::emcal::EMCALCalibParams::Instance().minCellEnergy_bc;
+      continue;
+    }
     int id = cell.getTower();
     LOG(debug) << "inserting in cell ID " << id << ": energy = " << cellEnergy;
     mHisto(cellEnergy, id);

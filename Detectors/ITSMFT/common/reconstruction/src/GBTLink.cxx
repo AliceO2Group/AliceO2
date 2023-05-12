@@ -65,6 +65,7 @@ void GBTLink::clear(bool resetStat, bool resetTFRaw)
     dataOffset = 0;
     gbtErrStatUpadated = false;
     rofJumpWasSeen = false;
+    statusInTF = None;
     ir.clear();
   }
   //  lastRDH = nullptr;

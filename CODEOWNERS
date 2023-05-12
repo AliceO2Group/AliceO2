@@ -30,6 +30,7 @@
 /DataFormats/Detectors/CTP                     @lietava
 /DataFormats/Detectors/EMCAL                   @mfasDa @jokonig
 /DataFormats/Detectors/FIT                     @jotwinow @afurs @andreasmolander @arvindkhuntia @mslupeck
+/DataFormats/Detectors/FOCAL                   @maxrauch @mfasDa
 /DataFormats/Detectors/GlobalTracking          @shahor02
 /DataFormats/Detectors/GlobalTrackingWorkflow  @shahor02
 /DataFormats/Detectors/HMPID                   @gvolpe79
@@ -59,6 +60,7 @@
 /Detectors/CPV                     @peressounko @kharlov
 /Detectors/EMCAL                   @mfasDa @jokonig
 /Detectors/FIT                     @jotwinow @afurs @andreasmolander @arvindkhuntia @mslupeck
+/Detectors/FOCAL                   @maxrauch @mfasDa
 /Detectors/Geometry                @sawenzel @shahor02 @benedikt-voelkel
 /Detectors/GlobalTracking          @shahor02
 /Detectors/GlobalTrackingWorkflow  @shahor02

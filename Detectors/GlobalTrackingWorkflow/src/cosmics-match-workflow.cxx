@@ -49,6 +49,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"track-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use"}},
+    {"require-ctp-lumi", o2::framework::VariantType::Bool, false, {"require CTP lumi for TPC correction scaling"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -83,8 +84,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
+  auto requireCTPLumi = configcontext.options().get<bool>("require-ctp-lumi");
 
   GID::mask_t src = alowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
+  if (requireCTPLumi) {
+    src = src | GID::getSourcesMask("CTP");
+  }
   GID::mask_t dummy;
   specs.emplace_back(o2::globaltracking::getCosmicsMatchingSpec(src, useMC));
 

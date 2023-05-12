@@ -178,6 +178,7 @@ void PrimaryVertexingSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     return;
   }
   if (matcher == ConcreteDataMatcher("GLO", "MEANVERTEX", 0)) {
+    LOG(info) << "Imposing new MeanVertex: " << ((const o2::dataformats::MeanVertexObject*)obj)->asString();
     mVertexer.setMeanVertex((const o2::dataformats::MeanVertexObject*)obj);
     return;
   }

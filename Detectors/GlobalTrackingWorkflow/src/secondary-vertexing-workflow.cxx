@@ -54,6 +54,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-cascade-finder", o2::framework::VariantType::Bool, false, {"do not run cascade finder"}},
     {"enable-3body-finder", o2::framework::VariantType::Bool, false, {"run 3 body finder"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}},
+    {"require-ctp-lumi", o2::framework::VariantType::Bool, false, {"require CTP lumi for TPC correction scaling"}},
     {"combine-source-devices", o2::framework::VariantType::Bool, false, {"merge DPL source devices"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -75,10 +76,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
   auto enableCasc = !configcontext.options().get<bool>("disable-cascade-finder");
   auto enable3body = configcontext.options().get<bool>("enable-3body-finder");
+  auto requireCTPLumi = configcontext.options().get<bool>("require-ctp-lumi");
 
   GID::mask_t src = allowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("vertexing-sources"));
   GID::mask_t dummy, srcClus = GID::includesDet(DetID::TOF, src) ? GID::getSourceMask(GID::TOF) : dummy; // eventually, TPC clusters will be needed for refit
-
+  if (requireCTPLumi) {
+    src = src | GID::getSourcesMask("CTP");
+  }
   WorkflowSpec specs;
 
   specs.emplace_back(o2::vertexing::getSecondaryVertexingSpec(src, enableCasc, enable3body));

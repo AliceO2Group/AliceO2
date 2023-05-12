@@ -47,3 +47,16 @@ int SeedHistoTZ::findPeakBin()
   filledBins.resize(last);
   return maxBin;
 }
+
+void TrackVF::reportBadTrack(const o2::track::TrackParCov& src, const TimeEst& t_est, GTrackID _gid)
+{
+  constexpr int MaxRep = 10;
+  static int count = 0;
+  if (count < MaxRep) {
+    std::string msg = fmt::format("Will reject bad track {} {} at t={}", _gid.asString(), src.asString(), t_est.getTimeStamp());
+    if (++count == MaxRep) {
+      msg += " | further warnings will be suppressed";
+    }
+    LOG(warn) << msg;
+  }
+}

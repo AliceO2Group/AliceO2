@@ -21,6 +21,7 @@
 
 TEST_CASE("TestServiceRegistry")
 {
+  o2::framework::clean_all_runtime_errors();
   using namespace o2::framework;
   struct InterfaceA {
     virtual bool method() = 0;

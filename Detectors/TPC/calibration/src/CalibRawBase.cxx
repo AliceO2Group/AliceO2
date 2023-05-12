@@ -115,6 +115,7 @@ void CalibRawBase::setupContainers(TString fileInfo, uint32_t verbosity, uint32_
           TGrid::Connect("alien");
         }
         mDigitTree->AddFile(file->GetName());
+        LOGP(info, "Adding file {}", file->GetName());
       }
     } else if (arrDataInfo->GetEntriesFast() < 3) {
       printf("Error, badly formatte input data string: %s, expected format is <filename:cru:link[:sampaVersion]>\n",

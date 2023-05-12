@@ -17,6 +17,8 @@
 #include <fairmq/Device.h>
 #include <fairmq/shmem/Monitor.h>
 #include <fairmq/shmem/Common.h>
+#include <chrono>
+#include <thread>
 
 using namespace o2::framework;
 
@@ -50,13 +52,17 @@ void RateLimiter::check(ProcessingContext& ctx, int maxInFlight, size_t minSHM)
       mConsumedTimeframes = *(int64_t*)msg->GetData();
     }
     if (waitMessage) {
-      LOG(important) << (mSentTimeframes - mConsumedTimeframes) << " / " << maxInFlight << " TF in flight, continuing to publish";
+      if (dtc.deploymentMode == DeploymentMode::OnlineDDS || dtc.deploymentMode == DeploymentMode::OnlineECS || dtc.deploymentMode == DeploymentMode::FST) {
+        LOG(important) << (mSentTimeframes - mConsumedTimeframes) << " / " << maxInFlight << " TF in flight, continuing to publish";
+      } else {
+        LOG(important) << (mSentTimeframes - mConsumedTimeframes) << " / " << maxInFlight << " TF in flight, continuing to publish";
+      }
     }
 
     bool doSmothThrottling = getenv("DPL_SMOOTH_RATE_LIMITING") && atoi(getenv("DPL_SMOOTH_RATE_LIMITING"));
     if (doSmothThrottling) {
-      constexpr float factorStart = 0.5f;
-      constexpr float factorFinal = 0.9f;
+      constexpr float factorStart = 0.7f;
+      constexpr float factorFinal = 0.98f;
       constexpr float factorOfAverage = 0.7f;
       constexpr int64_t iterationsFinal = 2;
       auto curTime = std::chrono::system_clock::now();
@@ -94,7 +100,7 @@ void RateLimiter::check(ProcessingContext& ctx, int maxInFlight, size_t minSHM)
         float elapsed = std::chrono::duration_cast<std::chrono::duration<float>>(curTime - mLastTime).count();
         if (elapsed < mSmothDelay) {
           LOG(debug) << "TF Throttling: Elapsed " << elapsed << " --> Waiting for " << mSmothDelay - elapsed;
-          usleep((mSmothDelay - elapsed) * 1e6);
+          std::this_thread::sleep_for(std::chrono::microseconds((size_t)((mSmothDelay - elapsed) * 1.e6f)));
         }
       }
       mLastTime = std::chrono::system_clock::now();

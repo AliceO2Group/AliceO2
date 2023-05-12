@@ -295,6 +295,9 @@ void AlignableVolume::prepareMatrixL2G(bool reco)
 {
   // extract from geometry L2G matrix, depending on reco flag, set it as a reco-time
   // or current alignment matrix
+  if (isDummyEnvelope() || isDummy()) {
+    return; // unit matrix
+  }
   const char* path = getSymName();
   if (gGeoManager->GetAlignableEntry(path)) {
     const TGeoHMatrix* l2g = base::GeometryManager::getMatrix(path);
@@ -777,7 +780,7 @@ void AlignableVolume::createAlignmenMatrix(TGeoHMatrix& alg) const
 */
 
 //_________________________________________________________________
-void AlignableVolume::createAlignmentObjects(std::vector<o2::detectors::AlignParam>& arr) const
+void AlignableVolume::createAlignmentObjects(std::vector<o2::detectors::AlignParam>& arr, const TGeoHMatrix* envelopeDelta) const
 {
   // add to supplied array alignment object for itself and children
   if (isDummy()) {
@@ -786,10 +789,15 @@ void AlignableVolume::createAlignmentObjects(std::vector<o2::detectors::AlignPar
   }
   TGeoHMatrix algM;
   createAlignmenMatrix(algM);
-  arr.emplace_back(getSymName(), getVolID(), algM, true).rectify(AlignConfig::Instance().alignParamZero);
+  if (envelopeDelta) {             // apply dummy parent envelope matrix
+    algM.Multiply(*envelopeDelta); // RS TOCHECK !!!
+  }
+  if (!isDummyEnvelope()) {
+    arr.emplace_back(getSymName(), getVolID(), algM, true).rectify(AlignConfig::Instance().alignParamZero);
+  }
   int nch = getNChildren();
   for (int ich = 0; ich < nch; ich++) {
-    getChild(ich)->createAlignmentObjects(arr);
+    getChild(ich)->createAlignmentObjects(arr, isDummyEnvelope() ? &algM : nullptr);
   }
 }
 

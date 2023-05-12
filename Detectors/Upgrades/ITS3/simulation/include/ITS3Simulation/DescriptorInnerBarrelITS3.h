@@ -43,17 +43,26 @@ class DescriptorInnerBarrelITS3 : public o2::its::DescriptorInnerBarrel
 
  private:
   std::string mVersion{"ThreeLayersNoDeadZones"}; //! version of ITS3
-  std::vector<double> mLayerZLen{};               //! Vector of layer length in Z coordinate
-  std::vector<double> mGap{};                     //! Vector of gap between empispheres
+  std::vector<double> mLayerZLen{};               //! Vector of layer length in Z coordinate (in cm)
+  std::vector<double> mGapY{};                    //! Vector of gap between empispheres in Y direction (in cm)
+  std::vector<double> mGapPhi{};                  //! Vector of gap between empispheres in phi (distance in Y direction in cm)
   std::vector<int> mNumSubSensorsHalfLayer{};     //! Vector of num of subsensors in half layer
-  std::vector<double> mFringeChipWidth{};         //! Vector of fringe chip width
-  std::vector<double> mMiddleChipWidth{};         //! Vector of middle chip width
-  std::vector<double> mHeightStripFoam{};         //! Vector of strip foam height
-  std::vector<double> mLengthSemiCircleFoam{};    //! Vector of semi-circle foam length
-  std::vector<double> mThickGluedFoam{};          //! Vector of  glued foam thickness
-  double mGapXDirection4thLayer;                  //! x-direction gap for layer 4
+  std::vector<double> mFringeChipWidth{};         //! Vector of fringe chip width (in cm)
+  std::vector<double> mMiddleChipWidth{};         //! Vector of middle chip width (in cm)
+  std::vector<double> mHeightStripFoam{};         //! Vector of strip foam height (in cm)
+  std::vector<double> mLengthSemiCircleFoam{};    //! Vector of semi-circle foam length (in cm)
+  std::vector<double> mThickGluedFoam{};          //! Vector of glued foam thickness (in cm)
+  double mGapXDirection4thLayer;                  //! x-direction gap for layer 4  (in cm)
 
   std::vector<ITS3Layer*> mLayer{}; //! Vector of layers
+
+  double mCyssCylInnerD;       //! CYSS cylinder inner diameter
+  double mCyssCylOuterD;       //! CYSS cylinder outer diameter
+  double mCyssCylFabricThick;  //! CYSS cylinder fabric thickness
+  double mCyssConeIntSectDmin; //! CYSS cone internal section min diameter
+  double mCyssConeIntSectDmax; //! CYSS cone internal section max diameter
+  double mCyssConeFabricThick; //! CYSS cone fabric thickness
+  double mCyssFlangeCDExt;     //! CYSS flange on side C external diameter
 
   /// \cond CLASSIMP
   ClassDef(DescriptorInnerBarrelITS3, 1); /// ITS3 inner barrel geometry descriptor

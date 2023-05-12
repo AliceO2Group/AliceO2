@@ -26,6 +26,7 @@
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/Plugins.h"
 #include "Framework/DataTakingContext.h"
+#include "Framework/DefaultsHelpers.h"
 #include "ArrowSupport.h"
 
 #include "Headers/DataHeader.h"
@@ -214,7 +215,7 @@ void WorkflowHelpers::addMissingOutputsToBuilder(std::vector<InputSpec> const& r
 std::string defaultConditionBackend()
 {
   static bool explicitBackend = getenv("DPL_CONDITION_BACKEND");
-  static DeploymentMode deploymentMode = CommonServices::getDeploymentMode();
+  static DeploymentMode deploymentMode = DefaultsHelpers::deploymentMode();
   if (explicitBackend) {
     return getenv("DPL_CONDITION_BACKEND");
   } else if (deploymentMode == DeploymentMode::OnlineDDS || deploymentMode == DeploymentMode::OnlineECS) {

@@ -82,6 +82,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
     bool askDISTSTF = true;
     bool runTRDTracking = false;
     bool readTRDtracklets = false;
+    bool requireCTPLumi = false;
   };
 
   GPURecoWorkflowSpec(CompletionPolicyData* policyData, Config const& specconfig, std::vector<int> const& tpcsectors, unsigned long tpcSectorMask, std::shared_ptr<o2::base::GRPGeomRequest>& ggr);
@@ -93,12 +94,13 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   void stop() final;
   o2::framework::Inputs inputs();
   o2::framework::Outputs outputs();
+  o2::framework::Options options();
 
   void deinitialize();
 
  private:
   /// initialize TPC options from command line
-  void initFunctionTPC();
+  void initFunctionTPC(o2::framework::InitContext& ic);
   /// storing new calib objects in buffer
   void finaliseCCDBTPC(o2::framework::ConcreteDataMatcher& matcher, void* obj);
   /// asking for newer calib objects
@@ -136,6 +138,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   std::vector<int> mTPCSectors;
   unsigned long mTPCSectorMask = 0;
   int mVerbosity = 0;
+  unsigned int mNTFs = 0;
   bool mUpdateGainMapCCDB = true;
   std::unique_ptr<o2::gpu::GPUSettingsTF> mTFSettings;
   Config mSpecConfig;

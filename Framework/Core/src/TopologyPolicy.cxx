@@ -48,6 +48,8 @@ TopologyPolicy::DataProcessorMatcher TopologyPolicyHelpers::matchByRegex(std::st
   };
 }
 
+/// Return true if a depends on b, i.e. if any of the inputs of a
+/// is satisfied by any of the outputs of b.
 bool dataDeps(DataProcessorSpec const& a, DataProcessorSpec const& b)
 {
   for (size_t ii = 0; ii < a.inputs.size(); ++ii) {
@@ -60,6 +62,15 @@ bool dataDeps(DataProcessorSpec const& a, DataProcessorSpec const& b)
         continue;
       }
     }
+  }
+  return false;
+}
+
+bool expendableDataDeps(DataProcessorSpec const& a, DataProcessorSpec const& b)
+{
+  /// If there is an actual dependency between a and b, we return true.
+  if (dataDeps(a, b)) {
+    return true;
   }
   // If we are here we do not have any data dependency,
   // however we strill consider a dependent on b if
@@ -78,13 +89,34 @@ bool dataDeps(DataProcessorSpec const& a, DataProcessorSpec const& b)
       break;
     }
   }
-  return isAExpendable && !isBExpendable;
+  // If none is expendable. We simply return false.
+  if (!isAExpendable && !isBExpendable) {
+    LOGP(debug, "Neither {} nor {} are expendable. No dependency.", a.name, b.name);
+    return false;
+  }
+  // If both are expendable. We return false.
+  if (isAExpendable && isBExpendable) {
+    LOGP(debug, "Both {} and {} are expendable. No dependency.", a.name, b.name);
+    return false;
+  }
+  // We never put anything behind the dummy sink.
+  if (b.name == "internal-dpl-injected-dummy-sink") {
+    return false;
+  }
+  // If a is expendable we consider it as if there was a dependency from a to b,
+  // but we still need to check if there is not one already from b to a.
+  if (isAExpendable) {
+    LOGP(debug, "{} is expendable. Checking if there is a dependency from {} to {}.", a.name, b.name, a.name);
+    return !dataDeps(b, a);
+  }
+  // b is expendable and a is not. We are fine with no dependency.
+  return false;
 };
 
 TopologyPolicy::DependencyChecker TopologyPolicyHelpers::dataDependency()
 {
   return [](DataProcessorSpec const& a, DataProcessorSpec const& b) {
-    return dataDeps(a, b);
+    return expendableDataDeps(a, b);
   };
 }
 

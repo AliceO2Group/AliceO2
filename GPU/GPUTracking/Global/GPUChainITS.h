@@ -19,6 +19,7 @@
 namespace o2::its
 {
 struct Cluster;
+template <unsigned char N>
 class Road;
 class Cell;
 struct TrackingFrameInfo;
@@ -41,8 +42,8 @@ class GPUChainITS : public GPUChain
   int RunChain() override;
   void MemorySize(size_t& gpuMem, size_t& pageLockedHostMem) override;
 
-  int PrepareAndRunITSTrackFit(std::vector<o2::its::Road>& roads, std::vector<const o2::its::Cluster*>& clusters, std::vector<const o2::its::Cell*>& cells, const std::vector<std::vector<o2::its::TrackingFrameInfo>>& tf, std::vector<o2::its::TrackITSExt>& tracks);
-  int RunITSTrackFit(std::vector<o2::its::Road>& roads, std::vector<const o2::its::Cluster*>& clusters, std::vector<const o2::its::Cell*>& cells, const std::vector<std::vector<o2::its::TrackingFrameInfo>>& tf, std::vector<o2::its::TrackITSExt>& tracks);
+  int PrepareAndRunITSTrackFit(std::vector<o2::its::Road<5>>& roads, std::vector<const o2::its::Cluster*>& clusters, std::vector<const o2::its::Cell*>& cells, const std::vector<std::vector<o2::its::TrackingFrameInfo>>& tf, std::vector<o2::its::TrackITSExt>& tracks);
+  int RunITSTrackFit(std::vector<o2::its::Road<5>>& roads, std::vector<const o2::its::Cluster*>& clusters, std::vector<const o2::its::Cell*>& cells, const std::vector<std::vector<o2::its::TrackingFrameInfo>>& tf, std::vector<o2::its::TrackITSExt>& tracks);
 
   o2::its::TrackerTraits* GetITSTrackerTraits();
   o2::its::VertexerTraits* GetITSVertexerTraits();

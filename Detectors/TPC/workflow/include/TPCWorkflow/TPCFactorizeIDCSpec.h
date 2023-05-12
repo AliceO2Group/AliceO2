@@ -274,6 +274,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
             } else {
               // check if map changed. if it changed update the map in the CCDB and store new map in buffer
               if (!(*padStatusMap.get() == *mPadFlagsMap.get())) {
+                mPadFlagsMap = std::move(padStatusMap);
                 LOGP(info, "Pad status map changed");
                 LOGP(info, "Writing pad status map to CCDB");
                 o2::ccdb::CcdbObjectInfo ccdbInfoPadFlags(CDBTypeMap.at(sideA ? CDBType::CalIDCPadStatusMapA : CDBType::CalIDCPadStatusMapC), std::string{}, std::string{}, std::map<std::string, std::string>{}, mTimestampStart, timeStampEnd);

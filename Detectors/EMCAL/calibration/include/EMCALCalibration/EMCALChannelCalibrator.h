@@ -70,6 +70,10 @@ class EMCALChannelCalibrator : public o2::calibration::TimeSlotCalibration<DataI
   void finalizeSlot(Slot& slot) final;
   o2::calibration::TimeSlot<DataInput>& emplaceNewSlot(bool front, TFType tstart, TFType tend) final;
 
+  bool saveLastSlotData(TFile& fl) final;
+
+  bool adoptSavedData(const o2::calibration::TimeSlotMetaData& metadata, TFile& fl) final;
+
   ///\brief Set the testing status.
   void setIsTest(bool isTest) { mTest = isTest; }
   bool isTest() const { return mTest; }
@@ -77,15 +81,27 @@ class EMCALChannelCalibrator : public o2::calibration::TimeSlotCalibration<DataI
   const CcdbObjectInfoVector& getInfoVector() const { return mInfoVector; }
   const std::vector<DataOutput>& getOutputVector() const { return mCalibObjectVector; }
 
+  /// \brief get if has enough data should be circumvented at EOR
+  bool getSaveAtEOR() const { return mSaveAtEOR; }
+  /// \brief set if has enough data should be circumvented at EOR
+  void setSaveAtEOR(bool tmp) { mSaveAtEOR = tmp; }
+
+  /// \brief get if has enough data should be circumvented at EOR
+  bool getLoadAtSOR() const { return mLoadAtSOR; }
+  /// \brief set if has enough data should be circumvented at EOR
+  void setLoadAtSOR(bool tmp) { mLoadAtSOR = tmp; }
+
   /// \brief Configure the calibrator
   std::shared_ptr<EMCALCalibExtractor> getCalibExtractor() { return mCalibrator; } // return shared pointer!
   /// \brief setter for mCalibrator
   void SetCalibExtractor(std::shared_ptr<EMCALCalibExtractor> extr) { mCalibrator = extr; };
 
  private:
-  int mNBins = 0;     ///< bins of the histogram for passing
-  float mRange = 0.;  ///< range of the histogram for passing
-  bool mTest = false; ///< flag to be used when running in test mode: it simplify the processing (e.g. does not go through all channels)
+  int mNBins = 0;          ///< bins of the histogram for passing
+  float mRange = 0.;       ///< range of the histogram for passing
+  bool mTest = false;      ///< flag to be used when running in test mode: it simplify the processing (e.g. does not go through all channels)
+  bool mSaveAtEOR = false; ///< flag to pretend to have enough data in order to trigger the saving of the calib histograms for loading them at the next run
+  bool mLoadAtSOR = false; ///< flag weather to load the calibration histograms from the previous run at the SOR
   std::shared_ptr<EMCALCalibExtractor> mCalibrator;
 
   // output
@@ -101,6 +117,12 @@ void EMCALChannelCalibrator<DataInput, DataOutput>::initOutput()
 {
   mInfoVector.clear();
   mCalibObjectVector.clear();
+  std::string nameFile = "tcp.root";
+  if constexpr (std::is_same<DataInput, o2::emcal::EMCALChannelData>::value) {
+    nameFile = "bcm.root";
+  }
+
+  // this->setSaveFileName(nameFile);
   // mNEvents = 0;
   return;
 }
@@ -109,6 +131,10 @@ void EMCALChannelCalibrator<DataInput, DataOutput>::initOutput()
 template <typename DataInput, typename DataOutput>
 bool EMCALChannelCalibrator<DataInput, DataOutput>::hasEnoughData(const o2::calibration::TimeSlot<DataInput>& slot) const
 {
+  // in case of the end of run, we pretend to have enough data to trigger the saving of the calib objects to load them in the next run
+  if (mSaveAtEOR) {
+    return true;
+  }
   const DataInput* c = slot.getContainer();
   return (mTest ? true : c->hasEnoughData());
 }
@@ -121,6 +147,20 @@ void EMCALChannelCalibrator<DataInput, DataOutput>::finalizeSlot(o2::calibration
   // Extract results for the single slot
   DataInput* c = slot.getContainer();
   LOG(info) << "Finalize slot " << slot.getTFStart() << " <= TF <= " << slot.getTFEnd();
+
+  if constexpr (std::is_same<DataInput, o2::emcal::EMCALChannelData>::value) {
+    if (c->getNEvents() < EMCALCalibParams::Instance().minNEvents_bc) {
+      LOG(info) << "saving the slot with " << c->getNEvents() << " events. " << EMCALCalibParams::Instance().minNEvents_tc << " events needed for calibration";
+      this->saveLastSlot();
+      return;
+    }
+  } else if constexpr (std::is_same<DataInput, o2::emcal::EMCALTimeCalibData>::value) {
+    if (c->getNEvents() < EMCALCalibParams::Instance().minNEvents_tc) {
+      LOG(info) << "saving the slot with " << c->getNEvents() << " events. " << EMCALCalibParams::Instance().minNEvents_tc << " events needed for calibration";
+      this->saveLastSlot();
+      return;
+    }
+  }
 
   std::map<std::string, std::string> md;
   if constexpr (std::is_same<DataInput, o2::emcal::EMCALChannelData>::value) {
@@ -191,6 +231,89 @@ o2::calibration::TimeSlot<DataInput>& EMCALChannelCalibrator<DataInput, DataOutp
   auto& slot = front ? cont.emplace_front(tstart, tend) : cont.emplace_back(tstart, tend);
   slot.setContainer(std::make_unique<DataInput>());
   return slot;
+}
+
+/// \brief Write histograms for energy and time vs cell ID to file
+/// \param fl file that we write the histograms to
+template <typename DataInput, typename DataOutput>
+bool EMCALChannelCalibrator<DataInput, DataOutput>::saveLastSlotData(TFile& fl)
+{
+  LOG(info) << "EMC calib histos are saved in " << fl.GetName();
+  // does this work?
+  auto& cont = o2::calibration::TimeSlotCalibration<DataInput>::getSlots();
+  auto& slot = cont.at(0);
+  DataInput* c = slot.getContainer();
+
+  if constexpr (std::is_same<DataInput, o2::emcal::EMCALChannelData>::value) {
+    auto hist = c->getHisto();
+    auto histTime = c->getHistoTime();
+
+    TH2F hEnergy = o2::utils::TH2FFromBoost(hist);
+    TH2F hTime = o2::utils::TH2FFromBoost(histTime);
+    TH1D hNEvents("hNEvents", "hNEvents", 1, 0, 1);
+    hNEvents.SetBinContent(1, c->getNEvents());
+
+    fl.cd();
+    hEnergy.Write("EnergyVsCellID");
+    hTime.Write("TimeVsCellID");
+    hNEvents.Write("NEvents");
+  } else if constexpr (std::is_same<DataInput, o2::emcal::EMCALTimeCalibData>::value) {
+    auto histTime = c->getHisto();
+    TH2F hTime = o2::utils::TH2FFromBoost(histTime);
+    TH1D hNEvents("hNEvents", "hNEvents", 1, 0, 1);
+    hNEvents.SetBinContent(1, c->getNEvents());
+
+    fl.cd();
+    hTime.Write("TimeVsCellID");
+    hNEvents.Write("NEvents");
+  }
+
+  return true;
+}
+
+/// \brief Read histograms for energy and time vs cell ID to file
+/// \param metadata metadata description of the data
+/// \param fl file that we write the histograms to
+template <typename DataInput, typename DataOutput>
+bool EMCALChannelCalibrator<DataInput, DataOutput>::adoptSavedData(const o2::calibration::TimeSlotMetaData& metadata, TFile& fl)
+{
+  LOG(info) << "Loading data from previous run";
+
+  if (!this->getSavedSlotAllowed() || !this->getLoadAtSOR())
+    return true;
+
+  auto& cont = o2::calibration::TimeSlotCalibration<DataInput>::getSlots();
+  auto& slot = cont.at(0);
+  DataInput* c = slot.getContainer();
+
+  if constexpr (std::is_same<DataInput, o2::emcal::EMCALChannelData>::value) {
+    TH2D* hEnergy = (TH2D*)fl.Get("EnergyVsCellID");
+    TH2D* hTime = (TH2D*)fl.Get("TimeVsCellID");
+    if (!hEnergy || !hTime) {
+      return false;
+    }
+    auto hEnergyBoost = o2::utils::boostHistoFromRoot_2D(hEnergy);
+    auto hTimeBoost = o2::utils::boostHistoFromRoot_2D(hTime);
+
+    c->setHisto(hEnergyBoost);
+    c->setHistoTime(hTimeBoost);
+
+  } else if constexpr (std::is_same<DataInput, o2::emcal::EMCALTimeCalibData>::value) {
+    TH2D* hTime = (TH2D*)fl.Get("TimeVsCellID");
+    if (!hTime) {
+      return false;
+    }
+    auto hTimeBoost = o2::utils::boostHistoFromRoot_2D(hTime);
+
+    c->setHisto(hTimeBoost);
+  }
+  TH1D* hEvents = (TH1D*)fl.Get("NEvents");
+  if (!hEvents) {
+    return false;
+  }
+  c->setNEvents(hEvents->GetBinContent(1));
+
+  return true;
 }
 
 } // end namespace emcal

@@ -20,6 +20,7 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/WorkflowSpec.h"
+#include "Framework/DriverConfig.h"
 
 #include <sstream>
 
@@ -161,6 +162,7 @@ command:
   env:
     - O2_DETECTOR={{ detector }}
     - O2_PARTITION={{ environment_id }}
+    - HOME=/tmp
   user: "{{ user }}"
   value: "{{ len(modulepath)>0 ? _module_cmdline : _plain_cmdline }}"
   arguments:
@@ -189,6 +191,7 @@ command:
     - "'false'"
     - "--log-color"
     - "'false'"
+    - "--no-batch"
     - "--bad-alloc-attempt-interval"
     - "'50'"
     - "--bad-alloc-max-attempts"
@@ -250,6 +253,7 @@ command:
   env:
     - O2_DETECTOR={{ detector }}
     - O2_PARTITION={{ environment_id }}
+    - HOME=/tmp
   user: "{{ user }}"
   value: "{{ len(modulepath)>0 ? _module_cmdline : _plain_cmdline }}"
   arguments:
@@ -278,6 +282,7 @@ command:
     - "'false'"
     - "--log-color"
     - "'false'"
+    - "--no-batch"
     - "--bad-alloc-attempt-interval"
     - "'50'"
     - "--bad-alloc-max-attempts"
@@ -339,6 +344,7 @@ command:
   env:
     - O2_DETECTOR={{ detector }}
     - O2_PARTITION={{ environment_id }}
+    - HOME=/tmp
   user: "{{ user }}"
   value: "{{ len(modulepath)>0 ? _module_cmdline : _plain_cmdline }}"
   arguments:
@@ -367,6 +373,7 @@ command:
     - "'false'"
     - "--log-color"
     - "'false'"
+    - "--no-batch"
     - "--bad-alloc-attempt-interval"
     - "'50'"
     - "--bad-alloc-max-attempts"
@@ -427,6 +434,7 @@ command:
   env:
     - O2_DETECTOR={{ detector }}
     - O2_PARTITION={{ environment_id }}
+    - HOME=/tmp
   user: "{{ user }}"
   value: "{{ len(modulepath)>0 ? _module_cmdline : _plain_cmdline }}"
   arguments:
@@ -455,6 +463,7 @@ command:
     - "'false'"
     - "--log-color"
     - "'false'"
+    - "--no-batch"
     - "--bad-alloc-attempt-interval"
     - "'50'"
     - "--bad-alloc-max-attempts"
@@ -521,7 +530,12 @@ TEST_CASE("TestO2ControlDump")
       {"C", "foo", {}, workflowOptions},
       {"D", "foo", {}, workflowOptions},
     }};
+
+  DriverConfig driverConfig{
+    .batch = false,
+  };
   DeviceSpecHelpers::prepareArguments(false, false, false, 8080,
+                                      driverConfig,
                                       dataProcessorInfos,
                                       devices, executions, controls,
                                       "workflow-id");

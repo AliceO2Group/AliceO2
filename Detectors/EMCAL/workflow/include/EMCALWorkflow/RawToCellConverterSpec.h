@@ -24,12 +24,17 @@
 #include "EMCALReconstruction/CaloRawFitter.h"
 #include "EMCALReconstruction/RecoContainer.h"
 #include "EMCALReconstruction/ReconstructionErrors.h"
+#include "EMCALWorkflow/CalibLoader.h"
 
 namespace o2
 {
 
 namespace emcal
 {
+
+class AltroDecoderError;
+class MinorAltroDecodingError;
+class RawDecodingError;
 
 namespace reco_workflow
 {
@@ -46,7 +51,8 @@ class RawToCellConverterSpec : public framework::Task
   /// \param subspecification Output subspecification for parallel running on multiple nodes
   /// \param hasDecodingErrors Option to swich on/off creating raw decoding error objects for later monitoring
   /// \param loadRecoParamsFromCCDB Option to load the RecoParams from the CCDB
-  RawToCellConverterSpec(int subspecification, bool hasDecodingErrors) : framework::Task(), mSubspecification(subspecification), mCreateRawDataErrors(hasDecodingErrors){};
+  /// \param calibhandler Calibration object handler
+  RawToCellConverterSpec(int subspecification, bool hasDecodingErrors, std::shared_ptr<CalibLoader> calibhandler) : framework::Task(), mSubspecification(subspecification), mCreateRawDataErrors(hasDecodingErrors), mCalibHandler(calibhandler){};
 
   /// \brief Destructor
   ~RawToCellConverterSpec() override;
@@ -169,6 +175,9 @@ class RawToCellConverterSpec : public framework::Task
   /// and a message in FLP/DISTSUBTIMEFRAME
   bool isLostTimeframe(framework::ProcessingContext& ctx) const;
 
+  /// \brief Update calibration objects
+  void updateCalibrationObjects();
+
   /// \brief Select cells and put them on the output container
   /// \param cells Cells to select
   /// \param isLEDMON Distinction whether input is cell or LEDMON
@@ -204,12 +213,25 @@ class RawToCellConverterSpec : public framework::Task
   /// \throw ModuleIndexException in case of invalid module indices
   int geLEDMONAbsID(int supermoduleID, int module);
 
+  void handleAddressError(const Mapper::AddressNotFoundException& error, int ddlID, int hwaddress);
+
+  void handleAltroError(const o2::emcal::AltroDecoderError& altroerror, int ddlID);
+
+  void handleMinorAltroError(const o2::emcal::MinorAltroDecodingError& altroerror, int ddlID);
+
+  void handleDDLError(const MappingHandler::DDLInvalid& error, int feeID);
+
+  void handleGeometryError(const ModuleIndexException& e, int supermoduleID, int cellID, int hwaddress, ChannelType_t chantype);
+
+  void handleFitError(const o2::emcal::CaloRawFitter::RawFitterError_t& fiterror, int ddlID, int cellID, int hwaddress);
+
   /// \brief handler function for gain type errors
   /// \param errortype Gain error type
   /// \param ddlID ID of the DDL
-  /// \param fecID ID of the FEC
   /// \param hwaddress Hardware address
-  void handleGainError(o2::emcal::reconstructionerrors::GainError_t errortype, int ddlID, int fecID, int hwaddress);
+  void handleGainError(const o2::emcal::reconstructionerrors::GainError_t& errortype, int ddlID, int hwaddress);
+
+  void handlePageError(const RawDecodingError& e);
 
   header::DataHeader::SubSpecificationType mSubspecification = 0;    ///< Subspecification for output channels
   int mNoiseThreshold = 0;                                           ///< Noise threshold in raw fit
@@ -223,6 +245,7 @@ class RawToCellConverterSpec : public framework::Task
   std::chrono::time_point<std::chrono::system_clock> mReferenceTime; ///< Reference time for muting messages
   Geometry* mGeometry = nullptr;                                     ///!<! Geometry pointer
   RecoContainer mCellHandler;                                        ///< Manager for reconstructed cells
+  std::shared_ptr<CalibLoader> mCalibHandler;                        ///< Handler for calibration objects
   std::unique_ptr<MappingHandler> mMapper = nullptr;                 ///!<! Mapper
   std::unique_ptr<CaloRawFitter> mRawFitter;                         ///!<! Raw fitter
   std::vector<Cell> mOutputCells;                                    ///< Container with output cells

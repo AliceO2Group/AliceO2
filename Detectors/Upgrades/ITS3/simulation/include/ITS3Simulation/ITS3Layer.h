@@ -44,15 +44,16 @@ class ITS3Layer : public TObject
   /// Default destructor
   ~ITS3Layer() override;
 
-  void createLayer(TGeoVolume* motherVolume);
-  void createLayerWithDeadZones(TGeoVolume* motherVolume);
-  void createCarbonFoamStructure(TGeoVolume* motherVolume);
+  void createLayer(TGeoVolume* motherVolume, double radiusBetweenLayer);
+  void createLayerWithDeadZones(TGeoVolume* motherVolume, double radiusBetweenLayer);
   void create4thLayer(TGeoVolume* motherVolume);
+  void createCarbonFoamStructure(TGeoVolume* motherVolume, double deltaR, bool fourthLayer = false);
 
   void setChipThick(double thick) { mChipThickness = thick; }
   void setLayerRadius(double radius) { mRadius = radius; }
   void setLayerZLen(double zLen) { mZLen = zLen; }
-  void setGapBetweenEmispheres(double gap) { mGap = gap; }
+  void setGapBetweenEmispheres(double gap) { mGapY = gap; }
+  void setGapBetweenEmispheresInPhi(double gap) { mGapPhi = gap; }
   void setChipID(int chipID) { mChipTypeID = chipID; }
   void setFringeChipWidth(double fringeChipWidth) { mFringeChipWidth = fringeChipWidth; }
   void setMiddleChipWidth(double middleChipWidth) { mMiddleChipWidth = middleChipWidth; }
@@ -69,7 +70,8 @@ class ITS3Layer : public TObject
   double mSensorThickness{0.};      //! sensor thickness
   double mRadius{0.};               //! radius of layer
   double mZLen{0.};                 //! length of a layer
-  double mGap{0.};                  //! gap between emispheres
+  double mGapY{0.};                 //! gap between emispheres in Y direction
+  double mGapPhi{0.};               //! gap between emispheres in phi (distance in Y direction)
   int mChipTypeID{0};               //! chip ID
   double mFringeChipWidth{0.};      //! fringe chip width
   double mMiddleChipWidth{0.};      //! middle chip width

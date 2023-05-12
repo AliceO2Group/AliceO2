@@ -35,7 +35,10 @@
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "TRDBase/TrackletTransformer.h"
 #include "CommonUtils/TreeStreamRedirector.h"
-
+#include "TPCCalibration/VDriftHelper.h"
+#include "TPCCalibration/CorrectionMapsLoader.h"
+#include "GPUO2Interface.h"
+#include "GPUParam.h"
 #include "Headers/DataHeader.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Task.h"
@@ -83,8 +86,8 @@ class BarrelAlignmentSpec : public Task
                   GenPedeFiles = 0x1 << 2,
                   LabelPedeResults = 0x1 << 3 };
   BarrelAlignmentSpec(GTrackID::mask_t srcMP, std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> ggrec,
-                      DetID::mask_t detmask, bool cosmic, int postprocess, bool useMC)
-    : mDataRequest(dr), mGRPGeomRequest(ggrec), mMPsrc{srcMP}, mDetMask{detmask}, mCosmic(cosmic), mPostProcessing(postprocess), mUseMC(useMC) {}
+                      DetID::mask_t detmask, bool cosmic, int postprocess, bool useMC, bool loadTPCCalib)
+    : mDataRequest(dr), mGRPGeomRequest(ggrec), mMPsrc{srcMP}, mDetMask{detmask}, mCosmic(cosmic), mPostProcessing(postprocess), mUseMC(useMC), mLoadTPCCalib(loadTPCCalib) {}
   ~BarrelAlignmentSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -98,6 +101,7 @@ class BarrelAlignmentSpec : public Task
   bool mUseMC = false;
   bool mIgnoreCCDBAlignment = false;
   bool mCosmic = false;
+  bool mLoadTPCCalib = false;
   int mPostProcessing = 0; // special mode of extracting alignment or constraints check
   GTrackID::mask_t mMPsrc{};
   DetID::mask_t mDetMask{};
@@ -108,6 +112,11 @@ class BarrelAlignmentSpec : public Task
   std::unique_ptr<TMethodCall> mUsrConfMethod;
   std::unique_ptr<o2::trd::TrackletTransformer> mTRDTransformer;
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
+  std::unique_ptr<o2::gpu::GPUParam> mTPCParam;
+
+  o2::tpc::VDriftHelper mTPCVDriftHelper{};
+  o2::tpc::CorrectionMapsLoader mTPCCorrMapsLoader{};
+
   //
   TStopwatch mTimer;
 };
@@ -117,6 +126,7 @@ void BarrelAlignmentSpec::init(InitContext& ic)
   mTimer.Stop();
   mTimer.Reset();
   o2::base::GRPGeomHelper::instance().setRequest(mGRPGeomRequest);
+
   int dbg = ic.options().get<int>("debug-output"), inst = ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
   mController = std::make_unique<Controller>(mDetMask, mMPsrc, mCosmic, mUseMC, inst);
   if (dbg) {
@@ -169,6 +179,7 @@ void BarrelAlignmentSpec::init(InitContext& ic)
   }
   mIgnoreCCDBAlignment = ic.options().get<bool>("ignore-ccdb-alignment");
   if (!mPostProcessing) {
+    mTPCCorrMapsLoader.init(ic);
     if (GTrackID::includesDet(DetID::TRD, mMPsrc)) {
       mTRDTransformer.reset(new o2::trd::TrackletTransformer);
       if (ic.options().get<bool>("apply-xor")) {
@@ -178,6 +189,7 @@ void BarrelAlignmentSpec::init(InitContext& ic)
     }
     mController->setAllowAfterburnerTracks(ic.options().get<bool>("allow-afterburner-tracks"));
   }
+
   mIniParFile = ic.options().get<std::string>("initial-params-file");
   mUseIniParErrors = !ic.options().get<bool>("ignore-initial-params-errors");
   if (mPostProcessing && !(mPostProcessing != GenPedeFiles) && (mIniParFile.empty() || mIniParFile == "none")) {
@@ -187,10 +199,8 @@ void BarrelAlignmentSpec::init(InitContext& ic)
 
 void BarrelAlignmentSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
-  static bool initOnceDone = false;
-  if (!initOnceDone) {
-    initOnceDone = true;
-    o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+  if (pc.services().get<o2::framework::TimingInfo>().globalRunNumberChanged) {
     if (!mIgnoreCCDBAlignment) {
       for (auto id = DetID::First; id <= DetID::Last; id++) {
         const auto* alg = o2::base::GRPGeomHelper::instance().getAlignment(id);
@@ -230,6 +240,40 @@ void BarrelAlignmentSpec::updateTimeDependentParams(ProcessingContext& pc)
   if (GTrackID::includesDet(DetID::TRD, mMPsrc) && mTRDTransformer) {
     pc.inputs().get<o2::trd::CalVdriftExB*>("calvdexb"); // just to trigger the finaliseCCDB
   }
+  if (mLoadTPCCalib) {
+
+    static float prevField = 1e-6;
+    float newField = o2::base::Propagator::Instance()->getNominalBz();
+    if (prevField != newField) {
+      prevField = newField;
+      if (mDetMask[DetID::TPC]) {
+        mTPCParam.reset(new o2::gpu::GPUParam);
+        mTPCParam->SetDefaults(o2::base::Propagator::Instance()->getNominalBz());
+        mController->setTPCParam(mTPCParam.get());
+      }
+    }
+
+    mTPCVDriftHelper.extractCCDBInputs(pc);
+    mTPCCorrMapsLoader.extractCCDBInputs(pc);
+    bool updateMaps = false;
+    if (mTPCCorrMapsLoader.isUpdated()) {
+      mController->setTPCCorrMaps(&mTPCCorrMapsLoader);
+      mTPCCorrMapsLoader.acknowledgeUpdate();
+      updateMaps = true;
+    }
+    if (mTPCVDriftHelper.isUpdated()) {
+      LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
+           mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift,
+           mTPCVDriftHelper.getVDriftObject().timeOffsetCorr, mTPCVDriftHelper.getVDriftObject().refTimeOffset,
+           mTPCVDriftHelper.getSourceName());
+      mController->setTPCVDrift(mTPCVDriftHelper.getVDriftObject());
+      mTPCVDriftHelper.acknowledgeUpdate();
+      updateMaps = true;
+    }
+    if (updateMaps) {
+      mTPCCorrMapsLoader.updateVDrift(mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getVDriftObject().getTimeOffset());
+    }
+  }
 }
 
 void BarrelAlignmentSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
@@ -248,13 +292,20 @@ void BarrelAlignmentSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& match
     mTRDTransformer->setCalVdriftExB((const o2::trd::CalVdriftExB*)obj);
     return;
   }
+  if (mTPCVDriftHelper.accountCCDBInputs(matcher, obj)) {
+
+    return;
+  }
+  if (mTPCCorrMapsLoader.accountCCDBInputs(matcher, obj)) {
+    return;
+  }
 }
 
 void BarrelAlignmentSpec::run(ProcessingContext& pc)
 {
   mTimer.Start(false);
-  updateTimeDependentParams(pc);
   if (mPostProcessing) { // special mode, no data processing
+    updateTimeDependentParams(pc);
     if (mController->getInstanceID() == 0) {
       if (mPostProcessing & PostProc::CheckConstaints) {
         mController->addAutoConstraints();
@@ -268,6 +319,7 @@ void BarrelAlignmentSpec::run(ProcessingContext& pc)
   } else {
     RecoContainer recoData;
     recoData.collectData(pc, *mDataRequest.get());
+    updateTimeDependentParams(pc); // call after collectData !!!
     mController->setRecoContainer(&recoData);
     mController->setTimingInfo(pc.services().get<o2::framework::TimingInfo>());
     if (mCosmic) {
@@ -308,6 +360,15 @@ DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
+  bool loadTPCCalib = false;
+  Options opts{
+    ConfigParamSpec{"apply-xor", o2::framework::VariantType::Bool, false, {"flip the 8-th bit of slope and position (for processing TRD CTFs from 2021 pilot beam)"}},
+    ConfigParamSpec{"allow-afterburner-tracks", VariantType::Bool, false, {"allow using ITS-TPC afterburner tracks"}},
+    ConfigParamSpec{"ignore-ccdb-alignment", VariantType::Bool, false, {"do not aplly CCDB alignment to ideal geometry"}},
+    ConfigParamSpec{"initial-params-file", VariantType::String, "", {"initial parameters file"}},
+    ConfigParamSpec{"config-macro", VariantType::String, "", {"configuration macro with signature (o2::align::Controller*, int) to execute from init"}},
+    ConfigParamSpec{"ignore-initial-params-errors", VariantType::Bool, false, {"ignore initial params (if any) errors for precondition"}},
+    ConfigParamSpec{"debug-output", VariantType::Int, 0, {"produce debugging output root files"}}};
   if (!postprocess) {
     dataRequest->requestTracks(src, useMC);
     dataRequest->requestClusters(src, false, skipDetClusters);
@@ -318,6 +379,11 @@ DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_
     if (enableCosmic) {
       dataRequest->requestCoscmicTracks(useMC);
     }
+    if (src[DetID::TPC] && !skipDetClusters[DetID::TPC]) {
+      o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
+      o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs, opts, src[GTrackID::CTP]);
+      loadTPCCalib = true;
+    }
   }
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                                 // orbitResetTime
                                                                 true,                                 // GRPECS=true
@@ -326,21 +392,15 @@ DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_
                                                                 true,                                 // askMatLUT
                                                                 o2::base::GRPGeomRequest::Alignments, // geometry
                                                                 dataRequest->inputs,
-                                                                false, // ask update once (except field)
-                                                                true); // init PropagatorD
+                                                                false,              // ask update once (except field)
+                                                                true,               // init PropagatorD
+                                                                "ITS,TPC,TRD,TOF"); // alignment objects to apply
   return DataProcessorSpec{
     "barrel-alignment",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<BarrelAlignmentSpec>(srcMP, dataRequest, ccdbRequest, dets, enableCosmic, postprocess, useMC)},
-    Options{
-      ConfigParamSpec{"apply-xor", o2::framework::VariantType::Bool, false, {"flip the 8-th bit of slope and position (for processing TRD CTFs from 2021 pilot beam)"}},
-      ConfigParamSpec{"allow-afterburner-tracks", VariantType::Bool, false, {"allow using ITS-TPC afterburner tracks"}},
-      ConfigParamSpec{"ignore-ccdb-alignment", VariantType::Bool, false, {"do not aplly CCDB alignment to ideal geometry"}},
-      ConfigParamSpec{"initial-params-file", VariantType::String, "", {"initial parameters file"}},
-      ConfigParamSpec{"config-macro", VariantType::String, "", {"configuration macro with signature (o2::align::Controller*, int) to execute from init"}},
-      ConfigParamSpec{"ignore-initial-params-errors", VariantType::Bool, false, {"ignore initial params (if any) errors for precondition"}},
-      ConfigParamSpec{"debug-output", VariantType::Int, 0, {"produce debugging output root files"}}}};
+    AlgorithmSpec{adaptFromTask<BarrelAlignmentSpec>(srcMP, dataRequest, ccdbRequest, dets, enableCosmic, postprocess, useMC, loadTPCCalib)},
+    opts};
 }
 
 } // namespace align

@@ -22,6 +22,8 @@
 #include "ReconstructionDataFormats/Track.h"
 #include "DCAFitter/HelixHelper.h"
 #include <TRandom.h>
+#include "DetectorsBase/Propagator.h"
+#include "DetectorsBase/GeometryManager.h"
 
 namespace o2
 {
@@ -158,6 +160,12 @@ class FwdDCAFitterN
   void setMinParamChange(float x = 1e-3) { mMinParamChange = x > 1e-4 ? x : 1.e-4; }
   void setMinRelChi2Change(float r = 0.9) { mMinRelChi2Change = r > 0.1 ? r : 999.; }
   void setUseAbsDCA(bool v) { mUseAbsDCA = v; }
+  void setMatLUT(const o2::base::MatLayerCylSet* m)
+  {
+    mMatLUT = m;
+    mUseMatBudget = true;
+  }
+  void setTGeoMat(bool v = true) { mTGeoFallBackAllowed = v; }
   void setMaxDistance2ToMerge(float v) { mMaxDist2ToMergeSeeds = v; }
 
   int getNCandidates() const { return mCurHyp; }
@@ -202,6 +210,7 @@ class FwdDCAFitterN
   bool roughDXCut() const;
   bool closerToAlternative() const;
   static double getAbsMax(const VecND& v);
+  bool propagateToVtx(o2::track::TrackParCovFwd& t, const std::array<float, 3>& p, const std::array<float, 2>& cov) const;
 
   ///< track param positions at V0 candidate (no check for the candidate validity)
   const Vec3D& getTrackPos(int i, int cand = 0) const { return mTrPos[mOrder[cand]][i]; }
@@ -282,6 +291,8 @@ class FwdDCAFitterN
   bool mAllowAltPreference = true;  // if the fit converges to alternative PCA seed, abandon the current one
   bool mUseAbsDCA = false;          // use abs. distance minimization rather than chi2
   bool mPropagateToPCA = true;      // create tracks version propagated to PCA
+  bool mUseMatBudget = false;       // include MCS effects in track propagation
+  bool mTGeoFallBackAllowed = true; // use TGeo for precise estimate of mat. budget
   int mMaxIter = 60;                // max number of iterations
   float mBz = 0;                    // bz field, to be set by user
   float mMaxR2 = 200. * 200.;       // reject PCA's above this radius
@@ -290,6 +301,7 @@ class FwdDCAFitterN
   float mMinRelChi2Change = 0.98;   // stop iterations is chi2/chi2old > this
   float mMaxChi2 = 100;             // abs cut on chi2 or abs distance
   float mMaxDist2ToMergeSeeds = 1.; // merge 2 seeds to their average if their distance^2 is below the threshold
+  const o2::base::MatLayerCylSet* mMatLUT = nullptr; // use to compute material budget to include MCS effects
 
   ClassDefNV(FwdDCAFitterN, 1);
 };
@@ -694,14 +706,15 @@ bool FwdDCAFitterN<N, Args...>::FwdpropagateTracksToVertex(int icand)
     return true;
   }
   const Vec3D& pca = mPCA[ord];
+  std::array<float, 6> covMatrixPCA = calcPCACovMatrixFlat(ord);
+  std::array<float, 2> cov = {covMatrixPCA[0], covMatrixPCA[2]};
   for (int i = N; i--;) {
-    if (mUseAbsDCA) {
-      mCandTr[ord][i] = *mOrigTrPtr[i]; // fetch the track again, as mCandTr might have been propagated w/o errors
-    }
+    mCandTr[ord][i] = *mOrigTrPtr[i]; // fetch the track again, as mCandTr might have been propagated w/o errors
     auto& trc = mCandTr[ord][i];
-    auto z = pca[2];
-
-    trc.propagateToZquadratic(z, mBz);
+    const std::array<float, 3> p = {(float)pca[0], (float)pca[1], (float)pca[2]};
+    if (!propagateToVtx(trc, p, cov)) {
+      return false;
+    }
   }
 
   mTrPropDone[ord] = true;
@@ -1255,6 +1268,25 @@ void FwdDCAFitterN<N, Args...>::print() const
   LOG(info) << "Bz: " << mBz << " MaxIter: " << mMaxIter << " MaxChi2: " << mMaxChi2;
   LOG(info) << "Stopping condition: Max.param change < " << mMinParamChange << " Rel.Chi2 change > " << mMinRelChi2Change;
   LOG(info) << "Discard candidates for : Rvtx > " << getMaxR() << " DZ between tracks > " << mMaxDXIni;
+}
+//___________________________________________________________________
+template <int N, typename... Args>
+inline bool FwdDCAFitterN<N, Args...>::propagateToVtx(o2::track::TrackParCovFwd& t, const std::array<float, 3>& p, const std::array<float, 2>& cov) const
+{
+  // propagate track to vertex including MCS effects if material budget included, simple propagation to Z otherwise
+  float x2x0 = 0;
+  if (mUseMatBudget) {
+    auto mb = mMatLUT->getMatBudget(t.getX(), t.getY(), t.getZ(), p[0], p[1], p[2]);
+    x2x0 = (float)mb.meanX2X0;
+    return t.propagateToVtxhelixWithMCS(p[2], {p[0], p[1]}, cov, mBz, x2x0);
+  } else if (mTGeoFallBackAllowed) {
+    auto geoMan = o2::base::GeometryManager::meanMaterialBudget(t.getX(), t.getY(), t.getZ(), p[0], p[1], p[2]);
+    x2x0 = (float)geoMan.meanX2X0;
+    return t.propagateToVtxhelixWithMCS(p[2], {p[0], p[1]}, cov, mBz, x2x0);
+  } else {
+    t.propagateToZhelix(p[2], mBz);
+    return true;
+  }
 }
 
 using FwdDCAFitter2 = FwdDCAFitterN<2, o2::track::TrackParCovFwd>;

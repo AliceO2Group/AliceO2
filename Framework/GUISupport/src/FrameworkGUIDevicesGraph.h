@@ -15,6 +15,7 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceInfo.h"
 #include "Framework/DeviceMetricsInfo.h"
+#include "Framework/DataProcessingStates.h"
 
 #include <vector>
 
@@ -26,6 +27,7 @@ class WorkspaceGUIState;
 void showTopologyNodeGraph(WorkspaceGUIState& state,
                            std::vector<DeviceInfo> const& infos,
                            std::vector<DeviceSpec> const& specs,
+                           std::vector<DataProcessingStates> const& allStates,
                            std::vector<DataProcessorInfo> const& metadata,
                            std::vector<DeviceControl>& controls,
                            std::vector<DeviceMetricsInfo> const& metricsInfos);

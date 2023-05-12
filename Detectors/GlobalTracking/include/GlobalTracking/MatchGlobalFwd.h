@@ -315,6 +315,7 @@ class MatchGlobalFwd
 
   std::vector<BracketF> mMCHROFTimes;                          ///< min/max times of MCH ROFs in \mus
   std::vector<TrackLocMCH> mMCHWork;                           ///< MCH track params prepared for matching
+  std::vector<int> mMCHID2Work;                                ///< MCH track id to ensure correct indexing for matching
   std::vector<BracketF> mMFTROFTimes;                          ///< min/max times of MFT ROFs in \mus
   std::vector<TrackLocMFT> mMFTWork;                           ///< MFT track params prepared for matching
   std::vector<MFTCluster> mMFTClusters;                        ///< input MFT clusters

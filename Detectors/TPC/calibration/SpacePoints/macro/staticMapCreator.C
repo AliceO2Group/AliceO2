@@ -40,9 +40,6 @@
 #include <array>
 #include <random>
 
-#include <boost/algorithm/string/predicate.hpp>
-#include <boost/filesystem.hpp>
-
 #else
 
 #error This macro must run in compiled mode
@@ -57,7 +54,7 @@ std::vector<string> getInputFileList(const std::string& fileInput)
   std::vector<std::string> fileList;
   std::vector<std::string> fileListVerified;
   // check if only one input file (a txt file contaning a list of files is provided)
-  if (boost::algorithm::ends_with(fileInput, "txt")) {
+  if (fileInput.length() > 3 && fileInput.substr(fileInput.length() - 3, 3) == "txt") {
     LOGP(info, "Reading files from input file list {}", fileInput);
     std::ifstream is(fileInput);
     std::istream_iterator<std::string> start(is);
@@ -138,7 +135,7 @@ void staticMapCreator(std::string fileInput = "files.txt",
 
   // Obtain configuration
   const SpacePointsCalibConfParam& params = SpacePointsCalibConfParam::Instance();
-  if (!boost::filesystem::exists("scdconfig.ini")) {
+  if (!std::filesystem::exists("scdconfig.ini")) {
     LOG(warn) << "Did not find configuration file. Using default parameters and storing them in scdconfig.ini";
     params.writeINI("scdconfig.ini", "scdcalib"); // to write default parameters to a file
   } else {

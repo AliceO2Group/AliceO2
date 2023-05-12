@@ -41,6 +41,7 @@ class ExceptionMatcher : public Catch::Matchers::MatcherBase<RuntimeErrorRef>
 
 TEST_CASE("TestTMessageSerializer")
 {
+  o2::framework::clean_all_runtime_errors();
   const char* testname = "testname";
   const char* testtitle = "testtitle";
   using namespace o2::framework;

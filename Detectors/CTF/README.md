@@ -177,3 +177,6 @@ To apply TF rate limiting (make sure that no more than N TFs are in processing) 
 too all workflows (e.g. via ARGS_ALL).
 The IPCID is the NUMA domain ID (usually 0 on non-EPN workflow).
 Additionally, one may throttle on the free SHM by providing an option to the reader `--timeframes-shm-limit <shm-size>`.
+
+Note that by default the reader reads into the memory the CTF data and prepares all output messages but injects them only once the rate-limiter allows that.
+With the option `--limit-tf-before-reading` set also the preparation of the data to inject will be conditioned by the green light from the rate-limiter.

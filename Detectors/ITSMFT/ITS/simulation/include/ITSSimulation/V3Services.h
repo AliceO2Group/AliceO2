@@ -106,6 +106,11 @@ class V3Services : public V11Geometry
   /// \param mgr  The GeoManager (used only to get the proper material)
   void createIBGammaConvWire(TGeoVolume* mother, const TGeoManager* mgr = gGeoManager);
 
+  /// Steering method to creates the ITS Services (tubes, cables, and the like)
+  /// \param motherVolume the TGeoVolume owing the volume supports
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  void createAllITSServices(TGeoVolume* motherVolume, const TGeoManager* mgr = gGeoManager);
+
   /// Creates the Outer Barrel Gamma Conversion Wire
   /// \param mother the TGeoVolume owing the volume structure
   /// \param mgr  The GeoManager (used only to get the proper material)

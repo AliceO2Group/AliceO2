@@ -18,6 +18,7 @@
 #include "Framework/DeviceMetricsInfo.h"
 #include "Framework/DriverInfo.h"
 #include "Framework/DriverControl.h"
+#include "Framework/DataProcessingStates.h"
 
 #include <functional>
 #include <vector>
@@ -29,6 +30,7 @@ struct ServiceRegistry;
 struct DebugGUI {
   virtual std::function<void(void)> getGUIDebugger(std::vector<o2::framework::DeviceInfo> const& infos,
                                                    std::vector<o2::framework::DeviceSpec> const& devices,
+                                                   std::vector<o2::framework::DataProcessingStates> const& allStates,
                                                    std::vector<o2::framework::DataProcessorInfo> const& metadata,
                                                    std::vector<o2::framework::DeviceMetricsInfo> const& metricsInfos,
                                                    o2::framework::DriverInfo const& driverInfo,
