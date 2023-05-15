@@ -149,7 +149,7 @@ class SACProcessorDevice : public Task
  private:
   size_t mProcessedTFs{0};   ///< Number of processed TFs
   uint32_t mDebugLevel{0};   ///< Debug level
-  uint32_t mAggregateTFs{0}; ///< Debug level
+  uint32_t mAggregateTFs{0}; ///< Number of TFs over which to aggregate the data before decoding and sending
   sac::Decoder mDecoder;     ///< Decoder for SAC data
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
 };
