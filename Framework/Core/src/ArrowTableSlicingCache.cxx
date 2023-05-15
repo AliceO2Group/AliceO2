@@ -25,9 +25,14 @@ std::pair<int64_t, int64_t> SliceInfoPtr::getSliceFor(int value) const
   if (values.empty()) {
     return {offset, 0};
   }
-  if (value > values[values.size() - 1]) {
+  auto p = values.size() - 1;
+  while (values[p] < 0) {
+    --p;
+  }
+  if (value > values[p]) {
     return {offset, 0};
   }
+
   for (auto i = 0; i < values.size(); ++i) {
     if (values[i] == value) {
       return {offset, counts[i]};
