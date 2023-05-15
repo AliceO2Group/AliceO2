@@ -9,17 +9,13 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(Base)
-add_subdirectory(Calibration)
-add_subdirectory(Clustering)
-add_subdirectory(Conditions)
-add_subdirectory(CTF)
-add_subdirectory(Efficiency)
-add_subdirectory(Filtering)
-add_subdirectory(GlobalMapping)
-add_subdirectory(QC)
-add_subdirectory(Raw)
-add_subdirectory(Simulation)
-add_subdirectory(TestingSimTools)
-add_subdirectory(Tracking)
-add_subdirectory(Workflow)
+o2_add_executable(
+        global-mapper
+        SOURCES global-mapper.cxx
+        COMPONENT_NAME mid
+        PUBLIC_LINK_LIBRARIES Boost::program_options
+                              RapidJSON::RapidJSON
+                              O2::DataFormatsMID
+                              O2::MIDGlobalMapping
+                              O2::MIDFiltering)
+
