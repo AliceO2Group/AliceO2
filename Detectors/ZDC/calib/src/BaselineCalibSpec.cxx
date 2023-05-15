@@ -82,6 +82,9 @@ void BaselineCalibSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher
 
 void BaselineCalibSpec::run(ProcessingContext& pc)
 {
+#ifdef O2_ZDC_DEBUG
+  LOG(info) << "BaselineCalibSpec::run mInitialized=" << mInitialized << " mRunStartTime=" << mRunStartTime;
+#endif
   if (!mInitialized) {
     mInitialized = true;
     updateTimeDependentParams(pc);
@@ -131,42 +134,42 @@ void BaselineCalibSpec::sendOutput(o2::framework::EndOfStreamContext& ec)
   // TODO: reset the outputs once they are already sent (is it necessary?)
   // mWorker.init();
 
-  if (opt.rootOutput == true) {
-    mOutputDir = opt.outputDir;
-    if (mOutputDir.compare("/dev/null")) {
-      mHistoFileName = fmt::format("{}{}{}_{}.root", mOutputDir, mOutputDir.back() == '/' ? "" : "/", fn, mRunNumber);
-      int rval = mWorker.saveDebugHistos(mHistoFileName);
-      if (rval) {
-        LOG(error) << "Cannot create output file " << mHistoFileName;
-        return;
-      }
-      std::string metaFileDir = opt.metaFileDir;
-      if (metaFileDir.compare("/dev/null")) {
-        std::unique_ptr<o2::dataformats::FileMetaData> histoFileMetaData;
-        histoFileMetaData = std::make_unique<o2::dataformats::FileMetaData>();
-        histoFileMetaData->setDataTakingContext(ec.services().get<DataTakingContext>());
-        histoFileMetaData->fillFileData(mHistoFileName);
-        histoFileMetaData->type = "calib";
-        histoFileMetaData->priority = "high";
-        std::string metaFileNameTmp = metaFileDir + (metaFileDir.back() == '/' ? "" : "/") + fmt::format("{}_{}.tmp", fn, mRunNumber);
-        std::string metaFileName = metaFileDir + (metaFileDir.back() == '/' ? "" : "/") + fmt::format("{}_{}.done", fn, mRunNumber);
-        try {
-          std::ofstream metaFileOut(metaFileNameTmp);
-          metaFileOut << *histoFileMetaData.get();
-          metaFileOut.close();
-          std::filesystem::rename(metaFileNameTmp, metaFileName);
-        } catch (std::exception const& e) {
-          LOG(error) << "Failed to store ZDC meta data file " << metaFileName << ", reason: " << e.what();
-        }
-        LOG(info) << "Stored metadata file " << metaFileName << ".done";
-      } else {
-        LOG(info) << "Did not store metafile as meta-dir=" << metaFileDir;
-      }
-    } else {
-      LOG(warn) << "Do not create output file since output dir is " << mOutputDir;
-    }
-  }
-}
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);  if (opt.rootOutput == true) {
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);    mOutputDir = opt.outputDir;
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);    if (mOutputDir.compare("/dev/null")) {
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);      mHistoFileName = fmt::format("{}{}{}_{}.root", mOutputDir, mOutputDir.back() == '/' ? "" : "/", fn, mRunNumber);
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);      int rval = mWorker.saveDebugHistos(mHistoFileName);
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);      if (rval) {
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);        LOG(error) << "Cannot create output file " << mHistoFileName;
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);        return;
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);      }
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);      std::string metaFileDir = opt.metaFileDir;
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);      if (metaFileDir.compare("/dev/null")) {
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);        std::unique_ptr<o2::dataformats::FileMetaData> histoFileMetaData;
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);        histoFileMetaData = std::make_unique<o2::dataformats::FileMetaData>();
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);        histoFileMetaData->setDataTakingContext(ec.services().get<DataTakingContext>());
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);        histoFileMetaData->fillFileData(mHistoFileName);
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);        histoFileMetaData->type = "calib";
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);        histoFileMetaData->priority = "high";
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);        std::string metaFileNameTmp = metaFileDir + (metaFileDir.back() == '/' ? "" : "/") + fmt::format("{}_{}.tmp", fn, mRunNumber);
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);        std::string metaFileName = metaFileDir + (metaFileDir.back() == '/' ? "" : "/") + fmt::format("{}_{}.done", fn, mRunNumber);
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);        try {
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);          std::ofstream metaFileOut(metaFileNameTmp);
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);          metaFileOut << *histoFileMetaData.get();
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);          metaFileOut.close();
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);          std::filesystem::rename(metaFileNameTmp, metaFileName);
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);        } catch (std::exception const& e) {
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);          LOG(error) << "Failed to store ZDC meta data file " << metaFileName << ", reason: " << e.what();
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);        }
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);        LOG(info) << "Stored metadata file " << metaFileName << ".done";
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);      } else {
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);        LOG(info) << "Did not store metafile as meta-dir=" << metaFileDir;
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);      }
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);    } else {
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);      LOG(warn) << "Do not create output file since output dir is " << mOutputDir;
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);    }
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);  }
+printf("%s:%d\n",__FILE__,__LINE__);fflush(stdout);}
 
 framework::DataProcessorSpec getBaselineCalibSpec()
 {
