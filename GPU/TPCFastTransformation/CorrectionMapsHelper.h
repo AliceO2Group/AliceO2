@@ -67,19 +67,28 @@ class CorrectionMapsHelper
   void setInstLumi(float v)
   {
     if (v != mInstLumi) {
-      setUpdatedLumi();
       mInstLumi = v;
-      mLumiScale = mMeanLumi ? mInstLumi / mMeanLumi : 0.f;
-      reportScaling();
+      updateLumiScale();
     }
   }
+
   void setMeanLumi(float v)
   {
     if (v != mMeanLumi) {
-      setUpdatedLumi();
       mMeanLumi = v;
+      updateLumiScale();
+    }
+  }
+
+  void updateLumiScale()
+  {
+    if (mMeanLumi < 0.f || mInstLumi < 0.f) {
+      mLumiScale = -1.f;
+    } else {
       mLumiScale = mMeanLumi ? mInstLumi / mMeanLumi : 0.f;
     }
+    setUpdatedLumi();
+    reportScaling();
   }
 
   GPUd() float getInstLumi() const { return mInstLumi; }
