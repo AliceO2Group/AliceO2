@@ -14,6 +14,7 @@
 #include "Rtypes.h"
 #include "RStringView.h"
 #include "CCDB/CcdbApi.h"
+#include "CCDB/BasicCCDBManager.h"
 
 namespace o2
 {
@@ -59,6 +60,9 @@ class ElmbData;
 /// Users must handle the exceptions.
 class CalibDB
 {
+
+  using CcdbManager = o2::ccdb::BasicCCDBManager;
+
  public:
   /// \class ObjectNotFoundException
   /// \brief Handling errors due to objects not found in the CCDB
