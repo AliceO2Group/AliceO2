@@ -387,28 +387,28 @@ void displayDeviceMetrics(const char* label,
         switch (metric.type) {
           case MetricType::Int: {
             data.Y = metricsInfos[di].intMetrics[metric.storeIdx].data();
-            auto timestamps = metricsInfos[di].intTimestamps[metric.storeIdx];
+            auto& timestamps = metricsInfos[di].intTimestamps[metric.storeIdx];
             data.mod = std::min(metric.filledMetrics, timestamps.size());
             data.first = metric.pos - data.mod;
             data.X = timestamps.data();
           } break;
           case MetricType::Enum: {
             data.Y = metricsInfos[di].enumMetrics[metric.storeIdx].data();
-            auto timestamps = metricsInfos[di].enumTimestamps[metric.storeIdx];
+            auto& timestamps = metricsInfos[di].enumTimestamps[metric.storeIdx];
             data.mod = std::min(metric.filledMetrics, timestamps.size());
             data.first = metric.pos - data.mod;
             data.X = timestamps.data();
           } break;
           case MetricType::Uint64: {
             data.Y = metricsInfos[di].uint64Metrics[metric.storeIdx].data();
-            auto timestamps = metricsInfos[di].uint64Timestamps[metric.storeIdx];
+            auto& timestamps = metricsInfos[di].uint64Timestamps[metric.storeIdx];
             data.mod = std::min(metric.filledMetrics, timestamps.size());
             data.first = metric.pos - data.mod;
             data.X = timestamps.data();
           } break;
           case MetricType::Float: {
             data.Y = metricsInfos[di].floatMetrics[metric.storeIdx].data();
-            auto timestamps = metricsInfos[di].floatTimestamps[metric.storeIdx];
+            auto& timestamps = metricsInfos[di].floatTimestamps[metric.storeIdx];
             data.mod = std::min(metric.filledMetrics, timestamps.size());
             data.first = metric.pos - data.mod;
             data.X = timestamps.data();
