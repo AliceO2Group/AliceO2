@@ -23,7 +23,7 @@
 #include "Framework/DataProcessingHelpers.h"
 #include "Framework/RateLimiter.h"
 #include "Headers/DataHeaderHelpers.h"
-
+#include "Algorithm/RangeTokenizer.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include <TStopwatch.h>
 #include <fairmq/Device.h>
@@ -78,6 +78,7 @@ class TFReaderSpec : public o2f::Task
   std::unordered_map<o2h::DataIdentifier, SubSpecCount> mSeenOutputMap;
   int mTFCounter = 0;
   int mTFBuilderCounter = 0;
+  size_t mSelIDEntry = 0; // next TFID to select from the mInput.tfIDs (if non-empty)
   bool mRunning = false;
   TFReaderInp mInput; // command line inputs
   std::thread mTFBuilderThread{};
@@ -94,6 +95,7 @@ TFReaderSpec::TFReaderSpec(const TFReaderInp& rinp) : mInput(rinp)
 //___________________________________________________________
 void TFReaderSpec::init(o2f::InitContext& ic)
 {
+  mInput.tfIDs = o2::RangeTokenizer::tokenize<int>(ic.options().get<std::string>("select-tf-ids"));
   mFileFetcher = std::make_unique<o2::utils::FileFetcher>(mInput.inpdata, mInput.tffileRegex, mInput.remoteRegex, mInput.copyCmd);
   mFileFetcher->setMaxFilesInQueue(mInput.maxFileCache);
   mFileFetcher->setMaxLoops(mInput.maxLoops);
@@ -337,7 +339,10 @@ void TFReaderSpec::TFBuilder()
       continue;
     }
     tfFileName = mFileFetcher ? mFileFetcher->getNextFileInQueue() : "";
-    if (!mRunning || (tfFileName.empty() && !mFileFetcher->isRunning()) || mTFBuilderCounter >= mInput.maxTFs) {
+    if (!mRunning ||
+        (tfFileName.empty() && !mFileFetcher->isRunning()) ||
+        mTFBuilderCounter >= mInput.maxTFs ||
+        (!mInput.tfIDs.empty() && mSelIDEntry >= mInput.tfIDs.size())) {
       // stopped or no more files in the queue is expected or needed
       LOG(info) << "TFReader stops processing";
       if (mFileFetcher) {
@@ -360,13 +365,29 @@ void TFReaderSpec::TFBuilder()
           std::this_thread::sleep_for(sleepTime);
           continue;
         }
-        auto tf = reader.read(mDevice, mOutputRoutes, mInput.rawChannelConfig, mInput.sup0xccdb, mInput.verbosity);
+        auto tf = reader.read(mDevice, mOutputRoutes, mInput.rawChannelConfig, mSelIDEntry, mInput.sup0xccdb, mInput.verbosity);
+        bool acceptTF = true;
         if (tf) {
+          locID++;
+          if (!mInput.tfIDs.empty()) {
+            acceptTF = false;
+            if (mInput.tfIDs[mSelIDEntry] == mTFBuilderCounter) {
+              acceptTF = true;
+              LOGP(info, "Retrieved TF#{} will be pushed as slice {} following user request", mTFBuilderCounter, mSelIDEntry);
+              mSelIDEntry++;
+            } else {
+              LOGP(info, "Retrieved TF#{} will be discared following user request", mTFBuilderCounter);
+            }
+          } else {
+            mSelIDEntry++;
+          }
           mTFBuilderCounter++;
+        }
+        if (!acceptTF) {
+          continue;
         }
         if (mRunning && tf) {
           mTFQueue.push(std::move(tf));
-          locID++;
         } else {
           break;
         }
@@ -468,6 +489,7 @@ o2f::DataProcessorSpec o2::rawdd::getTFReaderSpec(o2::rawdd::TFReaderInp& rinp)
       LOGP(alarm, R"(To avoid reader filling shm buffer use "--shm-throw-bad-alloc 0 --shm-segment-id 2")");
     }
   }
+  spec.options.emplace_back(o2f::ConfigParamSpec{"select-tf-ids", o2f::VariantType::String, "", {"comma-separated list TF IDs to inject (from cumulative counter of TFs seen)"}});
   spec.options.emplace_back(o2f::ConfigParamSpec{"fetch-failure-threshold", o2f::VariantType::Float, 0.f, {"Fatil if too many failures( >0: fraction, <0: abs number, 0: no threshold)"}});
   spec.algorithm = o2f::adaptFromTask<TFReaderSpec>(rinp);
 
