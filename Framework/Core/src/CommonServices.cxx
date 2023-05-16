@@ -341,9 +341,8 @@ o2::framework::ServiceSpec CommonServices::dataSender()
   return ServiceSpec{
     .name = "datasender",
     .init = [](ServiceRegistryRef services, DeviceState&, fair::mq::ProgOptions& options) -> ServiceHandle {
-      auto& spec = services.get<DeviceSpec const>();
       return ServiceHandle{TypeIdHelpers::uniqueId<DataSender>(),
-                           new DataSender(services, spec.sendingPolicy)};
+                           new DataSender(services)};
     },
     .configure = noConfiguration(),
     .preProcessing = [](ProcessingContext&, void* service) {
