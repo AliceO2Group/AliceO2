@@ -438,37 +438,37 @@ GPUdi() void TPCFastTransform::getTOFcorrection(int slice, int /*row*/, float x,
 GPUdi() void TPCFastTransform::TransformInternal(int slice, int row, float& u, float& v, float& x, const TPCFastTransform* ref, float scale) const
 {
   if (mApplyCorrection) {
-    float dx, du, dv;
-
+    float dx = 0.f, du = 0.f, dv = 0.f;
+    if (scale >= 0.f) {
 #ifndef GPUCA_GPUCODE
-    if (mCorrectionSlow) {
-      float ly, lz;
-      getGeometry().convUVtoLocal(slice, u, v, ly, lz);
-      float gx, gy, gz;
-      getGeometry().convLocalToGlobal(slice, x, ly, lz, gx, gy, gz);
+      if (mCorrectionSlow) {
+        float ly, lz;
+        getGeometry().convUVtoLocal(slice, u, v, ly, lz);
+        float gx, gy, gz;
+        getGeometry().convLocalToGlobal(slice, x, ly, lz, gx, gy, gz);
 
-      float gdxC, gdyC, gdzC;
-      mCorrectionSlow->getCorrections(gx, gy, gz, slice, gdxC, gdyC, gdzC);
-      getGeometry().convGlobalToLocal(slice, gdxC, gdyC, gdzC, dx, du, dv);
+        float gdxC, gdyC, gdzC;
+        mCorrectionSlow->getCorrections(gx, gy, gz, slice, gdxC, gdyC, gdzC);
+        getGeometry().convGlobalToLocal(slice, gdxC, gdyC, gdzC, dx, du, dv);
 
-      if (slice >= 18) {
-        du = -du; // mirror for c-Side
-      } else {
-        dv = -dv; // mirror z for A-Side
-      }
-    } else
+        if (slice >= 18) {
+          du = -du; // mirror for c-Side
+        } else {
+          dv = -dv; // mirror z for A-Side
+        }
+      } else
 #endif // GPUCA_GPUCODE
-    {
-      mCorrection.getCorrection(slice, row, u, v, dx, du, dv);
-      if (ref && scale > 0.f) { // scaling was requested
-        float dxRef, duRef, dvRef;
-        ref->mCorrection.getCorrection(slice, row, u, v, dxRef, duRef, dvRef);
-        dx = (dx - dxRef) * scale + dxRef;
-        du = (du - duRef) * scale + duRef;
-        dv = (dv - dvRef) * scale + dvRef;
+      {
+        mCorrection.getCorrection(slice, row, u, v, dx, du, dv);
+        if (ref && scale > 0.f) { // scaling was requested
+          float dxRef, duRef, dvRef;
+          ref->mCorrection.getCorrection(slice, row, u, v, dxRef, duRef, dvRef);
+          dx = (dx - dxRef) * scale + dxRef;
+          du = (du - duRef) * scale + duRef;
+          dv = (dv - dvRef) * scale + dvRef;
+        }
       }
     }
-
     GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamFastTransform)) {
       float ly, lz;
       getGeometry().convUVtoLocal(slice, u, v, ly, lz);
@@ -720,13 +720,14 @@ GPUdi() void TPCFastTransform::InverseTransformYZtoX(int slice, int row, float y
   /// Transformation y,z -> x
   float u = 0, v = 0;
   getGeometry().convLocalToUV(slice, y, z, u, v);
-  mCorrection.getCorrectionInvCorrectedX(slice, row, u, v, x);
-  if (ref && scale > 0.f) { // scaling was requested
-    float xr;
-    ref->mCorrection.getCorrectionInvCorrectedX(slice, row, u, v, xr);
-    x = (x - xr) * scale + xr;
+  if (scale >= 0.f) {
+    mCorrection.getCorrectionInvCorrectedX(slice, row, u, v, x);
+    if (ref && scale > 0.f) { // scaling was requested
+      float xr;
+      ref->mCorrection.getCorrectionInvCorrectedX(slice, row, u, v, xr);
+      x = (x - xr) * scale + xr;
+    }
   }
-
   GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamFastTransform)) {
     o2::utils::DebugStreamer::instance()->getStreamer("debug_fasttransform", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_InverseTransformYZtoX").data()
                                                                                        << "slice=" << slice
@@ -746,12 +747,14 @@ GPUdi() void TPCFastTransform::InverseTransformYZtoNominalYZ(int slice, int row,
   /// Transformation y,z -> x
   float u = 0, v = 0, un = 0, vn = 0;
   getGeometry().convLocalToUV(slice, y, z, u, v);
-  mCorrection.getCorrectionInvUV(slice, row, u, v, un, vn);
-  if (ref && scale > 0.f) { // scaling was requested
-    float unr = 0, vnr = 0;
-    ref->mCorrection.getCorrectionInvUV(slice, row, u, v, unr, vnr);
-    un = (un - unr) * scale + unr;
-    vn = (vn - vnr) * scale + vnr;
+  if (scale >= 0.f) {
+    mCorrection.getCorrectionInvUV(slice, row, u, v, un, vn);
+    if (ref && scale > 0.f) { // scaling was requested
+      float unr = 0, vnr = 0;
+      ref->mCorrection.getCorrectionInvUV(slice, row, u, v, unr, vnr);
+      un = (un - unr) * scale + unr;
+      vn = (vn - vnr) * scale + vnr;
+    }
   }
   getGeometry().convUVtoLocal(slice, un, vn, ny, nz);
 
