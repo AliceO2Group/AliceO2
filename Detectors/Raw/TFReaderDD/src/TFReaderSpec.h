@@ -46,6 +46,7 @@ struct TFReaderInp {
   bool sendDummyForMissing = true;
   bool sup0xccdb = false;
   std::vector<o2::header::DataHeader> hdVec;
+  std::vector<int> tfIDs{};
 };
 
 o2::framework::DataProcessorSpec getTFReaderSpec(o2::rawdd::TFReaderInp& rinp);
