@@ -478,9 +478,9 @@ void displayDeviceMetrics(const char* label,
 #if __has_include(<DebugGUI/DebugGUIAPIv2.h>)
   ImPlot::SetNextAxisLimits(ImAxis_Y1, minValue[0] - (maxValue[0] - minValue[0]) * axisPadding,
                             maxValue[0] * (1. + axisPadding), ImGuiCond_Always);
-  ImPlot::SetNextAxisLimits(ImAxis_Y1, minValue[1] - (maxValue[1] - minValue[1]) * axisPadding,
+  ImPlot::SetNextAxisLimits(ImAxis_Y2, minValue[1] - (maxValue[1] - minValue[1]) * axisPadding,
                             maxValue[1] * (1. + axisPadding), ImGuiCond_Always);
-  ImPlot::SetNextAxisLimits(ImAxis_Y1, minValue[2] - (maxValue[2] - minValue[2]) * axisPadding,
+  ImPlot::SetNextAxisLimits(ImAxis_Y3, minValue[2] - (maxValue[2] - minValue[2]) * axisPadding,
                             maxValue[2] * (1. + axisPadding), ImGuiCond_Always);
 #else
   for (size_t ai = 0; ai < 3; ++ai) {
