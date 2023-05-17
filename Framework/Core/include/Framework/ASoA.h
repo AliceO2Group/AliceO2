@@ -1860,6 +1860,15 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
     }                                                                                            \
                                                                                                  \
     template <typename T>                                                                        \
+    auto filtered_##_Getter_##_as() const                                                        \
+    {                                                                                            \
+      if (O2_BUILTIN_UNLIKELY(mBinding == nullptr)) {                                            \
+        o2::soa::notBoundTable(#_Table_);                                                        \
+      }                                                                                          \
+      return getFilteredIterators<T>();                                                          \
+    }                                                                                            \
+                                                                                                 \
+    template <typename T>                                                                        \
     auto getIterators() const                                                                    \
     {                                                                                            \
       auto result = std::vector<typename T::unfiltered_iterator>();                              \
@@ -1867,6 +1876,24 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
         result.push_back(static_cast<T const*>(mBinding)->rawIteratorAt(i));                     \
       }                                                                                          \
       return result;                                                                             \
+    }                                                                                            \
+                                                                                                 \
+    template <typename T>                                                                        \
+    std::vector<typename T::iterator> getFilteredIterators() const                               \
+    {                                                                                            \
+      if constexpr (o2::soa::is_soa_filtered_v<T>) {                                             \
+        auto result = std::vector<typename T::iterator>();                                       \
+        for (auto const& i : *mColumnIterator) {                                                 \
+          auto pos = static_cast<T const*>(mBinding)->isInSelectedRows(i);                       \
+          if (pos > 0) {                                                                         \
+            result.push_back(static_cast<T const*>(mBinding)->iteratorAt(pos));                  \
+          }                                                                                      \
+        }                                                                                        \
+        return result;                                                                           \
+      } else {                                                                                   \
+        static_assert(o2::framework::always_static_assert_v<T>, "T is not a Filtered type");     \
+      }                                                                                          \
+      return {};                                                                                 \
     }                                                                                            \
                                                                                                  \
     auto _Getter_() const                                                                        \
@@ -2570,7 +2597,7 @@ class FilteredBase : public T
     return RowViewSentinel{*mFilteredEnd};
   }
 
-  iterator iteratorAt(uint64_t i)
+  iterator iteratorAt(uint64_t i) const
   {
     return mFilteredBegin + i;
   }
@@ -2719,6 +2746,15 @@ class FilteredBase : public T
     auto t = o2::soa::select(*this, f);
     copyIndexBindings(t);
     return t;
+  }
+
+  int isInSelectedRows(int i) const
+  {
+    auto locate = std::find(mSelectedRows.begin(), mSelectedRows.end(), i);
+    if (locate == mSelectedRows.end()) {
+      return -1;
+    }
+    return static_cast<int>(std::distance(mSelectedRows.begin(), locate));
   }
 
  protected:
