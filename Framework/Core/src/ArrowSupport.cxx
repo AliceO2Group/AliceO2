@@ -15,6 +15,7 @@
 #include "Framework/ArrowTableSlicingCache.h"
 #include "Framework/SliceCache.h"
 #include "Framework/DataProcessor.h"
+#include "Framework/DataProcessingStats.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/ConfigContext.h"
 #include "Framework/CommonDataProcessors.h"
@@ -387,10 +388,10 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        arrow->updateBytesDestroyed(totalBytes);
                        LOGP(debug, "{}MB bytes being given back to reader, totaling {}MB", totalBytes / 1000000., arrow->bytesDestroyed() / 1000000.);
                        arrow->updateMessagesDestroyed(totalMessages);
-                       auto& monitoring = ctx.services().get<Monitoring>();
-                       monitoring.send(Metric{(uint64_t)arrow->bytesDestroyed(), "arrow-bytes-destroyed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
-                       monitoring.send(Metric{(uint64_t)arrow->messagesDestroyed(), "arrow-messages-destroyed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
-                       monitoring.flushBuffer(); },
+                       auto& stats = ctx.services().get<DataProcessingStats>();
+                       stats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_BYTES_DESTROYED), DataProcessingStats::Op::Set, static_cast<int64_t>(arrow->bytesDestroyed())});
+                       stats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_MESSAGES_DESTROYED), DataProcessingStats::Op::Set, static_cast<int64_t>(arrow->messagesDestroyed())}); 
+                       stats.processCommandQueue(); },
     .driverInit = [](ServiceRegistryRef registry, DeviceConfig const& dc) {
                        auto config = new RateLimitConfig{};
                        int readers = std::stoll(dc.options["readers"].as<std::string>());

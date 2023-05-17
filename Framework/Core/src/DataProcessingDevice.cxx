@@ -220,16 +220,22 @@ void run_completion(uv_work_t* handle, int status)
   using o2::monitoring::tags::Key;
   using o2::monitoring::tags::Value;
 
-  static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats&)> reportConsumedOffer = [&monitoring = ref.get<Monitoring>()](ComputingQuotaOffer const& accumulatedConsumed, ComputingQuotaStats& stats) {
+  static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats&)> reportConsumedOffer = [ref](ComputingQuotaOffer const& accumulatedConsumed, ComputingQuotaStats& stats) {
+    auto& dpStats = ref.get<DataProcessingStats>();
     stats.totalConsumedBytes += accumulatedConsumed.sharedMemory;
-    monitoring.send(Metric{(uint64_t)stats.totalConsumedBytes, "shm-offer-bytes-consumed"}.addTag(Key::Subsystem, Value::DPL));
-    monitoring.flushBuffer();
+
+    dpStats.updateStats({static_cast<short>(ProcessingStatsId::SHM_OFFER_BYTES_CONSUMED), DataProcessingStats::Op::Set, stats.totalConsumedBytes});
+    dpStats.processCommandQueue();
+    assert(stats.totalConsumedBytes == dpStats.metrics[(short)ProcessingStatsId::SHM_OFFER_BYTES_CONSUMED]);
   };
 
-  static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats const&)> reportExpiredOffer = [&monitoring = ref.get<Monitoring>()](ComputingQuotaOffer const& offer, ComputingQuotaStats const& stats) {
-    monitoring.send(Metric{(uint64_t)stats.totalExpiredOffers, "resource-offer-expired"}.addTag(Key::Subsystem, Value::DPL));
-    monitoring.send(Metric{(uint64_t)stats.totalExpiredBytes, "arrow-bytes-expired"}.addTag(Key::Subsystem, Value::DPL));
-    monitoring.flushBuffer();
+  static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats const&)> reportExpiredOffer = [ref](ComputingQuotaOffer const& offer, ComputingQuotaStats const& stats) {
+    auto& dpStats = ref.get<DataProcessingStats>();
+    dpStats.updateStats({static_cast<short>(ProcessingStatsId::RESOURCE_OFFER_EXPIRED), DataProcessingStats::Op::Set, stats.totalExpiredOffers});
+    dpStats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_BYTES_EXPIRED), DataProcessingStats::Op::Set, stats.totalExpiredBytes});
+    dpStats.processCommandQueue();
+    assert(stats.totalExpiredBytes == 0);
+    assert(stats.totalExpiredOffers == 0);
   };
 
   for (auto& consumer : state.offerConsumers) {
@@ -1314,10 +1320,10 @@ void DataProcessingDevice::Run()
 
       static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats const& stats)> reportExpiredOffer = [&registry = mServiceRegistry](ComputingQuotaOffer const& offer, ComputingQuotaStats const& stats) {
         ServiceRegistryRef ref{registry};
-        auto& monitoring = ref.get<Monitoring>();
-        monitoring.send(Metric{(uint64_t)stats.totalExpiredOffers, "resource-offer-expired"}.addTag(Key::Subsystem, Value::DPL));
-        monitoring.send(Metric{(uint64_t)stats.totalExpiredBytes, "arrow-bytes-expired"}.addTag(Key::Subsystem, Value::DPL));
-        monitoring.flushBuffer();
+        auto& dpStats = ref.get<DataProcessingStats>();
+        dpStats.updateStats({static_cast<short>(ProcessingStatsId::RESOURCE_OFFER_EXPIRED), DataProcessingStats::Op::Set, stats.totalExpiredOffers});
+        dpStats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_BYTES_EXPIRED), DataProcessingStats::Op::Set, stats.totalExpiredBytes});
+        dpStats.processCommandQueue(); 
       };
       auto ref = ServiceRegistryRef{mServiceRegistry};
 
