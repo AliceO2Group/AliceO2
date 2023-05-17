@@ -341,10 +341,23 @@ void displaySparks(
   ImGui::EndTable();
 }
 
+int formatTimeSinceStart(double value, char* buff, int size, void* user_data)
+{
+  auto* startTime = (int64_t*)user_data;
+  if (value - *startTime < 0) {
+    buff[0] = '\0';
+    return 0;
+  }
+  int64_t seconds = (value - *startTime) / 1000;
+  int64_t minutes = seconds / 60;
+  return snprintf(buff, size, "%02lld:%02lld", minutes, seconds % 60);
+}
+
 void displayDeviceMetrics(const char* label,
                           size_t rangeBegin, size_t rangeEnd, size_t bins, MetricsDisplayStyle displayType,
                           std::vector<MetricDisplayState>& state,
-                          AllMetricsStore const& metricStore)
+                          AllMetricsStore const& metricStore,
+                          DriverInfo const& driverInfo)
 {
   std::vector<void*> metricsToDisplay;
   std::vector<const char*> deviceNames;
@@ -493,6 +506,7 @@ void displayDeviceMetrics(const char* label,
     case MetricsDisplayStyle::Histos:
       if (ImPlot::BeginPlot("##Some plot")) {
         ImPlot::SetupAxes("time", "value");
+        ImPlot::SetupAxisFormat(ImAxis_X1, formatTimeSinceStart, (void*)&driverInfo.startTimeMsFromEpoch);
         for (size_t pi = 0; pi < metricsToDisplay.size(); ++pi) {
           ImGui::PushID(pi);
           auto data = (const MultiplotData*)metricsToDisplay[pi];
@@ -510,6 +524,7 @@ void displayDeviceMetrics(const char* label,
       //ImPlot::FitNextPlotAxes(true, true, true, true);
       if (ImPlot::BeginPlot("##Some plot", {-1, -1}, axisFlags)) {
         ImPlot::SetupAxes("time", "value", xAxisFlags, yAxisFlags);
+        ImPlot::SetupAxisFormat(ImAxis_X1, formatTimeSinceStart, (void*)&driverInfo.startTimeMsFromEpoch);
         for (size_t pi = 0; pi < metricsToDisplay.size(); ++pi) {
           ImGui::PushID(pi);
           auto data = (const MultiplotData*)metricsToDisplay[pi];
@@ -891,7 +906,7 @@ void displayMetrics(gui::WorkspaceGUIState& state,
     case MetricsDisplayStyle::Lines: {
       displayDeviceMetrics("Metrics",
                            minTime, maxTime, 1024,
-                           currentStyle, metricDisplayState, metricsStore);
+                           currentStyle, metricDisplayState, metricsStore, driverInfo);
     } break;
     case MetricsDisplayStyle::Sparks: {
       displaySparks(state.startTime, visibleMetricsIndex, metricDisplayState, metricsStore);
