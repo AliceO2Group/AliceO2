@@ -72,6 +72,7 @@ struct EMCALCalibParams : public o2::conf::ConfigurableParamHelper<EMCALCalibPar
   bool enableTimeProfiling = false;       ///< enable to log how much time is spent in the run function in the calibrator spec. Needed for speed tests offline and at point 2
   bool setSavedSlotAllowed_EMC = true;    ///< if true, saving and loading of calibrations from last run and for next run is enabled
   bool setSavedSlotAllowedSOR_EMC = true; ///< if true, stored calibrations from last run can be loaded in the next run (if false, storing of the calib histograms is still active in contrast to setSavedSlotAllowed_EMC)
+  long endTimeMargin = 2592000000;        ///< set end TS to 30 days after slot ends (1000 * 60 * 60 * 24 * 30)
 
   // old parameters. Keep them for a bit (can be deleted after september 5th) as otherwise ccdb and o2 version might not be in synch
   unsigned int minNEvents = 1e7;              ///< minimum number of events to trigger the calibration
