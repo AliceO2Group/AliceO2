@@ -562,6 +562,10 @@ void metricsTableRow(std::vector<MetricIndex> metricIndex,
     auto& info = metricsInfos[index.deviceIndex].metrics[index.metricIndex];
 
     ImGui::TableNextColumn();
+    if (info.filledMetrics <= row) {
+      ImGui::Text(" - ");
+      continue;
+    }
     switch (info.type) {
       case MetricType::Int: {
         auto time = metricsInfo.intTimestamps[info.storeIdx][row];
