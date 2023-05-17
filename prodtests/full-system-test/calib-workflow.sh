@@ -16,6 +16,12 @@ if workflow_has_parameters CALIB_LOCAL_INTEGRATED_AGGREGATOR CALIB_PROXIES; then
   exit 2
 fi
 
+if [[ -z ${TPC_IDCCALIB_NSLICESPERTF:-} ]]; then
+  TPC_IDCCALIB_NSLICESPERTF=$(echo "scale=2;$NHBPERTF/128*11" | bc)
+  TPC_IDCCALIB_NSLICESPERTF=$(echo $TPC_IDCCALIB_NSLICESPERTF | awk '{print int($1 + 0.5)}')
+fi
+
+
 if [[ "${CALIB_TPC_SCDCALIB_SENDTRKDATA:-}" == "1" ]]; then ENABLE_TRKDATA_OUTPUT="--send-track-data"; else ENABLE_TRKDATA_OUTPUT=""; fi
 
 # specific calibration workflows
@@ -33,10 +39,10 @@ if [[ $CALIB_ZDC_TDC == 1 ]]; then add_W o2-zdc-tdccalib-epn-workflow "" "" 0; f
 if [[ $CALIB_FT0_TIMEOFFSET == 1 ]]; then add_W o2-calibration-ft0-time-spectra-processor; fi
 
 # current integration
-if [[ $CALIB_FT0_INTEGRATEDCURR == 1 ]]; then add_W o2-ft0-integrate-cluster-workflow "$DISABLE_ROOT_OUTPUT"; fi
-if [[ $CALIB_FV0_INTEGRATEDCURR == 1 ]]; then add_W o2-fv0-integrate-cluster-workflow "$DISABLE_ROOT_OUTPUT"; fi
-if [[ $CALIB_FDD_INTEGRATEDCURR == 1 ]]; then add_W o2-fdd-integrate-cluster-workflow "$DISABLE_ROOT_OUTPUT"; fi
-if [[ $CALIB_TOF_INTEGRATEDCURR == 1 ]]; then add_W o2-tof-integrate-cluster-workflow "$DISABLE_ROOT_OUTPUT"; fi
+if [[ $CALIB_FT0_INTEGRATEDCURR == 1 ]]; then add_W o2-ft0-integrate-cluster-workflow "$DISABLE_ROOT_OUTPUT --nSlicesTF $TPC_IDCCALIB_NSLICESPERTF"; fi
+if [[ $CALIB_FV0_INTEGRATEDCURR == 1 ]]; then add_W o2-fv0-integrate-cluster-workflow "$DISABLE_ROOT_OUTPUT --nSlicesTF $TPC_IDCCALIB_NSLICESPERTF"; fi
+if [[ $CALIB_FDD_INTEGRATEDCURR == 1 ]]; then add_W o2-fdd-integrate-cluster-workflow "$DISABLE_ROOT_OUTPUT --nSlicesTF $TPC_IDCCALIB_NSLICESPERTF"; fi
+if [[ $CALIB_TOF_INTEGRATEDCURR == 1 ]]; then add_W o2-tof-integrate-cluster-workflow "$DISABLE_ROOT_OUTPUT --nSlicesTF $TPC_IDCCALIB_NSLICESPERTF"; fi
 
 # for async calibrations
 if [[ $CALIB_EMC_ASYNC_RECALIB == 1 ]]; then add_W o2-emcal-emc-offline-calib-workflow "--input-subspec 1 --applyGainCalib"; fi
