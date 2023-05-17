@@ -11,8 +11,12 @@
 
 #include <catch_amalgamated.hpp>
 #include "Framework/ComputingQuotaEvaluator.h"
+#include "Framework/DeviceState.h"
 #include "Framework/ResourcePolicyHelpers.h"
 #include "Framework/Logger.h"
+#include "Framework/TimingHelpers.h"
+#include "Framework/DataProcessingStats.h"
+#include "uv.h"
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
@@ -70,7 +74,46 @@ TEST_CASE("TestComputingQuotaEvaluator")
     return accountDisposed(disposed, stats);
   };
 
-  ComputingQuotaEvaluator evaluator{0};
+  DataProcessingStats stats(TimingHelpers::defaultRealtimeBaseConfigurator(0, uv_default_loop()),
+                            TimingHelpers::defaultCPUTimeConfigurator(uv_default_loop()));
+
+  ServiceRegistry registry;
+  ServiceRegistryRef ref(registry);
+  auto state = std::make_unique<DeviceState>();
+  state->loop = uv_default_loop();
+  using MetricSpec = DataProcessingStats::MetricSpec;
+  using Kind = DataProcessingStats::Kind;
+  using Scope = DataProcessingStats::Scope;
+  std::vector<o2::framework::DataProcessingStats::MetricSpec> metrics{
+    MetricSpec{.name = "resources-missing",
+               .metricId = static_cast<short>(ProcessingStatsId::RESOURCES_MISSING),
+               .kind = Kind::UInt64,
+               .scope = Scope::DPL,
+               .minPublishInterval = 1000,
+               .maxRefreshLatency = 1000,
+               .sendInitialValue = true},
+    MetricSpec{.name = "resources-insufficient",
+               .metricId = static_cast<short>(ProcessingStatsId::RESOURCES_INSUFFICIENT),
+               .kind = Kind::UInt64,
+               .scope = Scope::DPL,
+               .minPublishInterval = 1000,
+               .maxRefreshLatency = 1000,
+               .sendInitialValue = true},
+    MetricSpec{.name = "resources-satisfactory",
+               .metricId = static_cast<short>(ProcessingStatsId::RESOURCES_SATISFACTORY),
+               .kind = Kind::UInt64,
+               .scope = Scope::DPL,
+               .minPublishInterval = 1000,
+               .maxRefreshLatency = 1000,
+               .sendInitialValue = true},
+  };
+  for (auto& metric : metrics) {
+    stats.registerMetric(metric);
+  }
+  ref.registerService(ServiceRegistryHelpers::handleForService<DeviceState>(state.get()));
+  ref.registerService(ServiceRegistryHelpers::handleForService<DataProcessingStats>(&stats));
+
+  ComputingQuotaEvaluator evaluator{ref};
   std::vector<ComputingQuotaOffer> offers{{.sharedMemory = 1000000}};
   evaluator.updateOffers(offers, 1);
   REQUIRE(evaluator.mOffers[1].sharedMemory == 1000000);
