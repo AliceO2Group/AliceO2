@@ -74,12 +74,13 @@ class ChannelStatusClassifier : public std::vector<ChannelStatusClass>
   }
 
   // the actual classification method
-  int classify(o2::trd::ChannelInfo& c) {return classify(c.getEntries(), c.getMean(), c.getRMS());}
+  int classify(o2::trd::ChannelInfo& c) { return classify(c.getEntries(), c.getMean(), c.getRMS()); }
   int classify(uint64_t nentries, float mean, float rms);
 
   ROOT::RDF::RNode AddToRDF(ROOT::RDF::RNode df, std::string out = "class", ROOT::RDF::ColumnNames_t in = {"nentries", "mean", "rms"})
   {
-    return df.Define(out, [this](uint32_t n, float m, float r) { return this->classify(n, m, r); }, in);
+    return df.Define(
+      out, [this](uint32_t n, float m, float r) { return this->classify(n, m, r); }, in);
   }
 
   // methods to display classification criteria and results
@@ -145,7 +146,7 @@ o2::trd::ChannelInfoContainer* LoadNoiseCalObject(const long timestamp, char* ur
   if (url != 0) {
     ccdbmgr.setURL(url);
   }
-  ccdbmgr.setTimestamp(timestamp); 
+  ccdbmgr.setTimestamp(timestamp);
   auto calobject = ccdbmgr.get<o2::trd::ChannelInfoContainer>("TRD/Calib/ChannelStatus");
   if (!calobject) {
     LOG(fatal) << "No chamber calibrations returned from CCDB for TRD calibrations";
@@ -167,37 +168,36 @@ o2::trd::ChannelInfoContainer* LoadNoiseCalObject(o2::trd::ChannelInfoContainer*
   return calobject;
 }
 
-
 template <typename T>
 ROOT::RDF::RNode BuildNoiseDF(T id)
 {
-  
+
   // cout << "Creating RDataFrame" << endl;
   auto df1 = ROOT::RDataFrame(o2::trd::constants::NCHANNELSTOTAL)
-    .Define("sector", "rdfentry_ / o2::trd::constants::NCHANNELSPERSECTOR")
-    .Define("layer", "(rdfentry_ % o2::trd::constants::NCHANNELSPERSECTOR) / o2::trd::constants::NCHANNELSPERLAYER")
-    .Define("row", "(rdfentry_ % o2::trd::constants::NCHANNELSPERLAYER) / o2::trd::constants::NCHANNELSPERROW")
-    .Define("col", "rdfentry_ % o2::trd::constants::NCHANNELSPERROW");
+               .Define("sector", "rdfentry_ / o2::trd::constants::NCHANNELSPERSECTOR")
+               .Define("layer", "(rdfentry_ % o2::trd::constants::NCHANNELSPERSECTOR) / o2::trd::constants::NCHANNELSPERLAYER")
+               .Define("row", "(rdfentry_ % o2::trd::constants::NCHANNELSPERLAYER) / o2::trd::constants::NCHANNELSPERROW")
+               .Define("col", "rdfentry_ % o2::trd::constants::NCHANNELSPERROW");
 
   auto calobject = LoadNoiseCalObject(id);
 
   auto df2 = df1
-    .Define("nentries", [calobject](ULong64_t i) { return calobject->getChannel(i).getEntries(); }, {"rdfentry_"})
-    .Define("mean", [calobject](ULong64_t i) { return calobject->getChannel(i).getMean(); }, {"rdfentry_"})
-    .Define("rms", [calobject](ULong64_t i) { return calobject->getChannel(i).getRMS(); }, {"rdfentry_"});
+               .Define("nentries", [calobject](ULong64_t i) { return calobject->getChannel(i).getEntries(); }, {"rdfentry_"})
+               .Define("mean", [calobject](ULong64_t i) { return calobject->getChannel(i).getMean(); }, {"rdfentry_"})
+               .Define("rms", [calobject](ULong64_t i) { return calobject->getChannel(i).getRMS(); }, {"rdfentry_"});
 
   return df2;
 }
 
 template <typename T>
-ROOT::RDF::RNode AddToNoiseDF(ROOT::RDF::RNode df, T id, TString postfix="1")
+ROOT::RDF::RNode AddToNoiseDF(ROOT::RDF::RNode df, T id, TString postfix = "1")
 {
   auto cal = LoadNoiseCalObject(id);
 
   return df
-    .Define("nentries"+postfix, [cal](ULong64_t i) { return cal->getChannel(i).getEntries(); }, {"rdfentry_"})
-    .Define("mean"+postfix, [cal](ULong64_t i) { return cal->getChannel(i).getMean(); }, {"rdfentry_"})
-    .Define("rms"+postfix, [cal](ULong64_t i) { return cal->getChannel(i).getRMS(); }, {"rdfentry_"});
+    .Define("nentries" + postfix, [cal](ULong64_t i) { return cal->getChannel(i).getEntries(); }, {"rdfentry_"})
+    .Define("mean" + postfix, [cal](ULong64_t i) { return cal->getChannel(i).getMean(); }, {"rdfentry_"})
+    .Define("rms" + postfix, [cal](ULong64_t i) { return cal->getChannel(i).getRMS(); }, {"rdfentry_"});
 }
 
 void CheckNoiseRun()
@@ -209,7 +209,7 @@ void CheckNoiseRun()
   cout << endl
        << "Retrieve a list of channel status objects from CCDB:" << endl
        << "> curl  http://alice-ccdb.cern.ch/browse/TRD/Calib/ChannelStatus/" << endl
-       << "or from the ROOT prompt: " << endl 
+       << "or from the ROOT prompt: " << endl
        << "root [] .! curl  http://alice-ccdb.cern.ch/browse/TRD/Calib/ChannelStatus/" << endl;
 
   cout << endl
@@ -218,7 +218,6 @@ void CheckNoiseRun()
        << "  run534640 = LoadNoiseCalObject(1681739312939)" << endl
        << "  run533031 = LoadNoiseCalObject(1681210184624, \"http://ccdb-test.cern.ch:8080\")" << endl;
 }
-
 
 template <typename T>
 void CheckNoiseRun(T id)
@@ -242,7 +241,7 @@ void CheckNoiseRun(T id)
 }
 
 template <typename T>
-T* MakePadAndDraw(Double_t xlow, Double_t ylow, Double_t xup, Double_t yup, ROOT::RDF::RResultPtr<T> h, TString opt="")
+T* MakePadAndDraw(Double_t xlow, Double_t ylow, Double_t xup, Double_t yup, ROOT::RDF::RResultPtr<T> h, TString opt = "")
 {
   gPad->GetCanvas()->cd();
   TPad* pad = new TPad(h->GetName(), h->GetTitle(), xlow, ylow, xup, yup);
@@ -263,7 +262,7 @@ T* MakePadAndDraw(Double_t xlow, Double_t ylow, Double_t xup, Double_t yup, ROOT
 
 // Set the plotting style for the different histograms in the canvas
 void SetStyle(TString style)
-{ 
+{
   // default settings
   gStyle->SetLabelSize(0.02, "X");
   gStyle->SetLabelSize(0.02, "Y");
@@ -280,27 +279,27 @@ void SetStyle(TString style)
   gStyle->SetPadTopMargin(0.02);
   gStyle->SetPadBottomMargin(0.15);
 
-  if (style=="MeanRms1D") {
+  if (style == "MeanRms1D") {
     gStyle->SetOptStat(1);
     gStyle->SetOptLogy(1);
   }
-  
-  if (style=="MeanVsRms") {
+
+  if (style == "MeanVsRms") {
     gStyle->SetPadRightMargin(0.1);
   }
 
-  if (style=="ClassStats") {
+  if (style == "ClassStats") {
     gStyle->SetOptLogx(1);
     gStyle->SetPadRightMargin(0.1);
     gStyle->SetPadLeftMargin(0.2);
   }
 
-  if (style=="Map") {
+  if (style == "Map") {
     gStyle->SetPadRightMargin(0.1);
     gStyle->SetPadLeftMargin(0.1);
   }
 
-  if (style=="Comparison") {
+  if (style == "Comparison") {
     gStyle->SetOptStat(1);
     gStyle->SetOptLogz(1);
     gStyle->SetPadRightMargin(0.1);
@@ -308,15 +307,15 @@ void SetStyle(TString style)
     gStyle->SetPadTopMargin(0.1);
     gStyle->SetPadBottomMargin(0.1);
   }
-} 
+}
 
-template<typename RDF>
+template <typename RDF>
 TCanvas* MakeClassSummary(RDF df, ChannelStatusClass cls)
 {
   // auto mydf = df.Define("sm", "det/30").Define("ly", "det%6");
 
   TString id = TString("-") + cls.label;
-  auto frame = new TH1F("frame"+id, "frame", 10, 0., 5.);
+  auto frame = new TH1F("frame" + id, "frame", 10, 0., 5.);
   auto hMean = df.Histo1D({"Mean" + id, ";Mean;# channels", 100, cls.minMean, cls.maxMean}, "mean");
   auto hRMS = df.Histo1D({"RMS" + id, ";RMS;# channels", 100, cls.minRMS, cls.maxRMS}, "rms");
   auto hMeanRMS = df.Histo2D({"hMeanRMS" + id, ";Mean;RMS", 100, cls.minMean, cls.maxMean, 100, cls.minRMS, cls.maxRMS}, "mean", "rms");
@@ -325,8 +324,7 @@ TCanvas* MakeClassSummary(RDF df, ChannelStatusClass cls)
   auto hGlobalPos = df.Histo2D({"GlobalPos" + id, ";Sector;Layer", 18, -0.5, 17.5, 6, -0.5, 5.5}, "sector", "layer");
   auto hLayerPos = df.Histo2D({"LayerPos" + id, ";Pad row;ADC channel column", 76, -0.5, 75.5, 168, -0.5, 167.5}, "row", "col");
 
-
-  auto cnv = new TCanvas("ClassSummary-"+cls.label, "Class Summary - " + cls.label, 1500, 1000);
+  auto cnv = new TCanvas("ClassSummary-" + cls.label, "Class Summary - " + cls.label, 1500, 1000);
   TText txt;
   txt.SetTextSize(0.05);
   txt.DrawText(0.02, 0.9, cls.label);
@@ -350,9 +348,6 @@ TCanvas* MakeClassSummary(RDF df, ChannelStatusClass cls)
 
   return cnv;
 }
-
-
-
 
 TCanvas* MakeRunSummary(ROOT::RDF::RNode df_all, ChannelStatusClassifier& classifier)
 {
@@ -428,7 +423,6 @@ void CompareRuns(T1 id1, T2 id2, const char* label1 = "old", const char* label2 
 
   int nc = classifier.size();
   auto hc = df.Histo2D({"hc", Form("Comparison of channel status classes;channel class: %s;channel class: %s", label1, label2), nc + 3, -2.5, nc + 0.5, nc + 3, -2.5, nc + 0.5}, "class", "class1");
-
 
   SetStyle("Comparison");
   new TCanvas(Form("Compare_RMS_%s_%s", label1, label2), Form("Compare_RMS_%s_%s", label1, label2), 1000, 1000);
