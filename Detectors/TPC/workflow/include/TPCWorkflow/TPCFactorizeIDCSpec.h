@@ -217,7 +217,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
       output.snapshot(Output{gDataOriginTPC, getDataDescriptionLane()}, mLaneId);
     }
 
-    if (mSendOutCCDB) {
+    if (mSendOutCCDB && (timeStampEnd > mTimestampStart)) {
       for (int iSide = 0; iSide < mSides.size(); ++iSide) {
         const Side side = mSides[iSide];
         LOGP(info, "Writing IDCs to CCDB for Side {}", static_cast<int>(side));
