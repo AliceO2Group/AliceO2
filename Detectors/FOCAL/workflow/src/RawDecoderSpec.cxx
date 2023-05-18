@@ -68,6 +68,24 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
         if (mDebugMode) {
           o2::raw::RDHUtils::printRDH(rdh);
         }
+
+        if (o2::raw::RDHUtils::getMemorySize(rdh) > o2::raw::RDHUtils::getHeaderSize(rdh)) {
+          // non-0 payload size:
+          auto payloadsize = o2::raw::RDHUtils::getMemorySize(rdh) - o2::raw::RDHUtils::getHeaderSize(rdh);
+          int endpoint = static_cast<int>(o2::raw::RDHUtils::getEndPointID(rdh));
+          auto fee = o2::raw::RDHUtils::getFEEID(rdh);
+          LOG(debug) << "Next RDH: ";
+          LOG(debug) << "Found fee                   0x" << std::hex << fee << std::dec << " (System " << (fee == 0xcafe ? "Pads" : "Pixels") << ")";
+          LOG(debug) << "Found trigger BC:           " << o2::raw::RDHUtils::getTriggerBC(rdh);
+          LOG(debug) << "Found trigger Oribt:        " << o2::raw::RDHUtils::getTriggerOrbit(rdh);
+          LOG(debug) << "Found payload size:         " << payloadsize;
+          LOG(debug) << "Found offset to next:       " << o2::raw::RDHUtils::getOffsetToNext(rdh);
+          LOG(debug) << "Stop bit:                   " << (o2::raw::RDHUtils::getStop(rdh) ? "yes" : "no");
+          LOG(debug) << "Number of GBT words:        " << (payloadsize * sizeof(char) / (fee == 0xcafe ? sizeof(o2::focal::PadGBTWord) : sizeof(o2::itsmft::GBTWord)));
+          auto page_payload = databuffer.subspan(currentpos + o2::raw::RDHUtils::getHeaderSize(rdh), payloadsize);
+          std::copy(page_payload.begin(), page_payload.end(), std::back_inserter(rawbuffer));
+        }
+
         auto trigger = o2::raw::RDHUtils::getTriggerType(rdh);
         if (trigger & o2::trigger::HB) {
           // HB trigger received
@@ -130,8 +148,8 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
             } else {
               LOG(debug) << "Payload size 0 - skip empty HBF";
             }
-          } else {
             rawbuffer.clear();
+          } else {
             // Get interaction record for HBF
             currentIR.bc = o2::raw::RDHUtils::getTriggerBC(rdh);
             currentIR.orbit = o2::raw::RDHUtils::getTriggerOrbit(rdh);
@@ -140,26 +158,6 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
           }
         }
 
-        if (o2::raw::RDHUtils::getMemorySize(rdh) == o2::raw::RDHUtils::getHeaderSize(rdh)) {
-          // Skip page if emtpy
-          currentpos += o2::raw::RDHUtils::getOffsetToNext(rdh);
-          continue;
-        }
-
-        // non-0 payload size:
-        auto payloadsize = o2::raw::RDHUtils::getMemorySize(rdh) - o2::raw::RDHUtils::getHeaderSize(rdh);
-        int endpoint = static_cast<int>(o2::raw::RDHUtils::getEndPointID(rdh));
-        auto fee = o2::raw::RDHUtils::getFEEID(rdh);
-        LOG(debug) << "Next RDH: ";
-        LOG(debug) << "Found fee                   0x" << std::hex << fee << std::dec << " (System " << (fee == 0xcafe ? "Pads" : "Pixels") << ")";
-        LOG(debug) << "Found trigger BC:           " << o2::raw::RDHUtils::getTriggerBC(rdh);
-        LOG(debug) << "Found trigger Oribt:        " << o2::raw::RDHUtils::getTriggerOrbit(rdh);
-        LOG(debug) << "Found payload size:         " << payloadsize;
-        LOG(debug) << "Found offset to next:       " << o2::raw::RDHUtils::getOffsetToNext(rdh);
-        LOG(debug) << "Stop bit:                   " << (o2::raw::RDHUtils::getStop(rdh) ? "yes" : "no");
-        LOG(debug) << "Number of GBT words:        " << (payloadsize * sizeof(char) / (fee == 0xcafe ? sizeof(o2::focal::PadGBTWord) : sizeof(o2::itsmft::GBTWord)));
-        auto page_payload = databuffer.subspan(currentpos + o2::raw::RDHUtils::getHeaderSize(rdh), payloadsize);
-        std::copy(page_payload.begin(), page_payload.end(), std::back_inserter(rawbuffer));
         currentpos += o2::raw::RDHUtils::getOffsetToNext(rdh);
       }
     } else {

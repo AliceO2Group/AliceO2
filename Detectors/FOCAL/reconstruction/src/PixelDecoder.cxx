@@ -25,7 +25,6 @@ void PixelDecoder::reset()
 
 void PixelDecoder::decodeEvent(gsl::span<const o2::itsmft::GBTWord> payload)
 {
-
   o2::InteractionRecord currentIR;
   bool physicsTrigger = false;
   mPixelData.clear();
@@ -35,6 +34,9 @@ void PixelDecoder::decodeEvent(gsl::span<const o2::itsmft::GBTWord> payload)
       // to be defined
     }
     if (word.isDataTrailer()) {
+      // to be defined
+    }
+    if (word.isDiagnosticWord()) {
       // to be defined
     }
     if (word.isTriggerWord()) {
