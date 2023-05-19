@@ -74,7 +74,7 @@ void BaselineCalibEPNSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matc
 {
   if (matcher == ConcreteDataMatcher("ZDC", "MODULECONFIG", 0)) {
     auto* config = (const o2::zdc::ModuleConfig*)obj;
-    if (mVerbosity > DbgZero) {
+    if (mVerbosity >= DbgFull) {
       config->print();
     }
     mWorker.setModuleConfig(config);
@@ -84,6 +84,7 @@ void BaselineCalibEPNSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matc
 void BaselineCalibEPNSpec::run(ProcessingContext& pc)
 {
   const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
+
   if (tinfo.globalRunNumberChanged) { // new run is starting
     mRunStopRequested = false;
     mInitialized = false;
@@ -111,13 +112,9 @@ void BaselineCalibEPNSpec::run(ProcessingContext& pc)
   mWorker.getData().mergeCreationTime(creationTime);
   mProcessed++;
 
-  // Non va bene. Deve essere eseguito in modo coerente
-  if (mModTF == 0 || mProcessed >= mModTF || pc.transitionState() == TransitionHandlingState::Requested) {
+  if ((mModTF > 0 && mProcessed >= mModTF) || pc.transitionState() == TransitionHandlingState::Requested) {
 #ifdef O2_ZDC_DEBUG
-    if (mModTF == 0){
-      LOG(info) << "Send intermediate calibration data mModTF == " << mModTF;
-    }
-    if( mProcessed >= mModTF ){
+    if (mModTF > 0 && mProcessed >= mModTF){
       LOG(info) << "Send intermediate calibration data mProcessed=" << mProcessed << " > mModTF=" << mModTF;
     }
     if(pc.transitionState() == TransitionHandlingState::Requested){
@@ -131,6 +128,7 @@ void BaselineCalibEPNSpec::run(ProcessingContext& pc)
     if(pc.transitionState() == TransitionHandlingState::Requested){
       // End of processing for this run
       mWorker.endOfRun();
+      LOGF(info, "ZDC EPN Baseline pausing at total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
       mRunStopRequested = true;
     }else{
       // Prepare to process other time frames

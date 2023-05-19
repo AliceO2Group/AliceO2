@@ -32,9 +32,9 @@ struct CalibParamZDC : public o2::conf::ConfigurableParamHelper<CalibParamZDC> {
   std::string outputDir = "./";                      // ROOT files output directory
   std::string metaFileDir = "/dev/null";             // Metafile output directory
   std::string descr;                                 // Calibration description
-  int32_t modTF = 10;                                // Number of TF cumulated before transmitting calibration data
+  uint32_t modTF = 10;                               // Number of TF cumulated before transmitting calibration data
+  uint64_t mCTimeMod = 10*60*1000;                   // Integration time slot
   int64_t eovTune = -o2::ccdb::CcdbObjectInfo::YEAR; // Tune end of validity of calibration object (eovTune>0 -> absolute, eovTune<0 increase by -eovTune)
-
   int updateCcdbObjectInfo(o2::ccdb::CcdbObjectInfo& info) const;
   void print() const;
   O2ParamDef(CalibParamZDC, "CalibParamZDC");
