@@ -27,7 +27,7 @@ o2_add_test_root_macro(CreateCCDBLocalGainFactor.C
                        PUBLIC_LINK_LIBRARIES O2::TRDBase O2::TRDCalibration
                        LABELS trd)
 
-o2_add_test_root_macro(CheckTRDNoiseRun.C
+o2_add_test_root_macro(CheckNoiseRun.C
                        PUBLIC_LINK_LIBRARIES O2::TRDBase
                        LABELS trd)
 
