@@ -85,11 +85,13 @@ void BaselineCalibSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher
 
 void BaselineCalibSpec::run(ProcessingContext& pc)
 {
-#ifdef O2_ZDC_DEBUG
-  LOG(info) << "BaselineCalibSpec::run mInitialized=" << mInitialized << " mRunStartTime=" << mRunStartTime;
-#endif
   const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
   const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
+
+//#ifdef O2_ZDC_DEBUG
+  LOG(info) << "BaselineCalibSpec::run mInitialized=" << mInitialized << " run=" << tinfo.runNumber << " (ti) " << dh->runNumber << " (dh) " <<
+                " mRunStartTime=" << mRunStartTime;
+//#endif
 
   // Close calibration if a new run has started or we are receiving data from another run
   if(mInitialized && (tinfo.globalRunNumberChanged==true || tinfo.runNumber != dh->runNumber)){

@@ -77,10 +77,10 @@ int BaselineCalibEPN::endOfRun()
   if (mVerbosity > DbgZero) {
     LOG(info) << "BaselineCalibEPN::endOfRun";
   }
-  if (mVerbosity >= DbgMedium) {
-    mData.print();
-  }
   if (mSaveDebugHistos) {
+    if (mVerbosity >= DbgMedium) {
+      mData.print();
+    }
     saveDebugHistos();
   }
   mInitDone = false;

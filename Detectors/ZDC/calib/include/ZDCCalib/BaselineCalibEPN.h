@@ -32,6 +32,7 @@ class BaselineCalibEPN
   const ModuleConfig* getModuleConfig() { return mModuleConfig; };
 
   void resetInitFlag(){ mInitDone = false; };
+  bool getInitFlag(){ return mInitDone; };
   int process(const gsl::span<const o2::zdc::OrbitData>& orbitdata);
   int endOfRun();
   int saveDebugHistos(const std::string fn = "ZDCBaselineCalibEPN.root");
