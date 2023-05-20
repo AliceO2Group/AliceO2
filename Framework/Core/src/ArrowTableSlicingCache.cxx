@@ -25,6 +25,7 @@ std::pair<int64_t, int64_t> SliceInfoPtr::getSliceFor(int value) const
   if (values.empty()) {
     return {offset, 0};
   }
+  assert(!values.empty());
   auto p = values.size() - 1;
   while (values[p] < 0) {
     assert(p > 0);
