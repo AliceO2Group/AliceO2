@@ -1712,7 +1712,7 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
                                                                                                                                                                                   \
     bool _Getter_##_bit(int bit) const                                                                                                                                            \
     {                                                                                                                                                                             \
-      return (*mColumnIterator & (static_cast<type>(1) << bit)) >> bit;                                                                                                                              \
+      return (*mColumnIterator & (static_cast<type>(1) << bit)) >> bit;                                                                                                           \
     }                                                                                                                                                                             \
   };                                                                                                                                                                              \
   static const o2::framework::expressions::BindingNode _Getter_ { _Label_, typeid(_Name_).hash_code(),                                                                            \
