@@ -94,10 +94,11 @@ class SVertexer
     float minR = 0; // track lowest point r
   };
 
-  SVertexer(bool enabCascades = true, bool enab3body = false) : mEnableCascades{enabCascades}, mEnable3BodyDecays{enab3body} {}
+  SVertexer(bool enabCascades = true, bool enab3body = false, bool excludeTPCtracks=false) : mEnableCascades{enabCascades}, mEnable3BodyDecays{enab3body}, mExcludeTPCtracks{excludeTPCtracks} {}
 
   void setEnableCascades(bool v) { mEnableCascades = v; }
   void setEnable3BodyDecays(bool v) { mEnable3BodyDecays = v; }
+  void setExcludeTPCtracks(bool v) { mExcludeTPCtracks = v; }
   void init();
   void process(const o2::globaltracking::RecoContainer& recoTracks); // accessor to various tracks
   auto& getMeanVertex() const { return mMeanVertex; }
@@ -174,6 +175,7 @@ class SVertexer
 
   bool mEnableCascades = true;
   bool mEnable3BodyDecays = false;
+  bool mExcludeTPCtracks = false;
 };
 
 // input containers can be std::vectors or pmr vectors

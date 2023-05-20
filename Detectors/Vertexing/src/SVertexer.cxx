@@ -34,9 +34,9 @@ using TrackTPC = o2::tpc::TrackTPC;
 //__________________________________________________________________
 void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // accessor to various reconstrucred data types
 {
-  updateTimeDependentParams(); // TODO RS: strictly speaking, one should do this only in case of the CCDB objects update
+  updateTimeDependentParams();                                             // TODO RS: strictly speaking, one should do this only in case of the CCDB objects update
   mPVertices = recoData.getPrimaryVertices();
-  buildT2V(recoData); // build track->vertex refs from vertex->track (if other workflow will need this, consider producing a message in the VertexTrackMatcher)
+  buildT2V(recoData);                                                      // build track->vertex refs from vertex->track (if other workflow will need this, consider producing a message in the VertexTrackMatcher)
   int ntrP = mTracksPool[POS].size(), ntrN = mTracksPool[NEG].size(), iThread = 0;
   mV0sTmp[0].clear();
   mCascadesTmp[0].clear();
@@ -54,7 +54,7 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
     }
     for (int itn = firstN; itn < ntrN; itn++) { // start from the 1st negative track of lowest-ID vertex of positive
       auto& seedN = mTracksPool[NEG][itn];
-      if (seedN.vBracket > seedP.vBracket) { // all vertices compatible with seedN are in future wrt that of seedP
+      if (seedN.vBracket > seedP.vBracket) {    // all vertices compatible with seedN are in future wrt that of seedP
         LOG(debug) << "Brackets do not match";
         break;
       }
@@ -279,6 +279,7 @@ bool SVertexer::acceptTrack(GIndex gid, const o2::track::TrackParCov& trc) const
   if (gid.isPVContributor() && mSVParams->maxPVContributors < 1) {
     return false;
   }
+
   // DCA to mean vertex
   if (mSVParams->minDCAToPV > 0.f) {
     o2::track::TrackPar trp(trc);
@@ -326,11 +327,17 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
       if (!recoData.isTrackSourceLoaded(tvid.getSource())) {
         continue;
       }
-      // unconstrained TPC tracks require special treatment: there is no point in checking DCA to mean vertex since it is not precise,
-      // but we need to create a clone of TPC track constrained to this particular vertex time.
-      if (tvid.getSource() == GIndex::TPC && processTPCTrack(recoData.getTPCTrack(tvid), tvid, iv)) { // processTPCTrack may decide that this track does not need special treatment (e.g. it is constrained...)
-        continue;
+      if (tvid.getSource() == GIndex::TPC) {
+        if (mSVParams->mExcludeTPCtracks) {
+          continue;
+        }
+        // unconstrained TPC tracks require special treatment: there is no point in checking DCA to mean vertex since it is not precise,
+        // but we need to create a clone of TPC track constrained to this particular vertex time.
+        if (processTPCTrack(recoData.getTPCTrack(tvid), tvid, iv)) {
+          continue;
+        }
       }
+
       if (tvid.isAmbiguous()) { // was this track already processed?
         auto tref = tmap.find(tvid);
         if (tref != tmap.end()) {
@@ -343,7 +350,19 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
         }
       }
       const auto& trc = recoData.getTrackParam(tvid);
-      if (!acceptTrack(tvid, trc)) {
+
+      bool heavyIonisingParticle = false;
+      auto tpcGID = recoData.getTPCContributorGID(tvid);
+      if (tpcGID.isIndexSet()) {
+        auto& tpcTrack = recoData.getTPCTrack(tpcGID);
+        float dEdxTPC = tpcTrack.getdEdx().dEdxTotTPC;
+        if (dEdxTPC > mSVParams->minTPCdEdx && trc.getP() > mSVParams->minMomTPCdEdx) // accept high dEdx tracks (He3, He4)
+        {
+          heavyIonisingParticle = true;
+        }
+      }
+
+      if (!acceptTrack(tvid, trc) && !heavyIonisingParticle) {
         if (tvid.isAmbiguous()) {
           rejmap[tvid] = true;
         }
@@ -735,7 +754,7 @@ int SVertexer::check3bodyDecays(float rv0, std::array<float, 3> pV0, float p2V0,
     auto& bach = tracks[it];
     if (bach.vBracket > v0vlist.getMax()) {
       LOG(debug) << "Skipping";
-      break; // all other bachelor candidates will be also not compatible with this PV
+      break;                                                  // all other bachelor candidates will be also not compatible with this PV
     }
     auto decay3bodyVlist = v0vlist.getOverlap(bach.vBracket); // indices of vertices shared by V0 and bachelor
     if (mSVParams->selectBestV0) {
