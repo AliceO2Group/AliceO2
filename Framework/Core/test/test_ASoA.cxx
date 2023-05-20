@@ -1089,3 +1089,36 @@ TEST_CASE("TestIndexUnboundExceptions")
     }
   }
 }
+
+namespace o2::aod
+{
+namespace test
+{
+DECLARE_SOA_COLUMN(SmallIntArray, smallIntArray, int8_t[32]);
+} // namespace test
+
+DECLARE_SOA_TABLE(BILists, "TST", "BILISTS", o2::soa::Index<>, test::SmallIntArray);
+} // namespace o2::aod
+
+TEST_CASE("TestArrayColumns")
+{
+  TableBuilder b;
+  auto writer = b.cursor<o2::aod::BILists>();
+  int8_t ii[32];
+  for (auto i = 0; i < 20; ++i) {
+    for (auto j = 0; j < 32; ++j) {
+      ii[j] = j;
+    }
+    writer(0, ii);
+  }
+  auto t = b.finalize();
+
+  o2::aod::BILists li{t};
+  for (auto const& row : li) {
+    auto iir = row.smallIntArray();
+    REQUIRE(std::is_same_v<std::decay_t<decltype(iir)>, int8_t const*>);
+    for (auto i = 0; i < 32; ++i) {
+      REQUIRE(iir[i] == i);
+    }
+  }
+}
