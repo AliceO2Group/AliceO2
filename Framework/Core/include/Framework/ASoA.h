@@ -1693,7 +1693,6 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
 #define DECLARE_SOA_BITMAP_COLUMN_FULL(_Name_, _Getter_, _Size_, _Label_)                                                                                                         \
   struct _Name_ : o2::soa::Column<MAKEINT(_Size_), _Name_> {                                                                                                                      \
     static constexpr const char* mLabel = _Label_;                                                                                                                                \
-    static_assert((_Size_ == 8 || _Size_ == 16 || _Size_ == 32 || _Size_ == 64), "Allowed sizes are 8, 16, 32 or 64");                                                            \
     static_assert(!((*(mLabel + 1) == 'I' && *(mLabel + 2) == 'n' && *(mLabel + 3) == 'd' && *(mLabel + 4) == 'e' && *(mLabel + 5) == 'x')), "Index is not a valid column name"); \
     using base = o2::soa::Column<MAKEINT(_Size_), _Name_>;                                                                                                                        \
     using type = MAKEINT(_Size_);                                                                                                                                                 \
@@ -1713,7 +1712,7 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
                                                                                                                                                                                   \
     bool _Getter_##_bit(int bit) const                                                                                                                                            \
     {                                                                                                                                                                             \
-      return (*mColumnIterator & (1 << bit)) >> bit;                                                                                                                              \
+      return (*mColumnIterator & (static_cast<type>(1) << bit)) >> bit;                                                                                                                              \
     }                                                                                                                                                                             \
   };                                                                                                                                                                              \
   static const o2::framework::expressions::BindingNode _Getter_ { _Label_, typeid(_Name_).hash_code(),                                                                            \
