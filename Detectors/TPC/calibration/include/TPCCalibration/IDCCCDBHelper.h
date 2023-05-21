@@ -206,7 +206,6 @@ class IDCCCDBHelper
   void setPadStatusMap(const CalDet<PadFlags>& outliermap) { mPadFlagsMap = std::make_unique<CalDet<PadFlags>>(outliermap); }
 
   /// scale the stored IDC0 to 1
-  /// \return returns the scaling factor which was used to scale the IDC0
   /// \param factor to scale the IDC0s with (IDC0/=factor)
   /// \param side TPC side of the IDCs
   void scaleIDC0(const float factor, const Side side);
@@ -216,6 +215,9 @@ class IDCCCDBHelper
   /// \param idcZero IDCZero object for which to get the mean
   /// \param outlierMap possible map containing the outliers which will not be taken into account (if nullptr all IDCs are taken into account)
   static float getMeanIDC0(const Side side, const IDCZero& idcZero, const CalDet<PadFlags>* outlierMap);
+
+  /// \return return for the set outlier map the total number of outliers per side .first=A-side, .second=C-side
+  std::pair<int, int> getNOutliers() const;
 
   /// get median of IDC0 for given stack and sector
   /// \param idcZero IDCZero object for which to get the mean
