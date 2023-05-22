@@ -316,6 +316,29 @@ void displaySparks(
   ImGui::EndTable();
 }
 
+int formatSI(double value, char* buff, int size, void* user_data)
+{
+  if (value == 0.0) {
+    return snprintf(buff, size, "%.0f", value);
+  }
+  if (value < 10.0) {
+    return snprintf(buff, size, "%.2f", value);
+  }
+  if (value < 1000.0) {
+    return snprintf(buff, size, "%.0f", value);
+  }
+  if (value < 1000000.0) {
+    return snprintf(buff, size, "%.0f k", value / 1000.0);
+  }
+  if (value < 1000000000.0) {
+    return snprintf(buff, size, "%.0f M", value / 1000000.0);
+  }
+  if (value < 1000000000000.0) {
+    return snprintf(buff, size, "%.0f G", value / 1000000000.0);
+  }
+  return snprintf(buff, size, "%.0f T", value / 1000000000000.0);
+}
+
 int formatTimeSinceStart(double value, char* buff, int size, void* user_data)
 {
   auto* startTime = (int64_t*)user_data;
@@ -465,6 +488,9 @@ void displayDeviceMetrics(const char* label,
     case MetricsDisplayStyle::Histos:
       if (ImPlot::BeginPlot("##Some plot")) {
         ImPlot::SetupAxes("time", "value");
+        ImPlot::SetupAxisFormat(ImAxis_Y1, formatSI, nullptr);
+        ImPlot::SetupAxisFormat(ImAxis_Y2, formatSI, nullptr);
+        ImPlot::SetupAxisFormat(ImAxis_Y3, formatSI, nullptr);
         ImPlot::SetupAxisFormat(ImAxis_X1, formatTimeSinceStart, (void*)&driverInfo.startTimeMsFromEpoch);
         for (size_t pi = 0; pi < metricsToDisplay.size(); ++pi) {
           ImGui::PushID(pi);
@@ -483,6 +509,9 @@ void displayDeviceMetrics(const char* label,
       //ImPlot::FitNextPlotAxes(true, true, true, true);
       if (ImPlot::BeginPlot("##Some plot", {-1, -1}, axisFlags)) {
         ImPlot::SetupAxes("time", "value", xAxisFlags, yAxisFlags);
+        ImPlot::SetupAxisFormat(ImAxis_Y1, formatSI, nullptr);
+        ImPlot::SetupAxisFormat(ImAxis_Y2, formatSI, nullptr);
+        ImPlot::SetupAxisFormat(ImAxis_Y3, formatSI, nullptr);
         ImPlot::SetupAxisFormat(ImAxis_X1, formatTimeSinceStart, (void*)&driverInfo.startTimeMsFromEpoch);
         for (size_t pi = 0; pi < metricsToDisplay.size(); ++pi) {
           ImGui::PushID(pi);
