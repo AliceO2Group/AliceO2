@@ -38,7 +38,7 @@ namespace o2::emcal
 /// can be done only after all cells are processed. The overlap information
 /// needs to be propagated for the filtering but is not part of the
 /// final cell object
-struct RecCellInfo {
+struct __attribute__((aligned(32))) RecCellInfo {
   o2::emcal::Cell mCellData; ///< Cell information
   bool mIsLGnoHG;            ///< Cell has only LG digits
   bool mHGOutOfRange;        ///< Cell has only HG digits which are out of range
