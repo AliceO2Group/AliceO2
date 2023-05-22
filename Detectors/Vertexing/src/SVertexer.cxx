@@ -310,6 +310,7 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
   // build track->vertices from vertices->tracks, rejecting vertex contributors if requested
   auto trackIndex = recoData.getPrimaryVertexMatchedTracks(); // Global ID's for associated tracks
   auto vtxRefs = recoData.getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
+  bool isTPCloaded = recoData.isTrackSourceLoaded(GIndex::TPC);
 
   std::unordered_map<GIndex, std::pair<int, int>> tmap;
   std::unordered_map<GIndex, bool> rejmap;
@@ -353,7 +354,7 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
 
       bool heavyIonisingParticle = false;
       auto tpcGID = recoData.getTPCContributorGID(tvid);
-      if (tpcGID.isIndexSet()) {
+      if (tpcGID.isIndexSet() && isTPCloaded) {
         auto& tpcTrack = recoData.getTPCTrack(tpcGID);
         float dEdxTPC = tpcTrack.getdEdx().dEdxTotTPC;
         if (dEdxTPC > mSVParams->minTPCdEdx && trc.getP() > mSVParams->minMomTPCdEdx) // accept high dEdx tracks (He3, He4)
