@@ -23,7 +23,7 @@ namespace o2
 namespace align
 {
 
-class AlignableDetectorTPC : public AlignableDetector
+class AlignableDetectorTPC final : public AlignableDetector
 {
  public:
   //
