@@ -25,12 +25,12 @@ const float TIME_SHIFT = 600.,
 
 Cell::Cell()
 {
-  memset(mCellWords, 0, sizeof(uint16_t) * 3);
+  memset(mCellWords, 0, 6);
 }
 
 Cell::Cell(short tower, float energy, float time, ChannelType_t ctype)
 {
-  memset(mCellWords, 0, sizeof(uint16_t) * 3);
+  memset(mCellWords, 0, 6);
   setTower(tower);
   setTimeStamp(time);
   setEnergy(energy);
