@@ -1578,32 +1578,56 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                                                             varmap["channel-prefix"].as<std::string>(),
                                                             overrides);
           metricProcessingCallbacks.clear();
+          std::vector<std::string> matchingServices;
+
+          // FIXME: once moving to C++20, we can use templated lambdas.
+          matchingServices.clear();
           for (auto& device : runningWorkflow.devices) {
             for (auto& service : device.services) {
+              // If a service with the same name is already registered, skip it
+              if (std::find(matchingServices.begin(), matchingServices.end(), service.name) != matchingServices.end()) {
+                continue;
+              }
               if (service.metricHandling) {
                 metricProcessingCallbacks.push_back(service.metricHandling);
+                matchingServices.push_back(service.name);
               }
             }
           }
           preScheduleCallbacks.clear();
+          matchingServices.clear();
           for (auto& device : runningWorkflow.devices) {
             for (auto& service : device.services) {
+              // If a service with the same name is already registered, skip it
+              if (std::find(matchingServices.begin(), matchingServices.end(), service.name) != matchingServices.end()) {
+                continue;
+              }
               if (service.preSchedule) {
                 preScheduleCallbacks.push_back(service.preSchedule);
               }
             }
           }
           postScheduleCallbacks.clear();
+          matchingServices.clear();
           for (auto& device : runningWorkflow.devices) {
             for (auto& service : device.services) {
+              // If a service with the same name is already registered, skip it
+              if (std::find(matchingServices.begin(), matchingServices.end(), service.name) != matchingServices.end()) {
+                continue;
+              }
               if (service.postSchedule) {
                 postScheduleCallbacks.push_back(service.postSchedule);
               }
             }
           }
           driverInitCallbacks.clear();
+          matchingServices.clear();
           for (auto& device : runningWorkflow.devices) {
             for (auto& service : device.services) {
+              // If a service with the same name is already registered, skip it
+              if (std::find(matchingServices.begin(), matchingServices.end(), service.name) != matchingServices.end()) {
+                continue;
+              }
               if (service.driverInit) {
                 driverInitCallbacks.push_back(service.driverInit);
               }
