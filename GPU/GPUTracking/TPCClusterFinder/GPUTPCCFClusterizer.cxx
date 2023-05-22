@@ -72,8 +72,14 @@ GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads
     &pc,
     labelAcc);
 
-  if (idx >= clusternum || fragment.isOverlap(pos.time())) {
-    return; // TODO: Do we need to set clusterPosInRow[idx] = maxClusterPerRow in case fragment.isOverlap(pos.time())?
+  if (idx >= clusternum) {
+    return;
+  }
+  if (fragment.isOverlap(pos.time())) {
+    if (clusterPosInRow) {
+      clusterPosInRow[idx] = maxClusterPerRow;
+    }
+    return;
   }
   pc.finalize(pos, charge, fragment.start, clusterer.Param().tpcGeometry);
 
