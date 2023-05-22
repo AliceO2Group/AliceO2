@@ -192,7 +192,6 @@ ROOT::RDF::RNode AddToNoiseDF(ROOT::RDF::RNode df, T id, TString postfix = "1")
     .Define("rms" + postfix, [cal](ULong64_t i) { return cal->getChannel(i).getRMS(); }, {"rdfentry_"});
 }
 
-
 template <typename T>
 T* MakePadAndDraw(Double_t xlow, Double_t ylow, Double_t xup, Double_t yup, ROOT::RDF::RResultPtr<T> h, TString opt = "")
 {
@@ -354,7 +353,6 @@ TCanvas* MakeRunSummary(ROOT::RDF::RNode df_all, ChannelStatusClassifier& classi
   return cnv;
 }
 
-
 TCanvas* MakeLayerPlots(ROOT::RDF::RNode df_in, int sector, int layer, ChannelStatusClassifier& classifier)
 {
 
@@ -368,8 +366,8 @@ TCanvas* MakeLayerPlots(ROOT::RDF::RNode df_in, int sector, int layer, ChannelSt
   int nclasses = classifier.size();
   auto hClasses = df.Histo1D({"Classes" + id, "", nclasses + 3, -2.5, nclasses + 0.5}, "class");
 
-  auto hMeanMap = df.Histo2D({"MeanMap"+id, ";Pad row;ADC channel column", 76, -0.5, 75.5, 168, -0.5, 167.5}, "row", "col", "mean");
-  auto hRMSMap = df.Histo2D({"RMSMap"+id, ";Pad row;ADC channel column", 76, -0.5, 75.5, 168, -0.5, 167.5}, "row", "col", "rms");
+  auto hMeanMap = df.Histo2D({"MeanMap" + id, ";Pad row;ADC channel column", 76, -0.5, 75.5, 168, -0.5, 167.5}, "row", "col", "mean");
+  auto hRMSMap = df.Histo2D({"RMSMap" + id, ";Pad row;ADC channel column", 76, -0.5, 75.5, 168, -0.5, 167.5}, "row", "col", "rms");
 
   auto cnv = new TCanvas("LayerPlots", "Layer Plots", 1500, 1000);
 
@@ -475,5 +473,4 @@ void CheckNoiseRun(T id, bool show_classes = false)
     MakeClassSummary(df.Filter("class==-1"), {"Masked", kBlue, 9.0, 11.0, -0.1, 0.1});
     MakeClassSummary(df.Filter(Form("class==%zu", classifier.size())), {"Other", kRed, 0.0, 1024.0, 0.0, 1024.0});
   }
-
 }
