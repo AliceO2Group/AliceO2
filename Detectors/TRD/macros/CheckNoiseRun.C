@@ -129,14 +129,6 @@ TH1* ChannelStatusClassifier::prepareHistogram(TH1* hist)
   return hist;
 }
 
-void CheckNoiseRun(const o2::trd::ChannelInfoContainer* calobject);
-TTree* MakeChannelInfoTree(const o2::trd::ChannelInfoContainer* calobject);
-TCanvas* MakeRunSummary(ROOT::RDF::RNode df, ChannelStatusClassifier& classifier);
-TCanvas* MakeRunSummaryOld(const o2::trd::ChannelInfoContainer* calobject);
-
-template <typename RDF>
-TCanvas* MakeClassSummary(RDF df, ChannelStatusClass cls);
-
 o2::trd::ChannelInfoContainer* LoadNoiseCalObject(const long timestamp, char* url = 0)
 {
   auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
@@ -200,45 +192,6 @@ ROOT::RDF::RNode AddToNoiseDF(ROOT::RDF::RNode df, T id, TString postfix = "1")
     .Define("rms" + postfix, [cal](ULong64_t i) { return cal->getChannel(i).getRMS(); }, {"rdfentry_"});
 }
 
-void CheckNoiseRun()
-{
-  cout << "usage:" << endl;
-  cout << "   root '/path/to/CheckNoiseRun(<timestamp>)'" << endl;
-  cout << "   root '/path/to/CheckNoiseRun(\"/path/to/o2-trd-ChannelInfoContainer_<timestamp>.root\")'" << endl;
-
-  cout << endl
-       << "Retrieve a list of channel status objects from CCDB:" << endl
-       << "> curl  http://alice-ccdb.cern.ch/browse/TRD/Calib/ChannelStatus/" << endl
-       << "or from the ROOT prompt: " << endl
-       << "root [] .! curl  http://alice-ccdb.cern.ch/browse/TRD/Calib/ChannelStatus/" << endl;
-
-  cout << endl
-       << "Suggested commands:" << endl
-       << "  run534642 = LoadNoiseCalObject(1681740512656)" << endl
-       << "  run534640 = LoadNoiseCalObject(1681739312939)" << endl
-       << "  run533031 = LoadNoiseCalObject(1681210184624, \"http://ccdb-test.cern.ch:8080\")" << endl;
-}
-
-template <typename T>
-void CheckNoiseRun(T id)
-{
-  auto df1 = BuildNoiseDF(id);
-  // auto df1 = BuildNoiseDF(1681210184624);
-  // auto df1 = BuildNoiseDF("~/Downloads/o2-trd-ChannelInfoContainer_1680185087230.root");
-
-  ChannelStatusClassifier classifier;
-  auto df = classifier.AddToRDF(df1);
-
-  MakeRunSummary(df, classifier);
-
-  // cout << "Display summary" << endl;
-  for (size_t i = 0; i < classifier.size(); i++) {
-    MakeClassSummary(df.Filter(Form("class==%zu", i)), classifier[i]);
-  }
-  MakeClassSummary(df.Filter("class==-2"), {"Missing", kBlue, 0.0, 20.0, 0.0, 2.0});
-  MakeClassSummary(df.Filter("class==-1"), {"Masked", kBlue, 9.0, 11.0, -0.1, 0.1});
-  MakeClassSummary(df.Filter(Form("class==%zu", classifier.size())), {"Other", kRed, 0.0, 1024.0, 0.0, 1024.0});
-}
 
 template <typename T>
 T* MakePadAndDraw(Double_t xlow, Double_t ylow, Double_t xup, Double_t yup, ROOT::RDF::RResultPtr<T> h, TString opt = "")
@@ -401,6 +354,45 @@ TCanvas* MakeRunSummary(ROOT::RDF::RNode df_all, ChannelStatusClassifier& classi
   return cnv;
 }
 
+
+TCanvas* MakeLayerPlots(ROOT::RDF::RNode df_in, int sector, int layer, ChannelStatusClassifier& classifier)
+{
+
+  auto df = df_in.Filter(Form("sector == %d && layer == %d", sector, layer));
+  auto df2 = df.Filter("class >= 0");
+
+  TString id = TString::Format("-SM%02dL%d", sector, layer);
+  auto hMean = df2.Histo1D({"Mean" + id, ";Mean;# channels", 150, 8.0, 11.0}, "mean");
+  auto hRMS = df2.Histo1D({"RMS" + id, ";RMS;# channels", 250, 0.0, 5.0}, "rms");
+
+  int nclasses = classifier.size();
+  auto hClasses = df.Histo1D({"Classes" + id, "", nclasses + 3, -2.5, nclasses + 0.5}, "class");
+
+  auto hMeanMap = df.Histo2D({"MeanMap"+id, ";Pad row;ADC channel column", 76, -0.5, 75.5, 168, -0.5, 167.5}, "row", "col", "mean");
+  auto hRMSMap = df.Histo2D({"RMSMap"+id, ";Pad row;ADC channel column", 76, -0.5, 75.5, 168, -0.5, 167.5}, "row", "col", "rms");
+
+  auto cnv = new TCanvas("LayerPlots", "Layer Plots", 1500, 1000);
+
+  SetStyle("MeanRms1D");
+  MakePadAndDraw(0.0, 0.7, 0.3, 1.0, hMean);
+  MakePadAndDraw(0.0, 0.4, 0.3, 0.7, hRMS);
+
+  SetStyle("ClassStats");
+  auto h1 = MakePadAndDraw(0.0, 0.0, 0.3, 0.4, hClasses, "hbar");
+  classifier.prepareHistogram(h1);
+
+  SetStyle("Map");
+
+  hMeanMap->GetZaxis()->SetRangeUser(8.5, 10.5);
+  MakePadAndDraw(0.3, 0.5, 1.0, 1.0, hMeanMap, "colz");
+
+  hRMSMap->GetZaxis()->SetRangeUser(0.3, 2.0);
+  hRMSMap->GetZaxis()->SetTitle("RMS");
+  MakePadAndDraw(0.3, 0.0, 1.0, 0.5, hRMSMap, "colz");
+
+  return cnv;
+}
+
 template <typename T1, typename T2>
 void CompareRuns(T1 id1, T2 id2, const char* label1 = "old", const char* label2 = "new")
 {
@@ -440,4 +432,48 @@ void CompareRuns(T1 id1, T2 id2, const char* label1 = "old", const char* label2 
   hc->SetStats(0);
   hc->DrawClone("colz");
   hc->DrawClone("text,same");
+}
+
+void CheckNoiseRun()
+{
+  cout << "usage:" << endl;
+  cout << "   root /path/to/CheckNoiseRun.C" << endl;
+  cout << "   root '/path/to/CheckNoiseRun(<timestamp>)'" << endl;
+  cout << "   root '/path/to/CheckNoiseRun(\"/path/to/o2-trd-ChannelInfoContainer_<timestamp>.root\")'" << endl;
+
+  cout << endl
+       << "Retrieve a list of channel status objects from CCDB:" << endl
+       << "> curl  http://alice-ccdb.cern.ch/browse/TRD/Calib/ChannelStatus/" << endl
+       << "or from the ROOT prompt: " << endl
+       << "root [] .! curl  http://alice-ccdb.cern.ch/browse/TRD/Calib/ChannelStatus/" << endl;
+
+  cout << endl
+       << "Suggested commands:" << endl
+       << "  run534642 = LoadNoiseCalObject(1681740512656)" << endl
+       << "  run534640 = LoadNoiseCalObject(1681739312939)" << endl
+       << "  run533031 = LoadNoiseCalObject(1681210184624, \"http://ccdb-test.cern.ch:8080\")" << endl;
+}
+
+template <typename T>
+void CheckNoiseRun(T id, bool show_classes = false)
+{
+  auto df1 = BuildNoiseDF(id);
+  // auto df1 = BuildNoiseDF(1681210184624);
+  // auto df1 = BuildNoiseDF("~/Downloads/o2-trd-ChannelInfoContainer_1680185087230.root");
+
+  ChannelStatusClassifier classifier;
+  auto df = classifier.AddToRDF(df1);
+
+  MakeRunSummary(df, classifier);
+
+  if (show_classes) {
+    // cout << "Display summary" << endl;
+    for (size_t i = 0; i < classifier.size(); i++) {
+      MakeClassSummary(df.Filter(Form("class==%zu", i)), classifier[i]);
+    }
+    MakeClassSummary(df.Filter("class==-2"), {"Missing", kBlue, 0.0, 20.0, 0.0, 2.0});
+    MakeClassSummary(df.Filter("class==-1"), {"Masked", kBlue, 9.0, 11.0, -0.1, 0.1});
+    MakeClassSummary(df.Filter(Form("class==%zu", classifier.size())), {"Other", kRed, 0.0, 1024.0, 0.0, 1024.0});
+  }
+
 }
