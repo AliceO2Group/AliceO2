@@ -198,6 +198,7 @@ AddOption(noGPUMemoryRegistration, bool, false, "", 0, "Do not register input / 
 AddOption(useInternalO2Propagator, bool, false, "", 0, "Uses an internal (in GPUChainTracking) version of o2::Propagator, which internal b-field, matlut, etc.")
 AddOption(internalO2PropagatorGPUField, bool, true, "", 0, "Makes the internal O2 propagator use the fast GPU polynomial b field approximation")
 AddOption(calibObjectsExtraMemorySize, unsigned int, 10u * 1024 * 1024, "", 0, "Extra spare memory added for calibration object buffer, to allow fow updates with larger objects")
+AddOption(fastTransformObjectsMinMemorySize, unsigned int, 400u * 1024 * 1024, "", 0, "Extra spare memory added for calibration object buffer, to allow fow updates with larger objects")
 AddOption(lateO2PropagatorProvisioning, bool, false, "", 0, "The user will provide the o2 propagator at runtime before processing the first event, it will not be available at init")
 AddOption(lateO2MatLutProvisioningSize, unsigned int, 0u, "", 0, "Memory size to reserve for late provisioning of matlut table")
 AddOption(throttleAlarms, bool, false, "", 0, "Throttle rate at which alarms are sent to the InfoLogger in online runs")
