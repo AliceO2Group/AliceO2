@@ -183,7 +183,7 @@ class Cell
   CellData* getDataRepresentation() { return reinterpret_cast<CellData*>(mCellWords); }
   const CellData* getDataRepresentation() const { return reinterpret_cast<const CellData*>(mCellWords); }
 
-  uint16_t mCellWords[3]; ///< data word
+  char mCellWords[6]; ///< data word
 
   ClassDefNV(Cell, 1);
 };
