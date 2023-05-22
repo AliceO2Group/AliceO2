@@ -25,7 +25,7 @@
 #include "DataFormatsFOCAL/TriggerRecord.h"
 #include "FOCALReconstruction/PadDecoder.h"
 #include "FOCALReconstruction/PixelDecoder.h"
-#include "FOCALReconstruction/PixelMapperV1.h"
+#include "FOCALReconstruction/PixelMapper.h"
 
 namespace o2::focal
 {
@@ -82,7 +82,7 @@ class RawDecoderSpec : public framework::Task
   uint32_t mOutputSubspec = 0;
   PadDecoder mPadDecoder;
   PixelDecoder mPixelDecoder;
-  std::unique_ptr<PixelMapperV1> mPixelMapping;
+  std::unique_ptr<PixelMapper> mPixelMapping;
   std::map<o2::InteractionRecord, HBFData> mHBFs;
   std::vector<TriggerRecord> mOutputTriggerRecords;
   std::vector<PixelHit> mOutputPixelHits;

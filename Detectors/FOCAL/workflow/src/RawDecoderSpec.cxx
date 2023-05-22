@@ -38,23 +38,23 @@ void RawDecoderSpec::init(framework::InitContext& ctx)
     mDisplayInconsistent = true;
   }
   auto mappingfile = ctx.options().get<std::string>("pixelmapping");
-  PixelMapperV1::MappingType_t mappingtype = PixelMapperV1::MappingType_t::MAPPING_UNKNOWN;
+  PixelMapper::MappingType_t mappingtype = PixelMapper::MappingType_t::MAPPING_UNKNOWN;
   auto chiptype = ctx.options().get<std::string>("pixeltype");
   if (chiptype == "IB") {
     LOG(info) << "Using mapping type: IB";
-    mappingtype = PixelMapperV1::MappingType_t::MAPPING_IB;
+    mappingtype = PixelMapper::MappingType_t::MAPPING_IB;
   } else if (chiptype == "OB") {
     LOG(info) << "Using mapping type: OB";
-    mappingtype = PixelMapperV1::MappingType_t::MAPPING_OB;
+    mappingtype = PixelMapper::MappingType_t::MAPPING_OB;
   } else {
     LOG(fatal) << "Unkown mapping type for pixels: " << chiptype;
   }
   if (mappingfile == "default") {
     LOG(info) << "Using default pixel mapping for pixel type " << chiptype;
-    mPixelMapping = std::make_unique<PixelMapperV1>(mappingtype);
+    mPixelMapping = std::make_unique<PixelMapper>(mappingtype);
   } else {
     LOG(info) << "Using user-defined mapping: " << mappingfile;
-    mPixelMapping = std::make_unique<PixelMapperV1>(PixelMapperV1::MappingType_t::MAPPING_UNKNOWN);
+    mPixelMapping = std::make_unique<PixelMapper>(PixelMapper::MappingType_t::MAPPING_UNKNOWN);
     mPixelMapping->setMappingFile(mappingfile, mappingtype);
   }
 }
@@ -363,7 +363,7 @@ int RawDecoderSpec::decodePixelData(const gsl::span<const char> pixelWords, o2::
         try {
           auto chipPosition = mPixelMapping->getPosition(feeID, chip);
           fillChipToLayer(foundHBF->second.mPixelEvent[index][chipPosition.mLayer], chip, feeID);
-        } catch (PixelMapperV1::InvalidChipException& e) {
+        } catch (PixelMapper::InvalidChipException& e) {
           LOG(warning) << e;
         }
       }
@@ -378,7 +378,7 @@ int RawDecoderSpec::decodePixelData(const gsl::span<const char> pixelWords, o2::
         try {
           auto chipPosition = mPixelMapping->getPosition(feeID, chip);
           fillChipToLayer(current[chipPosition.mLayer], chip, feeID);
-        } catch (PixelMapperV1::InvalidChipException& e) {
+        } catch (PixelMapper::InvalidChipException& e) {
           LOG(warning) << e;
         }
       }
