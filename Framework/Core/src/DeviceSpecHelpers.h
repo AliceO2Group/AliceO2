@@ -40,6 +40,7 @@ namespace o2::framework
 struct InputChannelSpec;
 struct OutputChannelSpec;
 struct ConfigContext;
+struct DriverConfig;
 
 struct DeviceSpecHelpers {
   /// Helper to convert from an abstract dataflow specification, @a workflow,
@@ -121,11 +122,16 @@ struct DeviceSpecHelpers {
     bool defaultStopped,
     bool intereactive,
     unsigned short driverPort,
+    DriverConfig const& driverConfig,
     std::vector<DataProcessorInfo> const& processorInfos,
     std::vector<DeviceSpec> const& deviceSpecs,
     std::vector<DeviceExecution>& deviceExecutions,
     std::vector<DeviceControl>& deviceControls,
     std::string const& uniqueWorkflowId);
+
+  /// Rework the environment string
+  /// * Substitute {timeslice<N>} with the actual value of the timeslice.
+  static std::string reworkEnv(std::string const& str, DeviceSpec const& spec);
 
   /// This takes the list of preprocessed edges of a graph
   /// and creates Devices and Channels which are related

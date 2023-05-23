@@ -12,6 +12,7 @@
 /// \file TestCTPScalers.C
 /// \brief create CTP scalers, test it and add to database
 /// \author Roman Lietava
+// root -b -q "GetScalers.C(\"519499\", 1656286373953)"
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 
 #include <fairlogger/Logger.h>

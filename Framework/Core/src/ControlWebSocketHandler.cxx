@@ -22,11 +22,7 @@ namespace o2::framework
 void ControlWebSocketHandler::frame(char const* frame, size_t s)
 {
   bool hasNewMetric = false;
-  std::array<Metric2DViewIndex*, 6> model = {&(*mContext.infos)[mIndex].dataRelayerViewIndex,
-                                             &(*mContext.infos)[mIndex].variablesViewIndex,
-                                             &(*mContext.infos)[mIndex].queriesViewIndex,
-                                             &(*mContext.infos)[mIndex].outputsViewIndex,
-                                             &(*mContext.infos)[mIndex].inputChannelMetricsViewIndex,
+  std::array<Metric2DViewIndex*, 2> model = {&(*mContext.infos)[mIndex].inputChannelMetricsViewIndex,
                                              &(*mContext.infos)[mIndex].outputChannelMetricsViewIndex};
   auto updateMetricsViews = Metric2DViewIndex::getUpdater();
 
@@ -60,7 +56,7 @@ void ControlWebSocketHandler::frame(char const* frame, size_t s)
   std::match_results<std::string_view::const_iterator> match;
 
   if (ControlServiceHelpers::parseControl(token, match) && mContext.infos) {
-    ControlServiceHelpers::processCommand(*mContext.infos, mPid, match[1].str(), match[2].str());
+    ControlServiceHelpers::processCommand(*mContext.infos, *mContext.states, mPid, match[1].str(), match[2].str());
   } else if (doParseConfig(token, configMatch, (*mContext.infos)[mIndex]) && mContext.infos) {
     LOG(debug2) << "Found configuration information for pid " << mPid;
   } else {
@@ -78,6 +74,12 @@ void ControlWebSocketHandler::endChunk()
     return;
   }
   size_t timestamp = uv_now(mContext.loop);
+  assert(mContext.metrics);
+  assert(mContext.infos);
+  assert(mContext.states);
+  assert(mContext.specs);
+  assert(mContext.driver);
+
   for (auto& callback : *mContext.metricProcessingCallbacks) {
     callback(mContext.registry, ServiceMetricsInfo{*mContext.metrics, *mContext.specs, *mContext.infos, mContext.driver->metrics}, timestamp);
   }

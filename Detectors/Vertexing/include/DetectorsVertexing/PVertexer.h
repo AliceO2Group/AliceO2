@@ -273,6 +273,9 @@ void PVertexer::createTracksPool(const TR& tracks, gsl::span<const o2d::GlobalTr
       continue;
     }
     auto& tvf = mTracksPool.emplace_back(trc, tracks[id].getTimeMUS(), id, gids[id], mPVParams->addTimeSigma2, mPVParams->addZSigma2);
+    if (tvf.wghHisto < 0) {
+      mTracksPool.pop_back(); // discard bad track
+    }
   }
 
   if (mTracksPool.empty()) {

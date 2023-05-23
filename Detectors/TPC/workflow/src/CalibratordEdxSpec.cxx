@@ -87,13 +87,13 @@ class CalibratordEdxDevice : public Task
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     const auto tracks = pc.inputs().get<gsl::span<tpc::TrackTPC>>("tracks");
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
-    LOGP(info, "Processing TF {} with {} tracks", mCalibrator->getCurrentTFInfo().tfCounter, tracks.size());
+    LOGP(detail, "Processing TF {} with {} tracks", mCalibrator->getCurrentTFInfo().tfCounter, tracks.size());
     mRunNumber = mCalibrator->getCurrentTFInfo().runNumber;
     mCalibrator->process(tracks);
     sendOutput(pc.outputs());
 
     const auto& infoVec = mCalibrator->getTFinterval();
-    LOGP(info, "Created {} objects for TF {}", infoVec.size(), mCalibrator->getCurrentTFInfo().tfCounter);
+    LOGP(detail, "Created {} objects for TF {}", infoVec.size(), mCalibrator->getCurrentTFInfo().tfCounter);
   }
 
   void endOfStream(EndOfStreamContext& eos) final
@@ -116,7 +116,7 @@ class CalibratordEdxDevice : public Task
     assert(calibrations.size() == intervals.size());
     for (unsigned int i = 0; i < calibrations.size(); i++) {
       const auto& object = calibrations[i];
-      o2::ccdb::CcdbObjectInfo info(CDBTypeMap.at(CDBType::CalTimeGain), std::string{}, std::string{}, std::map<std::string, std::string>{{"runNumber", std::to_string(mRunNumber)}}, intervals[i].first, o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP);
+      o2::ccdb::CcdbObjectInfo info(CDBTypeMap.at(CDBType::CalTimeGain), std::string{}, std::string{}, std::map<std::string, std::string>{{"runNumber", std::to_string(mRunNumber)}}, intervals[i].first, intervals[i].second + 1);
       auto image = o2::ccdb::CcdbApi::createObjectImage(&object, &info);
       LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", info.getPath(), info.getFileName(), image->size(), info.getStartValidityTimestamp(), info.getEndValidityTimestamp());
       output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_CalibdEdx", i}, *image.get()); // vector<char>

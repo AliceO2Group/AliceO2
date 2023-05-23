@@ -148,6 +148,11 @@ class SpaceCharge
   /// \param formulaStruct struct containing a method to evaluate the potential
   void setPotentialFromFormula(const AnalyticalFields<DataT>& formulaStruct);
 
+  /// mirror potential from one side to the other side
+  /// \param sideRef side which contains the reference potential
+  /// \param sideMirrored side where the potential will be set from sideRef
+  void mirrorPotential(const Side sideRef, const Side sideMirrored);
+
   /// simulate only one sector instead of 18 per side. This makes currently only sense for the static distortions (ToDo: simplify usage)
   /// phi max will be restricted to 2Pi/18 for this instance and for global instance of poisson solver
   void setSimOneSector();
@@ -229,6 +234,11 @@ class SpaceCharge
   /// \param symmetry use symmetry or not in the poisson solver
   void poissonSolver(const Side side, const DataT stoppingConvergence = 1e-6, const int symmetry = 0);
 
+  /// step 1: use the O2TPCPoissonSolver class to numerically calculate the potential with set space charge density and boundary conditions from potential for A and C side in parallel
+  /// \param stoppingConvergence stopping criterion used in the poisson solver
+  /// \param symmetry use symmetry or not in the poisson solver
+  void poissonSolver(const DataT stoppingConvergence = 1e-6, const int symmetry = 0);
+
   /// step 2: calculate numerically the electric field from the potential
   /// \param side side of the TPC
   void calcEField(const Side side);
@@ -262,8 +272,9 @@ class SpaceCharge
 
   /// step 4: calculate global corrections by using the electric field or the local corrections
   /// \param formulaStruct struct containing a method to evaluate the electric field Er, Ez, Ephi or the local corrections
+  /// \param type how to treat the corrections at regions where the corrected value is out of the TPC volume: type=0: use last valid correction value, type=1 do linear extrapolation, type=2 do parabolic extrapolation
   template <typename Fields = AnalyticalFields<DataT>>
-  void calcGlobalCorrections(const Fields& formulaStruct);
+  void calcGlobalCorrections(const Fields& formulaStruct, const int type = 0);
 
   /// step 5: calculate global distortions by using the electric field or the local distortions (SLOW)
   /// \param formulaStruct struct containing a method to evaluate the electric field Er, Ez, Ephi or the local distortions

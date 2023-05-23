@@ -164,9 +164,6 @@ class DataRelayer
   /// Remove all pending messages
   void clear();
 
-  /// get max number of timeslices in the queue
-  static unsigned int getPipelineLength();
-
   /// Rescan the whole data to see if there is anything new we should do,
   /// e.g. as consequnce of an OOB event.
   void rescan() { mTimesliceIndex.rescan(); };
@@ -196,10 +193,6 @@ class DataRelayer
   std::vector<CacheEntryStatus> mCachedStateMetrics;
   std::vector<PruneOp> mPruneOps;
   size_t mMaxLanes;
-
-  static std::vector<std::string> sMetricsNames;
-  static std::vector<std::string> sVariablesMetricsNames;
-  static std::vector<std::string> sQueriesMetricsNames;
 
   TracyLockableN(std::recursive_mutex, mMutex, "data relayer mutex");
 };

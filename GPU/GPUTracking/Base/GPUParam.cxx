@@ -159,12 +159,10 @@ void GPUParam::SetDefaults(const GPUSettingsGRP* g, const GPUSettingsRec* r, con
   }
   UpdateSettings(g, p);
 }
-
 #ifndef GPUCA_ALIROOT_LIB
 void GPUParam::LoadClusterErrors(bool Print)
 {
 }
-
 #else
 
 #include <iomanip>

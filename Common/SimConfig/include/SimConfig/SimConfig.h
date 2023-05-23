@@ -13,7 +13,15 @@
 #define O2_SIM_CONFIGURATION
 
 #include <Rtypes.h>
+#ifndef __CLING__
 #include <boost/program_options.hpp>
+#else
+namespace boost::program_options
+{
+class variables_map;
+class options_description;
+} // namespace boost::program_options
+#endif
 
 namespace o2
 {

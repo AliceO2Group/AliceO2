@@ -18,7 +18,6 @@
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "DataFormatsITSMFT/ClusterPattern.h"
 #include "DataFormatsITS3/CompCluster.h"
-#include "ITS3Base/SegmentationSuperAlpide.h"
 
 namespace o2
 {
@@ -128,14 +127,14 @@ class TopologyDictionary
 
   // array version of getClusterCoordinates
   template <typename T = float>
-  std::array<T, 3> getClusterCoordinatesA(const its3::CompClusterExt& cl) const;
+  std::array<T, 3> getClusterCoordinatesA(const its3::CompClusterExt& cl, int nChipsITS3 = 6) const;
   /// Returns the local position of a compact cluster
   template <typename T = float>
-  static std::array<T, 3> getClusterCoordinatesA(const its3::CompClusterExt& cl, const itsmft::ClusterPattern& patt, bool isGroup = true);
+  static std::array<T, 3> getClusterCoordinatesA(const its3::CompClusterExt& cl, const itsmft::ClusterPattern& patt, bool isGroup = true, int nChipsITS3 = 6);
   /// Returns the local position of a compact cluster
-  math_utils::Point3D<float> getClusterCoordinates(const its3::CompClusterExt& cl) const;
+  math_utils::Point3D<float> getClusterCoordinates(const its3::CompClusterExt& cl, int nChipsITS3 = 6) const;
   /// Returns the local position of a compact cluster
-  static math_utils::Point3D<float> getClusterCoordinates(const its3::CompClusterExt& cl, const itsmft::ClusterPattern& patt, bool isGroup = true);
+  static math_utils::Point3D<float> getClusterCoordinates(const its3::CompClusterExt& cl, const itsmft::ClusterPattern& patt, bool isGroup = true, int nChipsITS3 = 6);
 
   static TopologyDictionary* loadFrom(const std::string& fileName = "", const std::string& objName = "ccdb_object");
 

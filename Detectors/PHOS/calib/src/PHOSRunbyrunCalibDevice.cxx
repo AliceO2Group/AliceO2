@@ -54,7 +54,7 @@ void PHOSRunbyrunCalibDevice::run(o2::framework::ProcessingContext& pc)
   auto tfcounter = o2::header::get<o2::header::DataHeader*>(pc.inputs().get("clusters").header)->tfCounter;
   auto clusters = pc.inputs().get<gsl::span<Cluster>>("clusters");
   auto cluTR = pc.inputs().get<gsl::span<TriggerRecord>>("cluTR");
-  LOG(info) << "Processing TF with " << clusters.size() << " clusters and " << cluTR.size() << " TriggerRecords";
+  LOG(detail) << "Processing TF with " << clusters.size() << " clusters and " << cluTR.size() << " TriggerRecords";
   mCalibrator->process(tfcounter, clusters, cluTR);
 }
 

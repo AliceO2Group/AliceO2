@@ -212,7 +212,7 @@ void populateHeader(std::map<std::string, std::string>& headers, std::string_vie
 
 void remoteGuiCallback(uv_timer_s* ctx)
 {
-  GuiRenderer* renderer = reinterpret_cast<GuiRenderer*>(ctx->data);
+  auto* renderer = reinterpret_cast<GuiRenderer*>(ctx->data);
   assert(renderer);
 
   void* frame = nullptr;
@@ -279,7 +279,7 @@ void WSDPLHandler::endHeaders()
   mHandshaken = true;
 
   uv_buf_t bfr = uv_buf_init(strdup(reply.data()), reply.size());
-  uv_write_t* info_req = (uv_write_t*)malloc(sizeof(uv_write_t));
+  auto* info_req = (uv_write_t*)malloc(sizeof(uv_write_t));
   uv_write(info_req, (uv_stream_t*)mStream, &bfr, 1, ws_handshake_done_callback);
   auto header = mHeaders.find("x-dpl-pid");
   if (header != mHeaders.end()) {
@@ -296,7 +296,7 @@ void WSDPLHandler::endHeaders()
   } else {
     if ((mServerContext->isDriver && getenv("DPL_DRIVER_REMOTE_GUI")) || ((mServerContext->isDriver == false) && getenv("DPL_DEVICE_REMOTE_GUI"))) {
       LOG(info) << "Connection not bound to a PID";
-      GuiRenderer* renderer = new GuiRenderer;
+      auto* renderer = new GuiRenderer;
       renderer->gui = mServerContext->gui;
       renderer->handler = this;
       uv_timer_init(mServerContext->loop, &(renderer->drawTimer));
@@ -341,7 +341,7 @@ void ws_server_bulk_write_callback(uv_write_t* h, int status)
     free(h);
     return;
   }
-  std::vector<uv_buf_t>* buffers = (std::vector<uv_buf_t>*)h->data;
+  auto* buffers = (std::vector<uv_buf_t>*)h->data;
   if (buffers) {
     for (auto& b : *buffers) {
       free(b.base);
@@ -354,7 +354,7 @@ void ws_server_bulk_write_callback(uv_write_t* h, int status)
 void WSDPLHandler::write(char const* message, size_t s)
 {
   uv_buf_t bfr = uv_buf_init(strdup(message), s);
-  uv_write_t* write_req = (uv_write_t*)malloc(sizeof(uv_write_t));
+  auto* write_req = (uv_write_t*)malloc(sizeof(uv_write_t));
   write_req->data = bfr.base;
   uv_write(write_req, (uv_stream_t*)mStream, &bfr, 1, ws_server_write_callback);
 }
@@ -391,7 +391,8 @@ void close_client_websocket(uv_handle_t* stream)
 void websocket_client_callback(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf)
 {
   auto* context = (DriverClientContext*)stream->data;
-  context->state->loopReason |= DeviceState::WS_COMMUNICATION;
+  auto& state = context->ref.get<DeviceState>();
+  state.loopReason |= DeviceState::WS_COMMUNICATION;
   assert(context->client);
   if (nread == 0) {
     return;
@@ -434,10 +435,11 @@ WSDPLClient::WSDPLClient(uv_stream_t* s, std::unique_ptr<DriverClientContext> co
 
 void WSDPLClient::sendHandshake()
 {
+  auto& spec = mContext->ref.get<DeviceSpec const>();
   std::vector<std::pair<std::string, std::string>> headers = {
     {{"x-dpl-pid"}, std::to_string(getpid())},
-    {{"x-dpl-id"}, mContext->spec.id},
-    {{"x-dpl-name"}, mContext->spec.name}};
+    {{"x-dpl-id"}, spec.id},
+    {{"x-dpl-name"}, spec.name}};
   std::string handShakeString = encode_websocket_handshake_request("/", "dpl", 13, mNonce.c_str(), headers);
   this->write(handShakeString.c_str(), handShakeString.size());
 }
@@ -495,23 +497,24 @@ void WSDPLClient::endHeaders()
 
 struct WriteRequestContext {
   uv_buf_t buf;
-  DeviceState* state;
+  ServiceRegistryRef ref;
 };
 
 struct BulkWriteRequestContext {
   std::vector<uv_buf_t> buffers;
-  DeviceState* state;
+  ServiceRegistryRef ref;
 };
 
 void ws_client_write_callback(uv_write_t* h, int status)
 {
-  WriteRequestContext* context = (WriteRequestContext*)h->data;
+  auto* context = (WriteRequestContext*)h->data;
   if (status) {
     LOG(error) << "uv_write error: " << uv_err_name(status);
     free(h);
     return;
   }
-  context->state->loopReason |= (DeviceState::WS_COMMUNICATION | DeviceState::WS_READING);
+  auto& state = context->ref.get<DeviceState>();
+  state.loopReason |= (DeviceState::WS_COMMUNICATION | DeviceState::WS_READING);
   if (context->buf.base) {
     free(context->buf.base);
   }
@@ -521,8 +524,10 @@ void ws_client_write_callback(uv_write_t* h, int status)
 
 void ws_client_bulk_write_callback(uv_write_t* h, int status)
 {
-  BulkWriteRequestContext* context = (BulkWriteRequestContext*)h->data;
-  context->state->loopReason |= (DeviceState::WS_COMMUNICATION | DeviceState::WS_WRITING);
+  auto* context = (BulkWriteRequestContext*)h->data;
+  auto& state = context->ref.get<DeviceState>();
+
+  state.loopReason |= (DeviceState::WS_COMMUNICATION | DeviceState::WS_WRITING);
   if (status < 0) {
     LOG(error) << "uv_write error: " << uv_err_name(status);
     free(h);
@@ -546,10 +551,9 @@ void WSDPLClient::body(char* data, size_t s)
 /// Helper to return an error
 void WSDPLClient::write(char const* message, size_t s)
 {
-  WriteRequestContext* context = new WriteRequestContext;
+  auto* context = new WriteRequestContext{.ref = mContext->ref};
   context->buf = uv_buf_init(strdup(message), s);
-  context->state = mContext->state;
-  uv_write_t* write_req = (uv_write_t*)malloc(sizeof(uv_write_t));
+  auto* write_req = (uv_write_t*)malloc(sizeof(uv_write_t));
   write_req->data = context;
   uv_write(write_req, (uv_stream_t*)mStream, &context->buf, 1, ws_client_write_callback);
 }
@@ -559,10 +563,9 @@ void WSDPLClient::write(std::vector<uv_buf_t>& outputs)
   if (outputs.empty()) {
     return;
   }
-  uv_write_t* write_req = (uv_write_t*)malloc(sizeof(uv_write_t));
-  BulkWriteRequestContext* context = new BulkWriteRequestContext;
+  auto* write_req = (uv_write_t*)malloc(sizeof(uv_write_t));
+  auto* context = new BulkWriteRequestContext{.ref = mContext->ref};
   context->buffers.swap(outputs);
-  context->state = mContext->state;
   write_req->data = context;
   uv_write(write_req, (uv_stream_t*)mStream, &context->buffers.at(0),
            context->buffers.size(), ws_client_bulk_write_callback);

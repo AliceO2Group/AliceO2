@@ -19,6 +19,7 @@
 #include "GPUCommonDef.h"
 
 #ifndef GPUCA_GPUCODE
+#include <cstdint>
 #include <bitset>
 #endif
 

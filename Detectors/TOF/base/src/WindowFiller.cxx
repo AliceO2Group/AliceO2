@@ -451,13 +451,18 @@ void WindowFiller::fillDiagnosticFrequency()
   // fill diagnostic frequency
   for (int j = 0; j < mReadoutWindowData.size(); j++) {
     mDiagnosticFrequency.fillROW();
+    int fd = mReadoutWindowData[j].firstDia();
     for (int ic = 0; ic < 72; ic++) {
+      if (ic) {
+        fd += mReadoutWindowData[j].getDiagnosticInCrate(ic - 1);
+      }
       int dia = mReadoutWindowData[j].getDiagnosticInCrate(ic);
       int slot = 0;
       if (mReadoutWindowData[j].isEmptyCrate(ic)) {
         mDiagnosticFrequency.fillEmptyCrate(ic);
+      } else {
+        isTOFempty = false;
         if (dia) {
-          int fd = mReadoutWindowData[j].firstDia();
           int lastdia = fd + dia;
 
           ULong64_t key;
@@ -475,8 +480,6 @@ void WindowFiller::fillDiagnosticFrequency()
             }
           }
         }
-      } else {
-        isTOFempty = false;
       }
     }
   }

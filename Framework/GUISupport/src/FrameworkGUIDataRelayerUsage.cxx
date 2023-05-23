@@ -13,6 +13,7 @@
 #include "Framework/DeviceMetricsInfo.h"
 #include "Framework/DeviceInfo.h"
 #include "Framework/DataDescriptorMatcher.h"
+#include "Framework/DataProcessingStates.h"
 #include "PaletteHelpers.h"
 #include "Framework/Logger.h"
 #include <iostream>
@@ -33,7 +34,7 @@ struct HeatMapHelper {
                    std::function<size_t()> const& getNumRecords,
                    std::function<RECORD(size_t)> const& getRecord,
                    std::function<size_t(RECORD const&)> const& getNumItems,
-                   std::function<ITEM const&(RECORD const&, size_t)> const& getItem,
+                   std::function<ITEM const*(RECORD const&, size_t)> const& getItem,
                    std::function<int(ITEM const&)> const& getValue,
                    std::function<ImU32(int value)> const& getColor,
                    std::function<void(int row, int column)> const& describeCell)
@@ -85,7 +86,7 @@ struct HeatMapHelper {
         drawList->PrimRect(
           xOffset + yOffSet + winPos,
           xOffset + xSize + yOffSet + ySize + winPos,
-          getColor(getValue(getItem(record, mi))));
+          getColor(getValue(*getItem(record, mi))));
       }
     }
 
@@ -95,52 +96,43 @@ struct HeatMapHelper {
 
 void displayDataRelayer(DeviceMetricsInfo const& metrics,
                         DeviceInfo const& info,
+                        DataProcessingStates const& states,
                         ImVec2 const& size)
 {
-  auto& viewIndex = info.dataRelayerViewIndex;
-  auto& variablesIndex = info.variablesViewIndex;
-  auto& queriesIndex = info.queriesViewIndex;
-
-  auto getNumRecords = [&viewIndex]() -> size_t {
-    if (viewIndex.isComplete()) {
-      return viewIndex.w;
+  auto getNumRecords = [&states]() -> size_t {
+    auto& view = states.statesViews[(int)ProcessingStateId::DATA_RELAYER_BASE];
+    if (view.size == 0) {
+      return 0;
     }
-    return 0;
+    // The first number is the size of the pipeline
+    int numRecords = strtoul(states.statesBuffer.data() + view.first, nullptr, 10);
+    return numRecords;
   };
-  auto getRecord = [&metrics](size_t i) -> int {
+  auto getRecord = [](size_t i) -> int {
     return i;
   };
-  auto getNumItems = [&viewIndex](int record) -> int {
-    if (viewIndex.isComplete()) {
-      return viewIndex.h;
+  auto getNumItems = [&states](int record) -> int {
+    auto& view = states.statesViews[(int)ProcessingStateId::DATA_RELAYER_BASE + record];
+    if (view.size == 0) {
+      return 0;
     }
-    return 0;
+    char const* beginData = strchr(states.statesBuffer.data() + view.first, ' ') + 1;
+    //  The number of elements is given by the size of the state, minus the header
+    int size = view.size - (beginData - (states.statesBuffer.data() + view.first));
+    return size;
   };
-  auto getItem = [&metrics, &viewIndex](int const& record, size_t i) -> int8_t const& {
-    // Calculate the index in the viewIndex.
-    auto idx = record * viewIndex.h + i;
-    assert(viewIndex.indexes.size() > idx);
-    // Metrics which have not arrived yet are displayed as 0.
-    auto metricIndex = viewIndex.indexes[idx];
-    static int8_t const zero = 0;
-    if (metricIndex == -1) {
-      return zero;
+  auto getItem = [buffer = states.statesBuffer.data(), &states](int const& record, size_t i) -> int8_t const* {
+    static int8_t const zero = '0';
+    auto& view = states.statesViews[(int)ProcessingStateId::DATA_RELAYER_BASE + record];
+    if (view.size == 0) {
+      return &zero;
     }
-    MetricInfo const& metricInfo = metrics.metrics[metricIndex];
-    MetricLabel const& metricLabel = metrics.metricLabels[metricIndex];
-    if (metricInfo.type != MetricType::Enum || metrics.enumMetrics.size() <= metricInfo.storeIdx) {
-      LOG(error) << "Unexpected data relayer metric " << metricLabel.label << " " << metricInfo.type << " " << metrics.enumMetrics.size() << " " << metricInfo.storeIdx;
-      LOG(error) << record << " " << viewIndex.w << " " << viewIndex.h << " " << i;
-      for (auto index : viewIndex.indexes) {
-        LOG(error) << index << ": " << metrics.metricLabels[index].label;
-      }
+    char const* const beginData = strchr(buffer + view.first, ' ') + 1;
+    if (view.size <= beginData - buffer + i) {
+      return &zero;
     }
-    assert(metricInfo.type == MetricType::Enum);
-    assert(metrics.enumMetrics.size() > metricInfo.storeIdx);
-    auto& data = metrics.enumMetrics[metricInfo.storeIdx];
-    return data[(metricInfo.pos - 1) % data.size()];
-  };
-  auto getValue = [](int8_t const& item) -> int { return item; };
+    return (int8_t const*)beginData + i; };
+  auto getValue = [](int8_t const& item) -> int { return item - '0'; };
   auto getColor = [](int value) {
     static const ImU32 SLOT_EMPTY = ImColor(70, 70, 70, 255);
     static const ImU32 SLOT_FULL = ImColor(PaletteHelpers::RED);
@@ -159,32 +151,35 @@ void displayDataRelayer(DeviceMetricsInfo const& metrics,
     }
     return SLOT_ERROR;
   };
-  auto describeCell = [&metrics, &variablesIndex, &queriesIndex](int input, int slot) -> void {
+  auto describeCell = [&states](int input, int slot) -> void {
     ImGui::BeginTooltip();
     ImGui::Text("Input query matched values for slot: %d", slot);
-    for (size_t vi = 0; vi < variablesIndex.w; ++vi) {
-      auto idx = (slot * variablesIndex.w) + vi;
-      assert(idx < variablesIndex.indexes.size());
-      MetricInfo const& metricInfo = metrics.metrics[variablesIndex.indexes[idx]];
-      assert(metricInfo.storeIdx < metrics.stringMetrics.size());
-      auto& data = metrics.stringMetrics[metricInfo.storeIdx];
-      char const* value = data[(metricInfo.pos - 1) % data.size()].data;
-      if (strncmp("null", value, 4) == 0) {
+    auto& view = states.statesViews[(short)ProcessingStateId::CONTEXT_VARIABLES_BASE + (short)slot];
+    auto begin = view.first;
+    for (size_t vi = 0; vi < data_matcher::MAX_MATCHING_VARIABLE; ++vi) {
+      std::string_view state(states.statesBuffer.data() + begin, view.size);
+      // find the semi-colon, which separates entries in the variable list
+      auto pos = state.find(';');
+      std::string_view value = state.substr(0, pos);
+      // Do not display empty values.
+      if (value.empty()) {
+        begin += 1;
         continue;
       }
       switch (vi) {
         case o2::framework::data_matcher::STARTTIME_POS:
-          ImGui::Text("$%zu (startTime): %s", vi, value);
+          ImGui::Text("$%zu (startTime): %.*s", vi, (int)value.size(), value.data());
           break;
         case o2::framework::data_matcher::TFCOUNTER_POS:
-          ImGui::Text("$%zu (tfCounter): %s", vi, value);
+          ImGui::Text("$%zu (tfCounter): %.*s", vi, (int)value.size(), value.data());
           break;
         case o2::framework::data_matcher::FIRSTTFORBIT_POS:
-          ImGui::Text("$%zu (firstTForbit): %s", vi, value);
+          ImGui::Text("$%zu (firstTForbit): %.*s", vi, (int)value.size(), value.data());
           break;
         default:
-          ImGui::Text("$%zu: %s", vi, value);
+          ImGui::Text("$%zu: %.*s", vi, (int)value.size(), value.data());
       }
+      begin += pos + 1;
     }
     ImGui::EndTooltip();
   };

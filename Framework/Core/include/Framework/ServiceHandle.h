@@ -12,6 +12,7 @@
 #define O2_FRAMEWORK_SERVICEHANDLE_H_
 
 #include <string>
+#include <cstdint>
 
 namespace o2::framework
 {

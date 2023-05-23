@@ -25,6 +25,7 @@
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceState.h"
+#include "Framework/DriverConfig.h"
 #include "Framework/Lifetime.h"
 #include "Framework/LifetimeHelpers.h"
 #include "Framework/ProcessingPolicies.h"
@@ -1287,6 +1288,7 @@ void split(const std::string& str, Container& cont)
 
 void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped, bool interactive,
                                          unsigned short driverPort,
+                                         o2::framework::DriverConfig const& driverConfig,
                                          std::vector<DataProcessorInfo> const& processorInfos,
                                          std::vector<DeviceSpec> const& deviceSpecs,
                                          std::vector<DeviceExecution>& deviceExecutions,
@@ -1341,6 +1343,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
                                         "--control", interactive ? "gui" : "static",
                                         "--shm-monitor", "false",
                                         "--log-color", "false",
+                                        driverConfig.batch ? "--batch" : "--no-batch",
                                         "--color", "false"};
 
     // we maintain options in a map so that later occurrences of the same
@@ -1647,6 +1650,21 @@ bool DeviceSpecHelpers::hasLabel(DeviceSpec const& spec, char const* label)
 {
   auto sameLabel = [other = DataProcessorLabel{{label}}](DataProcessorLabel const& label) { return label == other; };
   return std::find_if(spec.labels.begin(), spec.labels.end(), sameLabel) != spec.labels.end();
+}
+
+std::string DeviceSpecHelpers::reworkEnv(std::string const& str, DeviceSpec const& spec)
+{
+  // find all the possible timeslice variables, extract N and replace
+  // the variable with the value of spec.inputTimesliceId + N.
+  std::regex re("\\{timeslice([0-9]+)\\}");
+  std::smatch match;
+  std::string fmt = str;
+  while (std::regex_search(fmt, match, re)) {
+    auto timeslice = std::stoi(match[1]);
+    auto replacement = std::to_string(spec.inputTimesliceId + timeslice);
+    fmt = match.prefix().str() + replacement + match.suffix().str();
+  }
+  return fmt;
 }
 
 } // namespace o2::framework

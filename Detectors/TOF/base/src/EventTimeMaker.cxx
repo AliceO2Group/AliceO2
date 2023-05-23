@@ -30,7 +30,7 @@ namespace o2
 namespace tof
 {
 
-const int maxNtrackInSet = TMath::Min(EventTimeTOFParams::Instance().maxNtracksInSet, 19);
+int eventTimeContainer::maxNtracksInSet = -1;
 // usefull constants
 constexpr unsigned long combinatorial[20] = {1, 3, 9, 27, 81, 243, 729, 2187, 6561, 19683, 59049, 177147, 531441, 1594323, 4782969, 14348907, 43046721, 129140163, 387420489, 1162261467};
 //---------------
@@ -68,6 +68,7 @@ void computeEvTime(const std::vector<eventTimeTrack>& tracks, const std::vector<
     return;
   }
 
+  const int maxNtrackInSet = evtime.getMaxNtracksInSet();
   int hypo[maxNtrackInSet];
 
   int nmaxtracksinset = ntracks > 22 ? 6 : maxNtrackInSet; // max number of tracks in a set for event time computation
@@ -188,7 +189,7 @@ void computeEvTimeFast(const std::vector<eventTimeTrack>& tracks, const std::vec
     LOG(debug) << "Skipping event because at least 2 tracks are required";
     return;
   }
-  const int maxNtrackInSet = TMath::Min(EventTimeTOFParams::Instance().maxNtracksInSet, 19);
+  const int maxNtrackInSet = evtime.getMaxNtracksInSet();
 
   int hypo[maxNtrackInSet];
 
@@ -263,7 +264,7 @@ int getStartTimeInSet(const std::vector<eventTimeTrack>& tracks, std::vector<int
 {
   const auto& params = EventTimeTOFParams::Instance();
   float errworse = params.maxNsigma;
-  const int maxNtrackInSet = TMath::Min(params.maxNtracksInSet, 19);
+  const int maxNtrackInSet = eventTimeContainer::getMaxNtracksInSet();
   float chi2, chi2best;
   double averageBest = 0;
   int hypo[maxNtrackInSet];
@@ -347,7 +348,7 @@ int getStartTimeInSet(const std::vector<eventTimeTrack>& tracks, std::vector<int
 
 int getStartTimeInSetFast(const std::vector<eventTimeTrack>& tracks, std::vector<int>& trackInSet, unsigned long& bestComb)
 {
-  const int maxNtrackInSet = TMath::Min(EventTimeTOFParams::Instance().maxNtracksInSet, 19);
+  const int maxNtrackInSet = eventTimeContainer::getMaxNtracksInSet();
   float chi2, chi2best;
   double averageBest = 0;
   int hypo[maxNtrackInSet];

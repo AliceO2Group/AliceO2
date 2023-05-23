@@ -39,6 +39,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation"}},
     {"track-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of track sources to use"}},
     {"cluster-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of cluster sources to use"}},
+    {"require-ctp-lumi", o2::framework::VariantType::Bool, false, {"require CTP lumi for TPC correction scaling"}},
     {"disable-root-input", VariantType::Bool, false, {"disable root-files input reader"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -58,15 +59,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
-
+  auto requireCTPLumi = configcontext.options().get<bool>("require-ctp-lumi");
   auto useMC = !configcontext.options().get<bool>("disable-mc");
-  if (!useMC) {
-    LOG(info) << "this task requires MC info, enforcing it";
-    useMC = true;
-  }
   GID::mask_t srcTrc = allowedSourcesTrc & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
   GID::mask_t srcCls = allowedSourcesClus & GID::getSourcesMask(configcontext.options().get<std::string>("cluster-sources"));
-
+  if (requireCTPLumi) {
+    srcTrc = srcTrc | GID::getSourcesMask("CTP");
+    srcCls = srcCls | GID::getSourcesMask("CTP");
+  }
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCls, srcTrc, srcTrc, useMC);
   o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC); // P-vertex is always needed
   specs.emplace_back(o2::trackstudy::getTPCTrackStudySpec(srcTrc, srcCls, useMC));

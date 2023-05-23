@@ -29,7 +29,7 @@ bool NoiseSlotCalibrator::processTimeFrame(calibration::TFType nTF,
                                            gsl::span<const o2::itsmft::Digit> const& digits,
                                            gsl::span<const o2::itsmft::ROFRecord> const& rofs)
 {
-  LOG(info) << "Processing TF# " << nTF;
+  LOG(detail) << "Processing TF# " << nTF;
 
   auto& slotTF = getSlotForTF(nTF);
   auto& noiseMap = *(slotTF.getContainer());
@@ -54,7 +54,7 @@ bool NoiseSlotCalibrator::processTimeFrame(calibration::TFType nTF,
                                            gsl::span<const unsigned char> const& patterns,
                                            gsl::span<const o2::itsmft::ROFRecord> const& rofs)
 {
-  LOG(info) << "Processing TF# " << nTF;
+  LOG(detail) << "Processing TF# " << nTF;
 
   auto& slotTF = getSlotForTF(nTF);
   auto& noiseMap = *(slotTF.getContainer());

@@ -60,7 +60,7 @@ class CalibratorVdExB final : public o2::calibration::TimeSlotCalibration<o2::tr
     LA,
     VD
   };
-  CalibratorVdExB(bool enableOut = false) : mEnableOutput(enableOut) {}
+  CalibratorVdExB() = default;
   ~CalibratorVdExB() final = default;
 
   bool hasEnoughData(const Slot& slot) const final { return slot.getContainer()->getNEntries() >= mMinEntriesTotal; }
@@ -90,7 +90,7 @@ class CalibratorVdExB final : public o2::calibration::TimeSlotCalibration<o2::tr
   const TRDCalibParams& mParams{TRDCalibParams::Instance()}; ///< reference to calibration parameters
   size_t mMinEntriesTotal{mParams.minEntriesChamber};        ///< minimum total number of angular deviations (on average ~3 entries per bin for each TRD chamber)
   size_t mMinEntriesChamber{mParams.minEntriesTotal};        ///< minimum number of angular deviations per chamber for accepting refitted value (~3 per bin)
-  bool mEnableOutput;                                        ///< enable output of calibration fits and tprofiles in a root file instead of the ccdb
+  bool mEnableOutput{false};                                 ///< enable output of calibration fits and tprofiles in a root file instead of the ccdb
   std::unique_ptr<TFile> mOutFile{nullptr};                  ///< output file
   std::unique_ptr<TTree> mOutTree{nullptr};                  ///< output tree
   FitFunctor mFitFunctor;                                    ///< used for minimization procedure

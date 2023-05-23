@@ -48,8 +48,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
 
   int inputs = 0;
   std::vector<char> rawbuffer;
-  int currentendpoint = 0;
-  uint8_t currentsource = 0;
+  uint16_t currentfee = 0;
   o2::InteractionRecord currentIR;
   std::unordered_map<int, int> numHBFFEE, numEventsFEE;
   std::unordered_map<int, std::vector<int>> numEventsHBFFEE;
@@ -77,7 +76,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
             // Data ready
             if (rawbuffer.size()) {
               // Only process if we actually have payload (skip empty HBF)
-              if (currentsource == 0x2b) { // Use source ID 43 for pixels
+              if (currentfee == 0xcafe) { // Use FEE ID 0xcafe for PAD data
                 // Pad data
                 if (mUsePadData) {
                   LOG(debug) << "Processing PAD data";
@@ -92,7 +91,7 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
                   numEventsPadsTF += nEventsPads;
                   numHBFPadsTF++;
                 }
-              } else if (currentsource == 0x20) { // Use source ID 32 (ITS) for pixels
+              } else { // All other FEEs are pixel FEEs
                 // Pixel data
                 if (mUsePixelData) {
                   auto feeID = o2::raw::RDHUtils::getFEEID(rdh);
@@ -127,8 +126,6 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
                     numEventsHBFFEE.insert(std::pair<int, std::vector<int>>{feeID, evbuffer});
                   }
                 }
-              } else {
-                LOG(error) << "Unsupported endpoint " << currentendpoint;
               }
             } else {
               LOG(debug) << "Payload size 0 - skip empty HBF";
@@ -138,10 +135,8 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
             // Get interaction record for HBF
             currentIR.bc = o2::raw::RDHUtils::getTriggerBC(rdh);
             currentIR.orbit = o2::raw::RDHUtils::getTriggerOrbit(rdh);
-            currentendpoint = o2::raw::RDHUtils::getEndPointID(rdh);
-            currentsource = o2::raw::RDHUtils::getSourceID(rdh);
-            LOG(debug) << "Source ID: " << static_cast<int>(currentsource) << " (0x" << std::hex << static_cast<int>(currentsource) << std::dec << ")";
-            LOG(debug) << "New HBF " << currentIR.orbit << " / " << currentIR.bc << ", endpoint " << currentendpoint;
+            currentfee = o2::raw::RDHUtils::getFEEID(rdh);
+            LOG(debug) << "New HBF " << currentIR.orbit << " / " << currentIR.bc << ", FEE 0x" << std::hex << currentfee << std::dec;
           }
         }
 
@@ -154,14 +149,15 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
         // non-0 payload size:
         auto payloadsize = o2::raw::RDHUtils::getMemorySize(rdh) - o2::raw::RDHUtils::getHeaderSize(rdh);
         int endpoint = static_cast<int>(o2::raw::RDHUtils::getEndPointID(rdh));
+        auto fee = o2::raw::RDHUtils::getFEEID(rdh);
         LOG(debug) << "Next RDH: ";
-        LOG(debug) << "Found endpoint              " << endpoint;
+        LOG(debug) << "Found fee                   0x" << std::hex << fee << std::dec << " (System " << (fee == 0xcafe ? "Pads" : "Pixels") << ")";
         LOG(debug) << "Found trigger BC:           " << o2::raw::RDHUtils::getTriggerBC(rdh);
         LOG(debug) << "Found trigger Oribt:        " << o2::raw::RDHUtils::getTriggerOrbit(rdh);
         LOG(debug) << "Found payload size:         " << payloadsize;
         LOG(debug) << "Found offset to next:       " << o2::raw::RDHUtils::getOffsetToNext(rdh);
         LOG(debug) << "Stop bit:                   " << (o2::raw::RDHUtils::getStop(rdh) ? "yes" : "no");
-        LOG(debug) << "Number of GBT words:        " << (payloadsize * sizeof(char) / (endpoint == 1 ? sizeof(o2::focal::PadGBTWord) : sizeof(o2::itsmft::GBTWord)));
+        LOG(debug) << "Number of GBT words:        " << (payloadsize * sizeof(char) / (fee == 0xcafe ? sizeof(o2::focal::PadGBTWord) : sizeof(o2::itsmft::GBTWord)));
         auto page_payload = databuffer.subspan(currentpos + o2::raw::RDHUtils::getHeaderSize(rdh), payloadsize);
         std::copy(page_payload.begin(), page_payload.end(), std::back_inserter(rawbuffer));
         currentpos += o2::raw::RDHUtils::getOffsetToNext(rdh);

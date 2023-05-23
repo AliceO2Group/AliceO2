@@ -34,8 +34,11 @@ void ErrorTypeFEE::PrintStream(std::ostream& stream) const
     case ErrorSource_t::GEOMETRY_ERROR:
       typestring = "geometry error";
       break;
-    case ErrorTypeFEE::GAIN_ERROR:
+    case ErrorSource_t::GAIN_ERROR:
       typestring = "gain type error";
+      break;
+    case ErrorSource_t::STU_ERROR:
+      typestring = "STU decoder error";
       break;
     case ErrorSource_t::UNDEFINED:
       typestring = "unknown error";
@@ -66,8 +69,10 @@ const char* ErrorTypeFEE::getErrorTypeName(unsigned int errorTypeID)
       return "Fit";
     case ErrorSource_t::GEOMETRY_ERROR:
       return "Geometry";
-    case ErrorTypeFEE::GAIN_ERROR:
+    case ErrorSource_t::GAIN_ERROR:
       return "GainType";
+    case ErrorSource_t::STU_ERROR:
+      return "STUDecoding";
     case ErrorSource_t::UNDEFINED:
       return "Undefined";
     default:
@@ -88,8 +93,10 @@ const char* ErrorTypeFEE::getErrorTypeTitle(unsigned int errorTypeID)
       return "Fit";
     case ErrorSource_t::GEOMETRY_ERROR:
       return "Geometry";
-    case ErrorTypeFEE::GAIN_ERROR:
+    case ErrorSource_t::GAIN_ERROR:
       return "Gain";
+    case ErrorSource_t::STU_ERROR:
+      return "STUDecoding";
     case ErrorSource_t::UNDEFINED:
       return "Unknown";
     default:

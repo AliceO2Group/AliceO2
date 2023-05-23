@@ -19,6 +19,7 @@
 #include "Framework/ChannelSpec.h"
 #include "Framework/Logger.h"
 #include "Framework/DeviceController.h"
+#include "Framework/DataProcessingStates.h"
 #include <DebugGUI/icons_font_awesome.h>
 
 #include "DebugGUI/imgui.h"
@@ -50,29 +51,42 @@ struct ChannelsTableHelper {
   }
 };
 
-void deviceInfoTable(char const* label, Metric2DViewIndex const& index, DeviceMetricsInfo const& metrics)
+void deviceStateTable(DataProcessingStates const& states)
 {
-  if (index.indexes.empty() == false && ImGui::CollapsingHeader(label, ImGuiTreeNodeFlags_DefaultOpen)) {
-    for (size_t i = 0; i < index.indexes.size(); ++i) {
-      if (metrics.metrics.size() <= index.indexes.at(i)) {
-        ImGui::Text("Missing data_queries/%zu metric", i);
+  if (ImGui::CollapsingHeader("Remote state", ImGuiTreeNodeFlags_DefaultOpen)) {
+    for (size_t i = 0; i < states.stateNames.size(); ++i) {
+      if (states.stateNames[i].empty()) {
         continue;
       }
-      auto& metric = metrics.metrics.at(index.indexes.at(i));
-      if (metrics.stringMetrics.size() <= metric.storeIdx) {
+      auto& view = states.statesViews[i];
+      ImGui::Text("%zu: %s, %d-%d", i, states.stateNames[i].c_str(), view.first, view.first + view.size);
+    }
+  }
+}
+
+void deviceInfoTable(char const* label, ProcessingStateId id, DataProcessingStates const& states, DeviceMetricsInfo const& metrics)
+{
+  // Find the state spec associated to data_queries
+  auto& view = states.statesViews[(int)id];
+  if (ImGui::CollapsingHeader(label, ImGuiTreeNodeFlags_DefaultOpen)) {
+    std::string_view inputs(states.statesBuffer.data() + view.first, view.size);
+    auto beginInputs = inputs.begin();
+    auto endInputs = beginInputs + view.size;
+    char const* input = beginInputs;
+    size_t i = 0;
+    // Iterate on the ; delimited string_views inside inputs
+    while (input != endInputs) {
+      auto end = std::find(input, endInputs, ';');
+      if ((end - input) == 0) {
         continue;
       }
-      if (metrics.stringMetrics.at(metric.storeIdx).empty()) {
-        continue;
-      }
-      char const* name = metrics.stringMetrics.at(metric.storeIdx).at(0).data;
-      assert(name);
-      ImGui::Text("%zu: %s", i, name);
+      ImGui::Text("%zu: %.*s", i, int(end - input), input);
       if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
-        ImGui::Text("%zu: %s", i, name);
+        ImGui::Text("%zu: %.*s", i, int(end - input), input);
         ImGui::EndTooltip();
       }
+      input = end + 1;
     }
   }
 }
@@ -220,6 +234,7 @@ void servicesTable(const char* label, std::vector<ServiceSpec> const& services)
 
 void displayDeviceInspector(DeviceSpec const& spec,
                             DeviceInfo const& info,
+                            DataProcessingStates const& states,
                             DeviceMetricsInfo const& metrics,
                             DataProcessorInfo const& metadata,
                             DeviceControl& control)
@@ -320,8 +335,9 @@ void displayDeviceInspector(DeviceSpec const& spec,
     }
   }
 
-  deviceInfoTable("Inputs:", info.queriesViewIndex, metrics);
-  deviceInfoTable("Outputs:", info.outputsViewIndex, metrics);
+  deviceStateTable(states);
+  deviceInfoTable("Inputs:", ProcessingStateId::DATA_QUERIES, states, metrics);
+  deviceInfoTable("Outputs:", ProcessingStateId::OUTPUT_MATCHERS, states, metrics);
   configurationTable(info.currentConfig, info.currentProvenance);
   optionsTable("Workflow Options", metadata.workflowOptions, control);
   servicesTable("Services", spec.services);

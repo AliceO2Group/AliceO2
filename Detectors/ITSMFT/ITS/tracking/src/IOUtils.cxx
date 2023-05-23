@@ -194,52 +194,52 @@ std::vector<std::unordered_map<int, Label>> ioutils::loadLabels(const int events
   return labelsMap;
 }
 
-void ioutils::writeRoadsReport(std::ofstream& correctRoadsOutputStream, std::ofstream& duplicateRoadsOutputStream,
-                               std::ofstream& fakeRoadsOutputStream, const std::vector<std::vector<Road>>& roads,
-                               const std::unordered_map<int, Label>& labelsMap)
-{
-  const int numVertices{static_cast<int>(roads.size())};
-  std::unordered_set<int> foundMonteCarloIds{};
+// void ioutils::writeRoadsReport(std::ofstream& correctRoadsOutputStream, std::ofstream& duplicateRoadsOutputStream,
+//                                std::ofstream& fakeRoadsOutputStream, const std::vector<std::vector<Road<5>>>& roads,
+//                                const std::unordered_map<int, Label>& labelsMap)
+// {
+//   const int numVertices{static_cast<int>(roads.size())};
+//   std::unordered_set<int> foundMonteCarloIds{};
 
-  correctRoadsOutputStream << EventLabelsSeparator << std::endl;
-  fakeRoadsOutputStream << EventLabelsSeparator << std::endl;
+//   correctRoadsOutputStream << EventLabelsSeparator << std::endl;
+//   fakeRoadsOutputStream << EventLabelsSeparator << std::endl;
 
-  for (int iVertex{0}; iVertex < numVertices; ++iVertex) {
+//   for (int iVertex{0}; iVertex < numVertices; ++iVertex) {
 
-    const std::vector<Road>& currentVertexRoads{roads[iVertex]};
-    const int numRoads{static_cast<int>(currentVertexRoads.size())};
+//     const std::vector<Road<5>>& currentVertexRoads{roads[iVertex]};
+//     const int numRoads{static_cast<int>(currentVertexRoads.size())};
 
-    for (int iRoad{0}; iRoad < numRoads; ++iRoad) {
+//     for (int iRoad{0}; iRoad < numRoads; ++iRoad) {
 
-      const Road& currentRoad{currentVertexRoads[iRoad]};
-      const int currentRoadLabel{currentRoad.getLabel()};
+//       const Road<5>& currentRoad{currentVertexRoads[iRoad]};
+//       const int currentRoadLabel{currentRoad.getLabel()};
 
-      if (!labelsMap.count(currentRoadLabel)) {
+//       if (!labelsMap.count(currentRoadLabel)) {
 
-        continue;
-      }
+//         continue;
+//       }
 
-      const Label& currentLabel{labelsMap.at(currentRoadLabel)};
+//       const Label& currentLabel{labelsMap.at(currentRoadLabel)};
 
-      if (currentRoad.isFakeRoad()) {
+//       if (currentRoad.isFakeRoad()) {
 
-        fakeRoadsOutputStream << currentLabel << std::endl;
+//         fakeRoadsOutputStream << currentLabel << std::endl;
 
-      } else {
+//       } else {
 
-        if (foundMonteCarloIds.count(currentLabel.monteCarloId)) {
+//         if (foundMonteCarloIds.count(currentLabel.monteCarloId)) {
 
-          duplicateRoadsOutputStream << currentLabel << std::endl;
+//           duplicateRoadsOutputStream << currentLabel << std::endl;
 
-        } else {
+//         } else {
 
-          correctRoadsOutputStream << currentLabel << std::endl;
-          foundMonteCarloIds.emplace(currentLabel.monteCarloId);
-        }
-      }
-    }
-  }
-}
+//           correctRoadsOutputStream << currentLabel << std::endl;
+//           foundMonteCarloIds.emplace(currentLabel.monteCarloId);
+//         }
+//       }
+//     }
+//   }
+// }
 
 } // namespace its
 } // namespace o2

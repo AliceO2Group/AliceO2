@@ -11,7 +11,6 @@ if [[ ${IGNORE_UNBOUND_VARIABLES:-} != 1 ]]; then  set -u; fi
 [ -d "${O2DPG_ROOT:-}" ] || { echo "O2DPG_ROOT not set" 1>&2; exit 1; }
 
 source $O2DPG_ROOT/DATA/common/setenv.sh || { echo "setenv.sh failed" 1>&2 && exit 1; }
-source $O2_ROOT/prodtests/full-system-test/workflow-setup.sh || { echo "workflow-setup.sh failed" 1>&2 && exit 1; }
 source $O2DPG_ROOT/DATA/common/getCommonArgs.sh || { echo "getCommonArgs.sh failed" 1>&2 && exit 1; }
 source $O2DPG_ROOT/DATA/common/setenv_calib.sh || { echo "setenv_calib.sh failed" 1>&2 && exit 1; }
 
@@ -78,7 +77,7 @@ fi
 
 # beamtype dependent settings
 LHCPHASE_TF_PER_SLOT=26400
-FT0_TIMEOFFSET_TF_PER_SLOT=26400
+FT0_TIMEOFFSET_TF_PER_SLOT=105600
 TOF_CHANNELOFFSETS_UPDATE=300000
 TOF_CHANNELOFFSETS_DELTA_UPDATE=50000
 
@@ -89,11 +88,7 @@ if [[ $BEAMTYPE == "PbPb" ]]; then
 fi
 
 # special settings for aggregator workflows
-ENABLE_TRACK_INPUT=
-TPCSCD_CONFIG=
-if [[ "${CALIB_TPC_SCDCALIB_SENDTRKDATA:-}" == "1" ]]; then ENABLE_TRACK_INPUT="--enable-track-input"; fi
-: ${RESIDUAL_AGGREGATOR_AUTOSAVE:=0}
-[[ -z ${CALIB_TPC_SCDCALIB_SLOTLENGTH:-} ]] && TPCSCD_CONFIG="--sec-per-slot $CALIB_TPC_SCDCALIB_SLOTLENGTH"
+if [[ "${CALIB_TPC_SCDCALIB_SENDTRKDATA:-}" == "1" ]]; then ENABLE_TRACK_INPUT="--enable-track-input"; else ENABLE_TRACK_INPUT=""; fi
 
 # Calibration workflows
 if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
@@ -203,7 +198,7 @@ if [[ $AGGREGATOR_TASKS == BARREL_TF ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
   fi
   # TPC
   if [[ $CALIB_TPC_SCDCALIB == 1 ]]; then
-    add_W o2-calibration-residual-aggregator "--disable-root-input $TPCSCD_CONFIG $ENABLE_TRACK_INPUT $CALIB_TPC_SCDCALIB_CTP_INPUT --output-dir $CALIB_DIR --meta-output-dir $EPN2EOS_METAFILES_DIR --autosave-interval $RESIDUAL_AGGREGATOR_AUTOSAVE"
+    add_W o2-calibration-residual-aggregator "--disable-root-input ${CALIB_TPC_SCDCALIB_SLOTLENGTH:+"--sec-per-slot $CALIB_TPC_SCDCALIB_SLOTLENGTH"} $ENABLE_TRACK_INPUT $CALIB_TPC_SCDCALIB_CTP_INPUT --output-dir $CALIB_DIR --meta-output-dir $EPN2EOS_METAFILES_DIR ${RESIDUAL_AGGREGATOR_AUTOSAVE:+"--autosave-interval $RESIDUAL_AGGREGATOR_AUTOSAVE"}"
   fi
   if [[ $CALIB_TPC_VDRIFTTGL == 1 ]]; then
     # options available via ARGS_EXTRA_PROCESS_o2_tpc_vdrift_tgl_calibration_workflow="--nbins-tgl 20 --nbins-dtgl 50 --max-tgl-its 2. --max-dtgl-itstpc 0.15 --min-entries-per-slot 1000 --time-slot-seconds 600 <--vdtgl-histos-file-name name> "
@@ -229,9 +224,9 @@ fi
 # TPC IDCs and SAC
 crus="0-359"  # to be used with $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC or ALL
 lanesFactorize=10
-nTFs=1000
-nTFs_SAC=1000
-nBuffer=100
+nTFs=$((1000 * 128 / ${NHBPERTF}))
+nTFs_SAC=$((1000 * 128 / ${NHBPERTF}))
+nBuffer=$((100 * 128 / ${NHBPERTF}))
 IDC_DELTA="--disable-IDCDelta true" # off by default
 # deltas are on by default; you need to request explicitly to switch them off;
 if [[ "${DISABLE_IDC_DELTA:-}" == "1" ]]; then IDC_DELTA=""; fi

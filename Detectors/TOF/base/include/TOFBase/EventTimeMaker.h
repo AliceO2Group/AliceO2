@@ -38,14 +38,18 @@ struct EventTimeTOFParams : public o2::conf::ConfigurableParamHelper<EventTimeTO
 
 struct eventTimeContainer {
   eventTimeContainer(const float& e, const float& err, const float& diamond) : mEventTime{e}, mEventTimeError{err}, mDiamondSpread{diamond} {};
+  static int getMaxNtracksInSet() { return TMath::Min(maxNtracksInSet <= 0 ? EventTimeTOFParams::Instance().maxNtracksInSet : maxNtracksInSet, 19); }
+  static void setMaxNtracksInSet(int v = -1) { maxNtracksInSet = v; }
+
+  // Values
   double mEventTime = 0.f;                   /// Value of the event time
   double mEventTimeError = 0.f;              /// Uncertainty on the computed event time
   unsigned short mEventTimeMultiplicity = 0; /// Track multiplicity used to compute the event time
 
-  double mSumOfWeights = 0.f;     /// sum of weights of all track contributors
-  std::vector<float> mWeights;    /// weights (1/sigma^2) associated to a track in event time computation, 0 if track not used
+  double mSumOfWeights = 0.f;      /// sum of weights of all track contributors
+  std::vector<float> mWeights;     /// weights (1/sigma^2) associated to a track in event time computation, 0 if track not used
   std::vector<double> mTrackTimes; /// eventtime provided by a single track
-  float mDiamondSpread = 6.f;     /// spread of primary verdex in cm. Used when resetting the container to the default value
+  float mDiamondSpread = 6.f;      /// spread of primary verdex in cm. Used when resetting the container to the default value
 
   // Aliases
   const double& eventTime = mEventTime;
@@ -112,11 +116,20 @@ struct eventTimeContainer {
     eventTimeError = sqrt(1.f / sumw);
     nTrackIndex++;
   }
+  static void printConfig()
+  {
+    LOG(info) << "eventTimeContainer configuration:";
+    LOG(info) << " maxNtracksInSet = " << maxNtracksInSet;
+  }
 
   void print()
   {
     LOG(info) << "eventTimeContainer " << mEventTime << " +- " << mEventTimeError << " sum of weights " << mSumOfWeights << " tracks used " << mEventTimeMultiplicity;
   }
+
+ private:
+  // Configuration
+  static int maxNtracksInSet; /// Maximum number of tracks per set (effect on combinatorics)
 };
 
 struct eventTimeTrack {
@@ -235,9 +248,9 @@ eventTimeContainer evTimeMakerFromParam(const trackTypeContainer& tracks,
 
   for (auto track : tracks) { // Loop on tracks
     if (trackFilter(track)) { // Select tracks good for T0 computation
-      expt[0] = responsePi.GetExpectedSignal(track);
-      expt[1] = responseKa.GetExpectedSignal(track);
-      expt[2] = responsePr.GetExpectedSignal(track);
+      expt[0] = responsePi.GetCorrectedExpectedSignal(responseParameters, track);
+      expt[1] = responseKa.GetCorrectedExpectedSignal(responseParameters, track);
+      expt[2] = responsePr.GetCorrectedExpectedSignal(responseParameters, track);
       expsigma[0] = responsePi.GetExpectedSigmaTracking(responseParameters, track);
       expsigma[1] = responseKa.GetExpectedSigmaTracking(responseParameters, track);
       expsigma[2] = responsePr.GetExpectedSigmaTracking(responseParameters, track);

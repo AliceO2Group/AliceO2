@@ -18,6 +18,7 @@ o2_add_library(EMCALReconstruction
         src/Channel.cxx
         src/RecoParam.cxx
         src/RawDecodingError.cxx
+        src/STUDecoderError.cxx
         src/ReconstructionErrors.cxx
         src/RecoContainer.cxx
         src/CaloFitResults.cxx

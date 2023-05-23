@@ -64,6 +64,7 @@ struct Options {
   bool isRun5 = false; // whether or not this is supposed to be a Run5 detector configuration
   std::string vertex = "ccdb";
   std::string configKeyValues = "";
+  uint64_t timestamp = 0;
 };
 
 namespace
@@ -77,10 +78,16 @@ class CCDBHelper
     auto soreor = o2::ccdb::BasicCCDBManager::getRunDuration(api, opts.run);
     runStart = soreor.first;
     runEnd = soreor.second;
+    if (opts.timestamp > 0) {
+      timestamp = opts.timestamp;
+    } else {
+      timestamp = runStart;
+    }
   }
   o2::ccdb::CcdbApi api;
   uint64_t runStart = -1;
   uint64_t runEnd = -1;
+  uint64_t timestamp = -1;
 };
 } // namespace
 
@@ -218,7 +225,7 @@ bool anchor_GRPs(Options const& opts, std::vector<std::string> const& paths = {"
     gCCDBWrapper = std::move(std::make_unique<CCDBHelper>(opts));
   }
   // fix the timestamp early
-  uint64_t runStart = gCCDBWrapper->runStart;
+  uint64_t timestamp = gCCDBWrapper->timestamp;
 
   const bool preserve_path = true;
   const std::string filename("snapshot.root");
@@ -226,7 +233,7 @@ bool anchor_GRPs(Options const& opts, std::vector<std::string> const& paths = {"
   bool success = true;
   for (auto& p : paths) {
     LOG(info) << "Fetching " << p << " from CCDB";
-    success &= gCCDBWrapper->api.retrieveBlob(p, opts.publishto, filter, runStart, preserve_path, filename);
+    success &= gCCDBWrapper->api.retrieveBlob(p, opts.publishto, filter, timestamp, preserve_path, filename);
   }
   return success;
 }
@@ -565,6 +572,7 @@ bool parseOptions(int argc, char* argv[], Options& optvalues)
     desc.add_options()("publishto", bpo::value<std::string>(&optvalues.publishto)->default_value(""), "Base path under which GRP objects should be published on disc. This path can serve as lookup for CCDB queries of the GRP objects.");
     desc.add_options()("isRun5", bpo::bool_switch(&optvalues.isRun5), "Whether or not to expect a Run5 detector configuration.");
     desc.add_options()("vertex", bpo::value<std::string>(&optvalues.vertex)->default_value("ccdb"), "How the vertex is to be initialized. Default is CCDB. Alternative is \"Diamond\" which is constructing the mean vertex from the Diamond param via the configKeyValues path");
+    desc.add_options()("timestamp", bpo::value<uint64_t>(&optvalues.timestamp)->default_value(0), "Force timestamp to be used (useful when anchoring)");
     desc.add_options()("configKeyValues", bpo::value<std::string>(&optvalues.configKeyValues)->default_value(""), "Semicolon separated key=value strings (e.g.: 'TPC.gasDensity=1;...')");
     if (!subparse(desc, vm, "createGRPs")) {
       return false;

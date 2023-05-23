@@ -25,15 +25,19 @@ struct VertexerParamConfig : public o2::conf::ConfigurableParamHelper<VertexerPa
   bool allowSingleContribClusters = false;
 
   // geometrical cuts
-  float zCut = 0.002f;   // 0.002f
-  float phiCut = 0.005f; // 0.005f
+  float zCut = 0.002f;
+  float phiCut = 0.005f;
   float pairCut = 0.04f;
   float clusterCut = 0.8f;
   float histPairCut = 0.04f;
-  float tanLambdaCut = 0.002f; // tanLambda = deltaZ/deltaR
-  float lowMultXYcut2 = 0.25f; // XY cut for low-multiplicity pile up
-  float baseBeamError = 0.005f;
+  float tanLambdaCut = 0.002f;      // tanLambda = deltaZ/deltaR
+  float lowMultBeamDistCut = 0.1f;  // XY cut for low-multiplicity pile up
+  int vertNsigmaCut = 4;            // N sigma cut for vertex XY
+  float vertRadiusSigma = 0.05f;    // sigma of vertex XY
+  float trackletSigma = 0.01f;      // tracklet to vertex sigma
   float maxZPositionAllowed = 25.f; // 4x sZ of the beam
+
+  // Artefacts selections
   int clusterContributorsCut = 16;
   int maxTrackletsPerCluster = 1e2;
   int phiSpan = -1;

@@ -28,7 +28,7 @@ namespace mid
 struct TrackerParam : public o2::conf::ConfigurableParamHelper<TrackerParam> {
 
   float impactParamCut = 210.; ///< impact parameter cut to select track seeds
-  float sigmaCut = 5.;         ///< sigma cut to select clusters and tracks during tracking
+  float sigmaCut = 3.;         ///< sigma cut to select clusters and tracks during tracking
 
   std::size_t maxCandidates = 1000000; ///< maximum number of track candidates above which the tracking abort
 

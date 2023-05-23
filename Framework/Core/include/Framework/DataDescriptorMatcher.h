@@ -80,13 +80,13 @@ class VariableContext
  public:
   inline VariableContext();
 
-  ContextElement::Value const& get(size_t pos) const;
+  [[nodiscard]] ContextElement::Value const& get(size_t pos) const;
 
   /// Publish the context to the GUI / monitoring.
   /// @a callback is a function which will be called for each element
   /// @a context is userdata which will be passed to the callback.
   /// @a name is the name of the metrics to be used.
-  void publish(void (*callback)(ContextElement::Value const&, std::string const& name, void* context), void* context, TimesliceSlot slot, std::vector<std::string> const& names);
+  void publish(void (*callback)(VariableContext const&, TimesliceSlot slot, void* context), void* context, TimesliceSlot slot);
 
   inline void put(ContextUpdate&& update);
 

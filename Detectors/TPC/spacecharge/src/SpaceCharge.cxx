@@ -295,7 +295,8 @@ void SpaceCharge<DataT>::setPotentialBoundaryGEMFrameAlongR(const std::function<
     // for stack 4 use the the number of phi bins at the edge
     const auto radiusCompare = (stack == 4) ? GEMFrameParameters<DataT>::POSTOP[stack] : GEMFrameParameters<DataT>::POSTOP[stack] + (GEMFrameParameters<DataT>::POSTOP[stack] - GEMFrameParameters<DataT>::POSTOP[stack]) / 2;
     for (size_t iPhiTmp = 0; iPhiTmp < getNPhiVertices(); ++iPhiTmp) {
-      const DataT offsetGlobalY = radiusCompare * iPhiTmp * getGridSpacingPhi(side);
+      const float margin = 0.5;
+      const DataT offsetGlobalY = radiusCompare * iPhiTmp * getGridSpacingPhi(side) + margin;
       if (iPhiTmp > 0 && offsetGlobalY > globalPosEdgeIROC.Y()) {
         break;
       }
@@ -319,7 +320,10 @@ void SpaceCharge<DataT>::setPotentialBoundaryGEMFrameAlongPhi(const std::functio
   const bool simOneSectorOnly = MGParameters::normalizeGridToOneSector;
   initContainer(mPotential[side], true);
   int region = 0;
+  float offsStart = 0;
+  float offsEnd = 0;
   if (bottom) {
+    offsEnd = -0.5;
     if (stack == GEMstack::IROCgem) {
       region = 0;
     } else if (stack == GEMstack::OROC1gem) {
@@ -330,6 +334,7 @@ void SpaceCharge<DataT>::setPotentialBoundaryGEMFrameAlongPhi(const std::functio
       region = 8;
     }
   } else {
+    offsStart = 0.5;
     if (stack == GEMstack::IROCgem) {
       region = 3;
     } else if (stack == GEMstack::OROC1gem) {
@@ -344,14 +349,15 @@ void SpaceCharge<DataT>::setPotentialBoundaryGEMFrameAlongPhi(const std::functio
   const auto& regInf = Mapper::instance().getPadRegionInfo(region);
   const auto radiusFirstRow = regInf.getRadiusFirstRow();
   DataT radiusStart = bottom ? GEMFrameParameters<DataT>::POSBOTTOM[stack] : radiusFirstRow + regInf.getPadHeight() * regInf.getNumberOfPadRows();
-  if (bottom && stack != GEMstack::IROCgem) {
-    radiusStart -= GEMFrameParameters<DataT>::WIDTHFRAME;
+  if (bottom && (stack != GEMstack::IROCgem)) {
+    radiusStart -= 0.5;
   }
-  const auto radiusMax = bottom ? radiusFirstRow : GEMFrameParameters<DataT>::POSTOP[stack];
 
-  if (outerFrame && (stack == GEMstack::OROC3gem)) {
-    radiusStart = radiusMax - 1;
-  }
+  auto radiusMax = bottom ? radiusFirstRow : GEMFrameParameters<DataT>::POSTOP[stack];
+
+  // add marging for first last padrows close to gap to improve numerical stabillity there
+  radiusStart += offsStart;
+  radiusMax += offsEnd;
 
   int nVerticesR = (radiusMax - radiusStart) / getGridSpacingR(side);
   if (nVerticesR == 0) {
@@ -370,7 +376,12 @@ void SpaceCharge<DataT>::setPotentialBoundaryGEMFrameAlongPhi(const std::functio
       const DataT localphi = getPhiVertex(iPhiLocal, side);
       const DataT radiusBottom = radiusStart / std::cos(localphi);
       auto rStart = (outerFrame && (stack == GEMstack::IROCgem)) ? 1 : std::round((radiusBottom - getRMin(side)) / getGridSpacingR(side) + 0.5); // round up to use only bins whihc are fully covered
-      const auto nREnd = (outerFrame && (stack == GEMstack::OROC3gem)) ? mParamGrid.NRVertices - 1 : rStart + nVerticesR;
+      auto nREnd = (outerFrame && (stack == GEMstack::OROC3gem)) ? mParamGrid.NRVertices - 1 : rStart + nVerticesR;
+
+      // end at gem frame
+      if ((outerFrame && (stack == GEMstack::IROCgem))) {
+        nREnd = (radiusBottom - getRVertex(1, side)) / getGridSpacingR(side) + 2; // 2 safety margin
+      }
 
       if (rStart == 0) {
         rStart = 1;
@@ -442,6 +453,20 @@ void SpaceCharge<DataT>::setPotentialFromFormula(const AnalyticalFields<DataT>& 
 }
 
 template <typename DataT>
+void SpaceCharge<DataT>::mirrorPotential(const Side sideRef, const Side sideMirrored)
+{
+  initContainer(mPotential[sideRef], true);
+  initContainer(mPotential[sideMirrored], true);
+  for (size_t iPhi = 0; iPhi < mParamGrid.NPhiVertices; ++iPhi) {
+    for (size_t iR = 0; iR < mParamGrid.NRVertices; ++iR) {
+      for (size_t iZ = 0; iZ < mParamGrid.NZVertices; ++iZ) {
+        mPotential[sideMirrored](iZ, iR, iPhi) = mPotential[sideRef](iZ, iR, iPhi);
+      }
+    }
+  }
+}
+
+template <typename DataT>
 void SpaceCharge<DataT>::setPotentialBoundaryFromFormula(const AnalyticalFields<DataT>& formulaStruct)
 {
   const Side side = formulaStruct.getSide();
@@ -495,6 +520,16 @@ void SpaceCharge<DataT>::poissonSolver(const Side side, const DataT stoppingConv
   PoissonSolver<DataT>::setConvergenceError(stoppingConvergence);
   PoissonSolver<DataT> poissonSolver(mGrid3D[0]);
   poissonSolver.poissonSolver3D(mPotential[side], mDensity[side], symmetry);
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::poissonSolver(const DataT stoppingConvergence, const int symmetry)
+{
+#pragma omp parallel for num_threads(2)
+  for (int iside = 0; iside < FNSIDES; ++iside) {
+    const o2::tpc::Side side = (iside == 0) ? Side::A : Side::C;
+    poissonSolver(side, stoppingConvergence, symmetry);
+  }
 }
 
 template <typename DataT>
@@ -1262,7 +1297,7 @@ void SpaceCharge<DataT>::calcGlobalDistortions(const Fields& formulaStruct, cons
 
 template <typename DataT>
 template <typename Formulas>
-void SpaceCharge<DataT>::calcGlobalCorrections(const Formulas& formulaStruct)
+void SpaceCharge<DataT>::calcGlobalCorrections(const Formulas& formulaStruct, const int type)
 {
   using timer = std::chrono::high_resolution_clock;
   auto start = timer::now();
@@ -1344,9 +1379,59 @@ void SpaceCharge<DataT>::calcGlobalCorrections(const Formulas& formulaStruct)
           }
         }
         // store global corrections
-        mGlobalCorrdR[side](iZ - 1, iR, iPhi) = drCorr;
-        mGlobalCorrdRPhi[side](iZ - 1, iR, iPhi) = dPhiCorr * r0;
-        mGlobalCorrdZ[side](iZ - 1, iR, iPhi) = dzCorr;
+        if ((type != 0) && (centralElectrodeReached || isOutOfVolume)) {
+          mGlobalCorrdR[side](iZ - 1, iR, iPhi) = -1;
+          mGlobalCorrdRPhi[side](iZ - 1, iR, iPhi) = -1;
+          mGlobalCorrdZ[side](iZ - 1, iR, iPhi) = -1;
+        } else {
+          mGlobalCorrdR[side](iZ - 1, iR, iPhi) = drCorr;
+          mGlobalCorrdRPhi[side](iZ - 1, iR, iPhi) = dPhiCorr * r0;
+          mGlobalCorrdZ[side](iZ - 1, iR, iPhi) = dzCorr;
+        }
+      }
+    }
+
+    if (type != 0) {
+      // fill / extrapolate out of volume values along r
+      for (int iZ = mParamGrid.NZVertices - 1; iZ >= 0; --iZ) {
+        // from middle of the radius to IFC
+        for (int iR = (mParamGrid.NRVertices / 2); iR >= 0; --iR) {
+          if ((mGlobalCorrdR[side](iZ, iR, iPhi) == -1) && (mGlobalCorrdRPhi[side](iZ, iR, iPhi) == -1) && (mGlobalCorrdZ[side](iZ, iR, iPhi) == -1)) {
+            const size_t iRUp = iR + 1;
+            if (type == 1) {
+              // just replace with last valid number (assumption: values at iR==mParamGrid.NRVertices / 2 are valid)
+              mGlobalCorrdR[side](iZ, iR, iPhi) = mGlobalCorrdR[side](iZ, iRUp, iPhi);
+              mGlobalCorrdRPhi[side](iZ, iR, iPhi) = mGlobalCorrdR[side](iZ, iRUp, iPhi);
+              mGlobalCorrdZ[side](iZ, iR, iPhi) = mGlobalCorrdR[side](iZ, iRUp, iPhi);
+            } else if (type == 2) {
+              // extrapolate values
+              const size_t iRUpTwo = iR + 2;
+              const size_t iRUpThree = iR + 3;
+              mGlobalCorrdR[side](iZ, iR, iPhi) = 3 * (mGlobalCorrdR[side](iZ, iRUp, iPhi) - mGlobalCorrdR[side](iZ, iRUpTwo, iPhi)) + mGlobalCorrdR[side](iZ, iRUpThree, iPhi);
+              mGlobalCorrdRPhi[side](iZ, iR, iPhi) = 3 * (mGlobalCorrdRPhi[side](iZ, iRUp, iPhi) - mGlobalCorrdRPhi[side](iZ, iRUpTwo, iPhi)) + mGlobalCorrdRPhi[side](iZ, iRUpThree, iPhi);
+              mGlobalCorrdZ[side](iZ, iR, iPhi) = 3 * (mGlobalCorrdZ[side](iZ, iRUp, iPhi) - mGlobalCorrdZ[side](iZ, iRUpTwo, iPhi)) + mGlobalCorrdZ[side](iZ, iRUpThree, iPhi);
+            }
+          }
+        }
+        // from middle of the radius to OFC
+        for (int iR = (mParamGrid.NRVertices / 2); iR < mParamGrid.NRVertices; ++iR) {
+          if ((mGlobalCorrdR[side](iZ, iR, iPhi) == -1) && (mGlobalCorrdRPhi[side](iZ, iR, iPhi) == -1) && (mGlobalCorrdZ[side](iZ, iR, iPhi) == -1)) {
+            const size_t iRUp = iR - 1;
+            if (type == 1) {
+              // just replace with last valid number (assumption: values at iR==mParamGrid.NRVertices / 2 are valid)
+              mGlobalCorrdR[side](iZ, iR, iPhi) = mGlobalCorrdR[side](iZ, iRUp, iPhi);
+              mGlobalCorrdRPhi[side](iZ, iR, iPhi) = mGlobalCorrdR[side](iZ, iRUp, iPhi);
+              mGlobalCorrdZ[side](iZ, iR, iPhi) = mGlobalCorrdR[side](iZ, iRUp, iPhi);
+            } else if (type == 2) {
+              // extrapolate values
+              const size_t iRUpTwo = iR - 2;
+              const size_t iRUpThree = iR - 3;
+              mGlobalCorrdR[side](iZ, iR, iPhi) = 3 * (mGlobalCorrdR[side](iZ, iRUp, iPhi) - mGlobalCorrdR[side](iZ, iRUpTwo, iPhi)) + mGlobalCorrdR[side](iZ, iRUpThree, iPhi);
+              mGlobalCorrdRPhi[side](iZ, iR, iPhi) = 3 * (mGlobalCorrdRPhi[side](iZ, iRUp, iPhi) - mGlobalCorrdRPhi[side](iZ, iRUpTwo, iPhi)) + mGlobalCorrdRPhi[side](iZ, iRUpThree, iPhi);
+              mGlobalCorrdZ[side](iZ, iR, iPhi) = 3 * (mGlobalCorrdZ[side](iZ, iRUp, iPhi) - mGlobalCorrdZ[side](iZ, iRUpTwo, iPhi)) + mGlobalCorrdZ[side](iZ, iRUpThree, iPhi);
+            }
+          }
+        }
       }
     }
   }
@@ -2812,7 +2897,7 @@ bool SpaceCharge<DataT>::checkGridFromFile(std::string_view file, std::string_vi
   // check if stored grid definition and current grid definition is the same
   if ((mParamGrid.NRVertices != nr) || (mParamGrid.NZVertices != nz) || (mParamGrid.NPhiVertices != nphi)) {
     LOGP(info, "Different number of vertices found in input file. Initializing new space charge object with nR {} nZ {} nPhi {} vertices", nr, nz, nphi);
-    SpaceCharge<DataT> scTmp(0, nz, nr, nphi, false); // or true?
+    SpaceCharge<DataT> scTmp(mBField.getBField(), nz, nr, nphi, false);
     scTmp.mC0 = mC0;
     scTmp.mC1 = mC1;
     scTmp.mC2 = mC2;
@@ -2868,7 +2953,7 @@ template <typename DataT>
 void SpaceCharge<DataT>::dumpToFile(std::string_view file) const
 {
   dumpToFile(file, Side::A, "RECREATE");
-  dumpToFile(file, Side::A, "UPDATE");
+  dumpToFile(file, Side::C, "UPDATE");
 }
 
 template <typename DataT>
@@ -2996,9 +3081,9 @@ template void O2TPCSpaceCharge3DCalcD::calcLocalDistortionsCorrections(const O2T
 template void O2TPCSpaceCharge3DCalcD::calcLocalDistortionsCorrections(const O2TPCSpaceCharge3DCalcD::Type, const AnaFieldsD&);
 template void O2TPCSpaceCharge3DCalcD::calcLocalDistortionCorrectionVector(const NumFieldsD&);
 template void O2TPCSpaceCharge3DCalcD::calcLocalDistortionCorrectionVector(const AnaFieldsD&);
-template void O2TPCSpaceCharge3DCalcD::calcGlobalCorrections(const NumFieldsD&);
-template void O2TPCSpaceCharge3DCalcD::calcGlobalCorrections(const AnaFieldsD&);
-template void O2TPCSpaceCharge3DCalcD::calcGlobalCorrections(const DistCorrInterpD&);
+template void O2TPCSpaceCharge3DCalcD::calcGlobalCorrections(const NumFieldsD&, const int);
+template void O2TPCSpaceCharge3DCalcD::calcGlobalCorrections(const AnaFieldsD&, const int);
+template void O2TPCSpaceCharge3DCalcD::calcGlobalCorrections(const DistCorrInterpD&, const int);
 template void O2TPCSpaceCharge3DCalcD::calcGlobalDistortions(const NumFieldsD&, const int maxIterations);
 template void O2TPCSpaceCharge3DCalcD::calcGlobalDistortions(const AnaFieldsD&, const int maxIterations);
 template void O2TPCSpaceCharge3DCalcD::calcGlobalDistortions(const DistCorrInterpD&, const int maxIterations);
@@ -3019,9 +3104,9 @@ template void O2TPCSpaceCharge3DCalcF::calcLocalDistortionsCorrections(const O2T
 template void O2TPCSpaceCharge3DCalcF::calcLocalDistortionsCorrections(const O2TPCSpaceCharge3DCalcF::Type, const AnaFieldsF&);
 template void O2TPCSpaceCharge3DCalcF::calcLocalDistortionCorrectionVector(const NumFieldsF&);
 template void O2TPCSpaceCharge3DCalcF::calcLocalDistortionCorrectionVector(const AnaFieldsF&);
-template void O2TPCSpaceCharge3DCalcF::calcGlobalCorrections(const NumFieldsF&);
-template void O2TPCSpaceCharge3DCalcF::calcGlobalCorrections(const AnaFieldsF&);
-template void O2TPCSpaceCharge3DCalcF::calcGlobalCorrections(const DistCorrInterpF&);
+template void O2TPCSpaceCharge3DCalcF::calcGlobalCorrections(const NumFieldsF&, const int);
+template void O2TPCSpaceCharge3DCalcF::calcGlobalCorrections(const AnaFieldsF&, const int);
+template void O2TPCSpaceCharge3DCalcF::calcGlobalCorrections(const DistCorrInterpF&, const int);
 template void O2TPCSpaceCharge3DCalcF::calcGlobalDistortions(const NumFieldsF&, const int maxIterations);
 template void O2TPCSpaceCharge3DCalcF::calcGlobalDistortions(const AnaFieldsF&, const int maxIterations);
 template void O2TPCSpaceCharge3DCalcF::calcGlobalDistortions(const DistCorrInterpF&, const int maxIterations);

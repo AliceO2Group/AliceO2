@@ -31,8 +31,6 @@ namespace o2::trd
 
 void DataReaderTask::init(InitContext& ic)
 {
-  LOG(info) << "o2::trd::DataReadTask init";
-
   mReader.setMaxErrWarnPrinted(ic.options().get<int>("log-max-errors"), ic.options().get<int>("log-max-warnings"));
   mReader.configure(mTrackletHCHeaderState, mHalfChamberWords, mHalfChamberMajor, mOptions);
 }
@@ -59,11 +57,10 @@ void DataReaderTask::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 
 void DataReaderTask::updateTimeDependentParams(framework::ProcessingContext& pc)
 {
-  static bool updateOnlyOnce = false;
-  if (!updateOnlyOnce) {
+  if (!mInitOnceDone) {
     pc.inputs().get<o2::ctp::TriggerOffsetsParam*>("trigoffset");
     pc.inputs().get<o2::trd::LinkToHCIDMapping*>("linkToHcid");
-    updateOnlyOnce = true;
+    mInitOnceDone = true;
   }
 }
 
@@ -94,8 +91,10 @@ bool DataReaderTask::isTimeFrameEmpty(ProcessingContext& pc)
 
 void DataReaderTask::run(ProcessingContext& pc)
 {
-  //NB this is run per time frame on the epn.
-  LOG(info) << "TRD Translator Task run";
+  const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
+  if (tinfo.globalRunNumberChanged) { // new run is starting
+    mInitOnceDone = false;
+  }
   updateTimeDependentParams(pc);
   auto dataReadStart = std::chrono::high_resolution_clock::now();
 

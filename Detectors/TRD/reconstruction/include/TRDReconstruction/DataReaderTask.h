@@ -51,6 +51,7 @@ class DataReaderTask : public Task
   bool mDataVerbose{false};      // verbose output of data unpacking
   bool mHeaderVerbose{false};    // verbose output of headers
   bool mCompressedData{false};   // are we dealing with the compressed data from the flp (send via option)
+  bool mInitOnceDone{false};     // flag for requesting new CCDB object upon global run number change
   std::bitset<16> mOptions;            // stores the incoming of the above bools, useful to be able to send this on instead of the individual ones above
                                        // the above bools make the code more readable hence still here.
 

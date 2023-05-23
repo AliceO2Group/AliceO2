@@ -41,3 +41,11 @@ o2_add_test_root_macro(dumpCTPRO.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsCTP
                                              O2::CCDB
                        LABELS ctp)
+o2_add_test_root_macro(GetAndSave.C
+                       PUBLIC_LINK_LIBRARIES O2::DataFormatsCTP
+                                             O2::CCDB
+                       LABELS ctp)
+o2_add_test_root_macro(ReadCTPRunScalersFromFile.C
+                       PUBLIC_LINK_LIBRARIES O2::DataFormatsCTP
+                                             O2::CCDB
+                       LABELS ctp)

@@ -13,6 +13,9 @@
 #include <cassert>
 #include <fstream>
 #include <string_view>
+#if (defined(WITH_OPENMP) || defined(_OPENMP))
+#include <omp.h>
+#endif
 
 #include "Framework/Logger.h"
 
@@ -77,14 +80,14 @@ bool Decoder::process(const char* data, size_t size)
   if (mDebugLevel & (uint32_t)DebugFlags::TimingInfo) {
     auto endTime = HighResClock::now();
     auto elapsed_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(endTime - startTime);
-    LOGP(info, "Time to process data of size {}: {} s", size, elapsed_seconds.count());
+    LOGP(detail, "Time to process data of size {}: {} s", size, elapsed_seconds.count());
   }
 
   ++mCollectedDataPackets;
   return isOK;
 }
 
-bool Decoder::decodeChannels(DecodedDataFE& sacs, size_t& carry, int feid)
+int Decoder::decodeChannels(DecodedDataFE& sacs, size_t& carry, int feid)
 {
   const auto& data = mDataStrings[feid];
   const size_t dataSize = data.size();
@@ -92,7 +95,7 @@ bool Decoder::decodeChannels(DecodedDataFE& sacs, size_t& carry, int feid)
   const size_t start = carry;
   while (carry < dataSize) {
     if (carry + 8 >= dataSize) {
-      return false;
+      return 0;
     }
     if (data[carry] >= '0' && data[carry] <= '7') {
       const uint32_t channel = data[carry] - '0';
@@ -105,6 +108,10 @@ bool Decoder::decodeChannels(DecodedDataFE& sacs, size_t& carry, int feid)
           nibble = c - '0';
         } else if ((c >= 'A') && (c <= 'F')) {
           nibble = c - 'A' + 10;
+        } else {
+          LOGP(warning, "Problem decoding data value for FE {}, channel {} at position {} / {}, no valid hex charakter, dump: {}\n",
+               feid, channel, carry, dataSize, std::string_view(&data[start], next));
+          return -1;
         }
         value <<= 4;
         value |= (nibble & 0xF);
@@ -118,15 +125,16 @@ bool Decoder::decodeChannels(DecodedDataFE& sacs, size_t& carry, int feid)
       sacs.currents[channel] = valueSigned;
 
       if (data[carry] != '\n') {
-        LOGP(warning, "Problem decoding data value for FE {}, channel {} at position {} / {}, dump: {}\n",
+        LOGP(warning, "Problem decoding data value for FE {}, channel {} at position {} / {}, CR expected, dump: {}\n",
              feid, channel, carry, dataSize, std::string_view(&data[start], next));
+        return -1;
       }
       ++carry;
     } else {
-      return true;
+      return 1;
     }
   }
-  return true;
+  return 1;
 }
 
 void Decoder::decode(int feid)
@@ -136,6 +144,7 @@ void Decoder::decode(int feid)
   DecodedDataFE decdata;
   DecodedDataFE decAdditional;
   bool aligned{false};
+  bool syncLost{false};
 
   size_t carry = 0;
   size_t deletePosition = 0;
@@ -161,8 +170,18 @@ void Decoder::decode(int feid)
     // fmt::print("Checking position {} / {}, {}\n", carry, dataSize, std::string_view(&data[carry], std::min(size_t(20), dataSize - carry)));
 
     if (data[carry] >= '0' && data[carry] <= '7') {
-      if (!decodeChannels(decdata, carry, feid)) {
+      const auto status = decodeChannels(decdata, carry, feid);
+      if (status == 0) {
         break;
+      } else if (status == -1) {
+        if (mReAlignType != ReAlignType::None) {
+          LOGP(warn, "trying to re-align data stream\n");
+          aligned = false;
+          syncLost = true;
+        } else {
+          LOGP(error, "stopping decoding\n");
+          break;
+        }
       }
     } else if (data[carry] == 'S') {
       if (carry + 11 >= dataSize) {
@@ -188,38 +207,52 @@ void Decoder::decode(int feid)
         deletePosition = carry; // keep \ns to align in next iteration
         carry += 2;
 
-        if (mDebugStream && (mDebugLevel & (uint32_t)DebugFlags::StreamSingleFE)) {
-          (*mDebugStream) << "d"
-                          << "data=" << decdata
-                          << "feid=" << feid
-                          << "tscount=" << mTSCountFEs[feid]
-                          << "\n";
-        }
-        ++mTSCountFEs[feid].first;
+#pragma omp critical
+        {
+          if (mDebugStream && (mDebugLevel & (uint32_t)DebugFlags::StreamSingleFE)) {
+            (*mDebugStream) << "d"
+                            << "data=" << decdata
+                            << "feid=" << feid
+                            << "tscount=" << mTSCountFEs[feid]
+                            << "\n";
+          }
+          ++mTSCountFEs[feid].first;
 
-        // copy decoded data to output
-        const auto refTime = timeStamp / SampleDistance;
-        auto& currentsTime = mDecodedData.data;
-        const auto nSamples = currentsTime.size();
-        auto firstRefTime = (nSamples > 0) ? currentsTime[0].time : refTime;
-        auto& refCount = mTSCountFEs[feid].second;
-        if ((refCount == 0) && (refTime > 0)) {
-          LOGP(info, "Skipping initial data packet {} with time stamp {} for FE {}", mTSCountFEs[feid].first, timeStamp, feid);
-        } else {
-          if (refCount != refTime) {
-            LOGP(warning, "Unexpected time stamp in FEid {}. Count {} != TS {} ({}), dump: {}", feid, refCount, refTime, timeStamp, std::string_view(&data[streamStart], std::min(size_t(20), dataSize - streamStart - carry)));
+          // copy decoded data to output
+          const auto refTime = timeStamp / SampleDistance;
+          auto& currentsTime = mDecodedData.data;
+          const auto nSamples = currentsTime.size();
+          auto firstRefTime = (nSamples > 0) ? currentsTime[0].time : refTime;
+          auto& refCount = mTSCountFEs[feid].second;
+          // NOTE: use (refTime > 1) instead of (refTime > 0), since in some cases the packet with TS 0 is missing
+          if ((refCount == 0) && (refTime > 1)) {
+            LOGP(info, "Skipping initial data packet {} with time stamp {} for FE {}", mTSCountFEs[feid].first, timeStamp, feid);
+          } else {
+            if (refTime < firstRefTime) {
+              // LOGP(info, "FE {}: {} < {}, adding {} DataPoint(s)", feid, refTime, firstRefTime, firstRefTime - refTime);
+              mDecodedData.insertFront(firstRefTime - refTime);
+              firstRefTime = refTime;
+            } else if (nSamples < refTime - firstRefTime + 1) {
+              // LOGP(info, "FE {}: refTime {}, firstRefTime {}, resize from {} to {}", feid, refTime, firstRefTime, currentsTime.size(), refTime - firstRefTime + 1);
+              mDecodedData.resize(refTime - firstRefTime + 1);
+            }
+            // LOGP(info, "FE {}: insert refTime {} at pos {}, with firstRefTime {}", feid, refTime, refTime - firstRefTime, firstRefTime);
+            mDecodedData.setData(refTime - firstRefTime, refTime, decdata, feid);
+
+            if (refCount != refTime) {
+              LOGP(warning, "Unexpected time stamp in FE {}. Count {} != TS {} ({}), dump: {}", feid, refCount, refTime, timeStamp, std::string_view(&data[streamStart], std::min(size_t(20), dataSize - streamStart - carry)));
+              // NOTE: be graceful in case TS 0 is missing and avoid furhter warnings
+              if (((refCount == 0) && (refTime == 1)) || ((mReAlignType == ReAlignType::AlignAndFillMissing) && syncLost)) {
+                while (refCount < refTime) {
+                  mDecodedData.setData(refCount - firstRefTime, refCount, DecodedDataFE(), feid);
+                  LOGP(warning, "Adding dummy data for FE {}, TS {}", feid, refCount);
+                  ++refCount;
+                }
+                syncLost = false;
+              }
+            }
+            ++refCount;
           }
-          ++refCount;
-          if (refTime < firstRefTime) {
-            // LOGP(info, "FE {}: {} < {}, adding {} DataPoint(s)", feid, refTime, firstRefTime, firstRefTime - refTime);
-            mDecodedData.insertFront(firstRefTime - refTime);
-            firstRefTime = refTime;
-          } else if (nSamples < refTime - firstRefTime + 1) {
-            // LOGP(info, "FE {}: refTime {}, firstRefTime {}, resize from {} to {}", feid, refTime, firstRefTime, currentsTime.size(), refTime - firstRefTime + 1);
-            mDecodedData.resize(refTime - firstRefTime + 1);
-          }
-          // LOGP(info, "FE {}: insert refTime {} at pos {}, with firstRefTime {}", feid, refTime, refTime - firstRefTime, firstRefTime);
-          mDecodedData.setData(refTime - firstRefTime, refTime, decdata, feid);
         }
       }
 
@@ -260,12 +293,24 @@ void Decoder::decode(int feid)
       }
       ++carry;
     } else if (data[carry] >= 'a' && data[carry] <= 'z') {
-      LOGP(info, "Skipping {}", data[carry]);
-      ++carry;
+      if (mReAlignType != ReAlignType::None) {
+        LOGP(error, "Skipping {} for FE {}, trying to re-align data stream", data[carry], feid);
+        aligned = false;
+        syncLost = true;
+      } else {
+        LOGP(error, "Skipping {} for FE {}, might lead to decosing problems", data[carry], feid);
+        ++carry;
+      }
       decdata.reset();
     } else {
-      LOGP(error, "Can't interpret position {} / {}, {}, stopping decoding\n", carry, dataSize, std::string_view(&data[carry - 8], std::min(size_t(20), dataSize - 8 - carry)));
-      break;
+      if (mReAlignType != ReAlignType::None) {
+        LOGP(warn, "Can't interpret position for FE {}, {} / {}, {}, trying to re-align data stream\n", feid, carry, dataSize, std::string_view(&data[carry - 8], std::min(size_t(20), dataSize - 8 - carry)));
+        aligned = false;
+        syncLost = true;
+      } else {
+        LOGP(error, "Can't interpret position for FE {}, {} / {}, {}, stopping decoding\n", feid, carry, dataSize, std::string_view(&data[carry - 8], std::min(size_t(20), dataSize - 8 - carry)));
+        break;
+      }
     }
   }
 
@@ -276,7 +321,7 @@ void Decoder::decode(int feid)
   if (mDebugLevel & (uint32_t)DebugFlags::TimingInfo) {
     auto endTime = HighResClock::now();
     auto elapsed_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(endTime - startTime);
-    LOGP(info, "Time to decode feid {}: {} s", feid, elapsed_seconds.count());
+    LOGP(detail, "Time to decode feid {}: {} s", feid, elapsed_seconds.count());
   }
 }
 
@@ -284,6 +329,7 @@ void Decoder::runDecoding()
 {
   const auto startTime = HighResClock::now();
 
+#pragma omp parallel for num_threads(sNThreads)
   for (size_t feid = 0; feid < NumberFEs; ++feid) {
     decode(feid);
   }
@@ -291,15 +337,17 @@ void Decoder::runDecoding()
   if (mDebugLevel & (uint32_t)DebugFlags::TimingInfo) {
     auto endTime = HighResClock::now();
     auto elapsed_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(endTime - startTime);
-    LOGP(info, "Time to decode all feids {} s, {} s per packet ({})", elapsed_seconds.count(), elapsed_seconds.count() / mCollectedDataPackets, mCollectedDataPackets);
+    LOGP(detail, "Time to decode all feids {} s, {} s per packet ({})", elapsed_seconds.count(), elapsed_seconds.count() / mCollectedDataPackets, mCollectedDataPackets);
   }
 }
 
-void Decoder::streamDecodedData()
+void Decoder::streamDecodedData(bool streamAll)
 {
   if (mDebugStream && (mDebugLevel & (uint32_t)DebugFlags::StreamFinalData)) {
+    const size_t nDecodedData = (streamAll) ? mDecodedData.data.size() : mDecodedData.getNGoodEntries();
+    LOGP(info, "streamDecodedData (streamAll {}): {} / {}", streamAll, nDecodedData, mDecodedData.data.size());
     auto refTime = mDecodedData.referenceTime;
-    for (size_t ientry = 0; ientry < mDecodedData.getNGoodEntries(); ++ientry) {
+    for (size_t ientry = 0; ientry < nDecodedData; ++ientry) {
       auto& currentData = mDecodedData.data[ientry];
       auto fes = mDecodedData.fes[ientry].to_ulong();
       auto nfes = mDecodedData.fes[ientry].count();
@@ -323,7 +371,7 @@ void Decoder::finalize()
   }
 
   runDecoding();
-  streamDecodedData();
+  streamDecodedData(true);
 
   if (mDebugStream) {
     mDebugStream->Close();
@@ -338,7 +386,7 @@ void Decoder::clearDecodedData()
     auto& data = mDecodedData.data;
     const auto posGood = mDecodedData.getNGoodEntries();
     LOGP(info, "Clearing data of size {}, firstTS {}, lastTS {}",
-         posGood, data.front().time, (posGood > 0) ? data[posGood - 1].time : 0);
+         posGood, (data.size() > 0) ? data.front().time : -1, (posGood > 0) ? data[posGood - 1].time : 0);
   }
   mDecodedData.clearGoodData();
 }

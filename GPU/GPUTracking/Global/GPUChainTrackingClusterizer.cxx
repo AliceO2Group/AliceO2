@@ -88,7 +88,53 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
   if (doGPU) {
     pages = o - processors()->tpcClusterer[iSlice].mPzsOffsets;
   }
+  TPCClusterizerEnsureZSOffsets(iSlice, fragment);
   return {digits, pages};
+}
+
+void GPUChainTracking::TPCClusterizerEnsureZSOffsets(unsigned int iSlice, const CfFragment& fragment)
+{
+  if (GetProcessingSettings().debugLevel < 4 || mCFContext->zsVersion < ZSVersion::ZSVersionDenseLinkBased) {
+    return;
+  }
+
+  GPUTPCClusterFinder& clusterer = processors()->tpcClusterer[iSlice];
+  unsigned int nAdcs = 0;
+  for (unsigned short endpoint = 0; endpoint < GPUTrackingInOutZS::NENDPOINTS; endpoint++) {
+    unsigned int pagesEndpoint = 0;
+    const unsigned int nAdcsExpected = mCFContext->fragmentData[fragment.index].nDigits[iSlice][endpoint];
+    const unsigned int nPagesExpected = mCFContext->fragmentData[fragment.index].nPages[iSlice][endpoint];
+
+    unsigned int nAdcDecoded = 0;
+    for (unsigned int i = clusterer.mMinMaxCN[endpoint].minC; i < clusterer.mMinMaxCN[endpoint].maxC; i++) {
+      const unsigned int minJ = (i == clusterer.mMinMaxCN[endpoint].minC) ? clusterer.mMinMaxCN[endpoint].minN : 0;
+      const auto& zs = mIOPtrs.tpcZS->slice[iSlice];
+      const unsigned int maxJ = (i + 1 == clusterer.mMinMaxCN[endpoint].maxC) ? clusterer.mMinMaxCN[endpoint].maxN : zs.nZSPtr[endpoint][i];
+      for (unsigned int j = minJ; j < maxJ; j++) {
+        const unsigned char* page = static_cast<const unsigned char*>(zs.zsPtr[endpoint][i]) + j * TPCZSHDR::TPC_ZS_PAGE_SIZE;
+        const header::RAWDataHeader* rawDataHeader = reinterpret_cast<const header::RAWDataHeader*>(page);
+        const TPCZSHDRV2* decHdr = reinterpret_cast<const TPCZSHDRV2*>(page + raw::RDHUtils::getMemorySize(*rawDataHeader) - sizeof(TPCZSHDRV2));
+        const unsigned short nSamplesInPage = decHdr->nADCsamples;
+
+        nAdcDecoded += nSamplesInPage;
+        pagesEndpoint++;
+      }
+    }
+
+    if (pagesEndpoint != nPagesExpected) {
+      GPUFatal("Sector %d, Endpoint %d: TPC raw page count mismatch: expected %d / buffered %lu", iSlice, endpoint, pagesEndpoint, nPagesExpected);
+    }
+
+    if (nAdcDecoded != nAdcsExpected) {
+      GPUFatal("Sector %d, Endpoint %d: TPC ADC count mismatch: expected %u, buffered %u", iSlice, endpoint, nAdcsExpected, nAdcDecoded);
+    }
+
+    if (nAdcs != clusterer.mPzsOffsets[endpoint].offset) {
+      GPUFatal("Sector %d, Endpoint %d: TPC ADC offset mismatch: expected %u, buffered %u", iSlice, endpoint, nAdcs, clusterer.mPzsOffsets[endpoint].offset);
+    }
+
+    nAdcs += nAdcsExpected;
+  }
 }
 
 std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCount(unsigned int iSlice, const CfFragment& fragment)
@@ -140,16 +186,28 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
           continue;
         }
         pageCounter++;
-        const TPCZSHDR* const hdr = (const TPCZSHDR*)(o2::raw::RDHUtils::getLinkID(*rdh) == rdh_utils::DLBZSLinkID ? (page + o2::raw::RDHUtils::getMemorySize(*rdh) - sizeof(TPCZSHDRV2)) : (page + sizeof(o2::header::RAWDataHeader)));
+        const TPCZSHDR* const hdr = (const TPCZSHDR*)(rdh_utils::getLink(o2::raw::RDHUtils::getFEEID(*rdh)) == rdh_utils::DLBZSLinkID ? (page + o2::raw::RDHUtils::getMemorySize(*rdh) - sizeof(TPCZSHDRV2)) : (page + sizeof(o2::header::RAWDataHeader)));
         if (mCFContext->zsVersion == -1) {
           mCFContext->zsVersion = hdr->version;
         } else if (mCFContext->zsVersion != (int)hdr->version) {
+          GPUError("Received TPC ZS 8kb page of mixed versions, expected %d, received %d (linkid %d, feeCRU %d, feeEndpoint %d, feelinkid %d)", mCFContext->zsVersion, (int)hdr->version, (int)o2::raw::RDHUtils::getLinkID(*rdh), (int)rdh_utils::getCRU(*rdh), (int)rdh_utils::getEndPoint(*rdh), (int)rdh_utils::getLink(*rdh));
+          constexpr size_t bufferSize = 3 * std::max(sizeof(*rdh), sizeof(*hdr)) + 1;
+          char dumpBuffer[bufferSize];
+          for (size_t i = 0; i < sizeof(*rdh); i++) {
+            // "%02X " guaranteed to be 3 chars + ending 0.
+            snprintf(dumpBuffer + 3 * i, 4, "%02X ", (int)((unsigned char*)rdh)[i]);
+          }
+          GPUAlarm("RDH of page: %s", dumpBuffer);
+          for (size_t i = 0; i < sizeof(*hdr); i++) {
+            // "%02X " guaranteed to be 3 chars + ending 0.
+            snprintf(dumpBuffer + 3 * i, 4, "%02X ", (int)((unsigned char*)hdr)[i]);
+          }
+          GPUAlarm("Metainfo of page: %s", dumpBuffer);
           if (GetProcessingSettings().ignoreNonFatalGPUErrors) {
             mCFContext->abandonTimeframe = true;
-            GPUAlarm("Received TPC ZS data of mixed versions");
             return {0, 0};
           } else {
-            GPUFatal("Received TPC ZS data of mixed versions");
+            GPUFatal("Cannot process with invalid TPC ZS data, exiting");
           }
         }
         nDigits += hdr->nADCsamples;
@@ -177,9 +235,11 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
         }
         auto handleExtends = [&](unsigned int ff) {
           if (fragmentExtends[ff]) {
-            fragments[ff].second[3]++;
-            mCFContext->fragmentData[ff].nPages[iSlice][j]++;
             if (doGPU) {
+              // Only add extended page on GPU. On CPU the pages are in consecutive memory anyway.
+              // Not adding the page prevents an issue where a page is decoded twice on CPU, when only the extend should be decoded.
+              fragments[ff].second[3]++;
+              mCFContext->fragmentData[ff].nPages[iSlice][j]++;
               mCFContext->fragmentData[ff].pageDigits[iSlice][j].emplace_back(0);
             }
             fragmentExtends[ff] = false;

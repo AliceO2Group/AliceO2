@@ -308,6 +308,8 @@ struct RecoContainer {
   using GTrackID = o2::dataformats::GlobalTrackID;
   using GlobalIDSet = std::array<GTrackID, GTrackID::NSources>;
 
+  static constexpr float PS2MUS = 1e-6;
+
   o2::InteractionRecord startIR; // TF start IR
 
   std::array<AccSlots, GTrackID::NSources> commonPool;
@@ -699,6 +701,18 @@ struct RecoContainer {
 
   // IRFrames where ITS was reconstructed and tracks were seen (e.g. sync.w-flow mult. selection)
   auto getIRFramesITS() const { return getSpan<o2::dataformats::IRFrame>(GTrackID::ITS, VARIA); }
+
+  void getTrackTimeITSTPCTRDTOF(GTrackID gid, float& t, float& tErr) const;
+  void getTrackTimeTPCTRDTOF(GTrackID gid, float& t, float& tErr) const;
+  void getTrackTimeITSTPCTOF(GTrackID gid, float& t, float& tErr) const;
+  void getTrackTimeITSTPCTRD(GTrackID gid, float& t, float& tErr) const;
+  void getTrackTimeTPCTRD(GTrackID gid, float& t, float& tErr) const;
+  void getTrackTimeITSTPC(GTrackID gid, float& t, float& tErr) const;
+  void getTrackTimeTPCTOF(GTrackID gid, float& t, float& tErr) const;
+  void getTrackTimeITS(GTrackID gid, float& t, float& tErr) const;
+  void getTrackTimeTPC(GTrackID gid, float& t, float& tErr) const;
+
+  void getTrackTime(GTrackID gid, float& t, float& tErr) const;
 };
 
 } // namespace globaltracking

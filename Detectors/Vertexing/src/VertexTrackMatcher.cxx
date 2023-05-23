@@ -136,8 +136,8 @@ void VertexTrackMatcher::extractTracks(const o2::globaltracking::RecoContainer& 
 {
   // Scan all inputs and create tracks
   mTBrackets.clear();
-  float itsBias = 0.5 * mITSROFrameLengthMUS + o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance().roFrameBiasInBC; // ITS time is supplied in \mus as beginning of ROF
-  float mftBias = 0.5 * mMFTROFrameLengthMUS + o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance().roFrameBiasInBC; // MFT time is supplied in \mus as beginning of ROF
+  float itsBias = 0.5 * mITSROFrameLengthMUS + o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance().roFrameBiasInBC * o2::constants::lhc::LHCBunchSpacingNS * 1e-3; // ITS time is supplied in \mus as beginning of ROF
+  float mftBias = 0.5 * mMFTROFrameLengthMUS + o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance().roFrameBiasInBC * o2::constants::lhc::LHCBunchSpacingNS * 1e-3; // MFT time is supplied in \mus as beginning of ROF
   auto creator = [this, itsBias, mftBias, &vcont](auto& _tr, GIndex _origID, float t0, float terr) {
     if constexpr (!(isMFTTrack<decltype(_tr)>() || isMCHTrack<decltype(_tr)>() || isGlobalFwdTrack<decltype(_tr)>())) { // Skip test for forward tracks; do not contribute to vertex
       if (vcont.find(_origID) != vcont.end()) {                                                                         // track is contributor to vertex, already accounted

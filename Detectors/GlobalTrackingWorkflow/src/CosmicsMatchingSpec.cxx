@@ -87,6 +87,7 @@ void CosmicsMatchingSpec::init(InitContext& ic)
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mMatching.setDebugFlag(ic.options().get<int>("debug-tree-flags"));
   mMatching.setUseMC(mUseMC);
+  mTPCCorrMapsLoader.init(ic);
   //
 }
 
@@ -109,7 +110,7 @@ void CosmicsMatchingSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   mTPCVDriftHelper.extractCCDBInputs(pc);
-  o2::tpc::CorrectionMapsLoader::extractCCDBInputs(pc);
+  mTPCCorrMapsLoader.extractCCDBInputs(pc);
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
@@ -174,6 +175,10 @@ void CosmicsMatchingSpec::endOfStream(EndOfStreamContext& ec)
 DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool useMC)
 {
   std::vector<OutputSpec> outputs;
+  Options opts{
+    {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}},
+    {"debug-tree-flags", VariantType::Int, 0, {"DebugFlagTypes bit-pattern for debug tree"}}};
+
   auto dataRequest = std::make_shared<DataRequest>();
 
   dataRequest->requestTracks(src, useMC);
@@ -193,16 +198,14 @@ DataProcessorSpec getCosmicsMatchingSpec(GTrackID::mask_t src, bool useMC)
                                                               dataRequest->inputs,
                                                               true);
   o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
-  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs);
+  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs, opts, src[GTrackID::CTP]);
 
   return DataProcessorSpec{
     "cosmics-matcher",
     dataRequest->inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<CosmicsMatchingSpec>(dataRequest, ggRequest, useMC)},
-    Options{
-      {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}},
-      {"debug-tree-flags", VariantType::Int, 0, {"DebugFlagTypes bit-pattern for debug tree"}}}};
+    opts};
 }
 
 } // namespace globaltracking

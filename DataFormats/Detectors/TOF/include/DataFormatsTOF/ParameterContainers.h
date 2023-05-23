@@ -70,7 +70,7 @@ class Parameters
   {
     LOG(info) << "Parameters '" << mName << "'";
     for (int i = 0; i < nPar; i++) {
-      LOG(info) << "Parameter " << i << "/" << nPar - 1 << " is " << mPar[i];
+      LOG(info) << "Parameter " << i << "/" << nPar - 1 << " " << mParNames[i] << " is " << mPar[i];
     }
   }
 
@@ -88,7 +88,11 @@ class Parameters
   void loadParamFromFile(const TString FileName, const TString ParamName)
   {
     TFile f(FileName, "READ");
+    if (!f.IsOpen()) {
+      LOG(fatal) << "Could not open file " << FileName;
+    }
     if (!f.Get(ParamName)) {
+      f.ls();
       LOG(fatal) << "Did not find parameters " << ParamName << " in file " << FileName;
     }
     LOG(info) << "Loading parameters " << ParamName << " from TFile " << FileName;
@@ -169,7 +173,7 @@ class ParameterCollection : public TNamed
         LOG(debug) << "Did not find parameter '" << name << "' in collection, keeping preexisting";
         continue;
       }
-      LOG(debug) << "Found parameter '" << name << "' in collection, keeping preexisting";
+      LOG(debug) << "Found parameter '" << name << "' in collection, updating from " << p[i] << " to " << toGet.at(name);
       p.setParameter(i, toGet.at(name));
     }
     return true;
@@ -225,7 +229,11 @@ class ParameterCollection : public TNamed
   void loadParamFromFile(const TString FileName, const TString ParamName)
   {
     TFile f(FileName, "READ");
+    if (!f.IsOpen()) {
+      LOG(fatal) << "Could not open file " << FileName;
+    }
     if (!f.Get(ParamName)) {
+      f.ls();
       LOG(fatal) << "Did not find parameters " << ParamName << " in file " << FileName;
     }
     LOG(info) << "Loading parameters " << ParamName << " from TFile " << FileName;

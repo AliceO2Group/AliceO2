@@ -249,6 +249,7 @@ bool GeneratorFromO2Kine::importParticles()
       mParticles.push_back(TParticle(pdg, t.getStatusCode().fullEncoding, m1, m2, d1, d2, px, py, pz, e, vx, vy, vz, vt));
       mParticles.back().SetUniqueID((unsigned int)t.getProcess()); // we should propagate the process ID
       mParticles.back().SetBit(ParticleStatus::kToBeDone, wanttracking);
+      mParticles.back().SetWeight(weight);
 
       particlecounter++;
     }

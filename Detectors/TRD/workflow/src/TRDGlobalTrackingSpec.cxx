@@ -67,6 +67,7 @@ namespace trd
 void TRDGlobalTracking::init(InitContext& ic)
 {
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
+  mTPCCorrMapsLoader.init(ic);
   mTimer.Stop();
   mTimer.Reset();
 }
@@ -75,7 +76,7 @@ void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   mTPCVDriftHelper.extractCCDBInputs(pc);
-  o2::tpc::CorrectionMapsLoader::extractCCDBInputs(pc);
+  mTPCCorrMapsLoader.extractCCDBInputs(pc);
   // pc.inputs().get<TopologyDictionary*>("cldict"); // called by the RecoContainer to trigger finaliseCCDB
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
@@ -831,7 +832,8 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, boo
                                                               inputs,
                                                               true);
   o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
-  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(inputs);
+  Options opts;
+  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(inputs, opts, src[GTrackID::CTP]);
 
   // Request PID policy data
   if (withPID) {
@@ -884,7 +886,7 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, boo
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<TRDGlobalTracking>(useMC, withPID, policy, dataRequest, ggRequest, src, trigRecFilterActive, strict)},
-    Options{}};
+    opts};
 }
 
 } // namespace trd

@@ -42,6 +42,7 @@ o2_add_library(Framework
                        src/DataSender.cxx
                        src/DataProcessingStats.cxx
                        src/DataProcessingStates.cxx
+                       src/DefaultsHelpers.cxx
                        src/DomainInfoHeader.cxx
                        src/ProcessingPoliciesHelpers.cxx
                        src/ConfigParamStore.cxx
@@ -90,7 +91,6 @@ o2_add_library(Framework
                        src/InputSpan.cxx
                        src/InputSpec.cxx
                        src/OutputSpec.cxx
-                       src/Kernels.cxx
                        src/LifetimeHelpers.cxx
                        src/LocalRootFileService.cxx
                        src/RootConfigParamHelpers.cxx
@@ -220,7 +220,6 @@ add_executable(o2-test-framework-core
               test/test_InputRecordWalker.cxx
               test/test_InputSpan.cxx
               test/test_InputSpec.cxx
-              test/test_Kernels.cxx
               test/test_LogParsingHelpers.cxx
               test/test_Mermaid.cxx
               test/test_OptionsHelpers.cxx
@@ -250,7 +249,7 @@ target_link_libraries(o2-test-framework-core PRIVATE O2::Catch2)
 get_filename_component(outdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/../tests ABSOLUTE)
 set_property(TARGET o2-test-framework-core PROPERTY RUNTIME_OUTPUT_DIRECTORY ${outdir})
 
-add_test(NAME framework:core COMMAND o2-test-framework-core)
+add_test(NAME framework:core COMMAND o2-test-framework-core --skip-benchmarks)
 
 o2_add_test(AlgorithmWrapper NAME test_Framework_test_AlgorithmWrapper
             SOURCES test/test_AlgorithmWrapper.cxx

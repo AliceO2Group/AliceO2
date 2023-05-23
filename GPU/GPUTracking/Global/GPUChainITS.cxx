@@ -76,13 +76,13 @@ int GPUChainITS::Finalize() { return 0; }
 
 int GPUChainITS::RunChain() { return 0; }
 
-int GPUChainITS::PrepareAndRunITSTrackFit(std::vector<o2::its::Road>& roads, std::vector<const o2::its::Cluster*>& clusters, std::vector<const o2::its::Cell*>& cells, const std::vector<std::vector<o2::its::TrackingFrameInfo>>& tf, std::vector<o2::its::TrackITSExt>& tracks)
+int GPUChainITS::PrepareAndRunITSTrackFit(std::vector<o2::its::Road<5>>& roads, std::vector<const o2::its::Cluster*>& clusters, std::vector<const o2::its::Cell*>& cells, const std::vector<std::vector<o2::its::TrackingFrameInfo>>& tf, std::vector<o2::its::TrackITSExt>& tracks)
 {
   mRec->PrepareEvent();
   return RunITSTrackFit(roads, clusters, cells, tf, tracks);
 }
 
-int GPUChainITS::RunITSTrackFit(std::vector<o2::its::Road>& roads, std::vector<const o2::its::Cluster*>& clusters, std::vector<const o2::its::Cell*>& cells, const std::vector<std::vector<o2::its::TrackingFrameInfo>>& tf, std::vector<o2::its::TrackITSExt>& tracks)
+int GPUChainITS::RunITSTrackFit(std::vector<o2::its::Road<5>>& roads, std::vector<const o2::its::Cluster*>& clusters, std::vector<const o2::its::Cell*>& cells, const std::vector<std::vector<o2::its::TrackingFrameInfo>>& tf, std::vector<o2::its::TrackITSExt>& tracks)
 {
   auto threadContext = GetThreadContext();
   bool doGPU = GetRecoStepsGPU() & RecoStep::ITSTracking;

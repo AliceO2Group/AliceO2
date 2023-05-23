@@ -53,6 +53,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"filter-trigrec", VariantType::Bool, false, {"ignore interaction records without ITS data"}},
     {"strict-matching", VariantType::Bool, false, {"High purity preliminary matching"}},
     {"disable-ft0-pileup-tagging", VariantType::Bool, false, {"Do not request FT0 for pile-up determination"}},
+    {"require-ctp-lumi", o2::framework::VariantType::Bool, false, {"require CTP lumi for TPC correction scaling"}},
     {"policy", VariantType::String, "default", {"Pick PID policy (=default)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -74,6 +75,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto pid = configcontext.options().get<bool>("enable-pid");
   auto strict = configcontext.options().get<bool>("strict-matching");
   auto trigRecFilterActive = configcontext.options().get<bool>("filter-trigrec");
+  auto requireCTPLumi = configcontext.options().get<bool>("require-ctp-lumi");
   GTrackID::mask_t srcTRD = allowedSources & GTrackID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
   if (strict && (srcTRD & ~GTrackID::getSourcesMask("TPC")).any()) {
     LOGP(warning, "In strict matching mode only TPC source allowed, {} asked, redefining", GTrackID::getSourcesNames(srcTRD));
@@ -81,6 +83,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
   if (!configcontext.options().get<bool>("disable-ft0-pileup-tagging")) {
     srcTRD |= GTrackID::getSourcesMask("FT0");
+  }
+  if (requireCTPLumi) {
+    srcTRD = srcTRD | GTrackID::getSourcesMask("CTP");
   }
   // Parse PID policy string
   o2::trd::PIDPolicy policy{o2::trd::PIDPolicy::DEFAULT};

@@ -37,7 +37,9 @@ struct LtrCalibData {
   float refVDrift{};                   ///< reference vdrift for which factor was extracted
   uint16_t nTracksA{};                 ///< number of tracks used for A-Side fit
   uint16_t nTracksC{};                 ///< number of tracks used for C-Side fit
-  std::vector<uint16_t> matchedLtrIDs; ///< list of matched laser track IDs
+  std::vector<uint16_t> matchedLtrIDs; ///< matched laser track IDs
+  std::vector<uint16_t> nTrackTF;      ///< number of laser tracks per TF
+  std::vector<float> dEdx;             ///< dE/dx of each track
 
   float getDriftVCorrection() const { return 0.5f * (dvCorrectionA + dvCorrectionC); }
 
@@ -80,9 +82,11 @@ struct LtrCalibData {
     nTracksC = 0;
     refVDrift = 0;
     matchedLtrIDs.clear();
+    nTrackTF.clear();
+    dEdx.clear();
   }
 
-  ClassDefNV(LtrCalibData, 2);
+  ClassDefNV(LtrCalibData, 3);
 };
 
 } // namespace o2::tpc

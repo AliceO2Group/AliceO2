@@ -342,6 +342,7 @@ void VertexerTraits::computeTrackletMatching()
 
 void VertexerTraits::computeVertices()
 {
+  auto nsigmaCut{std::min(mVrtParams.vertNsigmaCut * mVrtParams.vertNsigmaCut * (mVrtParams.vertRadiusSigma * mVrtParams.vertRadiusSigma + mVrtParams.trackletSigma * mVrtParams.trackletSigma), 1.98f)};
   std::vector<Vertex> vertices;
 #ifdef VTX_DEBUG
   std::vector<std::vector<ClusterLines>> dbg_clusLines(mTimeFrame->getNrof());
@@ -433,18 +434,18 @@ void VertexerTraits::computeVertices()
     bool atLeastOneFound{false};
     for (int iCluster{0}; iCluster < noClustersVec[rofId]; ++iCluster) {
       bool lowMultCandidate{false};
+      double beamDistance2{(mTimeFrame->getBeamX() - mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0]) * (mTimeFrame->getBeamX() - mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0]) +
+                           (mTimeFrame->getBeamY() - mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[1]) * (mTimeFrame->getBeamY() - mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[1])};
       if (atLeastOneFound && (lowMultCandidate = mTimeFrame->getTrackletClusters(rofId)[iCluster].getSize() < mVrtParams.clusterContributorsCut)) { // We might have pile up with nContr > cut.
-        float beamDistance2{(mTimeFrame->getBeamX() - mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0]) * (mTimeFrame->getBeamX() - mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0]) +
-                            (mTimeFrame->getBeamY() - mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[1]) * (mTimeFrame->getBeamY() - mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[1])};
-        lowMultCandidate &= beamDistance2 < mVrtParams.lowMultXYcut2;
+        lowMultCandidate &= (beamDistance2 < mVrtParams.lowMultBeamDistCut * mVrtParams.lowMultBeamDistCut);
         if (!lowMultCandidate) { // Not the first cluster and not a low multiplicity candidate, we can remove it
           mTimeFrame->getTrackletClusters(rofId).erase(mTimeFrame->getTrackletClusters(rofId).begin() + iCluster);
           noClustersVec[rofId]--;
           continue;
         }
       }
-      float rXY{std::hypot(mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0], mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[1])};
-      if (rXY < 1.98 && std::abs(mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[2]) < mVrtParams.maxZPositionAllowed) {
+
+      if (beamDistance2 < nsigmaCut && std::abs(mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[2]) < mVrtParams.maxZPositionAllowed) {
         atLeastOneFound = true;
         vertices.emplace_back(o2::math_utils::Point3D<float>(mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0],
                                                              mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[1],
@@ -510,6 +511,7 @@ void VertexerTraits::computeVerticesInRof(int rofId,
                                           std::vector<o2::MCCompLabel>* labels)
 {
   int foundVertices{0};
+  auto nsigmaCut{std::min(mVrtParams.vertNsigmaCut * mVrtParams.vertNsigmaCut * (mVrtParams.vertRadiusSigma * mVrtParams.vertRadiusSigma + mVrtParams.trackletSigma * mVrtParams.trackletSigma), 1.98f)};
   const int numTracklets{static_cast<int>(lines.size())};
   for (int line1{0}; line1 < numTracklets; ++line1) {
     if (usedLines[line1]) {
@@ -584,18 +586,17 @@ void VertexerTraits::computeVerticesInRof(int rofId,
   bool atLeastOneFound{false};
   for (int iCluster{0}; iCluster < nClusters; ++iCluster) {
     bool lowMultCandidate{false};
+    double beamDistance2{(mTimeFrame->getBeamX() - mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0]) * (mTimeFrame->getBeamX() - mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[0]) +
+                         (mTimeFrame->getBeamY() - mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[1]) * (mTimeFrame->getBeamY() - mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[1])};
     if (atLeastOneFound && (lowMultCandidate = clusterLines[iCluster].getSize() < mVrtParams.clusterContributorsCut)) { // We might have pile up with nContr > cut.
-      float beamDistance2{(beamPosXY[0] - clusterLines[iCluster].getVertex()[0]) * (beamPosXY[0] - clusterLines[iCluster].getVertex()[0]) +
-                          (beamPosXY[1] - clusterLines[iCluster].getVertex()[1]) * (beamPosXY[1] - clusterLines[iCluster].getVertex()[1])};
-      lowMultCandidate &= beamDistance2 < mVrtParams.lowMultXYcut2;
+      lowMultCandidate &= (beamDistance2 < mVrtParams.lowMultBeamDistCut * mVrtParams.lowMultBeamDistCut);
       if (!lowMultCandidate) { // Not the first cluster and not a low multiplicity candidate, we can remove it
         clusterLines.erase(clusterLines.begin() + iCluster);
         nClusters--;
         continue;
       }
     }
-    float rXY{std::hypot(clusterLines[iCluster].getVertex()[0], clusterLines[iCluster].getVertex()[1])};
-    if (rXY < 1.98 && std::abs(clusterLines[iCluster].getVertex()[2]) < mVrtParams.maxZPositionAllowed) {
+    if (beamDistance2 < nsigmaCut && std::abs(mTimeFrame->getTrackletClusters(rofId)[iCluster].getVertex()[2]) < mVrtParams.maxZPositionAllowed) {
       atLeastOneFound = true;
       ++foundVertices;
       vertices.emplace_back(o2::math_utils::Point3D<float>(clusterLines[iCluster].getVertex()[0],

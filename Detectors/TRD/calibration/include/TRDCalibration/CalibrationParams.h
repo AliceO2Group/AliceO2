@@ -30,7 +30,7 @@ struct TRDCalibParams : public o2::conf::ConfigurableParamHelper<TRDCalibParams>
   size_t minEntriesTotal = 40'500; ///< minimum total required for meaningful fits
 
   // parameters related to noise calibration
-  size_t minNumberOfDigits = 100'000'000'000UL; ///< when reached, noise calibration will be finalized
+  size_t minNumberOfDigits = 1'000'000'000UL; ///< when reached, noise calibration will be finalized
 
   // boilerplate
   O2ParamDef(TRDCalibParams, "TRDCalibParams");

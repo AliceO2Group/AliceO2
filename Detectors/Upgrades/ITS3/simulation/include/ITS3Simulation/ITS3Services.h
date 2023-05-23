@@ -37,10 +37,26 @@ class ITS3Services : public TObject
   /// Default destructor
   ~ITS3Services() override;
 
+  void setCyssCylInnerD(double innerD) { mCyssCylInnerD = innerD; }
+  void setCyssCylOuterD(double outerD) { mCyssCylOuterD = outerD; }
+  void setCyssCylFabricThick(double fabricThick) { mCyssCylFabricThick = fabricThick; }
+  void setCyssConeIntSectDmin(double dmin) { mCyssConeIntSectDmin = dmin; }
+  void setCyssConeIntSectDmax(double dmax) { mCyssConeIntSectDmax = dmax; }
+  void setCyssConeFabricThick(double fabricThick) { mCyssConeFabricThick = fabricThick; }
+  void setCyssFlangeCDExt(double flangeCDExt) { mCyssFlangeCDExt = flangeCDExt; }
+
   /// Creates the CYSS Assembly (i.e. the supporting half cylinder and cone)
   TGeoVolume* createCYSSAssembly();
 
  private:
+  double mCyssCylInnerD;       //! CYSS cylinder inner diameter
+  double mCyssCylOuterD;       //! CYSS cylinder outer diameter
+  double mCyssCylFabricThick;  //! CYSS cylinder fabric thickness
+  double mCyssConeIntSectDmin; //! CYSS cone internal section min diameter
+  double mCyssConeIntSectDmax; //! CYSS cone internal section max diameter
+  double mCyssConeFabricThick; //! CYSS cone fabric thickness
+  double mCyssFlangeCDExt;     //! CYSS flange on side C external diameter
+
   /// Creates the CYSS cylinder of the Inner Barrel
   TGeoVolume* createCYSSCylinder();
 
@@ -83,6 +99,16 @@ class ITS3Services : public TObject
   /// \param y1 The second y value defining the line
   /// \param x The x value for which the y value is wanted.
   double yFrom2Points(double x0, double y0, double x1, double y1, double x) const;
+
+  /// Given the line defined by the two points (x0,y0) and (x1,y1) and a point on
+  /// the line which x(y)-axis is x(y), returns the y(x) value of the point on the line
+  /// \param x0 The first x value defining the line
+  /// \param y0 The first y value defining the line
+  /// \param x1 The second x value defining the line
+  /// \param y1 The second y value defining the line
+  /// \param x(y) The x(y) value for which the y(x) value is wanted.
+  double yOntheLine(double x0, double y0, double x1, double y1, double x) const;
+  double xOntheLine(double x0, double y0, double x1, double y1, double y) const;
 
   ClassDefOverride(ITS3Services, 0); // ITS3 services
 };

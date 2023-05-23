@@ -17,7 +17,6 @@
 #define _ALICEO2_STRANGENESS_TRACKER_
 
 #include <gsl/gsl>
-#include <TVector3.h>
 
 #include "DataFormatsITSMFT/TopologyDictionary.h"
 #include "StrangenessTracking/IndexTableUtils.h"
@@ -42,6 +41,12 @@ namespace o2
 {
 namespace strangeness_tracking
 {
+
+enum DauType : int {
+  kV0DauPos = 0,
+  kV0DauNeg = 1,
+  kBach = 2
+};
 
 struct ClusAttachments {
 
@@ -110,26 +115,22 @@ class StrangenessTracker
 
   double calcV0alpha(const V0& v0)
   {
-    std::array<float, 3> fV0mom, fPmom, fNmom = {0, 0, 0};
-    v0.getProng(0).getPxPyPzGlo(fPmom);
-    v0.getProng(1).getPxPyPzGlo(fNmom);
-    v0.getPxPyPzGlo(fV0mom);
-
-    TVector3 momNeg(fNmom[0], fNmom[1], fNmom[2]);
-    TVector3 momPos(fPmom[0], fPmom[1], fPmom[2]);
-    TVector3 momTot(fV0mom[0], fV0mom[1], fV0mom[2]);
-
-    Double_t lQlNeg = momNeg.Dot(momTot) / momTot.Mag();
-    Double_t lQlPos = momPos.Dot(momTot) / momTot.Mag();
-    return (lQlPos - lQlNeg) / (lQlPos + lQlNeg);
+    std::array<float, 3> momT, momP, momN;
+    v0.getProng(0).getPxPyPzGlo(momP);
+    v0.getProng(1).getPxPyPzGlo(momN);
+    v0.getPxPyPzGlo(momT);
+    float qNeg = momN[0] * momT[0] + momN[1] * momT[1] + momN[2] * momT[2];
+    float qPos = momP[0] * momT[0] + momP[1] * momT[1] + momP[2] * momT[2];
+    return (qPos - qNeg) / (qPos + qNeg);
   };
 
   double calcMotherMass(double p2Mother, double p2DauFirst, double p2DauSecond, PID pidDauFirst, PID pidDauSecond)
   {
 
-    double m2DauFirst = PID::getMass2(pidDauFirst) * PID::getMass2(pidDauFirst);
-    double m2DauSecond = PID::getMass2(pidDauSecond) * PID::getMass2(pidDauSecond);
-    double e2Mother = p2DauFirst + m2DauFirst + p2DauSecond + m2DauSecond;
+    double m2DauFirst = PID::getMass2(pidDauFirst);
+    double m2DauSecond = PID::getMass2(pidDauSecond);
+    float ePos = std::sqrt(p2DauFirst + m2DauFirst), eNeg = std::sqrt(p2DauSecond + m2DauSecond);
+    double e2Mother = (ePos + eNeg) * (ePos + eNeg);
     return std::sqrt(e2Mother - p2Mother);
   }
 
@@ -155,7 +156,7 @@ class StrangenessTracker
     propPos.getPxPyPzGlo(pP);
     propNeg.getPxPyPzGlo(pN);
     std::array<float, 3> pV0 = {pP[0] + pN[0], pP[1] + pN[1], pP[2] + pN[2]};
-    newV0 = V0(v0XYZ, pV0, mFitterV0.calcPCACovMatrixFlat(0), propPos, propNeg, mV0dauIDs[0], mV0dauIDs[1], PID::HyperTriton);
+    newV0 = V0(v0XYZ, pV0, mFitterV0.calcPCACovMatrixFlat(0), propPos, propNeg, mV0dauIDs[kV0DauPos], mV0dauIDs[kV0DauNeg], PID::HyperTriton);
     return true;
   };
 
@@ -202,14 +203,10 @@ class StrangenessTracker
     // LOG(info) << " Patt Npixel: " << pattVec[0].getNPixels();
   }
 
-  float getMatchingChi2(o2::track::TrackParCovF v0, const TrackITS ITStrack, ITSCluster matchingClus)
+  float getMatchingChi2(o2::track::TrackParCovF v0, const TrackITS& itsTrack)
   {
-    auto geom = o2::its::GeometryTGeo::Instance();
-    float alpha = geom->getSensorRefAlpha(matchingClus.getSensorID()), x = matchingClus.getX();
-    if (v0.rotate(alpha)) {
-      if (v0.propagateTo(x, mBz)) {
-        return v0.getPredictedChi2(ITStrack.getParamOut());
-      }
+    if (v0.rotate(itsTrack.getParamOut().getAlpha()) && v0.propagateTo(itsTrack.getParamOut().getX(), mBz)) {
+      return v0.getPredictedChi2(itsTrack.getParamOut());
     }
     return -100;
   };

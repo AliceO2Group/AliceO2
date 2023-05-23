@@ -51,10 +51,11 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"enable-mc", o2::framework::VariantType::Bool, false, {"enable MC-info checks"}},
     {"track-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use"}},
-    {"detectors", VariantType::String, std::string{"ITS,TRD,TOF"}, {"comma-separated list of detectors"}},
+    {"detectors", VariantType::String, std::string{"ITS,TPC,TRD,TOF"}, {"comma-separated list of detectors"}},
     {"enable-tpc-tracks", VariantType::Bool, false, {"allow reading TPC tracks"}},
     {"enable-tpc-clusters", VariantType::Bool, false, {"allow reading TPC clusters (will trigger TPC tracks reading)"}},
     {"enable-cosmic", VariantType::Bool, false, {"enable cosmic tracks)"}},
+    {"require-ctp-lumi", o2::framework::VariantType::Bool, false, {"require CTP lumi for TPC correction scaling"}},
     {"postprocessing", VariantType::Int, 0, {"postprocessing bits: 1 - extract alignment objects, 2 - check constraints, 4 - print mpParams/Constraints, 8 - relabel pede results"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -79,7 +80,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
   GID::mask_t alowedSources = GID::getSourcesMask("ITS,TPC,TRD,ITS-TPC,TPC-TOF,TPC-TRD,ITS-TPC-TRD,TPC-TRD-TOF,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
-  DetID::mask_t allowedDets = DetID::getMask("ITS,TRD,TOF");
+  DetID::mask_t allowedDets = DetID::getMask("ITS,TPC,TRD,TOF");
 
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
@@ -90,11 +91,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   bool loadTPCTracks = configcontext.options().get<bool>("enable-tpc-tracks");
   bool enableCosmic = configcontext.options().get<bool>("enable-cosmic");
   bool useMC = configcontext.options().get<bool>("enable-mc");
+  auto requireCTPLumi = configcontext.options().get<bool>("require-ctp-lumi");
 
   DetID::mask_t dets = allowedDets & DetID::getMask(configcontext.options().get<std::string>("detectors"));
   DetID::mask_t skipDetClusters; // optionally skip automatically loaded clusters
   GID::mask_t src = alowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
   GID::mask_t srcCl{}, srcMP = src; // we may need to load more track types than requested to satisfy dependencies, but only those will be fed to millipede
+
+  if (dets[DetID::TPC]) {
+    loadTPCClusters = loadTPCTracks = true;
+  }
 
   if (!postprocess) { // this part is needed only if the data should be read
     if (GID::includesDet(DetID::ITS, src)) {
@@ -133,6 +139,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
         src |= GID::getSourceMask(GID::ITSTPCTRD);
       }
       LOG(info) << "adding TOF request";
+    }
+    if (requireCTPLumi) {
+      src = src | GID::getSourcesMask("CTP");
     }
     // write the configuration used for the workflow
     o2::conf::ConfigurableParam::writeINI("o2_barrel_alignment_configuration.ini");

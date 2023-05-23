@@ -302,7 +302,7 @@ void RawToDigitsTask::writeResults()
   theObj[Geo::N_MODULES]->Branch("Average_Busy_Time", &avgBusyTime, "F");
 
   char summaryFileName[254];
-  sprintf(summaryFileName, "%s_stat.txt", mBaseFileName.c_str());
+  snprintf(summaryFileName, 254, "%s_stat.txt", mBaseFileName.c_str());
   mDecod->writeSummaryFile(summaryFileName);
   for (int e = 0; e < numEqui; e++) {
     avgEventSize = mDecod->getAverageEventSize(e);

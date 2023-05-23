@@ -81,7 +81,7 @@ class CalibratorPadGainTracksDevice : public Task
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
     mCalibrator->process(*histomaps.get());
     const auto& infoVec = mCalibrator->getTFinterval();
-    LOGP(info, "Created {} objects for TF {} and time stamp {}", infoVec.size(), mCalibrator->getCurrentTFInfo().tfCounter, mCalibrator->getCurrentTFInfo().creation);
+    LOGP(detail, "Created {} objects for TF {} and time stamp {}", infoVec.size(), mCalibrator->getCurrentTFInfo().tfCounter, mCalibrator->getCurrentTFInfo().creation);
 
     if (mCalibrator->hasCalibrationData()) {
       mRunNumber = mCalibrator->getCurrentTFInfo().runNumber;

@@ -73,6 +73,7 @@ void CheckTracksITS3(std::string tracfile = "o2trac_its3.root",
                      std::string clusfile = "o2clus_it3.root",
                      std::string kinefile = "o2sim_Kine.root",
                      std::string magfile = "o2sim_grp.root",
+                     std::string inputGeom = "o2sim_geometry.root",
                      bool batch = true)
 {
 
@@ -94,7 +95,7 @@ void CheckTracksITS3(std::string tracfile = "o2trac_its3.root",
   double orig[3] = {0., 0., 0.};
   float bz = field->getBz(orig);
   // Geometry
-  o2::base::GeometryManager::loadGeometry();
+  o2::base::GeometryManager::loadGeometry(inputGeom);
   auto gman = o2::its::GeometryTGeo::Instance();
 
   // MC tracks

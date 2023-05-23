@@ -415,7 +415,8 @@ TEST_CASE("GroupSlicerMismatchedUnsortedFilteredGroups")
   REQUIRE(t.size() == 10 * (20 - 4));
 
   auto tt = std::make_tuple(t);
-  ArrowTableSlicingCache slices({});
+  ArrowTableSlicingCache slices({}, {{soa::getLabelFromType<aod::TrksXU>(), "fIndex" + o2::framework::cutString(soa::getLabelFromType<aod::Events>())}});
+  auto s = slices.updateCacheEntryUnsorted(0, trkTable);
   o2::framework::GroupSlicer g(e, tt, slices);
 
   unsigned int count = 0;
@@ -561,13 +562,13 @@ TEST_CASE("ArrowDirectSlicing")
 
   std::vector<arrow::Datum> slices;
   std::vector<uint64_t> offsts;
-  auto status = sliceByColumn("fID", "BigE", b_e.asArrowTable(), 20, &slices, &offsts);
+  auto bk = std::make_pair(soa::getLabelFromType<aod::Events>(), "fID");
+  ArrowTableSlicingCache cache({bk});
+  auto s = cache.updateCacheEntry(0, {evtTable});
+  auto lcache = cache.getCacheFor(bk);
   for (auto i = 0u; i < 5; ++i) {
-#if ARROW_VERSION_MAJOR < 10
-    auto tbl = arrow::util::get<std::shared_ptr<arrow::Table>>(slices[i].value);
-#else
-    auto tbl = slices[i].table();
-#endif
+    auto [offset, count] = lcache.getSliceFor(i);
+    auto tbl = b_e.asArrowTable()->Slice(offset, count);
     auto ca = tbl->GetColumnByName("fArr");
     auto cb = tbl->GetColumnByName("fBoo");
     auto cv = tbl->GetColumnByName("fLst");
@@ -581,11 +582,8 @@ TEST_CASE("ArrowDirectSlicing")
 
   int j = 0u;
   for (auto i = 0u; i < 5; ++i) {
-#if ARROW_VERSION_MAJOR < 10
-    auto tbl = BigE::table_t{arrow::util::get<std::shared_ptr<arrow::Table>>(slices[i].value), static_cast<uint64_t>(offsts[i])};
-#else
-    auto tbl = BigE::table_t{slices[i].table(), static_cast<uint64_t>(offsts[i])};
-#endif
+    auto [offset, count] = lcache.getSliceFor(i);
+    auto tbl = BigE{{b_e.asArrowTable()->Slice(offset, count)}, static_cast<uint64_t>(offset)};
     REQUIRE(tbl.size() == counts[i]);
     for (auto& row : tbl) {
       REQUIRE(row.id() == ids[i]);
@@ -603,5 +601,34 @@ TEST_CASE("ArrowDirectSlicing")
       }
       ++j;
     }
+  }
+}
+
+TEST_CASE("TestSlicingException")
+{
+  int offsets[] = {0, 5, 10, 15, 19, 20};
+  int ids[] = {0, 1, 2, 4, 3};
+
+  TableBuilder builderE;
+  auto evtsWriter = builderE.cursor<aod::Events>();
+  auto step = 0;
+  for (auto i = 0; i < 20; ++i) {
+    if (i >= offsets[step + 1]) {
+      ++step;
+    }
+    evtsWriter(0, ids[step], 0.5f * i, 2.f * i, 3.f * i);
+  }
+  auto evtTable = builderE.finalize();
+
+  auto bk = std::make_pair(soa::getLabelFromType<aod::Events>(), "fID");
+  ArrowTableSlicingCache cache({bk});
+
+  try {
+    auto s = cache.updateCacheEntry(0, {evtTable});
+  } catch (RuntimeErrorRef re) {
+    REQUIRE(std::string{error_from_ref(re).what} == "Table Events index fID is not sorted: next value 3 < previous value 4!");
+    return;
+  } catch (...) {
+    FAIL("Slicing should have failed due to unsorted index");
   }
 }

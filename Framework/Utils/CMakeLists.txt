@@ -78,7 +78,7 @@ add_executable(o2-test-framework-utils
   test/test_DPLRawParser.cxx
   test/test_DPLRawPageSequencer.cxx
 )
-target_link_libraries(o2-test-framework-utils PRIVATE O2::Framework O2::DPLUtils)
+target_link_libraries(o2-test-framework-utils PRIVATE O2::Framework O2::DPLUtils O2::DetectorsRaw)
 target_link_libraries(o2-test-framework-utils PRIVATE O2::Catch2)
 
 get_filename_component(outdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/../tests ABSOLUTE)
@@ -95,6 +95,6 @@ foreach(b
               SOURCES test/benchmark_${b}.cxx
               COMPONENT_NAME DPLUtils
               LABELS dplutils benchmark
-              PUBLIC_LINK_LIBRARIES O2::DPLUtils benchmark::benchmark)
+              PUBLIC_LINK_LIBRARIES O2::DPLUtils benchmark::benchmark O2::DetectorsRaw)
 endforeach()
 endif()

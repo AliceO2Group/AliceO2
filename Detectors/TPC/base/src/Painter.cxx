@@ -898,41 +898,46 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const LtrCalibData& ltr, std:
 
   // ===| set up canvases |===
   TCanvas* cLtrCoverage = nullptr;
+  TCanvas* cLtrdEdx = nullptr;
   TCanvas* cCalibValues = nullptr;
 
   const auto size = 1400;
   if (outputCanvases) {
-    if (outputCanvases->size() < 2) {
-      LOGP(error, "At least 2 canvases are needed to fill the output, only {} given", outputCanvases->size());
+    if (outputCanvases->size() < 3) {
+      LOGP(error, "At least 3 canvases are needed to fill the output, only {} given", outputCanvases->size());
       return vecCanvases;
     }
 
     cLtrCoverage = outputCanvases->at(0);
     cCalibValues = outputCanvases->at(1);
+    cLtrdEdx = outputCanvases->at(2);
     cLtrCoverage->Clear();
     cCalibValues->Clear();
+    cLtrdEdx->Clear();
     cLtrCoverage->SetCanvasSize(size, 2. * size * 7 / 24 * 1.1);
     cCalibValues->SetCanvasSize(size, 2. * size * 7 / 24 * 1.1);
+    cLtrdEdx->SetCanvasSize(size, 2. * size * 7 / 24 * 1.1);
   } else {
     cLtrCoverage = new TCanvas("cLtrCoverage", "laser track coverage", size, 2. * size * 7 / 24 * 1.1);
+    cLtrdEdx = new TCanvas("cLtrdEdx", "laser track average dEdx", size, 2. * size * 7 / 24 * 1.1);
     cCalibValues = new TCanvas("cCalibValues", "calibration values", size, 2. * size * 7 / 24 * 1.1);
 
     // TODO: add cCalibValues
   }
 
-  auto getLtrStatHist = [](Side side) -> TH2F* {
+  auto getLtrStatHist = [](Side side, std::string_view type = "Coverage") -> TH2F* {
     auto sideName = (side == Side::A) ? "A" : "C";
-    auto hltrCoverage = new TH2F(fmt::format("hltrCoverage_{}", sideName).data(), ";Bundle ID;Track in bundle;fraction of matches per trigger", 24, 0, 24, 7, 0, 7);
-    hltrCoverage->SetBit(TObject::kCanDelete);
-    hltrCoverage->SetStats(0);
-    hltrCoverage->GetXaxis()->SetNdivisions(406, false);
-    hltrCoverage->GetYaxis()->SetNdivisions(107, false);
-    hltrCoverage->SetLabelSize(0.05, "XY");
-    hltrCoverage->SetTitleSize(0.06, "X");
-    hltrCoverage->SetTitleSize(0.07, "Y");
-    hltrCoverage->SetTitleOffset(0.8, "X");
-    hltrCoverage->SetTitleOffset(0.4, "Y");
-    return hltrCoverage;
+    auto hltr = new TH2F(fmt::format("hltr{}_{}", type, sideName).data(), ";Bundle ID;Track in bundle", 24, 0, 24, 7, 0, 7);
+    hltr->SetBit(TObject::kCanDelete);
+    hltr->SetStats(0);
+    hltr->GetXaxis()->SetNdivisions(406, false);
+    hltr->GetYaxis()->SetNdivisions(107, false);
+    hltr->SetLabelSize(0.05, "XY");
+    hltr->SetTitleSize(0.06, "X");
+    hltr->SetTitleSize(0.07, "Y");
+    hltr->SetTitleOffset(0.8, "X");
+    hltr->SetTitleOffset(0.4, "Y");
+    return hltr;
   };
 
   auto drawNames = [](Side side) {
@@ -944,24 +949,58 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const LtrCalibData& ltr, std:
     lat.SetTextAlign(22);
     lat.SetTextSize(0.06);
 
+    TLine line;
     for (int i = 0; i < 6; ++i) {
       lat.DrawLatex(2.f + i * 4.f, 7.5, names[i].data());
+      if (i < 5) {
+        line.DrawLine(4.f + i * 4.f, 0, 4.f + i * 4.f, 8);
+      }
     }
   };
 
   auto hltrCoverageA = getLtrStatHist(Side::A);
   auto hltrCoverageC = getLtrStatHist(Side::C);
 
-  for (const auto id : ltr.matchedLtrIDs) {
+  auto hltrdEdxA = getLtrStatHist(Side::A, "dEdx");
+  auto hltrdEdxC = getLtrStatHist(Side::C, "dEdx");
+
+  float dEdxSumA = 0.f;
+  float dEdxSumC = 0.f;
+  int nTrackA = 0;
+  int nTrackC = 0;
+
+  for (size_t itrack = 0; itrack < ltr.matchedLtrIDs.size(); ++itrack) {
+    const auto id = ltr.matchedLtrIDs.at(itrack);
+    const auto dEdx = ltr.dEdx.at(itrack);
     const auto trackID = id % LaserTrack::TracksPerBundle;
     const auto bundleID = (id / LaserTrack::TracksPerBundle) % (LaserTrack::RodsPerSide * LaserTrack::BundlesPerRod);
+    const auto sideA = id < (LaserTrack::NumberOfTracks / 2);
 
-    auto hltrCoverage = (id < (LaserTrack::NumberOfTracks / 2)) ? hltrCoverageA : hltrCoverageC;
+    auto hltrCoverage = (sideA) ? hltrCoverageA : hltrCoverageC;
+    auto hltrdEdx = (sideA) ? hltrdEdxA : hltrdEdxC;
 
     hltrCoverage->Fill(bundleID, trackID);
+    hltrdEdx->Fill(bundleID, trackID, dEdx);
+
+    if (sideA) {
+      dEdxSumA += dEdx;
+      ++nTrackA;
+    } else {
+      dEdxSumC += dEdx;
+      ++nTrackC;
+    }
   }
   // hltrCoverage->Scale(1.f/float(ltr->processedTFs));
 
+  if (nTrackA > 1) {
+    dEdxSumA /= nTrackA;
+  }
+
+  if (nTrackC > 1) {
+    dEdxSumC /= nTrackC;
+  }
+
+  // ===| coverage canvases |===
   cLtrCoverage->Divide(1, 2);
 
   // A-Side
@@ -980,6 +1019,27 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const LtrCalibData& ltr, std:
   hltrCoverageC->Draw("col text");
   drawNames(Side::C);
 
+  // ===| dEdx canvases |===
+  cLtrdEdx->Divide(1, 2);
+
+  // A-Side
+  cLtrdEdx->cd(1);
+  gPad->SetGridx(1);
+  gPad->SetGridy(1);
+  gPad->SetRightMargin(0.01);
+  hltrdEdxA->Divide(hltrCoverageA);
+  hltrdEdxA->Draw("col text");
+  drawNames(Side::A);
+
+  // C-Side
+  cLtrdEdx->cd(2);
+  gPad->SetGridx(1);
+  gPad->SetGridy(1);
+  gPad->SetRightMargin(0.01);
+  hltrdEdxC->Divide(hltrCoverageC);
+  hltrdEdxC->Draw("col text");
+  drawNames(Side::C);
+
   // ===| calibration value canvas |===
   // TODO: Implement
   auto calibValMsg = new TPaveText(0.1, 0.1, 0.9, 0.9, "NDC");
@@ -994,12 +1054,15 @@ std::vector<TCanvas*> painter::makeSummaryCanvases(const LtrCalibData& ltr, std:
   calibValMsg->AddText(fmt::format("dvOffsetC: {}", ltr.dvOffsetC).data());
   calibValMsg->AddText(fmt::format("nTracksA: {}", ltr.nTracksA).data());
   calibValMsg->AddText(fmt::format("nTracksC: {}", ltr.nTracksC).data());
+  calibValMsg->AddText(fmt::format("#LTdEdx A#GT: {}", dEdxSumA).data());
+  calibValMsg->AddText(fmt::format("#LTdEdx C#GT: {}", dEdxSumC).data());
 
   cCalibValues->cd();
   calibValMsg->Draw();
 
   vecCanvases.emplace_back(cLtrCoverage);
   vecCanvases.emplace_back(cCalibValues);
+  vecCanvases.emplace_back(cLtrdEdx);
   return vecCanvases;
 }
 

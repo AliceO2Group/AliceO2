@@ -67,6 +67,12 @@ void Tracks::initializeHistograms()
   mMapHist["h2DEtaPhiBeforeCuts"] = std::make_unique<TH2F>("h2DEtaPhiBeforeCuts", "Tracks in eta vs. phi (before cuts);phi;eta", 360, 0., 2 * M_PI, 400, -2., 2.);
   mMapHist["h2DQOverPtPhiAside"] = std::make_unique<TH2F>("h2DQOverPtPhiAside", "Charger over p_T vs. phi, A side;phi;q/p_T", 360, 0., 2 * M_PI, 400, -20., 20.);
   mMapHist["h2DQOverPtPhiCside"] = std::make_unique<TH2F>("h2DQOverPtPhiCside", "Charger over p_T vs. phi, C side;phi;q/p_T", 360, 0., 2 * M_PI, 400, -20., 20.);
+  // eta vs pt and phi vs pt possitive and negative signs
+  mMapHist["hEtaVsPtPos"] = std::make_unique<TH2F>("hEtaVsPtPos", "#eta vs. p_{T} (Pos.);p_{T};eta", logPtBinning.size() - 1, logPtBinning.data(), 400, -2., 2.);
+  mMapHist["hEtaVsPtNeg"] = std::make_unique<TH2F>("hEtaVsPtNeg", "#eta vs. p_{T} (Neg.);p_{T};eta", logPtBinning.size() - 1, logPtBinning.data(), 400, -2., 2.);
+  mMapHist["hPhiVsPtPos"] = std::make_unique<TH2F>("hPhiVsPtPos", "#phi vs. p_{T} (Pos.);p_{T};phi", logPtBinning.size() - 1, logPtBinning.data(), 360, 0., 2 * M_PI);
+  mMapHist["hPhiVsPtNeg"] = std::make_unique<TH2F>("hPhiVsPtNeg", "#phi vs. p_{T} (Neg.);p_{T};phi", logPtBinning.size() - 1, logPtBinning.data(), 360, 0., 2 * M_PI);
+
   // 1d histograms
   mMapHist["hEtaRatio"] = std::make_unique<TH1F>("hEtaRatio", "Pseudorapidity, ratio neg./pos. ;eta", 400, -2., 2.);
   mMapHist["hPhiAsideRatio"] = std::make_unique<TH1F>("hPhiAsideRatio", "Azimuthal angle, A side, ratio neg./pos. ;phi", 360, 0., 2 * M_PI);
@@ -157,8 +163,12 @@ bool Tracks::processTrack(const o2::tpc::TrackTPC& track)
 
     if (sign < 0.) {
       mMapHist["h2DEtaPhiNeg"]->Fill(phi, eta);
+      mMapHist["hEtaVsPtNeg"]->Fill(pt, eta);
+      mMapHist["hPhiVsPtNeg"]->Fill(pt, phi);
     } else {
       mMapHist["h2DEtaPhiPos"]->Fill(phi, eta);
+      mMapHist["hEtaVsPtPos"]->Fill(pt, eta);
+      mMapHist["hPhiVsPtPos"]->Fill(pt, phi);
     }
   }
 

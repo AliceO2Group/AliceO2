@@ -99,13 +99,16 @@ struct VertexingParameters {
   int ZBins{1};
   int PhiBins{128};
 
-  float zCut = 0.002f;   // 0.002f
-  float phiCut = 0.005f; // 0.005f
+  float zCut = 0.002f;
+  float phiCut = 0.005f;
   float pairCut = 0.04f;
   float clusterCut = 0.8f;
   float histPairCut = 0.04f;
-  float tanLambdaCut = 0.002f; // tanLambda = deltaZ/deltaR
-  float lowMultXYcut2 = 0.01f; // XY cut for low-multiplicity pile up
+  float tanLambdaCut = 0.002f;     // tanLambda = deltaZ/deltaR
+  float lowMultBeamDistCut = 0.1f; // XY cut for low-multiplicity pile up
+  int vertNsigmaCut = 6;           // N sigma cut for vertex XY
+  float vertRadiusSigma = 0.33f;   // sigma of vertex XY
+  float trackletSigma = 0.01f;     // tracklet to vertex sigma
   float maxZPositionAllowed = 25.f;
   int clusterContributorsCut = 16;
   int maxTrackletsPerCluster = 2e3;

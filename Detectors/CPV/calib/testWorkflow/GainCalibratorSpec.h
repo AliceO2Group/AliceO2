@@ -101,7 +101,7 @@ class CPVGainCalibratorSpec : public o2::framework::Task
     auto&& digits = pc.inputs().get<gsl::span<o2::cpv::Digit>>("calibdigs");
 
     // fill statistics
-    LOG(info) << "Processing TF " << tfcounter << " with " << digits.size() << " digits";
+    LOG(detail) << "Processing TF " << tfcounter << " with " << digits.size() << " digits";
     mCalibrator->process(digits); // fill TimeSlot with digits from 1 event and check slots for finalization
 
     // inform about results and send output to ccdb

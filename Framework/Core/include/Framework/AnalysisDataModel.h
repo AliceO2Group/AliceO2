@@ -11,8 +11,6 @@
 #ifndef O2_FRAMEWORK_ANALYSISDATAMODEL_H_
 #define O2_FRAMEWORK_ANALYSISDATAMODEL_H_
 
-// #define O2_ZDC_NEWDATAMODEL -> commented for now
-
 #include "Framework/ASoA.h"
 #include <cmath>
 #include <bitset>
@@ -1036,11 +1034,7 @@ DECLARE_SOA_TABLE_VERSIONED(Zdcs_001, "AOD", "ZDC", 1, //! ZDC information, vers
                             zdc::DyAmplitudeZEM1<zdc::ChannelT, zdc::Amplitude>, zdc::DyAmplitudeZEM2<zdc::ChannelT, zdc::Amplitude>,
                             zdc::DyAmplitudeZNA<zdc::ChannelT, zdc::Amplitude>, zdc::DyAmplitudeZNC<zdc::ChannelT, zdc::Amplitude>,
                             zdc::DyAmplitudeZPA<zdc::ChannelT, zdc::Amplitude>, zdc::DyAmplitudeZPC<zdc::ChannelT, zdc::Amplitude>); //
-#ifdef O2_ZDC_NEWDATAMODEL
-using Zdcs = Zdcs_001; //! new version
-#else
-using Zdcs = Zdcs_000; //! old version
-#endif
+using Zdcs = Zdcs_001;                                                                                                               //! new version
 using Zdc = Zdcs::iterator;
 
 namespace fv0a
@@ -1454,7 +1448,7 @@ DECLARE_SOA_COLUMN(AmplitudeA, amplitudeA, std::vector<float>); //! Energy fract
 DECLARE_SOA_TABLE(McCaloLabels_000, "AOD", "MCCALOLABEL", //! Table joined to the calo table containing the MC index (version 000, Run 2 format)
                   mccalolabel::McParticleId, mccalolabel::McMask);
 DECLARE_SOA_TABLE_VERSIONED(McCaloLabels_001, "AOD", "MCCALOLABEL", 1, //! Table joined to the calo table containing multiple MC indices and the amplitude fraction (version 001)
-                            mccalolabel::McParticleIds, mccalolabel::McMask, mccalolabel::AmplitudeA);
+                            mccalolabel::McParticleIds, mccalolabel::AmplitudeA);
 using McCaloLabels = McCaloLabels_000;
 using McCaloLabel = McCaloLabels::iterator;
 
