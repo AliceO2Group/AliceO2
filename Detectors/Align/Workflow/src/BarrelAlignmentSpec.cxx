@@ -179,7 +179,9 @@ void BarrelAlignmentSpec::init(InitContext& ic)
   }
   mIgnoreCCDBAlignment = ic.options().get<bool>("ignore-ccdb-alignment");
   if (!mPostProcessing) {
-    mTPCCorrMapsLoader.init(ic);
+    if (mLoadTPCCalib) {
+      mTPCCorrMapsLoader.init(ic);
+    }
     if (GTrackID::includesDet(DetID::TRD, mMPsrc)) {
       mTRDTransformer.reset(new o2::trd::TrackletTransformer);
       if (ic.options().get<bool>("apply-xor")) {

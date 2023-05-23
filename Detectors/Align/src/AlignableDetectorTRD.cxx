@@ -161,7 +161,7 @@ double AlignableDetectorTRD::getCalibDOFValWithCal(int id) const
 }
 
 //____________________________________________
-int AlignableDetectorTRD::processPoints(GIndex gid, bool inv)
+int AlignableDetectorTRD::processPoints(GIndex gid, int npntCut, bool inv)
 {
   // Extract the points corresponding to this detector, recalibrate/realign them to the
   // level of the "starting point" for the alignment/calibration session.
@@ -171,7 +171,7 @@ int AlignableDetectorTRD::processPoints(GIndex gid, bool inv)
   const auto& algConf = AlignConfig::Instance();
   const auto recoData = mController->getRecoContainer();
   const auto& trk = recoData->getTrack<o2::trd::TrackTRD>(gid);
-  if (trk.getNtracklets() < algConf.minTRDTracklets) {
+  if (trk.getNtracklets() < npntCut) {
     return -1;
   }
   auto propagator = o2::base::Propagator::Instance(); // float version!
@@ -180,13 +180,11 @@ int AlignableDetectorTRD::processPoints(GIndex gid, bool inv)
     prevBz = propagator->getNominalBz();
     mRecoParam.setBfield(prevBz);
   }
-  mNPoints = 0;
   const auto* transformer = mController->getTRDTransformer();
   auto algTrack = mController->getAlgTrack();
-  mFirstPoint = algTrack->getNPoints();
   const auto trackletsRaw = recoData->getTRDTracklets();
   bool fail = false;
-  int nPntIni = algTrack->getNPoints();
+  int nPntIni = algTrack->getNPoints(), npoints = 0;
   o2::track::TrackPar trkParam = trk.getOuterParam(); // we refit outer param inward to get tracklet coordinates accounting for tilt
   for (int il = o2::trd::constants::NLAYER; il--;) {
     if (trk.getTrackletIndex(il) == -1) {
@@ -203,7 +201,7 @@ int AlignableDetectorTRD::processPoints(GIndex gid, bool inv)
       continue;
     }
     double locXYZ[3] = {trackletCalibLoc.getX(), trackletCalibLoc.getY(), trackletCalibLoc.getZ()}, locXYZC[3], traXYZ[3];
-    ;
+
     const auto& matAlg = sensor->getMatrixClAlg(); // local alignment matrix
     matAlg.LocalToMaster(locXYZ, locXYZC);         // aligned point in the local frame
     const auto& mat = sensor->getMatrixT2L();      // RS FIXME check if correct
@@ -256,14 +254,17 @@ int AlignableDetectorTRD::processPoints(GIndex gid, bool inv)
     pnt.setDetID(mDetID);
     pnt.setSID(sensor->getSID());
     pnt.setContainsMeasurement();
+    pnt.setInvDir(inv);
     pnt.init();
-    mNPoints++;
+    npoints++;
   }
   if (fail) { // reset points to original start
-    algTrack->suppressLastPoints(mNPoints);
-    mNPoints = 0;
+    algTrack->suppressLastPoints(npoints);
+    npoints = 0;
   }
-  return mNPoints;
+  mNPoints += npoints;
+
+  return npoints;
 }
 
 } // namespace align
