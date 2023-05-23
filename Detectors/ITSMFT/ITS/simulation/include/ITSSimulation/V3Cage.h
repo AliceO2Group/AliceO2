@@ -124,6 +124,8 @@ class V3Cage : public V11Geometry
   static const Double_t sCageSidePanelGuideWide; ///< Side panel guide X width
   static const Double_t sCageSidePanelGuidThik1; ///< Side panel guide thickness
   static const Double_t sCageSidePanelGuidThik2; ///< Side panel guide thickness
+  static const Double_t sCageSidePanelMidBarWid; ///< Side panel middle bar width
+  static const Double_t sCageSidePanelSidBarWid; ///< Side panel side bar width
 
   static const Double_t sCageSidePanelRail1Ypos[2]; ///< Side panel rail 1 Y pos
   static const Double_t sCageSidePanelRail2Ypos;    ///< Side panel rail 2 Y pos
