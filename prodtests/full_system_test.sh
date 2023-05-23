@@ -96,7 +96,7 @@ echo "versions,${TAG} alidist=\"${ALIDISTCOMMIT}\",O2=\"${O2COMMIT}\" " > ${METR
 
 GLOBALDPLOPT="-b" # --monitoring-backend no-op:// is currently removed due to https://alice.its.cern.ch/jira/browse/O2-1887
 
-HBFUTILPARAMS="HBFUtils.nHBFPerTF=${NHBPERTF};HBFUtils.orbitFirst=${RUNFIRSTORBIT};HBFUtils.orbitFirstSampled=${FIRSTSAMPLEDORBIT};HBFUtils.obligatorySOR=${OBLIGATORYSOR};HBFUtils.runNumber=${RUNNUMBER}"
+HBFUTILPARAMS="HBFUtils.nHBFPerTF=${NHBPERTF};HBFUtils.orbitFirst=${RUNFIRSTORBIT};HBFUtils.orbitFirstSampled=${FIRSTSAMPLEDORBIT};HBFUtils.obligatorySOR=${OBLIGATORYSOR};HBFUtils.runNumber=${RUNNUMBER};"
 [[ "0$ALLOW_MULTIPLE_TF" != "01" ]] && HBFUTILPARAMS+=";HBFUtils.maxNOrbits=$((${FIRSTSAMPLEDORBIT} + ${NHBPERTF}));"
 
 ulimit -n 4096 # Make sure we can open sufficiently many files
@@ -119,12 +119,13 @@ if [[ $FST_QED == 1 ]]; then
 fi
 
 DIGITOPT=
-DIGITOPTKEYTRD="${HBFUTILPARAMS};TRDSimParams.digithreads=${NJOBS};"
+DIGITOPTKEYTRD="TRDSimParams.digithreads=${NJOBS};"
 DIGITOPTKEY=${HBFUTILPARAMS}
 [[ ! -z $ITS_STROBE ]] && DIGITOPTKEY+="ITSAlpideParam.roFrameLengthInBC=$ITS_STROBE;"
 [[ ! -z $MFT_STROBE ]] && DIGITOPTKEY+="MFTAlpideParam.roFrameLengthInBC=$MFT_STROBE;"
 if [ $SPLITTRDDIGI == "1" ]; then
   DIGITOPT+=" --skipDet TRD"
+  DIGITOPTKEYTRD+=${HBFUTILPARAMS}
 else
   DIGITOPT+=" --trd-digit-downscaling ${DIGITDOWNSCALINGTRD}"
   DIGITOPTKEY+=$DIGITOPTKEYTRD
@@ -144,7 +145,7 @@ taskwrapper digi.log o2-sim-digitizer-workflow -n $NEvents ${DIGIQED} ${NOMCLABE
 touch digiTRD.log_done
 
 if [[ "0$GENERATE_ITSMFT_DICTIONARIES" == "01" ]]; then
-  taskwrapper itsmftdict1.log o2-its-reco-workflow --trackerCA --disable-mc --configKeyValues '"fastMultConfig.cutMultClusLow=30000;fastMultConfig.cutMultClusHigh=2000000;fastMultConfig.cutMultVtxHigh=500"'
+  taskwrapper itsmftdict1.log o2-its-reco-workflow --trackerCA --disable-mc --configKeyValues '"fastMultConfig.cutMultClusLow=30000;fastMultConfig.cutMultClusHigh=2000000;fastMultConfig.cutMultVtxHigh=500;"'
   cp ~/alice/O2/Detectors/ITSMFT/ITS/macros/test/CreateDictionaries.C .
   taskwrapper itsmftdict2.log root -b -q CreateDictionaries.C++
   rm -f CreateDictionaries_C* CreateDictionaries.C
