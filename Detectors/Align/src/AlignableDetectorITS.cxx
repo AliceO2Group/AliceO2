@@ -110,19 +110,18 @@ void AlignableDetectorITS::defineVolumes()
 }
 
 //____________________________________________
-int AlignableDetectorITS::processPoints(GIndex gid, bool inv)
+int AlignableDetectorITS::processPoints(GIndex gid, int npntCut, bool inv)
 {
   // Extract the points corresponding to this detector, recalibrate/realign them to the
   // level of the "starting point" for the alignment/calibration session.
   // If inv==true, the track propagates in direction of decreasing tracking X
   // (i.e. upper leg of cosmic track)
   //
-  mNPoints = 0;
   auto algTrack = mController->getAlgTrack();
   auto recoData = mController->getRecoContainer();
   const auto& algConf = AlignConfig::Instance();
-
-  auto procClus = [this, &algTrack](const ClusterD& clus) {
+  int npoints = 0;
+  auto procClus = [this, inv, &npoints, &algTrack](const ClusterD& clus) {
     auto* sensor = this->getSensor(clus.getSensorID());
     auto& pnt = algTrack->addDetectorPoint();
     const auto* sysE = sensor->getAddError(); // additional syst error
@@ -137,8 +136,9 @@ int AlignableDetectorITS::processPoints(GIndex gid, bool inv)
     pnt.setDetID(this->mDetID);
     pnt.setSID(sensor->getSID());
     pnt.setContainsMeasurement();
+    pnt.setInvDir(inv);
     pnt.init();
-    mNPoints++;
+    npoints++;
   };
   if (gid.getSource() == GIndex::ITS) {
     const auto tracks = recoData->getITSTracks();
@@ -146,13 +146,12 @@ int AlignableDetectorITS::processPoints(GIndex gid, bool inv)
       return -1; // source not loaded?
     }
     const auto& track = tracks[gid.getIndex()];
-    if (track.getNClusters() < algConf.minITSClusters) {
+    if (track.getNClusters() < npntCut) {
       return -1;
     }
     const auto& clusIdx = recoData->getITSTracksClusterRefs();
     // do we want to apply some cuts?
     int clEntry = track.getFirstClusterEntry();
-    mFirstPoint = algTrack->getNPoints();
     for (int icl = track.getNumberOfClusters(); icl--;) {
       const auto& clus = mITSClustersArray[clusIdx[clEntry++]];
       procClus(clus);
@@ -167,7 +166,8 @@ int AlignableDetectorITS::processPoints(GIndex gid, bool inv)
       procClus(clus);
     }
   }
-  return mNPoints;
+  mNPoints += npoints;
+  return npoints;
 }
 
 //____________________________________________
