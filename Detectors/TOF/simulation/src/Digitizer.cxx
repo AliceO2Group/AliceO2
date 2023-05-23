@@ -109,12 +109,10 @@ int Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* dig
 
   for (auto& hit : *hits) {
     //TODO: put readout window counting/selection
-    auto hitreadoutwindow = uint64_t(((hit.GetTime() + mEventTime.getTimeNS()) - Geo::BC_TIME * (Geo::OVERLAP_IN_BC + 2)) * Geo::READOUTWINDOW_INV);
-    // neglect very slow particles (thermal neutrons)
-    if (hitreadoutwindow - readoutwindow > 1) {
+    // neglect very slow particles (low energy neutrons)
+    if ( hit.GetTime() > 1000) { // 1 mus
       continue;
     }
-
     processHit(hit, mEventTime.getTimeOffsetWrtBC() + Geo::LATENCYWINDOW);
   } // end loop over hits
 
