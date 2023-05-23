@@ -208,8 +208,8 @@ enum MetricTypes {
 // so that we can display driver and device metrics in the same plot
 // without an if.
 struct AllMetricsStore {
-  std::vector<DeviceMetricsInfo> const* metrics[TOTAL_TYPES_OF_METRICS];
-  std::vector<TopologyNodeInfo> const* specs[TOTAL_TYPES_OF_METRICS];
+  gsl::span<DeviceMetricsInfo const> metrics[TOTAL_TYPES_OF_METRICS];
+  gsl::span<TopologyNodeInfo const> specs[TOTAL_TYPES_OF_METRICS];
 };
 
 void displaySparks(
@@ -227,7 +227,7 @@ void displaySparks(
   ImGui::TableSetupScrollFreeze(2, 0);
   for (size_t i = 0; i < visibleMetricsIndex.size(); ++i) {
     auto& index = visibleMetricsIndex[i];
-    auto& metricsInfos = *metricStore.metrics[index.storeIndex];
+    auto& metricsInfos = metricStore.metrics[index.storeIndex];
     auto& metricsInfo = metricsInfos[index.deviceIndex];
     auto& metric = metricsInfo.metrics[index.metricIndex];
     auto& state = metricDisplayStates[index.stateIndex];
@@ -374,8 +374,8 @@ void displayDeviceMetrics(const char* label,
   ImPlotAxisFlags axisFlags = 0;
 
   for (size_t si = 0; si < TOTAL_TYPES_OF_METRICS; ++si) {
-    std::vector<DeviceMetricsInfo> const& metricsInfos = *metricStore.metrics[si];
-    auto const& specs = *metricStore.specs[si];
+    gsl::span<DeviceMetricsInfo const> metricsInfos = metricStore.metrics[si];
+    gsl::span<TopologyNodeInfo const> specs = metricStore.specs[si];
     for (int di = 0; di < metricsInfos.size(); ++di) {
       for (size_t mi = 0; mi < metricsInfos[di].metrics.size(); ++mi) {
         if (state[gmi].visible == false) {
@@ -556,7 +556,7 @@ void metricsTableRow(std::vector<MetricIndex> metricIndex,
   ImGui::Text("%d", row);
 
   for (auto index : metricIndex) {
-    auto& metricsInfos = *metricsStore.metrics[index.storeIndex];
+    auto& metricsInfos = metricsStore.metrics[index.storeIndex];
     auto& metricsInfo = metricsInfos[index.deviceIndex];
     auto& info = metricsInfos[index.deviceIndex].metrics[index.metricIndex];
 
@@ -643,7 +643,7 @@ void displayMetrics(gui::WorkspaceGUIState& state,
 
   size_t totalMetrics = 0;
   for (auto& metricsInfos : metricsStore.metrics) {
-    for (auto& metricInfo : *metricsInfos) {
+    for (auto& metricInfo : metricsInfos) {
       totalMetrics += metricInfo.metrics.size();
     }
   }
@@ -660,8 +660,8 @@ void displayMetrics(gui::WorkspaceGUIState& state,
     });
 
     for (size_t si = 0; si < TOTAL_TYPES_OF_METRICS; ++si) {
-      auto& metricsInfos = *metricsStore.metrics[si];
-      auto& specs = *metricsStore.specs[si];
+      auto& metricsInfos = metricsStore.metrics[si];
+      auto& specs = metricsStore.specs[si];
       for (size_t di = 0; di < metricsInfos.size(); ++di) {
         auto& metricInfo = metricsInfos[di];
         auto& spec = specs[di];
@@ -701,7 +701,7 @@ void displayMetrics(gui::WorkspaceGUIState& state,
     selectedMetricIndex.clear();
     size_t gmi = 0;
     for (size_t si = 0; si < TOTAL_TYPES_OF_METRICS; ++si) {
-      auto& metricsInfos = *metricsStore.metrics[si];
+      auto& metricsInfos = metricsStore.metrics[si];
 
       for (size_t di = 0; di < metricsInfos.size(); ++di) {
         auto& metricInfo = metricsInfos[di];
@@ -725,7 +725,7 @@ void displayMetrics(gui::WorkspaceGUIState& state,
     ImGui::InputText("##query-metrics", query, MAX_QUERY_SIZE);
     size_t metricSize = 0;
     for (auto deviceMetrics : metricsStore.metrics) {
-      metricSize += DeviceMetricsInfoHelpers::metricsStorageSize(*deviceMetrics);
+      metricSize += DeviceMetricsInfoHelpers::metricsStorageSize(deviceMetrics);
     }
     // ImGui::Text("Total memory used %zu MB", metricSize / 1000000);
     ImGui::Text("%zu/%zu matching", selectedMetricIndex.size(), totalMetrics);
@@ -744,8 +744,8 @@ void displayMetrics(gui::WorkspaceGUIState& state,
       while (clipper.Step()) {
         for (size_t i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
           auto& index = selectedMetricIndex[i];
-          auto& metricsInfos = *metricsStore.metrics[index.storeIndex];
-          auto& nodes = *metricsStore.specs[index.storeIndex];
+          auto& metricsInfos = metricsStore.metrics[index.storeIndex];
+          auto& nodes = metricsStore.specs[index.storeIndex];
           auto& metricInfo = metricsInfos[index.deviceIndex];
           auto& node = nodes[index.deviceIndex];
           auto& label = metricInfo.metricLabels[index.metricIndex];
@@ -824,7 +824,7 @@ void displayMetrics(gui::WorkspaceGUIState& state,
   visibleMetricsIndex.clear();
 
   for (size_t si = 0; si < TOTAL_TYPES_OF_METRICS; ++si) {
-    auto& metricsInfos = *metricsStore.metrics[si];
+    auto& metricsInfos = metricsStore.metrics[si];
     for (size_t di = 0; di < metricsInfos.size(); ++di) {
       auto& metricInfo = metricsInfos[di];
       bool deviceVisible = false;
@@ -904,7 +904,7 @@ void displayMetrics(gui::WorkspaceGUIState& state,
       int visibleDeviceCount = -1;
       /// Calculate the size of all the metrics for a given device
       for (auto index : visibleMetricsIndex) {
-        auto& metricsInfos = *metricsStore.metrics[index.storeIndex];
+        auto& metricsInfos = metricsStore.metrics[index.storeIndex];
         if (lastDevice != index.deviceIndex) {
           visibleDeviceCount++;
           lastDevice = index.deviceIndex;
@@ -926,7 +926,7 @@ void displayMetrics(gui::WorkspaceGUIState& state,
         lastDevice = -1;
         for (auto index : visibleMetricsIndex) {
           ImGui::TableNextColumn();
-          auto& devices = *metricsStore.specs[index.storeIndex];
+          auto& devices = metricsStore.specs[index.storeIndex];
           if (lastDevice == index.deviceIndex) {
             continue;
           }
@@ -944,7 +944,7 @@ void displayMetrics(gui::WorkspaceGUIState& state,
         lastDevice = -1;
         for (auto index : visibleMetricsIndex) {
           ImGui::TableNextColumn();
-          auto& metricsInfos = *metricsStore.metrics[index.storeIndex];
+          auto& metricsInfos = metricsStore.metrics[index.storeIndex];
           auto& metric = metricsInfos[index.deviceIndex];
           auto label = metricsInfos[index.deviceIndex].metricLabels[index.metricIndex].label;
           ImGui::Text("%s (%" PRIu64 ")", label, (uint64_t)metric.metrics[index.metricIndex].filledMetrics);
@@ -1151,13 +1151,11 @@ std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
     showTopologyNodeGraph(guiState, infos, devices, allStates, metadata, controls, metricsInfos);
 
     AllMetricsStore metricsStore;
-    static std::vector<DeviceMetricsInfo> driverMetrics{driverInfo.metrics};
-    DeviceMetricsInfoHelpers::clearMetrics(driverMetrics);
 
-    metricsStore.metrics[DEVICE_METRICS] = &metricsInfos;
-    metricsStore.metrics[DRIVER_METRICS] = &driverMetrics;
-    metricsStore.specs[DEVICE_METRICS] = &deviceNodesInfos;
-    metricsStore.specs[DRIVER_METRICS] = &driverNodesInfos;
+    metricsStore.metrics[DEVICE_METRICS] = gsl::span(metricsInfos);
+    metricsStore.metrics[DRIVER_METRICS] = gsl::span(&driverInfo.metrics, 1);
+    metricsStore.specs[DEVICE_METRICS] = gsl::span(deviceNodesInfos);
+    metricsStore.specs[DRIVER_METRICS] = gsl::span(driverNodesInfos);
     displayMetrics(guiState, driverInfo, infos, metadata, controls, metricsStore);
     displayDriverInfo(driverInfo, driverControl);
 
