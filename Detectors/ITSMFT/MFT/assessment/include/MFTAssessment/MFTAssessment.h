@@ -285,7 +285,7 @@ class MFTAssessment
     {kTH3TrackXPullPtEta, R"(\Delta X/\sigma_{X})"},
     {kTH3TrackYPullPtEta, R"(\Delta Y/\sigma_{Y})"},
     {kTH3TrackPhiPullPtEta, R"(\Delta \phi/\sigma_{\phi})"},
-    {kTH3TrackCotlPullPtEta, R"(\Delta \tan(\lambda)/\sigma_{tan(\lambda)})"},
+    {kTH3TrackCotlPullPtEta, R"(\Delta \cot(\lambda)/\sigma_{cot(\lambda)})"},
     {kTH3TrackInvQPtPullPtEta, R"((\Delta q/p_t)/\sigma_{q/p_{t}})"},
     {kTH3TrackReducedChi2PtEta, R"(\chi^2/d.f.)"}};
 
