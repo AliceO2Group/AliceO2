@@ -293,7 +293,7 @@ TCanvas* MakeClassSummary(RDF df, ChannelStatusClass cls)
 
   SetStyle("Map");
   gStyle->SetPadRightMargin(0.05);
-  MakePadAndDraw(0.2, 0.65, 0.7, 1.0, hGlobalPos, "col")->DrawClone("text,same");
+  MakePadAndDraw(0.2, 0.65, 0.7, 1.0, hGlobalPos, "col")->DrawClone("text45,same");
 
   gStyle->SetPadRightMargin(0.1);
   MakePadAndDraw(0.0, 0.0, 0.7, 0.65, hLayerPos, "colz");
@@ -328,12 +328,9 @@ TCanvas* MakeRunSummary(ROOT::RDF::RNode df_all, ChannelStatusClassifier& classi
   MakePadAndDraw(0.0, 0.5, 0.33, 1.0, hRMS);
   MakePadAndDraw(0.34, 0.5, 0.66, 1.0, hMean);
 
-  gStyle->SetOptStat(0);
-  gStyle->SetPadLeftMargin(0.2);
   SetStyle("ClassStats");
-  auto h1 = MakePadAndDraw(0.67, 0.5, 1.00, 1.0, hClasses, "hbar");
-  classifier.prepareHistogram(h1);
-  gPad->SetLogx();
+  classifier.prepareHistogram(hClasses.GetPtr());
+  MakePadAndDraw(0.67, 0.5, 1.00, 1.0, hClasses, "hbar");
 
   SetStyle("MeanVsRms");
   auto h2 = MakePadAndDraw(0.00, 0.0, 0.33, 0.5, hMeanRms3, "colz");
@@ -369,7 +366,7 @@ TCanvas* MakeLayerPlots(ROOT::RDF::RNode df_in, int sector, int layer, ChannelSt
   auto hMeanMap = df.Histo2D({"MeanMap" + id, ";Pad row;ADC channel column", 76, -0.5, 75.5, 168, -0.5, 167.5}, "row", "col", "mean");
   auto hRMSMap = df.Histo2D({"RMSMap" + id, ";Pad row;ADC channel column", 76, -0.5, 75.5, 168, -0.5, 167.5}, "row", "col", "rms");
 
-  auto cnv = new TCanvas("LayerPlots", "Layer Plots", 1500, 1000);
+  auto cnv = new TCanvas("LayerPlots" + id, "Layer Plots " + id, 1500, 1000);
 
   SetStyle("MeanRms1D");
   MakePadAndDraw(0.0, 0.7, 0.3, 1.0, hMean);
