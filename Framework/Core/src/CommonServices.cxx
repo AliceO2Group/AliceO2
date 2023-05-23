@@ -817,6 +817,10 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
       return ServiceHandle{TypeIdHelpers::uniqueId<DataProcessingStats>(), stats};
     },
     .configure = noConfiguration(),
+    .preProcessing = [](ProcessingContext& context, void* service) {
+      auto* stats = (DataProcessingStats*)service;
+      flushMetrics(context.services(), *stats);
+    },
     .postProcessing = [](ProcessingContext& context, void* service) {
       auto* stats = (DataProcessingStats*)service;
       stats->updateStats({(short)ProcessingStatsId::PERFORMED_COMPUTATIONS, DataProcessingStats::Op::Add, 1}); },
@@ -832,6 +836,12 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
       auto* stats = (DataProcessingStats*)service;
       sendRelayerMetrics(context.services(), *stats);
       flushMetrics(context.services(), *stats); },
+    .postDispatching = [](ProcessingContext& context, void* service) {
+      auto* stats = (DataProcessingStats*)service;
+      flushMetrics(context.services(), *stats); },
+    .preLoop = [](ServiceRegistryRef ref, void* service) {
+      auto* stats = (DataProcessingStats*)service;
+      flushMetrics(ref, *stats); },
     .kind = ServiceKind::Serial};
 }
 
