@@ -108,9 +108,9 @@ int Digitizer::process(const std::vector<HitType>* hits, std::vector<Digit>* dig
   }   // close if continuous
 
   for (auto& hit : *hits) {
-    //TODO: put readout window counting/selection
-    // neglect very slow particles (low energy neutrons)
-    if ( hit.GetTime() > 1000) { // 1 mus
+    // TODO: put readout window counting/selection
+    //  neglect very slow particles (low energy neutrons)
+    if (hit.GetTime() > 1000) { // 1 mus
       continue;
     }
     processHit(hit, mEventTime.getTimeOffsetWrtBC() + Geo::LATENCYWINDOW);
