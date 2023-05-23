@@ -2610,6 +2610,21 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     }
   }
 
+  /// Iterate over the physicalWorkflow, any DataProcessorSpec that has a
+  /// expendable label should have all the timeframe lifetime outputs changed
+  /// to sporadic, because there is no guarantee that the device will be alive,
+  /// so we should not expect its data to always arrive.
+  for (auto& dp : physicalWorkflow) {
+    auto isExpendable = [](DataProcessorLabel const& label) { return label.value == "expendable" || label.value == "non-critical"; };
+    if (std::find_if(dp.labels.begin(), dp.labels.end(), isExpendable) != dp.labels.end()) {
+      for (auto& output : dp.outputs) {
+        if (output.lifetime == Lifetime::Timeframe) {
+          output.lifetime = Lifetime::Sporadic;
+        }
+      }
+    }
+  }
+
   /// This is the earlies the services are actually needed
   OverrideServiceSpecs driverServicesOverride = ServiceSpecHelpers::parseOverrides(getenv("DPL_DRIVER_OVERRIDE_SERVICES"));
   ServiceSpecs driverServices = ServiceSpecHelpers::filterDisabled(CommonDriverServices::defaultServices(), driverServicesOverride);
