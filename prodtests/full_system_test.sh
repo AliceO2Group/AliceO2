@@ -97,7 +97,7 @@ echo "versions,${TAG} alidist=\"${ALIDISTCOMMIT}\",O2=\"${O2COMMIT}\" " > ${METR
 GLOBALDPLOPT="-b" # --monitoring-backend no-op:// is currently removed due to https://alice.its.cern.ch/jira/browse/O2-1887
 
 HBFUTILPARAMS="HBFUtils.nHBFPerTF=${NHBPERTF};HBFUtils.orbitFirst=${RUNFIRSTORBIT};HBFUtils.orbitFirstSampled=${FIRSTSAMPLEDORBIT};HBFUtils.obligatorySOR=${OBLIGATORYSOR};HBFUtils.runNumber=${RUNNUMBER};"
-[[ "0$ALLOW_MULTIPLE_TF" != "01" ]] && HBFUTILPARAMS+=";HBFUtils.maxNOrbits=$((${FIRSTSAMPLEDORBIT} + ${NHBPERTF}));"
+[[ "0$ALLOW_MULTIPLE_TF" != "01" || "0$ALLOW_MULTIPLE_TF_N" != "01" ]] && HBFUTILPARAMS+=";HBFUtils.maxNOrbits=$((${FIRSTSAMPLEDORBIT} + ${ALLOW_MULTIPLE_TF_N:-1} * ${NHBPERTF}));"
 
 ulimit -n 4096 # Make sure we can open sufficiently many files
 [[ $? == 0 ]] || (echo Failed setting ulimit && exit 1)
