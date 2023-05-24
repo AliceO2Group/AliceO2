@@ -790,7 +790,7 @@ GPUdi() void TPCFastTransform::InverseTransformXYZtoNominalXYZ(int slice, int ro
   nx1 = getGeometry().getRowInfo(row).x;
   nx2 = getGeometry().getRowInfo(row2).x;
   InverseTransformYZtoNominalYZ(slice, row, y, z, ny1, nz1, ref, scale);
-  InverseTransformYZtoNominalYZ(slice, row2, y, z, ny1, nz1, ref, scale);
+  InverseTransformYZtoNominalYZ(slice, row2, y, z, ny2, nz2, ref, scale);
   float c1 = (nx2 - nx) / (nx2 - nx1);
   float c2 = (nx - nx1) / (nx2 - nx1);
   nx = x;
