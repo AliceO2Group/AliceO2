@@ -3,8 +3,6 @@
 source $O2DPG_ROOT/DATA/common/setenv.sh || { echo "setenv.sh failed" 1>&2 && exit 1; }
 source $O2DPG_ROOT/DATA/common/setenv_calib.sh || { echo "setenv_calib.sh failed" 1>&2 && exit 1; }
 
-: ${TPC_CORR_SCALING:=""}             # TPC corr.map lumi scaling options, any combination of --require-ctp-lumi, --corrmap-lumi-mean <float>, --corrmap-lumi-inst <float>
-
 if [[ -z "$WORKFLOW" ]] || [[ -z "$GEN_TOPO_MYDIR" ]]; then
   echo This script must be called from the dpl-workflow.sh and not standalone 1>&2
   exit 1
