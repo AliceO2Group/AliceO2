@@ -246,6 +246,7 @@ class AODProducerWorkflowDPL : public Task
   TString mAnchorProd{""};
   TString mRecoPass{""};
   TStopwatch mTimer;
+  bool mEMCselectLeading{false};
 
   // unordered map connects global indices and table indices of barrel tracks
   std::unordered_map<GIndex, int> mGIDToTableID;
@@ -521,13 +522,13 @@ class AODProducerWorkflowDPL : public Task
   // helper for trd pattern
   uint8_t getTRDPattern(const o2::trd::TrackTRD& track);
 
-  template <typename TCaloHandler, typename TCaloCursor, typename TCaloTRGCursor>
+  template <typename TCaloHandler, typename TCaloCursor, typename TCaloTRGCursor, typename TMCCaloLabelCursor>
   void addToCaloTable(const TCaloHandler& caloHandler, const TCaloCursor& caloCellCursor, const TCaloTRGCursor& caloTRGCursor,
-                      int eventID, int bcID, int8_t caloType);
+                      const TMCCaloLabelCursor& mcCaloCellLabelCursor, int eventID, int bcID, int8_t caloType);
 
-  template <typename TCaloCursor, typename TCaloTRGCursor>
+  template <typename TCaloCursor, typename TCaloTRGCursor, typename TMCCaloLabelCursor>
   void fillCaloTable(const TCaloCursor& caloCellCursor, const TCaloTRGCursor& caloTRGCursor,
-                     const std::map<uint64_t, int>& bcsMap,
+                     const TMCCaloLabelCursor& mcCaloCellLabelCursor, const std::map<uint64_t, int>& bcsMap,
                      const o2::globaltracking::RecoContainer& data);
 };
 

@@ -13,10 +13,11 @@
 #define ALICEO2_PHOS_EVENTDATA_H_
 
 #include <gsl/span>
+#include <vector>
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsPHOS/Cell.h"
 #include "DataFormatsPHOS/Cluster.h"
-
+#include "DataFormatsPHOS/MCLabel.h"
 namespace o2
 {
 
@@ -25,10 +26,11 @@ namespace phos
 
 template <class InputType>
 struct EventData {
-  InteractionRecord mInteractionRecord; ///< Interaction record for the trigger corresponding to this event
-  gsl::span<const Cluster> mClusters;   ///< PHOS clusters
-  gsl::span<const InputType> mCells;    ///< PHOS cells / digits
-  gsl::span<const int> mCellIndices;    ///< Cell indices in cluster
+  InteractionRecord mInteractionRecord;                          ///< Interaction record for the trigger corresponding to this event
+  gsl::span<const Cluster> mClusters;                            ///< PHOS clusters
+  gsl::span<const InputType> mCells;                             ///< PHOS cells / digits
+  gsl::span<const int> mCellIndices;                             ///< Cell indices in cluster
+  std::vector<gsl::span<const o2::phos::MCLabel>> mMCCellLabels; ///< span of MC labels for each cell
 
   /// \brief Reset event structure with empty interaction record and ranges
   void reset()
@@ -37,9 +39,10 @@ struct EventData {
     mClusters = gsl::span<const Cluster>();
     mCells = gsl::span<const InputType>();
     mCellIndices = gsl::span<const int>();
+    mMCCellLabels = std::vector<gsl::span<const o2::phos::MCLabel>>();
   }
 
-  ClassDefNV(EventData, 1);
+  ClassDefNV(EventData, 2);
 };
 
 } // namespace phos
