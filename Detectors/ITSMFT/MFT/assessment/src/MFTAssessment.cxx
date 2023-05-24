@@ -137,9 +137,9 @@ void MFTAssessment::createHistos()
   mLTFTrackNumberOfClusters = std::make_unique<TH1F>("mMFTLTFTrackNumberOfClusters",
                                                      "Number Of Clusters Per LTF Track; # clusters; # entries", 10, 0.5, 10.5);
 
-  mTrackInvQPt = std::make_unique<TH1F>("mMFTTrackInvQPt", "Track q/p_{T}; q/p_{T} [1/GeV]; # entries", 50, -2, 2);
+  mTrackInvQPt = std::make_unique<TH1F>("mMFTTrackInvQPt", "Track q/p_{T}; q/p_{T} [1/GeV]; # entries", 200, -10, 10);
 
-  mTrackChi2 = std::make_unique<TH1F>("mMFTTrackChi2", "Track #chi^{2}/NDF; #chi^{2}/NDF; # entries", 510, -0.5, 50.5);
+  mTrackChi2 = std::make_unique<TH1F>("mMFTTrackChi2", "Track #chi^{2}/NDF; #chi^{2}/NDF; # entries", 210, -0.5, 20.5);
 
   mTrackCharge = std::make_unique<TH1F>("mMFTTrackCharge", "Track Charge; q; # entries", 3, -1.5, 1.5);
 
@@ -184,7 +184,7 @@ void MFTAssessment::createHistos()
 
   mLTFTrackEta = std::make_unique<TH1F>("mMFTLTFTrackEta", "LTF Track #eta; #eta; # entries", 50, -4, -2);
 
-  mTrackCotl = std::make_unique<TH1F>("mMFTTrackCotl", "Track cot #lambda; cot #lambda; # entries", 100, -25, 0);
+  mTrackCotl = std::make_unique<TH1F>("mMFTTrackCotl", "Track cot #lambda; cot #lambda; # entries", 100, -0.25, 0);
 
   mClusterROFNEntries = std::make_unique<TH1F>("mMFTClustersROFSize", "MFT Cluster ROFs size; ROF Size; # entries", MaxClusterROFSize, 0, MaxClusterROFSize);
 

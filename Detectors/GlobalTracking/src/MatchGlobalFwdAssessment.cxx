@@ -86,9 +86,9 @@ void GloFwdAssessment::createHistos()
   mTrackNumberOfClusters = std::make_unique<TH1F>("mGlobalFwdNumberOfMFTClusters",
                                                   "Number Of Clusters Per Track; # clusters; # entries", 10, 0.5, 10.5);
 
-  mTrackInvQPt = std::make_unique<TH1F>("mGlobalFwdInvQPt", "Track q/p_{T}; q/p_{T} [1/GeV]; # entries", 50, -2, 2);
+  mTrackInvQPt = std::make_unique<TH1F>("mGlobalFwdInvQPt", "Track q/p_{T}; q/p_{T} [1/GeV]; # entries", 200, -10, 10);
 
-  mTrackChi2 = std::make_unique<TH1F>("mGlobalFwdChi2", "Track #chi^{2}; #chi^{2}; # entries", 510, -0.5, 50.5);
+  mTrackChi2 = std::make_unique<TH1F>("mGlobalFwdChi2", "Track #chi^{2}; #chi^{2}; # entries", 202, -0.5, 100.5);
 
   mTrackCharge = std::make_unique<TH1F>("mGlobalFwdCharge", "Track Charge; q; # entries", 3, -1.5, 1.5);
 
@@ -109,7 +109,7 @@ void GloFwdAssessment::createHistos()
     mTrackEtaPhiNCls[nHisto]->SetOption("COLZ");
   }
 
-  mTrackCotl = std::make_unique<TH1F>("mGlobalFwdCotl", "Track cot #lambda; cot #lambda; # entries", 100, -25, 0);
+  mTrackCotl = std::make_unique<TH1F>("mGlobalFwdCotl", "Track cot #lambda; cot #lambda; # entries", 100, -0.25, 0);
 
   // Creating MC-based histos
   if (mUseMC) {
