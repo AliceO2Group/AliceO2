@@ -17,5 +17,6 @@
 
 #pragma link C++ namespace o2::mch::eval;
 #pragma link C++ class o2::mch::eval::ExtendedTrack + ;
+#pragma link C++ function o2::mch::eval::drawAll;
 
 #endif
