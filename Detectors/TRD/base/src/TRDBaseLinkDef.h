@@ -33,5 +33,9 @@
 #pragma link C++ class o2::trd::CalOnlineGainTables + ;
 #pragma link C++ class o2::trd::PadNoise + ;
 #pragma link C++ class o2::trd::PadResponse + ;
+#pragma link C++ class o2::trd::rawdisp::DataManager +;
+#pragma link C++ class o2::trd::rawdisp::RawDataSpan +;
+#pragma link C++ class o2::trd::rawdisp::RawEvent +;
+#pragma link C++ class o2::trd::rawdisp::ChamberSpacePoint +;
 
 #endif
