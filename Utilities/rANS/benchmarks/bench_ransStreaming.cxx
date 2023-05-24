@@ -60,7 +60,7 @@ class RenormingData
     std::generate(std::execution::par_unseq, mSourceMessage.begin(), mSourceMessage.end(), [&dist, &mt]() { return dist(mt); });
 
     const auto histogram = makeHistogram::fromSamples(gsl::span<const source_T>(mSourceMessage));
-    const Metrics<source_T> metrics{histogram};
+    Metrics<source_T> metrics{histogram};
     mRenormedHistogram = renorm(histogram, metrics);
 
     double_t expectationValue = std::accumulate(mRenormedHistogram.begin(), mRenormedHistogram.end(), 0.0, [this](const double_t& a, const count_t& b) {

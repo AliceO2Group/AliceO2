@@ -141,7 +141,6 @@ void ransEncodeDecode(const std::string& name, const std::vector<source_T>& inpu
   t.timeAndLog("Renorming", "Renormed Frequency Table", [&]() mutable {
     metrics = Metrics<source_type>{histogram};
     renormedHistogram = renorm(std::move(tmpHist), metrics);
-    metrics.updateCoderProperties(renormedHistogram);
   });
   // writerRenormed.Key(name.c_str());
   // toJSON(renormedFrequencyTable, writerRenormed);

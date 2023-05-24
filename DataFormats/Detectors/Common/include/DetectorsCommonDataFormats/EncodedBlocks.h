@@ -1222,7 +1222,7 @@ CTFIOSize EncodedBlocks<H, N, W>::encodeRANSV1External(const input_IT srcBegin, 
 
   // encode literals
   size_t literalsSize = 0;
-  if (encoder.getNIncompressibleSymbols() > 0) {
+  if (encoder.getNIncompressibleSamples() > 0) {
     const size_t literalsBufferSizeWords = encoder.template computePackedIncompressibleSize<storageBuffer_t>();
     std::tie(thisBlock, thisMetadata) = expandStorage(slot, literalsBufferSizeWords, buffer);
     auto literalsEnd = encoder.writeIncompressible(thisBlock->getCreateLiterals(), thisBlock->getEndOfBlock());
@@ -1237,7 +1237,7 @@ CTFIOSize EncodedBlocks<H, N, W>::encodeRANSV1External(const input_IT srcBegin, 
   *thisMetadata = detail::makeMetadataRansV1<input_t, ransState_t, ransStream_t>(encoder.getEncoder().getNStreams(),
                                                                                  rans::internal::getStreamingLowerBound_v<typename ransEncoder_t::coder_type>,
                                                                                  messageLength,
-                                                                                 encoder.getNIncompressibleSymbols(),
+                                                                                 encoder.getNIncompressibleSamples(),
                                                                                  symbolTable.getPrecision(),
                                                                                  symbolTable.getOffset(),
                                                                                  symbolTable.getOffset() + symbolTable.size(),
@@ -1269,14 +1269,14 @@ CTFIOSize EncodedBlocks<H, N, W>::encodeRANSV1Inplace(const input_IT srcBegin, c
 
   InplaceEntropyCoder<input_t> encoder{srcBegin, srcEnd};
   const rans::Metrics<input_t>& metrics = encoder.getMetrics();
-  const rans::SizeEstimate& sizeEstimate = encoder.getSizeEstimate();
 
-  if (detail::mayPack(opt) && sizeEstimate.preferPacking()) {
+  if (detail::mayPack(opt) && metrics.getSizeEstimate().preferPacking()) {
     return pack(srcBegin, srcEnd, slot, metrics, buffer);
   }
 
   encoder.makeEncoder();
 
+  const rans::SizeEstimate sizeEstimate = metrics.getSizeEstimate();
   const size_t bufferSizeWords = rans::internal::nBytesTo<storageBuffer_t>((sizeEstimate.getCompressedDictionarySize() +
                                                                             sizeEstimate.getCompressedDatasetSize() +
                                                                             sizeEstimate.getIncompressibleSize()) *
@@ -1300,7 +1300,7 @@ CTFIOSize EncodedBlocks<H, N, W>::encodeRANSV1Inplace(const input_IT srcBegin, c
 
   // encode literals
   size_t literalsSize{};
-  if (encoder.getNIncompressibleSymbols() > 0) {
+  if (encoder.getNIncompressibleSamples() > 0) {
     auto literalsEnd = encoder.writeIncompressible(thisBlock->getCreateLiterals(), thisBlock->getEndOfBlock());
     literalsSize = std::distance(thisBlock->getCreateLiterals(), literalsEnd);
     thisBlock->setNLiterals(literalsSize);
@@ -1312,10 +1312,10 @@ CTFIOSize EncodedBlocks<H, N, W>::encodeRANSV1Inplace(const input_IT srcBegin, c
   *thisMetadata = detail::makeMetadataRansV1<input_t, ransState_t, ransStream_t>(encoder.getEncoder().getNStreams(),
                                                                                  rans::internal::getStreamingLowerBound_v<typename ransEncoder_t::coder_type>,
                                                                                  std::distance(srcBegin, srcEnd),
-                                                                                 encoder.getNIncompressibleSymbols(),
+                                                                                 encoder.getNIncompressibleSamples(),
                                                                                  encoder.getEncoder().getSymbolTable().getPrecision(),
-                                                                                 metrics.getCoderProperties().min,
-                                                                                 metrics.getCoderProperties().max,
+                                                                                 *metrics.getCoderProperties().min,
+                                                                                 *metrics.getCoderProperties().max,
                                                                                  metrics.getDatasetProperties().min,
                                                                                  metrics.getDatasetProperties().alphabetRangeBits,
                                                                                  dictSize,
