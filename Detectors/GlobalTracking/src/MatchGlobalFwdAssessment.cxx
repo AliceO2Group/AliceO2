@@ -86,7 +86,7 @@ void GloFwdAssessment::createHistos()
   mTrackNumberOfClusters = std::make_unique<TH1F>("mGlobalFwdNumberOfMFTClusters",
                                                   "Number Of Clusters Per Track; # clusters; # entries", 10, 0.5, 10.5);
 
-  mTrackInvQPt = std::make_unique<TH1F>("mGlobalFwdInvQPt", "Track q/p_{T}; q/p_{T} [1/GeV]; # entries", 200, -10, 10);
+  mTrackInvQPt = std::make_unique<TH1F>("mGlobalFwdInvQPt", "Track q/p_{T}; q/p_{T} [1/GeV]; # entries", 100, -5, 5);
 
   mTrackChi2 = std::make_unique<TH1F>("mGlobalFwdChi2", "Track #chi^{2}; #chi^{2}; # entries", 202, -0.5, 100.5);
 
