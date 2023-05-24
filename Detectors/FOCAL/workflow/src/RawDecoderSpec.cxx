@@ -270,6 +270,7 @@ void RawDecoderSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
     std::cout << "Number of HBFs with " << nevents << " pixel events:    " << nHBF << std::endl;
   }
   std::cout << "Number of inconsistencies between pixel FEEs: " << mNumInconsistencyPixelHBF << " HBFs, " << mNumInconsistencyPixelEvent << " events, " << mNumInconsistencyPixelEventHBF << " events / HBF" << std::endl;
+  std::cout << "Number of HBFs in backup buffer: " << mBackupBuffer.size() << std::endl;
 }
 
 void RawDecoderSpec::sendOutput(framework::ProcessingContext& ctx)
@@ -462,26 +463,54 @@ void RawDecoderSpec::buildEvents()
       // check consistency in number of events between triggers, pixels and pads
       // in case all events are in the stream
       if ((hbf.mPadEvents.size() != hbf.mPixelEvent.size()) || (hbf.mPadEvents.size() != hbf.mPixelTriggers.size()) || (hbf.mPixelEvent.size() != hbf.mPixelTriggers.size())) {
-        LOG(error) << "Inconsistent number of events in HBF for pads (" << hbf.mPadEvents.size() << ") and pixels (" << hbf.mPixelEvent.size() << ") - " << hbf.mPixelTriggers.size() << " triggers";
-        continue;
-      }
-      LOG(debug) << "HBF: " << hbf.mPixelTriggers.size() << " triggers, " << hbf.mPadEvents.size() << " pad events, " << hbf.mPixelEvent.size() << " pixel events" << std::endl;
-      for (std::size_t itrg = 0; itrg < hbf.mPixelTriggers.size(); itrg++) {
-        auto startPads = mOutputPadLayers.size(),
-             startHits = mOutputPixelHits.size(),
-             startChips = mOutputPixelChips.size();
-        for (std::size_t ilayer = 0; ilayer < constants::PADS_NLAYERS; ilayer++) {
-          mOutputPadLayers.push_back(hbf.mPadEvents[itrg][ilayer]);
+        LOG(error) << "Inconsistent number of events in HBF (Orbit " << hbir.orbit << ") for pads (" << hbf.mPadEvents.size() << ") and pixels (" << hbf.mPixelEvent.size() << ") - " << hbf.mPixelTriggers.size() << " triggers";
+        if (!hbf.mPadEvents.size() || !hbf.mPixelEvent.size()) {
+          // event might be complete in different TF
+          auto found = mBackupBuffer.find(hbir);
+          if (found != mBackupBuffer.end()) {
+            std::cout << "Found in backup buffer" << std::endl;
+            gsl::span<const std::array<o2::focal::PadLayerEvent, 20>> currentpads;
+            gsl::span<const std::array<o2::focal::PixelLayerEvent, 2>> currentpixels;
+            gsl::span<const o2::InteractionRecord> currenttriggers;
+            if (!hbf.mPadEvents.size()) {
+              if (found->second.mPadEvents.size()) {
+                currentpads = gsl::span<const std::array<o2::focal::PadLayerEvent, 20>>(found->second.mPadEvents);
+              }
+            } else {
+              currentpads = gsl::span<const std::array<o2::focal::PadLayerEvent, 20>>(hbf.mPadEvents);
+            }
+            if (!hbf.mPixelEvent.size()) {
+              if (found->second.mPixelEvent.size()) {
+                currentpixels = gsl::span<const std::array<o2::focal::PixelLayerEvent, 2>>(found->second.mPixelEvent);
+              }
+            } else {
+              currentpixels = gsl::span<const std::array<o2::focal::PixelLayerEvent, 2>>(hbf.mPixelEvent);
+            }
+            if (!hbf.mPixelTriggers.size()) {
+              if (found->second.mPixelTriggers.size()) {
+                currenttriggers = gsl::span<const o2::InteractionRecord>(found->second.mPixelTriggers);
+              } else {
+                currenttriggers = gsl::span<const o2::InteractionRecord>(hbf.mPixelTriggers);
+              }
+            }
+            if (currentpads.size() && currentpixels.size() && currenttriggers.size()) {
+              LOG(info) << "Found payload from all systems - create events";
+              fillEventContainer(currentpads, currentpixels, currenttriggers);
+              mBackupBuffer.erase(found);
+            } else {
+              LOG(info) << "Event in backupbuffer incomplete";
+            }
+          } else {
+            std::cout << "Inserting into backup buffer" << std::endl;
+            mBackupBuffer.insert({hbir, hbf});
+          }
+        } else {
+          // Found payload from both systems but number of events differs - not possible to combine
+          continue;
         }
-        std::vector<PixelHit> eventHits;
-        std::vector<PixelChipRecord> eventPixels;
-        for (std::size_t ilayer = 0; ilayer < constants::PIXELS_NLAYERS; ilayer++) {
-          fillEventPixeHitContainer(eventHits, eventPixels, hbf.mPixelEvent[itrg][ilayer], ilayer);
-        }
-        std::copy(eventHits.begin(), eventHits.end(), std::back_inserter(mOutputPixelHits));
-        std::copy(eventPixels.begin(), eventPixels.end(), std::back_inserter(mOutputPixelChips));
-        // std::cout << "Orbit " << hbf.mPixelTriggers[itrg].orbit << ", BC " << hbf.mPixelTriggers[itrg].bc << ": " << eventPixels.size() << " chips with " << eventHits.size() << " hits ..." << std::endl;
-        mOutputTriggerRecords.emplace_back(hbf.mPixelTriggers[itrg], startPads, constants::PADS_NLAYERS, startChips, eventPixels.size(), startHits, eventHits.size());
+      } else {
+        // Events complete
+        fillEventContainer(hbf.mPadEvents, hbf.mPixelEvent, hbf.mPixelTriggers);
       }
     } else if (mTimeframeHasPixelData) {
       // only pixel data available, merge pixel layers and interaction record
@@ -517,6 +546,30 @@ void RawDecoderSpec::buildEvents()
         mOutputTriggerRecords.emplace_back(hbir, startPads, constants::PADS_NLAYERS, startChips, 0, startHits, 0);
       }
     }
+  }
+}
+
+void RawDecoderSpec::fillEventContainer(gsl::span<const std::array<o2::focal::PadLayerEvent, 20>> currentpads,
+                                        gsl::span<const std::array<o2::focal::PixelLayerEvent, 2>> currentpixels,
+                                        gsl::span<const o2::InteractionRecord> currenttriggers)
+{
+  LOG(debug) << "HBF: " << currenttriggers.size() << " triggers, " << currentpads.size() << " pad events, " << currentpixels.size() << " pixel events" << std::endl;
+  for (std::size_t itrg = 0; itrg < currenttriggers.size(); itrg++) {
+    auto startPads = mOutputPadLayers.size(),
+         startHits = mOutputPixelHits.size(),
+         startChips = mOutputPixelChips.size();
+    for (std::size_t ilayer = 0; ilayer < constants::PADS_NLAYERS; ilayer++) {
+      mOutputPadLayers.push_back(currentpads[itrg][ilayer]);
+    }
+    std::vector<PixelHit> eventHits;
+    std::vector<PixelChipRecord> eventPixels;
+    for (std::size_t ilayer = 0; ilayer < constants::PIXELS_NLAYERS; ilayer++) {
+      fillEventPixeHitContainer(eventHits, eventPixels, currentpixels[itrg][ilayer], ilayer);
+    }
+    std::copy(eventHits.begin(), eventHits.end(), std::back_inserter(mOutputPixelHits));
+    std::copy(eventPixels.begin(), eventPixels.end(), std::back_inserter(mOutputPixelChips));
+    // std::cout << "Orbit " << hbf.mPixelTriggers[itrg].orbit << ", BC " << hbf.mPixelTriggers[itrg].bc << ": " << eventPixels.size() << " chips with " << eventHits.size() << " hits ..." << std::endl;
+    mOutputTriggerRecords.emplace_back(currenttriggers[itrg], startPads, constants::PADS_NLAYERS, startChips, eventPixels.size(), startHits, eventHits.size());
   }
 }
 
