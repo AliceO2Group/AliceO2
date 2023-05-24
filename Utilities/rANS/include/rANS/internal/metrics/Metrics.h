@@ -19,6 +19,7 @@
 #include <cstdint>
 
 #include <fairlogger/Logger.h>
+#include <gsl/span>
 
 #include "rANS/internal/common/utils.h"
 #include "rANS/internal/containers/Histogram.h"
@@ -26,6 +27,7 @@
 #include "rANS/internal/containers/SymbolTable.h"
 #include "rANS/internal/metrics/properties.h"
 #include "rANS/internal/metrics/utils.h"
+#include "rANS/internal/metrics/SizeEstimate.h"
 
 namespace o2::rans
 {
@@ -37,75 +39,37 @@ class Metrics
   using source_type = source_T;
 
   Metrics() = default;
-  explicit Metrics(const Histogram<source_type>& histogram);
-  explicit Metrics(const RenormedHistogram<source_type>& histogram);
-  explicit Metrics(const Histogram<source_type>& histogram, size_t renormingPrecision);
+  Metrics(const Histogram<source_type>& histogram, float_t cutoffPrecision = 0.999);
 
-  [[nodiscard]] const DatasetProperties<source_type>& getDatasetProperties() const noexcept { return mDatasetProperties; };
-  [[nodiscard]] const CoderProperties<source_type>& getCoderProperties() const noexcept { return mCoderProperties; };
+  [[nodiscard]] inline const DatasetProperties<source_type>& getDatasetProperties() const noexcept { return mDatasetProperties; };
+  [[nodiscard]] inline const CoderProperties<source_type>& getCoderProperties() const noexcept { return mCoderProperties; };
 
-  void updateCoderProperties(const RenormedHistogram<source_type>& histogram);
-  template <typename symbol_T>
-  void updateCoderProperties(const SymbolTable<source_type, symbol_T>& symbolTable);
+  [[nodiscard]] inline DatasetProperties<source_type>& getDatasetProperties() noexcept { return mDatasetProperties; };
+  [[nodiscard]] inline CoderProperties<source_type>& getCoderProperties() noexcept { return mCoderProperties; };
+  [[nodiscard]] inline SizeEstimate getSizeEstimate() const noexcept { return SizeEstimate(*this); };
 
- private:
-  template <class Histogram_T>
-  void computeMetrics(const Histogram_T& frequencyTable);
-  void updateCoderProperties(size_t newRenormingPrecisionBits, source_type min, source_type max, bool computeIncompressible = true);
+ protected:
+  void computeMetrics(const Histogram<source_T>& frequencyTable);
+  size_t computeRenormingPrecision(float_t cutoffPrecision) noexcept;
+  size_t computeIncompressibleCount(gsl::span<uint32_t> distribution, uint32_t renormingPrecision) noexcept;
 
   DatasetProperties<source_type> mDatasetProperties{};
   CoderProperties<source_type> mCoderProperties{};
 };
 
 template <typename source_T>
-inline Metrics<source_T>::Metrics(const Histogram<source_T>& histogram)
+inline Metrics<source_T>::Metrics(const Histogram<source_T>& histogram, float_t cutoffPrecision)
 {
   computeMetrics(histogram);
-  const size_t renormingBits = internal::computeRenormingPrecision<>(mDatasetProperties.weightedSymbolLengthDistribution.begin(),
-                                                                     mDatasetProperties.weightedSymbolLengthDistribution.end());
-  const auto [min, max] = getMinMax(histogram);
-  updateCoderProperties(renormingBits, min, max);
+  mCoderProperties.renormingPrecisionBits = computeRenormingPrecision(cutoffPrecision);
+  mCoderProperties.nIncompressibleSymbols = computeIncompressibleCount(mDatasetProperties.symbolLengthDistribution, *mCoderProperties.renormingPrecisionBits);
+  mCoderProperties.nIncompressibleSamples = computeIncompressibleCount(mDatasetProperties.weightedSymbolLengthDistribution, *mCoderProperties.renormingPrecisionBits);
 }
 
 template <typename source_T>
-inline Metrics<source_T>::Metrics(const Histogram<source_T>& histogram, size_t renormingPrecision)
+void Metrics<source_T>::computeMetrics(const Histogram<source_T>& histogram)
 {
   using namespace internal;
-
-  computeMetrics(histogram);
-  const size_t renormingBits = sanitizeRenormingBitRange(renormingPrecision);
-  const auto [min, max] = getMinMax(histogram);
-  updateCoderProperties(renormingPrecision, min, max);
-}
-
-template <typename source_T>
-inline Metrics<source_T>::Metrics(const RenormedHistogram<source_T>& histogram)
-{
-  computeMetrics(histogram);
-  updateCoderProperties(histogram);
-};
-
-template <typename source_T>
-inline void Metrics<source_T>::updateCoderProperties(const RenormedHistogram<source_T>& histogram)
-{
-  const auto [min, max] = getMinMax(histogram);
-  updateCoderProperties(histogram.getRenormingBits(), min, max, histogram.hasIncompressibleSymbol());
-};
-
-template <typename source_T>
-template <typename symbol_T>
-inline void Metrics<source_T>::updateCoderProperties(const SymbolTable<source_type, symbol_T>& symbolTable)
-{
-  const auto [min, max] = getMinMax(symbolTable);
-  updateCoderProperties(symbolTable.getPrecision(), min, max, symbolTable.hasEscapeSymbol());
-};
-
-template <typename source_T>
-template <class Histogram_T>
-void Metrics<source_T>::computeMetrics(const Histogram_T& histogram)
-{
-  using namespace internal;
-  static_assert(std::is_same_v<typename Histogram_T::source_type, source_type>);
 
   mCoderProperties.dictSizeEstimate = DictSizeEstimate{histogram.getNumSamples()};
   DictSizeEstimateCounter dictSizeCounter{&(mCoderProperties.dictSizeEstimate)};
@@ -128,30 +92,66 @@ void Metrics<source_T>::computeMetrics(const Histogram_T& histogram)
       ++mDatasetProperties.nUsedAlphabetSymbols;
 
       const double_t probability = static_cast<double_t>(frequency) * reciprocalNumSamples;
-      const float_t length = fastlog2(probability);
+      const float_t fractionalBitLength = -fastlog2(probability);
+      const uint32_t bitLength = std::ceil(fractionalBitLength);
 
-      mDatasetProperties.entropy -= probability * length;
-      mDatasetProperties.symbolLengthDistribution[static_cast<uint32_t>(-length)] += frequency;
-      mDatasetProperties.weightedSymbolLengthDistribution[static_cast<uint32_t>(-length)] += probability;
+      assert(bitLength > 0);
+      const uint32_t symbolDistributionBucket = bitLength - 1;
+      mDatasetProperties.entropy += probability * fractionalBitLength;
+      ++mDatasetProperties.symbolLengthDistribution[symbolDistributionBucket];
+      mDatasetProperties.weightedSymbolLengthDistribution[symbolDistributionBucket] += frequency;
     }
   }
 };
 
 template <typename source_T>
-inline void Metrics<source_T>::updateCoderProperties(size_t newRenormingPrecisionBits, source_type min, source_type max, bool computeIncompressible)
+inline size_t Metrics<source_T>::computeIncompressibleCount(gsl::span<uint32_t> distribution, uint32_t renormingPrecision) noexcept
+{
+  assert(internal::isValidRenormingPrecision(renormingPrecision));
+  size_t incompressibleCount = 0;
+  if (renormingPrecision > 0) {
+    incompressibleCount = std::accumulate(internal::advanceIter(distribution.data(), renormingPrecision), distribution.data() + distribution.size(), incompressibleCount);
+  } else {
+    // In case of an empty source message we allocate a precision of 0 Bits => 2**0 = 1
+    // This 1 entry is marked as the incompressible symbol, to ensure we somewhat can handle nasty surprises.
+    incompressibleCount = 1;
+  };
+  return incompressibleCount;
+};
+
+template <typename source_T>
+inline size_t Metrics<source_T>::computeRenormingPrecision(float_t cutoffPrecision) noexcept
 {
 
-  mCoderProperties.renormingPrecisionBits = internal::sanitizeRenormingBitRange(newRenormingPrecisionBits);
-  mCoderProperties.min = min;
-  mCoderProperties.max = max;
-  if (computeIncompressible) {
-    mCoderProperties.nIncompressibleSymbols = internal::computeNIncompressibleSymbols<>(mDatasetProperties.symbolLengthDistribution.begin(),
-                                                                                        mDatasetProperties.symbolLengthDistribution.end(),
-                                                                                        mCoderProperties.renormingPrecisionBits);
+  const auto& dp = this->mDatasetProperties;
+
+  constexpr size_t SafetyMargin = 1;
+  const size_t cutoffSamples = std::ceil(static_cast<double_t>(cutoffPrecision) *
+                                         static_cast<double_t>(dp.numSamples));
+  size_t cumulatedSamples = 0;
+
+  size_t renormingBits = std::count_if(dp.weightedSymbolLengthDistribution.begin(),
+                                       dp.weightedSymbolLengthDistribution.end(),
+                                       [&cumulatedSamples, cutoffSamples](const uint32_t& frequency) {
+                                         if (cumulatedSamples < cutoffSamples) {
+                                           cumulatedSamples += frequency;
+                                           return true;
+                                         } else {
+                                           return false;
+                                         }
+                                       });
+
+  if (cumulatedSamples == 0) {
+    // if the message is empty, cumulated precision will be 0. The algorithm will be unable to meet the cutoff precision.
+    // We therefore set renorming Bits to 0, which will result in 2**0 = 1 entry, which will be assigned to the incompressible symbol.
+    renormingBits = 0;
   } else {
-    mCoderProperties.nIncompressibleSymbols = 0;
+    // ensure renorming is in interval [MinThreshold, MaxThreshold]
+    renormingBits = internal::sanitizeRenormingBitRange(renormingBits + SafetyMargin);
   }
-}
+  assert(internal::isValidRenormingPrecision(renormingBits));
+  return renormingBits;
+};
 
 } // namespace o2::rans
 

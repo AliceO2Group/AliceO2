@@ -69,7 +69,7 @@ void ransCompressionBenchmark(benchmark::State& st)
   DecodeBuffer<source_type> decodeBuffer{inputData.size()};
 
   const auto histogram = makeHistogram::fromSamples(gsl::span<const source_type>(inputData));
-  const Metrics<source_type> metrics{histogram};
+  Metrics<source_type> metrics{histogram};
   const auto renormedHistogram = renorm(histogram, metrics, false, 10);
   auto encoder = makeEncoder<coderTag_V>::fromRenormed(renormedHistogram);
 
@@ -116,7 +116,7 @@ void ransLiteralCompressionBenchmark(benchmark::State& st)
   DecodeBuffer<source_type> decodeBuffer{inputData.size()};
 
   const auto histogram = makeHistogram::fromSamples(gsl::span<const source_type>(inputData));
-  const Metrics<source_type> metrics{histogram};
+  Metrics<source_type> metrics{histogram};
   const auto renormedHistogram = renorm(histogram, metrics);
   auto encoder = makeEncoder<coderTag_V>::fromRenormed(renormedHistogram);
 

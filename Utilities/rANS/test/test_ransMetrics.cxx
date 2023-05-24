@@ -97,47 +97,61 @@ BOOST_AUTO_TEST_CASE(test_defaultDictSizeEstimate)
 BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_AUTO_TEST_SUITE(test_RenormingPrecision)
+
+class MetricsTester : public Metrics<uint32_t>
+{
+ public:
+  inline MetricsTester(const Histogram<source_type>& histogram, float_t cutoffPrecision = 0.999) : Metrics(histogram, cutoffPrecision){};
+  inline size_t testComputeRenormingPrecision(float_t cutoffPrecision = 0.999) noexcept { return computeRenormingPrecision(cutoffPrecision); };
+  inline size_t testComputeIncompressibleCount(gsl::span<uint32_t> distribution, uint32_t renormingPrecision) noexcept { return computeIncompressibleCount(distribution, renormingPrecision); };
+};
+
 BOOST_AUTO_TEST_CASE(test_EmptyRenormingPrecision)
 {
-  std::array<uint32_t, 32> symbolLengthDistribution{{}};
-  std::array<double_t, 32> weightedSymbolLengthDistribution{{}};
 
+  std::array<uint32_t, 32> symbolLengthDistribution;
+  std::array<uint32_t, 32> weightedSymbolLengthDistribution;
+  const size_t nSamples = 0;
   const uint32_t renormingPrecision = 0;
 
-  BOOST_CHECK_EQUAL(internal::computeRenormingPrecision(weightedSymbolLengthDistribution.begin(),
-                                                        weightedSymbolLengthDistribution.end()),
-                    renormingPrecision);
-  BOOST_CHECK_EQUAL(internal::computeNIncompressibleSymbols(symbolLengthDistribution.begin(),
-                                                            symbolLengthDistribution.end(), renormingPrecision),
-                    1);
+  MetricsTester tester{Histogram<uint32_t>{}};
+  tester.getDatasetProperties().symbolLengthDistribution = symbolLengthDistribution;
+  tester.getDatasetProperties().weightedSymbolLengthDistribution = weightedSymbolLengthDistribution;
+  tester.getDatasetProperties().numSamples = nSamples;
+
+  BOOST_CHECK_EQUAL(tester.testComputeRenormingPrecision(), renormingPrecision);
+  BOOST_CHECK_EQUAL(tester.testComputeIncompressibleCount(symbolLengthDistribution, renormingPrecision), 1);
+  BOOST_CHECK_EQUAL(tester.testComputeIncompressibleCount(weightedSymbolLengthDistribution, renormingPrecision), 1);
 }
 
 BOOST_AUTO_TEST_CASE(test_cutoffRenormingPrecision)
 {
   std::array<uint32_t, 32> symbolLengthDistribution{{}};
-  std::array<double_t, 32> weightedSymbolLengthDistribution{{}};
-  weightedSymbolLengthDistribution[31] = 1.0f;
+  std::array<uint32_t, 32> weightedSymbolLengthDistribution{{}};
+  weightedSymbolLengthDistribution[31] = 44;
   symbolLengthDistribution[31] = 42;
-
+  const size_t nSamples = 44;
   const uint32_t renormingPrecision = defaults::MaxRenormPrecisionBits;
 
-  BOOST_CHECK_EQUAL(internal::computeRenormingPrecision(weightedSymbolLengthDistribution.begin(),
-                                                        weightedSymbolLengthDistribution.end()),
-                    renormingPrecision);
-  BOOST_CHECK_EQUAL(internal::computeNIncompressibleSymbols(symbolLengthDistribution.begin(),
-                                                            symbolLengthDistribution.end(), renormingPrecision),
-                    42);
+  MetricsTester tester{Histogram<uint32_t>{}};
+  tester.getDatasetProperties().symbolLengthDistribution = symbolLengthDistribution;
+  tester.getDatasetProperties().weightedSymbolLengthDistribution = weightedSymbolLengthDistribution;
+  tester.getDatasetProperties().numSamples = nSamples;
+
+  BOOST_CHECK_EQUAL(tester.testComputeRenormingPrecision(), renormingPrecision);
+  BOOST_CHECK_EQUAL(tester.testComputeIncompressibleCount(symbolLengthDistribution, renormingPrecision), 42);
+  BOOST_CHECK_EQUAL(tester.testComputeIncompressibleCount(weightedSymbolLengthDistribution, renormingPrecision), nSamples);
 }
 
 BOOST_AUTO_TEST_CASE(test_noCutoffRenormingPrecision)
 {
   std::array<uint32_t, 32> symbolLengthDistribution{{}};
-  std::array<double_t, 32> weightedSymbolLengthDistribution{{}};
-  weightedSymbolLengthDistribution[1] = 0.2f;
-  weightedSymbolLengthDistribution[5] = 0.2f;
-  weightedSymbolLengthDistribution[9] = 0.4f;
-  weightedSymbolLengthDistribution[12] = 0.1f;
-  weightedSymbolLengthDistribution[15] = 0.1f;
+  std::array<uint32_t, 32> weightedSymbolLengthDistribution{{}};
+  weightedSymbolLengthDistribution[1] = 20;
+  weightedSymbolLengthDistribution[5] = 20;
+  weightedSymbolLengthDistribution[9] = 40;
+  weightedSymbolLengthDistribution[12] = 10;
+  weightedSymbolLengthDistribution[15] = 10;
 
   symbolLengthDistribution[1] = 2;
   symbolLengthDistribution[5] = 2;
@@ -145,14 +159,17 @@ BOOST_AUTO_TEST_CASE(test_noCutoffRenormingPrecision)
   symbolLengthDistribution[12] = 1;
   symbolLengthDistribution[15] = 1;
 
+  const size_t nSamples = 100;
   const uint32_t renormingPrecision = 17;
 
-  BOOST_CHECK_EQUAL(internal::computeRenormingPrecision(weightedSymbolLengthDistribution.begin(),
-                                                        weightedSymbolLengthDistribution.end()),
-                    renormingPrecision);
-  BOOST_CHECK_EQUAL(internal::computeNIncompressibleSymbols(symbolLengthDistribution.begin(),
-                                                            symbolLengthDistribution.end(), renormingPrecision),
-                    0);
+  MetricsTester tester{Histogram<uint32_t>{}};
+  tester.getDatasetProperties().symbolLengthDistribution = symbolLengthDistribution;
+  tester.getDatasetProperties().weightedSymbolLengthDistribution = weightedSymbolLengthDistribution;
+  tester.getDatasetProperties().numSamples = nSamples;
+
+  BOOST_CHECK_EQUAL(tester.testComputeRenormingPrecision(), renormingPrecision);
+  BOOST_CHECK_EQUAL(tester.testComputeIncompressibleCount(symbolLengthDistribution, renormingPrecision), 0);
+  BOOST_CHECK_EQUAL(tester.testComputeIncompressibleCount(weightedSymbolLengthDistribution, renormingPrecision), 0);
 }
 BOOST_AUTO_TEST_SUITE_END()
 
@@ -179,23 +196,23 @@ BOOST_AUTO_TEST_CASE(test_emptyMetrics)
   BOOST_CHECK_SMALL(dataProperies.entropy, eps);
 
   std::array<uint32_t, 32> symbolLengthDistribution{{}};
-  std::array<double_t, 32> weightedSymbolLengthDistribution{{}};
+  std::array<uint32_t, 32> weightedSymbolLengthDistribution{{}};
 
   uint32_t sumUnweighted = 0;
-  float_t sumWeighted = 0;
+  uint32_t sumWeighted = 0;
   for (size_t i = 0; i < 32; ++i) {
     // BOOST_TEST_MESSAGE(fmt::format("checking length: {}", i));
     BOOST_CHECK_EQUAL(symbolLengthDistribution[i], dataProperies.symbolLengthDistribution[i]);
-    BOOST_CHECK_CLOSE(weightedSymbolLengthDistribution[i], dataProperies.weightedSymbolLengthDistribution[i], eps);
+    BOOST_CHECK_EQUAL(weightedSymbolLengthDistribution[i], dataProperies.weightedSymbolLengthDistribution[i]);
 
     sumUnweighted += dataProperies.symbolLengthDistribution[i];
     sumWeighted += dataProperies.weightedSymbolLengthDistribution[i];
   }
 
-  BOOST_CHECK_EQUAL(coderProperties.renormingPrecisionBits, 0);
+  BOOST_CHECK_EQUAL(*coderProperties.renormingPrecisionBits, 0);
   BOOST_CHECK_EQUAL(sumUnweighted, nUsedAlphabetSymbols);
-  BOOST_CHECK_SMALL(sumWeighted, eps);
-  BOOST_CHECK_EQUAL(coderProperties.nIncompressibleSymbols, 1);
+  BOOST_CHECK_EQUAL(sumWeighted, 0);
+  BOOST_CHECK_EQUAL(*coderProperties.nIncompressibleSymbols, 1);
 
   const auto& estimate = coderProperties.dictSizeEstimate;
   BOOST_CHECK_EQUAL(estimate.getIndexSize(), 0);
@@ -213,7 +230,7 @@ BOOST_AUTO_TEST_CASE(test_singleElementMetrics)
   Histogram<source_type> histogram{frequencies.begin(), frequencies.end(), 2};
   const auto view = internal::trim(makeHistogramView(histogram));
   const float eps = 1e-2;
-  const size_t nUsedAlphabetSymbols = 1;
+  const size_t nUsedAlphabetSymbols = histogram.countNUsedAlphabetSymbols();
 
   const Metrics<source_type> metrics{histogram};
   const auto& dataProperies = metrics.getDatasetProperties();
@@ -227,26 +244,26 @@ BOOST_AUTO_TEST_CASE(test_singleElementMetrics)
   BOOST_CHECK_SMALL(dataProperies.entropy, 1e-5f);
 
   std::array<uint32_t, 32> symbolLengthDistribution{{}};
-  std::array<double_t, 32> weightedSymbolLengthDistribution{{}};
+  std::array<uint32_t, 32> weightedSymbolLengthDistribution{{}};
 
-  symbolLengthDistribution[0] = 5;
-  weightedSymbolLengthDistribution[0] = 1;
+  symbolLengthDistribution[0] = 1;
+  weightedSymbolLengthDistribution[0] = 5;
 
   uint32_t sumUnweighted = 0;
-  float_t sumWeighted = 0;
+  uint32_t sumWeighted = 0;
   for (size_t i = 0; i < 32; ++i) {
     // BOOST_TEST_MESSAGE(fmt::format("checking length: {}", i));
     BOOST_CHECK_EQUAL(symbolLengthDistribution[i], dataProperies.symbolLengthDistribution[i]);
-    BOOST_CHECK_CLOSE(weightedSymbolLengthDistribution[i], dataProperies.weightedSymbolLengthDistribution[i], eps);
+    BOOST_CHECK_EQUAL(weightedSymbolLengthDistribution[i], dataProperies.weightedSymbolLengthDistribution[i]);
 
     sumUnweighted += dataProperies.symbolLengthDistribution[i];
     sumWeighted += dataProperies.weightedSymbolLengthDistribution[i];
   }
 
-  BOOST_CHECK_EQUAL(coderProperties.renormingPrecisionBits, defaults::MinRenormPrecisionBits);
-  BOOST_CHECK_EQUAL(sumUnweighted, 5);
-  BOOST_CHECK_CLOSE(sumWeighted, 1, eps);
-  BOOST_CHECK_EQUAL(coderProperties.nIncompressibleSymbols, 0);
+  BOOST_CHECK_EQUAL(*coderProperties.renormingPrecisionBits, defaults::MinRenormPrecisionBits);
+  BOOST_CHECK_EQUAL(sumUnweighted, nUsedAlphabetSymbols);
+  BOOST_CHECK_EQUAL(sumWeighted, histogram.getNumSamples());
+  BOOST_CHECK_EQUAL(*coderProperties.nIncompressibleSymbols, 0);
 }
 
 BOOST_AUTO_TEST_CASE(test_computeMetrics)
@@ -257,7 +274,7 @@ BOOST_AUTO_TEST_CASE(test_computeMetrics)
   Histogram<source_type> histogram{frequencies.begin(), frequencies.end(), 0};
   const auto view = internal::trim(makeHistogramView(histogram));
   const float eps = 1e-2;
-  const size_t nUsedAlphabetSymbols = 9;
+  const size_t nUsedAlphabetSymbols = histogram.countNUsedAlphabetSymbols();
 
   const Metrics<source_type> metrics{histogram};
   const auto& dataProperies = metrics.getDatasetProperties();
@@ -271,39 +288,40 @@ BOOST_AUTO_TEST_CASE(test_computeMetrics)
   BOOST_CHECK_CLOSE(dataProperies.entropy, 2.957295041922758, eps);
 
   std::array<uint32_t, 32> symbolLengthDistribution{{}};
-  std::array<double_t, 32> weightedSymbolLengthDistribution{{}};
+  std::array<uint32_t, 32> weightedSymbolLengthDistribution{{}};
 
-  symbolLengthDistribution[2] = 30;
-  symbolLengthDistribution[3] = 12;
-  symbolLengthDistribution[4] = 2;
+  weightedSymbolLengthDistribution[2] = 30;
+  weightedSymbolLengthDistribution[3] = 12;
+  weightedSymbolLengthDistribution[4] = 2;
+  weightedSymbolLengthDistribution[5] = 1;
+
+  symbolLengthDistribution[2] = 4;
+  symbolLengthDistribution[3] = 3;
+  symbolLengthDistribution[4] = 1;
   symbolLengthDistribution[5] = 1;
-  weightedSymbolLengthDistribution[2] = 0.66666666;
-  weightedSymbolLengthDistribution[3] = 0.26666666;
-  weightedSymbolLengthDistribution[4] = 0.04444444;
-  weightedSymbolLengthDistribution[5] = 0.02222222;
 
   uint32_t sumUnweighted = 0;
-  float_t sumWeighted = 0;
+  uint32_t sumWeighted = 0;
   for (size_t i = 0; i < 32; ++i) {
-    // BOOST_TEST_MESSAGE(fmt::format("checking length: {}", i));
+    BOOST_TEST_MESSAGE(fmt::format("checking length: {}", i));
     BOOST_CHECK_EQUAL(symbolLengthDistribution[i], dataProperies.symbolLengthDistribution[i]);
-    BOOST_CHECK_CLOSE(weightedSymbolLengthDistribution[i], dataProperies.weightedSymbolLengthDistribution[i], eps);
+    BOOST_CHECK_EQUAL(weightedSymbolLengthDistribution[i], dataProperies.weightedSymbolLengthDistribution[i]);
 
     sumUnweighted += dataProperies.symbolLengthDistribution[i];
     sumWeighted += dataProperies.weightedSymbolLengthDistribution[i];
   }
 
-  BOOST_CHECK_EQUAL(sumUnweighted, 45);
-  BOOST_CHECK_CLOSE(sumWeighted, 1.0f, eps);
-  BOOST_CHECK_EQUAL(coderProperties.renormingPrecisionBits, defaults::MinRenormPrecisionBits);
-  BOOST_CHECK_EQUAL(coderProperties.nIncompressibleSymbols, 0);
+  BOOST_CHECK_EQUAL(sumUnweighted, nUsedAlphabetSymbols);
+  BOOST_CHECK_EQUAL(sumWeighted, histogram.getNumSamples());
+  BOOST_CHECK_EQUAL(*coderProperties.renormingPrecisionBits, defaults::MinRenormPrecisionBits);
+  BOOST_CHECK_EQUAL(*coderProperties.nIncompressibleSymbols, 0);
 
   const auto& estimate = coderProperties.dictSizeEstimate;
   BOOST_CHECK_EQUAL(estimate.getIndexSize(), 33);
   BOOST_CHECK_EQUAL(estimate.getIndexSizeB(), 5);
   BOOST_CHECK_EQUAL(estimate.getFreqSize(), 224);
   BOOST_CHECK_EQUAL(estimate.getFreqSizeB(), 28);
-  BOOST_CHECK_EQUAL(estimate.getSizeB(nUsedAlphabetSymbols, coderProperties.renormingPrecisionBits), 21);
+  BOOST_CHECK_EQUAL(estimate.getSizeB(nUsedAlphabetSymbols, *coderProperties.renormingPrecisionBits), 21);
 }
 BOOST_AUTO_TEST_SUITE_END()
 

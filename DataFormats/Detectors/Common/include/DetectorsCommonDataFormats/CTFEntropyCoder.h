@@ -118,11 +118,9 @@ class InplaceEntropyCoder
 
   inline const metrics_type& getMetrics() const noexcept { return mMetrics; };
 
-  inline const rans::SizeEstimate& getSizeEstimate() const noexcept { return mSizeEstimate; };
-
   inline const encoder_type& getEncoder() const { return const_cast<const encoder_type&>(const_cast<InplaceEntropyCoder&>(*this).getEncoderImpl()); };
 
-  inline size_t getNIncompressibleSymbols() const noexcept { return mIncompressibleBuffer.size(); };
+  inline size_t getNIncompressibleSamples() const noexcept { return mIncompressibleBuffer.size(); };
 
   template <typename dst_T = uint8_t>
   inline size_t getPackedIncompressibleSize() const noexcept;
@@ -164,7 +162,6 @@ class InplaceEntropyCoder
 
   std::optional<histogram_type> mHistogram{};
   metrics_type mMetrics{};
-  rans::SizeEstimate mSizeEstimate{};
 
   std::optional<encoder_type> mEncoder{};
   std::vector<source_T> mIncompressibleBuffer{};
@@ -179,7 +176,6 @@ InplaceEntropyCoder<source_T>::InplaceEntropyCoder(src_IT srcBegin, src_IT srcEn
 
   setHistogram(rans::makeHistogram::fromSamples(srcBegin, srcEnd));
   mMetrics = metrics_type{getHistogram()};
-  mSizeEstimate = rans::SizeEstimate(mMetrics);
   mIncompressiblePacker = Packer(mMetrics);
 };
 
@@ -188,8 +184,6 @@ void InplaceEntropyCoder<source_T>::makeEncoder()
 {
   auto& hist = getHistogram();
   auto renormed = rans::renorm(std::move(hist), mMetrics);
-  mMetrics.updateCoderProperties(renormed);
-  mSizeEstimate = rans::SizeEstimate(mMetrics);
   mEncoder = rans::makeEncoder<>::fromRenormed(renormed);
   mIncompressiblePacker = Packer(mMetrics);
 };
@@ -204,7 +198,7 @@ dst_IT InplaceEntropyCoder<source_T>::encode(src_IT srcBegin, src_IT srcEnd, dst
   auto& encoder = getEncoderImpl();
 
   if (encoder.getSymbolTable().hasEscapeSymbol()) {
-    mIncompressibleBuffer.reserve(mMetrics.getCoderProperties().nIncompressibleSymbols);
+    mIncompressibleBuffer.reserve(*mMetrics.getCoderProperties().nIncompressibleSamples);
     auto [encodedMessageEnd, literalsEnd] = encoder.process(srcBegin, srcEnd, dstBegin, std::back_inserter(mIncompressibleBuffer));
     messageEnd = encodedMessageEnd;
   } else {
@@ -234,7 +228,7 @@ template <typename source_T>
 template <typename dst_T>
 inline size_t InplaceEntropyCoder<source_T>::getPackedIncompressibleSize() const noexcept
 {
-  return mIncompressiblePacker.template getPackingBufferSize<dst_T>(getNIncompressibleSymbols());
+  return mIncompressiblePacker.template getPackingBufferSize<dst_T>(getNIncompressibleSamples());
 }
 
 template <typename source_T>
@@ -280,7 +274,7 @@ class ExternalEntropyCoder
     return encodedMessageEnd;
   };
 
-  inline size_t getNIncompressibleSymbols() const noexcept { return mIncompressibleBuffer.size(); };
+  inline size_t getNIncompressibleSamples() const noexcept { return mIncompressibleBuffer.size(); };
 
   inline source_type getIncompressibleSymbolOffset() const noexcept { return mIncompressiblePacker.getOffset(); };
 

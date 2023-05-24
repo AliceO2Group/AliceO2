@@ -50,7 +50,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testSerializeDeserializeEmptyHistogram, T, test_ty
   Histogram<source_type> h{};
   Metrics<source_type> metrics{h};
   auto srcRenormedHistogram = renorm(h, metrics);
-  metrics.updateCoderProperties(srcRenormedHistogram);
   SizeEstimate sizeEstimate{metrics};
   size_t bufferSize = sizeEstimate.getCompressedDictionarySize<buffer_type>();
 
@@ -180,7 +179,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testSerializeDeserializeHistogram, T, test_types)
   auto h = makeHistogram::fromSamples(message.begin(), message.end());
   Metrics<source_type> metrics{h};
   auto srcRenormedHistogram = renorm(h, metrics);
-  metrics.updateCoderProperties(srcRenormedHistogram);
+  ;
   SizeEstimate sizeEstimate{metrics};
   size_t bufferSize = sizeEstimate.getCompressedDictionarySize<buffer_type>();
 
@@ -214,7 +213,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(testSerializeDeserializeSymbolTable, T, test_types
   auto h = makeHistogram::fromSamples(message.begin(), message.end());
   Metrics<source_type> metrics{h};
   auto srcRenormedHistogram = renorm(h, metrics);
-  metrics.updateCoderProperties(srcRenormedHistogram);
   SymbolTable<source_type, internal::Symbol> srcSymbolTable(srcRenormedHistogram);
 
   SizeEstimate sizeEstimate{metrics};

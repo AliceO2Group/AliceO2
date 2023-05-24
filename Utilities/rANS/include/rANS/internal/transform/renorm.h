@@ -41,7 +41,7 @@ inline size_t getNUsedAlphabetSymbols(const Histogram<source_T>& f)
 }
 
 template <typename source_T>
-RenormedHistogram<source_T> renorm(Histogram<source_T> histogram, size_t newPrecision, size_t nUsedAlphabetSymbols, bool forceIncompressible, size_t lowProbabilityCutoffBits = 0)
+RenormedHistogram<source_T> renorm(Histogram<source_T> histogram, Metrics<source_T>& metrics, bool forceIncompressible, size_t lowProbabilityCutoffBits = 0)
 {
   using namespace o2::rans;
   using namespace o2::rans::internal;
@@ -58,12 +58,16 @@ RenormedHistogram<source_T> renorm(Histogram<source_T> histogram, size_t newPrec
 
   const source_type offset = histogram.getOffset();
   const double_t nSamples = histogram.getNumSamples();
+  const size_t renormingPrecisionBits = *metrics.getCoderProperties().renormingPrecisionBits;
+  const size_t nUsedAlphabetSymbols = metrics.getDatasetProperties().nUsedAlphabetSymbols;
 
-  const count_type nSamplesRescaled = pow2(newPrecision);
-  const double_t probabilityCutOffThreshold = 1.0 / static_cast<double_t>(pow2(newPrecision + lowProbabilityCutoffBits));
+  const count_type nSamplesRescaled = pow2(renormingPrecisionBits);
+  const double_t probabilityCutOffThreshold = 1.0 / static_cast<double_t>(pow2(renormingPrecisionBits + lowProbabilityCutoffBits));
 
   // scaling
   double_t incompressibleSymbolProbability = 0;
+  count_type nIncompressibleSamples = 0;
+  count_type nIncompressibleSymbols = 0;
   count_type nSamplesRescaledUncorrected = 0;
   std::vector<iterator_type> correctableIndices;
   correctableIndices.reserve(nUsedAlphabetSymbols);
@@ -77,6 +81,8 @@ RenormedHistogram<source_T> renorm(Histogram<source_T> histogram, size_t newPrec
     if (frequency > 0) {
       const double_t symbolProbability = static_cast<double_t>(frequency) / nSamples;
       if (symbolProbability < probabilityCutOffThreshold) {
+        nIncompressibleSamples += frequency;
+        ++nIncompressibleSymbols;
         incompressibleSymbolProbability += symbolProbability;
         *frequencyIter = 0;
       } else {
@@ -137,7 +143,15 @@ RenormedHistogram<source_T> renorm(Histogram<source_T> histogram, size_t newPrec
     throw HistogramError(fmt::format("rANS rescaling incomplete: {} corrections Remaining", nCorrections));
   }
 
-  return RenormedHistogram<source_type>(std::move(rescaledHistogram), newPrecision, incompressibleSymbolFrequency);
+  RenormedHistogram<source_type> ret{std::move(rescaledHistogram), renormingPrecisionBits, incompressibleSymbolFrequency};
+
+  auto& coderProperties = metrics.getCoderProperties();
+  *coderProperties.renormingPrecisionBits = renormingPrecisionBits;
+  *coderProperties.nIncompressibleSymbols = nIncompressibleSymbols;
+  *coderProperties.nIncompressibleSamples = nIncompressibleSamples;
+  std::tie(*coderProperties.min, *coderProperties.max) = getMinMax(ret);
+
+  return ret;
 };
 
 } // namespace renormImpl
@@ -146,22 +160,22 @@ template <typename source_T>
 RenormedHistogram<source_T> renorm(Histogram<source_T> histogram, size_t newPrecision, bool forceIncompressible = false, size_t lowProbabilityCutoffBits = 0)
 {
   const size_t nUsedAlphabetSymbols = renormImpl::getNUsedAlphabetSymbols(histogram);
-  return renormImpl::renorm(std::move(histogram), newPrecision, nUsedAlphabetSymbols, forceIncompressible, lowProbabilityCutoffBits);
+  Metrics<source_T> metrics{};
+  *metrics.getCoderProperties().renormingPrecisionBits = newPrecision;
+  metrics.getDatasetProperties().nUsedAlphabetSymbols = nUsedAlphabetSymbols;
+  return renormImpl::renorm(std::move(histogram), metrics, forceIncompressible, lowProbabilityCutoffBits);
 };
 
 template <typename source_T>
-RenormedHistogram<source_T> renorm(Histogram<source_T> histogram, const Metrics<source_T>& metrics, bool forceIncompressible = false, size_t lowProbabilityCutoffBits = 0)
+RenormedHistogram<source_T> renorm(Histogram<source_T> histogram, Metrics<source_T>& metrics, bool forceIncompressible = false, size_t lowProbabilityCutoffBits = 0)
 {
-  return renormImpl::renorm(std::move(histogram),
-                            metrics.getCoderProperties().renormingPrecisionBits,
-                            metrics.getDatasetProperties().nUsedAlphabetSymbols,
-                            forceIncompressible, lowProbabilityCutoffBits);
+  return renormImpl::renorm(std::move(histogram), metrics, forceIncompressible, lowProbabilityCutoffBits);
 };
 
 template <typename source_T>
 RenormedHistogram<source_T> renorm(Histogram<source_T> histogram, bool forceIncompressible = false)
 {
-  const Metrics<source_T> metrics{histogram};
+  Metrics<source_T> metrics{histogram};
   return renorm(std::move(histogram), metrics, forceIncompressible);
 };
 

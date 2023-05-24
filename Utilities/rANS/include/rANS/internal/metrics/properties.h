@@ -20,7 +20,7 @@
 #include <cstdint>
 #include <cmath>
 #include <array>
-#include <limits>
+#include <optional>
 
 #include "rANS/internal/metrics/DictSizeEstimate.h"
 
@@ -32,24 +32,25 @@ struct CoderProperties {
   using source_type = source_T;
 
   internal::DictSizeEstimate dictSizeEstimate{};
-  size_t renormingPrecisionBits{};
-  size_t nIncompressibleSymbols{};
-  source_type min{std::numeric_limits<source_type>::min()};
-  source_type max{std::numeric_limits<source_type>::max()};
+  std::optional<size_t> renormingPrecisionBits{};
+  std::optional<size_t> nIncompressibleSymbols{};
+  std::optional<size_t> nIncompressibleSamples{};
+  std::optional<source_type> min{};
+  std::optional<source_type> max{};
 };
 
 template <typename source_T>
 struct DatasetProperties {
   using source_type = source_T;
 
-  source_type min{std::numeric_limits<source_type>::min()};
-  source_type max{std::numeric_limits<source_type>::max()};
+  source_type min{};
+  source_type max{};
   size_t numSamples{};
-  uint32_t alphabetRangeBits{internal::toBits<source_T>()};
+  uint32_t alphabetRangeBits{};
   uint32_t nUsedAlphabetSymbols{};
   float_t entropy{};
   std::array<uint32_t, 32> symbolLengthDistribution{{}};
-  std::array<float_t, 32> weightedSymbolLengthDistribution{{}};
+  std::array<uint32_t, 32> weightedSymbolLengthDistribution{{}};
 };
 
 } // namespace o2::rans

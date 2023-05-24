@@ -93,7 +93,7 @@ class SourceMessageProxy
   };
 
  private:
-  inline static constexpr size_t MessageSize = rans::internal::pow2(10);
+  inline static constexpr size_t MessageSize = rans::internal::pow2(20);
   SourceMessage<uint8_t> sourceMessage8u{MessageSize};
   SourceMessage<int8_t> sourceMessage8{MessageSize};
   SourceMessage<uint16_t> sourceMessage16u{MessageSize};
@@ -114,10 +114,10 @@ void encodeInplace(source_IT begin, source_IT end)
   ctf::InplaceEntropyCoder<source_type> entropyCoder{begin, end};
 
   const rans::Metrics<source_type>& metrics = entropyCoder.getMetrics();
-  const rans::SizeEstimate& sizeEstimate = entropyCoder.getSizeEstimate();
   BOOST_CHECK_THROW(entropyCoder.getEncoder(), std::runtime_error);
 
   entropyCoder.makeEncoder();
+  const rans::SizeEstimate sizeEstimate = metrics.getSizeEstimate();
   std::vector<buffer_type> encodeBuffer(sizeEstimate.getCompressedDatasetSize<buffer_type>(), 0);
   std::vector<buffer_type> literalSymbolsBuffer(sizeEstimate.getIncompressibleSize<buffer_type>(), 0);
   std::vector<buffer_type> dictBuffer(sizeEstimate.getCompressedDictionarySize<buffer_type>(), 0);
@@ -129,9 +129,9 @@ void encodeInplace(source_IT begin, source_IT end)
   // decode
   const auto& coderProperties = metrics.getCoderProperties();
   auto decoder = rans::makeDecoder<>::fromRenormed(rans::readRenormedDictionary(dictBuffer.data(), dictEnd,
-                                                                                coderProperties.min, coderProperties.max,
-                                                                                coderProperties.renormingPrecisionBits));
-  std::vector<source_type> literals(entropyCoder.getNIncompressibleSymbols());
+                                                                                *coderProperties.min, *coderProperties.max,
+                                                                                *coderProperties.renormingPrecisionBits));
+  std::vector<source_type> literals(entropyCoder.getNIncompressibleSamples());
 
   const auto& datasetPropterties = metrics.getDatasetProperties();
   rans::unpack(literalSymbolsBuffer.data(), literals.size(), literals.data(),
@@ -305,7 +305,7 @@ void encodeExternal(source_IT begin, source_IT end)
 
   // decode
   auto decoder = ExternalEncoders.getDecoder<source_type>();
-  std::vector<source_type> literals((entropyCoder.getNIncompressibleSymbols()));
+  std::vector<source_type> literals((entropyCoder.getNIncompressibleSamples()));
 
   rans::unpack(literalSymbolsBuffer.data(), literals.size(), literals.data(),
                entropyCoder.getIncompressibleSymbolPackingBits(), entropyCoder.getIncompressibleSymbolOffset());

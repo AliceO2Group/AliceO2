@@ -19,6 +19,7 @@
 #include <cstddef>
 #include <cmath>
 #include <cstdint>
+#include <numeric>
 
 #include "rANS/internal/common/utils.h"
 #include "rANS/internal/containers/Histogram.h"
@@ -27,50 +28,6 @@
 
 namespace o2::rans
 {
-namespace internal
-{
-template <typename IT>
-inline constexpr size_t computeNIncompressibleSymbols(IT begin, IT end, uint32_t renormingPrecision) noexcept
-{
-  assert(isValidRenormingPrecision(renormingPrecision));
-  size_t nIncompressibleSymbols = 0;
-
-  if (renormingPrecision > 0) {
-    for (auto frequencyIter = internal::advanceIter(begin, renormingPrecision); frequencyIter != end; ++frequencyIter) {
-      nIncompressibleSymbols += *frequencyIter;
-    }
-  } else {
-    // In case of an empty source message we allocate a precision of 0 Bits => 2**0 = 1
-    // This 1 entry is marked as the incompressible symbol, to ensure we somewhat can handle nasty surprises.
-    nIncompressibleSymbols = 1;
-  };
-  return nIncompressibleSymbols;
-};
-
-template <typename IT>
-inline constexpr size_t computeRenormingPrecision(IT begin, IT end, float_t cutoffPrecision = 0.999) noexcept
-{
-  constexpr size_t SafetyMargin = 1;
-  float_t cumulatedPrecision = 0;
-  size_t renormingBits = 0;
-
-  for (auto iter = begin; iter != end && cumulatedPrecision < cutoffPrecision; ++iter) {
-    cumulatedPrecision += *iter;
-    ++renormingBits;
-  }
-
-  if (cumulatedPrecision == 0) {
-    // if the message is empty, cumulated precision will be 0. The algorithm will be unable to meet the cutoff precision.
-    // We therefore set renorming Bits to 0, which will result in 2**0 = 1 entry, which will be assigned to the incompressible symbol.
-    renormingBits = 0;
-  } else {
-    // ensure renorming is in interval [MinThreshold, MaxThreshold]
-    renormingBits = sanitizeRenormingBitRange(renormingBits + SafetyMargin);
-  }
-  assert(isValidRenormingPrecision(renormingBits));
-  return renormingBits;
-};
-} // namespace internal
 
 template <typename source_T>
 double_t computeExpectedCodewordLength(const Histogram<source_T>& histogram, const RenormedHistogram<source_T>& rescaledHistogram)

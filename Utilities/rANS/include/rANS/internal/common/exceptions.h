@@ -57,6 +57,11 @@ class ParsingError : public IOError
   using IOError::IOError;
 };
 
+class ValueError : public Exception
+{
+  using Exception::Exception;
+};
+
 class OutOfBoundsError : public Exception
 {
   using Exception::Exception;
