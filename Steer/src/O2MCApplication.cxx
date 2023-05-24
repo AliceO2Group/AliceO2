@@ -32,7 +32,7 @@
 #include "SimConfig/SimUserDecay.h"
 #include <filesystem>
 #include <CommonUtils/FileSystemUtils.h>
-#include "SimSetup/GlobalProcessCutSimParam.h"
+#include "SimConfig/GlobalProcessCutSimParam.h"
 
 namespace o2
 {
