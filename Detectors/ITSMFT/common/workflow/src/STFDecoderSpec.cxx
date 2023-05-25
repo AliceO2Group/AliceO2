@@ -33,6 +33,7 @@
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "CommonUtils/StringUtils.h"
+#include "CommonUtils/VerbosityConfig.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "DataFormatsParameters/GRPECSObject.h"
 
@@ -128,7 +129,6 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
   int nSlots = pc.inputs().getNofParts(0);
   double timeCPU0 = mTimer.CpuTime(), timeReal0 = mTimer.RealTime();
   mTimer.Start(false);
-  mDecoder->startNewTF(pc.inputs());
   auto orig = Mapping::getOrigin();
   std::vector<o2::itsmft::CompClusterExt> clusCompVec;
   std::vector<o2::itsmft::ROFRecord> clusROFVec;
@@ -137,47 +137,54 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
   std::vector<Digit> digVec;
   std::vector<GBTCalibData> calVec;
   std::vector<ROFRecord> digROFVec;
+  try {
+    mDecoder->startNewTF(pc.inputs());
+    if (mDoDigits) {
+      digVec.reserve(mEstNDig);
+      digROFVec.reserve(mEstNROF);
+    }
+    if (mDoClusters) {
+      clusCompVec.reserve(mEstNClus);
+      clusROFVec.reserve(mEstNROF);
+      clusPattVec.reserve(mEstNClusPatt);
+    }
+    if (mDoCalibData) {
+      calVec.reserve(mEstNCalib);
+    }
 
-  if (mDoDigits) {
-    digVec.reserve(mEstNDig);
-    digROFVec.reserve(mEstNROF);
-  }
-  if (mDoClusters) {
-    clusCompVec.reserve(mEstNClus);
-    clusROFVec.reserve(mEstNROF);
-    clusPattVec.reserve(mEstNClusPatt);
-  }
-  if (mDoCalibData) {
-    calVec.reserve(mEstNCalib);
-  }
-
-  mDecoder->setDecodeNextAuto(false);
-  while (mDecoder->decodeNextTrigger() >= 0) {
-    if (mDoDigits || mClusterer->getMaxROFDepthToSquash()) { // call before clusterization, since the latter will hide the digits
-      mDecoder->fillDecodedDigits(digVec, digROFVec);        // lot of copying involved
-      if (mDoCalibData) {
-        mDecoder->fillCalibData(calVec);
+    mDecoder->setDecodeNextAuto(false);
+    while (mDecoder->decodeNextTrigger() >= 0) {
+      if (mDoDigits || mClusterer->getMaxROFDepthToSquash()) { // call before clusterization, since the latter will hide the digits
+        mDecoder->fillDecodedDigits(digVec, digROFVec);        // lot of copying involved
+        if (mDoCalibData) {
+          mDecoder->fillCalibData(calVec);
+        }
+      }
+      if (mDoClusters && !mClusterer->getMaxROFDepthToSquash()) { // !!! THREADS !!!
+        mClusterer->process(mNThreads, *mDecoder.get(), &clusCompVec, mDoPatterns ? &clusPattVec : nullptr, &clusROFVec);
       }
     }
-    if (mDoClusters && !mClusterer->getMaxROFDepthToSquash()) { // !!! THREADS !!!
-      mClusterer->process(mNThreads, *mDecoder.get(), &clusCompVec, mDoPatterns ? &clusPattVec : nullptr, &clusROFVec);
+
+    if (mDoClusters && mClusterer->getMaxROFDepthToSquash()) {
+      // Digits squashing require to run on a batch of digits and uses a digit reader, cannot (?) run with decoder
+      //  - Setup decoder for running on a batch of digits
+      o2::itsmft::DigitPixelReader reader;
+      reader.setSquashingDepth(mClusterer->getMaxROFDepthToSquash());
+      reader.setSquashingDist(mClusterer->getMaxRowColDiffToMask()); // Sharing same parameter/logic with masking
+      reader.setMaxBCSeparationToSquash(mClusterer->getMaxBCSeparationToSquash());
+      reader.setDigits(digVec);
+      reader.setROFRecords(digROFVec);
+      reader.init();
+
+      mClusterer->process(mNThreads, reader, &clusCompVec, mDoPatterns ? &clusPattVec : nullptr, &clusROFVec);
+    }
+  } catch (const std::exception& e) {
+    static size_t nErr = 0;
+    auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnRawParser;
+    if (++nErr < maxWarn) {
+      LOGP(alarm, "EXCEPTION {} in raw decoder, abandoning TF decoding {}", e.what(), nErr == maxWarn ? "(will mute further warnings)" : "");
     }
   }
-
-  if (mDoClusters && mClusterer->getMaxROFDepthToSquash()) {
-    // Digits squashing require to run on a batch of digits and uses a digit reader, cannot (?) run with decoder
-    //  - Setup decoder for running on a batch of digits
-    o2::itsmft::DigitPixelReader reader;
-    reader.setSquashingDepth(mClusterer->getMaxROFDepthToSquash());
-    reader.setSquashingDist(mClusterer->getMaxRowColDiffToMask()); // Sharing same parameter/logic with masking
-    reader.setMaxBCSeparationToSquash(mClusterer->getMaxBCSeparationToSquash());
-    reader.setDigits(digVec);
-    reader.setROFRecords(digROFVec);
-    reader.init();
-
-    mClusterer->process(mNThreads, reader, &clusCompVec, mDoPatterns ? &clusPattVec : nullptr, &clusROFVec);
-  }
-
   if (mDoDigits) {
     pc.outputs().snapshot(Output{orig, "DIGITS", 0, Lifetime::Timeframe}, digVec);
     pc.outputs().snapshot(Output{orig, "DIGITSROF", 0, Lifetime::Timeframe}, digROFVec);
