@@ -53,15 +53,11 @@ int NoiseCalib::process(const o2::zdc::NoiseCalibSummaryData* data)
   if (!mInitDone) {
     init();
   }
-  printf("Before addition\n");
-  mData.print();
   if (mVerbosity >= DbgFull) {
-    printf("Data to be added\n");
     data->print();
   }
   mData += data;
   if (mVerbosity >= DbgFull) {
-  printf("After addition\n");
     mData.print();
   }
   return 0;

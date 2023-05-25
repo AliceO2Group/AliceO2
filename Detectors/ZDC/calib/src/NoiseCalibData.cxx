@@ -57,7 +57,6 @@ NoiseCalibData& NoiseCalibData::operator+=(const NoiseCalibData& other)
       auto poth = other.mHisto[is].mData.find(i);
       if (pcur != mHisto[is].mData.end() && poth != other.mHisto[is].mData.end()) {
         uint64_t sum = pcur->first + pcur->second;
-        printf("is=%d sum=%lu = %lu + %lu\n",sum,pcur->first,pcur->second);
         if (sum > 0xffffffff) {
           LOG(warn) << "NoiseCalibData::" << __func__ << " Addition would result in an overflow for ch " << is << " BREAK!";
           return *this;
@@ -171,7 +170,7 @@ uint64_t NoiseCalibChData::getEntries() const
 {
   uint64_t sum = 0;
   for (const auto& [key, value] : mData) {
-    sum += value;
+    sum = sum + value;
   }
   return sum;
 }
@@ -211,8 +210,8 @@ int NoiseCalibChData::getStat(uint64_t& en, double& mean, double& var) const
   en = 0;
   uint64_t sum = 0;
   for (const auto& [key, value] : mData) {
-    en += value;
-    sum += key * value;
+    en = en + value;
+    sum = sum + key * value;
   }
   if (en == 0) {
     return 1;
@@ -222,7 +221,7 @@ int NoiseCalibChData::getStat(uint64_t& en, double& mean, double& var) const
     double sums = 0;
     for (const auto& [key, value] : mData) {
       double diff = key - mean;
-      sums += (value * diff * diff);
+      sums = sums + (value * diff * diff);
     }
     var = sums / (en - 1);
   } else {
@@ -323,8 +322,8 @@ void NoiseCalibSummaryData::print() const
   int nbin[NChannels] = {0};
   uint64_t ccont[NChannels] = {0};
   for (auto& bin : mData) {
-    nbin[bin.id()]++;
-    ccont[bin.id()] += bin.cont;
+    nbin[bin.id()] = nbin[bin.id()] + 1;
+    ccont[bin.id()] = ccont[bin.id()] + bin.cont;
   }
   for (int32_t is = 0; is < NChannels; is++) {
     LOG(info) << "Summary ch " << is << " nbin = " << nbin[is] << " ccont = " << ccont[is];
