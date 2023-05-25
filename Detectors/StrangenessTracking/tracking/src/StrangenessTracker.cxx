@@ -218,7 +218,7 @@ void StrangenessTracker::process()
           }
           decayVtxTrackClone.getPxPyPzGlo(mStrangeTrack.mDecayMom);
           std::array<float, 3> momV0, mombach;
-          mFitter3Body.getTrack(0).getPxPyPzGlo(momV0);                                   // V0 momentum at decay vertex
+          mFitter3Body.getTrack(0).getPxPyPzGlo(momV0);                                 // V0 momentum at decay vertex
           mFitter3Body.getTrack(1).getPxPyPzGlo(mombach);                               // bachelor momentum at decay vertex
           mStrangeTrack.mMasses[0] = calcMotherMass(momV0, mombach, PID::Lambda, PID::Pion); // Xi invariant mass at decay vertex
           mStrangeTrack.mMasses[1] = calcMotherMass(momV0, mombach, PID::Lambda, PID::Kaon); // Omega invariant mass at decay vertex
