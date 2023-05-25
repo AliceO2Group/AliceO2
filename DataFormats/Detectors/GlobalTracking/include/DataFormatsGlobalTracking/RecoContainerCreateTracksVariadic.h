@@ -61,6 +61,7 @@
 
 #include "ReconstructionDataFormats/GlobalFwdTrack.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
+#include <cmath>
 
 //________________________________________________________
 template <class T>
@@ -130,7 +131,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator, GTrackID
   GTrackID::Source currentSource = GTrackID::NSources;
   auto getBCDiff = [startIR = this->startIR, &currentSource](const o2::InteractionRecord& ir) {
     auto bcd = ir.differenceInBC(startIR);
-    if (uint64_t(bcd) > o2::constants::lhc::LHCMaxBunches * 256 && BCDiffErrCount < MAXBCDiffErrCount) {
+    if (std::abs(bcd) > o2::constants::lhc::LHCMaxBunches * 256 && BCDiffErrCount < MAXBCDiffErrCount) {
       LOGP(alarm, "ATTENTION: wrong bunches diff. {} for current IR {} wrt 1st TF orbit {}, source:{}", bcd, ir.asString(), startIR.asString(), GTrackID::getSourceName(currentSource));
       BCDiffErrCount++;
     }
