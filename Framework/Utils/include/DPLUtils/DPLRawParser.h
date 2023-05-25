@@ -77,7 +77,7 @@ class DPLRawParser
 
   // this is a dummy default buffer used to initialize the RawParser in the iterator
   // constructor
-  static constexpr o2::header::RAWDataHeaderV4 initializer = o2::header::RAWDataHeaderV4{};
+  static constexpr o2::header::RAWDataHeader initializer = o2::header::RAWDataHeader{.memorySize = sizeof(o2::header::RAWDataHeader)};
 
   /// Iterator implementation
   /// Supports the following operations:
