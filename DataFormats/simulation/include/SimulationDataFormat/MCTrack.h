@@ -139,11 +139,11 @@ class MCTrackT
 
   Double_t GetRapidity() const;
 
-  void GetMomentum(TVector3& momentum);
+  void GetMomentum(TVector3& momentum) const;
 
-  void Get4Momentum(TLorentzVector& momentum);
+  void Get4Momentum(TLorentzVector& momentum) const;
 
-  void GetStartVertex(TVector3& vertex);
+  void GetStartVertex(TVector3& vertex) const;
 
   /// Accessors to the hit mask
   Int_t getHitMask() const { return ((PropEncoding)mProp).hitmask; }
@@ -280,19 +280,19 @@ inline Double_t MCTrackT<T>::GetEnergy() const
 }
 
 template <typename T>
-inline void MCTrackT<T>::GetMomentum(TVector3& momentum)
+inline void MCTrackT<T>::GetMomentum(TVector3& momentum) const
 {
   momentum.SetXYZ(mStartVertexMomentumX, mStartVertexMomentumY, mStartVertexMomentumZ);
 }
 
 template <typename T>
-inline void MCTrackT<T>::Get4Momentum(TLorentzVector& momentum)
+inline void MCTrackT<T>::Get4Momentum(TLorentzVector& momentum) const
 {
   momentum.SetXYZT(mStartVertexMomentumX, mStartVertexMomentumY, mStartVertexMomentumZ, GetEnergy());
 }
 
 template <typename T>
-inline void MCTrackT<T>::GetStartVertex(TVector3& vertex)
+inline void MCTrackT<T>::GetStartVertex(TVector3& vertex) const
 {
   vertex.SetXYZ(mStartVertexCoordinatesX, mStartVertexCoordinatesY, mStartVertexCoordinatesZ);
 }
