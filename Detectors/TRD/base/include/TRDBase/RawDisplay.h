@@ -146,16 +146,24 @@ public:
   std::array<float, 3> Local2RCT(o2::trd::Hit& hit) 
   { return Local2RCT(hit.GetDetectorID(), hit.getLocalT(), hit.getLocalC(), hit.getLocalR()); }
 
+  std::array<float, 3> OrigLocal2RCT(int det, float x, float y, float z);
+  std::array<float, 3> OrigLocal2RCT(o2::trd::Hit& hit) 
+  { return OrigLocal2RCT(hit.GetDetectorID(), hit.getLocalT(), hit.getLocalC(), hit.getLocalR()); }
+
   float GetVdrift() { return mVdrift; }
   void SetVdrift(float x) { mVdrift = x; }
 
   float GetT0() { return mT0; }
   void SetT0(float x) { mT0 = x; }
 
+  float GetExB() { return mExB; }
+  void SetExB(float x) { mExB = x; }
+
 protected:
   o2::trd::Geometry* mGeo;
-  float mVdrift{1.5625};
-  float mT0{4.0};
+  float mVdrift{1.5625}; ///< drift velocity in cm/us
+  float mT0{4.0}; ///< time offset of start of drift region
+  float mExB{0.140}; ///< tan(Lorentz angle): tan(8 deg) ~ 0.140
 
 private:
   CoordinateTransformer();

@@ -82,6 +82,55 @@ std::array<float, 3> CoordinateTransformer::Local2RCT(int det, float x, float y,
     rct[2] = mT0 - 1.0 + fabs(x);
   }
 
+  rct[1] += (x + 0.35) * mExB;
+  return rct;
+}
+
+std::array<float, 3> CoordinateTransformer::OrigLocal2RCT(int det, float x, float y, float z)
+{
+  std::array<float, 3> rct;
+
+  auto padPlane = mGeo->getPadPlane((det)%6, (det/6)%5);
+
+  // array<double,3> rct;
+
+  double iPadLen = padPlane->getLengthIPad();
+  double oPadLen = padPlane->getLengthOPad();
+  int nRows = padPlane->getNrows();
+
+  double lengthCorr = padPlane->getLengthOPad()/padPlane->getLengthIPad();
+
+  // calculate position based on inner pad length
+  rct[0] = - z / padPlane->getLengthIPad() + padPlane->getNrows()/2;
+
+  // correct row for outer pad rows
+  if (rct[0] <= 1.0) {
+    rct[0] = 1.0 - (1.0-rct[0])*lengthCorr;
+  }
+
+  if (rct[0] >= double(nRows-1)) {
+    rct[0] = double(nRows-1) + (rct[0] - double(nRows-1))*lengthCorr;
+  }
+
+  // sanity check: is the padrow coordinate reasonable?
+  if ( rct[0] < 0.0 || rct[0] > double(nRows) ) {
+    std::cout << "ERROR: hit with z=" << z << ", padrow " << rct[0]
+          << " outside of chamber" << std::endl;
+  }
+
+  // simple conversion of pad / local y coordinate
+  // ignore different width of outer pad
+  rct[1] = y / padPlane->getWidthIPad() + 144./2.;
+
+  // time coordinate
+  if (x<-0.35) {
+    // drift region
+    rct[2] = mT0 - (x+0.35) / (mVdrift/10.0);
+  } else {
+    // anode region: very rough guess
+    rct[2] = mT0 - 1.0 + fabs(x);
+  }
+
   return rct;
 }
 
@@ -829,7 +878,7 @@ TPad* rawdisp::DrawMCM(RawDataSpan &mcm, TPad *pad)
   float lastpad = (mcmcol+1) * constants::NCOLMCM;
 
   if (pad == NULL) {
-    pad = new TCanvas(desc.c_str(), desc.c_str(), 800, 600);
+    pad = new TCanvas(name.c_str(), desc.c_str(), 800, 600);
     std::cout << "create canvas " << desc << std::endl;
   } else {
     pad->SetName(name.c_str());
@@ -838,7 +887,7 @@ TPad* rawdisp::DrawMCM(RawDataSpan &mcm, TPad *pad)
   pad->cd();
 
   std::cout << firstpad << " - " << lastpad << std::endl;
-  TH2F *digit_disp = new TH2F(desc.c_str(), (desc + ";pad;time bin").c_str(), 21, firstpad, lastpad, 30, 0., 30.);
+  TH2F *digit_disp = new TH2F(name.c_str(), (desc + ";pad;time bin").c_str(), 21, firstpad, lastpad, 30, 0., 30.);
 
   for (auto digit : mcm.digits) {
     auto adc = digit.getADC();
