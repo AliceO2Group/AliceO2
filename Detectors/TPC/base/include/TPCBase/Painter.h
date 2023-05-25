@@ -52,6 +52,7 @@ namespace painter
 enum class Type : int {
   Pad,   ///< drawing pads
   Stack, ///< drawing stacks
+  FEC    ///< drawing of FECs
 };
 
 /// pad corner coordinates
@@ -78,6 +79,9 @@ std::vector<PadCoordinates> getPadCoordinatesSector();
 
 /// create a vector of stack corner coordinate for one full sector
 std::vector<PadCoordinates> getStackCoordinatesSector();
+
+/// create a vector of FEC corner coordinates for one full sector
+std::vector<PadCoordinates> getFECCoordinatesSector();
 
 /// \return returns coordinates for given type
 std::vector<o2::tpc::painter::PadCoordinates> getCoordinates(const Type type);

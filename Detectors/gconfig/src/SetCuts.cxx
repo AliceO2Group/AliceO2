@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "SetCuts.h"
-#include "SimSetup/GlobalProcessCutSimParam.h"
+#include "SimConfig/GlobalProcessCutSimParam.h"
 #include "DetectorsBase/MaterialManager.h"
 #include <fairlogger/Logger.h>
 

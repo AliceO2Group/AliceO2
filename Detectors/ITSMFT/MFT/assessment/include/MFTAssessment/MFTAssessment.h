@@ -153,7 +153,7 @@ class MFTAssessment
   std::array<std::unique_ptr<TH2F>, 7> mTrackEtaPhiNCls = {nullptr};
   std::unique_ptr<TH1F> mCATrackEta = nullptr;
   std::unique_ptr<TH1F> mLTFTrackEta = nullptr;
-  std::unique_ptr<TH1F> mTrackTanl = nullptr;
+  std::unique_ptr<TH1F> mTrackCotl = nullptr;
 
   std::unique_ptr<TH1F> mTrackROFNEntries = nullptr;
   std::unique_ptr<TH1F> mClusterROFNEntries = nullptr;
@@ -199,7 +199,7 @@ class MFTAssessment
     kTH3TrackXPullPtEta,
     kTH3TrackYPullPtEta,
     kTH3TrackPhiPullPtEta,
-    kTH3TrackTanlPullPtEta,
+    kTH3TrackCotlPullPtEta,
     kTH3TrackInvQPtPullPtEta,
     kTH3TrackReducedChi2PtEta,
     kNTH3Histos
@@ -215,7 +215,7 @@ class MFTAssessment
     {kTH3TrackXPullPtEta, "TH3TrackXPullPtEta"},
     {kTH3TrackYPullPtEta, "TH3TrackYPullPtEta"},
     {kTH3TrackPhiPullPtEta, "TH3TrackPhiPullPtEta"},
-    {kTH3TrackTanlPullPtEta, "TH3TrackTanlPullPtEta"},
+    {kTH3TrackCotlPullPtEta, "TH3TrackCotlPullPtEta"},
     {kTH3TrackInvQPtPullPtEta, "TH3TrackInvQPtPullPtEta"},
     {kTH3TrackReducedChi2PtEta, "TH3TrackReducedChi2PtEta"}};
 
@@ -229,7 +229,7 @@ class MFTAssessment
     {kTH3TrackXPullPtEta, "TH3TrackXPullPtEta"},
     {kTH3TrackYPullPtEta, "TH3TrackYPullPtEta"},
     {kTH3TrackPhiPullPtEta, "TH3TrackPhiPullPtEta"},
-    {kTH3TrackTanlPullPtEta, "TH3TrackTanlPullPtEta"},
+    {kTH3TrackCotlPullPtEta, "TH3TrackCotlPullPtEta"},
     {kTH3TrackInvQPtPullPtEta, "TH3TrackInvQPtPullPtEta"},
     {kTH3TrackReducedChi2PtEta, "TH3TrackReducedChi2PtEta"}};
 
@@ -243,7 +243,7 @@ class MFTAssessment
     {kTH3TrackXPullPtEta, {100, 0, 20, 16, -3.8, -2.2, 200, -10, 10}},
     {kTH3TrackYPullPtEta, {100, 0, 20, 16, -3.8, -2.2, 200, -10, 10}},
     {kTH3TrackPhiPullPtEta, {100, 0, 20, 16, -3.8, -2.2, 200, -10, 10}},
-    {kTH3TrackTanlPullPtEta, {100, 0, 20, 16, -3.8, -2.2, 200, -10, 10}},
+    {kTH3TrackCotlPullPtEta, {100, 0, 20, 16, -3.8, -2.2, 200, -10, 10}},
     {kTH3TrackInvQPtPullPtEta, {100, 0, 20, 16, -3.8, -2.2, 1000, -15, 15}},
     {kTH3TrackReducedChi2PtEta, {100, 0, 20, 16, -3.8, -2.2, 1000, 0, 100}}};
 
@@ -257,7 +257,7 @@ class MFTAssessment
     {kTH3TrackXPullPtEta, R"(p_{t})"},
     {kTH3TrackYPullPtEta, R"(p_{t})"},
     {kTH3TrackPhiPullPtEta, R"(p_{t})"},
-    {kTH3TrackTanlPullPtEta, R"(p_{t})"},
+    {kTH3TrackCotlPullPtEta, R"(p_{t})"},
     {kTH3TrackInvQPtPullPtEta, R"(p_{t})"},
     {kTH3TrackReducedChi2PtEta, R"(p_{t})"}};
 
@@ -271,7 +271,7 @@ class MFTAssessment
     {kTH3TrackXPullPtEta, R"(\eta)"},
     {kTH3TrackYPullPtEta, R"(\eta)"},
     {kTH3TrackPhiPullPtEta, R"(\eta)"},
-    {kTH3TrackTanlPullPtEta, R"(\eta)"},
+    {kTH3TrackCotlPullPtEta, R"(\eta)"},
     {kTH3TrackInvQPtPullPtEta, R"(\eta)"},
     {kTH3TrackReducedChi2PtEta, R"(\eta)"}};
 
@@ -285,7 +285,7 @@ class MFTAssessment
     {kTH3TrackXPullPtEta, R"(\Delta X/\sigma_{X})"},
     {kTH3TrackYPullPtEta, R"(\Delta Y/\sigma_{Y})"},
     {kTH3TrackPhiPullPtEta, R"(\Delta \phi/\sigma_{\phi})"},
-    {kTH3TrackTanlPullPtEta, R"(\Delta \tan(\lambda)/\sigma_{tan(\lambda)})"},
+    {kTH3TrackCotlPullPtEta, R"(\Delta \cot(\lambda)/\sigma_{cot(\lambda)})"},
     {kTH3TrackInvQPtPullPtEta, R"((\Delta q/p_t)/\sigma_{q/p_{t}})"},
     {kTH3TrackReducedChi2PtEta, R"(\chi^2/d.f.)"}};
 
@@ -304,8 +304,8 @@ class MFTAssessment
     kInvQPtResSeedVsPt,
     kPhiPullVsEta,
     kPhiPullVsPt,
-    kTanlPullVsEta,
-    kTanlPullVsPt,
+    kCotlPullVsEta,
+    kCotlPullVsPt,
     kInvQPtPullVsEta,
     kInvQPtPullVsPt,
     kNSlicedTH3
@@ -326,8 +326,8 @@ class MFTAssessment
     {kInvQPtResSeedVsPt, "InvQPtResSeedVsPt"},
     {kPhiPullVsEta, "PhiPullVsEta"},
     {kPhiPullVsPt, "PhiPullVsPt"},
-    {kTanlPullVsEta, "TanlPullVsEta"},
-    {kTanlPullVsPt, "TanlPullVsPt"},
+    {kCotlPullVsEta, "CotlPullVsEta"},
+    {kCotlPullVsPt, "CotlPullVsPt"},
     {kInvQPtPullVsEta, "InvQPtPullVsEta"},
     {kInvQPtPullVsPt, "InvQPtPullVsPt"}};
 
@@ -346,8 +346,8 @@ class MFTAssessment
     {kInvQPtResSeedVsPt, kTH3TrackInvQPtResSeedPtEta},
     {kPhiPullVsEta, kTH3TrackPhiPullPtEta},
     {kPhiPullVsPt, kTH3TrackPhiPullPtEta},
-    {kTanlPullVsEta, kTH3TrackTanlPullPtEta},
-    {kTanlPullVsPt, kTH3TrackTanlPullPtEta},
+    {kCotlPullVsEta, kTH3TrackCotlPullPtEta},
+    {kCotlPullVsPt, kTH3TrackCotlPullPtEta},
     {kInvQPtPullVsEta, kTH3TrackInvQPtPullPtEta},
     {kInvQPtPullVsPt, kTH3TrackInvQPtPullPtEta}};
 

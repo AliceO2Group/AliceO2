@@ -72,7 +72,7 @@ void MFTAssessment::reset()
   }
   mCATrackEta->Reset();
   mLTFTrackEta->Reset();
-  mTrackTanl->Reset();
+  mTrackCotl->Reset();
 
   mTrackROFNEntries->Reset();
   mClusterROFNEntries->Reset();
@@ -137,7 +137,7 @@ void MFTAssessment::createHistos()
   mLTFTrackNumberOfClusters = std::make_unique<TH1F>("mMFTLTFTrackNumberOfClusters",
                                                      "Number Of Clusters Per LTF Track; # clusters; # entries", 10, 0.5, 10.5);
 
-  mTrackInvQPt = std::make_unique<TH1F>("mMFTTrackInvQPt", "Track q/p_{T}; q/p_{T} [1/GeV]; # entries", 50, -2, 2);
+  mTrackInvQPt = std::make_unique<TH1F>("mMFTTrackInvQPt", "Track q/p_{T}; q/p_{T} [1/GeV]; # entries", 200, -10, 10);
 
   mTrackChi2 = std::make_unique<TH1F>("mMFTTrackChi2", "Track #chi^{2}/NDF; #chi^{2}/NDF; # entries", 210, -0.5, 20.5);
 
@@ -184,7 +184,7 @@ void MFTAssessment::createHistos()
 
   mLTFTrackEta = std::make_unique<TH1F>("mMFTLTFTrackEta", "LTF Track #eta; #eta; # entries", 50, -4, -2);
 
-  mTrackTanl = std::make_unique<TH1F>("mMFTTrackTanl", "Track tan #lambda; tan #lambda; # entries", 100, -25, 0);
+  mTrackCotl = std::make_unique<TH1F>("mMFTTrackCotl", "Track cot #lambda; cot #lambda; # entries", 100, -0.25, 0);
 
   mClusterROFNEntries = std::make_unique<TH1F>("mMFTClustersROFSize", "MFT Cluster ROFs size; ROF Size; # entries", MaxClusterROFSize, 0, MaxClusterROFSize);
 
@@ -367,7 +367,7 @@ void MFTAssessment::runASyncQC(o2::framework::ProcessingContext& ctx)
     mTrackCharge->Fill(oneTrack.getCharge());
     mTrackPhi->Fill(oneTrack.getPhi());
     mTrackEta->Fill(oneTrack.getEta());
-    mTrackTanl->Fill(oneTrack.getTanl());
+    mTrackCotl->Fill(1. / oneTrack.getTanl());
 
     for (auto idisk = 0; idisk < 5; idisk++) {
       clsEntriesForRedundancy[idisk] = {-1, -1};
@@ -612,7 +612,7 @@ void MFTAssessment::processTrueAndFakeTracks()
           auto y_res = mftTrack.getY() - vyGen;
           auto eta_res = mftTrack.getEta() - etaGen;
           auto phi_res = mftTrack.getPhi() - phiGen;
-          auto tanl_res = mftTrack.getTanl() - tanlGen;
+          auto cotl_res = (1. / mftTrack.getTanl()) - (1. / tanlGen);
           auto invQPt_res = invQPt_Rec - invQPtGen;
           mHistPtVsEta[kRecoTrue]->Fill(eta_Rec, pt_Rec);
           mHistPhiVsEta[kRecoTrue]->Fill(eta_Rec, phi_Rec);
@@ -639,7 +639,7 @@ void MFTAssessment::processTrueAndFakeTracks()
           mTH3Histos[kTH3TrackXPullPtEta]->Fill(ptGen, etaGen, x_res / sqrt(mftTrack.getCovariances()(0, 0)));
           mTH3Histos[kTH3TrackYPullPtEta]->Fill(ptGen, etaGen, y_res / sqrt(mftTrack.getCovariances()(1, 1)));
           mTH3Histos[kTH3TrackPhiPullPtEta]->Fill(ptGen, etaGen, phi_res / sqrt(mftTrack.getCovariances()(2, 2)));
-          mTH3Histos[kTH3TrackTanlPullPtEta]->Fill(ptGen, etaGen, tanl_res / sqrt(mftTrack.getCovariances()(3, 3)));
+          mTH3Histos[kTH3TrackCotlPullPtEta]->Fill(ptGen, etaGen, cotl_res / sqrt(1. / mftTrack.getCovariances()(3, 3)));
           mTH3Histos[kTH3TrackInvQPtPullPtEta]->Fill(ptGen, etaGen, invQPt_res / sqrt(mftTrack.getCovariances()(4, 4)));
           mTH3Histos[kTH3TrackInvQPtResolutionPtEta]->Fill(ptGen, etaGen, (invQPt_Rec - invQPtGen) / invQPtGen);
           mTH3Histos[kTH3TrackInvQPtResSeedPtEta]->Fill(ptGen, etaGen, (invQPt_Seed - invQPtGen) / invQPtGen);
@@ -701,7 +701,7 @@ void MFTAssessment::getHistos(TObjArray& objar)
   }
   objar.Add(mCATrackEta.get());
   objar.Add(mLTFTrackEta.get());
-  objar.Add(mTrackTanl.get());
+  objar.Add(mTrackCotl.get());
 
   objar.Add(mTrackROFNEntries.get());
   objar.Add(mClusterROFNEntries.get());
@@ -901,7 +901,7 @@ bool MFTAssessment::loadHistos()
 
   mLTFTrackEta = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTLTFTrackEta"));
 
-  mTrackTanl = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTTrackTanl"));
+  mTrackCotl = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTTrackCotl"));
 
   mClusterROFNEntries = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTClustersROFSize"));
 

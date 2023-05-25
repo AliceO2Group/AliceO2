@@ -55,7 +55,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-decoding-errors", o2::framework::VariantType::Bool, false, {"disable propagating decoding errors"}},
     {"ignore-dist-stf", o2::framework::VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
     {"use-ccdb", o2::framework::VariantType::Bool, false, {"enable access to ccdb EMCAL simulation objects"}},
-    {"subspecification", o2::framework::VariantType::Int, 0, {"Subspecification in case the workflow runs in parallel on multiple nodes (i.e. different FLPs)"}}};
+    {"subspecificationIn", o2::framework::VariantType::Int, 0, {"Subspecification for input in case the workflow runs in parallel on multiple nodes (i.e. different FLPs)"}},
+    {"subspecificationOut", o2::framework::VariantType::Int, 0, {"Subspecification for output in case the workflow runs in parallel on multiple nodes (i.e. different FLPs)"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -80,7 +81,8 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
   auto wf = o2::emcal::reco_workflow::getWorkflow(!cfgc.options().get<bool>("disable-mc"),
                                                   !cfgc.options().get<bool>("ignore-dist-stf"),
                                                   cfgc.options().get<bool>("enable-digits-printer"),
-                                                  cfgc.options().get<int>("subspecification"),
+                                                  cfgc.options().get<int>("subspecificationIn"),
+                                                  cfgc.options().get<int>("subspecificationOut"),
                                                   cfgc.options().get<std::string>("input-type"),
                                                   cfgc.options().get<std::string>("output-type"),
                                                   cfgc.options().get<bool>("disable-root-input"),

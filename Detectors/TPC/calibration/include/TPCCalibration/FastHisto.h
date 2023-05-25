@@ -175,7 +175,7 @@ template <class T>
 inline void FastHisto<T>::fill(const float val, T weight)
 {
   const int indexBin = findBin(val);
-  if (indexBin == -1) { // if no underflow/overflow bin is used, but the value should be in the underflow/overflow bin return
+  if ((indexBin < 0) || (indexBin > static_cast<int>(mBinCont.size()) - 1)) { // if no underflow/overflow bin is used, but the value should be in the underflow/overflow bin return
     return;
   }
   fillBin(indexBin, weight); // fill the correct index with given weight

@@ -272,7 +272,7 @@ bool RDHUtils::checkRDH(const RAWDataHeaderV7& rdh, bool verbose)
   }
   if (rdh.zero0 || rdh.zero3 || rdh.zero4 || rdh.word5 || rdh.zero6 || rdh.word7) {
     if (verbose) {
-      LOG(alarm) << "Some reserved fields of RDH v6 are not empty";
+      LOG(alarm) << "Some reserved fields of RDH v7 are not empty";
     }
     ok = false;
   }

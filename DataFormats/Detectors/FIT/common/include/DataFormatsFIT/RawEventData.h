@@ -54,7 +54,7 @@ struct EventData {
   static constexpr size_t MaxNelements = 12;
   int16_t time : 12;
   int16_t charge : 13;
-  uint8_t pmBits : 8;
+  uint16_t pmBits : 8;
   uint8_t reservedField : 3;
   uint8_t channelID : 4;
   void generateFlags()

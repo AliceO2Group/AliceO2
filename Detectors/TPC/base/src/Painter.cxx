@@ -138,12 +138,89 @@ std::vector<painter::PadCoordinates> painter::getStackCoordinatesSector()
   return padCoords;
 }
 
+std::vector<painter::PadCoordinates> painter::getFECCoordinatesSector()
+{
+  std::vector<painter::PadCoordinates> padCoords;
+  const Mapper& mapper = Mapper::instance();
+  const auto& regInf = mapper.getMapPadRegionInfo();
+
+  for (int stack = 0; stack < 5; ++stack) {
+    const int regionStart = 2 * stack;
+    const int regionEnd = regionStart + 2;
+
+    struct fecInf {
+      void addPad(int pad, int row) { pad_map[row].emplace_back(pad); }
+      const std::vector<int>& getPads(const int row) { return pad_map[row]; }
+      std::unordered_map<int, std::vector<int>> pad_map;
+    };
+
+    std::unordered_map<size_t, std::array<fecInf, 2>> fecs;
+    for (int region = regionStart; region < regionEnd; ++region) {
+      for (unsigned int lrow = 0; lrow < Mapper::ROWSPERREGION[region]; ++lrow) {
+        for (unsigned int pad = 0; pad < Mapper::PADSPERROW[region][lrow]; ++pad) {
+          const FECInfo& fec = mapper.fecInfo(Mapper::getGlobalPadNumber(lrow, pad, region));
+          const size_t fecIndex = fec.getIndex();
+          fecs[fecIndex][region - regionStart].addPad(pad, lrow);
+        }
+      }
+    }
+
+    for (auto& fec : fecs) {
+      auto& padCoord = padCoords.emplace_back();
+      padCoord.xVals.resize(0);
+      padCoord.yVals.resize(0);
+      for (int j = 0; j < 2; ++j) {
+        for (int regionTmp = regionStart; regionTmp < regionEnd; ++regionTmp) {
+          const int region = (j == 0) ? regionTmp : (regionStart + regionEnd - regionTmp - 1);
+          const auto& padReg = regInf[region];
+          const auto npr = padReg.getNumberOfPadRows();
+          const auto ro = padReg.getRowOffset();
+          const auto xm = padReg.getXhelper();
+          const auto ph = padReg.getPadHeight();
+          const auto pw = padReg.getPadWidth();
+          const auto yro = padReg.getRadiusFirstRow();
+          const auto ks = ph / pw * std::tan(1.74532925199432948e-01);
+
+          for (int irowTmp = 0; irowTmp < npr; ++irowTmp) {
+            const int irow = (j == 0) ? irowTmp : (npr - irowTmp - 1);
+            const auto npads = std::floor(ks * (irow + ro) + xm);
+            const std::vector<int>& padsFEC = fec.second[region - regionStart].getPads(irow);
+            const int padOff = (j == 0) ? padsFEC.front() : (padsFEC.back() + 1);
+            const int ipad = -npads + padOff;
+            const auto xPadBottomRight = yro + ph * irow;
+            const auto xPadTopRight = yro + ph * (irow + 1);
+            const auto ri = xPadBottomRight;
+            const auto yPadBottomRight = pw * ipad * xPadBottomRight / (ri + ph / 2);
+            const auto yPadTopRight = pw * ipad * xPadTopRight / (ri + ph / 2);
+            const auto yPadBottomLeft = pw * (ipad + 1) * xPadBottomRight / (ri + ph / 2);
+            const auto yPadTopLeft = pw * (ipad + 1) * xPadTopRight / (ri + ph / 2);
+            if (j == 0) {
+              padCoord.xVals.emplace_back(xPadBottomRight);
+              padCoord.yVals.emplace_back(yPadBottomRight);
+              padCoord.xVals.emplace_back(xPadTopRight);
+              padCoord.yVals.emplace_back(yPadTopRight);
+            } else {
+              padCoord.yVals.emplace_back(yPadTopRight);
+              padCoord.xVals.emplace_back(xPadTopRight);
+              padCoord.yVals.emplace_back(yPadBottomRight);
+              padCoord.xVals.emplace_back(xPadBottomRight);
+            }
+          }
+        }
+      }
+    }
+  }
+  return padCoords;
+}
+
 std::vector<o2::tpc::painter::PadCoordinates> painter::getCoordinates(const Type type)
 {
   if (type == Type::Pad) {
     return painter::getPadCoordinatesSector();
   } else if (type == Type::Stack) {
     return painter::getStackCoordinatesSector();
+  } else if (type == Type::FEC) {
+    return painter::getFECCoordinatesSector();
   } else {
     LOGP(warning, "Wrong Type provided!");
     return std::vector<o2::tpc::painter::PadCoordinates>();
