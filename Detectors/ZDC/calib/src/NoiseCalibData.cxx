@@ -57,6 +57,7 @@ NoiseCalibData& NoiseCalibData::operator+=(const NoiseCalibData& other)
       auto poth = other.mHisto[is].mData.find(i);
       if (pcur != mHisto[is].mData.end() && poth != other.mHisto[is].mData.end()) {
         uint64_t sum = pcur->first + pcur->second;
+        printf("is=%d sum=%lu = %lu + %lu\n",sum,pcur->first,pcur->second);
         if (sum > 0xffffffff) {
           LOG(warn) << "NoiseCalibData::" << __func__ << " Addition would result in an overflow for ch " << is << " BREAK!";
           return *this;
@@ -128,7 +129,7 @@ NoiseCalibData& NoiseCalibData::operator+=(const NoiseCalibSummaryData* s)
   }
   // Check if sum will result into an overflow
   for (auto& bin : s->mData) {
-    uint64_t sum = mHisto[bin.id()].mData[bin.bin()] = bin.cont;
+    uint64_t sum = mHisto[bin.id()].mData[bin.bin()] + bin.cont;
     if (sum > 0xffffffff) {
       LOG(warn) << __func__ << " Addition would result in an overflow for ch " << bin.id() << " BREAK!";
       return *this;
@@ -141,7 +142,7 @@ NoiseCalibData& NoiseCalibData::operator+=(const NoiseCalibSummaryData* s)
     mCTimeEnd = s->mCTimeEnd;
   }
   for (auto& bin : s->mData) {
-    mHisto[bin.id()].mData[bin.bin()] += bin.cont;
+    mHisto[bin.id()].mData[bin.bin()] = mHisto[bin.id()].mData[bin.bin()] + bin.cont;
   }
   return *this;
 }

@@ -63,7 +63,7 @@ void BaselineCalibEPNSpec::init(o2::framework::InitContext& ic)
   mVerbosity = ic.options().get<int>("verbosity-level");
   mWorker.setVerbosity(mVerbosity);
   const auto& opt = CalibParamZDC::Instance();
-  mModTF=opt.modTF;
+  mModTF = opt.modTF;
 }
 
 void BaselineCalibEPNSpec::updateTimeDependentParams(ProcessingContext& pc)
@@ -114,11 +114,11 @@ void BaselineCalibEPNSpec::run(ProcessingContext& pc)
   mProcessed++;
 
   if ((mModTF > 0 && mProcessed >= mModTF) || pc.transitionState() == TransitionHandlingState::Requested) {
-    if(mVerbosity>=DbgMedium){
-      if (mModTF > 0 && mProcessed >= mModTF){
+    if (mVerbosity >= DbgMedium) {
+      if (mModTF > 0 && mProcessed >= mModTF) {
         LOG(info) << "Send intermediate calibration data mProcessed=" << mProcessed << " >= mModTF=" << mModTF;
       }
-      if(pc.transitionState() == TransitionHandlingState::Requested){
+      if (pc.transitionState() == TransitionHandlingState::Requested) {
         LOG(info) << "Send intermediate calibration data pc.transitionState()==TransitionHandlingState::Requested";
       }
     }
@@ -127,12 +127,12 @@ void BaselineCalibEPNSpec::run(ProcessingContext& pc)
     o2::framework::Output outputData("ZDC", "BASECALIBDATA", 0, Lifetime::Sporadic);
     pc.outputs().snapshot(outputData, summary);
     printf("Sending intermediate processed data mProcessed = %u\n", mProcessed);
-    if(pc.transitionState() == TransitionHandlingState::Requested){
+    if (pc.transitionState() == TransitionHandlingState::Requested) {
       // End of processing for this run
       mWorker.endOfRun();
       LOGF(info, "ZDC EPN Baseline pausing at total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
       mRunStopRequested = true;
-    }else{
+    } else {
       // Prepare to process other time frames
       mWorker.resetInitFlag();
     }
@@ -148,16 +148,17 @@ void BaselineCalibEPNSpec::endOfStream(EndOfStreamContext& ec)
   if (mRunStopRequested) {
     return;
   }
-  if(mProcessed>0){
-    if(mVerbosity>=DbgMedium){
-      LOG(info) << "Send calibration data at endOfStream() mProcessed=" << mProcessed;
-    }
-    auto& summary = mWorker.mData.getSummary();
-    o2::framework::Output outputData("ZDC", "BASECALIBDATA", 0, Lifetime::Sporadic);
-    printf("Sending last processed data mProcessed = %u\n", mProcessed);
-    ec.outputs().snapshot(outputData, summary);
-    mWorker.endOfRun();
-  }
+  // This (unfortunately) is not received by aggregator
+  //   if(mProcessed>0){
+  //     if(mVerbosity>=DbgMedium){
+  //       LOG(info) << "Send calibration data at endOfStream() mProcessed=" << mProcessed;
+  //     }
+  //     auto& summary = mWorker.mData.getSummary();
+  //     o2::framework::Output outputData("ZDC", "BASECALIBDATA", 0, Lifetime::Sporadic);
+  //     printf("Sending last processed data mProcessed = %u\n", mProcessed);
+  //     ec.outputs().snapshot(outputData, summary);
+  //     mWorker.endOfRun();
+  //   }
   mTimer.Stop();
   LOGF(info, "ZDC EPN Baseline calibration total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
   mRunStopRequested = true;
