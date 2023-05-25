@@ -88,7 +88,7 @@ bool CorrectionMapsLoader::accountCCDBInputs(const ConcreteDataMatcher& matcher,
   if (matcher == ConcreteDataMatcher("TPC", "CorrMap", 0)) {
     setCorrMap((o2::gpu::TPCFastTransform*)obj);
     mCorrMap->rectifyAfterReadingFromFile();
-    if (getMeanLumiOverride() < 0 && mCorrMap->getLumi() > 0.) {
+    if (getMeanLumiOverride() <= 0 && mCorrMap->getLumi() > 0.) {
       setMeanLumi(mCorrMap->getLumi());
     }
     LOGP(debug, "MeanLumiOverride={} MeanLumiMap={} -> meanLumi = {}", getMeanLumiOverride(), mCorrMap->getLumi(), getMeanLumi());

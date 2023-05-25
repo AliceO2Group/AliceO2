@@ -82,8 +82,14 @@ void Digitizer::process(const std::vector<o2::zdc::Hit>& hits,
 
     double hTime = hit.GetTime() - getTOFCorrection(detID); // account for TOF to detector
     hTime += mIR.getTimeNS();
-    //
     o2::InteractionRecord irHit(hTime); // BC in which the hit appears (might be different from interaction BC for slow particles)
+
+    // we neglect hits which arrive more than one orbit after the interaction (very slow neutrons for example)
+    auto diffBC = irHit.differenceInBC(mIR);
+    if (diffBC >= o2::constants::lhc::LHCMaxBunches) {
+      LOG(debug) << "Skipping hit with more than " << diffBC << " difference in bunch crossing";
+      continue;
+    }
 
     // nominal time of the BC to which the hit will be attributed
     double bcTime = o2::InteractionRecord::bc2ns(irHit.bc, irHit.orbit);

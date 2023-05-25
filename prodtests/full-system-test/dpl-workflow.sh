@@ -26,7 +26,6 @@ fi
 : ${RECO_NUM_NODES_WORKFLOW:="230"}   # Number of EPNs running this workflow in parallel, to increase multiplicities if necessary, by default assume we are 1 out of 250 servers
 : ${CTF_MINSIZE:="10000000000"}       # accumulate CTFs until file size reached
 : ${CTF_MAX_PER_FILE:="40000"}        # but no more than given number of CTFs per file
-: ${TPC_CORR_SCALING:=""}             # TPC corr.map lumi scaling options, any combination of --require-ctp-lumi, --corrmap-lumi-mean <float>, --corrmap-lumi-inst <float>
 
 workflow_has_parameter CTF && export SAVECTF=1
 workflow_has_parameter GPU && { export GPUTYPE=HIP; export NGPUS=4; }
@@ -369,9 +368,9 @@ if [[ ! -z $INPUT_DETECTOR_LIST ]]; then
     has_detector TPC && add_W o2-tpc-reco-workflow "--input-type digits --output-type zsraw,disable-writer $DISABLE_MC --pipeline $(get_N tpc-zsEncoder TPC RAW 1 TPCRAWDEC)"
     has_detector MID && add_W o2-mid-digits-reader-workflow "$DISABLE_MC" ""
   else
-    if [[ $NTIMEFRAMES == -1 ]]; then NTIMEFRAMES_CMD= ; else NTIMEFRAMES_CMD="--loop $NTIMEFRAMES"; fi
+    if [[ $NTIMEFRAMES == -1 ]]; then NTIMEFRAMES_CMD= ; else NTIMEFRAMES_CMD="--max-tf 0 --loop $NTIMEFRAMES"; fi
     [[ ! -f $RAWINPUTDIR/rawAll.cfg ]] && { echo "rawAll.cfg missing" 1>&2; exit 1; }
-    add_W o2-raw-file-reader-workflow "--detect-tf0 --delay $TFDELAY $NTIMEFRAMES_CMD --max-tf 0 --input-conf $RAWINPUTDIR/rawAll.cfg --onlyDet $INPUT_DETECTOR_LIST ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} ${TIMEFRAME_SHM_LIMIT:-}" "HBFUtils.nHBFPerTF=$NHBPERTF"
+    add_W o2-raw-file-reader-workflow "--detect-tf0 --delay $TFDELAY $NTIMEFRAMES_CMD --input-conf $RAWINPUTDIR/rawAll.cfg --onlyDet $INPUT_DETECTOR_LIST ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} ${TIMEFRAME_SHM_LIMIT:-}" "HBFUtils.nHBFPerTF=$NHBPERTF"
   fi
 fi
 
@@ -494,6 +493,7 @@ if has_processing_step ENTROPY_ENCODER && [[ ! -z "$WORKFLOW_DETECTORS_CTF" ]] &
   fi
   CONFIG_CTF="--output-dir \"$CTF_DIR\" $CTF_CONFIG --output-type $CTF_OUTPUT_TYPE --min-file-size ${CTF_MINSIZE} --max-ctf-per-file ${CTF_MAX_PER_FILE} --onlyDet ${WORKFLOW_DETECTORS_CTF/TST/} --meta-output-dir $EPN2EOS_METAFILES_DIR"
   if [[ $CREATECTFDICT == 1 ]] && [[ $EXTINPUT == 1 ]]; then CONFIG_CTF+=" --save-dict-after $SAVE_CTFDICT_NTIMEFRAMES"; fi
+  [[ $EPNSYNCMODE == 1 ]] && CONFIG_CTF+=" --require-free-disk 53687091200 --wait-for-free-disk 1 --max-wait-for-free-disk 120"
   add_W o2-ctf-writer-workflow "$CONFIG_CTF"
 fi
 

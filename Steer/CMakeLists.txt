@@ -18,7 +18,7 @@ o2_add_library(Steer
                                              O2::DetectorsBase
                                              O2::SimulationDataFormat
                                              O2::DetectorsCommonDataFormats
-                                             O2::Generators)
+                                             O2::Generators O2::SimConfig)
 
 o2_add_executable(colcontexttool
                   COMPONENT_NAME steer

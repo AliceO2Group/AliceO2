@@ -24,7 +24,7 @@ namespace o2
 namespace align
 {
 
-class AlignableDetectorTOF : public AlignableDetector
+class AlignableDetectorTOF final : public AlignableDetector
 {
  public:
   AlignableDetectorTOF() = default;

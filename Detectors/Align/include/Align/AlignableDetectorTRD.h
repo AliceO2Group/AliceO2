@@ -25,7 +25,7 @@ namespace o2
 namespace align
 {
 
-class AlignableDetectorTRD : public AlignableDetector
+class AlignableDetectorTRD final : public AlignableDetector
 {
  public:
   //

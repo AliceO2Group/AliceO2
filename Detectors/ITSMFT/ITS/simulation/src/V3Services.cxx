@@ -2935,7 +2935,7 @@ void V3Services::createAllITSServices(TGeoVolume* mother, const TGeoManager* mgr
   static const Double_t sIBServicesZOut = 253.45 * sCm;
 
   static const Double_t sIBServicesR1max = 13.3 * sCm;
-  static const Double_t sIBServicesR2max = 43.63 * sCm;
+  static const Double_t sIBServicesR2max = 43.53 * sCm;
 
   static const Double_t sIBServicesCarbonThick = 0.2 * sCm;
   static const Double_t sIBServicesCopperThick = 0.018 * sCm;
@@ -2945,7 +2945,7 @@ void V3Services::createAllITSServices(TGeoVolume* mother, const TGeoManager* mgr
   static const Double_t sOBServicesZIn = 83.0 * sCm;
   static const Double_t sOBServicesZOut = 248.00 * sCm;
 
-  static const Double_t sOBServicesRmax = 47.3 * sCm;
+  static const Double_t sOBServicesRmax = 47.2 * sCm;
 
   static const Double_t sOBServicesTotalThick = 4.42 * sCm;
   static const Double_t sOBServicesCarbonThick = 0.25 * sCm;
@@ -2994,7 +2994,7 @@ void V3Services::createAllITSServices(TGeoVolume* mother, const TGeoManager* mgr
   rmax = ibPolySh->GetRmax(2) - sIBServicesPolymerThick / 1.8;
   ibWaterSh->DefineSection(2, sIBServicesZOut, rmin, rmax);
 
-  // The Inner Barrel services as Tube's
+  // The Outer Barrel services as Tube's
   // Carbon
   rmin = sOBServicesRmax - sOBServicesTotalThick;
   zlen = sOBServicesZOut - sOBServicesZIn;
