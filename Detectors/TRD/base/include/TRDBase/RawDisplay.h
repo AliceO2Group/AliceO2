@@ -22,7 +22,6 @@
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/TriggerRecord.h"
 #include "DataFormatsTRD/Hit.h"
-#include "DataFormatsTRD/Constants.h"
 // #include "DataFormatsTRD/HelperMethods.h"
 
 
@@ -38,12 +37,14 @@
 
 
 #include <vector>
+#include <array>
 #include <map>
 #include <ostream>
 #include <filesystem>
 
 class TFile;
 class TTreeReader;
+class TPad;
 
 // template<typename T>
 // class TTreeReaderArray<T>;
@@ -60,6 +61,12 @@ namespace o2::trd
 /// \author Thomas Dietel, tom@dietel.net
 namespace rawdisp
 {
+
+// float PadPositionMCM(o2::trd::Tracklet64 &tracklet);
+// int getMCMCol(int irob, int imcm);
+float PadColF(o2::trd::Tracklet64 &tracklet);
+// float UncalibratedPad(o2::trd::Tracklet64 &tracklet);
+float SlopeF(o2::trd::Tracklet64 &trkl);
 
 
 /// A position in spatial (x,y,z) and raw/digit coordinates (det,row,col,tb).
@@ -126,11 +133,43 @@ struct myrange {
 };
 
 
+class CoordinateTransformer
+{
+public:
+  static CoordinateTransformer* instance()
+  {
+    static CoordinateTransformer mCTrans;
+    return &mCTrans;
+  }
+
+  std::array<float, 3> Local2RCT(int det, float x, float y, float z);
+  std::array<float, 3> Local2RCT(o2::trd::Hit& hit) 
+  { return Local2RCT(hit.GetDetectorID(), hit.getLocalT(), hit.getLocalC(), hit.getLocalR()); }
+
+  float GetVdrift() { return mVdrift; }
+  void SetVdrift(float x) { mVdrift = x; }
+
+  float GetT0() { return mT0; }
+  void SetT0(float x) { mT0 = x; }
+
+protected:
+  o2::trd::Geometry* mGeo;
+  float mVdrift{1.5625};
+  float mT0{4.0};
+
+private:
+  CoordinateTransformer();
+
+};
+
+
+
 struct RawDataSpan
 {
 public:
   myrange<o2::trd::Digit, TTreeReaderArray<o2::trd::Digit>> digits;
   myrange<o2::trd::Tracklet64, TTreeReaderArray<o2::trd::Tracklet64>> tracklets;
+  myrange<o2::trd::Hit, TTreeReaderArray<o2::trd::Hit>> hits;
   // myrange<ChamberSpacePoint, std::vector<ChamberSpacePoint>> trackpoints;
 
   // sort digits, tracklets and space points by detector, pad row, column
@@ -162,6 +201,9 @@ struct RawEvent : public RawDataSpan
   std::vector<o2::dataformats::TrackTPCITS> tracks;
   std::vector<ChamberSpacePoint> evtrackpoints;
 };
+
+TPad *DrawMCM(RawDataSpan &mcm, TPad *pad=NULL);
+
 
 
 // template<typename classifier>
@@ -301,62 +343,6 @@ struct RawEvent : public RawDataSpan
 //   return (int)(alpha * NSECTOR / (2.f * TMath::Pi()));
 // }
 
-// ChamberSpacePoint TrackExtrapolator::extrapolate(o2::track::TrackParCov& track, int layer)
-// {
-
-//   // ChamberSpacePoint pos;
-
-//   // if (draw)
-//   //   printf("Found ITS-TPC track with time %f us\n", trkITSTPC.getTimeMUS().getTimeStamp());
-
-//   double minPtTrack = 0.5;
-
-//   // const auto& track = trkITSTPC.getParamOut();
-//   if (fabs(track.getEta()) > 0.84 || track.getPt() < minPtTrack) {
-//     // no chance to find tracklets for these tracks
-//     return ChamberSpacePoint(-999);
-//   }
-
-//   if (!mProp->PropagateToXBxByBz(track, mGeo->getTime0(layer))) {
-//     // if (draw)
-//     printf("Failed track propagation into layer %i\n", layer);
-//     return ChamberSpacePoint(-999);
-//   }
-//   if (!adjustSector(track)) {
-//     // if (draw)
-//     printf("Failed track rotation in layer %i\n", layer);
-//     // return false;
-//   }
-
-//   // if (draw)
-//   // printf("Track has alpha of %f in layer %i. X(%f), Y(%f), Z(%f). Eta(%f), Pt(%f)\n", track.getAlpha(), layer, track.getX(), track.getY(), track.getZ(), track.getEta(), track.getPt());
-
-//   return ChamberSpacePoint(track, mGeo);
-
-//   // pos.x = track.getX();
-//   // pos.y = track.getY();
-//   // pos.z = track.getZ();
-
-//   // }
-//   //   ++nPointsTrigger;
-//   //   trackMap.insert(std::make_pair(std::make_tuple(geo->getDetector(layer, stack, sector), row, col), iTrack));
-//   //   int rowGlb = stack < 3 ? row + stack * 16 : row + 44 + (stack - 3) * 16; // pad row within whole sector
-//   //   int colGlb = col + sector * 144;                                         // pad column number from 0 to NSectors * 144
-//   //   hTracks[layer]->SetBinContent(rowGlb + 1, colGlb + 1, 4);
-//   // }
-
-//   // return true;
-// }
-
-
-// /// Split a RawDataSpan into ranges with digits, tracklets of single MCMs
-// class PartitionByMCM : public std::map<uint32_t, RawDataSpan>
-// {
-// public:
-//   PartitionByMCM(RawDataSpan event);
-// };
-
-
 
 /// access TRD low-level data
 class DataManager
@@ -390,10 +376,14 @@ private:
   TTree* mDatatree{0}; // tree and friends from digits, tracklets files
   TTreeReader *mDatareader{0};
 
-  TTreeReaderArray<o2::trd::Hit>* mHits{0};
   TTreeReaderArray<o2::trd::Digit>* mDigits{0};
   TTreeReaderArray<o2::trd::Tracklet64>* mTracklets{0};
   TTreeReaderArray<o2::trd::TriggerRecord>* mTrgRecords{0};
+
+  TFile *mHitsFile{0};
+  TTree* mHitsTree{0};  
+  TTreeReader* mHitsReader{0};  
+  TTreeReaderArray<o2::trd::Hit>* mHits{0};
 
   TTreeReaderArray<o2::dataformats::TrackTPCITS> *mTracks{0};
   // TTreeReaderArray<o2::tpc::TrackTPC> *mTpcTracks{0};
@@ -414,128 +404,6 @@ private:
   // TrackExtrapolator extra;
 };
 
-
-// // ========================================================================
-// // ========================================================================
-// //
-// // Drawing routines
-// //
-// // ========================================================================
-// // ========================================================================
-
-// TVirtualPad *DrawPadRow(RawDataSpan &padrow, TVirtualPad *pad = NULL, TH2F *adcmap = NULL)
-// {
-//   // auto x = *padrow.digits.begin();
-//   // string desc = fmt::format("{:m}", x);
-//   string name = fmt::format("det{:03d}_row{:d}",
-//                             padrow.getDetector(), padrow.getPadRow());
-//   string desc = name;
-
-//   cout << "Plotting padrow " << name << endl;
-//   if (pad == NULL) {
-//     pad = new TCanvas(desc.c_str(), desc.c_str(), 1200, 500);
-//     pad->cd();
-//   }
-
-//   if (adcmap == NULL) {
-//     adcmap = new TH2F(name.c_str(), (desc + ";pad;time bin").c_str(), 144, 0., 144., 30, 0., 30.);
-//   }
-
-//   for (auto digit : padrow.digits) {
-//     if (digit.isSharedDigit()) { continue; }
-
-//     auto adc = digit.getADC();
-//     for (int tb = 0; tb < 30; ++tb) {
-//       adcmap->Fill(digit.getPadCol(), tb, adc[tb]);
-//     }
-//   }
-//   adcmap->SetStats(0);
-//   adcmap->Draw("colz");
-//   adcmap->Draw("text,same");
-
-//   TLine trkl;
-//   trkl.SetLineWidth(2);
-//   trkl.SetLineColor(kRed);
-//   // trkl.SetLineStyle(kDotted);
-
-//   TLine trkl2;
-//   trkl2.SetLineWidth(4);
-//   trkl2.SetLineStyle(kDashed);
-//   trkl2.SetLineColor(kBlack);
-
-//   for (auto tracklet : padrow.tracklets)
-//   {
-//     auto pos = PadPosition(tracklet);
-//     auto ypos = UncalibratedPad(tracklet);
-//     auto slope = Slope(tracklet);
-//     trkl.DrawLine(pos, 0, pos - 30*slope, 30);
-//     // trkl2.DrawLine(ypos, 0, ypos - 30*slope, 30);
-//   }
-
-//   TMarker mrk;
-//   mrk.SetMarkerStyle(20);
-//   mrk.SetMarkerSize(8);
-//   mrk.SetMarkerColor(kGreen);
-//   for (auto point : padrow.trackpoints)
-//   {
-//     mrk.DrawMarker(point.getPadCol(), 0);
-//     cout << point.getDetector() << " / "
-//          << point.getPadRow() << " / "
-//          << point.getPadCol() << endl;
-//     // auto pos = PadPosition(tracklet);
-//     // auto ypos = UncalibratedPad(tracklet);
-//     // auto slope = Slope(tracklet);
-//     // trkl.DrawLine(pos, 0, pos - 30*slope, 30);
-//     // trkl2.DrawLine(ypos, 0, ypos - 30*slope, 30);
-//   }
-
-//   return pad;
-// }
-
-// TPad *DrawMCM(RawDataSpan &mcm, TPad *pad)
-// {
-//   auto x = *mcm.digits.begin();
-//   string desc = fmt::format("{:m}", x);
-//   string name = fmt::format("det{:03d}_rob{:d}_mcm{:02d}",
-//                             x.getDetector(), x.getROB(), x.getMCM());
-
-//   if (pad == NULL)
-//   {
-//     pad = new TCanvas(desc.c_str(), desc.c_str(), 800, 600);
-//   }
-//   else
-//   {
-//     pad->SetName(name.c_str());
-//     pad->SetTitle(desc.c_str());
-//   }
-//   pad->cd();
-
-//   TH2F *digit_disp = new TH2F(desc.c_str(), (desc + ";ADC channel;time bin").c_str(), 21, 0., 21., 30, 0., 30.);
-
-//   for (auto digit : mcm.digits)
-//   {
-//     auto adc = digit.getADC();
-//     for (int tb = 0; tb < 30; ++tb)
-//     {
-//       digit_disp->Fill(digit.getChannel(), tb, adc[tb]);
-//     }
-//   }
-//   digit_disp->SetStats(0);
-//   digit_disp->Draw("colz");
-
-//   TLine trkl;
-//   trkl.SetLineColor(kRed);
-//   trkl.SetLineWidth(3);
-
-//   for (auto tracklet : mcm.tracklets)
-//   {
-//     auto pos = PadPositionMCM(tracklet);
-//     auto slope = Slope(tracklet);
-//     trkl.DrawLine(pos, 0, pos + 30 * slope, 30);
-//   }
-
-//   return pad;
-// }
 
 
 } // namespace rawdisp

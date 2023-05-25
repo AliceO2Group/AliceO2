@@ -37,5 +37,8 @@
 #pragma link C++ class o2::trd::rawdisp::RawDataSpan +;
 #pragma link C++ class o2::trd::rawdisp::RawEvent +;
 #pragma link C++ class o2::trd::rawdisp::ChamberSpacePoint +;
+#pragma link C++ class o2::trd::rawdisp::CoordinateTransformer +;
+
+#pragma link C++ function o2::trd::rawdisp::DrawMCM(o2::trd::rawdisp::RawDataSpan&, TPad*);
 
 #endif

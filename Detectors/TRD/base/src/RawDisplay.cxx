@@ -11,64 +11,83 @@
 
 
 #include "TRDBase/RawDisplay.h"
+#include "DataFormatsTRD/Constants.h"
+#include "DataFormatsTRD/HelperMethods.h"
+
 
 #include <TSystem.h>
 #include <TFile.h>
 #include <TTree.h>
 #include <TTreeReader.h>
 #include <TTreeReaderArray.h>
+#include <TCanvas.h>
+#include <TPad.h>
+#include <TH2.h>
+#include <TLine.h>
+#include <TMarker.h>
 
 #include <ostream>
 
 using namespace o2::trd;
 using namespace o2::trd::rawdisp;
 
+CoordinateTransformer::CoordinateTransformer() 
+: mGeo(o2::trd::Geometry::instance()) 
+{
+  mGeo->createPadPlaneArray();
+}
 
-// rawdisp::ChamberSpacePoint::ChamberSpacePoint(o2::track::TrackParCov& trackpar)
-//   : mX(trackpar.getX()), mY(trackpar.getY()), mZ(trackpar.getZ())
-// {
-//   o2::trd::Geometry* geo = o2::trd::Geometry::instance();
+std::array<float, 3> CoordinateTransformer::Local2RCT(int det, float x, float y, float z)
+{
+  std::array<float, 3> rct;
 
-//   int layer = int((mX - xoffset) * xscale);
+  auto padPlane = mGeo->getPadPlane((det)%6, (det/6)%5);
 
-//   int sector = int(trackpar.getAlpha() * alphascale);
-//   while (sector < 0)
-//     sector += 18;
-//   while (sector >= 18)
-//     sector -= 18;
+  // array<double,3> rct;
 
-//   int stack = geo->getStack(trackpar.getZ(), layer);
-//   if (stack < 0) {
-//     // if (draw)
-//     // printf("WARN: cannot determine stack for z = %f, layer = %i\n", trackpar.getZ(), layer);
-//     mDetector = -999;
-//     return;
-//   }
+  double iPadLen = padPlane->getLengthIPad();
+  double oPadLen = padPlane->getLengthOPad();
+  int nRows = padPlane->getNrows();
 
-//   mDetector = 30 * sector + 6 * stack + layer;
-//   auto pp = geo->getPadPlane(layer, stack);
-//   mPadrow = pp->getPadRowNumber(trackpar.getZ());
-//   mPadcol = pp->getPadColNumber(trackpar.getY());
+  double lengthCorr = padPlane->getLengthOPad()/padPlane->getLengthIPad();
 
-//   int rowMax = (stack == 2) ? 12 : 16;
-//   if (mPadrow < 0 || mPadrow >= rowMax) {
-//     // if (draw)
-//     printf("WARN: row  = %i for z = %f\n", mPadrow, trackpar.getZ());
-//     mDetector = -abs(mDetector);
-//   }
+  // calculate position based on inner pad length
+  rct[0] = - z / padPlane->getLengthIPad() + padPlane->getNrows()/2;
 
-//   // Mark points that are too far outside of the detector as questionable.
-//   if (mPadcol < -2.0 || mPadcol >= 145.0 ) {
-//     // if (draw)
-//     printf("WARN: col  = %f for y = %f\n", mPadcol, trackpar.getY());
-//     mDetector = -abs(mDetector);
-//   }
+  // correct row for outer pad rows
+  if (rct[0] <= 1.0) {
+    rct[0] = 1.0 - (1.0-rct[0])*lengthCorr;
+  }
 
-//   // std::cout << "Created new ChamberSpacePoint with det=" << getDetector()
-//       //  << " row=" << getPadRow() << " col=" << getPadCol() << std::endl;
-// }
+  if (rct[0] >= double(nRows-1)) {
+    rct[0] = double(nRows-1) + (rct[0] - double(nRows-1))*lengthCorr;
+  }
 
-std::ostream& operator<<(std::ostream& os, const rawdisp::ChamberSpacePoint& p)
+  // sanity check: is the padrow coordinate reasonable?
+  if ( rct[0] < 0.0 || rct[0] > double(nRows) ) {
+    std::cout << "ERROR: hit with z=" << z << ", padrow " << rct[0]
+          << " outside of chamber" << std::endl;
+  }
+
+  // simple conversion of pad / local y coordinate
+  // ignore different width of outer pad
+  rct[1] = y / padPlane->getWidthIPad() + 144./2.;
+
+  // time coordinate
+  if (x<-0.35) {
+    // drift region
+    rct[2] = mT0 - (x+0.35) / (mVdrift/10.0);
+  } else {
+    // anode region: very rough guess
+    rct[2] = mT0 - 1.0 + fabs(x);
+  }
+
+  return rct;
+}
+
+
+
+std::ostream& operator<<(std::ostream& os, const ChamberSpacePoint& p)
 {
   os << "( " << std::setprecision(5) << p.getX() 
      << " / " << std::setprecision(5) << p.getY() 
@@ -226,6 +245,48 @@ std::map<uint32_t,RawDataSpan> RawDataSpan::ByMCM()
 }
 
 
+// float PadPositionMCM(o2::trd::Tracklet64 &tracklet)
+// {
+//   return 12.0 - (tracklet.getPositionBinSigned() * constants::GRANULARITYTRKLPOS);
+// }
+
+// int getMCMCol(int irob, int imcm)
+// {
+//   return (imcm % constants::NMCMROBINCOL) + constants::NMCMROBINCOL * (irob % 2);
+// }
+
+/// Modified version of o2::trd::Tracklet64::getPadCol returning a float
+float rawdisp::PadColF(o2::trd::Tracklet64 &tracklet)
+{
+  // obtain pad number relative to MCM center
+  float padLocal = tracklet.getPositionBinSigned() * constants::GRANULARITYTRKLPOS;
+  // MCM number in column direction (0..7)
+  int mcmCol = (tracklet.getMCM() % constants::NMCMROBINCOL) + constants::NMCMROBINCOL * (tracklet.getROB() % 2);
+
+  // original calculation
+  // FIXME: understand why the offset seems to be 6 pads and not nChannels / 2 = 10.5
+  //return CAMath::Nint(6.f + mcmCol * ((float)constants::NCOLMCM) + padLocal);
+
+  // my calculation
+  return float((mcmCol + 1) * constants::NCOLMCM) + padLocal - 10.0;
+}
+
+// float UncalibratedPad(o2::trd::Tracklet64 &tracklet)
+// {
+//   float y = tracklet.getUncalibratedY();
+//   int mcmCol = (tracklet.getMCM() % NMCMROBINCOL) + NMCMROBINCOL * (tracklet.getROB() % 2);
+//   // one pad column has 144 pads, the offset of -63 is the center of the first MCM in that column
+//   // which is connected to the pads -63 - 9 = -72 to -63 + 9 = -54
+//   // float offset = -63.f + ((float)NCOLMCM) * mcmCol;
+//   float padWidth = 0.635f + 0.03f * (tracklet.getDetector() % NLAYER);
+//   return y / padWidth + 71.0;
+// }
+
+float rawdisp::SlopeF(o2::trd::Tracklet64 &trkl)
+{
+  return - trkl.getSlopeBinSigned() * constants::GRANULARITYTRKLSLOPE / constants::ADDBITSHIFTSLOPE;
+}
+
 
 // void rawdisp::RawDataSpan::calculateCoordinates()
 // {
@@ -273,139 +334,6 @@ std::map<uint32_t,RawDataSpan> RawDataSpan::ByMCM()
 
 
 
-
-
-
-// struct ClassifierByDetector
-// {
-//   template<typename T> static uint32_t key(const T &x) { return x.getDetector(); }
-
-//   static bool comp_digits(const o2::trd::Digit &a, const o2::trd::Digit &b)
-//   { return key(a) != key(b); }
-
-//   static bool comp_tracklets(const o2::trd::Tracklet64 &a, const o2::trd::Tracklet64 &b)
-//   { return key(a) != key(b); }
-
-//   static bool comp_trackpoints(const ChamberSpacePoint &a, const ChamberSpacePoint &b)
-//   { return key(a) != key(b); }
-// };
-
-// struct ClassifierByPadRow
-// {
-//   template<typename T>
-//   static uint32_t key(const T &x) { return 100*x.getDetector() + x.getPadRow(); }
-
-//   static bool comp_digits(const o2::trd::Digit &a, const o2::trd::Digit &b)
-//   { return key(a) != key(b); }
-
-//   static bool comp_tracklets(const o2::trd::Tracklet64 &a, const o2::trd::Tracklet64 &b)
-//   { return key(a) != key(b); }
-
-//   static bool comp_trackpoints(const ChamberSpacePoint& a, const ChamberSpacePoint& b)
-//   { return key(a) != key(b); }
-// };
-
-// struct ClassifierByMCM
-// {
-//   template<typename T>
-//   static uint32_t key(const T &x) { 
-//     return 1000*x.getDetector() + 10*x.getPadRow() + 4*(x.getROB()%2) + x.getMCM()%4;
-//   }
-
-//   // template<typename T>
-//   // static uint32_t key(const T &x) { 
-//   //   return 1000*x.getDetector() + 10*x.getPadRow() + 4*(x.getROB()%2) + x.getMCM()%4;
-//   // }
-
-//   static bool comp_digits(const o2::trd::Digit &a, const o2::trd::Digit &b)
-//   { return key(a) != key(b); }
-
-//   static bool comp_tracklets(const o2::trd::Tracklet64 &a, const o2::trd::Tracklet64 &b)
-//   { return key(a) != key(b); }
-
-//   static bool comp_trackpoints(const ChamberSpacePoint& a, const ChamberSpacePoint& b)
-//   { return key(a) != key(b); }
-// };
-
-// // struct ClassifierByContinousRegion
-// // {
-// //   template<typename T>
-// //   static uint32_t mcmid(const T &x) { 
-// //     return 1000*x.getDetector() + 10*x.getPadRow() + 4*(x.getROB()%2) + x.getMCM()%4;
-// //   }
-
-// //   template<typename T>
-// //   static uint32_t mcmid(const T &x) { 
-// //     return 1000*x.getDetector() + 10*x.getPadRow() + 4*(x.getROB()%2) + x.getMCM()%4;
-// //   }
-
-// //   static bool comp_digits(const o2::trd::Digit &a, const o2::trd::Digit &b)
-// //   {
-// //     if (mcmid(a) != mcmid(b)) {
-// //       return false;
-// //     } else if ( abs(a.getChannel()-b.getChannel()) == 1 ) {
-// //       return true;
-// //     } else {
-// //       return false;
-// //     }
-// //   }
-
-// //   // static bool comp_tracklets(const o2::trd::Tracklet64 &a, const o2::trd::Tracklet64 &b)
-// //   // {
-// //   //   return key(a) != key(b);
-// //   // }
-// // };
-
-
-// template<typename classifier>
-// class RawDataPartitioner : public map<uint32_t, RawDataSpan>
-// {
-// public:
-
-//   RawDataPartitioner(RawDataSpan event)
-//   {
-//     // sort digits and tracklets
-//     event.digits.sort(order_digit);
-//     event.tracklets.sort(order_tracklet);
-//     event.trackpoints.sort(order_spacepoint);
-
-//     // add all the digits to a map that contains all the 
-//     for (auto cur = event.digits.b; cur != event.digits.e; /* noop */ ) {
-//       // let's look for pairs where the comparision function is true, i.e.
-//       // where two adjacent elements do not have equal keys
-//       auto nxt = std::adjacent_find(cur, event.digits.e, classifier::comp_digits);
-//       // if adjacent_find found a match, it returns the first element of the
-//       // adjacent pair, but we need the second one -> increment the result
-//       if (nxt != event.digits.e)
-//       {
-//         ++nxt;
-//       }
-//       // finally, we add the found elements to the map with the current range
-//       (*this)[classifier::key(*cur)].digits.b = cur; 
-//       (*this)[classifier::key(*cur)].digits.e = nxt;
-//       cur = nxt;
-//     }
-
-//     for (auto cur = event.tracklets.b; cur != event.tracklets.e; /* noop */) {
-//       auto nxt = std::adjacent_find(cur, event.tracklets.e, classifier::comp_tracklets);
-//       if (nxt != event.tracklets.e) {
-//         ++nxt;
-//       }
-//       (*this)[classifier::key(*cur)].tracklets.b = cur; 
-//       (*this)[classifier::key(*cur)].tracklets.e = nxt;
-//       cur = nxt;
-//     }
-
-//     for (auto cur = event.trackpoints.b; cur != event.trackpoints.e; /* noop */) {
-//       auto nxt = std::adjacent_find(cur, event.trackpoints.e, classifier::comp_trackpoints);
-//       if (nxt != event.trackpoints.e) { ++nxt; }
-//       (*this)[classifier::key(*cur)].trackpoints.b = cur; 
-//       (*this)[classifier::key(*cur)].trackpoints.e = nxt;
-//       cur = nxt;
-//     }
-//     std::cout << "Found " << this->size() << " spans" << std::endl;
-//   }
-// };
 
 // // ========================================================================
 // // ========================================================================
@@ -581,6 +509,16 @@ DataManager::DataManager(std::filesystem::path dir)
     mTFIDs = (std::vector<o2::dataformats::TFIDInfo> *)fInTFID->Get("tfidinfo");
   }
 
+  // If there are MC hits, we load them
+  if (std::filesystem::exists(dir/"o2sim_HitsTRD.root")) {
+    mHitsFile = new TFile((dir/"o2sim_HitsTRD.root").c_str());
+    mHitsFile->GetObject("o2sim", mHitsTree);
+    mHitsReader = new TTreeReader(mHitsTree);
+    mHits = new TTreeReaderArray<o2::trd::Hit>(*mHitsReader, "TRDHit");
+    std::cout << "connect MC hits file" << std::endl;
+  }
+
+
   // Let's try to add other data
   AddReaderArray(mDigits, dir / "trddigits.root", "o2sim", "TRDDigit");
   // AddReaderArray(mTpcTracks, dir + "tpctracks.root", "tpcrec", "TPCTracks");
@@ -645,10 +583,12 @@ bool DataManager::NextEvent()
   }
 
   // load the hits for the next event
-  // if ( ! rdrhits->Next() ) {
-  //   std::cout << "no hits found for event " << tfno << ":" << mEventNo << std::endl;
-  //   return false;
-  // }
+  if (mHitsReader) {
+    if ( ! mHitsReader->Next() ) {
+      std::cout << "no hits found for event " << mTimeFrameNo << ":" << mEventNo << std::endl;
+      return false;
+    }
+  }
 
   mTriggerRecord = mTrgRecords->At(mEventNo);
   // std::cout << mTriggerRecord << std::endl;
@@ -669,6 +609,9 @@ RawEvent DataManager::GetEvent()
   ev.digits.e = ev.digits.begin() + mTriggerRecord.getNumberOfDigits();
   ev.tracklets.b = mTracklets->begin() + mTriggerRecord.getFirstTracklet();
   ev.tracklets.e = ev.tracklets.begin() + mTriggerRecord.getNumberOfTracklets();
+
+  ev.hits.b = mHits->begin();
+  ev.hits.e = mHits->end();
 
   auto evtime = GetTriggerTime();
 
@@ -870,3 +813,66 @@ float DataManager::GetTriggerTime()
 //   class DataManager dataman(dir);
 //   // std::cout << dataman << std::endl;
 // }
+
+TPad* rawdisp::DrawMCM(RawDataSpan &mcm, TPad *pad)
+{
+  auto x = *mcm.digits.begin();
+
+  int det = x.getDetector();
+  std::string name = Form("det%03d_rob%d_mcm%02d", det, x.getROB(), x.getMCM());
+  std::string desc = Form("Detector %02d_%d_%d (%03d) - MCM %d:%02d", det/30, (det%30)/6, det%6, det, x.getROB(), x.getMCM());;
+
+   // MCM column number on ROC [0..7]
+  int mcmcol = x.getMCM() % constants::NMCMROBINCOL + HelperMethods::getROBSide(x.getROB()) * constants::NMCMROBINCOL;
+
+  float firstpad = mcmcol * constants::NCOLMCM - 1;
+  float lastpad = (mcmcol+1) * constants::NCOLMCM;
+
+  if (pad == NULL) {
+    pad = new TCanvas(desc.c_str(), desc.c_str(), 800, 600);
+    std::cout << "create canvas " << desc << std::endl;
+  } else {
+    pad->SetName(name.c_str());
+    pad->SetTitle(desc.c_str());
+  }
+  pad->cd();
+
+  std::cout << firstpad << " - " << lastpad << std::endl;
+  TH2F *digit_disp = new TH2F(desc.c_str(), (desc + ";pad;time bin").c_str(), 21, firstpad, lastpad, 30, 0., 30.);
+
+  for (auto digit : mcm.digits) {
+    auto adc = digit.getADC();
+    for (int tb = 0; tb < 30; ++tb) {
+      digit_disp->Fill(digit.getPadCol(), tb, adc[tb]);
+    }
+  }
+  digit_disp->SetStats(0);
+  digit_disp->Draw("colz");
+
+  TLine trkl;
+  trkl.SetLineColor(kRed);
+  trkl.SetLineWidth(3);
+
+  for (auto tracklet : mcm.tracklets) {
+    auto pos = PadColF(tracklet);
+    auto slope = SlopeF(tracklet);
+    trkl.DrawLine(pos, 0, pos + 30 * slope, 30);
+  }
+
+
+  // TODO: At the moment, hits are not propagated during splitting of a RawDataSpan, therefore this code does not work yet.
+  // TMarker hitmarker;
+  // hitmarker.SetMarkerColor(kBlack);
+  // hitmarker.SetMarkerStyle(38);
+
+  // auto ct = CoordinateTransformer::instance();
+  // for (auto hit : mcm.hits) {
+  //   std::cout << hit.GetCharge() << std::endl;
+  //   auto rct = ct->Local2RCT(hit);
+  //   hitmarker.SetMarkerSize(hit.GetCharge() / 50.);
+  //   hitmarker.DrawMarker(rct[1], rct[2]);
+  // }
+
+  return pad;
+}
+
