@@ -132,10 +132,10 @@ class StrangenessTracker
     double p2DauSecond = (pDauSecond[0] * pDauSecond[0]) + (pDauSecond[1] * pDauSecond[1]) + (pDauSecond[2] * pDauSecond[2]);
     float ePos = std::sqrt(p2DauFirst + m2DauFirst), eNeg = std::sqrt(p2DauSecond + m2DauSecond);
 
-    double e2Mother = (ePos + eNeg) * (ePos + eNeg);
-    double pxMother = (pDauFirst[0] + pDauSecond[0]) * (pDauFirst[0] + pDauSecond[0]);
-    double pyMother = (pDauFirst[1] + pDauSecond[1]) * (pDauFirst[1] + pDauSecond[1]);
-    double pzMother = (pDauFirst[2] + pDauSecond[2]) * (pDauFirst[2] + pDauSecond[2]);
+    double e2Mother = (ePos + eNeg) * (ePos + eNeg); 
+    double pxMother = (pDauFirst[0] + pDauSecond[0]);
+    double pyMother = (pDauFirst[1] + pDauSecond[1]);
+    double pzMother = (pDauFirst[2] + pDauSecond[2]);
     double p2Mother = (pxMother * pxMother) + (pyMother * pyMother) + (pzMother * pzMother);
     return std::sqrt(e2Mother - p2Mother);
   }
