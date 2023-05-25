@@ -299,6 +299,7 @@ class AODProducerWorkflowDPL : public Task
   // The first two indices are not sparse whereas the trackID index is sparse which explains
   // the combination of vector and map
   std::vector<std::vector<std::unordered_map<int, int>*>> mToStore;
+  o2::steer::MCKinematicsReader* mMCKineReader = nullptr; //!
 
   // production metadata
   std::vector<TString> mMetaDataKeys;

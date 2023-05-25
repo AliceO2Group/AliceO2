@@ -90,6 +90,8 @@
 #include <string>
 #include <vector>
 #include <thread>
+#include "TLorentzVector.h"
+#include "TVector3.h"
 #ifdef WITH_OPENMP
 #include <omp.h>
 #endif
@@ -1401,7 +1403,19 @@ void AODProducerWorkflowDPL::addToCaloTable(const TCaloHandler& caloHandler, con
               }
             } else {
               amplitudeFraction.emplace_back(mclabel.getAmplitudeFraction());
-              particleIds.emplace_back((*mToStore.at(mclabel.getSourceID()).at(mclabel.getEventID())).at(mclabel.getTrackID()));
+              auto trackStore = mToStore.at(mclabel.getSourceID()).at(mclabel.getEventID());
+              auto iter = trackStore->find(mclabel.getTrackID());
+              if (iter != trackStore->end()) {
+                particleIds.emplace_back(iter->second);
+              } else {
+                LOG(warn) << "CaloTable: Could not find track for mclabel (" << mclabel.getSourceID() << "," << mclabel.getEventID() << "," << mclabel.getTrackID() << ") in the AOD MC store";
+                if (mMCKineReader) {
+                  auto mctrack = mMCKineReader->getTrack(mclabel);
+                  TVector3 vec;
+                  mctrack->GetStartVertex(vec);
+                  LOG(warn) << " ... this track is of PDG " << mctrack->GetPdgCode() << " produced by " << mctrack->getProdProcessAsString() << " at (" << vec.X() << "," << vec.Y() << "," << vec.Z() << ")";
+                }
+              }
             }
           }
         } // end of loop over all MC Labels for the current cell
@@ -1705,6 +1719,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   if (mUseMC) {
     mcReader = std::make_unique<o2::steer::MCKinematicsReader>("collisioncontext.root");
   }
+  mMCKineReader = mcReader.get(); // for use in different functions
   std::map<uint64_t, int> bcsMap;
   collectBCs(recoData, mUseMC ? mcReader->getDigitizationContext()->getEventRecords() : std::vector<o2::InteractionTimeRecord>{}, bcsMap);
   if (!primVer2TRefs.empty()) { // if the vertexing was done, the last slot refers to orphan tracks
