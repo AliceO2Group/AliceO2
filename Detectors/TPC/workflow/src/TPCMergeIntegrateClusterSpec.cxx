@@ -310,7 +310,7 @@ o2::framework::DataProcessorSpec getTPCMergeIntegrateClusterSpec()
   std::vector<InputSpec> inputs;
   inputs.emplace_back("itpcc", o2::header::gDataOriginTPC, getDataDescriptionTPCC(), 0, Lifetime::Sporadic);
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
-                                                                false,                          // GRPECS=true for nHBF per TF
+                                                                true,                           // GRPECS=true for nHBF per TF
                                                                 false,                          // GRPLHCIF
                                                                 false,                          // GRPMagField
                                                                 false,                          // askMatLUT
