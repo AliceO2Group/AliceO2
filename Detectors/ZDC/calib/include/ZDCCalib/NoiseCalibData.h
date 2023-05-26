@@ -23,6 +23,8 @@
 /// \brief Format of noise calibration intermediate data
 /// \author pietro.cortese@cern.ch
 
+//#define ZDC_NOISECALIB_DATA_SMALL
+
 namespace o2
 {
 namespace zdc
