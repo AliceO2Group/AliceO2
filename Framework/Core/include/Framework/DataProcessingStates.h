@@ -134,6 +134,13 @@ struct DataProcessingStates {
     short capacity = 0;
   };
 
+  std::string_view state(int64_t id) const
+  {
+    auto& view = statesViews[id];
+
+    return std::string_view(statesBuffer.data() + view.first, view.size);
+  }
+
   void registerState(StateSpec const& spec);
   // Update some stats as specified by the @cmd cmd
   void updateState(CommandSpec state);
