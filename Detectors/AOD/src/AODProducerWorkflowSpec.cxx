@@ -1408,6 +1408,7 @@ void AODProducerWorkflowDPL::addToCaloTable(const TCaloHandler& caloHandler, con
               if (iter != trackStore->end()) {
                 particleIds.emplace_back(iter->second);
               } else {
+                particleIds.emplace_back(-1); // should the mc particle not be in mToStore make sure something (e.g. -1) is saved in particleIds so the length of particleIds is the same es amplitudeFraction!
                 LOG(warn) << "CaloTable: Could not find track for mclabel (" << mclabel.getSourceID() << "," << mclabel.getEventID() << "," << mclabel.getTrackID() << ") in the AOD MC store";
                 if (mMCKineReader) {
                   auto mctrack = mMCKineReader->getTrack(mclabel);
