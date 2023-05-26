@@ -166,15 +166,16 @@ void DataProcessingStates::flushChangedStates(std::function<void(std::string con
     auto& update = updateInfos[mi];
     auto& spec = stateSpecs[mi];
     auto& view = statesViews[mi];
-    if (currentTimestamp - update.timestamp > spec.maxRefreshLatency) {
+    if (updated[mi] == false && (currentTimestamp - update.timestamp) > spec.maxRefreshLatency) {
       updated[mi] = true;
       update.timestamp = currentTimestamp;
     }
     if (updated[mi] == false) {
       continue;
     }
-    if (currentTimestamp - update.lastPublished < spec.minPublishInterval) {
-      LOGP(debug, "not publishing because of minPublishInterval");
+    int64_t delayPublished = (currentTimestamp - update.lastPublished);
+    assert(delayPublished >= 0);
+    if (delayPublished < spec.minPublishInterval) {
       continue;
     }
     publish = true;
