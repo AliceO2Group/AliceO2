@@ -121,15 +121,18 @@ void displayDataRelayer(DeviceMetricsInfo const& metrics,
     int size = view.size - (beginData - (states.statesBuffer.data() + view.first));
     return size;
   };
-  auto getItem = [buffer = states.statesBuffer.data(), &states](int const& record, size_t i) -> int8_t const* {
+  auto getItem = [&states](int const& record, size_t i) -> int8_t const* {
     static int8_t const zero = '0';
+    static int8_t const error = '4';
+    char const *buffer = states.statesBuffer.data();
     auto& view = states.statesViews[(int)ProcessingStateId::DATA_RELAYER_BASE + record];
     if (view.size == 0) {
       return &zero;
     }
     char const* const beginData = strchr(buffer + view.first, ' ') + 1;
-    if (view.size <= beginData - buffer + i) {
-      return &zero;
+    // Protect against buffer overflows
+    if (view.size <= beginData - buffer + i - view.first) {
+      return &error;
     }
     return (int8_t const*)beginData + i; };
   auto getValue = [](int8_t const& item) -> int { return item - '0'; };
