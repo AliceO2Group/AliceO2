@@ -34,12 +34,12 @@ int BaselineCalibEPN::init()
   }
 
   static bool firstCall = true;
-  if(firstCall){
+  if (firstCall) {
     if (mVerbosity >= DbgMedium) {
       mModuleConfig->print();
     }
     firstCall = false;
-  }else{
+  } else {
     // Reset data structure
     mData.clear();
   }

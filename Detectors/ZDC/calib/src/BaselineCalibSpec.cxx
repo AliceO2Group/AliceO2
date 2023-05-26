@@ -89,12 +89,12 @@ void BaselineCalibSpec::run(ProcessingContext& pc)
   const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
 
 #ifdef O2_ZDC_DEBUG
-  LOG(info) << "BaselineCalibSpec::run mInitialized=" << mInitialized << " run(ti:dh)=" << tinfo.runNumber << ":" << dh->runNumber  << " mRunStartTime=" << mRunStartTime<< " mProcessed " << mProcessed;
+  LOG(info) << "BaselineCalibSpec::run mInitialized=" << mInitialized << " run(ti:dh)=" << tinfo.runNumber << ":" << dh->runNumber << " mRunStartTime=" << mRunStartTime << " mProcessed " << mProcessed;
 #endif
 
   // Close calibration if a new run has started or we are receiving data from another run
-  if(mInitialized && (tinfo.globalRunNumberChanged==true || tinfo.runNumber != dh->runNumber)){
-    if(mProcessed!=0){
+  if (mInitialized && (tinfo.globalRunNumberChanged == true || tinfo.runNumber != dh->runNumber)) {
+    if (mProcessed != 0) {
       mProcessed = 0;
       mWorker.endOfRun();
       sendOutput(); // Send output and ask for a reset of the worker
@@ -115,19 +115,19 @@ void BaselineCalibSpec::run(ProcessingContext& pc)
     mTimer.Reset();
     mTimer.Start(false);
     mRunStartTime = tinfo.creation; // approximate time in ms
-    mRunNumber = tinfo.runNumber; // new current run number
+    mRunNumber = tinfo.runNumber;   // new current run number
   }
 
   // Process only data from current run
-  if(tinfo.runNumber == dh->runNumber){
+  if (tinfo.runNumber == dh->runNumber) {
     auto data = pc.inputs().get<o2::zdc::BaselineCalibSummaryData*>("basecalibdata");
     mWorker.process(data.get());
     mProcessed++;
     // Send intermediate calibration data if enough statistics has been collected
-    if(mCTimeMod>0){
-      auto &outd = mWorker.getData();
-      auto reft = mCTimeEnd==0 ? outd.mCTimeBeg : mCTimeEnd;
-      if((reft+mCTimeMod)<outd.mCTimeEnd){
+    if (mCTimeMod > 0) {
+      auto& outd = mWorker.getData();
+      auto reft = mCTimeEnd == 0 ? outd.mCTimeBeg : mCTimeEnd;
+      if ((reft + mCTimeMod) < outd.mCTimeEnd) {
         // Send output to CCDB but don't reset structures
         mProcessed = 0;
         mWorker.endOfRun();
@@ -135,12 +135,12 @@ void BaselineCalibSpec::run(ProcessingContext& pc)
         mCTimeEnd = outd.mCTimeEnd;
       }
     }
-  }else{
+  } else {
     LOG(warn) << "ZDC Baseline calibration: mismatch in run numbers: info=" << tinfo.runNumber << " != packet=" << dh->runNumber;
   }
 
-  if(mInitialized && pc.transitionState() == TransitionHandlingState::Requested){
-    if(mProcessed!=0){
+  if (mInitialized && pc.transitionState() == TransitionHandlingState::Requested) {
+    if (mProcessed != 0) {
       mProcessed = 0;
       mWorker.endOfRun();
       sendOutput(); // Send output and ask for a reset of the worker
@@ -153,8 +153,8 @@ void BaselineCalibSpec::run(ProcessingContext& pc)
 
 void BaselineCalibSpec::endOfStream(EndOfStreamContext& ec)
 {
-  if(mInitialized){
-    if(mProcessed!=0){
+  if (mInitialized) {
+    if (mProcessed != 0) {
       mProcessed = 0;
       mWorker.endOfRun();
       sendOutput(); // Send output and ask for a reset of the worker

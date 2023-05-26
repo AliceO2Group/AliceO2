@@ -77,8 +77,7 @@ BaselineCalibData& BaselineCalibData::operator+=(const BaselineCalibData& other)
 BaselineCalibData& BaselineCalibData::operator=(const BaselineCalibSummaryData& s)
 {
 #ifdef O2_ZDC_DEGUG
-  LOGF(info) << "BaselineCalibData assigning BaselineCalibSummaryData"
-  s.print();
+  LOGF(info) << "BaselineCalibData assigning BaselineCalibSummaryData" s.print();
 #endif
   mCTimeBeg = s.mCTimeBeg;
   mCTimeEnd = s.mCTimeEnd;
@@ -107,8 +106,7 @@ BaselineCalibData& BaselineCalibData::operator+=(const BaselineCalibSummaryData*
     return *this;
   }
 #ifdef O2_ZDC_DEGUG
-  LOGF(info) << "BaselineCalibData cumulating BaselineCalibSummaryData"
-  s.print();
+  LOGF(info) << "BaselineCalibData cumulating BaselineCalibSummaryData" s.print();
 #endif
   if (s->mOverflow) {
     // Refusing to add an overflow
@@ -167,7 +165,6 @@ void BaselineCalibData::mergeCreationTime(uint64_t ctime)
   LOGF(info, "BaselineCalibData::mergeCreationTime %llu", ctime);
 #endif
 }
-
 
 //______________________________________________________________________________
 uint64_t BaselineCalibData::getEntries(int is) const
@@ -313,13 +310,13 @@ void BaselineCalibSummaryData::print() const
     }
     printf("\n");
   }
-  int nbin[NChannels] = {0}; // Number of bin populated
+  int nbin[NChannels] = {0};       // Number of bin populated
   uint64_t ccont[NChannels] = {0}; // Entries in the histogram
   for (auto& bin : mData) {
     nbin[bin.id]++;
     ccont[bin.id] += bin.cont;
   }
   for (int32_t is = 0; is < NChannels; is++) {
-    LOGF(info, "Summary ch %2d nbin = %d events = %llu", is,  nbin[is], ccont[is]);
+    LOGF(info, "Summary ch %2d nbin = %d events = %llu", is, nbin[is], ccont[is]);
   }
 }

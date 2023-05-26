@@ -48,7 +48,7 @@ class BaselineCalibSpec : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
   void sendOutput(); // Send output to CCDB
-  void reset(); // Ask for a reset internal structures
+  void reset();      // Ask for a reset internal structures
 
  private:
   int mVerbosity = DbgMinimal; // Verbosity level

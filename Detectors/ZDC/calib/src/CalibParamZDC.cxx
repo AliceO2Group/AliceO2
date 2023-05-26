@@ -48,30 +48,30 @@ int o2::zdc::CalibParamZDC::updateCcdbObjectInfo(o2::ccdb::CcdbObjectInfo& info)
 
 void o2::zdc::CalibParamZDC::print() const
 {
-  std::string msg="";
+  std::string msg = "";
   bool printed = false;
   if (rootOutput) {
-    msg=msg+fmt::format(" rootOutput={}", rootOutput ? "true" : "false");
+    msg = msg + fmt::format(" rootOutput={}", rootOutput ? "true" : "false");
   }
   if (debugOutput) {
-    msg=msg+fmt::format(" debugOutput={}", debugOutput ? "true" : "false");
+    msg = msg + fmt::format(" debugOutput={}", debugOutput ? "true" : "false");
   }
   if (outputDir.compare("./")) {
-    msg=msg+fmt::format(" outputDir={}", outputDir);
+    msg = msg + fmt::format(" outputDir={}", outputDir);
   }
   if (metaFileDir.compare("/dev/null")) {
-    msg=msg+fmt::format(" metaFileDir={}", metaFileDir);
+    msg = msg + fmt::format(" metaFileDir={}", metaFileDir);
   }
   if (descr.size() > 0) {
-    msg=msg+fmt::format(" descr={}", descr);
+    msg = msg + fmt::format(" descr={}", descr);
   }
   if (modTF > 0) {
-    msg=msg+fmt::format(" modTF={}", modTF);
+    msg = msg + fmt::format(" modTF={}", modTF);
   }
   if (mCTimeMod > 0) {
-    msg=msg+fmt::format(" mCTimeMod={}", mCTimeMod);
+    msg = msg + fmt::format(" mCTimeMod={}", mCTimeMod);
   }
-  if(msg.size()>0){
+  if (msg.size() > 0) {
     LOG(info) << "CalibParamZDC::print():" << msg;
   }
 }
