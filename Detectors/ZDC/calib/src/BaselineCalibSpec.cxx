@@ -88,9 +88,9 @@ void BaselineCalibSpec::run(ProcessingContext& pc)
   const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
   const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
 
-//#ifdef O2_ZDC_DEBUG
+#ifdef O2_ZDC_DEBUG
   LOG(info) << "BaselineCalibSpec::run mInitialized=" << mInitialized << " run(ti:dh)=" << tinfo.runNumber << ":" << dh->runNumber  << " mRunStartTime=" << mRunStartTime<< " mProcessed " << mProcessed;
-//#endif
+#endif
 
   // Close calibration if a new run has started or we are receiving data from another run
   if(mInitialized && (tinfo.globalRunNumberChanged==true || tinfo.runNumber != dh->runNumber)){
