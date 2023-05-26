@@ -60,7 +60,6 @@ struct DataProcessingStates {
       generation(other.generation.load()),
       updatedMetricsLapse(other.updatedMetricsLapse.load()),
       store(other.store),
-      statesIndex(other.statesIndex),
       statesBuffer(other.statesBuffer),
       statesViews(other.statesViews),
       updated(other.updated),
@@ -152,9 +151,12 @@ struct DataProcessingStates {
 
   std::atomic<size_t> statesSize;
 
+  /// The temporary buffer where we store state update commands
+  /// before they are processed.
   std::array<char, STATES_BUFFER_SIZE> store = {};
-  std::array<int64_t, MAX_STATES> statesIndex = {};
+  /// The buffer were we store the state before flushing it.
   std::vector<char> statesBuffer;
+  /// The views for all the states, indexed by the state id.
   std::array<StateView, MAX_STATES> statesViews = {};
   // Wether or not a given state has been updated.
   std::array<bool, MAX_STATES> updated = {};
