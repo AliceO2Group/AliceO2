@@ -875,7 +875,7 @@ TPad* rawdisp::DrawMCM(RawDataSpan &mcm, TPad *pad)
   int mcmcol = x.getMCM() % constants::NMCMROBINCOL + HelperMethods::getROBSide(x.getROB()) * constants::NMCMROBINCOL;
 
   float firstpad = mcmcol * constants::NCOLMCM - 1;
-  float lastpad = (mcmcol+1) * constants::NCOLMCM;
+  float lastpad = (mcmcol+1) * constants::NCOLMCM + 2;
 
   if (pad == NULL) {
     pad = new TCanvas(name.c_str(), desc.c_str(), 800, 600);
@@ -906,6 +906,36 @@ TPad* rawdisp::DrawMCM(RawDataSpan &mcm, TPad *pad)
     auto pos = PadColF(tracklet);
     auto slope = SlopeF(tracklet);
     trkl.DrawLine(pos, 0, pos + 30 * slope, 30);
+  }
+
+  TMarker clustermarker;
+  clustermarker.SetMarkerColor(kRed);
+  clustermarker.SetMarkerStyle(2);
+  clustermarker.SetMarkerSize(1.5);
+
+  TMarker cogmarker;
+  cogmarker.SetMarkerColor(kGreen);
+  cogmarker.SetMarkerStyle(3);
+  cogmarker.SetMarkerSize(1.5);
+  for(int t=1; t<=digit_disp->GetNbinsY(); ++t) {
+    for(int p=2; p<=digit_disp->GetNbinsX()-1; ++p) {
+      // cout << p << "/" << t << " -> " << digit_disp->GetBinContent(i,j) << endl;
+        double baseline = 9.5;
+        double left = digit_disp->GetBinContent(p-1,t) - baseline;
+        double centre = digit_disp->GetBinContent(p,t) - baseline;
+        double right = digit_disp->GetBinContent(p+1,t) - baseline;
+        if (centre > left && centre > right) {
+          double pos = 0.5 * log(right/left) / log(centre*centre / left / right);
+          double clpos = digit_disp->GetXaxis()->GetBinCenter(p) + pos;
+          double cog = (right - left) / (right+centre+left) + digit_disp->GetXaxis()->GetBinCenter(p);
+          // cout << "t=" << t << " p=" << p 
+          //      << ":   ADCs = " << left << " / " << centre << " / " << right
+          //      << "   pos = " << pos << " ~ " << clpos
+          //      << endl;
+          clustermarker.DrawMarker(clpos, t-0.5);
+          cogmarker.DrawMarker(cog, t-0.5);
+        }
+    }
   }
 
 
