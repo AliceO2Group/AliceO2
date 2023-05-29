@@ -53,18 +53,11 @@ namespace o2::aodproducer
 {
 
 template <typename T>
-void addTableToOutput(std::vector<OutputSpec>& o, const std::string& ver = "", header::DataHeader::SubSpecificationType t = 0)
+void addTableToOutput(std::vector<OutputSpec>& o, int t = 0)
 {
-  std::string d = o2::aod::MetadataTrait<T>::metadata::description();
-  if (!ver.empty()) {
-    d += "_";
-    d += ver;
-  }
-  char chDesc[16];
-  std::strcpy(chDesc, d.c_str());
   o.emplace_back(OutputLabel{o2::aod::MetadataTrait<T>::metadata::tableLabel()},
                  o2::aod::MetadataTrait<T>::metadata::origin(),
-                 chDesc,
+                 o2::aod::MetadataTrait<T>::metadata::description(),
                  t,
                  Lifetime::Timeframe);
 }

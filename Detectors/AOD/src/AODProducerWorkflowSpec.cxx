@@ -1721,7 +1721,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto mcTrackLabelCursor = createTableCursor<o2::aod::McTrackLabels>(pc);
   auto mftTracksCursor = createTableCursor<o2::aod::StoredMFTTracks>(pc);
   auto tracksCursor = createTableCursor<o2::aod::StoredTracksIU>(pc);
-  auto tracksCovCursor = createTableCursor<o2::aod::StoredTracksCov>(pc);
+  auto tracksCovCursor = createTableCursor<o2::aod::StoredTracksCovIU>(pc);
   auto tracksExtraCursor = createTableCursor<o2::aod::StoredTracksExtra>(pc);
   auto ambigTracksCursor = createTableCursor<o2::aod::AmbiguousTracks>(pc);
   auto ambigMFTTracksCursor = createTableCursor<o2::aod::AmbiguousMFTTracks>(pc);
@@ -2680,19 +2680,23 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   using namespace o2::aodproducer;
 
   addTableToOutput<BCs>(outputs);
-  addTableToOutput<Cascades>(outputs, "001");
-  addTableToOutput<Collisions>(outputs, "001");
+  addTableToOutput<Cascades>(outputs, 1);
+  addTableToOutput<Collisions>(outputs, 1);
   addTableToOutput<Decay3Bodys>(outputs);
-  addTableToOutput<FDDs>(outputs, "001");
+  addTableToOutput<FDDs>(outputs, 1);
   addTableToOutput<FT0s>(outputs);
   addTableToOutput<FV0As>(outputs);
   addTableToOutput<StoredFwdTracks>(outputs);
   addTableToOutput<StoredFwdTracksCov>(outputs);
   addTableToOutput<McCollisions>(outputs);
-  addTableToOutput<McCollisionLabels>(outputs);
+  // todo: use addTableToOuput helper?
+  //  currently the description is MCCOLLISLABEL, so
+  //  the name in AO2D would be O2mccollislabel
+  // addTableToOutput<McCollisionLabels>(outputs);
+  outputs.emplace_back(OutputLabel{"McCollisionLabels"}, "AOD", "MCCOLLISIONLABEL", 0, Lifetime::Timeframe);
   addTableToOutput<McMFTTrackLabels>(outputs);
   addTableToOutput<McFwdTrackLabels>(outputs);
-  addTableToOutput<StoredMcParticles_001>(outputs, "001");
+  addTableToOutput<StoredMcParticles_001>(outputs, 1);
   addTableToOutput<McTrackLabels>(outputs);
   addTableToOutput<StoredMFTTracks>(outputs);
   addTableToOutput<StoredTracksIU>(outputs);
@@ -2704,12 +2708,12 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   addTableToOutput<AmbiguousTracks>(outputs);
   addTableToOutput<AmbiguousMFTTracks>(outputs);
   addTableToOutput<AmbiguousFwdTracks>(outputs);
-  addTableToOutput<V0s>(outputs, "001");
-  addTableToOutput<Zdcs>(outputs, "", 1);
+  addTableToOutput<V0s>(outputs, 1);
+  addTableToOutput<Zdcs>(outputs, 1);
   addTableToOutput<Calos>(outputs);
   addTableToOutput<CaloTriggers>(outputs);
   addTableToOutput<CPVClusters>(outputs);
-  addTableToOutput<McCaloLabels>(outputs, "001", 1);
+  addTableToOutput<McCaloLabels_001>(outputs, 1);
   addTableToOutput<Origin>(outputs);
 
   outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
