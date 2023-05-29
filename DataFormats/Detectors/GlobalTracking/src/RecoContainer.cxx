@@ -451,7 +451,6 @@ void DataRequest::requestEMCALCells(bool mc)
   requestMap["EMCCells"] = mc;
 }
 
-
 void DataRequest::requestHMPMatches(bool mc)
 {
   addInput({"matchHMP", "HMP", "MATCHES", 0, Lifetime::Timeframe});
@@ -460,7 +459,6 @@ void DataRequest::requestHMPMatches(bool mc)
   }
   requestMap["matchHMP"] = mc;
 }
-
 
 void DataRequest::requestTracks(GTrackID::mask_t src, bool useMC)
 {
@@ -1001,11 +999,10 @@ void RecoContainer::addTOFMatchesITSTPCTRD(ProcessingContext& pc, bool mc)
   }
 }
 
-
 //__________________________________________________________
 void RecoContainer::addHMPMatches(ProcessingContext& pc, bool mc)
 {
-  commonPool[GTrackID::HMP].registerContainer(pc.inputs().get<gsl::span<o2d::MatchInfoHMP>>("matchHMP"), MATCHES);           //  HMPID match info, no real tracks
+  commonPool[GTrackID::HMP].registerContainer(pc.inputs().get<gsl::span<o2d::MatchInfoHMP>>("matchHMP"), MATCHES); //  HMPID match info, no real tracks
   if (mc) {
     commonPool[GTrackID::HMP].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("clsHMP_GLO_MCTR"), MCLABELS);
   }
