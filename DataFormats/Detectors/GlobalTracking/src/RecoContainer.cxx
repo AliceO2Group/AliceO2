@@ -451,18 +451,16 @@ void DataRequest::requestEMCALCells(bool mc)
   requestMap["EMCCells"] = mc;
 }
 
-/*
+
 void DataRequest::requestHMPMatches(bool mc)
 {
   addInput({"matchHMP", "HMP", "MATCHES", 0, Lifetime::Timeframe});
-  addInput({"matchTriggerHMP", "HMP", "TRACKREFS", 0, Lifetime::Timeframe});
-  addInput({"matchPhotsCharge", "HMP", "PATTERNS", 0, Lifetime::Timeframe});
   if (mc) {
     addInput({"clsHMP_GLO_MCTR", "HMP", "MCLABELS", 0, Lifetime::Timeframe});
   }
   requestMap["matchHMP"] = mc;
 }
-*/
+
 
 void DataRequest::requestTracks(GTrackID::mask_t src, bool useMC)
 {
@@ -531,9 +529,9 @@ void DataRequest::requestTracks(GTrackID::mask_t src, bool useMC)
   if (GTrackID::includesDet(DetID::HMP, src)) {
     requestHMPClusters(useMC);
   }
-  //  if (src[GTrackID::HMP]) {
-  //    requestHMPMatches(useMC);
-  //  }
+  if (src[GTrackID::HMP]) {
+    requestHMPMatches(useMC);
+  }
 }
 
 void DataRequest::requestClusters(GTrackID::mask_t src, bool useMC, DetID::mask_t skipDetClusters)
@@ -1003,18 +1001,15 @@ void RecoContainer::addTOFMatchesITSTPCTRD(ProcessingContext& pc, bool mc)
   }
 }
 
-/*
+
 //__________________________________________________________
 void RecoContainer::addHMPMatches(ProcessingContext& pc, bool mc)
 {
   commonPool[GTrackID::HMP].registerContainer(pc.inputs().get<gsl::span<o2d::MatchInfoHMP>>("matchHMP"), MATCHES);           //  HMPID match info, no real tracks
-  commonPool[GTrackID::HMP].registerContainer(pc.inputs().get<gsl::span<o2::hmpid::Trigger>>("matchTriggerHMP"), TRACKREFS); //  HMPID triggers
-  commonPool[GTrackID::HMP].registerContainer(pc.inputs().get<gsl::span<float>>("matchPhotsCharge"), PATTERNS);              //  HMPID photon cluster charges
   if (mc) {
     commonPool[GTrackID::HMP].registerContainer(pc.inputs().get<gsl::span<o2::MCCompLabel>>("clsHMP_GLO_MCTR"), MCLABELS);
   }
 }
-*/
 
 //__________________________________________________________
 void RecoContainer::addITSClusters(ProcessingContext& pc, bool mc)

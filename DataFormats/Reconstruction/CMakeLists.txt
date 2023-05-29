@@ -32,12 +32,14 @@ o2_add_library(ReconstructionDataFormats
                        src/TrackTPCTOF.cxx
                        src/TrackCosmics.cxx
                        src/TrackMCHMID.cxx
+                       src/TrackHMP.cxx
                        src/MatchInfoHMP.cxx
                PUBLIC_LINK_LIBRARIES O2::GPUCommon
                                      O2::GPUUtils
                                      O2::FrameworkLogger
                                      O2::DetectorsCommonDataFormats
-                                     O2::CommonDataFormat)
+                                     O2::CommonDataFormat
+                                     O2::Field)
 
 o2_target_root_dictionary(
   ReconstructionDataFormats
@@ -65,6 +67,7 @@ o2_target_root_dictionary(
           include/ReconstructionDataFormats/TrackMCHMID.h
           include/ReconstructionDataFormats/MatchInfoFwd.h
           include/ReconstructionDataFormats/BCRange.h
+          include/ReconstructionDataFormats/TrackHMP.h
           include/ReconstructionDataFormats/MatchInfoHMP.h
   )
 
