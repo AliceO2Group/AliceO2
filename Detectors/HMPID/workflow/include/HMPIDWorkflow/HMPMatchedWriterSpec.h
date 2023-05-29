@@ -9,18 +9,25 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+/// @file   HMPMatchedWriterSpec.h
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#ifndef HMPWORKFLOW_HMPMATCHEDWRITER_H_
+#define HMPWORKFLOW_HMPMATCHEDWRITER_H_
 
-//#pragma link C++ class o2::hmpid::DataReader + ;
-#pragma link C++ class o2::hmpid::Clusterer + ;
-//#pragma link C++ class o2::hmpid::HmpidDecodeRawMem + ;
-#pragma link C++ class o2::hmpid::Recon + ;
-//#pragma link C++ class o2::hmpid::HmpidDecoder + ;
-#pragma link C++ class o2::hmpid::HmpidDecoder2 + ;
-#pragma link C++ class o2::hmpid::HmpidEquipment + ;
+#include "Framework/DataProcessorSpec.h"
 
-#endif
+using namespace o2::framework;
+
+namespace o2
+{
+namespace hmpid
+{
+
+/// create a processor spec
+/// write HMP matching info in a root file
+o2::framework::DataProcessorSpec getHMPMatchedWriterSpec(bool useMC, const char* outdef = "o2match_hmpid.root"); // int mode = 0, bool strict = false);
+
+} // namespace hmpid
+} // namespace o2
+
+#endif /* HMPWORKFLOW_HMPMATCHEDWRITER_H_ */

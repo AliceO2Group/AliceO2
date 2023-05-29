@@ -9,18 +9,25 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+/// @file   HMPMatcherSpec.h // ef ; change to hmp
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#ifndef O2_HMP_MATCHER_SPEC // hmp
+#define O2_HMP_MATCHER_SPEC //
 
-//#pragma link C++ class o2::hmpid::DataReader + ;
-#pragma link C++ class o2::hmpid::Clusterer + ;
-//#pragma link C++ class o2::hmpid::HmpidDecodeRawMem + ;
-#pragma link C++ class o2::hmpid::Recon + ;
-//#pragma link C++ class o2::hmpid::HmpidDecoder + ;
-#pragma link C++ class o2::hmpid::HmpidDecoder2 + ;
-#pragma link C++ class o2::hmpid::HmpidEquipment + ;
+#include "Framework/DataProcessorSpec.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 
-#endif
+using namespace o2::framework;
+
+namespace o2
+{
+namespace globaltracking
+{
+
+/// create a processor spec
+framework::DataProcessorSpec getHMPMatcherSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC);
+
+} // namespace globaltracking
+} // namespace o2
+
+#endif /* O2_HMP_MATCHER_SPEC */

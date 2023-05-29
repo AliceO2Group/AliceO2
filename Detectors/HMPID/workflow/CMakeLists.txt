@@ -16,8 +16,9 @@ o2_add_library(HMPIDWorkflow
                        src/DigitsReaderSpec.cxx
                        src/ClustersReaderSpec.cxx
                        src/DigitsToClustersSpec.cxx
-                       src/DigitsWriterSpec.cxx
+                       src/DigitsWriterSpec.cxx     
                        src/ClustersWriterSpec.cxx
+                       src/HMPMatchedWriterSpec.cxx
                        src/DumpDigitsSpec.cxx
                        src/PedestalsCalculationSpec.cxx
                        src/RawToDigitsSpec.cxx
@@ -25,16 +26,19 @@ o2_add_library(HMPIDWorkflow
                        src/WriteRawFileSpec.cxx
                        src/EntropyEncoderSpec.cxx
                        src/EntropyDecoderSpec.cxx
-
-                       PUBLIC_LINK_LIBRARIES O2::Framework
-                                             O2::CCDB
-                                             O2::DPLUtils
-                                             O2::DetectorsRaw
-                                             O2::HMPIDBase
-                                             O2::DataFormatsHMP
-                                             O2::DataFormatsDCS
-                                             O2::HMPIDSimulation
-                                             O2::HMPIDReconstruction)
+                       src/HMPMatchedReaderSpec.cxx
+                       src/HMPMatchedWriterSpec.cxx
+                              
+                       PUBLIC_LINK_LIBRARIES 
+                                     O2::Framework
+                                     O2::CCDB
+                                     O2::DPLUtils
+                                     O2::DetectorsRaw
+                                     O2::HMPIDBase
+                                     O2::DataFormatsHMP
+                                     O2::DataFormatsDCS
+                                     O2::HMPIDSimulation
+                                     O2::HMPIDReconstruction)
 
 o2_add_executable(digits-reader-workflow
                   COMPONENT_NAME hmpid
@@ -81,7 +85,7 @@ o2_add_executable(digits-to-raw-workflow
                  SOURCES src/digits-to-raw-workflow.cxx
                  PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
 
-o2_add_executable(digits-to-clusters-workflow
+o2_add_executable(reco-workflow
                   COMPONENT_NAME hmpid
                   SOURCES src/digits-to-clusters-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::HMPIDWorkflow)
