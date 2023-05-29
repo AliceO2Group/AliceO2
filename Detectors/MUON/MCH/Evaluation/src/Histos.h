@@ -25,28 +25,35 @@ namespace eval
 {
 class ExtendedTrack;
 
+/** create single muon and dimuon histograms at vertex */
 void createHistosAtVertex(std::vector<TH1*>& histos, const char* extension);
 
-void createHistosResiduals(std::vector<TH1*>& histos, const char* extension, double range);
+/** create histograms for cluster-cluster or cluster-track residuals */
+void createHistosForClusterResiduals(std::vector<TH1*>& histos, const char* extension, double range);
 
-void createHistosResidualsAtFirstCluster(std::vector<TH1*>& histos);
+/** create histograms for track-track residuals */
+void createHistosForTrackResiduals(std::vector<TH1*>& histos);
 
+/** fill comparison histograms at vertex */
 void fillComparisonsAtVertex(std::list<ExtendedTrack>& tracks1, std::list<ExtendedTrack>& tracks2, const std::array<std::vector<TH1*>, 5>& histos);
 
+/** fill single muon and dimuon histograms at vertex */
 void fillHistosAtVertex(const std::list<ExtendedTrack>& tracks, const std::vector<TH1*>& histos);
 
+/** fill dimuon histograms at vertex */
 void fillHistosDimuAtVertex(const ExtendedTrack& track1, const ExtendedTrack& track2, const std::vector<TH1*>& histos);
 
+/** fill single muon histograms at vertex */
 void fillHistosMuAtVertex(const ExtendedTrack& track, const std::vector<TH1*>& histos);
 
-/** fill histograms of residuals at given param */
-void fillResiduals(const TrackParam& param1, const TrackParam& param2, std::vector<TH1*>& histos);
+/** fill histograms of track-track residuals */
+void fillTrackResiduals(const TrackParam& param1, const TrackParam& param2, std::vector<TH1*>& histos);
 
-/** fill histograms of cluster-cluster residuals*/
-void fillResiduals(const ExtendedTrack& track1, const ExtendedTrack& track2, std::vector<TH1*>& histos);
+/** fill histograms of cluster-cluster residuals */
+void fillClusterClusterResiduals(const ExtendedTrack& track1, const ExtendedTrack& track2, std::vector<TH1*>& histos);
 
 /** fill histograms of cluster-track residuals */
-void fillResiduals(const std::list<ExtendedTrack>& tracks, std::vector<TH1*>& histos, bool matched);
+void fillClusterTrackResiduals(const std::list<ExtendedTrack>& tracks, std::vector<TH1*>& histos, bool matched);
 } // namespace eval
 } // namespace o2::mch
 

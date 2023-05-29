@@ -72,35 +72,35 @@ void CompareTask::pdfOutput()
   toPdf5(drawComparisonsAtVertex);
 
   c->Clear();
-  drawResidualsAtFirstCluster(mResidualsAtFirstCluster, c);
+  drawTrackResiduals(mTrackResidualsAtFirstCluster, c);
   c->Print(mOutputPdfFileName.c_str());
 
   c->Clear();
-  drawClusterClusterResiduals(mResiduals[4], "ClCl", c);
+  drawClusterClusterResiduals(mClusterResiduals[4], "ClCl", c);
   c->Print(mOutputPdfFileName.c_str());
 
   c->Clear();
-  drawClusterTrackResiduals(mResiduals[0], mResiduals[1], "All", c);
+  drawClusterTrackResiduals(mClusterResiduals[0], mClusterResiduals[1], "AllTracks", c);
   c->Print(mOutputPdfFileName.c_str());
 
   c->Clear();
-  drawClusterTrackResidualsSigma(mResiduals[0], mResiduals[1], "All", c);
+  drawClusterTrackResidualsSigma(mClusterResiduals[0], mClusterResiduals[1], "AllTracks", c);
   c->Print(mOutputPdfFileName.c_str());
 
   c->Clear();
-  drawClusterTrackResiduals(mResiduals[2], mResiduals[3], "Matched", c);
+  drawClusterTrackResiduals(mClusterResiduals[2], mClusterResiduals[3], "SimilarTracks", c);
   c->Print(mOutputPdfFileName.c_str());
 
   c->Clear();
-  drawClusterTrackResidualsSigma(mResiduals[2], mResiduals[3], "Matched", c);
+  drawClusterTrackResidualsSigma(mClusterResiduals[2], mClusterResiduals[3], "SimilarTracks", c);
   c->Print(mOutputPdfFileName.c_str());
 
   c->Clear();
-  drawRatioResiduals(mResiduals[0], mResiduals[1], "All", c);
+  drawClusterTrackResidualsRatio(mClusterResiduals[0], mClusterResiduals[1], "AllTracks", c);
   c->Print(mOutputPdfFileName.c_str());
 
   c->Clear();
-  drawRatioResiduals(mResiduals[2], mResiduals[3], "Matched", c);
+  drawClusterTrackResidualsRatio(mClusterResiduals[2], mClusterResiduals[3], "SimilarTracks", c);
   c->Print(mOutputPdfFileName.c_str());
 
   c->Clear();
@@ -126,12 +126,12 @@ void CompareTask::init(InitContext& ic)
   createHistosAtVertex(mComparisonsAtVertex[2], "similar2");
   createHistosAtVertex(mComparisonsAtVertex[3], "additional");
   createHistosAtVertex(mComparisonsAtVertex[4], "missing");
-  createHistosResiduals(mResiduals[0], "All1", 2.);
-  createHistosResiduals(mResiduals[1], "All2", 2.);
-  createHistosResiduals(mResiduals[2], "Matched1", 2.);
-  createHistosResiduals(mResiduals[3], "Matched2", 2.);
-  createHistosResiduals(mResiduals[4], "ClCl", 0.2);
-  createHistosResidualsAtFirstCluster(mResidualsAtFirstCluster);
+  createHistosForClusterResiduals(mClusterResiduals[0], "AllTracks1", 2.);
+  createHistosForClusterResiduals(mClusterResiduals[1], "AllTracks2", 2.);
+  createHistosForClusterResiduals(mClusterResiduals[2], "SimilarTracks1", 2.);
+  createHistosForClusterResiduals(mClusterResiduals[3], "SimilarTracks2", 2.);
+  createHistosForClusterResiduals(mClusterResiduals[4], "ClCl", 0.2);
+  createHistosForTrackResiduals(mTrackResidualsAtFirstCluster);
 
   mNofDifferences = 0;
 
@@ -143,8 +143,8 @@ void CompareTask::init(InitContext& ic)
     mOutputRootFile->cd();
     mOutputRootFile->WriteObject(&mHistosAtVertex, "histosAtVertex");
     mOutputRootFile->WriteObject(&mComparisonsAtVertex, "comparisonsAtVertex");
-    mOutputRootFile->WriteObject(&mResidualsAtFirstCluster, "residualsAtFirstCluster");
-    mOutputRootFile->WriteObject(&mResiduals, "residuals");
+    mOutputRootFile->WriteObject(&mTrackResidualsAtFirstCluster, "trackResidualsAtFirstCluster");
+    mOutputRootFile->WriteObject(&mClusterResiduals, "clusterResiduals");
     mOutputRootFile->Close();
   };
   ic.services().get<CallbackService>().set<CallbackService::Id::Stop>(stop);
@@ -224,16 +224,16 @@ void CompareTask::run(ProcessingContext& pc)
     fillHistosAtVertex(tracks1, mHistosAtVertex[0]);
     fillHistosAtVertex(tracks2, mHistosAtVertex[1]);
 
-    fillResiduals(tracks1, mResiduals[0], false);
-    fillResiduals(tracks2, mResiduals[1], false);
+    fillClusterTrackResiduals(tracks1, mClusterResiduals[0], false);
+    fillClusterTrackResiduals(tracks2, mClusterResiduals[1], false);
 
     int nDiff = compareEvents(tracks1, tracks2,
                               mPrecision,
                               mPrintAll,
-                              mResidualsAtFirstCluster,
-                              mResiduals);
-    fillResiduals(tracks1, mResiduals[2], true);
-    fillResiduals(tracks2, mResiduals[3], true);
+                              mTrackResidualsAtFirstCluster,
+                              mClusterResiduals[4]);
+    fillClusterTrackResiduals(tracks1, mClusterResiduals[2], true);
+    fillClusterTrackResiduals(tracks2, mClusterResiduals[3], true);
     if (nDiff > 0) {
       LOG(warning) << "--> " << nDiff << " differences found in ROF " << rofs1[i];
       mNofDifferences += nDiff;

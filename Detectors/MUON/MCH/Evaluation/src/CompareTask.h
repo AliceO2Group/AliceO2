@@ -60,9 +60,9 @@ class CompareTask
   std::unique_ptr<TFile> mOutputRootFile;
   std::string mOutputPdfFileName;
   std::array<std::vector<TH1*>, 2> mHistosAtVertex;
-  std::vector<TH1*> mResidualsAtFirstCluster{};
+  std::vector<TH1*> mTrackResidualsAtFirstCluster{};
   std::array<std::vector<TH1*>, 5> mComparisonsAtVertex;
-  std::array<std::vector<TH1*>, 5> mResiduals;
+  std::array<std::vector<TH1*>, 5> mClusterResiduals;
   bool mApplyTrackSelection;
   double mPrecision;
   bool mPrintAll;

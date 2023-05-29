@@ -24,8 +24,8 @@ namespace o2::mch::eval
 {
 int compareEvents(std::list<ExtendedTrack>& tracks1, std::list<ExtendedTrack>& tracks2,
                   double precision, bool printAll,
-                  std::vector<TH1*>& paramHistos,
-                  std::array<std::vector<TH1*>, 5>& residualHistos);
+                  std::vector<TH1*>& trackResidualsAtFirstCluster,
+                  std::vector<TH1*>& clusterClusterResiduals);
 
 bool areCompatible(const TrackParam& param1, const TrackParam& param2, double precision);
 

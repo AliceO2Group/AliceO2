@@ -8,7 +8,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-//_________________________________________________________________________________________________
+
 #include "CompareTracks.h"
 #include "Histos.h"
 #include <TH1F.h>
@@ -31,7 +31,6 @@ void printResiduals(const TrackParam& param1, const TrackParam& param2)
             << "}" << std::endl;
 }
 
-//_________________________________________________________________________________________________
 void printCovResiduals(const TMatrixD& cov1, const TMatrixD& cov2)
 {
   /// print cov2 - cov1
@@ -43,8 +42,8 @@ int compareEvents(std::list<ExtendedTrack>& tracks1,
                   std::list<ExtendedTrack>& tracks2,
                   double precision,
                   bool printAll,
-                  std::vector<TH1*>& residualsAtFirstCluster,
-                  std::array<std::vector<TH1*>, 5>& residuals)
+                  std::vector<TH1*>& trackResidualsAtFirstCluster,
+                  std::vector<TH1*>& clusterClusterResiduals)
 {
   /// compare the tracks between the 2 events
 
@@ -62,7 +61,7 @@ int compareEvents(std::list<ExtendedTrack>& tracks1,
       itTrack2->setMatchFound(true);
       track1.setMatchIdentical(true);
       itTrack2->setMatchIdentical(true);
-      fillResiduals(track1, *itTrack2, residuals[4]);
+      fillClusterClusterResiduals(track1, *itTrack2, clusterClusterResiduals);
       // compare the track parameters
       bool areParamCompatible = areCompatible(track1.param(), itTrack2->param(), precision);
       bool areCovCompatible = areCompatible(track1.param().getCovariances(), itTrack2->param().getCovariances(), precision);
@@ -75,17 +74,7 @@ int compareEvents(std::list<ExtendedTrack>& tracks1,
       if (printAll || !areCovCompatible) {
         printCovResiduals(track1.param().getCovariances(), itTrack2->param().getCovariances());
       }
-      fillResiduals(track1.param(), itTrack2->param(), residualsAtFirstCluster);
-      // FIXME : use params at MID or not ?
-      // // compare the track parameters at MID (if any)
-      // if (track1.paramAtMID.z < 0. && itTrack2->paramAtMID.z < 0.) {
-      //   if (!areTrackParamCompatible(track1.paramAtMID, itTrack2->paramAtMID, precision)) {
-      //     printResiduals(track1.paramAtMID, itTrack2->paramAtMID);
-      //   }
-      //   if (!areTrackParamCovCompatible(track1.covAtMID, itTrack2->covAtMID, precision)) {
-      //     printCovResiduals(track1.covAtMID, itTrack2->covAtMID);
-      //   }
-      // }
+      fillTrackResiduals(track1.param(), itTrack2->param(), trackResidualsAtFirstCluster);
     }
   }
 
@@ -100,12 +89,7 @@ int compareEvents(std::list<ExtendedTrack>& tracks1,
       if (!track2.hasMatchFound() && track2.isMatching(track1)) {
         track1.setMatchFound(true);
         track2.setMatchFound(true);
-        // if (track2.getNClustersInCommon(track1) == track2.clusters.size()) {
-        //   track1.matchIdentical = true;
-        //   track2.matchIdentical = true;
-        // } else {
-        //   track1.printClusterDifferences(track2);
-        // }
+        fillClusterClusterResiduals(track1, track2, clusterClusterResiduals);
         // compare the track parameters
         bool areParamCompatible = areCompatible(track1.param(), track2.param(), precision);
         bool areCovCompatible = areCompatible(track1.param().getCovariances(), track2.param().getCovariances(), precision);
@@ -118,17 +102,7 @@ int compareEvents(std::list<ExtendedTrack>& tracks1,
         if (printAll || !areCovCompatible) {
           printCovResiduals(track1.param().getCovariances(), track2.param().getCovariances());
         }
-        fillResiduals(track1.param(), track2.param(), residualsAtFirstCluster);
-        // FIXME : use params at MID or not ?
-        // // compare the track parameters at MID (if any)
-        // if (track1.paramAtMID.z < 0. && track2.paramAtMID.z < 0.) {
-        //   if (!areTrackParamCompatible(track1.paramAtMID, track2.paramAtMID, precision)) {
-        //     printResiduals(track1.paramAtMID, track2.paramAtMID);
-        //   }
-        //   if (!areTrackParamCovCompatible(track1.covAtMID, track2.covAtMID, precision)) {
-        //     printCovResiduals(track1.covAtMID, track2.covAtMID);
-        //   }
-        // }
+        fillTrackResiduals(track1.param(), track2.param(), trackResidualsAtFirstCluster);
         break;
       }
     }

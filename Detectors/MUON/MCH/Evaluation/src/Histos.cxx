@@ -20,9 +20,8 @@
 
 namespace o2::mch::eval
 {
-void createHistosResiduals(std::vector<TH1*>& histos, const char* extension, double range)
+void createHistosForClusterResiduals(std::vector<TH1*>& histos, const char* extension, double range)
 {
-  /// create histograms of cluster-track residuals
   if (histos.size() == 0) {
     for (int iSt = 1; iSt <= 5; ++iSt) {
       histos.emplace_back(new TH1F(Form("resX%sSt%d", extension, iSt),
@@ -35,7 +34,7 @@ void createHistosResiduals(std::vector<TH1*>& histos, const char* extension, dou
   }
 }
 
-void createHistosResidualsAtFirstCluster(std::vector<TH1*>& histos)
+void createHistosForTrackResiduals(std::vector<TH1*>& histos)
 {
   if (histos.size() == 0) {
     histos.emplace_back(new TH1F("dx", "dx;dx (cm)", 20001, -1.00005, 1.00005));
@@ -55,7 +54,6 @@ void createHistosResidualsAtFirstCluster(std::vector<TH1*>& histos)
 
 void createHistosAtVertex(std::vector<TH1*>& histos, const char* extension)
 {
-  /// create single muon and dimuon histograms at vertex
   if (histos.size() == 0) {
     histos.emplace_back(new TH1F(Form("pT%s", extension), "pT;p_{T} (GeV/c)", 300, 0., 30.));
     histos.emplace_back(new TH1F(Form("rapidity%s", extension), "rapidity;rapidity", 200, -4.5, -2.));
@@ -71,7 +69,6 @@ void createHistosAtVertex(std::vector<TH1*>& histos, const char* extension)
 
 void fillHistosAtVertex(const std::list<ExtendedTrack>& tracks, const std::vector<TH1*>& histos)
 {
-  /// fill single muon and dimuon histograms at vertex
   for (auto itTrack1 = tracks.begin(); itTrack1 != tracks.end(); ++itTrack1) {
     fillHistosMuAtVertex(*itTrack1, histos);
     for (auto itTrack2 = std::next(itTrack1); itTrack2 != tracks.end(); ++itTrack2) {
@@ -82,7 +79,6 @@ void fillHistosAtVertex(const std::list<ExtendedTrack>& tracks, const std::vecto
 
 void fillHistosMuAtVertex(const ExtendedTrack& track, const std::vector<TH1*>& histos)
 {
-  /// fill single muon histograms at vertex
   double thetaAbs = TMath::ATan(track.getRabs() / 505.) * TMath::RadToDeg();
   double pUncorr = std::sqrt(track.param().px() * track.param().px() + track.param().py() * track.param().py() + track.param().pz() * track.param().pz());
   double pDCA = pUncorr * track.getDCA();
@@ -102,8 +98,7 @@ void fillHistosMuAtVertex(const ExtendedTrack& track, const std::vector<TH1*>& h
 
 void fillHistosDimuAtVertex(const ExtendedTrack& track1, const ExtendedTrack& track2, const std::vector<TH1*>& histos)
 {
-  /// fill dimuon histograms at vertex
-  if (track1.getCharge() * track2.getCharge() < 0) {
+  if (track1.getCharge() * track2.getCharge() < 0.) {
     ROOT::Math::PxPyPzMVector dimu = track1.P() + track2.P();
     histos[8]->Fill(dimu.M());
   }
@@ -113,8 +108,6 @@ void fillComparisonsAtVertex(std::list<ExtendedTrack>& tracks1,
                              std::list<ExtendedTrack>& tracks2,
                              const std::array<std::vector<TH1*>, 5>& histos)
 {
-  /// fill comparison histograms at vertex
-
   for (auto itTrack21 = tracks2.begin(); itTrack21 != tracks2.end(); ++itTrack21) {
 
     // fill histograms for identical, similar (from file 2) and additional muons
@@ -158,20 +151,9 @@ void fillComparisonsAtVertex(std::list<ExtendedTrack>& tracks1,
       }
     }
   }
-  /*
-    // fill histograms for missing dimuons in both files
-      for (const auto& track1 : tracks1) {
-              if (!track1.hasMatchFound()) {
-                        for (const auto& track2 : tracks2) {
-                                    if (!track2.hasMatchFound()) {
-                                                  FillHistosDimuAtVertex(track1, track2, histos[4]);
-                                                          }
-                                                                }
-                                                                    }
-                                                                      }*/
 }
 
-void fillResiduals(const TrackParam& param1, const TrackParam& param2, std::vector<TH1*>& histos)
+void fillTrackResiduals(const TrackParam& param1, const TrackParam& param2, std::vector<TH1*>& histos)
 {
   double p1 = TMath::Sqrt(param1.px() * param1.px() + param1.py() * param1.py() + param1.pz() * param1.pz());
   double p2 = TMath::Sqrt(param2.px() * param2.px() + param2.py() * param2.py() + param2.pz() * param2.pz());
@@ -189,7 +171,7 @@ void fillResiduals(const TrackParam& param1, const TrackParam& param2, std::vect
   histos[11]->Fill(p1, 100. * (p2 - p1) / p1);
 }
 
-void fillResiduals(const ExtendedTrack& track1, const ExtendedTrack& track2, std::vector<TH1*>& histos)
+void fillClusterClusterResiduals(const ExtendedTrack& track1, const ExtendedTrack& track2, std::vector<TH1*>& histos)
 {
   for (const auto& cl1 : track1.getClusters()) {
     for (const auto& cl2 : track2.getClusters()) {
@@ -206,15 +188,17 @@ void fillResiduals(const ExtendedTrack& track1, const ExtendedTrack& track2, std
 }
 
 //_________________________________________________________________________________________________
-void fillResiduals(const std::list<ExtendedTrack>& tracks, std::vector<TH1*>& histos, bool matched)
+void fillClusterTrackResiduals(const std::list<ExtendedTrack>& tracks, std::vector<TH1*>& histos, bool matched)
 {
   for (const auto& track : tracks) {
     if (!matched || track.hasMatchFound()) {
       for (const auto& param : track.track()) {
-        histos[param.getClusterPtr()->getChamberId() / 2 * 2]->Fill(param.getClusterPtr()->getX() - param.getNonBendingCoor());
-        histos[param.getClusterPtr()->getChamberId() / 2 * 2 + 1]->Fill(param.getClusterPtr()->getY() - param.getBendingCoor());
-        histos[10]->Fill(param.getClusterPtr()->getX() - param.getNonBendingCoor());
-        histos[11]->Fill(param.getClusterPtr()->getY() - param.getBendingCoor());
+        double dx = param.getClusterPtr()->getX() - param.getNonBendingCoor();
+        double dy = param.getClusterPtr()->getY() - param.getBendingCoor();
+        histos[param.getClusterPtr()->getChamberId() / 2 * 2]->Fill(dx);
+        histos[param.getClusterPtr()->getChamberId() / 2 * 2 + 1]->Fill(dy);
+        histos[10]->Fill(dx);
+        histos[11]->Fill(dy);
       }
     }
   }

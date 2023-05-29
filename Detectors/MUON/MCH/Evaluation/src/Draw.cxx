@@ -16,6 +16,7 @@
 #include <TGraphErrors.h>
 #include <TH1.h>
 #include <TLegend.h>
+#include <TStyle.h>
 #include <fmt/format.h>
 #include <limits>
 #include <memory>
@@ -124,10 +125,10 @@ TCanvas* autoCanvas(const char* title, const char* name,
   return c;
 }
 
-void drawResidualsAtFirstCluster(std::vector<TH1*>& histos,
-                                 TCanvas* c)
+void drawTrackResiduals(std::vector<TH1*>& histos, TCanvas* c)
 {
   /// draw param2 - param1 histos
+  gStyle->SetOptStat(111111);
   int nPadsx = (histos.size() + 2) / 3;
   if (!c) {
     c = new TCanvas("residuals", "residuals", 10, 10, nPadsx * 300, 900);
@@ -147,21 +148,21 @@ void drawResidualsAtFirstCluster(std::vector<TH1*>& histos,
   }
 }
 
-void drawResiduals(const std::array<std::vector<TH1*>, 5>& histos, TCanvas* c)
+void drawClusterResiduals(const std::array<std::vector<TH1*>, 5>& histos, TCanvas* c)
 {
   drawClusterClusterResiduals(histos[4], "ClCl", c);
-  drawClusterTrackResiduals(histos[0], histos[1], "All", c);
-  drawClusterTrackResidualsSigma(histos[0], histos[1], "All", c);
-  drawClusterTrackResiduals(histos[2], histos[3], "Matched", c);
-  drawClusterTrackResidualsSigma(histos[2], histos[3], "Matched", c);
-  drawRatioResiduals(histos[0], histos[1], "All", c);
-  drawRatioResiduals(histos[2], histos[3], "Matched", c);
+  drawClusterTrackResiduals(histos[0], histos[1], "AllTracks", c);
+  drawClusterTrackResidualsSigma(histos[0], histos[1], "AllTracks", c);
+  drawClusterTrackResiduals(histos[2], histos[3], "SimilarTracks", c);
+  drawClusterTrackResidualsSigma(histos[2], histos[3], "SimilarTracks", c);
+  drawClusterTrackResidualsRatio(histos[0], histos[1], "AllTracks", c);
+  drawClusterTrackResidualsRatio(histos[2], histos[3], "SimilarTracks", c);
 }
 
 void drawClusterClusterResiduals(const std::vector<TH1*>& histos, const char* extension, TCanvas* c)
 {
   /// draw cluster-cluster residuals
-
+  gStyle->SetOptStat(1);
   int nPadsx = (histos.size() + 1) / 2;
   if (!c) {
     c = new TCanvas(Form("residual%s", extension), Form("residual%s", extension), 10, 10, nPadsx * 300, 600);
@@ -183,9 +184,8 @@ void drawClusterTrackResiduals(const std::vector<TH1*>& histos1,
                                TCanvas* c)
 {
   /// draw cluster-track residuals
-
+  gStyle->SetOptStat(1);
   int color[2] = {4, 2};
-
   int nPadsx = (histos1.size() + 1) / 2;
   if (!c) {
     c = new TCanvas(Form("residual%s", extension), Form("residual%s", extension), 10, 10, nPadsx * 300, 600);
@@ -201,14 +201,14 @@ void drawClusterTrackResiduals(const std::vector<TH1*>& histos1,
     histos2[i]->Draw("sames");
     ++i;
   }
-  // // add a legend
-  // TLegend* lHist = new TLegend(0.2, 0.65, 0.4, 0.8);
-  // lHist->SetFillStyle(0);
-  // lHist->SetBorderSize(0);
-  // lHist->AddEntry(histos1[0], "file 1", "l");
-  // lHist->AddEntry(histos2[0], "file 2", "l");
-  // c->cd(1);
-  // lHist->Draw("same");
+  // add a legend
+  TLegend* lHist = new TLegend(0.2, 0.65, 0.4, 0.8);
+  lHist->SetFillStyle(0);
+  lHist->SetBorderSize(0);
+  lHist->AddEntry(histos1[0], "file 1", "l");
+  lHist->AddEntry(histos2[0], "file 2", "l");
+  c->cd(1);
+  lHist->Draw("same");
 }
 
 void drawClusterTrackResidualsSigma(const std::vector<TH1*>& histos1,
@@ -232,19 +232,19 @@ void drawClusterTrackResidualsSigma(const std::vector<TH1*>& histos1,
   }
 
   int i(0);
-  double ymax[2] = {0.};
-  double ymin[2] = {std::numeric_limits<double>::max()};
+  double ymax[2] = {0., 0.};
+  double ymin[2] = {std::numeric_limits<double>::max(), std::numeric_limits<double>::max()};
   for (const auto& h : histos1) {
     auto res1 = GetSigma(*h);
     g[i % 2][0]->SetPoint(i / 2, i * 1. / 2 + 1., res1.first);
     g[i % 2][0]->SetPointError(i / 2, 0., res1.second);
-    ymin[i % 2] = std::min(ymin[i % 2], res1.first - res1.second);
-    ymax[i % 2] = std::max(ymax[i % 2], res1.first + res1.second);
+    ymin[i % 2] = std::min(ymin[i % 2], res1.first - res1.second - 0.001);
+    ymax[i % 2] = std::max(ymax[i % 2], res1.first + res1.second + 0.001);
     auto res2 = GetSigma(*histos2[i]);
     g[i % 2][1]->SetPoint(i / 2, i * 1. / 2 + 1., res2.first);
     g[i % 2][1]->SetPointError(i / 2, 0., res2.second);
-    ymin[i % 2] = std::min(ymin[i % 2], res2.first - res2.second);
-    ymax[i % 2] = std::max(ymax[i % 2], res2.first + res2.second);
+    ymin[i % 2] = std::min(ymin[i % 2], res2.first - res2.second - 0.001);
+    ymax[i % 2] = std::max(ymax[i % 2], res2.first + res2.second + 0.001);
     printf("%s: %f ± %f cm --> %f ± %f cm\n", h->GetName(), res1.first, res1.second, res2.first, res2.second);
     ++i;
   }
@@ -306,10 +306,10 @@ void drawDiffHistosAtVertex(const std::array<std::vector<TH1*>, 2>& histos, TCan
   }
 }
 
-void drawRatioResiduals(const std::vector<TH1*>& histos1,
-                        const std::vector<TH1*>& histos2,
-                        const char* extension,
-                        TCanvas* c)
+void drawClusterTrackResidualsRatio(const std::vector<TH1*>& histos1,
+                                    const std::vector<TH1*>& histos2,
+                                    const char* extension,
+                                    TCanvas* c)
 {
   /// draw ratios of cluster-track residuals
 
@@ -323,7 +323,7 @@ void drawRatioResiduals(const std::vector<TH1*>& histos1,
     c->cd((i % 2) * nPadsx + i / 2 + 1);
     TH1* hRat = new TH1F(*static_cast<TH1F*>(h));
     if (!hRat->Divide(histos1[i])) {
-      std::cout << "Error with " << h->GetName() << " " << histos1[i]->GetName() << "\n";
+      std::cout << "Error with " << h->GetName() << " / " << histos1[i]->GetName() << "\n";
     }
     hRat->SetStats(false);
     hRat->SetLineColor(2);
@@ -402,15 +402,15 @@ void drawAll(const char* filename)
 
   f->ls();
 
-  std::vector<TH1*>* residualsAtFirstCluster = reinterpret_cast<std::vector<TH1*>*>(f->GetObjectUnchecked("residualsAtFirstCluster"));
-  if (residualsAtFirstCluster) {
-    drawResidualsAtFirstCluster(*residualsAtFirstCluster);
+  std::vector<TH1*>* trackResidualsAtFirstCluster = reinterpret_cast<std::vector<TH1*>*>(f->GetObjectUnchecked("trackResidualsAtFirstCluster"));
+  if (trackResidualsAtFirstCluster) {
+    drawTrackResiduals(*trackResidualsAtFirstCluster);
   } else {
-    std::cerr << "could not read residualsAtFirstCluster vector of histogram from file\n";
+    std::cerr << "could not read trackResidualsAtFirstCluster vector of histogram from file\n";
   }
 
-  std::array<std::vector<TH1*>, 5>* residuals = reinterpret_cast<std::array<std::vector<TH1*>, 5>*>(f->GetObjectUnchecked("residuals"));
-  drawResiduals(*residuals);
+  std::array<std::vector<TH1*>, 5>* clusterResiduals = reinterpret_cast<std::array<std::vector<TH1*>, 5>*>(f->GetObjectUnchecked("clusterResiduals"));
+  drawClusterResiduals(*clusterResiduals);
 
   std::array<std::vector<TH1*>, 2>* histosAtVertex = reinterpret_cast<std::array<std::vector<TH1*>, 2>*>(f->GetObjectUnchecked("histosAtVertex"));
   drawHistosAtVertex(*histosAtVertex);
