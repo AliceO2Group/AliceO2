@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(HMPIDReconstruction
-	       TARGETVARNAME targetName
+               TARGETVARNAME targetName
                SOURCES src/Clusterer.cxx
                        src/HmpidDecoder2.cxx
                        src/HmpidEquipment.cxx
