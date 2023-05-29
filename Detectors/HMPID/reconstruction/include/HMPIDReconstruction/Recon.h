@@ -1,42 +1,31 @@
-// CR statements
+// Copyright 2020-2022 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
 
 #ifndef ALICEO2_HMPID_RECON_H
 #define ALICEO2_HMPID_RECON_H
 
-/*
-Changed from TCloneArrays of Cluster-pointers to vectors of clusters
-changed par-names of cluster-pointers from pClu to cluster (name of cluster-object)
-Changed name of clusters from pCluLst (TCloneArrays) to clusters  (vector)
-Changed raw-pointers to smart-pointers
-Changed to cammelCase convention for AliceO2 member functions and variables
-Changed from legacy physics classes TVector2 and TVector3 to Math/Vector3D
-Changed from legacy physics classes TRotaiton to Rotation 3D
-*/
-
 #include <TNamed.h> //base class
 
-// ef : change from TRotation legacy class
 #include <Math/GenVector/Rotation3D.h>
 #include "Math/GenVector/RotationX.h"
 #include "Math/GenVector/RotationY.h"
 #include "Math/GenVector/RotationZ.h"
 
-// ef : new includes to replace TVector2/3
 #include <Math/Vector3D.h>
 #include "Math/Vector3D.h"
 
 #include <TVector2.h>
 #include <TVector3.h>
 
-// ef : cartiesian Vector3D class XYZVector;     // dirCkovTRS, dirCkovLORS + pc, rad in findPhotCkov
-
-// ef : polar Vector3D class Polar3DVector; // fTrkDir, dirTRS, dirLORS, dirCkov + refract -> dir
-
 #include <vector>
-// ef: using vectors instead of TClonesArray
-
-// class AliESDtrack;  //CkovAngle() ef : commented out
-// ef: what is eq in O2?
 
 #include "HMPIDBase/Param.h"
 #include "DataFormatsHMP/Cluster.h"

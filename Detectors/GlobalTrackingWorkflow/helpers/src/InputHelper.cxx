@@ -125,7 +125,7 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
   }
   if (maskClusters[GID::HMP]) {
     specs.emplace_back(o2::hmpid::getClusterReaderSpec());
-  } 
+  }
   if (maskMatches[GID::TPCTOF] || maskTracks[GID::TPCTOF]) {
     specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(maskTracksMC[GID::TPCTOF], 0, maskTracks[GID::TPCTOF], subSpecStrict));
   }

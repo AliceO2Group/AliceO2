@@ -16,7 +16,7 @@ o2_add_library(HMPIDWorkflow
                        src/DigitsReaderSpec.cxx
                        src/ClustersReaderSpec.cxx
                        src/DigitsToClustersSpec.cxx
-                       src/DigitsWriterSpec.cxx     
+                       src/DigitsWriterSpec.cxx
                        src/ClustersWriterSpec.cxx
                        src/HMPMatchedWriterSpec.cxx
                        src/DumpDigitsSpec.cxx
@@ -28,8 +28,8 @@ o2_add_library(HMPIDWorkflow
                        src/EntropyDecoderSpec.cxx
                        src/HMPMatchedReaderSpec.cxx
                        src/HMPMatchedWriterSpec.cxx
-                              
-                       PUBLIC_LINK_LIBRARIES 
+
+                       PUBLIC_LINK_LIBRARIES
                                      O2::Framework
                                      O2::CCDB
                                      O2::DPLUtils

@@ -11,8 +11,8 @@
 
 o2_add_library(HMPIDReconstruction
 	       TARGETVARNAME targetName
-               SOURCES src/Clusterer.cxx 
-                       src/HmpidDecoder2.cxx 
+               SOURCES src/Clusterer.cxx
+                       src/HmpidDecoder2.cxx
                        src/HmpidEquipment.cxx
                        src/CTFHelper.cxx
                        src/Recon.cxx
