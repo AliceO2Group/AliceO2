@@ -686,7 +686,7 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
     } else if (mCompletionPolicy.callbackFull) {
       action = mCompletionPolicy.callbackFull(span, mInputs);
     } else {
-      throw std::runtime_error("No completion policy found");
+      throw runtime_error_f("Completion police %s has no callback set", mCompletionPolicy.name.c_str());
     }
     auto& variables = mTimesliceIndex.getVariablesForSlot(slot);
     auto timeslice = std::get_if<uint64_t>(&variables.get(0));
