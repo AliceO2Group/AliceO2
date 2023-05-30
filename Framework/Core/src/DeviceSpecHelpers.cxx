@@ -1113,11 +1113,16 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
   // We apply the completion policies here since this is where we have all the
   // devices resolved.
   for (auto& device : devices) {
+    bool hasPolicy = false;
     for (auto& policy : completionPolicies) {
       if (policy.matcher(device) == true) {
         device.completionPolicy = policy;
+        hasPolicy = true;
         break;
       }
+    }
+    if (hasPolicy == false) {
+      throw runtime_error_f("Unable to find a completion policy for %s", device.id.c_str());
     }
     for (auto& policy : dispatchPolicies) {
       if (policy.deviceMatcher(device) == true) {
@@ -1131,7 +1136,7 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
         break;
       }
     }
-    bool hasPolicy = false;
+    hasPolicy = false;
     for (auto& policy : resourcePolicies) {
       if (policy.matcher(device) == true) {
         device.resourcePolicy = policy;
