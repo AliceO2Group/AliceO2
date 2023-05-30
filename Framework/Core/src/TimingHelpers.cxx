@@ -20,8 +20,9 @@ std::function<void(int64_t&, int64_t&)> TimingHelpers::defaultRealtimeBaseConfig
 {
   return [startTimeOffset, loop](int64_t& base, int64_t& offset) {
     uv_update_time(loop);
-    base = startTimeOffset + uv_now(loop);
-    offset = uv_now(loop);
+    auto now = uv_now(loop);
+    base = startTimeOffset + now;
+    offset = now;
   };
 }
 
