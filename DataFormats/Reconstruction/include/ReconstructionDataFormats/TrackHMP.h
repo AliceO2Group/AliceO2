@@ -45,7 +45,7 @@ class TrackHMP : public o2::track::TrackParCov
   //    Bool_t   Update(const AliCluster */*c*/, Double_t /*chi2*/, Int_t /*idx*/) {return 0;}
   //    Double_t GetPredictedChi2(const AliCluster */*c*/) const {return 0.;}
  private:
-  ClassDef(TrackHMP, 0) // HMPID reconstructed tracks
+  ClassDef(TrackHMP, 1) // HMPID reconstructed tracks
 };
 
 } // namespace dataformats

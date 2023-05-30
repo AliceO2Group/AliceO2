@@ -132,7 +132,7 @@ class MatchInfoHMP
   int mNPhots = 0.0;     // number of candidate photo-electrons
   int mIdxPhotClus;      // index of the first photo
   int mHMPqn;            // 1000000*number of photon clusters + QDC
-  float mPhotCharge[10];
+  float mPhotCharge[10] = {};
 
   ClassDefNV(MatchInfoHMP, 2);
 };
