@@ -127,9 +127,6 @@ class MatchHMP
   void setFIT(bool value = true) { mIsFIT = value; }
   int findFITIndex(int bc);
 
-  ///< populate externally provided container by TOF-time-constrained TPC tracks
-  template <typename V>
-
   void setTS(unsigned long creationTime)
   {
     mTimestamp = creationTime;
