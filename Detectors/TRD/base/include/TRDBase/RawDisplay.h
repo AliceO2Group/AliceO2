@@ -170,6 +170,27 @@ private:
 
 };
 
+/// A struct that can be used to calculate unique identifiers per pad row, to
+/// be used to split ranges by MCM.
+struct PadRowID
+{
+  template<typename T>
+  static uint32_t key(const T &x) 
+  { 
+    return 100*x.getDetector() + x.getPadRow(); 
+  }
+};
+
+/// A struct that can be used to calculate unique identifiers for MCMs, to be
+/// used to split ranges by MCM.
+struct MCM_ID
+{
+  template<typename T>
+  static uint32_t key(const T &x) 
+  { 
+    return 1000*x.getDetector() + 10*x.getPadRow() + 4*(x.getROB()%2) + x.getMCM()%4;
+  }
+};
 
 
 struct RawDataSpan
@@ -183,6 +204,9 @@ public:
   // sort digits, tracklets and space points by detector, pad row, column
   void sort();
   std::map<uint32_t, RawDataSpan> ByMCM();
+
+  template<typename keyfunc>
+  std::map<uint32_t,RawDataSpan> IterateBy();
 
 //   pair<int, int> getMaxADCsumAndChannel();
 //   int getMaxADCsum(){ return getMaxADCsumAndChannel().first; }

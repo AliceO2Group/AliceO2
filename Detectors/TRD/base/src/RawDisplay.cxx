@@ -253,6 +253,52 @@ int mcmkey(const T &x) {
 //   // cout << "Found " << this->size() << " spans" << endl;
 // }
 
+template<typename keyfunc>
+std::map<uint32_t,RawDataSpan> RawDataSpan::IterateBy()
+// std::vector<RawDataSpan> RawDataSpan::IterateBy()
+{
+  // an map for keeping track which ranges correspond to which key
+  std::map<uint32_t,RawDataSpan> resultmap;
+
+  // sort digits and tracklets
+  sort();
+
+  // add all the digits to a map
+  for (auto cur = digits.b; cur != digits.e; /* noop */ ) {
+    // calculate the key of the current (first unprocessed) digit
+    auto key = keyfunc::key(*cur);
+    // find the first digit with a different key
+    auto nxt = std::find_if(cur, digits.e, [key](auto x) {return keyfunc::key(x) != key;});
+    // store the range cur:nxt in the map
+    resultmap[key].digits.b = cur; 
+    resultmap[key].digits.e = nxt;
+    // continue after this range
+    cur = nxt;
+  }
+
+  // add tracklets to the map
+  for (auto cur = tracklets.b; cur != tracklets.e; /* noop */) {
+    auto key = keyfunc::key(*cur);
+    auto nxt = std::find_if(cur, tracklets.e, [key](auto x) {return keyfunc::key(x) != key;});
+    resultmap[key].tracklets.b = cur; 
+    resultmap[key].tracklets.e = nxt;
+    cur = nxt;
+  }
+
+  // for (auto cur = event.trackpoints.b; cur != event.trackpoints.e; /* noop */) {
+  //   auto nxt = std::adjacent_find(cur, event.trackpoints.e, classifier::comp_trackpoints);
+  //   if (nxt != event.trackpoints.e) { ++nxt; }
+  //   (*this)[classifier::key(*cur)].trackpoints.b = cur; 
+  //   (*this)[classifier::key(*cur)].trackpoints.e = nxt;
+  //   cur = nxt;
+  // }
+  // cout << "Found " << this->size() << " spans" << endl;
+  return resultmap;
+}
+
+template std::map<uint32_t,RawDataSpan> RawDataSpan::IterateBy<PadRowID>();
+
+
 std::map<uint32_t,RawDataSpan> RawDataSpan::ByMCM()
 {
   std::map<uint32_t,RawDataSpan> result;
