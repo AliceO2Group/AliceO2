@@ -108,6 +108,15 @@ inline void O2DatabasePDG::addALICEParticles(TDatabasePDG* db)
   const Double_t khShGev = khSlash * kErg2Gev;
   const Double_t kYear2Sec = 3600 * 24 * 365.25;
 
+  // Heavy-flavour particles
+
+  // Ω0c (wrong mass in ROOT), correct mass taken from PDG 2022 (https://pdg.lbl.gov/2022/listings/rpp2022-list-omegac-zero.pdf)
+  db->AddParticle("Omega_c0", "Omega_c0", 2.6952, kFALSE, 0, 0, "CharmedBaryon", 4332);
+  // Ξcc (wrong mass in ROOT), correct mass taken from PDG 2022 (https://pdg.lbl.gov/2022/listings/rpp2022-list-xicc-plus-plus.pdf)
+  db->AddParticle("Xi_cc++", "Xi_cc++", 3.62155, kFALSE, 0, 6, "CharmedBaryon", 4422);
+  // χc1(3872) aka X(3872), taken from PDG 2022 (https://pdg.lbl.gov/2022/listings/rpp2022-list-chi-c1-3872.pdf)
+  db->AddParticle("Chi_c1(3872)", "Chi_c1(3872)", 3.87165, kFALSE, 0, 0, "CCBarMeson", 9920443);
+
   //
   // Bottom mesons
   // mass and life-time from PDG
