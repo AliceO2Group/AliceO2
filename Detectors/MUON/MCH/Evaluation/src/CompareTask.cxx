@@ -23,6 +23,7 @@
 #include <TCanvas.h>
 #include <TFile.h>
 #include <TH1.h>
+#include <TString.h>
 
 using namespace o2::framework;
 
@@ -143,6 +144,7 @@ void CompareTask::init(InitContext& ic)
 
   auto stop = [this]() {
     LOGP(warning, "Number of differences: {}", mNofDifferences);
+    printStat();
     if (!mOutputPdfFileName.empty()) {
       pdfOutput();
     }
@@ -220,7 +222,9 @@ void CompareTask::run(ProcessingContext& pc)
   // fill the internal track structure based on the MCH tracks
   for (auto i = 0; i < rofs1.size(); i++) {
     auto tracks1 = getExtendedTracks(rofs1[i], itracks1, iclusters1);
+    mNTracksAll[0] += tracks1.size();
     auto tracks2 = getExtendedTracks(rofs2[i], itracks2, iclusters2);
+    mNTracksAll[1] += tracks2.size();
     //  if requested should select tracks here
     if (mApplyTrackSelection) {
       selectTracks(tracks1);
@@ -250,5 +254,60 @@ void CompareTask::run(ProcessingContext& pc)
     fillComparisonsAtVertex(tracks1, tracks2, mComparisonsAtVertex);
   }
   ++tf;
+}
+
+void CompareTask::printStat()
+{
+  /// print some statistics and the relative difference (in %) between the 2 inputs
+  /// the uncertainty on the difference is the normal approximation of the binomial error
+
+  auto print = [](TString selection, int n1, int n2) {
+    if (n1 == 0) {
+      printf("%s | %8d | %8d | %7s ± %4s %%\n", selection.Data(), n1, n2, "nan", "nan");
+    } else {
+      double eff = double(n2) / n1;
+      double diff = 100. * (eff - 1.);
+      double err = 100. * std::max(1. / n1, std::sqrt(eff * std::abs(1. - eff) / n1));
+      printf("%s | %8d | %8d | %7.2f ± %4.2f %%\n", selection.Data(), n1, n2, diff, err);
+    }
+  };
+
+  printf("\n");
+  printf("-------------------------------------------------------\n");
+  printf("selection      |  file 1  |  file 2  |       diff\n");
+  printf("-------------------------------------------------------\n");
+
+  print("all           ", mNTracksAll[0], mNTracksAll[1]);
+
+  print("matched       ", mNTracksMatch[0], mNTracksMatch[1]);
+
+  print("selected      ", mHistosAtVertex[0][0]->GetEntries(), mHistosAtVertex[1][0]->GetEntries());
+
+  double pTRange[6] = {0., 0.5, 1., 2., 4., 1000.};
+  for (int i = 0; i < 5; ++i) {
+    TString selection = (i == 0) ? TString::Format("pT < %.1f GeV/c", pTRange[1])
+                                 : ((i == 4) ? TString::Format("pT > %.1f      ", pTRange[4])
+                                             : TString::Format("%.1f < pT < %.1f", pTRange[i], pTRange[i + 1]));
+    int n1 = mHistosAtVertex[0][0]->Integral(mHistosAtVertex[0][0]->GetXaxis()->FindBin(pTRange[i] + 0.01),
+                                             mHistosAtVertex[0][0]->GetXaxis()->FindBin(pTRange[i + 1] - 0.01));
+    int n2 = mHistosAtVertex[1][0]->Integral(mHistosAtVertex[1][0]->GetXaxis()->FindBin(pTRange[i] + 0.01),
+                                             mHistosAtVertex[1][0]->GetXaxis()->FindBin(pTRange[i + 1] - 0.01));
+    print(selection, n1, n2);
+  }
+
+  double pRange[6] = {0., 5., 10., 20., 40., 10000.};
+  for (int i = 0; i < 5; ++i) {
+    TString selection = (i == 0) ? TString::Format("p < %02.0f GeV/c  ", pRange[1])
+                                 : ((i == 4) ? TString::Format("p > %02.0f        ", pRange[4])
+                                             : TString::Format("%02.0f < p < %02.0f   ", pRange[i], pRange[i + 1]));
+    int n1 = mHistosAtVertex[0][4]->Integral(mHistosAtVertex[0][4]->GetXaxis()->FindBin(pRange[i] + 0.01),
+                                             mHistosAtVertex[0][4]->GetXaxis()->FindBin(pRange[i + 1] - 0.01));
+    int n2 = mHistosAtVertex[1][4]->Integral(mHistosAtVertex[1][4]->GetXaxis()->FindBin(pRange[i] + 0.01),
+                                             mHistosAtVertex[1][4]->GetXaxis()->FindBin(pRange[i + 1] - 0.01));
+    print(selection, n1, n2);
+  }
+
+  printf("-------------------------------------------------------\n");
+  printf("\n");
 }
 } // namespace o2::mch::eval
