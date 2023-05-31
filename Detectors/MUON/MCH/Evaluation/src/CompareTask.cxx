@@ -53,6 +53,7 @@ void CompareTask::pdfOutput()
 {
   int nPadsx, nPadsy;
   TCanvas* c = autoCanvas("c", "c", mHistosAtVertex[0], &nPadsx, &nPadsy);
+  TCanvas* c2 = autoCanvas("c2", "c2", mHistosAtVertex[0], &nPadsx, &nPadsy);
   c->Print(fmt::format("{}[", mOutputPdfFileName).c_str());
 
   auto toPdf2 = [&](std::function<void(const std::array<std::vector<TH1*>, 2>&, TCanvas*)> func) {
@@ -84,16 +85,20 @@ void CompareTask::pdfOutput()
   c->Print(mOutputPdfFileName.c_str());
 
   c->Clear();
-  drawClusterTrackResidualsSigma(mClusterResiduals[0], mClusterResiduals[1], "AllTracks", c);
+  c2->Clear();
+  drawClusterTrackResidualsSigma(mClusterResiduals[0], mClusterResiduals[1], "AllTracks", c, c2);
   c->Print(mOutputPdfFileName.c_str());
+  c2->Print(mOutputPdfFileName.c_str());
 
   c->Clear();
   drawClusterTrackResiduals(mClusterResiduals[2], mClusterResiduals[3], "SimilarTracks", c);
   c->Print(mOutputPdfFileName.c_str());
 
   c->Clear();
-  drawClusterTrackResidualsSigma(mClusterResiduals[2], mClusterResiduals[3], "SimilarTracks", c);
+  c2->Clear();
+  drawClusterTrackResidualsSigma(mClusterResiduals[2], mClusterResiduals[3], "SimilarTracks", c, c2);
   c->Print(mOutputPdfFileName.c_str());
+  c2->Print(mOutputPdfFileName.c_str());
 
   c->Clear();
   drawClusterTrackResidualsRatio(mClusterResiduals[0], mClusterResiduals[1], "AllTracks", c);

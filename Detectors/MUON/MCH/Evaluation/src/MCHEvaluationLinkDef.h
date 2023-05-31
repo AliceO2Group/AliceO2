@@ -19,4 +19,6 @@
 #pragma link C++ class o2::mch::eval::ExtendedTrack + ;
 #pragma link C++ function o2::mch::eval::drawAll;
 
+#pragma link C++ class std::vector < TH1*> + ;
+
 #endif
