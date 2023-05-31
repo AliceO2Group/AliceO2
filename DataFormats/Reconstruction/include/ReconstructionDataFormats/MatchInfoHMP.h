@@ -59,10 +59,11 @@ class MatchInfoHMP
   void setHMPsignal(float angle) { mCkovAngle = angle; }
   float getHMPsignal() const
   {
-    if (mCkovAngle > 0)
+    if (mCkovAngle > 0) {
       return mCkovAngle - (Int_t)mCkovAngle;
-    else
+    } else {
       return mCkovAngle;
+    }
   }
 
   void setMipClusSize(int size) { mMipCluSize = size; }
