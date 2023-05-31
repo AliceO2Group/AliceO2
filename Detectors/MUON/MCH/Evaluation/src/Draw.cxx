@@ -394,6 +394,7 @@ void drawComparisonsAtVertex(const std::array<std::vector<TH1*>, 5> histos, TCan
     gPad->SetLogy();
     histos[0][i]->SetStats(false);
     histos[0][i]->SetLineColor(1);
+    histos[0][i]->SetMinimum(0.5);
     histos[0][i]->Draw();
     histos[1][i]->SetLineColor(4);
     histos[1][i]->Draw("same");
