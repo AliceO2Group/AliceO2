@@ -1555,16 +1555,17 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& p
 // navigate sequence of URLs until TFile content is found; object is extracted and returned
 void CcdbApi::navigateURLsAndLoadFileToMemory(o2::pmr::vector<char>& dest, CURL* curl_handle, std::string const& url, std::map<string, string>* headers) const
 {
-  // a global internal data structure that can be filled with HTTP header information
-  // static --> to avoid frequent alloc/dealloc as optimization
-  // not sure if thread_local takes away that benefit
-  static thread_local std::multimap<std::string, std::string> headerData;
-
   // let's see first of all if the url is something specific that curl cannot handle
   if (url.find("alien:/", 0) != std::string::npos) {
     return loadFileToMemory(dest, url, nullptr); // headers loaded from the file in case of the snapshot reading only
   }
   // otherwise make an HTTP/CURL request
+  struct HeaderObjectPair_t {
+    std::map<std::string, std::string> header;
+    o2::pmr::vector<char>* object = nullptr;
+    int counter = 0;
+  } hoPair{{}, &dest, 0};
+
   bool errorflag = false;
   auto signalError = [&chunk = dest, &errorflag]() {
     chunk.clear();
@@ -1572,14 +1573,25 @@ void CcdbApi::navigateURLsAndLoadFileToMemory(o2::pmr::vector<char>& dest, CURL*
     errorflag = true;
   };
   auto writeCallBack = [](void* contents, size_t size, size_t nmemb, void* chunkptr) {
-    o2::pmr::vector<char>& chunk = *static_cast<o2::pmr::vector<char>*>(chunkptr);
-    size_t realsize = size * nmemb;
+    auto& ho = *static_cast<HeaderObjectPair_t*>(chunkptr);
+    auto& chunk = *ho.object;
+    size_t realsize = size * nmemb, sz = 0;
+    ho.counter++;
     try {
-      chunk.reserve(chunk.size() + realsize);
+      if (chunk.capacity() < chunk.size() + realsize) {
+        auto cl = ho.header.find("Content-Length");
+        if (cl != ho.header.end()) {
+          sz = std::max(chunk.size() + realsize, (size_t)std::stol(cl->second));
+        } else {
+          sz = chunk.size() + realsize;
+          LOGP(debug, "SIZE IS NOT IN HEADER, allocate {}", sz);
+        }
+        chunk.reserve(sz);
+      }
       char* contC = (char*)contents;
       chunk.insert(chunk.end(), contC, contC + realsize);
     } catch (std::exception e) {
-      LOGP(info, "failed to expand by {} bytes chunk provided to CURL: {}", realsize, e.what());
+      LOGP(alarm, "failed to reserve {} bytes in CURL write callback (realsize = {}): {}", sz, realsize, e.what());
       realsize = 0;
     }
     return realsize;
@@ -1587,17 +1599,17 @@ void CcdbApi::navigateURLsAndLoadFileToMemory(o2::pmr::vector<char>& dest, CURL*
 
   // specify URL to get
   curl_easy_setopt(curl_handle, CURLOPT_URL, url.c_str());
-  initCurlOptionsForRetrieve(curl_handle, (void*)&dest, writeCallBack, false);
-  curl_easy_setopt(curl_handle, CURLOPT_HEADERFUNCTION, header_map_callback<decltype(headerData)>);
-  headerData.clear();
-  curl_easy_setopt(curl_handle, CURLOPT_HEADERDATA, (void*)&headerData);
+  initCurlOptionsForRetrieve(curl_handle, (void*)&hoPair, writeCallBack, false);
+  curl_easy_setopt(curl_handle, CURLOPT_HEADERFUNCTION, header_map_callback<decltype(hoPair.header)>);
+  hoPair.header.clear();
+  curl_easy_setopt(curl_handle, CURLOPT_HEADERDATA, (void*)&hoPair.header);
   curlSetSSLOptions(curl_handle);
 
   auto res = CURL_perform(curl_handle);
   long response_code = -1;
   if (res == CURLE_OK && curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code) == CURLE_OK) {
     if (headers) {
-      for (auto& p : headerData) {
+      for (auto& p : hoPair.header) {
         (*headers)[p.first] = p.second;
       }
     }
@@ -1621,14 +1633,14 @@ void CcdbApi::navigateURLsAndLoadFileToMemory(o2::pmr::vector<char>& dest, CURL*
       };
 
       std::vector<std::string> locs;
-      auto iter = headerData.find("Location");
-      if (iter != headerData.end()) {
+      auto iter = hoPair.header.find("Location");
+      if (iter != hoPair.header.end()) {
         locs.push_back(complement_Location(iter->second));
       }
       // add alternative locations (not yet included)
-      auto iter2 = headerData.find("Content-Location");
-      if (iter2 != headerData.end()) {
-        auto range = headerData.equal_range("Content-Location");
+      auto iter2 = hoPair.header.find("Content-Location");
+      if (iter2 != hoPair.header.end()) {
+        auto range = hoPair.header.equal_range("Content-Location");
         for (auto it = range.first; it != range.second; ++it) {
           if (std::find(locs.begin(), locs.end(), it->second) == locs.end()) {
             locs.push_back(complement_Location(it->second));
