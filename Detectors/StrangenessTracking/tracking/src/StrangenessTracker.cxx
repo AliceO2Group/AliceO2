@@ -150,15 +150,15 @@ void StrangenessTracker::process()
           }
 
           decayVtxTrackClone.getPxPyPzGlo(mStrangeTrack.mDecayMom);
-          auto p2mom = decayVtxTrackClone.getP2();
-          auto p2pos = mFitter3Body.getTrack(kV0DauPos).getP2(); // positive V0 daughter
-          auto p2neg = mFitter3Body.getTrack(kV0DauNeg).getP2(); // negative V0 daughter
+          std::array<float, 3> momPos, momNeg;
+          mFitter3Body.getTrack(kV0DauPos).getPxPyPzGlo(momPos);
+          mFitter3Body.getTrack(kV0DauNeg).getPxPyPzGlo(momNeg);
           if (alphaV0 > 0) {
-            mStrangeTrack.mMasses[0] = calcMotherMass(p2mom, p2pos, p2neg, PID::Helium3, PID::Pion); // Hypertriton invariant mass at decay vertex
-            mStrangeTrack.mMasses[1] = calcMotherMass(p2mom, p2pos, p2neg, PID::Alpha, PID::Pion);   // Hyperhydrogen4Lam invariant mass at decay vertex
+            mStrangeTrack.mMasses[0] = calcMotherMass(momPos, momNeg, PID::Helium3, PID::Pion); // Hypertriton invariant mass at decay vertex
+            mStrangeTrack.mMasses[1] = calcMotherMass(momPos, momNeg, PID::Alpha, PID::Pion);   // Hyperhydrogen4Lam invariant mass at decay vertex
           } else {
-            mStrangeTrack.mMasses[0] = calcMotherMass(p2mom, p2neg, p2pos, PID::Helium3, PID::Pion); // Anti-Hypertriton invariant mass at decay vertex
-            mStrangeTrack.mMasses[1] = calcMotherMass(p2mom, p2neg, p2pos, PID::Alpha, PID::Pion);   // Anti-Hyperhydrogen4Lam invariant mass at decay vertex
+            mStrangeTrack.mMasses[0] = calcMotherMass(momPos, momNeg, PID::Helium3, PID::Pion); // Anti-Hypertriton invariant mass at decay vertex
+            mStrangeTrack.mMasses[1] = calcMotherMass(momPos, momNeg, PID::Alpha, PID::Pion);   // Anti-Hyperhydrogen4Lam invariant mass at decay vertex
           }
 
           LOG(debug) << "ITS Track matched with a V0 decay topology ....";
@@ -217,11 +217,11 @@ void StrangenessTracker::process()
             continue;
           }
           decayVtxTrackClone.getPxPyPzGlo(mStrangeTrack.mDecayMom);
-          auto p2mom = decayVtxTrackClone.getP2();
-          auto p2V0 = mFitter3Body.getTrack(0).getP2();                                           // V0 momentum at decay vertex
-          auto p2bach = mFitter3Body.getTrack(1).getP2();                                         // bachelor momentum at decay vertex
-          mStrangeTrack.mMasses[0] = calcMotherMass(p2mom, p2V0, p2bach, PID::Lambda, PID::Pion); // Xi invariant mass at decay vertex
-          mStrangeTrack.mMasses[1] = calcMotherMass(p2mom, p2V0, p2bach, PID::Lambda, PID::Kaon); // Omega invariant mass at decay vertex
+          std::array<float, 3> momV0, mombach;
+          mFitter3Body.getTrack(0).getPxPyPzGlo(momV0);                                      // V0 momentum at decay vertex
+          mFitter3Body.getTrack(1).getPxPyPzGlo(mombach);                                    // bachelor momentum at decay vertex
+          mStrangeTrack.mMasses[0] = calcMotherMass(momV0, mombach, PID::Lambda, PID::Pion); // Xi invariant mass at decay vertex
+          mStrangeTrack.mMasses[1] = calcMotherMass(momV0, mombach, PID::Lambda, PID::Kaon); // Omega invariant mass at decay vertex
 
           LOG(debug) << "ITS Track matched with a Cascade decay topology ....";
           LOG(debug) << "Number of ITS track clusters attached: " << mITStrack.getNumberOfClusters();
