@@ -51,6 +51,7 @@ void TPCInterpolationDPL::init(InitContext& ic)
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mSlotLength = ic.options().get<uint32_t>("sec-per-slot");
   mProcessSeeds = ic.options().get<bool>("process-seeds");
+  mMatCorr = ic.options().get<int>("matCorrType");
 }
 
 void TPCInterpolationDPL::updateTimeDependentParams(ProcessingContext& pc)
@@ -80,6 +81,7 @@ void TPCInterpolationDPL::updateTimeDependentParams(ProcessingContext& pc)
       LOG(error) << "No tracks will be processed. maxTracksPerCalibSlot must be greater than slot length in TFs";
     }
     mInterpolation.setMaxTracksPerTF(nTracksPerTfMax);
+    mInterpolation.setMatCorr(static_cast<o2::base::Propagator::MatCorrType>(mMatCorr));
     o2::its::GeometryTGeo::Instance()->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2GRot) | o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L));
   }
   // we may have other params which need to be queried regularly
@@ -281,6 +283,7 @@ DataProcessorSpec getTPCInterpolationSpec(GTrackID::mask_t src, bool useMC, bool
     outputs,
     AlgorithmSpec{adaptFromTask<TPCInterpolationDPL>(dataRequest, ggRequest, useMC, processITSTPConly, sendTrackData, debugOutput)},
     Options{
+      {"matCorrType", VariantType::Int, 2, {"material correction type (definition in Propagator.h)"}},
       {"sec-per-slot", VariantType::UInt32, 600u, {"number of seconds per calibration time slot (put 0 for infinite slot length)"}},
       {"process-seeds", VariantType::Bool, false, {"do not remove duplicates, e.g. for ITS-TPC-TRD track also process its seeding ITS-TPC part"}}}};
 }
