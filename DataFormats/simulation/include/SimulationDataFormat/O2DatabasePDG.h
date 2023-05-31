@@ -113,13 +113,13 @@ inline void O2DatabasePDG::addALICEParticles(TDatabasePDG* db)
   // mass and life-time from PDG
   //
   db->AddParticle("Upsilon(3S)", "Upsilon(3S)", 10.3552, kTRUE,
-                  0, 1, "Bottonium", 200553);
+                  0, 0, "Bottonium", 200553);
 
   // QCD diffractive states
   db->AddParticle("rho_diff0", "rho_diff0", 0, kTRUE,
                   0, 0, "QCD diffr. state", 9900110);
   db->AddParticle("pi_diffr+", "pi_diffr+", 0, kTRUE,
-                  0, 1, "QCD diffr. state", 9900210);
+                  0, 3, "QCD diffr. state", 9900210);
   db->AddParticle("omega_di", "omega_di", 0, kTRUE,
                   0, 0, "QCD diffr. state", 9900220);
   db->AddParticle("phi_diff", "phi_diff", 0, kTRUE,
@@ -129,7 +129,7 @@ inline void O2DatabasePDG::addALICEParticles(TDatabasePDG* db)
   db->AddParticle("n_diffr0", "n_diffr0", 0, kTRUE,
                   0, 0, "QCD diffr. state", 9902110);
   db->AddParticle("p_diffr+", "p_diffr+", 0, kTRUE,
-                  0, 1, "QCD diffr. state", 9902210);
+                  0, 3, "QCD diffr. state", 9902210);
 
   // From Herwig
   db->AddParticle("PSID    ", " ", 3.7699, kFALSE, 0.0, 0, "meson", 30443);
