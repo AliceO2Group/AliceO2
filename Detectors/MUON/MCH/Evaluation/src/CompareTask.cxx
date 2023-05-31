@@ -117,6 +117,7 @@ void CompareTask::init(InitContext& ic)
 {
   auto outputFileName = ic.options().get<std::string>("outfile");
   mOutputPdfFileName = ic.options().get<std::string>("pdf-outfile");
+  mPrintDiff = ic.options().get<bool>("print-diff");
   mPrintAll = ic.options().get<bool>("print-all");
   mApplyTrackSelection = ic.options().get<bool>("apply-track-selection");
   mPrecision = ic.options().get<double>("precision");
@@ -141,7 +142,7 @@ void CompareTask::init(InitContext& ic)
   mNofDifferences = 0;
 
   auto stop = [this]() {
-    LOGP(info, "Number of differences: {}", mNofDifferences);
+    LOGP(warning, "Number of differences: {}", mNofDifferences);
     if (!mOutputPdfFileName.empty()) {
       pdfOutput();
     }
@@ -214,7 +215,7 @@ void CompareTask::run(ProcessingContext& pc)
          rofs1.size(), rofs2.size());
   }
 
-  LOGP(warning, "TF {}", tf);
+  LOGP(info, "TF {}", tf);
 
   // fill the internal track structure based on the MCH tracks
   for (auto i = 0; i < rofs1.size(); i++) {
@@ -234,13 +235,16 @@ void CompareTask::run(ProcessingContext& pc)
 
     int nDiff = compareEvents(tracks1, tracks2,
                               mPrecision,
+                              mPrintDiff,
                               mPrintAll,
                               mTrackResidualsAtFirstCluster,
                               mClusterResiduals[4]);
     fillClusterTrackResiduals(tracks1, mClusterResiduals[2], true);
     fillClusterTrackResiduals(tracks2, mClusterResiduals[3], true);
     if (nDiff > 0) {
-      LOG(warning) << "--> " << nDiff << " differences found in ROF " << rofs1[i];
+      if (mPrintDiff) {
+        LOG(warning) << "--> " << nDiff << " differences found in ROF " << rofs1[i];
+      }
       mNofDifferences += nDiff;
     }
     fillComparisonsAtVertex(tracks1, tracks2, mComparisonsAtVertex);

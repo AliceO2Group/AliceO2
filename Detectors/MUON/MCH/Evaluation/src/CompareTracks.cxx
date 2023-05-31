@@ -41,6 +41,7 @@ void printCovResiduals(const TMatrixD& cov1, const TMatrixD& cov2)
 int compareEvents(std::list<ExtendedTrack>& tracks1,
                   std::list<ExtendedTrack>& tracks2,
                   double precision,
+                  bool printDiff,
                   bool printAll,
                   std::vector<TH1*>& trackResidualsAtFirstCluster,
                   std::vector<TH1*>& clusterClusterResiduals)
@@ -68,10 +69,10 @@ int compareEvents(std::list<ExtendedTrack>& tracks1,
       if (!areParamCompatible || !areCovCompatible) {
         ++nDifferences;
       }
-      if (printAll || !areParamCompatible) {
+      if (printAll || (printDiff && !areParamCompatible)) {
         printResiduals(track1.param(), itTrack2->param());
       }
-      if (printAll || !areCovCompatible) {
+      if (printAll || (printDiff && !areCovCompatible)) {
         printCovResiduals(track1.param().getCovariances(), itTrack2->param().getCovariances());
       }
       fillTrackResiduals(track1.param(), itTrack2->param(), trackResidualsAtFirstCluster);
@@ -96,10 +97,10 @@ int compareEvents(std::list<ExtendedTrack>& tracks1,
         if (!areParamCompatible || !areCovCompatible) {
           ++nDifferences;
         }
-        if (printAll || !areParamCompatible) {
+        if (printAll || (printDiff && !areParamCompatible)) {
           printResiduals(track1.param(), track2.param());
         }
-        if (printAll || !areCovCompatible) {
+        if (printAll || (printDiff && !areCovCompatible)) {
           printCovResiduals(track1.param().getCovariances(), track2.param().getCovariances());
         }
         fillTrackResiduals(track1.param(), track2.param(), trackResidualsAtFirstCluster);
@@ -111,7 +112,9 @@ int compareEvents(std::list<ExtendedTrack>& tracks1,
   // then print the missing tracks
   for (const auto& track1 : tracks1) {
     if (!track1.hasMatchFound()) {
-      std::cout << "did not find a track in file 2 matching: " << track1 << "\n";
+      if (printDiff) {
+        std::cout << "did not find a track in file 2 matching: " << track1 << "\n";
+      }
       ++nDifferences;
     }
   }
@@ -119,7 +122,9 @@ int compareEvents(std::list<ExtendedTrack>& tracks1,
   // and finally print the additional tracks
   for (const auto& track2 : tracks2) {
     if (!track2.hasMatchFound()) {
-      std::cout << "did not find a track in file 1 matching: " << track2 << "\n";
+      if (printDiff) {
+        std::cout << "did not find a track in file 1 matching: " << track2 << "\n";
+      }
       ++nDifferences;
     }
   }

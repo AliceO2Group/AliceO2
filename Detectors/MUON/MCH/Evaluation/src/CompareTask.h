@@ -65,6 +65,7 @@ class CompareTask
   std::array<std::vector<TH1*>, 5> mClusterResiduals;
   bool mApplyTrackSelection;
   double mPrecision;
+  bool mPrintDiff;
   bool mPrintAll;
   int mNofDifferences;
 };
