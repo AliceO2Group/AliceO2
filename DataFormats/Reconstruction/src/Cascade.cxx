@@ -17,16 +17,16 @@ Cascade::Cascade(const std::array<float, 3>& xyz, const std::array<float, 3>& px
                  const o2::track::TrackParCov& v0, const o2::track::TrackParCov& bachelor,
                  int v0ID, GIndex bachelorID, o2::track::PID pid)
 {
-  std::array<float, 21> covV{}, covB{};
+  std::array<float, 21> covC{0.}, covV{}, covB{};
   v0.getCovXYZPxPyPzGlo(covV);
   bachelor.getCovXYZPxPyPzGlo(covB);
-  for (int i = 0; i < 21; i++) {
-    covV[i] += covB[i];
-  }
+  constexpr int MomInd[6] = {9, 13, 14, 18, 19, 20}; // cov matrix elements for momentum component
   for (int i = 0; i < 6; i++) {
-    covV[i] = covxyz[i];
+    covC[i] = covxyz[i];
+    covC[MomInd[i]] = covV[MomInd[i]] + covB[MomInd[i]];
   }
-  this->set(xyz, pxyz, covV, v0.getCharge() + bachelor.getCharge(), true, pid);
+  this->set(xyz, pxyz, covC, v0.getCharge() + bachelor.getCharge(), true, pid);
+  this->checkCorrelations();
   setV0ID(v0ID);
   setBachelorID(bachelorID);
   setV0Track(v0);
