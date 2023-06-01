@@ -656,6 +656,13 @@ struct FilteredIndexPolicy : IndexPolicyBase {
     this->setCursor(0);
   }
 
+  void resetSelection(gsl::span<int64_t const> selection)
+  {
+    mSelectedRows = selection;
+    mMaxSelection = selection.size();
+    this->setCursor(0);
+  }
+
   FilteredIndexPolicy() = default;
   FilteredIndexPolicy(FilteredIndexPolicy&&) = default;
   FilteredIndexPolicy(FilteredIndexPolicy const&) = default;
@@ -2591,6 +2598,9 @@ class FilteredBase : public T
     : T{std::move(tables), offset},
       mSelectedRows{getSpan(selection)}
   {
+    if (this->tableSize() != 0) {
+      mFilteredBegin = table_t::filtered_begin(mSelectedRows);
+    }
     resetRanges();
     mFilteredBegin.bindInternalIndices(this);
   }
@@ -2600,6 +2610,10 @@ class FilteredBase : public T
       mSelectedRowsCache{std::move(selection)},
       mCached{true}
   {
+    mSelectedRows = gsl::span{mSelectedRowsCache};
+    if (this->tableSize() != 0) {
+      mFilteredBegin = table_t::filtered_begin(mSelectedRows);
+    }
     resetRanges();
     mFilteredBegin.bindInternalIndices(this);
   }
@@ -2608,6 +2622,9 @@ class FilteredBase : public T
     : T{std::move(tables), offset},
       mSelectedRows{selection}
   {
+    if (this->tableSize() != 0) {
+      mFilteredBegin = table_t::filtered_begin(mSelectedRows);
+    }
     resetRanges();
     mFilteredBegin.bindInternalIndices(this);
   }
@@ -2855,7 +2872,7 @@ class FilteredBase : public T
     if (tableSize() == 0) {
       mFilteredBegin = *mFilteredEnd;
     } else {
-      mFilteredBegin = table_t::filtered_begin(mSelectedRows);
+      mFilteredBegin.resetSelection(mSelectedRows);
     }
   }
 
