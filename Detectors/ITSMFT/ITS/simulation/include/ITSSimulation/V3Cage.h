@@ -85,6 +85,10 @@ class V3Cage : public V11Geometry
   /// \param mgr  The GeoManager (used only to get the proper material)
   TGeoCompositeShape* createCageEndCapCableCross(const TGeoManager* mgr = gGeoManager);
 
+  /// Creates the Cage Closing Cross element
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  TGeoVolume* createCageClosingCross(const TGeoManager* mgr = gGeoManager);
+
   // Parameters
   static const Double_t sCageYInBarrel; ///< Global Y translation
 
@@ -152,6 +156,16 @@ class V3Cage : public V11Geometry
   static const Double_t sCageECCableCrosInThik; ///< EC Cable Cut inner thick
   static const Double_t sCageECCableCrosInZLen; ///< EC Cable Cut inner length
   static const Double_t sCageECCableCrosSidWid; ///< EC Cable Cut Y side len
+
+  static const Double_t sCageCrossXWidthTot;  ///< Closing cross total X wid
+  static const Double_t sCageCrossXWidthExt;  ///< Closing cross external X wid
+  static const Double_t sCageCrossXWidthInt;  ///< Closing cross internal X wid
+  static const Double_t sCageCrossYHeightTot; ///< Closing cross total Y h
+  static const Double_t sCageCrossYHeightInt; ///< Closing cross internal Y h
+  static const Double_t sCageCrossYMid;       ///< Closing cross Y mid point
+  static const Double_t sCageCrossZLength;    ///< Closing cross Z length
+  static const Double_t sCageCrossBarThick;   ///< Closing cross bar thickness
+  static const Double_t sCageCrossBarPhi;     ///< Closing cross bar angle
 
   ClassDefOverride(V3Cage, 0); // ITS v3 support geometry
 };
