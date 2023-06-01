@@ -143,7 +143,7 @@ void CompareTask::init(InitContext& ic)
   mNofDifferences = 0;
 
   auto stop = [this]() {
-    LOGP(warning, "Number of differences: {}", mNofDifferences);
+    LOGP(warning, "Number of differences in ROF-by-ROF comparison: {}", mNofDifferences);
     printStat();
     if (!mOutputPdfFileName.empty()) {
       pdfOutput();
@@ -197,6 +197,7 @@ std::list<ExtendedTrack> CompareTask::getExtendedTracks(const ROFRecord& rof,
 void CompareTask::run(ProcessingContext& pc)
 {
   static int tf{0};
+  LOGP(info, "TF {}", tf);
 
   if (mCcdbRequest) {
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
@@ -211,48 +212,57 @@ void CompareTask::run(ProcessingContext& pc)
 
   bool areSameRofs = std::equal(rofs1.begin(), rofs1.end(),
                                 rofs2.begin(), rofs2.end(),
-                                [](const ROFRecord& r1, const ROFRecord& r2) { return r1.getBCData() == r2.getBCData(); }); // just compare BCid and orbit, not number of found tracks
+                                [](const ROFRecord& r1, const ROFRecord& r2) {
+                                  return r1.getBCData() == r2.getBCData() && r1.getBCWidth() == r2.getBCWidth();
+                                }); // just compare BC id, orbit and BC width, not number of found tracks
   if (!areSameRofs) {
-    LOGP(fatal, "Can only work with identical ROFs {} vs {}",
-         rofs1.size(), rofs2.size());
+    LOGP(warning, "ROFs are different --> cannot perform ROF-by-ROF comparison");
   }
 
-  LOGP(info, "TF {}", tf);
+  auto nROFs = std::max(rofs1.size(), rofs2.size());
+  for (auto i = 0; i < nROFs; ++i) {
 
-  // fill the internal track structure based on the MCH tracks
-  for (auto i = 0; i < rofs1.size(); i++) {
-    auto tracks1 = getExtendedTracks(rofs1[i], itracks1, iclusters1);
-    mNTracksAll[0] += tracks1.size();
-    auto tracks2 = getExtendedTracks(rofs2[i], itracks2, iclusters2);
-    mNTracksAll[1] += tracks2.size();
-    //  if requested should select tracks here
-    if (mApplyTrackSelection) {
-      selectTracks(tracks1);
-      selectTracks(tracks2);
-    }
-
-    fillHistosAtVertex(tracks1, mHistosAtVertex[0]);
-    fillHistosAtVertex(tracks2, mHistosAtVertex[1]);
-
-    fillClusterTrackResiduals(tracks1, mClusterResiduals[0], false);
-    fillClusterTrackResiduals(tracks2, mClusterResiduals[1], false);
-
-    int nDiff = compareEvents(tracks1, tracks2,
-                              mPrecision,
-                              mPrintDiff,
-                              mPrintAll,
-                              mTrackResidualsAtFirstCluster,
-                              mClusterResiduals[4]);
-    fillClusterTrackResiduals(tracks1, mClusterResiduals[2], true);
-    fillClusterTrackResiduals(tracks2, mClusterResiduals[3], true);
-    if (nDiff > 0) {
-      if (mPrintDiff) {
-        LOG(warning) << "--> " << nDiff << " differences found in ROF " << rofs1[i];
+    std::list<ExtendedTrack> tracks1{};
+    if (i < rofs1.size()) {
+      tracks1 = getExtendedTracks(rofs1[i], itracks1, iclusters1);
+      mNTracksAll[0] += tracks1.size();
+      if (mApplyTrackSelection) {
+        selectTracks(tracks1);
       }
-      mNofDifferences += nDiff;
+      fillHistosAtVertex(tracks1, mHistosAtVertex[0]);
+      fillClusterTrackResiduals(tracks1, mClusterResiduals[0], false);
     }
-    fillComparisonsAtVertex(tracks1, tracks2, mComparisonsAtVertex);
+
+    std::list<ExtendedTrack> tracks2{};
+    if (i < rofs2.size()) {
+      tracks2 = getExtendedTracks(rofs2[i], itracks2, iclusters2);
+      mNTracksAll[1] += tracks2.size();
+      if (mApplyTrackSelection) {
+        selectTracks(tracks2);
+      }
+      fillHistosAtVertex(tracks2, mHistosAtVertex[1]);
+      fillClusterTrackResiduals(tracks2, mClusterResiduals[1], false);
+    }
+
+    if (areSameRofs) {
+      int nDiff = compareEvents(tracks1, tracks2,
+                                mPrecision,
+                                mPrintDiff,
+                                mPrintAll,
+                                mTrackResidualsAtFirstCluster,
+                                mClusterResiduals[4]);
+      fillClusterTrackResiduals(tracks1, mClusterResiduals[2], true);
+      fillClusterTrackResiduals(tracks2, mClusterResiduals[3], true);
+      if (nDiff > 0) {
+        if (mPrintDiff) {
+          LOG(warning) << "--> " << nDiff << " differences found in ROF " << rofs1[i];
+        }
+        mNofDifferences += nDiff;
+      }
+      fillComparisonsAtVertex(tracks1, tracks2, mComparisonsAtVertex);
+    }
   }
+
   ++tf;
 }
 
