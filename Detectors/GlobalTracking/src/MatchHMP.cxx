@@ -408,7 +408,7 @@ void MatchHMP::doMatching()
         matching->setHMPsignal(Recon::kNotPerformed); // ring reconstruction not yet performed
 
         TrackHMP* hmpTrk = new TrackHMP(trefTrk); // create a hmpid track to be used for propagation and matching
-        TrackHMP* hmpTrkConstrained = 0;          // create a hmpid track to be used for propagation and matching
+        TrackHMP* hmpTrkConstrained = nullptr;    // create a hmpid track to be used for propagation and matching
 
         hmpTrk->set(trefTrk.getX(), trefTrk.getAlpha(), trefTrk.getParams(), trefTrk.getCharge(), trefTrk.getPID());
 
@@ -417,7 +417,7 @@ void MatchHMP::doMatching()
         Int_t iCh = intTrkCha(&trefTrk, xPc, yPc, xRa, yRa, theta, phi, bz); // find the intersected chamber for this track
         if (iCh < 0) {
           delete hmpTrk;
-          hmpTrk = 0x0;
+          hmpTrk = nullptr;
           continue;
         } // no intersection at all, go next track
 
@@ -438,15 +438,17 @@ void MatchHMP::doMatching()
         for (int j = event.getFirstEntry(); j <= event.getLastEntry(); j++) { // event clusters loop
           auto& cluster = (o2::hmpid::Cluster&)mHMPClustersArray[j];
 
-          if (cluster.ch() != iCh)
+          if (cluster.ch() != iCh) {
             continue;
+          }
 
           oneEventClusters.push_back(cluster);
 
           double qthre = pParam->qCut();
 
-          if (cluster.q() < 150.)
+          if (cluster.q() < 150.) {
             continue;
+          }
 
           isOkQcut = kTRUE;
 
@@ -466,9 +468,9 @@ void MatchHMP::doMatching()
 
         if (!bestHmpCluster) {
           delete hmpTrk;
-          hmpTrk = 0x0;
+          hmpTrk = nullptr;
           delete hmpTrkConstrained;
-          hmpTrkConstrained = 0x0;
+          hmpTrkConstrained = nullptr;
           continue;
         }
 
@@ -480,13 +482,14 @@ void MatchHMP::doMatching()
         float gz = vG.Z();
         float alpha = TMath::ATan2(gy, gx);
         float radiusH = TMath::Sqrt(gy * gy + gx * gx);
-        if (!(hmpTrk->rotate(alpha)))
+        if (!(hmpTrk->rotate(alpha))) {
           continue;
+        }
         if (!prop->PropagateToXBxByBz(*hmpTrk, radiusH, o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, matCorr)) {
           delete hmpTrk;
-          hmpTrk = 0x0;
+          hmpTrk = nullptr;
           delete hmpTrkConstrained;
-          hmpTrkConstrained = 0x0;
+          hmpTrkConstrained = nullptr;
           continue;
         }
 
@@ -508,7 +511,7 @@ void MatchHMP::doMatching()
           delete hmpTrk;
           hmpTrk = 0x0;
           delete hmpTrkConstrained;
-          hmpTrkConstrained = 0x0;
+          hmpTrkConstrained = nullptr;
           continue;
         }
 
@@ -531,9 +534,9 @@ void MatchHMP::doMatching()
 
         if (!isOkQcut) {
           delete hmpTrk;
-          hmpTrk = 0x0;
+          hmpTrk = nullptr;
           delete hmpTrkConstrained;
-          hmpTrkConstrained = 0x0;
+          hmpTrkConstrained = nullptr;
           continue;
         }
 
@@ -575,9 +578,9 @@ void MatchHMP::doMatching()
         oneEventClusters.clear();
 
         delete hmpTrk;
-        hmpTrk = 0x0;
+        hmpTrk = nullptr;
         delete hmpTrkConstrained;
-        hmpTrkConstrained = 0x0;
+        hmpTrkConstrained = nullptr;
 
       } // if matching in time
     }   // tracks loop
