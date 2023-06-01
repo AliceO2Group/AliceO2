@@ -509,7 +509,7 @@ void MatchHMP::doMatching()
         hmpTrkConstrained->set(trackC.getX(), trackC.getAlpha(), trackC.getParams(), trackC.getCharge(), trackC.getPID());
         if (!prop->PropagateToXBxByBz(*hmpTrkConstrained, radiusH - kdRadiator, o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, matCorr)) {
           delete hmpTrk;
-          hmpTrk = 0x0;
+          hmpTrk = nullptr;
           delete hmpTrkConstrained;
           hmpTrkConstrained = nullptr;
           continue;
@@ -554,15 +554,16 @@ void MatchHMP::doMatching()
           matching->setHMPsignal(pParam->kMipDistCut); // closest cluster with enough charge is still too far from intersection
         }
 
-        if (isOkQcut * isOkDcut)
-          isMatched = kTRUE; // MIP-Track matched !!
+        if (isOkQcut * isOkDcut) {
+          isMatched = kTRUE;
+        } // MIP-Track matched !!
 
         if (!isMatched) {
           mMatchedTracks[type].push_back(*matching);
           delete hmpTrk;
-          hmpTrk = 0x0;
+          hmpTrk = nullptr;
           delete hmpTrkConstrained;
-          hmpTrkConstrained = 0x0;
+          hmpTrkConstrained = nullptr;
           continue;
         } // If matched continue...
 
@@ -597,12 +598,12 @@ int MatchHMP::intTrkCha(o2::track::TrackParCov* pTrk, double& xPc, double& yPc, 
     Int_t chInt = intTrkCha(i, hmpTrk, xPc, yPc, xRa, yRa, theta, phi, bz);
     if (chInt >= 0) {
       delete hmpTrk;
-      hmpTrk = 0x0;
+      hmpTrk = nullptr;
       return chInt;
     }
   } // chambers loop
   delete hmpTrk;
-  hmpTrk = 0x0;
+  hmpTrk = nullptr;
   return -1; // no intersection with HMPID chambers
 } // IntTrkCha()
 //==================================================================================================================================================
@@ -615,23 +616,23 @@ int MatchHMP::intTrkCha(int ch, o2::dataformats::TrackHMP* pHmpTrk, double& xPc,
   Double_t p1[3], n1[3];
   pParam->norm(ch, n1);
   pParam->point(ch, p1, o2::hmpid::Param::kRad); // point & norm  for middle of radiator plane
-  // double centerDist = TMath::Sqrt(p1[0]*p1[0] + p1[1]*p1[1] + p1[2]*p1[2]);
   Double_t p2[3], n2[3];
   pParam->norm(ch, n2);
   pParam->point(ch, p2, o2::hmpid::Param::kPc); // point & norm  for entrance to PC plane
 
-  // Printf("***********************ch = %i, p2x = %f, p2y = %f, p2z = %f**************",ch, p2[0], p2[1], p2[2]);
-
-  if (pHmpTrk->intersect(p1, n1, bz) == kFALSE)
-    return -1; // try to intersect track with the middle of radiator
-  if (pHmpTrk->intersect(p2, n2, bz) == kFALSE)
+  if (pHmpTrk->intersect(p1, n1, bz) == kFALSE) {
     return -1;
+  } // try to intersect track with the middle of radiator
+  if (pHmpTrk->intersect(p2, n2, bz) == kFALSE) {
+    return -1;
+  }
   pParam->mars2LorsVec(ch, n1, theta, phi); // track angles at RAD
   pParam->mars2Lors(ch, p1, xRa, yRa);      // TRKxRAD position
   pParam->mars2Lors(ch, p2, xPc, yPc);      // TRKxPC position
 
-  if (pParam->isInside(xPc, yPc, pParam->distCut()) == kTRUE)
-    return ch; // return intersected chamber
-  return -1;   // no intersection with HMPID chambers
+  if (pParam->isInside(xPc, yPc, pParam->distCut()) == kTRUE) {
+    return ch;
+  }          // return intersected chamber
+  return -1; // no intersection with HMPID chambers
 } // IntTrkCha()
 //==================================================================================================================================================

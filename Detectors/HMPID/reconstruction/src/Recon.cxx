@@ -174,8 +174,9 @@ bool Recon::findPhotCkov(double cluX, double cluY, double& thetaCer, double& phi
     if (dist > kTol) {
       ckov1 = ckov;
     } // cluster @ larger ckov
-    else if (dist < -kTol)
-      ckov2 = ckov;                         // cluster @ smaller ckov
+    else if (dist < -kTol) {
+      ckov2 = ckov;
+    }                                       // cluster @ smaller ckov
     else {                                  // precision achived: ckov in DRS found
       dirCkov.SetMagThetaPhi(1, ckov, phi); //
       lors2Trs(dirCkov, thetaCer, phiCer);  // find ckov (in TRS:the effective Cherenkov angle!)
@@ -318,8 +319,9 @@ void Recon::findRingGeom(double ckovAng, int level)
       if (!fParam->isInside(pos1.X(), pos1.Y(), 0)) {
         pos1 = intWithEdge(fMipPos, pos1); // find the very first intersection...
       } else {
-        if (!fParam->isInDead(pos1.X(), pos1.Y()))
-          nPoints++; // photon is accepted if not in dead zone
+        if (!fParam->isInDead(pos1.X(), pos1.Y())) {
+          nPoints++;
+        } // photon is accepted if not in dead zone
       }
       first = kTRUE;
       continue;
@@ -333,8 +335,9 @@ void Recon::findRingGeom(double ckovAng, int level)
     if (!fParam->isInside(pos2.X(), pos2.Y(), 0)) {
       pos2 = intWithEdge(fMipPos, pos2);
     } else {
-      if (!fParam->isInDead(pos2.X(), pos2.Y()))
-        nPoints++; // photon is accepted if not in dead zone
+      if (!fParam->isInDead(pos2.X(), pos2.Y())) {
+        nPoints++;
+      } // photon is accepted if not in dead zone
     }
     area += TMath::Abs((pos1 - fMipPos).X() * (pos2 - fMipPos).Y() - (pos1 - fMipPos).Y() * (pos2 - fMipPos).X()); // add area of the triangle...
     pos1 = pos2;
