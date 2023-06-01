@@ -202,7 +202,7 @@ class O2PrimaryServerDevice final : public fair::mq::Device
     LOG(info) << "LAUNCHING STATUS THREAD";
     auto lambda = [this]() {
       while (mState != O2PrimaryServerState::Stopped) {
-        auto& channel = fChannels.at("o2sim-primserv-info").at(0);
+        auto& channel = GetChannels().at("o2sim-primserv-info").at(0);
         if (!channel.IsValid()) {
           LOG(error) << "channel primserv-info not valid";
         }
@@ -237,7 +237,7 @@ class O2PrimaryServerDevice final : public fair::mq::Device
     // fatal without core dump
     fair::Logger::OnFatal([] { throw fair::FatalException("Fatal error occured. Exiting without core dump..."); });
 
-    o2::simpubsub::publishMessage(fChannels["primary-notifications"].at(0), "SERVER : INITIALIZING");
+    o2::simpubsub::publishMessage(GetChannels()["primary-notifications"].at(0), "SERVER : INITIALIZING");
 
     stateTransition(O2PrimaryServerState::Initializing, "INITTASK");
     LOG(info) << "Init Server device ";
@@ -412,7 +412,7 @@ class O2PrimaryServerDevice final : public fair::mq::Device
       }
     }
 
-    auto& channel = fChannels.at("primary-get").at(0);
+    auto& channel = GetChannels().at("primary-get").at(0);
     PrimaryChunkRequest requestpayload;
     std::unique_ptr<fair::mq::Message> request(channel.NewSimpleMessage(requestpayload));
     auto bytes = channel.Receive(request);
@@ -589,7 +589,7 @@ class O2PrimaryServerDevice final : public fair::mq::Device
       return;
     }
 
-    o2::simpubsub::publishMessage(fChannels["primary-notifications"].at(0), o2::simpubsub::simStatusString("PRIMSERVER", "STATUS", "AWAITING INPUT"));
+    o2::simpubsub::publishMessage(GetChannels()["primary-notifications"].at(0), o2::simpubsub::simStatusString("PRIMSERVER", "STATUS", "AWAITING INPUT"));
     // this means we are idling
 
     std::unique_ptr<fair::mq::Message> reply(mControlChannel.NewMessage());

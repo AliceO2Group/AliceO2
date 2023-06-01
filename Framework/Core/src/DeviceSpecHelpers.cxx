@@ -246,7 +246,7 @@ struct ExpirationHandlerHelpers {
       }
 
       auto device = services.get<RawDeviceService>().device();
-      auto& channel = device->fChannels[channelName];
+      auto& channel = device->GetChannels()[channelName];
 
       // We assume there is always a ZeroMQ socket behind.
       int zmq_fd = 0;

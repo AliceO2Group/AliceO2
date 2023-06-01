@@ -667,7 +667,7 @@ void DataProcessingDevice::initPollers()
   auto& state = ref.get<DeviceState>();
   // We add a timer only in case a channel poller is not there.
   if ((context.statefulProcess != nullptr) || (context.statelessProcess != nullptr)) {
-    for (auto& [channelName, channel] : fChannels) {
+    for (auto& [channelName, channel] : GetChannels()) {
       InputChannelInfo* channelInfo;
       for (size_t ci = 0; ci < spec.inputChannels.size(); ++ci) {
         auto& channelSpec = spec.inputChannels[ci];
@@ -741,7 +741,7 @@ void DataProcessingDevice::initPollers()
         LOGP(detail, "No input channels. Setting exit transition timeout to 0.");
         deviceContext.exitTransitionTimeout = 0;
       }
-      for (auto& [channelName, channel] : fChannels) {
+      for (auto& [channelName, channel] : GetChannels()) {
         if (channelName.rfind(spec.channelPrefix + "from_internal-dpl", 0) == 0) {
           LOGP(detail, "{} is an internal channel. Not polling.", channelName);
           continue;
@@ -874,7 +874,7 @@ void DataProcessingDevice::InitTask()
   deviceContext.expectedRegionCallbacks = std::stoi(fConfig->GetValue<std::string>("expected-region-callbacks"));
   deviceContext.exitTransitionTimeout = std::stoi(fConfig->GetValue<std::string>("exit-transition-timeout"));
 
-  for (auto& channel : fChannels) {
+  for (auto& channel : GetChannels()) {
     channel.second.at(0).Transport()->SubscribeToRegionEvents([&context = deviceContext,
                                                                &registry = mServiceRegistry,
                                                                &pendingRegionInfos = mPendingRegionInfos,
