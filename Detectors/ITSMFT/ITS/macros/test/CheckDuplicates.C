@@ -53,10 +53,10 @@ void CheckDuplicates(TString tracfile = "./o2trac_its.root", TString output = ".
   auto h3 = new TH2D("dupl", "Duplicates; #Delta#phi; #Delta#eta", 100, -1 * phiLim, phiLim, 100, -1 * etaLim, etaLim);  // Distribution of duplicates pairs over dPhi and dEta
   auto h4 = new TH2D("h4", "Duplicates; avg. #phi; avg. #eta", 50, 0, phiMax, 50, etaMin, etaMax);                       // Distribution of duplicate pairs over avg. phi and avg. eta
 
-  int comps{0}, dupl{0}, zeroes{0}, totalROFs{0};                                                                        // Collect summary information
+  int comps{0}, dupl{0}, zeroes{0}, totalROFs{0}; // Collect summary information
   double_t eta1, eta2, phi1, phi2, dPhi, dEta, avgPhi, avgEta;
   int rofLow, rofHigh, rof1Low, rof1High, rof2Low, rof2High;
-  int rofFrameEnd = rofEnd;                           // In case frames have different numbers of ROFs, store the final ROF index separately for each frame inside rofFrameEnd
+  int rofFrameEnd = rofEnd; // In case frames have different numbers of ROFs, store the final ROF index separately for each frame inside rofFrameEnd
   int totalFrames = recTree->GetEntriesFast();
   for (int frame = 0; frame < totalFrames; frame++) { // Loop over timeframes
     LOGP(info, "Proceeding to frame {} of {}", frame + 1, totalFrames);
