@@ -54,6 +54,7 @@ class CompareTask
 
  private:
   void pdfOutput();
+  void printStat();
 
  private:
   std::shared_ptr<o2::base::GRPGeomRequest> mCcdbRequest;
@@ -63,8 +64,11 @@ class CompareTask
   std::vector<TH1*> mTrackResidualsAtFirstCluster{};
   std::array<std::vector<TH1*>, 5> mComparisonsAtVertex;
   std::array<std::vector<TH1*>, 5> mClusterResiduals;
+  std::array<int, 2> mNTracksAll{};
+  std::array<int, 2> mNTracksMatch{};
   bool mApplyTrackSelection;
   double mPrecision;
+  bool mPrintDiff;
   bool mPrintAll;
   int mNofDifferences;
 };

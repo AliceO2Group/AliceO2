@@ -32,7 +32,7 @@ void drawTrackResiduals(std::vector<TH1*>& histos, TCanvas* c = nullptr);
 void drawClusterResiduals(const std::array<std::vector<TH1*>, 5>& histos, TCanvas* c = nullptr);
 void drawClusterClusterResiduals(const std::vector<TH1*>& histos, const char* extension, TCanvas* c = nullptr);
 void drawClusterTrackResiduals(const std::vector<TH1*>& histos1, const std::vector<TH1*>& histos2, const char* extension, TCanvas* c = nullptr);
-void drawClusterTrackResidualsSigma(const std::vector<TH1*>& histos1, const std::vector<TH1*>& histos2, const char* extension, TCanvas* c = nullptr);
+void drawClusterTrackResidualsSigma(const std::vector<TH1*>& histos1, const std::vector<TH1*>& histos2, const char* extension, TCanvas* c1 = nullptr, TCanvas* c2 = nullptr);
 void drawClusterTrackResidualsRatio(const std::vector<TH1*>& histos1, const std::vector<TH1*>& histos2, const char* extension, TCanvas* c = nullptr);
 
 void drawHistosAtVertex(const std::array<std::vector<TH1*>, 2>& histos, TCanvas* c = nullptr);
