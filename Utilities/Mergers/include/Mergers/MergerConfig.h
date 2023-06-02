@@ -88,6 +88,7 @@ struct MergerConfig {
   std::string monitoringUrl = "infologger:///debug?qc";
   std::string detectorName = "TST";
   ConfigEntry<ParallelismType> parallelismType = {ParallelismType::SplitInputs};
+  bool expendable = false;
 };
 
 } // namespace o2::mergers
