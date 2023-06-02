@@ -390,7 +390,7 @@ std::vector<char*> checkArgs(int argc, char* argv[])
         modifiedArgs.push_back("--timestamp");
         modifiedArgs.push_back(std::to_string(timestamp));
       } else if (conf.getConfigData().mTimestampMode == o2::conf::TimeStampMode::kManual && (timestamp < soreor.first || timestamp > soreor.second)) {
-        LOG(fatal) << "The given timestamp is incompatible with the given run number";
+        LOG(fatal) << "The given timestamp " << timestamp << " is incompatible with the given run number " << conf.getRunNumber() << " starting at " << soreor.first << " and ending at " << soreor.second;
       }
     }
   }
