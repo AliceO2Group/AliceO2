@@ -16,10 +16,24 @@
 #include <TMath.h>
 #include <TNamed.h>      //base class
 #include <TGeoManager.h> //Instance()
-#include <TVector3.h>    //Lors2Mars() Mars2Lors()
+
+// ef : to use XYZVector
+#include <Math/Vector3D.h> //fields
+#include "Math/Vector3D.h" //fields
+
+#include <TVector3.h> //Lors2Mars() Mars2Lors()
+
+/* are these necessary?:
+#include <Math/GenVector/Rotation3D.h> //ef
+#include "Math/GenVector/RotationX.h" //ef
+#include "Math/GenVector/RotationY.h" //ef
+#include "Math/GenVector/RotationZ.h" //ef
+*/
 
 class TGeoVolume;
 class TGeoHMatrix;
+
+using XYZVector = ROOT::Math::XYZVector;
 
 namespace o2
 {
@@ -44,7 +58,8 @@ class Param
 
   void print(Option_t* opt = "") const; // print current parametrization
 
-  static Param* instance();      // pointer to Param singleton
+  static Param* instance(); // pointer to Param singleton
+
   static Param* instanceNoGeo(); // pointer to Param singleton without geometry.root for MOOD, displays, ...
                                  // geo info
   enum EChamberData { kMinCh = 0,
@@ -100,8 +115,33 @@ class Param
 
   bool getInstType() const { return fgInstanceType; } // return if the instance is from geom or ideal
 
-  inline static bool isInDead(float x, float y);                  // is the point in dead area?
-  inline static bool isDeadPad(Int_t padx, Int_t pady, Int_t ch); // is a dead pad?
+  // is the point in dead area?
+  static bool isInDead(float x, float y)
+  { // ef : moved function-definition from cxx
+    // Check is the current point is outside of sensitive area or in dead zones
+    // Arguments: x,y -position
+    //   Returns: 1 if not in sensitive zone
+    for (Int_t iPc = 0; iPc < 6; iPc++) {
+      if (x >= fgkMinPcX[iPc] && x <= fgkMaxPcX[iPc] && y >= fgkMinPcY[iPc] && y <= fgkMaxPcY[iPc]) {
+        return kFALSE; // in current pc
+      }
+    }
+    return kTRUE;
+  }
+
+  static bool isDeadPad(Int_t padx, Int_t pady, Int_t ch) // ef : moved function-definition from cxx
+  {
+
+    // Check is the current pad is active or not
+    // Arguments: padx,pady pad integer coord
+    //   Returns: kTRUE if dead, kFALSE if active
+
+    if (fgMapPad[padx - 1][pady - 1][ch]) {
+      return kFALSE; // current pad active
+    }
+
+    return kTRUE;
+  }
 
   inline void setChStatus(Int_t ch, bool status = kTRUE);
   inline void setSectStatus(Int_t ch, Int_t sect, bool status);
@@ -188,12 +228,17 @@ class Param
     double l[3] = {x - mX, y - mY, z};
     mM[c]->LocalToMaster(l, m);
   }
+
+  // template <typename T = double>
   TVector3 lors2Mars(Int_t c, double x, double y, Int_t pl = kPc) const
   {
     double m[3];
     lors2Mars(c, x, y, m, pl);
-    return TVector3(m);
+
+    return TVector3(m[0], m[1], m[2]); // TVector3(m);
+
   } // MRS->LRS
+
   void mars2Lors(Int_t c, double* m, double& x, double& y) const
   {
     double l[3];
@@ -210,12 +255,13 @@ class Param
     ph = TMath::ATan2(l[1], l[0]);
   }
   void lors2MarsVec(Int_t c, double* m, double* l) const { mM[c]->LocalToMasterVect(m, l); } // LRS->MRS
-  TVector3 norm(Int_t c) const
+
+  TVector3 norm(Int_t c) const // TVector3
   {
     double n[3];
     norm(c, n);
-    return TVector3(n);
-  } // norm
+    return TVector3(n[0], n[1], n[2]); // TVector3(n);
+  }                                    // norm
   void norm(Int_t c, double* n) const
   {
     double l[3] = {0, 0, 1};

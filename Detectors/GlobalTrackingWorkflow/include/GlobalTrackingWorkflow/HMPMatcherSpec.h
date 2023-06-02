@@ -9,17 +9,25 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file MatchInfoHMP.cxx
-/// \brief Class to store the output of the matching to HMPID
+/// @file   HMPMatcherSpec.h // ef ; change to hmp
 
-#include "ReconstructionDataFormats/MatchInfoHMP.h"
+#ifndef O2_HMP_MATCHER_SPEC // hmp
+#define O2_HMP_MATCHER_SPEC //
 
-using namespace o2::dataformats;
+#include "Framework/DataProcessorSpec.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 
-ClassImp(o2::dataformats::MatchInfoHMP);
+using namespace o2::framework;
 
-void MatchInfoHMP::print() const
+namespace o2
 {
-  // printf("Match of GlobalID %s and HMPID cl %d ", getTrackRef().asString().c_str(), getIdxHMPClus());
-  printf("Match of GlobalID and HMPID cl");
-}
+namespace globaltracking
+{
+
+/// create a processor spec
+framework::DataProcessorSpec getHMPMatcherSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC);
+
+} // namespace globaltracking
+} // namespace o2
+
+#endif /* O2_HMP_MATCHER_SPEC */
