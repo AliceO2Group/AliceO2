@@ -59,7 +59,7 @@ void addLabelToSchema(std::shared_ptr<arrow::Schema>& schema, const char* label)
 std::shared_ptr<arrow::Table>
   TableBuilder::finalize()
 {
-  bool status = mFinalizer(mSchema, mArrays, mHolders);
+  bool status = mFinalizer(mArrays, mHolders);
   if (status == false) {
     throwError(runtime_error("Unable to finalize"));
   }
