@@ -192,6 +192,8 @@ void TrackInterpolation::interpolateTrack(int iSeed)
       (*trackDataExtended).clsITS.push_back(clsITS);
     }
   }
+  trackData.gid = (*mGIDs)[iSeed];
+  trackData.par = (*mSeeds)[iSeed];
   auto& trkWork = (*mSeeds)[iSeed];
   // reset the cache array (sufficient to set cluster available to zero)
   for (auto& elem : mCache) {
@@ -366,9 +368,6 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     clusterResiduals.push_back(std::move(res));
     deltaRow = 1;
   }
-
-  trackData.gid = (*mGIDs)[iSeed];
-  trackData.par = (*mSeeds)[iSeed];
   trackData.chi2TRD = gidTable[GTrackID::TRD].isIndexSet() ? mRecoCont->getITSTPCTRDTrack<o2::trd::TrackTRD>(gidTable[GTrackID::ITSTPCTRD]).getChi2() : 0;
   trackData.chi2TPC = trkTPC.getChi2();
   trackData.chi2ITS = trkITS.getChi2();
@@ -419,6 +418,9 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
   trackData.clIdx.setFirstEntry(mClRes.size());
   const auto& trkITS = mRecoCont->getITSTrack(gidTable[GTrackID::ITS]);
   const auto& trkTPC = mRecoCont->getTPCTrack(gidTable[GTrackID::TPC]);
+  trackData.gid = (*mGIDs)[iSeed];
+  trackData.par = (*mSeeds)[iSeed];
+
   auto& trkWork = (*mSeeds)[iSeed];
   float clusterTimeBinOffset = (*mTrackTimes)[iSeed] / mTPCTimeBinMUS;
   auto propagator = o2::base::Propagator::Instance();
@@ -456,8 +458,6 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
     clusterResiduals.push_back(std::move(res));
     ++nMeasurements;
   }
-  trackData.gid = (*mGIDs)[iSeed];
-  trackData.par = (*mSeeds)[iSeed];
   trackData.chi2TPC = trkTPC.getChi2();
   trackData.chi2ITS = trkITS.getChi2();
   trackData.nClsTPC = trkTPC.getNClusterReferences();
