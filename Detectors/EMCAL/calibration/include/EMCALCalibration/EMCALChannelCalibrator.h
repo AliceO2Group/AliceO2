@@ -249,7 +249,7 @@ bool EMCALChannelCalibrator<DataInput, DataOutput>::saveLastSlotData(TFile& fl)
     auto histTime = c->getHistoTime();
 
     TH2F hEnergy = o2::utils::TH2FFromBoost(hist);
-    TH2F hTime = o2::utils::TH2FFromBoost(histTime);
+    TH2F hTime = o2::utils::TH2FFromBoost(histTime, "histTime");
     TH1D hNEvents("hNEvents", "hNEvents", 1, 0, 1);
     hNEvents.SetBinContent(1, c->getNEvents());
 
