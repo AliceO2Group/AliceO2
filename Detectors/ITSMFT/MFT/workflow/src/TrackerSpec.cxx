@@ -263,9 +263,9 @@ void TrackerDPL::run(ProcessingContext& pc)
     }
 
   } else {
-    LOG(info) << "Field is off! ";
+    LOG(debug) << "Field is off! ";
     std::vector<std::vector<o2::mft::ROframe<TrackLTFL>>> roFrameVec(mNThreads); // One vector of ROFrames per thread
-    LOG(info) << "Reserving ROFs ";
+    LOG(debug) << "Reserving ROFs ";
 
     for (auto& rof : roFrameVec) {
       rof.reserve(rofsPerWorker);
