@@ -583,7 +583,7 @@ void Detector::createMaterials()
   o2::base::Detector::Medium(38, "RIST110$", 38, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
 
   // Carbon prepreg (Cage)
-  o2::base::Detector::Material(33, "M46J6K$", 12.0107, 6, 1.84, 999, 999);
+  o2::base::Detector::Material(33, "M46J6K$", 12.0107, 6, 1.48, 999, 999);
   o2::base::Detector::Medium(33, "M46J6K$", 33, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
 
   // PEEK CF30
