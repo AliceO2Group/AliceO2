@@ -144,7 +144,7 @@ short Geometry::truRelToAbsNumbering(const char* relId, short trigType)
 short Geometry::relPosToTruId(char mod, float x, float z, short trigType)
 {
   // tranform local cluster coordinates to truId
-  char relid[3] = {mod, static_cast<char>(ceil(x / CELLSTEP + 32.499)), static_cast<char>(ceil(z / CELLSTEP + 28.499))};
+  char relid[3] = {mod, static_cast<char>(ceil(x / CELLSTEP + 32.0)), static_cast<char>(ceil(z / CELLSTEP + 28.0))};
   return truRelToAbsNumbering(relid, trigType);
 }
 
@@ -201,8 +201,8 @@ void Geometry::absIdToRelPosInModule(short absId, float& x, float& z)
   char relid[3];
   absToRelNumbering(absId, relid);
 
-  x = (relid[1] - 32 - 0.5) * CELLSTEP;
-  z = (relid[2] - 28 - 0.5) * CELLSTEP;
+  x = (relid[1] - 32) * CELLSTEP;
+  z = (relid[2] - 28) * CELLSTEP;
 }
 bool Geometry::relToAbsNumbering(const char* relId, short& absId)
 {
@@ -220,14 +220,14 @@ bool Geometry::relToAbsNumbering(const char* relId, short& absId)
 void Geometry::relPosToAbsId(char module, float x, float z, short& absId)
 {
   // adding 32.5 instead of 32.499 leads to (rare) rounding errors before ceil()
-  char relid[3] = {module, static_cast<char>(ceil(x / CELLSTEP + 32.499)), static_cast<char>(ceil(z / CELLSTEP + 28.499))};
+  char relid[3] = {module, static_cast<char>(ceil(x / CELLSTEP + 32.0)), static_cast<char>(ceil(z / CELLSTEP + 28.0))};
   relToAbsNumbering(relid, absId);
 }
 void Geometry::relPosToRelId(short module, float x, float z, char* relId)
 {
   relId[0] = module;
-  relId[1] = static_cast<char>(ceil(x / CELLSTEP + 32.499));
-  relId[2] = static_cast<char>(ceil(z / CELLSTEP + 28.499));
+  relId[1] = static_cast<char>(ceil(x / CELLSTEP + 32.0));
+  relId[2] = static_cast<char>(ceil(z / CELLSTEP + 28.0));
 }
 
 // convert local position in module to global position in ALICE

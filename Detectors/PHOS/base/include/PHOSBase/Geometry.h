@@ -134,7 +134,7 @@ class Geometry
   const TGeoHMatrix* getAlignmentMatrix(int mod) const { return &(mPHOS[mod]); }
 
  private:
-  static constexpr float CELLSTEP = 2.25;
+  static constexpr float CELLSTEP = 2.2;
 
   static Geometry* sGeom;           // Pointer to the unique instance of the singleton
   std::array<TGeoHMatrix, 5> mPHOS; // Rotation/shift matrices
