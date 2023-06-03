@@ -22,6 +22,7 @@ namespace o2::framework::raw_parser
 {
 
 int RawParserParam::sErrorMode = getenv("O2_DPL_RAWPARSER_ERRORMODE") ? atoi(getenv("O2_DPL_RAWPARSER_ERRORMODE")) : 1;
+int RawParserParam::sCheckIncompleteHBF = getenv("O2_DPL_RAWPARSER_CHECKINCOMPLETEHBF") ? atoi(getenv("O2_DPL_RAWPARSER_CHECKINCOMPLETEHBF")) : 1;
 unsigned int RawParserParam::sErrors = 0;
 
 const char* RDHFormatter<V7>::sFormatString = "{:>5} {:>4} {:>4} {:>4} {:>4} {:>3} {:>3} {:>3}  {:>1} {:>2}";

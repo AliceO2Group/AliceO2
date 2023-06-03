@@ -80,8 +80,9 @@ struct RDHFormatter<header::RAWDataHeaderV4> {
 };
 
 struct RawParserParam {
-  static int sErrorMode;       // 0: no error checking, 1: print error message, 2: throw exception. To be set via O2_DPL_RAWPARSER_ERRORMODE.
-  static unsigned int sErrors; // Obviously this would need to be atomic to be fully correct, but a race condition is unlikely and would only lead to one extra log message printed.
+  static int sErrorMode;           // 0: no error checking, 1: print error message, 2: throw exception. To be set via O2_DPL_RAWPARSER_ERRORMODE.
+  static int sCheckIncompleteHBF;  // Check if HBFs are incomplete, set to 2 to throw in case sErrorMode = 2.
+  static unsigned int sErrors;     // Obviously this would need to be atomic to be fully correct, but a race condition is unlikely and would only lead to one extra log message printed.
 };
 
 /// @class ConcreteRawParser
@@ -231,6 +232,7 @@ class ConcreteRawParser
   /// Move to next page start
   bool next()
   {
+    int lastPacketCounter = -1;
     if (mPosition == nullptr) {
       mPosition = mRawBuffer;
       if (mSize == 0) {
@@ -242,6 +244,9 @@ class ConcreteRawParser
         mPosition = mRawBuffer + mSize;
         return false;
       }
+      if (RawParserParam::sCheckIncompleteHBF) {
+        lastPacketCounter = header().packetCounter;
+      }
       mPosition += offset;
     }
     if constexpr (BOUNDS_CHECKS) {
@@ -252,9 +257,32 @@ class ConcreteRawParser
         if (RawParserParam::sErrors++ < 20) {
           LOG(error) << "Corrupt RDH - RDH parsing ran out of raw data buffer";
         }
+        mPosition = mRawBuffer + mSize;
+        return false;
       }
     }
-    // FIXME: check page header validity: version
+    if (RawParserParam::sErrorMode) {
+      if (header().version != HeaderType().version) {
+        if (RawParserParam::sErrorMode >= 2) {
+          throw std::runtime_error("Corrupt RDH - Invalid RDH version");
+        }
+        if (RawParserParam::sErrors++ < 20) {
+          LOG(error) << "Corrupt RDH - Invalid RDH Version " << header().version << " (expected " << HeaderType().version << ")";
+        }
+        mPosition = mRawBuffer + mSize;
+        return false;
+      }
+      if (lastPacketCounter != -1 && (unsigned char)(lastPacketCounter + 1) != header().packetCounter) {
+        if (RawParserParam::sErrorMode >= 2 && RawParserParam::sCheckIncompleteHBF >= 2) {
+          throw std::runtime_error("Incomplete HBF - jump in packet counter");
+        }
+        if (RawParserParam::sErrors++ < 20) {
+          LOG(error) << "Incomplete HBF - jump in packet counter " << lastPacketCounter << " to " << header().packetCounter;
+        }
+        mPosition = mRawBuffer + mSize;
+        return false;
+      }
+    }
     return true;
   }
 
