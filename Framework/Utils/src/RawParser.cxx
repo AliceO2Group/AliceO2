@@ -21,6 +21,9 @@
 namespace o2::framework::raw_parser
 {
 
+int RawParserParam::sErrorMode = getenv("O2_DPL_RAWPARSER_ERRORMODE") ? atoi(getenv("O2_DPL_RAWPARSER_ERRORMODE")) : 1;
+unsigned int RawParserParam::sErrors = 0;
+
 const char* RDHFormatter<V7>::sFormatString = "{:>5} {:>4} {:>4} {:>4} {:>4} {:>3} {:>3} {:>3}  {:>1} {:>2}";
 void RDHFormatter<V7>::apply(std::ostream& os, V7 const& header, FormatSpec choice, const char* delimiter)
 {
