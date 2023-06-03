@@ -285,6 +285,9 @@ bool MatchGlobalFwd::prepareMFTData()
       trc.setZ(trcOrig.getOutParam().getZ());
       trc.setCovariances(trcOrig.getOutParam().getCovariances());
       trc.setTrackChi2(trcOrig.getOutParam().getTrackChi2());
+      // Extrapolate MFT track parameters and covariances matrix to "mMatchingPlaneZ"
+      // Parameters: helix track model; Error propagation: Quadratic
+      // If "mBz" is zero: linear track model
       trc.propagateToZ(mMatchingPlaneZ, mBz);
     }
   }

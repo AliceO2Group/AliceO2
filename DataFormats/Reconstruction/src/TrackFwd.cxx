@@ -244,6 +244,12 @@ void TrackParCovFwd::propagateToZhelix(double zEnd, double zField)
 //__________________________________________________________________________
 void TrackParCovFwd::propagateToZ(double zEnd, double zField)
 {
+  // Security for zero B field
+  if (zField == 0.0) {
+    propagateToZlinear(zEnd);
+    return;
+  }
+
   // Extrapolate track parameters and covariances matrix to "zEnd"
   // Parameters: helix track model; Error propagation: Quadratic
 
