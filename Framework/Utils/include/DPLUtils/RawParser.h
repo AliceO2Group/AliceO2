@@ -18,6 +18,7 @@
 
 #include "Headers/RAWDataHeader.h"
 #include "Framework/VariantHelpers.h" // definition of `overloaded`
+#include "Framework/Logger.h"
 #include <functional>
 #include <memory>
 #include <variant>
@@ -78,6 +79,11 @@ struct RDHFormatter<header::RAWDataHeaderV4> {
   static void apply(std::ostream&, type const&, FormatSpec, const char* = "");
 };
 
+struct RawParserParam {
+  static int sErrorMode;       // 0: no error checking, 1: print error message, 2: throw exception. To be set via O2_DPL_RAWPARSER_ERRORMODE.
+  static unsigned int sErrors; // Obviously this would need to be atomic to be fully correct, but a race condition is unlikely and would only lead to one extra log message printed.
+};
+
 /// @class ConcreteRawParser
 /// Raw parser implementation for a particular version of RAWDataHeader.
 /// Parses a contiguous sequence of raw pages in a raw buffer.
@@ -108,7 +114,7 @@ class ConcreteRawParser
     : mRawBuffer(reinterpret_cast<buffer_type const*>(buffer)), mSize(size)
   {
     static_assert(sizeof(T) == sizeof(buffer_type), "buffer required to be byte-type");
-    if (size < sizeof(header_type)) {
+    if (size < sizeof(header_type)) { // TODO: should be included in sErrorMode treatment, but would need to existing behavior in detail
       std::runtime_error("buffer too small to fit at least the page header");
     }
     next();
@@ -206,8 +212,13 @@ class ConcreteRawParser
       return;
     }
     if constexpr (BOUNDS_CHECKS) {
-      if (!checkPageInBuffer()) {
-        throw std::runtime_error("Corrupt RDH - RDH parsing ran out of raw data buffer");
+      if (RawParserParam::sErrorMode && !checkPageInBuffer()) {
+        if (RawParserParam::sErrorMode >= 2) {
+          throw std::runtime_error("Corrupt RDH - RDH parsing ran out of raw data buffer");
+        }
+        if (RawParserParam::sErrors++ < 20) {
+          LOG(error) << "Corrupt RDH - RDH parsing ran out of raw data buffer";
+        }
       }
     }
     //auto deleter = [](buffer_type*) {};
@@ -234,8 +245,13 @@ class ConcreteRawParser
       mPosition += offset;
     }
     if constexpr (BOUNDS_CHECKS) {
-      if (!checkPageInBuffer()) {
-        throw std::runtime_error("Corrupt RDH - RDH parsing ran out of raw data buffer");
+      if (RawParserParam::sErrorMode && !checkPageInBuffer()) {
+        if (RawParserParam::sErrorMode >= 2) {
+          throw std::runtime_error("Corrupt RDH - RDH parsing ran out of raw data buffer");
+        }
+        if (RawParserParam::sErrors++ < 20) {
+          LOG(error) << "Corrupt RDH - RDH parsing ran out of raw data buffer";
+        }
       }
     }
     // FIXME: check page header validity: version
