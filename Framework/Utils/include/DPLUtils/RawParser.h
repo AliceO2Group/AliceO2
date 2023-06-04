@@ -233,6 +233,7 @@ class ConcreteRawParser
   bool next()
   {
     int lastPacketCounter = -1;
+    unsigned int lastFEEID = -1;
     if (mPosition == nullptr) {
       mPosition = mRawBuffer;
       if (mSize == 0) {
@@ -246,6 +247,7 @@ class ConcreteRawParser
       }
       if (RawParserParam::sCheckIncompleteHBF) {
         lastPacketCounter = header().packetCounter;
+        lastFEEID = header().feeId;
       }
       mPosition += offset;
     }
@@ -272,7 +274,7 @@ class ConcreteRawParser
         mPosition = mRawBuffer + mSize;
         return false;
       }
-      if (lastPacketCounter != -1 && (unsigned char)(lastPacketCounter + 1) != header().packetCounter) {
+      if (lastPacketCounter != -1 && (unsigned char)(lastPacketCounter + 1) != header().packetCounter && lastFEEID == header().feeId) {
         if (RawParserParam::sErrorMode >= 2 && RawParserParam::sCheckIncompleteHBF >= 2) {
           throw std::runtime_error("Incomplete HBF - jump in packet counter");
         }
