@@ -85,6 +85,12 @@ class TriCubicInterpolator
   /// \return returns the extrapolation technique for missing boundary values
   ExtrapolationType getExtrapolationType() const { return mExtrapolationType; }
 
+  /// enable or disable extraolating values outside of the grid
+  void setExtrapolateValues(const bool extraPolate) { mExtraPolateValues = extraPolate; }
+
+  /// \return returns whethere values outside of the grid will be extrapolated
+  bool getExtrapolateValues() const { return mExtraPolateValues; }
+
  private:
   static constexpr unsigned int FDim = Grid3D::getDim();              ///< dimensions of the grid
   static constexpr unsigned int FZ = Grid3D::getFZ();                 ///< index for z coordinate
@@ -93,6 +99,7 @@ class TriCubicInterpolator
   const DataContainer* mGridData{};                                   ///< adress to the data container of the grid
   const Grid3D* mGridProperties{};                                    ///< adress to the properties of the grid
   ExtrapolationType mExtrapolationType = ExtrapolationType::Parabola; ///< sets which type of extrapolation for missing points at boundary is used
+  bool mExtraPolateValues = true;                                     ///< extrapolating values outside of the grid or restricting query to inside of the grid
 
   //                 DEFINITION OF enum GridPos
   //========================================================

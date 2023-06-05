@@ -114,6 +114,17 @@ class SpaceCharge
     ElectricalField ///< using electric field for calculation of global distortions/corrections
   };
 
+  enum class MisalignmentType {
+    ShiftedClip, ///< shifted copper rod clip
+    RotatedClip, ///< rotated mylar strips from FC
+    RodShift     ///< shifted copper rod
+  };
+
+  enum class FCType {
+    IFC, ///< inner field cage
+    OFC  ///< outer field cage
+  };
+
   /// step 0: set the charge density from TH3 histogram containing the space charge density
   /// \param hisSCDensity3D histogram for the space charge density
   void fillChargeDensityFromHisto(const TH3& hisSCDensity3D);
@@ -277,6 +288,10 @@ class SpaceCharge
   /// \param side side for which the space-charge density will be scaled
   void scaleChargeDensity(const DataT scalingFactor, const Side side) { mDensity[side] *= scalingFactor; }
 
+  /// scale the space-charge for one sector: space-charge density *= scalingFactor;
+  /// \param scalingFactor scaling factor for the space-charge density
+  void scaleChargeDensitySector(const float scalingFactor, const Sector sector);
+
   /// add space charge density from other object (this.mDensity = this.mDensity + other.mDensity)
   /// \param otherSC other space-charge object, which charge will be added to current object
   void addChargeDensity(const SpaceCharge<DataT>& otherSC);
@@ -301,9 +316,9 @@ class SpaceCharge
 
   /// step 4: calculate global corrections by using the electric field or the local corrections
   /// \param formulaStruct struct containing a method to evaluate the electric field Er, Ez, Ephi or the local corrections
-  /// \param type how to treat the corrections at regions where the corrected value is out of the TPC volume: type=0: use last valid correction value, type=1 do linear extrapolation, type=2 do parabolic extrapolation
+  /// \param type how to treat the corrections at regions where the corrected value is out of the TPC volume: type=0: use last valid correction value, type=1 do linear extrapolation, type=2 do parabolic extrapolation, type=3 do NOT abort when reaching the CE or the IFC to get a smooth estimate of the corrections
   template <typename Fields = AnalyticalFields<DataT>>
-  void calcGlobalCorrections(const Fields& formulaStruct, const int type = 0);
+  void calcGlobalCorrections(const Fields& formulaStruct, const int type = 3);
 
   /// step 5: calculate global distortions by using the electric field or the local distortions (SLOW)
   /// \param formulaStruct struct containing a method to evaluate the electric field Er, Ez, Ephi or the local distortions
@@ -950,6 +965,9 @@ class SpaceCharge
   /// \param side of the TPC
   void fillDensity(const DataT density, const size_t iz, const size_t ir, const size_t iphi, const Side side) { mDensity[side](iz, ir, iphi) = density; }
 
+  /// average the sc density across all sectors per side
+  void averageDensityPerSector(const Side side);
+
   /// write global distortions to root file using RDataFrame
   /// \param file output file where the electrical fields will be written to
   /// \param side of the TPC
@@ -1067,6 +1085,71 @@ class SpaceCharge
   /// \param file input file
   /// \param tree tree in input file
   bool checkGridFromFile(std::string_view file, std::string_view tree);
+
+  /// Define delta potential due to a possible shifted copper rod (delta potential spike at the copper rods) at the IFC
+  /// \param deltaPot delta potential which will be set at the copper rod
+  void setDeltaVoltageCopperRodShiftIFC(const float deltaPot, const Side side, const int sector) { initRodAlignmentVoltages(MisalignmentType::RodShift, FCType::IFC, sector, side, deltaPot); }
+
+  /// Define delta potential due to a possible shifted copper rod (delta potential spike at the copper rods) at the OFC
+  /// \param deltaPot delta potential which will be set at the copper rod
+  void setDeltaVoltageCopperRodShiftOFC(const float deltaPot, const Side side, const int sector) { initRodAlignmentVoltages(MisalignmentType::RodShift, FCType::OFC, sector, side, deltaPot); }
+
+  /// Define delta potential due to shifted copper rod and field cage strips at IFC (maximum of the delta potential at the copper rod and linear decreasing up to left and right neighbouring rods)
+  /// \param deltaPot delta potential which will be set at the copper rod
+  void setDeltaVoltageStripsShiftIFC(const float deltaPot, const Side side, const int sector) { initRodAlignmentVoltages(MisalignmentType::ShiftedClip, FCType::IFC, sector, side, deltaPot); }
+
+  /// Define delta potential due to shifted copper rod and field cage strips at OFC (maximum of the delta potential at the copper rod and linear decreasing up to left and right neighbouring rods)
+  /// \param deltaPot delta potential which will be set at the copper rod
+  void setDeltaVoltageStripsShiftOFC(const float deltaPot, const Side side, const int sector) { initRodAlignmentVoltages(MisalignmentType::ShiftedClip, FCType::OFC, sector, side, deltaPot); }
+
+  /// Define delta potential due to rotated clip at IFC. Only possible at sector 11 and 11+18.
+  /// The delta potential increases linearly from neighbouring rod to the specified rod, the sign of the delta potential inverts and increases linearly to 0 to the other nerighbouring rod
+  /// \param deltaPot delta potential which will be set at the copper rod
+  void setDeltaVoltageRotatedClipIFC(const float deltaPot, const Side side, const int sector) { initRodAlignmentVoltages(MisalignmentType::RotatedClip, FCType::IFC, sector, side, deltaPot); }
+
+  /// Define delta potential due to rotated clip at OFC. Only possible at sector 3 and 3+18.
+  /// The delta potential increases linearly from neighbouring rod to the specified rod, the sign of the delta potential inverts and increases linearly to 0 to the other nerighbouring rod
+  /// \param deltaPot delta potential which will be set at the copper rod
+  void setDeltaVoltageRotatedClipOFC(const float deltaPot, const Side side, const int sector) { initRodAlignmentVoltages(MisalignmentType::RotatedClip, FCType::OFC, sector, side, deltaPot); }
+
+  /// IFC charge up: set a linear rising delta potential from the CE to given z position which falls linear down to 0 at the readout
+  /// \param deltaPot maximum value of the delta potential in V
+  /// \param cutOff set the delta potential to 0 for z>zMaxDeltaPot
+  /// \param zMaxDeltaPot z position where the maximum delta potential of deltaPot will be set
+  void setIFCChargeUpLinear(const float deltaPot, const float zMaxDeltaPot, const bool cutOff, const Side side);
+
+  /// setting the global corrections directly from input function provided in global coordinates
+  /// \param gCorr function returning global corrections for given global coordinate
+  void setGlobalCorrections(const std::function<void(int sector, DataT gx, DataT gy, DataT gz, DataT& gCx, DataT& gCy, DataT& gCz)>& gCorr, const Side side);
+
+  /// set misalignment of ROC for shift in z
+  /// \param sector sector for which the misalignment in z will be applied (if sector=-1 all sectors are shifted)
+  /// \param type 0=IROC, 1=OROC, 2=IROC+OROC
+  /// \param potential delta potential on which the ROCs are set
+  void setROCMisalignmentShiftZ(const int sector, const int type, const float potential);
+
+  /// set misalignment of ROC for rotation along local x
+  /// \param sector sector for which the misalignment in z will be applied (if sector=-1 all sectors are shifted)
+  /// \param type 0=IROC, 1=OROC, 2=IROC+OROC
+  /// \param potential minimum delta potential
+  /// \param potential maximum delta potential
+  void setROCMisalignmentRotationAlongX(const int sector, const int type, const float potentialMin, const float potentialMax);
+
+  /// set misalignment of ROC for rotation along local y
+  /// \param sector sector for which the misalignment in z will be applied (if sector=-1 all sectors are shifted)
+  /// \param type 0=IROC, 1=OROC, 2=IROC+OROC
+  /// \param potential minimum delta potential
+  /// \param potential maximum delta potential
+  void setROCMisalignmentRotationAlongY(const int sector, const int type, const float potentialMin, const float potentialMax);
+
+  /// substract global corrections from other sc object (global corrections -= other.global corrections)
+  /// can be used to calculate the derivative: (this - other)/normalization
+  /// for normalization see scaleCorrections()
+  void substractGlobalCorrections(const SpaceCharge<DataT>& otherSC, const Side side);
+
+  /// scale corrections by factor
+  /// \param scaleFac global corrections are multiplied by this factor
+  void scaleCorrections(const float scaleFac, const Side side);
 
  private:
   ParamSpaceCharge mParamGrid{};                                                                          ///< parameters of the grid on which the calculations are performed
@@ -1192,7 +1275,7 @@ class SpaceCharge
   size_t getNearestPhiVertex(const DataT phi, const Side side) const { return std::round(phi / getGridSpacingPhi(side)); }
 
   /// \return returns nearest r vertex for given radius position
-  size_t getNearestRVertex(const DataT r, const Side side) const { return std::round((r - getRMin(side)) / getGridSpacingR(side)); }
+  size_t getNearestRVertex(const DataT r, const Side side) const { return std::round((r - getRMin(side)) / getGridSpacingR(side) + 0.5); }
 
   /// \return returns number of bins in phi direction for the gap between sectors and for the GEM frame
   size_t getPhiBinsGapFrame(const Side side) const;
@@ -1207,6 +1290,20 @@ class SpaceCharge
   void initContainer(DataContainer& data, const bool initMem = true);
 
   void initAllBuffers();
+
+  void setBoundaryFromIndices(const std::function<DataT(DataT)>& potentialFunc, const std::vector<size_t>& indices, const Side side);
+
+  /// get indices of the GEM frame along r
+  std::vector<size_t> getPotentialBoundaryGEMFrameAlongRIndices(const Side side) const;
+
+  /// get indices of the GEM frame along phi
+  std::vector<size_t> getPotentialBoundaryGEMFrameAlongPhiIndices(const GEMstack stack, const bool bottom, const Side side, const bool outerFrame, const bool noGap = false) const;
+
+  void setROCMisalignment(int stackType, int misalignmentType, int sector, const float potMin, const float potMax);
+  void fillROCMisalignment(const std::vector<size_t>& indicesTop, const std::vector<size_t>& indicesBottom, int sector, int misalignmentType, const std::pair<float, float>& deltaPotPar);
+
+  /// set potentialsdue to ROD misalignment
+  void initRodAlignmentVoltages(const MisalignmentType misalignmentType, const FCType fcType, const int sector, const Side side, const float deltaPot);
 
   ClassDefNV(SpaceCharge, 5);
 };
