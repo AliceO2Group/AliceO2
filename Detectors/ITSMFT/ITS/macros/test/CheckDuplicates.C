@@ -31,7 +31,6 @@
 
 void CheckDuplicates(TString tracfile = "./o2trac_its.root", TString output = ".", TString rootSave = "", int rofStart = 0, int rofEnd = -1, int windowSize = 2, bool includeSame = 1)
 {
-  fair::Logger::SetFileSeverity("warn");
   gErrorIgnoreLevel = kWarning;
 
   // Obtain data from files:
