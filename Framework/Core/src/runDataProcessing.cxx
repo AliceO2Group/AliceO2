@@ -1122,6 +1122,29 @@ void dumpMetricsCallback(uv_timer_t* handle)
                                                context->driver->metrics, *(context->specs), performanceMetrics);
 }
 
+void dumpRunSummary(DriverServerContext& context, DriverInfo const& driverInfo, DeviceInfos const& infos, DeviceSpecs const& specs)
+{
+  if (infos.empty()) {
+    return;
+  }
+  LOGP(info, "## Processes completed. Run summary:");
+  LOGP(info, "### Devices started: {}", infos.size());
+  for (size_t di = 0; di < infos.size(); ++di) {
+    auto& info = infos[di];
+    auto& spec = specs[di];
+    LOGP(info, " - Device {}: pid {} (exit {})", spec.name, info.pid, info.exitStatus);
+    if (info.exitStatus != 0 && info.firstSevereError.empty() == false) {
+      LOGP(info, "   - First error: {}", info.firstSevereError);
+    }
+    if (info.exitStatus != 0 && info.lastError != info.firstSevereError) {
+      LOGP(info, "   - Last error: {}", info.lastError);
+    }
+  }
+  for (auto& summary : *context.summaryCallbacks) {
+    summary(ServiceMetricsInfo{*context.metrics, *context.specs, *context.infos, context.driver->metrics});
+  }
+}
+
 // This is the handler for the parent inner loop.
 int runStateMachine(DataProcessorSpecs const& workflow,
                     WorkflowInfo const& workflowInfo,
@@ -1233,6 +1256,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   }
 
   std::vector<ServiceMetricHandling> metricProcessingCallbacks;
+  std::vector<ServiceSummaryHandling> summaryCallbacks;
   std::vector<ServicePreSchedule> preScheduleCallbacks;
   std::vector<ServicePostSchedule> postScheduleCallbacks;
   std::vector<ServiceDriverInit> driverInitCallbacks;
@@ -1264,6 +1288,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
     .specs = &runningWorkflow.devices,
     .metrics = &metricsInfos,
     .metricProcessingCallbacks = &metricProcessingCallbacks,
+    .summaryCallbacks = &summaryCallbacks,
     .driver = &driverInfo,
     .gui = &guiContext,
     .isDriver = frameworkId.empty()};
@@ -1594,6 +1619,22 @@ int runStateMachine(DataProcessorSpecs const& workflow,
               }
             }
           }
+
+          // FIXME: once moving to C++20, we can use templated lambdas.
+          matchingServices.clear();
+          for (auto& device : runningWorkflow.devices) {
+            for (auto& service : device.services) {
+              // If a service with the same name is already registered, skip it
+              if (std::find(matchingServices.begin(), matchingServices.end(), service.name) != matchingServices.end()) {
+                continue;
+              }
+              if (service.summaryHandling) {
+                summaryCallbacks.push_back(service.summaryHandling);
+                matchingServices.push_back(service.name);
+              }
+            }
+          }
+
           preScheduleCallbacks.clear();
           matchingServices.clear();
           for (auto& device : runningWorkflow.devices) {
@@ -2027,6 +2068,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           LOG(info) << "Dumping performance metrics to performanceMetrics.json file";
           dumpMetricsCallback(&metricDumpTimer);
         }
+        dumpRunSummary(serverContext, driverInfo, infos, runningWorkflow.devices);
         // This is a clean exit. Before we do so, if required,
         // we dump the configuration of all the devices so that
         // we can reuse it. Notice we do not dump anything if
