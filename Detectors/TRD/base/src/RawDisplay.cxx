@@ -27,6 +27,7 @@
 #include <TMarker.h>
 
 #include <ostream>
+#include <sstream>
 
 using namespace o2::trd;
 using namespace o2::trd::rawdisp;
@@ -215,44 +216,6 @@ int mcmkey(const T &x) {
   return 1000*x.getDetector() + 10*x.getPadRow() + 4*(x.getROB()%2) + x.getMCM()%4;
 }
 
-
-// PartitionByMCM::PartitionByMCM(o2::trd::rawdisp::RawDataSpan event)
-// {
-//   // sort digits and tracklets
-//   event.sort();
-
-//   // add all the digits to a map
-//   for (auto cur = event.digits.b; cur != event.digits.e; /* noop */ ) {
-//     // calculate the key of the current (first unprocessed) digit
-//     auto key = mcmkey(*cur);
-//     // find the first digit with a different key
-//     auto nxt = std::find_if(cur, event.digits.e, [key](auto x) {return mcmkey(x) != key;});
-//     // store the range cur:nxt in the map
-//     (*this)[key].digits.b = cur; 
-//     (*this)[key].digits.e = nxt;
-//     // continue after this range
-//     cur = nxt;
-//   }
-
-//   // add tracklets to the map
-//   for (auto cur = event.tracklets.b; cur != event.tracklets.e; /* noop */) {
-//     auto key = mcmkey(*cur);
-//     auto nxt = std::find_if(cur, event.tracklets.e, [key](auto x) {return mcmkey(x) != key;});
-//     (*this)[key].tracklets.b = cur; 
-//     (*this)[key].tracklets.e = nxt;
-//     cur = nxt;
-//   }
-
-//   // for (auto cur = event.trackpoints.b; cur != event.trackpoints.e; /* noop */) {
-//   //   auto nxt = std::adjacent_find(cur, event.trackpoints.e, classifier::comp_trackpoints);
-//   //   if (nxt != event.trackpoints.e) { ++nxt; }
-//   //   (*this)[classifier::key(*cur)].trackpoints.b = cur; 
-//   //   (*this)[classifier::key(*cur)].trackpoints.e = nxt;
-//   //   cur = nxt;
-//   // }
-//   // cout << "Found " << this->size() << " spans" << endl;
-// }
-
 template<typename keyfunc>
 std::map<uint32_t,RawDataSpan> RawDataSpan::IterateBy()
 // std::vector<RawDataSpan> RawDataSpan::IterateBy()
@@ -297,6 +260,7 @@ std::map<uint32_t,RawDataSpan> RawDataSpan::IterateBy()
 }
 
 template std::map<uint32_t,RawDataSpan> RawDataSpan::IterateBy<PadRowID>();
+template std::map<uint32_t,RawDataSpan> RawDataSpan::IterateBy<MCM_ID>();
 
 
 std::map<uint32_t,RawDataSpan> RawDataSpan::ByMCM()
@@ -600,8 +564,8 @@ DataManager::DataManager(std::filesystem::path dir)
 
   // For data, we need info about time frames to match ITS and TPC tracks to trigger records.
   if (std::filesystem::exists(dir/"o2_tfidinfo.root")) {
-    TFile* fInTFID = TFile::Open((dir/"o2_tfidinfo.root").c_str());
-    mTFIDs = (std::vector<o2::dataformats::TFIDInfo> *)fInTFID->Get("tfidinfo");
+    TFile fInTFID((dir/"o2_tfidinfo.root").c_str());
+    mTFIDs = (std::vector<o2::dataformats::TFIDInfo> *)fInTFID.Get("tfidinfo");
   }
 
   // If there are MC hits, we load them
@@ -622,19 +586,6 @@ DataManager::DataManager(std::filesystem::path dir)
   // ConnectMCHitsFile(dir+"o2sim_HitsTRD.root");
 }
 
-// template <typename T>
-// TTreeReaderArray<T> *DataManager::AddReaderArray(std::string file, std::string tree, std::string branch)
-// {
-//   if (gSystem->AccessPathName(file.c_str())) {
-//     // file was not found
-//     return nullptr;
-//   }
-
-//   // the file exists, everything else should work
-//   datatree->AddFriend(tree.c_str(), file.c_str());
-//   return new TTreeReaderArray<T>(*datareader, branch.c_str());
-// }
-
 template <typename T>
 void DataManager::AddReaderArray(TTreeReaderArray<T> *&array, std::filesystem::path file, std::string tree, std::string branch)
 {
@@ -654,7 +605,6 @@ bool DataManager::NextTimeFrame()
   {
     mEventNo = 0;
     mTimeFrameNo++;
-    std::cout << "## Time frame " << mTimeFrameNo << std::endl;
 
     // Fix of position/slope should no longer be necessary
     // for (auto &tracklet : *mTracklets) {
@@ -688,11 +638,6 @@ bool DataManager::NextEvent()
   mTriggerRecord = mTrgRecords->At(mEventNo);
   // std::cout << mTriggerRecord << std::endl;
 
-  std::cout << "## TF:Event " << mTimeFrameNo << ":" << mEventNo << ":  "
-       //  << hits->GetSize() << " hits   "
-       << mTriggerRecord.getNumberOfDigits() << " digits and "
-       << mTriggerRecord.getNumberOfTracklets() << " tracklets" << std::endl;
-
   mEventNo++;
   return true;
 }
@@ -705,8 +650,13 @@ RawEvent DataManager::GetEvent()
   ev.tracklets.b = mTracklets->begin() + mTriggerRecord.getFirstTracklet();
   ev.tracklets.e = ev.tracklets.begin() + mTriggerRecord.getNumberOfTracklets();
 
-  ev.hits.b = mHits->begin();
-  ev.hits.e = mHits->end();
+  if (mHits) {
+    ev.hits.b = mHits->begin();
+    ev.hits.e = mHits->end();
+  } else {
+    ev.hits.b = TTreeReaderArray<o2::trd::Hit>::iterator();
+    ev.hits.e = TTreeReaderArray<o2::trd::Hit>::iterator();
+  }
 
   auto evtime = GetTriggerTime();
 
@@ -723,9 +673,9 @@ RawEvent DataManager::GetEvent()
   if (mTracks) {
     for (auto &track : *mTracks) {
       //   // auto tracktime = track.getTimeMUS().getTimeStamp();
-      auto dtime = track.getTimeMUS().getTimeStamp() - evtime;
-      if (dtime > mMatchTimeMinTPC && dtime < mMatchTimeMaxTPC) {
-        ev.tracks.push_back(track);
+      // auto dtime = track.getTimeMUS().getTimeStamp() - evtime;
+      // if (dtime > mMatchTimeMinTPC && dtime < mMatchTimeMaxTPC) {
+      //   ev.tracks.push_back(track);
 
         // for(int ly=0; ly<6; ++ly) {
         //   auto point = extra.extrapolate(track.getParamOut(), ly);
@@ -733,7 +683,7 @@ RawEvent DataManager::GetEvent()
         //     ev.evtrackpoints.push_back(point);
         //   }
         // }
-      }
+      // }
     }
   }
 
@@ -763,6 +713,51 @@ float DataManager::GetTriggerTime()
     return mTriggerRecord.getBCData().differenceInBCMUS(intrec);
   }
 }
+
+std::string DataManager::DescribeFiles()
+{
+  std::ostringstream out;
+  if (!mMainfile) {
+    out << "DataManager is not connected to any files" << std::flush;
+    return out.str();
+  }
+  if (!mDatatree) {
+    out << "ERROR: main datatree not connected" << std::flush;
+    return out.str();
+  }
+  out << "Main file:" << mMainfile->GetPath() << " has " << mDatatree->GetEntries() << " time frames " << std::endl;
+  if (mDatatree->GetFriend("TRDDigit")) {
+    out << "digits" << std::endl;
+  }
+  if (mDatatree->GetFriend("TPCITS")) {
+    out << "tpc its matches" << std::endl;
+  }
+
+  if (mTFIDs) {
+    out << mTFIDs->size() << " TFIDs were read from o2_tfidinfo.root" << std::flush;
+  }
+  return out.str();
+}
+
+std::string DataManager::DescribeTimeFrame()
+{
+  std::ostringstream out;
+  out << "## Time frame " << mTimeFrameNo << ": ";
+  // out << mDatareader->GetEntries() << "";      
+  return out.str();
+}
+
+std::string DataManager::DescribeEvent()
+{
+  std::ostringstream out;
+  out << "## TF:Event " << mTimeFrameNo << ":" << mEventNo << ":  "
+      //  << hits->GetSize() << " hits   "
+      << mTriggerRecord.getNumberOfDigits() << " digits and "
+      << mTriggerRecord.getNumberOfTracklets() << " tracklets";
+  return out.str();
+}
+
+
 // void DataManager::ConnectMCHitsFile(std::string fname)
 // {
 //   // ----------------------------------------------------------------------
@@ -999,5 +994,134 @@ TPad* rawdisp::DrawMCM(RawDataSpan &mcm, TPad *pad)
   // }
 
   return pad;
+}
+
+rawdisp::MCMDisplay::MCMDisplay(RawDataSpan &mcmdata, TVirtualPad *pad)
+: mDataSpan(mcmdata)
+{
+  int det=-1,rob=-1,mcm=-1;
+
+  if(std::distance(mDataSpan.digits.begin(), mDataSpan.digits.end())) {
+    auto x = *mDataSpan.digits.begin();
+    det = x.getDetector();
+    rob = x.getROB();
+    mcm = x.getMCM();
+  } else if(std::distance(mDataSpan.tracklets.begin(), mDataSpan.tracklets.end())) {
+    auto x = *mDataSpan.tracklets.begin();
+    det = x.getDetector();
+    rob = x.getROB();
+    mcm = x.getMCM();
+  } else {
+    std::cerr << "ERROR: found neither digits nor tracklets in MCM" << std::endl;
+    assert(false);
+  }
+
+  mName = Form("det%03d_rob%d_mcm%02d", det, rob, mcm);
+  mDesc = Form("Detector %02d_%d_%d (%03d) - MCM %d:%02d", det/30, (det%30)/6, det%6, det, rob, mcm);;
+
+   // MCM column number on ROC [0..7]
+  int mcmcol = mcm % constants::NMCMROBINCOL + HelperMethods::getROBSide(rob) * constants::NMCMROBINCOL;
+
+  mFirstPad = mcmcol * constants::NCOLMCM - 1;
+  mLastPad = (mcmcol+1) * constants::NCOLMCM + 2;
+
+  if (pad == NULL) {
+    mPad = new TCanvas(mName.c_str(), mDesc.c_str(), 800, 600);
+    std::cout << "create canvas " << mDesc << std::endl;
+  } else {
+    mPad = pad;
+    mPad->SetName(mName.c_str());
+    mPad->SetTitle(mDesc.c_str());
+  }
+}
+
+void rawdisp::MCMDisplay::DrawDigits()
+{
+  mPad->cd();
+
+  std::cout << mFirstPad << " - " << mLastPad << std::endl;
+  if (mDigitsHisto) {
+    delete mDigitsHisto;
+  }
+  mDigitsHisto = new TH2F(mName.c_str(), (mDesc + ";pad;time bin").c_str(), (mLastPad-mFirstPad), mFirstPad, mLastPad, 30, 0., 30.);
+
+  for (auto digit : mDataSpan.digits) {
+    auto adc = digit.getADC();
+    for (int tb = 0; tb < 30; ++tb) {
+      mDigitsHisto->Fill(digit.getPadCol(), tb, adc[tb]);
+    }
+  }
+  mDigitsHisto->SetStats(0);
+  mDigitsHisto->Draw("colz");
+}
+
+void rawdisp::MCMDisplay::DrawTracklets()
+{
+  mPad->cd();
+
+  TLine trkl;
+  trkl.SetLineColor(kRed);
+  trkl.SetLineWidth(3);
+
+  for (auto tracklet : mDataSpan.tracklets) {
+    auto pos = PadColF(tracklet);
+    auto slope = SlopeF(tracklet);
+    trkl.DrawLine(pos, 0, pos + 30 * slope, 30);
+  }
+
+}
+
+void rawdisp::MCMDisplay::DrawClusters()
+{
+  mPad->cd();
+
+  if(!mDigitsHisto) {
+    DrawDigits();
+  }
+
+  TMarker clustermarker;
+  clustermarker.SetMarkerColor(kRed);
+  clustermarker.SetMarkerStyle(2);
+  clustermarker.SetMarkerSize(1.5);
+
+  TMarker cogmarker;
+  cogmarker.SetMarkerColor(kGreen);
+  cogmarker.SetMarkerStyle(3);
+  cogmarker.SetMarkerSize(1.5);
+  for(int t=1; t<=mDigitsHisto->GetNbinsY(); ++t) {
+    for(int p=2; p<=mDigitsHisto->GetNbinsX()-1; ++p) {
+      // cout << p << "/" << t << " -> " << mDigitsHisto->GetBinContent(i,j) << endl;
+        double baseline = 9.5;
+        double left = mDigitsHisto->GetBinContent(p-1,t) - baseline;
+        double centre = mDigitsHisto->GetBinContent(p,t) - baseline;
+        double right = mDigitsHisto->GetBinContent(p+1,t) - baseline;
+        if (centre > left && centre > right) {
+          double pos = 0.5 * log(right/left) / log(centre*centre / left / right);
+          double clpos = mDigitsHisto->GetXaxis()->GetBinCenter(p) + pos;
+          double cog = (right - left) / (right+centre+left) + mDigitsHisto->GetXaxis()->GetBinCenter(p);
+          // cout << "t=" << t << " p=" << p 
+          //      << ":   ADCs = " << left << " / " << centre << " / " << right
+          //      << "   pos = " << pos << " ~ " << clpos
+          //      << endl;
+          clustermarker.DrawMarker(clpos, t-0.5);
+          cogmarker.DrawMarker(cog, t-0.5);
+        }
+    }
+  }
+
+
+  // TODO: At the moment, hits are not propagated during splitting of a RawDataSpan, therefore this code does not work yet.
+  // TMarker hitmarker;
+  // hitmarker.SetMarkerColor(kBlack);
+  // hitmarker.SetMarkerStyle(38);
+
+  // auto ct = CoordinateTransformer::instance();
+  // for (auto hit : mcm.hits) {
+  //   std::cout << hit.GetCharge() << std::endl;
+  //   auto rct = ct->Local2RCT(hit);
+  //   hitmarker.SetMarkerSize(hit.GetCharge() / 50.);
+  //   hitmarker.DrawMarker(rct[1], rct[2]);
+  // }
+
 }
 

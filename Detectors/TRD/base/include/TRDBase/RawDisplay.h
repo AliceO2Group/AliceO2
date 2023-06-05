@@ -45,6 +45,8 @@
 class TFile;
 class TTreeReader;
 class TPad;
+class TVirtualPad;
+class TH2;
 
 // template<typename T>
 // class TTreeReaderArray<T>;
@@ -188,8 +190,12 @@ struct MCM_ID
   template<typename T>
   static uint32_t key(const T &x) 
   { 
-    return 1000*x.getDetector() + 10*x.getPadRow() + 4*(x.getROB()%2) + x.getMCM()%4;
+    return 1000*x.getDetector() + 8*x.getPadRow() + 4*(x.getROB()%2) + x.getMCM()%4;
   }
+
+  static int getDetector(uint32_t k) {return k/1000;}
+  // static int getPadRow(key) {return (key%1000) / 8;}
+  static int getMcmRowCol(uint32_t k) {return k%1000;}
 };
 
 
@@ -226,13 +232,33 @@ public:
 
 };
 
-
 struct RawEvent : public RawDataSpan
 {
   // std::vector<o2::tpc::TrackTPC> tpctracks;
   std::vector<o2::dataformats::TrackTPCITS> tracks;
   std::vector<ChamberSpacePoint> evtrackpoints;
 };
+
+class MCMDisplay
+{
+public:
+  MCMDisplay(RawDataSpan &mcm, TVirtualPad *pad=NULL);
+  void DrawDigits();
+  void DrawTracklets();
+  void DrawClusters();
+
+  void Draw() { DrawDigits(); DrawTracklets(); }
+
+protected:
+  RawDataSpan &mDataSpan;
+  TVirtualPad* mPad{0};
+  TH2* mDigitsHisto{0};
+  std::string mName;
+  std::string mDesc;
+  int mFirstPad;
+  int mLastPad;
+};
+
 
 TPad *DrawMCM(RawDataSpan &mcm, TPad *pad=NULL);
 
@@ -402,6 +428,10 @@ public:
 
   size_t GetTimeFrameNumber() { return mTimeFrameNo; }
   size_t GetEventNumber() { return mEventNo; }
+
+  std::string DescribeFiles();
+  std::string DescribeTimeFrame();
+  std::string DescribeEvent();
 
 private: 
   TFile *mMainfile{0};
