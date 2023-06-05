@@ -32,6 +32,7 @@
 #include "SimConfig/SimUserDecay.h"
 #include <filesystem>
 #include <CommonUtils/FileSystemUtils.h>
+#include "SimConfig/GlobalProcessCutSimParam.h"
 
 namespace o2
 {
@@ -56,6 +57,17 @@ void TypedVectorAttach(const char* name, fair::mq::Channel& channel, fair::mq::P
 void O2MCApplicationBase::Stepping()
 {
   mStepCounter++;
+
+  // check the max time of flight condition
+  const auto tof = fMC->TrackTime();
+  auto& params = o2::GlobalProcessCutSimParam::Instance();
+  if (tof > params.TOFMAX) {
+    fMC->StopTrack();
+    return;
+  }
+
+  mLongestTrackTime = std::max((double)mLongestTrackTime, tof);
+
   if (mCutParams.stepFiltering) {
     // we can kill tracks here based on our
     // custom detector specificities
@@ -181,6 +193,7 @@ bool O2MCApplicationBase::MisalignGeometry()
 void O2MCApplicationBase::finishEventCommon()
 {
   LOG(info) << "This event/chunk did " << mStepCounter << " steps";
+  LOG(info) << "Longest track time is " << mLongestTrackTime;
 
   auto header = static_cast<o2::dataformats::MCEventHeader*>(fMCEventHeader);
   header->getMCEventStats().setNSteps(mStepCounter);
@@ -214,6 +227,7 @@ void O2MCApplicationBase::BeginEvent()
   static_cast<o2::data::Stack*>(GetStack())->setMCEventStats(&header->getMCEventStats());
 
   mStepCounter = 0;
+  mLongestTrackTime = 0;
 }
 
 void addSpecialParticles()

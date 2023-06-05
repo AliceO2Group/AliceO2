@@ -43,7 +43,7 @@ struct GlobalProcessCutSimParam : public o2::conf::ConfigurableParamHelper<Globa
   double DCUTE = 1.0E-3;  // GeV --> 1 MeV
   double DCUTM = 1.0E-3;  // GeV --> 1 MeV
   double PPCUTM = 1.0E-3; // GeV --> 1 MeV
-  double TOFMAX = 1.E10;  // seconds
+  double TOFMAX = 0.1;    // seconds
 
   // boilerplate stuff + make principal key "GlobalSimProcs"
   O2ParamDef(GlobalProcessCutSimParam, "GlobalSimProcs");

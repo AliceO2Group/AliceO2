@@ -479,6 +479,15 @@ input data (obligatory): comma-separated list of input data files and/or files w
 max TF ID to process (<= 0 : infinite)
 
 ```
+--select-tf-ids <id's of TFs to select>
+```
+This is a `tf-reader` device local option allowing selective reading of particular TFs. It is useful when dealing with TF files containing multiple TFs. The comma-separated list of increasing TFs indices must be provided in the format parsed by the `RangeTokenizer<int>`, e.g. `1,4-6,...`.
+Note that the index corresponds not to DataHeader.TFcounter of the TF but to the reader own counter incremented throught all input files (e.g. if 10 raw-TF files with 20 TFs each are provided for the input and the selection of TFs
+`0,2,22,66` is provided, the reader will inject to the DPL the TFs at entries 0 and 2 from the 1st raw-TF file, entry 5 of the second file, entry 6 of the 3d and will finish the job.
+
+
+
+```
 --loop arg (=0)
 ```
 loop N times (-1 = infinite) over input files (but max-tf has priority if positive)

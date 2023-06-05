@@ -73,7 +73,7 @@ void ControlWebSocketHandler::endChunk()
   if (!didProcessMetric) {
     return;
   }
-  size_t timestamp = uv_now(mContext.loop);
+  size_t timestamp = (uv_hrtime() - mContext.driver->startTime) / 1000000 + mContext.driver->startTimeMsFromEpoch;
   assert(mContext.metrics);
   assert(mContext.infos);
   assert(mContext.states);

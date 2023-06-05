@@ -29,21 +29,25 @@ namespace globaltracking
 {
 
 //_____________________________________________________________
+void GlobalFwdAssessmentSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
+    const double centerMFT[3] = {0, 0, -61.4}; // Field at center of MFT
+    auto Bz = field->getBz(centerMFT);
+    mGloFwdAssessment->setBz(Bz);
+    return;
+  }
+  return;
+}
+
+//_____________________________________________________________
 void GlobalFwdAssessmentSpec::init(InitContext& ic)
 {
   mGloFwdAssessment = std::make_unique<o2::globaltracking::GloFwdAssessment>(mUseMC);
-
+  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   if (mMIDFilterDisabled) {
     mGloFwdAssessment->disableMIDFilter();
-  }
-  auto filename = o2::base::NameConf::getGRPFileName();
-  const auto grp = o2::parameters::GRPObject::loadFrom(filename.c_str());
-  if (grp) {
-    o2::base::Propagator::initFieldFromGRP(grp);
-    auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
-    double centerMFT[3] = {0, 0, -61.4}; // Field at center of MFT
-    auto Bz = field->getBz(centerMFT);
-    mGloFwdAssessment->setBz(Bz);
   }
 
   for (int sw = 0; sw < NStopWatches; sw++) {
@@ -58,6 +62,7 @@ void GlobalFwdAssessmentSpec::init(InitContext& ic)
 //_____________________________________________________________
 void GlobalFwdAssessmentSpec::run(o2::framework::ProcessingContext& pc)
 {
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
 
   mTimer[SWQCAsync].Start(false);
   mGloFwdAssessment->runBasicQC(pc);
@@ -127,13 +132,22 @@ DataProcessorSpec getGlobaFwdAssessmentSpec(bool useMC, bool processGen, bool mi
     inputs.emplace_back("fwdtrklabels", "GLO", "GLFWD_MC", 0, Lifetime::Timeframe);
   }
 
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime
+                                                              false,                          // GRPECS=true
+                                                              false,                          // GRPLHCIF
+                                                              true,                           // GRPMagField
+                                                              false,                          // askMatLUT
+                                                              o2::base::GRPGeomRequest::None, // geometry
+                                                              inputs,
+                                                              true); // query only once all objects except mag.field
+
   outputs.emplace_back("GLO", "FWDASSESSMENT", 0, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "glofwd-assessment",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<o2::globaltracking::GlobalFwdAssessmentSpec>(useMC, processGen, midFilterDisabled, finalizeAnalysis)},
+    AlgorithmSpec{adaptFromTask<o2::globaltracking::GlobalFwdAssessmentSpec>(useMC, processGen, ggRequest, midFilterDisabled, finalizeAnalysis)},
     Options{{}}};
 }
 

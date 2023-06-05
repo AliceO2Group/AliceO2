@@ -9,5 +9,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "SimSetup/GlobalProcessCutSimParam.h"
-O2ParamImpl(o2::GlobalProcessCutSimParam);
+#include "FITWorkflow/FITIntegrateClusterReaderSpec.h"
+#include "DataFormatsFDD/RecPoint.h"
+#include "Framework/runDataProcessing.h"
+
+using namespace o2::framework;
+
+WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
+{
+  WorkflowSpec wf;
+  wf.emplace_back(o2::fit::getFITIntegrateClusterReaderSpec<o2::fdd::RecPoint>());
+  return wf;
+}

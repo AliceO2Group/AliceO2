@@ -22,14 +22,12 @@
 namespace o2::framework
 {
 
-class ServiceRegistry;
-
 class FairMQDeviceProxy;
 
 struct SendingPolicy {
-  using SendingCallback = std::function<void(FairMQDeviceProxy&, fair::mq::Parts&, ChannelIndex channelIndex, ServiceRegistryRef registry)>;
+  using SendingCallback = std::function<void(fair::mq::Parts&, ChannelIndex channelIndex, ServiceRegistryRef registry)>;
   std::string name = "invalid";
-  DeviceMatcher matcher = nullptr;
+  EdgeMatcher matcher = nullptr;
   SendingCallback send = nullptr;
   static std::vector<SendingPolicy> createDefaultPolicies();
 };

@@ -25,6 +25,16 @@ std::pair<int64_t, int64_t> SliceInfoPtr::getSliceFor(int value) const
   if (values.empty()) {
     return {offset, 0};
   }
+  assert(!values.empty());
+  auto p = values.size() - 1;
+  while (values[p] < 0) {
+    assert(p > 0);
+    --p;
+  }
+  if (value > values[p]) {
+    return {offset, 0};
+  }
+
   for (auto i = 0; i < values.size(); ++i) {
     if (values[i] == value) {
       return {offset, counts[i]};
@@ -36,8 +46,10 @@ std::pair<int64_t, int64_t> SliceInfoPtr::getSliceFor(int value) const
 
 gsl::span<const int64_t> SliceInfoUnsortedPtr::getSliceFor(int value) const
 {
-  auto locate = std::find(values.begin(), values.end(), value);
-  if (locate == values.end()) {
+  if (values.empty()) {
+    return {};
+  }
+  if (value > values[values.size() - 1]) {
     return {};
   }
 

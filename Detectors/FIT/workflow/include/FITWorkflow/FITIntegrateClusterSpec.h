@@ -35,6 +35,11 @@ namespace ft0
 class RecPoints;
 }
 
+namespace fdd
+{
+class RecPoint;
+}
+
 namespace fit
 {
 
@@ -61,6 +66,17 @@ struct DataDescriptionFITCurrents<o2::ft0::RecPoints> {
   static constexpr header::DataDescription getDataDescriptionFITTFId() { return header::DataDescription{"IFT0TFID"}; }
   static constexpr header::DataDescription getDataDescriptionCCDB() { return header::DataDescription{"IFT0CCCDB"}; }
   static constexpr header::DataOrigin getDataOrigin() { return header::gDataOriginFT0; }
+};
+
+template <>
+struct DataDescriptionFITCurrents<o2::fdd::RecPoint> {
+  using DataTStruct = IFDDC;
+  std::string static getName() { return "fdd"; }
+  std::string static getCCDBPath() { return "FDD/Calib/IFDDC"; }
+  static constexpr header::DataDescription getDataDescriptionFITC() { return header::DataDescription{"IFDDC"}; }
+  static constexpr header::DataDescription getDataDescriptionFITTFId() { return header::DataDescription{"IFDDTFID"}; }
+  static constexpr header::DataDescription getDataDescriptionCCDB() { return header::DataDescription{"IFDDCCCDB"}; }
+  static constexpr header::DataOrigin getDataOrigin() { return header::gDataOriginFDD; }
 };
 
 template <typename DataT>
@@ -105,7 +121,7 @@ class FITIntegrateClusters : public Task
           mBufferCurrents.mIAmplA[sliceInTF] += amplA;
         }
 
-        if constexpr (std::is_same_v<DataT, o2::ft0::RecPoints>) {
+        if constexpr (std::is_same_v<DataT, o2::ft0::RecPoints> || std::is_same_v<DataT, o2::fdd::RecPoint>) {
           const float nChanC = static_cast<float>(cluster.getTrigger().getNChanC());
           const float amplC = static_cast<float>(cluster.getTrigger().getAmplC());
           if ((nChanC > mMinNChan) && (amplC > mMinAmpl)) {

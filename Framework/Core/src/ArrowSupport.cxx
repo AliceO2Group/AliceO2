@@ -256,8 +256,6 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                          return;
                        }
 
-                       static uint64_t now = 0;
-                       now = uv_hrtime();
                        static int64_t MAX_SHARED_MEMORY = calculateAvailableSharedMemory(registry);
                        constexpr int64_t MAX_QUANTUM_SHARED_MEMORY = 100;
                        constexpr int64_t MIN_QUANTUM_SHARED_MEMORY = 50;

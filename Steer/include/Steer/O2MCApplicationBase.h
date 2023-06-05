@@ -65,6 +65,7 @@ class O2MCApplicationBase : public FairMCApplication
   std::map<int, std::string> mSensitiveVolumes{}; // collection of all sensitive volumes with
                                                   // keeping track of volumeIds and volume names
 
+  double mLongestTrackTime = 0;
   /// some common parts of finishEvent
   void finishEventCommon();
   TrackRefFcn mTrackRefFcn; // a function hook that gets (optionally) called during Stepping

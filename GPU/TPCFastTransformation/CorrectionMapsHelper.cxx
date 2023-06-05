@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "CorrectionMapsHelper.h"
-#include "Framework/Logger.h"
+#include "GPUCommonLogger.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 

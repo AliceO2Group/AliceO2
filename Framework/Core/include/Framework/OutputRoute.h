@@ -18,6 +18,8 @@
 namespace o2::framework
 {
 
+struct SendingPolicy;
+
 // This uniquely identifies a route out of the device if
 // the OutputSpec @a matcher and @a timeslice match.
 struct OutputRoute {
@@ -25,6 +27,8 @@ struct OutputRoute {
   size_t maxTimeslices;
   OutputSpec matcher;
   std::string channel;
+  // The policy to use to send to on this route.
+  SendingPolicy const* policy;
 };
 
 } // namespace o2::framework

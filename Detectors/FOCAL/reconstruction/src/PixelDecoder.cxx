@@ -25,7 +25,6 @@ void PixelDecoder::reset()
 
 void PixelDecoder::decodeEvent(gsl::span<const o2::itsmft::GBTWord> payload)
 {
-
   o2::InteractionRecord currentIR;
   bool physicsTrigger = false;
   mPixelData.clear();
@@ -35,6 +34,9 @@ void PixelDecoder::decodeEvent(gsl::span<const o2::itsmft::GBTWord> payload)
       // to be defined
     }
     if (word.isDataTrailer()) {
+      // to be defined
+    }
+    if (word.isDiagnosticWord()) {
       // to be defined
     }
     if (word.isTriggerWord()) {
@@ -182,7 +184,7 @@ std::vector<PixelChip> PixelDecoder::decodeLane(uint8_t laneID, gsl::span<const 
           // Add empty chip to decoded payload (if not yet present)
           // std::cout << "Creating new empty frame" << std::endl;
           LOG(debug) << "Creating new empty frame";
-          currentChipStatus = PixelChip::EMPTYFRAME;
+          currentChipStatus = (emptyword->mIdentifier) << 8;
           decodedChips.push_back({0, laneID, static_cast<uint8_t>(chipID), currentChipStatus, hits});
         } else {
           // std::cout << "Skipping existing empty frame" << std::endl;
@@ -196,7 +198,7 @@ std::vector<PixelChip> PixelDecoder::decodeLane(uint8_t laneID, gsl::span<const 
         hits.clear();
         currentChipID = chipheader->mChipID;
         activeChip = true;
-        currentChipStatus = PixelChip::EMPTYFRAME;
+        currentChipStatus = (chipheader->mIdentifier) << 8;
         // std::cout << "New chip (" << std::bitset<4>(chipheader->mIdentifier) << ") " << int(chipheader->mChipID) << ", BC (" << int(chipheader->mBunchCrossing) << "), empty " << (chipheader->isEmptyFrame() ? "yes" : "no") << std::endl;
         LOG(debug) << "New chip (" << std::bitset<4>(chipheader->mIdentifier) << ") " << int(chipheader->mChipID) << ", BC (" << int(chipheader->mBunchCrossing) << "), empty " << (chipheader->isEmptyFrame() ? "yes" : "no");
         break;
@@ -204,10 +206,7 @@ std::vector<PixelChip> PixelDecoder::decodeLane(uint8_t laneID, gsl::span<const 
       case PixelWord::PixelWordType::CHIP_TRAILER: {
         auto trailer = reinterpret_cast<const PixelWord::ChipTrailer*>(currentptr);
         wordsize = sizeof(PixelWord::ChipTrailer) / sizeof(uint8_t);
-        if (currentChipStatus & PixelChip::DATAFRAME) {
-          // remove emptyframe bit in case dataframe bit is found
-          currentChipStatus &= ~(PixelChip::EMPTYFRAME);
-        }
+        currentChipStatus |= trailer->mReadoutFlags;
         // -> Combine hits to chip
         // -> Write hits to output container
         // std::cout << "Finished chip (" << std::bitset<4>(trailer->mIdentifier) << ") " << int(currentChipID) << " with " << hits.size() << " hits .. (Readout flags " << std::bitset<4>(trailer->mReadoutFlags) << ")" << std::endl;
@@ -216,7 +215,7 @@ std::vector<PixelChip> PixelDecoder::decodeLane(uint8_t laneID, gsl::span<const 
         if (found != decodedChips.end()) {
           auto hitsbefore = found->mHits.size();
           std::copy(hits.begin(), hits.end(), std::back_inserter(found->mHits));
-          found->mStatusCode |= currentChipStatus;
+          found->mStatusCode = currentChipStatus;
           found->removeEmptyframe();
           // std::cout << "Merging data with existing chip, Hits before: " << hitsbefore << ", after: " << found->mHits.size() << std::endl;
           LOG(debug) << "Merging data with existing chip, Hits before: " << hitsbefore << ", after: " << found->mHits.size();
@@ -242,7 +241,6 @@ std::vector<PixelChip> PixelDecoder::decodeLane(uint8_t laneID, gsl::span<const 
         LOG(debug) << "Found DataShort [" << std::bitset<16>(datashort.mData) << "] word (" << std::bitset<2>(datashort.mIdentifier) << ") with encoder " << std::bitset<4>(datashort.mEncoderID) << " and address " << std::bitset<10>(datashort.mAddress);
         wordsize = sizeof(PixelWord::DataShort) / sizeof(uint8_t);
         hits.push_back({AlpideX(currentRegion, datashort.mEncoderID, datashort.mAddress), AlpideY(datashort.mAddress)});
-        currentChipStatus |= PixelChip::DATAFRAME;
         break;
       }
       case PixelWord::PixelWordType::DATA_LONG: {
@@ -259,16 +257,13 @@ std::vector<PixelChip> PixelDecoder::decodeLane(uint8_t laneID, gsl::span<const 
             hits.push_back({AlpideX(currentRegion, datapart.mEncoderID, address), AlpideY(address)});
           }
         }
-        currentChipStatus |= PixelChip::DATAFRAME;
         break;
       }
       case PixelWord::PixelWordType::BUSY_OFF:
         // std::cout << "Found busy off" << std::endl;
-        currentChipStatus |= PixelChip::BUSY_OFF;
         wordsize = sizeof(PixelWord::BusyOff) / sizeof(uint8_t);
       case PixelWord::PixelWordType::BUSY_ON:
         // std::cout << "Found busy on" << std::endl;
-        currentChipStatus |= PixelChip::BUSY_ON;
         wordsize = sizeof(PixelWord::BusyOn) / sizeof(uint8_t);
       case PixelWord::PixelWordType::IDLE:
         // std::cout << "Found idle" << std::endl;

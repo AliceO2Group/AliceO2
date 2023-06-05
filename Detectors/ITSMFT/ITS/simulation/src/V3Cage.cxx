@@ -19,13 +19,13 @@
 
 #include <fairlogger/Logger.h> // for LOG
 
-//#include <TGeoArb8.h>           // for TGeoArb8
-//#include <TGeoBBox.h>    // for TGeoBBox
-//#include <TGeoCone.h>    // for TGeoConeSeg, TGeoCone
+// #include <TGeoArb8.h>           // for TGeoArb8
+// #include <TGeoBBox.h>    // for TGeoBBox
+// #include <TGeoCone.h>    // for TGeoConeSeg, TGeoCone
 #include <TGeoPcon.h>    // for TGeoPcon
 #include <TGeoManager.h> // for TGeoManager, gGeoManager
 #include <TGeoMatrix.h>  // for TGeoCombiTrans, TGeoRotation, etc
-//#include <TGeoTrd1.h>           // for TGeoTrd1
+// #include <TGeoTrd1.h>           // for TGeoTrd1
 #include <TGeoTube.h>           // for TGeoTube, TGeoTubeSeg
 #include <TGeoVolume.h>         // for TGeoVolume, TGeoVolumeAssembly
 #include <TGeoXtru.h>           // for TGeoXtru
@@ -79,6 +79,8 @@ const Double_t V3Cage::sCageSidePanelGuideInHi = 204.0 * sMm;
 const Double_t V3Cage::sCageSidePanelGuideWide = 44.0 * sMm;
 const Double_t V3Cage::sCageSidePanelGuidThik1 = 6.0 * sMm;
 const Double_t V3Cage::sCageSidePanelGuidThik2 = 8.0 * sMm;
+const Double_t V3Cage::sCageSidePanelMidBarWid = 15.0 * sMm;
+const Double_t V3Cage::sCageSidePanelSidBarWid = 15.0 * sMm;
 
 const Double_t V3Cage::sCageSidePanelRail1Ypos[2] = {226.5 * sMm, 147.5 * sMm};
 const Double_t V3Cage::sCageSidePanelRail2Ypos = 74.5 * sMm;
@@ -347,6 +349,7 @@ TGeoVolume* V3Cage::createCageSidePanel(const TGeoManager* mgr)
   //         The side panel as a TGeoVolumeAssembly
   //
   // Created:      30 Sep 2022  Mario Sitta
+  // Updated:      20 May 2023  Mario Sitta  Mid and side bars added
   //
 
   // Local variables
@@ -376,6 +379,18 @@ TGeoVolume* V3Cage::createCageSidePanel(const TGeoManager* mgr)
 
   // The shortest rails
   TGeoCompositeShape* rail3Sh = createCageSidePanelRail(sCageSidePanelRail3Len, 3);
+
+  // The middle bar: a BBox
+  xlen = sCageSidePanelCoreThick / 2;
+  ylen = sCageSidePanelMidBarWid / 2;
+  zlen = (sCageSidePanelLength - sCageSidePanelRail3Len - sCageSidePanelSidBarWid) / 2;
+  TGeoBBox* midBarSh = new TGeoBBox(xlen, ylen, zlen);
+
+  // The side bar: a BBox
+  xlen = sCageSidePanelCoreThick / 2;
+  ylen = sCageSidePanelWidth / 2;
+  zlen = sCageSidePanelSidBarWid / 2;
+  TGeoBBox* sidBarSh = new TGeoBBox(xlen, ylen, zlen);
 
   // The elements of the guide:
   // - the vertical part: a BBox
@@ -433,6 +448,14 @@ TGeoVolume* V3Cage::createCageSidePanel(const TGeoManager* mgr)
   rail3Vol->SetFillColor(kGray);
   rail3Vol->SetLineColor(kGray);
 
+  TGeoVolume* midBarVol = new TGeoVolume("CageSidePanelMiddleBar", midBarSh, medAlAlloy);
+  midBarVol->SetFillColor(kGray);
+  midBarVol->SetLineColor(kGray);
+
+  TGeoVolume* sidBarVol = new TGeoVolume("CageSidePanelSideBar", sidBarSh, medAlAlloy);
+  sidBarVol->SetFillColor(kGray);
+  sidBarVol->SetLineColor(kGray);
+
   TGeoVolume* guideVol = new TGeoVolume("CageSidePanelGuide", guideSh, medFabric);
   guideVol->SetFillColor(kViolet);
   guideVol->SetLineColor(kViolet);
@@ -464,6 +487,12 @@ TGeoVolume* V3Cage::createCageSidePanel(const TGeoManager* mgr)
     sidePanelVol->AddNode(rail3Vol, j + 4, new TGeoTranslation(xpos, -ypos, zpos));
   }
 
+  zpos = sCageSidePanelLength / 2 - midBarSh->GetDZ() - sCageSidePanelSidBarWid;
+  sidePanelVol->AddNode(midBarVol, 1, new TGeoTranslation(0, 0, -zpos));
+
+  zpos = sCageSidePanelLength / 2 - sidBarSh->GetDZ();
+  sidePanelVol->AddNode(sidBarVol, 1, new TGeoTranslation(0, 0, -zpos));
+
   xpos = sCageSidePanelCoreThick / 2 + sCageSidePanelFoilThick + sCageSidePanelGuidThik2 / 2;
   zpos = (sCageSidePanelLength - sCageSidePanelGuideLen) / 2;
   sidePanelVol->AddNode(guideVol, 1, new TGeoTranslation(xpos, 0, -zpos));
@@ -488,6 +517,7 @@ TGeoCompositeShape* V3Cage::createCageSidePanelCoreFoil(const Double_t xthick, c
   //         The side panel core or foil as a TGeoCompositeShape
   //
   // Created:      07 Oct 2022  Mario Sitta
+  // Updated:      20 May 2023  Mario Sitta  Mid and side bars added
   //
 
   // Local variables
@@ -550,6 +580,30 @@ TGeoCompositeShape* V3Cage::createCageSidePanelCoreFoil(const Double_t xthick, c
     rail3Mat[j + 3]->RegisterYourself();
   }
 
+  // The hole for the middle bar: a BBox
+  xlen = 1.1 * sCageSidePanelCoreThick / 2;
+  ylen = sCageSidePanelMidBarWid / 2;
+  zlen = (sCageSidePanelLength - sCageSidePanelRail3Len) / 2;
+  TGeoBBox* midBarHol = new TGeoBBox(xlen, ylen, zlen);
+  midBarHol->SetName("midbar");
+
+  zpos = sCageSidePanelRail3Len / 2;
+  TGeoTranslation* midBarMat = new TGeoTranslation(0, 0, -zpos);
+  midBarMat->SetName("midbarmat");
+  midBarMat->RegisterYourself();
+
+  // The hole for the side bar: a BBox
+  xlen = 1.1 * sCageSidePanelCoreThick / 2;
+  ylen = 1.1 * sCageSidePanelWidth / 2;
+  zlen = sCageSidePanelSidBarWid;
+  TGeoBBox* sidBarHol = new TGeoBBox(xlen, ylen, zlen);
+  sidBarHol->SetName("sidebar");
+
+  zpos = sCageSidePanelLength / 2;
+  TGeoTranslation* sidBarMat = new TGeoTranslation(0, 0, -zpos);
+  sidBarMat->SetName("sidebarmat");
+  sidBarMat->RegisterYourself();
+
   // The actual shape: a CompositeShape
   TString compoShape = Form("%sbodyshape", shpref);
   for (Int_t j = 0; j < 4; j++) {
@@ -560,6 +614,11 @@ TGeoCompositeShape* V3Cage::createCageSidePanelCoreFoil(const Double_t xthick, c
   }
   for (Int_t j = 0; j < 6; j++) {
     compoShape += Form("-%sshortrail:shortrailmat%d", shpref, j);
+  }
+
+  // The mid and side bar holes are present only in the core shape
+  if (strcmp(shpref, "core") == 0) {
+    compoShape += "-midbar:midbarmat-sidebar:sidebarmat";
   }
 
   TGeoCompositeShape* corefoilSh = new TGeoCompositeShape(compoShape);

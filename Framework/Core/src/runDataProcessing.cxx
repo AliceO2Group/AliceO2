@@ -1578,32 +1578,56 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                                                             varmap["channel-prefix"].as<std::string>(),
                                                             overrides);
           metricProcessingCallbacks.clear();
+          std::vector<std::string> matchingServices;
+
+          // FIXME: once moving to C++20, we can use templated lambdas.
+          matchingServices.clear();
           for (auto& device : runningWorkflow.devices) {
             for (auto& service : device.services) {
+              // If a service with the same name is already registered, skip it
+              if (std::find(matchingServices.begin(), matchingServices.end(), service.name) != matchingServices.end()) {
+                continue;
+              }
               if (service.metricHandling) {
                 metricProcessingCallbacks.push_back(service.metricHandling);
+                matchingServices.push_back(service.name);
               }
             }
           }
           preScheduleCallbacks.clear();
+          matchingServices.clear();
           for (auto& device : runningWorkflow.devices) {
             for (auto& service : device.services) {
+              // If a service with the same name is already registered, skip it
+              if (std::find(matchingServices.begin(), matchingServices.end(), service.name) != matchingServices.end()) {
+                continue;
+              }
               if (service.preSchedule) {
                 preScheduleCallbacks.push_back(service.preSchedule);
               }
             }
           }
           postScheduleCallbacks.clear();
+          matchingServices.clear();
           for (auto& device : runningWorkflow.devices) {
             for (auto& service : device.services) {
+              // If a service with the same name is already registered, skip it
+              if (std::find(matchingServices.begin(), matchingServices.end(), service.name) != matchingServices.end()) {
+                continue;
+              }
               if (service.postSchedule) {
                 postScheduleCallbacks.push_back(service.postSchedule);
               }
             }
           }
           driverInitCallbacks.clear();
+          matchingServices.clear();
           for (auto& device : runningWorkflow.devices) {
             for (auto& service : device.services) {
+              // If a service with the same name is already registered, skip it
+              if (std::find(matchingServices.begin(), matchingServices.end(), service.name) != matchingServices.end()) {
+                continue;
+              }
               if (service.driverInit) {
                 driverInitCallbacks.push_back(service.driverInit);
               }
@@ -2586,6 +2610,21 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     }
   }
 
+  /// Iterate over the physicalWorkflow, any DataProcessorSpec that has a
+  /// expendable label should have all the timeframe lifetime outputs changed
+  /// to sporadic, because there is no guarantee that the device will be alive,
+  /// so we should not expect its data to always arrive.
+  for (auto& dp : physicalWorkflow) {
+    auto isExpendable = [](DataProcessorLabel const& label) { return label.value == "expendable" || label.value == "non-critical"; };
+    if (std::find_if(dp.labels.begin(), dp.labels.end(), isExpendable) != dp.labels.end()) {
+      for (auto& output : dp.outputs) {
+        if (output.lifetime == Lifetime::Timeframe) {
+          output.lifetime = Lifetime::Sporadic;
+        }
+      }
+    }
+  }
+
   /// This is the earlies the services are actually needed
   OverrideServiceSpecs driverServicesOverride = ServiceSpecHelpers::parseOverrides(getenv("DPL_DRIVER_OVERRIDE_SERVICES"));
   ServiceSpecs driverServices = ServiceSpecHelpers::filterDisabled(CommonDriverServices::defaultServices(), driverServicesOverride);
@@ -2815,6 +2854,9 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   }
   driverInfo.minFailureLevel = varmap["min-failure-level"].as<LogParsingHelpers::LogLevel>();
   driverInfo.startTime = uv_hrtime();
+  driverInfo.startTimeMsFromEpoch = std::chrono::duration_cast<std::chrono::milliseconds>(
+                                      std::chrono::system_clock::now().time_since_epoch())
+                                      .count();
   driverInfo.timeout = varmap["timeout"].as<uint64_t>();
   driverInfo.deployHostname = varmap["hostname"].as<std::string>();
   driverInfo.resources = varmap["resources"].as<std::string>();

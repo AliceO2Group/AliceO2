@@ -180,6 +180,16 @@ int CruRawReader::processHBFs()
     mCRUID = o2::raw::RDHUtils::getCRUID(rdh);
     mIR = o2::raw::RDHUtils::getTriggerIR(rdh); // the orbit counter is taken from the RDH here, the bc is overwritten later from the HalfCRUHeader
 
+    if (mTotalHBFPayLoad + memorySize >= mDataBufferSize) {
+      // the size of the current RDH is larger than it can possibly be (we still expect a STOP RDH)
+      if (mMaxErrsPrinted > 0) {
+        LOGP(error, "RDH memory size of {} + HBF payload of {} >= total buffer size of {}. CRU for FEE ID {:#04x} misconfigured with too large number of HBFs per TF?",
+             memorySize, mTotalHBFPayLoad, mDataBufferSize, mFEEID.word);
+        checkNoErr();
+      }
+      return -1;
+    }
+
     // copy the contents of the current RDH into the buffer to be parsed, RDH payload is memory size minus header size
     std::memcpy((char*)&mHBFPayload[0] + mTotalHBFPayLoad, ((char*)rdh) + headerSize, rdhpayload);
     // copy the contents of the current rdh into the buffer to be parsed
@@ -369,7 +379,7 @@ bool CruRawReader::processHalfCRU(int iteration)
   // this should only hit that instance where the cru payload is a "blank event" of CRUPADDING32
   if (mHBFPayload[mHBFoffset32] == CRUPADDING32) {
     if (mOptions[TRDVerboseBit]) {
-      LOG(info) << "blank rdh payload data at " << mHBFoffset32 << ": 0x " << std::hex << mHBFPayload[mHBFoffset32] << " and 0x" << mHBFPayload[mHBFoffset32 + 1];
+      LOG(info) << "blank rdh payload data at " << mHBFoffset32 << ": 0x" << std::hex << mHBFPayload[mHBFoffset32] << " and 0x" << mHBFPayload[mHBFoffset32 + 1];
     }
     int loopcount = 0;
     while (mHBFPayload[mHBFoffset32] == CRUPADDING32 && loopcount < 8) { // can only ever be an entire 256 bit word hence a limit of 8 here.
@@ -1073,14 +1083,10 @@ void CruRawReader::run()
         checkNoWarn();
       }
       break;
-    } else if (dataRead == 0) {
-      if (mMaxWarnPrinted > 0) {
-        LOG(warn) << "Did not process any data for given HBF. Probably STOP bit was set in first RDH";
-        checkNoWarn();
-      }
-      break;
     } else {
-      LOG(debug) << "Done processing HBFs. Total input size was " << dataRead << " bytes (including all headers and padding words)";
+      if (mOptions[TRDVerboseBit]) {
+        LOGP(info, "Done processing HBFs. Total input size was {} bytes (including all headers and padding words)", dataRead);
+      }
     }
   }
 };

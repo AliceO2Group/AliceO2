@@ -244,6 +244,7 @@ void FairMQDeviceProxy::bind(std::vector<OutputRoute> const& outputs, std::vecto
           .name = route.channel,
           .channelType = dplChannel,
           .channel = device.fChannels.at(route.channel).at(0),
+          .policy = route.policy,
         };
         mOutputChannelInfos.push_back(info);
         mOutputChannelStates.push_back({0});
@@ -257,10 +258,12 @@ void FairMQDeviceProxy::bind(std::vector<OutputRoute> const& outputs, std::vecto
       mOutputRoutes.emplace_back(RouteState{channelIndex, false});
       ri++;
     }
+#ifndef NDEBUG
     for (auto& route : mOutputRoutes) {
       assert(route.channel.value != -1);
       assert(route.channel.value < mOutputChannelInfos.size());
     }
+#endif
     LOGP(detail, "Total channels found {}, total routes {}", mOutputChannelInfos.size(), mOutputRoutes.size());
     assert(mOutputRoutes.size() == outputs.size());
   }

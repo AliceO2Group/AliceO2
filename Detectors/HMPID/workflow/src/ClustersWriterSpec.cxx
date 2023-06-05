@@ -33,8 +33,7 @@ o2::framework::DataProcessorSpec getClusterWriterSpec()
 
   return MakeRootTreeWriterSpec("HMPClustersWriter",
                                 "hmpidclusters.root",
-                                "o2hmp",
-                                1,
+                                MakeRootTreeWriterSpec::TreeAttributes{"o2hmp", "Tree with HMPID clusters"},
                                 BranchDefinition<std::vector<o2::hmpid::Cluster>>{InputSpec{"hmpclusterinput", "HMP", "CLUSTERS"}, "HMPIDclusters"},
                                 BranchDefinition<std::vector<o2::hmpid::Trigger>>{InputSpec{"hmpinteractionrecords", "HMP", "INTRECORDS1"}, "InteractionRecords"})();
 }

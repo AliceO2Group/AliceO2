@@ -35,13 +35,12 @@ o2_add_library(O2TrivialMCEngineSetup
 )
 
 o2_add_library(SimSetup
-               SOURCES  src/GlobalProcessCutSimParam.cxx src/SimSetup.cxx src/SetCuts.cxx src/FlukaParam.cxx src/MCReplayParam.cxx
+               SOURCES  src/SimSetup.cxx src/SetCuts.cxx src/FlukaParam.cxx src/MCReplayParam.cxx
                PUBLIC_LINK_LIBRARIES O2::CommonUtils O2::DetectorsBase O2::SimConfig
 )
 
 o2_target_root_dictionary(SimSetup
                           HEADERS include/SimSetup/SimSetup.h
-                                  include/SimSetup/GlobalProcessCutSimParam.h
                                   include/SimSetup/FlukaParam.h
                                   include/SimSetup/MCReplayParam.h
                           LINKDEF src/GConfLinkDef.h)

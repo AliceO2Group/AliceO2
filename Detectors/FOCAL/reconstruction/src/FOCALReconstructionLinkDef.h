@@ -24,6 +24,7 @@
 #pragma link C++ class o2::focal::PixelMapping + ;
 #pragma link C++ class o2::focal::PixelMappingIB + ;
 #pragma link C++ class o2::focal::PixelMappingOB + ;
+#pragma link C++ class o2::focal::PixelMapperV1 + ;
 #pragma link C++ class o2::focal::PixelDecoder + ;
 #pragma link C++ class o2::focal::PixelLaneHandler + ;
 #pragma link C++ class o2::focal::PixelLanePayload + ;

@@ -42,27 +42,29 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   /// \brief The struct contains necessary info for TPC padrow
   ///
   struct RowInfo {
-    int splineScenarioID;      ///< scenario index (which of Spline2D splines to use)
-    size_t dataOffsetBytes[3]; ///< offset for the spline data withing a TPC slice
+    int splineScenarioID{0};      ///< scenario index (which of Spline2D splines to use)
+    size_t dataOffsetBytes[3]{0}; ///< offset for the spline data withing a TPC slice
   };
 
   struct RowActiveArea {
-    float maxDriftLengthCheb[5];
-    float vMax;
-    float cuMin;
-    float cuMax;
-    float cvMax;
+    float maxDriftLengthCheb[5]{0.};
+    float vMax{0.};
+    float cuMin{0.};
+    float cuMax{0.};
+    float cvMax{0.};
   };
 
   struct SliceRowInfo {
-    float CorrU0;
-    float scaleCorrUtoGrid;
-    float scaleCorrVtoGrid;
+    float gridV0{0.};           // V coordinate of the V-grid start
+    float gridCorrU0{0.};       // U coordinate of the U-grid start for corrected U
+    float gridCorrV0{0.};       // V coordinate of the V-grid start for corrected V
+    float scaleCorrUtoGrid{0.}; // scale corrected U to U-grid coordinate
+    float scaleCorrVtoGrid{0.}; // scale corrected V to V-grid coordinate
     RowActiveArea activeArea;
   };
 
   struct SliceInfo {
-    float vMax;
+    float vMax{0.};
   };
 
   typedef Spline2D<float, 3> SplineType;
@@ -117,6 +119,8 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   /// Finishes construction: puts everything to the flat buffer, releases temporary memory
   void finishConstruction();
 
+  void constructWithNoCorrection(const TPCFastTransformGeo& geo);
+
   /// _______________  Initialization interface  ________________________
 
   /// Set no correction
@@ -167,6 +171,12 @@ class TPCFastSpaceChargeCorrection : public FlatObject
 
   /// _______________  Utilities  _______________________________________________
 
+  /// convert u,v to internal grid coordinates
+  GPUdi() void convUVtoGrid(int slice, int row, float u, float v, float& gridU, float& gridV) const;
+
+  /// convert u,v to internal grid coordinates
+  GPUdi() void convGridToUV(int slice, int row, float gridU, float gridV, float& u, float& v) const;
+
   /// TPC geometry information
   GPUd() const TPCFastTransformGeo& getGeometry() const
   {
@@ -181,6 +191,12 @@ class TPCFastSpaceChargeCorrection : public FlatObject
 
   /// Gives TPC slice & row info
   GPUd() const SliceRowInfo& getSliceRowInfo(int slice, int row) const
+  {
+    return mSliceRowInfoPtr[mGeo.getNumberOfRows() * slice + row];
+  }
+
+  /// Gives TPC slice & row info
+  GPUd() SliceRowInfo& getSliceRowInfo(int slice, int row)
   {
     return mSliceRowInfoPtr[mGeo.getNumberOfRows() * slice + row];
   }
@@ -202,12 +218,6 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   void relocateBufferPointers(const char* oldBuffer, char* newBuffer);
   /// release temporary memory used during construction
   void releaseConstructionMemory();
-
-  /// Gives TPC slice&row info
-  GPUd() SliceRowInfo& getSliceRowInfo(int slice, int row)
-  {
-    return mSliceRowInfoPtr[mGeo.getNumberOfRows() * slice + row];
-  }
 
   /// Gives TPC slice info
   GPUd() SliceInfo& getSliceInfo(int slice)
@@ -278,16 +288,43 @@ GPUdi() const float* TPCFastSpaceChargeCorrection::getSplineData(int slice, int 
   return reinterpret_cast<float*>(mSplineData[iSpline] + mSliceDataSizeBytes[iSpline] * slice + rowInfo.dataOffsetBytes[iSpline]);
 }
 
+GPUdi() void TPCFastSpaceChargeCorrection::convUVtoGrid(int slice, int row, float u, float v, float& gu, float& gv) const
+{
+  // TODO optimise
+  gu = 0.;
+  gv = 0.;
+  const SliceRowInfo info = getSliceRowInfo(slice, row);
+  const SplineType& spline = getSpline(slice, row);
+
+  float su0 = 0., sv0 = 0.;
+  mGeo.convUVtoScaledUV(slice, row, u, info.gridV0, su0, sv0);
+  mGeo.convUVtoScaledUV(slice, row, u, v, gu, gv);
+  gv = (gv - sv0) / (1. - sv0);
+  gu *= spline.getGridX1().getUmax();
+  gv *= spline.getGridX2().getUmax();
+}
+
+GPUdi() void TPCFastSpaceChargeCorrection::convGridToUV(int slice, int row, float gridU, float gridV, float& u, float& v) const
+{
+  // TODO optimise
+  /// convert u,v to internal grid coordinates
+  float su0 = 0., sv0 = 0.;
+  const SliceRowInfo info = getSliceRowInfo(slice, row);
+  const SplineType& spline = getSpline(slice, row);
+  mGeo.convUVtoScaledUV(slice, row, 0., info.gridV0, su0, sv0);
+  float su = gridU / spline.getGridX1().getUmax();
+  float sv = sv0 + gridV / spline.getGridX2().getUmax() * (1. - sv0);
+  mGeo.convScaledUVtoUV(slice, row, su, sv, u, v);
+}
+
 GPUdi() int TPCFastSpaceChargeCorrection::getCorrection(int slice, int row, float u, float v, float& dx, float& du, float& dv) const
 {
   const SplineType& spline = getSpline(slice, row);
   const float* splineData = getSplineData(slice, row);
-  float su = 0, sv = 0;
-  mGeo.convUVtoScaledUV(slice, row, u, v, su, sv);
-  su *= spline.getGridX1().getUmax();
-  sv *= spline.getGridX2().getUmax();
+  float gridU = 0, gridV = 0;
+  convUVtoGrid(slice, row, u, v, gridU, gridV);
   float dxuv[3];
-  spline.interpolateU(splineData, su, sv, dxuv);
+  spline.interpolateU(splineData, gridU, gridV, dxuv);
   dx = dxuv[0];
   du = dxuv[1];
   dv = dxuv[2];
@@ -298,12 +335,10 @@ GPUdi() int TPCFastSpaceChargeCorrection::getCorrectionOld(int slice, int row, f
 {
   const SplineType& spline = getSpline(slice, row);
   const float* splineData = getSplineData(slice, row);
-  float su = 0, sv = 0;
-  mGeo.convUVtoScaledUV(slice, row, u, v, su, sv);
-  su *= spline.getGridX1().getUmax();
-  sv *= spline.getGridX2().getUmax();
+  float gridU = 0, gridV = 0;
+  convUVtoGrid(slice, row, u, v, gridU, gridV);
   float dxuv[3];
-  spline.interpolateUold(splineData, su, sv, dxuv);
+  spline.interpolateUold(splineData, gridU, gridV, dxuv);
   dx = dxuv[0];
   du = dxuv[1];
   dv = dxuv[2];
@@ -311,14 +346,17 @@ GPUdi() int TPCFastSpaceChargeCorrection::getCorrectionOld(int slice, int row, f
 }
 
 GPUdi() void TPCFastSpaceChargeCorrection::getCorrectionInvCorrectedX(
-  int slice, int row, float cu, float cv, float& x) const
+  int slice, int row, float corrU, float corrV, float& x) const
 {
   //const RowInfo& rowInfo = getRowInfo(row);
   const SliceRowInfo& sliceRowInfo = getSliceRowInfo(slice, row);
   const Spline2D<float, 1>& spline = reinterpret_cast<const Spline2D<float, 1>&>(getSpline(slice, row));
   const float* splineData = getSplineData(slice, row, 1);
-  float gridU = (cu - sliceRowInfo.CorrU0) * sliceRowInfo.scaleCorrUtoGrid;
-  float gridV = cv * sliceRowInfo.scaleCorrVtoGrid;
+  float gridU = (corrU - sliceRowInfo.gridCorrU0) * sliceRowInfo.scaleCorrUtoGrid;
+  float gridV = (corrV - sliceRowInfo.gridCorrV0) * sliceRowInfo.scaleCorrVtoGrid;
+  // float gridU = 0, gridV = 0;
+  // convUVtoGrid(slice, row, corrU, corrV, gridU, gridV);
+
   float dx = 0;
   spline.interpolateU(splineData, gridU, gridV, &dx);
   x = mGeo.getRowInfo(row).x + dx;
@@ -331,8 +369,10 @@ GPUdi() void TPCFastSpaceChargeCorrection::getCorrectionInvUV(
   const SliceRowInfo& sliceRowInfo = getSliceRowInfo(slice, row);
   const Spline2D<float, 2>& spline = reinterpret_cast<const Spline2D<float, 2>&>(getSpline(slice, row));
   const float* splineData = getSplineData(slice, row, 2);
-  float gridU = (corrU - sliceRowInfo.CorrU0) * sliceRowInfo.scaleCorrUtoGrid;
-  float gridV = corrV * sliceRowInfo.scaleCorrVtoGrid;
+  float gridU = (corrU - sliceRowInfo.gridCorrU0) * sliceRowInfo.scaleCorrUtoGrid;
+  float gridV = (corrV - sliceRowInfo.gridCorrV0) * sliceRowInfo.scaleCorrVtoGrid;
+  // float gridU = 0, gridV = 0;
+  // convUVtoGrid(slice, row, corrU, corrV, gridU, gridV);
   float duv[2];
   spline.interpolateU(splineData, gridU, gridV, duv);
   nomU = corrU - duv[0];

@@ -20,13 +20,15 @@
 
 using namespace o2::dataformats;
 
-bool FileMetaData::fillFileData(const std::string& fname)
+bool FileMetaData::fillFileData(const std::string& fname, bool md5)
 {
   try {
     lurl = std::filesystem::canonical(fname).string();
     size = std::filesystem::file_size(lurl);
-    std::unique_ptr<TMD5> md5ptr{TMD5::FileChecksum(fname.c_str())};
-    md5 = md5ptr->AsString();
+    if (md5) {
+      std::unique_ptr<TMD5> md5ptr{TMD5::FileChecksum(fname.c_str())};
+      md5 = md5ptr->AsString();
+    }
     ctime = std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
   } catch (std::exception const& e) {
     LOG(error) << "Failed to fill metadata for file " << fname << ", reason: " << e.what();
