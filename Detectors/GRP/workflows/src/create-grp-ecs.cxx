@@ -178,7 +178,7 @@ int createGRPECSObject(const std::string& dataPeriod,
     auto t1 = std::chrono::high_resolution_clock::now();
     LOGP(info, "Executed [{}] -> {} in {:.3f} s", cmd, res, std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count() / 1000.f);
   }
-  if (retValGLO != 0 || retValRCT != 0) {
+  if (retValGLO != 0 || retValRCT != 0 || retValGLOmd != 0) {
     return 4;
   }
   return 0;
