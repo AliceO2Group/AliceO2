@@ -10,10 +10,10 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(TRKBase
-               SOURCES src/MisalignmentParameter.cxx
-                       src/GeometryTGeo.cxx 
-               PUBLIC_LINK_LIBRARIES O2::DetectorsBase O2::ITSMFTBase)
+               SOURCES src/GeometryTGeo.cxx
+                       src/TRKBaseParam.cxx
+               PUBLIC_LINK_LIBRARIES O2::DetectorsBase)
 
 o2_target_root_dictionary(TRKBase
-                          HEADERS include/TRKBase/GeometryTGeo.h
-                                  include/TRKBase/MisalignmentParameter.h)
+               HEADERS include/TRKBase/GeometryTGeo.h
+               HEADERS include/TRKBase/TRKBaseParam.h)
