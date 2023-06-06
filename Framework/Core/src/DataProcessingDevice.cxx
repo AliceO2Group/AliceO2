@@ -1000,22 +1000,34 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
   /// We must make sure there is no optional
   /// if we want to optimize the forwarding
   context.canForwardEarly = (spec.forwards.empty() == false) && mProcessingPolicies.earlyForward != EarlyForwardPolicy::NEVER;
+  bool onlyConditions = true;
+  bool overriddenEarlyForward = false;
   for (auto& forwarded : spec.forwards) {
+    if (forwarded.matcher.lifetime != Lifetime::Condition) {
+      onlyConditions = false;
+    }
     if (strncmp(DataSpecUtils::asConcreteOrigin(forwarded.matcher).str, "AOD", 3) == 0) {
       context.canForwardEarly = false;
+      overriddenEarlyForward = true;
       LOG(detail) << "Cannot forward early because of AOD input: " << DataSpecUtils::describe(forwarded.matcher);
       break;
     }
     if (DataSpecUtils::partialMatch(forwarded.matcher, o2::header::DataDescription{"RAWDATA"}) && mProcessingPolicies.earlyForward == EarlyForwardPolicy::NORAW) {
       context.canForwardEarly = false;
+      overriddenEarlyForward = true;
       LOG(detail) << "Cannot forward early because of RAWDATA input: " << DataSpecUtils::describe(forwarded.matcher);
       break;
     }
     if (forwarded.matcher.lifetime == Lifetime::Optional) {
       context.canForwardEarly = false;
+      overriddenEarlyForward = true;
       LOG(detail) << "Cannot forward early because of Optional input: " << DataSpecUtils::describe(forwarded.matcher);
       break;
     }
+  }
+  if (!overriddenEarlyForward && onlyConditions) {
+    context.canForwardEarly = true;
+    LOG(detail) << "Enabling early forwarding because only conditions to be forwarded";
   }
 }
 
