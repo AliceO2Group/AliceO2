@@ -200,10 +200,14 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAny(const char* name, Compl
 {
   auto callback = [](InputSpan const& inputs, std::vector<InputSpec> const& specs) -> CompletionPolicy::CompletionOp {
     bool canConsume = false;
-    // iterate on all specs and all inputs simultaneously
+    bool hasConditions = false;
+    // Iterate on all specs and all inputs simultaneously
     for (size_t i = 0; i < inputs.size(); ++i) {
       char const* header = inputs.header(i);
       auto& spec = specs[i];
+      if (spec.lifetime == Lifetime::Condition) {
+        hasConditions = true;
+      }
       // In case a condition object is not there, we need to wait.
       if (spec.lifetime == Lifetime::Condition && header == nullptr) {
         return CompletionPolicy::CompletionOp::Wait;
@@ -211,6 +215,10 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAny(const char* name, Compl
       if (header != nullptr) {
         canConsume = true;
       }
+    }
+    // If there are no conditions, just consume.
+    if (!hasConditions) {
+      return CompletionPolicy::CompletionOp::Consume;
     }
     return canConsume ? CompletionPolicy::CompletionOp::Consume : CompletionPolicy::CompletionOp::Wait;
   };
