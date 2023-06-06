@@ -76,19 +76,17 @@ if [[ "${GEN_TOPO_VERBOSE:-}" == "1" ]]; then
 fi
 
 # beamtype dependent settings
-LHCPHASE_TF_PER_SLOT=26400
-TOF_CHANNELOFFSETS_UPDATE=300000
-TOF_CHANNELOFFSETS_DELTA_UPDATE=50000
 : ${FT0_TIMEOFFSET_TF_PER_SLOT:=105600}
-: ${FT0_INTEGRATEDCURR_TF_PER_SLOT:=10000}
-: ${FV0_INTEGRATEDCURR_TF_PER_SLOT:=10000}
-: ${FDD_INTEGRATEDCURR_TF_PER_SLOT:=10000}
-: ${TOF_INTEGRATEDCURR_TF_PER_SLOT:=10000}
+: ${INTEGRATEDCURR_TF_PER_SLOT:=150000} # setting for FT0, FV0, FDD and TOF
 
 if [[ $BEAMTYPE == "PbPb" ]]; then
-  LHCPHASE_TF_PER_SLOT=264
-  TOF_CHANNELOFFSETS_UPDATE=3000
-  TOF_CHANNELOFFSETS_DELTA_UPDATE=500
+  : ${LHCPHASE_TF_PER_SLOT:=264}
+  : ${TOF_CHANNELOFFSETS_UPDATE:=3000}
+  : ${TOF_CHANNELOFFSETS_DELTA_UPDATE:=500}
+else
+  : ${LHCPHASE_TF_PER_SLOT:=26400}
+  : ${TOF_CHANNELOFFSETS_UPDATE:=300000}
+  : ${TOF_CHANNELOFFSETS_DELTA_UPDATE:=50000}
 fi
 
 # special settings for aggregator workflows
@@ -229,7 +227,7 @@ if [[ $AGGREGATOR_TASKS == BARREL_SPORADIC ]] || [[ $AGGREGATOR_TASKS == ALL ]];
   fi
   # TOF
   if [[ $CALIB_TOF_INTEGRATEDCURR == 1 ]]; then
-    add_W o2-tof-merge-integrate-cluster-workflow "--tf-per-slot $TOF_INTEGRATEDCURR_TF_PER_SLOT"
+    add_W o2-tof-merge-integrate-cluster-workflow "--tf-per-slot $INTEGRATEDCURR_TF_PER_SLOT"
   fi
 fi
 
@@ -305,15 +303,15 @@ fi
 if [[ $AGGREGATOR_TASKS == FORWARD_SPORADIC || $AGGREGATOR_TASKS == ALL ]]; then
   # FT0
   if [[ $CALIB_FT0_INTEGRATEDCURR == 1 ]]; then
-    add_W o2-ft0-merge-integrate-cluster-workflow "--tf-per-slot $FT0_INTEGRATEDCURR_TF_PER_SLOT"
+    add_W o2-ft0-merge-integrate-cluster-workflow "--tf-per-slot $INTEGRATEDCURR_TF_PER_SLOT"
   fi
   # FV0
   if [[ $CALIB_FV0_INTEGRATEDCURR == 1 ]]; then
-    add_W o2-fv0-merge-integrate-cluster-workflow "--tf-per-slot $FV0_INTEGRATEDCURR_TF_PER_SLOT"
+    add_W o2-fv0-merge-integrate-cluster-workflow "--tf-per-slot $INTEGRATEDCURR_TF_PER_SLOT"
   fi
   # FDD
   if [[ $CALIB_FDD_INTEGRATEDCURR == 1 ]]; then
-    add_W o2-fdd-merge-integrate-cluster-workflow "--tf-per-slot $FDD_INTEGRATEDCURR_TF_PER_SLOT"
+    add_W o2-fdd-merge-integrate-cluster-workflow "--tf-per-slot $INTEGRATEDCURR_TF_PER_SLOT"
   fi
 fi
 
