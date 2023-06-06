@@ -1134,7 +1134,11 @@ void dumpRunSummary(DriverServerContext& context, DriverInfo const& driverInfo, 
   for (size_t di = 0; di < infos.size(); ++di) {
     auto& info = infos[di];
     auto& spec = specs[di];
-    LOGP(info, " - Device {}: pid {} (exit {})", spec.name, info.pid, info.exitStatus);
+    if (info.exitStatus) {
+      LOGP(error, " - Device {}: pid {} (exit {})", spec.name, info.pid, info.exitStatus);
+    } else {
+      LOGP(info, " - Device {}: pid {} (exit {})", spec.name, info.pid, info.exitStatus);
+    }
     if (info.exitStatus != 0 && info.firstSevereError.empty() == false) {
       LOGP(info, "   - First error: {}", info.firstSevereError);
     }
