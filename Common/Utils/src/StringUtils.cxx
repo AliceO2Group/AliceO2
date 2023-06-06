@@ -13,6 +13,7 @@
 #include <cstdlib>
 #include <filesystem>
 #include <TGrid.h>
+#include <unistd.h>
 
 using namespace o2::utils;
 
@@ -36,10 +37,12 @@ std::vector<std::string> Str::tokenize(const std::string& src, char delim, bool 
 // generate random string of given lenght, suitable for file names
 std::string Str::getRandomString(int lenght)
 {
-  auto nextAllowed = []() {
+  int pid = (int)getpid();
+  auto nextAllowed = [pid]() {
     constexpr char chars[] = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
     constexpr size_t L = sizeof(chars) - 1;
-    return chars[std::rand() % L];
+    int rn = std::rand() | pid;
+    return chars[rn % L];
   };
   std::string str(lenght, 0);
   std::generate_n(str.begin(), lenght, nextAllowed);
