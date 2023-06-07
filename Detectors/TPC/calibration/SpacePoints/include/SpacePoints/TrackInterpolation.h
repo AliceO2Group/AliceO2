@@ -103,6 +103,7 @@ struct TrackDataCompact {
 struct TrackDataExtended {
   o2::dataformats::GlobalTrackID gid{};              ///< GID of the most global barrel track
   o2::its::TrackITS trkITS{};                        ///< ITS seeding track
+  o2::tpc::TrackTPC trkTPC{};                        ///< TPC track (including dEdx information)
   o2::trd::TrackTRD trkTRD{};                        ///< TRD seeding track
   o2::track::TrackPar trkOuter{};                    ///< refit of TRD and/or TOF points
   o2::dataformats::MatchInfoTOF matchTOF{};          ///< TOF matching information
@@ -111,13 +112,14 @@ struct TrackDataExtended {
   std::vector<o2::trd::CalibratedTracklet> clsTRD{}; ///< the TRD space points (if available)
   o2::tof::Cluster clsTOF{};                         ///< the TOF cluster (if available)
   o2::dataformats::RangeReference<> clIdx{};         ///< index of first cluster residual and total number of cluster residuals of this track
-  ClassDefNV(TrackDataExtended, 1);
+  ClassDefNV(TrackDataExtended, 2);
 };
 
 /// Structure filled for each track with track quality information and a vector with TPCClusterResiduals
 struct TrackData {
   o2::dataformats::GlobalTrackID gid{}; ///< global track ID for seeding track
   o2::track::TrackPar par{};            ///< ITS track at inner TPC radius
+  float dEdxTPC{};                      ///< TPC dEdx information
   float chi2TPC{};             ///< chi2 of TPC track
   float chi2ITS{};             ///< chi2 of ITS track
   float chi2TRD{};             ///< chi2 of TRD track
@@ -126,7 +128,7 @@ struct TrackData {
   unsigned short nTrkltsTRD{}; ///< number of attached TRD tracklets
   unsigned short clAvailTOF{}; ///< whether or not track seed has a matched TOF cluster
   o2::dataformats::RangeReference<> clIdx{}; ///< index of first cluster residual and total number of cluster residuals of this track
-  ClassDefNV(TrackData, 5);
+  ClassDefNV(TrackData, 6);
 };
 
 /// \class TrackInterpolation
