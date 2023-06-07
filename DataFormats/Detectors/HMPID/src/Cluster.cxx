@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2020-2022 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -327,8 +327,6 @@ int Cluster::solve(std::vector<o2::hmpid::Cluster>* pCluLst, float* pSigmaCut, b
   //            isTryUnfold - flag to switch on/off unfolding
   //   Returns: number of local maxima of original cluster
 
-  Printf("************************in solve cluster**********************");
-
   const int kMaxLocMax = 6;      // max allowed number of loc max for fitting
   coG();                         // First calculate CoG for the given cluster
   int iCluCnt = pCluLst->size(); // get current number of clusters already stored in the list by previous operations
@@ -505,8 +503,6 @@ void Cluster::digAdd(const Digit* pDig)
   // Adds a given digit to the list of digits belonging to this cluster, cluster is not owner of digits
   // Arguments: pDig - pointer to digit to be added
   // Returns: none
-
-  Printf("*******************************in cluster digAdd*************************");
 
   if (mDigs.size() == 0) { // create list of digits in the first invocation
     mSi = 0;
