@@ -95,6 +95,8 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     mDecoder->setAllowEmptyROFs(ic.options().get<bool>("allow-empty-rofs"));
     mDecoder->setRawDumpDirectory(dumpDir);
     mDecoder->setFillCalibData(mDoCalibData);
+    bool ignoreRampUp = !ic.options().get<bool>("accept-rof-rampup-data");
+    mDecoder->setSkipRampUpData(ignoreRampUp);
   } catch (const std::exception& e) {
     LOG(error) << "exception was thrown in decoder configuration: " << e.what();
     throw;
@@ -390,6 +392,7 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
       {"unmute-extra-lanes", VariantType::Bool, false, {"allow extra lanes to be as verbose as 1st one"}},
       {"allow-empty-rofs", VariantType::Bool, false, {"record ROFs w/o any hit"}},
       {"ignore-noise-map", VariantType::Bool, false, {"do not mask pixels flagged in the noise map"}},
+      {"accept-rof-rampup-data", VariantType::Bool, false, {"do not discard data during ROF ramp up"}},
       {"ignore-cluster-dictionary", VariantType::Bool, false, {"do not use cluster dictionary, always store explicit patterns"}}}};
 }
 
