@@ -9,12 +9,12 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(base)
-add_subdirectory(calibration)
-add_subdirectory(simulation)
-add_subdirectory(reconstruction)
-add_subdirectory(tracking)
-add_subdirectory(workflow)
-add_subdirectory(postprocessing)
-add_subdirectory(macros)
-add_subdirectory(QC)
+o2_add_library(ITSPostprocessing
+               SOURCES src/ImpactParameter.cxx
+               PUBLIC_LINK_LIBRARIES O2::GlobalTracking
+                                     O2::GlobalTrackingWorkflowReaders
+                                     O2::GlobalTrackingWorkflowHelpers
+                                     O2::DataFormatsGlobalTracking
+              #                        O2::DetectorsVertexing
+              #                        O2::SimulationDataFormat
+              )
