@@ -309,6 +309,13 @@ class O2PrimaryServerDevice final : public fair::mq::Device
     } else {
       stateTransition(O2PrimaryServerState::ReadyToServe, "INITTASK");
     }
+
+    // feedback to driver that we are done initializing
+    if (mPipeToDriver != -1) {
+      int message = -111; // special code meaning end of initialization
+      if (write(mPipeToDriver, &message, sizeof(int))) {
+      }
+    }
   }
 
   // function for intermediate/on-the-fly reinitializations
