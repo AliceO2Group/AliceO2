@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2020-2022 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -73,8 +73,6 @@ void Clusterer::FormClu(Cluster& pClu, int pDig, gsl::span<const o2::hmpid::Digi
   // Arguments: pClu - pointer to cluster being formed
   //   Returns: none
 
-  Printf("*******************************in clusterer FormClu*************************");
-
   pClu.digAdd(&digs[pDig]); // take this digit in cluster
   int cnt = 0;
   int cx[4];
@@ -82,7 +80,6 @@ void Clusterer::FormClu(Cluster& pClu, int pDig, gsl::span<const o2::hmpid::Digi
   int padChX = 0;
   int padChY = 0;
   int module = 0;
-  Printf("*******************************in clusterer FormClu 02*************************");
   o2::hmpid::Digit::pad2Absolute(digs[pDig].getPadID(), &module, &padChX, &padChY);
 
   if (padChX > Param::kMinPx) {
@@ -105,8 +102,6 @@ void Clusterer::FormClu(Cluster& pClu, int pDig, gsl::span<const o2::hmpid::Digi
     cy[cnt] = padChY + 1;
     cnt++;
   } // up
-
-  Printf("*******************************in clusterer FormClu 03*************************");
 
   for (int i = 0; i < cnt; i++) { // neighbours loop
     pDig = UseDig(cx[i], cy[i], pDigMap);
