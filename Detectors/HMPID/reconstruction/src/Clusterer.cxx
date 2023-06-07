@@ -66,13 +66,15 @@ void Clusterer::Dig2Clu(gsl::span<const o2::hmpid::Digit> digs, std::vector<o2::
   }                                         // chambers loop
   return;
 } // Dig2Clu()
-
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 void Clusterer::FormClu(Cluster& pClu, int pDig, gsl::span<const o2::hmpid::Digit> digs, TMatrixF& pDigMap)
 {
   // Forms the initial cluster as a combination of all adjascent digits. Starts from the given digit then calls itself recursevly  for all neighbours.
   // Arguments: pClu - pointer to cluster being formed
   //   Returns: none
+
+  Printf("*******************************in clusterer FormClu*************************");
+
   pClu.digAdd(&digs[pDig]); // take this digit in cluster
   int cnt = 0;
   int cx[4];
@@ -80,6 +82,7 @@ void Clusterer::FormClu(Cluster& pClu, int pDig, gsl::span<const o2::hmpid::Digi
   int padChX = 0;
   int padChY = 0;
   int module = 0;
+  Printf("*******************************in clusterer FormClu 02*************************");
   o2::hmpid::Digit::pad2Absolute(digs[pDig].getPadID(), &module, &padChX, &padChY);
 
   if (padChX > Param::kMinPx) {
@@ -102,6 +105,8 @@ void Clusterer::FormClu(Cluster& pClu, int pDig, gsl::span<const o2::hmpid::Digi
     cy[cnt] = padChY + 1;
     cnt++;
   } // up
+
+  Printf("*******************************in clusterer FormClu 03*************************");
 
   for (int i = 0; i < cnt; i++) { // neighbours loop
     pDig = UseDig(cx[i], cy[i], pDigMap);
