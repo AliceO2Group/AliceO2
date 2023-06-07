@@ -78,7 +78,7 @@ ferst 1 \n\
   ctpcfg.printStream(std::cout);
   std::cout << "CTP config done" << std::endl;
   ctpcfg.checkConfigConsistency();
-  if(0) {
+  if (0) {
     CTPRunManager* man = new CTPRunManager;
     man->setCCDBHost("http://ccdb-test.cern.ch:8080");
     man->saveRunConfigToCCDB(&ctpcfg, 1665784953);

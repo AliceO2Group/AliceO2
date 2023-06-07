@@ -49,7 +49,7 @@ InjectorFunction dcs2dpl()
     std::string messageHeader{static_cast<const char*>(parts.At(0)->GetData()), parts.At(0)->GetSize()};
     size_t dataSize = parts.At(1)->GetSize();
     std::string messageData{static_cast<const char*>(parts.At(1)->GetData()), parts.At(1)->GetSize()};
-    LOG(info) << "received message " << messageHeader << " of size " << dataSize << "#parts:" <<  parts.Size(); // << " Payload:" << messageData;
+    LOG(info) << "received message " << messageHeader << " of size " << dataSize << "#parts:" << parts.Size(); // << " Payload:" << messageData;
     o2::header::DataHeader hdrF("CTP_COUNTERS", o2::header::gDataOriginCTP, 0);
     OutputSpec outsp{hdrF.dataOrigin, hdrF.dataDescription, hdrF.subSpecification};
     auto channel = channelRetriever(outsp, newTimesliceId);

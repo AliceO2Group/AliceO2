@@ -54,7 +54,7 @@ InjectorFunction dcs2dpl(std::string& ccdbhost)
   return [runMgr](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId, bool& stop) {
     // FIXME: Why isn't this function using the timeslice index?
     // make sure just 2 messages received
-    //if (parts.Size() != 2) {
+    // if (parts.Size() != 2) {
     //  LOG(error) << "received " << parts.Size() << " instead of 2 expected";
     //  return;
     //}

@@ -108,7 +108,7 @@ int RawDataDecoder::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
   return 0;
 }
 //
-int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2::framework::InputSpec>& filter,std::vector<CTPDigit>& digits, std::vector<LumiInfo>& lumiPointsHBF1)
+int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2::framework::InputSpec>& filter, std::vector<CTPDigit>& digits, std::vector<LumiInfo>& lumiPointsHBF1)
 {
   uint64_t countsMBT = 0;
   uint64_t countsMBV = 0;
@@ -280,7 +280,7 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
   }
   if (mDoLumi) {
     lumiPointsHBF1.emplace_back(LumiInfo{orbit0, 0, 0, countsMBT, countsMBV});
-    for(auto const& dig: digitsMap) {
+    for (auto const& dig : digitsMap) {
       digits.push_back(dig.second);
     }
   }

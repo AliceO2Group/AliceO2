@@ -177,6 +177,7 @@ class CTPConfiguration
   CTPDescriptor* getDescriptor(int index) { return &mDescriptors[index]; };
   int assignDescriptors();
   int checkConfigConsistency() const;
+
  private:
   std::string mConfigString = "";
   uint32_t mRunNumber = 0;

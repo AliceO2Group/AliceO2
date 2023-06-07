@@ -32,10 +32,10 @@ void ReadCTPRunScalersFromFile(std::string name = "s.root")
   TFile* myFile = TFile::Open(name.c_str());
   bool doscalers = 1;
   bool doconfig = 0;
-  if(doscalers) {
-    //CTPRunScalers* ctpscalers = myFile->Get<CTPRunScalers>("ccdb_object");
+  if (doscalers) {
+    // CTPRunScalers* ctpscalers = myFile->Get<CTPRunScalers>("ccdb_object");
     CTPRunScalers* ctpscalers = myFile->Get<CTPRunScalers>("CTPRunScalers");
-    if(ctpscalers != nullptr) {
+    if (ctpscalers != nullptr) {
       ctpscalers->printStream(std::cout);
       ctpscalers->convertRawToO2();
       ctpscalers->printIntegrals();
@@ -43,9 +43,9 @@ void ReadCTPRunScalersFromFile(std::string name = "s.root")
       std::cout << "Scalers not there ?" << std::endl;
     }
   }
-  if(doconfig) {
+  if (doconfig) {
     CTPConfiguration* ctpconfig = myFile->Get<CTPConfiguration>("CTPConfig");
-    if(ctpconfig != nullptr) {
+    if (ctpconfig != nullptr) {
       ctpconfig->printStream(std::cout);
     } else {
       std::cout << "Config not there ?" << std::endl;

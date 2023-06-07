@@ -61,38 +61,38 @@ int BCMask::setBCmask(std::vector<std::string>& tokens)
     size_t pos = 0;
     size_t posnext = 0;
     int bccur = 0;
-    while(bccur < 3564) {
-      //std::cout << "pos:" << pos << std::endl;
-      size_t posH = bcmaskstr.find('H',pos);
-      size_t posL = bcmaskstr.find('L',pos);
-      //std::cout << "H:" << posH << " L:" << posL << std::endl;
+    while (bccur < 3564) {
+      // std::cout << "pos:" << pos << std::endl;
+      size_t posH = bcmaskstr.find('H', pos);
+      size_t posL = bcmaskstr.find('L', pos);
+      // std::cout << "H:" << posH << " L:" << posL << std::endl;
       bool b = 1;
       posnext = posH;
-      if(posL < posH) {
+      if (posL < posH) {
         posnext = posL;
         b = 0;
       }
-      std::string bcsub = bcmaskstr.substr(pos,posnext-pos);
-      //std::cout << "bcsub:" << bcsub << " b:" << b << std::endl;
+      std::string bcsub = bcmaskstr.substr(pos, posnext - pos);
+      // std::cout << "bcsub:" << bcsub << " b:" << b << std::endl;
       int bcrange = 0;
       try {
         bcrange = std::stoull(bcsub);
-      } catch(...) {
+      } catch (...) {
         LOG(warning) << "problem in bcmask decoding H:" << posH << " posL:" << posL << " bcsub:" << bcsub;
         return 1;
       }
-      if(b) {
-        for(int bc = bccur; bc < bccur+bcrange; bc++) {
+      if (b) {
+        for (int bc = bccur; bc < bccur + bcrange; bc++) {
           try {
-            BCmask.set(bc,1);
-          } catch(...) {
+            BCmask.set(bc, 1);
+          } catch (...) {
             LOG(warning) << "BC mask decoding to big bc:" << bc;
           }
         }
       }
       bccur += bcrange;
-      pos = posnext+1;
-      //std::cout << "bccur:" << bccur << std::endl;
+      pos = posnext + 1;
+      // std::cout << "bccur:" << bccur << std::endl;
     }
   } else {
     // list of integers
@@ -259,17 +259,17 @@ int CTPConfiguration::loadConfigurationRun3(const std::string& ctpconfiguration)
       }
     }
     iline++;
-    if(ver == 0) {
+    if (ver == 0) {
       ret = processConfigurationLineRun3(line, level, clsDescIndex);
     } else {
       ret = processConfigurationLineRun3v2(line, level, clsDescIndex);
-      mVersion="1";
+      mVersion = "1";
     }
-    if(ret) {
+    if (ret) {
       return ret;
     }
   }
-  if(ver == 0) {
+  if (ver == 0) {
     for (auto& cls : mCTPClasses) {
       cls.cluster = &mClusters[cls.clusterIndex];
       if (cls.descriptorIndex != 0xff) {
@@ -542,15 +542,15 @@ int CTPConfiguration::processConfigurationLineRun3v2(std::string& line, int& lev
     return 0;
   } else if (((first = line.find("bcm")) != std::string::npos) && (level == MASKS)) {
     level = MASKS;
-  } else if(line.find("GENS") != std::string::npos) {
+  } else if (line.find("GENS") != std::string::npos) {
     level = GENS;
     return 0;
   } else if (CTPGenerator::Generators.count(tokens[0]) && (level == GENS)) {
     level = GENS;
-  } else if(line.find("DESCRIPTORS") != std::string::npos) {
+  } else if (line.find("DESCRIPTORS") != std::string::npos) {
     level = DESCRIPTORS;
     return 0;
-  } else if((tokens[0][0] == 'D') && (level == DESCRIPTORS)) {
+  } else if ((tokens[0][0] == 'D') && (level == DESCRIPTORS)) {
     level = DESCRIPTORS;
   } else if ((first = line.find("LTG")) != std::string::npos) {
     level = LTG;
@@ -567,7 +567,7 @@ int CTPConfiguration::processConfigurationLineRun3v2(std::string& line, int& lev
     case VERSION: {
       try {
         mVersion = std::stoul(tokens[1]);
-      } catch(...) {
+      } catch (...) {
         LOG(error) << "Version line:" << line;
       }
       break;
@@ -583,7 +583,7 @@ int CTPConfiguration::processConfigurationLineRun3v2(std::string& line, int& lev
     }
     case INPUTS: {
       level = INPUTS;
-      if(tokens.size() != 3 ) {
+      if (tokens.size() != 3) {
         LOG(error) << "Wrong input line:" << line;
         return 1;
       }
@@ -618,15 +618,15 @@ int CTPConfiguration::processConfigurationLineRun3v2(std::string& line, int& lev
       break;
     }
     case DESCRIPTORS: {
-      if((tokens.size() < 2) && (line.find("DTRUE") == std::string::npos)){
+      if ((tokens.size() < 2) && (line.find("DTRUE") == std::string::npos)) {
         LOG(warning) << "Dsecriptor:" << line;
         break;
       }
       CTPDescriptor desc;
       desc.name = tokens[0];
-      for(int i = 1; i < tokens.size(); i++) {
-        const CTPInput *inp= isInputInConfig(tokens[i]);
-        if(inp != nullptr) {
+      for (int i = 1; i < tokens.size(); i++) {
+        const CTPInput* inp = isInputInConfig(tokens[i]);
+        if (inp != nullptr) {
           desc.inputs.push_back(inp);
         }
       }
@@ -700,26 +700,26 @@ int CTPConfiguration::processConfigurationLineRun3v2(std::string& line, int& lev
       // Descriptor
       std::string descname = tokens[2];
       int dindex;
-      if(descname.find("DTRUE") != std::string::npos) {
+      if (descname.find("DTRUE") != std::string::npos) {
         descname = "DTRUE";
       }
-      const CTPDescriptor *desc = isDescriptorInConfig(descname,dindex);
-      if(desc != nullptr) {
+      const CTPDescriptor* desc = isDescriptorInConfig(descname, dindex);
+      if (desc != nullptr) {
         cls.descriptor = desc;
         cls.descriptorIndex = dindex;
       }
       cls.clusterIndex = mClusters.size() - 1;
       // PF not member of class
       std::string bcmask = tokens[5];
-      bcmask = bcmask.substr(1,bcmask.size()-2);
-      if(bcmask.size()) {
-        const BCMask *bcm = isBCMaskInConfigP(bcmask);
-        if(bcm != nullptr) {
+      bcmask = bcmask.substr(1, bcmask.size() - 2);
+      if (bcmask.size()) {
+        const BCMask* bcm = isBCMaskInConfigP(bcmask);
+        if (bcm != nullptr) {
           cls.BCClassMask.push_back(bcm);
         }
       }
-      //Down scaling
-      if(tokens.size() > 6) {
+      // Down scaling
+      if (tokens.size() > 6) {
         cls.downScale = std::stoul(tokens[6], nullptr, 16);
       }
       mCTPClasses.push_back(cls);
@@ -834,7 +834,7 @@ const CTPInput* CTPConfiguration::isInputInConfig(const int index) const
   }
   return nullptr;
 }
-const CTPDescriptor* CTPConfiguration::isDescriptorInConfig(const std::string descname, int &index) const
+const CTPDescriptor* CTPConfiguration::isDescriptorInConfig(const std::string descname, int& index) const
 {
   index = 0;
   for (const auto& desc : mDescriptors) {
@@ -942,53 +942,53 @@ int CTPConfiguration::checkConfigConsistency() const
 {
   int ret = 0;
   // All inputs used ?
-  std::map<const CTPInput*,int> inputs;
-  for(auto const &inp: mInputs) {
+  std::map<const CTPInput*, int> inputs;
+  for (auto const& inp : mInputs) {
     inputs[&inp] = 0;
   }
   // Are all descriptors used
-  std::map<const CTPDescriptor*,int> descs;
-  for(auto const &desc: mDescriptors) {
-      descs[&desc] = 0;
-      for(auto const inp: desc.inputs) {
-        inputs[inp] += 1;
-      }
+  std::map<const CTPDescriptor*, int> descs;
+  for (auto const& desc : mDescriptors) {
+    descs[&desc] = 0;
+    for (auto const inp : desc.inputs) {
+      inputs[inp] += 1;
+    }
   }
   //
-  for(const auto &cls: mCTPClasses) {
-    if(cls.classMask == 0) {
+  for (const auto& cls : mCTPClasses) {
+    if (cls.classMask == 0) {
       std::cout << "ERROR class:" << cls.name << " NO CLUSTER" << std::endl;
       ret++;
     }
-    if(cls.cluster == nullptr) {
+    if (cls.cluster == nullptr) {
       std::cout << "ERROR class:" << cls.name << " NO CLUSTER" << std::endl;
       ret++;
     }
-    if(cls.clusterIndex == 0xff) {
+    if (cls.clusterIndex == 0xff) {
       std::cout << "ERROR class:" << cls.name << " NO CLUSTER INDEX" << std::endl;
       ret++;
     }
-    if(cls.descriptor == nullptr) {
+    if (cls.descriptor == nullptr) {
       std::cout << "ERROR class:" << cls.name << " NO DESCRIPTOR" << std::endl;
       ret++;
     } else {
       descs[cls.descriptor] += 1;
     }
-    if(cls.descriptorIndex == 0xff) {
+    if (cls.descriptorIndex == 0xff) {
       std::cout << "ERROR class:" << cls.name << " NO DESCRIPTOR INDEX" << std::endl;
       ret++;
     }
   }
   int iw = 0;
-  for(auto const& inp:inputs) {
-    if(inp.second == 0) {
+  for (auto const& inp : inputs) {
+    if (inp.second == 0) {
       iw++;
       std::cout << "WARNING:";
     }
     std::cout << (inp.first)->name << " " << inp.second << std::endl;
   }
-  for(auto const& desc: descs) {
-    if(desc.second == 0) {
+  for (auto const& desc : descs) {
+    if (desc.second == 0) {
       iw++;
       std::cout << "WARNING:";
     }
