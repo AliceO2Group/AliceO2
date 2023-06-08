@@ -631,7 +631,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     auto timestamp = o2::raw::HBFUtils::Instance().startTime;
     detList.emplace_back(o2::detectors::DetID::FT0);
     // connect the FT0 digitization
-    specs.emplace_back(o2::ft0::getFT0DigitizerSpec(fanoutsize++, mctruth, !useCCDB));
+    specs.emplace_back(o2::ft0::getFT0DigitizerSpec(fanoutsize++, mctruth, useCCDB));
     // connect the FIT digit writer
     writerSpecs.emplace_back(o2::ft0::getFT0DigitWriterSpec(mctruth));
   }
