@@ -235,12 +235,13 @@ struct OutputManager<Produces<TABLE>> {
   }
   static bool prepare(ProcessingContext& context, Produces<TABLE>& what)
   {
-    what.resetCursor(context.outputs().make<TableBuilder>(what.ref()));
+    what.resetCursor(std::move(context.outputs().make<TableBuilder>(what.ref())));
     return true;
   }
   static bool finalize(ProcessingContext&, Produces<TABLE>& what)
   {
     what.setLabel(o2::aod::MetadataTrait<TABLE>::metadata::tableLabel());
+    what.release();
     return true;
   }
   static bool postRun(EndOfStreamContext&, Produces<TABLE>&)
