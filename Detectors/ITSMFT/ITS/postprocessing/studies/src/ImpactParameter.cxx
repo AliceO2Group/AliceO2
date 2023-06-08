@@ -14,6 +14,7 @@
 #include "ITSStudies/ImpactParameter.h"
 
 #include "Framework/CCDBParamSpec.h"
+#include "Framework/Task.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "ReconstructionDataFormats/PrimaryVertex.h"

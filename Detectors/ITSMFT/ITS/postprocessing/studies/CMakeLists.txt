@@ -11,10 +11,8 @@
 
 o2_add_library(ITSPostprocessing
                SOURCES src/ImpactParameter.cxx
+                       src/K0sInvMass.cxx
                PUBLIC_LINK_LIBRARIES O2::GlobalTracking
                                      O2::GlobalTrackingWorkflowReaders
                                      O2::GlobalTrackingWorkflowHelpers
-                                     O2::DataFormatsGlobalTracking
-              #                        O2::DetectorsVertexing
-              #                        O2::SimulationDataFormat
-              )
+                                     O2::DataFormatsGlobalTracking)
