@@ -185,6 +185,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     (*trackDataExtended).gid = (*mGIDs)[iSeed];
     (*trackDataExtended).clIdx.setFirstEntry(mClRes.size());
     (*trackDataExtended).trkITS = trkITS;
+    (*trackDataExtended).trkTPC = trkTPC;
     auto nCl = trkITS.getNumberOfClusters();
     auto clEntry = trkITS.getFirstClusterEntry();
     for (int iCl = nCl - 1; iCl >= 0; iCl--) { // clusters are stored from outer to inner layers
@@ -375,6 +376,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
   trackData.nClsITS = trkITS.getNumberOfClusters();
   trackData.nTrkltsTRD = gidTable[GTrackID::TRD].isIndexSet() ? mRecoCont->getITSTPCTRDTrack<o2::trd::TrackTRD>(gidTable[GTrackID::ITSTPCTRD]).getNtracklets() : 0;
   trackData.clAvailTOF = gidTable[GTrackID::TOF].isIndexSet() ? 1 : 0;
+  trackData.dEdxTPC = trkTPC.getdEdx().dEdxTotTPC;
 
   TrackParams params; // for refitted track parameters and flagging rejected clusters
   if (mParams->skipOutlierFiltering || validateTrack(trackData, params, clusterResiduals)) {
@@ -463,6 +465,7 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
   trackData.nClsTPC = trkTPC.getNClusterReferences();
   trackData.nClsITS = trkITS.getNumberOfClusters();
   trackData.clIdx.setEntries(nMeasurements);
+  trackData.dEdxTPC = trkTPC.getdEdx().dEdxTotTPC;
 
   TrackParams params; // for refitted track parameters and flagging rejected clusters
   if (mParams->skipOutlierFiltering || validateTrack(trackData, params, clusterResiduals)) {
