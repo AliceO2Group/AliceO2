@@ -28,6 +28,7 @@
 #include "DataFormatsEMCAL/EventHandler.h"
 #include "DataFormatsPHOS/EventHandler.h"
 #include "DetectorsBase/GRPGeomHelper.h"
+#include "DetectorsBase/Propagator.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/AnalysisHelpers.h"
 #include "Framework/DataProcessorSpec.h"
@@ -248,6 +249,19 @@ class AODProducerWorkflowDPL : public Task
     return c;
   }
 
+  bool mPropTracks{false};
+  bool mPropTracksCov{false};
+  std::string mCCDBUrl{"http://alice-ccdb.cern.ch"};
+  std::string mVtxPath{"GLO/Calib/MeanVertex"};
+
+  o2::ccdb::CcdbApi mCCDBAPI;
+
+  o2::base::Propagator::MatCorrType mMatCorr{o2::base::Propagator::MatCorrType::USEMatCorrLUT};
+  o2::dataformats::MeanVertexObject* mVtx{nullptr};
+  float mMinPropR{o2::constants::geom::XTPCInnerRef + 0.1f};
+
+  std::unordered_set<GIndex> mGIDUsedBySVtx;
+
   int mNThreads = 1;
   bool mUseMC = true;
   bool mEnableSV = true; // enable secondary vertices
@@ -323,7 +337,6 @@ class AODProducerWorkflowDPL : public Task
   // production metadata
   std::vector<TString> mMetaDataKeys;
   std::vector<TString> mMetaDataVals;
-  bool mIsMDSent{false};
 
   std::shared_ptr<DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
@@ -456,6 +469,19 @@ class AODProducerWorkflowDPL : public Task
   };
   std::vector<TPCCounters> mTPCCounters;
 
+  void fetchMeanVtxCCDB(int runNumber)
+  {
+    static int prevRunNumber = -1;
+    if (runNumber == prevRunNumber)
+      return;
+    auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
+    std::map<std::string, std::string> headers, metadataRCT;
+    headers = mCCDBAPI.retrieveHeaders(Form("RCT/Info/RunInformation/%i", runNumber), metadataRCT, -1);
+    int64_t ts = std::atol(headers["SOR"].c_str()); // timestamp in ms
+    mVtx = ccdbMgr.getForTimeStamp<o2::dataformats::MeanVertexObject>(mVtxPath, ts);
+    prevRunNumber = runNumber;
+  }
+
   void updateTimeDependentParams(ProcessingContext& pc);
 
   void addRefGlobalBCsForTOF(const o2::dataformats::VtxTrackRef& trackRef, const gsl::span<const GIndex>& GIndices,
@@ -465,7 +491,6 @@ class AODProducerWorkflowDPL : public Task
                   const std::vector<o2::InteractionTimeRecord>& mcRecords,
                   std::map<uint64_t, int>& bcsMap);
 
-  uint64_t getTFNumber(const o2::InteractionRecord& tfStartIR, int runNumber);
   template <typename TracksCursorType, typename TracksCovCursorType>
   void addToTracksTable(TracksCursorType& tracksCursor, TracksCovCursorType& tracksCovCursor,
                         const o2::track::TrackParCov& track, int collisionID, aod::track::TrackTypeEnum type = aod::track::TrackIU);
@@ -483,6 +508,7 @@ class AODProducerWorkflowDPL : public Task
                            GIndex trackID, const o2::globaltracking::RecoContainer& data, int collisionID, std::uint64_t collisionBC, const std::map<uint64_t, int>& bcsMap);
 
   TrackExtraInfo processBarrelTrack(int collisionID, std::uint64_t collisionBC, GIndex trackIndex, const o2::globaltracking::RecoContainer& data, const std::map<uint64_t, int>& bcsMap);
+  bool propagateTrackToPV(o2::track::TrackParametrizationWithError<float>& trackPar, const o2::globaltracking::RecoContainer& data, int colID);
   void extrapolateToCalorimeters(TrackExtraInfo& extraInfoHolder, const o2::track::TrackPar& track);
   void cacheTriggers(const o2::globaltracking::RecoContainer& recoData);
 
