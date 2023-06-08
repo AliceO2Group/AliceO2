@@ -75,6 +75,7 @@ class DPLRawParser
 
   void setMaxFailureMessages(size_t n) { mMaxFailureMessages = n; }
   void setExtFailureCounter(size_t* cnt) { mExtFailureCounter = cnt; }
+  static void setCheckIncompleteHBF(bool v) { rawparser_type::setCheckIncompleteHBF(v); }
 
   // this is a dummy default buffer used to initialize the RawParser in the iterator
   // constructor
