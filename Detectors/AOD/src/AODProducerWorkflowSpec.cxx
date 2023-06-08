@@ -441,16 +441,18 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
                          << " timeErr=" << extraInfoHolder.trackTimeRes << " BCSlice: " << extraInfoHolder.bcSlice[0] << ":" << extraInfoHolder.bcSlice[1];
             continue;
           }
-          o2::track::TrackParametrizationWithError<float> trackPar;
+          const auto& trOrig = data.getTrackParam(trackIndex);
           bool isProp = false;
-          if (mPropTracks && trackPar.getX() < mMinPropR) {
-            if (mGIDUsedBySVtx.find(trackIndex) == mGIDUsedBySVtx.end()) {
-              trackPar = data.getTrackParam(trackIndex);
-              isProp = propagateTrackToPV(trackPar, data, collisionID);
+          if (mPropTracks && trOrig.getX() < mMinPropR) {
+            auto trackPar(trOrig);
+            isProp = propagateTrackToPV(trackPar, data, collisionID);
+            if (isProp) {
+              addToTracksTable(tracksCursor, tracksCovCursor, trackPar, collisionID, aod::track::Track);
             }
           }
-          auto trkType = isProp ? aod::track::Track : aod::track::TrackIU;
-          addToTracksTable(tracksCursor, tracksCovCursor, isProp ? trackPar : data.getTrackParam(trackIndex), collisionID, trkType);
+          if (!isProp) {
+            addToTracksTable(tracksCursor, tracksCovCursor, trOrig, collisionID, aod::track::TrackIU);
+          }
           addToTracksExtraTable(tracksExtraCursor, extraInfoHolder);
           // collecting table indices of barrel tracks for V0s table
           if (extraInfoHolder.bcSlice[0] >= 0 && collisionID < 0) {
