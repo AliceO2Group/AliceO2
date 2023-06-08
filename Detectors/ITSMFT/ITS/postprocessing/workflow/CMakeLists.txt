@@ -9,12 +9,7 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(base)
-add_subdirectory(calibration)
-add_subdirectory(simulation)
-add_subdirectory(reconstruction)
-add_subdirectory(tracking)
-add_subdirectory(workflow)
-add_subdirectory(postprocessing)
-add_subdirectory(macros)
-add_subdirectory(QC)
+o2_add_executable(postprocessing-workflow
+                  COMPONENT_NAME its-standalone
+                  SOURCES standalone-postprocessing-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::ITSPostprocessing)
