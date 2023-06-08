@@ -281,7 +281,7 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
   if (mDoLumi) {
     lumiPointsHBF1.emplace_back(LumiInfo{orbit0, 0, 0, countsMBT, countsMBV});
   }
-  if(mDoDigits) {
+  if (mDoDigits) {
     for (auto const& dig : digitsMap) {
       digits.push_back(dig.second);
     }
