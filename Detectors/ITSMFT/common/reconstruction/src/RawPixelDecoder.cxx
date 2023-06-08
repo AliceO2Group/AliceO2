@@ -40,6 +40,7 @@ RawPixelDecoder<Mapping>::RawPixelDecoder()
   mTimerDecode.Stop();
   mTimerFetchData.Stop();
   mSelfName = o2::utils::Str::concat_string(Mapping::getName(), "Decoder");
+  DPLRawParser<>::setCheckIncompleteHBF(false); // Disable incomplete HBF checking, see ErrPacketCounterJump check in GBTLink.cxx
 }
 
 ///______________________________________________________________

@@ -639,6 +639,11 @@ class RawParser
     return mParser.getNErrors();
   }
 
+  static void setCheckIncompleteHBF(bool v)
+  {
+    raw_parser::RawParserHelper::sCheckIncompleteHBF = v;
+  }
+
  private:
   raw_parser::ConcreteParserVariants<MAX_SIZE, BOUNDS_CHECKS> mParser;
 };
