@@ -15,7 +15,7 @@
 #ifndef GPUERRORS_H
 #define GPUERRORS_H
 
-#include "GPUDef.h"
+#include "GPUCommonDef.h"
 
 namespace GPUCA_NAMESPACE
 {
