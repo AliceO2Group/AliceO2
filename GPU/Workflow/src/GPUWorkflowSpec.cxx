@@ -255,6 +255,9 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
     if (mSpecConfig.outputQA) {
       mQA = std::make_unique<GPUO2InterfaceQA>(mConfig.get());
     }
+    if (mSpecConfig.outputErrorQA) {
+      mTracker->setErrorCodeOutput(&mErrorQA);
+    }
     mTimer->Stop();
     mTimer->Reset();
   }
@@ -815,6 +818,10 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
       mQA->cleanup();
     }
   }
+  if (mSpecConfig.outputErrorQA) {
+    pc.outputs().snapshot({gDataOriginGPU, "ERRORQA", 0, Lifetime::Timeframe}, mErrorQA);
+    mErrorQA.clear(); // FIXME: This is a race condition once we run multi-threaded!
+  }
   mTimer->Stop();
   LOG(info) << "GPU Reoncstruction time for this TF " << mTimer->CpuTime() - cput << " s (cpu), " << mTimer->RealTime() - realt << " s (wall)";
 }
@@ -986,6 +993,9 @@ Outputs GPURecoWorkflowSpec::outputs()
   }
   if (mSpecConfig.outputQA) {
     outputSpecs.emplace_back(gDataOriginTPC, "TRACKINGQA", 0, Lifetime::Timeframe);
+  }
+  if (mSpecConfig.outputErrorQA) {
+    outputSpecs.emplace_back(gDataOriginGPU, "ERRORQA", 0, Lifetime::Timeframe);
   }
   return outputSpecs;
 };

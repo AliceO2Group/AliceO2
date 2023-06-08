@@ -190,3 +190,8 @@ int GPUO2Interface::UpdateCalibration(const GPUCalibObjectsConst& newCalib, cons
   mChain->SetUpdateCalibObjects(newCalib, newVals);
   return 0;
 }
+
+void GPUO2Interface::setErrorCodeOutput(std::vector<std::array<unsigned int, 4>>* v)
+{
+  mRec->setErrorCodeOutput(v);
+}
