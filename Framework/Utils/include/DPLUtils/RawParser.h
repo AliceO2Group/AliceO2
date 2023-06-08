@@ -79,10 +79,14 @@ struct RDHFormatter<header::RAWDataHeaderV4> {
   static void apply(std::ostream&, type const&, FormatSpec, const char* = "");
 };
 
-struct RawParserParam {
-  static int sErrorMode;           // 0: no error checking, 1: print error message, 2: throw exception. To be set via O2_DPL_RAWPARSER_ERRORMODE.
-  static int sCheckIncompleteHBF;  // Check if HBFs are incomplete, set to 2 to throw in case sErrorMode = 2.
-  static unsigned int sErrors;     // Obviously this would need to be atomic to be fully correct, but a race condition is unlikely and would only lead to one extra log message printed.
+struct RawParserHelper {
+  static int sErrorMode;            // 0: no error checking, 1: print error message, 2: throw exception. To be set via O2_DPL_RAWPARSER_ERRORMODE.
+  static int sCheckIncompleteHBF;   // Check if HBFs are incomplete, set to 2 to throw in case sErrorMode = 2.
+  static unsigned long sErrors;     // Obviously this would need to be atomic to be fully correct, but a race condition is unlikely and would only lead to one extra log message printed.
+  static unsigned long sErrorLimit; // Exponentially downscale error reporting after sErrorLimit errors.
+  static unsigned long sErrorScale; // Exponentionally downscale verbosity.
+
+  static bool checkPrintError(size_t& localCounter);
 };
 
 /// @class ConcreteRawParser
@@ -213,12 +217,12 @@ class ConcreteRawParser
       return;
     }
     if constexpr (BOUNDS_CHECKS) {
-      if (RawParserParam::sErrorMode && !checkPageInBuffer()) {
-        if (RawParserParam::sErrorMode >= 2) {
+      if (RawParserHelper::sErrorMode && !checkPageInBuffer()) {
+        if (RawParserHelper::sErrorMode >= 2) {
           throw std::runtime_error("Corrupt RDH - RDH parsing ran out of raw data buffer");
         }
-        if (RawParserParam::sErrors++ < 20) {
-          LOG(error) << "Corrupt RDH - RDH parsing ran out of raw data buffer";
+        if (RawParserHelper::checkPrintError(mNErrors)) {
+          LOG(error) << "RAWPARSER: Corrupt RDH - RDH parsing ran out of raw data buffer (" << RawParserHelper::sErrors << " total RawParser errors)";
         }
       }
     }
@@ -245,41 +249,42 @@ class ConcreteRawParser
         mPosition = mRawBuffer + mSize;
         return false;
       }
-      if (RawParserParam::sCheckIncompleteHBF) {
+      if (RawParserHelper::sCheckIncompleteHBF) {
         lastPacketCounter = header().packetCounter;
         lastFEEID = header().feeId;
       }
       mPosition += offset;
     }
     if constexpr (BOUNDS_CHECKS) {
-      if (RawParserParam::sErrorMode && !checkPageInBuffer()) {
-        if (RawParserParam::sErrorMode >= 2) {
+      if (RawParserHelper::sErrorMode && !checkPageInBuffer()) {
+        if (RawParserHelper::sErrorMode >= 2) {
           throw std::runtime_error("Corrupt RDH - RDH parsing ran out of raw data buffer");
         }
-        if (RawParserParam::sErrors++ < 20) {
-          LOG(error) << "Corrupt RDH - RDH parsing ran out of raw data buffer";
+        if (RawParserHelper::checkPrintError(mNErrors)) {
+          LOG(error) << "RAWPARSER: Corrupt RDH - RDH parsing ran out of raw data buffer (" << RawParserHelper::sErrors << " total RawParser errors)";
         }
         mPosition = mRawBuffer + mSize;
         return false;
       }
     }
-    if (RawParserParam::sErrorMode) {
+    if (RawParserHelper::sErrorMode) {
       if (header().version != HeaderType().version) {
-        if (RawParserParam::sErrorMode >= 2) {
+        if (RawParserHelper::sErrorMode >= 2) {
           throw std::runtime_error("Corrupt RDH - Invalid RDH version");
         }
-        if (RawParserParam::sErrors++ < 20) {
-          LOG(error) << "Corrupt RDH - Invalid RDH Version " << header().version << " (expected " << HeaderType().version << ")";
+        if (RawParserHelper::checkPrintError(mNErrors)) {
+          LOG(error) << "RAWPARSER: Corrupt RDH - Invalid RDH Version " << header().version << " (expected " << HeaderType().version << ") (" << RawParserHelper::sErrors << " total RawParser errors)";
         }
         mPosition = mRawBuffer + mSize;
         return false;
       }
       if (lastPacketCounter != -1 && (unsigned char)(lastPacketCounter + 1) != header().packetCounter && lastFEEID == header().feeId) {
-        if (RawParserParam::sErrorMode >= 2 && RawParserParam::sCheckIncompleteHBF >= 2) {
+        if (RawParserHelper::sErrorMode >= 2 && RawParserHelper::sCheckIncompleteHBF >= 2) {
           throw std::runtime_error("Incomplete HBF - jump in packet counter");
         }
-        if (RawParserParam::sErrors++ < 20) {
-          LOG(error) << "Incomplete HBF - jump in packet counter " << lastPacketCounter << " to " << header().packetCounter;
+        if (RawParserHelper::checkPrintError(mNErrors)) {
+          LOG(error) << "RAWPARSER: Incomplete HBF - jump in packet counter " << lastPacketCounter << " to " << header().packetCounter << " (" << RawParserHelper::sErrors << " total RawParser errors)";
+          ;
         }
         mPosition = mRawBuffer + mSize;
         return false;
@@ -292,6 +297,7 @@ class ConcreteRawParser
   bool reset()
   {
     mPosition = mRawBuffer;
+    mNErrors = 0;
     return mSize != 0;
   }
 
@@ -307,6 +313,11 @@ class ConcreteRawParser
       while ((step-- > 0) && next()) {
       };
     }
+  }
+
+  size_t getNErrors() const
+  {
+    return mNErrors;
   }
 
   /// Comparison: instances are equal if they serve the same buffer and are in the same
@@ -330,6 +341,7 @@ class ConcreteRawParser
   buffer_type const* mRawBuffer;
   buffer_type const* mPosition = nullptr;
   size_t mSize;
+  size_t mNErrors = 0;
 };
 
 using V7 = header::RAWDataHeaderV7;
@@ -620,6 +632,11 @@ class RawParser
     //  os << "\n" << it;
     //}
     return os;
+  }
+
+  size_t getNErrors() const
+  {
+    return mParser.getNErrors();
   }
 
  private:
