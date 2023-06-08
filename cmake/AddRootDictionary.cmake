@@ -17,9 +17,8 @@ configure_file(${CMAKE_CURRENT_LIST_DIR}/rootcling_wrapper.sh.in
 #
 # add_root_dictionary generates one dictionary to be added to a target.
 #
-# Besides the dictionary source itself two files are also generated : a rootmap
-# file and a pcm file. Those two will be installed alongside the target's
-# library file
+# Besides the dictionary source itself a pcm file is also created.
+# It will be installed alongside the target's library file
 #
 # arguments :
 #
@@ -94,7 +93,7 @@ function(add_root_dictionary target)
     endif()
   endforeach()
 
-  # Generate the pcm and rootmap files alongside the library
+  # Generate the pcm files alongside the library
   get_property(lib_output_dir
                TARGET ${target}
                PROPERTY LIBRARY_OUTPUT_DIRECTORY)
@@ -111,7 +110,6 @@ function(add_root_dictionary target)
   set(dictionaryFile ${CMAKE_CURRENT_BINARY_DIR}/${dictionary}.cxx)
   set(pcmBase ${dictionary}_rdict.pcm)
   set(pcmFile ${lib_output_dir}/${pcmBase})
-  set(rootmapFile ${lib_output_dir}/lib${basename}.rootmap)
   
   set(O2_TARGETPCMMAP_TARGET "${O2_TARGETPCMMAP_TARGET};${target}" CACHE INTERNAL "target/PCM map (target)")
   set(O2_TARGETPCMMAP_PCM "${O2_TARGETPCMMAP_PCM};${pcmFile}" CACHE INTERNAL "target/PCM map (pcm)")
@@ -135,14 +133,12 @@ function(add_root_dictionary target)
   # add a custom command to generate the dictionary using rootcling
   # cmake-format: off
   add_custom_command(
-    OUTPUT ${dictionaryFile} ${pcmFile} ${rootmapFile}
+    OUTPUT ${dictionaryFile} ${pcmFile}
     VERBATIM
     COMMAND
     ${CMAKE_BINARY_DIR}/rootcling_wrapper.sh
-      --rootmap_file ${rootmapFile}
       --dictionary_file ${dictionaryFile}
       --ld_library_path ${LD_LIBRARY_PATH}
-      --rootmap_library_name $<TARGET_FILE_NAME:${target}>
       --include_dirs -I$<JOIN:${includeDirs},$<SEMICOLON>-I>
       $<$<BOOL:${prop}>:--compile_defs>
       $<$<BOOL:${prop}>:-D$<JOIN:${prop},$<SEMICOLON>-D>>
@@ -176,8 +172,8 @@ function(add_root_dictionary target)
   list(REMOVE_DUPLICATES dirs)
   target_include_directories(${target} PRIVATE ${dirs})
 
-  # will install the rootmap and pcm files alongside the target's lib
+  # will install the pcm files alongside the target's lib
   get_filename_component(dict ${dictionaryFile} NAME_WE)
-  install(FILES ${rootmapFile} ${pcmFile} DESTINATION ${CMAKE_INSTALL_LIBDIR})
+  install(FILES ${pcmFile} DESTINATION ${CMAKE_INSTALL_LIBDIR})
 
 endfunction()

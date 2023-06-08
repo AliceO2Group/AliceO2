@@ -9,10 +9,6 @@
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-  --rootmap_library_name)
-    ROOTMAP_LIBRARY_NAME="$2"
-    shift 2
-    ;;
   --include_dirs)
     INCLUDE_DIRS="$2"
     shift 2
@@ -33,10 +29,6 @@ while [[ $# -gt 0 ]]; do
     DICTIONARY_FILE="$2"
     shift 2
     ;;
-  --rootmap_file)
-    ROOTMAP_FILE="$2"
-    shift 2
-    ;;
   --pcmdeps)
     PCMDEPS="$2"
     shift 2
@@ -52,11 +44,6 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ ! $ROOTMAP_LIBRARY_NAME ]]; then
-  echo "--rootmap_library_name option is mandatory but was not given" >&2
-  exit 1
-fi
-
 if [[ ! $INCLUDE_DIRS ]]; then
   echo "--include_dirs option is mandatory but was not given" >&2
   exit 1
@@ -67,27 +54,12 @@ if [[ ! $DICTIONARY_FILE ]]; then
   exit 1
 fi
 
-if [[ ! $ROOTMAP_FILE ]]; then
-  echo "--rootmap_file option is mandatory but was not given" >&2
-  exit 1
-fi
-
-case $OSTYPE in
-  darwin*)
-    unset PCMDEPS
-    ;;
-  *)
-    ;;
-esac
-
 LOGFILE=${DICTIONARY_FILE}.log
 
 @CMAKE_COMMAND@ -E env LD_LIBRARY_PATH=${LD_LIBRARY_PATH} @ROOT_rootcling_CMD@ \
   -f $DICTIONARY_FILE \
   -inlineInputHeader \
   -noGlobalUsingStd \
-  -rmf ${ROOTMAP_FILE} \
-  -rml ${ROOTMAP_LIBRARY_NAME} \
   ${INCLUDE_DIRS//;/ } \
   ${COMPILE_DEFINITIONS//;/ } \
   ${PCMDEPS:+-m }${PCMDEPS//;/ -m } \
