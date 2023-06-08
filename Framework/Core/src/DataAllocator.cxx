@@ -194,27 +194,27 @@ void doWriteTable(std::shared_ptr<FairMQResizableBuffer> b, arrow::Table* table)
   }
 }
 
-void DataAllocator::adopt(const Output& spec, TableBuilder* tb)
+void DataAllocator::adopt(const Output& spec, LifetimeHolder<TableBuilder>& tb)
 {
   auto& timingInfo = mRegistry.get<TimingInfo>();
   RouteIndex routeIndex = matchDataHeader(spec, timingInfo.timeslice);
   auto header = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodArrow, 0);
   auto& context = mRegistry.get<ArrowContext>();
-  auto* transport = context.proxy().getOutputTransport(routeIndex);
-  assert(transport != nullptr);
 
-  auto creator = [transport](size_t s) -> std::unique_ptr<fair::mq::Message> {
+  auto creator = [transport = context.proxy().getOutputTransport(routeIndex)](size_t s) -> std::unique_ptr<fair::mq::Message> {
     return transport->CreateMessage(s);
   };
   auto buffer = std::make_shared<FairMQResizableBuffer>(creator);
 
+  tb.callback = [buffer = buffer, transport = context.proxy().getOutputTransport(routeIndex)](TableBuilder& builder) -> void {
+    auto table = builder.finalize();
+    doWriteTable(buffer, table.get());
+    // deletion happens in the caller
+  };
+
   /// To finalise this we write the table to the buffer.
-  /// FIXME: most likely not a great idea. We should probably write to the buffer
-  ///        directly in the TableBuilder, incrementally.
-  std::shared_ptr<TableBuilder> p(tb);
-  auto finalizer = [payload = p](std::shared_ptr<FairMQResizableBuffer> b) -> void {
-    auto table = payload->finalize();
-    doWriteTable(b, table.get());
+  auto finalizer = [](std::shared_ptr<FairMQResizableBuffer> b) -> void {
+    // Finalization not needed, as we do it using the LifetimeHolder callback
   };
 
   context.addBuffer(std::move(header), buffer, std::move(finalizer), routeIndex);
