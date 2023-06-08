@@ -742,7 +742,7 @@ int GPUChainTracking::RunChain()
     mRec->SetNOMPThreads(-1);
   }
 
-  if (CheckErrorCodes()) {
+  if (CheckErrorCodes(false, false, mRec->getErrorCodeOutput())) {
     return 3;
   }
 
@@ -869,7 +869,7 @@ int GPUChainTracking::HelperOutput(int iSlice, int threadId, GPUReconstructionHe
   return 0;
 }
 
-int GPUChainTracking::CheckErrorCodes(bool cpuOnly, bool forceShowErrors)
+int GPUChainTracking::CheckErrorCodes(bool cpuOnly, bool forceShowErrors, std::vector<std::array<unsigned int, 4>>* fillErrors)
 {
   int retVal = 0;
   for (int i = 0; i < 1 + (!cpuOnly && mRec->IsGPU()); i++) {
@@ -905,6 +905,13 @@ int GPUChainTracking::CheckErrorCodes(bool cpuOnly, bool forceShowErrors)
       }
       if (!quiet) {
         processors()->errorCodes.printErrors(GetProcessingSettings().throttleAlarms && !forceShowErrors);
+      }
+      if (fillErrors) {
+        unsigned int nErrors = processors()->errorCodes.getNErrors();
+        const unsigned int* pErrors = processors()->errorCodes.getErrorPtr();
+        for (unsigned int j = 0; j < nErrors; j++) {
+          fillErrors->emplace_back(std::array<unsigned int, 4>{pErrors[4 * j], pErrors[4 * j + 1], pErrors[4 * j + 2], pErrors[4 * j + 3]});
+        }
       }
     }
   }

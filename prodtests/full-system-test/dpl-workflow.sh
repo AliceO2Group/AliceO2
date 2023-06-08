@@ -168,7 +168,7 @@ PVERTEXING_CONFIG_KEY+="${ITSMFT_STROBES};"
 has_processing_step ENTROPY_ENCODER && has_detector_ctf TPC && GPU_OUTPUT+=",compressed-clusters-ctf"
 
 if [[ $SYNCMODE == 1 ]] && workflow_has_parameter QC && has_detector_qc TPC; then
-  GPU_OUTPUT+=",qa"
+  GPU_OUTPUT+=",qa,error-qa"
   [[ -z ${TPC_TRACKING_QC_RUN_FRACTION:-} ]] && TPC_TRACKING_QC_RUN_FRACTION=1
   GPU_CONFIG_KEY+="GPU_QA.clusterRejectionHistograms=1;GPU_proc.qcRunFraction=$TPC_TRACKING_QC_RUN_FRACTION;"
   [[ $GPUTYPE != "CPU" && $HOSTMEMSIZE == "0" && $TPC_TRACKING_QC_RUN_FRACTION == "100" ]] && HOSTMEMSIZE=$(( 5 << 30 ))

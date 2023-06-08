@@ -25,6 +25,7 @@
 #include "Framework/CompletionPolicy.h"
 #include "Algorithm/Parser.h"
 #include <string>
+#include <array>
 #include <vector>
 
 class TStopwatch;
@@ -83,6 +84,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
     bool runTRDTracking = false;
     bool readTRDtracklets = false;
     bool requireCTPLumi = false;
+    bool outputErrorQA = false;
   };
 
   GPURecoWorkflowSpec(CompletionPolicyData* policyData, Config const& specconfig, std::vector<int> const& tpcsectors, unsigned long tpcSectorMask, std::shared_ptr<o2::base::GRPGeomRequest>& ggr);
@@ -132,6 +134,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   std::unique_ptr<GPUO2InterfaceConfiguration> mConfig;
   std::unique_ptr<GPUSettingsO2> mConfParam;
   std::unique_ptr<TStopwatch> mTimer;
+  std::vector<std::array<unsigned int, 4>> mErrorQA;
   int mQATaskMask = 0;
   std::unique_ptr<GPUO2InterfaceQA> mQA;
   std::vector<int> mClusterOutputIds;
