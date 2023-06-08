@@ -14,7 +14,6 @@
 #ifndef O2_AODPRODUCER_WORKFLOW_SPEC
 #define O2_AODPRODUCER_WORKFLOW_SPEC
 
-#include "CCDB/BasicCCDBManager.h"
 #include "DataFormatsFT0/RecPoints.h"
 #include "DataFormatsFDD/RecPoint.h"
 #include "DataFormatsFV0/RecPoints.h"
@@ -250,14 +249,8 @@ class AODProducerWorkflowDPL : public Task
   }
 
   bool mPropTracks{false};
-  bool mPropTracksCov{false};
-  std::string mCCDBUrl{"http://alice-ccdb.cern.ch"};
-  std::string mVtxPath{"GLO/Calib/MeanVertex"};
-
-  o2::ccdb::CcdbApi mCCDBAPI;
-
   o2::base::Propagator::MatCorrType mMatCorr{o2::base::Propagator::MatCorrType::USEMatCorrLUT};
-  o2::dataformats::MeanVertexObject* mVtx{nullptr};
+  o2::dataformats::MeanVertexObject mVtx;
   float mMinPropR{o2::constants::geom::XTPCInnerRef + 0.1f};
 
   std::unordered_set<GIndex> mGIDUsedBySVtx;
@@ -468,19 +461,6 @@ class AODProducerWorkflowDPL : public Task
     uint8_t crossed = 0;
   };
   std::vector<TPCCounters> mTPCCounters;
-
-  void fetchMeanVtxCCDB(int runNumber)
-  {
-    static int prevRunNumber = -1;
-    if (runNumber == prevRunNumber)
-      return;
-    auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
-    std::map<std::string, std::string> headers, metadataRCT;
-    headers = mCCDBAPI.retrieveHeaders(Form("RCT/Info/RunInformation/%i", runNumber), metadataRCT, -1);
-    int64_t ts = std::atol(headers["SOR"].c_str()); // timestamp in ms
-    mVtx = ccdbMgr.getForTimeStamp<o2::dataformats::MeanVertexObject>(mVtxPath, ts);
-    prevRunNumber = runNumber;
-  }
 
   void updateTimeDependentParams(ProcessingContext& pc);
 

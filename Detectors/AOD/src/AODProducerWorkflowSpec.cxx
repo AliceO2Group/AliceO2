@@ -441,14 +441,16 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
                          << " timeErr=" << extraInfoHolder.trackTimeRes << " BCSlice: " << extraInfoHolder.bcSlice[0] << ":" << extraInfoHolder.bcSlice[1];
             continue;
           }
-          o2::track::TrackParametrizationWithError<float> trackPar = data.getTrackParam(trackIndex);
+          o2::track::TrackParametrizationWithError<float> trackPar;
           bool isProp = false;
-          if (mPropTracks) {
-            if (mGIDUsedBySVtx.find(trackIndex) == mGIDUsedBySVtx.end())
+          if (mPropTracks && trackPar.getX() < mMinPropR) {
+            if (mGIDUsedBySVtx.find(trackIndex) == mGIDUsedBySVtx.end()) {
+              trackPar = data.getTrackParam(trackIndex);
               isProp = propagateTrackToPV(trackPar, data, collisionID);
+            }
           }
           auto trkType = isProp ? aod::track::Track : aod::track::TrackIU;
-          addToTracksTable(tracksCursor, tracksCovCursor, trackPar, collisionID, trkType);
+          addToTracksTable(tracksCursor, tracksCovCursor, isProp ? trackPar : data.getTrackParam(trackIndex), collisionID, trkType);
           addToTracksExtraTable(tracksExtraCursor, extraInfoHolder);
           // collecting table indices of barrel tracks for V0s table
           if (extraInfoHolder.bcSlice[0] >= 0 && collisionID < 0) {
@@ -1563,7 +1565,6 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   mNThreads = std::max(1, ic.options().get<int>("nthreads"));
   mEMCselectLeading = ic.options().get<bool>("emc-select-leading");
   mPropTracks = ic.options().get<bool>("propagate-tracks");
-  mPropTracksCov = ic.options().get<bool>("propagate-tracks-cov");
 #ifdef WITH_OPENMP
   LOGP(info, "Multi-threaded parts will run with {} OpenMP threads", mNThreads);
 #else
@@ -1624,14 +1625,6 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   }
   for (int ic = 0; ic < o2::zdc::NTDCChannels; ic++) {
     mZDCTDCMap[ic] = -std::numeric_limits<float>::infinity();
-  }
-
-  if (mPropTracks) {
-    mCCDBAPI.init(mCCDBUrl);
-    auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
-    ccdbMgr.setURL(mCCDBUrl);
-    ccdbMgr.setCaching(true);
-    ccdbMgr.setLocalObjectValidityChecking();
   }
 
   mTimer.Reset();
@@ -1736,10 +1729,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
     tfNumber = uint64_t(tinfo.firstTForbit) + (uint64_t(tinfo.runNumber) << 32); // getTFNumber(mStartIR, runNumber);
   } else {
     tfNumber = mTFNumber;
-  }
-
-  if (mPropTracks) {
-    fetchMeanVtxCCDB(runNumber);
   }
 
   std::vector<float> aAmplitudes;
@@ -2359,28 +2348,9 @@ bool AODProducerWorkflowDPL::propagateTrackToPV(o2::track::TrackParametrizationW
                                                 const o2::globaltracking::RecoContainer& data,
                                                 int colID)
 {
-  if (trackPar.getX() > mMinPropR)
-    return false;
   o2::dataformats::DCA dcaInfo;
   dcaInfo.set(999.f, 999.f, 999.f, 999.f, 999.f);
-  o2::dataformats::VertexBase v;
-  if (colID >= 0) {
-    const auto& vtx = data.getPrimaryVertex(colID);
-    v.setPos({vtx.getXYZ()});
-    if (mPropTracksCov) {
-      v.setCov({vtx.getCov()});
-    }
-  } else {
-    v.setPos({mVtx->getXYZ()});
-    if (mPropTracksCov) {
-      v.setCov(mVtx->getSigmaX() * mVtx->getSigmaX(),
-               0.f,
-               mVtx->getSigmaY() * mVtx->getSigmaY(),
-               0.f,
-               0.f,
-               mVtx->getSigmaZ() * mVtx->getSigmaZ());
-    }
-  }
+  o2::dataformats::VertexBase v = mVtx.getMeanVertex(colID < 0 ? 0.f : data.getPrimaryVertex(colID).getZ());
   return o2::base::Propagator::Instance()->propagateToDCABxByBz(v, trackPar, 2.f, mMatCorr, &dcaInfo);
 };
 
@@ -2513,6 +2483,9 @@ void AODProducerWorkflowDPL::updateTimeDependentParams(ProcessingContext& pc)
     mTimeMarginTrackTime = pvParams.timeMarginTrackTime * 1.e3;
     mFieldON = std::abs(o2::base::Propagator::Instance()->getNominalBz()) > 0.01;
   }
+  if (mPropTracks) {
+    pc.inputs().get<o2::dataformats::MeanVertexObject*>("meanvtx");
+  }
 }
 
 //_______________________________________
@@ -2532,6 +2505,11 @@ void AODProducerWorkflowDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* ob
     LOG(info) << "MFT Alpide param updated";
     const auto& par = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
     par.printKeyValues();
+    return;
+  }
+  if (matcher == ConcreteDataMatcher("GLO", "MEANVERTEX", 0)) {
+    LOG(info) << "Imposing new MeanVertex: " << ((const o2::dataformats::MeanVertexObject*)obj)->asString();
+    mVtx = *(const o2::dataformats::MeanVertexObject*)obj;
     return;
   }
 }
@@ -2712,6 +2690,8 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
                                                               dataRequest->inputs,
                                                               true); // query only once all objects except mag.field
 
+  dataRequest->inputs.emplace_back("meanvtx", "GLO", "MEANVERTEX", 0, Lifetime::Condition, ccdbParamSpec("GLO/Calib/MeanVertex", {}, 1));
+
   using namespace o2::aod;
   using namespace o2::aodproducer;
 
@@ -2775,8 +2755,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
       ConfigParamSpec{"reco-mctracks-only", VariantType::Int, 0, {"Store only reconstructed MC tracks and their mothers/daughters. 0 -- off, != 0 -- on"}},
       ConfigParamSpec{"ctpreadout-create", VariantType::Int, 0, {"Create CTP digits from detector readout and CTP inputs. !=1 -- off, 1 -- on"}},
       ConfigParamSpec{"emc-select-leading", VariantType::Bool, false, {"Flag to select if only the leading contributing particle for an EMCal cell should be stored"}},
-      ConfigParamSpec{"propagate-tracks", VariantType::Bool, false, {"Propagate tracks (not used for secondary vertices) to IP"}},
-      ConfigParamSpec{"propagate-tracks-cov", VariantType::Bool, false, {"Propagate track (not used for secondary vertices) to IP using covariance matrix"}}}};
+      ConfigParamSpec{"propagate-tracks", VariantType::Bool, false, {"Propagate tracks (not used for secondary vertices) to IP"}}}};
 }
 
 } // namespace o2::aodproducer
