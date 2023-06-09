@@ -16,7 +16,7 @@
 // Denotes: ERROR_NUMBER, ERROR_STRING, [Parameter 1, Parameter 2, Parameter 3] (SectorRow = Sector * 1000 + Row)
 GPUCA_ERROR_CODE(0, ERROR_NONE)
 
-// All overflow errors will not stop the processing, but part of the data will not be reconstructed.
+// All overflow errors will not stop the processing, but the part of the data that would be written beyond the max buffer size is discarded.
 GPUCA_ERROR_CODE(1, ERROR_ROWSTARTHIT_OVERFLOW, SectorRow, Value, Max)
 GPUCA_ERROR_CODE(2, ERROR_STARTHIT_OVERFLOW, SectorRow, Value, Max)
 GPUCA_ERROR_CODE(3, ERROR_TRACKLET_OVERFLOW, Sector, Value, Max)
