@@ -48,7 +48,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
 {
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
-  mCTFCoder.updateTimeDependentParams(pc);
+  mCTFCoder.updateTimeDependentParams(pc, true);
   auto digits = pc.inputs().get<gsl::span<o2::fdd::Digit>>("digits");
   auto channels = pc.inputs().get<gsl::span<o2::fdd::ChannelData>>("channels");
   if (mSelIR) {
@@ -74,7 +74,7 @@ DataProcessorSpec getEntropyEncoderSpec(bool selIR)
   std::vector<InputSpec> inputs;
   inputs.emplace_back("digits", "FDD", "DIGITSBC", 0, Lifetime::Timeframe);
   inputs.emplace_back("channels", "FDD", "DIGITSCH", 0, Lifetime::Timeframe);
-  inputs.emplace_back("ctfdict", "FDD", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("FDD/Calib/CTFDictionary"));
+  inputs.emplace_back("ctfdict", "FDD", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("FDD/Calib/CTFDictionaryTree"));
   if (selIR) {
     inputs.emplace_back("selIRFrames", "CTF", "SELIRFRAMES", 0, Lifetime::Timeframe);
   }
