@@ -17,8 +17,9 @@ o2_add_library(DataFormatsCTP
           src/TriggerOffsetsParam.cxx
   PUBLIC_LINK_LIBRARIES O2::CommonDataFormat
                         O2::Headers
-                        O2::SimulationDataFormat
                         O2::CommonUtils
+                        O2::DetectorsCommonDataFormats
+                        O2::DataFormatsParameters
                         O2::CommonConstants)
 o2_target_root_dictionary(DataFormatsCTP
                           HEADERS include/DataFormatsCTP/Digits.h
