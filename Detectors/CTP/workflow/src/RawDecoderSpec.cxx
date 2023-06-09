@@ -28,7 +28,7 @@ void RawDecoderSpec::init(framework::InitContext& ctx)
   mDecoder.setVerbose(mVerbose);
   mDecoder.setDoLumi(mDoLumi);
   mDecoder.setDoDigits(mDoDigits);
-  LOG(info) << "CTP reco init done";
+  LOG(info) << "CTP reco init done. DoLumi:" << mDoLumi << " DoDigits:" << mDoDigits << " NTF:" << mNTFToIntegrate;
 }
 void RawDecoderSpec::endOfStream(framework::EndOfStreamContext& ec)
 {
@@ -95,15 +95,13 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
   }
   //
   std::vector<LumiInfo> lumiPointsHBF1;
-  int ret = mDecoder.decodeRaw(inputs, digits, lumiPointsHBF1);
+  std::vector<InputSpec> filter{InputSpec{"filter", ConcreteDataTypeMatcher{"CTP", "RAWDATA"}, Lifetime::Timeframe}};
+  int ret = mDecoder.decodeRaw(inputs, filter, mOutputDigits, lumiPointsHBF1);
   if (ret == 1) {
     dummyOutput();
     return;
   }
   if (mDoDigits) {
-    for (auto const digmap : digits) {
-      mOutputDigits.push_back(digmap.second);
-    }
     LOG(info) << "[CTPRawToDigitConverter - run] Writing " << mOutputDigits.size() << " digits. IR rejected:" << mDecoder.getIRRejected() << " TCR rejected:" << mDecoder.getTCRRejected();
     ctx.outputs().snapshot(o2::framework::Output{"CTP", "DIGITS", 0, o2::framework::Lifetime::Timeframe}, mOutputDigits);
   }
