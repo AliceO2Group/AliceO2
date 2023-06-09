@@ -390,7 +390,7 @@ void DataRequest::requestPrimaryVerterticesTMP(bool mc) // primary vertices befo
   requestMap["PVertexTMP"] = mc;
 }
 
-void DataRequest::requestSecondaryVertertices(bool)
+void DataRequest::requestSecondaryVertices(bool)
 {
   addInput({"v0s", "GLO", "V0S", 0, Lifetime::Timeframe});
   addInput({"p2v0s", "GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe});

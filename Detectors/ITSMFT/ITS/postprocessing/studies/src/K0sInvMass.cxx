@@ -80,7 +80,7 @@ DataProcessorSpec getK0sInvMassStudy(mask_t srcTracksMask, bool useMC)
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
   dataRequest->requestTracks(srcTracksMask, useMC);
-  dataRequest->requestSecondaryVertertices(useMC);
+  dataRequest->requestSecondaryVertices(useMC);
 
   return DataProcessorSpec{
     "its-study-k0sinvmass",

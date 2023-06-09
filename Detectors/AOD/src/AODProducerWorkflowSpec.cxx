@@ -2638,7 +2638,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
     dataRequest->requestCTPDigits(useMC);
   }
   if (enableSV) {
-    dataRequest->requestSecondaryVertertices(useMC);
+    dataRequest->requestSecondaryVertices(useMC);
   }
   if (enableStrangenessTracking) {
     dataRequest->requestStrangeTracks(useMC);

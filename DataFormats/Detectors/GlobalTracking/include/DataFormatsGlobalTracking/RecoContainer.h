@@ -237,7 +237,7 @@ struct DataRequest {
 
   void requestPrimaryVertertices(bool mc);
   void requestPrimaryVerterticesTMP(bool mc);
-  void requestSecondaryVertertices(bool mc);
+  void requestSecondaryVertices(bool mc);
   void requestStrangeTracks(bool mc);
 
   void requestIRFramesITS();
