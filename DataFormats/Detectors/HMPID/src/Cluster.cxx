@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2020-2022 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -167,7 +167,8 @@ void Cluster::corrSin()
   int py;
   o2::hmpid::Param::lors2Pad(mXX, mYY, pc, px, py); // tmp digit to get it center
   double x = mXX - mParam->lorsX(pc, px);           // diff between cluster x and center of the pad contaning this cluster
-  mXX += 3.31267e-2 * sin(2 * M_PI / 0.8 * x) - 2.66575e-3 * sin(4 * M_PI / 0.8 * x) + 2.80553e-3 * sin(6 * M_PI / 0.8 * x) + 0.0070;
+  double xpi8on10 = M_PI / 0.8 * x;
+  mXX += 3.31267e-2 * sin(2.0 * xpi8on10) - 2.66575e-3 * sin(4.0 * xpi8on10) + 2.80553e-3 * sin(6.0 * xpi8on10) + 0.0070;
   return;
 }
 
@@ -197,8 +198,11 @@ void Cluster::fitFunc(int& iNpars, double* deriv, double& chi2, double* par, int
   for (int i = 0; i < nPads; i++) { // loop on all pads of the cluster
     double dQpadMath = 0;
     for (int j = 0; j < iNshape; j++) { // Mathiesons loop as all of them may contribute to this pad
-      double fracMathi = o2::hmpid::Digit::intMathieson(par[3 * j], par[3 * j + 1], pClu->dig(i)->getPadID());
-      dQpadMath += par[3 * j + 2] * fracMathi; // par[3*j+2] is charge par[3*j] is x par[3*j+1] is y of current Mathieson
+      int baseOff = 3 * j;
+      int baseOff1 = baseOff + 1;
+      int baseOff2 = baseOff + 2;
+      double fracMathi = o2::hmpid::Digit::intMathieson(par[baseOff], par[baseOff1], pClu->dig(i)->getPadID());
+      dQpadMath += par[baseOff2] * fracMathi; // par[3*j+2] is charge par[3*j] is x par[3*j+1] is y of current Mathieson
     }
     if (dQpadMath > 0 && pClu->dig(i)->mQ > 0) {
       chi2 += std::pow((pClu->dig(i)->mQ - dQpadMath), 2.0) / pClu->dig(i)->mQ; // chi2 function to be minimized
@@ -206,45 +210,46 @@ void Cluster::fitFunc(int& iNpars, double* deriv, double& chi2, double* par, int
   }
   //---calculate gradients...
   if (iflag == 2) {
-    float** derivPart;
-    derivPart = new float*[iNpars];
-    for (int j = 0; j < iNpars; j++) {
-      deriv[j] = 0;
-      derivPart[j] = new float[nPads];
-      for (int i = 0; i < nPads; i++) {
-        derivPart[j][i] = 0;
-      }
-    }
-    for (int i = 0; i < nPads; i++) {     // loop on all pads of the cluster
+    std::vector<std::vector<float>> derivPart(iNpars, std::vector<float>(nPads, 0.0f));
+    double dHalfPadX = o2::hmpid::Param::sizeHalfPadX();
+    double dHalfPadY = o2::hmpid::Param::sizeHalfPadY();
+
+    for (int i = 0; i < nPads; i++) { // loop on all pads of the cluster
+      int iPadId = pClu->dig(i)->getPadID();
+      double lx = o2::hmpid::Digit::lorsX(iPadId);
+      double ly = o2::hmpid::Digit::lorsY(iPadId);
       for (int j = 0; j < iNshape; j++) { // Mathiesons loop as all of them may contribute to this pad
-        double fracMathi = o2::hmpid::Digit::intMathieson(par[3 * j], par[3 * j + 1], pClu->dig(i)->getPadID());
-        double lx = o2::hmpid::Digit::lorsX(pClu->dig(i)->getPadID());
-        double ly = o2::hmpid::Digit::lorsY(pClu->dig(i)->getPadID());
-        derivPart[3 * j][i] += par[3 * j + 2] * (o2::hmpid::Digit::mathiesonX(par[3 * j] - lx - 0.5 * o2::hmpid::Param::sizePadX()) - o2::hmpid::Digit::mathiesonX(par[3 * j] - lx + 0.5 * o2::hmpid::Param::sizePadX())) *
-                               o2::hmpid::Digit::intPartMathiY(par[3 * j + 1], pClu->dig(i)->getPadID());
-        derivPart[3 * j + 1][i] += par[3 * j + 2] * (o2::hmpid::Digit::mathiesonY(par[3 * j + 1] - ly - 0.5 * o2::hmpid::Param::sizePadY()) - o2::hmpid::Digit::mathiesonY(par[3 * j + 1] - ly + 0.5 * o2::hmpid::Param::sizePadY())) *
-                                   o2::hmpid::Digit::intPartMathiX(par[3 * j], pClu->dig(i)->getPadID());
-        derivPart[3 * j + 2][i] += fracMathi;
+        int baseOff = 3 * j;
+        int baseOff1 = baseOff + 1;
+        int baseOff2 = baseOff + 2;
+        double fracMathi = o2::hmpid::Digit::intMathieson(par[baseOff], par[baseOff1], iPadId);
+        derivPart[baseOff][i] += par[baseOff2] * (o2::hmpid::Digit::mathiesonX(par[baseOff] - lx - dHalfPadX) - o2::hmpid::Digit::mathiesonX(par[baseOff] - lx + dHalfPadX)) *
+                                 o2::hmpid::Digit::intPartMathiY(par[baseOff1], iPadId);
+        derivPart[baseOff1][i] += par[baseOff2] * (o2::hmpid::Digit::mathiesonY(par[baseOff1] - ly - dHalfPadY) - o2::hmpid::Digit::mathiesonY(par[baseOff1] - ly + dHalfPadY)) *
+                                  o2::hmpid::Digit::intPartMathiX(par[baseOff], iPadId);
+        derivPart[baseOff2][i] += fracMathi;
       }
     }
     // loop on all pads of the cluster
-    for (int i = 0; i < nPads; i++) {     // loop on all pads of the cluster
-      double dQpadMath = 0;               // pad charge collector
+    for (int i = 0; i < nPads; i++) { // loop on all pads of the cluster
+      int iPadId = pClu->dig(i)->getPadID();
+      double dPadmQ = pClu->dig(i)->mQ;
+      double dQpadMath = 0.0; // pad charge collector
+      double twoOverMq = 2.0 / dPadmQ;
       for (int j = 0; j < iNshape; j++) { // Mathiesons loop as all of them may contribute to this pad
-        float fracMathi = o2::hmpid::Digit::intMathieson(par[3 * j], par[3 * j + 1], pClu->dig(i)->getPadID());
-        dQpadMath += par[3 * j + 2] * fracMathi;
-        if (dQpadMath > 0 && pClu->dig(i)->mQ > 0) {
-          deriv[3 * j] += 2 / pClu->dig(i)->mQ * (pClu->dig(i)->mQ - dQpadMath) * derivPart[3 * j][i];
-          deriv[3 * j + 1] += 2 / pClu->dig(i)->mQ * (pClu->dig(i)->mQ - dQpadMath) * derivPart[3 * j + 1][i];
-          deriv[3 * j + 2] += 2 / pClu->dig(i)->mQ * (pClu->dig(i)->mQ - dQpadMath) * derivPart[3 * j + 2][i];
+        int baseOff = 3 * j;
+        int baseOff1 = baseOff + 1;
+        int baseOff2 = baseOff + 2;
+        double fracMathi = o2::hmpid::Digit::intMathieson(par[baseOff], par[baseOff1], iPadId);
+        dQpadMath += par[baseOff2] * fracMathi;
+        if (dQpadMath > 0 && dPadmQ > 0) {
+          double appoggio = twoOverMq * (dPadmQ - dQpadMath);
+          deriv[baseOff] += appoggio * derivPart[baseOff][i];
+          deriv[baseOff1] += appoggio * derivPart[baseOff1][i];
+          deriv[baseOff2] += appoggio * derivPart[baseOff2][i];
         }
       }
     }
-    // delete array...
-    for (int i = 0; i < iNpars; i++) {
-      delete[] derivPart[i];
-    }
-    delete[] derivPart;
   } //---gradient calculations ended
   // fit ended. Final calculations
 } // FitFunction()
@@ -321,6 +326,7 @@ int Cluster::solve(std::vector<o2::hmpid::Cluster>* pCluLst, float* pSigmaCut, b
   // Arguments: pCluLst     - cluster list pointer where to add new cluster(s)
   //            isTryUnfold - flag to switch on/off unfolding
   //   Returns: number of local maxima of original cluster
+
   const int kMaxLocMax = 6;      // max allowed number of loc max for fitting
   coG();                         // First calculate CoG for the given cluster
   int iCluCnt = pCluLst->size(); // get current number of clusters already stored in the list by previous operations
@@ -497,6 +503,7 @@ void Cluster::digAdd(const Digit* pDig)
   // Adds a given digit to the list of digits belonging to this cluster, cluster is not owner of digits
   // Arguments: pDig - pointer to digit to be added
   // Returns: none
+
   if (mDigs.size() == 0) { // create list of digits in the first invocation
     mSi = 0;
     //  std::vector<o2::hmpid::Digit*> fDigs;

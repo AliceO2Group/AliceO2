@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2020-2022 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -14,21 +14,12 @@
 #include <TLatex.h>        //TestTrans()
 #include <TView.h>         //TestTrans()
 #include <TPolyMarker3D.h> //TestTrans()
-
-// #include <TRotation.h> //  ef: this is not used?
-// TGeoHMatrix is used; could not find any indication of that being dis-advised
-
+#include <TRotation.h>
 #include <TParticle.h>        //Stack()
 #include <TGeoPhysicalNode.h> //ctor
 #include <TGeoBBox.h>
 #include <TF1.h> //ctor
 #include <iostream>
-
-// ef : rotations
-#include <Math/GenVector/Rotation3D.h> //ef
-#include "Math/GenVector/RotationX.h"  //ef
-#include "Math/GenVector/RotationY.h"  //ef
-#include "Math/GenVector/RotationZ.h"  //ef
 
 using namespace o2::hmpid;
 
@@ -57,6 +48,8 @@ bool Param::fgMapPad[160][144][7];
 
 float Param::fgCellX = 0.;
 float Param::fgCellY = 0.;
+float Param::fgHalfCellX = 0.;
+float Param::fgHalfCellY = 0.;
 
 float Param::fgPcX = 0;
 float Param::fgPcY = 0;
@@ -116,6 +109,8 @@ Param::Param(bool noGeo) : mX(0), mY(0), mRefIdx(1.28947), mPhotEMean(6.675), mT
 
   fgCellX = 0.8;
   fgCellY = 0.84;
+  fgHalfCellX = fgCellX * 0.5;
+  fgHalfCellY = fgCellY * 0.5;
 
   if (!noGeo == kTRUE) {
     TGeoVolume* pCellVol = gGeoManager->GetVolume("Hcel");
@@ -295,9 +290,7 @@ double Param::sigma2(double trkTheta, double trkPhi, double ckovTh, double ckovP
   //            MIP beta
   //   Returns: absolute error on Cerenkov angle, [radians]
 
-  // TVector3 v(-999, -999, -999); : ef : changed to :
-  XYZVector v(-999, -999, -999);
-
+  TVector3 v(-999, -999, -999);
   double trkBeta = 1. / (TMath::Cos(ckovTh) * getRefIdx());
 
   if (trkBeta > 1) {
@@ -307,9 +300,6 @@ double Param::sigma2(double trkTheta, double trkPhi, double ckovTh, double ckovP
     trkBeta = 0.0001; //
   }
 
-  // ef : why not initialize directly to these values?  //math_utils::Vector3D<double> v(sigLoc, sigGeom, sigCrom);
-
-  // ef : following methods are valid for DisplacementVector3D
   v.SetX(sigLoc(trkTheta, trkPhi, ckovTh, ckovPh, trkBeta));
   v.SetY(sigGeom(trkTheta, trkPhi, ckovTh, ckovPh, trkBeta));
   v.SetZ(sigCrom(trkTheta, trkPhi, ckovTh, ckovPh, trkBeta));
@@ -468,38 +458,33 @@ Param* Param::instanceNoGeo()
   return fgInstance;
 } // Instance()
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-/* ef : moved to header
-inline bool Param::isInDead(float x, float y) // ef : bool -> inline bool
+bool Param::isInDead(float x, float y)
 {
   // Check is the current point is outside of sensitive area or in dead zones
   // Arguments: x,y -position
   //   Returns: 1 if not in sensitive zone
   for (Int_t iPc = 0; iPc < 6; iPc++) {
     if (x >= fgkMinPcX[iPc] && x <= fgkMaxPcX[iPc] && y >= fgkMinPcY[iPc] && y <= fgkMaxPcY[iPc]) {
-      return kFALSE; //in current pc
+      return kFALSE; // in current pc
     }
   }
 
   return kTRUE;
-} */
+}
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-/*ef : moved to header
-inline bool Param::isDeadPad(Int_t padx, Int_t pady, Int_t ch) // ef : bool -> inline bool
+bool Param::isDeadPad(Int_t padx, Int_t pady, Int_t ch)
 {
   // Check is the current pad is active or not
   // Arguments: padx,pady pad integer coord
   //   Returns: kTRUE if dead, kFALSE if active
 
   if (fgMapPad[padx - 1][pady - 1][ch]) {
-    return kFALSE; //current pad active
+    return kFALSE; // current pad active
   }
 
   return kTRUE;
-} */
+}
 //+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
 void Param::lors2Pad(float x, float y, Int_t& pc, Int_t& px, Int_t& py)
 {
   // Check the pad of given position

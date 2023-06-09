@@ -39,6 +39,50 @@ void Clusterer::Dig2Clu(gsl::span<const o2::hmpid::Digit> digs, std::vector<o2::
   //            isTryUnfold - flag to choose between CoG and Mathieson fitting
   //  Returns: none
 
+  struct Pad {
+    int x, y, m;
+  };
+
+  TMatrixF padMap(Param::kMinPx, Param::kMaxPcx, Param::kMinPy, Param::kMaxPcy); // pads map for single chamber 0..159 x 0..143
+
+  int pUsedDig = -1;
+  int padChX = 0, padChY = 0, module = 0;
+  std::vector<Pad> vPad;
+
+  for (int iCh = Param::kMinCh; iCh <= Param::kMaxCh; iCh++) { // chambers loop
+    padMap = (Float_t)-1;                                      // reset map to -1 (means no digit for this pad)
+    for (size_t iDig = 0; iDig < digs.size(); iDig++) {
+      o2::hmpid::Digit::pad2Absolute(digs[iDig].getPadID(), &module, &padChX, &padChY);
+      vPad.push_back({padChX, padChY, module});
+      if (module == iCh) {
+        padMap(padChX, padChY) = iDig; // fill the map for the given chamber, (padx,pady) cell takes digit index
+      }
+    } // digits loop for current chamber
+
+    for (size_t iDig = 0; iDig < digs.size(); iDig++) { // digits loop for current chamber
+      // o2::hmpid::Digit::pad2Absolute(digs[iDig].getPadID(), &module, &padChX, &padChY);
+      if (vPad.at(iDig).m != iCh || (pUsedDig = UseDig(vPad.at(iDig).x, vPad.at(iDig).y, padMap)) == -1) { // this digit is from other module or already taken in FormClu(), go after next digit
+        continue;
+      }
+      Cluster clu;
+      clu.setCh(iCh);
+      FormClu(clu, pUsedDig, digs, padMap); // form cluster starting from this digit by recursion
+      clu.solve(&clus, pUserCut, isUnfold); // solve this cluster and add all unfolded clusters to provided list
+    }                                       // digits loop for current chamber
+    vPad.clear();
+  } // chambers loop
+  return;
+} // Dig2Clu()
+//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+/*void Clusterer::Dig2Clu(gsl::span<const o2::hmpid::Digit> digs, std::vector<o2::hmpid::Cluster>& clus, float* pUserCut, bool isUnfold)
+{
+  // Finds all clusters for a given digits list provided not empty. Currently digits list is a list of all digits for a single chamber.
+  // Puts all found clusters in separate lists, one per clusters.
+  // Arguments: pDigAll     - list of digits for all chambers
+  //            pCluAll     - list of clusters for all chambers
+  //            isTryUnfold - flag to choose between CoG and Mathieson fitting
+  //  Returns: none
+
   TMatrixF padMap(Param::kMinPx, Param::kMaxPcx, Param::kMinPy, Param::kMaxPcy); // pads map for single chamber 0..159 x 0..143
 
   int pUsedDig = -1;
@@ -66,13 +110,14 @@ void Clusterer::Dig2Clu(gsl::span<const o2::hmpid::Digit> digs, std::vector<o2::
   }                                         // chambers loop
   return;
 } // Dig2Clu()
-
+*/
 //++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 void Clusterer::FormClu(Cluster& pClu, int pDig, gsl::span<const o2::hmpid::Digit> digs, TMatrixF& pDigMap)
 {
   // Forms the initial cluster as a combination of all adjascent digits. Starts from the given digit then calls itself recursevly  for all neighbours.
   // Arguments: pClu - pointer to cluster being formed
   //   Returns: none
+
   pClu.digAdd(&digs[pDig]); // take this digit in cluster
   int cnt = 0;
   int cx[4];
