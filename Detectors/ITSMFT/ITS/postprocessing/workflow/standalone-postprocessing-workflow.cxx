@@ -36,6 +36,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"cluster-sources", VariantType::String, std::string{"ITS"}, {"comma-separated list of cluster sources to use"}},
     {"disable-root-input", VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
+    {"niceparam-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options, "o2_tfidinfo.root");
   std::swap(workflowOptions, options);
@@ -60,6 +61,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCls, srcTrc, srcTrc, useMC);
   o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC);
+  o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, specs);
 
   // Declare specs related to studies hereafter
   specs.emplace_back(o2::its::study::getImpactParameterStudy(srcTrc, srcCls, useMC));

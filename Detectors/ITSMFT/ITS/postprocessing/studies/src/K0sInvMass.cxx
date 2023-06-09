@@ -55,6 +55,8 @@ void K0InvMassStudy::run(ProcessingContext& pc)
 
 void K0InvMassStudy::process(o2::globaltracking::RecoContainer& recoData)
 {
+  auto v0 = recoData.getV0s();
+  LOGP(info, " ====> got {} v0s", v0.size());
 }
 
 void K0InvMassStudy::updateTimeDependentParams(ProcessingContext& pc)
@@ -78,6 +80,7 @@ DataProcessorSpec getK0sInvMassStudy(mask_t srcTracksMask, bool useMC)
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
   dataRequest->requestTracks(srcTracksMask, useMC);
+  dataRequest->requestSecondaryVertertices(useMC);
 
   return DataProcessorSpec{
     "its-study-k0sinvmass",
