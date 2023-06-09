@@ -86,37 +86,40 @@ void GPUO2Interface::Deinitialize()
   mInitialized = false;
 }
 
+void GPUO2Interface::DumpEvent(int nEvent, GPUTrackingInOutPointers* data)
+{
+  if (mConfig->configProcessing.doublePipeline) {
+    throw std::runtime_error("Cannot dump events in double pipeline mode");
+  }
+  mChain->ClearIOPointers();
+  mChain->mIOPtrs = *data;
+  char fname[1024];
+  snprintf(fname, 1024, "event.%d.dump", nEvent);
+  mChain->DumpData(fname);
+  if (nEvent == 0) {
+#ifdef GPUCA_BUILD_QA
+    if (mConfig->configProcessing.runMC) {
+      mChain->ForceInitQA();
+      snprintf(fname, 1024, "mc.%d.dump", nEvent);
+      mChain->GetQA()->DumpO2MCData(fname);
+    }
+#endif
+  }
+}
+
+void GPUO2Interface::DumpSettings()
+{
+  if (mConfig->configProcessing.doublePipeline) {
+    throw std::runtime_error("Cannot dump events in double pipeline mode");
+  }
+  mChain->DoQueuedCalibUpdates(-1);
+  mRec->DumpSettings();
+}
+
 int GPUO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutputs* outputs)
 {
   if (!mInitialized) {
     return (1);
-  }
-  if (mConfig->configInterface.dumpEvents) {
-    if (mConfig->configProcessing.doublePipeline) {
-      throw std::runtime_error("Cannot dump events in double pipeline mode");
-    }
-    static int nEvent = 0;
-    mChain->DoQueuedCalibUpdates(-1);
-    mChain->ClearIOPointers();
-    mChain->mIOPtrs = *data;
-
-    char fname[1024];
-    snprintf(fname, 1024, "event.%d.dump", nEvent);
-    mChain->DumpData(fname);
-    if (nEvent == 0) {
-      mRec->DumpSettings();
-#ifdef GPUCA_BUILD_QA
-      if (mConfig->configProcessing.runMC) {
-        mChain->ForceInitQA();
-        snprintf(fname, 1024, "mc.%d.dump", nEvent);
-        mChain->GetQA()->DumpO2MCData(fname);
-      }
-#endif
-    }
-    nEvent++;
-    if (mConfig->configInterface.dumpEvents >= 2) {
-      return 0;
-    }
   }
 
   mChain->mIOPtrs = *data;

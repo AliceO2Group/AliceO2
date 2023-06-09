@@ -60,6 +60,8 @@ class GPUO2Interface
 
   int RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutputs* outputs = nullptr);
   void Clear(bool clearOutputs);
+  void DumpEvent(int nEvent, GPUTrackingInOutPointers* data);
+  void DumpSettings();
 
   // Updates all calibration objects that are != nullptr in newCalib
   int UpdateCalibration(const GPUCalibObjectsConst& newCalib, const GPUNewCalibValues& newVals);
