@@ -605,7 +605,7 @@ int CTPConfiguration::assignDescriptors()
   return 0;
 }
 ///
-/// Run Managet to manage Config and Scalers
+/// Run Manager to manage Config and Scalers
 ///
 void CTPRunManager::init()
 {
