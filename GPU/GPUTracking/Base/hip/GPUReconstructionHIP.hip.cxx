@@ -234,7 +234,7 @@ void GPUReconstructionHIPBackend::GPUFailedMsgA(const long long int error, const
 
 GPUReconstruction* GPUReconstruction_Create_HIP(const GPUSettingsDeviceBackend& cfg) { return new GPUReconstructionHIP(cfg); }
 
-void GPUReconstructionHIPBackend::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits)
+void GPUReconstructionHIPBackend::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits, std::unique_ptr<o2::its::TimeFrame>* timeFrame)
 {
   if (trackerTraits) {
     trackerTraits->reset(new o2::its::TrackerTraitsGPU);
@@ -242,11 +242,9 @@ void GPUReconstructionHIPBackend::GetITSTraits(std::unique_ptr<o2::its::TrackerT
   if (vertexerTraits) {
     vertexerTraits->reset(new o2::its::VertexerTraitsGPU);
   }
-}
-
-void GPUReconstructionHIPBackend::GetITSTimeframe(std::unique_ptr<o2::its::TimeFrame>* timeFrame)
-{
-  timeFrame->reset(new o2::its::gpu::TimeFrameGPU);
+  if (timeFrame) {
+    timeFrame->reset(new o2::its::gpu::TimeFrameGPU);
+  }
 }
 
 void GPUReconstructionHIPBackend::UpdateSettings()

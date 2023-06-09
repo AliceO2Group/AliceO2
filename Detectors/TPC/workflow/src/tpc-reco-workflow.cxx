@@ -37,11 +37,11 @@
 
 // we need a global variable to propagate the type the message dispatching of the
 // publisher will trigger on. This is dependent on the input type
-o2::framework::Output gDispatchTrigger{"", ""};
+static o2::framework::Output gDispatchTrigger{"", ""};
 
 // Global variable used to transport data to the completion policy
-o2::tpc::reco_workflow::CompletionPolicyData gPolicyData;
-unsigned long gTpcSectorMask = 0xFFFFFFFFF;
+static o2::tpc::reco_workflow::CompletionPolicyData gPolicyData;
+static unsigned long gTpcSectorMask = 0xFFFFFFFFF;
 
 void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
 {
