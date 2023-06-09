@@ -129,7 +129,6 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
     mTFSettings->simStartOrbit = hbfu.getFirstIRofTF(o2::InteractionRecord(0, hbfu.orbitFirstSampled)).orbit;
 
     *mConfParam = mConfig->ReadConfigurableParam();
-    mConfig->configInterface.dumpEvents = mConfParam->dump;
     if (mConfParam->display) {
       mDisplayFrontend.reset(GPUDisplayFrontendInterface::getFrontend(mConfig->configDisplay.displayFrontend.c_str()));
       mConfig->configProcessing.eventDisplay = mDisplayFrontend.get();
@@ -648,7 +647,17 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
 
   doCalibUpdates(pc);
 
-  int retVal = mTracker->RunTracking(&ptrs, &outputRegions);
+  if (mConfParam->dump) {
+    if (mNTFs == 1) {
+      mTracker->DumpSettings();
+    }
+    mTracker->DumpEvent(mNTFs - 1, &ptrs);
+  }
+
+  int retVal = 0;
+  if (mConfParam->dump < 2) {
+    mTracker->RunTracking(&ptrs, &outputRegions);
+  }
 
   // flushing debug output to file
   o2::utils::DebugStreamer::instance()->flush();
