@@ -48,7 +48,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
 {
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
-  mCTFCoder.updateTimeDependentParams(pc);
+  mCTFCoder.updateTimeDependentParams(pc, true);
   auto triggers = pc.inputs().get<gsl::span<TriggerRecord>>("triggers");
   auto clusters = pc.inputs().get<gsl::span<Cluster>>("clusters");
   if (mSelIR) {
@@ -75,7 +75,7 @@ DataProcessorSpec getEntropyEncoderSpec(bool selIR)
   std::vector<InputSpec> inputs;
   inputs.emplace_back("triggers", "CPV", "CLUSTERTRIGRECS", 0, Lifetime::Timeframe);
   inputs.emplace_back("clusters", "CPV", "CLUSTERS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("ctfdict", "CPV", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("CPV/Calib/CTFDictionary"));
+  inputs.emplace_back("ctfdict", "CPV", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("CPV/Calib/CTFDictionaryTree"));
   if (selIR) {
     inputs.emplace_back("selIRFrames", "CTF", "SELIRFRAMES", 0, Lifetime::Timeframe);
   }

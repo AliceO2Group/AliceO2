@@ -51,7 +51,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   mTimer.Start(false);
   o2::ctf::CTFIOSize iosize;
 
-  mCTFCoder.updateTimeDependentParams(pc);
+  mCTFCoder.updateTimeDependentParams(pc, true);
   auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf_FDD");
 
   auto& digits = pc.outputs().make<std::vector<o2::fdd::Digit>>(OutputRef{"digits"});
@@ -82,7 +82,7 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
 
   std::vector<InputSpec> inputs;
   inputs.emplace_back("ctf_FDD", "FDD", "CTFDATA", sspec, Lifetime::Timeframe);
-  inputs.emplace_back("ctfdict_FDD", "FDD", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("FDD/Calib/CTFDictionary"));
+  inputs.emplace_back("ctfdict_FDD", "FDD", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("FDD/Calib/CTFDictionaryTree"));
   inputs.emplace_back("trigoffset", "CTP", "Trig_Offset", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/TriggerOffsets"));
 
   return DataProcessorSpec{
