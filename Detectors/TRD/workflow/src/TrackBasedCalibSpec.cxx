@@ -49,6 +49,8 @@ class TRDTrackBasedCalibDevice : public Task
  private:
   void updateTimeDependentParams(framework::ProcessingContext& pc);
 
+  bool mDoGainCalib{false};
+
   std::shared_ptr<DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   TrackBasedCalib mCalibrator; // gather input data for calibration of vD, ExB and gain
@@ -60,6 +62,10 @@ void TRDTrackBasedCalibDevice::init(InitContext& ic)
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mTimer.Stop();
   mTimer.Reset();
+
+  if (ic.options().get<bool>("enable-gain-calib")) {
+    mDoGainCalib = true;
+  }
 }
 
 void TRDTrackBasedCalibDevice::run(ProcessingContext& pc)
@@ -69,8 +75,15 @@ void TRDTrackBasedCalibDevice::run(ProcessingContext& pc)
   recoData.collectData(pc, *mDataRequest.get());
   updateTimeDependentParams(pc); // Make sure this is called after recoData.collectData, which may load some conditions
   mCalibrator.setInput(recoData);
+
   mCalibrator.calculateAngResHistos();
   pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "ANGRESHISTS", 0, Lifetime::Timeframe}, mCalibrator.getAngResHistos());
+
+  if (mDoGainCalib) {
+    mCalibrator.calculateGainCalibObjs();
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "GAINCALIBHISTS", 0, Lifetime::Timeframe}, mCalibrator.getGainCalibHistos());
+  }
+
   mCalibrator.reset();
   mTimer.Stop();
 }
@@ -84,6 +97,11 @@ void TRDTrackBasedCalibDevice::updateTimeDependentParams(ProcessingContext& pc)
     initOnceDone = true;
     // init-once stuff
     mCalibrator.init();
+
+    if (mDoGainCalib) {
+      auto localGain = pc.inputs().get<o2::trd::LocalGainFactor*>("localgainfactors").release();
+      mCalibrator.setLocalGainFactors(localGain);
+    }
   }
 }
 
@@ -114,10 +132,12 @@ DataProcessorSpec getTRDTrackBasedCalibSpec(o2::dataformats::GlobalTrackID::mask
   if (GTrackID::includesSource(GTrackID::Source::ITSTPC, src)) {
     LOGF(info, "Found ITS-TPC tracks as input, loading ITS-TPC-TRD");
     srcTrk |= GTrackID::getSourcesMask("ITS-TPC-TRD");
+    srcTrk |= GTrackID::getSourcesMask("ITS-TPC");
   }
   if (GTrackID::includesSource(GTrackID::Source::TPC, src)) {
     LOGF(info, "Found TPC tracks as input, loading TPC-TRD");
     srcTrk |= GTrackID::getSourcesMask("TPC-TRD");
+    srcTrk |= GTrackID::getSourcesMask("TPC");
   }
   GTrackID::mask_t srcClu = GTrackID::getSourcesMask("TRD");         // we don't need all clusters, only TRD tracklets
   dataRequest->requestTracks(srcTrk, false);
@@ -125,6 +145,7 @@ DataProcessorSpec getTRDTrackBasedCalibSpec(o2::dataformats::GlobalTrackID::mask
 
   auto& inputs = dataRequest->inputs;
   inputs.emplace_back("mcmnoisemap", "TRD", "MCMNOISEMAP", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/NoiseMapMCM"));
+  inputs.emplace_back("localgainfactors", "TRD", "LOCALGAINFACTORS", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/LocalGainFactor"));
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
                                                               false,                             // GRPECS=true
                                                               false,                             // GRPLHCIF
@@ -133,6 +154,7 @@ DataProcessorSpec getTRDTrackBasedCalibSpec(o2::dataformats::GlobalTrackID::mask
                                                               o2::base::GRPGeomRequest::Aligned, // geometry
                                                               inputs,
                                                               true);
+  outputs.emplace_back(o2::header::gDataOriginTRD, "GAINCALIBHISTS", 0, Lifetime::Timeframe);
   outputs.emplace_back(o2::header::gDataOriginTRD, "ANGRESHISTS", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
@@ -140,7 +162,8 @@ DataProcessorSpec getTRDTrackBasedCalibSpec(o2::dataformats::GlobalTrackID::mask
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<TRDTrackBasedCalibDevice>(dataRequest, ggRequest)},
-    Options{}};
+    Options{
+      {"enable-gain-calib", VariantType::Bool, false, {"enable collection of dEdx histos for gain calibration"}}}};
 }
 
 } // namespace trd

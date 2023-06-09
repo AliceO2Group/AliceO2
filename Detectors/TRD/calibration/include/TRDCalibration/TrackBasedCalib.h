@@ -20,7 +20,9 @@
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/CalibratedTracklet.h"
 #include "DataFormatsTRD/AngularResidHistos.h"
+#include "DataFormatsTRD/GainCalibHistos.h"
 #include "DataFormatsTRD/NoiseCalibration.h"
+#include "TRDBase/PadCalibrationsAliases.h"
 #include "DetectorsBase/Propagator.h"
 #include "TRDBase/RecoParam.h"
 
@@ -56,6 +58,8 @@ class TrackBasedCalib
 
   /// Set the MCM noise map
   void setNoiseMapMCM(const NoiseStatusMCM* map) { mNoiseCalib = map; };
+  // Set the local gain factors with values from the ccdb
+  void setLocalGainFactors(const o2::trd::LocalGainFactor* localGain) { mLocalGain = localGain; }
 
   /// Reset the output
   void reset();
@@ -69,11 +73,13 @@ class TrackBasedCalib
   /// Main processing function for gathering information needed for gain calibration
   /// i.e. TRD tracklet ADC vs TPC track dEdx for given momentum slice
   void calculateGainCalibObjs();
+  int filldEdx(gsl::span<const TrackTRD>& tracks, bool isTPCTRD);
 
   /// Extrapolate track parameters to given layer and if requested perform update with tracklet
   bool propagateAndUpdate(TrackTRD& trk, int iLayer, bool doUpdate) const;
 
   const AngularResidHistos& getAngResHistos() const { return mAngResHistos; }
+  const GainCalibHistos& getGainCalibHistos() const { return mGainCalibHistos; }
 
  private:
   float mMaxSnp{o2::base::Propagator::MAX_SIN_PHI};  ///< max snp when propagating tracks
@@ -81,12 +87,20 @@ class TrackBasedCalib
   MatCorrType mMatCorr{MatCorrType::USEMatCorrNONE}; ///< if material correction should be done
   RecoParam mRecoParam;                              ///< parameters required for TRD reconstruction
   AngularResidHistos mAngResHistos;                  ///< aggregated data for the track based calibration
-  const NoiseStatusMCM* mNoiseCalib{nullptr};        ///< CCDB object with information of noisy MCMs
+  GainCalibHistos mGainCalibHistos;                  ///< aggregated data for the track based calibration
+  float bz;                                          ///< magnetic field
+
   // input arrays which should not be modified since they are provided externally
   gsl::span<const TrackTRD> mTracksInITSTPCTRD;        ///< TRD tracks reconstructed from TPC or ITS-TPC seeds
   gsl::span<const TrackTRD> mTracksInTPCTRD;           ///< TRD tracks reconstructed from TPC or TPC seeds
   gsl::span<const Tracklet64> mTrackletsRaw;           ///< array of raw tracklets needed for TRD refit
   gsl::span<const CalibratedTracklet> mTrackletsCalib; ///< array of calibrated tracklets needed for TRD refit
+  gsl::span<const o2::tpc::TrackTPC> mTracksTPC;       ///< TPC tracks in order to get dEdxTPC
+  gsl::span<const o2::dataformats::TrackTPCITS> mTracksITSTPC;
+
+  // corrections from ccdb, some need to be loaded only once hence an init flag
+  const o2::trd::LocalGainFactor* mLocalGain{nullptr}; ///< local gain factors from krypton calibration
+  const NoiseStatusMCM* mNoiseCalib{nullptr};          ///< CCDB object with information of noisy MCMs
 
   ClassDefNV(TrackBasedCalib, 1);
 };
