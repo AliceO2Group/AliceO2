@@ -23,6 +23,7 @@
 #include <unordered_map>
 #include <MathUtils/Cartesian.h>
 #include <DataFormatsCalibration/MeanVertexObject.h>
+#include <DataFormatsCTP/Digits.h>
 
 namespace o2
 {
@@ -141,6 +142,17 @@ class DigitizationContext
 
   static DigitizationContext* loadFromFile(std::string_view filename = "");
 
+  void setCTPDigits(std::vector<o2::ctp::CTPDigit> const* ctpdigits) const
+  {
+    mCTPTrigger = ctpdigits;
+    if (mCTPTrigger) {
+      mHasTrigger = true;
+    }
+  }
+
+  std::vector<o2::ctp::CTPDigit> const* getCTPDigits() const { return mCTPTrigger; }
+  bool hasTriggerInput() const { return mHasTrigger; }
+
  private:
   int mNofEntries = 0;
   int mMaxPartNumber = 0; // max number of parts in any given collision
@@ -169,7 +181,10 @@ class DigitizationContext
   std::string mQEDSimPrefix;                         // prefix for QED production/contribution
   mutable o2::parameters::GRPObject* mGRP = nullptr; //!
 
-  ClassDefNV(DigitizationContext, 4);
+  mutable std::vector<o2::ctp::CTPDigit> const* mCTPTrigger = nullptr; // CTP trigger info associated to this digitization context
+  mutable bool mHasTrigger = false;                                    //
+
+  ClassDefNV(DigitizationContext, 5);
 };
 
 /// function reading the hits from a chain (previously initialized with initSimChains

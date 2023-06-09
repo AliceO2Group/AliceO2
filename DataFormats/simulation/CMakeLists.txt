@@ -26,6 +26,7 @@ o2_add_library(SimulationDataFormat
                                      O2::DetectorsCommonDataFormats
                                      O2::DataFormatsParameters
                                      O2::DataFormatsCalibration
+                                     O2::DataFormatsCTP
                                      O2::GPUCommon
                                      ROOT::TreePlayer)
 
