@@ -428,6 +428,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   // selected by output type 'tracks'
   if (runGPUReco) {
     o2::gpu::GPURecoWorkflowSpec::Config cfg;
+    cfg.runTPCTracking = false;
     cfg.requireCTPLumi = requireCTPLumi;
     cfg.decompressTPC = decompressTPC;
     cfg.decompressTPCFromROOT = decompressTPC && inputType == InputType::CompClusters;

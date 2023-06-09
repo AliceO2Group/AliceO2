@@ -36,7 +36,7 @@ using namespace o2::framework;
 using namespace o2::dataformats;
 using namespace o2::gpu;
 using CompletionPolicyData = std::vector<InputSpec>;
-CompletionPolicyData gPolicyData;
+static CompletionPolicyData gPolicyData;
 static constexpr unsigned long gTpcSectorMask = 0xFFFFFFFFF;
 static std::shared_ptr<GPURecoWorkflowSpec> gTask;
 
@@ -98,7 +98,9 @@ enum struct ioType { Digits,
                      TRDTracklets,
                      TRDTracks,
                      NoSharedMap,
-                     SendClustersPerSector };
+                     SendClustersPerSector,
+                     ITSClusters,
+                     ITSTracks };
 
 static const std::unordered_map<std::string, ioType> InputMap{
   {"digits", ioType::Digits},
@@ -107,7 +109,8 @@ static const std::unordered_map<std::string, ioType> InputMap{
   {"zsonthefly", ioType::ZSRawOTF},
   {"compressed-clusters-root", ioType::CompClustROOT},
   {"compressed-clusters-ctf", ioType::CompClustCTF},
-  {"trd-tracklets", ioType::TRDTracklets}};
+  {"trd-tracklets", ioType::TRDTracklets},
+  {"its-clusters", ioType::ITSClusters}};
 
 static const std::unordered_map<std::string, ioType> OutputMap{
   {"clusters", ioType::Clusters},
@@ -117,7 +120,8 @@ static const std::unordered_map<std::string, ioType> OutputMap{
   {"error-qa", ioType::ErrorQA},
   {"no-shared-cluster-map", ioType::NoSharedMap},
   {"send-clusters-per-sector", ioType::SendClustersPerSector},
-  {"trd-tracks", ioType::TRDTracks}};
+  {"trd-tracks", ioType::TRDTracks},
+  {"its-tracks", ioType::ITSTracks}};
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
@@ -146,6 +150,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   };
 
   GPURecoWorkflowSpec::Config cfg;
+  cfg.runTPCTracking = true;
   cfg.requireCTPLumi = requireCTPLumi;
   cfg.decompressTPC = isEnabled(inputTypes, ioType::CompClustCTF);
   cfg.decompressTPCFromROOT = isEnabled(inputTypes, ioType::CompClustROOT);

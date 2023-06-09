@@ -15,6 +15,7 @@
 #include "GPUO2Interface.h"
 #include "GPUReconstruction.h"
 #include "GPUChainTracking.h"
+#include "GPUChainITS.h"
 #include "GPUMemorySizeScalers.h"
 #include "GPUOutputControl.h"
 #include "GPUO2InterfaceConfiguration.h"
@@ -57,6 +58,11 @@ int GPUO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
   }
   mRec->SetSettings(&mConfig->configGRP, &mConfig->configReconstruction, &mConfig->configProcessing, &mConfig->configWorkflow);
   mChain->SetCalibObjects(mConfig->configCalib);
+
+  if (mConfig->configWorkflow.steps.isSet(GPUDataTypes::RecoStep::ITSTracking)) {
+    mChainITS = mRec->AddChain<GPUChainITS>();
+  }
+
   mOutputRegions.reset(new GPUTrackingOutputs);
   if (mConfig->configInterface.outputToExternalBuffers) {
     for (unsigned int i = 0; i < mOutputRegions->count(); i++) {
@@ -197,4 +203,11 @@ int GPUO2Interface::UpdateCalibration(const GPUCalibObjectsConst& newCalib, cons
 void GPUO2Interface::setErrorCodeOutput(std::vector<std::array<unsigned int, 4>>* v)
 {
   mRec->setErrorCodeOutput(v);
+}
+
+void GPUO2Interface::GetITSTraits(o2::its::TrackerTraits*& trackerTraits, o2::its::VertexerTraits*& vertexerTraits, o2::its::TimeFrame*& timeFrame)
+{
+  trackerTraits = mChainITS->GetITSTrackerTraits();
+  vertexerTraits = mChainITS->GetITSVertexerTraits();
+  timeFrame = mChainITS->GetITSTimeframe();
 }
