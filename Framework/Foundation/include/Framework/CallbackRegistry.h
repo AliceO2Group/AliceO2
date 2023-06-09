@@ -31,23 +31,15 @@ class CallbackRegistry
  public:
   static constexpr std::size_t size = sizeof...(Args);
   using CallbackTypes = o2::framework::pack<typename Args::type...>;
-  using CallbackStore = std::array<void*, size>;
-  CallbackRegistry()
-  {
-    for (auto& ptr : mStore) {
-      ptr = nullptr;
-    }
-  }
+  using CallbackStore = std::array<std::vector<void*>, size>;
+  CallbackRegistry() = default;
 
   // set callback for slot
   template <CallbackId ID, typename U>
   void set(U&& cb)
   {
     using CallbackType = typename o2::framework::pack_element_t<(int)ID, CallbackTypes>;
-    if (mStore[(int)ID] != nullptr) {
-      delete reinterpret_cast<CallbackType*>(mStore[(int)ID]);
-    }
-    mStore[(int)ID] = reinterpret_cast<void*>(new CallbackType(std::forward<U>(cb)));
+    mStore[(int)ID].push_back(reinterpret_cast<void*>(new CallbackType(std::forward<U>(cb))));
   }
 
   // execute callback at specified slot with argument pack
@@ -56,11 +48,14 @@ class CallbackRegistry
   {
     using CallbackType = typename o2::framework::pack_element_t<(int)ID, CallbackTypes>;
     static_assert(std::is_same_v<CallbackType, std::function<void(TArgs...)>>, "callback type mismatch");
-    auto cb = reinterpret_cast<CallbackType*>(mStore[(int)ID]);
-    if (cb == nullptr) {
-      return;
+    auto& v = mStore[(int)ID];
+    for (auto& ptr : v) {
+      auto cb = reinterpret_cast<CallbackType*>(ptr);
+      if (cb == nullptr) {
+        continue;
+      }
+      (*cb)(std::forward<TArgs>(args)...);
     }
-    return (*cb)(std::forward<TArgs>(args)...);
   }
 
  private:
