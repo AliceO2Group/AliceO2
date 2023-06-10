@@ -9,11 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_IMPACT_PARAMETER_STUDY_H
-#define O2_IMPACT_PARAMETER_STUDY_H
+#ifndef O2_K0SINVMASS_STUDY_H
+#define O2_K0SINVMASS_STUDY_H
 
-#include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "Framework/DataProcessorSpec.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 
 namespace o2
 {
@@ -23,9 +23,9 @@ namespace study
 {
 using mask_t = o2::dataformats::GlobalTrackID::mask_t;
 
-o2::framework::DataProcessorSpec getImpactParameterStudy(mask_t srcTracksMask, mask_t srcClusMask, bool useMC = false);
+o2::framework::DataProcessorSpec getK0sInvMassStudy(mask_t srcTracksMask, bool useMC = false);
 } // namespace study
 } // namespace its
 } // namespace o2
 
-#endif // O2_IMPACT_PARAMETER_STUDY_H
+#endif
