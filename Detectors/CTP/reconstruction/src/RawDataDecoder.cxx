@@ -79,7 +79,7 @@ int RawDataDecoder::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
     int32_t offset = BCShiftCorrection + o2::ctp::TriggerOffsetsParam::Instance().LM_L0 + o2::ctp::TriggerOffsetsParam::Instance().L0_L1 - 1;
     LOG(debug) << "tcr ir ori:" << ir;
     if ((ir.orbit <= mTFOrbit) && ((int32_t)ir.bc < offset)) {
-      //LOG(warning) << "Loosing tclass:" << ir;
+      // LOG(warning) << "Loosing tclass:" << ir;
       mTCRRejected++;
       return 0;
     }
@@ -172,10 +172,10 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
     if (hb) {
       if ((mDoLumi && payloadCTP == o2::ctp::NIntRecPayload) && !tf) { // create lumi per HB
         lumiPointsHBF1.emplace_back(LumiInfo{rdhOrbit, 0, 0, countsMBT, countsMBV});
-        //std::cout << "hb:" << nhb << " countsMBT:" << countsMBT << std::endl;
+        // std::cout << "hb:" << nhb << " countsMBT:" << countsMBT << std::endl;
         countsMBT = 0;
         countsMBV = 0;
-        //nhb++;
+        // nhb++;
       }
       remnant = 0;
       size_gbt = 0;
@@ -279,7 +279,7 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
   }
   if (mDoLumi) {
     lumiPointsHBF1.emplace_back(LumiInfo{orbit0, 0, 0, countsMBT, countsMBV});
-    //std::cout << "last lumi:" << nhb  << std::endl;
+    // std::cout << "last lumi:" << nhb  << std::endl;
   }
   if (mDoDigits) {
     for (auto const& dig : digitsMap) {
