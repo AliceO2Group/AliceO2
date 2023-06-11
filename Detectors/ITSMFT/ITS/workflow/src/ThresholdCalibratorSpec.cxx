@@ -843,7 +843,7 @@ void ITSThresholdCalibrator::setRunType(const short int& runtype)
     this->N_RANGE = 51;
     this->mCheckExactRow = true;
 
-  } else if (runtype == 101 || runtype == THR_SCAN_SHORT || runtype == THR_SCAN_SHORT_100HZ ||
+  } else if (runtype == THR_SCAN_SHORT || runtype == THR_SCAN_SHORT_100HZ ||
              runtype == THR_SCAN_SHORT_200HZ || runtype == THR_SCAN_SHORT_33 || runtype == THR_SCAN_SHORT_2_10HZ) {
     // threshold_scan_short -- just extract thresholds for each pixel and write to TTree
     // 10 rows per chip
