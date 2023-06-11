@@ -257,14 +257,21 @@ o2::framework::DataProcessorSpec specCombiner(std::string const& name, std::vect
     void run(o2::framework::ProcessingContext& pc)
     {
       std::cerr << "Processing Combined with " << mNThreads << " threads\n";
-      size_t nt = tasks.size();
+      if (mNThreads > 1) {
+        size_t nt = tasks.size();
 #ifdef WITH_OPENMP
 #pragma omp parallel for schedule(dynamic) num_threads(mNThreads)
 #endif
-      for (size_t i = 0; i < nt; i++) {
-        auto t = tasks[i];
-        std::cerr << " Executing sub-device " << t.name << "\n";
-        t.algorithm.onProcess(pc);
+        for (size_t i = 0; i < nt; i++) {
+          auto& t = tasks[i];
+          std::cerr << " Executing sub-device " << t.name << "\n";
+          t.algorithm.onProcess(pc);
+        }
+      } else {
+        for (auto& t : tasks) {
+          std::cerr << " Executing sub-device " << t.name << "\n";
+          t.algorithm.onProcess(pc);
+        }
       }
     }
 
