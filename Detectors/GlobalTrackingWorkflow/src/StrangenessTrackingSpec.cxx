@@ -141,7 +141,7 @@ DataProcessorSpec getStrangenessTrackerSpec(o2::dataformats::GlobalTrackID::mask
   outputs.emplace_back("GLO", "STRANGETRACKS", 0, Lifetime::Timeframe);
   outputs.emplace_back("GLO", "CLUSUPDATES", 0, Lifetime::Timeframe);
   if (useMC) {
-    outputs.emplace_back("GLO", "STRK_MC", 0, Lifetime::Timeframe);
+    outputs.emplace_back("GLO", "STRANGETRACKS_MC", 0, Lifetime::Timeframe);
     LOG(info) << "Strangeness tracker will use MC";
   }
 
