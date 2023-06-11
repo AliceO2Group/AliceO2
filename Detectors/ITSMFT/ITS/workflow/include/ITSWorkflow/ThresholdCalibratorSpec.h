@@ -116,7 +116,7 @@ class ITSThresholdCalibrator : public Task
   void run(ProcessingContext& pc) final;
   void endOfStream(EndOfStreamContext& ec) final;
 
-  void finalize(EndOfStreamContext* ec);
+  void finalize();
   void stop() final;
   void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
 
@@ -192,7 +192,6 @@ class ITSThresholdCalibrator : public Task
 
   // Helper functions for writing to the database
   void addDatabaseEntry(const short int&, const char*, std::vector<float>, bool);
-  void sendToAggregator(EndOfStreamContext*);
 
   // Utils
   std::vector<short int> getIntegerVect(std::string&);
@@ -223,6 +222,7 @@ class ITSThresholdCalibrator : public Task
   short int mRunTypeUp = -1;
   short int mRunTypeRU[N_RU] = {0};
   short int mRunTypeChip[24120] = {0};
+  short int mChipLastRow[24120] = {-1};
   bool mActiveLinks[N_RU][3] = {{false}};
   std::set<short int> mRuSet;
   short int mRu = 0;
@@ -251,8 +251,8 @@ class ITSThresholdCalibrator : public Task
   // CDW version
   short int mCdwVersion = 0; // for now: v0, v1
 
-  // Flag to check if endOfStream is available
-  bool mCheckEos = false;
+  // Flag to avoid that endOfStream and stop are both done
+  bool isEnded = false;
 
   // Flag to enable cw counter check
   bool mCheckCw = false;
