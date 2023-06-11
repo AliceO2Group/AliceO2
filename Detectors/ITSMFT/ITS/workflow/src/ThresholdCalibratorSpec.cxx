@@ -1425,7 +1425,6 @@ void ITSThresholdCalibrator::run(ProcessingContext& pc)
           }
           this->addDatabaseEntry(chipEnabled[iChip], "", std::vector<float>(), true);
         }
-        mRunTypeRU[iRU] = 0;
       }
     }
   }
