@@ -10,6 +10,7 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(CTFWorkflow
+               TARGETVARNAME targetName
                SOURCES src/CTFWriterSpec.cxx
                        src/CTFReaderSpec.cxx
                PUBLIC_LINK_LIBRARIES O2::Framework
@@ -46,6 +47,12 @@ o2_add_library(CTFWorkflow
                                      O2::Algorithm
                                      O2::CommonUtils)
 
+
+if (OpenMP_CXX_FOUND)
+    target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
+    target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
+endif()
+
 o2_add_executable(writer-workflow
                   SOURCES src/ctf-writer-workflow.cxx
                   COMPONENT_NAME ctf
@@ -55,4 +62,3 @@ o2_add_executable(reader-workflow
                   SOURCES src/ctf-reader-workflow.cxx
                   COMPONENT_NAME ctf
                   PUBLIC_LINK_LIBRARIES O2::CTFWorkflow)
-

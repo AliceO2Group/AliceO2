@@ -33,9 +33,11 @@ EntropyDecoderSpec::EntropyDecoderSpec(o2::header::DataOrigin orig, int verbosit
   : mOrigin(orig), mCTFCoder(o2::ctf::CTFCoderBase::OpType::Decoder, orig == o2::header::gDataOriginITS ? o2::detectors::DetID::ITS : o2::detectors::DetID::MFT), mGetDigits(getDigits)
 {
   assert(orig == o2::header::gDataOriginITS || orig == o2::header::gDataOriginMFT);
+  mDetPrefix = orig == o2::header::gDataOriginITS ? "_ITS" : "_MFT";
   mTimer.Stop();
   mTimer.Reset();
   mCTFCoder.setVerbosity(verbosity);
+  mCTFCoder.setDictBinding(std::string("ctfdict") + mDetPrefix);
 }
 
 void EntropyDecoderSpec::init(o2::framework::InitContext& ic)
@@ -54,8 +56,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   mTimer.Start(false);
   o2::ctf::CTFIOSize iosize;
   updateTimeDependentParams(pc);
-
-  auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf");
+  auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>(std::string("ctf") + mDetPrefix);
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
   //  const auto ctfImage = o2::itsmft::CTF::getImage(buff.data());
 
@@ -92,10 +93,10 @@ void EntropyDecoderSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   if (pc.services().get<o2::framework::TimingInfo>().globalRunNumberChanged) { // this params need to be queried only once
     if (mMaskNoise) {
-      pc.inputs().get<o2::itsmft::NoiseMap*>("noise").get();
+      pc.inputs().get<o2::itsmft::NoiseMap*>(std::string("noise") + mDetPrefix);
     }
     if (mGetDigits || mMaskNoise) {
-      pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict");
+      pc.inputs().get<o2::itsmft::TopologyDictionary*>(std::string("cldict") + mDetPrefix);
     }
   }
   mCTFCoder.updateTimeDependentParams(pc);
@@ -135,13 +136,13 @@ DataProcessorSpec getEntropyDecoderSpec(o2::header::DataOrigin orig, int verbosi
     outputs.emplace_back(OutputSpec{{"patterns"}, orig, "PATTERNS", 0, Lifetime::Timeframe});
   }
   outputs.emplace_back(OutputSpec{{"ctfrep"}, orig, "CTFDECREP", 0, Lifetime::Timeframe});
-
+  std::string nm = orig == o2::header::gDataOriginITS ? "_ITS" : "_MFT";
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("ctf", orig, "CTFDATA", sspec, Lifetime::Timeframe);
-  inputs.emplace_back("noise", orig, "NOISEMAP", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Calib/NoiseMap", orig.as<std::string>())));
-  inputs.emplace_back("cldict", orig, "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Calib/ClusterDictionary", orig.as<std::string>())));
-  inputs.emplace_back("ctfdict", orig, "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Calib/CTFDictionary", orig.as<std::string>())));
-  inputs.emplace_back("trigoffset", "CTP", "Trig_Offset", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/TriggerOffsets"));
+  inputs.emplace_back(std::string("ctf") + nm, orig, "CTFDATA", sspec, Lifetime::Timeframe);
+  inputs.emplace_back(std::string("noise") + nm, orig, "NOISEMAP", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Calib/NoiseMap", orig.as<std::string>())));
+  inputs.emplace_back(std::string("cldict") + nm, orig, "CLUSDICT", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Calib/ClusterDictionary", orig.as<std::string>())));
+  inputs.emplace_back(std::string("ctfdict") + nm, orig, "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Calib/CTFDictionary", orig.as<std::string>())));
+  inputs.emplace_back(std::string("trigoffset"), "CTP", "Trig_Offset", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/TriggerOffsets"));
 
   return DataProcessorSpec{
     EntropyDecoderSpec::getName(orig),
