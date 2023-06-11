@@ -232,14 +232,23 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     if (decSpecsV.size() && decSpecsV[0].size()) {
       specs.push_back(specCombiner("EntropyDecoders", decSpecsV[0], remaining)); // processing w/o pipelining
     }
+    bool updatePipelines = false;
     for (size_t i = 1; i < decSpecsV.size(); i++) { // add pipelined processes separately, consider combining them to separate groups (need to have modify argument of pipeline option)
-      auto& decSpecs = decSpecsV[i];
-      for (auto& s : decSpecs) {
-        specs.push_back(s);
+      if (decSpecsV[i].size() > 1) {
+        specs.push_back(specCombiner(fmt::format("EntropyDecodersP{}", i + 1), decSpecsV[i], remaining)); // processing pipelining multiplicity i+1
+        updatePipelines = true;
+        pipes += fmt::format(",EntropyDecodersP{}:{}", i + 1, i + 1);
+      } else {
+        for (auto& s : decSpecsV[i]) {
+          specs.push_back(s);
+        }
       }
     }
     for (auto& s : remaining) {
       specs.push_back(s);
+    }
+    if (updatePipelines) {
+      configcontext.options().override("pipeline", pipes);
     }
   }
 
