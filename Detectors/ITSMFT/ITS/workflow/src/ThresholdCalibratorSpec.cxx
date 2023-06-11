@@ -906,7 +906,7 @@ void ITSThresholdCalibrator::setRunType(const short int& runtype)
     this->mStrobeWindow = 5; // it's 4 but it corresponds to 4+1 (as from alpide manual)
     this->N_RANGE = (mMax - mMin) / mStep + 1;
     this->mCheckExactRow = true;
-  } else if (runtype == TOT_CALIBRATION) {
+  } else if (runtype == TOT_CALIBRATION || runtype == TOT_CALIBRATION_1_ROW) {
     // Pulse length scan 2D (charge vs strobe delay)
     this->mScanType = 'p'; // small p, just to distinguish from capital P
     this->initThresholdTree();
@@ -916,9 +916,14 @@ void ITSThresholdCalibrator::setRunType(const short int& runtype)
     this->mStep = 10;
     this->mStrobeWindow = 2; // it's 1 but it corresponds to 1+1 (as from alpide manual)
     this->N_RANGE = (mMax - mMin) / mStep + 1;
-    this->mMin2 = 60;  // charge min
-    this->mMax2 = 140; // charge max
-    this->mStep2 = 80; // step for the charge
+    this->mMin2 = 30;  // charge min
+    this->mMax2 = 60;  // charge max
+    this->mStep2 = 30; // step for the charge
+    if (runtype == TOT_CALIBRATION_1_ROW) {
+      this->mMin2 = 0;   // charge min
+      this->mMax2 = 170; // charge max
+      this->mStep2 = 1;  // step for the charge
+    }
     this->N_RANGE2 = (mMax2 - mMin2) / mStep2 + 1;
     this->mCheckExactRow = true;
   } else {
