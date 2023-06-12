@@ -322,9 +322,19 @@ void TrackInterpolation::interpolateTrack(int iSeed)
   }
 
   // go back through the TPC and store updated track positions
+  bool outerParamStored = false;
   for (int iRow = param::NPadRows; iRow--;) {
     if (!mCache[iRow].clAvailable) {
       continue;
+    }
+    if (mProcessSeeds && !outerParamStored) {
+      // for debug purposes we store the track parameters
+      // of the refitted ITS-(TRD)-(TOF) track at the
+      // outermose TPC cluster if we are processing all seeds
+      // i.e. if we in any case also process the ITS-TPC only
+      // part of the same track
+      trackData.par = trkWork;
+      outerParamStored = true;
     }
     if (!trkWork.rotate(mCache[iRow].clAngle)) {
       LOG(debug) << "Failed to rotate track during back propagation";
