@@ -215,7 +215,8 @@ DataProcessorSpec getTPCResidualAggregatorSpec(bool trackInput, bool ctpInput, b
                                                                 false,                          // GRPMagField
                                                                 false,                          // askMatLUT
                                                                 o2::base::GRPGeomRequest::None, // geometry
-                                                                inputs);
+                                                                inputs,
+                                                                true);
   return DataProcessorSpec{
     "residual-aggregator",
     inputs,
