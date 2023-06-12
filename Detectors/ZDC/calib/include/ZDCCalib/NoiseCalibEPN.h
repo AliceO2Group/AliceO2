@@ -10,12 +10,14 @@
 // or submit itself to any jurisdiction.
 
 #include <memory>
+#include <map>
 #include <gsl/span>
 #include "ZDCBase/Constants.h"
 #include "CommonDataFormat/FlatHisto1D.h"
 #include "ZDCBase/ModuleConfig.h"
 #include "DataFormatsZDC/BCData.h"
 #include "DataFormatsZDC/ChannelData.h"
+#include "DataFormatsZDC/OrbitData.h"
 #include "ZDCReconstruction/RecoParamZDC.h"
 #include "ZDCCalib/NoiseCalibData.h"
 #ifndef ALICEO2_ZDC_NOISECALIBEPN_H
@@ -34,7 +36,7 @@ class NoiseCalibEPN
   const ModuleConfig* getModuleConfig() { return mModuleConfig; };
 
   void clear(int ih = -1);
-  int process(const gsl::span<const o2::zdc::BCData>& bcdata, const gsl::span<const o2::zdc::ChannelData>& chdata);
+  int process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, const gsl::span<const o2::zdc::BCData>& bcdata, const gsl::span<const o2::zdc::ChannelData>& chdata);
   int endOfRun();
   int saveDebugHistos(const std::string fn = "ZDCNoiseCalibEPN.root");
   void setSaveDebugHistos() { mSaveDebugHistos = true; }
@@ -43,6 +45,8 @@ class NoiseCalibEPN
   NoiseCalibData mData;
   NoiseCalibData& getData() { return mData; }
   std::array<o2::dataformats::FlatHisto1D<double>*, NChannels> mH{};
+  std::array<o2::dataformats::FlatHisto1D<double>*, NChannels> mHS{};
+  std::array<o2::dataformats::FlatHisto1D<double>*, NChannels> mHD{};
 
  private:
   bool mInitDone = false;

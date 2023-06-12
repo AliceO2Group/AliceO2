@@ -33,11 +33,7 @@ int NoiseCalib::init()
   }
 
   for (int isig = 0; isig < NChannels; isig++) {
-#ifdef ZDC_NOISECALIB_DATA_SMALL
-    mH[isig] = new o2::dataformats::FlatHisto1D<double>(8191, -2048.25, 2047.25);
-#else
     mH[isig] = new o2::dataformats::FlatHisto1D<double>(4096, -2048.5, 2047.5);
-#endif
   }
 
   clear();
