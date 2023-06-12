@@ -84,13 +84,30 @@ class CCDBDownloader
    */
   uv_loop_t* mUVLoop;
 
+  /**
+   * Map used to store active uv_handles.
+   */
   std::unordered_map<uv_handle_t*, bool> mHandleMap;
-  // ADD COMMENT
 
   /**
    * Time for which sockets will stay open after last download finishes
    */
-  int mSocketTimeoutMS = 4000;
+  int mKeepaliveTimeoutMS = 100;
+
+  /**
+   * Time for connection to start before it times out.
+   */
+  int mConnectionTimeoutMS = 60000;
+
+  /**
+   * Time for request to finish before it times out.
+   */
+  int mRequestTimeoutMS = 300000;
+
+  /**
+   * Head start of IPv6 in regards to IPv4.
+   */
+  int mHappyEyeballsHeadstartMS = 500;
 
   /**
    * Max number of handles that can be used at the same time
@@ -136,7 +153,32 @@ class CCDBDownloader
   /**
    * Limits the time a socket and its connection will be opened after transfer finishes.
    */
-  void setSocketTimoutTime(int timoutMS);
+  void setKeepaliveTimoutTime(int timoutMS);
+
+  /**
+   * Setter for the connection timeout.
+   */
+  void setConnectionTimoutTime(int timoutS);
+
+  /**
+   * Setter for the request timeout.
+   */
+  void setRequestTimoutTime(int timoutS);
+
+  /**
+   * Setter for the happy eyeballs headstart.
+   */
+  void setHappyEyeballsHeadstartTime(int headstartMS);
+
+  /**
+   * Sets the timeout values selected for the offline environment.
+   */
+  void setOfflineTimeoutSettings();
+
+  /**
+   * Sets the timeout values selected for the online environment.
+   */
+  void setOnlineTimeoutSettings();
 
  private:
   /**
