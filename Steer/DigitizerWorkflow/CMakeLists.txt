@@ -132,3 +132,11 @@ o2_add_executable(mctruth-testworkflow
                           src/MCTruthWriterSpec.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework
                                         O2::SimulationDataFormat)
+
+o2_add_executable(ccdbfetcher-testworkflow
+                  COMPONENT_NAME sim
+                  SOURCES src/CCDBFetcherTestWorkflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework
+                                        O2::SimulationDataFormat
+                                        O2::DetectorsRaw
+                                        )
