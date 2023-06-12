@@ -153,7 +153,7 @@ class CCDBDownloader
   /**
    * Limits the time a socket and its connection will be opened after transfer finishes.
    */
-  void setKeepaliveTimoutTime(int timoutMS);
+  void setKeepaliveTimeoutTime(int timoutMS);
 
   /**
    * Setter for the connection timeout.

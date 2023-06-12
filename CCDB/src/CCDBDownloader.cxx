@@ -270,7 +270,7 @@ void CCDBDownloader::setMaxParallelConnections(int limit)
   mMaxHandlesInUse = limit;
 }
 
-void CCDBDownloader::setKeepaliveTimoutTime(int timoutMS)
+void CCDBDownloader::setKeepaliveTimeoutTime(int timoutMS)
 {
   mKeepaliveTimeoutMS = timoutMS;
 }
