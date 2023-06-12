@@ -75,7 +75,7 @@ class CCDBDownloader
  public:
   /**
    * Timer starts for each socket when its respective transfer finishes, and is stopped when another transfer starts for that handle.
-   * When the timer runs out it closes the socket. The period for which socket stays open is defined by socketTimoutMS.
+   * When the timer runs out it closes the socket. The period for which socket stays open is defined by socketTimeoutMS.
    */
   std::unordered_map<curl_socket_t, uv_timer_t*> mSocketTimerMap;
 
@@ -153,17 +153,17 @@ class CCDBDownloader
   /**
    * Limits the time a socket and its connection will be opened after transfer finishes.
    */
-  void setKeepaliveTimeoutTime(int timoutMS);
+  void setKeepaliveTimeoutTime(int timeoutMS);
 
   /**
    * Setter for the connection timeout.
    */
-  void setConnectionTimoutTime(int timoutS);
+  void setConnectionTimeoutTime(int timeoutMS);
 
   /**
    * Setter for the request timeout.
    */
-  void setRequestTimoutTime(int timoutS);
+  void setRequestTimeoutTime(int timeoutMS);
 
   /**
    * Setter for the happy eyeballs headstart.
@@ -271,7 +271,7 @@ class CCDBDownloader
   } PerformData;
 
   /**
-   * Called by CURL in order to close a socket. It will be called by CURL even if a timout timer closed the socket beforehand.
+   * Called by CURL in order to close a socket. It will be called by CURL even if a timeout timer closed the socket beforehand.
    *
    * @param clientp Pointer to the CCDBDownloader instance which controls the socket.
    * @param item File descriptor of the socket.
@@ -337,7 +337,7 @@ class CCDBDownloader
   /**
    * Connect curl timer with uv timer.
    *
-   * @param multi Multi handle for which the timout will be set
+   * @param multi Multi handle for which the timeout will be set
    * @param timeout_ms Time until timeout
    * @param userp Pointer to the uv_timer_t handle that is used for timeout.
    */
