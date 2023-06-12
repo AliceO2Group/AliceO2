@@ -67,7 +67,7 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
     maskTracksMC = GID::getSourcesMask(GID::NONE);
   } else {
     // some detectors do not support MC labels
-    if (maskClustersMC[GID::MCH]) {
+    if (maskClusters[GID::MCH] && maskClustersMC[GID::MCH]) {
       LOG(warn) << "MCH global clusters do not support MC lables, disabling";
       maskClustersMC &= ~GID::getSourceMask(GID::MCH);
     }
