@@ -277,17 +277,17 @@ void CCDBDownloader::setKeepaliveTimeoutTime(int timeoutMS)
 
 void CCDBDownloader::setConnectionTimeoutTime(int timeoutMS)
 {
-  mKeepaliveTimeoutMS = timeoutMS;
+  mConnectionTimeoutMS = timeoutMS;
 }
 
 void CCDBDownloader::setRequestTimeoutTime(int timeoutMS)
 {
-  mKeepaliveTimeoutMS = timeoutMS;
+  mRequestTimeoutMS = timeoutMS;
 }
 
 void CCDBDownloader::setHappyEyeballsHeadstartTime(int headstartMS)
 {
-  mKeepaliveTimeoutMS = headstartMS;
+  mHappyEyeballsHeadstartMS = headstartMS;
 }
 
 void CCDBDownloader::setOfflineTimeoutSettings()
