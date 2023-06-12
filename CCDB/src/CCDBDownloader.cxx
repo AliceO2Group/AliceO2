@@ -251,7 +251,7 @@ int CCDBDownloader::handleSocket(CURL* easy, curl_socket_t s, int action, void* 
     case CURL_POLL_REMOVE:
       if (socketp) {
         if (CD->mSocketTimerMap.find(s) != CD->mSocketTimerMap.end()) {
-          uv_timer_start(CD->mSocketTimerMap[s], closeSocketByTimer, CD->mSocketTimeoutMS, 0);
+          uv_timer_start(CD->mSocketTimerMap[s], closeSocketByTimer, CD->mKeepaliveTimeoutMS, 0);
         }
         uv_poll_stop(((CCDBDownloader::curl_context_t*)socketp)->poll_handle);
         CD->destroyCurlContext((CCDBDownloader::curl_context_t*)socketp);
@@ -270,9 +270,38 @@ void CCDBDownloader::setMaxParallelConnections(int limit)
   mMaxHandlesInUse = limit;
 }
 
-void CCDBDownloader::setSocketTimoutTime(int timoutMS)
+void CCDBDownloader::setKeepaliveTimeoutTime(int timeoutMS)
 {
-  mSocketTimeoutMS = timoutMS;
+  mKeepaliveTimeoutMS = timeoutMS;
+}
+
+void CCDBDownloader::setConnectionTimeoutTime(int timeoutMS)
+{
+  mConnectionTimeoutMS = timeoutMS;
+}
+
+void CCDBDownloader::setRequestTimeoutTime(int timeoutMS)
+{
+  mRequestTimeoutMS = timeoutMS;
+}
+
+void CCDBDownloader::setHappyEyeballsHeadstartTime(int headstartMS)
+{
+  mHappyEyeballsHeadstartMS = headstartMS;
+}
+
+void CCDBDownloader::setOfflineTimeoutSettings()
+{
+  setConnectionTimeoutTime(60000);
+  setRequestTimeoutTime(300000);
+  setHappyEyeballsHeadstartTime(500);
+}
+
+void CCDBDownloader::setOnlineTimeoutSettings()
+{
+  setConnectionTimeoutTime(5000);
+  setRequestTimeoutTime(30000);
+  setHappyEyeballsHeadstartTime(500);
 }
 
 void CCDBDownloader::checkForThreadsToJoin()
@@ -352,7 +381,7 @@ void CCDBDownloader::transferFinished(CURL* easy_handle, CURLcode curlCode)
 
   checkHandleQueue();
 
-  // Calling timout starts a new download if a new easy_handle was added.
+  // Calling timeout starts a new download if a new easy_handle was added.
   int running_handles;
   curl_multi_socket_action(mCurlMultiHandle, CURL_SOCKET_TIMEOUT, 0, &running_handles);
   checkMultiInfo();
@@ -395,11 +424,14 @@ int CCDBDownloader::startTimeout(CURLM* multi, long timeout_ms, void* userp)
 void CCDBDownloader::setHandleOptions(CURL* handle, PerformData* data)
 {
   curl_easy_setopt(handle, CURLOPT_PRIVATE, data);
-
   curl_easy_setopt(handle, CURLOPT_CLOSESOCKETFUNCTION, closesocketCallback);
   curl_easy_setopt(handle, CURLOPT_CLOSESOCKETDATA, this);
   curl_easy_setopt(handle, CURLOPT_OPENSOCKETFUNCTION, opensocketCallback);
   curl_easy_setopt(handle, CURLOPT_OPENSOCKETDATA, this);
+
+  curl_easy_setopt(handle, CURLOPT_TIMEOUT_MS, mRequestTimeoutMS);
+  curl_easy_setopt(handle, CURLOPT_CONNECTTIMEOUT_MS, mConnectionTimeoutMS);
+  curl_easy_setopt(handle, CURLOPT_HAPPY_EYEBALLS_TIMEOUT_MS, mHappyEyeballsHeadstartMS);
 }
 
 void CCDBDownloader::checkHandleQueue()

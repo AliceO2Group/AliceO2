@@ -75,7 +75,7 @@ class CCDBDownloader
  public:
   /**
    * Timer starts for each socket when its respective transfer finishes, and is stopped when another transfer starts for that handle.
-   * When the timer runs out it closes the socket. The period for which socket stays open is defined by socketTimoutMS.
+   * When the timer runs out it closes the socket. The period for which socket stays open is defined by socketTimeoutMS.
    */
   std::unordered_map<curl_socket_t, uv_timer_t*> mSocketTimerMap;
 
@@ -84,13 +84,30 @@ class CCDBDownloader
    */
   uv_loop_t* mUVLoop;
 
+  /**
+   * Map used to store active uv_handles.
+   */
   std::unordered_map<uv_handle_t*, bool> mHandleMap;
-  // ADD COMMENT
 
   /**
    * Time for which sockets will stay open after last download finishes
    */
-  int mSocketTimeoutMS = 4000;
+  int mKeepaliveTimeoutMS = 100;
+
+  /**
+   * Time for connection to start before it times out.
+   */
+  int mConnectionTimeoutMS = 60000;
+
+  /**
+   * Time for request to finish before it times out.
+   */
+  int mRequestTimeoutMS = 300000;
+
+  /**
+   * Head start of IPv6 in regards to IPv4.
+   */
+  int mHappyEyeballsHeadstartMS = 500;
 
   /**
    * Max number of handles that can be used at the same time
@@ -136,7 +153,32 @@ class CCDBDownloader
   /**
    * Limits the time a socket and its connection will be opened after transfer finishes.
    */
-  void setSocketTimoutTime(int timoutMS);
+  void setKeepaliveTimeoutTime(int timeoutMS);
+
+  /**
+   * Setter for the connection timeout.
+   */
+  void setConnectionTimeoutTime(int timeoutMS);
+
+  /**
+   * Setter for the request timeout.
+   */
+  void setRequestTimeoutTime(int timeoutMS);
+
+  /**
+   * Setter for the happy eyeballs headstart.
+   */
+  void setHappyEyeballsHeadstartTime(int headstartMS);
+
+  /**
+   * Sets the timeout values selected for the offline environment.
+   */
+  void setOfflineTimeoutSettings();
+
+  /**
+   * Sets the timeout values selected for the online environment.
+   */
+  void setOnlineTimeoutSettings();
 
  private:
   /**
@@ -229,7 +271,7 @@ class CCDBDownloader
   } PerformData;
 
   /**
-   * Called by CURL in order to close a socket. It will be called by CURL even if a timout timer closed the socket beforehand.
+   * Called by CURL in order to close a socket. It will be called by CURL even if a timeout timer closed the socket beforehand.
    *
    * @param clientp Pointer to the CCDBDownloader instance which controls the socket.
    * @param item File descriptor of the socket.
@@ -295,7 +337,7 @@ class CCDBDownloader
   /**
    * Connect curl timer with uv timer.
    *
-   * @param multi Multi handle for which the timout will be set
+   * @param multi Multi handle for which the timeout will be set
    * @param timeout_ms Time until timeout
    * @param userp Pointer to the uv_timer_t handle that is used for timeout.
    */

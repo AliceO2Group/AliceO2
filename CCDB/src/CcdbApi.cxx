@@ -115,7 +115,7 @@ void CcdbApi::curlInit()
       auto timeoutMS = atoi(getenv("ALICEO2_CCDB_SOCKET_TIMEOUT"));
       if (timeoutMS >= 0) {
         LOG(info) << "Setting socket timeout to " << timeoutMS << " milliseconds";
-        mDownloader->setSocketTimoutTime(timeoutMS);
+        mDownloader->setKeepaliveTimeoutTime(timeoutMS);
       }
     }
   }
