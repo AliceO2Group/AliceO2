@@ -18,14 +18,18 @@
 #include <TH1F.h>
 #include <TCanvas.h>
 #include <TStyle.h>
-#include <RDataFrame.h>
+#include <TBox.h>
+#include <TText.h>
+#include <ROOT/RDataFrame.hxx>
 
 #include <map>
 #include <string>
 #include <ostream>
 #include <fairlogger/Logger.h>
+#include "CCDB/BasicCCDBManager.h"
 #include "TRDBase/Calibrations.h"
 #include "DataFormatsTRD/HelperMethods.h"
+#include "DataFormatsTRD/NoiseCalibration.h"
 
 #endif
 
