@@ -1390,7 +1390,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
       auto currentTime = uv_hrtime();
       uint64_t diff = (currentTime - driverInfo.startTime) / 1000000000LL;
       if ((graceful_exit == false) && (driverInfo.timeout > 0) && (diff > driverInfo.timeout)) {
-        LOG(info) << "Timout ellapsed. Requesting to quit.";
+        LOG(info) << "Timeout ellapsed. Requesting to quit.";
         graceful_exit = true;
       }
     }

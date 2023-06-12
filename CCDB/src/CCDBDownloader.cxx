@@ -270,19 +270,19 @@ void CCDBDownloader::setMaxParallelConnections(int limit)
   mMaxHandlesInUse = limit;
 }
 
-void CCDBDownloader::setKeepaliveTimeoutTime(int timoutMS)
+void CCDBDownloader::setKeepaliveTimeoutTime(int timeoutMS)
 {
-  mKeepaliveTimeoutMS = timoutMS;
+  mKeepaliveTimeoutMS = timeoutMS;
 }
 
-void CCDBDownloader::setConnectionTimoutTime(int timoutMS)
+void CCDBDownloader::setConnectionTimeoutTime(int timeoutMS)
 {
-  mKeepaliveTimeoutMS = timoutMS;
+  mKeepaliveTimeoutMS = timeoutMS;
 }
 
-void CCDBDownloader::setRequestTimoutTime(int timoutMS)
+void CCDBDownloader::setRequestTimeoutTime(int timeoutMS)
 {
-  mKeepaliveTimeoutMS = timoutMS;
+  mKeepaliveTimeoutMS = timeoutMS;
 }
 
 void CCDBDownloader::setHappyEyeballsHeadstartTime(int headstartMS)
@@ -292,15 +292,15 @@ void CCDBDownloader::setHappyEyeballsHeadstartTime(int headstartMS)
 
 void CCDBDownloader::setOfflineTimeoutSettings()
 {
-  setConnectionTimoutTime(60000);
-  setRequestTimoutTime(300000);
+  setConnectionTimeoutTime(60000);
+  setRequestTimeoutTime(300000);
   setHappyEyeballsHeadstartTime(500);
 }
 
 void CCDBDownloader::setOnlineTimeoutSettings()
 {
-  setConnectionTimoutTime(5000);
-  setRequestTimoutTime(30000);
+  setConnectionTimeoutTime(5000);
+  setRequestTimeoutTime(30000);
   setHappyEyeballsHeadstartTime(500);
 }
 
@@ -381,7 +381,7 @@ void CCDBDownloader::transferFinished(CURL* easy_handle, CURLcode curlCode)
 
   checkHandleQueue();
 
-  // Calling timout starts a new download if a new easy_handle was added.
+  // Calling timeout starts a new download if a new easy_handle was added.
   int running_handles;
   curl_multi_socket_action(mCurlMultiHandle, CURL_SOCKET_TIMEOUT, 0, &running_handles);
   checkMultiInfo();
