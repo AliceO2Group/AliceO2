@@ -57,10 +57,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   */
   // processing devices
   specs.emplace_back(o2::trd::getTrapConfigEventSpec());
- 
-    if (!configcontext.options().get<bool>("disable-root-output")) {
-      specs.emplace_back(o2::trd::getTRDConfigEventWriterSpec());
-    }
-  
+
+  if (!configcontext.options().get<bool>("disable-root-output")) {
+    specs.emplace_back(o2::trd::getTRDConfigEventWriterSpec());
+  }
+
   return specs;
 }

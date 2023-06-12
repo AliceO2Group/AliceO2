@@ -54,8 +54,8 @@ void CalibratorConfigEvents::initProcessing()
 
   // set tree addresses
   if (mEnableOutput) {
-    //mOutTree->Branch("trapconfigevent", &mTrapConfigEvent);
-    // what do we want to save?
+    // mOutTree->Branch("trapconfigevent", &mTrapConfigEvent);
+    //  what do we want to save?
   }
 
   mInitCompleted = true;
@@ -66,32 +66,29 @@ void CalibratorConfigEvents::retrievePrev(o2::framework::ProcessingContext& pc)
   // We either get a pointer to a valid object from the last ~hour or to the default object
   // which is always present. The first has precedence over the latter.
   auto mTrapConfigEvent = pc.inputs().get<o2::trd::TrapConfigEvent*>("trapconfigevent");
-  LOG(info) << "Calibrator: From CCDB retrieved " << mTrapConfigEvent->getConfigVersion(); 
-
+  LOG(info) << "Calibrator: From CCDB retrieved " << mTrapConfigEvent->getConfigVersion();
 }
 
-bool CalibratorConfigEvents::hasEnoughData(const Slot& slot) const  
+bool CalibratorConfigEvents::hasEnoughData(const Slot& slot) const
 {
-  //determine if this slot has enough data ... normal calibration.
-  //this method triggers a merge and a finaliseSlot.
-  //if the slot does not have enough data this slot together with the next one are merged.
-  
-  //We therefore have 2 options :
-  //a:keep all the difference and ergo, save to ccdb after each slot.
-  //b: the normal option, accumulate for 10,15 minutes and then compare and write to ccdb if new.
-  auto container= slot.getContainer();
-  bool timereached=0;
-  if(mSaveAllChanges) {
+  // determine if this slot has enough data ... normal calibration.
+  // this method triggers a merge and a finaliseSlot.
+  // if the slot does not have enough data this slot together with the next one are merged.
+
+  // We therefore have 2 options :
+  // a:keep all the difference and ergo, save to ccdb after each slot.
+  // b: the normal option, accumulate for 10,15 minutes and then compare and write to ccdb if new.
+  auto container = slot.getContainer();
+  bool timereached = 0;
+  if (mSaveAllChanges) {
     return 1;
-  }
-  else {
-    //case b:
-    // we just care about the time taken since the beginning.
+  } else {
+    // case b:
+    //  we just care about the time taken since the beginning.
     //
-    if(timereached){
+    if (timereached) {
       return true;
-    }
-    else {
+    } else {
       return false;
     }
   }
@@ -102,7 +99,7 @@ void CalibratorConfigEvents::finalizeSlot(Slot& slot)
   TStopwatch timer;
   timer.Start();
   initProcessing();
-  
+
   timer.Stop();
   LOGF(info, "Done merging TrapConfigs. CPU time: %f, real time: %f", timer.CpuTime(), timer.RealTime());
 
@@ -112,21 +109,21 @@ void CalibratorConfigEvents::finalizeSlot(Slot& slot)
   }
 
   // assemble CCDB object
-  
+
   auto className = o2::utils::MemFileHelper::getClassName(mCCDBObject);
   auto fileName = o2::ccdb::CcdbApi::generateFileName(className);
   std::map<std::string, std::string> metadata; // TODO: do we want to store any meta data?
   long startValidity = slot.getStartTimeMS() - 10 * o2::ccdb::CcdbObjectInfo::SECOND;
-  o2::ccdb::CcdbObjectInfo mInfoVector;         ///< vector of CCDB infos; each element is filled with CCDB description of accompanying CCDB calibration object
+  o2::ccdb::CcdbObjectInfo mInfoVector; ///< vector of CCDB infos; each element is filled with CCDB description of accompanying CCDB calibration object
   mInfoVector.setPath("TRD/TrapConfigEvent");
   mInfoVector.setObjectType(className);
   mInfoVector.setFileName(fileName);
   mInfoVector.setMetaData(metadata);
   mInfoVector.setStartValidityTimestamp(startValidity);
-  mInfoVector.setEndValidityTimestamp(startValidity + o2::ccdb::CcdbObjectInfo::MINUTE*15);
-  //remove the 15 minute and change to update  on next start.
-  //mObjectVector=.push_back(mCCDBObject);
-  //mCCDBObjext is already filled.
+  mInfoVector.setEndValidityTimestamp(startValidity + o2::ccdb::CcdbObjectInfo::MINUTE * 15);
+  // remove the 15 minute and change to update  on next start.
+  // mObjectVector=.push_back(mCCDBObject);
+  // mCCDBObjext is already filled.
 }
 
 o2::calibration::TimeSlot<o2::trd::TrapConfigEventSlot>& CalibratorConfigEvents::emplaceNewSlot(bool front, TFType tStart, TFType tEnd)

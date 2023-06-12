@@ -498,11 +498,11 @@ uint32_t TrapConfigEvent::getRegisterValue(const uint32_t regidx, const int mcmi
   if ((regidx < 0) || (regidx >= kLastReg) || (mcmidx < 0 || mcmidx >= o2::trd::constants::MAXMCMCOUNT)) {
     return 0; // TODO this could be a problem ?!
   }
-  int mcmoffset = 0;//mcmidx * kTrapRegistersSize;                                 // get the start offset for this mcm
-  int regbase = mcmoffset + mTrapRegisters[regidx].getBase();                  // get the base of this register in the underlying storage block
-  int regoffset = regbase + mTrapRegisters[regidx].getDataWordNumber();        // get the offset to the register in question
+  int mcmoffset = 0;                                                                   // mcmidx * kTrapRegistersSize;                                 // get the start offset for this mcm
+  int regbase = mcmoffset + mTrapRegisters[regidx].getBase();                          // get the base of this register in the underlying storage block
+  int regoffset = regbase + mTrapRegisters[regidx].getDataWordNumber();                // get the offset to the register in question
   uint32_t data = mConfigData[mcmidx][regoffset] >> mTrapRegisters[regidx].getShift(); // get the data and shift it as needed
-  data &= mTrapRegisters[regidx].getMask();                                    // mask the data off as need be.
+  data &= mTrapRegisters[regidx].getMask();                                            // mask the data off as need be.
   LOGP(info, " returning data of {:08x}", data);
   return data;
 }
@@ -512,7 +512,7 @@ bool TrapConfigEvent::setRegisterValue(uint32_t data, uint32_t regidx, int mcmid
   if (regidx < 0 || regidx >= kLastReg || mcmidx < 0 || mcmidx >= o2::trd::constants::MAXMCMCOUNT) {
     return false;
   }
-  int mcmoffset = 0;//mcmidx * kTrapRegistersSize;                          // get the start offset for this mcm
+  int mcmoffset = 0;                                                    // mcmidx * kTrapRegistersSize;                          // get the start offset for this mcm
   int regbase = mcmoffset + mTrapRegisters[regidx].getBase();           // get the base of this register in the underlying storage block
   int regoffset = regbase + mTrapRegisters[regidx].getDataWordNumber(); // get the offset to the register in question
   data &= mTrapRegisters[regidx].getMask();                             // mask the data off as need be.
@@ -768,11 +768,11 @@ bool TrapConfigEvent::operator==(const TrapConfigEvent& rhs)
   // TODO do we care where the difference is?
   uint32_t max = constants::MAXMCMCOUNT;
   uint32_t maxreg = TrapConfigEvent::kLastReg;
-  //start with the biggest granularity and work down.
-  //compare hcid in the 2.
-  //this would be simpler with != but that is removed in c++20
+  // start with the biggest granularity and work down.
+  // compare hcid in the 2.
+  // this would be simpler with != but that is removed in c++20
   if (getHCIDPresent() == rhs.getHCIDPresent()) {
-    //we can continue the bitpattern of half chambers is the same.
+    // we can continue the bitpattern of half chambers is the same.
   } else {
     for (int hcid = 0; hcid < constants::MAXHALFCHAMBER; ++hcid) {
       if (isHCIDPresent(hcid) == 0 && rhs.isHCIDPresent(hcid) == 1) {
@@ -780,26 +780,26 @@ bool TrapConfigEvent::operator==(const TrapConfigEvent& rhs)
         LOGP(info, " hcid {} is present in new but not in ccdb version", hcid);
         return false;
       }
-      //other cases we can continue.
-      //1. both present its ok.
-      //2. present in ccdb but not in current one.
+      // other cases we can continue.
+      // 1. both present its ok.
+      // 2. present in ccdb but not in current one.
     }
   }
   if (getMCMPresent() == rhs.getMCMPresent()) {
-    //we can continue the bit pattern of mcm in the config are the same
+    // we can continue the bit pattern of mcm in the config are the same
   } else {
     for (int mcmid = 0; mcmid < constants::MAXMCMCOUNT; ++mcmid) {
       if (isMCMPresent(mcmid) == 0 && rhs.isMCMPresent(mcmid) == 1) {
         // it is not in the ccdb but now is present, this is a change and needs to be saved.
         return false;
       }
-      //other cases we can continue.
-      //1. both present its ok.
-      //2. present in ccdb but not in current one.
+      // other cases we can continue.
+      // 1. both present its ok.
+      // 2. present in ccdb but not in current one.
     }
   }
-  //Now the long part, compare the register data
-  //There is no need to unpack registers. We can simply store their underlying 32 bit stored value.
+  // Now the long part, compare the register data
+  // There is no need to unpack registers. We can simply store their underlying 32 bit stored value.
   for (int mcm = 0; mcm < max; ++mcm) {
     for (int rawoffset = 0; rawoffset < kTrapRegistersSize; ++rawoffset) {
       if (!ignoreWord(rawoffset)) { // we do indeed care if this register is different.
@@ -871,10 +871,9 @@ void TrapRegInfo::logTrapRegInfo()
   LOGP(info, " TrapRegInfo : {} with nbits={} addr {:08x} mask {:04x} word number {} and baseword {} max {} ", getName(), getNbits(), getAddr(), getMask(), getWordNumber(), getBase(), getMax());
 }
 
-
 void TrapConfigEventSlot::print()
 {
-  //walk through MCMSeen, and print out the mcm seen for this config event.
+  // walk through MCMSeen, and print out the mcm seen for this config event.
   uint32_t startmcm = 0;
   uint32_t endmcm = 0;
   uint32_t lastseenmcm = 0;
@@ -885,12 +884,12 @@ void TrapConfigEventSlot::print()
   LOGP(debug, "Which MCM were seen in this event so far:");
 
   uint32_t mcmposition = 0;
-for (int mcmcount=0;mcmcount < constants::MAXCHAMBER; ++mcmcount) {
-    auto seenmcm=0;//TODO pull from map of maps isMCMPresent(mcmcount);
+  for (int mcmcount = 0; mcmcount < constants::MAXCHAMBER; ++mcmcount) {
+    auto seenmcm = 0; // TODO pull from map of maps isMCMPresent(mcmcount);
 
-    LOGP(debug,"{} {} {} :: pos: {} : start: {} end: {} seen {} lastseen {} mcmList {}",__FILE__, __func__, __LINE__, mcmposition, startmcm, endmcm, seenmcm, lastseenmcm, mcmList);
+    LOGP(debug, "{} {} {} :: pos: {} : start: {} end: {} seen {} lastseen {} mcmList {}", __FILE__, __func__, __LINE__, mcmposition, startmcm, endmcm, seenmcm, lastseenmcm, mcmList);
     if (seenmcm == 0 && lastseenmcm == 1) {
-      //dump string
+      // dump string
       mcmList += fmt::format("-{},", mcmposition - 1);
       //    LOGP(info,"{}",mcmList);
       totalList += mcmList;
@@ -901,7 +900,7 @@ for (int mcmcount=0;mcmcount < constants::MAXCHAMBER; ++mcmcount) {
       mcmList = fmt::format("{}", mcmposition);
     }
     if (lastseenmcm == 1 && seenmcm == 1) {
-      //do nothing but add a - for 1 or more of these.
+      // do nothing but add a - for 1 or more of these.
     }
     lastseenmcm = seenmcm;
     mcmposition++;
@@ -910,22 +909,20 @@ for (int mcmcount=0;mcmcount < constants::MAXCHAMBER; ++mcmcount) {
   LOGP(debug, "{}", totalList);
 }
 
-
 void TrapConfigEventSlot::merge(const TrapConfigEventSlot* prev)
 {
-  LOGP(info," Merge called for TrapConfigEvent {} {} {}",__FILE__,__func__,__LINE__);
-  //std::map<uint32_t, std::map<uint32_t, uint32_t>> mTrapValueFrequencyMap;                                      //!< count of different value in the registers for a mcm,register used to find most frequent value.
-  //take the 2 slots (trapconfigeventslot) and merge the update the map of maps of value.
-  //this will be collapsed in the finalise of the calibrator, for the object to be written to the ccdb.
-  
+  LOGP(info, " Merge called for TrapConfigEvent {} {} {}", __FILE__, __func__, __LINE__);
+  // std::map<uint32_t, std::map<uint32_t, uint32_t>> mTrapValueFrequencyMap;                                      //!< count of different value in the registers for a mcm,register used to find most frequent value.
+  // take the 2 slots (trapconfigeventslot) and merge the update the map of maps of value.
+  // this will be collapsed in the finalise of the calibrator, for the object to be written to the ccdb.
 }
 
 void TrapConfigEventSlot::fill(const TrapConfigEventSlot& input)
 {
-  LOGP(info," fill called for TrapConfigEvent {} {} {}",__FILE__,__func__,__LINE__);
+  LOGP(info, " fill called for TrapConfigEvent {} {} {}", __FILE__, __func__, __LINE__);
 }
 
 void TrapConfigEventSlot::fill(const gsl::span<const TrapConfigEventSlot> input)
 {
-  LOGP(info," fill called for TrapConfigEvent {} {} {}",__FILE__,__func__,__LINE__);
+  LOGP(info, " fill called for TrapConfigEvent {} {} {}", __FILE__, __func__, __LINE__);
 }

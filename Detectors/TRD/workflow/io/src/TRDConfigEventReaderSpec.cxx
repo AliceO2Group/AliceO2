@@ -66,4 +66,4 @@ DataProcessorSpec getTRDConfigEventReaderSpec()
                              {"input-dir", VariantType::String, "none", {"Input directory"}}}};
 };
 
-} //end namespace o2::trd
+} // end namespace o2::trd

@@ -104,13 +104,13 @@ class TrapConfigEventParser
   bool isNewConfig();
   TrapConfigEvent getNewConfig() { return *mTrapConfigEvent.get(); };
   TrapConfigEvent* getNewConfigPtr() { return mTrapConfigEvent.get(); };
-  //TrapConfigEvent getNewConfig() { return *mTrapConfigEvent.get(); };
-  //TrapConfigEvent* getNewConfigPtr() { return mTrapConfigEvent.get(); };
+  // TrapConfigEvent getNewConfig() { return *mTrapConfigEvent.get(); };
+  // TrapConfigEvent* getNewConfigPtr() { return mTrapConfigEvent.get(); };
   void sendTrapConfigEvent(framework::ProcessingContext& pc);
   // write the current config to a file
   void writeFile(int eventcount);
-  uint32_t countHCIDPresent(){return mTrapConfigEvent->countHCIDPresent();}
-  uint32_t countMCMPresent(){return mTrapConfigEvent->countMCMPresent();}
+  uint32_t countHCIDPresent() { return mTrapConfigEvent->countHCIDPresent(); }
+  uint32_t countMCMPresent() { return mTrapConfigEvent->countMCMPresent(); }
 
   // flush the stats that are config event specific
   // a single parse is almost certainly not going to contain the complete event, this is then run after we think we have the complete set.
@@ -135,14 +135,14 @@ class TrapConfigEventParser
   uint32_t mOffsetToRegister = 0;
   //  std::map<int, std::tuple<std::string, int, int>> TrapRegisterMap_addr;
   // std::array<int, 0xe000> mTrapRegistersAddressIndex; // index by address into mTrapRegisters.
-  //std::array<int, o2::trd::constants::MAXMCMCOUNT> mMcmParsingStatus{0};                                  // status of what was found, errors types in the parsing
+  // std::array<int, o2::trd::constants::MAXMCMCOUNT> mMcmParsingStatus{0};                                  // status of what was found, errors types in the parsing
   std::array<uint32_t, o2::trd::constants::MAXMCMCOUNT * TrapConfigEvent::kLastReg> mCurrentMCMRegisters; // store the registers for all the mcm registers.
-//  std::array<uint32_t, o2::trd::constants::MAXHALFCHAMBER> mHalfChamberLastSeen;                          // timestamp
-//  std::array<uint32_t, o2::trd::constants::MAXHALFCHAMBER> mHalfChamberSeenSinceLastWritten;              // timestamp
-//  std::array<uint32_t, o2::trd::constants::MAXHALFCHAMBER> mHalfChamberFrequencyInAccumulation;           // frequency in accumulation period.
-//  std::array<uint32_t, o2::trd::constants::MAXMCMCOUNT> mMCMLastSeen;                                     // timestamp
-//  std::array<uint32_t, o2::trd::constants::MAXMCMCOUNT> mMCMSeenSinceLastWritten;                         // timestamp
-//  std::array<uint32_t, o2::trd::constants::MAXMCMCOUNT> mMCMFrequencyInAccumulation;                      // frequency in accumulation.
+                                                                                                          //  std::array<uint32_t, o2::trd::constants::MAXHALFCHAMBER> mHalfChamberLastSeen;                          // timestamp
+                                                                                                          //  std::array<uint32_t, o2::trd::constants::MAXHALFCHAMBER> mHalfChamberSeenSinceLastWritten;              // timestamp
+                                                                                                          //  std::array<uint32_t, o2::trd::constants::MAXHALFCHAMBER> mHalfChamberFrequencyInAccumulation;           // frequency in accumulation period.
+                                                                                                          //  std::array<uint32_t, o2::trd::constants::MAXMCMCOUNT> mMCMLastSeen;                                     // timestamp
+                                                                                                          //  std::array<uint32_t, o2::trd::constants::MAXMCMCOUNT> mMCMSeenSinceLastWritten;                         // timestamp
+                                                                                                          //  std::array<uint32_t, o2::trd::constants::MAXMCMCOUNT> mMCMFrequencyInAccumulation;                      // frequency in accumulation.
   std::array<int, 8 * 16> mcmSeen;                                                                        // the mcm has been seen with or with out error, local to a link
   std::array<int, 8 * 16> mcmMCM;                                                                         // the mcm has been seen with or with out error, local to a link
   std::array<int, 8 * 16> mcmROB;                                                                         // the mcm has been seen with or with out error, local to a link
@@ -158,11 +158,11 @@ class TrapConfigEventParser
   std::array<int, TrapConfigEvent::kLastReg> mRegisterCount{0}; // register frequency, a count of how many times each register appears
   std::string mTrapConfigEventName;                             // TOOD figure how to pull this in or seperately put it in the CCDB
   std::string mTrapConfigEventVersion;
-  //TrapConfigEvent mTrapConfigEvent;
-  //TrapConfigEvent mCCDBTrapConfigEvent;
+  // TrapConfigEvent mTrapConfigEvent;
+  // TrapConfigEvent mCCDBTrapConfigEvent;
   std::shared_ptr<TrapConfigEventSlot> mTrapConfigEventSlot;
   std::shared_ptr<TrapConfigEvent> mTrapConfigEvent;
-  //std::shared_ptr<TrapConfigEvent> mCCDBTrapConfigEvent;
+  // std::shared_ptr<TrapConfigEvent> mCCDBTrapConfigEvent;
   std::array<std::map<uint32_t, uint32_t>, TrapConfigEvent::kLastReg> mTrapRegistersFrequencyMap; // frequency map for values in the respective registers
   std::map<uint32_t, std::map<uint32_t, uint32_t>> mTrapValueFrequencyMap;                        // count of different value in the registers for a mcm,register used to find most frequent value.
   int configcount = 0;

@@ -48,7 +48,7 @@ void EventRecord::sortTrackletsByDetector()
 
 void EventRecordContainer::sendData(o2::framework::ProcessingContext& pc, bool generatestats)
 {
-  //at this point we know the total number of tracklets and digits and triggers.
+  // at this point we know the total number of tracklets and digits and triggers.
   size_t digitcount = 0;
   size_t trackletcount = 0;
   std::vector<Tracklet64> tracklets;
@@ -71,7 +71,7 @@ void EventRecordContainer::sendData(o2::framework::ProcessingContext& pc, bool g
     pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "RAWSTATS", 0, o2::framework::Lifetime::Timeframe}, mTFStats);
   }
   if (mConfigEventPresent) {
-    LOGP(info,"ZZZ Sending config event with size of {}",mConfigEventData.size());
+    LOGP(info, "ZZZ Sending config event with size of {}", mConfigEventData.size());
     pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "CONFEVT", 0, o2::framework::Lifetime::Condition}, mConfigEventData);
   }
 }

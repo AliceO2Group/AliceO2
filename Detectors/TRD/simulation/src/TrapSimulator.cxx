@@ -1328,7 +1328,7 @@ void TrapSimulator::calcFitreg()
         //  hit detected, in TRAP we have 4 units and a hit-selection, here we proceed all channels!
         //  subtract the pedestal TPFP, clipping instead of wrapping
 
-        int regTPFP = mTrapConfigEvent->getTrapReg(TrapConfigEvent::kTPFP, mDetector, mRobPos, mMcmPos); //TODO put this together with the others as members of trapsim, which is initiliased by det,rob,mcm.
+        int regTPFP = mTrapConfigEvent->getTrapReg(TrapConfigEvent::kTPFP, mDetector, mRobPos, mMcmPos); // TODO put this together with the others as members of trapsim, which is initiliased by det,rob,mcm.
         LOG(debug) << "Hit found, time=" << timebin << ", adcch=" << adcch << "/" << adcch + 1 << "/"
                    << adcch + 2 << ", adc values=" << adcLeft << "/" << adcCentral << "/"
                    << adcRight << ", regTPFP=" << regTPFP << ", TPHT=" << mTrapConfigEvent->getTrapReg(TrapConfigEvent::kTPHT, mDetector, mRobPos, mMcmPos);

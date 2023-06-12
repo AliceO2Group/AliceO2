@@ -62,23 +62,23 @@ void TrapConfigEventDevice::run(ProcessingContext& pc)
   mTrapConfigEventParser.parse(configdata);
   timer.Stop();
 
-  LOGP(info, "TRD config event took:  Cpu: {:.3} s Real: {:.3} s halfchambers with data : {}, and a datasize of {}MB", timer.CpuTime(), timer.RealTime(),  mTrapConfigEventParser.countHCIDPresent(), ((float)configdata.size()) / 1025. / 1024.);
+  LOGP(info, "TRD config event took:  Cpu: {:.3} s Real: {:.3} s halfchambers with data : {}, and a datasize of {}MB", timer.CpuTime(), timer.RealTime(), mTrapConfigEventParser.countHCIDPresent(), ((float)configdata.size()) / 1025. / 1024.);
   timer.Start();
   mTrapConfigEventParser.isNewConfig();
   timer.Stop();
   LOGF(info, "Comparison to previous one config in ccdb took : Cpu: %.3e Real: %.3e s", timer.CpuTime(), timer.RealTime());
   mOldHalfChamberPresent = mTrapConfigEventParser.countHCIDPresent();
-//  if (mConfigCounter % 5 == 0) {
-    //send the config message
-    LOGP(info, "We have a new config and sending ....");
-    // LOGP(info,"first value of tpl00 : {}",mTrapConfigEventParser.getNewConfig().getRegisterValue(0,31361));
-    //TrapConfigEvent a;
-    // auto a=mTrapConfigEventParser.getNewConfig();
-    // LOGP(info,"first value of copied trapconfigevent A is tpl00 : {}",a.getRegisterValue(0,31361));
-    LOGP(info, "Trap config is size : {}", mTrapConfigEventParser.getConfigSize());
-    mTrapConfigEventParser.sendTrapConfigEvent(pc);
-    LOGP(info, "Trap config has been sent : {}", mTrapConfigEventParser.getConfigSize());
-//  }
+  //  if (mConfigCounter % 5 == 0) {
+  // send the config message
+  LOGP(info, "We have a new config and sending ....");
+  // LOGP(info,"first value of tpl00 : {}",mTrapConfigEventParser.getNewConfig().getRegisterValue(0,31361));
+  // TrapConfigEvent a;
+  // auto a=mTrapConfigEventParser.getNewConfig();
+  // LOGP(info,"first value of copied trapconfigevent A is tpl00 : {}",a.getRegisterValue(0,31361));
+  LOGP(info, "Trap config is size : {}", mTrapConfigEventParser.getConfigSize());
+  mTrapConfigEventParser.sendTrapConfigEvent(pc);
+  LOGP(info, "Trap config has been sent : {}", mTrapConfigEventParser.getConfigSize());
+  //  }
   mConfigCounter++;
   if (mConfigCounter == 20)
     exit(1);

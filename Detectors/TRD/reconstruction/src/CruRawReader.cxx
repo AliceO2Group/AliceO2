@@ -596,7 +596,7 @@ bool CruRawReader::processHalfCRU(int iteration)
           // advance data pointers to the end;
           int counter = 0;
           mTimeFrameHasConfigEvent = true;
-          //LOGP(debug, "New Config event for : on hcid : {}  link: {} -- for IR  bc: {} orbit:{}  Trackletwords : {}", halfChamberId, currentlinkindex, mIR.bc, mIR.orbit, trackletWordsRead);
+          // LOGP(debug, "New Config event for : on hcid : {}  link: {} -- for IR  bc: {} orbit:{}  Trackletwords : {}", halfChamberId, currentlinkindex, mIR.bc, mIR.orbit, trackletWordsRead);
           if (mOptions[TRDEnableConfigEvents]) {
             // avoid filing the events unless we enable it.
             mEventRecords.addConfigEvent(mHBFPayload, mHBFoffset32, endOfCurrentLink, configeventlength * 8, mDigitHCHeaderAll, mIR);

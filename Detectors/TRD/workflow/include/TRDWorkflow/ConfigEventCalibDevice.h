@@ -160,4 +160,4 @@ DataProcessorSpec getTRDConfigEventCalibSpec()
 } // namespace framework
 } // namespace o2
 
-#endif //O2_TRD_CONFIGEVENTCALIBSPEC_H
+#endif // O2_TRD_CONFIGEVENTCALIBSPEC_H

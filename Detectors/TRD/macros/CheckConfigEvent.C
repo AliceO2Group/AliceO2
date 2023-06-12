@@ -31,7 +31,7 @@ using namespace o2::trd;
 
 constexpr int kMINENTRIES = 100;
 
-void CheckDigits(std::string configeventfile = "trddigits.root", uint32_t mcmid=42)
+void CheckDigits(std::string configeventfile = "trddigits.root", uint32_t mcmid = 42)
 {
   TFile* fin = TFile::Open(configeventfile.data());
   TTree* configeventTree = (TTree*)fin->Get("o2sim");
@@ -41,7 +41,7 @@ void CheckDigits(std::string configeventfile = "trddigits.root", uint32_t mcmid=
 
   LOG(info) << nev << " entries found";
   configeventTree->GetEvent(0);
-  for (int reg=0;reg<433;++reg) {
-    LOGP(info,"register :{}, value :{} ",trapconfigevent->getRegisterName(reg),trapconfigevent->getRegisterValue(reg,mcmid));
+  for (int reg = 0; reg < 433; ++reg) {
+    LOGP(info, "register :{}, value :{} ", trapconfigevent->getRegisterName(reg), trapconfigevent->getRegisterValue(reg, mcmid));
   }
 }

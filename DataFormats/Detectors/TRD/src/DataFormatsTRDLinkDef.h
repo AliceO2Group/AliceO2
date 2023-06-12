@@ -54,9 +54,8 @@
 #pragma link C++ class std::vector < o2::trd::KrClusterTriggerRecord> + ;
 #pragma link C++ class std::vector < o2::trd::TrapConfigEvent> + ;
 #pragma link C++ class std::vector < o2::trd::TrapConfigEventSlot> + ;
-//#pragma link C++ class std::array<std::map<uint32_t, uint32_t>, 433> +; 
-//#pragma link C++ class  std::map<uint32_t, std::map<uint32_t, uint32_t>> + ; 
-
+// #pragma link C++ class std::array<std::map<uint32_t, uint32_t>, 433> +;
+// #pragma link C++ class  std::map<uint32_t, std::map<uint32_t, uint32_t>> + ;
 
 #pragma link C++ struct o2::trd::CTFHeader + ;
 #pragma link C++ struct o2::trd::CTF + ;
