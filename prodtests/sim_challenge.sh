@@ -251,6 +251,11 @@ if [ "$doreco" == "1" ]; then
   taskwrapper svfinder.log o2-secondary-vertexing-workflow $gloOpt
   echo "Return status of secondary vertexing: $?"
 
+  echo "Running strangeness tracking flow"
+  #needs results of S.Vertexer + ITS reco
+  taskwrapper sttracking.log o2-strangeness-tracking-workflow $gloOpt
+  echo "Return status of strangeness tracking: $?"
+
   echo "Producing AOD"
   taskwrapper aod.log o2-aod-producer-workflow $gloOpt --aod-writer-keep dangling --aod-writer-resfile "AO2D" --aod-writer-resmode UPDATE --aod-timeframe-id 1 --run-number 300000
   echo "Return status of AOD production: $?"
