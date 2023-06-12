@@ -246,6 +246,9 @@ class TrackInterpolation
   /// Allow setting the ITS cluster dictionary from outside
   void setITSClusterDictionary(const o2::itsmft::TopologyDictionary* dict) { mITSDict = dict; }
 
+  /// Enable processing of seeds
+  void setProcessSeeds() { mProcessSeeds = true; }
+
   // --------------------------------- output ---------------------------------------------
   std::vector<UnbinnedResid>& getClusterResiduals() { return mClRes; }
   std::vector<TrackDataCompact>& getTrackDataCompact() { return mTrackDataCompact; }
@@ -267,6 +270,7 @@ class TrackInterpolation
   int mMaxTracksPerTF{-1};                           ///< max number of tracks to be processed per TF (-1 means there is no limit)
   int mAddTracksITSTPC{0};                           ///< number of ITS-TPC tracks which can be processed in addition to mMaxTracksPerTF
   bool mDumpTrackPoints{false};                      ///< dump also track points in ITS, TRD and TOF
+  bool mProcessSeeds{false};                         ///< in case for global tracks also their shorter parts are processed separately
 
   // input
   const o2::globaltracking::RecoContainer* mRecoCont = nullptr;                            ///< input reco container
