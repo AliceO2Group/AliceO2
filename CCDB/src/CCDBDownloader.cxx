@@ -26,9 +26,20 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <fairlogger/Logger.h>
 
 namespace o2::ccdb
 {
+
+void uvErrorCheck(int code)
+{
+  if (code != 0)
+  {
+    char buf[1000];
+    uv_strerror_r(code, buf, 1000);
+    LOG(error) << buf;
+  }
+}
 
 CCDBDownloader::CCDBDownloader(uv_loop_t* uv_loop)
 {
@@ -43,8 +54,8 @@ CCDBDownloader::CCDBDownloader(uv_loop_t* uv_loop)
   // Preparing timer to be used by curl
   mTimeoutTimer = new uv_timer_t();
   mTimeoutTimer->data = this;
-  uv_loop_init(mUVLoop);
-  uv_timer_init(mUVLoop, mTimeoutTimer);
+  uvErrorCheck(uv_loop_init(mUVLoop));
+  uvErrorCheck(uv_timer_init(mUVLoop, mTimeoutTimer));
   mHandleMap[(uv_handle_t*)mTimeoutTimer] = true;
 
   // Preparing curl handle
@@ -54,9 +65,9 @@ CCDBDownloader::CCDBDownloader(uv_loop_t* uv_loop)
   // uv_loop runs only when there are active handles, this handle guarantees the loop won't close immedietly after starting
   auto timerCheckQueueHandle = new uv_timer_t();
   timerCheckQueueHandle->data = this;
-  uv_timer_init(mUVLoop, timerCheckQueueHandle);
+  uvErrorCheck(uv_timer_init(mUVLoop, timerCheckQueueHandle));
   mHandleMap[(uv_handle_t*)timerCheckQueueHandle] = true;
-  uv_timer_start(timerCheckQueueHandle, checkStopSignal, 100, 100);
+  uvErrorCheck(uv_timer_start(timerCheckQueueHandle, checkStopSignal, 100, 100));
 
   mLoopThread = new std::thread(&CCDBDownloader::runLoop, this);
 }
@@ -82,7 +93,7 @@ CCDBDownloader::~CCDBDownloader()
     if (timer->data) {
       delete (DataForClosingSocket*)timer->data;
     }
-    uv_timer_stop(socketTimerPair.second);
+    uvErrorCheck(uv_timer_stop(socketTimerPair.second));
     uv_close((uv_handle_t*)socketTimerPair.second, onUVClose);
   }
   // all timers have been closed --> so clear this map (otherwise it may get accessed in different callbacks again
@@ -102,7 +113,7 @@ CCDBDownloader::~CCDBDownloader()
     while (UV_EBUSY == uv_loop_close(mUVLoop)) {
       mCloseLoop = false;
       uv_walk(mUVLoop, closeHandles, this);
-      uv_run(mUVLoop, UV_RUN_ONCE);
+      uvErrorCheck(uv_run(mUVLoop, UV_RUN_ONCE));
     }
     delete mUVLoop;
   }
@@ -134,7 +145,7 @@ void CCDBDownloader::checkStopSignal(uv_timer_t* handle)
   // Check for closing signal
   auto CD = (CCDBDownloader*)handle->data;
   if (CD->mCloseLoop) {
-    uv_timer_stop(handle);
+    uvErrorCheck(uv_timer_stop(handle));
     uv_stop(CD->mUVLoop);
   }
   CD->checkForThreadsToJoin();
@@ -145,7 +156,7 @@ void CCDBDownloader::closesocketCallback(void* clientp, curl_socket_t item)
   auto CD = (CCDBDownloader*)clientp;
   if (CD->mSocketTimerMap.find(item) != CD->mSocketTimerMap.end()) {
     auto timer = CD->mSocketTimerMap[item];
-    uv_timer_stop(timer);
+    uvErrorCheck(uv_timer_stop(timer));
     // we are getting rid of the uv_timer_t pointer ... so we need
     // to free possibly attached user data pointers as well. Counteracts action of opensocketCallback
     if (timer->data) {
@@ -162,7 +173,7 @@ curl_socket_t opensocketCallback(void* clientp, curlsocktype purpose, struct cur
   auto sock = socket(address->family, address->socktype, address->protocol);
 
   CD->mSocketTimerMap[sock] = new uv_timer_t();
-  uv_timer_init(CD->mUVLoop, CD->mSocketTimerMap[sock]);
+  uvErrorCheck(uv_timer_init(CD->mUVLoop, CD->mSocketTimerMap[sock]));
   CD->mHandleMap[(uv_handle_t*)CD->mSocketTimerMap[sock]] = true;
 
   auto data = new DataForClosingSocket();
@@ -187,7 +198,7 @@ void CCDBDownloader::closeSocketByTimer(uv_timer_t* handle)
   auto sock = data->socket;
 
   if (CD->mSocketTimerMap.find(sock) != CD->mSocketTimerMap.end()) {
-    uv_timer_stop(CD->mSocketTimerMap[sock]);
+    uvErrorCheck(uv_timer_stop(CD->mSocketTimerMap[sock]));
     CD->mSocketTimerMap.erase(sock);
     close(sock);
 
@@ -243,17 +254,17 @@ int CCDBDownloader::handleSocket(CURL* easy, curl_socket_t s, int action, void* 
       }
 
       if (CD->mSocketTimerMap.find(s) != CD->mSocketTimerMap.end()) {
-        uv_timer_stop(CD->mSocketTimerMap[s]);
+        uvErrorCheck(uv_timer_stop(CD->mSocketTimerMap[s]));
       }
 
-      uv_poll_start(curl_context->poll_handle, events, curlPerform);
+      uvErrorCheck(uv_poll_start(curl_context->poll_handle, events, curlPerform));
       break;
     case CURL_POLL_REMOVE:
       if (socketp) {
         if (CD->mSocketTimerMap.find(s) != CD->mSocketTimerMap.end()) {
-          uv_timer_start(CD->mSocketTimerMap[s], closeSocketByTimer, CD->mSocketTimeoutMS, 0);
+          uvErrorCheck(uv_timer_start(CD->mSocketTimerMap[s], closeSocketByTimer, CD->mSocketTimeoutMS, 0));
         }
-        uv_poll_stop(((CCDBDownloader::curl_context_t*)socketp)->poll_handle);
+        uvErrorCheck(uv_poll_stop(((CCDBDownloader::curl_context_t*)socketp)->poll_handle));
         CD->destroyCurlContext((CCDBDownloader::curl_context_t*)socketp);
         curl_multi_assign(socketData->curlm, s, nullptr);
       }
@@ -296,7 +307,7 @@ CCDBDownloader::curl_context_t* CCDBDownloader::createCurlContext(curl_socket_t 
   context->sockfd = sockfd;
   context->poll_handle = new uv_poll_t();
 
-  uv_poll_init_socket(mUVLoop, context->poll_handle, sockfd);
+  uvErrorCheck(uv_poll_init_socket(mUVLoop, context->poll_handle, sockfd));
   mHandleMap[(uv_handle_t*)(context->poll_handle)] = true;
   context->poll_handle->data = context;
 
@@ -382,12 +393,12 @@ int CCDBDownloader::startTimeout(CURLM* multi, long timeout_ms, void* userp)
   auto timeout = (uv_timer_t*)userp;
 
   if (timeout_ms < 0) {
-    uv_timer_stop(timeout);
+    uvErrorCheck(uv_timer_stop(timeout));
   } else {
     if (timeout_ms == 0) {
       timeout_ms = 1; // Calling curlTimeout when timeout = 0 could create an infinite loop
     }
-    uv_timer_start(timeout, curlTimeout, timeout_ms, 0);
+    uvErrorCheck(uv_timer_start(timeout, curlTimeout, timeout_ms, 0));
   }
   return 0;
 }
@@ -419,7 +430,7 @@ void CCDBDownloader::checkHandleQueue()
 
 void CCDBDownloader::runLoop()
 {
-  uv_run(mUVLoop, UV_RUN_DEFAULT);
+  uvErrorCheck(uv_run(mUVLoop, UV_RUN_DEFAULT));
 }
 
 CURLcode CCDBDownloader::perform(CURL* handle)
@@ -513,8 +524,8 @@ void CCDBDownloader::makeLoopCheckQueueAsync()
 {
   auto asyncHandle = new uv_async_t();
   asyncHandle->data = this;
-  uv_async_init(mUVLoop, asyncHandle, asyncUVHandleCheckQueue);
-  uv_async_send(asyncHandle);
+  uvErrorCheck(uv_async_init(mUVLoop, asyncHandle, asyncUVHandleCheckQueue));
+  uvErrorCheck(uv_async_send(asyncHandle));
 }
 
 } // namespace o2
