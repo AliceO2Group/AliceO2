@@ -174,12 +174,14 @@ void Digitizer::generatePedestal()
 {
   for (int idet : {ZNA, ZPA, ZNC, ZPC}) {
     int chanSum = toChannel(idet, Sum);
+    // Uncorrelated baseline oscillations for sum channels
     mPedestalBLFluct[chanSum] = gRandom->Gaus(0, mSimCondition->channels[chanSum].pedestalFluct);
     int comm = toChannel(idet, Common);
     mPedestalBLFluct[comm] = gRandom->Gaus(0, mSimCondition->channels[comm].pedestalFluct);
     for (int ic : {Ch1, Ch2, Ch3, Ch4}) {
       int chan = toChannel(idet, ic);
       mPedestalBLFluct[chan] = gRandom->Gaus(0, mSimCondition->channels[chan].pedestalFluct);
+      // Correlated baseline oscillations for sum channels
       mPedestalBLFluct[chanSum] += mPedestalBLFluct[chan];
     }
   }

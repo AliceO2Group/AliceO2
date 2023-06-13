@@ -95,7 +95,7 @@ void NoiseCalibEPNSpec::run(ProcessingContext& pc)
   auto chan = pc.inputs().get<gsl::span<o2::zdc::ChannelData>>("chan");
   auto peds = pc.inputs().get<gsl::span<o2::zdc::OrbitData>>("peds");
 
-  // Process reconstructed data
+  // Process digits
   mWorker.process(peds, trig, chan);
 
   auto& summary = mWorker.mData.getSummary();
@@ -130,7 +130,7 @@ framework::DataProcessorSpec getNoiseCalibEPNSpec()
     outputs.emplace_back("ZDC", "NOISE_1DH", ih, Lifetime::Timeframe);
   }
   return DataProcessorSpec{
-    "zdc-noisecalib-epn",
+    "zdc-calib-noise-epn",
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<NoiseCalibEPNSpec>()},
