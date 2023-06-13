@@ -23,7 +23,7 @@ class TH1;
 namespace o2::mch::eval
 {
 int compareEvents(std::list<ExtendedTrack>& tracks1, std::list<ExtendedTrack>& tracks2,
-                  double precision, bool printAll,
+                  double precision, bool printDiff, bool printAll,
                   std::vector<TH1*>& trackResidualsAtFirstCluster,
                   std::vector<TH1*>& clusterClusterResiduals);
 

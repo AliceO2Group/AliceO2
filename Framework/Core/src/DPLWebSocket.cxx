@@ -24,6 +24,7 @@
 #include <uv.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <memory>
 #include "ControlWebSocketHandler.h"
 
 namespace o2::framework
@@ -421,14 +422,17 @@ void websocket_client_callback(uv_stream_t* stream, ssize_t nread, const uv_buf_
 }
 
 // FIXME: mNonce should be random
-WSDPLClient::WSDPLClient(uv_stream_t* s, std::unique_ptr<DriverClientContext> context, std::function<void()> handshake, std::unique_ptr<WebSocketHandler> handler)
-  : mStream{s},
-    mNonce{"dGhlIHNhbXBsZSBub25jZQ=="},
-    mContext{std::move(context)},
-    mHandshake{handshake},
-    mHandler{std::move(handler)}
+WSDPLClient::WSDPLClient()
+  : mNonce{"dGhlIHNhbXBsZSBub25jZQ=="}
 {
-  mContext->client = this;
+}
+
+void WSDPLClient::connect(ServiceRegistryRef ref, uv_stream_t* s, std::function<void()> handshake, std::unique_ptr<WebSocketHandler> handler)
+{
+  mStream = s;
+  mContext = std::make_unique<DriverClientContext>(DriverClientContext{.ref = ref, .client = this});
+  mHandshake = handshake;
+  mHandler = std::move(handler);
   s->data = mContext.get();
   uv_read_start((uv_stream_t*)s, (uv_alloc_cb)my_alloc_cb, websocket_client_callback);
 }

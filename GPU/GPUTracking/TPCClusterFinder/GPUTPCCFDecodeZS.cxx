@@ -554,7 +554,7 @@ GPUd() void GPUTPCCFDecodeZSLinkBase::WriteCharge(processorType& clusterer, floa
 #ifdef GPUCA_CHECK_TPCZS_CORRUPTION
   if (padAndRow.getRow() >= GPUCA_ROW_COUNT) {
     positions[positionOffset] = INVALID_CHARGE_POS;
-    clusterer.raiseError(GPUErrors::ERROR_CF_ROW_CLUSTER_OVERFLOW, clusterer.mISlice * 1000 + padAndRow.getRow(), 0, 0);
+    clusterer.raiseError(GPUErrors::ERROR_TPCZS_INVALID_ROW, clusterer.mISlice * 1000 + padAndRow.getRow());
     return;
   }
 #endif

@@ -38,6 +38,7 @@ struct WorkflowSpecNode;
 
 struct ServiceMetricsInfo;
 struct DeviceConfig;
+struct DriverServerContext;
 
 class DanglingContext;
 
@@ -89,6 +90,10 @@ using ServicePostSchedule = void (*)(ServiceRegistryRef, DeviceConfig const&);
 using ServiceMetricHandling = void (*)(ServiceRegistryRef,
                                        ServiceMetricsInfo const&,
                                        size_t timestamp);
+
+/// Callback exectuted in the driver in order to provide summary information
+/// at the end of a run.
+using ServiceSummaryHandling = void (*)(ServiceMetricsInfo const& metrics);
 
 /// Callback executed in the child after dispatching happened.
 using ServicePostDispatching = void (*)(ProcessingContext&, void*);
@@ -194,6 +199,9 @@ struct ServiceSpec {
 
   /// Callback invoked after the main GUI has been drawn
   ServicePostRenderGUI postRenderGUI = nullptr;
+
+  /// Callback invoked on the driver quitting
+  ServiceSummaryHandling summaryHandling = nullptr;
 
   /// Active flag. If set to false, the service will not be used by default.
   bool active = true;

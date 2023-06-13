@@ -52,7 +52,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"vertexing-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use in vertexing"}},
     {"disable-cascade-finder", o2::framework::VariantType::Bool, false, {"do not run cascade finder"}},
-    {"enable-3body-finder", o2::framework::VariantType::Bool, false, {"run 3 body finder"}},
+    {"disable-3body-finder", o2::framework::VariantType::Bool, false, {"run 3 body finder"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}},
     {"require-ctp-lumi", o2::framework::VariantType::Bool, false, {"require CTP lumi for TPC correction scaling"}},
     {"combine-source-devices", o2::framework::VariantType::Bool, false, {"merge DPL source devices"}}};
@@ -75,7 +75,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   bool useMC = false;
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
   auto enableCasc = !configcontext.options().get<bool>("disable-cascade-finder");
-  auto enable3body = configcontext.options().get<bool>("enable-3body-finder");
+  auto enable3body = !configcontext.options().get<bool>("disable-3body-finder");
   auto requireCTPLumi = configcontext.options().get<bool>("require-ctp-lumi");
 
   GID::mask_t src = allowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("vertexing-sources"));

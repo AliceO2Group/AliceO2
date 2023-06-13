@@ -39,6 +39,7 @@ struct BCMask {
   std::string name = "";
   std::string mask = "";
   std::bitset<o2::constants::lhc::LHCMaxBunches> BCmask;
+  int setBCmask(std::vector<std::string>& tokens);
   void printStream(std::ostream& stream) const;
   ClassDefNV(BCMask, 1);
 };
@@ -107,7 +108,7 @@ struct CTPClass {
   std::uint64_t classMask = 0;
   CTPDescriptor const* descriptor = nullptr;
   CTPCluster const* cluster = nullptr;
-  int clusterIndex = 0;
+  int clusterIndex = 0xff;
   int descriptorIndex = 0xff;
   uint32_t downScale = 1;
   std::vector<BCMask const*> BCClassMask;
@@ -137,10 +138,12 @@ class CTPConfiguration
   static bool isNumber(const std::string& s);
   int addInput(std::string& inp, int clsindex, std::map<int, std::vector<int>>& descInputsIndex);
   enum ConfigPart { START,
+                    VERSION,
                     RUN,
                     INPUTS,
                     MASKS,
                     GENS,
+                    DESCRIPTORS,
                     LTG,
                     LTGitems,
                     CLUSTER,
@@ -156,8 +159,10 @@ class CTPConfiguration
   int getInputIndex(const std::string& name) const;
   bool isMaskInInputs(const uint64_t& mask) const;
   bool isBCMaskInConfig(const std::string maskname) const;
+  const BCMask* isBCMaskInConfigP(const std::string bcmask) const;
   const CTPInput* isInputInConfig(const std::string inpname) const;
   const CTPInput* isInputInConfig(const int index) const;
+  const CTPDescriptor* isDescriptorInConfig(const std::string descname, int& index) const;
   void createInputsInDecriptorsFromNames();
   uint64_t getDecrtiptorInputsMask(const std::string& name) const;
   std::map<o2::detectors::DetID::ID, std::vector<CTPInput>> getDet2InputMap();
@@ -171,12 +176,13 @@ class CTPConfiguration
   std::string getConfigString() { return mConfigString; };
   CTPDescriptor* getDescriptor(int index) { return &mDescriptors[index]; };
   int assignDescriptors();
+  int checkConfigConsistency() const;
 
  private:
   std::string mConfigString = "";
   uint32_t mRunNumber = 0;
   std::string mName = "";
-  std::string mVersion = "1";
+  std::string mVersion = "0";
   std::vector<BCMask> mBCMasks;
   std::vector<CTPGenerator> mGenerators;
   std::vector<CTPInput> mInputs;
@@ -185,6 +191,7 @@ class CTPConfiguration
   std::vector<CTPCluster> mClusters;
   std::vector<CTPClass> mCTPClasses;
   int processConfigurationLineRun3(std::string& line, int& level, std::map<int, std::vector<int>>& descInputsIndex);
+  int processConfigurationLineRun3v2(std::string& line, int& level, std::map<int, std::vector<int>>& descInputsIndex);
   ClassDefNV(CTPConfiguration, 6);
 };
 // Run Manager

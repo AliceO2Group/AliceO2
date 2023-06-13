@@ -27,6 +27,7 @@
 #endif
 
 #include <memory>
+#include <array>
 #include <vector>
 #include "GPUCommonDef.h"
 #include "GPUDataTypes.h"
@@ -73,6 +74,7 @@ class GPUO2Interface
 
   int registerMemoryForGPU(const void* ptr, size_t size);
   int unregisterMemoryForGPU(const void* ptr);
+  void setErrorCodeOutput(std::vector<std::array<unsigned int, 4>>* v);
 
   const GPUO2InterfaceConfiguration& getConfig() const { return *mConfig; }
 

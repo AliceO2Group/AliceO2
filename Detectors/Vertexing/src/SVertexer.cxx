@@ -873,6 +873,9 @@ void SVertexer::setNThreads(int n)
 //______________________________________________
 bool SVertexer::processTPCTrack(const o2::tpc::TrackTPC& trTPC, GIndex gid, int vtxid)
 {
+  if (mSVParams->mTPCTrackMaxX > 0. && trTPC.getX() > mSVParams->mTPCTrackMaxX) {
+    return true;
+  }
   // if TPC trackis unconstrained, try to create in the tracks pool a clone constrained to vtxid vertex time.
   if (trTPC.hasBothSidesClusters()) { // this is effectively constrained track
     return false;                     // let it be processed as such

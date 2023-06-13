@@ -1014,11 +1014,11 @@ void GPUReconstruction::PrepareEvent() // TODO: Clean this up, this should not b
   AllocateRegisteredMemory(nullptr);
 }
 
-int GPUReconstruction::CheckErrorCodes(bool cpuOnly, bool forceShowErrors)
+int GPUReconstruction::CheckErrorCodes(bool cpuOnly, bool forceShowErrors, std::vector<std::array<unsigned int, 4>>* fillErrors)
 {
   int retVal = 0;
   for (unsigned int i = 0; i < mChains.size(); i++) {
-    if (mChains[i]->CheckErrorCodes(cpuOnly, forceShowErrors)) {
+    if (mChains[i]->CheckErrorCodes(cpuOnly, forceShowErrors, fillErrors)) {
       retVal++;
     }
   }

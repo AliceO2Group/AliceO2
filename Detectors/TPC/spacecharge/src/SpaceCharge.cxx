@@ -30,6 +30,8 @@
 #include "MathUtils/Utils.h"
 #include "DataFormatsParameters/GRPMagField.h"
 #include "GPUDebugStreamer.h"
+#include "TPCBase/ParameterElectronics.h"
+#include "CommonConstants/LHCConstants.h"
 
 #include <numeric>
 #include <chrono>
@@ -41,6 +43,7 @@
 #include "TROOT.h"
 #include "TStopwatch.h"
 #include "ROOT/RDataFrame.hxx"
+#include "THnSparse.h"
 
 #include <random>
 
@@ -797,23 +800,6 @@ void SpaceCharge<DataT>::fillChargeDensityFromFile(TFile& fInp, const char* name
 }
 
 template <typename DataT>
-void SpaceCharge<DataT>::fillChargeDensityFromHisto(const TH3& hisSCDensity3D)
-{
-  TH3DataT hRebin = rebinDensityHisto(hisSCDensity3D, mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices);
-  for (int side = Side::A; side < SIDES; ++side) {
-    initContainer(mDensity[side], true);
-    for (size_t iPhi = 0; iPhi < mParamGrid.NPhiVertices; ++iPhi) {
-      for (size_t iR = 0; iR < mParamGrid.NRVertices; ++iR) {
-        for (size_t iZ = 0; iZ < mParamGrid.NZVertices; ++iZ) {
-          const size_t zBin = side == Side::A ? mParamGrid.NZVertices + iZ + 1 : mParamGrid.NZVertices - iZ;
-          mDensity[side](iZ, iR, iPhi) = hRebin.GetBinContent(iPhi + 1, iR + 1, zBin);
-        }
-      }
-    }
-  }
-}
-
-template <typename DataT>
 void SpaceCharge<DataT>::fillChargeDensityFromCalDet(const std::vector<CalDet<float>>& calSCDensity3D)
 {
   const auto hConverted = o2::tpc::painter::convertCalDetToTH3(calSCDensity3D, true, mParamGrid.NRVertices, getRMin(Side::A), getRMax(Side::A), mParamGrid.NPhiVertices, getZMax(Side::A));
@@ -829,22 +815,33 @@ void SpaceCharge<DataT>::fillChargeFromCalDet(const std::vector<CalDet<float>>& 
 }
 
 template <typename DataT>
-typename SpaceCharge<DataT>::TH3DataT SpaceCharge<DataT>::rebinDensityHisto(const TH3& hOrig, const unsigned short nBinsZNew, const unsigned short nBinsRNew, const unsigned short nBinsPhiNew)
+void SpaceCharge<DataT>::fillChargeDensityFromHisto(const TH3& hOrig)
 {
-  TH3DataT hRebin{};
-  const int nBinsZNewTwo = 2 * nBinsZNew;
+  const unsigned short nBinsZNew = mParamGrid.NZVertices;
+  const unsigned short nBinsRNew = mParamGrid.NRVertices;
+  const unsigned short nBinsPhiNew = mParamGrid.NPhiVertices;
 
+  initContainer(mDensity[Side::A], true);
+  initContainer(mDensity[Side::C], true);
+
+  const int nBinsZNewTwo = 2 * nBinsZNew;
   const auto phiLow = hOrig.GetXaxis()->GetBinLowEdge(1);
   const auto phiUp = hOrig.GetXaxis()->GetBinUpEdge(hOrig.GetNbinsX());
   const auto rLow = hOrig.GetYaxis()->GetBinLowEdge(1);
   const auto rUp = hOrig.GetYaxis()->GetBinUpEdge(hOrig.GetNbinsY());
   const auto zLow = hOrig.GetZaxis()->GetBinLowEdge(1);
   const auto zUp = hOrig.GetZaxis()->GetBinUpEdge(hOrig.GetNbinsZ());
-  hRebin.SetBins(nBinsPhiNew, phiLow, phiUp, nBinsRNew, rLow, rUp, nBinsZNewTwo, zLow, zUp);
 
+  const int dim = 3;
+  int bins[dim]{nBinsPhiNew, nBinsRNew, nBinsZNewTwo};
+  double xmin[dim]{phiLow, rLow, zLow};
+  double xmax[dim]{phiUp, rUp, zUp};
+  const THnSparseF hRebin("hTmp", "hTmp", dim, bins, xmin, xmax);
+
+#pragma omp parallel for num_threads(sNThreads)
   for (int iBinPhi = 1; iBinPhi <= nBinsPhiNew; ++iBinPhi) {
-    const auto phiLowEdge = hRebin.GetXaxis()->GetBinLowEdge(iBinPhi);
-    const auto phiUpEdge = hRebin.GetXaxis()->GetBinUpEdge(iBinPhi);
+    const auto phiLowEdge = hRebin.GetAxis(0)->GetBinLowEdge(iBinPhi);
+    const auto phiUpEdge = hRebin.GetAxis(0)->GetBinUpEdge(iBinPhi);
 
     const int phiLowBinOrig = hOrig.GetXaxis()->FindBin(phiLowEdge);
     const int phiUpBinOrig = hOrig.GetXaxis()->FindBin(phiUpEdge);
@@ -855,8 +852,8 @@ typename SpaceCharge<DataT>::TH3DataT SpaceCharge<DataT>::rebinDensityHisto(cons
     const auto upperBinWeightPhi = std::abs(phiUpEdge - hOrig.GetXaxis()->GetBinLowEdge(phiUpBinOrig)) / binWidthPhiOrig;
 
     for (int iBinR = 1; iBinR <= nBinsRNew; ++iBinR) {
-      const auto rLowEdge = hRebin.GetYaxis()->GetBinLowEdge(iBinR);
-      const auto rUpEdge = hRebin.GetYaxis()->GetBinUpEdge(iBinR);
+      const auto rLowEdge = hRebin.GetAxis(1)->GetBinLowEdge(iBinR);
+      const auto rUpEdge = hRebin.GetAxis(1)->GetBinUpEdge(iBinR);
 
       const int rLowBinOrig = hOrig.GetYaxis()->FindBin(rLowEdge);
       const int rUpBinOrig = hOrig.GetYaxis()->FindBin(rUpEdge);
@@ -867,9 +864,9 @@ typename SpaceCharge<DataT>::TH3DataT SpaceCharge<DataT>::rebinDensityHisto(cons
       const auto upperBinWeightR = std::abs(rUpEdge - hOrig.GetYaxis()->GetBinLowEdge(rUpBinOrig)) / binWidthROrig;
 
       for (int iBinZ = 1; iBinZ <= nBinsZNewTwo; ++iBinZ) {
-        const auto zLowEdge = hRebin.GetZaxis()->GetBinLowEdge(iBinZ);
-        const auto zUpEdge = hRebin.GetZaxis()->GetBinUpEdge(iBinZ);
-        const auto zCenter = hRebin.GetZaxis()->GetBinCenter(iBinZ);
+        const auto zLowEdge = hRebin.GetAxis(2)->GetBinLowEdge(iBinZ);
+        const auto zUpEdge = hRebin.GetAxis(2)->GetBinUpEdge(iBinZ);
+        const auto zCenter = hRebin.GetAxis(2)->GetBinCenter(iBinZ);
 
         int zLowBinOrig = hOrig.GetZaxis()->FindBin(zLowEdge);
         int zUpBinOrig = hOrig.GetZaxis()->FindBin(zUpEdge);
@@ -954,11 +951,12 @@ typename SpaceCharge<DataT>::TH3DataT SpaceCharge<DataT>::rebinDensityHisto(cons
           }
         }
         sum /= sumW;
-        hRebin.SetBinContent(iBinPhi, iBinR, iBinZ, sum);
+        const Side side = (iBinZ > mParamGrid.NZVertices) ? Side::A : Side::C;
+        const int iZ = (side == Side::A) ? (iBinZ - mParamGrid.NZVertices - 1) : (mParamGrid.NZVertices - iBinZ);
+        mDensity[side](iZ, iBinR - 1, iBinPhi - 1) = sum;
       }
     }
   }
-  return hRebin;
 }
 
 template <typename DataT>
@@ -3067,6 +3065,120 @@ void SpaceCharge<DataT>::setOmegaTauT1T2(const DataT omegaTau, const DataT t1, c
   const DataT wt1 = t1 * omegaTau;
   mC1 = wt1 / (1 + wt1 * wt1);
   mC2 = wt02 / (1 + wt02);
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::addChargeDensity(const SpaceCharge<DataT>& otherSC)
+{
+  const bool sameGrid = (getNPhiVertices() == otherSC.getNPhiVertices()) && (getNRVertices() == otherSC.getNRVertices()) && (getNZVertices() == otherSC.getNZVertices());
+  if (!sameGrid) {
+    LOGP(warning, "Space charge objects have different grid definition");
+    return;
+  }
+
+  mDensity[Side::A] += otherSC.mDensity[Side::A];
+  mDensity[Side::C] += otherSC.mDensity[Side::C];
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::fillChargeDensityFromHisto(const char* file, const char* nameA, const char* nameC)
+{
+  TFile fInp(file, "READ");
+  TH3F* hSCA = (TH3F*)fInp.Get(nameA);
+  TH3F* hSCC = (TH3F*)fInp.Get(nameC);
+  if (!hSCA) {
+    LOGP(error, "Histogram {} not found", nameA);
+  }
+  if (!hSCC) {
+    LOGP(error, "Histogram {} not found", nameC);
+  }
+  fillChargeDensityFromHisto(*hSCA, *hSCC);
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::fillChargeDensityFromHisto(const TH3& hisSCDensity3D_A, const TH3& hisSCDensity3D_C)
+{
+  const int nPhiBinsTmp = hisSCDensity3D_A.GetXaxis()->GetNbins();
+  const int nRBinsTmp = hisSCDensity3D_A.GetYaxis()->GetNbins();
+  const int nZBins = hisSCDensity3D_A.GetZaxis()->GetNbins();
+  const auto phiLow = hisSCDensity3D_A.GetXaxis()->GetBinLowEdge(1);
+  const auto phiUp = hisSCDensity3D_A.GetXaxis()->GetBinUpEdge(nPhiBinsTmp);
+  const auto rLow = hisSCDensity3D_A.GetYaxis()->GetBinLowEdge(1);
+  const auto rUp = hisSCDensity3D_A.GetYaxis()->GetBinUpEdge(nRBinsTmp);
+  const auto zUp = hisSCDensity3D_A.GetZaxis()->GetBinUpEdge(nZBins);
+
+  TH3F hisSCMerged("hisMerged", "hisMerged", nPhiBinsTmp, phiLow, phiUp, nRBinsTmp, rLow, rUp, 2 * nZBins, -zUp, zUp);
+
+  for (int iside = 0; iside < FNSIDES; ++iside) {
+    const auto& hSC = (iside == 0) ? hisSCDensity3D_A : hisSCDensity3D_C;
+#pragma omp parallel for num_threads(sNThreads)
+    for (int iz = 1; iz <= nZBins; ++iz) {
+      const int izTmp = (iside == 0) ? (nZBins + iz) : iz;
+      for (int ir = 1; ir <= nRBinsTmp; ++ir) {
+        for (int iphi = 1; iphi <= nPhiBinsTmp; ++iphi) {
+          hisSCMerged.SetBinContent(iphi, ir, izTmp, hSC.GetBinContent(iphi, ir, iz));
+        }
+      }
+    }
+  }
+  fillChargeDensityFromHisto(hisSCMerged);
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::convertIDCsToCharge(std::vector<CalDet<float>>& idcZero, const CalDet<float>& mapIBF, const float ionDriftTimeMS, const bool normToPadArea)
+{
+  // 1. integration time per IDC interval in ms
+  const int nOrbits = 12;
+  const float idcIntegrationTimeMS = (nOrbits * o2::constants::lhc::LHCOrbitMUS) / 1e3;
+
+  // number of time stamps for each integration interval (5346) (see: IDCSim.h getNTimeStampsPerIntegrationInterval())
+  const unsigned int nTimeStampsPerIDCInterval{(o2::constants::lhc::LHCMaxBunches * nOrbits) / o2::tpc::constants::LHCBCPERTIMEBIN};
+
+  const int nIDCSlices = idcZero.size();
+  // IDCs are normalized for each interval to 5346 time bins
+  // IDC0 = <IDC> per ms = 5346 / ~1ms
+  const float idcsPerMS = nTimeStampsPerIDCInterval / idcIntegrationTimeMS;
+
+  // length of one z slice on ms
+  const float lengthZSliceMS = ionDriftTimeMS / nIDCSlices;
+
+  // IDCs for one z slice
+  const float scaleToIonDrift = lengthZSliceMS * idcsPerMS;
+
+  // get conversion factor from ADC to electrons (see: SAMPAProcessing::getADCvalue())
+  const static ParameterElectronics& parameterElectronics = ParameterElectronics::Instance();
+  const float conversionADCToEle = parameterElectronics.ElectronCharge * 1.e15 * parameterElectronics.ChipGain * parameterElectronics.ADCsaturation / parameterElectronics.ADCdynamicRange;
+
+  const float conversionFactor = scaleToIonDrift / conversionADCToEle;
+  LOGP(info, "Converting IDCs to space-charge density with conversion factor of {}", conversionFactor);
+
+  for (auto& calIDC : idcZero) {
+    if (normToPadArea) {
+      for (unsigned int sector = 0; sector < Mapper::NSECTORS; ++sector) {
+        for (unsigned int region = 0; region < Mapper::NREGIONS; ++region) {
+          for (int lrow = 0; lrow < Mapper::ROWSPERREGION[region]; ++lrow) {
+            for (unsigned int pad = 0; pad < Mapper::PADSPERROW[region][lrow]; ++pad) {
+              const int globalPad = Mapper::getGlobalPadNumber(lrow, pad, region);
+              float idcTmp = calIDC.getValue(sector, globalPad);
+              calIDC.setValue(sector, globalPad, conversionFactor * idcTmp / Mapper::INVPADAREA[region]);
+            }
+          }
+        }
+      }
+    } else {
+      calIDC *= conversionFactor;
+    }
+    // take IBF into account
+    calIDC *= mapIBF;
+    calIDC *= 0.01f; // ibf values are in %
+  }
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::fillChargeFromIDCs(std::vector<CalDet<float>>& idcZero, const CalDet<float>& mapIBF, const float ionDriftTimeMS, const bool normToPadArea)
+{
+  convertIDCsToCharge(idcZero, mapIBF, ionDriftTimeMS, normToPadArea);
+  fillChargeFromCalDet(idcZero);
 }
 
 using DataTD = double;

@@ -75,7 +75,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   auto toftpc = cfgc.options().get<bool>("tpc-matches");
 
   char* stringTBP = new char[listname.size()];
-  sprintf(stringTBP, "%s", listname.c_str());
+  snprintf(stringTBP, listname.size(), "%s", listname.c_str());
 
   // the lane configuration defines the subspecification ids to be distributed among the lanes.
   // auto tofSectors = o2::RangeTokenizer::tokenize<int>(cfgc.options().get<std::string>("tof-sectors"));

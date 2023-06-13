@@ -90,7 +90,7 @@ DataProcessorSpec getEntropyEncoderSpec(bool selIR)
     Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
             {"irframe-margin-bwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame lower boundary when selection is requested"}},
             {"irframe-margin-fwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame upper boundary when selection is requested"}},
-            {"irframe-shift", VariantType::Int, -o2::tof::Geo::LATENCYWINDOW_IN_BC, {"IRFrame shift to account for latency"}},
+            {"irframe-shift", VariantType::Int, o2::tof::Geo::LATENCYWINDOW_IN_BC, {"IRFrame shift to account for latency"}},
             {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}}}};
 }
 

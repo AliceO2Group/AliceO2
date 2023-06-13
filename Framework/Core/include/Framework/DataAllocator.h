@@ -66,6 +66,65 @@ struct ServiceRegistry;
   "\n - TObject with additional constructor arguments"        \
   "\n - Classes and structs with boost serialization support" \
   "\n - std containers of those"
+
+/// Helper to allow framework managed objecs to have a callback
+/// when they go out of scope. For example, this could
+/// be used to serialize a message into a buffer before the
+/// end of the timeframe, hence eliminating the need for the
+/// intermediate buffers.
+template <typename T>
+struct LifetimeHolder {
+  using type = T;
+  T* ptr = nullptr;
+  std::function<void(T&)> callback = nullptr;
+  LifetimeHolder(T* ptr_) : ptr(ptr_),
+                            callback(nullptr)
+  {
+  }
+  LifetimeHolder() = delete;
+  // Never copy it, because there is only one LifetimeHolder pointer
+  // created object.
+  LifetimeHolder(const LifetimeHolder&) = delete;
+  LifetimeHolder& operator=(const LifetimeHolder&) = delete;
+  LifetimeHolder(LifetimeHolder&& other)
+  {
+    this->ptr = other.ptr;
+    other.ptr = nullptr;
+    if (other.callback) {
+      this->callback = std::move(other.callback);
+    } else {
+      this->callback = nullptr;
+    }
+    other.callback = nullptr;
+  }
+  LifetimeHolder& operator=(LifetimeHolder&& other)
+  {
+    this->ptr = other.ptr;
+    other.ptr = nullptr;
+    if (other.callback) {
+      this->callback = std::move(other.callback);
+    } else {
+      this->callback = nullptr;
+    }
+    other.callback = nullptr;
+    return *this;
+  }
+
+  // On deletion we invoke the callback and then delete the object,
+  // when prensent.
+  ~LifetimeHolder()
+  {
+    if (ptr && callback) {
+      callback(*ptr);
+      delete ptr;
+      ptr = nullptr;
+    }
+  }
+
+  T* operator->() { return ptr; }
+  T& operator*() { return *ptr; }
+};
+
 /// This allocator is responsible to make sure that the messages created match
 /// the provided spec and that depending on how many pipelined reader we
 /// have, messages get created on the channel for the reader of the current
@@ -157,13 +216,11 @@ class DataAllocator
       });
       return *tb;
     } else if constexpr (std::is_base_of_v<struct TreeToTable, T>) {
-      void* t2tr = nullptr;
-      call_if_defined<struct TreeToTable>([&](auto* p) {
-        auto t2t = new std::decay_t<decltype(*p)>(args...);
+      return call_if_defined_forward<LifetimeHolder<struct TreeToTable>>([&](auto* p) {
+        auto t2t = std::move(LifetimeHolder<TreeToTable>(new typename std::decay_t<decltype(*p)>::type(args...)));
         adopt(spec, t2t);
-        t2tr = t2t;
+        return std::move(t2t);
       });
-      return *reinterpret_cast<TreeToTable*>(t2tr);
     } else if constexpr (sizeof...(Args) == 0) {
       if constexpr (is_messageable<T>::value == true) {
         return *reinterpret_cast<T*>(newChunk(spec, sizeof(T)).data());
@@ -219,7 +276,7 @@ class DataAllocator
   /// Adopt a Tree2Table in the framework and serialise / send
   /// it as an Arrow table to all consumers of @a spec once done
   void
-    adopt(const Output& spec, struct TreeToTable*);
+    adopt(const Output& spec, LifetimeHolder<struct TreeToTable>&);
 
   /// Adopt an Arrow table and send it to all consumers of @a spec
   void
@@ -369,7 +426,7 @@ class DataAllocator
     return adopt(getOutputByBind(std::move(ref)), obj);
   }
 
-  //get the memory resource associated with an output
+  // get the memory resource associated with an output
   o2::pmr::FairMQMemoryResource* getMemoryResource(const Output& spec)
   {
     auto& timingInfo = mRegistry.get<TimingInfo>();
@@ -378,7 +435,7 @@ class DataAllocator
     return *proxy.getOutputTransport(routeIndex);
   }
 
-  //make a stl (pmr) vector
+  // make a stl (pmr) vector
   template <typename T, typename... Args>
   o2::pmr::vector<T> makeVector(const Output& spec, Args&&... args)
   {

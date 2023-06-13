@@ -67,7 +67,9 @@ class TPCTrackStudySpec : public Task
   o2::tpc::VDriftHelper mTPCVDriftHelper{};
   o2::tpc::CorrectionMapsLoader mTPCCorrMapsLoader{};
   bool mUseMC{false}; ///< MC flag
-  float mRRef = 0.;
+  float mXRef = 0.;
+  int mNMoves = 6;
+  bool mUseR = false;
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
   float mITSROFrameLengthMUS = 0.;
   GTrackID::mask_t mTracksSrc{};
@@ -85,9 +87,11 @@ class TPCTrackStudySpec : public Task
 void TPCTrackStudySpec::init(InitContext& ic)
 {
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
-  mRRef = ic.options().get<float>("target-radius");
-  if (mRRef < 0.) {
-    mRRef = 0.;
+  mXRef = ic.options().get<float>("target-x");
+  mNMoves = std::max(2, ic.options().get<int>("n-moves"));
+  mUseR = ic.options().get<bool>("use-r-as-x");
+  if (mXRef < 0.) {
+    mXRef = 0.;
   }
   mTPCCorrMapsLoader.init(ic);
   mDBGOut = std::make_unique<o2::utils::TreeStreamRedirector>("tpc-trackStudy.root", "recreate");
@@ -155,7 +159,6 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
 
   float vdriftTB = mTPCVDriftHelper.getVDriftObject().getVDrift() * o2::tpc::ParameterElectronics::Instance().ZbinWidth; // VDrift expressed in cm/TimeBin
   float tpcTBBias = mTPCVDriftHelper.getVDriftObject().getTimeOffset() / (8 * o2::constants::lhc::LHCBunchSpacingMUS);
-  float RRef2 = mRRef * mRRef;
   std::vector<short> clSector, clRow;
   std::vector<float> clX, clY, clZ;
 
@@ -167,7 +170,7 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
 
     //=========================================================================
     // create refitted copy
-    auto trackRefit = [RRef2, itr, this](o2::track::TrackParCov& trc, float t) -> bool {
+    auto trackRefit = [itr, this](o2::track::TrackParCov& trc, float t) -> bool {
       float chi2Out = 0;
       int retVal = this->mTPCRefitter->RefitTrackAsTrackParCov(trc, this->mTPCTracksArray[itr].getClusterRef(), t, &chi2Out, false, true);
       if (retVal < 0) {
@@ -177,23 +180,19 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
       return true;
     };
 
-    auto trackProp = [RRef2, &tr, itr, prop, this](o2::track::TrackParCov& trc) -> bool {
+    auto trackProp = [&tr, itr, prop, this](o2::track::TrackParCov& trc) -> bool {
       if (!trc.rotate(tr.getAlpha())) {
         LOGP(warn, "Rotation to original track alpha {} failed, track#{}[{}]", tr.getAlpha(), counter, trc.asString());
         return false;
       }
-      float curR2 = trc.getX() * trc.getX() + trc.getY() * trc.getY();
-      if (curR2 > RRef2) { // try to propagate as close as possible to target radius
-        float xtgt = 0;
-        if (!trc.getXatLabR(this->mRRef, xtgt, prop->getNominalBz(), o2::track::DirInward)) {
-          xtgt = 0;
-          return false;
-        }
-        float phi = o2::math_utils::sector2Angle(o2::math_utils::angle2Sector(tr.getPhiPos()));
-        if (!prop->PropagateToXBxByBz(trc, xtgt) || !trc.rotate(phi)) {
-          LOGP(warn, "Propagation to X={} or rotation to {} failed, track#{}[{}]", xtgt, phi, counter, trc.asString());
-          return false;
-        }
+      float xtgt = this->mXRef;
+      if (mUseR && !trc.getXatLabR(this->mXRef, xtgt, prop->getNominalBz(), o2::track::DirInward)) {
+        xtgt = 0;
+        return false;
+      }
+      if (!prop->PropagateToXBxByBz(trc, xtgt)) {
+        LOGP(warn, "Propagation to X={} failed, track#{}[{}]", xtgt, counter, trc.asString());
+        return false;
       }
       return true;
     };
@@ -302,9 +301,8 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
     // refit and store the same track for a few compatible times
     float tmin = tr.getTime0() - tr.getDeltaTBwd();
     float tmax = tr.getTime0() + tr.getDeltaTFwd();
-    int n = 5;
-    for (int it = 0; it <= n; it++) {
-      float tb = tmin + it * (tmax - tmin) / n;
+    for (int it = 0; it < mNMoves; it++) {
+      float tb = tmin + it * (tmax - tmin) / (mNMoves - 1);
       auto trfm = tr.getOuterParam(); // we refit inward
       // impose time in TPC timebin and refit inward after resetted covariance
       if (!trackRefit(trfm, tb) || !trfm.rotate(tr.getAlpha()) || !prop->PropagateToXBxByBz(trfm, tr.getX())) {
@@ -317,11 +315,12 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
         dz = -dz;
       }
       //
+      int mnm = mNMoves - 1;
       prepClus(tb); // clusters for MC time
       (*mDBGOut) << "tpcMov"
                  << "counter=" << counter
                  << "copy=" << it
-                 << "maxCopy=" << n
+                 << "maxCopy=" << mnm
                  << "movTrackRef=" << trfm
                  << "imposedTB=" << tb
                  << "dz=" << dz
@@ -354,7 +353,10 @@ void TPCTrackStudySpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 DataProcessorSpec getTPCTrackStudySpec(GTrackID::mask_t srcTracks, GTrackID::mask_t srcClusters, bool useMC)
 {
   std::vector<OutputSpec> outputs;
-  Options opts{{"target-radius", VariantType::Float, 70.f, {"Try to propagate to this radius"}}};
+  Options opts{
+    {"target-x", VariantType::Float, 70.f, {"Try to propagate to this radius"}},
+    {"n-moves", VariantType::Int, 6, {"Number of moves in allow range"}},
+    {"use-r-as-x", VariantType::Bool, false, {"Use radius instead of target sector X"}}};
   auto dataRequest = std::make_shared<DataRequest>();
 
   dataRequest->requestTracks(srcTracks, useMC);

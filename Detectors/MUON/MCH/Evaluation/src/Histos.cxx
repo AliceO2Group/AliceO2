@@ -56,13 +56,16 @@ void createHistosAtVertex(std::vector<TH1*>& histos, const char* extension)
 {
   if (histos.size() == 0) {
     histos.emplace_back(new TH1F(Form("pT%s", extension), "pT;p_{T} (GeV/c)", 300, 0., 30.));
-    histos.emplace_back(new TH1F(Form("rapidity%s", extension), "rapidity;rapidity", 200, -4.5, -2.));
+    histos.emplace_back(new TH1F(Form("eta%s", extension), "eta;eta", 200, -4.5, -2.));
+    histos.emplace_back(new TH1F(Form("phi%s", extension), "phi;phi", 360, 0., 360.));
     histos.emplace_back(new TH1F(Form("rAbs%s", extension), "rAbs;R_{abs} (cm)", 1000, 0., 100.));
+    histos.emplace_back(new TH1F(Form("p%s", extension), "p;p (GeV/c)", 300, 0., 300.));
     histos.emplace_back(new TH1F(Form("dca%s", extension), "DCA;DCA (cm)", 500, 0., 500.));
     histos.emplace_back(new TH1F(Form("pDCA23%s", extension), "pDCA for #theta_{abs} < 3#circ;pDCA (GeV.cm/c)", 2500, 0., 5000.));
     histos.emplace_back(new TH1F(Form("pDCA310%s", extension), "pDCA for #theta_{abs} > 3#circ;pDCA (GeV.cm/c)", 2500, 0., 5000.));
     histos.emplace_back(new TH1F(Form("nClusters%s", extension), "number of clusters per track;n_{clusters}", 20, 0., 20.));
     histos.emplace_back(new TH1F(Form("chi2%s", extension), "normalized #chi^{2};#chi^{2} / ndf", 500, 0., 50.));
+    histos.emplace_back(new TH1F(Form("matchChi2%s", extension), "normalized matched #chi^{2};#chi^{2} / ndf", 160, 0., 16.));
     histos.emplace_back(new TH1F(Form("mass%s", extension), "#mu^{+}#mu^{-} invariant mass;mass (GeV/c^{2})", 1600, 0., 20.));
   }
 }
@@ -84,23 +87,25 @@ void fillHistosMuAtVertex(const ExtendedTrack& track, const std::vector<TH1*>& h
   double pDCA = pUncorr * track.getDCA();
 
   histos[0]->Fill(track.P().Pt());
-  histos[1]->Fill(track.P().Rapidity());
-  histos[2]->Fill(track.getRabs());
-  histos[3]->Fill(track.getDCA());
+  histos[1]->Fill(track.P().Eta());
+  histos[2]->Fill(180. + std::atan2(-track.P().Px(), -track.P().Py()) / TMath::Pi() * 180.);
+  histos[3]->Fill(track.getRabs());
+  histos[4]->Fill(track.P().P());
+  histos[5]->Fill(track.getDCA());
   if (thetaAbs < 3) {
-    histos[4]->Fill(pDCA);
+    histos[6]->Fill(pDCA);
   } else {
-    histos[5]->Fill(pDCA);
+    histos[7]->Fill(pDCA);
   }
-  histos[6]->Fill(track.getClusters().size());
-  histos[7]->Fill(track.getNormalizedChi2());
+  histos[8]->Fill(track.getClusters().size());
+  histos[9]->Fill(track.getNormalizedChi2());
 }
 
 void fillHistosDimuAtVertex(const ExtendedTrack& track1, const ExtendedTrack& track2, const std::vector<TH1*>& histos)
 {
   if (track1.getCharge() * track2.getCharge() < 0.) {
     ROOT::Math::PxPyPzMVector dimu = track1.P() + track2.P();
-    histos[8]->Fill(dimu.M());
+    histos[11]->Fill(dimu.M());
   }
 }
 

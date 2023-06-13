@@ -23,6 +23,7 @@
 #include <TCanvas.h>
 #include <TFile.h>
 #include <TH1.h>
+#include <TString.h>
 
 using namespace o2::framework;
 
@@ -53,6 +54,7 @@ void CompareTask::pdfOutput()
 {
   int nPadsx, nPadsy;
   TCanvas* c = autoCanvas("c", "c", mHistosAtVertex[0], &nPadsx, &nPadsy);
+  TCanvas* c2 = autoCanvas("c2", "c2", mHistosAtVertex[0], &nPadsx, &nPadsy);
   c->Print(fmt::format("{}[", mOutputPdfFileName).c_str());
 
   auto toPdf2 = [&](std::function<void(const std::array<std::vector<TH1*>, 2>&, TCanvas*)> func) {
@@ -84,16 +86,20 @@ void CompareTask::pdfOutput()
   c->Print(mOutputPdfFileName.c_str());
 
   c->Clear();
-  drawClusterTrackResidualsSigma(mClusterResiduals[0], mClusterResiduals[1], "AllTracks", c);
+  c2->Clear();
+  drawClusterTrackResidualsSigma(mClusterResiduals[0], mClusterResiduals[1], "AllTracks", c, c2);
   c->Print(mOutputPdfFileName.c_str());
+  c2->Print(mOutputPdfFileName.c_str());
 
   c->Clear();
   drawClusterTrackResiduals(mClusterResiduals[2], mClusterResiduals[3], "SimilarTracks", c);
   c->Print(mOutputPdfFileName.c_str());
 
   c->Clear();
-  drawClusterTrackResidualsSigma(mClusterResiduals[2], mClusterResiduals[3], "SimilarTracks", c);
+  c2->Clear();
+  drawClusterTrackResidualsSigma(mClusterResiduals[2], mClusterResiduals[3], "SimilarTracks", c, c2);
   c->Print(mOutputPdfFileName.c_str());
+  c2->Print(mOutputPdfFileName.c_str());
 
   c->Clear();
   drawClusterTrackResidualsRatio(mClusterResiduals[0], mClusterResiduals[1], "AllTracks", c);
@@ -112,6 +118,7 @@ void CompareTask::init(InitContext& ic)
 {
   auto outputFileName = ic.options().get<std::string>("outfile");
   mOutputPdfFileName = ic.options().get<std::string>("pdf-outfile");
+  mPrintDiff = ic.options().get<bool>("print-diff");
   mPrintAll = ic.options().get<bool>("print-all");
   mApplyTrackSelection = ic.options().get<bool>("apply-track-selection");
   mPrecision = ic.options().get<double>("precision");
@@ -136,7 +143,8 @@ void CompareTask::init(InitContext& ic)
   mNofDifferences = 0;
 
   auto stop = [this]() {
-    LOGP(info, "Number of differences: {}", mNofDifferences);
+    LOGP(warning, "Number of differences in ROF-by-ROF comparison: {}", mNofDifferences);
+    printStat();
     if (!mOutputPdfFileName.empty()) {
       pdfOutput();
     }
@@ -189,6 +197,7 @@ std::list<ExtendedTrack> CompareTask::getExtendedTracks(const ROFRecord& rof,
 void CompareTask::run(ProcessingContext& pc)
 {
   static int tf{0};
+  LOGP(info, "TF {}", tf);
 
   if (mCcdbRequest) {
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
@@ -203,43 +212,112 @@ void CompareTask::run(ProcessingContext& pc)
 
   bool areSameRofs = std::equal(rofs1.begin(), rofs1.end(),
                                 rofs2.begin(), rofs2.end(),
-                                [](const ROFRecord& r1, const ROFRecord& r2) { return r1.getBCData() == r2.getBCData(); }); // just compare BCid and orbit, not number of found tracks
+                                [](const ROFRecord& r1, const ROFRecord& r2) {
+                                  return r1.getBCData() == r2.getBCData() && r1.getBCWidth() == r2.getBCWidth();
+                                }); // just compare BC id, orbit and BC width, not number of found tracks
   if (!areSameRofs) {
-    LOGP(fatal, "Can only work with identical ROFs {} vs {}",
-         rofs1.size(), rofs2.size());
+    LOGP(warning, "ROFs are different --> cannot perform ROF-by-ROF comparison");
   }
 
-  LOGP(warning, "TF {}", tf);
+  auto nROFs = std::max(rofs1.size(), rofs2.size());
+  for (auto i = 0; i < nROFs; ++i) {
 
-  // fill the internal track structure based on the MCH tracks
-  for (auto i = 0; i < rofs1.size(); i++) {
-    auto tracks1 = getExtendedTracks(rofs1[i], itracks1, iclusters1);
-    auto tracks2 = getExtendedTracks(rofs2[i], itracks2, iclusters2);
-    //  if requested should select tracks here
-    if (mApplyTrackSelection) {
-      selectTracks(tracks1);
-      selectTracks(tracks2);
+    std::list<ExtendedTrack> tracks1{};
+    if (i < rofs1.size()) {
+      tracks1 = getExtendedTracks(rofs1[i], itracks1, iclusters1);
+      mNTracksAll[0] += tracks1.size();
+      if (mApplyTrackSelection) {
+        selectTracks(tracks1);
+      }
+      fillHistosAtVertex(tracks1, mHistosAtVertex[0]);
+      fillClusterTrackResiduals(tracks1, mClusterResiduals[0], false);
     }
 
-    fillHistosAtVertex(tracks1, mHistosAtVertex[0]);
-    fillHistosAtVertex(tracks2, mHistosAtVertex[1]);
-
-    fillClusterTrackResiduals(tracks1, mClusterResiduals[0], false);
-    fillClusterTrackResiduals(tracks2, mClusterResiduals[1], false);
-
-    int nDiff = compareEvents(tracks1, tracks2,
-                              mPrecision,
-                              mPrintAll,
-                              mTrackResidualsAtFirstCluster,
-                              mClusterResiduals[4]);
-    fillClusterTrackResiduals(tracks1, mClusterResiduals[2], true);
-    fillClusterTrackResiduals(tracks2, mClusterResiduals[3], true);
-    if (nDiff > 0) {
-      LOG(warning) << "--> " << nDiff << " differences found in ROF " << rofs1[i];
-      mNofDifferences += nDiff;
+    std::list<ExtendedTrack> tracks2{};
+    if (i < rofs2.size()) {
+      tracks2 = getExtendedTracks(rofs2[i], itracks2, iclusters2);
+      mNTracksAll[1] += tracks2.size();
+      if (mApplyTrackSelection) {
+        selectTracks(tracks2);
+      }
+      fillHistosAtVertex(tracks2, mHistosAtVertex[1]);
+      fillClusterTrackResiduals(tracks2, mClusterResiduals[1], false);
     }
-    fillComparisonsAtVertex(tracks1, tracks2, mComparisonsAtVertex);
+
+    if (areSameRofs) {
+      int nDiff = compareEvents(tracks1, tracks2,
+                                mPrecision,
+                                mPrintDiff,
+                                mPrintAll,
+                                mTrackResidualsAtFirstCluster,
+                                mClusterResiduals[4]);
+      fillClusterTrackResiduals(tracks1, mClusterResiduals[2], true);
+      fillClusterTrackResiduals(tracks2, mClusterResiduals[3], true);
+      if (nDiff > 0) {
+        if (mPrintDiff) {
+          LOG(warning) << "--> " << nDiff << " differences found in ROF " << rofs1[i];
+        }
+        mNofDifferences += nDiff;
+      }
+      fillComparisonsAtVertex(tracks1, tracks2, mComparisonsAtVertex);
+    }
   }
+
   ++tf;
+}
+
+void CompareTask::printStat()
+{
+  /// print some statistics and the relative difference (in %) between the 2 inputs
+  /// the uncertainty on the difference is the normal approximation of the binomial error
+
+  auto print = [](TString selection, int n1, int n2) {
+    if (n1 == 0) {
+      printf("%s | %8d | %8d | %7s ± %4s %%\n", selection.Data(), n1, n2, "nan", "nan");
+    } else {
+      double eff = double(n2) / n1;
+      double diff = 100. * (eff - 1.);
+      double err = 100. * std::max(1. / n1, std::sqrt(eff * std::abs(1. - eff) / n1));
+      printf("%s | %8d | %8d | %7.2f ± %4.2f %%\n", selection.Data(), n1, n2, diff, err);
+    }
+  };
+
+  printf("\n");
+  printf("-------------------------------------------------------\n");
+  printf("selection      |  file 1  |  file 2  |       diff\n");
+  printf("-------------------------------------------------------\n");
+
+  print("all           ", mNTracksAll[0], mNTracksAll[1]);
+
+  print("matched       ", mNTracksMatch[0], mNTracksMatch[1]);
+
+  print("selected      ", mHistosAtVertex[0][0]->GetEntries(), mHistosAtVertex[1][0]->GetEntries());
+
+  double pTRange[6] = {0., 0.5, 1., 2., 4., 1000.};
+  for (int i = 0; i < 5; ++i) {
+    TString selection = (i == 0) ? TString::Format("pT < %.1f GeV/c", pTRange[1])
+                                 : ((i == 4) ? TString::Format("pT > %.1f      ", pTRange[4])
+                                             : TString::Format("%.1f < pT < %.1f", pTRange[i], pTRange[i + 1]));
+    int n1 = mHistosAtVertex[0][0]->Integral(mHistosAtVertex[0][0]->GetXaxis()->FindBin(pTRange[i] + 0.01),
+                                             mHistosAtVertex[0][0]->GetXaxis()->FindBin(pTRange[i + 1] - 0.01));
+    int n2 = mHistosAtVertex[1][0]->Integral(mHistosAtVertex[1][0]->GetXaxis()->FindBin(pTRange[i] + 0.01),
+                                             mHistosAtVertex[1][0]->GetXaxis()->FindBin(pTRange[i + 1] - 0.01));
+    print(selection, n1, n2);
+  }
+
+  double pRange[6] = {0., 5., 10., 20., 40., 10000.};
+  for (int i = 0; i < 5; ++i) {
+    TString selection = (i == 0) ? TString::Format("p < %02.0f GeV/c  ", pRange[1])
+                                 : ((i == 4) ? TString::Format("p > %02.0f        ", pRange[4])
+                                             : TString::Format("%02.0f < p < %02.0f   ", pRange[i], pRange[i + 1]));
+    int n1 = mHistosAtVertex[0][4]->Integral(mHistosAtVertex[0][4]->GetXaxis()->FindBin(pRange[i] + 0.01),
+                                             mHistosAtVertex[0][4]->GetXaxis()->FindBin(pRange[i + 1] - 0.01));
+    int n2 = mHistosAtVertex[1][4]->Integral(mHistosAtVertex[1][4]->GetXaxis()->FindBin(pRange[i] + 0.01),
+                                             mHistosAtVertex[1][4]->GetXaxis()->FindBin(pRange[i + 1] - 0.01));
+    print(selection, n1, n2);
+  }
+
+  printf("-------------------------------------------------------\n");
+  printf("\n");
 }
 } // namespace o2::mch::eval

@@ -106,6 +106,15 @@ class ResidualAggregatorDevice : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
+    const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
+    if (tinfo.globalRunNumberChanged) {
+      // new run is starting
+      mRunStopRequested = false;
+      mInitDone = false;
+    }
+    if (mRunStopRequested) {
+      return;
+    }
     auto runStartTime = std::chrono::high_resolution_clock::now();
     o2::globaltracking::RecoContainer recoCont;
     recoCont.collectData(pc, *mDataRequest);
@@ -144,10 +153,19 @@ class ResidualAggregatorDevice : public o2::framework::Task
     LOGP(debug, "Duration for run method: {} ms. From this taken for time dependent param update: {} ms",
          std::chrono::duration_cast<std::chrono::milliseconds>(runDuration).count(),
          std::chrono::duration_cast<std::chrono::milliseconds>(ccdbUpdateTime).count());
+    if (pc.transitionState() == TransitionHandlingState::Requested) {
+      LOG(info) << "Run stop requested, finalizing";
+      mRunStopRequested = true;
+      mAggregator->checkSlotsToFinalize();
+      mAggregator.reset();
+    }
   }
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
+    if (mRunStopRequested) {
+      return;
+    }
     LOG(info) << "Finalizing calibration for end of stream";
     mAggregator->checkSlotsToFinalize();
     mAggregator.reset(); // must invoke destructor manually here, otherwise we get a segfault
@@ -157,9 +175,8 @@ class ResidualAggregatorDevice : public o2::framework::Task
   void updateTimeDependentParams(ProcessingContext& pc)
   {
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-    static bool initOnceDone = false;
-    if (!initOnceDone) {
-      initOnceDone = true;
+    if (!mInitDone) {
+      mInitDone = true;
       mAggregator->setDataTakingContext(pc.services().get<DataTakingContext>());
     }
   }
@@ -171,6 +188,8 @@ class ResidualAggregatorDevice : public o2::framework::Task
   bool mWriteBinnedResiduals{false};   ///< flag, whether to write binned residuals to output file
   bool mWriteUnbinnedResiduals{false}; ///< flag, whether to write unbinned residuals to output file
   bool mWriteTrackData{false};         ///< flag, whether to write track data to output file
+  bool mRunStopRequested{false};       ///< flag in case the run was stopped
+  bool mInitDone{false};               ///< flag whether initialization was done for current run
 };
 
 } // namespace calibration
@@ -196,7 +215,8 @@ DataProcessorSpec getTPCResidualAggregatorSpec(bool trackInput, bool ctpInput, b
                                                                 false,                          // GRPMagField
                                                                 false,                          // askMatLUT
                                                                 o2::base::GRPGeomRequest::None, // geometry
-                                                                inputs);
+                                                                inputs,
+                                                                true);
   return DataProcessorSpec{
     "residual-aggregator",
     inputs,
