@@ -146,6 +146,11 @@ class CCDBDownloader
   bool mIsExternalLoop;
 
   /**
+   * Used in debug to detect whether uv loop closed prematurely.
+   */
+  bool mIsClosing = false;
+
+  /**
    * Current amount of handles which are performed on.
    */
   int mHandlesInUse = 0;

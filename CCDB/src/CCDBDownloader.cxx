@@ -86,6 +86,7 @@ void CCDBDownloader::initializeMultiHandle()
 
 CCDBDownloader::~CCDBDownloader()
 {
+  mIsClosing = true;
   // Cleanup and close all socket timers (curl_multi_cleanup will take care of the sockets)
   for (auto socketTimerPair : mSocketTimerMap) {
     auto timer = socketTimerPair.second;
@@ -430,6 +431,9 @@ void CCDBDownloader::checkHandleQueue()
 void CCDBDownloader::runLoop()
 {
   uvErrorCheck(uv_run(mUVLoop, UV_RUN_DEFAULT));
+  if (!mIsClosing) {
+    LOG(error) << "CCDBDownloader: uvloop closed prematurely";
+  }
 }
 
 CURLcode CCDBDownloader::perform(CURL* handle)
