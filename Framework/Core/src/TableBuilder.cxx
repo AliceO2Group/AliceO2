@@ -113,12 +113,13 @@ std::shared_ptr<arrow::Table> spawnerHelper(std::shared_ptr<arrow::Table>& fullT
       throw runtime_error_f("Cannot apply projector to source table of %s: exception caught: %s", name, e.what());
     }
 
-    for (auto i = 0u; i < nColumns; ++i) {
+    for (auto i = 0U; i < nColumns; ++i) {
       chunks[i].emplace_back(v.at(i));
     }
   }
 
-  for (auto i = 0u; i < nColumns; ++i) {
+  arrays.reserve(nColumns);
+  for (auto i = 0U; i < nColumns; ++i) {
     arrays.push_back(std::make_shared<arrow::ChunkedArray>(chunks[i]));
   }
 
