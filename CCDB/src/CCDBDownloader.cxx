@@ -33,8 +33,7 @@ namespace o2::ccdb
 
 void uvErrorCheck(int code)
 {
-  if (code != 0)
-  {
+  if (code != 0) {
     char buf[1000];
     uv_strerror_r(code, buf, 1000);
     LOG(error) << buf;
