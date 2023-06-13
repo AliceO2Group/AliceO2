@@ -281,37 +281,6 @@ void AODProducerWorkflowDPL::collectBCs(const o2::globaltracking::RecoContainer&
   }
 }
 
-uint64_t AODProducerWorkflowDPL::getTFNumber(const o2::InteractionRecord& tfStartIR, int runNumber)
-{
-  auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-  o2::ccdb::CcdbApi ccdb_api;
-  const std::string rct_path = "RCT/Info/RunInformation/";
-  const std::string start_orbit_path = "Trigger/StartOrbit";
-
-  mgr.setURL(o2::base::NameConf::getCCDBServer());
-  ccdb_api.init(o2::base::NameConf::getCCDBServer());
-
-  std::map<int, int>* mapStartOrbit = mgr.get<std::map<int, int>>(start_orbit_path);
-  int64_t ts = 0;
-  std::map<std::string, std::string> metadata;
-  std::map<std::string, std::string> headers;
-  const std::string run_path = Form("%s/%i", rct_path.data(), runNumber);
-  headers = ccdb_api.retrieveHeaders(run_path, metadata, -1);
-  ts = atol(headers["SOR"].c_str());
-
-  // ccdb returns timestamp in mus
-  // mus to ms
-  ts = ts / 1000;
-
-  uint32_t initialOrbit = mapStartOrbit->at(runNumber);
-  uint16_t firstRecBC = tfStartIR.bc;
-  uint32_t firstRecOrbit = tfStartIR.orbit;
-  const o2::InteractionRecord firstRec(firstRecBC, firstRecOrbit);
-  ts += firstRec.bc2ns() / 1000000;
-
-  return ts;
-};
-
 template <typename TracksCursorType, typename TracksCovCursorType>
 void AODProducerWorkflowDPL::addToTracksTable(TracksCursorType& tracksCursor, TracksCovCursorType& tracksCovCursor,
                                               const o2::track::TrackParCov& track, int collisionID, aod::track::TrackTypeEnum type)
@@ -472,7 +441,18 @@ void AODProducerWorkflowDPL::fillTrackTablesPerCollision(int collisionID,
                          << " timeErr=" << extraInfoHolder.trackTimeRes << " BCSlice: " << extraInfoHolder.bcSlice[0] << ":" << extraInfoHolder.bcSlice[1];
             continue;
           }
-          addToTracksTable(tracksCursor, tracksCovCursor, data.getTrackParam(trackIndex), collisionID);
+          const auto& trOrig = data.getTrackParam(trackIndex);
+          bool isProp = false;
+          if (mPropTracks && trOrig.getX() < mMinPropR) {
+            auto trackPar(trOrig);
+            isProp = propagateTrackToPV(trackPar, data, collisionID);
+            if (isProp) {
+              addToTracksTable(tracksCursor, tracksCovCursor, trackPar, collisionID, aod::track::Track);
+            }
+          }
+          if (!isProp) {
+            addToTracksTable(tracksCursor, tracksCovCursor, trOrig, collisionID, aod::track::TrackIU);
+          }
           addToTracksExtraTable(tracksExtraCursor, extraInfoHolder);
           // collecting table indices of barrel tracks for V0s table
           if (extraInfoHolder.bcSlice[0] >= 0 && collisionID < 0) {
@@ -1586,6 +1566,7 @@ void AODProducerWorkflowDPL::init(InitContext& ic)
   mCTPReadout = ic.options().get<int>("ctpreadout-create");
   mNThreads = std::max(1, ic.options().get<int>("nthreads"));
   mEMCselectLeading = ic.options().get<bool>("emc-select-leading");
+  mPropTracks = ic.options().get<bool>("propagate-tracks");
 #ifdef WITH_OPENMP
   LOGP(info, "Multi-threaded parts will run with {} OpenMP threads", mNThreads);
 #else
@@ -1992,6 +1973,25 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   mGIDToTableFwdID.clear(); // reset the tables to be used by 'fillTrackTablesPerCollision'
   mGIDToTableMFTID.clear();
 
+  if (mPropTracks) {
+    auto v0s = recoData.getV0s();
+    auto cascades = recoData.getCascades();
+    auto decays3Body = recoData.getDecays3Body();
+    mGIDUsedBySVtx.reserve(v0s.size() * 2 + cascades.size() + decays3Body.size() * 3);
+    for (const auto& v0 : v0s) {
+      mGIDUsedBySVtx.insert(v0.getProngID(0));
+      mGIDUsedBySVtx.insert(v0.getProngID(1));
+    }
+    for (const auto& cascade : cascades) {
+      mGIDUsedBySVtx.insert(cascade.getBachelorID());
+    }
+    for (const auto& id3Body : decays3Body) {
+      mGIDUsedBySVtx.insert(id3Body.getProngID(0));
+      mGIDUsedBySVtx.insert(id3Body.getProngID(1));
+      mGIDUsedBySVtx.insert(id3Body.getProngID(2));
+    }
+  }
+
   // filling unassigned tracks first
   // so that all unassigned tracks are stored in the beginning of the table together
   auto& trackRef = primVer2TRefs.back(); // references to unassigned tracks are at the end
@@ -2153,6 +2153,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   mIndexMFTID = 0;
 
   mBCLookup.clear();
+
+  mGIDUsedBySVtx.clear();
 
   originCursor(tfNumber);
 
@@ -2344,6 +2346,16 @@ AODProducerWorkflowDPL::TrackExtraInfo AODProducerWorkflowDPL::processBarrelTrac
   return extraInfoHolder;
 }
 
+bool AODProducerWorkflowDPL::propagateTrackToPV(o2::track::TrackParametrizationWithError<float>& trackPar,
+                                                const o2::globaltracking::RecoContainer& data,
+                                                int colID)
+{
+  o2::dataformats::DCA dcaInfo;
+  dcaInfo.set(999.f, 999.f, 999.f, 999.f, 999.f);
+  o2::dataformats::VertexBase v = mVtx.getMeanVertex(colID < 0 ? 0.f : data.getPrimaryVertex(colID).getZ());
+  return o2::base::Propagator::Instance()->propagateToDCABxByBz(v, trackPar, 2.f, mMatCorr, &dcaInfo);
+};
+
 void AODProducerWorkflowDPL::extrapolateToCalorimeters(TrackExtraInfo& extraInfoHolder, const o2::track::TrackPar& track)
 {
   constexpr float XEMCAL = 440.f, XPHOS = 460.f, XEMCAL2 = XEMCAL * XEMCAL;
@@ -2473,6 +2485,9 @@ void AODProducerWorkflowDPL::updateTimeDependentParams(ProcessingContext& pc)
     mTimeMarginTrackTime = pvParams.timeMarginTrackTime * 1.e3;
     mFieldON = std::abs(o2::base::Propagator::Instance()->getNominalBz()) > 0.01;
   }
+  if (mPropTracks) {
+    pc.inputs().get<o2::dataformats::MeanVertexObject*>("meanvtx");
+  }
 }
 
 //_______________________________________
@@ -2492,6 +2507,11 @@ void AODProducerWorkflowDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* ob
     LOG(info) << "MFT Alpide param updated";
     const auto& par = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::MFT>::Instance();
     par.printKeyValues();
+    return;
+  }
+  if (matcher == ConcreteDataMatcher("GLO", "MEANVERTEX", 0)) {
+    LOG(info) << "Imposing new MeanVertex: " << ((const o2::dataformats::MeanVertexObject*)obj)->asString();
+    mVtx = *(const o2::dataformats::MeanVertexObject*)obj;
     return;
   }
 }
@@ -2672,6 +2692,8 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
                                                               dataRequest->inputs,
                                                               true); // query only once all objects except mag.field
 
+  dataRequest->inputs.emplace_back("meanvtx", "GLO", "MEANVERTEX", 0, Lifetime::Condition, ccdbParamSpec("GLO/Calib/MeanVertex", {}, 1));
+
   using namespace o2::aod;
   using namespace o2::aodproducer;
 
@@ -2734,7 +2756,8 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
       ConfigParamSpec{"nthreads", VariantType::Int, std::max(1, int(std::thread::hardware_concurrency() / 2)), {"Number of threads"}},
       ConfigParamSpec{"reco-mctracks-only", VariantType::Int, 0, {"Store only reconstructed MC tracks and their mothers/daughters. 0 -- off, != 0 -- on"}},
       ConfigParamSpec{"ctpreadout-create", VariantType::Int, 0, {"Create CTP digits from detector readout and CTP inputs. !=1 -- off, 1 -- on"}},
-      ConfigParamSpec{"emc-select-leading", VariantType::Bool, false, {"Flag to select if only the leading contributing particle for an EMCal cell should be stored"}}}};
+      ConfigParamSpec{"emc-select-leading", VariantType::Bool, false, {"Flag to select if only the leading contributing particle for an EMCal cell should be stored"}},
+      ConfigParamSpec{"propagate-tracks", VariantType::Bool, false, {"Propagate tracks (not used for secondary vertices) to IP"}}}};
 }
 
 } // namespace o2::aodproducer
