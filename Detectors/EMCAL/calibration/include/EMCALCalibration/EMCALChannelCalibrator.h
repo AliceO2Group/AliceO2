@@ -283,6 +283,11 @@ bool EMCALChannelCalibrator<DataInput, DataOutput>::adoptSavedData(const o2::cal
     return true;
 
   auto& cont = o2::calibration::TimeSlotCalibration<DataInput>::getSlots();
+
+  if (cont.size() == 0) {
+    LOG(warning) << "cont.size() is 0, calibration objects from previous run cannot be loaded...";
+    return true;
+  }
   auto& slot = cont.at(0);
   DataInput* c = slot.getContainer();
 
