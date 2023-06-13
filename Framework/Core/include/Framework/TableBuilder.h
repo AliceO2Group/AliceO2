@@ -14,8 +14,6 @@
 
 #include "Framework/ASoA.h"
 #include "Framework/StructToTuple.h"
-#include "Framework/FunctionalHelpers.h"
-#include "Framework/VariantHelpers.h"
 #include "Framework/RuntimeError.h"
 #include "arrow/type_traits.h"
 
@@ -879,6 +877,7 @@ class TableBuilder
   }
 
   /// Actually creates the arrow::Table from the builders
+  void extracted(bool& status);
   std::shared_ptr<arrow::Table> finalize();
 
  private:
@@ -914,7 +913,7 @@ auto makeEmptyTable(const char* name)
   return b.finalize();
 }
 
-std::shared_ptr<arrow::Table> spawnerHelper(std::shared_ptr<arrow::Table> fullTable, std::shared_ptr<arrow::Schema> newSchema, size_t nColumns,
+std::shared_ptr<arrow::Table> spawnerHelper(std::shared_ptr<arrow::Table>& fullTable, std::shared_ptr<arrow::Schema> newSchema, size_t nColumns,
                                             expressions::Projector* projectors, std::vector<std::shared_ptr<arrow::Field>> const& fields, const char* name);
 
 /// Expression-based column generator to materialize columns
