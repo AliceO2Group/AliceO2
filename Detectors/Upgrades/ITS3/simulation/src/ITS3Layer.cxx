@@ -319,8 +319,10 @@ void ITS3Layer::createCarbonFoamStructure(TGeoVolume* motherVolume, double delta
 {
   TGeoMedium* medCarbonFoam = (mBuildLevel < 1) ? gGeoManager->GetMedium("IT3_ERGDUOCEL$") : gGeoManager->GetMedium("IT3_AIR$"); // if build level >= 1 we do not put carbon foam but air
   TGeoMedium* medGlue = (mBuildLevel < 2) ? gGeoManager->GetMedium("IT3_IMPREG_FLEECE$") : gGeoManager->GetMedium("IT3_AIR$");   // if build level >= 2 we do not put glue but air
+  TGeoMedium* medSi = (mBuildLevel <= 2) ? gGeoManager->GetMedium("IT3_SI$") : gGeoManager->GetMedium("IT3_AIR$");               // if build level > 2 we do not put silicon but air
 
-  double rmax = mRadius + mChipThickness;
+  double rmaxWoAddMat = mRadius + mChipThickness;
+  double rmax = rmaxWoAddMat + mAddMaterial;
   double radiusBetweenLayer = deltaR - mChipThickness;
   double rmedFoam = rmax + radiusBetweenLayer / 2;
   double phiGap = TMath::ASin(mGapPhi / 2.f / mRadius) * TMath::RadToDeg(); // degrees
@@ -378,4 +380,10 @@ void ITS3Layer::createCarbonFoamStructure(TGeoVolume* motherVolume, double delta
   TGeoCompositeShape* foam = new TGeoCompositeShape(subFoamNames.data());
   TGeoVolume* volFoam = new TGeoVolume(Form("CarbonFoam%d", mLayerNumber), foam, medCarbonFoam);
   motherVolume->AddNode(volFoam, 1, nullptr);
+
+  if (mAddMaterial > 0.) {
+    TGeoTubeSeg* addMat = new TGeoTubeSeg(Form("additionalMaterialLayer%d", mLayerNumber), rmaxWoAddMat, rmax, mLengthSemiCircleFoam / 2, phiMin + phiGap, phiMax - phiGap);
+    TGeoVolume* volAddMat = new TGeoVolume(Form("AdditionalMaterial%d", mLayerNumber), addMat, medSi);
+    motherVolume->AddNode(volAddMat, 1, nullptr);
+  }
 }

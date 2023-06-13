@@ -11,6 +11,7 @@
 #ifndef O2_FRAMEWORK_DPLWEBSOCKET_H_
 #define O2_FRAMEWORK_DPLWEBSOCKET_H_
 
+#include "Framework/ServiceRegistryRef.h"
 #include <uv.h>
 #include "HTTPParser.h"
 #include <memory>
@@ -65,14 +66,15 @@ struct WSDPLHandler : public HTTPParser {
 };
 
 struct WSDPLClient : public HTTPParser {
+  WSDPLClient();
   /// @a stream where the communication happens and @a spec of the device connecting
   /// to the driver.
   /// @a spec the DeviceSpec associated with this client
   /// @a handshake a callback to invoke whenever we have a successful handshake
-  WSDPLClient(uv_stream_t* stream,
-              std::unique_ptr<DriverClientContext> context,
-              std::function<void()> handshake,
-              std::unique_ptr<WebSocketHandler> handler);
+  void connect(ServiceRegistryRef ref,
+               uv_stream_t* stream,
+               std::function<void()> handshake,
+               std::unique_ptr<WebSocketHandler> handler);
 
   void replyVersion(std::string_view const& s) override;
   void replyCode(std::string_view const& s) override;

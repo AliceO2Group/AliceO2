@@ -355,7 +355,7 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
 
               if (mMetaFileDir != "/dev/null") {
                 o2::dataformats::FileMetaData calMetaData;
-                calMetaData.fillFileData(calibFName);
+                calMetaData.fillFileData(mCalibFileDir + calibFName);
                 calMetaData.setDataTakingContext(mDataTakingContext);
                 calMetaData.type = "calib";
                 calMetaData.priority = "low";
@@ -416,7 +416,8 @@ class TPCFactorizeIDCSpec : public o2::framework::Task
       mIDCFactorization.dumpLargeObjectToFile(fmt::format("{}Factorized_TF_{:02}_TS_{}.root", getCurrentType(), mTFFirst, mTimestampStart).data());
     }
 
-    mIDCFactorization.factorizeIDCs(true, !mDisableIDCDelta); // calculate DeltaIDC, 0D-IDC, 1D-IDC
+    const bool calcDeltas = mDumpIDCDeltaCalibData || !mDisableIDCDelta;
+    mIDCFactorization.factorizeIDCs(true, calcDeltas); // calculate DeltaIDC, 0D-IDC, 1D-IDC
 
     if (mDumpIDC0) {
       LOGP(info, "dumping IDC Zero to file");

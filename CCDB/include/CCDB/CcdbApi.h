@@ -208,8 +208,9 @@ class CcdbApi //: public DatabaseInterface
    * @param metadata The metadata to update
    * @param timestamp The timestamp to select the object
    * @param id The id, if any, to select the object
+   * @return anithing non-0 is CURL error code or -1
    */
-  void updateMetadata(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp, std::string const& id = "", long newEOV = 0);
+  int updateMetadata(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp, std::string const& id = "", long newEOV = 0);
 
   /**
    * Return the listing of objects, and in some cases subfolders, matching this path.

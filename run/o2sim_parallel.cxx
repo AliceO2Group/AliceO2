@@ -157,6 +157,7 @@ std::vector<int> gDistributedEvents;
 // record finished events in a container
 std::vector<int> gFinishedEvents;
 int gAskedEvents;
+std::atomic<bool> gPrimServerIsInitialized = false;
 
 std::string getControlAddress()
 {
@@ -280,11 +281,11 @@ void launchWorkerListenerThread()
 // gives possibility to exec a callback at these events
 void launchThreadMonitoringEvents(
   int pipefd, std::string text, std::vector<int>& eventcontainer,
-  std::function<void(std::vector<int> const&)> callback = [](std::vector<int> const&) {})
+  std::function<bool(std::vector<int> const&)> callback = [](std::vector<int> const&) { return true; })
 {
   static std::vector<std::thread> threads;
   auto lambda = [pipefd, text, callback, &eventcontainer]() {
-    int eventcounter;
+    int eventcounter; // event id or some other int message
     while (1) {
       ssize_t count = read(pipefd, &eventcounter, sizeof(eventcounter));
       if (count == -1) {
@@ -297,9 +298,10 @@ void launchThreadMonitoringEvents(
       } else if (count == 0) {
         break;
       } else {
-        LOG(info) << text.c_str() << eventcounter;
         eventcontainer.push_back(eventcounter);
-        callback(eventcontainer);
+        if (callback(eventcontainer)) {
+          LOG(info) << text.c_str() << eventcounter;
+        }
       }
     };
   };
@@ -527,9 +529,9 @@ int main(int argc, char* argv[])
 
     // copy all arguments into a common vector
 #ifdef SIM_RUN5
-    const int addNArgs = 10;
+    const int addNArgs = 12;
 #else
-    const int addNArgs = 9;
+    const int addNArgs = 11;
 #endif
     const int Nargs = finalArgs.size() + addNArgs;
     const char* arguments[Nargs];
@@ -542,8 +544,10 @@ int main(int argc, char* argv[])
     arguments[6] = config.c_str();
     arguments[7] = "--severity";
     arguments[8] = "debug";
+    arguments[9] = "--color";
+    arguments[10] = "false"; // switch off colored output
 #ifdef SIM_RUN5
-    arguments[9] = "--isRun5";
+    arguments[11] = "--isRun5";
 #endif
     for (int i = 1; i < finalArgs.size(); ++i) {
       arguments[addNArgs - 1 + i] = finalArgs[i];
@@ -571,10 +575,28 @@ int main(int argc, char* argv[])
     // A simple callback for distributed primary-chunk "events"
     auto distributionCallback = [&conf, &externalpublishchannel](std::vector<int> const& v) {
       std::stringstream str;
-      str << "EVENT " << v.back() << " DISTRIBUTED";
-      o2::simpubsub::publishMessage(externalpublishchannel, o2::simpubsub::simStatusString("O2SIM", "INFO", str.str()));
+      if (v.back() == -111) {
+        // message that server is initialized
+        gPrimServerIsInitialized = true;
+        return false; // silent
+      } else {
+        str << "EVENT " << v.back() << " DISTRIBUTED";
+        o2::simpubsub::publishMessage(externalpublishchannel, o2::simpubsub::simStatusString("O2SIM", "INFO", str.str()));
+        return true;
+      }
     };
     launchThreadMonitoringEvents(pipe_serverdriver_fd[0], "DISTRIBUTING EVENT : ", gDistributedEvents, distributionCallback);
+  }
+
+  // we wait until the particle server is initialized before constructing the worker
+  // since the worker needs an operating server to initialize
+  while (!gPrimServerIsInitialized) {
+    int status;
+    auto result = waitpid(gChildProcesses.back(), &status, WNOHANG);
+    if (result != 0) {
+      break; // exit this busy loop if the server process exited for some reason
+    }
+    sleep(1); // otherwise wait until server is initialized
   }
 
   auto internalfork = getenv("ALICE_SIMFORKINTERNAL");
@@ -601,6 +623,7 @@ int main(int argc, char* argv[])
 
       const std::string name("o2-sim-device-runner");
       const std::string path = installpath + "/" + name;
+
       execl(path.c_str(), name.c_str(), "--control", "static", "--id", workerss.str().c_str(), "--config-key",
             "worker", "--mq-config", localconfig.c_str(), "--severity", "info", (char*)nullptr);
       return 0;
@@ -631,7 +654,7 @@ int main(int argc, char* argv[])
     setenv("ALICE_O2SIMMERGERTODRIVER_PIPE", std::to_string(pipe_mergerdriver_fd[1]).c_str(), 1);
     const std::string name("o2-sim-hit-merger-runner");
     const std::string path = installpath + "/" + name;
-    execl(path.c_str(), name.c_str(), "--control", "static", "--catch-signals", "0", "--id", "hitmerger", "--mq-config", localconfig.c_str(),
+    execl(path.c_str(), name.c_str(), "--control", "static", "--catch-signals", "0", "--id", "hitmerger", "--mq-config", localconfig.c_str(), "--color", "false",
           (char*)nullptr);
     return 0;
   } else {
@@ -661,6 +684,7 @@ int main(int argc, char* argv[])
           LOG(info) << "SIMULATION DONE. STAYING AS DAEMON.";
         }
       }
+      return true;
     };
 
     launchThreadMonitoringEvents(pipe_mergerdriver_fd[0], "EVENT FINISHED : ", gFinishedEvents, finishCallback);

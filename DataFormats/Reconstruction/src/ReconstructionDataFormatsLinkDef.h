@@ -46,6 +46,9 @@
 #pragma link C++ class o2::dataformats::TrackTPCTOF + ;
 #pragma link C++ class std::vector < o2::dataformats::TrackTPCTOF> + ;
 
+#pragma link C++ class o2::dataformats::TrackHMP + ;
+#pragma link C++ class std::vector < o2::dataformats::TrackHMP> + ;
+
 #pragma link C++ class o2::dataformats::TrackCosmics + ;
 #pragma link C++ class std::vector < o2::dataformats::TrackCosmics> + ;
 

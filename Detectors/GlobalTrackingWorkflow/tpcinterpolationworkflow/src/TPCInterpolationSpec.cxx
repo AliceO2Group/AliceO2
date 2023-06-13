@@ -82,6 +82,9 @@ void TPCInterpolationDPL::updateTimeDependentParams(ProcessingContext& pc)
     }
     mInterpolation.setMaxTracksPerTF(nTracksPerTfMax);
     mInterpolation.setMatCorr(static_cast<o2::base::Propagator::MatCorrType>(mMatCorr));
+    if (mProcessSeeds) {
+      mInterpolation.setProcessSeeds();
+    }
     o2::its::GeometryTGeo::Instance()->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2GRot) | o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L));
   }
   // we may have other params which need to be queried regularly

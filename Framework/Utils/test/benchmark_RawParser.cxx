@@ -78,7 +78,7 @@ static void BM_RawParserV4(benchmark::State& state)
   if (nofPages > TestPages::MaxNPages) {
     return;
   }
-  using Parser = raw_parser::ConcreteRawParser<TestPages::V4, TestPages::PageSize>;
+  using Parser = raw_parser::ConcreteRawParser<TestPages::V4, TestPages::PageSize, true>;
   Parser parser(reinterpret_cast<const char*>(gPages.data()), nofPages * TestPages::PageSize);
   size_t count = 0;
   auto processor = [&count](auto data, size_t length) {

@@ -48,13 +48,13 @@ double CrystalBallSymmetric(double* xx, double* par)
   }
 }
 
-std::pair<double, double> GetSigma(const TH1& histo)
+std::pair<double, double> GetSigma(TH1* h, int color)
 {
   /// get the dispersion of the histo
-
-  std::unique_ptr<TH1> h(static_cast<TH1*>(histo.Clone()));
+  gStyle->SetOptFit(100);
 
   static TF1* fCrystalBall = new TF1("CrystalBall", CrystalBallSymmetric, -2., 2., 5);
+  fCrystalBall->SetLineColor(color);
 
   if (h->GetEntries() < 10.) {
     return std::make_pair(0., 0.);
@@ -64,8 +64,8 @@ std::pair<double, double> GetSigma(const TH1& histo)
   double sigmaTrkCut = 4.; // 4 sigma
 
   // first fit
-  double xMin = -sigmaTrkCut * sigmaTrk;
-  double xMax = sigmaTrkCut * sigmaTrk;
+  double xMin = -0.5 * sigmaTrkCut * sigmaTrk;
+  double xMax = 0.5 * sigmaTrkCut * sigmaTrk;
   fCrystalBall->SetRange(xMin, xMax);
   fCrystalBall->SetParameters(h->GetEntries(), 0., 0.1, 2., 1.5);
   fCrystalBall->SetParLimits(1, xMin, xMax);
@@ -74,10 +74,7 @@ std::pair<double, double> GetSigma(const TH1& histo)
   h->Fit(fCrystalBall, "RNQ");
 
   // rebin histo
-  int rebin = static_cast<Int_t>(TMath::Min(0.1 * h->GetNbinsX(), TMath::Max(0.3 * fCrystalBall->GetParameter(2) / h->GetBinWidth(1), 1.)));
-  while (h->GetNbinsX() % rebin != 0) {
-    rebin--;
-  }
+  int rebin = 2;
   h->Rebin(rebin);
 
   // second fit
@@ -85,7 +82,7 @@ std::pair<double, double> GetSigma(const TH1& histo)
   fCrystalBall->ReleaseParameter(3);
   fCrystalBall->SetParameter(3, 2.);
   fCrystalBall->SetParameter(4, 1.5);
-  h->Fit(fCrystalBall, "RNQ");
+  h->Fit(fCrystalBall, "RQ");
 
   return std::make_pair(fCrystalBall->GetParameter(2), fCrystalBall->GetParError(2));
 }
@@ -152,9 +149,9 @@ void drawClusterResiduals(const std::array<std::vector<TH1*>, 5>& histos, TCanva
 {
   drawClusterClusterResiduals(histos[4], "ClCl", c);
   drawClusterTrackResiduals(histos[0], histos[1], "AllTracks", c);
-  drawClusterTrackResidualsSigma(histos[0], histos[1], "AllTracks", c);
+  drawClusterTrackResidualsSigma(histos[0], histos[1], "AllTracks", nullptr, c);
   drawClusterTrackResiduals(histos[2], histos[3], "SimilarTracks", c);
-  drawClusterTrackResidualsSigma(histos[2], histos[3], "SimilarTracks", c);
+  drawClusterTrackResidualsSigma(histos[2], histos[3], "SimilarTracks", nullptr, c);
   drawClusterTrackResidualsRatio(histos[0], histos[1], "AllTracks", c);
   drawClusterTrackResidualsRatio(histos[2], histos[3], "SimilarTracks", c);
 }
@@ -213,9 +210,10 @@ void drawClusterTrackResiduals(const std::vector<TH1*>& histos1,
 
 void drawClusterTrackResidualsSigma(const std::vector<TH1*>& histos1,
                                     const std::vector<TH1*>& histos2, const char* extension,
-                                    TCanvas* c)
+                                    TCanvas* c1, TCanvas* c2)
 {
-  /// draw cluster-track residuals
+  /// draw cluster-track residuals and fit them to extract the resolution
+  gStyle->SetOptStat(1);
 
   TGraphErrors* g[2][2] = {nullptr};
   const char* dir[2] = {"X", "Y"};
@@ -231,16 +229,29 @@ void drawClusterTrackResidualsSigma(const std::vector<TH1*>& histos1,
     }
   }
 
+  int nPadsx = (histos1.size() + 1) / 2;
+  if (!c1) {
+    c1 = new TCanvas(Form("residual%sFit", extension), Form("residual%sFit", extension), 10, 10, nPadsx * 300, 600);
+  }
+  c1->Divide(nPadsx, 2);
   int i(0);
   double ymax[2] = {0., 0.};
   double ymin[2] = {std::numeric_limits<double>::max(), std::numeric_limits<double>::max()};
-  for (const auto& h : histos1) {
-    auto res1 = GetSigma(*h);
+  for (auto h : histos1) {
+    c1->cd((i % 2) * nPadsx + i / 2 + 1);
+    gPad->SetLogy();
+    auto h1 = static_cast<TH1*>(h->Clone());
+    h1->SetLineColor(color[0]);
+    h1->Draw();
+    auto res1 = GetSigma(h1, color[0]);
     g[i % 2][0]->SetPoint(i / 2, i * 1. / 2 + 1., res1.first);
     g[i % 2][0]->SetPointError(i / 2, 0., res1.second);
     ymin[i % 2] = std::min(ymin[i % 2], res1.first - res1.second - 0.001);
     ymax[i % 2] = std::max(ymax[i % 2], res1.first + res1.second + 0.001);
-    auto res2 = GetSigma(*histos2[i]);
+    auto h2 = static_cast<TH1*>(histos2[i]->Clone());
+    h2->SetLineColor(color[1]);
+    h2->Draw("sames");
+    auto res2 = GetSigma(h2, color[1]);
     g[i % 2][1]->SetPoint(i / 2, i * 1. / 2 + 1., res2.first);
     g[i % 2][1]->SetPointError(i / 2, 0., res2.second);
     ymin[i % 2] = std::min(ymin[i % 2], res2.first - res2.second - 0.001);
@@ -249,18 +260,27 @@ void drawClusterTrackResidualsSigma(const std::vector<TH1*>& histos1,
     ++i;
   }
 
-  if (!c) {
-    c = new TCanvas(Form("sigma%s", extension), Form("sigma%s", extension), 10, 10, 600, 300);
+  if (!c2) {
+    c2 = new TCanvas(Form("sigma%s", extension), Form("sigma%s", extension), 10, 10, 600, 300);
   }
-  c->Divide(2, 1);
-  c->cd(1);
+  c2->Divide(2, 1);
+  c2->cd(1);
   g[0][0]->Draw("ap");
   g[0][0]->GetYaxis()->SetRangeUser(ymin[0], ymax[0]);
   g[0][1]->Draw("p");
-  c->cd(2);
+  c2->cd(2);
   g[1][0]->Draw("ap");
   g[1][0]->GetYaxis()->SetRangeUser(ymin[1], ymax[1]);
   g[1][1]->Draw("p");
+
+  // add a legend
+  TLegend* lHist = new TLegend(0.2, 0.65, 0.4, 0.8);
+  lHist->SetFillStyle(0);
+  lHist->SetBorderSize(0);
+  lHist->AddEntry(histos1[0], "file 1", "l");
+  lHist->AddEntry(histos2[0], "file 2", "l");
+  c1->cd(1);
+  lHist->Draw("same");
 }
 
 void drawPlainHistosAtVertex(const std::array<std::vector<TH1*>, 2>& histos, TCanvas* c)
@@ -322,9 +342,11 @@ void drawClusterTrackResidualsRatio(const std::vector<TH1*>& histos1,
   for (const auto& h : histos2) {
     c->cd((i % 2) * nPadsx + i / 2 + 1);
     TH1* hRat = new TH1F(*static_cast<TH1F*>(h));
-    if (!hRat->Divide(histos1[i])) {
-      std::cout << "Error with " << h->GetName() << " / " << histos1[i]->GetName() << "\n";
-    }
+    hRat->Rebin(4);
+    auto h1 = static_cast<TH1F*>(histos1[i]->Clone());
+    h1->Rebin(4);
+    hRat->Divide(h1);
+    delete h1;
     hRat->SetStats(false);
     hRat->SetLineColor(2);
     hRat->Draw();
@@ -372,6 +394,7 @@ void drawComparisonsAtVertex(const std::array<std::vector<TH1*>, 5> histos, TCan
     gPad->SetLogy();
     histos[0][i]->SetStats(false);
     histos[0][i]->SetLineColor(1);
+    histos[0][i]->SetMinimum(0.5);
     histos[0][i]->Draw();
     histos[1][i]->SetLineColor(4);
     histos[1][i]->Draw("same");

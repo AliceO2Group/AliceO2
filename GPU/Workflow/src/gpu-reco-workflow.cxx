@@ -50,7 +50,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
   std::vector<ConfigParamSpec> options{
     {"input-type", VariantType::String, "digits", {"digitizer, digits, zsraw, zsonthefly, clustersnative, compressed-clusters-root, compressed-clusters-ctf, trd-tracklets"}},
-    {"output-type", VariantType::String, "tracks", {"clustersnative, tracks, compressed-clusters-ctf, qa, no-shared-cluster-map, send-clusters-per-sector, trd-tracks"}},
+    {"output-type", VariantType::String, "tracks", {"clustersnative, tracks, compressed-clusters-ctf, qa, no-shared-cluster-map, send-clusters-per-sector, trd-tracks, error-qa"}},
     {"require-ctp-lumi", o2::framework::VariantType::Bool, false, {"require CTP lumi for TPC correction scaling"}},
     {"disable-root-input", VariantType::Bool, true, {"disable root-files input reader"}},
     {"disable-mc", VariantType::Bool, false, {"disable sending of MC information"}},
@@ -94,6 +94,7 @@ enum struct ioType { Digits,
                      CompClustCTF,
                      Tracks,
                      QA,
+                     ErrorQA,
                      TRDTracklets,
                      TRDTracks,
                      NoSharedMap,
@@ -113,6 +114,7 @@ static const std::unordered_map<std::string, ioType> OutputMap{
   {"tracks", ioType::Tracks},
   {"compressed-clusters-ctf", ioType::CompClustCTF},
   {"qa", ioType::QA},
+  {"error-qa", ioType::ErrorQA},
   {"no-shared-cluster-map", ioType::NoSharedMap},
   {"send-clusters-per-sector", ioType::SendClustersPerSector},
   {"trd-tracks", ioType::TRDTracks}};
@@ -155,6 +157,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   cfg.outputCompClustersFlat = isEnabled(outputTypes, ioType::CompClustCTF);
   cfg.outputCAClusters = isEnabled(outputTypes, ioType::Clusters);
   cfg.outputQA = isEnabled(outputTypes, ioType::QA);
+  cfg.outputErrorQA = isEnabled(outputTypes, ioType::ErrorQA);
   cfg.outputSharedClusterMap = (cfg.outputCAClusters || cfg.caClusterer || isEnabled(inputTypes, ioType::Clusters)) && cfg.outputTracks && !isEnabled(outputTypes, ioType::NoSharedMap);
   cfg.processMC = doMC;
   cfg.sendClustersPerSector = isEnabled(outputTypes, ioType::SendClustersPerSector);

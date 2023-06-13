@@ -143,7 +143,7 @@ uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inp
         const auto detField = RDHUtils::getDetectorField(*rdhPtr);
         const auto feeID = RDHUtils::getFEEID(*rdhPtr);
         const auto feeLinkID = rdh_utils::getLink(feeID);
-        if ((link == 0 || link == rdh_utils::UserLogicLinkID) && (detField == raw_data_types::LinkZS || ((feeLinkID == rdh_utils::ILBZSLinkID || feeLinkID == rdh_utils::DLBZSLinkID) && detField == raw_data_types::ZS))) {
+        if (detField == raw_data_types::LinkZS || ((link == 0 || link == rdh_utils::UserLogicLinkID) && ((feeLinkID == rdh_utils::ILBZSLinkID || feeLinkID == rdh_utils::DLBZSLinkID) && detField == raw_data_types::ZS))) {
           isLinkZS = true;
           if (!readFirstZS) {
             if (feeLinkID == rdh_utils::DLBZSLinkID) {

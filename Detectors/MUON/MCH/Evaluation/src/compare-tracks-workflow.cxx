@@ -66,6 +66,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     Options{
       {"precision", VariantType::Double, 1.e-4, {"precision used for comparisons"}},
       {"apply-track-selection", VariantType::Bool, false, {"apply standard track selection cuts"}},
+      {"print-diff", VariantType::Bool, false, {"print differences"}},
       {"print-all", VariantType::Bool, false, {"print all differences"}},
       {"outfile", VariantType::String, "compare.root", {"output Root filename"}},
       {"pdf-outfile", VariantType::String, "", {"output PDF filename (leave empty for no PDF output)"}}}});

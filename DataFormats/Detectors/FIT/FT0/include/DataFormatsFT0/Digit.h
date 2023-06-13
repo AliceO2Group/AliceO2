@@ -50,6 +50,7 @@ struct DetTrigInput {
               (isSCnt << Triggers::bitSCen))
   {
   }
+  bool isVertex() const { return mInputs.test(Triggers::bitVertex); }
   ClassDefNV(DetTrigInput, 1);
 };
 

@@ -53,7 +53,6 @@ int RawDataDecoder::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
   if (linkCRU == o2::ctp::GBTLinkIDIntRec) {
     LOG(debug) << "InputMaskCount:" << digits[ir].CTPInputMask.count();
     LOG(debug) << "ir ir ori:" << ir;
-    // if ((int32_t)ir.bc < BCShiftCorrection) {
     if ((ir.orbit <= mTFOrbit) && ((int32_t)ir.bc < BCShiftCorrection)) {
       // LOG(warning) << "Loosing ir:" << ir;
       mIRRejected++;
@@ -79,10 +78,8 @@ int RawDataDecoder::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
   } else if (linkCRU == o2::ctp::GBTLinkIDClassRec) {
     int32_t offset = BCShiftCorrection + o2::ctp::TriggerOffsetsParam::Instance().LM_L0 + o2::ctp::TriggerOffsetsParam::Instance().L0_L1 - 1;
     LOG(debug) << "tcr ir ori:" << ir;
-    // if ((int32_t)ir.bc < offset) {
     if ((ir.orbit <= mTFOrbit) && ((int32_t)ir.bc < offset)) {
-      // if (0) {
-      LOG(warning) << "Loosing tclass:" << ir;
+      // LOG(warning) << "Loosing tclass:" << ir;
       mTCRRejected++;
       return 0;
     }
@@ -108,15 +105,15 @@ int RawDataDecoder::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
   return 0;
 }
 //
-int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::map<o2::InteractionRecord, CTPDigit>& digits, std::vector<LumiInfo>& lumiPointsHBF1)
+int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2::framework::InputSpec>& filter, std::vector<CTPDigit>& digits, std::vector<LumiInfo>& lumiPointsHBF1)
 {
   uint64_t countsMBT = 0;
   uint64_t countsMBV = 0;
+  std::map<o2::InteractionRecord, CTPDigit> digitsMap;
   //
   using InputSpec = o2::framework::InputSpec;
   using ConcreteDataTypeMatcher = o2::framework::ConcreteDataTypeMatcher;
   using Lifetime = o2::framework::Lifetime;
-  std::vector<InputSpec> filter{InputSpec{"filter", ConcreteDataTypeMatcher{"CTP", "RAWDATA"}, Lifetime::Timeframe}};
   o2::framework::DPLRawParser parser(inputs, filter);
   uint32_t payloadCTP;
   gbtword80_t remnant = 0;
@@ -173,10 +170,12 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::map<o2::I
     // std::cout << (orbit0 != rdhOrbit) << " comp " << (mTFOrbit==rdhOrbit) << std::endl;
     // if(orbit0 != rdhOrbit) {
     if (hb) {
-      if (mDoLumi && payloadCTP == o2::ctp::NIntRecPayload) { // create lumi per HB
+      if ((mDoLumi && payloadCTP == o2::ctp::NIntRecPayload) && !tf) { // create lumi per HB
         lumiPointsHBF1.emplace_back(LumiInfo{rdhOrbit, 0, 0, countsMBT, countsMBV});
+        // std::cout << "hb:" << nhb << " countsMBT:" << countsMBT << std::endl;
         countsMBT = 0;
         countsMBV = 0;
+        // nhb++;
       }
       remnant = 0;
       size_gbt = 0;
@@ -255,7 +254,7 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::map<o2::I
           continue;
         }
         LOG(debug) << "diglet:" << diglet << " " << (diglet & bcmask).to_ullong();
-        addCTPDigit(linkCRU, rdhOrbit, diglet, pldmask, digits);
+        addCTPDigit(linkCRU, rdhOrbit, diglet, pldmask, digitsMap);
       }
     }
     // if ((remnant.count() > 0) && stopBit) {
@@ -273,13 +272,19 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::map<o2::I
       if (!mDoDigits) {
         continue;
       }
-      addCTPDigit(linkCRU, rdhOrbit, remnant, pldmask, digits);
+      addCTPDigit(linkCRU, rdhOrbit, remnant, pldmask, digitsMap);
       LOG(debug) << "diglet:" << remnant << " " << (remnant & bcmask).to_ullong();
       remnant = 0;
     }
   }
   if (mDoLumi) {
     lumiPointsHBF1.emplace_back(LumiInfo{orbit0, 0, 0, countsMBT, countsMBV});
+    // std::cout << "last lumi:" << nhb  << std::endl;
+  }
+  if (mDoDigits) {
+    for (auto const& dig : digitsMap) {
+      digits.push_back(dig.second);
+    }
   }
   return 0;
 }

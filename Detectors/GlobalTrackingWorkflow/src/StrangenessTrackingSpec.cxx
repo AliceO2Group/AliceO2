@@ -75,11 +75,11 @@ void StrangenessTrackerSpec::run(framework::ProcessingContext& pc)
   mTracker.loadData(recoData);
   mTracker.prepareITStracks();
   mTracker.process();
-  pc.outputs().snapshot(Output{"STK", "STRTRACKS", 0, Lifetime::Timeframe}, mTracker.getStrangeTrackVec());
-  pc.outputs().snapshot(Output{"STK", "CLUSUPDATES", 0, Lifetime::Timeframe}, mTracker.getClusAttachments());
+  pc.outputs().snapshot(Output{"GLO", "STRANGETRACKS", 0, Lifetime::Timeframe}, mTracker.getStrangeTrackVec());
+  pc.outputs().snapshot(Output{"GLO", "CLUSUPDATES", 0, Lifetime::Timeframe}, mTracker.getClusAttachments());
 
   if (mUseMC) {
-    pc.outputs().snapshot(Output{"STK", "STRK_MC", 0, Lifetime::Timeframe}, mTracker.getStrangeTrackLabels());
+    pc.outputs().snapshot(Output{"GLO", "STRANGETRACKS_MC", 0, Lifetime::Timeframe}, mTracker.getStrangeTrackLabels());
   }
 
   mTimer.Stop();
@@ -126,7 +126,7 @@ DataProcessorSpec getStrangenessTrackerSpec(o2::dataformats::GlobalTrackID::mask
   dataRequest->requestITSClusters(useMC);
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestPrimaryVertertices(useMC);
-  dataRequest->requestSecondaryVertertices(useMC);
+  dataRequest->requestSecondaryVertices(useMC);
 
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
                                                               true,                              // GRPECS=true
@@ -138,10 +138,10 @@ DataProcessorSpec getStrangenessTrackerSpec(o2::dataformats::GlobalTrackID::mask
                                                               true);
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("STK", "STRTRACKS", 0, Lifetime::Timeframe);
-  outputs.emplace_back("STK", "CLUSUPDATES", 0, Lifetime::Timeframe);
+  outputs.emplace_back("GLO", "STRANGETRACKS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("GLO", "CLUSUPDATES", 0, Lifetime::Timeframe);
   if (useMC) {
-    outputs.emplace_back("STK", "STRK_MC", 0, Lifetime::Timeframe);
+    outputs.emplace_back("GLO", "STRANGETRACKS_MC", 0, Lifetime::Timeframe);
     LOG(info) << "Strangeness tracker will use MC";
   }
 

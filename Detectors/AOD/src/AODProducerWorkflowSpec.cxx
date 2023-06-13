@@ -1438,58 +1438,53 @@ void AODProducerWorkflowDPL::addToCaloTable(TCaloHandler& caloHandler, TCaloCurs
                     caloType);
     }
     if (mUseMC) {
-      if (caloType == 1) { // emcal
-        // loop over all MC Labels for the current cell
-        std::vector<int32_t> particleIds;
-        std::vector<float> amplitudeFraction;
-        if (!mEMCselectLeading) {
-          particleIds.reserve(cellMClabels.size());
-          amplitudeFraction.reserve(cellMClabels.size());
-        }
-        float tmpMaxAmplitude = 0;
-        int32_t tmpindex = 0;
-        for (auto& mclabel : cellMClabels[iCell]) {
-          // do not fill noise lables!
-          if (mclabel.isValid()) {
-            if (mEMCselectLeading) {
-              if (mclabel.getAmplitudeFraction() > tmpMaxAmplitude) {
+      // Common for PHOS and EMCAL
+      //  loop over all MC Labels for the current cell
+      std::vector<int32_t> particleIds = {0};
+      std::vector<float> amplitudeFraction = {0.f};
+      if (!mEMCselectLeading) {
+        particleIds.reserve(cellMClabels.size());
+        amplitudeFraction.reserve(cellMClabels.size());
+      }
+      float tmpMaxAmplitude = 0;
+      int32_t tmpindex = 0;
+      for (auto& mclabel : cellMClabels[iCell]) {
+        // do not fill noise lables!
+        if (mclabel.isValid()) {
+          if (mEMCselectLeading) {
+            if (mclabel.getAmplitudeFraction() > tmpMaxAmplitude) {
+              // Check if this MCparticle added to be kept?
+              if (mToStore.at(mclabel.getSourceID()).at(mclabel.getEventID())->find(mclabel.getTrackID()) !=
+                  mToStore.at(mclabel.getSourceID()).at(mclabel.getEventID())->end()) {
                 tmpMaxAmplitude = mclabel.getAmplitudeFraction();
                 tmpindex = (*mToStore.at(mclabel.getSourceID()).at(mclabel.getEventID())).at(mclabel.getTrackID());
               }
-            } else {
+            }
+          } else {
+            auto trackStore = mToStore.at(mclabel.getSourceID()).at(mclabel.getEventID());
+            auto iter = trackStore->find(mclabel.getTrackID());
+            if (iter != trackStore->end()) {
               amplitudeFraction.emplace_back(mclabel.getAmplitudeFraction());
-              auto trackStore = mToStore.at(mclabel.getSourceID()).at(mclabel.getEventID());
-              auto iter = trackStore->find(mclabel.getTrackID());
-              if (iter != trackStore->end()) {
-                particleIds.emplace_back(iter->second);
-              } else {
-                particleIds.emplace_back(-1); // should the mc particle not be in mToStore make sure something (e.g. -1) is saved in particleIds so the length of particleIds is the same es amplitudeFraction!
-                LOG(warn) << "CaloTable: Could not find track for mclabel (" << mclabel.getSourceID() << "," << mclabel.getEventID() << "," << mclabel.getTrackID() << ") in the AOD MC store";
-                if (mMCKineReader) {
-                  auto mctrack = mMCKineReader->getTrack(mclabel);
-                  TVector3 vec;
-                  mctrack->GetStartVertex(vec);
-                  LOG(warn) << " ... this track is of PDG " << mctrack->GetPdgCode() << " produced by " << mctrack->getProdProcessAsString() << " at (" << vec.X() << "," << vec.Y() << "," << vec.Z() << ")";
-                }
+              particleIds.emplace_back(iter->second);
+            } else {
+              particleIds.emplace_back(-1); // should the mc particle not be in mToStore make sure something (e.g. -1) is saved in particleIds so the length of particleIds is the same es amplitudeFraction!
+              LOG(warn) << "CaloTable: Could not find track for mclabel (" << mclabel.getSourceID() << "," << mclabel.getEventID() << "," << mclabel.getTrackID() << ") in the AOD MC store";
+              if (mMCKineReader) {
+                auto mctrack = mMCKineReader->getTrack(mclabel);
+                TVector3 vec;
+                mctrack->GetStartVertex(vec);
+                LOG(warn) << " ... this track is of PDG " << mctrack->GetPdgCode() << " produced by " << mctrack->getProdProcessAsString() << " at (" << vec.X() << "," << vec.Y() << "," << vec.Z() << ")";
               }
             }
           }
-        } // end of loop over all MC Labels for the current cell
-        if (mEMCselectLeading) {
-          amplitudeFraction.emplace_back(tmpMaxAmplitude);
-          particleIds.emplace_back(tmpindex);
         }
-        if (particleIds.size() > 0) {
-          mcCaloCellLabelCursor(particleIds,
-                                amplitudeFraction);
-        }
+      } // end of loop over all MC Labels for the current cell
+      if (mEMCselectLeading) {
+        amplitudeFraction.emplace_back(tmpMaxAmplitude);
+        particleIds.emplace_back(tmpindex);
       }
-      if (caloType == 0) { // phos
-        std::vector<int32_t> particleIds = {0};
-        std::vector<float> amplitudeFraction = {0.f};
-        mcCaloCellLabelCursor(particleIds,
-                              amplitudeFraction);
-      }
+      mcCaloCellLabelCursor(particleIds,
+                            amplitudeFraction);
     }
   } // end of loop over cells in current event
 }
@@ -2643,7 +2638,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
     dataRequest->requestCTPDigits(useMC);
   }
   if (enableSV) {
-    dataRequest->requestSecondaryVertertices(useMC);
+    dataRequest->requestSecondaryVertices(useMC);
   }
   if (enableStrangenessTracking) {
     dataRequest->requestStrangeTracks(useMC);

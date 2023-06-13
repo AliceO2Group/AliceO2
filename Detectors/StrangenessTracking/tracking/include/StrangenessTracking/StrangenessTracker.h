@@ -124,7 +124,7 @@ class StrangenessTracker
     return (qPos - qNeg) / (qPos + qNeg);
   };
 
-  double calcMotherMass(std::array<float, 3> pDauFirst, std::array<float, 3> pDauSecond, PID pidDauFirst, PID pidDauSecond)
+  double calcMotherMass(const std::array<float, 3>& pDauFirst, const std::array<float, 3>& pDauSecond, PID pidDauFirst, PID pidDauSecond)
   {
     double m2DauFirst = PID::getMass2(pidDauFirst);
     double m2DauSecond = PID::getMass2(pidDauSecond);
