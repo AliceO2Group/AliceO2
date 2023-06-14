@@ -42,10 +42,6 @@ using ITSCluster = o2::BaseCluster<float>;
 using mask_t = o2::dataformats::GlobalTrackID::mask_t;
 using AvgClusSizeStudy = o2::its::study::AvgClusSizeStudy;
 
-// AvgClusSizeStudy::AvgClusSizeStudy(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool isMC) {}// : mDataRequest{dr}, mGGCCDBRequest(gr), mUseMC(isMC)
-// {
-// }
-
 void AvgClusSizeStudy::init(InitContext& ic)
 {
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
@@ -64,7 +60,7 @@ void AvgClusSizeStudy::init(InitContext& ic)
 void AvgClusSizeStudy::run(ProcessingContext& pc)
 {
   LOGP(info, "TESTTEST starting run");
-  auto geom = o2::its::GeometryTGeo::Instance();
+  // auto geom = o2::its::GeometryTGeo::Instance();
   o2::globaltracking::RecoContainer recoData;
   LOGP(info, "TESTTEST collecting data");
   recoData.collectData(pc, *mDataRequest.get());
@@ -196,12 +192,13 @@ void AvgClusSizeStudy::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
   LOGP(info, "TESTTEST ccdb finalise");
   {
-  // if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
-  //   return;
-  // }
-  o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
+  if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    LOGP(info, "TESTING if has gone through, not updating");
+    return;
+  }
+  // o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
   if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
-    LOGP(info, "Cluster dictionary updated");
+    LOGP(info, "TESTING Cluster dictionary updated");
     setClusterDictionary((const o2::itsmft::TopologyDictionary*)obj);
     return;
   }
@@ -210,20 +207,21 @@ void AvgClusSizeStudy::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 }
 
 DataProcessorSpec getAvgClusSizeStudy(mask_t srcTracksMask, mask_t srcClustersMask, bool useMC)
-// DataProcessorSpec getAvgClusSizeStudy(mask_t srcTracksMask, mask_t srcClusMask, bool useMC)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
-  dataRequest->requestTracks(srcTracksMask, useMC);
-  dataRequest->requestClusters(srcClustersMask, useMC);
+  // dataRequest->requestTracks(srcTracksMask, useMC);
+  dataRequest->requestITSTracks(useMC);
+  // dataRequest->requestClusters(srcClustersMask, useMC);
+  dataRequest->requestITSClusters(useMC);
   dataRequest->requestSecondaryVertices(useMC);
 
   //TODO: is this even right???? need to figure out wtf these params mean
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
                                                               true,                              // GRPECS=true
                                                               false,                             // GRPLHCIF
-                                                              true,                              // GRPMagField
-                                                              true,                              // askMatLUT
+                                                              false,                              // GRPMagField
+                                                              false,                              // askMatLUT
                                                               o2::base::GRPGeomRequest::Aligned, // geometry
                                                               dataRequest->inputs,
                                                               true);

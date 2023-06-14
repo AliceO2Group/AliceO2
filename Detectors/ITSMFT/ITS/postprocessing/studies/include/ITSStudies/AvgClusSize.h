@@ -43,6 +43,7 @@ class AvgClusSizeStudy : public Task
 {
  public:
   AvgClusSizeStudy(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool isMC) : mDataRequest{dr}, mGGCCDBRequest(gr), mUseMC(isMC){};
+  // AvgClusSizeStudy(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool isMC);
   ~AvgClusSizeStudy() = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext&) final;
