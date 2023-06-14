@@ -15,7 +15,7 @@
 
 // Include studies hereafter
 #include "ITSStudies/ImpactParameter.h"
-#include "ITSStudies/K0sInvMass.h"
+#include "ITSStudies/AvgClusSize.h"
 
 using namespace o2::framework;
 using GID = o2::dataformats::GlobalTrackID;
@@ -49,6 +49,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
 
+
+  // auto useMC = !configcontext.options().get<bool>("disable-mc");
+  // o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
+  // GID::mask_t itsSource = GID::getSourceMask(GID::ITS); // ITS tracks and clusters
+
+  // specs.emplace_back(o2::its::study::getAvgClusSizeStudy(itsSource, useMC));
+  // o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, itsSource, itsSource, itsSource, useMC, itsSource);
+  // o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, specs);        // S-vertex is always needed
+
+  // BELOW IS OLD
   GID::mask_t allowedSourcesTrc = GID::getSourcesMask("ITS,ITS-TPC-TRD-TOF,ITS-TPC-TOF,ITS-TPC,ITS-TPC-TRD");
   GID::mask_t allowedSourcesClus = GID::getSourcesMask("ITS");
 
@@ -59,14 +69,16 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   srcTrc |= GID::getSourcesMask("ITS");
   GID::mask_t srcCls = allowedSourcesClus & GID::getSourcesMask(configcontext.options().get<std::string>("cluster-sources"));
 
+
+  
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCls, srcTrc, srcTrc, useMC);
   o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC);
   o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, specs);
 
   // Declare specs related to studies hereafter
-  specs.emplace_back(o2::its::study::getImpactParameterStudy(srcTrc, srcCls, useMC));
-  specs.emplace_back(o2::its::study::getK0sInvMassStudy(srcTrc, useMC));
-
+  // specs.emplace_back(o2::its::study::getImpactParameterStudy(srcTrc, srcCls, useMC));
+  specs.emplace_back(o2::its::study::getAvgClusSizeStudy(srcTrc, srcCls, useMC));
+  
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
 
