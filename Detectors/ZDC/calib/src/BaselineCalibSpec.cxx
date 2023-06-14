@@ -93,7 +93,7 @@ void BaselineCalibSpec::run(ProcessingContext& pc)
 #endif
 
   // Close calibration if a new run has started or we are receiving data from another run
-  if (mInitialized && (tinfo.globalRunNumberChanged == true || tinfo.runNumber != dh->runNumber)) {
+  if (mInitialized && (tinfo.globalRunNumberChanged == true || mRunNumber != tinfo.runNumber)) {
     if (mProcessed != 0) {
       mProcessed = 0;
       mWorker.endOfRun();
@@ -118,25 +118,20 @@ void BaselineCalibSpec::run(ProcessingContext& pc)
     mRunNumber = tinfo.runNumber;   // new current run number
   }
 
-  // Process only data from current run
-  if (tinfo.runNumber == dh->runNumber) {
-    auto data = pc.inputs().get<o2::zdc::BaselineCalibSummaryData*>("basecalibdata");
-    mWorker.process(data.get());
-    mProcessed++;
-    // Send intermediate calibration data if enough statistics has been collected
-    if (mCTimeMod > 0) {
-      auto& outd = mWorker.getData();
-      auto reft = mCTimeEnd == 0 ? outd.mCTimeBeg : mCTimeEnd;
-      if ((reft + mCTimeMod) < outd.mCTimeEnd) {
-        // Send output to CCDB but don't reset structures
-        mProcessed = 0;
-        mWorker.endOfRun();
-        sendOutput();
-        mCTimeEnd = outd.mCTimeEnd;
-      }
+  auto data = pc.inputs().get<o2::zdc::BaselineCalibSummaryData*>("basecalibdata");
+  mWorker.process(data.get());
+  mProcessed++;
+  // Send intermediate calibration data if enough statistics has been collected
+  if (mCTimeMod > 0) {
+    auto& outd = mWorker.getData();
+    auto reft = mCTimeEnd == 0 ? outd.mCTimeBeg : mCTimeEnd;
+    if ((reft + mCTimeMod) < outd.mCTimeEnd) {
+      // Send output to CCDB but don't reset structures
+      mProcessed = 0;
+      mWorker.endOfRun();
+      sendOutput();
+      mCTimeEnd = outd.mCTimeEnd;
     }
-  } else {
-    LOG(warn) << "ZDC Baseline calibration: mismatch in run numbers: info=" << tinfo.runNumber << " != packet=" << dh->runNumber;
   }
 
   if (mInitialized && pc.transitionState() == TransitionHandlingState::Requested) {
