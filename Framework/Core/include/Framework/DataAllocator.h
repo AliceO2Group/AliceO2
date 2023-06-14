@@ -114,15 +114,22 @@ struct LifetimeHolder {
   // when prensent.
   ~LifetimeHolder()
   {
+    release();
+  }
+
+  T* operator->() { return ptr; }
+  T& operator*() { return *ptr; }
+
+  // release the owned object, if any. This allows to
+  // invoke the callback early (e.g. for the Product<> case)
+  void release()
+  {
     if (ptr && callback) {
       callback(*ptr);
       delete ptr;
       ptr = nullptr;
     }
   }
-
-  T* operator->() { return ptr; }
-  T& operator*() { return *ptr; }
 };
 
 /// This allocator is responsible to make sure that the messages created match
