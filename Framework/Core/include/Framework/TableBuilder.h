@@ -644,7 +644,7 @@ auto constexpr to_tuple(T&& object) noexcept
 template <size_t I, typename... ARGS>
 constexpr auto makeHolderType(framework::pack<ARGS...>&&)
 {
-  return std::declval<typename HolderTrait<I, framework::pack_element_t<I, framework::pack<ARGS...>>>::Holder>();
+  return typename HolderTrait<I, framework::pack_element_t<I, framework::pack<ARGS...>>>::Holder{arrow::default_memory_pool()};
 }
 
 template <size_t I, typename... ARGS>
