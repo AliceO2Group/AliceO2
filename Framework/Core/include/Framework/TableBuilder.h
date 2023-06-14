@@ -475,7 +475,7 @@ struct BuilderHolder : InsertionPolicy<T> {
     if (nRows > 0) {
       auto s = builder->Reserve(nRows);
       if (!s.ok()) {
-        throw runtime_error_f("Unable to reserve %ll rows",nRows);
+        throw runtime_error_f("Unable to reserve %ll rows", nRows);
       }
     }
   }
@@ -671,7 +671,7 @@ constexpr auto makeHolderTypes(framework::pack<ARGS...>&& pack)
   return makeHolderTypesImpl(std::make_index_sequence<sizeof...(ARGS)>{}, std::forward<framework::pack<ARGS...>>(pack));
 }
 
-template<typename... ARGS>
+template <typename... ARGS>
 auto makeHolders(arrow::MemoryPool* pool, size_t nRows, framework::pack<ARGS...>&& pack)
 {
   return makeHoldersImpl(pool, nRows, std::make_index_sequence<sizeof...(ARGS)>{}, std::forward<framework::pack<ARGS...>>(pack));
@@ -712,7 +712,7 @@ class TableBuilder
     mFinalizer = [](std::vector<std::shared_ptr<arrow::Array>>& arrays, void* holders) -> bool {
       return TableBuilderHelpers::finalize(arrays, *(HoldersTupleIndexed<ARGS...>*)holders);
     };
-    mDestructor = [](void* holders) mutable -> void{
+    mDestructor = [](void* holders) mutable -> void {
       delete (HoldersTupleIndexed<ARGS...>*)holders;
     };
   }
