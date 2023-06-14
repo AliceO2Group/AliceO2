@@ -46,7 +46,7 @@ int NoiseCalibEPN::init()
       double xmin = -2048 * NTimeBinsPerBC - 0.5;
       double xmax = 2047 * NTimeBinsPerBC + 0.5;
       mHS[isig] = new o2::dataformats::FlatHisto1D<double>(nbx, xmin, xmax);
-      mHD[isig] = new o2::dataformats::FlatHisto1D<double>(nbx, xmin/double(NTimeBinsPerBC), xmax/double(NTimeBinsPerBC));
+      mHD[isig] = new o2::dataformats::FlatHisto1D<double>(nbx, xmin / double(NTimeBinsPerBC), xmax / double(NTimeBinsPerBC));
     }
   }
 
