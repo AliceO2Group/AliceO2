@@ -142,11 +142,11 @@ void Detector::createMaterials()
   float fieldm = 10.0; // ?
   o2::base::Detector::initFieldTrackingParams(ifield, fieldm);
 
-  float tmaxfdSi = 0.1;         // .10000E+01; // Degree
-  float stemaxSi = 0.0075;      //  .10000E+01; // cm
-  float deemaxSi = 0.1;         // 0.30000E-02; // Fraction of particle's energy 0<deemax<=1
-  float epsilSi = 1.0E-4;       // .10000E+01;
-  float stminSi = 0.0;          // cm "Default value used"
+  float tmaxfdSi = 0.1;    // .10000E+01; // Degree
+  float stemaxSi = 0.0075; //  .10000E+01; // cm
+  float deemaxSi = 0.1;    // 0.30000E-02; // Fraction of particle's energy 0<deemax<=1
+  float epsilSi = 1.0E-4;  // .10000E+01;
+  float stminSi = 0.0;     // cm "Default value used"
 
   float tmaxfdAir = 0.1;        // .10000E+01; // Degree
   float stemaxAir = .10000E+01; // cm
