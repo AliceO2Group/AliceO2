@@ -40,23 +40,23 @@ int NoiseCalibEPN::init()
   }
 
   for (int isig = 0; isig < NChannels; isig++) {
-    if(mH[isig] == nullptr){
+    if (mH[isig] == nullptr) {
       mH[isig] = new o2::dataformats::FlatHisto1D<double>(4096, -2048.5, 2047.5);
-    }else{
+    } else {
       mH[isig]->clear();
     }
     if (mSaveDebugHistos) {
       int nbx = 4096 * NTimeBinsPerBC - NTimeBinsPerBC + 1;
       double xmin = -2048 * NTimeBinsPerBC - 0.5;
       double xmax = 2047 * NTimeBinsPerBC + 0.5;
-      if(mHS[isig] == nullptr){
+      if (mHS[isig] == nullptr) {
         mHS[isig] = new o2::dataformats::FlatHisto1D<double>(nbx, xmin, xmax);
-      }else{
+      } else {
         mHS[isig]->clear();
       }
-      if(mHD[isig] == nullptr){
-        mHD[isig] = new o2::dataformats::FlatHisto1D<double>(nbx, xmin/double(NTimeBinsPerBC), xmax/double(NTimeBinsPerBC));
-      }else{
+      if (mHD[isig] == nullptr) {
+        mHD[isig] = new o2::dataformats::FlatHisto1D<double>(nbx, xmin / double(NTimeBinsPerBC), xmax / double(NTimeBinsPerBC));
+      } else {
         mHD[isig]->clear();
       }
     }
