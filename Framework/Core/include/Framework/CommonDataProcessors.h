@@ -13,6 +13,7 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/InputSpec.h"
+#include "Framework/ConcreteDataMatcher.h"
 
 #include <vector>
 #include <string>
@@ -63,6 +64,10 @@ struct CommonDataProcessors {
   /// for the rate limiting channel, if any required.
   static DataProcessorSpec getDummySink(std::vector<InputSpec> const& danglingInputs, std::string rateLimitingChannelConfig);
   static AlgorithmSpec wrapWithRateLimiting(AlgorithmSpec spec);
+  /// @return a device which will create N outputs of kind @a signature and serve
+  /// them using a rate limiting channel. @a maxDevices is the maximum number of
+  /// devices which can be served at the same time.
+  static DataProcessorSpec getRateLimitingSource(ConcreteDataTypeMatcher signature, int64_t maxDevices, std::string rateLimitingChannelConfig);
 };
 
 } // namespace o2::framework

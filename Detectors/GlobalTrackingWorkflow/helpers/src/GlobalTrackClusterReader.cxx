@@ -15,6 +15,8 @@
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 #include "Framework/CallbacksPolicy.h"
 #include "Framework/ConfigContext.h"
+#include "Framework/CommonDataProcessors.h"
+#include "Framework/ChannelSpecHelpers.h"
 
 using namespace o2::framework;
 using namespace o2::globaltracking;
@@ -76,6 +78,19 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);
+
+  int rateLimitingIPCID = std::stoi(cfgc.options().get<std::string>("timeframes-rate-limit-ipcid"));
+
+  if (rateLimitingIPCID >= 0) {
+    auto rateLimitingChannelConfigInput = fmt::format("name=metric-feedback,type=pull,method=connect,address=ipc://{}metric-feedback-{},transport=shmem,rateLogging=0",
+                                                      ChannelSpecHelpers::defaultIPCFolder(), rateLimitingIPCID);
+
+    unsigned int i = 0;
+    for (auto& spec : specs) {
+      spec.inputs.push_back(InputSpec{"rate-limiting-input", "DPL", "RATELIMITING", o2::header::DataHeader::SubSpecificationType{i++}});
+    }
+    specs.push_back(CommonDataProcessors::getRateLimitingSource({"DPL", "RATELIMITING"}, i, rateLimitingChannelConfigInput));
+  }
 
   return std::move(specs);
 }

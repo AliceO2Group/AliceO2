@@ -591,5 +591,24 @@ AlgorithmSpec CommonDataProcessors::wrapWithRateLimiting(AlgorithmSpec spec)
   });
 }
 
+DataProcessorSpec CommonDataProcessors::getRateLimitingSource(ConcreteDataTypeMatcher matcher, int64_t maxDevices, std::string rateLimitingChannelConfig)
+{
+  AlgorithmSpec algo = AlgorithmSpec{adaptStateful([matcher, maxDevices](CallbackService& callbacks) {
+    return adaptStateless([matcher, maxDevices](DataAllocator& outputs) {
+      for (unsigned int i = 0; i < maxDevices; i++) {
+        outputs.make<int>(Output{matcher.origin, matcher.description, i}, 1);
+      }
+    });
+  })};
+  return DataProcessorSpec{
+    .name = "rate-limiting-source",
+    .algorithm = CommonDataProcessors::wrapWithRateLimiting(algo),
+    .options = std::vector<ConfigParamSpec>{{"channel-config", VariantType::String, // raw input channel
+                                             rateLimitingChannelConfig,
+                                             {"Out-of-band channel config"}}}
+
+  };
+}
+
 #pragma GCC diagnostic pop
 } // namespace o2::framework
