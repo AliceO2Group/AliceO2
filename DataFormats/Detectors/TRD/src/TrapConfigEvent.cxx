@@ -513,6 +513,10 @@ bool TrapConfigEvent::setRegisterValue(uint32_t data, uint32_t regidx, int mcmid
     return false;
   }
   int mcmoffset = 0;                                                    // mcmidx * kTrapRegistersSize;                          // get the start offset for this mcm
+  if(mMCMIndex[mcmidx]==-1){
+    // we dont have this register in the data store yet.
+    mConfigData[mcmidx].
+  }
   int regbase = mcmoffset + mTrapRegisters[regidx].getBase();           // get the base of this register in the underlying storage block
   int regoffset = regbase + mTrapRegisters[regidx].getDataWordNumber(); // get the offset to the register in question
   data &= mTrapRegisters[regidx].getMask();                             // mask the data off as need be.
@@ -871,7 +875,7 @@ void TrapRegInfo::logTrapRegInfo()
   LOGP(info, " TrapRegInfo : {} with nbits={} addr {:08x} mask {:04x} word number {} and baseword {} max {} ", getName(), getNbits(), getAddr(), getMask(), getWordNumber(), getBase(), getMax());
 }
 
-void TrapConfigEventSlot::print()
+void TrapConfigEvent::print()
 {
   // walk through MCMSeen, and print out the mcm seen for this config event.
   uint32_t startmcm = 0;
@@ -909,7 +913,7 @@ void TrapConfigEventSlot::print()
   LOGP(debug, "{}", totalList);
 }
 
-void TrapConfigEventSlot::merge(const TrapConfigEventSlot* prev)
+void TrapConfigEvent::merge(const TrapConfigEvent* prev)
 {
   LOGP(info, " Merge called for TrapConfigEvent {} {} {}", __FILE__, __func__, __LINE__);
   // std::map<uint32_t, std::map<uint32_t, uint32_t>> mTrapValueFrequencyMap;                                      //!< count of different value in the registers for a mcm,register used to find most frequent value.
@@ -917,12 +921,12 @@ void TrapConfigEventSlot::merge(const TrapConfigEventSlot* prev)
   // this will be collapsed in the finalise of the calibrator, for the object to be written to the ccdb.
 }
 
-void TrapConfigEventSlot::fill(const TrapConfigEventSlot& input)
+void TrapConfigEvent::fill(const TrapConfigEvent& input)
 {
   LOGP(info, " fill called for TrapConfigEvent {} {} {}", __FILE__, __func__, __LINE__);
 }
 
-void TrapConfigEventSlot::fill(const gsl::span<const TrapConfigEventSlot> input)
+void TrapConfigEvent::fill(const gsl::span<const TrapConfigEvent> input)
 {
   LOGP(info, " fill called for TrapConfigEvent {} {} {}", __FILE__, __func__, __LINE__);
 }

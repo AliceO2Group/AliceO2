@@ -13,9 +13,10 @@
 #include "TRDWorkflowIO/TRDCalibReaderSpec.h"
 #include "TRDWorkflowIO/TRDDigitReaderSpec.h"
 #include "TRDWorkflowIO/TRDConfigEventReaderSpec.h"
+#include "TRDWorkflow/TrapConfigEventSpec.h"
 #include "TRDWorkflow/VdAndExBCalibSpec.h"
 #include "TRDWorkflow/NoiseCalibSpec.h"
-#include "TRDWorkflow/ConfigEventDevice.h"
+#include "TRDWorkflow/ConfigEventCalibSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 
 using namespace o2::framework;
@@ -28,7 +29,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"enable-root-input", o2::framework::VariantType::Bool, false, {"enable root-files input readers"}},
     {"vDriftAndExB", o2::framework::VariantType::Bool, false, {"enable vDrift and ExB calibration"}},
     {"noise", o2::framework::VariantType::Bool, false, {"enable noise and pad status calibration"}},
-    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
+  };
 
   std::swap(workflowOptions, options);
 }
@@ -61,7 +64,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     if (enableRootInp) {
       specs.emplace_back(o2::trd::getTRDConfigEventReaderSpec());
     }
-    specs.emplace_back(o2::trd::getTRDConfigEventCalibSpec());
+    specs.emplace_back(o2::trd::getTrapConfigEventSpec());
   }
 
   return specs;

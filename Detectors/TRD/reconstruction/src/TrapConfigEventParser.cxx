@@ -43,7 +43,6 @@ using namespace o2::trd;
 TrapConfigEventParser::TrapConfigEventParser()
 {
   LOGP(info, "Creating trapconfig event object");
-  mTrapConfigEventSlot = std::make_shared<TrapConfigEventSlot>();
   mTrapConfigEvent = std::make_shared<TrapConfigEvent>();
 }
 
@@ -62,11 +61,11 @@ bool TrapConfigEventParser::checkRegister(uint32_t& registeraddr, uint32_t& regi
   mOffsetToRegister = mRegisterBase + newregidx;
   // Are the registers sequential
   if (newregidx != mLastRegIndex + 1 && newregidx != 0) {
-    mTrapConfigEventSlot->setMCMParsingStatus(mCurrentMCMID, 5); // missing registers
+    mTrapConfigEventMessage->setMCMParsingStatus(mCurrentMCMID, 5); // missing registers
     for (int miss = mLastRegIndex; miss < newregidx; ++miss) {
       mMissedReg[miss]++; // count the gaps, we count the start and stop point of gaps elsewhere
     }
-    LOGP(warn, " register step mismatch : went from {:06x} ({}) i:{} to {:06x} ({}) i:{} and mcmid: {} mMcmParsingStatus[{}]=5", mPreviousRegisterAddressRead, mTrapConfigEvent.get()->getRegNameByAddr(mPreviousRegisterAddressRead), mLastRegIndex, registeraddr, mTrapConfigEvent.get()->getRegNameByAddr(registeraddr), newregidx, registerdata, mCurrentMCMID, mTrapConfigEventSlot->getMCMParsingStatus(mCurrentMCMID), mCurrentMCMID);
+    LOGP(warn, " register step mismatch : went from {:06x} ({}) i:{} to {:06x} ({}) i:{} and mcmid: {} mMcmParsingStatus[{}]=5", mPreviousRegisterAddressRead, mTrapConfigEvent.get()->getRegNameByAddr(mPreviousRegisterAddressRead), mLastRegIndex, registeraddr, mTrapConfigEvent.get()->getRegNameByAddr(registeraddr), newregidx, registerdata, mCurrentMCMID, mTrapConfigEventMessage->getMCMParsingStatus(mCurrentMCMID), mCurrentMCMID);
   }
   mLastRegIndex = newregidx;
   if (numberbits >= 0 || regname != "" || newregidx >= 0) {
@@ -74,11 +73,11 @@ bool TrapConfigEventParser::checkRegister(uint32_t& registeraddr, uint32_t& regi
     LOGP(debug, "good register : name:{} newregindex:{} numberofbits:{}, lastregindex:{} registeraddr:{:08x} ", regname, newregidx, numberbits, mPreviousRegisterIndex, registeraddr);
     mCurrentRegisterIndex = newregidx;
     if (mCurrentRegisterIndex < mPreviousRegisterIndex) {
-      mTrapConfigEventSlot->setMCMParsingStatus(mCurrentMCMID, 4); // no end
-      mTrapConfigEventSlot->setMCMParsingStatus(mCurrentMCMID, 6); // no end
+      mTrapConfigEventMessage->setMCMParsingStatus(mCurrentMCMID, 4); // no end
+      mTrapConfigEventMessage->setMCMParsingStatus(mCurrentMCMID, 6); // no end
       mStopReg[mPreviousRegisterIndex]++;
       mStopReg[mCurrentRegisterIndex]++;
-      LOGP(warn, " current register index is less than previous, we have looped back mcmId[{}] = {} and mcmId[{}]= {} current register index {} previousregisteraddressread {} ", mCurrentMCMID, mTrapConfigEventSlot->getMCMParsingStatus(mCurrentMCMID), mCurrentMCMID + 1, mTrapConfigEventSlot->getMCMParsingStatus(mCurrentMCMID + 1), mCurrentRegisterIndex, mPreviousRegisterAddressRead);
+      LOGP(warn, " current register index is less than previous, we have looped back mcmId[{}] = {} and mcmId[{}]= {} current register index {} previousregisteraddressread {} ", mCurrentMCMID, mTrapConfigEventMessage->getMCMParsingStatus(mCurrentMCMID), mCurrentMCMID + 1, mTrapConfigEventMessage->getMCMParsingStatus(mCurrentMCMID + 1), mCurrentRegisterIndex, mPreviousRegisterAddressRead);
       for (int miss = mRegistersReadForCurrentMCM; miss < newregidx; ++miss) {
         mMissedReg[miss]++; // count the gaps, we count the start and stop point of gaps elsewhere
                             //   mcmMissedRegister[currentrob * constants::NMCMROB + currentmcm].set(miss);
@@ -87,21 +86,21 @@ bool TrapConfigEventParser::checkRegister(uint32_t& registeraddr, uint32_t& regi
       if (registeraddr != mTrapConfigEvent.get()->getRegAddrByIdx(mRegistersReadForCurrentMCM)) {
         // if (registeraddr != std::get<1>(TrapRegisterMap[mRegistersReadForCurrentMCM]))
         mRegisterErrorGap += abs((int)mRegistersReadForCurrentMCM - (int)newregidx) + 1; // +1 as reg index is zero based.
-        mTrapConfigEventSlot->setMCMParsingStatus(mCurrentMCMID, 3);                     // no end
+        mTrapConfigEventMessage->setMCMParsingStatus(mCurrentMCMID, 3);                     // no end
         LOGP(debug, " get mTrapConfigEvent.get()->getRegNameByAddr( {:08x} ) at func:{} line:{}", registeraddr, __func__, __LINE__);
         auto tmpnamebyaddr = mTrapConfigEvent.get()->getRegNameByAddr(registeraddr);
         LOGP(debug, " got mTrapConfigEvent.get()->getRegNameByAddr( {:08x} ) at func:{} line:{}", registeraddr, __func__, __LINE__);
-        std::string tmpnamebyidx = ""; // mTrapConfigEventSlot.get()->getRegNameByIdx(mRegistersReadForCurrentMCM);
+        std::string tmpnamebyidx = ""; // mTrapConfigEventMessage.get()->getRegNameByIdx(mRegistersReadForCurrentMCM);
         auto tmpregidxbyaddr = mTrapConfigEvent.get()->getRegIndexByAddr(registeraddr);
         LOGP(warn, " current register is not sequential to previous register, we have a gap : {} from {} to {} mRegisterErrorGap now : {} name compare {} ?= {} at {} mMcmParsingStatus[{}]={}", abs((int)mRegistersReadForCurrentMCM - (int)newregidx),
-             mRegistersReadForCurrentMCM, tmpregidxbyaddr, mRegisterErrorGap, tmpnamebyaddr, tmpnamebyidx, __LINE__, mCurrentMCMID, mTrapConfigEventSlot->getMCMParsingStatus(mCurrentMCMID));
+             mRegistersReadForCurrentMCM, tmpregidxbyaddr, mRegisterErrorGap, tmpnamebyaddr, tmpnamebyidx, __LINE__, mCurrentMCMID, mTrapConfigEventMessage->getMCMParsingStatus(mCurrentMCMID));
         mRegistersReadForCurrentMCM = newregidx + 1;
         for (int miss = mRegistersReadForCurrentMCM; miss < newregidx; ++miss) {
           mMissedReg[miss]++; // count the gaps, we count the start and stop point of gaps elsewhere
         }
-        LOGP(warn, " Registers are non-sequential : {} from {} to {} mRegisterErrorGap now : {} name compare {} ?= {} at {}", abs(mRegistersReadForCurrentMCM - mTrapConfigEvent.get()->getRegIndexByAddr(registeraddr)), mRegistersReadForCurrentMCM, mTrapConfigEvent.get()->getRegIndexByAddr(registeraddr), mRegisterErrorGap, mTrapConfigEvent.get()->getRegNameByAddr(registeraddr), "" /*mTrapConfigEventSlot.get()->getRegNameByIdx(mRegistersReadForCurrentMCM)*/, __LINE__);
+        LOGP(warn, " Registers are non-sequential : {} from {} to {} mRegisterErrorGap now : {} name compare {} ?= {} at {}", abs(mRegistersReadForCurrentMCM - mTrapConfigEvent.get()->getRegIndexByAddr(registeraddr)), mRegistersReadForCurrentMCM, mTrapConfigEvent.get()->getRegIndexByAddr(registeraddr), mRegisterErrorGap, mTrapConfigEvent.get()->getRegNameByAddr(registeraddr), "" /*mTrapConfigEventMessage.get()->getRegNameByIdx(mRegistersReadForCurrentMCM)*/, __LINE__);
       } else {
-        LOGP(debug, " Registers are sequential : {} from {} to {} mRegisterErrorGap now : {} name compare {} ?= {} at {}", abs(mRegistersReadForCurrentMCM - mTrapConfigEvent.get()->getRegIndexByAddr(registeraddr)), mRegistersReadForCurrentMCM, mTrapConfigEvent.get()->getRegIndexByAddr(registeraddr), mRegisterErrorGap, mTrapConfigEvent.get()->getRegNameByAddr(registeraddr), "" /*mTrapConfigEventSlot.get()->getRegNameByIdx(mRegistersReadForCurrentMCM)*/, __LINE__);
+        LOGP(debug, " Registers are sequential : {} from {} to {} mRegisterErrorGap now : {} name compare {} ?= {} at {}", abs(mRegistersReadForCurrentMCM - mTrapConfigEvent.get()->getRegIndexByAddr(registeraddr)), mRegistersReadForCurrentMCM, mTrapConfigEvent.get()->getRegIndexByAddr(registeraddr), mRegisterErrorGap, mTrapConfigEvent.get()->getRegNameByAddr(registeraddr), "" /*mTrapConfigEventMessage.get()->getRegNameByIdx(mRegistersReadForCurrentMCM)*/, __LINE__);
         mRegistersReadForCurrentMCM++;
         badregister = false;
       }
@@ -131,96 +130,6 @@ void TrapConfigEventParser::compareToTrackletsHCID(std::bitset<1080> trackletshc
       }
     }
   }
-}
-
-void TrapConfigEventParser::writeFile(int eventcount)
-{
-  // TFile *file = TFile(Form("ccdbtrapconfig_%d.root",eventcount);
-  // mTrapConfigEventSlot.get()->Write();
-  // file->Close();
-}
-
-void TrapConfigEventParser::FillHistograms(int eventnum)
-{ // TODO move this to a script to run over a TrapConfigEvent3
-  // take the mMcmParsingStatus and fill in the per mcm per layer graph
-  // 1 hist per layer, 6 layers
-  TH2F* layerconfig[6];
-  std::unique_ptr<TFile> file(TFile::Open(Form("Event_%d_Histograms.root", eventnum), "RECREATE"));
-  LOGP(debug, "Now to fill Event_%i_Histograms.root", eventnum);
-  TH1F *missed, *start, *stop, *regcounts;
-  missed = new TH1F(Form("MissedRegistersEvent_%d", eventnum), Form("Missed registers for mcm that read out in event %d;register;count", eventnum), 500, -0.5, 499.5);
-  start = new TH1F(Form("StartRegistersEvent_%d", eventnum), Form("Starting registers for mcm that read out in event %d;register;count", eventnum), 500, -0.5, 499.5);
-  stop = new TH1F(Form("StopRegistersEvent_%d", eventnum), Form("Stopping registers for mcm that read out in event %d;register;count", eventnum), 500, -0.5, 499.5);
-  regcounts = new TH1F(Form("CounterRegistersEvent_%d", eventnum), Form("Counts of seen registers for mcm that read out in event %d;register;count", eventnum), 500, -0.5, 499.5);
-  int loopcounter = 0;
-  for (auto& counts : mStopReg) {
-    LOG(debug) << " in stopreg loop with count of " << loopcounter << " and counts of : " << counts;
-    loopcounter++;
-    stop->SetBinContent(loopcounter, counts);
-  }
-  loopcounter = 0;
-  for (auto& counts : mStartReg) {
-    loopcounter++;
-    start->SetBinContent(loopcounter, counts);
-  }
-  loopcounter = 0;
-  for (auto& counts : mMissedReg) {
-    loopcounter++;
-    missed->SetBinContent(loopcounter, counts);
-  }
-  loopcounter = 0;
-  for (auto& counts : mRegisterCount) {
-    loopcounter++;
-    regcounts->SetBinContent(loopcounter, counts);
-  }
-
-  for (int i = 0; i < 6; i++) {
-    layerconfig[i] = new TH2F(Form("ConfigErrorsPerLayerEvent_%d_layer_%d", eventnum, i), Form("Config Errors per mcm in layer %d event %d;stack;sector", i, eventnum), 76, -0.5, 75.5, 144, -0.5, 143.5);
-  }
-  for (int mcmid = 0; mcmid < o2::trd::constants::MAXMCMCOUNT; ++mcmid) {
-    int detector = mcmid / 128; // hcid/2;
-    int sm = detector / 30;
-    int detLoc = detector % 30;
-    int layer = detector % 6;
-    int stack = detLoc / 6;
-    int sec = detector / 30;
-    int rem = mcmid - (mcmid / 128) * 128;
-    int mcm = rem - (rem / 16) * 16;
-    int rob = rem / 16;
-    int row = rob + sm * 8;
-    int col = stack * 16 + mcm;
-    layerconfig[layer]->SetBinContent(col, row, mTrapConfigEventSlot->getMCMParsingStatus(mcmid));
-  }
-  std::unique_ptr<TCanvas> canvas(new TCanvas("canvas", "Config Event parsing problems"));
-  canvas->Divide(3, 2);
-  for (int i = 0; i < 6; i++) {
-    canvas->cd(i + 1);
-    layerconfig[i]->SetStats(0);
-    layerconfig[i]->Draw("col");
-  }
-  canvas->Modified(true);
-  canvas->Update();
-  canvas->Write();
-  // canvas->Print("ConfigEvents.gif+");
-  file->Write();
-  // mMcmParsingStatus.fill(0);
-  LOG(debug) << " Walk through frequency map : ";
-  int regcount = 0;
-  for (auto& regmap : mTrapRegistersFrequencyMap) {
-    LOG(debug) << "Register : " << regcount << " " << mTrapConfigEvent.get()->getRegNameByIdx(regcount) << " with " << regmap.size() << " entries";
-    for (const auto& elem : regmap) {
-      LOGP(debug, "[{:08x}] = {}", elem.first, elem.second);
-    }
-    regcount++;
-  }
-
-  /*  this is huge, enable for debugging purposes at your peril
-  for (int mcm = 0; mcm < o2::trd::constants::MAXMCMCOUNT; ++mcm) {
-    LOGP(info, "MCM : {} ", mcm);
-    for (int reg = 0; reg < TrapConfigEvent::kLastReg; ++reg) {
-      LOGP(info, "register of {} = {:08x}", mTrapConfigEvent.get()->getRegNameByIdx(reg), mCurrentMCMRegisters[mcm * TrapConfigEvent::kLastReg + reg]);
-  }
-  }*/
 }
 
 void TrapConfigEventParser::printMCMRegisterCount(int hcid)
@@ -327,13 +236,13 @@ int TrapConfigEventParser::parseSingleData(std::vector<uint32_t>& data, uint32_t
       if (mRegistersReadForCurrentMCM > 0) {
         mTrapConfigEvent.get()->setRegisterValueByIdx(registerdata, mRegistersReadForCurrentMCM - 1, mCurrentMCMID);
         // mMCMCurrentEvent[mCurrentMCMID]++; // registers seen for this mcm
-        auto regdata = registerdata; // mTrapConfigEventSlot.get()->getRegisterValueByIdx(mRegistersReadForCurrentMCM-1,mCurrentMCMID);
+        auto regdata = registerdata; // mTrapConfigEventMessage.get()->getRegisterValueByIdx(mRegistersReadForCurrentMCM-1,mCurrentMCMID);
         auto regmax = mTrapConfigEvent.get()->getRegisterMax(mRegistersReadForCurrentMCM - 1);
         if (regdata > regmax) {
           LOGP(warn, "assumed corrupted data as register data is greater than the mask : {:08x} for max {:08x} registername : {} regaddress : {}", regdata, regmax, mTrapConfigEvent.get()->getRegNameByIdx(mRegistersReadForCurrentMCM - 1), registeraddr);
         } else {
           mTrapRegistersFrequencyMap[mRegistersReadForCurrentMCM - 1][regdata]++;
-          mTrapValueFrequencyMap[mCurrentMCMID * TrapConfigEvent::kLastReg + mRegistersReadForCurrentMCM - 1].insert(std::make_pair(regdata, 1)); // count of different value in the registers for a mcm,register used to find probably value.
+          //TODO move to calibrator mTrapValueFrequencyMap[mCurrentMCMID * TrapConfigEvent::kLastReg + mRegistersReadForCurrentMCM - 1].insert(std::make_pair(regdata, 1)); // count of different value in the registers for a mcm,register used to find probably value.
         }
         mCurrentMCMRegisters[mCurrentMCMID * TrapConfigEvent::kLastReg + mRegistersReadForCurrentMCM - 1] = regdata;
         // TODO this is not saving it to the CCDBConfig at all !
@@ -342,9 +251,9 @@ int TrapConfigEventParser::parseSingleData(std::vector<uint32_t>& data, uint32_t
         //   }
       }
       mRegisterCount[mTrapConfigEvent.get()->getRegIndexByAddr(registeraddr)]++; // keep a count of seen and accepted registers
-      if (mTrapConfigEventSlot->getMCMParsingStatus(mCurrentMCMID) < 2) {
+      if (mTrapConfigEventMessage->getMCMParsingStatus(mCurrentMCMID) < 2) {
         // this handles the gaps in registers, where it might be good (1) before and after the gap, but this should stay with status of gap.
-        mTrapConfigEventSlot->setMCMParsingStatus(mCurrentMCMID, 1);
+        mTrapConfigEventMessage->setMCMParsingStatus(mCurrentMCMID, 1);
       }
     }
     if (idx >= end && data[idx] != constants::CONFIGEVNETBLOCKENDMARKER) {
@@ -420,7 +329,7 @@ int TrapConfigEventParser::parseBlockData(std::vector<uint32_t>& data, uint32_t 
           if (mRegistersReadForCurrentMCM > 0) {
             mTrapConfigEvent.get()->setRegisterValueByIdx(registerdata, mRegistersReadForCurrentMCM - 1, mCurrentMCMID);
             // mMCMCurrentEvent[mCurrentMCMID]++; // registers seen for this mcm
-            auto regdata = registerdata; // mTrapConfigEventSlot.get()->getRegisterValueByIdx(mRegistersReadForCurrentMCM-1,mcmid);
+            auto regdata = registerdata; // mTrapConfigEventMessage.get()->getRegisterValueByIdx(mRegistersReadForCurrentMCM-1,mcmid);
             auto regmax = mTrapConfigEvent.get()->getRegisterMax(mRegistersReadForCurrentMCM - 1);
             if (regdata > regmax) {
               LOGP(warn, "{} assumed corrupted data as register data is greater than the mask : {:08x} for max {:08x} registername : {} regaddress : {}", __LINE__, regdata, regmax, mTrapConfigEvent.get()->getRegNameByIdx(mRegistersReadForCurrentMCM - 1), registeraddr);
@@ -430,7 +339,7 @@ int TrapConfigEventParser::parseBlockData(std::vector<uint32_t>& data, uint32_t 
               mTrapValueFrequencyMap[mCurrentMCMID * TrapConfigEvent::kLastReg + mRegistersReadForCurrentMCM - 1].insert(std::make_pair(regdata, 1)); // count of different value in the registers for a mcm,register used to find probably value.
               mCurrentMCMRegisters[mCurrentMCMID * TrapConfigEvent::kLastReg + mRegistersReadForCurrentMCM - 1] = registerdata;
             }
-            mTrapConfigEventSlot->setRegisterSeen(mCurrentMCMID, 1);
+            mTrapConfigEventMessage->setRegisterSeen(mCurrentMCMID, 1);
           }
         } else {
           LOGP(debug, "if statement failed for currentmcmregister {:08x}  registerdata {:08x}", mCurrentMCMRegisters[mCurrentMCMID * TrapConfigEvent::kLastReg + mRegistersReadForCurrentMCM], registerdata);
@@ -440,9 +349,9 @@ int TrapConfigEventParser::parseBlockData(std::vector<uint32_t>& data, uint32_t 
         // if( mTrapRegisters[].CanIgnore()==false){
         //   mMcMDataHasChanged[mRegistersReadForCurrentMCM]=true;
         // }
-        if (mTrapConfigEventSlot->getMCMParsingStatus(mCurrentMCMID) < 2) {
+        if (mTrapConfigEventMessage->getMCMParsingStatus(mCurrentMCMID) < 2) {
           // this handles the gaps in registers, where it might be good (1) before and after the gap, but this should stay with status of gap.
-          mTrapConfigEventSlot->setMCMParsingStatus(mCurrentMCMID, 1);
+          mTrapConfigEventMessage->setMCMParsingStatus(mCurrentMCMID, 1);
         }
       } else {
         LOGP(warn, "if (mCurrentMCMRegisters[mCurrentMCMID * kLastReg + mRegistersReadForCurrentMCM] != registerdata mCurrentMCMID:{} kLastReg:{} mRegistersReadForCurrentMCM:{} mCurrentMCMRegisters[mCurrentMCMID*kLastReg+mRegistersReadForCurrentMCM]=={} != {}", mCurrentMCMID, TrapConfigEvent::kLastReg, mRegistersReadForCurrentMCM, mCurrentMCMRegisters[mCurrentMCMID * TrapConfigEvent::kLastReg + mRegistersReadForCurrentMCM], registerdata);
@@ -561,7 +470,7 @@ int TrapConfigEventParser::parseLink(std::vector<uint32_t>& data, uint32_t start
       mPreviousRegisterIndex = 0;                                                                                    // register index of the last register read.
       mCurrentRegisterIndex = 0;                                                                                     // index of the current register
       mCurrentMCMID = (mCurrentHCID / 2) * 128 + mCurrentMCMHeader.rob * constants::NMCMROB + mCurrentMCMHeader.mcm; // current rob is 0-7/0-5 and currentmcm is 0-16.
-      mTrapConfigEventSlot->setMCMParsingStatus(mCurrentMCMID, 1);
+      mTrapConfigEventMessage->setMCMParsingStatus(mCurrentMCMID, 1);
       if (data[idx] == 0) {
         LOGP(warn, "Breaking as a zero after endmarker idx: {} ", idx);
         LOGP(debug, "header at data[{}] had : {:06} registers, last register read : {:08x} ({}) and a register gap of {}", idx, mCurrentRegisterWordsCount, mPreviousRegisterAddressRead, mTrapConfigEvent.get()->getRegNameByAddr(mPreviousRegisterAddressRead), mRegisterErrorGap);
@@ -606,7 +515,7 @@ int TrapConfigEventParser::parseLink(std::vector<uint32_t>& data, uint32_t start
 
 int TrapConfigEventParser::flushParsingStats()
 {
-  mTrapConfigEventSlot->clearParsingStatus();
+  mTrapConfigEventMessage->clearParsingStatus();
   return 1;
 }
 
@@ -662,7 +571,7 @@ int TrapConfigEventParser::analyseMcmSeen()
 
 bool TrapConfigEventParser::isNewConfig()
 {
-  //  if(mCCDBTrapConfigEvent == mTrapConfigEventSlot) return true;
+  //  if(mCCDBTrapConfigEvent == mTrapConfigEventMessage) return true;
   return false;
 }
 

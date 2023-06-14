@@ -117,7 +117,7 @@ class TrapConfigEventParser
   int flushParsingStats();
   int analyseMaps();
   int analyseMcmSeen();
-  int64_t getConfigSize() { return sizeof(*mTrapConfigEventSlot); };
+  int64_t getConfigSize() { return sizeof(*mTrapConfigEventMessage); };
 
  private:
   uint32_t mCurrentHCID = 0;
@@ -160,11 +160,11 @@ class TrapConfigEventParser
   std::string mTrapConfigEventVersion;
   // TrapConfigEvent mTrapConfigEvent;
   // TrapConfigEvent mCCDBTrapConfigEvent;
-  std::shared_ptr<TrapConfigEventSlot> mTrapConfigEventSlot;
+  //std::shared_ptr<TrapConfigEventMessage> mTrapConfigEventMessage;
   std::shared_ptr<TrapConfigEvent> mTrapConfigEvent;
   // std::shared_ptr<TrapConfigEvent> mCCDBTrapConfigEvent;
   std::array<std::map<uint32_t, uint32_t>, TrapConfigEvent::kLastReg> mTrapRegistersFrequencyMap; // frequency map for values in the respective registers
-  std::map<uint32_t, std::map<uint32_t, uint32_t>> mTrapValueFrequencyMap;                        // count of different value in the registers for a mcm,register used to find most frequent value.
+  //std::map<uint32_t, std::map<uint32_t, uint32_t>> mTrapValueFrequencyMap;                        // count of different value in the registers for a mcm,register used to find most frequent value.   Not needed here, as this is now 1 time frame, it will be used in the aggregator.
   int configcount = 0;
   ClassDefNV(TrapConfigEventParser, 1);
 };

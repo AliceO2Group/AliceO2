@@ -17,10 +17,13 @@
 
 #include "DataFormatsTRD/Constants.h"
 #include "DataFormatsTRD/RawData.h"
+#include "DataFormatsTRD/Digit.h"
 
 #include <string>
 #include <map>
+#include <unordered_map>
 #include <array>
+#include <vector>
 #include <bitset>
 #include <gsl/span>
 
@@ -102,6 +105,21 @@ class TrapRegInfo
   bool mIgnoreChange;       //!< we are not concerned with this value changing for purposes of the differential comparison.
   ClassDefNV(TrapRegInfo, 1);
 };
+
+class MCMEvent
+{
+  public :
+    MCMEvent() = default;
+    //MCMEvent(std::array<uint32_t,kTrapRegistersSize>& data);
+    ~MCMEvent() = default;
+    uint32_t const getMCMId(){return mMCMId;}
+    void setMCMId(const uint32_t mcmid){mMCMId=mcmid;}
+  private:
+    std::array<uint32_t, kTrapRegistersSize> mRegisterData; //!< a block of mcm register data.
+    uint32_t mMCMId;                                        //!< the id of this mcm.
+  ClassDefNV(MCMEvent,1);
+};
+ 
 
 class TrapConfigEvent
 {
@@ -640,19 +658,19 @@ class TrapConfigEvent
   bool ignoreWord(int offset) const { return mWordNumberIgnore.test(offset); }
 
   // required for a container for calibration
-  // void fill(const TrapConfigEvent& input);
-  // void fill(const gsl::span<const TrapConfigEvent> input); // dummy!
-  // void merge(const TrapConfigEvent* prev);
-  // void print();
-  // void reset(){a=0;};
+  void fill(const TrapConfigEvent& input);
+  void fill(const gsl::span<const TrapConfigEvent> input); // dummy!
+  void merge(const TrapConfigEvent* prev);
+  void print();
+  void reset(){a=0;};
 
  private:
+  int a;
   std::array<o2::trd::TrapRegInfo, kLastReg> mTrapRegisters;       //!< store of layout of each block of mTrapRegisterSize, populated via initialiseRegisters
   std::bitset<o2::trd::constants::MAXMCMCOUNT> mMCMPresent{0};     //!< does the mcm actually receive data.
   std::bitset<o2::trd::constants::MAXHALFCHAMBER> mHCIDPresent{0}; //!< did the link actually receive data.
-  // std::array<uint32_t, kTrapRegistersSize * o2::trd::constants::MAXMCMCOUNT> mConfigData; //!< one block of data per mcm.
-  std::array<std::array<uint32_t, kTrapRegistersSize>, o2::trd::constants::MAXMCMCOUNT> mConfigData; //!< one block of data per mcm.
-  std::map<uint16_t, uint16_t> mTrapRegistersAddressIndexMap;                                        //!< map of address into mTrapRegisters, populated at the end of initialiseRegisters
+  std::vector<MCMEvent> mConfigData; //!< one block of data per mcm.
+  std::unique_ptr<std::map<uint16_t, uint16_t>> mTrapRegistersAddressIndexMap;                                        //!< map of address into mTrapRegisters, populated at the end of initialiseRegisters
   std::bitset<kTrapRegistersSize> mWordNumberIgnore;
   void initialiseRegisters();
 
@@ -662,47 +680,21 @@ class TrapConfigEvent
   ClassDefNV(TrapConfigEvent, 1);
 };
 
-class TrapConfigEventSlot : public TrapConfigEvent
-{
-  // This is the class to hold trapconfig events coming from the parser to the aggregator,
-  //
- public:
-  TrapConfigEventSlot() = default;
-  TrapConfigEventSlot(const TrapConfigEventSlot&) = default;
-  ~TrapConfigEventSlot() = default;
-  void reset() { a = 1; };
-  bool addEntry(float deltaAlpha, float impactAngle, int chamberId)
-  {
-    a = 2;
-    return true;
-  }
-  float getHistogramEntry(int index) const { return a; }
-  int getBinCount(int index) const { return a; }
-  size_t getNEntries() const { return a; }
 
-  // required for a container for calibration
-  void fill(const TrapConfigEventSlot& input);
-  void fill(const gsl::span<const TrapConfigEventSlot> input);
-  void merge(const TrapConfigEventSlot* prev);
-  void print();
+//    std::array<std::array<uint32_t, kTrapRegistersSize>, o2::trd::constants::MAXMCMCOUNT> mConfigData; //!< one block of data per mcm.
+//  std::bitset<o2::trd::constants::MAXMCMCOUNT> mMCMPresent{0};     //!< does the mcm actually receive data.
+//  std::bitset<o2::trd::constants::MAXHALFCHAMBER> mHCIDPresent{0}; //!< did the link actually receive data.
 
-  bool isRegisterSeen(int mcmid, int regidx) { return mcmMissedRegister[mcmid].test(regidx); }
-  void setRegisterSeen(int mcmid, int regidx) { mcmMissedRegister[mcmid].set(regidx); }
-  int getMCMParsingStatus(int mcmid) { return mMCMParsingStatus[mcmid]; }
-  void setMCMParsingStatus(int mcmid, int status) { mMCMParsingStatus[mcmid] = status; }
-  void clearParsingStatus() { mMCMParsingStatus.fill(0); }
-  std::map<uint32_t, uint32_t>& getRegisterMapForMCM(int mcmid) { return mTrapRegistersFrequencyMap[mcmid]; }
 
- private:
-  int a;
-  std::array<std::array<uint32_t, o2::trd::constants::MAXMCMCOUNT>, kTrapRegistersSize> mConfigData;     //!< one block of data per mcm.
-  std::array<std::map<uint32_t, uint32_t>, TrapConfigEvent::kLastReg> mTrapRegistersFrequencyMap;        //!< frequency map for values in the respective registers
-  std::map<uint32_t, std::map<uint32_t, uint32_t>> mTrapValueFrequencyMap;                               //!< count of different value in the registers for a mcm,register used to find most frequent value.
+  /*int a;
+  std::array<std::map<uint32_t, uint32_t>, TrapConfigEvent::kLastReg> mTrapRegistersFrequencyMap;      //!< frequency map for values in the respective registers
+  std::map<uint32_t, std::map<uint32_t, uint32_t>> mTrapValueFrequencyMap;                             //!< count of different value in the registers for a mcm,register used to find most frequent value.
   std::array<int, o2::trd::constants::MAXMCMCOUNT> mMCMParsingStatus{0};                                 //!< status of what was found, errors types in the parsing
   std::array<std::bitset<TrapConfigEvent::kLastReg>, o2::trd::constants::MAXMCMCOUNT> mcmMissedRegister; //!< bitpattern of which registers were seen and not seen for a given mcm.
-
-  ClassDefNV(TrapConfigEventSlot, 1);
-};
+  std::vector<MCMEvent> mMCMData;                                                                        //!< incoming event data, it will *always* be a subset of the full trapconfigs, this maps mcmid to mcmregisterdata.
+  std::array<uint32_t, o2::trd::constants::MAXMCMCOUNT> mMCMIndex;                                       //!< incoming event data, index into the mMCMData vector.
+  std::array<uint16_t, o2::trd::constants::MAXMCMCOUNT> mLastRegisterSeen;                               //!< the last register seen for a given mcm, most likely bailed out due to failed parsing.
+  ClassDefNV(TrapConfigEventMessage, 2);*/
 
 }; // namespace o2::trd
 #endif

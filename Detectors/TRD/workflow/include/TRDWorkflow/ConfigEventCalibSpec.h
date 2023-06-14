@@ -12,13 +12,11 @@
 #ifndef O2_TRD_CONFIGEVENTCALIBSPEC_H
 #define O2_TRD_CONFIGEVENTCALIBSPEC_H
 
-/// \file   VdAndExBCalibSpec.h
-/// \brief DPL device for steering the TRD vD and ExB time slot based calibration
-/// \author Ole Schmidt
+/// \file   ConfigEventCalibSpec.h
+/// \brief DPL device for dealing with the configuration events
+/// \author Sean Murray
 
-#include "TRDCalibration/CalibratorConfigEvents.h"
 #include "DetectorsCalibration/Utils.h"
-#include "DataFormatsTRD/TrapConfigEvent.h"
 #include "CommonUtils/MemFileHelper.h"
 #include "Framework/Task.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -28,6 +26,10 @@
 #include "CCDB/CcdbObjectInfo.h"
 #include "Framework/CCDBParamSpec.h"
 #include "DetectorsBase/GRPGeomHelper.h"
+
+#include "TRDCalibration/CalibratorConfigEvents.h"
+#include "DataFormatsTRD/TrapConfigEvent.h"
+
 #include <chrono>
 
 using namespace o2::framework;
@@ -67,10 +69,10 @@ class ConfigEventCalibDevice : public o2::framework::Task
       return;
     }
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-    auto dataAngRes = pc.inputs().get<o2::trd::AngularResidHistos>("input");
+    auto trapConfigEventSlot = pc.inputs().get<o2::trd::TrapConfigEvent>("input");
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
-    LOG(detail) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << dataAngRes.getNEntries() << " AngularResidHistos entries";
-    mCalibrator->process(dataAngRes);
+    LOG(detail) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << trapConfigEventSlot.getNEntries() << " ConfigEventSlot entries";
+    mCalibrator->process(trapConfigEventSlot);
     if (pc.transitionState() == TransitionHandlingState::Requested) {
       LOG(info) << "Run stop requested, finalizing";
       mRunStopRequested = true;
@@ -86,13 +88,13 @@ class ConfigEventCalibDevice : public o2::framework::Task
       return;
     }
     mCalibrator->checkSlotsToFinalize(o2::calibration::INFINITE_TF);
-    mCalibrator->closeOutputFile();
+    mCalibrator->closeFile();
     sendOutput(ec.outputs());
   }
 
   void stop() final
   {
-    mCalibrator->closeOutputFile();
+    mCalibrator->closeFile();
   }
 
  private:
@@ -116,8 +118,8 @@ class ConfigEventCalibDevice : public o2::framework::Task
       LOG(info) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
                 << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
 
-      output.snapshot(Output{clbUtils::gDataOriginCDBPayload, "VDRIFTEXB", i}, *image.get()); // vector<char>
-      output.snapshot(Output{clbUtils::gDataOriginCDBWrapper, "VDRIFTEXB", i}, w);            // root-serialized
+      output.snapshot(Output{clbUtils::gDataOriginCDBPayload, "TRAPCONFIG", i}, *image.get()); // vector<char>
+      output.snapshot(Output{clbUtils::gDataOriginCDBWrapper, "TRAPCONFIGI", i}, w);            // root-serialized
     }
     if (payloadVec.size()) {
       mCalibrator->initOutput(); // reset the outputs once they are already sent

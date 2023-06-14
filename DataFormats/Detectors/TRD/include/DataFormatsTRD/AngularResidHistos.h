@@ -16,6 +16,7 @@
 #define ALICEO2_ANGRESIDHISTOS_H
 
 #include "DataFormatsTRD/Constants.h"
+
 #include "Rtypes.h"
 #include <array>
 #include <gsl/span>
