@@ -590,7 +590,16 @@ static auto forwardInputs = [](ServiceRegistryRef registry, TimesliceSlot slot, 
     auto channel = proxy.getForwardChannel(ChannelIndex{fi});
     LOG(debug) << "Forwarding to " << channel->GetName() << " " << fi;
     // in DPL we are using subchannel 0 only
-    channel->Send(forwardedParts[fi]);
+    auto& parts = forwardedParts[fi];
+    int timeout = 30000;
+    auto res = channel->Send(parts, timeout);
+    if (res == (size_t)fair::mq::TransferCode::timeout) {
+      LOGP(warning, "Timed out sending after {}s. Downstream backpressure detected on {}.", timeout / 1000, channel->GetName());
+      channel->Send(parts);
+      LOGP(info, "Downstream backpressure on {} recovered.", channel->GetName());
+    } else if (res == (size_t)fair::mq::TransferCode::error) {
+      LOGP(fatal, "Error while sending on channel {}", channel->GetName());
+    }
   }
 
   auto& asyncQueue = registry.get<AsyncQueue>();
