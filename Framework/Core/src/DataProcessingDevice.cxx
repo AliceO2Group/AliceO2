@@ -1954,6 +1954,8 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     timingInfo.runNumber = relayer.getRunNumberForSlot(i);
     timingInfo.creation = relayer.getCreationTimeForSlot(i);
     timingInfo.globalRunNumberChanged = !TimingInfo::timesliceIsTimer(timeslice.value) && dataProcessorContext.lastRunNumberProcessed != timingInfo.runNumber;
+    // A switch to runNumber=0 should not appear and thus does not set globalRunNumberChanged, unless it is seen in the first processed timeslice
+    timingInfo.globalRunNumberChanged &= (dataProcessorContext.lastRunNumberProcessed == -1 || timingInfo.runNumber != 0);
     // We report wether or not this timing info refers to a new Run.
     if (timingInfo.globalRunNumberChanged) {
       dataProcessorContext.lastRunNumberProcessed = timingInfo.runNumber;
