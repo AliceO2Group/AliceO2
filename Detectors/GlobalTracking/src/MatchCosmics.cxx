@@ -498,6 +498,9 @@ void MatchCosmics::createSeeds(const o2::globaltracking::RecoContainer& data)
         return true;
       }
       if constexpr (isTPCTrack<decltype(_tr)>()) {
+        if (!this->mMatchParams->allowTPCOnly) {
+          return true;
+        }
         // unconstrained TPC track, with t0 = TrackTPC.getTime0+0.5*(DeltaFwd-DeltaBwd) and terr = 0.5*(DeltaFwd+DeltaBwd) in TimeBins
         t0 *= this->mTPCTBinMUS;
         terr *= this->mTPCTBinMUS;
