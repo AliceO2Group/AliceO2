@@ -36,7 +36,21 @@ void uvErrorCheck(int code)
   if (code != 0) {
     char buf[1000];
     uv_strerror_r(code, buf, 1000);
-    LOG(error) << buf;
+    LOG(error) << "CCDBDownloader: UV error - " << buf;
+  }
+}
+
+void curlEasyErrorCheck(CURLcode code)
+{
+  if (code != CURLE_OK) {
+    LOG(error) << "CCDBDownloader: CURL error - " << curl_easy_strerror(code);
+  }
+}
+
+void curlMultiErrorCheck(CURLMcode code)
+{
+  if (code != CURLM_OK) {
+    LOG(error) << "CCDBDownloader: CURL error - " << curl_multi_strerror(code);
   }
 }
 
@@ -74,14 +88,14 @@ CCDBDownloader::CCDBDownloader(uv_loop_t* uv_loop)
 void CCDBDownloader::initializeMultiHandle()
 {
   mCurlMultiHandle = curl_multi_init();
-  curl_multi_setopt(mCurlMultiHandle, CURLMOPT_SOCKETFUNCTION, handleSocket);
+  curlMultiErrorCheck(curl_multi_setopt(mCurlMultiHandle, CURLMOPT_SOCKETFUNCTION, handleSocket));
   auto socketData = &mSocketData;
   socketData->curlm = mCurlMultiHandle;
   socketData->CD = this;
-  curl_multi_setopt(mCurlMultiHandle, CURLMOPT_SOCKETDATA, socketData);
-  curl_multi_setopt(mCurlMultiHandle, CURLMOPT_TIMERFUNCTION, startTimeout);
-  curl_multi_setopt(mCurlMultiHandle, CURLMOPT_TIMERDATA, mTimeoutTimer);
-  curl_multi_setopt(mCurlMultiHandle, CURLMOPT_MAX_TOTAL_CONNECTIONS, mMaxHandlesInUse);
+  curlMultiErrorCheck(curl_multi_setopt(mCurlMultiHandle, CURLMOPT_SOCKETDATA, socketData));
+  curlMultiErrorCheck(curl_multi_setopt(mCurlMultiHandle, CURLMOPT_TIMERFUNCTION, startTimeout));
+  curlMultiErrorCheck(curl_multi_setopt(mCurlMultiHandle, CURLMOPT_TIMERDATA, mTimeoutTimer));
+  curlMultiErrorCheck(curl_multi_setopt(mCurlMultiHandle, CURLMOPT_MAX_TOTAL_CONNECTIONS, mMaxHandlesInUse));
 }
 
 CCDBDownloader::~CCDBDownloader()
@@ -121,7 +135,7 @@ CCDBDownloader::~CCDBDownloader()
   // delete timer
   // delete mTimeoutTimer; ---> not necessay (done elsewhere??)
 
-  curl_multi_cleanup(mCurlMultiHandle);
+  curlMultiErrorCheck(curl_multi_cleanup(mCurlMultiHandle));
 }
 
 void closeHandles(uv_handle_t* handle, void* arg)
@@ -163,7 +177,9 @@ void CCDBDownloader::closesocketCallback(void* clientp, curl_socket_t item)
       delete (DataForClosingSocket*)timer->data;
     }
     CD->mSocketTimerMap.erase(item);
-    close(item);
+    if (close(item) == -1) {
+      LOG(error) << "CCDBDownloader: Socket failed to close";
+    }
   }
 }
 
@@ -171,6 +187,9 @@ curl_socket_t opensocketCallback(void* clientp, curlsocktype purpose, struct cur
 {
   auto CD = (CCDBDownloader*)clientp;
   auto sock = socket(address->family, address->socktype, address->protocol);
+  if (sock == -1) {
+    LOG(error) << "CCDBDownloader: Socket failed to open";
+  }
 
   CD->mSocketTimerMap[sock] = new uv_timer_t();
   uvErrorCheck(uv_timer_init(CD->mUVLoop, CD->mSocketTimerMap[sock]));
@@ -200,7 +219,9 @@ void CCDBDownloader::closeSocketByTimer(uv_timer_t* handle)
   if (CD->mSocketTimerMap.find(sock) != CD->mSocketTimerMap.end()) {
     uvErrorCheck(uv_timer_stop(CD->mSocketTimerMap[sock]));
     CD->mSocketTimerMap.erase(sock);
-    close(sock);
+    if (close(sock) == -1) {
+      LOG(error) << "CCDBDownloader: Socket failed to close";
+    }
 
     delete data;
   }
@@ -227,7 +248,7 @@ void CCDBDownloader::curlPerform(uv_poll_t* handle, int status, int events)
 
   auto context = (CCDBDownloader::curl_context_t*)handle->data;
 
-  curl_multi_socket_action(context->CD->mCurlMultiHandle, context->sockfd, flags, &running_handles);
+  curlMultiErrorCheck(curl_multi_socket_action(context->CD->mCurlMultiHandle, context->sockfd, flags, &running_handles));
   context->CD->checkMultiInfo();
 }
 
@@ -244,7 +265,7 @@ int CCDBDownloader::handleSocket(CURL* easy, curl_socket_t s, int action, void* 
     case CURL_POLL_INOUT:
 
       curl_context = socketp ? (CCDBDownloader::curl_context_t*)socketp : CD->createCurlContext(s);
-      curl_multi_assign(socketData->curlm, s, (void*)curl_context);
+      curlMultiErrorCheck(curl_multi_assign(socketData->curlm, s, (void*)curl_context));
 
       if (action != CURL_POLL_IN) {
         events |= UV_WRITABLE;
@@ -266,7 +287,7 @@ int CCDBDownloader::handleSocket(CURL* easy, curl_socket_t s, int action, void* 
         }
         uvErrorCheck(uv_poll_stop(((CCDBDownloader::curl_context_t*)socketp)->poll_handle));
         CD->destroyCurlContext((CCDBDownloader::curl_context_t*)socketp);
-        curl_multi_assign(socketData->curlm, s, nullptr);
+        curlMultiErrorCheck(curl_multi_assign(socketData->curlm, s, nullptr));
       }
       break;
     default:
@@ -336,9 +357,9 @@ void CCDBDownloader::transferFinished(CURL* easy_handle, CURLcode curlCode)
 {
   mHandlesInUse--;
   PerformData* data;
-  curl_easy_getinfo(easy_handle, CURLINFO_PRIVATE, &data);
+  curlEasyErrorCheck(curl_easy_getinfo(easy_handle, CURLINFO_PRIVATE, &data));
 
-  curl_multi_remove_handle(mCurlMultiHandle, easy_handle);
+  curlMultiErrorCheck(curl_multi_remove_handle(mCurlMultiHandle, easy_handle));
   *data->codeDestination = curlCode;
 
   // If no requests left then signal finished based on type of operation
@@ -365,7 +386,7 @@ void CCDBDownloader::transferFinished(CURL* easy_handle, CURLcode curlCode)
 
   // Calling timout starts a new download if a new easy_handle was added.
   int running_handles;
-  curl_multi_socket_action(mCurlMultiHandle, CURL_SOCKET_TIMEOUT, 0, &running_handles);
+  curlMultiErrorCheck(curl_multi_socket_action(mCurlMultiHandle, CURL_SOCKET_TIMEOUT, 0, &running_handles));
   checkMultiInfo();
 }
 
@@ -405,12 +426,12 @@ int CCDBDownloader::startTimeout(CURLM* multi, long timeout_ms, void* userp)
 
 void CCDBDownloader::setHandleOptions(CURL* handle, PerformData* data)
 {
-  curl_easy_setopt(handle, CURLOPT_PRIVATE, data);
+  curlEasyErrorCheck(curl_easy_setopt(handle, CURLOPT_PRIVATE, data));
 
-  curl_easy_setopt(handle, CURLOPT_CLOSESOCKETFUNCTION, closesocketCallback);
-  curl_easy_setopt(handle, CURLOPT_CLOSESOCKETDATA, this);
-  curl_easy_setopt(handle, CURLOPT_OPENSOCKETFUNCTION, opensocketCallback);
-  curl_easy_setopt(handle, CURLOPT_OPENSOCKETDATA, this);
+  curlEasyErrorCheck(curl_easy_setopt(handle, CURLOPT_CLOSESOCKETFUNCTION, closesocketCallback));
+  curlEasyErrorCheck(curl_easy_setopt(handle, CURLOPT_CLOSESOCKETDATA, this));
+  curlEasyErrorCheck(curl_easy_setopt(handle, CURLOPT_OPENSOCKETFUNCTION, opensocketCallback));
+  curlEasyErrorCheck(curl_easy_setopt(handle, CURLOPT_OPENSOCKETDATA, this));
 }
 
 void CCDBDownloader::checkHandleQueue()
@@ -420,7 +441,7 @@ void CCDBDownloader::checkHandleQueue()
   if (mHandlesToBeAdded.size() > 0) {
     // Add handles without going over the limit
     while (mHandlesToBeAdded.size() > 0 && mHandlesInUse < mMaxHandlesInUse) {
-      curl_multi_add_handle(mCurlMultiHandle, mHandlesToBeAdded.front());
+      curlMultiErrorCheck(curl_multi_add_handle(mCurlMultiHandle, mHandlesToBeAdded.front()));
       mHandlesInUse++;
       mHandlesToBeAdded.erase(mHandlesToBeAdded.begin());
     }
