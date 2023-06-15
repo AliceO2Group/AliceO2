@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_SIMDATA_MCGENSTATUS_H_
-#define ALICEO2_SIMDATA_MCGENSTATUS_H_
+#ifndef ALICEO2_SIMDATA_MCGENPROPERTIES_H_
+#define ALICEO2_SIMDATA_MCGENPROPERTIES_H_
 
 namespace o2
 {
@@ -75,6 +75,56 @@ inline int getGenStatusCode(int encoded)
 }
 
 } // namespace mcgenstatus
+
+namespace mcgenid
+{
+
+// Define some common properties that can be set for Generators
+class GeneratorProperty
+{
+ public:
+  typedef const char* Property;
+  static constexpr Property GENERATORID{"generator_id"};
+  static constexpr Property GENERATORDESCRIPTION{"generator_description"};
+  static constexpr Property COCKTAILID{"cocktail_id"};
+  static constexpr Property COCKTAILDESCRIPTIONMAP{"gcocktail_description_map"};
+};
+
+// internal structure to allow convenient manipulation of properties as bits on an int to (dis)entangle HepMC and specific generator status codes
+union MCGenIdEncoding {
+  MCGenIdEncoding() : fullEncoding(0) {}
+  MCGenIdEncoding(int enc) : fullEncoding(enc) {}
+  // To be backward-compatible, only set transport to 1 if hepmc status is 1
+  MCGenIdEncoding(int generatorId, int sourceId, int cocktailId = -1) : generatorId(generatorId), sourceId(sourceId), cocktailId(cocktailId) {}
+  short fullEncoding;
+  struct {
+    short generatorId : 5; // an additional identifier for a generator which can be set by the user
+    short sourceId : 5;    // ID used in embedding scenarios
+    short cocktailId : 6;  // reserved bits for future encodings, for instance to identify single cocktail constituents of a generator
+  };
+};
+
+inline short getEncodedGenId(int generatorId, int sourceId, int cocktailId = -1)
+{
+  return MCGenIdEncoding(generatorId, sourceId, cocktailId).fullEncoding;
+}
+
+inline int getGeneratorId(short encoded)
+{
+  return static_cast<int>(MCGenIdEncoding(encoded).generatorId);
+}
+
+inline int getSourceId(short encoded)
+{
+  return static_cast<int>(MCGenIdEncoding(encoded).sourceId);
+}
+
+inline int getCocktailId(short encoded)
+{
+  return static_cast<int>(MCGenIdEncoding(encoded).cocktailId);
+}
+
+} // namespace mcgenid
 
 } // namespace o2
 

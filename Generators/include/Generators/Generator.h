@@ -19,6 +19,7 @@
 #include "Generators/Trigger.h"
 #include <functional>
 #include <vector>
+#include <unordered_map>
 
 namespace o2
 {
@@ -61,12 +62,12 @@ class Generator : public FairGenerator
   Bool_t Init() override;
 
   /** Abstract method ReadEvent must be implemented by any derived class.
-	It has to handle the generation of input tracks (reading from input
-	file) and the handing of the tracks to the FairPrimaryGenerator. I
-	t is called from FairMCApplication.
-	*@param pStack The stack
-	*@return kTRUE if successful, kFALSE if not
-	**/
+  has to handle the generation of input tracks (reading from input
+  file) and the handing of the tracks to the FairPrimaryGenerator. It is
+  called from FairMCApplication.
+  *@param pStack The stack
+  *@return kTRUE if successful, kFALSE if not
+  **/
   Bool_t ReadEvent(FairPrimaryGenerator* primGen) final;
 
   /** methods to override **/
@@ -109,6 +110,13 @@ class Generator : public FairGenerator
   Bool_t boostEvent();
   Bool_t triggerEvent();
 
+  /** to handle cocktail constituents **/
+  void addCocktailConstituent(int cocktailId, std::string const& cocktailDescription)
+  {
+    mCocktailIdToDesc.insert({cocktailId, cocktailDescription});
+  }
+  void notifyCocktailConstituent(int cocktailId) { mCocktailId = cocktailId; }
+
   /** generator interface **/
   void* mInterface = nullptr;
   std::string mInterfaceName;
@@ -136,7 +144,13 @@ class Generator : public FairGenerator
   /** lorentz boost data members **/
   Double_t mBoost;
 
-  ClassDefOverride(Generator, 1);
+ private:
+  void updateCocktailInformation(o2::dataformats::MCEventHeader* header) const;
+
+  std::unordered_map<int, std::string> mCocktailIdToDesc;
+  int mCocktailId = -1;
+
+  ClassDefOverride(Generator, 2);
 
 }; /** class Generator **/
 
