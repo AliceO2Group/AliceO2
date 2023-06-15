@@ -17,6 +17,7 @@
 #include <ITSMFTSimulation/Hit.h>
 
 #include <TRKSimulation/TRKLayer.h>
+#include <TRKSimulation/TRKServices.h>
 #include <TRKBase/GeometryTGeo.h>
 
 #include "TLorentzVector.h"
@@ -62,6 +63,8 @@ class Detector : public o2::base::DetImpl<Detector>
   void configDefault();
   void configFromFile(std::string fileName = "alice3_TRK_layout.txt");
   void configToFile(std::string fileName = "alice3_TRK_layout.txt");
+
+  void configServices(); // To get special conf from CLI options
   void createMaterials();
   void createGeometry();
 
@@ -79,6 +82,7 @@ class Detector : public o2::base::DetImpl<Detector>
 
   std::vector<o2::itsmft::Hit>* mHits; // ITSMFT ones for the moment
   std::vector<TRKLayer> mLayers;
+  TRKServices mServices;
 
   void defineSensitiveVolumes();
 
