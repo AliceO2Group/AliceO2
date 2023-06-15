@@ -2952,62 +2952,120 @@ void V3Services::createAllITSServices(TGeoVolume* mother, const TGeoManager* mgr
   static const Double_t sOBServicesCopperThick = 0.23 * sCm;
   static const Double_t sOBServicesPolymerThick = 3.8 * sCm;
 
-  // Local variables
-  Double_t rmin, rmax, zlen, zpos;
+  static const Double_t sBeamPipeSupportRHole = 28.2 * sMm;
+  static const Double_t sBeamPipeSupportZPos = 182.1 * sCm;
+  static const Double_t sBeamPipeSupportXIB = 32.5 * sCm;
 
-  // The Inner Barrel services as Pcon's
+  // Local variables
+  Double_t rmin, rmax, zlen, xpos, zpos;
+
+  // The hole where the Beam Pipe Support should pass
+  zlen = 0.9 * sOBServicesTotalThick;
+  TGeoTube* obBPSuppHole = new TGeoTube(0, sBeamPipeSupportRHole, zlen);
+  obBPSuppHole->SetName("bpSuppHole");
+
+  // The Outer Barrel services as CompositeShape's (to avoid fake overlaps
+  // with the Beam Pipe Support on Side A) with a Pcon as basic shape
   // Carbon
-  TGeoPcon* ibCarbonSh = new TGeoPcon(0., 360., 3);
+  TGeoPcon* ibCarbonCon = new TGeoPcon(0., 360., 3);
   rmin = sIBServicesR1max - (sIBServicesCarbonThick + 1.8 * 0.462);
-  ibCarbonSh->DefineSection(0, sIBServicesZIn, rmin, sIBServicesR1max);
-  ibCarbonSh->DefineSection(1, sIBServicesZMid, rmin, sIBServicesR1max);
+  ibCarbonCon->DefineSection(0, sIBServicesZIn, rmin, sIBServicesR1max);
+  ibCarbonCon->DefineSection(1, sIBServicesZMid, rmin, sIBServicesR1max);
   rmin = sIBServicesR2max - (sIBServicesCarbonThick + 0.462 / 1.8);
-  ibCarbonSh->DefineSection(2, sIBServicesZOut, rmin, sIBServicesR2max);
+  ibCarbonCon->DefineSection(2, sIBServicesZOut, rmin, sIBServicesR2max);
+  ibCarbonCon->SetName("ibCarbonCon");
+
+  xpos = sBeamPipeSupportXIB;
+  zpos = sBeamPipeSupportZPos;
+  TGeoCombiTrans* ibHoleMatL = new TGeoCombiTrans(xpos, 0, zpos, new TGeoRotation("", 90, 90, -90));
+  ibHoleMatL->SetName("ibHoleMatL");
+  ibHoleMatL->RegisterYourself();
+
+  TGeoCombiTrans* ibHoleMatR = new TGeoCombiTrans(-xpos, 0, zpos, new TGeoRotation("", 90, 90, -90));
+  ibHoleMatR->SetName("ibHoleMatR");
+  ibHoleMatR->RegisterYourself();
+
+  TGeoCompositeShape* ibCarbonSh = new TGeoCompositeShape("ibCarbonCon-bpSuppHole:ibHoleMatL-bpSuppHole:ibHoleMatR");
 
   // Copper
-  TGeoPcon* ibCopperSh = new TGeoPcon(0., 360., 3);
-  rmin = ibCarbonSh->GetRmin(0);
-  rmax = ibCarbonSh->GetRmax(0) - sIBServicesCarbonThick;
-  ibCopperSh->DefineSection(0, sIBServicesZIn, rmin, rmax);
-  ibCopperSh->DefineSection(1, sIBServicesZMid, rmin, rmax);
-  rmin = ibCarbonSh->GetRmin(2);
-  rmax = ibCarbonSh->GetRmax(2) - sIBServicesCarbonThick;
-  ibCopperSh->DefineSection(2, sIBServicesZOut, rmin, rmax);
+  TGeoPcon* ibCopperCon = new TGeoPcon(0., 360., 3);
+  rmin = ibCarbonCon->GetRmin(0);
+  rmax = ibCarbonCon->GetRmax(0) - sIBServicesCarbonThick;
+  ibCopperCon->DefineSection(0, sIBServicesZIn, rmin, rmax);
+  ibCopperCon->DefineSection(1, sIBServicesZMid, rmin, rmax);
+  rmin = ibCarbonCon->GetRmin(2);
+  rmax = ibCarbonCon->GetRmax(2) - sIBServicesCarbonThick;
+  ibCopperCon->DefineSection(2, sIBServicesZOut, rmin, rmax);
+  ibCopperCon->SetName("ibCopperCon");
+
+  TGeoCompositeShape* ibCopperSh = new TGeoCompositeShape("ibCopperCon-bpSuppHole:ibHoleMatL-bpSuppHole:ibHoleMatR");
 
   // Polymer
-  TGeoPcon* ibPolySh = new TGeoPcon(0., 360., 3);
-  rmin = ibCarbonSh->GetRmin(0);
-  rmax = ibCopperSh->GetRmax(0) - sIBServicesCopperThick * 1.8;
-  ibPolySh->DefineSection(0, sIBServicesZIn, rmin, rmax);
-  ibPolySh->DefineSection(1, sIBServicesZMid, rmin, rmax);
-  rmin = ibCopperSh->GetRmin(2);
-  rmax = ibCopperSh->GetRmax(2) - sIBServicesCopperThick / 1.8;
-  ibPolySh->DefineSection(2, sIBServicesZOut, rmin, rmax);
+  TGeoPcon* ibPolyCon = new TGeoPcon(0., 360., 3);
+  rmin = ibCarbonCon->GetRmin(0);
+  rmax = ibCopperCon->GetRmax(0) - sIBServicesCopperThick * 1.8;
+  ibPolyCon->DefineSection(0, sIBServicesZIn, rmin, rmax);
+  ibPolyCon->DefineSection(1, sIBServicesZMid, rmin, rmax);
+  rmin = ibCopperCon->GetRmin(2);
+  rmax = ibCopperCon->GetRmax(2) - sIBServicesCopperThick / 1.8;
+  ibPolyCon->DefineSection(2, sIBServicesZOut, rmin, rmax);
+  ibPolyCon->SetName("ibPolyCon");
+
+  TGeoCompositeShape* ibPolySh = new TGeoCompositeShape("ibPolyCon-bpSuppHole:ibHoleMatL-bpSuppHole:ibHoleMatR");
 
   // Water
-  TGeoPcon* ibWaterSh = new TGeoPcon(0., 360., 3);
-  rmin = ibCarbonSh->GetRmin(0);
-  rmax = ibPolySh->GetRmax(0) - sIBServicesPolymerThick * 1.8;
-  ibWaterSh->DefineSection(0, sIBServicesZIn, rmin, rmax);
-  ibWaterSh->DefineSection(1, sIBServicesZMid, rmin, rmax);
-  rmin = ibPolySh->GetRmin(2);
-  rmax = ibPolySh->GetRmax(2) - sIBServicesPolymerThick / 1.8;
-  ibWaterSh->DefineSection(2, sIBServicesZOut, rmin, rmax);
+  TGeoPcon* ibWaterCon = new TGeoPcon(0., 360., 3);
+  rmin = ibCarbonCon->GetRmin(0);
+  rmax = ibPolyCon->GetRmax(0) - sIBServicesPolymerThick * 1.8;
+  ibWaterCon->DefineSection(0, sIBServicesZIn, rmin, rmax);
+  ibWaterCon->DefineSection(1, sIBServicesZMid, rmin, rmax);
+  rmin = ibPolyCon->GetRmin(2);
+  rmax = ibPolyCon->GetRmax(2) - sIBServicesPolymerThick / 1.8;
+  ibWaterCon->DefineSection(2, sIBServicesZOut, rmin, rmax);
+  ibWaterCon->SetName("ibWaterCon");
 
-  // The Outer Barrel services as Tube's
+  TGeoCompositeShape* ibWaterSh = new TGeoCompositeShape("ibWaterCon-bpSuppHole:ibHoleMatL-bpSuppHole:ibHoleMatR");
+
+  // The Outer Barrel services as CompositeShape's (to avoid fake overlaps
+  // with the Beam Pipe Support on Side A) with a Tube as basic shape
   // Carbon
   rmin = sOBServicesRmax - sOBServicesTotalThick;
   zlen = sOBServicesZOut - sOBServicesZIn;
-  TGeoTube* obCarbonSh = new TGeoTube(rmin, sOBServicesRmax, zlen / 2);
+  TGeoTube* obCarbonTub = new TGeoTube(rmin, sOBServicesRmax, zlen / 2);
+  obCarbonTub->SetName("obCarbonTub");
 
+  xpos = (rmin + sOBServicesRmax) / 2;
+  zpos = sBeamPipeSupportZPos - (sOBServicesZIn + zlen / 2);
+  TGeoCombiTrans* obHoleMatL = new TGeoCombiTrans(xpos, 0, zpos, new TGeoRotation("", 90, 90, -90));
+  obHoleMatL->SetName("obHoleMatL");
+  obHoleMatL->RegisterYourself();
+
+  TGeoCombiTrans* obHoleMatR = new TGeoCombiTrans(-xpos, 0, zpos, new TGeoRotation("", 90, 90, -90));
+  obHoleMatR->SetName("obHoleMatR");
+  obHoleMatR->RegisterYourself();
+
+  TGeoCompositeShape* obCarbonSh = new TGeoCompositeShape("obCarbonTub-bpSuppHole:obHoleMatL-bpSuppHole:obHoleMatR");
+
+  // Copper
   rmax = sOBServicesRmax - sOBServicesCarbonThick;
-  TGeoTube* obCopperSh = new TGeoTube(rmin, rmax, zlen / 2);
+  TGeoTube* obCopperTub = new TGeoTube(rmin, rmax, zlen / 2);
+  obCopperTub->SetName("obCopperTub");
 
+  TGeoCompositeShape* obCopperSh = new TGeoCompositeShape("obCopperTub-bpSuppHole:obHoleMatL-bpSuppHole:obHoleMatR");
+
+  // Polymer
   rmax -= sOBServicesCopperThick;
-  TGeoTube* obPolySh = new TGeoTube(rmin, rmax, zlen / 2);
+  TGeoTube* obPolyTub = new TGeoTube(rmin, rmax, zlen / 2);
+  obPolyTub->SetName("obPolyTub");
 
+  TGeoCompositeShape* obPolySh = new TGeoCompositeShape("obPolyTub-bpSuppHole:obHoleMatL-bpSuppHole:obHoleMatR");
+
+  // Water
   rmax -= sOBServicesPolymerThick;
-  TGeoTube* obWaterSh = new TGeoTube(rmin, rmax, zlen / 2);
+  TGeoTube* obWaterTub = new TGeoTube(rmin, rmax, zlen / 2);
+  obWaterTub->SetName("obWaterTub");
+
+  TGeoCompositeShape* obWaterSh = new TGeoCompositeShape("obWaterTub-bpSuppHole:obHoleMatL-bpSuppHole:obHoleMatR");
 
   // We have all shapes: now create the real volumes
   TGeoMedium* medCarbon = mgr->GetMedium(Form("%s_C4SERVICES$", GetDetName()));

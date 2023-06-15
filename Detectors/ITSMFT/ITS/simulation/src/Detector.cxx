@@ -508,6 +508,12 @@ void Detector::createMaterials()
   Float_t wPoly[2] = {0.857, .143};
   Float_t dPoly = 0.9;
 
+  // Vespel for Beam Pipe Support (same definition of Polyimide in Pipe.cxx)
+  Float_t aVesp[4] = {16., 14., 12., 1.};
+  Float_t zVesp[4] = {8., 7., 6., 1.};
+  Float_t wVesp[4] = {5., 2., 22., 10.};
+  Float_t dVesp = 1.42;
+
   o2::base::Detector::Mixture(1, "AIR$", aAir, zAir, dAir, 4, wAir);
   o2::base::Detector::Medium(1, "AIR$", 1, 0, ifield, fieldm, tmaxfdAir, stemaxAir, deemaxAir, epsilAir, stminAir);
 
@@ -632,6 +638,14 @@ void Detector::createMaterials()
   // Titanium
   o2::base::Detector::Material(35, "TITANIUM$", 47.867, 22, 4.506, 999, 999);
   o2::base::Detector::Medium(35, "TITANIUM$", 35, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+
+  // Carbon-Fiber-Reinforced Polymer
+  o2::base::Detector::Material(43, "CFRP$", 12.01, 6, 1.55, 999, 999);
+  o2::base::Detector::Medium(43, "CFRP$", 43, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+
+  // Vespel for Beam Pipe Support
+  o2::base::Detector::Mixture(44, "VESPEL$", aVesp, zVesp, dVesp, -4, wVesp);
+  o2::base::Detector::Medium(44, "VESPEL$", 44, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
 
   // Carbon for ITS services
   o2::base::Detector::Material(41, "C4SERVICES$", 12.01, 6, 1.75, 999, 999);
