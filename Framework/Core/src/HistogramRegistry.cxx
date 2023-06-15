@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/HistogramRegistry.h"
+#include "TClass.h"
 #include <regex>
 #include <TList.h>
 
