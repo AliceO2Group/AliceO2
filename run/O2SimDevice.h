@@ -23,6 +23,7 @@
 #include "TVirtualMC.h"
 #include "TMessage.h"
 #include <DetectorsBase/Stack.h>
+#include <DetectorsBase/VMCSeederService.h>
 #include <SimulationDataFormat/PrimaryChunk.h>
 #include <TRandom.h>
 #include <SimConfig/SimConfig.h>
@@ -257,6 +258,7 @@ class O2SimDevice final : public fair::mq::Device
                       << "part " << info.part << "/" << info.nparts;
             LOG(info) << workerStr() << " Setting seed for this sub-event to " << chunk->mSubEventInfo.seed;
             gRandom->SetSeed(chunk->mSubEventInfo.seed);
+            o2::base::VMCSeederService::instance().setSeed();
 
             // Process one event
             auto& conf = o2::conf::SimConfig::Instance();
