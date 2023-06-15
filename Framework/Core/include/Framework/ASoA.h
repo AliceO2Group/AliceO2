@@ -2757,7 +2757,7 @@ class FilteredBase : public T
       uint64_t offset = 0;
       std::shared_ptr<arrow::Table> result = nullptr;
       auto status = container.getSliceFor(value, this->asArrowTable(), result, offset);
-      if (offset >= this->tableSize()) {
+      if (offset >= static_cast<uint64_t>(this->tableSize())) {
         self_t fresult{{result}, SelectionVector{}, 0}; // empty slice
         this->copyIndexBindings(fresult);
         return fresult;
@@ -2976,7 +2976,7 @@ class Filtered : public FilteredBase<T>
   {
     auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
     auto [offset, count] = localCache.getSliceFor(value);
-    auto slice = this->asArrowTable()->Slice(static_cast<uint64_t>(offset), count);
+    auto slice = this->asArrowTable()->Slice(offset, count);
     if (offset >= this->tableSize()) {
       self_t fresult{{slice}, SelectionVector{}, 0}; // empty slice
       this->copyIndexBindings(fresult);
@@ -2991,7 +2991,7 @@ class Filtered : public FilteredBase<T>
                    [&start](int64_t idx) {
                      return idx - static_cast<int64_t>(start);
                    });
-    self_t fresult{{slice}, std::move(slicedSelection), start};
+    self_t fresult{{slice}, std::move(slicedSelection), static_cast<uint64_t>(start)};
     this->copyIndexBindings(fresult);
     return fresult;
   }
