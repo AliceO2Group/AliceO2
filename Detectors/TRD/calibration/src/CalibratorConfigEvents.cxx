@@ -65,8 +65,8 @@ void CalibratorConfigEvents::retrievePrev(o2::framework::ProcessingContext& pc)
 {
   // We either get a pointer to a valid object from the last ~hour or to the default object
   // which is always present. The first has precedence over the latter.
-  auto mTrapConfigEvent = pc.inputs().get<o2::trd::TrapConfigEvent*>("trapconfigevent");
-  LOG(info) << "Calibrator: From CCDB retrieved " << mTrapConfigEvent->getConfigVersion();
+  auto mTrapConfigEvent = pc.inputs().get<o2::trd::TrapConfigEventTimeSlot*>("trapconfigevent");
+  LOG(info) << "Calibrator: From CCDB retrieved ";// << mTrapConfigEvent->getConfigVersion();
 }
 
 bool CalibratorConfigEvents::hasEnoughData(const Slot& slot) const
@@ -81,7 +81,7 @@ bool CalibratorConfigEvents::hasEnoughData(const Slot& slot) const
   auto container = slot.getContainer();
   bool timereached = 0;
   if (mSaveAllChanges) {
-    return 1;
+    return true;
   } else {
     // case b:
     //  we just care about the time taken since the beginning.

@@ -69,10 +69,11 @@ class ConfigEventCalibDevice : public o2::framework::Task
       return;
     }
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-    auto trapConfigEventSlot = pc.inputs().get<o2::trd::TrapConfigEvent>("input");
+    auto /*trd::TrapConfigEvent*/ trapConfigEvent = pc.inputs().get<gsl::span<o2::trd::TrapConfigEvent>>("input");
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
-    LOG(detail) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << trapConfigEventSlot.getNEntries() << " ConfigEventSlot entries";
-    mCalibrator->process(trapConfigEventSlot);
+    LOG(detail) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << trapConfigEvent.getNEntries() << " ConfigEventSlot entries";
+    trd::TrapConfigEventTimeSlot mtrapconfigeventtimeslot;
+    mCalibrator->process(mtrapconfigeventtimeslot);
     if (pc.transitionState() == TransitionHandlingState::Requested) {
       LOG(info) << "Run stop requested, finalizing";
       mRunStopRequested = true;
@@ -118,8 +119,8 @@ class ConfigEventCalibDevice : public o2::framework::Task
       LOG(info) << "Sending object " << w.getPath() << "/" << w.getFileName() << " of size " << image->size()
                 << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
 
-      output.snapshot(Output{clbUtils::gDataOriginCDBPayload, "TRAPCONFIG", i}, *image.get()); // vector<char>
-      output.snapshot(Output{clbUtils::gDataOriginCDBWrapper, "TRAPCONFIGI", i}, w);            // root-serialized
+      output.snapshot(Output{clbUtils::gDataOriginCDBPayload, "TRAPEVT", i}, *image.get()); // vector<char>
+      output.snapshot(Output{clbUtils::gDataOriginCDBWrapper, "TRAPEVTI", i}, w);            // root-serialized
     }
     if (payloadVec.size()) {
       mCalibrator->initOutput(); // reset the outputs once they are already sent
@@ -138,9 +139,10 @@ DataProcessorSpec getTRDConfigEventCalibSpec()
   using clbUtils = o2::calibration::Utils;
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "CONFEVT"}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TRAPEVT"}, Lifetime::Sporadic);
   std::vector<InputSpec> inputs;
   inputs.emplace_back("input", "TRD", "TRDCFG");
+  inputs.emplace_back("calconfig", "TRD", "CALCONFIG", 0, Lifetime::Condition, ccdbParamSpec("TRD/TrapConfigEvent"));
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
                                                                 true,                           // GRPECS=true
                                                                 false,                          // GRPLHCIF
@@ -154,8 +156,8 @@ DataProcessorSpec getTRDConfigEventCalibSpec()
     outputs,
     AlgorithmSpec{adaptFromTask<device>(ccdbRequest)},
     Options{
-      {"sec-per-slot", VariantType::UInt32, 900u, {"number of seconds per calibration time slot"}},
-      {"max-delay", VariantType::UInt32, 2u, {"number of slots in past to consider"}},
+      {"min-to-accumulate", VariantType::Int16, 15, {"time to accumulate config events before we check ccdb for a difference."}},
+      {"enable-store-all", VariantType::Bool, false, {"store all the intermediate values"}},
       {"enable-root-output", VariantType::Bool, false, {"output tprofiles and fits to root file"}},
     }};
 }
