@@ -578,7 +578,10 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
         int maxRead = 1000;
         while (maxRead-- > 0) {
           fair::mq::Parts parts;
-          device->Receive(parts, channel, 0, waitTime);
+          auto res = device->Receive(parts, channel, 0, waitTime);
+          if (res == (size_t)fair::mq::TransferCode::error) {
+            LOGP(error, "Error while receiving on channel {}", channel);
+          }
           // Populate TimingInfo from the first message
           unsigned int nReceived = parts.Size();
           if (nReceived != 0) {
