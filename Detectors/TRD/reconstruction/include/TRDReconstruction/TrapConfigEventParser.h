@@ -118,8 +118,8 @@ class TrapConfigEventParser
   int analyseMaps();
   int analyseMcmSeen();
   int64_t getConfigSize() { return sizeof(*mTrapConfigEvent); };
-  void setMCMParsingStatus(uint32_t mcmid, int status){ mMcmParsingStatus[mcmid]=status;}                     // no end
-  int getMCMParsingStatus(uint32_t mcmid){ return mMcmParsingStatus[mcmid];}                     // no end
+  void setMCMParsingStatus(uint32_t mcmid, int status) { mMcmParsingStatus[mcmid] = status; } // no end
+  int getMCMParsingStatus(uint32_t mcmid) { return mMcmParsingStatus[mcmid]; }                // no end
 
  private:
   uint32_t mCurrentHCID = 0;
@@ -161,7 +161,7 @@ class TrapConfigEventParser
   std::string mTrapConfigEventVersion;
   // TrapConfigEvent mTrapConfigEvent;
   // TrapConfigEvent mCCDBTrapConfigEvent;
-  //std::shared_ptr<TrapConfigEventMessage> mTrapConfigEventMessage;
+  // std::shared_ptr<TrapConfigEventMessage> mTrapConfigEventMessage;
   std::shared_ptr<TrapConfigEvent> mTrapConfigEvent;
   // std::shared_ptr<TrapConfigEvent> mCCDBTrapConfigEvent;
   std::array<std::map<uint32_t, uint32_t>, TrapConfigEvent::kLastReg> mTrapRegistersFrequencyMap; // frequency map for values in the respective registers

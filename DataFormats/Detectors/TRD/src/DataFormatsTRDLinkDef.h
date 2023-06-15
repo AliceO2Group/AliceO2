@@ -42,7 +42,7 @@
 #pragma link C++ class o2::trd::TrapRegInfo + ;
 #pragma link C++ class o2::trd::TrapConfigEvent + ;
 #pragma link C++ class o2::trd::TrapConfigEventTimeSlot + ;
-#pragma link C++ class std::vector < int > +;
+#pragma link C++ class std::vector < int> + ;
 #pragma link C++ class std::vector < o2::trd::Tracklet64> + ;
 #pragma link C++ class std::vector < o2::trd::CalibratedTracklet> + ;
 #pragma link C++ class std::vector < o2::trd::TrackTriggerRecord> + ;
@@ -55,10 +55,10 @@
 #pragma link C++ class std::vector < o2::trd::KrClusterTriggerRecord> + ;
 #pragma link C++ class std::vector < o2::trd::TrapConfigEvent> + ;
 #pragma link C++ class std::vector < o2::trd::TrapConfigEventTimeSlot> + ;
-#pragma link C++ class std::map <uint16_t, uint16_t> +;
-//#pragma link C++ class  std::unordered_map<int, MCMEvent> + ;
-//#pragma link C++ class std::vector < o2::trd::MCMEvent> + ;
-//#pragma link C++ class o2::trd::MCMEvent + ;
+#pragma link C++ class std::map < uint16_t, uint16_t> + ;
+// #pragma link C++ class  std::unordered_map<int, MCMEvent> + ;
+// #pragma link C++ class std::vector < o2::trd::MCMEvent> + ;
+// #pragma link C++ class o2::trd::MCMEvent + ;
 
 #pragma link C++ struct o2::trd::CTFHeader + ;
 #pragma link C++ struct o2::trd::CTF + ;

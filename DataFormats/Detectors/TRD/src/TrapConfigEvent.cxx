@@ -514,12 +514,12 @@ bool TrapConfigEvent::setRegisterValue(uint32_t data, uint32_t regidx, int mcmid
     return false;
   }
   int mcmoffset = 0;                                                    // mcmidx * kTrapRegistersSize;                          // get the start offset for this mcm
-  if(mConfigDataIndex[mcmidx]==-1){
+  if (mConfigDataIndex[mcmidx] == -1) {
     // we dont have this register in the data store yet.
     mConfigData.emplace_back(mcmidx);
-    mConfigDataIndex[mcmidx]=mConfigData.size()-1;
+    mConfigDataIndex[mcmidx] = mConfigData.size() - 1;
   }
-  int regbase = mTrapRegisters[regidx].getBase();           // get the base of this register in the underlying storage block
+  int regbase = mTrapRegisters[regidx].getBase();                       // get the base of this register in the underlying storage block
   int regoffset = regbase + mTrapRegisters[regidx].getDataWordNumber(); // get the offset to the register in question
   data &= mTrapRegisters[regidx].getMask();                             // mask the data off as need be.
   uint32_t notdatamask = ~(mTrapRegisters[regidx].getMask() << mTrapRegisters[regidx].getShift());
@@ -906,4 +906,3 @@ void TrapConfigEvent::fill(const gsl::span<const TrapConfigEvent> input)
 {
   LOGP(info, " fill called for TrapConfigEvent {} {} {}", __FILE__, __func__, __LINE__);
 }
-

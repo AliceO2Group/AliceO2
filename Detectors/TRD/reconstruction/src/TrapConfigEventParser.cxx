@@ -86,7 +86,7 @@ bool TrapConfigEventParser::checkRegister(uint32_t& registeraddr, uint32_t& regi
       if (registeraddr != mTrapConfigEvent.get()->getRegAddrByIdx(mRegistersReadForCurrentMCM)) {
         // if (registeraddr != std::get<1>(TrapRegisterMap[mRegistersReadForCurrentMCM]))
         mRegisterErrorGap += abs((int)mRegistersReadForCurrentMCM - (int)newregidx) + 1; // +1 as reg index is zero based.
-        setMCMParsingStatus(mCurrentMCMID, 3);                     // no end
+        setMCMParsingStatus(mCurrentMCMID, 3);                                           // no end
         LOGP(debug, " get mTrapConfigEvent.get()->getRegNameByAddr( {:08x} ) at func:{} line:{}", registeraddr, __func__, __LINE__);
         auto tmpnamebyaddr = mTrapConfigEvent.get()->getRegNameByAddr(registeraddr);
         LOGP(debug, " got mTrapConfigEvent.get()->getRegNameByAddr( {:08x} ) at func:{} line:{}", registeraddr, __func__, __LINE__);
@@ -242,7 +242,7 @@ int TrapConfigEventParser::parseSingleData(std::vector<uint32_t>& data, uint32_t
           LOGP(warn, "assumed corrupted data as register data is greater than the mask : {:08x} for max {:08x} registername : {} regaddress : {}", regdata, regmax, mTrapConfigEvent.get()->getRegNameByIdx(mRegistersReadForCurrentMCM - 1), registeraddr);
         } else {
           mTrapRegistersFrequencyMap[mRegistersReadForCurrentMCM - 1][regdata]++;
-          //TODO move to calibrator mTrapValueFrequencyMap[mCurrentMCMID * TrapConfigEvent::kLastReg + mRegistersReadForCurrentMCM - 1].insert(std::make_pair(regdata, 1)); // count of different value in the registers for a mcm,register used to find probably value.
+          // TODO move to calibrator mTrapValueFrequencyMap[mCurrentMCMID * TrapConfigEvent::kLastReg + mRegistersReadForCurrentMCM - 1].insert(std::make_pair(regdata, 1)); // count of different value in the registers for a mcm,register used to find probably value.
         }
         // TODO this is not saving it to the CCDBConfig at all !
         //   if(mTrapConfigEvent.get()->getRegNameByIdx(mRegistersReadForCurrentMCM-1) == "ADCMSK"){
@@ -324,21 +324,21 @@ int TrapConfigEventParser::parseBlockData(std::vector<uint32_t>& data, uint32_t 
       }
       if (mCurrentMCMID < o2::trd::constants::MAXMCMCOUNT && mRegistersReadForCurrentMCM < TrapConfigEvent::kLastReg) {
         LOGP(debug, "Adding block register {:09x} [{:08x}] name: {}  for mcm {} mCurrentRegisterWordsCount {} mRegistersReadForCurrentMCM {} regindex {} header {:08x} with badreg:{}", registeraddr, registerdata, mTrapConfigEvent.get()->getRegNameByAddr(registeraddr), mCurrentMCMID, mCurrentRegisterWordsCount, mRegistersReadForCurrentMCM, idx, header, badreg);
-       // auto index=mConfigDataIndex[mCurrentMCMID];//
-      //  if (mTrapConfigEvent->mConfigData[index].mRegisterData[mRegistersReadForCurrentMCM] != registerdata) {
-          //this was if (mCurrentMCMRegisters[mCurrentMCMID * TrapConfigEvent::kLastReg + mRegistersReadForCurrentMCM] != registerdata) {
-          if (mRegistersReadForCurrentMCM > 0) {
-            mTrapConfigEvent.get()->setRegisterValueByIdx(registerdata, mRegistersReadForCurrentMCM - 1, mCurrentMCMID);
-            // mMCMCurrentEvent[mCurrentMCMID]++; // registers seen for this mcm
-            auto regdata = registerdata; // mTrapConfigEventMessage.get()->getRegisterValueByIdx(mRegistersReadForCurrentMCM-1,mcmid);
-            auto regmax = mTrapConfigEvent.get()->getRegisterMax(mRegistersReadForCurrentMCM - 1);
-            if (regdata > regmax) {
-              LOGP(warn, "{} assumed corrupted data as register data is greater than the mask : {:08x} for max {:08x} registername : {} regaddress : {}", __LINE__, regdata, regmax, mTrapConfigEvent.get()->getRegNameByIdx(mRegistersReadForCurrentMCM - 1), registeraddr);
-            } else {
-              mTrapRegistersFrequencyMap[mRegistersReadForCurrentMCM - 1][regdata]++;
-             // mTrapValueFrequencyMap[mCurrentMCMID * TrapConfigEvent::kLastReg + mRegistersReadForCurrentMCM - 1][regdata]++;                         // count of different value in the registers for a mcm,register used to find probably value.
-             // mTrapValueFrequencyMap[mCurrentMCMID * TrapConfigEvent::kLastReg + mRegistersReadForCurrentMCM - 1].insert(std::make_pair(regdata, 1)); // count of different value in the registers for a mcm,register used to find probably value.
-            }
+        // auto index=mConfigDataIndex[mCurrentMCMID];//
+        //  if (mTrapConfigEvent->mConfigData[index].mRegisterData[mRegistersReadForCurrentMCM] != registerdata) {
+        // this was if (mCurrentMCMRegisters[mCurrentMCMID * TrapConfigEvent::kLastReg + mRegistersReadForCurrentMCM] != registerdata) {
+        if (mRegistersReadForCurrentMCM > 0) {
+          mTrapConfigEvent.get()->setRegisterValueByIdx(registerdata, mRegistersReadForCurrentMCM - 1, mCurrentMCMID);
+          // mMCMCurrentEvent[mCurrentMCMID]++; // registers seen for this mcm
+          auto regdata = registerdata; // mTrapConfigEventMessage.get()->getRegisterValueByIdx(mRegistersReadForCurrentMCM-1,mcmid);
+          auto regmax = mTrapConfigEvent.get()->getRegisterMax(mRegistersReadForCurrentMCM - 1);
+          if (regdata > regmax) {
+            LOGP(warn, "{} assumed corrupted data as register data is greater than the mask : {:08x} for max {:08x} registername : {} regaddress : {}", __LINE__, regdata, regmax, mTrapConfigEvent.get()->getRegNameByIdx(mRegistersReadForCurrentMCM - 1), registeraddr);
+          } else {
+            mTrapRegistersFrequencyMap[mRegistersReadForCurrentMCM - 1][regdata]++;
+            // mTrapValueFrequencyMap[mCurrentMCMID * TrapConfigEvent::kLastReg + mRegistersReadForCurrentMCM - 1][regdata]++;                         // count of different value in the registers for a mcm,register used to find probably value.
+            // mTrapValueFrequencyMap[mCurrentMCMID * TrapConfigEvent::kLastReg + mRegistersReadForCurrentMCM - 1].insert(std::make_pair(regdata, 1)); // count of different value in the registers for a mcm,register used to find probably value.
+          }
           }
         } else {
           LOGP(debug, "if statement failed for currentmcmregister {:08x}  registerdata {:08x}", mRegistersReadForCurrentMCM, registerdata);
@@ -352,14 +352,14 @@ int TrapConfigEventParser::parseBlockData(std::vector<uint32_t>& data, uint32_t 
           // this handles the gaps in registers, where it might be good (1) before and after the gap, but this should stay with status of gap.
           setMCMParsingStatus(mCurrentMCMID, 1);
         }
-     // } else {
-    //    LOGP(warn, "if (mCurrentMCMRegisters[mCurrentMCMID * kLastReg + mRegistersReadForCurrentMCM] != registerdata mCurrentMCMID:{} kLastReg:{} mRegistersReadForCurrentMCM:{} mCurrentMCMRegisters[mCurrentMCMID*kLastReg+mRegistersReadForCurrentMCM]=={} != {}", mCurrentMCMID, TrapConfigEvent::kLastReg, mRegistersReadForCurrentMCM, mCurrentMCMRegisters[mCurrentMCMID * TrapConfigEvent::kLastReg + mRegistersReadForCurrentMCM], registerdata);
-     // }
-      registeraddr += step;
-      header = header >> bwidth; // this is not used for the bwidth=31 case
-      if (idx >= end) {
-        LOGP(error, "no end markermore data, {} words read Config parsing getting out due to end of data at line : {}", idx, __LINE__);
-        return false;
+        // } else {
+        //    LOGP(warn, "if (mCurrentMCMRegisters[mCurrentMCMID * kLastReg + mRegistersReadForCurrentMCM] != registerdata mCurrentMCMID:{} kLastReg:{} mRegistersReadForCurrentMCM:{} mCurrentMCMRegisters[mCurrentMCMID*kLastReg+mRegistersReadForCurrentMCM]=={} != {}", mCurrentMCMID, TrapConfigEvent::kLastReg, mRegistersReadForCurrentMCM, mCurrentMCMRegisters[mCurrentMCMID * TrapConfigEvent::kLastReg + mRegistersReadForCurrentMCM], registerdata);
+        // }
+        registeraddr += step;
+        header = header >> bwidth; // this is not used for the bwidth=31 case
+        if (idx >= end) {
+          LOGP(error, "no end markermore data, {} words read Config parsing getting out due to end of data at line : {}", idx, __LINE__);
+          return false;
       }
     }
   } else {
@@ -524,21 +524,21 @@ int TrapConfigEventParser::analyseMaps()
   //
   // std::array<std::map<uint32_t, uint32_t>, TrapConfigEvent::kLastReg> mTrapRegistersFrequencyMap;
   // this is moved to Calibrator when processing the timeslots.
-/*  if (configcount > 8) {
-    uint oldmcm = 0;
-    for (auto& valuemap : mTrapValueFrequencyMap) {
-      LOGP(debug, "ZZZ1 valuemap.second.size():{} ", valuemap.second.size());
+  /*  if (configcount > 8) {
+      uint oldmcm = 0;
+      for (auto& valuemap : mTrapValueFrequencyMap) {
+        LOGP(debug, "ZZZ1 valuemap.second.size():{} ", valuemap.second.size());
 
-      for (const auto& elem : valuemap.second) {
-        uint64_t mcmidreg = valuemap.first;
-        uint64_t mcmid = mcmidreg / TrapConfigEvent::kLastReg;
-        uint64_t regid = mcmidreg - mcmid * TrapConfigEvent::kLastReg;
-        LOGP(debug, "ZZZ mcm:{} reg:{} mcmidreg:{} mcmid*lastreg:{} value:{} count:{}", mcmid, regid, mcmidreg, mcmid * TrapConfigEvent::kLastReg, elem.first, elem.second);
+        for (const auto& elem : valuemap.second) {
+          uint64_t mcmidreg = valuemap.first;
+          uint64_t mcmid = mcmidreg / TrapConfigEvent::kLastReg;
+          uint64_t regid = mcmidreg - mcmid * TrapConfigEvent::kLastReg;
+          LOGP(debug, "ZZZ mcm:{} reg:{} mcmidreg:{} mcmid*lastreg:{} value:{} count:{}", mcmid, regid, mcmidreg, mcmid * TrapConfigEvent::kLastReg, elem.first, elem.second);
+        }
       }
     }
-  }
-  configcount++;
-  */
+    configcount++;
+    */
   return 1;
 }
 

@@ -120,7 +120,7 @@ class ConfigEventCalibDevice : public o2::framework::Task
                 << " bytes, valid for " << w.getStartValidityTimestamp() << " : " << w.getEndValidityTimestamp();
 
       output.snapshot(Output{clbUtils::gDataOriginCDBPayload, "TRAPEVT", i}, *image.get()); // vector<char>
-      output.snapshot(Output{clbUtils::gDataOriginCDBWrapper, "TRAPEVTI", i}, w);            // root-serialized
+      output.snapshot(Output{clbUtils::gDataOriginCDBWrapper, "TRAPEVTI", i}, w);           // root-serialized
     }
     if (payloadVec.size()) {
       mCalibrator->initOutput(); // reset the outputs once they are already sent
