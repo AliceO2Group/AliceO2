@@ -102,8 +102,8 @@ class Digitizer
 
   const SimCondition* getSimCondition() const { return mSimCondition; }
   const ModuleConfig* getModuleConfig() const { return mModuleConfig; }
-  void setSimCondition(const SimCondition* cfg) { mSimCondition=cfg; }
-  void setModuleConfig(const ModuleConfig* cfg) { mModuleConfig=cfg; }
+  void setSimCondition(const SimCondition* cfg) { mSimCondition = cfg; }
+  void setModuleConfig(const ModuleConfig* cfg) { mModuleConfig = cfg; }
 
   void setContinuous(bool v = true) { mIsContinuous = v; }
   bool isContinuous() const { return mIsContinuous; }
