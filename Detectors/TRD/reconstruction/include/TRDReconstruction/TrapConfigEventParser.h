@@ -117,7 +117,9 @@ class TrapConfigEventParser
   int flushParsingStats();
   int analyseMaps();
   int analyseMcmSeen();
-  int64_t getConfigSize() { return sizeof(*mTrapConfigEventMessage); };
+  int64_t getConfigSize() { return sizeof(*mTrapConfigEvent); };
+  void setMCMParsingStatus(uint32_t mcmid, int status){ mMcmParsingStatus[mcmid]=status;}                     // no end
+  int getMCMParsingStatus(uint32_t mcmid){ return mMcmParsingStatus[mcmid];}                     // no end
 
  private:
   uint32_t mCurrentHCID = 0;
@@ -135,8 +137,7 @@ class TrapConfigEventParser
   uint32_t mOffsetToRegister = 0;
   //  std::map<int, std::tuple<std::string, int, int>> TrapRegisterMap_addr;
   // std::array<int, 0xe000> mTrapRegistersAddressIndex; // index by address into mTrapRegisters.
-  // std::array<int, o2::trd::constants::MAXMCMCOUNT> mMcmParsingStatus{0};                                  // status of what was found, errors types in the parsing
-  std::array<uint32_t, o2::trd::constants::MAXMCMCOUNT * TrapConfigEvent::kLastReg> mCurrentMCMRegisters; // store the registers for all the mcm registers.
+  std::array<int, o2::trd::constants::MAXMCMCOUNT> mMcmParsingStatus{0};                                  // status of what was found, errors types in the parsing
                                                                                                           //  std::array<uint32_t, o2::trd::constants::MAXHALFCHAMBER> mHalfChamberLastSeen;                          // timestamp
                                                                                                           //  std::array<uint32_t, o2::trd::constants::MAXHALFCHAMBER> mHalfChamberSeenSinceLastWritten;              // timestamp
                                                                                                           //  std::array<uint32_t, o2::trd::constants::MAXHALFCHAMBER> mHalfChamberFrequencyInAccumulation;           // frequency in accumulation period.
@@ -164,7 +165,7 @@ class TrapConfigEventParser
   std::shared_ptr<TrapConfigEvent> mTrapConfigEvent;
   // std::shared_ptr<TrapConfigEvent> mCCDBTrapConfigEvent;
   std::array<std::map<uint32_t, uint32_t>, TrapConfigEvent::kLastReg> mTrapRegistersFrequencyMap; // frequency map for values in the respective registers
-  //std::map<uint32_t, std::map<uint32_t, uint32_t>> mTrapValueFrequencyMap;                        // count of different value in the registers for a mcm,register used to find most frequent value.   Not needed here, as this is now 1 time frame, it will be used in the aggregator.
+  std::map<uint32_t, std::map<uint32_t, uint32_t>> mTrapValueFrequencyMap;                        // count of different value in the registers for a mcm,register used to find most frequent value.   Not needed here, as this is now 1 time frame, it will be used in the aggregator.
   int configcount = 0;
   ClassDefNV(TrapConfigEventParser, 1);
 };

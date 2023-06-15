@@ -40,7 +40,7 @@ using namespace o2::trd::constants;
 namespace o2::trd
 {
 
-using Slot = o2::calibration::TimeSlot<o2::trd::CalibratorConfigEvents>;
+using Slot = o2::calibration::TimeSlot<o2::trd::TrapConfigEventTimeSlot>;
 
 void CalibratorConfigEvents::initOutput()
 {
@@ -126,11 +126,11 @@ void CalibratorConfigEvents::finalizeSlot(Slot& slot)
   // mCCDBObjext is already filled.
 }
 
-o2::calibration::TimeSlot<o2::trd::TrapConfigEventSlot>& CalibratorConfigEvents::emplaceNewSlot(bool front, TFType tStart, TFType tEnd)
+o2::calibration::TimeSlot<o2::trd::TrapConfigEventTimeSlot>& CalibratorConfigEvents::emplaceNewSlot(bool front, TFType tStart, TFType tEnd)
 {
   auto& container = getSlots();
   auto& slot = front ? container.emplace_front(tStart, tEnd) : container.emplace_back(tStart, tEnd);
-  slot.setContainer(std::make_unique<o2::trd::TrapConfigEventSlot>());
+  slot.setContainer(std::make_unique<o2::trd::TrapConfigEventTimeSlot>());
   return slot;
 }
 

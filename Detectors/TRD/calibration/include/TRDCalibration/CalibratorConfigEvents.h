@@ -36,9 +36,9 @@
 namespace o2::trd
 {
 
-class CalibratorConfigEvents final : public o2::calibration::TimeSlotCalibration<o2::trd::TrapConfigEventSlot>
+class CalibratorConfigEvents final : public o2::calibration::TimeSlotCalibration<o2::trd::TrapConfigEventTimeSlot>
 {
-  using Slot = o2::calibration::TimeSlot<o2::trd::TrapConfigEventSlot>;
+  using Slot = o2::calibration::TimeSlot<o2::trd::TrapConfigEventTimeSlot>;
 
  public:
   CalibratorConfigEvents() = default;
@@ -53,7 +53,7 @@ class CalibratorConfigEvents final : public o2::calibration::TimeSlotCalibration
 
   void closeFile();
 
-  const std::vector<o2::trd::TrapConfigEventSlot>& getCcdbObjectVector() const { return mObjectVector; }
+  const std::vector<o2::trd::TrapConfigEventTimeSlot>& getCcdbObjectVector() const { return mObjectVector; }
   std::vector<o2::ccdb::CcdbObjectInfo>& getCcdbObjectInfoVector() { return mInfoVector; }
 
   void initProcessing();
@@ -73,8 +73,8 @@ class CalibratorConfigEvents final : public o2::calibration::TimeSlotCalibration
   o2::ccdb::CcdbObjectInfo mCCDBInfo;                                ///< CCDB infos filled with CCDB description of accompanying CCDB calibration object
   o2::trd::TrapConfigEvent mCCDBObject;                              ///< CCDB calibration  object of TrapConfigEvent
   std::vector<o2::ccdb::CcdbObjectInfo> mInfoVector;                 ///< vector of CCDB infos; each element is filled with CCDB description of accompanying CCDB calibration object
-  std::vector<o2::trd::TrapConfigEventSlot> mObjectVector;           ///< vector of CCDB calibration objects waiting to be merged
-  std::map<uint32_t, std::map<uint32_t, uint32_t>> mTrapValueFrequencyMap; //!< count of different value in the registers for a mcm,register used to find most frequent value.
+  std::vector<o2::trd::TrapConfigEventTimeSlot> mObjectVector;       ///< vector of CCDB calibration objects waiting to be merged
+  std::map<uint32_t, std::map<uint32_t, uint32_t>> mTrapValueFrequencyMap; //!< count of different value in the registers for a mcm,register used to find most frequent value for then collapsing into the TrapConfigEvent.
   ClassDefOverride(CalibratorConfigEvents, 1);
 };
 

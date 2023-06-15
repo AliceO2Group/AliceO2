@@ -26,6 +26,7 @@
 #include <fairlogger/Logger.h>
 
 #include <array>
+#include <map>
 
 using namespace o2::trd;
 
@@ -481,7 +482,7 @@ void TrapConfigEvent::initialiseRegisters()
   for (int reg = 0; reg < kLastReg; ++reg) {
     // reindex to speed things up, this time by address, map instead of a rather large lookup table.
     auto addr = mTrapRegisters[reg].getAddr();
-    mTrapRegistersAddressIndexMap[addr] = reg;
+    mTrapRegistersAddressIndexMap.get()->at(addr) = reg;
     // build index of wordnumbers, to speed up comparisons.
     // this indexes ::  [raw block offset:ignorechange]
     auto wordnumber = mTrapRegisters[reg].getWordNumber();
@@ -501,7 +502,7 @@ uint32_t TrapConfigEvent::getRegisterValue(const uint32_t regidx, const int mcmi
   int mcmoffset = 0;                                                                   // mcmidx * kTrapRegistersSize;                                 // get the start offset for this mcm
   int regbase = mcmoffset + mTrapRegisters[regidx].getBase();                          // get the base of this register in the underlying storage block
   int regoffset = regbase + mTrapRegisters[regidx].getDataWordNumber();                // get the offset to the register in question
-  uint32_t data = mConfigData[mcmidx][regoffset] >> mTrapRegisters[regidx].getShift(); // get the data and shift it as needed
+  uint32_t data = mConfigData[mcmidx].mRegisterData[regoffset] >> mTrapRegisters[regidx].getShift(); // get the data and shift it as needed
   data &= mTrapRegisters[regidx].getMask();                                            // mask the data off as need be.
   LOGP(info, " returning data of {:08x}", data);
   return data;
@@ -513,17 +514,18 @@ bool TrapConfigEvent::setRegisterValue(uint32_t data, uint32_t regidx, int mcmid
     return false;
   }
   int mcmoffset = 0;                                                    // mcmidx * kTrapRegistersSize;                          // get the start offset for this mcm
-  if(mMCMIndex[mcmidx]==-1){
+  if(mConfigDataIndex[mcmidx]==-1){
     // we dont have this register in the data store yet.
-    mConfigData[mcmidx].
+    mConfigData.emplace_back(mcmidx);
+    mConfigDataIndex[mcmidx]=mConfigData.size()-1;
   }
-  int regbase = mcmoffset + mTrapRegisters[regidx].getBase();           // get the base of this register in the underlying storage block
+  int regbase = mTrapRegisters[regidx].getBase();           // get the base of this register in the underlying storage block
   int regoffset = regbase + mTrapRegisters[regidx].getDataWordNumber(); // get the offset to the register in question
   data &= mTrapRegisters[regidx].getMask();                             // mask the data off as need be.
   uint32_t notdatamask = ~(mTrapRegisters[regidx].getMask() << mTrapRegisters[regidx].getShift());
   data = data << mTrapRegisters[regidx].getShift();
-  mConfigData[mcmidx][regoffset] = mConfigData[mcmidx][regoffset] & notdatamask;
-  mConfigData[mcmidx][regoffset] = mConfigData[mcmidx][regoffset] | data;
+  mConfigData[mcmidx].mRegisterData[regoffset] = mConfigData[mcmidx].mRegisterData[regoffset] & notdatamask;
+  mConfigData[mcmidx].mRegisterData[regoffset] = mConfigData[mcmidx].mRegisterData[regoffset] | data;
   return true;
 }
 
@@ -569,38 +571,12 @@ bool TrapConfigEvent::setRegisterValueByName(uint32_t data, const std::string& r
   }
   return setRegisterValueByIdx(data, index, mcmidx);
 }
-/*
-uint32_t TrapConfigEvent::getRegisterValueByIdx(uint32_t regidx, int sector, int stack, int layer, int rob, int mcm)
-{
-  int mcmidx = HelperMethods::getMCMId(sector, stack, layer, rob, mcm);
-  LOGP(info, "mcmidx {} in getRegisterValueByIdx({},{},{},{},{}", mcmidx, sector, stack, layer, rob, mcm);
-  return getRegisterValueByIdx(regidx, mcmidx);
-}
 
-uint32_t TrapConfigEvent::getRegisterValueByAddr(uint32_t regaddr, int sector, int stack, int layer, int rob, int mcm)
-{
-  int mcmidx = HelperMethods::getMCMId(sector, stack, layer, rob, mcm);
-  return getRegisterValueByAddr(regaddr, mcmidx);
-}
-
-uint32_t TrapConfigEvent::getRegisterValueByIdx(uint32_t regidx, int detector, int rob, int mcm)
-{
-  int mcmidx = detector * o2::trd::constants::NROBC1 * o2::trd::constants::NMCMROB + rob * o2::trd::constants::NROBC1 + mcm;
-  return getRegisterValueByIdx(regidx, mcmidx);
-}
-
-uint32_t TrapConfigEvent::getRegisterValueByAddr(uint32_t regaddr, int detector, int rob, int mcm)
-{
-  // TODO put this calculation in helpermethods
-  int mcmidx = detector * o2::trd::constants::NROBC1 * o2::trd::constants::NMCMROB + rob * o2::trd::constants::NROBC1 + mcm;
-  return getRegisterValueByAddr(regaddr, mcmidx);
-}
-*/
 std::string TrapConfigEvent::getRegNameByAddr(uint16_t addr)
 {
   std::string name = "";
-  if (auto search = mTrapRegistersAddressIndexMap.find(addr); search != mTrapRegistersAddressIndexMap.end()) {
-    name = mTrapRegisters.at(mTrapRegistersAddressIndexMap[addr]).getName();
+  if (auto search = mTrapRegistersAddressIndexMap.get()->find(addr); search != mTrapRegistersAddressIndexMap.get()->end()) {
+    name = mTrapRegisters.at(mTrapRegistersAddressIndexMap.get()->at(addr)).getName();
   }
   return name;
 }
@@ -617,15 +593,15 @@ std::string TrapConfigEvent::getRegNameByIdx(unsigned int regidx)
 int32_t TrapConfigEvent::getRegIndexByAddr(unsigned int addr)
 {
   if (isValidAddress(addr)) {
-    return mTrapRegistersAddressIndexMap[addr];
+    return mTrapRegistersAddressIndexMap.get()->at(addr);
   } else
     return -1;
 }
 
 bool TrapConfigEvent::isValidAddress(uint32_t addr)
 {
-  auto search = mTrapRegistersAddressIndexMap.find(addr);
-  return (search != mTrapRegistersAddressIndexMap.end());
+  auto search = mTrapRegistersAddressIndexMap.get()->find(addr);
+  return (search != mTrapRegistersAddressIndexMap.get()->end());
 }
 
 int32_t TrapConfigEvent::getRegIndexByName(const std::string& name)
@@ -807,7 +783,7 @@ bool TrapConfigEvent::operator==(const TrapConfigEvent& rhs)
   for (int mcm = 0; mcm < max; ++mcm) {
     for (int rawoffset = 0; rawoffset < kTrapRegistersSize; ++rawoffset) {
       if (!ignoreWord(rawoffset)) { // we do indeed care if this register is different.
-        if (mConfigData[mcm][rawoffset] != rhs.mConfigData[mcm][rawoffset]) {
+        if (mConfigData[mcm].mRegisterData[rawoffset] != rhs.mConfigData[mcm].mRegisterData[rawoffset]) {
           return false;
         }
       }
@@ -930,3 +906,4 @@ void TrapConfigEvent::fill(const gsl::span<const TrapConfigEvent> input)
 {
   LOGP(info, " fill called for TrapConfigEvent {} {} {}", __FILE__, __func__, __LINE__);
 }
+

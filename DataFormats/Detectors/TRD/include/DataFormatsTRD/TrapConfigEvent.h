@@ -106,20 +106,34 @@ class TrapRegInfo
   ClassDefNV(TrapRegInfo, 1);
 };
 
-class MCMEvent
-{
-  public :
-    MCMEvent() = default;
-    //MCMEvent(std::array<uint32_t,kTrapRegistersSize>& data);
-    ~MCMEvent() = default;
-    uint32_t const getMCMId(){return mMCMId;}
-    void setMCMId(const uint32_t mcmid){mMCMId=mcmid;}
-  private:
-    std::array<uint32_t, kTrapRegistersSize> mRegisterData; //!< a block of mcm register data.
-    uint32_t mMCMId;                                        //!< the id of this mcm.
+struct MCMEvent
+{//TODO add comments 
+  MCMEvent() = default;
+  MCMEvent(int mcmid){setMCMId(mcmid);}
+  //MCMEvent(std::array<uint32_t,kTrapRegistersSize>& data);
+  ~MCMEvent() = default;
+  uint32_t const getMCMId(){return mMCMId;}
+  void setMCMId(const uint32_t mcmid){mMCMId=mcmid;}
+  std::array<uint32_t, kTrapRegistersSize> mRegisterData; //!< a block of mcm register data.
+  uint32_t mMCMId;                                        //!< the id of this mcm.
   ClassDefNV(MCMEvent,1);
 };
  
+class TrapConfigEventTimeSlot
+{
+  public :
+    TrapConfigEventTimeSlot() = default;
+    ~TrapConfigEventTimeSlot() = default;
+    std::array<std::array<uint32_t,kTrapRegistersSize>,constants::MAXHALFCHAMBER> mConfigData;
+    std::bitset<constants::MAXHALFCHAMBER> mMCMPresent;
+  // required for a container for calibration
+  void fill(const TrapConfigEventTimeSlot& input){a=0;};
+  void fill(const gsl::span<const TrapConfigEventTimeSlot> input){a=0;} // dummy!
+  void merge(const TrapConfigEventTimeSlot* prev){a=0;};
+  void print(){a=0;};
+  void reset(){a=0;};
+  int a;
+};
 
 class TrapConfigEvent
 {
@@ -580,13 +594,6 @@ class TrapConfigEvent
   uint32_t getRegisterValueByName(const std::string& name, int mcmidx);
   bool setRegisterValueByName(uint32_t data, const std::string& regname, int mcmidx);
 
-  // get a config register value by index, addr, and name, via sector/stack/layer/rob/mcm
-  // no setters for sector/stack/layer/rob/mcm as writing, we only write from retrieved config events.
-  // uint32_t getRegisterValueByIdx(uint32_t regix, int sector, int stack, int layer, int rob, int mcm);
-  // uint32_t getRegisterValueByAddr(uint32_t regaddr, int sector, int stack, int layer, int rob, int mcm);
-  // uint32_t getRegisterValueByIdx(uint32_t regix, int detector, int rob, int mcm);
-  // uint32_t getRegisterValueByAddr(uint32_t regaddr, int detector, int rob, int mcm);
-
   // get a registers name by addres and index;
   std::string getRegNameByAddr(uint16_t addr);
   std::string getRegNameByIdx(unsigned int regidx);
@@ -663,13 +670,14 @@ class TrapConfigEvent
   void merge(const TrapConfigEvent* prev);
   void print();
   void reset(){a=0;};
-
+  int getRegisterBase(int reg){return mTrapRegisters[reg].getBase();}
  private:
   int a;
-  std::array<o2::trd::TrapRegInfo, kLastReg> mTrapRegisters;       //!< store of layout of each block of mTrapRegisterSize, populated via initialiseRegisters
-  std::bitset<o2::trd::constants::MAXMCMCOUNT> mMCMPresent{0};     //!< does the mcm actually receive data.
-  std::bitset<o2::trd::constants::MAXHALFCHAMBER> mHCIDPresent{0}; //!< did the link actually receive data.
-  std::vector<MCMEvent> mConfigData; //!< one block of data per mcm.
+  std::array<TrapRegInfo, kLastReg> mTrapRegisters;       //!< store of layout of each block of mTrapRegisterSize, populated via initialiseRegisters
+  std::bitset<constants::MAXMCMCOUNT> mMCMPresent{0};     //!< does the mcm actually receive data.
+  std::bitset<constants::MAXHALFCHAMBER> mHCIDPresent{0}; //!< did the link actually receive data.
+  std::vector<MCMEvent> mConfigData;                      //!< vector of register data blocks
+  std::array<int32_t,constants::MAXHALFCHAMBER> mConfigDataIndex{-1}; //!< one block of data per mcm.
   std::unique_ptr<std::map<uint16_t, uint16_t>> mTrapRegistersAddressIndexMap;                                        //!< map of address into mTrapRegisters, populated at the end of initialiseRegisters
   std::bitset<kTrapRegistersSize> mWordNumberIgnore;
   void initialiseRegisters();
