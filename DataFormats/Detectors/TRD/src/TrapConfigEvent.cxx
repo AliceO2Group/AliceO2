@@ -32,6 +32,7 @@ using namespace o2::trd;
 
 TrapConfigEvent::TrapConfigEvent()
 {
+  mConfigDataIndex.fill(-1);         //!< one block of data per mcm.
   initialiseRegisters();
   setConfigSavedVersion(2);
 }
@@ -39,6 +40,7 @@ TrapConfigEvent::TrapConfigEvent()
 TrapConfigEvent::TrapConfigEvent(const TrapConfigEvent& A)
 {
   LOGP(info, "TrapConfigEvent Copy Constructor Called   .....");
+  mConfigDataIndex.fill(-1);         //!< one block of data per mcm.
 }
 
 void TrapConfigEvent::initialiseRegisters()
@@ -478,15 +480,18 @@ void TrapConfigEvent::initialiseRegisters()
   mTrapRegisters[kNCUT].init("NCUT", 0x0D4C, 32, 148, 0, false, 32);
   mTrapRegisters[kPASACHM].init("PASACHM", 0x315C, 32, 149, 0, false, 19);
   // mTrapRegisters[kSMCMD].init("SMCMD", 0x0A04, 16, 0x0000);
-
+LOGP(info, " finished initing registers now to build the map : ");
+  //mTrapRegistersAddressIndexMap = std::make_unique<std::map<uint16_t, uint16_t>>();
   for (int reg = 0; reg < kLastReg; ++reg) {
     // reindex to speed things up, this time by address, map instead of a rather large lookup table.
+  //  LOGP(info, "building map and on register {}", reg);
     auto addr = mTrapRegisters[reg].getAddr();
-    mTrapRegistersAddressIndexMap.get()->at(addr) = reg;
+    mTrapRegistersAddressIndexMap[addr] = reg;
     // build index of wordnumbers, to speed up comparisons.
     // this indexes ::  [raw block offset:ignorechange]
     auto wordnumber = mTrapRegisters[reg].getWordNumber();
     mWordNumberIgnore.set(wordnumber) = mTrapRegisters[reg].getIgnoreChange();
+ // LOGP(info," in {} {} {} ",__FILE__,__func__,__LINE__);
   }
   // build index of wordnumbers, to speed up comparisons.
 }
@@ -502,7 +507,7 @@ uint32_t TrapConfigEvent::getRegisterValue(const uint32_t regidx, const int mcmi
   int mcmoffset = 0;                                                                   // mcmidx * kTrapRegistersSize;                                 // get the start offset for this mcm
   int regbase = mcmoffset + mTrapRegisters[regidx].getBase();                          // get the base of this register in the underlying storage block
   int regoffset = regbase + mTrapRegisters[regidx].getDataWordNumber();                // get the offset to the register in question
-  uint32_t data = mConfigData[mcmidx].mRegisterData[regoffset] >> mTrapRegisters[regidx].getShift(); // get the data and shift it as needed
+  uint32_t data = mConfigData[mConfigDataIndex[mcmidx]].mRegisterData[regoffset] >> mTrapRegisters[regidx].getShift(); // get the data and shift it as needed
   data &= mTrapRegisters[regidx].getMask();                                            // mask the data off as need be.
   LOGP(info, " returning data of {:08x}", data);
   return data;
@@ -519,13 +524,14 @@ bool TrapConfigEvent::setRegisterValue(uint32_t data, uint32_t regidx, int mcmid
     mConfigData.emplace_back(mcmidx);
     mConfigDataIndex[mcmidx] = mConfigData.size() - 1;
   }
+  uint32_t index= mConfigDataIndex[mcmidx];
   int regbase = mTrapRegisters[regidx].getBase();                       // get the base of this register in the underlying storage block
   int regoffset = regbase + mTrapRegisters[regidx].getDataWordNumber(); // get the offset to the register in question
   data &= mTrapRegisters[regidx].getMask();                             // mask the data off as need be.
   uint32_t notdatamask = ~(mTrapRegisters[regidx].getMask() << mTrapRegisters[regidx].getShift());
   data = data << mTrapRegisters[regidx].getShift();
-  mConfigData[mcmidx].mRegisterData[regoffset] = mConfigData[mcmidx].mRegisterData[regoffset] & notdatamask;
-  mConfigData[mcmidx].mRegisterData[regoffset] = mConfigData[mcmidx].mRegisterData[regoffset] | data;
+  mConfigData[index].mRegisterData[regoffset] = mConfigData[index].mRegisterData[regoffset] & notdatamask;
+  mConfigData[index].mRegisterData[regoffset] = mConfigData[index].mRegisterData[regoffset] | data;
   return true;
 }
 
@@ -575,8 +581,8 @@ bool TrapConfigEvent::setRegisterValueByName(uint32_t data, const std::string& r
 std::string TrapConfigEvent::getRegNameByAddr(uint16_t addr)
 {
   std::string name = "";
-  if (auto search = mTrapRegistersAddressIndexMap.get()->find(addr); search != mTrapRegistersAddressIndexMap.get()->end()) {
-    name = mTrapRegisters.at(mTrapRegistersAddressIndexMap.get()->at(addr)).getName();
+  if (auto search = mTrapRegistersAddressIndexMap.find(addr); search != mTrapRegistersAddressIndexMap.end()) {
+    name = mTrapRegisters.at(mTrapRegistersAddressIndexMap[addr]).getName();
   }
   return name;
 }
@@ -593,15 +599,15 @@ std::string TrapConfigEvent::getRegNameByIdx(unsigned int regidx)
 int32_t TrapConfigEvent::getRegIndexByAddr(unsigned int addr)
 {
   if (isValidAddress(addr)) {
-    return mTrapRegistersAddressIndexMap.get()->at(addr);
+    return mTrapRegistersAddressIndexMap[addr];
   } else
     return -1;
 }
 
 bool TrapConfigEvent::isValidAddress(uint32_t addr)
 {
-  auto search = mTrapRegistersAddressIndexMap.get()->find(addr);
-  return (search != mTrapRegistersAddressIndexMap.get()->end());
+  auto search = mTrapRegistersAddressIndexMap.find(addr);
+  return (search != mTrapRegistersAddressIndexMap.end());
 }
 
 int32_t TrapConfigEvent::getRegIndexByName(const std::string& name)
@@ -741,7 +747,7 @@ uint32_t TrapConfigEvent::getTrapReg(uint32_t index, int detector, int rob, int 
   return data;
 }
 
-bool TrapConfigEvent::operator==(const TrapConfigEvent& rhs)
+bool TrapConfigEvent::isConfigDifferent(const TrapConfigEvent& trapconfigevent)
 {
   // is other different from this.
   // v1 walk through all 32 bit ints and compare, ignore the internals, ones to ignore are 32 bit themselves.
@@ -751,11 +757,11 @@ bool TrapConfigEvent::operator==(const TrapConfigEvent& rhs)
   // start with the biggest granularity and work down.
   // compare hcid in the 2.
   // this would be simpler with != but that is removed in c++20
-  if (getHCIDPresent() == rhs.getHCIDPresent()) {
-    // we can continue the bitpattern of half chambers is the same.
+  if (getHCIDPresent() == trapconfigevent.getHCIDPresent()) {
+    // we can continue if the bitpattern of half chambers is the same.
   } else {
     for (int hcid = 0; hcid < constants::MAXHALFCHAMBER; ++hcid) {
-      if (isHCIDPresent(hcid) == 0 && rhs.isHCIDPresent(hcid) == 1) {
+      if (isHCIDPresent(hcid) == 0 && trapconfigevent.isHCIDPresent(hcid) == 1) {
         // it is not in the ccdb but now is present, this is a change and needs to be saved.
         LOGP(info, " hcid {} is present in new but not in ccdb version", hcid);
         return false;
@@ -765,11 +771,11 @@ bool TrapConfigEvent::operator==(const TrapConfigEvent& rhs)
       // 2. present in ccdb but not in current one.
     }
   }
-  if (getMCMPresent() == rhs.getMCMPresent()) {
+  if (getMCMPresent() == trapconfigevent.getMCMPresent()) {
     // we can continue the bit pattern of mcm in the config are the same
   } else {
     for (int mcmid = 0; mcmid < constants::MAXMCMCOUNT; ++mcmid) {
-      if (isMCMPresent(mcmid) == 0 && rhs.isMCMPresent(mcmid) == 1) {
+      if (isMCMPresent(mcmid) == 0 && trapconfigevent.isMCMPresent(mcmid) == 1) {
         // it is not in the ccdb but now is present, this is a change and needs to be saved.
         return false;
       }
@@ -783,7 +789,7 @@ bool TrapConfigEvent::operator==(const TrapConfigEvent& rhs)
   for (int mcm = 0; mcm < max; ++mcm) {
     for (int rawoffset = 0; rawoffset < kTrapRegistersSize; ++rawoffset) {
       if (!ignoreWord(rawoffset)) { // we do indeed care if this register is different.
-        if (mConfigData[mcm].mRegisterData[rawoffset] != rhs.mConfigData[mcm].mRegisterData[rawoffset]) {
+        if (mConfigData[mcm].mRegisterData[rawoffset] != trapconfigevent.mConfigData[mcm].mRegisterData[rawoffset]) {
           return false;
         }
       }
@@ -906,3 +912,36 @@ void TrapConfigEvent::fill(const gsl::span<const TrapConfigEvent> input)
 {
   LOGP(info, " fill called for TrapConfigEvent {} {} {}", __FILE__, __func__, __LINE__);
 }
+
+
+
+void TrapConfigEventTimeSlot::fill(const TrapConfigEventTimeSlot& input)
+{ 
+  a = 0;
+  LOGP(info," in {} {} {} ",__FILE__,__func__,__LINE__);
+};
+void TrapConfigEventTimeSlot::fill(const TrapConfigEvent& input)
+{
+  //  unpack a partial config event from 
+  LOGP(info," in {} {} {} ",__FILE__,__func__,__LINE__);
+};
+  void TrapConfigEventTimeSlot::fill(const gsl::span<const TrapConfigEventTimeSlot> input)
+{
+  a = 0;
+  LOGP(info," in {} {} {} ",__FILE__,__func__,__LINE__);
+} // dummy!
+  void TrapConfigEventTimeSlot::merge(const TrapConfigEventTimeSlot* prev)
+{
+  a = 0;
+  LOGP(info," in {} {} {} ",__FILE__,__func__,__LINE__);
+};
+  void TrapConfigEventTimeSlot::print()
+{
+  a = 0;
+  LOGP(info," in {} {} {} ",__FILE__,__func__,__LINE__);
+};
+  void TrapConfigEventTimeSlot::reset()
+{
+  a = 0; 
+  LOGP(info," in {} {} {} ",__FILE__,__func__,__LINE__);
+};

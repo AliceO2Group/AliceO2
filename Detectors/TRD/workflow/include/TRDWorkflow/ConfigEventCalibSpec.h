@@ -71,7 +71,7 @@ class ConfigEventCalibDevice : public o2::framework::Task
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     auto /*trd::TrapConfigEvent*/ trapConfigEvent = pc.inputs().get<gsl::span<o2::trd::TrapConfigEvent>>("input");
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
-    LOG(detail) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << trapConfigEvent.getNEntries() << " ConfigEventSlot entries";
+    LOG(detail) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with ";// << trapConfigEvent.getNEntries() << " ConfigEventSlot entries";
     trd::TrapConfigEventTimeSlot mtrapconfigeventtimeslot;
     mCalibrator->process(mtrapconfigeventtimeslot);
     if (pc.transitionState() == TransitionHandlingState::Requested) {

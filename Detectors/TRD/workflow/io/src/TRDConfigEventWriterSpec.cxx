@@ -16,6 +16,7 @@
 #include "DPLUtils/MakeRootTreeWriterSpec.h"
 #include "Framework/InputSpec.h"
 #include "DataFormatsTRD/TrapConfigEvent.h"
+#include "DataFormatsTRD/Digit.h"
 #include "TRDWorkflowIO/TRDConfigEventWriterSpec.h"
 
 namespace o2
@@ -37,7 +38,7 @@ o2::framework::DataProcessorSpec getTRDConfigEventWriterSpec()
                                 "trdconfigevents.root",
                                 "o2sim",
                                 // setting a custom callback for closing the writer
-                                BranchDefinition<o2::trd::TrapConfigEvent>{InputSpec{"trapconfig", o2::header::gDataOriginTRD, "TRDCFG"}, "ConfigEvent"})();
+                                BranchDefinition<o2::trd::Digit>{InputSpec{"trapconfig", o2::header::gDataOriginTRD, "TRDCFG"}, "ConfigEvent"})();
 }
 
 } // end namespace trd

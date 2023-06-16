@@ -628,7 +628,7 @@ class TrapConfigEvent
   const uint32_t getConfigName() const { return mTrapConfigEventNumber; }                  // these must be gotten from git or wingdb.
   const uint16_t getConfigSavedVersion() const { return mTrapConfigEventSavedVersion; }    // the version that is saved, for the ability to later save the config differently.
 
-  bool operator==(const TrapConfigEvent& rhs);
+  bool isConfigDifferent(const TrapConfigEvent& trapconfigevent);
 
   // for compliance with the same interface to o2::trd::TrapConfigEvent and its run1/2 inherited interface:
   // only these 2 are used in the simulations.
@@ -661,8 +661,8 @@ class TrapConfigEvent
   std::bitset<constants::MAXMCMCOUNT> mMCMPresent{0};                          //!< does the mcm actually receive data.
   std::bitset<constants::MAXHALFCHAMBER> mHCIDPresent{0};                      //!< did the link actually receive data.
   std::vector<MCMEvent> mConfigData;                                           //!< vector of register data blocks
-  std::array<int32_t, constants::MAXHALFCHAMBER> mConfigDataIndex{-1};         //!< one block of data per mcm.
-  std::unique_ptr<std::map<uint16_t, uint16_t>> mTrapRegistersAddressIndexMap; //!< map of address into mTrapRegisters, populated at the end of initialiseRegisters
+  std::array<int32_t, constants::MAXMCMCOUNT> mConfigDataIndex{-1};         //!< one block of data per mcm.
+ std::map<uint16_t, uint16_t> mTrapRegistersAddressIndexMap; //!< map of address into mTrapRegisters, populated at the end of initialiseRegisters
   std::bitset<kTrapRegistersSize> mWordNumberIgnore;
   void initialiseRegisters();
 
@@ -679,14 +679,13 @@ class TrapConfigEventTimeSlot
   ~TrapConfigEventTimeSlot() = default;
   std::array<std::array<uint32_t, kTrapRegistersSize>, constants::MAXHALFCHAMBER> mConfigData;
   //  std::bitset<constants::MAXHALFCHAMBER> mMCMPresent;
-  // required for a container for calibration
-  void fill(const TrapConfigEventTimeSlot& input) { a = 0; };
-  void fill(const TrapConfigEvent& input) { a = 0; };
-  void fill(const gsl::span<const TrapConfigEventTimeSlot> input) { a = 0; } // dummy!
-                                                                             //  void fill(const gsl::span<const TrapConfigEvent> input){a=0;} // dummy!
-  void merge(const TrapConfigEventTimeSlot* prev) { a = 0; };
-  void print() { a = 0; };
-  void reset() { a = 0; };
+  // required for a container for calibratio
+  void fill(const TrapConfigEventTimeSlot& input);
+  void fill(const TrapConfigEvent& input);
+  void fill(const gsl::span<const TrapConfigEventTimeSlot> input);
+  void merge(const TrapConfigEventTimeSlot* prev);
+  void print();
+  void reset();
   uint16_t getNEntries() { return a; }
   int a;
 };
