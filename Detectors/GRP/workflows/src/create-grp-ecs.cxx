@@ -153,6 +153,8 @@ int createGRPECSObject(const std::string& dataPeriod,
         std::map<std::string, std::string> mdRCT;
         mdRCT["SOR"] = std::to_string(tstart);
         mdRCT["EOR"] = std::to_string(tend);
+        mdRCT["SOX"] = std::to_string(tstartCTP);
+        mdRCT["EOX"] = std::to_string(tendCTP);
         long startValRCT = (long)run;
         long endValRCT = (long)(run + 1);
         retValRCT = api.storeAsBinaryFile(&tempChar, sizeof(tempChar), "tmp.dat", "char", "RCT/Info/RunInformation", mdRCT, startValRCT, endValRCT);
