@@ -15,6 +15,7 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/CompilerBuiltins.h"
 #include "Framework/Logger.h"
+#include "Framework/TimingInfo.h"
 
 #include <cassert>
 #include <regex>
@@ -201,24 +202,56 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAny(const char* name, Compl
   auto callback = [](InputSpan const& inputs, std::vector<InputSpec> const& specs) -> CompletionPolicy::CompletionOp {
     bool canConsume = false;
     bool hasConditions = false;
+    bool conditionMissing = false;
+    size_t timeslice = -1;
+    static size_t timesliceOK = -1; // FIXME: This breaks start/stop/start, since it must be reset!
+                                    // FIXME: Also, this just checks the max timeslice that was already consumed.
+                                    // In case timeslices do not come in order, we might have consumed a later
+                                    // condition object, but not the one for the current time slice.
+                                    // But I don't see any possibility to handle this in a better way.
+
     // Iterate on all specs and all inputs simultaneously
     for (size_t i = 0; i < inputs.size(); ++i) {
       char const* header = inputs.header(i);
       auto& spec = specs[i];
-      if (spec.lifetime == Lifetime::Condition) {
-        hasConditions = true;
-      }
       // In case a condition object is not there, we need to wait.
-      if (spec.lifetime == Lifetime::Condition && header == nullptr) {
-        return CompletionPolicy::CompletionOp::Wait;
-      }
       if (header != nullptr) {
         canConsume = true;
       }
+      if (spec.lifetime == Lifetime::Condition) {
+        hasConditions = true;
+        if (header == nullptr) {
+          conditionMissing = true;
+        }
+      }
     }
+    if (canConsume || conditionMissing) {
+      for (auto it = inputs.begin(), end = inputs.end(); it != end; ++it) {
+        for (auto const& ref : it) {
+          if (!framework::DataRefUtils::isValid(ref)) {
+            continue;
+          }
+          auto const* dph = framework::DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(ref);
+          if (dph && !TimingInfo::timesliceIsTimer(dph->startTime)) {
+            timeslice = dph->startTime;
+            break;
+          }
+        }
+        if (timeslice != -1) {
+          break;
+        }
+      }
+    }
+
     // If there are no conditions, just consume.
     if (!hasConditions) {
-      return CompletionPolicy::CompletionOp::Consume;
+      canConsume = true;
+    } else if (conditionMissing && (timeslice == -1 || timesliceOK == -1 || timeslice > timesliceOK)) {
+      return CompletionPolicy::CompletionOp::Wait;
+    }
+
+    if (canConsume && timeslice != -1 && (timeslice > timesliceOK || timesliceOK == -1)) {
+      timesliceOK = timeslice;
     }
     return canConsume ? CompletionPolicy::CompletionOp::Consume : CompletionPolicy::CompletionOp::Wait;
   };
