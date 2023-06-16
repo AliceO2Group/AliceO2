@@ -19,5 +19,4 @@ o2_add_library(TRKSimulation
 o2_target_root_dictionary(TRKSimulation
                           HEADERS include/TRKSimulation/Detector.h
                                   include/TRKSimulation/TRKLayer.h
-#                                   include/TRKSimulation/TRKServices.h
-                                  )
+                                  include/TRKSimulation/TRKServices.h)

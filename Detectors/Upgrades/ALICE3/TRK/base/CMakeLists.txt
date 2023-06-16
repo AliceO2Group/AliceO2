@@ -16,4 +16,4 @@ o2_add_library(TRKBase
 
 o2_target_root_dictionary(TRKBase
                HEADERS include/TRKBase/GeometryTGeo.h
-               HEADERS include/TRKBase/TRKBaseParam.h)
+                       include/TRKBase/TRKBaseParam.h)
