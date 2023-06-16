@@ -118,7 +118,7 @@ void Digitizer::init()
   long timestamp = 1546300800000;
   try {
     mCTPConfiguration = mgr.getSpecific<CTPConfiguration>(o2::ctp::CCDBPathCTPConfig, timestamp, metadata);
-  } catch(...) {
+  } catch (...) {
     LOG(error) << "CTP  Digitizer: can not get CTP config";
     return;
   }

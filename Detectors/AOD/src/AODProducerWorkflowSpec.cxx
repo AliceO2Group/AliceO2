@@ -110,12 +110,12 @@ namespace o2::aodproducer
 void AODProducerWorkflowDPL::createCTPReadout(const o2::globaltracking::RecoContainer& recoData, std::vector<o2::ctp::CTPDigit>& ctpDigits, ProcessingContext& pc)
 {
   // Extraxt CTP Config from CCDB
-  std::unique_ptr<const o2::ctp::CTPConfiguration, o2::framework::InputRecord::Deleter<const o2::ctp::CTPConfiguration> > ctpcfg;
+  std::unique_ptr<const o2::ctp::CTPConfiguration, o2::framework::InputRecord::Deleter<const o2::ctp::CTPConfiguration>> ctpcfg;
   try {
     ctpcfg = pc.inputs().get<o2::ctp::CTPConfiguration*>("ctpconfig");
-  } catch(...) {
+  } catch (...) {
     LOG(error) << "AODProducer: cannot get ctpconfig";
-    return ;
+    return;
   }
   ctpcfg->printStream(std::cout);
   // o2::ctp::CTPConfiguration ctpcfg = o2::ctp::CTPRunManager::getConfigFromCCDB(-1, std::to_string(runNumber)); // how to get run
