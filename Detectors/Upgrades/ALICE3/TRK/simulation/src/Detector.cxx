@@ -77,10 +77,10 @@ void Detector::configDefault()
   mLayers.clear();
 
   LOGP(warning, "Loading default configuration for ALICE3 TRK");
-  mLayers.emplace_back(0, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(0)}, 0.5f, 50.f, 100.e-4);
+  mLayers.emplace_back(0, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(0)}, 0.55f, 50.f, 100.e-4); // Adjusted rmin not to overlap with inner BP
   mLayers.emplace_back(1, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(1)}, 1.2f, 50.f, 100.e-4);
   mLayers.emplace_back(2, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(2)}, 2.5f, 50.f, 100.e-4);
-  mLayers.emplace_back(3, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(3)}, 3.75f, 124.f, 100.e-4);
+  mLayers.emplace_back(3, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(3)}, 3.78f, 124.f, 100.e-4); // Adjusted rmin not to overlap with outer BP
   mLayers.emplace_back(4, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(4)}, 7.f, 124.f, 100.e-3);
   mLayers.emplace_back(5, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(5)}, 12.f, 124.f, 100.e-3);
   mLayers.emplace_back(6, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(6)}, 20.f, 124.f, 100.e-3);
@@ -165,8 +165,6 @@ void Detector::createMaterials()
   float zAir[4] = {6., 7., 8., 18.};
   float wAir[4] = {0.000124, 0.755267, 0.231781, 0.012827};
   float dAir = 1.20479E-3;
-
-
 
   // Carbon fiber
   float aCf[2] = {12.0107, 1.00794};
