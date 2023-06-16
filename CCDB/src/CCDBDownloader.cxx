@@ -12,8 +12,6 @@
 #include <CCDB/CCDBDownloader.h>
 
 #include <curl/curl.h>
-#include <uv.h>
-
 #include <unordered_map>
 #include <cstdio>
 #include <cstdlib>
