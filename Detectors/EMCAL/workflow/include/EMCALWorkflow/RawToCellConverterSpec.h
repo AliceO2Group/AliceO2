@@ -20,10 +20,12 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "DataFormatsEMCAL/Cell.h"
+#include "DataFormatsEMCAL/CompressedTriggerData.h"
 #include "DataFormatsEMCAL/TriggerRecord.h"
 #include "Headers/DataHeader.h"
 #include "EMCALBase/Geometry.h"
 #include "EMCALBase/Mapper.h"
+#include "EMCALBase/TriggerMappingV2.h"
 #include "EMCALReconstruction/CaloRawFitter.h"
 #include "EMCALReconstruction/RawReaderMemory.h"
 #include "EMCALReconstruction/RecoContainer.h"
@@ -37,6 +39,7 @@ namespace emcal
 {
 
 class AltroDecoderError;
+class Channel;
 class MinorAltroDecodingError;
 class RawDecodingError;
 
@@ -54,9 +57,9 @@ class RawToCellConverterSpec : public framework::Task
   /// \brief Constructor
   /// \param subspecification Output subspecification for parallel running on multiple nodes
   /// \param hasDecodingErrors Option to swich on/off creating raw decoding error objects for later monitoring
-  /// \param loadRecoParamsFromCCDB Option to load the RecoParams from the CCDB
+  /// \param hasTriggerReconstruction Perform trigger reconstruction and add trigger-related outputs
   /// \param calibhandler Calibration object handler
-  RawToCellConverterSpec(int subspecification, bool hasDecodingErrors, std::shared_ptr<CalibLoader> calibhandler) : framework::Task(), mSubspecification(subspecification), mCreateRawDataErrors(hasDecodingErrors), mCalibHandler(calibhandler){};
+  RawToCellConverterSpec(int subspecification, bool hasDecodingErrors, bool hasTriggerReconstruction, std::shared_ptr<CalibLoader> calibhandler) : framework::Task(), mSubspecification(subspecification), mCreateRawDataErrors(hasDecodingErrors), mDoTriggerReconstruction(hasTriggerReconstruction), mCalibHandler(calibhandler){};
 
   /// \brief Destructor
   ~RawToCellConverterSpec() override;
@@ -88,7 +91,12 @@ class RawToCellConverterSpec : public framework::Task
     mMaxErrorMessages = maxMessages;
   }
 
-  void setNoiseThreshold(int thresold) { mNoiseThreshold = thresold; }
+  /// \brief Set noise threshold for gain type errors
+  /// \param threshold Noise threshold
+  void setNoiseThreshold(int threshold) { mNoiseThreshold = threshold; }
+
+  /// \brief Get the noise threshold for gain type errors
+  /// \return Noise threshold
   int getNoiseThreshold() const { return mNoiseThreshold; }
 
   /// \brief Set ID of the subspecification
@@ -170,6 +178,32 @@ class RawToCellConverterSpec : public framework::Task
     int mRowShifted = -1;     /// << shifted row of the module (cell-case)
   };
 
+  /// \struct CellTimeCorrection
+  /// \brief  Correction for cell time
+  struct CellTimeCorrection {
+    double mTimeShift; ///< Constant time shift
+    int mBcMod4;       ///< BC-dependent shift
+
+    /// \brief Get the corrected cell time
+    /// \param rawtime Raw time from fit
+    /// \return Corrected time
+    ///
+    /// The time is corrected for an average shift and the BC phase
+    double getCorrectedTime(double rawtime) const { return rawtime - mTimeShift - 25. * mBcMod4; }
+  };
+
+  /// \struct LocalPosition
+  /// \brief Position in the supermodule coordinate system
+  struct LocalPosition {
+    uint16_t mSupermoduleID; ///< Supermodule ID
+    uint16_t mFeeID;         ///< FEE ID
+    uint8_t mColumn;         ///< Column in supermodule
+    uint8_t mRow;            ///< Row in supermodule
+  };
+
+  using TRUContainer = std::vector<o2::emcal::CompressedTRU>;
+  using PatchContainer = std::vector<o2::emcal::CompressedTriggerPatch>;
+
   /// \brief Check if the timeframe is empty
   /// \param ctx Processing context of timeframe
   /// \return True if the timeframe is empty, false otherwise
@@ -193,14 +227,12 @@ class RawToCellConverterSpec : public framework::Task
   int bookEventCells(const gsl::span<const o2::emcal::RecCellInfo>& cells, bool isLELDMON);
 
   /// \brief Send data to output channels
-  /// \param cells Container with output cells for timeframe
-  /// \param triggers Container with trigger records for timeframe
-  /// \param decodingErrors Container with decoding errors for timeframe
+  /// \param ctx target processing context
   ///
   /// Send data to all output channels for the given subspecification. The subspecification
   /// is determined on the fly in the run method and therefore used as parameter. Consumers
   /// must use wildcard subspecification via ConcreteDataTypeMatcher.
-  void sendData(framework::ProcessingContext& ctx, const std::vector<o2::emcal::Cell>& cells, const std::vector<o2::emcal::TriggerRecord>& triggers, const std::vector<ErrorTypeFEE>& decodingErrors) const;
+  void sendData(framework::ProcessingContext& ctx) const;
 
   /// \brief Get absolute Cell ID from column/row in supermodule
   /// \param supermoduleID Index of the supermodule
@@ -216,6 +248,54 @@ class RawToCellConverterSpec : public framework::Task
   /// \return LEDMON absolute ID
   /// \throw ModuleIndexException in case of invalid module indices
   int geLEDMONAbsID(int supermoduleID, int module);
+
+  /// \brief Add FEE channel to the current evnet
+  /// \param currentEvent Event to add the channel to
+  /// \param currentchannel Current FEE channel
+  /// \param timeCorrector Handler for correction of the time
+  /// \param position Channel coordinates
+  /// \param chantype Channel type (High Gain, Low Gain, LEDMON)
+  ///
+  /// Performing a raw fit of the bunches in the channel to extract energy and time, and
+  /// adding them to the container for FEE data of the given event.
+  void addFEEChannelToEvent(o2::emcal::EventContainer& currentEvent, const o2::emcal::Channel& currentchannel, const CellTimeCorrection& timeCorrector, const LocalPosition& position, ChannelType_t chantype);
+
+  /// \brief Add TRU channel to the event
+  /// \param currentEvent Event to add the channel to
+  /// \param currentchannel Current TRU channel
+  /// \param position Channel coordinates
+  ///
+  /// TRU channels are encoded in colums:
+  /// - 0-95: FastOR timeseries (time-reversed)
+  /// - 96-105: bitmap with fired patches and TRU header
+  /// The TRU index is taken from the hardware address, while the FastOR index is taken from the
+  /// column number. The TRU and patch times are taken from the time sample in which the corresponding
+  /// bit is found.
+  void addTRUChannelToEvent(o2::emcal::EventContainer& currentEvent, const o2::emcal::Channel& currentchannel, const LocalPosition& position);
+
+  /// @brief Build L0 patches from FastOR time series and TRU data of the current event
+  /// @param currentevent Current event to process
+  /// @return Compressed patches
+  ///
+  /// Only reconstruct patches which were decoded as fired from the raw data. The patch energy and time
+  /// are calculated from the corresponding FastOR time series as the energy and time with the largest
+  /// patch energy extracted from all possible time integrals (see reconstructTriggerPatch)
+  std::tuple<TRUContainer, PatchContainer> buildL0Patches(const EventContainer& currentevent) const;
+
+  /// @brief Build L0 timesums with respect to a given L0 time
+  /// @param currentevent Current event with FastOR time series
+  /// @param l0time L0 time of the event
+  /// @return Container with time series
+  std::vector<o2::emcal::CompressedL0TimeSum> buildL0Timesums(const o2::emcal::EventContainer& currentevent, uint8_t l0time) const;
+
+  /// \brief Reconstruct trigger patch energy and time from its FastOR time series
+  /// \param fastors FastORs contributing to the patch (only present)
+  /// \return Tuple with 0 - patch ADC, 1 - patch time
+  ///
+  /// For all possible combinations reconstruct the 4-time integral of the patches from
+  /// its contributing FastORs. The patch is reconstructed when the ADC reached its
+  /// maximum. The patch time is the start time of the 4-integral
+  std::tuple<uint16_t, uint8_t> reconstructTriggerPatch(const gsl::span<const FastORTimeSeries*> fastors) const;
 
   void handleAddressError(const Mapper::AddressNotFoundException& error, int ddlID, int hwaddress);
 
@@ -249,24 +329,33 @@ class RawToCellConverterSpec : public framework::Task
   bool mPrintTrailer = false;                                        ///< Print RCU trailer
   bool mDisablePedestalEvaluation = false;                           ///< Disable pedestal evaluation independent of settings in the RCU trailer
   bool mCreateRawDataErrors = false;                                 ///< Create raw data error objects for monitoring
+  bool mDoTriggerReconstruction = false;                             ///< Do trigger reconstruction
   std::chrono::time_point<std::chrono::system_clock> mReferenceTime; ///< Reference time for muting messages
   Geometry* mGeometry = nullptr;                                     ///!<! Geometry pointer
   RecoContainer mCellHandler;                                        ///< Manager for reconstructed cells
   std::shared_ptr<CalibLoader> mCalibHandler;                        ///< Handler for calibration objects
   std::unique_ptr<MappingHandler> mMapper = nullptr;                 ///!<! Mapper
+  std::unique_ptr<TriggerMappingV2> mTriggerMapping;                 ///!<! Trigger mapping
   std::unique_ptr<CaloRawFitter> mRawFitter;                         ///!<! Raw fitter
   std::vector<Cell> mOutputCells;                                    ///< Container with output cells
-  std::vector<TriggerRecord> mOutputTriggerRecords;                  ///< Container with output cells
+  std::vector<TriggerRecord> mOutputTriggerRecords;                  ///< Container with output trigger records for cells
   std::vector<ErrorTypeFEE> mOutputDecoderErrors;                    ///< Container with decoder errors
+  std::vector<CompressedTRU> mOutputTRUs;                            ///< Compressed output TRU information
+  std::vector<TriggerRecord> mOutputTRUTriggerRecords;               ///< Container with trigger records for TRU data
+  std::vector<CompressedTriggerPatch> mOutputPatches;                ///< Compressed trigger patch information
+  std::vector<TriggerRecord> mOutputPatchTriggerRecords;             ///< Container with trigger records for Patch data
+  std::vector<CompressedL0TimeSum> mOutputTimesums;                  ///< Compressed L0 timesum information
+  std::vector<TriggerRecord> mOutputTimesumTriggerRecords;           ///< Trigger records for L0 timesum
 };
 
 /// \brief Creating DataProcessorSpec for the EMCAL Cell Converter Spec
 /// \param askDISTSTF Include input spec FLP/DISTSUBTIMEFRAME
-/// \param loadRecoParamsFromCCDB Obtain reco params from the CCDB
+/// \param disableDecodingErrors Obtain reco params from the CCDB
+/// \param disableTriggerReconstruction Do not run trigger reconstruction
 /// \param subspecification Subspecification used in the output spec
 ///
 /// Refer to RawToCellConverterSpec::run for input and output specs
-framework::DataProcessorSpec getRawToCellConverterSpec(bool askDISTSTF, bool disableDecodingError, int subspecification);
+framework::DataProcessorSpec getRawToCellConverterSpec(bool askDISTSTF, bool disableDecodingError, bool disableTriggerReconstruction, int subspecification);
 
 } // namespace reco_workflow
 

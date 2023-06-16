@@ -16,6 +16,7 @@ o2_add_library(EMCALReconstruction
         src/AltroDecoder.cxx
         src/Bunch.cxx
         src/Channel.cxx
+        src/FastORTimeSeries.cxx
         src/RecoParam.cxx
         src/RawDecodingError.cxx
         src/STUDecoderError.cxx
@@ -32,6 +33,7 @@ o2_add_library(EMCALReconstruction
         src/CTFCoder.cxx
         src/CTFHelper.cxx
         src/StuDecoder.cxx
+        src/TRUDataHandler.cxx
         PUBLIC_LINK_LIBRARIES O2::Headers
         AliceO2::InfoLogger
         O2::DataFormatsEMCAL
@@ -49,6 +51,7 @@ o2_target_root_dictionary(
         include/EMCALReconstruction/RawPayload.h
         include/EMCALReconstruction/Bunch.h
         include/EMCALReconstruction/Channel.h
+        include/EMCALReconstruction/FastORTimeSeries.h
         include/EMCALReconstruction/CaloFitResults.h
         include/EMCALReconstruction/CaloRawFitter.h
         include/EMCALReconstruction/CaloRawFitterStandard.h
@@ -59,6 +62,7 @@ o2_target_root_dictionary(
         include/EMCALReconstruction/DigitReader.h
         include/EMCALReconstruction/RecoParam.h
         include/EMCALReconstruction/StuDecoder.h
+        include/EMCALReconstruction/TRUDataHandler.h
 )
 
 o2_add_executable(rawreader-file

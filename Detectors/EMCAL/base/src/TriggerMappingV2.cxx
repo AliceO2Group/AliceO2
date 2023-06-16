@@ -390,7 +390,7 @@ TriggerMappingV2::IndexTRU TriggerMappingV2::getTRUIndexFromOnlineHardareAddree(
 
   unsigned short branch = (hardwareAddress >> 11) & 0x1; // 0/1
 
-  IndexTRU truIndex = ((ddlID << 1) | branch) - 1; // 0..2
+  IndexTRU truIndex = (((ddlID % 2) << 1) | branch) - 1; // 0..2
 
   truIndex = (supermoduleID % 2) ? 2 - truIndex : truIndex;
 

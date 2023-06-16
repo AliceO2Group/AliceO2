@@ -16,7 +16,15 @@
 
 using namespace o2::emcal;
 
-EventContainer::EventContainer(const o2::InteractionRecord& currentIR) : mInteractionRecord(currentIR) {}
+EventContainer::EventContainer(const o2::InteractionRecord& currentIR) : mInteractionRecord(currentIR) { initTRUs(); }
+
+void EventContainer::initTRUs()
+{
+  for (auto index = 0; index < mTRUData.size(); index++) {
+    mTRUData[index].setTRUIndex(index);
+    mTRUData[index].setL0time(INT8_MAX);
+  }
+}
 
 void EventContainer::setCellCommon(int tower, double energy, double time, ChannelType_t celltype, bool isLEDmon, int hwaddress, int ddlID, bool doMergeHGLG)
 {
@@ -83,6 +91,16 @@ void EventContainer::setCellCommon(int tower, double energy, double time, Channe
   }
 }
 
+void EventContainer::setFastOR(uint16_t fastORAbsID, uint8_t starttime, const gsl::span<const uint16_t> timesamples)
+{
+  auto found = mL0FastORs.find(fastORAbsID);
+  if (found != mL0FastORs.end()) {
+    found->second.setTimeSamples(timesamples, starttime);
+  } else {
+    mL0FastORs[fastORAbsID] = FastORTimeSeries(14, timesamples, starttime);
+  }
+}
+
 void EventContainer::sortCells(bool isLEDmon)
 {
   auto& dataContainer = isLEDmon ? mLEDMons : mCells;
@@ -92,6 +110,27 @@ void EventContainer::sortCells(bool isLEDmon)
 bool EventContainer::isCellSaturated(double energy) const
 {
   return energy / o2::emcal::constants::EMCAL_ADCENERGY > o2::emcal::constants::OVERFLOWCUT;
+}
+
+TRUDataHandler& EventContainer::getTRUData(std::size_t index)
+{
+  if (index >= mTRUData.size()) {
+    throw TRUIndexException(index);
+  }
+  return mTRUData[index];
+}
+
+const TRUDataHandler& EventContainer::readTRUData(std::size_t index) const
+{
+  if (index >= mTRUData.size()) {
+    throw TRUIndexException(index);
+  }
+  return mTRUData[index];
+}
+
+EventContainer::TRUIndexException::TRUIndexException(std::size_t index) : mIndex(index), mMessage()
+{
+  mMessage = "Invalid TRU index " + std::to_string(index);
 }
 
 EventContainer& RecoContainer::getEventContainer(const o2::InteractionRecord& currentIR)
