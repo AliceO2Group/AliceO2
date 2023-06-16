@@ -75,8 +75,8 @@ class Cave : public FairDetector
 
   std::vector<std::function<void()>> mFinishPrimaryHooks; //!
 
-  bool mHasZDC = true;                                    //! flag indicating if ZDC will be included
-  bool mHasRB24 = true;                                   //! flag indicating if RB24 will be included
+  bool mHasZDC = true;  //! flag indicating if ZDC will be included
+  bool mHasRB24 = true; //! flag indicating if RB24 will be included
   ClassDefOverride(o2::passive::Cave, 1);
 };
 } // namespace passive
