@@ -283,7 +283,7 @@ int CCDBDownloader::handleSocket(CURL* easy, curl_socket_t s, int action, void* 
     case CURL_POLL_REMOVE:
       if (socketp) {
         if (CD->mSocketTimerMap.find(s) != CD->mSocketTimerMap.end()) {
-          uvErrorCheck(uv_timer_start(CD->mSocketTimerMap[s], closeSocketByTimer, CD->mSocketTimeoutMS, 0));
+          uvErrorCheck(uv_timer_start(CD->mSocketTimerMap[s], closeSocketByTimer, CD->mKeepaliveTimeoutMS, 0));
         }
         uvErrorCheck(uv_poll_stop(((CCDBDownloader::curl_context_t*)socketp)->poll_handle));
         CD->destroyCurlContext((CCDBDownloader::curl_context_t*)socketp);
