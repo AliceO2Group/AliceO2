@@ -91,18 +91,18 @@ if args.command:
 
    if code == 0:
      print ("Submission successful.")
-   if args.block:
-      # blocking means we wait until the operation (simulation) is done serverside
-      print ("Waiting for DONE message from server")
-      batchdone = False
-      while not batchdone:
-        notification = incomingsocket.recv_string()  #
-        print (notification)
-        if re.match('O2SIM.*DONE', notification) != None:
+     if args.block:
+       # blocking means we wait until the operation (simulation) is done serverside
+       print ("... waiting for DONE message from server")
+       batchdone = False
+       while not batchdone:
+         notification = incomingsocket.recv_string()  #
+         print (notification)
+         if re.match('O2SIM.*DONE', notification) != None:
             print ("Received DONE notification from server ... quitting", notification)
             batchdone = True
 
-      exit (0)
+     exit (0)
 
    elif code == 1:
       print ("Server busy; Cannot take commands.")
@@ -110,7 +110,7 @@ if args.command:
       print ("Command string faulty (Parsing failed on serverside).")
       exit (code)
    else:
-      print ("Unknown return code.")
+      print ("Unknown return code " + str(code) + ".")
       exit (1)
 
 # in case of startup we might also want to block until system is ready

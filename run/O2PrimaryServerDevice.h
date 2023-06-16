@@ -355,10 +355,6 @@ class O2PrimaryServerDevice final : public fair::mq::Device
       mGeneratorThread.join();
     }
     mGeneratorThread = std::thread(&O2PrimaryServerDevice::initGenerator, this);
-    // initGenerator();
-    if (mGeneratorThread.joinable()) {
-      mGeneratorThread.join();
-    }
 
     return true;
   }
