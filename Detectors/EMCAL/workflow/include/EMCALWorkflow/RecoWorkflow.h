@@ -55,6 +55,7 @@ enum struct OutputType { Digits,          ///< EMCAL digits
 /// \param disableRootInput Disable reading from ROOT file (raw mode)
 /// \param disableRootOutput Disable writing ROOT files (sync reco)
 /// \param disableDecodingErrors Diable streaming raw decoding errors (async reco)
+/// \param disableTriggerReconstruction Disable trigger reconstrction
 /// \return EMCAL reconstruction workflow for the configuration provided
 /// \ingroup EMCALwokflow
 framework::WorkflowSpec getWorkflow(bool propagateMC = true,
@@ -66,7 +67,8 @@ framework::WorkflowSpec getWorkflow(bool propagateMC = true,
                                     std::string const& cfgOutput = "clusters",
                                     bool disableRootInput = false,
                                     bool disableRootOutput = false,
-                                    bool disableDecodingErrors = false);
+                                    bool disableDecodingErrors = false,
+                                    bool disableTriggerReconstruction = false);
 } // namespace reco_workflow
 
 } // namespace emcal
