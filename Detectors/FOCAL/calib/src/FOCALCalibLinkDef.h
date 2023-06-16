@@ -16,5 +16,6 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::focal::PadPedestal + ;
+#pragma link C++ class o2::focal::PadPedestal::ChannelID + ;
 #pragma link C++ class o2::focal::PadBadChannelMap + ;
 #endif
