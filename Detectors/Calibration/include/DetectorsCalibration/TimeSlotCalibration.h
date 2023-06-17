@@ -195,8 +195,24 @@ class TimeSlotCalibration
   uint32_t getRunStartOrbit() const
   {
     long orb = long(mCurrentTFInfo.firstTForbit) - long(o2::base::GRPGeomHelper::getNHBFPerTF() * mCurrentTFInfo.tfCounter);
+    static unsigned int threshold = 512 * o2::base::GRPGeomHelper::getNHBFPerTF();
     if (orb < 0) {
-      LOGP(alarm, "Negative runStartOrbit = {} deduced from tfCounter={} and firstTForbit={}, enforcing runStartOrbit to 0", orb, mCurrentTFInfo.tfCounter, mCurrentTFInfo.firstTForbit);
+      // If we have a firstTForbit between 1 and 512 * tf len, we disable the warning for negative runStartOrbit permanently, since this is a SYNTHETIC run.
+      static bool suppressRunStartWarning = false;
+      if (!suppressRunStartWarning) {
+        const auto* grpecs = o2::base::GRPGeomHelper::instance().getGRPECS();
+        if (grpecs) {
+          if (grpecs->getRunType() == o2::parameters::GRPECS::SYNTHETIC) {
+            suppressRunStartWarning = true;
+          }
+        } else if (mCurrentTFInfo.firstTForbit < threshold && mCurrentTFInfo.firstTForbit > 0) {
+          suppressRunStartWarning = true;
+        }
+      }
+
+      if (!suppressRunStartWarning && mCurrentTFInfo.firstTForbit >= threshold) {
+        LOGP(alarm, "Negative runStartOrbit = {} deduced from tfCounter={} and firstTForbit={}, enforcing runStartOrbit to 0", orb, mCurrentTFInfo.tfCounter, mCurrentTFInfo.firstTForbit);
+      }
       orb = 0;
     }
     return uint32_t(orb);
