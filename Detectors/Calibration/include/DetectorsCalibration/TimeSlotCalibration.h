@@ -196,7 +196,9 @@ class TimeSlotCalibration
   {
     long orb = long(mCurrentTFInfo.firstTForbit) - long(o2::base::GRPGeomHelper::getNHBFPerTF() * mCurrentTFInfo.tfCounter);
     if (orb < 0) {
-      LOGP(alarm, "Negative runStartOrbit = {} deduced from tfCounter={} and firstTForbit={}, enforcing runStartOrbit to 0", orb, mCurrentTFInfo.tfCounter, mCurrentTFInfo.firstTForbit);
+      if (mCurrentTFInfo.firstTForbit >= 32) { // Otherwise this is most likely a SYNTHETIC run starting at orbit 0, so we don't need to print errors.
+        LOGP(alarm, "Negative runStartOrbit = {} deduced from tfCounter={} and firstTForbit={}, enforcing runStartOrbit to 0", orb, mCurrentTFInfo.tfCounter, mCurrentTFInfo.firstTForbit);
+      }
       orb = 0;
     }
     return uint32_t(orb);
