@@ -116,11 +116,13 @@ framework::DataProcessorSpec MergerBuilder::buildSpec()
 
 void MergerBuilder::customizeInfrastructure(std::vector<framework::CompletionPolicy>& policies)
 {
-  auto matcher = [label = mergerLabel()](framework::DeviceSpec const& device) {
-    return std::find(device.labels.begin(), device.labels.end(), label) != device.labels.end();
-  };
   // each merger's name contains the common label and should always consume
-  policies.emplace_back(CompletionPolicyHelpers::consumeWhenAny("MergerCompletionPolicy", matcher));
+  policies.emplace_back(
+    "MergerCompletionPolicy",
+    [label = mergerLabel()](framework::DeviceSpec const& device) {
+      return std::find(device.labels.begin(), device.labels.end(), label) != device.labels.end();
+    },
+    CompletionPolicyHelpers::consumeWhenAny().callback);
 }
 
 } // namespace o2::mergers
