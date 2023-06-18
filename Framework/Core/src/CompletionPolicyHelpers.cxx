@@ -199,6 +199,27 @@ CompletionPolicy CompletionPolicyHelpers::consumeExistingWhenAny(const char* nam
 
 CompletionPolicy CompletionPolicyHelpers::consumeWhenAny(const char* name, CompletionPolicy::Matcher matcher)
 {
+  auto callback = [](InputSpan const& inputs) -> CompletionPolicy::CompletionOp {
+    for (auto& input : inputs) {
+      if (input.header != nullptr) {
+        return CompletionPolicy::CompletionOp::Consume;
+      }
+    }
+    return CompletionPolicy::CompletionOp::Wait;
+  };
+  return CompletionPolicy{name, matcher, callback, false};
+}
+
+CompletionPolicy CompletionPolicyHelpers::consumeWhenAny(std::string matchName)
+{
+  auto matcher = [matchName](DeviceSpec const& device) -> bool {
+    return std::regex_match(device.name.begin(), device.name.end(), std::regex(matchName));
+  };
+  return consumeWhenAny(matcher);
+}
+
+CompletionPolicy CompletionPolicyHelpers::consumeWhenAnyWithAllConditions(const char* name, CompletionPolicy::Matcher matcher)
+{
   auto callback = [](InputSpan const& inputs, std::vector<InputSpec> const& specs) -> CompletionPolicy::CompletionOp {
     bool canConsume = false;
     bool hasConditions = false;
@@ -258,12 +279,12 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAny(const char* name, Compl
   return CompletionPolicy{name, matcher, callback, false};
 }
 
-CompletionPolicy CompletionPolicyHelpers::consumeWhenAny(std::string matchName)
+CompletionPolicy CompletionPolicyHelpers::consumeWhenAnyWithAllConditions(std::string matchName)
 {
   auto matcher = [matchName](DeviceSpec const& device) -> bool {
     return std::regex_match(device.name.begin(), device.name.end(), std::regex(matchName));
   };
-  return consumeWhenAny(matcher);
+  return consumeWhenAnyWithAllConditions(matcher);
 }
 
 CompletionPolicy CompletionPolicyHelpers::processWhenAny(const char* name, CompletionPolicy::Matcher matcher)
