@@ -147,6 +147,7 @@ class CTFWriterSpec : public o2::framework::Task
   int mMaxCTFPerFile = 0;            // max CTFs per files to store
   int mRejRate = 0;                  // CTF rejection rule (>0: percentage to reject randomly, <0: reject if timeslice%|value|!=0)
   int mCTFFileCompression = 0;       // CTF file compression level (if >= 0)
+  bool mFillMD5 = false;
   std::vector<uint32_t> mTFOrbits{}; // 1st orbits of TF accumulated in current file
   o2::framework::DataTakingContext mDataTakingContext{};
   o2::framework::TimingInfo mTimingInfo{};
@@ -221,6 +222,7 @@ void CTFWriterSpec::init(InitContext& ic)
   if (mCTFMetaFileDir != "/dev/null") {
     mCTFMetaFileDir = o2::utils::Str::rectifyDirectory(mCTFMetaFileDir);
     mStoreMetaFile = true;
+    mFillMD5 = ic.options().get<bool>("md5-for-meta");
   }
   mDictDir = o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("ctf-dict-dir"));
   mCTFDir = ic.options().get<std::string>("output-dir");
@@ -602,9 +604,12 @@ void CTFWriterSpec::closeTFTreeAndFile()
       mCTFFileOut->Close();
       mCTFFileOut.reset();
       // write CTF file metaFile data
+      auto actualFileName = TMPFileEnding.empty() ? mCurrentCTFFileNameFull : o2::utils::Str::concat_string(mCurrentCTFFileNameFull, TMPFileEnding);
       if (mStoreMetaFile) {
         o2::dataformats::FileMetaData ctfMetaData;
-        ctfMetaData.fillFileData(mCurrentCTFFileNameFull);
+        if (!ctfMetaData.fillFileData(actualFileName, mFillMD5, TMPFileEnding)) {
+          throw std::runtime_error("metadata file was requested but not created");
+        }
         ctfMetaData.setDataTakingContext(mDataTakingContext);
         ctfMetaData.type = mMetaDataType;
         ctfMetaData.priority = mFallBackDirUsed ? "low" : "high";
@@ -616,14 +621,14 @@ void CTFWriterSpec::closeTFTreeAndFile()
           metaFileOut << ctfMetaData;
           metaFileOut.close();
           if (!TMPFileEnding.empty()) {
-            std::filesystem::rename(o2::utils::Str::concat_string(mCurrentCTFFileNameFull, TMPFileEnding), mCurrentCTFFileNameFull);
+            std::filesystem::rename(actualFileName, mCurrentCTFFileNameFull);
           }
           std::filesystem::rename(metaFileNameTmp, metaFileName);
         } catch (std::exception const& e) {
           LOG(error) << "Failed to store CTF meta data file " << metaFileName << ", reason: " << e.what();
         }
       } else if (!TMPFileEnding.empty()) {
-        std::filesystem::rename(o2::utils::Str::concat_string(mCurrentCTFFileNameFull, TMPFileEnding), mCurrentCTFFileNameFull);
+        std::filesystem::rename(actualFileName, mCurrentCTFFileNameFull);
       }
     } catch (std::exception const& e) {
       LOG(error) << "Failed to finalize CTF file " << mCurrentCTFFileNameFull << ", reason: " << e.what();
@@ -791,6 +796,7 @@ DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, const std::string& outTyp
             {"output-dir", VariantType::String, "none", {"CTF output directory, must exist"}},
             {"output-dir-alt", VariantType::String, "/dev/null", {"Alternative CTF output directory, must exist (if not /dev/null)"}},
             {"meta-output-dir", VariantType::String, "/dev/null", {"CTF metadata output directory, must exist (if not /dev/null)"}},
+            {"md5-for-meta", VariantType::Bool, false, {"fill CTF file MD5 sum in the metadata file"}},
             {"min-file-size", VariantType::Int64, 0l, {"accumulate CTFs until given file size reached"}},
             {"max-file-size", VariantType::Int64, 0l, {"if > 0, try to avoid exceeding given file size, also used for space check"}},
             {"max-ctf-per-file", VariantType::Int, 0, {"if > 0, avoid storing more than requested CTFs per file"}},
