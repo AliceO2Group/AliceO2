@@ -45,7 +45,7 @@ struct FileMetaData {             // https://docs.google.com/document/d/1nH9EZEF
   size_t size{};                  // 6, default the size of the lurl file, optional
   int persistent{};               // 16, default is forever, optional
   std::vector<uint32_t> tfOrbits; // 15, comma-sep. list of 1st orbits of TFs, optional
-  bool fillFileData(const std::string& fname, bool md5 = false);
+  bool fillFileData(const std::string& fname, bool fillmd5 = false, const std::string& tmpEnding = "");
   void setDataTakingContext(const o2::framework::DataTakingContext& dtc);
   std::string asString() const;
 };
