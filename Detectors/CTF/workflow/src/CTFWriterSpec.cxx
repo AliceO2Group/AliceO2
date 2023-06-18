@@ -601,6 +601,9 @@ void CTFWriterSpec::closeTFTreeAndFile()
       mCTFTreeOut.reset();
       mCTFFileOut->Close();
       mCTFFileOut.reset();
+      if (!TMPFileEnding.empty()) {
+        std::filesystem::rename(o2::utils::Str::concat_string(mCurrentCTFFileNameFull, TMPFileEnding), mCurrentCTFFileNameFull);
+      }
       // write CTF file metaFile data
       if (mStoreMetaFile) {
         o2::dataformats::FileMetaData ctfMetaData;
@@ -615,15 +618,10 @@ void CTFWriterSpec::closeTFTreeAndFile()
           std::ofstream metaFileOut(metaFileNameTmp);
           metaFileOut << ctfMetaData;
           metaFileOut.close();
-          if (!TMPFileEnding.empty()) {
-            std::filesystem::rename(o2::utils::Str::concat_string(mCurrentCTFFileNameFull, TMPFileEnding), mCurrentCTFFileNameFull);
-          }
           std::filesystem::rename(metaFileNameTmp, metaFileName);
         } catch (std::exception const& e) {
           LOG(error) << "Failed to store CTF meta data file " << metaFileName << ", reason: " << e.what();
         }
-      } else if (!TMPFileEnding.empty()) {
-        std::filesystem::rename(o2::utils::Str::concat_string(mCurrentCTFFileNameFull, TMPFileEnding), mCurrentCTFFileNameFull);
       }
     } catch (std::exception const& e) {
       LOG(error) << "Failed to finalize CTF file " << mCurrentCTFFileNameFull << ", reason: " << e.what();
