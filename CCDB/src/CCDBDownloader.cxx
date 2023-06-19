@@ -235,6 +235,7 @@ void CCDBDownloader::curlTimeout(uv_timer_t* handle)
 
 void CCDBDownloader::curlPerform(uv_poll_t* handle, int status, int events)
 {
+  uvErrorCheck(status);  
   int running_handles;
   int flags = 0;
   if (events & UV_READABLE) {
