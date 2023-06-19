@@ -108,7 +108,7 @@ o2::ctf::CTFIOSize CTFCoder::encode_impl(VEC& buff, const gsl::span<const Trigge
   ec->setANSHeader(mANSVersion);
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
   o2::ctf::CTFIOSize iosize;
-#define ENCODEHMP(beg, end, slot, bits) CTF::get(buff.data())->encode(beg, end, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get(), getMemMarginFactor());
+#define ENCODEHMP(beg, end, slot, bits) CTF::get(buff.data())->encode(beg, end, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)], getMemMarginFactor());
   // clang-format off
   iosize += ENCODEHMP(helper.begin_bcIncTrig(),    helper.end_bcIncTrig(),     CTF::BLC_bcIncTrig,    0);
   iosize += ENCODEHMP(helper.begin_orbitIncTrig(), helper.end_orbitIncTrig(),  CTF::BLC_orbitIncTrig, 0);
@@ -141,7 +141,7 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VDIG& di
   std::vector<uint8_t> chID, ph, x, y;
 
   o2::ctf::CTFIOSize iosize;
-#define DECODEHMP(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
+#define DECODEHMP(part, slot) ec.decode(part, int(slot), mCoders[int(slot)])
   // clang-format off
   iosize += DECODEHMP(bcInc,       CTF::BLC_bcIncTrig);
   iosize += DECODEHMP(orbitInc,    CTF::BLC_orbitIncTrig);

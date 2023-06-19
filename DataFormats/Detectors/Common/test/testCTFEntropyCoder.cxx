@@ -292,7 +292,7 @@ void encodeExternal(source_IT begin, source_IT end)
 {
   using source_type = typename std::iterator_traits<source_IT>::value_type;
 
-  ctf::ExternalEntropyCoder<source_type> entropyCoder{&(ExternalEncoders.getEncoder<source_type>())};
+  ctf::ExternalEntropyCoder<source_type> entropyCoder{ExternalEncoders.getEncoder<source_type>()};
 
   const size_t sourceExtent = std::distance(begin, end);
   std::vector<buffer_type> encodeBuffer(entropyCoder.template computePayloadSizeEstimate<buffer_type>(sourceExtent), 0);

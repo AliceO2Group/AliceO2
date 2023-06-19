@@ -34,6 +34,7 @@
 #include "Framework/InitContext.h"
 #include "Framework/ConcreteDataMatcher.h"
 #include "Framework/ConfigParamRegistry.h"
+#include <any>
 
 namespace o2
 {
@@ -87,19 +88,19 @@ class CTFCoderBase
     if (mANSVersion == ANSVersionCompat) {
       switch (op) {
         case OpType::Encoder:
-          mCoders[slot] = std::make_shared<rans::compat::encoder_type<S>>(rans::compat::makeEncoder::fromRenormed<S>(renormedHistogram));
+          mCoders[slot] = std::make_any<rans::compat::encoder_type<S>>(rans::compat::makeEncoder::fromRenormed<S>(renormedHistogram));
           break;
         case OpType::Decoder:
-          mCoders[slot] = std::make_shared<rans::compat::decoder_type<S>>(rans::compat::makeDecoder::fromRenormed<S>(renormedHistogram));
+          mCoders[slot] = std::make_any<rans::compat::decoder_type<S>>(rans::compat::makeDecoder::fromRenormed<S>(renormedHistogram));
           break;
       }
     } else if (mANSVersion == ANSVersion1) {
       switch (op) {
         case OpType::Encoder:
-          mCoders[slot] = std::make_shared<rans::defaultEncoder_type<S>>(rans::makeEncoder<>::fromRenormed(renormedHistogram));
+          mCoders[slot] = std::make_any<rans::defaultEncoder_type<S>>(rans::makeEncoder<>::fromRenormed(renormedHistogram));
           break;
         case OpType::Decoder:
-          mCoders[slot] = std::make_shared<rans::defaultDecoder_type<S>>(rans::makeDecoder<>::fromRenormed(renormedHistogram));
+          mCoders[slot] = std::make_any<rans::defaultDecoder_type<S>>(rans::makeDecoder<>::fromRenormed(renormedHistogram));
           break;
       }
     } else {
@@ -172,13 +173,25 @@ class CTFCoderBase
   }
   bool canApplyBCShift(const o2::InteractionRecord& ir) const { return canApplyBCShift(ir, mBCShift); }
 
+  template <typename source_IT>
+  [[nodiscard]] size_t estimateBufferSize(size_t slot, source_IT samplesBegin, source_IT samplesEnd);
+
+  template <typename source_T>
+  size_t estimateBufferSize(size_t slot, size_t nSamples);
+
+  template <typename source_T>
+  [[nodiscard]] size_t estimateBufferSize(size_t slot, const std::vector<source_T>& samples)
+  {
+    return estimateBufferSize(slot, samples.begin(), samples.end());
+  }
+
   template <typename CTF>
   std::vector<char> loadDictionaryFromTree(TTree* tree);
-  std::vector<std::shared_ptr<void>> mCoders; // encoders/decoders
+  std::vector<std::any> mCoders; // encoders/decoders
   DetID mDet;
   std::string mDictBinding{"ctfdict"};
   std::string mTrigOffsBinding{"trigoffset"};
-  CTFDictHeader mExtHeader;      // external dictionary header
+  CTFDictHeader mExtHeader;                    // external dictionary header
   o2::utils::IRFrameSelector mIRFrameSelector; // optional IR frames selector
   float mMemMarginFactor = 1.0f;               // factor for memory allocation in EncodedBlocks
   bool mLoadDictFromCCDB{true};
@@ -373,23 +386,38 @@ bool CTFCoderBase::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, voi
   return match;
 }
 
-namespace ctfCoderBaseImpl
+template <typename IT>
+[[nodiscard]] inline size_t CTFCoderBase::estimateBufferSize(size_t slot, IT samplesBegin, IT samplesEnd)
 {
-
-template <typename source_T>
-[[nodiscard]] inline size_t estimateSize(const void* coder, const std::vector<source_T>& samples)
-{
-  if (coder) {
-    const auto* encoder = reinterpret_cast<const rans::compat::encoder_type<source_T>*>(coder);
-    const auto& symbolTable = encoder->getSymbolTable();
-    const size_t alphabetRangeBits = rans::utils::toBits(symbolTable.size() - symbolTable.getOffset());
-    return rans::compat::calculateMaxBufferSizeB(samples.size(), alphabetRangeBits);
-  } else {
-    return samples.size() * sizeof(source_T);
-  }
+  using source_type = typename std::iterator_traits<IT>::value_type;
+  const size_t nSamples = std::distance(samplesBegin, samplesEnd);
+  return estimateBufferSize<source_type>(slot, nSamples);
 };
 
-} // namespace ctfCoderBaseImpl
+template <typename source_T>
+[[nodiscard]] inline size_t CTFCoderBase::estimateBufferSize(size_t slot, size_t nSamples)
+{
+
+  std::any& coder = mCoders[slot];
+  if (coder.has_value()) {
+    const size_t alphabetRangeBits = [this, &coder]() {
+      if (mANSVersion == ANSVersionCompat) {
+        const auto& encoder = std::any_cast<const rans::compat::encoder_type<source_T>&>(coder);
+        auto view = rans::trim(rans::makeHistogramView(encoder.getSymbolTable()));
+        return rans::utils::getRangeBits(view.getMin(), view.getMax());
+      } else if (mANSVersion == ANSVersion1) {
+        const auto& encoder = std::any_cast<const rans::defaultEncoder_type<source_T>&>(coder);
+        auto view = rans::trim(rans::makeHistogramView(encoder.getSymbolTable()));
+        return rans::utils::getRangeBits(view.getMin(), view.getMax());
+      } else {
+        throw std::runtime_error("unsupported ANS version");
+      }
+    }();
+    return rans::compat::calculateMaxBufferSizeB(nSamples, alphabetRangeBits);
+  } else {
+    return nSamples * sizeof(source_T);
+  }
+};
 
 } // namespace ctf
 } // namespace o2

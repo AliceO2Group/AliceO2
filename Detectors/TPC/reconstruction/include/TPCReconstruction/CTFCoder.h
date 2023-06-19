@@ -218,9 +218,9 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const CompressedClusters& ccl, co
           tmp.emplace_back(*i);
         }
       }
-      iosize += CTF::get(buff.data())->encode(tmp.begin(), tmp.end(), slotVal, probabilityBits, optField[slotVal], &buff, coders[slotVal].get(), mfc);
+      iosize += CTF::get(buff.data())->encode(tmp.begin(), tmp.end(), slotVal, probabilityBits, optField[slotVal], &buff, coders[slotVal], mfc);
     } else {
-      iosize += CTF::get(buff.data())->encode(begin, end, slotVal, probabilityBits, optField[slotVal], &buff, coders[slotVal].get(), mfc);
+      iosize += CTF::get(buff.data())->encode(begin, end, slotVal, probabilityBits, optField[slotVal], &buff, coders[slotVal], mfc);
     }
   };
 
@@ -319,7 +319,7 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VEC& buffVec)
   o2::ctf::CTFIOSize iosize;
   auto decodeTPC = [&ec, &coders = mCoders, &iosize](auto begin, CTF::Slots slot) {
     const auto slotVal = static_cast<int>(slot);
-    iosize += ec.decode(begin, slotVal, coders[slotVal].get());
+    iosize += ec.decode(begin, slotVal, coders[slotVal]);
   };
 
   if (mCombineColumns) {

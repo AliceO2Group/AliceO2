@@ -171,22 +171,20 @@ void CTFCoder::createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBa
 ///________________________________
 size_t CTFCoder::estimateCompressedSize(const CompressedInfos& cc)
 {
-
-  using namespace o2::ctf::ctfCoderBaseImpl;
   size_t sz = 0;
   // RS FIXME this is very crude estimate, instead, an empirical values should be used
 
-  sz += estimateSize(mCoders[static_cast<int>(CTF::BLCbcIncROF)].get(), cc.bcIncROF);
-  sz += estimateSize(mCoders[static_cast<int>(CTF::BLCorbitIncROF)].get(), cc.orbitIncROF);
-  sz += estimateSize(mCoders[static_cast<int>(CTF::BLCndigROF)].get(), cc.ndigROF);
-  sz += estimateSize(mCoders[static_cast<int>(CTF::BLCndiaROF)].get(), cc.ndiaROF);
-  sz += estimateSize(mCoders[static_cast<int>(CTF::BLCndiaCrate)].get(), cc.ndiaCrate);
-  sz += estimateSize(mCoders[static_cast<int>(CTF::BLCtimeFrameInc)].get(), cc.timeFrameInc);
-  sz += estimateSize(mCoders[static_cast<int>(CTF::BLCtimeTDCInc)].get(), cc.timeTDCInc);
-  sz += estimateSize(mCoders[static_cast<int>(CTF::BLCstripID)].get(), cc.stripID);
-  sz += estimateSize(mCoders[static_cast<int>(CTF::BLCchanInStrip)].get(), cc.chanInStrip);
-  sz += estimateSize(mCoders[static_cast<int>(CTF::BLCtot)].get(), cc.tot);
-  sz += estimateSize(mCoders[static_cast<int>(CTF::BLCpattMap)].get(), cc.pattMap);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLCbcIncROF), cc.bcIncROF);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLCorbitIncROF), cc.orbitIncROF);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLCndigROF), cc.ndigROF);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLCndiaROF), cc.ndiaROF);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLCndiaCrate), cc.ndiaCrate);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLCtimeFrameInc), cc.timeFrameInc);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLCtimeTDCInc), cc.timeTDCInc);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLCstripID), cc.stripID);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLCchanInStrip), cc.chanInStrip);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLCtot), cc.tot);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLCpattMap), cc.pattMap);
   sz *= 2. / 3; // if needed, will be autoexpanded
   LOG(debug) << "Estimated output size is " << sz << " bytes";
   return sz;

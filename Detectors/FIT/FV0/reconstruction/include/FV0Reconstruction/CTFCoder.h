@@ -100,7 +100,7 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const Digit>& dig
   ec->setANSHeader(mANSVersion);
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
   o2::ctf::CTFIOSize iosize;
-#define ENCODEFV0(part, slot, bits) CTF::get(buff.data())->encode(part, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get(), getMemMarginFactor());
+#define ENCODEFV0(part, slot, bits) CTF::get(buff.data())->encode(part, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)], getMemMarginFactor());
   // clang-format off
   iosize += ENCODEFV0(cd.bcInc,     CTF::BLC_bcInc,    0);
   iosize += ENCODEFV0(cd.orbitInc,  CTF::BLC_orbitInc, 0);
@@ -128,7 +128,7 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VDIG& digitVec, VCHAN& 
   checkDictVersion(hd);
   ec.print(getPrefix(), mVerbosity);
   o2::ctf::CTFIOSize iosize;
-#define DECODEFV0(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
+#define DECODEFV0(part, slot) ec.decode(part, int(slot), mCoders[int(slot)])
   // clang-format off
   iosize += DECODEFV0(cd.bcInc,     CTF::BLC_bcInc);
   iosize += DECODEFV0(cd.orbitInc,  CTF::BLC_orbitInc);
