@@ -14,8 +14,6 @@
 
 #include "Framework/ASoA.h"
 #include "Framework/StructToTuple.h"
-#include "Framework/FunctionalHelpers.h"
-#include "Framework/VariantHelpers.h"
 #include "Framework/RuntimeError.h"
 #include "arrow/type_traits.h"
 
@@ -464,22 +462,28 @@ struct CachedInsertion {
   int pos = 0;
 };
 
-template <typename T, template <typename U> typename InsertionPolicy>
+template <size_t I, typename T, template <typename U> typename InsertionPolicy>
 struct BuilderHolder : InsertionPolicy<T> {
+  static constexpr size_t index = I;
   using Policy = InsertionPolicy<T>;
   using ArrowType = typename detail::ConversionTraits<T>::ArrowType;
   using BuilderType = typename arrow::TypeTraits<ArrowType>::BuilderType;
 
-  BuilderHolder(arrow::MemoryPool* pool)
+  BuilderHolder(arrow::MemoryPool* pool, size_t nRows = 0)
     : builder{BuilderMaker<T>::make(pool)}
   {
+    if (nRows > 0) {
+      auto s = builder->Reserve(nRows);
+      if (!s.ok()) {
+        throw runtime_error_f("Unable to reserve %ll rows", nRows);
+      }
+    }
   }
 
   std::unique_ptr<BuilderType> builder;
 };
 
 struct TableBuilderHelpers {
-
   template <typename... ARGS, size_t NCOLUMNS>
   static std::array<arrow::DataType, NCOLUMNS> makeArrowColumnTypes()
   {
@@ -495,39 +499,39 @@ struct TableBuilderHelpers {
   }
 
   /// Invokes the append method for each entry in the tuple
-  template <std::size_t... Is, typename HOLDERS, typename VALUES>
-  static bool append(HOLDERS& holders, std::index_sequence<Is...>, VALUES&& values)
+  template <typename... Ts, typename VALUES>
+  static bool append(std::tuple<Ts...>& holders, VALUES&& values)
   {
-    return (BuilderUtils::append(std::get<Is>(holders), std::get<Is>(values)).ok() && ...);
+    return (BuilderUtils::append(std::get<Ts::index>(holders), std::get<Ts::index>(values)).ok() && ...);
   }
 
   /// Invokes the UnsafeAppend method for each entry in the tuple
   /// For this to be used, one should make sure the number of entries
   /// is known a-priori.
-  template <std::size_t... Is, typename HOLDERS, typename VALUES>
-  static void unsafeAppend(HOLDERS& holders, std::index_sequence<Is...>, VALUES&& values)
+  template <typename... Ts, typename VALUES>
+  static void unsafeAppend(std::tuple<Ts...>& holders, VALUES&& values)
   {
-    (BuilderUtils::unsafeAppend(std::get<Is>(holders), std::get<Is>(values)), ...);
+    (BuilderUtils::unsafeAppend(std::get<Ts::index>(holders), std::get<Ts::index>(values)), ...);
   }
 
-  template <std::size_t... Is, typename HOLDERS, typename PTRS>
-  static bool bulkAppend(HOLDERS& holders, size_t bulkSize, std::index_sequence<Is...>, PTRS ptrs)
+  template <typename... Ts, typename PTRS>
+  static bool bulkAppend(std::tuple<Ts...>& holders, size_t bulkSize, PTRS ptrs)
   {
-    return (BuilderUtils::bulkAppend(std::get<Is>(holders), bulkSize, std::get<Is>(ptrs)).ok() && ...);
+    return (BuilderUtils::bulkAppend(std::get<Ts::index>(holders), bulkSize, std::get<Ts::index>(ptrs)).ok() && ...);
   }
 
   /// Return true if all columns are done.
-  template <std::size_t... Is, typename BUILDERS, typename INFOS>
-  static bool bulkAppendChunked(BUILDERS& builders, std::index_sequence<Is...>, INFOS infos)
+  template <typename... Ts, typename INFOS>
+  static bool bulkAppendChunked(std::tuple<Ts...>& holders, INFOS infos)
   {
-    return (BuilderUtils::bulkAppendChunked(std::get<Is>(builders), std::get<Is>(infos)).ok() && ...);
+    return (BuilderUtils::bulkAppendChunked(std::get<Ts::index>(holders), std::get<Ts::index>(infos)).ok() && ...);
   }
 
   /// Invokes the append method for each entry in the tuple
-  template <typename HOLDERS, std::size_t... Is>
-  static bool finalize(std::vector<std::shared_ptr<arrow::Array>>& arrays, HOLDERS& holders, std::index_sequence<Is...> seq)
+  template <typename... Ts>
+  static bool finalize(std::vector<std::shared_ptr<arrow::Array>>& arrays, std::tuple<Ts...>& holders)
   {
-    return (finalize(arrays[Is], std::get<Is>(holders)) && ...);
+    return (finalize(arrays[Ts::index], std::get<Ts::index>(holders)) && ...);
   }
 
   template <typename HOLDER>
@@ -535,25 +539,10 @@ struct TableBuilderHelpers {
   {
     return BuilderUtils::flush(holder).ok() && holder.builder->Finish(&array).ok();
   }
-
-  template <typename HOLDERS, std::size_t... Is>
-  static bool reserveAll(HOLDERS& holders, size_t s, std::index_sequence<Is...>)
-  {
-    return (std::get<Is>(holders).builder->Reserve(s).ok() && ...);
-  }
-
-  template <typename HOLDER>
-  static HOLDER&& reserveAll(HOLDER&& holder, size_t s)
-  {
-    if (s != -1) {
-      holder.builder->Reserve(s).ok();
-    }
-    return std::move(holder);
-  }
 };
 
 template <typename... ARGS>
-auto tuple_to_pack(std::tuple<ARGS...>&&)
+constexpr auto tuple_to_pack(std::tuple<ARGS...>&&)
 {
   return framework::pack<ARGS...>{};
 }
@@ -573,59 +562,60 @@ template <class T, std::size_t N>
 struct is_bounded_array<std::array<T, N>> : std::true_type {
 };
 
-template <typename T>
+template <size_t I, typename T>
 struct HolderTrait {
-  using Holder = BuilderHolder<T, DirectInsertion>;
+
+  using Holder = BuilderHolder<I, T, DirectInsertion>;
 };
 
-template <>
-struct HolderTrait<int8_t> {
-  using Holder = BuilderHolder<int8_t, CachedInsertion>;
+template <size_t I>
+struct HolderTrait<I, int8_t> {
+  using Holder = BuilderHolder<I, int8_t, CachedInsertion>;
 };
 
-template <>
-struct HolderTrait<uint8_t> {
-  using Holder = BuilderHolder<uint8_t, CachedInsertion>;
+template <size_t I>
+struct HolderTrait<I, uint8_t> {
+  using Holder = BuilderHolder<I, uint8_t, CachedInsertion>;
 };
 
-template <>
-struct HolderTrait<uint16_t> {
-  using Holder = BuilderHolder<uint16_t, CachedInsertion>;
+template <size_t I>
+struct HolderTrait<I, uint16_t> {
+  using Holder = BuilderHolder<I, uint16_t, CachedInsertion>;
 };
 
-template <>
-struct HolderTrait<int16_t> {
-  using Holder = BuilderHolder<int16_t, CachedInsertion>;
+template <size_t I>
+struct HolderTrait<I, int16_t> {
+  using Holder = BuilderHolder<I, int16_t, CachedInsertion>;
 };
 
-template <>
-struct HolderTrait<int> {
-  using Holder = BuilderHolder<int, CachedInsertion>;
+template <size_t I>
+struct HolderTrait<I, int> {
+  using Holder = BuilderHolder<I, int, CachedInsertion>;
 };
 
-template <>
-struct HolderTrait<float> {
-  using Holder = BuilderHolder<float, CachedInsertion>;
+template <size_t I>
+struct HolderTrait<I, float> {
+  using Holder = BuilderHolder<I, float, CachedInsertion>;
 };
 
-template <>
-struct HolderTrait<double> {
-  using Holder = BuilderHolder<double, CachedInsertion>;
+template <size_t I>
+struct HolderTrait<I, double> {
+  using Holder = BuilderHolder<I, double, CachedInsertion>;
 };
 
-template <>
-struct HolderTrait<unsigned int> {
-  using Holder = BuilderHolder<unsigned int, CachedInsertion>;
+template <size_t I>
+struct HolderTrait<I, unsigned int> {
+  using Holder = BuilderHolder<I, unsigned int, CachedInsertion>;
 };
 
-template <>
-struct HolderTrait<uint64_t> {
-  using Holder = BuilderHolder<uint64_t, CachedInsertion>;
+template <size_t I>
+struct HolderTrait<I, uint64_t> {
+  using Holder = BuilderHolder<I, uint64_t, CachedInsertion>;
 };
 
-template <>
-struct HolderTrait<int64_t> {
-  using Holder = BuilderHolder<int64_t, CachedInsertion>;
+template <size_t I>
+struct HolderTrait<I, int64_t> {
+  using Holder = BuilderHolder<I, int64_t, CachedInsertion>;
 };
 
 /// Helper function to convert a brace-initialisable struct to
@@ -651,6 +641,45 @@ auto constexpr to_tuple(T&& object) noexcept
   }
 }
 
+template <size_t I, typename... ARGS>
+constexpr auto makeHolderType(framework::pack<ARGS...>&&)
+{
+  return typename HolderTrait<I, framework::pack_element_t<I, framework::pack<ARGS...>>>::Holder{arrow::default_memory_pool()};
+}
+
+template <size_t I, typename... ARGS>
+auto makeHolder(arrow::MemoryPool* pool, size_t nRows, framework::pack<ARGS...>&&)
+{
+  return typename HolderTrait<I, framework::pack_element_t<I, framework::pack<ARGS...>>>::Holder(pool, nRows);
+}
+
+template <size_t... Is, typename... ARGS>
+constexpr auto makeHolderTypesImpl(std::index_sequence<Is...>, framework::pack<ARGS...>&& pack)
+{
+  return std::tuple(makeHolderType<Is>(std::forward<framework::pack<ARGS...>>(pack))...);
+}
+
+template <size_t... Is, typename... ARGS>
+auto makeHoldersImpl(arrow::MemoryPool* pool, size_t nRows, std::index_sequence<Is...>, framework::pack<ARGS...>&& pack)
+{
+  return new std::tuple(makeHolder<Is>(pool, nRows, std::forward<framework::pack<ARGS...>>(pack))...);
+}
+
+template <typename... ARGS>
+constexpr auto makeHolderTypes(framework::pack<ARGS...>&& pack)
+{
+  return makeHolderTypesImpl(std::make_index_sequence<sizeof...(ARGS)>{}, std::forward<framework::pack<ARGS...>>(pack));
+}
+
+template <typename... ARGS>
+auto makeHolders(arrow::MemoryPool* pool, size_t nRows, framework::pack<ARGS...>&& pack)
+{
+  return makeHoldersImpl(pool, nRows, std::make_index_sequence<sizeof...(ARGS)>{}, std::forward<framework::pack<ARGS...>>(pack));
+}
+
+template <typename... ARGS>
+using IndexedHoldersTuple = decltype(makeHolderTypes(framework::pack<ARGS...>{}));
+
 /// Helper class which creates a lambda suitable for building
 /// an arrow table from a tuple. This can be used, for example
 /// to build an arrow::Table from a TDataFrame.
@@ -659,14 +688,17 @@ class TableBuilder
   static void throwError(RuntimeErrorRef const& ref);
 
   template <typename... ARGS>
-  using HoldersTuple = typename std::tuple<typename HolderTrait<ARGS>::Holder...>;
+  using HoldersTuple = typename std::tuple<typename HolderTrait<0, ARGS>::Holder...>;
+
+  template <typename... ARGS>
+  using HoldersTupleIndexed = decltype(makeHolderTypes(framework::pack<ARGS...>{}));
 
   /// Get the builders, assumning they were created with a given pack
   ///  of basic types
   template <typename... ARGS>
   auto getBuilders(o2::framework::pack<ARGS...>)
   {
-    return (HoldersTuple<ARGS...>*)mHolders;
+    return (HoldersTupleIndexed<ARGS...>*)mHolders;
   }
 
   void validate() const;
@@ -675,9 +707,13 @@ class TableBuilder
   auto makeBuilders(std::array<char const*, I> const& columnNames, size_t nRows)
   {
     mSchema = std::make_shared<arrow::Schema>(TableBuilderHelpers::makeFields<ARGS...>(columnNames));
-    mHolders = new HoldersTuple<ARGS...>(TableBuilderHelpers::reserveAll(typename HolderTrait<ARGS>::Holder(mMemoryPool), nRows)...);
-    mFinalizer = [](std::shared_ptr<arrow::Schema> schema, std::vector<std::shared_ptr<arrow::Array>>& arrays, void* holders) -> bool {
-      return TableBuilderHelpers::finalize(arrays, *(HoldersTuple<ARGS...>*)holders, std::make_index_sequence<I>{});
+
+    mHolders = makeHolders(mMemoryPool, nRows, framework::pack<ARGS...>{});
+    mFinalizer = [](std::vector<std::shared_ptr<arrow::Array>>& arrays, void* holders) -> bool {
+      return TableBuilderHelpers::finalize(arrays, *(HoldersTupleIndexed<ARGS...>*)holders);
+    };
+    mDestructor = [](void* holders) mutable -> void {
+      delete (HoldersTupleIndexed<ARGS...>*)holders;
     };
   }
 
@@ -711,6 +747,11 @@ class TableBuilder
     : mHolders{nullptr},
       mMemoryPool{pool}
   {
+  }
+
+  ~TableBuilder()
+  {
+    mDestructor(mHolders);
   }
 
   /// Creates a lambda which is suitable to persist things
@@ -757,12 +798,12 @@ class TableBuilder
     constexpr int nColumns = sizeof...(ARGS);
     validate();
     mArrays.resize(nColumns);
-    makeBuilders<ARGS...>(columnNames, 1000);
+    makeBuilders<ARGS...>(columnNames, 10);
 
     // Callback used to fill the builders
     using FillTuple = std::tuple<typename BuilderMaker<ARGS>::FillType...>;
-    return [holders = mHolders](unsigned int slot, FillTuple const& t) -> void {
-      auto status = TableBuilderHelpers::append(*(HoldersTuple<ARGS...>*)holders, std::index_sequence_for<ARGS...>{}, t);
+    return [holders = mHolders](unsigned int /*slot*/, FillTuple const& t) -> void {
+      auto status = TableBuilderHelpers::append(*(HoldersTupleIndexed<ARGS...>*)holders, t);
       if (status == false) {
         throwError(runtime_error("Unable to append"));
       }
@@ -792,8 +833,8 @@ class TableBuilder
     makeBuilders<ARGS...>(columnNames, nRows);
 
     // Callback used to fill the builders
-    return [holders = mHolders](unsigned int slot, typename BuilderMaker<ARGS>::FillType... args) -> void {
-      TableBuilderHelpers::unsafeAppend(*(HoldersTuple<ARGS...>*)holders, std::index_sequence_for<ARGS...>{}, std::forward_as_tuple(args...));
+    return [holders = mHolders](unsigned int /*slot*/, typename BuilderMaker<ARGS>::FillType... args) -> void {
+      TableBuilderHelpers::unsafeAppend(*(HoldersTupleIndexed<ARGS...>*)holders, std::forward_as_tuple(args...));
     };
   }
 
@@ -805,8 +846,8 @@ class TableBuilder
     mArrays.resize(NCOLUMNS);
     makeBuilders<ARGS...>(columnNames, nRows);
 
-    return [holders = mHolders](unsigned int slot, size_t batchSize, typename BuilderMaker<ARGS>::FillType const*... args) -> void {
-      TableBuilderHelpers::bulkAppend(*(HoldersTuple<ARGS...>*)holders, batchSize, std::index_sequence_for<ARGS...>{}, std::forward_as_tuple(args...));
+    return [holders = mHolders](unsigned int /*slot*/, size_t batchSize, typename BuilderMaker<ARGS>::FillType const*... args) -> void {
+      TableBuilderHelpers::bulkAppend(*(HoldersTupleIndexed<ARGS...>*)holders, batchSize, std::forward_as_tuple(args...));
     };
   }
 
@@ -817,29 +858,26 @@ class TableBuilder
     mArrays.resize(NCOLUMNS);
     makeBuilders<ARGS...>(columnNames, nRows);
 
-    return [holders = mHolders](unsigned int slot, BulkInfo<typename BuilderMaker<ARGS>::STLValueType const*>... args) -> bool {
-      return TableBuilderHelpers::bulkAppendChunked(*(HoldersTuple<ARGS...>*)holders, std::index_sequence_for<ARGS...>{}, std::forward_as_tuple(args...));
+    return [holders = mHolders](unsigned int /*slot*/, BulkInfo<typename BuilderMaker<ARGS>::STLValueType const*>... args) -> bool {
+      return TableBuilderHelpers::bulkAppendChunked(*(HoldersTupleIndexed<ARGS...>*)holders, std::forward_as_tuple(args...));
     };
   }
 
   /// Reserve method to expand the columns as needed.
-  template <typename... ARGS>
-  auto reserve(o2::framework::pack<ARGS...> pack, int s)
+  template <typename... Ts>
+  auto reserveArrays(std::tuple<Ts...>& holders, int s)
   {
-    visitBuilders(pack, [s](auto& holder) { return holder.builder->Reserve(s).ok(); });
+    return (std::get<Ts::index>(holders).builder->Reserve(s).ok() && ...);
   }
 
-  /// Invoke the appropriate visitor on the various builders
-  template <typename... ARGS, typename V>
-  auto visitBuilders(o2::framework::pack<ARGS...> pack, V&& visitor)
+  template <typename... ARGS>
+  auto reserve(o2::framework::pack<ARGS...>&&, int s)
   {
-    auto builders = getBuilders(pack);
-    return std::apply(overloaded{
-                        [visitor](typename HolderTrait<ARGS>::Holder&... args) { (visitor(args), ...); }},
-                      *builders);
+    reserveArrays(*(HoldersTupleIndexed<ARGS...>*)mHolders, s);
   }
 
   /// Actually creates the arrow::Table from the builders
+  void extracted(bool& status);
   std::shared_ptr<arrow::Table> finalize();
 
  private:
@@ -858,7 +896,8 @@ class TableBuilder
     return this->template persist<E>({Cs::columnLabel()...});
   }
 
-  bool (*mFinalizer)(std::shared_ptr<arrow::Schema> schema, std::vector<std::shared_ptr<arrow::Array>>& arrays, void* holders);
+  bool (*mFinalizer)(std::vector<std::shared_ptr<arrow::Array>>& arrays, void* holders);
+  void (*mDestructor)(void* holders);
   void* mHolders;
   arrow::MemoryPool* mMemoryPool;
   std::shared_ptr<arrow::Schema> mSchema;
@@ -874,7 +913,7 @@ auto makeEmptyTable(const char* name)
   return b.finalize();
 }
 
-std::shared_ptr<arrow::Table> spawnerHelper(std::shared_ptr<arrow::Table> fullTable, std::shared_ptr<arrow::Schema> newSchema, size_t nColumns,
+std::shared_ptr<arrow::Table> spawnerHelper(std::shared_ptr<arrow::Table>& fullTable, std::shared_ptr<arrow::Schema> newSchema, size_t nColumns,
                                             expressions::Projector* projectors, std::vector<std::shared_ptr<arrow::Field>> const& fields, const char* name);
 
 /// Expression-based column generator to materialize columns
@@ -889,26 +928,6 @@ auto spawner(framework::pack<C...> columns, std::vector<std::shared_ptr<arrow::T
   static auto new_schema = std::make_shared<arrow::Schema>(fields);
   std::array<expressions::Projector, sizeof...(C)> projectors{{std::move(C::Projector())...}};
   return spawnerHelper(fullTable, new_schema, sizeof...(C), projectors.data(), fields, name);
-}
-
-/// Binary search for an index column
-template <typename Key, typename T>
-void lowerBound(int32_t value, T& start)
-{
-  static_assert(soa::is_soa_iterator_v<T>, "Argument needs to be a Table::iterator");
-  int step;
-  auto count = start.size() - start.globalIndex();
-
-  while (count > 0) {
-    step = count / 2;
-    start.moveByIndex(step);
-    if (start.template getId<Key>() <= value) {
-      count -= step + 1;
-    } else {
-      start.moveByIndex(-step);
-      count = step;
-    }
-  }
 }
 
 template <typename... T>
