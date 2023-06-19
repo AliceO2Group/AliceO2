@@ -94,7 +94,6 @@ void TRDTrackBasedCalibDevice::updateTimeDependentParams(ProcessingContext& pc)
     // init-once stuff
     mCalibrator.init();
 
-
     if (pc.inputs().isValid("localgainfactors")) {
       mDoGainCalib = true;
       auto localGain = pc.inputs().get<o2::trd::LocalGainFactor*>("localgainfactors").release();
@@ -143,7 +142,8 @@ DataProcessorSpec getTRDTrackBasedCalibSpec(o2::dataformats::GlobalTrackID::mask
 
   auto& inputs = dataRequest->inputs;
   inputs.emplace_back("mcmnoisemap", "TRD", "MCMNOISEMAP", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/NoiseMapMCM"));
-  if (doGainCalib) inputs.emplace_back("localgainfactors", "TRD", "LOCALGAINFACTORS", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/LocalGainFactor"));
+  if (doGainCalib)
+    inputs.emplace_back("localgainfactors", "TRD", "LOCALGAINFACTORS", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/LocalGainFactor"));
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
                                                               false,                             // GRPECS=true
                                                               false,                             // GRPLHCIF
@@ -152,7 +152,8 @@ DataProcessorSpec getTRDTrackBasedCalibSpec(o2::dataformats::GlobalTrackID::mask
                                                               o2::base::GRPGeomRequest::Aligned, // geometry
                                                               inputs,
                                                               true);
-  if (doGainCalib) outputs.emplace_back(o2::header::gDataOriginTRD, "GAINCALIBHISTS", 0, Lifetime::Timeframe);
+  if (doGainCalib)
+    outputs.emplace_back(o2::header::gDataOriginTRD, "GAINCALIBHISTS", 0, Lifetime::Timeframe);
   outputs.emplace_back(o2::header::gDataOriginTRD, "ANGRESHISTS", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
@@ -160,8 +161,7 @@ DataProcessorSpec getTRDTrackBasedCalibSpec(o2::dataformats::GlobalTrackID::mask
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<TRDTrackBasedCalibDevice>(dataRequest, ggRequest)},
-    Options{}
-    };
+    Options{}};
 }
 
 } // namespace trd
