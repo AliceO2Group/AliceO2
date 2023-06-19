@@ -47,6 +47,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-root-input", VariantType::Bool, false, {"disable root-files input readers"}},
     {"disable-root-output", VariantType::Bool, false, {"disable root-files output writers"}},
     {"enable-trackbased-calib", VariantType::Bool, false, {"enable calibration devices which are based on tracking output"}},
+    {"enable-gain-calib", VariantType::Bool, false, {"enable collection of dEdx histos for gain calibration"}},
     {"enable-qc", VariantType::Bool, false, {"enable tracking QC"}},
     {"enable-pid", VariantType::Bool, false, {"Enable PID"}},
     {"track-sources", VariantType::String, std::string{GTrackID::ALL}, {"comma-separated list of sources to use for tracking"}},
@@ -103,7 +104,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::framework::WorkflowSpec specs;
   specs.emplace_back(o2::trd::getTRDGlobalTrackingSpec(useMC, srcTRD, trigRecFilterActive, strict, pid, policy));
   if (configcontext.options().get<bool>("enable-trackbased-calib")) {
-    specs.emplace_back(o2::trd::getTRDTrackBasedCalibSpec(srcTRD));
+    specs.emplace_back(o2::trd::getTRDTrackBasedCalibSpec(srcTRD, configcontext.options().get<bool>("enable-gain-calib")));
   }
   if (configcontext.options().get<bool>("enable-qc")) {
     specs.emplace_back(o2::trd::getTRDGlobalTrackingQCSpec(srcTRD));

@@ -62,10 +62,6 @@ void TRDTrackBasedCalibDevice::init(InitContext& ic)
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mTimer.Stop();
   mTimer.Reset();
-
-  if (ic.options().get<bool>("enable-gain-calib")) {
-    mDoGainCalib = true;
-  }
 }
 
 void TRDTrackBasedCalibDevice::run(ProcessingContext& pc)
@@ -98,7 +94,9 @@ void TRDTrackBasedCalibDevice::updateTimeDependentParams(ProcessingContext& pc)
     // init-once stuff
     mCalibrator.init();
 
-    if (mDoGainCalib) {
+
+    if (pc.inputs().isValid("localgainfactors")) {
+      mDoGainCalib = true;
       auto localGain = pc.inputs().get<o2::trd::LocalGainFactor*>("localgainfactors").release();
       mCalibrator.setLocalGainFactors(localGain);
     }
@@ -123,7 +121,7 @@ void TRDTrackBasedCalibDevice::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTRDTrackBasedCalibSpec(o2::dataformats::GlobalTrackID::mask_t src)
+DataProcessorSpec getTRDTrackBasedCalibSpec(o2::dataformats::GlobalTrackID::mask_t src, Bool_t doGainCalib)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
@@ -145,7 +143,7 @@ DataProcessorSpec getTRDTrackBasedCalibSpec(o2::dataformats::GlobalTrackID::mask
 
   auto& inputs = dataRequest->inputs;
   inputs.emplace_back("mcmnoisemap", "TRD", "MCMNOISEMAP", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/NoiseMapMCM"));
-  inputs.emplace_back("localgainfactors", "TRD", "LOCALGAINFACTORS", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/LocalGainFactor"));
+  if (doGainCalib) inputs.emplace_back("localgainfactors", "TRD", "LOCALGAINFACTORS", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/LocalGainFactor"));
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
                                                               false,                             // GRPECS=true
                                                               false,                             // GRPLHCIF
@@ -154,7 +152,7 @@ DataProcessorSpec getTRDTrackBasedCalibSpec(o2::dataformats::GlobalTrackID::mask
                                                               o2::base::GRPGeomRequest::Aligned, // geometry
                                                               inputs,
                                                               true);
-  outputs.emplace_back(o2::header::gDataOriginTRD, "GAINCALIBHISTS", 0, Lifetime::Timeframe);
+  if (doGainCalib) outputs.emplace_back(o2::header::gDataOriginTRD, "GAINCALIBHISTS", 0, Lifetime::Timeframe);
   outputs.emplace_back(o2::header::gDataOriginTRD, "ANGRESHISTS", 0, Lifetime::Timeframe);
 
   return DataProcessorSpec{
@@ -162,8 +160,8 @@ DataProcessorSpec getTRDTrackBasedCalibSpec(o2::dataformats::GlobalTrackID::mask
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<TRDTrackBasedCalibDevice>(dataRequest, ggRequest)},
-    Options{
-      {"enable-gain-calib", VariantType::Bool, false, {"enable collection of dEdx histos for gain calibration"}}}};
+    Options{}
+    };
 }
 
 } // namespace trd
