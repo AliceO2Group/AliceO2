@@ -32,7 +32,7 @@ rname1=$(hexdump -n 16 -v -e '/1 "%02X"' -e '/16 "\n"' /dev/urandom | head -c 6)
 set -x
 ### step 1: Startup the 1st service with a partial detector config
 
-( o2-sim-client.py --startup "-j ${NWORKERS} -n 0 -g pythia8pp -m ${MODULES} -o simservice --configFile sim_step1.ini" \
+( o2-sim-client.py --startup "-j ${NWORKERS} -n 0 -m ${MODULES} -o simservice --configFile sim_step1.ini" \
                    --block ) | tee /tmp/${rname1}  # <--- return when everything is fully initialized
 SERVICE1_PID=$(grep "detached as pid" /tmp/${rname1} | awk '//{print $4}')
 
