@@ -99,7 +99,9 @@ class HistogramView
 template <typename Hist_IT>
 [[nodiscard]] HistogramView<Hist_IT> trim(const HistogramView<Hist_IT>& buffer)
 {
-  auto isZero = [](count_t i) { return i == 0; };
+  using value_type = typename HistogramView<Hist_IT>::value_type;
+  value_type zeroElem{};
+  auto isZero = [&zeroElem](value_type i) { return i == zeroElem; };
   auto nonZeroBegin = std::find_if_not(buffer.begin(), buffer.end(), isZero);
   auto nonZeroEnd = std::find_if_not(buffer.rbegin(), buffer.rend(), isZero).base();
 

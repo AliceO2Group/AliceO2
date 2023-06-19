@@ -68,19 +68,17 @@ void CTFCoder::createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBa
 ///________________________________
 size_t CTFCoder::estimateCompressedSize(const CompressedDigits& cd)
 {
-  using namespace o2::ctf::ctfCoderBaseImpl;
-
   size_t sz = 0;
   // RS FIXME this is very crude estimate, instead, an empirical values should be used
-  sz += estimateSize(mCoders[static_cast<int>(CTF::BLC_trigger)].get(), cd.trigger);
-  sz += estimateSize(mCoders[static_cast<int>(CTF::BLC_bcInc)].get(), cd.bcInc);
-  sz += estimateSize(mCoders[static_cast<int>(CTF::BLC_orbitInc)].get(), cd.orbitInc);
-  sz += estimateSize(mCoders[static_cast<int>(CTF::BLC_nChan)].get(), cd.nChan);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLC_trigger), cd.trigger);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLC_bcInc), cd.bcInc);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLC_orbitInc), cd.orbitInc);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLC_nChan), cd.nChan);
 
-  sz += estimateSize(mCoders[static_cast<int>(CTF::BLC_idChan)].get(), cd.idChan);
-  sz += estimateSize(mCoders[static_cast<int>(CTF::BLC_time)].get(), cd.time);
-  sz += estimateSize(mCoders[static_cast<int>(CTF::BLC_charge)].get(), cd.charge);
-  sz += estimateSize(mCoders[static_cast<int>(CTF::BLC_feeBits)].get(), cd.feeBits);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLC_idChan), cd.idChan);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLC_time), cd.time);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLC_charge), cd.charge);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLC_feeBits), cd.feeBits);
 
   LOG(info) << "Estimated output size is " << sz << " bytes";
   return sz;

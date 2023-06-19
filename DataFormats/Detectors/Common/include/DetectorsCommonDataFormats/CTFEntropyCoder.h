@@ -239,7 +239,7 @@ class ExternalEntropyCoder
   using encoder_type = typename rans::defaultEncoder_type<source_type>;
   using metrics_type = rans::Metrics<source_type>;
 
-  ExternalEntropyCoder(const encoder_type* encoder) : mEncoder{encoder}
+  ExternalEntropyCoder(const encoder_type& encoder) : mEncoder{&encoder}
   {
     if (!getEncoder().getSymbolTable().hasEscapeSymbol()) {
       throw std::runtime_error("External entropy encoder must be able to handle incompressible symbols.");

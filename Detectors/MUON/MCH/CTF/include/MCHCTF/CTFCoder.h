@@ -110,7 +110,7 @@ o2::ctf::CTFIOSize CTFCoder::encode_impl(VEC& buff, const gsl::span<const ROFRec
   ec->setANSHeader(mANSVersion);
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
   o2::ctf::CTFIOSize iosize;
-#define ENCODEMCH(beg, end, slot, bits) CTF::get(buff.data())->encode(beg, end, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get(), getMemMarginFactor());
+#define ENCODEMCH(beg, end, slot, bits) CTF::get(buff.data())->encode(beg, end, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)], getMemMarginFactor());
   // clang-format off
   iosize += ENCODEMCH(helper.begin_bcIncROF(),    helper.end_bcIncROF(),     CTF::BLC_bcIncROF,     0);
   iosize += ENCODEMCH(helper.begin_orbitIncROF(), helper.end_orbitIncROF(),  CTF::BLC_orbitIncROF,  0);
@@ -145,7 +145,7 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VROF& rofVec, VCOL& dig
   std::vector<uint8_t> isSaturated;
 
   o2::ctf::CTFIOSize iosize;
-#define DECODEMCH(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
+#define DECODEMCH(part, slot) ec.decode(part, int(slot), mCoders[int(slot)])
   // clang-format off
   iosize += DECODEMCH(bcInc,       CTF::BLC_bcIncROF);
   iosize += DECODEMCH(orbitInc,    CTF::BLC_orbitIncROF);

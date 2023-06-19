@@ -214,23 +214,20 @@ void CTFCoder::createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBa
 ///________________________________
 size_t CTFCoder::estimateCompressedSize(const CompressedClusters& cc)
 {
-
-  using namespace o2::ctf::ctfCoderBaseImpl;
-
   size_t sz = 0;
   // RS FIXME this is very crude estimate, instead, an empirical values should be used
 
-  sz += estimateSize(mCoders[static_cast<int>(CTF::BLCfirstChipROF)].get(), cc.firstChipROF);
-  sz += estimateSize(mCoders[static_cast<int>(CTF::BLCbcIncROF)].get(), cc.bcIncROF);
-  sz += estimateSize(mCoders[static_cast<int>(CTF::BLCorbitIncROF)].get(), cc.orbitIncROF);
-  sz += estimateSize(mCoders[static_cast<int>(CTF::BLCnclusROF)].get(), cc.nclusROF);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLCfirstChipROF), cc.firstChipROF);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLCbcIncROF), cc.bcIncROF);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLCorbitIncROF), cc.orbitIncROF);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLCnclusROF), cc.nclusROF);
   //
-  sz += estimateSize(mCoders[static_cast<int>(CTF::BLCchipInc)].get(), cc.chipInc);
-  sz += estimateSize(mCoders[static_cast<int>(CTF::BLCchipMul)].get(), cc.chipMul);
-  sz += estimateSize(mCoders[static_cast<int>(CTF::BLCrow)].get(), cc.row);
-  sz += estimateSize(mCoders[static_cast<int>(CTF::BLCcolInc)].get(), cc.colInc);
-  sz += estimateSize(mCoders[static_cast<int>(CTF::BLCpattID)].get(), cc.pattID);
-  sz += estimateSize(mCoders[static_cast<int>(CTF::BLCpattMap)].get(), cc.pattMap);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLCchipInc), cc.chipInc);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLCchipMul), cc.chipMul);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLCrow), cc.row);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLCcolInc), cc.colInc);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLCpattID), cc.pattID);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLCpattMap), cc.pattMap);
   sz *= 2. / 3; // if needed, will be autoexpanded
   LOG(info) << "Estimated output size is " << sz << " bytes";
   return sz;
@@ -243,7 +240,7 @@ CompressedClusters CTFCoder::decodeCompressedClusters(const CTF::base& ec, o2::c
   cc.header = ec.getHeader();
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(cc.header));
   ec.print(getPrefix(), mVerbosity);
-#define DECODEITSMFT(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
+#define DECODEITSMFT(part, slot) ec.decode(part, int(slot), mCoders[int(slot)])
   // clang-format off
   iosize += DECODEITSMFT(cc.firstChipROF, CTF::BLCfirstChipROF);
   iosize += DECODEITSMFT(cc.bcIncROF,     CTF::BLCbcIncROF);

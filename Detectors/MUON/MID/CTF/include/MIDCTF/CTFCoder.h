@@ -84,7 +84,7 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const CTFHelper::TFData& tfData)
   ec->setANSHeader(mANSVersion);
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
   o2::ctf::CTFIOSize iosize;
-#define ENCODEMID(beg, end, slot, bits) CTF::get(buff.data())->encode(beg, end, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get(), getMemMarginFactor());
+#define ENCODEMID(beg, end, slot, bits) CTF::get(buff.data())->encode(beg, end, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)], getMemMarginFactor());
   // clang-format off
   iosize += ENCODEMID(helper.begin_bcIncROF(),    helper.end_bcIncROF(),     CTF::BLC_bcIncROF,    0);
   iosize += ENCODEMID(helper.begin_orbitIncROF(), helper.end_orbitIncROF(),  CTF::BLC_orbitIncROF, 0);
@@ -114,7 +114,7 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, std::array<VROF, NEvTyp
   std::vector<uint8_t> evType, deId, colId;
 
   o2::ctf::CTFIOSize iosize;
-#define DECODEMID(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
+#define DECODEMID(part, slot) ec.decode(part, int(slot), mCoders[int(slot)])
   // clang-format off
   iosize += DECODEMID(bcInc,       CTF::BLC_bcIncROF);
   iosize += DECODEMID(orbitInc,    CTF::BLC_orbitIncROF);
