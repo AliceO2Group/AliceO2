@@ -9,15 +9,32 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#ifndef O2_TRK_SERVICES_H
+#define O2_TRK_SERVICES_H
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include <TGeoManager.h>
+#include <FairModule.h>
 
-#pragma link C++ class o2::trk::TRKLayer + ;
-#pragma link C++ class o2::trk::TRKServices + ;
-#pragma link C++ class o2::trk::Detector + ;
-#pragma link C++ class o2::base::DetImpl < o2::trk::Detector> + ;
+namespace o2
+{
+namespace trk
+{
 
-#endif
+class TRKServices : public FairModule
+{
+ public:
+  TRKServices() = default;
+  TRKServices(float rMin, float zLength, float thickness);
+  void createMaterials();
+  void createServices(TGeoVolume* motherVolume);
+
+ protected:
+  float mRMin;
+  float mZLength;
+  float mThickness;
+  float mX0;
+  ClassDefOverride(TRKServices, 1);
+};
+} // namespace trk
+} // namespace o2
+#endif // O2_TRK_SERVICES_H

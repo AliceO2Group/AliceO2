@@ -12,13 +12,11 @@
 o2_add_library(TRKSimulation
                SOURCES src/TRKLayer.cxx
                        src/Detector.cxx
-                      #  src/TRKServices.cxx
+                       src/TRKServices.cxx
                PUBLIC_LINK_LIBRARIES O2::TRKBase
                                      O2::ITSMFTSimulation)
-                                    #  ROOT::Physics)
 
 o2_target_root_dictionary(TRKSimulation
                           HEADERS include/TRKSimulation/Detector.h
                                   include/TRKSimulation/TRKLayer.h
-#                                   include/TRKSimulation/TRKServices.h
-                                  )
+                                  include/TRKSimulation/TRKServices.h)

@@ -63,6 +63,7 @@ void TRKLayer::createLayer(TGeoVolume* motherVolume)
   LOGP(info, "Inserting {} in {} ", layerVol->GetName(), motherVolume->GetName());
   motherVolume->AddNode(layerVol, 1, nullptr);
 }
+// ClassImp(TRKLayer);
 
 } // namespace trk
 } // namespace o2

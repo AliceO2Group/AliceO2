@@ -65,6 +65,7 @@ class Cave : public FairDetector
   void addFinishPrimaryHook(std::function<void()>&& hook) { mFinishPrimaryHooks.emplace_back(hook); }
 
   void includeZDC(bool hasZDC) { mHasZDC = hasZDC; }
+  void includeRB24(const bool hasRB24 = true) { mHasRB24 = hasRB24; }
 
   void BeginPrimary() override;
 
@@ -74,10 +75,10 @@ class Cave : public FairDetector
 
   std::vector<std::function<void()>> mFinishPrimaryHooks; //!
 
-  bool mHasZDC = true; //! flag indicating if ZDC will be included
-
+  bool mHasZDC = true;  //! flag indicating if ZDC will be included
+  bool mHasRB24 = true; //! flag indicating if RB24 will be included
   ClassDefOverride(o2::passive::Cave, 1);
 };
 } // namespace passive
 } // namespace o2
-#endif //Cave_H
+#endif // Cave_H
