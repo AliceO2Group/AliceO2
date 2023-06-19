@@ -44,8 +44,11 @@ if args.pid:
 if args.startup:
     commandtokens=args.startup.split()
     commandtokens+="--asservice 1".split()
+    commandtokens=['o2-sim'] + commandtokens
+    # if we do valgrind
+    # commandtokens=['valgrind','--tool=helgrind','--trace-children=yes'] + commandtokens
     with open("simservice.out","wb") as out, open("simservice.err","wb") as err:
-        pid = psutil.Popen(['o2-sim'] + commandtokens, close_fds=True, stderr=err, stdout=out)
+        pid = psutil.Popen(commandtokens, close_fds=True, stderr=err, stdout=out)
         service_pid = pid.pid
         print ("detached as pid", pid.pid)
 
