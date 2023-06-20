@@ -1790,7 +1790,6 @@ CURLcode CcdbApi::CURL_perform(CURL* handle) const
   }
   CURLcode result;
   for (int i = 1; i <= mCurlRetries && (result = curl_easy_perform(handle)) != CURLE_OK; i++) {
-    std::cout << "failed, new attempt" << std::endl;
     usleep(mCurlDelayRetries);
   }
   return result;
