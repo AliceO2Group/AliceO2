@@ -14,21 +14,26 @@
 
 #include "DataFormatsTRD/GainCalibHistos.h"
 #include <fairlogger/Logger.h>
-#include <cmath>
+#include <algorithm>
 
 using namespace o2::trd;
 using namespace o2::trd::constants;
 
+void GainCalibHistos::init()
+{
+  mdEdxEntries.resize(constants::MAXCHAMBER * constants::NBINSGAINCALIB, 0);
+  mInitialized = true;
+}
+
 void GainCalibHistos::reset()
 {
-  mdEdxEntries.fill(0);
+  std::fill(mdEdxEntries.begin(), mdEdxEntries.end(), 0);
   mNEntriesTot = 0;
 }
 
 void GainCalibHistos::addEntry(float dEdx, int chamberId)
 {
   // add entry for given dEdx
-  // returns 0 in case of success
   int chamberOffset = chamberId * NBINSGAINCALIB;
   int iBin = (int)dEdx;
   if (iBin >= NBINSGAINCALIB) {
@@ -39,11 +44,14 @@ void GainCalibHistos::addEntry(float dEdx, int chamberId)
   ++mNEntriesTot;
 }
 
-void GainCalibHistos::fill(const GainCalibHistos& input)
+void GainCalibHistos::fill(const std::unique_ptr<const GainCalibHistos, o2::framework::InputRecord::Deleter<const o2::trd::GainCalibHistos>>& input)
 {
+  if (!mInitialized) {
+    init();
+  }
   for (int i = 0; i < MAXCHAMBER * NBINSGAINCALIB; ++i) {
-    mdEdxEntries[i] += input.getHistogramEntry(i);
-    mNEntriesTot += input.getHistogramEntry(i);
+    mdEdxEntries[i] += input->getHistogramEntry(i);
+    mNEntriesTot += input->getHistogramEntry(i);
   }
 }
 

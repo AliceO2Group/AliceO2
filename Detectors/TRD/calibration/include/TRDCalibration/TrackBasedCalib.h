@@ -58,8 +58,9 @@ class TrackBasedCalib
 
   /// Set the MCM noise map
   void setNoiseMapMCM(const NoiseStatusMCM* map) { mNoiseCalib = map; };
+
   // Set the local gain factors with values from the ccdb
-  void setLocalGainFactors(const o2::trd::LocalGainFactor* localGain) { mLocalGain = localGain; }
+  void setLocalGainFactors(const LocalGainFactor* localGain) { mLocalGain = localGain; }
 
   /// Reset the output
   void reset();
@@ -71,8 +72,10 @@ class TrackBasedCalib
   int doTrdOnlyTrackFits(gsl::span<const TrackTRD>& tracks);
 
   /// Main processing function for gathering information needed for gain calibration
-  /// i.e. TRD tracklet ADC vs TPC track dEdx for given momentum slice
+  /// i.e. TRD tracklet charges vs TPC track dEdx for given momentum slice
   void calculateGainCalibObjs();
+
+  /// Collect tracklet charges for given track
   int filldEdx(gsl::span<const TrackTRD>& tracks, bool isTPCTRD);
 
   /// Extrapolate track parameters to given layer and if requested perform update with tracklet
@@ -99,8 +102,8 @@ class TrackBasedCalib
   gsl::span<const o2::dataformats::TrackTPCITS> mTracksITSTPC;
 
   // corrections from ccdb, some need to be loaded only once hence an init flag
-  const o2::trd::LocalGainFactor* mLocalGain{nullptr}; ///< local gain factors from krypton calibration
-  const NoiseStatusMCM* mNoiseCalib{nullptr};          ///< CCDB object with information of noisy MCMs
+  const LocalGainFactor* mLocalGain{nullptr}; ///< local gain factors from krypton calibration
+  const NoiseStatusMCM* mNoiseCalib{nullptr}; ///< CCDB object with information of noisy MCMs
 
   ClassDefNV(TrackBasedCalib, 1);
 };

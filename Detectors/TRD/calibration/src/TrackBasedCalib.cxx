@@ -36,6 +36,7 @@ void TrackBasedCalib::init()
 {
   bz = o2::base::Propagator::Instance()->getNominalBz();
   mRecoParam.setBfield(bz);
+  mGainCalibHistos.init();
 }
 
 void TrackBasedCalib::setInput(const o2::globaltracking::RecoContainer& input)

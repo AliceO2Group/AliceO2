@@ -16,8 +16,10 @@
 #define ALICEO2_GAINCALIBHISTOS_H
 
 #include "DataFormatsTRD/Constants.h"
+#include "Framework/InputRecord.h"
 #include "Rtypes.h"
-#include <array>
+#include <vector>
+#include <memory>
 #include <gsl/span>
 
 namespace o2
@@ -32,18 +34,20 @@ class GainCalibHistos
   GainCalibHistos(const GainCalibHistos&) = default;
   ~GainCalibHistos() = default;
   void reset();
+  void init();
   void addEntry(float dEdx, int chamberId);
-  float getHistogramEntry(int index) const { return mdEdxEntries[index]; }
-  size_t getNEntries() const { return mNEntriesTot; }
+  auto getHistogramEntry(int index) const { return mdEdxEntries[index]; }
+  auto getNEntries() const { return mNEntriesTot; }
 
-  void fill(const GainCalibHistos& input);
+  void fill(const std::unique_ptr<const GainCalibHistos, o2::framework::InputRecord::Deleter<const o2::trd::GainCalibHistos>>& input);
   void fill(const gsl::span<const GainCalibHistos> input); // dummy!
   void merge(const GainCalibHistos* prev);
   void print();
 
  private:
-  std::array<int, constants::MAXCHAMBER * constants::NBINSGAINCALIB> mdEdxEntries{0}; ///< dEdx histograms
+  std::vector<int> mdEdxEntries{}; ///< dEdx histograms
   size_t mNEntriesTot{0};
+  bool mInitialized{false};
 
   ClassDefNV(GainCalibHistos, 1);
 };
