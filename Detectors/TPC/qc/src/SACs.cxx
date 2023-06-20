@@ -13,6 +13,8 @@
 #include "TPCCalibration/SACDrawHelper.h"
 #include "TH2Poly.h"
 #include "fmt/format.h"
+#include "TText.h"
+#include "TGraph.h"
 
 ClassImp(o2::tpc::qc::SACs);
 using namespace o2::tpc::qc;
@@ -150,3 +152,69 @@ TCanvas* SACs::drawFourierCoeffSAC(Side side, int nbins1D, float xMin1D, float x
 
   return canv;
 }
+
+TCanvas* SACs::drawIDCZeroScale(TCanvas* outputCanvas) const
+{
+  TCanvas* canv = nullptr;
+
+  if (outputCanvas) {
+    canv = outputCanvas;
+  } else {
+    canv = new TCanvas("c_sides_SACZero_scale", "SACZero", 1000, 1000);
+  }
+  canv->cd();
+  TGraph* gSACZeroScale = new TGraph(2);
+  gSACZeroScale->SetPoint(1,0,mScaleSACZeroAside);
+  gSACZeroScale->SetPoint(2,1,mScaleSACZeroCside);
+
+  gSACZeroScale->SetName("gSACZeroScale");
+  gSACZeroScale->SetTitle("Scaling Factor (SACZero);Sides;SACZero Total (arb. unit)");
+  gSACZeroScale->SetMarkerColor(kBlue);
+  gSACZeroScale->SetMarkerStyle(21);
+  gSACZeroScale->SetMarkerSize(1);
+  gSACZeroScale->GetXaxis()->SetLabelColor(0);
+  gSACZeroScale->GetXaxis()->CenterTitle();
+
+  gSACZeroScale->Draw("ap");
+  // Draw labels on the x axis
+  TText* t = new TText();
+  t->SetTextSize(0.035);
+  const char* labels[2] = {"A-Side", "C-Side"};
+  for (Int_t iSide = 0; iSide < 2; iSide++) {
+    t->DrawText((double)iSide, 0.5, labels[iSide]);
+  }
+  gSACZeroScale->GetXaxis()->SetLimits(-0.5, 1.5);
+  canv->Update();
+  canv->Modified();
+  gSACZeroScale->SetBit(TObject::kCanDelete);
+  t->SetBit(TObject::kCanDelete);
+  return canv;
+}
+
+/* void SACs::setSACZeroScale(const bool rejectOutlier)
+{
+  if (rejectOutlier) {
+    createOutlierMap(); //GANESHA what's this 
+  }
+
+  if (mIDCZero[Side::A]) { //GANESHA check
+    mScaleSACZeroAside = getMeanIDC0(Side::A, *mIDCZero[Side::A], rejectOutlier ? mPadFlagsMap.get() : nullptr); //GANESHA check
+    scaleIDC0(mScaleSACZeroAside, Side::A);
+  } else {
+    mScaleSACZeroAside = 0;
+  }
+
+  if (mIDCZero[Side::C]) { //GANESHA check
+    mScaleSACZeroCside = getMeanIDC0(Side::C, *mIDCZero[Side::C], rejectOutlier ? mPadFlagsMap.get() : nullptr); //GANESHA check
+    scaleIDC0(mScaleSACZeroCside, Side::C);
+  } else {
+    mScaleSACZeroCside = 0;
+  }
+
+  /// check if IDC0 total is not zero, in that case no scalling is applied
+  if (mScaleSACZeroAside == 0.0 || mScaleSACZeroCside == 0.0) {
+    LOGP(error, "Please check the SAC0 total A side {} and C side {}, is zero, therefore no scaling applied!", mScaleSACZeroAside, mScaleSACZeroCside);
+    mScaleSACZeroAside = 1.0;
+    mScaleSACZeroCside = 1.0;
+  }
+}*/

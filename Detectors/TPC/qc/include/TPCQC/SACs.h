@@ -73,6 +73,7 @@ class SACs
   TCanvas* drawSACTypeSides(const SACType type, const unsigned int integrationInterval, const int minZ = 0, const int maxZ = -1, TCanvas* canv = nullptr);
   TCanvas* drawSACOneCanvas(int nbins1D, float xMin1D, float xMax1D, int integrationIntervals = -1, TCanvas* outputCanvas = nullptr) const;
   TCanvas* drawFourierCoeffSAC(Side side, int nbins1D, float xMin1D, float xMax1, TCanvas* outputCanvas = nullptr) const;
+  TCanvas* drawIDCZeroScale(TCanvas* outputCanvas = nullptr) const;
 
   void dumpToFile(std::string filename, int type = 0);
 
@@ -82,6 +83,8 @@ class SACs
   std::array<SACOne*, SIDES> mSACOne{}; ///< I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
   SACDelta<unsigned char>* mSACDelta = nullptr;
   FourierCoeffSAC* mFourierSAC = nullptr; ///< fourier coefficients of SACOne
+  float mScaleSACZeroAside = 1.0;
+  float mScaleSACZeroCside = 1.0;
 
   /// \return returns side for given GEM stack
   Side getSide(const unsigned int gemStack) const { return (gemStack < GEMSTACKSPERSIDE) ? Side::A : Side::C; }
