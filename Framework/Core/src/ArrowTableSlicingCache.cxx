@@ -28,7 +28,7 @@ std::pair<int64_t, int64_t> SliceInfoPtr::getSliceFor(int value) const
   int64_t p = static_cast<int64_t>(values.size()) - 1;
   while (values[p] < 0) {
     --p;
-    if (p<0) {
+    if (p < 0) {
       return {offset, 0};
     }
   }
