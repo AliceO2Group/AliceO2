@@ -64,7 +64,7 @@ CCDBDownloader::CCDBDownloader(uv_loop_t* uv_loop)
   mConstructorCV = new std::condition_variable();
   std::mutex cv_m;
   std::unique_lock<std::mutex> lk(cv_m);
-  
+
   if (!mIsExternalLoop) {
     mLoopThread = new std::thread(&CCDBDownloader::runLoop, this);
   }
