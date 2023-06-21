@@ -21,6 +21,8 @@ o2_add_library(TRDBase
                        src/Calibrations.cxx
                        src/CalOnlineGainTables.cxx
                        src/TrackletTransformer.cxx
+                       src/CoordinateTransformer.cxx
+                       src/DataManager.cxx
                        src/RawDisplay.cxx
                PUBLIC_LINK_LIBRARIES O2::GPUCommon
                                      O2::GPUUtils
@@ -48,6 +50,8 @@ o2_target_root_dictionary(TRDBase
                                   include/TRDBase/ChamberStatus.h
                                   include/TRDBase/CalOnlineGainTables.h
                                   include/TRDBase/TrackletTransformer.h
+                                  include/TRDBase/CoordinateTransformer.h
+                                  include/TRDBase/DataManager.h
                                   include/TRDBase/RawDisplay.h)
 
 o2_add_test(Geometry
