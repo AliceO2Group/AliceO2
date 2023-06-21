@@ -1187,7 +1187,7 @@ TGeoVolume* V3Cage::createBeamPipeSupport(const TGeoManager* mgr)
   return bpSuppVol;
 }
 
-TGeoCompositeShape* V3Cage::createBPSuppLowerCollar(void)
+TGeoCompositeShape* V3Cage::createBPSuppLowerCollar()
 {
   //
   // Creates the lower collar which actually supports the Beam Pipe
@@ -1307,7 +1307,7 @@ TGeoCompositeShape* V3Cage::createBPSuppLowerCollar(void)
   return collarShape;
 }
 
-TGeoCompositeShape* V3Cage::createBPSuppUpperCollar(void)
+TGeoCompositeShape* V3Cage::createBPSuppUpperCollar()
 {
   //
   // Creates the upper collar of the Beam Pipe Support (ALIITSUP0823)
@@ -1352,7 +1352,7 @@ TGeoCompositeShape* V3Cage::createBPSuppUpperCollar(void)
   return collarShape;
 }
 
-TGeoCompositeShape* V3Cage::createBPSuppCollarBeam(void)
+TGeoCompositeShape* V3Cage::createBPSuppCollarBeam()
 {
   //
   // Creates the collar beam (i.e. the lateral support bar) of the
@@ -1419,7 +1419,7 @@ TGeoCompositeShape* V3Cage::createBPSuppCollarBeam(void)
   return beamShape;
 }
 
-TGeoCompositeShape* V3Cage::createBPSuppBracket(void)
+TGeoCompositeShape* V3Cage::createBPSuppBracket()
 {
   //
   // Creates the lateral Titanium bracket of the Beam Pipe Support
@@ -1500,7 +1500,7 @@ TGeoCompositeShape* V3Cage::createBPSuppBracket(void)
   return bracketShape;
 }
 
-TGeoCompositeShape* V3Cage::createBPSuppClamp(void)
+TGeoCompositeShape* V3Cage::createBPSuppClamp()
 {
   //
   // Creates the lateral Titanium clamp holding the Beam Pipe Support
