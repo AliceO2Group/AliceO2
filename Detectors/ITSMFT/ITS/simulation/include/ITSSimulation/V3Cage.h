@@ -91,23 +91,23 @@ class V3Cage : public V11Geometry
 
   /// Creates the Titanium lower part of the collar supporting the beam pipe
   /// \param mgr  The GeoManager (used only to get the proper material)
-  TGeoCompositeShape* createBPSuppLowerCollar(void);
+  TGeoCompositeShape* createBPSuppLowerCollar();
 
   /// Creates the Titanium upper part of the collar supporting the beam pipe
   /// \param mgr  The GeoManager (used only to get the proper material)
-  TGeoCompositeShape* createBPSuppUpperCollar(void);
+  TGeoCompositeShape* createBPSuppUpperCollar();
 
   /// Creates the CF lateral bar of the beam pipe support (aka collar beam)
   /// \param mgr  The GeoManager (used only to get the proper material)
-  TGeoCompositeShape* createBPSuppCollarBeam(void);
+  TGeoCompositeShape* createBPSuppCollarBeam();
 
   /// Creates the Titanium lateral bracket of the beam pipe support
   /// \param mgr  The GeoManager (used only to get the proper material)
-  TGeoCompositeShape* createBPSuppBracket(void);
+  TGeoCompositeShape* createBPSuppBracket();
 
   /// Creates the lateral clamps holding the beam pipe support to the Cage
   /// \param mgr  The GeoManager (used only to get the proper material)
-  TGeoCompositeShape* createBPSuppClamp(void);
+  TGeoCompositeShape* createBPSuppClamp();
 
   /// Creates the Cage Closing Cross element
   /// \param mgr  The GeoManager (used only to get the proper material)
