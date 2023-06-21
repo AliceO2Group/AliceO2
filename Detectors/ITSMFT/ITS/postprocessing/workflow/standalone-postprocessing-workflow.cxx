@@ -11,17 +11,27 @@
 
 #include "Framework/CallbacksPolicy.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
+<<<<<<< HEAD
+#include "ITSStudies/MCKinematicReaderSpec.h"
+=======
+>>>>>>> c1abeba684 (CP)
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 
 // Include studies hereafter
 #include "ITSStudies/ImpactParameter.h"
+<<<<<<< HEAD
 #include "ITSStudies/AvgClusSize.h"
+#include "ITSStudies/TrackCheck.h"
+=======
+#include "ITSStudies/K0sInvMass.h"
+#include "ITSStudies/TrackCheck.h"
+#include "Steer/MCKinematicsReader.h"
+>>>>>>> c1abeba684 (CP)
 
 using namespace o2::framework;
 using GID = o2::dataformats::GlobalTrackID;
 using DetID = o2::detectors::DetID;
 
-// ------------------------------------------------------------------
 void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
 {
   o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
@@ -37,12 +47,10 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-root-input", VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-mc", VariantType::Bool, false, {"disable MC propagation even if available"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
-  o2::raw::HBFUtilsInitializer::addConfigOption(options, "none"); // "o2_tfidinfo.root" instead of "none"
   std::swap(workflowOptions, options);
 }
 
-// ------------------------------------------------------------------
-#include "Framework/runDataProcessing.h"
+#include <Framework/runDataProcessing.h>
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
@@ -61,12 +69,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC);
   o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, specs);
 
+  std::shared_ptr<o2::steer::MCKinematicsReader> mcKinematicsReader;
+  if (useMC) {
+    mcKinematicsReader = std::make_shared<o2::steer::MCKinematicsReader>("collisioncontext.root");
+  }
+
   // Declare specs related to studies hereafter
   // specs.emplace_back(o2::its::study::getImpactParameterStudy(srcTrc, srcCls, useMC));
   specs.emplace_back(o2::its::study::getAvgClusSizeStudy(srcTrc, srcCls, useMC));
-
-  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
-  o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
+  specs.emplace_back(o2::its::study::getTrackCheckStudy(GID::getSourcesMask("ITS"), GID::getSourcesMask("ITS"), useMC, mcKinematicsReader));
 
   // write the configuration used for the studies workflow
   o2::conf::ConfigurableParam::writeINI("o2_its_standalone_configuration.ini");

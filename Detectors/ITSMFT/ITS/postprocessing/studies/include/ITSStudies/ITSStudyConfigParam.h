@@ -9,11 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_IMPACT_PARAMETER_STUDY_H
-#define O2_IMPACT_PARAMETER_STUDY_H
+#ifndef ITS_STUDY_CONFIG_PARAM_H
+#define ITS_STUDY_CONFIG_PARAM_H
 
-#include <ReconstructionDataFormats/GlobalTrackID.h>
-#include <Framework/DataProcessorSpec.h>
+#include "CommonUtils/ConfigurableParam.h"
+#include "CommonUtils/ConfigurableParamHelper.h"
 
 namespace o2
 {
@@ -21,11 +21,17 @@ namespace its
 {
 namespace study
 {
-using mask_t = o2::dataformats::GlobalTrackID::mask_t;
+struct ITSCheckTracksParamConfig : public o2::conf::ConfigurableParamHelper<ITSCheckTracksParamConfig> {
+  std::string outFileName = "TrackCheckStudy.root";
+  size_t effHistBins = 100;
+  unsigned short trackLengthMask = 0x7f;
+  float effPtCutLow = 0.01;
+  float effPtCutHigh = 10.;
 
-o2::framework::DataProcessorSpec getImpactParameterStudy(mask_t srcTracksMask, mask_t srcClusMask, bool useMC = false);
+  O2ParamDef(ITSCheckTracksParamConfig, "ITSCheckTracksParam");
+};
 } // namespace study
 } // namespace its
 } // namespace o2
 
-#endif // O2_IMPACT_PARAMETER_STUDY_H
+#endif
