@@ -556,7 +556,7 @@ class CcdbApi //: public DatabaseInterface
   mutable TGrid* mAlienInstance = nullptr;                       // a cached connection to TGrid (needed for Alien locations)
   bool mNeedAlienToken = true;                                   // On EPN and FLP we use a local cache and don't need the alien token
   static std::unique_ptr<TJAlienCredentials> mJAlienCredentials; // access JAliEn credentials
-  int mCurlRetries = 1;
+  int mCurlRetries = 3;
   int mCurlDelayRetries = 100000; // in microseconds
 
   ClassDefNV(CcdbApi, 1);
