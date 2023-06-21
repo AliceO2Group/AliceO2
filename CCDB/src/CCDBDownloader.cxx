@@ -58,29 +58,22 @@ CCDBDownloader::CCDBDownloader(uv_loop_t* uv_loop)
     mUVLoop = uv_loop;
     mIsExternalLoop = true;
   } else {
-    mUVLoop = new uv_loop_t();
     mIsExternalLoop = false;
   }
 
-  // Preparing timer to be used by curl
-  mTimeoutTimer = new uv_timer_t();
-  mTimeoutTimer->data = this;
-  uvErrorCheck(uv_loop_init(mUVLoop));
-  uvErrorCheck(uv_timer_init(mUVLoop, mTimeoutTimer));
-  mHandleMap[(uv_handle_t*)mTimeoutTimer] = true;
+  mConstructorCV = new std::condition_variable();
+  std::mutex cv_m;
+  std::unique_lock<std::mutex> lk(cv_m);
+  
+  if (!mIsExternalLoop) {
+    mLoopThread = new std::thread(&CCDBDownloader::runLoop, this);
+  }
 
-  // Preparing curl handle
-  initializeMultiHandle();
-
-  // Global timer
-  // uv_loop runs only when there are active handles, this handle guarantees the loop won't close immedietly after starting
-  auto timerCheckQueueHandle = new uv_timer_t();
-  timerCheckQueueHandle->data = this;
-  uvErrorCheck(uv_timer_init(mUVLoop, timerCheckQueueHandle));
-  mHandleMap[(uv_handle_t*)timerCheckQueueHandle] = true;
-  uvErrorCheck(uv_timer_start(timerCheckQueueHandle, checkStopSignal, 100, 100));
-
-  mLoopThread = new std::thread(&CCDBDownloader::runLoop, this);
+  // Don't allow constructor to return unless the uv_loop started running.
+  // This protects the loop from receiving handles before it was initialized.
+  mConstructorCV->wait(lk);
+  mLoopRunning = true;
+  delete mConstructorCV;
 }
 
 void CCDBDownloader::initializeMultiHandle()
@@ -154,8 +147,13 @@ void onUVClose(uv_handle_t* handle)
 
 void CCDBDownloader::checkStopSignal(uv_timer_t* handle)
 {
-  // Check for closing signal
   auto CD = (CCDBDownloader*)handle->data;
+  if (!CD->mLoopRunning) {
+    // The fact that this callback is executed means the uv_loop is running.
+    // Notify the constructor if it hasn't been already.
+    CD->mConstructorCV->notify_all();
+  }
+  // Check for closing signal
   if (CD->mCloseLoop) {
     uvErrorCheck(uv_timer_stop(handle));
     uv_stop(CD->mUVLoop);
@@ -203,6 +201,7 @@ curl_socket_t opensocketCallback(void* clientp, curlsocktype purpose, struct cur
 
 void CCDBDownloader::asyncUVHandleCheckQueue(uv_async_t* handle)
 {
+  std::cout << "Asynch hanlde firing\n";
   auto CD = (CCDBDownloader*)handle->data;
   uv_close((uv_handle_t*)handle, onUVClose);
   CD->checkHandleQueue();
@@ -482,6 +481,28 @@ void CCDBDownloader::checkHandleQueue()
 
 void CCDBDownloader::runLoop()
 {
+  if (!mIsExternalLoop) {
+    mUVLoop = new uv_loop_t();
+    uvErrorCheck(uv_loop_init(mUVLoop));
+  }
+
+  // Preparing timer to be used by curl
+  mTimeoutTimer = new uv_timer_t();
+  mTimeoutTimer->data = this;
+  uvErrorCheck(uv_timer_init(mUVLoop, mTimeoutTimer));
+  mHandleMap[(uv_handle_t*)mTimeoutTimer] = true;
+
+  // Preparing curl handle
+  initializeMultiHandle();
+
+  // Global timer
+  // uv_loop runs only when there are active handles, this handle guarantees the loop won't close immedietly after starting
+  auto timerCheckQueueHandle = new uv_timer_t();
+  timerCheckQueueHandle->data = this;
+  uvErrorCheck(uv_timer_init(mUVLoop, timerCheckQueueHandle));
+  mHandleMap[(uv_handle_t*)timerCheckQueueHandle] = true;
+  uvErrorCheck(uv_timer_start(timerCheckQueueHandle, checkStopSignal, 1, 100));
+
   uvErrorCheck(uv_run(mUVLoop, UV_RUN_DEFAULT));
   if (!mIsClosing) {
     LOG(error) << "CCDBDownloader: uvloop closed prematurely";
@@ -577,6 +598,7 @@ std::vector<CURLcode> CCDBDownloader::asynchBatchPerformWithCallback(std::vector
 
 void CCDBDownloader::makeLoopCheckQueueAsync()
 {
+  std::cout << "Asynch check starting\n";
   auto asyncHandle = new uv_async_t();
   asyncHandle->data = this;
   uvErrorCheck(uv_async_init(mUVLoop, asyncHandle, asyncUVHandleCheckQueue));

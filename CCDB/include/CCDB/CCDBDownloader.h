@@ -218,6 +218,16 @@ class CCDBDownloader
   std::mutex mHandlesQueueLock;
 
   /**
+   * Blocks the constructor from returning before the uv_loop has started running
+   */
+  std::condition_variable* mConstructorCV;
+
+  /**
+   * Prevents the mConstructorCV from being notified after the constructor returned
+   */
+  bool mLoopRunning = false;
+
+  /**
    * Thread on which the thread with uv_loop runs.
    */
   std::thread* mLoopThread;
