@@ -133,17 +133,17 @@ class CTFHelper
   //_______________________________________________
   // BC difference wrt previous if in the same orbit, otherwise the abs.value.
   // For the very 1st entry return 0 (diff wrt 1st BC in the CTF header)
-  class Iter_bcIncTrig : public _Iter<Iter_bcIncTrig, CTPDigit, uint16_t>
+  class Iter_bcIncTrig : public _Iter<Iter_bcIncTrig, CTPDigit, int16_t>
   {
    public:
-    using _Iter<Iter_bcIncTrig, CTPDigit, uint16_t>::_Iter;
+    using _Iter<Iter_bcIncTrig, CTPDigit, int16_t>::_Iter;
     value_type operator*() const
     {
       if (mIndex) {
         if (mData[mIndex].intRecord.orbit == mData[mIndex - 1].intRecord.orbit) {
-          return mData[mIndex].intRecord.bc - mData[mIndex - 1].intRecord.bc;
+          return value_type(mData[mIndex].intRecord.bc - mData[mIndex - 1].intRecord.bc);
         } else {
-          return mData[mIndex].intRecord.bc;
+          return value_type(mData[mIndex].intRecord.bc);
         }
       }
       return 0;
@@ -153,9 +153,9 @@ class CTFHelper
       size_t id = mIndex + i;
       if (id) {
         if (mData[id].intRecord.orbit == mData[id - 1].intRecord.orbit) {
-          return mData[id].intRecord.bc - mData[id - 1].intRecord.bc;
+          return value_type(mData[id].intRecord.bc - mData[id - 1].intRecord.bc);
         } else {
-          return mData[id].intRecord.bc;
+          return value_type(mData[id].intRecord.bc);
         }
       }
       return 0;
@@ -164,15 +164,15 @@ class CTFHelper
 
   //_______________________________________________
   // Orbit difference wrt previous. For the very 1st entry return 0 (diff wrt 1st BC in the CTF header)
-  class Iter_orbitIncTrig : public _Iter<Iter_orbitIncTrig, CTPDigit, uint32_t>
+  class Iter_orbitIncTrig : public _Iter<Iter_orbitIncTrig, CTPDigit, int32_t>
   {
    public:
-    using _Iter<Iter_orbitIncTrig, CTPDigit, uint32_t>::_Iter;
-    value_type operator*() const { return mIndex ? mData[mIndex].intRecord.orbit - mData[mIndex - 1].intRecord.orbit : 0; }
+    using _Iter<Iter_orbitIncTrig, CTPDigit, int32_t>::_Iter;
+    value_type operator*() const { return value_type(mIndex ? mData[mIndex].intRecord.orbit - mData[mIndex - 1].intRecord.orbit : 0); }
     value_type operator[](difference_type i) const
     {
       size_t id = mIndex + i;
-      return id ? mData[id].intRecord.orbit - mData[id - 1].intRecord.orbit : 0;
+      return value_type(id ? mData[id].intRecord.orbit - mData[id - 1].intRecord.orbit : 0);
     }
   };
 

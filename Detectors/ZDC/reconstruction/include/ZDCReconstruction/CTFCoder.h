@@ -159,8 +159,9 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCHAN& c
   auto header = ec.getHeader();
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
   ec.print(getPrefix(), mVerbosity);
-  std::vector<uint16_t> bcIncTrig, moduleTrig, nchanTrig, chanData, pedData, scalerInc, triggersHL, channelsHL;
-  std::vector<uint32_t> orbitIncTrig, orbitIncEOD;
+  std::vector<int16_t> bcIncTrig, scalerInc;
+  std::vector<int32_t> orbitIncTrig, orbitIncEOD;
+  std::vector<uint16_t> moduleTrig, nchanTrig, chanData, pedData, triggersHL, channelsHL;
   std::vector<uint8_t> extTriggers, chanID;
 
   o2::ctf::CTFIOSize iosize;

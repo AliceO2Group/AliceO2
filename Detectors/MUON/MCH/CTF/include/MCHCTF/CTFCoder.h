@@ -137,10 +137,11 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VROF& rofVec, VCOL& dig
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
   ec.print(getPrefix(), mVerbosity);
 
-  std::vector<uint16_t> bcInc, nSamples;
-  std::vector<uint32_t> orbitInc, ADC, nDigits;
+  std::vector<uint16_t> nSamples;
+  std::vector<uint32_t> ADC, nDigits;
+  std::vector<int32_t> orbitInc;
   std::vector<int32_t> tfTime;
-  std::vector<int16_t> detID, padID;
+  std::vector<int16_t> bcInc, detID, padID;
   std::vector<uint8_t> isSaturated;
 
   o2::ctf::CTFIOSize iosize;
