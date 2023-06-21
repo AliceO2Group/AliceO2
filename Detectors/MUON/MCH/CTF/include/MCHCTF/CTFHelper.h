@@ -130,17 +130,17 @@ class CTFHelper
   //_______________________________________________
   // BC difference wrt previous if in the same orbit, otherwise the abs.value.
   // For the very 1st entry return 0 (diff wrt 1st BC in the CTF header)
-  class Iter_bcIncROF : public _Iter<Iter_bcIncROF, ROFRecord, uint16_t>
+  class Iter_bcIncROF : public _Iter<Iter_bcIncROF, ROFRecord, int16_t>
   {
    public:
-    using _Iter<Iter_bcIncROF, ROFRecord, uint16_t>::_Iter;
+    using _Iter<Iter_bcIncROF, ROFRecord, int16_t>::_Iter;
     value_type operator*() const
     {
       if (mIndex) {
         if (mData[mIndex].getBCData().orbit == mData[mIndex - 1].getBCData().orbit) {
-          return mData[mIndex].getBCData().bc - mData[mIndex - 1].getBCData().bc;
+          return value_type(mData[mIndex].getBCData().bc - mData[mIndex - 1].getBCData().bc);
         } else {
-          return mData[mIndex].getBCData().bc;
+          return value_type(mData[mIndex].getBCData().bc);
         }
       }
       return 0;
@@ -150,9 +150,9 @@ class CTFHelper
       size_t id = mIndex + i;
       if (id) {
         if (mData[id].getBCData().orbit == mData[id - 1].getBCData().orbit) {
-          return mData[id].getBCData().bc - mData[id - 1].getBCData().bc;
+          return value_type(mData[id].getBCData().bc - mData[id - 1].getBCData().bc);
         } else {
-          return mData[id].getBCData().bc;
+          return value_type(mData[id].getBCData().bc);
         }
       }
       return 0;
@@ -161,15 +161,15 @@ class CTFHelper
 
   //_______________________________________________
   // Orbit difference wrt previous. For the very 1st entry return 0 (diff wrt 1st BC in the CTF header)
-  class Iter_orbitIncROF : public _Iter<Iter_orbitIncROF, ROFRecord, uint32_t>
+  class Iter_orbitIncROF : public _Iter<Iter_orbitIncROF, ROFRecord, int32_t>
   {
    public:
-    using _Iter<Iter_orbitIncROF, ROFRecord, uint32_t>::_Iter;
-    value_type operator*() const { return mIndex ? mData[mIndex].getBCData().orbit - mData[mIndex - 1].getBCData().orbit : 0; }
+    using _Iter<Iter_orbitIncROF, ROFRecord, int32_t>::_Iter;
+    value_type operator*() const { return value_type(mIndex ? mData[mIndex].getBCData().orbit - mData[mIndex - 1].getBCData().orbit : 0); }
     value_type operator[](difference_type i) const
     {
       size_t id = mIndex + i;
-      return id ? mData[id].getBCData().orbit - mData[id - 1].getBCData().orbit : 0;
+      return value_type(id ? mData[id].getBCData().orbit - mData[id - 1].getBCData().orbit : 0);
     }
   };
 

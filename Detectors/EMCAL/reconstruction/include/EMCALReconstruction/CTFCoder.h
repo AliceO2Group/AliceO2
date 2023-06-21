@@ -136,8 +136,9 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCELL& c
   const auto& header = ec.getHeader();
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
   ec.print(getPrefix(), mVerbosity);
-  std::vector<uint16_t> bcInc, entries, energy, cellTime, tower, trigger;
-  std::vector<uint32_t> orbitInc;
+  std::vector<int32_t> orbitInc;
+  std::vector<int16_t> bcInc;
+  std::vector<uint16_t> entries, energy, cellTime, tower, trigger;
   std::vector<uint8_t> status;
 
   o2::ctf::CTFIOSize iosize;

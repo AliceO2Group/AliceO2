@@ -127,9 +127,9 @@ void CTFCoder::compress(CompressedClusters& cc,
         LOG(warning) << "Negative BC increment " << intRec.bc << " -> " << prevBC;
       }
 #endif
-      cc.bcIncROF[irofOut] = intRec.bc - prevBC; // store increment of BC if in the same orbit
+      cc.bcIncROF[irofOut] = int16_t(intRec.bc - prevBC); // store increment of BC if in the same orbit
     } else {
-      cc.orbitIncROF[irofOut] = intRec.orbit - prevOrbit;
+      cc.orbitIncROF[irofOut] = int32_t(intRec.orbit - prevOrbit);
 #ifdef _CHECK_INCREMENTES_
       if (intRec.orbit < prevOrbit) {
         LOG(warning) << "Negative Orbit increment " << intRec.orbit << " -> " << prevOrbit;
@@ -168,7 +168,7 @@ void CTFCoder::compress(CompressedClusters& cc,
         prevCol = cl.getCol();
       } else { // for new chips store chipID increment and abs. column
         // cc.chipInc[iclOut] = cl.getChipID() - prevChip;  // this is the version with chipInc stored for every pixel
-        cc.chipInc.push_back(cl.getChipID() - prevChip); // this is the version with chipInc stored once per new chip
+        cc.chipInc.push_back(int16_t(cl.getChipID() - prevChip)); // this is the version with chipInc stored once per new chip
 #ifdef _CHECK_INCREMENTES_
         if (cl.getChipID() < prevChip) {
           LOG(warning) << "Negative Chip increment " << cl.getChipID() << " -> " << prevChip;
