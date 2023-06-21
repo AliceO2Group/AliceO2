@@ -55,12 +55,6 @@ void GainCalibHistos::fill(const std::unique_ptr<const GainCalibHistos, o2::fram
   }
 }
 
-void GainCalibHistos::fill(const gsl::span<const GainCalibHistos> input)
-{
-  (void)input;
-  LOG(fatal) << "This function must not be called. But it must be available for the compilation to work";
-}
-
 void GainCalibHistos::merge(const GainCalibHistos* prev)
 {
   for (int i = 0; i < MAXCHAMBER * NBINSGAINCALIB; ++i) {
