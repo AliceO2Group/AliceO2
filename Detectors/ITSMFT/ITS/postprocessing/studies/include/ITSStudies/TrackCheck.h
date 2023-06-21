@@ -9,12 +9,21 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#ifndef O2_TRACK_CHECK_STUDY_H
+#define O2_TRACK_CHECK_STUDY_H
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+#include <Framework/DataProcessorSpec.h>
+#include <ReconstructionDataFormats/GlobalTrackID.h>
 
-// #pragma link C++ class ParticleInfo + ;
-
+namespace o2
+{
+namespace its
+{
+namespace study
+{
+using mask_t = o2::dataformats::GlobalTrackID::mask_t;
+o2::framework::DataProcessorSpec getTrackCheckStudy(mask_t srcTracksMask, mask_t srcClustersMask, bool useMC);
+} // namespace study
+} // namespace its
+} // namespace o2
 #endif

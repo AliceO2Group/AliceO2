@@ -9,19 +9,20 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "Framework/CallbacksPolicy.h"
-#include "GlobalTrackingWorkflowHelpers/InputHelper.h"
-#include "DetectorsRaw/HBFUtilsInitializer.h"
+#include <Framework/CallbacksPolicy.h>
+#include <GlobalTrackingWorkflowHelpers/InputHelper.h>
+#include <ITSStudies/MCKinematicReaderSpec.h>
+#include <DetectorsRaw/HBFUtilsInitializer.h>
 
 // Include studies hereafter
-#include "ITSStudies/ImpactParameter.h"
-#include "ITSStudies/K0sInvMass.h"
+#include <ITSStudies/ImpactParameter.h>
+#include <ITSStudies/K0sInvMass.h>
+#include <ITSStudies/TrackCheck.h>
 
 using namespace o2::framework;
 using GID = o2::dataformats::GlobalTrackID;
 using DetID = o2::detectors::DetID;
 
-// ------------------------------------------------------------------
 void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
 {
   o2::raw::HBFUtilsInitializer::addNewTimeSliceCallback(policies);
@@ -38,12 +39,11 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
     {"niceparam-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
-  o2::raw::HBFUtilsInitializer::addConfigOption(options, "o2_tfidinfo.root");
+
   std::swap(workflowOptions, options);
 }
 
-// ------------------------------------------------------------------
-#include "Framework/runDataProcessing.h"
+#include <Framework/runDataProcessing.h>
 
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
@@ -63,12 +63,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC);
   o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, specs);
 
+  // additional sources
+  specs.emplace_back(o2::steer::getMCKinematicReaderSpec());
+
   // Declare specs related to studies hereafter
   specs.emplace_back(o2::its::study::getImpactParameterStudy(srcTrc, srcCls, useMC));
   specs.emplace_back(o2::its::study::getK0sInvMassStudy(srcTrc, useMC));
-
-  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
-  o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
+  specs.emplace_back(o2::its::study::getTrackCheckStudy(GID::getSourcesMask("ITS"), GID::getSourcesMask("ITS"), useMC));
 
   return std::move(specs);
 }
