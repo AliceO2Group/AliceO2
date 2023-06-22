@@ -15,6 +15,9 @@
 #include <cmath>
 
 #include "TAxis.h"
+#include "TMultiGraph.h"
+#include "TGraphErrors.h"
+#include "TTree.h"
 #include "TH1.h"
 #include "TH2.h"
 #include "TH3.h"
@@ -27,6 +30,7 @@
 #include "TPaletteAxis.h"
 #include "TObjArray.h"
 
+#include "CommonUtils/StringUtils.h"
 #include "DataFormatsTPC/Defs.h"
 #include "TPCBase/ROC.h"
 #include "TPCBase/Sector.h"
@@ -42,9 +46,13 @@
 #include <boost/geometry.hpp>
 #include <boost/geometry/geometries/point_xy.hpp>
 #include <boost/geometry/geometries/polygon.hpp>
+#include <string_view>
 #include "MathUtils/Utils.h"
 
 using namespace o2::tpc;
+
+std::array<int, 6> painter::colors = {EColor::kBlack, EColor::kRed + 1, EColor::kOrange + 2, EColor::kGreen + 2, EColor::kBlue + 1, EColor::kMagenta + 1};
+std::array<int, 10> painter::markers = {20, 21, 33, 34, 47, 24, 25, 27, 28, 46};
 
 std::vector<painter::PadCoordinates> painter::getPadCoordinatesSector()
 {
@@ -1186,6 +1194,54 @@ void painter::adjustPalette(TH1* h, float x2ndc, float tickLength)
   palette->SetX2NDC(x2ndc);
   auto ax = h->GetZaxis();
   ax->SetTickLength(tickLength);
+}
+
+TMultiGraph* painter::makeMultiGraph(TTree& tree, std::string_view varX, std::string_view varsY, std::string_view errVarsY, std::string_view cut, bool makeSparse)
+{
+  bool hasErrors = errVarsY.size() > 0 && (std::count(varsY.begin(), varsY.end(), ':') == std::count(errVarsY.begin(), errVarsY.end(), ':'));
+
+  tree.Draw(fmt::format("{} : {} {} {}", varX, varsY, hasErrors ? " : " : "", hasErrors ? errVarsY : "").data(), cut.data(), "goff");
+  const auto nRows = tree.GetSelectedRows();
+
+  // get sort index
+  std::vector<size_t> idx(tree.GetSelectedRows());
+  std::iota(idx.begin(), idx.end(), static_cast<size_t>(0));
+  std::sort(idx.begin(), idx.end(), [&tree](auto a, auto b) { return tree.GetVal(0)[a] < tree.GetVal(0)[b]; });
+
+  auto mgr = new TMultiGraph();
+  const auto params = o2::utils::Str::tokenize(varsY.data(), ':');
+
+  for (size_t ivarY = 0; ivarY < params.size(); ++ivarY) {
+    auto gr = new TGraphErrors(nRows);
+    gr->SetMarkerSize(1);
+    gr->SetMarkerStyle(markers[ivarY % markers.size()]);
+    gr->SetMarkerColor(colors[ivarY % colors.size()]);
+    gr->SetLineColor(colors[ivarY % colors.size()]);
+    gr->SetNameTitle(params[ivarY].data(), params[ivarY].data());
+    for (Long64_t iEntry = 0; iEntry < nRows; ++iEntry) {
+      if (makeSparse) {
+        gr->SetPoint(iEntry, iEntry + 0.5, tree.GetVal(ivarY + 1)[idx[iEntry]]);
+      } else {
+        gr->SetPoint(iEntry, tree.GetVal(0)[idx[iEntry]], tree.GetVal(ivarY + 1)[idx[iEntry]]);
+      }
+      if (hasErrors) {
+        gr->SetPointError(iEntry, 0, tree.GetVal(ivarY + 1 + params.size())[idx[iEntry]]);
+      }
+    }
+
+    mgr->Add(gr, "lp");
+  }
+
+  if (makeSparse) {
+    auto xax = mgr->GetXaxis();
+    xax->Set(nRows, 0., static_cast<Double_t>(nRows));
+    for (Long64_t iEntry = 0; iEntry < nRows; ++iEntry) {
+      xax->SetBinLabel(iEntry + 1, fmt::format("{}", tree.GetVal(0)[idx[iEntry]]).data());
+    }
+    xax->LabelsOption("v");
+  }
+
+  return mgr;
 }
 
 // ===| explicit instantiations |===============================================
