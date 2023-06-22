@@ -13,6 +13,8 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
+#include "CommonUtils/StringUtils.h"
+#include "CCDB/CCDBTimeStampUtils.h"
 #include <CCDB/CCDBDownloader.h>
 #include <curl/curl.h>
 #include <chrono>
@@ -22,6 +24,7 @@
 
 #include <boost/test/unit_test.hpp>
 #include <boost/optional/optional.hpp>
+#include <boost/asio/ip/host_name.hpp>
 #include <uv.h>
 
 using namespace std;
@@ -46,12 +49,25 @@ size_t CurlWrite_CallbackFunc_StdString2(void* contents, size_t size, size_t nme
   return size * nmemb;
 }
 
+std::string uniqueAgentID()
+{
+  std::string host = boost::asio::ip::host_name();
+  char const* jobID = getenv("ALIEN_PROC_ID");
+  if (jobID) {
+    return fmt::format("{}-{}-{}-{}", host, getCurrentTimestamp() / 1000, o2::utils::Str::getRandomString(6), jobID);
+  } else {
+    return fmt::format("{}-{}-{}", host, getCurrentTimestamp() / 1000, o2::utils::Str::getRandomString(6));
+  }
+}
+
 CURL* createTestHandle(std::string* dst)
 {
   CURL* handle = curl_easy_init();
   curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, CurlWrite_CallbackFunc_StdString2);
   curl_easy_setopt(handle, CURLOPT_WRITEDATA, dst);
   curl_easy_setopt(handle, CURLOPT_URL, "http://ccdb-test.cern.ch:8080/latest/");
+  auto userAgent = uniqueAgentID();
+  curl_easy_setopt(handle, CURLOPT_USERAGENT, userAgent.c_str());
   return handle;
 }
 

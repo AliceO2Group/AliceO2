@@ -181,6 +181,7 @@ class CCDBDownloader
   void setOnlineTimeoutSettings();
 
  private:
+  std::string mUserAgentId = "CCDBDownloader";
   /**
    * Indicates whether the loop that the downloader is running on has been created by it or provided externally.
    * In case of external loop, the loop will not be closed after downloader is deleted.
