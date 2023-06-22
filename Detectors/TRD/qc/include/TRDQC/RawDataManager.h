@@ -9,11 +9,11 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_TRD_DATAMANAGER_H_
-#define ALICEO2_TRD_DATAMANAGER_H_
+#ifndef ALICEO2_TRD_RawDataManager_H_
+#define ALICEO2_TRD_RawDataManager_H_
 
 ///
-/// \file   DataManager.h
+/// \file   RawDataManager.h
 /// \author Thomas Dietel, tom@dietel.net
 ///
 
@@ -42,16 +42,6 @@ class TTreeReader;
 namespace o2::trd
 {
 
-/// \namespace rawdisp
-/// \brief Raw data display and analysis
-///
-/// This namespace provides helper classes to display low-level TRD data.
-///
-/// origin: TRD
-/// \author Thomas Dietel, tom@dietel.net
-namespace rawdisp
-{
-
 
 /// A struct that can be used to calculate unique identifiers per pad row, to
 /// be used to split ranges by pad row.
@@ -69,11 +59,6 @@ struct PadRowID
 struct MCM_ID
 {
   template<typename T>
-  static uint32_t key(const T &x) 
-  { 
-    return 1000*x.getDetector() + 8*x.getPadRow() + 4*(x.getROB()%2) + x.getMCM()%4;
-  }
-
   static uint32_t key(const T &x) 
   { 
     return 1000*x.getDetector() + 8*x.getPadRow() + 4*(x.getROB()%2) + x.getMCM()%4;
@@ -97,7 +82,11 @@ struct myrange {
   size_t length() { return e - b; }
 };
 
-
+/// RawDataSpan holds ranges pointing to parts of other containers
+/// This class helps with restricting the view of digits/trackets/... to part
+/// of a timeframe, e.g. data from one event, detector, padrow or MCM.
+/// It also provides methods to help with iterating over the data
+/// The main data members are public, and can be accessed without setters/getters.
 struct RawDataSpan
 {
 public:
@@ -106,13 +95,16 @@ public:
   myrange<o2::trd::Hit, TTreeReaderArray<o2::trd::Hit>> hits;
   // myrange<ChamberSpacePoint, std::vector<ChamberSpacePoint>> trackpoints;
 
-  // sort digits, tracklets and space points by detector, pad row, column
+  /// Sort digits, tracklets and space points by detector, pad row, column
   void sort();
 
-  std::map<uint32_t, RawDataSpan> ByMCM();
+  /// Return a vector with one data span for each MCM that has digits, tracklets or both 
+  std::vector<RawDataSpan> ByMCM();
 
+
+  /// Return a vector with data spans, split according to the key function 
   template<typename keyfunc>
-  std::map<uint32_t,RawDataSpan> IterateBy();
+  std::vector<RawDataSpan> IterateBy();
 
 //   pair<int, int> getMaxADCsumAndChannel();
 //   int getMaxADCsum(){ return getMaxADCsumAndChannel().first; }
@@ -132,22 +124,14 @@ public:
 
 };
 
-// struct RawEvent : public RawDataSpan
-// {
-//   // std::vector<o2::tpc::TrackTPC> tpctracks;
-//   std::vector<o2::dataformats::TrackTPCITS> tracks;
-//   std::vector<ChamberSpacePoint> evtrackpoints;
-// };
-
-
 
 /// access TRD low-level data
-class DataManager
+class RawDataManager
 {
 
 public:
-  DataManager(std::filesystem::path dir = ".");
-  // DataManager(std::string dir = "./");
+  RawDataManager(std::filesystem::path dir = ".");
+  // RawDataManager(std::string dir = "./");
 
   void SetMatchWindowTPC(float min, float max)
   { mMatchTimeMinTPC=min; mMatchTimeMaxTPC=max; }
@@ -207,8 +191,6 @@ private:
 
 
 
-} // namespace rawdisp
-
 } // namespace o2::trd
 
-#endif // ALICEO2_TRD_DATAMANAGER_H_
+#endif // ALICEO2_TRD_RawDataManager_H_

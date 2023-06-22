@@ -17,59 +17,13 @@
 /// \author Thomas Dietel, tom@dietel.net
 ///
 
+#include "TRDQC/RawDataManager.h"
 
-// #include "DataFormatsTRD/Digit.h"
-// #include "DataFormatsTRD/Tracklet64.h"
-// #include "DataFormatsTRD/TriggerRecord.h"
-// #include "DataFormatsTRD/Hit.h"
-
-#include "TRDBase/DataManager.h"
-
-// #include "DataFormatsTRD/HelperMethods.h"
-
-
-// #include "TRDBase/Geometry.h"
-
-// #include "DetectorsBase/GeometryManager.h"
-// #include "DetectorsBase/Propagator.h"
-// #include "ReconstructionDataFormats/TrackTPCITS.h"
-// #include <DataFormatsTPC/TrackTPC.h>
-// #include "CommonDataFormat/TFIDInfo.h"
-
-// #include <TTreeReaderArray.h>
-
-
-// #include <vector>
-// #include <array>
-// #include <map>
-// #include <ostream>
-// #include <filesystem>
-
-// class TFile;
-// class TTreeReader;
-// class TPad;
 class TVirtualPad;
 class TH2;
 
-// class TPad;
-
-
-// template<typename T>
-// class TTreeReaderArray<T>;
-
 namespace o2::trd
 {
-
-/// \namespace rawdisp
-/// \brief Raw data display and analysis
-///
-/// This namespace provides helper classes to display low-level TRD data.
-///
-/// origin: TRD
-/// \author Thomas Dietel, tom@dietel.net
-namespace rawdisp
-{
-
 
 class RawDisplay
 {
@@ -98,10 +52,6 @@ public:
 };
 
 // TPad *DrawMCM(RawDataSpan &mcm, TPad *pad=NULL);
-
-
-
-} // namespace rawdisp
 
 } // namespace o2::trd
 

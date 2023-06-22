@@ -10,17 +10,11 @@
 // or submit itself to any jurisdiction.
 
 
-#include "TRDBase/CoordinateTransformer.h"
+#include "TRDQC/CoordinateTransformer.h"
 #include "TRDBase/Geometry.h"
 
-// #include "DataFormatsTRD/Constants.h"
-// #include "DataFormatsTRD/HelperMethods.h"
-
-// #include <ostream>
-// #include <sstream>
 
 using namespace o2::trd;
-using namespace o2::trd::rawdisp;
 
 CoordinateTransformer::CoordinateTransformer() 
 : mGeo(o2::trd::Geometry::instance()) 

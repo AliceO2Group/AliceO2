@@ -33,14 +33,5 @@
 #pragma link C++ class o2::trd::CalOnlineGainTables + ;
 #pragma link C++ class o2::trd::PadNoise + ;
 #pragma link C++ class o2::trd::PadResponse + ;
-#pragma link C++ class o2::trd::rawdisp::DataManager +;
-#pragma link C++ class o2::trd::rawdisp::RawDataSpan +;
-// #pragma link C++ class o2::trd::rawdisp::RawEvent +;
-// #pragma link C++ class o2::trd::rawdisp::ChamberSpacePoint +;
-#pragma link C++ class o2::trd::rawdisp::CoordinateTransformer +;
-#pragma link C++ class o2::trd::rawdisp::RawDisplay +;
-#pragma link C++ class o2::trd::rawdisp::MCMDisplay +;
-
-// #pragma link C++ function o2::trd::rawdisp::DrawMCM(o2::trd::rawdisp::RawDataSpan&, TPad*);
 
 #endif

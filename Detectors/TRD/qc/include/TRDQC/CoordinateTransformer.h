@@ -40,16 +40,6 @@ namespace o2::trd
 
 class Geometry;
 
-/// \namespace rawdisp
-/// \brief Raw data display and analysis
-///
-/// This namespace provides helper classes to display low-level TRD data.
-///
-/// origin: TRD
-/// \author Thomas Dietel, tom@dietel.net
-namespace rawdisp
-{
-
 
 // /// A position in spatial (x,y,z) and raw/digit coordinates (det,row,col,tb).
 // class ChamberSpacePoint
@@ -139,10 +129,6 @@ private:
 
 };
 
-
-
-
-} // namespace rawdisp
 
 } // namespace o2::trd
 

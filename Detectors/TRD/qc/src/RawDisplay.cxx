@@ -10,8 +10,8 @@
 // or submit itself to any jurisdiction.
 
 
-#include "TRDBase/RawDisplay.h"
-#include "TRDBase/DataManager.h"
+#include "TRDQC/RawDisplay.h"
+#include "TRDQC/RawDataManager.h"
 #include "DataFormatsTRD/Constants.h"
 #include "DataFormatsTRD/HelperMethods.h"
 
@@ -28,15 +28,12 @@
 #include <TLine.h>
 #include <TMarker.h>
 
-// #include <ostream>
-// #include <sstream>
 
 using namespace o2::trd;
-using namespace o2::trd::rawdisp;
 
 /// Modified version of o2::trd::Tracklet64::getPadCol returning a float
 
-namespace o2::trd::rawdisp 
+namespace o2::trd
 {
 float PadColF(o2::trd::Tracklet64 &tracklet)
 {
@@ -72,7 +69,7 @@ float SlopeF(o2::trd::Tracklet64 &trkl)
 };
 
 
-// TPad* rawdisp::DrawMCM(RawDataSpan &mcm, TPad *pad)
+// TPad* DrawMCM(RawDataSpan &mcm, TPad *pad)
 // {
 //   auto x = *mcm.digits.begin();
 
@@ -164,13 +161,12 @@ float SlopeF(o2::trd::Tracklet64 &trkl)
 //   return pad;
 // }
 
-rawdisp::RawDisplay::RawDisplay(RawDataSpan& dataspan, TVirtualPad* pad)
+RawDisplay::RawDisplay(RawDataSpan& dataspan, TVirtualPad* pad)
 : mDataSpan(dataspan), mPad(pad)
 {}
 
-rawdisp::MCMDisplay::MCMDisplay(RawDataSpan& mcmdata, TVirtualPad* pad)
-: rawdisp::RawDisplay(mcmdata, pad) // initializes mDataSpan, mPad
-// : mDataSpan(mcmdata)
+MCMDisplay::MCMDisplay(RawDataSpan& mcmdata, TVirtualPad* pad)
+: RawDisplay(mcmdata, pad) // initializes mDataSpan, mPad
 {
   int det=-1,rob=-1,mcm=-1;
 
@@ -208,7 +204,7 @@ rawdisp::MCMDisplay::MCMDisplay(RawDataSpan& mcmdata, TVirtualPad* pad)
   }
 }
 
-void rawdisp::RawDisplay::DrawDigits()
+void RawDisplay::DrawDigits()
 {
   mPad->cd();
 
@@ -228,7 +224,7 @@ void rawdisp::RawDisplay::DrawDigits()
   mDigitsHisto->Draw("colz");
 }
 
-void rawdisp::RawDisplay::DrawTracklets()
+void RawDisplay::DrawTracklets()
 {
   mPad->cd();
 
@@ -244,7 +240,7 @@ void rawdisp::RawDisplay::DrawTracklets()
 
 }
 
-void rawdisp::RawDisplay::DrawClusters()
+void RawDisplay::DrawClusters()
 {
   mPad->cd();
 

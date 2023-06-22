@@ -10,9 +10,7 @@
 // or submit itself to any jurisdiction.
 
 
-#include "TRDBase/DataManager.h"
-// #include "DataFormatsTRD/Constants.h"
-// #include "DataFormatsTRD/HelperMethods.h"
+#include "TRDQC/RawDataManager.h"
 
 #include <TSystem.h>
 #include <TFile.h>
@@ -20,14 +18,9 @@
 #include <TTreeReader.h>
 #include <TTreeReaderArray.h>
 
-// #include <ostream>
-// #include <sstream>
-
 using namespace o2::trd;
-using namespace o2::trd::rawdisp;
 
-
-/// comparison function to sort digits by det / row / MCM / channel
+/// comparison function to order digits by det / row / MCM / channel
 bool comp_digit(const o2::trd::Digit &a, const o2::trd::Digit &b)
 {
   if (a.getDetector() != b.getDetector())
@@ -49,7 +42,7 @@ bool comp_digit(const o2::trd::Digit &a, const o2::trd::Digit &b)
 }
 
 
-/// comparison function to sort tracklets by det / row / MCM / channel
+/// comparison function to order tracklets by det / row / MCM / channel
 bool comp_tracklet(const o2::trd::Tracklet64 &a, const o2::trd::Tracklet64 &b)
 {
   // upper bits of hcid and padrow from Tracklet64 word
@@ -84,18 +77,18 @@ bool comp_tracklet(const o2::trd::Tracklet64 &a, const o2::trd::Tracklet64 &b)
 //   return true;
 // }
 
-void rawdisp::RawDataSpan::sort()
+void RawDataSpan::sort()
 {
   std::stable_sort(std::begin(digits), std::end(digits), comp_digit);
   std::stable_sort(std::begin(tracklets), std::end(tracklets), comp_tracklet);
 }
 
 template<typename keyfunc>
-std::map<uint32_t,RawDataSpan> RawDataSpan::IterateBy()
+std::vector<RawDataSpan> RawDataSpan::IterateBy()
 // std::vector<RawDataSpan> RawDataSpan::IterateBy()
 {
   // an map for keeping track which ranges correspond to which key
-  std::map<uint32_t,RawDataSpan> resultmap;
+  std::map<uint32_t,RawDataSpan> spanmap;
 
   // sort digits and tracklets
   sort();
@@ -107,8 +100,8 @@ std::map<uint32_t,RawDataSpan> RawDataSpan::IterateBy()
     // find the first digit with a different key
     auto nxt = std::find_if(cur, digits.e, [key](auto x) {return keyfunc::key(x) != key;});
     // store the range cur:nxt in the map
-    resultmap[key].digits.b = cur; 
-    resultmap[key].digits.e = nxt;
+    spanmap[key].digits.b = cur; 
+    spanmap[key].digits.e = nxt;
     // continue after this range
     cur = nxt;
   }
@@ -117,8 +110,8 @@ std::map<uint32_t,RawDataSpan> RawDataSpan::IterateBy()
   for (auto cur = tracklets.b; cur != tracklets.e; /* noop */) {
     auto key = keyfunc::key(*cur);
     auto nxt = std::find_if(cur, tracklets.e, [key](auto x) {return keyfunc::key(x) != key;});
-    resultmap[key].tracklets.b = cur; 
-    resultmap[key].tracklets.e = nxt;
+    spanmap[key].tracklets.b = cur; 
+    spanmap[key].tracklets.e = nxt;
     cur = nxt;
   }
 
@@ -130,11 +123,16 @@ std::map<uint32_t,RawDataSpan> RawDataSpan::IterateBy()
   //   cur = nxt;
   // }
   // cout << "Found " << this->size() << " spans" << endl;
-  return resultmap;
+
+  std::vector<RawDataSpan> spans;
+
+  transform(spanmap.begin(), spanmap.end(), back_inserter(spans), [](auto const& pair) { return pair.second; });
+  
+  return spans;
 }
 
-template std::map<uint32_t,RawDataSpan> RawDataSpan::IterateBy<PadRowID>();
-template std::map<uint32_t,RawDataSpan> RawDataSpan::IterateBy<MCM_ID>();
+template std::vector<RawDataSpan> RawDataSpan::IterateBy<PadRowID>();
+template std::vector<RawDataSpan> RawDataSpan::IterateBy<MCM_ID>();
 
 
 template<typename T>
@@ -142,9 +140,10 @@ int mcmkey(const T &x) {
   return 1000*x.getDetector() + 10*x.getPadRow() + 4*(x.getROB()%2) + x.getMCM()%4;
 }
 
-std::map<uint32_t,RawDataSpan> RawDataSpan::ByMCM()
+std::vector<RawDataSpan> RawDataSpan::ByMCM()
 {
-  std::map<uint32_t,RawDataSpan> result;
+  // we manage all 
+  std::map<uint32_t,RawDataSpan> spanmap;
 
   // sort digits and tracklets
   sort();
@@ -156,8 +155,8 @@ std::map<uint32_t,RawDataSpan> RawDataSpan::ByMCM()
     // find the first digit with a different key
     auto nxt = std::find_if(cur, digits.e, [key](auto x) {return mcmkey(x) != key;});
     // store the range cur:nxt in the map
-    result[key].digits.b = cur; 
-    result[key].digits.e = nxt;
+    spanmap[key].digits.b = cur; 
+    spanmap[key].digits.e = nxt;
     // continue after this range
     cur = nxt;
   }
@@ -166,8 +165,8 @@ std::map<uint32_t,RawDataSpan> RawDataSpan::ByMCM()
   for (auto cur = tracklets.b; cur != tracklets.e; /* noop */) {
     auto key = mcmkey(*cur);
     auto nxt = std::find_if(cur, tracklets.e, [key](auto x) {return mcmkey(x) != key;});
-    result[key].tracklets.b = cur; 
-    result[key].tracklets.e = nxt;
+    spanmap[key].tracklets.b = cur; 
+    spanmap[key].tracklets.e = nxt;
     cur = nxt;
   }
 
@@ -179,22 +178,26 @@ std::map<uint32_t,RawDataSpan> RawDataSpan::ByMCM()
   //   cur = nxt;
   // }
   // cout << "Found " << this->size() << " spans" << endl;
-  return result;
+
+  std::vector<RawDataSpan> spans;
+
+  transform(spanmap.begin(), spanmap.end(), back_inserter(spans), [](auto const& pair) { return pair.second; });
+
+  return spans;
 }
 
 
 // ========================================================================
 // ========================================================================
 //
-// the DataManager class
+// the RawDataManager class
 //
 // ========================================================================
 // ========================================================================
 
 
 
-DataManager::DataManager(std::filesystem::path dir)
-// rawdisp::DataManager::DataManager(std::string dir)
+RawDataManager::RawDataManager(std::filesystem::path dir)
 {
 
   if (!std::filesystem::exists(dir) || !std::filesystem::is_directory(dir)) {
@@ -242,7 +245,7 @@ DataManager::DataManager(std::filesystem::path dir)
 }
 
 template <typename T>
-void DataManager::AddReaderArray(TTreeReaderArray<T> *&array, std::filesystem::path file, std::string tree, std::string branch)
+void RawDataManager::AddReaderArray(TTreeReaderArray<T> *&array, std::filesystem::path file, std::string tree, std::string branch)
 {
   if (!std::filesystem::exists(file)) {
     // return value TRUE indicates file was not found 
@@ -254,7 +257,7 @@ void DataManager::AddReaderArray(TTreeReaderArray<T> *&array, std::filesystem::p
   array = new TTreeReaderArray<T>(*mDatareader, branch.c_str());
 }
 
-bool DataManager::NextTimeFrame()
+bool RawDataManager::NextTimeFrame()
 {
   if (mDatareader->Next())
   {
@@ -275,7 +278,7 @@ bool DataManager::NextTimeFrame()
   }
 }
 
-bool DataManager::NextEvent()
+bool RawDataManager::NextEvent()
 {
   // get the next trigger record
   if (mEventNo >= mTrgRecords->GetSize()) {
@@ -297,7 +300,7 @@ bool DataManager::NextEvent()
   return true;
 }
 
-RawDataSpan DataManager::GetEvent()
+RawDataSpan RawDataManager::GetEvent()
 {
   RawDataSpan ev;
   ev.digits.b = mDigits->begin() + mTriggerRecord.getFirstDigit();
@@ -348,7 +351,7 @@ RawDataSpan DataManager::GetEvent()
   return ev;
 }
 
-o2::dataformats::TFIDInfo DataManager::GetTimeFrameInfo()
+o2::dataformats::TFIDInfo RawDataManager::GetTimeFrameInfo()
 {
   if (mTFIDs) {
     return mTFIDs->at(mTimeFrameNo-1);
@@ -357,7 +360,7 @@ o2::dataformats::TFIDInfo DataManager::GetTimeFrameInfo()
   }
 }
 
-float DataManager::GetTriggerTime()
+float RawDataManager::GetTriggerTime()
 {
   auto tfid = GetTimeFrameInfo();
 
@@ -369,11 +372,11 @@ float DataManager::GetTriggerTime()
   }
 }
 
-std::string DataManager::DescribeFiles()
+std::string RawDataManager::DescribeFiles()
 {
   std::ostringstream out;
   if (!mMainfile) {
-    out << "DataManager is not connected to any files" << std::flush;
+    out << "RawDataManager is not connected to any files" << std::flush;
     return out.str();
   }
   if (!mDatatree) {
@@ -394,7 +397,7 @@ std::string DataManager::DescribeFiles()
   return out.str();
 }
 
-std::string DataManager::DescribeTimeFrame()
+std::string RawDataManager::DescribeTimeFrame()
 {
   std::ostringstream out;
   out << "## Time frame " << mTimeFrameNo << ": ";
@@ -402,7 +405,7 @@ std::string DataManager::DescribeTimeFrame()
   return out.str();
 }
 
-std::string DataManager::DescribeEvent()
+std::string RawDataManager::DescribeEvent()
 {
   std::ostringstream out;
   out << "## TF:Event " << mTimeFrameNo << ":" << mEventNo << ":  "
