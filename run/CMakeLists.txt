@@ -295,7 +295,7 @@ o2_add_test_command(NAME o2sim_G4_checklogs
                     LABELS long sim
 )
 
-set_tests_properties(o2sim_G3_checklogs
+set_tests_properties(o2sim_G4_checklogs
                      PROPERTIES FIXTURES_REQUIRED G4)
 endif()
 
