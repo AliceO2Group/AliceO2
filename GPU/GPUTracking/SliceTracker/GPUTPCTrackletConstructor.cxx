@@ -298,8 +298,8 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int
 #endif
       calink best = CALINK_INVAL;
 
-      { // search for the closest hit
-        tracker.GetErrors2Seeding(iRow, *((MEM_LG2(GPUTPCTrackParam)*)&tParam), err2Y, err2Z);
+      tracker.GetErrors2Seeding(iRow, *((MEM_LG2(GPUTPCTrackParam)*)&tParam), err2Y, err2Z);
+      if (CAMath::Abs(yUncorrected) < x * MEM_GLOBAL(GPUTPCRow)::getTPCMaxY1X()) { // search for the closest hit
         const float kFactor = tracker.Param().rec.tpc.hitPickUpFactor * tracker.Param().rec.tpc.hitPickUpFactor * 7.0f * 7.0f;
         const float maxWindow2 = tracker.Param().rec.tpc.hitSearchArea2;
         const float sy2 = CAMath::Min(maxWindow2, kFactor * (tParam.Err2Y() + err2Y));
