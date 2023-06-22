@@ -69,6 +69,11 @@ if service_pid == None:
     service_pid = pids[0]
 
 
+# check that sim process is actually alive
+if not psutil.pid_exists(int(service_pid)):
+   print ("Could not find simulation service with PID " + str(service_pid) + " .. exiting")
+   exit (1)
+
 controladdress="ipc:///tmp/o2sim-control-" + str(service_pid)
 message = args.command
 context = zmq.Context()
@@ -104,6 +109,10 @@ if args.command:
          if re.match('O2SIM.*DONE', notification) != None:
             print ("Received DONE notification from server ... quitting", notification)
             batchdone = True
+         if re.match('O2SIM.*FAILURE', notification) != None:
+            print ("Service reported a failure ... unblocking this call")
+            batchdone = True
+            exit (1)
 
      exit (0)
 
@@ -122,6 +131,7 @@ if args.startup and args.block:
     serverok = False
     workerok = False
     mergerok = False
+    failure = False
     while not (serverok and workerok and mergerok):
         notification = incomingsocket.recv_string()
         print ("Received notification ", notification)
@@ -131,7 +141,13 @@ if args.startup and args.block:
             mergerok = True
         if re.match('PRIMSERVER.*AWAITING\sINPUT', notification) != None:
             serverok = True
+        if re.match('.*O2SIM.*FAILURE.*', notification) != None:
+            print ("Simservice reported failure ... exiting client")
+            failure = True
+            break
 
+    if failure:
+       exit (1)
     exit (0)
 
 exit (0)
