@@ -56,6 +56,8 @@ class GPUTPCRow
   GPUhd() float HstepZi() const { return mHstepZi; }
   GPUhd() int HitNumberOffset() const { return mHitNumberOffset; }
   GPUhd() unsigned int FirstHitInBinOffset() const { return mFirstHitInBinOffset; }
+  GPUhd() static float getTPCMaxY1X() { return 0.1763269f; } // 0.1763269 = tan(2Pi / (2 * 18))
+  GPUhd() float getTPCMaxY() const { return getTPCMaxY1X() * mX; }
 
  private:
   friend class GPUTPCNeighboursFinder;
