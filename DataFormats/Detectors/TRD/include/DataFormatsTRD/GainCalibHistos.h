@@ -40,7 +40,6 @@ class GainCalibHistos
   auto getNEntries() const { return mNEntriesTot; }
 
   void fill(const std::unique_ptr<const GainCalibHistos, o2::framework::InputRecord::Deleter<const o2::trd::GainCalibHistos>>& input);
-  void fill(const gsl::span<const GainCalibHistos> input); // dummy!
   void merge(const GainCalibHistos* prev);
   void print();
 
