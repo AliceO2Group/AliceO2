@@ -9,10 +9,10 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(test)
-
-# o2_add_test_root_macro(ALICE3toAO2D.C
-#                        PUBLIC_LINK_LIBRARIES O2::UpgradesAODUtils
-#                                              O2::GPUTracking
-#                                              O2::ITSMFTSimulation
-# 		       LABELS its COMPILE_ONLY)
+o2_add_library(ITSPostprocessing
+               SOURCES src/ImpactParameter.cxx
+                       src/K0sInvMass.cxx
+               PUBLIC_LINK_LIBRARIES O2::GlobalTracking
+                                     O2::GlobalTrackingWorkflowReaders
+                                     O2::GlobalTrackingWorkflowHelpers
+                                     O2::DataFormatsGlobalTracking)

@@ -33,7 +33,7 @@ class AlignableDetectorTPC final : public AlignableDetector
   void defineVolumes() final;
   void Print(const Option_t* opt = "") const final;
   //
-  int processPoints(GIndex gid, bool inv) final;
+  int processPoints(GIndex gid, int npntCut, bool inv) final;
 
   void setTrackTimeStamp(float t) { mTrackTimeStamp = t; }
   float getTrackTimeStamp() const { return mTrackTimeStamp; }

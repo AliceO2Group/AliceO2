@@ -115,6 +115,9 @@ class RawPixelDecoder final : public PixelReader
   std::vector<PhysTrigger>& getExternalTriggers() { return mExtTriggers; }
   const std::vector<PhysTrigger>& getExternalTriggers() const { return mExtTriggers; }
 
+  void setSkipRampUpData(bool v = true) { mSkipRampUpData = v; }
+  bool getSkipRampUpData() const { return mSkipRampUpData; }
+
   struct LinkEntry {
     int entry = -1;
   };
@@ -150,6 +153,8 @@ class RawPixelDecoder final : public PixelReader
   std::unordered_map<o2::InteractionRecord, int> mIRPoll;                             // poll for links IR used for synchronization
   bool mFillCalibData = false;                                                        // request to fill calib data from GBT
   bool mAlloEmptyROFs = false;                                                        // do not skip empty ROFs
+  bool mROFRampUpStage = false;                                                       // are we still in the ROF ramp up stage?
+  bool mSkipRampUpData = false;
   int mVerbosity = 0;
   int mNThreads = 1; // number of decoding threads
   // statistics

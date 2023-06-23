@@ -189,7 +189,7 @@ class GPUReconstruction
   virtual void* getGPUPointer(void* ptr) { return ptr; }
   virtual void startGPUProfiling() {}
   virtual void endGPUProfiling() {}
-  int CheckErrorCodes(bool cpuOnly = false, bool forceShowErrors = false);
+  int CheckErrorCodes(bool cpuOnly = false, bool forceShowErrors = false, std::vector<std::array<unsigned int, 4>>* fillErrors = nullptr);
   void RunPipelineWorker();
   void TerminatePipelineWorker();
 
@@ -222,8 +222,7 @@ class GPUReconstruction
   GPUMemorySizeScalers* MemoryScalers() { return mMemoryScalers.get(); }
 
   // Helpers to fetch processors from other shared libraries
-  virtual void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits);
-  virtual void GetITSTimeframe(std::unique_ptr<o2::its::TimeFrame>* timeFrame);
+  virtual void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits, std::unique_ptr<o2::its::TimeFrame>* timeFrame);
   bool slavesExist() { return mSlaves.size() || mMaster; }
 
   // Getters / setters for parameters
@@ -256,6 +255,9 @@ class GPUReconstruction
   InOutTypeField GetRecoStepsOutputs() const { return mRecoStepsOutputs; }
   int getRecoStepNum(RecoStep step, bool validCheck = true);
   int getGeneralStepNum(GeneralStep step, bool validCheck = true);
+
+  void setErrorCodeOutput(std::vector<std::array<unsigned int, 4>>* v) { mOutputErrorCodes = v; }
+  std::vector<std::array<unsigned int, 4>>* getErrorCodeOutput() { return mOutputErrorCodes; }
 
   // Registration of GPU Processors
   template <class T>
@@ -372,6 +374,7 @@ class GPUReconstruction
   double mStatKernelTime = 0.;
   double mStatWallTime = 0.;
   std::shared_ptr<GPUROOTDumpCore> mROOTDump;
+  std::vector<std::array<unsigned int, 4>>* mOutputErrorCodes = nullptr;
 
   int mMaxThreads = 0;    // Maximum number of threads that may be running, on CPU or GPU
   int mThreadId = -1;     // Thread ID that is valid for the local CUDA context

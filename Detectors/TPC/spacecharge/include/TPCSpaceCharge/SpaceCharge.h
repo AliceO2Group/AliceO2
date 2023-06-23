@@ -118,9 +118,34 @@ class SpaceCharge
   /// \param hisSCDensity3D histogram for the space charge density
   void fillChargeDensityFromHisto(const TH3& hisSCDensity3D);
 
+  /// step 0: set the space-charge density from two TH3 histograms containing the space-charge density for A and C side seperately
+  /// \param hisSCDensity3D_A histogram for the space charge density for A-side
+  /// \param hisSCDensity3D_C histogram for the space charge density for C-side
+  void fillChargeDensityFromHisto(const TH3& hisSCDensity3D_A, const TH3& hisSCDensity3D_C);
+
+  /// step 0: set the space-charge density from two TH3 histograms containing the space charge density for A and C side separately which are stored in a ROOT file
+  /// \param file path to root file containing the space-charge density
+  /// \param nameA name of the space-charge density histogram for the A-side
+  /// \param nameC name of the space-charge density histogram for the C-side
+  void fillChargeDensityFromHisto(const char* file, const char* nameA, const char* nameC);
+
   /// step 0: set the space charge density from std::vector<CalDet> containing the space charge density. Each entry in the object corresponds to one z slice
-  /// \param calSCDensity3D histogram for the space charge density
+  /// \param calSCDensity3D pad-by-pad CalDet for the space charge density
   void fillChargeDensityFromCalDet(const std::vector<CalDet<float>>& calSCDensity3D);
+
+  /// Convert the IDCs to the number of ions for the ion backflow (primary ionization is not considered)
+  /// \param idcZero map containing the IDCs values which will be converted to the space-charge density
+  /// \param mapIBF map contains the pad-by-pad IBF in %
+  /// \param ionDriftTimeMS ion drift time in ms
+  /// \param normToPadArea normalize IDCs to pad area (should always be true as the normalization is performed in IDCFactorization::calcIDCZero
+  static void convertIDCsToCharge(std::vector<CalDet<float>>& idcZero, const CalDet<float>& mapIBF, const float ionDriftTimeMS = 200, const bool normToPadArea = true);
+
+  /// Convert the IDCs to the number of ions for the ion backflow (primary ionization is not considered)
+  /// \param idcZero map containing the IDCs which will be converted to the space-charge density
+  /// \param mapIBF map contains the pad-by-pad IBF in %
+  /// \param ionDriftTimeMS ion drift time in ms
+  /// \param normToPadArea normalize IDCs to pad area (should always be true as the normalization is performed in IDCFactorization::calcIDCZero
+  void fillChargeFromIDCs(std::vector<CalDet<float>>& idcZero, const CalDet<float>& mapIBF, const float ionDriftTimeMS = 200, const bool normToPadArea = true);
 
   /// step 0: set the charge (number of ions) from std::vector<CalDet> containing the charge. Each entry in the object corresponds to one z slice.
   /// Normalization to the space charge is also done automatically
@@ -251,6 +276,10 @@ class SpaceCharge
   /// \param scalingFactor factor to scale the space-charge density
   /// \param side side for which the space-charge density will be scaled
   void scaleChargeDensity(const DataT scalingFactor, const Side side) { mDensity[side] *= scalingFactor; }
+
+  /// add space charge density from other object (this.mDensity = this.mDensity + other.mDensity)
+  /// \param otherSC other space-charge object, which charge will be added to current object
+  void addChargeDensity(const SpaceCharge<DataT>& otherSC);
 
   /// step 3: calculate the local distortions and corrections with an electric field
   /// \param type calculate local corrections or local distortions: type = o2::tpc::SpaceCharge<>::Type::Distortions or o2::tpc::SpaceCharge<>::Type::Corrections
@@ -854,6 +883,16 @@ class SpaceCharge
   /// \param nRPoints number of vertices of the output in r
   /// \param nPhiPoints number of vertices of the output in phi
   /// \param randomize randomize points
+  ///
+  /// Adding other TTree as friend:
+  /// TFile f1("file_1.root");
+  /// TTree* tree1 = (TTree*)f1.Get("tree");
+  /// tree1->BuildIndex("globalIndex")
+  ///
+  /// TFile f2("file_2.root");
+  /// TTree* tree2 = (TTree*)f2.Get("tree");
+  /// tree2->BuildIndex("globalIndex");
+  /// tree1->AddFriend(tree2, "t2");
   void dumpToTree(const char* outFileName, const Side side, const int nZPoints = 50, const int nRPoints = 150, const int nPhiPoints = 180, const bool randomize = false) const;
 
   /// dump to tree evaluated on the pads for given sector
@@ -1000,13 +1039,6 @@ class SpaceCharge
 
   /// set phi coordinate between min phi max phi
   DataT regulatePhi(const DataT posPhi, const Side side) const { return mGrid3D[side].clampToGridCircular(posPhi, 2); }
-
-  /// rebin the input space charge density histogram to desired binning
-  /// \param hOrig original histogram
-  /// \param nBinsZNew number of z bins of rebinned histogram
-  /// \param nBinsRNew number of r bins of rebinned histogram
-  /// \param nBinsPhiNew number of phi bins of rebinned histogram
-  static TH3DataT rebinDensityHisto(const TH3& hOrig, const unsigned short nBinsZNew, const unsigned short nBinsRNew, const unsigned short nBinsPhiNew);
 
   /// function to calculate the drift paths of the electron whose starting position is delivered. Electric fields must be set!
   /// \param elePos global position of the start position of the electron

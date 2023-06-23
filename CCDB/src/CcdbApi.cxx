@@ -115,7 +115,7 @@ void CcdbApi::curlInit()
       auto timeoutMS = atoi(getenv("ALICEO2_CCDB_SOCKET_TIMEOUT"));
       if (timeoutMS >= 0) {
         LOG(info) << "Setting socket timeout to " << timeoutMS << " milliseconds";
-        mDownloader->setSocketTimoutTime(timeoutMS);
+        mDownloader->setKeepaliveTimeoutTime(timeoutMS);
       }
     }
   }
@@ -1385,8 +1385,9 @@ TClass* CcdbApi::tinfo2TClass(std::type_info const& tinfo)
   return cl;
 }
 
-void CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp, std::string const& id, long newEOV)
+int CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp, std::string const& id, long newEOV)
 {
+  int ret = -1;
   CURL* curl = curl_easy_init();
   if (curl != nullptr) {
     CURLcode res;
@@ -1423,12 +1424,16 @@ void CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std:
         // Perform the request, res will get the return code
         res = CURL_perform(curl);
         if (res != CURLE_OK) {
-          LOGP(alarm, "CURL_perform() failed: {}", curl_easy_strerror(res));
+          LOGP(alarm, "CURL_perform() failed: {}, code: {}", curl_easy_strerror(res), int(res));
+          ret = int(res);
+        } else {
+          ret = 0;
         }
         curl_easy_cleanup(curl);
       }
     }
   }
+  return ret;
 }
 
 std::vector<std::string> CcdbApi::splitString(const std::string& str, const char* delimiters)

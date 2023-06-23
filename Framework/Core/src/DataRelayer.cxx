@@ -686,7 +686,7 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
     } else if (mCompletionPolicy.callbackFull) {
       action = mCompletionPolicy.callbackFull(span, mInputs);
     } else {
-      throw std::runtime_error("No completion policy found");
+      throw runtime_error_f("Completion police %s has no callback set", mCompletionPolicy.name.c_str());
     }
     auto& variables = mTimesliceIndex.getVariablesForSlot(slot);
     auto timeslice = std::get_if<uint64_t>(&variables.get(0));
@@ -901,7 +901,7 @@ void DataRelayer::publishMetrics()
     states.registerState(DataProcessingStates::StateSpec{
       .name = fmt::format("matcher_variables/{}", i),
       .stateId = static_cast<short>((short)(ProcessingStateId::CONTEXT_VARIABLES_BASE) + i),
-      .minPublishInterval = 200, // if we publish too often we flood the GUI and we are not able to read it in any case
+      .minPublishInterval = 500, // if we publish too often we flood the GUI and we are not able to read it in any case
       .sendInitialValue = true,
       .defaultEnabled = mContext.get<DriverConfig const>().driverHasGUI,
     });
@@ -911,7 +911,7 @@ void DataRelayer::publishMetrics()
     states.registerState(DataProcessingStates::StateSpec{
       .name = fmt::format("data_relayer/{}", ci),
       .stateId = static_cast<short>((short)(ProcessingStateId::DATA_RELAYER_BASE) + (short)ci),
-      .minPublishInterval = 500, // if we publish too often we flood the GUI and we are not able to read it in any case
+      .minPublishInterval = 800, // if we publish too often we flood the GUI and we are not able to read it in any case
       .sendInitialValue = true,
       .defaultEnabled = mContext.get<DriverConfig const>().driverHasGUI,
     });

@@ -77,7 +77,7 @@ void AlignableDetectorTOF::defineVolumes()
 }
 
 //____________________________________________
-int AlignableDetectorTOF::processPoints(GIndex gid, bool inv)
+int AlignableDetectorTOF::processPoints(GIndex gid, int npntCut, bool inv)
 {
   // Extract the points corresponding to this detector, recalibrate/realign them to the
   // level of the "starting point" for the alignment/calibration session.
@@ -85,7 +85,7 @@ int AlignableDetectorTOF::processPoints(GIndex gid, bool inv)
   // (i.e. upper leg of cosmic track)
   //
 
-  mNPoints = 0;
+  int npoints = 0;
   auto algTrack = mController->getAlgTrack();
   auto recoData = mController->getRecoContainer();
   auto TOFClusters = recoData->getTOFClusters();
@@ -108,7 +108,6 @@ int AlignableDetectorTOF::processPoints(GIndex gid, bool inv)
   const auto& matT2L = sensor->getMatrixT2L();
   matT2L.MasterToLocal(locCorr, traCorr);
   //
-  mFirstPoint = algTrack->getNPoints();
   auto& pnt = algTrack->addDetectorPoint();
 
   const auto* sysE = sensor->getAddError(); // additional syst error
@@ -122,11 +121,12 @@ int AlignableDetectorTOF::processPoints(GIndex gid, bool inv)
   pnt.setXSens(sensor->getXTracking());
   pnt.setDetID(mDetID);
   pnt.setSID(sensor->getSID());
-  //
   pnt.setContainsMeasurement();
+  pnt.setInvDir(inv);
   pnt.init();
-  mNPoints++;
-  return mNPoints;
+  npoints++;
+  mNPoints += npoints;
+  return npoints;
 }
 
 } // namespace align

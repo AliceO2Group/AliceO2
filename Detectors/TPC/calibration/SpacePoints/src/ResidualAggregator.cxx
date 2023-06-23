@@ -404,11 +404,6 @@ void ResidualAggregator::finalizeSlot(Slot& slot)
     try {
       std::ofstream metaFileOut(metaFileNameTmp);
       metaFileOut << fileMetaData;
-      metaFileOut << "TFOrbits: ";
-      for (size_t i = 0; i < cont->tfOrbits.size(); i++) {
-        metaFileOut << fmt::format("{}{}", i ? ", " : "", cont->tfOrbits[i]);
-      }
-      metaFileOut << '\n';
       metaFileOut.close();
       std::filesystem::rename(metaFileNameTmp, metaFileName);
     } catch (std::exception const& e) {

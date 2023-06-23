@@ -38,7 +38,7 @@ struct AlignConfig : public o2::conf::ConfigurableParamHelper<AlignConfig> {
   int minPoints[NTrackTypes] = {4, 10};
   int minDetAcc[NTrackTypes] = {1, 1};
 
-  float minScatteringAngleToAccount = 0.0001;
+  float minScatteringAngleToAccount = 0.0003;
 
   int verbose = 0;
 
@@ -50,10 +50,22 @@ struct AlignConfig : public o2::conf::ConfigurableParamHelper<AlignConfig> {
   int minDetectors = 1;  // min number of detectors per track
   int minITSClusters = 4;  // min ITS clusters to accept the track
   int minTRDTracklets = 3; // min TRD tracklets to accept the track
+  int minTPCClusters = 10; // discard tracks with less clusters
+  int minTOFClusters = 1;  // min TOF clusters to accept track
+
+  int minPointTotalCosm = 4;      // total min number of alignment point to account cosmic track
+  int minDetectorsCosm = 1;       // min number of detectors per cosmic track
+  int minITSClustersCosm = 0;     // min ITS clusters to accept the cosmic track
+  int minITSClustersCosmLeg = 2;  // min ITS clusters per leg to accept the cosmic track
+  int minTRDTrackletsCosm = 0;    // min TRD tracklets to accept the cosmic track
+  int minTRDTrackletsCosmLeg = 2; // min TRD tracklets per leg to accept the cosmic track
+  int minTPCClustersCosm = 0;     // discard cosmic tracks with less clusters
+  int minTPCClustersCosmLeg = 10; // discard cosmic tracks with less clusters per leg
+  int minTOFClustersCosm = 0;     // min TOF clusters to accept track
+  int minTOFClustersCosmLeg = 1;  // min TOF clusters per leg to accept track
 
   int minTPCPadRow = 0;    // min TPC pad-row to account
   int maxTPCPadRow = 151;  // max TPC pad-row to account
-  int minTPCClusters = 10; // discard tracks with less clusters
 
   float maxDCAforVC[2] = {-1, -1}; // DCA cut in R,Z to allow track be subjected to vertex constraint
   float maxChi2forVC = -1;         // track-vertex chi2 cut to allow the track be subjected to vertex constraint

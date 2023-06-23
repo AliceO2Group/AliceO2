@@ -41,6 +41,13 @@ struct Str {
     s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](int ch) { return !std::isspace(ch); }));
   }
 
+  static inline void ltrim(std::string& s, const std::string& start)
+  {
+    if (beginsWith(s, start)) {
+      s.erase(0, start.size());
+    }
+  }
+
   /** Trim from end (in place)
  *
  * @param s
@@ -48,6 +55,13 @@ struct Str {
   static inline void rtrim(std::string& s)
   {
     s.erase(std::find_if(s.rbegin(), s.rend(), [](int ch) { return !std::isspace(ch); }).base(), s.end());
+  }
+
+  static inline void rtrim(std::string& s, const std::string& ending)
+  {
+    if (endsWith(s, ending)) {
+      s.erase(s.size() - ending.size(), ending.size());
+    }
   }
 
   /**
@@ -72,6 +86,13 @@ struct Str {
     return ss;
   }
 
+  static inline std::string ltrim_copy(const std::string& s, const std::string& start)
+  {
+    std::string ss = s;
+    ltrim(ss, start);
+    return ss;
+  }
+
   /**
  * Trim from end (copying)
  * @param s
@@ -81,6 +102,13 @@ struct Str {
   {
     std::string ss = s;
     rtrim(ss);
+    return ss;
+  }
+
+  static inline std::string rtrim_copy(const std::string& s, const std::string& ending)
+  {
+    std::string ss = s;
+    rtrim(ss, ending);
     return ss;
   }
 

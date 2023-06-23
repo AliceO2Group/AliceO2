@@ -159,6 +159,7 @@ uint8_t GBTLink::checkErrorsRDH(const RDH& rdh)
     return err; // fatal error
   }
   /*
+  // Note that an identical check is executed by default in the RawParser, currently disabled for ITS in the constructor of RawPixelDecoder
   if (expectPadding && (RDHUtils::getPacketCounter(rdh) > packetCounter + 1) && packetCounter >= 0) { // packet counter check makes sense only for data with padding (no UL)
     if (irHBF.isDummy()) {
       irHBF = RDHUtils::getHeartBeatIR(rdh);

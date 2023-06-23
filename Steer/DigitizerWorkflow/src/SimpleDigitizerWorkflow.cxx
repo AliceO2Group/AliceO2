@@ -202,6 +202,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"trd-digit-downscaling", VariantType::Int, 1, {"only keep TRD digits for every n-th trigger"}});
 
   workflowOptions.push_back(ConfigParamSpec{"combine-devices", VariantType::Bool, false, {"combined multiple DPL worker/writer devices"}});
+
+  // to enable distribution of triggers
+  workflowOptions.push_back(ConfigParamSpec{"with-trigger", VariantType::Bool, false, {"enable distribution of CTP trigger digits"}});
 }
 
 void customize(std::vector<o2::framework::DispatchPolicy>& policies)
@@ -631,7 +634,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     auto timestamp = o2::raw::HBFUtils::Instance().startTime;
     detList.emplace_back(o2::detectors::DetID::FT0);
     // connect the FT0 digitization
-    specs.emplace_back(o2::ft0::getFT0DigitizerSpec(fanoutsize++, mctruth, !useCCDB));
+    specs.emplace_back(o2::ft0::getFT0DigitizerSpec(fanoutsize++, mctruth, useCCDB));
     // connect the FIT digit writer
     writerSpecs.emplace_back(o2::ft0::getFT0DigitWriterSpec(mctruth));
   }
@@ -788,6 +791,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
 
   // The SIM Reader. NEEDS TO BE LAST
-  specs[0] = o2::steer::getSimReaderSpec({firstOtherChannel, fanoutsize}, simPrefixes, tpcsectors);
+  bool withTrigger = configcontext.options().get<bool>("with-trigger");
+  LOG(info) << " TRIGGER " << withTrigger;
+  specs[0] = o2::steer::getSimReaderSpec({firstOtherChannel, fanoutsize}, simPrefixes, tpcsectors, withTrigger);
   return specs;
 }

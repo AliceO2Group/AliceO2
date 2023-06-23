@@ -10,16 +10,20 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(HMPIDReconstruction
-               SOURCES src/Clusterer.cxx 
-                       src/HmpidDecoder2.cxx 
+               TARGETVARNAME targetName
+               SOURCES src/Clusterer.cxx
+                       src/HmpidDecoder2.cxx
                        src/HmpidEquipment.cxx
                        src/CTFHelper.cxx
+                       src/Recon.cxx
                        src/CTFCoder.cxx
                PUBLIC_LINK_LIBRARIES O2::HMPIDBase
                                      O2::DataFormatsHMP
+                                     ROOT::Physics
                                      O2::HMPIDSimulation)
-                       
+
 o2_target_root_dictionary(HMPIDReconstruction
                           HEADERS include/HMPIDReconstruction/Clusterer.h
                                   include/HMPIDReconstruction/HmpidDecoder2.h
+                                  include/HMPIDReconstruction/Recon.h
                                   include/HMPIDReconstruction/HmpidEquipment.h)

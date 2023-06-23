@@ -14,7 +14,6 @@
 #ifndef O2_AODPRODUCER_WORKFLOW_SPEC
 #define O2_AODPRODUCER_WORKFLOW_SPEC
 
-#include "CCDB/BasicCCDBManager.h"
 #include "DataFormatsFT0/RecPoints.h"
 #include "DataFormatsFDD/RecPoint.h"
 #include "DataFormatsFV0/RecPoints.h"
@@ -28,6 +27,7 @@
 #include "DataFormatsEMCAL/EventHandler.h"
 #include "DataFormatsPHOS/EventHandler.h"
 #include "DetectorsBase/GRPGeomHelper.h"
+#include "DetectorsBase/Propagator.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/AnalysisHelpers.h"
 #include "Framework/DataProcessorSpec.h"
@@ -51,6 +51,16 @@ using DataRequest = o2::globaltracking::DataRequest;
 
 namespace o2::aodproducer
 {
+
+template <typename T>
+void addTableToOutput(std::vector<OutputSpec>& o, int t = 0)
+{
+  o.emplace_back(OutputLabel{o2::aod::MetadataTrait<T>::metadata::tableLabel()},
+                 o2::aod::MetadataTrait<T>::metadata::origin(),
+                 o2::aod::MetadataTrait<T>::metadata::description(),
+                 t,
+                 Lifetime::Timeframe);
+}
 
 /// A structure or container to organize bunch crossing data of a timeframe
 /// and to facilitate fast lookup and search within bunch crossings.
@@ -229,6 +239,22 @@ class AODProducerWorkflowDPL : public Task
     return std::uint64_t(mStartIR.toLong()) + relativeTime_to_LocalBC(relativeTimeStampInNS);
   }
 
+  template <typename T>
+  Produces<T> createTableCursor(ProcessingContext& pc)
+  {
+    Produces<T> c;
+    c.resetCursor(pc.outputs().make<TableBuilder>(c.ref()));
+    c.setLabel(o2::aod::MetadataTrait<T>::metadata::tableLabel());
+    return c;
+  }
+
+  bool mPropTracks{false};
+  o2::base::Propagator::MatCorrType mMatCorr{o2::base::Propagator::MatCorrType::USEMatCorrLUT};
+  o2::dataformats::MeanVertexObject mVtx;
+  float mMinPropR{o2::constants::geom::XTPCInnerRef + 0.1f};
+
+  std::unordered_set<GIndex> mGIDUsedBySVtx;
+
   int mNThreads = 1;
   bool mUseMC = true;
   bool mEnableSV = true; // enable secondary vertices
@@ -304,7 +330,6 @@ class AODProducerWorkflowDPL : public Task
   // production metadata
   std::vector<TString> mMetaDataKeys;
   std::vector<TString> mMetaDataVals;
-  bool mIsMDSent{false};
 
   std::shared_ptr<DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
@@ -446,7 +471,6 @@ class AODProducerWorkflowDPL : public Task
                   const std::vector<o2::InteractionTimeRecord>& mcRecords,
                   std::map<uint64_t, int>& bcsMap);
 
-  uint64_t getTFNumber(const o2::InteractionRecord& tfStartIR, int runNumber);
   template <typename TracksCursorType, typename TracksCovCursorType>
   void addToTracksTable(TracksCursorType& tracksCursor, TracksCovCursorType& tracksCovCursor,
                         const o2::track::TrackParCov& track, int collisionID, aod::track::TrackTypeEnum type = aod::track::TrackIU);
@@ -464,6 +488,7 @@ class AODProducerWorkflowDPL : public Task
                            GIndex trackID, const o2::globaltracking::RecoContainer& data, int collisionID, std::uint64_t collisionBC, const std::map<uint64_t, int>& bcsMap);
 
   TrackExtraInfo processBarrelTrack(int collisionID, std::uint64_t collisionBC, GIndex trackIndex, const o2::globaltracking::RecoContainer& data, const std::map<uint64_t, int>& bcsMap);
+  bool propagateTrackToPV(o2::track::TrackParametrizationWithError<float>& trackPar, const o2::globaltracking::RecoContainer& data, int colID);
   void extrapolateToCalorimeters(TrackExtraInfo& extraInfoHolder, const o2::track::TrackPar& track);
   void cacheTriggers(const o2::globaltracking::RecoContainer& recoData);
 
@@ -500,16 +525,16 @@ class AODProducerWorkflowDPL : public Task
 
   template <typename MCParticlesCursorType>
   void fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader,
-                            const MCParticlesCursorType& mcParticlesCursor,
+                            MCParticlesCursorType& mcParticlesCursor,
                             const gsl::span<const o2::dataformats::VtxTrackRef>& primVer2TRefs,
                             const gsl::span<const GIndex>& GIndices,
                             const o2::globaltracking::RecoContainer& data,
                             const std::vector<std::vector<int>>& mcColToEvSrc);
 
   template <typename MCTrackLabelCursorType, typename MCMFTTrackLabelCursorType, typename MCFwdTrackLabelCursorType>
-  void fillMCTrackLabelsTable(const MCTrackLabelCursorType& mcTrackLabelCursor,
-                              const MCMFTTrackLabelCursorType& mcMFTTrackLabelCursor,
-                              const MCFwdTrackLabelCursorType& mcFwdTrackLabelCursor,
+  void fillMCTrackLabelsTable(MCTrackLabelCursorType& mcTrackLabelCursor,
+                              MCMFTTrackLabelCursorType& mcMFTTrackLabelCursor,
+                              MCFwdTrackLabelCursorType& mcFwdTrackLabelCursor,
                               const o2::dataformats::VtxTrackRef& trackRef,
                               const gsl::span<const GIndex>& primVerGIs,
                               const o2::globaltracking::RecoContainer& data,
@@ -524,12 +549,12 @@ class AODProducerWorkflowDPL : public Task
   uint8_t getTRDPattern(const o2::trd::TrackTRD& track);
 
   template <typename TCaloHandler, typename TCaloCursor, typename TCaloTRGCursor, typename TMCCaloLabelCursor>
-  void addToCaloTable(const TCaloHandler& caloHandler, const TCaloCursor& caloCellCursor, const TCaloTRGCursor& caloTRGCursor,
-                      const TMCCaloLabelCursor& mcCaloCellLabelCursor, int eventID, int bcID, int8_t caloType);
+  void addToCaloTable(TCaloHandler& caloHandler, TCaloCursor& caloCellCursor, TCaloTRGCursor& caloTRGCursor,
+                      TMCCaloLabelCursor& mcCaloCellLabelCursor, int eventID, int bcID, int8_t caloType);
 
   template <typename TCaloCursor, typename TCaloTRGCursor, typename TMCCaloLabelCursor>
-  void fillCaloTable(const TCaloCursor& caloCellCursor, const TCaloTRGCursor& caloTRGCursor,
-                     const TMCCaloLabelCursor& mcCaloCellLabelCursor, const std::map<uint64_t, int>& bcsMap,
+  void fillCaloTable(TCaloCursor& caloCellCursor, TCaloTRGCursor& caloTRGCursor,
+                     TMCCaloLabelCursor& mcCaloCellLabelCursor, const std::map<uint64_t, int>& bcsMap,
                      const o2::globaltracking::RecoContainer& data);
 };
 

@@ -45,8 +45,9 @@ DataSet createData(std::vector<InputSpec> const& inputspecs, std::vector<DataHea
   };
   std::vector<int> checkValues;
   DataSet::Messages messages;
+  unsigned char packetCounter = 0;
 
-  auto initRawPage = [&checkValues, &amendRdh](char* buffer, size_t size, auto value) {
+  auto initRawPage = [&checkValues, &amendRdh, &packetCounter](char* buffer, size_t size, auto value) {
     char* wrtptr = buffer;
     while (wrtptr < buffer + size) {
       auto* header = reinterpret_cast<RAWDataHeader*>(wrtptr);
@@ -56,6 +57,7 @@ DataSet createData(std::vector<InputSpec> const& inputspecs, std::vector<DataHea
       }
       header->memorySize = PAGESIZE;
       header->offsetToNext = PAGESIZE;
+      header->packetCounter = packetCounter++;
       *reinterpret_cast<decltype(value)*>(wrtptr + header->headerSize) = value;
       wrtptr += PAGESIZE;
       checkValues.emplace_back(value);

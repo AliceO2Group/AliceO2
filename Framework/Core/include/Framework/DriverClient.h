@@ -12,6 +12,7 @@
 #define O2_FRAMEWORK_DRIVERCLIENT_H_
 
 #include "Framework/ServiceHandle.h"
+#include "Framework/ServiceRegistryRef.h"
 #include <functional>
 #include <string>
 #include <string_view>
@@ -49,7 +50,14 @@ class DriverClient
   void dispatch(std::string_view event);
 
   /// Flush all pending events (if connected)
-  virtual void flushPending() = 0;
+  /// Note: this must be guaranteed to be called from the main thread,
+  /// because the libuv backend cannot queue write operations on a thread
+  /// which is not the main one. In order to do this, one should
+  /// have assert(mainTreadRef.isMainThread()) in the implementation.
+  /// Notice also that if you want to use uv_async_send, you must make
+  /// sure that you do not rely on having as many events as the times
+  /// you called uv_async_send, because this is not guaranteed.
+  virtual void flushPending(ServiceRegistryRef mainThreadRef) = 0;
 
  private:
   std::vector<DriverEventMatcher> mEventMatchers;

@@ -38,6 +38,7 @@ class ExtendedTrack
   /** create an ExtendedTrack from a TrackMCH and its clusters.
    *
    * The given TrackMCH will be extrapolated to the given vertex {x,y,z}.
+   * Throw an exception if the track fitting fails
    */
   ExtendedTrack(const TrackMCH& track,
                 gsl::span<const Cluster>& clusters,
@@ -62,7 +63,7 @@ class ExtendedTrack
 
   double getDCA() const { return mDCA; }
   double getRabs() const { return mRabs; }
-  short getCharge() const { return mSign; }
+  double getCharge() const { return param().getCharge(); }
 
   const ROOT::Math::PxPyPzMVector& P() const { return mMomentum4D; }
 
@@ -77,7 +78,6 @@ class ExtendedTrack
   ROOT::Math::PxPyPzMVector mMomentum4D{};
   bool mHasMatchFound;
   bool mHasMatchIdentical;
-  short mSign{0};
   double mDCA{0.};
   double mRabs{0.};
   static constexpr double sChi2Max{2. * 4. * 4.};

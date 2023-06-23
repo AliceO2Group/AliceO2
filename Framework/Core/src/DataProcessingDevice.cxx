@@ -140,7 +140,7 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegi
       auto ref = ServiceRegistryRef{registry, ServiceRegistry::globalDeviceSalt()};
       auto& deviceState = ref.get<DeviceState>();
       for (auto& info : deviceState.inputChannelInfos) {
-        FairMQParts parts;
+        fair::mq::Parts parts;
         while (info.channel->Receive(parts, 0)) {
           LOGP(debug, "Dropping {} parts", parts.Size());
           if (parts.Size() == 0) {
@@ -161,7 +161,7 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegi
 
     if (deviceState.nextFairMQState.empty() == false) {
       auto state = deviceState.nextFairMQState.back();
-      this->ChangeState(state);
+      (void)this->ChangeState(state);
       deviceState.nextFairMQState.pop_back();
     }
   };
@@ -590,7 +590,16 @@ static auto forwardInputs = [](ServiceRegistryRef registry, TimesliceSlot slot, 
     auto channel = proxy.getForwardChannel(ChannelIndex{fi});
     LOG(debug) << "Forwarding to " << channel->GetName() << " " << fi;
     // in DPL we are using subchannel 0 only
-    channel->Send(forwardedParts[fi]);
+    auto& parts = forwardedParts[fi];
+    int timeout = 30000;
+    auto res = channel->Send(parts, timeout);
+    if (res == (size_t)fair::mq::TransferCode::timeout) {
+      LOGP(warning, "Timed out sending after {}s. Downstream backpressure detected on {}.", timeout / 1000, channel->GetName());
+      channel->Send(parts);
+      LOGP(info, "Downstream backpressure on {} recovered.", channel->GetName());
+    } else if (res == (size_t)fair::mq::TransferCode::error) {
+      LOGP(fatal, "Error while sending on channel {}", channel->GetName());
+    }
   }
 
   auto& asyncQueue = registry.get<AsyncQueue>();
@@ -1074,7 +1083,7 @@ void DataProcessingDevice::Run()
   bool firstLoop = true;
   while (state.transitionHandling != TransitionHandlingState::Expired) {
     if (state.nextFairMQState.empty() == false) {
-      this->ChangeState(state.nextFairMQState.back());
+      (void)this->ChangeState(state.nextFairMQState.back());
       state.nextFairMQState.pop_back();
     }
     // Notify on the main thread the new region callbacks, making sure
@@ -1091,7 +1100,7 @@ void DataProcessingDevice::Run()
       ZoneScopedN("uv idle");
       TracyPlot("past activity", (int64_t)mWasActive);
       ServiceRegistryRef ref{mServiceRegistry};
-      ref.get<DriverClient>().flushPending();
+      ref.get<DriverClient>().flushPending(mServiceRegistry);
       auto shouldNotWait = (mWasActive &&
                             (state.streaming != StreamingState::Idle) && (state.activeSignals.empty())) ||
                            (state.streaming == StreamingState::EndOfStreaming);
@@ -1478,7 +1487,6 @@ void DataProcessingDevice::doRun(ServiceRegistryRef ref)
 
   if (state.streaming == StreamingState::EndOfStreaming) {
     LOGP(detail, "We are in EndOfStreaming. Flushing queues.");
-    ref.get<DriverClient>().flushPending();
     // We keep processing data until we are Idle.
     // FIXME: not sure this is the correct way to drain the queues, but
     // I guess we will see.
@@ -1745,7 +1753,7 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
         } break;
         case InputType::SourceInfo: {
           LOGP(detail, "Received SourceInfo");
-          auto &context = ref.get<DataProcessorContext>();
+          auto& context = ref.get<DataProcessorContext>();
           *context.wasActive = true;
           auto headerIndex = input.position;
           auto payloadIndex = input.position + 1;
@@ -1763,7 +1771,7 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
         case InputType::DomainInfo: {
           /// We have back pressure, therefore we do not process DomainInfo anymore.
           /// until the previous message are processed.
-          auto &context = ref.get<DataProcessorContext>();
+          auto& context = ref.get<DataProcessorContext>();
           *context.wasActive = true;
           auto headerIndex = input.position;
           auto payloadIndex = input.position + 1;
@@ -1789,7 +1797,7 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
     /// Notice we do so only if the incoming data has been fully processed.
     if (oldestPossibleTimeslice != (size_t)-1) {
       info.oldestForChannel = {oldestPossibleTimeslice};
-      auto &context = ref.get<DataProcessorContext>();
+      auto& context = ref.get<DataProcessorContext>();
       context.domainInfoUpdatedCallback(*context.registry, oldestPossibleTimeslice, info.id);
       ref.get<CallbackService>().call<CallbackService::Id::DomainInfoUpdated>((ServiceRegistryRef)*context.registry, (size_t)oldestPossibleTimeslice, (ChannelIndex)info.id);
       *context.wasActive = true;
@@ -1955,6 +1963,8 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     timingInfo.runNumber = relayer.getRunNumberForSlot(i);
     timingInfo.creation = relayer.getCreationTimeForSlot(i);
     timingInfo.globalRunNumberChanged = !TimingInfo::timesliceIsTimer(timeslice.value) && dataProcessorContext.lastRunNumberProcessed != timingInfo.runNumber;
+    // A switch to runNumber=0 should not appear and thus does not set globalRunNumberChanged, unless it is seen in the first processed timeslice
+    timingInfo.globalRunNumberChanged &= (dataProcessorContext.lastRunNumberProcessed == -1 || timingInfo.runNumber != 0);
     // We report wether or not this timing info refers to a new Run.
     if (timingInfo.globalRunNumberChanged) {
       dataProcessorContext.lastRunNumberProcessed = timingInfo.runNumber;

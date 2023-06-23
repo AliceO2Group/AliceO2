@@ -23,7 +23,7 @@ struct SubspecRange {
   int max = 0;
 };
 
-o2::framework::DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::string>& simprefixes, const std::vector<int>& tpcsectors);
+o2::framework::DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::string>& simprefixes, const std::vector<int>& tpcsectors, bool withTrigger = false);
 }
 } // namespace o2
 

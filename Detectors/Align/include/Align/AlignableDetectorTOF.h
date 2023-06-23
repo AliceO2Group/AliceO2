@@ -33,7 +33,7 @@ class AlignableDetectorTOF final : public AlignableDetector
   //
   void defineVolumes() final;
   //
-  int processPoints(GIndex gid, bool inv) final;
+  int processPoints(GIndex gid, int npntCut, bool inv) final;
   //
  protected:
   //
