@@ -237,6 +237,7 @@ class ConcreteRawParser
   bool next()
   {
     int lastPacketCounter = -1;
+    int lastHBFPacketCounter = -1;
     unsigned int lastFEEID = -1;
     if (mPosition == nullptr) {
       mPosition = mRawBuffer;
@@ -251,6 +252,7 @@ class ConcreteRawParser
       }
       if (RawParserHelper::sCheckIncompleteHBF) {
         lastPacketCounter = header().packetCounter;
+        lastHBFPacketCounter = header().pageCnt;
         lastFEEID = header().feeId;
       }
       mPosition += offset;
@@ -278,13 +280,13 @@ class ConcreteRawParser
         mPosition = mRawBuffer + mSize;
         return false;
       }
-      if (lastPacketCounter != -1 && (unsigned char)(lastPacketCounter + 1) != header().packetCounter && lastFEEID == header().feeId) {
+      // FIXME: The && should be ||, since both packetCounter and pageCnt should be incremental. But currently, UL data with multiple links does not have incremental packetCounter.
+      if (lastPacketCounter != -1 && lastFEEID == header().feeId && ((unsigned char)(lastPacketCounter + 1) != header().packetCounter && (unsigned short)(lastHBFPacketCounter + 1) != header().pageCnt)) {
         if (RawParserHelper::sErrorMode >= 2 && RawParserHelper::sCheckIncompleteHBF >= 2) {
           throw std::runtime_error("Incomplete HBF - jump in packet counter");
         }
         if (RawParserHelper::checkPrintError(mNErrors)) {
           LOG(error) << "RAWPARSER: Incomplete HBF - jump in packet counter " << lastPacketCounter << " to " << header().packetCounter << " (" << RawParserHelper::sErrors << " total RawParser errors)";
-          ;
         }
         mPosition = mRawBuffer + mSize;
         return false;
