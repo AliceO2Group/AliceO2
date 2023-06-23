@@ -202,16 +202,7 @@ MCMDisplay::MCMDisplay(RawDataSpan& mcmdata, TVirtualPad* pad)
     mPad->SetName(mName.c_str());
     mPad->SetTitle(mDesc.c_str());
   }
-}
 
-void RawDisplay::DrawDigits()
-{
-  mPad->cd();
-
-  std::cout << mFirstPad << " - " << mLastPad << std::endl;
-  if (mDigitsHisto) {
-    delete mDigitsHisto;
-  }
   mDigitsHisto = new TH2F(mName.c_str(), (mDesc + ";pad;time bin").c_str(), (mLastPad-mFirstPad), mFirstPad, mLastPad, 30, 0., 30.);
 
   for (auto digit : mDataSpan.digits) {
@@ -221,6 +212,11 @@ void RawDisplay::DrawDigits()
     }
   }
   mDigitsHisto->SetStats(0);
+}
+
+void RawDisplay::DrawDigits()
+{
+  mPad->cd();
   mDigitsHisto->Draw("colz");
 }
 
@@ -237,16 +233,13 @@ void RawDisplay::DrawTracklets()
     auto slope = SlopeF(tracklet);
     trkl.DrawLine(pos, 0, pos + 30 * slope, 30);
   }
-
 }
 
 void RawDisplay::DrawClusters()
 {
   mPad->cd();
 
-  if(!mDigitsHisto) {
-    DrawDigits();
-  }
+  DrawDigits();
 
   TMarker clustermarker;
   clustermarker.SetMarkerColor(kRed);

@@ -28,8 +28,6 @@ std::array<float, 3> CoordinateTransformer::Local2RCT(int det, float x, float y,
 
   auto padPlane = mGeo->getPadPlane((det)%6, (det/6)%5);
 
-  // array<double,3> rct;
-
   double iPadLen = padPlane->getLengthIPad();
   double oPadLen = padPlane->getLengthOPad();
   int nRows = padPlane->getNrows();

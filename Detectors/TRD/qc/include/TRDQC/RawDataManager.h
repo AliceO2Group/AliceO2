@@ -28,25 +28,22 @@
 
 #include <TTreeReaderArray.h>
 
-
 #include <vector>
-// #include <array>
-#include <map>
-// #include <ostream>
-// #include <filesystem>
+#include <filesystem>
 
 class TFile;
 class TTreeReader;
-
 
 namespace o2::trd
 {
 
 
-/// A struct that can be used to calculate unique identifiers per pad row, to
-/// be used to split ranges by pad row.
+/// PadRowID is a struct to calculate unique identifiers per pad row.
+/// The struct can be passed as a template parameter to the RawDataSpan::IterateBy
+/// method to split the data span by pad row and iterate over the pad rows.
 struct PadRowID
 {
+  /// The static `key` method calculates a padrow ID for digits and tracklets
   template<typename T>
   static uint32_t key(const T &x) 
   { 
@@ -96,13 +93,19 @@ public:
   // myrange<ChamberSpacePoint, std::vector<ChamberSpacePoint>> trackpoints;
 
   /// Sort digits, tracklets and space points by detector, pad row, column
+  /// The digits, tracklets, hits and other future data members must be sorted
+  /// for the IterateBy method.  
   void sort();
 
   /// Return a vector with one data span for each MCM that has digits, tracklets or both 
+  /// IterateBy provides a more flexible interface, and should replace this method.
   std::vector<RawDataSpan> ByMCM();
 
-
-  /// Return a vector with data spans, split according to the key function 
+  /// Return a vector with data spans, split according to the keyfunc struct
+  /// The keyfunc struct must have a method `key` to calculate a key for tracklets
+  /// and digits that uniquely identifies the span this digit or tracklet will be 
+  /// part of. The key must be monotonically increasing for the digits and tracklets
+  // stored in the raw data span.
   template<typename keyfunc>
   std::vector<RawDataSpan> IterateBy();
 
@@ -125,7 +128,21 @@ public:
 };
 
 
-/// access TRD low-level data
+/// RawDataManager: read raw, MC and reconstruced data files and loop over them
+///
+/// The input for the RawDataManager are directories with raw and, optionally,
+/// reconstructed and Monte-Carlo files. It scans for available files, reads
+/// them and provides access functions to loop over time frames and events.
+/// Supported data files:
+///   - trdtracklets.root (required): TRD tracklets and trigger records
+///   - trddigits.root: TRD digits - might only be available for some events
+///   - o2sim_HitsTRD.root: TRD MC hits with global and TRD chamber coordinates
+///   - o2_tfidinfo.root (reconstructed data only): time frame information
+///
+/// The following file types had some support in previous private branches,
+/// but need further cleanup before integration into O2:
+///   -  o2match_itstpc.root: ITS-TPC tracks
+///   -  tpctracks.root: TPC-only tracks
 class RawDataManager
 {
 
@@ -133,8 +150,8 @@ public:
   RawDataManager(std::filesystem::path dir = ".");
   // RawDataManager(std::string dir = "./");
 
-  void SetMatchWindowTPC(float min, float max)
-  { mMatchTimeMinTPC=min; mMatchTimeMaxTPC=max; }
+  // void SetMatchWindowTPC(float min, float max)
+  // { mMatchTimeMinTPC=min; mMatchTimeMaxTPC=max; }
 
   bool NextTimeFrame();
   bool NextEvent();
@@ -157,7 +174,8 @@ public:
   std::string DescribeEvent();
 
 private: 
-  TFile *mMainfile{0};
+  // access to TRD digits and tracklets
+  TFile *mMainfile{0}; // the main trdtracklets.root file
   TTree* mDatatree{0}; // tree and friends from digits, tracklets files
   TTreeReader *mDatareader{0};
 
@@ -165,23 +183,27 @@ private:
   TTreeReaderArray<o2::trd::Tracklet64>* mTracklets{0};
   TTreeReaderArray<o2::trd::TriggerRecord>* mTrgRecords{0};
 
+  // access to Monte-Carlo hits
   TFile *mHitsFile{0};
   TTree* mHitsTree{0};  
   TTreeReader* mHitsReader{0};  
   TTreeReaderArray<o2::trd::Hit>* mHits{0};
 
+  // access tracks
   TTreeReaderArray<o2::dataformats::TrackTPCITS> *mTracks{0};
   // TTreeReaderArray<o2::tpc::TrackTPC> *mTpcTracks{0};
 
-  o2::trd::TriggerRecord mTriggerRecord;
-
+  // time frame information (for data only)
   std::vector<o2::dataformats::TFIDInfo> *mTFIDs{0};
 
-  size_t mTimeFrameNo{0}, mEventNo{0};
-  float mMatchTimeMinTPC{-10.0}, mMatchTimeMaxTPC{20.0};
+  // current trigger record
+  o2::trd::TriggerRecord mTriggerRecord;
 
-  // template <typename T>
-  // TTreeReaderArray<T> *AddReaderArray(std::string file, std::string tree, std::string branch);
+  // time frame and event counters 
+  size_t mTimeFrameNo{0}, mEventNo{0};
+
+  // matching parameters for tracks
+  // float mMatchTimeMinTPC{-10.0}, mMatchTimeMaxTPC{20.0};
 
   template <typename T>
   void AddReaderArray(TTreeReaderArray<T> *& array, std::filesystem::path file, std::string tree, std::string branch);

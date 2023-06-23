@@ -25,6 +25,9 @@ class TH2;
 namespace o2::trd
 {
 
+/// RawDisplay: base class to visualize TRD raw and associated data
+/// The display is based on a TH2 heat map of ADC values and tracklets as lines.
+/// Clusters can be calculated and drawn based on the ADC values.
 class RawDisplay
 {
 public:
@@ -45,13 +48,12 @@ protected:
   int mLastPad;
 };
 
+/// The MCM display is a raw display specialized to display data for a single MCM
 class MCMDisplay : public RawDisplay
 {
 public:
   MCMDisplay(RawDataSpan &mcmdata, TVirtualPad *pad=NULL);
 };
-
-// TPad *DrawMCM(RawDataSpan &mcm, TPad *pad=NULL);
 
 } // namespace o2::trd
 
