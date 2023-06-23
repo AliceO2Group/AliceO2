@@ -9,12 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-
 #include "TRDQC/RawDisplay.h"
 #include "TRDQC/RawDataManager.h"
 #include "DataFormatsTRD/Constants.h"
 #include "DataFormatsTRD/HelperMethods.h"
-
 
 // #include <TSystem.h>
 // #include <TFile.h>
@@ -28,14 +26,13 @@
 #include <TLine.h>
 #include <TMarker.h>
 
-
 using namespace o2::trd;
 
 /// Modified version of o2::trd::Tracklet64::getPadCol returning a float
 
 namespace o2::trd
 {
-float PadColF(o2::trd::Tracklet64 &tracklet)
+float PadColF(o2::trd::Tracklet64& tracklet)
 {
   // obtain pad number relative to MCM center
   float padLocal = tracklet.getPositionBinSigned() * constants::GRANULARITYTRKLPOS;
@@ -44,15 +41,15 @@ float PadColF(o2::trd::Tracklet64 &tracklet)
 
   // original calculation
   // FIXME: understand why the offset seems to be 6 pads and not nChannels / 2 = 10.5
-  //return CAMath::Nint(6.f + mcmCol * ((float)constants::NCOLMCM) + padLocal);
+  // return CAMath::Nint(6.f + mcmCol * ((float)constants::NCOLMCM) + padLocal);
 
   // my calculation
   return float((mcmCol + 1) * constants::NCOLMCM) + padLocal - 10.0;
 }
 
-float SlopeF(o2::trd::Tracklet64 &trkl)
+float SlopeF(o2::trd::Tracklet64& trkl)
 {
-  return - trkl.getSlopeBinSigned() * constants::GRANULARITYTRKLSLOPE / constants::ADDBITSHIFTSLOPE;
+  return -trkl.getSlopeBinSigned() * constants::GRANULARITYTRKLSLOPE / constants::ADDBITSHIFTSLOPE;
 }
 
 // float UncalibratedPad(o2::trd::Tracklet64 &tracklet)
@@ -66,8 +63,7 @@ float SlopeF(o2::trd::Tracklet64 &trkl)
 //   return y / padWidth + 71.0;
 // }
 
-};
-
+}; // namespace o2::trd
 
 // TPad* DrawMCM(RawDataSpan &mcm, TPad *pad)
 // {
@@ -134,7 +130,7 @@ float SlopeF(o2::trd::Tracklet64 &trkl)
 //           double pos = 0.5 * log(right/left) / log(centre*centre / left / right);
 //           double clpos = digit_disp->GetXaxis()->GetBinCenter(p) + pos;
 //           double cog = (right - left) / (right+centre+left) + digit_disp->GetXaxis()->GetBinCenter(p);
-//           // cout << "t=" << t << " p=" << p 
+//           // cout << "t=" << t << " p=" << p
 //           //      << ":   ADCs = " << left << " / " << centre << " / " << right
 //           //      << "   pos = " << pos << " ~ " << clpos
 //           //      << endl;
@@ -143,7 +139,6 @@ float SlopeF(o2::trd::Tracklet64 &trkl)
 //         }
 //     }
 //   }
-
 
 //   // TODO: At the moment, hits are not propagated during splitting of a RawDataSpan, therefore this code does not work yet.
 //   // TMarker hitmarker;
@@ -162,20 +157,21 @@ float SlopeF(o2::trd::Tracklet64 &trkl)
 // }
 
 RawDisplay::RawDisplay(RawDataSpan& dataspan, TVirtualPad* pad)
-: mDataSpan(dataspan), mPad(pad)
-{}
+  : mDataSpan(dataspan), mPad(pad)
+{
+}
 
 MCMDisplay::MCMDisplay(RawDataSpan& mcmdata, TVirtualPad* pad)
-: RawDisplay(mcmdata, pad) // initializes mDataSpan, mPad
+  : RawDisplay(mcmdata, pad) // initializes mDataSpan, mPad
 {
-  int det=-1,rob=-1,mcm=-1;
+  int det = -1, rob = -1, mcm = -1;
 
-  if(std::distance(mDataSpan.digits.begin(), mDataSpan.digits.end())) {
+  if (std::distance(mDataSpan.digits.begin(), mDataSpan.digits.end())) {
     auto x = *mDataSpan.digits.begin();
     det = x.getDetector();
     rob = x.getROB();
     mcm = x.getMCM();
-  } else if(std::distance(mDataSpan.tracklets.begin(), mDataSpan.tracklets.end())) {
+  } else if (std::distance(mDataSpan.tracklets.begin(), mDataSpan.tracklets.end())) {
     auto x = *mDataSpan.tracklets.begin();
     det = x.getDetector();
     rob = x.getROB();
@@ -186,13 +182,14 @@ MCMDisplay::MCMDisplay(RawDataSpan& mcmdata, TVirtualPad* pad)
   }
 
   mName = Form("det%03d_rob%d_mcm%02d", det, rob, mcm);
-  mDesc = Form("Detector %02d_%d_%d (%03d) - MCM %d:%02d", det/30, (det%30)/6, det%6, det, rob, mcm);;
+  mDesc = Form("Detector %02d_%d_%d (%03d) - MCM %d:%02d", det / 30, (det % 30) / 6, det % 6, det, rob, mcm);
+  ;
 
-   // MCM column number on ROC [0..7]
+  // MCM column number on ROC [0..7]
   int mcmcol = mcm % constants::NMCMROBINCOL + HelperMethods::getROBSide(rob) * constants::NMCMROBINCOL;
 
   mFirstPad = mcmcol * constants::NCOLMCM - 1;
-  mLastPad = (mcmcol+1) * constants::NCOLMCM + 2;
+  mLastPad = (mcmcol + 1) * constants::NCOLMCM + 2;
 
   if (pad == NULL) {
     mPad = new TCanvas(mName.c_str(), mDesc.c_str(), 800, 600);
@@ -203,7 +200,7 @@ MCMDisplay::MCMDisplay(RawDataSpan& mcmdata, TVirtualPad* pad)
     mPad->SetTitle(mDesc.c_str());
   }
 
-  mDigitsHisto = new TH2F(mName.c_str(), (mDesc + ";pad;time bin").c_str(), (mLastPad-mFirstPad), mFirstPad, mLastPad, 30, 0., 30.);
+  mDigitsHisto = new TH2F(mName.c_str(), (mDesc + ";pad;time bin").c_str(), (mLastPad - mFirstPad), mFirstPad, mLastPad, 30, 0., 30.);
 
   for (auto digit : mDataSpan.digits) {
     auto adc = digit.getADC();
@@ -250,27 +247,26 @@ void RawDisplay::DrawClusters()
   cogmarker.SetMarkerColor(kGreen);
   cogmarker.SetMarkerStyle(3);
   cogmarker.SetMarkerSize(1.5);
-  for(int t=1; t<=mDigitsHisto->GetNbinsY(); ++t) {
-    for(int p=2; p<=mDigitsHisto->GetNbinsX()-1; ++p) {
+  for (int t = 1; t <= mDigitsHisto->GetNbinsY(); ++t) {
+    for (int p = 2; p <= mDigitsHisto->GetNbinsX() - 1; ++p) {
       // cout << p << "/" << t << " -> " << mDigitsHisto->GetBinContent(i,j) << endl;
-        double baseline = 9.5;
-        double left = mDigitsHisto->GetBinContent(p-1,t) - baseline;
-        double centre = mDigitsHisto->GetBinContent(p,t) - baseline;
-        double right = mDigitsHisto->GetBinContent(p+1,t) - baseline;
-        if (centre > left && centre > right) {
-          double pos = 0.5 * log(right/left) / log(centre*centre / left / right);
-          double clpos = mDigitsHisto->GetXaxis()->GetBinCenter(p) + pos;
-          double cog = (right - left) / (right+centre+left) + mDigitsHisto->GetXaxis()->GetBinCenter(p);
-          // cout << "t=" << t << " p=" << p 
-          //      << ":   ADCs = " << left << " / " << centre << " / " << right
-          //      << "   pos = " << pos << " ~ " << clpos
-          //      << endl;
-          clustermarker.DrawMarker(clpos, t-0.5);
-          cogmarker.DrawMarker(cog, t-0.5);
-        }
+      double baseline = 9.5;
+      double left = mDigitsHisto->GetBinContent(p - 1, t) - baseline;
+      double centre = mDigitsHisto->GetBinContent(p, t) - baseline;
+      double right = mDigitsHisto->GetBinContent(p + 1, t) - baseline;
+      if (centre > left && centre > right) {
+        double pos = 0.5 * log(right / left) / log(centre * centre / left / right);
+        double clpos = mDigitsHisto->GetXaxis()->GetBinCenter(p) + pos;
+        double cog = (right - left) / (right + centre + left) + mDigitsHisto->GetXaxis()->GetBinCenter(p);
+        // cout << "t=" << t << " p=" << p
+        //      << ":   ADCs = " << left << " / " << centre << " / " << right
+        //      << "   pos = " << pos << " ~ " << clpos
+        //      << endl;
+        clustermarker.DrawMarker(clpos, t - 0.5);
+        cogmarker.DrawMarker(cog, t - 0.5);
+      }
     }
   }
-
 
   // TODO: At the moment, hits are not propagated during splitting of a RawDataSpan, therefore this code does not work yet.
   // TMarker hitmarker;
@@ -284,6 +280,4 @@ void RawDisplay::DrawClusters()
   //   hitmarker.SetMarkerSize(hit.GetCharge() / 50.);
   //   hitmarker.DrawMarker(rct[1], rct[2]);
   // }
-
 }
-

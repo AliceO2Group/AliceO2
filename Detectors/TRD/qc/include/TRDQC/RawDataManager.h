@@ -17,7 +17,6 @@
 /// \author Thomas Dietel, tom@dietel.net
 ///
 
-
 #include "DataFormatsTRD/Digit.h"
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/TriggerRecord.h"
@@ -37,34 +36,30 @@ class TTreeReader;
 namespace o2::trd
 {
 
-
 /// PadRowID is a struct to calculate unique identifiers per pad row.
 /// The struct can be passed as a template parameter to the RawDataSpan::IterateBy
 /// method to split the data span by pad row and iterate over the pad rows.
-struct PadRowID
-{
+struct PadRowID {
   /// The static `key` method calculates a padrow ID for digits and tracklets
-  template<typename T>
-  static uint32_t key(const T &x) 
-  { 
-    return 100*x.getDetector() + x.getPadRow(); 
+  template <typename T>
+  static uint32_t key(const T& x)
+  {
+    return 100 * x.getDetector() + x.getPadRow();
   }
 };
 
 /// A struct that can be used to calculate unique identifiers for MCMs, to be
 /// used to split ranges by MCM.
-struct MCM_ID
-{
-  template<typename T>
-  static uint32_t key(const T &x) 
-  { 
-    return 1000*x.getDetector() + 8*x.getPadRow() + 4*(x.getROB()%2) + x.getMCM()%4;
+struct MCM_ID {
+  template <typename T>
+  static uint32_t key(const T& x)
+  {
+    return 1000 * x.getDetector() + 8 * x.getPadRow() + 4 * (x.getROB() % 2) + x.getMCM() % 4;
   }
 
-  static int getDetector(uint32_t k) {return k/1000;}
+  static int getDetector(uint32_t k) { return k / 1000; }
   // static int getPadRow(key) {return (key%1000) / 8;}
-  static int getMcmRowCol(uint32_t k) {return k%1000;}
-  
+  static int getMcmRowCol(uint32_t k) { return k % 1000; }
 };
 
 /// range of entries in another container (similar to boost::range)
@@ -72,8 +67,8 @@ template <typename value_t, typename container_t>
 struct myrange {
   typedef typename container_t::iterator iterator;
 
-  iterator &begin() { return b; }
-  iterator &end() { return e; }
+  iterator& begin() { return b; }
+  iterator& end() { return e; }
   iterator b, e;
 
   size_t length() { return e - b; }
@@ -84,9 +79,8 @@ struct myrange {
 /// of a timeframe, e.g. data from one event, detector, padrow or MCM.
 /// It also provides methods to help with iterating over the data
 /// The main data members are public, and can be accessed without setters/getters.
-struct RawDataSpan
-{
-public:
+struct RawDataSpan {
+ public:
   myrange<o2::trd::Digit, TTreeReaderArray<o2::trd::Digit>> digits;
   myrange<o2::trd::Tracklet64, TTreeReaderArray<o2::trd::Tracklet64>> tracklets;
   myrange<o2::trd::Hit, TTreeReaderArray<o2::trd::Hit>> hits;
@@ -94,39 +88,37 @@ public:
 
   /// Sort digits, tracklets and space points by detector, pad row, column
   /// The digits, tracklets, hits and other future data members must be sorted
-  /// for the IterateBy method.  
+  /// for the IterateBy method.
   void sort();
 
-  /// Return a vector with one data span for each MCM that has digits, tracklets or both 
+  /// Return a vector with one data span for each MCM that has digits, tracklets or both
   /// IterateBy provides a more flexible interface, and should replace this method.
   std::vector<RawDataSpan> ByMCM();
 
   /// Return a vector with data spans, split according to the keyfunc struct
   /// The keyfunc struct must have a method `key` to calculate a key for tracklets
-  /// and digits that uniquely identifies the span this digit or tracklet will be 
+  /// and digits that uniquely identifies the span this digit or tracklet will be
   /// part of. The key must be monotonically increasing for the digits and tracklets
   // stored in the raw data span.
-  template<typename keyfunc>
+  template <typename keyfunc>
   std::vector<RawDataSpan> IterateBy();
 
-//   pair<int, int> getMaxADCsumAndChannel();
-//   int getMaxADCsum(){ return getMaxADCsumAndChannel().first; }
+  //   pair<int, int> getMaxADCsumAndChannel();
+  //   int getMaxADCsum(){ return getMaxADCsumAndChannel().first; }
 
-//   int getDetector() { if (mDetector == -1) calculateCoordinates(); return mDetector; } 
-//   int getPadRow() { if (mPadRow == -1) calculateCoordinates(); return mPadRow; } 
-  
-// protected:
-//   // The following variables cache the calculations of raw coordinates:
-//   //   non-negative values indicate the actual position
-//   //   -1 indicates that the values has not been calculated yet
-//   //   -2 indicates that the value is not unique in this span 
-//   int mDetector{-1};
-//   int mPadRow{-1};
+  //   int getDetector() { if (mDetector == -1) calculateCoordinates(); return mDetector; }
+  //   int getPadRow() { if (mPadRow == -1) calculateCoordinates(); return mPadRow; }
 
-//   void calculateCoordinates();
+  // protected:
+  //   // The following variables cache the calculations of raw coordinates:
+  //   //   non-negative values indicate the actual position
+  //   //   -1 indicates that the values has not been calculated yet
+  //   //   -2 indicates that the value is not unique in this span
+  //   int mDetector{-1};
+  //   int mPadRow{-1};
 
+  //   void calculateCoordinates();
 };
-
 
 /// RawDataManager: read raw, MC and reconstruced data files and loop over them
 ///
@@ -146,7 +138,7 @@ public:
 class RawDataManager
 {
 
-public:
+ public:
   RawDataManager(std::filesystem::path dir = ".");
   // RawDataManager(std::string dir = "./");
 
@@ -160,7 +152,7 @@ public:
   o2::dataformats::TFIDInfo GetTimeFrameInfo();
 
   // TTreeReaderArray<o2::tpc::TrackTPC> *GetTimeFrameTPCTracks() {return mTpcTracks; }
-  TTreeReaderArray<o2::dataformats::TrackTPCITS> *GetTimeFrameTracks() { return mTracks; }
+  TTreeReaderArray<o2::dataformats::TrackTPCITS>* GetTimeFrameTracks() { return mTracks; }
 
   // access event info
   RawDataSpan GetEvent();
@@ -173,45 +165,43 @@ public:
   std::string DescribeTimeFrame();
   std::string DescribeEvent();
 
-private: 
+ private:
   // access to TRD digits and tracklets
-  TFile *mMainfile{0}; // the main trdtracklets.root file
+  TFile* mMainfile{0}; // the main trdtracklets.root file
   TTree* mDatatree{0}; // tree and friends from digits, tracklets files
-  TTreeReader *mDatareader{0};
+  TTreeReader* mDatareader{0};
 
   TTreeReaderArray<o2::trd::Digit>* mDigits{0};
   TTreeReaderArray<o2::trd::Tracklet64>* mTracklets{0};
   TTreeReaderArray<o2::trd::TriggerRecord>* mTrgRecords{0};
 
   // access to Monte-Carlo hits
-  TFile *mHitsFile{0};
-  TTree* mHitsTree{0};  
-  TTreeReader* mHitsReader{0};  
+  TFile* mHitsFile{0};
+  TTree* mHitsTree{0};
+  TTreeReader* mHitsReader{0};
   TTreeReaderArray<o2::trd::Hit>* mHits{0};
 
   // access tracks
-  TTreeReaderArray<o2::dataformats::TrackTPCITS> *mTracks{0};
+  TTreeReaderArray<o2::dataformats::TrackTPCITS>* mTracks{0};
   // TTreeReaderArray<o2::tpc::TrackTPC> *mTpcTracks{0};
 
   // time frame information (for data only)
-  std::vector<o2::dataformats::TFIDInfo> *mTFIDs{0};
+  std::vector<o2::dataformats::TFIDInfo>* mTFIDs{0};
 
   // current trigger record
   o2::trd::TriggerRecord mTriggerRecord;
 
-  // time frame and event counters 
+  // time frame and event counters
   size_t mTimeFrameNo{0}, mEventNo{0};
 
   // matching parameters for tracks
   // float mMatchTimeMinTPC{-10.0}, mMatchTimeMaxTPC{20.0};
 
   template <typename T>
-  void AddReaderArray(TTreeReaderArray<T> *& array, std::filesystem::path file, std::string tree, std::string branch);
+  void AddReaderArray(TTreeReaderArray<T>*& array, std::filesystem::path file, std::string tree, std::string branch);
 
   // TrackExtrapolator extra;
 };
-
-
 
 } // namespace o2::trd
 

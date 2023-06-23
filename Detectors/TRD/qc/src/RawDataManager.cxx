@@ -9,7 +9,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-
 #include "TRDQC/RawDataManager.h"
 
 #include <TSystem.h>
@@ -21,7 +20,7 @@
 using namespace o2::trd;
 
 /// comparison function to order digits by det / row / MCM / channel
-bool comp_digit(const o2::trd::Digit &a, const o2::trd::Digit &b)
+bool comp_digit(const o2::trd::Digit& a, const o2::trd::Digit& b)
 {
   if (a.getDetector() != b.getDetector())
     return a.getDetector() < b.getDetector();
@@ -41,9 +40,8 @@ bool comp_digit(const o2::trd::Digit &a, const o2::trd::Digit &b)
   return true;
 }
 
-
 /// comparison function to order tracklets by det / row / MCM / channel
-bool comp_tracklet(const o2::trd::Tracklet64 &a, const o2::trd::Tracklet64 &b)
+bool comp_tracklet(const o2::trd::Tracklet64& a, const o2::trd::Tracklet64& b)
 {
   // upper bits of hcid and padrow from Tracklet64 word
   const uint64_t det_row_mask = 0x0ffde00000000000;
@@ -60,7 +58,7 @@ bool comp_tracklet(const o2::trd::Tracklet64 &a, const o2::trd::Tracklet64 &b)
   auto a_col_pos = a.getTrackletWord() & col_pos_mask;
   auto b_col_pos = b.getTrackletWord() & col_pos_mask;
 
-  return a_col_pos < b_col_pos;  
+  return a_col_pos < b_col_pos;
 };
 
 // bool comp_spacepoint(const ChamberSpacePoint &a, const ChamberSpacePoint &b)
@@ -83,24 +81,24 @@ void RawDataSpan::sort()
   std::stable_sort(std::begin(tracklets), std::end(tracklets), comp_tracklet);
 }
 
-template<typename keyfunc>
+template <typename keyfunc>
 std::vector<RawDataSpan> RawDataSpan::IterateBy()
 // std::vector<RawDataSpan> RawDataSpan::IterateBy()
 {
   // an map for keeping track which ranges correspond to which key
-  std::map<uint32_t,RawDataSpan> spanmap;
+  std::map<uint32_t, RawDataSpan> spanmap;
 
   // sort digits and tracklets
   sort();
 
   // add all the digits to a map
-  for (auto cur = digits.b; cur != digits.e; /* noop */ ) {
+  for (auto cur = digits.b; cur != digits.e; /* noop */) {
     // calculate the key of the current (first unprocessed) digit
     auto key = keyfunc::key(*cur);
     // find the first digit with a different key
-    auto nxt = std::find_if(cur, digits.e, [key](auto x) {return keyfunc::key(x) != key;});
+    auto nxt = std::find_if(cur, digits.e, [key](auto x) { return keyfunc::key(x) != key; });
     // store the range cur:nxt in the map
-    spanmap[key].digits.b = cur; 
+    spanmap[key].digits.b = cur;
     spanmap[key].digits.e = nxt;
     // continue after this range
     cur = nxt;
@@ -109,8 +107,8 @@ std::vector<RawDataSpan> RawDataSpan::IterateBy()
   // add tracklets to the map
   for (auto cur = tracklets.b; cur != tracklets.e; /* noop */) {
     auto key = keyfunc::key(*cur);
-    auto nxt = std::find_if(cur, tracklets.e, [key](auto x) {return keyfunc::key(x) != key;});
-    spanmap[key].tracklets.b = cur; 
+    auto nxt = std::find_if(cur, tracklets.e, [key](auto x) { return keyfunc::key(x) != key; });
+    spanmap[key].tracklets.b = cur;
     spanmap[key].tracklets.e = nxt;
     cur = nxt;
   }
@@ -118,7 +116,7 @@ std::vector<RawDataSpan> RawDataSpan::IterateBy()
   // for (auto cur = event.trackpoints.b; cur != event.trackpoints.e; /* noop */) {
   //   auto nxt = std::adjacent_find(cur, event.trackpoints.e, classifier::comp_trackpoints);
   //   if (nxt != event.trackpoints.e) { ++nxt; }
-  //   (*this)[classifier::key(*cur)].trackpoints.b = cur; 
+  //   (*this)[classifier::key(*cur)].trackpoints.b = cur;
   //   (*this)[classifier::key(*cur)].trackpoints.e = nxt;
   //   cur = nxt;
   // }
@@ -127,35 +125,35 @@ std::vector<RawDataSpan> RawDataSpan::IterateBy()
   std::vector<RawDataSpan> spans;
 
   transform(spanmap.begin(), spanmap.end(), back_inserter(spans), [](auto const& pair) { return pair.second; });
-  
+
   return spans;
 }
 
 template std::vector<RawDataSpan> RawDataSpan::IterateBy<PadRowID>();
 template std::vector<RawDataSpan> RawDataSpan::IterateBy<MCM_ID>();
 
-
-template<typename T>
-int mcmkey(const T &x) { 
-  return 1000*x.getDetector() + 10*x.getPadRow() + 4*(x.getROB()%2) + x.getMCM()%4;
+template <typename T>
+int mcmkey(const T& x)
+{
+  return 1000 * x.getDetector() + 10 * x.getPadRow() + 4 * (x.getROB() % 2) + x.getMCM() % 4;
 }
 
 std::vector<RawDataSpan> RawDataSpan::ByMCM()
 {
-  // we manage all 
-  std::map<uint32_t,RawDataSpan> spanmap;
+  // we manage all
+  std::map<uint32_t, RawDataSpan> spanmap;
 
   // sort digits and tracklets
   sort();
 
   // add all the digits to a map
-  for (auto cur = digits.b; cur != digits.e; /* noop */ ) {
+  for (auto cur = digits.b; cur != digits.e; /* noop */) {
     // calculate the key of the current (first unprocessed) digit
     auto key = mcmkey(*cur);
     // find the first digit with a different key
-    auto nxt = std::find_if(cur, digits.e, [key](auto x) {return mcmkey(x) != key;});
+    auto nxt = std::find_if(cur, digits.e, [key](auto x) { return mcmkey(x) != key; });
     // store the range cur:nxt in the map
-    spanmap[key].digits.b = cur; 
+    spanmap[key].digits.b = cur;
     spanmap[key].digits.e = nxt;
     // continue after this range
     cur = nxt;
@@ -164,8 +162,8 @@ std::vector<RawDataSpan> RawDataSpan::ByMCM()
   // add tracklets to the map
   for (auto cur = tracklets.b; cur != tracklets.e; /* noop */) {
     auto key = mcmkey(*cur);
-    auto nxt = std::find_if(cur, tracklets.e, [key](auto x) {return mcmkey(x) != key;});
-    spanmap[key].tracklets.b = cur; 
+    auto nxt = std::find_if(cur, tracklets.e, [key](auto x) { return mcmkey(x) != key; });
+    spanmap[key].tracklets.b = cur;
     spanmap[key].tracklets.e = nxt;
     cur = nxt;
   }
@@ -173,7 +171,7 @@ std::vector<RawDataSpan> RawDataSpan::ByMCM()
   // for (auto cur = event.trackpoints.b; cur != event.trackpoints.e; /* noop */) {
   //   auto nxt = std::adjacent_find(cur, event.trackpoints.e, classifier::comp_trackpoints);
   //   if (nxt != event.trackpoints.e) { ++nxt; }
-  //   (*this)[classifier::key(*cur)].trackpoints.b = cur; 
+  //   (*this)[classifier::key(*cur)].trackpoints.b = cur;
   //   (*this)[classifier::key(*cur)].trackpoints.e = nxt;
   //   cur = nxt;
   // }
@@ -185,7 +183,6 @@ std::vector<RawDataSpan> RawDataSpan::ByMCM()
 
   return spans;
 }
-
 
 RawDataManager::RawDataManager(std::filesystem::path dir)
 {
@@ -211,20 +208,19 @@ RawDataManager::RawDataManager(std::filesystem::path dir)
   mTrgRecords = new TTreeReaderArray<o2::trd::TriggerRecord>(*mDatareader, "TrackTrg");
 
   // For data, we need info about time frames to match ITS and TPC tracks to trigger records.
-  if (std::filesystem::exists(dir/"o2_tfidinfo.root")) {
-    TFile fInTFID((dir/"o2_tfidinfo.root").c_str());
-    mTFIDs = (std::vector<o2::dataformats::TFIDInfo> *)fInTFID.Get("tfidinfo");
+  if (std::filesystem::exists(dir / "o2_tfidinfo.root")) {
+    TFile fInTFID((dir / "o2_tfidinfo.root").c_str());
+    mTFIDs = (std::vector<o2::dataformats::TFIDInfo>*)fInTFID.Get("tfidinfo");
   }
 
   // If there are MC hits, we load them
-  if (std::filesystem::exists(dir/"o2sim_HitsTRD.root")) {
-    mHitsFile = new TFile((dir/"o2sim_HitsTRD.root").c_str());
+  if (std::filesystem::exists(dir / "o2sim_HitsTRD.root")) {
+    mHitsFile = new TFile((dir / "o2sim_HitsTRD.root").c_str());
     mHitsFile->GetObject("o2sim", mHitsTree);
     mHitsReader = new TTreeReader(mHitsTree);
     mHits = new TTreeReaderArray<o2::trd::Hit>(*mHitsReader, "TRDHit");
     std::cout << "connect MC hits file" << std::endl;
   }
-
 
   // Let's try to add other data
   AddReaderArray(mDigits, dir / "trddigits.root", "o2sim", "TRDDigit");
@@ -235,10 +231,10 @@ RawDataManager::RawDataManager(std::filesystem::path dir)
 }
 
 template <typename T>
-void RawDataManager::AddReaderArray(TTreeReaderArray<T> *&array, std::filesystem::path file, std::string tree, std::string branch)
+void RawDataManager::AddReaderArray(TTreeReaderArray<T>*& array, std::filesystem::path file, std::string tree, std::string branch)
 {
   if (!std::filesystem::exists(file)) {
-    // return value TRUE indicates file was not found 
+    // return value TRUE indicates file was not found
     return;
   }
 
@@ -249,8 +245,7 @@ void RawDataManager::AddReaderArray(TTreeReaderArray<T> *&array, std::filesystem
 
 bool RawDataManager::NextTimeFrame()
 {
-  if (mDatareader->Next())
-  {
+  if (mDatareader->Next()) {
     mEventNo = 0;
     mTimeFrameNo++;
 
@@ -261,9 +256,7 @@ bool RawDataManager::NextTimeFrame()
     // }
 
     return true;
-  }
-  else
-  {
+  } else {
     return false;
   }
 }
@@ -277,7 +270,7 @@ bool RawDataManager::NextEvent()
 
   // load the hits for the next event
   if (mHitsReader) {
-    if ( ! mHitsReader->Next() ) {
+    if (!mHitsReader->Next()) {
       std::cout << "no hits found for event " << mTimeFrameNo << ":" << mEventNo << std::endl;
       return false;
     }
@@ -319,18 +312,18 @@ RawDataSpan RawDataManager::GetEvent()
   // }
 
   if (mTracks) {
-    for (auto &track : *mTracks) {
+    for (auto& track : *mTracks) {
       //   // auto tracktime = track.getTimeMUS().getTimeStamp();
       // auto dtime = track.getTimeMUS().getTimeStamp() - evtime;
       // if (dtime > mMatchTimeMinTPC && dtime < mMatchTimeMaxTPC) {
       //   ev.tracks.push_back(track);
 
-        // for(int ly=0; ly<6; ++ly) {
-        //   auto point = extra.extrapolate(track.getParamOut(), ly);
-        //   if (point.isValid()) {
-        //     ev.evtrackpoints.push_back(point);
-        //   }
-        // }
+      // for(int ly=0; ly<6; ++ly) {
+      //   auto point = extra.extrapolate(track.getParamOut(), ly);
+      //   if (point.isValid()) {
+      //     ev.evtrackpoints.push_back(point);
+      //   }
+      // }
       // }
     }
   }
@@ -344,7 +337,7 @@ RawDataSpan RawDataManager::GetEvent()
 o2::dataformats::TFIDInfo RawDataManager::GetTimeFrameInfo()
 {
   if (mTFIDs) {
-    return mTFIDs->at(mTimeFrameNo-1);
+    return mTFIDs->at(mTimeFrameNo - 1);
   } else {
     return o2::dataformats::TFIDInfo();
   }
@@ -391,7 +384,7 @@ std::string RawDataManager::DescribeTimeFrame()
 {
   std::ostringstream out;
   out << "## Time frame " << mTimeFrameNo << ": ";
-  // out << mDatareader->GetEntries() << "";      
+  // out << mDatareader->GetEntries() << "";
   return out.str();
 }
 
@@ -404,5 +397,3 @@ std::string RawDataManager::DescribeEvent()
       << mTriggerRecord.getNumberOfTracklets() << " tracklets";
   return out.str();
 }
-
-

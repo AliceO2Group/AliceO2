@@ -1,3 +1,13 @@
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
 
 /// This macro demonstrates how to use the o2::trd::RawDataManager and
 /// o2::trd:MCMDisplay to visualize TRD digits and tracklets.
@@ -9,12 +19,12 @@ void DrawMCMs(std::string dirname = ".")
   cout << dman.DescribeFiles() << endl;
 
   // Here we can specify how many plots we want for each MCMs. The default is 0.
-  std::map<array<int,3>, int> ndraw;
-  ndraw[{  13, 6,  1 }] = 1;
-  ndraw[{  21, 2, 13 }] = 1;
-  ndraw[{  47, 0,  2 }] = 1;
-  ndraw[{  52, 3, 12 }] = 1;
-  ndraw[{ 537, 5, 11 }] = 1;
+  std::map<array<int, 3>, int> ndraw;
+  ndraw[{13, 6, 1}] = 1;
+  ndraw[{21, 2, 13}] = 1;
+  ndraw[{47, 0, 2}] = 1;
+  ndraw[{52, 3, 12}] = 1;
+  ndraw[{537, 5, 11}] = 1;
 
   // --------------------------------------------------------------------
   // loop over timeframes
@@ -36,13 +46,13 @@ void DrawMCMs(std::string dirname = ".")
 
       for (auto& mcm : dman.GetEvent().IterateBy<o2::trd::MCM_ID>()) {
         // skip MCMs without digits
-        if (mcm.digits.length()==0) {
+        if (mcm.digits.length() == 0) {
           continue;
         }
 
         // we skipped MCMs without digits, so we can use the first one to find out where we are
         auto firstdigit = *mcm.digits.begin();
-        array<int,3> key = { firstdigit.getDetector(), firstdigit.getROB(), firstdigit.getMCM() };
+        array<int, 3> key = {firstdigit.getDetector(), firstdigit.getROB(), firstdigit.getMCM()};
 
         // only draw MCMs that have not reached their desired count yet
         if (ndraw[key] == 0) {
@@ -62,5 +72,4 @@ void DrawMCMs(std::string dirname = ".")
 
     } // event/trigger record loop
   }   // time frame loop
-
 }

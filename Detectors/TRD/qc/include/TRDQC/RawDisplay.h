@@ -30,16 +30,20 @@ namespace o2::trd
 /// Clusters can be calculated and drawn based on the ADC values.
 class RawDisplay
 {
-public:
-  RawDisplay(RawDataSpan &dataspan, TVirtualPad *pad=NULL);
+ public:
+  RawDisplay(RawDataSpan& dataspan, TVirtualPad* pad = NULL);
   void DrawDigits(std::string opt = "colz");
   void DrawTracklets();
   void DrawClusters();
 
-  void Draw() { DrawDigits(); DrawTracklets(); }
+  void Draw()
+  {
+    DrawDigits();
+    DrawTracklets();
+  }
 
-protected:
-  RawDataSpan &mDataSpan;
+ protected:
+  RawDataSpan& mDataSpan;
   TVirtualPad* mPad{0};
   TH2* mDigitsHisto{0};
   std::string mName;
@@ -51,8 +55,8 @@ protected:
 /// The MCM display is a raw display specialized to display data for a single MCM
 class MCMDisplay : public RawDisplay
 {
-public:
-  MCMDisplay(RawDataSpan &mcmdata, TVirtualPad *pad=NULL);
+ public:
+  MCMDisplay(RawDataSpan& mcmdata, TVirtualPad* pad = NULL);
 };
 
 } // namespace o2::trd

@@ -26,7 +26,6 @@ namespace o2::trd
 
 class Geometry;
 
-
 // /// A position in spatial (x,y,z) and raw/digit coordinates (det,row,col,tb).
 // The class was used in a previous implementation, and still needs to be adopted for inclusion into O2.
 // class ChamberSpacePoint
@@ -50,7 +49,7 @@ class Geometry;
 //   /// detector number corresponding to space point
 //   int getDetector() const { return mDetector; }
 
-//   /// pad row within detector of space point 
+//   /// pad row within detector of space point
 //   int getPadRow() const { return mPadrow; }
 
 //   /// pad position (a.k.a. column) within pad row
@@ -86,7 +85,7 @@ class Geometry;
 /// At the time of writing, only constant drift velocity, Lorentz angle and T0 are considered, and must be set by hand.
 class CoordinateTransformer
 {
-public:
+ public:
   static CoordinateTransformer* instance()
   {
     static CoordinateTransformer mCTrans;
@@ -100,12 +99,14 @@ public:
   /// The result is an array of three floating point numbers for row, column and timebin.
   /// Time and column can directly be compared with digit or tracklet data.
   /// The pad row is returned as a floating point number that indicates also the position within the padrow.
-  /// The fractional part of the pad row is not available for digits and tracklets, and only 
+  /// The fractional part of the pad row is not available for digits and tracklets, and only
   std::array<float, 3> Local2RCT(int det, float x, float y, float z);
 
   /// Wrapper to conveniently calculate the row/column/time coordinate of a MC hit.
-  std::array<float, 3> Local2RCT(o2::trd::Hit& hit) 
-  { return Local2RCT(hit.GetDetectorID(), hit.getLocalT(), hit.getLocalC(), hit.getLocalR()); }
+  std::array<float, 3> Local2RCT(o2::trd::Hit& hit)
+  {
+    return Local2RCT(hit.GetDetectorID(), hit.getLocalT(), hit.getLocalC(), hit.getLocalR());
+  }
 
   /// Legacy, less accurate method to convert local spatial to row/column/time coordinate.
   /// This method is only included for comparision, and should be removed in the future.
@@ -113,8 +114,10 @@ public:
 
   /// Legacy, less accurate method to convert local spatial to row/column/time coordinate.
   /// This method is only included for comparision, and should be removed in the future.
-  std::array<float, 3> OrigLocal2RCT(o2::trd::Hit& hit) 
-  { return OrigLocal2RCT(hit.GetDetectorID(), hit.getLocalT(), hit.getLocalC(), hit.getLocalR()); }
+  std::array<float, 3> OrigLocal2RCT(o2::trd::Hit& hit)
+  {
+    return OrigLocal2RCT(hit.GetDetectorID(), hit.getLocalT(), hit.getLocalC(), hit.getLocalR());
+  }
 
   float GetVdrift() { return mVdrift; }
   void SetVdrift(float x) { mVdrift = x; }
@@ -125,17 +128,15 @@ public:
   float GetExB() { return mExB; }
   void SetExB(float x) { mExB = x; }
 
-protected:
+ protected:
   o2::trd::Geometry* mGeo;
   float mVdrift{1.5625}; ///< drift velocity in cm/us
-  float mT0{4.0}; ///< time offset of start of drift region
-  float mExB{0.140}; ///< tan(Lorentz angle): tan(8 deg) ~ 0.140
+  float mT0{4.0};        ///< time offset of start of drift region
+  float mExB{0.140};     ///< tan(Lorentz angle): tan(8 deg) ~ 0.140
 
-private:
+ private:
   CoordinateTransformer();
-
 };
-
 
 } // namespace o2::trd
 
