@@ -98,9 +98,9 @@ if [[ $SYNCMODE == 1 ]]; then
     MCH_CONFIG_KEY="MCHTracking.maxCandidates=50000;MCHTracking.maxTrackingDuration=20;"
   elif [[ $BEAMTYPE == "pp" ]]; then
     ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=-1;fastMultConfig.cutMultClusHigh=-1;fastMultConfig.cutMultVtxHigh=-1;ITSVertexerParam.phiCut=0.5;ITSVertexerParam.clusterContributorsCut=3;ITSVertexerParam.tanLambdaCut=0.2;"
-    [[ ! -z ${CUT_RANDOM_FRACTION_ITS:-} ]] && ITS_CONFIG_KEY+="fastMultConfig.cutRandomFraction=$CUT_RANDOM_FRACTION_ITS;"
     MCH_CONFIG_KEY="MCHTracking.maxCandidates=20000;MCHTracking.maxTrackingDuration=10;"
   fi
+  [[ ! -z ${CUT_RANDOM_FRACTION_ITS:-} ]] && ITS_CONFIG_KEY+="fastMultConfig.cutRandomFraction=$CUT_RANDOM_FRACTION_ITS;"
   if has_detector_reco ITS; then
     [[ $RUNTYPE == "COSMICS" ]] && MFT_CONFIG_KEY+="MFTTracking.irFramesOnly=1;"
   else
