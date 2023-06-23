@@ -32,7 +32,7 @@ class RawDisplay
 {
 public:
   RawDisplay(RawDataSpan &dataspan, TVirtualPad *pad=NULL);
-  void DrawDigits();
+  void DrawDigits(std::string opt = "colz");
   void DrawTracklets();
   void DrawClusters();
 

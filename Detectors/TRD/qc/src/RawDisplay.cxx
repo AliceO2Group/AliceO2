@@ -214,10 +214,10 @@ MCMDisplay::MCMDisplay(RawDataSpan& mcmdata, TVirtualPad* pad)
   mDigitsHisto->SetStats(0);
 }
 
-void RawDisplay::DrawDigits()
+void RawDisplay::DrawDigits(std::string opt)
 {
   mPad->cd();
-  mDigitsHisto->Draw("colz");
+  mDigitsHisto->Draw(opt.c_str());
 }
 
 void RawDisplay::DrawTracklets()
