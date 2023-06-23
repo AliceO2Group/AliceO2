@@ -215,6 +215,7 @@ struct zsEncoder {
   float encodeBitsFactor = 0;
   bool needAnotherPage = false;
   unsigned int packetCounter = 0;
+  unsigned int pageCounter = 0;
   void ZSfillEmpty(void* ptr, int shift, unsigned int feeId, int orbit, int linkid);
   static void ZSstreamOut(unsigned short* bufIn, unsigned int& lenIn, unsigned char* bufOut, unsigned int& lenOut, unsigned int nBits);
   long int getHbf(long int timestamp) { return (timestamp * LHCBCPERTIMEBIN + bcShiftInFirstHBF) / o2::constants::lhc::LHCMaxBunches; }
@@ -231,6 +232,7 @@ inline void zsEncoder::ZSfillEmpty(void* ptr, int shift, unsigned int feeId, int
   o2::raw::RDHUtils::setDetectorField(*rdh, 2);
   o2::raw::RDHUtils::setLinkID(*rdh, linkid);
   o2::raw::RDHUtils::setPacketCounter(*rdh, packetCounter++);
+  o2::raw::RDHUtils::setPageCounter(*rdh, pageCounter++);
 }
 
 inline void zsEncoder::ZSstreamOut(unsigned short* bufIn, unsigned int& lenIn, unsigned char* bufOut, unsigned int& lenOut, unsigned int nBits)
@@ -896,7 +898,7 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
       const unsigned char* pageNext = ((const unsigned char*)decPage) + TPCZSHDR::TPC_ZS_PAGE_SIZE;
       const o2::header::RAWDataHeader* rdhNext = (const o2::header::RAWDataHeader*)pageNext;
 
-      if ((unsigned char)(o2::raw::RDHUtils::getPacketCounter(*rdh) + 1) != o2::raw::RDHUtils::getPacketCounter(*rdhNext)) {
+      if ((unsigned char)(o2::raw::RDHUtils::getPageCounter(*rdh) + 1) != o2::raw::RDHUtils::getPageCounter(*rdhNext)) {
         fprintf(stderr, "Incomplete HBF: Payload extended to next page, but next page missing in stream\n");
         extendFailure = true;
         decPagePtr = payloadEnd; // Next 8kb page is missing in stream, cannot decode remaining data, skip it
@@ -1037,6 +1039,7 @@ struct zsEncoderRun : public T {
   using T::packetCounter;
   using T::padding;
   using T::page;
+  using T::pageCounter;
   using T::pagePtr;
   using T::param;
   using T::raw;
@@ -1151,6 +1154,7 @@ inline unsigned int zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vecto
           o2::raw::RDHUtils::setDetectorField(*rdh, 2);
           o2::raw::RDHUtils::setLinkID(*rdh, this->RAWLNK);
           o2::raw::RDHUtils::setPacketCounter(*rdh, packetCounter++);
+          o2::raw::RDHUtils::setPageCounter(*rdh, pageCounter++);
         }
       }
       if (k >= tmpBuffer.size() && !needAnotherPage) {
@@ -1164,6 +1168,7 @@ inline unsigned int zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vecto
         hbf = nexthbf;
         lastTime = -1;
         lastEndpoint = endpoint;
+        pageCounter = 0;
       }
       if (raw) {
         page = &singleBuffer;
