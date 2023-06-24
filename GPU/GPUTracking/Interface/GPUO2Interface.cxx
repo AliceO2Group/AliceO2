@@ -145,10 +145,6 @@ int GPUO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutp
   if (retVal == 2) {
     retVal = 0; // 2 signals end of event display, ignore
   }
-  if (retVal) {
-    mRec->ClearAllocatedMemory();
-    return retVal;
-  }
   if (mConfig->configQA.shipToQC && mChain->QARanForTF()) {
     outputs->qa.hist1 = &mChain->GetQA()->getHistograms1D();
     outputs->qa.hist2 = &mChain->GetQA()->getHistograms2D();
@@ -158,7 +154,7 @@ int GPUO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutp
   }
   *data = mChain->mIOPtrs;
 
-  return 0;
+  return retVal;
 }
 
 void GPUO2Interface::Clear(bool clearOutputs) { mRec->ClearAllocatedMemory(clearOutputs); }
