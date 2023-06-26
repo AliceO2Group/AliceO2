@@ -97,6 +97,8 @@
 #include <boost/property_tree/json_parser.hpp>
 
 #include <uv.h>
+#include <TEnv.h>
+#include <TSystem.h>
 
 #include <cinttypes>
 #include <cstdint>
@@ -2351,6 +2353,15 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
 
   } else if (varmap.count("id")) {
     // Add our own stacktrace dumping
+    if (getenv("O2_NO_CATCHALL_EXCEPTIONS") != nullptr && strcmp(getenv("O2_NO_CATCHALL_EXCEPTIONS"), "0") != 0) {
+      LOGP(info, "Not instrumenting crash signals because O2_NO_CATCHALL_EXCEPTIONS is set");
+      gEnv->SetValue("Root.Stacktrace", "no");
+      gSystem->ResetSignal(kSigSegmentationViolation, kTRUE);
+      rlimit limit;
+      if (getrlimit(RLIMIT_CORE, &limit) == 0) {
+        LOGP(info, "Core limit: {} {}", limit.rlim_cur, limit.rlim_max);
+      }
+    }
     if (varmap["stacktrace-on-signal"].as<std::string>() == "simple" && (getenv("O2_NO_CATCHALL_EXCEPTIONS") == nullptr || strcmp(getenv("O2_NO_CATCHALL_EXCEPTIONS"), "0") == 0)) {
       LOGP(info, "Instrumenting crash signals");
       signal(SIGSEGV, handle_crash);
