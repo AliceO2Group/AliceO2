@@ -220,7 +220,7 @@ class AODProducerWorkflowDPL : public Task
   Produces<T> createTableCursor(ProcessingContext& pc)
   {
     Produces<T> c;
-    c.resetCursor(pc.outputs().make<TableBuilder>(c.ref()));
+    c.resetCursor(pc.outputs().make<TableBuilder>(OutputForTable<T>::ref()));
     c.setLabel(o2::aod::MetadataTrait<T>::metadata::tableLabel());
     return c;
   }
