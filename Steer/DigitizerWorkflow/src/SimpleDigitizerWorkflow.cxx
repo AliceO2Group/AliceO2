@@ -192,7 +192,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"ccdb-tof-sa", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects via CCDBManager (obsolete remap to use-ccdb-tof)"}});
 
   // option to use/not use CCDB for FT0
-  workflowOptions.push_back(ConfigParamSpec{"use-ccdb-ft0", o2::framework::VariantType::Bool, false, {"enable access to ccdb ft0 calibration objects"}});
+  workflowOptions.push_back(ConfigParamSpec{"use-ccdb-ft0", o2::framework::VariantType::Bool, true, {"enable access to ccdb ft0 calibration objects"}});
 
   // option to use/not use CCDB for EMCAL
   workflowOptions.push_back(ConfigParamSpec{"use-ccdb-emc", o2::framework::VariantType::Bool, false, {"enable access to ccdb EMCAL simulation objects"}});
