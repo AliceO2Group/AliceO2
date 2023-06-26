@@ -314,14 +314,13 @@ void AODMcProducerWorkflowDPL::endOfStream(EndOfStreamContext&)
 DataProcessorSpec getAODMcProducerWorkflowSpec()
 {
   std::vector<OutputSpec> outputs{
-  OutputForTable<aod::McCollisions>::spec(),
-  OutputForTable<aod::StoredMcParticles>::spec(),
-  OutputForTable<aod::Origins>::spec(),
-  OutputSpec{"TFN", "TFNumber"},
-  OutputSpec{"TFF", "TFFilename"},
-  OutputSpec{"AMD", "AODMetadataKeys"},
-  OutputSpec{"AMD", "AODMetadataVals"}
-  };
+    OutputForTable<aod::McCollisions>::spec(),
+    OutputForTable<aod::StoredMcParticles>::spec(),
+    OutputForTable<aod::Origins>::spec(),
+    OutputSpec{"TFN", "TFNumber"},
+    OutputSpec{"TFF", "TFFilename"},
+    OutputSpec{"AMD", "AODMetadataKeys"},
+    OutputSpec{"AMD", "AODMetadataVals"}};
 
   return DataProcessorSpec{
     "aod-mc-producer-workflow",
