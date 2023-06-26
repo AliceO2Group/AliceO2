@@ -2645,7 +2645,6 @@ void AODProducerWorkflowDPL::endOfStream(EndOfStreamContext& /*ec*/)
 
 DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, bool enableStrangenessTracking, bool useMC, bool CTPConfigPerRun)
 {
-  std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
   dataRequest->inputs.emplace_back("ctpconfig", "CTP", "CTPCONFIG", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/Config", CTPConfigPerRun));
 
@@ -2694,48 +2693,48 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   using namespace o2::aod;
   using namespace o2::aodproducer;
 
-  outputs.push_back(OutputForTable<BCs>::spec());
-  outputs.push_back(OutputForTable<Cascades>::spec());
-  outputs.push_back(OutputForTable<Collisions>::spec());
-  outputs.push_back(OutputForTable<Decay3Bodys>::spec());
-  outputs.push_back(OutputForTable<FDDs>::spec());
-  outputs.push_back(OutputForTable<FT0s>::spec());
-  outputs.push_back(OutputForTable<FV0As>::spec());
-  outputs.push_back(OutputForTable<StoredFwdTracks>::spec());
-  outputs.push_back(OutputForTable<StoredFwdTracksCov>::spec());
-  outputs.push_back(OutputForTable<McCollisions>::spec());
-  outputs.push_back(OutputForTable<McMFTTrackLabels>::spec());
-  outputs.push_back(OutputForTable<McFwdTrackLabels>::spec());
-  outputs.push_back(OutputForTable<StoredMcParticles_001>::spec());
-  outputs.push_back(OutputForTable<McTrackLabels>::spec());
-  outputs.push_back(OutputForTable<StoredMFTTracks>::spec());
-  outputs.push_back(OutputForTable<StoredTracksIU>::spec());
-  outputs.push_back(OutputForTable<StoredTracksCovIU>::spec());
-  outputs.push_back(OutputForTable<StoredTracksExtra>::spec());
-  outputs.push_back(OutputForTable<TrackedCascades>::spec());
-  outputs.push_back(OutputForTable<TrackedV0s>::spec());
-  outputs.push_back(OutputForTable<Tracked3Bodys>::spec());
-  outputs.push_back(OutputForTable<AmbiguousTracks>::spec());
-  outputs.push_back(OutputForTable<AmbiguousMFTTracks>::spec());
-  outputs.push_back(OutputForTable<AmbiguousFwdTracks>::spec());
-  outputs.push_back(OutputForTable<V0s>::spec());
-  outputs.push_back(OutputForTable<Zdcs>::spec());
-  outputs.push_back(OutputForTable<Calos>::spec());
-  outputs.push_back(OutputForTable<CaloTriggers>::spec());
-  outputs.push_back(OutputForTable<CPVClusters>::spec());
-  outputs.push_back(OutputForTable<McCaloLabels_001>::spec());
-  outputs.push_back(OutputForTable<Origin>::spec());
-
-  // todo: use addTableToOuput helper?
-  //  currently the description is MCCOLLISLABEL, so
-  //  the name in AO2D would be O2mccollislabel
-  // addTableToOutput<McCollisionLabels>(outputs);
-  outputs.emplace_back(OutputLabel{"McCollisionLabels"}, "AOD", "MCCOLLISIONLABEL", 0, Lifetime::Timeframe);
-
-  outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
-  outputs.emplace_back(OutputSpec{"TFF", "TFFilename"});
-  outputs.emplace_back(OutputSpec{"AMD", "AODMetadataKeys"});
-  outputs.emplace_back(OutputSpec{"AMD", "AODMetadataVals"});
+  std::vector<OutputSpec> outputs{
+  OutputForTable<BCs>::spec(),
+  OutputForTable<Cascades>::spec(),
+  OutputForTable<Collisions>::spec(),
+  OutputForTable<Decay3Bodys>::spec(),
+  OutputForTable<FDDs>::spec(),
+  OutputForTable<FT0s>::spec(),
+  OutputForTable<FV0As>::spec(),
+  OutputForTable<StoredFwdTracks>::spec(),
+  OutputForTable<StoredFwdTracksCov>::spec(),
+  OutputForTable<McCollisions>::spec(),
+  OutputForTable<McMFTTrackLabels>::spec(),
+  OutputForTable<McFwdTrackLabels>::spec(),
+  OutputForTable<StoredMcParticles_001>::spec(),
+  OutputForTable<McTrackLabels>::spec(),
+  OutputForTable<StoredMFTTracks>::spec(),
+  OutputForTable<StoredTracksIU>::spec(),
+  OutputForTable<StoredTracksCovIU>::spec(),
+  OutputForTable<StoredTracksExtra>::spec(),
+  OutputForTable<TrackedCascades>::spec(),
+  OutputForTable<TrackedV0s>::spec(),
+  OutputForTable<Tracked3Bodys>::spec(),
+  OutputForTable<AmbiguousTracks>::spec(),
+  OutputForTable<AmbiguousMFTTracks>::spec(),
+  OutputForTable<AmbiguousFwdTracks>::spec(),
+  OutputForTable<V0s>::spec(),
+  OutputForTable<Zdcs>::spec(),
+  OutputForTable<Calos>::spec(),
+  OutputForTable<CaloTriggers>::spec(),
+  OutputForTable<CPVClusters>::spec(),
+  OutputForTable<McCaloLabels_001>::spec(),
+  OutputForTable<Origin>::spec(),
+    // todo: use addTableToOuput helper?
+    //  currently the description is MCCOLLISLABEL, so
+    //  the name in AO2D would be O2mccollislabel
+    // addTableToOutput<McCollisionLabels>(outputs);
+  {OutputLabel{"McCollisionLabels"}, "AOD", "MCCOLLISIONLABEL", 0, Lifetime::Timeframe},
+  OutputSpec{"TFN", "TFNumber"},
+  OutputSpec{"TFF", "TFFilename"},
+  OutputSpec{"AMD", "AODMetadataKeys"},
+  OutputSpec{"AMD", "AODMetadataVals"}
+  };
 
   return DataProcessorSpec{
     "aod-producer-workflow",

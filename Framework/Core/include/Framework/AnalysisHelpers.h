@@ -123,11 +123,11 @@ struct OutputForTable {
 /// means of the WritingCursor helper class, from which produces actually
 /// derives.
 template <typename T>
-struct Produces : WritingCursor<typename soa::PackToTable<typename T::table_t::persistent_columns_t>::table>, OutputForTable<T> {
+struct Produces : WritingCursor<typename soa::PackToTable<typename T::table_t::persistent_columns_t>::table> {
 };
 
 template <template <typename...> class T, typename... C>
-struct Produces<T<C...>> : WritingCursor<typename soa::PackToTable<typename T<C...>::table_t::persistent_columns_t>::table>, OutputForTable<T<C...>> {
+struct Produces<T<C...>> : WritingCursor<typename soa::PackToTable<typename T<C...>::table_t::persistent_columns_t>::table> {
 };
 
 /// Helper template for table transformations
