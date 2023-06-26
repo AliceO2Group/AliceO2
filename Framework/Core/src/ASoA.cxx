@@ -10,10 +10,9 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/ASoA.h"
-#include "ArrowDebugHelpers.h"
 #include "Framework/RuntimeError.h"
-#include <arrow/util/key_value_metadata.h>
 #include <arrow/util/config.h>
+#include <arrow/util/key_value_metadata.h>
 
 namespace o2::soa
 {
@@ -22,7 +21,7 @@ SelectionVector selectionToVector(gandiva::Selection const& sel)
   SelectionVector rows;
   rows.resize(sel->GetNumSlots());
   for (auto i = 0; i < sel->GetNumSlots(); ++i) {
-    rows[i] = sel->GetIndex(i);
+    rows[i] = static_cast<int64_t>(sel->GetIndex(i));
   }
   return rows;
 }
@@ -73,7 +72,7 @@ std::shared_ptr<arrow::Table> ArrowHelpers::concatTables(std::vector<std::shared
     return (!f1->Equals(f2)) && (f1->name() < f2->name());
   };
   for (size_t i = 1; i < tables.size(); ++i) {
-    auto& fields = tables[i]->schema()->fields();
+    auto const& fields = tables[i]->schema()->fields();
     std::vector<std::shared_ptr<arrow::Field>> intersection;
 
     std::set_intersection(resultFields.begin(), resultFields.end(),
@@ -143,12 +142,12 @@ void sliceByColumnGeneric(
     for (auto iElement = 0; iElement < chunk.length(); ++iElement) {
       auto v = chunk.Value(iElement);
       if (v >= 0) {
-        if (v >= groups->size()) {
+        if (v >= static_cast<int>(groups->size())) {
           throw runtime_error_f("Table %s has an entry with index (%d) that is larger than the grouping table size (%d)", target, v, fullSize);
         }
         (*groups)[v].push_back(row);
       } else if (unassigned != nullptr) {
-        auto av = std::abs(v);
+        unsigned int av = std::abs(v);
         if (unassigned->size() < av + 1) {
           unassigned->resize(av + 1);
         }

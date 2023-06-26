@@ -14,13 +14,10 @@
 
 #include "Framework/Pack.h"
 #include "Headers/DataHeader.h"
-#include "Framework/CheckTypes.h"
-#include "Framework/FunctionalHelpers.h"
 #include "Framework/CompilerBuiltins.h"
 #include "Framework/Traits.h"
 #include "Framework/Expressions.h"
 #include "Framework/ArrowTypes.h"
-#include "Framework/RuntimeError.h"
 #include "Framework/ArrowTableSlicingCache.h"
 #include "Framework/SliceCache.h"
 #include <arrow/table.h>
@@ -626,12 +623,12 @@ struct DefaultIndexPolicy : IndexPolicyBase {
 
   bool operator!=(RowViewSentinel const& sentinel) const
   {
-    return O2_BUILTIN_LIKELY(this->mRowIndex != sentinel.index);
+    return O2_BUILTIN_LIKELY(this->mRowIndex != static_cast<const int64_t>(sentinel.index));
   }
 
   bool operator==(RowViewSentinel const& sentinel) const
   {
-    return O2_BUILTIN_UNLIKELY(this->mRowIndex == sentinel.index);
+    return O2_BUILTIN_UNLIKELY(this->mRowIndex == static_cast<const int64_t>(sentinel.index));
   }
 
   [[nodiscard]] auto size() const
@@ -713,12 +710,12 @@ struct FilteredIndexPolicy : IndexPolicyBase {
 
   bool operator!=(RowViewSentinel const& sentinel) const
   {
-    return O2_BUILTIN_LIKELY(mSelectionRow != sentinel.index);
+    return O2_BUILTIN_LIKELY(mSelectionRow != static_cast<const int64_t>(sentinel.index));
   }
 
   bool operator==(RowViewSentinel const& sentinel) const
   {
-    return O2_BUILTIN_UNLIKELY(mSelectionRow == sentinel.index);
+    return O2_BUILTIN_UNLIKELY(mSelectionRow == static_cast<const int64_t>(sentinel.index));
   }
 
   /// Move iterator to one after the end. Since this is a view
@@ -1612,7 +1609,7 @@ std::array<std::shared_ptr<arrow::Array>, sizeof...(Cs)> getChunks(arrow::Table*
 template <typename T, typename C>
 typename C::type getSingleRowPersistentData(arrow::Table* table, T& rowIterator, uint64_t ci = -1, uint64_t ai = -1)
 {
-  if (ci == -1 || ai == -1) {
+  if (ci == static_cast<uint64_t>(-1) || ai == static_cast<uint64_t>(-1)) {
     auto colIterator = static_cast<C>(rowIterator).getIterator();
     ci = colIterator.mCurrentChunk;
     ai = *(colIterator.mCurrentPos) - colIterator.mFirstIndex;
