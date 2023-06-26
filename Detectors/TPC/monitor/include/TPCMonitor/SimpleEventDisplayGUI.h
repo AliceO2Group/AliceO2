@@ -53,6 +53,7 @@ class SimpleEventDisplayGUI
   void initGUI();
   void next(int eventNumber = -1);
   void callEventNumber();
+  void applySignalThreshold();
 
   void runSimpleEventDisplay(std::string_view fileInfo, std::string_view pedestalFile = "", int firstTimeBin = 0, int lastTimeBin = 500, int nTimeBinsPerCall = 500, uint32_t verbosity = 0, uint32_t debugLevel = 0, int selectedSector = 0, bool showSides = 1);
 
@@ -95,6 +96,7 @@ class SimpleEventDisplayGUI
 
   TGCheckButton* mCheckFFT = nullptr;
   TGTextEntry* mEventNumber = nullptr;
+  TGTextEntry* mSignalThresholdValue = nullptr;
 
   TH1* getBinInfoXY(int& binx, int& biny, float& bincx, float& bincy);
 

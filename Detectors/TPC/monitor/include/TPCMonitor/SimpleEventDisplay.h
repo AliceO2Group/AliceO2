@@ -63,6 +63,8 @@ class SimpleEventDisplay : public CalibRawBase
 
   void setPedstals(CalPad* pedestals) { mPedestals = pedestals; }
 
+  void setSignalThreshold(UInt_t signalThreshold) { mSignalThreshold = signalThreshold; }
+  
   TH1D* makePadSignals(Int_t roc, Int_t row, Int_t pad);
 
   /// set time bin range
@@ -82,18 +84,19 @@ class SimpleEventDisplay : public CalibRawBase
   TH2D* mHSigOROC;    //!< oroc signals
   CalPad* mPedestals; //!< Pedestal calibratino object
 
-  Int_t mCurrentChannel; //!< current channel processed
-  Int_t mCurrentROC;     //!< current ROC processed
-  Int_t mLastSector;     //!< Last sector processed
-  Int_t mSelectedSector; //!< Sector selected for processing
-  Int_t mLastSelSector;  //!< Last sector selected for processing
-  Int_t mCurrentRow;     //!< current row processed
-  Int_t mCurrentPad;     //!< current pad processed
-  Float_t mMaxPadSignal; //!< maximum bin of current pad
-  Int_t mMaxTimeBin;     //!< time bin with maximum value
-  Bool_t mSectorLoop;    //!< only process one sector
-  Int_t mFirstTimeBin;   //!< first time bin to accept
-  Int_t mLastTimeBin;    //!< last time bin to accept
+  Int_t mCurrentChannel;   //!< current channel processed
+  Int_t mCurrentROC;       //!< current ROC processed
+  Int_t mLastSector;       //!< Last sector processed
+  Int_t mSelectedSector;   //!< Sector selected for processing
+  Int_t mLastSelSector;    //!< Last sector selected for processing
+  Int_t mCurrentRow;       //!< current row processed
+  Int_t mCurrentPad;       //!< current pad processed
+  Float_t mMaxPadSignal;   //!< maximum bin of current pad
+  Int_t mMaxTimeBin;       //!< time bin with maximum value
+  Bool_t mSectorLoop;      //!< only process one sector
+  Int_t mFirstTimeBin;     //!< first time bin to accept
+  Int_t mLastTimeBin;      //!< last time bin to accept
+  UInt_t mSignalThreshold; //!< minimum adc value
 
   const Mapper& mTPCmapper; //! mapper
 

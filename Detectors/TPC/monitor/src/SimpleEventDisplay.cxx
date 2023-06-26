@@ -45,7 +45,8 @@ SimpleEventDisplay::SimpleEventDisplay()
     mSectorLoop(kFALSE),
     mFirstTimeBin(0),
     mLastTimeBin(512),
-    mTPCmapper(Mapper::instance())
+    mTPCmapper(Mapper::instance()),
+    mSignalThreshold(0)
 {
   initHistograms();
 }
@@ -130,16 +131,16 @@ Int_t SimpleEventDisplay::updateROC(const Int_t roc,
     const Int_t offset = (nbins + 2) * (iChannel + 1) + (timeBin - mFirstTimeBin) + 1;
 
     if ((UInt_t)roc < mTPCmapper.getNumberOfIROCs()) {
-      mHSigIROC->GetArray()[offset] = corrSignal;
+      mHSigIROC->GetArray()[offset] = corrSignal >= mSignalThreshold ? corrSignal : 0;
     } else {
-      mHSigOROC->GetArray()[offset] = corrSignal;
+      mHSigOROC->GetArray()[offset] = corrSignal >= mSignalThreshold ? corrSignal : 0;
     }
   }
 
   CalROC& calROC = mPadMax.getCalArray(mCurrentROC);
   auto val = calROC.getValue(row, pad);
 
-  if (corrSignal > val) {
+  if (corrSignal > val && corrSignal >= mSignalThreshold) {
     calROC.setValue(row, pad, corrSignal);
     mMaxPadSignal = corrSignal;
     mMaxTimeBin = timeBin;

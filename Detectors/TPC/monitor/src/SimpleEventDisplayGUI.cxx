@@ -102,6 +102,24 @@ void SimpleEventDisplayGUI::monitorGui()
   mEventNumber->SetAlignment(kTextRight);
   ++ycount;
 
+  //---------------------------
+  TGTextButton* mApplySignalThreshold = new TGTextButton(mContRight, "&Apply Threshold");
+  mContRight->AddFrame(mApplySignalThreshold, new TGLayoutHints(kLHintsNormal));
+
+  mApplySignalThreshold->SetTextColor(200);
+  mApplySignalThreshold->SetToolTipText("Apply Threshold");
+  mApplySignalThreshold->MoveResize(10, yoffset + ycount * (ysize_dist + ysize), 0.65 * xsize, (unsigned int)ysize);
+  mApplySignalThreshold->Connect("Clicked()", "o2::tpc::SimpleEventDisplayGUI", this, "applySignalThreshold()");
+
+  auto* signalThresholdBuf = new TGTextBuffer(10);
+  signalThresholdBuf->AddText(0, "0");
+  mSignalThresholdValue = new TGTextEntry(mContRight, signalThresholdBuf);
+  mSignalThresholdValue->MoveResize(0.7 * xsize, yoffset + ycount * (ysize_dist + ysize), 0.3 * xsize, (unsigned int)ysize);
+  mSignalThresholdValue->SetAlignment(kTextRight);
+  mSignalThresholdValue->Connect("ReturnPressed()", "o2::tpc::SimpleEventDisplayGUI", this, "applySignalThreshold()");
+  ++ycount;
+
+  //---------------------------
   mCheckFFT = new TGCheckButton(mContRight, "Show FFT");
   mContRight->AddFrame(mCheckFFT, new TGLayoutHints(kLHintsExpandX));
 
@@ -644,4 +662,11 @@ void SimpleEventDisplayGUI::startGUI(int maxTimeBins)
   monitorGui();
 
   evDisp.Run(true);
+}
+
+//_____________________________________________________________________________
+void SimpleEventDisplayGUI::applySignalThreshold() {
+  UInt_t signalThreshold = TString(mSignalThresholdValue->GetText()).Atoi();
+  mEvDisp.setSignalThreshold(signalThreshold);
+  callEventNumber();
 }
