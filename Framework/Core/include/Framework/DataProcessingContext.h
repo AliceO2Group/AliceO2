@@ -70,6 +70,10 @@ struct DataProcessorContext {
 
   /// Invoke callbacks on stop.
   void postStopCallbacks(ServiceRegistryRef);
+
+  /// Invoke callbacks before we enter the event loop
+  void preLoopCallbacks(ServiceRegistryRef);
+
   /// Invoke callbacks on exit.
   /// Note how this is a static helper because otherwise we would need to
   /// handle differently the deletion of the DataProcessingContext itself.
@@ -109,6 +113,8 @@ struct DataProcessorContext {
   mutable std::vector<ServiceDomainInfoHandle> domainInfoHandles;
   /// Callbacks for services to be executed before sending messages
   mutable std::vector<ServicePreSendingMessagesHandle> preSendingMessagesHandles;
+  /// Callbacks for services to be executed before we enter the event loop
+  mutable std::vector<ServicePreLoopHandle> preLoopHandles;
 
   /// Wether or not the associated DataProcessor can forward things early
   bool canForwardEarly = true;
