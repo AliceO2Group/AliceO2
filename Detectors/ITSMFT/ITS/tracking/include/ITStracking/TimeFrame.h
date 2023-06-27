@@ -151,6 +151,9 @@ class TimeFrame
   std::vector<std::vector<Cluster>>& getUnsortedClusters();
   int getClusterROF(int iLayer, int iCluster);
   std::vector<std::vector<Cell>>& getCells();
+  std::vector<std::vector<o2::track::TrackParCovF>>& getCellSeeds();
+  std::vector<std::vector<float>>& getCellSeedsChi2() { return mCellSeedsChi2; }
+
   std::vector<std::vector<int>>& getCellsLookupTable();
   std::vector<std::vector<std::vector<int>>>& getCellsNeighbours();
   std::vector<Road<5>>& getRoads();
@@ -247,6 +250,8 @@ class TimeFrame
   std::vector<std::vector<MCCompLabel>> mTrackletLabels;
   std::vector<std::vector<MCCompLabel>> mCellLabels;
   std::vector<std::vector<Cell>> mCells;
+  std::vector<std::vector<o2::track::TrackParCovF>> mCellSeeds;
+  std::vector<std::vector<float>> mCellSeedsChi2;
   std::vector<std::vector<int>> mCellsLookupTable;
   std::vector<std::vector<std::vector<int>>> mCellsNeighbours;
   std::vector<Road<5>> mRoads;
@@ -529,6 +534,8 @@ inline std::vector<std::vector<Cluster>>& TimeFrame::getUnsortedClusters()
 }
 
 inline std::vector<std::vector<Cell>>& TimeFrame::getCells() { return mCells; }
+
+inline std::vector<std::vector<o2::track::TrackParCovF>>& TimeFrame::getCellSeeds() { return mCellSeeds; }
 
 inline std::vector<std::vector<int>>& TimeFrame::getCellsLookupTable()
 {

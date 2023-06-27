@@ -538,8 +538,7 @@ GPUg() void computeLayerCellsKernel(
           new (cells + cellsLUT[iCurrentTrackletIndex] + foundCells) Cell{currentTracklet.firstClusterIndex, nextTracklet.firstClusterIndex,
                                                                           nextTracklet.secondClusterIndex,
                                                                           iCurrentTrackletIndex,
-                                                                          iNextTrackletIndex,
-                                                                          tanLambda};
+                                                                          iNextTrackletIndex};
         }
         ++foundCells;
       }
