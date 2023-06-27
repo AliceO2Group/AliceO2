@@ -33,6 +33,7 @@ void DataReaderTask::init(InitContext& ic)
 {
   mReader.setMaxErrWarnPrinted(ic.options().get<int>("log-max-errors"), ic.options().get<int>("log-max-warnings"));
   mReader.configure(mTrackletHCHeaderState, mHalfChamberWords, mHalfChamberMajor, mOptions);
+  mProcessEveryNthTF = ic.options().get<int>("every-nth-tf");
 }
 
 void DataReaderTask::endOfStream(o2::framework::EndOfStreamContext& ec)
@@ -98,7 +99,7 @@ void DataReaderTask::run(ProcessingContext& pc)
   updateTimeDependentParams(pc);
   auto dataReadStart = std::chrono::high_resolution_clock::now();
 
-  if (isTimeFrameEmpty(pc)) {
+  if ((mNTFsProcessed++ % mProcessEveryNthTF != 0) || isTimeFrameEmpty(pc)) {
     mReader.buildDPLOutputs(pc);
     mReader.reset();
     return;
