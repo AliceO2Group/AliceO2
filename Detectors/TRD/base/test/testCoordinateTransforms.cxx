@@ -26,6 +26,7 @@
 #include "TRDBase/PadPlane.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "TRDBase/Geometry.h"
+#include "CCDB/BasicCCDBManager.h"
 
 namespace o2
 {
@@ -43,7 +44,13 @@ void testRCPoint(double calculatedPoint, double predictedPoint)
 
 BOOST_AUTO_TEST_CASE(LocaltoRCTest)
 {
+  // init ALICE geometry --> needed to instantiate TRD Geometry instance
+  auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
+  ccdbmgr.get<TGeoManager>("GLO/Config/GeometryAligned");
+
   auto mGeo = o2::trd::Geometry::instance();
+  BOOST_CHECK(mGeo);
+
   mGeo->createPadPlaneArray();
   mGeo->createClusterMatrixArray();
 
