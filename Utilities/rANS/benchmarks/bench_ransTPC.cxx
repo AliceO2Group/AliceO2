@@ -187,11 +187,10 @@ void ransEncodeDecode(const std::string& name, const std::vector<source_T>& inpu
   auto decoder = makeDecoder<>::fromRenormed(renormedHistogram);
   auto recoveredDecoder = makeDecoder<>::fromRenormed(recoveredHistogram);
 
-  if (!(std::equal(decoder.getSymbolTable().begin(), decoder.getSymbolTable().end(), recoveredDecoder.getSymbolTable().begin()) &&
-        decoder.getSymbolTable().getOffset() == recoveredDecoder.getSymbolTable().getOffset() &&
-        decoder.getSymbolTable().getEscapeSymbol() == recoveredDecoder.getSymbolTable().getEscapeSymbol())) {
-    LOGP(warning, "Missmatch between original and decoded Dictionary");
-  }
+  // if (!(std::equal(decoder.getSymbolTable().begin(), decoder.getSymbolTable().end(), recoveredDecoder.getSymbolTable().begin()) &&
+  //       (decoder.getSymbolTable().getEscapeSymbol() == recoveredDecoder.getSymbolTable().getEscapeSymbol()))) {
+  //   LOGP(warning, "Missmatch between original and decoded Dictionary");
+  // }
 
   if (encodeBuffer.literalsEnd == encodeBuffer.literals.data()) {
     decoder.process(encodeBuffer.encodeBufferEnd, decodeBuffer.buffer.data(), inputData.size(), encoder.getNStreams());

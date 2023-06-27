@@ -212,6 +212,18 @@ if(${RANS_ENABLE_JSON})
                       IS_BENCHMARK
                       PUBLIC_LINK_LIBRARIES O2::libransBenchmark)
 
+    o2_add_executable(Decode
+                      SOURCES benchmarks/bench_ransDecode.cxx
+                      COMPONENT_NAME rANS
+                      IS_BENCHMARK
+                      PUBLIC_LINK_LIBRARIES O2::libransBenchmark)
+
+    o2_add_executable(DecodeScaling
+                      SOURCES benchmarks/bench_ransDecodeScaling.cxx
+                      COMPONENT_NAME rANS
+                      IS_BENCHMARK
+                      PUBLIC_LINK_LIBRARIES O2::libransBenchmark)
+
     o2_add_executable(EncodeImpl
                       SOURCES benchmarks/bench_ransEncodeImpl.cxx
                       COMPONENT_NAME rANS

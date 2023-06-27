@@ -35,6 +35,8 @@
 
 #include "rANS/internal/containers/SetHistogram.h"
 
+#include "rANS/internal/containers/LowRangeDecoderTable.h"
+#include "rANS/internal/containers/HighRangeDecoderTable.h"
 #include "rANS/internal/containers/Symbol.h"
 
 #include "rANS/internal/encode/Encoder.h"
@@ -46,34 +48,6 @@
 
 namespace o2::rans
 {
-
-template <typename source_T, CoderTag tag_V = defaults::DefaultTag,
-          size_t lowerBound_V = defaults::CoderPreset<tag_V>::renormingLowerBound,
-          size_t nStreams_V = defaults::CoderPreset<tag_V>::nStreams>
-struct EncoderTraits {
-
-  inline static constexpr CoderTag coderTag = tag_V;
-  inline static constexpr size_t renormingLowerBound = lowerBound_V;
-  inline static constexpr size_t nStreams = nStreams_V;
-
-  using source_type = source_T;
-  using symbol_type = typename internal::SymbolTraits<coderTag>::type;
-  using coder_type = typename internal::CoderTraits<coderTag>::template type<renormingLowerBound>;
-  using symbolTable_type = SymbolTable<source_type, symbol_type>;
-  using encoderType = Encoder<coder_type, symbolTable_type, nStreams>;
-};
-
-template <typename source_T, size_t lowerBound_V = defaults::internal::RenormingLowerBound>
-struct DecoderTraits {
-
-  inline static constexpr size_t renormingLowerBound = lowerBound_V;
-
-  using source_type = source_T;
-  using coder_type = internal::DecoderImpl<lowerBound_V>;
-  using symbol_type = typename coder_type::symbol_type;
-  using symbolTable_type = SymbolTable<source_type, symbol_type>;
-  using decoder_type = Decoder<coder_type, symbolTable_type>;
-};
 
 struct makeHistogram {
 
@@ -367,9 +341,7 @@ class makeDecoder
 
     using source_type = source_T;
     using coder_type = DecoderImpl<renormingLowerBound_V>;
-    using symbol_type = typename coder_type::symbol_type;
-    using symbolTable_type = SymbolTable<source_type, symbol_type>;
-    using decoder_type = Decoder<coder_type, symbolTable_type>;
+    using decoder_type = Decoder<source_type, coder_type>;
 
     return decoder_type{renormed};
   };

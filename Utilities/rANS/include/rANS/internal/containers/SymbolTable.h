@@ -50,37 +50,14 @@ class SymbolTable : public internal::VectorContainer<source_T, symbol_T>
 
   SymbolTable() = default;
 
-  inline SymbolTable(const RenormedHistogram<source_type>& renormedHistogram) { init(renormedHistogram); };
-  inline SymbolTable(const RenormedSparseHistogram<source_type>& renormedHistogram) { init(renormedHistogram); };
-  inline SymbolTable(const RenormedHashHistogram<source_type>& renormedHistogram) { init(renormedHistogram); };
-  inline SymbolTable(const RenormedSetHistogram<source_type>& renormedHistogram) { init(renormedHistogram); };
+  template <typename container_T>
+  inline SymbolTable(const RenormedHistogramImpl<container_T>& renormedHistogram);
 
-  [[nodiscard]] inline const_reference operator[](source_type sourceSymbol) const noexcept
-  {
-    const size_type index = static_cast<size_type>(sourceSymbol - this->getOffset());
-    // static cast to unsigned: idx < 0 => (uint)idx > MAX_INT => idx > mIndex.size()
-    if (index < this->size()) {
-      return this->mContainer[sourceSymbol];
-    } else {
-      return this->getEscapeSymbol();
-    }
-  };
+  [[nodiscard]] inline const_reference operator[](source_type sourceSymbol) const noexcept;
 
-  [[nodiscard]] inline const_pointer lookupSafe(source_type sourceSymbol) const
-  {
-    const size_type index = static_cast<size_type>(sourceSymbol - this->getOffset());
-    // static cast to unsigned: idx < 0 => (uint)idx > MAX_INT => idx > mIndex.size()
-    if (index < this->size()) {
-      return this->mContainer.data() + index;
-    } else {
-      return nullptr;
-    }
-  };
+  [[nodiscard]] inline const_pointer lookupSafe(source_type sourceSymbol) const;
 
-  [[nodiscard]] inline const_pointer lookupUnsafe(source_type sourceSymbol) const
-  {
-    return &this->mContainer[sourceSymbol];
-  };
+  [[nodiscard]] inline const_pointer lookupUnsafe(source_type sourceSymbol) const { return &this->mContainer[sourceSymbol]; };
 
   [[nodiscard]] inline size_type size() const noexcept { return mSize; };
 
@@ -95,13 +72,7 @@ class SymbolTable : public internal::VectorContainer<source_T, symbol_T>
   [[nodiscard]] inline size_type getPrecision() const noexcept { return mSymbolTablePrecision; };
 
  protected:
-  [[nodiscard]] inline bool isValidSymbol(const symbol_type& value) const noexcept
-  {
-    return !this->isEscapeSymbol(value);
-  };
-
-  template <typename histogram_T>
-  void init(const RenormedHistogramImpl<histogram_T>& renormedHistogram);
+  [[nodiscard]] inline bool isValidSymbol(const symbol_type& value) const noexcept { return !this->isEscapeSymbol(value); };
 
   symbol_type mEscapeSymbol{};
   size_type mSize{};
@@ -109,8 +80,8 @@ class SymbolTable : public internal::VectorContainer<source_T, symbol_T>
 };
 
 template <class source_T, class value_T>
-template <typename histogram_T>
-void SymbolTable<source_T, value_T>::init(const RenormedHistogramImpl<histogram_T>& renormedHistogram)
+template <typename container_T>
+SymbolTable<source_T, value_T>::SymbolTable(const RenormedHistogramImpl<container_T>& renormedHistogram)
 {
   using namespace utils;
   using namespace internal;
@@ -144,6 +115,30 @@ void SymbolTable<source_T, value_T>::init(const RenormedHistogramImpl<histogram_
     });
 
   mSize = this->mContainer.size();
+};
+
+template <class source_T, class value_T>
+[[nodiscard]] inline auto SymbolTable<source_T, value_T>::operator[](source_type sourceSymbol) const noexcept -> const_reference
+{
+  const size_type index = static_cast<size_type>(sourceSymbol - this->getOffset());
+  // static cast to unsigned: idx < 0 => (uint)idx > MAX_INT => idx > mIndex.size()
+  if (index < this->size()) {
+    return this->mContainer[sourceSymbol];
+  } else {
+    return this->getEscapeSymbol();
+  }
+};
+
+template <class source_T, class value_T>
+[[nodiscard]] inline auto SymbolTable<source_T, value_T>::lookupSafe(source_type sourceSymbol) const -> const_pointer
+{
+  const size_type index = static_cast<size_type>(sourceSymbol - this->getOffset());
+  // static cast to unsigned: idx < 0 => (uint)idx > MAX_INT => idx > mIndex.size()
+  if (index < this->size()) {
+    return this->mContainer.data() + index;
+  } else {
+    return nullptr;
+  }
 };
 
 template <typename source_T, typename symbol_T>

@@ -41,18 +41,21 @@ class ReverseSymbolLookupTable
   // TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
   inline ReverseSymbolLookupTable() noexcept {}; // NOLINT
 
-  explicit ReverseSymbolLookupTable(const RenormedHistogram<source_type>& renormedHistogram)
+  template <typename container_T>
+  explicit ReverseSymbolLookupTable(const RenormedHistogramImpl<container_T>& renormedHistogram)
   {
     if (renormedHistogram.empty()) {
       LOG(warning) << "SymbolStatistics of empty message passed to " << __func__;
     }
 
     mLut.reserve(renormedHistogram.getNumSamples());
+    const auto [trimmedBegin, trimmedEnd] = internal::trim(renormedHistogram);
 
-    index_type symbol = renormedHistogram.getOffset();
-    for (count_type symbolFrequency : renormedHistogram) {
-      mLut.insert(mLut.end(), symbolFrequency, symbol++);
-    }
+    internal::forEachIndexValue(renormedHistogram, trimmedBegin, trimmedEnd, [&](const source_type& sourceSymbol, const count_type& frequency) {
+      if (frequency > 0) {
+        this->mLut.insert(mLut.end(), frequency, sourceSymbol);
+      }
+    });
   };
 
   inline size_type size() const noexcept { return mLut.size(); };
@@ -72,7 +75,6 @@ class ReverseSymbolLookupTable
   inline const iterator_type end() const noexcept { return mLut.data() + size(); };
 
   container_type mLut{};
-  count_type mIncompressibleFrequency{};
 };
 
 } // namespace o2::rans::internal
