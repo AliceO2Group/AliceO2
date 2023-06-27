@@ -22,7 +22,6 @@
 
 namespace
 {
-
 int roundUp(const int numToRound, const int multiple)
 {
   if (multiple == 0) {
@@ -59,7 +58,6 @@ namespace its
 using constants::GB;
 namespace gpu
 {
-
 GPUh() void gpuThrowOnError()
 {
   cudaError_t error = cudaGetLastError();

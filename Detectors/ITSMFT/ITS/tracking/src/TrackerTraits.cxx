@@ -52,6 +52,8 @@ constexpr int debugLevel{0};
 
 void TrackerTraits::computeLayerTracklets(const int iteration)
 {
+  mTimeFrame->mTimer.Reset("tr");
+  // mTimeFrame->mTimer.Start("trTrackletFinder");
   TimeFrame* tf = mTimeFrame;
 
 #ifdef OPTIMISATION_OUTPUT
@@ -248,11 +250,13 @@ void TrackerTraits::computeLayerTracklets(const int iteration)
       }
     }
   }
+  // mTimeFrame->mTimer.Stop();
+  // mTimeFrame->mTimer.Print();
 }
 
 void TrackerTraits::computeLayerCells(const int iteration)
 {
-
+  // mTimeFrame->mTimer.Start("trCellFinder");
 #ifdef OPTIMISATION_OUTPUT
   static int iter{0};
   std::ofstream off(fmt::format("cells{}.txt", iter++));
@@ -335,10 +339,13 @@ void TrackerTraits::computeLayerCells(const int iteration)
       std::cout << "Cells on layer " << iLayer << " " << tf->getCells()[iLayer].size() << std::endl;
     }
   }
+  // mTimeFrame->mTimer.Stop();
+  // mTimeFrame->mTimer.Print();
 }
 
 void TrackerTraits::findCellsNeighbours(const int iteration)
 {
+  // mTimeFrame->mTimer.Start("trNeighbourFinder");
 #ifdef OPTIMISATION_OUTPUT
   std::ofstream off(fmt::format("cellneighs{}.txt", iteration));
 #endif
@@ -381,6 +388,8 @@ void TrackerTraits::findCellsNeighbours(const int iteration)
       }
     }
   }
+  // mTimeFrame->mTimer.Stop();
+  mTimeFrame->mTimer.PrintLifeTime();
 }
 
 void TrackerTraits::findRoads(const int iteration)
@@ -388,19 +397,13 @@ void TrackerTraits::findRoads(const int iteration)
   for (int iLevel{mTrkParams[iteration].CellsPerRoad()}; iLevel >= mTrkParams[iteration].CellMinimumLevel(); --iLevel) {
     CA_DEBUGGER(int nRoads = -mTimeFrame->getRoads().size());
     const int minimumLevel{iLevel - 1};
-
     for (int iLayer{mTrkParams[iteration].CellsPerRoad() - 1}; iLayer >= minimumLevel; --iLayer) {
-
       const int levelCellsNum{static_cast<int>(mTimeFrame->getCells()[iLayer].size())};
-
       for (int iCell{0}; iCell < levelCellsNum; ++iCell) {
-
         Cell& currentCell{mTimeFrame->getCells()[iLayer][iCell]};
-
         if (currentCell.getLevel() != iLevel) {
           continue;
         }
-
         mTimeFrame->getRoads().emplace_back(iLayer, iCell);
 
         /// For 3 clusters roads (useful for cascades and hypertriton) we just store the single cell
@@ -408,32 +411,22 @@ void TrackerTraits::findRoads(const int iteration)
         if (iLevel == 1) {
           continue;
         }
-
         const int cellNeighboursNum{static_cast<int>(
           mTimeFrame->getCellsNeighbours()[iLayer - 1][iCell].size())};
         bool isFirstValidNeighbour = true;
-
         for (int iNeighbourCell{0}; iNeighbourCell < cellNeighboursNum; ++iNeighbourCell) {
-
           const int neighbourCellId = mTimeFrame->getCellsNeighbours()[iLayer - 1][iCell][iNeighbourCell];
           const Cell& neighbourCell = mTimeFrame->getCells()[iLayer - 1][neighbourCellId];
-
           if (iLevel - 1 != neighbourCell.getLevel()) {
             continue;
           }
-
           if (isFirstValidNeighbour) {
-
             isFirstValidNeighbour = false;
-
           } else {
-
             mTimeFrame->getRoads().emplace_back(iLayer, iCell);
           }
-
           traverseCellsTree(neighbourCellId, iLayer - 1);
         }
-
         // TODO: crosscheck for short track iterations
         // currentCell.setLevel(0);
       }
