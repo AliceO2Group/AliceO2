@@ -109,6 +109,7 @@ void TDCCalibEPNSpec::run(ProcessingContext& pc)
     o2::framework::Output output("ZDC", "TDC_1DH", ih, Lifetime::Timeframe);
     pc.outputs().snapshot(output, mWorker.mTDC[ih]->getBase());
   }
+  mWorker.clear();
 }
 
 void TDCCalibEPNSpec::endOfStream(EndOfStreamContext& ec)

@@ -17,7 +17,7 @@ using namespace o2::zdc;
 void TDCCalibData::print() const
 {
   for (int i = 0; i < NTDC; i++) {
-    LOGF(info, "%s", CTDC[i]);
+    LOGF(info, "%s entries: %d", CTDC[i], entries[i]);
   }
 }
 
@@ -25,7 +25,7 @@ TDCCalibData& TDCCalibData::operator+=(const TDCCalibData& other)
 {
 
   for (int32_t ih = 0; ih < NTDC; ih++) {
-    entries[ih] += other.entries[ih];
+    entries[ih] = entries[ih] + other.entries[ih];
   }
 
   if (mCTimeBeg == 0 || other.mCTimeBeg < mCTimeBeg) {
