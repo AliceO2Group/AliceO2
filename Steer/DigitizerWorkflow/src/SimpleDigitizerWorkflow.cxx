@@ -129,7 +129,7 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
   using o2::framework::CompletionPolicy;
   // we customize the completion policy for the writer since it should stream immediately
   policies.push_back(CompletionPolicyHelpers::defineByName("TPCDigitWriter", CompletionPolicy::CompletionOp::Consume));
-  policies.push_back(CompletionPolicyHelpers::defineByName("TPCDigitizer.*", CompletionPolicy::CompletionOp::Consume));
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAnyWithAllConditions("TPCDigitizer.*"));
   policies.push_back(CompletionPolicyHelpers::defineByName("tpc-cluster-decoder.*", CompletionPolicy::CompletionOp::Consume));
   policies.push_back(CompletionPolicyHelpers::defineByName("tpc-clusterer.*", CompletionPolicy::CompletionOp::Consume));
 }
@@ -192,7 +192,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(ConfigParamSpec{"ccdb-tof-sa", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects via CCDBManager (obsolete remap to use-ccdb-tof)"}});
 
   // option to use/not use CCDB for FT0
-  workflowOptions.push_back(ConfigParamSpec{"use-ccdb-ft0", o2::framework::VariantType::Bool, true, {"enable access to ccdb ft0 calibration objects"}});
+  workflowOptions.push_back(ConfigParamSpec{"use-ccdb-ft0", o2::framework::VariantType::Bool, false, {"enable access to ccdb ft0 calibration objects"}});
 
   // option to use/not use CCDB for EMCAL
   workflowOptions.push_back(ConfigParamSpec{"use-ccdb-emc", o2::framework::VariantType::Bool, false, {"enable access to ccdb EMCAL simulation objects"}});

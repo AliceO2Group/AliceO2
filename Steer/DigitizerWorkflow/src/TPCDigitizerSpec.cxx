@@ -246,7 +246,7 @@ class TPCDPLDigitizerTask : public BaseDPLDigitizer
     auto& cdb = o2::tpc::CDBInterface::instance();
     cdb.setUseDefaults(!mUseCalibrationsFromCCDB);
     // whatever are global settings for CCDB usage, we have to extract the TPC vdrift from CCDB for anchored simulations
-    //    mTPCVDriftHelper.extractCCDBInputs(pc);
+    mTPCVDriftHelper.extractCCDBInputs(pc);
     if (mTPCVDriftHelper.isUpdated()) {
       const auto& vd = mTPCVDriftHelper.getVDriftObject();
       LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",

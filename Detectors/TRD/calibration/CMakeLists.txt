@@ -20,6 +20,7 @@ o2_add_library(TRDCalibration
                        src/KrClusterFinder.cxx
                        src/DCSProcessor.cxx
                        src/CalibrationParams.cxx
+                       src/PulseHeight.cxx
                PUBLIC_LINK_LIBRARIES O2::TRDBase
                                      O2::DataFormatsTRD
                                      O2::DataFormatsGlobalTracking
@@ -37,6 +38,7 @@ o2_add_library(TRDCalibration
                                    include/TRDCalibration/CalibrationParams.h
                                    include/TRDCalibration/PadCalibCCDBBuilder.h
                                    include/TRDCalibration/KrClusterFinder.h
+                                   include/TRDCalibration/PulseHeight.h
                                    include/TRDCalibration/DCSProcessor.h)
 
 o2_add_executable(trd-dcs-sim-workflow

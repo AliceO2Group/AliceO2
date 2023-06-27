@@ -16,7 +16,12 @@
 
 namespace o2::framework
 {
-struct O2DatabasePDG : LoadableServicePlugin<TDatabasePDG> {
+
+struct O2DatabasePDGImpl : public TDatabasePDG {
+  Double_t Mass(int pdg, bool& success);
+};
+
+struct O2DatabasePDG : LoadableServicePlugin<O2DatabasePDGImpl> {
   O2DatabasePDG() : LoadableServicePlugin{"O2FrameworkPhysicsSupport:PDGSupport"}
   {
   }
