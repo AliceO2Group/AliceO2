@@ -750,7 +750,7 @@ void spawnDevice(uv_loop_t* loop,
     allStates.back().registerState(DataProcessingStates::StateSpec{
       .name = fmt::format("matcher_variables/{}", i),
       .stateId = static_cast<short>((short)(ProcessingStateId::CONTEXT_VARIABLES_BASE) + i),
-      .minPublishInterval = 200, // if we publish too often we flood the GUI and we are not able to read it in any case
+      .minPublishInterval = 500, // if we publish too often we flood the GUI and we are not able to read it in any case
       .sendInitialValue = true,
     });
   }
@@ -759,7 +759,7 @@ void spawnDevice(uv_loop_t* loop,
     allStates.back().registerState(DataProcessingStates::StateSpec{
       .name = fmt::format("data_relayer/{}", i),
       .stateId = static_cast<short>((short)(ProcessingStateId::DATA_RELAYER_BASE) + i),
-      .minPublishInterval = 200, // if we publish too often we flood the GUI and we are not able to read it in any case
+      .minPublishInterval = 500, // if we publish too often we flood the GUI and we are not able to read it in any case
       .sendInitialValue = true,
     });
   }
