@@ -170,8 +170,6 @@ void VertexerTraits::updateVertexingParameters(const VertexingParameters& vrtPar
 
 void VertexerTraits::computeTracklets()
 {
-  // mTimeFrame->mTimer.Reset();
-  // mTimeFrame->mTimer.Start("vtTrackletFinder");
 #pragma omp parallel num_threads(mNThreads)
   {
 #pragma omp for schedule(dynamic)
@@ -292,13 +290,10 @@ void VertexerTraits::computeTracklets()
   out01.close();
   out12.close();
 #endif
-  // mTimeFrame->mTimer.Stop();
-  // mTimeFrame->mTimer.Print();
 } // namespace its
 
 void VertexerTraits::computeTrackletMatching()
 {
-  // mTimeFrame->mTimer.Start("vtTrackletSel");
 #pragma omp parallel for num_threads(mNThreads) schedule(dynamic)
   for (int rofId = 0; rofId < mTimeFrame->getNrof(); ++rofId) {
     mTimeFrame->getLines(rofId).reserve(mTimeFrame->getNTrackletsCluster(rofId, 0).size());
@@ -315,8 +310,7 @@ void VertexerTraits::computeTrackletMatching()
       mVrtParams.tanLambdaCut,
       mVrtParams.phiCut);
   }
-  // mTimeFrame->mTimer.Stop();
-  // mTimeFrame->mTimer.Print();
+
 #ifdef VTX_DEBUG
   TFile* trackletFile = TFile::Open("artefacts_tf.root", "update");
   TTree* ln_tre = new TTree("lines", "tf");
@@ -350,7 +344,7 @@ void VertexerTraits::computeTrackletMatching()
 
 void VertexerTraits::computeVertices()
 {
-  // mTimeFrame->mTimer.Start("vtFinding");
+
   auto nsigmaCut{std::min(mVrtParams.vertNsigmaCut * mVrtParams.vertNsigmaCut * (mVrtParams.vertRadiusSigma * mVrtParams.vertRadiusSigma + mVrtParams.trackletSigma * mVrtParams.trackletSigma), 1.98f)};
   std::vector<Vertex> vertices;
 #ifdef VTX_DEBUG
@@ -497,9 +491,6 @@ void VertexerTraits::computeVertices()
   ln_clus_lines_tree->Write();
   dbg_file->Close();
 #endif
-  // mTimeFrame->mTimer.Stop();
-  // mTimeFrame->mTimer.Print();
-  // mTimeFrame->mTimer.PrintLifeTime();
 }
 
 void VertexerTraits::setNThreads(int n)
