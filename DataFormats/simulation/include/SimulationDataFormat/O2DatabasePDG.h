@@ -61,10 +61,8 @@ class O2DatabasePDG
   }
 
   // determine particle to get mass for based on PDG
-  static Double_t Mass(int pdg, bool& success)
+  static Double_t Mass(int pdg, bool& success, TDatabasePDG* db = O2DatabasePDG::Instance())
   {
-    auto db = Instance();
-
     if (pdg < IONBASELOW || pdg > IONBASEHIGH) {
       // not an ion, return immediately
       return MassImpl(db->GetParticle(pdg), success);
@@ -78,9 +76,10 @@ class O2DatabasePDG
     return MassImpl(db->GetParticle(pdg), success);
   }
 
- private:
-  // private constructor
+  // remove default constructor
   O2DatabasePDG() = delete;
+
+ private:
   static constexpr int IONBASELOW{1000000000};
   static constexpr int IONBASEHIGH{1099999999};
 };
