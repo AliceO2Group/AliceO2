@@ -235,6 +235,9 @@ if [[ $HOSTMEMSIZE != "0" ]]; then
 fi
 
 GPU_CONFIG_SELF="--severity $SEVERITY_TPC"
+ASK_CTP_LUMI="--require-ctp-lumi"
+[[ "$TPC_CORR_SCALING" == *"$ASK_CTP_LUMI"* ]] && TPC_CORR_SCALING=${TPC_CORR_SCALING//$ASK_CTP_LUMI/} || ASK_CTP_LUMI=""
+GPU_CONFIG_SELF+=" $TPC_CORR_SCALING "
 if [[ $GPUTYPE != "CPU" && $(ulimit -e) -ge 25 && ${O2_GPU_WORKFLOW_NICE:-} == 1 ]]; then
   GPU_CONFIG_SELF+=" --child-driver 'nice -n -5'"
 fi
@@ -406,14 +409,14 @@ fi
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Common reconstruction workflows
-(has_detector_reco TPC || has_detector_ctf TPC) && ! has_detector_from_global_reader TPC && add_W o2-gpu-reco-workflow "--gpu-reconstruction \"$GPU_CONFIG_SELF\" $TPC_CORR_SCALING --input-type=$GPU_INPUT $DISABLE_MC --output-type $GPU_OUTPUT --pipeline gpu-reconstruction:${N_TPCTRK:-1} $GPU_CONFIG" "GPU_global.deviceType=$GPUTYPE;GPU_proc.debugLevel=0;$GPU_CONFIG_KEY;$TRACKTUNETPCINNER"
+(has_detector_reco TPC || has_detector_ctf TPC) && ! has_detector_from_global_reader TPC && add_W o2-gpu-reco-workflow "--gpu-reconstruction \"$GPU_CONFIG_SELF\" $ASK_CTP_LUMI --input-type=$GPU_INPUT $DISABLE_MC --output-type $GPU_OUTPUT --pipeline gpu-reconstruction:${N_TPCTRK:-1} $GPU_CONFIG" "GPU_global.deviceType=$GPUTYPE;GPU_proc.debugLevel=0;$GPU_CONFIG_KEY;$TRACKTUNETPCINNER"
 (has_detector_reco TOF || has_detector_ctf TOF) && ! has_detector_from_global_reader TOF && add_W o2-tof-reco-workflow "$TOF_CONFIG --input-type $TOF_INPUT --output-type $TOF_OUTPUT $DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N tof-compressed-decoder TOF RAW 1),$(get_N TOFClusterer TOF REST 1)"
 has_detector_reco ITS && ! has_detector_from_global_reader ITS && add_W o2-its-reco-workflow "--trackerCA $ITS_CONFIG $DISABLE_MC $DISABLE_DIGIT_CLUSTER_INPUT $DISABLE_ROOT_OUTPUT --pipeline $(get_N its-tracker ITS REST 1 ITSTRK)" "$ITS_CONFIG_KEY;$ITSMFT_STROBES;$ITSEXTRAERR"
 has_detector_reco FT0 && ! has_detector_from_global_reader FT0 && add_W o2-ft0-reco-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N ft0-reconstructor FT0 REST 1)"
 has_detector_reco TRD && ! has_detector_from_global_reader TRD && add_W o2-trd-tracklet-transformer "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_FILTER_CONFIG --pipeline $(get_N TRDTRACKLETTRANSFORMER TRD REST 1 TRDTRKTRANS)"
-has_detectors_reco ITS TPC && has_detector_matching ITSTPC && add_W o2-tpcits-match-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC $SEND_ITSTPC_DTGL  $TPC_CORR_SCALING --nthreads $ITSTPC_THREADS --pipeline $(get_N itstpc-track-matcher MATCH REST $ITSTPC_THREADS TPCITS)" "$ITSTPC_CONFIG_KEY;$ITSMFT_STROBES;$ITSEXTRAERR"
-has_detector_reco TRD && [[ ! -z "$TRD_SOURCES" ]] && add_W o2-trd-global-tracking "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_CONFIG $TRD_FILTER_CONFIG $TPC_CORR_SCALING --track-sources $TRD_SOURCES --pipeline $(get_N trd-globaltracking_TPC_ITS-TPC_ TRD REST 1 TRDTRK),$(get_N trd-globaltracking_TPC_FT0_ITS-TPC_ TRD REST 1 TRDTRK)" "$TRD_CONFIG_KEY;$ITSMFT_STROBES;$ITSEXTRAERR"
-has_detector_reco TOF && [[ ! -z "$TOF_SOURCES" ]] && add_W o2-tof-matcher-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC $TPC_CORR_SCALING --track-sources $TOF_SOURCES --pipeline $(get_N tof-matcher TOF REST 1 TOFMATCH)" "$ITSMFT_STROBES;$ITSEXTRAERR"
+has_detectors_reco ITS TPC && has_detector_matching ITSTPC && add_W o2-tpcits-match-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC $SEND_ITSTPC_DTGL  $TPC_CORR_SCALING $ASK_CTP_LUMI --nthreads $ITSTPC_THREADS --pipeline $(get_N itstpc-track-matcher MATCH REST $ITSTPC_THREADS TPCITS)" "$ITSTPC_CONFIG_KEY;$ITSMFT_STROBES;$ITSEXTRAERR"
+has_detector_reco TRD && [[ ! -z "$TRD_SOURCES" ]] && add_W o2-trd-global-tracking "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_CONFIG $TRD_FILTER_CONFIG $TPC_CORR_SCALING $ASK_CTP_LUMI --track-sources $TRD_SOURCES --pipeline $(get_N trd-globaltracking_TPC_ITS-TPC_ TRD REST 1 TRDTRK),$(get_N trd-globaltracking_TPC_FT0_ITS-TPC_ TRD REST 1 TRDTRK)" "$TRD_CONFIG_KEY;$ITSMFT_STROBES;$ITSEXTRAERR"
+has_detector_reco TOF && [[ ! -z "$TOF_SOURCES" ]] && add_W o2-tof-matcher-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC $TPC_CORR_SCALING $ASK_CTP_LUMI --track-sources $TOF_SOURCES --pipeline $(get_N tof-matcher TOF REST 1 TOFMATCH)" "$ITSMFT_STROBES;$ITSEXTRAERR"
 has_detectors TPC && [[ -z "$DISABLE_ROOT_OUTPUT" && "${SKIP_TPC_CLUSTERSTRACKS_OUTPUT:-}" != 1 ]] && add_W o2-tpc-reco-workflow "--input-type pass-through --output-type clusters,tracks,send-clusters-per-sector $DISABLE_MC"
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -456,7 +459,7 @@ has_detector_reco MCH && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output 
 has_detector_matching PRIMVTX && [[ ! -z "$VERTEXING_SOURCES" ]] && add_W o2-primary-vertexing-workflow "$DISABLE_MC $DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $PVERTEX_CONFIG --pipeline $(get_N primary-vertexing MATCH REST 1 PRIMVTX),$(get_N pvertex-track-matching MATCH REST 1 PRIMVTXMATCH)" "${PVERTEXING_CONFIG_KEY}"
 
 if [[ $BEAMTYPE != "cosmic" ]]; then
-  has_detectors_reco ITS && has_detector_matching SECVTX && [[ ! -z "$SVERTEXING_SOURCES" ]] && add_W o2-secondary-vertexing-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $TPC_CORR_SCALING --vertexing-sources $SVERTEXING_SOURCES --threads $SVERTEX_THREADS --pipeline $(get_N secondary-vertexing MATCH REST $SVERTEX_THREADS SECVTX)"
+  has_detectors_reco ITS && has_detector_matching SECVTX && [[ ! -z "$SVERTEXING_SOURCES" ]] && add_W o2-secondary-vertexing-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $TPC_CORR_SCALING $ASK_CTP_LUMI --vertexing-sources $SVERTEXING_SOURCES --threads $SVERTEX_THREADS --pipeline $(get_N secondary-vertexing MATCH REST $SVERTEX_THREADS SECVTX)"
   has_detectors_reco ITS && has_detector_matching SECVTX && has_detector_matching STRK && add_W o2-strangeness-tracking-workflow "$DISABLE_MC $DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT --pipeline $(get_N strangeness-tracking MATCH REST 1 STRK)"
 fi
 
