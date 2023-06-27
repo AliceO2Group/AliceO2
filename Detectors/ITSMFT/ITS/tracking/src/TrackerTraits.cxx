@@ -52,8 +52,6 @@ constexpr int debugLevel{0};
 
 void TrackerTraits::computeLayerTracklets(const int iteration)
 {
-  mTimeFrame->mTimer.Reset("tr");
-  // mTimeFrame->mTimer.Start("trTrackletFinder");
   TimeFrame* tf = mTimeFrame;
 
 #ifdef OPTIMISATION_OUTPUT
@@ -250,13 +248,10 @@ void TrackerTraits::computeLayerTracklets(const int iteration)
       }
     }
   }
-  // mTimeFrame->mTimer.Stop();
-  // mTimeFrame->mTimer.Print();
 }
 
 void TrackerTraits::computeLayerCells(const int iteration)
 {
-  // mTimeFrame->mTimer.Start("trCellFinder");
 #ifdef OPTIMISATION_OUTPUT
   static int iter{0};
   std::ofstream off(fmt::format("cells{}.txt", iter++));
@@ -339,13 +334,10 @@ void TrackerTraits::computeLayerCells(const int iteration)
       std::cout << "Cells on layer " << iLayer << " " << tf->getCells()[iLayer].size() << std::endl;
     }
   }
-  // mTimeFrame->mTimer.Stop();
-  // mTimeFrame->mTimer.Print();
 }
 
 void TrackerTraits::findCellsNeighbours(const int iteration)
 {
-  // mTimeFrame->mTimer.Start("trNeighbourFinder");
 #ifdef OPTIMISATION_OUTPUT
   std::ofstream off(fmt::format("cellneighs{}.txt", iteration));
 #endif
@@ -388,8 +380,6 @@ void TrackerTraits::findCellsNeighbours(const int iteration)
       }
     }
   }
-  // mTimeFrame->mTimer.Stop();
-  mTimeFrame->mTimer.PrintLifeTime();
 }
 
 void TrackerTraits::findRoads(const int iteration)
