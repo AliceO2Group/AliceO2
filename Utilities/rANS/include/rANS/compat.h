@@ -24,6 +24,7 @@
 #include "rANS/internal/containers/RenormedHistogram.h"
 #include "rANS/internal/containers/SymbolTable.h"
 #include "rANS/internal/containers/Symbol.h"
+#include "rANS/internal/containers/LowRangeDecoderTable.h"
 
 #include "rANS/internal/encode/Encoder.h"
 #include "rANS/internal/encode/SingleStreamEncoderImpl.h"
@@ -219,9 +220,7 @@ class makeDecoder
 
     using source_type = source_T;
     using coder_type = DecoderImpl<mRenormingLowerBound>;
-    using symbol_type = typename coder_type::symbol_type;
-    using symbolTable_type = SymbolTable<source_type, symbol_type>;
-    using decoder_type = Decoder<coder_type, symbolTable_type>;
+    using decoder_type = Decoder<source_T, coder_type>;
 
     return decoder_type{renormed};
   };

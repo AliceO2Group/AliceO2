@@ -50,25 +50,12 @@ class HashSymbolTable : public internal::HashContainer<source_T, symbol_T>
 
   HashSymbolTable() = default;
 
-  inline HashSymbolTable(const RenormedHistogram<source_type>& renormedHistogram) { init(renormedHistogram); };
-  inline HashSymbolTable(const RenormedSparseHistogram<source_type>& renormedHistogram) { init(renormedHistogram); };
-  inline HashSymbolTable(const RenormedHashHistogram<source_type>& renormedHistogram) { init(renormedHistogram); };
-  inline HashSymbolTable(const RenormedSetHistogram<source_type>& renormedHistogram) { init(renormedHistogram); };
+  template <typename container_T>
+  inline HashSymbolTable(const RenormedHistogramImpl<container_T>& renormedHistogram);
 
-  [[nodiscard]] inline const_pointer lookupSafe(source_type sourceSymbol) const
-  {
-    auto iter = this->mContainer.find(sourceSymbol);
-    if (iter == this->mContainer.end()) {
-      return nullptr;
-    } else {
-      return &iter->second;
-    }
-  };
+  [[nodiscard]] inline const_pointer lookupSafe(source_type sourceSymbol) const;
 
-  [[nodiscard]] inline const_pointer lookupUnsafe(source_type sourceSymbol) const
-  {
-    return &(this->mContainer.find(sourceSymbol)->second);
-  };
+  [[nodiscard]] inline const_pointer lookupUnsafe(source_type sourceSymbol) const { return &(this->mContainer.find(sourceSymbol)->second); };
 
   [[nodiscard]] inline size_type size() const noexcept { return this->mContainer.size(); };
 
@@ -83,20 +70,14 @@ class HashSymbolTable : public internal::HashContainer<source_T, symbol_T>
   [[nodiscard]] inline size_type getPrecision() const noexcept { return mSymbolTablePrecision; };
 
  protected:
-  [[nodiscard]] inline bool isValidSymbol(const symbol_type& value) const noexcept
-  {
-    return !this->isEscapeSymbol(value);
-  };
-
-  template <typename histogram_T>
-  void init(const RenormedHistogramImpl<histogram_T>& renormedHistogram);
+  [[nodiscard]] inline bool isValidSymbol(const symbol_type& value) const noexcept { return !this->isEscapeSymbol(value); };
 
   size_type mSymbolTablePrecision{};
 };
 
 template <class source_T, class value_T>
-template <typename histogram_T>
-void HashSymbolTable<source_T, value_T>::init(const RenormedHistogramImpl<histogram_T>& renormedHistogram)
+template <typename container_T>
+HashSymbolTable<source_T, value_T>::HashSymbolTable(const RenormedHistogramImpl<container_T>& renormedHistogram)
 {
   using namespace utils;
   using namespace internal;
@@ -121,6 +102,17 @@ void HashSymbolTable<source_T, value_T>::init(const RenormedHistogramImpl<histog
         cumulatedFrequency += symbolFrequency;
       }
     });
+};
+
+template <class source_T, class value_T>
+[[nodiscard]] inline auto HashSymbolTable<source_T, value_T>::lookupSafe(source_type sourceSymbol) const -> const_pointer
+{
+  auto iter = this->mContainer.find(sourceSymbol);
+  if (iter == this->mContainer.end()) {
+    return nullptr;
+  } else {
+    return &iter->second;
+  }
 };
 
 template <typename source_T, typename symbol_T>

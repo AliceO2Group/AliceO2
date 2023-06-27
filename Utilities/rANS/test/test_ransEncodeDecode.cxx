@@ -17,6 +17,9 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
+#undef NDEBUG
+#include <cassert>
+
 #include <vector>
 #include <cstring>
 

@@ -16,8 +16,8 @@
 
 #ifndef ALICEO2_ENCODED_BLOCKS_H
 #define ALICEO2_ENCODED_BLOCKS_H
-#undef NDEBUG
-#include <cassert>
+// #undef NDEBUG
+// #include <cassert>
 #include <type_traits>
 #include <cstddef>
 #include <Rtypes.h>
@@ -974,7 +974,7 @@ CTFIOSize EncodedBlocks<H, N, W>::decodeRansV1Impl(dst_IT dstBegin, int slot, co
   // verify decoders
   [&]() {
     const decoder_type& decoder = getDecoder();
-    const size_t decoderSymbolTablePrecision = decoder.getSymbolTable().getPrecision();
+    const size_t decoderSymbolTablePrecision = decoder.getSymbolTablePrecision();
 
     if (md.probabilityBits != decoderSymbolTablePrecision) {
       throw std::runtime_error(fmt::format(

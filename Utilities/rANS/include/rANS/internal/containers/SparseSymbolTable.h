@@ -50,7 +50,7 @@ class SparseSymbolTable : public internal::SparseVectorContainer<source_T, symbo
   SparseSymbolTable() = default;
 
   template <typename container_T>
-  explicit SparseSymbolTable(const container_T& renormedHistogram);
+  explicit SparseSymbolTable(const RenormedHistogramImpl<container_T>& renormedHistogram);
 
   [[nodiscard]] inline const_reference operator[](source_type sourceSymbol) const noexcept
   {
@@ -92,23 +92,23 @@ class SparseSymbolTable : public internal::SparseVectorContainer<source_T, symbo
 
 template <class source_T, class value_T>
 template <typename container_T>
-SparseSymbolTable<source_T, value_T>::SparseSymbolTable(const container_T& histogram)
+SparseSymbolTable<source_T, value_T>::SparseSymbolTable(const RenormedHistogramImpl<container_T>& renormedHistogram)
 {
   using namespace utils;
   using namespace internal;
   using count_type = typename value_T::value_type;
 
-  this->mSymbolTablePrecision = histogram.getRenormingBits();
+  this->mSymbolTablePrecision = renormedHistogram.getRenormingBits();
   this->mEscapeSymbol = [&]() -> value_T {
-    const count_type symbolFrequency = histogram.getIncompressibleSymbolFrequency();
-    const count_type cumulatedFrequency = histogram.getNumSamples() - symbolFrequency;
+    const count_type symbolFrequency = renormedHistogram.getIncompressibleSymbolFrequency();
+    const count_type cumulatedFrequency = renormedHistogram.getNumSamples() - symbolFrequency;
     return {symbolFrequency, cumulatedFrequency, this->getPrecision()};
   }();
 
   this->mContainer = container_type{mEscapeSymbol};
 
   count_type cumulatedFrequency = 0;
-  forEachIndexValue(histogram, [&, this](const source_type& sourceSymbol, const count_type& symbolFrequency) {
+  forEachIndexValue(renormedHistogram, [&, this](const source_type& sourceSymbol, const count_type& symbolFrequency) {
     if (symbolFrequency) {
       this->mContainer[sourceSymbol] = symbol_type{symbolFrequency, cumulatedFrequency, this->getPrecision()};
       cumulatedFrequency += symbolFrequency;

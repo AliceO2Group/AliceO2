@@ -59,6 +59,41 @@ class Symbol
   std::array<value_type, 2> mSymbol{0, 0};
 };
 
+template <typename source_T>
+class DecoderSymbol
+{
+ public:
+  using source_type = source_T;
+  using value_type = Symbol;
+  using size_type = size_t;
+  using difference_type = std::ptrdiff_t;
+
+  // TODO(milettri): fix once ROOT cling respects the standard http://wg21.link/p1286r2
+  constexpr DecoderSymbol() noexcept {}; // NOLINT
+  constexpr DecoderSymbol(source_type sourceSymbol, Symbol decoderSymbol) : mSourceSymbol{sourceSymbol}, mDecoderSymbol{decoderSymbol} {};
+  constexpr DecoderSymbol(source_type symbol, typename value_type::value_type frequency, typename value_type::value_type cumulative)
+    : mSourceSymbol{symbol}, mDecoderSymbol{frequency, cumulative} {};
+  [[nodiscard]] inline constexpr source_type getSourceSymbol() const noexcept { return mSourceSymbol; };
+  [[nodiscard]] inline constexpr const value_type& getDecoderSymbol() const noexcept { return mDecoderSymbol; };
+  [[nodiscard]] inline constexpr const value_type* getDecoderSymbolPtr() const noexcept { return &mDecoderSymbol; };
+
+  [[nodiscard]] inline bool operator==(const DecoderSymbol& other) const { return this->getSourceSymbol() == other.getSourceSymbol(); };
+  [[nodiscard]] inline bool operator!=(const DecoderSymbol& other) const { return !operator==(other); };
+
+  friend std::ostream& operator<<(std::ostream& os, const DecoderSymbol& symbol)
+  {
+    os << fmt::format("Symbol:{{Symbol: {}, Frequency: {}, Cumulative: {}}}",
+                      symbol.getSourceSymbol(),
+                      symbol.getDecoderSymbol().getFrequency(),
+                      symbol.getDecoderSymbol().getCumulative());
+    return os;
+  }
+
+ protected:
+  source_type mSourceSymbol{};
+  Symbol mDecoderSymbol{};
+};
+
 class PrecomputedSymbol
 {
  public:
