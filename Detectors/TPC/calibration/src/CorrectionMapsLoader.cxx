@@ -54,7 +54,7 @@ void CorrectionMapsLoader::requestCCDBInputs(std::vector<InputSpec>& inputs, std
   addInput(inputs, {"tpcCorrMap", "TPC", "CorrMap", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalCorrMap), {}, 1)});          // time-dependent
   addInput(inputs, {"tpcCorrMapRef", "TPC", "CorrMapRef", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalCorrMapRef), {}, 0)}); // load once
   if (requestCTPLumi) {
-    addInput(inputs, {"lumi", "CTP", "LUMI", 0, Lifetime::Timeframe});
+    addInput(inputs, {"CTPLumi", "CTP", "LUMI", 0, Lifetime::Timeframe});
   }
   addOptions(options);
 }

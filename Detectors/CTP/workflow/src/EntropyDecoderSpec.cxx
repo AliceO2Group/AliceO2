@@ -55,7 +55,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf");
 
   auto& digits = pc.outputs().make<std::vector<CTPDigit>>(OutputRef{"digits"});
-  auto& lumi = pc.outputs().make<LumiInfo>(OutputRef{"lumi"});
+  auto& lumi = pc.outputs().make<LumiInfo>(OutputRef{"CTPLumi"});
 
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
   if (buff.size()) {
@@ -77,7 +77,7 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
 {
   std::vector<OutputSpec> outputs{
     OutputSpec{{"digits"}, "CTP", "DIGITS", 0, Lifetime::Timeframe},
-    OutputSpec{{"lumi"}, "CTP", "LUMI", 0, Lifetime::Timeframe},
+    OutputSpec{{"CTPLumi"}, "CTP", "LUMI", 0, Lifetime::Timeframe},
     OutputSpec{{"ctfrep"}, "CTP", "CTFDECREP", 0, Lifetime::Timeframe}};
 
   std::vector<InputSpec> inputs;
