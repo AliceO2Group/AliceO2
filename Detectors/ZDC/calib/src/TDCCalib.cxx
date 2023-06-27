@@ -183,7 +183,7 @@ double TDCCalib::extractShift(int ih)
   auto h1 = mCTDC[ih]->createTH1F(TDCCalibData::CTDC[ih]); // createTH1F(histo_name)
   //h1->Draw("HISTO");
   int nEntries = h1->GetEntries();
-  //std::cout << nEntries << std::endl;
+  // std::cout << nEntries << std::endl;
   if ((ih >= 0 && ih <= 9) && (nEntries >= mTDCCalibConfig->min_e[ih])) { //TDC number is ok and more than minimum entries
     double avgShift = h1->GetMean();
     return avgShift;

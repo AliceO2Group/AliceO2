@@ -127,7 +127,7 @@ void TDCCalibEPN::clear()
     if (mTDC[ii]) {
       mTDC[ii]->clear();
     }
-    mData.entries[ii]=0;
+    mData.entries[ii] = 0;
   }
   mData.mCTimeBeg = 0;
   mData.mCTimeEnd = 0;
