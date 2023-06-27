@@ -55,7 +55,7 @@ class GpuTimer
 {
  public:
   GpuTimer() = delete;
-  GpuTimer(const int offset, cudaStream_t stream = 0) : mOffset(offset)
+  GpuTimer(const int offset, cudaStream_t stream = nullptr) : mOffset(offset)
   {
     mStream = stream;
     cudaEventCreateWithFlags(&mStart, cudaEventBlockingSync);
