@@ -13,9 +13,7 @@
 
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
-#include "Framework/CompletionPolicy.h"
-#include "Framework/CompletionPolicyHelpers.h"
-#include "Framework/DeviceSpec.h"
+#include "Framework/CommonDataProcessors.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/Task.h"
 #include "Framework/DataRef.h"
@@ -139,9 +137,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     channelspec = channelbase + socketlist[0] + ",rateLogging=100";
   }
 
-  specs.emplace_back(specifyExternalFairMQDeviceProxy("o2sim-mctrack-proxy",
-                                                      outputs,
-                                                      channelspec.c_str(), f));
+  auto proxy = specifyExternalFairMQDeviceProxy("o2sim-mctrack-proxy",
+                                                outputs,
+                                                channelspec.c_str(), f);
+  proxy.algorithm = CommonDataProcessors::wrapWithRateLimiting(proxy.algorithm);
+  specs.push_back(proxy);
 
   if (configcontext.options().get<bool>("enable-test-consumer")) {
     // connect a test consumer
