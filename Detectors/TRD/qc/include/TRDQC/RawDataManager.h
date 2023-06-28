@@ -22,7 +22,11 @@
 #include "DataFormatsTRD/TriggerRecord.h"
 #include "DataFormatsTRD/Hit.h"
 
+#include "TRDQC/CoordinateTransformer.h"
+
 #include "ReconstructionDataFormats/TrackTPCITS.h"
+#include "SimulationDataFormat/MCEventHeader.h"
+#include "SimulationDataFormat/DigitizationContext.h"
 #include "CommonDataFormat/TFIDInfo.h"
 
 #include <TTreeReaderArray.h>
@@ -46,6 +50,37 @@ struct PadRowID {
   {
     return 100 * x.getDetector() + x.getPadRow();
   }
+
+  static std::vector<uint32_t> keys(const o2::trd::ChamberSpacePoint& x)
+  {
+    uint32_t key = 100 * x.getDetector() + x.getPadRow();
+    return {key}; 
+  }
+
+  static bool match(const uint32_t key, const o2::trd::ChamberSpacePoint& x)
+  {
+    return key == 100 * x.getDetector() + x.getPadRow();
+  }
+};
+
+struct DetectorID {
+  /// The static `key` method calculates a padrow ID for digits and tracklets
+  template <typename T>
+  static uint32_t key(const T& x)
+  {
+    return x.getDetector();
+  }
+
+  static std::vector<uint32_t> keys(const o2::trd::ChamberSpacePoint& x)
+  {
+    uint32_t key = x.getDetector();
+    return {key}; 
+  }
+
+  static bool match(const uint32_t key, const o2::trd::ChamberSpacePoint& x)
+  {
+    return key == x.getDetector();
+  }
 };
 
 /// A struct that can be used to calculate unique identifiers for MCMs, to be
@@ -55,6 +90,22 @@ struct MCM_ID {
   static uint32_t key(const T& x)
   {
     return 1000 * x.getDetector() + 8 * x.getPadRow() + 4 * (x.getROB() % 2) + x.getMCM() % 4;
+  }
+
+  static std::vector<uint32_t> keys(const o2::trd::ChamberSpacePoint& x)
+  {
+    uint32_t detrow = 1000 * x.getDetector() + 8 * x.getPadRow();
+    uint32_t mcmcol = uint32_t(x.getPadCol() / float(o2::trd::constants::NCOLMCM));
+
+    float c = x.getPadCol() - float(mcmcol * o2::trd::constants::NCOLMCM);
+
+    if (c <= 2.0 && mcmcol >= 1) {
+      return {detrow + mcmcol - 1, detrow + mcmcol};
+    } else if (c >= 20 && mcmcol <= 6) {
+      return {detrow + mcmcol, detrow + mcmcol + 1};
+    } else {
+      return {detrow + mcmcol};
+    }
   }
 
   static int getDetector(uint32_t k) { return k / 1000; }
@@ -83,7 +134,8 @@ struct RawDataSpan {
  public:
   myrange<o2::trd::Digit, TTreeReaderArray<o2::trd::Digit>> digits;
   myrange<o2::trd::Tracklet64, TTreeReaderArray<o2::trd::Tracklet64>> tracklets;
-  myrange<o2::trd::Hit, TTreeReaderArray<o2::trd::Hit>> hits;
+  // myrange<o2::trd::Hit, TTreeReaderArray<o2::trd::Hit>> hits;
+  myrange<ChamberSpacePoint, std::vector<ChamberSpacePoint>> hits;
   // myrange<ChamberSpacePoint, std::vector<ChamberSpacePoint>> trackpoints;
 
   /// Sort digits, tracklets and space points by detector, pad row, column
@@ -93,7 +145,7 @@ struct RawDataSpan {
 
   /// Return a vector with one data span for each MCM that has digits, tracklets or both
   /// IterateBy provides a more flexible interface, and should replace this method.
-  std::vector<RawDataSpan> ByMCM();
+  // std::vector<RawDataSpan> ByMCM();
 
   /// Return a vector with data spans, split according to the keyfunc struct
   /// The keyfunc struct must have a method `key` to calculate a key for tracklets
@@ -145,25 +197,25 @@ class RawDataManager
   // void SetMatchWindowTPC(float min, float max)
   // { mMatchTimeMinTPC=min; mMatchTimeMaxTPC=max; }
 
-  bool NextTimeFrame();
-  bool NextEvent();
+  bool nextTimeFrame();
+  bool nextEvent();
 
   /// access time frame info
-  o2::dataformats::TFIDInfo GetTimeFrameInfo();
+  o2::dataformats::TFIDInfo getTimeFrameInfo();
 
   // TTreeReaderArray<o2::tpc::TrackTPC> *GetTimeFrameTPCTracks() {return mTpcTracks; }
-  TTreeReaderArray<o2::dataformats::TrackTPCITS>* GetTimeFrameTracks() { return mTracks; }
+  TTreeReaderArray<o2::dataformats::TrackTPCITS>* getTimeFrameTracks() { return mTracks; }
 
   // access event info
-  RawDataSpan GetEvent();
-  float GetTriggerTime();
+  RawDataSpan getEvent();
+  float getTriggerTime();
 
-  size_t GetTimeFrameNumber() { return mTimeFrameNo; }
-  size_t GetEventNumber() { return mEventNo; }
+  size_t getTimeFrameNumber() { return mTimeFrameNo; }
+  size_t getEventNumber() { return mEventNo; }
 
-  std::string DescribeFiles();
-  std::string DescribeTimeFrame();
-  std::string DescribeEvent();
+  std::string describeFiles();
+  std::string describeTimeFrame();
+  std::string describeEvent();
 
  private:
   // access to TRD digits and tracklets
@@ -180,6 +232,14 @@ class RawDataManager
   TTree* mHitsTree{0};
   TTreeReader* mHitsReader{0};
   TTreeReaderArray<o2::trd::Hit>* mHits{0};
+  std::vector<o2::trd::ChamberSpacePoint> mHitPoints;
+
+  TFile* mMCFile{0};
+  TTree* mMCTree{0};
+  TTreeReader* mMCReader{0};
+  TTreeReaderValue<o2::dataformats::MCEventHeader>* mMCEventHeader{0};
+  // TTreeReaderArray<o2::trd::Hit>* mHits{0};
+  // std::vector<o2::trd::ChamberSpacePoint> mHitPoints;
 
   // access tracks
   TTreeReaderArray<o2::dataformats::TrackTPCITS>* mTracks{0};
@@ -187,6 +247,9 @@ class RawDataManager
 
   // time frame information (for data only)
   std::vector<o2::dataformats::TFIDInfo>* mTFIDs{0};
+
+  // collision context (for MC only)
+  o2::steer::DigitizationContext* mCollisionContext{0};
 
   // current trigger record
   o2::trd::TriggerRecord mTriggerRecord;
@@ -198,7 +261,7 @@ class RawDataManager
   // float mMatchTimeMinTPC{-10.0}, mMatchTimeMaxTPC{20.0};
 
   template <typename T>
-  void AddReaderArray(TTreeReaderArray<T>*& array, std::filesystem::path file, std::string tree, std::string branch);
+  void addReaderArray(TTreeReaderArray<T>*& array, std::filesystem::path file, std::string tree, std::string branch);
 
   // TrackExtrapolator extra;
 };

@@ -211,13 +211,13 @@ MCMDisplay::MCMDisplay(RawDataSpan& mcmdata, TVirtualPad* pad)
   mDigitsHisto->SetStats(0);
 }
 
-void RawDisplay::DrawDigits(std::string opt)
+void RawDisplay::drawDigits(std::string opt)
 {
   mPad->cd();
   mDigitsHisto->Draw(opt.c_str());
 }
 
-void RawDisplay::DrawTracklets()
+void RawDisplay::drawTracklets()
 {
   mPad->cd();
 
@@ -232,11 +232,11 @@ void RawDisplay::DrawTracklets()
   }
 }
 
-void RawDisplay::DrawClusters()
+void RawDisplay::drawClusters()
 {
   mPad->cd();
 
-  DrawDigits();
+  drawDigits();
 
   TMarker clustermarker;
   clustermarker.SetMarkerColor(kRed);

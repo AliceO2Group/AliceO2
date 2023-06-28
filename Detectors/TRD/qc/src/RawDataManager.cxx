@@ -16,10 +16,13 @@
 #include <TTree.h>
 #include <TTreeReader.h>
 #include <TTreeReaderArray.h>
+#include <iterator>
+#include "TRDQC/CoordinateTransformer.h"
+#include "Framework/Logger.h"
 
 using namespace o2::trd;
 
-/// comparison function to order digits by det / row / MCM / channel
+/// comparison function to order digits by det / row / MCM / -channel
 bool comp_digit(const o2::trd::Digit& a, const o2::trd::Digit& b)
 {
   if (a.getDetector() != b.getDetector())
@@ -34,8 +37,9 @@ bool comp_digit(const o2::trd::Digit& a, const o2::trd::Digit& b)
   if (a.getMCM() != b.getMCM())
     return a.getMCM() < b.getMCM();
 
+  // sort channels in descending order, to ensure ordering of pad columns
   if (a.getChannel() != b.getChannel())
-    return a.getChannel() < b.getChannel();
+    return a.getChannel() > b.getChannel();
 
   return true;
 }
@@ -61,24 +65,25 @@ bool comp_tracklet(const o2::trd::Tracklet64& a, const o2::trd::Tracklet64& b)
   return a_col_pos < b_col_pos;
 };
 
-// bool comp_spacepoint(const ChamberSpacePoint &a, const ChamberSpacePoint &b)
-// {
-//   if (a.getDetector() != b.getDetector())
-//     return a.getDetector() < b.getDetector();
+bool comp_spacepoint(const ChamberSpacePoint &a, const ChamberSpacePoint &b)
+{
+  if (a.getDetector() != b.getDetector())
+    return a.getDetector() < b.getDetector();
 
-//   if (a.getPadRow() != b.getPadRow())
-//     return a.getPadRow() < b.getPadRow();
+  if (a.getPadRow() != b.getPadRow())
+    return a.getPadRow() < b.getPadRow();
 
-//   if (a.getPadCol() != b.getPadCol())
-//     return a.getPadCol() < b.getPadCol();
+  if (a.getPadCol() != b.getPadCol())
+    return a.getPadCol() < b.getPadCol();
 
-//   return true;
-// }
+  return true;
+}
 
 void RawDataSpan::sort()
 {
   std::stable_sort(std::begin(digits), std::end(digits), comp_digit);
   std::stable_sort(std::begin(tracklets), std::end(tracklets), comp_tracklet);
+  std::stable_sort(std::begin(hits), std::end(hits), comp_spacepoint);
 }
 
 template <typename keyfunc>
@@ -113,6 +118,23 @@ std::vector<RawDataSpan> RawDataSpan::IterateBy()
     cur = nxt;
   }
 
+  // spanmap contains all TRD data - either digits or tracklets
+  // Now we complete these spans with hit information 
+  std::cout << "-----------------" << std::endl;
+  for (auto cur = hits.b; cur != hits.e; ++cur) {
+    // std::cout << (*cur) << std::endl;
+    for (auto key: keyfunc::keys(*cur)) {
+      if (spanmap[key].hits.b == spanmap[key].hits.e) {
+        spanmap[key].hits.b = cur;
+        spanmap[key].hits.e = cur;
+        // std::cout << "START " << key << ": " << (*spanmap[key].hits.b) << std::endl;
+      }
+      ++spanmap[key].hits.e;
+      // std::cout << " INCR " << key << ": " << std::distance(spanmap[key].hits.b, spanmap[key].hits.e) << std::endl;
+      // std::cout << std::endl;
+    }
+  }
+
   // for (auto cur = event.trackpoints.b; cur != event.trackpoints.e; /* noop */) {
   //   auto nxt = std::adjacent_find(cur, event.trackpoints.e, classifier::comp_trackpoints);
   //   if (nxt != event.trackpoints.e) { ++nxt; }
@@ -122,8 +144,15 @@ std::vector<RawDataSpan> RawDataSpan::IterateBy()
   // }
   // cout << "Found " << this->size() << " spans" << endl;
 
-  std::vector<RawDataSpan> spans;
+  // for (auto &[key, sp] : spanmap) {
+  //   std::cout << key << ": " << sp.digits.length() << " digits, "
+  //        << sp.tracklets.length() << " tracklets, "
+  //        << sp.hits.length() << " hits" << std::endl;
+  // }
 
+  // convert the map of spans into a vector, as we do not need the access by key
+  // and longer, and having a vector makes the looping by the user easier.
+  std::vector<RawDataSpan> spans;
   transform(spanmap.begin(), spanmap.end(), back_inserter(spans), [](auto const& pair) { return pair.second; });
 
   return spans;
@@ -132,57 +161,57 @@ std::vector<RawDataSpan> RawDataSpan::IterateBy()
 template std::vector<RawDataSpan> RawDataSpan::IterateBy<PadRowID>();
 template std::vector<RawDataSpan> RawDataSpan::IterateBy<MCM_ID>();
 
-template <typename T>
-int mcmkey(const T& x)
-{
-  return 1000 * x.getDetector() + 10 * x.getPadRow() + 4 * (x.getROB() % 2) + x.getMCM() % 4;
-}
+// template <typename T>
+// int mcmkey(const T& x)
+// {
+//   return 1000 * x.getDetector() + 10 * x.getPadRow() + 4 * (x.getROB() % 2) + x.getMCM() % 4;
+// }
 
-std::vector<RawDataSpan> RawDataSpan::ByMCM()
-{
-  // we manage all
-  std::map<uint32_t, RawDataSpan> spanmap;
+// std::vector<RawDataSpan> RawDataSpan::ByMCM()
+// {
+//   // we manage all
+//   std::map<uint32_t, RawDataSpan> spanmap;
 
-  // sort digits and tracklets
-  sort();
+//   // sort digits and tracklets
+//   sort();
 
-  // add all the digits to a map
-  for (auto cur = digits.b; cur != digits.e; /* noop */) {
-    // calculate the key of the current (first unprocessed) digit
-    auto key = mcmkey(*cur);
-    // find the first digit with a different key
-    auto nxt = std::find_if(cur, digits.e, [key](auto x) { return mcmkey(x) != key; });
-    // store the range cur:nxt in the map
-    spanmap[key].digits.b = cur;
-    spanmap[key].digits.e = nxt;
-    // continue after this range
-    cur = nxt;
-  }
+//   // add all the digits to a map
+//   for (auto cur = digits.b; cur != digits.e; /* noop */) {
+//     // calculate the key of the current (first unprocessed) digit
+//     auto key = mcmkey(*cur);
+//     // find the first digit with a different key
+//     auto nxt = std::find_if(cur, digits.e, [key](auto x) { return mcmkey(x) != key; });
+//     // store the range cur:nxt in the map
+//     spanmap[key].digits.b = cur;
+//     spanmap[key].digits.e = nxt;
+//     // continue after this range
+//     cur = nxt;
+//   }
 
-  // add tracklets to the map
-  for (auto cur = tracklets.b; cur != tracklets.e; /* noop */) {
-    auto key = mcmkey(*cur);
-    auto nxt = std::find_if(cur, tracklets.e, [key](auto x) { return mcmkey(x) != key; });
-    spanmap[key].tracklets.b = cur;
-    spanmap[key].tracklets.e = nxt;
-    cur = nxt;
-  }
+//   // add tracklets to the map
+//   for (auto cur = tracklets.b; cur != tracklets.e; /* noop */) {
+//     auto key = mcmkey(*cur);
+//     auto nxt = std::find_if(cur, tracklets.e, [key](auto x) { return mcmkey(x) != key; });
+//     spanmap[key].tracklets.b = cur;
+//     spanmap[key].tracklets.e = nxt;
+//     cur = nxt;
+//   }
 
-  // for (auto cur = event.trackpoints.b; cur != event.trackpoints.e; /* noop */) {
-  //   auto nxt = std::adjacent_find(cur, event.trackpoints.e, classifier::comp_trackpoints);
-  //   if (nxt != event.trackpoints.e) { ++nxt; }
-  //   (*this)[classifier::key(*cur)].trackpoints.b = cur;
-  //   (*this)[classifier::key(*cur)].trackpoints.e = nxt;
-  //   cur = nxt;
-  // }
-  // cout << "Found " << this->size() << " spans" << endl;
+//   // for (auto cur = event.trackpoints.b; cur != event.trackpoints.e; /* noop */) {
+//   //   auto nxt = std::adjacent_find(cur, event.trackpoints.e, classifier::comp_trackpoints);
+//   //   if (nxt != event.trackpoints.e) { ++nxt; }
+//   //   (*this)[classifier::key(*cur)].trackpoints.b = cur;
+//   //   (*this)[classifier::key(*cur)].trackpoints.e = nxt;
+//   //   cur = nxt;
+//   // }
+//   // cout << "Found " << this->size() << " spans" << endl;
 
-  std::vector<RawDataSpan> spans;
+//   std::vector<RawDataSpan> spans;
 
-  transform(spanmap.begin(), spanmap.end(), back_inserter(spans), [](auto const& pair) { return pair.second; });
+//   transform(spanmap.begin(), spanmap.end(), back_inserter(spans), [](auto const& pair) { return pair.second; });
 
-  return spans;
-}
+//   return spans;
+// }
 
 RawDataManager::RawDataManager(std::filesystem::path dir)
 {
@@ -213,6 +242,13 @@ RawDataManager::RawDataManager(std::filesystem::path dir)
     mTFIDs = (std::vector<o2::dataformats::TFIDInfo>*)fInTFID.Get("tfidinfo");
   }
 
+  // For MC, we read the collision context
+  if (std::filesystem::exists(dir / "collisioncontext.root")) {
+    TFile fInCollCtx((dir / "collisioncontext.root").c_str());
+    mCollisionContext = (o2::steer::DigitizationContext*) fInCollCtx.Get("DigitizationContext");
+    mCollisionContext->printCollisionSummary();
+  }
+
   // If there are MC hits, we load them
   if (std::filesystem::exists(dir / "o2sim_HitsTRD.root")) {
     mHitsFile = new TFile((dir / "o2sim_HitsTRD.root").c_str());
@@ -222,16 +258,24 @@ RawDataManager::RawDataManager(std::filesystem::path dir)
     std::cout << "connect MC hits file" << std::endl;
   }
 
+  if (std::filesystem::exists(dir / "o2sim_MCHeader.root")) {
+    mMCFile = new TFile((dir / "o2sim_MCHeader.root").c_str());
+    mMCFile->GetObject("o2sim", mMCTree);
+    mMCReader = new TTreeReader(mMCTree);
+    mMCEventHeader = new TTreeReaderValue<o2::dataformats::MCEventHeader>(*mMCReader, "MCEventHeader.");
+    std::cout << "connect MC event header file" << std::endl;
+  }
+
   // Let's try to add other data
-  AddReaderArray(mDigits, dir / "trddigits.root", "o2sim", "TRDDigit");
+  addReaderArray(mDigits, dir / "trddigits.root", "o2sim", "TRDDigit");
   // AddReaderArray(mTpcTracks, dir + "tpctracks.root", "tpcrec", "TPCTracks");
-  AddReaderArray(mTracks, dir / "o2match_itstpc.root", "matchTPCITS", "TPCITS");
+  addReaderArray(mTracks, dir / "o2match_itstpc.root", "matchTPCITS", "TPCITS");
 
   // ConnectMCHitsFile(dir+"o2sim_HitsTRD.root");
 }
 
 template <typename T>
-void RawDataManager::AddReaderArray(TTreeReaderArray<T>*& array, std::filesystem::path file, std::string tree, std::string branch)
+void RawDataManager::addReaderArray(TTreeReaderArray<T>*& array, std::filesystem::path file, std::string tree, std::string branch)
 {
   if (!std::filesystem::exists(file)) {
     // return value TRUE indicates file was not found
@@ -243,7 +287,7 @@ void RawDataManager::AddReaderArray(TTreeReaderArray<T>*& array, std::filesystem
   array = new TTreeReaderArray<T>(*mDatareader, branch.c_str());
 }
 
-bool RawDataManager::NextTimeFrame()
+bool RawDataManager::nextTimeFrame()
 {
   if (mDatareader->Next()) {
     mEventNo = 0;
@@ -261,29 +305,63 @@ bool RawDataManager::NextTimeFrame()
   }
 }
 
-bool RawDataManager::NextEvent()
+bool RawDataManager::nextEvent()
 {
   // get the next trigger record
   if (mEventNo >= mTrgRecords->GetSize()) {
     return false;
   }
 
-  // load the hits for the next event
-  if (mHitsReader) {
-    if (!mHitsReader->Next()) {
-      std::cout << "no hits found for event " << mTimeFrameNo << ":" << mEventNo << std::endl;
-      return false;
+  mTriggerRecord = mTrgRecords->At(mEventNo);
+  std::cout << mTriggerRecord << std::endl;
+
+
+  if (mCollisionContext) {
+
+    // clear MC data
+    mHitPoints.clear();
+
+    for (int i=0; i<mCollisionContext->getNCollisions(); ++i) {
+      if ( abs(mTriggerRecord.getBCData().differenceInBCNS(mCollisionContext->getEventRecords()[i])) == 0 ) {
+        std::cout << "using collision " << i << std::endl;
+        if (mHitsReader) {
+          mHitsReader->SetEntry(i);
+        }
+        if(mMCReader) {
+          mMCReader->SetEntry(i);
+        }
+
+        // convert hits to spacepoints
+        auto ctrans = o2::trd::CoordinateTransformer::instance();
+        for( auto& hit : *mHits) {
+          mHitPoints.emplace_back(ctrans->MakeSpacePoint(hit));
+        }
+      }
     }
+    // // load the hits for the next event
+    // if (mHitsReader) {
+    //   if (mEventNo == 1) {
+    //     std::cout << "skip 2 MC events" << std::endl;
+    //     mHitsReader->Next();
+    //     mHitsReader->Next();
+    //   }
+
+    //   if (!mHitsReader->Next()) {
+    //     std::cout << "no hits found for event " << mTimeFrameNo << ":" << mEventNo << std::endl;
+    //     return false;
+    //   }
+
   }
 
-  mTriggerRecord = mTrgRecords->At(mEventNo);
-  // std::cout << mTriggerRecord << std::endl;
-
   mEventNo++;
+  if(mMCReader) {
+    O2INFO("loaded event: MC time = %fns, ID %d", mMCEventHeader->Get()->GetT(), mMCEventHeader->Get()->GetEventID());
+    mMCEventHeader->Get()->printInfo();
+  }
   return true;
 }
 
-RawDataSpan RawDataManager::GetEvent()
+RawDataSpan RawDataManager::getEvent()
 {
   RawDataSpan ev;
   ev.digits.b = mDigits->begin() + mTriggerRecord.getFirstDigit();
@@ -291,15 +369,10 @@ RawDataSpan RawDataManager::GetEvent()
   ev.tracklets.b = mTracklets->begin() + mTriggerRecord.getFirstTracklet();
   ev.tracklets.e = ev.tracklets.begin() + mTriggerRecord.getNumberOfTracklets();
 
-  if (mHits) {
-    ev.hits.b = mHits->begin();
-    ev.hits.e = mHits->end();
-  } else {
-    ev.hits.b = TTreeReaderArray<o2::trd::Hit>::iterator();
-    ev.hits.e = TTreeReaderArray<o2::trd::Hit>::iterator();
-  }
+  ev.hits.b = mHitPoints.begin();
+  ev.hits.e = mHitPoints.end();
 
-  auto evtime = GetTriggerTime();
+  auto evtime = getTriggerTime();
 
   // if (tpctracks) {
   //   for (auto &track : *mTpcTracks) {
@@ -334,7 +407,7 @@ RawDataSpan RawDataManager::GetEvent()
   return ev;
 }
 
-o2::dataformats::TFIDInfo RawDataManager::GetTimeFrameInfo()
+o2::dataformats::TFIDInfo RawDataManager::getTimeFrameInfo()
 {
   if (mTFIDs) {
     return mTFIDs->at(mTimeFrameNo - 1);
@@ -343,9 +416,9 @@ o2::dataformats::TFIDInfo RawDataManager::GetTimeFrameInfo()
   }
 }
 
-float RawDataManager::GetTriggerTime()
+float RawDataManager::getTriggerTime()
 {
-  auto tfid = GetTimeFrameInfo();
+  auto tfid = getTimeFrameInfo();
 
   if (tfid.isDummy()) {
     return mTriggerRecord.getBCData().bc2ns() * 1e-3;
@@ -355,7 +428,7 @@ float RawDataManager::GetTriggerTime()
   }
 }
 
-std::string RawDataManager::DescribeFiles()
+std::string RawDataManager::describeFiles()
 {
   std::ostringstream out;
   if (!mMainfile) {
@@ -380,7 +453,7 @@ std::string RawDataManager::DescribeFiles()
   return out.str();
 }
 
-std::string RawDataManager::DescribeTimeFrame()
+std::string RawDataManager::describeTimeFrame()
 {
   std::ostringstream out;
   out << "## Time frame " << mTimeFrameNo << ": ";
@@ -388,7 +461,7 @@ std::string RawDataManager::DescribeTimeFrame()
   return out.str();
 }
 
-std::string RawDataManager::DescribeEvent()
+std::string RawDataManager::describeEvent()
 {
   std::ostringstream out;
   out << "## TF:Event " << mTimeFrameNo << ":" << mEventNo << ":  "

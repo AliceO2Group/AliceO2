@@ -115,12 +115,28 @@ std::array<float, 3> CoordinateTransformer::OrigLocal2RCT(int det, float x, floa
   return rct;
 }
 
-// std::ostream& operator<<(std::ostream& os, const ChamberSpacePoint& p)
-// {
-//   os << "( " << std::setprecision(5) << p.getX()
-//      << " / " << std::setprecision(5) << p.getY()
-//      << " / " << std::setprecision(6) << p.getZ() << ") <-> ["
-//      << p.getDetector() << "." << p.getPadRow()
-//      << " pad " << std::setprecision(5) << p.getPadCol() << "]";
-//   return os;
-// }
+  o2::trd::ChamberSpacePoint CoordinateTransformer::MakeSpacePoint(o2::trd::Hit& hit)
+  {
+    float x = hit.getLocalT();
+    float y = hit.getLocalC();
+    float z = hit.getLocalR();
+    auto rct = Local2RCT(hit.GetDetectorID(), x, y, z);
+    return o2::trd::ChamberSpacePoint(hit.GetDetectorID(), x, y, y, rct);
+  }
+
+namespace o2::trd {
+std::ostream& operator<<(std::ostream& os, const ChamberSpacePoint& p)
+{
+  int sector = p.getDetector() / 30;
+  int stack = (p.getDetector() % 30) / 6;
+  int layer = p.getDetector() % 6;
+
+  os << "( " << std::setprecision(5) << p.getX()
+     << " / " << std::setprecision(5) << p.getY()
+     << " / " << std::setprecision(6) << p.getZ() << ") <-> ["
+     << sector << "_" << stack << "_" << layer << " (" << p.getDetector() << ")"
+     << " row " << p.getPadRow()
+     << " pad " << std::setprecision(5) << p.getPadCol() << "]";
+  return os;
+}
+};

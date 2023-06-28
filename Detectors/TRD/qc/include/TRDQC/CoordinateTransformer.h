@@ -25,57 +25,62 @@ namespace o2::trd
 {
 
 class Geometry;
+class CoordinateTransformer;
 
-// /// A position in spatial (x,y,z) and raw/digit coordinates (det,row,col,tb).
-// The class was used in a previous implementation, and still needs to be adopted for inclusion into O2.
-// class ChamberSpacePoint
-// {
-//  public:
-//   ChamberSpacePoint(int det = -999) : mDetector(det){};
-//   // ChamberSpacePoint(o2::track::TrackParCov& t);
+/// A position in spatial (x,y,z) and raw/digit coordinates (det,row,col,tb).
+/// This class is intended to store the converted coordinates of a space point, to avoid 
+/// repeated transformations between spatial and row/col/tb coordinates.
+class ChamberSpacePoint
+{
+ public:
+  ChamberSpacePoint(int det = -999) : mDetector(det){};
+  ChamberSpacePoint(int detector, float x, float y, float z, std::array<float, 3> rct)
+  : mDetector(detector), mX(x), mY(y), mZ(z)
+  , mPadrow(rct[0]), mPadcol(rct[1]), mTimebin(rct[2])
+  { };
 
-//   /// check if the space point has been initialized
-//   bool isValid() const { return mDetector >= 0; }
+  /// check if the space point has been initialized
+  bool isValid() const { return mDetector >= 0; }
 
-//   /// spatial x coordinate of space point
-//   float getX() const { return mX; }
+  /// spatial x coordinate of space point
+  float getX() const { return mX; }
 
-//   /// spatial y coordinate of space point
-//   float getY() const { return mY; }
+  /// spatial y coordinate of space point
+  float getY() const { return mY; }
 
-//   /// spatial z coordinate of space point
-//   float getZ() const { return mZ; }
+  /// spatial z coordinate of space point
+  float getZ() const { return mZ; }
 
-//   /// detector number corresponding to space point
-//   int getDetector() const { return mDetector; }
+  /// detector number corresponding to space point
+  int getDetector() const { return mDetector; }
 
-//   /// pad row within detector of space point
-//   int getPadRow() const { return mPadrow; }
+  /// pad row within detector of space point
+  int getPadRow() const { return int(floor(mPadrow)); }
+  float getPadRowF() const { return mPadrow; }
 
-//   /// pad position (a.k.a. column) within pad row
-//   float getPadCol() const { return mPadcol; }
+  /// pad position (a.k.a. column) within pad row
+  float getPadCol() const { return mPadcol; }
 
-//   /// time coordinate in drift direction
-//   float getTimeBin() const { return mTimebin; }
+  /// time coordinate in drift direction
+  float getTimeBin() const { return mTimebin; }
 
-//   /// calculate MCM corresponding to pad row/column
-//   // int getMCM() const { return o2::trd::HelperMethods::getMCMfromPad(mPadrow, mPadcol); }
+  /// calculate MCM corresponding to pad row/column
+  // int getMCM() const { return o2::trd::HelperMethods::getMCMfromPad(mPadrow, mPadcol); }
 
-//   /// calculate readout board corresponding to pad row/column
-//   // int getROB() const { return o2::trd::HelperMethods::getROBfromPad(mPadrow, mPadcol); }
+  /// calculate readout board corresponding to pad row/column
+  // int getROB() const { return o2::trd::HelperMethods::getROBfromPad(mPadrow, mPadcol); }
 
-//  protected:
-//   float mX, mY, mZ;
-//   int mDetector;
-//   int mPadrow;
-//   float mPadcol, mTimebin;
+ protected:
+  float mX, mY, mZ;
+  int mDetector;
+  float mPadrow, mPadcol, mTimebin;
 
-//   static constexpr float xscale = 1.0 / (o2::trd::Geometry::cheight() + o2::trd::Geometry::cspace());
-//   static constexpr float xoffset = o2::trd::Geometry::getTime0(0);
-//   static constexpr float alphascale = 1.0 / o2::trd::Geometry::getAlpha();
-// };
+  // static constexpr float xscale = 1.0 / (o2::trd::Geometry::cheight() + o2::trd::Geometry::cspace());
+  // static constexpr float xoffset = o2::trd::Geometry::getTime0(0);
+  // static constexpr float alphascale = 1.0 / o2::trd::Geometry::getAlpha();
+};
 
-// std::ostream& operator<<(std::ostream& os, const ChamberSpacePoint& p);
+std::ostream& operator<<(std::ostream& os, const ChamberSpacePoint& p);
 
 /// CoordinateTransformer: translate between local spatial and pad/timebin coordinates
 ///
@@ -107,6 +112,8 @@ class CoordinateTransformer
   {
     return Local2RCT(hit.GetDetectorID(), hit.getLocalT(), hit.getLocalC(), hit.getLocalR());
   }
+
+  o2::trd::ChamberSpacePoint MakeSpacePoint(o2::trd::Hit& hit);
 
   /// Legacy, less accurate method to convert local spatial to row/column/time coordinate.
   /// This method is only included for comparision, and should be removed in the future.
