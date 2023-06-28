@@ -48,7 +48,7 @@ class TDCCalibEPN
   static constexpr int HtdcZPCC = 8;
   static constexpr int HtdcZPCS = 9;
   static constexpr int NTDC = TDCCalibData::NTDC;
-  void clear(int ih = -1);
+  void clear();
   int process(const gsl::span<const o2::zdc::BCRecData>& bcrec,
               const gsl::span<const o2::zdc::ZDCEnergy>& energy,
               const gsl::span<const o2::zdc::ZDCTDCData>& tdc,
