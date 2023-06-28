@@ -183,6 +183,7 @@ class CCDBDownloader
   void setOnlineTimeoutSettings();
 
  private:
+  std::string mUserAgentId = "CCDBDownloader";
   /**
    * Used in debug to detect whether uv loop closed prematurely.
    */

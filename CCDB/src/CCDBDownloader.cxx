@@ -10,6 +10,8 @@
 // or submit itself to any jurisdiction.
 
 #include <CCDB/CCDBDownloader.h>
+#include "CommonUtils/StringUtils.h"
+#include "CCDB/CCDBTimeStampUtils.h"
 
 #include <curl/curl.h>
 #include <unordered_map>
@@ -25,6 +27,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <fairlogger/Logger.h>
+#include <boost/asio/ip/host_name.hpp>
 
 namespace o2::ccdb
 {
@@ -51,8 +54,22 @@ void curlMultiErrorCheck(CURLMcode code)
     LOG(error) << "CCDBDownloader: CURL error - " << curl_multi_strerror(code);
   }
 }
+namespace
+{
+std::string uniqueAgentID()
+{
+  std::string host = boost::asio::ip::host_name();
+  char const* jobID = getenv("ALIEN_PROC_ID");
+  if (jobID) {
+    return fmt::format("{}-{}-{}-{}", host, getCurrentTimestamp() / 1000, o2::utils::Str::getRandomString(6), jobID);
+  } else {
+    return fmt::format("{}-{}-{}", host, getCurrentTimestamp() / 1000, o2::utils::Str::getRandomString(6));
+  }
+}
+} // namespace
 
 CCDBDownloader::CCDBDownloader()
+  : mUserAgentId(uniqueAgentID())
 {
   mConstructorCV = new std::condition_variable();
   std::mutex cv_m;
@@ -434,6 +451,7 @@ void CCDBDownloader::setHandleOptions(CURL* handle, PerformData* data)
   curlEasyErrorCheck(curl_easy_setopt(handle, CURLOPT_TIMEOUT_MS, mRequestTimeoutMS));
   curlEasyErrorCheck(curl_easy_setopt(handle, CURLOPT_CONNECTTIMEOUT_MS, mConnectionTimeoutMS));
   curlEasyErrorCheck(curl_easy_setopt(handle, CURLOPT_HAPPY_EYEBALLS_TIMEOUT_MS, mHappyEyeballsHeadstartMS));
+  curlEasyErrorCheck(curl_easy_setopt(handle, CURLOPT_USERAGENT, mUserAgentId.c_str()));
 }
 
 void CCDBDownloader::checkHandleQueue()
