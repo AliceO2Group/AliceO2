@@ -48,13 +48,17 @@ class ConsumerTask
   {
     LOG(debug) << "Running simple kinematics consumer client";
     for (const DataRef& ref : InputRecordWalker(pc.inputs())) {
+
       auto const* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       LOG(debug) << "Payload size " << dh->payloadSize << " method " << dh->payloadSerializationMethod.as<std::string>();
     }
-    auto tracks = pc.inputs().get<std::vector<o2::MCTrack>>("mctracks");
-    auto eventheader = pc.inputs().get<o2::dataformats::MCEventHeader*>("mcheader");
-    LOG(info) << "Got " << tracks.size() << " tracks";
-    LOG(info) << "Got " << eventheader->GetB() << " as impact parameter in the event header";
+    try {
+      auto tracks = pc.inputs().get<std::vector<o2::MCTrack>>("mctracks");
+      auto eventheader = pc.inputs().get<o2::dataformats::MCEventHeader*>("mcheader");
+      LOG(info) << "Got " << tracks.size() << " tracks";
+      LOG(info) << "Got " << eventheader->GetB() << " as impact parameter in the event header";
+    } catch (...) {
+    }
   }
 };
 
