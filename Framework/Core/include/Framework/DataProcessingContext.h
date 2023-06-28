@@ -45,6 +45,7 @@ struct DataProcessorContext {
   AlgorithmSpec::ProcessCallback statefulProcess;
   AlgorithmSpec::ProcessCallback statelessProcess;
   AlgorithmSpec::ErrorCallback error = nullptr;
+  AlgorithmSpec::InitErrorCallback initError = nullptr;
 
   DataProcessorSpec* spec = nullptr; /// Invoke callbacks to be executed in PreRun(), before the User Start callbacks
 
@@ -122,6 +123,7 @@ struct DataProcessorContext {
   bool balancingInputs = true;
 
   std::function<void(o2::framework::RuntimeErrorRef e, InputRecord& record)> errorHandling;
+  std::function<void(o2::framework::RuntimeErrorRef e)> initErrorHandling;
 };
 
 } // namespace o2::framework

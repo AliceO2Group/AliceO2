@@ -352,6 +352,7 @@ void DataProcessingDevice::Init()
   context.statelessProcess = spec.algorithm.onProcess;
   context.statefulProcess = nullptr;
   context.error = spec.algorithm.onError;
+  context.initError = spec.algorithm.onInitError;
   TracyAppInfo(spec.name.data(), spec.name.size());
   ZoneScopedN("DataProcessingDevice::Init");
 
@@ -383,11 +384,67 @@ void DataProcessingDevice::Init()
 
   mConfigRegistry = std::make_unique<ConfigParamRegistry>(std::move(configStore));
 
+  // Setup the error handlers for init
+  if (context.initError) {
+    context.initErrorHandling = [&errorCallback = context.initError,
+                                 &serviceRegistry = mServiceRegistry](RuntimeErrorRef e) {
+      ZoneScopedN("Error handling");
+      /// FIXME: we should pass the salt in, so that the message
+      ///        can access information which were stored in the stream.
+      ServiceRegistryRef ref{serviceRegistry, ServiceRegistry::globalDeviceSalt()};
+      auto& err = error_from_ref(e);
+      LOGP(error, "Exception caught: {} ", err.what);
+      demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
+      auto& stats = ref.get<DataProcessingStats>();
+      stats.updateStats({(int)ProcessingStatsId::EXCEPTION_COUNT, DataProcessingStats::Op::Add, 1});
+      InitErrorContext errorContext{ref, e};
+      errorCallback(errorContext);
+    };
+  } else {
+    context.initErrorHandling = [&serviceRegistry = mServiceRegistry](RuntimeErrorRef e) {
+      ZoneScopedN("Error handling");
+      auto& err = error_from_ref(e);
+      /// FIXME: we should pass the salt in, so that the message
+      ///        can access information which were stored in the stream.
+      LOGP(error, "Exception caught: {} ", err.what);
+      ServiceRegistryRef ref{serviceRegistry, ServiceRegistry::globalDeviceSalt()};
+      demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
+      auto& stats = ref.get<DataProcessingStats>();
+      stats.updateStats({(int)ProcessingStatsId::EXCEPTION_COUNT, DataProcessingStats::Op::Add, 1});
+      exit(1);
+    };
+  }
+
   context.expirationHandlers.clear();
   context.init = spec.algorithm.onInit;
   if (context.init) {
+    static bool noCatch = getenv("O2_NO_CATCHALL_EXCEPTIONS") && strcmp(getenv("O2_NO_CATCHALL_EXCEPTIONS"), "0");
     InitContext initContext{*mConfigRegistry, mServiceRegistry};
-    context.statefulProcess = context.init(initContext);
+
+    if (noCatch) {
+      try {
+        context.statefulProcess = context.init(initContext);
+      } catch (o2::framework::RuntimeErrorRef e) {
+        ZoneScopedN("error handling");
+        if (context.initErrorHandling) {
+          (context.initErrorHandling)(e);
+        }
+      }
+    } else {
+      try {
+        context.statefulProcess = context.init(initContext);
+      } catch (std::exception& ex) {
+        ZoneScopedN("error handling");
+        /// Convert a standard exception to a RuntimeErrorRef
+        /// Notice how this will lose the backtrace information
+        /// and report the exception coming from here.
+        auto e = runtime_error(ex.what());
+        (context.initErrorHandling)(e);
+      } catch (o2::framework::RuntimeErrorRef e) {
+        ZoneScopedN("error handling");
+        (context.initErrorHandling)(e);
+      }
+    }
   }
   auto& state = ref.get<DeviceState>();
   state.inputChannelInfos.resize(spec.inputChannels.size());
@@ -997,6 +1054,7 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
       }
     };
   }
+
   /// We must make sure there is no optional
   /// if we want to optimize the forwarding
   context.canForwardEarly = (spec.forwards.empty() == false) && mProcessingPolicies.earlyForward != EarlyForwardPolicy::NEVER;
