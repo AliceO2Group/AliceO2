@@ -214,6 +214,7 @@ struct DataProcessingStates {
   int64_t publishedMetricsLapse = 0;
   int64_t publishingInvokedTotal = 0;
   int64_t publishingDoneTotal = 0;
+  std::vector<short> registeredStates = {};
 };
 
 } // namespace o2::framework
