@@ -224,7 +224,7 @@ void closeAllHandles(uv_handle_t* handle, void* arg)
 
 void testTimerCB(uv_timer_t* handle)
 {
- // Mock function to be used by tested timer
+  // Mock function to be used by tested timer
 }
 
 BOOST_AUTO_TEST_CASE(external_loop_test)
