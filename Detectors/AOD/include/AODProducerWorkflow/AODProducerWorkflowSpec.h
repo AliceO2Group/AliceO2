@@ -14,7 +14,6 @@
 #ifndef O2_AODPRODUCER_WORKFLOW_SPEC
 #define O2_AODPRODUCER_WORKFLOW_SPEC
 
-#include "CCDB/BasicCCDBManager.h"
 #include "DataFormatsFT0/RecPoints.h"
 #include "DataFormatsFDD/RecPoint.h"
 #include "DataFormatsFV0/RecPoints.h"
@@ -28,6 +27,7 @@
 #include "DataFormatsEMCAL/EventHandler.h"
 #include "DataFormatsPHOS/EventHandler.h"
 #include "DetectorsBase/GRPGeomHelper.h"
+#include "DetectorsBase/Propagator.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/AnalysisHelpers.h"
 #include "Framework/DataProcessorSpec.h"
@@ -248,6 +248,13 @@ class AODProducerWorkflowDPL : public Task
     return c;
   }
 
+  bool mPropTracks{false};
+  o2::base::Propagator::MatCorrType mMatCorr{o2::base::Propagator::MatCorrType::USEMatCorrLUT};
+  o2::dataformats::MeanVertexObject mVtx;
+  float mMinPropR{o2::constants::geom::XTPCInnerRef + 0.1f};
+
+  std::unordered_set<GIndex> mGIDUsedBySVtx;
+
   int mNThreads = 1;
   bool mUseMC = true;
   bool mEnableSV = true; // enable secondary vertices
@@ -323,7 +330,6 @@ class AODProducerWorkflowDPL : public Task
   // production metadata
   std::vector<TString> mMetaDataKeys;
   std::vector<TString> mMetaDataVals;
-  bool mIsMDSent{false};
 
   std::shared_ptr<DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
@@ -465,7 +471,6 @@ class AODProducerWorkflowDPL : public Task
                   const std::vector<o2::InteractionTimeRecord>& mcRecords,
                   std::map<uint64_t, int>& bcsMap);
 
-  uint64_t getTFNumber(const o2::InteractionRecord& tfStartIR, int runNumber);
   template <typename TracksCursorType, typename TracksCovCursorType>
   void addToTracksTable(TracksCursorType& tracksCursor, TracksCovCursorType& tracksCovCursor,
                         const o2::track::TrackParCov& track, int collisionID, aod::track::TrackTypeEnum type = aod::track::TrackIU);
@@ -483,6 +488,7 @@ class AODProducerWorkflowDPL : public Task
                            GIndex trackID, const o2::globaltracking::RecoContainer& data, int collisionID, std::uint64_t collisionBC, const std::map<uint64_t, int>& bcsMap);
 
   TrackExtraInfo processBarrelTrack(int collisionID, std::uint64_t collisionBC, GIndex trackIndex, const o2::globaltracking::RecoContainer& data, const std::map<uint64_t, int>& bcsMap);
+  bool propagateTrackToPV(o2::track::TrackParametrizationWithError<float>& trackPar, const o2::globaltracking::RecoContainer& data, int colID);
   void extrapolateToCalorimeters(TrackExtraInfo& extraInfoHolder, const o2::track::TrackPar& track);
   void cacheTriggers(const o2::globaltracking::RecoContainer& recoData);
 

@@ -48,6 +48,9 @@ DataSet createData(std::vector<InputSpec> const& inputspecs, std::vector<DataHea
   unsigned char packetCounter = 0;
 
   auto initRawPage = [&checkValues, &amendRdh, &packetCounter](char* buffer, size_t size, auto value) {
+    int pageCounter = 0;
+    unsigned int lastFEEID = 0;
+    unsigned int lastOrbit = 0;
     char* wrtptr = buffer;
     while (wrtptr < buffer + size) {
       auto* header = reinterpret_cast<RAWDataHeader*>(wrtptr);
@@ -55,8 +58,14 @@ DataSet createData(std::vector<InputSpec> const& inputspecs, std::vector<DataHea
       if (amendRdh) {
         amendRdh(*header);
       }
+      if (wrtptr == buffer || header->feeId != lastFEEID || header->orbit != lastOrbit) {
+        pageCounter = 0;
+      }
+      lastFEEID = header->feeId;
+      lastOrbit = header->orbit;
       header->memorySize = PAGESIZE;
       header->offsetToNext = PAGESIZE;
+      header->pageCnt = pageCounter++;
       header->packetCounter = packetCounter++;
       *reinterpret_cast<decltype(value)*>(wrtptr + header->headerSize) = value;
       wrtptr += PAGESIZE;

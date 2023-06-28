@@ -98,9 +98,9 @@ if [[ $SYNCMODE == 1 ]]; then
     MCH_CONFIG_KEY="MCHTracking.maxCandidates=50000;MCHTracking.maxTrackingDuration=20;"
   elif [[ $BEAMTYPE == "pp" ]]; then
     ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=-1;fastMultConfig.cutMultClusHigh=-1;fastMultConfig.cutMultVtxHigh=-1;ITSVertexerParam.phiCut=0.5;ITSVertexerParam.clusterContributorsCut=3;ITSVertexerParam.tanLambdaCut=0.2;"
-    [[ ! -z ${CUT_RANDOM_FRACTION_ITS:-} ]] && ITS_CONFIG_KEY+="fastMultConfig.cutRandomFraction=$CUT_RANDOM_FRACTION_ITS;"
     MCH_CONFIG_KEY="MCHTracking.maxCandidates=20000;MCHTracking.maxTrackingDuration=10;"
   fi
+  [[ ! -z ${CUT_RANDOM_FRACTION_ITS:-} ]] && ITS_CONFIG_KEY+="fastMultConfig.cutRandomFraction=$CUT_RANDOM_FRACTION_ITS;"
   if has_detector_reco ITS; then
     [[ $RUNTYPE == "COSMICS" ]] && MFT_CONFIG_KEY+="MFTTracking.irFramesOnly=1;"
   else
@@ -157,7 +157,7 @@ if [[ $SYNCMODE == 1 ]]; then
 fi
 
 
-workflow_has_parameter CALIB && [[ $CALIB_TRD_VDRIFTEXB == 1 ]] && TRD_CONFIG+=" --enable-trackbased-calib"
+workflow_has_parameter CALIB && [[ $CALIB_TRD_VDRIFTEXB == 1 ]] && TRD_CONFIG+=" --enable-vdexb-calib"
 ! has_detector FT0 && TRD_CONFIG+=" --disable-ft0-pileup-tagging"
 
 SEND_ITSTPC_DTGL=
@@ -235,7 +235,11 @@ if [[ $HOSTMEMSIZE != "0" ]]; then
 fi
 
 GPU_CONFIG_SELF="--severity $SEVERITY_TPC"
-GPU_CONFIG_SELF+=" $TPC_CORR_SCALING "
+ASK_CTP_LUMI_GPU="--require-ctp-lumi"
+: ${TPC_CORR_SCALING_GPU:=""}
+[[ "$TPC_CORR_SCALING" == *"$ASK_CTP_LUMI_GPU"* ]] && TPC_CORR_SCALING_GPU=${TPC_CORR_SCALING//$ASK_CTP_LUMI_GPU/} || ASK_CTP_LUMI_GPU=""
+GPU_CONFIG_SELF+=" $TPC_CORR_SCALING_GPU "
+
 if [[ $GPUTYPE != "CPU" && $(ulimit -e) -ge 25 && ${O2_GPU_WORKFLOW_NICE:-} == 1 ]]; then
   GPU_CONFIG_SELF+=" --child-driver 'nice -n -5'"
 fi
@@ -247,7 +251,7 @@ elif [[ -z "$DISABLE_ROOT_OUTPUT" ]] && has_detector_reco TOF && ! has_detector_
 fi
 
 if has_detector_calib PHS && workflow_has_parameter CALIB; then
-  PHS_CONFIG+="--fullclu-output"
+  PHS_CONFIG+=" --fullclu-output"
 fi
 
 ( workflow_has_parameter AOD || [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-emcal-cell-writer-workflow ) && has_detector EMC && RAW_EMC_SUBSPEC=" --subspecification 1 "
@@ -407,7 +411,7 @@ fi
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Common reconstruction workflows
-(has_detector_reco TPC || has_detector_ctf TPC) && ! has_detector_from_global_reader TPC && add_W o2-gpu-reco-workflow "--gpu-reconstruction \"$GPU_CONFIG_SELF\" --input-type=$GPU_INPUT $DISABLE_MC --output-type $GPU_OUTPUT --pipeline gpu-reconstruction:${N_TPCTRK:-1} $GPU_CONFIG" "GPU_global.deviceType=$GPUTYPE;GPU_proc.debugLevel=0;$GPU_CONFIG_KEY;$TRACKTUNETPCINNER"
+(has_detector_reco TPC || has_detector_ctf TPC) && ! has_detector_from_global_reader TPC && add_W o2-gpu-reco-workflow "--gpu-reconstruction \"$GPU_CONFIG_SELF\" $ASK_CTP_LUMI_GPU --input-type=$GPU_INPUT $DISABLE_MC --output-type $GPU_OUTPUT --pipeline gpu-reconstruction:${N_TPCTRK:-1} $GPU_CONFIG" "GPU_global.deviceType=$GPUTYPE;GPU_proc.debugLevel=0;$GPU_CONFIG_KEY;$TRACKTUNETPCINNER"
 (has_detector_reco TOF || has_detector_ctf TOF) && ! has_detector_from_global_reader TOF && add_W o2-tof-reco-workflow "$TOF_CONFIG --input-type $TOF_INPUT --output-type $TOF_OUTPUT $DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N tof-compressed-decoder TOF RAW 1),$(get_N TOFClusterer TOF REST 1)"
 has_detector_reco ITS && ! has_detector_from_global_reader ITS && add_W o2-its-reco-workflow "--trackerCA $ITS_CONFIG $DISABLE_MC $DISABLE_DIGIT_CLUSTER_INPUT $DISABLE_ROOT_OUTPUT --pipeline $(get_N its-tracker ITS REST 1 ITSTRK)" "$ITS_CONFIG_KEY;$ITSMFT_STROBES;$ITSEXTRAERR"
 has_detector_reco FT0 && ! has_detector_from_global_reader FT0 && add_W o2-ft0-reco-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N ft0-reconstructor FT0 REST 1)"
@@ -518,8 +522,8 @@ workflow_has_parameter GPU_DISPLAY && [[ $NUMAID == 0 ]] && add_W o2-gpu-display
 # AOD
 : ${AOD_INPUT:=$TRACK_SOURCES}
 : ${AODPROD_OPT:=}
-( ! has_detector_matching SECVTX || ! has_detectors_reco ITS || [[ $BEAMTYPE == "cosmic" ]]) && AODPROD_OPT+="--disable-secondary-vertices"
-( ! has_detector_matching STRK || ! has_detector_matching SECVTX || ! has_detectors_reco ITS || [[ $BEAMTYPE == "cosmic" ]]) && AODPROD_OPT+="--disable-strangeness-tracking"
+( ! has_detector_matching SECVTX || ! has_detectors_reco ITS || [[ $BEAMTYPE == "cosmic" ]]) && AODPROD_OPT+=" --disable-secondary-vertices"
+( ! has_detector_matching STRK || ! has_detector_matching SECVTX || ! has_detectors_reco ITS || [[ $BEAMTYPE == "cosmic" ]]) && AODPROD_OPT+=" --disable-strangeness-tracking"
 
 workflow_has_parameter AOD && [[ ! -z "$AOD_INPUT" ]] && add_W o2-aod-producer-workflow "$AODPROD_OPT --info-sources $AOD_INPUT $DISABLE_DIGIT_ROOT_INPUT --aod-writer-keep dangling --aod-writer-resfile \"AO2D\" --aod-writer-resmode UPDATE $DISABLE_MC --pipeline $(get_N aod-producer-workflow AOD REST 1 AODPROD)"
 

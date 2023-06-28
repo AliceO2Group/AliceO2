@@ -61,10 +61,8 @@ class O2DatabasePDG
   }
 
   // determine particle to get mass for based on PDG
-  static Double_t Mass(int pdg, bool& success)
+  static Double_t Mass(int pdg, bool& success, TDatabasePDG* db = O2DatabasePDG::Instance())
   {
-    auto db = Instance();
-
     if (pdg < IONBASELOW || pdg > IONBASEHIGH) {
       // not an ion, return immediately
       return MassImpl(db->GetParticle(pdg), success);
@@ -78,9 +76,10 @@ class O2DatabasePDG
     return MassImpl(db->GetParticle(pdg), success);
   }
 
- private:
-  // private constructor
+  // remove default constructor
   O2DatabasePDG() = delete;
+
+ private:
   static constexpr int IONBASELOW{1000000000};
   static constexpr int IONBASEHIGH{1099999999};
 };
@@ -107,6 +106,11 @@ inline void O2DatabasePDG::addALICEParticles(TDatabasePDG* db)
   const Double_t kErg2Gev = 1 / 1.6021773349e-3;
   const Double_t khShGev = khSlash * kErg2Gev;
   const Double_t kYear2Sec = 3600 * 24 * 365.25;
+
+  // Heavy-flavour particles
+
+  // χc1(3872) aka X(3872), taken from PDG 2022 (https://pdg.lbl.gov/2022/listings/rpp2022-list-chi-c1-3872.pdf)
+  db->AddParticle("Chi_c1(3872)", "Chi_c1(3872)", 3.87165, kFALSE, 0, 0, "CCBarMeson", 9920443);
 
   //
   // Bottom mesons

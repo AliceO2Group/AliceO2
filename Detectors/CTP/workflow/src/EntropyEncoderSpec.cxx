@@ -52,7 +52,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   auto digits = pc.inputs().get<gsl::span<CTPDigit>>("digits");
   LumiInfo lumi{};
   if (!mNoLumi) {
-    lumi = pc.inputs().get<LumiInfo>("lumi");
+    lumi = pc.inputs().get<LumiInfo>("CTPLumi");
   }
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"CTP", "CTFDATA", 0, Lifetime::Timeframe});
   auto iosize = mCTFCoder.encode(buffer, digits, lumi);
@@ -72,7 +72,7 @@ DataProcessorSpec getEntropyEncoderSpec(bool selIR, bool nolumi)
   std::vector<InputSpec> inputs;
   inputs.emplace_back("digits", "CTP", "DIGITS", 0, Lifetime::Timeframe);
   if (!nolumi) {
-    inputs.emplace_back("lumi", "CTP", "LUMI", 0, Lifetime::Timeframe);
+    inputs.emplace_back("CTPLumi", "CTP", "LUMI", 0, Lifetime::Timeframe);
   }
   inputs.emplace_back("ctfdict", "CTP", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("CTP/Calib/CTFDictionaryTree"));
   if (selIR) {

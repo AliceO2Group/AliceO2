@@ -17,18 +17,20 @@
 #include "Framework/Task.h"
 #include "Framework/Logger.h"
 #include "Framework/CCDBParamSpec.h"
-#include "DetectorsRaw/HBFUtils.h"
 #include "Framework/CallbacksPolicy.h"
 #include "Framework/WorkflowSpec.h"
+#include <iostream>
 
 using namespace o2::framework;
 
 std::vector<std::string> objects{"GLO/Calib/MeanVertex"};
 std::vector<unsigned long> times{1657152944347};
+int gRunNumber = 30000;
+int gOrbitsPerTF = 32;
 
-void ReadObjectList()
+void ReadObjectList(std::string const& filename)
 {
-  std::ifstream file("ccdb-objects.dat");
+  std::ifstream file(filename.c_str());
   if (file.is_open()) {
     objects.clear();
     std::string line;
@@ -41,10 +43,10 @@ void ReadObjectList()
   }
 }
 
-void ReadTimesList()
+void ReadTimesList(std::string const& filename)
 {
   // extract times
-  std::ifstream file("ccdb-times.dat");
+  std::ifstream file(filename.c_str());
   if (file.is_open()) {
     std::string line;
     times.clear();
@@ -61,6 +63,10 @@ void ReadTimesList()
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // put here options for the workflow
+  workflowOptions.push_back(ConfigParamSpec{"run-number", o2::framework::VariantType::Int, 30000, {"run number"}});
+  workflowOptions.push_back(ConfigParamSpec{"tforbits", o2::framework::VariantType::Int, 32, {"orbits per tf"}});
+  workflowOptions.push_back(ConfigParamSpec{"objects", o2::framework::VariantType::String, "ccdb-object.dat", {"file with rows of object path to fetch"}});
+  workflowOptions.push_back(ConfigParamSpec{"times", o2::framework::VariantType::String, "ccdb-times.dat", {"file with times to use"}});
 }
 
 // customization to inject time information in the data source device
@@ -76,14 +82,11 @@ void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
       service.set<o2::framework::CallbackService::Id::NewTimeslice>(
         [](o2::header::DataHeader& dh, o2::framework::DataProcessingHeader& dph) {
           static int counter = 0;
-          const auto& hbfu = o2::raw::HBFUtils::Instance();
-          const auto offset = int64_t(hbfu.getFirstIRofTF({0, hbfu.orbitFirstSampled}).orbit);
-          const auto increment = int64_t(hbfu.nHBFPerTF);
-          const auto startTime = hbfu.startTime;
-          const auto orbitFirst = hbfu.orbitFirst;
+          const auto offset = int64_t(0);
+          const auto increment = int64_t(gOrbitsPerTF);
           dh.firstTForbit = offset + increment * dh.tfCounter;
           LOG(info) << "Setting firstTForbit to " << dh.firstTForbit;
-          dh.runNumber = hbfu.runNumber;
+          dh.runNumber = gRunNumber; // hbfu.runNumber;
           LOG(info) << "Setting runNumber to " << dh.runNumber;
           dph.creation = times[counter]; // ; we are taking the times from the timerecord
           counter++;
@@ -97,9 +100,10 @@ void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
 struct Consumer : public o2::framework::Task {
   void run(ProcessingContext& ctx) final
   {
+    static int counter = 1;
     auto& inputs = ctx.inputs();
     auto msg = inputs.get<unsigned long>("datainput");
-    LOG(info) << "Doing compute with conditions for time " << msg;
+    LOG(info) << "Doing compute with conditions for time " << msg << " (" << counter++ << "/" << times.size() << ")";
   }
   void finaliseCCDB(ConcreteDataMatcher&, void*) final
   {
@@ -124,8 +128,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   std::vector<o2::framework::DataProcessorSpec> workflow;
 
-  ReadObjectList();
-  ReadTimesList();
+  ReadObjectList(configcontext.options().get<std::string>("objects"));
+  ReadTimesList(configcontext.options().get<std::string>("times"));
+  gRunNumber = configcontext.options().get<int>("run-number");
+  gOrbitsPerTF = configcontext.options().get<int>("tforbits");
 
   // putting Producer
   workflow.emplace_back(

@@ -109,6 +109,7 @@ class ResidualAggregatorDevice : public o2::framework::Task
     const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
     if (tinfo.globalRunNumberChanged) {
       // new run is starting
+      LOG(info) << "New run start detected";
       mRunStopRequested = false;
       mInitDone = false;
     }
@@ -158,6 +159,7 @@ class ResidualAggregatorDevice : public o2::framework::Task
       mRunStopRequested = true;
       mAggregator->checkSlotsToFinalize();
       mAggregator.reset();
+      LOG(info) << "Finalizing done";
     }
   }
 
@@ -169,6 +171,7 @@ class ResidualAggregatorDevice : public o2::framework::Task
     LOG(info) << "Finalizing calibration for end of stream";
     mAggregator->checkSlotsToFinalize();
     mAggregator.reset(); // must invoke destructor manually here, otherwise we get a segfault
+    LOG(info) << "Finalizing done for end of stream";
   }
 
  private:

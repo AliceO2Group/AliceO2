@@ -115,7 +115,7 @@ void CcdbApi::curlInit()
       auto timeoutMS = atoi(getenv("ALICEO2_CCDB_SOCKET_TIMEOUT"));
       if (timeoutMS >= 0) {
         LOG(info) << "Setting socket timeout to " << timeoutMS << " milliseconds";
-        mDownloader->setSocketTimoutTime(timeoutMS);
+        mDownloader->setKeepaliveTimeoutTime(timeoutMS);
       }
     }
   }
@@ -607,6 +607,7 @@ bool CcdbApi::receiveObject(void* dataHolder, std::string const& path, std::map<
   CURL* curlHandle;
 
   curlHandle = curl_easy_init();
+  curl_easy_setopt(curlHandle, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
 
   if (curlHandle != nullptr) {
 
@@ -1036,6 +1037,7 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
   // normal mode follows
 
   CURL* curl_handle = curl_easy_init();
+  curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
   string fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp); // todo check if function still works correctly in case mInSnapshotMode
   // if we are in snapshot mode we can simply open the file; extract the object and return
   if (mInSnapshotMode) {
@@ -1084,6 +1086,7 @@ std::string CcdbApi::list(std::string const& path, bool latestOnly, std::string 
   if (curl != nullptr) {
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWrite_CallbackFunc_StdString2);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
 
     struct curl_slist* headers = nullptr;
     headers = curl_slist_append(headers, (string("Accept: ") + returnFormat).c_str());
@@ -1129,6 +1132,7 @@ void CcdbApi::deleteObject(std::string const& path, long timestamp) const
   curl = curl_easy_init();
   if (curl != nullptr) {
     curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
     curlSetSSLOptions(curl);
 
     for (size_t hostIndex = 0; hostIndex < hostsPool.size(); hostIndex++) {
@@ -1155,6 +1159,7 @@ void CcdbApi::truncate(std::string const& path) const
     fullUrl << url << "/truncate/" << path;
 
     curl = curl_easy_init();
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
     if (curl != nullptr) {
       curl_easy_setopt(curl, CURLOPT_URL, fullUrl.str().c_str());
 
@@ -1182,6 +1187,7 @@ bool CcdbApi::isHostReachable() const
   bool result = false;
 
   curl = curl_easy_init();
+  curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
   if (curl) {
     for (size_t hostIndex = 0; hostIndex < hostsPool.size() && res != CURLE_OK; hostIndex++) {
       curl_easy_setopt(curl, CURLOPT_URL, mUrl.data());
@@ -1389,6 +1395,7 @@ int CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std::
 {
   int ret = -1;
   CURL* curl = curl_easy_init();
+  curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
   if (curl != nullptr) {
     CURLcode res;
     stringstream fullUrl;
@@ -1513,6 +1520,7 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& p
     fromSnapshot = 2;
   } else { // look on the server
     CURL* curl_handle = curl_easy_init();
+    curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
     string fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp);
 
     curl_slist* options_list = nullptr;

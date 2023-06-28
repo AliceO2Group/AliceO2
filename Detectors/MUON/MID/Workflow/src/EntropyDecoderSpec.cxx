@@ -32,6 +32,7 @@ EntropyDecoderSpec::EntropyDecoderSpec(int verbosity) : mCTFCoder(o2::ctf::CTFCo
   mTimer.Stop();
   mTimer.Reset();
   mCTFCoder.setVerbosity(verbosity);
+  mCTFCoder.setDictBinding("ctfdict_MID");
 }
 
 void EntropyDecoderSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
@@ -53,7 +54,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   o2::ctf::CTFIOSize iosize;
 
   mCTFCoder.updateTimeDependentParams(pc);
-  auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf");
+  auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf_MID");
   std::array<std::vector<o2::mid::ROFRecord>, NEvTypes> rofs{};
   std::array<std::vector<o2::mid::ColumnData>, NEvTypes> cols{};
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
@@ -91,8 +92,8 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
   }
   outputs.emplace_back(OutputSpec{{"ctfrep"}, "MID", "CTFDECREP", 0, Lifetime::Timeframe});
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("ctf", "MID", "CTFDATA", sspec, Lifetime::Timeframe);
-  inputs.emplace_back("ctfdict", "MID", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("MID/Calib/CTFDictionary"));
+  inputs.emplace_back("ctf_MID", "MID", "CTFDATA", sspec, Lifetime::Timeframe);
+  inputs.emplace_back("ctfdict_MID", "MID", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("MID/Calib/CTFDictionary"));
   inputs.emplace_back("trigoffset", "CTP", "Trig_Offset", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/TriggerOffsets"));
 
   return DataProcessorSpec{

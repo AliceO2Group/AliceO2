@@ -48,6 +48,23 @@ namespace trd
 class GeometryFlat;
 } // namespace trd
 
+namespace its
+{
+class Tracker;
+class Vertexer;
+class TimeFrame;
+} // namespace its
+
+namespace itsmft
+{
+class TopologyDictionary;
+} // namespace itsmft
+
+namespace dataformats
+{
+class MeanVertexObject;
+} // namespace dataformats
+
 namespace gpu
 {
 struct GPUO2InterfaceConfiguration;
@@ -81,10 +98,14 @@ class GPURecoWorkflowSpec : public o2::framework::Task
     bool processMC = false;
     bool sendClustersPerSector = false;
     bool askDISTSTF = true;
+    bool runTPCTracking = false;
     bool runTRDTracking = false;
     bool readTRDtracklets = false;
     bool requireCTPLumi = false;
     bool outputErrorQA = false;
+    bool runITSTracking = false;
+    int itsTriggerType = 0;
+    bool itsOverrBeamEst = false;
   };
 
   GPURecoWorkflowSpec(CompletionPolicyData* policyData, Config const& specconfig, std::vector<int> const& tpcsectors, unsigned long tpcSectorMask, std::shared_ptr<o2::base::GRPGeomRequest>& ggr);
@@ -102,16 +123,21 @@ class GPURecoWorkflowSpec : public o2::framework::Task
 
  private:
   /// initialize TPC options from command line
-  void initFunctionTPC(o2::framework::InitContext& ic);
+  void initFunctionTPCCalib(o2::framework::InitContext& ic);
+  void initFunctionITS(o2::framework::InitContext& ic);
   /// storing new calib objects in buffer
   void finaliseCCDBTPC(o2::framework::ConcreteDataMatcher& matcher, void* obj);
+  void finaliseCCDBITS(o2::framework::ConcreteDataMatcher& matcher, void* obj);
   /// asking for newer calib objects
   template <class T>
   bool fetchCalibsCCDBTPC(o2::framework::ProcessingContext& pc, T& newCalibObjects);
+  bool fetchCalibsCCDBITS(o2::framework::ProcessingContext& pc);
   /// storing the new calib objects by overwritting the old calibs
   void storeUpdatedCalibsTPCPtrs();
 
   void doCalibUpdates(o2::framework::ProcessingContext& pc);
+
+  int runITSTracking(o2::framework::ProcessingContext& pc);
 
   CompletionPolicyData* mPolicyData;
   std::unique_ptr<o2::algorithm::ForwardParser<o2::tpc::ClusterGroupHeader>> mParser;
@@ -139,6 +165,11 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   std::unique_ptr<GPUO2InterfaceQA> mQA;
   std::vector<int> mClusterOutputIds;
   std::vector<int> mTPCSectors;
+  std::unique_ptr<o2::its::Tracker> mITSTracker;
+  std::unique_ptr<o2::its::Vertexer> mITSVertexer;
+  o2::its::TimeFrame* mITSTimeFrame = nullptr;
+  const o2::itsmft::TopologyDictionary* mITSDict = nullptr;
+  const o2::dataformats::MeanVertexObject* mMeanVertex;
   unsigned long mTPCSectorMask = 0;
   int mVerbosity = 0;
   unsigned int mNTFs = 0;
@@ -149,9 +180,14 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   bool mGRPGeomUpdated = false;
   bool mAutoContinuousMaxTimeBin = false;
   bool mAutoSolenoidBz = false;
-  bool mGeometryCreated = false;
+  bool mMatLUTCreated = false;
+  bool mITSGeometryCreated = false;
+  bool mTRDGeometryCreated = false;
   bool mPropagatorInstanceCreated = false;
   bool mMustUpdateFastTransform = false;
+  bool mITSRunVertexer = false;
+  bool mITSCosmicsProcessing = false;
+  std::string mITSMode = "sync";
 };
 
 } // end namespace gpu

@@ -45,9 +45,12 @@ class BaselineCalibEPNSpec : public o2::framework::Task
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
  private:
-  int mVerbosity = DbgZero;  // Verbosity level
-  bool mInitialized = false; // Connect once to CCDB during initialization
-  BaselineCalibEPN mWorker;  // Baseline calibration object
+  int mVerbosity = DbgZero;       // Verbosity level
+  int mProcessed = 0;             // Number of TF processed
+  int mModTF = 0;                 // Number of TF to cumulate before transmitting data
+  bool mInitialized = false;      // Connect once to CCDB during initialization
+  bool mRunStopRequested = false; // Request to stop the run from ECS
+  BaselineCalibEPN mWorker;       // Baseline calibration object
   TStopwatch mTimer;
 };
 

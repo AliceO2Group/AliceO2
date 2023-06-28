@@ -19,6 +19,12 @@
 
 using namespace o2::framework;
 
+Double_t O2DatabasePDGImpl::Mass(int pdg, bool& success)
+{
+  // wrap our own Mass function to expose it in the service
+  return o2::O2DatabasePDG::Mass(pdg, success, this);
+}
+
 struct PDGSupport : o2::framework::ServicePlugin {
   o2::framework::ServiceSpec* create() final
   {
@@ -26,7 +32,7 @@ struct PDGSupport : o2::framework::ServicePlugin {
       .name = "database-pdg",
       .init = [](ServiceRegistryRef, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
         auto* wrapper = new o2::framework::O2DatabasePDG();
-        auto* ptr = new TDatabasePDG();
+        auto* ptr = new o2::framework::O2DatabasePDGImpl();
         o2::O2DatabasePDG::addALICEParticles(ptr);
         wrapper->setInstance(ptr);
         return ServiceHandle{TypeIdHelpers::uniqueId<O2DatabasePDG>(), wrapper, ServiceKind::Serial, "database-pdg"};

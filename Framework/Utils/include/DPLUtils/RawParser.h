@@ -226,10 +226,10 @@ class ConcreteRawParser
         }
       }
     }
-    //auto deleter = [](buffer_type*) {};
+    // auto deleter = [](buffer_type*) {};
     do {
       processor(data(), size());
-      //processor(std::unique_ptr<buffer_type, decltype(deleter)>(data(), deleter), size());
+      // processor(std::unique_ptr<buffer_type, decltype(deleter)>(data(), deleter), size());
     } while (next());
   }
 
@@ -237,6 +237,7 @@ class ConcreteRawParser
   bool next()
   {
     int lastPacketCounter = -1;
+    int lastHBFPacketCounter = -1;
     unsigned int lastFEEID = -1;
     if (mPosition == nullptr) {
       mPosition = mRawBuffer;
@@ -251,6 +252,7 @@ class ConcreteRawParser
       }
       if (RawParserHelper::sCheckIncompleteHBF) {
         lastPacketCounter = header().packetCounter;
+        lastHBFPacketCounter = header().pageCnt;
         lastFEEID = header().feeId;
       }
       mPosition += offset;
@@ -278,13 +280,13 @@ class ConcreteRawParser
         mPosition = mRawBuffer + mSize;
         return false;
       }
-      if (lastPacketCounter != -1 && (unsigned char)(lastPacketCounter + 1) != header().packetCounter && lastFEEID == header().feeId) {
+      // FIXME: The && should be ||, since both packetCounter and pageCnt should be incremental. But currently, UL data with multiple links does not have incremental packetCounter.
+      if (lastPacketCounter != -1 && lastFEEID == header().feeId && ((unsigned char)(lastPacketCounter + 1) != header().packetCounter && (unsigned short)(lastHBFPacketCounter + 1) != header().pageCnt)) {
         if (RawParserHelper::sErrorMode >= 2 && RawParserHelper::sCheckIncompleteHBF >= 2) {
           throw std::runtime_error("Incomplete HBF - jump in packet counter");
         }
         if (RawParserHelper::checkPrintError(mNErrors)) {
           LOG(error) << "RAWPARSER: Incomplete HBF - jump in packet counter " << lastPacketCounter << " to " << header().packetCounter << " (" << RawParserHelper::sErrors << " total RawParser errors)";
-          ;
         }
         mPosition = mRawBuffer + mSize;
         return false;
@@ -350,7 +352,7 @@ using V5 = header::RAWDataHeaderV5;
 using V4 = header::RAWDataHeaderV4;
 // FIXME v3 and v4 are basically the same with v4 defining a few more fields in the otherwise reserved parts
 // needs to be defined in the header, have to check if we need to support this
-//using V3 = header::RAWDataHeaderV3;
+// using V3 = header::RAWDataHeaderV3;
 
 template <size_t N, bool BOUNDS_CHECKS>
 using V7Parser = ConcreteRawParser<header::RAWDataHeaderV7, N, BOUNDS_CHECKS>;
@@ -483,7 +485,7 @@ class RawParser
     static_assert(NofAlternatives == 4); // Change this if a new RDH version is added
     raw_parser::walk_parse<NofAlternatives>(mParser, processor, mParser.index());
     // it turned out that using a iterative function is faster than using std::visit
-    //std::visit([&processor](auto& parser) { return parser.parse(processor); }, mParser);
+    // std::visit([&processor](auto& parser) { return parser.parse(processor); }, mParser);
   }
 
   /// Reset parser and set position to beginning of buffer
@@ -628,7 +630,7 @@ class RawParser
     // for the moment its problematic, because the parser has only one variable determining the position and all
     // iterators work with the same instance which is asking for conflicts
     // this needs to be changed in order to have fully independent iterators over the same constant buffer
-    //for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
+    // for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
     //  os << "\n" << it;
     //}
     return os;
@@ -636,7 +638,7 @@ class RawParser
 
   size_t getNErrors() const
   {
-    return mParser.getNErrors();
+    return std::visit([](auto& parser) { return parser.getNErrors(); }, mParser);
   }
 
   static void setCheckIncompleteHBF(bool v)

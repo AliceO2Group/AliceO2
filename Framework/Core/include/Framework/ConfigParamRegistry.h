@@ -112,6 +112,19 @@ class ConfigParamRegistry
     throw std::invalid_argument(std::string("bad type for option: ") + key);
   }
 
+  template <typename T>
+  void override(const char* key, const T& val) const
+  {
+    assert(mStore.get());
+    try {
+      mStore->store().put(key, val);
+    } catch (std::exception& e) {
+      throw std::invalid_argument(std::string("failed to store an option: ") + key + " (" + e.what() + ")");
+    } catch (...) {
+      throw std::invalid_argument(std::string("failed to store an option: ") + key);
+    }
+  }
+
  private:
   std::unique_ptr<ConfigParamStore> mStore;
 };

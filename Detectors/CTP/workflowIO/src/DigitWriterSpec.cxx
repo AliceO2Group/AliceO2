@@ -37,7 +37,7 @@ framework::DataProcessorSpec getDigitWriterSpec(bool raw)
     return MakeRootTreeWriterSpec("ctp-digit-writer-dec", "ctpdigits.root",
                                   MakeRootTreeWriterSpec::TreeAttributes{"o2sim", "Tree with CTP digits/Lumi"},
                                   BranchDefinition<std::vector<o2::ctp::CTPDigit>>{InputSpec{"digit", "CTP", "DIGITS", 0}, "CTPDigits", logger},
-                                  BranchDefinition<o2::ctp::LumiInfo>{InputSpec{"lumi", "CTP", "LUMI", 0}, "CTPLumi"})();
+                                  BranchDefinition<o2::ctp::LumiInfo>{InputSpec{"CTPLumi", "CTP", "LUMI", 0}, "CTPLumi"})();
   }
   // MC digits case, no lumi available
   return MakeRootTreeWriterSpec("ctp-digit-writer", "ctpdigits.root",

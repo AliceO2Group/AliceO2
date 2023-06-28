@@ -558,7 +558,7 @@
 #endif
 
 #define GPUCA_MAX_THREADS 1024
-#define GPUCA_MAX_STREAMS 32
+#define GPUCA_MAX_STREAMS 36
 
 #define GPUCA_SORT_STARTHITS_GPU                                       // Sort the start hits when running on GPU
 #define GPUCA_ROWALIGNMENT 16                                          // Align of Row Hits and Grid

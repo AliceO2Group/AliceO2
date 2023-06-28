@@ -173,7 +173,9 @@ class GPUDataTypes
                               TPCCompressedClusters = 8,
                               TRDTracklets = 16,
                               TRDTracks = 32,
-                              TPCRaw = 64 };
+                              TPCRaw = 64,
+                              ITSClusters = 128,
+                              ITSTracks = 256 };
 
 #ifdef GPUCA_NOCOMPAT_ALLOPENCL
   static constexpr const char* const DEVICE_TYPE_NAMES[] = {"INVALID", "CPU", "CUDA", "HIP", "OCL", "OCL2"};

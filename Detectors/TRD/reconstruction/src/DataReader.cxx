@@ -94,7 +94,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     outputs,
     algoSpec,
     Options{{"log-max-errors", VariantType::Int, 20, {"maximum number of errors to log"}},
-            {"log-max-warnings", VariantType::Int, 20, {"maximum number of warnings to log"}}}});
+            {"log-max-warnings", VariantType::Int, 20, {"maximum number of warnings to log"}},
+            {"every-nth-tf", VariantType::Int, 1, {"process only every n-th TF"}}}});
 
   if (!cfgc.options().get<bool>("disable-root-output")) {
     workflow.emplace_back(o2::trd::getTRDDigitWriterSpec(false, false));

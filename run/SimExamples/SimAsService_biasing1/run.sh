@@ -32,7 +32,7 @@ rname1=$(hexdump -n 16 -v -e '/1 "%02X"' -e '/16 "\n"' /dev/urandom | head -c 6)
 set -x
 ### step 1: Startup the 1st service with a partial detector config
 
-( o2-sim-client.py --startup "-j ${NWORKERS} -n 0 -g pythia8 -m ${MODULES} -o simservice --configFile sim_step1.ini" \
+( o2-sim-client.py --startup "-j ${NWORKERS} -n 0 -m ${MODULES} -o simservice --configFile sim_step1.ini" \
                    --block ) | tee /tmp/${rname1}  # <--- return when everything is fully initialized
 SERVICE1_PID=$(grep "detached as pid" /tmp/${rname1} | awk '//{print $4}')
 
@@ -50,7 +50,7 @@ batch=0
 trialevents=0
 while (( biasedcount < ${NTRIGGEREDEVENTS} )); do
   ### simulate some events with service 1
-  o2-sim-client.py --pid ${SERVICE1_PID} --command "-g pythia8 -n ${NTRIALEVENTS} --configFile sim_step1.ini -o batch${batch}" --block
+  o2-sim-client.py --pid ${SERVICE1_PID} --command "-g pythia8pp -n ${NTRIALEVENTS} --configFile sim_step1.ini -o batch${batch}" --block
 
   ### filter out good events
   ln -nsf simservice_grp.root batch${batch}_grp.root

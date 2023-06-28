@@ -107,6 +107,11 @@ using ServiceDriverInit = void (*)(ServiceRegistryRef, DeviceConfig const&);
 /// Callback invoked when the driver enters the init phase.
 using ServiceDriverStartup = void (*)(ServiceRegistryRef, DeviceConfig const&);
 
+/// Callback executed every time we are about to enter the uv_run loop.
+/// This is the last chance to queue something on the loop before it
+/// will wait for events.
+using ServicePreLoop = void (*)(ServiceRegistryRef, void*);
+
 /// Callback invoked when we inject internal devices in the topology
 using ServiceTopologyInject = void (*)(WorkflowSpecNode&, ConfigContext&);
 
@@ -184,6 +189,9 @@ struct ServiceSpec {
   ServiceDriverInit driverInit = nullptr;
   /// Callback invoked when starting the driver
   ServiceDriverStartup driverStartup = nullptr;
+
+  /// Callback invoked before the loop starts
+  ServicePreLoop preLoop = nullptr;
 
   /// Callback invoked when doing topology creation
   ServiceTopologyInject injectTopology = nullptr;
@@ -298,6 +306,12 @@ struct ServicePreSendingMessagesHandle {
 struct ServicePostRenderGUIHandle {
   ServiceSpec const& spec;
   ServicePostRenderGUI callback;
+  void* service;
+};
+
+struct ServicePreLoopHandle {
+  ServiceSpec const& spec;
+  ServicePreLoop callback;
   void* service;
 };
 

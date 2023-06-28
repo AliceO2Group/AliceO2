@@ -180,12 +180,15 @@ void Digitizer::generatePedestal()
 {
   for (int idet : {ZNA, ZPA, ZNC, ZPC}) {
     int chanSum = toChannel(idet, Sum);
-    mPedestalBLFluct[chanSum] = 0.;
+    // Uncorrelated baseline oscillations for sum channels
+    mPedestalBLFluct[chanSum] = gRandom->Gaus(0, mSimCondition->channels[chanSum].pedestalFluct);
     int comm = toChannel(idet, Common);
     mPedestalBLFluct[comm] = gRandom->Gaus(0, mSimCondition->channels[comm].pedestalFluct);
     for (int ic : {Ch1, Ch2, Ch3, Ch4}) {
       int chan = toChannel(idet, ic);
-      mPedestalBLFluct[chanSum] += mPedestalBLFluct[chan] = gRandom->Gaus(0, mSimCondition->channels[chan].pedestalFluct);
+      mPedestalBLFluct[chan] = gRandom->Gaus(0, mSimCondition->channels[chan].pedestalFluct);
+      // Correlated baseline oscillations for sum channels
+      mPedestalBLFluct[chanSum] += mPedestalBLFluct[chan];
     }
   }
   mPedestalBLFluct[IdZEM1] = gRandom->Gaus(0, mSimCondition->channels[IdZEM1].pedestalFluct);
@@ -450,12 +453,6 @@ o2::zdc::Digitizer::BCCache* Digitizer::getBCCache(const o2::InteractionRecord& 
 //______________________________________________________________________________
 void Digitizer::init()
 {
-  if (mCCDBServer.empty()) {
-    LOG(fatal) << "ZDC digitizer: CCDB server is not set";
-  }
-  auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-  mgr.setURL(mCCDBServer);
-
   auto& sopt = ZDCSimParam::Instance();
   mIsContinuous = sopt.continuous;
   mNBCAHead = mIsContinuous ? sopt.nBCAheadCont : sopt.nBCAheadTrig;
@@ -463,64 +460,47 @@ void Digitizer::init()
             << " BCs will be stored ahead of Trigger";
   LOG(info) << "Trigger bit masking is " << (mMaskTriggerBits ? "ON (default)" : "OFF (debugging)");
   LOG(info) << "MC Labels are " << (mSkipMCLabels ? "SKIPPED" : "SAVED (default)");
-}
 
-//______________________________________________________________________________
-void Digitizer::refreshCCDB()
-{
-  // fetch ccdb objects. TODO: decide if this stays here or goes to the Spec
-  auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-  if (!mModuleConfig) { // load this only once
-    mModuleConfig = mgr.get<ModuleConfig>(CCDBPathConfigModule);
-    LOG(info) << "Loaded " << CCDBPathConfigModule << " from " << mgr.getURL() << " for timestamp " << mgr.getTimestamp();
-    // fetch trigger info
-    mTriggerConfig.clear();
-    mModConfAux.clear();
-    for (const auto& md : mModuleConfig->modules) {
-      if (md.id >= 0 && md.id < NModules) {
-        mModConfAux.emplace_back(md);
-        for (int ic = Module::MaxChannels; ic--;) {
-          // We consider all channels that can produce a hit
-          if (md.trigChannel[ic] || (md.trigChannelConf[ic].shift > 0 && md.trigChannelConf[ic].threshold > 0)) {
-            const auto& trgChanConf = md.trigChannelConf[ic];
-            if (trgChanConf.last + trgChanConf.shift + 1 >= NTimeBinsPerBC) {
-              LOG(error) << "Wrong trigger settings";
-            }
-            mTriggerConfig.emplace_back(trgChanConf);
-            // We insert in the trigger mask only the channels that are actually triggering
-            // Trigger mask is geographical, bit position is relative to the module and channel
-            // where signal is connected
-            if (md.trigChannel[ic]) {
-              LOG(info) << "Adding channel [" << md.id << "," << ic << "] " << int(trgChanConf.id) << '(' << channelName(trgChanConf.id) << ") as triggering one";
-              // TODO insert check if bit is already used. Should never happen
-              mTriggerableChanMask |= 0x1 << (NChPerModule * md.id + ic);
-            } else {
-              LOG(info) << "Adding channel [" << md.id << "," << ic << "] " << int(trgChanConf.id) << '(' << channelName(trgChanConf.id) << ") as discriminator";
-            }
-            if (trgChanConf.first < mTrigBinMin) {
-              mTrigBinMin = trgChanConf.first;
-            }
-            if (trgChanConf.last + trgChanConf.shift > mTrigBinMax) {
-              mTrigBinMax = trgChanConf.last + trgChanConf.shift;
-            }
+  mTriggerConfig.clear();
+  mModConfAux.clear();
+  for (const auto& md : mModuleConfig->modules) {
+    if (md.id >= 0 && md.id < NModules) {
+      mModConfAux.emplace_back(md);
+      for (int ic = Module::MaxChannels; ic--;) {
+        // We consider all channels that can produce a hit
+        if (md.trigChannel[ic] || (md.trigChannelConf[ic].shift > 0 && md.trigChannelConf[ic].threshold > 0)) {
+          const auto& trgChanConf = md.trigChannelConf[ic];
+          if (trgChanConf.last + trgChanConf.shift + 1 >= NTimeBinsPerBC) {
+            LOG(error) << "Wrong trigger settings";
           }
-          if (md.feeID[ic] < 0 || md.feeID[ic] >= NLinks) {
-            LOG(fatal) << "FEEID " << md.feeID[ic] << " not in allowed range [0:" << NLinks << ")";
+          mTriggerConfig.emplace_back(trgChanConf);
+          // We insert in the trigger mask only the channels that are actually triggering
+          // Trigger mask is geographical, bit position is relative to the module and channel
+          // where signal is connected
+          if (md.trigChannel[ic]) {
+            LOG(info) << "Adding channel [" << md.id << "," << ic << "] " << int(trgChanConf.id) << '(' << channelName(trgChanConf.id) << ") as triggering one";
+            // TODO insert check if bit is already used. Should never happen
+            mTriggerableChanMask |= 0x1 << (NChPerModule * md.id + ic);
+          } else {
+            LOG(info) << "Adding channel [" << md.id << "," << ic << "] " << int(trgChanConf.id) << '(' << channelName(trgChanConf.id) << ") as discriminator";
+          }
+          if (trgChanConf.first < mTrigBinMin) {
+            mTrigBinMin = trgChanConf.first;
+          }
+          if (trgChanConf.last + trgChanConf.shift > mTrigBinMax) {
+            mTrigBinMax = trgChanConf.last + trgChanConf.shift;
           }
         }
-      } else {
-        LOG(fatal) << "Module id: " << md.id << " is out of range";
+        if (md.feeID[ic] < 0 || md.feeID[ic] >= NLinks) {
+          LOG(fatal) << "FEEID " << md.feeID[ic] << " not in allowed range [0:" << NLinks << ")";
+        }
       }
+    } else {
+      LOG(fatal) << "Module id: " << md.id << " is out of range";
     }
-    mModuleConfig->print();
   }
-
-  if (!mSimCondition) { // load this only once
-    mSimCondition = mgr.get<SimCondition>(CCDBPathConfigSim);
-    LOG(info) << "Loaded " << CCDBPathConfigSim << " from " << mgr.getURL() << " for timestamp " << mgr.getTimestamp();
-    mSimCondition->print();
-  }
-
+  mModuleConfig->print();
+  mSimCondition->print();
   setTriggerMask();
   setReadoutMask();
 }

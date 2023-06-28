@@ -85,6 +85,30 @@ class V3Cage : public V11Geometry
   /// \param mgr  The GeoManager (used only to get the proper material)
   TGeoCompositeShape* createCageEndCapCableCross(const TGeoManager* mgr = gGeoManager);
 
+  /// Creates the Beam Pipe Support inside the Cage on the A side
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  TGeoVolume* createBeamPipeSupport(const TGeoManager* mgr = gGeoManager);
+
+  /// Creates the Titanium lower part of the collar supporting the beam pipe
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  TGeoCompositeShape* createBPSuppLowerCollar();
+
+  /// Creates the Titanium upper part of the collar supporting the beam pipe
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  TGeoCompositeShape* createBPSuppUpperCollar();
+
+  /// Creates the CF lateral bar of the beam pipe support (aka collar beam)
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  TGeoCompositeShape* createBPSuppCollarBeam();
+
+  /// Creates the Titanium lateral bracket of the beam pipe support
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  TGeoCompositeShape* createBPSuppBracket();
+
+  /// Creates the lateral clamps holding the beam pipe support to the Cage
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  TGeoCompositeShape* createBPSuppClamp();
+
   /// Creates the Cage Closing Cross element
   /// \param mgr  The GeoManager (used only to get the proper material)
   TGeoVolume* createCageClosingCross(const TGeoManager* mgr = gGeoManager);
@@ -111,6 +135,7 @@ class V3Cage : public V11Geometry
   static const Double_t sCageCoverRibYBaseHi;  ///< Cover rib Base Height on Y
   static const Double_t sCageCoverRibFoldHi;   ///< Cover rib Fold Height
 
+  // Cage Side Panels and Rails
   static const Double_t sCageSidePanelLength;    ///< Side panel length along Z
   static const Double_t sCageSidePanelWidth;     ///< Side panel width along Y
   static const Double_t sCageSidePanelFoilThick; ///< Side panel foil thickness
@@ -135,6 +160,7 @@ class V3Cage : public V11Geometry
   static const Double_t sCageSidePanelRail2Ypos;    ///< Side panel rail 2 Y pos
   static const Double_t sCageSidePanelRail3Ypos[3]; ///< Side panel rail 3 Y pos
 
+  // Cage End Cap
   static const Double_t sCageEndCapDext;        ///< End Cap ext diameter
   static const Double_t sCageEndCapDint;        ///< End Cap int diameter
   static const Double_t sCageEndCapFoamThick;   ///< End Cap foam thickness
@@ -157,6 +183,57 @@ class V3Cage : public V11Geometry
   static const Double_t sCageECCableCrosInZLen; ///< EC Cable Cut inner length
   static const Double_t sCageECCableCrosSidWid; ///< EC Cable Cut Y side len
 
+  // Beam Pipe Support (A Side)
+  static const Double_t sBPSuppCollarIntD;     ///< BP support collar int diam
+  static const Double_t sBPSuppCollarExtD;     ///< BP support collar ext diam
+  static const Double_t sBPSuppCollarBushD;    ///< BP support collar bushing diam
+  static const Double_t sBPSuppUpperCollarLen; ///< BP support upper collar len
+  static const Double_t sBPSuppUpperCollarHei; ///< BP support upper collar high
+  static const Double_t sBPSuppLowerCollarLen; ///< BP support lower collar len
+  static const Double_t sBPSuppLowerCollarTlX; ///< BP support lower collar tail X
+  static const Double_t sBPSuppLowCollHolDist; ///< BP support lower collar hole dist
+  static const Double_t sBPSuppLowCollTailHei; ///< BP support lower collar tail hei
+  static const Double_t sBPSuppCollarBeamLen;  ///< BP support collar beam len
+  static const Double_t sBPSuppCollarBeamWid;  ///< BP support collar beam wide
+  static const Double_t sBPSuppCollarBeamHei;  ///< BP support collar beam high
+  static const Double_t sBPSuppBracketTotLen;  ///< BP support bracket total len
+  static const Double_t sBPSuppBracketWidth;   ///< BP support bracket width
+  static const Double_t sBPSuppBracketInLen;   ///< BP support bracket internal len
+  static const Double_t sBPSuppBracketInHei;   ///< BP support bracket internal height
+  static const Double_t sBPSuppBracketTailLen; ///< BP support bracket tail len
+  static const Double_t sBPSuppBracketTailHei; ///< BP support bracket tail hei
+  static const Double_t sBPSuppBrktCentHoleX;  ///< BP support bracket central hole X pos
+  static const Double_t sBPSuppBrktCentHoleD;  ///< BP support bracket central hole diameter
+  static const Double_t sBPSuppBrktLatHoleX;   ///< BP support bracket lateral hole X pos
+  static const Double_t sBPSuppBrktLatHoleD;   ///< BP support bracket lateral hole diameter
+  static const Double_t sBPSuppBrktLatHoleW;   ///< BP support bracket lateral hole width
+  static const Double_t sBPSuppBrktLatHoleH;   ///< BP support bracket lateral hole height
+  static const Double_t sBPSuppBrktHolesY;     ///< BP support bracket holes Y pos
+  static const Double_t sBPSuppCollarM4High;   ///< BP support collar screw head height
+  static const Double_t sBPSuppCollarM4Diam;   ///< BP support collar screw head diameter
+  static const Double_t sBPSuppCollarM4XDist;  ///< BP support collar screw X dist
+  static const Double_t sBPSuppCollarM4ZPos;   ///< BP support collar screw Z pos
+  static const Double_t sBPSuppClampTotLen;    ///< BP support clamp length
+  static const Double_t sBPSuppClampTotWid;    ///< BP support clamp width
+  static const Double_t sBPSuppClampTotHei;    ///< BP support clamp height
+  static const Double_t sBPSuppClampLatThick;  ///< BP support clamp lateral thick
+  static const Double_t sBPSuppClampShelfLen;  ///< BP support clamp shelf len
+  static const Double_t sBPSuppClampShelfHei;  ///< BP support clamp shelf hei
+  static const Double_t sBPSuppClampsXDist;    ///< BP support clamps X distance
+  static const Double_t sBPSuppClampInsDmin;   ///< BP support clamp insert Dmin
+  static const Double_t sBPSuppClampInsDmax;   ///< BP support clamp insert Dmax
+  static const Double_t sBPSuppClampInsH;      ///< BP support clamp insert H
+  static const Double_t sBPSuppClampInsXPos;   ///< BP support clamp insert X
+  static const Double_t sBPSuppClampInsZPos;   ///< BP support clamp insert Z
+  static const Double_t sBPSuppClampShimLen;   ///< BP support clamp shim length
+  static const Double_t sBPSuppClampShimWid;   ///< BP support clamp shim width
+  static const Double_t sBPSuppClampShimThick; ///< BP support clamp shim thick
+  static const Double_t sBPSuppClampM5High;    ///< BP support clamp screw head height
+  static const Double_t sBPSuppClampM5Diam;    ///< BP support clamp screw head diameter
+  static const Double_t sBPSuppClampM5ZPos;    ///< BP support clamp screw Z pos
+  static const Double_t sBPSuppZPos;           ///< BP support global Z pos
+
+  // Closing Cross
   static const Double_t sCageCrossXWidthTot;  ///< Closing cross total X wid
   static const Double_t sCageCrossXWidthExt;  ///< Closing cross external X wid
   static const Double_t sCageCrossXWidthInt;  ///< Closing cross internal X wid

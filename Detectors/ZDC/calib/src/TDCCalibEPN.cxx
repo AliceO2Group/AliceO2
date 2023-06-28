@@ -121,16 +121,16 @@ int TDCCalibEPN::endOfRun()
 
 //----//
 
-void TDCCalibEPN::clear(int ih)
+void TDCCalibEPN::clear()
 {
-  int ihstart = 0;
-  int ihstop = NTDC;
-
-  for (int32_t ii = ihstart; ii < ihstop; ii++) {
+  for (int32_t ii = 0; ii < NTDC; ii++) {
     if (mTDC[ii]) {
       mTDC[ii]->clear();
     }
+    mData.entries[ii] = 0;
   }
+  mData.mCTimeBeg = 0;
+  mData.mCTimeEnd = 0;
 }
 
 //----//

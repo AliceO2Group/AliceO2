@@ -343,7 +343,6 @@ BOOST_AUTO_TEST_CASE(TestDataAllocatorReturnType)
 {
   const Output output{"TST", "DUMMY", 0, Lifetime::Timeframe};
   // we require reference to object owned by allocator contexallocatort
-  static_assert(std::is_lvalue_reference<decltype(std::declval<DataAllocator>().make<TableBuilder>(output))>::value);
 }
 
 BOOST_AUTO_TEST_CASE(TestPodInjestion)

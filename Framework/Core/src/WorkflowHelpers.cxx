@@ -226,9 +226,15 @@ std::string defaultConditionBackend()
 }
 
 // get the default value for condition query rate
-int64_t defaultConditionQueryRate()
+int defaultConditionQueryRate()
 {
-  return getenv("DPL_CONDITION_QUERY_RATE") ? std::stoll(getenv("DPL_CONDITION_QUERY_RATE")) : 0;
+  return getenv("DPL_CONDITION_QUERY_RATE") ? std::stoi(getenv("DPL_CONDITION_QUERY_RATE")) : 0;
+}
+
+// get the default value for condition query rate multiplier
+int defaultConditionQueryRateMultiplier()
+{
+  return getenv("DPL_CONDITION_QUERY_RATE_MULTIPLIER") ? std::stoi(getenv("DPL_CONDITION_QUERY_RATE_MULTIPLIER")) : 1;
 }
 
 void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext const& ctx)
@@ -252,7 +258,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
                 {"condition-not-before", VariantType::Int64, 0ll, {"do not fetch from CCDB objects created before provide timestamp"}},
                 {"condition-not-after", VariantType::Int64, 3385078236000ll, {"do not fetch from CCDB objects created after the timestamp"}},
                 {"condition-remap", VariantType::String, "", {"remap condition path in CCDB based on the provided string."}},
-                {"condition-tf-per-query", VariantType::Int64, defaultConditionQueryRate(), {"check condition validity per requested number of TFs, fetch only once if <0"}},
+                {"condition-tf-per-query", VariantType::Int, defaultConditionQueryRate(), {"check condition validity per requested number of TFs, fetch only once if <=0"}},
+                {"condition-tf-per-query-multiplier", VariantType::Int, defaultConditionQueryRateMultiplier(), {"check conditions once per this amount of nominal checks"}},
                 {"condition-time-tolerance", VariantType::Int64, 5000ll, {"prefer creation time if its difference to orbit-derived time exceeds threshold (ms), impose if <0"}},
                 {"orbit-offset-enumeration", VariantType::Int64, 0ll, {"initial value for the orbit"}},
                 {"orbit-multiplier-enumeration", VariantType::Int64, 0ll, {"multiplier to get the orbit from the counter"}},

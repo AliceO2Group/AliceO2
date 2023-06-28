@@ -13,6 +13,8 @@
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
+#include "CommonUtils/StringUtils.h"
+#include "CCDB/CCDBTimeStampUtils.h"
 #include <CCDB/CCDBDownloader.h>
 #include <curl/curl.h>
 #include <chrono>
@@ -22,6 +24,7 @@
 
 #include <boost/test/unit_test.hpp>
 #include <boost/optional/optional.hpp>
+#include <boost/asio/ip/host_name.hpp>
 #include <uv.h>
 
 using namespace std;
@@ -46,12 +49,25 @@ size_t CurlWrite_CallbackFunc_StdString2(void* contents, size_t size, size_t nme
   return size * nmemb;
 }
 
+std::string uniqueAgentID()
+{
+  std::string host = boost::asio::ip::host_name();
+  char const* jobID = getenv("ALIEN_PROC_ID");
+  if (jobID) {
+    return fmt::format("{}-{}-{}-{}", host, getCurrentTimestamp() / 1000, o2::utils::Str::getRandomString(6), jobID);
+  } else {
+    return fmt::format("{}-{}-{}", host, getCurrentTimestamp() / 1000, o2::utils::Str::getRandomString(6));
+  }
+}
+
 CURL* createTestHandle(std::string* dst)
 {
   CURL* handle = curl_easy_init();
   curl_easy_setopt(handle, CURLOPT_WRITEFUNCTION, CurlWrite_CallbackFunc_StdString2);
   curl_easy_setopt(handle, CURLOPT_WRITEDATA, dst);
-  curl_easy_setopt(handle, CURLOPT_URL, "http://ccdb-test.cern.ch:8080/latest/");
+  curl_easy_setopt(handle, CURLOPT_URL, "http://ccdb-test.cern.ch:8080/");
+  auto userAgent = uniqueAgentID();
+  curl_easy_setopt(handle, CURLOPT_USERAGENT, userAgent.c_str());
   return handle;
 }
 
@@ -270,34 +286,6 @@ BOOST_AUTO_TEST_CASE(asynch_batch_callback)
   for (std::string* dst : destinations) {
     delete dst;
   }
-
-  curl_global_cleanup();
-}
-
-BOOST_AUTO_TEST_CASE(external_loop_test)
-{
-  if (curl_global_init(CURL_GLOBAL_ALL)) {
-    fprintf(stderr, "Could not init curl\n");
-    return;
-  }
-
-  uv_loop_t loop;
-
-  CCDBDownloader downloader(&loop);
-  std::string dst = "";
-  CURL* handle = createTestHandle(&dst);
-
-  CURLcode curlCode = downloader.perform(handle);
-
-  BOOST_CHECK(curlCode == CURLE_OK);
-  std::cout << "CURL code: " << curlCode << "\n";
-
-  long httpCode;
-  curl_easy_getinfo(handle, CURLINFO_HTTP_CODE, &httpCode);
-  BOOST_CHECK(httpCode == 200);
-  std::cout << "HTTP code: " << httpCode << "\n";
-
-  curl_easy_cleanup(handle);
 
   curl_global_cleanup();
 }

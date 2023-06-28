@@ -31,6 +31,7 @@ EntropyDecoderSpec::EntropyDecoderSpec(int verbosity, unsigned int sspecOut) : m
   mTimer.Reset();
   mCTFCoder.setVerbosity(verbosity);
   mCTFCoder.setSupportBCShifts(true);
+  mCTFCoder.setDictBinding("ctfdict_EMC");
 }
 
 void EntropyDecoderSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
@@ -52,7 +53,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   o2::ctf::CTFIOSize iosize;
 
   mCTFCoder.updateTimeDependentParams(pc);
-  auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf");
+  auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf_EMC");
 
   auto& triggers = pc.outputs().make<std::vector<TriggerRecord>>(OutputRef{"triggers", mSSpecOut});
   auto& cells = pc.outputs().make<std::vector<Cell>>(OutputRef{"cells", mSSpecOut});
@@ -81,8 +82,8 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspecInp, un
     OutputSpec{{"ctfrep"}, "EMC", "CTFDECREP", 0, Lifetime::Timeframe}};
 
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("ctf", "EMC", "CTFDATA", sspecInp, Lifetime::Timeframe);
-  inputs.emplace_back("ctfdict", "EMC", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("EMC/Calib/CTFDictionary"));
+  inputs.emplace_back("ctf_EMC", "EMC", "CTFDATA", sspecInp, Lifetime::Timeframe);
+  inputs.emplace_back("ctfdict_EMC", "EMC", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("EMC/Calib/CTFDictionary"));
   inputs.emplace_back("trigoffset", "CTP", "Trig_Offset", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/TriggerOffsets"));
 
   return DataProcessorSpec{

@@ -39,10 +39,18 @@ template <class T>
 class CalDet;
 } // namespace o2::tpc
 
+namespace o2::its
+{
+class TrackerTraits;
+class VertexerTraits;
+class TimeFrame;
+} // namespace o2::its
+
 namespace o2::gpu
 {
 class GPUReconstruction;
 class GPUChainTracking;
+class GPUChainITS;
 struct GPUO2InterfaceConfiguration;
 struct GPUInterfaceOutputs;
 struct GPUTrackingOutputs;
@@ -60,6 +68,10 @@ class GPUO2Interface
 
   int RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutputs* outputs = nullptr);
   void Clear(bool clearOutputs);
+  void DumpEvent(int nEvent, GPUTrackingInOutPointers* data);
+  void DumpSettings();
+
+  void GetITSTraits(o2::its::TrackerTraits*& trackerTraits, o2::its::VertexerTraits*& vertexerTraits, o2::its::TimeFrame*& timeFrame);
 
   // Updates all calibration objects that are != nullptr in newCalib
   int UpdateCalibration(const GPUCalibObjectsConst& newCalib, const GPUNewCalibValues& newVals);
@@ -87,6 +99,7 @@ class GPUO2Interface
 
   std::unique_ptr<GPUReconstruction> mRec;              //!
   GPUChainTracking* mChain = nullptr;                   //!
+  GPUChainITS* mChainITS = nullptr;                     //!
   std::unique_ptr<GPUO2InterfaceConfiguration> mConfig; //!
   std::unique_ptr<GPUTrackingOutputs> mOutputRegions;   //!
 };

@@ -33,6 +33,7 @@ class EntropyDecoderSpec : public o2::framework::Task
     mTimer.Stop();
     mTimer.Reset();
     mCTFCoder.setVerbosity(verbosity);
+    mCTFCoder.setDictBinding("ctfdict_TPC");
   }
   ~EntropyDecoderSpec() override = default;
   void init(o2::framework::InitContext& ic) final;

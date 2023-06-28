@@ -12,6 +12,7 @@
 #include <TRandom.h>
 #include <TMarker.h>
 #include "DataFormatsHMP/Cluster.h"
+#include "Framework/Logger.h"
 #include <TGeoManager.h>
 #include <TVirtualFitter.h>
 #include <cmath>
@@ -349,6 +350,10 @@ int Cluster::solve(std::vector<o2::hmpid::Cluster>* pCluLst, float* pSigmaCut, b
   double arglist[10];
   float ierflg = 0.;
   TVirtualFitter* fitter = TVirtualFitter::Fitter((TObject*)this, 3 * 6); // initialize Fitter
+  if (fitter == nullptr) {
+    LOG(fatal) << "TVirtualFitter could not be created";
+    return 1;
+  }
   arglist[0] = -1;
   ierflg = fitter->ExecuteCommand("SET PRI", arglist, 1); // no printout
   ierflg = fitter->ExecuteCommand("SET NOW", arglist, 0); // no warning messages
