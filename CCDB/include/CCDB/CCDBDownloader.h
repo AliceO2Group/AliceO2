@@ -335,9 +335,11 @@ class CCDBDownloader
   void checkHandleQueue();
 
   /**
-   * Run the uvLoop once, without blocking the sockets.
+   * Run the uvLoop once.
+   *
+   * @param noWait Using this flag will cause the loop to run only if sockets have pendind data.
    */
-  void runLoop();
+  void runLoop(bool noWait);
 };
 
 /**

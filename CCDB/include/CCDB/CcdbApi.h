@@ -451,6 +451,13 @@ class CcdbApi //: public DatabaseInterface
                           long timestamp = -1, std::map<std::string, std::string>* headers = nullptr, std::string const& etag = "",
                           const std::string& createdNotAfter = "", const std::string& createdNotBefore = "") const;
 
+  /**
+   * Run the uvLoop belonging to mDownloader once.
+   *
+   * @param noWait Using this flag will cause the loop to run only if sockets have pendind data.
+   */
+  void runDownloaderLoop(bool noWait);
+
  private:
   /**
    * A helper function to extract object from a local ROOT file

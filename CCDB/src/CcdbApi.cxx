@@ -174,6 +174,11 @@ void CcdbApi::init(std::string const& host)
        mInSnapshotMode ? "(snapshot readonly mode)" : snapshotReport.c_str());
 }
 
+void CcdApi::runDownloaderLoop(bool noWait)
+{
+  mDownloader->runLoop(noWait);
+}
+
 // A helper function used in a few places. Updates a ROOT file with meta/header information.
 void CcdbApi::updateMetaInformationInLocalFile(std::string const& filename, std::map<std::string, std::string> const* headers, CCDBQuery const* querysummary)
 {
