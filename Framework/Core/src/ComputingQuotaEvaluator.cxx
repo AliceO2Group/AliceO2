@@ -48,6 +48,9 @@ ComputingQuotaEvaluator::ComputingQuotaEvaluator(ServiceRegistryRef ref)
     0,
     0};
 
+  // Creating a timer to check for expired offers
+  mTimer = (uv_timer_t*)malloc(sizeof(uv_timer_t));
+  uv_timer_init(state.loop, mTimer);
 }
 
 struct QuotaEvaluatorStats {
@@ -112,6 +115,7 @@ bool ComputingQuotaEvaluator::selectOffer(int task, ComputingQuotaRequest const&
   };
 
   bool enough = false;
+  int64_t minValidity = 0;
 
   for (int i = 0; i != mOffers.size(); ++i) {
     auto& offer = mOffers[i];
@@ -140,6 +144,10 @@ bool ComputingQuotaEvaluator::selectOffer(int task, ComputingQuotaRequest const&
       continue;
     } else {
       LOGP(LOGLEVEL, "Offer {} still valid for {} milliseconds, providing {}MB", i, offer.runtime + info.received - now, offer.sharedMemory / 1000000);
+      if (minValidity == 0) {
+        minValidity = offer.runtime + info.received - now;
+      }
+      minValidity = std::min(minValidity,(int64_t)(offer.runtime + info.received - now));
     }
     /// We then check if the offer is suitable
     assert(offer.sharedMemory >= 0);
@@ -165,6 +173,13 @@ bool ComputingQuotaEvaluator::selectOffer(int task, ComputingQuotaRequest const&
         enough = true;
         break;
     };
+  }
+
+  if (minValidity != 0) {
+    LOGP(LOGLEVEL, "Next offer to expire in {} milliseconds", minValidity);
+    uv_timer_start(mTimer, [](uv_timer_t* handle) {
+        LOGP(LOGLEVEL, "Offer should be expired by now, checking again");
+    }, minValidity, 0);
   }
   // If we get here it means we never got enough offers, so we return false.
   return summarizeWhatHappended(enough, stats.selectedOffers, accumulated, stats);
