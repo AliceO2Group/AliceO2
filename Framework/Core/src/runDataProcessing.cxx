@@ -1143,7 +1143,7 @@ void dumpRunSummary(DriverServerContext& context, DriverInfo const& driverInfo, 
     }
   }
   for (auto& summary : *context.summaryCallbacks) {
-    summary(ServiceMetricsInfo{*context.metrics, *context.specs, *context.infos, context.driver->metrics});
+    summary(ServiceMetricsInfo{*context.metrics, *context.specs, *context.infos, context.driver->metrics, driverInfo});
   }
 }
 

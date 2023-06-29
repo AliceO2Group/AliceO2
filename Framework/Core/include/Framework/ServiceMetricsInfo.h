@@ -15,6 +15,7 @@
 #include "Framework/DeviceMetricsInfo.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceInfo.h"
+#include "Framework/DriverInfo.h"
 #include <vector>
 
 namespace o2::framework
@@ -24,6 +25,7 @@ struct ServiceMetricsInfo {
   std::vector<DeviceSpec>& deviceSpecs;
   std::vector<DeviceInfo>& deviceInfos;
   DeviceMetricsInfo& driverMetricsInfo;
+  DriverInfo const& driverInfo;
 };
 } // namespace o2::framework
 #endif // O2_FRAMEWORK_SERVICEMETRICSINFO_H_
