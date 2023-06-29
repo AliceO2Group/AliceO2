@@ -438,9 +438,9 @@ void CCDBDownloader::checkHandleQueue()
   }
 }
 
-void CCDBDownloader::runLoop()
+void CCDBDownloader::runLoop(bool noWait)
 {
-  uv_run(mUVLoop, UV_RUN_NOWAIT);
+  uv_run(mUVLoop, noWait ? UV_RUN_NOWAIT : UV_RUN_ONCE);
 }
 
 CURLcode CCDBDownloader::perform(CURL* handle)
