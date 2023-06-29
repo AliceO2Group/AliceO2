@@ -328,7 +328,7 @@ class TPCFastTransform : public FlatObject
   ///
   float mTOFcorr;
 
-  float mPrimVtxZ; ///< Z of the primary vertex, needed for the Time-Of-Flight correction
+  float mPrimVtxZ;        ///< Z of the primary vertex, needed for the Time-Of-Flight correction
 
   float mLumi;            ///< luminosity estimator
   float mLumiError;       ///< error on luminosity
@@ -468,14 +468,14 @@ GPUdi() void TPCFastTransform::TransformInternal(int slice, int row, float& u, f
 #endif // GPUCA_GPUCODE
       {
         mCorrection.getCorrection(slice, row, u, v, dx, du, dv);
-        if (ref && scale > 0.f && mLumiScaleMode==0) { // scaling was requested
+        if (ref && scale > 0.f && mLumiScaleMode == 0) { // scaling was requested
           float dxRef, duRef, dvRef;
           ref->mCorrection.getCorrection(slice, row, u, v, dxRef, duRef, dvRef);
           dx = (dx - dxRef) * scale + dxRef;
           du = (du - duRef) * scale + duRef;
           dv = (dv - dvRef) * scale + dvRef;
         }
-        if(ref && scale > 0.f && mLumiScaleMode==1){
+        if (ref && scale > 0.f && mLumiScaleMode == 1) {
           float dxRef, duRef, dvRef;
           ref->mCorrection.getCorrection(slice, row, u, v, dxRef, duRef, dvRef);
           dx = dxRef * scale + dx;
@@ -737,12 +737,12 @@ GPUdi() void TPCFastTransform::InverseTransformYZtoX(int slice, int row, float y
   getGeometry().convLocalToUV(slice, y, z, u, v);
   if (scale >= 0.f) {
     mCorrection.getCorrectionInvCorrectedX(slice, row, u, v, x);
-    if (ref && scale > 0.f && mLumiScaleMode==0) { // scaling was requested
+    if (ref && scale > 0.f && mLumiScaleMode == 0) { // scaling was requested
       float xr;
       ref->mCorrection.getCorrectionInvCorrectedX(slice, row, u, v, xr);
       x = (x - xr) * scale + xr;
     }
-    if(ref && scale > 0.f && mLumiScaleMode==1){
+    if (ref && scale > 0.f && mLumiScaleMode == 1) {
       float xr;
       ref->mCorrection.getCorrectionInvCorrectedX(slice, row, u, v, xr);
       x = xr * scale + x;
@@ -769,13 +769,13 @@ GPUdi() void TPCFastTransform::InverseTransformYZtoNominalYZ(int slice, int row,
   getGeometry().convLocalToUV(slice, y, z, u, v);
   if (scale >= 0.f) {
     mCorrection.getCorrectionInvUV(slice, row, u, v, un, vn);
-    if (ref && scale > 0.f && mLumiScaleMode==0) { // scaling was requested
+    if (ref && scale > 0.f && mLumiScaleMode == 0) { // scaling was requested
       float unr = 0, vnr = 0;
       ref->mCorrection.getCorrectionInvUV(slice, row, u, v, unr, vnr);
       un = (un - unr) * scale + unr;
       vn = (vn - vnr) * scale + vnr;
     }
-    if(ref && scale > 0.f && mLumiScaleMode==1){
+    if (ref && scale > 0.f && mLumiScaleMode == 1) {
       float unr = 0, vnr = 0;
       ref->mCorrection.getCorrectionInvUV(slice, row, u, v, unr, vnr);
       un = unr * scale + un;

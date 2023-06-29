@@ -1035,7 +1035,7 @@ int GPURecoWorkflowSpec::runITSTracking(o2::framework::ProcessingContext& pc)
       // Some conversions that needs to be moved in the tracker internals
       for (unsigned int iTrk{0}; iTrk < tracks.size(); ++iTrk) {
         auto& trc{tracks[iTrk]};
-        trc.setFirstClusterEntry(allClusIdx.size()); // before adding tracks, create final cluster indices
+        trc.setFirstClusterEntry(allClusIdx.size());              // before adding tracks, create final cluster indices
         int ncl = trc.getNumberOfClusters(), nclf = 0;
         for (int ic = o2::its::TrackITSExt::MaxClusters; ic--;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
           auto clid = trc.getClusterIndex(ic);
@@ -1537,7 +1537,7 @@ void GPURecoWorkflowSpec::finaliseCCDBTPC(ConcreteDataMatcher& matcher, void* ob
 bool GPURecoWorkflowSpec::fetchCalibsCCDBITS(ProcessingContext& pc)
 {
   static bool initOnceDone = false;
-  if (!initOnceDone) { // this params need to be queried only once
+  if (!initOnceDone) {                                             // this params need to be queried only once
     initOnceDone = true;
     pc.inputs().get<o2::itsmft::TopologyDictionary*>("itscldict"); // just to trigger the finaliseCCDB
     pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>*>("itsalppar");

@@ -343,8 +343,8 @@ class CDBInterface
   std::unique_ptr<CalPad> mCMkValues;       ///< Ion Tail exp(-lambda)
 
   // ===| switches and parameters |=============================================
-  bool mUseDefaults = false;   ///< use defaults instead of CCDB
-  float mDefaultZSsigma = 3.f; ///< sigma to use in case the default zero suppression is created
+  bool mUseDefaults = false;          ///< use defaults instead of CCDB
+  float mDefaultZSsigma = 3.f;        ///< sigma to use in case the default zero suppression is created
 
   std::string mPedestalNoiseFileName; ///< optional file name for pedestal and noise data
   std::string mGainMapFileName;       ///< optional file name for the gain map
