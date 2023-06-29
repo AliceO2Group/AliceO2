@@ -164,6 +164,8 @@ class RawDataManager
   size_t getTimeFrameNumber() { return mTimeFrameNo; }
   size_t getEventNumber() { return mEventNo; }
 
+  o2::steer::DigitizationContext* getCollisionContext() { return mCollisionContext; }
+
   std::string describeFiles();
   std::string describeTimeFrame();
   std::string describeEvent();

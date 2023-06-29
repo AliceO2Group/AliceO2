@@ -242,14 +242,14 @@ RawDataManager::RawDataManager(std::filesystem::path dir)
 {
 
   if (!std::filesystem::exists(dir) || !std::filesystem::is_directory(dir)) {
-    std::cerr << "'" << dir << "' is not a directory" << std::endl;
+    O2ERROR("'%s' is not a directory", dir.c_str());
     return;
   }
 
   // We allways need the trigger records, which are stored in trdtracklets.root.
   // While at it, let's also set up reading the tracklets.
   if (!std::filesystem::exists(dir / "trdtracklets.root")) {
-    std::cerr << "'tracklets.root' not found in directory '" << dir << "'" << std::endl;
+    O2ERROR("'tracklets.root' not found in directory '%s'", dir.c_str());
     return;
   }
 
@@ -271,11 +271,6 @@ RawDataManager::RawDataManager(std::filesystem::path dir)
     mDigits = new TTreeReaderArray<o2::trd::Digit>(*mDataReader, "TPCITS");
   }
 
-  // // Let's try to add other data
-  // addReaderArray(mDigits, dir / "trddigits.root", "o2sim", "TRDDigit");
-  // // AddReaderArray(mTpcTracks, dir + "tpctracks.root", "tpcrec", "TPCTracks");
-  // addReaderArray(mTracks, dir / "o2match_itstpc.root", "matchTPCITS", "TPCITS");
-
   // For data, we need info about time frames to match ITS and TPC tracks to trigger records.
   if (std::filesystem::exists(dir / "o2_tfidinfo.root")) {
     TFile fInTFID((dir / "o2_tfidinfo.root").c_str());
@@ -286,61 +281,39 @@ RawDataManager::RawDataManager(std::filesystem::path dir)
   if (std::filesystem::exists(dir / "collisioncontext.root")) {
     TFile fInCollCtx((dir / "collisioncontext.root").c_str());
     mCollisionContext = (o2::steer::DigitizationContext*)fInCollCtx.Get("DigitizationContext");
-    mCollisionContext->printCollisionSummary();
+    // mCollisionContext->printCollisionSummary();
   }
 
-  // // If there are MC hits, we load them
-  // if (std::filesystem::exists(dir / "o2sim_HitsTRD.root")) {
-  //   mHitsFile = new TFile((dir / "o2sim_HitsTRD.root").c_str());
-  //   mHitsFile->GetObject("o2sim", mHitsTree);
-  //   mHitsReader = new TTreeReader(mHitsTree);
-  //   mHits = new TTreeReaderArray<o2::trd::Hit>(*mHitsReader, "TRDHit");
-  //   std::cout << "connect MC hits file" << std::endl;
-  // }
-
-  // We create the TTree using event header and tracks from the kinematics file
+  // We create the MC TTree using event header and tracks from the kinematics file
   if (std::filesystem::exists(dir / "o2sim_Kine.root")) {
     mMCFile = new TFile((dir / "o2sim_Kine.root").c_str());
-    // if (std::filesystem::exists(dir / "o2sim_MCHeader.root")) {
-    //   mMCFile = new TFile((dir / "o2sim_MCHeader.root").c_str());
     mMCFile->GetObject("o2sim", mMCTree);
     mMCReader = new TTreeReader(mMCTree);
     mMCEventHeader = new TTreeReaderValue<o2::dataformats::MCEventHeader>(*mMCReader, "MCEventHeader.");
     mMCTracks = new TTreeReaderArray<o2::MCTrackT<Float_t>>(*mMCReader, "MCTrack");
-    // std::cout << "connect MC event header file" << std::endl;
   }
 
-  // We then add the TRD hits to the tree
-  if (std::filesystem::exists(dir / "o2sim_HitsTRD.root")) {
+  // We then add the TRD hits to the MC tree
+  if (mMCFile && std::filesystem::exists(dir / "o2sim_HitsTRD.root")) {
     mMCTree->AddFriend("o2sim", (dir / "o2sim_HitsTRD.root").c_str());
     mHits = new TTreeReaderArray<o2::trd::Hit>(*mMCReader, "TRDHit");
   }
-
-  // ConnectMCHitsFile(dir+"o2sim_HitsTRD.root");
 }
-
-// template <typename T>
-// void RawDataManager::addReaderArray(TTreeReaderArray<T>*& array, std::filesystem::path file, std::string tree, std::string branch)
-// {
-//   if (!std::filesystem::exists(file)) {
-//     // return value TRUE indicates file was not found
-//     return;
-//   }
-
-//   // the file exists, everything else should work
-//   mDataTree->AddFriend(tree.c_str(), file.c_str());
-//   array = new TTreeReaderArray<T>(*mDataReader, branch.c_str());
-// }
 
 bool RawDataManager::nextTimeFrame()
 {
-  if (mDataReader->Next()) {
-    mEventNo = 0;
-    mTimeFrameNo++;
-    return true;
-  } else {
+  if (!mDataReader->Next()) {
+    // loading time frame will fail at end of file
     return false;
   }
+
+  mEventNo = 0;
+  mTimeFrameNo++;
+
+  O2INFO("Loaded data for time frame #%d with %d TRD trigger records, %d digits and %d tracklets",
+         mTimeFrameNo, mTrgRecords->GetSize(), mDigits->GetSize(), mTracklets->GetSize());
+
+  return true;
 }
 
 bool RawDataManager::nextEvent()
@@ -351,7 +324,9 @@ bool RawDataManager::nextEvent()
   }
 
   mTriggerRecord = mTrgRecords->At(mEventNo);
-  std::cout << mTriggerRecord << std::endl;
+  O2INFO("Processing event: orbit %d bc %04d with %d digits and %d tracklets",
+         mTriggerRecord.getBCData().orbit, mTriggerRecord.getBCData().bc,
+         mTriggerRecord.getNumberOfDigits(), mTriggerRecord.getNumberOfTracklets());
 
   if (mCollisionContext) {
 
@@ -359,11 +334,14 @@ bool RawDataManager::nextEvent()
     mHitPoints.clear();
 
     for (int i = 0; i < mCollisionContext->getNCollisions(); ++i) {
-      if (abs(mTriggerRecord.getBCData().differenceInBCNS(mCollisionContext->getEventRecords()[i])) == 0) {
-        std::cout << "using collision " << i << std::endl;
+      auto evrec = mCollisionContext->getEventRecords()[i];
+      if (abs(mTriggerRecord.getBCData().differenceInBCNS(evrec)) <= 3000) {
         if (mMCReader) {
           mMCReader->SetEntry(i);
         }
+
+        O2INFO("Loaded matching MC event #%d with time offset %f ns and %d hits",
+               i, mTriggerRecord.getBCData().differenceInBCNS(evrec), mHits->GetSize());
 
         // convert hits to spacepoints
         auto ctrans = o2::trd::CoordinateTransformer::instance();
@@ -375,10 +353,6 @@ bool RawDataManager::nextEvent()
   }
 
   mEventNo++;
-  if (mMCReader) {
-    O2INFO("loaded event: MC time = %fns, ID %d", mMCEventHeader->Get()->GetT(), mMCEventHeader->Get()->GetEventID());
-    mMCEventHeader->Get()->printInfo();
-  }
   return true;
 }
 
