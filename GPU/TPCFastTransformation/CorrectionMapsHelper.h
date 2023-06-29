@@ -80,11 +80,23 @@ class CorrectionMapsHelper
     }
   }
 
+  void setLumiScaleMode(int v)
+  {
+    if (v != mLumiScaleMode) {
+      mLumiScaleMode = v;
+      updateLumiScale();
+    }
+  }
+
   void updateLumiScale()
   {
     if (mMeanLumi < 0.f || mInstLumi < 0.f) {
       mLumiScale = -1.f;
-    } else {
+    }
+    else if(mLumiScaleMode == 1){
+      mLumiScale = mInstLumi - mMeanLumi;
+    }  
+    else {
       mLumiScale = mMeanLumi ? mInstLumi / mMeanLumi : 0.f;
     }
     setUpdatedLumi();
@@ -94,6 +106,7 @@ class CorrectionMapsHelper
   GPUd() float getInstLumi() const { return mInstLumi; }
   GPUd() float getMeanLumi() const { return mMeanLumi; }
   GPUd() float getLumiScale() const { return mLumiScale; }
+  GPUd() int getLumiScaleMode() const { return mLumiScaleMode; }
 
   bool isUpdated() const { return mUpdatedFlags != 0; }
   bool isUpdatedMap() const { return (mUpdatedFlags & UpdateFlags::MapBit) == 0; }
@@ -119,6 +132,9 @@ class CorrectionMapsHelper
   void setInstLumiOverride(float f) { mInstLumiOverride = f; }
   float getInstLumiOverride() const { return mInstLumiOverride; }
 
+  void setLumiScaleModeOverride(int i) { mLumiScaleModeOverride = i; }
+  int getLumiScaleModeOverride() const { return mLumiScaleModeOverride; }
+
  protected:
   enum UpdateFlags { MapBit = 0x1,
                      MapRefBit = 0x2,
@@ -128,9 +144,11 @@ class CorrectionMapsHelper
   int mUpdatedFlags = 0;
   float mInstLumi = 0.;                            // instanteneous luminosity (a.u)
   float mMeanLumi = 0.;                            // mean luminosity of the map (a.u)
-  float mLumiScale = 0.;                           // precalculated mInstLumi/mMeanLumi
+  int mLumiScaleMode = 0;                          // scaling-mode of the correciton maps
+  float mLumiScale = 0.;                           // precalculated lumi scaling
   float mMeanLumiOverride = -1.f;                  // optional value to override mean lumi
   float mInstLumiOverride = -1.f;                  // optional value to override inst lumi
+  int mLumiScaleModeOverride = 0;                 // optional value to choose scaling for correction map
   GPUCA_NAMESPACE::gpu::TPCFastTransform* mCorrMap{nullptr};    // current transform
   GPUCA_NAMESPACE::gpu::TPCFastTransform* mCorrMapRef{nullptr}; // reference transform
 #ifndef GPUCA_ALIROOT_LIB
