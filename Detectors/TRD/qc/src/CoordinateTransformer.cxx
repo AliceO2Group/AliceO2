@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "TRDQC/CoordinateTransformer.h"
+#include <TMath.h>
 #include "TRDBase/Geometry.h"
 
 using namespace o2::trd;
@@ -26,43 +27,30 @@ std::array<float, 3> CoordinateTransformer::Local2RCT(int det, float x, float y,
 
   auto padPlane = mGeo->getPadPlane((det) % 6, (det / 6) % 5);
 
-  double iPadLen = padPlane->getLengthIPad();
-  double oPadLen = padPlane->getLengthOPad();
-  int nRows = padPlane->getNrows();
-
-  double lengthCorr = padPlane->getLengthOPad() / padPlane->getLengthIPad();
-
-  // calculate position based on inner pad length
-  rct[0] = -z / padPlane->getLengthIPad() + padPlane->getNrows() / 2;
-
-  // correct row for outer pad rows
-  if (rct[0] <= 1.0) {
-    rct[0] = 1.0 - (1.0 - rct[0]) * lengthCorr;
+  // for the z-coordinate, we combine the row number and offset from the padPlane into a single float
+  int row = padPlane->getPadRow(z);
+  if (row == 0 || row == padPlane->getNrows() - 1) {
+    rct[0] = float(row) + padPlane->getPadRowOffsetROC(row, z) / padPlane->getLengthOPad();
+  } else {
+    rct[0] = float(row) + padPlane->getPadRowOffsetROC(row, z) / padPlane->getLengthIPad();
   }
 
-  if (rct[0] >= double(nRows - 1)) {
-    rct[0] = double(nRows - 1) + (rct[0] - double(nRows - 1)) * lengthCorr;
-  }
+  // the y-coordinate is calculated directly by the padPlane object
+  rct[1] = padPlane->getPad(y,z);
 
-  // sanity check: is the padrow coordinate reasonable?
-  if (rct[0] < 0.0 || rct[0] > double(nRows)) {
-    std::cout << "ERROR: hit with z=" << z << ", padrow " << rct[0]
-              << " outside of chamber" << std::endl;
-  }
-
-  // simple conversion of pad / local y coordinate
-  // ignore different width of outer pad
-  rct[1] = y / padPlane->getWidthIPad() + 144. / 2.;
-
-  // time coordinate
+  // we calculate the time coordinate by hand
   if (x < -0.35) {
-    // drift region
+    // in drift region: 
+    //   account for offset between anode and cathode wires: add 0.35
+    //   convert drift velocity to from cm/us to cm/timebin
     rct[2] = mT0 - (x + 0.35) / (mVdrift / 10.0);
   } else {
     // anode region: very rough guess
     rct[2] = mT0 - 1.0 + fabs(x);
   }
 
+  // Correct for Lorentz angle, but only in the drift region. ExB in the anode region causes a small offset (ca. 0.1
+  // pads) that is constant for all clusters in the drift region.
   rct[1] += (x + 0.35) * mExB;
   return rct;
 }
