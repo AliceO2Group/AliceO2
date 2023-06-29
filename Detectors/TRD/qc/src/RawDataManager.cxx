@@ -87,7 +87,7 @@ void RawDataSpan::sort()
 }
 
 template <typename keyfunc>
-std::vector<RawDataSpan> RawDataSpan::IterateBy()
+std::vector<RawDataSpan> RawDataSpan::iterateBy()
 // std::vector<RawDataSpan> RawDataSpan::IterateBy()
 {
   // an map for keeping track which ranges correspond to which key
@@ -158,61 +158,95 @@ std::vector<RawDataSpan> RawDataSpan::IterateBy()
   return spans;
 }
 
-template std::vector<RawDataSpan> RawDataSpan::IterateBy<PadRowID>();
-template std::vector<RawDataSpan> RawDataSpan::IterateBy<MCM_ID>();
 
-// template <typename T>
-// int mcmkey(const T& x)
-// {
-//   return 1000 * x.getDetector() + 10 * x.getPadRow() + 4 * (x.getROB() % 2) + x.getMCM() % 4;
-// }
 
-// std::vector<RawDataSpan> RawDataSpan::ByMCM()
-// {
-//   // we manage all
-//   std::map<uint32_t, RawDataSpan> spanmap;
+/// PadRowID is a struct to calculate unique identifiers per pad row.
+/// The struct can be passed as a template parameter to the RawDataSpan::IterateBy
+/// method to split the data span by pad row and iterate over the pad rows.
+struct PadRowID {
+  /// The static `key` method calculates a padrow ID for digits and tracklets
+  template <typename T>
+  static uint32_t key(const T& x)
+  {
+    return 100 * x.getDetector() + x.getPadRow();
+  }
 
-//   // sort digits and tracklets
-//   sort();
+  static std::vector<uint32_t> keys(const o2::trd::ChamberSpacePoint& x)
+  {
+    uint32_t key = 100 * x.getDetector() + x.getPadRow();
+    return {key}; 
+  }
 
-//   // add all the digits to a map
-//   for (auto cur = digits.b; cur != digits.e; /* noop */) {
-//     // calculate the key of the current (first unprocessed) digit
-//     auto key = mcmkey(*cur);
-//     // find the first digit with a different key
-//     auto nxt = std::find_if(cur, digits.e, [key](auto x) { return mcmkey(x) != key; });
-//     // store the range cur:nxt in the map
-//     spanmap[key].digits.b = cur;
-//     spanmap[key].digits.e = nxt;
-//     // continue after this range
-//     cur = nxt;
+  static bool match(const uint32_t key, const o2::trd::ChamberSpacePoint& x)
+  {
+    return key == 100 * x.getDetector() + x.getPadRow();
+  }
+};
+
+// instantiate the template to iterate by padrow
+template std::vector<RawDataSpan> RawDataSpan::iterateBy<PadRowID>();
+
+// non-template wrapper function to keep PadRowID within the .cxx file
+std::vector<RawDataSpan> RawDataSpan::iterateByPadRow() { return iterateBy<PadRowID>(); }
+
+
+/// A struct that can be used to calculate unique identifiers for MCMs, to be
+/// used to split ranges by MCM.
+struct MCM_ID {
+  template <typename T>
+  static uint32_t key(const T& x)
+  {
+    return 1000 * x.getDetector() + 8 * x.getPadRow() + 4 * (x.getROB() % 2) + x.getMCM() % 4;
+  }
+
+  static std::vector<uint32_t> keys(const o2::trd::ChamberSpacePoint& x)
+  {
+    uint32_t detrow = 1000 * x.getDetector() + 8 * x.getPadRow();
+    uint32_t mcmcol = uint32_t(x.getPadCol() / float(o2::trd::constants::NCOLMCM));
+
+    float c = x.getPadCol() - float(mcmcol * o2::trd::constants::NCOLMCM);
+
+    if (c <= 2.0 && mcmcol >= 1) {
+      return {detrow + mcmcol - 1, detrow + mcmcol};
+    } else if (c >= 20 && mcmcol <= 6) {
+      return {detrow + mcmcol, detrow + mcmcol + 1};
+    } else {
+      return {detrow + mcmcol};
+    }
+  }
+
+  static int getDetector(uint32_t k) { return k / 1000; }
+  // static int getPadRow(key) {return (key%1000) / 8;}
+  static int getMcmRowCol(uint32_t k) { return k % 1000; }
+};
+
+// template instantion and non-template wrapper function
+template std::vector<RawDataSpan> RawDataSpan::iterateBy<MCM_ID>();
+std::vector<RawDataSpan> RawDataSpan::iterateByMCM() { return iterateBy<MCM_ID>(); }
+
+
+// I started to implement a struct to iterate by detector, but did not finish this
+// struct DetectorID {
+//   /// The static `key` method calculates a padrow ID for digits and tracklets
+//   template <typename T>
+//   static uint32_t key(const T& x)
+//   {
+//     return x.getDetector();
 //   }
 
-//   // add tracklets to the map
-//   for (auto cur = tracklets.b; cur != tracklets.e; /* noop */) {
-//     auto key = mcmkey(*cur);
-//     auto nxt = std::find_if(cur, tracklets.e, [key](auto x) { return mcmkey(x) != key; });
-//     spanmap[key].tracklets.b = cur;
-//     spanmap[key].tracklets.e = nxt;
-//     cur = nxt;
+//   static std::vector<uint32_t> keys(const o2::trd::ChamberSpacePoint& x)
+//   {
+//     uint32_t key = x.getDetector();
+//     return {key}; 
 //   }
 
-//   // for (auto cur = event.trackpoints.b; cur != event.trackpoints.e; /* noop */) {
-//   //   auto nxt = std::adjacent_find(cur, event.trackpoints.e, classifier::comp_trackpoints);
-//   //   if (nxt != event.trackpoints.e) { ++nxt; }
-//   //   (*this)[classifier::key(*cur)].trackpoints.b = cur;
-//   //   (*this)[classifier::key(*cur)].trackpoints.e = nxt;
-//   //   cur = nxt;
-//   // }
-//   // cout << "Found " << this->size() << " spans" << endl;
+//   static bool match(const uint32_t key, const o2::trd::ChamberSpacePoint& x)
+//   {
+//     return key == x.getDetector();
+//   }
+// };
 
-//   std::vector<RawDataSpan> spans;
-
-//   transform(spanmap.begin(), spanmap.end(), back_inserter(spans), [](auto const& pair) { return pair.second; });
-
-//   return spans;
-// }
-
+/// The RawDataManager constructor: connects all data files and sets up trees, readers etc.
 RawDataManager::RawDataManager(std::filesystem::path dir)
 {
 
@@ -228,13 +262,28 @@ RawDataManager::RawDataManager(std::filesystem::path dir)
     return;
   }
 
-  mMainfile = new TFile((dir / "trdtracklets.root").c_str());
-  mMainfile->GetObject("o2sim", mDatatree);
-  mDatareader = new TTreeReader(mDatatree);
+  mMainFile = new TFile((dir / "trdtracklets.root").c_str());
+  mMainFile->GetObject("o2sim", mDataTree);
+  mDataReader = new TTreeReader(mDataTree);
 
   // set up the branches we want to read
-  mTracklets = new TTreeReaderArray<o2::trd::Tracklet64>(*mDatareader, "Tracklet");
-  mTrgRecords = new TTreeReaderArray<o2::trd::TriggerRecord>(*mDatareader, "TrackTrg");
+  mTracklets = new TTreeReaderArray<o2::trd::Tracklet64>(*mDataReader, "Tracklet");
+  mTrgRecords = new TTreeReaderArray<o2::trd::TriggerRecord>(*mDataReader, "TrackTrg");
+
+  if (std::filesystem::exists(dir / "trddigits.root")) {
+    mDataTree->AddFriend("o2sim", (dir / "trddigits.root").c_str());
+    mDigits = new TTreeReaderArray<o2::trd::Digit>(*mDataReader, "TRDDigit");
+  }
+
+  if (std::filesystem::exists(dir / "o2match_itstpc.root")) {
+    mDataTree->AddFriend("matchTPCITS", (dir / "o2match_itstpc.root").c_str());
+    mDigits = new TTreeReaderArray<o2::trd::Digit>(*mDataReader, "TPCITS");
+  }
+
+  // // Let's try to add other data
+  // addReaderArray(mDigits, dir / "trddigits.root", "o2sim", "TRDDigit");
+  // // AddReaderArray(mTpcTracks, dir + "tpctracks.root", "tpcrec", "TPCTracks");
+  // addReaderArray(mTracks, dir / "o2match_itstpc.root", "matchTPCITS", "TPCITS");
 
   // For data, we need info about time frames to match ITS and TPC tracks to trigger records.
   if (std::filesystem::exists(dir / "o2_tfidinfo.root")) {
@@ -242,54 +291,60 @@ RawDataManager::RawDataManager(std::filesystem::path dir)
     mTFIDs = (std::vector<o2::dataformats::TFIDInfo>*)fInTFID.Get("tfidinfo");
   }
 
-  // For MC, we read the collision context
+  // For MC, we first read the collision context
   if (std::filesystem::exists(dir / "collisioncontext.root")) {
     TFile fInCollCtx((dir / "collisioncontext.root").c_str());
     mCollisionContext = (o2::steer::DigitizationContext*) fInCollCtx.Get("DigitizationContext");
     mCollisionContext->printCollisionSummary();
   }
 
-  // If there are MC hits, we load them
-  if (std::filesystem::exists(dir / "o2sim_HitsTRD.root")) {
-    mHitsFile = new TFile((dir / "o2sim_HitsTRD.root").c_str());
-    mHitsFile->GetObject("o2sim", mHitsTree);
-    mHitsReader = new TTreeReader(mHitsTree);
-    mHits = new TTreeReaderArray<o2::trd::Hit>(*mHitsReader, "TRDHit");
-    std::cout << "connect MC hits file" << std::endl;
-  }
+  // // If there are MC hits, we load them
+  // if (std::filesystem::exists(dir / "o2sim_HitsTRD.root")) {
+  //   mHitsFile = new TFile((dir / "o2sim_HitsTRD.root").c_str());
+  //   mHitsFile->GetObject("o2sim", mHitsTree);
+  //   mHitsReader = new TTreeReader(mHitsTree);
+  //   mHits = new TTreeReaderArray<o2::trd::Hit>(*mHitsReader, "TRDHit");
+  //   std::cout << "connect MC hits file" << std::endl;
+  // }
 
-  if (std::filesystem::exists(dir / "o2sim_MCHeader.root")) {
-    mMCFile = new TFile((dir / "o2sim_MCHeader.root").c_str());
+  // We create the TTree using event header and tracks from the kinematics file
+  if (std::filesystem::exists(dir / "o2sim_Kine.root")) {
+    mMCFile = new TFile((dir / "o2sim_Kine.root").c_str());
+  // if (std::filesystem::exists(dir / "o2sim_MCHeader.root")) {
+  //   mMCFile = new TFile((dir / "o2sim_MCHeader.root").c_str());
     mMCFile->GetObject("o2sim", mMCTree);
     mMCReader = new TTreeReader(mMCTree);
-    mMCEventHeader = new TTreeReaderValue<o2::dataformats::MCEventHeader>(*mMCReader, "MCEventHeader.");
-    std::cout << "connect MC event header file" << std::endl;
+    mMCEventHeader = new TTreeReaderValue<o2::dataformats::MCEventHeader>(*mMCReader, "MCEventHeader");
+    mMCTracks = new TTreeReaderArray<o2::MCTrackT<Float_t>>(*mMCReader, "MCTrack");
+    // std::cout << "connect MC event header file" << std::endl;
   }
 
-  // Let's try to add other data
-  addReaderArray(mDigits, dir / "trddigits.root", "o2sim", "TRDDigit");
-  // AddReaderArray(mTpcTracks, dir + "tpctracks.root", "tpcrec", "TPCTracks");
-  addReaderArray(mTracks, dir / "o2match_itstpc.root", "matchTPCITS", "TPCITS");
+  // We then add the TRD hits to the tree
+  if (std::filesystem::exists(dir / "o2sim_HitsTRD.root")) {
+    mMCTree->AddFriend("o2sim", (dir / "o2sim_HitsTRD.root").c_str());
+    mHits = new TTreeReaderArray<o2::trd::Hit>(*mMCReader, "TRDHit");
+  }
+
 
   // ConnectMCHitsFile(dir+"o2sim_HitsTRD.root");
 }
 
-template <typename T>
-void RawDataManager::addReaderArray(TTreeReaderArray<T>*& array, std::filesystem::path file, std::string tree, std::string branch)
-{
-  if (!std::filesystem::exists(file)) {
-    // return value TRUE indicates file was not found
-    return;
-  }
+// template <typename T>
+// void RawDataManager::addReaderArray(TTreeReaderArray<T>*& array, std::filesystem::path file, std::string tree, std::string branch)
+// {
+//   if (!std::filesystem::exists(file)) {
+//     // return value TRUE indicates file was not found
+//     return;
+//   }
 
-  // the file exists, everything else should work
-  mDatatree->AddFriend(tree.c_str(), file.c_str());
-  array = new TTreeReaderArray<T>(*mDatareader, branch.c_str());
-}
+//   // the file exists, everything else should work
+//   mDataTree->AddFriend(tree.c_str(), file.c_str());
+//   array = new TTreeReaderArray<T>(*mDataReader, branch.c_str());
+// }
 
 bool RawDataManager::nextTimeFrame()
 {
-  if (mDatareader->Next()) {
+  if (mDataReader->Next()) {
     mEventNo = 0;
     mTimeFrameNo++;
 
@@ -324,9 +379,6 @@ bool RawDataManager::nextEvent()
     for (int i=0; i<mCollisionContext->getNCollisions(); ++i) {
       if ( abs(mTriggerRecord.getBCData().differenceInBCNS(mCollisionContext->getEventRecords()[i])) == 0 ) {
         std::cout << "using collision " << i << std::endl;
-        if (mHitsReader) {
-          mHitsReader->SetEntry(i);
-        }
         if(mMCReader) {
           mMCReader->SetEntry(i);
         }
@@ -338,19 +390,6 @@ bool RawDataManager::nextEvent()
         }
       }
     }
-    // // load the hits for the next event
-    // if (mHitsReader) {
-    //   if (mEventNo == 1) {
-    //     std::cout << "skip 2 MC events" << std::endl;
-    //     mHitsReader->Next();
-    //     mHitsReader->Next();
-    //   }
-
-    //   if (!mHitsReader->Next()) {
-    //     std::cout << "no hits found for event " << mTimeFrameNo << ":" << mEventNo << std::endl;
-    //     return false;
-    //   }
-
   }
 
   mEventNo++;
@@ -431,19 +470,19 @@ float RawDataManager::getTriggerTime()
 std::string RawDataManager::describeFiles()
 {
   std::ostringstream out;
-  if (!mMainfile) {
+  if (!mMainFile) {
     out << "RawDataManager is not connected to any files" << std::flush;
     return out.str();
   }
-  if (!mDatatree) {
+  if (!mDataTree) {
     out << "ERROR: main datatree not connected" << std::flush;
     return out.str();
   }
-  out << "Main file:" << mMainfile->GetPath() << " has " << mDatatree->GetEntries() << " time frames " << std::endl;
-  if (mDatatree->GetFriend("TRDDigit")) {
+  out << "Main file:" << mMainFile->GetPath() << " has " << mDataTree->GetEntries() << " time frames " << std::endl;
+  if (mDataTree->GetFriend("TRDDigit")) {
     out << "digits" << std::endl;
   }
-  if (mDatatree->GetFriend("TPCITS")) {
+  if (mDataTree->GetFriend("TPCITS")) {
     out << "tpc its matches" << std::endl;
   }
 
