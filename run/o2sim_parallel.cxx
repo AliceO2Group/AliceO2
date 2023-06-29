@@ -106,8 +106,12 @@ void cleanup()
     auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, sih});
     parts.AddPart(std::move(header));
     parts.AddPart(std::move(payload));
-    forwardchannel.Send(parts);
-    LOGP(info, "SENDING END-OF-STREAM TO PROXY AT {}", address.c_str());
+    int timeoutinMS = 1000; // block for 1s max (other side might have disconnected already)
+    if (forwardchannel.Send(parts, timeoutinMS) > 0) {
+      LOGP(info, "SENDING END-OF-STREAM TO PROXY AT {}", address.c_str());
+    } else {
+      LOGP(warn, "SENDING END-OF-STREAM TIMED OUT; PEER PROBABLY NO LONGER CONNECTED");
+    }
   }
   remove_tmp_files();
   o2::utils::ShmManager::Instance().release();
