@@ -36,11 +36,11 @@ std::array<float, 3> CoordinateTransformer::Local2RCT(int det, float x, float y,
   }
 
   // the y-coordinate is calculated directly by the padPlane object
-  rct[1] = padPlane->getPad(y,z);
+  rct[1] = padPlane->getPad(y, z);
 
   // we calculate the time coordinate by hand
   if (x < -0.35) {
-    // in drift region: 
+    // in drift region:
     //   account for offset between anode and cathode wires: add 0.35
     //   convert drift velocity to from cm/us to cm/timebin
     rct[2] = mT0 - (x + 0.35) / (mVdrift / 10.0);
