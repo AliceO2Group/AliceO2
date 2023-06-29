@@ -314,7 +314,7 @@ RawDataManager::RawDataManager(std::filesystem::path dir)
   //   mMCFile = new TFile((dir / "o2sim_MCHeader.root").c_str());
     mMCFile->GetObject("o2sim", mMCTree);
     mMCReader = new TTreeReader(mMCTree);
-    mMCEventHeader = new TTreeReaderValue<o2::dataformats::MCEventHeader>(*mMCReader, "MCEventHeader");
+    mMCEventHeader = new TTreeReaderValue<o2::dataformats::MCEventHeader>(*mMCReader, "MCEventHeader.");
     mMCTracks = new TTreeReaderArray<o2::MCTrackT<Float_t>>(*mMCReader, "MCTrack");
     // std::cout << "connect MC event header file" << std::endl;
   }
@@ -347,13 +347,6 @@ bool RawDataManager::nextTimeFrame()
   if (mDataReader->Next()) {
     mEventNo = 0;
     mTimeFrameNo++;
-
-    // Fix of position/slope should no longer be necessary
-    // for (auto &tracklet : *mTracklets) {
-    //   tracklet.setPosition(tracklet.getPosition() ^ 0x80);
-    //   tracklet.setSlope(tracklet.getSlope() ^ 0x80);
-    // }
-
     return true;
   } else {
     return false;
@@ -386,7 +379,7 @@ bool RawDataManager::nextEvent()
         // convert hits to spacepoints
         auto ctrans = o2::trd::CoordinateTransformer::instance();
         for( auto& hit : *mHits) {
-          mHitPoints.emplace_back(ctrans->MakeSpacePoint(hit));
+          mHitPoints.emplace_back(ctrans->MakeSpacePoint(hit), hit.GetCharge());
         }
       }
     }

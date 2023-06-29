@@ -254,7 +254,7 @@ void RawDisplay::drawClusters()
       double left = mDigitsHisto->GetBinContent(p - 1, t) - baseline;
       double centre = mDigitsHisto->GetBinContent(p, t) - baseline;
       double right = mDigitsHisto->GetBinContent(p + 1, t) - baseline;
-      if (centre > left && centre > right) {
+      if (centre > left && centre > right && (centre + left + right) > mClusterThreshold) {
         double pos = 0.5 * log(right / left) / log(centre * centre / left / right);
         double clpos = mDigitsHisto->GetXaxis()->GetBinCenter(p) + pos;
         double cog = (right - left) / (right + centre + left) + mDigitsHisto->GetXaxis()->GetBinCenter(p);
@@ -263,21 +263,21 @@ void RawDisplay::drawClusters()
         //      << "   pos = " << pos << " ~ " << clpos
         //      << endl;
         clustermarker.DrawMarker(clpos, t - 0.5);
-        cogmarker.DrawMarker(cog, t - 0.5);
+        // cogmarker.DrawMarker(cog, t - 0.5);
       }
     }
   }
+}
 
-  // TODO: At the moment, hits are not propagated during splitting of a RawDataSpan, therefore this code does not work yet.
-  // TMarker hitmarker;
-  // hitmarker.SetMarkerColor(kBlack);
-  // hitmarker.SetMarkerStyle(38);
-
-  // auto ct = CoordinateTransformer::instance();
-  // for (auto hit : mcm.hits) {
-  //   std::cout << hit.GetCharge() << std::endl;
-  //   auto rct = ct->Local2RCT(hit);
-  //   hitmarker.SetMarkerSize(hit.GetCharge() / 50.);
-  //   hitmarker.DrawMarker(rct[1], rct[2]);
-  // }
+void RawDisplay::drawHits()
+{
+  TMarker hitmarker;
+  hitmarker.SetMarkerColor(kBlack);
+  hitmarker.SetMarkerStyle(38);
+  for (auto hit : mDataSpan.hits) {
+    if (hit.getCharge() > 0.0) {
+      hitmarker.SetMarkerSize(log10(hit.getCharge()));
+      hitmarker.DrawMarker(hit.getPadCol(), hit.getTimeBin());
+    }
+  }
 }

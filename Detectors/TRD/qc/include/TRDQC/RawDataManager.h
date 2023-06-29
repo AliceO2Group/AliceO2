@@ -41,6 +41,23 @@ class TTreeReader;
 namespace o2::trd
 {
 
+/// A HitPoint is a space point in a chamber that inherits spatial (x/y/z) and pad row / column / timebin
+/// coordinates from ChamberSpacePoints, and add charge information, to hold all information about Monte-Carlo
+/// hits within a chamber.
+class HitPoint : public ChamberSpacePoint
+{
+public:
+  HitPoint(ChamberSpacePoint position, float charge) 
+  : ChamberSpacePoint(position), mCharge(charge) 
+  {}
+
+  HitPoint() {};
+
+  float getCharge() {return mCharge;}
+
+private:
+  float mCharge{0.0};
+};
 
 /// range of entries in another container (similar to boost::range)
 template <typename value_t, typename container_t>
@@ -64,7 +81,7 @@ struct RawDataSpan {
   myrange<o2::trd::Digit, TTreeReaderArray<o2::trd::Digit>> digits;
   myrange<o2::trd::Tracklet64, TTreeReaderArray<o2::trd::Tracklet64>> tracklets;
   // myrange<o2::trd::Hit, TTreeReaderArray<o2::trd::Hit>> hits;
-  myrange<ChamberSpacePoint, std::vector<ChamberSpacePoint>> hits;
+  myrange<HitPoint, std::vector<HitPoint>> hits;
   // myrange<ChamberSpacePoint, std::vector<ChamberSpacePoint>> trackpoints;
 
   /// Sort digits, tracklets and space points by detector, pad row, column
@@ -179,7 +196,7 @@ class RawDataManager
   TTreeReaderArray< o2::MCTrackT<Float_t> >* mMCTracks{0};
   TTreeReaderArray< o2::trd::Hit >* mHits{0};
 
-  std::vector<o2::trd::ChamberSpacePoint> mHitPoints;
+  std::vector<o2::trd::HitPoint> mHitPoints;
 
   // time frame information (for data only)
   std::vector<o2::dataformats::TFIDInfo>* mTFIDs{0};

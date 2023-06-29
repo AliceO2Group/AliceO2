@@ -35,6 +35,7 @@ class RawDisplay
   void drawDigits(std::string opt = "colz");
   void drawTracklets();
   void drawClusters();
+  void drawHits();
 
   void draw()
   {
@@ -50,6 +51,8 @@ class RawDisplay
   std::string mDesc;
   int mFirstPad;
   int mLastPad;
+
+  float mClusterThreshold{50}; /// threshold for drawing clusters
 };
 
 /// The MCM display is a raw display specialized to display data for a single MCM
