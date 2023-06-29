@@ -14,32 +14,20 @@
 #ifndef O2_AODPRODUCER_WORKFLOW_SPEC
 #define O2_AODPRODUCER_WORKFLOW_SPEC
 
-#include "DataFormatsFT0/RecPoints.h"
-#include "DataFormatsFDD/RecPoint.h"
-#include "DataFormatsFV0/RecPoints.h"
+#include "DataFormatsEMCAL/Cell.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
-#include "DataFormatsITS/TrackITS.h"
-#include "DataFormatsMFT/TrackMFT.h"
-#include "DataFormatsMCH/TrackMCH.h"
-#include "DataFormatsTPC/TrackTPC.h"
+#include "DataFormatsPHOS/Cell.h"
 #include "DataFormatsTRD/TrackTRD.h"
-#include "DataFormatsZDC/BCRecData.h"
-#include "DataFormatsEMCAL/EventHandler.h"
-#include "DataFormatsPHOS/EventHandler.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "DetectorsBase/Propagator.h"
-#include "Framework/AnalysisDataModel.h"
 #include "Framework/AnalysisHelpers.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
-#include "ReconstructionDataFormats/PrimaryVertex.h"
-#include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
-#include "SimulationDataFormat/MCCompLabel.h"
 #include "Steer/MCKinematicsReader.h"
-#include "TMap.h"
 #include "TStopwatch.h"
+#include "ZDCBase/Constants.h"
 
 #include <string>
 #include <vector>
@@ -51,17 +39,6 @@ using DataRequest = o2::globaltracking::DataRequest;
 
 namespace o2::aodproducer
 {
-
-template <typename T>
-void addTableToOutput(std::vector<OutputSpec>& o, int t = 0)
-{
-  o.emplace_back(OutputLabel{o2::aod::MetadataTrait<T>::metadata::tableLabel()},
-                 o2::aod::MetadataTrait<T>::metadata::origin(),
-                 o2::aod::MetadataTrait<T>::metadata::description(),
-                 t,
-                 Lifetime::Timeframe);
-}
-
 /// A structure or container to organize bunch crossing data of a timeframe
 /// and to facilitate fast lookup and search within bunch crossings.
 class BunchCrossings
@@ -92,7 +69,7 @@ class BunchCrossings
   std::pair<size_t, uint64_t> lower_bound(uint64_t timestamp) const
   {
     // a) determine the timewindow
-    const auto NofWindows = mTimeWindows.size();
+    const auto NofWindows = static_cast<int>(mTimeWindows.size());
     const auto smallestBC = mBCTimeVector[0];
     const auto largestBC = mBCTimeVector.back();
     auto timeindex = std::max((int)0, (int)((timestamp - smallestBC) / mWindowSize));
@@ -168,19 +145,19 @@ class BunchCrossings
     mWindowSize = bcrange / (1. * window_number);
     // now we go through the list of times and bucket them into the correct windows
     mTimeWindows.resize(window_number);
-    for (int bcindex = 0; bcindex < mBCTimeVector.size(); ++bcindex) {
+    for (auto bcindex = 0U; bcindex < mBCTimeVector.size(); ++bcindex) {
       auto windowindex = (int)((mBCTimeVector[bcindex] - mBCTimeVector[0]) / mWindowSize);
       // we add "bcindex" to the TimeWindow windowindex
       auto& tw = mTimeWindows[windowindex];
       if (tw.from == -1) {
         tw.from = bcindex;
       } else {
-        tw.from = std::min(tw.from, bcindex);
+        tw.from = std::min(tw.from, static_cast<int>(bcindex));
       }
       if (tw.to == -1) {
         tw.to = bcindex;
       } else {
-        tw.to = std::max(tw.to, bcindex);
+        tw.to = std::max(tw.to, static_cast<int>(bcindex));
       }
     }
 
@@ -220,7 +197,7 @@ class BunchCrossings
 class AODProducerWorkflowDPL : public Task
 {
  public:
-  AODProducerWorkflowDPL(GID::mask_t src, std::shared_ptr<DataRequest> dataRequest, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool enableSV, bool useMC = true) : mInputSources(src), mDataRequest(dataRequest), mGGCCDBRequest(gr), mEnableSV(enableSV), mUseMC(useMC) {}
+  AODProducerWorkflowDPL(GID::mask_t src, std::shared_ptr<DataRequest> dataRequest, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool enableSV, bool useMC = true) : mUseMC(useMC), mEnableSV(enableSV), mInputSources(src), mDataRequest(dataRequest), mGGCCDBRequest(gr) {}
   ~AODProducerWorkflowDPL() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -243,7 +220,7 @@ class AODProducerWorkflowDPL : public Task
   Produces<T> createTableCursor(ProcessingContext& pc)
   {
     Produces<T> c;
-    c.resetCursor(pc.outputs().make<TableBuilder>(c.ref()));
+    c.resetCursor(pc.outputs().make<TableBuilder>(OutputForTable<T>::ref()));
     c.setLabel(o2::aod::MetadataTrait<T>::metadata::tableLabel());
     return c;
   }
@@ -565,7 +542,7 @@ framework::DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool en
 class CellHelper
 {
  public:
-  static int8_t getTriggerBits(const o2::emcal::Cell& cell)
+  static int8_t getTriggerBits(const o2::emcal::Cell& /*cell*/)
   {
     return 0; // dummy value
   }
@@ -598,7 +575,7 @@ class CellHelper
     return cell.getTRU();
   }
 
-  static int16_t getFastOrAbsID(const o2::emcal::Cell& cell)
+  static int16_t getFastOrAbsID(const o2::emcal::Cell& /*cell*/)
   {
     return 0; // dummy value
   }
@@ -618,7 +595,7 @@ class CellHelper
     return cell.getEnergy();
   }
 
-  static int16_t getLnAmplitude(const o2::emcal::Cell& cell)
+  static int16_t getLnAmplitude(const o2::emcal::Cell& /*cell*/)
   {
     return 0; // dummy value
   }
