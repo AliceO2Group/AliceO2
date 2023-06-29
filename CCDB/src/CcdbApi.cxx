@@ -174,7 +174,7 @@ void CcdbApi::init(std::string const& host)
        mInSnapshotMode ? "(snapshot readonly mode)" : snapshotReport.c_str());
 }
 
-void CcdApi::runDownloaderLoop(bool noWait)
+void CcdbApi::runDownloaderLoop(bool noWait)
 {
   mDownloader->runLoop(noWait);
 }
