@@ -521,7 +521,7 @@ int CTPConfiguration::processConfigurationLineRun3v2(std::string& line, int& lev
   size_t first;
   if (((first = line.find("ver")) != std::string::npos) && (level == START)) {
     mVersion = line;
-    //std::cout << "debug:" << mVersion << std::endl;
+    // std::cout << "debug:" << mVersion << std::endl;
     level = VERSION;
     return 0;
   } else if (((first = line.find("run")) != std::string::npos) && (level == VERSION)) {
@@ -932,17 +932,17 @@ int CTPConfiguration::checkConfigConsistency() const
   LOG(info) << "Checking consistency run:" << mRunNumber;
   int ret = 0;
   // All inputs used ?
-  //std::map<const CTPInput*, int> inputs;
+  // std::map<const CTPInput*, int> inputs;
   std::map<std::string, int> inputs;
   for (auto const& inp : mInputs) {
     inputs[inp.name] = 0;
   }
   // Are all descriptors used
-  //std::map<const CTPDescriptor*, int> descs;
+  // std::map<const CTPDescriptor*, int> descs;
   std::map<std::string, int> descs;
   for (auto const& desc : mDescriptors) {
     descs[desc.name] = 0;
-    //std::cout << "1 " << &desc << std::endl;
+    // std::cout << "1 " << &desc << std::endl;
     for (auto const inp : desc.inputs) {
       inputs[inp->name] += 1;
     }
@@ -967,13 +967,13 @@ int CTPConfiguration::checkConfigConsistency() const
       ret++;
     } else {
       descs[cls.descriptor->name] += 1;
-      //std::cout << "2 " << cls.descriptor << std::endl;
+      // std::cout << "2 " << cls.descriptor << std::endl;
     }
     if (cls.descriptorIndex == 0xff) {
       std::cout << "ERROR class:" << cls.name << " NO DESCRIPTOR INDEX" << std::endl;
       ret++;
     } else {
-      //std::cout << "3 " << &mDescriptors[cls.descriptorIndex] << std::endl;
+      // std::cout << "3 " << &mDescriptors[cls.descriptorIndex] << std::endl;
     }
   }
   int iw = 0;
@@ -990,7 +990,7 @@ int CTPConfiguration::checkConfigConsistency() const
       iw++;
       std::cout << "WARNING descriptors:";
     }
-    //std::cout << (desc.first)->name << " " << desc.second << std::endl;
+    // std::cout << (desc.first)->name << " " << desc.second << std::endl;
     std::cout << (desc.first) << " " << desc.second << std::endl;
   }
   std::cout << "CTP Config consistency checked. WARNINGS:" << iw << " ERRORS:" << ret << std::endl;
