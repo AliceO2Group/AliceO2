@@ -175,7 +175,7 @@ class CCDBDownloader
    *
    * @param noWait Using this flag will cause the loop to run only if sockets have pendind data.
    */
-  void runLoop(bool noWait)
+  void runLoop(bool noWait);
 
  private:
   std::string mUserAgentId = "CCDBDownloader";
@@ -339,7 +339,7 @@ class CCDBDownloader
   /**
    * If multi_handles uses less then maximum number of handles then add handles from the queue.
    */
-  void checkHandleQueue();;
+  void checkHandleQueue();
 };
 
 /**
