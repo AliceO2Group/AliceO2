@@ -91,7 +91,7 @@ int HitMapBuilder::getFEEIdMT11(double xp, double yp, uint8_t deId) const
   auto stripIndex = mMapping.stripByPosition(xp, yp, 0, deId, false);
   if (stripIndex.isValid()) {
     auto deIdMT11 = detparams::getDEId(detparams::isRightSide(deId), 0, detparams::getRPCLine(deId));
-    return detparams::getUniqueFEEId(deIdMT11, stripIndex.column, stripIndex.line);
+    return detparams::makeUniqueFEEId(deIdMT11, stripIndex.column, stripIndex.line);
   }
   return -1;
 }

@@ -84,9 +84,9 @@ BOOST_AUTO_TEST_CASE(Consistency)
         auto uniqueLocId = crateMapper.deLocalBoardToRO(ide, icol, iline);
         auto crateId = o2::mid::raw::getCrateId(uniqueLocId);
         auto deBoardId = crateMapper.roLocalBoardToDE(uniqueLocId);
-        BOOST_TEST(static_cast<int>(crateMapper.getColumnId(deBoardId)) == icol);
-        BOOST_TEST(static_cast<int>(crateMapper.getLineId(deBoardId)) == iline);
-        int rpcLineId = crateMapper.getRPCLine(deBoardId);
+        BOOST_TEST(static_cast<int>(o2::mid::detparams::getColumnIdFromFEEId(deBoardId)) == icol);
+        BOOST_TEST(static_cast<int>(o2::mid::detparams::getLineIdFromFEEId(deBoardId)) == iline);
+        int rpcLineId = o2::mid::detparams::getDEIdFromFEEId(deBoardId);
         BOOST_TEST(rpcLineId == o2::mid::detparams::getRPCLine(ide));
         int ich = o2::mid::detparams::getChamber(ide);
         BOOST_TEST(o2::mid::detparams::getDEId(o2::mid::crateparams::isRightSide(crateId), ich, rpcLineId) == ide);
