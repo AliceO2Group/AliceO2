@@ -127,7 +127,7 @@ void PrimaryGenerator::AddTrack(Int_t pdgid, Double_t px, Double_t py, Double_t 
   /** add track **/
 
   // check the status encoding
-  if (!mcgenstatus::isEncoded(generatorStatus)) {
+  if (!mcgenstatus::isEncoded(generatorStatus) && proc == TMCProcess::kPPrimary) {
     LOG(fatal) << "Generatror status " << generatorStatus << " of particle is not encoded properly.";
   }
 

@@ -192,10 +192,10 @@ void Detector::buildFT3V1()
     {77., 3.5, 35., layersx2X0},
     {100., 3.5, 35., layersx2X0},
     {122., 3.5, 35., layersx2X0},
-    {150., 3.5, 100., layersx2X0},
-    {180., 3.5, 100., layersx2X0},
-    {220., 3.5, 100., layersx2X0},
-    {279., 3.5, 100., layersx2X0}};
+    {150., 3.5, 80.f, layersx2X0},
+    {180., 3.5, 80.f, layersx2X0},
+    {220., 3.5, 80.f, layersx2X0},
+    {279., 3.5, 80.f, layersx2X0}};
 
   mLayerName.resize(2);
   mLayerName[0].resize(mNumberOfLayers);

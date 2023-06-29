@@ -210,13 +210,13 @@ void AODMcProducerWorkflowDPL::run(ProcessingContext& pc)
 
   uint64_t tfNumber = mTFNumber;
 
-  auto& mcCollisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCCOLLISION"});
-  auto& mcParticlesBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCPARTICLE_001"});
-  auto& originTableBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "ORIGIN"});
+  auto mcCollisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCCOLLISION"});
+  auto mcParticlesBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCPARTICLE_001"});
+  auto originTableBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "ORIGIN"});
 
-  auto mcCollisionsCursor = mcCollisionsBuilder.cursor<o2::aod::McCollisions>();
-  auto mcParticlesCursor = mcParticlesBuilder.cursor<o2::aod::StoredMcParticles_001>();
-  auto originCursor = originTableBuilder.cursor<o2::aod::Origins>();
+  auto mcCollisionsCursor = mcCollisionsBuilder->cursor<o2::aod::McCollisions>();
+  auto mcParticlesCursor = mcParticlesBuilder->cursor<o2::aod::StoredMcParticles_001>();
+  auto originCursor = originTableBuilder->cursor<o2::aod::Origins>();
 
   std::unique_ptr<o2::steer::MCKinematicsReader> mcReader;
 

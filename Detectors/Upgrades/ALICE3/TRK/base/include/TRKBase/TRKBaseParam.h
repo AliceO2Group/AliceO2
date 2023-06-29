@@ -20,13 +20,9 @@ namespace o2
 namespace trk
 {
 
-enum trkGeometry {
-  Default = 0,
-  Telescope = 1
-};
-
 struct TRKBaseParam : public o2::conf::ConfigurableParamHelper<TRKBaseParam> {
   std::string configFile = "";
+  float serviceTubeX0 = 0.02f; // X0 Al2O3
 
   O2ParamDef(TRKBaseParam, "TRKBase");
 };

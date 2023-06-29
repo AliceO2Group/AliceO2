@@ -241,8 +241,6 @@ TEST_CASE("TestSoAIntegration")
 TEST_CASE("TestDataAllocatorReturnType")
 {
   const Output output{"TST", "DUMMY", 0, Lifetime::Timeframe};
-  // we require reference to object owned by allocator context
-  static_assert(std::is_lvalue_reference<decltype(std::declval<DataAllocator>().make<TableBuilder>(output))>::value);
 }
 
 TEST_CASE("TestPodInjestion")

@@ -108,6 +108,11 @@ inline void O2DatabasePDG::addALICEParticles(TDatabasePDG* db)
   const Double_t khShGev = khSlash * kErg2Gev;
   const Double_t kYear2Sec = 3600 * 24 * 365.25;
 
+  // Heavy-flavour particles
+
+  // χc1(3872) aka X(3872), taken from PDG 2022 (https://pdg.lbl.gov/2022/listings/rpp2022-list-chi-c1-3872.pdf)
+  db->AddParticle("Chi_c1(3872)", "Chi_c1(3872)", 3.87165, kFALSE, 0, 0, "CCBarMeson", 9920443);
+
   //
   // Bottom mesons
   // mass and life-time from PDG

@@ -114,15 +114,22 @@ struct LifetimeHolder {
   // when prensent.
   ~LifetimeHolder()
   {
+    release();
+  }
+
+  T* operator->() { return ptr; }
+  T& operator*() { return *ptr; }
+
+  // release the owned object, if any. This allows to
+  // invoke the callback early (e.g. for the Product<> case)
+  void release()
+  {
     if (ptr && callback) {
       callback(*ptr);
       delete ptr;
       ptr = nullptr;
     }
   }
-
-  T* operator->() { return ptr; }
-  T& operator*() { return *ptr; }
 };
 
 /// This allocator is responsible to make sure that the messages created match
@@ -209,12 +216,11 @@ class DataAllocator
       adopt(spec, s);
       return *s;
     } else if constexpr (std::is_base_of_v<struct TableBuilder, T>) {
-      TableBuilder* tb = nullptr;
-      call_if_defined<struct TableBuilder>([&](auto* p) {
-        tb = new std::decay_t<decltype(*p)>(args...);
+      return call_if_defined_forward<LifetimeHolder<struct TableBuilder>>([&](auto* p) {
+        auto tb = std::move(LifetimeHolder<TableBuilder>(new typename std::decay_t<decltype(*p)>::type(args...)));
         adopt(spec, tb);
+        return std::move(tb);
       });
-      return *tb;
     } else if constexpr (std::is_base_of_v<struct TreeToTable, T>) {
       return call_if_defined_forward<LifetimeHolder<struct TreeToTable>>([&](auto* p) {
         auto t2t = std::move(LifetimeHolder<TreeToTable>(new typename std::decay_t<decltype(*p)>::type(args...)));
@@ -271,7 +277,7 @@ class DataAllocator
   /// Adopt a TableBuilder in the framework and serialise / send
   /// it as an Arrow table to all consumers of @a spec once done
   void
-    adopt(const Output& spec, struct TableBuilder*);
+    adopt(const Output& spec, LifetimeHolder<struct TableBuilder>&);
 
   /// Adopt a Tree2Table in the framework and serialise / send
   /// it as an Arrow table to all consumers of @a spec once done

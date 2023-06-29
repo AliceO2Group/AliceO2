@@ -11,6 +11,7 @@
 #ifndef o2_framework_AnalysisHelpers_H_DEFINED
 #define o2_framework_AnalysisHelpers_H_DEFINED
 
+#include "Framework/DataAllocator.h"
 #include "Framework/Traits.h"
 #include "Framework/TableBuilder.h"
 #include "Framework/AnalysisDataModel.h"
@@ -54,10 +55,10 @@ struct WritingCursor<soa::Table<PC...>> {
     return mCount;
   }
 
-  bool resetCursor(TableBuilder& builder)
+  bool resetCursor(LifetimeHolder<TableBuilder> builder)
   {
-    mBuilder = &builder;
-    cursor = std::move(FFL(builder.cursor<persistent_table_t>()));
+    mBuilder = std::move(builder);
+    cursor = std::move(FFL(mBuilder->cursor<persistent_table_t>()));
     mCount = -1;
     return true;
   }
@@ -72,6 +73,11 @@ struct WritingCursor<soa::Table<PC...>> {
   void reserve(int64_t size)
   {
     mBuilder->reserve(typename persistent_table_t::column_types{}, size);
+  }
+
+  void release()
+  {
+    mBuilder.release();
   }
 
   decltype(FFL(std::declval<cursor_t>())) cursor;
@@ -91,7 +97,7 @@ struct WritingCursor<soa::Table<PC...>> {
   /// The table builder which actually performs the
   /// construction of the table. We keep it around to be
   /// able to do all-columns methods like reserve.
-  TableBuilder* mBuilder = nullptr;
+  LifetimeHolder<TableBuilder> mBuilder = nullptr;
   int64_t mCount = -1;
 };
 

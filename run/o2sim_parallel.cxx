@@ -199,12 +199,14 @@ void launchControlThread()
   auto lambda = [controladdress, internalcontroladdress]() {
     auto factory = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
 
-    auto internalchannel = fair::mq::Channel{"o2sim-control", "pub", factory};
+    // used for internal distribution of control commands
+    auto internalchannel = fair::mq::Channel{"o2sim-internal", "pub", factory};
     internalchannel.Bind(internalcontroladdress);
     internalchannel.Validate();
     std::unique_ptr<fair::mq::Message> message(internalchannel.NewMessage());
 
-    auto outsidechannel = fair::mq::Channel{"o2sim-outside-exchange", "rep", factory};
+    // the channel with which outside entities can control this simulator
+    auto outsidechannel = fair::mq::Channel{"o2sim-control", "rep", factory};
     outsidechannel.Bind(controladdress);
     outsidechannel.Validate();
     std::unique_ptr<fair::mq::Message> request(outsidechannel.NewMessage());
@@ -216,7 +218,7 @@ void launchControlThread()
       outsidechannel.Validate();
       if (outsidechannel.Receive(request) > 0) {
         std::string command(reinterpret_cast<char const*>(request->GetData()), request->GetSize());
-        LOG(info) << "Control message: " << command;
+        LOG(info) << "Control message: " << command << " received ";
         int code = -1;
         if (isBusy()) {
           code = 1; // code = 1 --> busy
@@ -710,6 +712,7 @@ int main(int argc, char* argv[])
           killpg(p, SIGTERM); // <--- makes sure to shutdown "unknown" child pids via the group property
         }
         LOG(error) << "SHUTTING DOWN DUE TO SIGNALED EXIT IN COMPONENT " << cpid;
+        o2::simpubsub::publishMessage(externalpublishchannel, o2::simpubsub::simStatusString("O2SIM", "STATE", "FAILURE"));
         errored = true;
       }
     }

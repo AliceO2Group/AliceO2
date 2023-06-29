@@ -13,6 +13,7 @@
 #include "TRDWorkflowIO/TRDCalibReaderSpec.h"
 #include "TRDWorkflowIO/TRDDigitReaderSpec.h"
 #include "TRDWorkflow/VdAndExBCalibSpec.h"
+#include "TRDWorkflow/GainCalibSpec.h"
 #include "TRDWorkflow/NoiseCalibSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 
@@ -26,6 +27,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"enable-root-input", o2::framework::VariantType::Bool, false, {"enable root-files input readers"}},
     {"vDriftAndExB", o2::framework::VariantType::Bool, false, {"enable vDrift and ExB calibration"}},
     {"noise", o2::framework::VariantType::Bool, false, {"enable noise and pad status calibration"}},
+    {"gain", o2::framework::VariantType::Bool, false, {"enable gain calibration"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
 
   std::swap(workflowOptions, options);
@@ -54,6 +56,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       specs.emplace_back(o2::trd::getTRDDigitReaderSpec(false));
     }
     specs.emplace_back(o2::trd::getTRDNoiseCalibSpec());
+  }
+
+  if (configcontext.options().get<bool>("gain")) {
+    specs.emplace_back(getTRDGainCalibSpec());
   }
 
   return specs;

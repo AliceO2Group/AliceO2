@@ -14,11 +14,13 @@ add_subdirectory(macros)
 o2_add_library(TRDCalibration
                SOURCES src/TrackBasedCalib.cxx
                        src/CalibratorVdExB.cxx
+                       src/CalibratorGain.cxx
                        src/CalibratorNoise.cxx
                        src/PadCalibCCDBBuilder.cxx
                        src/KrClusterFinder.cxx
                        src/DCSProcessor.cxx
                        src/CalibrationParams.cxx
+                       src/PulseHeight.cxx
                PUBLIC_LINK_LIBRARIES O2::TRDBase
                                      O2::DataFormatsTRD
                                      O2::DataFormatsGlobalTracking
@@ -31,10 +33,12 @@ o2_add_library(TRDCalibration
  o2_target_root_dictionary(TRDCalibration
                            HEADERS include/TRDCalibration/TrackBasedCalib.h
                                    include/TRDCalibration/CalibratorVdExB.h
+                                   include/TRDCalibration/CalibratorGain.h
                                    include/TRDCalibration/CalibratorNoise.h
                                    include/TRDCalibration/CalibrationParams.h
                                    include/TRDCalibration/PadCalibCCDBBuilder.h
                                    include/TRDCalibration/KrClusterFinder.h
+                                   include/TRDCalibration/PulseHeight.h
                                    include/TRDCalibration/DCSProcessor.h)
 
 o2_add_executable(trd-dcs-sim-workflow

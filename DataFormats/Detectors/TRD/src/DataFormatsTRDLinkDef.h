@@ -32,7 +32,9 @@
 #pragma link C++ class o2::trd::KrClusterTriggerRecord + ;
 #pragma link C++ class o2::trd::NoiseStatusMCM + ;
 #pragma link C++ class o2::trd::AngularResidHistos + ;
+#pragma link C++ class o2::trd::GainCalibHistos + ;
 #pragma link C++ class o2::trd::CalVdriftExB + ;
+#pragma link C++ class o2::trd::CalGain + ;
 #pragma link C++ class o2::trd::CalT0 + ;
 #pragma link C++ class o2::trd::CompressedDigit + ;
 #pragma link C++ class o2::trd::HelperMethods + ;
@@ -47,6 +49,7 @@
 #pragma link C++ class std::vector < o2::trd::Hit > +;
 #pragma link C++ class std::vector < o2::trd::Digit> + ;
 #pragma link C++ class std::vector < o2::trd::AngularResidHistos> + ;
+#pragma link C++ class std::vector < o2::trd::GainCalibHistos> + ;
 #pragma link C++ class std::vector < o2::trd::KrCluster> + ;
 #pragma link C++ class std::vector < o2::trd::KrClusterTriggerRecord> + ;
 

@@ -235,6 +235,7 @@ class O2HitMerger : public fair::mq::Device
     mTrackRefBuffer.clear();
     mSubEventInfoBuffer.clear();
     mFlushableEvents.clear();
+    mNextFlushID = 1;
 
     return true;
   }

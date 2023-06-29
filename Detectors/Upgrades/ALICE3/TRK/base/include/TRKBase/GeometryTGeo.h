@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_GEOMETRYTGEO_DETECTOR_H
-#define ALICEO2_GEOMETRYTGEO_DETECTOR_H
+#ifndef ALICEO2_TRK_GEOMETRYTGEO_H
+#define ALICEO2_TRK_GEOMETRYTGEO_H
 
 #include <memory>
 #include <DetectorsCommonDataFormats/DetMatrixCache.h>

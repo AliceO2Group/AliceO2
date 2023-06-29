@@ -9,20 +9,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-// #include "FairDetector.h"    // for FairDetector
-// #include "FairRootManager.h" // for FairRootManager
-// #include "FairRun.h"         // for FairRun
-// #include "FairRuntimeDb.h"   // for FairRuntimeDb
 #include <FairVolume.h>
-// #include "FairRootManager.h"
 
 #include <TVirtualMC.h>
 #include <TVirtualMCStack.h>
+#include <TGeoVolume.h>
 
 #include <DetectorsBase/Stack.h>
 #include <ITSMFTSimulation/Hit.h>
 #include <TRKSimulation/Detector.h>
-#include <TRKBase/GeometryTGeo.h>
 #include <TRKBase/TRKBaseParam.h>
 
 using o2::itsmft::Hit;
@@ -55,6 +50,7 @@ Detector::Detector(bool active)
   } else {
     configDefault();
     configToFile();
+    configServices();
   }
 
   LOGP(info, "Summary of TRK configuration:");
@@ -81,10 +77,10 @@ void Detector::configDefault()
   mLayers.clear();
 
   LOGP(warning, "Loading default configuration for ALICE3 TRK");
-  mLayers.emplace_back(0, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(0)}, 0.5f, 50.f, 100.e-4);
+  mLayers.emplace_back(0, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(0)}, 0.55f, 50.f, 100.e-4); // Adjusted rmin not to overlap with inner BP
   mLayers.emplace_back(1, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(1)}, 1.2f, 50.f, 100.e-4);
   mLayers.emplace_back(2, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(2)}, 2.5f, 50.f, 100.e-4);
-  mLayers.emplace_back(3, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(3)}, 3.75f, 124.f, 100.e-4);
+  mLayers.emplace_back(3, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(3)}, 3.78f, 124.f, 100.e-4); // Adjusted rmin not to overlap with outer BP
   mLayers.emplace_back(4, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(4)}, 7.f, 124.f, 100.e-3);
   mLayers.emplace_back(5, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(5)}, 12.f, 124.f, 100.e-3);
   mLayers.emplace_back(6, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(6)}, 20.f, 124.f, 100.e-3);
@@ -92,7 +88,6 @@ void Detector::configDefault()
   mLayers.emplace_back(8, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(8)}, 45.f, 264.f, 100.e-3);
   mLayers.emplace_back(9, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(9)}, 60.f, 264.f, 100.e-3);
   mLayers.emplace_back(10, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(10)}, 80.f, 264.f, 100.e-3);
-  mLayers.emplace_back(11, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(11)}, 100.f, 264.f, 100.e-3);
 }
 
 void Detector::configFromFile(std::string fileName)
@@ -136,6 +131,11 @@ void Detector::configToFile(std::string fileName)
   }
 }
 
+void Detector::configServices()
+{
+  mServices = TRKServices{2.6f, 50.f, 150.e-3};
+}
+
 void Detector::createMaterials()
 {
   int ifield = 2;      // ?
@@ -154,11 +154,21 @@ void Detector::createMaterials()
   float epsilAir = 1.0E-4;      // .10000E+01;
   float stminAir = 0.0;         // cm "Default value used"
 
+  float tmaxfdCer = 0.1;        // .10000E+01; // Degree
+  float stemaxCer = .10000E+01; // cm
+  float deemaxCer = 0.1;        // 0.30000E-02; // Fraction of particle's energy 0<deemax<=1
+  float epsilCer = 1.0E-4;      // .10000E+01;
+  float stminCer = 0.0;         // cm "Default value used"
+
   // AIR
   float aAir[4] = {12.0107, 14.0067, 15.9994, 39.948};
   float zAir[4] = {6., 7., 8., 18.};
   float wAir[4] = {0.000124, 0.755267, 0.231781, 0.012827};
   float dAir = 1.20479E-3;
+
+  // Carbon fiber
+  float aCf[2] = {12.0107, 1.00794};
+  float zCf[2] = {6., 1.};
 
   o2::base::Detector::Mixture(1, "AIR$", aAir, zAir, dAir, 4, wAir);
   o2::base::Detector::Medium(1, "AIR$", 1, 0, ifield, fieldm, tmaxfdAir, stemaxAir, deemaxAir, epsilAir, stminAir);
@@ -178,12 +188,15 @@ void Detector::createGeometry()
   TGeoVolume* vTRK = geoManager->GetVolume(GeometryTGeo::getTRKVolPattern());
   vALIC->AddNode(vTRK, 2, new TGeoTranslation(0, 30., 0));
 
-  char vstrng[100] = "xxxRS"; //?
+  char vstrng[100] = "TRKVol";
   vTRK->SetTitle(vstrng);
 
   for (auto& layer : mLayers) {
     layer.createLayer(vTRK);
   }
+
+  // Add service for inner tracker
+  mServices.createServices(vTRK);
 }
 
 void Detector::InitializeO2Detector()
