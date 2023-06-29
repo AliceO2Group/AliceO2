@@ -31,37 +31,42 @@ class CrateMapper
   CrateMapper();
   ~CrateMapper() = default;
 
-  /// Builds the local board ID in the detection element
-  static uint16_t deBoardId(uint8_t rpcLineId, uint8_t columnId, uint8_t lineId) { return (rpcLineId | (columnId << 4) | (lineId << 7)); }
-  /// Gets the RPC line from the DE board ID
-  static uint8_t getRPCLine(uint16_t deBoardId) { return deBoardId & 0xF; }
-  /// Gets the column ID from the DE board ID
-  static uint8_t getColumnId(uint16_t deBoardId) { return (deBoardId >> 4) & 0x7; }
-  /// Gets the line ID from the DE board ID
-  static uint8_t getLineId(uint16_t deBoardId) { return (deBoardId >> 7) & 0x3; }
+  /// @brief Converts the LOC ID expressed in the offline convention into the readout convention
+  /// @param deId Detection element ID
+  /// @param columnId Column ID
+  /// @param lineId Line ID
+  /// @return LOC ID for readout electronics
   uint8_t deLocalBoardToRO(uint8_t deId, uint8_t columnId, uint8_t lineId) const;
 
+  /// @brief Converts the LOC ID expressed in readout convention into the LOC ID in MT11 right in the offline convention
+  /// @param uniqueLocId LOC ID for the readout electronics
+  /// @return LOC ID in the offline way
   uint16_t roLocalBoardToDE(uint8_t uniqueLocId) const;
 
-  /// Checks if local board ID has direct input from FEE y strips
+  /// @brief Checks if local board ID (RO convention) has direct input from FEE y strips
+  /// @param uniqueLocId LOC ID in the RO convention
+  /// @returns true if local board ID has direct input from FEE y strips
   bool hasDirectInputY(uint8_t uniqueLocId) const { return mLocIdsWithDirectInputY.find(getROBoardIdRight(uniqueLocId)) != mLocIdsWithDirectInputY.end(); }
 
-  /// Gets the local boards with a direct input from FEE y strips
+  /// @brief Gets the local boards with a direct input from FEE y strips
+  /// @return An unordered set with the local boards IDs (offline convention) with a direct input from FEE y strips
   std::unordered_set<uint8_t> getLocalBoardsWithDirectInputY() const { return mLocIdsWithDirectInputY; }
 
-  /// Returns the list of readout local board IDs
-  /// \param gbtUniqueId Limit the query to the links belonging to the specified gbtUniqueId. If gbtUniqueId is 0xFFFF, return all
-  /// \return Sorted vector of local board unique IDs
+  /// @brief Returns the list of local board IDs (RO convention)
+  /// @param gbtUniqueId Limit the query to the links belonging to the specified gbtUniqueId. If gbtUniqueId is 0xFFFF, return all
+  /// @return Sorted vector of local board unique IDs (offline convention)
   std::vector<uint8_t> getROBoardIds(uint16_t gbtUniqueId = 0xFFFF) const;
 
  private:
-  /// Initializes the crate mapping
+  /// @brief Initializes the crate mapping
   void init();
-  /// Returns the unique Loc ID in the right side
+
+  /// @brief Returns the unique Loc ID in the right side (offline convention)
   uint8_t getROBoardIdRight(uint8_t uniqueLocId) const { return uniqueLocId % 0x80; }
-  std::unordered_map<uint8_t, uint16_t> mROToDEMap;    /// Correspondence between RO and DE board
-  std::unordered_map<uint16_t, uint8_t> mDEToROMap;    /// Correspondence between DE and RO board
-  std::unordered_set<uint8_t> mLocIdsWithDirectInputY; /// IDs of the local board with direct input from FEE y strips
+
+  std::unordered_map<uint8_t, uint16_t> mROToDEMap;    /// Correspondence between boards in the RO and Offline convention
+  std::unordered_map<uint16_t, uint8_t> mDEToROMap;    /// Correspondence between boards in the Offline and RO convention
+  std::unordered_set<uint8_t> mLocIdsWithDirectInputY; /// IDs of the local board (offline convention) with direct input from FEE y strips
 };
 } // namespace mid
 } // namespace o2
