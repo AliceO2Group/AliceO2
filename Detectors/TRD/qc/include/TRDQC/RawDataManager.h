@@ -46,16 +46,17 @@ namespace o2::trd
 /// hits within a chamber.
 class HitPoint : public ChamberSpacePoint
 {
-public:
-  HitPoint(ChamberSpacePoint position, float charge) 
-  : ChamberSpacePoint(position), mCharge(charge) 
-  {}
+ public:
+  HitPoint(ChamberSpacePoint position, float charge)
+    : ChamberSpacePoint(position), mCharge(charge)
+  {
+  }
 
-  HitPoint() {};
+  HitPoint(){};
 
-  float getCharge() {return mCharge;}
+  float getCharge() { return mCharge; }
 
-private:
+ private:
   float mCharge{0.0};
 };
 
@@ -104,8 +105,6 @@ struct RawDataSpan {
   std::vector<RawDataSpan> iterateByMCM();
   std::vector<RawDataSpan> iterateByPadRow();
   // std::vector<RawDataSpan> iterateDetector();
-
-
 
   //   pair<int, int> getMaxADCsumAndChannel();
   //   int getMaxADCsum(){ return getMaxADCsumAndChannel().first; }
@@ -183,7 +182,6 @@ class RawDataManager
   TTreeReaderArray<o2::dataformats::TrackTPCITS>* mTracks{0};
   // TTreeReaderArray<o2::tpc::TrackTPC> *mTpcTracks{0};
 
-
   // access to Monte-Carlo hits
   // TFile* mHitsFile{0};
   // TTree* mHitsTree{0};
@@ -192,9 +190,9 @@ class RawDataManager
   TTree* mMCTree{0};
   TTreeReader* mMCReader{0};
 
-  TTreeReaderValue< o2::dataformats::MCEventHeader >* mMCEventHeader{0};
-  TTreeReaderArray< o2::MCTrackT<Float_t> >* mMCTracks{0};
-  TTreeReaderArray< o2::trd::Hit >* mHits{0};
+  TTreeReaderValue<o2::dataformats::MCEventHeader>* mMCEventHeader{0};
+  TTreeReaderArray<o2::MCTrackT<Float_t>>* mMCTracks{0};
+  TTreeReaderArray<o2::trd::Hit>* mHits{0};
 
   std::vector<o2::trd::HitPoint> mHitPoints;
 
@@ -215,7 +213,6 @@ class RawDataManager
 
   // template <typename T>
   // void addReaderArray(TTreeReaderArray<T>*& array, std::filesystem::path file, std::string tree, std::string branch);
-
 };
 
 } // namespace o2::trd

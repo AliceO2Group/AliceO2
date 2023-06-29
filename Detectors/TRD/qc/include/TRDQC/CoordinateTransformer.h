@@ -28,16 +28,14 @@ class Geometry;
 class CoordinateTransformer;
 
 /// A position in spatial (x,y,z) and raw/digit coordinates (det,row,col,tb).
-/// This class is intended to store the converted coordinates of a space point, to avoid 
+/// This class is intended to store the converted coordinates of a space point, to avoid
 /// repeated transformations between spatial and row/col/tb coordinates.
 class ChamberSpacePoint
 {
  public:
   ChamberSpacePoint(int det = -999) : mDetector(det){};
   ChamberSpacePoint(int detector, float x, float y, float z, std::array<float, 3> rct)
-  : mDetector(detector), mX(x), mY(y), mZ(z)
-  , mPadrow(rct[0]), mPadcol(rct[1]), mTimebin(rct[2])
-  { };
+    : mDetector(detector), mX(x), mY(y), mZ(z), mPadrow(rct[0]), mPadcol(rct[1]), mTimebin(rct[2]){};
 
   /// check if the space point has been initialized
   bool isValid() const { return mDetector >= 0; }

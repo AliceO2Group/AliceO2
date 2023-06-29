@@ -115,16 +115,17 @@ std::array<float, 3> CoordinateTransformer::OrigLocal2RCT(int det, float x, floa
   return rct;
 }
 
-  o2::trd::ChamberSpacePoint CoordinateTransformer::MakeSpacePoint(o2::trd::Hit& hit)
-  {
-    float x = hit.getLocalT();
-    float y = hit.getLocalC();
-    float z = hit.getLocalR();
-    auto rct = Local2RCT(hit.GetDetectorID(), x, y, z);
-    return o2::trd::ChamberSpacePoint(hit.GetDetectorID(), x, y, y, rct);
-  }
+o2::trd::ChamberSpacePoint CoordinateTransformer::MakeSpacePoint(o2::trd::Hit& hit)
+{
+  float x = hit.getLocalT();
+  float y = hit.getLocalC();
+  float z = hit.getLocalR();
+  auto rct = Local2RCT(hit.GetDetectorID(), x, y, z);
+  return o2::trd::ChamberSpacePoint(hit.GetDetectorID(), x, y, y, rct);
+}
 
-namespace o2::trd {
+namespace o2::trd
+{
 std::ostream& operator<<(std::ostream& os, const ChamberSpacePoint& p)
 {
   int sector = p.getDetector() / 30;
@@ -139,4 +140,4 @@ std::ostream& operator<<(std::ostream& os, const ChamberSpacePoint& p)
      << " pad " << std::setprecision(5) << p.getPadCol() << "]";
   return os;
 }
-};
+}; // namespace o2::trd

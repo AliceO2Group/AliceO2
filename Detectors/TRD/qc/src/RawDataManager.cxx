@@ -65,7 +65,7 @@ bool comp_tracklet(const o2::trd::Tracklet64& a, const o2::trd::Tracklet64& b)
   return a_col_pos < b_col_pos;
 };
 
-bool comp_spacepoint(const ChamberSpacePoint &a, const ChamberSpacePoint &b)
+bool comp_spacepoint(const ChamberSpacePoint& a, const ChamberSpacePoint& b)
 {
   if (a.getDetector() != b.getDetector())
     return a.getDetector() < b.getDetector();
@@ -119,19 +119,14 @@ std::vector<RawDataSpan> RawDataSpan::iterateBy()
   }
 
   // spanmap contains all TRD data - either digits or tracklets
-  // Now we complete these spans with hit information 
-  std::cout << "-----------------" << std::endl;
+  // Now we complete these spans with hit information
   for (auto cur = hits.b; cur != hits.e; ++cur) {
-    // std::cout << (*cur) << std::endl;
-    for (auto key: keyfunc::keys(*cur)) {
+    for (auto key : keyfunc::keys(*cur)) {
       if (spanmap[key].hits.b == spanmap[key].hits.e) {
         spanmap[key].hits.b = cur;
         spanmap[key].hits.e = cur;
-        // std::cout << "START " << key << ": " << (*spanmap[key].hits.b) << std::endl;
       }
       ++spanmap[key].hits.e;
-      // std::cout << " INCR " << key << ": " << std::distance(spanmap[key].hits.b, spanmap[key].hits.e) << std::endl;
-      // std::cout << std::endl;
     }
   }
 
@@ -158,8 +153,6 @@ std::vector<RawDataSpan> RawDataSpan::iterateBy()
   return spans;
 }
 
-
-
 /// PadRowID is a struct to calculate unique identifiers per pad row.
 /// The struct can be passed as a template parameter to the RawDataSpan::IterateBy
 /// method to split the data span by pad row and iterate over the pad rows.
@@ -174,7 +167,7 @@ struct PadRowID {
   static std::vector<uint32_t> keys(const o2::trd::ChamberSpacePoint& x)
   {
     uint32_t key = 100 * x.getDetector() + x.getPadRow();
-    return {key}; 
+    return {key};
   }
 
   static bool match(const uint32_t key, const o2::trd::ChamberSpacePoint& x)
@@ -188,7 +181,6 @@ template std::vector<RawDataSpan> RawDataSpan::iterateBy<PadRowID>();
 
 // non-template wrapper function to keep PadRowID within the .cxx file
 std::vector<RawDataSpan> RawDataSpan::iterateByPadRow() { return iterateBy<PadRowID>(); }
-
 
 /// A struct that can be used to calculate unique identifiers for MCMs, to be
 /// used to split ranges by MCM.
@@ -224,7 +216,6 @@ struct MCM_ID {
 template std::vector<RawDataSpan> RawDataSpan::iterateBy<MCM_ID>();
 std::vector<RawDataSpan> RawDataSpan::iterateByMCM() { return iterateBy<MCM_ID>(); }
 
-
 // I started to implement a struct to iterate by detector, but did not finish this
 // struct DetectorID {
 //   /// The static `key` method calculates a padrow ID for digits and tracklets
@@ -237,7 +228,7 @@ std::vector<RawDataSpan> RawDataSpan::iterateByMCM() { return iterateBy<MCM_ID>(
 //   static std::vector<uint32_t> keys(const o2::trd::ChamberSpacePoint& x)
 //   {
 //     uint32_t key = x.getDetector();
-//     return {key}; 
+//     return {key};
 //   }
 
 //   static bool match(const uint32_t key, const o2::trd::ChamberSpacePoint& x)
@@ -294,7 +285,7 @@ RawDataManager::RawDataManager(std::filesystem::path dir)
   // For MC, we first read the collision context
   if (std::filesystem::exists(dir / "collisioncontext.root")) {
     TFile fInCollCtx((dir / "collisioncontext.root").c_str());
-    mCollisionContext = (o2::steer::DigitizationContext*) fInCollCtx.Get("DigitizationContext");
+    mCollisionContext = (o2::steer::DigitizationContext*)fInCollCtx.Get("DigitizationContext");
     mCollisionContext->printCollisionSummary();
   }
 
@@ -310,8 +301,8 @@ RawDataManager::RawDataManager(std::filesystem::path dir)
   // We create the TTree using event header and tracks from the kinematics file
   if (std::filesystem::exists(dir / "o2sim_Kine.root")) {
     mMCFile = new TFile((dir / "o2sim_Kine.root").c_str());
-  // if (std::filesystem::exists(dir / "o2sim_MCHeader.root")) {
-  //   mMCFile = new TFile((dir / "o2sim_MCHeader.root").c_str());
+    // if (std::filesystem::exists(dir / "o2sim_MCHeader.root")) {
+    //   mMCFile = new TFile((dir / "o2sim_MCHeader.root").c_str());
     mMCFile->GetObject("o2sim", mMCTree);
     mMCReader = new TTreeReader(mMCTree);
     mMCEventHeader = new TTreeReaderValue<o2::dataformats::MCEventHeader>(*mMCReader, "MCEventHeader.");
@@ -324,7 +315,6 @@ RawDataManager::RawDataManager(std::filesystem::path dir)
     mMCTree->AddFriend("o2sim", (dir / "o2sim_HitsTRD.root").c_str());
     mHits = new TTreeReaderArray<o2::trd::Hit>(*mMCReader, "TRDHit");
   }
-
 
   // ConnectMCHitsFile(dir+"o2sim_HitsTRD.root");
 }
@@ -363,22 +353,21 @@ bool RawDataManager::nextEvent()
   mTriggerRecord = mTrgRecords->At(mEventNo);
   std::cout << mTriggerRecord << std::endl;
 
-
   if (mCollisionContext) {
 
     // clear MC data
     mHitPoints.clear();
 
-    for (int i=0; i<mCollisionContext->getNCollisions(); ++i) {
-      if ( abs(mTriggerRecord.getBCData().differenceInBCNS(mCollisionContext->getEventRecords()[i])) == 0 ) {
+    for (int i = 0; i < mCollisionContext->getNCollisions(); ++i) {
+      if (abs(mTriggerRecord.getBCData().differenceInBCNS(mCollisionContext->getEventRecords()[i])) == 0) {
         std::cout << "using collision " << i << std::endl;
-        if(mMCReader) {
+        if (mMCReader) {
           mMCReader->SetEntry(i);
         }
 
         // convert hits to spacepoints
         auto ctrans = o2::trd::CoordinateTransformer::instance();
-        for( auto& hit : *mHits) {
+        for (auto& hit : *mHits) {
           mHitPoints.emplace_back(ctrans->MakeSpacePoint(hit), hit.GetCharge());
         }
       }
@@ -386,7 +375,7 @@ bool RawDataManager::nextEvent()
   }
 
   mEventNo++;
-  if(mMCReader) {
+  if (mMCReader) {
     O2INFO("loaded event: MC time = %fns, ID %d", mMCEventHeader->Get()->GetT(), mMCEventHeader->Get()->GetEventID());
     mMCEventHeader->Get()->printInfo();
   }
