@@ -22,6 +22,7 @@
 #include <cstddef>
 
 using uv_loop_t = struct uv_loop_s;
+using uv_timer_t = struct uv_timer_s;
 
 namespace o2::framework
 {
@@ -59,6 +60,7 @@ class ComputingQuotaEvaluator
   std::array<ComputingQuotaInfo, MAX_INFLIGHT_OFFERS> mInfos;
   ComputingQuotaStats mStats;
   ServiceRegistryRef mRef;
+  uv_timer_t* mTimer;
 };
 
 } // namespace o2::framework
