@@ -137,8 +137,8 @@ class CorrectionMapsHelper
   enum UpdateFlags { MapBit = 0x1,
                      MapRefBit = 0x2,
                      LumiBit = 0x4 };
-  bool mOwner = false;                                          // is content of pointers owned by the helper
-  bool mUseCTPLumi = false;                                     // require CTP Lumi for mInstLumi
+  bool mOwner = false;      // is content of pointers owned by the helper
+  bool mUseCTPLumi = false; // require CTP Lumi for mInstLumi
   int mUpdatedFlags = 0;
   float mInstLumi = 0.;                                         // instanteneous luminosity (a.u)
   float mMeanLumi = 0.;                                         // mean luminosity of the map (a.u)

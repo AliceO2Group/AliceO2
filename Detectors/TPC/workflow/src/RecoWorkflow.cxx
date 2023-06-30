@@ -214,7 +214,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
                                                      "tpc-compclusters.root",
                                                      "tpcrec",
                                                      {"clusterbranch", "TPCCompClusters", "Branch with TPC compressed clusters"},
-                                                     {"", "", ""},       // No MC labels
+                                                     {"", "", ""}, // No MC labels
                                                      OutputSpec{"TPC", "COMPCLUSTERS"},
                                                      OutputSpec{"", ""}, // No MC labels
                                                      std::vector<int>(1, 0),
@@ -530,8 +530,8 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
     auto ccldef = BranchDefinition<CCluSerializedType>{InputSpec{"inputCompCl", "TPC", "COMPCLUSTERS"}, //
                                                        "TPCCompClusters_0", "compcluster-branch-name"}; //
 
-    specs.push_back(MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,               //
-                                           std::move(ccldef))());                                       //
+    specs.push_back(MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName, //
+                                           std::move(ccldef))());                         //
   }
 
   return std::move(specs);
