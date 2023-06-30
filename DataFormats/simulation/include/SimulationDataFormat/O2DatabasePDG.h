@@ -233,9 +233,6 @@ inline void O2DatabasePDG::addALICEParticles(TDatabasePDG* db)
                   0, 0, "Special", kspe + 50);
   db->AddParticle("FeedbackPhoton", "FeedbackPhoton", 0, kFALSE,
                   0, 0, "Special", kspe + 51);
-  db->AddParticle("Lambda1520", "Lambda1520", 1.5195, kFALSE,
-                  0.0156, 0, "Resonance", 3124);
-  db->AddAntiParticle("Lambda1520bar", -3124);
 
   //Hyper nuclei and exotica
   ionCode = 1010010030;
