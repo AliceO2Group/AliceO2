@@ -222,12 +222,12 @@ void Detector::buildFT3V1()
 }
 
 //_________________________________________________________________________________________________                                                                                                     
-void Detector::buildFT3V3a()
+void Detector::buildFT3V3b()
 {
   //Build FT3 detector according to                                                                                                                                                                    
   //https://www.overleaf.com/project/6051acc870e39aaeb4653621                                                                     
 
-  LOG(info) << "Building FT3 Detector: V3a";
+  LOG(info) << "Building FT3 Detector: V3b";
 
   mNumberOfLayers = 12;
   Float_t sensorThickness = 30.e-4;
@@ -239,12 +239,12 @@ void Detector::buildFT3V3a()
     {77., 5.0, 35., layersx2X0},
     {100., 5.0, 35., layersx2X0},
     {122., 5.0, 35., layersx2X0},
-    {150., 5.5, 100., layersx2X0},
-    {180., 6.6, 100., layersx2X0},
-    {220., 8.1, 100., layersx2X0},
-    {279., 10.2, 100., layersx2X0},
-    {340., 12.5, 100., layersx2X0},
-    {400., 14.7, 100., layersx2X0}};
+    {150., 5.5, 80.f, layersx2X0},
+    {180., 6.6, 80.f, layersx2X0},
+    {220., 8.1, 80.f, layersx2X0},
+    {279., 10.2, 80.f, layersx2X0},
+    {340., 12.5, 80.f, layersx2X0},
+    {400., 14.7, 80.f, layersx2X0}};
 
   mLayerName.resize(2);
   mLayerName[0].resize(mNumberOfLayers);
@@ -287,7 +287,7 @@ Detector::Detector(Bool_t active)
   } else {
     switch (ft3BaseParam.geoModel) {
       case Default:
-        buildFT3V3a(); // FT3V3a
+        buildFT3V3b(); // FT3V3b
         break;
       case Telescope:
         buildBasicFT3(ft3BaseParam); // BasicFT3 = Parametrized telescopic detector (equidistant layers)

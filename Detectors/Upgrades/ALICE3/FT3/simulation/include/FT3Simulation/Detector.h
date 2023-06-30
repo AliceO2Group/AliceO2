@@ -113,7 +113,7 @@ class Detector : public o2::base::DetImpl<Detector>
 
   void buildBasicFT3(const FT3BaseParam& param);
   void buildFT3V1();
-  void buildFT3V3a();
+  void buildFT3V3b();
   void buildFT3FromFile(std::string);
 
   GeometryTGeo* mGeometryTGeo; //! access to geometry details
