@@ -220,7 +220,7 @@ void pinToCPU(unsigned int cpuid)
 bool waitForControlInput(int workerID)
 {
   static bool initialized = false;
-  static FairMQChannel channel;
+  static fair::mq::Channel channel;
   if (!initialized) {
     // we do the channel connect and initialization only once
     // (reducing the chances that we might miss a control message from the master)
