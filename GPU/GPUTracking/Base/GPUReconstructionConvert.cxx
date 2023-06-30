@@ -26,6 +26,7 @@
 #include "GPUDataTypes.h"
 #include "AliHLTTPCRawCluster.h"
 #include "GPUParam.h"
+#include "GPULogging.h"
 #include <algorithm>
 #include <vector>
 
@@ -501,7 +502,7 @@ void zsEncoderLinkBased::init()
       int sampaOnFEC = 0, channelOnSAMPA = 0;
       Mapper::getSampaAndChannelOnFEC(iCRU, iChannel, sampaOnFEC, channelOnSAMPA);
       if (inverseChannelMapping[sampaOnFEC][channelOnSAMPA] != -1 && inverseChannelMapping[sampaOnFEC][channelOnSAMPA] != iChannel) {
-        printf("ERROR: Channel conflict: %d %d: %d vs %d\n", sampaOnFEC, channelOnSAMPA, inverseChannelMapping[sampaOnFEC][channelOnSAMPA], iChannel);
+        GPUError("ERROR: Channel conflict: %d %d: %d vs %d", sampaOnFEC, channelOnSAMPA, inverseChannelMapping[sampaOnFEC][channelOnSAMPA], iChannel);
         throw std::runtime_error("ZS error");
       }
       inverseChannelMapping[sampaOnFEC][channelOnSAMPA] = iChannel;
@@ -510,7 +511,7 @@ void zsEncoderLinkBased::init()
   for (int i = 0; i < 5; i++) {
     for (int j = 0; j < 32; j++) {
       if (inverseChannelMapping[i][j] == -1) {
-        printf("ERROR: Map missing for sampa %d channel %d\n", i, j);
+        GPUError("ERROR: Map missing for sampa %d channel %d", i, j);
         throw std::runtime_error("ZS error");
       }
     }
@@ -899,7 +900,7 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
       const o2::header::RAWDataHeader* rdhNext = (const o2::header::RAWDataHeader*)pageNext;
 
       if ((unsigned short)(o2::raw::RDHUtils::getPageCounter(*rdh) + 1) != o2::raw::RDHUtils::getPageCounter(*rdhNext)) {
-        fprintf(stderr, "Incomplete HBF: Payload extended to next page, but next page missing in stream (packet counters %d %d)\n", (int)o2::raw::RDHUtils::getPageCounter(*rdh), (int)o2::raw::RDHUtils::getPageCounter(*rdhNext));
+        GPUError("Incomplete HBF: Payload extended to next page, but next page missing in stream (packet counters %d %d)", (int)o2::raw::RDHUtils::getPageCounter(*rdh), (int)o2::raw::RDHUtils::getPageCounter(*rdhNext));
         extendFailure = true;
         decPagePtr = payloadEnd; // Next 8kb page is missing in stream, cannot decode remaining data, skip it
         break;
@@ -1351,11 +1352,11 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
     }
   }
   if (nErrors) {
-    printf("ERROR: %lld INCORRECT SAMPLES DURING ZS ENCODING VERIFICATION!!!\n", (long long int)nErrors);
+    GPUError("ERROR: %lld INCORRECT SAMPLES DURING ZS ENCODING VERIFICATION!!!", (long long int)nErrors);
   } else if (verify) {
-    printf("ENCODING VERIFICATION PASSED\n");
+    GPUInfo("ENCODING VERIFICATION PASSED");
   }
-  printf("TOTAL ENCODED SIZE: %lu (%lu of %lu digits encoded)\n", totalSize, digitsEncoded, digitsInput);
+  GPUInfo("TOTAL ENCODED SIZE: %lu (%lu of %lu digits encoded)", totalSize, digitsEncoded, digitsInput);
 #endif
 }
 
