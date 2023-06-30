@@ -13,9 +13,7 @@
 
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
-#include "Framework/CompletionPolicy.h"
-#include "Framework/CompletionPolicyHelpers.h"
-#include "Framework/DeviceSpec.h"
+#include "Framework/CommonDataProcessors.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/Task.h"
 #include "Framework/DataRef.h"
@@ -53,10 +51,13 @@ class ConsumerTask
       auto const* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
       LOG(debug) << "Payload size " << dh->payloadSize << " method " << dh->payloadSerializationMethod.as<std::string>();
     }
-    auto tracks = pc.inputs().get<std::vector<o2::MCTrack>>("mctracks");
-    auto eventheader = pc.inputs().get<o2::dataformats::MCEventHeader*>("mcheader");
-    LOG(info) << "Got " << tracks.size() << " tracks";
-    LOG(info) << "Got " << eventheader->GetB() << " as impact parameter in the event header";
+    try {
+      auto tracks = pc.inputs().get<std::vector<o2::MCTrack>>("mctracks");
+      auto eventheader = pc.inputs().get<o2::dataformats::MCEventHeader*>("mcheader");
+      LOG(info) << "Got " << tracks.size() << " tracks";
+      LOG(info) << "Got " << eventheader->GetB() << " as impact parameter in the event header";
+    } catch (...) {
+    }
   }
 };
 
@@ -119,7 +120,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // use given pid
   // TODO: this could go away with a proper pipeline implementation
   std::string channelspec;
-  std::string channelbase = "type=sub,method=connect,address=ipc://";
+  std::string channelbase = "type=pair,method=connect,address=ipc://";
   if (configcontext.options().get<int>("o2sim-pid") != -1) {
     std::stringstream channelstr;
     channelstr << channelbase << "/tmp/o2sim-hitmerger-kineforward-" << configcontext.options().get<int>("o2sim-pid") << ",rateLogging=100";
@@ -139,9 +140,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     channelspec = channelbase + socketlist[0] + ",rateLogging=100";
   }
 
-  specs.emplace_back(specifyExternalFairMQDeviceProxy("o2sim-mctrack-proxy",
-                                                      outputs,
-                                                      channelspec.c_str(), f));
+  auto proxy = specifyExternalFairMQDeviceProxy("o2sim-mctrack-proxy",
+                                                outputs,
+                                                channelspec.c_str(), f);
+  proxy.algorithm = CommonDataProcessors::wrapWithRateLimiting(proxy.algorithm);
+  specs.push_back(proxy);
 
   if (configcontext.options().get<bool>("enable-test-consumer")) {
     // connect a test consumer

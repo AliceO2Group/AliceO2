@@ -47,26 +47,9 @@
 #pragma link C++ class o2::tpc::ROC;
 #pragma link C++ class o2::tpc::Sector;
 
-#pragma link C++ namespace o2::tpc::painter;
-#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalArray <float>&);
-#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalArray <double>&);
-#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalArray <int>&);
-#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalArray <short>&);
-#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalArray <bool>&);
+#pragma link C++ class o2::tpc::painter + ;
 
-#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalDet <float>&, int, float, float);
-#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalDet <double>&, int, float, float);
-#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalDet <int>&, int, float, float);
-#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalDet <short>&, int, float, float);
-#pragma link C++ function o2::tpc::painter::draw(o2::tpc::CalDet <bool>&, int, float, float);
-
-#pragma link C++ function o2::tpc::painter::makeSummaryCanvases(o2::tpc::CalDet <float>&, int, float, float, bool);
-#pragma link C++ function o2::tpc::painter::makeSummaryCanvases(o2::tpc::CalDet <double>&, int, float, float, bool);
-#pragma link C++ function o2::tpc::painter::makeSummaryCanvases(o2::tpc::CalDet <int>&, int, float, float, bool);
-#pragma link C++ function o2::tpc::painter::makeSummaryCanvases(o2::tpc::CalDet <short>&, int, float, float, bool);
-#pragma link C++ function o2::tpc::painter::makeSummaryCanvases(o2::tpc::CalDet <bool>&, int, float, float, bool);
-
-//#pragma link C++ class std::vector <TCanvas*> + ;
+// #pragma link C++ class std::vector <TCanvas*> + ;
 #pragma link C++ class o2::tpc::ParameterDetector;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::tpc::ParameterDetector> + ;
 #pragma link C++ class o2::tpc::ParameterElectronics;

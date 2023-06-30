@@ -72,7 +72,7 @@ class O2SimDevice final : public fair::mq::Device
     // NOTE: In a fair::mq::Device this is better done here (instead of outside) since
     // we have to setup simulation + worker in the same thread (due to many threadlocal variables
     // in the simulation) ... at least as long fair::mq::Device is not spawning workers on the master thread
-    initSim(fChannels.at("o2sim-primserv-info").at(0), mSimRun);
+    initSim(GetChannels().at("o2sim-primserv-info").at(0), mSimRun);
 
     // set the vmc and app pointers
     mVMC = TVirtualMC::GetMC();
@@ -293,7 +293,7 @@ class O2SimDevice final : public fair::mq::Device
   /// Overloads the ConditionalRun() method of fair::mq::Device
   bool ConditionalRun() final
   {
-    return Kernel(-1, fChannels.at("primary-get").at(0), fChannels.at("simdata").at(0));
+    return Kernel(-1, GetChannels().at("primary-get").at(0), GetChannels().at("simdata").at(0));
   }
 
   void PostRun() final { LOG(info) << "Shutting down "; }

@@ -51,66 +51,6 @@ using namespace constants::its2;
 namespace gpu
 {
 
-class GpuTimer
-{
- public:
-  GpuTimer() = delete;
-  GpuTimer(const int offset, cudaStream_t stream = nullptr) : mOffset(offset)
-  {
-    mStream = stream;
-    cudaEventCreateWithFlags(&mStart, cudaEventBlockingSync);
-    cudaEventCreateWithFlags(&mStop, cudaEventBlockingSync);
-    cudaEventCreateWithFlags(&mLifetimeStart, cudaEventBlockingSync);
-    cudaEventCreateWithFlags(&mLifetimeEnd, cudaEventBlockingSync);
-    cudaEventRecord(mLifetimeStart, mStream);
-  }
-  ~GpuTimer()
-  {
-    cudaEventDestroy(mStart);
-    cudaEventDestroy(mStop);
-    cudaEventDestroy(mLifetimeStart);
-    cudaEventDestroy(mLifetimeEnd);
-  }
-  void Start(std::string task = "undefined")
-  {
-    mTask = task;
-    cudaEventRecord(mStart, mStream);
-  }
-  void Stop()
-  {
-    cudaEventRecord(mStop, mStream);
-    cudaEventSynchronize(mStop);
-    cudaEventElapsedTime(&mElapsedTimeMS, mStart, mStop);
-  }
-  void Print()
-  {
-    printf("%s\t%d\t%f\t#?#\n", (mTask + "_" + std::to_string(mOffset)).c_str(), mStream, mElapsedTimeMS);
-  }
-  void PrintLifetime(size_t mem = 0)
-  {
-    cudaEventRecord(mLifetimeEnd, mStream);
-    cudaEventSynchronize(mLifetimeEnd);
-    float lifetime;
-    cudaEventElapsedTime(&lifetime, mLifetimeStart, mLifetimeEnd);
-    printf("trLifeTime_%d\t%d\t%f\t%lu\t#?#\n", mOffset, mStream, lifetime, mem);
-  }
-  float getElapsedTimeMS()
-  {
-    return mElapsedTimeMS;
-  }
-
- private:
-  std::string mTask;
-  cudaEvent_t mStart;
-  cudaEvent_t mStop;
-  cudaEvent_t mLifetimeStart;
-  cudaEvent_t mLifetimeEnd;
-  cudaStream_t mStream;
-  float mElapsedTimeMS;
-  float mData;
-  int mOffset;
-};
-
 GPUd() const int4 getBinsRect(const Cluster& currentCluster, const int layerIndex,
                               const o2::its::IndexTableUtils& utils,
                               const float z1, const float z2, float maxdeltaz, float maxdeltaphi)
@@ -668,8 +608,7 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration)
         auto rofs = mTimeFrameGPU->loadChunkData<gpu::Task::Tracker>(chunkId, offset, maxROF);
         ////////////////////
         /// Tracklet finding
-        gpu::GpuTimer timer{offset, mTimeFrameGPU->getStream(chunkId).get()};
-        // timer.Start("trTrackletFinder");
+
         for (int iLayer{0}; iLayer < nLayers - 1; ++iLayer) {
           auto nclus = mTimeFrameGPU->getTotalClustersPerROFrange(offset, rofs, iLayer);
           const float meanDeltaR{mTrkParams[iteration].LayerRadii[iLayer + 1] - mTrkParams[iteration].LayerRadii[iLayer]};

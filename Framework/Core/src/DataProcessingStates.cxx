@@ -162,7 +162,7 @@ void DataProcessingStates::flushChangedStates(std::function<void(std::string con
   publishingInvokedTotal++;
   bool publish = false;
   auto currentTimestamp = getTimestamp(realTimeBase, initialTimeOffset);
-  for (size_t mi = 0; mi < updated.size(); ++mi) {
+  for (auto mi : registeredStates) {
     auto& update = updateInfos[mi];
     auto& spec = stateSpecs[mi];
     auto& view = statesViews[mi];
@@ -242,6 +242,7 @@ void DataProcessingStates::registerState(StateSpec const& spec)
   updateInfos[spec.stateId] = UpdateInfo{currentTime, currentTime};
   updated[spec.stateId] = spec.sendInitialValue;
   enabled[spec.stateId] = spec.defaultEnabled;
+  registeredStates.push_back(spec.stateId);
 }
 
 } // namespace o2::framework

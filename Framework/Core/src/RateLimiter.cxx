@@ -28,7 +28,7 @@ void RateLimiter::check(ProcessingContext& ctx, int maxInFlight, size_t minSHM)
     return;
   }
   auto device = ctx.services().get<RawDeviceService>().device();
-  if (maxInFlight && device->fChannels.count("metric-feedback")) {
+  if (maxInFlight && device->GetChannels().count("metric-feedback")) {
     int waitMessage = 0;
     int recvTimeot = 0;
     auto& dtc = ctx.services().get<DataTakingContext>();

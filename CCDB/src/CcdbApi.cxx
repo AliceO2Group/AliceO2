@@ -1801,7 +1801,11 @@ CURLcode CcdbApi::CURL_perform(CURL* handle) const
   if (mIsCCDBDownloaderEnabled) {
     return mDownloader->perform(handle);
   }
-  return curl_easy_perform(handle);
+  CURLcode result;
+  for (int i = 1; i <= mCurlRetries && (result = curl_easy_perform(handle)) != CURLE_OK; i++) {
+    usleep(mCurlDelayRetries * i);
+  }
+  return result;
 }
 
 } // namespace o2

@@ -610,7 +610,7 @@ auto sendRelayerMetrics(ServiceRegistryRef registry, DataProcessingStats& stats)
   int64_t totalBytesIn = 0;
   int64_t totalBytesOut = 0;
 
-  for (auto& channel : device->fChannels) {
+  for (auto& channel : device->GetChannels()) {
     totalBytesIn += channel.second[0].GetBytesRx();
     totalBytesOut += channel.second[0].GetBytesTx();
   }
