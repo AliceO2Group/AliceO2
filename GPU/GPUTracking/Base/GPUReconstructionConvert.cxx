@@ -739,6 +739,7 @@ struct zsEncoderDenseLinkBased : public zsEncoderLinkBased {
   void decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const zsPage* page, unsigned int endpoint, unsigned int firstOrbit, unsigned int triggerBC = 0);
   bool writeSubPage();
   void initPage();
+  void amendPageErrorMessage(std::ostringstream& oss, const o2::header::RAWDataHeader* rdh, const TPCZSHDRV2* decHDR, const unsigned char* payloadEnd, const unsigned char* decPagePtr, unsigned int nOutput);
 
   unsigned short curTimeBin = 0;
   std::vector<unsigned char> sequenceBuffer;
@@ -889,7 +890,7 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
   for (unsigned int i = 0; i < decHDR->nTimebinHeaders; i++) {
     int sizeLeftInPage = payloadEnd - decPagePtr;
     if (sizeLeftInPage <= 0) {
-      throw std::runtime_error("Decoding ran beyond end of page");
+      throw std::runtime_error("Decoding ran beyond end of page before processing extended timebin");
     }
     if (i == decHDR->nTimebinHeaders - 1 && (decHDR->flags & o2::tpc::TPCZSHDRV2::ZSFlags::payloadExtendsToNextPage)) {
       if (o2::raw::RDHUtils::getMemorySize(*rdh) != TPCZSHDR::TPC_ZS_PAGE_SIZE) {
@@ -990,19 +991,41 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
   if (!extendFailure && nOutput != decHDR->nADCsamples) {
     std::ostringstream oss;
     oss << "Number of decoded digits " << nOutput << " does not match value from MetaInfo " << decHDR->nADCsamples;
+    amendPageErrorMessage(oss, rdh, decHDR, nullptr, nullptr, nOutput);
     throw std::runtime_error(oss.str());
   }
+
   if (decHDR->nTimebinHeaders && payloadEnd - decPagePtr < 0) {
     std::ostringstream oss;
-    oss << "Decoding ran over end of page (payloadEnd " << (void*)payloadEnd << " - decPagePtr " << (void*)decPagePtr << " - " << (payloadEnd - decPagePtr) << " bytes left, " << nOutput << " of " << decHDR->nADCsamples << " digits decoded)";
-    fprintf(stderr, "FOO nHeaders %d payload %d size %d\n", (int)decHDR->nTimebinHeaders, (int)decHDR->firstZSDataOffset, (int)o2::raw::RDHUtils::getMemorySize(*rdh));
+    oss << "Decoding ran over end of page";
+    amendPageErrorMessage(oss, rdh, decHDR, payloadEnd, decPagePtr, nOutput);
     throw std::runtime_error(oss.str());
   }
   if (decHDR->nTimebinHeaders && payloadEnd - decPagePtr >= 2 * o2::raw::RDHUtils::GBTWord128) {
     std::ostringstream oss;
-    oss << "Decoding didn't reach end of page (payloadEnd " << (void*)payloadEnd << " - decPagePtr " << (void*)decPagePtr << " - " << (payloadEnd - decPagePtr) << " bytes left, " << nOutput << " of " << decHDR->nADCsamples << " digits decoded)";
+    oss << "Decoding didn't reach end of page";
+    amendPageErrorMessage(oss, rdh, decHDR, payloadEnd, decPagePtr, nOutput);
     throw std::runtime_error(oss.str());
   }
+}
+
+void zsEncoderDenseLinkBased::amendPageErrorMessage(std::ostringstream& oss, const o2::header::RAWDataHeader* rdh, const TPCZSHDRV2* decHDR, const unsigned char* payloadEnd, const unsigned char* decPagePtr, unsigned int nOutput)
+{
+  if (payloadEnd && decPagePtr) {
+    oss << " (payloadEnd " << (void*)payloadEnd << " - decPagePtr " << (void*)decPagePtr << " - " << (payloadEnd - decPagePtr) << " bytes left, " << nOutput << " of " << decHDR->nADCsamples << " digits decoded)\n";
+  } else {
+    oss << "\n";
+  }
+  constexpr size_t bufferSize = 3 * std::max(sizeof(*rdh), sizeof(*decHDR)) + 1;
+  char dumpBuffer[bufferSize];
+  for (size_t i = 0; i < sizeof(*rdh); i++) {
+    snprintf(dumpBuffer + 3 * i, 4, "%02X ", (int)((unsigned char*)rdh)[i]);
+  }
+  oss << "RDH of page: " << dumpBuffer << "\n";
+  for (size_t i = 0; i < sizeof(*decHDR); i++) {
+    snprintf(dumpBuffer + 3 * i, 4, "%02X ", (int)((unsigned char*)decHDR)[i]);
+  }
+  oss << "Meta header of page: " << dumpBuffer << "\n";
 }
 
 #endif // GPUCA_O2_LIB
