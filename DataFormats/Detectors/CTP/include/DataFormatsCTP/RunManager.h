@@ -13,7 +13,7 @@
 /// \brief Managing runs for config and scalers
 /// \author Roman Lietava
 #ifndef _CTP_RUNMANAGER_H_
-#define _CTP_RUNMANAGER_H_a
+#define _CTP_RUNMANAGER_H_
 #include "DataFormatsCTP/Configuration.h"
 namespace o2
 {
