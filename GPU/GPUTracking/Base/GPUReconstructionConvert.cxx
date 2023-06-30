@@ -898,8 +898,8 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
       const unsigned char* pageNext = ((const unsigned char*)decPage) + TPCZSHDR::TPC_ZS_PAGE_SIZE;
       const o2::header::RAWDataHeader* rdhNext = (const o2::header::RAWDataHeader*)pageNext;
 
-      if ((unsigned char)(o2::raw::RDHUtils::getPageCounter(*rdh) + 1) != o2::raw::RDHUtils::getPageCounter(*rdhNext)) {
-        fprintf(stderr, "Incomplete HBF: Payload extended to next page, but next page missing in stream\n");
+      if ((unsigned short)(o2::raw::RDHUtils::getPageCounter(*rdh) + 1) != o2::raw::RDHUtils::getPageCounter(*rdhNext)) {
+        fprintf(stderr, "Incomplete HBF: Payload extended to next page, but next page missing in stream (packet counters %d %d)\n", (int)o2::raw::RDHUtils::getPageCounter(*rdh), (int)o2::raw::RDHUtils::getPageCounter(*rdhNext));
         extendFailure = true;
         decPagePtr = payloadEnd; // Next 8kb page is missing in stream, cannot decode remaining data, skip it
         break;
@@ -1163,12 +1163,14 @@ inline unsigned int zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vecto
     }
     if (mustWritePage) {
       if (!needAnotherPage) {
+        if (hbf != nexthbf) {
+          pageCounter = 0;
+        }
         outputRegion = curRegion;
         outputEndpoint = endpoint;
         hbf = nexthbf;
         lastTime = -1;
         lastEndpoint = endpoint;
-        pageCounter = 0;
       }
       if (raw) {
         page = &singleBuffer;
