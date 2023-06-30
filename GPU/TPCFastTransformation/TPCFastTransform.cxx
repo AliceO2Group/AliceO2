@@ -37,7 +37,7 @@
 using namespace GPUCA_NAMESPACE::gpu;
 
 TPCFastTransform::TPCFastTransform()
-  : FlatObject(), mTimeStamp(0), mCorrection(), mApplyCorrection(1), mT0(0.f), mVdrift(0.f), mVdriftCorrY(0.f), mLdriftCorr(0.f), mTOFcorr(0.f), mPrimVtxZ(0.f), mLumi(0.f), mLumiError(0.f), mLumiScaleFactor(1.0f)
+  : FlatObject(), mTimeStamp(0), mCorrection(), mApplyCorrection(1), mT0(0.f), mVdrift(0.f), mVdriftCorrY(0.f), mLdriftCorr(0.f), mTOFcorr(0.f), mPrimVtxZ(0.f), mLumi(0.f), mLumiError(0.f), mLumiScaleFactor(1.0f), mLumiScaleMode(0)
 {
   // Default Constructor: creates an empty uninitialized object
 }
@@ -61,6 +61,7 @@ void TPCFastTransform::cloneFromObject(const TPCFastTransform& obj, char* newFla
   mLumi = obj.mLumi;
   mLumiError = obj.mLumiError;
   mLumiScaleFactor = obj.mLumiScaleFactor;
+  mLumiScaleMode = obj.mLumiScaleMode;
   // variable-size data
 
   char* distBuffer = FlatObject::relocatePointer(oldFlatBufferPtr, mFlatBufferPtr, obj.mCorrection.getFlatBufferPtr());
@@ -111,6 +112,7 @@ void TPCFastTransform::startConstruction(const TPCFastSpaceChargeCorrection& cor
   mLumi = 0.f;
   mLumiError = 0.f;
   mLumiScaleFactor = 1.f;
+  mLumiScaleMode = 0;
 
   // variable-size data
 
@@ -161,6 +163,7 @@ void TPCFastTransform::print() const
   LOG(info) << "mLumi = " << mLumi;
   LOG(info) << "mLumiError = " << mLumiError;
   LOG(info) << "mLumiScaleFactor = " << mLumiScaleFactor;
+  LOG(info) << "mLumiScaleMode = " << mLumiScaleMode;
   mCorrection.print();
 #endif
 }

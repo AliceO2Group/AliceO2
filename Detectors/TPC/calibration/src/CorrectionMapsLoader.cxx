@@ -49,10 +49,18 @@ void CorrectionMapsLoader::extractCCDBInputs(ProcessingContext& pc)
 }
 
 //________________________________________________________
-void CorrectionMapsLoader::requestCCDBInputs(std::vector<InputSpec>& inputs, std::vector<o2::framework::ConfigParamSpec>& options, bool requestCTPLumi)
+void CorrectionMapsLoader::requestCCDBInputs(std::vector<InputSpec>& inputs, std::vector<o2::framework::ConfigParamSpec>& options, bool requestCTPLumi, int lumiScaleMode)
 {
-  addInput(inputs, {"tpcCorrMap", "TPC", "CorrMap", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalCorrMap), {}, 1)});          // time-dependent
-  addInput(inputs, {"tpcCorrMapRef", "TPC", "CorrMapRef", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalCorrMapRef), {}, 0)}); // load once
+  if (lumiScaleMode == 0) {
+    addInput(inputs, {"tpcCorrMap", "TPC", "CorrMap", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalCorrMap), {}, 1)});               // time-dependent
+    addInput(inputs, {"tpcCorrMapRef", "TPC", "CorrMapRef", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalCorrMapRef), {}, 0)});      // load once
+  } else if (lumiScaleMode == 1) {
+    addInput(inputs, {"tpcCorrMap", "TPC", "CorrMap", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalCorrDerivMap), {}, 1)});          // time-dependent
+    addInput(inputs, {"tpcCorrMapRef", "TPC", "CorrMapRef", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalCorrDerivMapRef), {}, 1)}); // time-dependent
+  } else {
+    LOG(fatal) << "Correction mode unknown! Choose either 0 (default) or 1 (derivative map) for flag corrmap-lumi-mode.";
+  }
+
   if (requestCTPLumi) {
     addInput(inputs, {"CTPLumi", "CTP", "LUMI", 0, Lifetime::Timeframe});
   }
@@ -64,7 +72,6 @@ void CorrectionMapsLoader::addOptions(std::vector<ConfigParamSpec>& options)
 {
   addOption(options, ConfigParamSpec{"corrmap-lumi-mean", VariantType::Float, 0.f, {"override TPC corr.map mean lumi (if > 0), disable corrections if < 0"}});
   addOption(options, ConfigParamSpec{"corrmap-lumi-inst", VariantType::Float, 0.f, {"override instantaneous CTP lumi (if > 0) for TPC corr.map scaling, disable corrections if < 0"}});
-  addOption(options, ConfigParamSpec{"corrmap-lumi-scalemode", VariantType::Int, 0, {"override setting for scaling behaviour when using derivative maps"}});
 }
 
 //________________________________________________________
@@ -117,16 +124,12 @@ void CorrectionMapsLoader::init(o2::framework::InitContext& ic)
   }
   mMeanLumiOverride = ic.options().get<float>("corrmap-lumi-mean");
   mInstLumiOverride = ic.options().get<float>("corrmap-lumi-inst");
-  mLumiScaleModeOverride = ic.options().get<int>("corrmap-lumi-scalemode");
   if (mMeanLumiOverride != 0.) {
     setMeanLumi(mMeanLumiOverride);
   }
   if (mInstLumiOverride != 0.) {
     setInstLumi(mInstLumiOverride);
   }
-  if (mLumiScaleModeOverride != 1) {
-    setLumiScaleMode(mLumiScaleModeOverride);
-  }
-  LOGP(info, "CTP Lumi request for TPC corr.map scaling={}, override values: lumiMean={} lumiInst={} lumiScaleMode={}", getUseCTPLumi() ? "ON" : "OFF", mMeanLumiOverride, mInstLumiOverride, mLumiScaleModeOverride);
+  LOGP(info, "CTP Lumi request for TPC corr.map scaling={}, override values: lumiMean={} lumiInst={} lumiScaleMode={}", getUseCTPLumi() ? "ON" : "OFF", mMeanLumiOverride, mInstLumiOverride);
 }
 #endif // #ifndef GPUCA_GPUCODE_DEVICE

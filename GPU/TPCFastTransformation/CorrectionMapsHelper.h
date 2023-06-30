@@ -93,7 +93,7 @@ class CorrectionMapsHelper
     if (mMeanLumi < 0.f || mInstLumi < 0.f) {
       mLumiScale = -1.f;
     } else if (mLumiScaleMode == 1) {
-      mLumiScale = mInstLumi - mMeanLumi;
+      mLumiScale = mInstLumi / mMeanLumi - 1.;
     } else {
       mLumiScale = mMeanLumi ? mInstLumi / mMeanLumi : 0.f;
     }
@@ -137,20 +137,20 @@ class CorrectionMapsHelper
   enum UpdateFlags { MapBit = 0x1,
                      MapRefBit = 0x2,
                      LumiBit = 0x4 };
-  bool mOwner = false;      // is content of pointers owned by the helper
-  bool mUseCTPLumi = false; // require CTP Lumi for mInstLumi
+  bool mOwner = false;                                          // is content of pointers owned by the helper
+  bool mUseCTPLumi = false;                                     // require CTP Lumi for mInstLumi
   int mUpdatedFlags = 0;
   float mInstLumi = 0.;                                         // instanteneous luminosity (a.u)
   float mMeanLumi = 0.;                                         // mean luminosity of the map (a.u)
-  int mLumiScaleMode = 0;                                       // scaling-mode of the correciton maps
   float mLumiScale = 0.;                                        // precalculated lumi scaling
+  int mLumiScaleMode = 0;                                       // scaling-mode of the correciton maps
   float mMeanLumiOverride = -1.f;                               // optional value to override mean lumi
   float mInstLumiOverride = -1.f;                               // optional value to override inst lumi
-  int mLumiScaleModeOverride = 0;                               // optional value to choose scaling for correction map
+  float mLumiScaleModeOverride = 0;                             // optional value to override inst lumi
   GPUCA_NAMESPACE::gpu::TPCFastTransform* mCorrMap{nullptr};    // current transform
   GPUCA_NAMESPACE::gpu::TPCFastTransform* mCorrMapRef{nullptr}; // reference transform
 #ifndef GPUCA_ALIROOT_LIB
-  ClassDefNV(CorrectionMapsHelper, 1);
+  ClassDefNV(CorrectionMapsHelper, 2);
 #endif
 };
 

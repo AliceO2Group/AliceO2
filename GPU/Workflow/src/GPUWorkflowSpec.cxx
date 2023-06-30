@@ -1035,7 +1035,7 @@ int GPURecoWorkflowSpec::runITSTracking(o2::framework::ProcessingContext& pc)
       // Some conversions that needs to be moved in the tracker internals
       for (unsigned int iTrk{0}; iTrk < tracks.size(); ++iTrk) {
         auto& trc{tracks[iTrk]};
-        trc.setFirstClusterEntry(allClusIdx.size()); // before adding tracks, create final cluster indices
+        trc.setFirstClusterEntry(allClusIdx.size());              // before adding tracks, create final cluster indices
         int ncl = trc.getNumberOfClusters(), nclf = 0;
         for (int ic = o2::its::TrackITSExt::MaxClusters; ic--;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
           auto clid = trc.getClusterIndex(ic);
@@ -1144,7 +1144,7 @@ Inputs GPURecoWorkflowSpec::inputs()
     inputs.emplace_back("tpcthreshold", gDataOriginTPC, "PADTHRESHOLD", 0, Lifetime::Condition, ccdbParamSpec("TPC/Config/FEEPad"));
     o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
     Options optsDummy;
-    mFastTransformHelper->requestCCDBInputs(inputs, optsDummy, mSpecConfig.requireCTPLumi); // option filled here is lost
+    mFastTransformHelper->requestCCDBInputs(inputs, optsDummy, mSpecConfig.requireCTPLumi, mSpecConfig.lumiScaleMode); // option filled here is lost
   }
   if (mSpecConfig.decompressTPC) {
     inputs.emplace_back(InputSpec{"input", ConcreteDataTypeMatcher{gDataOriginTPC, mSpecConfig.decompressTPCFromROOT ? o2::header::DataDescription("COMPCLUSTERS") : o2::header::DataDescription("COMPCLUSTERSFLAT")}, Lifetime::Timeframe});
@@ -1350,6 +1350,7 @@ void GPURecoWorkflowSpec::initFunctionTPCCalib(InitContext& ic)
   mFastTransformRef = std::move(o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
   mFastTransformHelper->setCorrMap(mFastTransform.get()); // just to reserve the space
   mFastTransformHelper->setCorrMapRef(mFastTransformRef.get());
+  mFastTransformHelper->setLumiScaleMode(mSpecConfig.lumiScaleMode);
   if (mSpecConfig.outputTracks) {
     mFastTransformHelper->init(ic);
   }
@@ -1537,7 +1538,7 @@ void GPURecoWorkflowSpec::finaliseCCDBTPC(ConcreteDataMatcher& matcher, void* ob
 bool GPURecoWorkflowSpec::fetchCalibsCCDBITS(ProcessingContext& pc)
 {
   static bool initOnceDone = false;
-  if (!initOnceDone) { // this params need to be queried only once
+  if (!initOnceDone) {                                             // this params need to be queried only once
     initOnceDone = true;
     pc.inputs().get<o2::itsmft::TopologyDictionary*>("itscldict"); // just to trigger the finaliseCCDB
     pc.inputs().get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>*>("itsalppar");

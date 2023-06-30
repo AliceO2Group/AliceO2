@@ -82,8 +82,11 @@ enum class CDBType {
   CalITPC0,            ///< 2D average TPC clusters for longer time interval
   CalITPC1,            ///< 1D integrated TPC clusters
                        ///
-  CalCorrMap,          ///< Cluster correction map
+  CalCorrMap,          ///< Cluster correction map (high IR rate distortions)
   CalCorrMapRef,       ///< Cluster correction reference map (static distortions)
+                       ///
+  CalCorrDerivMap,     ///< Cluster correction map (derivative map)
+  CalCorrDerivMapRef,  ///< Cluster correction reference map (high IR rate distortions)
 };
 
 /// Upload intervention type
@@ -138,9 +141,14 @@ const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   // ITPCCs
   {CDBType::CalITPC0, "TPC/Calib/ITPCC_0"},
   {CDBType::CalITPC1, "TPC/Calib/ITPCC_1"},
-  // correction maps
+  // correction maps for static distortions
   {CDBType::CalCorrMap, "TPC/Calib/CorrectionMap"},
   {CDBType::CalCorrMapRef, "TPC/Calib/CorrectionMapRef"},
+  // correction maps with derivative corrections
+  // {CDBType::CalCorrDerivMap, "TPC/Calib/CorrectionDerivativeMap"},
+  // {CDBType::CalCorrDerivMapRef, "TPC/Calib/CorrectionDerivativeMapRef"},
+  {CDBType::CalCorrDerivMap, "TPC/Calib/CorrectionMap"},
+  {CDBType::CalCorrDerivMapRef, "TPC/Calib/CorrectionMapRef"},
 };
 
 /// Poor enum reflection ...
@@ -343,8 +351,8 @@ class CDBInterface
   std::unique_ptr<CalPad> mCMkValues;       ///< Ion Tail exp(-lambda)
 
   // ===| switches and parameters |=============================================
-  bool mUseDefaults = false;   ///< use defaults instead of CCDB
-  float mDefaultZSsigma = 3.f; ///< sigma to use in case the default zero suppression is created
+  bool mUseDefaults = false;          ///< use defaults instead of CCDB
+  float mDefaultZSsigma = 3.f;        ///< sigma to use in case the default zero suppression is created
 
   std::string mPedestalNoiseFileName; ///< optional file name for pedestal and noise data
   std::string mGainMapFileName;       ///< optional file name for the gain map

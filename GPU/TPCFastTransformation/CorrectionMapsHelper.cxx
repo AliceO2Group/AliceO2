@@ -26,6 +26,7 @@ void CorrectionMapsHelper::clear()
   mUpdatedFlags = 0;
   mInstLumi = 0.f;
   mMeanLumi = 0.f;
+  mLumiScaleMode = 0;
 }
 
 void CorrectionMapsHelper::setOwner(bool v)
