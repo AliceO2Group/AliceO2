@@ -32,45 +32,17 @@
 
 #include <TTreeReaderArray.h>
 
+#include <boost/range/iterator_range_core.hpp>
 #include <vector>
 #include <filesystem>
+#include <boost/range.hpp>
+
 
 class TFile;
 class TTreeReader;
 
 namespace o2::trd
 {
-
-/// A HitPoint is a space point in a chamber that inherits spatial (x/y/z) and pad row / column / timebin
-/// coordinates from ChamberSpacePoints, and add charge information, to hold all information about Monte-Carlo
-/// hits within a chamber.
-class HitPoint : public ChamberSpacePoint
-{
- public:
-  HitPoint(ChamberSpacePoint position, float charge)
-    : ChamberSpacePoint(position), mCharge(charge)
-  {
-  }
-
-  HitPoint(){};
-
-  float getCharge() { return mCharge; }
-
- private:
-  float mCharge{0.0};
-};
-
-/// range of entries in another container (similar to boost::range)
-template <typename value_t, typename container_t>
-struct myrange {
-  typedef typename container_t::iterator iterator;
-
-  iterator& begin() { return b; }
-  iterator& end() { return e; }
-  iterator b, e;
-
-  size_t length() { return e - b; }
-};
 
 /// RawDataSpan holds ranges pointing to parts of other containers
 /// This class helps with restricting the view of digits/trackets/... to part
@@ -79,11 +51,9 @@ struct myrange {
 /// The main data members are public, and can be accessed without setters/getters.
 struct RawDataSpan {
  public:
-  myrange<o2::trd::Digit, TTreeReaderArray<o2::trd::Digit>> digits;
-  myrange<o2::trd::Tracklet64, TTreeReaderArray<o2::trd::Tracklet64>> tracklets;
-  // myrange<o2::trd::Hit, TTreeReaderArray<o2::trd::Hit>> hits;
-  myrange<HitPoint, std::vector<HitPoint>> hits;
-  // myrange<ChamberSpacePoint, std::vector<ChamberSpacePoint>> trackpoints;
+  boost::iterator_range<TTreeReaderArray<o2::trd::Digit>::iterator> digits;
+  boost::iterator_range<TTreeReaderArray<o2::trd::Tracklet64>::iterator> tracklets;
+  boost::iterator_range<std::vector<HitPoint>::iterator> hits;
 
   /// Sort digits, tracklets and space points by detector, pad row, column
   /// The digits, tracklets, hits and other future data members must be sorted

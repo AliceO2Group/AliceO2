@@ -80,6 +80,26 @@ class ChamberSpacePoint
 
 std::ostream& operator<<(std::ostream& os, const ChamberSpacePoint& p);
 
+/// A HitPoint is a ChamberSpacePoint with additional charge information, meant to to hold all information about
+/// Monte-Carlo hits within a chamber.
+class HitPoint : public ChamberSpacePoint
+{
+ public:
+  HitPoint(ChamberSpacePoint position, float charge)
+    : ChamberSpacePoint(position), mCharge(charge)
+  {
+  }
+
+  HitPoint(){};
+
+  float getCharge() { return mCharge; }
+
+ private:
+  float mCharge{0.0};
+};
+
+
+
 /// CoordinateTransformer: translate between local spatial and pad/timebin coordinates
 ///
 /// The intention of the CoordinateTransformer is to bundle calculations around coordinate transformations for the TRD and access to the calibration objects.

@@ -11,14 +11,19 @@
 
 #include "TRDQC/RawDataManager.h"
 
+#include <RtypesCore.h>
 #include <TSystem.h>
 #include <TFile.h>
 #include <TTree.h>
 #include <TTreeReader.h>
 #include <TTreeReaderArray.h>
+#include <boost/range/distance.hpp>
+#include <boost/range/iterator_range_core.hpp>
 #include <iterator>
 #include "TRDQC/CoordinateTransformer.h"
 #include "Framework/Logger.h"
+
+#include <set>
 
 using namespace o2::trd;
 
@@ -97,44 +102,87 @@ std::vector<RawDataSpan> RawDataSpan::iterateBy()
   sort();
 
   // add all the digits to a map
-  for (auto cur = digits.b; cur != digits.e; /* noop */) {
+  for (auto cur = digits.begin(); cur != digits.end(); /* noop */) {
     // calculate the key of the current (first unprocessed) digit
     auto key = keyfunc::key(*cur);
     // find the first digit with a different key
-    auto nxt = std::find_if(cur, digits.e, [key](auto x) { return keyfunc::key(x) != key; });
+    auto nxt = std::find_if(cur, digits.end(), [key](auto x) { return keyfunc::key(x) != key; });
     // store the range cur:nxt in the map
-    spanmap[key].digits.b = cur;
-    spanmap[key].digits.e = nxt;
+    spanmap[key].digits = boost::make_iterator_range(cur, nxt);
     // continue after this range
     cur = nxt;
   }
 
   // add tracklets to the map
-  for (auto cur = tracklets.b; cur != tracklets.e; /* noop */) {
+  for (auto cur = tracklets.begin(); cur != tracklets.end(); /* noop */) {
     auto key = keyfunc::key(*cur);
-    auto nxt = std::find_if(cur, tracklets.e, [key](auto x) { return keyfunc::key(x) != key; });
-    spanmap[key].tracklets.b = cur;
-    spanmap[key].tracklets.e = nxt;
+    auto nxt = std::find_if(cur, tracklets.end(), [key](auto x) { return keyfunc::key(x) != key; });
+    spanmap[key].tracklets = boost::make_iterator_range(cur, nxt);
     cur = nxt;
   }
 
-  // spanmap contains all TRD data - either digits or tracklets
-  // Now we complete these spans with hit information
-  for (auto cur = hits.b; cur != hits.e; ++cur) {
-    for (auto key : keyfunc::keys(*cur)) {
-      if (spanmap[key].hits.b == spanmap[key].hits.e) {
-        spanmap[key].hits.b = cur;
-        spanmap[key].hits.e = cur;
-      }
-      ++spanmap[key].hits.e;
+  // spanmap contains all TRD data - either digits or tracklets. Now we insert hit information into these spans. The
+  // tricky part is that space points or hits can belong to more than one MCM, i.e. they could appear in two spans. 
+  // We keep the begin iterator for each key in a map
+  std::map<uint32_t, std::vector<HitPoint>::iterator> firsthit; 
+  for (auto cur = hits.begin(); cur != hits.end(); ++cur) {
+    // calculate the keys for this hit
+    auto keys = keyfunc::keys(*cur);
+    // if we are not yet aware of this key, register the current hit as the first hit
+    for (auto key : keys) {
+      firsthit.insert({key, cur});
     }
-  }
+    // remote the keys from the firsthit map that are no longer found in the hits
+    for (auto it = firsthit.cbegin(); it != firsthit.cend(); /* no increment */) {
+      if (keys.find(it->first) == keys.end()) {
+        spanmap[it->first].hits = boost::make_iterator_range(it->second, cur);
+        it = firsthit.erase(it);
+      } else {
+        ++it;
+      }
+    }
 
-  // for (auto cur = event.trackpoints.b; cur != event.trackpoints.e; /* noop */) {
-  //   auto nxt = std::adjacent_find(cur, event.trackpoints.e, classifier::comp_trackpoints);
+  }
+  // // We keep the begin iterator for each key in a map
+  // // std::map<uint32_t, std::vector<HitPoint>::iterator> firsthit; 
+
+  // uint32_t key1=0xFFFFFFFF, key2=0xFFFFFFFF;
+  // std::vector<HitPoint>::iterator itr1, itr2;
+  // for (auto cur = hits.begin(); cur != hits.end(); ++cur) {
+  //   // calculate the keys for this hit
+  //   auto keys = keyfunc::keys(*cur);
+  //   // if we are not yet aware of this key, register the current hit as the first hit
+  //   for (auto key : keys) {
+  //     if (key == key1 || key == key2) {
+  //       continue;
+  //     } else if (key1 == 0xFFFFFFFF) {
+  //       key1 = key;
+  //       itr1 = cur;
+  //     } else if (key2 == 0xFFFFFFFF) {
+  //       key2 = key;
+  //       itr2 = cur;
+  //     } else {
+  //       assert(0);
+  //     }
+  //   }
+
+  //   if (key2 != 0xFFFFFFFF && keys.find(key2) == keys.end()) {
+  //     spanmap[key2].hits = boost::make_iterator_range(itr2, cur);
+  //     key2 = 0xFFFFFFFF;
+  //   }
+
+  //   if (key1 != 0xFFFFFFFF && keys.find(key1) == keys.end()) {
+  //     spanmap[key1].hits = boost::make_iterator_range(itr1, cur);
+  //     key1 = key2;
+  //     itr1 = itr2;
+  //   }
+  // }
+
+  // for (auto cur = event.trackpoints.begin(); cur != event.trackpoints.end(); /* noop */) {
+  //   auto nxt = std::adjacent_find(cur, event.trackpoints.end(), classifier::comp_trackpoints);
   //   if (nxt != event.trackpoints.e) { ++nxt; }
-  //   (*this)[classifier::key(*cur)].trackpoints.b = cur;
-  //   (*this)[classifier::key(*cur)].trackpoints.e = nxt;
+  //   (*this)[classifier::key(*cur)].trackpoints.begin() = cur;
+  //   (*this)[classifier::key(*cur)].trackpoints.end() = nxt;
   //   cur = nxt;
   // }
   // cout << "Found " << this->size() << " spans" << endl;
@@ -164,7 +212,7 @@ struct PadRowID {
     return 100 * x.getDetector() + x.getPadRow();
   }
 
-  static std::vector<uint32_t> keys(const o2::trd::ChamberSpacePoint& x)
+  static std::set<uint32_t> keys(const o2::trd::ChamberSpacePoint& x)
   {
     uint32_t key = 100 * x.getDetector() + x.getPadRow();
     return {key};
@@ -191,7 +239,7 @@ struct MCM_ID {
     return 1000 * x.getDetector() + 8 * x.getPadRow() + 4 * (x.getROB() % 2) + x.getMCM() % 4;
   }
 
-  static std::vector<uint32_t> keys(const o2::trd::ChamberSpacePoint& x)
+  static std::set<uint32_t> keys(const o2::trd::ChamberSpacePoint& x)
   {
     uint32_t detrow = 1000 * x.getDetector() + 8 * x.getPadRow();
     uint32_t mcmcol = uint32_t(x.getPadCol() / float(o2::trd::constants::NCOLMCM));
@@ -359,13 +407,21 @@ bool RawDataManager::nextEvent()
 RawDataSpan RawDataManager::getEvent()
 {
   RawDataSpan ev;
-  ev.digits.b = mDigits->begin() + mTriggerRecord.getFirstDigit();
-  ev.digits.e = ev.digits.begin() + mTriggerRecord.getNumberOfDigits();
-  ev.tracklets.b = mTracklets->begin() + mTriggerRecord.getFirstTracklet();
-  ev.tracklets.e = ev.tracklets.begin() + mTriggerRecord.getNumberOfTracklets();
 
-  ev.hits.b = mHitPoints.begin();
-  ev.hits.e = mHitPoints.end();
+  ev.digits = boost::make_iterator_range_n(mDigits->begin() + mTriggerRecord.getFirstDigit(), mTriggerRecord.getNumberOfDigits());
+  ev.tracklets = boost::make_iterator_range_n(mTracklets->begin() + mTriggerRecord.getFirstTracklet(), mTriggerRecord.getNumberOfTracklets());
+
+  // std::cout << mTriggerRecord.getFirstTracklet() << " " << mTriggerRecord.getNumberOfTracklets() << "   "
+    // << boost::distance(ev.tracklets) << std::endl; 
+  // ev.digits.begin() = mDigits->begin() + mTriggerRecord.getFirstDigit();
+  // ev.digits.end() = ev.digits.begin() + mTriggerRecord.getNumberOfDigits();
+  // ev.tracklets.begin() = mTracklets->begin() + mTriggerRecord.getFirstTracklet();
+  // ev.tracklets.end() = ev.tracklets.begin() + mTriggerRecord.getNumberOfTracklets();
+
+  ev.hits = boost::make_iterator_range(mHitPoints.begin(), mHitPoints.end());
+
+  // ev.hits.begin() = mHitPoints.begin();
+  // ev.hits.end() = mHitPoints.end();
 
   auto evtime = getTriggerTime();
 
@@ -396,8 +452,8 @@ RawDataSpan RawDataManager::getEvent()
     }
   }
 
-  // ev.trackpoints.b = ev.evtrackpoints.begin();
-  // ev.trackpoints.e = ev.evtrackpoints.end();
+  // ev.trackpoints.begin() = ev.evtrackpoints.begin();
+  // ev.trackpoints.end() = ev.evtrackpoints.end();
 
   return ev;
 }
