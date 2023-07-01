@@ -430,6 +430,11 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::DoTracklet(GPUconstantref() MEM_GLO
       {
         float tmpY, tmpZ;
         if (tParam.GetPropagatedYZ(tracker.Param().constBz, x, tmpY, tmpZ)) {
+          if (tracker.ISlice() < GPUCA_NSLICES / 2 ? (tmpZ < 0) : (tmpZ > 0)) {
+            tmpZ = 0;
+          } else if (tracker.ISlice() < GPUCA_NSLICES / 2 ? (tmpZ > GPUTPCGeometry::TPCLength()) : (tmpZ < -GPUTPCGeometry::TPCLength())) {
+            tmpZ = tracker.ISlice() < GPUCA_NSLICES / 2 ? GPUTPCGeometry::TPCLength() : -GPUTPCGeometry::TPCLength();
+          }
           tracker.GetConstantMem()->calibObjects.fastTransformHelper->InverseTransformYZtoX(tracker.ISlice(), iRow, tmpY, tmpZ, x);
         } else {
           r.mGo = 0;
