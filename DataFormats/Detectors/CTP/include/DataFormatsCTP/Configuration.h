@@ -197,5 +197,5 @@ class CTPConfiguration
 };
 } // namespace ctp
 } // namespace o2
-#include "DataFormatsCTP/RunManager.h
+#include "DataFormatsCTP/RunManager.h"
 #endif //_CTP_CONFIGURATION_H_
