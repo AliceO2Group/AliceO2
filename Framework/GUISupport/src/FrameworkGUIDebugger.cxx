@@ -346,9 +346,9 @@ int formatTimeSinceStart(double value, char* buff, int size, void* user_data)
     buff[0] = '\0';
     return 0;
   }
-  int64_t seconds = (value - *startTime) / 1000;
-  int64_t minutes = seconds / 60;
-  return snprintf(buff, size, "%02lld:%02lld", minutes, seconds % 60);
+  unsigned long seconds = (value - *startTime) / 1000;
+  unsigned long minutes = seconds / 60;
+  return snprintf(buff, size, "%02ld:%02ld", minutes, seconds % 60);
 }
 
 void displayDeviceMetrics(const char* label,
