@@ -476,7 +476,7 @@ GPUdi() void TPCFastTransform::TransformInternal(int slice, int row, float& u, f
             du = (du - duRef) * scale + duRef;
             dv = (dv - dvRef) * scale + dvRef;
           }
-          if (mLumiScaleMode == 1) {
+          else if (mLumiScaleMode == 1) {
             float dxRef, duRef, dvRef;
             ref->mCorrection.getCorrection(slice, row, u, v, dxRef, duRef, dvRef);
             dx = dxRef * scale + dx;
@@ -745,7 +745,7 @@ GPUdi() void TPCFastTransform::InverseTransformYZtoX(int slice, int row, float y
         ref->mCorrection.getCorrectionInvCorrectedX(slice, row, u, v, xr);
         x = (x - xr) * scale + xr;
       }
-      if (mLumiScaleMode == 1) {
+      else if (mLumiScaleMode == 1) {
         float xr;
         ref->mCorrection.getCorrectionInvCorrectedX(slice, row, u, v, xr);
         x = xr * scale + x;
@@ -780,7 +780,7 @@ GPUdi() void TPCFastTransform::InverseTransformYZtoNominalYZ(int slice, int row,
         un = (un - unr) * scale + unr;
         vn = (vn - vnr) * scale + vnr;
       }
-      if (mLumiScaleMode == 1) {
+      else if (mLumiScaleMode == 1) {
         float unr = 0, vnr = 0;
         ref->mCorrection.getCorrectionInvUV(slice, row, u, v, unr, vnr);
         un = unr * scale + un;
