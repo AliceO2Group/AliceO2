@@ -1606,13 +1606,14 @@ bool GPURecoWorkflowSpec::fetchCalibsCCDBTPC(ProcessingContext& pc, T& newCalibO
         }
         if (mFastTransformNew || mFastTransformRefNew || mFastTransformHelper->isUpdatedLumi()) {
           mFastTransformHelperNew.reset(new o2::tpc::CorrectionMapsLoader);
-          mFastTransformHelperNew->setInstLumi(mFastTransformHelper->getInstLumi());
-          mFastTransformHelperNew->setMeanLumi(mFastTransformHelper->getMeanLumi());
+          mFastTransformHelperNew->setInstLumi(mFastTransformHelper->getInstLumi(), false);
+          mFastTransformHelperNew->setMeanLumi(mFastTransformHelper->getMeanLumi(), false);
           mFastTransformHelperNew->setUseCTPLumi(mFastTransformHelper->getUseCTPLumi());
           mFastTransformHelperNew->setMeanLumiOverride(mFastTransformHelper->getMeanLumiOverride());
           mFastTransformHelperNew->setInstLumiOverride(mFastTransformHelper->getInstLumiOverride());
           mFastTransformHelperNew->setCorrMap(mFastTransformNew ? mFastTransformNew.get() : mFastTransform.get());
           mFastTransformHelperNew->setCorrMapRef(mFastTransformRefNew ? mFastTransformRefNew.get() : mFastTransformRef.get());
+          mFastTransformHelperNew->acknowledgeUpdate();
           newCalibObjects.fastTransformHelper = mFastTransformHelperNew.get();
         }
         mMustUpdateFastTransform = true;
