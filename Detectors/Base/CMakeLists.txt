@@ -78,6 +78,14 @@ if(BUILD_SIMULATION)
                 VMCWORKDIR=${CMAKE_BINARY_DIR}/stage/${CMAKE_INSTALL_DATADIR})
 endif()
 
+install(FILES test/buildMatBudLUT.C
+              test/extractLUTLayers.C
+              DESTINATION share/macro/)
+
 o2_add_test_root_macro(test/buildMatBudLUT.C
+                       PUBLIC_LINK_LIBRARIES O2::DetectorsBase
+                       LABELS detectorsbase)
+
+o2_add_test_root_macro(test/extractLUTLayers.C
                        PUBLIC_LINK_LIBRARIES O2::DetectorsBase
                        LABELS detectorsbase)
