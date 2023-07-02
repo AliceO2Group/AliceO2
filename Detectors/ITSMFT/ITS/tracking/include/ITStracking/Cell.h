@@ -32,14 +32,13 @@ class Cell final
 {
  public:
   GPUhd() Cell();
-  GPUd() Cell(const int, const int, const int, const int, const int, const float);
+  GPUd() Cell(const int, const int, const int, const int, const int);
 
   GPUhd() int getFirstClusterIndex() const { return mFirstClusterIndex; };
   GPUhd() int getSecondClusterIndex() const { return mSecondClusterIndex; };
   GPUhd() int getThirdClusterIndex() const { return mThirdClusterIndex; };
   GPUhd() int getFirstTrackletIndex() const { return mFirstTrackletIndex; };
   GPUhd() int getSecondTrackletIndex() const { return mSecondTrackletIndex; };
-  GPUhd() float getTanLambda() const { return mTanLambda; };
   GPUhd() int getLevel() const { return mLevel; };
   GPUhd() void setLevel(const int level) { mLevel = level; };
   GPUhd() int* getLevelPtr() { return &mLevel; }
@@ -50,7 +49,6 @@ class Cell final
   const int mThirdClusterIndex;
   const int mFirstTrackletIndex;
   const int mSecondTrackletIndex;
-  const float mTanLambda;
   int mLevel;
 };
 
@@ -60,20 +58,18 @@ GPUhdi() Cell::Cell()
     mThirdClusterIndex{0},
     mFirstTrackletIndex{0},
     mSecondTrackletIndex{0},
-    mTanLambda{0},
     mLevel{0}
 {
   // Nothing to do
 }
 
 GPUdi() Cell::Cell(const int firstClusterIndex, const int secondClusterIndex, const int thirdClusterIndex,
-                   const int firstTrackletIndex, const int secondTrackletIndex, const float tanL)
+                   const int firstTrackletIndex, const int secondTrackletIndex)
   : mFirstClusterIndex{firstClusterIndex},
     mSecondClusterIndex{secondClusterIndex},
     mThirdClusterIndex{thirdClusterIndex},
     mFirstTrackletIndex{firstTrackletIndex},
     mSecondTrackletIndex{secondTrackletIndex},
-    mTanLambda{tanL},
     mLevel{1}
 {
   // Nothing to do

@@ -119,6 +119,7 @@ void ITSOffsStudy::process(o2::globaltracking::RecoContainer& recoData)
           }
           ambEntry = 1;
         }
+        auto tofMatch = recoData.getTOFMatch(vid);
         auto refs = recoData.getSingleDetectorRefs(vid);
         if (!refs[GTrackID::ITS].isIndexSet()) { // might be an afterburner track
           continue;
@@ -133,6 +134,9 @@ void ITSOffsStudy::process(o2::globaltracking::RecoContainer& recoData)
         (*mDBGOut) << "itstof"
                    << "gid=" << vid << "ttof=" << timeTOFMUS << "tits=" << tsROF << "itsROFID=" << itsTr2ROFID[itsTrackID] << "\n";
         mDTHisto->Fill(timeTOFMUS - tsROF);
+        const auto& trc = recoData.getTrackParam(tofMatch.getTrackRef());
+        (*mDBGOut) << "dttof"
+                   << "refgid=" << tofMatch.getTrackRef() << "dtime=" << tofMatch.getDeltaT() << "phi=" << trc.getPhi() << "tgl=" << trc.getTgl() << "q2t=" << trc.getQ2Pt() << "\n";
       }
     }
   }

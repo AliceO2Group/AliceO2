@@ -55,6 +55,7 @@ GpuTimeFrameChunk<nLayers>::~GpuTimeFrameChunk()
         if (i < nLayers - 2) {
           checkGPUError(cudaFree(mCellsDevice[i]));
           checkGPUError(cudaFree(mCellsLookupTablesDevice[i]));
+          checkGPUError(cudaFree(mRoadsLookupTablesDevice[i]));
           if (i < nLayers - 3) {
             checkGPUError(cudaFree(mNeighboursCellLookupTablesDevice[i]));
             checkGPUError(cudaFree(mNeighboursCellDevice[i]));
@@ -62,9 +63,13 @@ GpuTimeFrameChunk<nLayers>::~GpuTimeFrameChunk()
         }
       }
     }
+    checkGPUError(cudaFree(mRoadsDevice));
     checkGPUError(cudaFree(mCUBTmpBufferDevice));
     checkGPUError(cudaFree(mFoundTrackletsDevice));
     checkGPUError(cudaFree(mNFoundCellsDevice));
+    checkGPUError(cudaFree(mCellsDeviceArray));
+    checkGPUError(cudaFree(mNeighboursCellDeviceArray));
+    checkGPUError(cudaFree(mNeighboursCellLookupTablesDeviceArray));
   }
 }
 
@@ -84,6 +89,7 @@ void GpuTimeFrameChunk<nLayers>::allocate(const size_t nrof, Stream& stream)
       if (i < nLayers - 2) {
         checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&(mCellsLookupTablesDevice[i])), sizeof(int) * mTFGPUParams->validatedTrackletsCapacity * nrof, stream.get()));
         checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&(mCellsDevice[i])), sizeof(Cell) * mTFGPUParams->maxNeighboursSize * nrof, stream.get()));
+        checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&mRoadsLookupTablesDevice[i]), sizeof(int) * mTFGPUParams->maxNeighboursSize * nrof, stream.get()));
         if (i < nLayers - 3) {
           checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&(mNeighboursCellLookupTablesDevice[i])), sizeof(int) * mTFGPUParams->maxNeighboursSize * nrof, stream.get()));
           checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&(mNeighboursCellDevice[i])), sizeof(int) * mTFGPUParams->maxNeighboursSize * nrof, stream.get()));
@@ -100,10 +106,19 @@ void GpuTimeFrameChunk<nLayers>::allocate(const size_t nrof, Stream& stream)
   checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&mNExclusiveFoundLinesDevice), sizeof(int) * mTFGPUParams->clustersPerROfCapacity * nrof + 1, stream.get())); // + 1 for cub::DeviceScan::ExclusiveSum, to cover cases where we have maximum number of clusters per ROF
   checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&mUsedTrackletsDevice), sizeof(unsigned char) * mTFGPUParams->maxTrackletsPerCluster * mTFGPUParams->clustersPerROfCapacity * nrof, stream.get()));
   checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&mClusteredLinesDevice), sizeof(int) * mTFGPUParams->clustersPerROfCapacity * mTFGPUParams->maxTrackletsPerCluster * nrof, stream.get()));
+  checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&mRoadsDevice), sizeof(Road<nLayers - 2>) * mTFGPUParams->maxRoadPerRofSize * nrof, stream.get()));
 
   /// Invariant allocations
   checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&mFoundTrackletsDevice), (nLayers - 1) * sizeof(int) * nrof, stream.get())); // No need to reset, we always read it after writing
   checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&mNFoundCellsDevice), (nLayers - 2) * sizeof(int) * nrof, stream.get()));
+  checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&mCellsDeviceArray), (nLayers - 2) * sizeof(Cell*), stream.get()));
+  checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&mNeighboursCellDeviceArray), (nLayers - 3) * sizeof(int*), stream.get()));
+  checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&mNeighboursCellLookupTablesDeviceArray), (nLayers - 3) * sizeof(int*), stream.get()));
+
+  /// Copy pointers of allocated memory to regrouping arrays
+  checkGPUError(cudaMemcpyAsync(mCellsDeviceArray, mCellsDevice.data(), (nLayers - 2) * sizeof(Cell*), cudaMemcpyHostToDevice, stream.get()));
+  checkGPUError(cudaMemcpyAsync(mNeighboursCellDeviceArray, mNeighboursCellDevice.data(), (nLayers - 3) * sizeof(int*), cudaMemcpyHostToDevice, stream.get()));
+  checkGPUError(cudaMemcpyAsync(mNeighboursCellLookupTablesDeviceArray, mNeighboursCellLookupTablesDevice.data(), (nLayers - 3) * sizeof(int*), cudaMemcpyHostToDevice, stream.get()));
 
   mAllocated = true;
 }
@@ -130,6 +145,7 @@ void GpuTimeFrameChunk<nLayers>::reset(const Task task, Stream& stream)
         thrust::fill(THRUST_NAMESPACE::par.on(stream.get()), thrustTrackletsBegin, thrustTrackletsEnd, Tracklet{});
         if (i < nLayers - 2) {
           checkGPUError(cudaMemsetAsync(mCellsLookupTablesDevice[i], 0, sizeof(int) * mTFGPUParams->cellsLUTsize * mNRof, stream.get()));
+          checkGPUError(cudaMemsetAsync(mRoadsLookupTablesDevice[i], 0, sizeof(int) * mTFGPUParams->maxNeighboursSize * mNRof, stream.get()));
           if (i < nLayers - 3) {
             checkGPUError(cudaMemsetAsync(mNeighboursCellLookupTablesDevice[i], 0, sizeof(int) * mTFGPUParams->maxNeighboursSize * mNRof, stream.get()));
             checkGPUError(cudaMemsetAsync(mNeighboursCellDevice[i], 0, sizeof(int) * mTFGPUParams->maxNeighboursSize * mNRof, stream.get()));
@@ -157,6 +173,8 @@ size_t GpuTimeFrameChunk<nLayers>::computeScalingSizeBytes(const int nrof, const
   rofsize += (nLayers - 2) * sizeof(Cell) * config.maxNeighboursSize;                                          // cells
   rofsize += (nLayers - 3) * sizeof(int) * config.maxNeighboursSize;                                           // cell neighbours lookup tables
   rofsize += (nLayers - 3) * sizeof(int) * config.maxNeighboursSize;                                           // cell neighbours
+  rofsize += sizeof(Road<nLayers - 2>) * config.maxRoadPerRofSize;                                             // roads
+  rofsize += (nLayers - 2) * sizeof(int) * config.maxNeighboursSize;                                           // road LUT
   rofsize += sizeof(Line) * config.maxTrackletsPerCluster * config.clustersPerROfCapacity;                     // lines
   rofsize += sizeof(int) * config.clustersPerROfCapacity;                                                      // found lines
   rofsize += sizeof(int) * config.clustersPerROfCapacity;                                                      // found lines exclusive sum
@@ -241,6 +259,12 @@ template <int nLayers>
 int* GpuTimeFrameChunk<nLayers>::getDeviceCellNeighbours(const int layer)
 {
   return mNeighboursCellDevice[layer];
+}
+
+template <int nLayers>
+int* GpuTimeFrameChunk<nLayers>::getDeviceRoadsLookupTables(const int layer)
+{
+  return mRoadsLookupTablesDevice[layer];
 }
 
 // Load data

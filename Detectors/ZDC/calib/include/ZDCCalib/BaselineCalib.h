@@ -38,6 +38,7 @@ class BaselineCalib
   void setBaselineParam(const BaselineParam* param) { mParam = param; };
   const BaselineParam* getBaselineParam() const { return mParam; };
 
+  void resetInitFlag() { mInitDone = false; };
   void clear();
   //int process(const o2::zdc::BaselineCalibSummaryData& data);
   int process(const o2::zdc::BaselineCalibSummaryData* data);

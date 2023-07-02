@@ -62,7 +62,7 @@ int TDCCalib::endOfRun()
     LOGF(info, "Computing TDC Calibration coefficients");
   }
   for (int ih = 0; ih < TDCCalibData::NTDC; ih++) {
-    LOGF(info, "%s %i events and cuts (%g:%g)", TDCCalibData::CTDC[ih], mData.entries[ih], mTDCCalibConfig->cutLow[ih], mTDCCalibConfig->cutHigh[ih]);
+    LOGF(info, "%s %d events and cuts (%g:%g)", TDCCalibData::CTDC[ih], mData.entries[ih], mTDCCalibConfig->cutLow[ih], mTDCCalibConfig->cutHigh[ih]);
 
     if (!mTDCCalibConfig->enabled[ih]) {
       LOGF(info, "DISABLED processing of RUN3 data for ih = %d: %s", ih, TDCCalibData::CTDC[ih]);
@@ -73,7 +73,7 @@ int TDCCalib::endOfRun()
       LOGF(info, "Processed RUN3 data for ih = %d: %s", ih, TDCCalibData::CTDC[ih]);
       assign(ih, true);
     } else {
-      LOGF(info, "FAILED processing RUN3 data for ih = %d: %s: TOO FEW EVENTS: %d", ih, TDCCalibData::CTDC[ih], 5); // instead of 5 put number of events
+      LOGF(info, "FAILED processing RUN3 data for ih = %d: %s: TOO FEW EVENTS: %d", ih, TDCCalibData::CTDC[ih], mData.entries[ih]);
       assign(ih, false);
     }
   }
@@ -183,7 +183,7 @@ double TDCCalib::extractShift(int ih)
   auto h1 = mCTDC[ih]->createTH1F(TDCCalibData::CTDC[ih]); // createTH1F(histo_name)
   //h1->Draw("HISTO");
   int nEntries = h1->GetEntries();
-  std::cout << nEntries << std::endl;
+  // std::cout << nEntries << std::endl;
   if ((ih >= 0 && ih <= 9) && (nEntries >= mTDCCalibConfig->min_e[ih])) { //TDC number is ok and more than minimum entries
     double avgShift = h1->GetMean();
     return avgShift;

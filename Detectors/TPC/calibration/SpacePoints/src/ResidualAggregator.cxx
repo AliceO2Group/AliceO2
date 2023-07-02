@@ -100,7 +100,7 @@ void ResidualsContainer::init(const TrackResiduals* residualsEngine, std::string
     treeOutResidualsUnbinned = std::make_unique<TTree>("unbinnedResid", "TPC unbinned residuals");
     treeOutResidualsUnbinned->Branch("res", &unbinnedResPtr);
     treeOutResidualsUnbinned->Branch("trackInfo", &trackInfoPtr);
-    treeOutResidualsUnbinned->Branch("lumi", &lumiTF);
+    treeOutResidualsUnbinned->Branch("CTPLumi", &lumiTF);
     treeOutResidualsUnbinned->Branch("timeMS", &timeMS);
   }
   if (writeTrackData) {
@@ -131,7 +131,7 @@ void ResidualsContainer::init(const TrackResiduals* residualsEngine, std::string
   treeOutRecords->Branch("firstTForbit", &tfOrbitsPtr);
   treeOutRecords->Branch("sumOfBinnedResiduals", &sumBinnedResidPtr);
   treeOutRecords->Branch("sumOfUnbinnedResiduals", &sumUnbinnedResidPtr);
-  treeOutRecords->Branch("lumi", &lumiPtr);
+  treeOutRecords->Branch("CTPLumi", &lumiPtr);
   LOG(debug) << "Done initializing residuals container for file named " << fileName;
 }
 
@@ -404,11 +404,6 @@ void ResidualAggregator::finalizeSlot(Slot& slot)
     try {
       std::ofstream metaFileOut(metaFileNameTmp);
       metaFileOut << fileMetaData;
-      metaFileOut << "TFOrbits: ";
-      for (size_t i = 0; i < cont->tfOrbits.size(); i++) {
-        metaFileOut << fmt::format("{}{}", i ? ", " : "", cont->tfOrbits[i]);
-      }
-      metaFileOut << '\n';
       metaFileOut.close();
       std::filesystem::rename(metaFileNameTmp, metaFileName);
     } catch (std::exception const& e) {

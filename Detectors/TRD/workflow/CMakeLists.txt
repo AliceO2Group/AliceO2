@@ -23,6 +23,8 @@ o2_add_library(TRDWorkflow
                        src/TrackBasedCalibSpec.cxx
                        src/KrClustererSpec.cxx
                        include/TRDWorkflow/VdAndExBCalibSpec.h
+                       include/TRDWorkflow/GainCalibSpec.h
+                       include/TRDWorkflow/TRDPulseHeightSpec.h
                        include/TRDWorkflow/TRDGlobalTrackingQCSpec.h
                        include/TRDWorkflow/NoiseCalibSpec.h
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils

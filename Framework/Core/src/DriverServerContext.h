@@ -39,6 +39,8 @@ struct DriverServerContext {
   std::vector<DeviceSpec>* specs = nullptr;
   std::vector<DeviceMetricsInfo>* metrics = nullptr;
   std::vector<ServiceMetricHandling>* metricProcessingCallbacks = nullptr;
+  std::vector<ServiceSummaryHandling>* summaryCallbacks = nullptr;
+
   DriverInfo* driver = nullptr;
   GuiCallbackContext* gui = nullptr;
   /// Whether or not this server is associated to

@@ -71,9 +71,9 @@ struct InteractionRecord {
 
   static int ns2bc(double ns, unsigned int& orb)
   {
-    orb = ns > 0 ? ns / o2::constants::lhc::LHCOrbitNS : 0;
-    ns -= orb * o2::constants::lhc::LHCOrbitNS;
-    return std::round(ns / o2::constants::lhc::LHCBunchSpacingNS);
+    long nb = std::round(ns / o2::constants::lhc::LHCBunchSpacingNS);
+    orb = nb / o2::constants::lhc::LHCMaxBunches;
+    return nb % o2::constants::lhc::LHCMaxBunches;
   }
 
   double bc2ns() const

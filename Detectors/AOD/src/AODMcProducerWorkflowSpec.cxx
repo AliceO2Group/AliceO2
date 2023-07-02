@@ -13,21 +13,13 @@
 
 #include "AODProducerWorkflow/AODMcProducerWorkflowSpec.h"
 #include "AODProducerWorkflow/AODProducerHelpers.h"
-#include "MathUtils/Utils.h"
-#include "CCDB/BasicCCDBManager.h"
-#include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataTypes.h"
-#include "Framework/InputRecordWalker.h"
-#include "Framework/Logger.h"
 #include "Framework/TableBuilder.h"
-#include "Framework/TableTreeHelpers.h"
-#include "Framework/CCDBParamSpec.h"
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCUtils.h"
 #include "O2Version.h"
-#include "TMath.h"
 #include "TString.h"
 #include <vector>
 
@@ -80,7 +72,7 @@ void AODMcProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReade
         }
       }
       // enumerate saved mc particles and their relatives to get mother/daughter relations
-      for (int particle = 0; particle < mcParticles.size(); particle++) {
+      for (auto particle = 0U; particle < mcParticles.size(); ++particle) {
         auto mapItem = mToStore.find(Triplet_t(source, event, particle));
         if (mapItem != mToStore.end()) {
           mapItem->second = tableIndex - 1;
@@ -89,14 +81,14 @@ void AODMcProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReade
       }
     } else {
       // if all mc particles are stored, all mc particles will be enumerated
-      for (int particle = 0; particle < mcParticles.size(); particle++) {
+      for (auto particle = 0U; particle < mcParticles.size(); ++particle) {
         mToStore[Triplet_t(source, event, particle)] = tableIndex - 1;
         tableIndex++;
       }
     }
 
     // second part: fill survived mc tracks into the AOD table
-    for (int particle = 0; particle < mcParticles.size(); particle++) {
+    for (auto particle = 0U; particle < mcParticles.size(); ++particle) {
       if (mToStore.find(Triplet_t(source, event, particle)) == mToStore.end()) {
         continue;
       }
@@ -210,13 +202,13 @@ void AODMcProducerWorkflowDPL::run(ProcessingContext& pc)
 
   uint64_t tfNumber = mTFNumber;
 
-  auto& mcCollisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCCOLLISION"});
-  auto& mcParticlesBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCPARTICLE_001"});
-  auto& originTableBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "ORIGIN"});
+  auto mcCollisionsBuilder = pc.outputs().make<TableBuilder>(OutputForTable<aod::McCollisions>::ref());
+  auto mcParticlesBuilder = pc.outputs().make<TableBuilder>(OutputForTable<aod::StoredMcParticles>::ref());
+  auto originTableBuilder = pc.outputs().make<TableBuilder>(OutputForTable<aod::Origins>::ref());
 
-  auto mcCollisionsCursor = mcCollisionsBuilder.cursor<o2::aod::McCollisions>();
-  auto mcParticlesCursor = mcParticlesBuilder.cursor<o2::aod::StoredMcParticles_001>();
-  auto originCursor = originTableBuilder.cursor<o2::aod::Origins>();
+  auto mcCollisionsCursor = mcCollisionsBuilder->cursor<o2::aod::McCollisions>();
+  auto mcParticlesCursor = mcParticlesBuilder->cursor<o2::aod::StoredMcParticles>();
+  auto originCursor = originTableBuilder->cursor<o2::aod::Origins>();
 
   std::unique_ptr<o2::steer::MCKinematicsReader> mcReader;
 
@@ -313,7 +305,7 @@ void AODMcProducerWorkflowDPL::run(ProcessingContext& pc)
   mTimer.Stop();
 }
 
-void AODMcProducerWorkflowDPL::endOfStream(EndOfStreamContext& ec)
+void AODMcProducerWorkflowDPL::endOfStream(EndOfStreamContext&)
 {
   LOGF(info, "aod producer dpl total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
@@ -321,15 +313,14 @@ void AODMcProducerWorkflowDPL::endOfStream(EndOfStreamContext& ec)
 
 DataProcessorSpec getAODMcProducerWorkflowSpec()
 {
-  std::vector<OutputSpec> outputs;
-
-  outputs.emplace_back(OutputLabel{"O2mccollision"}, "AOD", "MCCOLLISION", 0, Lifetime::Timeframe);
-  outputs.emplace_back(OutputLabel{"O2mcparticle_001"}, "AOD", "MCPARTICLE_001", 0, Lifetime::Timeframe);
-  outputs.emplace_back(OutputLabel{"O2origin"}, "AOD", "ORIGIN", 0, Lifetime::Timeframe);
-  outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
-  outputs.emplace_back(OutputSpec{"TFF", "TFFilename"});
-  outputs.emplace_back(OutputSpec{"AMD", "AODMetadataKeys"});
-  outputs.emplace_back(OutputSpec{"AMD", "AODMetadataVals"});
+  std::vector<OutputSpec> outputs{
+    OutputForTable<aod::McCollisions>::spec(),
+    OutputForTable<aod::StoredMcParticles>::spec(),
+    OutputForTable<aod::Origins>::spec(),
+    OutputSpec{"TFN", "TFNumber"},
+    OutputSpec{"TFF", "TFFilename"},
+    OutputSpec{"AMD", "AODMetadataKeys"},
+    OutputSpec{"AMD", "AODMetadataVals"}};
 
   return DataProcessorSpec{
     "aod-mc-producer-workflow",

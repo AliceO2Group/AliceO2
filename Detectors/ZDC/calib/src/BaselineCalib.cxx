@@ -56,13 +56,27 @@ void BaselineCalib::clear()
 //______________________________________________________________________________
 int BaselineCalib::process(const o2::zdc::BaselineCalibSummaryData* data)
 {
+#ifdef O2_ZDC_DEBUG
+  LOG(info) << "BaselineCalib::process(" << data << ")";
+  if (mVerbosity >= DbgFull) {
+    printf("Data to be added\n");
+    data->print();
+  }
+#endif
+
   if (!mInitDone) {
     init();
   }
+
+#ifdef O2_ZDC_DEBUG
+  printf("Before adding\n");
   if (mVerbosity >= DbgFull) {
-    data->print();
+    mData.print();
   }
+#endif
+
   mData += data;
+
   if (mVerbosity >= DbgFull) {
     mData.print();
   }

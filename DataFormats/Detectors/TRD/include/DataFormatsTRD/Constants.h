@@ -75,6 +75,8 @@ constexpr float MAXIMPACTANGLE = 25.f;  ///< the maximum impact angle for tracks
 constexpr int NBINSANGLEDIFF = 25;      ///< the number of bins for the track angle used for the vDrift and ExB calibration based on the tracking
 constexpr double VDRIFTDEFAULT = 1.546; ///< default value for vDrift
 constexpr double EXBDEFAULT = 0.0;      ///< default value for LorentzAngle
+constexpr int NBINSGAINCALIB = 320;     ///< number of bins in the charge (Q0+Q1+Q2) histogram for gain calibration
+constexpr float MPVDEDXDEFAULT = 42.;   ///< default Most Probable Value of TRD dEdx
 
 // array size to store incoming half cru payload.
 constexpr int HBFBUFFERMAX = 1048576;                 ///< max buffer size for data read from a half cru, (all events)

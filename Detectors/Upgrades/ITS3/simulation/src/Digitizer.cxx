@@ -55,7 +55,7 @@ void Digitizer::init()
   if (!mParams.getAlpSimResponse()) {
     std::string responseFile = "$(O2_ROOT)/share/Detectors/ITSMFT/data/AlpideResponseData/AlpideResponseData.root";
     auto file = TFile::Open(responseFile.data());
-    mAlpSimResp = (o2::itsmft::AlpideSimResponse*)file->Get("response1");
+    mAlpSimResp = (o2::itsmft::AlpideSimResponse*)file->Get("response0"); // We use by default the alpide response for Vbb=0V
     mParams.setAlpSimResponse(mAlpSimResp);
   }
   mParams.print();

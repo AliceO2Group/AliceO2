@@ -10,17 +10,15 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/ExpressionHelpers.h"
-#include "Framework/VariantHelpers.h"
-#include "Framework/Logger.h"
 #include "Framework/RuntimeError.h"
-#include "gandiva/tree_expr_builder.h"
+#include "Framework/VariantHelpers.h"
 #include "arrow/table.h"
-#include "fmt/format.h"
-#include <stack>
-#include <iostream>
-#include <unordered_map>
-#include <set>
+#include "gandiva/tree_expr_builder.h"
 #include <algorithm>
+#include <iostream>
+#include <set>
+#include <stack>
+#include <unordered_map>
 
 using namespace o2::framework;
 
@@ -29,7 +27,7 @@ namespace o2::framework::expressions
 
 /// a map between BasicOp and gandiva node definitions
 /// note that logical 'and' and 'or' are created separately
-static std::array<std::string, BasicOp::Conditional + 1> basicOperationsMap = {
+static const std::array<std::string, BasicOp::Conditional + 1> basicOperationsMap = {
   "and",
   "or",
   "add",
@@ -68,7 +66,7 @@ size_t Filter::designateSubtrees(Node* node, size_t index)
   auto local_index = index;
   path.emplace(node, 0);
 
-  while (path.empty() == false) {
+  while (!path.empty()) {
     auto& top = path.top();
     top.node_ptr->index = local_index;
     path.pop();
@@ -203,7 +201,7 @@ void updatePlaceholders(Filter& filter, InitContext& context)
   };
 
   // while the stack is not empty
-  while (path.empty() == false) {
+  while (!path.empty()) {
     auto& top = path.top();
     updateNode(top.node_ptr);
 
@@ -278,7 +276,7 @@ Operations createOperations(Filter const& expression)
   path.emplace(expression.node.get(), index++);
 
   // while the stack is not empty
-  while (path.empty() == false) {
+  while (!path.empty()) {
     auto& top = path.top();
 
     // create operation spec, pop the node and add its children
@@ -509,9 +507,8 @@ std::shared_ptr<gandiva::Projector> createProjectorHelper(size_t nColumns, expre
     &projector);
   if (s.ok()) {
     return projector;
-  } else {
-    throw o2::framework::runtime_error_f("Failed to create projector: %s", s.ToString().c_str());
   }
+  throw o2::framework::runtime_error_f("Failed to create projector: %s", s.ToString().c_str());
 }
 
 gandiva::Selection createSelection(std::shared_ptr<arrow::Table> const& table, std::shared_ptr<gandiva::Filter> const& gfilter)
@@ -706,7 +703,7 @@ gandiva::NodePtr createExpressionTree(Operations const& opSpecs,
 bool isTableCompatible(std::set<size_t> const& hashes, Operations const& specs)
 {
   std::set<size_t> opHashes;
-  for (auto& spec : specs) {
+  for (auto const& spec : specs) {
     if (spec.left.datum.index() == 3) {
       opHashes.insert(spec.left.hash);
     }
@@ -722,7 +719,7 @@ bool isTableCompatible(std::set<size_t> const& hashes, Operations const& specs)
 bool isSchemaCompatible(gandiva::SchemaPtr const& Schema, Operations const& opSpecs)
 {
   std::set<std::string> opFieldNames;
-  for (auto& spec : opSpecs) {
+  for (auto const& spec : opSpecs) {
     if (spec.left.datum.index() == 3) {
       opFieldNames.insert(std::get<std::string>(spec.left.datum));
     }
@@ -732,7 +729,7 @@ bool isSchemaCompatible(gandiva::SchemaPtr const& Schema, Operations const& opSp
   }
 
   std::set<std::string> schemaFieldNames;
-  for (auto& field : Schema->fields()) {
+  for (auto const& field : Schema->fields()) {
     schemaFieldNames.insert(field->name());
   }
 

@@ -139,7 +139,7 @@ void sendOnChannel(fair::mq::Device& device, o2::header::Stack&& headerStack, fa
     LOG(warning) << "can not find matching channel for " << DataSpecUtils::describe(spec);
     return;
   }
-  for (auto& channelInfo : device.fChannels) {
+  for (auto& channelInfo : device.GetChannels()) {
     if (channelInfo.first != channelName) {
       continue;
     }
@@ -429,7 +429,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       channels.clear();
       numberOfEoS.clear();
       eosPeersCount.clear();
-      for (auto& [channelName, _] : services.get<RawDeviceService>().device()->fChannels) {
+      for (auto& [channelName, _] : services.get<RawDeviceService>().device()->GetChannels()) {
         // Out of band channels must start with the proxy name, at least for now
         if (strncmp(channelName.c_str(), deviceName.c_str(), deviceName.size()) == 0) {
           channels.push_back(channelName);
@@ -578,7 +578,10 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
         int maxRead = 1000;
         while (maxRead-- > 0) {
           fair::mq::Parts parts;
-          device->Receive(parts, channel, 0, waitTime);
+          auto res = device->Receive(parts, channel, 0, waitTime);
+          if (res == (size_t)fair::mq::TransferCode::error) {
+            LOGP(error, "Error while receiving on channel {}", channel);
+          }
           // Populate TimingInfo from the first message
           unsigned int nReceived = parts.Size();
           if (nReceived != 0) {
@@ -647,7 +650,7 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
     // so we do the check before starting in a dedicated callback
     auto channelConfigurationChecker = [inputSpecs = std::move(inputSpecs), device, outputChannelName]() {
       LOG(info) << "checking channel configuration";
-      if (device->fChannels.count(outputChannelName) == 0) {
+      if (device->GetChannels().count(outputChannelName) == 0) {
         throw std::runtime_error("no corresponding output channel found for input '" + outputChannelName + "'");
       }
     };
@@ -672,7 +675,7 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
       // DPL implements an internal end of stream signal, which is propagated through
       // all downstream channels if a source is dry, make it available to other external
       // devices via a message of type {DPL/EOS/0}
-      for (auto& channelInfo : device->fChannels) {
+      for (auto& channelInfo : device->GetChannels()) {
         auto& channelName = channelInfo.first;
         if (channelName != outputChannelName) {
           continue;
@@ -750,8 +753,8 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
       channelNames->clear();
       auto& mutableDeviceSpec = const_cast<DeviceSpec&>(deviceSpec);
       for (auto const& spec : inputSpecs) {
-        auto channel = channelSelector(spec, device->fChannels);
-        if (device->fChannels.count(channel) == 0) {
+        auto channel = channelSelector(spec, device->GetChannels());
+        if (device->GetChannels().count(channel) == 0) {
           throw std::runtime_error("no corresponding output channel found for input '" + channel + "'");
         }
         ForwardRoute route{0, 1, spec, channel};
@@ -778,7 +781,7 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
       // DPL implements an internal end of stream signal, which is propagated through
       // all downstream channels if a source is dry, make it available to other external
       // devices via a message of type {DPL/EOS/0}
-      for (auto& channelInfo : device->fChannels) {
+      for (auto& channelInfo : device->GetChannels()) {
         auto& channelName = channelInfo.first;
         auto checkChannel = [channelNames = std::move(*channelNames)](std::string const& name) -> bool {
           for (auto const& n : channelNames) {

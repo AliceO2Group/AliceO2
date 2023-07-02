@@ -49,6 +49,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"track-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use"}},
+    {"require-ctp-lumi", o2::framework::VariantType::Bool, false, {"require CTP lumi for TPC correction scaling"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -74,7 +75,7 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
-  GID::mask_t alowedSources = GID::getSourcesMask("ITS,TPC,ITS-TPC,TPC-TOF,ITS-TPC-TOF");
+  GID::mask_t alowedSources = GID::getSourcesMask("ITS,TPC,ITS-TPC,TPC-TRD,TPC-TOF,TPC-TRD-TOF,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
 
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
@@ -83,8 +84,22 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
+  auto requireCTPLumi = configcontext.options().get<bool>("require-ctp-lumi");
 
   GID::mask_t src = alowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
+  if (GID::includesDet(DetID::TPC, src)) {
+    src |= GID::getSourceMask(GID::TPC);
+  }
+  if (GID::includesDet(DetID::TRD, src)) {
+    src |= GID::getSourceMask(GID::TRD);
+  }
+  if (GID::includesDet(DetID::TOF, src)) {
+    src |= GID::getSourceMask(GID::TOF);
+  }
+  if (requireCTPLumi) {
+    src = src | GID::getSourcesMask("CTP");
+  }
+  GID::mask_t srcCl = src;
   GID::mask_t dummy;
   specs.emplace_back(o2::globaltracking::getCosmicsMatchingSpec(src, useMC));
 

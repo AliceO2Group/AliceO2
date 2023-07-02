@@ -91,6 +91,8 @@ class PadPedestal
   PadPedestal() = default;
   ~PadPedestal() = default;
 
+  bool operator==(const PadPedestal& rhs) const;
+
   void clear();
   void setPedestal(std::size_t layer, std::size_t channel, double pedestal);
   double getPedestal(std::size_t layer, std::size_t channel) const;

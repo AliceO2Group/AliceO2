@@ -76,15 +76,17 @@ if [[ "${GEN_TOPO_VERBOSE:-}" == "1" ]]; then
 fi
 
 # beamtype dependent settings
-LHCPHASE_TF_PER_SLOT=26400
-FT0_TIMEOFFSET_TF_PER_SLOT=105600
-TOF_CHANNELOFFSETS_UPDATE=300000
-TOF_CHANNELOFFSETS_DELTA_UPDATE=50000
+: ${FT0_TIMEOFFSET_TF_PER_SLOT:=105600}
+: ${INTEGRATEDCURR_TF_PER_SLOT:=150000} # setting for FT0, FV0, FDD and TOF
 
 if [[ $BEAMTYPE == "PbPb" ]]; then
-  LHCPHASE_TF_PER_SLOT=264
-  TOF_CHANNELOFFSETS_UPDATE=3000
-  TOF_CHANNELOFFSETS_DELTA_UPDATE=500
+  : ${LHCPHASE_TF_PER_SLOT:=264}
+  : ${TOF_CHANNELOFFSETS_UPDATE:=3000}
+  : ${TOF_CHANNELOFFSETS_DELTA_UPDATE:=500}
+else
+  : ${LHCPHASE_TF_PER_SLOT:=26400}
+  : ${TOF_CHANNELOFFSETS_UPDATE:=300000}
+  : ${TOF_CHANNELOFFSETS_DELTA_UPDATE:=50000}
 fi
 
 # special settings for aggregator workflows
@@ -172,6 +174,10 @@ if workflow_has_parameter CALIB_PROXIES; then
     if [[ ! -z ${CALIBDATASPEC_FORWARD_TF:-} ]]; then
       add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_FORWARD_TF\" $(get_proxy_connection fwd_tf input timeframe)" "" 0
     fi
+  elif [[ $AGGREGATOR_TASKS == FORWARD_SPORADIC ]]; then
+    if [[ ! -z ${CALIBDATASPEC_FORWARD_SPORADIC:-} ]]; then
+      add_W o2-dpl-raw-proxy "--dataspec \"$CALIBDATASPEC_FORWARD_SPORADIC\" $(get_proxy_connection fwd_sp input sporadic)" "" 0
+    fi
   fi
 fi
 
@@ -219,6 +225,10 @@ if [[ $AGGREGATOR_TASKS == BARREL_SPORADIC ]] || [[ $AGGREGATOR_TASKS == ALL ]];
   if [[ $CALIB_TPC_RESPADGAIN == 1 ]]; then
     add_W o2-tpc-calibrator-gainmap-tracks "--tf-per-slot 10000 --store-RMS-CCDB true"
   fi
+  # TOF
+  if [[ $CALIB_TOF_INTEGRATEDCURR == 1 ]]; then
+    add_W o2-tof-merge-integrate-cluster-workflow "--tf-per-slot $INTEGRATEDCURR_TF_PER_SLOT"
+  fi
 fi
 
 # TPC IDCs and SAC
@@ -230,6 +240,7 @@ nBuffer=$((100 * 128 / ${NHBPERTF}))
 IDC_DELTA="--disable-IDCDelta true" # off by default
 # deltas are on by default; you need to request explicitly to switch them off;
 if [[ "${DISABLE_IDC_DELTA:-}" == "1" ]]; then IDC_DELTA=""; fi
+if [[ "${ENABLE_IDC_DELTA_FILE:-}" == "1" ]]; then IDC_DELTA+=" --dump-IDCDelta-calib-data true --output-dir $CALIB_DIR --meta-output-dir $CALIB_DIR"; fi
 
 if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
   if [[ $CALIB_TPC_IDC == 1 ]] && [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC || $AGGREGATOR_TASKS == ALL ]]; then
@@ -284,8 +295,24 @@ if [[ $AGGREGATOR_TASKS == FORWARD_TF || $AGGREGATOR_TASKS == ALL ]]; then
   if [[ $CALIB_ZDC_TDC == 1 ]]; then
     add_W o2-zdc-tdccalib-workflow "" "CalibParamZDC.outputDir=$CALIB_DIR;CalibParamZDC.metaFileDir=$EPN2EOS_METAFILES_DIR"
   fi
-  if [[ ${CALIB_FT0_TIMEOFFSET:-} == 1 ]]; then
+  # FT0
+  if [[ $CALIB_FT0_TIMEOFFSET == 1 ]]; then
     add_W o2-calibration-ft0-time-offset-calib "--tf-per-slot $FT0_TIMEOFFSET_TF_PER_SLOT --max-delay 0" "FT0CalibParam.mNExtraSlots=0;FT0CalibParam.mRebinFactorPerChID[180]=4;"
+  fi
+fi
+
+if [[ $AGGREGATOR_TASKS == FORWARD_SPORADIC || $AGGREGATOR_TASKS == ALL ]]; then
+  # FT0
+  if [[ $CALIB_FT0_INTEGRATEDCURR == 1 ]]; then
+    add_W o2-ft0-merge-integrate-cluster-workflow "--tf-per-slot $INTEGRATEDCURR_TF_PER_SLOT"
+  fi
+  # FV0
+  if [[ $CALIB_FV0_INTEGRATEDCURR == 1 ]]; then
+    add_W o2-fv0-merge-integrate-cluster-workflow "--tf-per-slot $INTEGRATEDCURR_TF_PER_SLOT"
+  fi
+  # FDD
+  if [[ $CALIB_FDD_INTEGRATEDCURR == 1 ]]; then
+    add_W o2-fdd-merge-integrate-cluster-workflow "--tf-per-slot $INTEGRATEDCURR_TF_PER_SLOT"
   fi
 fi
 

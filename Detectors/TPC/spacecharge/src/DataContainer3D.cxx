@@ -234,6 +234,13 @@ DataContainer3D<DataT>& DataContainer3D<DataT>::operator*=(const DataT value)
 }
 
 template <typename DataT>
+DataContainer3D<DataT>& DataContainer3D<DataT>::operator+=(const DataContainer3D<DataT>& other)
+{
+  std::transform(mData.begin(), mData.end(), other.mData.begin(), mData.begin(), std::plus<>());
+  return *this;
+}
+
+template <typename DataT>
 size_t DataContainer3D<DataT>::getIndexZ(size_t index, const int nz, const int nr, const int nphi)
 {
   const size_t iphi = index / (nz * nr);

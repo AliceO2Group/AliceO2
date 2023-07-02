@@ -110,7 +110,6 @@ void DataProcessingStates::updateState(CommandSpec cmd)
   // Add a static mutex to protect the queue
   // Get the next available operation in an atomic way.
   int size = sizeof(CommandHeader) + cmd.size;
-  assert(size < 1000);
   if (size > 8192) {
     throw runtime_error_f("State size is %d for state %s. States larger than 8192 bytes not supported for now.",
                           size, stateSpecs[cmd.id].name.c_str());
@@ -163,19 +162,20 @@ void DataProcessingStates::flushChangedStates(std::function<void(std::string con
   publishingInvokedTotal++;
   bool publish = false;
   auto currentTimestamp = getTimestamp(realTimeBase, initialTimeOffset);
-  for (size_t mi = 0; mi < updated.size(); ++mi) {
+  for (auto mi : registeredStates) {
     auto& update = updateInfos[mi];
     auto& spec = stateSpecs[mi];
     auto& view = statesViews[mi];
-    if (currentTimestamp - update.timestamp > spec.maxRefreshLatency) {
+    if (updated[mi] == false && (currentTimestamp - update.timestamp) > spec.maxRefreshLatency) {
       updated[mi] = true;
       update.timestamp = currentTimestamp;
     }
     if (updated[mi] == false) {
       continue;
     }
-    if (currentTimestamp - update.lastPublished < spec.minPublishInterval) {
-      LOGP(debug, "not publishing because of minPublishInterval");
+    int64_t delayPublished = (currentTimestamp - update.lastPublished);
+    assert(delayPublished >= 0);
+    if (delayPublished < spec.minPublishInterval) {
       continue;
     }
     publish = true;
@@ -242,6 +242,7 @@ void DataProcessingStates::registerState(StateSpec const& spec)
   updateInfos[spec.stateId] = UpdateInfo{currentTime, currentTime};
   updated[spec.stateId] = spec.sendInitialValue;
   enabled[spec.stateId] = spec.defaultEnabled;
+  registeredStates.push_back(spec.stateId);
 }
 
 } // namespace o2::framework

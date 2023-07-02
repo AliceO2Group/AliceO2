@@ -119,7 +119,7 @@ GPUReconstruction::~GPUReconstruction()
   }
 }
 
-void GPUReconstruction::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits)
+void GPUReconstruction::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits, std::unique_ptr<o2::its::TimeFrame>* timeFrame)
 {
   if (trackerTraits) {
     trackerTraits->reset(new o2::its::TrackerTraits);
@@ -127,11 +127,9 @@ void GPUReconstruction::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* tr
   if (vertexerTraits) {
     vertexerTraits->reset(new o2::its::VertexerTraits);
   }
-}
-
-void GPUReconstruction::GetITSTimeframe(std::unique_ptr<o2::its::TimeFrame>* timeFrame)
-{
-  timeFrame->reset(new o2::its::TimeFrame);
+  if (timeFrame) {
+    timeFrame->reset(new o2::its::TimeFrame);
+  }
 }
 
 int GPUReconstruction::SetNOMPThreads(int n)
@@ -1014,11 +1012,11 @@ void GPUReconstruction::PrepareEvent() // TODO: Clean this up, this should not b
   AllocateRegisteredMemory(nullptr);
 }
 
-int GPUReconstruction::CheckErrorCodes(bool cpuOnly, bool forceShowErrors)
+int GPUReconstruction::CheckErrorCodes(bool cpuOnly, bool forceShowErrors, std::vector<std::array<unsigned int, 4>>* fillErrors)
 {
   int retVal = 0;
   for (unsigned int i = 0; i < mChains.size(); i++) {
-    if (mChains[i]->CheckErrorCodes(cpuOnly, forceShowErrors)) {
+    if (mChains[i]->CheckErrorCodes(cpuOnly, forceShowErrors, fillErrors)) {
       retVal++;
     }
   }

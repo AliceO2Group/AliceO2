@@ -95,6 +95,9 @@ void ContextHelpers::bindProcessorService(DataProcessorContext& dataProcessorCon
   if (spec.preSendingMessages) {
     dataProcessorContext.preSendingMessagesHandles.push_back(ServicePreSendingMessagesHandle{spec, spec.preSendingMessages, service});
   }
+  if (spec.preLoop) {
+    dataProcessorContext.preLoopHandles.push_back(ServicePreLoopHandle{spec, spec.preLoop, service});
+  }
 }
 
 } // namespace o2::framework

@@ -107,9 +107,9 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
         firstEvent = false;
       } else {
         double dT = currentTime.getTimeNS() - triggerTime.getTimeNS();
-        if (dT < mParams.busyTimeNS) {
+        if (dT < mParams.busyTimeNS()) {
           // busyTimeNS = readoutTimeNS + deadTimeNS, if less than that, pile up the signals and update the last time
-          LOGF(debug, "Collision %lu Not creating new trigger at time %.2f since dT=%.2f ns < busy time of %.1f us", collID, currentTime.getTimeNS(), dT, mParams.busyTimeNS / 1000);
+          LOGF(debug, "Collision %lu Not creating new trigger at time %.2f since dT=%.2f ns < busy time of %.1f us", collID, currentTime.getTimeNS(), dT, mParams.busyTimeNS() / 1000);
           isNewTrigger = false;
           mDigitizer.pileup();
         } else {
@@ -132,7 +132,7 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
           triggerTime = currentTime;
           digits.clear();
           labels.clear();
-          if (triggerTime.getTimeNS() - previousTime.getTimeNS() > mParams.busyTimeNS) {
+          if (triggerTime.getTimeNS() - previousTime.getTimeNS() > mParams.busyTimeNS()) {
             // we safely clear all pileup signals, because any previous collision cannot contribute signal anymore
             mDigitizer.clearPileupSignals();
           }

@@ -19,7 +19,9 @@ namespace zdc
 
 void RawReaderZDC::clear()
 {
-  LOG(info) << __func__;
+#ifndef O2_ZDC_DEBUG
+  LOG(info) << "RawReaderZDC::clear()";
+#endif
   for (int im = 0; im < NModules; im++) {
     for (int ic = 0; ic < NChPerModule; ic++) {
       mEvents[im][ic] = 0;
@@ -347,7 +349,13 @@ int RawReaderZDC::getDigits(std::vector<BCData>& digitsBC, std::vector<ChannelDa
 //______________________________________________________________________________
 void RawReaderZDC::inspectDup()
 {
-  LOG(info) << __func__;
+  // This function allows to examine if there are duplicate channels for modules in which it
+  // is expected and for modules in which is not expected
+  // A duplicate channel is present in pedestal data for channels that are readout on
+  // one module but connected to two modules because readout is forced in the FEE.
+#ifdef O2_ZDC_DEBUG
+  LOG(info) << "RawReaderZDC::inspectDup()";
+#endif
   for (int32_t im = 0; im < NModules; im++) {
     for (int32_t ic = 0; ic < NChPerModule; ic++) {
       if (mVerbosity > DbgMinimal) {

@@ -126,6 +126,7 @@ void BarrelAlignmentSpec::init(InitContext& ic)
   mTimer.Stop();
   mTimer.Reset();
   o2::base::GRPGeomHelper::instance().setRequest(mGRPGeomRequest);
+
   int dbg = ic.options().get<int>("debug-output"), inst = ic.services().get<const o2::framework::DeviceSpec>().inputTimesliceId;
   mController = std::make_unique<Controller>(mDetMask, mMPsrc, mCosmic, mUseMC, inst);
   if (dbg) {
@@ -178,6 +179,9 @@ void BarrelAlignmentSpec::init(InitContext& ic)
   }
   mIgnoreCCDBAlignment = ic.options().get<bool>("ignore-ccdb-alignment");
   if (!mPostProcessing) {
+    if (mLoadTPCCalib) {
+      mTPCCorrMapsLoader.init(ic);
+    }
     if (GTrackID::includesDet(DetID::TRD, mMPsrc)) {
       mTRDTransformer.reset(new o2::trd::TrackletTransformer);
       if (ic.options().get<bool>("apply-xor")) {
@@ -252,7 +256,7 @@ void BarrelAlignmentSpec::updateTimeDependentParams(ProcessingContext& pc)
     }
 
     mTPCVDriftHelper.extractCCDBInputs(pc);
-    o2::tpc::CorrectionMapsLoader::extractCCDBInputs(pc);
+    mTPCCorrMapsLoader.extractCCDBInputs(pc);
     bool updateMaps = false;
     if (mTPCCorrMapsLoader.isUpdated()) {
       mController->setTPCCorrMaps(&mTPCCorrMapsLoader);
@@ -359,6 +363,14 @@ DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
   bool loadTPCCalib = false;
+  Options opts{
+    ConfigParamSpec{"apply-xor", o2::framework::VariantType::Bool, false, {"flip the 8-th bit of slope and position (for processing TRD CTFs from 2021 pilot beam)"}},
+    ConfigParamSpec{"allow-afterburner-tracks", VariantType::Bool, false, {"allow using ITS-TPC afterburner tracks"}},
+    ConfigParamSpec{"ignore-ccdb-alignment", VariantType::Bool, false, {"do not aplly CCDB alignment to ideal geometry"}},
+    ConfigParamSpec{"initial-params-file", VariantType::String, "", {"initial parameters file"}},
+    ConfigParamSpec{"config-macro", VariantType::String, "", {"configuration macro with signature (o2::align::Controller*, int) to execute from init"}},
+    ConfigParamSpec{"ignore-initial-params-errors", VariantType::Bool, false, {"ignore initial params (if any) errors for precondition"}},
+    ConfigParamSpec{"debug-output", VariantType::Int, 0, {"produce debugging output root files"}}};
   if (!postprocess) {
     dataRequest->requestTracks(src, useMC);
     dataRequest->requestClusters(src, false, skipDetClusters);
@@ -371,7 +383,7 @@ DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_
     }
     if (src[DetID::TPC] && !skipDetClusters[DetID::TPC]) {
       o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
-      o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs);
+      o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs, opts, src[GTrackID::CTP]);
       loadTPCCalib = true;
     }
   }
@@ -390,14 +402,7 @@ DataProcessorSpec getBarrelAlignmentSpec(GTrackID::mask_t srcMP, GTrackID::mask_
     dataRequest->inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<BarrelAlignmentSpec>(srcMP, dataRequest, ccdbRequest, dets, enableCosmic, postprocess, useMC, loadTPCCalib)},
-    Options{
-      ConfigParamSpec{"apply-xor", o2::framework::VariantType::Bool, false, {"flip the 8-th bit of slope and position (for processing TRD CTFs from 2021 pilot beam)"}},
-      ConfigParamSpec{"allow-afterburner-tracks", VariantType::Bool, false, {"allow using ITS-TPC afterburner tracks"}},
-      ConfigParamSpec{"ignore-ccdb-alignment", VariantType::Bool, false, {"do not aplly CCDB alignment to ideal geometry"}},
-      ConfigParamSpec{"initial-params-file", VariantType::String, "", {"initial parameters file"}},
-      ConfigParamSpec{"config-macro", VariantType::String, "", {"configuration macro with signature (o2::align::Controller*, int) to execute from init"}},
-      ConfigParamSpec{"ignore-initial-params-errors", VariantType::Bool, false, {"ignore initial params (if any) errors for precondition"}},
-      ConfigParamSpec{"debug-output", VariantType::Int, 0, {"produce debugging output root files"}}}};
+    opts};
 }
 
 } // namespace align

@@ -29,6 +29,16 @@ struct TRDCalibParams : public o2::conf::ConfigurableParamHelper<TRDCalibParams>
   size_t minEntriesChamber = 75;   ///< minimum number of entries per chamber to fit single time slot
   size_t minEntriesTotal = 40'500; ///< minimum total required for meaningful fits
 
+  // For gain calibration
+  unsigned int nTrackletsMinGainCalib = 5;
+  size_t minEntriesChamberGainCalib = 500;     ///< minimum number of entries per chamber to fit single time slot
+  size_t minEntriesTotalGainCalib = 1'000'000; ///< minimum total required for meaningful fits
+  // Cuts for selecting clean pion candidates for gain calibration
+  float pMin = 0.5; /// minimum p for selected tracks
+  float pMax = 1.;
+  float dEdxTPCMin = 30.;
+  float dEdxTPCMax = 70.;
+
   // parameters related to noise calibration
   size_t minNumberOfDigits = 1'000'000'000UL; ///< when reached, noise calibration will be finalized
 

@@ -371,8 +371,8 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
   }
   ConstrainSinPhi();
 
-  GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamUpdateTrack, (size_t)this)) {
-    o2::utils::DebugStreamer::instance()->getStreamer("debug_accept_track", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("debug_accept_track").data() << "iTrk=" << iTrk << "outerParam=" << outerParam << "track=" << this << "ihitStart=" << ihitStart << "\n";
+  GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamUpdateTrack, iTrk)) {
+    o2::utils::DebugStreamer::instance()->getStreamer("debug_accept_track", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("debug_accept_track").data() << "iTrk=" << iTrk << "outerParam=" << *outerParam << "track=" << this << "ihitStart=" << ihitStart << "\n";
   })
 
   if (!(N + NTolerated >= GPUCA_TRACKLET_SELECTOR_MIN_HITS_B5(mP[4] * merger->Param().qptB5Scaler) && 2 * NTolerated <= CAMath::Max(10, N) && CheckNumericalQuality(covYYUpd))) {
@@ -517,7 +517,7 @@ GPUd() void GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestrict
     Y = mP[0];
     Z = mP[1];
   } else {
-    float X;
+    float X = 0;
     Merger->GetConstantMem()->calibObjects.fastTransformHelper->InverseTransformYZtoX(slice, iRow, mP[0], mP[1], X);
     if (prop.GetPropagatedYZ(X, Y, Z)) {
       Y = mP[0];
@@ -563,6 +563,10 @@ GPUd() void GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestrict
     nZ = Z;
   } else {
     Merger->GetConstantMem()->calibObjects.fastTransformHelper->InverseTransformYZtoNominalYZ(slice, iRow, Y, Z, nY, nZ);
+  }
+
+  if (CAMath::Abs(nY) > row.getTPCMaxY()) {
+    return;
   }
   row.Grid().GetBinArea(nY, nZ + zOffset, tubeY, tubeZ, bin, ny, nz);
 

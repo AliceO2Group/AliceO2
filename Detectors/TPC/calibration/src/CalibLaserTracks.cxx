@@ -38,6 +38,9 @@ void CalibLaserTracks::fill(const gsl::span<const TrackTPC> tracks)
     return;
   }
 
+  mCalibData.nTrackTF.emplace_back();
+  mCalibDataTF.nTrackTF.emplace_back();
+
   // ===| associate tracks with ideal laser track positions |===
   for (const auto& track : tracks) {
     processTrack(track);
@@ -87,7 +90,7 @@ void CalibLaserTracks::processTrack(const TrackTPC& track)
   if (mTriggerPos < 0) {
     // use CE for time 0
     const float zOffset = (track.getTime0() + mTriggerPos) * mZbinWidth * mDriftV + 250;
-    //printf("time0: %.2f, trigger pos: %d, zTrack: %.2f, zOffset: %.2f\n", track.getTime0(), mTriggerPos, zTrack, zOffset);
+    // printf("time0: %.2f, trigger pos: %d, zTrack: %.2f, zOffset: %.2f\n", track.getTime0(), mTriggerPos, zTrack, zOffset);
     zTrack += zOffset;
     parOutAtLtr.setZ(zTrack);
   } else if (mTriggerPos > 0) {
@@ -119,6 +122,13 @@ void CalibLaserTracks::processTrack(const TrackTPC& track)
 
   mCalibData.matchedLtrIDs.emplace_back(laserTrackID);
   mCalibDataTF.matchedLtrIDs.emplace_back(laserTrackID);
+
+  const auto dEdx = track.getdEdx().dEdxTotTPC;
+  mCalibData.dEdx.emplace_back(dEdx);
+  mCalibDataTF.dEdx.emplace_back(dEdx);
+
+  ++mCalibData.nTrackTF.back();
+  ++mCalibDataTF.nTrackTF.back();
 
   // ===| debug output |========================================================
   if (mWriteDebugTree) {
@@ -250,6 +260,14 @@ void CalibLaserTracks::merge(const CalibLaserTracks* other)
   auto& ltrIDsOther = other->mCalibData.matchedLtrIDs;
   ltrIDs.insert(ltrIDs.end(), ltrIDsOther.begin(), ltrIDsOther.end());
 
+  auto& nTrk = mCalibData.nTrackTF;
+  auto& nTrkOther = other->mCalibData.nTrackTF;
+  nTrk.insert(nTrk.end(), nTrkOther.begin(), nTrkOther.end());
+
+  auto& dEdx = mCalibData.dEdx;
+  auto& dEdxOther = other->mCalibData.dEdx;
+  dEdx.insert(dEdx.end(), dEdxOther.begin(), dEdxOther.end());
+
   mCalibData.firstTime = std::min(mCalibData.firstTime, other->mCalibData.firstTime);
   mCalibData.lastTime = std::max(mCalibData.lastTime, other->mCalibData.lastTime);
 
@@ -285,9 +303,9 @@ void CalibLaserTracks::finalize()
 
   fillCalibData(mCalibData, mZmatchPairsA, mZmatchPairsC);
 
-  //auto& ltrIDs = mCalibData.matchedLtrIDs;
-  //std::sort(ltrIDs.begin(), ltrIDs.end());
-  //ltrIDs.erase(std::unique(ltrIDs.begin(), ltrIDs.end()), ltrIDs.end());
+  // auto& ltrIDs = mCalibData.matchedLtrIDs;
+  // std::sort(ltrIDs.begin(), ltrIDs.end());
+  // ltrIDs.erase(std::unique(ltrIDs.begin(), ltrIDs.end()), ltrIDs.end());
 
   if (mDebugStream) {
     (*mDebugStream) << "finalData"
@@ -345,7 +363,7 @@ TimePair CalibLaserTracks::fit(const std::vector<TimePair>& trackMatches) const
     return TimePair({0, 0, meanTime});
   }
 
-  //fit.EvalRobust(robustFraction);
+  // fit.EvalRobust(robustFraction);
   fit.Eval();
 
   TimePair retVal;

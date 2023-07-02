@@ -76,6 +76,9 @@ BaselineCalibData& BaselineCalibData::operator+=(const BaselineCalibData& other)
 //______________________________________________________________________________
 BaselineCalibData& BaselineCalibData::operator=(const BaselineCalibSummaryData& s)
 {
+#ifdef O2_ZDC_DEGUG
+  LOGF(info) << "BaselineCalibData assigning BaselineCalibSummaryData" s.print();
+#endif
   mCTimeBeg = s.mCTimeBeg;
   mCTimeEnd = s.mCTimeEnd;
   mOverflow = s.mOverflow;
@@ -102,6 +105,9 @@ BaselineCalibData& BaselineCalibData::operator+=(const BaselineCalibSummaryData*
     LOG(error) << "BaselineCalibData::operator+=(const BaselineCalibSummaryData* s): null pointer";
     return *this;
   }
+#ifdef O2_ZDC_DEGUG
+  LOGF(info) << "BaselineCalibData cumulating BaselineCalibSummaryData" s.print();
+#endif
   if (s->mOverflow) {
     // Refusing to add an overflow
     LOG(warn) << __func__ << " Refusing to add an overflow BaselineCalibSummaryData BREAK!";
@@ -118,7 +124,7 @@ BaselineCalibData& BaselineCalibData::operator+=(const BaselineCalibSummaryData*
   }
   // Check if sum will result into an overflow
   for (auto& bin : s->mData) {
-    uint64_t sum = mHisto[bin.id].mData[bin.ibin] = bin.cont;
+    uint64_t sum = mHisto[bin.id].mData[bin.ibin] + bin.cont;
     if (sum > 0xffffffff) {
       LOG(warn) << __func__ << " Addition would result in an overflow for ch " << bin.id << " BREAK!";
       return *this;
@@ -131,7 +137,7 @@ BaselineCalibData& BaselineCalibData::operator+=(const BaselineCalibSummaryData*
     mCTimeEnd = s->mCTimeEnd;
   }
   for (auto& bin : s->mData) {
-    mHisto[bin.id].mData[bin.ibin] += bin.cont;
+    mHisto[bin.id].mData[bin.ibin] = mHisto[bin.id].mData[bin.ibin] + bin.cont;
   }
   return *this;
 }
@@ -143,6 +149,20 @@ void BaselineCalibData::setCreationTime(uint64_t ctime)
   mCTimeEnd = ctime;
 #ifdef O2_ZDC_DEBUG
   LOGF(info, "BaselineCalibData::setCreationTime %llu", ctime);
+#endif
+}
+
+//______________________________________________________________________________
+void BaselineCalibData::mergeCreationTime(uint64_t ctime)
+{
+  if (mCTimeBeg == 0 || ctime < mCTimeBeg) {
+    mCTimeBeg = ctime;
+  }
+  if (ctime > mCTimeEnd) {
+    mCTimeEnd = ctime;
+  }
+#ifdef O2_ZDC_DEBUG
+  LOGF(info, "BaselineCalibData::mergeCreationTime %llu", ctime);
 #endif
 }
 
@@ -290,13 +310,13 @@ void BaselineCalibSummaryData::print() const
     }
     printf("\n");
   }
-  int nbin[NChannels] = {0};
-  uint64_t ccont[NChannels] = {0};
+  int nbin[NChannels] = {0};       // Number of bin populated
+  uint64_t ccont[NChannels] = {0}; // Entries in the histogram
   for (auto& bin : mData) {
     nbin[bin.id]++;
     ccont[bin.id] += bin.cont;
   }
   for (int32_t is = 0; is < NChannels; is++) {
-    LOG(info) << "Summary ch " << is << " nbin = " << nbin[is] << " ccont = " << ccont[is];
+    LOGF(info, "Summary ch %2d nbin = %d events = %llu", is, nbin[is], ccont[is]);
   }
 }

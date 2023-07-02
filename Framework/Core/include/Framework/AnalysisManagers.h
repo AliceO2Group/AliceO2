@@ -228,19 +228,20 @@ struct OutputManager {
 /// Produces specialization
 template <typename TABLE>
 struct OutputManager<Produces<TABLE>> {
-  static bool appendOutput(std::vector<OutputSpec>& outputs, Produces<TABLE>& what, uint32_t)
+  static bool appendOutput(std::vector<OutputSpec>& outputs, Produces<TABLE>& /*what*/, uint32_t)
   {
-    outputs.emplace_back(what.spec());
+    outputs.emplace_back(OutputForTable<TABLE>::spec());
     return true;
   }
   static bool prepare(ProcessingContext& context, Produces<TABLE>& what)
   {
-    what.resetCursor(context.outputs().make<TableBuilder>(what.ref()));
+    what.resetCursor(std::move(context.outputs().make<TableBuilder>(OutputForTable<TABLE>::ref())));
     return true;
   }
   static bool finalize(ProcessingContext&, Produces<TABLE>& what)
   {
     what.setLabel(o2::aod::MetadataTrait<TABLE>::metadata::tableLabel());
+    what.release();
     return true;
   }
   static bool postRun(EndOfStreamContext&, Produces<TABLE>&)

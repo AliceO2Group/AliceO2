@@ -48,7 +48,7 @@ class GPUChain
   virtual int RunChain() = 0;
   virtual void MemorySize(size_t& gpuMem, size_t& pageLockedHostMem) = 0;
   virtual void PrintMemoryStatistics(){};
-  virtual int CheckErrorCodes(bool cpuOnly = false, bool forceShowErrors = false) { return 0; }
+  virtual int CheckErrorCodes(bool cpuOnly = false, bool forceShowErrors = false, std::vector<std::array<unsigned int, 4>>* fillErrors = nullptr) { return 0; }
   virtual bool SupportsDoublePipeline() { return false; }
   virtual int FinalizePipelinedProcessing() { return 0; }
 

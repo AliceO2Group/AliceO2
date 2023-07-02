@@ -176,7 +176,7 @@ int runSim(KernelSetup setup)
   // the simplified runloop
   while (setup.sim->Kernel(setup.workerID, *setup.primchannel, *setup.datachannel, setup.primstatuschannel)) {
   }
-  LOG(info) << "[W" << setup.workerID << "] simulation is done";
+  doLogInfo(setup.workerID, "simulation is done");
   return 0;
 }
 
@@ -217,33 +217,39 @@ void pinToCPU(unsigned int cpuid)
   }
 }
 
-bool waitForControlInput()
+bool waitForControlInput(int workerID)
 {
-  auto factory = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
-  auto channel = fair::mq::Channel{"o2sim-control", "sub", factory};
-  auto controlsocketname = getenv("ALICE_O2SIMCONTROL");
-  LOG(debug) << "AWAITING CONTROL ON SOCKETNAME " << controlsocketname;
-  channel.Connect(std::string(controlsocketname));
-  channel.Validate();
+  static bool initialized = false;
+  static fair::mq::Channel channel;
+  if (!initialized) {
+    // we do the channel connect and initialization only once
+    // (reducing the chances that we might miss a control message from the master)
+    static auto factory = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+    channel = fair::mq::Channel{"o2sim-control", "sub", factory};
+    auto controlsocketname = getenv("ALICE_O2SIMCONTROL");
+    channel.Connect(std::string(controlsocketname));
+    channel.Validate();
+    initialized = true;
+  }
   std::unique_ptr<fair::mq::Message> reply(channel.NewMessage());
 
-  LOG(debug) << "WAITING FOR INPUT";
+  doLogInfo(workerID, "Listening for master control input");
   if (channel.Receive(reply) > 0) {
     auto data = reply->GetData();
     auto size = reply->GetSize();
 
     std::string command(reinterpret_cast<char const*>(data), size);
-    LOG(info) << "message: " << command;
+    doLogInfo(workerID, "Received control message: " + command);
 
     o2::conf::SimReconfigData reconfig;
     o2::conf::parseSimReconfigFromString(command, reconfig);
     if (reconfig.stop) {
-      LOG(info) << "Stop asked, shutting down";
+      doLogInfo(workerID, "Stop asked, shutting down");
       return false;
     }
-    LOG(info) << "Processing " << reconfig.nEvents << " new events";
+    doLogInfo(workerID, "Asked to process " + std::to_string(reconfig.nEvents) + std::string(" new events"));
   } else {
-    LOG(info) << "NOTHING RECEIVED";
+    doLogInfo(workerID, "No control input received ");
   }
   return true;
 }
@@ -268,6 +274,8 @@ int main(int argc, char* argv[])
   // set the fatal callback for the logger to not do a core dump (since this might interfere with process shutdown sequence
   // since it calls ROOT::TSystem and further child processes)
   fair::Logger::OnFatal([] { throw fair::FatalException("Fatal error occured. Exiting without core dump..."); });
+  // initialy set logger verbosity to medium
+  FairLogger::GetLogger()->SetLogVerbosityLevel("MEDIUM");
 
   // extract the path to FairMQ config
   bpo::options_description desc{"Options"};
@@ -424,8 +432,8 @@ int main(int argc, char* argv[])
           if (conf.asService()) {
             LOG(info) << "IN SERVICE MODE WAITING";
             o2::simpubsub::publishMessage(pushchannel, o2::simpubsub::simStatusString(worker.str(), "STATUS", "AWAITING INPUT"));
-            more = waitForControlInput();
-            usleep(100); // --> why?
+            more = waitForControlInput(kernelSetup.workerID);
+            usleep(100); // --> why? (probably to give the server some chance to come to a "serving" state)
           } else {
             o2::simpubsub::publishMessage(pushchannel, o2::simpubsub::simStatusString(worker.str(), "STATUS", "TERMINATING"));
 

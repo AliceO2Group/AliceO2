@@ -9,9 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-//#include "TRDBase/GeometryBase.h"
-//#include "DetectorsCommonDataFormats/DetMatrixCache.h"
-//#include "DetectorsCommonDataFormats/DetID.h"
+// #include "TRDBase/GeometryBase.h"
+// #include "DetectorsCommonDataFormats/DetMatrixCache.h"
+// #include "DetectorsCommonDataFormats/DetID.h"
 
 #ifndef O2_TRD_TRACKLET64_H
 #define O2_TRD_TRACKLET64_H
@@ -27,6 +27,9 @@
 //
 ////////////////////////////////////////////////////////////////////////////
 
+#ifndef GPUCA_GPUCODE_DEVICE
+#include <cstdint>
+#endif
 #include "GPUCommonDef.h"
 #include "GPUCommonRtypes.h"
 #include "DataFormatsTRD/Constants.h"
@@ -86,14 +89,14 @@ class Tracklet64
   GPUdDefault() Tracklet64& operator=(const Tracklet64& rhs) = default;
 
   // ----- Getters for contents of tracklet word -----
-  GPUd() int getFormat() const { return ((mtrackletWord & formatmask) >> formatbs); };     // no units 0..15
-  GPUd() int getHCID() const { return ((mtrackletWord & hcidmask) >> hcidbs); };           // no units 0..1079
-  GPUd() int getPadRow() const { return ((mtrackletWord & padrowmask) >> padrowbs); };     // pad row number [0..15]
-  GPUd() int getPadCol() const;                                                            // estimate the pad column number from the tracklet offset (can be off by +-1 pad)
-  GPUd() int getColumn() const { return ((mtrackletWord & colmask) >> colbs); };           // column refers to MCM position in column direction on readout board [0..3]
-  GPUd() int getPosition() const { return ((mtrackletWord & posmask) >> posbs); };         // in units of 1/40 pads, 11 bit granularity
-  GPUd() int getSlope() const { return ((mtrackletWord & slopemask) >> slopebs); };        // in units of 1/1000 pads/timebin, 8 bit granularity
-  GPUd() int getPID() const { return ((mtrackletWord & PIDmask)); };                       // no unit, all 3 charge windows combined
+  GPUd() int getFormat() const { return ((mtrackletWord & formatmask) >> formatbs); }; // no units 0..15
+  GPUd() int getHCID() const { return ((mtrackletWord & hcidmask) >> hcidbs); };       // no units 0..1079
+  GPUd() int getPadRow() const { return ((mtrackletWord & padrowmask) >> padrowbs); }; // pad row number [0..15]
+  GPUd() int getPadCol() const;                                                        // estimate the pad column number from the tracklet offset (can be off by +-1 pad)
+  GPUd() int getColumn() const { return ((mtrackletWord & colmask) >> colbs); };       // column refers to MCM position in column direction on readout board [0..3]
+  GPUd() int getPosition() const { return ((mtrackletWord & posmask) >> posbs); };     // in units of 1/40 pads, 11 bit granularity
+  GPUd() int getSlope() const { return ((mtrackletWord & slopemask) >> slopebs); };    // in units of 1/1000 pads/timebin, 8 bit granularity
+  GPUd() int getPID() const { return ((mtrackletWord & PIDmask)); };                   // no unit, all 3 charge windows combined
   GPUd() int getDynamicCharge(unsigned int charge) const
   {
     int shift = (charge >> 6) & 0x3;
@@ -137,8 +140,8 @@ class Tracklet64
   GPUd() int getROB() const { return (getHCID() % 2) ? (getPadRow() / 4) * 2 + 1 : (getPadRow() / 4) * 2; } // returns ROB number [0..5] for C0 chamber and [0..7] for C1 chamber
   GPUd() int getPositionBinSigned() const;
   GPUd() int getSlopeBinSigned() const;
-  GPUd() float getUncalibratedY() const;                                                                    // translate local position into global y (in cm) not taking into account calibrations (ExB, vDrift, t0)
-  GPUd() float getUncalibratedDy(float nTbDrift = 19.4f) const;                                             // translate local slope into dy/dx with dx=3m (drift length) and default drift time in time bins (19.4 timebins / 3cm)
+  GPUd() float getUncalibratedY() const;                        // translate local position into global y (in cm) not taking into account calibrations (ExB, vDrift, t0)
+  GPUd() float getUncalibratedDy(float nTbDrift = 19.4f) const; // translate local slope into dy/dx with dx=3m (drift length) and default drift time in time bins (19.4 timebins / 3cm)
 
   // ----- Getters for offline corresponding values -----
   GPUd() int getDetector() const { return getHCID() / 2; }
@@ -195,7 +198,7 @@ class Tracklet64
   static constexpr uint64_t Q1mask = 0x000000000000ff00;
   static constexpr uint64_t Q0mask = 0x00000000000000ff;
   static constexpr uint64_t PIDmask = 0x0000000000ffffff;
-  //bit shifts for the above raw data
+  // bit shifts for the above raw data
   static constexpr uint64_t formatbs = 60;
   static constexpr uint64_t hcidbs = 49;
   static constexpr uint64_t padrowbs = 45;
@@ -259,7 +262,7 @@ GPUdi() float Tracklet64::getUncalibratedDy(float nTbDrift) const
 std::ostream& operator<<(std::ostream& stream, const Tracklet64& trg);
 #endif // GPUCA_GPUCODE_DEVICE
 
-} //namespace trd
-} //namespace o2
+} // namespace trd
+} // namespace o2
 
 #endif

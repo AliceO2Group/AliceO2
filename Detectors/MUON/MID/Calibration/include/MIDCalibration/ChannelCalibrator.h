@@ -92,7 +92,7 @@ class ChannelCalibrator final : public o2::calibration::TimeSlotCalibration<Cali
   void setThreshold(double threshold) { mThreshold = threshold; }
 
  private:
-  std::vector<ColumnData> mBadChannels; /// List of bad channels
+  std::vector<ColumnData> mBadChannels{}; /// List of bad channels
   double mThreshold = 0.9;              /// dead channels threshold
   double mTimeOrTriggers = 0;           /// Events counter
 

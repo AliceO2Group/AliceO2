@@ -61,19 +61,24 @@ void ITSDCSParser::run(ProcessingContext& pc)
     line_ending = "\r\n";
   }
 
+  // Initialize Dead Chips map
+  this->mDeadMap = o2::itsmft::NoiseMap(mp.getNChips());
+
   // Loop over lines in the input file
   for (const std::string& line : this->vectorizeStringList(inStringConv, line_ending)) {
     if (!line.length()) {
       continue;
     }
     this->updateMemoryFromInputString(line);
+    this->appendDeadChipObj();
     this->saveToOutput();
     this->resetMemory();
   }
 
   this->saveMissingToOutput();
 
-  if (this->mConfigDCS.size()) {
+  if (this->mConfigDCS.size() && this->mDeadMap.size()) {
+    LOG(info) << "Pushing to CCDB...\n";
     this->pushToCCDB(pc);
     this->mConfigDCS.clear();
   }
@@ -433,14 +438,8 @@ void ITSDCSParser::writeChipInfo(
   if (chipID != -1) {
     // First save the Stave to the string
     o2::dcs::addConfigItem(this->mConfigDCS, "Stave", staveName);
-
-    // Hs_pos: 0 is lower, 1 is upper
-    // Hic_pos: from 1 to 7 (module number)
-    unsigned short int hicPos = chipID / 16;
-    bool hsPos = (hicPos > 7);
-    if (hsPos) {
-      hicPos -= 8;
-    }
+    unsigned short int hicPos = getModule(chipID);
+    bool hsPos = getHS(chipID);
     o2::dcs::addConfigItem(this->mConfigDCS, "Hs_pos", std::to_string(hsPos));
     o2::dcs::addConfigItem(this->mConfigDCS, "Hic_pos", std::to_string(hicPos));
 
@@ -486,15 +485,22 @@ void ITSDCSParser::pushToCCDB(ProcessingContext& pc)
   }
 
   auto class_name = o2::utils::MemFileHelper::getClassName(mConfigDCS);
+  auto class_name_deadMap = o2::utils::MemFileHelper::getClassName(mDeadMap);
 
   // Create metadata for database object
   metadata = {{"runtype", std::to_string(this->mRunType)}, {"confDBversion", std::to_string(this->mConfigVersion)}, {"runNumber", std::to_string(this->mRunNumber)}};
 
-  std::string path("ITS/Calib/DCS_CONFIG/");
+  std::string path("ITS/Calib/DCS_CONFIG");
+  std::string path_deadMap("ITS/Calib/DeadMap");
   const char* filename = "dcs_config.root";
+  long current_time = o2::ccdb::getCurrentTimestamp();
+  std::string filename_deadMap = "o2-itsmft-NoiseMap_" + std::to_string(current_time) + ".root";
   o2::ccdb::CcdbObjectInfo info(path, "dcs_config", filename, metadata, tstart, tend);
+  o2::ccdb::CcdbObjectInfo info_deadMap(path_deadMap, "noise_map", filename_deadMap, metadata, tstart - o2::ccdb::CcdbObjectInfo::MINUTE, tend + 5 * o2::ccdb::CcdbObjectInfo::MINUTE);
   auto image = o2::ccdb::CcdbApi::createObjectImage(&mConfigDCS, &info);
+  auto image_deadMap = o2::ccdb::CcdbApi::createObjectImage(&mDeadMap, &info_deadMap);
   info.setFileName(filename);
+  info_deadMap.setFileName(filename_deadMap);
 
   // Send to ccdb-populator wf
   LOG(info) << "Class Name: " << class_name << " | File Name: " << filename
@@ -519,6 +525,29 @@ void ITSDCSParser::pushToCCDB(ProcessingContext& pc)
       info.getMetaData(), info.getStartValidityTimestamp(), info.getEndValidityTimestamp());
   }
 
+  // Send dead chips map to ccdb-populator wf
+  LOG(info) << "Class Name: " << class_name_deadMap << " | File Name: " << filename_deadMap
+            << "\nSending to ccdb-populator the object " << info_deadMap.getPath() << "/" << info_deadMap.getFileName()
+            << " of size " << image_deadMap->size() << " bytes, valid for "
+            << info_deadMap.getStartValidityTimestamp() << " : "
+            << info_deadMap.getEndValidityTimestamp();
+
+  if (mCcdbUrl.empty()) {
+
+    pc.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "DCS_CONFIG", 1}, *image_deadMap);
+    pc.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "DCS_CONFIG", 1}, info_deadMap);
+
+  } else { // if url is specified, send object to ccdb from THIS wf
+
+    LOG(info) << "Sending object " << info_deadMap.getFileName() << " to " << mCcdbUrl << "/browse/"
+              << info_deadMap.getPath() << " from the ITS string parser workflow";
+    o2::ccdb::CcdbApi mApi;
+    mApi.init(mCcdbUrl);
+    mApi.storeAsBinaryFile(
+      &image_deadMap->at(0), image_deadMap->size(), info_deadMap.getFileName(), info_deadMap.getObjectType(), info_deadMap.getPath(),
+      info_deadMap.getMetaData(), info_deadMap.getStartValidityTimestamp(), info_deadMap.getEndValidityTimestamp());
+  }
+
   return;
 }
 
@@ -538,6 +567,78 @@ std::vector<std::string> ITSDCSParser::listStaves()
     }
   }
   return vecStaves;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+void ITSDCSParser::appendDeadChipObj()
+{
+  // Append an object to the deadMap
+
+  for (auto ch : this->mDisabledChips) {
+
+    unsigned short int hicPos = getModule(ch);
+    bool hS = getHS(ch);
+    unsigned short int chipInMod = ch % 16;
+
+    unsigned short int globchipID = getGlobalChipID(hicPos, hS, chipInMod);
+    this->mDeadMap.maskFullChip(globchipID);
+    LOG(info) << "Masking dead chip " << globchipID;
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+unsigned short int ITSDCSParser::getGlobalChipID(unsigned short int hicPos, bool hS, unsigned short int chipInMod)
+{
+  // Find the global ID of a chip (0->24119)
+  std::vector<unsigned short int> stavesPerLayer = {12, 16, 20, 24, 30, 42, 48};
+  std::vector<unsigned short int> chipPerStave = {9, 9, 9, 112, 112, 196, 196};
+  std::vector<unsigned short int> maxChipIDlayer = {0};
+  int maxChip = 0;
+  for (int i = 0; i < 7; i++) {
+    maxChip += stavesPerLayer[i] * chipPerStave[i];
+    maxChipIDlayer.push_back(maxChip - 1);
+  }
+
+  unsigned short int layerNum = std::stoi(this->mStaveName.substr(1, 1));
+  unsigned short int staveNum = std::stoi(this->mStaveName.substr(3, 2));
+
+  unsigned short int chipid_in_HIC = ((layerNum > 2 && chipInMod > 7) || layerNum == 0) ? chipInMod : chipInMod + 1;
+  unsigned short int modPerLayer = (layerNum > 2 && layerNum < 5) ? 4 : 7;
+  unsigned short int add_HSL = (hS) ? (14 * modPerLayer) : 0;
+
+  unsigned short int chipIDglob = chipid_in_HIC + maxChipIDlayer[layerNum] + (staveNum)*chipPerStave[layerNum] + (hicPos - 1) * 14 + add_HSL;
+
+  return chipIDglob;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+unsigned short int ITSDCSParser::getModule(unsigned short int chipID)
+{
+  // Get the number of the module (1->7)
+  unsigned short int hicPos = 0;
+  if (std::stoi((this->mStaveName).substr(1, 1)) > 2) { // OB case
+    if (chipID / 16 <= 7) {
+      hicPos = chipID / 16;
+    } else {
+      hicPos = (chipID / 16) - 8;
+    }
+  } else {
+    hicPos = 1; // IB case
+  }
+  return hicPos;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+bool ITSDCSParser::getHS(unsigned short int chipInMod)
+{
+  // Return 0 if the chip is in the HSL, 1 if the chip is in the HSU
+  bool hS;
+  if (chipInMod / 16 <= 7) {
+    hS = 0; // L
+  } else {
+    hS = 1; // U
+  }
+  return hS;
 }
 
 //////////////////////////////////////////////////////////////////////////////

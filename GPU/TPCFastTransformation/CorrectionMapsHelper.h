@@ -63,16 +63,34 @@ class CorrectionMapsHelper
 
   void setCorrMap(GPUCA_NAMESPACE::gpu::TPCFastTransform* m);
   void setCorrMapRef(GPUCA_NAMESPACE::gpu::TPCFastTransform* m);
-
-  void setInstLumi(float v)
+  void reportScaling();
+  void setInstLumi(float v, bool report = true)
   {
-    mInstLumi = v;
-    mLumiScale = mMeanLumi ? mInstLumi / mMeanLumi : 0.f;
+    if (v != mInstLumi) {
+      mInstLumi = v;
+      updateLumiScale(report);
+    }
   }
-  void setMeanLumi(float v)
+
+  void setMeanLumi(float v, bool report = true)
   {
-    mMeanLumi = v;
-    mLumiScale = mMeanLumi ? mInstLumi / mMeanLumi : 0.f;
+    if (v != mMeanLumi) {
+      mMeanLumi = v;
+      updateLumiScale(report);
+    }
+  }
+
+  void updateLumiScale(bool report = true)
+  {
+    if (mMeanLumi < 0.f || mInstLumi < 0.f) {
+      mLumiScale = -1.f;
+    } else {
+      mLumiScale = mMeanLumi ? mInstLumi / mMeanLumi : 0.f;
+    }
+    setUpdatedLumi();
+    if (report) {
+      reportScaling();
+    }
   }
 
   GPUd() float getInstLumi() const { return mInstLumi; }
@@ -80,9 +98,9 @@ class CorrectionMapsHelper
   GPUd() float getLumiScale() const { return mLumiScale; }
 
   bool isUpdated() const { return mUpdatedFlags != 0; }
-  bool isUpdatedMap() const { return (mUpdatedFlags & UpdateFlags::MapBit) == 0; }
-  bool isUpdatedMapRef() const { return (mUpdatedFlags & UpdateFlags::MapRefBit) == 0; }
-  bool isUpdatedLumi() const { return (mUpdatedFlags & UpdateFlags::LumiBit) == 0; }
+  bool isUpdatedMap() const { return (mUpdatedFlags & UpdateFlags::MapBit) != 0; }
+  bool isUpdatedMapRef() const { return (mUpdatedFlags & UpdateFlags::MapRefBit) != 0; }
+  bool isUpdatedLumi() const { return (mUpdatedFlags & UpdateFlags::LumiBit) != 0; }
   void setUpdatedMap() { mUpdatedFlags |= UpdateFlags::MapBit; }
   void setUpdatedMapRef() { mUpdatedFlags |= UpdateFlags::MapRefBit; }
   void setUpdatedLumi() { mUpdatedFlags |= UpdateFlags::LumiBit; }
@@ -94,15 +112,29 @@ class CorrectionMapsHelper
   void setOwner(bool v);
   void acknowledgeUpdate() { mUpdatedFlags = 0; }
 
+  void setUseCTPLumi(bool v) { mUseCTPLumi = v; }
+  bool getUseCTPLumi() const { return mUseCTPLumi; }
+
+  void setMeanLumiOverride(float f) { mMeanLumiOverride = f; }
+  float getMeanLumiOverride() const { return mMeanLumiOverride; }
+
+  void setInstLumiOverride(float f) { mInstLumiOverride = f; }
+  float getInstLumiOverride() const { return mInstLumiOverride; }
+
+  int getUpdateFlags() const { return mUpdatedFlags; }
+
  protected:
   enum UpdateFlags { MapBit = 0x1,
                      MapRefBit = 0x2,
                      LumiBit = 0x4 };
   bool mOwner = false; // is content of pointers owned by the helper
+  bool mUseCTPLumi = false; // require CTP Lumi for mInstLumi
   int mUpdatedFlags = 0;
   float mInstLumi = 0.;                            // instanteneous luminosity (a.u)
   float mMeanLumi = 0.;                            // mean luminosity of the map (a.u)
   float mLumiScale = 0.;                           // precalculated mInstLumi/mMeanLumi
+  float mMeanLumiOverride = -1.f;                  // optional value to override mean lumi
+  float mInstLumiOverride = -1.f;                  // optional value to override inst lumi
   GPUCA_NAMESPACE::gpu::TPCFastTransform* mCorrMap{nullptr};    // current transform
   GPUCA_NAMESPACE::gpu::TPCFastTransform* mCorrMapRef{nullptr}; // reference transform
 #ifndef GPUCA_ALIROOT_LIB

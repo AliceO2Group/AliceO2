@@ -21,6 +21,7 @@
 #include <string>
 #include <string_view>
 #include <vector>
+#include <numeric>
 #include <array>
 #include <unordered_map>
 #include <cstdlib>
@@ -50,6 +51,8 @@ struct DataPoint {
   bool equalTime(const DataPoint& other) const { return time == other.time; }
   bool operator<(const DataPoint& other) const { return time < other.time; }
   bool operator<(const TimeStampType timeStamp) const { return time < timeStamp; }
+  DataPoint operator+(const DataPoint& other) const { return DataPoint{(time + other.time) / TimeStampType{2}, value + other.value}; }
+  DataPoint operator/(const DataType denom) const { return DataPoint{time, value / denom}; }
 
   ClassDefNV(DataPoint, 1);
 };
@@ -83,6 +86,11 @@ struct DataPointVector {
 
   void clear() { data.clear(); }
 
+  void append(const DataPointVector<T>& other)
+  {
+    data.insert(data.end(), other.data.begin(), other.data.end());
+  }
+
   /// return value at the last valid time stamp
   ///
   /// values are valid unitl the next time stamp
@@ -90,7 +98,32 @@ struct DataPointVector {
   {
     const auto i = std::upper_bound(data.begin(), data.end(), DPType{timeStamp, {}});
     return (i == data.begin()) ? (*i).value : (*(i - 1)).value;
-  };
+  }
+
+  /// calculate average value for `timeStamp`, extending the range by +- range elements
+  const T getAverageValueForTime(const TimeStampType timeStamp, const long range) const
+  {
+    return getAverageValueForTime(timeStamp, timeStamp, range);
+  }
+
+  /// calculate average value between `from` and `unil`, extending the range by +- `range` elements
+  const std::pair<T, long> getSumAndPoints(const TimeStampType from, const TimeStampType until, const long range) const
+  {
+    const auto iFrom = std::upper_bound(data.begin(), data.end(), DPType{from, {}});
+    const auto iUntil = (from == until) ? iFrom : std::upper_bound(data.begin(), data.end(), DPType{until, {}});
+    const auto distFrom = std::distance(data.begin(), iFrom);
+    const auto distUntil = std::distance(iUntil, data.end());
+    const auto nFrom = std::min(distFrom, range + 1);
+    const auto nUntil = std::min(distUntil, range);
+    const auto nPoints = std::distance(iFrom - nFrom, iUntil + nUntil);
+    return {std::accumulate(iFrom - nFrom, iUntil + nUntil, DPType{(*(iFrom - nFrom)).time, T{}}).value, nPoints};
+  }
+
+  const T getAverageValueForTime(const TimeStampType from, const TimeStampType until, const long range) const
+  {
+    const auto sumAndPoints = getSumAndPoints(from, until, range);
+    return sumAndPoints.first / static_cast<float>(sumAndPoints.second);
+  }
 
   ClassDefNV(DataPointVector, 1);
 };
@@ -109,6 +142,31 @@ void doClear(std::vector<dcs::DataPointVector<T>>& dataVector)
   for (auto& data : dataVector) {
     data.clear();
   }
+}
+
+template <typename T>
+void doAppend(std::vector<dcs::DataPointVector<T>>& a, const std::vector<dcs::DataPointVector<T>>& b)
+{
+  if (a.size() != b.size()) {
+    LOGP(warning, "Trying to append std::vector<dcs::DataPointVector<T>>s of different size: {} != {}", a.size(), b.size());
+  }
+  for (size_t i = 0; i < a.size(); ++i) {
+    a[i].append(b[i]);
+  }
+}
+
+template <typename T>
+const T getAverageValueForTime(const std::vector<dcs::DataPointVector<T>>& dpVec, const TimeStampType from, const TimeStampType until, const long range)
+{
+  T ret{};
+  long nPoints{};
+
+  for (const auto& dps : dpVec) {
+    const auto sumAndPoints = dps.getSumAndPoints(from, until, range);
+    ret += sumAndPoints.first;
+    nPoints += sumAndPoints.second;
+  }
+  return (nPoints > 0) ? ret / static_cast<float>(nPoints) : T{};
 }
 
 using RawDPsF = DataPointVector<float>;
@@ -157,6 +215,9 @@ struct Temperature {
     DataType gradX{}; ///< horizontal temperature gradient in K/cm
     DataType gradY{}; ///< vertical temperature gradient in K/cm
 
+    Stats operator+(const Stats& other) const { return Stats{mean + other.mean, gradX + other.gradX, gradY + other.gradY}; }
+    Stats operator/(const DataType val) const { return Stats{mean / val, gradX / val, gradY / val}; }
+
     ClassDefNV(Stats, 1);
   };
   using StatsDPs = DataPointVector<Stats>;
@@ -170,6 +231,11 @@ struct Temperature {
     return (s == Side::A) ? statsA.getValueForTime(timeStamp) : statsC.getValueForTime(timeStamp);
   }
 
+  DataType getMeanTempRaw()
+  {
+    return getAverageValueForTime(raw, 0, 9999999999999, 0);
+  }
+
   void fill(std::string_view sensor, const TimeStampType time, const DataType temperature)
   {
     raw[SensorNameMap.at(sensor.data())].fill(time, temperature);
@@ -177,6 +243,8 @@ struct Temperature {
 
   void sortAndClean()
   {
+    statsA.sortAndClean();
+    statsC.sortAndClean();
     doSortAndClean(raw);
   }
 
@@ -185,6 +253,13 @@ struct Temperature {
     doClear(raw);
     statsA.clear();
     statsC.clear();
+  }
+
+  void append(const Temperature& other)
+  {
+    statsA.append(other.statsA);
+    statsC.append(other.statsC);
+    doAppend(raw, other.raw);
   }
 
   ClassDefNV(Temperature, 1);
@@ -295,6 +370,13 @@ struct HV {
     doClear(states);
   }
 
+  void append(const HV& other)
+  {
+    doAppend(voltages, other.voltages);
+    doAppend(currents, other.currents);
+    doAppend(states, other.states);
+  }
+
   ClassDefNV(HV, 1);
 };
 
@@ -380,6 +462,18 @@ struct Gas {
     o2.clear();
     h2oSensor.clear();
     o2Sensor.clear();
+  }
+
+  void append(const Gas& other)
+  {
+    neon.append(other.neon);
+    co2.append(other.co2);
+    n2.append(other.n2);
+    argon.append(other.argon);
+    h2o.append(other.h2o);
+    o2.append(other.o2);
+    h2oSensor.append(other.h2oSensor);
+    o2Sensor.append(other.o2Sensor);
   }
 
   TimeStampType getMinTime() const;

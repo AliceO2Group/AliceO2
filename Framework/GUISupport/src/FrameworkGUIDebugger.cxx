@@ -208,8 +208,8 @@ enum MetricTypes {
 // so that we can display driver and device metrics in the same plot
 // without an if.
 struct AllMetricsStore {
-  std::vector<DeviceMetricsInfo> const* metrics[TOTAL_TYPES_OF_METRICS];
-  std::vector<TopologyNodeInfo> const* specs[TOTAL_TYPES_OF_METRICS];
+  gsl::span<DeviceMetricsInfo const> metrics[TOTAL_TYPES_OF_METRICS];
+  gsl::span<TopologyNodeInfo const> specs[TOTAL_TYPES_OF_METRICS];
 };
 
 void displaySparks(
@@ -227,7 +227,7 @@ void displaySparks(
   ImGui::TableSetupScrollFreeze(2, 0);
   for (size_t i = 0; i < visibleMetricsIndex.size(); ++i) {
     auto& index = visibleMetricsIndex[i];
-    auto& metricsInfos = *metricStore.metrics[index.storeIndex];
+    auto& metricsInfos = metricStore.metrics[index.storeIndex];
     auto& metricsInfo = metricsInfos[index.deviceIndex];
     auto& metric = metricsInfo.metrics[index.metricIndex];
     auto& state = metricDisplayStates[index.stateIndex];
@@ -249,32 +249,19 @@ void displaySparks(
     data.legend = state.legend.c_str();
 
     if (!locked) {
-#if __has_include(<DebugGUI/DebugGUIAPIv2.h>)
       ImPlot::SetNextAxisLimits(ImAxis_X1, (startTime + ImGui::GetTime() - 100) * 1000, (startTime + ImGui::GetTime()) * 1000, ImGuiCond_Always);
       ImPlot::SetNextAxisLimits(ImAxis_Y1, metricsInfo.min[index.metricIndex], metricsInfo.max[index.metricIndex] * 1.1, ImGuiCond_Always);
-#else
-      ImPlot::SetNextPlotLimitsX((startTime + ImGui::GetTime() - 100) * 1000, (startTime + ImGui::GetTime()) * 1000, ImGuiCond_Always);
-      ImPlot::SetNextPlotLimitsY(metricsInfo.min[index.metricIndex], metricsInfo.max[index.metricIndex] * 1.1, ImGuiCond_Always);
-#endif
       rty_axis |= ImPlotAxisFlags_LockMin;
     }
     if (ImPlot::BeginPlot("##sparks", ImVec2(700, 100), 0)) {
       ImPlot::SetupAxes("time", "value", rtx_axis, rty_axis);
-#if __has_include(<DebugGUI/DebugGUIAPIv2.h>)
       ImPlot::SetAxis(state.axis);
-#else
-      ImPlot::SetPlotYAxis(state.axis);
-#endif
       switch (metric.type) {
         case MetricType::Enum: {
           data.points = (void*)metricsInfo.enumMetrics[metric.storeIdx].data();
           data.time = metricsInfo.enumTimestamps[metric.storeIdx].data();
 
-#if __has_include(<DebugGUI/DebugGUIAPIv2.h>)
           auto getter = [](int idx, void* hData) -> ImPlotPoint {
-#else
-          auto getter = [](void* hData, int idx) -> ImPlotPoint {
-#endif
             auto histoData = reinterpret_cast<HistoData*>(hData);
             size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
             assert(pos >= 0 && pos < metricStorageSize(MetricType::Enum));
@@ -286,11 +273,7 @@ void displaySparks(
           data.points = (void*)metricsInfo.intMetrics[metric.storeIdx].data();
           data.time = metricsInfo.intTimestamps[metric.storeIdx].data();
 
-#if __has_include(<DebugGUI/DebugGUIAPIv2.h>)
           auto getter = [](int idx, void* hData) -> ImPlotPoint {
-#else
-          auto getter = [](void* hData, int idx) -> ImPlotPoint {
-#endif
             auto histoData = reinterpret_cast<HistoData*>(hData);
             size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
             assert(pos >= 0 && pos < metricStorageSize(MetricType::Int));
@@ -302,11 +285,7 @@ void displaySparks(
           data.points = (void*)metricsInfo.uint64Metrics[metric.storeIdx].data();
           data.time = metricsInfo.uint64Timestamps[metric.storeIdx].data();
 
-#if __has_include(<DebugGUI/DebugGUIAPIv2.h>)
           auto getter = [](int idx, void* hData) -> ImPlotPoint {
-#else
-          auto getter = [](void* hData, int idx) -> ImPlotPoint {
-#endif
             auto histoData = reinterpret_cast<HistoData*>(hData);
             size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
             assert(pos >= 0 && pos < metricStorageSize(MetricType::Uint64));
@@ -318,11 +297,7 @@ void displaySparks(
           data.points = (void*)metricsInfo.floatMetrics[metric.storeIdx].data();
           data.time = metricsInfo.floatTimestamps[metric.storeIdx].data();
 
-#if __has_include(<DebugGUI/DebugGUIAPIv2.h>)
           auto getter = [](int idx, void* hData) -> ImPlotPoint {
-#else
-          auto getter = [](void* hData, int idx) -> ImPlotPoint {
-#endif
             auto histoData = reinterpret_cast<HistoData*>(hData);
             size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
             assert(pos >= 0 && pos < metricStorageSize(MetricType::Float));
@@ -341,10 +316,46 @@ void displaySparks(
   ImGui::EndTable();
 }
 
+int formatSI(double value, char* buff, int size, void* user_data)
+{
+  if (value == 0.0) {
+    return snprintf(buff, size, "%.0f", value);
+  }
+  if (value < 10.0) {
+    return snprintf(buff, size, "%.2f", value);
+  }
+  if (value < 1000.0) {
+    return snprintf(buff, size, "%.0f", value);
+  }
+  if (value < 1000000.0) {
+    return snprintf(buff, size, "%.0f k", value / 1000.0);
+  }
+  if (value < 1000000000.0) {
+    return snprintf(buff, size, "%.0f M", value / 1000000.0);
+  }
+  if (value < 1000000000000.0) {
+    return snprintf(buff, size, "%.0f G", value / 1000000000.0);
+  }
+  return snprintf(buff, size, "%.0f T", value / 1000000000000.0);
+}
+
+int formatTimeSinceStart(double value, char* buff, int size, void* user_data)
+{
+  auto* startTime = (int64_t*)user_data;
+  if (value - *startTime < 0) {
+    buff[0] = '\0';
+    return 0;
+  }
+  int64_t seconds = (value - *startTime) / 1000;
+  int64_t minutes = seconds / 60;
+  return snprintf(buff, size, "%02lld:%02lld", minutes, seconds % 60);
+}
+
 void displayDeviceMetrics(const char* label,
                           size_t rangeBegin, size_t rangeEnd, size_t bins, MetricsDisplayStyle displayType,
                           std::vector<MetricDisplayState>& state,
-                          AllMetricsStore const& metricStore)
+                          AllMetricsStore const& metricStore,
+                          DriverInfo const& driverInfo)
 {
   std::vector<void*> metricsToDisplay;
   std::vector<const char*> deviceNames;
@@ -363,8 +374,8 @@ void displayDeviceMetrics(const char* label,
   ImPlotAxisFlags axisFlags = 0;
 
   for (size_t si = 0; si < TOTAL_TYPES_OF_METRICS; ++si) {
-    std::vector<DeviceMetricsInfo> const& metricsInfos = *metricStore.metrics[si];
-    auto const& specs = *metricStore.specs[si];
+    gsl::span<DeviceMetricsInfo const> metricsInfos = metricStore.metrics[si];
+    gsl::span<TopologyNodeInfo const> specs = metricStore.specs[si];
     for (int di = 0; di < metricsInfos.size(); ++di) {
       for (size_t mi = 0; mi < metricsInfos[di].metrics.size(); ++mi) {
         if (state[gmi].visible == false) {
@@ -387,28 +398,28 @@ void displayDeviceMetrics(const char* label,
         switch (metric.type) {
           case MetricType::Int: {
             data.Y = metricsInfos[di].intMetrics[metric.storeIdx].data();
-            auto timestamps = metricsInfos[di].intTimestamps[metric.storeIdx];
+            auto& timestamps = metricsInfos[di].intTimestamps[metric.storeIdx];
             data.mod = std::min(metric.filledMetrics, timestamps.size());
             data.first = metric.pos - data.mod;
             data.X = timestamps.data();
           } break;
           case MetricType::Enum: {
             data.Y = metricsInfos[di].enumMetrics[metric.storeIdx].data();
-            auto timestamps = metricsInfos[di].enumTimestamps[metric.storeIdx];
+            auto& timestamps = metricsInfos[di].enumTimestamps[metric.storeIdx];
             data.mod = std::min(metric.filledMetrics, timestamps.size());
             data.first = metric.pos - data.mod;
             data.X = timestamps.data();
           } break;
           case MetricType::Uint64: {
             data.Y = metricsInfos[di].uint64Metrics[metric.storeIdx].data();
-            auto timestamps = metricsInfos[di].uint64Timestamps[metric.storeIdx];
+            auto& timestamps = metricsInfos[di].uint64Timestamps[metric.storeIdx];
             data.mod = std::min(metric.filledMetrics, timestamps.size());
             data.first = metric.pos - data.mod;
             data.X = timestamps.data();
           } break;
           case MetricType::Float: {
             data.Y = metricsInfos[di].floatMetrics[metric.storeIdx].data();
-            auto timestamps = metricsInfos[di].floatTimestamps[metric.storeIdx];
+            auto& timestamps = metricsInfos[di].floatTimestamps[metric.storeIdx];
             data.mod = std::min(metric.filledMetrics, timestamps.size());
             data.first = metric.pos - data.mod;
             data.X = timestamps.data();
@@ -439,11 +450,7 @@ void displayDeviceMetrics(const char* label,
     metricsToDisplay.push_back(&(userData[ui]));
   }
 
-#if __has_include(<DebugGUI/DebugGUIAPIv2.h>)
   auto getterXY = [](int idx, void* hData) -> ImPlotPoint {
-#else
-  auto getterXY = [](void* hData, int idx) -> ImPlotPoint {
-#endif
     auto histoData = reinterpret_cast<const MultiplotData*>(hData);
     size_t pos = (histoData->first + static_cast<size_t>(idx)) % histoData->mod;
     double x = static_cast<const size_t*>(histoData->X)[pos];
@@ -463,36 +470,28 @@ void displayDeviceMetrics(const char* label,
   static bool logScale = false;
   ImGui::Checkbox("Log scale", &logScale);
 
-#if __has_include(<DebugGUI/DebugGUIAPIv2.h>)
   ImPlot::SetNextAxisLimits(ImAxis_X1, minDomain, maxDomain, ImGuiCond_Once);
-#else
-  ImPlot::SetNextPlotLimitsX(minDomain, maxDomain, ImGuiCond_Once);
-  ImPlot::SetNextPlotTicksX(minDomain, maxDomain, 5);
-#endif
 
   auto axisPadding = 0.;
   if (displayType == MetricsDisplayStyle::Lines) {
     axisPadding = 0.2;
   }
 
-#if __has_include(<DebugGUI/DebugGUIAPIv2.h>)
   ImPlot::SetNextAxisLimits(ImAxis_Y1, minValue[0] - (maxValue[0] - minValue[0]) * axisPadding,
                             maxValue[0] * (1. + axisPadding), ImGuiCond_Always);
-  ImPlot::SetNextAxisLimits(ImAxis_Y1, minValue[1] - (maxValue[1] - minValue[1]) * axisPadding,
+  ImPlot::SetNextAxisLimits(ImAxis_Y2, minValue[1] - (maxValue[1] - minValue[1]) * axisPadding,
                             maxValue[1] * (1. + axisPadding), ImGuiCond_Always);
-  ImPlot::SetNextAxisLimits(ImAxis_Y1, minValue[2] - (maxValue[2] - minValue[2]) * axisPadding,
+  ImPlot::SetNextAxisLimits(ImAxis_Y3, minValue[2] - (maxValue[2] - minValue[2]) * axisPadding,
                             maxValue[2] * (1. + axisPadding), ImGuiCond_Always);
-#else
-  for (size_t ai = 0; ai < 3; ++ai) {
-    ImPlot::SetNextPlotLimitsY(minValue[ai] - (maxValue[ai] - minValue[ai]) * axisPadding,
-                               maxValue[ai] * (1. + axisPadding), ImGuiCond_Always, ai);
-  }
-#endif
 
   switch (displayType) {
     case MetricsDisplayStyle::Histos:
       if (ImPlot::BeginPlot("##Some plot")) {
         ImPlot::SetupAxes("time", "value");
+        ImPlot::SetupAxisFormat(ImAxis_Y1, formatSI, nullptr);
+        ImPlot::SetupAxisFormat(ImAxis_Y2, formatSI, nullptr);
+        ImPlot::SetupAxisFormat(ImAxis_Y3, formatSI, nullptr);
+        ImPlot::SetupAxisFormat(ImAxis_X1, formatTimeSinceStart, (void*)&driverInfo.startTimeMsFromEpoch);
         for (size_t pi = 0; pi < metricsToDisplay.size(); ++pi) {
           ImGui::PushID(pi);
           auto data = (const MultiplotData*)metricsToDisplay[pi];
@@ -510,14 +509,14 @@ void displayDeviceMetrics(const char* label,
       //ImPlot::FitNextPlotAxes(true, true, true, true);
       if (ImPlot::BeginPlot("##Some plot", {-1, -1}, axisFlags)) {
         ImPlot::SetupAxes("time", "value", xAxisFlags, yAxisFlags);
+        ImPlot::SetupAxisFormat(ImAxis_Y1, formatSI, nullptr);
+        ImPlot::SetupAxisFormat(ImAxis_Y2, formatSI, nullptr);
+        ImPlot::SetupAxisFormat(ImAxis_Y3, formatSI, nullptr);
+        ImPlot::SetupAxisFormat(ImAxis_X1, formatTimeSinceStart, (void*)&driverInfo.startTimeMsFromEpoch);
         for (size_t pi = 0; pi < metricsToDisplay.size(); ++pi) {
           ImGui::PushID(pi);
           auto data = (const MultiplotData*)metricsToDisplay[pi];
-#if __has_include(<DebugGUI/DebugGUIAPIv2.h>)
           ImPlot::SetAxis(data->axis);
-#else
-          ImPlot::SetPlotYAxis(data->axis);
-#endif
           ImPlot::PlotLineG(data->legend, getterXY, metricsToDisplay[pi], data->mod, 0);
           ImGui::PopID();
         }
@@ -557,11 +556,15 @@ void metricsTableRow(std::vector<MetricIndex> metricIndex,
   ImGui::Text("%d", row);
 
   for (auto index : metricIndex) {
-    auto& metricsInfos = *metricsStore.metrics[index.storeIndex];
+    auto& metricsInfos = metricsStore.metrics[index.storeIndex];
     auto& metricsInfo = metricsInfos[index.deviceIndex];
     auto& info = metricsInfos[index.deviceIndex].metrics[index.metricIndex];
 
     ImGui::TableNextColumn();
+    if (info.filledMetrics <= row) {
+      ImGui::Text(" - ");
+      continue;
+    }
     switch (info.type) {
       case MetricType::Int: {
         auto time = metricsInfo.intTimestamps[info.storeIdx][row];
@@ -640,7 +643,7 @@ void displayMetrics(gui::WorkspaceGUIState& state,
 
   size_t totalMetrics = 0;
   for (auto& metricsInfos : metricsStore.metrics) {
-    for (auto& metricInfo : *metricsInfos) {
+    for (auto& metricInfo : metricsInfos) {
       totalMetrics += metricInfo.metrics.size();
     }
   }
@@ -657,8 +660,8 @@ void displayMetrics(gui::WorkspaceGUIState& state,
     });
 
     for (size_t si = 0; si < TOTAL_TYPES_OF_METRICS; ++si) {
-      auto& metricsInfos = *metricsStore.metrics[si];
-      auto& specs = *metricsStore.specs[si];
+      auto& metricsInfos = metricsStore.metrics[si];
+      auto& specs = metricsStore.specs[si];
       for (size_t di = 0; di < metricsInfos.size(); ++di) {
         auto& metricInfo = metricsInfos[di];
         auto& spec = specs[di];
@@ -698,7 +701,7 @@ void displayMetrics(gui::WorkspaceGUIState& state,
     selectedMetricIndex.clear();
     size_t gmi = 0;
     for (size_t si = 0; si < TOTAL_TYPES_OF_METRICS; ++si) {
-      auto& metricsInfos = *metricsStore.metrics[si];
+      auto& metricsInfos = metricsStore.metrics[si];
 
       for (size_t di = 0; di < metricsInfos.size(); ++di) {
         auto& metricInfo = metricsInfos[di];
@@ -722,7 +725,7 @@ void displayMetrics(gui::WorkspaceGUIState& state,
     ImGui::InputText("##query-metrics", query, MAX_QUERY_SIZE);
     size_t metricSize = 0;
     for (auto deviceMetrics : metricsStore.metrics) {
-      metricSize += DeviceMetricsInfoHelpers::metricsStorageSize(*deviceMetrics);
+      metricSize += DeviceMetricsInfoHelpers::metricsStorageSize(deviceMetrics);
     }
     // ImGui::Text("Total memory used %zu MB", metricSize / 1000000);
     ImGui::Text("%zu/%zu matching", selectedMetricIndex.size(), totalMetrics);
@@ -741,8 +744,8 @@ void displayMetrics(gui::WorkspaceGUIState& state,
       while (clipper.Step()) {
         for (size_t i = clipper.DisplayStart; i < clipper.DisplayEnd; ++i) {
           auto& index = selectedMetricIndex[i];
-          auto& metricsInfos = *metricsStore.metrics[index.storeIndex];
-          auto& nodes = *metricsStore.specs[index.storeIndex];
+          auto& metricsInfos = metricsStore.metrics[index.storeIndex];
+          auto& nodes = metricsStore.specs[index.storeIndex];
           auto& metricInfo = metricsInfos[index.deviceIndex];
           auto& node = nodes[index.deviceIndex];
           auto& label = metricInfo.metricLabels[index.metricIndex];
@@ -821,7 +824,7 @@ void displayMetrics(gui::WorkspaceGUIState& state,
   visibleMetricsIndex.clear();
 
   for (size_t si = 0; si < TOTAL_TYPES_OF_METRICS; ++si) {
-    auto& metricsInfos = *metricsStore.metrics[si];
+    auto& metricsInfos = metricsStore.metrics[si];
     for (size_t di = 0; di < metricsInfos.size(); ++di) {
       auto& metricInfo = metricsInfos[di];
       bool deviceVisible = false;
@@ -887,7 +890,7 @@ void displayMetrics(gui::WorkspaceGUIState& state,
     case MetricsDisplayStyle::Lines: {
       displayDeviceMetrics("Metrics",
                            minTime, maxTime, 1024,
-                           currentStyle, metricDisplayState, metricsStore);
+                           currentStyle, metricDisplayState, metricsStore, driverInfo);
     } break;
     case MetricsDisplayStyle::Sparks: {
       displaySparks(state.startTime, visibleMetricsIndex, metricDisplayState, metricsStore);
@@ -901,7 +904,7 @@ void displayMetrics(gui::WorkspaceGUIState& state,
       int visibleDeviceCount = -1;
       /// Calculate the size of all the metrics for a given device
       for (auto index : visibleMetricsIndex) {
-        auto& metricsInfos = *metricsStore.metrics[index.storeIndex];
+        auto& metricsInfos = metricsStore.metrics[index.storeIndex];
         if (lastDevice != index.deviceIndex) {
           visibleDeviceCount++;
           lastDevice = index.deviceIndex;
@@ -923,7 +926,7 @@ void displayMetrics(gui::WorkspaceGUIState& state,
         lastDevice = -1;
         for (auto index : visibleMetricsIndex) {
           ImGui::TableNextColumn();
-          auto& devices = *metricsStore.specs[index.storeIndex];
+          auto& devices = metricsStore.specs[index.storeIndex];
           if (lastDevice == index.deviceIndex) {
             continue;
           }
@@ -941,7 +944,7 @@ void displayMetrics(gui::WorkspaceGUIState& state,
         lastDevice = -1;
         for (auto index : visibleMetricsIndex) {
           ImGui::TableNextColumn();
-          auto& metricsInfos = *metricsStore.metrics[index.storeIndex];
+          auto& metricsInfos = metricsStore.metrics[index.storeIndex];
           auto& metric = metricsInfos[index.deviceIndex];
           auto label = metricsInfos[index.deviceIndex].metricLabels[index.metricIndex].label;
           ImGui::Text("%s (%" PRIu64 ")", label, (uint64_t)metric.metrics[index.metricIndex].filledMetrics);
@@ -1148,13 +1151,11 @@ std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
     showTopologyNodeGraph(guiState, infos, devices, allStates, metadata, controls, metricsInfos);
 
     AllMetricsStore metricsStore;
-    static std::vector<DeviceMetricsInfo> driverMetrics{driverInfo.metrics};
-    DeviceMetricsInfoHelpers::clearMetrics(driverMetrics);
 
-    metricsStore.metrics[DEVICE_METRICS] = &metricsInfos;
-    metricsStore.metrics[DRIVER_METRICS] = &driverMetrics;
-    metricsStore.specs[DEVICE_METRICS] = &deviceNodesInfos;
-    metricsStore.specs[DRIVER_METRICS] = &driverNodesInfos;
+    metricsStore.metrics[DEVICE_METRICS] = gsl::span(metricsInfos);
+    metricsStore.metrics[DRIVER_METRICS] = gsl::span(&driverInfo.metrics, 1);
+    metricsStore.specs[DEVICE_METRICS] = gsl::span(deviceNodesInfos);
+    metricsStore.specs[DRIVER_METRICS] = gsl::span(driverNodesInfos);
     displayMetrics(guiState, driverInfo, infos, metadata, controls, metricsStore);
     displayDriverInfo(driverInfo, driverControl);
 

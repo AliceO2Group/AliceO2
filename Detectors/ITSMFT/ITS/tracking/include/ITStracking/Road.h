@@ -44,9 +44,15 @@ class Road final
 
   GPUhd() void resetRoad()
   {
+#ifndef ENABLE_ITS3_4L
     for (int i = 0; i < maxRoadSize; i++) {
       mCellIds[i] = constants::its::UnusedIndex;
     }
+#else
+    for (int i = 0; i < maxRoadSize + 1; i++) {
+      mCellIds[i] = constants::its::UnusedIndex;
+    }
+#endif
     mRoadSize = 0;
   }
 
@@ -75,18 +81,6 @@ inline int Road<maxRoadSize>::getRoadSize() const
 {
   return mRoadSize;
 }
-
-// template <unsigned char maxRoadSize>
-// inline int Road<maxRoadSize>::getLabel() const
-// {
-//   return mLabel;
-// }
-
-// template <unsigned char maxRoadSize>
-// inline void Road<maxRoadSize>::setLabel(const int label)
-// {
-//   mLabel = label;
-// }
 
 template <unsigned char maxRoadSize>
 GPUhdi() int& Road<maxRoadSize>::operator[](const int& i)

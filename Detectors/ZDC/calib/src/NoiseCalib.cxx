@@ -33,7 +33,11 @@ int NoiseCalib::init()
   }
 
   for (int isig = 0; isig < NChannels; isig++) {
-    mH[isig] = new o2::dataformats::FlatHisto1D<double>(4096, -2048.7, 2047.5);
+    if (mH[isig] == nullptr) {
+      mH[isig] = new o2::dataformats::FlatHisto1D<double>(4096, -2048.5, 2047.5);
+    } else {
+      mH[isig]->clear();
+    }
   }
 
   clear();

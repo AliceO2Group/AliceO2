@@ -194,33 +194,33 @@ void doWriteTable(std::shared_ptr<FairMQResizableBuffer> b, arrow::Table* table)
   }
 }
 
-void DataAllocator::adopt(const Output& spec, TableBuilder* tb)
+void DataAllocator::adopt(const Output& spec, LifetimeHolder<TableBuilder>& tb)
 {
   auto& timingInfo = mRegistry.get<TimingInfo>();
   RouteIndex routeIndex = matchDataHeader(spec, timingInfo.timeslice);
   auto header = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodArrow, 0);
   auto& context = mRegistry.get<ArrowContext>();
-  auto* transport = context.proxy().getOutputTransport(routeIndex);
-  assert(transport != nullptr);
 
-  auto creator = [transport](size_t s) -> std::unique_ptr<fair::mq::Message> {
+  auto creator = [transport = context.proxy().getOutputTransport(routeIndex)](size_t s) -> std::unique_ptr<fair::mq::Message> {
     return transport->CreateMessage(s);
   };
   auto buffer = std::make_shared<FairMQResizableBuffer>(creator);
 
+  tb.callback = [buffer = buffer, transport = context.proxy().getOutputTransport(routeIndex)](TableBuilder& builder) -> void {
+    auto table = builder.finalize();
+    doWriteTable(buffer, table.get());
+    // deletion happens in the caller
+  };
+
   /// To finalise this we write the table to the buffer.
-  /// FIXME: most likely not a great idea. We should probably write to the buffer
-  ///        directly in the TableBuilder, incrementally.
-  std::shared_ptr<TableBuilder> p(tb);
-  auto finalizer = [payload = p](std::shared_ptr<FairMQResizableBuffer> b) -> void {
-    auto table = payload->finalize();
-    doWriteTable(b, table.get());
+  auto finalizer = [](std::shared_ptr<FairMQResizableBuffer> b) -> void {
+    // Finalization not needed, as we do it using the LifetimeHolder callback
   };
 
   context.addBuffer(std::move(header), buffer, std::move(finalizer), routeIndex);
 }
 
-void DataAllocator::adopt(const Output& spec, TreeToTable* t2t)
+void DataAllocator::adopt(const Output& spec, LifetimeHolder<TreeToTable>& t2t)
 {
   auto& timingInfo = mRegistry.get<TimingInfo>();
   RouteIndex routeIndex = matchDataHeader(spec, timingInfo.timeslice);
@@ -233,13 +233,20 @@ void DataAllocator::adopt(const Output& spec, TreeToTable* t2t)
   };
   auto buffer = std::make_shared<FairMQResizableBuffer>(creator);
 
+  t2t.callback = [buffer = buffer, transport = context.proxy().getOutputTransport(routeIndex)](TreeToTable& tree) {
+    // Serialization happens in here, so that we can
+    // get rid of the intermediate tree 2 table object, saving memory.
+    auto table = tree.finalize();
+    doWriteTable(buffer, table.get());
+    // deletion happens in the caller
+  };
+
   /// To finalise this we write the table to the buffer.
   /// FIXME: most likely not a great idea. We should probably write to the buffer
   ///        directly in the TableBuilder, incrementally.
-  auto finalizer = [payload = t2t](std::shared_ptr<FairMQResizableBuffer> b) -> void {
-    auto table = payload->finalize();
-    doWriteTable(b, table.get());
-    delete payload;
+  auto finalizer = [](std::shared_ptr<FairMQResizableBuffer> b) -> void {
+    // This is empty because we already serialised the object when
+    // the LifetimeHolder goes out of scope.
   };
 
   context.addBuffer(std::move(header), buffer, std::move(finalizer), routeIndex);
@@ -290,7 +297,11 @@ Output DataAllocator::getOutputByBind(OutputRef&& ref)
       return Output{dataType.origin, dataType.description, ref.subSpec, spec.lifetime, std::move(ref.headerStack)};
     }
   }
-  throw runtime_error_f("Unable to find OutputSpec with label %s", ref.label.c_str());
+  std::string availableRoutes;
+  for (auto const& route : allowedOutputRoutes) {
+    availableRoutes += "\n - " + route.matcher.binding.value + ": " + DataSpecUtils::describe(route.matcher);
+  }
+  throw runtime_error_f("Unable to find OutputSpec with label %s. Available Routes: %s", ref.label.c_str(), availableRoutes.c_str());
   O2_BUILTIN_UNREACHABLE();
 }
 

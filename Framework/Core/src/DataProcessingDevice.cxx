@@ -146,7 +146,7 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegi
       auto ref = ServiceRegistryRef{registry, ServiceRegistry::globalDeviceSalt()};
       auto& deviceState = ref.get<DeviceState>();
       for (auto& info : deviceState.inputChannelInfos) {
-        FairMQParts parts;
+        fair::mq::Parts parts;
         while (info.channel->Receive(parts, 0)) {
           LOGP(debug, "Dropping {} parts", parts.Size());
           if (parts.Size() == 0) {
@@ -168,7 +168,7 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegi
 
     if (deviceState.nextFairMQState.empty() == false) {
       auto state = deviceState.nextFairMQState.back();
-      this->ChangeState(state);
+      (void)this->ChangeState(state);
       deviceState.nextFairMQState.pop_back();
     }
   };
@@ -232,16 +232,22 @@ void run_completion(uv_work_t* handle, int status)
   using o2::monitoring::tags::Key;
   using o2::monitoring::tags::Value;
 
-  static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats&)> reportConsumedOffer = [&monitoring = ref.get<Monitoring>()](ComputingQuotaOffer const& accumulatedConsumed, ComputingQuotaStats& stats) {
+  static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats&)> reportConsumedOffer = [ref](ComputingQuotaOffer const& accumulatedConsumed, ComputingQuotaStats& stats) {
+    auto& dpStats = ref.get<DataProcessingStats>();
     stats.totalConsumedBytes += accumulatedConsumed.sharedMemory;
-    monitoring.send(Metric{(uint64_t)stats.totalConsumedBytes, "shm-offer-bytes-consumed"}.addTag(Key::Subsystem, Value::DPL));
-    monitoring.flushBuffer();
+
+    dpStats.updateStats({static_cast<short>(ProcessingStatsId::SHM_OFFER_BYTES_CONSUMED), DataProcessingStats::Op::Set, stats.totalConsumedBytes});
+    dpStats.processCommandQueue();
+    assert(stats.totalConsumedBytes == dpStats.metrics[(short)ProcessingStatsId::SHM_OFFER_BYTES_CONSUMED]);
   };
 
-  static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats const&)> reportExpiredOffer = [&monitoring = ref.get<Monitoring>()](ComputingQuotaOffer const& offer, ComputingQuotaStats const& stats) {
-    monitoring.send(Metric{(uint64_t)stats.totalExpiredOffers, "resource-offer-expired"}.addTag(Key::Subsystem, Value::DPL));
-    monitoring.send(Metric{(uint64_t)stats.totalExpiredBytes, "arrow-bytes-expired"}.addTag(Key::Subsystem, Value::DPL));
-    monitoring.flushBuffer();
+  static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats const&)> reportExpiredOffer = [ref](ComputingQuotaOffer const& offer, ComputingQuotaStats const& stats) {
+    auto& dpStats = ref.get<DataProcessingStats>();
+    dpStats.updateStats({static_cast<short>(ProcessingStatsId::RESOURCE_OFFER_EXPIRED), DataProcessingStats::Op::Set, stats.totalExpiredOffers});
+    dpStats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_BYTES_EXPIRED), DataProcessingStats::Op::Set, stats.totalExpiredBytes});
+    dpStats.processCommandQueue();
+    assert(stats.totalExpiredBytes == 0);
+    assert(stats.totalExpiredOffers == 0);
   };
 
   for (auto& consumer : state.offerConsumers) {
@@ -364,6 +370,7 @@ void DataProcessingDevice::Init()
   context.statelessProcess = spec.algorithm.onProcess;
   context.statefulProcess = nullptr;
   context.error = spec.algorithm.onError;
+  context.initError = spec.algorithm.onInitError;
   TracyAppInfo(spec.name.data(), spec.name.size());
   ZoneScopedN("DataProcessingDevice::Init");
 
@@ -395,11 +402,67 @@ void DataProcessingDevice::Init()
 
   mConfigRegistry = std::make_unique<ConfigParamRegistry>(std::move(configStore));
 
+  // Setup the error handlers for init
+  if (context.initError) {
+    context.initErrorHandling = [&errorCallback = context.initError,
+                                 &serviceRegistry = mServiceRegistry](RuntimeErrorRef e) {
+      ZoneScopedN("Error handling");
+      /// FIXME: we should pass the salt in, so that the message
+      ///        can access information which were stored in the stream.
+      ServiceRegistryRef ref{serviceRegistry, ServiceRegistry::globalDeviceSalt()};
+      auto& err = error_from_ref(e);
+      LOGP(error, "Exception caught: {} ", err.what);
+      demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
+      auto& stats = ref.get<DataProcessingStats>();
+      stats.updateStats({(int)ProcessingStatsId::EXCEPTION_COUNT, DataProcessingStats::Op::Add, 1});
+      InitErrorContext errorContext{ref, e};
+      errorCallback(errorContext);
+    };
+  } else {
+    context.initErrorHandling = [&serviceRegistry = mServiceRegistry](RuntimeErrorRef e) {
+      ZoneScopedN("Error handling");
+      auto& err = error_from_ref(e);
+      /// FIXME: we should pass the salt in, so that the message
+      ///        can access information which were stored in the stream.
+      LOGP(error, "Exception caught: {} ", err.what);
+      ServiceRegistryRef ref{serviceRegistry, ServiceRegistry::globalDeviceSalt()};
+      demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
+      auto& stats = ref.get<DataProcessingStats>();
+      stats.updateStats({(int)ProcessingStatsId::EXCEPTION_COUNT, DataProcessingStats::Op::Add, 1});
+      exit(1);
+    };
+  }
+
   context.expirationHandlers.clear();
   context.init = spec.algorithm.onInit;
   if (context.init) {
+    static bool noCatch = getenv("O2_NO_CATCHALL_EXCEPTIONS") && strcmp(getenv("O2_NO_CATCHALL_EXCEPTIONS"), "0");
     InitContext initContext{*mConfigRegistry, mServiceRegistry};
-    context.statefulProcess = context.init(initContext);
+
+    if (noCatch) {
+      try {
+        context.statefulProcess = context.init(initContext);
+      } catch (o2::framework::RuntimeErrorRef e) {
+        ZoneScopedN("error handling");
+        if (context.initErrorHandling) {
+          (context.initErrorHandling)(e);
+        }
+      }
+    } else {
+      try {
+        context.statefulProcess = context.init(initContext);
+      } catch (std::exception& ex) {
+        ZoneScopedN("error handling");
+        /// Convert a standard exception to a RuntimeErrorRef
+        /// Notice how this will lose the backtrace information
+        /// and report the exception coming from here.
+        auto e = runtime_error(ex.what());
+        (context.initErrorHandling)(e);
+      } catch (o2::framework::RuntimeErrorRef e) {
+        ZoneScopedN("error handling");
+        (context.initErrorHandling)(e);
+      }
+    }
   }
   auto& state = ref.get<DeviceState>();
   state.inputChannelInfos.resize(spec.inputChannels.size());
@@ -602,7 +665,16 @@ static auto forwardInputs = [](ServiceRegistryRef registry, TimesliceSlot slot, 
     auto channel = proxy.getForwardChannel(ChannelIndex{fi});
     LOG(debug) << "Forwarding to " << channel->GetName() << " " << fi;
     // in DPL we are using subchannel 0 only
-    channel->Send(forwardedParts[fi]);
+    auto& parts = forwardedParts[fi];
+    int timeout = 30000;
+    auto res = channel->Send(parts, timeout);
+    if (res == (size_t)fair::mq::TransferCode::timeout) {
+      LOGP(warning, "Timed out sending after {}s. Downstream backpressure detected on {}.", timeout / 1000, channel->GetName());
+      channel->Send(parts);
+      LOGP(info, "Downstream backpressure on {} recovered.", channel->GetName());
+    } else if (res == (size_t)fair::mq::TransferCode::error) {
+      LOGP(fatal, "Error while sending on channel {}", channel->GetName());
+    }
   }
 
   auto& asyncQueue = registry.get<AsyncQueue>();
@@ -670,7 +742,7 @@ void DataProcessingDevice::initPollers()
   auto& state = ref.get<DeviceState>();
   // We add a timer only in case a channel poller is not there.
   if ((context.statefulProcess != nullptr) || (context.statelessProcess != nullptr)) {
-    for (auto& [channelName, channel] : fChannels) {
+    for (auto& [channelName, channel] : GetChannels()) {
       InputChannelInfo* channelInfo;
       for (size_t ci = 0; ci < spec.inputChannels.size(); ++ci) {
         auto& channelSpec = spec.inputChannels[ci];
@@ -744,7 +816,7 @@ void DataProcessingDevice::initPollers()
         LOGP(detail, "No input channels. Setting exit transition timeout to 0.");
         deviceContext.exitTransitionTimeout = 0;
       }
-      for (auto& [channelName, channel] : fChannels) {
+      for (auto& [channelName, channel] : GetChannels()) {
         if (channelName.rfind(spec.channelPrefix + "from_internal-dpl", 0) == 0) {
           LOGP(detail, "{} is an internal channel. Not polling.", channelName);
           continue;
@@ -877,7 +949,7 @@ void DataProcessingDevice::InitTask()
   deviceContext.expectedRegionCallbacks = std::stoi(fConfig->GetValue<std::string>("expected-region-callbacks"));
   deviceContext.exitTransitionTimeout = std::stoi(fConfig->GetValue<std::string>("exit-transition-timeout"));
 
-  for (auto& channel : fChannels) {
+  for (auto& channel : GetChannels()) {
     channel.second.at(0).Transport()->SubscribeToRegionEvents([&context = deviceContext,
                                                                &registry = mServiceRegistry,
                                                                &pendingRegionInfos = mPendingRegionInfos](fair::mq::RegionInfo info) {
@@ -1000,25 +1072,38 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
       }
     };
   }
+
   /// We must make sure there is no optional
   /// if we want to optimize the forwarding
   context.canForwardEarly = (spec.forwards.empty() == false) && mProcessingPolicies.earlyForward != EarlyForwardPolicy::NEVER;
+  bool onlyConditions = true;
+  bool overriddenEarlyForward = false;
   for (auto& forwarded : spec.forwards) {
+    if (forwarded.matcher.lifetime != Lifetime::Condition) {
+      onlyConditions = false;
+    }
     if (strncmp(DataSpecUtils::asConcreteOrigin(forwarded.matcher).str, "AOD", 3) == 0) {
       context.canForwardEarly = false;
+      overriddenEarlyForward = true;
       LOG(detail) << "Cannot forward early because of AOD input: " << DataSpecUtils::describe(forwarded.matcher);
       break;
     }
     if (DataSpecUtils::partialMatch(forwarded.matcher, o2::header::DataDescription{"RAWDATA"}) && mProcessingPolicies.earlyForward == EarlyForwardPolicy::NORAW) {
       context.canForwardEarly = false;
+      overriddenEarlyForward = true;
       LOG(detail) << "Cannot forward early because of RAWDATA input: " << DataSpecUtils::describe(forwarded.matcher);
       break;
     }
     if (forwarded.matcher.lifetime == Lifetime::Optional) {
       context.canForwardEarly = false;
+      overriddenEarlyForward = true;
       LOG(detail) << "Cannot forward early because of Optional input: " << DataSpecUtils::describe(forwarded.matcher);
       break;
     }
+  }
+  if (!overriddenEarlyForward && onlyConditions) {
+    context.canForwardEarly = true;
+    LOG(detail) << "Enabling early forwarding because only conditions to be forwarded";
   }
 }
 
@@ -1090,7 +1175,7 @@ void DataProcessingDevice::Run()
   bool firstLoop = true;
   while (state.transitionHandling != TransitionHandlingState::Expired) {
     if (state.nextFairMQState.empty() == false) {
-      this->ChangeState(state.nextFairMQState.back());
+      (void)this->ChangeState(state.nextFairMQState.back());
       state.nextFairMQState.pop_back();
     }
     // Notify on the main thread the new region callbacks, making sure
@@ -1186,6 +1271,10 @@ void DataProcessingDevice::Run()
       auto& queue = ref.get<AsyncQueue>();
       auto oldestPossibleTimeslice = relayer.getOldestPossibleOutput();
       AsyncQueueHelpers::run(queue, {oldestPossibleTimeslice.timeslice.value});
+      if (shouldNotWait == false) {
+        auto& dpContext = ref.get<DataProcessorContext>();
+        dpContext.preLoopCallbacks(ref);
+      }
       {
         // Everything which gets executed on the main thread by uv_run
         // must be reentrant so we can consider this as thread safe.
@@ -1253,10 +1342,10 @@ void DataProcessingDevice::Run()
 
       static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats const& stats)> reportExpiredOffer = [&registry = mServiceRegistry](ComputingQuotaOffer const& offer, ComputingQuotaStats const& stats) {
         ServiceRegistryRef ref{registry};
-        auto& monitoring = ref.get<Monitoring>();
-        monitoring.send(Metric{(uint64_t)stats.totalExpiredOffers, "resource-offer-expired"}.addTag(Key::Subsystem, Value::DPL));
-        monitoring.send(Metric{(uint64_t)stats.totalExpiredBytes, "arrow-bytes-expired"}.addTag(Key::Subsystem, Value::DPL));
-        monitoring.flushBuffer();
+        auto& dpStats = ref.get<DataProcessingStats>();
+        dpStats.updateStats({static_cast<short>(ProcessingStatsId::RESOURCE_OFFER_EXPIRED), DataProcessingStats::Op::Set, stats.totalExpiredOffers});
+        dpStats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_BYTES_EXPIRED), DataProcessingStats::Op::Set, stats.totalExpiredBytes});
+        dpStats.processCommandQueue(); 
       };
       bool enough = false;
 
@@ -1601,7 +1690,7 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
     auto ref = ServiceRegistryRef{*context.registry};
     auto& stats = ref.get<DataProcessingStats>();
     auto& parts = info.parts;
-    stats.updateStats({(int)ProcessingStatsId::TOTAL_INPUTS, DataProcessingStats::Op::Set, parts.Size()});
+    stats.updateStats({(int)ProcessingStatsId::TOTAL_INPUTS, DataProcessingStats::Op::Set, (int64_t)parts.Size()});
 
     TracyPlot("messages received", (int64_t)parts.Size());
     std::vector<InputInfo> results;
@@ -1770,7 +1859,7 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
         } break;
         case InputType::SourceInfo: {
           LOGP(detail, "Received SourceInfo");
-          auto &context = ref.get<DataProcessorContext>();
+          auto& context = ref.get<DataProcessorContext>();
           *context.wasActive = true;
           auto headerIndex = input.position;
           auto payloadIndex = input.position + 1;
@@ -1788,7 +1877,7 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
         case InputType::DomainInfo: {
           /// We have back pressure, therefore we do not process DomainInfo anymore.
           /// until the previous message are processed.
-          auto &context = ref.get<DataProcessorContext>();
+          auto& context = ref.get<DataProcessorContext>();
           *context.wasActive = true;
           auto headerIndex = input.position;
           auto payloadIndex = input.position + 1;
@@ -1814,7 +1903,7 @@ void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& 
     /// Notice we do so only if the incoming data has been fully processed.
     if (oldestPossibleTimeslice != (size_t)-1) {
       info.oldestForChannel = {oldestPossibleTimeslice};
-      auto &context = ref.get<DataProcessorContext>();
+      auto& context = ref.get<DataProcessorContext>();
       context.domainInfoUpdatedCallback(*context.registry, oldestPossibleTimeslice, info.id);
       ref.get<CallbackService>().call<CallbackService::Id::DomainInfoUpdated>((ServiceRegistryRef)*context.registry, (size_t)oldestPossibleTimeslice, (ChannelIndex)info.id);
       *context.wasActive = true;
@@ -1980,6 +2069,8 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     timingInfo.runNumber = relayer.getRunNumberForSlot(i);
     timingInfo.creation = relayer.getCreationTimeForSlot(i);
     timingInfo.globalRunNumberChanged = !TimingInfo::timesliceIsTimer(timeslice.value) && dataProcessorContext.lastRunNumberProcessed != timingInfo.runNumber;
+    // A switch to runNumber=0 should not appear and thus does not set globalRunNumberChanged, unless it is seen in the first processed timeslice
+    timingInfo.globalRunNumberChanged &= (dataProcessorContext.lastRunNumberProcessed == -1 || timingInfo.runNumber != 0);
     // We report wether or not this timing info refers to a new Run.
     if (timingInfo.globalRunNumberChanged) {
       dataProcessorContext.lastRunNumberProcessed = timingInfo.runNumber;
@@ -2062,7 +2153,8 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     states.updateState({.id = short((int)ProcessingStateId::DATA_RELAYER_BASE + action.slot.index), (int)(record.size() + buffer - relayerSlotState), relayerSlotState});
     uint64_t tEnd = uv_hrtime();
     stats.updateStats({(int)ProcessingStatsId::LAST_ELAPSED_TIME_MS, DataProcessingStats::Op::Set, (int64_t)(tEnd - tStart)});
-    stats.updateStats({(int)ProcessingStatsId::CPU_USAGE_FRACTION, DataProcessingStats::Op::InstantaneousRate, (int64_t)(tEnd - tStart)});
+    // The time interval is in seconds while tEnd - tStart is in nanoseconds, so we divide by 1000000 to get the fraction in ms/s.
+    stats.updateStats({(short)ProcessingStatsId::CPU_USAGE_FRACTION, DataProcessingStats::Op::CumulativeRate, (int64_t)(tEnd - tStart) / 1000000});
     stats.updateStats({(int)ProcessingStatsId::LAST_PROCESSED_SIZE, DataProcessingStats::Op::Set, calculateTotalInputRecordSize(record)});
     stats.updateStats({(int)ProcessingStatsId::TOTAL_PROCESSED_SIZE, DataProcessingStats::Op::Add, calculateTotalInputRecordSize(record)});
     auto latency = calculateInputRecordLatency(record, tStartMilli);

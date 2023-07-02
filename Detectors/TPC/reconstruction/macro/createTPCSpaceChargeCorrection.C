@@ -38,6 +38,7 @@
 #include "CommonConstants/MathConstants.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
+#include "TPCCalibration/TPCFastSpaceChargeCorrectionHelper.h"
 
 using namespace o2;
 using namespace tpc;
@@ -82,9 +83,11 @@ void createTPCSpaceChargeCorrection(
   const int debug = 0)
 {
   initSpaceCharge(histoFileName, histoName);
-  TPCFastTransformHelperO2::instance()->setGlobalSpaceChargeCorrection(getGlobalSpaceChargeCorrection);
 
-  std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
+  TPCFastSpaceChargeCorrectionHelper::instance()->setGlobalSpaceChargeCorrection(getGlobalSpaceChargeCorrection);
+  std::unique_ptr<TPCFastSpaceChargeCorrection> spCorrection = TPCFastSpaceChargeCorrectionHelper::instance()->create();
+
+  std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0, *spCorrection));
 
   fastTransform->writeToFile(outputFileName);
 
@@ -117,9 +120,10 @@ void createTPCSpaceChargeCorrection(
   spaceCharge = std::make_unique<SC>(mField, nZ, nR, nPhi);
   spaceCharge->setGlobalCorrectionsFromFile(scFile, Side::A);
   spaceCharge->setGlobalCorrectionsFromFile(scFile, Side::C);
-  TPCFastTransformHelperO2::instance()->setGlobalSpaceChargeCorrection(getGlobalSpaceChargeCorrection);
+  TPCFastSpaceChargeCorrectionHelper::instance()->setGlobalSpaceChargeCorrection(getGlobalSpaceChargeCorrection);
 
-  std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
+  std::unique_ptr<TPCFastSpaceChargeCorrection> spCorrection = TPCFastSpaceChargeCorrectionHelper::instance()->create();
+  std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0, *spCorrection));
 
   fastTransform->writeToFile(outputFileName, "ccdb_object");
 
@@ -178,8 +182,9 @@ void createTPCSpaceChargeCorrectionLinearCombination(
     spaceChargeStack->setGlobalCorrectionsFromFile(stackBoundaryFile, Side::C);
   }
 
-  TPCFastTransformHelperO2::instance()->setGlobalSpaceChargeCorrection(getGlobalSpaceChargeCorrectionLinearCombination);
-  std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
+  TPCFastSpaceChargeCorrectionHelper::instance()->setGlobalSpaceChargeCorrection(getGlobalSpaceChargeCorrectionLinearCombination);
+  std::unique_ptr<TPCFastSpaceChargeCorrection> spCorrection = TPCFastSpaceChargeCorrectionHelper::instance()->create();
+  std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0, *spCorrection));
   fastTransform->writeToFile(outputFileName, "ccdb_object");
 
   if (debug > 0) {
@@ -225,9 +230,11 @@ void createTPCSpaceChargeCorrectionAnalytical(
   TFile fSC("distortions_analytical.root", "RECREATE");
   spaceCharge->dumpAnalyticalCorrectionsDistortions(fSC);
 
-  TPCFastTransformHelperO2::instance()->setLocalSpaceChargeCorrection(getLocalSpaceChargeCorrection);
+  TPCFastSpaceChargeCorrectionHelper::instance()->setLocalSpaceChargeCorrection(getLocalSpaceChargeCorrection);
 
-  std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0));
+  std::unique_ptr<TPCFastSpaceChargeCorrection> spCorrection = TPCFastSpaceChargeCorrectionHelper::instance()->create();
+  std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0, *spCorrection));
+
   fastTransform->writeToFile(outputFileName, "ccdb_object");
 
   if (debug > 0) {
@@ -422,7 +429,9 @@ void debugInterpolation(utils::TreeStreamRedirector& pcstream,
           // the original correction
           double gdC[3] = {0, 0, 0};
           Side side = slice < geo.getNumberOfSlicesA() ? Side::A : Side::C;
-          spaceCharge->getCorrections(gx, gy, gz, side, gdC[0], gdC[1], gdC[2]);
+          if (spaceCharge) {
+            spaceCharge->getCorrections(gx, gy, gz, side, gdC[0], gdC[1], gdC[2]);
+          }
           float ldxC, ldyC, ldzC;
           geo.convGlobalToLocal(slice, gdC[0], gdC[1], gdC[2], ldxC, ldyC, ldzC);
 
@@ -434,18 +443,24 @@ void debugInterpolation(utils::TreeStreamRedirector& pcstream,
 
           float pointCyl[3] = {gz, r, phi};
           double efield[3] = {0.0, 0.0, 0.0};
-          double charge = spaceCharge->getDensityCyl(pointCyl[0], pointCyl[1], pointCyl[2], side);
-          double potential = spaceCharge->getPotentialCyl(pointCyl[0], pointCyl[1], pointCyl[2], side);
-          spaceCharge->getElectricFieldsCyl(pointCyl[0], pointCyl[1], pointCyl[2], side, efield[0], efield[1], efield[2]);
-          spaceCharge->getLocalDistortionsCyl(pointCyl[0], pointCyl[1], pointCyl[2], side, ldD[0], ldD[1], ldD[2]);
-          spaceCharge->getDistortions(gx, gy, gz, side, gdD[0], gdD[1], gdD[2]);
+          double charge = 0;
+          double potential = 0;
+          if (spaceCharge) {
+            charge = spaceCharge->getDensityCyl(pointCyl[0], pointCyl[1], pointCyl[2], side);
+            potential = spaceCharge->getPotentialCyl(pointCyl[0], pointCyl[1], pointCyl[2], side);
+            spaceCharge->getElectricFieldsCyl(pointCyl[0], pointCyl[1], pointCyl[2], side, efield[0], efield[1], efield[2]);
+            spaceCharge->getLocalDistortionsCyl(pointCyl[0], pointCyl[1], pointCyl[2], side, ldD[0], ldD[1], ldD[2]);
+            spaceCharge->getDistortions(gx, gy, gz, side, gdD[0], gdD[1], gdD[2]);
+          }
 
           double gD[3] = {gx + gdD[0], gy + gdD[1], gz + gdD[2]};
           float rD = std::sqrt(gD[0] * gD[0] + gD[1] * gD[1]);
 
           // correction for the distorted point
           double gdDC[3] = {0, 0, 0};
-          spaceCharge->getCorrections(gD[0], gD[1], gD[2], side, gdDC[0], gdDC[1], gdDC[2]);
+          if (spaceCharge) {
+            spaceCharge->getCorrections(gD[0], gD[1], gD[2], side, gdDC[0], gdDC[1], gdDC[2]);
+          }
 
           // exB
           float ldxC_ExB = 0, ldyC_ExB = 0, ldzC_ExB = 0;

@@ -118,6 +118,8 @@ struct DriverInfo {
   std::vector<CallbacksPolicy> callbacksPolicies;
   /// The offset at which the process was started.
   uint64_t startTime;
+  /// The actual time in milliseconds from epoch at which the process was started.
+  uint64_t startTimeMsFromEpoch;
   /// The optional timeout after which the driver will request
   /// all the children to quit.
   double timeout;

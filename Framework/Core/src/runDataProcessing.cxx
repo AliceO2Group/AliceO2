@@ -97,6 +97,8 @@
 #include <boost/property_tree/json_parser.hpp>
 
 #include <uv.h>
+#include <TEnv.h>
+#include <TSystem.h>
 
 #include <cinttypes>
 #include <cstdint>
@@ -1009,7 +1011,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
     deviceState->tracingFlags = DeviceStateHelpers::parseTracingFlags(r.fConfig.GetPropertyAsString("dpl-tracing-flags"));
     serviceRef.registerService(ServiceRegistryHelpers::handleForService<DeviceState>(deviceState.get()));
 
-    quotaEvaluator = std::make_unique<ComputingQuotaEvaluator>(uv_now(loop));
+    quotaEvaluator = std::make_unique<ComputingQuotaEvaluator>(serviceRef);
     serviceRef.registerService(ServiceRegistryHelpers::handleForService<ComputingQuotaEvaluator>(quotaEvaluator.get()));
 
     deviceContext = std::make_unique<DeviceContext>();
@@ -1120,6 +1122,29 @@ void dumpMetricsCallback(uv_timer_t* handle)
   static auto performanceMetrics = getDumpableMetrics();
   ResourcesMonitoringHelper::dumpMetricsToJSON(*(context->metrics),
                                                context->driver->metrics, *(context->specs), performanceMetrics);
+}
+
+void dumpRunSummary(DriverServerContext& context, DriverInfo const& driverInfo, DeviceInfos const& infos, DeviceSpecs const& specs)
+{
+  if (infos.empty()) {
+    return;
+  }
+  LOGP(info, "## Processes completed. Run summary:");
+  LOGP(info, "### Devices started: {}", infos.size());
+  for (size_t di = 0; di < infos.size(); ++di) {
+    auto& info = infos[di];
+    auto& spec = specs[di];
+    LOGP(info, " - Device {}: pid {} (exit {})", spec.name, info.pid, info.exitStatus);
+    if (info.exitStatus != 0 && info.firstSevereError.empty() == false) {
+      LOGP(info, "   - First error: {}", info.firstSevereError);
+    }
+    if (info.exitStatus != 0 && info.lastError != info.firstSevereError) {
+      LOGP(info, "   - Last error: {}", info.lastError);
+    }
+  }
+  for (auto& summary : *context.summaryCallbacks) {
+    summary(ServiceMetricsInfo{*context.metrics, *context.specs, *context.infos, context.driver->metrics});
+  }
 }
 
 // This is the handler for the parent inner loop.
@@ -1233,6 +1258,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   }
 
   std::vector<ServiceMetricHandling> metricProcessingCallbacks;
+  std::vector<ServiceSummaryHandling> summaryCallbacks;
   std::vector<ServicePreSchedule> preScheduleCallbacks;
   std::vector<ServicePostSchedule> postScheduleCallbacks;
   std::vector<ServiceDriverInit> driverInitCallbacks;
@@ -1264,6 +1290,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
     .specs = &runningWorkflow.devices,
     .metrics = &metricsInfos,
     .metricProcessingCallbacks = &metricProcessingCallbacks,
+    .summaryCallbacks = &summaryCallbacks,
     .driver = &driverInfo,
     .gui = &guiContext,
     .isDriver = frameworkId.empty()};
@@ -1578,32 +1605,72 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                                                             varmap["channel-prefix"].as<std::string>(),
                                                             overrides);
           metricProcessingCallbacks.clear();
+          std::vector<std::string> matchingServices;
+
+          // FIXME: once moving to C++20, we can use templated lambdas.
+          matchingServices.clear();
           for (auto& device : runningWorkflow.devices) {
             for (auto& service : device.services) {
+              // If a service with the same name is already registered, skip it
+              if (std::find(matchingServices.begin(), matchingServices.end(), service.name) != matchingServices.end()) {
+                continue;
+              }
               if (service.metricHandling) {
                 metricProcessingCallbacks.push_back(service.metricHandling);
+                matchingServices.push_back(service.name);
               }
             }
           }
-          preScheduleCallbacks.clear();
+
+          // FIXME: once moving to C++20, we can use templated lambdas.
+          matchingServices.clear();
           for (auto& device : runningWorkflow.devices) {
             for (auto& service : device.services) {
+              // If a service with the same name is already registered, skip it
+              if (std::find(matchingServices.begin(), matchingServices.end(), service.name) != matchingServices.end()) {
+                continue;
+              }
+              if (service.summaryHandling) {
+                summaryCallbacks.push_back(service.summaryHandling);
+                matchingServices.push_back(service.name);
+              }
+            }
+          }
+
+          preScheduleCallbacks.clear();
+          matchingServices.clear();
+          for (auto& device : runningWorkflow.devices) {
+            for (auto& service : device.services) {
+              // If a service with the same name is already registered, skip it
+              if (std::find(matchingServices.begin(), matchingServices.end(), service.name) != matchingServices.end()) {
+                continue;
+              }
               if (service.preSchedule) {
                 preScheduleCallbacks.push_back(service.preSchedule);
               }
             }
           }
           postScheduleCallbacks.clear();
+          matchingServices.clear();
           for (auto& device : runningWorkflow.devices) {
             for (auto& service : device.services) {
+              // If a service with the same name is already registered, skip it
+              if (std::find(matchingServices.begin(), matchingServices.end(), service.name) != matchingServices.end()) {
+                continue;
+              }
               if (service.postSchedule) {
                 postScheduleCallbacks.push_back(service.postSchedule);
               }
             }
           }
           driverInitCallbacks.clear();
+          matchingServices.clear();
           for (auto& device : runningWorkflow.devices) {
             for (auto& service : device.services) {
+              // If a service with the same name is already registered, skip it
+              if (std::find(matchingServices.begin(), matchingServices.end(), service.name) != matchingServices.end()) {
+                continue;
+              }
               if (service.driverInit) {
                 driverInitCallbacks.push_back(service.driverInit);
               }
@@ -1611,6 +1678,91 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           }
 
           // This should expand nodes so that we can build a consistent DAG.
+
+          // This updates the options in the runningWorkflow.devices
+          for (auto& device : runningWorkflow.devices) {
+            // ignore internal devices
+            if (device.name.find("internal") != std::string::npos) {
+              continue;
+            }
+            auto configStore = DeviceConfigurationHelpers::getConfiguration(serviceRegistry, device.name.c_str(), device.options);
+            if (configStore != nullptr) {
+              auto reg = std::make_unique<ConfigParamRegistry>(std::move(configStore));
+              for (auto& option : device.options) {
+                const char* name = option.name.c_str();
+                switch (option.type) {
+                  case VariantType::Int:
+                    option.defaultValue = reg->get<int32_t>(name);
+                    break;
+                  case VariantType::Int8:
+                    option.defaultValue = reg->get<int8_t>(name);
+                    break;
+                  case VariantType::Int16:
+                    option.defaultValue = reg->get<int16_t>(name);
+                    break;
+                  case VariantType::UInt8:
+                    option.defaultValue = reg->get<uint8_t>(name);
+                    break;
+                  case VariantType::UInt16:
+                    option.defaultValue = reg->get<uint16_t>(name);
+                    break;
+                  case VariantType::UInt32:
+                    option.defaultValue = reg->get<uint32_t>(name);
+                    break;
+                  case VariantType::UInt64:
+                    option.defaultValue = reg->get<uint64_t>(name);
+                    break;
+                  case VariantType::Int64:
+                    option.defaultValue = reg->get<int64_t>(name);
+                    break;
+                  case VariantType::Float:
+                    option.defaultValue = reg->get<float>(name);
+                    break;
+                  case VariantType::Double:
+                    option.defaultValue = reg->get<double>(name);
+                    break;
+                  case VariantType::String:
+                    option.defaultValue = reg->get<std::string>(name);
+                    break;
+                  case VariantType::Bool:
+                    option.defaultValue = reg->get<bool>(name);
+                    break;
+                  case VariantType::ArrayInt:
+                    option.defaultValue = reg->get<std::vector<int>>(name);
+                    break;
+                  case VariantType::ArrayFloat:
+                    option.defaultValue = reg->get<std::vector<float>>(name);
+                    break;
+                  case VariantType::ArrayDouble:
+                    option.defaultValue = reg->get<std::vector<double>>(name);
+                    break;
+                  case VariantType::ArrayString:
+                    option.defaultValue = reg->get<std::vector<std::string>>(name);
+                    break;
+                  case VariantType::Array2DInt:
+                    option.defaultValue = reg->get<Array2D<int>>(name);
+                    break;
+                  case VariantType::Array2DFloat:
+                    option.defaultValue = reg->get<Array2D<float>>(name);
+                    break;
+                  case VariantType::Array2DDouble:
+                    option.defaultValue = reg->get<Array2D<double>>(name);
+                    break;
+                  case VariantType::LabeledArrayInt:
+                    option.defaultValue = reg->get<LabeledArray<int>>(name);
+                    break;
+                  case VariantType::LabeledArrayFloat:
+                    option.defaultValue = reg->get<LabeledArray<float>>(name);
+                    break;
+                  case VariantType::LabeledArrayDouble:
+                    option.defaultValue = reg->get<LabeledArray<double>>(name);
+                    break;
+                  default:
+                    break;
+                }
+              }
+            }
+          }
         } catch (std::runtime_error& e) {
           LOGP(error, "invalid workflow in {}: {}", driverInfo.argv[0], e.what());
           return 1;
@@ -1918,6 +2070,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           LOG(info) << "Dumping performance metrics to performanceMetrics.json file";
           dumpMetricsCallback(&metricDumpTimer);
         }
+        dumpRunSummary(serverContext, driverInfo, infos, runningWorkflow.devices);
         // This is a clean exit. Before we do so, if required,
         // we dump the configuration of all the devices so that
         // we can reuse it. Notice we do not dump anything if
@@ -2266,6 +2419,15 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
 
   } else if (varmap.count("id")) {
     // Add our own stacktrace dumping
+    if (getenv("O2_NO_CATCHALL_EXCEPTIONS") != nullptr && strcmp(getenv("O2_NO_CATCHALL_EXCEPTIONS"), "0") != 0) {
+      LOGP(info, "Not instrumenting crash signals because O2_NO_CATCHALL_EXCEPTIONS is set");
+      gEnv->SetValue("Root.Stacktrace", "no");
+      gSystem->ResetSignal(kSigSegmentationViolation, kTRUE);
+      rlimit limit;
+      if (getrlimit(RLIMIT_CORE, &limit) == 0) {
+        LOGP(info, "Core limit: {} {}", limit.rlim_cur, limit.rlim_max);
+      }
+    }
     if (varmap["stacktrace-on-signal"].as<std::string>() == "simple" && (getenv("O2_NO_CATCHALL_EXCEPTIONS") == nullptr || strcmp(getenv("O2_NO_CATCHALL_EXCEPTIONS"), "0") == 0)) {
       LOGP(info, "Instrumenting crash signals");
       signal(SIGSEGV, handle_crash);
@@ -2501,6 +2663,21 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
     }
   }
 
+  /// Iterate over the physicalWorkflow, any DataProcessorSpec that has a
+  /// expendable label should have all the timeframe lifetime outputs changed
+  /// to sporadic, because there is no guarantee that the device will be alive,
+  /// so we should not expect its data to always arrive.
+  for (auto& dp : physicalWorkflow) {
+    auto isExpendable = [](DataProcessorLabel const& label) { return label.value == "expendable" || label.value == "non-critical"; };
+    if (std::find_if(dp.labels.begin(), dp.labels.end(), isExpendable) != dp.labels.end()) {
+      for (auto& output : dp.outputs) {
+        if (output.lifetime == Lifetime::Timeframe) {
+          output.lifetime = Lifetime::Sporadic;
+        }
+      }
+    }
+  }
+
   /// This is the earlies the services are actually needed
   OverrideServiceSpecs driverServicesOverride = ServiceSpecHelpers::parseOverrides(getenv("DPL_DRIVER_OVERRIDE_SERVICES"));
   ServiceSpecs driverServices = ServiceSpecHelpers::filterDisabled(CommonDriverServices::defaultServices(), driverServicesOverride);
@@ -2730,6 +2907,9 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   }
   driverInfo.minFailureLevel = varmap["min-failure-level"].as<LogParsingHelpers::LogLevel>();
   driverInfo.startTime = uv_hrtime();
+  driverInfo.startTimeMsFromEpoch = std::chrono::duration_cast<std::chrono::milliseconds>(
+                                      std::chrono::system_clock::now().time_since_epoch())
+                                      .count();
   driverInfo.timeout = varmap["timeout"].as<uint64_t>();
   driverInfo.deployHostname = varmap["hostname"].as<std::string>();
   driverInfo.resources = varmap["resources"].as<std::string>();

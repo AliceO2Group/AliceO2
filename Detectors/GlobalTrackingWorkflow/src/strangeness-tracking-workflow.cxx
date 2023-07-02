@@ -42,6 +42,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
+    {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -58,6 +59,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // Update the (declared) parameters if changed from the command line
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   auto useRootInput = !configcontext.options().get<bool>("disable-root-input");
+  auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
 
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   o2::conf::ConfigurableParam::writeINI("o2strangeness_tracking_workflow_configuration.ini");
@@ -68,7 +70,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, itsSource, itsSource, itsSource, useMC, itsSource);
   o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC); // P-vertex is always needed
   o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, specs);        // S-vertex is always needed
-  specs.emplace_back(getStrangenessTrackingWriterSpec(useMC));
+
+  if (!disableRootOut) {
+    specs.emplace_back(getStrangenessTrackingWriterSpec(useMC));
+  }
 
   // configure dpl timer to inject correct firstTFOrbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);

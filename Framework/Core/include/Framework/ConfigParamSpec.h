@@ -54,6 +54,11 @@ struct ConfigParamSpec {
   ConfigParamSpec(std::string _name, ParamType _type, HelpString _help)
     : name(_name), type(_type), defaultValue(VariantType::Empty), help(_help), kind{ConfigParamKind::kGeneric} {}
 
+  bool operator==(ConfigParamSpec const& that) const
+  {
+    return name == that.name && type == that.type;
+  }
+
   std::string name;
   ParamType type;
   Variant defaultValue;
