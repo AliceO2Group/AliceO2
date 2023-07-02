@@ -90,6 +90,13 @@ class MatLayerCyl : public o2::gpu::FlatObject
   GPUd() const MatCell& getCellPhiBin(int iphi, int iz) const { return mCells[getCellIDPhiBin(iphi, iz)]; }
   GPUd() const MatCell& getCell(int iphiSlice, int iz) const { return mCells[getCellID(iphiSlice, iz)]; }
 
+#ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
+  GPUd() MatCell& getCellPhiBin(int iphi, int iz)
+  {
+    return mCells[getCellIDPhiBin(iphi, iz)];
+  }
+#endif
+
   // ---------------------- Z slice manipulation
   // convert Z to Zslice
   GPUd() RangeStatus isZOutside(float z) const { return z < getZMin() ? Below : (z > getZMax() ? Above : Within); }
@@ -156,6 +163,8 @@ class MatLayerCyl : public o2::gpu::FlatObject
   /// Gives minimal alignment in bytes required for the flat buffer
   static constexpr size_t getBufferAlignmentBytes() { return 8; }
 #endif
+  // linearized cell ID from phi bin and z bin
+  GPUd() int getCellIDPhiBin(int iphi, int iz) const { return getCellID(phiBin2Slice(iphi), iz); }
 
  protected:
   GPUd() int getNCells() const { return getNZBins() * getNPhiSlices(); }
@@ -164,9 +173,6 @@ class MatLayerCyl : public o2::gpu::FlatObject
 
   // linearized cell ID from phi slice and z bin
   GPUd() int getCellID(int iphi, int iz) const { return iphi * getNZBins() + iz; }
-
-  // linearized cell ID from phi bin and z bin
-  GPUd() int getCellIDPhiBin(int iphi, int iz) const { return getCellID(phiBin2Slice(iphi), iz); }
 
   // convert Phi (in 0:2pi convention) to PhiBinID
   GPUd() int getPhiBinID(float phi) const
