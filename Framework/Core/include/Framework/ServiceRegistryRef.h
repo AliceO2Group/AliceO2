@@ -20,6 +20,28 @@ namespace o2::framework
 class ServiceRegistryRef
 {
  public:
+  struct thread_safe_zone {
+    // Cannot be copied / stored
+    thread_safe_zone(thread_safe_zone const&) = delete;
+    thread_safe_zone& operator=(thread_safe_zone const&) = delete;
+
+    // Creating a thread safe zone will unlock
+    // the registry, and re-lock it when it goes out of scope.
+    // Use this to mark a section of code where we are
+    // guaranteed to not be accessing the registry the current thread.
+    thread_safe_zone(ServiceRegistryRef& ref)
+      : mRef{ref}
+    {
+      mRef.unlock();
+    }
+
+    ~thread_safe_zone()
+    {
+      mRef.lock();
+    }
+
+    ServiceRegistryRef& mRef;
+  };
   // The streamId is used to identify the stream in case we have multiple
   // threads. We cannot merely used the thread id because that does not
   // work in case the thread is created ad-hoc, like it appears to happen
@@ -77,6 +99,16 @@ class ServiceRegistryRef
   void registerService(ServiceHandle handle)
   {
     mRegistry.registerService({handle.hash}, handle.instance, handle.kind, mSalt, handle.name.c_str());
+  }
+
+  void lock()
+  {
+    mRegistry.lock(mSalt);
+  }
+
+  void unlock()
+  {
+    mRegistry.unlock(mSalt);
   }
 
  private:
