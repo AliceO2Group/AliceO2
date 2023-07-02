@@ -348,7 +348,7 @@ int formatTimeSinceStart(double value, char* buff, int size, void* user_data)
   }
   int64_t seconds = (value - *startTime) / 1000;
   int64_t minutes = seconds / 60;
-  return snprintf(buff, size, "%02lld:%02lld", minutes, seconds % 60);
+  return snprintf(buff, size, "%02" PRIi64 ":%02" PRIi64, minutes, seconds % 60);
 }
 
 void displayDeviceMetrics(const char* label,
