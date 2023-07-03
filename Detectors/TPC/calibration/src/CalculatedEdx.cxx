@@ -10,7 +10,7 @@
 // or submit itself to any jurisdiction.
 
 ///
-/// @file   CalculatedEdx.h
+/// @file   CalculatedEdx.cxx
 /// @author Tuba Gündem, tuba.gundem@cern.ch
 ///
 
@@ -22,8 +22,18 @@
 #include "DetectorsBase/Propagator.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "TPCBase/CDBInterface.h"
+#include "TPCReconstruction/TPCFastTransformHelperO2.h"
+#include "TPCCalibration/CalibPadGainTracksBase.h"
+#include "CalibdEdxTrackTopologyPol.h"
+#include "DataFormatsParameters/GRPMagField.h"
 
 using namespace o2::tpc;
+
+CalculatedEdx::CalculatedEdx()
+{
+  mTPCCorrMapsHelper.setOwner(true);
+  mTPCCorrMapsHelper.setCorrMap(TPCFastTransformHelperO2::instance()->create(0));
+}
 
 void CalculatedEdx::setMembers(std::vector<o2::tpc::TPCClRefElem>* tpcTrackClIdxVecInput, const o2::tpc::ClusterNativeAccess& clIndex, std::vector<o2::tpc::TrackTPC>* vTPCTracksArrayInp)
 {
@@ -54,29 +64,28 @@ void CalculatedEdx::fillMissingClusters(std::vector<float>& charge, int missingC
   }
 }
 
-float CalculatedEdx::getTruncMean(o2::tpc::TrackTPC& track, float low, float high, ChargeType chargeType, RegionType regionType, unsigned short mask)
+float CalculatedEdx::getTruncMean(o2::tpc::TrackTPC& track, float low, float high, ChargeType chargeType, RegionType regionType, CorrectionFlags mask)
 {
   // get number of clusters
   const int nClusters = track.getNClusterReferences();
 
-  // set the charge type for dEdx calculation
-  setChargeType(chargeType);
+  // memory for truncated mean calculation
+  std::vector<float> chargeTmp;
 
-  // clear the memory
-  mChargeTmp.clear();
+  std::vector<int> regionVector;             ///< debug streamer vector for region
+  std::vector<unsigned char> rowIndexVector; ///< debug streamer vector for row index
+  std::vector<unsigned char> padVector;      ///< debug streamer vector for pad
+  std::vector<int> stackVector;              ///< debug streamer vector for stack
+  std::vector<unsigned char> sectorVector;   ///< debug streamer vector for sector
+
+  std::vector<float> effectiveLengthVector;  ///< debug streamer vector for efective length
+  std::vector<float> gainVector;             ///< debug streamer vector for gain
+  std::vector<float> residualCorrVector;     ///< debug streamer vector for residual dEdx correction
+
+  std::vector<float> chargeVector;           ///< debug streamer vector for charge
+  std::vector<float> chargeNormVector;       ///< debug streamer vector for normalized charge with effectiveLength, gain and residual dEdx correction
 
   if (mDebug) {
-    regionVector.clear();
-    rowIndexVector.clear();
-    padVector.clear();
-    stackVector.clear();
-    sectorVector.clear();
-    effectiveLengthVector.clear();
-    gainVector.clear();
-    residualCorrVector.clear();
-    chargeVector.clear();
-    chargeNormVector.clear();
-
     regionVector.reserve(nClusters);
     rowIndexVector.reserve(nClusters);
     padVector.reserve(nClusters);
@@ -117,15 +126,17 @@ float CalculatedEdx::getTruncMean(o2::tpc::TrackTPC& track, float low, float hig
     // get x position of the track
     float xPosition = Mapper::instance().getPadCentre(PadPos(rowIndex, 0)).X();
 
+    bool check = true;
     if (!mPropagateTrack) {
       if (mRefit == nullptr) {
         LOGP(error, "mRefit is a nullptr, call the function setRefit() before looping over the tracks.");
       }
       mRefit->setTrackReferenceX(xPosition);
+      check = (mRefit->RefitTrackAsGPU(track, false, true) < 0) ? false : true;
+    } else {
+      // propagate this track to the plane X=xk (cm) in the field "b" (kG)
+      check = o2::base::Propagator::Instance()->PropagateToXBxByBz(track, xPosition, 0.9f, 2., o2::base::Propagator::MatCorrType::USEMatCorrLUT);
     }
-
-    // propagate this track to the plane X=xk (cm) in the field "b" (kG)
-    const bool check = mPropagateTrack ? track.propagateTo(xPosition, mField) : ((mRefit->RefitTrackAsGPU(track, false, true) < 0) ? false : true);
 
     if (!check || std::isnan(track.getParam(1))) {
       continue;
@@ -133,7 +144,7 @@ float CalculatedEdx::getTruncMean(o2::tpc::TrackTPC& track, float low, float hig
 
     // get region and charge value
     const int region = Mapper::REGION[rowIndex];
-    const float charge = (mChargeType == ChargeType::Tot) ? cl.qTot : cl.qMax;
+    const float charge = (chargeType == ChargeType::Tot) ? cl.qTot : cl.qMax;
 
     // get pad and threshold
     const unsigned char pad = std::clamp(static_cast<unsigned int>(cl.getPad() + 0.5f), static_cast<unsigned int>(0), Mapper::PADSPERROW[region][Mapper::getLocalRowFromGlobalRow(rowIndex)] - 1); // the left side of the pad is defined at e.g. 3.5 and the right side at 4.5
@@ -141,19 +152,19 @@ float CalculatedEdx::getTruncMean(o2::tpc::TrackTPC& track, float low, float hig
 
     // get effective length
     float effectiveLength = 1.0f;
-    if (mask & 0b1) {
+    if ((mask & CorrectionFlags::TopologySimple) == CorrectionFlags::TopologySimple) {
       effectiveLength = getTrackTopologyCorrection(track, region);
     };
-    if (mask & 0b10) {
-      effectiveLength = getTrackTopologyCorrectionPol(track, cl, region, charge, threshold);
+    if ((mask & CorrectionFlags::TopologyPol) == CorrectionFlags::TopologyPol) {
+      effectiveLength = getTrackTopologyCorrectionPol(track, cl, region, charge, chargeType, threshold);
     };
 
     // get gain
     float gain = 1.0f;
-    if (mask & 0b100) {
+    if ((mask & CorrectionFlags::GainFull) == CorrectionFlags::GainFull) {
       gain = mCalibCont.getGain(sectorIndex, rowIndex, pad);
     };
-    if (mask & 0b1000) {
+    if ((mask & CorrectionFlags::GainResidual) == CorrectionFlags::GainResidual) {
       gain *= mCalibCont.getResidualGain(sectorIndex, rowIndex, pad);
     };
 
@@ -164,7 +175,7 @@ float CalculatedEdx::getTruncMean(o2::tpc::TrackTPC& track, float low, float hig
 
     // get dEdx correction on tgl and sector plane
     float corr = 1.0f;
-    if (mask & 0b10000) {
+    if ((mask & CorrectionFlags::dEdxResidual) == CorrectionFlags::dEdxResidual) {
       corr = mCalibCont.getResidualCorrection(stackID, chargeType, track.getTgl(), track.getSnp());
     };
 
@@ -177,16 +188,16 @@ float CalculatedEdx::getTruncMean(o2::tpc::TrackTPC& track, float low, float hig
     };
 
     // store normalized charge per region
-    if (regionType == entire) {
-      mChargeTmp.emplace_back(chargeNorm);
-    } else if (regionType == iroc && stack == GEMstack::IROCgem) {
-      mChargeTmp.emplace_back(chargeNorm);
-    } else if (regionType == oroc1 && stack == GEMstack::OROC1gem) {
-      mChargeTmp.emplace_back(chargeNorm);
-    } else if (regionType == oroc2 && stack == GEMstack::OROC2gem) {
-      mChargeTmp.emplace_back(chargeNorm);
-    } else if (regionType == oroc3 && stack == GEMstack::OROC3gem) {
-      mChargeTmp.emplace_back(chargeNorm);
+    if (regionType == Entire) {
+      chargeTmp.emplace_back(chargeNorm);
+    } else if (regionType == IROC && stack == GEMstack::IROCgem) {
+      chargeTmp.emplace_back(chargeNorm);
+    } else if (regionType == OROC1 && stack == GEMstack::OROC1gem) {
+      chargeTmp.emplace_back(chargeNorm);
+    } else if (regionType == OROC2 && stack == GEMstack::OROC2gem) {
+      chargeTmp.emplace_back(chargeNorm);
+    } else if (regionType == OROC3 && stack == GEMstack::OROC3gem) {
+      chargeTmp.emplace_back(chargeNorm);
     }
 
     // for debugging
@@ -216,11 +227,11 @@ float CalculatedEdx::getTruncMean(o2::tpc::TrackTPC& track, float low, float hig
 
   // fill missing clusters
   if (missingClusters > 0 && minCharge < 100000) {
-    fillMissingClusters(mChargeTmp, missingClusters, minCharge, 1);
+    fillMissingClusters(chargeTmp, missingClusters, minCharge, 1);
   }
 
   // get truncated mean
-  float dEdx = getTruncMean(mChargeTmp, low, high);
+  float dEdx = getTruncMean(chargeTmp, low, high);
 
   // for debugging
   if (mDebug) {
@@ -290,11 +301,11 @@ float CalculatedEdx::getTrackTopologyCorrection(const o2::tpc::TrackTPC& track, 
   return effectiveLength;
 }
 
-float CalculatedEdx::getTrackTopologyCorrectionPol(const o2::tpc::TrackTPC& track, const o2::tpc::ClusterNative& cl, const unsigned int region, const float charge, const float threshold) const
+float CalculatedEdx::getTrackTopologyCorrectionPol(const o2::tpc::TrackTPC& track, const o2::tpc::ClusterNative& cl, const unsigned int region, const float charge, ChargeType chargeType, const float threshold) const
 {
   const float snp = std::abs(track.getSnp());
   const float tgl = track.getTgl();
-  float snp2 = snp * snp;
+  const float snp2 = snp * snp;
   const float tgl2 = tgl * tgl;
   const float sec2 = 1.f / (1.f - snp2);
   const float tanTheta = std::sqrt(tgl2 * sec2);
@@ -304,42 +315,54 @@ float CalculatedEdx::getTrackTopologyCorrectionPol(const o2::tpc::TrackTPC& trac
   const float absRelPad = std::abs(padTmp - int(padTmp + 0.5f));
   const float relTime = cl.getTime() - int(cl.getTime() + 0.5f);
 
-  const float effectiveLength = mCalibCont.getTopologyCorrection(region, mChargeType, tanTheta, snp, z, absRelPad, relTime, threshold, charge);
+  const float effectiveLength = mCalibCont.getTopologyCorrection(region, chargeType, tanTheta, snp, z, absRelPad, relTime, threshold, charge);
   return effectiveLength;
 }
 
-void CalculatedEdx::loadCalibsFromCCDB(long timestampCCDB)
+void CalculatedEdx::loadCalibsFromCCDB(int runNumber)
 {
   // setup CCDB manager
   auto& cm = o2::ccdb::BasicCCDBManager::instance();
-  static bool setAddress = true;
-  if (setAddress) {
-    cm.setURL("http://alice-ccdb.cern.ch/");
-    setAddress = false;
-  }
+  cm.setURL("http://alice-ccdb.cern.ch/");
+  auto runDuration = cm.getRunDuration(runNumber);
+  auto tRun = runDuration.first + (runDuration.second - runDuration.first) / 2; // time stamp for the middle of the run duration
+  LOGP(info, "Timestamp: {}", tRun);
+  cm.setTimestamp(tRun);
 
-  // setting the track topology correction
-  o2::tpc::CalibdEdxTrackTopologyPolContainer* calibTrackTopologyContainer = cm.getForTimeStamp<o2::tpc::CalibdEdxTrackTopologyPolContainer>(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalTopologyGain), timestampCCDB);
+  // set the track topology correction
+  o2::tpc::CalibdEdxTrackTopologyPolContainer* calibTrackTopologyContainer = cm.getForTimeStamp<o2::tpc::CalibdEdxTrackTopologyPolContainer>(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalTopologyGain), tRun);
   o2::tpc::CalibdEdxTrackTopologyPol calibTrackTopology;
   calibTrackTopology.setFromContainer(*calibTrackTopologyContainer);
   mCalibCont.setPolTopologyCorrection(calibTrackTopology);
 
-  // setting the gain map
-  o2::tpc::CalDet<float>* gainMap = cm.getForTimeStamp<o2::tpc::CalDet<float>>(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalPadGainFull), timestampCCDB);
-  const o2::tpc::CalDet<float> gainMapResidual = (*cm.getForTimeStamp<std::unordered_map<std::string, o2::tpc::CalDet<float>>>(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalPadGainResidual), timestampCCDB))["GainMap"];
+  // set the gain map
+  o2::tpc::CalDet<float>* gainMap = cm.getForTimeStamp<o2::tpc::CalDet<float>>(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalPadGainFull), tRun);
+  const o2::tpc::CalDet<float> gainMapResidual = (*cm.getForTimeStamp<std::unordered_map<std::string, o2::tpc::CalDet<float>>>(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalPadGainResidual), tRun))["GainMap"];
 
   const float minGain = 0;
   const float maxGain = 2;
   mCalibCont.setGainMap(*gainMap, minGain, maxGain);
   mCalibCont.setGainMapResidual(gainMapResidual);
 
-  // setting the residual dEdx correction
-  o2::tpc::CalibdEdxCorrection* residualObj = cm.getForTimeStamp<o2::tpc::CalibdEdxCorrection>(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalTimeGain), timestampCCDB);
+  // set the residual dEdx correction
+  o2::tpc::CalibdEdxCorrection* residualObj = cm.getForTimeStamp<o2::tpc::CalibdEdxCorrection>(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::CalTimeGain), tRun);
 
   const auto* residualCorr = static_cast<o2::tpc::CalibdEdxCorrection*>(residualObj);
   mCalibCont.setResidualCorrection(*residualCorr);
 
-  // setting the zero supression threshold map
-  std::unordered_map<string, o2::tpc::CalDet<float>>* zeroSupressionThresholdMap = cm.getForTimeStamp<std::unordered_map<string, o2::tpc::CalDet<float>>>(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::ConfigFEEPad), timestampCCDB);
+  // set the zero supression threshold map
+  std::unordered_map<string, o2::tpc::CalDet<float>>* zeroSupressionThresholdMap = cm.getForTimeStamp<std::unordered_map<string, o2::tpc::CalDet<float>>>(o2::tpc::CDBTypeMap.at(o2::tpc::CDBType::ConfigFEEPad), tRun);
   mCalibCont.setZeroSupresssionThreshold(zeroSupressionThresholdMap->at("ThresholdMap"));
+
+  // set the magnetic field
+  auto magField = cm.get<o2::parameters::GRPMagField>("GLO/Config/GRPMagField");
+  o2::base::Propagator::initFieldFromGRP(magField);
+  float bz = 5.00668f * magField->getL3Current() / 30000.;
+  LOGP(info, "Magnetic field: {}", bz);
+  setField(bz);
+
+  // set the propagator
+  auto propagator = o2::base::Propagator::Instance();
+  const o2::base::MatLayerCylSet* matLut = o2::base::MatLayerCylSet::rectifyPtrFromFile(cm.get<o2::base::MatLayerCylSet>("GLO/Param/MatLUT"));
+  propagator->setMatLUT(matLut);
 }
