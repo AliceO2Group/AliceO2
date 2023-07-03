@@ -51,7 +51,7 @@ class SimpleEventDisplay : public CalibRawBase
                   const Int_t timeBin, const Float_t signal) final { return 0; }
 
   CalPad* getCalPadMax() { return &mPadMax; }
-  
+
   CalPad* getCalPadOccupancy() { return &mPadOccupancy; }
 
   /// Set currently selected sector
@@ -68,7 +68,7 @@ class SimpleEventDisplay : public CalibRawBase
   void setSignalThreshold(UInt_t signalThreshold) { mSignalThreshold = signalThreshold; }
 
   void setShowOccupancy(bool showOccupancy) { mShowOccupancy = showOccupancy; }
-  
+
   TH1D* makePadSignals(Int_t roc, Int_t row, Int_t pad);
 
   /// set time bin range

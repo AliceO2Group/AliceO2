@@ -110,7 +110,7 @@ class SimpleEventDisplayGUI
   TGTextEntry* mSignalThresholdValue = nullptr;
 
   TH1* getBinInfoXY(int& binx, int& biny, float& bincx, float& bincy);
-  
+
   void initOccupancyHists(void);
   void deleteOccupancyHists(void);
 

@@ -78,7 +78,7 @@ Int_t SimpleEventDisplay::updateROC(const Int_t roc,
   // no extra analysis necessary. Assumes knowledge of the signal shape!
   // assumes that it is looped over consecutive time bins of one pad
   //
-  //printf("update called: %d, %d, %d, %d, %.3f\n", roc, row, pad, timeBin, signal);
+  // printf("update called: %d, %d, %d, %d, %.3f\n", roc, row, pad, timeBin, signal);
   if (row < 0) {
     return 0;
   }
@@ -109,7 +109,7 @@ Int_t SimpleEventDisplay::updateROC(const Int_t roc,
 
   const int iChannel = mTPCmapper.getPadNumberInROC(PadROCPos(roc, row, pad));
 
-  //init first pad and roc in this event
+  // init first pad and roc in this event
   if (mCurrentChannel == -1) {
     mCurrentChannel = iChannel;
     mCurrentROC = roc;
@@ -117,7 +117,7 @@ Int_t SimpleEventDisplay::updateROC(const Int_t roc,
     mCurrentPad = pad;
   }
 
-  //process last pad if we change to a new one
+  // process last pad if we change to a new one
   if (iChannel != mCurrentChannel) {
     mLastSector = mCurrentROC;
     mCurrentChannel = iChannel;
@@ -127,7 +127,7 @@ Int_t SimpleEventDisplay::updateROC(const Int_t roc,
     mMaxPadSignal = 0;
   }
 
-  //fill signals for current pad
+  // fill signals for current pad
   if (mCurrentROC % 36 == mSelectedSector % 36) {
     const Int_t nbins = mLastTimeBin - mFirstTimeBin;
     const Int_t offset = (nbins + 2) * (iChannel + 1) + (timeBin - mFirstTimeBin) + 1;
@@ -176,7 +176,7 @@ TH1D* SimpleEventDisplay::makePadSignals(Int_t roc, Int_t row, Int_t pad)
 
   mSelectedSector = roc;
 
-  //attention change for if event has changed
+  // attention change for if event has changed
   if (mSelectedSector % 36 != mLastSelSector % 36) {
     mSectorLoop = kTRUE;
     processEvent(getPresentEventNumber());
