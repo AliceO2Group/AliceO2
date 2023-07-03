@@ -123,6 +123,7 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAllOrdered(const char* name
 {
   auto callbackFull = [](InputSpan const& inputs, std::vector<InputSpec> const&, ServiceRegistryRef& ref) -> CompletionPolicy::CompletionOp {
     auto& decongestionService = ref.get<DecongestionService>();
+    decongestionService.orderedCompletionPolicyActive = 1;
     for (auto& input : inputs) {
       if (input.header == nullptr) {
         return CompletionPolicy::CompletionOp::Wait;
