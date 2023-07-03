@@ -38,6 +38,7 @@
 
 // for time measurements
 #include <chrono>
+#include <optional>
 
 using namespace o2::framework;
 
@@ -97,7 +98,7 @@ class EMCALChannelCalibDevice : public o2::framework::Task
         mScaleFactorsInitialized = true;
       }
     }
-    if (matcher == ConcreteDataMatcher("CTP", "CTPCONFIG", 0)) {
+    if (mRejectL0Triggers && matcher == ConcreteDataMatcher("CTP", "CTPCONFIG", 0)) {
       // clear current class mask and prepare to fill in the updated values
       // The trigger names are seperated by a ":" in one string in the calib params
       mSelectedClassMasks.clear();
@@ -149,7 +150,9 @@ class EMCALChannelCalibDevice : public o2::framework::Task
     }
 
     // prepare CTPConfiguration such that it can be loaded in finalise ccdb
-    pc.inputs().get<o2::ctp::CTPConfiguration*>(getCTPConfigBinding());
+    if (mRejectL0Triggers) {
+      pc.inputs().get<o2::ctp::CTPConfiguration*>(getCTPConfigBinding());
+    }
 
     if (!mIsConfigured) {
       // configure calibrators (after calib params are loaded from the CCDB)
@@ -157,7 +160,11 @@ class EMCALChannelCalibDevice : public o2::framework::Task
       mIsConfigured = true;
     }
 
-    auto ctpDigits = pc.inputs().get<gsl::span<o2::ctp::CTPDigit>>(getCTPDigitsBinding());
+    using ctpDigitsType = std::decay_t<decltype(pc.inputs().get<gsl::span<o2::ctp::CTPDigit>>(getCTPDigitsBinding()))>;
+    std::optional<ctpDigitsType> ctpDigits;
+    if (mRejectL0Triggers) {
+      ctpDigits = pc.inputs().get<gsl::span<o2::ctp::CTPDigit>>(getCTPDigitsBinding());
+    }
 
     // reset EOR behaviour
     if (mTimeCalibrator) {
@@ -197,7 +204,7 @@ class EMCALChannelCalibDevice : public o2::framework::Task
         bool acceptEvent = false;
         // Match the EMCal bc to the CTP bc
         int64_t bcEMC = trg.getBCData().toLong();
-        for (auto& ctpDigit : ctpDigits) {
+        for (auto& ctpDigit : *ctpDigits) {
           int64_t bcCTP = ctpDigit.intRecord.toLong();
           LOG(debug) << "bcEMC " << bcEMC << "   bcCTP " << bcCTP;
           if (bcCTP == bcEMC) {
@@ -403,8 +410,10 @@ DataProcessorSpec getEMCALChannelCalibDeviceSpec(const std::string calibType, co
   // inputs.emplace_back("EMC_BadChannelMap", o2::header::gDataOriginEMC, "BADCHANNELMAP", 0, Lifetime::Condition, ccdbParamSpec("EMC/Calib/BadChannelMap"));
 
   // data request needed for rejection of EMCal trigger
-  inputs.emplace_back(device::getCTPConfigBinding(), "CTP", "CTPCONFIG", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/Config", ctpcfgperrun));
-  inputs.emplace_back(device::getCTPDigitsBinding(), "CTP", "DIGITS", 0, Lifetime::Timeframe);
+  if (rejectL0Trigger) {
+    inputs.emplace_back(device::getCTPConfigBinding(), "CTP", "CTPCONFIG", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/Config", ctpcfgperrun));
+    inputs.emplace_back(device::getCTPDigitsBinding(), "CTP", "DIGITS", 0, Lifetime::Timeframe);
+  }
 
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
                                                                 true,                           // GRPECS=true
