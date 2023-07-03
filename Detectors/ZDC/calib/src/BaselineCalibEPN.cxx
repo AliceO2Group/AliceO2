@@ -25,13 +25,23 @@ int BaselineCalibEPN::init()
 {
   // Inspect reconstruction parameters
   const auto& opt = CalibParamZDC::Instance();
-  opt.print();
+  if (mVerbosity >= DbgFull) {
+    opt.print();
+  }
+
   if (opt.debugOutput == true) {
     setSaveDebugHistos();
   }
 
-  if (mVerbosity > DbgZero) {
-    mModuleConfig->print();
+  static bool firstCall = true;
+  if (firstCall) {
+    if (mVerbosity >= DbgMedium) {
+      mModuleConfig->print();
+    }
+    firstCall = false;
+  } else {
+    // Reset data structure
+    mData.clear();
   }
 
   mInitDone = true;
@@ -65,16 +75,21 @@ int BaselineCalibEPN::process(const gsl::span<const o2::zdc::OrbitData>& orbitda
 int BaselineCalibEPN::endOfRun()
 {
   if (mVerbosity > DbgZero) {
-    mData.print();
+    LOG(info) << "BaselineCalibEPN::endOfRun";
   }
   if (mSaveDebugHistos) {
+    if (mVerbosity >= DbgMedium) {
+      mData.print();
+    }
     saveDebugHistos();
   }
+  mInitDone = false;
   return 0;
 }
 
 //______________________________________________________________________________
 int BaselineCalibEPN::saveDebugHistos(const std::string fn)
 {
+  // EPN debug histos refer to histograms from last reset
   return mData.saveDebugHistos(fn, mModuleConfig->baselineFactor);
 }

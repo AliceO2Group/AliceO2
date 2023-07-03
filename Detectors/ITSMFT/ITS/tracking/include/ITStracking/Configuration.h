@@ -120,23 +120,24 @@ struct VertexingParameters {
 
 struct TimeFrameGPUParameters {
   TimeFrameGPUParameters() = default;
-  TimeFrameGPUParameters(size_t cubBufferSize,
-                         size_t maxTrkClu,
-                         size_t cluLayCap,
-                         size_t cluROfCap,
-                         size_t maxTrkCap,
-                         size_t maxVertCap,
-                         size_t maxROFs);
+  // TimeFrameGPUParameters(size_t cubBufferSize,
+  //                        size_t maxTrkClu,
+  //                        size_t cluLayCap,
+  //                        size_t cluROfCap,
+  //                        size_t maxTrkCap,
+  //                        size_t maxVertCap,
+  //                        size_t maxROFs);
 
   size_t tmpCUBBufferSize = 1e5; // In average in pp events there are required 4096 bytes
   size_t maxTrackletsPerCluster = 1e2;
   size_t clustersPerLayerCapacity = 2.5e5;
   size_t clustersPerROfCapacity = 1.5e3;
-  size_t trackletsCapacity = maxTrackletsPerCluster * clustersPerROfCapacity;
+  // size_t trackletsCapacity = maxTrackletsPerCluster * clustersPerROfCapacity;
   size_t validatedTrackletsCapacity = 1e3;
   size_t cellsLUTsize = validatedTrackletsCapacity;
   size_t maxNeighboursSize = 1e2;
   size_t neighboursLUTsize = maxNeighboursSize;
+  size_t maxRoadPerRofSize = 1e3; // pp!
   size_t maxLinesCapacity = 1e2;
   size_t maxVerticesCapacity = 5e4;
   size_t nMaxROFs = 1e3;
@@ -144,22 +145,28 @@ struct TimeFrameGPUParameters {
   int maxGPUMemoryGB = -1;
 };
 
-inline TimeFrameGPUParameters::TimeFrameGPUParameters(size_t cubBufferSize,
-                                                      size_t maxTrkClu,
-                                                      size_t cluLayCap,
-                                                      size_t cluROfCap,
-                                                      size_t maxTrkCap,
-                                                      size_t maxVertCap,
-                                                      size_t maxROFs) : tmpCUBBufferSize{cubBufferSize},
-                                                                        maxTrackletsPerCluster{maxTrkClu},
-                                                                        clustersPerLayerCapacity{cluLayCap},
-                                                                        clustersPerROfCapacity{cluROfCap},
-                                                                        maxLinesCapacity{maxTrkCap},
-                                                                        maxVerticesCapacity{maxVertCap},
-                                                                        nMaxROFs{maxROFs}
-{
-  trackletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
-}
+// inline TimeFrameGPUParameters::TimeFrameGPUParameters(size_t cubBufferSize,
+//                                                       size_t maxTrkClu,
+//                                                       size_t cluLayCap,
+//                                                       size_t cluROfCap,
+//                                                       size_t maxTrkCap,
+//                                                       size_t maxVertCap,
+//                                                       size_t maxROFs,
+//                                                       size_t validatedTrackletsCapacity,
+//                                                       size_t cellsLUTsize,
+//                                                       size_t maxNeighboursSize,
+//                                                       size_t neighboursLUTsize,
+//                                                       size_t maxRoadPerRofSize,
+//                                                       size_t maxLinesCapacity) : tmpCUBBufferSize{cubBufferSize},
+//                                                                                  maxTrackletsPerCluster{maxTrkClu},
+//                                                                                  clustersPerLayerCapacity{cluLayCap},
+//                                                                                  clustersPerROfCapacity{cluROfCap},
+//                                                                                  maxLinesCapacity{maxTrkCap},
+//                                                                                  maxVerticesCapacity{maxVertCap},
+//                                                                                  nMaxROFs{maxROFs}
+// {
+//   trackletsCapacity = maxTrackletsPerCluster * clustersPerLayerCapacity;
+// }
 
 } // namespace its
 } // namespace o2
