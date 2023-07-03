@@ -20,7 +20,7 @@ rname1=$(hexdump -n 16 -v -e '/1 "%02X"' -e '/16 "\n"' /dev/urandom | head -c 6)
 ### step 1: Startup the service with some configuration of workers, engines, 
 ####        physics/geometry settings. No events are asked at this time.
 
-( o2-sim-client.py --startup "-j ${NWORKERS} -n 0 -g pythia8pp -m ${MODULES} -o simservice --logseverity DEBUG" \
+( o2-sim-client.py --startup "-j ${NWORKERS} -n 0 -g pythia8pp -m ${MODULES} -o simservice --logseverity DEBUG --configKeyValues align-geom.mDetectors=none"  \
                   --block ) | tee /tmp/${rname1}   # <--- return when everything is fully initialized
 SERVICE1_PID=$(grep "detached as pid" /tmp/${rname1} | awk '//{print $4}')
 
