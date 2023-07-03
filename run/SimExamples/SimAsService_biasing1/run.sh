@@ -39,7 +39,7 @@ SERVICE1_PID=$(grep "detached as pid" /tmp/${rname1} | awk '//{print $4}')
 
 # a second service is used for the continue features (currently reconfiguration of engines/stacks is limited, otherwise
 # the first service could be used as well)
-( o2-sim-client.py --startup "-j ${NWORKERS} -n 0 -m ${MODULES} -o simservice2 --configKeyValues GeneratorFromO2Kine.continueMode=true" \
+( o2-sim-client.py --startup "-j ${NWORKERS} -n 0 -m ${MODULES} -o simservice2 --configKeyValues GeneratorFromO2Kine.continueMode=true;align-geom.mDetectors=none" \
                    --block ) | tee /tmp/${rname1}  # <--- return when everything is fully initialized
 SERVICE2_PID=$(grep "detached as pid" /tmp/${rname1} | awk '//{print $4}')
 
