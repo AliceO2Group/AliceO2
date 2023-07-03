@@ -56,7 +56,7 @@ bool PadPedestal::operator==(const PadPedestal& rhs) const
       }
     }
   }
-  return failure;
+  return !failure;
 }
 
 void PadPedestal::setPedestal(std::size_t layer, std::size_t channel, double pedestal)
