@@ -29,7 +29,8 @@ using namespace o2::tpc;
 
 SimpleEventDisplay::SimpleEventDisplay()
   : CalibRawBase(),
-    mPadMax(PadSubset::ROC),
+    mPadMax("qMax", PadSubset::ROC),
+    mPadOccupancy("occupancy", PadSubset::ROC),
     mHSigIROC(nullptr),
     mHSigOROC(nullptr),
     mPedestals(nullptr),
@@ -46,7 +47,8 @@ SimpleEventDisplay::SimpleEventDisplay()
     mFirstTimeBin(0),
     mLastTimeBin(512),
     mTPCmapper(Mapper::instance()),
-    mSignalThreshold(0)
+    mSignalThreshold(0),
+    mShowOccupancy(kFALSE)
 {
   initHistograms();
 }
@@ -145,6 +147,14 @@ Int_t SimpleEventDisplay::updateROC(const Int_t roc,
     mMaxPadSignal = corrSignal;
     mMaxTimeBin = timeBin;
   }
+
+  CalROC& calROCOccupancy = mPadOccupancy.getCalArray(mCurrentROC);
+  auto occupancy = calROCOccupancy.getValue(row, pad);
+
+  if (corrSignal >= mSignalThreshold) {
+    calROCOccupancy.setValue(row, pad, occupancy + 1.0f);
+  }
+
   return 0;
 }
 
@@ -221,6 +231,7 @@ void SimpleEventDisplay::resetEvent()
   //
   if (!mSectorLoop) {
     mPadMax.multiply(0.);
+    mPadOccupancy.multiply(0.);
   }
   mHSigIROC->Reset();
   mHSigOROC->Reset();

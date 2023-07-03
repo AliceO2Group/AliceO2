@@ -51,6 +51,8 @@ class SimpleEventDisplay : public CalibRawBase
                   const Int_t timeBin, const Float_t signal) final { return 0; }
 
   CalPad* getCalPadMax() { return &mPadMax; }
+  
+  CalPad* getCalPadOccupancy() { return &mPadOccupancy; }
 
   /// Set currently selected sector
   void setSelectedSector(Int_t selectedSector) { mSelectedSector = selectedSector; }
@@ -64,6 +66,8 @@ class SimpleEventDisplay : public CalibRawBase
   void setPedstals(CalPad* pedestals) { mPedestals = pedestals; }
 
   void setSignalThreshold(UInt_t signalThreshold) { mSignalThreshold = signalThreshold; }
+
+  void setShowOccupancy(bool showOccupancy) { mShowOccupancy = showOccupancy; }
   
   TH1D* makePadSignals(Int_t roc, Int_t row, Int_t pad);
 
@@ -79,10 +83,11 @@ class SimpleEventDisplay : public CalibRawBase
   void endEvent() final{};
 
  private:
-  CalPad mPadMax;     //!< Cal Pad with max Entry per channel
-  TH2D* mHSigIROC;    //!< iroc signals
-  TH2D* mHSigOROC;    //!< oroc signals
-  CalPad* mPedestals; //!< Pedestal calibratino object
+  CalPad mPadMax;       //!< Cal Pad with max Entry per channel
+  CalPad mPadOccupancy; //!< Cal Pad with Occupancy per channel
+  TH2D* mHSigIROC;      //!< iroc signals
+  TH2D* mHSigOROC;      //!< oroc signals
+  CalPad* mPedestals;   //!< Pedestal calibratino object
 
   Int_t mCurrentChannel;   //!< current channel processed
   Int_t mCurrentROC;       //!< current ROC processed
@@ -97,6 +102,7 @@ class SimpleEventDisplay : public CalibRawBase
   Int_t mFirstTimeBin;     //!< first time bin to accept
   Int_t mLastTimeBin;      //!< last time bin to accept
   UInt_t mSignalThreshold; //!< minimum adc value
+  Bool_t mShowOccupancy;   //<! true iff occupancy should be calculated, false otherwise
 
   const Mapper& mTPCmapper; //! mapper
 

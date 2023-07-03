@@ -14,6 +14,7 @@
 #include <fstream>
 #include <memory>
 #include <unistd.h>
+#include <string_view>
 
 #include "TGFrame.h"
 #include "TGTextEntry.h"
@@ -50,7 +51,7 @@ void SimpleEventDisplayGUI::monitorGui()
   float yoffset = 10;
   float ysize_dist = 2;
   float mainx = 170;
-  float mainy = 170;
+  float mainy = 200;
   int ycount = 0;
 
   TGMainFrame* mFrameMain = new TGMainFrame(gClient->GetRoot(), 200, 200, kMainFrame | kVerticalFrame);
@@ -131,13 +132,24 @@ void SimpleEventDisplayGUI::monitorGui()
   toggleFFT();
 
   //---------------------------
+  mCheckOccupancy = new TGCheckButton(mContRight, "Show Occupancy");
+  mContRight->AddFrame(mCheckOccupancy, new TGLayoutHints(kLHintsExpandX));
+
+  mCheckOccupancy->Connect("Clicked()", "o2::tpc::SimpleEventDisplayGUI", this, "toggleOccupancy()");
+  mCheckOccupancy->SetTextColor(200);
+  mCheckOccupancy->SetToolTipText("Switch on Occupancy calculation");
+  mCheckOccupancy->MoveResize(10, 10 + ysize * 5, xsize, (unsigned int)ysize);
+  mCheckOccupancy->SetDown(0);
+  toggleOccupancy();
+
+  //---------------------------
   TGTextButton* mFrameExit = new TGTextButton(mContRight, "Exit ROOT");
   mContRight->AddFrame(mFrameExit, new TGLayoutHints(kLHintsExpandX));
 
   mFrameExit->Connect("Clicked()", "o2::tpc::SimpleEventDisplayGUI", this, "exitRoot()");
   mFrameExit->SetTextColor(200);
   mFrameExit->SetToolTipText("Exit the ROOT process");
-  mFrameExit->MoveResize(10, 10 + ysize * 5, xsize, (unsigned int)ysize);
+  mFrameExit->MoveResize(10, 10 + ysize * 6, xsize, (unsigned int)ysize);
 
   //---------------------------
   mFrameMain->MapSubwindows();
@@ -170,6 +182,100 @@ void SimpleEventDisplayGUI::toggleFFT()
   }
 }
 
+void SimpleEventDisplayGUI::initOccupancyHists(void)
+{
+  const int w = 400;
+  const int h = 400;
+  const int hOff = 60;
+  const int vOff = 2;
+  TCanvas* c = nullptr;
+
+  if (mShowSides) {
+    //histograms and canvases for occupancy values A-Side
+    c = new TCanvas("OccupancyValsA", "OccupancyValsA", 0 * w - 1, 0 * h, w, h);
+
+    c->Connect("ProcessedEvent(Int_t,Int_t,Int_t,TObject*)",
+               "o2::tpc::SimpleEventDisplayGUI", this,
+               "selectSectorExec(int,int,int,TObject*)");
+
+    mHOccupancyA = new TH2F("hOccupancyValsA", "Occupancy Values Side A;x (cm);y (cm)", 330, -250, 250, 330, -250, 250);
+    mHOccupancyA->SetStats(kFALSE);
+    mHOccupancyA->SetUniqueID(0); //A-Side
+    mHOccupancyA->Draw("colz");
+    painter::drawSectorsXY(Side::A);
+
+    //histograms and canvases for occupancy values C-Side
+    c = new TCanvas("OccupancyValsC", "OccupancyValsC", 0 * w - 1, 1 * h + hOff, w, h);
+
+    c->Connect("ProcessedEvent(Int_t,Int_t,Int_t,TObject*)",
+               "o2::tpc::SimpleEventDisplayGUI", this,
+               "selectSectorExec(int,int,int,TObject*)");
+    mHOccupancyC = new TH2F("hOccupancyValsC", "Occupancy Values Side C;x (cm);y (cm)", 330, -250, 250, 330, -250, 250);
+    mHOccupancyC->SetStats(kFALSE);
+    mHOccupancyC->SetUniqueID(1); //C-Side
+    mHOccupancyC->Draw("colz");
+    painter::drawSectorsXY(Side::C);
+  }
+
+  //histograms and canvases for occupancy values IROC
+  c = new TCanvas("OccupancyValsI", "OccupancyValsI", -1 * (w + vOff), 0 * h, w, h);
+
+  c->Connect("ProcessedEvent(Int_t,Int_t,Int_t,TObject*)",
+             "o2::tpc::SimpleEventDisplayGUI", this,
+             "drawPadSignal(int,int,int,TObject*)");
+  mHOccupancyIROC = new TH2F("hOccupancyValsIROC", "Occupancy Values IROC;row;pad", 63, 0, 63, 108, -54, 54);
+  mHOccupancyIROC->SetDirectory(nullptr);
+  mHOccupancyIROC->SetStats(kFALSE);
+  mHOccupancyIROC->Draw("colz");
+
+  //histograms and canvases for occupancy values OROC
+  c = new TCanvas("OccupancyValsO", "OccupancyValsO", -1 * (w + vOff), 1 * h + hOff, w, h);
+
+  c->Connect("ProcessedEvent(Int_t,Int_t,Int_t,TObject*)",
+             "o2::tpc::SimpleEventDisplayGUI", this,
+             "drawPadSignal(int,int,int,TObject*)");
+  mHOccupancyOROC = new TH2F("hOccupancyValsOROC", "Occupancy Values OROC;row;pad", 89, 0, 89, 140, -70, 70);
+  mHOccupancyOROC->SetDirectory(nullptr);
+  mHOccupancyOROC->SetStats(kFALSE);
+  mHOccupancyOROC->Draw("colz");
+
+  fillHists(0, Occupancy);
+}
+
+void SimpleEventDisplayGUI::deleteOccupancyHists(void)
+{
+  delete gROOT->GetListOfCanvases()->FindObject("OccupancyValsA");
+  delete mHOccupancyA;
+  mHOccupancyA = nullptr;
+  
+  delete gROOT->GetListOfCanvases()->FindObject("OccupancyValsC");
+  delete mHOccupancyC;
+  mHOccupancyC = nullptr;
+  
+  delete gROOT->GetListOfCanvases()->FindObject("OccupancyValsO");
+  delete mHOccupancyOROC;
+  mHOccupancyOROC = nullptr;
+  
+  delete gROOT->GetListOfCanvases()->FindObject("OccupancyValsI");
+  delete mHOccupancyIROC;
+  mHOccupancyIROC = nullptr;
+
+  delete gROOT->GetListOfCanvases()->FindObject("hOccupancyValsA");
+  delete gROOT->GetListOfCanvases()->FindObject("hOccupancyValsC");
+  delete gROOT->GetListOfCanvases()->FindObject("hOccupancyValsIROC");
+  delete gROOT->GetListOfCanvases()->FindObject("hOccupancyValsOROC");
+}
+
+//__________________________________________________________________________
+void SimpleEventDisplayGUI::toggleOccupancy()
+{
+  if (mCheckOccupancy->IsDown()) {
+    initOccupancyHists();
+  } else {
+    deleteOccupancyHists();
+  }
+}
+
 //__________________________________________________________________________
 void SimpleEventDisplayGUI::exitRoot()
 {
@@ -191,21 +297,49 @@ void SimpleEventDisplayGUI::update(TString clist)
 }
 
 //__________________________________________________________________________
-void SimpleEventDisplayGUI::resetHists(int type)
+void SimpleEventDisplayGUI::resetHists(int type, HistogramType histogramType)
 {
   if (!type) {
-    if (mHMaxA) {
-      mHMaxA->Reset();
-    }
-    if (mHMaxC) {
-      mHMaxC->Reset();
+    switch(histogramType) {
+      case MaxValues:
+        if (mHMaxA) {
+          mHMaxA->Reset();
+        }
+        if (mHMaxC) {
+          mHMaxC->Reset();
+        }
+        break;
+      case Occupancy:
+        if (mHOccupancyA) {
+          mHOccupancyA->Reset();
+        }
+        if (mHOccupancyC) {
+          mHOccupancyC->Reset();
+        }
+        break;
+      default:
+        break;
     }
   }
-  if (mHMaxIROC) {
-    mHMaxIROC->Reset();
-  }
-  if (mHMaxOROC) {
-    mHMaxOROC->Reset();
+  switch(histogramType) {
+    case MaxValues:
+      if (mHMaxIROC) {
+        mHMaxIROC->Reset();
+      }
+      if (mHMaxOROC) {
+        mHMaxOROC->Reset();
+      }
+      break;
+    case Occupancy:
+      if (mHOccupancyIROC) {
+        mHOccupancyIROC->Reset();
+      }
+      if (mHOccupancyOROC) {
+        mHOccupancyOROC->Reset();
+      }
+      break;
+    default:
+      break;
   }
 }
 
@@ -254,9 +388,9 @@ void SimpleEventDisplayGUI::drawPadSignal(int event, int x, int y, TObject* o)
   }
 
   TString type;
-  if (std::string_view(o->GetName()) == "hMaxValsIROC") {
+  if (std::string_view(o->GetName()) == "hMaxValsIROC" || std::string_view(o->GetName()) == "hOccupancyValsIROC") {
     type = "SigI";
-  } else if (std::string_view(o->GetName()) == "hMaxValsOROC") {
+  } else if (std::string_view(o->GetName()) == "hMaxValsOROC" || std::string_view(o->GetName()) == "hOccupancyValsOROC") {
     type = "SigO";
   } else {
     return;
@@ -336,7 +470,7 @@ void SimpleEventDisplayGUI::drawPadSignal(int event, int x, int y, TObject* o)
 }
 
 //__________________________________________________________________________
-void SimpleEventDisplayGUI::fillMaxHists(int type)
+void SimpleEventDisplayGUI::fillHists(int type, HistogramType histogramType)
 {
   //
   // type: 0 fill side and sector, 1: fill sector only
@@ -344,26 +478,26 @@ void SimpleEventDisplayGUI::fillMaxHists(int type)
   const auto& mapper = Mapper::instance();
 
   float kEpsilon = 0.000000000001;
-  CalPad* pad = mEvDisp.getCalPadMax();
+  CalPad* pad = histogramType == MaxValues ? mEvDisp.getCalPadMax() : mEvDisp.getCalPadOccupancy();
   TH2F* hSide = nullptr;
   TH2F* hROC = nullptr;
-  resetHists(type);
+  resetHists(type, histogramType);
   const int runNumber = TString(gSystem->Getenv("RUN_NUMBER")).Atoi();
   //const int eventNumber = mEvDisp.getNumberOfProcessedEvents() - 1;
   const int eventNumber = mEvDisp.getPresentEventNumber();
   const bool eventComplete = mEvDisp.isPresentEventComplete();
 
   for (int iROC = 0; iROC < 72; iROC++) {
-    hROC = mHMaxOROC;
-    hSide = mHMaxC;
+    hROC = histogramType == MaxValues ? mHMaxOROC : mHOccupancyOROC;
+    hSide = histogramType == MaxValues ? mHMaxC : mHOccupancyC;
     if (iROC < 36) {
-      hROC = mHMaxIROC;
+      hROC = histogramType == MaxValues ? mHMaxIROC : mHOccupancyIROC;
     }
     if ((iROC % 36) < 18) {
-      hSide = mHMaxA;
+      hSide = histogramType == MaxValues ? mHMaxA : mHOccupancyA;
     }
     if ((iROC % 36) == (mSelectedSector % 36)) {
-      TString title = Form("Max Values %cROC %c%02d (%02d) TF %s%d%s", (iROC < 36) ? 'I' : 'O', (iROC % 36 < 18) ? 'A' : 'C', iROC % 18, iROC, eventComplete ? "" : "(", eventNumber, eventComplete ? "" : ")");
+      TString title = Form("%s Values %cROC %c%02d (%02d) TF %s%d%s", histogramType == MaxValues ? "Max" : "Occupancy", (iROC < 36) ? 'I' : 'O', (iROC % 36 < 18) ? 'A' : 'C', iROC % 18, iROC, eventComplete ? "" : "(", eventNumber, eventComplete ? "" : ")");
       //TString title = Form("Max Values Run %d Event %d", runNumber, eventNumber);
       if (hROC) {
         hROC->SetTitle(title.Data());
@@ -397,10 +531,10 @@ void SimpleEventDisplayGUI::fillMaxHists(int type)
     }
   }
   if (!type) {
-    update("MaxValsA;MaxValsC");
+    update(histogramType == MaxValues ? "MaxValsA;MaxValsC" : "OccupancyValsA;OccupancyValsC");
   }
 
-  update("MaxValsI;MaxValsO");
+  update(histogramType == MaxValues ? "MaxValsI;MaxValsO" : "OccupancyValsI;OccupancyValsO");
 }
 
 //__________________________________________________________________________
@@ -408,7 +542,10 @@ void SimpleEventDisplayGUI::selectSector(int sector)
 {
   mSelectedSector = sector % 36;
   mEvDisp.setSelectedSector(mSelectedSector);
-  fillMaxHists(1);
+  fillHists(1, MaxValues);
+  if (mCheckOccupancy->IsDown()) {
+    fillHists(1, Occupancy);
+  }
 }
 
 //__________________________________________________________________________
@@ -468,7 +605,12 @@ void SimpleEventDisplayGUI::selectSectorExec(int event, int x, int y, TObject* o
 
   const int sector = roc % 36;
 
-  h->SetTitle(Form("Max Values %c%02d", (sector < 18) ? 'A' : 'C', sector % 18));
+  std::string title("Max Values");
+  std::string_view name(h->GetTitle());
+  if (name.find("Occupancy") != std::string::npos) {
+    title = "Occupancy Values";
+  }
+  h->SetTitle(fmt::format("{} {}{:02d}", title, (sector < 18) ? 'A' : 'C', sector % 18).data());
 
   if (sector != mOldHooverdSector) {
     auto pad = (TPad*)gTQSender;
@@ -601,7 +743,10 @@ void SimpleEventDisplayGUI::next(int eventNumber)
   //printf("Next: %d, %d (%d - %d), %d\n",res, ((AliRawReaderGEMDate*)mRawReader)->mEventInFile,((AliRawReaderGEMDate*)mRawReader)->GetCamacData(0),mRawReader->GetEventFromTag(), mRawReader->GetDataSize());
   //printf("Next Event: %d\n",mRawReader->GetEventFromTag());
 
-  fillMaxHists();
+  fillHists(0, MaxValues);
+  if (mCheckOccupancy->IsDown()) {
+    fillHists(0, Occupancy);
+  }
 
   if (mRunMode == RunMode::Online) {
     mProcessingEvent = false;

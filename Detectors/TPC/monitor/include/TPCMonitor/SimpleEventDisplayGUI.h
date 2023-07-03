@@ -40,13 +40,19 @@ class SimpleEventDisplayGUI
     Online = 1,  ///< run online from decoded digits
   };
 
+  enum HistogramType {
+    MaxValues = 0,
+    Occupancy = 1,
+  };
+
   void toggleFFT();
+  void toggleOccupancy();
   void monitorGui();
   void exitRoot();
   void update(TString clist);
-  void resetHists(int type);
+  void resetHists(int type, HistogramType histogramType);
   void drawPadSignal(int event, int x, int y, TObject* o);
-  void fillMaxHists(int type = 0);
+  void fillHists(int type = 0, HistogramType histogramType = MaxValues);
   void selectSector(int sector);
   int FindROCFromXY(const float x, const float y, const int side);
   void selectSectorExec(int event, int x, int y, TObject* o);
@@ -93,12 +99,20 @@ class SimpleEventDisplayGUI
   TH2F* mHMaxOROC = nullptr;
   TH1* mHFFTO = nullptr;
   TH1* mHFFTI = nullptr;
+  TH2F* mHOccupancyA = nullptr;
+  TH2F* mHOccupancyC = nullptr;
+  TH2F* mHOccupancyIROC = nullptr;
+  TH2F* mHOccupancyOROC = nullptr;
 
   TGCheckButton* mCheckFFT = nullptr;
+  TGCheckButton* mCheckOccupancy = nullptr;
   TGTextEntry* mEventNumber = nullptr;
   TGTextEntry* mSignalThresholdValue = nullptr;
 
   TH1* getBinInfoXY(int& binx, int& biny, float& bincx, float& bincy);
+  
+  void initOccupancyHists(void);
+  void deleteOccupancyHists(void);
 
   ClassDefNV(SimpleEventDisplayGUI, 0);
 };
