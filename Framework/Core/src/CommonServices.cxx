@@ -481,10 +481,12 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
       LOGP(debug, "Broadcasting oldest possible output {} due to {} ({})", oldestPossibleOutput.timeslice.value,
            oldestPossibleOutput.slot.index == -1 ? "channel" : "slot",
            oldestPossibleOutput.slot.index == -1 ? oldestPossibleOutput.channel.value : oldestPossibleOutput.slot.index);
-      auto oldNextTimeslice = decongestion->nextTimeslice;
-      decongestion->nextTimeslice = std::max(decongestion->nextTimeslice, (int64_t)oldestPossibleOutput.timeslice.value);
-      if (oldNextTimeslice != decongestion->nextTimeslice) {
-        LOGP(error, "Some Lifetime::Timeframe data got dropped starting at {}", oldNextTimeslice);
+      if (decongestion->orderedCompletionPolicyActive) {
+        auto oldNextTimeslice = decongestion->nextTimeslice;
+        decongestion->nextTimeslice = std::max(decongestion->nextTimeslice, (int64_t)oldestPossibleOutput.timeslice.value);
+        if (oldNextTimeslice != decongestion->nextTimeslice) {
+          LOGP(error, "Some Lifetime::Timeframe data got dropped starting at {}", oldNextTimeslice);
+        }
       }
       DataProcessingHelpers::broadcastOldestPossibleTimeslice(proxy, oldestPossibleOutput.timeslice.value);
 
@@ -548,10 +550,12 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
             }
           }
           decongestion.lastTimeslice = oldestPossibleOutput.timeslice.value;
-          int64_t oldNextTimeslice = decongestion.nextTimeslice;
-          decongestion.nextTimeslice = std::max(decongestion.nextTimeslice, (int64_t)oldestPossibleOutput.timeslice.value);
-          if (oldNextTimeslice != decongestion.nextTimeslice) {
-            LOGP(error, "Some Lifetime::Timeframe data got dropped starting at {}", oldNextTimeslice);
+          if (decongestion.orderedCompletionPolicyActive) {
+            int64_t oldNextTimeslice = decongestion.nextTimeslice;
+            decongestion.nextTimeslice = std::max(decongestion.nextTimeslice, (int64_t)oldestPossibleOutput.timeslice.value);
+            if (oldNextTimeslice != decongestion.nextTimeslice) {
+              LOGP(error, "Some Lifetime::Timeframe data got dropped starting at {}", oldNextTimeslice);
+            }
           }
         },
         TimesliceId{oldestPossibleTimeslice}, -1); },
@@ -902,7 +906,7 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
     },
     .postProcessing = [](ProcessingContext& context, void* service) {
       auto* stats = (DataProcessingStats*)service;
-      stats->updateStats({(short)ProcessingStatsId::PERFORMED_COMPUTATIONS, DataProcessingStats::Op::Add, 1}); 
+      stats->updateStats({(short)ProcessingStatsId::PERFORMED_COMPUTATIONS, DataProcessingStats::Op::Add, 1});
       flushMetrics(context.services(), *stats); },
     .preDangling = [](DanglingContext& context, void* service) {
        auto* stats = (DataProcessingStats*)service;
