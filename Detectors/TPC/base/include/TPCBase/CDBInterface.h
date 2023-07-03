@@ -146,7 +146,6 @@ const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   {CDBType::CalCorrMapRef, "TPC/Calib/CorrectionMapRef"},
   // correction maps with derivative corrections
   {CDBType::CalCorrDerivMap, "TPC/Calib/CorrectionDerivativeMap"},
-  {CDBType::CalCorrDerivMapRef, "TPC/Calib/CorrectionDerivativeMapRef"},
 };
 
 /// Poor enum reflection ...

@@ -78,5 +78,5 @@ void CorrectionMapsHelper::setCorrMapRef(std::unique_ptr<TPCFastTransform>&& m)
 //________________________________________________________
 void CorrectionMapsHelper::reportScaling()
 {
-  LOGP(info, "InstLumiOverride={}, UseCTPLumi={} -> instLumi={}, meanLumi={} -> LumiScale={}, LumiScaleMode={}", getInstLumiOverride(), getUseCTPLumi(), getInstLumi(), getMeanLumi(), getLumiScale(), getLumiScaleMode());
+  LOGP(info, "InstLumiOverride={}, UseCTPLumi={} -> instLumi={}, meanLumi={} -> LumiScale={}, lumiScaleMode={}", getInstLumiOverride(), getUseCTPLumi(), getInstLumi(), getMeanLumi(), getLumiScale(), getLumiScaleMode());
 }
