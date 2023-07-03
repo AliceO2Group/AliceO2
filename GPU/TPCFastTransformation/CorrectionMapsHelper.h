@@ -146,7 +146,7 @@ class CorrectionMapsHelper
   int mLumiScaleMode = 0;                                       // scaling-mode of the correciton maps
   float mMeanLumiOverride = -1.f;                               // optional value to override mean lumi
   float mInstLumiOverride = -1.f;                               // optional value to override inst lumi
-  int mLumiScaleModeOverride = 0;                             // optional value to override inst lumi
+  int mLumiScaleModeOverride = 0;                               // optional value to override inst lumi
   GPUCA_NAMESPACE::gpu::TPCFastTransform* mCorrMap{nullptr};    // current transform
   GPUCA_NAMESPACE::gpu::TPCFastTransform* mCorrMapRef{nullptr}; // reference transform
 #ifndef GPUCA_ALIROOT_LIB
