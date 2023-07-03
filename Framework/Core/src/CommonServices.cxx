@@ -486,6 +486,7 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
         decongestion->nextTimeslice = std::max(decongestion->nextTimeslice, (int64_t)oldestPossibleOutput.timeslice.value);
         if (oldNextTimeslice != decongestion->nextTimeslice) {
           LOGP(error, "Some Lifetime::Timeframe data got dropped starting at {}", oldNextTimeslice);
+          timesliceIndex.rescan();
         }
       }
       DataProcessingHelpers::broadcastOldestPossibleTimeslice(proxy, oldestPossibleOutput.timeslice.value);
