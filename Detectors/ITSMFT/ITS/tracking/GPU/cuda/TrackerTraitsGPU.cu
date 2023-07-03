@@ -471,7 +471,6 @@ GPUg() void computeLayerCellsKernel(
       }
       const Tracklet& nextTracklet = trackletsNextLayer[iNextTrackletIndex];
       const float deltaTanLambda{o2::gpu::GPUCommonMath::Abs(currentTracklet.tanLambda - nextTracklet.tanLambda)};
-      const float tanLambda{(currentTracklet.tanLambda + nextTracklet.tanLambda) * 0.5f};
 
       if (deltaTanLambda / trkPars->CellDeltaTanLambdaSigma < trkPars->NSigmaCut) {
         if constexpr (!initRun) {
@@ -554,7 +553,7 @@ GPUg() void computeLayerRoadsKernel(
     if (level == 1) {
       continue;
     }
-    // **** check! I'm tired
+
     const auto currentCellNeighOffset{neighboursLUT[layerIndex - 1][iCurrentCellIndex]};
     const int cellNeighboursNum{neighboursLUT[layerIndex - 1][iCurrentCellIndex + 1] - currentCellNeighOffset};
     bool isFirstValidNeighbour{true};
