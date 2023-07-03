@@ -16,6 +16,7 @@
 #include "Framework/CompilerBuiltins.h"
 #include "Framework/Logger.h"
 #include "Framework/TimingInfo.h"
+#include "DecongestionService.h"
 
 #include <cassert>
 #include <regex>
@@ -120,8 +121,8 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAll(const char* name, Compl
 
 CompletionPolicy CompletionPolicyHelpers::consumeWhenAllOrdered(const char* name, CompletionPolicy::Matcher matcher)
 {
-  auto nextTimeSlice = std::make_shared<long int>(0);
-  auto callback = [nextTimeSlice](InputSpan const& inputs) -> CompletionPolicy::CompletionOp {
+  auto callbackFull = [](InputSpan const& inputs, std::vector<InputSpec> const&, ServiceRegistryRef& ref) -> CompletionPolicy::CompletionOp {
+    auto& decongestionService = ref.get<DecongestionService>();
     for (auto& input : inputs) {
       if (input.header == nullptr) {
         return CompletionPolicy::CompletionOp::Wait;
@@ -129,16 +130,16 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAllOrdered(const char* name
       long int startTime = framework::DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(input)->startTime;
       if (startTime == 0) {
         LOGP(debug, "startTime is 0, which means we have the first message, so we can process it.");
-        *nextTimeSlice = 0;
+        decongestionService.nextTimeslice = 0;
       }
-      if (framework::DataRefUtils::isValid(input) && startTime != *nextTimeSlice) {
+      if (framework::DataRefUtils::isValid(input) && startTime != decongestionService.nextTimeslice) {
         return CompletionPolicy::CompletionOp::Retry;
       }
     }
-    (*nextTimeSlice)++;
+    decongestionService.nextTimeslice++;
     return CompletionPolicy::CompletionOp::ConsumeAndRescan;
   };
-  return CompletionPolicy{name, matcher, callback};
+  return CompletionPolicy{name, matcher, callbackFull};
 }
 
 CompletionPolicy CompletionPolicyHelpers::consumeWhenAllOrdered(std::string matchName)
@@ -154,7 +155,7 @@ CompletionPolicy CompletionPolicyHelpers::consumeExistingWhenAny(const char* nam
   return CompletionPolicy{
     name,
     matcher,
-    [](InputSpan const& inputs, std::vector<InputSpec> const& specs) -> CompletionPolicy::CompletionOp {
+    [](InputSpan const& inputs, std::vector<InputSpec> const& specs, ServiceRegistryRef&) -> CompletionPolicy::CompletionOp {
       size_t present = 0;
       size_t current = 0;
       size_t withPayload = 0;
@@ -192,9 +193,7 @@ CompletionPolicy CompletionPolicyHelpers::consumeExistingWhenAny(const char* nam
         return CompletionPolicy::CompletionOp::Wait;
       }
       return CompletionPolicy::CompletionOp::ConsumeAndRescan;
-    }
-
-  };
+    }};
 }
 
 CompletionPolicy CompletionPolicyHelpers::consumeWhenAny(const char* name, CompletionPolicy::Matcher matcher)
@@ -220,7 +219,7 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAny(std::string matchName)
 
 CompletionPolicy CompletionPolicyHelpers::consumeWhenAnyWithAllConditions(const char* name, CompletionPolicy::Matcher matcher)
 {
-  auto callback = [](InputSpan const& inputs, std::vector<InputSpec> const& specs) -> CompletionPolicy::CompletionOp {
+  auto callback = [](InputSpan const& inputs, std::vector<InputSpec> const& specs, ServiceRegistryRef&) -> CompletionPolicy::CompletionOp {
     bool canConsume = false;
     bool hasConditions = false;
     bool conditionMissing = false;

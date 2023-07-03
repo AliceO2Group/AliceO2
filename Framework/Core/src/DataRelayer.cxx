@@ -684,7 +684,7 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
     if (mCompletionPolicy.callback) {
       action = mCompletionPolicy.callback(span);
     } else if (mCompletionPolicy.callbackFull) {
-      action = mCompletionPolicy.callbackFull(span, mInputs);
+      action = mCompletionPolicy.callbackFull(span, mInputs, mContext);
     } else {
       throw runtime_error_f("Completion police %s has no callback set", mCompletionPolicy.name.c_str());
     }

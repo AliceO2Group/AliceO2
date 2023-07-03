@@ -20,6 +20,8 @@ struct DecongestionService {
   bool isFirstInTopology = true;
   /// Last timeslice we communicated. Notice this should never go backwards.
   int64_t lastTimeslice = 0;
+  /// The next timeslice we should consume, when running in order
+  int64_t nextTimeslice = 0;
   // Task to enqueue the oldest possible timeslice propagation
   // at the end of any processing chain.
   o2::framework::AsyncTaskId oldestPossibleTimesliceTask = {0};
