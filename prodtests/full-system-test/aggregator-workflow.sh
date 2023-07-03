@@ -259,11 +259,15 @@ fi
 # calibrations for AGGREGATOR_TASKS == CALO_TF
 if [[ $AGGREGATOR_TASKS == CALO_TF || $AGGREGATOR_TASKS == ALL ]]; then
   # EMC
+  EMCAL_CALIB_CTP_OPT=
+  if ! has_detector CTP; then
+    EMCAL_CALIB_CTP_OPT="--no-rejectL0Trigger"
+  fi
   if [[ $CALIB_EMC_BADCHANNELCALIB == 1 ]]; then
-    add_W o2-calibration-emcal-channel-calib-workflow "--calibType \"badchannels\""
+    add_W o2-calibration-emcal-channel-calib-workflow "${EMCAL_CALIB_CTP_OPT} --calibType \"badchannels\""
   fi
   if [[ $CALIB_EMC_TIMECALIB == 1 ]]; then
-    add_W o2-calibration-emcal-channel-calib-workflow "--calibType \"time\""
+    add_W o2-calibration-emcal-channel-calib-workflow "${EMCAL_CALIB_CTP_OPT} --calibType \"time\""
   fi
 
   # PHS
