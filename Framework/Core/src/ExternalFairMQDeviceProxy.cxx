@@ -26,6 +26,7 @@
 #include "Framework/RateLimiter.h"
 #include "Framework/TimingInfo.h"
 #include "Framework/DeviceState.h"
+#include "Framework/Monitoring.h"
 #include "Headers/DataHeader.h"
 #include "Headers/Stack.h"
 #include "CommonConstants/LHCConstants.h"
@@ -170,6 +171,31 @@ void sendOnChannel(fair::mq::Device& device, fair::mq::MessagePtr&& headerMessag
   out.AddPart(std::move(headerMessage));
   out.AddPart(std::move(payloadMessage));
   sendOnChannel(device, out, spec, tslice, channelRetriever);
+}
+
+void appendForSending(fair::mq::Device& device, o2::header::Stack&& headerStack, size_t timeSliceID, fair::mq::MessagePtr&& payloadMessage, OutputSpec const& spec, fair::mq::Parts& messageCache, ChannelRetriever& channelRetriever)
+{
+  auto channelName = channelRetriever(spec, timeSliceID);
+  constexpr auto index = 0;
+  if (channelName.empty()) {
+    LOG(warning) << "can not find matching channel for " << DataSpecUtils::describe(spec);
+    return;
+  }
+  for (auto& channelInfo : device.GetChannels()) {
+    if (channelInfo.first != channelName) {
+      continue;
+    }
+    assert(channelInfo.second.size() == 1);
+    // allocate the header message using the underlying transport of the channel
+    auto channelAlloc = o2::pmr::getTransportAllocator(channelInfo.second[index].Transport());
+    fair::mq::MessagePtr headerMessage = o2::pmr::getMessage(std::move(headerStack), channelAlloc);
+
+    fair::mq::Parts out;
+    messageCache.AddPart(std::move(headerMessage));
+    messageCache.AddPart(std::move(payloadMessage));
+    return;
+  }
+  LOG(error) << "internal mismatch, can not find channel " << channelName << " in the list of channel infos of the device";
 }
 
 InjectorFunction o2DataModelAdaptor(OutputSpec const& spec, uint64_t startTime, uint64_t /*step*/)
@@ -598,6 +624,9 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
               timingInfo.creation = dph->creation;
             }
             dataHandler(timingInfo, parts, 0, ci);
+            if (ctx.services().active<o2::monitoring::Monitoring>()) {
+              ctx.services().get<o2::monitoring::Monitoring>().send(o2::monitoring::Metric{(uint64_t)timingInfo.tfCounter, "df-sent"}.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL));
+            }
           }
           if (nReceived == 0 || channels.size() == 1) {
             break;
