@@ -48,6 +48,10 @@ struct DriverServerContext {
   /// FIXME: we should probably rename this completely and simply call it "DPLServerContext"
   ///        or something like that.
   bool isDriver = false;
+
+  /// The handle to the server component of the
+  /// driver.
+  uv_tcp_t serverHandle;
 };
 } // namespace o2::framework
 
