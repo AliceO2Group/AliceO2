@@ -1612,7 +1612,7 @@ bool GPURecoWorkflowSpec::fetchCalibsCCDBTPC(ProcessingContext& pc, T& newCalibO
           mFastTransformHelperNew->setUseCTPLumi(mFastTransformHelper->getUseCTPLumi());
           mFastTransformHelperNew->setMeanLumiOverride(mFastTransformHelper->getMeanLumiOverride());
           mFastTransformHelperNew->setInstLumiOverride(mFastTransformHelper->getInstLumiOverride());
-          mFastTransformHelperNew->setLumiScaleModeOverride(mFastTransformHelper->getLumiScaleModeOverride());
+          mFastTransformHelperNew->setLumiScaleMode(mFastTransformHelper->getLumiScaleMode());
           mFastTransformHelperNew->setCorrMap(mFastTransformNew ? mFastTransformNew.get() : mFastTransform.get());
           mFastTransformHelperNew->setCorrMapRef(mFastTransformRefNew ? mFastTransformRefNew.get() : mFastTransformRef.get());
           newCalibObjects.fastTransformHelper = mFastTransformHelperNew.get();

@@ -140,7 +140,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   auto nLanes = cfgc.options().get<int>("tpc-lanes");
   auto inputType = cfgc.options().get<std::string>("input-type");
   auto requireCTPLumi = cfgc.options().get<bool>("require-ctp-lumi");
-  auto lumiScaleMode = cfgc.options().get<bool>("corrmap-lumi-mode");
+  auto lumiScaleMode = cfgc.options().get<int>("corrmap-lumi-mode");
   // depending on whether to dispatch early (prompt) and on the input type, we
   // set the matcher. Note that this has to be in accordance with the OutputSpecs
   // configured for the PublisherSpec

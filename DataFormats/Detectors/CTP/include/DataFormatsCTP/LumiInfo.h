@@ -31,7 +31,7 @@ struct LumiInfo {
   float getLumiFV0() const { return nHBFCountedFV0 > 0 ? float(countsFV0 / (nHBFCountedFV0 * o2::constants::lhc::LHCOrbitMUS * 1e-6)) : 0.f; }
   float getLumiError() const { return nHBFCounted > 0 ? float(std::sqrt(counts) / (nHBFCounted * o2::constants::lhc::LHCOrbitMUS * 1e-6)) : 0.f; }
   float getLumiFV0Error() const { return nHBFCountedFV0 > 0 ? float(std::sqrt(countsFV0) / (nHBFCountedFV0 * o2::constants::lhc::LHCOrbitMUS * 1e-6)) : 0.f; }
-  ClassDefNV(LumiInfo, 3);
+  ClassDefNV(LumiInfo, 2);
 };
 } // namespace ctp
 
