@@ -13,7 +13,7 @@ SIMPROC=$!
 
 # --aggregate-timeframe 200 is used to combine 200 generated events into a timeframe that is then converted to AOD tables
 # note that if you need special configuration for the analysis tasks, it needs to be passed to proxy and converter as well
-o2-sim-mctracks-proxy -b --nevents ${NEVENTS} --o2sim-pid ${SIMPROC} --aggregate-timeframe 200 |\ 
+o2-sim-mctracks-proxy -b --nevents ${NEVENTS} --o2sim-pid ${SIMPROC} --aggregate-timeframe 200 |\
 o2-sim-mctracks-to-aod -b |\
 o2-analysis-mctracks-to-aod-simple-task -b &
 TRACKANAPROC=$!
