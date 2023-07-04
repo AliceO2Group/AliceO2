@@ -64,6 +64,7 @@ if [[ "${GEN_TOPO_VERBOSE:-}" == "1" ]]; then
   echo "CALIB_PHS_RUNBYRUNCALIB = $CALIB_PHS_RUNBYRUNCALIB" 1>&2
   echo "CALIB_PHS_L1PHASE = $CALIB_PHS_L1PHASE" 1>&2
   echo "CALIB_TRD_VDRIFTEXB = $CALIB_TRD_VDRIFTEXB" 1>&2
+  echo "CALIB_TRD_GAIN = $CALIB_TRD_GAIN" 1>&2
   echo "CALIB_TPC_TIMEGAIN = $CALIB_TPC_TIMEGAIN" 1>&2
   echo "CALIB_TPC_RESPADGAIN = $CALIB_TPC_RESPADGAIN" 1>&2
   echo "CALIB_TPC_SCDCALIB = $CALIB_TPC_SCDCALIB" 1>&2
@@ -211,8 +212,15 @@ if [[ $AGGREGATOR_TASKS == BARREL_TF ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
     add_W o2-tpc-vdrift-tgl-calibration-workflow ""
   fi
   # TRD
+  TRD_CALIB_CONFIG=
   if [[ $CALIB_TRD_VDRIFTEXB == 1 ]]; then
-    add_W o2-calibration-trd-workflow "--vDriftAndExB"
+    TRD_CALIB_CONFIG+=" --vDriftAndExB"
+  fi
+  if [[ $CALIB_TRD_GAIN == 1 ]]; then
+    TRD_CALIB_CONFIG+=" --gain"
+  fi
+  if [[ ! -z ${TRD_CALIB_CONFIG} ]]; then
+    add_W o2-calibration-trd-workflow "${TRD_CALIB_CONFIG}"
   fi
 fi
 

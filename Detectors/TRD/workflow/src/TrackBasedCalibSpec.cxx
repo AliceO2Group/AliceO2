@@ -141,9 +141,9 @@ DataProcessorSpec getTRDTrackBasedCalibSpec(o2::dataformats::GlobalTrackID::mask
   if (GTrackID::includesSource(GTrackID::Source::TPC, src)) {
     LOGF(info, "Found TPC tracks as input, loading TPC-TRD");
     srcTrk |= GTrackID::getSourcesMask("TPC-TRD");
-    if (gain) {
-      srcTrk |= GTrackID::getSourcesMask("TPC");
-    }
+  }
+  if (gain) {
+    srcTrk |= GTrackID::getSourcesMask("TPC");
   }
   GTrackID::mask_t srcClu = GTrackID::getSourcesMask("TRD");         // we don't need all clusters, only TRD tracklets
   dataRequest->requestTracks(srcTrk, false);

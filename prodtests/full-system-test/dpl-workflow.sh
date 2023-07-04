@@ -158,6 +158,7 @@ fi
 
 
 workflow_has_parameter CALIB && [[ $CALIB_TRD_VDRIFTEXB == 1 ]] && TRD_CONFIG+=" --enable-vdexb-calib"
+workflow_has_parameter CALIB && [[ $CALIB_TRD_GAIN == 1 ]] && TRD_CONFIG+=" --enable-gain-calib"
 ! has_detector FT0 && TRD_CONFIG+=" --disable-ft0-pileup-tagging"
 
 SEND_ITSTPC_DTGL=
