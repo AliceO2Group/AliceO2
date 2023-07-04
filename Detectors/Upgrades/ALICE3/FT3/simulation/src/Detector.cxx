@@ -221,11 +221,11 @@ void Detector::buildFT3V1()
   }
 }
 
-//_________________________________________________________________________________________________                                                                                                     
+//_________________________________________________________________________________________________
 void Detector::buildFT3V3b()
 {
-  //Build FT3 detector according to                                                                                                                                                                    
-  //https://www.overleaf.com/project/6051acc870e39aaeb4653621                                                                     
+  // Build FT3 detector according to
+  // https://www.overleaf.com/project/6051acc870e39aaeb4653621
 
   LOG(info) << "Building FT3 Detector: V3b";
 
@@ -233,7 +233,7 @@ void Detector::buildFT3V3b()
   Float_t sensorThickness = 30.e-4;
   Float_t layersx2X0 = 1.e-2;
   std::vector<std::array<Float_t, 5>> layersConfig{
-    {26., .5, 3., 0.1f * layersx2X0}, // {z_layer, r_in, r_out, Layerx2X0}                                                                                                                             
+    {26., .5, 3., 0.1f * layersx2X0}, // {z_layer, r_in, r_out, Layerx2X0}
     {30., .5, 3., 0.1f * layersx2X0},
     {34., .5, 3., 0.1f * layersx2X0},
     {77., 5.0, 35., layersx2X0},
@@ -264,7 +264,7 @@ void Detector::buildFT3V3b()
       auto& x0 = layersConfig[layerNumber][3];
 
       LOG(info) << "Adding Layer " << layerName << " at z = " << z;
-      // Add layers                                                                                                                                                                                     
+      // Add layers
       auto& thisLayer = mLayers[direction].emplace_back(direction, layerNumber, layerName, z, rIn, rOut, x0);
     }
   }
