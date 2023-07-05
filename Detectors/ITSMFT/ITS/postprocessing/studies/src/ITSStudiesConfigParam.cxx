@@ -9,13 +9,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifdef __CLING__
+#include "ITSStudies/ITSStudiesConfigParam.h"
 
-#pragma link off all globals;
-#pragma link off all classes;
-#pragma link off all functions;
+namespace o2
+{
+namespace its
+{
+namespace study
+{
 
-#pragma link C++ class o2::its::study::AvgClusSizeStudyParamConfig + ;
-#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::its::study::AvgClusSizeStudyParamConfig> + ;
+static auto& sAvgClusSizeParam = o2::its::study::AvgClusSizeStudyParamConfig::Instance(); // modeled on TrackingConfigParam.cxx
 
-#endif
+O2ParamImpl(o2::its::study::AvgClusSizeStudyParamConfig);
+
+} // namespace study
+} // namespace its
+} // namespace o2

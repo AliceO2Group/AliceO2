@@ -20,11 +20,12 @@
 #include "DataFormatsITS/TrackITS.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "Framework/Task.h"
+#include <Steer/MCKinematicsReader.h>
 
+#include "ITSStudies/ITSStudiesConfigParam.h"
 
 #include <TH1F.h>
 #include <THStack.h>
-
 
 namespace o2
 {
@@ -38,6 +39,7 @@ using namespace o2::globaltracking;
 using GTrackID = o2::dataformats::GlobalTrackID;
 using ITSCluster = o2::BaseCluster<float>;
 using mask_t = o2::dataformats::GlobalTrackID::mask_t;
+using MCLabel = o2::MCCompLabel;
 
 class AvgClusSizeStudy : public Task
 {
@@ -51,15 +53,15 @@ class AvgClusSizeStudy : public Task
   void process(o2::globaltracking::RecoContainer&);
   void loadData(o2::globaltracking::RecoContainer&);
   void setClusterDictionary(const o2::itsmft::TopologyDictionary* d) { mDict = d; }
-  void getClusterSizes(std::vector<int>&, const gsl::span<const o2::itsmft::CompClusterExt>, gsl::span<const unsigned char>::iterator&, const o2::itsmft::TopologyDictionary*);
-  void saveHistograms();
-  void formatHistograms();
-  void plotHistograms();
-  void findEtaBin(double eta, double clusSize, int i);
-  void fitMassSpectrum();
 
  private:
   void updateTimeDependentParams(ProcessingContext& pc);
+  double getAverageClusterSize(o2::its::TrackITS);
+  void getClusterSizes(std::vector<int>&, const gsl::span<const o2::itsmft::CompClusterExt>, gsl::span<const unsigned char>::iterator&, const o2::itsmft::TopologyDictionary*);
+  void fitMassSpectrum();
+  void saveHistograms();
+  void plotHistograms();
+  void fillEtaBin(double eta, double clusSize, int i);
   bool mUseMC;
 
   // Data
@@ -67,11 +69,11 @@ class AvgClusSizeStudy : public Task
   std::shared_ptr<DataRequest> mDataRequest;
   std::vector<int> mInputClusterSizes;
   gsl::span<const int> mInputITSidxs;
-  gsl::span<const TrackITS> mInputITStracks;
-  std::vector<ITSCluster> mInputITSclusters;
+  std::vector<o2::MCTrack> mMCTracks;
+
   const o2::itsmft::TopologyDictionary* mDict = nullptr;
 
-  // Output
+  // Output plots
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
   std::unique_ptr<THStack> mMassSpectrumFull{};
   std::unique_ptr<TH1F> mMassSpectrumFullNC{};
@@ -84,26 +86,55 @@ class AvgClusSizeStudy : public Task
   std::unique_ptr<TH1F> mAvgClusSizeC{};
   std::unique_ptr<THStack> mAvgClusSizeCEta{};
   std::vector<std::unique_ptr<TH1F>> mAvgClusSizeCEtaVec{};
-  std::vector<double> etaBinEdges;
+  std::unique_ptr<THStack> mStackCosPA{};
+  std::unique_ptr<THStack> mStackDCA{};
+  std::unique_ptr<THStack> mStackR{};
+  std::unique_ptr<THStack> mStackPVDCA{};
   std::unique_ptr<TH1F> mCosPA{};
+  std::unique_ptr<TH1F> mCosPA_K0{};
+  std::unique_ptr<TH1F> mCosPA_notK0{};
+  std::unique_ptr<TH1F> mCosPA_trueK0{};
   std::unique_ptr<TH1F> mR{};
+  std::unique_ptr<TH1F> mR_K0{};
+  std::unique_ptr<TH1F> mR_notK0{};
+  std::unique_ptr<TH1F> mR_trueK0{};
   std::unique_ptr<TH1F> mDCA{};
+  std::unique_ptr<TH1F> mDCA_K0{};
+  std::unique_ptr<TH1F> mDCA_notK0{};
+  std::unique_ptr<TH1F> mDCA_trueK0{};
   std::unique_ptr<TH1F> mEtaNC{};
   std::unique_ptr<TH1F> mEtaC{};
-  int globalNClusters;
-  int globalNPixels;
+  std::unique_ptr<TH1F> mPID{};
+  std::unique_ptr<TH1F> mPVDCA_K0{};
+  std::unique_ptr<TH1F> mPVDCA_notK0{};
+
+  int globalNClusters = 0;
+  int globalNPixels = 0;
+
+  std::vector<double> mEtaBinUL;
   double etaMin = -1.5;
   double etaMax = 1.5;
   int etaNBins = 5;
 
+  // Counters for K0s identification
+  int nNotValid = 0;
+  int nNullptrs = 0;
+  int nPiPi = 0;
+  int nIsPiPiNotK0s = 0;
+  int nIsPiPiIsK0s = 0;
+  int nIsNotPiPiIsK0s = 0;
+  int nMotherIDMismatch = 0;
+  int nEvIDMismatch = 0;
+  int nK0s = 0;
+  int nNotK0s = 0;
+  int nPionsInEtaRange = 0;
 
   const std::string mOutName{"massSpectrum.root"};
+  std::unique_ptr<o2::steer::MCKinematicsReader> mMCKinReader = std::make_unique<o2::steer::MCKinematicsReader>("collisioncontext.root");
+  // bool mPerformFit = false;
+
+  const o2::its::study::AvgClusSizeStudyParamConfig& mParams = o2::its::study::AvgClusSizeStudyParamConfig::Instance(); // NOTE: unsure if this is implemented in the "typical" way - it does work though
 };
-
-
-
-
-
 
 o2::framework::DataProcessorSpec getAvgClusSizeStudy(mask_t srcTracksMask, mask_t srcClustersMask, bool useMC);
 } // namespace study

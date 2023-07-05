@@ -12,7 +12,12 @@
 o2_add_library(ITSPostprocessing
                SOURCES src/ImpactParameter.cxx
                        src/AvgClusSize.cxx
+                       src/ITSStudiesConfigParam.cxx
                PUBLIC_LINK_LIBRARIES O2::GlobalTracking
                                      O2::GlobalTrackingWorkflowReaders
                                      O2::GlobalTrackingWorkflowHelpers
                                      O2::DataFormatsGlobalTracking)
+
+o2_target_root_dictionary(ITSPostprocessing
+                HEADERS include/ITSStudies/ITSStudiesConfigParam.h
+                LINKDEF src/ITSStudiesLinkDef.h)
