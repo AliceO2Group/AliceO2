@@ -33,7 +33,7 @@ struct DataTakingContext {
   /// The current run number
   std::string runNumber{UNKNOWN};
   /// How many orbits in a timeframe
-  uint64_t nOrbitsPerTF = 128;
+  uint64_t nOrbitsPerTF = 0;
   /// The start time of the first orbit in microseconds(!)
   long orbitResetTimeMUS = 0;
   /// The current lhc period
