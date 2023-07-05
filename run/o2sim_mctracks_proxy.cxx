@@ -146,6 +146,14 @@ InjectorFunction o2simKinematicsConverter(std::vector<OutputSpec> const& specs, 
     }
 
     if (*totalEventCounter == static_cast<size_t>(nevents)) {
+      if (nPerTF > 0) {
+        // send accumulated messages if the limit is reached
+        ++(*TFcounter);
+        sendOnChannel(device, *MCHeadersMessageCache.get(), channelRetriever(specs[0], *TFcounter), *TFcounter);
+        sendOnChannel(device, *MCTracksMessageCache.get(), channelRetriever(specs[1], *TFcounter), *TFcounter);
+        MCHeadersMessageCache->Clear();
+        MCTracksMessageCache->Clear();
+      }
       // I am done (I don't expect more events to convert); so tell the proxy device to shut-down
       stop = true;
     }
