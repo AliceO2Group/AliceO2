@@ -24,6 +24,7 @@
 #include "Framework/ChannelInfo.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/RateLimiter.h"
+#include "Framework/TimesliceIndex.h"
 #include "Framework/TimingInfo.h"
 #include "Framework/DeviceState.h"
 #include "Framework/Monitoring.h"
@@ -32,7 +33,7 @@
 #include "CommonConstants/LHCConstants.h"
 
 #include "./DeviceSpecHelpers.h"
-#include "Framework/DataProcessingHelpers.h"
+#include "Monitoring/Monitoring.h"
 
 #include <fairmq/Parts.h>
 #include <fairmq/Device.h>
