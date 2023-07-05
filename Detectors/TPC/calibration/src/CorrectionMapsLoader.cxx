@@ -98,6 +98,7 @@ bool CorrectionMapsLoader::accountCCDBInputs(const ConcreteDataMatcher& matcher,
     if (getMeanLumiOverride() <= 0 && mCorrMap->getLumi() > 0.) {
       setMeanLumi(mCorrMap->getLumi());
     }
+    mCorrMap->setLumiScaleMode(getLumiScaleMode());
     LOGP(debug, "MeanLumiOverride={} MeanLumiMap={} -> meanLumi = {}", getMeanLumiOverride(), mCorrMap->getLumi(), getMeanLumi());
     setUpdatedMap();
     return true;

@@ -90,7 +90,7 @@ class CorrectionMapsHelper
 
   void updateLumiScale()
   {
-    if (mMeanLumi <= 0.f || mInstLumi < 0.f) {
+    if (mMeanLumi < 0.f || mInstLumi < 0.f) {
       mLumiScale = -1.f;
     } else if (mLumiScaleMode == 1) {
       mLumiScale = mMeanLumi ? mInstLumi / mMeanLumi - 1. : 0.f;
