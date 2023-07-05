@@ -28,6 +28,11 @@
 #include "Framework/DataSpecUtils.h"
 #include <vector>
 #include <unordered_map>
+#include <iostream>
+#ifdef WITH_OPENMP
+#include <omp.h>
+#include "TROOT.h"
+#endif
 
 namespace o2
 {
@@ -160,7 +165,12 @@ o2::framework::DataProcessorSpec specCombiner(std::string const& name, std::vect
     }
     for (auto& is : spec.inputs) {
       if (inputBindings.find(is.binding) != inputBindings.end()) {
-        LOG(error) << "Found duplicate input binding " << is.binding;
+        // we can accept duplicate binding if it is bound to the same spec (e.g. ccdbParamSpec)
+        if (std::find(combinedInputSpec.begin(), combinedInputSpec.end(), is) == combinedInputSpec.end()) {
+          LOG(error) << "Found duplicate input binding with different spec.:" << is.binding;
+        } else {
+          continue; // consider as already accounted
+        }
       }
       combinedInputSpec.push_back(is);
       inputBindings[is.binding] = 1;
@@ -212,6 +222,16 @@ o2::framework::DataProcessorSpec specCombiner(std::string const& name, std::vect
     void init(o2::framework::InitContext& ic)
     {
       std::cerr << "Init Combined\n";
+      mNThreads = std::max(1, ic.options().get<int>("combine-nthreads"));
+      if (mNThreads > 1) {
+#ifdef WITH_OPENMP
+        LOGP(info, "Combined tasks will be run with {} threads", mNThreads);
+        ROOT::EnableThreadSafety();
+#else
+        LOGP(warn, "{} threads requested for combined tasks but OpenMP is not detected, link it from the workflow CMakeList", mNThreads);
+        mNThreads = 1;
+#endif
+      }
       for (auto& t : tasks) {
         // the init function actually creates the onProcess function
         // which we have to do here (maybe some more stuff needed)
@@ -236,17 +256,32 @@ o2::framework::DataProcessorSpec specCombiner(std::string const& name, std::vect
 
     void run(o2::framework::ProcessingContext& pc)
     {
-      std::cerr << "Processing Combined\n";
-      for (auto& t : tasks) {
-        std::cerr << " Executing sub-device " << t.name << "\n";
-        t.algorithm.onProcess(pc);
+      std::cerr << "Processing Combined with " << mNThreads << " threads\n";
+      if (mNThreads > 1) {
+        size_t nt = tasks.size();
+#ifdef WITH_OPENMP
+#pragma omp parallel for schedule(dynamic) num_threads(mNThreads)
+#endif
+        for (size_t i = 0; i < nt; i++) {
+          auto& t = tasks[i];
+          std::cerr << " Executing sub-device " << t.name << "\n";
+          t.algorithm.onProcess(pc);
+        }
+      } else {
+        for (auto& t : tasks) {
+          std::cerr << " Executing sub-device " << t.name << "\n";
+          t.algorithm.onProcess(pc);
+        }
       }
     }
 
    private:
     std::vector<DataProcessorSpec> tasks;
     std::unordered_map<std::string, std::unordered_map<std::string, std::string>> optionsRemap;
+    int mNThreads = 1;
   };
+
+  combinedOptions.emplace_back(ConfigParamSpec{"combine-nthreads", VariantType::Int, 1, {"Number of threads for combined tasks"}});
 
   return DataProcessorSpec{
     name,

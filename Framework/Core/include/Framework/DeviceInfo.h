@@ -26,6 +26,11 @@
 namespace o2::framework
 {
 
+/// This struct holds information about a given
+/// device as known by the driver. Due to the distributed
+/// nature of O2, you should not assume that the updates
+/// to this struct are a reflection of the current state
+/// of the device, merely the last known state.
 struct DeviceInfo {
   /// The pid of the device associated to this device
   pid_t pid;
@@ -64,14 +69,6 @@ struct DeviceInfo {
   /// Use fair::mq::GetState() to have the enum value.
   /// @return a string from one of fair::mq::GetStateName
   std::string deviceState;
-  /// Index for a particular relayer.
-  Metric2DViewIndex dataRelayerViewIndex;
-  /// Index for the variables of a given relayer.
-  Metric2DViewIndex variablesViewIndex;
-  /// Index for the queries of each input route.
-  Metric2DViewIndex queriesViewIndex;
-  /// Index for the queries of each input route.
-  Metric2DViewIndex outputsViewIndex;
   /// Index for the metrics to be displayed associated to
   /// each input channel of the device.
   Metric2DViewIndex inputChannelMetricsViewIndex;

@@ -86,7 +86,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
                   }
                   rdhprintout << std::endl;
                 }
-                rdhprintout << DPLRawParser::RDHInfo(it) << std::endl;
+                rdhprintout << DPLRawParser<>::RDHInfo(it) << std::endl;
               }
               rdhprintout << it << "  payload size " << it.size() << std::endl;
             }

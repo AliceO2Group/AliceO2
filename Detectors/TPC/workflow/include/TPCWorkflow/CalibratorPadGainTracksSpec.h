@@ -45,13 +45,17 @@ class CalibratorPadGainTracksDevice : public Task
     const int minEntries = ic.options().get<int>("min-entries");
     const int gainNorm = ic.options().get<int>("gainNorm");
     const bool debug = ic.options().get<bool>("file-dump");
+    const bool storeNClCCDB = ic.options().get<bool>("store-NCl-CCDB");
+    const bool storeRMSCCDB = ic.options().get<bool>("store-RMS-CCDB");
     const auto lowTrunc = ic.options().get<float>("lowTrunc");
     const auto upTrunc = ic.options().get<float>("upTrunc");
     const auto minAcceptedRelgain = ic.options().get<float>("minAcceptedRelgain");
     const auto maxAcceptedRelgain = ic.options().get<float>("maxAcceptedRelgain");
     const int minEntriesMean = ic.options().get<int>("minEntriesMean");
+    const auto disableLogTransform = ic.options().get<bool>("disable-log-transform");
 
     mCalibrator = std::make_unique<CalibratorPadGainTracks>();
+    mCalibrator->setLogTransformQ(!disableLogTransform);
     mCalibrator->setMinEntries(minEntries);
     mCalibrator->setSlotLength(slotLength);
     mCalibrator->setMaxSlotsDelay(maxDelay);
@@ -61,6 +65,8 @@ class CalibratorPadGainTracksDevice : public Task
     mCalibrator->setNormalizationType(static_cast<CalibPadGainTracksBase::NormType>(gainNorm));
     mCalibrator->setUseLastExtractedMapAsReference(mUseLastExtractedMapAsReference);
     mCalibrator->setMinEntriesMean(minEntriesMean);
+    mCalibrator->setStoreNClCCDB(storeNClCCDB);
+    mCalibrator->setStoreRMSCCDB(storeRMSCCDB);
   }
 
   void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
@@ -75,7 +81,7 @@ class CalibratorPadGainTracksDevice : public Task
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
     mCalibrator->process(*histomaps.get());
     const auto& infoVec = mCalibrator->getTFinterval();
-    LOGP(info, "Created {} objects for TF {} and time stamp {}", infoVec.size(), mCalibrator->getCurrentTFInfo().tfCounter, mCalibrator->getCurrentTFInfo().creation);
+    LOGP(detail, "Created {} objects for TF {} and time stamp {}", infoVec.size(), mCalibrator->getCurrentTFInfo().tfCounter, mCalibrator->getCurrentTFInfo().creation);
 
     if (mCalibrator->hasCalibrationData()) {
       mRunNumber = mCalibrator->getCurrentTFInfo().runNumber;
@@ -141,13 +147,16 @@ o2::framework::DataProcessorSpec getTPCCalibPadGainTracksSpec(const bool useLast
     Options{
       {"tf-per-slot", VariantType::UInt32, 100u, {"number of TFs per calibration time slot"}},
       {"max-delay", VariantType::UInt32, 0u, {"number of slots in past to consider"}},
-      {"min-entries", VariantType::Int, 0, {"minimum entries per pad-by-pad histogram which are required"}},
+      {"min-entries", VariantType::Int, 40, {"minimum entries per pad-by-pad histogram which are required"}},
       {"lowTrunc", VariantType::Float, 0.05f, {"lower truncation range for calculating the rel gain"}},
       {"upTrunc", VariantType::Float, 0.6f, {"upper truncation range for calculating the rel gain"}},
       {"minAcceptedRelgain", VariantType::Float, 0.1f, {"minimum accpeted relative gain (if the gain is below this value it will be set to 1)"}},
       {"maxAcceptedRelgain", VariantType::Float, 2.f, {"maximum accpeted relative gain (if the gain is above this value it will be set to 1)"}},
-      {"gainNorm", VariantType::Int, 2, {"normalization method for the extracted gain map: 0=no normalization, 1=median per stack, 2=median per region"}},
-      {"minEntriesMean", VariantType::Int, 10, {"minEntries minimum number of entries in pad-by-pad histogram to calculate the mean"}},
+      {"gainNorm", VariantType::Int, 1, {"normalization method for the extracted gain map: 0=no normalization, 1=median per stack, 2=median per region"}},
+      {"minEntriesMean", VariantType::Int, 40, {"minEntries minimum number of entries in pad-by-pad histogram to calculate the mean"}},
+      {"store-NCl-CCDB", VariantType::Bool, false, {"store the CalDet containing the number of clusters per pad in the CCDB"}},
+      {"store-RMS-CCDB", VariantType::Bool, false, {"store the RMS of each pad-by-pad histogram containing the number of clusters per pad in the CCDB"}},
+      {"disable-log-transform", VariantType::Bool, false, {"Disable the transformation of q/dedx -> log(1 + q/dedx)"}},
       {"file-dump", VariantType::Bool, false, {"directly write calibration to a file"}}}};
 }
 

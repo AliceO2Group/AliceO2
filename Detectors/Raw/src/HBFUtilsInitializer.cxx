@@ -28,6 +28,7 @@
 #include "Framework/Logger.h"
 #include "Framework/DataProcessingHeader.h"
 #include <TFile.h>
+#include <TGrid.h>
 
 using namespace o2::raw;
 namespace o2f = o2::framework;
@@ -75,6 +76,7 @@ HBFUtilsInitializer::HBFUtilsInitializer(const o2f::ConfigContext& configcontext
     if (spec.inputs.empty()) {
       auto conf = updateHBFUtils();
       o2f::ConfigParamsHelper::addOptionIfMissing(spec.options, o2f::ConfigParamSpec{HBFTFInfoOpt, o2f::VariantType::String, conf, {"root file with per-TF info"}});
+      o2f::ConfigParamsHelper::addOptionIfMissing(spec.options, o2f::ConfigParamSpec{DelayOpt, o2f::VariantType::Float, 0.f, {"delay in seconds between consecutive TFs sending"}});
     }
   }
 }
@@ -103,8 +105,11 @@ HBFUtilsInitializer::HBFOpt HBFUtilsInitializer::getOptType(const std::string& o
 //_________________________________________________________
 std::vector<o2::dataformats::TFIDInfo> HBFUtilsInitializer::readTFIDInfoVector(const std::string& fname)
 {
-  TFile fl(fname.c_str());
-  auto vptr = (std::vector<o2::dataformats::TFIDInfo>*)fl.GetObjectChecked("tfidinfo", "std::vector<o2::dataformats::TFIDInfo>");
+  if (o2::utils::Str::beginsWith(fname, "alien://") && !gGrid && !TGrid::Connect("alien://")) {
+    LOGP(fatal, "could not open alien connection to read {}", fname);
+  }
+  std::unique_ptr<TFile> fl(TFile::Open(fname.c_str()));
+  auto vptr = (std::vector<o2::dataformats::TFIDInfo>*)fl->GetObjectChecked("tfidinfo", "std::vector<o2::dataformats::TFIDInfo>");
   if (!vptr) {
     throw std::runtime_error(fmt::format("Failed to read tfidinfo vector from {}", fname));
   }
@@ -133,22 +138,33 @@ void HBFUtilsInitializer::addNewTimeSliceCallback(std::vector<o2::framework::Cal
     },
     [](o2::framework::CallbackService& service, o2::framework::InitContext& context) {
       auto fname = context.options().get<std::string>(HBFTFInfoOpt);
+      uint32_t delay = context.options().isSet(DelayOpt) ? uint32_t(1e6 * context.options().get<float>(DelayOpt)) : 0;
       if (!fname.empty()) {
         if (fname == HBFUSrc) { // simple linear enumeration from already updated HBFUtils
           const auto& hbfu = o2::raw::HBFUtils::Instance();
-          service.set(o2::framework::CallbackService::Id::NewTimeslice,
-                      [offset = int64_t(hbfu.getFirstIRofTF({0, hbfu.orbitFirstSampled}).orbit), increment = int64_t(hbfu.nHBFPerTF),
-                       startTime = hbfu.startTime, orbitFirst = hbfu.orbitFirst, runNumber = hbfu.runNumber](o2::header::DataHeader& dh, o2::framework::DataProcessingHeader& dph) {
-                        dh.firstTForbit = offset + increment * dh.tfCounter;
-                        dh.runNumber = runNumber;
-                        dph.creation = startTime + (dh.firstTForbit - orbitFirst) * o2::constants::lhc::LHCOrbitMUS * 1.e-3;
-                      });
+          service.set<o2::framework::CallbackService::Id::NewTimeslice>(
+            [offset = int64_t(hbfu.getFirstIRofTF({0, hbfu.orbitFirstSampled}).orbit), increment = int64_t(hbfu.nHBFPerTF),
+             startTime = hbfu.startTime, orbitFirst = hbfu.orbitFirst, runNumber = hbfu.runNumber, delay](o2::header::DataHeader& dh, o2::framework::DataProcessingHeader& dph) {
+              dh.firstTForbit = offset + increment * dh.tfCounter;
+              dh.runNumber = runNumber;
+              dph.creation = startTime + (dh.firstTForbit - orbitFirst) * o2::constants::lhc::LHCOrbitMUS * 1.e-3;
+              static size_t tfcount = 0;
+              if (tfcount++ && delay > 0) {
+                usleep(delay);
+              }
+            });
         } else if (o2::utils::Str::endsWith(fname, ".root")) { // read TFIDinfo from file
           if (!o2::utils::Str::pathExists(fname)) {
             throw std::runtime_error(fmt::format("file {} does not exist", fname));
           }
-          service.set(o2::framework::CallbackService::Id::NewTimeslice,
-                      [tfidinfo = readTFIDInfoVector(fname)](o2::header::DataHeader& dh, o2::framework::DataProcessingHeader& dph) { assignDataHeader(tfidinfo, dh, dph); });
+          service.set<o2::framework::CallbackService::Id::NewTimeslice>(
+            [tfidinfo = readTFIDInfoVector(fname), delay](o2::header::DataHeader& dh, o2::framework::DataProcessingHeader& dph) {
+              assignDataHeader(tfidinfo, dh, dph);
+              static size_t tfcount = 0;
+              if (tfcount++ && delay > 0) {
+                usleep(delay);
+              }
+            });
         } else { // do not modify timing info
           // we may remove the highest bit set on the creation time?
         }

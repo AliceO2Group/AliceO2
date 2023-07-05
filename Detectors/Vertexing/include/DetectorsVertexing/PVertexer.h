@@ -37,7 +37,7 @@
 #include <TFile.h>
 #include <TStopwatch.h>
 
-// #define _PV_DEBUG_TREE_ // if enabled, produce dbscan and vertex comparison dump
+//#define _PV_DEBUG_TREE_ // if enabled, produce dbscan and vertex comparison dump
 
 namespace o2
 {
@@ -263,7 +263,6 @@ void PVertexer::createTracksPool(const TR& tracks, gsl::span<const o2d::GlobalTr
 
   // check all containers
   float vtxErr2 = 0.5 * (mMeanVertex.getSigmaX2() + mMeanVertex.getSigmaY2()) + mPVParams->meanVertexExtraErrSelection * mPVParams->meanVertexExtraErrSelection;
-  o2d::DCA dca;
 
   for (uint32_t i = 0; i < ntGlo; i++) {
     int id = sortedTrackID[i];
@@ -274,6 +273,9 @@ void PVertexer::createTracksPool(const TR& tracks, gsl::span<const o2d::GlobalTr
       continue;
     }
     auto& tvf = mTracksPool.emplace_back(trc, tracks[id].getTimeMUS(), id, gids[id], mPVParams->addTimeSigma2, mPVParams->addZSigma2);
+    if (tvf.wghHisto < 0) {
+      mTracksPool.pop_back(); // discard bad track
+    }
   }
 
   if (mTracksPool.empty()) {

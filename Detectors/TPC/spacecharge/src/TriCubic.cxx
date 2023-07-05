@@ -20,6 +20,30 @@
 
 using namespace o2::tpc;
 
+/// default move constructor
+template <typename DataT>
+TriCubicInterpolator<DataT>::TriCubicInterpolator(TriCubicInterpolator<DataT>&& other)
+{
+  if (this != &other) {
+    mExtrapolationType = other.mExtrapolationType;
+    // do not change address of old pointers!
+    other.mGridData = nullptr;
+    other.mGridProperties = nullptr;
+  }
+}
+
+template <typename DataT>
+TriCubicInterpolator<DataT>& TriCubicInterpolator<DataT>::operator=(TriCubicInterpolator<DataT>&& other)
+{
+  if (this != &other) {
+    mExtrapolationType = other.mExtrapolationType;
+    // do not change address of old pointers!
+    other.mGridData = nullptr;
+    other.mGridProperties = nullptr;
+  }
+  return *this;
+}
+
 template <typename DataT>
 DataT TriCubicInterpolator<DataT>::extrapolation(const DataT valk, const DataT valk1, const DataT valk2) const
 {
@@ -51,12 +75,16 @@ DataT TriCubicInterpolator<DataT>::parabolExtrapolation(const DataT valk, const 
 template <typename DataT>
 DataT TriCubicInterpolator<DataT>::interpolateSparse(const DataT z, const DataT r, const DataT phi) const
 {
-  const Vector<DataT, FDim> coordinates{{z, r, phi}};                                                         // vector holding the coordinates
-  Vector<DataT, FDim> posRel{(coordinates - mGridProperties.getGridMin()) * mGridProperties.getInvSpacing()}; // needed for the grid index
-  posRel[FPHI] = mGridProperties.clampToGridCircularRel(posRel[FPHI], FPHI);
+  // check if data is empty
+  if (!mGridData->getNDataPoints()) {
+    return 0;
+  }
+  const Vector<DataT, FDim> coordinates{{z, r, phi}};                                                           // vector holding the coordinates
+  Vector<DataT, FDim> posRel{(coordinates - mGridProperties->getGridMin()) * mGridProperties->getInvSpacing()}; // needed for the grid index
+  posRel[FPHI] = mGridProperties->clampToGridCircularRel(posRel[FPHI], FPHI);
   const Vector<DataT, FDim> posRelN{posRel};
-  posRel[FZ] = mGridProperties.clampToGridRel(posRel[FZ], FZ);
-  posRel[FR] = mGridProperties.clampToGridRel(posRel[FR], FR);
+  posRel[FZ] = mGridProperties->clampToGridRel(posRel[FZ], FZ);
+  posRel[FR] = mGridProperties->clampToGridRel(posRel[FR], FR);
 
   const int nPoints = 4;
   std::array<Vector<DataT, nPoints>, 16> cVals;
@@ -95,13 +123,13 @@ DataT TriCubicInterpolator<DataT>::interpolateSparse(const DataT z, const DataT 
 template <typename DataT>
 void TriCubicInterpolator<DataT>::getDataIndexCircularArray(const int index0, const int dim, int arr[]) const
 {
-  const int delta_min1 = getRegulatedDelta(index0, -1, dim, mGridProperties.getN(dim) - 1);
-  const int delta_plus1 = getRegulatedDelta(index0, +1, dim, 1 - mGridProperties.getN(dim));
-  const int delta_plus2 = getRegulatedDelta(index0, +2, dim, 2 - mGridProperties.getN(dim));
+  const int delta_min1 = getRegulatedDelta(index0, -1, dim, mGridProperties->getN(dim) - 1);
+  const int delta_plus1 = getRegulatedDelta(index0, +1, dim, 1 - mGridProperties->getN(dim));
+  const int delta_plus2 = getRegulatedDelta(index0, +2, dim, 2 - mGridProperties->getN(dim));
 
-  arr[0] = mGridProperties.getDeltaDataIndex(delta_min1, dim);
-  arr[1] = mGridProperties.getDeltaDataIndex(delta_plus1, dim);
-  arr[2] = mGridProperties.getDeltaDataIndex(delta_plus2, dim);
+  arr[0] = mGridProperties->getDeltaDataIndex(delta_min1, dim);
+  arr[1] = mGridProperties->getDeltaDataIndex(delta_plus1, dim);
+  arr[2] = mGridProperties->getDeltaDataIndex(delta_plus2, dim);
 }
 
 template <typename DataT>
@@ -134,31 +162,31 @@ bool TriCubicInterpolator<DataT>::findEdge(const int iz, const int ir, const int
     if (iphi == 0) {
       posType = GridPos::Edge0;
       return true;
-    } else if (iphi == mGridData.getNPhi() - iR) {
+    } else if (iphi == mGridData->getNPhi() - iR) {
       posType = GridPos::Edge4;
       return true;
     }
-  } else if (iz == mGridData.getNZ() - iR && ir == 0) {
+  } else if (iz == mGridData->getNZ() - iR && ir == 0) {
     if (iphi == 0) {
       posType = GridPos::Edge1;
       return true;
-    } else if (iphi == mGridData.getNPhi() - iR) {
+    } else if (iphi == mGridData->getNPhi() - iR) {
       posType = GridPos::Edge5;
       return true;
     }
-  } else if (iz == 0 && ir == mGridData.getNR() - iR) {
+  } else if (iz == 0 && ir == mGridData->getNR() - iR) {
     if (iphi == 0) {
       posType = GridPos::Edge2;
       return true;
-    } else if (iphi == mGridData.getNPhi() - iR) {
+    } else if (iphi == mGridData->getNPhi() - iR) {
       posType = GridPos::Edge6;
       return true;
     }
-  } else if (iz == mGridData.getNZ() - iR && ir == mGridData.getNR() - iR) {
+  } else if (iz == mGridData->getNZ() - iR && ir == mGridData->getNR() - iR) {
     if (iphi == 0) {
       posType = GridPos::Edge3;
       return true;
-    } else if (iphi == mGridData.getNPhi() - iR) {
+    } else if (iphi == mGridData->getNPhi() - iR) {
       posType = GridPos::Edge7;
       return true;
     }
@@ -175,29 +203,29 @@ bool TriCubicInterpolator<DataT>::findLine(const int iz, const int ir, const int
     if (iphi == 0) {
       posType = GridPos::LineA;
       return true;
-    } else if (iphi == mGridData.getNPhi() - iR) {
+    } else if (iphi == mGridData->getNPhi() - iR) {
       posType = GridPos::LineE;
       return true;
     }
     if (iz == 0) {
       posType = GridPos::LineI;
       return true;
-    } else if (iz == mGridData.getNZ() - iR) {
+    } else if (iz == mGridData->getNZ() - iR) {
       posType = GridPos::LineJ;
       return true;
     }
-  } else if (ir == mGridData.getNR() - iR) {
+  } else if (ir == mGridData->getNR() - iR) {
     if (iphi == 0) {
       posType = GridPos::LineB;
       return true;
-    } else if (iphi == mGridData.getNPhi() - iR) {
+    } else if (iphi == mGridData->getNPhi() - iR) {
       posType = GridPos::LineF;
       return true;
     }
     if (iz == 0) {
       posType = GridPos::LineK;
       return true;
-    } else if (iz == mGridData.getNZ() - iR) {
+    } else if (iz == mGridData->getNZ() - iR) {
       posType = GridPos::LineL;
       return true;
     }
@@ -205,15 +233,15 @@ bool TriCubicInterpolator<DataT>::findLine(const int iz, const int ir, const int
     if (iphi == 0) {
       posType = GridPos::LineC;
       return true;
-    } else if (iphi == mGridData.getNPhi() - iR) {
+    } else if (iphi == mGridData->getNPhi() - iR) {
       posType = GridPos::LineG;
       return true;
     }
-  } else if (iz == mGridData.getNZ() - iR) {
+  } else if (iz == mGridData->getNZ() - iR) {
     if (iphi == 0) {
       posType = GridPos::LineD;
       return true;
-    } else if (iphi == mGridData.getNPhi() - iR) {
+    } else if (iphi == mGridData->getNPhi() - iR) {
       posType = GridPos::LineH;
       return true;
     }
@@ -251,7 +279,7 @@ bool TriCubicInterpolator<DataT>::findSide(const int iz, const int ir, const int
 template <typename DataT>
 bool TriCubicInterpolator<DataT>::isInInnerVolume(const int iz, const int ir, const int iphi, GridPos& posType) const
 {
-  if (iz >= 1 && iz < static_cast<int>(mGridData.getNZ() - 2) && ir >= 1 && ir < static_cast<int>(mGridData.getNR() - 2) && iphi >= 1 && iphi < static_cast<int>(mGridData.getNPhi() - 2)) {
+  if (iz >= 1 && iz < static_cast<int>(mGridData->getNZ() - 2) && ir >= 1 && ir < static_cast<int>(mGridData->getNR() - 2) && iphi >= 1 && iphi < static_cast<int>(mGridData->getNPhi() - 2)) {
     posType = GridPos::InnerVolume;
     return true;
   }
@@ -261,7 +289,7 @@ bool TriCubicInterpolator<DataT>::isInInnerVolume(const int iz, const int ir, co
 template <typename DataT>
 bool TriCubicInterpolator<DataT>::isSideRight(const int ind, const int dim) const
 {
-  if (ind == static_cast<int>(mGridProperties.getN(dim) - 2)) {
+  if (ind == static_cast<int>(mGridProperties->getN(dim) - 2)) {
     return true;
   }
   return false;
@@ -280,11 +308,11 @@ template <typename DataT>
 void TriCubicInterpolator<DataT>::setValues(const int iz, const int ir, const int iphi, std::array<Vector<DataT, 4>, 16>& cVals) const
 {
   const GridPos location = findPos(iz, ir, iphi);
-  const int ii_x_y_z = mGridData.getDataIndex(iz, ir, iphi);
-  cVals[5][1] = mGridData[ii_x_y_z];
+  const int ii_x_y_z = mGridData->getDataIndex(iz, ir, iphi);
+  cVals[5][1] = (*mGridData)[ii_x_y_z];
 
-  int deltaZ[3]{mGridProperties.getDeltaDataIndex(-1, 0), mGridProperties.getDeltaDataIndex(1, 0), mGridProperties.getDeltaDataIndex(2, 0)};
-  int deltaR[3]{mGridProperties.getDeltaDataIndex(-1, 1), mGridProperties.getDeltaDataIndex(1, 1), mGridProperties.getDeltaDataIndex(2, 1)};
+  int deltaZ[3]{mGridProperties->getDeltaDataIndex(-1, 0), mGridProperties->getDeltaDataIndex(1, 0), mGridProperties->getDeltaDataIndex(2, 0)};
+  int deltaR[3]{mGridProperties->getDeltaDataIndex(-1, 1), mGridProperties->getDeltaDataIndex(1, 1), mGridProperties->getDeltaDataIndex(2, 1)};
   int deltaPhi[3]{};
   getDataIndexCircularArray(iphi, FPHI, deltaPhi);
 
@@ -315,69 +343,69 @@ void TriCubicInterpolator<DataT>::setValues(const int iz, const int ir, const in
          {ind[3][1][0] - deltaR[i0], ind[3][2][0] - deltaZ[i0], ind[3][2][1] - deltaZ[i0], ind[3][2][2] - deltaZ[i0]},
          {ind[3][2][0] - deltaR[i0], ind[3][3][0] - deltaZ[i0], ind[3][3][1] - deltaZ[i0], ind[3][3][2] - deltaZ[i0]}}};
 
-      cVals[0][0] = mGridData[ind[0][0][0]];
-      cVals[0][1] = mGridData[ind[0][0][1]];
-      cVals[0][2] = mGridData[ind[0][0][2]];
-      cVals[0][3] = mGridData[ind[0][0][3]];
-      cVals[1][0] = mGridData[ind[0][1][0]];
-      cVals[1][1] = mGridData[ind[0][1][1]];
-      cVals[1][2] = mGridData[ind[0][1][2]];
-      cVals[1][3] = mGridData[ind[0][1][3]];
-      cVals[2][0] = mGridData[ind[0][2][0]];
-      cVals[2][1] = mGridData[ind[0][2][1]];
-      cVals[2][2] = mGridData[ind[0][2][2]];
-      cVals[2][3] = mGridData[ind[0][2][3]];
-      cVals[3][0] = mGridData[ind[0][3][0]];
-      cVals[3][1] = mGridData[ind[0][3][1]];
-      cVals[3][2] = mGridData[ind[0][3][2]];
-      cVals[3][3] = mGridData[ind[0][3][3]];
-      cVals[4][0] = mGridData[ind[1][0][0]];
-      cVals[4][1] = mGridData[ind[1][0][1]];
-      cVals[4][2] = mGridData[ind[1][0][2]];
-      cVals[4][3] = mGridData[ind[1][0][3]];
-      cVals[5][2] = mGridData[ind[1][1][2]];
-      cVals[5][0] = mGridData[ind[1][1][0]];
-      cVals[5][3] = mGridData[ind[1][1][3]];
-      cVals[6][0] = mGridData[ind[1][2][0]];
-      cVals[6][1] = mGridData[ind[1][2][1]];
-      cVals[6][2] = mGridData[ind[1][2][2]];
-      cVals[6][3] = mGridData[ind[1][2][3]];
-      cVals[7][0] = mGridData[ind[1][3][0]];
-      cVals[7][1] = mGridData[ind[1][3][1]];
-      cVals[7][2] = mGridData[ind[1][3][2]];
-      cVals[7][3] = mGridData[ind[1][3][3]];
-      cVals[8][0] = mGridData[ind[2][0][0]];
-      cVals[8][1] = mGridData[ind[2][0][1]];
-      cVals[8][2] = mGridData[ind[2][0][2]];
-      cVals[8][3] = mGridData[ind[2][0][3]];
-      cVals[9][0] = mGridData[ind[2][1][0]];
-      cVals[9][1] = mGridData[ind[2][1][1]];
-      cVals[9][2] = mGridData[ind[2][1][2]];
-      cVals[9][3] = mGridData[ind[2][1][3]];
-      cVals[10][0] = mGridData[ind[2][2][0]];
-      cVals[10][1] = mGridData[ind[2][2][1]];
-      cVals[10][2] = mGridData[ind[2][2][2]];
-      cVals[10][3] = mGridData[ind[2][2][3]];
-      cVals[11][0] = mGridData[ind[2][3][0]];
-      cVals[11][1] = mGridData[ind[2][3][1]];
-      cVals[11][2] = mGridData[ind[2][3][2]];
-      cVals[11][3] = mGridData[ind[2][3][3]];
-      cVals[12][0] = mGridData[ind[3][0][0]];
-      cVals[12][1] = mGridData[ind[3][0][1]];
-      cVals[12][2] = mGridData[ind[3][0][2]];
-      cVals[12][3] = mGridData[ind[3][0][3]];
-      cVals[13][0] = mGridData[ind[3][1][0]];
-      cVals[13][1] = mGridData[ind[3][1][1]];
-      cVals[13][2] = mGridData[ind[3][1][2]];
-      cVals[13][3] = mGridData[ind[3][1][3]];
-      cVals[14][0] = mGridData[ind[3][2][0]];
-      cVals[14][1] = mGridData[ind[3][2][1]];
-      cVals[14][2] = mGridData[ind[3][2][2]];
-      cVals[14][3] = mGridData[ind[3][2][3]];
-      cVals[15][0] = mGridData[ind[3][3][0]];
-      cVals[15][1] = mGridData[ind[3][3][1]];
-      cVals[15][2] = mGridData[ind[3][3][2]];
-      cVals[15][3] = mGridData[ind[3][3][3]];
+      cVals[0][0] = (*mGridData)[ind[0][0][0]];
+      cVals[0][1] = (*mGridData)[ind[0][0][1]];
+      cVals[0][2] = (*mGridData)[ind[0][0][2]];
+      cVals[0][3] = (*mGridData)[ind[0][0][3]];
+      cVals[1][0] = (*mGridData)[ind[0][1][0]];
+      cVals[1][1] = (*mGridData)[ind[0][1][1]];
+      cVals[1][2] = (*mGridData)[ind[0][1][2]];
+      cVals[1][3] = (*mGridData)[ind[0][1][3]];
+      cVals[2][0] = (*mGridData)[ind[0][2][0]];
+      cVals[2][1] = (*mGridData)[ind[0][2][1]];
+      cVals[2][2] = (*mGridData)[ind[0][2][2]];
+      cVals[2][3] = (*mGridData)[ind[0][2][3]];
+      cVals[3][0] = (*mGridData)[ind[0][3][0]];
+      cVals[3][1] = (*mGridData)[ind[0][3][1]];
+      cVals[3][2] = (*mGridData)[ind[0][3][2]];
+      cVals[3][3] = (*mGridData)[ind[0][3][3]];
+      cVals[4][0] = (*mGridData)[ind[1][0][0]];
+      cVals[4][1] = (*mGridData)[ind[1][0][1]];
+      cVals[4][2] = (*mGridData)[ind[1][0][2]];
+      cVals[4][3] = (*mGridData)[ind[1][0][3]];
+      cVals[5][2] = (*mGridData)[ind[1][1][2]];
+      cVals[5][0] = (*mGridData)[ind[1][1][0]];
+      cVals[5][3] = (*mGridData)[ind[1][1][3]];
+      cVals[6][0] = (*mGridData)[ind[1][2][0]];
+      cVals[6][1] = (*mGridData)[ind[1][2][1]];
+      cVals[6][2] = (*mGridData)[ind[1][2][2]];
+      cVals[6][3] = (*mGridData)[ind[1][2][3]];
+      cVals[7][0] = (*mGridData)[ind[1][3][0]];
+      cVals[7][1] = (*mGridData)[ind[1][3][1]];
+      cVals[7][2] = (*mGridData)[ind[1][3][2]];
+      cVals[7][3] = (*mGridData)[ind[1][3][3]];
+      cVals[8][0] = (*mGridData)[ind[2][0][0]];
+      cVals[8][1] = (*mGridData)[ind[2][0][1]];
+      cVals[8][2] = (*mGridData)[ind[2][0][2]];
+      cVals[8][3] = (*mGridData)[ind[2][0][3]];
+      cVals[9][0] = (*mGridData)[ind[2][1][0]];
+      cVals[9][1] = (*mGridData)[ind[2][1][1]];
+      cVals[9][2] = (*mGridData)[ind[2][1][2]];
+      cVals[9][3] = (*mGridData)[ind[2][1][3]];
+      cVals[10][0] = (*mGridData)[ind[2][2][0]];
+      cVals[10][1] = (*mGridData)[ind[2][2][1]];
+      cVals[10][2] = (*mGridData)[ind[2][2][2]];
+      cVals[10][3] = (*mGridData)[ind[2][2][3]];
+      cVals[11][0] = (*mGridData)[ind[2][3][0]];
+      cVals[11][1] = (*mGridData)[ind[2][3][1]];
+      cVals[11][2] = (*mGridData)[ind[2][3][2]];
+      cVals[11][3] = (*mGridData)[ind[2][3][3]];
+      cVals[12][0] = (*mGridData)[ind[3][0][0]];
+      cVals[12][1] = (*mGridData)[ind[3][0][1]];
+      cVals[12][2] = (*mGridData)[ind[3][0][2]];
+      cVals[12][3] = (*mGridData)[ind[3][0][3]];
+      cVals[13][0] = (*mGridData)[ind[3][1][0]];
+      cVals[13][1] = (*mGridData)[ind[3][1][1]];
+      cVals[13][2] = (*mGridData)[ind[3][1][2]];
+      cVals[13][3] = (*mGridData)[ind[3][1][3]];
+      cVals[14][0] = (*mGridData)[ind[3][2][0]];
+      cVals[14][1] = (*mGridData)[ind[3][2][1]];
+      cVals[14][2] = (*mGridData)[ind[3][2][2]];
+      cVals[14][3] = (*mGridData)[ind[3][2][3]];
+      cVals[15][0] = (*mGridData)[ind[3][3][0]];
+      cVals[15][1] = (*mGridData)[ind[3][3][1]];
+      cVals[15][2] = (*mGridData)[ind[3][3][2]];
+      cVals[15][3] = (*mGridData)[ind[3][3][3]];
     } break;
 
     case GridPos::SideXRight:
@@ -401,69 +429,69 @@ void TriCubicInterpolator<DataT>::setValues(const int iz, const int ir, const in
          {ind[3][1][0] - deltaR[i0], ind[3][2][0] - deltaZ[i0], ind[3][2][1] - deltaZ[i0]},
          {ind[3][2][0] - deltaR[i0], ind[3][3][0] - deltaZ[i0], ind[3][3][1] - deltaZ[i0]}}};
 
-      cVals[0][0] = mGridData[ind[0][0][0]];
-      cVals[0][1] = mGridData[ind[0][0][1]];
-      cVals[0][2] = mGridData[ind[0][0][2]];
-      cVals[0][3] = extrapolation(mGridData[ind[0][0][2]], mGridData[ind[0][0][1]], mGridData[ind[0][0][0]]);
-      cVals[1][0] = mGridData[ind[0][1][0]];
-      cVals[1][1] = mGridData[ind[0][1][1]];
-      cVals[1][2] = mGridData[ind[0][1][2]];
-      cVals[1][3] = extrapolation(mGridData[ind[0][1][2]], mGridData[ind[0][1][1]], mGridData[ind[0][1][0]]);
-      cVals[2][0] = mGridData[ind[0][2][0]];
-      cVals[2][1] = mGridData[ind[0][2][1]];
-      cVals[2][2] = mGridData[ind[0][2][2]];
-      cVals[2][3] = extrapolation(mGridData[ind[0][2][2]], mGridData[ind[0][2][1]], mGridData[ind[0][2][0]]);
-      cVals[3][0] = mGridData[ind[0][3][0]];
-      cVals[3][1] = mGridData[ind[0][3][1]];
-      cVals[3][2] = mGridData[ind[0][3][2]];
-      cVals[3][3] = extrapolation(mGridData[ind[0][3][2]], mGridData[ind[0][3][1]], mGridData[ind[0][3][0]]);
-      cVals[4][0] = mGridData[ind[1][0][0]];
-      cVals[4][1] = mGridData[ind[1][0][1]];
-      cVals[4][2] = mGridData[ind[1][0][2]];
-      cVals[4][3] = extrapolation(mGridData[ind[1][0][2]], mGridData[ind[1][0][1]], mGridData[ind[1][0][0]]);
-      cVals[5][0] = mGridData[ind[1][1][0]];
-      cVals[5][2] = mGridData[ind[1][1][2]];
-      cVals[5][3] = extrapolation(mGridData[ind[1][1][2]], mGridData[ii_x_y_z], mGridData[ind[1][1][0]]);
-      cVals[6][0] = mGridData[ind[1][2][0]];
-      cVals[6][1] = mGridData[ind[1][2][1]];
-      cVals[6][2] = mGridData[ind[1][2][2]];
-      cVals[6][3] = extrapolation(mGridData[ind[1][2][2]], mGridData[ind[1][2][1]], mGridData[ind[1][2][0]]);
-      cVals[7][0] = mGridData[ind[1][3][0]];
-      cVals[7][1] = mGridData[ind[1][3][1]];
-      cVals[7][2] = mGridData[ind[1][3][2]];
-      cVals[7][3] = extrapolation(mGridData[ind[1][3][2]], mGridData[ind[1][3][1]], mGridData[ind[1][3][0]]);
-      cVals[8][0] = mGridData[ind[2][0][0]];
-      cVals[8][1] = mGridData[ind[2][0][1]];
-      cVals[8][2] = mGridData[ind[2][0][2]];
-      cVals[8][3] = extrapolation(mGridData[ind[2][0][2]], mGridData[ind[2][0][1]], mGridData[ind[2][0][0]]);
-      cVals[9][0] = mGridData[ind[2][1][0]];
-      cVals[9][1] = mGridData[ind[2][1][1]];
-      cVals[9][2] = mGridData[ind[2][1][2]];
-      cVals[9][3] = extrapolation(mGridData[ind[2][1][2]], mGridData[ind[2][1][1]], mGridData[ind[2][1][0]]);
-      cVals[10][0] = mGridData[ind[2][2][0]];
-      cVals[10][1] = mGridData[ind[2][2][1]];
-      cVals[10][2] = mGridData[ind[2][2][2]];
-      cVals[10][3] = extrapolation(mGridData[ind[2][2][2]], mGridData[ind[2][2][1]], mGridData[ind[2][2][0]]);
-      cVals[11][0] = mGridData[ind[2][3][0]];
-      cVals[11][1] = mGridData[ind[2][3][1]];
-      cVals[11][2] = mGridData[ind[2][3][2]];
-      cVals[11][3] = extrapolation(mGridData[ind[2][3][2]], mGridData[ind[2][3][1]], mGridData[ind[2][3][0]]);
-      cVals[12][0] = mGridData[ind[3][0][0]];
-      cVals[12][1] = mGridData[ind[3][0][1]];
-      cVals[12][2] = mGridData[ind[3][0][2]];
-      cVals[13][0] = mGridData[ind[3][1][0]];
-      cVals[12][3] = extrapolation(mGridData[ind[3][0][2]], mGridData[ind[3][0][1]], mGridData[ind[3][0][0]]);
-      cVals[13][1] = mGridData[ind[3][1][1]];
-      cVals[13][2] = mGridData[ind[3][1][2]];
-      cVals[13][3] = extrapolation(mGridData[ind[3][1][2]], mGridData[ind[3][1][1]], mGridData[ind[3][1][0]]);
-      cVals[14][0] = mGridData[ind[3][2][0]];
-      cVals[14][1] = mGridData[ind[3][2][1]];
-      cVals[14][2] = mGridData[ind[3][2][2]];
-      cVals[14][3] = extrapolation(mGridData[ind[3][2][2]], mGridData[ind[3][2][1]], mGridData[ind[3][2][0]]);
-      cVals[15][0] = mGridData[ind[3][3][0]];
-      cVals[15][1] = mGridData[ind[3][3][1]];
-      cVals[15][2] = mGridData[ind[3][3][2]];
-      cVals[15][3] = extrapolation(mGridData[ind[3][3][2]], mGridData[ind[3][3][1]], mGridData[ind[3][3][0]]);
+      cVals[0][0] = (*mGridData)[ind[0][0][0]];
+      cVals[0][1] = (*mGridData)[ind[0][0][1]];
+      cVals[0][2] = (*mGridData)[ind[0][0][2]];
+      cVals[0][3] = extrapolation((*mGridData)[ind[0][0][2]], (*mGridData)[ind[0][0][1]], (*mGridData)[ind[0][0][0]]);
+      cVals[1][0] = (*mGridData)[ind[0][1][0]];
+      cVals[1][1] = (*mGridData)[ind[0][1][1]];
+      cVals[1][2] = (*mGridData)[ind[0][1][2]];
+      cVals[1][3] = extrapolation((*mGridData)[ind[0][1][2]], (*mGridData)[ind[0][1][1]], (*mGridData)[ind[0][1][0]]);
+      cVals[2][0] = (*mGridData)[ind[0][2][0]];
+      cVals[2][1] = (*mGridData)[ind[0][2][1]];
+      cVals[2][2] = (*mGridData)[ind[0][2][2]];
+      cVals[2][3] = extrapolation((*mGridData)[ind[0][2][2]], (*mGridData)[ind[0][2][1]], (*mGridData)[ind[0][2][0]]);
+      cVals[3][0] = (*mGridData)[ind[0][3][0]];
+      cVals[3][1] = (*mGridData)[ind[0][3][1]];
+      cVals[3][2] = (*mGridData)[ind[0][3][2]];
+      cVals[3][3] = extrapolation((*mGridData)[ind[0][3][2]], (*mGridData)[ind[0][3][1]], (*mGridData)[ind[0][3][0]]);
+      cVals[4][0] = (*mGridData)[ind[1][0][0]];
+      cVals[4][1] = (*mGridData)[ind[1][0][1]];
+      cVals[4][2] = (*mGridData)[ind[1][0][2]];
+      cVals[4][3] = extrapolation((*mGridData)[ind[1][0][2]], (*mGridData)[ind[1][0][1]], (*mGridData)[ind[1][0][0]]);
+      cVals[5][0] = (*mGridData)[ind[1][1][0]];
+      cVals[5][2] = (*mGridData)[ind[1][1][2]];
+      cVals[5][3] = extrapolation((*mGridData)[ind[1][1][2]], (*mGridData)[ii_x_y_z], (*mGridData)[ind[1][1][0]]);
+      cVals[6][0] = (*mGridData)[ind[1][2][0]];
+      cVals[6][1] = (*mGridData)[ind[1][2][1]];
+      cVals[6][2] = (*mGridData)[ind[1][2][2]];
+      cVals[6][3] = extrapolation((*mGridData)[ind[1][2][2]], (*mGridData)[ind[1][2][1]], (*mGridData)[ind[1][2][0]]);
+      cVals[7][0] = (*mGridData)[ind[1][3][0]];
+      cVals[7][1] = (*mGridData)[ind[1][3][1]];
+      cVals[7][2] = (*mGridData)[ind[1][3][2]];
+      cVals[7][3] = extrapolation((*mGridData)[ind[1][3][2]], (*mGridData)[ind[1][3][1]], (*mGridData)[ind[1][3][0]]);
+      cVals[8][0] = (*mGridData)[ind[2][0][0]];
+      cVals[8][1] = (*mGridData)[ind[2][0][1]];
+      cVals[8][2] = (*mGridData)[ind[2][0][2]];
+      cVals[8][3] = extrapolation((*mGridData)[ind[2][0][2]], (*mGridData)[ind[2][0][1]], (*mGridData)[ind[2][0][0]]);
+      cVals[9][0] = (*mGridData)[ind[2][1][0]];
+      cVals[9][1] = (*mGridData)[ind[2][1][1]];
+      cVals[9][2] = (*mGridData)[ind[2][1][2]];
+      cVals[9][3] = extrapolation((*mGridData)[ind[2][1][2]], (*mGridData)[ind[2][1][1]], (*mGridData)[ind[2][1][0]]);
+      cVals[10][0] = (*mGridData)[ind[2][2][0]];
+      cVals[10][1] = (*mGridData)[ind[2][2][1]];
+      cVals[10][2] = (*mGridData)[ind[2][2][2]];
+      cVals[10][3] = extrapolation((*mGridData)[ind[2][2][2]], (*mGridData)[ind[2][2][1]], (*mGridData)[ind[2][2][0]]);
+      cVals[11][0] = (*mGridData)[ind[2][3][0]];
+      cVals[11][1] = (*mGridData)[ind[2][3][1]];
+      cVals[11][2] = (*mGridData)[ind[2][3][2]];
+      cVals[11][3] = extrapolation((*mGridData)[ind[2][3][2]], (*mGridData)[ind[2][3][1]], (*mGridData)[ind[2][3][0]]);
+      cVals[12][0] = (*mGridData)[ind[3][0][0]];
+      cVals[12][1] = (*mGridData)[ind[3][0][1]];
+      cVals[12][2] = (*mGridData)[ind[3][0][2]];
+      cVals[13][0] = (*mGridData)[ind[3][1][0]];
+      cVals[12][3] = extrapolation((*mGridData)[ind[3][0][2]], (*mGridData)[ind[3][0][1]], (*mGridData)[ind[3][0][0]]);
+      cVals[13][1] = (*mGridData)[ind[3][1][1]];
+      cVals[13][2] = (*mGridData)[ind[3][1][2]];
+      cVals[13][3] = extrapolation((*mGridData)[ind[3][1][2]], (*mGridData)[ind[3][1][1]], (*mGridData)[ind[3][1][0]]);
+      cVals[14][0] = (*mGridData)[ind[3][2][0]];
+      cVals[14][1] = (*mGridData)[ind[3][2][1]];
+      cVals[14][2] = (*mGridData)[ind[3][2][2]];
+      cVals[14][3] = extrapolation((*mGridData)[ind[3][2][2]], (*mGridData)[ind[3][2][1]], (*mGridData)[ind[3][2][0]]);
+      cVals[15][0] = (*mGridData)[ind[3][3][0]];
+      cVals[15][1] = (*mGridData)[ind[3][3][1]];
+      cVals[15][2] = (*mGridData)[ind[3][3][2]];
+      cVals[15][3] = extrapolation((*mGridData)[ind[3][3][2]], (*mGridData)[ind[3][3][1]], (*mGridData)[ind[3][3][0]]);
     } break;
 
     case GridPos::SideYRight:
@@ -483,69 +511,69 @@ void TriCubicInterpolator<DataT>::setValues(const int iz, const int ir, const in
          {ind[3][0][0] - deltaR[i0], ind[3][1][0] - deltaZ[i0], ind[3][1][1] - deltaZ[i0], ind[3][1][2] - deltaZ[i0]},
          {ind[3][1][0] - deltaR[i0], ind[3][2][0] - deltaZ[i0], ind[3][2][1] - deltaZ[i0], ind[3][2][2] - deltaZ[i0]}}};
 
-      cVals[0][0] = mGridData[ind[0][0][0]];
-      cVals[0][1] = mGridData[ind[0][0][1]];
-      cVals[0][2] = mGridData[ind[0][0][2]];
-      cVals[0][3] = mGridData[ind[0][0][3]];
-      cVals[1][0] = mGridData[ind[0][1][0]];
-      cVals[1][1] = mGridData[ind[0][1][1]];
-      cVals[1][2] = mGridData[ind[0][1][2]];
-      cVals[1][3] = mGridData[ind[0][1][3]];
-      cVals[2][0] = mGridData[ind[0][2][0]];
-      cVals[2][1] = mGridData[ind[0][2][1]];
-      cVals[2][2] = mGridData[ind[0][2][2]];
-      cVals[2][3] = mGridData[ind[0][2][3]];
-      cVals[3][0] = extrapolation(mGridData[ind[0][2][0]], mGridData[ind[0][1][0]], mGridData[ind[0][0][0]]);
-      cVals[3][1] = extrapolation(mGridData[ind[0][2][1]], mGridData[ind[0][1][1]], mGridData[ind[0][0][1]]);
-      cVals[3][2] = extrapolation(mGridData[ind[0][2][2]], mGridData[ind[0][1][2]], mGridData[ind[0][0][2]]);
-      cVals[3][3] = extrapolation(mGridData[ind[0][2][3]], mGridData[ind[0][1][3]], mGridData[ind[0][0][3]]);
-      cVals[4][0] = mGridData[ind[1][0][0]];
-      cVals[4][1] = mGridData[ind[1][0][1]];
-      cVals[4][2] = mGridData[ind[1][0][2]];
-      cVals[4][3] = mGridData[ind[1][0][3]];
-      cVals[5][0] = mGridData[ind[1][1][0]];
-      cVals[5][2] = mGridData[ind[1][1][2]];
-      cVals[5][3] = mGridData[ind[1][1][3]];
-      cVals[6][0] = mGridData[ind[1][2][0]];
-      cVals[6][1] = mGridData[ind[1][2][1]];
-      cVals[6][2] = mGridData[ind[1][2][2]];
-      cVals[6][3] = mGridData[ind[1][2][3]];
-      cVals[7][0] = extrapolation(mGridData[ind[1][2][0]], mGridData[ind[1][1][0]], mGridData[ind[1][0][0]]);
-      cVals[7][1] = extrapolation(mGridData[ind[1][2][1]], mGridData[ii_x_y_z], mGridData[ind[1][0][1]]);
-      cVals[7][2] = extrapolation(mGridData[ind[1][2][2]], mGridData[ind[1][1][2]], mGridData[ind[1][0][2]]);
-      cVals[7][3] = extrapolation(mGridData[ind[1][2][3]], mGridData[ind[1][1][3]], mGridData[ind[1][0][3]]);
-      cVals[8][0] = mGridData[ind[2][0][0]];
-      cVals[8][1] = mGridData[ind[2][0][1]];
-      cVals[8][2] = mGridData[ind[2][0][2]];
-      cVals[8][3] = mGridData[ind[2][0][3]];
-      cVals[9][0] = mGridData[ind[2][1][0]];
-      cVals[9][1] = mGridData[ind[2][1][1]];
-      cVals[9][2] = mGridData[ind[2][1][2]];
-      cVals[9][3] = mGridData[ind[2][1][3]];
-      cVals[10][0] = mGridData[ind[2][2][0]];
-      cVals[10][1] = mGridData[ind[2][2][1]];
-      cVals[10][2] = mGridData[ind[2][2][2]];
-      cVals[10][3] = mGridData[ind[2][2][3]];
-      cVals[11][0] = extrapolation(mGridData[ind[2][2][0]], mGridData[ind[2][1][0]], mGridData[ind[2][0][0]]);
-      cVals[11][1] = extrapolation(mGridData[ind[2][2][1]], mGridData[ind[2][1][1]], mGridData[ind[2][0][1]]);
-      cVals[11][2] = extrapolation(mGridData[ind[2][2][2]], mGridData[ind[2][1][2]], mGridData[ind[2][0][2]]);
-      cVals[11][3] = extrapolation(mGridData[ind[2][2][3]], mGridData[ind[2][1][3]], mGridData[ind[2][0][3]]);
-      cVals[12][0] = mGridData[ind[3][0][0]];
-      cVals[12][1] = mGridData[ind[3][0][1]];
-      cVals[12][2] = mGridData[ind[3][0][2]];
-      cVals[12][3] = mGridData[ind[3][0][3]];
-      cVals[13][0] = mGridData[ind[3][1][0]];
-      cVals[13][1] = mGridData[ind[3][1][1]];
-      cVals[13][2] = mGridData[ind[3][1][2]];
-      cVals[13][3] = mGridData[ind[3][1][3]];
-      cVals[14][0] = mGridData[ind[3][2][0]];
-      cVals[14][1] = mGridData[ind[3][2][1]];
-      cVals[14][2] = mGridData[ind[3][2][2]];
-      cVals[14][3] = mGridData[ind[3][2][3]];
-      cVals[15][0] = extrapolation(mGridData[ind[3][2][0]], mGridData[ind[3][1][0]], mGridData[ind[3][0][0]]);
-      cVals[15][1] = extrapolation(mGridData[ind[3][2][1]], mGridData[ind[3][1][1]], mGridData[ind[3][0][1]]);
-      cVals[15][2] = extrapolation(mGridData[ind[3][2][2]], mGridData[ind[3][1][2]], mGridData[ind[3][0][2]]);
-      cVals[15][3] = extrapolation(mGridData[ind[3][2][3]], mGridData[ind[3][1][3]], mGridData[ind[3][0][3]]);
+      cVals[0][0] = (*mGridData)[ind[0][0][0]];
+      cVals[0][1] = (*mGridData)[ind[0][0][1]];
+      cVals[0][2] = (*mGridData)[ind[0][0][2]];
+      cVals[0][3] = (*mGridData)[ind[0][0][3]];
+      cVals[1][0] = (*mGridData)[ind[0][1][0]];
+      cVals[1][1] = (*mGridData)[ind[0][1][1]];
+      cVals[1][2] = (*mGridData)[ind[0][1][2]];
+      cVals[1][3] = (*mGridData)[ind[0][1][3]];
+      cVals[2][0] = (*mGridData)[ind[0][2][0]];
+      cVals[2][1] = (*mGridData)[ind[0][2][1]];
+      cVals[2][2] = (*mGridData)[ind[0][2][2]];
+      cVals[2][3] = (*mGridData)[ind[0][2][3]];
+      cVals[3][0] = extrapolation((*mGridData)[ind[0][2][0]], (*mGridData)[ind[0][1][0]], (*mGridData)[ind[0][0][0]]);
+      cVals[3][1] = extrapolation((*mGridData)[ind[0][2][1]], (*mGridData)[ind[0][1][1]], (*mGridData)[ind[0][0][1]]);
+      cVals[3][2] = extrapolation((*mGridData)[ind[0][2][2]], (*mGridData)[ind[0][1][2]], (*mGridData)[ind[0][0][2]]);
+      cVals[3][3] = extrapolation((*mGridData)[ind[0][2][3]], (*mGridData)[ind[0][1][3]], (*mGridData)[ind[0][0][3]]);
+      cVals[4][0] = (*mGridData)[ind[1][0][0]];
+      cVals[4][1] = (*mGridData)[ind[1][0][1]];
+      cVals[4][2] = (*mGridData)[ind[1][0][2]];
+      cVals[4][3] = (*mGridData)[ind[1][0][3]];
+      cVals[5][0] = (*mGridData)[ind[1][1][0]];
+      cVals[5][2] = (*mGridData)[ind[1][1][2]];
+      cVals[5][3] = (*mGridData)[ind[1][1][3]];
+      cVals[6][0] = (*mGridData)[ind[1][2][0]];
+      cVals[6][1] = (*mGridData)[ind[1][2][1]];
+      cVals[6][2] = (*mGridData)[ind[1][2][2]];
+      cVals[6][3] = (*mGridData)[ind[1][2][3]];
+      cVals[7][0] = extrapolation((*mGridData)[ind[1][2][0]], (*mGridData)[ind[1][1][0]], (*mGridData)[ind[1][0][0]]);
+      cVals[7][1] = extrapolation((*mGridData)[ind[1][2][1]], (*mGridData)[ii_x_y_z], (*mGridData)[ind[1][0][1]]);
+      cVals[7][2] = extrapolation((*mGridData)[ind[1][2][2]], (*mGridData)[ind[1][1][2]], (*mGridData)[ind[1][0][2]]);
+      cVals[7][3] = extrapolation((*mGridData)[ind[1][2][3]], (*mGridData)[ind[1][1][3]], (*mGridData)[ind[1][0][3]]);
+      cVals[8][0] = (*mGridData)[ind[2][0][0]];
+      cVals[8][1] = (*mGridData)[ind[2][0][1]];
+      cVals[8][2] = (*mGridData)[ind[2][0][2]];
+      cVals[8][3] = (*mGridData)[ind[2][0][3]];
+      cVals[9][0] = (*mGridData)[ind[2][1][0]];
+      cVals[9][1] = (*mGridData)[ind[2][1][1]];
+      cVals[9][2] = (*mGridData)[ind[2][1][2]];
+      cVals[9][3] = (*mGridData)[ind[2][1][3]];
+      cVals[10][0] = (*mGridData)[ind[2][2][0]];
+      cVals[10][1] = (*mGridData)[ind[2][2][1]];
+      cVals[10][2] = (*mGridData)[ind[2][2][2]];
+      cVals[10][3] = (*mGridData)[ind[2][2][3]];
+      cVals[11][0] = extrapolation((*mGridData)[ind[2][2][0]], (*mGridData)[ind[2][1][0]], (*mGridData)[ind[2][0][0]]);
+      cVals[11][1] = extrapolation((*mGridData)[ind[2][2][1]], (*mGridData)[ind[2][1][1]], (*mGridData)[ind[2][0][1]]);
+      cVals[11][2] = extrapolation((*mGridData)[ind[2][2][2]], (*mGridData)[ind[2][1][2]], (*mGridData)[ind[2][0][2]]);
+      cVals[11][3] = extrapolation((*mGridData)[ind[2][2][3]], (*mGridData)[ind[2][1][3]], (*mGridData)[ind[2][0][3]]);
+      cVals[12][0] = (*mGridData)[ind[3][0][0]];
+      cVals[12][1] = (*mGridData)[ind[3][0][1]];
+      cVals[12][2] = (*mGridData)[ind[3][0][2]];
+      cVals[12][3] = (*mGridData)[ind[3][0][3]];
+      cVals[13][0] = (*mGridData)[ind[3][1][0]];
+      cVals[13][1] = (*mGridData)[ind[3][1][1]];
+      cVals[13][2] = (*mGridData)[ind[3][1][2]];
+      cVals[13][3] = (*mGridData)[ind[3][1][3]];
+      cVals[14][0] = (*mGridData)[ind[3][2][0]];
+      cVals[14][1] = (*mGridData)[ind[3][2][1]];
+      cVals[14][2] = (*mGridData)[ind[3][2][2]];
+      cVals[14][3] = (*mGridData)[ind[3][2][3]];
+      cVals[15][0] = extrapolation((*mGridData)[ind[3][2][0]], (*mGridData)[ind[3][1][0]], (*mGridData)[ind[3][0][0]]);
+      cVals[15][1] = extrapolation((*mGridData)[ind[3][2][1]], (*mGridData)[ind[3][1][1]], (*mGridData)[ind[3][0][1]]);
+      cVals[15][2] = extrapolation((*mGridData)[ind[3][2][2]], (*mGridData)[ind[3][1][2]], (*mGridData)[ind[3][0][2]]);
+      cVals[15][3] = extrapolation((*mGridData)[ind[3][2][3]], (*mGridData)[ind[3][1][3]], (*mGridData)[ind[3][0][3]]);
     } break;
 
     case GridPos::SideYLeft:
@@ -565,69 +593,69 @@ void TriCubicInterpolator<DataT>::setValues(const int iz, const int ir, const in
          {ind[3][0][0] - deltaR[i0], ind[3][1][0] - deltaZ[i0], ind[3][1][1] - deltaZ[i0], ind[3][1][2] - deltaZ[i0]},
          {ind[3][1][0] - deltaR[i0], ind[3][2][0] - deltaZ[i0], ind[3][2][1] - deltaZ[i0], ind[3][2][2] - deltaZ[i0]}}};
 
-      cVals[0][0] = extrapolation(mGridData[ind[0][0][0]], mGridData[ind[0][1][0]], mGridData[ind[0][2][0]]);
-      cVals[0][1] = extrapolation(mGridData[ind[0][0][1]], mGridData[ind[0][1][1]], mGridData[ind[0][2][1]]);
-      cVals[0][2] = extrapolation(mGridData[ind[0][0][2]], mGridData[ind[0][1][2]], mGridData[ind[0][2][2]]);
-      cVals[0][3] = extrapolation(mGridData[ind[0][0][3]], mGridData[ind[0][1][3]], mGridData[ind[0][2][3]]);
-      cVals[1][0] = mGridData[ind[0][0][0]];
-      cVals[1][1] = mGridData[ind[0][0][1]];
-      cVals[1][2] = mGridData[ind[0][0][2]];
-      cVals[1][3] = mGridData[ind[0][0][3]];
-      cVals[2][0] = mGridData[ind[0][1][0]];
-      cVals[2][1] = mGridData[ind[0][1][1]];
-      cVals[2][2] = mGridData[ind[0][1][2]];
-      cVals[2][3] = mGridData[ind[0][1][3]];
-      cVals[3][0] = mGridData[ind[0][2][0]];
-      cVals[3][1] = mGridData[ind[0][2][1]];
-      cVals[3][2] = mGridData[ind[0][2][2]];
-      cVals[3][3] = mGridData[ind[0][2][3]];
-      cVals[4][0] = extrapolation(mGridData[ind[1][0][0]], mGridData[ind[1][1][0]], mGridData[ind[1][2][0]]);
-      cVals[4][1] = extrapolation(mGridData[ii_x_y_z], mGridData[ind[1][1][1]], mGridData[ind[1][2][1]]);
-      cVals[4][2] = extrapolation(mGridData[ind[1][0][2]], mGridData[ind[1][1][2]], mGridData[ind[1][2][2]]);
-      cVals[4][3] = extrapolation(mGridData[ind[1][0][3]], mGridData[ind[1][1][3]], mGridData[ind[1][2][3]]);
-      cVals[5][0] = mGridData[ind[1][0][0]];
-      cVals[5][2] = mGridData[ind[1][0][2]];
-      cVals[5][3] = mGridData[ind[1][0][3]];
-      cVals[6][0] = mGridData[ind[1][1][0]];
-      cVals[6][1] = mGridData[ind[1][1][1]];
-      cVals[6][2] = mGridData[ind[1][1][2]];
-      cVals[6][3] = mGridData[ind[1][1][3]];
-      cVals[7][0] = mGridData[ind[1][2][0]];
-      cVals[7][1] = mGridData[ind[1][2][1]];
-      cVals[7][2] = mGridData[ind[1][2][2]];
-      cVals[7][3] = mGridData[ind[1][2][3]];
-      cVals[8][0] = extrapolation(mGridData[ind[2][0][0]], mGridData[ind[2][1][0]], mGridData[ind[2][2][0]]);
-      cVals[8][1] = extrapolation(mGridData[ind[2][0][1]], mGridData[ind[2][1][1]], mGridData[ind[2][2][1]]);
-      cVals[8][2] = extrapolation(mGridData[ind[2][0][2]], mGridData[ind[2][1][2]], mGridData[ind[2][2][2]]);
-      cVals[8][3] = extrapolation(mGridData[ind[2][0][3]], mGridData[ind[2][1][3]], mGridData[ind[2][2][3]]);
-      cVals[9][0] = mGridData[ind[2][0][0]];
-      cVals[9][1] = mGridData[ind[2][0][1]];
-      cVals[9][2] = mGridData[ind[2][0][2]];
-      cVals[9][3] = mGridData[ind[2][0][3]];
-      cVals[10][0] = mGridData[ind[2][1][0]];
-      cVals[10][1] = mGridData[ind[2][1][1]];
-      cVals[10][2] = mGridData[ind[2][1][2]];
-      cVals[10][3] = mGridData[ind[2][1][3]];
-      cVals[11][0] = mGridData[ind[2][2][0]];
-      cVals[11][1] = mGridData[ind[2][2][1]];
-      cVals[11][2] = mGridData[ind[2][2][2]];
-      cVals[11][3] = mGridData[ind[2][2][3]];
-      cVals[12][0] = extrapolation(mGridData[ind[3][0][0]], mGridData[ind[3][1][0]], mGridData[ind[3][2][0]]);
-      cVals[12][1] = extrapolation(mGridData[ind[3][0][1]], mGridData[ind[3][1][1]], mGridData[ind[3][2][1]]);
-      cVals[12][2] = extrapolation(mGridData[ind[3][0][2]], mGridData[ind[3][1][2]], mGridData[ind[3][2][2]]);
-      cVals[12][3] = extrapolation(mGridData[ind[3][0][3]], mGridData[ind[3][1][3]], mGridData[ind[3][2][3]]);
-      cVals[13][0] = mGridData[ind[3][0][0]];
-      cVals[13][1] = mGridData[ind[3][0][1]];
-      cVals[13][2] = mGridData[ind[3][0][2]];
-      cVals[13][3] = mGridData[ind[3][0][3]];
-      cVals[14][0] = mGridData[ind[3][1][0]];
-      cVals[14][1] = mGridData[ind[3][1][1]];
-      cVals[14][2] = mGridData[ind[3][1][2]];
-      cVals[14][3] = mGridData[ind[3][1][3]];
-      cVals[15][0] = mGridData[ind[3][2][0]];
-      cVals[15][1] = mGridData[ind[3][2][1]];
-      cVals[15][2] = mGridData[ind[3][2][2]];
-      cVals[15][3] = mGridData[ind[3][2][3]];
+      cVals[0][0] = extrapolation((*mGridData)[ind[0][0][0]], (*mGridData)[ind[0][1][0]], (*mGridData)[ind[0][2][0]]);
+      cVals[0][1] = extrapolation((*mGridData)[ind[0][0][1]], (*mGridData)[ind[0][1][1]], (*mGridData)[ind[0][2][1]]);
+      cVals[0][2] = extrapolation((*mGridData)[ind[0][0][2]], (*mGridData)[ind[0][1][2]], (*mGridData)[ind[0][2][2]]);
+      cVals[0][3] = extrapolation((*mGridData)[ind[0][0][3]], (*mGridData)[ind[0][1][3]], (*mGridData)[ind[0][2][3]]);
+      cVals[1][0] = (*mGridData)[ind[0][0][0]];
+      cVals[1][1] = (*mGridData)[ind[0][0][1]];
+      cVals[1][2] = (*mGridData)[ind[0][0][2]];
+      cVals[1][3] = (*mGridData)[ind[0][0][3]];
+      cVals[2][0] = (*mGridData)[ind[0][1][0]];
+      cVals[2][1] = (*mGridData)[ind[0][1][1]];
+      cVals[2][2] = (*mGridData)[ind[0][1][2]];
+      cVals[2][3] = (*mGridData)[ind[0][1][3]];
+      cVals[3][0] = (*mGridData)[ind[0][2][0]];
+      cVals[3][1] = (*mGridData)[ind[0][2][1]];
+      cVals[3][2] = (*mGridData)[ind[0][2][2]];
+      cVals[3][3] = (*mGridData)[ind[0][2][3]];
+      cVals[4][0] = extrapolation((*mGridData)[ind[1][0][0]], (*mGridData)[ind[1][1][0]], (*mGridData)[ind[1][2][0]]);
+      cVals[4][1] = extrapolation((*mGridData)[ii_x_y_z], (*mGridData)[ind[1][1][1]], (*mGridData)[ind[1][2][1]]);
+      cVals[4][2] = extrapolation((*mGridData)[ind[1][0][2]], (*mGridData)[ind[1][1][2]], (*mGridData)[ind[1][2][2]]);
+      cVals[4][3] = extrapolation((*mGridData)[ind[1][0][3]], (*mGridData)[ind[1][1][3]], (*mGridData)[ind[1][2][3]]);
+      cVals[5][0] = (*mGridData)[ind[1][0][0]];
+      cVals[5][2] = (*mGridData)[ind[1][0][2]];
+      cVals[5][3] = (*mGridData)[ind[1][0][3]];
+      cVals[6][0] = (*mGridData)[ind[1][1][0]];
+      cVals[6][1] = (*mGridData)[ind[1][1][1]];
+      cVals[6][2] = (*mGridData)[ind[1][1][2]];
+      cVals[6][3] = (*mGridData)[ind[1][1][3]];
+      cVals[7][0] = (*mGridData)[ind[1][2][0]];
+      cVals[7][1] = (*mGridData)[ind[1][2][1]];
+      cVals[7][2] = (*mGridData)[ind[1][2][2]];
+      cVals[7][3] = (*mGridData)[ind[1][2][3]];
+      cVals[8][0] = extrapolation((*mGridData)[ind[2][0][0]], (*mGridData)[ind[2][1][0]], (*mGridData)[ind[2][2][0]]);
+      cVals[8][1] = extrapolation((*mGridData)[ind[2][0][1]], (*mGridData)[ind[2][1][1]], (*mGridData)[ind[2][2][1]]);
+      cVals[8][2] = extrapolation((*mGridData)[ind[2][0][2]], (*mGridData)[ind[2][1][2]], (*mGridData)[ind[2][2][2]]);
+      cVals[8][3] = extrapolation((*mGridData)[ind[2][0][3]], (*mGridData)[ind[2][1][3]], (*mGridData)[ind[2][2][3]]);
+      cVals[9][0] = (*mGridData)[ind[2][0][0]];
+      cVals[9][1] = (*mGridData)[ind[2][0][1]];
+      cVals[9][2] = (*mGridData)[ind[2][0][2]];
+      cVals[9][3] = (*mGridData)[ind[2][0][3]];
+      cVals[10][0] = (*mGridData)[ind[2][1][0]];
+      cVals[10][1] = (*mGridData)[ind[2][1][1]];
+      cVals[10][2] = (*mGridData)[ind[2][1][2]];
+      cVals[10][3] = (*mGridData)[ind[2][1][3]];
+      cVals[11][0] = (*mGridData)[ind[2][2][0]];
+      cVals[11][1] = (*mGridData)[ind[2][2][1]];
+      cVals[11][2] = (*mGridData)[ind[2][2][2]];
+      cVals[11][3] = (*mGridData)[ind[2][2][3]];
+      cVals[12][0] = extrapolation((*mGridData)[ind[3][0][0]], (*mGridData)[ind[3][1][0]], (*mGridData)[ind[3][2][0]]);
+      cVals[12][1] = extrapolation((*mGridData)[ind[3][0][1]], (*mGridData)[ind[3][1][1]], (*mGridData)[ind[3][2][1]]);
+      cVals[12][2] = extrapolation((*mGridData)[ind[3][0][2]], (*mGridData)[ind[3][1][2]], (*mGridData)[ind[3][2][2]]);
+      cVals[12][3] = extrapolation((*mGridData)[ind[3][0][3]], (*mGridData)[ind[3][1][3]], (*mGridData)[ind[3][2][3]]);
+      cVals[13][0] = (*mGridData)[ind[3][0][0]];
+      cVals[13][1] = (*mGridData)[ind[3][0][1]];
+      cVals[13][2] = (*mGridData)[ind[3][0][2]];
+      cVals[13][3] = (*mGridData)[ind[3][0][3]];
+      cVals[14][0] = (*mGridData)[ind[3][1][0]];
+      cVals[14][1] = (*mGridData)[ind[3][1][1]];
+      cVals[14][2] = (*mGridData)[ind[3][1][2]];
+      cVals[14][3] = (*mGridData)[ind[3][1][3]];
+      cVals[15][0] = (*mGridData)[ind[3][2][0]];
+      cVals[15][1] = (*mGridData)[ind[3][2][1]];
+      cVals[15][2] = (*mGridData)[ind[3][2][2]];
+      cVals[15][3] = (*mGridData)[ind[3][2][3]];
     } break;
 
     case GridPos::SideXLeft:
@@ -651,69 +679,69 @@ void TriCubicInterpolator<DataT>::setValues(const int iz, const int ir, const in
          {ind[3][1][0] - deltaR[i0], ind[3][2][0] - deltaZ[i0], ind[3][2][1] - deltaZ[i0]},
          {ind[3][2][0] - deltaR[i0], ind[3][3][0] - deltaZ[i0], ind[3][3][1] - deltaZ[i0]}}};
 
-      cVals[0][0] = extrapolation(mGridData[ind[0][0][0]], mGridData[ind[0][0][1]], mGridData[ind[0][0][2]]);
-      cVals[0][1] = mGridData[ind[0][0][0]];
-      cVals[0][2] = mGridData[ind[0][0][1]];
-      cVals[0][3] = mGridData[ind[0][0][2]];
-      cVals[1][0] = extrapolation(mGridData[ind[0][1][0]], mGridData[ind[0][1][1]], mGridData[ind[0][1][2]]);
-      cVals[1][1] = mGridData[ind[0][1][0]];
-      cVals[1][2] = mGridData[ind[0][1][1]];
-      cVals[1][3] = mGridData[ind[0][1][2]];
-      cVals[2][0] = extrapolation(mGridData[ind[0][2][0]], mGridData[ind[0][2][1]], mGridData[ind[0][2][2]]);
-      cVals[2][1] = mGridData[ind[0][2][0]];
-      cVals[2][2] = mGridData[ind[0][2][1]];
-      cVals[2][3] = mGridData[ind[0][2][2]];
-      cVals[3][0] = extrapolation(mGridData[ind[0][3][0]], mGridData[ind[0][3][1]], mGridData[ind[0][3][2]]);
-      cVals[3][1] = mGridData[ind[0][3][0]];
-      cVals[3][2] = mGridData[ind[0][3][1]];
-      cVals[3][3] = mGridData[ind[0][3][2]];
-      cVals[4][0] = extrapolation(mGridData[ind[1][0][0]], mGridData[ind[1][0][1]], mGridData[ind[1][0][2]]);
-      cVals[4][1] = mGridData[ind[1][0][0]];
-      cVals[4][2] = mGridData[ind[1][0][1]];
-      cVals[4][3] = mGridData[ind[1][0][2]];
-      cVals[5][0] = extrapolation(mGridData[ii_x_y_z], mGridData[ind[1][1][1]], mGridData[ind[1][1][2]]);
-      cVals[5][2] = mGridData[ind[1][1][1]];
-      cVals[5][3] = mGridData[ind[1][1][2]];
-      cVals[6][0] = extrapolation(mGridData[ind[1][2][0]], mGridData[ind[1][2][1]], mGridData[ind[1][2][2]]);
-      cVals[6][1] = mGridData[ind[1][2][0]];
-      cVals[6][2] = mGridData[ind[1][2][1]];
-      cVals[6][3] = mGridData[ind[1][2][2]];
-      cVals[7][0] = extrapolation(mGridData[ind[1][3][0]], mGridData[ind[1][3][1]], mGridData[ind[1][3][2]]);
-      cVals[7][1] = mGridData[ind[1][3][0]];
-      cVals[7][2] = mGridData[ind[1][3][1]];
-      cVals[7][3] = mGridData[ind[1][3][2]];
-      cVals[8][0] = extrapolation(mGridData[ind[2][0][0]], mGridData[ind[2][0][1]], mGridData[ind[2][0][2]]);
-      cVals[8][1] = mGridData[ind[2][0][0]];
-      cVals[8][2] = mGridData[ind[2][0][1]];
-      cVals[8][3] = mGridData[ind[2][0][2]];
-      cVals[9][0] = extrapolation(mGridData[ind[2][1][0]], mGridData[ind[2][1][1]], mGridData[ind[2][1][2]]);
-      cVals[9][1] = mGridData[ind[2][1][0]];
-      cVals[9][2] = mGridData[ind[2][1][1]];
-      cVals[9][3] = mGridData[ind[2][1][2]];
-      cVals[10][0] = extrapolation(mGridData[ind[2][2][0]], mGridData[ind[2][2][1]], mGridData[ind[2][2][2]]);
-      cVals[10][1] = mGridData[ind[2][2][0]];
-      cVals[10][2] = mGridData[ind[2][2][1]];
-      cVals[10][3] = mGridData[ind[2][2][2]];
-      cVals[11][0] = extrapolation(mGridData[ind[2][3][0]], mGridData[ind[2][3][1]], mGridData[ind[2][3][2]]);
-      cVals[11][1] = mGridData[ind[2][3][0]];
-      cVals[11][2] = mGridData[ind[2][3][1]];
-      cVals[11][3] = mGridData[ind[2][3][2]];
-      cVals[12][0] = extrapolation(mGridData[ind[3][0][0]], mGridData[ind[3][0][1]], mGridData[ind[3][0][2]]);
-      cVals[12][1] = mGridData[ind[3][0][0]];
-      cVals[12][2] = mGridData[ind[3][0][1]];
-      cVals[12][3] = mGridData[ind[3][0][2]];
-      cVals[13][0] = extrapolation(mGridData[ind[3][1][0]], mGridData[ind[3][1][1]], mGridData[ind[3][1][2]]);
-      cVals[13][1] = mGridData[ind[3][1][0]];
-      cVals[13][2] = mGridData[ind[3][1][1]];
-      cVals[13][3] = mGridData[ind[3][1][2]];
-      cVals[14][0] = extrapolation(mGridData[ind[3][2][0]], mGridData[ind[3][2][1]], mGridData[ind[3][2][2]]);
-      cVals[14][1] = mGridData[ind[3][2][0]];
-      cVals[14][2] = mGridData[ind[3][2][1]];
-      cVals[14][3] = mGridData[ind[3][2][2]];
-      cVals[15][0] = extrapolation(mGridData[ind[3][3][0]], mGridData[ind[3][3][1]], mGridData[ind[3][3][2]]);
-      cVals[15][1] = mGridData[ind[3][3][0]];
-      cVals[15][2] = mGridData[ind[3][3][1]];
-      cVals[15][3] = mGridData[ind[3][3][2]];
+      cVals[0][0] = extrapolation((*mGridData)[ind[0][0][0]], (*mGridData)[ind[0][0][1]], (*mGridData)[ind[0][0][2]]);
+      cVals[0][1] = (*mGridData)[ind[0][0][0]];
+      cVals[0][2] = (*mGridData)[ind[0][0][1]];
+      cVals[0][3] = (*mGridData)[ind[0][0][2]];
+      cVals[1][0] = extrapolation((*mGridData)[ind[0][1][0]], (*mGridData)[ind[0][1][1]], (*mGridData)[ind[0][1][2]]);
+      cVals[1][1] = (*mGridData)[ind[0][1][0]];
+      cVals[1][2] = (*mGridData)[ind[0][1][1]];
+      cVals[1][3] = (*mGridData)[ind[0][1][2]];
+      cVals[2][0] = extrapolation((*mGridData)[ind[0][2][0]], (*mGridData)[ind[0][2][1]], (*mGridData)[ind[0][2][2]]);
+      cVals[2][1] = (*mGridData)[ind[0][2][0]];
+      cVals[2][2] = (*mGridData)[ind[0][2][1]];
+      cVals[2][3] = (*mGridData)[ind[0][2][2]];
+      cVals[3][0] = extrapolation((*mGridData)[ind[0][3][0]], (*mGridData)[ind[0][3][1]], (*mGridData)[ind[0][3][2]]);
+      cVals[3][1] = (*mGridData)[ind[0][3][0]];
+      cVals[3][2] = (*mGridData)[ind[0][3][1]];
+      cVals[3][3] = (*mGridData)[ind[0][3][2]];
+      cVals[4][0] = extrapolation((*mGridData)[ind[1][0][0]], (*mGridData)[ind[1][0][1]], (*mGridData)[ind[1][0][2]]);
+      cVals[4][1] = (*mGridData)[ind[1][0][0]];
+      cVals[4][2] = (*mGridData)[ind[1][0][1]];
+      cVals[4][3] = (*mGridData)[ind[1][0][2]];
+      cVals[5][0] = extrapolation((*mGridData)[ii_x_y_z], (*mGridData)[ind[1][1][1]], (*mGridData)[ind[1][1][2]]);
+      cVals[5][2] = (*mGridData)[ind[1][1][1]];
+      cVals[5][3] = (*mGridData)[ind[1][1][2]];
+      cVals[6][0] = extrapolation((*mGridData)[ind[1][2][0]], (*mGridData)[ind[1][2][1]], (*mGridData)[ind[1][2][2]]);
+      cVals[6][1] = (*mGridData)[ind[1][2][0]];
+      cVals[6][2] = (*mGridData)[ind[1][2][1]];
+      cVals[6][3] = (*mGridData)[ind[1][2][2]];
+      cVals[7][0] = extrapolation((*mGridData)[ind[1][3][0]], (*mGridData)[ind[1][3][1]], (*mGridData)[ind[1][3][2]]);
+      cVals[7][1] = (*mGridData)[ind[1][3][0]];
+      cVals[7][2] = (*mGridData)[ind[1][3][1]];
+      cVals[7][3] = (*mGridData)[ind[1][3][2]];
+      cVals[8][0] = extrapolation((*mGridData)[ind[2][0][0]], (*mGridData)[ind[2][0][1]], (*mGridData)[ind[2][0][2]]);
+      cVals[8][1] = (*mGridData)[ind[2][0][0]];
+      cVals[8][2] = (*mGridData)[ind[2][0][1]];
+      cVals[8][3] = (*mGridData)[ind[2][0][2]];
+      cVals[9][0] = extrapolation((*mGridData)[ind[2][1][0]], (*mGridData)[ind[2][1][1]], (*mGridData)[ind[2][1][2]]);
+      cVals[9][1] = (*mGridData)[ind[2][1][0]];
+      cVals[9][2] = (*mGridData)[ind[2][1][1]];
+      cVals[9][3] = (*mGridData)[ind[2][1][2]];
+      cVals[10][0] = extrapolation((*mGridData)[ind[2][2][0]], (*mGridData)[ind[2][2][1]], (*mGridData)[ind[2][2][2]]);
+      cVals[10][1] = (*mGridData)[ind[2][2][0]];
+      cVals[10][2] = (*mGridData)[ind[2][2][1]];
+      cVals[10][3] = (*mGridData)[ind[2][2][2]];
+      cVals[11][0] = extrapolation((*mGridData)[ind[2][3][0]], (*mGridData)[ind[2][3][1]], (*mGridData)[ind[2][3][2]]);
+      cVals[11][1] = (*mGridData)[ind[2][3][0]];
+      cVals[11][2] = (*mGridData)[ind[2][3][1]];
+      cVals[11][3] = (*mGridData)[ind[2][3][2]];
+      cVals[12][0] = extrapolation((*mGridData)[ind[3][0][0]], (*mGridData)[ind[3][0][1]], (*mGridData)[ind[3][0][2]]);
+      cVals[12][1] = (*mGridData)[ind[3][0][0]];
+      cVals[12][2] = (*mGridData)[ind[3][0][1]];
+      cVals[12][3] = (*mGridData)[ind[3][0][2]];
+      cVals[13][0] = extrapolation((*mGridData)[ind[3][1][0]], (*mGridData)[ind[3][1][1]], (*mGridData)[ind[3][1][2]]);
+      cVals[13][1] = (*mGridData)[ind[3][1][0]];
+      cVals[13][2] = (*mGridData)[ind[3][1][1]];
+      cVals[13][3] = (*mGridData)[ind[3][1][2]];
+      cVals[14][0] = extrapolation((*mGridData)[ind[3][2][0]], (*mGridData)[ind[3][2][1]], (*mGridData)[ind[3][2][2]]);
+      cVals[14][1] = (*mGridData)[ind[3][2][0]];
+      cVals[14][2] = (*mGridData)[ind[3][2][1]];
+      cVals[14][3] = (*mGridData)[ind[3][2][2]];
+      cVals[15][0] = extrapolation((*mGridData)[ind[3][3][0]], (*mGridData)[ind[3][3][1]], (*mGridData)[ind[3][3][2]]);
+      cVals[15][1] = (*mGridData)[ind[3][3][0]];
+      cVals[15][2] = (*mGridData)[ind[3][3][1]];
+      cVals[15][3] = (*mGridData)[ind[3][3][2]];
     } break;
 
     case GridPos::Edge0:
@@ -733,69 +761,69 @@ void TriCubicInterpolator<DataT>::setValues(const int iz, const int ir, const in
          {ind[3][0][0] - deltaR[i0], ind[3][1][0] - deltaZ[i0], ind[3][1][1] - deltaZ[i0]},
          {ind[3][1][0] - deltaR[i0], ind[3][2][0] - deltaZ[i0], ind[3][2][1] - deltaZ[i0]}}};
 
-      cVals[0][0] = extrapolation(mGridData[ind[0][0][0]], mGridData[ind[0][1][1]], mGridData[ind[0][2][2]]);
-      cVals[0][1] = extrapolation(mGridData[ind[0][0][0]], mGridData[ind[0][1][0]], mGridData[ind[0][2][0]]);
-      cVals[0][2] = extrapolation(mGridData[ind[0][0][1]], mGridData[ind[0][1][1]], mGridData[ind[0][2][1]]);
-      cVals[0][3] = extrapolation(mGridData[ind[0][0][2]], mGridData[ind[0][1][2]], mGridData[ind[0][2][2]]);
-      cVals[1][0] = extrapolation(mGridData[ind[0][0][0]], mGridData[ind[0][0][1]], mGridData[ind[0][0][2]]);
-      cVals[1][1] = mGridData[ind[0][0][0]];
-      cVals[1][2] = mGridData[ind[0][0][1]];
-      cVals[1][3] = mGridData[ind[0][0][2]];
-      cVals[2][0] = extrapolation(mGridData[ind[0][1][0]], mGridData[ind[0][1][1]], mGridData[ind[0][1][2]]);
-      cVals[2][1] = mGridData[ind[0][1][0]];
-      cVals[2][2] = mGridData[ind[0][1][1]];
-      cVals[2][3] = mGridData[ind[0][1][2]];
-      cVals[3][0] = extrapolation(mGridData[ind[0][2][0]], mGridData[ind[0][2][1]], mGridData[ind[0][2][2]]);
-      cVals[3][1] = mGridData[ind[0][2][0]];
-      cVals[3][2] = mGridData[ind[0][2][1]];
-      cVals[3][3] = mGridData[ind[0][2][2]];
-      cVals[4][0] = extrapolation(mGridData[ii_x_y_z], mGridData[ind[1][1][1]], mGridData[ind[1][2][2]]);
-      cVals[4][1] = extrapolation(mGridData[ii_x_y_z], mGridData[ind[1][1][0]], mGridData[ind[1][2][0]]);
-      cVals[4][2] = extrapolation(mGridData[ind[1][0][1]], mGridData[ind[1][1][1]], mGridData[ind[1][2][1]]);
-      cVals[4][3] = extrapolation(mGridData[ind[1][0][2]], mGridData[ind[1][1][2]], mGridData[ind[1][2][2]]);
-      cVals[5][0] = extrapolation(mGridData[ii_x_y_z], mGridData[ind[1][0][1]], mGridData[ind[1][0][2]]);
-      cVals[5][2] = mGridData[ind[1][0][1]];
-      cVals[5][3] = mGridData[ind[1][0][2]];
-      cVals[6][0] = extrapolation(mGridData[ind[1][1][0]], mGridData[ind[1][1][1]], mGridData[ind[1][1][2]]);
-      cVals[6][1] = mGridData[ind[1][1][0]];
-      cVals[6][2] = mGridData[ind[1][1][1]];
-      cVals[6][3] = mGridData[ind[1][1][2]];
-      cVals[7][0] = extrapolation(mGridData[ind[1][2][0]], mGridData[ind[1][2][1]], mGridData[ind[1][2][2]]);
-      cVals[7][1] = mGridData[ind[1][2][0]];
-      cVals[7][2] = mGridData[ind[1][2][1]];
-      cVals[7][3] = mGridData[ind[1][2][2]];
-      cVals[8][0] = extrapolation(mGridData[ind[2][0][0]], mGridData[ind[2][1][1]], mGridData[ind[2][2][2]]);
-      cVals[8][1] = extrapolation(mGridData[ind[2][0][0]], mGridData[ind[2][1][0]], mGridData[ind[2][2][0]]);
-      cVals[8][2] = extrapolation(mGridData[ind[2][0][1]], mGridData[ind[2][1][1]], mGridData[ind[2][2][1]]);
-      cVals[8][3] = extrapolation(mGridData[ind[2][0][2]], mGridData[ind[2][1][2]], mGridData[ind[2][2][2]]);
-      cVals[9][0] = extrapolation(mGridData[ind[2][0][0]], mGridData[ind[2][0][1]], mGridData[ind[2][0][2]]);
-      cVals[9][1] = mGridData[ind[2][0][0]];
-      cVals[9][2] = mGridData[ind[2][0][1]];
-      cVals[9][3] = mGridData[ind[2][0][2]];
-      cVals[10][0] = extrapolation(mGridData[ind[2][1][0]], mGridData[ind[2][1][1]], mGridData[ind[2][1][2]]);
-      cVals[10][1] = mGridData[ind[2][1][0]];
-      cVals[10][2] = mGridData[ind[2][1][1]];
-      cVals[10][3] = mGridData[ind[2][1][2]];
-      cVals[11][0] = extrapolation(mGridData[ind[2][2][0]], mGridData[ind[2][2][1]], mGridData[ind[2][2][2]]);
-      cVals[11][1] = mGridData[ind[2][2][0]];
-      cVals[11][2] = mGridData[ind[2][2][1]];
-      cVals[11][3] = mGridData[ind[2][2][2]];
-      cVals[12][0] = extrapolation(mGridData[ind[3][0][0]], mGridData[ind[3][1][1]], mGridData[ind[3][2][2]]);
-      cVals[12][1] = extrapolation(mGridData[ind[3][0][0]], mGridData[ind[3][1][0]], mGridData[ind[3][2][0]]);
-      cVals[12][2] = extrapolation(mGridData[ind[3][0][1]], mGridData[ind[3][1][1]], mGridData[ind[3][2][1]]);
-      cVals[12][3] = extrapolation(mGridData[ind[3][0][2]], mGridData[ind[3][1][2]], mGridData[ind[3][2][2]]);
-      cVals[13][0] = extrapolation(mGridData[ind[3][0][0]], mGridData[ind[3][0][1]], mGridData[ind[3][0][2]]);
-      cVals[13][1] = mGridData[ind[3][0][0]];
-      cVals[13][2] = mGridData[ind[3][0][1]];
-      cVals[13][3] = mGridData[ind[3][0][2]];
-      cVals[14][0] = extrapolation(mGridData[ind[3][1][0]], mGridData[ind[3][1][1]], mGridData[ind[3][1][2]]);
-      cVals[14][1] = mGridData[ind[3][1][0]];
-      cVals[14][2] = mGridData[ind[3][1][1]];
-      cVals[14][3] = mGridData[ind[3][1][2]];
-      cVals[15][0] = extrapolation(mGridData[ind[3][2][0]], mGridData[ind[3][2][1]], mGridData[ind[3][2][2]]);
-      cVals[15][1] = mGridData[ind[3][2][0]];
-      cVals[15][2] = mGridData[ind[3][2][1]];
-      cVals[15][3] = mGridData[ind[3][2][2]];
+      cVals[0][0] = extrapolation((*mGridData)[ind[0][0][0]], (*mGridData)[ind[0][1][1]], (*mGridData)[ind[0][2][2]]);
+      cVals[0][1] = extrapolation((*mGridData)[ind[0][0][0]], (*mGridData)[ind[0][1][0]], (*mGridData)[ind[0][2][0]]);
+      cVals[0][2] = extrapolation((*mGridData)[ind[0][0][1]], (*mGridData)[ind[0][1][1]], (*mGridData)[ind[0][2][1]]);
+      cVals[0][3] = extrapolation((*mGridData)[ind[0][0][2]], (*mGridData)[ind[0][1][2]], (*mGridData)[ind[0][2][2]]);
+      cVals[1][0] = extrapolation((*mGridData)[ind[0][0][0]], (*mGridData)[ind[0][0][1]], (*mGridData)[ind[0][0][2]]);
+      cVals[1][1] = (*mGridData)[ind[0][0][0]];
+      cVals[1][2] = (*mGridData)[ind[0][0][1]];
+      cVals[1][3] = (*mGridData)[ind[0][0][2]];
+      cVals[2][0] = extrapolation((*mGridData)[ind[0][1][0]], (*mGridData)[ind[0][1][1]], (*mGridData)[ind[0][1][2]]);
+      cVals[2][1] = (*mGridData)[ind[0][1][0]];
+      cVals[2][2] = (*mGridData)[ind[0][1][1]];
+      cVals[2][3] = (*mGridData)[ind[0][1][2]];
+      cVals[3][0] = extrapolation((*mGridData)[ind[0][2][0]], (*mGridData)[ind[0][2][1]], (*mGridData)[ind[0][2][2]]);
+      cVals[3][1] = (*mGridData)[ind[0][2][0]];
+      cVals[3][2] = (*mGridData)[ind[0][2][1]];
+      cVals[3][3] = (*mGridData)[ind[0][2][2]];
+      cVals[4][0] = extrapolation((*mGridData)[ii_x_y_z], (*mGridData)[ind[1][1][1]], (*mGridData)[ind[1][2][2]]);
+      cVals[4][1] = extrapolation((*mGridData)[ii_x_y_z], (*mGridData)[ind[1][1][0]], (*mGridData)[ind[1][2][0]]);
+      cVals[4][2] = extrapolation((*mGridData)[ind[1][0][1]], (*mGridData)[ind[1][1][1]], (*mGridData)[ind[1][2][1]]);
+      cVals[4][3] = extrapolation((*mGridData)[ind[1][0][2]], (*mGridData)[ind[1][1][2]], (*mGridData)[ind[1][2][2]]);
+      cVals[5][0] = extrapolation((*mGridData)[ii_x_y_z], (*mGridData)[ind[1][0][1]], (*mGridData)[ind[1][0][2]]);
+      cVals[5][2] = (*mGridData)[ind[1][0][1]];
+      cVals[5][3] = (*mGridData)[ind[1][0][2]];
+      cVals[6][0] = extrapolation((*mGridData)[ind[1][1][0]], (*mGridData)[ind[1][1][1]], (*mGridData)[ind[1][1][2]]);
+      cVals[6][1] = (*mGridData)[ind[1][1][0]];
+      cVals[6][2] = (*mGridData)[ind[1][1][1]];
+      cVals[6][3] = (*mGridData)[ind[1][1][2]];
+      cVals[7][0] = extrapolation((*mGridData)[ind[1][2][0]], (*mGridData)[ind[1][2][1]], (*mGridData)[ind[1][2][2]]);
+      cVals[7][1] = (*mGridData)[ind[1][2][0]];
+      cVals[7][2] = (*mGridData)[ind[1][2][1]];
+      cVals[7][3] = (*mGridData)[ind[1][2][2]];
+      cVals[8][0] = extrapolation((*mGridData)[ind[2][0][0]], (*mGridData)[ind[2][1][1]], (*mGridData)[ind[2][2][2]]);
+      cVals[8][1] = extrapolation((*mGridData)[ind[2][0][0]], (*mGridData)[ind[2][1][0]], (*mGridData)[ind[2][2][0]]);
+      cVals[8][2] = extrapolation((*mGridData)[ind[2][0][1]], (*mGridData)[ind[2][1][1]], (*mGridData)[ind[2][2][1]]);
+      cVals[8][3] = extrapolation((*mGridData)[ind[2][0][2]], (*mGridData)[ind[2][1][2]], (*mGridData)[ind[2][2][2]]);
+      cVals[9][0] = extrapolation((*mGridData)[ind[2][0][0]], (*mGridData)[ind[2][0][1]], (*mGridData)[ind[2][0][2]]);
+      cVals[9][1] = (*mGridData)[ind[2][0][0]];
+      cVals[9][2] = (*mGridData)[ind[2][0][1]];
+      cVals[9][3] = (*mGridData)[ind[2][0][2]];
+      cVals[10][0] = extrapolation((*mGridData)[ind[2][1][0]], (*mGridData)[ind[2][1][1]], (*mGridData)[ind[2][1][2]]);
+      cVals[10][1] = (*mGridData)[ind[2][1][0]];
+      cVals[10][2] = (*mGridData)[ind[2][1][1]];
+      cVals[10][3] = (*mGridData)[ind[2][1][2]];
+      cVals[11][0] = extrapolation((*mGridData)[ind[2][2][0]], (*mGridData)[ind[2][2][1]], (*mGridData)[ind[2][2][2]]);
+      cVals[11][1] = (*mGridData)[ind[2][2][0]];
+      cVals[11][2] = (*mGridData)[ind[2][2][1]];
+      cVals[11][3] = (*mGridData)[ind[2][2][2]];
+      cVals[12][0] = extrapolation((*mGridData)[ind[3][0][0]], (*mGridData)[ind[3][1][1]], (*mGridData)[ind[3][2][2]]);
+      cVals[12][1] = extrapolation((*mGridData)[ind[3][0][0]], (*mGridData)[ind[3][1][0]], (*mGridData)[ind[3][2][0]]);
+      cVals[12][2] = extrapolation((*mGridData)[ind[3][0][1]], (*mGridData)[ind[3][1][1]], (*mGridData)[ind[3][2][1]]);
+      cVals[12][3] = extrapolation((*mGridData)[ind[3][0][2]], (*mGridData)[ind[3][1][2]], (*mGridData)[ind[3][2][2]]);
+      cVals[13][0] = extrapolation((*mGridData)[ind[3][0][0]], (*mGridData)[ind[3][0][1]], (*mGridData)[ind[3][0][2]]);
+      cVals[13][1] = (*mGridData)[ind[3][0][0]];
+      cVals[13][2] = (*mGridData)[ind[3][0][1]];
+      cVals[13][3] = (*mGridData)[ind[3][0][2]];
+      cVals[14][0] = extrapolation((*mGridData)[ind[3][1][0]], (*mGridData)[ind[3][1][1]], (*mGridData)[ind[3][1][2]]);
+      cVals[14][1] = (*mGridData)[ind[3][1][0]];
+      cVals[14][2] = (*mGridData)[ind[3][1][1]];
+      cVals[14][3] = (*mGridData)[ind[3][1][2]];
+      cVals[15][0] = extrapolation((*mGridData)[ind[3][2][0]], (*mGridData)[ind[3][2][1]], (*mGridData)[ind[3][2][2]]);
+      cVals[15][1] = (*mGridData)[ind[3][2][0]];
+      cVals[15][2] = (*mGridData)[ind[3][2][1]];
+      cVals[15][3] = (*mGridData)[ind[3][2][2]];
     } break;
 
     case GridPos::Edge1:
@@ -815,69 +843,69 @@ void TriCubicInterpolator<DataT>::setValues(const int iz, const int ir, const in
          {ind[3][0][0] - deltaR[i0], ind[3][1][0] - deltaZ[i0], ind[3][1][1] - deltaZ[i0]},
          {ind[3][1][0] - deltaR[i0], ind[3][2][0] - deltaZ[i0], ind[3][2][1] - deltaZ[i0]}}};
 
-      cVals[0][0] = extrapolation(mGridData[ind[0][0][0]], mGridData[ind[0][1][0]], mGridData[ind[0][2][0]]);
-      cVals[0][1] = extrapolation(mGridData[ind[0][0][1]], mGridData[ind[0][1][1]], mGridData[ind[0][2][1]]);
-      cVals[0][2] = extrapolation(mGridData[ind[0][0][1]], mGridData[ind[0][1][0]], mGridData[ind[0][2][0] + deltaZ[i0]]);
-      cVals[0][3] = extrapolation(mGridData[ind[0][0][2]], mGridData[ind[0][1][1]], mGridData[ind[0][2][0]]);
-      cVals[1][0] = mGridData[ind[0][0][0]];
-      cVals[1][1] = mGridData[ind[0][0][1]];
-      cVals[1][2] = mGridData[ind[0][0][2]];
-      cVals[1][3] = extrapolation(mGridData[ind[0][0][2]], mGridData[ind[0][0][1]], mGridData[ind[0][0][0]]);
-      cVals[2][0] = mGridData[ind[0][1][0]];
-      cVals[2][1] = mGridData[ind[0][1][1]];
-      cVals[2][2] = mGridData[ind[0][1][2]];
-      cVals[2][3] = extrapolation(mGridData[ind[0][1][2]], mGridData[ind[0][1][1]], mGridData[ind[0][1][0]]);
-      cVals[3][0] = mGridData[ind[0][2][0]];
-      cVals[3][1] = mGridData[ind[0][2][1]];
-      cVals[3][2] = mGridData[ind[0][2][2]];
-      cVals[3][3] = extrapolation(mGridData[ind[0][2][2]], mGridData[ind[0][2][1]], mGridData[ind[0][2][0]]);
-      cVals[4][0] = extrapolation(mGridData[ind[1][0][0]], mGridData[ind[1][1][0]], mGridData[ind[1][2][0]]);
-      cVals[4][1] = extrapolation(mGridData[ii_x_y_z], mGridData[ind[1][1][1]], mGridData[ind[1][2][1]]);
-      cVals[4][2] = extrapolation(mGridData[ii_x_y_z], mGridData[ind[1][1][0]], mGridData[ind[1][2][0] + deltaZ[i0]]);
-      cVals[4][3] = extrapolation(mGridData[ind[1][0][2]], mGridData[ind[1][1][1]], mGridData[ind[1][2][0]]);
-      cVals[5][0] = mGridData[ind[1][0][0]];
-      cVals[5][2] = mGridData[ind[1][0][2]];
-      cVals[5][3] = extrapolation(mGridData[ind[1][0][2]], mGridData[ii_x_y_z], mGridData[ind[1][0][0]]);
-      cVals[6][0] = mGridData[ind[1][1][0]];
-      cVals[6][1] = mGridData[ind[1][1][1]];
-      cVals[6][2] = mGridData[ind[1][1][2]];
-      cVals[6][3] = extrapolation(mGridData[ind[1][1][2]], mGridData[ind[1][1][1]], mGridData[ind[1][1][0]]);
-      cVals[7][0] = mGridData[ind[1][2][0]];
-      cVals[7][1] = mGridData[ind[1][2][1]];
-      cVals[7][2] = mGridData[ind[1][2][2]];
-      cVals[7][3] = extrapolation(mGridData[ind[1][2][2]], mGridData[ind[1][2][1]], mGridData[ind[1][2][0]]);
-      cVals[8][0] = extrapolation(mGridData[ind[2][0][0]], mGridData[ind[2][1][0]], mGridData[ind[2][2][0]]);
-      cVals[8][1] = extrapolation(mGridData[ind[2][0][1]], mGridData[ind[2][1][1]], mGridData[ind[2][2][1]]);
-      cVals[8][2] = extrapolation(mGridData[ind[2][0][1]], mGridData[ind[2][1][0]], mGridData[ind[2][2][0] + deltaZ[i0]]);
-      cVals[8][3] = extrapolation(mGridData[ind[2][0][2]], mGridData[ind[2][1][1]], mGridData[ind[2][2][0]]);
-      cVals[9][0] = mGridData[ind[2][0][0]];
-      cVals[9][1] = mGridData[ind[2][0][1]];
-      cVals[9][2] = mGridData[ind[2][0][2]];
-      cVals[9][3] = extrapolation(mGridData[ind[2][0][2]], mGridData[ind[2][0][1]], mGridData[ind[2][0][0]]);
-      cVals[10][0] = mGridData[ind[2][1][0]];
-      cVals[10][1] = mGridData[ind[2][1][1]];
-      cVals[10][2] = mGridData[ind[2][1][2]];
-      cVals[10][3] = extrapolation(mGridData[ind[2][1][2]], mGridData[ind[2][1][1]], mGridData[ind[2][1][0]]);
-      cVals[11][0] = mGridData[ind[2][2][0]];
-      cVals[11][1] = mGridData[ind[2][2][1]];
-      cVals[11][2] = mGridData[ind[2][2][2]];
-      cVals[11][3] = extrapolation(mGridData[ind[2][2][2]], mGridData[ind[2][2][1]], mGridData[ind[2][2][0]]);
-      cVals[12][0] = extrapolation(mGridData[ind[3][0][0]], mGridData[ind[3][1][0]], mGridData[ind[3][2][0]]);
-      cVals[12][1] = extrapolation(mGridData[ind[3][0][1]], mGridData[ind[3][1][1]], mGridData[ind[3][2][1]]);
-      cVals[12][2] = extrapolation(mGridData[ind[3][0][1]], mGridData[ind[3][1][0]], mGridData[ind[3][2][0] + deltaZ[i0]]);
-      cVals[12][3] = extrapolation(mGridData[ind[3][0][2]], mGridData[ind[3][1][1]], mGridData[ind[3][2][0]]);
-      cVals[13][0] = mGridData[ind[3][0][0]];
-      cVals[13][1] = mGridData[ind[3][0][1]];
-      cVals[13][2] = mGridData[ind[3][0][2]];
-      cVals[13][3] = extrapolation(mGridData[ind[3][0][2]], mGridData[ind[3][0][1]], mGridData[ind[3][0][0]]);
-      cVals[14][0] = mGridData[ind[3][1][0]];
-      cVals[14][1] = mGridData[ind[3][1][1]];
-      cVals[14][2] = mGridData[ind[3][1][2]];
-      cVals[14][3] = extrapolation(mGridData[ind[3][1][2]], mGridData[ind[3][1][1]], mGridData[ind[3][1][0]]);
-      cVals[15][0] = mGridData[ind[3][2][0]];
-      cVals[15][1] = mGridData[ind[3][2][1]];
-      cVals[15][2] = mGridData[ind[3][2][2]];
-      cVals[15][3] = extrapolation(mGridData[ind[3][2][2]], mGridData[ind[3][2][1]], mGridData[ind[3][2][0]]);
+      cVals[0][0] = extrapolation((*mGridData)[ind[0][0][0]], (*mGridData)[ind[0][1][0]], (*mGridData)[ind[0][2][0]]);
+      cVals[0][1] = extrapolation((*mGridData)[ind[0][0][1]], (*mGridData)[ind[0][1][1]], (*mGridData)[ind[0][2][1]]);
+      cVals[0][2] = extrapolation((*mGridData)[ind[0][0][1]], (*mGridData)[ind[0][1][0]], (*mGridData)[ind[0][2][0] + deltaZ[i0]]);
+      cVals[0][3] = extrapolation((*mGridData)[ind[0][0][2]], (*mGridData)[ind[0][1][1]], (*mGridData)[ind[0][2][0]]);
+      cVals[1][0] = (*mGridData)[ind[0][0][0]];
+      cVals[1][1] = (*mGridData)[ind[0][0][1]];
+      cVals[1][2] = (*mGridData)[ind[0][0][2]];
+      cVals[1][3] = extrapolation((*mGridData)[ind[0][0][2]], (*mGridData)[ind[0][0][1]], (*mGridData)[ind[0][0][0]]);
+      cVals[2][0] = (*mGridData)[ind[0][1][0]];
+      cVals[2][1] = (*mGridData)[ind[0][1][1]];
+      cVals[2][2] = (*mGridData)[ind[0][1][2]];
+      cVals[2][3] = extrapolation((*mGridData)[ind[0][1][2]], (*mGridData)[ind[0][1][1]], (*mGridData)[ind[0][1][0]]);
+      cVals[3][0] = (*mGridData)[ind[0][2][0]];
+      cVals[3][1] = (*mGridData)[ind[0][2][1]];
+      cVals[3][2] = (*mGridData)[ind[0][2][2]];
+      cVals[3][3] = extrapolation((*mGridData)[ind[0][2][2]], (*mGridData)[ind[0][2][1]], (*mGridData)[ind[0][2][0]]);
+      cVals[4][0] = extrapolation((*mGridData)[ind[1][0][0]], (*mGridData)[ind[1][1][0]], (*mGridData)[ind[1][2][0]]);
+      cVals[4][1] = extrapolation((*mGridData)[ii_x_y_z], (*mGridData)[ind[1][1][1]], (*mGridData)[ind[1][2][1]]);
+      cVals[4][2] = extrapolation((*mGridData)[ii_x_y_z], (*mGridData)[ind[1][1][0]], (*mGridData)[ind[1][2][0] + deltaZ[i0]]);
+      cVals[4][3] = extrapolation((*mGridData)[ind[1][0][2]], (*mGridData)[ind[1][1][1]], (*mGridData)[ind[1][2][0]]);
+      cVals[5][0] = (*mGridData)[ind[1][0][0]];
+      cVals[5][2] = (*mGridData)[ind[1][0][2]];
+      cVals[5][3] = extrapolation((*mGridData)[ind[1][0][2]], (*mGridData)[ii_x_y_z], (*mGridData)[ind[1][0][0]]);
+      cVals[6][0] = (*mGridData)[ind[1][1][0]];
+      cVals[6][1] = (*mGridData)[ind[1][1][1]];
+      cVals[6][2] = (*mGridData)[ind[1][1][2]];
+      cVals[6][3] = extrapolation((*mGridData)[ind[1][1][2]], (*mGridData)[ind[1][1][1]], (*mGridData)[ind[1][1][0]]);
+      cVals[7][0] = (*mGridData)[ind[1][2][0]];
+      cVals[7][1] = (*mGridData)[ind[1][2][1]];
+      cVals[7][2] = (*mGridData)[ind[1][2][2]];
+      cVals[7][3] = extrapolation((*mGridData)[ind[1][2][2]], (*mGridData)[ind[1][2][1]], (*mGridData)[ind[1][2][0]]);
+      cVals[8][0] = extrapolation((*mGridData)[ind[2][0][0]], (*mGridData)[ind[2][1][0]], (*mGridData)[ind[2][2][0]]);
+      cVals[8][1] = extrapolation((*mGridData)[ind[2][0][1]], (*mGridData)[ind[2][1][1]], (*mGridData)[ind[2][2][1]]);
+      cVals[8][2] = extrapolation((*mGridData)[ind[2][0][1]], (*mGridData)[ind[2][1][0]], (*mGridData)[ind[2][2][0] + deltaZ[i0]]);
+      cVals[8][3] = extrapolation((*mGridData)[ind[2][0][2]], (*mGridData)[ind[2][1][1]], (*mGridData)[ind[2][2][0]]);
+      cVals[9][0] = (*mGridData)[ind[2][0][0]];
+      cVals[9][1] = (*mGridData)[ind[2][0][1]];
+      cVals[9][2] = (*mGridData)[ind[2][0][2]];
+      cVals[9][3] = extrapolation((*mGridData)[ind[2][0][2]], (*mGridData)[ind[2][0][1]], (*mGridData)[ind[2][0][0]]);
+      cVals[10][0] = (*mGridData)[ind[2][1][0]];
+      cVals[10][1] = (*mGridData)[ind[2][1][1]];
+      cVals[10][2] = (*mGridData)[ind[2][1][2]];
+      cVals[10][3] = extrapolation((*mGridData)[ind[2][1][2]], (*mGridData)[ind[2][1][1]], (*mGridData)[ind[2][1][0]]);
+      cVals[11][0] = (*mGridData)[ind[2][2][0]];
+      cVals[11][1] = (*mGridData)[ind[2][2][1]];
+      cVals[11][2] = (*mGridData)[ind[2][2][2]];
+      cVals[11][3] = extrapolation((*mGridData)[ind[2][2][2]], (*mGridData)[ind[2][2][1]], (*mGridData)[ind[2][2][0]]);
+      cVals[12][0] = extrapolation((*mGridData)[ind[3][0][0]], (*mGridData)[ind[3][1][0]], (*mGridData)[ind[3][2][0]]);
+      cVals[12][1] = extrapolation((*mGridData)[ind[3][0][1]], (*mGridData)[ind[3][1][1]], (*mGridData)[ind[3][2][1]]);
+      cVals[12][2] = extrapolation((*mGridData)[ind[3][0][1]], (*mGridData)[ind[3][1][0]], (*mGridData)[ind[3][2][0] + deltaZ[i0]]);
+      cVals[12][3] = extrapolation((*mGridData)[ind[3][0][2]], (*mGridData)[ind[3][1][1]], (*mGridData)[ind[3][2][0]]);
+      cVals[13][0] = (*mGridData)[ind[3][0][0]];
+      cVals[13][1] = (*mGridData)[ind[3][0][1]];
+      cVals[13][2] = (*mGridData)[ind[3][0][2]];
+      cVals[13][3] = extrapolation((*mGridData)[ind[3][0][2]], (*mGridData)[ind[3][0][1]], (*mGridData)[ind[3][0][0]]);
+      cVals[14][0] = (*mGridData)[ind[3][1][0]];
+      cVals[14][1] = (*mGridData)[ind[3][1][1]];
+      cVals[14][2] = (*mGridData)[ind[3][1][2]];
+      cVals[14][3] = extrapolation((*mGridData)[ind[3][1][2]], (*mGridData)[ind[3][1][1]], (*mGridData)[ind[3][1][0]]);
+      cVals[15][0] = (*mGridData)[ind[3][2][0]];
+      cVals[15][1] = (*mGridData)[ind[3][2][1]];
+      cVals[15][2] = (*mGridData)[ind[3][2][2]];
+      cVals[15][3] = extrapolation((*mGridData)[ind[3][2][2]], (*mGridData)[ind[3][2][1]], (*mGridData)[ind[3][2][0]]);
     } break;
 
     case GridPos::Edge2:
@@ -897,69 +925,69 @@ void TriCubicInterpolator<DataT>::setValues(const int iz, const int ir, const in
          {ind[3][0][0] - deltaR[i0], ind[3][1][0] - deltaZ[i0], ind[3][1][1] - deltaZ[i0]},
          {ind[3][1][0] - deltaR[i0], ind[3][2][0] - deltaZ[i0], ind[3][2][1] - deltaZ[i0]}}};
 
-      cVals[0][0] = extrapolation(mGridData[ind[0][0][0]], mGridData[ind[0][0][1]], mGridData[ind[0][0][2]]);
-      cVals[0][1] = mGridData[ind[0][0][0]];
-      cVals[0][2] = mGridData[ind[0][0][1]];
-      cVals[0][3] = mGridData[ind[0][0][2]];
-      cVals[1][0] = extrapolation(mGridData[ind[0][1][0]], mGridData[ind[0][1][1]], mGridData[ind[0][1][2]]);
-      cVals[1][1] = mGridData[ind[0][1][0]];
-      cVals[1][2] = mGridData[ind[0][1][1]];
-      cVals[1][3] = mGridData[ind[0][1][2]];
-      cVals[2][0] = extrapolation(mGridData[ind[0][1][0]], mGridData[ind[0][0][1]], mGridData[ind[0][0][2] + deltaR[i0]]);
-      cVals[2][1] = mGridData[ind[0][2][0]];
-      cVals[2][2] = mGridData[ind[0][2][1]];
-      cVals[2][3] = mGridData[ind[0][2][2]];
-      cVals[3][0] = extrapolation(mGridData[ind[0][2][0]], mGridData[ind[0][1][1]], mGridData[ind[0][0][2]]);
-      cVals[3][1] = extrapolation(mGridData[ind[0][2][0]], mGridData[ind[0][1][0]], mGridData[ind[0][0][0]]);
-      cVals[3][2] = extrapolation(mGridData[ind[0][2][1]], mGridData[ind[0][1][1]], mGridData[ind[0][0][1]]);
-      cVals[3][3] = extrapolation(mGridData[ind[0][2][2]], mGridData[ind[0][1][2]], mGridData[ind[0][0][2]]);
-      cVals[4][0] = extrapolation(mGridData[ind[1][0][0]], mGridData[ind[1][0][1]], mGridData[ind[1][0][2]]);
-      cVals[4][1] = mGridData[ind[1][0][0]];
-      cVals[4][2] = mGridData[ind[1][0][1]];
-      cVals[4][3] = mGridData[ind[1][0][2]];
-      cVals[5][0] = extrapolation(mGridData[ii_x_y_z], mGridData[ind[1][1][1]], mGridData[ind[1][1][2]]);
-      cVals[5][2] = mGridData[ind[1][1][1]];
-      cVals[5][3] = mGridData[ind[1][1][2]];
-      cVals[6][0] = extrapolation(mGridData[ii_x_y_z], mGridData[ind[1][0][1]], mGridData[ind[1][0][2] + deltaR[i0]]);
-      cVals[6][1] = mGridData[ind[1][2][0]];
-      cVals[6][2] = mGridData[ind[1][2][1]];
-      cVals[6][3] = mGridData[ind[1][2][2]];
-      cVals[7][0] = extrapolation(mGridData[ind[1][2][0]], mGridData[ind[1][1][1]], mGridData[ind[1][0][2]]);
-      cVals[7][1] = extrapolation(mGridData[ind[1][2][0]], mGridData[ii_x_y_z], mGridData[ind[1][0][0]]);
-      cVals[7][2] = extrapolation(mGridData[ind[1][2][1]], mGridData[ind[1][1][1]], mGridData[ind[1][0][1]]);
-      cVals[8][0] = extrapolation(mGridData[ind[2][0][0]], mGridData[ind[2][0][1]], mGridData[ind[2][0][2]]);
-      cVals[7][3] = extrapolation(mGridData[ind[1][2][2]], mGridData[ind[1][1][2]], mGridData[ind[1][0][2]]);
-      cVals[8][1] = mGridData[ind[2][0][0]];
-      cVals[8][2] = mGridData[ind[2][0][1]];
-      cVals[8][3] = mGridData[ind[2][0][2]];
-      cVals[9][0] = extrapolation(mGridData[ind[2][1][0]], mGridData[ind[2][1][1]], mGridData[ind[2][1][2]]);
-      cVals[9][1] = mGridData[ind[2][1][0]];
-      cVals[9][2] = mGridData[ind[2][1][1]];
-      cVals[9][3] = mGridData[ind[2][1][2]];
-      cVals[10][0] = extrapolation(mGridData[ind[2][1][0]], mGridData[ind[2][0][1]], mGridData[ind[2][0][2] + deltaR[i0]]);
-      cVals[10][1] = mGridData[ind[2][2][0]];
-      cVals[10][2] = mGridData[ind[2][2][1]];
-      cVals[10][3] = mGridData[ind[2][2][2]];
-      cVals[11][0] = extrapolation(mGridData[ind[2][2][0]], mGridData[ind[2][1][1]], mGridData[ind[2][0][2]]);
-      cVals[11][1] = extrapolation(mGridData[ind[2][2][0]], mGridData[ind[2][1][0]], mGridData[ind[2][0][0]]);
-      cVals[11][2] = extrapolation(mGridData[ind[2][2][1]], mGridData[ind[2][1][1]], mGridData[ind[2][0][1]]);
-      cVals[11][3] = extrapolation(mGridData[ind[2][2][2]], mGridData[ind[2][1][2]], mGridData[ind[2][0][2]]);
-      cVals[12][0] = extrapolation(mGridData[ind[3][0][0]], mGridData[ind[3][0][1]], mGridData[ind[3][0][2]]);
-      cVals[12][1] = mGridData[ind[3][0][0]];
-      cVals[12][2] = mGridData[ind[3][0][1]];
-      cVals[12][3] = mGridData[ind[3][0][2]];
-      cVals[13][0] = extrapolation(mGridData[ind[3][1][0]], mGridData[ind[3][1][1]], mGridData[ind[3][1][2]]);
-      cVals[13][1] = mGridData[ind[3][1][0]];
-      cVals[13][2] = mGridData[ind[3][1][1]];
-      cVals[13][3] = mGridData[ind[3][1][2]];
-      cVals[14][0] = extrapolation(mGridData[ind[3][1][0]], mGridData[ind[3][0][1]], mGridData[ind[3][0][2] + deltaR[i0]]);
-      cVals[14][1] = mGridData[ind[3][2][0]];
-      cVals[14][2] = mGridData[ind[3][2][1]];
-      cVals[14][3] = mGridData[ind[3][2][2]];
-      cVals[15][0] = extrapolation(mGridData[ind[3][2][0]], mGridData[ind[3][1][1]], mGridData[ind[3][0][2]]);
-      cVals[15][1] = extrapolation(mGridData[ind[3][2][0]], mGridData[ind[3][1][0]], mGridData[ind[3][0][0]]);
-      cVals[15][2] = extrapolation(mGridData[ind[3][2][1]], mGridData[ind[3][1][1]], mGridData[ind[3][0][1]]);
-      cVals[15][3] = extrapolation(mGridData[ind[3][2][2]], mGridData[ind[3][1][2]], mGridData[ind[3][0][2]]);
+      cVals[0][0] = extrapolation((*mGridData)[ind[0][0][0]], (*mGridData)[ind[0][0][1]], (*mGridData)[ind[0][0][2]]);
+      cVals[0][1] = (*mGridData)[ind[0][0][0]];
+      cVals[0][2] = (*mGridData)[ind[0][0][1]];
+      cVals[0][3] = (*mGridData)[ind[0][0][2]];
+      cVals[1][0] = extrapolation((*mGridData)[ind[0][1][0]], (*mGridData)[ind[0][1][1]], (*mGridData)[ind[0][1][2]]);
+      cVals[1][1] = (*mGridData)[ind[0][1][0]];
+      cVals[1][2] = (*mGridData)[ind[0][1][1]];
+      cVals[1][3] = (*mGridData)[ind[0][1][2]];
+      cVals[2][0] = extrapolation((*mGridData)[ind[0][1][0]], (*mGridData)[ind[0][0][1]], (*mGridData)[ind[0][0][2] + deltaR[i0]]);
+      cVals[2][1] = (*mGridData)[ind[0][2][0]];
+      cVals[2][2] = (*mGridData)[ind[0][2][1]];
+      cVals[2][3] = (*mGridData)[ind[0][2][2]];
+      cVals[3][0] = extrapolation((*mGridData)[ind[0][2][0]], (*mGridData)[ind[0][1][1]], (*mGridData)[ind[0][0][2]]);
+      cVals[3][1] = extrapolation((*mGridData)[ind[0][2][0]], (*mGridData)[ind[0][1][0]], (*mGridData)[ind[0][0][0]]);
+      cVals[3][2] = extrapolation((*mGridData)[ind[0][2][1]], (*mGridData)[ind[0][1][1]], (*mGridData)[ind[0][0][1]]);
+      cVals[3][3] = extrapolation((*mGridData)[ind[0][2][2]], (*mGridData)[ind[0][1][2]], (*mGridData)[ind[0][0][2]]);
+      cVals[4][0] = extrapolation((*mGridData)[ind[1][0][0]], (*mGridData)[ind[1][0][1]], (*mGridData)[ind[1][0][2]]);
+      cVals[4][1] = (*mGridData)[ind[1][0][0]];
+      cVals[4][2] = (*mGridData)[ind[1][0][1]];
+      cVals[4][3] = (*mGridData)[ind[1][0][2]];
+      cVals[5][0] = extrapolation((*mGridData)[ii_x_y_z], (*mGridData)[ind[1][1][1]], (*mGridData)[ind[1][1][2]]);
+      cVals[5][2] = (*mGridData)[ind[1][1][1]];
+      cVals[5][3] = (*mGridData)[ind[1][1][2]];
+      cVals[6][0] = extrapolation((*mGridData)[ii_x_y_z], (*mGridData)[ind[1][0][1]], (*mGridData)[ind[1][0][2] + deltaR[i0]]);
+      cVals[6][1] = (*mGridData)[ind[1][2][0]];
+      cVals[6][2] = (*mGridData)[ind[1][2][1]];
+      cVals[6][3] = (*mGridData)[ind[1][2][2]];
+      cVals[7][0] = extrapolation((*mGridData)[ind[1][2][0]], (*mGridData)[ind[1][1][1]], (*mGridData)[ind[1][0][2]]);
+      cVals[7][1] = extrapolation((*mGridData)[ind[1][2][0]], (*mGridData)[ii_x_y_z], (*mGridData)[ind[1][0][0]]);
+      cVals[7][2] = extrapolation((*mGridData)[ind[1][2][1]], (*mGridData)[ind[1][1][1]], (*mGridData)[ind[1][0][1]]);
+      cVals[8][0] = extrapolation((*mGridData)[ind[2][0][0]], (*mGridData)[ind[2][0][1]], (*mGridData)[ind[2][0][2]]);
+      cVals[7][3] = extrapolation((*mGridData)[ind[1][2][2]], (*mGridData)[ind[1][1][2]], (*mGridData)[ind[1][0][2]]);
+      cVals[8][1] = (*mGridData)[ind[2][0][0]];
+      cVals[8][2] = (*mGridData)[ind[2][0][1]];
+      cVals[8][3] = (*mGridData)[ind[2][0][2]];
+      cVals[9][0] = extrapolation((*mGridData)[ind[2][1][0]], (*mGridData)[ind[2][1][1]], (*mGridData)[ind[2][1][2]]);
+      cVals[9][1] = (*mGridData)[ind[2][1][0]];
+      cVals[9][2] = (*mGridData)[ind[2][1][1]];
+      cVals[9][3] = (*mGridData)[ind[2][1][2]];
+      cVals[10][0] = extrapolation((*mGridData)[ind[2][1][0]], (*mGridData)[ind[2][0][1]], (*mGridData)[ind[2][0][2] + deltaR[i0]]);
+      cVals[10][1] = (*mGridData)[ind[2][2][0]];
+      cVals[10][2] = (*mGridData)[ind[2][2][1]];
+      cVals[10][3] = (*mGridData)[ind[2][2][2]];
+      cVals[11][0] = extrapolation((*mGridData)[ind[2][2][0]], (*mGridData)[ind[2][1][1]], (*mGridData)[ind[2][0][2]]);
+      cVals[11][1] = extrapolation((*mGridData)[ind[2][2][0]], (*mGridData)[ind[2][1][0]], (*mGridData)[ind[2][0][0]]);
+      cVals[11][2] = extrapolation((*mGridData)[ind[2][2][1]], (*mGridData)[ind[2][1][1]], (*mGridData)[ind[2][0][1]]);
+      cVals[11][3] = extrapolation((*mGridData)[ind[2][2][2]], (*mGridData)[ind[2][1][2]], (*mGridData)[ind[2][0][2]]);
+      cVals[12][0] = extrapolation((*mGridData)[ind[3][0][0]], (*mGridData)[ind[3][0][1]], (*mGridData)[ind[3][0][2]]);
+      cVals[12][1] = (*mGridData)[ind[3][0][0]];
+      cVals[12][2] = (*mGridData)[ind[3][0][1]];
+      cVals[12][3] = (*mGridData)[ind[3][0][2]];
+      cVals[13][0] = extrapolation((*mGridData)[ind[3][1][0]], (*mGridData)[ind[3][1][1]], (*mGridData)[ind[3][1][2]]);
+      cVals[13][1] = (*mGridData)[ind[3][1][0]];
+      cVals[13][2] = (*mGridData)[ind[3][1][1]];
+      cVals[13][3] = (*mGridData)[ind[3][1][2]];
+      cVals[14][0] = extrapolation((*mGridData)[ind[3][1][0]], (*mGridData)[ind[3][0][1]], (*mGridData)[ind[3][0][2] + deltaR[i0]]);
+      cVals[14][1] = (*mGridData)[ind[3][2][0]];
+      cVals[14][2] = (*mGridData)[ind[3][2][1]];
+      cVals[14][3] = (*mGridData)[ind[3][2][2]];
+      cVals[15][0] = extrapolation((*mGridData)[ind[3][2][0]], (*mGridData)[ind[3][1][1]], (*mGridData)[ind[3][0][2]]);
+      cVals[15][1] = extrapolation((*mGridData)[ind[3][2][0]], (*mGridData)[ind[3][1][0]], (*mGridData)[ind[3][0][0]]);
+      cVals[15][2] = extrapolation((*mGridData)[ind[3][2][1]], (*mGridData)[ind[3][1][1]], (*mGridData)[ind[3][0][1]]);
+      cVals[15][3] = extrapolation((*mGridData)[ind[3][2][2]], (*mGridData)[ind[3][1][2]], (*mGridData)[ind[3][0][2]]);
     } break;
 
     case GridPos::Edge3:
@@ -979,69 +1007,69 @@ void TriCubicInterpolator<DataT>::setValues(const int iz, const int ir, const in
          {ind[3][0][0] - deltaR[i0], ind[3][1][0] - deltaZ[i0], ind[3][1][1] - deltaZ[i0]},
          {ind[3][1][0] - deltaR[i0], ind[3][2][0] - deltaZ[i0], ind[3][2][1] - deltaZ[i0]}}};
 
-      cVals[0][0] = mGridData[ind[0][0][0]];
-      cVals[0][1] = mGridData[ind[0][0][1]];
-      cVals[0][2] = mGridData[ind[0][0][2]];
-      cVals[0][3] = extrapolation(mGridData[ind[0][0][2]], mGridData[ind[0][0][1]], mGridData[ind[0][0][0]]);
-      cVals[1][0] = mGridData[ind[0][1][0]];
-      cVals[1][1] = mGridData[ind[0][1][1]];
-      cVals[1][2] = mGridData[ind[0][1][2]];
-      cVals[1][3] = extrapolation(mGridData[ind[0][1][2]], mGridData[ind[0][1][1]], mGridData[ind[0][1][0]]);
-      cVals[2][0] = mGridData[ind[0][2][0]];
-      cVals[2][1] = mGridData[ind[0][2][1]];
-      cVals[2][2] = mGridData[ind[0][2][2]];
-      cVals[2][3] = extrapolation(mGridData[ind[0][2][2]], mGridData[ind[0][2][1]], mGridData[ind[0][2][0]]);
-      cVals[3][0] = extrapolation(mGridData[ind[0][2][0]], mGridData[ind[0][1][0]], mGridData[ind[0][0][0]]);
-      cVals[3][1] = extrapolation(mGridData[ind[0][2][1]], mGridData[ind[0][1][1]], mGridData[ind[0][0][1]]);
-      cVals[3][2] = extrapolation(mGridData[ind[0][2][2]], mGridData[ind[0][1][2]], mGridData[ind[0][0][2]]);
-      cVals[3][3] = extrapolation(mGridData[ind[0][2][2]], mGridData[ind[0][1][1]], mGridData[ind[0][0][0]]);
-      cVals[4][0] = mGridData[ind[1][0][0]];
-      cVals[4][1] = mGridData[ind[1][0][1]];
-      cVals[4][2] = mGridData[ind[1][0][2]];
-      cVals[4][3] = extrapolation(mGridData[ind[1][0][2]], mGridData[ind[1][0][1]], mGridData[ind[1][0][0]]);
-      cVals[5][0] = mGridData[ind[1][1][0]];
-      cVals[5][2] = mGridData[ind[1][1][2]];
-      cVals[5][3] = extrapolation(mGridData[ind[1][1][2]], mGridData[ii_x_y_z], mGridData[ind[1][1][0]]);
-      cVals[6][0] = mGridData[ind[1][2][0]];
-      cVals[6][1] = mGridData[ind[1][2][1]];
-      cVals[6][2] = mGridData[ind[1][2][2]];
-      cVals[6][3] = extrapolation(mGridData[ind[1][2][2]], mGridData[ind[1][2][1]], mGridData[ind[1][2][0]]);
-      cVals[7][0] = extrapolation(mGridData[ind[1][2][0]], mGridData[ind[1][1][0]], mGridData[ind[1][0][0]]);
-      cVals[7][1] = extrapolation(mGridData[ind[1][2][1]], mGridData[ii_x_y_z], mGridData[ind[1][0][1]]);
-      cVals[7][2] = extrapolation(mGridData[ind[1][2][2]], mGridData[ind[1][1][2]], mGridData[ind[1][0][2]]);
-      cVals[7][3] = extrapolation(mGridData[ind[1][2][2]], mGridData[ind[1][1][1]], mGridData[ind[1][0][0]]);
-      cVals[8][0] = mGridData[ind[2][0][0]];
-      cVals[8][1] = mGridData[ind[2][0][1]];
-      cVals[8][2] = mGridData[ind[2][0][2]];
-      cVals[8][3] = extrapolation(mGridData[ind[2][0][2]], mGridData[ind[2][0][1]], mGridData[ind[2][0][0]]);
-      cVals[9][0] = mGridData[ind[2][1][0]];
-      cVals[9][1] = mGridData[ind[2][1][1]];
-      cVals[9][2] = mGridData[ind[2][1][2]];
-      cVals[9][3] = extrapolation(mGridData[ind[2][1][2]], mGridData[ind[2][1][1]], mGridData[ind[2][1][0]]);
-      cVals[10][0] = mGridData[ind[2][2][0]];
-      cVals[10][1] = mGridData[ind[2][2][1]];
-      cVals[10][2] = mGridData[ind[2][2][2]];
-      cVals[10][3] = extrapolation(mGridData[ind[2][2][2]], mGridData[ind[2][2][1]], mGridData[ind[2][2][0]]);
-      cVals[11][0] = extrapolation(mGridData[ind[2][2][0]], mGridData[ind[2][1][0]], mGridData[ind[2][0][0]]);
-      cVals[11][1] = extrapolation(mGridData[ind[2][2][1]], mGridData[ind[2][1][1]], mGridData[ind[2][0][1]]);
-      cVals[11][2] = extrapolation(mGridData[ind[2][2][2]], mGridData[ind[2][1][2]], mGridData[ind[2][0][2]]);
-      cVals[11][3] = extrapolation(mGridData[ind[2][2][2]], mGridData[ind[2][1][1]], mGridData[ind[2][0][0]]);
-      cVals[12][0] = mGridData[ind[3][0][0]];
-      cVals[12][1] = mGridData[ind[3][0][1]];
-      cVals[12][2] = mGridData[ind[3][0][2]];
-      cVals[12][3] = extrapolation(mGridData[ind[3][0][2]], mGridData[ind[3][0][1]], mGridData[ind[3][0][0]]);
-      cVals[13][0] = mGridData[ind[3][1][0]];
-      cVals[13][1] = mGridData[ind[3][1][1]];
-      cVals[13][2] = mGridData[ind[3][1][2]];
-      cVals[13][3] = extrapolation(mGridData[ind[3][1][2]], mGridData[ind[3][1][1]], mGridData[ind[3][1][0]]);
-      cVals[14][0] = mGridData[ind[3][2][0]];
-      cVals[14][1] = mGridData[ind[3][2][1]];
-      cVals[14][2] = mGridData[ind[3][2][2]];
-      cVals[14][3] = extrapolation(mGridData[ind[3][2][2]], mGridData[ind[3][2][1]], mGridData[ind[3][2][0]]);
-      cVals[15][0] = extrapolation(mGridData[ind[3][2][0]], mGridData[ind[3][1][0]], mGridData[ind[3][0][0]]);
-      cVals[15][1] = extrapolation(mGridData[ind[3][2][1]], mGridData[ind[3][1][1]], mGridData[ind[3][0][1]]);
-      cVals[15][2] = extrapolation(mGridData[ind[3][2][2]], mGridData[ind[3][1][2]], mGridData[ind[3][0][2]]);
-      cVals[15][3] = extrapolation(mGridData[ind[3][2][2]], mGridData[ind[3][1][1]], mGridData[ind[3][0][0]]);
+      cVals[0][0] = (*mGridData)[ind[0][0][0]];
+      cVals[0][1] = (*mGridData)[ind[0][0][1]];
+      cVals[0][2] = (*mGridData)[ind[0][0][2]];
+      cVals[0][3] = extrapolation((*mGridData)[ind[0][0][2]], (*mGridData)[ind[0][0][1]], (*mGridData)[ind[0][0][0]]);
+      cVals[1][0] = (*mGridData)[ind[0][1][0]];
+      cVals[1][1] = (*mGridData)[ind[0][1][1]];
+      cVals[1][2] = (*mGridData)[ind[0][1][2]];
+      cVals[1][3] = extrapolation((*mGridData)[ind[0][1][2]], (*mGridData)[ind[0][1][1]], (*mGridData)[ind[0][1][0]]);
+      cVals[2][0] = (*mGridData)[ind[0][2][0]];
+      cVals[2][1] = (*mGridData)[ind[0][2][1]];
+      cVals[2][2] = (*mGridData)[ind[0][2][2]];
+      cVals[2][3] = extrapolation((*mGridData)[ind[0][2][2]], (*mGridData)[ind[0][2][1]], (*mGridData)[ind[0][2][0]]);
+      cVals[3][0] = extrapolation((*mGridData)[ind[0][2][0]], (*mGridData)[ind[0][1][0]], (*mGridData)[ind[0][0][0]]);
+      cVals[3][1] = extrapolation((*mGridData)[ind[0][2][1]], (*mGridData)[ind[0][1][1]], (*mGridData)[ind[0][0][1]]);
+      cVals[3][2] = extrapolation((*mGridData)[ind[0][2][2]], (*mGridData)[ind[0][1][2]], (*mGridData)[ind[0][0][2]]);
+      cVals[3][3] = extrapolation((*mGridData)[ind[0][2][2]], (*mGridData)[ind[0][1][1]], (*mGridData)[ind[0][0][0]]);
+      cVals[4][0] = (*mGridData)[ind[1][0][0]];
+      cVals[4][1] = (*mGridData)[ind[1][0][1]];
+      cVals[4][2] = (*mGridData)[ind[1][0][2]];
+      cVals[4][3] = extrapolation((*mGridData)[ind[1][0][2]], (*mGridData)[ind[1][0][1]], (*mGridData)[ind[1][0][0]]);
+      cVals[5][0] = (*mGridData)[ind[1][1][0]];
+      cVals[5][2] = (*mGridData)[ind[1][1][2]];
+      cVals[5][3] = extrapolation((*mGridData)[ind[1][1][2]], (*mGridData)[ii_x_y_z], (*mGridData)[ind[1][1][0]]);
+      cVals[6][0] = (*mGridData)[ind[1][2][0]];
+      cVals[6][1] = (*mGridData)[ind[1][2][1]];
+      cVals[6][2] = (*mGridData)[ind[1][2][2]];
+      cVals[6][3] = extrapolation((*mGridData)[ind[1][2][2]], (*mGridData)[ind[1][2][1]], (*mGridData)[ind[1][2][0]]);
+      cVals[7][0] = extrapolation((*mGridData)[ind[1][2][0]], (*mGridData)[ind[1][1][0]], (*mGridData)[ind[1][0][0]]);
+      cVals[7][1] = extrapolation((*mGridData)[ind[1][2][1]], (*mGridData)[ii_x_y_z], (*mGridData)[ind[1][0][1]]);
+      cVals[7][2] = extrapolation((*mGridData)[ind[1][2][2]], (*mGridData)[ind[1][1][2]], (*mGridData)[ind[1][0][2]]);
+      cVals[7][3] = extrapolation((*mGridData)[ind[1][2][2]], (*mGridData)[ind[1][1][1]], (*mGridData)[ind[1][0][0]]);
+      cVals[8][0] = (*mGridData)[ind[2][0][0]];
+      cVals[8][1] = (*mGridData)[ind[2][0][1]];
+      cVals[8][2] = (*mGridData)[ind[2][0][2]];
+      cVals[8][3] = extrapolation((*mGridData)[ind[2][0][2]], (*mGridData)[ind[2][0][1]], (*mGridData)[ind[2][0][0]]);
+      cVals[9][0] = (*mGridData)[ind[2][1][0]];
+      cVals[9][1] = (*mGridData)[ind[2][1][1]];
+      cVals[9][2] = (*mGridData)[ind[2][1][2]];
+      cVals[9][3] = extrapolation((*mGridData)[ind[2][1][2]], (*mGridData)[ind[2][1][1]], (*mGridData)[ind[2][1][0]]);
+      cVals[10][0] = (*mGridData)[ind[2][2][0]];
+      cVals[10][1] = (*mGridData)[ind[2][2][1]];
+      cVals[10][2] = (*mGridData)[ind[2][2][2]];
+      cVals[10][3] = extrapolation((*mGridData)[ind[2][2][2]], (*mGridData)[ind[2][2][1]], (*mGridData)[ind[2][2][0]]);
+      cVals[11][0] = extrapolation((*mGridData)[ind[2][2][0]], (*mGridData)[ind[2][1][0]], (*mGridData)[ind[2][0][0]]);
+      cVals[11][1] = extrapolation((*mGridData)[ind[2][2][1]], (*mGridData)[ind[2][1][1]], (*mGridData)[ind[2][0][1]]);
+      cVals[11][2] = extrapolation((*mGridData)[ind[2][2][2]], (*mGridData)[ind[2][1][2]], (*mGridData)[ind[2][0][2]]);
+      cVals[11][3] = extrapolation((*mGridData)[ind[2][2][2]], (*mGridData)[ind[2][1][1]], (*mGridData)[ind[2][0][0]]);
+      cVals[12][0] = (*mGridData)[ind[3][0][0]];
+      cVals[12][1] = (*mGridData)[ind[3][0][1]];
+      cVals[12][2] = (*mGridData)[ind[3][0][2]];
+      cVals[12][3] = extrapolation((*mGridData)[ind[3][0][2]], (*mGridData)[ind[3][0][1]], (*mGridData)[ind[3][0][0]]);
+      cVals[13][0] = (*mGridData)[ind[3][1][0]];
+      cVals[13][1] = (*mGridData)[ind[3][1][1]];
+      cVals[13][2] = (*mGridData)[ind[3][1][2]];
+      cVals[13][3] = extrapolation((*mGridData)[ind[3][1][2]], (*mGridData)[ind[3][1][1]], (*mGridData)[ind[3][1][0]]);
+      cVals[14][0] = (*mGridData)[ind[3][2][0]];
+      cVals[14][1] = (*mGridData)[ind[3][2][1]];
+      cVals[14][2] = (*mGridData)[ind[3][2][2]];
+      cVals[14][3] = extrapolation((*mGridData)[ind[3][2][2]], (*mGridData)[ind[3][2][1]], (*mGridData)[ind[3][2][0]]);
+      cVals[15][0] = extrapolation((*mGridData)[ind[3][2][0]], (*mGridData)[ind[3][1][0]], (*mGridData)[ind[3][0][0]]);
+      cVals[15][1] = extrapolation((*mGridData)[ind[3][2][1]], (*mGridData)[ind[3][1][1]], (*mGridData)[ind[3][0][1]]);
+      cVals[15][2] = extrapolation((*mGridData)[ind[3][2][2]], (*mGridData)[ind[3][1][2]], (*mGridData)[ind[3][0][2]]);
+      cVals[15][3] = extrapolation((*mGridData)[ind[3][2][2]], (*mGridData)[ind[3][1][1]], (*mGridData)[ind[3][0][0]]);
     } break;
   }
 }

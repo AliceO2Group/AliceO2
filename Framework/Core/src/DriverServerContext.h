@@ -19,6 +19,7 @@
 #include "Framework/DeviceMetricsInfo.h"
 #include "Framework/ServiceSpec.h"
 #include "Framework/GuiCallbackContext.h"
+#include "Framework/DataProcessingStates.h"
 
 #include <uv.h>
 #include <vector>
@@ -30,13 +31,16 @@ struct ServiceRegistry;
 struct GuiCallbackContext;
 
 struct DriverServerContext {
+  ServiceRegistryRef registry;
   uv_loop_t* loop = nullptr;
-  ServiceRegistry* registry = nullptr;
   std::vector<DeviceControl>* controls = nullptr;
   std::vector<DeviceInfo>* infos = nullptr;
+  std::vector<DataProcessingStates>* states = nullptr;
   std::vector<DeviceSpec>* specs = nullptr;
   std::vector<DeviceMetricsInfo>* metrics = nullptr;
   std::vector<ServiceMetricHandling>* metricProcessingCallbacks = nullptr;
+  std::vector<ServiceSummaryHandling>* summaryCallbacks = nullptr;
+
   DriverInfo* driver = nullptr;
   GuiCallbackContext* gui = nullptr;
   /// Whether or not this server is associated to

@@ -29,16 +29,16 @@ namespace framework
 
 DataProcessorSpec getFT0DCSDataProcessorSpec()
 {
-  o2::header::DataDescription ddBChM = "FT0_DCSDPs";
+  o2::header::DataDescription ddDCSDPs = "FT0_DCSDPs";
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, ddBChM}, Lifetime::Sporadic);
-  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, ddBChM}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, ddDCSDPs}, Lifetime::Sporadic);
+  outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, ddDCSDPs}, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "ft0-dcs-data-processor",
     Inputs{{"input", "DCS", "FT0DATAPOINTS"}},
     outputs,
-    AlgorithmSpec{adaptFromTask<o2::ft0::FT0DCSDataProcessor>("FT0", ddBChM)},
+    AlgorithmSpec{adaptFromTask<o2::ft0::FT0DCSDataProcessor>("FT0", ddDCSDPs)},
     Options{{"ccdb-path", VariantType::String, "http://localhost:8080", {"Path to CCDB"}},
             {"use-ccdb-to-configure", VariantType::Bool, false, {"Use CCDB to configure"}},
             {"use-verbose-mode", VariantType::Bool, false, {"Use verbose mode"}},

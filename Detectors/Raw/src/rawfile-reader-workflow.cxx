@@ -27,6 +27,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options;
   options.push_back(ConfigParamSpec{"input-conf", VariantType::String, "", {"configuration file with input (obligatory)"}});
+  options.push_back(ConfigParamSpec{"onlyDet", VariantType::String, "all", {"list of dectors"}});
   options.push_back(ConfigParamSpec{"min-tf", VariantType::Int64, 0L, {"min TF ID to process"}});
   options.push_back(ConfigParamSpec{"max-tf", VariantType::Int64, 0xffffffffL, {"max TF ID to process"}});
   options.push_back(ConfigParamSpec{"run-number", VariantType::Int, 0, {"impose run number"}});
@@ -63,6 +64,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   ReaderInp rinp;
   rinp.inifile = configcontext.options().get<std::string>("input-conf");
   rinp.loop = configcontext.options().get<int>("loop");
+  rinp.onlyDet = configcontext.options().get<std::string>("onlyDet");
   rinp.maxTF = uint32_t(configcontext.options().get<int64_t>("max-tf"));
   rinp.minTF = uint32_t(configcontext.options().get<int64_t>("min-tf"));
   rinp.runNumber = configcontext.options().get<int>("run-number");

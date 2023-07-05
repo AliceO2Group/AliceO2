@@ -11,7 +11,7 @@
 #ifndef O2_FRAMEWORK_CALLBACKSERVICE_H_
 #define O2_FRAMEWORK_CALLBACKSERVICE_H_
 
-#include "CallbackRegistry.h"
+#include "Framework/CallbackRegistry.h"
 #include "Framework/ServiceHandle.h"
 #include "Framework/DataProcessingHeader.h"
 #include "ServiceRegistry.h"
@@ -38,8 +38,8 @@ class CallbackService
   /// invoked by the main thread only.
   constexpr static ServiceKind service_kind = ServiceKind::Global;
   /// the defined processing steps at which a callback can be invoked
-  enum class Id {
-    Start,        /**< Invoked before the inner loop is started */
+  enum struct Id : int {
+    Start = 0,    /**< Invoked before the inner loop is started */
     Stop,         /**< Invoked when the device is about to be stoped */
     Reset,        /**< Invoked on device rest */
     Idle,         /**< Invoked when there was no computation scheduled */
@@ -54,7 +54,7 @@ class CallbackService
     ///
     /// return AlgorithmSpec::InitCallback{[=](InitContext& ic) {
     ///    auto& callbacks = ic.services().get<CallbackService>();
-    ///    callbacks.set(CallbackService::Id::RegionInfoCallback, [](fair::mq::RegionInfo const& info) {
+    ///    callbacks.set<CallbackService::Id::RegionInfoCallback>([](fair::mq::RegionInfo const& info) {
     ///    ... do GPU init ...
     ///    });
     ///  }
@@ -79,7 +79,9 @@ class CallbackService
     /// Invoked when new domain info is available
     DomainInfoUpdated,
     /// Invoked the device undergoes a state change
-    DeviceStateChanged
+    DeviceStateChanged,
+    /// Invoked when the device was requested to stop
+    ExitRequested,
   };
 
   using StartCallback = std::function<void()>;
@@ -96,36 +98,37 @@ class CallbackService
   using CCDBDeserializedCallback = std::function<void(ConcreteDataMatcher&, void*)>;
   using DomainInfoUpdatedCallback = std::function<void(ServiceRegistryRef, size_t timeslice, ChannelIndex index)>;
   using DeviceStateChangedCallback = std::function<void(ServiceRegistryRef, int newState)>;
+  using ExitRequestedCallback = std::function<void(ServiceRegistryRef)>;
 
-  using Callbacks = CallbackRegistry<Id,                                                                  //
-                                     RegistryPair<Id, Id::Start, StartCallback>,                          //
-                                     RegistryPair<Id, Id::Stop, StopCallback>,                            //
-                                     RegistryPair<Id, Id::Reset, ResetCallback>,                          //
-                                     RegistryPair<Id, Id::Idle, IdleCallback>,                            //
-                                     RegistryPair<Id, Id::ClockTick, ClockTickCallback>,                  //
-                                     RegistryPair<Id, Id::DataConsumed, DataConsumedCallback>,            //
-                                     RegistryPair<Id, Id::EndOfStream, EndOfStreamCallback>,              //
-                                     RegistryPair<Id, Id::RegionInfoCallback, RegionInfoCallback>,        //
-                                     RegistryPair<Id, Id::NewTimeslice, NewTimesliceCallback>,            //
-                                     RegistryPair<Id, Id::PreProcessing, PreProcessingCallback>,          //
-                                     RegistryPair<Id, Id::PostProcessing, PostProcessingCallback>,        //
-                                     RegistryPair<Id, Id::CCDBDeserialised, CCDBDeserializedCallback>,    //
-                                     RegistryPair<Id, Id::DomainInfoUpdated, DomainInfoUpdatedCallback>,  //
-                                     RegistryPair<Id, Id::DeviceStateChanged, DeviceStateChangedCallback> //
-                                     >;                                                                   //
+  using Callbacks = CallbackRegistry<Id,                                                                   //
+                                     RegistryPair<Id, Id::Start, StartCallback>,                           //
+                                     RegistryPair<Id, Id::Stop, StopCallback>,                             //
+                                     RegistryPair<Id, Id::Reset, ResetCallback>,                           //
+                                     RegistryPair<Id, Id::Idle, IdleCallback>,                             //
+                                     RegistryPair<Id, Id::ClockTick, ClockTickCallback>,                   //
+                                     RegistryPair<Id, Id::DataConsumed, DataConsumedCallback>,             //
+                                     RegistryPair<Id, Id::EndOfStream, EndOfStreamCallback>,               //
+                                     RegistryPair<Id, Id::RegionInfoCallback, RegionInfoCallback>,         //
+                                     RegistryPair<Id, Id::NewTimeslice, NewTimesliceCallback>,             //
+                                     RegistryPair<Id, Id::PreProcessing, PreProcessingCallback>,           //
+                                     RegistryPair<Id, Id::PostProcessing, PostProcessingCallback>,         //
+                                     RegistryPair<Id, Id::CCDBDeserialised, CCDBDeserializedCallback>,     //
+                                     RegistryPair<Id, Id::DomainInfoUpdated, DomainInfoUpdatedCallback>,   //
+                                     RegistryPair<Id, Id::DeviceStateChanged, DeviceStateChangedCallback>, //
+                                     RegistryPair<Id, Id::ExitRequested, ExitRequestedCallback>            //
+                                     >;                                                                    //
 
-  // set callback for specified processing step
-  template <typename U>
-  void set(Id id, U&& cb)
+  template <Id ID, typename U>
+  void set(U&& cb)
   {
-    mCallbacks.set(id, std::forward<U>(cb));
+    mCallbacks.set<ID>(std::forward<U>(cb));
   }
 
   // execute callback for specified processing step with argument pack
-  template <typename... TArgs>
-  auto operator()(Id id, TArgs&&... args)
+  template <Id ID, typename... TArgs>
+  auto call(TArgs&&... args)
   {
-    mCallbacks(id, std::forward<TArgs>(args)...);
+    mCallbacks.call<ID>(std::forward<TArgs>(args)...);
   }
 
  private:

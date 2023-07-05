@@ -20,7 +20,6 @@
 #include <TGeoManager.h>               // for gGeoManager
 #include "Rtypes.h"                    // for Double_t, Int_t, Bool_t, etc
 #include "ITSSimulation/V11Geometry.h" // for V11Geometry
-#include "ITSSimulation/Detector.h"    // for Detector, Detector::Model
 
 class TGeoXtru;
 
@@ -46,12 +45,26 @@ class V3Layer : public V11Geometry
          kChip,
          kNHLevels };
 
+  enum Model {
+    kIBModelDummy = 0,
+    kIBModel0 = 1,
+    kIBModel1 = 2,
+    kIBModel21 = 3,
+    kIBModel22 = 4,
+    kIBModel3 = 5,
+    kIBModel4 = 10,
+    kOBModelDummy = 6,
+    kOBModel0 = 7,
+    kOBModel1 = 8,
+    kOBModel2 = 9
+  };
+
   // Default constructor
   V3Layer();
 
   /// Constructor setting layer number and debugging level
   /// for a "turbo" layer (i.e. where staves overlap in phi)
-  V3Layer(Int_t lay, Bool_t turbo = kFALSE, Int_t debug = 0);
+  V3Layer(Int_t lay, Bool_t turbo = kFALSE, Int_t debug = 0, const char* name = "ITS");
 
   /// Copy constructor
   V3Layer(const V3Layer&) = default;
@@ -98,7 +111,7 @@ class V3Layer : public V11Geometry
 
   Int_t getBuildLevel() const { return mBuildLevel; }
 
-  Detector::Model getStaveModel() const { return mStaveModel; }
+  Model getStaveModel() const { return mStaveModel; }
 
   void setChipThick(Double_t t) { mChipThickness = t; };
 
@@ -128,7 +141,7 @@ class V3Layer : public V11Geometry
 
   void setBuildLevel(Int_t buildLevel) { mBuildLevel = buildLevel; }
 
-  void setStaveModel(o2::its::Detector::Model model) { mStaveModel = model; }
+  void setStaveModel(Model model) { mStaveModel = model; }
 
   /// Creates the actual Layer and places inside its mother volume
   /// \param motherVolume the TGeoVolume owing the volume structure
@@ -321,7 +334,7 @@ class V3Layer : public V11Geometry
   Bool_t mIsTurbo;    ///< True if this layer is a "turbo" layer
   Int_t mBuildLevel;  ///< Used for material studies
 
-  Detector::Model mStaveModel; ///< The stave model
+  Model mStaveModel; ///< The stave model
 
   // Dimensions computed during geometry build-up
   Double_t mIBModuleZLength; ///< IB Module Length along Z

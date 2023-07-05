@@ -263,8 +263,8 @@ void RecEventFlat::decodeInfo(uint8_t ch, uint16_t code)
 void RecEventFlat::centroidZNA(float& x, float& y)
 {
   // Coordinates of tower centers, looking from IP
-  const static float xc[4] = {1.76, -1.76, 1.76, -1.76};
-  const static float yc[4] = {-1.76, -1.76, 1.76, 1.76};
+  const static float xc[4] = {-1.75, 1.75, -1.75, 1.75};
+  const static float yc[4] = {-1.75, -1.75, 1.75, 1.75};
   static float c[2] = {0};
   if (mComputed[0]) {
     x = c[0];
@@ -311,8 +311,8 @@ void RecEventFlat::centroidZNA(float& x, float& y)
 void RecEventFlat::centroidZNC(float& x, float& y)
 {
   // Coordinates of tower centers, looking from IP
-  const static float xc[4] = {1.76, -1.76, 1.76, -1.76};
-  const static float yc[4] = {-1.76, -1.76, 1.76, 1.76};
+  const static float xc[4] = {-1.75, 1.75, -1.75, 1.75};
+  const static float yc[4] = {-1.75, -1.75, 1.75, 1.75};
   static float c[2] = {0};
   if (mComputed[1]) {
     x = c[0];

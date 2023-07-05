@@ -19,12 +19,14 @@
 #include "TPCReaderWorkflow/TrackReaderSpec.h"
 #include "TPCReaderWorkflow/ClusterReaderSpec.h"
 #include "TPCWorkflow/ClusterSharingMapSpec.h"
+#include "HMPIDWorkflow/ClustersReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/GlobalFwdTrackReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/MatchedMFTMCHReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/MatchedMCHMIDReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/PrimaryVertexReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/SecondaryVertexReaderSpec.h"
+#include "GlobalTrackingWorkflowReaders/StrangenessTrackingReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/TrackCosmicsReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/IRFrameReaderSpec.h"
 #include "TOFWorkflowIO/ClusterReaderSpec.h"
@@ -36,12 +38,13 @@
 #include "TRDWorkflowIO/TRDTrackletReaderSpec.h"
 #include "TRDWorkflowIO/TRDTrackReaderSpec.h"
 #include "CTPWorkflowIO/DigitReaderSpec.h"
-#include "MCHWorkflow/TrackReaderSpec.h"
-#include "MCHWorkflow/ClusterReaderSpec.h"
+#include "MCHIO/TrackReaderSpec.h"
+#include "MCHIO/ClusterReaderSpec.h"
 #include "MIDWorkflow/TrackReaderSpec.h"
 #include "PHOSWorkflow/ReaderSpec.h"
 #include "CPVWorkflow/ReaderSpec.h"
 #include "EMCALWorkflow/PublisherSpec.h"
+// #include "StrangenessTrackingWorkflow/StrangenessTrackingReaderSpec.h"
 
 using namespace o2::framework;
 using namespace o2::globaltracking;
@@ -64,7 +67,7 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
     maskTracksMC = GID::getSourcesMask(GID::NONE);
   } else {
     // some detectors do not support MC labels
-    if (maskClustersMC[GID::MCH]) {
+    if (maskClusters[GID::MCH] && maskClustersMC[GID::MCH]) {
       LOG(warn) << "MCH global clusters do not support MC lables, disabling";
       maskClustersMC &= ~GID::getSourceMask(GID::MCH);
     }
@@ -120,7 +123,10 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
       maskMatches[GID::ITSTPCTOF] || maskMatches[GID::ITSTPCTRDTOF] || maskMatches[GID::TPCTRDTOF]) {
     specs.emplace_back(o2::tof::getClusterReaderSpec(maskClustersMC[GID::TOF]));
   }
-  if (maskMatches[GID::TPCTOF]) {
+  if (maskClusters[GID::HMP]) {
+    specs.emplace_back(o2::hmpid::getClusterReaderSpec());
+  }
+  if (maskMatches[GID::TPCTOF] || maskTracks[GID::TPCTOF]) {
     specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(maskTracksMC[GID::TPCTOF], 0, maskTracks[GID::TPCTOF], subSpecStrict));
   }
   if (maskTracks[GID::FT0] || maskClusters[GID::FT0]) {
@@ -145,7 +151,7 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
   if (maskTracks[GID::TPCTRD] || maskTracks[GID::TPCTRDTOF]) {
     specs.emplace_back(o2::trd::getTRDTPCTrackReaderSpec(maskTracksMC[GID::TPCTRD], subSpecStrict));
   }
-  if (maskTracks[GID::CTP] && maskClusters[GID::CTP]) {
+  if (maskTracks[GID::CTP] || maskClusters[GID::CTP]) {
     specs.emplace_back(o2::ctp::getDigitsReaderSpec(maskTracksMC[GID::CTP] || maskClustersMC[GID::CTP]));
   }
 
@@ -185,6 +191,16 @@ int InputHelper::addInputSpecsSVertex(const o2::framework::ConfigContext& config
     return 0;
   }
   specs.emplace_back(o2::vertexing::getSecondaryVertexReaderSpec());
+  return 0;
+}
+
+// attach strangeness tracking reader
+int InputHelper::addInputSpecsStrangeTrack(const o2::framework::ConfigContext& configcontext, o2::framework::WorkflowSpec& specs, bool mc)
+{
+  if (configcontext.options().get<bool>("disable-root-input")) {
+    return 0;
+  }
+  specs.emplace_back(o2::strangeness_tracking::getStrangenessTrackingReaderSpec(mc));
   return 0;
 }
 

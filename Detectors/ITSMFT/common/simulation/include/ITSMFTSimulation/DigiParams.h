@@ -67,6 +67,9 @@ class DigiParams
   void setTimeOffset(double sec) { mTimeOffset = sec; }
   double getTimeOffset() const { return mTimeOffset; }
 
+  void setROFrameBiasInBC(int n) { mROFrameBiasInBC = n; }
+  int getROFrameBiasInBC() const { return mROFrameBiasInBC; }
+
   void setChargeThreshold(int v, float frac2Account = 0.1);
   void setNSimSteps(int v);
   void setEnergyToNElectrons(float v) { mEnergyToNElectrons = v; }
@@ -104,15 +107,15 @@ class DigiParams
   float mStrobeDelay = 0.;           ///< strobe start (in ns) wrt ROF start
   float mStrobeLength = 0;           ///< length of the strobe in ns (sig. over threshold checked in this window only)
   double mTimeOffset = -2 * infTime; ///< time offset (in seconds!) to calculate ROFrame from hit time
-
+  int mROFrameBiasInBC = 0;          ///< misalignment of the ROF start in BC
   int mChargeThreshold = 150;              ///< charge threshold in Nelectrons
   int mMinChargeToAccount = 15;            ///< minimum charge contribution to account
   int mNSimSteps = 7;                      ///< number of steps in response simulation
   float mEnergyToNElectrons = 1. / 3.6e-9; // conversion of eloss to Nelectrons
 
-  float mVbb = 3.0;   ///< back bias absolute value for MFT (in Volt)
-  float mIBVbb = 3.0; ///< back bias absolute value for ITS Inner Barrel (in Volt)
-  float mOBVbb = 3.0; ///< back bias absolute value for ITS Outter Barrel (in Volt)
+  float mVbb = 0.0;   ///< back bias absolute value for MFT (in Volt)
+  float mIBVbb = 0.0; ///< back bias absolute value for ITS Inner Barrel (in Volt)
+  float mOBVbb = 0.0; ///< back bias absolute value for ITS Outter Barrel (in Volt)
 
   o2::itsmft::AlpideSignalTrapezoid mSignalShape; ///< signal timeshape parameterization
 

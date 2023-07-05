@@ -22,6 +22,11 @@
 #ifndef GPUCA_NO_ROOT
 #include <TGeoGlobalMagField.h>
 #endif
+#if !defined(GPUCA_NO_ROOT) && defined(GPUCA_O2_LIB)
+#include "DetectorsBase/GeometryManager.h"
+#include "DataFormatsParameters/GRPObject.h"
+#include "DetectorsBase/Propagator.h"
+#endif
 
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -60,7 +65,7 @@ std::tuple<std::size_t, std::size_t, std::size_t> loadSegments(std::ifstream& fi
   file.read(reinterpret_cast<char*>(&segments.MaxZ), sizeof(segments.MaxZ));
   file.read(reinterpret_cast<char*>(&segments.MultiplicativeFactor), sizeof(segments.MultiplicativeFactor));
 
-  std::int32_t NSegDim1, NSegDim2, NSegDim3;
+  std::size_t NSegDim1, NSegDim2, NSegDim3;
 
   file.read(reinterpret_cast<char*>(&NSegDim1), sizeof(std::int32_t));
   assert(NSegDim1 <= MAX_DIM1_SEGMENTS);
@@ -92,7 +97,7 @@ std::tuple<std::size_t, std::size_t, std::size_t> loadSegments(std::ifstream& fi
 template <std::size_t DIMENSIONS, std::size_t MAX_PARAMETERIZATIONS, std::size_t MAX_ROWS, std::size_t MAX_COLUMNS, std::size_t MAX_COEFFICIENTS>
 std::tuple<std::size_t, std::size_t, std::size_t, std::size_t> loadParams(std::ifstream& file, GPUDisplayMagneticField::ParametrizationUniform<MAX_PARAMETERIZATIONS, MAX_ROWS, MAX_COLUMNS, MAX_COEFFICIENTS>& parametrizations)
 {
-  std::int32_t NParams, NRows, NColumns, NCoefficients;
+  std::size_t NParams, NRows, NColumns, NCoefficients;
   file.read(reinterpret_cast<char*>(&NParams), sizeof(std::int32_t));
   assert(NParams <= (MAX_PARAMETERIZATIONS / DIMENSIONS));
 
@@ -176,7 +181,14 @@ int GPUDisplayMagneticField::initializeUniforms()
 {
   mRenderConstantsUniform = std::make_unique<RenderConstantsUniform>();
 
-  const auto field = dynamic_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
+  auto* field = dynamic_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
+
+  if (!field) {
+    const auto grp = o2::parameters::GRPObject::loadFrom();
+    o2::base::GeometryManager::loadGeometry();
+    o2::base::Propagator::initFieldFromGRP();
+    field = dynamic_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
+  }
 
   if (!field) {
     GPUError("Error loading magnetic field data");

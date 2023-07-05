@@ -31,6 +31,12 @@ namespace o2::tpc
 template <class T>
 class CalDet;
 
+struct IDCFactorizeSplit {
+  std::array<std::vector<float>, CRU::MaxCRU> idcs{};
+  int relTF{};
+  ClassDefNV(IDCFactorizeSplit, 1)
+};
+
 class IDCFactorization : public IDCGroupHelperSector
 {
  public:
@@ -54,6 +60,9 @@ class IDCFactorization : public IDCGroupHelperSector
   /// destructor
   ~IDCFactorization();
 
+  /// default move constructor
+  IDCFactorization(IDCFactorization&&) = default;
+
   /// returns sides for CRUs
   /// \param crus crus which will be checked for their side
   static std::vector<o2::tpc::Side> getSides(const std::vector<uint32_t>& crus);
@@ -62,16 +71,32 @@ class IDCFactorization : public IDCGroupHelperSector
   /// calculate I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
   /// calculate \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
   /// \param norm normalize IDCs to pad size
-  void factorizeIDCs(const bool norm);
+  /// \param calcDeltas calculate the \Delta I(r,\phi,t) currents
+  void factorizeIDCs(const bool norm, const bool calcDeltas);
 
   /// calculate I_0(r,\phi) = <I(r,\phi,t)>_t
+  /// \param norm normalize IDCs to pad area
   void calcIDCZero(const bool norm);
 
   /// fill I_0 values in case of dead pads,FECs etc.
   void fillIDCZeroDeadPads();
 
   /// create status map for pads which are dead or delivering extremly high values (static outliers will be mapped)
+  /// \param debug create debug output
+  void createStatusMapOutlier(const bool debug = false);
+
+  /// 1. createStatusMap, 2. checkFECs, 3. checkNeighbourOutliers
   void createStatusMap();
+
+  /// after the pad-by-pad status map has been created it can be used to mark FECs which deliver wrong values
+  /// \param maxOutliersPerFEC  if the ratio n_outliers_per_FEC / n_pads_per_FEC is larger than this value, the whole FEC is masked
+  void checkFECs(const float maxOutliersPerFEC = 0.7);
+
+  /// check for each pad where there is no outlier found the neighbouring pads for outliers. If more than n neighbours contains outliers this pad is also marked as an outlier pad
+  /// +- one pad in row direction and +- two pads in pad direction are considered
+  /// \param maxIter maximum number of iterations of the procedure
+  /// \param nOutliersNeighbours minimum number of outliers of the neighbouring pads which are required to mask a pad as outlier
+  void checkNeighbourOutliers(const int maxIter = 10, const int nOutliersNeighbours = 8);
 
   /// calculate I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
   void calcIDCOne();
@@ -144,7 +169,11 @@ class IDCFactorization : public IDCGroupHelperSector
 
   /// \return returns stored IDC0 I_0(r,\phi) = <I(r,\phi,t)>_t
   /// \param side TPC side
-  const IDCZero& getIDCZero(const o2::tpc::Side side) const { return mIDCZero[mSideIndex[side]]; }
+  const IDCZero& getIDCZero(const o2::tpc::Side side) const& { return mIDCZero[mSideIndex[side]]; }
+
+  /// \return returns stored IDC0 I_0(r,\phi) = <I(r,\phi,t)>_t
+  /// \param side TPC side
+  auto getIDCZero(const o2::tpc::Side side) && { return mIDCZero[mSideIndex[side]]; }
 
   /// \return returns stored IDC1 I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
   /// \param side TPC side
@@ -192,6 +221,18 @@ class IDCFactorization : public IDCGroupHelperSector
   /// \return returns vector of processed CRUs
   auto getCRUs() const { return mCRUs; }
 
+  /// \param timeStamp time stamp of the first aggregated IDCs
+  void setTimeStamp(const long timeStamp) { mTimeStamp = timeStamp; }
+
+  /// \return returns time stamp of the first aggregated IDCs
+  long getTimeStamp() const { return mTimeStamp; }
+
+  /// \param run of the aggregated IDCs
+  void setRun(const int run) { mRun = run; }
+
+  /// \return returns run of the IDCs
+  int getRun() const { return mRun; }
+
   // get number of TFs in which the DeltaIDCs are split/stored
   unsigned int getTimeFramesDeltaIDC() const { return mTimeFramesDeltaIDC; }
 
@@ -238,6 +279,10 @@ class IDCFactorization : public IDCGroupHelperSector
   /// \param filename name of the output file. If empty the canvas is drawn.
   void drawIDCsSide(const o2::tpc::Side side, const unsigned int integrationInterval, const float minZ = 0, const float maxZ = -1, const std::string filename = "IDCsSide.pdf") const { drawIDCHelper(true, side == Side::A ? Sector(0) : Sector(Sector::MAXSECTOR - 1), integrationInterval, filename, minZ, maxZ); }
 
+  /// draw GIF for IDCs
+  /// \param integrationIntervals number of ms to draw
+  void drawIDCsSideGIF(const unsigned int integrationIntervals = 0, const float minZ = 0, const float maxZ = -1, const int run = -1, const std::string filename = "IDCsSideGIF") const { drawIDCHelper(true, Sector(0), integrationIntervals, filename, minZ, maxZ, true, run); }
+
   /// draw IDC zero I_0(r,\phi) = <I(r,\phi,t)>_t
   /// \param side side which will be drawn
   /// \param filename name of the output file. If empty the canvas is drawn.
@@ -267,6 +312,17 @@ class IDCFactorization : public IDCGroupHelperSector
   /// \param outName name of the object in the output file
   void dumpToFile(const char* outFileName = "IDCFactorized.root", const char* outName = "IDCFactorized") const;
 
+  /// dump large object to disc which exceeds the maximum size of 1GB for an object in a ROOT file
+  /// \param outFileName name of the output file
+  /// \param outName name of the object in the output file
+  void dumpLargeObjectToFile(const char* outFileName = "IDCFactorized.root", const char* outName = "IDCFactorized") const;
+
+  /// read in an object which was created with dumpLargeObjectToFile
+  /// \param inpFileName name of the output file
+  /// \param inName name of the object in the output file
+  /// \return returns the stored object
+  static std::unique_ptr<IDCFactorization> getLargeObjectFromFile(const char* inpFileName = "IDCFactorized.root", const char* inName = "IDCFactorized");
+
   /// dump the IDC0 to file
   void dumpIDCZeroToFile(const Side side, const char* outFileName = "IDCZero.root", const char* outName = "IDC0") const;
 
@@ -275,7 +331,15 @@ class IDCFactorization : public IDCGroupHelperSector
 
   /// \param integrationIntervals number of integration intervals which will be dumped to the tree (-1: all integration intervalls)
   /// \param outFileName name of the output file
-  void dumpToTree(int integrationIntervals = -1, const char* outFileName = "IDCTree.root") const;
+  void dumpToTree(const Side side, const char* outFileName = "IDCTree.root");
+
+  /// dumping the IDC1 to a TTree including the timestamps (the start time stamp in ms should be set with setTimeStamp())
+  /// \param integrationTimeOrbits integration time in orbits
+  /// \param outFileName name of the output file
+  void dumpToTreeIDC1(const float integrationTimeOrbits = 12, const char* outFileName = "IDC1Tree.root") const;
+
+  /// dump IDCDelta to a TTree
+  void dumpIDCDeltaToTree(const Side side, const int chunk = 0, const char* outFileName = "IDCDeltaTree.root");
 
   /// \returns vector containing the number of integration intervals for each stored TF (dropped TFs not taken into account)
   /// \param cru cru which is used for the lookup (cru=-1: automatic cru lookup)
@@ -323,6 +387,27 @@ class IDCFactorization : public IDCGroupHelperSector
   /// \return returns TPC sides for which the factorization is performed
   const std::vector<Side>& getSides() const { return mSides; }
 
+  /// set the IDCZero object
+  void setIDCZero(const Side side, const IDCZero& idcZero) { mIDCZero[mSideIndex[side]] = idcZero; }
+
+  /// set the IDCOne
+  void setIDCOne(const Side side, const IDCOne& idcOne) { mIDCOne[mSideIndex[side]] = idcOne; }
+
+  /// set the IDCDelta
+  void setIDCDelta(const Side side, const IDCDelta<float>& idcDelta, const int index = 0) { mIDCDelta[mSideIndex[side]][index] = idcDelta; }
+
+  /// \return returns mean of IDC0 for given side
+  float getMeanZ(const Side side) const;
+
+  /// normalize IDC0 with the set gain map
+  void normIDCZeroGain() { normIDCZero(0); }
+
+  /// normalize IDC0 with the median per stack
+  void normIDCZeroStackMedian() { normIDCZero(1); }
+
+  /// \return returns median of IDC0 per stack for all stacks
+  std::array<float, o2::tpc::GEMSTACKS> getStackMedian() const;
+
  private:
   const unsigned int mTimeFrames{};                                 ///< number of timeframes which are stored
   const unsigned int mTimeFramesDeltaIDC{};                         ///< number of timeframes of which Delta IDCs are stored
@@ -334,23 +419,25 @@ class IDCFactorization : public IDCGroupHelperSector
   std::unique_ptr<CalDet<float>> mGainMap;                          ///<! static Gain map object used for filling missing IDC_0 values
   std::unique_ptr<CalDet<PadFlags>> mPadFlagsMap;                   ///< status flag for each pad (i.e. if the pad is dead)
   bool mInputGrouped{false};                                        ///< flag which is set to true if the input IDCs are grouped (checked via the grouping parameters from the constructor)
-  bool mUsePadStatusMap{false};                                     ///< flag for using the pad-by-pad status map during the factorization of the IDCs
+  bool mUsePadStatusMap{true};                                      ///< flag for using the pad-by-pad status map during the factorization of the IDCs
   const std::vector<uint32_t> mCRUs{};                              ///< CRUs to process in this instance
   std::array<unsigned int, SIDES> mSideIndex{0, 1};                 ///< index to mIDCZero, mIDCOne and mIDCDelta for TPC side
   std::vector<Side> mSides{};                                       ///< processed TPC sides
   std::vector<unsigned int> mIntegrationIntervalsPerTF{};           ///< storage of integration intervals per TF (taken dropped TFs into account)
+  long mTimeStamp{0};                                               ///< first time stamp of IDCs
+  int mRun{0};                                                      ///< run number of IDCs
 
   /// helper function for drawing IDCDelta
   void drawIDCDeltaHelper(const bool type, const Sector sector, const unsigned int integrationInterval, const IDCDeltaCompression compression, const std::string filename, const float minZ, const float maxZ) const;
 
   /// helper function for drawing IDCs
-  void drawIDCHelper(const bool type, const Sector sector, const unsigned int integrationInterval, const std::string filename, const float minZ, const float maxZ) const;
+  void drawIDCHelper(const bool type, const Sector sector, const unsigned int integrationInterval, const std::string filename, const float minZ, const float maxZ, const bool drawGIF = false, const int run = 0) const;
 
   /// helper function for drawing IDCZero
   void drawIDCZeroHelper(const bool type, const Sector sector, const std::string filename, const float minZ, const float maxZ) const;
 
   /// get time frame and index of integrationInterval in the TF
-  void getTF(const unsigned int region, unsigned int integrationInterval, unsigned int& timeFrame, unsigned int& interval) const;
+  void getTF(unsigned int integrationInterval, unsigned int& timeFrame, unsigned int& interval) const;
 
   /// \returns chunk from timeframe
   unsigned int getChunk(const unsigned int timeframe) const;
@@ -361,7 +448,10 @@ class IDCFactorization : public IDCGroupHelperSector
   /// helper function for drawing
   void drawPadFlagMap(const bool type, const Sector sector, const std::string filename, const PadFlags flag) const;
 
-  ClassDefNV(IDCFactorization, 1)
+  /// normalize IDC0
+  void normIDCZero(const int type);
+
+  ClassDefNV(IDCFactorization, 2)
 };
 
 } // namespace o2::tpc

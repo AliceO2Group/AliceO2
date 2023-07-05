@@ -28,7 +28,11 @@
 #include <fstream>
 #include <FairVolume.h>
 #include <CommonUtils/NameConf.h>
+#include <CommonUtils/ConfigurationMacroHelper.h>
 #include "SimConfig/SimUserDecay.h"
+#include <filesystem>
+#include <CommonUtils/FileSystemUtils.h>
+#include "SimConfig/GlobalProcessCutSimParam.h"
 
 namespace o2
 {
@@ -53,6 +57,17 @@ void TypedVectorAttach(const char* name, fair::mq::Channel& channel, fair::mq::P
 void O2MCApplicationBase::Stepping()
 {
   mStepCounter++;
+
+  // check the max time of flight condition
+  const auto tof = fMC->TrackTime();
+  auto& params = o2::GlobalProcessCutSimParam::Instance();
+  if (tof > params.TOFMAX) {
+    fMC->StopTrack();
+    return;
+  }
+
+  mLongestTrackTime = std::max((double)mLongestTrackTime, tof);
+
   if (mCutParams.stepFiltering) {
     // we can kill tracks here based on our
     // custom detector specificities
@@ -83,7 +98,11 @@ void O2MCApplicationBase::Stepping()
     }
   }
 
-  // dispatch first to stepping function in FairRoot
+  if (mCutParams.stepTrackRefHook) {
+    mTrackRefFcn(fMC);
+  }
+
+  // dispatch now to stepping function in FairRoot
   FairMCApplication::Stepping();
 }
 
@@ -126,6 +145,7 @@ void O2MCApplicationBase::InitGeometry()
   // load special cuts which might be given from the outside first.
   auto& matMgr = o2::base::MaterialManager::Instance();
   matMgr.loadCutsAndProcessesFromJSON(o2::base::MaterialManager::ESpecial::kTRUE);
+  matMgr.SetLowEnergyNeutronTransport(mCutParams.lowneut);
   // During the following, FairModule::SetSpecialPhysicsCuts will be called for each module
   FairMCApplication::InitGeometry();
   matMgr.writeCutsAndProcessesToJSON();
@@ -173,6 +193,7 @@ bool O2MCApplicationBase::MisalignGeometry()
 void O2MCApplicationBase::finishEventCommon()
 {
   LOG(info) << "This event/chunk did " << mStepCounter << " steps";
+  LOG(info) << "Longest track time is " << mLongestTrackTime;
 
   auto header = static_cast<o2::dataformats::MCEventHeader*>(fMCEventHeader);
   header->getMCEventStats().setNSteps(mStepCounter);
@@ -206,6 +227,7 @@ void O2MCApplicationBase::BeginEvent()
   static_cast<o2::data::Stack*>(GetStack())->setMCEventStats(&header->getMCEventStats());
 
   mStepCounter = 0;
+  mLongestTrackTime = 0;
 }
 
 void addSpecialParticles()
@@ -1179,6 +1201,22 @@ void O2MCApplicationBase::AddParticles()
   while (ss >> pdg) {
     LOG(info) << "Setting user decay for PDG " << pdg;
     TVirtualMC::GetMC()->SetUserDecay(pdg);
+  }
+}
+
+void O2MCApplicationBase::initTrackRefHook()
+{
+  if (mCutParams.stepTrackRefHook) {
+    LOG(info) << "Initializing the hook for TrackReferences during stepping";
+    auto expandedTrackRefHookFileName = o2::utils::expandShellVarsInFileName(mCutParams.stepTrackRefHookFile);
+    if (std::filesystem::exists(expandedTrackRefHookFileName)) {
+      // if this file exists we will compile the hook on the fly
+      mTrackRefFcn = o2::conf::GetFromMacro<TrackRefFcn>(mCutParams.stepTrackRefHookFile, "trackRefHook()", "o2::steer::O2MCApplicationBase::TrackRefFcn", "o2mc_stepping_trackref_hook");
+      LOG(info) << "Hook initialized from file " << expandedTrackRefHookFileName;
+    } else {
+      LOG(error) << "Did not file TrackRefHook file " << expandedTrackRefHookFileName << " ; Will not execute hook";
+      mTrackRefFcn = [](TVirtualMC const*) {}; // do nothing
+    }
   }
 }
 

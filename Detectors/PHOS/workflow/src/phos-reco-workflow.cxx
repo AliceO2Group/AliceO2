@@ -53,6 +53,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"fullclu-output", o2::framework::VariantType::Bool, false, {"compact of full (with contr. digits) clusters output"}},
     {"flpId", o2::framework::VariantType::Int, 0, {"FLP identification: 0,1,..."}},
     {"defbadmap", o2::framework::VariantType::Bool, false, {"Use default bad map and calib instead of CCDB"}},
+    {"disable-l1phase-corr", o2::framework::VariantType::Bool, false, {"do not apply L1 phase correction (e.g. to MC)"}},
     {"configKeyValues", o2::framework::VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -84,7 +85,8 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
                                                  cfgc.options().get<std::string>("output-type"),
                                                  cfgc.options().get<bool>("fullclu-output"),
                                                  cfgc.options().get<int>("flpId"),
-                                                 cfgc.options().get<bool>("defbadmap"));
+                                                 cfgc.options().get<bool>("defbadmap"),
+                                                 cfgc.options().get<bool>("disable-l1phase-corr"));
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, wf);
 

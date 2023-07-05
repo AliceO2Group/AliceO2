@@ -47,6 +47,7 @@ struct HBFUtilsInitializer {
                 JSON,
                 HBFUTILS,
                 ROOT };
+  static constexpr char DelayOpt[] = "reader-delay";
   static constexpr char HBFConfOpt[] = "hbfutils-config";
   static constexpr char HBFTFInfoOpt[] = "tf-info-source";
   static constexpr char HBFUSrc[] = "hbfutils";

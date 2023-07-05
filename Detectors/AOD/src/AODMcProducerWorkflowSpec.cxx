@@ -9,32 +9,18 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   AODProducerWorkflowSpec.cxx
+/// @file   AODMcProducerWorkflowSpec.cxx
 
 #include "AODProducerWorkflow/AODMcProducerWorkflowSpec.h"
 #include "AODProducerWorkflow/AODProducerHelpers.h"
-#include "CommonUtils/NameConf.h"
-#include "MathUtils/Utils.h"
-#include "CCDB/BasicCCDBManager.h"
-#include "CommonDataFormat/InteractionRecord.h"
-#include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataTypes.h"
-#include "Framework/InputRecordWalker.h"
-#include "Framework/Logger.h"
 #include "Framework/TableBuilder.h"
-#include "Framework/TableTreeHelpers.h"
-#include "Framework/CCDBParamSpec.h"
-#include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCUtils.h"
 #include "O2Version.h"
-#include "TMath.h"
 #include "TString.h"
-#include "TObjString.h"
-#include <map>
-#include <string>
 #include <vector>
 
 using namespace o2::framework;
@@ -43,36 +29,17 @@ using namespace o2::math_utils::detail;
 namespace o2::aodmcproducer
 {
 
-void AODMcProducerWorkflowDPL::collectBCs(const std::vector<o2::InteractionTimeRecord>& mcRecords,
-                                          std::map<uint64_t, int>& bcsMap)
-{
-  bcsMap[mStartIR.toLong()] = 1; // store the start of TF
-
-  // collecting non-empty BCs and enumerating them
-  for (auto& rec : mcRecords) {
-    uint64_t globalBC = rec.toLong();
-    bcsMap[globalBC] = 1;
-  }
-
-  int bcID = 0;
-  for (auto& item : bcsMap) {
-    item.second = bcID;
-    bcID++;
-  }
-}
-
 template <typename MCParticlesCursorType>
 void AODMcProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader& mcReader,
-                                                    const MCParticlesCursorType& mcParticlesCursor,
-                                                    const std::map<std::pair<int, int>, int>& mcColToEvSrc)
+                                                    const MCParticlesCursorType& mcParticlesCursor)
 {
   using o2::aodhelpers::Triplet_t;
 
   int tableIndex = 1;
-  for (auto& colInfo : mcColToEvSrc) { // loop over "<eventID, sourceID> <-> combined MC col. ID" key pairs
-    int event = colInfo.first.first;
-    int source = colInfo.first.second;
-    int mcColId = colInfo.second;
+  for (auto& colInfo : mMCColToEvSrc) { // loop over "<eventID, sourceID> <-> combined MC col. ID" key pairs
+    int event = colInfo[2];
+    int source = colInfo[1];
+    int mcColId = colInfo[0];
     std::vector<MCTrack> const& mcParticles = mcReader.getTracks(source, event);
     // mark tracks to be stored per event
     // loop over stack of MC particles from end to beginning: daughters are stored after mothers
@@ -105,7 +72,7 @@ void AODMcProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReade
         }
       }
       // enumerate saved mc particles and their relatives to get mother/daughter relations
-      for (int particle = 0; particle < mcParticles.size(); particle++) {
+      for (auto particle = 0U; particle < mcParticles.size(); ++particle) {
         auto mapItem = mToStore.find(Triplet_t(source, event, particle));
         if (mapItem != mToStore.end()) {
           mapItem->second = tableIndex - 1;
@@ -114,14 +81,14 @@ void AODMcProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReade
       }
     } else {
       // if all mc particles are stored, all mc particles will be enumerated
-      for (int particle = 0; particle < mcParticles.size(); particle++) {
+      for (auto particle = 0U; particle < mcParticles.size(); ++particle) {
         mToStore[Triplet_t(source, event, particle)] = tableIndex - 1;
         tableIndex++;
       }
     }
 
     // second part: fill survived mc tracks into the AOD table
-    for (int particle = 0; particle < mcParticles.size(); particle++) {
+    for (auto particle = 0U; particle < mcParticles.size(); ++particle) {
       if (mToStore.find(Triplet_t(source, event, particle)) == mToStore.end()) {
         continue;
       }
@@ -131,7 +98,7 @@ void AODMcProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReade
         flags |= o2::aod::mcparticle::enums::ProducedByTransport; // mark as produced by transport
         statusCode = mcParticles[particle].getProcess();
       } else {
-        statusCode = mcParticles[particle].getStatusCode();
+        statusCode = mcParticles[particle].getStatusCode().fullEncoding;
       }
       if (source == 0) {
         flags |= o2::aod::mcparticle::enums::FromBackgroundEvent; // mark as particle from background event
@@ -199,19 +166,15 @@ void AODMcProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReade
 void AODMcProducerWorkflowDPL::init(InitContext& ic)
 {
   mTimer.Stop();
-  mLPMProdTag = ic.options().get<string>("lpmp-prod-tag");
-  mAnchorPass = ic.options().get<string>("anchor-pass");
-  mAnchorProd = ic.options().get<string>("anchor-prod");
-  mRecoPass = ic.options().get<string>("reco-pass");
+  mLPMProdTag = ic.options().get<std::string>("lpmp-prod-tag");
+  mAnchorPass = ic.options().get<std::string>("anchor-pass");
+  mAnchorProd = ic.options().get<std::string>("anchor-prod");
+  mRecoPass = ic.options().get<std::string>("reco-pass");
   mTFNumber = ic.options().get<int64_t>("aod-timeframe-id");
   mFilterMC = ic.options().get<int>("filter-mctracks");
   mTruncate = ic.options().get<int>("enable-truncation");
-  mRunNumber = ic.options().get<int>("run-number");
   if (mTFNumber == -1L) {
     LOG(info) << "TFNumber will be obtained from CCDB";
-  }
-  if (mRunNumber == -1L) {
-    LOG(info) << "The Run number will be obtained from DPL headers";
   }
 
   // set no truncation if selected by user
@@ -223,33 +186,12 @@ void AODMcProducerWorkflowDPL::init(InitContext& ic)
     mMcParticleMom = 0xFFFFFFFF;
   }
 
-  // writing metadata if it's not yet in AOD file
-  // note: `--aod-writer-resmode "UPDATE"` has to be used,
-  //       so that metadata is not overwritten
-  mResFile += ".root";
-  auto* fResFile = TFile::Open(mResFile, "UPDATE");
-  if (!fResFile) {
-    LOGF(fatal, "Could not open file %s", mResFile);
+  mEnableEmbed = ic.options().get<bool>("enable-embedding");
+
+  if (!mEnableEmbed) {
+    // parse list of sim prefixes into vector
+    mSimPrefix = ic.options().get<std::string>("mckine-fname");
   }
-  if (fResFile->FindObjectAny("metaData")) {
-    LOGF(warning, "Metadata: target file %s already has metadata, preserving it", mResFile);
-  } else {
-    // populating metadata map
-    TString dataType = "MC";
-    mMetaData.Add(new TObjString("DataType"), new TObjString(dataType));
-    mMetaData.Add(new TObjString("Run"), new TObjString("3"));
-    TString O2Version = o2::fullVersion();
-    TString ROOTVersion = ROOT_RELEASE;
-    mMetaData.Add(new TObjString("O2Version"), new TObjString(O2Version));
-    mMetaData.Add(new TObjString("ROOTVersion"), new TObjString(ROOTVersion));
-    mMetaData.Add(new TObjString("RecoPassName"), new TObjString(mRecoPass));
-    mMetaData.Add(new TObjString("AnchorProduction"), new TObjString(mAnchorProd));
-    mMetaData.Add(new TObjString("AnchorPassName"), new TObjString(mAnchorPass));
-    mMetaData.Add(new TObjString("LPMProductionTag"), new TObjString(mLPMProdTag));
-    LOGF(info, "Metadata: writing into %s", mResFile);
-    fResFile->WriteObject(&mMetaData, "metaData", "Overwrite");
-  }
-  fResFile->Close();
 
   mTimer.Reset();
 }
@@ -257,99 +199,102 @@ void AODMcProducerWorkflowDPL::init(InitContext& ic)
 void AODMcProducerWorkflowDPL::run(ProcessingContext& pc)
 {
   mTimer.Start(false);
-  mStartIR = pc.services().get<o2::framework::TimingInfo>().firstTForbit;
 
-  const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
+  uint64_t tfNumber = mTFNumber;
 
-  auto& bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC"});
-  auto& mcCollisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCCOLLISION"});
-  auto& mcParticlesBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "MCPARTICLE_001"});
-  auto& originTableBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "ORIGIN"});
+  auto mcCollisionsBuilder = pc.outputs().make<TableBuilder>(OutputForTable<aod::McCollisions>::ref());
+  auto mcParticlesBuilder = pc.outputs().make<TableBuilder>(OutputForTable<aod::StoredMcParticles>::ref());
+  auto originTableBuilder = pc.outputs().make<TableBuilder>(OutputForTable<aod::Origins>::ref());
 
-  auto bcCursor = bcBuilder.cursor<o2::aod::BCs>();
-  auto mcCollisionsCursor = mcCollisionsBuilder.cursor<o2::aod::McCollisions>();
-  auto mcParticlesCursor = mcParticlesBuilder.cursor<o2::aod::StoredMcParticles_001>();
-  auto originCursor = originTableBuilder.cursor<o2::aod::Origins>();
+  auto mcCollisionsCursor = mcCollisionsBuilder->cursor<o2::aod::McCollisions>();
+  auto mcParticlesCursor = mcParticlesBuilder->cursor<o2::aod::StoredMcParticles>();
+  auto originCursor = originTableBuilder->cursor<o2::aod::Origins>();
 
-  auto mcReader = std::make_unique<o2::steer::MCKinematicsReader>("collisioncontext.root");
-  std::map<uint64_t, int> bcsMap;
-  collectBCs(mcReader->getDigitizationContext()->getEventRecords(), bcsMap);
+  std::unique_ptr<o2::steer::MCKinematicsReader> mcReader;
 
-  uint64_t tfNumber;
-  const int runNumber = (mRunNumber == -1) ? int(tinfo.runNumber) : mRunNumber;
-  if (mTFNumber == -1L) {
-    // TODO has to use absolute time of TF
-    tfNumber = uint64_t(tinfo.firstTForbit) + (uint64_t(tinfo.runNumber) << 32);
+  if (!mEnableEmbed) {
+    mcReader = std::make_unique<o2::steer::MCKinematicsReader>(mSimPrefix, steer::MCKinematicsReader::Mode::kMCKine);
   } else {
-    tfNumber = mTFNumber;
+    mcReader = std::make_unique<o2::steer::MCKinematicsReader>("collisioncontext.root");
   }
 
-  // keep track event/source id for each mc-collision
-  // using map and not unordered_map to ensure
-  // correct ordering when iterating over container elements
-  std::map<std::pair<int, int>, int> mcColToEvSrc;
+  // filling mcCollision table
 
   // TODO: figure out collision weight
   float mcColWeight = 1.;
-  // filling mcCollision table
-  int nMCCollisions = mcReader->getDigitizationContext()->getNCollisions();
-  const auto& mcRecords = mcReader->getDigitizationContext()->getEventRecords();
-  const auto& mcParts = mcReader->getDigitizationContext()->getEventParts();
-  for (int iCol = 0; iCol < nMCCollisions; iCol++) {
-    auto time = mcRecords[iCol].getTimeNS();
-    auto globalBC = mcRecords[iCol].toLong();
-    auto item = bcsMap.find(globalBC);
-    int bcID = -1;
-    if (item != bcsMap.end()) {
-      bcID = item->second;
-    } else {
-      LOG(fatal) << "Error: could not find a corresponding BC ID for MC collision; BC = " << globalBC << ", mc collision = " << iCol;
-    }
-    auto& colParts = mcParts[iCol];
-    auto nParts = colParts.size();
-    for (auto colPart : colParts) {
-      auto eventID = colPart.entryID;
-      auto sourceID = colPart.sourceID;
-      // enable embedding: if several colParts exist, then they are saved as one collision
-      if (nParts == 1 || sourceID == 0) {
-        // FIXME:
-        // use generators' names for generatorIDs (?)
-        short generatorID = sourceID;
-        auto& header = mcReader->getMCEventHeader(sourceID, eventID);
-        mcCollisionsCursor(0,
-                           bcID,
-                           generatorID,
-                           truncateFloatFraction(header.GetX(), mCollisionPosition),
-                           truncateFloatFraction(header.GetY(), mCollisionPosition),
-                           truncateFloatFraction(header.GetZ(), mCollisionPosition),
-                           truncateFloatFraction(time, mCollisionPosition),
-                           truncateFloatFraction(mcColWeight, mCollisionPosition),
-                           header.GetB());
+
+  // dummy time information
+  int bcID = 0;
+  float time = 0;
+
+  auto updateMCCollisions = [this, mcColWeight, bcID, time, &mcCollisionsCursor](dataformats::MCEventHeader const& header, short generatorID) {
+    mcCollisionsCursor(0,
+                       bcID,
+                       generatorID,
+                       truncateFloatFraction(header.GetX(), mCollisionPosition),
+                       truncateFloatFraction(header.GetY(), mCollisionPosition),
+                       truncateFloatFraction(header.GetZ(), mCollisionPosition),
+                       truncateFloatFraction(time, mCollisionPosition),
+                       truncateFloatFraction(mcColWeight, mCollisionPosition),
+                       header.GetB());
+  };
+
+  if (!mEnableEmbed) { // simply store all MC events into table
+    int icol = 0;
+    int nSources = mcReader->getNSources();
+    for (int isrc = 0; isrc < nSources; isrc++) {
+      short generatorID = isrc;
+      int nEvents = mcReader->getNEvents(isrc);
+      for (int ievt = 0; ievt < nEvents; ievt++) {
+        auto& header = mcReader->getMCEventHeader(isrc, ievt);
+        updateMCCollisions(header, generatorID);
+        mMCColToEvSrc.emplace_back(std::vector<int>{icol, isrc, ievt});
+        icol++;
       }
-      mcColToEvSrc.emplace(std::pair<int, int>(eventID, sourceID), iCol); // point background and injected signal events to one collision
+    }
+  } else { // treat embedded events using collisioncontext: injected events will be stored together with background events into the same collisions
+    int nMCCollisions = mcReader->getDigitizationContext()->getNCollisions();
+    const auto& mcRecords = mcReader->getDigitizationContext()->getEventRecords();
+    const auto& mcParts = mcReader->getDigitizationContext()->getEventParts();
+    for (int icol = 0; icol < nMCCollisions; icol++) {
+      auto& colParts = mcParts[icol];
+      auto nParts = colParts.size();
+      for (auto colPart : colParts) {
+        auto eventID = colPart.entryID;
+        auto sourceID = colPart.sourceID;
+        // enable embedding: if several colParts exist, then they are saved as one collision
+        if (nParts == 1 || sourceID == 0) {
+          short generatorID = sourceID;
+          auto& header = mcReader->getMCEventHeader(sourceID, eventID);
+          updateMCCollisions(header, generatorID);
+        }
+        mMCColToEvSrc.emplace_back(std::vector<int>{icol, sourceID, eventID}); // point background and injected signal events to one collision
+      }
     }
   }
 
-  // filling BC table
-  uint64_t triggerMask = 0;
-  for (auto& item : bcsMap) {
-    uint64_t bc = item.first;
-    bcCursor(0,
-             runNumber,
-             bc,
-             triggerMask);
-  }
-
-  bcsMap.clear();
+  std::sort(mMCColToEvSrc.begin(), mMCColToEvSrc.end(),
+            [](const std::vector<int>& left, const std::vector<int>& right) { return (left[0] < right[0]); });
 
   // filling mc particles table
-  fillMCParticlesTable(*mcReader,
-                       mcParticlesCursor,
-                       mcColToEvSrc);
-  mcColToEvSrc.clear();
+  fillMCParticlesTable(*mcReader, mcParticlesCursor);
+
+  mMCColToEvSrc.clear();
   mToStore.clear();
 
   originCursor(0, tfNumber);
+
+  // sending metadata to writer
+  if (!mIsMDSent) {
+    TString dataType = "MC";
+    TString O2Version = o2::fullVersion();
+    TString ROOTVersion = ROOT_RELEASE;
+    mMetaDataKeys = {"DataType", "Run", "O2Version", "ROOTVersion", "RecoPassName", "AnchorProduction", "AnchorPassName", "LPMProductionTag"};
+    mMetaDataVals = {dataType, "3", O2Version, ROOTVersion, mRecoPass, mAnchorProd, mAnchorPass, mLPMProdTag};
+    pc.outputs().snapshot(Output{"AMD", "AODMetadataKeys", 0, Lifetime::Timeframe}, mMetaDataKeys);
+    pc.outputs().snapshot(Output{"AMD", "AODMetadataVals", 0, Lifetime::Timeframe}, mMetaDataVals);
+    mIsMDSent = true;
+  }
 
   pc.outputs().snapshot(Output{"TFN", "TFNumber", 0, Lifetime::Timeframe}, tfNumber);
   pc.outputs().snapshot(Output{"TFF", "TFFilename", 0, Lifetime::Timeframe}, "");
@@ -360,37 +305,38 @@ void AODMcProducerWorkflowDPL::run(ProcessingContext& pc)
   mTimer.Stop();
 }
 
-void AODMcProducerWorkflowDPL::endOfStream(EndOfStreamContext& ec)
+void AODMcProducerWorkflowDPL::endOfStream(EndOfStreamContext&)
 {
   LOGF(info, "aod producer dpl total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getAODMcProducerWorkflowSpec(std::string resFile)
+DataProcessorSpec getAODMcProducerWorkflowSpec()
 {
-  std::vector<OutputSpec> outputs;
-
-  outputs.emplace_back(OutputLabel{"O2bc"}, "AOD", "BC", 0, Lifetime::Timeframe);
-  outputs.emplace_back(OutputLabel{"O2mccollision"}, "AOD", "MCCOLLISION", 0, Lifetime::Timeframe);
-  outputs.emplace_back(OutputLabel{"O2mcparticle_001"}, "AOD", "MCPARTICLE_001", 0, Lifetime::Timeframe);
-  outputs.emplace_back(OutputLabel{"O2origin"}, "AOD", "ORIGIN", 0, Lifetime::Timeframe);
-  outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
-  outputs.emplace_back(OutputSpec{"TFF", "TFFilename"});
+  std::vector<OutputSpec> outputs{
+    OutputForTable<aod::McCollisions>::spec(),
+    OutputForTable<aod::StoredMcParticles>::spec(),
+    OutputForTable<aod::Origins>::spec(),
+    OutputSpec{"TFN", "TFNumber"},
+    OutputSpec{"TFF", "TFFilename"},
+    OutputSpec{"AMD", "AODMetadataKeys"},
+    OutputSpec{"AMD", "AODMetadataVals"}};
 
   return DataProcessorSpec{
     "aod-mc-producer-workflow",
     Inputs{},
     outputs,
-    AlgorithmSpec{adaptFromTask<AODMcProducerWorkflowDPL>(resFile)},
+    AlgorithmSpec{adaptFromTask<AODMcProducerWorkflowDPL>()},
     Options{
-      ConfigParamSpec{"run-number", VariantType::Int64, -1L, {"The run-number. If left default we try to get it from DPL header."}},
-      ConfigParamSpec{"aod-timeframe-id", VariantType::Int64, -1L, {"Set timeframe number"}},
+      ConfigParamSpec{"aod-timeframe-id", VariantType::Int64, 1L, {"Set timeframe number"}},
       ConfigParamSpec{"enable-truncation", VariantType::Int, 1, {"Truncation parameter: 1 -- on, != 1 -- off"}},
       ConfigParamSpec{"lpmp-prod-tag", VariantType::String, "", {"LPMProductionTag"}},
       ConfigParamSpec{"anchor-pass", VariantType::String, "", {"AnchorPassName"}},
       ConfigParamSpec{"anchor-prod", VariantType::String, "", {"AnchorProduction"}},
       ConfigParamSpec{"reco-pass", VariantType::String, "", {"RecoPassName"}},
-      ConfigParamSpec{"filter-mctracks", VariantType::Int, 1, {"Store only physical primary MC tracks and their mothers/daughters. 0 -- off, != 0 -- on"}}}};
+      ConfigParamSpec{"filter-mctracks", VariantType::Int, 1, {"Store only physical primary MC tracks and their mothers/daughters. 0 -- off, != 0 -- on"}},
+      ConfigParamSpec{"enable-embedding", VariantType::Int, 0, {"Use collisioncontext.root to process embedded events"}},
+      ConfigParamSpec{"mckine-fname", VariantType::String, "o2sim", {"MC kinematics file name prefix: e.g. 'o2sim', 'bkg', 'sgn_1'. Used only if 'enable-embedding' is 0"}}}};
 }
 
 } // namespace o2::aodmcproducer

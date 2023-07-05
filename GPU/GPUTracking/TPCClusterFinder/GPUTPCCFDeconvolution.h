@@ -16,6 +16,7 @@
 #define O2_GPU_DECONVOLUTION_H
 
 #include "clusterFinderDefs.h"
+#include "CfUtils.h"
 #include "GPUGeneralKernels.h"
 #include "GPUConstantMem.h"
 #include "GPUTPCClusterFinder.h"
@@ -29,7 +30,7 @@ class GPUTPCCFDeconvolution : public GPUKernelTemplate
 {
  public:
   static constexpr size_t SCRATCH_PAD_WORK_GROUP_SIZE = GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFDeconvolution);
-  struct GPUSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<short, GPUCA_GET_THREAD_COUNT(GPUCA_LB_GPUTPCCFDeconvolution)> {
+  struct GPUSharedMemory : public GPUKernelTemplate::GPUSharedMemoryScan64<short, SCRATCH_PAD_WORK_GROUP_SIZE> {
     ChargePos posBcast1[SCRATCH_PAD_WORK_GROUP_SIZE];
     uchar aboveThresholdBcast[SCRATCH_PAD_WORK_GROUP_SIZE];
     uchar buf[SCRATCH_PAD_WORK_GROUP_SIZE * SCRATCH_PAD_COUNT_N];

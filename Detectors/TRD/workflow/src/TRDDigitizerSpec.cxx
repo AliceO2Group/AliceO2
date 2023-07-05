@@ -31,6 +31,7 @@
 #include "TRDBase/Calibrations.h"
 #include "TRDSimulation/Digitizer.h"
 #include "TRDSimulation/Detector.h" // for the Hit type
+#include "TRDSimulation/TRDSimParams.h"
 #include <chrono>
 
 using namespace o2::framework;
@@ -82,14 +83,14 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelsAccum;
     std::vector<TriggerRecord> triggers;
 
-    std::vector<o2::trd::Digit> digits;                         // digits which get filled
-    o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels;  // labels which get filled
+    std::vector<o2::trd::Digit> digits;                        // digits which get filled
+    o2::dataformats::MCTruthContainer<o2::MCCompLabel> labels; // labels which get filled
 
-    o2::InteractionTimeRecord currentTime; // the current time
+    o2::InteractionTimeRecord currentTime;  // the current time
     o2::InteractionTimeRecord previousTime; // the time of the previous collision
-    o2::InteractionTimeRecord triggerTime; // the time at which the TRD start reading out a signal
-    size_t currTrig = 0;                   // from which collision is the current TRD trigger (only needed for debug information)
-    bool firstEvent = true;                // Flag for the first event processed
+    o2::InteractionTimeRecord triggerTime;  // the time at which the TRD start reading out a signal
+    size_t currTrig = 0;                    // from which collision is the current TRD trigger (only needed for debug information)
+    bool firstEvent = true;                 // Flag for the first event processed
 
     TStopwatch timer;
     timer.Start();
@@ -106,9 +107,9 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
         firstEvent = false;
       } else {
         double dT = currentTime.getTimeNS() - triggerTime.getTimeNS();
-        if (dT < constants::BUSY_TIME) {
-          // BUSY_TIME = READOUT_TIME + DEAD_TIME, if less than that, pile up the signals and update the last time
-          LOGF(debug, "Collision %lu Not creating new trigger at time %.2f since dT=%.2f ns < busy time of %.1f us", collID, currentTime.getTimeNS(), dT, constants::BUSY_TIME / 1000);
+        if (dT < mParams.busyTimeNS()) {
+          // busyTimeNS = readoutTimeNS + deadTimeNS, if less than that, pile up the signals and update the last time
+          LOGF(debug, "Collision %lu Not creating new trigger at time %.2f since dT=%.2f ns < busy time of %.1f us", collID, currentTime.getTimeNS(), dT, mParams.busyTimeNS() / 1000);
           isNewTrigger = false;
           mDigitizer.pileup();
         } else {
@@ -131,14 +132,14 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
           triggerTime = currentTime;
           digits.clear();
           labels.clear();
-          if (triggerTime.getTimeNS() - previousTime.getTimeNS() > constants::BUSY_TIME) {
+          if (triggerTime.getTimeNS() - previousTime.getTimeNS() > mParams.busyTimeNS()) {
             // we safely clear all pileup signals, because any previous collision cannot contribute signal anymore
             mDigitizer.clearPileupSignals();
           }
         }
       }
 
-      mDigitizer.setEventTime(triggerTime.getTimeNS());
+      mDigitizer.setEventTime(currentTime.getTimeNS());
       if (isNewTrigger) {
         mDigitizer.setTriggerTime(triggerTime.getTimeNS());
         currTrig = collID;
@@ -195,6 +196,7 @@ class TRDDPLDigitizerTask : public o2::base::BaseDPLDigitizer
  private:
   Digitizer mDigitizer;
   std::vector<TChain*> mSimChains;
+  const TRDSimParams& mParams{TRDSimParams::Instance()};
   // RS: at the moment using hardcoded flag for continuos readout
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::PRESENT; // readout mode
 };                                                                                // namespace trd

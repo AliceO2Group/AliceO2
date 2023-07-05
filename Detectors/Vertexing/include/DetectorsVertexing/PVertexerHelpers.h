@@ -108,9 +108,9 @@ struct TrackVF {
   float x;      ///< reference X
   float y;      ///< Y at X
   float z;      ///< Z at X
-  float sig2YI; ///< YY component of inverse cov.matrix
-  float sig2ZI; ///< ZZ component of inverse cov.matrix
-  float sigYZI; ///< YZ component of inverse cov.matrix
+  float sig2YI = 0.f; ///< YY component of inverse cov.matrix
+  float sig2ZI = 0.f; ///< ZZ component of inverse cov.matrix
+  float sigYZI = 0.f; ///< YZ component of inverse cov.matrix
   float tgP;    ///< tangent(phi) in tracking frame
   float tgL;    ///< tangent(lambda)
   float cosAlp; ///< cos of alpha frame
@@ -193,13 +193,21 @@ struct TrackVF {
     : x(src.getX()), y(src.getY()), z(src.getZ()), tgL(src.getTgl()), tgP(src.getSnp() / std::sqrt(1. - src.getSnp()) * (1. + src.getSnp())), timeEst(t_est), entry(_entry), gid(_gid)
   {
     o2::math_utils::sincos(src.getAlpha(), sinAlp, cosAlp);
-    auto det = src.getSigmaY2() * src.getSigmaZ2() - src.getSigmaZY() * src.getSigmaZY();
+    double syy = src.getSigmaY2(), szz = src.getSigmaZ2(), syz = src.getSigmaZY();
+    auto det = syy * szz - syz * syz;
+    if (det <= 1e-20) {
+      wghHisto = -1;
+      reportBadTrack(src, t_est, gid);
+      return;
+    }
     auto detI = 1. / det;
-    sig2YI = src.getSigmaZ2() * detI;
-    sig2ZI = src.getSigmaY2() * detI;
-    sigYZI = -src.getSigmaZY() * detI;
-    wghHisto = 1. / ((src.getSigmaZ2() + addHZErr2) * (t_est.getTimeStampError() * t_est.getTimeStampError() + addHTErr2));
+    sig2YI = szz * detI;
+    sig2ZI = syy * detI;
+    sigYZI = -syz * detI;
+    wghHisto = 1. / ((szz + addHZErr2) * (t_est.getTimeStampError() * t_est.getTimeStampError() + addHTErr2));
   }
+
+  void reportBadTrack(const o2::track::TrackParCov& src, const TimeEst& t_est, GTrackID _gid);
 
   ClassDefNV(TrackVF, 1);
 };

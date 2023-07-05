@@ -44,8 +44,8 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   mTimer.Start(false);
   o2::ctf::CTFIOSize iosize;
 
-  mCTFCoder.updateTimeDependentParams(pc);
-  auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf");
+  mCTFCoder.updateTimeDependentParams(pc, true);
+  auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf_TPC");
 
   auto& compclusters = pc.outputs().make<std::vector<char>>(OutputRef{"output"});
   if (buff.size()) {
@@ -67,8 +67,9 @@ void EntropyDecoderSpec::endOfStream(EndOfStreamContext& ec)
 DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
 {
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("ctf", "TPC", "CTFDATA", sspec, Lifetime::Timeframe);
-  inputs.emplace_back("ctfdict", "TPC", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("TPC/Calib/CTFDictionary"));
+  inputs.emplace_back("ctf_TPC", "TPC", "CTFDATA", sspec, Lifetime::Timeframe);
+  inputs.emplace_back("ctfdict_TPC", "TPC", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("TPC/Calib/CTFDictionaryTree"));
+  inputs.emplace_back("trigoffset", "CTP", "Trig_Offset", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/TriggerOffsets"));
 
   return DataProcessorSpec{
     "tpc-entropy-decoder",

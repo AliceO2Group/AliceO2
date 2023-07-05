@@ -63,7 +63,7 @@ std::pair<uint32_t, uint16_t> getDate(const std::string& refDate)
 namespace o2::dcs
 {
 
-//std::enable_if_t<std::is_arithmetic<T>::value, bool> = true>
+// std::enable_if_t<std::is_arithmetic<T>::value, bool> = true>
 
 template <typename T>
 std::vector<o2::dcs::DataPointCompositeObject>
@@ -72,16 +72,15 @@ std::vector<o2::dcs::DataPointCompositeObject>
 {
   std::vector<o2::dcs::DataPointCompositeObject> dpcoms;
   static_assert(std::is_arithmetic<T>::value, "T must be an arithmetic type");
-  typedef typename std::conditional<std::is_integral<T>::value,
-                                    std::uniform_int_distribution<T>,
-                                    std::uniform_real_distribution<T>>::type distType;
-
+  using distType = std::conditional_t<std::is_integral<T>::value,
+                                      std::uniform_int_distribution<long long>,
+                                      std::uniform_real_distribution<T>>;
   std::random_device rd;
   std::mt19937 mt(rd());
   distType dist{minValue, maxValue};
   auto [seconds, msec] = getDate(refDate);
   for (auto alias : expandAliases(aliases)) {
-    auto value = dist(mt);
+    T value = dist(mt);
     dpcoms.emplace_back(o2::dcs::createDataPointCompositeObject(alias, value, seconds, msec));
   }
   return dpcoms;
@@ -106,11 +105,13 @@ template std::vector<o2::dcs::DataPointCompositeObject> generateRandomDataPoints
 
 template std::vector<o2::dcs::DataPointCompositeObject> generateRandomDataPoints<int32_t>(const std::vector<std::string>& aliases, int32_t minValue, int32_t maxValue, std::string);
 
+template std::vector<o2::dcs::DataPointCompositeObject> generateRandomDataPoints<long long>(const std::vector<std::string>& aliases, long long minValue, long long maxValue, std::string);
+
 template std::vector<o2::dcs::DataPointCompositeObject> generateRandomDataPoints<char>(const std::vector<std::string>& aliases, char minValue, char maxValue, std::string);
 
 /** Need a specific specialization for bool as got into trouble compiling uniform_int_distribution<bool>
-  * on some platform (e.g. CC7).
-  */
+ * on some platform (e.g. CC7).
+ */
 template <>
 std::vector<o2::dcs::DataPointCompositeObject> generateRandomDataPoints<bool>(const std::vector<std::string>& aliases, bool minValue, bool maxValue, std::string refDate)
 {
@@ -127,9 +128,9 @@ std::vector<o2::dcs::DataPointCompositeObject> generateRandomDataPoints<bool>(co
 }
 
 /**
-  * Generate data points of type string, where each string is random, with
-  * a length between the length of the two input strings (minLength,maxLength)
-  */
+ * Generate data points of type string, where each string is random, with
+ * a length between the length of the two input strings (minLength,maxLength)
+ */
 template <>
 std::vector<o2::dcs::DataPointCompositeObject> generateRandomDataPoints<std::string>(const std::vector<std::string>& aliases, std::string minLength, std::string maxLength, std::string refDate)
 {
@@ -139,7 +140,7 @@ std::vector<o2::dcs::DataPointCompositeObject> generateRandomDataPoints<std::str
   std::uniform_int_distribution<std::string::size_type> dist{minLength.size(), maxLength.size()};
   auto [seconds, msec] = getDate(refDate);
   for (auto alias : expandAliases(aliases)) {
-    auto value = o2::dcs::random_string2(dist(mt));
+    std::string value = o2::dcs::random_string2(dist(mt));
     dpcoms.emplace_back(o2::dcs::createDataPointCompositeObject(alias, value, seconds, msec));
   }
   return dpcoms;

@@ -29,6 +29,7 @@
 #include "TPCCalibration/VDriftHelper.h"
 #include "TPCCalibration/CorrectionMapsLoader.h"
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/DeviceSpec.h"
 
 using namespace o2::framework;
 
@@ -80,6 +81,7 @@ void SecondaryVertexingSpec::init(InitContext& ic)
   mVertexer.setEnableCascades(mEnableCascades);
   mVertexer.setEnable3BodyDecays(mEnable3BodyVertices);
   mVertexer.setNThreads(ic.options().get<int>("threads"));
+  mTPCCorrMapsLoader.init(ic);
 }
 
 void SecondaryVertexingSpec::run(ProcessingContext& pc)
@@ -128,12 +130,15 @@ void SecondaryVertexingSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* ob
 void SecondaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-  o2::tpc::VDriftHelper::extractCCDBInputs(pc);
-  o2::tpc::CorrectionMapsLoader::extractCCDBInputs(pc);
+  mTPCVDriftHelper.extractCCDBInputs(pc);
+  mTPCCorrMapsLoader.extractCCDBInputs(pc);
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
     mVertexer.init();
+    if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
+      SVertexerParams::Instance().printKeyValues();
+    }
   }
   // we may have other params which need to be queried regularly
   bool updateMaps = false;
@@ -143,20 +148,25 @@ void SecondaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
     updateMaps = true;
   }
   if (mTPCVDriftHelper.isUpdated()) {
-    LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} from source {}",
-         mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getSourceName());
+    LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
+         mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift,
+         mTPCVDriftHelper.getVDriftObject().timeOffsetCorr, mTPCVDriftHelper.getVDriftObject().refTimeOffset,
+         mTPCVDriftHelper.getSourceName());
     mVertexer.setTPCVDrift(mTPCVDriftHelper.getVDriftObject());
     mTPCVDriftHelper.acknowledgeUpdate();
     updateMaps = true;
   }
   if (updateMaps) {
-    mTPCCorrMapsLoader.updateVDrift(mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift);
+    mTPCCorrMapsLoader.updateVDrift(mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getVDriftObject().getTimeOffset());
   }
 }
 
 DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCasc, bool enable3body)
 {
   std::vector<OutputSpec> outputs;
+  Options opts{
+    {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}},
+    {"threads", VariantType::Int, 1, {"Number of threads"}}};
   auto dataRequest = std::make_shared<DataRequest>();
 
   bool useMC = false;
@@ -171,7 +181,7 @@ DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCas
                                                               dataRequest->inputs,
                                                               true);
   o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
-  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs);
+  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs, opts, src[GTrackID::CTP]);
 
   outputs.emplace_back("GLO", "V0S", 0, Lifetime::Timeframe);            // found V0s
   outputs.emplace_back("GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe);    // prim.vertex -> V0s refs
@@ -185,8 +195,7 @@ DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCas
     dataRequest->inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<SecondaryVertexingSpec>(dataRequest, ggRequest, enableCasc, enable3body)},
-    Options{{"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}},
-            {"threads", VariantType::Int, 1, {"Number of threads"}}}};
+    opts};
 }
 
 } // namespace vertexing

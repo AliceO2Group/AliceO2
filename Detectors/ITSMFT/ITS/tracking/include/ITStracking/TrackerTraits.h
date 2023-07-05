@@ -46,7 +46,7 @@ namespace its
 {
 
 class TrackITSExt;
-typedef std::function<int(o2::gpu::GPUChainITS&, std::vector<Road>& roads, std::vector<const Cluster*>&, std::vector<const Cell*>&, const std::vector<std::vector<TrackingFrameInfo>>&, std::vector<TrackITSExt>&)> FuncRunITSTrackFit_t;
+typedef std::function<int(o2::gpu::GPUChainITS&, std::vector<Road<5>>& roads, std::vector<const Cluster*>&, std::vector<const Cell*>&, const std::vector<std::vector<TrackingFrameInfo>>&, std::vector<TrackITSExt>&)> FuncRunITSTrackFit_t;
 
 class TrackerTraits
 {
@@ -97,8 +97,8 @@ class TrackerTraits
 
  private:
   void traverseCellsTree(const int, const int);
-  track::TrackParCov buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster3, const TrackingFrameInfo& tf3, float resolution);
-  bool fitTrack(TrackITSExt& track, int start, int end, int step, const float chi2cut = o2::constants::math::VeryBig, const float maxQoverPt = o2::constants::math::VeryBig);
+  track::TrackParCov buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster3, const TrackingFrameInfo& tf3);
+  bool fitTrack(TrackITSExt& track, int start, int end, int step, float chi2clcut = o2::constants::math::VeryBig, float chi2ndfcut = o2::constants::math::VeryBig, float maxQoverPt = o2::constants::math::VeryBig, int nCl = 0);
 
   int mNThreads = 1;
   bool mApplySmoothing = false;
@@ -136,7 +136,7 @@ inline const int4 TrackerTraits::getBinsRect(const Cluster& currentCluster, int 
 
 inline void TrackerTraits::initialiseTimeFrame(const int iteration)
 {
-  mTimeFrame->initialise(iteration, mTrkParams[iteration], 7);
+  mTimeFrame->initialise(iteration, mTrkParams[iteration], mTrkParams[iteration].NLayers);
   setIsGPU(false);
 }
 

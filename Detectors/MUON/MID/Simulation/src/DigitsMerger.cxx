@@ -19,40 +19,24 @@ namespace o2
 {
 namespace mid
 {
-void DigitsMerger::mergeDigit(size_t idigit, const std::vector<ColumnData>& inDigitStore)
-{
-  /// Merges the current digit
-  for (auto& pair : mDigitsLabels) {
-    auto& outCol = pair.first;
-    if (outCol.deId == inDigitStore[idigit].deId && outCol.columnId == inDigitStore[idigit].columnId) {
-      outCol |= (inDigitStore[idigit]);
-      pair.second.emplace_back(idigit);
-      return;
-    }
-  }
-  std::vector<size_t> vec = {idigit};
-  mDigitsLabels.emplace_back(std::make_pair(inDigitStore[idigit], vec));
-}
 
 void DigitsMerger::process(const std::vector<ColumnData>& inDigitStore, const o2::dataformats::MCTruthContainer<MCLabel>& inMCContainer, const std::vector<ROFRecord>& inROFRecords, bool mergeInBunchPileup)
 {
-  /// Merges the MC digits that are provided per hit
-  /// into the format that we expect from data
-  /// \param inDigitStore Vector of input MC digits
-  /// \param inMCContainer Container with MC labels for input MC digits
-  /// \param inROFRecords Vector with RO frame records
-  /// \param mergeInBunchPileup Merge the digits coming from in-bunch pileup
+  process(inDigitStore, inROFRecords, &inMCContainer, mergeInBunchPileup);
+}
+
+void DigitsMerger::process(gsl::span<const ColumnData> inDigitStore, gsl::span<const ROFRecord> inROFRecords, const o2::dataformats::MCTruthContainer<MCLabel>* inMCContainer, bool mergeInBunchPileup)
+{
   mDigitStore.clear();
   mMCContainer.clear();
   mROFRecords.clear();
-  mDigitsLabels.clear();
 
   for (auto rofIt = inROFRecords.begin(); rofIt != inROFRecords.end(); ++rofIt) {
     auto nextRofIt = rofIt + 1;
     bool mergeInteractions = mergeInBunchPileup && nextRofIt != inROFRecords.end() && rofIt->interactionRecord == nextRofIt->interactionRecord;
 
-    for (size_t idigit = rofIt->firstEntry; idigit < rofIt->firstEntry + rofIt->nEntries; ++idigit) {
-      mergeDigit(idigit, inDigitStore);
+    for (size_t idigit = rofIt->firstEntry, end = rofIt->getEndIndex(); idigit < end; ++idigit) {
+      mHandler.merge(inDigitStore[idigit], idigit);
     }
 
     if (mergeInteractions) {
@@ -60,15 +44,19 @@ void DigitsMerger::process(const std::vector<ColumnData>& inDigitStore, const o2
     }
 
     auto firstEntry = mDigitStore.size();
-    mROFRecords.emplace_back(rofIt->interactionRecord, rofIt->eventType, firstEntry, mDigitsLabels.size());
+    auto digits = mHandler.getMerged();
+    mROFRecords.emplace_back(rofIt->interactionRecord, rofIt->eventType, firstEntry, digits.size());
+    mDigitStore.insert(mDigitStore.end(), digits.begin(), digits.end());
 
-    for (auto pair : mDigitsLabels) {
-      mDigitStore.emplace_back(pair.first);
-      for (auto labelIdx : pair.second) {
-        mMCContainer.addElements(mDigitStore.size() - 1, inMCContainer.getLabels(labelIdx));
+    if (inMCContainer) {
+      for (auto& dig : digits) {
+        auto indexes = mHandler.getMergedIndexes(dig);
+        for (auto labelIdx : indexes) {
+          mMCContainer.addElements(mDigitStore.size() - 1, inMCContainer->getLabels(labelIdx));
+        }
       }
     }
-    mDigitsLabels.clear();
+    mHandler.clear();
   }
 }
 } // namespace mid

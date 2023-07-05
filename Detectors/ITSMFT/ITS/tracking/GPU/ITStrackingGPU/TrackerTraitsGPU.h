@@ -23,7 +23,7 @@ namespace o2
 namespace its
 {
 
-template <int NLayers = 7>
+template <int nLayers = 7>
 class TrackerTraitsGPU : public TrackerTraits
 {
  public:
@@ -48,14 +48,15 @@ class TrackerTraitsGPU : public TrackerTraits
   int getTFNumberOfCells() const override;
 
  private:
+  IndexTableUtils* mDeviceIndexTableUtils;
   gpu::TimeFrameGPU<7>* mTimeFrameGPU;
-  gpu::StaticTrackingParameters<NLayers>* mStaticTrkPars;
+  gpu::StaticTrackingParameters<nLayers>* mStaticTrkPars;
 };
 
-template <int NLayers>
-inline void TrackerTraitsGPU<NLayers>::adoptTimeFrame(TimeFrame* tf)
+template <int nLayers>
+inline void TrackerTraitsGPU<nLayers>::adoptTimeFrame(TimeFrame* tf)
 {
-  mTimeFrameGPU = static_cast<gpu::TimeFrameGPU<NLayers>*>(tf);
+  mTimeFrameGPU = static_cast<gpu::TimeFrameGPU<nLayers>*>(tf);
 }
 } // namespace its
 } // namespace o2

@@ -24,7 +24,7 @@
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "CommonDataFormat/RangeReference.h"
-#include "DetectorsVertexing/DCAFitterN.h"
+#include "DCAFitter/DCAFitterN.h"
 #include "DetectorsVertexing/SVertexerParams.h"
 #include "DetectorsVertexing/SVertexHypothesis.h"
 #include "DataFormatsTPC/TrackTPC.h"
@@ -170,6 +170,7 @@ class SVertexer
   float mTPCVDrift = 0;
   float mTPCVDriftCorrFact = 1.; ///< TPC nominal correction factort (wrt ref)
   float mTPCVDriftRef = 0;
+  float mTPCDriftTimeOffset = 0; ///< drift time offset in mus
 
   bool mEnableCascades = true;
   bool mEnable3BodyDecays = false;

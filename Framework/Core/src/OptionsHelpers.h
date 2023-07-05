@@ -11,6 +11,7 @@
 #ifndef O2_FRAMEWORK_OPTIONSHELPERS_H_
 #define O2_FRAMEWORK_OPTIONSHELPERS_H_
 
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <boost/program_options/variables_map.hpp>
 #include <iosfwd>
 

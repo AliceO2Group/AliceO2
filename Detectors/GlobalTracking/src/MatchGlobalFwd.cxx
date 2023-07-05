@@ -21,6 +21,12 @@ void MatchGlobalFwd::init()
 
   auto& matchingParam = GlobalFwdMatchingParam::Instance();
 
+  setMFTRadLength(matchingParam.MFTRadLength);
+  LOG(info) << "MFT Radiation Length = " << mMFTDiskThicknessInX0 * 5.;
+
+  setAlignResiduals(matchingParam.alignResidual);
+  LOG(info) << "MFT Align residuals = " << mAlignResidual;
+
   mMatchingPlaneZ = matchingParam.matchPlaneZ;
   LOG(info) << "MFTMCH matchingPlaneZ = " << mMatchingPlaneZ;
 
@@ -145,29 +151,31 @@ bool MatchGlobalFwd::prepareMCHData()
     return false;
   }
   mMCHWork.reserve(mMCHTracks.size());
+  mMCHID2Work.clear();
+  mMCHID2Work.resize(mMCHTracks.size(), -1);
   static int BCDiffErrCount = 0;
-  constexpr int MAXBCDiffErrCount = 5;
+  constexpr int MAXBCDiffErrCount = 2;
 
   for (int irof = 0; irof < nROFs; irof++) {
     const auto& rofRec = mMCHTrackROFRec[irof];
 
     int nBC = rofRec.getBCData().differenceInBC(mStartIR);
     if (nBC < 0) {
-      if (BCDiffErrCount < MAXBCDiffErrCount) {
-        LOGP(alarm, "wrong bunches diff. {} for current IR {} wrt 1st TF orbit {} in MCH data", nBC, rofRec.getBCData(), mStartIR);
+      if (BCDiffErrCount++ < MAXBCDiffErrCount) {
+        LOGP(alarm, "wrong bunches diff. {} for current IR {} wrt 1st TF orbit {} in MCH data", nBC, rofRec.getBCData().asString(), mStartIR.asString());
       }
-      continue;
     }
     float tMin = nBC * o2::constants::lhc::LHCBunchSpacingMUS;
     float tMax = (nBC + rofRec.getBCWidth()) * o2::constants::lhc::LHCBunchSpacingMUS;
     auto mchTime = rofRec.getTimeMUS(mStartIR).first;
 
     mMCHROFTimes.emplace_back(tMin, tMax); // MCH ROF min/max time
-    LOG(debug) << "MCH ROF # " << irof << " [tMin;tMax] = [" << tMin << ";" << tMax << "]";
+    LOG(debug) << "MCH ROF # " << irof << " " << rofRec.getBCData() << " [tMin;tMax] = [" << tMin << ";" << tMax << "]";
     int trlim = rofRec.getFirstIdx() + rofRec.getNEntries();
     for (int it = rofRec.getFirstIdx(); it < trlim; it++) {
       auto& trcOrig = mMCHTracks[it];
       int nWorkTracks = mMCHWork.size();
+      mMCHID2Work[it] = nWorkTracks;
       // working copy MCH track propagated to matching plane and converted to the forward track format
       o2::mch::TrackParam tempParam(trcOrig.getZ(), trcOrig.getParameters(), trcOrig.getCovariances());
       if (!o2::mch::TrackExtrap::extrapToVertexWithoutBranson(tempParam, mMatchingPlaneZ)) {
@@ -197,7 +205,8 @@ bool MatchGlobalFwd::processMCHMIDMatches()
     for (const auto& MIDMatch : mMCHMIDMatches) {
       const auto& MCHId = MIDMatch.getMCHRef().getIndex();
       const auto& MIDId = MIDMatch.getMIDRef().getIndex();
-      auto& thisMuonTrack = mMCHWork[MCHId];
+      auto& thisMuonTrack = mMCHWork[mMCHID2Work[MCHId]];
+      LOG(debug) << " MCHId: " << MCHId << " --> mMCHID2Work[MCHId]:" << mMCHID2Work[MCHId];
       const auto& IR = MIDMatch.getIR();
       int nBC = IR.differenceInBC(mStartIR);
       float tMin = nBC * o2::constants::lhc::LHCBunchSpacingMUS;
@@ -241,19 +250,17 @@ bool MatchGlobalFwd::prepareMFTData()
     return false;
   }
   mMFTWork.reserve(mMFTTracks.size());
-
   static int BCDiffErrCount = 0;
-  constexpr int MAXBCDiffErrCount = 5;
+  constexpr int MAXBCDiffErrCount = 2;
 
   for (int irof = 0; irof < nROFs; irof++) {
     const auto& rofRec = mMFTTrackROFRec[irof];
-
     int nBC = rofRec.getBCData().differenceInBC(mStartIR);
     if (nBC < 0) {
-      if (BCDiffErrCount < MAXBCDiffErrCount) {
-        LOGP(alarm, "wrong bunches diff. {} for current IR {} wrt 1st TF orbit {} in MFT data", nBC, rofRec.getBCData(), mStartIR);
+      if (BCDiffErrCount++ < MAXBCDiffErrCount) {
+        LOGP(alarm, "TF dropped: wrong bunches diff. {} for current IR {} wrt 1st TF orbit {} in MFT data", nBC, rofRec.getBCData().asString(), mStartIR.asString());
       }
-      continue;
+      return false;
     }
     float tMin = nBC * o2::constants::lhc::LHCBunchSpacingMUS;
     float tMax = (nBC + mMFTROFrameLengthInBC) * o2::constants::lhc::LHCBunchSpacingMUS;
@@ -265,7 +272,7 @@ bool MatchGlobalFwd::prepareMFTData()
       mMFTTrackROFContMapping[irofCont] = irof;
     }
     mMFTROFTimes.emplace_back(tMin, tMax); // MFT ROF min/max time
-    LOG(debug) << "MFT ROF # " << irof << " [tMin;tMax] = [" << tMin << ";" << tMax << "]";
+    LOG(debug) << "MFT ROF # " << irof << " " << rofRec.getBCData() << " [tMin;tMax] = [" << tMin << ";" << tMax << "]";
 
     int trlim = rofRec.getFirstEntry() + rofRec.getNEntries();
     for (int it = rofRec.getFirstEntry(); it < trlim; it++) {
@@ -278,6 +285,9 @@ bool MatchGlobalFwd::prepareMFTData()
       trc.setZ(trcOrig.getOutParam().getZ());
       trc.setCovariances(trcOrig.getOutParam().getCovariances());
       trc.setTrackChi2(trcOrig.getOutParam().getTrackChi2());
+      // Extrapolate MFT track parameters and covariances matrix to "mMatchingPlaneZ"
+      // Parameters: helix track model; Error propagation: Quadratic
+      // If "mBz" is zero: linear track model
       trc.propagateToZ(mMatchingPlaneZ, mBz);
     }
   }
@@ -302,7 +312,7 @@ void MatchGlobalFwd::loadMatches()
     auto MCHId = match.getMCHTrackID();
     LOG(debug) << "     ==> MFTId = " << MFTId << " MCHId =  " << MCHId << std::endl;
 
-    auto& thisMCHTrack = mMCHWork[MCHId];
+    auto& thisMCHTrack = mMCHWork[mMCHID2Work[MCHId]];
     thisMCHTrack.setMatchInfo(match);
     mMatchedTracks.emplace_back(thisMCHTrack);
     if (mMCTruthON) {
@@ -328,6 +338,8 @@ void MatchGlobalFwd::doMatching()
   // ROFrame of first MFT track
   auto firstMFTTrackIdInROF = 0;
   auto MFTROFId = mMFTWork.front().roFrame;
+  LOG(debug) << "(*) nMCHROFs: " << nMCHROFs << ", mMFTTracks.size(): " << mMFTTracks.size() << " MFTROFId: " << MFTROFId << ",  mMFTTrackROFRec.size(): " << mMFTTrackROFRec.size();
+
   while ((firstMFTTrackIdInROF < mMFTTracks.size()) && (MFTROFId < mMFTTrackROFRec.size())) {
     auto MFTROFId = mMFTWork[firstMFTTrackIdInROF].roFrame;
     const auto& thisMFTBracket = mMFTROFTimes[MFTROFId];
@@ -336,32 +348,35 @@ void MatchGlobalFwd::doMatching()
     LOG(debug) << "MFT ROF = " << MFTROFId << "; interval: [" << thisMFTBracket.getMin() << "," << thisMFTBracket.getMax() << "]";
     LOG(debug) << "ROF " << MFTROFId << " : firstMFTTrackIdInROF " << firstMFTTrackIdInROF << " ; nMFTTracksInROF = " << nMFTTracksInROF;
     firstMFTTrackIdInROF += nMFTTracksInROF;
-    int mchROF = 0;
-    while (mchROF < nMCHROFs && (thisMFTBracket.isOutside(mMCHROFTimes[mchROF]))) {
-      mchROF++;
-    }
-    if (mchROF >= nMCHROFs) {
-      continue;
-    }
+
     int mchROFMatchFirst = -1;
     int mchROFMatchLast = -1;
-
-    if (thisMFTBracket.isOutside(mMCHROFTimes[mchROF]) == 0) {
-      mchROFMatchFirst = mchROF;
-
-      while (mchROF < nMCHROFs && !(thisMFTBracket < mMCHROFTimes[mchROF])) {
-        mchROF++;
+    int mchROF = 0;
+    // loop over MCH ROFs that are not newer than the current MFT ROF
+    while (mchROF < nMCHROFs && !(thisMFTBracket < mMCHROFTimes[mchROF])) {
+      // only consider non-empty MCH ROFs that overlap with the MFT one
+      if (mMCHTrackROFRec[mchROF].getNEntries() > 0 && !(thisMFTBracket.isOutside(mMCHROFTimes[mchROF]))) {
+        // set the index of the first MCH ROF if not yet initialized
+        if (mchROFMatchFirst < 0) {
+          mchROFMatchFirst = mchROF;
+        }
+        // update the index of the last MCH ROF
+        mchROFMatchLast = mchROF;
       }
-      if (mchROF >= nMCHROFs) {
-        continue;
-      }
-      mchROFMatchLast = mchROF - 1;
-    } else {
-      LOG(debug) << "No compatible MCH ROF with MFT ROF " << MFTROFId << std::endl;
+      mchROF++;
     }
-    if (mchROFMatchFirst >= 0) {
-      ROFMatch<saveAllMode>(MFTROFId, mchROFMatchFirst, mchROFMatchLast);
+    // skip if the index of the first MCH ROF is not set
+    if (mchROFMatchFirst < 0) {
+      continue;
     }
+    LOG(debug) << "FIRST MCH ROF " << mchROFMatchFirst << "; interval: ["
+               << mMCHROFTimes[mchROFMatchFirst].getMin() << ","
+               << mMCHROFTimes[mchROFMatchFirst].getMax() << "]  size: " << mMCHTrackROFRec[mchROFMatchFirst].getNEntries();
+    LOG(debug) << "LAST  MCH ROF " << mchROFMatchLast << "; interval: ["
+               << mMCHROFTimes[mchROFMatchLast].getMin() << ","
+               << mMCHROFTimes[mchROFMatchLast].getMax() << "]  size: " << mMCHTrackROFRec[mchROFMatchLast].getNEntries();
+
+    ROFMatch<saveAllMode>(MFTROFId, mchROFMatchFirst, mchROFMatchLast);
   }
 
   if constexpr (saveAllMode == SaveMode::kBestMatch) { // Otherwise output container is filled by ROFMatch()
@@ -403,6 +418,7 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
 
   auto firstMCHTrackID = firstMCHROF.getFirstIdx();
   auto lastMCHTrackID = lastMCHROF.getLastIdx();
+
   auto nMFTTracks = thisMFTROF.getNEntries();
   auto nMCHTracks = lastMCHTrackID - firstMCHTrackID + 1;
 
@@ -410,7 +426,10 @@ void MatchGlobalFwd::ROFMatch(int MFTROFId, int firstMCHROFId, int lastMCHROFId)
 
   LOG(debug) << "Matching MFT ROF " << MFTROFId << " with MCH ROFs [" << firstMCHROFId << "->" << lastMCHROFId << "]";
   LOG(debug) << "   firstMFTTrackID = " << firstMFTTrackID << " ; lastMFTTrackID = " << lastMFTTrackID;
-  LOG(debug) << "   firstMCHTrackID = " << firstMCHTrackID << " ; lastMCHTrackID = " << lastMCHTrackID << std::endl;
+  LOG(debug) << "   firstMCHTrackID = " << firstMCHTrackID << " ; lastMCHTrackID = " << lastMCHTrackID;
+  LOG(debug) << "   thisMFTROF:  " << thisMFTROF.getBCData();
+  LOG(debug) << "   firstMCHROF: " << firstMCHROF;
+  LOG(debug) << "   lastMCHROF:  " << lastMCHROF;
 
   // loop over all MCH tracks
   for (auto MCHId = firstMCHTrackID; MCHId <= lastMCHTrackID; MCHId++) {
@@ -491,7 +510,7 @@ void MatchGlobalFwd::doMCMatching()
   // loop over all MCH tracks
   for (auto MCHId = 0; MCHId < mMCHWork.size(); MCHId++) {
     auto& thisMCHTrack = mMCHWork[MCHId];
-    const o2::MCCompLabel& thisMCHLabel = mMCHTrkLabels[MCHId];
+    const o2::MCCompLabel& thisMCHLabel = mMCHTrkLabels[mMCHID2Work[MCHId]];
 
     LOG(debug) << "   MCH Track # " << MCHId << " Label: " << thisMCHLabel;
     if (!((thisMCHLabel).isSet())) {
@@ -550,22 +569,9 @@ void MatchGlobalFwd::fitGlobalMuonTrack(o2::dataformats::GlobalFwdTrack& gTrack)
   const auto& mftTrackOut = mMFTWork[MFTMatchId];
   auto ncls = mftTrack.getNumberOfPoints();
   auto offset = mftTrack.getExternalClusterIndexOffset();
-  auto invQPt0 = gTrack.getInvQPt();
-  auto sigmainvQPtsq = gTrack.getCovariances()(4, 4);
-
-  // initialize the starting track parameters and cluster
-  auto k = TMath::Abs(o2::constants::math::B2C * mBz);
-  auto Hz = std::copysign(1, mBz);
 
   LOG(debug) << "***************************** Start Fitting new track *****************************";
   LOG(debug) << "N Clusters = " << ncls << "  Best MFT Track Match ID " << gTrack.getMFTTrackID() << "  MCHTrack: X = " << gTrack.getX() << " Y = " << gTrack.getY() << " Z = " << gTrack.getZ() << " Tgl = " << gTrack.getTanl() << "  Phi = " << gTrack.getPhi() << " pz = " << gTrack.getPz() << " qpt = " << 1.0 / gTrack.getInvQPt();
-
-  gTrack.setX(mftTrackOut.getX());
-  gTrack.setY(mftTrackOut.getY());
-  gTrack.setZ(mftTrackOut.getZ());
-  gTrack.setPhi(mftTrackOut.getPhi());
-  gTrack.setTanl(mftTrackOut.getTanl());
-  gTrack.setInvQPt(gTrack.getInvQPt());
 
   LOG(debug) << "MFTTrack: X = " << mftTrackOut.getX()
              << " Y = " << mftTrackOut.getY() << " Z = " << mftTrackOut.getZ()
@@ -573,10 +579,6 @@ void MatchGlobalFwd::fitGlobalMuonTrack(o2::dataformats::GlobalFwdTrack& gTrack)
              << "  Phi = " << mftTrackOut.getPhi() << " pz = " << mftTrackOut.getPz()
              << " qpt = " << 1.0 / mftTrackOut.getInvQPt();
   LOG(debug) << "  initTrack GlobalTrack: q/pt = " << gTrack.getInvQPt() << std::endl;
-
-  SMatrix55Sym lastParamCov;
-  Double_t tanlsigma = TMath::Max(std::abs(mftTrackOut.getTanl()), .5);
-  Double_t qptsigma = TMath::Max(std::abs(mftTrackOut.getInvQPt()), .5);
 
   auto lastLayer = mMFTMapping.ChipID2Layer[mMFTClusters[offset + ncls - 1].getSensorID()];
   LOG(debug) << "Starting by MFTCluster offset " << offset + ncls - 1 << " at lastLayer " << lastLayer;
@@ -601,8 +603,10 @@ bool MatchGlobalFwd::computeCluster(o2::dataformats::GlobalFwdTrack& track, cons
   const auto& clx = cluster.getX();
   const auto& cly = cluster.getY();
   const auto& clz = cluster.getZ();
-  const auto& sigmaX2 = cluster.getSigmaY2(); // ALPIDE local Y coordinate => MFT global X coordinate (ALPIDE rows)
-  const auto& sigmaY2 = cluster.getSigmaZ2(); // ALPIDE local Z coordinate => MFT global Y coordinate (ALPIDE columns)
+  const auto& sigmaX2 = cluster.getSigmaY2() * mAlignResidual * mAlignResidual;
+  ; // ALPIDE local Y coordinate => MFT global X coordinate (ALPIDE rows)
+  const auto& sigmaY2 = cluster.getSigmaZ2() * mAlignResidual * mAlignResidual;
+  ; // ALPIDE local Z coordinate => MFT global Y coordinate (ALPIDE columns)
 
   const auto& newLayerID = mMFTMapping.ChipID2Layer[cluster.getSensorID()];
   LOG(debug) << "computeCluster:     X = " << clx << " Y = " << cly << " Z = " << clz << " nCluster = " << newLayerID;

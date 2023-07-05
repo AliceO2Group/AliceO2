@@ -32,11 +32,15 @@
 #pragma link C++ class o2::trd::KrClusterTriggerRecord + ;
 #pragma link C++ class o2::trd::NoiseStatusMCM + ;
 #pragma link C++ class o2::trd::AngularResidHistos + ;
+#pragma link C++ class o2::trd::GainCalibHistos + ;
 #pragma link C++ class o2::trd::CalVdriftExB + ;
+#pragma link C++ class o2::trd::CalGain + ;
 #pragma link C++ class o2::trd::CalT0 + ;
 #pragma link C++ class o2::trd::CompressedDigit + ;
 #pragma link C++ class o2::trd::HelperMethods + ;
 #pragma link C++ class o2::trd::LinkToHCIDMapping + ;
+#pragma link C++ class o2::trd::ChannelInfo + ;
+#pragma link C++ class o2::trd::ChannelInfoContainer + ;
 #pragma link C++ class std::vector < o2::trd::Tracklet64> + ;
 #pragma link C++ class std::vector < o2::trd::CalibratedTracklet> + ;
 #pragma link C++ class std::vector < o2::trd::TrackTriggerRecord> + ;
@@ -45,6 +49,7 @@
 #pragma link C++ class std::vector < o2::trd::Hit > +;
 #pragma link C++ class std::vector < o2::trd::Digit> + ;
 #pragma link C++ class std::vector < o2::trd::AngularResidHistos> + ;
+#pragma link C++ class std::vector < o2::trd::GainCalibHistos> + ;
 #pragma link C++ class std::vector < o2::trd::KrCluster> + ;
 #pragma link C++ class std::vector < o2::trd::KrClusterTriggerRecord> + ;
 

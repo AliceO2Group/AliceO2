@@ -59,6 +59,7 @@ struct CTPScalerO2 {
   uint64_t l1Before;
   uint64_t l1After;
   void printStream(std::ostream& stream) const;
+  void printFromZero(std::ostream& stream, CTPScalerO2& scaler0) const;
   ClassDefNV(CTPScalerO2, 1);
 };
 struct CTPScalerRecordRaw {
@@ -77,6 +78,7 @@ struct CTPScalerRecordO2 {
   std::vector<CTPScalerO2> scalers;
   std::vector<uint64_t> scalersDets;
   void printStream(std::ostream& stream) const;
+  void printFromZero(std::ostream& stream, CTPScalerRecordO2& record0) const;
   ClassDefNV(CTPScalerRecordO2, 3);
 };
 class CTPRunScalers
@@ -85,6 +87,8 @@ class CTPRunScalers
   CTPRunScalers() = default;
 
   void printStream(std::ostream& stream) const;
+  void printO2(std::ostream& stream) const;
+  void printFromZero(std::ostream& stream) const;
   void printClasses(std::ostream& stream) const;
   std::vector<uint32_t> getClassIndexes() const;
   std::vector<CTPScalerRecordO2>& getScalerRecordO2() { return mScalerRecordO2; };
@@ -107,6 +111,27 @@ class CTPRunScalers
   static constexpr uint32_t NCOUNTERS = 1071;
   static std::vector<std::string> scalerNames;
 
+  void printLMBRateVsT() const; // prints LMB interaction rate vs time for debugging
+
+  // returns the pair of global (levelled) interaction rate, as well as interpolated
+  // rate in Hz at a certain orbit number within the run
+  std::pair<double, double> getRate(uint32_t orbit, int classindex, int type) const;
+
+  /// same with absolute  timestamp (not orbit) as argument
+  std::pair<double, double> getRateGivenT(double timestamp, int classindex, int type) const;
+
+  /// retrieves time boundaries of this scaler object
+  std::pair<unsigned long, unsigned long> getTimeLimit() const
+  {
+    return std::make_pair((unsigned long)mScalerRecordO2[0].epochTime * 1000, (unsigned long)mScalerRecordO2[mScalerRecordO2.size() - 1].epochTime * 1000);
+  }
+
+  /// retrieves orbit boundaries of this scaler object
+  std::pair<unsigned long, unsigned long> getOrbitLimit() const
+  {
+    return std::make_pair((unsigned long)mScalerRecordO2[0].intRecord.orbit, (unsigned long)mScalerRecordO2[mScalerRecordO2.size() - 1].intRecord.orbit);
+  }
+
  private:
   // map from class index to overflow
   // overflow counts how many time class scalerers overflowed
@@ -122,6 +147,7 @@ class CTPRunScalers
   int copyRawToO2ScalerRecord(const CTPScalerRecordRaw& rawrec, CTPScalerRecordO2& o2rec, overflows_t& classesoverflows);
   int updateOverflows(const CTPScalerRecordRaw& rec0, const CTPScalerRecordRaw& rec1, overflows_t& classesoverflows) const;
   int updateOverflows(const CTPScalerRaw& scal0, const CTPScalerRaw& scal1, std::array<uint32_t, 6>& overflow) const;
+
   ClassDefNV(CTPRunScalers, 2);
 };
 } // namespace ctp

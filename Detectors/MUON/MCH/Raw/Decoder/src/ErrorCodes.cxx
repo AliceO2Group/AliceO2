@@ -20,7 +20,7 @@ namespace raw
 
 uint32_t getErrorCodesSize()
 {
-  return 15;
+  return 16;
 }
 
 void append(const char* msg, std::string& to)
@@ -66,6 +66,9 @@ std::string errorCodeAsString(uint32_t ec)
   }
   if (ec & ErrorTruncatedData) {
     append("Truncated Data", msg);
+  }
+  if (ec & ErrorTruncatedDataUL) {
+    append("UL Truncated Data", msg);
   }
   if (ec & ErrorBadELinkID) {
     append("Bad E-Link ID", msg);

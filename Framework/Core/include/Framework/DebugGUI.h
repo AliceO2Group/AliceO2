@@ -18,16 +18,19 @@
 #include "Framework/DeviceMetricsInfo.h"
 #include "Framework/DriverInfo.h"
 #include "Framework/DriverControl.h"
+#include "Framework/DataProcessingStates.h"
 
 #include <functional>
 #include <vector>
 
 namespace o2::framework
 {
+struct ServiceRegistry;
 /// Plugin interface for DPL GUIs.
 struct DebugGUI {
   virtual std::function<void(void)> getGUIDebugger(std::vector<o2::framework::DeviceInfo> const& infos,
                                                    std::vector<o2::framework::DeviceSpec> const& devices,
+                                                   std::vector<o2::framework::DataProcessingStates> const& allStates,
                                                    std::vector<o2::framework::DataProcessorInfo> const& metadata,
                                                    std::vector<o2::framework::DeviceMetricsInfo> const& metricsInfos,
                                                    o2::framework::DriverInfo const& driverInfo,
@@ -41,9 +44,8 @@ struct DebugGUI {
   virtual void keyUp(char key) = 0;
   virtual void charIn(char key) = 0;
 
-  virtual void* initGUI(char const* windowTitle, ServiceRegistryRef registry) = 0;
-  virtual void getFrameJSON(void* data, std::ostream& json_data) = 0;
-  virtual void getFrameRaw(void* data, void** raw_data, int* size) = 0;
+  virtual void* initGUI(char const* windowTitle, ServiceRegistry& registry) = 0;
+  virtual void getFrameRaw(void* data, void** raw_data, int* size, bool updateTextures = false) = 0;
   virtual bool pollGUIPreRender(void* context, float delta) = 0;
   virtual void* pollGUIRender(std::function<void(void)> guiCallback) = 0;
   virtual void pollGUIPostRender(void* context, void* draw_data) = 0;

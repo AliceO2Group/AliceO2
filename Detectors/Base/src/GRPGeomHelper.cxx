@@ -22,6 +22,7 @@
 #include "Framework/DataRefUtils.h"
 #include "Framework/InputSpec.h"
 #include "Framework/InputRecord.h"
+#include "Framework/TimingInfo.h"
 #include "Framework/CCDBParamSpec.h"
 #include "DetectorsBase/MatLayerCylSet.h"
 #include "DetectorsBase/Propagator.h"
@@ -35,21 +36,24 @@ using namespace o2::base;
 using namespace o2::framework;
 namespace o2d = o2::dataformats;
 
-GRPGeomRequest::GRPGeomRequest(bool orbitResetTime, bool GRPECS, bool GRPLHCIF, bool GRPMagField, bool askMatLUT, GeomRequest geom, std::vector<o2::framework::InputSpec>& inputs, bool askOnce, bool needPropD)
+GRPGeomRequest::GRPGeomRequest(bool orbitResetTime, bool GRPECS, bool GRPLHCIF, bool GRPMagField, bool askMatLUT, GeomRequest geom, std::vector<o2::framework::InputSpec>& inputs, bool askOnce, bool needPropD, std::string detMaskString)
   : askGRPECS(GRPECS), askGRPLHCIF(GRPLHCIF), askGRPMagField(GRPMagField), askMatLUT(askMatLUT), askTime(orbitResetTime), askOnceAllButField(askOnce), needPropagatorD(needPropD)
 {
   if (geom == Aligned) {
     askGeomAlign = true;
-    addInput({"geomAlp", "GLO", "GEOMALIGN", 0, Lifetime::Condition, ccdbParamSpec("GLO/Config/GeometryAligned")}, inputs);
+    addInput({"geomAlg", "GLO", "GEOMALIGN", 0, Lifetime::Condition, ccdbParamSpec("GLO/Config/GeometryAligned")}, inputs);
   } else if (geom == Ideal || geom == Alignments) {
     askGeomIdeal = true;
     addInput({"geomIdeal", "GLO", "GEOMIDEAL", 0, Lifetime::Condition, ccdbParamSpec("GLO/Config/Geometry")}, inputs);
   }
   if (geom == Alignments) {
     askAlignments = true;
+    o2::detectors::DetID::mask_t algDetMask = DetID::getMask(detMaskString);
     for (auto id = DetID::First; id <= DetID::Last; id++) {
-      std::string binding = fmt::format("align{}", DetID::getName(id));
-      addInput({binding, DetID::getDataOrigin(id), "ALIGNMENT", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Calib/Align", DetID::getName(id)))}, inputs);
+      if (algDetMask[id]) {
+        std::string binding = fmt::format("align{}", DetID::getName(id));
+        addInput({binding, DetID::getDataOrigin(id), "ALIGNMENT", 0, Lifetime::Condition, ccdbParamSpec(fmt::format("{}/Calib/Align", DetID::getName(id)))}, inputs);
+      }
     }
   }
   if (askMatLUT) {
@@ -158,35 +162,69 @@ bool GRPGeomHelper::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 void GRPGeomHelper::checkUpdates(ProcessingContext& pc) const
 {
   // request input just to trigger finaliseCCDB if there was an update
-  static bool initOnceDone = false;
-  if (mRequest->askGRPMagField) {
-    pc.inputs().get<o2::parameters::GRPMagField*>("grpfield");
-  }
-  if (mRequest->askGRPLHCIF && !initOnceDone) {
-    pc.inputs().get<o2::parameters::GRPLHCIFData*>("grplhcif");
-  }
-  if (mRequest->askGRPECS && !initOnceDone) {
-    pc.inputs().get<o2::parameters::GRPECSObject*>("grpecs");
-  }
-  if (mRequest->askTime && !initOnceDone) {
-    pc.inputs().get<std::vector<Long64_t>*>("orbitReset");
-  }
-  if (mRequest->askMatLUT && !initOnceDone) {
-    pc.inputs().get<o2::base::MatLayerCylSet*>("matLUT");
-  }
-  if (mRequest->askGeomAlign && !initOnceDone) {
-    pc.inputs().get<TGeoManager*>("geomAlp");
-  } else if (mRequest->askGeomIdeal) {
-    pc.inputs().get<TGeoManager*>("geomIdeal");
-  }
-  if (mRequest->askAlignments && !initOnceDone) {
-    for (auto id = DetID::First; id <= DetID::Last; id++) {
-      std::string binding = fmt::format("align{}", DetID::getName(id));
-      pc.inputs().get<std::vector<o2::detectors::AlignParam>*>(binding);
+
+  if (mRequest->askGRPMagField) { // always check
+    if (pc.inputs().isValid("grpfield")) {
+      pc.inputs().get<o2::parameters::GRPMagField*>("grpfield");
+    } else {
+      return;
     }
   }
-  if (!initOnceDone) {
-    initOnceDone = mRequest->askOnceAllButField;
+
+  bool checkTF = pc.services().get<o2::framework::TimingInfo>().globalRunNumberChanged || !mRequest->askOnceAllButField;
+
+  if (checkTF) {
+    if (mRequest->askGRPLHCIF) {
+      if (pc.inputs().isValid("grplhcif")) {
+        pc.inputs().get<o2::parameters::GRPLHCIFData*>("grplhcif");
+      } else {
+        return;
+      }
+    }
+    if (mRequest->askGRPECS) {
+      if (pc.inputs().isValid("grpecs")) {
+        pc.inputs().get<o2::parameters::GRPECSObject*>("grpecs");
+      } else {
+        return;
+      }
+    }
+    if (mRequest->askTime) {
+      if (pc.inputs().isValid("orbitReset")) {
+        pc.inputs().get<std::vector<Long64_t>*>("orbitReset");
+      } else {
+        return;
+      }
+    }
+    if (mRequest->askMatLUT) {
+      if (pc.inputs().isValid("matLUT")) {
+        pc.inputs().get<o2::base::MatLayerCylSet*>("matLUT");
+      } else {
+        return;
+      }
+    }
+    if (mRequest->askGeomAlign) {
+      if (pc.inputs().isValid("geomAlg")) {
+        pc.inputs().get<TGeoManager*>("geomAlg");
+      } else {
+        return;
+      }
+    } else if (mRequest->askGeomIdeal) {
+      if (pc.inputs().isValid("geomIdeal")) {
+        pc.inputs().get<TGeoManager*>("geomIdeal");
+      } else {
+        return;
+      }
+    }
+    if (mRequest->askAlignments) {
+      for (auto id = DetID::First; id <= DetID::Last; id++) {
+        std::string binding = fmt::format("align{}", DetID::getName(id));
+        if (pc.inputs().getPos(binding.c_str()) < 0) {
+          return;
+        } else {
+          pc.inputs().get<std::vector<o2::detectors::AlignParam>*>(binding);
+        }
+      }
+    }
   }
 }
 

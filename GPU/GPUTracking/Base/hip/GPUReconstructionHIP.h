@@ -59,8 +59,7 @@ class GPUReconstructionHIPBackend : public GPUReconstructionDeviceBase
   void ReleaseEvent(deviceEvent* ev) override;
   void RecordMarker(deviceEvent* ev, int stream) override;
 
-  void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits) override;
-  void GetITSTimeframe(std::unique_ptr<o2::its::TimeFrame>* timeFrame) override;
+  void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits, std::unique_ptr<o2::its::TimeFrame>* timeFrame) override;
 
   void PrintKernelOccupancies() override;
 

@@ -45,11 +45,12 @@ namespace ft0
 
 namespace new_lut
 {
-//Singleton for LookUpTable
+// Singleton for LookUpTable
 template <typename LUT>
 class SingleLUT : public LUT
 {
  private:
+  SingleLUT() = default;
   SingleLUT(const std::string& ccdbPath, const std::string& ccdbPathToLUT) : LUT(ccdbPath, ccdbPathToLUT) {}
   SingleLUT(const std::string& pathToFile) : LUT(pathToFile) {}
   SingleLUT(const SingleLUT&) = delete;
@@ -58,21 +59,32 @@ class SingleLUT : public LUT
  public:
   static constexpr char sDetectorName[] = "FT0";
   static constexpr char sDefaultLUTpath[] = "FT0/Config/LookupTable";
+  static constexpr char sObjectName[] = "LookupTable";
   inline static std::string sCurrentCCDBpath = "";
   inline static std::string sCurrentLUTpath = sDefaultLUTpath;
-  //Before instance() call, setup url and path
+  // Before instance() call, setup url and path
   static void setCCDBurl(const std::string& url) { sCurrentCCDBpath = url; }
   static void setLUTpath(const std::string& path) { sCurrentLUTpath = path; }
-  static SingleLUT& Instance()
+
+  using Table_t = typename LUT::Table_t;
+  bool mFirstUpdate{true}; // option in case if LUT should be updated during workflow initialization
+  static SingleLUT& Instance(const Table_t* table = nullptr, long timestamp = -1)
   {
     if (sCurrentCCDBpath == "") {
       sCurrentCCDBpath = o2::base::NameConf::getCCDBServer();
     }
-    static SingleLUT instanceLUT(sCurrentCCDBpath, sCurrentLUTpath);
+    static SingleLUT instanceLUT;
+    if (table != nullptr) {
+      instanceLUT.initFromTable(table);
+      instanceLUT.mFirstUpdate = false;
+    } else if (instanceLUT.mFirstUpdate) {
+      instanceLUT.initCCDB(sCurrentCCDBpath, sCurrentLUTpath, timestamp);
+      instanceLUT.mFirstUpdate = false;
+    }
     return instanceLUT;
   }
 };
-} //namespace new_lut
+} // namespace new_lut
 
 using SingleLUT = new_lut::SingleLUT<o2::fit::LookupTableBase<>>;
 

@@ -55,6 +55,12 @@ void o2::tpc::IDCSim::integrateDigitsForOneTF(const gsl::span<const o2::tpc::Dig
     }
   }
 
+  // normalize IDCs as they are normalized for the real data
+  const float norm = 1. / float(mTimeStampsPerIntegrationInterval);
+  for (auto& idc : mIDCs[mBufferIndex]) {
+    std::transform(idc.begin(), idc.end(), idc.begin(), [norm](float& val) { return val * norm; });
+  }
+
   mBufferIndex = !mBufferIndex; // switch buffer index
   setNewOffset();               // set offset
 }

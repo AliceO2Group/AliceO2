@@ -31,15 +31,14 @@ namespace o2::trd
 
 void DataReaderTask::init(InitContext& ic)
 {
-  LOG(info) << "o2::trd::DataReadTask init";
-
   mReader.setMaxErrWarnPrinted(ic.options().get<int>("log-max-errors"), ic.options().get<int>("log-max-warnings"));
   mReader.configure(mTrackletHCHeaderState, mHalfChamberWords, mHalfChamberMajor, mOptions);
+  mProcessEveryNthTF = ic.options().get<int>("every-nth-tf");
 }
 
 void DataReaderTask::endOfStream(o2::framework::EndOfStreamContext& ec)
 {
-  LOGF(important, "At EoS we have read: %lu Digits, %lu Tracklets. Received %.3f MB input data and rejected %.3f MB",
+  LOGF(info, "At EoS we have read: %lu Digits, %lu Tracklets. Received %.3f MB input data and rejected %.3f MB",
        mDigitsTotal, mTrackletsTotal, mDatasizeInTotal / (1024. * 1024.), (float)mWordsRejectedTotal * 4. / (1024. * 1024.));
   mReader.printHalfChamberHeaderReport();
 }
@@ -59,11 +58,10 @@ void DataReaderTask::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 
 void DataReaderTask::updateTimeDependentParams(framework::ProcessingContext& pc)
 {
-  static bool updateOnlyOnce = false;
-  if (!updateOnlyOnce) {
+  if (!mInitOnceDone) {
     pc.inputs().get<o2::ctp::TriggerOffsetsParam*>("trigoffset");
     pc.inputs().get<o2::trd::LinkToHCIDMapping*>("linkToHcid");
-    updateOnlyOnce = true;
+    mInitOnceDone = true;
   }
 }
 
@@ -94,12 +92,14 @@ bool DataReaderTask::isTimeFrameEmpty(ProcessingContext& pc)
 
 void DataReaderTask::run(ProcessingContext& pc)
 {
-  //NB this is run per time frame on the epn.
-  LOG(info) << "TRD Translator Task run";
+  const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
+  if (tinfo.globalRunNumberChanged) { // new run is starting
+    mInitOnceDone = false;
+  }
   updateTimeDependentParams(pc);
   auto dataReadStart = std::chrono::high_resolution_clock::now();
 
-  if (isTimeFrameEmpty(pc)) {
+  if ((mNTFsProcessed++ % mProcessEveryNthTF != 0) || isTimeFrameEmpty(pc)) {
     mReader.buildDPLOutputs(pc);
     mReader.reset();
     return;

@@ -25,15 +25,12 @@ o2::framework::DataProcessorSpec getFV0ChannelTimeCalibrationSpec()
 {
   using CalibrationDeviceType = o2::fit::FITCalibrationDevice<o2::fv0::FV0CalibrationInfoObject,
                                                               o2::fv0::FV0ChannelTimeOffsetSlotContainer, o2::fv0::FV0ChannelTimeCalibrationObject>;
-
-  std::vector<o2::framework::OutputSpec> outputs;
-  outputs.emplace_back(o2::framework::ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "FIT_CALIB"}, o2::framework::Lifetime::Sporadic);
-  outputs.emplace_back(o2::framework::ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "FIT_CALIB"}, o2::framework::Lifetime::Sporadic);
-
-  constexpr const char* DEFAULT_INPUT_LABEL = "calib";
-
   std::vector<o2::framework::InputSpec> inputs;
-  inputs.emplace_back(DEFAULT_INPUT_LABEL, "FV0", "CALIB_INFO");
+  std::vector<o2::framework::OutputSpec> outputs;
+  const o2::header::DataDescription inputDataDescriptor{"CALIB_INFO"};
+  const o2::header::DataDescription outputDataDescriptor{"FV0_TIME_CALIB"};
+  CalibrationDeviceType::prepareVecInputSpec(inputs, o2::header::gDataOriginFV0, inputDataDescriptor);
+  CalibrationDeviceType::prepareVecOutputSpec(outputs, outputDataDescriptor);
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
                                                                 true,                           // GRPECS=true
                                                                 false,                          // GRPLHCIF
@@ -45,11 +42,12 @@ o2::framework::DataProcessorSpec getFV0ChannelTimeCalibrationSpec()
     "calib-fv0-channel-time",
     inputs,
     outputs,
-    o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<CalibrationDeviceType>(DEFAULT_INPUT_LABEL, ccdbRequest)},
+    o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<CalibrationDeviceType>(ccdbRequest, outputDataDescriptor)},
     o2::framework::Options{
       {"tf-per-slot", o2::framework::VariantType::UInt32, 5u, {""}},
       {"max-delay", o2::framework::VariantType::UInt32, 3u, {""}},
-      {"updateInterval", o2::framework::VariantType::UInt32, 10u, {""}}}};
+      {"updateInterval", o2::framework::VariantType::UInt32, 10u, {""}},
+      {"extra-info-per-slot", o2::framework::VariantType::String, "", {"Extra info for time slot(usually for debugging)"}}}};
 }
 } // namespace o2::fv0
 

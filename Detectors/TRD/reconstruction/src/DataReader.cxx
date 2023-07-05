@@ -41,8 +41,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"fixforoldtrigger", VariantType::Bool, false, {"Fix for the old data not having a 2 stage trigger stored in the cru header."}},
     {"onlycalibrationtrigger", VariantType::Bool, false, {"Only permit calibration triggers, used for debugging traclets and their digits, maybe other uses."}},
     {"tracklethcheader", VariantType::Int, 2, {"Status of TrackletHalfChamberHeader 0 off always, 1 iff tracklet data, 2 on always"}},
-    {"generate-stats", VariantType::Bool, true, {"Generate the state message sent to qc"}},
-    {"enablebyteswapdata", VariantType::Bool, false, {"byteswap the incoming data, raw data needs it and simulation does not."}},
+    {"disable-stats", VariantType::Bool, false, {"Do not generate stat messages for qc"}},
+    {"disable-root-output", VariantType::Bool, false, {"Do not write the digits and tracklets to file"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   std::swap(workflowOptions, options);
 }
@@ -70,9 +70,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   std::bitset<16> binaryoptions;
   binaryoptions[o2::trd::TRDVerboseBit] = cfgc.options().get<bool>("verbose");
   binaryoptions[o2::trd::TRDVerboseErrorsBit] = cfgc.options().get<bool>("verboseerrors");
-  binaryoptions[o2::trd::TRDByteSwapBit] = cfgc.options().get<bool>("enablebyteswapdata");
   binaryoptions[o2::trd::TRDIgnore2StageTrigger] = cfgc.options().get<bool>("fixforoldtrigger");
-  binaryoptions[o2::trd::TRDGenerateStats] = cfgc.options().get<bool>("generate-stats");
+  binaryoptions[o2::trd::TRDGenerateStats] = !cfgc.options().get<bool>("disable-stats");
   binaryoptions[o2::trd::TRDOnlyCalibrationTriggerBit] = cfgc.options().get<bool>("onlycalibrationtrigger");
   AlgorithmSpec algoSpec;
   algoSpec = AlgorithmSpec{adaptFromTask<o2::trd::DataReaderTask>(tracklethcheader, halfchamberwords, halfchambermajor, binaryoptions)};
@@ -95,7 +94,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     outputs,
     algoSpec,
     Options{{"log-max-errors", VariantType::Int, 20, {"maximum number of errors to log"}},
-            {"log-max-warnings", VariantType::Int, 20, {"maximum number of warnings to log"}}}});
+            {"log-max-warnings", VariantType::Int, 20, {"maximum number of warnings to log"}},
+            {"every-nth-tf", VariantType::Int, 1, {"process only every n-th TF"}}}});
+
+  if (!cfgc.options().get<bool>("disable-root-output")) {
+    workflow.emplace_back(o2::trd::getTRDDigitWriterSpec(false, false));
+    workflow.emplace_back(o2::trd::getTRDTrackletWriterSpec(false));
+  }
 
   return workflow;
 }

@@ -230,7 +230,7 @@ GPUdi() int Spline1DContainer<DataT>::getLeftKnotIndexForU(DataT u) const
 {
   /// Get i: u is in [knot_i, knot_{i+1}) segment
   /// when u is otside of [0, mUmax], return a corresponding edge segment
-  int iu = (int)u;
+  int iu = u < 0 ? 0 : (u > (float)mUmax ? mUmax : (int)u);
   if (SafeT == SafetyLevel::kSafe) {
     iu = (iu < 0) ? 0 : (iu > mUmax ? mUmax : iu);
   }

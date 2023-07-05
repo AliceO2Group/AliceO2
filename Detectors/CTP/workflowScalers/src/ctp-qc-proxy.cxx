@@ -45,25 +45,19 @@ using DetID = o2::detectors::DetID;
 InjectorFunction dcs2dpl()
 // InjectorFunction dcs2dpl()
 {
-  auto timesliceId = std::make_shared<size_t>(0);
-  return [timesliceId](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever) {
-    // make sure just 2 messages received
-    if (parts.Size() != 2) {
-      LOG(error) << "received " << parts.Size() << " instead of 2 expected";
-      return;
-    }
+  return [](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId, bool&) {
     std::string messageHeader{static_cast<const char*>(parts.At(0)->GetData()), parts.At(0)->GetSize()};
     size_t dataSize = parts.At(1)->GetSize();
     std::string messageData{static_cast<const char*>(parts.At(1)->GetData()), parts.At(1)->GetSize()};
-    LOG(info) << "received message " << messageHeader << " of size " << dataSize; // << " Payload:" << messageData;
+    LOG(info) << "received message " << messageHeader << " of size " << dataSize << "#parts:" << parts.Size(); // << " Payload:" << messageData;
     o2::header::DataHeader hdrF("CTP_COUNTERS", o2::header::gDataOriginCTP, 0);
     OutputSpec outsp{hdrF.dataOrigin, hdrF.dataDescription, hdrF.subSpecification};
-    auto channel = channelRetriever(outsp, *timesliceId);
+    auto channel = channelRetriever(outsp, newTimesliceId);
     if (channel.empty()) {
       LOG(error) << "No output channel found for OutputSpec " << outsp;
       return;
     }
-    hdrF.tfCounter = *timesliceId; // this also
+    hdrF.tfCounter = newTimesliceId; // this also
     hdrF.payloadSerializationMethod = o2::header::gSerializationMethodNone;
     hdrF.splitPayloadParts = 1;
     hdrF.splitPayloadIndex = 0;
@@ -72,7 +66,7 @@ InjectorFunction dcs2dpl()
 
     auto fmqFactory = device.GetChannel(channel).Transport();
 
-    o2::header::Stack headerStackF{hdrF, DataProcessingHeader{*timesliceId, 1}};
+    o2::header::Stack headerStackF{hdrF, DataProcessingHeader{newTimesliceId, 1}};
     auto hdMessageF = fmqFactory->CreateMessage(headerStackF.size(), fair::mq::Alignment{64});
     auto plMessageF = fmqFactory->CreateMessage(hdrF.payloadSize, fair::mq::Alignment{64});
     memcpy(hdMessageF->GetData(), headerStackF.data(), headerStackF.size());
@@ -93,7 +87,7 @@ InjectorFunction dcs2dpl()
     fair::mq::Parts outParts;
     outParts.AddPart(std::move(hdMessageF));
     outParts.AddPart(std::move(plMessageF));
-    sendOnChannel(device, outParts, channel, *timesliceId);
+    sendOnChannel(device, outParts, channel, newTimesliceId);
     LOG(info) << "Sent CTP counters DPL message" << std::flush;
   };
 }

@@ -18,12 +18,15 @@ o2_add_library(GlobalTrackingWorkflow
                        src/PrimaryVertexWriterSpec.cxx
                        src/VertexTrackMatcherSpec.cxx
                        src/SecondaryVertexingSpec.cxx
+                       src/StrangenessTrackingSpec.cxx
                        src/GlobalFwdMatchingSpec.cxx
                        src/SecondaryVertexWriterSpec.cxx
+                       src/StrangenessTrackingWriterSpec.cxx
                        src/CosmicsMatchingSpec.cxx
                        src/TrackCosmicsWriterSpec.cxx
                        src/TOFMatcherSpec.cxx
                        src/TOFMatchChecker.cxx
+                       src/HMPMatcherSpec.cxx
                        src/TOFEventTimeChecker.cxx
                        src/GlobalFwdTrackWriterSpec.cxx
                        src/GlobalFwdMatchingAssessmentSpec.cxx
@@ -36,12 +39,13 @@ o2_add_library(GlobalTrackingWorkflow
                                      O2::ITSWorkflow
                                      O2::MFTTracking
                                      O2::MFTWorkflow
+                                     O2::HMPIDWorkflow
                                      O2::TPCWorkflow
                                      O2::FT0Workflow
                                      O2::ITSMFTWorkflow
-                                     O2::MCHWorkflow
                                      O2::SimulationDataFormat
-                                     O2::DetectorsVertexing)
+                                     O2::DetectorsVertexing
+                                     O2::StrangenessTracking)
 
 o2_add_executable(match-workflow
                   COMPONENT_NAME tpcits
@@ -73,6 +77,10 @@ o2_add_executable(vertexing-workflow
                   SOURCES src/secondary-vertexing-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow  O2::TOFWorkflowIO)
 
+o2_add_executable(strangeness-tracking-workflow
+                  SOURCES src/strangeness-tracking-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow)
+
 o2_add_executable(matcher-workflow
                   COMPONENT_NAME tof
                   SOURCES src/tof-matcher-workflow.cxx
@@ -85,6 +93,11 @@ o2_add_executable(match-eventtime-workflow
                   COMPONENT_NAME tof
                   SOURCES src/tof-eventtime-checker-workflow.cxx
                   PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow O2::TOFWorkflowIO)
+
+o2_add_executable(matcher-workflow
+                  COMPONENT_NAME hmpid
+                  SOURCES src/hmp-matcher-workflow.cxx
+                  PUBLIC_LINK_LIBRARIES O2::GlobalTrackingWorkflow O2::HMPIDWorkflow)
 
 o2_add_executable(matcher-workflow
                   COMPONENT_NAME globalfwd
@@ -107,3 +120,5 @@ add_subdirectory(helpers)
 add_subdirectory(readers)
 add_subdirectory(writers)
 add_subdirectory(qc)
+
+add_subdirectory(study)

@@ -39,7 +39,7 @@ void PHOSL1phaseCalibDevice::run(o2::framework::ProcessingContext& pc)
   auto tfcounter = o2::header::get<o2::header::DataHeader*>(pc.inputs().get("cells").header)->tfCounter;
   auto cells = pc.inputs().get<gsl::span<Cell>>("cells");
   auto cellTR = pc.inputs().get<gsl::span<TriggerRecord>>("cellTR");
-  LOG(info) << "Processing TF with " << cells.size() << " cells and " << cellTR.size() << " TrigRecords";
+  LOG(detail) << "Processing TF with " << cells.size() << " cells and " << cellTR.size() << " TrigRecords";
   mCalibrator->process(tfcounter, cells, cellTR);
 }
 
@@ -65,6 +65,9 @@ void PHOSL1phaseCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
 
   ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "PHOS_L1phase", 0}, *image.get());
   ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "PHOS_L1phase", 0}, info);
+  // Send summary to QC
+  LOG(info) << "Sending histos to QC ";
+  ec.outputs().snapshot(o2::framework::Output{"PHS", "L1PHASEHISTO", 0, o2::framework::Lifetime::Sporadic}, mCalibrator->getQcHistos());
 }
 
 o2::framework::DataProcessorSpec o2::phos::getPHOSL1phaseCalibDeviceSpec()
@@ -73,6 +76,7 @@ o2::framework::DataProcessorSpec o2::phos::getPHOSL1phaseCalibDeviceSpec()
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::calibration::Utils::gDataOriginCDBPayload, "PHOS_L1phase", 0, Lifetime::Sporadic);
   outputs.emplace_back(o2::calibration::Utils::gDataOriginCDBWrapper, "PHOS_L1phase", 0, Lifetime::Sporadic);
+  outputs.emplace_back(o2::header::gDataOriginPHS, "L1PHASEHISTO", 0, o2::framework::Lifetime::Sporadic);
 
   std::vector<InputSpec> inputs;
   inputs.emplace_back("cells", "PHS", "CELLS");

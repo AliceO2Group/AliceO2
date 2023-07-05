@@ -63,7 +63,7 @@ struct GPUParam_t {
   GPUParamSlice SliceParam[GPUCA_NSLICES];
 
  protected:
-  float ParamRMS0[2][3][4];  // cluster shape parameterization coeficients
+  float ParamErrorsSeeding0[2][3][4]; // cluster shape parameterization coeficients
   float ParamS0Par[2][3][6]; // cluster error parameterization coeficients
 };
 } // namespace internal
@@ -90,8 +90,8 @@ struct GPUParam : public internal::GPUParam_t<GPUSettingsRec, GPUSettingsParam> 
     }
     return 0.174533f + par.dAlpha * iSlice;
   }
-  GPUd() float GetClusterRMS(int yz, int type, float z, float angle2) const;
-  GPUd() void GetClusterRMS2(int row, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const;
+  GPUd() float GetClusterErrorSeeding(int yz, int type, float z, float angle2) const;
+  GPUd() void GetClusterErrorsSeeding2(int row, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const;
 
   GPUd() float GetClusterError2(int yz, int type, float z, float angle2) const;
   GPUd() void GetClusterErrors2(int row, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const;

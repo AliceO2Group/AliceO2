@@ -35,13 +35,15 @@ class DataSourceOnline : public DataSource
   static std::vector<std::string> sourceFilextensions;
   FileWatcher mFileWatcher;
   int mRunNumber;
+  o2::parameters::GRPECS::RunType mRunType;
   int mFirstTForbit;
   int mTrackMask;
   int mClusterMask;
   std::string mCollisionTime;
+  std::string mFileTime;
 
  public:
-  DataSourceOnline(const std::string path);
+  DataSourceOnline(const std::vector<std::string>& path);
 
   ~DataSourceOnline() override = default;
   DataSourceOnline(DataSourceOnline const&) = delete;
@@ -57,16 +59,20 @@ class DataSourceOnline : public DataSource
 
   std::vector<std::pair<VisualisationEvent, EVisualisationGroup>> getVisualisationList(int no, float minTime, float maxTime, float range) override;
   void rollToNext() override { mFileWatcher.rollToNext(); };
-  void changeDataFolder(std::string newFolder) override { mFileWatcher.changeFolder(newFolder); };
+  void changeDataFolder(const std::vector<std::string>& newFolders) override { mFileWatcher.changeFolder(newFolders); };
   void saveCurrentEvent(std::string targetFolder) override { mFileWatcher.saveCurrentFileToFolder(targetFolder); };
   int getRunNumber() const override { return this->mRunNumber; }
   void setRunNumber(int runNumber) override { this->mRunNumber = runNumber; }
+  parameters::GRPECS::RunType getRunType() override { return mRunType; }
+  void setRunType(parameters::GRPECS::RunType runType) override { this->mRunType = runType; }
   std::string getEventName() override { return mFileWatcher.currentItem(); };
   std::string getEventAbsoluteFilePath() override { return mFileWatcher.currentFilePath(); };
   int getFirstTForbit() const override { return this->mFirstTForbit; }
   void setFirstTForbit(int firstTForbit) override { this->mFirstTForbit = firstTForbit; }
   std::string getCollisionTime() const override { return this->mCollisionTime; }
   void setCollisionTime(std::string collisionTime) override { this->mCollisionTime = collisionTime; }
+  std::string getFileTime() const override { return this->mFileTime; }
+  void setFileTime(std::string fileTime) override { this->mFileTime = fileTime; }
   int getTrackMask() const override { return this->mTrackMask; }
   void setTrackMask(int trackMask) override { this->mTrackMask = trackMask; }
   int getClusterMask() const override { return this->mClusterMask; }

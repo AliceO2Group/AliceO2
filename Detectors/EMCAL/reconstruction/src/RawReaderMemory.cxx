@@ -33,14 +33,10 @@ void RawReaderMemory::setRawMemory(const gsl::span<const char> rawmemory)
 o2::header::RDHAny RawReaderMemory::decodeRawHeader(const void* payloadwords)
 {
   auto headerversion = RDHDecoder::getVersion(payloadwords);
-  if (headerversion == 4) {
-    return o2::header::RDHAny(*reinterpret_cast<const o2::header::RAWDataHeaderV4*>(payloadwords));
-  } else if (headerversion == 5) {
-    return o2::header::RDHAny(*reinterpret_cast<const o2::header::RAWDataHeaderV5*>(payloadwords));
-  } else if (headerversion == 6) {
-    return o2::header::RDHAny(*reinterpret_cast<const o2::header::RAWDataHeaderV6*>(payloadwords));
+  if (headerversion < RDHDecoder::getVersion<o2::header::RDHLowest>() || headerversion > RDHDecoder::getVersion<o2::header::RDHHighest>()) {
+    throw RawDecodingError(RawDecodingError::ErrorType_t::HEADER_DECODING, mCurrentFEE);
   }
-  throw RawDecodingError(RawDecodingError::ErrorType_t::HEADER_DECODING, mCurrentFEE);
+  return {*reinterpret_cast<const o2::header::RDHAny*>(payloadwords)};
 }
 
 void RawReaderMemory::init()

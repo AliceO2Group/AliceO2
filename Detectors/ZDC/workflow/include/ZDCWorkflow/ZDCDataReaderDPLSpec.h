@@ -15,7 +15,6 @@
 #define O2_ZDCDATAREADERDPLSPEC_H
 
 #include "CommonUtils/NameConf.h"
-#include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
@@ -48,19 +47,20 @@ class ZDCDataReaderDPLSpec : public Task
 {
  public:
   ZDCDataReaderDPLSpec() = default;
-  ZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const bool verifyTrigger);
+  ZDCDataReaderDPLSpec(const RawReaderZDC& rawReader);
   ~ZDCDataReaderDPLSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
+  void updateTimeDependentParams(ProcessingContext& pc);
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
-  std::string mccdbHost = o2::base::NameConf::getCCDBServer();
-  bool mVerifyTrigger = true;
   int mVerbosity = 0;
+  bool mInitialized = false;
   RawReaderZDC mRawReader;
 };
 
-framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const bool verifyTrigger, const bool askSTFDist);
+framework::DataProcessorSpec getZDCDataReaderDPLSpec(const RawReaderZDC& rawReader, const bool askSTFDist);
 
 } // namespace zdc
 } // namespace o2

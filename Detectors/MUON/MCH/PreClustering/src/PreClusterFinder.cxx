@@ -19,6 +19,7 @@
 #include <fairmq/Tools.h>
 #include <fairlogger/Logger.h>
 
+#include "MCHBase/Error.h"
 #include "PreClusterFinderMapping.h"
 
 namespace o2::mch
@@ -65,13 +66,9 @@ void PreClusterFinder::init()
 void PreClusterFinder::deinit()
 {
   /// clear the internal structure
-  auto print = [](uint32_t /*errorType*/, uint32_t deId, uint32_t padid,
-                  uint64_t count) {
-    LOGP(warning, "multiple digits on the same pad (DE {} pad {}): seen {} time{}", deId, padid, count, count > 1 ? "s" : "");
-  };
-  mErrorMap.forEach(print);
   reset();
   mDEIndices.clear();
+  mErrorMap.clear();
 }
 
 //_________________________________________________________________________________________________
@@ -141,7 +138,7 @@ void PreClusterFinder::loadDigit(const Digit& digit)
 
   // check that the pad is not already fired
   if (de.mapping->pads[iPad].useMe) {
-    mErrorMap.add(kMultipleDigitInSamePad, digit.getDetID(), iPad);
+    mErrorMap.add(ErrorType::PreClustering_MultipleDigitsInSamePad, digit.getDetID(), iPad);
     return;
   }
 
@@ -541,4 +538,4 @@ void PreClusterFinder::createMapping()
   LOG(info) << "create mapping in: " << std::chrono::duration<double, std::milli>(tEnd - tStart).count() << " ms";
 }
 
-} // namespace o2
+} // namespace o2::mch

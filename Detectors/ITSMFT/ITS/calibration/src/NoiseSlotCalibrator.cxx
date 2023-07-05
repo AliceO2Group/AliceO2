@@ -29,7 +29,7 @@ bool NoiseSlotCalibrator::processTimeFrame(gsl::span<const o2::itsmft::CompClust
                                            gsl::span<const o2::itsmft::ROFRecord> const& rofs)
 {
   calibration::TFType nTF = rofs[0].getBCData().orbit / 256;
-  LOG(info) << "Processing TF# " << nTF;
+  LOG(detail) << "Processing TF# " << nTF;
 
   auto& slotTF = getSlotForTF(nTF);
   auto& noiseMap = *(slotTF.getContainer());
@@ -108,7 +108,7 @@ bool NoiseSlotCalibrator::processTimeFrame(gsl::span<const o2::itsmft::CompClust
 bool NoiseSlotCalibrator::process(const gsl::span<const o2::itsmft::CompClusterExt> data)
 {
   LOG(warning) << "Only 1-pix noise calibraton is possible !";
-  return calibration::TimeSlotCalibration<o2::itsmft::CompClusterExt, o2::itsmft::NoiseMap>::process(data);
+  return calibration::TimeSlotCalibration<o2::itsmft::NoiseMap>::process(data);
 }
 
 // Functions required by the calibration framework

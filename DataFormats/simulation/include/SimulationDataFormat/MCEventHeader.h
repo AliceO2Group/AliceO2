@@ -93,7 +93,7 @@ class MCEventHeader : public FairMCEventHeader
   std::string mEmbeddingFileName;
   Int_t mEmbeddingEventIndex = 0;
 
-  // store a view global properties that this event
+  // store a few global properties that this event
   // had in the current simulation (which can be used quick filtering/searching)
   MCEventStats mEventStats{};
   o2::utils::RootSerializableKeyValueStore mEventInfo;

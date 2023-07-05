@@ -18,7 +18,7 @@
 /Common/Constants    @shahor02
 /Common/Field        @shahor02
 /Common/MathUtils    @shahor02
-/Common/SimConfig    @sawenzel
+/Common/SimConfig    @sawenzel @benedikt-voelkel
 #/Common/Topologies
 #/Common/Types
 /Common/Utils        @sawenzel
@@ -30,17 +30,19 @@
 /DataFormats/Detectors/CTP                     @lietava
 /DataFormats/Detectors/EMCAL                   @mfasDa @jokonig
 /DataFormats/Detectors/FIT                     @jotwinow @afurs @andreasmolander @arvindkhuntia @mslupeck
+/DataFormats/Detectors/FOCAL                   @maxrauch @mfasDa
 /DataFormats/Detectors/GlobalTracking          @shahor02
 /DataFormats/Detectors/GlobalTrackingWorkflow  @shahor02
 /DataFormats/Detectors/HMPID                   @gvolpe79
-/DataFormats/Detectors/ITSMFT                  @iouribelikov @bovulpes @rpezzi
+/DataFormats/Detectors/ITSMFT                  @iouribelikov @robincaron13 @mconcas @shahor02
 /DataFormats/Detectors/MUON                    @AliceO2Group/muon-experts
 /DataFormats/Detectors/PHOS                    @peressounko @kharlov
-/DataFormats/Detectors/Passive                 @sawenzel
+/DataFormats/Detectors/Passive                 @sawenzel @benedikt-voelkel
 /DataFormats/Detectors/TOF                     @noferini
 /DataFormats/Detectors/TPC                     @davidrohr @wiechula @shahor02
-/DataFormats/Detectors/TRD                     @f3sch @bazinski @tdietel @martenole
+/DataFormats/Detectors/TRD                     @f3sch @bazinski @tdietel @martenole @pachmay
 /DataFormats/Detectors/Upgrades                @qgp @marcovanleeuwen @mconcas
+/DataFormats/Detectors/Upgrades/ITS3           @fgrosa @arossi81
 /DataFormats/Detectors/ZDC                     @coppedis
 
 #/DataFormats/Headers
@@ -51,28 +53,31 @@
 /DataFormats/Reconstruction    @shahor02
 #/DataFormats/TimeFrame
 /DataFormats/common            @shahor02
-/DataFormats/simulation        @sawenzel
+/DataFormats/simulation        @sawenzel @benedikt-voelkel
 
-/Detectors/Base                    @sawenzel @shahor02
+/Detectors/Base                    @sawenzel @shahor02 @benedikt-voelkel
 /Detectors/Calibration             @chiarazampolli @shahor02
 /Detectors/CPV                     @peressounko @kharlov
 /Detectors/EMCAL                   @mfasDa @jokonig
 /Detectors/FIT                     @jotwinow @afurs @andreasmolander @arvindkhuntia @mslupeck
-/Detectors/Geometry                @sawenzel @shahor02
+/Detectors/FOCAL                   @maxrauch @mfasDa
+/Detectors/Geometry                @sawenzel @shahor02 @benedikt-voelkel
 /Detectors/GlobalTracking          @shahor02
 /Detectors/GlobalTrackingWorkflow  @shahor02
 /Detectors/HMPID                   @gvolpe79
-/Detectors/ITSMFT                  @iouribelikov @bovulpes @rpezzi @mconcas
+/Detectors/ITSMFT                  @iouribelikov @robincaron13 @mconcas @shahor02
 /Detectors/MUON                    @AliceO2Group/muon-experts
 /Detectors/PHOS                    @peressounko @kharlov
-/Detectors/Passive                 @sawenzel
+/Detectors/Passive                 @sawenzel @benedikt-voelkel
 /Detectors/TOF                     @noferini
 /Detectors/TPC                     @davidrohr @wiechula @shahor02
-/Detectors/TRD                     @f3sch @bazinski @tdietel @martenole
-/Detectors/Upgrades                @qgp @marcovanleeuwen @mconcas
+/Detectors/TRD                     @f3sch @bazinski @tdietel @martenole @pachmay
+/Detectors/Upgrades                @qgp @mconcas
+/Detectors/Upgrades/ITS3           @fgrosa @arossi81 @mconcas
 /Detectors/ZDC                     @coppedis
 /Detectors/CTF                     @shahor02
 /Detectors/Raw                     @shahor02
+/Detectors/StrangenessTracking     @mconcas @mpuccio @fmazzasc
 
 /EventVisualisation  @jmyrcha
 #/EventVisualisation/Base
@@ -109,9 +114,9 @@
 /GPU/TPCFastTransformation    @davidrohr @sgorbuno
 /GPU/TPCSpaceChargeBase       @davidrohr @ehellbar
 
-/Generators  @sawenzel
+/Generators  @sawenzel @benedikt-voelkel
 
-/Steer @sawenzel @shahor02
+/Steer @sawenzel @shahor02 @benedikt-voelkel
 
 /Testing
 

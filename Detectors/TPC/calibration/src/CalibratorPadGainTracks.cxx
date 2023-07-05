@@ -44,6 +44,7 @@ void CalibratorPadGainTracks::finalizeSlot(Slot& slot)
 
   auto& calibPadGainTracks = *slot.getContainer();
   calibPadGainTracks.setNormalizationType(mNormType);
+  calibPadGainTracks.setLogTransformQ(mLogTransformQ);
   calibPadGainTracks.finalize(mMinEntriesMean, mMinRelgain, mMaxRelgain, mLowTruncation, mUpTruncation);
   mIntervals.emplace_back(startTF, endTF);
   mTimeIntervals.emplace_back(slot.getStartTimeMS(), slot.getEndTimeMS());
@@ -57,7 +58,16 @@ void CalibratorPadGainTracks::finalizeSlot(Slot& slot)
     }
   }
 
-  std::unordered_map<std::string, CalPad> cal({{"GainMap", extractedGainMap}, {"SigmaMap", calibPadGainTracks.getSigmaMap()}});
+  std::unordered_map<std::string, CalPad> cal({{"GainMap", extractedGainMap}});
+
+  if (mStoreNClCCDB) {
+    cal["NClusters"] = calibPadGainTracks.getNTracksMap();
+  }
+
+  if (mStoreRMSCCDB) {
+    cal["SigmaMap"] = calibPadGainTracks.getSigmaMap();
+  }
+
   mCalibs.emplace_back(cal);
 
   if (mUseLastExtractedMapAsReference) {

@@ -41,17 +41,20 @@ template <typename T>
 class ROframe
 {
  public:
-  ROframe(const Int_t ROframeId) : mROframeId{ROframeId} {}
-  Int_t getROFrameId() const { return mROframeId; }
+  void Reserve(int nClusters = 0, float fraction = 0.12f)
+  {
+    auto layer = constants::mft::LayersNumber;
+    while (layer--) {
+      mClusters[layer].reserve(nClusters * fraction);
+      mClusterExternalIndices[layer].reserve(nClusters * fraction);
+    }
+    mTracks.reserve(nClusters * fraction);
+  }
   Int_t getTotalClusters() const;
-
-  void setROFrameId(const Int_t rofid) { mROframeId = rofid; }
 
   std::vector<Cluster>& getClustersInLayer(Int_t layerId) { return mClusters[layerId]; }
 
   const MCCompLabel& getClusterLabels(Int_t layerId, const Int_t clusterId) const { return mClusterLabels[layerId][clusterId]; }
-
-  const std::array<std::pair<Int_t, Int_t>, constants::index_table::MaxRPhiBins>& getClusterBinIndexRange(Int_t layerId) const { return mClusterBinIndexRange[layerId]; }
 
   const Int_t getClusterExternalIndex(Int_t layerId, const Int_t clusterId) const { return mClusterExternalIndices[layerId][clusterId]; }
 
@@ -75,8 +78,6 @@ class ROframe
 
   void addRoad() { mRoads.emplace_back(); }
 
-  void initialize(bool fullClusterScan = false);
-
   void sortClusters();
 
   void clear()
@@ -86,9 +87,6 @@ class ROframe
       mClusters[iLayer].clear();
       mClusterLabels[iLayer].clear();
       mClusterExternalIndices[iLayer].clear();
-      for (Int_t iBin = 0; iBin < constants::index_table::MaxRPhiBins; ++iBin) {
-        mClusterBinIndexRange[iLayer][iBin] = std::pair<Int_t, Int_t>(0, -1);
-      }
     }
     mTracks.clear();
     mRoads.clear();
@@ -97,11 +95,9 @@ class ROframe
   const Int_t getNClustersInLayer(Int_t layerId) const { return mClusters[layerId].size(); }
 
  private:
-  Int_t mROframeId;
   std::array<std::vector<Cluster>, constants::mft::LayersNumber> mClusters;
   std::array<std::vector<MCCompLabel>, constants::mft::LayersNumber> mClusterLabels;
   std::array<std::vector<Int_t>, constants::mft::LayersNumber> mClusterExternalIndices;
-  std::array<std::array<std::pair<Int_t, Int_t>, constants::index_table::MaxRPhiBins>, constants::mft::LayersNumber> mClusterBinIndexRange;
   std::vector<T> mTracks;
   std::vector<Road> mRoads;
 };

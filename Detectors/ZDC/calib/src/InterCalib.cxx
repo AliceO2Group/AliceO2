@@ -39,8 +39,11 @@ int InterCalib::init()
   }
 
   // Inspect calibration parameters
-  o2::zdc::CalibParamZDC& opt = const_cast<o2::zdc::CalibParamZDC&>(CalibParamZDC::Instance());
+  const auto& opt = CalibParamZDC::Instance();
   opt.print();
+  if (opt.debugOutput == true) {
+    setSaveDebugHistos();
+  }
 
   clear();
   auto* cfg = mInterCalibConfig;
@@ -123,6 +126,10 @@ int InterCalib::endOfRun()
   if (mVerbosity > DbgZero) {
     LOGF(info, "Computing intercalibration coefficients");
   }
+  if (mSaveDebugHistos) {
+    saveDebugHistos();
+  }
+
   for (int ih = 0; ih < NH; ih++) {
     LOGF(info, "%s %g events and cuts (%g:%g)", InterCalibData::DN[ih], mData.mSum[ih][5][5], mInterCalibConfig->cutLow[ih], mInterCalibConfig->cutHigh[ih]);
     if (!mInterCalibConfig->enabled[ih]) {
@@ -467,7 +474,7 @@ int InterCalib::mini(int ih)
   return ierflg;
 }
 
-int InterCalib::write(const std::string fn)
+int InterCalib::saveDebugHistos(const std::string fn)
 {
   TDirectory* cwd = gDirectory;
   TFile* f = new TFile(fn.data(), "recreate");

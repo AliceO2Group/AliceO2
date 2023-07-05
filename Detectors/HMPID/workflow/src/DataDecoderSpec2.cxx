@@ -140,7 +140,7 @@ void DataDecoderTask2::endOfStream(framework::EndOfStreamContext& ec)
       }
     }
     char summaryFileName[254];
-    sprintf(summaryFileName, "%s_stat.txt", mRootStatFile.c_str());
+    snprintf(summaryFileName, 254, "%s_stat.txt", mRootStatFile.c_str());
     mDeco->writeSummaryFile(summaryFileName);
     for (int e = 0; e < numEqui; e++) {
       avgEventSize = mDeco->getAverageEventSize(e);

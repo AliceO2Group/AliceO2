@@ -68,8 +68,9 @@ taskwrapper_cleanup_handler() {
   return 1 2>/dev/null || exit 1
 }
 
-# Function monitoring DPL output for signs of failure
+# Function monitoring (DPL) log output for signs of failure
 monitorlog() {
+    [[ ! "${JOBUTILS_PERFORM_MONITORING}" ]] && exit 0
     # We need to grep on multitude of things:
     # - all sorts of exceptions (may need to fine-tune)
     # - segmentation violation
@@ -86,7 +87,7 @@ monitorlog() {
              -e \"arrow.*Check failed\"                    \
              -e \"terminate called after\"                 \
              -e \"terminate called without an active\"     \
-             -e \"\[FATAL\]\"                              \
+             -e \"\]\[FATAL\]\"                            \
              -e \"TASK-EXIT-CODE\"                         \
              -e \"\*\*\* Error in\"" # <--- LIBC fatal error messages
 
@@ -169,7 +170,8 @@ taskwrapper() {
   # the command might be a complex block: For the timing measurement below
   # it is better to execute this as a script
   SCRIPTNAME="${logfile}_tmp.sh"
-  echo "export LIBC_FATAL_STDERR_=1" > ${SCRIPTNAME}        # <--- needed ... otherwise the LIBC fatal messages appear on a different tty
+  echo "#!/usr/bin/env bash" > ${SCRIPTNAME}
+  echo "export LIBC_FATAL_STDERR_=1" >> ${SCRIPTNAME}        # <--- needed ... otherwise the LIBC fatal messages appear on a different tty
   echo "${command};" >> ${SCRIPTNAME}
   echo 'RC=$?; echo "TASK-EXIT-CODE: ${RC}"; exit ${RC}' >> ${SCRIPTNAME}
   chmod +x ${SCRIPTNAME}

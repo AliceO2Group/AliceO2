@@ -40,6 +40,7 @@ class RawWriter : public Task
   std::string mOutFileName; // read from workflow
   std::string mOutDirName;  // read from workflow
   std::string mFileFor;     // output granularity
+  bool mOldFormat = false;  // encode with old format (zeros in word 2 and 3)
 };
 
 /// create a processor spec

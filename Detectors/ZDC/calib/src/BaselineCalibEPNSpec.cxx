@@ -34,8 +34,10 @@
 #include "CommonUtils/MemFileHelper.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
+#include "ZDCReconstruction/RecoParamZDC.h"
 #include "ZDCCalib/BaselineCalibData.h"
 #include "ZDCCalib/BaselineCalibEPNSpec.h"
+#include "ZDCCalib/CalibParamZDC.h"
 
 using namespace o2::framework;
 
@@ -60,6 +62,8 @@ void BaselineCalibEPNSpec::init(o2::framework::InitContext& ic)
 {
   mVerbosity = ic.options().get<int>("verbosity-level");
   mWorker.setVerbosity(mVerbosity);
+  const auto& opt = CalibParamZDC::Instance();
+  mModTF = opt.modTF;
 }
 
 void BaselineCalibEPNSpec::updateTimeDependentParams(ProcessingContext& pc)
@@ -72,7 +76,7 @@ void BaselineCalibEPNSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matc
 {
   if (matcher == ConcreteDataMatcher("ZDC", "MODULECONFIG", 0)) {
     auto* config = (const o2::zdc::ModuleConfig*)obj;
-    if (mVerbosity > DbgZero) {
+    if (mVerbosity >= DbgFull) {
       config->print();
     }
     mWorker.setModuleConfig(config);
@@ -81,6 +85,19 @@ void BaselineCalibEPNSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matc
 
 void BaselineCalibEPNSpec::run(ProcessingContext& pc)
 {
+  const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
+
+  if (tinfo.globalRunNumberChanged) { // new run is starting
+    LOG(info) << "Run number changed to " << tinfo.runNumber;
+    mRunStopRequested = false;
+    mInitialized = false;
+    mWorker.resetInitFlag();
+  }
+
+  if (mRunStopRequested) {
+    return;
+  }
+
   if (!mInitialized) {
     mInitialized = true;
     updateTimeDependentParams(pc);
@@ -89,25 +106,61 @@ void BaselineCalibEPNSpec::run(ProcessingContext& pc)
     mTimer.Start(false);
   }
 
-  auto creationTime = pc.services().get<o2::framework::TimingInfo>().creation; // approximate time in ms
-  mWorker.getData().setCreationTime(creationTime);
-
-  auto peds = pc.inputs().get<gsl::span<o2::zdc::OrbitData>>("peds");
-
   // Process reconstructed data
+  auto creationTime = pc.services().get<o2::framework::TimingInfo>().creation; // approximate time in ms
+  auto peds = pc.inputs().get<gsl::span<o2::zdc::OrbitData>>("peds");
   mWorker.process(peds);
+  mWorker.getData().mergeCreationTime(creationTime);
+  mProcessed++;
 
-  // Send intermediate calibration data
-  auto& summary = mWorker.mData.getSummary();
-  o2::framework::Output outputData("ZDC", "BASECALIBDATA", 0, Lifetime::Timeframe);
-  pc.outputs().snapshot(outputData, summary);
+  if (mProcessed >= mModTF || pc.transitionState() == TransitionHandlingState::Requested) {
+    if (mVerbosity >= DbgMedium) {
+      if (mModTF > 0 && mProcessed >= mModTF) {
+        LOG(info) << "Send intermediate calibration data mProcessed=" << mProcessed << " >= mModTF=" << mModTF;
+      }
+      if (pc.transitionState() == TransitionHandlingState::Requested) {
+        LOG(info) << "Send intermediate calibration data pc.transitionState()==TransitionHandlingState::Requested";
+      }
+    }
+    // Send intermediate calibration data
+    auto& summary = mWorker.mData.getSummary();
+    o2::framework::Output outputData("ZDC", "BASECALIBDATA", 0, Lifetime::Sporadic);
+    pc.outputs().snapshot(outputData, summary);
+    if (pc.transitionState() == TransitionHandlingState::Requested) {
+      // End of processing for this run
+      mWorker.endOfRun();
+      LOGF(info, "ZDC EPN Baseline pausing at total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+      mRunStopRequested = true;
+    } else {
+      // Prepare to process other time frames
+      mWorker.resetInitFlag();
+    }
+    mProcessed = 0;
+  }
 }
 
 void BaselineCalibEPNSpec::endOfStream(EndOfStreamContext& ec)
 {
-  mWorker.endOfRun();
+#ifdef O2_ZDC_DEBUG
+  LOG(info) << "BaselineCalibEPNSpec::endOfStream() mRunStopRequested=" << mRunStopRequested << " mProcessed=" << mProcessed;
+#endif
+  if (mRunStopRequested) {
+    return;
+  }
+  // This (unfortunately) is not received by aggregator
+  //   if(mProcessed>0){
+  //     if(mVerbosity>=DbgMedium){
+  //       LOG(info) << "Send calibration data at endOfStream() mProcessed=" << mProcessed;
+  //     }
+  //     auto& summary = mWorker.mData.getSummary();
+  //     o2::framework::Output outputData("ZDC", "BASECALIBDATA", 0, Lifetime::Sporadic);
+  //     printf("Sending last processed data mProcessed = %u\n", mProcessed);
+  //     ec.outputs().snapshot(outputData, summary);
+  //     mWorker.endOfRun();
+  //   }
   mTimer.Stop();
   LOGF(info, "ZDC EPN Baseline calibration total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+  mRunStopRequested = true;
 }
 
 framework::DataProcessorSpec getBaselineCalibEPNSpec()
@@ -118,7 +171,7 @@ framework::DataProcessorSpec getBaselineCalibEPNSpec()
   inputs.emplace_back("moduleconfig", "ZDC", "MODULECONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(o2::zdc::CCDBPathConfigModule.data()));
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("ZDC", "BASECALIBDATA", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ZDC", "BASECALIBDATA", 0, Lifetime::Sporadic);
   return DataProcessorSpec{
     "zdc-calib-baseline-epn",
     inputs,

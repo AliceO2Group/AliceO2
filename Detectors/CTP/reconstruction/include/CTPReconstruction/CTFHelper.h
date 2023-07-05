@@ -38,7 +38,7 @@ class CTFHelper
   CTFHeader createHeader(const LumiInfo& lumi)
   {
     CTFHeader h{o2::detectors::DetID::CTP, 0, 1, 0, // dummy timestamp, version 1.0
-                lumi.counts, lumi.nHBFCounted, lumi.orbit,
+                lumi.counts, lumi.countsFV0, lumi.nHBFCounted, lumi.orbit,
                 uint32_t(mData.size()), 0, 0};
     if (mData.size()) {
       h.firstOrbit = mData[0].intRecord.orbit;

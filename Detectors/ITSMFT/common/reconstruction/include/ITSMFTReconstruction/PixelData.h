@@ -88,8 +88,8 @@ class PixelData
   void sanityCheck() const;
   static constexpr int RowMask = 0x7FFF; ///< 32768 rows are supported
   static constexpr int MaskBit = 0x8000; ///< 16-th bit is used to flag masked pixel
-  uint16_t mRow = 0;                    ///< pixel row
-  uint16_t mCol = 0;                    ///< pixel column
+  uint16_t mRow = 0;                     ///< pixel row
+  uint16_t mCol = 0;                     ///< pixel column
 
   ClassDefNV(PixelData, 1);
 };
@@ -148,6 +148,8 @@ class ChipPixelData
     mFirstUnmasked = 0;
     mErrors = 0;
     mErrorInfo = 0;
+    mPixIds.clear();
+    mPixelsOrder.clear();
   }
 
   void swap(ChipPixelData& other)
@@ -241,6 +243,9 @@ class ChipPixelData
   }
 
   void print() const;
+  std::vector<uint32_t>& getPixIds() { return mPixIds; }
+  std::vector<int>& getPixelsOrder() { return mPixelsOrder; }
+  uint32_t getOrderedPixId(int pos) const { return mPixIds[mPixelsOrder[pos]]; }
 
  private:
   uint8_t mROFlags = 0;                            // readout flags from the chip trailer
@@ -253,11 +258,13 @@ class ChipPixelData
   uint64_t mErrorInfo = 0;                         // optional extra info on the error
   std::array<uint8_t, MAXDATAERRBYTES> mRawBuff{}; // buffer for raw data showing an error
   o2::InteractionRecord mInteractionRecord = {};   // interaction record
-  std::vector<PixelData> mPixels;                  // vector of pixeld
+  std::vector<PixelData> mPixels;                  // vector of pixels
+  std::vector<uint32_t> mPixIds;                   // vector of label indices in case of squashing+Monte Carlo
+  std::vector<int> mPixelsOrder;                   // vector to get ordered access to pixel ids
 
   ClassDefNV(ChipPixelData, 1);
 };
 } // namespace itsmft
 } // namespace o2
 
-#endif //ALICEO2_ITSMFT_PIXELDATA_H
+#endif // ALICEO2_ITSMFT_PIXELDATA_H

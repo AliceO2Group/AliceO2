@@ -71,6 +71,13 @@ void MIPTrackFilterDevice::init(framework::InitContext& ic)
     mProcessEveryNthTF = 1;
   }
 
+  if (mProcessEveryNthTF > 1) {
+    std::mt19937 rng(std::time(nullptr));
+    std::uniform_int_distribution<std::mt19937::result_type> dist(1, mProcessEveryNthTF);
+    mTFCounter = dist(rng);
+    LOGP(info, "Skipping first {} TFs", mProcessEveryNthTF - mTFCounter);
+  }
+
   mCuts.setPMin(minP);
   mCuts.setPMax(maxP);
   mCuts.setNClusMin(minClusters);
@@ -80,8 +87,8 @@ void MIPTrackFilterDevice::init(framework::InitContext& ic)
 
 void MIPTrackFilterDevice::run(ProcessingContext& pc)
 {
-  const auto currentTF = processing_helpers::getCurrentTF(pc);
   if (mTFCounter++ % mProcessEveryNthTF) {
+    const auto currentTF = processing_helpers::getCurrentTF(pc);
     LOGP(info, "Skipping TF {}", currentTF);
     return;
   }

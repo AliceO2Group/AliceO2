@@ -19,6 +19,7 @@
 #include "Framework/CompletionPolicy.h"
 #include "Framework/CompletionPolicyHelpers.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/InputSpec.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "SimReaderSpec.h"
 #include "DetectorsCommonDataFormats/DetID.h"
@@ -79,9 +80,9 @@
 #include "TRDWorkflow/TRDTrapSimulatorSpec.h"
 #include "TRDWorkflowIO/TRDTrackletWriterSpec.h"
 
-//for MUON MCH
+// for MUON MCH
 #include "MCHDigitizerSpec.h"
-#include "MCHDigitWriterSpec.h"
+#include "MCHIO/DigitWriterSpec.h"
 
 // for MID
 #include "MIDDigitizerSpec.h"
@@ -112,6 +113,7 @@
 #include <unistd.h> // for getppid
 #include <type_traits>
 #include "DetectorsBase/DPLWorkflowUtils.h"
+#include "Framework/CCDBParamSpec.h"
 
 using namespace o2::framework;
 
@@ -127,7 +129,7 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
   using o2::framework::CompletionPolicy;
   // we customize the completion policy for the writer since it should stream immediately
   policies.push_back(CompletionPolicyHelpers::defineByName("TPCDigitWriter", CompletionPolicy::CompletionOp::Consume));
-  policies.push_back(CompletionPolicyHelpers::defineByName("TPCDigitizer.*", CompletionPolicy::CompletionOp::Consume));
+  policies.push_back(CompletionPolicyHelpers::consumeWhenAnyWithAllConditions("TPCDigitizer.*"));
   policies.push_back(CompletionPolicyHelpers::defineByName("tpc-cluster-decoder.*", CompletionPolicy::CompletionOp::Consume));
   policies.push_back(CompletionPolicyHelpers::defineByName("tpc-clusterer.*", CompletionPolicy::CompletionOp::Consume));
 }
@@ -187,16 +189,22 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 
   // option to use/not use CCDB for TOF
   workflowOptions.push_back(ConfigParamSpec{"use-ccdb-tof", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}});
-  workflowOptions.push_back(ConfigParamSpec{"ccdb-tof-sa", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects via CCDBManager (standalone)"}});
+  workflowOptions.push_back(ConfigParamSpec{"ccdb-tof-sa", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects via CCDBManager (obsolete remap to use-ccdb-tof)"}});
 
   // option to use/not use CCDB for FT0
-  workflowOptions.push_back(ConfigParamSpec{"use-ccdb-ft0", o2::framework::VariantType::Bool, true, {"enable access to ccdb ft0 calibration objects"}});
+  workflowOptions.push_back(ConfigParamSpec{"use-ccdb-ft0", o2::framework::VariantType::Bool, false, {"enable access to ccdb ft0 calibration objects"}});
+
+  // option to use/not use CCDB for EMCAL
+  workflowOptions.push_back(ConfigParamSpec{"use-ccdb-emc", o2::framework::VariantType::Bool, false, {"enable access to ccdb EMCAL simulation objects"}});
 
   // option to use or not use the Trap Simulator after digitisation (debate of digitization or reconstruction is for others)
   workflowOptions.push_back(ConfigParamSpec{"disable-trd-trapsim", VariantType::Bool, false, {"disable the trap simulation of the TRD"}});
   workflowOptions.push_back(ConfigParamSpec{"trd-digit-downscaling", VariantType::Int, 1, {"only keep TRD digits for every n-th trigger"}});
 
   workflowOptions.push_back(ConfigParamSpec{"combine-devices", VariantType::Bool, false, {"combined multiple DPL worker/writer devices"}});
+
+  // to enable distribution of triggers
+  workflowOptions.push_back(ConfigParamSpec{"with-trigger", VariantType::Bool, false, {"enable distribution of CTP trigger digits"}});
 }
 
 void customize(std::vector<o2::framework::DispatchPolicy>& policies)
@@ -218,20 +226,20 @@ void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
     },
     [](o2::framework::CallbackService& service, o2::framework::InitContext& context) {
       // simple linear enumeration from already updated HBFUtils (set via config key values)
-      service.set(o2::framework::CallbackService::Id::NewTimeslice,
-                  [](o2::header::DataHeader& dh, o2::framework::DataProcessingHeader& dph) {
-                    const auto& hbfu = o2::raw::HBFUtils::Instance();
-                    const auto offset = int64_t(hbfu.getFirstIRofTF({0, hbfu.orbitFirstSampled}).orbit);
-                    const auto increment = int64_t(hbfu.nHBFPerTF);
-                    const auto startTime = hbfu.startTime;
-                    const auto orbitFirst = hbfu.orbitFirst;
-                    dh.firstTForbit = offset + increment * dh.tfCounter;
-                    LOG(info) << "Setting firstTForbit to " << dh.firstTForbit;
-                    dh.runNumber = hbfu.runNumber;
-                    LOG(info) << "Setting runNumber to " << dh.runNumber;
-                    dph.creation = startTime + (dh.firstTForbit - orbitFirst) * o2::constants::lhc::LHCOrbitMUS * 1.e-3;
-                    LOG(info) << "Setting timeframe creation time to " << dph.creation;
-                  });
+      service.set<o2::framework::CallbackService::Id::NewTimeslice>(
+        [](o2::header::DataHeader& dh, o2::framework::DataProcessingHeader& dph) {
+          const auto& hbfu = o2::raw::HBFUtils::Instance();
+          const auto offset = int64_t(hbfu.getFirstIRofTF({0, hbfu.orbitFirstSampled}).orbit);
+          const auto increment = int64_t(hbfu.nHBFPerTF);
+          const auto startTime = hbfu.startTime;
+          const auto orbitFirst = hbfu.orbitFirst;
+          dh.firstTForbit = offset + increment * dh.tfCounter;
+          LOG(info) << "Setting firstTForbit to " << dh.firstTForbit;
+          dh.runNumber = hbfu.runNumber;
+          LOG(info) << "Setting runNumber to " << dh.runNumber;
+          dph.creation = startTime + (dh.firstTForbit - orbitFirst) * o2::constants::lhc::LHCOrbitMUS * 1.e-3;
+          LOG(info) << "Setting timeframe creation time to " << dph.creation;
+        });
     }} // end of struct
   );
 }
@@ -469,7 +477,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     // this will only be needed until digitizers take CCDB objects via DPL mechanism
     o2::ccdb::BasicCCDBManager::instance().setTimestamp(hbfu.startTime);
     // activate caching
-    o2::ccdb::BasicCCDBManager::instance().setCaching(true);
+    o2::ccdb::BasicCCDBManager::instance().setCaching(false);
     // without this, caching does not seem to work
     o2::ccdb::BasicCCDBManager::instance().setLocalObjectValidityChecking(true);
   }
@@ -608,17 +616,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // the TOF part
   if (isEnabled(o2::detectors::DetID::TOF)) {
     auto useCCDB = configcontext.options().get<bool>("use-ccdb-tof");
-    auto CCDBsa = configcontext.options().get<bool>("ccdb-tof-sa");
+    useCCDB |= configcontext.options().get<bool>("ccdb-tof-sa");
     auto ccdb_url_tof = o2::base::NameConf::getCCDBServer();
     auto timestamp = o2::raw::HBFUtils::Instance().startTime / 1000;
     detList.emplace_back(o2::detectors::DetID::TOF);
     // connect the TOF digitization
     // printf("TOF Setting: use-ccdb = %d ---- ccdb url=%s  ----   timestamp=%ld\n", useCCDB, ccdb_url_tof.c_str(), timestamp);
 
-    if (CCDBsa) {
-      useCCDB = true;
-    }
-    digitizerSpecs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++, useCCDB, mctruth, ccdb_url_tof.c_str(), timestamp, CCDBsa));
+    digitizerSpecs.emplace_back(o2::tof::getTOFDigitizerSpec(fanoutsize++, useCCDB, mctruth, ccdb_url_tof.c_str(), timestamp));
     // add TOF digit writer
     writerSpecs.emplace_back(o2::tof::getTOFDigitWriterSpec(mctruth));
   }
@@ -629,7 +634,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     auto timestamp = o2::raw::HBFUtils::Instance().startTime;
     detList.emplace_back(o2::detectors::DetID::FT0);
     // connect the FT0 digitization
-    specs.emplace_back(o2::ft0::getFT0DigitizerSpec(fanoutsize++, mctruth, !useCCDB));
+    specs.emplace_back(o2::ft0::getFT0DigitizerSpec(fanoutsize++, mctruth, useCCDB));
     // connect the FIT digit writer
     writerSpecs.emplace_back(o2::ft0::getFT0DigitWriterSpec(mctruth));
   }
@@ -645,9 +650,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // the EMCal part
   if (isEnabled(o2::detectors::DetID::EMC)) {
+    auto useCCDB = configcontext.options().get<bool>("use-ccdb-emc");
     detList.emplace_back(o2::detectors::DetID::EMC);
     // connect the EMCal digitization
-    digitizerSpecs.emplace_back(o2::emcal::getEMCALDigitizerSpec(fanoutsize++, mctruth));
+    digitizerSpecs.emplace_back(o2::emcal::getEMCALDigitizerSpec(fanoutsize++, mctruth, useCCDB));
     // connect the EMCal digit writer
     writerSpecs.emplace_back(o2::emcal::getEMCALDigitWriterSpec(mctruth));
   }
@@ -690,12 +696,12 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     }
   }
 
-  //add MUON MCH
+  // add MUON MCH
   if (isEnabled(o2::detectors::DetID::MCH)) {
     detList.emplace_back(o2::detectors::DetID::MCH);
-    //connect the MUON MCH digitization
+    // connect the MUON MCH digitization
     digitizerSpecs.emplace_back(o2::mch::getMCHDigitizerSpec(fanoutsize++, mctruth));
-    //connect the MUON MCH digit writer
+    // connect the MUON MCH digit writer
     writerSpecs.emplace_back(o2::mch::getMCHDigitWriterSpec(mctruth));
   }
 
@@ -764,7 +770,29 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     }
   }
 
+  // For reasons of offering homegenous behaviour (consistent options to outside scripts),
+  // we require that at least one of the devices above listens to the DPL CCDB fetcher.
+  // Verify this or insert a dummy channel in one of the devices. (This cannot be done in the SimReader
+  // as the SimReader is the source device injecting the timing information).
+  // In future this code can serve as a check that all digitizers access CCDB via the DPL fetcher.
+  bool haveCCDBInputSpec = false;
+  for (auto spec : specs) {
+    for (auto in : spec.inputs) {
+      if (in.lifetime == Lifetime::Condition) {
+        haveCCDBInputSpec = true;
+        break;
+      }
+    }
+  }
+  if (!haveCCDBInputSpec && specs.size() > 0) {
+    LOG(info) << "No one uses DPL CCDB .. injecting a dummy CCDB query into " << specs.back().name;
+    specs.back().inputs.emplace_back("_dummyOrbitReset", "CTP", "ORBITRESET", 0, Lifetime::Condition,
+                                     ccdbParamSpec("CTP/Calib/OrbitReset"));
+  }
+
   // The SIM Reader. NEEDS TO BE LAST
-  specs[0] = o2::steer::getSimReaderSpec({firstOtherChannel, fanoutsize}, simPrefixes, tpcsectors);
+  bool withTrigger = configcontext.options().get<bool>("with-trigger");
+  LOG(info) << " TRIGGER " << withTrigger;
+  specs[0] = o2::steer::getSimReaderSpec({firstOtherChannel, fanoutsize}, simPrefixes, tpcsectors, withTrigger);
   return specs;
 }

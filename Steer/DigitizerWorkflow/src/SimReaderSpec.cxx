@@ -17,7 +17,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/Lifetime.h"
 #include "Steer/HitProcessingManager.h"
-#include "Steer/InteractionSampler.h"
+#include "SimulationDataFormat/InteractionSampler.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonUtils/NameConf.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
@@ -45,17 +45,25 @@ namespace o2
 namespace steer
 {
 
-DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::string>& simprefixes, const std::vector<int>& tpcsectors)
+std::vector<o2::ctp::CTPDigit>* ctptrigger = nullptr;
+
+DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::string>& simprefixes, const std::vector<int>& tpcsectors, bool withTrigger)
 {
   uint64_t activeSectors = 0;
   for (const auto& tpcsector : tpcsectors) {
     activeSectors |= (uint64_t)0x1 << tpcsector;
   }
 
-  auto doit = [range, tpcsectors, activeSectors](ProcessingContext& pc) {
+  auto doit = [range, tpcsectors, activeSectors, withTrigger](ProcessingContext& pc) {
     auto& mgr = steer::HitProcessingManager::instance();
-    auto eventrecords = mgr.getDigitizationContext().getEventRecords();
     const auto& context = mgr.getDigitizationContext();
+    auto eventrecords = context.getEventRecords();
+
+    if (withTrigger) {
+      // fetch the digits and transport them as part of the context
+      LOG(info) << "Setting CTP trigger object to " << ctptrigger;
+      context.setCTPDigits(ctptrigger);
+    }
 
     for (auto const& sector : tpcsectors) {
       // Note: the TPC sector header was serving the sector to lane mapping before
@@ -88,13 +96,28 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
   };
 
   // init function return a lambda taking a ProcessingContext
-  auto initIt = [simprefixes, doit](InitContext& ctx) {
+  auto initIt = [simprefixes, doit, withTrigger](InitContext& ctx) {
     // initialize fundamental objects
     auto& mgr = steer::HitProcessingManager::instance();
 
-    // init gRandom to random start
-    // TODO: offer option to set seed
-    gRandom->SetSeed(0);
+    if (withTrigger) {
+      // fetch the ctp trigger/digit information from the CTP file
+      auto triggerf = TFile(ctx.options().get<std::string>("triggerfile").c_str(), "OPEN");
+      auto tr = (TTree*)triggerf.Get("o2sim");
+      if (!tr) {
+        LOG(fatal) << "Did not find CTP TTree";
+      }
+      auto br = tr->GetBranch("CTPDigits");
+      if (!br) {
+        LOG(fatal) << "Did not find CTPDigit branch";
+      }
+      br->SetAddress(&ctptrigger);
+      br->GetEntry(0);
+      LOG(info) << " Read " << ctptrigger->size() << " CTP digits ";
+    }
+
+    // init gRandom
+    gRandom->SetSeed(ctx.options().get<int>("seed"));
 
     if (simprefixes.size() == 0) {
       LOG(error) << "No simulation prefix available";
@@ -235,6 +258,8 @@ DataProcessorSpec getSimReaderSpec(SubspecRange range, const std::vector<std::st
       {"qed-x-section-ratio", VariantType::Float, -1.f, {"Ratio of cross sections QED/hadronic events. Determines QED interaction rate from hadronic interaction rate."}},
       {"outcontext", VariantType::String, "collisioncontext.root", {"Output file for collision context"}},
       {"incontext", VariantType::String, "", {"Take collision context from this file"}},
+      {"triggerfile", VariantType::String, "ctpdigits.root", {"Name of the CTP trigger/digit file to use"}},
+      {"seed", VariantType::Int, 0, {"Random seed for collision context generation"}},
       {"ncollisions,n",
        VariantType::Int,
        0,

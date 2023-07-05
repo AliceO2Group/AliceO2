@@ -47,12 +47,12 @@ namespace o2::framework::readers
 {
 auto setEOSCallback(InitContext& ic)
 {
-  ic.services().get<CallbackService>().set(CallbackService::Id::EndOfStream,
-                                           [](EndOfStreamContext& eosc) {
-                                             auto& control = eosc.services().get<ControlService>();
-                                             control.endOfStream();
-                                             control.readyToQuit(QuitRequest::Me);
-                                           });
+  ic.services().get<CallbackService>().set<CallbackService::Id::EndOfStream>(
+    [](EndOfStreamContext& eosc) {
+      auto& control = eosc.services().get<ControlService>();
+      control.endOfStream();
+      control.readyToQuit(QuitRequest::Me);
+    });
 }
 
 template <typename... Ts>
@@ -127,6 +127,10 @@ AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec>& req
           outputs.adopt(Output{origin, description, version}, maker(o2::aod::MatchedBCCollisionsExclusiveMetadata{}));
         } else if (description == header::DataDescription{"MA_BCCOL_SP"}) {
           outputs.adopt(Output{origin, description, version}, maker(o2::aod::MatchedBCCollisionsSparseMetadata{}));
+        } else if (description == header::DataDescription{"MA_BCCOLS_EX"}) {
+          outputs.adopt(Output{origin, description, version}, maker(o2::aod::MatchedBCCollisionsExclusiveMultiMetadata{}));
+        } else if (description == header::DataDescription{"MA_BCCOLS_SP"}) {
+          outputs.adopt(Output{origin, description, version}, maker(o2::aod::MatchedBCCollisionsSparseMultiMetadata{}));
         } else if (description == header::DataDescription{"MA_RN3_BC_SP"}) {
           outputs.adopt(Output{origin, description, version}, maker(o2::aod::Run3MatchedToBCSparseMetadata{}));
         } else if (description == header::DataDescription{"MA_RN3_BC_EX"}) {

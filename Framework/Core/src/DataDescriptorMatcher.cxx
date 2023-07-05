@@ -34,18 +34,20 @@ ContextElement::Value const& VariableContext::get(size_t pos) const
   return mElements.at(pos).value;
 }
 
-void VariableContext::publish(void (*callback)(ContextElement::Value const&, std::string const&, void*), void* context, TimesliceSlot slot, std::vector<std::string> const& names)
+void VariableContext::publish(void (*callback)(VariableContext const&, TimesliceSlot slot, void*), void* context, TimesliceSlot slot)
 {
+  bool anyPublish = false;
   for (size_t i = 0; i < MAX_MATCHING_VARIABLE; i++) {
-    auto& var = this->get(i);
-    auto& name = names[16 * slot.index + i];
     auto& element = mElements[i];
 
     if (element.commitVersion == element.publishVersion) {
       continue;
     }
-    callback(var, name, context);
     element.publishVersion = element.commitVersion;
+    anyPublish = true;
+  }
+  if (anyPublish) {
+    callback(*this, slot, context);
   }
 }
 

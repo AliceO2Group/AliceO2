@@ -18,6 +18,7 @@
 #include <optional>
 #include <set>
 #include <iostream>
+#include <cstdint>
 
 namespace o2::raw
 {

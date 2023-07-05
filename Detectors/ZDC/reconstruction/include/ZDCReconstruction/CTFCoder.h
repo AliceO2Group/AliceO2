@@ -49,6 +49,9 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
   void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
 
+  void setBCShiftOrbits(long v) { mBCShiftOrbits = v; }
+  auto getBCShiftOrbits() const { return mBCShiftOrbits; }
+
  private:
   template <typename VEC>
   o2::ctf::CTFIOSize encode_impl(VEC& buff, const gsl::span<const BCData>& trgData, const gsl::span<const ChannelData>& chanData, const gsl::span<const OrbitData>& pedData);
@@ -57,6 +60,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   std::vector<BCData> mTrgDataFilt;
   std::vector<ChannelData> mChanDataFilt;
   std::vector<OrbitData> mPedDataFilt;
+  int64_t mBCShiftOrbits = 0; // integer orbit shift (in BCs) corresponding to mBCShift. Since BCs 0 and 3563 should not be changed, this value will be used for them
 };
 
 /// entropy-encode clusters to buffer with CTF
@@ -198,7 +202,7 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCHAN& c
   auto channelsHLIt = channelsHL.begin();
   auto triggersHLIt = triggersHL.begin();
   auto scalers = header.firstScaler;
-
+  bool checkIROK = (mBCShift == 0); // need to check if CTP offset correction does not make the local time negative ?
   for (uint32_t itrig = 0; itrig < header.nTriggers; itrig++) {
     // restore TrigRecord
     if (orbitIncTrig[itrig]) {  // non-0 increment => new orbit
@@ -207,7 +211,19 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCHAN& c
     } else {
       ir.bc += bcIncTrig[itrig];
     }
-
+    long bcshift = 0;
+    if (mBCShift) {
+      bcshift = (ir.bc == 0 || ir.bc == o2::constants::lhc::LHCMaxBunches - 1) ? mBCShiftOrbits : mBCShift; // we should never touch the BC of BC=0 or 3563
+    }
+    if (checkIROK || canApplyBCShift(ir, bcshift)) { // correction will be ok
+      checkIROK = true;
+    } else { // correction would make IR prior to mFirstTFOrbit, skip
+      chanDataIt += NTimeBinsPerBC * nchanTrig[itrig];
+      chanIdIt += nchanTrig[itrig];
+      channelsHLIt += 2;
+      triggersHLIt += 2;
+      continue;
+    }
     auto firstChanEntry = chanVec.size();
     for (uint16_t ic = 0; ic < nchanTrig[itrig]; ic++) {
       auto& chan = chanVec.emplace_back();
@@ -218,7 +234,7 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCHAN& c
     uint32_t chHL = (uint32_t(*channelsHLIt++) << 16) + *channelsHLIt++;
     uint32_t trHL = (uint32_t(*triggersHLIt++) << 16) + *triggersHLIt++;
 
-    auto& bcTrig = trigVec.emplace_back(firstChanEntry, chanVec.size() - firstChanEntry, ir, chHL, trHL, extTriggers[itrig]);
+    auto& bcTrig = trigVec.emplace_back(firstChanEntry, chanVec.size() - firstChanEntry, ir - bcshift, chHL, trHL, extTriggers[itrig]);
     std::copy_n(modTrigIt, NModules, bcTrig.moduleTriggers.begin());
     modTrigIt += NModules;
   }
@@ -227,10 +243,21 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCHAN& c
   ir = {o2::constants::lhc::LHCMaxBunches - 1, header.firstOrbitEOData};
   for (uint32_t ip = 0; ip < header.nEOData; ip++) {
     ir.orbit += orbitIncEOD[ip];
+    long bcshift = 0;
+    if (mBCShift) {
+      bcshift = (ir.bc == 0 || ir.bc == o2::constants::lhc::LHCMaxBunches - 1) ? mBCShiftOrbits : mBCShift; // we should never touch the BC of BC=0 or 3563
+    }
+    if (checkIROK || canApplyBCShift(ir, bcshift)) { // correction will be ok
+      checkIROK = true;
+    } else { // correction would make IR prior to mFirstTFOrbit, skip
+      sclIncIt += NChannels;
+      pedValIt += NChannels;
+      continue;
+    }
     for (uint32_t ic = 0; ic < NChannels; ic++) {
       scalers[ic] += *sclIncIt++; // increment scaler
     }
-    auto& ped = pedVec.emplace_back(OrbitData{ir, {}, scalers});
+    auto& ped = pedVec.emplace_back(OrbitData{ir - bcshift, {}, scalers});
     std::copy_n(pedValIt, NChannels, ped.data.begin());
     pedValIt += NChannels;
   }

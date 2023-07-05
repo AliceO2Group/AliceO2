@@ -14,6 +14,7 @@
 
 #include "MCHCalibration/PedestalChannel.h"
 #include "MCHCalibration/PedestalDigit.h"
+#include "MCHRawElecMap/Mapper.h"
 #include "Rtypes.h"
 #include <array>
 #include <gsl/span>
@@ -32,7 +33,7 @@ class PedestalDataIterator;
 }
 
 /**
- * @class PedestalData 
+ * @class PedestalData
  * @brief Compute and store the mean and RMS of the pedestal digit amplitudes
  *
  * To extract the values from PedestalData, use the provided iterator(s).
@@ -57,7 +58,7 @@ class PedestalData
   const_iterator cbegin() const;
   const_iterator cend() const;
 
-  PedestalData() = default;
+  PedestalData();
   ~PedestalData() = default;
 
   void reset();
@@ -70,14 +71,14 @@ class PedestalData
   /** a map from solarIds to PedestalMatrix */
   using PedestalsMap = std::unordered_map<int, PedestalMatrix>;
 
-  /** function to update the pedestal values from the data 
+  /** function to update the pedestal values from the data
    * @param digits a span of pedestal digits for a single TimeFrame
-  */
+   */
   void fill(const gsl::span<const PedestalDigit> digits);
 
   /** merge this object with other
-  * FIXME: not yet implemented.
-  */
+   * FIXME: not yet implemented.
+   */
   void merge(const PedestalData* other);
 
   /** dump this object. */
@@ -86,7 +87,13 @@ class PedestalData
   uint32_t size() const;
 
  private:
+  PedestalData::PedestalMatrix initPedestalMatrix(uint16_t solarId);
+
+  o2::mch::raw::Solar2FeeLinkMapper mSolar2FeeLinkMapper;
+  o2::mch::raw::Elec2DetMapper mElec2DetMapper;
+
   PedestalsMap mPedestals{}; ///< internal storage of all PedestalChannel values
+  uint32_t mSize{0};         ///< total number of valid channels in the pedestals map
 
   ClassDefNV(PedestalData, 1)
 };
@@ -126,25 +133,36 @@ class PedestalDataIterator
     return &mMapIt->second[mRow][mCol];
   }
 
-  PedestalDataIterator& operator++()
+  bool advance()
   {
     if (mMapIt != mData->mPedestals.end()) {
       if (mCol < PedestalData::MAXCHANNEL - 1) {
         mCol++;
-        return *this;
+        return true;
       }
       if (mRow < PedestalData::MAXDS - 1) {
         mCol = 0;
         mRow++;
-        return *this;
+        return true;
       }
       ++mMapIt;
       mCol = 0;
       mRow = 0;
       if (mMapIt != mData->mPedestals.end()) {
-        return *this;
+        return true;
       }
       mData = nullptr;
+    }
+    // undefined behavior here (should not increment an end iterator)
+    return false;
+  }
+
+  PedestalDataIterator& operator++()
+  {
+    while (advance()) {
+      if ((*this)->isValid()) {
+        break;
+      }
     }
     // undefined behavior here (should not increment an end iterator)
     return *this;

@@ -16,6 +16,7 @@
 #include "Framework/DeviceState.h"
 
 #include <functional>
+#include <set>
 #include <uv.h>
 
 namespace o2::framework
@@ -29,6 +30,9 @@ struct GuiRenderer {
   WSDPLHandler* handler = nullptr;
   GuiCallbackContext* gui = nullptr;
   bool guiConnected = false;
+  /// Set to true if the renderer needs to update the textures
+  /// in the next frame.
+  bool updateTextures = true;
 };
 
 struct GuiCallbackContext {

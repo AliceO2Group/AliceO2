@@ -69,7 +69,7 @@ class CruRawReader
     mMaxErrsPrinted = nerr < 0 ? std::numeric_limits<int>::max() : nerr;
     mMaxWarnPrinted = nwar < 0 ? std::numeric_limits<int>::max() : nwar;
   }
-  void checkNoWarn();
+  void checkNoWarn(bool silently = true);
   void checkNoErr();
 
   // set the input data buffer
@@ -101,9 +101,6 @@ class CruRawReader
 
   // parse the digit HC headers, possibly update settings as the number of time bins from the header word
   bool parseDigitHCHeaders(int hcid);
-
-  // compare the link ID information from the digit HC header with what we know from RDH header
-  void checkDigitHCHeader(int hcidRef);
 
   // helper function to compare two consecutive RDHs
   bool compareRDH(const o2::header::RDHAny* rdhPrev, const o2::header::RDHAny* rdhCurr);
@@ -171,7 +168,8 @@ class CruRawReader
   bool mHaveSeenDigitHCHeader3{false};     // flag, whether we can compare an incoming DigitHCHeader3 with a header we have seen before
   uint32_t mPreviousDigitHCHeadersvnver;  // svn ver in the digithalfchamber header, used for validity checks
   uint32_t mPreviousDigitHCHeadersvnrver; // svn release ver also used for validity checks
-
+  uint8_t mPreTriggerPhase = 0;           // Pre trigger phase of the adcs producing the digits, its comes from an optional DigitHCHeader
+                                          // It is stored here to carry it around after parsing it from the DigitHCHeader1 if it exists in the data.
   uint16_t mCRUEndpoint; // the upper or lower half of the currently parsed cru 0-14 or 15-29
   uint16_t mCRUID;       // CRU ID taken from the FEEID of the RDH
   TRDFeeID mFEEID;       // current Fee ID working on

@@ -40,7 +40,7 @@ class ClusterizerSpec : public framework::Task
 {
  public:
   /// \brief Constructor
-  ClusterizerSpec(bool propagateMC, bool scanDigits, bool outputFullClu, bool defBadMap) : framework::Task(), mPropagateMC(propagateMC), mUseDigits(scanDigits), mFullCluOutput(outputFullClu), mDefBadMap(defBadMap) {}
+  ClusterizerSpec(bool propagateMC, bool scanDigits, bool outputFullClu, bool defBadMap, bool skipL1phase = true) : framework::Task(), mPropagateMC(propagateMC), mUseDigits(scanDigits), mFullCluOutput(outputFullClu), mDefBadMap(defBadMap), mSkipL1phase(skipL1phase) {}
 
   /// \brief Destructor
   ~ClusterizerSpec() override = default;
@@ -63,10 +63,12 @@ class ClusterizerSpec : public framework::Task
   bool mFullCluOutput = false;      ///< Write full of reduced (no contributed digits) clusters
   bool mHasCalib = false;           ///< Were calibration objects received
   bool mDefBadMap = false;          ///< Use default bad map and calibration or extract from CCDB
+  bool mSkipL1phase = true;         ///< Do not apply L1phase correction
   bool mInitSimParams = true;       ///< read sim params
   o2::phos::Clusterer mClusterizer; ///< Clusterizer object
   std::unique_ptr<CalibParams> mCalibParams;
   std::unique_ptr<BadChannelsMap> mBadMap;
+  int mL1phase;
   std::vector<o2::phos::Cluster> mOutputClusters;
   std::vector<o2::phos::CluElement> mOutputCluElements;
   std::vector<o2::phos::TriggerRecord> mOutputClusterTrigRecs;
@@ -77,7 +79,7 @@ class ClusterizerSpec : public framework::Task
 ///
 /// Refer to ClusterizerSpec::run for input and output specs
 framework::DataProcessorSpec getClusterizerSpec(bool propagateMC, bool fillFullClu, bool defBadMap = false);
-framework::DataProcessorSpec getCellClusterizerSpec(bool propagateMC, bool fillFullClu, bool defBadMap = false);
+framework::DataProcessorSpec getCellClusterizerSpec(bool propagateMC, bool fillFullClu, bool defBadMap = false, bool skipL1phase = true);
 
 } // namespace reco_workflow
 

@@ -13,9 +13,11 @@
 
 #include "Framework/DataRef.h"
 #include "Framework/InputSpec.h"
+#include "Framework/ServiceRegistryRef.h"
 
 #include <functional>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace o2::framework
@@ -63,17 +65,17 @@ struct CompletionPolicy {
   using Matcher = std::function<bool(DeviceSpec const& device)>;
   using InputSetElement = DataRef;
   using Callback = std::function<CompletionOp(InputSpan const&)>;
-  using CallbackFull = std::function<CompletionOp(InputSpan const&, std::vector<InputSpec> const&)>;
+  using CallbackFull = std::function<CompletionOp(InputSpan const&, std::vector<InputSpec> const&, ServiceRegistryRef&)>;
   using CallbackConfigureRelayer = std::function<void(DataRelayer&)>;
 
   /// Constructor
   CompletionPolicy()
-    : name(), matcher(), callback() {}
+    : name{}, matcher{}, callback{} {}
   /// Constructor for emplace_back
-  CompletionPolicy(std::string _name, Matcher _matcher, Callback _callback)
-    : name(_name), matcher(_matcher), callback(_callback), callbackFull{nullptr} {}
-  CompletionPolicy(std::string _name, Matcher _matcher, CallbackFull _callback)
-    : name(_name), matcher(_matcher), callback(nullptr), callbackFull{_callback} {}
+  CompletionPolicy(std::string _name, Matcher _matcher, Callback _callback, bool _balanceChannels = true)
+    : name(std::move(_name)), matcher(std::move(_matcher)), callback(std::move(_callback)), callbackFull{nullptr}, balanceChannels{_balanceChannels} {}
+  CompletionPolicy(std::string _name, Matcher _matcher, CallbackFull _callback, bool _balanceChannels = true)
+    : name(std::move(_name)), matcher(std::move(_matcher)), callback(nullptr), callbackFull{std::move(_callback)}, balanceChannels{_balanceChannels} {}
 
   /// Name of the policy itself.
   std::string name = "";
@@ -87,6 +89,12 @@ struct CompletionPolicy {
   /// A callback which allows you to configure the behavior of the data relayer associated
   /// to the matching device.
   CallbackConfigureRelayer configureRelayer = nullptr;
+  /// Wether or not the policy requires queues to be balanced
+  /// Set to false if the policy does not require that the upstream
+  /// producers are more or less balanced. Most notably, this is
+  /// not needed if the policy always happens to consume / discard
+  /// data.
+  bool balanceChannels = true;
 
   /// Helper to create the default configuration.
   static std::vector<CompletionPolicy> createDefaultPolicies();

@@ -102,29 +102,55 @@ std::tuple<TimesliceIndex::ActionTaken, TimesliceSlot> TimesliceIndex::replaceLR
   O2_BUILTIN_UNREACHABLE();
 }
 
+bool TimesliceIndex::didReceiveData() const
+{
+  bool expectsData = false;
+  for (int ci = 0; ci < mChannels.size(); ci++) {
+    auto& channel = mChannels[ci];
+    // Ignore non data channels
+    if (channel.channelType != ChannelAccountingType::DPL) {
+      continue;
+    }
+    expectsData = true;
+    // A data channel provided the oldest possible timeframe information
+    // we therefore can safely assume that we got some
+    // data from it.
+    if (channel.oldestForChannel.value != 0) {
+      return true;
+    }
+  }
+  return expectsData == false;
+}
+
 TimesliceIndex::OldestInputInfo TimesliceIndex::setOldestPossibleInput(TimesliceId timestamp, ChannelIndex channel)
 {
   // Each channel oldest possible input must be monotoically increasing.
-  assert(mChannels[channel.value].oldestForChannel.value <= timestamp.value);
+  if (timestamp.value < mChannels[channel.value].oldestForChannel.value) {
+    LOG(error) << "Received bogus oldest possible timeslice " << timestamp.value << " for channel " << channel.value << " Excpected >= " << mChannels[channel.value].oldestForChannel.value;
+  }
   mChannels[channel.value].oldestForChannel = timestamp;
   OldestInputInfo result{timestamp, channel};
   bool changed = false;
   for (int ci = 0; ci < mChannels.size(); ci++) {
     // Check if this is a real channel. Skip otherwise.
-    auto& channel = mChannels[ci];
-    if (channel.channelType != ChannelAccountingType::DPL) {
+    auto& channelRef = mChannels[ci];
+    if (channelRef.channelType != ChannelAccountingType::DPL) {
       continue;
     }
-    auto& a = channel.oldestForChannel;
+    auto& a = channelRef.oldestForChannel;
     if (a.value < result.timeslice.value) {
       changed = true;
       result = {a, ChannelIndex{ci}};
     }
   }
-  mOldestPossibleInput = result;
-  if (changed) {
-    LOG(debug) << "Success: Oldest possible input is " << mOldestPossibleInput.timeslice.value << " due to channel " << mOldestPossibleInput.channel.value;
+  if (changed && mOldestPossibleInput.timeslice.value != result.timeslice.value) {
+    LOG(debug) << "Success: Oldest possible input is " << result.timeslice.value << " due to channel " << result.channel.value;
+  } else if (mOldestPossibleInput.timeslice.value != result.timeslice.value) {
+    LOG(debug) << "Oldest possible input updated from timestamp: " << mOldestPossibleInput.timeslice.value << " --> " << result.timeslice.value;
+  } else {
+    LOG(debug) << "No change in oldest possible input";
   }
+  mOldestPossibleInput = result;
   return mOldestPossibleInput;
 }
 
@@ -161,13 +187,16 @@ TimesliceIndex::OldestOutputInfo TimesliceIndex::updateOldestPossibleOutput()
       result.channel = {(int)-1};
     }
   }
-  mOldestPossibleOutput = result;
-  if (changed) {
+  if (changed && mOldestPossibleOutput.timeslice.value != result.timeslice.value) {
     LOGP(debug, "Oldest possible output {} due to {} {}",
-         mOldestPossibleOutput.timeslice.value,
+         result.timeslice.value,
          result.channel.value == -1 ? "slot" : "channel",
          result.channel.value == -1 ? mOldestPossibleOutput.slot.index : mOldestPossibleOutput.channel.value);
+  } else if (mOldestPossibleOutput.timeslice.value != result.timeslice.value) {
+    LOG(debug) << "Oldest possible output updated from oldest Input : " << mOldestPossibleOutput.timeslice.value << " --> " << result.timeslice.value;
   }
+  mOldestPossibleOutput = result;
+
   return result;
 }
 

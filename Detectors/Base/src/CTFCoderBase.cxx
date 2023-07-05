@@ -17,6 +17,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/InputRecord.h"
+#include "Framework/TimingInfo.h"
 
 using namespace o2::ctf;
 using namespace o2::framework;
@@ -47,11 +48,17 @@ void CTFCoderBase::assignDictVersion(CTFDictHeader& h) const
 
 void CTFCoderBase::updateTimeDependentParams(ProcessingContext& pc, bool askTree)
 {
-  if (mLoadDictFromCCDB) {
-    if (askTree) {
-      pc.inputs().get<TTree*>("ctfdict"); // just to trigger the finaliseCCDB
-    } else {
-      pc.inputs().get<std::vector<char>*>("ctfdict"); // just to trigger the finaliseCCDB
+  setFirstTFOrbit(pc.services().get<o2::framework::TimingInfo>().firstTForbit);
+  if (pc.services().get<o2::framework::TimingInfo>().globalRunNumberChanged) { // this params need to be queried only once
+    if (mOpType == OpType::Decoder) {
+      pc.inputs().get<o2::ctp::TriggerOffsetsParam*>(mTrigOffsBinding); // this is a configurable param
+    }
+    if (mLoadDictFromCCDB) {
+      if (askTree) {
+        pc.inputs().get<TTree*>(mDictBinding); // just to trigger the finaliseCCDB
+      } else {
+        pc.inputs().get<std::vector<char>*>(mDictBinding); // just to trigger the finaliseCCDB
+      }
     }
   }
 }
@@ -78,4 +85,13 @@ bool CTFCoderBase::isTreeDictionary(const void* buff) const
     i++;
   }
   return found;
+}
+
+void CTFCoderBase::reportIRFrames()
+{
+  static bool repDone = false;
+  if (!repDone) {
+    LOGP(info, "IRFrames will be selected with shift {}, forward {} margin and backward {} margin (in BCs)", mIRFrameSelShift, mIRFrameSelMarginBwd, mIRFrameSelMarginFwd);
+    repDone = true;
+  }
 }

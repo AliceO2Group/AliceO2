@@ -22,8 +22,11 @@
 #include "Framework/RawDeviceService.h"
 #include "Framework/StringHelpers.h"
 #include "Framework/CommonMessageBackends.h"
+#include "Framework/ChannelSpecHelpers.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/Plugins.h"
+#include "Framework/DataTakingContext.h"
+#include "Framework/DefaultsHelpers.h"
 #include "ArrowSupport.h"
 
 #include "Headers/DataHeader.h"
@@ -211,16 +214,27 @@ void WorkflowHelpers::addMissingOutputsToBuilder(std::vector<InputSpec> const& r
 // get the default value for condition-backend
 std::string defaultConditionBackend()
 {
-  if (getenv("DDS_SESSION_ID") != nullptr || getenv("OCC_CONTROL_PORT") != nullptr) {
-    return getenv("DPL_CONDITION_BACKEND") ? getenv("DPL_CONDITION_BACKEND") : "http://o2-ccdb.internal";
+  static bool explicitBackend = getenv("DPL_CONDITION_BACKEND");
+  static DeploymentMode deploymentMode = DefaultsHelpers::deploymentMode();
+  if (explicitBackend) {
+    return getenv("DPL_CONDITION_BACKEND");
+  } else if (deploymentMode == DeploymentMode::OnlineDDS || deploymentMode == DeploymentMode::OnlineECS) {
+    return "http://o2-ccdb.internal";
+  } else {
+    return "http://alice-ccdb.cern.ch";
   }
-  return getenv("DPL_CONDITION_BACKEND") ? getenv("DPL_CONDITION_BACKEND") : "https://alice-ccdb.cern.ch";
 }
 
 // get the default value for condition query rate
-int64_t defaultConditionQueryRate()
+int defaultConditionQueryRate()
 {
-  return getenv("DPL_CONDITION_QUERY_RATE") ? std::stoll(getenv("DPL_CONDITION_QUERY_RATE")) : 0;
+  return getenv("DPL_CONDITION_QUERY_RATE") ? std::stoi(getenv("DPL_CONDITION_QUERY_RATE")) : 0;
+}
+
+// get the default value for condition query rate multiplier
+int defaultConditionQueryRateMultiplier()
+{
+  return getenv("DPL_CONDITION_QUERY_RATE_MULTIPLIER") ? std::stoi(getenv("DPL_CONDITION_QUERY_RATE_MULTIPLIER")) : 1;
 }
 
 void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext const& ctx)
@@ -244,7 +258,9 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
                 {"condition-not-before", VariantType::Int64, 0ll, {"do not fetch from CCDB objects created before provide timestamp"}},
                 {"condition-not-after", VariantType::Int64, 3385078236000ll, {"do not fetch from CCDB objects created after the timestamp"}},
                 {"condition-remap", VariantType::String, "", {"remap condition path in CCDB based on the provided string."}},
-                {"condition-tf-per-query", VariantType::Int64, defaultConditionQueryRate(), {"check condition validity per requested number of TFs, fetch only once if <0"}},
+                {"condition-tf-per-query", VariantType::Int, defaultConditionQueryRate(), {"check condition validity per requested number of TFs, fetch only once if <=0"}},
+                {"condition-tf-per-query-multiplier", VariantType::Int, defaultConditionQueryRateMultiplier(), {"check conditions once per this amount of nominal checks"}},
+                {"condition-time-tolerance", VariantType::Int64, 5000ll, {"prefer creation time if its difference to orbit-derived time exceeds threshold (ms), impose if <0"}},
                 {"orbit-offset-enumeration", VariantType::Int64, 0ll, {"initial value for the orbit"}},
                 {"orbit-multiplier-enumeration", VariantType::Int64, 0ll, {"multiplier to get the orbit from the counter"}},
                 {"start-value-enumeration", VariantType::Int64, 0ll, {"initial value for the enumeration"}},
@@ -272,30 +288,43 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   // FIXME: source branch is DataOrigin, for the moment. We should
   //        make it configurable via ConfigParamsOptions
   auto aodLifetime = Lifetime::Enumeration;
-  if (ctx.options().get<int64_t>("aod-memory-rate-limit")) {
-    aodLifetime = Lifetime::Signal;
-  }
 
   DataProcessorSpec aodReader{
-    "internal-dpl-aod-reader",
-    {InputSpec{"enumeration",
-               "DPL",
-               "ENUM",
-               static_cast<DataAllocator::SubSpecificationType>(compile_time_hash("internal-dpl-aod-reader")),
-               aodLifetime}},
-    {},
-    AlgorithmSpec::dummyAlgorithm(),
-    {ConfigParamSpec{"aod-file", VariantType::String, {"Input AOD file"}},
-     ConfigParamSpec{"aod-reader-json", VariantType::String, {"json configuration file"}},
-     ConfigParamSpec{"aod-parent-access-level", VariantType::String, {"Allow parent file access up to specified level. Default: no (0)"}},
-     ConfigParamSpec{"aod-parent-base-path-replacement", VariantType::String, {R"(Replace base path of parent files. Syntax: FROM;TO. E.g. "alien:///path/in/alien;/local/path". Enclose in "" on the command line.)"}},
-     ConfigParamSpec{"time-limit", VariantType::Int64, 0ll, {"Maximum run time limit in seconds"}},
-     ConfigParamSpec{"orbit-offset-enumeration", VariantType::Int64, 0ll, {"initial value for the orbit"}},
-     ConfigParamSpec{"orbit-multiplier-enumeration", VariantType::Int64, 0ll, {"multiplier to get the orbit from the counter"}},
-     ConfigParamSpec{"start-value-enumeration", VariantType::Int64, 0ll, {"initial value for the enumeration"}},
-     ConfigParamSpec{"end-value-enumeration", VariantType::Int64, -1ll, {"final value for the enumeration"}},
-     ConfigParamSpec{"step-value-enumeration", VariantType::Int64, 1ll, {"step between one value and the other"}}},
-  };
+    .name = "internal-dpl-aod-reader",
+    .inputs = {InputSpec{"enumeration",
+                         "DPL",
+                         "ENUM",
+                         static_cast<DataAllocator::SubSpecificationType>(compile_time_hash("internal-dpl-aod-reader")),
+                         aodLifetime}},
+    .algorithm = AlgorithmSpec::dummyAlgorithm(),
+    .options = {ConfigParamSpec{"aod-file", VariantType::String, {"Input AOD file"}},
+                ConfigParamSpec{"aod-reader-json", VariantType::String, {"json configuration file"}},
+                ConfigParamSpec{"aod-parent-access-level", VariantType::String, {"Allow parent file access up to specified level. Default: no (0)"}},
+                ConfigParamSpec{"aod-parent-base-path-replacement", VariantType::String, {R"(Replace base path of parent files. Syntax: FROM;TO. E.g. "alien:///path/in/alien;/local/path". Enclose in "" on the command line.)"}},
+                ConfigParamSpec{"time-limit", VariantType::Int64, 0ll, {"Maximum run time limit in seconds"}},
+                ConfigParamSpec{"orbit-offset-enumeration", VariantType::Int64, 0ll, {"initial value for the orbit"}},
+                ConfigParamSpec{"orbit-multiplier-enumeration", VariantType::Int64, 0ll, {"multiplier to get the orbit from the counter"}},
+                ConfigParamSpec{"start-value-enumeration", VariantType::Int64, 0ll, {"initial value for the enumeration"}},
+                ConfigParamSpec{"end-value-enumeration", VariantType::Int64, -1ll, {"final value for the enumeration"}},
+                ConfigParamSpec{"step-value-enumeration", VariantType::Int64, 1ll, {"step between one value and the other"}}},
+    .requiredServices = CommonServices::defaultServices("O2FrameworkAnalysisSupport:RunSummary")};
+
+  // AOD reader can be rate limited
+  int rateLimitingIPCID = std::stoi(ctx.options().get<std::string>("timeframes-rate-limit-ipcid"));
+  std::string rateLimitingChannelConfigInput;
+  std::string rateLimitingChannelConfigOutput;
+  bool internalRateLimiting = false;
+
+  // In case we have rate-limiting requested, any device without an input will get one on the special
+  // "DPL/RATE" message.
+  if (rateLimitingIPCID >= 0) {
+    rateLimitingChannelConfigInput = fmt::format("name=metric-feedback,type=pull,method=connect,address=ipc://{}metric-feedback-{},transport=shmem,rateLogging=0",
+                                                 ChannelSpecHelpers::defaultIPCFolder(), rateLimitingIPCID);
+    rateLimitingChannelConfigOutput = fmt::format("name=metric-feedback,type=push,method=bind,address=ipc://{}metric-feedback-{},transport=shmem,rateLogging=0",
+                                                  ChannelSpecHelpers::defaultIPCFolder(), rateLimitingIPCID);
+    internalRateLimiting = true;
+    aodReader.options.emplace_back(ConfigParamSpec{"channel-config", VariantType::String, rateLimitingChannelConfigInput, {"how many timeframes can be in flight at the same time"}});
+  }
 
   std::vector<InputSpec> requestedAODs;
   std::vector<OutputSpec> providedAODs;
@@ -355,7 +384,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
           auto concrete = DataSpecUtils::asConcreteDataMatcher(input);
           auto hasOption = std::any_of(processor.options.begin(), processor.options.end(), [&input](auto const& option) { return (option.name == "period-" + input.binding); });
           if (hasOption == false) {
-            processor.options.push_back(ConfigParamSpec{"period-" + input.binding, VariantType::Int, 1000, {"period of the timer"}});
+            processor.options.push_back(ConfigParamSpec{"period-" + input.binding, VariantType::Int, 1000, {"period of the timer in milliseconds"}});
           }
           timer.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, Lifetime::Timer});
         } break;
@@ -478,31 +507,13 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
   // add the reader
   if (aodReader.outputs.empty() == false) {
-    uv_lib_t supportLib;
-    int result = 0;
-#ifdef __APPLE__
-    result = uv_dlopen("libO2FrameworkAnalysisSupport.dylib", &supportLib);
-#else
-    result = uv_dlopen("libO2FrameworkAnalysisSupport.so", &supportLib);
-#endif
-    if (result == -1) {
-      LOG(fatal) << uv_dlerror(&supportLib);
-      return;
-    }
-    DPLPluginHandle* (*dpl_plugin_callback)(DPLPluginHandle*);
 
-    result = uv_dlsym(&supportLib, "dpl_plugin_callback", (void**)&dpl_plugin_callback);
-    if (result == -1) {
-      LOG(fatal) << uv_dlerror(&supportLib);
-      return;
+    auto&& algo = PluginManager::loadAlgorithmFromPlugin("O2FrameworkAnalysisSupport", "ROOTFileReader");
+    if (internalRateLimiting) {
+      aodReader.algorithm = CommonDataProcessors::wrapWithRateLimiting(algo);
+    } else {
+      aodReader.algorithm = algo;
     }
-    if (dpl_plugin_callback == nullptr) {
-      LOG(fatal) << "Could not find the AnalysisSupport plugin.";
-      return;
-    }
-    DPLPluginHandle* pluginInstance = dpl_plugin_callback(nullptr);
-    auto* creator = PluginManager::getByName<AlgorithmPlugin>(pluginInstance, "ROOTFileReader");
-    aodReader.algorithm = creator->create();
     aodReader.outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
     aodReader.outputs.emplace_back(OutputSpec{"TFF", "TFFilename"});
     extraSpecs.push_back(timePipeline(aodReader, ctx.options().get<int64_t>("readers")));
@@ -540,48 +551,38 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     } else if (providesDISTSTF) {
       ccdbBackend.inputs.push_back(InputSpec{"tfn", dstf, Lifetime::Timeframe});
     } else {
-      for (auto& dp : workflow) {
-        bool enumOnly = dp.inputs.size() == 1 && dp.inputs[0].lifetime == Lifetime::Enumeration;
-        bool timerOnly = dp.inputs.size() == 1 && dp.inputs[0].lifetime == Lifetime::Timer;
-        if (enumOnly == true) {
-          dp.outputs.push_back(OutputSpec{{"ccdb-diststf"}, dstf, Lifetime::Timeframe});
-          ccdbBackend.inputs.push_back(InputSpec{"tfn", dstf, Lifetime::Timeframe});
-          break;
-        } else if (timerOnly == true) {
-          dstf = DataSpecUtils::asConcreteDataMatcher(dp.outputs[0]);
-          ccdbBackend.inputs.push_back(InputSpec{{"tfn"}, dstf, Lifetime::Timeframe});
-          break;
+      // We find the first device which has either just enumerations or
+      // just timers, and we add the DISTSUBTIMEFRAME to it.
+      // Notice how we do so in a stable manner by sorting the devices
+      // by name.
+      int enumCandidate = -1;
+      int timerCandidate = -1;
+      for (size_t wi = 0; wi < workflow.size(); wi++) {
+        auto& dp = workflow[wi];
+        if (dp.inputs.size() != 1) {
+          continue;
         }
+        auto lifetime = dp.inputs[0].lifetime;
+        if (lifetime == Lifetime::Enumeration && (enumCandidate == -1 || workflow[enumCandidate].name > dp.name)) {
+          enumCandidate = wi;
+        }
+        if (lifetime == Lifetime::Timer && (timerCandidate == -1 || workflow[timerCandidate].name > dp.name)) {
+          timerCandidate = wi;
+        }
+      }
+      if (enumCandidate != -1) {
+        auto& dp = workflow[enumCandidate];
+        dp.outputs.push_back(OutputSpec{{"ccdb-diststf"}, dstf, Lifetime::Timeframe});
+        ccdbBackend.inputs.push_back(InputSpec{"tfn", dstf, Lifetime::Timeframe});
+      } else if (timerCandidate != -1) {
+        auto& dp = workflow[timerCandidate];
+        dstf = DataSpecUtils::asConcreteDataMatcher(dp.outputs[0]);
+        ccdbBackend.inputs.push_back(InputSpec{{"tfn"}, dstf, Lifetime::Timeframe});
       }
     }
 
     // Load the CCDB backend from the plugin
-    uv_lib_t supportLib;
-    int result = 0;
-#ifdef __APPLE__
-    result = uv_dlopen("libO2FrameworkCCDBSupport.dylib", &supportLib);
-#else
-    result = uv_dlopen("libO2FrameworkCCDBSupport.so", &supportLib);
-#endif
-    if (result == -1) {
-      LOG(fatal) << uv_dlerror(&supportLib);
-      return;
-    }
-    DPLPluginHandle* (*dpl_plugin_callback)(DPLPluginHandle*);
-
-    result = uv_dlsym(&supportLib, "dpl_plugin_callback", (void**)&dpl_plugin_callback);
-    if (result == -1) {
-      LOG(fatal) << uv_dlerror(&supportLib);
-      return;
-    }
-    if (dpl_plugin_callback == nullptr) {
-      LOG(fatal) << "Could not find the CCDBSupport plugin.";
-      return;
-    }
-    DPLPluginHandle* pluginInstance = dpl_plugin_callback(nullptr);
-    auto* creator = PluginManager::getByName<AlgorithmPlugin>(pluginInstance, "CCDBFetcherPlugin");
-    ccdbBackend.algorithm = creator->create();
-
+    ccdbBackend.algorithm = PluginManager::loadAlgorithmFromPlugin("O2FrameworkCCDBSupport", "CCDBFetcherPlugin");
     extraSpecs.push_back(ccdbBackend);
   } else {
     // If there is no CCDB requested, but we still ask for a FLP/DISTSUBTIMEFRAME/0xccdb
@@ -597,18 +598,33 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       }
     }
     if (requiresDISTSUBTIMEFRAME) {
-      for (auto& dp : workflow) {
-        bool enumOnly = dp.inputs.size() == 1 && dp.inputs[0].lifetime == Lifetime::Enumeration;
-        bool timerOnly = dp.inputs.size() == 1 && dp.inputs[0].lifetime == Lifetime::Timer;
-        if (enumOnly == true) {
-          dp.outputs.push_back(OutputSpec{{"ccdb-diststf"}, dstf, Lifetime::Timeframe});
-          ccdbBackend.inputs.push_back(InputSpec{"tfn", dstf, Lifetime::Timeframe});
-          break;
-        } else if (timerOnly == true) {
-          dstf = DataSpecUtils::asConcreteDataMatcher(dp.outputs[0]);
-          ccdbBackend.inputs.push_back(InputSpec{{"tfn"}, dstf, Lifetime::Timeframe});
-          break;
+      // We find the first device which has either just enumerations or
+      // just timers, and we add the DISTSUBTIMEFRAME to it.
+      // Notice how we do so in a stable manner by sorting the devices
+      // by name.
+      int enumCandidate = -1;
+      int timerCandidate = -1;
+      for (size_t wi = 0; wi < workflow.size(); wi++) {
+        auto& dp = workflow[wi];
+        if (dp.inputs.size() != 1) {
+          continue;
         }
+        auto lifetime = dp.inputs[0].lifetime;
+        if (lifetime == Lifetime::Enumeration && (enumCandidate == -1 || workflow[enumCandidate].name > dp.name)) {
+          enumCandidate = wi;
+        }
+        if (lifetime == Lifetime::Timer && (timerCandidate == -1 || workflow[timerCandidate].name > dp.name)) {
+          timerCandidate = wi;
+        }
+      }
+      if (enumCandidate != -1) {
+        auto& dp = workflow[enumCandidate];
+        dp.outputs.push_back(OutputSpec{{"ccdb-diststf"}, dstf, Lifetime::Timeframe});
+        ccdbBackend.inputs.push_back(InputSpec{"tfn", dstf, Lifetime::Timeframe});
+      } else if (timerCandidate != -1) {
+        auto& dp = workflow[timerCandidate];
+        dstf = DataSpecUtils::asConcreteDataMatcher(dp.outputs[0]);
+        ccdbBackend.inputs.push_back(InputSpec{{"tfn"}, dstf, Lifetime::Timeframe});
       }
     }
   }
@@ -638,7 +654,11 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   // ATTENTION: if there are dangling outputs the getGlobalAODSink
   // has to be created in any case!
   std::vector<InputSpec> outputsInputsAOD;
-  auto isAOD = [](InputSpec const& spec) { return (DataSpecUtils::partialMatch(spec, header::DataOrigin("AOD")) || DataSpecUtils::partialMatch(spec, header::DataOrigin("DYN"))); };
+  auto isAOD = [](InputSpec const& spec) {
+    return (DataSpecUtils::partialMatch(spec, header::DataOrigin("AOD")) ||
+            DataSpecUtils::partialMatch(spec, header::DataOrigin("DYN")) ||
+            DataSpecUtils::partialMatch(spec, header::DataOrigin("AMD")));
+  };
   for (auto ii = 0u; ii < outputsInputs.size(); ii++) {
     if (isAOD(outputsInputs[ii])) {
       auto ds = dod->getDataOutputDescriptors(outputsInputs[ii]);
@@ -700,7 +720,6 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   if (unmatched.size() > 0 || redirectedOutputsInputs.size() > 0) {
     std::vector<InputSpec> ignored = unmatched;
     ignored.insert(ignored.end(), redirectedOutputsInputs.begin(), redirectedOutputsInputs.end());
-    int rateLimitingIPCID = std::stoi(ctx.options().get<std::string>("timeframes-rate-limit-ipcid"));
     for (auto& ignoredInput : ignored) {
       if (ignoredInput.lifetime == Lifetime::OutOfBand) {
         // FIXME: Use Lifetime::Dangling when fully working?
@@ -708,7 +727,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       }
     }
 
-    extraSpecs.push_back(CommonDataProcessors::getDummySink(ignored, rateLimitingIPCID));
+    extraSpecs.push_back(CommonDataProcessors::getDummySink(ignored, rateLimitingChannelConfigOutput));
   }
 
   workflow.insert(workflow.end(), extraSpecs.begin(), extraSpecs.end());
@@ -1022,7 +1041,9 @@ std::shared_ptr<DataOutputDirector> WorkflowHelpers::getDataOutputDirector(Confi
 
   // analyze options and take actions accordingly
   // default values
+  std::string rdn, resdir("./");
   std::string fnb, fnbase("AnalysisResults_trees");
+  float mfs, maxfilesize(-1.);
   std::string fmo, filemode("RECREATE");
   int ntfm, ntfmerge = 1;
 
@@ -1030,12 +1051,18 @@ std::shared_ptr<DataOutputDirector> WorkflowHelpers::getDataOutputDirector(Confi
   if (options.isSet("aod-writer-json")) {
     auto fnjson = options.get<std::string>("aod-writer-json");
     if (!fnjson.empty()) {
-      std::tie(fnb, fmo, ntfm) = dod->readJson(fnjson);
+      std::tie(rdn, fnb, fmo, mfs, ntfm) = dod->readJson(fnjson);
+      if (!rdn.empty()) {
+        resdir = rdn;
+      }
       if (!fnb.empty()) {
         fnbase = fnb;
       }
       if (!fmo.empty()) {
         filemode = fmo;
+      }
+      if (mfs > 0.) {
+        maxfilesize = mfs;
       }
       if (ntfm > 0) {
         ntfmerge = ntfm;
@@ -1044,6 +1071,12 @@ std::shared_ptr<DataOutputDirector> WorkflowHelpers::getDataOutputDirector(Confi
   }
 
   // values from command line options, information from json is overwritten
+  if (options.isSet("aod-writer-resdir")) {
+    rdn = options.get<std::string>("aod-writer-resdir");
+    if (!rdn.empty()) {
+      resdir = rdn;
+    }
+  }
   if (options.isSet("aod-writer-resfile")) {
     fnb = options.get<std::string>("aod-writer-resfile");
     if (!fnb.empty()) {
@@ -1054,6 +1087,12 @@ std::shared_ptr<DataOutputDirector> WorkflowHelpers::getDataOutputDirector(Confi
     fmo = options.get<std::string>("aod-writer-resmode");
     if (!fmo.empty()) {
       filemode = fmo;
+    }
+  }
+  if (options.isSet("aod-writer-maxfilesize")) {
+    mfs = options.get<float>("aod-writer-maxfilesize");
+    if (mfs > 0) {
+      maxfilesize = mfs;
     }
   }
   if (options.isSet("aod-writer-ntfmerge")) {
@@ -1088,8 +1127,10 @@ std::shared_ptr<DataOutputDirector> WorkflowHelpers::getDataOutputDirector(Confi
       }
     }
   }
+  dod->setResultDir(resdir);
   dod->setFilenameBase(fnbase);
   dod->setFileMode(filemode);
+  dod->setMaximumFileSize(maxfilesize);
   dod->setNumberTimeFramesToMerge(ntfmerge);
 
   return dod;

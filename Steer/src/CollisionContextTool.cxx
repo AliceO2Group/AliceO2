@@ -14,14 +14,19 @@
 #include <iostream>
 #include <Algorithm/RangeTokenizer.h>
 #include <regex>
-#include "Steer/InteractionSampler.h"
+#include "SimulationDataFormat/InteractionSampler.h"
 #include "CommonDataFormat/InteractionRecord.h"
+#include "DataFormatsCalibration/MeanVertexObject.h"
 #include "SimulationDataFormat/DigitizationContext.h"
+#include "SimConfig/InteractionDiamondParam.h"
 #include <cmath>
 #include <TRandom.h>
 #include <numeric>
 #include <fairlogger/Logger.h>
 #include "Steer/MCKinematicsReader.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include <CCDB/BasicCCDBManager.h>
+#include "DataFormatsParameters/GRPLHCIFData.h"
 
 //
 // Created by Sandro Wenzel on 13.07.21.
@@ -32,14 +37,21 @@
 // options struct filled from command line
 struct Options {
   std::vector<std::string> interactionRates;
+  std::string qedInteraction; // specification for QED contribution
   std::string outfilename;    //
   double timeframelengthinMS; // timeframe length in milliseconds
+  int orbits;                 // number of orbits to generate (can be a multiple of orbitsPerTF --> determine fraction or multiple of timeframes)
   long seed;                  //
   bool printContext = false;
   std::string bcpatternfile;
   int tfid = 0;          // tfid -> used to calculate start orbit for collisions
   int orbitsPerTF = 256; // number of orbits per timeframe --> used to calculate start orbit for collisions
   bool useexistingkinematics = false;
+  bool noEmptyTF = false; // prevent empty timeframes; the first interaction will be shifted backwards to fall within the range given by Options.orbits
+  int maxCollsPerTF = -1; // the maximal number of hadronic collisions per TF (can be used to constrain number of collisions per timeframe to some maximal value)
+  bool genVertices = false;         // whether to assign vertices to collisions
+  std::string configKeyValues = ""; // string to init config key values
+  long timestamp = -1;              // timestamp for CCDB queries
 };
 
 enum class InteractionLockMode {
@@ -53,6 +65,7 @@ struct InteractionSpec {
   float interactionRate;
   std::pair<int, float> synconto; // if this interaction locks on another interaction; takes precedence over interactionRate
   InteractionLockMode syncmode = InteractionLockMode::NOLOCK;
+  char syncmodeop = 0;         // syncmode operation ("@" --> embedd; "r" --> replace)
   int mcnumberasked = -1;      // number of MC events asked (but can be left -1) in which case it will be determined from timeframelength
   int mcnumberavail = -1;      // number of MC events avail (but can be left -1); if avail < asked there will be reuse of events
   bool randomizeorder = false; // whether order of events will be randomized
@@ -73,7 +86,8 @@ InteractionSpec parseInteractionSpec(std::string const& specifier, std::vector<I
   //      -     or: a string such as @0:e5, saying that this interaction should match/sync
   //                with collisions of the 0-th interaction, but inject only every 5 collisions.
   //                Alternatively @0:d10000 means to inject but leaving a timedistance of at least 10000ns between signals
-  //
+  //      -     or: a string r0:e5, saying that this interaction should sync with collisions of the 0-th interaction but
+  //                **overwrite** every 5-th interaction with a collision from this interaction name
   // MCNUMBERSTRING: NUMBER1:r?NUMBER2 can specify how many collisions NUMBER1 to produce, taking from a sample of NUMBER2 available collisions
   //      - this option is only supported on the first interaction which is supposed to be the background interaction
   //      - if the 'r' character is present we randomize the order of the MC events
@@ -118,13 +132,14 @@ InteractionSpec parseInteractionSpec(std::string const& specifier, std::vector<I
       collisionsavail = mcreader.getNEvents(0);
     }
   }
+  LOG(info) << "Collisions avail for " << name << " " << collisionsavail;
 
   // extract interaction rate ... or locking
   auto& interactionToken = tokens[1];
-  if (interactionToken[0] == '@') {
+  if (interactionToken[0] == '@' || interactionToken[0] == 'r') {
     try {
       // locking onto some other interaction
-      std::regex re("@([0-9]*):([ed])([0-9]*[.]?[0-9]?)$", std::regex_constants::extended);
+      std::regex re("[@r]([0-9]*):([ed])([0-9]*[.]?[0-9]?)$", std::regex_constants::extended);
 
       std::cmatch m;
       if (std::regex_match(interactionToken.c_str(), m, re)) {
@@ -145,7 +160,7 @@ InteractionSpec parseInteractionSpec(std::string const& specifier, std::vector<I
         if (mode.compare("d") == 0) {
           lockMode = InteractionLockMode::MINTIMEDISTANCE;
         }
-        return InteractionSpec{name, rate, synconto, lockMode, collisionsasked, collisionsavail, randomizeorder};
+        return InteractionSpec{name, rate, synconto, lockMode, interactionToken[0], collisionsasked, collisionsavail, randomizeorder};
       } else {
         LOG(error) << "Could not parse " << interactionToken << " as INTERACTIONSTRING";
         exit(1);
@@ -156,7 +171,7 @@ InteractionSpec parseInteractionSpec(std::string const& specifier, std::vector<I
     }
   } else {
     rate = std::atof(interactionToken.c_str());
-    return InteractionSpec{name, rate, synconto, InteractionLockMode::NOLOCK, collisionsasked, collisionsavail, randomizeorder};
+    return InteractionSpec{name, rate, synconto, InteractionLockMode::NOLOCK, 0, collisionsasked, collisionsavail, randomizeorder};
   }
 }
 
@@ -169,16 +184,19 @@ bool parseOptions(int argc, char* argv[], Options& optvalues)
 
   options.add_options()(
     "interactions,i", bpo::value<std::vector<std::string>>(&optvalues.interactionRates)->multitoken(), "name,IRate|LockSpecifier")(
+    "QEDinteraction", bpo::value<std::string>(&optvalues.qedInteraction)->default_value(""), "Interaction specifyer for QED contribution (name,IRATE,maxeventnumber)")(
     "outfile,o", bpo::value<std::string>(&optvalues.outfilename)->default_value("collisioncontext.root"), "Outfile of collision context")(
-    "tflength", bpo::value<double>(&optvalues.timeframelengthinMS)->default_value(-1.),
-    "Length of timeframe to generate in ms (if given). "
+    "orbits", bpo::value<int>(&optvalues.orbits)->default_value(-1),
+    "Number of orbits to generate maximally (if given, can be used to determine the number of timeframes). "
     "Otherwise, the context will be generated by using collision numbers from the interaction specification.")(
     "seed", bpo::value<long>(&optvalues.seed)->default_value(0L), "Seed for random number generator (for time sampling etc). Default 0: Random")(
     "show-context", "Print generated collision context to terminal.")(
-    "bcPatternFile", bpo::value<std::string>(&optvalues.bcpatternfile)->default_value(""), "Interacting BC pattern file (e.g. from CreateBCPattern.C)")(
+    "bcPatternFile", bpo::value<std::string>(&optvalues.bcpatternfile)->default_value(""), "Interacting BC pattern file (e.g. from CreateBCPattern.C); Use \"ccdb\" when fetching from CCDB.")(
     "orbitsPerTF", bpo::value<int>(&optvalues.orbitsPerTF)->default_value(256), "Orbits per timeframes")(
     "use-existing-kine", "Read existing kinematics to adjust event counts")(
-    "timeframeID", bpo::value<int>(&optvalues.tfid)->default_value(0), "Timeframe id of this context. Allows to generate contexts for different start orbits");
+    "timeframeID", bpo::value<int>(&optvalues.tfid)->default_value(0), "Timeframe id of the first timeframe int this context. Allows to generate contexts for different start orbits")(
+    "maxCollsPerTF", bpo::value<int>(&optvalues.maxCollsPerTF)->default_value(-1), "Maximal number of MC collisions to put into one timeframe. By default no constraint.")(
+    "noEmptyTF", bpo::bool_switch(&optvalues.noEmptyTF), "Enforce to have at least one collision")("configKeyValues", bpo::value<std::string>(&optvalues.configKeyValues)->default_value(""), "Semicolon separated key=value strings (e.g.: 'TPC.gasDensity=1;...')")("with-vertices", "Assign vertices to collisions.")("timestamp", bpo::value<long>(&optvalues.timestamp)->default_value(-1L), "Timestamp for CCDB queries / anchoring");
 
   options.add_options()("help,h", "Produce help message.");
 
@@ -198,7 +216,9 @@ bool parseOptions(int argc, char* argv[], Options& optvalues)
     if (vm.count("use-existing-kine")) {
       optvalues.useexistingkinematics = true;
     }
-
+    if (vm.count("with-vertices")) {
+      optvalues.genVertices = true;
+    }
   } catch (const bpo::error& e) {
     std::cerr << e.what() << "\n\n";
     std::cerr << "Error parsing options; Available options:\n";
@@ -215,6 +235,9 @@ int main(int argc, char* argv[])
     exit(1);
   }
 
+  // init params
+  o2::conf::ConfigurableParam::updateFromString(options.configKeyValues);
+
   // init random generator
   gRandom->SetSeed(options.seed);
 
@@ -229,7 +252,24 @@ int main(int argc, char* argv[])
   std::vector<o2::BunchFilling> bunchFillings; // vector of bunch filling objects; generated by interaction samplers
 
   // now we generate the collision structure (interaction type by interaction type)
-  bool usetimeframelength = options.timeframelengthinMS > 0;
+  bool usetimeframelength = options.orbits > 0;
+  o2::InteractionTimeRecord limitInteraction(0, options.orbits);
+
+  auto setBCFillingHelper = [&options](auto& sampler, auto& bcPatternString) {
+    if (bcPatternString == "ccdb") {
+      LOG(info) << "Fetch bcPattern information from CCDB";
+      // fetch the GRP Object
+      auto& ccdb = o2::ccdb::BasicCCDBManager::instance();
+      ccdb.setTimestamp(options.timestamp);
+      ccdb.setCaching(false);
+      ccdb.setLocalObjectValidityChecking(true);
+      auto grpLHC = ccdb.get<o2::parameters::GRPLHCIFData>("GLO/Config/GRPLHCIF");
+      LOG(info) << "Fetched injection scheme " << grpLHC->getInjectionScheme() << " from CCDB";
+      sampler.setBunchFilling(grpLHC->getBunchFilling());
+    } else {
+      sampler.setBunchFilling(bcPatternString);
+    }
+  };
 
   for (int id = 0; id < ispecs.size(); ++id) {
     auto mode = ispecs[id].syncmode;
@@ -237,22 +277,30 @@ int main(int argc, char* argv[])
       o2::steer::InteractionSampler sampler;
       sampler.setInteractionRate(ispecs[id].interactionRate);
       if (!options.bcpatternfile.empty()) {
-        sampler.setBunchFilling(options.bcpatternfile);
+        setBCFillingHelper(sampler, options.bcpatternfile);
       }
-      sampler.setFirstIR(o2::InteractionRecord(0, options.tfid * options.orbitsPerTF));
-      sampler.init();
+      auto orbitstart = options.tfid * options.orbitsPerTF;
       o2::InteractionTimeRecord record;
+      // this loop makes sure that the first collision is within the range of orbits asked (if noEmptyTF is enabled)
+      do {
+        sampler.setFirstIR(o2::InteractionRecord(0, orbitstart));
+        sampler.init();
+        record = sampler.generateCollisionTime();
+      } while (options.noEmptyTF && usetimeframelength && record.orbit >= orbitstart + options.orbits);
       int count = 0;
       do {
-        record = sampler.generateCollisionTime();
+        if (usetimeframelength && record.orbit >= orbitstart + options.orbits) {
+          break;
+        }
         std::vector<o2::steer::EventPart> parts;
         parts.emplace_back(id, count);
 
         std::pair<o2::InteractionTimeRecord, std::vector<o2::steer::EventPart>> insertvalue(record, parts);
         auto iter = std::lower_bound(collisions.begin(), collisions.end(), insertvalue, [](std::pair<o2::InteractionTimeRecord, std::vector<o2::steer::EventPart>> const& a, std::pair<o2::InteractionTimeRecord, std::vector<o2::steer::EventPart>> const& b) { return a.first < b.first; });
         collisions.insert(iter, insertvalue);
+        record = sampler.generateCollisionTime();
         count++;
-      } while ((usetimeframelength && record.getTimeNS() < options.timeframelengthinMS * 1000 * 1000) || (ispecs[id].mcnumberasked > 0 && count < ispecs[id].mcnumberasked));
+      } while ((ispecs[id].mcnumberasked > 0 && count < ispecs[id].mcnumberasked));
 
       // we support randomization etc on non-injected/embedded interactions
       // and we can apply them here
@@ -325,6 +373,20 @@ int main(int argc, char* argv[])
         }
 
         if (inject) {
+          if (ispecs[id].syncmodeop == 'r') {
+            LOG(debug) << "Replacing/overwriting another event ";
+            // Syncing is replacing; which means we need to take out the original
+            // event that we locked onto.
+            // We take out this event part immediately (and complain if there is a problem).
+            int index = 0;
+            auto iter = std::find_if(col.second.begin(), col.second.end(), [lockonto](auto val) { return lockonto == val.sourceID; });
+            if (iter != col.second.end()) {
+              col.second.erase(iter);
+            } else {
+              LOG(error) << "Expected to replace another event part but did not find one for source " << lockonto << " and collision " << colid;
+            }
+          }
+
           if (ispecs[id].mcnumberavail >= 0) {
             col.second.emplace_back(id, eventcount % ispecs[id].mcnumberavail);
           } else {
@@ -363,8 +425,32 @@ int main(int argc, char* argv[])
     prefixes.push_back(p.name);
   }
   digicontext.setSimPrefixes(prefixes);
+
+  // apply max collision per timeframe filters + reindexing of event id (linearisation and compactification)
+  digicontext.applyMaxCollisionFilter(options.tfid * options.orbitsPerTF, options.orbitsPerTF, options.maxCollsPerTF);
+
+  digicontext.finalizeTimeframeStructure(options.tfid * options.orbitsPerTF, options.orbitsPerTF);
+
+  if (options.genVertices) {
+    // TODO: offer option taking meanVertex directly from CCDB ! "GLO/Calib/MeanVertex"
+    // sample interaction vertices
+
+    // init this vertex from CCDB or InteractionDiamond parameter
+    const auto& dparam = o2::eventgen::InteractionDiamondParam::Instance();
+    o2::dataformats::MeanVertexObject meanv(dparam.position[0], dparam.position[1], dparam.position[2], dparam.width[0], dparam.width[1], dparam.width[2], dparam.slopeX, dparam.slopeY);
+    digicontext.sampleInteractionVertices(meanv);
+  }
+
+  // we fill QED contributions to the context
+  if (options.qedInteraction.size() > 0) {
+    // TODO: use bcFilling information
+    auto qedSpec = parseInteractionSpec(options.qedInteraction, ispecs, options.useexistingkinematics);
+    std::cout << "### IRATE " << qedSpec.interactionRate << "\n";
+    digicontext.fillQED(qedSpec.name, qedSpec.mcnumberasked, qedSpec.interactionRate);
+  }
+
   if (options.printContext) {
-    digicontext.printCollisionSummary();
+    digicontext.printCollisionSummary(options.qedInteraction.size() > 0);
   }
   digicontext.saveToFile(options.outfilename);
 

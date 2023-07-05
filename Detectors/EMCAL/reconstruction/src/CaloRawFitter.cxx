@@ -11,6 +11,7 @@
 
 /// \file CaloRawFitter.cxx
 /// \author Hadi Hassan (hadi.hassan@cern.ch)
+#include <cassert>
 #include <numeric>
 #include <gsl/span>
 
@@ -24,25 +25,6 @@
 #include "EMCALReconstruction/CaloRawFitter.h"
 
 using namespace o2::emcal;
-
-std::string CaloRawFitter::createErrorMessage(CaloRawFitter::RawFitterError_t errorcode)
-{
-  switch (errorcode) {
-    case RawFitterError_t::SAMPLE_UNINITIALIZED:
-      return "Sample for fit not initialzied or bunch length is 0";
-    case RawFitterError_t::FIT_ERROR:
-      return "Fit of the raw bunch was not successful";
-    case RawFitterError_t::CHI2_ERROR:
-      return "Chi2 of the fit could not be determined";
-    case RawFitterError_t::BUNCH_NOT_OK:
-      return "Calo bunch could not be selected";
-    case RawFitterError_t::LOW_SIGNAL:
-      return "No ADC value above threshold found";
-  };
-  // Silence compiler warnings for false positives
-  // can never enter here due to usage of enum class
-  return "Unknown error code";
-}
 
 int CaloRawFitter::getErrorNumber(CaloRawFitter::RawFitterError_t fiterror)
 {
@@ -61,6 +43,86 @@ int CaloRawFitter::getErrorNumber(CaloRawFitter::RawFitterError_t fiterror)
   // Silence compiler warnings for false positives
   // can never enter here due to usage of enum class
   return -1;
+}
+
+CaloRawFitter::RawFitterError_t CaloRawFitter::intToErrorType(unsigned int fiterror)
+{
+  assert(fiterror < getNumberOfErrorTypes());
+  switch (fiterror) {
+    case 0:
+      return CaloRawFitter::RawFitterError_t::SAMPLE_UNINITIALIZED;
+    case 1:
+      return CaloRawFitter::RawFitterError_t::FIT_ERROR;
+    case 2:
+      return CaloRawFitter::RawFitterError_t::CHI2_ERROR;
+    case 3:
+      return CaloRawFitter::RawFitterError_t::BUNCH_NOT_OK;
+    case 4:
+      return CaloRawFitter::RawFitterError_t::LOW_SIGNAL;
+  };
+  // Silence the compiler warning for false positives
+  // Since we catch invalid codes via the assert we can
+  // never reach here. Since it is an enum class we need
+  // to choose one error code here. Pick the first error
+  // code instead.
+  return CaloRawFitter::RawFitterError_t::SAMPLE_UNINITIALIZED;
+}
+
+const char* CaloRawFitter::getErrorTypeName(CaloRawFitter::RawFitterError_t fiterror)
+{
+  switch (fiterror) {
+    case CaloRawFitter::RawFitterError_t::SAMPLE_UNINITIALIZED:
+      return "SampleUninitalized";
+    case CaloRawFitter::RawFitterError_t::FIT_ERROR:
+      return "NoConvergence";
+    case CaloRawFitter::RawFitterError_t::CHI2_ERROR:
+      return "Chi2Error";
+    case CaloRawFitter::RawFitterError_t::BUNCH_NOT_OK:
+      return "BunchRejected";
+    case CaloRawFitter::RawFitterError_t::LOW_SIGNAL:
+      return "LowSignal";
+  };
+  // Silence compiler warnings for false positives
+  // can never enter here due to usage of enum class
+  return "Unknown";
+}
+
+const char* CaloRawFitter::getErrorTypeTitle(CaloRawFitter::RawFitterError_t fiterror)
+{
+  switch (fiterror) {
+    case CaloRawFitter::RawFitterError_t::SAMPLE_UNINITIALIZED:
+      return "sample uninitalized";
+    case CaloRawFitter::RawFitterError_t::FIT_ERROR:
+      return "No convergence";
+    case CaloRawFitter::RawFitterError_t::CHI2_ERROR:
+      return "Chi2 error";
+    case CaloRawFitter::RawFitterError_t::BUNCH_NOT_OK:
+      return "Bunch rejected";
+    case CaloRawFitter::RawFitterError_t::LOW_SIGNAL:
+      return "Low signal";
+  };
+  // Silence compiler warnings for false positives
+  // can never enter here due to usage of enum class
+  return "Unknown";
+}
+
+const char* CaloRawFitter::getErrorTypeDescription(CaloRawFitter::RawFitterError_t fiterror)
+{
+  switch (fiterror) {
+    case CaloRawFitter::RawFitterError_t::SAMPLE_UNINITIALIZED:
+      return "Sample for fit not initialzied or bunch length is 0";
+    case CaloRawFitter::RawFitterError_t::FIT_ERROR:
+      return "Fit of the raw bunch was not successful";
+    case CaloRawFitter::RawFitterError_t::CHI2_ERROR:
+      return "Chi2 of the fit could not be determined";
+    case CaloRawFitter::RawFitterError_t::BUNCH_NOT_OK:
+      return "Calo bunch could not be selected";
+    case CaloRawFitter::RawFitterError_t::LOW_SIGNAL:
+      return "No ADC value above threshold found";
+  };
+  // Silence compiler warnings for false positives
+  // can never enter here due to usage of enum class
+  return "Unknown error code";
 }
 
 // Default constructor
@@ -330,4 +392,10 @@ std::tuple<int, int, float, short, short, float, int, int> CaloRawFitter::preFit
   }
 
   return std::make_tuple(nsamples, bunchindex, peakADC, adcMAX, indexMaxADCRReveresed, pedestal, first, last);
+}
+
+std::ostream& o2::emcal::operator<<(std::ostream& stream, const CaloRawFitter::RawFitterError_t error)
+{
+  stream << CaloRawFitter::getErrorTypeName(error);
+  return stream;
 }

@@ -61,20 +61,32 @@ void ITSDCSParser::run(ProcessingContext& pc)
     line_ending = "\r\n";
   }
 
+  // Initialize Dead Chips map
+  this->mDeadMap = o2::itsmft::NoiseMap(mp.getNChips());
+
   // Loop over lines in the input file
   for (const std::string& line : this->vectorizeStringList(inStringConv, line_ending)) {
     if (!line.length()) {
       continue;
     }
     this->updateMemoryFromInputString(line);
+    this->appendDeadChipObj();
     this->saveToOutput();
     this->resetMemory();
   }
 
-  if (this->mConfigDCS.size()) {
+  this->saveMissingToOutput();
+
+  if (this->mConfigDCS.size() && this->mDeadMap.size()) {
+    LOG(info) << "Pushing to CCDB...\n";
     this->pushToCCDB(pc);
     this->mConfigDCS.clear();
   }
+
+  // Reset saved information for the next EOR file
+  this->mRunNumber = UNSET_INT;
+  this->mConfigVersion = UNSET_INT;
+  this->mRunType = UNSET_SHORT;
 
   return;
 }
@@ -82,6 +94,7 @@ void ITSDCSParser::run(ProcessingContext& pc)
 //////////////////////////////////////////////////////////////////////////////
 void ITSDCSParser::updateMemoryFromInputString(const std::string& inString)
 {
+
   // Print the entire string if verbose mode is requested
   if (this->mVerboseOutput) {
     LOG(info) << "Parsing string: " << inString;
@@ -89,6 +102,7 @@ void ITSDCSParser::updateMemoryFromInputString(const std::string& inString)
 
   // Parse the individual parts of the string
   const std::string delimiter = "|";
+  const std::string terminator = "!";
   size_t pos = 0;
   size_t npos = inString.find(delimiter);
   if (npos == std::string::npos) {
@@ -98,6 +112,14 @@ void ITSDCSParser::updateMemoryFromInputString(const std::string& inString)
 
   // First is the stave name
   this->mStaveName = inString.substr(pos, npos);
+  this->mSavedStaves.push_back(this->mStaveName);
+
+  // Control the integrity of the string
+  this->mTerminationString = true;
+  if (inString.back() != '!') {
+    this->mTerminationString = false;
+    LOG(warning) << "Terminator not found, possibly incomplete data for stave " << this->mStaveName << " !";
+  }
 
   // Next is the run number
   if (!this->updatePosition(pos, npos, delimiter, "RUN", inString)) {
@@ -144,6 +166,21 @@ void ITSDCSParser::updateMemoryFromInputString(const std::string& inString)
     return;
   }
   std::string doubleColsEORstr = inString.substr(pos);
+
+  // In this case the terminator is missing and the DCOLS_EOR field is empty:
+  // the stave is passed whitout meaningful infos
+  if (doubleColsEORstr == "|") {
+    this->writeChipInfo(this->mStaveName, -1);
+    o2::dcs::addConfigItem(this->mConfigDCS, "String_OK", this->mTerminationString);
+  }
+  // Eliminate all the chars after the last ";":
+  // If the string is complete this has no effect on the saved object
+  // If the string is incomplete this avoids saving wrong data
+  size_t pos_del = doubleColsEORstr.rfind(';');
+  if (pos_del != std::string::npos) {
+    doubleColsEORstr = doubleColsEORstr.erase(pos_del);
+  }
+
   if (doubleColsEORstr.length()) {
     std::vector<std::string> bigVect = this->vectorizeStringList(doubleColsEORstr, "&");
     for (const std::string& bigStr : bigVect) {
@@ -155,6 +192,9 @@ void ITSDCSParser::updateMemoryFromInputString(const std::string& inString)
       // First, update map of disabled double columns at EOR
       std::vector<std::string> doubleColDisable = this->vectorizeStringList(bigVectSplit[0], ";");
       for (const std::string& str : doubleColDisable) {
+        if (str == '!') {
+          continue; // protection needed to avoid to pass '!' to std::stoi() in vectorizeStringListInt()
+        }
         std::vector<unsigned short int> doubleColDisableVector = this->vectorizeStringListInt(str, ":");
         this->mDoubleColsDisableEOR[doubleColDisableVector[0]].push_back(doubleColDisableVector[1]);
       }
@@ -184,7 +224,11 @@ bool ITSDCSParser::updatePosition(size_t& pos, size_t& npos,
 
     // Check that npos does not go out-of-bounds
     if (npos == std::string::npos) {
-      LOG(error) << "Delimiter not found, possibly corrupted data!";
+      LOG(error) << "Delimiter not found, possibly corrupted data for stave " << this->mStaveName << " !";
+      // If the last word is not complete and the terminator is missing the stave is saved as a stave
+      this->writeChipInfo(this->mStaveName, -1);
+      o2::dcs::addConfigItem(this->mConfigDCS, "String_OK", this->mTerminationString);
+
       return false;
     }
 
@@ -204,7 +248,7 @@ void ITSDCSParser::updateAndCheck(int& memValue, const int newValue)
     memValue = newValue;
   } else if (memValue != newValue) {
     // Different value received than the one saved in memory -- throw error
-    throw newValue;
+    throw std::runtime_error(fmt::format("New value {} differs from old value {}", newValue, memValue));
   }
 
   return;
@@ -219,7 +263,7 @@ void ITSDCSParser::updateAndCheck(short int& memValue, const short int newValue)
     memValue = newValue;
   } else if (memValue != newValue) {
     // Different value received than the one saved in memory -- throw error
-    throw newValue;
+    throw std::runtime_error(fmt::format("New value {} differs from old value {}", newValue, memValue));
   }
 
   return;
@@ -269,7 +313,7 @@ void ITSDCSParser::saveToOutput()
   // First loop through the disabled chips to write these to the string
   for (const unsigned short int& chipID : this->mDisabledChips) {
     // Write basic chip info
-    this->writeChipInfo(this->mConfigDCS, this->mStaveName, chipID);
+    this->writeChipInfo(this->mStaveName, chipID);
 
     // Mark chip as disabled
     o2::dcs::addConfigItem(this->mConfigDCS, "Disabled", "1");
@@ -278,6 +322,7 @@ void ITSDCSParser::saveToOutput()
     o2::dcs::addConfigItem(this->mConfigDCS, "Dcol_masked", "-1");
     o2::dcs::addConfigItem(this->mConfigDCS, "Dcol_masked_eor", "-1");
     o2::dcs::addConfigItem(this->mConfigDCS, "Pixel_flags", "-1");
+    o2::dcs::addConfigItem(this->mConfigDCS, "String_OK", this->mTerminationString);
 
     // Ensure that chips are removed from the maps
     mDoubleColsDisableEOR.erase(chipID);
@@ -290,7 +335,7 @@ void ITSDCSParser::saveToOutput()
     maskedDoubleCols.erase(maskedDoubleCols.begin());
 
     // Write basic chip info
-    this->writeChipInfo(this->mConfigDCS, this->mStaveName, chipID);
+    this->writeChipInfo(this->mStaveName, chipID);
     o2::dcs::addConfigItem(this->mConfigDCS, "Disabled", "0");
 
     // Write information for disabled double columns
@@ -303,31 +348,52 @@ void ITSDCSParser::saveToOutput()
     o2::dcs::addConfigItem(
       this->mConfigDCS, "Pixel_flags", this->intVecToStr(this->mPixelFlagsEOR[chipID], "|"));
     this->mPixelFlagsEOR.erase(chipID);
+    o2::dcs::addConfigItem(this->mConfigDCS, "String_OK", this->mTerminationString);
   }
 
   // Finally, loop through any remaining chips
   for (const auto& [chipID, v] : this->mDoubleColsDisableEOR) {
     std::string s = this->intVecToStr(v, "|");
     if (s != "-1") { // Ensure no meaningless entries
-      this->writeChipInfo(this->mConfigDCS, this->mStaveName, chipID);
+      this->writeChipInfo(this->mStaveName, chipID);
       o2::dcs::addConfigItem(this->mConfigDCS, "Disabled", "0");
       o2::dcs::addConfigItem(this->mConfigDCS, "Dcol_masked", "-1");
       o2::dcs::addConfigItem(this->mConfigDCS, "Dcol_masked_eor", this->intVecToStr(v, "|"));
       o2::dcs::addConfigItem(
         this->mConfigDCS, "Pixel_flags", this->intVecToStr(this->mPixelFlagsEOR[chipID], "|"));
       this->mPixelFlagsEOR.erase(chipID);
+      o2::dcs::addConfigItem(this->mConfigDCS, "String_OK", this->mTerminationString);
     }
   }
 
   for (const auto& [chipID, v] : this->mPixelFlagsEOR) {
     std::string s = this->intVecToStr(v, "|");
     if (s != "-1") { // Ensure no meaningless entries
-      this->writeChipInfo(this->mConfigDCS, this->mStaveName, chipID);
+      this->writeChipInfo(this->mStaveName, chipID);
       o2::dcs::addConfigItem(this->mConfigDCS, "Disabled", "0");
       o2::dcs::addConfigItem(this->mConfigDCS, "Dcol_masked", "-1");
       o2::dcs::addConfigItem(this->mConfigDCS, "Dcol_masked_eor", "-1");
       o2::dcs::addConfigItem(this->mConfigDCS, "Pixel_flags", this->intVecToStr(v, "|"));
+      o2::dcs::addConfigItem(this->mConfigDCS, "String_OK", this->mTerminationString);
     }
+  }
+  return;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+void ITSDCSParser::saveMissingToOutput()
+{
+  // Loop on the missing staves
+  std::vector<string> missingStaves;
+  std::vector<string> listStaves = this->listStaves();
+  std::vector<string> savedStaves = this->mSavedStaves;
+  std::sort(savedStaves.begin(), savedStaves.end());
+  std::set_difference(listStaves.begin(), listStaves.end(), savedStaves.begin(), savedStaves.end(),
+                      std::inserter(missingStaves, missingStaves.begin()));
+
+  for (std::string stave : missingStaves) {
+    this->writeChipInfo(stave, -1);
+    o2::dcs::addConfigItem(this->mConfigDCS, "String_OK", "-1");
   }
 
   return;
@@ -366,24 +432,32 @@ std::string ITSDCSParser::intVecToStr(
 //////////////////////////////////////////////////////////////////////////////
 // Write the Stave, Hs_pos, Hic_pos, and ChipID to the config object
 void ITSDCSParser::writeChipInfo(
-  o2::dcs::DCSconfigObject_t& configObj, const std::string& staveName,
-  const unsigned short int chipID)
+  const std::string& staveName, const short int chipID)
 {
-  // First save the Stave to the string
-  o2::dcs::addConfigItem(configObj, "Stave", staveName);
+  // Stave present in the EOR data and all the "worlds" correctly read
+  if (chipID != -1) {
+    // First save the Stave to the string
+    o2::dcs::addConfigItem(this->mConfigDCS, "Stave", staveName);
+    unsigned short int hicPos = getModule(chipID);
+    bool hsPos = getHS(chipID);
+    o2::dcs::addConfigItem(this->mConfigDCS, "Hs_pos", std::to_string(hsPos));
+    o2::dcs::addConfigItem(this->mConfigDCS, "Hic_pos", std::to_string(hicPos));
 
-  // Hs_pos: 0 is lower, 1 is upper
-  // Hic_pos: from 1 to 7 (module number)
-  unsigned short int hicPos = chipID / 16;
-  bool hsPos = (hicPos > 7);
-  if (hsPos) {
-    hicPos -= 8;
+    // Chip ID inside the module
+    o2::dcs::addConfigItem(this->mConfigDCS, "ChipID", std::to_string(chipID % 16));
   }
-  o2::dcs::addConfigItem(configObj, "Hs_pos", std::to_string(hsPos));
-  o2::dcs::addConfigItem(configObj, "Hic_pos", std::to_string(hicPos));
 
-  // Chip ID inside the module
-  o2::dcs::addConfigItem(configObj, "ChipID", std::to_string(chipID % 16));
+  // Stave missing in the EOR data or "word" non cottectly read
+  else {
+    o2::dcs::addConfigItem(this->mConfigDCS, "Stave", staveName);
+    o2::dcs::addConfigItem(this->mConfigDCS, "Hs_pos", "-1");
+    o2::dcs::addConfigItem(this->mConfigDCS, "Hic_pos", "-1");
+    o2::dcs::addConfigItem(this->mConfigDCS, "ChipID", "-1");
+    o2::dcs::addConfigItem(this->mConfigDCS, "Disabled", "-1");
+    o2::dcs::addConfigItem(this->mConfigDCS, "Dcol_masked", "-1");
+    o2::dcs::addConfigItem(this->mConfigDCS, "Dcol_masked_eor", "-1");
+    o2::dcs::addConfigItem(this->mConfigDCS, "Pixel_flags", "-1");
+  }
 
   return;
 }
@@ -392,22 +466,41 @@ void ITSDCSParser::writeChipInfo(
 void ITSDCSParser::pushToCCDB(ProcessingContext& pc)
 {
   // Timestamps for CCDB entry
-  long tstart = o2::ccdb::getCurrentTimestamp();
-  long tend = tstart + 365L * 24 * 3600 * 1000;
+  long tstart = 0, tend = 0;
+  // retireve run start/stop times from CCDB
+  o2::ccdb::CcdbApi api;
+  api.init("http://alice-ccdb.cern.ch");
+  // Initialize empty metadata object for search
+  std::map<std::string, std::string> metadata;
+  std::map<std::string, std::string> headers = api.retrieveHeaders(
+    "RCT/Info/RunInformation", metadata, this->mRunNumber);
+  if (headers.empty()) { // No CCDB entry is found
+    LOG(error) << "Failed to retrieve headers from CCDB with run number " << this->mRunNumber
+               << "\nWill default to using the current time for timestamp information";
+    tstart = o2::ccdb::getCurrentTimestamp();
+    tend = tstart + 365L * 24 * 3600 * 1000;
+  } else {
+    tstart = std::stol(headers["SOR"]);
+    tend = std::stol(headers["EOR"]);
+  }
 
   auto class_name = o2::utils::MemFileHelper::getClassName(mConfigDCS);
+  auto class_name_deadMap = o2::utils::MemFileHelper::getClassName(mDeadMap);
 
   // Create metadata for database object
-  std::map<std::string, std::string> md = {
-    {"runtype", std::to_string(this->mRunType)}, {"confDBversion", std::to_string(this->mConfigVersion)}};
-  if (!mCcdbUrl.empty()) { // add only if we write here otherwise ccdb-populator-wf add it already
-    md.insert({"runNumber", std::to_string(this->mRunNumber)});
-  }
-  std::string path("ITS/DCS_CONFIG/");
+  metadata = {{"runtype", std::to_string(this->mRunType)}, {"confDBversion", std::to_string(this->mConfigVersion)}, {"runNumber", std::to_string(this->mRunNumber)}};
+
+  std::string path("ITS/Calib/DCS_CONFIG");
+  std::string path_deadMap("ITS/Calib/DeadMap");
   const char* filename = "dcs_config.root";
-  o2::ccdb::CcdbObjectInfo info(path, "dcs_config", filename, md, tstart, tend);
+  long current_time = o2::ccdb::getCurrentTimestamp();
+  std::string filename_deadMap = "o2-itsmft-NoiseMap_" + std::to_string(current_time) + ".root";
+  o2::ccdb::CcdbObjectInfo info(path, "dcs_config", filename, metadata, tstart, tend);
+  o2::ccdb::CcdbObjectInfo info_deadMap(path_deadMap, "noise_map", filename_deadMap, metadata, tstart - o2::ccdb::CcdbObjectInfo::MINUTE, tend + 5 * o2::ccdb::CcdbObjectInfo::MINUTE);
   auto image = o2::ccdb::CcdbApi::createObjectImage(&mConfigDCS, &info);
+  auto image_deadMap = o2::ccdb::CcdbApi::createObjectImage(&mDeadMap, &info_deadMap);
   info.setFileName(filename);
+  info_deadMap.setFileName(filename_deadMap);
 
   // Send to ccdb-populator wf
   LOG(info) << "Class Name: " << class_name << " | File Name: " << filename
@@ -432,7 +525,120 @@ void ITSDCSParser::pushToCCDB(ProcessingContext& pc)
       info.getMetaData(), info.getStartValidityTimestamp(), info.getEndValidityTimestamp());
   }
 
+  // Send dead chips map to ccdb-populator wf
+  LOG(info) << "Class Name: " << class_name_deadMap << " | File Name: " << filename_deadMap
+            << "\nSending to ccdb-populator the object " << info_deadMap.getPath() << "/" << info_deadMap.getFileName()
+            << " of size " << image_deadMap->size() << " bytes, valid for "
+            << info_deadMap.getStartValidityTimestamp() << " : "
+            << info_deadMap.getEndValidityTimestamp();
+
+  if (mCcdbUrl.empty()) {
+
+    pc.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "DCS_CONFIG", 1}, *image_deadMap);
+    pc.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "DCS_CONFIG", 1}, info_deadMap);
+
+  } else { // if url is specified, send object to ccdb from THIS wf
+
+    LOG(info) << "Sending object " << info_deadMap.getFileName() << " to " << mCcdbUrl << "/browse/"
+              << info_deadMap.getPath() << " from the ITS string parser workflow";
+    o2::ccdb::CcdbApi mApi;
+    mApi.init(mCcdbUrl);
+    mApi.storeAsBinaryFile(
+      &image_deadMap->at(0), image_deadMap->size(), info_deadMap.getFileName(), info_deadMap.getObjectType(), info_deadMap.getPath(),
+      info_deadMap.getMetaData(), info_deadMap.getStartValidityTimestamp(), info_deadMap.getEndValidityTimestamp());
+  }
+
   return;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+std::vector<std::string> ITSDCSParser::listStaves()
+{
+  std::vector<std::string> vecStaves = {};
+  int stavesPerLayer[] = {12, 16, 20, 24, 30, 42, 48};
+  std::string stavenum = "";
+  for (int i = 0; i < 7; i++) {
+    for (int j = 0; j < stavesPerLayer[i]; j++) {
+      string stavestring = std::to_string(j);
+      int precision = 2 - std::min(2, (int)(stavestring.size()));
+      stavenum = std::string(precision, '0').append(std::to_string(j));
+      std::string stave = "L" + std::to_string(i) + "_" + stavenum;
+      vecStaves.push_back(stave);
+    }
+  }
+  return vecStaves;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+void ITSDCSParser::appendDeadChipObj()
+{
+  // Append an object to the deadMap
+
+  for (auto ch : this->mDisabledChips) {
+
+    unsigned short int hicPos = getModule(ch);
+    bool hS = getHS(ch);
+    unsigned short int chipInMod = ch % 16;
+
+    unsigned short int globchipID = getGlobalChipID(hicPos, hS, chipInMod);
+    this->mDeadMap.maskFullChip(globchipID);
+    LOG(info) << "Masking dead chip " << globchipID;
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+unsigned short int ITSDCSParser::getGlobalChipID(unsigned short int hicPos, bool hS, unsigned short int chipInMod)
+{
+  // Find the global ID of a chip (0->24119)
+  std::vector<unsigned short int> stavesPerLayer = {12, 16, 20, 24, 30, 42, 48};
+  std::vector<unsigned short int> chipPerStave = {9, 9, 9, 112, 112, 196, 196};
+  std::vector<unsigned short int> maxChipIDlayer = {0};
+  int maxChip = 0;
+  for (int i = 0; i < 7; i++) {
+    maxChip += stavesPerLayer[i] * chipPerStave[i];
+    maxChipIDlayer.push_back(maxChip - 1);
+  }
+
+  unsigned short int layerNum = std::stoi(this->mStaveName.substr(1, 1));
+  unsigned short int staveNum = std::stoi(this->mStaveName.substr(3, 2));
+
+  unsigned short int chipid_in_HIC = ((layerNum > 2 && chipInMod > 7) || layerNum == 0) ? chipInMod : chipInMod + 1;
+  unsigned short int modPerLayer = (layerNum > 2 && layerNum < 5) ? 4 : 7;
+  unsigned short int add_HSL = (hS) ? (14 * modPerLayer) : 0;
+
+  unsigned short int chipIDglob = chipid_in_HIC + maxChipIDlayer[layerNum] + (staveNum)*chipPerStave[layerNum] + (hicPos - 1) * 14 + add_HSL;
+
+  return chipIDglob;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+unsigned short int ITSDCSParser::getModule(unsigned short int chipID)
+{
+  // Get the number of the module (1->7)
+  unsigned short int hicPos = 0;
+  if (std::stoi((this->mStaveName).substr(1, 1)) > 2) { // OB case
+    if (chipID / 16 <= 7) {
+      hicPos = chipID / 16;
+    } else {
+      hicPos = (chipID / 16) - 8;
+    }
+  } else {
+    hicPos = 1; // IB case
+  }
+  return hicPos;
+}
+
+//////////////////////////////////////////////////////////////////////////////
+bool ITSDCSParser::getHS(unsigned short int chipInMod)
+{
+  // Return 0 if the chip is in the HSL, 1 if the chip is in the HSU
+  bool hS;
+  if (chipInMod / 16 <= 7) {
+    hS = 0; // L
+  } else {
+    hS = 1; // U
+  }
+  return hS;
 }
 
 //////////////////////////////////////////////////////////////////////////////

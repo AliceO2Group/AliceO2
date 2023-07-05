@@ -126,7 +126,7 @@ fi
 if [ "$dodigi" == "1" ]; then
   echo "Running digitization for $intRate kHz interaction rate"
   intRate=$((1000*(intRate)));
-  taskwrapper digi.log o2-sim-digitizer-workflow $gloOpt --interactionRate $intRate $tpcLanes --configKeyValues "HBFUtils.runNumber=${runNumber}"
+  taskwrapper digi.log o2-sim-digitizer-workflow $gloOpt --interactionRate $intRate $tpcLanes --configKeyValues "HBFUtils.runNumber=${runNumber}" --early-forward-policy always --combine-devices
   echo "Return status of digitization: $?"
   # existing checks
   #root -b -q O2/Detectors/ITSMFT/ITS/macros/test/CheckDigits.C+
@@ -250,6 +250,11 @@ if [ "$doreco" == "1" ]; then
   #needs results of all trackers + P.Vertexer
   taskwrapper svfinder.log o2-secondary-vertexing-workflow $gloOpt
   echo "Return status of secondary vertexing: $?"
+
+  echo "Running strangeness tracking flow"
+  #needs results of S.Vertexer + ITS reco
+  taskwrapper sttracking.log o2-strangeness-tracking-workflow $gloOpt
+  echo "Return status of strangeness tracking: $?"
 
   echo "Producing AOD"
   taskwrapper aod.log o2-aod-producer-workflow $gloOpt --aod-writer-keep dangling --aod-writer-resfile "AO2D" --aod-writer-resmode UPDATE --aod-timeframe-id 1 --run-number 300000

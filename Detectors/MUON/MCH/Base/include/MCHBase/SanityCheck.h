@@ -9,6 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#ifndef O2_MCH_BASE_SANITY_CHECK_H
+#define O2_MCH_BASE_SANITY_CHECK_H
+
 #include "DataFormatsMCH/ROFRecord.h"
 #include "Framework/Logger.h"
 #include <gsl/span>
@@ -81,3 +84,5 @@ SanityError sanityCheck(gsl::span<const ROFRecord> rofs, gsl::span<const T> item
   return error;
 }
 } // namespace o2::mch
+
+#endif

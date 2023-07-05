@@ -38,10 +38,14 @@
 #include "Framework/ChannelSpecHelpers.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
 #include "Framework/RuntimeError.h"
+#include "Framework/RateLimiter.h"
+#include "Framework/Plugins.h"
 #include <Monitoring/Monitoring.h>
 
 #include "TFile.h"
 #include "TTree.h"
+#include "TMap.h"
+#include "TObjString.h"
 
 #include <fairmq/Device.h>
 #include <chrono>
@@ -160,7 +164,7 @@ DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(std::vector<OutputO
       context.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     };
 
-    callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
+    callbacks.set<CallbackService::Id::EndOfStream>(endofdatacb);
     return [inputObjects, objmap, tskmap](ProcessingContext& pc) mutable -> void {
       auto const& ref = pc.inputs().get("x");
       if (!ref.header) {
@@ -286,14 +290,17 @@ DataProcessorSpec
     };
 
     auto& callbacks = ic.services().get<CallbackService>();
-    callbacks.set(CallbackService::Id::EndOfStream, endofdatacb);
+    callbacks.set<CallbackService::Id::EndOfStream>(endofdatacb);
 
     // prepare map<uint64_t, uint64_t>(startTime, tfNumber)
     std::map<uint64_t, uint64_t> tfNumbers;
     std::map<uint64_t, std::string> tfFilenames;
 
+    std::vector<TString> aodMetaDataKeys;
+    std::vector<TString> aodMetaDataVals;
+
     // this functor is called once per time frame
-    return [dod, tfNumbers, tfFilenames](ProcessingContext& pc) mutable -> void {
+    return [dod, tfNumbers, tfFilenames, aodMetaDataKeys, aodMetaDataVals](ProcessingContext& pc) mutable -> void {
       LOGP(debug, "======== getGlobalAODSink::processing ==========");
       LOGP(debug, " processing data set with {} entries", pc.inputs().size());
 
@@ -321,11 +328,22 @@ DataProcessorSpec
         tfFilenames.insert(std::pair<uint64_t, std::string>(startTime, aodInputFile));
       }
 
+      // close all output files if one has reached size limit
+      dod->checkFileSizes();
+
       // loop over the DataRefs which are contained in pc.inputs()
       for (const auto& ref : pc.inputs()) {
         if (!ref.spec) {
           LOGP(debug, "Invalid input will be skipped!");
           continue;
+        }
+
+        // get metadata
+        if (DataSpecUtils::partialMatch(*ref.spec, header::DataDescription("AODMetadataKeys"))) {
+          aodMetaDataKeys = pc.inputs().get<std::vector<TString>>(ref.spec->binding);
+        }
+        if (DataSpecUtils::partialMatch(*ref.spec, header::DataDescription("AODMetadataVals"))) {
+          aodMetaDataVals = pc.inputs().get<std::vector<TString>>(ref.spec->binding);
         }
 
         // skip non-AOD refs
@@ -359,7 +377,7 @@ DataProcessorSpec
         // get the TableConsumer and corresponding arrow table
         auto msg = pc.inputs().get(ref.spec->binding);
         if (msg.header == nullptr) {
-          LOGP(error, "No header for message {}:{}", ref.spec->binding, *ref.spec);
+          LOGP(error, "No header for message {}:{}", ref.spec->binding, DataSpecUtils::describe(*ref.spec));
           continue;
         }
         auto s = pc.inputs().get<TableConsumer>(ref.spec->binding);
@@ -381,6 +399,17 @@ DataProcessorSpec
           TableToTree ta2tr(table,
                             fileAndFolder.file,
                             treename.c_str());
+
+          // update metadata
+          if (fileAndFolder.file->FindObjectAny("metaData")) {
+            LOGF(debug, "Metadata: target file %s already has metadata, preserving it", fileAndFolder.file->GetName());
+          } else if (!aodMetaDataKeys.empty() && !aodMetaDataVals.empty()) {
+            TMap aodMetaDataMap;
+            for (uint32_t imd = 0; imd < aodMetaDataKeys.size(); imd++) {
+              aodMetaDataMap.Add(new TObjString(aodMetaDataKeys[imd]), new TObjString(aodMetaDataVals[imd]));
+            }
+            fileAndFolder.file->WriteObject(&aodMetaDataMap, "metaData", "Overwrite");
+          }
 
           if (!d->colnames.empty()) {
             for (auto& cn : d->colnames) {
@@ -512,7 +541,7 @@ DataProcessorSpec CommonDataProcessors::getGlobalFairMQSink(std::vector<InputSpe
   return specifyFairMQDeviceOutputProxy("internal-dpl-injected-output-proxy", danglingOutputInputs, defaultChannelConfig.c_str());
 }
 
-DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> const& danglingOutputInputs, int rateLimitingIPCID)
+DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> const& danglingOutputInputs, std::string rateLimitingChannelConfig)
 {
   return DataProcessorSpec{
     .name = "internal-dpl-injected-dummy-sink",
@@ -523,29 +552,46 @@ DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> cons
         static size_t lastTimeslice = -1;
         auto& timesliceIndex = services.get<TimesliceIndex>();
         auto device = services.get<RawDeviceService>().device();
-        auto channel = device->fChannels.find("metric-feedback");
-        if (channel != device->fChannels.end()) {
+        auto channel = device->GetChannels().find("metric-feedback");
+        auto oldestPossingTimeslice = timesliceIndex.getOldestPossibleOutput().timeslice.value;
+        if (channel != device->GetChannels().end()) {
           fair::mq::MessagePtr payload(device->NewMessage());
           size_t* consumed = (size_t*)malloc(sizeof(size_t));
-          *consumed = timesliceIndex.getOldestPossibleOutput().timeslice.value;
+          *consumed = oldestPossingTimeslice;
           if (*consumed != lastTimeslice) {
             payload->Rebuild(consumed, sizeof(int64_t), nullptr, nullptr);
             channel->second[0].Send(payload);
             lastTimeslice = *consumed;
           }
         }
+        auto& stats = services.get<DataProcessingStats>();
+        stats.updateStats({(int)ProcessingStatsId::CONSUMED_TIMEFRAMES, DataProcessingStats::Op::Set, (int64_t)oldestPossingTimeslice});
       };
-      callbacks.set(CallbackService::Id::DomainInfoUpdated, domainInfoUpdated);
+      callbacks.set<CallbackService::Id::DomainInfoUpdated>(domainInfoUpdated);
 
       return adaptStateless([]() {
       });
     })},
-    .options = rateLimitingIPCID != -1 ? std::vector<ConfigParamSpec>{{"channel-config", VariantType::String, // raw input channel
-                                                                       "name=metric-feedback,type=push,method=bind,address=ipc://" + ChannelSpecHelpers::defaultIPCFolder() + "metric-feedback-" + std::to_string(rateLimitingIPCID) + ",transport=shmem,rateLogging=0",
-                                                                       {"Out-of-band channel config"}}}
-                                       : std::vector<ConfigParamSpec>()
+    .options = !rateLimitingChannelConfig.empty() ? std::vector<ConfigParamSpec>{{"channel-config", VariantType::String, // raw input channel
+                                                                                  rateLimitingChannelConfig,
+                                                                                  {"Out-of-band channel config"}}}
+                                                  : std::vector<ConfigParamSpec>()
 
   };
+}
+
+AlgorithmSpec CommonDataProcessors::wrapWithRateLimiting(AlgorithmSpec spec)
+{
+  return PluginManager::wrapAlgorithm(spec, [](AlgorithmSpec::ProcessCallback& original, ProcessingContext& pcx) -> void {
+    auto& raw = pcx.services().get<RawDeviceService>();
+    static RateLimiter limiter;
+    auto limit = std::stoi(raw.device()->fConfig->GetValue<std::string>("timeframes-rate-limit"));
+    LOG(detail) << "Rate limiting to " << limit << " timeframes in flight";
+    limiter.check(pcx, limit, 2000);
+    LOG(detail) << "Rate limiting passed. Invoking old callback";
+    original(pcx);
+    LOG(detail) << "Rate limited callback done";
+  });
 }
 
 #pragma GCC diagnostic pop

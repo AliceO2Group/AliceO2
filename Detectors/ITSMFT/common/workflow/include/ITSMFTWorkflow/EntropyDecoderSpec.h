@@ -53,6 +53,7 @@ class EntropyDecoderSpec : public o2::framework::Task
   bool mGetDigits{false};
   bool mMaskNoise{false};
   bool mUseClusterDictionary{true};
+  std::string mDetPrefix{};
 
   std::string mCTFDictPath{};
   TStopwatch mTimer;

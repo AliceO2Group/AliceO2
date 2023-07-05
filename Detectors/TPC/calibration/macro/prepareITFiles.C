@@ -45,7 +45,7 @@ void prepareCMFiles(const std::string_view itDataFile, std::string outputDir = "
     if (itDataFile.find("cdb-test") == 0) {
       cdb.setURL("http://ccdb-test.cern.ch:8080");
     } else if (itDataFile.find("cdb-prod") == 0) {
-      cdb.setURL("https://alice-ccdb.cern.ch");
+      cdb.setURL("http://alice-ccdb.cern.ch");
     }
     const auto timePos = itDataFile.find("@");
     if (timePos != std::string_view::npos) {

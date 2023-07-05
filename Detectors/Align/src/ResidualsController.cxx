@@ -25,19 +25,10 @@
 
 using namespace TMath;
 
-ClassImp(o2::align::ResidualsController);
-
 namespace o2
 {
 namespace align
 {
-
-//____________________________________
-ResidualsController::ResidualsController()
-  : mRun(0), mBz(0), mTimeStamp(0), mTrackID(0), mNPoints(0), mNBook(0), mChi2(0), mChi2Ini(0), mChi2K(0), mQ2Pt(0), mX(nullptr), mY(nullptr), mZ(nullptr), mSnp(nullptr), mTgl(nullptr), mAlpha(nullptr), mDY(nullptr), mDZ(nullptr), mDYK(nullptr), mDZK(nullptr), mSigY2(nullptr), mSigYZ(nullptr), mSigZ2(nullptr), mSigY2K(nullptr), mSigYZK(nullptr), mSigZ2K(nullptr), mVolID(nullptr), mLabel(nullptr)
-{
-  // def c-tor
-}
 
 //________________________________________________
 ResidualsController::~ResidualsController()
@@ -130,15 +121,13 @@ void ResidualsController::resize(int np)
 }
 
 //____________________________________________
-void ResidualsController::Clear(const Option_t*)
+void ResidualsController::clear()
 {
   // reset record
-  TObject::Clear();
-  ResetBit(0xffffffff);
+  mBits = 0;
   mNPoints = 0;
-  mRun = 0;
-  mTimeStamp = 0;
-  mTrackID = 0;
+  mRunNumber = 0;
+  mFirstTFOrbit = 0;
   mChi2 = 0;
   mChi2K = 0;
   mQ2Pt = 0;
@@ -146,20 +135,17 @@ void ResidualsController::Clear(const Option_t*)
 }
 
 //____________________________________________
-void ResidualsController::Print(const Option_t* opt) const
+void ResidualsController::print(const Option_t* opt) const
 {
   // print info
   TString opts = opt;
   opts.ToLower();
   bool lab = opts.Contains("l");
+  printf("Track %s TForbit:%d Run:%d\n", mTrackID.asString().c_str(), mFirstTFOrbit, mRunNumber);
   printf("%5sTr.", isCosmic() ? "Cosm." : "Coll.");
-  if (isCosmic()) {
-    printf("%2d/%2d ", mTrackID >> 16, mTrackID & 0xffff);
-  } else {
-    printf("%5d ", mTrackID);
-  }
-  printf("Run:%6d Bz:%+4.1f Np: %3d q/Pt:%+.4f | Chi2: Ini: %6.1f LinSol:%6.1f Kalm:%6.1f |Vtx:%3s| TStamp:%d\n",
-         mRun, mBz, mNPoints, mQ2Pt, mChi2Ini, mChi2, mChi2K, hasVertex() ? "ON" : "OFF", mTimeStamp);
+  // in case of cosmic, other leg should be shown
+  printf("Run:%6d Bz:%+4.1f Np: %3d q/Pt:%+.4f | Chi2: Ini: %6.1f LinSol:%6.1f Kalm:%6.1f |Vtx:%3s\n",
+         mRunNumber, mBz, mNPoints, mQ2Pt, mChi2Ini, mChi2, mChi2K, hasVertex() ? "ON" : "OFF");
   if (opts.Contains("r")) {
     bool ers = opts.Contains("e");
     printf("%5s %7s %s %7s %7s %7s %5s %5s %9s %9s",
@@ -198,11 +184,11 @@ void ResidualsController::Print(const Option_t* opt) const
 }
 
 //____________________________________________________________
-bool ResidualsController::fillTrack(AlignmentTrack* trc, bool doKalman)
+bool ResidualsController::fillTrack(AlignmentTrack& trc, bool doKalman)
 {
   // fill tracks residuals info
-  int nps, np = trc->getNPoints();
-  if (trc->getInnerPoint()->containsMeasurement()) {
+  int nps, np = trc.getNPoints();
+  if (trc.getInnerPoint()->containsMeasurement()) {
     setHasVertex();
     nps = np;
   } else {
@@ -211,15 +197,15 @@ bool ResidualsController::fillTrack(AlignmentTrack* trc, bool doKalman)
   if (nps < 0) {
     return true;
   }
-  setCosmic(trc->isCosmic());
+  setCosmic(trc.isCosmic());
   //
   setNPoints(nps);
-  mQ2Pt = trc->getQ2Pt();
-  mChi2 = trc->getChi2();
-  mChi2Ini = trc->getChi2Ini();
+  mQ2Pt = trc.getQ2Pt();
+  mChi2 = trc.getChi2();
+  mChi2Ini = trc.getChi2Ini();
   int nfill = 0;
   for (int i = 0; i < np; i++) {
-    AlignmentPoint* pnt = trc->getPoint(i);
+    auto pnt = trc.getPoint(i);
     int inv = pnt->isInvDir() ? -1 : 1; // Flag invertion for cosmic upper leg
     if (!pnt->containsMeasurement()) {
       continue;
@@ -230,7 +216,7 @@ bool ResidualsController::fillTrack(AlignmentTrack* trc, bool doKalman)
     mVolID[nfill] = pnt->getVolID();
     mLabel[nfill] = pnt->getSensor()->getInternalID();
     mAlpha[nfill] = pnt->getAlphaSens();
-    mX[nfill] = pnt->getXPoint() * inv;
+    mX[nfill] = pnt->getXTracking() * inv;
     mY[nfill] = pnt->getYTracking();
     mZ[nfill] = pnt->getZTracking();
     mDY[nfill] = pnt->getResidY();
@@ -245,15 +231,15 @@ bool ResidualsController::fillTrack(AlignmentTrack* trc, bool doKalman)
     nfill++;
   }
   if (nfill != nps) {
-    trc->Print("p");
+    trc.Print("p");
     LOG(fatal) << nfill << " residuals were stored instead of " << nps;
   }
   //
   setKalmanDone(false);
   int nfilk = 0;
-  if (doKalman && trc->residKalman()) {
+  if (doKalman && trc.residKalman()) {
     for (int i = 0; i < np; i++) {
-      AlignmentPoint* pnt = trc->getPoint(i);
+      AlignmentPoint* pnt = trc.getPoint(i);
       if (!pnt->containsMeasurement()) {
         continue;
       }
@@ -270,7 +256,7 @@ bool ResidualsController::fillTrack(AlignmentTrack* trc, bool doKalman)
       nfilk++;
     }
     //
-    mChi2K = trc->getChi2();
+    mChi2K = trc.getChi2();
     setKalmanDone(true);
   }
 

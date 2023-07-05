@@ -118,6 +118,15 @@ bool Compressor<RDH, verbose, paranoid>::processHBF()
   mEncoderRDH = reinterpret_cast<RDH*>(mEncoderPointer);
   auto rdh = mDecoderRDH;
 
+  if (!o2::raw::RDHUtils::checkRDH(rdh, false)) {
+    LOG(error) << "Bad RDH found in TOF compressor -> skip it";
+    o2::raw::RDHUtils::checkRDH(rdh, true);
+    return true;
+  }
+
+  uint8_t rdhFormat = o2::raw::RDHUtils::getDataFormat(mDecoderPointer);
+  setDecoderCRUZEROES(!rdhFormat);
+
   /** check that we got the first RDH open **/
   if (!rdh || rdh->stop || rdh->pageCnt != 0) {
     std::cout << colorRed
@@ -153,6 +162,17 @@ bool Compressor<RDH, verbose, paranoid>::processHBF()
     auto memorySize = rdh->memorySize;
     auto offsetToNext = rdh->offsetToNext;
     auto drmPayload = memorySize - headerSize;
+
+    if (drmPayload < 0) {
+      LOG(error) << "link = " << rdh->feeId << ": memorySize  < headerSize (" << memorySize << " < " << headerSize << ")";
+      return true;
+    }
+
+    if (mDecoderSaveBufferDataSize + drmPayload >= mDecoderSaveBufferSize) {
+      // avoid to allocate memory out of the buffer
+      LOG(error) << "link = " << rdh->feeId << ": beyond the buffer size " << mDecoderSaveBufferSize;
+      return true;
+    }
 
     /** copy DRM payload to save buffer **/
     std::memcpy(mDecoderSaveBuffer + mDecoderSaveBufferDataSize, reinterpret_cast<const char*>(rdh) + headerSize, drmPayload);
@@ -436,7 +456,7 @@ bool Compressor<RDH, verbose, paranoid>::processDRM()
       decoderNext();
 
       /** filler detected **/
-      if ((mDecoderPointer < mDecoderPointerMax) && IS_FILLER(*mDecoderPointer)) {
+      while ((mDecoderPointer < mDecoderPointerMax) && IS_FILLER(*mDecoderPointer)) {
         if (verbose && mDecoderVerbose) {
           printf(" %08x Filler \n", *mDecoderPointer);
         }
@@ -791,7 +811,9 @@ bool Compressor<RDH, verbose, paranoid>::decoderParanoid()
   /** decoder paranoid **/
 
   if (mDecoderPointer >= mDecoderPointerMax) {
-    printf("%s %08x [ERROR] fatal error: beyond memory size %s \n", colorRed, *mDecoderPointer, colorReset);
+    if (verbose) {
+      printf("%s %08x [ERROR] fatal error: beyond memory size %s \n", colorRed, *mDecoderPointer, colorReset);
+    }
     mDecoderFatal = true;
     return true;
   }
@@ -1038,7 +1060,7 @@ bool Compressor<RDH, verbose, paranoid>::checkerCheck()
 
   /** check DRM event words (careful with pointers because we have 64 bits extra! only for CRU data! **/
   auto drmEventWords = mDecoderSummary.drmDataTrailer - mDecoderSummary.drmDataHeader + 1;
-  if (!mDecoderCONET) {
+  if (mDecoderNextWordStep) {
     drmEventWords -= (drmEventWords / 4) * 2;
   }
   drmEventWords -= 6;
@@ -1199,7 +1221,7 @@ bool Compressor<RDH, verbose, paranoid>::checkerCheck()
 
     /** check TRM event words (careful with pointers because we have 64 bits extra! only for CRU data! **/
     auto trmEventWords = mDecoderSummary.trmDataTrailer[itrm] - mDecoderSummary.trmDataHeader[itrm] + 1;
-    if (!mDecoderCONET) {
+    if (mDecoderNextWordStep) {
       trmEventWords -= (trmEventWords / 4) * 2;
     }
     if (verbose && mCheckerVerbose) {
@@ -1435,10 +1457,10 @@ void Compressor<RDH, verbose, paranoid>::checkSummary()
   printf("\n");
 }
 
-template class Compressor<o2::header::RAWDataHeaderV6, false, false>;
-template class Compressor<o2::header::RAWDataHeaderV6, false, true>;
-template class Compressor<o2::header::RAWDataHeaderV6, true, false>;
-template class Compressor<o2::header::RAWDataHeaderV6, true, true>;
+template class Compressor<o2::header::RAWDataHeader, false, false>;
+template class Compressor<o2::header::RAWDataHeader, false, true>;
+template class Compressor<o2::header::RAWDataHeader, true, false>;
+template class Compressor<o2::header::RAWDataHeader, true, true>;
 
 } // namespace tof
 } // namespace o2

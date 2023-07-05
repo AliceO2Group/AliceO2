@@ -15,6 +15,7 @@
 #include <array>
 #include <map>
 #include <cassert>
+#include <gsl/span>
 #include <filesystem>
 namespace fs = std::filesystem;
 
@@ -112,12 +113,9 @@ void writeValues(const std::string_view fileName, const DataMap& map, bool onlyF
   }
 }
 
-/// create cal pad object from HW value file
-///
-/// if outputFile is set, write the object to file
-/// if calPadName is set use it for the object name in the file. Otherwise the basename of the fileName is used
+/// fill cal pad object from HW value stream
 template <uint32_t SignificantBitsT = 2>
-o2::tpc::CalDet<float> getCalPad(const std::string_view fileName, const std::string_view outputFile = "", std::string_view calPadName = "")
+int fillCalPad(CalDet<float>& calPad, std::istream& infile)
 {
   using namespace o2::tpc;
   const auto& mapper = Mapper::instance();
@@ -127,19 +125,11 @@ o2::tpc::CalDet<float> getCalPad(const std::string_view fileName, const std::str
   int sampaOnFEC{0};
   int channelOnSAMPA{0};
   std::string values;
-  if (!calPadName.size()) {
-    calPadName = fs::path(fileName.data()).stem().c_str();
-  }
-  CalDet<float> calPad(calPadName);
+  int nLines{0};
 
   std::string line;
-  std::ifstream infile(fileName.data(), std::ifstream::in);
-  if (!infile.is_open()) {
-    std::cout << "could not open file " << fileName << "\n";
-    return calPad;
-  }
-
   while (std::getline(infile, line)) {
+    ++nLines;
     std::stringstream streamLine(line);
     streamLine >> cruID >> globalLinkID >> values;
 
@@ -153,11 +143,57 @@ o2::tpc::CalDet<float> getCalPad(const std::string_view fileName, const std::str
     for (const auto& val : utils::tokenize(values, ",")) {
       const auto& [sampaOnFEC, channelOnSAMPA] = getSampaInfo(hwChannel, cru);
       const PadROCPos padROCPos = mapper.padROCPos(cru, fecInPartition, sampaOnFEC, channelOnSAMPA);
-      const float set = fixedSizeToFloat<SignificantBitsT>(uint32_t(std::stoi(val)));
-      calPad.getCalArray(padROCPos.getROC()).setValue(padROCPos.getRow(), padROCPos.getPad(), set);
+      if constexpr (SignificantBitsT == 0) {
+        const float set = std::stof(val);
+        calPad.getCalArray(padROCPos.getROC()).setValue(padROCPos.getRow(), padROCPos.getPad(), set);
+      } else {
+        const float set = fixedSizeToFloat<SignificantBitsT>(uint32_t(std::stoi(val)));
+        calPad.getCalArray(padROCPos.getROC()).setValue(padROCPos.getRow(), padROCPos.getPad(), set);
+      }
       ++hwChannel;
     }
   }
+
+  return nLines;
+}
+
+/// fill cal pad object from HW value buffer
+template <uint32_t SignificantBitsT = 2>
+int fillCalPad(CalDet<float>& calPad, gsl::span<const char> data)
+{
+  struct membuf : std::streambuf {
+    membuf(char* base, std::ptrdiff_t n)
+    {
+      this->setg(base, base, base + n);
+    }
+  };
+  membuf sbuf((char*)data.data(), data.size());
+  std::istream in(&sbuf);
+
+  return fillCalPad(calPad, in);
+}
+
+/// create cal pad object from HW value file
+///
+/// if outputFile is set, write the object to file
+/// if calPadName is set use it for the object name in the file. Otherwise the basename of the fileName is used
+template <uint32_t SignificantBitsT = 2>
+o2::tpc::CalDet<float> getCalPad(const std::string_view fileName, const std::string_view outputFile = "", std::string_view calPadName = "")
+{
+  using namespace o2::tpc;
+
+  if (!calPadName.size()) {
+    calPadName = fs::path(fileName.data()).stem().c_str();
+  }
+  CalDet<float> calPad(calPadName);
+
+  std::ifstream infile(fileName.data(), std::ifstream::in);
+  if (!infile.is_open()) {
+    LOGP(error, "could not open file {}", fileName);
+    return calPad;
+  }
+
+  fillCalPad(calPad, infile);
 
   if (outputFile.size()) {
     TFile f(outputFile.data(), "recreate");

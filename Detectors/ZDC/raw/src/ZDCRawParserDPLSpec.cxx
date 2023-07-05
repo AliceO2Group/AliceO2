@@ -21,6 +21,7 @@
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "CCDB/CcdbApi.h"
 #include "DPLUtils/DPLRawParser.h"
+#include "DetectorsRaw/RDHUtils.h"
 #include "Framework/Logger.h"
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -32,12 +33,14 @@
 #include "DataFormatsZDC/ChannelData.h"
 #include "DataFormatsZDC/OrbitData.h"
 #include "DataFormatsZDC/RecEvent.h"
+#include "DataFormatsZDC/RawEventData.h"
 #include "CommonUtils/NameConf.h"
 #include "CommonUtils/MemFileHelper.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "ZDCBase/ModuleConfig.h"
 #include "ZDCRaw/ZDCRawParserDPLSpec.h"
+#include "ZDCSimulation/Digits2Raw.h"
 
 using namespace o2::framework;
 
@@ -81,8 +84,8 @@ void ZDCRawParserDPLSpec::run(ProcessingContext& pc)
   static uint64_t nErr[3] = {0};
   for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
     // Processing each page
-    auto rdhPtr = it.get_if<o2::header::RAWDataHeader>();
-    if (rdhPtr == nullptr) {
+    auto rdhPtr = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
+    if (rdhPtr == nullptr || !o2::raw::RDHUtils::checkRDH(rdhPtr, true)) {
       nErr[0]++;
       if (nErr[0] < 5) {
         LOG(warning) << "ZDCDataReaderDPLSpec::run - Missing RAWDataHeader on page " << count;
@@ -95,7 +98,6 @@ void ZDCRawParserDPLSpec::run(ProcessingContext& pc)
       } else if (it.size() == 0) {
         nErr[2]++;
       } else {
-        auto const* rdh = it.get_if<o2::header::RAWDataHeaderV4>();
         // retrieving the raw pointer of the page
         auto const* raw = it.raw();
         // retrieving payload pointer of the page
@@ -104,12 +106,30 @@ void ZDCRawParserDPLSpec::run(ProcessingContext& pc)
         size_t payloadSize = it.size();
         // offset of payload in the raw page
         size_t offset = it.offset();
+        int dataFormat = o2::raw::RDHUtils::getDataFormat(rdhPtr);
 #ifdef O2_ZDC_DEBUG
-        LOG(info) << count << " processBinaryData: size=" << it.size() << " link=" << rdhPtr->linkID;
+        int linkID = o2::raw::RDHUtils::getLinkID(rdhPtr);
+        LOG(info) << count << " ZDCRawParserDPLSpec::run: fmt=" << dataFormat << " size=" << it.size() << " link=" << linkID;
 #endif
-        for (int32_t ip = 0; ip < payloadSize; ip += 16) {
-          // o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&payload[ip]);
-          mWorker.processWord((const uint32_t*)&payload[ip]);
+        if (dataFormat == 2) {
+          for (int32_t ip = 0; (ip + PayloadPerGBTW) <= payloadSize; ip += PayloadPerGBTW) {
+            const uint32_t* gbtw = (const uint32_t*)&payload[ip];
+#ifdef O2_ZDC_DEBUG
+            o2::zdc::Digits2Raw::print_gbt_word(gbtw);
+#endif
+            if (gbtw[0] != 0xffffffff || gbtw[1] != 0xffffffff || (gbtw[2] & 0xffff) != 0xffff) {
+              mWorker.processWord(gbtw);
+            }
+          }
+        } else if (dataFormat == 0) {
+          for (int32_t ip = 0; ip < payloadSize; ip += NBPerGBTW) {
+#ifdef O2_ZDC_DEBUG
+            o2::zdc::Digits2Raw::print_gbt_word((const uint32_t*)&payload[ip]);
+#endif
+            mWorker.processWord((const uint32_t*)&payload[ip]);
+          }
+        } else {
+          LOG(error) << "ZDCDataReaderDPLSpec::run - Unsupported DataFormat " << dataFormat;
         }
       }
     }

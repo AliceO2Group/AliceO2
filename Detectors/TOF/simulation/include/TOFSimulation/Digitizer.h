@@ -71,6 +71,17 @@ class Digitizer : public WindowFiller
   void test(const char* geo = "");
   void testFromHits(const char* geo = "", const char* hits = "AliceO2_TGeant3.tof.mc_10_event.root");
 
+  void setShowerSmearing();
+  void setResolution(float val)
+  {
+    mTOFresolution = val;
+    setShowerSmearing();
+  }
+  void setEffCenter(float val) { mEffCenter = val; }
+  void setEffBoundary1(float val) { mEffBoundary1 = val; }
+  void setEffBoundary2(float val) { mEffBoundary2 = val; }
+  void setEffBoundary3(float val) { mEffBoundary3 = val; }
+
  private:
   // parameters
   Int_t mMode;

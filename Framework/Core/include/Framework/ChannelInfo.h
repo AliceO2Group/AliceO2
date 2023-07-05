@@ -39,7 +39,7 @@ enum struct ChannelAccountingType {
   /// The channel is a normal input channel
   DPL,
   /// A raw FairMQ channel which is not accounted by the framework
-  RAW
+  RAWFMQ
 };
 
 /// This represent the current state of an input channel.  Its values can be
@@ -63,17 +63,23 @@ struct InputChannelInfo {
   ChannelAccountingType channelType = ChannelAccountingType::DPL;
   /// Oldest possible timeslice for the given channel
   TimesliceId oldestForChannel;
+  int pollerIndex = -1;
 };
+
+struct SendingPolicy;
 
 /// Output channel information
 struct OutputChannelInfo {
   std::string name = "invalid";
   ChannelAccountingType channelType = ChannelAccountingType::DPL;
   fair::mq::Channel& channel;
+  SendingPolicy const* policy;
 };
 
 struct OutputChannelState {
   TimesliceId oldestForChannel = {0};
+  // How many times sending on this channel failed
+  int64_t droppedMessages = 0;
 };
 
 /// Forward channel information

@@ -14,6 +14,7 @@
 /// @author ruben.shahoyan@cern.ch
 
 #include "Framework/ConfigParamRegistry.h"
+#include "Framework/DeviceSpec.h"
 #include "GlobalTrackingWorkflow/VertexTrackMatcherSpec.h"
 #include "CommonUtils/NameConf.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
@@ -88,7 +89,7 @@ void VertexTrackMatcherSpec::run(ProcessingContext& pc)
 void VertexTrackMatcherSpec::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-  o2::tpc::VDriftHelper::extractCCDBInputs(pc);
+  mTPCVDriftHelper.extractCCDBInputs(pc);
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
@@ -107,8 +108,9 @@ void VertexTrackMatcherSpec::updateTimeDependentParams(ProcessingContext& pc)
     mMatcher.setTPCBin2MUS(elParam.ZbinWidth);
     auto& vd = mTPCVDriftHelper.getVDriftObject();
     mMatcher.setMaxTPCDriftTimeMUS(detParam.TPClength / (vd.refVDrift * vd.corrFact));
-    LOGP(info, "Updating TPC VDrift with factor of {} wrt reference {} from source {}",
-         mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getSourceName());
+    mMatcher.setTPCTDriftOffset(vd.getTimeOffset());
+    LOGP(info, "Updating TPC fast transform map with new VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
+         vd.corrFact, vd.refVDrift, vd.timeOffsetCorr, vd.refTimeOffset, mTPCVDriftHelper.getSourceName());
     mTPCVDriftHelper.acknowledgeUpdate();
   }
 }
@@ -168,7 +170,7 @@ DataProcessorSpec getVertexTrackMatcherSpec(GTrackID::mask_t src)
     dataRequest->inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<VertexTrackMatcherSpec>(dataRequest, ggRequest)},
-    Options{{"prescale-logs", VariantType::Int, 20, {"print vertex logs for each n-th TFNumber of afterburner threads"}}}};
+    Options{{"prescale-logs", VariantType::Int, 50, {"print vertex logs for each n-th TF"}}}};
 }
 
 } // namespace vertexing

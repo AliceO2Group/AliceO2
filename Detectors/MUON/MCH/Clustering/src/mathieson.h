@@ -32,21 +32,64 @@ namespace o2
 {
 namespace mch
 {
-void initMathieson();
+typedef struct SplineCoef {
+  double* a;
+  double* b;
+  double* c;
+  double* d;
+  SplineCoef(int N);
+  ~SplineCoef();
+} SplineCoef_t;
 
+typedef struct {
+  // Compressed values along X and Y
+  int nYc;
+  int nXc;
+  // Mapping : original array -> compressed array
+  int* mapXInf;
+  int* mapXSup;
+  int* mapYInf;
+  int* mapYSup;
+  double* xCompressed;
+  double* yCompressed;
+} CompressedPads_t;
+
+void initMathieson(int useSpline_, int useCache_);
+void mathiesonPrimitive(const double* xy, int N,
+                        int axe, int chamberId, double mPrimitive[]);
+void initSplineMathiesonPrimitive();
+void computeSplineCoef(const double* xy, double xyStep, const double* f, int N,
+                       double leftDerivative, double rightDerivative, SplineCoef* splineCoef);
+void splineMathiesonPrimitive(const double* x, int N, int axe, int chamberId, double* mPrimitive);
+
+void compute1DMathieson(const double* xy, int N,
+                        int axe, int chamberId, double mathieson[]);
+void compute1DPadIntegrals(const double* xyInf, const double* xySup, int N,
+                           double xy0, int axe, int chamberId, double* integrals);
 void compute1DPadIntegrals(const double* xInf, const double* xSup, int N,
-                           int chamberId, bool xAxe, double Integrals[]);
+                           int axe, int chamberId, double Integrals[]);
 
 void compute2DPadIntegrals(const double* xInf, const double* xSup,
                            const double* yInf, const double* ySup, int N,
                            int chamberId, double Integrals[]);
 
+CompressedPads_t* compressPads(const double* xInf, const double* xSup,
+                               const double* yInf, const double* ySup, int N);
+void computeCompressed2DPadIntegrals(CompressedPads_t* compressedPads, double xShift, double yShift, int N,
+                                     int chamberId, double Integrals[]);
+void deleteCompressedPads(CompressedPads_t* compressedPads);
+
 void compute2DMathiesonMixturePadIntegrals(const double* xyInfSup0,
                                            const double* theta, int N, int K,
                                            int chamberId, double Integrals[]);
 
-void computeFastCij(const Pads& pads, const Pads& theta, double Cij[]);
 void computeCij(const Pads& pads, const Pads& theta, double Cij[]);
+void computeFastCij(const Pads& pads, const Pads& theta, double Cij[]);
+void checkCij(const Pads& pads, const Pads& pixels, const double* checkCij, int mode);
+
+bool checkIntegrals(const double* xInf, const double* xSup, const double* yInf, const double* ySup,
+                    const double* integralsToCheck, int chId, int N);
+
 // Utilities to handle mixture of parameter theta
 double* getVarX(double* theta, int K);
 double* getVarY(double* theta, int K);

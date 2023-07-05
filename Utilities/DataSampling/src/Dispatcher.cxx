@@ -38,7 +38,7 @@ namespace o2::utilities
 {
 
 Dispatcher::Dispatcher(std::string name, const std::string reconfigurationSource)
-  : mName(name), mReconfigurationSource(reconfigurationSource)
+  : mName(std::move(name)), mReconfigurationSource(reconfigurationSource)
 {
 }
 
@@ -73,7 +73,7 @@ void Dispatcher::init(InitContext& ctx)
     }
   }
 
-  auto spec = ctx.services().get<const DeviceSpec>();
+  auto& spec = ctx.services().get<const DeviceSpec>();
   mDeviceID.runtimeInit(spec.id.substr(0, DataSamplingHeader::deviceIDTypeSize).c_str());
 }
 
@@ -142,8 +142,8 @@ void Dispatcher::reportStats(Monitoring& monitoring) const
     dispatcherTotalAcceptedMessages += policy->getTotalAcceptedMessages();
   }
 
-  monitoring.send(Metric{dispatcherTotalEvaluatedMessages, "Dispatcher_messages_evaluated"}.addTag(tags::Key::Subsystem, tags::Value::DataSampling));
-  monitoring.send(Metric{dispatcherTotalAcceptedMessages, "Dispatcher_messages_passed"}.addTag(tags::Key::Subsystem, tags::Value::DataSampling));
+  monitoring.send(Metric{dispatcherTotalEvaluatedMessages, "Dispatcher_messages_evaluated", Verbosity::Prod}.addTag(tags::Key::Subsystem, tags::Value::DataSampling));
+  monitoring.send(Metric{dispatcherTotalAcceptedMessages, "Dispatcher_messages_passed", Verbosity::Prod}.addTag(tags::Key::Subsystem, tags::Value::DataSampling));
 }
 
 DataSamplingHeader Dispatcher::prepareDataSamplingHeader(const DataSamplingPolicy& policy)

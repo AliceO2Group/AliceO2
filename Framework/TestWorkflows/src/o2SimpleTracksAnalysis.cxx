@@ -69,8 +69,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& specs)
           auto input1 = inputs.get<TableConsumer>("Tracks");
           auto input2 = inputs.get<TableConsumer>("TracksExtension");
           /// Get a table builder to build the results
-          auto& etaPhiBuilder = outputs.make<TableBuilder>(Output{"AOD", "TRACKDERIVED"});
-          auto etaPhiWriter = etaPhiBuilder.cursor<o2::aod::TracksDerived>();
+          auto etaPhiBuilder = outputs.make<TableBuilder>(Output{"AOD", "TRACKDERIVED"});
+          auto etaPhiWriter = etaPhiBuilder->cursor<o2::aod::TracksDerived>();
 
           auto tracks = aod::Tracks({input1->asArrowTable(), input2->asArrowTable()});
 

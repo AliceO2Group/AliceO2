@@ -60,7 +60,7 @@ class PHOSRunbyrunSlot
   bool mUseCCDB = false;
   long mRunStartTime = 0;                             /// start time of the run (sec)
   float mPtCut = 1.5;                                 /// ptmin of a pair cut (GeV/c)
-  std::string mCCDBPath{"https://alice-ccdb.cern.ch"}; /// CCDB path to retrieve current CCDB objects for comparison
+  std::string mCCDBPath{"http://alice-ccdb.cern.ch"}; /// CCDB path to retrieve current CCDB objects for comparison
   std::array<boostHisto, 8> mReMi;                    /// Real and Mixed inv mass distributions per module
   std::unique_ptr<RingBuffer> mBuffer;                /// Buffer for current and previous events
   std::unique_ptr<BadChannelsMap> mBadMap;            /// Latest bad channels map
@@ -69,7 +69,7 @@ class PHOSRunbyrunSlot
 };
 
 //==========================================================================================
-class PHOSRunbyrunCalibrator final : public o2::calibration::TimeSlotCalibration<o2::phos::Cluster, o2::phos::PHOSRunbyrunSlot>
+class PHOSRunbyrunCalibrator final : public o2::calibration::TimeSlotCalibration<o2::phos::PHOSRunbyrunSlot>
 {
   using Slot = o2::calibration::TimeSlot<o2::phos::PHOSRunbyrunSlot>;
 
@@ -98,7 +98,7 @@ class PHOSRunbyrunCalibrator final : public o2::calibration::TimeSlotCalibration
  private:
   bool mUseCCDB = false;
   long mRunStartTime = 0;                             /// start time of the run (sec)
-  std::string mCCDBPath{"https://alice-ccdb.cern.ch"}; /// CCDB path to retrieve current CCDB objects for comparison
+  std::string mCCDBPath{"http://alice-ccdb.cern.ch"}; /// CCDB path to retrieve current CCDB objects for comparison
   std::array<float, 8> mRunByRun;                     /// Final calibration object
   std::array<TH1F*, 8> mReMi;                         /// Real and Mixed inv mass distributions per module
 

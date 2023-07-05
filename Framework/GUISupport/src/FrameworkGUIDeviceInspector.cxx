@@ -19,6 +19,7 @@
 #include "Framework/ChannelSpec.h"
 #include "Framework/Logger.h"
 #include "Framework/DeviceController.h"
+#include "Framework/DataProcessingStates.h"
 #include <DebugGUI/icons_font_awesome.h>
 
 #include "DebugGUI/imgui.h"
@@ -50,17 +51,55 @@ struct ChannelsTableHelper {
   }
 };
 
-void deviceInfoTable(char const* label, Metric2DViewIndex const& index, DeviceMetricsInfo const& metrics)
+void deviceStateTable(DataProcessingStates const& states)
 {
-  if (index.indexes.empty() == false && ImGui::CollapsingHeader(label, ImGuiTreeNodeFlags_DefaultOpen)) {
-    for (size_t i = 0; i < index.indexes.size(); ++i) {
-      auto& metric = metrics.metrics[index.indexes[i]];
-      ImGui::Text("%zu: %s", i, metrics.stringMetrics[metric.storeIdx][0].data);
+  static std::vector<char> statesActive(states.statesViews.size(), false);
+  if (statesActive.size() != states.statesViews.size()) {
+    statesActive.resize(states.statesViews.size(), false);
+  }
+
+  if (ImGui::CollapsingHeader("Remote state", ImGuiTreeNodeFlags_DefaultOpen)) {
+    for (size_t i = 0; i < states.stateNames.size(); ++i) {
+      if (states.stateNames[i].empty()) {
+        continue;
+      }
+      auto& view = states.statesViews[i];
+      if (view.size == 0) {
+        continue;
+      }
+      ImGui::Checkbox(states.stateNames[i].c_str(), (bool*)&statesActive[i]);
+      if (view.size && statesActive[i] != 0) {
+        ImGui::Begin(states.stateNames[i].c_str());
+        ImGui::Text("%d-%d\n %.*s", view.first, view.first + view.size, view.size, states.statesBuffer.data() + view.first);
+        ImGui::End();
+      }
+    }
+  }
+}
+
+void deviceInfoTable(char const* label, ProcessingStateId id, DataProcessingStates const& states, DeviceMetricsInfo const& metrics)
+{
+  // Find the state spec associated to data_queries
+  auto& view = states.statesViews[(int)id];
+  if (ImGui::CollapsingHeader(label, ImGuiTreeNodeFlags_DefaultOpen)) {
+    std::string_view inputs(states.statesBuffer.data() + view.first, view.size);
+    auto beginInputs = inputs.begin();
+    auto endInputs = beginInputs + view.size;
+    char const* input = beginInputs;
+    size_t i = 0;
+    // Iterate on the ; delimited string_views inside inputs
+    while (input != endInputs) {
+      auto end = std::find(input, endInputs, ';');
+      if ((end - input) == 0) {
+        continue;
+      }
+      ImGui::Text("%zu: %.*s", i, int(end - input), input);
       if (ImGui::IsItemHovered()) {
         ImGui::BeginTooltip();
-        ImGui::Text("%zu: %s", i, metrics.stringMetrics[metric.storeIdx][0].data);
+        ImGui::Text("%zu: %.*s", i, int(end - input), input);
         ImGui::EndTooltip();
       }
+      input = end + 1;
     }
   }
 }
@@ -208,6 +247,7 @@ void servicesTable(const char* label, std::vector<ServiceSpec> const& services)
 
 void displayDeviceInspector(DeviceSpec const& spec,
                             DeviceInfo const& info,
+                            DataProcessingStates const& states,
                             DeviceMetricsInfo const& metrics,
                             DataProcessorInfo const& metadata,
                             DeviceControl& control)
@@ -249,7 +289,7 @@ void displayDeviceInspector(DeviceSpec const& spec,
       "osascript -e 'tell application \"Terminal\"'"
       " -e 'activate'"
       " -e 'do script \"xcrun xctrace record --output dpl-profile-{0}.trace"
-      " --time-limit 30s --template Time\\\\ Profiler --attach {0} "
+      " --instrument os_signpost --time-limit 30s --template Time\\\\ Profiler --attach {0} "
       " && open dpl-profile-{0}.trace && exit\"'"
       " -e 'end tell'",
       pid);
@@ -262,6 +302,26 @@ void displayDeviceInspector(DeviceSpec const& spec,
     int retVal = system(getenv("O2DPLPROFILE"));
     (void)retVal;
   }
+
+#ifdef __APPLE__
+  if (ImGui::Button("Profile Allocations 30s")) {
+    std::string pid = std::to_string(info.pid);
+    setenv("O2PROFILEDPID", pid.c_str(), 1);
+    auto defaultAppleProfileCommand = fmt::format(
+      "osascript -e 'tell application \"Terminal\"'"
+      " -e 'activate'"
+      " -e 'do script \"xcrun xctrace record --output dpl-profile-{0}.trace"
+      " --time-limit 30s --instrument os_signpost --template Allocations --attach {0} "
+      " && open dpl-profile-{0}.trace && exit\"'"
+      " -e 'end tell'",
+      pid);
+
+    setenv("O2DPLPROFILE", defaultAppleProfileCommand.c_str(), 0);
+    LOG(error) << getenv("O2DPLPROFILE");
+    int retVal = system(getenv("O2DPLPROFILE"));
+    (void)retVal;
+  }
+#endif
 
 #if DPL_ENABLE_TRACING
   ImGui::SameLine();
@@ -288,8 +348,9 @@ void displayDeviceInspector(DeviceSpec const& spec,
     }
   }
 
-  deviceInfoTable("Inputs:", info.queriesViewIndex, metrics);
-  deviceInfoTable("Outputs:", info.outputsViewIndex, metrics);
+  deviceStateTable(states);
+  deviceInfoTable("Inputs:", ProcessingStateId::DATA_QUERIES, states, metrics);
+  deviceInfoTable("Outputs:", ProcessingStateId::OUTPUT_MATCHERS, states, metrics);
   configurationTable(info.currentConfig, info.currentProvenance);
   optionsTable("Workflow Options", metadata.workflowOptions, control);
   servicesTable("Services", spec.services);
@@ -308,9 +369,11 @@ void displayDeviceInspector(DeviceSpec const& spec,
     ChannelsTableHelper::channelsTable("Inputs:", spec.inputChannels);
     ChannelsTableHelper::channelsTable("Outputs:", spec.outputChannels);
   }
-  if (ImGui::CollapsingHeader("Data relayer")) {
-    ImGui::Text("Completion policy: %s", spec.completionPolicy.name.c_str());
+  if (ImGui::CollapsingHeader("Policies")) {
+    ImGui::Text("Completion: %s", spec.completionPolicy.name.c_str());
+    ImGui::Text("Sending: %s", spec.sendingPolicy.name.c_str());
   }
+
   if (ImGui::CollapsingHeader("Signals", ImGuiTreeNodeFlags_DefaultOpen)) {
     if (ImGui::Button("SIGSTOP")) {
       kill(info.pid, SIGSTOP);

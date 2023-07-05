@@ -178,8 +178,32 @@ struct IDCZero {
   /// get number of IDC0 values
   auto getNIDC0() const { return mIDCZero.size(); }
 
+  /// add IDCZero values from other object
+  IDCZero& operator+=(const IDCZero& idczero)
+  {
+    std::transform(mIDCZero.begin(), mIDCZero.end(), idczero.mIDCZero.begin(), mIDCZero.begin(), std::plus<>());
+    return *this;
+  }
+
+  IDCZero& operator/=(const float value)
+  {
+    std::transform(mIDCZero.begin(), mIDCZero.end(), mIDCZero.begin(), [value](float idczero) { return idczero / value; });
+    return *this;
+  }
+
   std::vector<float> mIDCZero{}; ///< I_0(r,\phi) = <I(r,\phi,t)>_t
   ClassDefNV(IDCZero, 2)
+};
+
+///< struct containing the ITPC0 values (integrated TPC clusters)
+struct ITPCZero {
+  IDCZero mIQMaxA; ///< integrated QMax cluster for A-side
+  IDCZero mIQMaxC; ///< integrated QMax cluster for C-side
+  IDCZero mIQTotA; ///< integrated QTot cluster for A-side
+  IDCZero mIQTotC; ///< integrated QTot cluster for C-side
+  IDCZero mINClA;  ///< integrated NCl cluster for A-side
+  IDCZero mINClC;  ///< integrated NCl cluster for C-side
+  ClassDefNV(ITPCZero, 1)
 };
 
 ///< struct containing the IDC1
@@ -191,6 +215,10 @@ struct IDCOne {
   /// constructor for initializing member with default value (this is used in the IDCFourierTransform class to perform calculation of the fourier coefficients for the first aggregation interval)
   /// \param nIDC number of IDCs which will be initialized
   IDCOne(const unsigned int nIDC) : mIDCOne{std::vector<float>(nIDC)} {};
+
+  /// \param nIDC number of IDCs which will be initialized
+  /// \param val initialized values of the IDCs
+  IDCOne(const unsigned int nIDC, const float val) : mIDCOne{std::vector<float>(nIDC, val)} {};
 
   /// set IDC one for given index
   /// \param idcOne Delta IDC value which will be set
@@ -209,6 +237,16 @@ struct IDCOne {
 
   /// resize vector
   void resize(const unsigned int size) { mIDCOne.resize(size); }
+
+  /// append an IDCOne vector
+  void append(const IDCOne& idcone) { mIDCOne.insert(mIDCOne.end(), idcone.mIDCOne.begin(), idcone.mIDCOne.end()); }
+
+  /// multiply IDCOne values by a factor
+  IDCOne& operator*=(const float value)
+  {
+    std::transform(mIDCOne.begin(), mIDCOne.end(), mIDCOne.begin(), [value](float idcone) { return idcone * value; });
+    return *this;
+  }
 
   std::vector<float> mIDCOne{}; ///< I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
   ClassDefNV(IDCOne, 2)
@@ -290,6 +328,9 @@ struct FourierCoeff {
   /// \param interval index of interval
   /// \param coefficient index of coefficient
   unsigned int getIndex(const unsigned int interval, const unsigned int coefficient) const { return interval * mCoeffPerTF + coefficient; }
+
+  /// \return returns number of time frames
+  unsigned int getNTimeFrames() const { return getNCoefficients() / mCoeffPerTF; }
 
   /// \return returns the stored value
   /// \param index index of the data
@@ -397,6 +438,9 @@ class IDCDeltaCompressionHelper
  private:
   static void compress(const IDCDelta<float>& idcDeltaUncompressed, IDCDelta<DataT>& idcCompressed, const float minValue, const float maxValue)
   {
+    if (idcDeltaUncompressed.getIDCDelta().empty()) {
+      return;
+    }
     idcCompressed.getIDCDelta().reserve(idcDeltaUncompressed.getIDCDelta().size());
     const auto minmaxIDC = std::minmax_element(std::begin(idcDeltaUncompressed.getIDCDelta()), std::end(idcDeltaUncompressed.getIDCDelta()));
     const auto& paramIDCGroup = ParameterIDCCompression::Instance();
@@ -416,7 +460,9 @@ enum class PadFlags : unsigned short {
   flagSaturatedPad = 1 << 3, ///< flag for saturated status binary 0100
   flagHighPad = 1 << 4,      ///< flag for pad with extremly high IDC value
   flagLowPad = 1 << 5,       ///< flag for pad with extremly low IDC value
-  flagSkip = 1 << 6          ///< flag for defining a pad which is just ignored during the calculation of I1 and IDCDelta
+  flagSkip = 1 << 6,         ///< flag for defining a pad which is just ignored during the calculation of I1 and IDCDelta
+  flagFEC = 1 << 7,          ///< flag for a whole masked FEC
+  flagNeighbour = 1 << 8     ///< flag if n neighbouring pads are outlier
 };
 
 inline PadFlags operator&(PadFlags a, PadFlags b) { return static_cast<PadFlags>(static_cast<int>(a) & static_cast<int>(b)); }

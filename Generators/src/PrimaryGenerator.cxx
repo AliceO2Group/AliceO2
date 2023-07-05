@@ -13,9 +13,10 @@
 
 #include "Generators/PrimaryGenerator.h"
 #include "Generators/Generator.h"
-#include "Generators/InteractionDiamondParam.h"
+#include "SimConfig/InteractionDiamondParam.h"
 #include "SimulationDataFormat/MCEventHeader.h"
-#include "SimulationDataFormat/Stack.h"
+#include "DataFormatsCalibration/MeanVertexObject.h"
+#include "DetectorsBase/Stack.h"
 #include <fairlogger/Logger.h>
 
 #include "FairGenericStack.h"
@@ -62,12 +63,6 @@ Bool_t PrimaryGenerator::Init()
     return FairPrimaryGenerator::Init();
   }
 
-  /** normal generation **/
-
-  /** retrieve and set interaction diamond **/
-  auto& diamond = InteractionDiamondParam::Instance();
-  setInteractionDiamond(diamond.position, diamond.width);
-
   /** base class init **/
   return FairPrimaryGenerator::Init();
 }
@@ -80,6 +75,7 @@ Bool_t PrimaryGenerator::GenerateEvent(FairGenericStack* pStack)
 
   /** normal generation if no embedding **/
   if (!mEmbedTree) {
+    fixInteractionVertex(); // <-- always fixes vertex outside of FairROOT
     return FairPrimaryGenerator::GenerateEvent(pStack);
   }
 
@@ -130,6 +126,11 @@ void PrimaryGenerator::AddTrack(Int_t pdgid, Double_t px, Double_t py, Double_t 
 {
   /** add track **/
 
+  // check the status encoding
+  if (!mcgenstatus::isEncoded(generatorStatus) && proc == TMCProcess::kPPrimary) {
+    LOG(fatal) << "Generatror status " << generatorStatus << " of particle is not encoded properly.";
+  }
+
   /** add event vertex to track vertex **/
   vx += fVertex.X();
   vy += fVertex.Y();
@@ -151,7 +152,7 @@ void PrimaryGenerator::AddTrack(Int_t pdgid, Double_t px, Double_t py, Double_t 
   Double_t polx = 0.;     // Polarisation
   Double_t poly = 0.;
   Double_t polz = 0.;
-  Int_t ntr = 0;    // Track number; to be filled by the stack
+  Int_t ntr = 0;                  // Track number; to be filled by the stack
   Int_t status = generatorStatus; // Generation status
 
   // correct for tracks which are in list before generator is called
@@ -169,7 +170,7 @@ void PrimaryGenerator::AddTrack(Int_t pdgid, Double_t px, Double_t py, Double_t 
   }
 
   /** if it is a K0/antiK0 to be tracked, convert it into K0s/K0L.
-      
+
       NOTE: we could think of pushing the K0/antiK0 without tracking first
       and then push she K0s/K0L for tracking.
       In this way we would properly keep track of this conversion,
@@ -202,31 +203,16 @@ void PrimaryGenerator::AddTrack(Int_t pdgid, Double_t px, Double_t py, Double_t 
 
 /*****************************************************************/
 
-void PrimaryGenerator::setInteractionDiamond(const Double_t* xyz, const Double_t* sigmaxyz)
+void PrimaryGenerator::AddTrack(Int_t pdgid, Double_t px, Double_t py,
+                                Double_t pz, Double_t vx, Double_t vy,
+                                Double_t vz, Int_t parent, Bool_t wanttracking,
+                                Double_t e, Double_t tof, Double_t weight, TMCProcess proc)
 {
-  /** set interaction diamond **/
-
-  LOG(info) << "Setting interaction diamond: position = {"
-            << xyz[0] << "," << xyz[1] << "," << xyz[2] << "} cm";
-  LOG(info) << "Setting interaction diamond: width = {"
-            << sigmaxyz[0] << "," << sigmaxyz[1] << "," << sigmaxyz[2] << "} cm";
-  SetBeam(xyz[0], xyz[1], sigmaxyz[0], sigmaxyz[1]);
-  SetTarget(xyz[2], sigmaxyz[2]);
-
-  auto const& param = InteractionDiamondParam::Instance();
-  SmearVertexXY(false);
-  SmearVertexZ(false);
-  SmearGausVertexXY(false);
-  SmearGausVertexZ(false);
-  if (param.distribution == o2::eventgen::EVertexDistribution::kFlat) {
-    SmearVertexXY(true);
-    SmearVertexZ(true);
-  } else if (param.distribution == o2::eventgen::EVertexDistribution::kGaus) {
-    SmearGausVertexXY(true);
-    SmearGausVertexZ(true);
-  } else {
-    LOG(error) << "PrimaryGenerator: Unsupported vertex distribution";
-  }
+  // Do this to encode status code correctly. In FairRoot's PrimaryGenerator, this is simply one number that is set to 0.
+  // So we basically do the same.
+  // Assuming that this is treated as the HepMC status code down the line (as it used to be).
+  AddTrack(pdgid, px, py, pz, vx, vy, vz, parent, -1, -1, -1, wanttracking,
+           e, tof, weight, proc, mcgenstatus::MCGenStatusEncoding(0, 0).fullEncoding);
 }
 
 /*****************************************************************/
@@ -242,6 +228,72 @@ void PrimaryGenerator::setInteractionVertex(const MCEventHeader* event)
   SmearVertexZ(false);
   SmearGausVertexXY(false);
   SmearGausVertexZ(false);
+}
+
+/*****************************************************************/
+void PrimaryGenerator::setExternalVertexForNextEvent(double x, double y, double z)
+{
+  mExternalVertexX = x;
+  mExternalVertexY = y;
+  mExternalVertexZ = z;
+  mHaveExternalVertex = true;
+}
+
+/*****************************************************************/
+
+void PrimaryGenerator::setVertexMode(o2::conf::VertexMode const& mode, o2::dataformats::MeanVertexObject const* v)
+{
+  mVertexMode = mode;
+  if (mode == o2::conf::VertexMode::kCCDB) {
+    if (!v) {
+      LOG(fatal) << "A valid MeanVertexObject needs to be passed with option o2::conf::VertexMode::kCCDB";
+    }
+    mMeanVertex = std::move(std::unique_ptr<o2::dataformats::MeanVertexObject>(new o2::dataformats::MeanVertexObject(*v)));
+    LOG(info) << "The mean vertex is set to :";
+    mMeanVertex->print();
+  }
+}
+
+/*****************************************************************/
+
+void PrimaryGenerator::fixInteractionVertex()
+{
+  // if someone gave vertex from outside; we will take it
+  if (mHaveExternalVertex) {
+    SetBeam(mExternalVertexX, mExternalVertexY, 0., 0.);
+    SetTarget(mExternalVertexZ, 0.);
+    mHaveExternalVertex = false; // the vertex is now consumed
+    return;
+  }
+
+  // sampling a vertex and fixing for next event; no smearing will be done
+  // inside FairPrimaryGenerator;
+  SmearVertexXY(false);
+  SmearVertexZ(false);
+  SmearGausVertexXY(false);
+  SmearGausVertexZ(false);
+
+  // we use the mMeanVertexObject if initialized (initialize first)
+  if (!mMeanVertex) {
+    if (mVertexMode == o2::conf::VertexMode::kDiamondParam) {
+      auto const& param = InteractionDiamondParam::Instance();
+      const auto& xyz = param.position;
+      const auto& sigma = param.width;
+      mMeanVertex = std::move(std::unique_ptr<o2::dataformats::MeanVertexObject>(new o2::dataformats::MeanVertexObject(xyz[0], xyz[1], xyz[2], sigma[0], sigma[1], sigma[2], param.slopeX, param.slopeY)));
+    }
+    if (mVertexMode == o2::conf::VertexMode::kNoVertex) {
+      mMeanVertex = std::move(std::unique_ptr<o2::dataformats::MeanVertexObject>(new o2::dataformats::MeanVertexObject(0, 0, 0, 0, 0, 0, 0, 0)));
+    }
+    if (mVertexMode == o2::conf::VertexMode::kCCDB) {
+      // fatal.. then the object should have been passed with setting
+      LOG(fatal) << "MeanVertexObject is null ... but mode is kCCDB. Please inject the valid CCDB object via setVertexMode";
+    }
+  }
+  auto sampledvertex = mMeanVertex->sample();
+
+  LOG(info) << "Sampled interacting vertex " << sampledvertex;
+  SetBeam(sampledvertex.X(), sampledvertex.Y(), 0., 0.);
+  SetTarget(sampledvertex.Z(), 0.);
 }
 
 /*****************************************************************/

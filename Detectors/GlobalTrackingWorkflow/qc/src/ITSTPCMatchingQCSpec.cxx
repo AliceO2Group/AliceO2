@@ -17,6 +17,8 @@
 #include "GlobalTrackingWorkflowQC/ITSTPCMatchingQCSpec.h"
 #include "GlobalTracking/ITSTPCMatchingQCParams.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "DetectorsBase/Propagator.h"
+
 #include "CommonUtils/NameConf.h"
 #include <TFile.h>
 
@@ -39,18 +41,17 @@ void ITSTPCMatchingQCDevice::init(InitContext& ic)
   mMatchITSTPCQC->setMinNTPCClustersCut(params->minNTPCClustersCut);
   mMatchITSTPCQC->setMinDCAtoBeamPipeDistanceCut(params->minDCACut);
   mMatchITSTPCQC->setMinDCAtoBeamPipeYCut(params->minDCACutY);
+  o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
   if (mUseMC) {
     mMatchITSTPCQC->setUseMC(mUseMC);
   }
-  mMatchITSTPCQC->setGRPFileName(o2::base::NameConf::getGRPFileName());
-  mMatchITSTPCQC->setGeomFileName(o2::base::NameConf::getGeomFileName());
 }
 
 //_____________________________________________________________
 
 void ITSTPCMatchingQCDevice::run(o2::framework::ProcessingContext& pc)
 {
-
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   mMatchITSTPCQC->run(pc);
 }
 
@@ -76,6 +77,13 @@ void ITSTPCMatchingQCDevice::sendOutput(DataAllocator& output)
   objar.Write("ObjArray", TObject::kSingleKey);
   f->Close();
 }
+
+void ITSTPCMatchingQCDevice::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    return;
+  }
+}
 } // namespace globaltracking
 
 namespace framework
@@ -90,11 +98,18 @@ DataProcessorSpec getITSTPCMatchingQCDevice(bool useMC)
   auto dataRequest = std::make_shared<o2::globaltracking::DataRequest>();
   GID::mask_t mSrc = GID::getSourcesMask("TPC,ITS-TPC");
   dataRequest->requestTracks(mSrc, useMC);
+  auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime
+                                                                false,                          // GRPECS=true
+                                                                false,                          // GRPLHCIF
+                                                                true,                           // GRPMagField
+                                                                false,                          // askMatLUT
+                                                                o2::base::GRPGeomRequest::None, // geometry
+                                                                dataRequest->inputs);
   return DataProcessorSpec{
     "itstpc-matching-qc",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<o2::globaltracking::ITSTPCMatchingQCDevice>(dataRequest, useMC)},
+    AlgorithmSpec{adaptFromTask<o2::globaltracking::ITSTPCMatchingQCDevice>(dataRequest, ccdbRequest, useMC)},
     Options{{}}};
 }
 

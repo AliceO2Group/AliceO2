@@ -16,6 +16,7 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <filesystem>
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "CCDB/CcdbApi.h"
@@ -23,6 +24,8 @@
 #include "Framework/ControlService.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
+#include "Framework/DataRefUtils.h"
+#include "Framework/DataTakingContext.h"
 #include "Framework/InputRecordWalker.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DataFormatsZDC/BCData.h"
@@ -39,6 +42,7 @@
 #include "ZDCCalib/TDCCalibConfig.h"
 #include "ZDCCalib/TDCCalibSpec.h"
 #include "ZDCCalib/TDCCalibData.h"
+#include "ZDCCalib/CalibParamZDC.h"
 
 using namespace o2::framework;
 
@@ -98,9 +102,17 @@ void TDCCalibSpec::run(ProcessingContext& pc)
   if (!mInitialized) {
     mInitialized = true;
     updateTimeDependentParams(pc);
+    mOutput = &(pc.outputs());
+    mHistoFileMetaData = std::make_unique<o2::dataformats::FileMetaData>();
+    mHistoFileMetaData->setDataTakingContext(pc.services().get<o2::framework::DataTakingContext>());
     mTimer.Stop();
     mTimer.Reset();
     mTimer.Start(false);
+  }
+  if (mRunStartTime == 0) {
+    const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
+    mRunStartTime = tinfo.creation; // approximate time in ms
+    mRunNumber = tinfo.runNumber;
   }
   std::vector<InputSpec> filterHisto = {{"tdc_1dh", ConcreteDataTypeMatcher{"ZDC", "TDC_1DH"}, Lifetime::Timeframe}};
   for (auto const& inputRef : InputRecordWalker(pc.inputs(), filterHisto)) {
@@ -116,28 +128,67 @@ void TDCCalibSpec::endOfStream(EndOfStreamContext& ec)
 {
   mWorker.endOfRun();
   mTimer.Stop();
-  sendOutput(ec.outputs());
-  LOGF(info, "ZDC TDC calibration total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1); //added by me
+  sendOutput(ec);
+  LOGF(info, "ZDC TDC calibration total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1); // added by me
 }
 
 //________________________________________________________________
-void TDCCalibSpec::sendOutput(o2::framework::DataAllocator& output)
+void TDCCalibSpec::sendOutput(o2::framework::EndOfStreamContext& ec)
 {
+  std::string fn = "ZDC_TDCCalib";
+  o2::framework::DataAllocator& output = ec.outputs();
+
   // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
   // TODO in principle, this routine is generic, can be moved to Utils.h
   using clbUtils = o2::calibration::Utils;
-  const auto& payload = mWorker.getTDCParamUpd(); //new
+  const auto& payload = mWorker.getTDCParamUpd(); // new
   auto& info = mWorker.getCcdbObjectInfo();
-  auto image = o2::ccdb::CcdbApi::createObjectImage<ZDCTDCParam>(&payload, &info); //new
+  const auto& opt = CalibParamZDC::Instance();
+  opt.updateCcdbObjectInfo(info);
+
+  auto image = o2::ccdb::CcdbApi::createObjectImage<ZDCTDCParam>(&payload, &info); // new
   LOG(info) << "Sending object " << info.getPath() << "/" << info.getFileName() << " of size " << image->size()
             << " bytes, valid for " << info.getStartValidityTimestamp() << " : " << info.getEndValidityTimestamp();
   if (mVerbosity > DbgMinimal) {
     payload.print();
   }
-  output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ZDC_TDCcalib", 0}, *image.get()); // vector<char>
-  output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ZDC_TDCcalib", 0}, info);         // root-serlized
+  mOutput->snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ZDC_TDCcalib", 0}, *image.get()); // vector<char>
+  mOutput->snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ZDC_TDCcalib", 0}, info);         // root-serlized
   // TODO: reset the outputs once they are already sent (is it necessary?)
   // mWorker.init();
+
+  if (opt.rootOutput == true) {
+    mOutputDir = opt.outputDir;
+    if (mOutputDir.compare("/dev/null")) {
+      mHistoFileName = fmt::format("{}{}{}_{}.root", mOutputDir, mOutputDir.back() == '/' ? "" : "/", fn, mRunNumber);
+      int rval = mWorker.write(mHistoFileName);
+      if (rval) {
+        LOG(error) << "Cannot create output file " << mHistoFileName;
+        return;
+      }
+      std::string metaFileDir = opt.metaFileDir;
+      if (metaFileDir.compare("/dev/null")) {
+        mHistoFileMetaData->fillFileData(mHistoFileName);
+        mHistoFileMetaData->type = "calib";
+        mHistoFileMetaData->priority = "high";
+        std::string metaFileNameTmp = metaFileDir + (metaFileDir.back() == '/' ? "" : "/") + fmt::format("{}_{}.tmp", fn, mRunNumber);
+        std::string metaFileName = metaFileDir + (metaFileDir.back() == '/' ? "" : "/") + fmt::format("{}_{}.done", fn, mRunNumber);
+        try {
+          std::ofstream metaFileOut(metaFileNameTmp);
+          metaFileOut << *mHistoFileMetaData.get();
+          metaFileOut.close();
+          std::filesystem::rename(metaFileNameTmp, metaFileName);
+        } catch (std::exception const& e) {
+          LOG(error) << "Failed to store ZDC meta data file " << metaFileName << ", reason: " << e.what();
+        }
+        LOG(info) << "Stored metadata file " << metaFileName << ".done";
+      } else {
+        LOG(info) << "Did not store metafile as meta-dir=" << metaFileDir;
+      }
+    } else {
+      LOG(warn) << "Do not create output file since output dir is " << mOutputDir;
+    }
+  }
 }
 
 framework::DataProcessorSpec getTDCCalibSpec()

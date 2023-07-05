@@ -13,10 +13,13 @@
 
 #include "Framework/ASoA.h"
 #include <cmath>
+#include <bitset>
 #include "Framework/DataTypes.h"
 #include "CommonConstants/MathConstants.h"
 #include "CommonConstants/PhysicsConstants.h"
 #include "CommonConstants/GeomConstants.h"
+#include "CommonConstants/ZDCConstants.h"
+#include "SimulationDataFormat/MCGenStatus.h"
 
 using namespace o2::constants::math;
 
@@ -26,7 +29,8 @@ namespace aod
 {
 // This is required to register SOA_TABLEs inside
 // the o2::aod namespace.
-DECLARE_SOA_STORE();
+// DECLARE_SOA_METADATA();
+DECLARE_SOA_VERSIONING();
 
 namespace bc
 {
@@ -75,13 +79,21 @@ DECLARE_SOA_COLUMN(CollisionTime, collisionTime, float);       //! Collision tim
 DECLARE_SOA_COLUMN(CollisionTimeRes, collisionTimeRes, float); //! Resolution of collision time
 } // namespace collision
 
-DECLARE_SOA_TABLE(Collisions, "AOD", "COLLISION", //! Time and vertex information of collision
+DECLARE_SOA_TABLE(Collisions_000, "AOD", "COLLISION", //! Time and vertex information of collision
                   o2::soa::Index<>, collision::BCId,
                   collision::PosX, collision::PosY, collision::PosZ,
                   collision::CovXX, collision::CovXY, collision::CovXZ, collision::CovYY, collision::CovYZ, collision::CovZZ,
                   collision::Flags, collision::Chi2, collision::NumContrib,
                   collision::CollisionTime, collision::CollisionTimeRes);
 
+DECLARE_SOA_TABLE_VERSIONED(Collisions_001, "AOD", "COLLISION", 1, //! Time and vertex information of collision
+                            o2::soa::Index<>, collision::BCId,
+                            collision::PosX, collision::PosY, collision::PosZ,
+                            collision::CovXX, collision::CovXY, collision::CovYY, collision::CovXZ, collision::CovYZ, collision::CovZZ,
+                            collision::Flags, collision::Chi2, collision::NumContrib,
+                            collision::CollisionTime, collision::CollisionTimeRes);
+
+using Collisions = Collisions_001; // current version
 using Collision = Collisions::iterator;
 
 // NOTE Relation between Collisions and BC table
@@ -208,13 +220,13 @@ DECLARE_SOA_COLUMN(TPCNClsFindable, tpcNClsFindable, uint8_t);                  
 DECLARE_SOA_COLUMN(TPCNClsFindableMinusFound, tpcNClsFindableMinusFound, int8_t);             //! TPC Clusters: Findable - Found
 DECLARE_SOA_COLUMN(TPCNClsFindableMinusCrossedRows, tpcNClsFindableMinusCrossedRows, int8_t); //! TPC Clusters: Findable - crossed rows
 DECLARE_SOA_COLUMN(TPCNClsShared, tpcNClsShared, uint8_t);                                    //! Number of shared TPC clusters
-DECLARE_SOA_COLUMN(TRDPattern, trdPattern, uint8_t);                                          //! Contributor to the track on TRD layer in bits 0-5, starting from the innermost
+DECLARE_SOA_COLUMN(TRDPattern, trdPattern, uint8_t);                                          //! Contributor to the track on TRD layer in bits 0-5, starting from the innermost, bit 6 indicates a potentially split tracklet, bit 7 if the track crossed a padrow
 DECLARE_SOA_COLUMN(ITSChi2NCl, itsChi2NCl, float);                                            //! Chi2 / cluster for the ITS track segment
 DECLARE_SOA_COLUMN(TPCChi2NCl, tpcChi2NCl, float);                                            //! Chi2 / cluster for the TPC track segment
 DECLARE_SOA_COLUMN(TRDChi2, trdChi2, float);                                                  //! Chi2 for the TRD track segment
 DECLARE_SOA_COLUMN(TOFChi2, tofChi2, float);                                                  //! Chi2 for the TOF track segment
 DECLARE_SOA_COLUMN(TPCSignal, tpcSignal, float);                                              //! dE/dx signal in the TPC
-DECLARE_SOA_COLUMN(TRDSignal, trdSignal, float);                                              //! dE/dx signal in the TRD
+DECLARE_SOA_COLUMN(TRDSignal, trdSignal, float);                                              //! PID signal in the TRD
 DECLARE_SOA_COLUMN(Length, length, float);                                                    //! Track length
 DECLARE_SOA_COLUMN(TOFExpMom, tofExpMom, float);                                              //! TOF expected momentum obtained in tracking, used to compute the expected times
 DECLARE_SOA_COLUMN(TrackEtaEMCAL, trackEtaEmcal, float);                                      //!
@@ -280,6 +292,15 @@ DECLARE_SOA_DYNAMIC_COLUMN(TPCFractionSharedCls, tpcFractionSharedCls, //! Fract
                              int16_t tpcNClsFound = (int16_t)tpcNClsFindable - tpcNClsFindableMinusFound;
                              return (float)tpcNClsShared / (float)tpcNClsFound;
                            });
+
+DECLARE_SOA_DYNAMIC_COLUMN(TRDHasNeighbor, trdPattern, //! Flag to check if at least one tracklet of a TRD Track has a neighboring tracklet
+                           [](uint8_t trdPattern) -> bool { return trdPattern & o2::aod::track::HasNeighbor; });
+
+DECLARE_SOA_DYNAMIC_COLUMN(TRDHasCrossing, trdPattern, //! Flag to check if at least one tracklet of a TRD Track crossed a padrow
+                           [](uint8_t trdPattern) -> bool { return trdPattern & o2::aod::track::HasCrossing; });
+
+DECLARE_SOA_DYNAMIC_COLUMN(TRDNLayers, trdPattern, //! Number of TRD tracklets in a Track
+                           [](uint8_t trdPattern) -> std::size_t { return std::bitset<6>(trdPattern).count(); });
 } // namespace track
 
 DECLARE_SOA_TABLE_FULL(StoredTracks, "Tracks", "AOD", "TRACK", //! On disk version of the track parameters at collision vertex
@@ -433,7 +454,7 @@ DECLARE_SOA_EXPRESSION_COLUMN(Eta, eta, float, //!
 DECLARE_SOA_EXPRESSION_COLUMN(Pt, pt, float, //!
                               ifnode(nabs(aod::fwdtrack::signed1Pt) < o2::constants::math::Almost0, o2::constants::math::VeryBig, nabs(1.f / aod::fwdtrack::signed1Pt)));
 DECLARE_SOA_EXPRESSION_COLUMN(P, p, float, //!
-                              ifnode(nabs(aod::fwdtrack::signed1Pt) < o2::constants::math::Almost0, o2::constants::math::VeryBig, 0.5f * (ntan(PIQuarter - 0.5f * natan(aod::fwdtrack::tgl)) + 1.f / ntan(PIQuarter - 0.5f * natan(aod::fwdtrack::tgl))) / nabs(aod::fwdtrack::signed1Pt)));
+                              ifnode((nabs(aod::fwdtrack::signed1Pt) < o2::constants::math::Almost0) || (nabs(PIQuarter - 0.5f * natan(aod::fwdtrack::tgl)) < o2::constants::math::Almost0), o2::constants::math::VeryBig, 0.5f * (ntan(PIQuarter - 0.5f * natan(aod::fwdtrack::tgl)) + 1.f / ntan(PIQuarter - 0.5f * natan(aod::fwdtrack::tgl))) / nabs(aod::fwdtrack::signed1Pt)));
 DECLARE_SOA_DYNAMIC_COLUMN(Px, px, //!
                            [](float pt, float phi) -> float {
                              return pt * std::cos(phi);
@@ -665,9 +686,33 @@ DECLARE_SOA_TABLE(CaloTriggers, "AOD", "CALOTRIGGER", //! Trigger information fr
                   calotrigger::LnAmplitude, calotrigger::TriggerBits, calotrigger::CaloType);
 using CaloTrigger = CaloTriggers::iterator;
 
+namespace cpvcluster
+{
+DECLARE_SOA_INDEX_COLUMN(BC, bc);                          //! BC index
+DECLARE_SOA_COLUMN(PosX, posX, float);                     //! X position in cm
+DECLARE_SOA_COLUMN(PosZ, posZ, float);                     //! Z position in cm
+DECLARE_SOA_COLUMN(Amplitude, amplitude, float);           //! Signal amplitude
+DECLARE_SOA_COLUMN(ClusterStatus, clusterStatus, uint8_t); //! 8 bits packed cluster status (bits 0-4 = pads mult, bits 5-6 = (module number - 2), bit 7 = isUnfolded)
+DECLARE_SOA_DYNAMIC_COLUMN(PadMult, padMult, [](uint8_t status) -> uint8_t {
+  return status & 0b00011111;
+}); //! Multiplicity of pads in cluster
+DECLARE_SOA_DYNAMIC_COLUMN(ModuleNumber, moduleNumber, [](uint8_t status) -> uint8_t {
+  return 2 + ((status & 0b01100000) >> 5);
+}); //! CPV module number (2, 3 or 4)
+DECLARE_SOA_DYNAMIC_COLUMN(IsUnfolded, isUnfolded, [](uint8_t status) -> bool {
+  return (status & 0b01100000) >> 7;
+}); //! Number of local maxima in cluster
+} // namespace cpvcluster
+
+DECLARE_SOA_TABLE(CPVClusters, "AOD", "CPVCLUSTER", //! CPV clusters
+                  o2::soa::Index<>, cpvcluster::BCId, cpvcluster::PosX, cpvcluster::PosZ, cpvcluster::Amplitude,
+                  cpvcluster::ClusterStatus, cpvcluster::PadMult<cpvcluster::ClusterStatus>,
+                  cpvcluster::ModuleNumber<cpvcluster::ClusterStatus>, cpvcluster::IsUnfolded<cpvcluster::ClusterStatus>);
+using CPVCluster = CPVClusters::iterator;
+
 namespace zdc
 {
-DECLARE_SOA_INDEX_COLUMN(BC, bc);                               //! BC index
+DECLARE_SOA_INDEX_COLUMN(BC, bc);                               //! BC index, to be used by both legacy and new table
 DECLARE_SOA_COLUMN(EnergyZEM1, energyZEM1, float);              //!
 DECLARE_SOA_COLUMN(EnergyZEM2, energyZEM2, float);              //!
 DECLARE_SOA_COLUMN(EnergyCommonZNA, energyCommonZNA, float);    //!
@@ -684,13 +729,312 @@ DECLARE_SOA_COLUMN(TimeZNA, timeZNA, float);                    //!
 DECLARE_SOA_COLUMN(TimeZNC, timeZNC, float);                    //!
 DECLARE_SOA_COLUMN(TimeZPA, timeZPA, float);                    //!
 DECLARE_SOA_COLUMN(TimeZPC, timeZPC, float);                    //!
+// New summarized table, minimal disk footprint, per channel like other detectors
+DECLARE_SOA_COLUMN(Energy, energy, std::vector<float>);       //! Energy of non-zero channels. The channel IDs are given in ChannelE (at the same index)
+DECLARE_SOA_COLUMN(ChannelE, channelE, std::vector<uint8_t>); //! Channel IDs which have reconstructed energy. There are at maximum 26 channels.
+DECLARE_SOA_COLUMN(Amplitude, amplitude, std::vector<float>); //! Amplitudes of non-zero channels. The channel IDs are given in ChannelT (at the same index)
+DECLARE_SOA_COLUMN(Time, time, std::vector<float>);           //! Times of non-zero channels. The channel IDs are given in ChannelT (at the same index)
+DECLARE_SOA_COLUMN(ChannelT, channelT, std::vector<uint8_t>); //! Channel IDs which had non-zero amplitudes. There are at maximum 26 channels.
+// Dynamic columns to take into account packed information; replace old getters
+DECLARE_SOA_DYNAMIC_COLUMN(DyEnergyZEM1, energyZEM1, //! return ZEM1 energy
+                           [](gsl::span<const uint8_t> channelE, gsl::span<const float> energy) -> float {
+                             auto ne = channelE.size();
+                             auto thisenergy = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelE.size(); ie++) {
+                               if (channelE[ie] == o2::zdc::IdZEM1) {
+                                 thisenergy = energy[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thisenergy;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyEnergyZEM2, energyZEM2, //! return ZEM2 energy
+                           [](gsl::span<const uint8_t> channelE, gsl::span<const float> energy) -> float {
+                             auto thisenergy = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelE.size(); ie++) {
+                               if (channelE[ie] == o2::zdc::IdZEM2) {
+                                 thisenergy = energy[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thisenergy;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyEnergyCommonZNA, energyCommonZNA, //! return common ZNA energy
+                           [](gsl::span<const uint8_t> channelE, gsl::span<const float> energy) -> float {
+                             auto thisenergy = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelE.size(); ie++) {
+                               if (channelE[ie] == o2::zdc::IdZNAC) {
+                                 thisenergy = energy[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thisenergy;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyEnergyCommonZNC, energyCommonZNC, //! return common ZNC energy
+                           [](gsl::span<const uint8_t> channelE, gsl::span<const float> energy) -> float {
+                             auto thisenergy = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelE.size(); ie++) {
+                               if (channelE[ie] == o2::zdc::IdZNCC) {
+                                 thisenergy = energy[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thisenergy;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyEnergyCommonZPA, energyCommonZPA, //! return common ZPA energy
+                           [](gsl::span<const uint8_t> channelE, gsl::span<const float> energy) -> float {
+                             auto thisenergy = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelE.size(); ie++) {
+                               if (channelE[ie] == o2::zdc::IdZPAC) {
+                                 thisenergy = energy[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thisenergy;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyEnergyCommonZPC, energyCommonZPC, //! return common ZPC energy
+                           [](gsl::span<const uint8_t> channelE, gsl::span<const float> energy) -> float {
+                             auto thisenergy = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelE.size(); ie++) {
+                               if (channelE[ie] == o2::zdc::IdZPCC) {
+                                 thisenergy = energy[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thisenergy;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyEnergySectorZNA, energySectorZNA, //! return sector ZNA energy (array of 4 floats)
+                           [](gsl::span<const uint8_t> channelE, gsl::span<const float> energy) -> std::array<float, 4> {
+                             std::array<float, 4> thisenergy = {
+                               -std::numeric_limits<float>::infinity(),
+                               -std::numeric_limits<float>::infinity(),
+                               -std::numeric_limits<float>::infinity(),
+                               -std::numeric_limits<float>::infinity()};
+                             for (uint64_t ie = 0; ie < channelE.size(); ie++) {
+                               if (channelE[ie] == o2::zdc::IdZNA1)
+                                 thisenergy[0] = energy[ie];
+                               if (channelE[ie] == o2::zdc::IdZNA2)
+                                 thisenergy[1] = energy[ie];
+                               if (channelE[ie] == o2::zdc::IdZNA3)
+                                 thisenergy[2] = energy[ie];
+                               if (channelE[ie] == o2::zdc::IdZNA4)
+                                 thisenergy[3] = energy[ie];
+                             }
+                             return thisenergy;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyEnergySectorZNC, energySectorZNC, //! return sector ZNC energy (array of 4 floats)
+                           [](gsl::span<const uint8_t> channelE, gsl::span<const float> energy) -> std::array<float, 4> {
+                             std::array<float, 4> thisenergy = {
+                               -std::numeric_limits<float>::infinity(),
+                               -std::numeric_limits<float>::infinity(),
+                               -std::numeric_limits<float>::infinity(),
+                               -std::numeric_limits<float>::infinity()};
+                             for (uint64_t ie = 0; ie < channelE.size(); ie++) {
+                               if (channelE[ie] == o2::zdc::IdZNC1)
+                                 thisenergy[0] = energy[ie];
+                               if (channelE[ie] == o2::zdc::IdZNC2)
+                                 thisenergy[1] = energy[ie];
+                               if (channelE[ie] == o2::zdc::IdZNC3)
+                                 thisenergy[2] = energy[ie];
+                               if (channelE[ie] == o2::zdc::IdZNC4)
+                                 thisenergy[3] = energy[ie];
+                             }
+                             return thisenergy;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyEnergySectorZPA, energySectorZPA, //! return sector ZPA energy (array of 4 floats)
+                           [](gsl::span<const uint8_t> channelE, gsl::span<const float> energy) -> std::array<float, 4> {
+                             std::array<float, 4> thisenergy = {
+                               -std::numeric_limits<float>::infinity(),
+                               -std::numeric_limits<float>::infinity(),
+                               -std::numeric_limits<float>::infinity(),
+                               -std::numeric_limits<float>::infinity()};
+                             for (uint64_t ie = 0; ie < channelE.size(); ie++) {
+                               if (channelE[ie] == o2::zdc::IdZPA1)
+                                 thisenergy[0] = energy[ie];
+                               if (channelE[ie] == o2::zdc::IdZPA2)
+                                 thisenergy[1] = energy[ie];
+                               if (channelE[ie] == o2::zdc::IdZPA3)
+                                 thisenergy[2] = energy[ie];
+                               if (channelE[ie] == o2::zdc::IdZPA4)
+                                 thisenergy[3] = energy[ie];
+                             }
+                             return thisenergy;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyEnergySectorZPC, energySectorZPC, //! return sector ZPC energy (array of 4 floats)
+                           [](gsl::span<const uint8_t> channelE, gsl::span<const float> energy) -> std::array<float, 4> {
+                             std::array<float, 4> thisenergy = {
+                               -std::numeric_limits<float>::infinity(),
+                               -std::numeric_limits<float>::infinity(),
+                               -std::numeric_limits<float>::infinity(),
+                               -std::numeric_limits<float>::infinity()};
+                             for (uint64_t ie = 0; ie < channelE.size(); ie++) {
+                               if (channelE[ie] == o2::zdc::IdZPC1)
+                                 thisenergy[0] = energy[ie];
+                               if (channelE[ie] == o2::zdc::IdZPC2)
+                                 thisenergy[1] = energy[ie];
+                               if (channelE[ie] == o2::zdc::IdZPC3)
+                                 thisenergy[2] = energy[ie];
+                               if (channelE[ie] == o2::zdc::IdZPC4)
+                                 thisenergy[3] = energy[ie];
+                             }
+                             return thisenergy;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyTimeZEM1, timeZEM1, //! return ZEM1 time information
+                           [](gsl::span<const uint8_t> channelT, gsl::span<const float> time) -> float {
+                             auto thistime = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelT.size(); ie++) {
+                               if (channelT[ie] == o2::zdc::IdZEM1) {
+                                 thistime = time[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thistime;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyTimeZEM2, timeZEM2, //! return ZEM2 time information
+                           [](gsl::span<const uint8_t> channelT, gsl::span<const float> time) -> float {
+                             auto thistime = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelT.size(); ie++) {
+                               if (channelT[ie] == o2::zdc::IdZEM2) {
+                                 thistime = time[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thistime;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyTimeZNA, timeZNA, //! return ZNA time information
+                           [](gsl::span<const uint8_t> channelT, gsl::span<const float> time) -> float {
+                             auto thistime = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelT.size(); ie++) {
+                               if (channelT[ie] == o2::zdc::IdZNAC) {
+                                 thistime = time[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thistime;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyTimeZNC, timeZNC, //! return ZNC time information
+                           [](gsl::span<const uint8_t> channelT, gsl::span<const float> time) -> float {
+                             auto thistime = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelT.size(); ie++) {
+                               if (channelT[ie] == o2::zdc::IdZNCC) {
+                                 thistime = time[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thistime;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyTimeZPA, timeZPA, //! return ZPA time information
+                           [](gsl::span<const uint8_t> channelT, gsl::span<const float> time) -> float {
+                             auto thistime = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelT.size(); ie++) {
+                               if (channelT[ie] == o2::zdc::IdZPAC) {
+                                 thistime = time[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thistime;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyTimeZPC, timeZPC, //! return ZPC time information
+                           [](gsl::span<const uint8_t> channelT, gsl::span<const float> time) -> float {
+                             auto thistime = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelT.size(); ie++) {
+                               if (channelT[ie] == o2::zdc::IdZPCC) {
+                                 thistime = time[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thistime;
+                           });
+
+DECLARE_SOA_DYNAMIC_COLUMN(DyAmplitudeZEM1, amplitudeZEM1, //! return ZEM1 amplitude
+                           [](gsl::span<const uint8_t> channelT, gsl::span<const float> amplitude) -> float {
+                             auto thisamplitude = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelT.size(); ie++) {
+                               if (channelT[ie] == o2::zdc::IdZEM1) {
+                                 thisamplitude = amplitude[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thisamplitude;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyAmplitudeZEM2, amplitudeZEM2, //! return ZEM2 amplitude
+                           [](gsl::span<const uint8_t> channelT, gsl::span<const float> amplitude) -> float {
+                             auto thisamplitude = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelT.size(); ie++) {
+                               if (channelT[ie] == o2::zdc::IdZEM2) {
+                                 thisamplitude = amplitude[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thisamplitude;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyAmplitudeZNA, amplitudeZNA, //! return ZNA amplitude
+                           [](gsl::span<const uint8_t> channelT, gsl::span<const float> amplitude) -> float {
+                             auto thisamplitude = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelT.size(); ie++) {
+                               if (channelT[ie] == o2::zdc::IdZNAC) {
+                                 thisamplitude = amplitude[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thisamplitude;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyAmplitudeZNC, amplitudeZNC, //! return ZNC amplitude
+                           [](gsl::span<const uint8_t> channelT, gsl::span<const float> amplitude) -> float {
+                             auto thisamplitude = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelT.size(); ie++) {
+                               if (channelT[ie] == o2::zdc::IdZNCC) {
+                                 thisamplitude = amplitude[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thisamplitude;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyAmplitudeZPA, amplitudeZPA, //! return ZPA amplitude
+                           [](gsl::span<const uint8_t> channelT, gsl::span<const float> amplitude) -> float {
+                             auto thisamplitude = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelT.size(); ie++) {
+                               if (channelT[ie] == o2::zdc::IdZPAC) {
+                                 thisamplitude = amplitude[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thisamplitude;
+                           });
+DECLARE_SOA_DYNAMIC_COLUMN(DyAmplitudeZPC, amplitudeZPC, //! return ZPC amplitude
+                           [](gsl::span<const uint8_t> channelT, gsl::span<const float> amplitude) -> float {
+                             auto thisamplitude = -std::numeric_limits<float>::infinity();
+                             for (uint64_t ie = 0; ie < channelT.size(); ie++) {
+                               if (channelT[ie] == o2::zdc::IdZPCC) {
+                                 thisamplitude = amplitude[ie];
+                                 break; // avoid unnecessary looping
+                               }
+                             }
+                             return thisamplitude;
+                           });
 } // namespace zdc
 
-DECLARE_SOA_TABLE(Zdcs, "AOD", "ZDC", //! ZDC information
+DECLARE_SOA_TABLE(Zdcs_000, "AOD", "ZDC", //! ZDC information
                   o2::soa::Index<>, zdc::BCId, zdc::EnergyZEM1, zdc::EnergyZEM2,
                   zdc::EnergyCommonZNA, zdc::EnergyCommonZNC, zdc::EnergyCommonZPA, zdc::EnergyCommonZPC,
                   zdc::EnergySectorZNA, zdc::EnergySectorZNC, zdc::EnergySectorZPA, zdc::EnergySectorZPC,
                   zdc::TimeZEM1, zdc::TimeZEM2, zdc::TimeZNA, zdc::TimeZNC, zdc::TimeZPA, zdc::TimeZPC);
+
+// new version of tables: different names for dynamic columns, but same getters
+DECLARE_SOA_TABLE_VERSIONED(Zdcs_001, "AOD", "ZDC", 1, //! ZDC information, version 1, std::vector format
+                            o2::soa::Index<>, zdc::BCId, zdc::Energy, zdc::ChannelE, zdc::Amplitude, zdc::Time, zdc::ChannelT,
+                            zdc::DyEnergyZEM1<zdc::ChannelE, zdc::Energy>, zdc::DyEnergyZEM2<zdc::ChannelE, zdc::Energy>,
+                            zdc::DyEnergyCommonZNA<zdc::ChannelE, zdc::Energy>, zdc::DyEnergyCommonZNC<zdc::ChannelE, zdc::Energy>,
+                            zdc::DyEnergyCommonZPA<zdc::ChannelE, zdc::Energy>, zdc::DyEnergyCommonZPC<zdc::ChannelE, zdc::Energy>,
+                            zdc::DyEnergySectorZNA<zdc::ChannelE, zdc::Energy>, zdc::DyEnergySectorZNC<zdc::ChannelE, zdc::Energy>,
+                            zdc::DyEnergySectorZPA<zdc::ChannelE, zdc::Energy>, zdc::DyEnergySectorZPC<zdc::ChannelE, zdc::Energy>,
+                            zdc::DyTimeZEM1<zdc::ChannelT, zdc::Time>, zdc::DyTimeZEM2<zdc::ChannelT, zdc::Time>,
+                            zdc::DyTimeZNA<zdc::ChannelT, zdc::Time>, zdc::DyTimeZNC<zdc::ChannelT, zdc::Time>,
+                            zdc::DyTimeZPA<zdc::ChannelT, zdc::Time>, zdc::DyTimeZPC<zdc::ChannelT, zdc::Time>,
+                            zdc::DyAmplitudeZEM1<zdc::ChannelT, zdc::Amplitude>, zdc::DyAmplitudeZEM2<zdc::ChannelT, zdc::Amplitude>,
+                            zdc::DyAmplitudeZNA<zdc::ChannelT, zdc::Amplitude>, zdc::DyAmplitudeZNC<zdc::ChannelT, zdc::Amplitude>,
+                            zdc::DyAmplitudeZPA<zdc::ChannelT, zdc::Amplitude>, zdc::DyAmplitudeZPC<zdc::ChannelT, zdc::Amplitude>); //
+using Zdcs = Zdcs_001;                                                                                                               //! new version
 using Zdc = Zdcs::iterator;
 
 namespace fv0a
@@ -811,11 +1155,82 @@ DECLARE_SOA_INDEX_COLUMN_FULL(Track2, track2, int, Tracks, "_2"); //! Track 2 in
 DECLARE_SOA_INDEX_COLUMN(Collision, collision);                   //! Collision index
 } // namespace decay3body
 
-DECLARE_SOA_TABLE(Decays3Body, "AOD", "DECAY3BODY", //! Run 2 cascade table
+DECLARE_SOA_TABLE(Decay3Bodys, "AOD", "DECAY3BODY", //! Run 2 cascade table
                   o2::soa::Index<>, decay3body::CollisionId, decay3body::Track0Id, decay3body::Track1Id, decay3body::Track2Id);
 
-using Decays3Body = Decays3Body; //! this defines the current default version
-using Decay3Body = Decays3Body::iterator;
+using Decay3Bodys = Decay3Bodys; //! this defines the current default version
+using Decay3Body = Decay3Bodys::iterator;
+
+namespace strangenesstracking
+{
+DECLARE_SOA_INDEX_COLUMN(Track, track);                                 //! Strange track index
+DECLARE_SOA_INDEX_COLUMN_FULL(ITSTrack, itsTrack, int, Tracks, "_ITS"); //! ITS index
+DECLARE_SOA_INDEX_COLUMN(Cascade, cascade);                             //! Cascade index
+DECLARE_SOA_INDEX_COLUMN(V0, v0);                                       //! V0 index
+DECLARE_SOA_INDEX_COLUMN(Decay3Body, decay3Body);                       //! Decay 3 body index
+
+DECLARE_SOA_COLUMN(DecayX, decayX, float);             //! X coordinate of decay vertex
+DECLARE_SOA_COLUMN(DecayY, decayY, float);             //! Y coordinate of decay vertex
+DECLARE_SOA_COLUMN(DecayZ, decayZ, float);             //! Z coordinate of decay vertex
+DECLARE_SOA_COLUMN(XiMass, xiMass, float);             //! Xi mass
+DECLARE_SOA_COLUMN(OmegaMass, omegaMass, float);       //! Omega mass
+DECLARE_SOA_COLUMN(H3Lmass, h3Lmass, float);           //! H3L mass
+DECLARE_SOA_COLUMN(H4Lmass, h4Lmass, float);           //! H4L mass
+DECLARE_SOA_COLUMN(He4Lmass, he4Lmass, float);         //! He4L mass
+DECLARE_SOA_COLUMN(MatchingChi2, matchingChi2, float); //! Matching Chi2
+DECLARE_SOA_COLUMN(TopologyChi2, topologyChi2, float); //! Topology Chi2
+DECLARE_SOA_COLUMN(ITSclsSize, itsClsSize, float);     //! Average ITS cluster size
+} // namespace strangenesstracking
+
+/// Strangeness tracks
+DECLARE_SOA_TABLE_FULL(TrackedCascades, "TrackedCascade", "AOD", "TRACKEDCASCADE", //! Strangeness tracking cascade table
+                       o2::soa::Index<>,
+                       strangenesstracking::TrackId,
+                       strangenesstracking::ITSTrackId,
+                       strangenesstracking::CascadeId,
+                       strangenesstracking::DecayX,
+                       strangenesstracking::DecayY,
+                       strangenesstracking::DecayZ,
+                       strangenesstracking::XiMass,
+                       strangenesstracking::OmegaMass,
+                       strangenesstracking::MatchingChi2,
+                       strangenesstracking::TopologyChi2,
+                       strangenesstracking::ITSclsSize);
+
+DECLARE_SOA_TABLE_FULL(TrackedV0s, "TrackedV0", "AOD", "TRACKEDV0", //! Strangeness tracking V0 table
+                       o2::soa::Index<>,
+                       strangenesstracking::TrackId,
+                       strangenesstracking::ITSTrackId,
+                       strangenesstracking::V0Id,
+                       strangenesstracking::DecayX,
+                       strangenesstracking::DecayY,
+                       strangenesstracking::DecayZ,
+                       strangenesstracking::H3Lmass,
+                       strangenesstracking::H4Lmass,
+                       strangenesstracking::MatchingChi2,
+                       strangenesstracking::TopologyChi2,
+                       strangenesstracking::ITSclsSize);
+
+DECLARE_SOA_TABLE_FULL(Tracked3Bodys, "Tracked3Body", "AOD", "TRACKED3BODY", //! Strangeness tracking 3-body decay table
+                       o2::soa::Index<>,
+                       strangenesstracking::TrackId,
+                       strangenesstracking::ITSTrackId,
+                       strangenesstracking::Decay3BodyId,
+                       strangenesstracking::DecayX,
+                       strangenesstracking::DecayY,
+                       strangenesstracking::DecayZ,
+                       strangenesstracking::H3Lmass,
+                       strangenesstracking::He4Lmass,
+                       strangenesstracking::MatchingChi2,
+                       strangenesstracking::TopologyChi2,
+                       strangenesstracking::ITSclsSize);
+
+using TrackedCascades = TrackedCascades;
+using TrackedCascade = TrackedCascades::iterator;
+using TrackedV0s = TrackedV0s;
+using TrackedV0 = TrackedV0s::iterator;
+using Tracked3Bodys = Tracked3Bodys;
+using Tracked3body = Tracked3Bodys::iterator;
 
 namespace origin
 {
@@ -900,8 +1315,10 @@ DECLARE_SOA_DYNAMIC_COLUMN(FromBackgroundEvent, fromBackgroundEvent, //! Particl
                            [](uint8_t flags) -> bool { return (flags & o2::aod::mcparticle::enums::FromBackgroundEvent) == o2::aod::mcparticle::enums::FromBackgroundEvent; });
 DECLARE_SOA_DYNAMIC_COLUMN(GetProcess, getProcess, //! The VMC physics code (as int) that generated this particle (see header TMCProcess.h in ROOT)
                            [](uint8_t flags, int statusCode) -> int { if ((flags & o2::aod::mcparticle::enums::ProducedByTransport) == 0x0) { return 0 /*TMCProcess::kPrimary*/; } else { return statusCode; } });
-DECLARE_SOA_DYNAMIC_COLUMN(GetGenStatusCode, getGenStatusCode, //! The status code put by the generator, or -1 if a particle produced during transport
-                           [](uint8_t flags, int statusCode) -> int { if ((flags & o2::aod::mcparticle::enums::ProducedByTransport) == 0x0) { return statusCode; } else { return -1; } });
+DECLARE_SOA_DYNAMIC_COLUMN(GetGenStatusCode, getGenStatusCode, //! The native status code put by the generator, or -1 if a particle produced during transport
+                           [](uint8_t flags, int statusCode) -> int { if ((flags & o2::aod::mcparticle::enums::ProducedByTransport) == 0x0) { return o2::mcgenstatus::getGenStatusCode(statusCode); } else { return -1; } });
+DECLARE_SOA_DYNAMIC_COLUMN(GetHepMCStatusCode, getHepMCStatusCode, //! The HepMC status code put by the generator, or -1 if a particle produced during transport
+                           [](uint8_t flags, int statusCode) -> int { if ((flags & o2::aod::mcparticle::enums::ProducedByTransport) == 0x0) { return o2::mcgenstatus::getHepMCStatusCode(statusCode); } else { return -1; } });
 DECLARE_SOA_DYNAMIC_COLUMN(IsPhysicalPrimary, isPhysicalPrimary, //! True if particle is considered a physical primary according to the ALICE definition
                            [](uint8_t flags) -> bool { return (flags & o2::aod::mcparticle::enums::PhysicalPrimary) == o2::aod::mcparticle::enums::PhysicalPrimary; });
 
@@ -945,6 +1362,7 @@ DECLARE_SOA_TABLE_FULL(StoredMcParticles_000, "McParticles", "AOD", "MCPARTICLE"
                        mcparticle::ProducedByGenerator<mcparticle::Flags>,
                        mcparticle::FromBackgroundEvent<mcparticle::Flags>,
                        mcparticle::GetGenStatusCode<mcparticle::Flags, mcparticle::StatusCode>,
+                       mcparticle::GetHepMCStatusCode<mcparticle::Flags, mcparticle::StatusCode>,
                        mcparticle::GetProcess<mcparticle::Flags, mcparticle::StatusCode>,
                        mcparticle::IsPhysicalPrimary<mcparticle::Flags>);
 
@@ -957,6 +1375,7 @@ DECLARE_SOA_TABLE_FULL_VERSIONED(StoredMcParticles_001, "McParticles", "AOD", "M
                                  mcparticle::ProducedByGenerator<mcparticle::Flags>,
                                  mcparticle::FromBackgroundEvent<mcparticle::Flags>,
                                  mcparticle::GetGenStatusCode<mcparticle::Flags, mcparticle::StatusCode>,
+                                 mcparticle::GetHepMCStatusCode<mcparticle::Flags, mcparticle::StatusCode>,
                                  mcparticle::GetProcess<mcparticle::Flags, mcparticle::StatusCode>,
                                  mcparticle::IsPhysicalPrimary<mcparticle::Flags>);
 
@@ -974,13 +1393,17 @@ DECLARE_SOA_EXTENDED_TABLE(McParticles_001, StoredMcParticles_001, "MCPARTICLE",
                            mcparticle::P,
                            mcparticle::Y);
 
+using StoredMcParticles = StoredMcParticles_001;
 using McParticles = McParticles_001;
 using McParticle = McParticles::iterator;
 } // namespace aod
 namespace soa
 {
+DECLARE_EQUIVALENT_FOR_INDEX(aod::Collisions_000, aod::Collisions_001);
 DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredMcParticles_000, aod::StoredMcParticles_001);
 DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracks, aod::StoredTracksIU);
+DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracks, aod::StoredTracksExtra);
+DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracksIU, aod::StoredTracksExtra);
 } // namespace soa
 
 namespace aod
@@ -1017,12 +1440,17 @@ using McFwdTrackLabel = McFwdTrackLabels::iterator;
 
 namespace mccalolabel
 {
-DECLARE_SOA_INDEX_COLUMN(McParticle, mcParticle); //! MC particle
-DECLARE_SOA_COLUMN(McMask, mcMask, uint16_t);     //! Bit mask to indicate detector mismatches (bit ON means mismatch). Bit 15: indicates negative label
+DECLARE_SOA_INDEX_COLUMN(McParticle, mcParticle);               //! MC particle
+DECLARE_SOA_ARRAY_INDEX_COLUMN(McParticle, mcParticle);         //! Array of MC particles that deposited energy in this calo cell
+DECLARE_SOA_COLUMN(McMask, mcMask, uint16_t);                   //! Bit mask to indicate detector mismatches (bit ON means mismatch). Bit 15: indicates negative label
+DECLARE_SOA_COLUMN(AmplitudeA, amplitudeA, std::vector<float>); //! Energy fraction deposited by a particle inside this calo cell.
 } // namespace mccalolabel
 
-DECLARE_SOA_TABLE(McCaloLabels, "AOD", "MCCALOLABEL", //! Table joined to the calo table containing the MC index
+DECLARE_SOA_TABLE(McCaloLabels_000, "AOD", "MCCALOLABEL", //! Table joined to the calo table containing the MC index (version 000, Run 2 format)
                   mccalolabel::McParticleId, mccalolabel::McMask);
+DECLARE_SOA_TABLE_VERSIONED(McCaloLabels_001, "AOD", "MCCALOLABEL", 1, //! Table joined to the calo table containing multiple MC indices and the amplitude fraction (version 001)
+                            mccalolabel::McParticleIds, mccalolabel::AmplitudeA);
+using McCaloLabels = McCaloLabels_000;
 using McCaloLabel = McCaloLabels::iterator;
 
 namespace mccollisionlabel
@@ -1109,13 +1537,14 @@ using HepMCHeavyIon = HepMCHeavyIons::iterator;
 
 namespace indices
 {
-DECLARE_SOA_INDEX_COLUMN(Collision, collision); //!
-DECLARE_SOA_INDEX_COLUMN(BC, bc);               //!
-DECLARE_SOA_INDEX_COLUMN(Zdc, zdc);             //!
-DECLARE_SOA_INDEX_COLUMN(FV0A, fv0a);           //!
-DECLARE_SOA_INDEX_COLUMN(FV0C, fv0c);           //!
-DECLARE_SOA_INDEX_COLUMN(FT0, ft0);             //!
-DECLARE_SOA_INDEX_COLUMN(FDD, fdd);             //!
+DECLARE_SOA_INDEX_COLUMN(Collision, collision);        //!
+DECLARE_SOA_ARRAY_INDEX_COLUMN(Collision, collisions); //!
+DECLARE_SOA_INDEX_COLUMN(BC, bc);                      //!
+DECLARE_SOA_INDEX_COLUMN(Zdc, zdc);                    //!
+DECLARE_SOA_INDEX_COLUMN(FV0A, fv0a);                  //!
+DECLARE_SOA_INDEX_COLUMN(FV0C, fv0c);                  //!
+DECLARE_SOA_INDEX_COLUMN(FT0, ft0);                    //!
+DECLARE_SOA_INDEX_COLUMN(FDD, fdd);                    //!
 } // namespace indices
 
 // First entry: Collision
@@ -1133,6 +1562,11 @@ DECLARE_SOA_INDEX_TABLE_EXCLUSIVE(MatchedBCCollisionsExclusive, BCs, "MA_BCCOL_E
 DECLARE_SOA_INDEX_TABLE(MatchedBCCollisionsSparse, BCs, "MA_BCCOL_SP", //!
                         indices::BCId, indices::CollisionId);
 
+DECLARE_SOA_INDEX_TABLE_EXCLUSIVE(MatchedBCCollisionsExclusiveMulti, BCs, "MA_BCCOLS_EX", //!
+                                  indices::BCId, indices::CollisionIds);
+DECLARE_SOA_INDEX_TABLE(MatchedBCCollisionsSparseMulti, BCs, "MA_BCCOLS_SP", //!
+                        indices::BCId, indices::CollisionIds);
+
 DECLARE_SOA_INDEX_TABLE_EXCLUSIVE(Run3MatchedToBCExclusive, BCs, "MA_RN3_BC_EX", //!
                                   indices::BCId, indices::ZdcId, indices::FT0Id, indices::FV0AId, indices::FDDId);
 DECLARE_SOA_INDEX_TABLE(Run3MatchedToBCSparse, BCs, "MA_RN3_BC_SP", //!
@@ -1141,11 +1575,15 @@ DECLARE_SOA_INDEX_TABLE(Run3MatchedToBCSparse, BCs, "MA_RN3_BC_SP", //!
 DECLARE_SOA_INDEX_TABLE(Run2MatchedToBCSparse, BCs, "MA_RN2_BC_SP", //!
                         indices::BCId, indices::ZdcId, indices::FT0Id, indices::FV0AId, indices::FV0CId, indices::FDDId);
 
-// Joins with collisions (only for sparse ones)
-// NOTE: index table needs to be always last argument
 } // namespace aod
 namespace soa
 {
+// equivalences
+DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracks, aod::McTrackLabels);
+DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracksIU, aod::McTrackLabels);
+DECLARE_EQUIVALENT_FOR_INDEX(aod::Collisions, aod::McCollisionLabels);
+// Joins with collisions (only for sparse ones)
+// NOTE: index table needs to be always last argument
 extern template struct Join<aod::Collisions, aod::Run2MatchedSparse>;
 extern template struct Join<aod::Collisions, aod::Run3MatchedSparse>;
 } // namespace soa

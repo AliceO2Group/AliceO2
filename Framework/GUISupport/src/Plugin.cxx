@@ -21,6 +21,7 @@
 #include "Framework/ServiceSpec.h"
 #include "Framework/CommonServices.h"
 #include "Framework/GuiCallbackContext.h"
+#include "Framework/DataProcessingContext.h"
 #include "SpyService.h"
 #include "SpyServiceHelpers.h"
 #include <fairmq/Channel.h>
@@ -30,13 +31,14 @@ using namespace o2::framework;
 struct ImGUIDebugGUI : o2::framework::DebugGUI {
   std::function<void(void)> getGUIDebugger(std::vector<DeviceInfo> const& infos,
                                            std::vector<DeviceSpec> const& devices,
+                                           std::vector<DataProcessingStates> const& allStates,
                                            std::vector<DataProcessorInfo> const& metadata,
                                            std::vector<DeviceMetricsInfo> const& metricsInfos,
                                            DriverInfo const& driverInfo,
                                            std::vector<DeviceControl>& controls,
                                            DriverControl& driverControl) override
   {
-    return o2::framework::gui::getGUIDebugger(infos, devices, metadata, metricsInfos, driverInfo, controls, driverControl);
+    return o2::framework::gui::getGUIDebugger(infos, devices, allStates, metadata, metricsInfos, driverInfo, controls, driverControl);
   }
 
   void updateMousePos(float x, float y) override
@@ -68,7 +70,7 @@ struct ImGUIDebugGUI : o2::framework::DebugGUI {
     o2::framework::gui::charIn(key);
   }
 
-  void* initGUI(char const* windowTitle, ServiceRegistryRef registry_) override
+  void* initGUI(char const* windowTitle, ServiceRegistry& registry_) override
   {
     registry = &registry_;
     return o2::framework::initGUI(windowTitle);
@@ -77,13 +79,9 @@ struct ImGUIDebugGUI : o2::framework::DebugGUI {
   {
     o2::framework::disposeGUI();
   }
-  void getFrameJSON(void* data, std::ostream& json_data) override
+  void getFrameRaw(void* data, void** raw_data, int* size, bool updateTextures = false) override
   {
-    o2::framework::getFrameJSON(data, json_data);
-  }
-  void getFrameRaw(void* data, void** raw_data, int* size) override
-  {
-    o2::framework::getFrameRaw(data, raw_data, size);
+    o2::framework::getFrameRaw(data, raw_data, size, updateTextures);
   }
   bool pollGUIPreRender(void* context, float delta) override
   {

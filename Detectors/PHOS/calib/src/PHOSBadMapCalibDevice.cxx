@@ -69,7 +69,7 @@ void PHOSBadMapCalibDevice::run(o2::framework::ProcessingContext& ctx)
   // scan Cells stream, collect occupancy
   if (mMode == 0) { //  Cell occupancy and time
     auto cells = ctx.inputs().get<gsl::span<o2::phos::Cell>>("cells");
-    LOG(info) << "[PHOSBadMapCalibDevice - run]  Received " << cells.size() << " cells, running calibration ...";
+    LOG(detail) << "[PHOSBadMapCalibDevice - run]  Received " << cells.size() << " cells, running calibration ...";
     for (const auto& c : cells) {
       float e = c.getEnergy();
       if (e > mElowMin && e < mElowMax) {

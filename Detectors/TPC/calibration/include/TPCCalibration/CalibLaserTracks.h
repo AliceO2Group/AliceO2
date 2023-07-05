@@ -154,6 +154,8 @@ class CalibLaserTracks
   /// name of the debug output tree
   void setDebugOutputName(std::string_view name) { mDebugOutputName = name; }
 
+  void setVDriftRef(float v) { mDriftV = v; }
+
  private:
   int mTriggerPos{0};                                          ///< trigger position, if < 0 it treats it as the CE position
   float mBz{0.5};                                              ///< Bz field in Tesla

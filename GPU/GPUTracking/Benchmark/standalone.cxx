@@ -89,6 +89,7 @@ std::vector<GPUChainTracking::InOutMemory> ioMemEvents;
 
 void SetCPUAndOSSettings()
 {
+#if not(defined(__ARM_NEON) or defined(__aarch64__)) // ARM doesn't have SSE
 #ifdef FE_DFL_DISABLE_SSE_DENORMS_ENV // Flush and load denormals to zero in any case
   fesetenv(FE_DFL_DISABLE_SSE_DENORMS_ENV);
 #else
@@ -100,6 +101,7 @@ void SetCPUAndOSSettings()
 #endif
   _mm_setcsr(_mm_getcsr() | (_MM_FLUSH_ZERO_ON | _MM_DENORMALS_ZERO_ON));
 #endif
+#endif // ARM
 }
 
 int ReadConfiguration(int argc, char** argv)
@@ -164,7 +166,7 @@ int ReadConfiguration(int argc, char** argv)
 #endif
 #ifndef GPUCA_HAVE_O2HEADERS
   configStandalone.runTRD = configStandalone.rundEdx = configStandalone.runCompression = configStandalone.runTransformation = configStandalone.testSyncAsync = configStandalone.testSync = 0;
-  configStandalone.rec.ForceEarlyTPCTransform = 1;
+  configStandalone.rec.tpc.forceEarlyTransform = 1;
   configStandalone.runRefit = false;
 #endif
 #ifndef GPUCA_TPC_GEOMETRY_O2
@@ -218,6 +220,9 @@ int ReadConfiguration(int argc, char** argv)
   }
   if (configStandalone.QA.inputHistogramsOnly) {
     configStandalone.rundEdx = false;
+  }
+  if (configStandalone.QA.dumpToROOT) {
+    configStandalone.proc.outputSharedClusterMap = true;
   }
   if (configStandalone.eventDisplay) {
     configStandalone.noprompt = 1;
@@ -276,7 +281,10 @@ int SetupReconstruction()
   if (!configStandalone.eventGenerator) {
     char filename[256];
     snprintf(filename, 256, "events/%s/", configStandalone.eventsDir);
-    if (rec->ReadSettings(filename)) {
+    if (configStandalone.noEvents) {
+      configStandalone.eventsDir = "NON_EXISTING";
+      configStandalone.rundEdx = false;
+    } else if (rec->ReadSettings(filename)) {
       printf("Error reading event config file\n");
       return 1;
     }
@@ -340,7 +348,7 @@ int SetupReconstruction()
     procSet.eventDisplay = eventDisplay.get();
   }
 
-  if (procSet.runQA) {
+  if (procSet.runQA && !configStandalone.QA.noMC) {
     procSet.runMC = true;
   }
 
@@ -372,7 +380,16 @@ int SetupReconstruction()
     steps.steps.setBits(GPUDataTypes::RecoStep::TRDTracking, false);
   }
   steps.inputs.set(GPUDataTypes::InOutType::TPCClusters, GPUDataTypes::InOutType::TRDTracklets);
-  if (grp.needsClusterer) {
+  steps.steps.setBits(GPUDataTypes::RecoStep::TPCDecompression, false);
+  steps.inputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, false);
+  if (grp.doCompClusterDecode) {
+    steps.inputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, true);
+    steps.inputs.setBits(GPUDataTypes::InOutType::TPCClusters, false);
+    steps.steps.setBits(GPUDataTypes::RecoStep::TPCCompression, false);
+    steps.steps.setBits(GPUDataTypes::RecoStep::TPCClusterFinding, false);
+    steps.steps.setBits(GPUDataTypes::RecoStep::TPCDecompression, true);
+    steps.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, false);
+  } else if (grp.needsClusterer) {
     steps.inputs.setBits(GPUDataTypes::InOutType::TPCRaw, true);
     steps.inputs.setBits(GPUDataTypes::InOutType::TPCClusters, false);
   } else {
@@ -392,8 +409,6 @@ int SetupReconstruction()
   steps.outputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, steps.steps.isSet(GPUDataTypes::RecoStep::TPCCompression));
   steps.outputs.setBits(GPUDataTypes::InOutType::TRDTracks, steps.steps.isSet(GPUDataTypes::RecoStep::TRDTracking));
   steps.outputs.setBits(GPUDataTypes::InOutType::TPCClusters, steps.steps.isSet(GPUDataTypes::RecoStep::TPCClusterFinding));
-  steps.steps.setBits(GPUDataTypes::RecoStep::TPCDecompression, false);
-  steps.inputs.setBits(GPUDataTypes::InOutType::TPCCompressedClusters, false);
 
   if (steps.steps.isSet(GPUDataTypes::RecoStep::TRDTracking)) {
     if (recSet.tpc.nWays > 1) {
@@ -436,6 +451,9 @@ int SetupReconstruction()
     procSet.runQA = false;
     procSet.eventDisplay = eventDisplay.get();
     procSet.runCompressionStatistics = 0;
+    if (recSet.tpc.rejectionStrategy >= GPUSettings::RejectionStrategyB) {
+      procSet.tpcInputWithClusterRejection = 1;
+    }
     recSet.tpc.disableRefitAttachment = 0xFF;
     recSet.tpc.loopInterpolationInExtraPass = 0;
     recSet.maxTrackQPtB5 = CAMath::Min(recSet.maxTrackQPtB5, recSet.tpc.rejectQPtB5);
@@ -553,7 +571,7 @@ int LoadEvent(int iEvent, int x)
     }
   }
 
-  if (!rec->GetParam().par.earlyTpcTransform && chainTracking->mIOPtrs.clustersNative == nullptr && chainTracking->mIOPtrs.tpcPackedDigits == nullptr && chainTracking->mIOPtrs.tpcZS == nullptr) {
+  if (!rec->GetParam().par.earlyTpcTransform && !chainTracking->mIOPtrs.clustersNative && !chainTracking->mIOPtrs.tpcPackedDigits && !chainTracking->mIOPtrs.tpcZS && !chainTracking->mIOPtrs.tpcCompressedClusters) {
     printf("Need cluster native data for on-the-fly TPC transform\n");
     return 1;
   }
@@ -600,7 +618,7 @@ int RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingUse, 
     const GPUTrackingInOutPointers& ioPtrs = ioPtrEvents[!configStandalone.preloadEvents ? 0 : configStandalone.proc.doublePipeline ? (iteration % ioPtrEvents.size()) : (iEvent - configStandalone.StartEvent)];
     chainTrackingUse->mIOPtrs = ioPtrs;
     if (iteration == (configStandalone.proc.doublePipeline ? 2 : (configStandalone.runs - 1))) {
-      if (configStandalone.proc.doublePipeline) {
+      if (configStandalone.proc.doublePipeline && timerPipeline) {
         timerPipeline->Start();
       }
       if (configStandalone.controlProfiler) {
@@ -610,7 +628,7 @@ int RunBenchmark(GPUReconstruction* recUse, GPUChainTracking* chainTrackingUse, 
     int tmpRetVal = recUse->RunChains();
     int iterationEnd = nIterationEnd.fetch_add(1);
     if (iterationEnd == configStandalone.runs - 1) {
-      if (configStandalone.proc.doublePipeline) {
+      if (configStandalone.proc.doublePipeline && timerPipeline) {
         timerPipeline->Stop();
       }
       if (configStandalone.controlProfiler) {
@@ -817,11 +835,17 @@ int main(int argc, char** argv)
     long long int nClustersTotal = 0;
     int nEventsProcessed = 0;
 
+    if (configStandalone.noEvents) {
+      nEvents = 1;
+      configStandalone.StartEvent = 0;
+      chainTracking->ClearIOPointers();
+    }
+
     for (int iEvent = configStandalone.StartEvent; iEvent < nEvents; iEvent++) {
       if (iEvent != configStandalone.StartEvent) {
         printf("\n");
       }
-      if (!configStandalone.preloadEvents) {
+      if (configStandalone.noEvents == false && !configStandalone.preloadEvents) {
         HighResTimer timerLoad;
         timerLoad.Start();
         if (LoadEvent(iEvent, 0)) {

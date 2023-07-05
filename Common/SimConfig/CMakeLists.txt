@@ -15,8 +15,10 @@ o2_add_library(SimConfig
                        src/SimUserDecay.cxx
                        src/DigiParams.cxx src/G4Params.cxx
                        src/MatMapParams.cxx
+                       src/InteractionDiamondParam.cxx
+                       src/GlobalProcessCutSimParam.cxx
                PUBLIC_LINK_LIBRARIES O2::CommonUtils
-                                     O2::DetectorsCommonDataFormats
+                                     O2::DetectorsCommonDataFormats O2::SimulationDataFormat
                                      FairRoot::Base Boost::program_options)
 
 
@@ -24,8 +26,10 @@ o2_target_root_dictionary(SimConfig
                           HEADERS include/SimConfig/SimConfig.h
                                   include/SimConfig/SimParams.h
                                   include/SimConfig/SimUserDecay.h
-		include/SimConfig/DigiParams.h
+                                  include/SimConfig/InteractionDiamondParam.h
+		                  include/SimConfig/DigiParams.h
                                   include/SimConfig/G4Params.h
+                                  include/SimConfig/GlobalProcessCutSimParam.h
                                   include/SimConfig/MatMapParams.h)
 
 o2_add_test(Config

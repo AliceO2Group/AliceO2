@@ -171,7 +171,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     if (proxyMode == ProxyMode::SkipOutput) {
       *channelName = externalChannelSpec.name;
     } else {
-      callbacks.set(CallbackService::Id::Start, producerChannelInit);
+      callbacks.set<CallbackService::Id::Start>(producerChannelInit);
     }
     // the compute callback of the producer
     auto producerCallback = [nRolls, channelName, proxyMode, counter = std::make_shared<size_t>()](DataAllocator& outputs, ControlService& control, RawDeviceService& rds) {
@@ -319,7 +319,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
     }
   };
   auto checkerInit = [checkerCallback, checkCounter](CallbackService& callbacks) {
-    callbacks.set(CallbackService::Id::EndOfStream, checkCounter);
+    callbacks.set<CallbackService::Id::EndOfStream>(checkCounter);
     return adaptStateless(checkerCallback);
   };
 
@@ -349,7 +349,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
   // reads the messages from the output proxy via the out-of-band channel
 
   // converter callback for the external FairMQ device proxy ProcessorSpec generator
-  auto converter = [](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& inputs, ChannelRetriever channelRetriever) {
+  auto converter = [](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& inputs, ChannelRetriever channelRetriever, size_t newTimesliceId, bool&) {
     ASSERT_ERROR(inputs.Size() >= 2);
     if (inputs.Size() < 2) {
       return;
@@ -401,6 +401,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
       }
     }
     o2::framework::sendOnChannel(device, output, channelName, (size_t)-1);
+    return;
   };
 
   // we use the same spec to build the configuration string, ideally we would have some helpers

@@ -18,17 +18,22 @@
 
 #include "DataFormatsTRD/TrackTRD.h"
 #include "DataFormatsTRD/Tracklet64.h"
+#include "TRDBase/PadCalibrationsAliases.h"
 #include "DataFormatsTRD/CalibratedTracklet.h"
 #include "DataFormatsTRD/Constants.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DetectorsBase/Propagator.h"
 #include "TRDBase/RecoParam.h"
-#include "TH1.h"
 
 #include "Rtypes.h"
+#include "TH1.h"
 
 #include <gsl/span>
+#include <bitset>
+
+using GTrackID = o2::dataformats::GlobalTrackID;
 
 namespace o2
 {
@@ -42,45 +47,22 @@ namespace trd
 {
 
 struct TrackQC {
-  int type;          ///< 0 TPC-TRD track; 1 ITS-TPC-TRD track
-  int nTracklets;    ///< number of attached TRD tracklets
-  int nLayers;       //< Number of Layers of a Track in which the track extrapolation was in geometrical acceptance of the TRD
-  float chi2;        ///< total chi2 value for the track
-  float reducedChi2; ///< chi2 total divided by number of layers in which track is inside TRD geometrical acceptance
-  float p;           ///< the total momentum of the track at the point of the innermost ITS cluster (ITS-TPC-TRD) or at the inner TPC radius (TPC-TRD)
-  float pt;          ///< the transverse momentum of the track at the point of the innermost ITS cluster (ITS-TPC-TRD) or at the inner TPC radius (TPC-TRD)
-  float ptSigma2;    //< Sigma2 of pt
-  float dEdxTotTPC;  //< raw total dEdx information for seeding track in TPC
 
-  // layer-wise information for seeding track and assigned tracklet (if available)
-  std::array<float, constants::NLAYER> findable{}; ///< flag if track was in geometrical acceptance
-  std::array<float, constants::NLAYER> trackX{};   ///< x-position of seeding track (sector coordinates)
-  std::array<float, constants::NLAYER> trackY{};   ///< y-position of seeding track (sector coordinates)
-  std::array<float, constants::NLAYER> trackZ{};   ///< z-position of seeding track (sector coordinates)
-  std::array<float, constants::NLAYER> trackSnp{}; ///< sin(phi) of seeding track (sector coordinates -> local inclination in r-phi)
-  std::array<float, constants::NLAYER> trackTgl{}; ///< tan(lambda) of seeding track (inclination in s_xy-z plane)
-  std::array<float, constants::NLAYER> trackQpt{}; ///< q/pt of seeding track
-  std::array<float, constants::NLAYER> trackPhi{}; //< Phi 0:2Pi value of Track
-  std::array<float, constants::NLAYER> trackEta{}; //< Eta value of Track
+  GTrackID refGlobalTrackId;         ///< GlobalTrackID of the seeding track (either ITS-TPC or TPC)
+  TrackTRD trackTRD;                 ///< the found TRD track
+  o2::track::TrackParCov trackSeed;  ///< outer param of the seeding track
+  float dEdxTotTPC;                  ///< raw total dEdx information for seeding track in TPC
 
-  // tracklet position is also given in sector coordinates
-  std::array<float, constants::NLAYER> trackletYraw{};         ///< y-position of tracklet without tilt correction
-  std::array<float, constants::NLAYER> trackletZraw{};         ///< z-position of tracklet without tilt correction
+  std::array<o2::track::TrackPar, constants::NLAYER> trackProp{}; ///< the track parameters stored at the radius where the track is updated with TRD info
+  std::array<Tracklet64, constants::NLAYER> trklt64{};            ///< the raw tracklet used for the update (includes uncorrected charges)
+  std::array<CalibratedTracklet, constants::NLAYER> trkltCalib{}; ///< the TRD space point used for the update (not yet tilt-corrected and z-shift corrected)
+
   std::array<float, constants::NLAYER> trackletY{};            ///< y-position of tracklet used for track update (including correction)
   std::array<float, constants::NLAYER> trackletZ{};            ///< z-position of tracklet used for track update (including correction)
-  std::array<float, constants::NLAYER> trackletDy{};           ///< tracklet deflection over drift length obtained from CalibratedTracklet
-  std::array<int, constants::NLAYER> trackletSlope{};          ///< the raw slope from Tracklet64
-  std::array<int, constants::NLAYER> trackletSlopeSigned{};    ///< the raw slope from Tracklet64 (signed integer)
-  std::array<int, constants::NLAYER> trackletPosition{};       ///< the raw position from Tracklet64
-  std::array<int, constants::NLAYER> trackletPositionSigned{}; ///< the raw position from Tracklet64 (signed integer)
-  std::array<int, constants::NLAYER> trackletDet{};            ///< the chamber of the tracklet
-  // some tracklet details to identify its global MCM number to check if it is from noisy MCM
-  std::array<int, constants::NLAYER> trackletHCId{};                                     ///< the half-chamber ID of the tracklet
-  std::array<int, constants::NLAYER> trackletRob{};                                      ///< the ROB number of the tracklet
-  std::array<int, constants::NLAYER> trackletMcm{};                                      ///< the MCM number of the tracklet
-  std::array<float, constants::NLAYER> trackletChi2{};                                   ///< estimated chi2 for the update of the track with the given tracklet
-  std::array<std::array<int, constants::NCHARGES>, constants::NLAYER> trackletCharges{}; ///< charges of tracklets
-  ClassDefNV(TrackQC, 2);
+  std::array<float, constants::NLAYER> trackletChi2{};         ///< estimated chi2 for the update of the track with the given tracklet
+  std::array<std::array<float, constants::NCHARGES>, constants::NLAYER> trackletCorCharges{}; ///< corrected charges of tracklets
+
+  ClassDefNV(TrackQC, 6);
 };
 
 class Tracking
@@ -107,16 +89,28 @@ class Tracking
   /// Check track QC
   void checkTrack(const TrackTRD& trk, bool isTPCTRD);
 
+  /// Disable TPC dEdx information
+  void disablePID() { mPID = false; }
+
   // Make output accessible to DPL processor
   std::vector<TrackQC>& getTrackQC() { return mTrackQC; }
+
+  // Set the local gain factors with values from the ccdb
+  void setLocalGainFactors(const o2::trd::LocalGainFactor& localGain)
+  {
+    mLocalGain = localGain;
+  }
 
  private:
   float mMaxSnp{o2::base::Propagator::MAX_SIN_PHI};  ///< max snp when propagating tracks
   float mMaxStep{o2::base::Propagator::MAX_STEP};    ///< maximum step for propagation
   MatCorrType mMatCorr{MatCorrType::USEMatCorrNONE}; ///< if material correction should be done
   RecoParam mRecoParam;                              ///< parameters required for TRD reconstruction
+  bool mPID{true};                                   ///< if TPC only tracks are not available we don't fill PID info
+
   // QA results
   std::vector<TrackQC> mTrackQC;
+
   // input from DPL
   gsl::span<const o2::dataformats::TrackTPCITS> mTracksITSTPC; ///< ITS-TPC seeding tracks
   gsl::span<const o2::tpc::TrackTPC> mTracksTPC;               ///< TPC seeding tracks
@@ -125,10 +119,23 @@ class Tracking
   gsl::span<const Tracklet64> mTrackletsRaw;                   ///< array of raw tracklets needed for TRD refit
   gsl::span<const CalibratedTracklet> mTrackletsCalib;         ///< array of calibrated tracklets needed for TRD refit
 
-  ClassDefNV(Tracking, 1);
+  // corrections from ccdb, some need to be loaded only once hence an init flag
+  o2::trd::LocalGainFactor mLocalGain; ///< local gain factors from krypton calibration
+
+  ClassDefNV(Tracking, 2);
 };
 
 } // namespace trd
+
+namespace framework
+{
+template <typename T>
+struct is_messageable;
+template <>
+struct is_messageable<o2::trd::TrackQC> : std::true_type {
+};
+} // namespace framework
+
 } // namespace o2
 
 #endif // O2_TRD_TRACKINGQC_H

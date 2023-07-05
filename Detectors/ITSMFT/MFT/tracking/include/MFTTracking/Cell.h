@@ -48,10 +48,10 @@ class Cell
   const Bool_t isUsed() const { return mIsUsed; }
   const Int_t getCellId() const { return mCellId; };
   void setCellId(const Int_t);
-  const std::array<std::pair<Int_t, Int_t>, constants::mft::MaxCellNeighbours>& getLeftNeighbours() const;
-  const std::array<std::pair<Int_t, Int_t>, constants::mft::MaxCellNeighbours>& getRightNeighbours() const;
-  const UChar_t getNLeftNeighbours() const { return mNLeftNeighbours; }
-  const UChar_t getNRightNeighbours() const { return mNRightNeighbours; }
+  const auto& getLeftNeighbours() const { return mLeftNeighbours; };
+  const auto& getRightNeighbours() const { return mRightNeighbours; };
+  const UChar_t getNLeftNeighbours() const { return mLeftNeighbours.size(); }
+  const UChar_t getNRightNeighbours() const { return mRightNeighbours.size(); }
 
   void setCoordinates(Float_t* coord)
   {
@@ -79,10 +79,8 @@ class Cell
   Bool_t mUpdateLevel;
   Bool_t mIsUsed;
   Int_t mCellId;
-  UChar_t mNLeftNeighbours;
-  UChar_t mNRightNeighbours;
-  std::array<std::pair<Int_t, Int_t>, constants::mft::MaxCellNeighbours> mLeftNeighbours;
-  std::array<std::pair<Int_t, Int_t>, constants::mft::MaxCellNeighbours> mRightNeighbours;
+  std::vector<std::pair<Int_t, Int_t>> mLeftNeighbours;
+  std::vector<std::pair<Int_t, Int_t>> mRightNeighbours;
   Float_t mCoord[6];
 };
 
@@ -94,9 +92,7 @@ inline Cell::Cell()
     mLevel{0},
     mUpdateLevel{kFALSE},
     mIsUsed{kFALSE},
-    mCellId{-1},
-    mNLeftNeighbours{0},
-    mNRightNeighbours{0}
+    mCellId{-1}
 {
   // Default constructor, for the dictionary
 }
@@ -109,9 +105,7 @@ inline Cell::Cell(const Int_t firstLayerId, const Int_t secondLayerId, const Int
     mLevel{1},
     mUpdateLevel{kFALSE},
     mIsUsed{kFALSE},
-    mCellId{cellIndex},
-    mNLeftNeighbours{0},
-    mNRightNeighbours{0}
+    mCellId{cellIndex}
 {
 }
 
@@ -132,26 +126,12 @@ inline void Cell::setLevel(const Int_t level) { mLevel = level; }
 
 inline void Cell::addRightNeighbour(const Int_t layer, const Int_t clusterId)
 {
-  mRightNeighbours.at(mNRightNeighbours++) = std::pair<Int_t, Int_t>(layer, clusterId);
+  mRightNeighbours.emplace_back(layer, clusterId);
 }
 
 inline void Cell::addLeftNeighbour(const Int_t layer, const Int_t clusterId)
 {
-  try {
-    mLeftNeighbours.at(mNLeftNeighbours++) = std::pair<Int_t, Int_t>(layer, clusterId);
-  } catch (const std::out_of_range& err) {
-    std::cout << "Maximum number of left neighbours for this cell!" << std::endl;
-  }
-}
-
-inline const std::array<std::pair<Int_t, Int_t>, constants::mft::MaxCellNeighbours>& Cell::getLeftNeighbours() const
-{
-  return mLeftNeighbours;
-}
-
-inline const std::array<std::pair<Int_t, Int_t>, constants::mft::MaxCellNeighbours>& Cell::getRightNeighbours() const
-{
-  return mRightNeighbours;
+  mLeftNeighbours.emplace_back(layer, clusterId);
 }
 
 inline void Cell::incrementLevel()

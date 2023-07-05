@@ -37,7 +37,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "CommonDataFormat/RangeReference.h"
 #include "CommonDataFormat/BunchFilling.h"
-#include "CommonDataFormat/Pair.h"
+#include "CommonDataFormat/Triplet.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "DataFormatsITSMFT/Cluster.h"
@@ -46,6 +46,7 @@
 #include "DataFormatsFT0/RecPoints.h"
 #include "FT0Reconstruction/InteractionTag.h"
 #include "DataFormatsTPC/ClusterNativeHelper.h"
+#include "DataFormatsTPC/VDriftCorrFact.h"
 #include "ITSReconstruction/RecoGeomHelper.h"
 #include "TPCFastTransform.h"
 #include "GPUO2InterfaceRefit.h"
@@ -292,12 +293,10 @@ class MatchTPCITS
   using BracketIR = o2::math_utils::Bracket<o2::InteractionRecord>;
   using Params = o2::globaltracking::MatchTPCITSParams;
   using MatCorrType = o2::base::Propagator::MatCorrType;
+  using VDTriplet = o2::dataformats::Triplet<float, float, float>;
 
   MatchTPCITS(); // std::unique_ptr to forward declared type needs constructor / destructor in .cxx
   ~MatchTPCITS();
-
-  static constexpr float XMatchingRef = 70.0;                            ///< reference radius to propage tracks for matching
-  static constexpr float YMaxAtXMatchingRef = XMatchingRef * 0.17632698; ///< max Y in the sector at reference X
 
   static constexpr int MaxUpDnLadders = 3;                     // max N ladders to check up and down from selected one
   static constexpr int MaxLadderCand = 2 * MaxUpDnLadders + 1; // max ladders to check for matching clusters
@@ -336,6 +335,10 @@ class MatchTPCITS
   ///< set ITS ROFrame duration in BC (continuous mode only)
   void setITSROFrameLengthInBC(int nbc);
 
+  void setITSTimeBiasInBC(int n);
+  int getITSTimeBiasInBC() const { return mITSTimeBiasInBC; }
+  float getITSTimeBiasMUS() const { return mITSTimeBiasMUS; }
+
   // ==================== >> DPL-driven input >> =======================
   void setITSDictionary(const o2::itsmft::TopologyDictionary* d) { mITSDict = d; }
 
@@ -363,7 +366,7 @@ class MatchTPCITS
   const MCLabContTr& getABTrackletLabels() const { return mABTrackletLabels; }
   const std::vector<int>& getABTrackletClusterIDs() const { return mABTrackletClusterIDs; }
   const std::vector<o2::itsmft::TrkClusRef>& getABTrackletRefs() const { return mABTrackletRefs; }
-  const std::vector<o2::dataformats::Pair<float, float>>& getTglITSTPC() const { return mTglITSTPC; }
+  const std::vector<VDTriplet>& getTglITSTPC() const { return mTglITSTPC; }
 
   //>>> ====================== options =============================>>>
   void setUseMatCorrFlag(MatCorrType f) { mUseMatCorrFlag = f; }
@@ -458,7 +461,10 @@ class MatchTPCITS
   ///< convert time to ITS ROFrame units in case of continuous ITS readout
   int time2ITSROFrameCont(float t) const
   {
-    int rof = t > 0 ? t * mITSROFrameLengthMUSInv : 0;
+    int rof = (t - mITSTimeBiasMUS) * mITSROFrameLengthMUSInv;
+    if (rof < 0) {
+      rof = 0;
+    }
     // the rof is estimated continuous counter but the actual bins might have gaps (e.g. HB rejects etc)-> use mapping
     return rof < int(mITSTrackROFContMapping.size()) ? mITSTrackROFContMapping[rof] : mITSTrackROFContMapping.back();
   }
@@ -466,6 +472,7 @@ class MatchTPCITS
   ///< convert time to ITS ROFrame units in case of triggered ITS readout
   int time2ITSROFrameTrig(float t, int start) const
   {
+    t -= mITSTimeBiasMUS;
     while (start < mITSROFTimes.size()) {
       if (mITSROFTimes[start].getMax() > t) {
         return start;
@@ -531,6 +538,8 @@ class MatchTPCITS
   ///< do we use track Z difference to reject fake matches? makes sense for triggered mode only
   bool mCompareTracksDZ = false;
 
+  float YMaxAtXMatchingRef = 999.; ///< max Y in the sector at reference X
+
   float mSectEdgeMargin2 = 0.; ///< crude check if ITS track should be matched also in neighbouring sector
 
   ///< safety margin in TPC time bins when estimating TPC track tMin and tMax from
@@ -541,10 +550,11 @@ class MatchTPCITS
   float mITSROFrameLengthMUS = -1.; ///< ITS RO frame in \mus
   float mITSTimeResMUS = -1.;       ///< nominal ITS time resolution derived from ROF
   float mITSROFrameLengthMUSInv = -1.; ///< ITS RO frame in \mus inverse
-  float mTPCVDriftRef = -1.;           ///< TPC nominal drift speed in cm/microseconds
-  float mTPCVDriftCorrFact = 1.;       ///< TPC nominal correction factort (wrt ref)
+  int mITSTimeBiasInBC = 0;            ///< ITS RO frame shift in BCs, i.e. t_i = (I_ROF*mITSROFrameLengthInBC + mITSTimeBiasInBC)*BCLength_MUS
+  float mITSTimeBiasMUS = 0.;          ///< ITS RO frame shift in \mus, i.e. t_i = (I_ROF*mITSROFrameLengthInBC)*BCLength_MUS + mITSTimeBiasMUS
   float mTPCVDrift = -1.;              ///< TPC drift speed in cm/microseconds
   float mTPCVDriftInv = -1.;           ///< inverse TPC nominal drift speed in cm/microseconds
+  float mTPCDriftTimeOffset = 0;       ///< drift time offset in mus
   float mTPCTBinMUS = 0.;           ///< TPC time bin duration in microseconds
   float mTPCTBinNS = 0.;            ///< TPC time bin duration in ns
   float mTPCTBinMUSInv = 0.;        ///< inverse TPC time bin duration in microseconds
@@ -556,8 +566,8 @@ class MatchTPCITS
 
   float mMinTPCTrackPtInv = 999.; ///< cutoff on TPC track inverse pT
   float mMinITSTrackPtInv = 999.; ///< cutoff on ITS track inverse pT
-
   bool mVDriftCalibOn = false;                                ///< flag to produce VDrift calibration data
+  o2::tpc::VDriftCorrFact mTPCDrift{};
   o2::gpu::CorrectionMapsHelper* mTPCCorrMapsHelper = nullptr;
 
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mTPCRefitter; ///< TPC refitter used for TPC tracks refit during the reconstruction
@@ -591,8 +601,9 @@ class MatchTPCITS
   MCLabSpan mTPCTrkLabels;                    ///< input TPC Track MC labels
   /// <<<-----
 
+  size_t mNMatchesControl = 0;
   std::vector<InteractionCandidate> mInteractions;                     ///< possible interaction times
-  std::vector<o2::dataformats::RangeRefComp<8>> mITSROFIntCandEntries; ///< entries of InteractionCandidate vector for every ITS ROF bin
+  std::vector<int> mInteractionMUSLUT;                                 ///< LUT for interactions in 1MUS bins
 
   ///< container for record the match of TPC track to single ITS track
   std::vector<MatchRecord> mMatchRecordsTPC;
@@ -635,8 +646,8 @@ class MatchTPCITS
   std::vector<o2::dataformats::TrackTPCITS> mMatchedTracks;
   MCLabContTr mOutLabels; ///< Labels: = TPC labels with flag isFake set in case of fake matching
 
-  ///< container for <tglITS, tglTPC> pairs for vdrift calibration
-  std::vector<o2::dataformats::Pair<float, float>> mTglITSTPC;
+  ///< container for <tglITS, tglTPC, dT> for vdrift calibration
+  std::vector<VDTriplet> mTglITSTPC;
 
   o2::its::RecoGeomHelper mRGHelper; ///< helper for cluster and geometry access
 

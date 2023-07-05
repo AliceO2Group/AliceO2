@@ -65,12 +65,14 @@ class Tracker
   std::vector<TrackITSExt>& getTracks();
 
   void setParameters(const std::vector<TrackingParameters>&);
+  std::vector<TrackingParameters>& getParameters() { return mTrkParams; }
   void getGlobalConfiguration();
   void setBz(float);
   void setCorrType(const o2::base::PropagatorImpl<float>::MatCorrType type);
   bool isMatLUT() const;
   void setNThreads(int n);
   int getNThreads() const;
+  std::uint32_t mTimeFrameCounter = 0;
 
  private:
   void initialiseTimeFrame(int& iteration);
@@ -94,7 +96,6 @@ class Tracker
   TimeFrame* mTimeFrame = nullptr;  /// Observer pointer, not owned by this class
 
   std::vector<TrackingParameters> mTrkParams;
-  std::uint32_t mTimeFrameCounter = 0;
   o2::gpu::GPUChainITS* mRecoChain = nullptr;
 
   unsigned int mNumberOfRuns{0};

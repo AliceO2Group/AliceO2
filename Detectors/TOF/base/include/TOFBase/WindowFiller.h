@@ -15,9 +15,9 @@
 #include "TOFBase/Geo.h"
 #include "TOFBase/Digit.h"
 #include "TOFBase/Strip.h"
-#include "DetectorsRaw/HBFUtils.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DataFormatsTOF/Diagnostic.h"
+#include "TOFBase/Utils.h"
 
 namespace o2
 {
@@ -76,6 +76,7 @@ class WindowFiller
     }
   }
 
+  void setNOrbitInTF(uint32_t norb) { o2::tof::Utils::setNOrbitInTF(norb); }
   void fillOutputContainer(std::vector<Digit>& digits);
   void flushOutputContainer(std::vector<Digit>& digits); // flush all residual buffered data
   void setContinuous(bool value = true) { mContinuous = value; }

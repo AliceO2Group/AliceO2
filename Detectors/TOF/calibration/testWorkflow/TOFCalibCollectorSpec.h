@@ -82,7 +82,7 @@ class TOFCalibCollectorDevice : public o2::framework::Task
     }
 
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCollector->getCurrentTFInfo());
-    LOG(info) << "Processing TF " << mCollector->getCurrentTFInfo().tfCounter << " with " << data.size() << " tracks";
+    LOG(detail) << "Processing TF " << mCollector->getCurrentTFInfo().tfCounter << " with " << data.size() << " tracks";
     mCollector->process(data);
     sendOutput(pc.outputs());
   }

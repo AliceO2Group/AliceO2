@@ -131,7 +131,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator, GTrackID
   auto getBCDiff = [startIR = this->startIR, &currentSource](const o2::InteractionRecord& ir) {
     auto bcd = ir.differenceInBC(startIR);
     if (uint64_t(bcd) > o2::constants::lhc::LHCMaxBunches * 256 && BCDiffErrCount < MAXBCDiffErrCount) {
-      LOGP(alarm, "ATTENTION: wrong bunches diff. {} for current IR {} wrt 1st TF orbit {}, source:{}", bcd, ir, startIR, GTrackID::getSourceName(currentSource));
+      LOGP(alarm, "ATTENTION: wrong bunches diff. {} for current IR {} wrt 1st TF orbit {}, source:{}", bcd, ir.asString(), startIR.asString(), GTrackID::getSourceName(currentSource));
       BCDiffErrCount++;
     }
     return bcd;
@@ -188,14 +188,19 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator, GTrackID
       for (unsigned itr = 0; itr < trigITSTPCTRD.size(); itr++) {
         const auto& trig = trigITSTPCTRD[itr];
         auto bcdiff = getBCDiff(trig.getBCData());
-        float t0 = bcdiff * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
+        float t0Trig = bcdiff * o2::constants::lhc::LHCBunchSpacingMUS;
         for (unsigned int i = trig.getTrackRefs().getFirstEntry(); i < (unsigned int)trig.getTrackRefs().getEntriesBound(); i++) {
           const auto& trc = tracksITSTPCTRD[i];
           if (isUsed2(i, currentSource)) {
             flagUsed(trc.getRefGlobalTrackId()); // flag seeding ITS-TPC track
             continue;
           }
-          if (creator(trc, {i, currentSource}, t0, 1e-3)) { // assign 1ns error to BC
+          float t0 = t0Trig, t0Err = 5.e-3; // 5ns nominal error
+          if (trc.hasPileUpInfo()) {        // distance to farthest collision within the pileup integration time
+            t0 += trc.getPileUpTimeShiftMUS();
+            t0Err += trc.getPileUpTimeErrorMUS();
+          }
+          if (creator(trc, {i, currentSource}, t0, t0Err)) { // assign 1ns error to BC
             flagUsed(trc.getRefGlobalTrackId());            // flag seeding ITS-TPC track
           }
         }
@@ -236,14 +241,19 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator, GTrackID
       for (unsigned itr = 0; itr < trigTPCTRD.size(); itr++) {
         const auto& trig = trigTPCTRD[itr];
         auto bcdiff = getBCDiff(trig.getBCData());
-        float t0 = bcdiff * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
+        float t0Trig = bcdiff * o2::constants::lhc::LHCBunchSpacingMUS;
         for (unsigned int i = trig.getTrackRefs().getFirstEntry(); i < (unsigned int)trig.getTrackRefs().getEntriesBound(); i++) {
           const auto& trc = tracksTPCTRD[i];
           if (isUsed2(i, currentSource)) {
             flagUsed(trc.getRefGlobalTrackId()); // flag seeding TPC track
             continue;
           }
-          if (creator(trc, {i, currentSource}, t0, 1e-3)) { // assign 1ns error to BC
+          float t0 = t0Trig, t0Err = 5.e-3; // 5ns nominal error
+          if (trc.hasPileUpInfo()) {        // distance to farthest collision within the pileup integration time
+            t0 += trc.getPileUpTimeShiftMUS();
+            t0Err += trc.getPileUpTimeErrorMUS();
+          }
+          if (creator(trc, {i, currentSource}, t0, t0Err)) { // assign 1ns error to BC
             flagUsed(trc.getRefGlobalTrackId());            // flag seeding TPC track
           }
         }

@@ -29,8 +29,22 @@ include(FeatureSummary)
 
 include(FindThreads)
 
-find_package(O2arrow MODULE)
-set_package_properties(O2arrow PROPERTIES TYPE REQUIRED)
+find_package(Arrow CONFIG)
+if(${Arrow_VERSION} VERSION_LESS 11)
+find_package(Gandiva CONFIG PATHS ${Arrow_DIR} QUIET)
+else()
+find_package(Gandiva CONFIG)
+endif()
+set_package_properties(Arrow PROPERTIES TYPE REQUIRED)
+set_package_properties(Gandiva PROPERTIES TYPE REQUIRED)
+
+if (NOT TARGET Arrow::arrow_shared)
+ add_library(Arrow::arrow_shared ALIAS arrow_shared)
+endif()
+
+if (NOT TARGET Gandiva::gandiva_shared)
+  add_library(Gandiva::gandiva_shared ALIAS gandiva_shared)
+endif()
 
 find_package(Vc)
 set_package_properties(Vc PROPERTIES TYPE REQUIRED)

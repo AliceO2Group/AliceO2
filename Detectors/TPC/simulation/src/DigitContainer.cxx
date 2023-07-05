@@ -20,6 +20,7 @@
 #include "TPCBase/CDBInterface.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "TPCBase/IonTailSettings.h"
+#include "SimConfig/DigiParams.h"
 
 using namespace o2::tpc;
 
@@ -38,14 +39,23 @@ void DigitContainer::fillOutputContainer(std::vector<Digit>& output,
   int nProcessedTimeBins = 0;
   TimeBin timeBin = (isContinuous) ? mFirstTimeBin : 0;
 
+  // Set the TPC timebin limit, after which digits should be truncated.
+  // Without this we might get crashes in the clusterization step.
+  static const int maxTimeBinForTimeFrame = o2::conf::DigiParams::Instance().maxOrbitsToDigitize != -1 ? ((o2::conf::DigiParams::Instance().maxOrbitsToDigitize * 3564 + 2 * 8 - 2) / 8) : -1;
+
   // ion tail per pad parameters
-  const CalPad* itParams[2] = {nullptr, nullptr};
+  const CalPad* padParams[3] = {nullptr, nullptr, nullptr};
+  auto& cdb = CDBInterface::instance();
   if (eleParam.doIonTailPerPad) {
     const auto& itSettings = IonTailSettings::Instance();
-    auto& cdb = CDBInterface::instance();
-    cdb.setIonTailParamsFromFile(itSettings.padITCorrFile);
-    itParams[0] = &cdb.getITFraction();
-    itParams[1] = &cdb.getITExpLambda();
+    if (itSettings.padITCorrFile.size()) {
+      cdb.setFEEParamsFromFile(itSettings.padITCorrFile);
+    }
+    padParams[0] = &cdb.getITFraction();
+    padParams[1] = &cdb.getITExpLambda();
+  }
+  if (eleParam.doCommonModePerPad) {
+    padParams[2] = &cdb.getCMkValues();
   }
 
   const bool needsPrevDigArray = eleParam.doIonTail || eleParam.doIonTailPerPad || eleParam.doSaturationTail;
@@ -72,28 +82,37 @@ void DigitContainer::fillOutputContainer(std::vector<Digit>& output,
       time = new DigitTime;
     }
 
+    if (maxTimeBinForTimeFrame != -1 && timeBin >= maxTimeBinForTimeFrame) {
+      LOG(warn) << "Timebin going beyond timeframe limit .. truncating flush " << timeBin;
+      break;
+    }
+
     // fmt::print("Processing secotor: {}, time bin: {}, mFirstTimeBin: {}, dgitTime: {}\n", sector.getSector(), timeBin, mFirstTimeBin, (void*)time);
 
     if (time) {
       switch (digitizationMode) {
         case DigitzationMode::FullMode: {
-          time->fillOutputContainer<DigitzationMode::FullMode>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream, itParams);
+          time->fillOutputContainer<DigitzationMode::FullMode>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream, padParams);
           break;
         }
         case DigitzationMode::ZeroSuppression: {
-          time->fillOutputContainer<DigitzationMode::ZeroSuppression>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream, itParams);
+          time->fillOutputContainer<DigitzationMode::ZeroSuppression>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream, padParams);
+          break;
+        }
+        case DigitzationMode::ZeroSuppressionCMCorr: {
+          time->fillOutputContainer<DigitzationMode::ZeroSuppressionCMCorr>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream, padParams);
           break;
         }
         case DigitzationMode::SubtractPedestal: {
-          time->fillOutputContainer<DigitzationMode::SubtractPedestal>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream, itParams);
+          time->fillOutputContainer<DigitzationMode::SubtractPedestal>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream, padParams);
           break;
         }
         case DigitzationMode::NoSaturation: {
-          time->fillOutputContainer<DigitzationMode::NoSaturation>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream, itParams);
+          time->fillOutputContainer<DigitzationMode::NoSaturation>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream, padParams);
           break;
         }
         case DigitzationMode::PropagateADC: {
-          time->fillOutputContainer<DigitzationMode::PropagateADC>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream, itParams);
+          time->fillOutputContainer<DigitzationMode::PropagateADC>(output, mcTruth, commonModeOutput, sector, timeBin, mPrevDigArr.get(), debugStream, padParams);
           break;
         }
       }

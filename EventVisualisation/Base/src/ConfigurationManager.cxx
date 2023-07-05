@@ -35,6 +35,9 @@ ConfigurationManager& ConfigurationManager::getInstance()
 void ConfigurationManager::getConfig(TEnv& settings) const
 {
   TString fileName;
+  if (not this->mOptionsFileName.empty() and settings.ReadFile(fileName = this->mOptionsFileName, kEnvUser) >= 0) {
+    return; // precise located options file name read succesfully
+  }
   if (settings.ReadFile(fileName = ".o2eve_config", kEnvUser) < 0) {
     LOG(warn) << "could not find .o2eve_config in working directory! Trying .o2eve_config in home directory";
     if (settings.ReadFile(fileName = Form("%s/.o2eve_config", gSystem->Getenv("HOME")), kEnvUser) < 0) {

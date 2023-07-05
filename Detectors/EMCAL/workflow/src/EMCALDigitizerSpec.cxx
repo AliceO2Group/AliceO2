@@ -9,8 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "EMCALWorkflow/CalibLoader.h"
 #include "EMCALWorkflow/EMCALDigitizerSpec.h"
 #include "CommonConstants/Triggers.h"
+#include "Framework/CCDBParamSpec.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/ControlService.h"
 #include "Framework/DataProcessorSpec.h"
@@ -49,7 +51,7 @@ void DigitizerSpec::initDigitizerTask(framework::InitContext& ctx)
   if (ctx.options().get<bool>("debug-stream")) {
     mDigitizer.setDebugStreaming(true);
   }
-  mDigitizer.init();
+  // mDigitizer.init();
 
   mFinished = false;
 }
@@ -59,6 +61,18 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   if (mFinished) {
     return;
   }
+  if (mCalibHandler) {
+    // Load CCDB object (sim params)
+    mCalibHandler->checkUpdates(ctx);
+  }
+
+  if (!mIsConfigured) {
+    configure();
+    mIsConfigured = true;
+  }
+
+  o2::emcal::SimParam::Instance().printKeyValues(true, true);
+
   mDigitizer.flush();
 
   // read collision context from input
@@ -130,7 +144,19 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
   mFinished = true;
 }
 
-o2::framework::DataProcessorSpec getEMCALDigitizerSpec(int channel, bool mctruth)
+void DigitizerSpec::configure()
+{
+  mDigitizer.init();
+}
+
+void DigitizerSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+{
+  if (mCalibHandler->finalizeCCDB(matcher, obj)) {
+    return;
+  }
+}
+
+o2::framework::DataProcessorSpec getEMCALDigitizerSpec(int channel, bool mctruth, bool useccdb)
 {
   // create the full data processor spec using
   //  a name identifier
@@ -145,10 +171,20 @@ o2::framework::DataProcessorSpec getEMCALDigitizerSpec(int channel, bool mctruth
   }
   outputs.emplace_back("EMC", "ROMode", 0, Lifetime::Timeframe);
 
+  std::vector<o2::framework::InputSpec> inputs;
+  inputs.emplace_back("collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe);
+  std::shared_ptr<CalibLoader> calibloader;
+  if (useccdb) {
+    calibloader = std::make_shared<CalibLoader>();
+    calibloader->enableSimParams(true);
+    calibloader->defineInputSpecs(inputs);
+  }
+
   return DataProcessorSpec{
-    "EMCALDigitizer", Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}},
+    "EMCALDigitizer", // Inputs{InputSpec{"collisioncontext", "SIM", "COLLISIONCONTEXT", static_cast<SubSpecificationType>(channel), Lifetime::Timeframe}, InputSpec{"EMC_SimParam", o2::header::gDataOriginEMC, "SIMPARAM", 0, Lifetime::Condition, ccdbParamSpec("EMC/Config/SimParam")}},
+    inputs,
     outputs,
-    AlgorithmSpec{o2::framework::adaptFromTask<DigitizerSpec>()},
+    AlgorithmSpec{o2::framework::adaptFromTask<DigitizerSpec>(calibloader)},
     Options{
       {"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}},
       {"debug-stream", VariantType::Bool, false, {"Enable debug streaming"}}}

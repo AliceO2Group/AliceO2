@@ -19,6 +19,7 @@
 #include <bitset>
 #include <Rtypes.h>
 #include "Headers/RAWDataHeader.h"
+#include "Framework/Logger.h"
 #include "CommonDataFormat/InteractionRecord.h"
 #include "DetectorsRaw/RawFileWriter.h"
 #include "DetectorsRaw/HBFUtils.h"
@@ -58,6 +59,13 @@ class Digits2Raw
 
   //  void setContinuous(bool v = true) { mIsContinuous = v; }
   bool isContinuous() const { return mIsContinuous; }
+
+  void setEnablePadding(bool v)
+  {
+    mEnablePadding = v;
+  }
+  bool getEnablePadding() const { return mEnablePadding; }
+
   static void print_gbt_word(const uint32_t* word, const ModuleConfig* moduleConfig = nullptr);
 
  private:
@@ -77,6 +85,7 @@ class Digits2Raw
   EventData mZDC;                                                       /// Output structure
   bool mIsContinuous = true;                                            /// Continuous (self-triggered) or externally-triggered readout
   bool mOutputPerLink = false;                                          /// Split output
+  int mEnablePadding = 0;                                               /// Enable padding to 128 bit
   const ModuleConfig* mModuleConfig = nullptr;                          /// Trigger/readout configuration object
   const SimCondition* mSimCondition = nullptr;                          /// Pedestal/noise configuration object
   uint16_t mScalers[NModules][NChPerModule] = {0};                      /// ZDC orbit scalers

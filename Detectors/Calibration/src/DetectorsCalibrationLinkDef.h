@@ -18,9 +18,39 @@
 #pragma link C++ class o2::calibration::MeanVertexData + ;
 #pragma link C++ class o2::calibration::TimeSlotMetaData + ;
 #pragma link C++ class o2::calibration::TimeSlot < o2::calibration::MeanVertexData> + ;
-#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::dataformats::PrimaryVertex, o2::calibration::MeanVertexData> + ;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::calibration::MeanVertexData> + ;
 #pragma link C++ class o2::calibration::MeanVertexCalibrator + ;
 #pragma link C++ class o2::calibration::MeanVertexParams + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::calibration::MeanVertexParams> + ;
+
+#pragma link C++ struct o2::tof::ITOFC + ;
+#pragma link C++ class o2::calibration::IntegratedClusters < o2::tof::ITOFC> + ;
+#pragma link C++ class o2::calibration::IntegratedClusterCalibrator < o2::tof::ITOFC> + ;
+#pragma link C++ class o2::calibration::TimeSlot < o2::calibration::IntegratedClusters < o2::tof::ITOFC>> + ;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::calibration::IntegratedClusters < o2::tof::ITOFC>> + ;
+
+#pragma link C++ struct o2::fit::IFT0C + ;
+#pragma link C++ class o2::calibration::IntegratedClusters < o2::fit::IFT0C> + ;
+#pragma link C++ class o2::calibration::IntegratedClusterCalibrator < o2::fit::IFT0C> + ;
+#pragma link C++ class o2::calibration::TimeSlot < o2::calibration::IntegratedClusters < o2::fit::IFT0C>> + ;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::calibration::IntegratedClusters < o2::fit::IFT0C>> + ;
+
+#pragma link C++ struct o2::fit::IFV0C + ;
+#pragma link C++ class o2::calibration::IntegratedClusters < o2::fit::IFV0C> + ;
+#pragma link C++ class o2::calibration::IntegratedClusterCalibrator < o2::fit::IFV0C> + ;
+#pragma link C++ class o2::calibration::TimeSlot < o2::calibration::IntegratedClusters < o2::fit::IFV0C>> + ;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::calibration::IntegratedClusters < o2::fit::IFV0C>> + ;
+
+#pragma link C++ struct o2::tpc::ITPCC + ;
+#pragma link C++ class o2::calibration::IntegratedClusters < o2::tpc::ITPCC> + ;
+#pragma link C++ class o2::calibration::IntegratedClusterCalibrator < o2::tpc::ITPCC> + ;
+#pragma link C++ class o2::calibration::TimeSlot < o2::calibration::IntegratedClusters < o2::tpc::ITPCC>> + ;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::calibration::IntegratedClusters < o2::tpc::ITPCC>> + ;
+
+#pragma link C++ struct o2::fit::IFDDC + ;
+#pragma link C++ class o2::calibration::IntegratedClusters < o2::fit::IFDDC> + ;
+#pragma link C++ class o2::calibration::IntegratedClusterCalibrator < o2::fit::IFDDC> + ;
+#pragma link C++ class o2::calibration::TimeSlot < o2::calibration::IntegratedClusters < o2::fit::IFDDC>> + ;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::calibration::IntegratedClusters < o2::fit::IFDDC>> + ;
 
 #endif

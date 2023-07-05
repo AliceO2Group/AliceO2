@@ -25,6 +25,7 @@
 #include "Framework/DeviceControl.h"
 #include "Framework/DeviceSpec.h"
 #include "Framework/DeviceState.h"
+#include "Framework/DriverConfig.h"
 #include "Framework/Lifetime.h"
 #include "Framework/LifetimeHelpers.h"
 #include "Framework/ProcessingPolicies.h"
@@ -45,6 +46,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 #include <csignal>
+#include <fairmq/Device.h>
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
@@ -64,6 +66,24 @@ void timer_callback(uv_timer_t* handle)
   auto* state = (DeviceState*)handle->data;
   state->loopReason |= DeviceState::TIMER_EXPIRED;
   state->loopReason |= DeviceState::DATA_INCOMING;
+  if (std::find(state->firedTimers.begin(), state->firedTimers.end(), handle) == state->firedTimers.end()) {
+    state->firedTimers.push_back(handle);
+  }
+}
+
+auto timer_fired(uv_timer_t* timer)
+{
+  return [timer]() -> bool {
+    auto* state = (DeviceState*)timer->data;
+    return std::find(state->firedTimers.begin(), state->firedTimers.end(), timer) != state->firedTimers.end();
+  };
+}
+
+auto timer_set_period(uv_timer_t* timer)
+{
+  return [timer](uint64_t timeout_ms, uint64_t repeat_ms) -> void {
+    uv_timer_start(timer, detail::timer_callback, timeout_ms, repeat_ms);
+  };
 }
 
 void signal_callback(uv_signal_t* handle, int)
@@ -84,18 +104,39 @@ struct ExpirationHandlerHelpers {
   static RouteConfigurator::CreationConfigurator timeDrivenConfigurator(InputSpec const& matcher)
   {
     return [matcher](DeviceState& state, ServiceRegistryRef, ConfigParamRegistry const& options) {
-      std::string rateName = std::string{"period-"} + matcher.binding;
-      auto period = options.get<int>(rateName.c_str());
+      // A vector of all the available timer periods
+      std::vector<std::chrono::microseconds> periods;
+      // How long a ginven period should be active
+      std::vector<std::chrono::seconds> durations;
+      auto prefix = std::string{"period-"};
+      for (auto& meta : matcher.metadata) {
+        if (strncmp(meta.name.c_str(), prefix.c_str(), prefix.size()) == 0) {
+          // Parse the number after the prefix and consider it the duration
+          std::string_view duration(meta.name.c_str() + prefix.size(), meta.name.size() - prefix.size());
+          durations.emplace_back(std::chrono::seconds(std::stoi(std::string(duration))));
+          periods.emplace_back(std::chrono::microseconds(meta.defaultValue.get<uint64_t>() / 1000));
+        }
+      }
+      if (periods.empty()) {
+        std::string defaultRateName = std::string{"period-"} + matcher.binding;
+        auto defaultRate = std::chrono::milliseconds(options.get<int>(defaultRateName.c_str()));
+        LOGP(detail, "Using default rate of {} ms as specified by option period-{}", defaultRate.count(), matcher.binding);
+        periods.emplace_back(defaultRate.count());
+        durations.emplace_back(std::chrono::seconds((std::size_t)-1));
+      } else {
+        // If we have multiple periods, the last one gets the remaining interval
+        durations.back() = std::chrono::seconds((std::size_t)-1);
+      }
       // We create a timer to wake us up. Notice the actual
       // timeslot creation and record expiration still happens
       // in a synchronous way.
       auto* timer = (uv_timer_t*)(malloc(sizeof(uv_timer_t)));
       timer->data = &state;
       uv_timer_init(state.loop, timer);
-      uv_timer_start(timer, detail::timer_callback, period / 1000, period / 1000);
+      uv_timer_start(timer, detail::timer_callback, periods.front().count(), periods.front().count());
       state.activeTimers.push_back(timer);
 
-      return LifetimeHelpers::timeDrivenCreation(std::chrono::microseconds(period));
+      return LifetimeHelpers::timeDrivenCreation(periods, durations, detail::timer_fired(timer), detail::timer_set_period(timer));
     };
   }
 
@@ -141,16 +182,25 @@ struct ExpirationHandlerHelpers {
       std::string startName = std::string{"start-value-"} + matcher.binding;
       std::string endName = std::string{"end-value-"} + matcher.binding;
       std::string stepName = std::string{"step-value-"} + matcher.binding;
-      auto start = options.get<int64_t>(startName.c_str());
-      auto stop = options.get<int64_t>(endName.c_str());
-      auto step = options.get<int64_t>(stepName.c_str());
-      auto repetitions = 1;
+      int64_t defaultStart = 0;
+      int64_t defaultStop = std::numeric_limits<int64_t>::max();
+      int64_t defaultStep = 1;
+      int defaultRepetitions = 1;
       for (auto& meta : matcher.metadata) {
         if (meta.name == "repetitions") {
-          repetitions = meta.defaultValue.get<int64_t>();
-          break;
+          defaultRepetitions = meta.defaultValue.get<int64_t>();
+        } else if (meta.name == "start-value") {
+          defaultStart = meta.defaultValue.get<int64_t>();
+        } else if (meta.name == "end-value") {
+          defaultStop = meta.defaultValue.get<int64_t>();
+        } else if (meta.name == "step-value") {
+          defaultStep = meta.defaultValue.get<int64_t>();
         }
       }
+      auto start = options.hasOption(startName.c_str()) ? options.get<int64_t>(startName.c_str()) : defaultStart;
+      auto stop = options.hasOption(endName.c_str()) ? options.get<int64_t>(endName.c_str()) : defaultStop;
+      auto step = options.hasOption(stepName.c_str()) ? options.get<int64_t>(stepName.c_str()) : defaultStep;
+      auto repetitions = defaultRepetitions;
       return LifetimeHelpers::enumDrivenCreation(start, stop, step, inputTimeslice, maxInputTimeslices, repetitions);
     };
   }
@@ -196,7 +246,7 @@ struct ExpirationHandlerHelpers {
       }
 
       auto device = services.get<RawDeviceService>().device();
-      auto& channel = device->fChannels[channelName];
+      auto& channel = device->GetChannels()[channelName];
 
       // We assume there is always a ZeroMQ socket behind.
       int zmq_fd = 0;
@@ -294,9 +344,18 @@ struct ExpirationHandlerHelpers {
       throw runtime_error("InputSpec for Enumeration must be fully qualified");
     }
     // We copy the matcher to avoid lifetime issues.
-    return [matcher = *m, sourceChannel](DeviceState&, ConfigParamRegistry const& config) {
-      size_t orbitOffset = config.get<int64_t>("orbit-offset-enumeration");
-      size_t orbitMultiplier = config.get<int64_t>("orbit-multiplier-enumeration");
+    return [matcher = *m, &spec, sourceChannel](DeviceState&, ConfigParamRegistry const& config) {
+      int defaultOrbitOffset = 0;
+      int defaultOrbitMultiplier = 1;
+      for (auto& meta : spec.metadata) {
+        if (meta.name == "orbit-offset") {
+          defaultOrbitOffset = meta.defaultValue.get<int64_t>();
+        } else if (meta.name == "orbit-multiplier") {
+          defaultOrbitMultiplier = meta.defaultValue.get<int64_t>();
+        }
+      }
+      size_t orbitOffset = config.hasOption("orbit-offset-enumeration") ? config.get<int64_t>("orbit-offset-enumeration") : defaultOrbitOffset;
+      size_t orbitMultiplier = config.hasOption("orbit-multiplier-enumeration") ? config.get<int64_t>("orbit-multiplier-enumeration") : defaultOrbitMultiplier;
       return LifetimeHelpers::enumerate(matcher, sourceChannel, orbitOffset, orbitMultiplier);
     };
   }
@@ -371,7 +430,55 @@ std::string DeviceSpecHelpers::outputChannel2String(const OutputChannelSpec& cha
                      channel.sendBufferSize);
 }
 
-void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
+void DeviceSpecHelpers::validate(std::vector<DataProcessorSpec> const& workflow)
+{
+  // Iterate on all the DataProcessorSpecs in the altered_workflow
+  // and check for duplicates outputs among those who have lifetime == Timeframe
+  // Do so by:
+  //
+  // * Get the list of all Lifetime::Timeframe outputs for the workflow.
+  //   Only those who are concrete matchers are considered for now, because
+  //   it becomes to complicate to check for the wildcard case.
+  // * Sort the associated matchers by origin, description, subSpec
+  // * Check that the next element is not the same
+  std::vector<std::pair<int, std::string>> timeframeOutputs;
+  for (size_t i = 0; i < workflow.size(); ++i) {
+    auto& spec = workflow[i];
+    // We do not want to check for pipelining
+    if (spec.inputTimeSliceId != 0) {
+      continue;
+    }
+    for (auto& output : spec.outputs) {
+      if (output.lifetime != Lifetime::Timeframe) {
+        continue;
+      }
+      std::optional<ConcreteDataMatcher> matcher = DataSpecUtils::asOptionalConcreteDataMatcher(output);
+      if (!matcher) {
+        continue;
+      }
+      timeframeOutputs.emplace_back(i, DataSpecUtils::describe(*matcher));
+    }
+  }
+  std::stable_sort(timeframeOutputs.begin(), timeframeOutputs.end(), [](auto const& a, auto const& b) {
+    return a.second < b.second;
+  });
+
+  auto it = std::adjacent_find(timeframeOutputs.begin(), timeframeOutputs.end(), [](auto const& a, auto const& b) {
+    return a.second == b.second;
+  });
+  if (it != timeframeOutputs.end()) {
+    // Tell which are the two duplicates
+    auto device1 = workflow[it->first].name;
+    auto device2 = workflow[(it + 1)->first].name;
+    auto output1 = it->second;
+    auto output2 = (it + 1)->second;
+    throw std::runtime_error(fmt::format("Found duplicate outputs {} in device {} ({}) and {} in {} ({})",
+                                         output1, device1, it->first, output2, device2, (it + 1)->first));
+  }
+}
+
+void DeviceSpecHelpers::processOutEdgeActions(ConfigContext const& configContext,
+                                              std::vector<DeviceSpec>& devices,
                                               std::vector<DeviceId>& deviceIndex,
                                               std::vector<DeviceConnectionId>& connections,
                                               ResourceManager& resourceManager,
@@ -380,6 +487,7 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
                                               const std::vector<EdgeAction>& actions, const WorkflowSpec& workflow,
                                               const std::vector<OutputSpec>& outputsMatchers,
                                               const std::vector<ChannelConfigurationPolicy>& channelPolicies,
+                                              const std::vector<SendingPolicy>& sendingPolicies,
                                               std::string const& channelPrefix,
                                               ComputingOffer const& defaultOffer,
                                               OverrideServiceSpecs const& overrideServices)
@@ -405,7 +513,7 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
       resourceManager.notifyAcceptedOffer(acceptedOffer);
     }
 
-    auto processor = workflow[edge.producer];
+    auto& processor = workflow[edge.producer];
 
     acceptedOffer.cpu = defaultOffer.cpu;
     acceptedOffer.memory = defaultOffer.memory;
@@ -422,22 +530,19 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
       break;
     }
 
-    DeviceSpec device;
-    device.name = processor.name;
-    device.id = processor.name;
-    device.channelPrefix = channelPrefix;
-    if (processor.maxInputTimeslices != 1) {
-      device.id = processor.name + "_t" + std::to_string(edge.producerTimeIndex);
-    }
-    device.algorithm = processor.algorithm;
-    device.services = ServiceSpecHelpers::filterDisabled(processor.requiredServices, overrideServices);
-    device.options = processor.options;
-    device.rank = processor.rank;
-    device.nSlots = processor.nSlots;
-    device.inputTimesliceId = edge.producerTimeIndex;
-    device.maxInputTimeslices = processor.maxInputTimeslices;
-    device.resource = {acceptedOffer};
-    device.labels = processor.labels;
+    devices.emplace_back(DeviceSpec{
+      .name = processor.name,
+      .id = processor.maxInputTimeslices == 1 ? processor.name : processor.name + "_t" + std::to_string(edge.producerTimeIndex),
+      .channelPrefix = channelPrefix,
+      .options = processor.options,
+      .services = ServiceSpecHelpers::filterDisabled(processor.requiredServices, overrideServices),
+      .algorithm = processor.algorithm,
+      .rank = processor.rank,
+      .nSlots = processor.nSlots,
+      .inputTimesliceId = edge.producerTimeIndex,
+      .maxInputTimeslices = processor.maxInputTimeslices,
+      .resource = {acceptedOffer},
+      .labels = processor.labels});
     /// If any of the inputs or outputs are "Lifetime::OutOfBand"
     /// create the associated channels.
     //
@@ -488,9 +593,8 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
           extraOutputChannelSpec.hostname = meta.defaultValue.get<std::string>();
         }
       }
-      device.outputChannels.push_back(extraOutputChannelSpec);
+      devices.back().outputChannels.push_back(extraOutputChannelSpec);
     }
-    devices.push_back(device);
     return devices.size() - 1;
   };
 
@@ -545,7 +649,7 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
   // whether this is a real OutputRoute or if it's a forward from
   // a previous consumer device.
   // FIXME: where do I find the InputSpec for the forward?
-  auto appendOutputRouteToSourceDeviceChannel = [&outputsMatchers, &workflow, &devices, &logicalEdges](
+  auto appendOutputRouteToSourceDeviceChannel = [&outputsMatchers, &workflow, &devices, &logicalEdges, &sendingPolicies, &configContext](
                                                   size_t ei, size_t di, size_t ci) {
     assert(ei < logicalEdges.size());
     assert(di < devices.size());
@@ -554,15 +658,27 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
     auto& device = devices[di];
     assert(edge.consumer < workflow.size());
     auto& consumer = workflow[edge.consumer];
+    auto& producer = workflow[edge.producer];
     auto& channel = devices[di].outputChannels[ci];
     assert(edge.outputGlobalIndex < outputsMatchers.size());
+    // Iterate over all the policies and apply the first one that matches.
+    SendingPolicy const* policyPtr = nullptr;
+    for (auto& policy : sendingPolicies) {
+      if (policy.matcher(producer, consumer, configContext)) {
+        policyPtr = &policy;
+        break;
+      }
+    }
+    assert(policyPtr != nullptr);
 
     if (edge.isForward == false) {
       OutputRoute route{
         edge.timeIndex,
         consumer.maxInputTimeslices,
         outputsMatchers[edge.outputGlobalIndex],
-        channel.name};
+        channel.name,
+        policyPtr,
+      };
       device.outputs.emplace_back(route);
     } else {
       ForwardRoute route{
@@ -700,27 +816,28 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
       break;
     }
 
-    DeviceSpec device;
-    device.name = processor.name;
-    device.id = processor.name;
-    device.channelPrefix = channelPrefix;
+    DeviceSpec device{
+      .name = processor.name,
+      .id = processor.name,
+      .channelPrefix = channelPrefix,
+      .options = processor.options,
+      .services = ServiceSpecHelpers::filterDisabled(processor.requiredServices, overrideServices),
+      .algorithm = processor.algorithm,
+      .rank = processor.rank,
+      .nSlots = processor.nSlots,
+      .inputTimesliceId = edge.timeIndex,
+      .maxInputTimeslices = processor.maxInputTimeslices,
+      .resource = {acceptedOffer},
+      .labels = processor.labels};
+
     if (processor.maxInputTimeslices != 1) {
       device.id += "_t" + std::to_string(edge.timeIndex);
     }
-    device.algorithm = processor.algorithm;
-    device.services = ServiceSpecHelpers::filterDisabled(processor.requiredServices, overrideServices);
-    device.options = processor.options;
-    device.rank = processor.rank;
-    device.nSlots = processor.nSlots;
-    device.inputTimesliceId = edge.timeIndex;
-    device.maxInputTimeslices = processor.maxInputTimeslices;
-    device.resource = {acceptedOffer};
-    device.labels = processor.labels;
 
     // FIXME: maybe I should use an std::map in the end
     //        but this is really not performance critical
     auto id = DeviceId{edge.consumer, edge.timeIndex, devices.size()};
-    devices.push_back(device);
+    devices.emplace_back(std::move(device));
     deviceIndex.push_back(id);
     std::sort(deviceIndex.begin(), deviceIndex.end());
     return devices.size() - 1;
@@ -935,6 +1052,8 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
                                                        std::string const& channelPrefix,
                                                        OverrideServiceSpecs const& overrideServices)
 {
+  // Always check for validity of the workflow before instanciating it
+  DeviceSpecHelpers::validate(workflow);
   std::vector<LogicalForwardInfo> availableForwardsInfo;
   std::vector<DeviceConnectionEdge> logicalEdges;
   std::vector<DeviceConnectionId> connections;
@@ -983,8 +1102,8 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
   defaultOffer.cpu /= deviceCount + 1;
   defaultOffer.memory /= deviceCount + 1;
 
-  processOutEdgeActions(devices, deviceIndex, connections, resourceManager, outEdgeIndex, logicalEdges,
-                        outActions, workflow, outputs, channelPolicies, channelPrefix, defaultOffer, overrideServices);
+  processOutEdgeActions(configContext, devices, deviceIndex, connections, resourceManager, outEdgeIndex, logicalEdges,
+                        outActions, workflow, outputs, channelPolicies, sendingPolicies, channelPrefix, defaultOffer, overrideServices);
 
   // FIXME: is this not the case???
   std::sort(connections.begin(), connections.end());
@@ -994,11 +1113,16 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
   // We apply the completion policies here since this is where we have all the
   // devices resolved.
   for (auto& device : devices) {
+    bool hasPolicy = false;
     for (auto& policy : completionPolicies) {
       if (policy.matcher(device) == true) {
         device.completionPolicy = policy;
+        hasPolicy = true;
         break;
       }
+    }
+    if (hasPolicy == false) {
+      throw runtime_error_f("Unable to find a completion policy for %s", device.id.c_str());
     }
     for (auto& policy : dispatchPolicies) {
       if (policy.deviceMatcher(device) == true) {
@@ -1012,13 +1136,7 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
         break;
       }
     }
-    for (auto& policy : sendingPolicies) {
-      if (policy.matcher(device, configContext) == true) {
-        device.sendingPolicy = policy;
-        break;
-      }
-    }
-    bool hasPolicy = false;
+    hasPolicy = false;
     for (auto& policy : resourcePolicies) {
       if (policy.matcher(device) == true) {
         device.resourcePolicy = policy;
@@ -1097,7 +1215,7 @@ void DeviceSpecHelpers::reworkHomogeneousOption(std::vector<DataProcessorInfo>& 
     finalValue = defaultValue;
   }
   for (auto& info : infos) {
-    info.cmdLineArgs.push_back(name);
+    info.cmdLineArgs.emplace_back(name);
     info.cmdLineArgs.push_back(finalValue);
   }
 }
@@ -1128,7 +1246,7 @@ void DeviceSpecHelpers::reworkIntegerOption(std::vector<DataProcessorInfo>& info
     finalValue = defaultValueCallback();
   }
   for (auto& info : infos) {
-    info.cmdLineArgs.push_back(name);
+    info.cmdLineArgs.emplace_back(name);
     info.cmdLineArgs.push_back(std::to_string(finalValue));
   }
 }
@@ -1164,7 +1282,7 @@ void DeviceSpecHelpers::reworkShmSegmentSize(std::vector<DataProcessorInfo>& inf
     segmentSize = 2000000000LL;
   }
   for (auto& info : infos) {
-    info.cmdLineArgs.push_back("--shm-segment-size");
+    info.cmdLineArgs.emplace_back("--shm-segment-size");
     info.cmdLineArgs.push_back(std::to_string(segmentSize));
   }
 }
@@ -1183,6 +1301,7 @@ void split(const std::string& str, Container& cont)
 
 void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped, bool interactive,
                                          unsigned short driverPort,
+                                         o2::framework::DriverConfig const& driverConfig,
                                          std::vector<DataProcessorInfo> const& processorInfos,
                                          std::vector<DeviceSpec> const& deviceSpecs,
                                          std::vector<DeviceExecution>& deviceExecutions,
@@ -1237,6 +1356,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
                                         "--control", interactive ? "gui" : "static",
                                         "--shm-monitor", "false",
                                         "--log-color", "false",
+                                        driverConfig.batch ? "--batch" : "--no-batch",
                                         "--color", "false"};
 
     // we maintain options in a map so that later occurrences of the same
@@ -1299,7 +1419,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
       if (varmap.count("stacktrace-on-signal") && varmap["stacktrace-on-signal"].as<std::string>() != "none" && varmap["stacktrace-on-signal"].as<std::string>() != "simple") {
         char const* preload = getenv("LD_PRELOAD");
         if (preload == nullptr || strcmp(preload, "libSegFault.so") == 0) {
-          tmpEnv.push_back("LD_PRELOAD=libSegFault.so");
+          tmpEnv.emplace_back("LD_PRELOAD=libSegFault.so");
         } else {
           tmpEnv.push_back(fmt::format("LD_PRELOAD={}:libSegFault.so", preload));
         }
@@ -1329,6 +1449,7 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
         realOdesc.add_options()("post-fork-command", bpo::value<std::string>());
         realOdesc.add_options()("bad-alloc-max-attempts", bpo::value<std::string>());
         realOdesc.add_options()("bad-alloc-attempt-interval", bpo::value<std::string>());
+        realOdesc.add_options()("io-threads", bpo::value<std::string>());
         realOdesc.add_options()("shm-segment-size", bpo::value<std::string>());
         realOdesc.add_options()("shm-mlock-segment", bpo::value<std::string>());
         realOdesc.add_options()("shm-mlock-segment-on-creation", bpo::value<std::string>());
@@ -1391,7 +1512,9 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
               if (auto v = boost::any_cast<std::string>(&varit.second.value())) {
                 stringRep = *v;
               } else if (auto v = boost::any_cast<EarlyForwardPolicy>(&varit.second.value())) {
-                stringRep = fmt::format("{}", *v);
+                std::stringstream tmp;
+                tmp << *v;
+                stringRep = fmt::format("{}", tmp.str());
               }
               if (varit.first == "channel-config") {
                 // FIXME: the parameter to channel-config can be a list of configurations separated
@@ -1507,6 +1630,7 @@ boost::program_options::options_description DeviceSpecHelpers::getForwardedDevic
     ("channel-prefix", bpo::value<std::string>()->default_value(""), "prefix to use for multiplexing multiple workflows in the same session")                        //
     ("bad-alloc-max-attempts", bpo::value<std::string>()->default_value("1"), "throw after n attempts to alloc shm")                                                 //
     ("bad-alloc-attempt-interval", bpo::value<std::string>()->default_value("50"), "interval between shm alloc attempts in ms")                                      //
+    ("io-threads", bpo::value<std::string>()->default_value("1"), "number of FMQ io threads")                                                                        //
     ("shm-segment-size", bpo::value<std::string>(), "size of the shared memory segment in bytes")                                                                    //
     ("shm-mlock-segment", bpo::value<std::string>()->default_value("false"), "mlock shared memory segment")                                                          //
     ("shm-mlock-segment-on-creation", bpo::value<std::string>()->default_value("false"), "mlock shared memory segment once on creation")                             //
@@ -1539,6 +1663,21 @@ bool DeviceSpecHelpers::hasLabel(DeviceSpec const& spec, char const* label)
 {
   auto sameLabel = [other = DataProcessorLabel{{label}}](DataProcessorLabel const& label) { return label == other; };
   return std::find_if(spec.labels.begin(), spec.labels.end(), sameLabel) != spec.labels.end();
+}
+
+std::string DeviceSpecHelpers::reworkEnv(std::string const& str, DeviceSpec const& spec)
+{
+  // find all the possible timeslice variables, extract N and replace
+  // the variable with the value of spec.inputTimesliceId + N.
+  std::regex re("\\{timeslice([0-9]+)\\}");
+  std::smatch match;
+  std::string fmt = str;
+  while (std::regex_search(fmt, match, re)) {
+    auto timeslice = std::stoi(match[1]);
+    auto replacement = std::to_string(spec.inputTimesliceId + timeslice);
+    fmt = match.prefix().str() + replacement + match.suffix().str();
+  }
+  return fmt;
 }
 
 } // namespace o2::framework

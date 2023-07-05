@@ -25,6 +25,7 @@
 #include "DetectorsCommonDataFormats/CTFDictHeader.h"
 #include "DetectorsCommonDataFormats/CTFHeader.h"
 #include "DetectorsCommonDataFormats/CTFIOSize.h"
+#include "DataFormatsCTP/TriggerOffsetsParam.h"
 #include "rANS/rans.h"
 #include <filesystem>
 #include "Framework/InitContext.h"
@@ -65,7 +66,8 @@ class CTFCoderBase
   template <typename SPAN>
   void setSelectedIRFrames(const SPAN& sp)
   {
-    mIRFrameSelector.setSelectedIRFrames(sp, mIRFrameSelMarginBwd, mIRFrameSelMarginFwd, true);
+    reportIRFrames();
+    mIRFrameSelector.setSelectedIRFrames(sp, mIRFrameSelMarginBwd, mIRFrameSelMarginFwd, mIRFrameSelShift, true);
   }
 
   template <typename CTF>
@@ -124,22 +126,52 @@ class CTFCoderBase
   o2::utils::IRFrameSelector& getIRFramesSelector() { return mIRFrameSelector; }
   size_t getIRFrameSelMarginBwd() const { return mIRFrameSelMarginBwd; }
   size_t getIRFrameSelMarginFwd() const { return mIRFrameSelMarginFwd; }
+  long getIRFrameSelShift() const { return mIRFrameSelShift; }
+
+  void setBCShift(int64_t n) { mBCShift = n; }
+  void setFirstTFOrbit(uint32_t n) { mFirstTFOrbit = n; }
+  auto getBCShift() const { return mBCShift; }
+  auto getFirstTFOrbit() const { return mFirstTFOrbit; }
+  void setSupportBCShifts(bool v = true) { mSupportBCShifts = v; }
+  bool getSupportBCShifts() const { return mSupportBCShifts; }
+
+  void setDictBinding(const std::string& s) { mDictBinding = s; }
+  const std::string& getDictBinding() const { return mDictBinding; }
+
+  void setTrigOffsBinding(const std::string& s) { mTrigOffsBinding = s; }
+  const std::string& getTrigOffsBinding() const { return mTrigOffsBinding; }
+
+  const DetID getDet() const { return mDet; }
 
  protected:
+  void reportIRFrames();
   std::string getPrefix() const { return o2::utils::Str::concat_string(mDet.getName(), "_CTF: "); }
   void checkDictVersion(const CTFDictHeader& h) const;
   bool isTreeDictionary(const void* buff) const;
+  bool canApplyBCShift(const o2::InteractionRecord& ir, long shift) const
+  {
+    auto diff = ir.differenceInBC({0, mFirstTFOrbit});
+    return diff < 0 ? true : diff >= shift;
+  }
+  bool canApplyBCShift(const o2::InteractionRecord& ir) const { return canApplyBCShift(ir, mBCShift); }
+
   template <typename CTF>
   std::vector<char> loadDictionaryFromTree(TTree* tree);
   std::vector<std::shared_ptr<void>> mCoders; // encoders/decoders
   DetID mDet;
+  std::string mDictBinding{"ctfdict"};
+  std::string mTrigOffsBinding{"trigoffset"};
   CTFDictHeader mExtHeader;      // external dictionary header
   o2::utils::IRFrameSelector mIRFrameSelector; // optional IR frames selector
   float mMemMarginFactor = 1.0f; // factor for memory allocation in EncodedBlocks
   bool mLoadDictFromCCDB{true};
+  bool mSupportBCShifts{false};
   OpType mOpType; // Encoder or Decoder
+  int64_t mBCShift = 0; // shift to apply to decoded IR (i.e. CTP offset if was not corrected on raw data decoding level)
+  uint32_t mFirstTFOrbit = 0;
   size_t mIRFrameSelMarginBwd = 0; // margin in BC to add to the IRFrame lower boundary when selection is requested
   size_t mIRFrameSelMarginFwd = 0; // margin in BC to add to the IRFrame upper boundary when selection is requested
+  long mIRFrameSelShift = 0;       // Global shift of the IRFrames, to account for e.g. detector latency
   int mVerbosity = 0;
 };
 
@@ -247,6 +279,9 @@ void CTFCoderBase::init(o2::framework::InitContext& ic)
   if (ic.options().hasOption("irframe-margin-fwd")) {
     mIRFrameSelMarginFwd = ic.options().get<uint32_t>("irframe-margin-fwd");
   }
+  if (ic.options().hasOption("irframe-shift")) {
+    mIRFrameSelShift = (long)ic.options().get<int32_t>("irframe-shift");
+  }
   auto dict = ic.options().get<std::string>("ctf-dict");
   if (dict.empty() || dict == "ccdb") { // load from CCDB
     mLoadDictFromCCDB = true;
@@ -293,6 +328,17 @@ bool CTFCoderBase::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, voi
       LOGP(info, "Loaded {} from CCDB", mExtHeader.asString());
     }
     mLoadDictFromCCDB = false; // we read the dictionary at most once!
+  } else if ((match = (matcher == o2::framework::ConcreteDataMatcher("CTP", "Trig_Offset", 0)))) {
+    const auto& trigOffsParam = o2::ctp::TriggerOffsetsParam::Instance();
+    auto bcshift = trigOffsParam.customOffset[mDet.getID()];
+    if (bcshift) {
+      if (mSupportBCShifts) {
+        LOGP(info, "Decoded IRs will be augmented by {} BCs, discarded if become prior to 1st orbit", bcshift);
+        setBCShift(-bcshift); // offset is subtracted
+      } else {
+        LOGP(alarm, "Decoding with {} BCs shift is requested, but the {} does not support this operation, ignoring request", bcshift, mDet.getName());
+      }
+    }
   }
   return match;
 }

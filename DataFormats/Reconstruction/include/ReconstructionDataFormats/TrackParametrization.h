@@ -41,7 +41,7 @@
 #include <type_traits>
 #endif
 
-#ifndef GPUCA_ALIGPUCODE //Used only by functions that are hidden on the GPU
+#ifndef GPUCA_ALIGPUCODE // Used only by functions that are hidden on the GPU
 #include "ReconstructionDataFormats/BaseCluster.h"
 #include <string>
 #endif
@@ -203,6 +203,8 @@ class TrackParametrization
   GPUd() bool getYZAt(value_t xk, value_t b, value_t& y, value_t& z) const;
   GPUd() value_t getZAt(value_t xk, value_t b) const;
   GPUd() value_t getYAt(value_t xk, value_t b) const;
+  GPUd() value_t getSnpAt(value_t xk, value_t b) const;
+  GPUd() value_t getSnpAt(value_t alpha, value_t xk, value_t b) const;
   GPUd() math_utils::Point3D<value_t> getXYZGloAt(value_t xk, value_t b, bool& ok) const;
 
   // parameters manipulation
@@ -210,10 +212,14 @@ class TrackParametrization
   GPUd() bool rotateParam(value_t alpha);
   GPUd() bool propagateParamTo(value_t xk, value_t b);
   GPUd() bool propagateParamTo(value_t xk, const dim3_t& b);
-
-  GPUd() bool propagateParamToDCA(const math_utils::Point3D<value_t>& vtx, value_t b, dim2_t* dca = nullptr, value_t maxD = 999.f);
-
   GPUd() void invertParam();
+  GPUd() bool propagateParamToDCA(const math_utils::Point3D<value_t>& vtx, value_t b, dim2_t* dca = nullptr, value_t maxD = 999.f);
+  // aliases
+  GPUd() bool rotate(value_t alpha) { return rotateParam(alpha); }
+  GPUd() bool propagateTo(value_t xk, value_t b) { return propagateParamTo(xk, b); }
+  GPUd() bool propagateTo(value_t xk, const dim3_t& b) { return propagateParamTo(xk, b); }
+  GPUd() void invert() { invertParam(); }
+  GPUd() bool propagateToDCA(const math_utils::Point3D<value_t>& vtx, value_t b, dim2_t* dca = nullptr, value_t maxD = 999.f) { return propagateParamToDCA(vtx, b, dca, maxD); }
 
   GPUd() bool isValid() const;
   GPUd() void invalidate();
@@ -545,7 +551,7 @@ GPUdi() auto TrackParametrization<value_T>::getP2Inv() const -> value_t
 {
   // return the inverted track momentum^2
   const value_t p2 = mP[kQ2Pt] * mP[kQ2Pt] / (1.f + getTgl() * getTgl());
-  return (mAbsCharge > 1) ? p2 * mAbsCharge * mAbsCharge : p2;
+  return (mAbsCharge > 1) ? p2 / (mAbsCharge * mAbsCharge) : p2;
 }
 
 //____________________________________________________________
@@ -693,6 +699,12 @@ GPUdi() void TrackParametrization<value_T>::updateParams(const value_t* delta)
 {
   for (int i = kNParams; i--;) {
     mP[i] += delta[i];
+  }
+  // make sure that snp is in the valid range
+  if (mP[kSnp] > constants::math::Almost1) {
+    mP[kSnp] = constants::math::Almost1;
+  } else if (mP[kSnp] < -constants::math::Almost1) {
+    mP[kSnp] = -constants::math::Almost1;
   }
 }
 

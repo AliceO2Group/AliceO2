@@ -20,6 +20,7 @@
 #include "GlobalTrackingWorkflow/TOFMatcherSpec.h"
 #include "TOFWorkflowIO/TOFMatchedWriterSpec.h"
 #include "TOFWorkflowIO/TOFCalibWriterSpec.h"
+#include "TOFWorkflowIO/TOFMatchableWriterSpec.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
@@ -62,6 +63,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"output-type", o2::framework::VariantType::String, "matching-info", {"matching-info, calib-info"}},
     {"enable-dia", o2::framework::VariantType::Bool, false, {"to require diagnostic freq and then write to calib outputs (obsolete since now default)"}},
     {"trd-extra-tolerance", o2::framework::VariantType::Float, 500.0f, {"Extra time tolerance for TRD tracks in ns"}},
+    {"write-matchable", o2::framework::VariantType::Bool, false, {"write all matchable pairs in a file (o2matchable_tof.root)"}},
+    {"require-ctp-lumi", o2::framework::VariantType::Bool, false, {"require CTP lumi for TPC correction scaling"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}},
     {"combine-devices", o2::framework::VariantType::Bool, false, {"merge DPL source/writer devices"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -89,7 +92,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto strict = configcontext.options().get<bool>("strict-matching");
   auto diagnostic = configcontext.options().get<bool>("enable-dia");
   auto extratolerancetrd = configcontext.options().get<float>("trd-extra-tolerance");
-
+  auto writeMatchable = configcontext.options().get<bool>("write-matchable");
+  auto requireCTPLumi = configcontext.options().get<bool>("require-ctp-lumi");
   bool writematching = 0;
   bool writecalib = 0;
   auto outputType = configcontext.options().get<std::string>("output-type");
@@ -118,6 +122,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   LOG(debug) << "TOF disable-root-output = " << disableRootOut;
   LOG(debug) << "TOF matching in strict mode = " << strict;
   LOG(debug) << "TOF extra time tolerance for TRD tracks = " << extratolerancetrd;
+  LOG(debug) << "Store all matchables = " << writeMatchable;
 
   //GID::mask_t alowedSources = GID::getSourcesMask("TPC,ITS-TPC");
   GID::mask_t alowedSources = GID::getSourcesMask("TPC,ITS-TPC,TPC-TRD,ITS-TPC-TRD");
@@ -133,7 +138,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (useFIT) {
     clustermask |= GID::getSourceMask(GID::FT0);
   }
-
+  if (requireCTPLumi) {
+    src = src | GID::getSourcesMask("CTP");
+  }
   if (useMC) {
     mcmaskcl |= GID::getSourceMask(GID::TOF);
   }
@@ -152,7 +159,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     }
   }
 
-  specs.emplace_back(o2::globaltracking::getTOFMatcherSpec(src, useMC, useFIT, false, strict, extratolerancetrd)); // doTPCrefit not yet supported (need to load TPC clusters?)
+  specs.emplace_back(o2::globaltracking::getTOFMatcherSpec(src, useMC, useFIT, false, strict, extratolerancetrd, writeMatchable)); // doTPCrefit not yet supported (need to load TPC clusters?)
 
   if (!disableRootOut) {
     std::vector<DataProcessorSpec> writers;
@@ -172,6 +179,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     }
     if (writecalib) {
       writers.emplace_back(o2::tof::getTOFCalibWriterSpec("o2calib_tof.root", 0, diagnostic));
+    }
+
+    if (writeMatchable) {
+      specs.emplace_back(o2::tof::getTOFMatchableWriterSpec("o2matchable_tof.root"));
     }
 
     if (configcontext.options().get<bool>("combine-devices")) {

@@ -24,6 +24,8 @@
 #pragma link C++ class o2::track::TrackParCovD + ;
 #pragma link C++ class o2::track::TrackParCov + ;
 #pragma link C++ class o2::track::TrackParametrizationWithError < float> + ;
+#pragma link C++ class std::vector < o2::track::TrackParametrizationWithError < float>> + ;
+
 #pragma link C++ class o2::track::TrackParametrizationWithError < double> + ;
 #pragma link C++ class o2::track::TrackParFwd + ;
 #pragma link C++ class o2::track::PID + ;
@@ -43,6 +45,9 @@
 
 #pragma link C++ class o2::dataformats::TrackTPCTOF + ;
 #pragma link C++ class std::vector < o2::dataformats::TrackTPCTOF> + ;
+
+#pragma link C++ class o2::dataformats::TrackHMP + ;
+#pragma link C++ class std::vector < o2::dataformats::TrackHMP> + ;
 
 #pragma link C++ class o2::dataformats::TrackCosmics + ;
 #pragma link C++ class std::vector < o2::dataformats::TrackCosmics> + ;
@@ -93,5 +98,8 @@
 
 #pragma link C++ class o2::dataformats::DecayNbody + ;
 #pragma link C++ class std::vector < o2::dataformats::DecayNbody> + ;
+
+#pragma link C++ class o2::dataformats::StrangeTrack + ;
+#pragma link C++ class std::vector < o2::dataformats::StrangeTrack> + ;
 
 #endif

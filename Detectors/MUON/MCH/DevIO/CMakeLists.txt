@@ -10,3 +10,6 @@
 # or submit itself to any jurisdiction.
 
 add_subdirectory(Digits)
+add_subdirectory(PreClusters)
+add_subdirectory(Clusters)
+add_subdirectory(Tracks)

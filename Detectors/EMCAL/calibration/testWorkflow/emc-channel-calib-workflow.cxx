@@ -39,7 +39,9 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
     {"calibType", VariantType::String, "time", {"choose which calibration should be performed: time for tiem calibration, badchannel for bad channel calibration"}},
     {"no-loadCalibParamsFromCCDB", VariantType::Bool, false, {"disabled by default such that calib params are taken from the ccdb. If enabled, calib params are taken from EMCALCalibParams.h directly"}},
-    {"no-rejectCalibTrigger", VariantType::Bool, false, {"disabled by default such that calib triggers are rejected. If enabled, calibration triggers (LED events etc.) also enter the calibration"}}};
+    {"no-rejectCalibTrigger", VariantType::Bool, false, {"disabled by default such that calib triggers are rejected. If enabled, calibration triggers (LED events etc.) also enter the calibration"}},
+    {"no-rejectL0Trigger", VariantType::Bool, false, {"disabled by default such that L0 triggers are rejected. If enabled, L0 triggers (Gamma trigger and jet trigger) also enter the calibration"}},
+    {"ctpconfig-per-run", VariantType::Bool, false, {"Use CTP config per run. 1 -- on (Data), 0 -- off (MC)"}}};
 
   std::swap(workflowOptions, options);
 }
@@ -53,9 +55,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   std::string calibType = cfgc.options().get<std::string>("calibType");
   bool loadCalibParamsFromCCDB = !cfgc.options().get<bool>("no-loadCalibParamsFromCCDB");
   bool rejectCalibTrigger = !cfgc.options().get<bool>("no-rejectCalibTrigger");
+  bool rejectL0Trigger = !cfgc.options().get<bool>("no-rejectL0Trigger");
+  bool ctpcfgperrun = cfgc.options().get<bool>("ctpconfig-per-run");
 
   WorkflowSpec specs;
-  specs.emplace_back(getEMCALChannelCalibDeviceSpec(calibType, loadCalibParamsFromCCDB, rejectCalibTrigger));
+  specs.emplace_back(getEMCALChannelCalibDeviceSpec(calibType, loadCalibParamsFromCCDB, rejectCalibTrigger, rejectL0Trigger, ctpcfgperrun));
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   // o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);

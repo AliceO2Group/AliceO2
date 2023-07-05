@@ -11,6 +11,8 @@
 #ifndef ALICEO2_EMCAL_RAWDECODINGERROR_H
 #define ALICEO2_EMCAL_RAWDECODINGERROR_H
 
+#include <array>
+#include <cassert>
 #include <exception>
 
 namespace o2
@@ -61,23 +63,7 @@ class RawDecodingError : public std::exception
   /// \return Error message of the exception
   const char* what() const noexcept override
   {
-    switch (mErrorType) {
-      case ErrorType_t::PAGE_NOTFOUND:
-        return "Page with requested index not found";
-      case ErrorType_t::HEADER_DECODING:
-        return "RDH of page cannot be decoded";
-      case ErrorType_t::PAYLOAD_DECODING:
-        return "Payload of page cannot be decoded";
-      case ErrorType_t::HEADER_INVALID:
-        return "Access to header not belonging to requested superpage";
-      case ErrorType_t::PAGE_START_INVALID:
-        return "Page decoding starting outside payload size";
-      case ErrorType_t::PAYLOAD_INVALID:
-        return "Access to payload not belonging to requested superpage";
-      case ErrorType_t::TRAILER_DECODING:
-        return "Inconsistent trailer in memory";
-    };
-    return "Undefined error";
+    return getErrorCodeDescription(mErrorType);
   }
 
   /// \brief Get the type identifier of the error handled with this exception
@@ -113,10 +99,156 @@ class RawDecodingError : public std::exception
     return -1;
   }
 
+  /// \brief Get the number of error codes
+  /// \return Number of error codes
+  static constexpr int getNumberOfErrorTypes() { return 7; }
+
+  static ErrorType_t intToErrorType(unsigned int errortype)
+  {
+    assert(errortype < getNumberOfErrorTypes());
+    static constexpr std::array<ErrorType_t, getNumberOfErrorTypes()> errortypes = {{ErrorType_t::PAGE_NOTFOUND, ErrorType_t::HEADER_DECODING,
+                                                                                     ErrorType_t::PAYLOAD_DECODING, ErrorType_t::HEADER_INVALID,
+                                                                                     ErrorType_t::PAGE_START_INVALID, ErrorType_t::PAYLOAD_INVALID,
+                                                                                     ErrorType_t::TRAILER_DECODING}};
+    return errortypes[errortype];
+  }
+
+  /// \brief Get name of error type
+  ///
+  /// A single word descriptor i.e. to be used in object names
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (symbolic representation)
+  /// \return Name of the error type
+  static const char* getErrorCodeNames(ErrorType_t errortype)
+  {
+    switch (errortype) {
+      case ErrorType_t::PAGE_NOTFOUND:
+        return "PageNotFound";
+      case ErrorType_t::HEADER_DECODING:
+        return "HeaderDecoding";
+      case ErrorType_t::PAYLOAD_DECODING:
+        return "PayloadDecoding";
+      case ErrorType_t::HEADER_INVALID:
+        return "HeaderCorruption";
+      case ErrorType_t::PAGE_START_INVALID:
+        return "PageStartInvalid";
+      case ErrorType_t::PAYLOAD_INVALID:
+        return "PayloadCorruption";
+      case ErrorType_t::TRAILER_DECODING:
+        return "TrailerDecoding";
+    };
+    return "Undefined error";
+  }
+
+  /// \brief Get name of error type
+  ///
+  /// A single word descriptor i.e. to be used in object names
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (numeric representation)
+  /// \return Name of the error type
+  static const char* getErrorCodeNames(unsigned int errortype)
+  {
+    return getErrorCodeNames(intToErrorType(errortype));
+  }
+
+  /// \brief Get title of error type
+  ///
+  /// A short description i.e. to be used in histogram titles
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (symbolic representation)
+  /// \return Title of the error type
+  static const char* getErrorCodeTitles(ErrorType_t errortype)
+  {
+    switch (errortype) {
+      case ErrorType_t::PAGE_NOTFOUND:
+        return "Page not found";
+      case ErrorType_t::HEADER_DECODING:
+        return "Header decoding";
+      case ErrorType_t::PAYLOAD_DECODING:
+        return "Payload decoding";
+      case ErrorType_t::HEADER_INVALID:
+        return "Header corruption";
+      case ErrorType_t::PAGE_START_INVALID:
+        return "Page start invalid";
+      case ErrorType_t::PAYLOAD_INVALID:
+        return "Payload corruption";
+      case ErrorType_t::TRAILER_DECODING:
+        return "Trailer decoding";
+    };
+    return "Undefined error";
+  }
+
+  /// \brief Get title of error type
+  ///
+  /// A short description i.e. to be used in histogram titles
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (numeric representation)
+  /// \return Title of the error type
+  static const char* getErrorCodeTitles(unsigned int errortype)
+  {
+    return getErrorCodeTitles(intToErrorType(errortype));
+  }
+
+  /// \brief Get description of error type
+  ///
+  /// A dedicated description is created which can be used i.e. in the
+  /// what() function of the exception.
+  ///
+  /// \param errortype Error type raising the exceptio (symbolic representation)
+  /// \return Description text for the error type
+  static const char* getErrorCodeDescription(ErrorType_t errortype)
+  {
+    switch (errortype) {
+      case ErrorType_t::PAGE_NOTFOUND:
+        return "Page with requested index not found";
+      case ErrorType_t::HEADER_DECODING:
+        return "RDH of page cannot be decoded";
+      case ErrorType_t::PAYLOAD_DECODING:
+        return "Payload of page cannot be decoded";
+      case ErrorType_t::HEADER_INVALID:
+        return "Access to header not belonging to requested superpage";
+      case ErrorType_t::PAGE_START_INVALID:
+        return "Page decoding starting outside payload size";
+      case ErrorType_t::PAYLOAD_INVALID:
+        return "Access to payload not belonging to requested superpage";
+      case ErrorType_t::TRAILER_DECODING:
+        return "Inconsistent trailer in memory";
+    };
+    return "Undefined error";
+  }
+
+  /// \brief Get description of error type
+  ///
+  /// A dedicated description is created which can be used i.e. in the
+  /// what() function of the exception.
+  ///
+  /// \param errortype Error type raising the exception (numeric representation)
+  /// \return Description text for the error type
+  static const char* getErrorCodeDescription(unsigned int errortype)
+  {
+    return getErrorCodeDescription(intToErrorType(errortype));
+  }
+
  private:
   ErrorType_t mErrorType; ///< Type of the error
   int mFecID;             ///< ID of the FEC responsible for the ERROR
 };
+
+/// \brief Streaming operator for RawDecodingError
+/// \param stream Stream to print on
+/// \param error Error to be printed
+/// \return Stream after printing
+std::ostream& operator<<(std::ostream& stream, const RawDecodingError& error);
+
+/// \brief Streaming operator for RawDecodingError's ErrorType_t
+/// \param stream Stream to print on
+/// \param error Error to be printed
+/// \return Stream after printing
+std::ostream& operator<<(std::ostream& stream, const RawDecodingError::ErrorType_t& error);
 
 } // namespace emcal
 

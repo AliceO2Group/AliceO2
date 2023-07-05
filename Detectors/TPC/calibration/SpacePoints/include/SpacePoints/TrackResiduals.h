@@ -26,6 +26,7 @@
 
 #include "DataFormatsTPC/Defs.h"
 #include "SpacePoints/SpacePointsCalibParam.h"
+#include "SpacePoints/SpacePointsCalibConfParam.h"
 #include "SpacePoints/TrackInterpolation.h"
 
 #include "TTree.h"
@@ -104,27 +105,6 @@ class TrackResiduals
     ClassDefNV(LocalResid, 1);
   };
 
-  /// Structure for TPC residuals before the binning, but after outlier rejection
-  /// This is the data type which will be send from the EPNs to the aggregator
-  struct UnbinnedResid {
-    UnbinnedResid() = default;
-    UnbinnedResid(float dyIn, float dzIn, float tgSlpIn, float yIn, float zIn, unsigned char rowIn, unsigned char secIn) : dy(static_cast<short>(dyIn * 0x7fff / param::MaxResid)),
-                                                                                                                           dz(static_cast<short>(dzIn * 0x7fff / param::MaxResid)),
-                                                                                                                           tgSlp(static_cast<short>(tgSlpIn * 0x7fff / param::MaxTgSlp)),
-                                                                                                                           y(static_cast<short>(yIn * 0x7fff / param::MaxY)),
-                                                                                                                           z(static_cast<short>(zIn * 0x7fff / param::MaxZ)),
-                                                                                                                           row(rowIn),
-                                                                                                                           sec(secIn) {}
-    short dy;          ///< residual in y
-    short dz;          ///< residual in z
-    short tgSlp;       ///< track dip angle
-    short y;           ///< y position of the track, needed for binning
-    short z;           ///< z position of the track, needed for binning
-    unsigned char row; ///< TPC pad row
-    unsigned char sec; ///< TPC sector (0..35)
-    ClassDefNV(UnbinnedResid, 1);
-  };
-
   /// Structure which holds the statistics for each voxel
   struct VoxStats {
     VoxStats() = default;
@@ -133,24 +113,10 @@ class TrackResiduals
     ClassDefNV(VoxStats, 1);
   };
 
-  /// Structure for on-the-fly re-calculated track parameters at the validation stage
-  struct TrackParams {
-    TrackParams() = default;
-    float qpt{0.f};
-    float tgl{0.f};
-    std::array<float, param::NPadRows> zTrk{};
-    std::array<float, param::NPadRows> xTrk{};
-    std::array<float, param::NPadRows> dy{};
-    std::array<float, param::NPadRows> dz{};
-    std::array<float, param::NPadRows> tglArr{};
-    std::bitset<param::NPadRows> flagRej{};
-  };
-
   // -------------------------------------- initialization --------------------------------------------------
   /// Steers the initialization (binning, default settings for smoothing, container for the results).
   /// \param initBinning Binning does not need to be initialized in case only outlier filtering is performed
-  /// \param bz The nominal magnetic field along Z in kG
-  void init(bool doBinning = true, float bz = param::Bz);
+  void init(bool doBinning = true);
   /// Initializes the binning in X, Y/X and Z.
   void initBinning();
   /// Initializes the results structure for given sector.
@@ -175,63 +141,22 @@ class TrackResiduals
   /// \param scZ Scale factor to increase smoothing bandwidth at sector edges in Z
   void setKernelType(KernelType kernel = KernelType::Epanechnikov, float bwX = 2.1f, float bwP = 2.1f, float bwZ = 1.7f, float scX = 1.f, float scP = 1.f, float scZ = 1.f);
 
-  // -------------------------------------- I/O --------------------------------------------------
+  /// Setting the flag to true for a given dimension will enable smoothing with a 2nd order polynomial.
+  /// Otherwise a first order polynomial will be used (default along z/x, since the bins are large)
+  void setSmoothPol2(int dim, bool flag) { mSmoothPol2[dim] = flag; }
 
-  /// Load input from file
-  void loadInputFromFile();
+  void setVdriftCorr(float corr) { mEffVdriftCorr = corr; }
+
+  void setT0Corr(float corr) { mEffT0Corr = corr; }
+
+  // -------------------------------------- I/O --------------------------------------------------
 
   std::vector<LocalResid>& getLocalResVec() { return mLocalResidualsIn; }
   std::vector<VoxStats>** getVoxStatPtr() { return &mVoxStatsInPtr; }
 
   const std::array<std::vector<VoxRes>, SECTORSPERSIDE * SIDES>& getVoxelResults() const { return mVoxelResults; }
 
-  /// Set input directly
-  /// \param trkData Vector with seeding track information (contains range ref to related TPC cluster residuals)
-  /// \param clResiduals Vector of all TPC cluster residuals
-  void setInputData(std::vector<TrackData>& trkData, std::vector<TPCClusterResiduals>& clResiduals);
-
-  /// Returns the collected unbinned residuals after outlier rejection is applied
-  std::vector<UnbinnedResid>& getUnbinnedResiduals() { return mUnbinnedResiduals; }
-
-  /// Returns the track parameters and cluster range reference for validated tracks (this is a subset of the input mTrackDataPtr)
-  std::vector<TrackData>& getTrackDataOut() { return mTrackDataOut; }
-
-  /// Create output files for each sector with trees for local residuals
-  void prepareLocalResidualTrees();
-
-  /// Write trees with local residuals to file
-  void writeLocalResidualTreesToFile();
-
-  /// Clear the vector of unbinned residuals
-  void resetUnbinnedResiduals();
-
-  /// Clear the vector with track data belonging to residuals
-  void resetTrackData() { mTrackDataOut.clear(); }
-
   // -------------------------------------- steering functions --------------------------------------------------
-
-  /// Loads residual data from track interpolation and fills vector of unbinned residuals
-  /// This function also steers the outlier rejection
-  /// \param writeToFile Flag if the local residuals and voxel statistics should be dumped to a file
-  void doOutlierRejection(bool writeToFile = false);
-
-  /// Validates the given input track and its residuals
-  /// \param trk The track parameters, e.g. q/pT, eta, ...
-  /// \param params Structure with per pad information recalculated on the fly
-  /// \return true if the track could be validated, false otherwise
-  bool validateTrack(const TrackData& trk, TrackParams& params) const;
-
-  /// Filter out individual outliers from all cluster residuals of given track
-  /// \return true for tracks which pass the cuts on e.g. max. masked clusters and false for rejected tracks
-  bool outlierFiltering(const TrackData& trk, TrackParams& params) const;
-
-  /// Is called from outlierFiltering() and does the actual calculations (moving average filter etc.)
-  /// \return The RMS of the long range moving average
-  float checkResiduals(const TrackData& trk, TrackParams& params) const;
-
-  /// Calculates the differences in Y and Z for a given set of clusters to a fitted helix.
-  /// First a circular fit in the azimuthal plane is performed and subsequently a linear fit in the transversal plane
-  bool compareToHelix(const TrackData& trk, TrackParams& params) const;
 
   /// Processes residuals for given sector.
   /// \param iSec Sector to process
@@ -333,19 +258,13 @@ class TrackResiduals
   /// \param yc fit result for circle center position in y is stored here
   /// \param r fit result for circle radius is stored here
   /// \param residHelixY residuals in y from fitted circle to given points is stored here
-  void fitCircle(int nCl, std::array<float, param::NPadRows>& x, std::array<float, param::NPadRows>& y, float& xc, float& yc, float& r, std::array<float, param::NPadRows>& residHelixY) const;
+  static void fitCircle(int nCl, std::array<float, param::NPadRows>& x, std::array<float, param::NPadRows>& y, float& xc, float& yc, float& r, std::array<float, param::NPadRows>& residHelixY);
 
   /// Fits a straight line to a given set of points, w/o taking into account measurement errors or different weights for the points
   /// Straight line is given by y = a * x + b
   /// \param res[0] contains the slope (a)
   /// \param res[1] contains the offset (b)
-  bool fitPoly1(int nCl, std::array<float, param::NPadRows>& x, std::array<float, param::NPadRows>& y, std::array<float, 2>& res) const;
-
-  /// For a given set of points, calculate the differences from each point to the fitted lines from all other points in their neighbourhoods (+- mNMAShort points)
-  void diffToLocLine(const int np, int idxOffset, const std::array<float, param::NPadRows>& x, const std::array<float, param::NPadRows>& y, std::array<float, param::NPadRows>& diffY) const;
-
-  /// For a given set of points, calculate their deviation from the moving average (build from the neighbourhood +- mNMALong points)
-  void diffToMA(const int np, const std::array<float, param::NPadRows>& y, std::array<float, param::NPadRows>& diffMA) const;
+  static bool fitPoly1(int nCl, std::array<float, param::NPadRows>& x, std::array<float, param::NPadRows>& y, std::array<float, 2>& res);
 
   // -------------------------------------- binning / geometry --------------------------------------------------
 
@@ -494,44 +413,6 @@ class TrackResiduals
   /// \return Inverse of the distance between bins
   float getDZ2XI(int iz = 0) const;
 
-  // -------------------------------------- settings --------------------------------------------------
-
-  void setLocalResFileName(std::string fName) { mLocalResFileName = fName; }
-  void setLocalResTreeName(std::string tName) { mLocalResTreeName = tName; }
-  void setLocalResBranchName(std::string bName) { mLocalResBranchName = bName; }
-  void setMaxPointsPerSector(int nPoints) { mMaxPointsPerSector = nPoints; }
-  void setMinEntriesPerVoxel(int nEntries) { mMinEntriesPerVoxel = nEntries; }
-  void setLTMCut(float ltmCut) { mLTMCut = ltmCut; }
-  void setMinFracLTM(float ltmCut) { mMinFracLTM = ltmCut; }
-  void setMinValidVoxFracDrift(float frac) { mMinValidVoxFracDrift = frac; }
-  void setMinGoodXBinsToCover(int n) { mMinGoodXBinsToCover = n; }
-  void setMaxBadXBinsToCover(int n) { mMaxBadXBinsToCover = n; }
-  void setMaxFracBadRowsPerSector(float frac) { mMaxFracBadRowsPerSector = frac; }
-  void setMaxFitErrY2(float err) { mMaxFitErrY2 = err; }
-  void setMaxFitErrX2(float err) { mMaxFitErrX2 = err; }
-  void setMaxFitCorrXY(float corr) { mMaxFitCorrXY = corr; }
-  void setMaxSigY(float sigY) { mMaxSigY = sigY; }
-  void setMaxSigZ(float sigZ) { mMaxSigZ = sigZ; }
-  void setMaxGaussStdDev(float sigmas) { mMaxGaussStdDev = sigmas; }
-
-  std::string getLocalResFileName() const { return mLocalResFileName; }
-  std::string getLocalResTreeName() const { return mLocalResTreeName; }
-  std::string getLocalResBranchName() const { return mLocalResBranchName; }
-  int getMaxPointsPerSector() const { return mMaxPointsPerSector; }
-  int getMinEntriesPerVoxel() const { return mMinEntriesPerVoxel; }
-  float getLTMCut() const { return mLTMCut; }
-  float getMinFracLTM() const { return mMinFracLTM; }
-  float getMinValidVoxFracDrift() const { return mMinValidVoxFracDrift; }
-  int getMinGoodXBinsToCover() const { return mMinGoodXBinsToCover; }
-  int getMaxBadXBinsToCover() const { return mMaxBadXBinsToCover; }
-  float getMaxFracBadRowsPerSector() const { return mMaxFracBadRowsPerSector; }
-  float getMaxFitErrY2() const { return mMaxFitErrY2; }
-  float getMaxFitErrX2() const { return mMaxFitErrX2; }
-  float getMaxFitCorrXY() const { return mMaxFitCorrXY; }
-  float getMaxSigY() const { return mMaxSigY; }
-  float getMaxSigZ() const { return mMaxSigZ; }
-  float getMaxGaussStdDev() const { return mMaxGaussStdDev; }
-
   // -------------------------------------- debugging --------------------------------------------------
 
   /// Prints the current memory usage
@@ -542,14 +423,26 @@ class TrackResiduals
   void dumpResults(int iSec);
 
   /// Creates a file for the debug output.
-  void createOutputFile();
+  void createOutputFile(const char* filename = "debugVoxRes.root");
 
   /// Closes the file with the debug output.
   void closeOutputFile();
 
+  /// Allow to access the output file from outside
+  TFile* getOutputFilePtr() { return mFileOut.get(); }
+
+  /// Set the voxel statistics directly from outside
+  void setStats(const std::vector<TrackResiduals::VoxStats>& statsIn, int iSec);
+
+  /// Fill statistics from TTree
+  void fillStats(int iSec);
+
+  /// clear member to be able to process new sector or new input files
+  void clear();
+
  private:
-  // names of input files / trees
-  std::string mInputFileNameResiduals{"residuals_tpc.root"}; ///< name of file with track residuals
+  std::bitset<SECTORSPERSIDE * SIDES> mInitResultsContainer{};
+
   // some constants
   static constexpr float sFloatEps{1.e-7f}; ///< float epsilon for robust linear fitting
   static constexpr float sDeadZone{1.5f};   ///< dead zone for TPC in between sectors
@@ -557,65 +450,38 @@ class TrackResiduals
   static constexpr int sSmtLinDim{4};       ///< max matrix size for smoothing (pol1)
   static constexpr int sMaxSmtDim{7};       ///< max matrix size for smoothing (pol2)
 
+  // settings
+  const SpacePointsCalibConfParam* mParams = nullptr;
+
   // input data
-  std::unique_ptr<TFile> mFileIn;                       ///< input file with residuals data
-  TTree* mTreeInTracks{nullptr};                        ///< tree with input track information
-  std::vector<TrackData>* mTrackDataPtr{nullptr};       ///< vector with input track information
-  TTree* mTreeInClRes{nullptr};                         ///< tree with TPC cluster residuals
-  std::vector<TPCClusterResiduals>* mClResPtr{nullptr}; ///< vector with unbinned TPC cluster residuals
-  std::vector<LocalResid> mLocalResidualsIn;            ///< binned local residuals from aggregator
+  std::vector<LocalResid> mLocalResidualsIn;                        ///< binned local residuals from aggregator
   std::vector<VoxStats> mVoxStatsIn, *mVoxStatsInPtr{&mVoxStatsIn}; ///< the statistics information for each voxel from the aggregator
   // output data
   std::unique_ptr<TFile> mFileOut; ///< output debug file
   std::unique_ptr<TTree> mTreeOut; ///< tree holding debug output
-  std::vector<UnbinnedResid> mUnbinnedResiduals; ///< large vector for the unbinned residual data which is sent to the aggregator
-  std::vector<UnbinnedResid>* mUnbinnedResidualsPtr{&mUnbinnedResiduals};
-  std::vector<TrackData> mTrackDataOut; // the same as mTrackDataPtr, but the rejected tracks are removed, to be sent to the aggregator
   // status flags
   bool mIsInitialized{}; ///< initialize only once
   bool mPrintMem{};      ///< turn on to print memory usage at certain points
   // binning
-  int mNXBins{param::NPadRows};            ///< number of bins in radial direction
-  int mNY2XBins{param::NY2XBins};          ///< number of y/x bins per sector
-  int mNZ2XBins{param::NZ2XBins};          ///< number of z/x bins per sector
-  int mNVoxPerSector{};                    ///< number of voxels per sector
-  float mDX{};                             ///< x bin size
-  float mDXI{};                            ///< inverse of x bin size
-  std::vector<float> mMaxY2X{};            ///< max y/x at each x bin, accounting dead zones
-  std::vector<float> mDY2X{};              ///< y/x bin size at given x bin
-  std::vector<float> mDY2XI{};             ///< inverse y/x bin size at given x bin
-  std::vector<float> mY2XBinsDH{};         ///< half width in y/x within the interval [-1..1]
-  std::vector<float> mY2XBinsDI{};         ///< inverse bin width in y/x within the interval [-1..1]
-  std::vector<float> mY2XBinsCenter{};     ///< bin center in y/x within the interval [-1..1]
-  float mDZ2X{};                           ///< bin size in z/x
-  float mDZ2XI{};                          ///< inverse of bin size in z/x
-  std::vector<float> mZ2XBinsDH{};         ///< half width in z/x within the interval [0..1]
-  std::vector<float> mZ2XBinsDI{};         ///< inverse bin width in z/x within the interval [0..1]
-  std::vector<float> mZ2XBinsCenter{};     ///< bin center in z/x within the interval [0..1]
-  float mMaxZ2X{1.f};                      ///< max z/x value
+  int mNXBins{param::NPadRows};                            ///< number of bins in radial direction
+  int mNY2XBins{param::NY2XBins};                          ///< number of y/x bins per sector
+  int mNZ2XBins{param::NZ2XBins};                          ///< number of z/x bins per sector
+  int mNVoxPerSector{};                                    ///< number of voxels per sector
+  float mDX{};                                             ///< x bin size
+  float mDXI{};                                            ///< inverse of x bin size
+  std::vector<float> mMaxY2X{};                            ///< max y/x at each x bin, accounting dead zones
+  std::vector<float> mDY2X{};                              ///< y/x bin size at given x bin
+  std::vector<float> mDY2XI{};                             ///< inverse y/x bin size at given x bin
+  std::vector<float> mY2XBinsDH{};                         ///< half width in y/x within the interval [-1..1]
+  std::vector<float> mY2XBinsDI{};                         ///< inverse bin width in y/x within the interval [-1..1]
+  std::vector<float> mY2XBinsCenter{};                     ///< bin center in y/x within the interval [-1..1]
+  float mDZ2X{};                                           ///< bin size in z/x
+  float mDZ2XI{};                                          ///< inverse of bin size in z/x
+  std::vector<float> mZ2XBinsDH{};                         ///< half width in z/x within the interval [0..1]
+  std::vector<float> mZ2XBinsDI{};                         ///< inverse bin width in z/x within the interval [0..1]
+  std::vector<float> mZ2XBinsCenter{};                     ///< bin center in z/x within the interval [0..1]
+  float mMaxZ2X{1.f};                                      ///< max z/x value
   std::array<bool, VoxDim> mUniformBins{true, true, true}; ///< if binning is uniform for each dimension
-  // local residual data, extracted from track interpolation
-  std::unique_ptr<TFile> mTmpFile{}; ///< I/O file
-  std::unique_ptr<TTree> mTmpTree{}; ///< I/O tree
-  // settings
-  float mBz{param::Bz};                          ///< nominal magnetic field along Z
-  std::string mLocalResFileName{"deltasSect"};   ///< filename for local residuals input
-  std::string mLocalResTreeName{"treeSec"};      ///< name for tree with local residuals
-  std::string mLocalResBranchName{"resids"};     ///< branch with LocalResid objects
-  int mMaxPointsPerSector{30'000'000};           ///< maximum number of accepted points per sector
-  int mMinEntriesPerVoxel{15};                   ///< minimum number of points in voxel for processing
-  float mLTMCut{.75f};                           ///< fraction op points to keep when trimming input data
-  float mMinFracLTM{.5f};                        ///< minimum fraction of points to keep when trimming data to fit expected sigma
-  float mMinValidVoxFracDrift{.5f};              ///< if more than this fraction of bins are bad for one pad row the whole pad row is declared bad
-  int mMinGoodXBinsToCover{3};                   ///< minimum number of consecutive good bins, otherwise bins are declared bad
-  int mMaxBadXBinsToCover{4};                    ///< a lower number of consecutive bad X bins will not be declared bad
-  float mMaxFracBadRowsPerSector{.4f};           ///< maximum fraction of bad rows before whole sector is masked
-  float mMaxFitErrY2{1.f};                       ///< maximum fit error for Y2
-  float mMaxFitErrX2{9.f};                       ///< maximum fit error for X2
-  float mMaxFitCorrXY{.95f};                     ///< maximum fit correlation for x and y
-  float mMaxSigY{1.1f};                          ///< maximum sigma for y of the voxel
-  float mMaxSigZ{.7f};                           ///< maximum sigma for z of the voxel
-  float mMaxGaussStdDev{5.f};                    ///< maximum number of sigmas to be considered for gaussian kernel smoothing
   // smoothing
   KernelType mKernelType{KernelType::Epanechnikov};                ///< kernel type (Epanechnikov / Gaussian)
   bool mUseErrInSmoothing{true};                                   ///< weight kernel by point error
@@ -625,19 +491,17 @@ class TrackResiduals
   std::array<float, VoxDim> mKernelScaleEdge{};                    ///< optional scaling factors for kernel width on the edge
   std::array<float, VoxDim> mKernelWInv{};                         ///< inverse kernel width in bins
   std::array<double, ResDim * sMaxSmtDim> mLastSmoothingRes{};     ///< results of last smoothing operation
+  // calibrated parameters
+  float mEffVdriftCorr{0.f}; ///< global correction factor for vDrift based on d(delta(z))/dz fit
+  float mEffT0Corr{0.f};     ///< global correction for T0 shift from offset of d(delta(z))/dz fit
   // (intermediate) results
   std::array<std::bitset<param::NPadRows>, SECTORSPERSIDE * SIDES> mXBinsIgnore{};          ///< flags which X bins to ignore
   std::array<std::array<float, param::NPadRows>, SECTORSPERSIDE * SIDES> mValidFracXBins{}; ///< for each sector for each X-bin the fraction of validated voxels
   std::array<std::vector<VoxRes>, SECTORSPERSIDE * SIDES> mVoxelResults{};                  ///< results per sector and per voxel for 3-D distortions
   VoxRes mVoxelResultsOut{};                                                                ///< the results from mVoxelResults are copied in here to be able to stream them
   VoxRes* mVoxelResultsOutPtr{&mVoxelResultsOut};                                           ///< pointer to set the branch address to for the output
-  bool mFilterOutliers = true;                             ///< flag, if outliers from the cluster residual trees should be rejected
-  int mNMALong{15}; ///< number of points to be used for moving average (long range)
-  int mNMAShort{3}; ///< number of points to be used for estimation of distance from local line (short range)
-  float mMaxRejFrac{.15f}; ///< if the fraction of rejected clusters of a track is higher, the full track is invalidated
-  float mMaxRMSLong{.8f};  ///< maximum variance of the cluster residuals wrt moving avarage for a track to be considered
 
-  ClassDefNV(TrackResiduals, 2);
+  ClassDefNV(TrackResiduals, 3);
 };
 
 //_____________________________________________________

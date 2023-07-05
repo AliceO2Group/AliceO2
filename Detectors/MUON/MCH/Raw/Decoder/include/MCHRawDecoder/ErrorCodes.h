@@ -13,6 +13,7 @@
 #define O2_MCH_RAW_ERROR_CODES_H
 
 #include <string>
+#include <cstdint>
 
 namespace o2
 {
@@ -31,12 +32,13 @@ enum ErrorCodes {
   ErrorBadClusterSize = 1 << 6,              // 64
   ErrorBadIncompleteWord = 1 << 7,           // 128
   ErrorTruncatedData = 1 << 8,               // 256
-  ErrorUnexpectedSyncPacket = 1 << 9,        // 512
-  ErrorBadELinkID = 1 << 10,                 // 1024
-  ErrorBadLinkID = 1 << 11,                  // 2048
-  ErrorUnknownLinkID = 1 << 12,              // 4096
-  ErrorBadHBTime = 1 << 13,                  // 8192
-  ErrorNonRecoverableDecodingError = 1 << 14 // 16384
+  ErrorTruncatedDataUL = 1 << 9,             // 512
+  ErrorUnexpectedSyncPacket = 1 << 10,       // 1024
+  ErrorBadELinkID = 1 << 11,                 // 2048
+  ErrorBadLinkID = 1 << 12,                  // 4096
+  ErrorUnknownLinkID = 1 << 13,              // 8192
+  ErrorBadHBTime = 1 << 14,                  // 16384
+  ErrorNonRecoverableDecodingError = 1 << 15 // 32768
 };
 
 uint32_t getErrorCodesSize();

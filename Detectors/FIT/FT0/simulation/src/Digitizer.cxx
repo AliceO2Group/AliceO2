@@ -193,7 +193,7 @@ void Digitizer::process(const std::vector<o2::ft0::HitType>* hits,
                         o2::dataformats::MCTruthContainer<o2::ft0::MCLabel>& label)
 {
   ;
-  //Calculating signal time, amplitude in mean_time +- time_gate --------------
+  // Calculating signal time, amplitude in mean_time +- time_gate --------------
   LOG(debug) << " process firstBCinDeque " << firstBCinDeque << " mIntRecord " << mIntRecord;
   if (firstBCinDeque != mIntRecord) {
     flush(digitsBC, digitsCh, digitsTrig, label);
@@ -210,14 +210,14 @@ void Digitizer::process(const std::vector<o2::ft0::HitType>* hits,
     Float_t time_compensate = is_A_side ? params.mA_side_cable_cmps : params.mC_side_cable_cmps;
     Double_t hit_time = hit.GetTime() - time_compensate;
     if (hit_time > 150) {
-      continue; //not collect very slow particles
+      continue; // not collect very slow particles
     }
     auto relBC = o2::InteractionRecord{hit_time};
     if (mCache.size() <= relBC.bc) {
       mCache.resize(relBC.bc + 1);
     }
     mCache[relBC.bc].hits.emplace_back(BCCache::particle{hit_ch, hit_time - relBC.bc2ns()});
-    //charge particles in MCLabel
+    // charge particles in MCLabel
     Int_t parentID = hit.GetTrackID();
     if (parentID != parent) {
       mCache[relBC.bc].labels.emplace(parentID, mEventID, mSrcID, hit_ch);
@@ -263,7 +263,7 @@ void Digitizer::storeBC(BCCache& bc,
     if (!cfd.particle) {
       continue;
     }
-    //miscalibrate CFD with cahnnel offsets
+    // miscalibrate CFD with cahnnel offsets
     int miscalib = 0;
     if (mCalibOffset) {
       miscalib = mCalibOffset->mTimeOffsets[ipmt];
@@ -277,6 +277,10 @@ void Digitizer::storeBC(BCCache& bc,
     }
 
     LOG(debug) << mEventID << " bc " << firstBCinDeque.bc << " orbit " << firstBCinDeque.orbit << ", ipmt " << ipmt << ", smeared_time " << smeared_time << " nStored " << nStored << " offset " << miscalib;
+    if (is_time_in_signal_gate) {
+      chain |= (1 << o2::ft0::ChannelData::EEventDataBit::kIsCFDinADCgate);
+      chain |= (1 << o2::ft0::ChannelData::EEventDataBit::kIsEventInTVDC);
+    }
     digitsCh.emplace_back(ipmt, smeared_time, int(amp), chain);
     nStored++;
 
@@ -310,10 +314,12 @@ void Digitizer::storeBC(BCCache& bc,
   isVertex = is_A && is_C && (vertex_time > -params.mTime_trg_gate && vertex_time < params.mTime_trg_gate);
   LOG(debug) << " A " << is_A << " timeA " << timeA << " mean_time_A " << mean_time_A << "  n_hit_A " << n_hit_A << " C " << is_C << " timeC " << timeC << " mean_time_C " << mean_time_C << "  n_hit_C " << n_hit_C << " vertex_time " << vertex_time;
   Triggers triggers;
-  const bool unusedBitsInSim = false; // bits related to laser and data validity
+  bool isLaser = false;
+  bool isOutputsAreBlocked = false;
+  bool isDataValid = true;
   if (nStored > 0) {
     triggers.setTriggers(is_A, is_C, isVertex, is_Central, is_SemiCentral, int8_t(n_hit_A), int8_t(n_hit_C),
-                         amplA, amplC, timeA, timeC, unusedBitsInSim, unusedBitsInSim, unusedBitsInSim);
+                         amplA, amplC, timeA, timeC, isLaser, isOutputsAreBlocked, isDataValid);
     digitsBC.emplace_back(first, nStored, firstBCinDeque, triggers, mEventID - 1);
     digitsTrig.emplace_back(firstBCinDeque, is_A, is_C, isVertex, is_Central, is_SemiCentral);
     size_t const nBC = digitsBC.size();

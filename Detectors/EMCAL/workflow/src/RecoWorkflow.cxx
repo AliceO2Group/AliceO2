@@ -47,12 +47,14 @@ namespace reco_workflow
 o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
                                         bool askDISTSTF,
                                         bool enableDigitsPrinter,
-                                        int subspecification,
+                                        int subspecificationIn,
+                                        int subspecificationOut,
                                         std::string const& cfgInput,
                                         std::string const& cfgOutput,
                                         bool disableRootInput,
                                         bool disableRootOutput,
-                                        bool disableDecodingErrors)
+                                        bool disableDecodingErrors,
+                                        bool useccdb)
 {
 
   const std::unordered_map<std::string, InputType> InputMap{
@@ -169,10 +171,10 @@ o2::framework::WorkflowSpec getWorkflow(bool propagateMC,
   if (isEnabled(OutputType::Cells)) {
     // add converter for cells
     if (inputType == InputType::Digits) {
-      specs.emplace_back(o2::emcal::reco_workflow::getCellConverterSpec(propagateMC));
+      specs.emplace_back(o2::emcal::reco_workflow::getCellConverterSpec(propagateMC, useccdb, subspecificationIn, subspecificationOut));
     } else if (inputType == InputType::Raw) {
       // raw data will come from upstream
-      specs.emplace_back(o2::emcal::reco_workflow::getRawToCellConverterSpec(askDISTSTF, disableDecodingErrors, subspecification));
+      specs.emplace_back(o2::emcal::reco_workflow::getRawToCellConverterSpec(askDISTSTF, disableDecodingErrors, subspecificationOut));
     }
   }
 

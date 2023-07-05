@@ -46,7 +46,6 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
   using o2::framework::CompletionPolicy;
   policies.push_back(CompletionPolicyHelpers::defineByName("calib-tpc-raw.*", CompletionPolicy::CompletionOp::Consume));
-  policies.push_back(CompletionPolicyHelpers::defineByName("calib-tpc-caldet-merger-publisher", CompletionPolicy::CompletionOp::Consume));
 }
 
 // we need to add workflow options before including Framework/runDataProcessing
@@ -57,7 +56,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
   std::vector<ConfigParamSpec> options{
     {"input-spec", VariantType::String, DEFAULTINPUT, {"selection string input specs"}},
-    {"publish-after-tfs", VariantType::Int, 0, {"number of time frames after which to force publishing the objects"}},
+    {"publish-after-tfs", VariantType::UInt32, 0u, {"number of time frames after which to force publishing the objects"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g.: 'TPCCalibPedestal.FirstTimeBin=10;...')"}},
     {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}},
     {"calib-type", VariantType::String, "pedestal", {"Calibration type to run: pedestal, pulser, ce"}},
@@ -84,7 +83,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 
   std::string inputSpec = config.options().get<std::string>("input-spec");
   const auto skipCCDB = config.options().get<bool>("no-write-ccdb");
-  const auto publishAfterTFs = (uint32_t)config.options().get<int>("publish-after-tfs");
+  const auto publishAfterTFs = config.options().get<uint32_t>("publish-after-tfs");
 
   const auto tpcsectors = o2::RangeTokenizer::tokenize<int>(config.options().get<std::string>("sectors"));
   const auto nSectors = (uint32_t)tpcsectors.size();

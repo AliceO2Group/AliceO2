@@ -8,8 +8,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef FRAMEWORK_DATAPROCESSING_DEVICE_H
-#define FRAMEWORK_DATAPROCESSING_DEVICE_H
+#ifndef O2_FRAMEWORK_DATAPROCESSINGDEVICE_H_
+#define O2_FRAMEWORK_DATAPROCESSINGDEVICE_H_
 
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/ComputingQuotaOffer.h"
@@ -50,53 +50,8 @@ struct ComputingQuotaEvaluator;
 /// thread instances for what makes sense to have
 /// per thread and relax the locks.
 class DataProcessingDevice;
-
-/// Context associated to a device. In principle
-/// multiple DataProcessors can run on a Device (even if we
-/// do not do it for now).
-struct DeviceContext {
-  // These are pointers to the one owned by the DataProcessingDevice
-  // and therefore require actual locking
-  DataProcessingDevice* device = nullptr;
-  DeviceSpec const* spec = nullptr;
-  DeviceState* state = nullptr;
-  ComputingQuotaEvaluator* quotaEvaluator = nullptr;
-  DataProcessingStats* stats = nullptr;
-  ComputingQuotaStats* quotaStats = nullptr;
-  uv_timer_t* gracePeriodTimer = nullptr;
-  int expectedRegionCallbacks = 0;
-  int exitTransitionTimeout = 0;
-};
-
-struct DataProcessorContext {
-  // These are specific of a given context and therefore
-  // not shared by threads.
-  bool* wasActive = nullptr;
-  bool allDone = false;
-
-  // These are pointers to the one owned by the DataProcessingDevice
-  // but they are fully reentrant / thread safe and therefore can
-  // be accessed without a lock.
-
-  // FIXME: move stuff here from the list below... ;-)
-  DeviceContext* deviceContext = nullptr;
-  DataRelayer* relayer = nullptr;
-  ServiceRegistry* registry = nullptr;
-  std::vector<DataRelayer::RecordAction>* completed = nullptr;
-  std::vector<ExpirationHandler>* expirationHandlers = nullptr;
-  TimingInfo* timingInfo = nullptr;
-  DataAllocator* allocator = nullptr;
-  AlgorithmSpec::ProcessCallback* statefulProcess = nullptr;
-  AlgorithmSpec::ProcessCallback* statelessProcess = nullptr;
-  AlgorithmSpec::ErrorCallback* error = nullptr;
-
-  /// Wether or not the associated DataProcessor can forward things early
-  bool canForwardEarly = true;
-  bool isSink = false;
-  bool balancingInputs = true;
-
-  std::function<void(o2::framework::RuntimeErrorRef e, InputRecord& record)>* errorHandling = nullptr;
-};
+struct DataProcessorContext;
+struct DeviceContext;
 
 struct TaskStreamRef {
   int index = -1;
@@ -105,8 +60,8 @@ struct TaskStreamRef {
 struct TaskStreamInfo {
   /// The id of this stream
   TaskStreamRef id;
-  /// The context of the DataProcessor being run by this task
-  DataProcessorContext* context;
+  /// The registry associated to the task being run
+  ServiceRegistry* registry;
   /// The libuv task handle
   uv_work_t task;
   /// Wether or not this task is running
@@ -122,7 +77,7 @@ struct DeviceConfigurationHelpers {
 class DataProcessingDevice : public fair::mq::Device
 {
  public:
-  DataProcessingDevice(RunningDeviceRef ref, ServiceRegistryRef, ProcessingPolicies& policies);
+  DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry&, ProcessingPolicies& policies);
   void Init() final;
   void InitTask() final;
   void PreRun() final;
@@ -132,11 +87,10 @@ class DataProcessingDevice : public fair::mq::Device
   void Run() final;
 
   // Processing functions are now renetrant
-  static void doRun(DataProcessorContext& context);
-  static void doPrepare(DataProcessorContext& context);
-  static void handleData(DataProcessorContext& context, InputChannelInfo&);
-  static bool tryDispatchComputation(DataProcessorContext& context, std::vector<DataRelayer::RecordAction>& completed);
-  std::vector<DataProcessorContext> mDataProcessorContexes;
+  static void doRun(ServiceRegistryRef);
+  static void doPrepare(ServiceRegistryRef);
+  static void handleData(ServiceRegistryRef, InputChannelInfo&);
+  static bool tryDispatchComputation(ServiceRegistryRef ref, std::vector<DataRelayer::RecordAction>& completed);
 
  protected:
   void error(const char* msg);
@@ -147,41 +101,26 @@ class DataProcessingDevice : public fair::mq::Device
   void initPollers();
   void startPollers();
   void stopPollers();
-  DeviceContext mDeviceContext;
   /// The specification used to create the initial state of this device
-  DeviceSpec const& mSpec;
-  /// The current internal state of this device.
-  DeviceState& mState;
+  RunningDeviceRef mRunningDevice;
 
-  AlgorithmSpec::InitCallback mInit;
-  AlgorithmSpec::ProcessCallback mStatefulProcess;
-  AlgorithmSpec::ProcessCallback mStatelessProcess;
-  AlgorithmSpec::ErrorCallback mError;
-  std::function<void(RuntimeErrorRef e, InputRecord& record)> mErrorHandling;
   std::unique_ptr<ConfigParamRegistry> mConfigRegistry;
-  ServiceRegistryRef mServiceRegistry;
-  DataAllocator mAllocator;
-  DataRelayer* mRelayer = nullptr;
-  /// Expiration handler
-  std::vector<ExpirationHandler> mExpirationHandlers;
-  /// Completed actions
-  std::vector<DataRelayer::RecordAction> mCompleted;
+  ServiceRegistry& mServiceRegistry;
 
   uint64_t mLastSlowMetricSentTimestamp = 0;         /// The timestamp of the last time we sent slow metrics
   uint64_t mLastMetricFlushedTimestamp = 0;          /// The timestamp of the last time we actually flushed metrics
   uint64_t mBeginIterationTimestamp = 0;             /// The timestamp of when the current ConditionalRun was started
-  DataProcessingStats mStats;                        /// Stats about the actual data processing.
   std::vector<fair::mq::RegionInfo> mPendingRegionInfos; /// A list of the region infos not yet notified.
   std::mutex mRegionInfoMutex;
   ProcessingPolicies mProcessingPolicies;                        /// User policies related to data processing
   bool mWasActive = false;                                       /// Whether or not the device was active at last iteration.
   std::vector<uv_work_t> mHandles;                               /// Handles to use to schedule work.
   std::vector<TaskStreamInfo> mStreams;                          /// Information about the task running in the associated mHandle.
-  ComputingQuotaEvaluator& mQuotaEvaluator;                      /// The component which evaluates if the offer can be used to run a task
   /// Handle to wake up the main loop from other threads
   /// e.g. when FairMQ notifies some callback in an asynchronous way
   uv_async_t* mAwakeHandle = nullptr;
+  int64_t mCleanupCount = -1;
 };
 
 } // namespace o2::framework
-#endif
+#endif // O2_FRAMEWORK_DATAPROCESSINGDEVICE_H_

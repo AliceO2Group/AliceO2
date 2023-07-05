@@ -49,6 +49,15 @@ RawErrorType_t RawDecoder::readChannels()
   // }
   // mErrors.emplace_back(-1, 0, 0, 0, kOK); //5 is non-existing link with general errors
 
+  uint8_t dataFormat = mRawReader.getDataFormat();
+  int wordLength;
+  if (dataFormat == 0x0) {
+    wordLength = 16; // 128 bits word with padding
+  } else if (dataFormat == 0x2) {
+    wordLength = 10; // 80 bits word without padding
+  } else {
+    return RawErrorType_t::kWRONG_DATAFORMAT;
+  }
   auto& payloadWords = mRawReader.getPayload();
   uint32_t wordCountFromLastHeader = 1; // header word is included
   int nDigitsAddedFromLastHeader = 0;
@@ -87,7 +96,7 @@ RawErrorType_t RawDecoder::readChannels()
       }
     } else {
       if (skipUntilNextHeader) {
-        b += 16;
+        b += wordLength;
         continue; // continue while'ing until it's not header
       }
       CpvWord word(b, e);
@@ -136,18 +145,27 @@ RawErrorType_t RawDecoder::readChannels()
           }
           isHeaderExpected = true;
         } else {
-          wordCountFromLastHeader++;
-          // error
-          if (!mIsMuteErrors) {
-            LOG(error) << "RawDecoder::readChannels() : "
-                       << "Read unknown word";
+          uint8_t unknownWord[10];
+          bool isPadding = isHeaderExpected && dataFormat == 0x2; // may this be padding?
+          for (int i = 0; i < 10 && (b + i) != e; i++) {          // read up to 10 mBytes
+            unknownWord[i] = *(b + i);
+            if (unknownWord[i] != 0xff) { // padding
+              isPadding = false;
+            }
           }
-          mErrors.emplace_back(-1, 0, 0, 0, kUNKNOWN_WORD); // add error for non-existing row
-          // what to do?
+          if (!isPadding) { // this is unknown word error
+            if (!mIsMuteErrors) {
+              LOGF(info, "RawDecoder::readChannels() : Read unknown word  0x: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x",
+                   unknownWord[9], unknownWord[8], unknownWord[7], unknownWord[6], unknownWord[5], unknownWord[4], unknownWord[3],
+                   unknownWord[2], unknownWord[1], unknownWord[0]);
+            }
+            mErrors.emplace_back(-1, 0, 0, 0, kUNKNOWN_WORD); // add error for non-existing row
+            wordCountFromLastHeader++;
+          }
         }
       }
     }
-    b += 16;
+    b += wordLength;
   }
   mChannelsInitialized = true;
   return kOK;

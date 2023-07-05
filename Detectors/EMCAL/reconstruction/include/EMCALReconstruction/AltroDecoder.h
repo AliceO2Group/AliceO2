@@ -15,6 +15,7 @@
 #include <iosfwd>
 #include <gsl/span>
 #include <string>
+#include <string_view>
 #include "EMCALBase/RCUTrailer.h"
 #include "EMCALReconstruction/Bunch.h"
 #include "EMCALReconstruction/Channel.h"
@@ -48,7 +49,10 @@ class AltroDecoderError : public std::exception
   ///
   /// Defining error code and error message. To be called when the
   /// exception is thrown
-  AltroDecoderError(ErrorType_t errtype, const char* message) : mErrorType(errtype), mErrorMessage(message) {}
+  ///
+  /// \param errtype Type of the error
+  /// \param message Error message related to the error
+  AltroDecoderError(ErrorType_t errtype, const std::string_view message) : mErrorType(errtype), mErrorMessage(message) {}
 
   /// \brief Destructor
   ~AltroDecoderError() noexcept override = default;
@@ -72,6 +76,69 @@ class AltroDecoderError : public std::exception
   /// \brief Access to the error type connected to the erro
   /// \return Error type
   const ErrorType_t getErrorType() const noexcept { return mErrorType; }
+
+  /// \brief Get the name connected to the error type
+  ///
+  /// A single word descriptor i.e. used for object names
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (symbolic representation)
+  /// \return Name of the error type
+  static const char* getErrorTypeName(ErrorType_t errortype);
+
+  /// \brief Get the name connected to the error type
+  ///
+  /// A single word descriptor i.e. used for object names
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (numeric representation)
+  /// \return Name of the error type
+  static const char* getErrorTypeName(unsigned int errortype)
+  {
+    return getErrorTypeName(intToErrorType(errortype));
+  }
+
+  /// \brief Get the title connected to the error type
+  ///
+  /// A short description i.e. used for bin labels or histogam titles
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (symbolic representation)
+  /// \return Title of the error type
+  static const char* getErrorTypeTitle(ErrorType_t errortype);
+
+  /// \brief Get the title connected to the error type
+  ///
+  /// A short description i.e. used for bin labels or histogam titles
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (numeric representation)
+  /// \return Title of the error type
+  static const char* getErrorTypeTitle(unsigned int errortype)
+  {
+    return getErrorTypeTitle(intToErrorType(errortype));
+  }
+
+  /// \brief Get the description connected to the error type
+  ///
+  /// A detailed description i.e. used for error message on the stdout
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (symbolic representation)
+  /// \return Description connected to the error type
+  static const char* getErrorTypeDescription(ErrorType_t errortype);
+
+  /// \brief Get the description connected to the error type
+  ///
+  /// A detailed description i.e. used for error message on the stdout
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (numeric representation)
+  /// \return Description connected to the error type
+  static const char* getErrorTypeDescription(unsigned int errortype)
+  {
+    return getErrorTypeDescription(intToErrorType(errortype));
+  }
 
  private:
   ErrorType_t mErrorType;    ///< Code of the decoding error type
@@ -139,7 +206,70 @@ class MinorAltroDecodingError
 
   /// \brief Get the number of error types handled by the AltroDecoderError
   /// \return Number of error types
-  static constexpr int getNumberOfErrorTypes() noexcept { return 2; }
+  static constexpr int getNumberOfErrorTypes() noexcept { return 4; }
+
+  /// \brief Get the name connected to the error type
+  ///
+  /// A single word descriptor i.e. used for object names
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (symbolic representation)
+  /// \return Name of the error type
+  static const char* getErrorTypeName(ErrorType_t errortype);
+
+  /// \brief Get the name connected to the error type
+  ///
+  /// A single word descriptor i.e. used for object names
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (numeric representation)
+  /// \return Name of the error type
+  static const char* getErrorTypeName(unsigned int errortype)
+  {
+    return getErrorTypeName(intToErrorType(errortype));
+  }
+
+  /// \brief Get the title connected to the error type
+  ///
+  /// A short description i.e. used for bin labels or histogam titles
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (symbolic representation)
+  /// \return Title of the error type
+  static const char* getErrorTypeTitle(ErrorType_t errortype);
+
+  /// \brief Get the title connected to the error type
+  ///
+  /// A short description i.e. used for bin labels or histogam titles
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (numeric representation)
+  /// \return Title of the error type
+  static const char* getErrorTypeTitle(unsigned int errortype)
+  {
+    return getErrorTypeTitle(intToErrorType(errortype));
+  }
+
+  /// \brief Get the description connected to the error type
+  ///
+  /// A detailed description i.e. used for error message on the stdout
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (symbolic representation)
+  /// \return Description connected to the error type
+  static const char* getErrorTypeDescription(ErrorType_t errortype);
+
+  /// \brief Get the description connected to the error type
+  ///
+  /// A detailed description i.e. used for error message on the stdout
+  /// is produced.
+  ///
+  /// \param errortype Error type raising the exception (numeric representation)
+  /// \return Description connected to the error type
+  static const char* getErrorTypeDescription(unsigned int errortype)
+  {
+    return getErrorTypeDescription(intToErrorType(errortype));
+  }
 
  private:
   ErrorType_t mErrorType;  ///< Type of the error
@@ -219,6 +349,42 @@ class AltroDecoder
 
   ClassDefNV(AltroDecoder, 1);
 };
+
+/// \brief Stream operator of the AltroDecoderError
+///
+/// Printing error.what()
+///
+/// \param stream Stream to print on
+/// \param error Error to be displayed
+/// \return Stream after printing
+std::ostream& operator<<(std::ostream& stream, const AltroDecoderError& error);
+
+/// \brief Stream operator of AltroDecoderError's ErrorType_t
+///
+/// Prining name of the error type
+///
+/// \param stream Stream to print on
+/// \param error Error type to be displayed
+/// \return Stream after printing
+std::ostream& operator<<(std::ostream& stream, const AltroDecoderError::ErrorType_t& errortype);
+
+/// \brief Stream operator of the MinorAltroDecodingError
+///
+/// Printing error.what()
+///
+/// \param stream Stream to print on
+/// \param error Error to be displayed
+/// \return Stream after printing
+std::ostream& operator<<(std::ostream& stream, const MinorAltroDecodingError& error);
+
+/// \brief Stream operator of MinorAltroDecodingError's ErrorType_t
+///
+/// Prining name of the error type
+///
+/// \param stream Stream to print on
+/// \param error Error type to be displayed
+/// \return Stream after printing
+std::ostream& operator<<(std::ostream& stream, const MinorAltroDecodingError::ErrorType_t& errortype);
 
 } // namespace emcal
 

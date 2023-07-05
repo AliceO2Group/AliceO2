@@ -34,7 +34,7 @@ namespace o2::tpc
 {
 
 /// dE/dx calibrator class
-class CalibratordEdx final : public o2::calibration::TimeSlotCalibration<o2::tpc::TrackTPC, o2::tpc::CalibdEdx>
+class CalibratordEdx final : public o2::calibration::TimeSlotCalibration<o2::tpc::CalibdEdx>
 {
   using TFType = o2::calibration::TFType;
   using Slot = o2::calibration::TimeSlot<CalibdEdx>;

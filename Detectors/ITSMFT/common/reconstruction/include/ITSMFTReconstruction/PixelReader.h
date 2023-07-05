@@ -54,6 +54,7 @@ class PixelReader
   {
     return mInteractionRecordHB;
   }
+
   const o2::InteractionRecord& getInteractionRecord() const
   {
     return mInteractionRecord;
@@ -65,11 +66,12 @@ class PixelReader
 
   bool getDecodeNextAuto() const { return mDecodeNextAuto; }
   void setDecodeNextAuto(bool v) { mDecodeNextAuto = v; }
+
   //
  protected:
   //
-  o2::InteractionRecord mInteractionRecordHB = {}; // interation record for the HB
   o2::InteractionRecord mInteractionRecord = {};   // interation record for the trigger
+  o2::InteractionRecord mInteractionRecordHB = {}; // interation record for the HB
   uint32_t mTrigger = 0;
   bool mDecodeNextAuto = true; // try to fetch/decode next trigger when getNextChipData does not see any decoded data
 

@@ -15,6 +15,7 @@
 #include "GPUO2Interface.h"
 #include "GPUReconstruction.h"
 #include "GPUChainTracking.h"
+#include "GPUChainITS.h"
 #include "GPUMemorySizeScalers.h"
 #include "GPUOutputControl.h"
 #include "GPUO2InterfaceConfiguration.h"
@@ -52,8 +53,16 @@ int GPUO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
   if (mConfig->configWorkflow.inputs.isSet(GPUDataTypes::InOutType::TPCRaw)) {
     mConfig->configGRP.needsClusterer = 1;
   }
+  if (mConfig->configWorkflow.inputs.isSet(GPUDataTypes::InOutType::TPCCompressedClusters)) {
+    mConfig->configGRP.doCompClusterDecode = 1;
+  }
   mRec->SetSettings(&mConfig->configGRP, &mConfig->configReconstruction, &mConfig->configProcessing, &mConfig->configWorkflow);
   mChain->SetCalibObjects(mConfig->configCalib);
+
+  if (mConfig->configWorkflow.steps.isSet(GPUDataTypes::RecoStep::ITSTracking)) {
+    mChainITS = mRec->AddChain<GPUChainITS>();
+  }
+
   mOutputRegions.reset(new GPUTrackingOutputs);
   if (mConfig->configInterface.outputToExternalBuffers) {
     for (unsigned int i = 0; i < mOutputRegions->count(); i++) {
@@ -83,37 +92,40 @@ void GPUO2Interface::Deinitialize()
   mInitialized = false;
 }
 
+void GPUO2Interface::DumpEvent(int nEvent, GPUTrackingInOutPointers* data)
+{
+  if (mConfig->configProcessing.doublePipeline) {
+    throw std::runtime_error("Cannot dump events in double pipeline mode");
+  }
+  mChain->ClearIOPointers();
+  mChain->mIOPtrs = *data;
+  char fname[1024];
+  snprintf(fname, 1024, "event.%d.dump", nEvent);
+  mChain->DumpData(fname);
+  if (nEvent == 0) {
+#ifdef GPUCA_BUILD_QA
+    if (mConfig->configProcessing.runMC) {
+      mChain->ForceInitQA();
+      snprintf(fname, 1024, "mc.%d.dump", nEvent);
+      mChain->GetQA()->DumpO2MCData(fname);
+    }
+#endif
+  }
+}
+
+void GPUO2Interface::DumpSettings()
+{
+  if (mConfig->configProcessing.doublePipeline) {
+    throw std::runtime_error("Cannot dump events in double pipeline mode");
+  }
+  mChain->DoQueuedCalibUpdates(-1);
+  mRec->DumpSettings();
+}
+
 int GPUO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutputs* outputs)
 {
   if (!mInitialized) {
     return (1);
-  }
-  if (mConfig->configInterface.dumpEvents) {
-    if (mConfig->configProcessing.doublePipeline) {
-      throw std::runtime_error("Cannot dump events in double pipeline mode");
-    }
-    static int nEvent = 0;
-    mChain->DoQueuedCalibUpdates(-1);
-    mChain->ClearIOPointers();
-    mChain->mIOPtrs = *data;
-
-    char fname[1024];
-    sprintf(fname, "event.%d.dump", nEvent);
-    mChain->DumpData(fname);
-    if (nEvent == 0) {
-      mRec->DumpSettings();
-#ifdef GPUCA_BUILD_QA
-      if (mConfig->configProcessing.runMC) {
-        mChain->ForceInitQA();
-        sprintf(fname, "mc.%d.dump", nEvent);
-        mChain->GetQA()->DumpO2MCData(fname);
-      }
-#endif
-    }
-    nEvent++;
-    if (mConfig->configInterface.dumpEvents >= 2) {
-      return 0;
-    }
   }
 
   mChain->mIOPtrs = *data;
@@ -133,19 +145,16 @@ int GPUO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutp
   if (retVal == 2) {
     retVal = 0; // 2 signals end of event display, ignore
   }
-  if (retVal) {
-    mRec->ClearAllocatedMemory();
-    return retVal;
-  }
   if (mConfig->configQA.shipToQC && mChain->QARanForTF()) {
     outputs->qa.hist1 = &mChain->GetQA()->getHistograms1D();
     outputs->qa.hist2 = &mChain->GetQA()->getHistograms2D();
     outputs->qa.hist3 = &mChain->GetQA()->getHistograms1Dd();
+    outputs->qa.hist4 = &mChain->GetQA()->getGraphs();
     outputs->qa.newQAHistsCreated = true;
   }
   *data = mChain->mIOPtrs;
 
-  return 0;
+  return retVal;
 }
 
 void GPUO2Interface::Clear(bool clearOutputs) { mRec->ClearAllocatedMemory(clearOutputs); }
@@ -185,4 +194,16 @@ int GPUO2Interface::UpdateCalibration(const GPUCalibObjectsConst& newCalib, cons
 {
   mChain->SetUpdateCalibObjects(newCalib, newVals);
   return 0;
+}
+
+void GPUO2Interface::setErrorCodeOutput(std::vector<std::array<unsigned int, 4>>* v)
+{
+  mRec->setErrorCodeOutput(v);
+}
+
+void GPUO2Interface::GetITSTraits(o2::its::TrackerTraits*& trackerTraits, o2::its::VertexerTraits*& vertexerTraits, o2::its::TimeFrame*& timeFrame)
+{
+  trackerTraits = mChainITS->GetITSTrackerTraits();
+  vertexerTraits = mChainITS->GetITSVertexerTraits();
+  timeFrame = mChainITS->GetITSTimeframe();
 }

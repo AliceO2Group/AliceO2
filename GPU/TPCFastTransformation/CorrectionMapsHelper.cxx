@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "CorrectionMapsHelper.h"
+#include "GPUCommonLogger.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -71,4 +72,10 @@ void CorrectionMapsHelper::setCorrMapRef(std::unique_ptr<TPCFastTransform>&& m)
   }
   delete mCorrMapRef;
   mCorrMapRef = m.release();
+}
+
+//________________________________________________________
+void CorrectionMapsHelper::reportScaling()
+{
+  LOGP(info, "InstLumiOverride={}, UseCTPLumi={} -> instLumi={}, meanLumi={} -> LumiScale={}", getInstLumiOverride(), getUseCTPLumi(), getInstLumi(), getMeanLumi(), getLumiScale());
 }

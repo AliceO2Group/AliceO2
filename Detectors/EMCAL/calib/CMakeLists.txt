@@ -13,6 +13,7 @@ o2_add_library(EMCALCalib
         SOURCES src/CalibContainerErrors.cxx
         src/BadChannelMap.cxx
         src/TimeCalibrationParams.cxx
+        src/TimeCalibrationSlewingParams.cxx
         src/TimeCalibParamL1Phase.cxx
         src/TempCalibrationParams.cxx
         src/TempCalibParamSM.cxx
@@ -25,11 +26,13 @@ o2_add_library(EMCALCalib
         src/CalibDB.cxx
         src/ElmbMeasurement.cxx
         src/EMCALChannelScaleFactors.cxx
+        src/CellRecalibrator.cxx
         PUBLIC_LINK_LIBRARIES O2::CCDB O2::EMCALBase)
 
 o2_target_root_dictionary(EMCALCalib
         HEADERS include/EMCALCalib/BadChannelMap.h
         include/EMCALCalib/TimeCalibrationParams.h
+        include/EMCALCalib/TimeCalibrationSlewingParams.h
         include/EMCALCalib/TimeCalibParamL1Phase.h
         include/EMCALCalib/TempCalibrationParams.h
         include/EMCALCalib/TempCalibParamSM.h
@@ -43,6 +46,7 @@ o2_target_root_dictionary(EMCALCalib
         include/EMCALCalib/ElmbData.h
         include/EMCALCalib/ElmbMeasurement.h
         include/EMCALCalib/EMCALChannelScaleFactors.h
+        include/EMCALCalib/CellRecalibrator.h
         LINKDEF src/EMCALCalibLinkDef.h)
 
 o2_add_test(BadChannelMap

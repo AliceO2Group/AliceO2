@@ -12,7 +12,7 @@
 #include "Stepper.h"
 
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "SimulationDataFormat/Stack.h"
+#include "DetectorsBase/Stack.h"
 #include "SimulationDataFormat/TrackReference.h"
 #include "TGeoManager.h"
 #include "TVirtualMC.h"

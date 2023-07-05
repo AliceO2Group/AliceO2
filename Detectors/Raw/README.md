@@ -201,6 +201,10 @@ the SOX in the RDH will be set only if this TF coincides with the 1st TF of the 
 With HBFUtils.obligatorySOR==true old behaviour will be preserved: the raw data will start from TF with HBFUtils.orbitFirst with SOX always set and for CRU detectors all HBFs/TFs between HBFUtils.orbitFirst and 1st non-empty HBF will be
 filled by dummy RDHs.
 
+With the introduction of `RDHv7` some detectors write their payload w/o padding their GBT words to 16 bytes. Usually such detectors are required to align their CRU page size to certain size (see [discussion](https://alice.its.cern.ch/jira/browse/O2-3525)).
+To delegate this padding for alignment reason to the RawFileWriter one should use methods:
+
+
 ## RawFileReader
 
 A class for parsing raw data file(s) with "variable-size" CRU format.
@@ -473,6 +477,15 @@ input data (obligatory): comma-separated list of input data files and/or files w
 --max-tf arg (=-1)
 ```
 max TF ID to process (<= 0 : infinite)
+
+```
+--select-tf-ids <id's of TFs to select>
+```
+This is a `tf-reader` device local option allowing selective reading of particular TFs. It is useful when dealing with TF files containing multiple TFs. The comma-separated list of increasing TFs indices must be provided in the format parsed by the `RangeTokenizer<int>`, e.g. `1,4-6,...`.
+Note that the index corresponds not to DataHeader.TFcounter of the TF but to the reader own counter incremented throught all input files (e.g. if 10 raw-TF files with 20 TFs each are provided for the input and the selection of TFs
+`0,2,22,66` is provided, the reader will inject to the DPL the TFs at entries 0 and 2 from the 1st raw-TF file, entry 5 of the second file, entry 6 of the 3d and will finish the job.
+
+
 
 ```
 --loop arg (=0)

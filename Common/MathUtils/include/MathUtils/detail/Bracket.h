@@ -18,8 +18,8 @@
 
 #include <GPUCommonRtypes.h>
 #ifndef GPUCA_ALIGPUCODE
-#include <fmt/format.h>
 #include <string>
+#include <sstream>
 #endif
 
 namespace o2
@@ -251,7 +251,9 @@ inline typename Bracket<T>::Relation Bracket<T>::isOutside(T t) const
 template <typename T>
 std::string Bracket<T>::asString() const
 {
-  return fmt::format("[{}:{}]", getMin(), getMax());
+  std::stringstream tmp;
+  tmp << "[" << getMin() << ":" << getMax() << "]";
+  return tmp.str();
 }
 #endif
 

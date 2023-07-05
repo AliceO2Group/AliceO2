@@ -51,6 +51,22 @@ o2-ctf-reader-workflow --ctf-input input.lst --onlyDet ITS,TPC,TOF --its-entropy
 
 See below for the details of `--ctf-dict` option.
 
+One can pause the writing if available disk space is low using a combination of following options:
+```bash
+--require-free-disk <float>: pause writing operation if available disk space is below this margin in bytes (if > 0) or this fraction of total (if < 0)
+```
+
+```bash
+--wait-for-free-disk <float seconds>: if paused due to the low disk space, recheck after this time (in s)
+```
+
+```bash
+--max-wait-for-free-disk <float seconds>: produce fatal if paused due to the low disk space for more than this amount( in s).
+```
+
+
+
+
 ## CTF reader workflow
 
 `o2-ctf-reader-workflow` should be the 1st workflow in the piped chain of CTF processing.
@@ -177,3 +193,6 @@ To apply TF rate limiting (make sure that no more than N TFs are in processing) 
 too all workflows (e.g. via ARGS_ALL).
 The IPCID is the NUMA domain ID (usually 0 on non-EPN workflow).
 Additionally, one may throttle on the free SHM by providing an option to the reader `--timeframes-shm-limit <shm-size>`.
+
+Note that by default the reader reads into the memory the CTF data and prepares all output messages but injects them only once the rate-limiter allows that.
+With the option `--limit-tf-before-reading` set also the preparation of the data to inject will be conditioned by the green light from the rate-limiter.

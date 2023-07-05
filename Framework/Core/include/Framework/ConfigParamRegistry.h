@@ -74,6 +74,11 @@ class ConfigParamRegistry
     return mStore->store().count(key) > 0 && mStore->provenance(key) != "default";
   }
 
+  [[nodiscard]] std::vector<ConfigParamSpec> const& specs() const
+  {
+    return mStore->specs();
+  }
+
   template <typename T>
   T get(const char* key) const
   {
@@ -105,6 +110,19 @@ class ConfigParamRegistry
       throw std::invalid_argument(std::string("error parsing option: ") + key);
     }
     throw std::invalid_argument(std::string("bad type for option: ") + key);
+  }
+
+  template <typename T>
+  void override(const char* key, const T& val) const
+  {
+    assert(mStore.get());
+    try {
+      mStore->store().put(key, val);
+    } catch (std::exception& e) {
+      throw std::invalid_argument(std::string("failed to store an option: ") + key + " (" + e.what() + ")");
+    } catch (...) {
+      throw std::invalid_argument(std::string("failed to store an option: ") + key);
+    }
   }
 
  private:

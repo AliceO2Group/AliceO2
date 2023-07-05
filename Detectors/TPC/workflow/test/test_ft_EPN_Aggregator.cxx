@@ -237,7 +237,7 @@ DataProcessorSpec generateIDCsCRU(int lane, const unsigned int maxTFs, const std
             const int offset = intervalsRand[interval] * nPads;
             for (int iPad = 0; iPad < nPads; ++iPad) {
               if (generateIDCs) {
-                idcs.emplace_back(irVar * gRandom->Gaus(1000, 20) / normFac[interval]);
+                idcs.emplace_back(irVar * gRandom->Gaus(10, 20) / normFac[interval]);
               } else {
                 idcs.emplace_back(irVar * mIDCs[cru][offset + iPad] / normFac[interval]);
               }

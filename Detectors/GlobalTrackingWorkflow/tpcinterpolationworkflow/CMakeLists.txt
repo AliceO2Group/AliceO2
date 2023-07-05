@@ -13,6 +13,7 @@ o2_add_library(TPCInterpolationWorkflow
                SOURCES src/TPCInterpolationSpec.cxx
                        src/TPCResidualWriterSpec.cxx
                        src/TPCResidualReaderSpec.cxx
+                       src/TPCUnbinnedResidualReaderSpec.cxx
                        include/TPCInterpolationWorkflow/TPCResidualAggregatorSpec.h
                PUBLIC_LINK_LIBRARIES O2::ITSWorkflow
                                      O2::SpacePoints

@@ -48,7 +48,7 @@ class GPUChain
   virtual int RunChain() = 0;
   virtual void MemorySize(size_t& gpuMem, size_t& pageLockedHostMem) = 0;
   virtual void PrintMemoryStatistics(){};
-  virtual int CheckErrorCodes(bool cpuOnly = false, bool forceShowErrors = false) { return 0; }
+  virtual int CheckErrorCodes(bool cpuOnly = false, bool forceShowErrors = false, std::vector<std::array<unsigned int, 4>>* fillErrors = nullptr) { return 0; }
   virtual bool SupportsDoublePipeline() { return false; }
   virtual int FinalizePipelinedProcessing() { return 0; }
 
@@ -119,6 +119,7 @@ class GPUChain
   inline int HelperDone(int iThread) const { return mRec->HelperDone(iThread); }
   inline void ResetHelperThreads(int helpers) { mRec->ResetHelperThreads(helpers); }
   inline int GPUDebug(const char* state = "UNKNOWN", int stream = -1) { return mRec->GPUDebug(state, stream); }
+  // nEvents is forced to 0 if evList ==  nullptr
   inline void TransferMemoryResourceToGPU(RecoStep step, GPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { timeCpy(step, true, &GPUReconstructionCPU::TransferMemoryResourceToGPU, res, stream, ev, evList, nEvents); }
   inline void TransferMemoryResourceToHost(RecoStep step, GPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { timeCpy(step, false, &GPUReconstructionCPU::TransferMemoryResourceToHost, res, stream, ev, evList, nEvents); }
   inline void TransferMemoryResourcesToGPU(RecoStep step, GPUProcessor* proc, int stream = -1, bool all = false) { timeCpy(step, true, &GPUReconstructionCPU::TransferMemoryResourcesToGPU, proc, stream, all); }

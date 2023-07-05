@@ -24,7 +24,8 @@ namespace conf
 enum class EG4Physics {
   kFTFP_BERT_optical = 0,         /* just ordinary */
   kFTFP_BERT_optical_biasing = 1, /* with biasing enabled */
-  kFTFP_INCLXX_optical = 2        /* special INCL++ version */
+  kFTFP_INCLXX_optical = 2,       /* special INCL++ version */
+  kFTFP_BERT_HP_optical = 3       /* enable low energy neutron transport */
 };
 
 // parameters to influence the G4 engine

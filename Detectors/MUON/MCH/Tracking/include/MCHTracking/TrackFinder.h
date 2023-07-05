@@ -25,7 +25,10 @@
 #include <vector>
 #include <utility>
 
+#include <gsl/span>
+
 #include "DataFormatsMCH/Cluster.h"
+#include "MCHBase/ErrorMap.h"
 #include "MCHTracking/Track.h"
 #include "MCHTracking/TrackFitter.h"
 
@@ -46,9 +49,13 @@ class TrackFinder
   TrackFinder(TrackFinder&&) = delete;
   TrackFinder& operator=(TrackFinder&&) = delete;
 
-  void init(float l3Current, float dipoleCurrent);
+  void init();
+  void initField(float l3Current, float dipoleCurrent);
 
-  const std::list<Track>& findTracks(const std::unordered_map<int, std::list<const Cluster*>>& clusters);
+  const std::list<Track>& findTracks(gsl::span<const Cluster> clusters);
+
+  /// return the counting of encountered errors
+  ErrorMap& getErrorMap() { return mErrorMap; }
 
   /// set the debug level defining the verbosity
   void debug(int debugLevel) { mDebugLevel = debugLevel; }
@@ -57,6 +64,8 @@ class TrackFinder
   void printTimers() const;
 
  private:
+  const std::list<Track>& findTracks(const std::unordered_map<int, std::list<const Cluster*>>& clusters);
+
   void findTrackCandidates();
   void findTrackCandidatesInSt5();
   void findTrackCandidatesInSt4();
@@ -135,6 +144,8 @@ class TrackFinder
   std::list<Track> mTracks{}; ///< list of reconstructed tracks
 
   std::chrono::time_point<std::chrono::steady_clock> mStartTime{}; ///< time when the tracking start
+
+  ErrorMap mErrorMap{}; ///< counting of encountered errors
 
   double mChamberResolutionX2 = 0.;      ///< chamber resolution square (cm^2) in x direction
   double mChamberResolutionY2 = 0.;      ///< chamber resolution square (cm^2) in y direction

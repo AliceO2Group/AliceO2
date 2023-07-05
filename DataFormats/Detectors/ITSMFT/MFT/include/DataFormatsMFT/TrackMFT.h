@@ -62,6 +62,11 @@ class TrackMFT : public o2::track::TrackParCovFwd
 
   void print() const;
 
+  /// get the number of degrees of freedom of the track
+  int getNDF() const { return 2 * mClusRef.getEntries() - 5; }
+  /// get the track normalized chi2
+  double getChi2OverNDF() const { return getTrackChi2() / getNDF(); }
+
   const o2::track::TrackParCovFwd& getOutParam() const { return mOutParameters; }       ///< Returns track parameters fitted outwards
   void setOutParam(const o2::track::TrackParCovFwd parcov) { mOutParameters = parcov; } ///< Set track out parameters
 

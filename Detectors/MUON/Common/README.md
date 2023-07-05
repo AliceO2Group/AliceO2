@@ -14,7 +14,7 @@ transmit HV values.
 
 ## DCS to CCDB
 
-To test the DCS to CCDB route you can use the following 3 parts worfklow pipeline : 
+To test the DCS to CCDB route you can use the following 3 parts workflow pipeline :
 
 ```shell
 o2-calibration-mch-dcs-sim-workflow --max-timeframes 600 --max-cycles-no-full-map 10 -b | \
@@ -28,11 +28,10 @@ o2-calibration-mid-dcs-processor-workflow --hv-max-size 0 --hv-max-duration 300 
 o2-calibration-ccdb-populator-workflow --ccdb-path="http://localhost:6464" -b
 ```
 
-Note that the only difference (besides the mid vs mch naming) is the set of 
- options of the `processor` device (handling just hv for mid and hv+lv for mch).
- 
-- `o2-calibration-[mch|mid]-dcs-sim-worfklow` is just generating fake random MCH or MID DCS data points, 
-- `o2-calibration-[mch|mid]-dcs-processor-workflow` gathers the received data points into a container object 
+Note that the only difference (besides the mid vs mch naming) is the set of options of the `processor` device (handling just hv for mid and hv+lv for mch).
+
+- `o2-calibration-[mch|mid]-dcs-sim-worfklow` is just generating fake random MCH or MID DCS data points
+- `o2-calibration-[mch|mid]-dcs-processor-workflow` gathers the received data points into a container object
 - `o2-calibration-ccdb-populator-workflow` uploads the container object to the CCDB (in this example a local dev ccdb).
 
  The container object that groups the datapoints is considered ready to be shipped either when the data points span a long enough duration (see the `--xxx-max-duration` option(s) of the `o2-calibration-[mch|mid]-dcs-processor-workflow`) or is big enough (see the `--xxx-max-size`  option(s)).
@@ -62,21 +61,27 @@ The MID high voltage (HV) system is composed of 72 channels, one channel per RPC
 
 ## CCDB quick check
 
-Besides the web browsing of the CCDB, another quick check can be performed with 
- the `o2-[mch|mid]-dcs-ccdb` program to dump the DCS datapoints (hv, lv, or both) or 
- the datapoint config valid at a given timestamp.
+Besides the web browsing of the CCDB, another quick check can be performed with the `o2-[mch|mid]-dcs-ccdb` program to dump the DCS datapoints (hv, lv, or both) or the datapoint config valid at a given timestamp.
 
-```
-$ o2-mch-dcs-ccdb --help
-$ o2-mch-dcs-ccdb --ccdb http://localhost:6464 --query hv --query lv --query dpconf
-$ o2-mid-dcs-ccdb --ccdb http://localhost:6464 --query hv --query dpconf
+```shell
+o2-mch-dcs-ccdb --help
+o2-mch-dcs-ccdb --ccdb http://localhost:6464 --query hv --query lv --query dpconf
+o2-mid-dcs-ccdb --ccdb http://localhost:6464 --query hv --query dpconf
 ```
 
-The same programs can be used to upload to CCDB the DCS data point configuration
- for the dcs-proxy : 
+The same programs can be used to upload to CCDB the DCS data point configuration for the dcs-proxy :
 
-```
-$ o2-mch-dcs-ccdb --put-datapoint-config --ccdb http://localhost:8080
-$ o2-mid-dcs-ccdb --put-datapoint-config --ccdb http://localhost:8080
+```shell
+o2-mch-dcs-ccdb --put-datapoint-config --ccdb http://localhost:8080
+o2-mid-dcs-ccdb --put-datapoint-config --ccdb http://localhost:8080
 ```
 
+### Default CCDB object
+
+The default object in the CCDB can be produced with:
+
+```shell
+o2-mid-dcs-ccdb --ccdb http://localhost:8080 --upload-default-values -t 1662532507890
+```
+
+The timestamp represent the last time of validity. This is needed because the default object was added after the CCDB feeding was active and would therefore take over the old measured values.

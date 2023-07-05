@@ -27,12 +27,10 @@
 #include "Framework/Variant.h"
 #include "CommonUtils/ConfigurableParam.h"
 
-// customize the completion policy
 void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 {
-  using o2::framework::CompletionPolicy;
-  using o2::framework::CompletionPolicyHelpers;
-  policies.push_back(CompletionPolicyHelpers::defineByName("digit-hmpid-dump", CompletionPolicy::CompletionOp::Consume));
+  // ordered policies for the writers
+  policies.push_back(o2::framework::CompletionPolicyHelpers::consumeWhenAllOrdered("HMP-DigitsDump.*"));
 }
 
 // we need to add workflow options before including Framework/runDataProcessing

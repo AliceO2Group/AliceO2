@@ -18,6 +18,7 @@
 
 #include "Headers/RAWDataHeader.h"
 #include "Framework/VariantHelpers.h" // definition of `overloaded`
+#include "Framework/Logger.h"
 #include <functional>
 #include <memory>
 #include <variant>
@@ -51,6 +52,13 @@ struct RDHFormatter {
 };
 
 template <>
+struct RDHFormatter<header::RAWDataHeaderV7> {
+  using type = header::RAWDataHeaderV7;
+  static const char* sFormatString;
+  static void apply(std::ostream&, type const&, FormatSpec, const char* = "");
+};
+
+template <>
 struct RDHFormatter<header::RAWDataHeaderV6> {
   using type = header::RAWDataHeaderV6;
   static const char* sFormatString;
@@ -71,18 +79,29 @@ struct RDHFormatter<header::RAWDataHeaderV4> {
   static void apply(std::ostream&, type const&, FormatSpec, const char* = "");
 };
 
+struct RawParserHelper {
+  static int sErrorMode;            // 0: no error checking, 1: print error message, 2: throw exception. To be set via O2_DPL_RAWPARSER_ERRORMODE.
+  static int sCheckIncompleteHBF;   // Check if HBFs are incomplete, set to 2 to throw in case sErrorMode = 2.
+  static unsigned long sErrors;     // Obviously this would need to be atomic to be fully correct, but a race condition is unlikely and would only lead to one extra log message printed.
+  static unsigned long sErrorLimit; // Exponentially downscale error reporting after sErrorLimit errors.
+  static unsigned long sErrorScale; // Exponentionally downscale verbosity.
+
+  static bool checkPrintError(size_t& localCounter);
+};
+
 /// @class ConcreteRawParser
 /// Raw parser implementation for a particular version of RAWDataHeader.
 /// Parses a contiguous sequence of raw pages in a raw buffer.
 ///
 /// Template parameters:
-///     HeaderType  the raw data header type
-///     MAX_SIZE    maximum page size
+///     HeaderType    the raw data header type
+///     MAX_SIZE      maximum page size
+///     BOUNDS_CHECKS check buffer bounds while navigating RDHs
 ///
 /// We expect the actual page size to be variable up to the maximum size,
 /// actual size given by fields of the RAWDataHeader.
 ///
-template <typename HeaderType, size_t MAX_SIZE>
+template <typename HeaderType, size_t MAX_SIZE, bool BOUNDS_CHECKS>
 class ConcreteRawParser
 {
  public:
@@ -100,7 +119,7 @@ class ConcreteRawParser
     : mRawBuffer(reinterpret_cast<buffer_type const*>(buffer)), mSize(size)
   {
     static_assert(sizeof(T) == sizeof(buffer_type), "buffer required to be byte-type");
-    if (size < sizeof(header_type)) {
+    if (size < sizeof(header_type)) { // TODO: should be included in sErrorMode treatment, but would need to existing behavior in detail
       std::runtime_error("buffer too small to fit at least the page header");
     }
     next();
@@ -131,6 +150,19 @@ class ConcreteRawParser
     return max_size - h.headerSize;
   }
 
+  /// Get size of header + payload at current position
+  size_t sizeTotal() const
+  {
+    if (mPosition == mRawBuffer + mSize) {
+      return 0;
+    }
+    header_type const& h = header();
+    if (h.memorySize >= h.headerSize) {
+      return h.memorySize;
+    }
+    return max_size;
+  }
+
   /// Get pointer to payload data at current position
   buffer_type const* data() const
   {
@@ -139,9 +171,6 @@ class ConcreteRawParser
       return nullptr;
     }
     header_type const& h = header();
-    if (mPosition + size + h.headerSize > mRawBuffer + mSize) {
-      throw std::runtime_error("not enough data at position " + std::to_string(mPosition - mRawBuffer));
-    }
     return mPosition + h.headerSize;
   }
 
@@ -164,6 +193,19 @@ class ConcreteRawParser
     return 0;
   }
 
+  bool checkPageInBuffer() const
+  {
+    if (mPosition + sizeof(header_type) > mRawBuffer + mSize) {
+      return false;
+    }
+    header_type const& h = header();
+    if (h.memorySize > MAX_SIZE || h.headerSize > MAX_SIZE) {
+      return false;
+    }
+    size_t pageSize = h.memorySize >= h.headerSize ? h.memorySize : MAX_SIZE;
+    return mPosition + pageSize <= mRawBuffer + mSize;
+  }
+
   /// Parse the complete buffer
   /// For each page, the processor function is called with the payload buffer and size,
   /// processor has signature
@@ -171,37 +213,94 @@ class ConcreteRawParser
   template <typename Processor>
   void parse(Processor&& processor)
   {
-    reset();
-    //auto deleter = [](buffer_type*) {};
+    if (!reset()) {
+      return;
+    }
+    if constexpr (BOUNDS_CHECKS) {
+      if (RawParserHelper::sErrorMode && !checkPageInBuffer()) {
+        if (RawParserHelper::sErrorMode >= 2) {
+          throw std::runtime_error("Corrupt RDH - RDH parsing ran out of raw data buffer");
+        }
+        if (RawParserHelper::checkPrintError(mNErrors)) {
+          LOG(error) << "RAWPARSER: Corrupt RDH - RDH parsing ran out of raw data buffer (" << RawParserHelper::sErrors << " total RawParser errors)";
+        }
+      }
+    }
+    // auto deleter = [](buffer_type*) {};
     do {
       processor(data(), size());
-      //processor(std::unique_ptr<buffer_type, decltype(deleter)>(data(), deleter), size());
+      // processor(std::unique_ptr<buffer_type, decltype(deleter)>(data(), deleter), size());
     } while (next());
   }
 
   /// Move to next page start
   bool next()
   {
+    int lastPacketCounter = -1;
+    int lastHBFPacketCounter = -1;
+    unsigned int lastFEEID = -1;
     if (mPosition == nullptr) {
       mPosition = mRawBuffer;
+      if (mSize == 0) {
+        return false;
+      }
     } else {
       auto offset = header().offsetToNext;
       if ((mPosition + offset + sizeof(header_type) > mRawBuffer + mSize) || (offset < sizeof(header_type))) {
-        // FIXME: should check if there is unread data left of if we just reached
-        // the end of the buffer by parsing all pages
         mPosition = mRawBuffer + mSize;
         return false;
       }
+      if (RawParserHelper::sCheckIncompleteHBF) {
+        lastPacketCounter = header().packetCounter;
+        lastHBFPacketCounter = header().pageCnt;
+        lastFEEID = header().feeId;
+      }
       mPosition += offset;
     }
-    // FIXME: check page header validity: version, size
+    if constexpr (BOUNDS_CHECKS) {
+      if (RawParserHelper::sErrorMode && !checkPageInBuffer()) {
+        if (RawParserHelper::sErrorMode >= 2) {
+          throw std::runtime_error("Corrupt RDH - RDH parsing ran out of raw data buffer");
+        }
+        if (RawParserHelper::checkPrintError(mNErrors)) {
+          LOG(error) << "RAWPARSER: Corrupt RDH - RDH parsing ran out of raw data buffer (" << RawParserHelper::sErrors << " total RawParser errors)";
+        }
+        mPosition = mRawBuffer + mSize;
+        return false;
+      }
+    }
+    if (RawParserHelper::sErrorMode) {
+      if (header().version != HeaderType().version) {
+        if (RawParserHelper::sErrorMode >= 2) {
+          throw std::runtime_error("Corrupt RDH - Invalid RDH version");
+        }
+        if (RawParserHelper::checkPrintError(mNErrors)) {
+          LOG(error) << "RAWPARSER: Corrupt RDH - Invalid RDH Version " << header().version << " (expected " << HeaderType().version << ") (" << RawParserHelper::sErrors << " total RawParser errors)";
+        }
+        mPosition = mRawBuffer + mSize;
+        return false;
+      }
+      // FIXME: The && should be ||, since both packetCounter and pageCnt should be incremental. But currently, UL data with multiple links does not have incremental packetCounter.
+      if (lastPacketCounter != -1 && lastFEEID == header().feeId && ((unsigned char)(lastPacketCounter + 1) != header().packetCounter && (unsigned short)(lastHBFPacketCounter + 1) != header().pageCnt)) {
+        if (RawParserHelper::sErrorMode >= 2 && RawParserHelper::sCheckIncompleteHBF >= 2) {
+          throw std::runtime_error("Incomplete HBF - jump in packet counter");
+        }
+        if (RawParserHelper::checkPrintError(mNErrors)) {
+          LOG(error) << "RAWPARSER: Incomplete HBF - jump in packet counter " << lastPacketCounter << " to " << header().packetCounter << " (" << RawParserHelper::sErrors << " total RawParser errors)";
+        }
+        mPosition = mRawBuffer + mSize;
+        return false;
+      }
+    }
     return true;
   }
 
   /// Reset the parser, set position to beginning of buffer
-  void reset()
+  bool reset()
   {
     mPosition = mRawBuffer;
+    mNErrors = 0;
+    return mSize != 0;
   }
 
   /// Advance position by number of steps
@@ -216,6 +315,11 @@ class ConcreteRawParser
       while ((step-- > 0) && next()) {
       };
     }
+  }
+
+  size_t getNErrors() const
+  {
+    return mNErrors;
   }
 
   /// Comparison: instances are equal if they serve the same buffer and are in the same
@@ -239,32 +343,36 @@ class ConcreteRawParser
   buffer_type const* mRawBuffer;
   buffer_type const* mPosition = nullptr;
   size_t mSize;
+  size_t mNErrors = 0;
 };
 
+using V7 = header::RAWDataHeaderV7;
 using V6 = header::RAWDataHeaderV6;
 using V5 = header::RAWDataHeaderV5;
 using V4 = header::RAWDataHeaderV4;
 // FIXME v3 and v4 are basically the same with v4 defining a few more fields in the otherwise reserved parts
 // needs to be defined in the header, have to check if we need to support this
-//using V3 = header::RAWDataHeaderV3;
+// using V3 = header::RAWDataHeaderV3;
 
-template <size_t N>
-using V6Parser = ConcreteRawParser<header::RAWDataHeaderV6, N>;
-template <size_t N>
-using V5Parser = ConcreteRawParser<header::RAWDataHeaderV5, N>;
-template <size_t N>
-using V4Parser = ConcreteRawParser<header::RAWDataHeaderV4, N>;
-//template <size_t N>
-//using V3Parser = ConcreteRawParser<header::RAWDataHeaderV3, N>;
+template <size_t N, bool BOUNDS_CHECKS>
+using V7Parser = ConcreteRawParser<header::RAWDataHeaderV7, N, BOUNDS_CHECKS>;
+template <size_t N, bool BOUNDS_CHECKS>
+using V6Parser = ConcreteRawParser<header::RAWDataHeaderV6, N, BOUNDS_CHECKS>;
+template <size_t N, bool BOUNDS_CHECKS>
+using V5Parser = ConcreteRawParser<header::RAWDataHeaderV5, N, BOUNDS_CHECKS>;
+template <size_t N, bool BOUNDS_CHECKS>
+using V4Parser = ConcreteRawParser<header::RAWDataHeaderV4, N, BOUNDS_CHECKS>;
+// template <size_t N, bool BOUNDS_CHECKS>
+// using V3Parser = ConcreteRawParser<header::RAWDataHeaderV3, N, BOUNDS_CHECKS>;
 
 /// Parser instance type for the raw parser main class, all supported versions of
 /// RAWDataHeader are handled in a variant
-template <size_t N>
-using ConcreteParserVariants = std::variant<V6Parser<N>, V5Parser<N>, V4Parser<N>>;
+template <size_t N, bool BOUNDS_CHECKS>
+using ConcreteParserVariants = std::variant<V7Parser<N, BOUNDS_CHECKS>, V6Parser<N, BOUNDS_CHECKS>, V5Parser<N, BOUNDS_CHECKS>, V4Parser<N, BOUNDS_CHECKS>>;
 
 /// create a raw parser depending on version of RAWDataHeader found at beginning of data
-template <size_t PageSize, typename T>
-ConcreteParserVariants<PageSize> create(T const* buffer, size_t size)
+template <size_t PageSize, bool BOUNDS_CHECKS, typename T>
+ConcreteParserVariants<PageSize, BOUNDS_CHECKS> create(T const* buffer, size_t size)
 {
   // we use v5 for checking the matching version
   if (buffer == nullptr || size < sizeof(header::RAWDataHeaderV5)) {
@@ -273,13 +381,15 @@ ConcreteParserVariants<PageSize> create(T const* buffer, size_t size)
 
   V5 const* v5 = reinterpret_cast<V5 const*>(buffer);
   if (v5->version == 5) {
-    return ConcreteRawParser<V5, PageSize>(buffer, size);
+    return ConcreteRawParser<V5, PageSize, BOUNDS_CHECKS>(buffer, size);
+  } else if (v5->version == 7) {
+    return ConcreteRawParser<V7, PageSize, BOUNDS_CHECKS>(buffer, size);
   } else if (v5->version == 6) {
-    return ConcreteRawParser<V6, PageSize>(buffer, size);
+    return ConcreteRawParser<V6, PageSize, BOUNDS_CHECKS>(buffer, size);
   } else if (v5->version == 4) {
-    return ConcreteRawParser<V4, PageSize>(buffer, size);
+    return ConcreteRawParser<V4, PageSize, BOUNDS_CHECKS>(buffer, size);
     //} else if (v5->version == 3) {
-    //  return ConcreteRawParser<V3, PageSize>(buffer, size);
+    //  return ConcreteRawParser<V3, PageSize, BOUNDS_CHECKS>(buffer, size);
   }
   throw std::runtime_error("can not create RawParser: invalid version " + std::to_string(v5->version));
 }
@@ -348,20 +458,20 @@ U const* get_if(T& instances)
 /// TODO:
 /// - iterators are not independent at the moment and this can cause conflicts, this must be
 ///   improved
-template <size_t MAX_SIZE = 8192>
+template <size_t MAX_SIZE = 8192, bool BOUNDS_CHECKS = true>
 class RawParser
 {
  public:
   using buffer_type = unsigned char;
   static size_t const max_size = MAX_SIZE;
-  using self_type = RawParser<MAX_SIZE>;
+  using self_type = RawParser<MAX_SIZE, BOUNDS_CHECKS>;
 
   RawParser() = delete;
 
   /// Constructor, raw buffer provided by pointer and size
   template <typename T>
   RawParser(T const* buffer, size_t size)
-    : mParser(raw_parser::create<MAX_SIZE>(buffer, size))
+    : mParser(raw_parser::create<MAX_SIZE, BOUNDS_CHECKS>(buffer, size))
   {
     static_assert(sizeof(T) == sizeof(buffer_type), "buffer required to be byte-type");
   }
@@ -372,16 +482,16 @@ class RawParser
   void parse(Processor&& processor)
   {
     constexpr size_t NofAlternatives = std::variant_size_v<decltype(mParser)>;
-    static_assert(NofAlternatives == 3);
+    static_assert(NofAlternatives == 4); // Change this if a new RDH version is added
     raw_parser::walk_parse<NofAlternatives>(mParser, processor, mParser.index());
     // it turned out that using a iterative function is faster than using std::visit
-    //std::visit([&processor](auto& parser) { return parser.parse(processor); }, mParser);
+    // std::visit([&processor](auto& parser) { return parser.parse(processor); }, mParser);
   }
 
   /// Reset parser and set position to beginning of buffer
-  void reset()
+  bool reset()
   {
-    std::visit([](auto& parser) { parser.reset(); }, mParser);
+    return std::visit([](auto& parser) { return parser.reset(); }, mParser);
   }
 
   /// @struct RawDataHeaderInfo the smallest common part of all RAWDataHeader versions
@@ -473,6 +583,12 @@ class RawParser
       return std::visit([](auto& parser) { return parser.size(); }, mParser);
     }
 
+    /// get size of payload + header at current position
+    size_t sizeTotal() const
+    {
+      return std::visit([](auto& parser) { return parser.sizeTotal(); }, mParser);
+    }
+
     /// get header as specific type
     /// Normal usage is get_if<T>() but in some rare cases the type can also be passed by parameter
     /// get_if((T*)nullptr), the parameter is ignored
@@ -494,7 +610,7 @@ class RawParser
   };
 
   // only define the const_iterator because the parser will allow read-only access
-  using const_iterator = Iterator<RawDataHeaderInfo const, raw_parser::ConcreteParserVariants<MAX_SIZE>>;
+  using const_iterator = Iterator<RawDataHeaderInfo const, raw_parser::ConcreteParserVariants<MAX_SIZE, BOUNDS_CHECKS>>;
 
   const_iterator begin() const
   {
@@ -514,14 +630,24 @@ class RawParser
     // for the moment its problematic, because the parser has only one variable determining the position and all
     // iterators work with the same instance which is asking for conflicts
     // this needs to be changed in order to have fully independent iterators over the same constant buffer
-    //for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
+    // for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
     //  os << "\n" << it;
     //}
     return os;
   }
 
+  size_t getNErrors() const
+  {
+    return std::visit([](auto& parser) { return parser.getNErrors(); }, mParser);
+  }
+
+  static void setCheckIncompleteHBF(bool v)
+  {
+    raw_parser::RawParserHelper::sCheckIncompleteHBF = v;
+  }
+
  private:
-  raw_parser::ConcreteParserVariants<MAX_SIZE> mParser;
+  raw_parser::ConcreteParserVariants<MAX_SIZE, BOUNDS_CHECKS> mParser;
 };
 
 } // namespace o2::framework

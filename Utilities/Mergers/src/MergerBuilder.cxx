@@ -23,6 +23,7 @@
 
 #include "Mergers/MergerBuilder.h"
 #include "Mergers/IntegratingMerger.h"
+#include "Framework/TimerParamSpec.h"
 
 using namespace o2::framework;
 
@@ -96,9 +97,18 @@ framework::DataProcessorSpec MergerBuilder::buildSpec()
     merger.algorithm = framework::adaptFromTask<FullHistoryMerger>(mConfig, subSpec);
   }
 
-  merger.inputs.push_back({"timer-publish", "TMR", mergerDataDescription(mName), mergerSubSpec(mLayer, mId), framework::Lifetime::Timer});
-  merger.options.push_back({"period-timer-publish", framework::VariantType::Int, static_cast<int>(mConfig.publicationDecision.param * 1000000), {"timer period"}});
+  // Create the TimerSpec for cycleDurations
+  std::vector<o2::framework::TimerSpec> timers;
+  for (auto& [cycleDuration, validity] : mConfig.publicationDecision.param.decision) {
+    timers.push_back({cycleDuration * 1000000000 /*µs*/, validity});
+  }
+
+  merger.inputs.push_back({"timer-publish", "TMR", mergerDataDescription(mName), mergerSubSpec(mLayer, mId), framework::Lifetime::Timer, timerSpecs(timers)});
   merger.labels.push_back(mergerLabel());
+  if (mConfig.expendable) {
+    framework::DataProcessorLabel expendableLabel = {"expendable"};
+    merger.labels.emplace_back(expendableLabel);
+  }
   merger.maxInputTimeslices = mTimePipeline;
 
   return std::move(merger);
@@ -106,13 +116,11 @@ framework::DataProcessorSpec MergerBuilder::buildSpec()
 
 void MergerBuilder::customizeInfrastructure(std::vector<framework::CompletionPolicy>& policies)
 {
+  auto matcher = [label = mergerLabel()](framework::DeviceSpec const& device) {
+    return std::find(device.labels.begin(), device.labels.end(), label) != device.labels.end();
+  };
   // each merger's name contains the common label and should always consume
-  policies.emplace_back(
-    "MergerCompletionPolicy",
-    [label = mergerLabel()](framework::DeviceSpec const& device) {
-      return std::find(device.labels.begin(), device.labels.end(), label) != device.labels.end();
-    },
-    CompletionPolicyHelpers::consumeWhenAny().callback);
+  policies.emplace_back(CompletionPolicyHelpers::consumeWhenAny("MergerCompletionPolicy", matcher));
 }
 
 } // namespace o2::mergers

@@ -57,7 +57,7 @@ DataProcessorSpec getTRDGlobalTrackWriterSpec(bool useMC)
                                                              "labelsTRD",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
                                                              "trdlabels-branch-name"},
-                                BranchDefinition<LabelsType>{InputSpec{"matchtpclabels", o2::header::gDataOriginTRD, "MCLB_ITSTPC", 0},
+                                BranchDefinition<LabelsType>{InputSpec{"matchitstpclabels", o2::header::gDataOriginTRD, "MCLB_ITSTPC", 0},
                                                              "labels",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
                                                              "labels-branch-name"})();
@@ -89,7 +89,7 @@ DataProcessorSpec getTRDTPCTrackWriterSpec(bool useMC, bool strictMode)
                                                              "labelsTRD",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
                                                              "trdlabels-branch-name"},
-                                BranchDefinition<LabelsType>{InputSpec{"matchitstpclabels", o2::header::gDataOriginTRD, "MCLB_TPC", ss},
+                                BranchDefinition<LabelsType>{InputSpec{"matchtpclabels", o2::header::gDataOriginTRD, "MCLB_TPC", ss},
                                                              "labels",
                                                              (useMC ? 1 : 0), // one branch if mc labels enabled
                                                              "labels-branch-name"})();

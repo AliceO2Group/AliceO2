@@ -44,6 +44,7 @@ struct AlgorithmSpec {
   using ProcessCallback = std::function<void(ProcessingContext&)>;
   using InitCallback = std::function<ProcessCallback(InitContext&)>;
   using ErrorCallback = std::function<void(ErrorContext&)>;
+  using InitErrorCallback = std::function<void(InitErrorContext&)>;
 
   static AlgorithmSpec dummyAlgorithm()
   {
@@ -56,12 +57,13 @@ struct AlgorithmSpec {
     return callback;
   }
 
-  AlgorithmSpec()
-    : onInit{nullptr},
-      onProcess{nullptr},
-      onError{nullptr}
+  static InitErrorCallback& emptyInitErrorCallback()
   {
+    static InitErrorCallback callback = nullptr;
+    return callback;
   }
+
+  AlgorithmSpec() = default;
 
   AlgorithmSpec(AlgorithmSpec&&) = default;
   AlgorithmSpec(const AlgorithmSpec&) = default;
@@ -71,20 +73,23 @@ struct AlgorithmSpec {
   AlgorithmSpec(ProcessCallback process, ErrorCallback& error = emptyErrorCallback())
     : onInit{nullptr},
       onProcess{process},
-      onError{error}
+      onError{error},
+      onInitError{nullptr}
   {
   }
 
-  AlgorithmSpec(InitCallback init, ErrorCallback& error = emptyErrorCallback())
+  AlgorithmSpec(InitCallback init, ErrorCallback& error = emptyErrorCallback(), InitErrorCallback& initError = emptyInitErrorCallback())
     : onInit{init},
       onProcess{nullptr},
-      onError{error}
+      onError{error},
+      onInitError{initError}
   {
   }
 
   InitCallback onInit = nullptr;
   ProcessCallback onProcess = nullptr;
   ErrorCallback onError = nullptr;
+  InitErrorCallback onInitError = nullptr;
 };
 
 /// Helper class for an algorithm which is loaded as a plugin.

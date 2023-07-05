@@ -20,5 +20,6 @@ ClassImp(o2::dataformats::MatchInfoHMP);
 
 void MatchInfoHMP::print() const
 {
-  printf("Match of GlobalID %s and HMPID cl %d ", getTrackRef().asString().c_str(), getIdxHMPClus());
+  // printf("Match of GlobalID %s and HMPID cl %d ", getTrackRef().asString().c_str(), getIdxHMPClus());
+  printf("Match of GlobalID and HMPID cl");
 }

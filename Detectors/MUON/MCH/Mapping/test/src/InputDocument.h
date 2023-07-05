@@ -9,6 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#ifndef O2_MCH_MAPPING_TEST_INPUT_DOCUMENT_H
+#define O2_MCH_MAPPING_TEST_INPUT_DOCUMENT_H
+
 #include <rapidjson/document.h>
 #include <cstdio>
 #include <rapidjson/filereadstream.h>
@@ -42,3 +45,5 @@ class InputDocument
 };
 
 using InputWrapper = InputDocument<rapidjson::FileReadStream>;
+
+#endif

@@ -3,7 +3,7 @@ import random
 import sys
 import time
 
-port = "500901"
+port = "50090"
 if len(sys.argv) > 1:
     port =  sys.argv[1]
     int(port)
@@ -11,14 +11,29 @@ if len(sys.argv) > 1:
 context = zmq.Context()
 socket = context.socket(zmq.PUB)
 socket.bind("tcp://*:%s" % port)
+time.sleep(1)
+#
+topic = random.randrange(0,2**32)
+header = "CTP"
+messagedata = str(topic)+"1111111111111111st"
+tag = "tag"
+print("Sending:",header, messagedata)
+data = str(messagedata).encode()
+header = str(header).encode()
+tag = str(tag).encode()
+socket.send(memoryview(header),zmq.SNDMORE)
+socket.send(memoryview(data),zmq.SNDMORE)
+socket.send(memoryview(tag))
+time.sleep(1)
 while True:
     topic = random.randrange(0,2**32)
-    #messagedata = random.randrange(1,215) - 80
     header = "CTP"
-    messagedata = str(topic)+"1 2 3 4 5"
-    print("Sending:",header, messagedata)
+    #messagedata = str(topic)+"1 2 3 4 5+6 uuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuuukkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkkk"
+    messagedata = "x "*1072
+    #print("Sending:",header, messagedata)
     data = str(messagedata).encode()
     header = str(header).encode()
     socket.send(memoryview(header),zmq.SNDMORE)
-    socket.send(memoryview(data))
+    socket.send(memoryview(data),zmq.SNDMORE)
+    socket.send(memoryview(tag))
     time.sleep(1)

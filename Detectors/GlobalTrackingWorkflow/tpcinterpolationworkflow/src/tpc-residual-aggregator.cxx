@@ -12,8 +12,11 @@
 #include "Framework/DataProcessorSpec.h"
 #include "SpacePoints/ResidualAggregator.h"
 #include "TPCInterpolationWorkflow/TPCResidualAggregatorSpec.h"
+#include "TPCInterpolationWorkflow/TPCUnbinnedResidualReaderSpec.h"
+#include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 
 using namespace o2::framework;
+using GID = o2::dataformats::GlobalTrackID;
 
 // we need to add workflow options before including Framework/runDataProcessing
 void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
@@ -21,7 +24,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   std::vector<o2::framework::ConfigParamSpec> options{
     {"output-type", VariantType::String, "binnedResid", {"Comma separated list of outputs (without spaces). Valid strings: unbinnedResid, binnedResid, trackParams"}},
     {"enable-track-input", VariantType::Bool, false, {"Whether to expect track data from interpolation workflow"}},
-    {"disable-root-output", VariantType::Bool, false, {"Disables ROOT file writing"}},
+    {"enable-ctp", VariantType::Bool, false, {"Subscribe to lumi info from CTP"}},
+    {"disable-root-input", VariantType::Bool, false, {"disable root-files input readers"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   std::swap(workflowOptions, options);
 }
@@ -34,6 +38,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   auto trkInput = configcontext.options().get<bool>("enable-track-input");
+  auto ctpInput = configcontext.options().get<bool>("enable-ctp");
 
   bool writeUnbinnedResiduals = false;
   bool writeBinnedResiduals = false;
@@ -61,9 +66,18 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     }
   }
 
-  auto fileOutput = !configcontext.options().get<bool>("disable-root-output");
-
   WorkflowSpec specs;
-  specs.emplace_back(getTPCResidualAggregatorSpec(trkInput, fileOutput, writeUnbinnedResiduals, writeBinnedResiduals, writeTrackData));
+  if (!configcontext.options().get<bool>("disable-root-input")) {
+    specs.emplace_back(o2::tpc::getUnbinnedTPCResidualsReaderSpec(trkInput));
+  }
+  specs.emplace_back(getTPCResidualAggregatorSpec(trkInput, ctpInput, writeUnbinnedResiduals, writeBinnedResiduals, writeTrackData));
+
+  // CTP input
+  if (ctpInput) {
+    auto maskClusters = GID::getSourcesMask("CTP");
+    auto maskNone = GID::getSourcesMask(GID::NONE);
+    o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, maskClusters, maskNone, maskNone, false);
+  }
+
   return specs;
 }

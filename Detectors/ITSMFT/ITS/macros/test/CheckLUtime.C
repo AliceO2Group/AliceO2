@@ -36,7 +36,7 @@ void CheckLUtime(std::string clusfile = "o2clus_its.root", long timestamp = 0)
   using ROFRec = o2::itsmft::ROFRecord;
 
   auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-  mgr.setURL("https://alice-ccdb.cern.ch");
+  mgr.setURL("http://alice-ccdb.cern.ch");
   mgr.setTimestamp(timestamp ? timestamp : o2::ccdb::getCurrentTimestamp());
   const o2::itsmft::TopologyDictionary* dict = mgr.get<o2::itsmft::TopologyDictionary>("ITS/Calib/ClusterDictionary");
 

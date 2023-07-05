@@ -91,9 +91,11 @@ void GPUChainTracking::RegisterPermanentMemoryAndProcessors()
   }
   if (GetRecoSteps() & RecoStep::TRDTracking) {
     mRec->RegisterGPUProcessor(&processors()->trdTrackerGPU, GetRecoStepsGPU() & RecoStep::TRDTracking);
-    mRec->RegisterGPUProcessor(&processors()->trdTrackerO2, GetRecoStepsGPU() & RecoStep::TRDTracking);
   }
 #ifdef GPUCA_HAVE_O2HEADERS
+  if (GetRecoSteps() & RecoStep::TRDTracking) {
+    mRec->RegisterGPUProcessor(&processors()->trdTrackerO2, GetRecoStepsGPU() & RecoStep::TRDTracking);
+  }
   if (GetRecoSteps() & RecoStep::TPCConversion) {
     mRec->RegisterGPUProcessor(&processors()->tpcConverter, GetRecoStepsGPU() & RecoStep::TPCConversion);
   }
@@ -121,7 +123,6 @@ void GPUChainTracking::RegisterGPUProcessors()
     mRec->RegisterGPUDeviceProcessor(mInputsShadow.get(), mInputsHost.get());
   }
   memcpy((void*)&processorsShadow()->trdTrackerGPU, (const void*)&processors()->trdTrackerGPU, sizeof(processors()->trdTrackerGPU));
-  memcpy((void*)&processorsShadow()->trdTrackerO2, (const void*)&processors()->trdTrackerO2, sizeof(processors()->trdTrackerO2));
   if (GetRecoStepsGPU() & RecoStep::TPCSliceTracking) {
     for (unsigned int i = 0; i < NSLICES; i++) {
       mRec->RegisterGPUDeviceProcessor(&processorsShadow()->tpcTrackers[i], &processors()->tpcTrackers[i]);
@@ -132,10 +133,13 @@ void GPUChainTracking::RegisterGPUProcessors()
   }
   if (GetRecoStepsGPU() & RecoStep::TRDTracking) {
     mRec->RegisterGPUDeviceProcessor(&processorsShadow()->trdTrackerGPU, &processors()->trdTrackerGPU);
-    mRec->RegisterGPUDeviceProcessor(&processorsShadow()->trdTrackerO2, &processors()->trdTrackerO2);
   }
 
 #ifdef GPUCA_HAVE_O2HEADERS
+  memcpy((void*)&processorsShadow()->trdTrackerO2, (const void*)&processors()->trdTrackerO2, sizeof(processors()->trdTrackerO2));
+  if (GetRecoStepsGPU() & RecoStep::TRDTracking) {
+    mRec->RegisterGPUDeviceProcessor(&processorsShadow()->trdTrackerO2, &processors()->trdTrackerO2);
+  }
   if (GetRecoStepsGPU() & RecoStep::TPCConversion) {
     mRec->RegisterGPUDeviceProcessor(&processorsShadow()->tpcConverter, &processors()->tpcConverter);
   }
@@ -193,7 +197,7 @@ bool GPUChainTracking::ValidateSteps()
   bool tpcClustersAvail = (GetRecoStepsInputs() & GPUDataTypes::InOutType::TPCClusters) || (GetRecoSteps() & GPUDataTypes::RecoStep::TPCClusterFinding) || (GetRecoSteps() & GPUDataTypes::RecoStep::TPCDecompression);
 #ifndef GPUCA_ALIROOT_LIB
   if ((GetRecoSteps() & GPUDataTypes::RecoStep::TPCMerging) && !tpcClustersAvail) {
-    GPUError("Invalid Inputs, TPC Clusters required");
+    GPUError("Invalid Inputs for track merging, TPC Clusters required");
     return false;
   }
 #endif
@@ -204,7 +208,7 @@ bool GPUChainTracking::ValidateSteps()
   }
 #endif
   if (((GetRecoSteps() & GPUDataTypes::RecoStep::TPCConversion) || (GetRecoSteps() & GPUDataTypes::RecoStep::TPCSliceTracking) || (GetRecoSteps() & GPUDataTypes::RecoStep::TPCCompression) || (GetRecoSteps() & GPUDataTypes::RecoStep::TPCdEdx)) && !tpcClustersAvail) {
-    GPUError("Invalid Inputs, TPC Clusters required");
+    GPUError("Missing input for TPC Cluster conversion / sector tracking / compression / dEdx: TPC Clusters required");
     return false;
   }
   if ((GetRecoSteps() & GPUDataTypes::RecoStep::TPCMerging) && !((GetRecoStepsInputs() & GPUDataTypes::InOutType::TPCSectorTracks) || (GetRecoSteps() & GPUDataTypes::RecoStep::TPCSliceTracking))) {
@@ -277,7 +281,7 @@ bool GPUChainTracking::ValidateSettings()
     return false;
   }
   if (param().par.continuousMaxTimeBin > (int)GPUSettings::TPC_MAX_TF_TIME_BIN) {
-    GPUError("configure max time bin exceeds 256 orbits");
+    GPUError("configured max time bin exceeds 256 orbits");
     return false;
   }
   if ((GetRecoStepsGPU() & RecoStep::TPCClusterFinding) && std::max(GetProcessingSettings().nTPCClustererLanes + 1, GetProcessingSettings().nTPCClustererLanes * 2) + (GetProcessingSettings().doublePipeline ? 1 : 0) > mRec->NStreams()) {
@@ -499,7 +503,7 @@ int GPUChainTracking::Finalize()
 
 void* GPUChainTracking::GPUTrackingFlatObjects::SetPointersFlatObjects(void* mem)
 {
-  char* dummyPtr;
+  char* fastTransformBase = (char*)mem;
   if (mChainTracking->processors()->calibObjects.fastTransform) {
     computePointerWithAlignment(mem, mCalibObjects.fastTransform, 1);
     computePointerWithAlignment(mem, mTpcTransformBuffer, mChainTracking->processors()->calibObjects.fastTransform->getFlatBufferSize());
@@ -511,6 +515,9 @@ void* GPUChainTracking::GPUTrackingFlatObjects::SetPointersFlatObjects(void* mem
   if (mChainTracking->processors()->calibObjects.fastTransformHelper) {
     computePointerWithAlignment(mem, mCalibObjects.fastTransformHelper, 1);
   }
+  if ((char*)mem - fastTransformBase < mChainTracking->GetProcessingSettings().fastTransformObjectsMinMemorySize) {
+    mem = fastTransformBase + mChainTracking->GetProcessingSettings().fastTransformObjectsMinMemorySize; // TODO: Fixme and do proper dynamic allocation
+  }
   if (mChainTracking->processors()->calibObjects.tpcPadGain) {
     computePointerWithAlignment(mem, mCalibObjects.tpcPadGain, 1);
   }
@@ -518,6 +525,7 @@ void* GPUChainTracking::GPUTrackingFlatObjects::SetPointersFlatObjects(void* mem
     computePointerWithAlignment(mem, mCalibObjects.tpcZSLinkMapping, 1);
   }
 #ifdef GPUCA_HAVE_O2HEADERS
+  char* dummyPtr;
   if (mChainTracking->processors()->calibObjects.matLUT) {
     computePointerWithAlignment(mem, mCalibObjects.matLUT, 1);
     computePointerWithAlignment(mem, mMatLUTBuffer, mChainTracking->GetMatLUT()->getFlatBufferSize());
@@ -538,7 +546,7 @@ void* GPUChainTracking::GPUTrackingFlatObjects::SetPointersFlatObjects(void* mem
   }
 #endif
   if (!mChainTracking->mUpdateNewCalibObjects) {
-    mem = (char*)mem + mChainTracking->GetProcessingSettings().calibObjectsExtraMemorySize;
+    mem = (char*)mem + mChainTracking->GetProcessingSettings().calibObjectsExtraMemorySize; // TODO: Fixme and do proper dynamic allocation
   }
   return mem;
 }
@@ -734,11 +742,19 @@ int GPUChainTracking::RunChain()
     mRec->SetNOMPThreads(-1);
   }
 
-  if (CheckErrorCodes()) {
-    return 3;
+  int retVal = 0;
+  if (CheckErrorCodes(false, false, mRec->getErrorCodeOutput())) {
+    retVal = 3;
+    if (!GetProcessingSettings().ignoreNonFatalGPUErrors) {
+      return retVal;
+    }
   }
 
-  return GetProcessingSettings().doublePipeline ? 0 : RunChainFinalize();
+  if (GetProcessingSettings().doublePipeline) {
+    return retVal;
+  }
+  int retVal2 = RunChainFinalize();
+  return retVal2 ? retVal2 : retVal;
 }
 
 int GPUChainTracking::RunChainFinalize()
@@ -749,6 +765,10 @@ int GPUChainTracking::RunChainFinalize()
     mCompressionStatistics->RunStatistics(mIOPtrs.clustersNative, &c, param());
   }
 #endif
+
+  if (GetProcessingSettings().outputSanityCheck) {
+    SanityCheck();
+  }
 
   const bool needQA = GPUQA::QAAvailable() && (GetProcessingSettings().runQA || (GetProcessingSettings().eventDisplay && mIOPtrs.nMCInfosTPC));
   if (needQA && mFractionalQAEnabled) {
@@ -857,7 +877,7 @@ int GPUChainTracking::HelperOutput(int iSlice, int threadId, GPUReconstructionHe
   return 0;
 }
 
-int GPUChainTracking::CheckErrorCodes(bool cpuOnly, bool forceShowErrors)
+int GPUChainTracking::CheckErrorCodes(bool cpuOnly, bool forceShowErrors, std::vector<std::array<unsigned int, 4>>* fillErrors)
 {
   int retVal = 0;
   for (int i = 0; i < 1 + (!cpuOnly && mRec->IsGPU()); i++) {
@@ -893,6 +913,13 @@ int GPUChainTracking::CheckErrorCodes(bool cpuOnly, bool forceShowErrors)
       }
       if (!quiet) {
         processors()->errorCodes.printErrors(GetProcessingSettings().throttleAlarms && !forceShowErrors);
+      }
+      if (fillErrors) {
+        unsigned int nErrors = processors()->errorCodes.getNErrors();
+        const unsigned int* pErrors = processors()->errorCodes.getErrorPtr();
+        for (unsigned int j = 0; j < nErrors; j++) {
+          fillErrors->emplace_back(std::array<unsigned int, 4>{pErrors[4 * j], pErrors[4 * j + 1], pErrors[4 * j + 2], pErrors[4 * j + 3]});
+        }
       }
     }
   }

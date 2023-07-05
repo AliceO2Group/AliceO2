@@ -16,9 +16,6 @@
 #define O2_CTPDIGITWRITERSPEC_H
 
 #include "Framework/DataProcessorSpec.h"
-#include "DPLUtils/MakeRootTreeWriterSpec.h"
-#include "Framework/InputSpec.h"
-#include "DataFormatsCTP/Digits.h"
 
 using namespace o2::framework;
 namespace o2

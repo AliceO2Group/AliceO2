@@ -11,6 +11,7 @@
 
 /// \author R+Preghenella - August 2017
 
+#include "SimulationDataFormat/MCUtils.h"
 #include "Generators/GeneratorHepMC.h"
 #include "Generators/GeneratorHepMCParam.h"
 #include "HepMC3/ReaderAscii.h"
@@ -134,6 +135,7 @@ Bool_t GeneratorHepMC::importParticles()
 
     /** add to particle vector **/
     mParticles.push_back(TParticle(pdg, st, m1, m2, d1, d2, px, py, pz, et, vx, vy, vz, vt));
+    o2::mcutils::MCGenHelper::encodeParticleStatusAndTracking(mParticles.back(), st == 1);
 
   } /** end of loop over particles **/
 

@@ -12,10 +12,13 @@
 #include <bitset>
 #include <cstdint>
 #include <optional>
+#include "DataFormatsEMCAL/MCLabel.h"
+#include "EMCALCalib/CellRecalibrator.h"
 #include "EMCALWorkflow/CalibLoader.h"
 #include "Framework/ConcreteDataMatcher.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
+#include "SimulationDataFormat/MCTruthContainer.h"
 
 namespace o2
 {
@@ -24,6 +27,7 @@ namespace emcal
 {
 
 class Cell;
+class TriggerRecord;
 
 /// \class CellRecalibratorSpec
 /// \brief Recalibration workflow at cell level
@@ -49,13 +53,22 @@ class Cell;
 class CellRecalibratorSpec : public framework::Task
 {
  public:
+  /// \enum LEDEventSettings
+  /// \brief Dedicated handling for LED events
+  enum class LEDEventSettings {
+    KEEP,    ///< Keep LED events in timeframe (uncalibrated)
+    DROP,    ///< Drop LED events
+    REDIRECT ///< Redirect LED events to dedicated output
+  };
   /// \brief Constructor
   /// \param outputspec Subspecification under which the output is posted
+  /// \param ledsettings Handling of cells from LED events
   /// \param badChannelCalib If true the bad channel calibration is enabled
   /// \param timeCalib If true the time calibration is enabled
-  /// \param gainCalib If true the fain calibration is enabled
+  /// \param gainCalib If true the gain calibration is enabled
+  /// \param isMC If true the MCLabelContainer is adapted
   /// \param calibHandler Handler for calibration object loading
-  CellRecalibratorSpec(uint32_t outputspec, bool badChannelCalib, bool timeCalib, bool gainCalib, std::shared_ptr<CalibLoader>(calibHandler));
+  CellRecalibratorSpec(uint32_t outputspec, LEDEventSettings ledsettings, bool badChannelCalib, bool timeCalib, bool gainCalib, bool isMC, std::shared_ptr<CalibLoader>(calibHandler));
 
   /// \brief Destructor
   ~CellRecalibratorSpec() final = default;
@@ -107,16 +120,16 @@ class CellRecalibratorSpec : public framework::Task
   bool isRunGainCalibration() const { return mCalibrationSettings.test(GAIN_CALIB); }
 
  private:
-  /// \brief Apply requested calibrations to the cell
-  /// \param inputcell Cell to be calibrated
-  /// \return Optional of calibrated cell (empty optional in case the cell is rejected as bad or dead)
-  ///
-  /// Recalibrating cell for energy and time, and check whether the corresponding tower is not
-  /// marked as bad or dead. Only calibrations which are enabled are applied.
-  std::optional<o2::emcal::Cell> getCalibratedCell(const o2::emcal::Cell& inputcell) const;
-
-  /// \brief Update internal cache of calibration objects
+  /// \brief Update calibration objects (if changed)
   void updateCalibObjects();
+
+  /// \brief write event cell container to output
+  /// \param selectedCells Cells to be added
+  /// \param outputcontainer Output container
+  /// \param outputtriggers Output trigger records
+  void writeTrigger(const gsl::span<const o2::emcal::Cell> selectedCells, const o2::emcal::TriggerRecord& eventtrigger, std::vector<o2::emcal::Cell>& outputcontainer, std::vector<o2::emcal::TriggerRecord>& outputtriggers);
+
+  void writeMCLabels(const o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>& inputlabels, o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>& outputContainer, const std::vector<int>& keptIndices, int firstindex);
 
   /// \enum CalibrationType_t
   /// \brief Calibrations handled by the recalibration workflow
@@ -126,21 +139,23 @@ class CellRecalibratorSpec : public framework::Task
     GAIN_CALIB = 2        ///< Gain calibration
   };
 
-  uint32_t mOutputSubspec = 0;                              ///< output subspecification;
-  std::bitset<8> mCalibrationSettings;                      ///< Recalibration settings (which calibration to be applied)
-  std::shared_ptr<CalibLoader> mCalibrationHandler;         ///< Handler loading calibration objects
-  const BadChannelMap* mBadChannelMap = nullptr;            ///< Bad channelMap
-  const TimeCalibrationParams* mTimeCalibration = nullptr;  ///< Time calibration coefficients
-  const GainCalibrationFactors* mGainCalibration = nullptr; ///< Gain calibration factors
+  uint32_t mOutputSubspec = 0;                            ///< output subspecification;
+  bool mIsMC = false;                                     ///< MC mode
+  LEDEventSettings mLEDsettings = LEDEventSettings::KEEP; ///< Handling of LED events
+  std::bitset<8> mCalibrationSettings;                    ///< Recalibration settings (which calibration to be applied)
+  std::shared_ptr<CalibLoader> mCalibrationHandler;       ///< Handler loading calibration objects
+  CellRecalibrator mCellRecalibrator;                     ///< Recalibrator at cell level
 };
 
 /// \brief Create CellRecalibrator processor spec
 /// \param inputSubsepc Subspecification used for the input objects (cells and trigger records)
 /// \param outputSubspec Subspecification used for the output objects (cells and trigger records)
+/// \param ledsettings Settings of LED handling (keep/drop/redirect)
 /// \param badChannelCalib If true the bad channel calibration is enabled
 /// \param timeCalib If true the time calibration is enabled
 /// \param gainCalib If true the gain (energy) calibration is enabled
-framework::DataProcessorSpec getCellRecalibratorSpec(uint32_t inputSubspec, uint32_t outputSubspec, bool badChannelCalib, bool timeCalib, bool gainCalib);
+/// \param isMC If true also the MC label container is adapted (relevant only for bad channel masking)
+framework::DataProcessorSpec getCellRecalibratorSpec(uint32_t inputSubspec, uint32_t outputSubspec, uint32_t ledsettings, bool badChannelCalib, bool timeCalib, bool gainCalib, bool isMC);
 
 } // namespace emcal
 

@@ -54,6 +54,10 @@ class TDCCalib //after
   int write(const std::string fn = "ZDCTDCCalib.root");
 
   const ZDCTDCParam& getTDCParamUpd() const { return mTDCParamUpd; };
+  int saveDebugHistos(const std::string fn = "ZDCTDCalib.root");
+  void setSaveDebugHistos() { mSaveDebugHistos = true; }
+  void setDontSaveDebugHistos() { mSaveDebugHistos = false; }
+
   CcdbObjectInfo& getCcdbObjectInfo() { return mInfo; }
 
   void setTDCParam(const ZDCTDCParam* param) { mTDCParam = param; };
@@ -68,7 +72,7 @@ class TDCCalib //after
   std::array<o2::dataformats::FlatHisto1D<float>*, NTDCChannels> mCTDC{}; //array of FlatHisto1D, number of elements = NTDCChannles (= 10), defined in constants.h {} means defined but not initialized
   std::array<std::unique_ptr<TH1>, NTDCChannels> mHCTDC{};                //copy of flat histo 1D in TH1F to use root functions
   bool mInitDone = false;
-  bool mSaveDebugHistos = true;
+  bool mSaveDebugHistos = false;
   const TDCCalibConfig* mTDCCalibConfig = nullptr; /// Configuration of TDC calibration, this line has been swapped with the following one to be consistent with intercalibration
   const ZDCTDCParam* mTDCParam = nullptr;          /// TDC calibration object
   int32_t mVerbosity = DbgMinimal;

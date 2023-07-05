@@ -8,7 +8,7 @@
 # In applying this license CERN does not waive the privileges and immunities
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
-                     
+
 o2_add_library(TPCReaderWorkflow
                SOURCES src/ClusterReaderSpec.cxx
                        src/PublisherSpec.cxx
@@ -16,6 +16,7 @@ o2_add_library(TPCReaderWorkflow
                TARGETVARNAME targetName
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DataFormatsTPC
+                                     O2::DataFormatsGlobalTracking
                                      O2::DPLUtils
                                      O2::TPCBase
            )

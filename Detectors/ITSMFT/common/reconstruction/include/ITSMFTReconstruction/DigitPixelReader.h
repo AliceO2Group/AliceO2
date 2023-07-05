@@ -59,6 +59,11 @@ class DigitPixelReader : public PixelReader
   {
     mDigits = a;
     mIdDig = 0;
+    if (mSquashOverflowsDepth) {
+      mSquashedDigitsMask.resize(a.size(), false);
+      mBookmarkNextROFs.resize(mSquashOverflowsDepth, 0);
+      mIdROFLast = 0;
+    }
   }
 
   void setDigitsMCTruth(const o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>* m)
@@ -89,6 +94,24 @@ class DigitPixelReader : public PixelReader
 
   void clear();
 
+  uint16_t getSquashingDepth() { return mSquashOverflowsDepth; }
+  void setSquashingDepth(const int16_t v)
+  {
+    mSquashOverflowsDepth = v;
+  }
+
+  uint16_t getSquashingDist() { return mMaxSquashDist; }
+  void setSquashingDist(const int16_t v)
+  {
+    mMaxSquashDist = v;
+  }
+
+  int getMaxBCSeparationToSquash() const { return mMaxBCSeparationToSquash; }
+  void setMaxBCSeparationToSquash(int n)
+  {
+    mMaxBCSeparationToSquash = n;
+  }
+
  private:
   void addPixel(ChipPixelData& chipData, const Digit* dig)
   {
@@ -111,7 +134,15 @@ class DigitPixelReader : public PixelReader
   Int_t mIdDig = 0; // Digits slot read within ROF
   Int_t mIdROF = 0; // ROFRecord being red
 
-  std::unique_ptr<TTree> mInputTree;       // input tree for digits
+  std::unique_ptr<TTree> mInputTree; // input tree for digits
+
+  // Squashing datamembers
+  int16_t mSquashOverflowsDepth = 0;     // merge overflow pixels in next N ROF(s) into first ROF and mask them
+  std::vector<bool> mSquashedDigitsMask; // keep info of squashed pixels
+  uint16_t mMaxSquashDist = 1;           // maximum pixel distance to allow for squashing
+  int mMaxBCSeparationToSquash;          // frames can be separated by less than this amount of BCs
+  std::vector<int> mBookmarkNextROFs;    // keep track of the position of the last processed digits in next rof
+  int mIdROFLast = 0;                    // ROFRecord red last iteration
 
   ClassDefOverride(DigitPixelReader, 1);
 };

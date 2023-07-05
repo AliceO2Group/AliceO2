@@ -228,6 +228,9 @@ int showRDHs(gsl::span<const std::byte> buffer)
       case 6:
         std::cout << (*reinterpret_cast<const RAWDataHeaderV6*>(rdhPtr)) << "\n";
         break;
+      case 7:
+        std::cout << (*reinterpret_cast<const RAWDataHeaderV7*>(rdhPtr)) << "\n";
+        break;
       default:
         throw std::invalid_argument(fmt::format("RDH version {} not yet supported by showRDHs function",
                                                 version));

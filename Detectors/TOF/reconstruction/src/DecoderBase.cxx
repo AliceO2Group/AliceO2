@@ -278,6 +278,7 @@ bool DecoderBaseT<RDH>::processDRM()
 
 template class DecoderBaseT<o2::header::RAWDataHeaderV4>;
 template class DecoderBaseT<o2::header::RAWDataHeaderV6>;
+template class DecoderBaseT<o2::header::RAWDataHeaderV7>;
 
 } // namespace compressed
 } // namespace tof

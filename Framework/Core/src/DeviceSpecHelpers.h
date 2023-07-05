@@ -28,7 +28,6 @@
 #include "ResourceManager.h"
 #include "WorkflowHelpers.h"
 
-#include <fairmq/Device.h>
 #include <boost/program_options.hpp>
 
 #include <vector>
@@ -41,6 +40,7 @@ namespace o2::framework
 struct InputChannelSpec;
 struct OutputChannelSpec;
 struct ConfigContext;
+struct DriverConfig;
 
 struct DeviceSpecHelpers {
   /// Helper to convert from an abstract dataflow specification, @a workflow,
@@ -62,6 +62,7 @@ struct DeviceSpecHelpers {
     std::string const& channelPrefix = "",
     OverrideServiceSpecs const& overrideServices = {});
 
+  static void validate(WorkflowSpec const& workflow);
   static void dataProcessorSpecs2DeviceSpecs(
     const WorkflowSpec& workflow,
     std::vector<ChannelConfigurationPolicy> const& channelPolicies,
@@ -121,17 +122,23 @@ struct DeviceSpecHelpers {
     bool defaultStopped,
     bool intereactive,
     unsigned short driverPort,
+    DriverConfig const& driverConfig,
     std::vector<DataProcessorInfo> const& processorInfos,
     std::vector<DeviceSpec> const& deviceSpecs,
     std::vector<DeviceExecution>& deviceExecutions,
     std::vector<DeviceControl>& deviceControls,
     std::string const& uniqueWorkflowId);
 
+  /// Rework the environment string
+  /// * Substitute {timeslice<N>} with the actual value of the timeslice.
+  static std::string reworkEnv(std::string const& str, DeviceSpec const& spec);
+
   /// This takes the list of preprocessed edges of a graph
   /// and creates Devices and Channels which are related
   /// to the outgoing edges i.e. those which refer
   /// to the act of producing data.
   static void processOutEdgeActions(
+    ConfigContext const& configContext,
     std::vector<DeviceSpec>& devices,
     std::vector<DeviceId>& deviceIndex,
     std::vector<DeviceConnectionId>& connections,
@@ -142,6 +149,7 @@ struct DeviceSpecHelpers {
     const WorkflowSpec& workflow,
     const std::vector<OutputSpec>& outputs,
     std::vector<ChannelConfigurationPolicy> const& channelPolicies,
+    std::vector<SendingPolicy> const& sendingPolicies,
     std::string const& channelPrefix,
     ComputingOffer const& defaultOffer,
     OverrideServiceSpecs const& overrideServices = {});

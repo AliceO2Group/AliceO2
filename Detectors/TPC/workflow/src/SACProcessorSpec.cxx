@@ -32,7 +32,7 @@
 #include "TPCCalibration/SACDecoder.h"
 #include "TPCWorkflow/SACProcessorSpec.h"
 
-using HighResClock = std::chrono::high_resolution_clock;
+using HighResClock = std::chrono::steady_clock;
 using namespace o2::framework;
 
 namespace o2::tpc
@@ -53,6 +53,16 @@ class SACProcessorDevice : public Task
     o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
     mDebugLevel = ic.options().get<uint32_t>("debug-level");
     mDecoder.setDebugLevel(mDebugLevel);
+
+    mAggregateTFs = ic.options().get<uint32_t>("aggregate-tfs");
+
+    const auto nthreadsDecoding = ic.options().get<uint32_t>("nthreads-decoding");
+    sac::Decoder::setNThreads(nthreadsDecoding);
+
+    const auto reAlignType = ic.options().get<uint32_t>("try-re-align");
+    if (reAlignType <= uint32_t(sac::Decoder::ReAlignType::MaxType)) {
+      mDecoder.setReAlignType(sac::Decoder::ReAlignType(reAlignType));
+    }
   }
 
   void run(ProcessingContext& pc) final
@@ -85,12 +95,13 @@ class SACProcessorDevice : public Task
       for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
         const auto size = it.size();
         if (size == 0) {
-          auto* rdhPtr = it.get_if<o2::header::RAWDataHeaderV6>();
-          if (!rdhPtr) {
-            throw std::runtime_error("could not get RDH from packet");
+          auto rdhPtr = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
+          const auto rdhVersion = raw::RDHUtils::getVersion(rdhPtr);
+          if (!rdhPtr || rdhVersion < 6) {
+            throw std::runtime_error(fmt::format("could not get RDH from packet, or version {} < 6", rdhVersion).data());
           }
           // TODO: should only be done once for the first packet
-          if ((mDecoder.getReferenceTime() < 0) && (rdhPtr->packetCounter == 0)) {
+          if ((mDecoder.getReferenceTime() < 0) && (raw::RDHUtils::getPacketCounter(rdhPtr))) {
             const double referenceTime = o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS() + tinfo.firstTForbit * o2::constants::lhc::LHCOrbitMUS * 0.001;
             LOGP(info, "setting time stamp reset reference to: {}, at tfCounter: {}, firstTForbit: {}", referenceTime, tinfo.tfCounter, tinfo.firstTForbit);
             mDecoder.setReferenceTime(referenceTime); // TODO set proper time
@@ -102,14 +113,18 @@ class SACProcessorDevice : public Task
       }
     }
 
-    mDecoder.runDecoding();
-    sendData(pc.outputs());
+    if ((mProcessedTFs > 0) && !(mProcessedTFs % mAggregateTFs)) {
+      mDecoder.runDecoding();
+      sendData(pc.outputs());
+    }
 
     if (mDebugLevel & (uint32_t)sac::Decoder::DebugFlags::TimingInfo) {
       auto endTime = HighResClock::now();
       auto elapsed_seconds = std::chrono::duration_cast<std::chrono::duration<double>>(endTime - startTime);
       LOGP(info, "Time spent for TF {}, firstTForbit {}: {} s", tinfo.tfCounter, tinfo.firstTForbit, elapsed_seconds.count());
     }
+
+    ++mProcessedTFs;
   }
 
   void sendData(DataAllocator& output)
@@ -132,8 +147,10 @@ class SACProcessorDevice : public Task
   }
 
  private:
-  uint32_t mDebugLevel{0}; ///< Debug level
-  sac::Decoder mDecoder;   ///< Decoder for SAC data
+  size_t mProcessedTFs{0};   ///< Number of processed TFs
+  uint32_t mDebugLevel{0};   ///< Debug level
+  uint32_t mAggregateTFs{0}; ///< Number of TFs over which to aggregate the data before decoding and sending
+  sac::Decoder mDecoder;     ///< Decoder for SAC data
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
 };
 
@@ -151,8 +168,8 @@ o2::framework::DataProcessorSpec getSACProcessorSpec()
                                                                 o2::base::GRPGeomRequest::None, // geometry
                                                                 inputs);
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("TPC", "DECODEDSAC", 0, Lifetime::Timeframe);
-  outputs.emplace_back("TPC", "REFTIMESAC", 0, Lifetime::Timeframe);
+  outputs.emplace_back("TPC", "DECODEDSAC", 0, Lifetime::Sporadic);
+  outputs.emplace_back("TPC", "REFTIMESAC", 0, Lifetime::Sporadic);
 
   return DataProcessorSpec{
     "tpc-sac-processor",
@@ -161,6 +178,9 @@ o2::framework::DataProcessorSpec getSACProcessorSpec()
     AlgorithmSpec{adaptFromTask<device>(ccdbRequest)},
     Options{
       {"debug-level", VariantType::UInt32, 0u, {"amount of debug to show"}},
+      {"nthreads-decoding", VariantType::UInt32, 1u, {"Number of threads used for decoding"}},
+      {"aggregate-tfs", VariantType::UInt32, 1u, {"Number of TFs to aggregate before running decoding"}},
+      {"try-re-align", VariantType::UInt32, 0u, {"Try to re-align data stream in case of missing packets. 0 - no; 1 - yes; 2 - yes, and fill missing packets"}},
     } // end Options
   };  // end DataProcessorSpec
 }

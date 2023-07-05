@@ -30,6 +30,7 @@
 #include "Framework/DataRefUtils.h"
 #include "CommonUtils/VerbosityConfig.h"
 #include "DetectorsBase/TFIDInfoHelper.h"
+#include "TOFBase/Utils.h"
 
 using namespace o2::framework;
 
@@ -44,6 +45,10 @@ void CompressedDecodingTask::init(InitContext& ic)
 {
   LOG(debug) << "CompressedDecoding init";
 
+  if (mNorbitsPerTF == -1) {
+    o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
+  }
+
   mMaskNoise = ic.options().get<bool>("mask-noise");
   mNoiseRate = ic.options().get<int>("noise-counts");
   mRowFilter = ic.options().get<bool>("row-filter");
@@ -57,7 +62,7 @@ void CompressedDecodingTask::init(InitContext& ic)
   auto finishFunction = [this]() {
     LOG(debug) << "CompressedDecoding finish";
   };
-  ic.services().get<CallbackService>().set(CallbackService::Id::Stop, finishFunction);
+  ic.services().get<CallbackService>().set<CallbackService::Id::Stop>(finishFunction);
   mTimer.Stop();
   mTimer.Reset();
 }
@@ -85,7 +90,7 @@ void CompressedDecodingTask::postData(ProcessingContext& pc)
   }
 
   /*
-  int nwindowperTF = o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * 3;
+  int nwindowperTF = o2::tof::Utils::getNOrbitInTF() * 3;
   while (row->size() < nwindowperTF) {
     // complete timeframe with empty readout windows
     auto& dummy = row->emplace_back(lastval, 0);
@@ -138,6 +143,22 @@ void CompressedDecodingTask::run(ProcessingContext& pc)
 {
   mTimer.Start(false);
 
+  int norbits = mNorbitsPerTF;
+  if (norbits == -1) {
+    o2::base::GRPGeomHelper::instance().checkUpdates(pc);
+    norbits = o2::base::GRPGeomHelper::instance().getGRPECS()->getNHBFPerTF();
+    mNorbitsPerTF = norbits;
+  }
+  mDecoder.setNOrbitInTF(norbits);
+
+  static bool isFirstCall = true;
+  if (isFirstCall) {
+    isFirstCall = false;
+    LOG(info) << "N orbits per TF set to " << norbits;
+  } else {
+    LOG(debug) << "N orbits per TF set to " << norbits;
+  }
+
   mCreationTime = std::chrono::high_resolution_clock::now().time_since_epoch().count() / 1000000;
 
   //RS set the 1st orbit of the TF from the O2 header, relying on rdhHandler is not good (in fact, the RDH might be eliminated in the derived data)
@@ -170,9 +191,10 @@ void CompressedDecodingTask::decodeTF(ProcessingContext& pc)
 {
   auto& inputs = pc.inputs();
   const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
+
   // if we see requested data type input with 0xDEADBEEF subspec and 0 payload this means that the "delayed message"
   // mechanism created it in absence of real data from upstream. Processor should send empty output to not block the workflow
-  {
+  if (!mLocalCmp) {
     static size_t contDeadBeef = 0; // number of times 0xDEADBEEF was seen continuously
     std::vector<InputSpec> dummy{InputSpec{"dummy", ConcreteDataMatcher{"TOF", mDataDesc, 0xDEADBEEF}}};
     for (const auto& ref : InputRecordWalker(inputs, dummy)) {
@@ -190,10 +212,11 @@ void CompressedDecodingTask::decodeTF(ProcessingContext& pc)
     }
     contDeadBeef = 0; // if good data, reset the counter
   }
-
   /** loop over inputs routes **/
+
   std::vector<InputSpec> sel{InputSpec{"filter", ConcreteDataTypeMatcher{"TOF", "CRAWDATA"}}};
   for (const auto& ref : InputRecordWalker(pc.inputs(), sel)) {
+    //  for (auto const& ref : o2::framework::InputRecordWalker(pc.inputs())) {
     //  for (auto iit = pc.inputs().begin(), iend = pc.inputs().end(); iit != iend; ++iit) {
     //    if (!iit.isValid()) {
     //      continue;
@@ -204,6 +227,12 @@ void CompressedDecodingTask::decodeTF(ProcessingContext& pc)
     const auto* headerIn = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
     auto payloadIn = ref.payload;
     auto payloadInSize = DataRefUtils::getPayloadSize(ref);
+
+    if (payloadInSize < 1) {
+      continue;
+    }
+
+    //    LOG(info) << "payloadInSize = " << payloadInSize;
 
     DecoderBase::setDecoderBuffer(payloadIn);
     DecoderBase::setDecoderBufferSize(payloadInSize);
@@ -385,7 +414,7 @@ void CompressedDecodingTask::rdhHandler(const o2::header::RAWDataHeader* rdh)
   mCurrentOrbit = RDHUtils::getHeartBeatOrbit(rdhr);
 
   // rdh close
-  if (RDHUtils::getStop(rdhr) && RDHUtils::getHeartBeatOrbit(rdhr) == o2::raw::HBFUtils::Instance().getNOrbitsPerTF() - 1 + mInitOrbit) {
+  if (RDHUtils::getStop(rdhr) && RDHUtils::getHeartBeatOrbit(rdhr) == o2::tof::Utils::getNOrbitInTF() - 1 + mInitOrbit) {
     mNCrateCloseTF++;
     return;
   }
@@ -409,18 +438,32 @@ void CompressedDecodingTask::frameHandler(const CrateHeader_t* crateHeader, cons
   }
 };
 
-DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc, bool conet, bool askDISTSTF)
+DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc, bool conet, bool askDISTSTF, int norbitPerTF, bool localCmp)
 {
   std::vector<InputSpec> inputs;
   if (askDISTSTF) {
     inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
   }
 
+  std::shared_ptr<o2::base::GRPGeomRequest> ccdbRequest;
+  if (norbitPerTF == -1) {
+    ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime
+                                                             norbitPerTF == -1,              // GRPECS=true for nHBF per TF
+                                                             false,                          // GRPLHCIF
+                                                             false,                          // GRPMagField
+                                                             false,                          // askMatLUT
+                                                             o2::base::GRPGeomRequest::None, // geometry
+                                                             inputs);
+  }
+
   //  inputs.emplace_back(std::string("x:TOF/" + inputDesc).c_str(), 0, Lifetime::Optional);
   o2::header::DataDescription dataDesc;
   dataDesc.runtimeInit(inputDesc.c_str());
-  inputs.emplace_back("x", ConcreteDataTypeMatcher{o2::header::gDataOriginTOF, dataDesc}, Lifetime::Optional);
-
+  if (localCmp) {
+    inputs.emplace_back("x", ConcreteDataTypeMatcher{o2::header::gDataOriginTOF, dataDesc}, Lifetime::Timeframe);
+  } else {
+    inputs.emplace_back("x", ConcreteDataTypeMatcher{o2::header::gDataOriginTOF, dataDesc}, Lifetime::Optional);
+  }
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(o2::header::gDataOriginTOF, "DIGITHEADER", 0, Lifetime::Timeframe);
   outputs.emplace_back(o2::header::gDataOriginTOF, "DIGITS", 0, Lifetime::Timeframe);
@@ -434,7 +477,7 @@ DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc, bool c
     inputs,
     //    select(std::string("x:TOF/" + inputDesc).c_str()),
     outputs,
-    AlgorithmSpec{adaptFromTask<CompressedDecodingTask>(conet, dataDesc)},
+    AlgorithmSpec{adaptFromTask<CompressedDecodingTask>(conet, dataDesc, ccdbRequest, norbitPerTF, localCmp)},
     Options{
       {"row-filter", VariantType::Bool, false, {"Filter empty row"}},
       {"mask-noise", VariantType::Bool, false, {"Flag to mask noisy digits"}},

@@ -47,26 +47,24 @@ int GPUChainITS::Init() { return 0; }
 
 TrackerTraits* GPUChainITS::GetITSTrackerTraits()
 {
-#ifndef GPUCA_NO_ITS_TRAITS
   if (mITSTrackerTraits == nullptr) {
-    mRec->GetITSTraits(&mITSTrackerTraits, nullptr);
+    mRec->GetITSTraits(&mITSTrackerTraits, nullptr, nullptr);
     // mITSTrackerTraits->SetRecoChain(this, &GPUChainITS::PrepareAndRunITSTrackFit);
   }
-#endif
   return mITSTrackerTraits.get();
 }
 VertexerTraits* GPUChainITS::GetITSVertexerTraits()
 {
-#ifndef GPUCA_NO_ITS_TRAITS
   if (mITSVertexerTraits == nullptr) {
-    mRec->GetITSTraits(nullptr, &mITSVertexerTraits);
+    mRec->GetITSTraits(nullptr, &mITSVertexerTraits, nullptr);
   }
-#endif
   return mITSVertexerTraits.get();
 }
 TimeFrame* GPUChainITS::GetITSTimeframe()
 {
-  mRec->GetITSTimeframe(&mITSTimeFrame);
+  if (mITSTimeFrame == nullptr) {
+    mRec->GetITSTraits(nullptr, nullptr, &mITSTimeFrame);
+  }
   return mITSTimeFrame.get();
 }
 
@@ -76,13 +74,13 @@ int GPUChainITS::Finalize() { return 0; }
 
 int GPUChainITS::RunChain() { return 0; }
 
-int GPUChainITS::PrepareAndRunITSTrackFit(std::vector<o2::its::Road>& roads, std::vector<const o2::its::Cluster*>& clusters, std::vector<const o2::its::Cell*>& cells, const std::vector<std::vector<o2::its::TrackingFrameInfo>>& tf, std::vector<o2::its::TrackITSExt>& tracks)
+int GPUChainITS::PrepareAndRunITSTrackFit(std::vector<o2::its::Road<5>>& roads, std::vector<const o2::its::Cluster*>& clusters, std::vector<const o2::its::Cell*>& cells, const std::vector<std::vector<o2::its::TrackingFrameInfo>>& tf, std::vector<o2::its::TrackITSExt>& tracks)
 {
   mRec->PrepareEvent();
   return RunITSTrackFit(roads, clusters, cells, tf, tracks);
 }
 
-int GPUChainITS::RunITSTrackFit(std::vector<o2::its::Road>& roads, std::vector<const o2::its::Cluster*>& clusters, std::vector<const o2::its::Cell*>& cells, const std::vector<std::vector<o2::its::TrackingFrameInfo>>& tf, std::vector<o2::its::TrackITSExt>& tracks)
+int GPUChainITS::RunITSTrackFit(std::vector<o2::its::Road<5>>& roads, std::vector<const o2::its::Cluster*>& clusters, std::vector<const o2::its::Cell*>& cells, const std::vector<std::vector<o2::its::TrackingFrameInfo>>& tf, std::vector<o2::its::TrackITSExt>& tracks)
 {
   auto threadContext = GetThreadContext();
   bool doGPU = GetRecoStepsGPU() & RecoStep::ITSTracking;

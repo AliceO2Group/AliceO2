@@ -11,13 +11,24 @@
 #ifndef O2_FRAMEWORK_DATATAKINGCONTEXT_H_
 #define O2_FRAMEWORK_DATATAKINGCONTEXT_H_
 
+#include "Framework/ServiceHandle.h"
 #include <string>
 #include <cstdint>
 
 namespace o2::framework
 {
 
+enum struct DeploymentMode {
+  Local,     // if nothing special is specified
+  OnlineECS, // Running online (sync processing) a P2 on FLP steered by ECS
+  OnlineDDS, // Running online (sync processing) a P2 on EPN steered by DDS/ODC
+  OnlineAUX, // Running online (sync processing) a P2 as auxiliary process
+  Grid,      // Running as GRID job with Alien job id
+  FST        // Running 8 GPU FST on EPNs (ALICE_O2_FST=1 set)
+};
+
 struct DataTakingContext {
+  constexpr static ServiceKind service_kind = ServiceKind::Stream;
   static constexpr const char* UNKNOWN = "unknown";
   /// The current run number
   std::string runNumber{UNKNOWN};
@@ -35,6 +46,9 @@ struct DataTakingContext {
   std::string detectors{UNKNOWN};
   /// ECS declared run data storage type as raw
   bool forcedRaw{false};
+
+  /// Where we thing this is running
+  DeploymentMode deploymentMode{DeploymentMode::Local};
 };
 
 } // namespace o2::framework

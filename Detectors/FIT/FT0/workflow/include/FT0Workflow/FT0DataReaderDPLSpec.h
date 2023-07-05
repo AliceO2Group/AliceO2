@@ -74,9 +74,9 @@ class FT0DataReaderDPLSpec : public Task
     for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
       //Proccessing each page
       count++;
-      auto rdhPtr = it.get_if<o2::header::RAWDataHeader>();
+      auto rdhPtr = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
       gsl::span<const uint8_t> payload(it.data(), it.size());
-      mRawReader.process(payload, rdhPtr->linkID, rdhPtr->endPointID);
+      mRawReader.process(payload, o2::raw::RDHUtils::getLinkID(rdhPtr), o2::raw::RDHUtils::getEndPointID(rdhPtr));
     }
     LOG(info) << "Pages: " << count;
     mRawReader.accumulateDigits();

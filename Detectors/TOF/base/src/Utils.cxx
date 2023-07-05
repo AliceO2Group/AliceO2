@@ -47,6 +47,7 @@ TChain* Utils::mTreeFit = nullptr;
 std::vector<o2::dataformats::CalibInfoTOF> Utils::mVectC;
 std::vector<o2::dataformats::CalibInfoTOF>* Utils::mPvectC = &mVectC;
 int Utils::mNfits = 0;
+uint32_t Utils::mNOrbitInTF = 128;
 
 void Utils::addInteractionBC(int bc, bool fromCollisonCotext)
 {
@@ -331,7 +332,8 @@ int Utils::extractNewTimeSlewing(const o2::dataformats::CalibTimeSlewingParamTOF
 
   mTreeFit = new TChain("treeCollectedCalibInfo", "treeCollectedCalibInfo");
 
-  system("ls *collTOF*.root >listaCal"); // create list of calibInfo accumulated
+  auto retval = system("ls *collTOF*.root >listaCal"); // create list of calibInfo accumulated
+  (void)retval;
   FILE* f = fopen("listaCal", "r");
 
   if (!f) { // no inputs -> return

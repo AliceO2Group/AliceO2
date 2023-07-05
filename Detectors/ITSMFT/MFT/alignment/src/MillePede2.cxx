@@ -875,7 +875,9 @@ int MillePede2::LocalFit(std::vector<double>& localParams)
 }
 
 //_____________________________________________________________________________
-int MillePede2::GlobalFit(double* par, double* error, double* pull)
+int MillePede2::GlobalFit(std::vector<double>& par,
+                          std::vector<double>& error,
+                          std::vector<double>& pull)
 {
   if (fRecordReader == nullptr) {
     LOG(fatal) << "MillePede2::GlobalFit() - aborted, input record reader is a null pointer";
@@ -911,19 +913,19 @@ int MillePede2::GlobalFit(double* par, double* error, double* pull)
     return 0;
   }
 
-  if (par) {
+  if (par.size()) {
     for (int i = fNGloParIni; i--;) {
       par[i] = GetFinalParam(i);
     }
   }
 
   if (fGloSolveStatus == kInvert) { // errors on params are available
-    if (error) {
+    if (error.size()) {
       for (int i = fNGloParIni; i--;) {
         error[i] = GetFinalError(i);
       }
     }
-    if (pull) {
+    if (pull.size()) {
       for (int i = fNGloParIni; i--;) {
         pull[i] = GetPull(i);
       }

@@ -250,5 +250,25 @@ void o2::tpc::IDCFourierTransform<Type>::printFFTWPlan() const
   fftwf_destroy_plan(fftwPlan);
 }
 
+template <class Type>
+std::vector<std::pair<float, float>> o2::tpc::IDCFourierTransform<Type>::getFrequencies(const o2::tpc::FourierCoeff& coeff, const float samplingFrequency)
+{
+  std::vector<std::pair<float, float>> freq;
+  const auto nCoeff = coeff.getNCoefficientsPerTF();
+  const int nFreqPerInterval = nCoeff / 2;
+  const int nTFs = coeff.getNTimeFrames();
+  freq.reserve(nTFs * nFreqPerInterval);
+  for (int iTF = 0; iTF < nTFs; ++iTF) {
+    for (int iFreq = 0; iFreq < nFreqPerInterval; ++iFreq) {
+      const int realInd = nCoeff * iTF + iFreq * 2;
+      const int compInd = realInd + 1;
+      const float magnitude = std::sqrt(coeff(realInd) * coeff(realInd) + coeff(compInd) * coeff(compInd));
+      const float freqTmp = iFreq * samplingFrequency / nCoeff;
+      freq.emplace_back(freqTmp, magnitude);
+    }
+  }
+  return freq;
+}
+
 template class o2::tpc::IDCFourierTransform<o2::tpc::IDCFourierTransformBaseEPN>;
 template class o2::tpc::IDCFourierTransform<o2::tpc::IDCFourierTransformBaseAggregator>;

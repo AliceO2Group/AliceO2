@@ -36,7 +36,7 @@ class ProcessingContext;
 namespace calibration
 {
 
-template <typename Input, typename Container>
+template <typename Container>
 class TimeSlotCalibration
 {
  public:
@@ -104,10 +104,21 @@ class TimeSlotCalibration
   const Slot& getLastSlot() const { return (Slot&)mSlots.back(); }
   const Slot& getFirstSlot() const { return (Slot&)mSlots.front(); }
 
-  template <typename DATA>
-  bool process(const DATA& data);
-  virtual void checkSlotsToFinalize(TFType tf, int maxDelay = 0);
+  template <typename... DATA>
+  bool process(const DATA&... data);
+  virtual void checkSlotsToFinalize(TFType tf = INFINITE_TF, int maxDelay = 0);
   virtual void finalizeOldestSlot();
+
+  virtual void reset()
+  { // reset to virgin state (need for start - stop - start)
+    mSlots.clear();
+    mLastClosedTF = 0;
+    mFirstTF = 0;
+    mMaxSeenTF = 0;
+    mLastCheckedTFInfiniteSlot = 0;
+    mWasCheckedInfiniteSlot = false;
+    initOutput();
+  }
 
   // Methods to be implemented by the derived user class
 
@@ -184,8 +195,24 @@ class TimeSlotCalibration
   uint32_t getRunStartOrbit() const
   {
     long orb = long(mCurrentTFInfo.firstTForbit) - long(o2::base::GRPGeomHelper::getNHBFPerTF() * mCurrentTFInfo.tfCounter);
+    static unsigned int threshold = 512 * o2::base::GRPGeomHelper::getNHBFPerTF();
     if (orb < 0) {
-      LOGP(alarm, "Negative runStartOrbit = {} deduced from tfCounter={} and firstTForbit={}, enforcing runStartOrbit to 0", orb, mCurrentTFInfo.tfCounter, mCurrentTFInfo.firstTForbit);
+      // If we have a firstTForbit between 1 and 512 * tf len, we disable the warning for negative runStartOrbit permanently, since this is a SYNTHETIC run.
+      static bool suppressRunStartWarning = false;
+      if (!suppressRunStartWarning) {
+        const auto* grpecs = o2::base::GRPGeomHelper::instance().getGRPECS();
+        if (grpecs) {
+          if (grpecs->getRunType() == o2::parameters::GRPECS::SYNTHETIC) {
+            suppressRunStartWarning = true;
+          }
+        } else if (mCurrentTFInfo.firstTForbit < threshold && mCurrentTFInfo.firstTForbit > 0) {
+          suppressRunStartWarning = true;
+        }
+      }
+
+      if (!suppressRunStartWarning && mCurrentTFInfo.firstTForbit >= threshold) {
+        LOGP(alarm, "Negative runStartOrbit = {} deduced from tfCounter={} and firstTForbit={}, enforcing runStartOrbit to 0", orb, mCurrentTFInfo.tfCounter, mCurrentTFInfo.firstTForbit);
+      }
       orb = 0;
     }
     return uint32_t(orb);
@@ -226,9 +253,9 @@ class TimeSlotCalibration
 };
 
 //_________________________________________________
-template <typename Input, typename Container>
-template <typename DATA>
-bool TimeSlotCalibration<Input, Container>::process(const DATA& data)
+template <typename Container>
+template <typename... DATA>
+bool TimeSlotCalibration<Container>::process(const DATA&... data)
 {
   static bool firstCall = true;
   if (firstCall) {
@@ -251,10 +278,10 @@ bool TimeSlotCalibration<Input, Container>::process(const DATA& data)
   }
   auto& slotTF = getSlotForTF(tf);
   using Cont_t = typename std::remove_pointer<decltype(slotTF.getContainer())>::type;
-  if constexpr (has_fill_method<Cont_t, void(const o2::dataformats::TFIDInfo&, const DATA&)>::value) {
-    slotTF.getContainer()->fill(mCurrentTFInfo, data);
+  if constexpr (has_fill_method<Cont_t, void(const o2::dataformats::TFIDInfo&, const DATA&...)>::value) {
+    slotTF.getContainer()->fill(mCurrentTFInfo, data...);
   } else {
-    slotTF.getContainer()->fill(data);
+    slotTF.getContainer()->fill(data...);
   }
   if (tf > mMaxSeenTF) {
     mMaxSeenTF = tf; // keep track of the most recent TF processed
@@ -268,8 +295,8 @@ bool TimeSlotCalibration<Input, Container>::process(const DATA& data)
 }
 
 //_________________________________________________
-template <typename Input, typename Container>
-void TimeSlotCalibration<Input, Container>::checkSlotsToFinalize(TFType tf, int maxDelay)
+template <typename Container>
+void TimeSlotCalibration<Container>::checkSlotsToFinalize(TFType tf, int maxDelay)
 {
   // Check which slots can be finalized, provided the newly arrived TF is tf
 
@@ -337,8 +364,8 @@ void TimeSlotCalibration<Input, Container>::checkSlotsToFinalize(TFType tf, int 
 }
 
 //_________________________________________________
-template <typename Input, typename Container>
-void TimeSlotCalibration<Input, Container>::finalizeOldestSlot()
+template <typename Container>
+void TimeSlotCalibration<Container>::finalizeOldestSlot()
 {
   // Enforce finalization and removal of the oldest slot
   if (mSlots.empty()) {
@@ -351,8 +378,8 @@ void TimeSlotCalibration<Input, Container>::finalizeOldestSlot()
 }
 
 //________________________________________
-template <typename Input, typename Container>
-inline TFType TimeSlotCalibration<Input, Container>::tf2SlotMin(TFType tf) const
+template <typename Container>
+inline TFType TimeSlotCalibration<Container>::tf2SlotMin(TFType tf) const
 {
 
   // returns the min TF of the slot to which "tf" belongs
@@ -368,8 +395,8 @@ inline TFType TimeSlotCalibration<Input, Container>::tf2SlotMin(TFType tf) const
 }
 
 //_________________________________________________
-template <typename Input, typename Container>
-TimeSlot<Container>& TimeSlotCalibration<Input, Container>::getSlotForTF(TFType tf)
+template <typename Container>
+TimeSlot<Container>& TimeSlotCalibration<Container>::getSlotForTF(TFType tf)
 {
 
   LOG(debug) << "Getting slot for TF " << tf;
@@ -423,8 +450,8 @@ TimeSlot<Container>& TimeSlotCalibration<Input, Container>::getSlotForTF(TFType 
 }
 
 //_________________________________________________
-template <typename Input, typename Container>
-void TimeSlotCalibration<Input, Container>::print() const
+template <typename Container>
+void TimeSlotCalibration<Container>::print() const
 {
   for (int i = 0; i < getNSlots(); i++) {
     LOG(info) << "Slot #" << i << " of " << getNSlots();
@@ -433,8 +460,8 @@ void TimeSlotCalibration<Input, Container>::print() const
 }
 
 //_________________________________________________
-template <typename Input, typename Container>
-bool TimeSlotCalibration<Input, Container>::updateSaveMetaData()
+template <typename Container>
+bool TimeSlotCalibration<Container>::updateSaveMetaData()
 {
   if (mSlots.empty()) {
     LOG(warn) << "Nothing to save, no TimeSlots defined";
@@ -452,8 +479,8 @@ bool TimeSlotCalibration<Input, Container>::updateSaveMetaData()
 }
 
 //_________________________________________________
-template <typename Input, typename Container>
-bool TimeSlotCalibration<Input, Container>::saveLastSlot()
+template <typename Container>
+bool TimeSlotCalibration<Container>::saveLastSlot()
 {
   if (!getSavedSlotAllowed()) {
     LOG(info) << "Slot saving is disabled";
@@ -483,8 +510,8 @@ bool TimeSlotCalibration<Input, Container>::saveLastSlot()
 }
 
 //_________________________________________________
-template <typename Input, typename Container>
-bool TimeSlotCalibration<Input, Container>::loadSavedSlot()
+template <typename Container>
+bool TimeSlotCalibration<Container>::loadSavedSlot()
 {
   if (!getSavedSlotAllowed()) {
     LOG(info) << "Saved slot usage is disabled";
@@ -517,8 +544,8 @@ bool TimeSlotCalibration<Input, Container>::loadSavedSlot()
 }
 
 //_________________________________________________
-template <typename Input, typename Container>
-std::string TimeSlotCalibration<Input, Container>::getSaveFilePath() const
+template <typename Container>
+std::string TimeSlotCalibration<Container>::getSaveFilePath() const
 {
   if (mSaveFileName.empty()) {
     LOGP(fatal, "Save file name was not set");

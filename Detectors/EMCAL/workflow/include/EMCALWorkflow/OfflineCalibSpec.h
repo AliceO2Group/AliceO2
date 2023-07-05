@@ -11,6 +11,8 @@
 
 #include <string>
 #include "Framework/DataProcessorSpec.h"
+#include "EMCALWorkflow/CalibLoader.h"
+#include "EMCALCalib/GainCalibrationFactors.h"
 #include "Framework/Task.h"
 
 #include "TFile.h"
@@ -37,7 +39,7 @@ class OfflineCalibSpec : public framework::Task
   /// \brief Constructor
   /// \param makeCellIDTimeEnergy If true the THnSparseF of cell ID, time, and energy is made
   /// \param rejectCalibTriggers if true, only events which have the o2::trigger::PhT flag will be taken into account
-  OfflineCalibSpec(bool makeCellIDTimeEnergy, bool rejectCalibTriggers) : mMakeCellIDTimeEnergy(makeCellIDTimeEnergy), mRejectCalibTriggers(rejectCalibTriggers){};
+  OfflineCalibSpec(bool makeCellIDTimeEnergy, bool rejectCalibTriggers, std::shared_ptr<o2::emcal::CalibLoader> calibHandler) : mMakeCellIDTimeEnergy(makeCellIDTimeEnergy), mRejectCalibTriggers(rejectCalibTriggers), mCalibrationHandler(calibHandler){};
 
   /// \brief Destructor
   ~OfflineCalibSpec() override = default;
@@ -45,6 +47,11 @@ class OfflineCalibSpec : public framework::Task
   /// \brief Initializing the offline calib task
   /// \param ctx Init context
   void init(framework::InitContext& ctx) final;
+
+  /// Loading CCDB object into internal cache for the 3 supported CCDB entries (bad
+  /// channel map, time calibration params, gain calibration params). Objects are only
+  /// loaded in case the calibration type was enabled.
+  void finaliseCCDB(framework::ConcreteDataMatcher& matcher, void* obj) final;
 
   /// \brief Fill histograms needed for the offline calibration
   /// \param ctx Processing context
@@ -57,20 +64,25 @@ class OfflineCalibSpec : public framework::Task
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
  private:
-  std::unique_ptr<TH2> mCellAmplitude;         ///< Cell energy vs. cell ID
-  std::unique_ptr<TH2> mCellTime;              ///< Cell time vs. cell ID
-  std::unique_ptr<TH2> mCellTimeLG;            ///< Cell time vs. cell ID for low gain cells
-  std::unique_ptr<TH2> mCellTimeHG;            ///< Cell time vs. cell ID for high gain cells
-  std::unique_ptr<TH1> mNevents;               ///< Number of events
-  std::unique_ptr<THnSparseF> mCellTimeEnergy; ///< ID, time, energy
-  bool mMakeCellIDTimeEnergy = true;           ///< Switch whether or not to make a THnSparseF of cell ID, time, and energy
-  bool mRejectCalibTriggers = true;            ///< Switch to select if calib triggerred events should be rejected
+  /// \brief Update calibration objects (if changed)
+  void updateCalibObjects();
+  std::unique_ptr<TH2> mCellAmplitude;              ///< Cell energy vs. cell ID
+  std::unique_ptr<TH2> mCellTime;                   ///< Cell time vs. cell ID
+  std::unique_ptr<TH2> mCellTimeLG;                 ///< Cell time vs. cell ID for low gain cells
+  std::unique_ptr<TH2> mCellTimeHG;                 ///< Cell time vs. cell ID for high gain cells
+  std::unique_ptr<TH1> mNevents;                    ///< Number of events
+  std::unique_ptr<THnSparseF> mCellTimeEnergy;      ///< ID, time, energy
+  std::shared_ptr<CalibLoader> mCalibrationHandler; ///< Handler loading calibration objects
+  GainCalibrationFactors* mGainCalibFactors;        ///< cell gain calibration factors
+  bool mMakeCellIDTimeEnergy = true;                ///< Switch whether or not to make a THnSparseF of cell ID, time, and energy
+  bool mRejectCalibTriggers = true;                 ///< Switch to select if calib triggerred events should be rejected
+  bool mEnableGainCalib = false;                    ///< Switch weather gain calibration should be applied or not when filling the hsitograms
 };
 
 /// \brief Creating offline calib spec
 /// \ingroup EMCALworkflow
 ///
-o2::framework::DataProcessorSpec getEmcalOfflineCalibSpec(bool makeCellIDTimeEnergy, bool rejectCalibTriggers);
+o2::framework::DataProcessorSpec getEmcalOfflineCalibSpec(bool makeCellIDTimeEnergy, bool rejectCalibTriggers, uint32_t inputsubspec, bool enableGainCalib);
 
 } // namespace emcal
 

@@ -24,6 +24,7 @@
 #include "TOFReconstruction/Decoder.h"
 #include "TOFBase/Digit.h"
 #include "TStopwatch.h"
+#include "DetectorsBase/GRPGeomHelper.h"
 
 using namespace o2::framework;
 
@@ -37,7 +38,7 @@ using namespace compressed;
 class CompressedDecodingTask : public DecoderBase, public Task
 {
  public:
-  CompressedDecodingTask(bool conet, o2::header::DataDescription dataDesc)
+  CompressedDecodingTask(bool conet, o2::header::DataDescription dataDesc, std::shared_ptr<o2::base::GRPGeomRequest> gr, int norbitPerTF = -1, bool localCmp = false) : mGGCCDBRequest(gr), mNorbitsPerTF(norbitPerTF), mLocalCmp(localCmp)
   {
     mConetMode = conet;
     mDataDesc = dataDesc;
@@ -50,6 +51,12 @@ class CompressedDecodingTask : public DecoderBase, public Task
   void decodeTF(ProcessingContext& pc);
   void endOfStream(EndOfStreamContext& ec) final;
   void postData(ProcessingContext& pc);
+  void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
+  {
+    if (mNorbitsPerTF == -1) {
+      o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj);
+    }
+  }
 
  private:
   /** decoding handlers **/
@@ -60,6 +67,8 @@ class CompressedDecodingTask : public DecoderBase, public Task
   void trailerHandler(const CrateHeader_t* crateHeader, const CrateOrbit_t* crateOrbit,
                       const CrateTrailer_t* crateTrailer, const Diagnostic_t* diagnostics,
                       const Error_t* errors) override;
+
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
 
   o2::tof::compressed::Decoder mDecoder;
   std::vector<std::vector<o2::tof::Digit>> mDigits;
@@ -73,12 +82,14 @@ class CompressedDecodingTask : public DecoderBase, public Task
   uint32_t mCurrentOrbit = 0;
   bool mRowFilter = false;
   bool mMaskNoise = false;
+  bool mLocalCmp = false;
   int mNoiseRate = 1000;
   unsigned long mCreationTime = 0;
+  int mNorbitsPerTF = -1;
   TStopwatch mTimer;
 };
 
-framework::DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc, bool conet = false, bool askDISTSTF = true);
+framework::DataProcessorSpec getCompressedDecodingSpec(const std::string& inputDesc, bool conet = false, bool askDISTSTF = true, int norbitPerTF = -1, bool localCmp = false);
 
 } // namespace tof
 } // namespace o2

@@ -25,15 +25,18 @@
 #include "DataFormatsTRD/RecoInputContainer.h"
 #include "GPUWorkflowHelper/GPUWorkflowHelper.h"
 #include "Framework/ConfigParamRegistry.h"
-
+#include "Framework/CCDBParamSpec.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "CommonConstants/GeomConstants.h"
 #include "ITStracking/IOUtils.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "DataFormatsITSMFT/Cluster.h"
+#include "DataFormatsFT0/RecPoints.h"
 #include "ITSReconstruction/RecoGeomHelper.h"
 #include "ITSMFTReconstruction/ClustererParam.h"
+#include "DataFormatsGlobalTracking/TrackTuneParams.h"
+
 // GPU header
 #include "GPUReconstruction.h"
 #include "GPUChainTracking.h"
@@ -64,6 +67,7 @@ namespace trd
 void TRDGlobalTracking::init(InitContext& ic)
 {
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
+  mTPCCorrMapsLoader.init(ic);
   mTimer.Stop();
   mTimer.Reset();
 }
@@ -71,8 +75,8 @@ void TRDGlobalTracking::init(InitContext& ic)
 void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-  o2::tpc::VDriftHelper::extractCCDBInputs(pc);
-  o2::tpc::CorrectionMapsLoader::extractCCDBInputs(pc);
+  mTPCVDriftHelper.extractCCDBInputs(pc);
+  mTPCCorrMapsLoader.extractCCDBInputs(pc);
   // pc.inputs().get<TopologyDictionary*>("cldict"); // called by the RecoContainer to trigger finaliseCCDB
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
@@ -114,6 +118,12 @@ void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
     LOG(info) << "Strict matching mode is " << ((mStrict) ? "ON" : "OFF");
     LOGF(info, "The search road in time for ITS-TPC tracks is set to %.1f sigma and %.2f us are added to it on top",
          mRec->GetParam().rec.trd.nSigmaTerrITSTPC, mRec->GetParam().rec.trd.addTimeRoadITSTPC);
+
+    /// Get the PID model if requested
+    if (mWithPID) {
+      mBase = getTRDPIDBase(mPolicy);
+      mBase->init(pc);
+    }
   }
 
   bool updateCalib = false;
@@ -127,16 +137,18 @@ void TRDGlobalTracking::updateTimeDependentParams(ProcessingContext& pc)
     mTPCTBinMUS = elParam.ZbinWidth;
     mTPCTBinMUSInv = 1. / mTPCTBinMUS;
     auto& vd = mTPCVDriftHelper.getVDriftObject();
-    mTPCVdrift = vd.refVDrift * vd.corrFact;
-    LOGP(info, "Updating TPC VDrift with factor of {} wrt reference {} from source {}",
-         mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getSourceName());
+    mTPCVdrift = vd.getVDrift();
+    mTPCTDriftOffset = vd.getTimeOffset();
+    LOGP(info, "Updating TPC VDrift factor of {} wrt reference {} and DriftTimeOffset correction {} wrt {} from source {}",
+         vd.corrFact, vd.refVDrift, vd.timeOffsetCorr, vd.refTimeOffset, mTPCVDriftHelper.getSourceName());
     mTracker->SetTPCVdrift(mTPCVdrift);
+    mTracker->SetTPCTDriftOffset(mTPCTDriftOffset);
     mTPCVDriftHelper.acknowledgeUpdate();
     updateCalib = true;
   }
   if (updateCalib) {
     auto& vd = mTPCVDriftHelper.getVDriftObject();
-    mTPCCorrMapsLoader.updateVDrift(vd.corrFact, vd.refVDrift);
+    mTPCCorrMapsLoader.updateVDrift(vd.corrFact, vd.refVDrift, vd.getTimeOffset());
   }
 }
 
@@ -209,23 +221,30 @@ void TRDGlobalTracking::fillMCTruthInfo(const TrackTRD& trk, o2::MCCompLabel lbl
 void TRDGlobalTracking::fillTrackTriggerRecord(const std::vector<TrackTRD>& tracks, std::vector<TrackTriggerRecord>& trigRec, const gsl::span<const o2::trd::TriggerRecord>& trackletTrigRec) const
 {
   // after the tracking is done we assemble here a TrackTriggerRecord similar to the TriggerRecord
-  // which for each TRD trigger stored the found tracks
-  int currTrigRec = 0;
+  // which for each TRD trigger stores the index of the first found track and the total number of tracks
+
   int nTracksCurr = 0;
   int iTrackFirst = 0;
-  for (const auto& trk : tracks) {
-    if (trk.getCollisionId() != currTrigRec) {
-      // new collision ID, create new track trigger record
-      trigRec.emplace_back(trackletTrigRec[currTrigRec].getBCData(), iTrackFirst, nTracksCurr);
-      currTrigRec = trk.getCollisionId();
+  int prevCollisionID = -1;
+
+  for (size_t iTrk = 0; iTrk < tracks.size(); ++iTrk) {
+    const auto& trk = tracks[iTrk];
+    auto collisionID = trk.getCollisionId();
+    if (iTrk == 0) {
+      prevCollisionID = collisionID;
+    }
+    if (collisionID != prevCollisionID) {
+      // we have a track from a new trigger within the same TF
+      trigRec.emplace_back(trackletTrigRec[prevCollisionID].getBCData(), iTrackFirst, nTracksCurr);
       iTrackFirst += nTracksCurr;
+      prevCollisionID = collisionID;
       nTracksCurr = 0;
     }
     ++nTracksCurr;
   }
   if (nTracksCurr > 0) {
-    // create track trigger record for remaining track range
-    trigRec.emplace_back(trackletTrigRec[currTrigRec].getBCData(), iTrackFirst, nTracksCurr);
+    // this is the last trigger record for this TF, we can take the collision ID from the last track
+    trigRec.emplace_back(trackletTrigRec[tracks.back().getCollisionId()].getBCData(), iTrackFirst, nTracksCurr);
   }
 }
 
@@ -298,6 +317,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   }
 
   // load input tracks
+  const auto& trackTune = o2::globaltracking::TrackTuneParams::Instance();
   LOG(debug) << "Start loading input seeds into TRD tracker";
   int nTracksLoadedITSTPC = 0;
   int nTracksLoadedTPC = 0;
@@ -309,6 +329,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
     trkAttribs.mTimeAddMax = trkITSTPC.getTimeMUS().getTimeStampError() * mRec->GetParam().rec.trd.nSigmaTerrITSTPC + mRec->GetParam().rec.trd.addTimeRoadITSTPC;
     trkAttribs.mTimeSubMax = trkITSTPC.getTimeMUS().getTimeStampError() * mRec->GetParam().rec.trd.nSigmaTerrITSTPC + mRec->GetParam().rec.trd.addTimeRoadITSTPC;
     GPUTRDTrack trkLoad(trkITSTPC);
+    // no TrackTuneParams for outerParam of ITS-TPC tracks: if needed, they are corrected already in the ITS-TPC matching refit
     auto trackGID = GTrackID(iTrk, GTrackID::ITSTPC);
     if (mTracker->LoadTrack(trkLoad, trackGID.getRaw(), true, &trkAttribs)) {
       continue;
@@ -324,7 +345,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
     }
     const auto& trkTpc = mChainTracking->mIOPtrs.outputTracksTPCO2[iTrk];
     GPUTRDTracker::HelperTrackAttributes trkAttribs;
-    trkAttribs.mTime = trkTpc.getTime0() * mTPCTBinMUS;
+    trkAttribs.mTime = trkTpc.getTime0() * mTPCTBinMUS - mTPCTDriftOffset; // account for the eventual time bias for TPC tracks time
     trkAttribs.mTimeAddMax = trkTpc.getDeltaTFwd() * mTPCTBinMUS;
     trkAttribs.mTimeSubMax = trkTpc.getDeltaTBwd() * mTPCTBinMUS;
     if (trkTpc.hasASideClustersOnly()) {
@@ -333,6 +354,14 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
       trkAttribs.mSide = 1;
     }
     GPUTRDTrack trkLoad(trkTpc);
+    if (!trackTune.sourceLevelTPC) { // correct TPC tracks only if they were not corrected on the source level
+      if (trackTune.useTPCOuterCorr) {
+        trkLoad.updateParams(trackTune.tpcParOuter);
+      }
+      if (trackTune.tpcCovOuterType != o2::globaltracking::TrackTuneParams::AddCovType::Disable) {
+        trkLoad.updateCov(trackTune.tpcCovOuter, trackTune.tpcCovOuterType == o2::globaltracking::TrackTuneParams::AddCovType::WithCorrelations);
+      }
+    }
     auto trackGID = GTrackID(iTrk, GTrackID::TPC);
     if (mTracker->LoadTrack(trkLoad, trackGID.getRaw(), true, &trkAttribs)) {
       continue;
@@ -343,9 +372,9 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   LOGF(info, "%i tracks are loaded into the TRD tracker. Out of those %i ITS-TPC tracks and %i TPC tracks", nTracksLoadedITSTPC + nTracksLoadedTPC, nTracksLoadedITSTPC, nTracksLoadedTPC);
 
   // start the tracking
-  //mTracker->DumpTracks();
+  // mTracker->DumpTracks();
   mChainTracking->DoTRDGPUTracking<GPUTRDTrackerKernels::o2Version>(mTracker);
-  //mTracker->DumpTracks();
+  // mTracker->DumpTracks();
 
   // finished tracking, now collect the output
   std::vector<TrackTRD> tracksOutITSTPC;
@@ -356,6 +385,43 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
   std::vector<unsigned int> trackIdxArray(mTracker->NTracks()); // track indices sorted by trigger record index
   std::iota(trackIdxArray.begin(), trackIdxArray.end(), 0);
   std::sort(trackIdxArray.begin(), trackIdxArray.end(), [tracksOutRaw](int lhs, int rhs) { return tracksOutRaw[lhs].getCollisionId() < tracksOutRaw[rhs].getCollisionId(); });
+
+  std::vector<std::pair<uint8_t, uint8_t>> pileUpDist;
+  bool ft0Seen = false;
+  if (mTrkMask[GTrackID::FT0]) { // pile-up tagging was requested
+    long maxDiffFwd = mTracker->Param().rec.trd.pileupFwdNBC;
+    long maxDiffBwd = mTracker->Param().rec.trd.pileupBwdNBC;
+    auto ft0recPoints = inputTracks.getFT0RecPoints();
+    auto trdTriggers = tmpInputContainer->mTriggerRecords;
+    ft0Seen = ft0recPoints.size() > 0;
+    pileUpDist.resize(trdTriggers.size(), {0, 0});
+    size_t curFT0 = 0;
+    for (size_t itrd = 0; itrd < trdTriggers.size(); itrd++) {
+      const auto& trig = trdTriggers[itrd];
+      uint8_t fwd = 0, bwd = 0;
+      for (size_t ft0id = curFT0; ft0id < ft0recPoints.size(); ft0id++) {
+        const auto& f0rec = ft0recPoints[ft0id];
+        if (f0rec.getTrigger().getVertex()) {
+          auto bcdiff = trig.getBCData().toLong() - f0rec.getInteractionRecord().toLong();
+          if (bcdiff > maxDiffBwd) {
+            curFT0 = ft0id + 1;
+            continue;
+          }
+          if (bcdiff > 0) { // pre-trigger pileup, maxDiffBwd is guaranteed to be < max uint8_t
+            if (bwd == 0) {
+              bwd = uint8_t(bcdiff);
+            }
+          } else {
+            if (bcdiff < -maxDiffFwd) {
+              break;
+            }
+            fwd = uint8_t(-bcdiff); // post-trigger pileup, maxDiffFwd is guaranteed to be < max uint8_t
+          }
+        }
+      }
+      pileUpDist[itrd] = {bwd, fwd};
+    }
+  }
 
   int nTrackletsAttached = 0; // only used for debug information
   int nTracksFailedTPCTRDRefit = 0;
@@ -370,11 +436,22 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
       // skip tracks which have another hypothesis close to the best one or which do are above strict chi2 threshold
       continue;
     }
+    if (trdTrack.getNtracklets() < mTracker->Param().rec.trd.nTrackletsMin) {
+      continue;
+    }
+    if (trdTrack.getChi2() / trdTrack.getNtracklets() > mTracker->Param().rec.trd.maxChi2Red) {
+      continue;
+    }
     nTrackletsAttached += trdTrack.getNtracklets();
     auto trackGID = trdTrack.getRefGlobalTrackId();
     if (trackGID.includesDet(GTrackID::Source::ITS)) {
       // this track is from an ITS-TPC seed
       tracksOutITSTPC.push_back(trdTrack);
+      if (ft0Seen) {
+        tracksOutITSTPC.back().setPileUpDistance(pileUpDist[trdTrack.getCollisionId()].first, pileUpDist[trdTrack.getCollisionId()].second);
+      } else {
+        tracksOutITSTPC.back().setPileUpDistance(mTracker->Param().rec.trd.pileupBwdNBC, mTracker->Param().rec.trd.pileupFwdNBC);
+      }
       if (!refitITSTPCTRDTrack(tracksOutITSTPC.back(), mChainTracking->mIOPtrs.trdTriggerTimes[trdTrack.getCollisionId()], &inputTracks) || std::isnan(tracksOutITSTPC.back().getSnp())) {
         tracksOutITSTPC.pop_back();
         ++nTracksFailedITSTPCTRDRefit;
@@ -383,9 +460,17 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
       if (mUseMC) {
         fillMCTruthInfo(trdTrack, itstpcTrackLabels[trackGID], trdLabelsITSTPC, matchLabelsITSTPC, inputTracks.getTRDTrackletsMCLabels());
       }
+      if (mWithPID) {
+        tracksOutITSTPC.back().setSignal(mBase->process(trdTrack, inputTracks, false));
+      }
     } else {
       // this track is from a TPC-only seed
       tracksOutTPC.push_back(trdTrack);
+      if (ft0Seen) {
+        tracksOutTPC.back().setPileUpDistance(pileUpDist[trdTrack.getCollisionId()].first, pileUpDist[trdTrack.getCollisionId()].second);
+      } else {
+        tracksOutTPC.back().setPileUpDistance(mTracker->Param().rec.trd.pileupBwdNBC, mTracker->Param().rec.trd.pileupFwdNBC);
+      }
       if (!refitTPCTRDTrack(tracksOutTPC.back(), mChainTracking->mIOPtrs.trdTriggerTimes[trdTrack.getCollisionId()], &inputTracks) || std::isnan(tracksOutTPC.back().getSnp())) {
         tracksOutTPC.pop_back();
         ++nTracksFailedTPCTRDRefit;
@@ -393,6 +478,9 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
       }
       if (mUseMC) {
         fillMCTruthInfo(trdTrack, tpcTrackLabels[trackGID], trdLabelsTPC, matchLabelsTPC, inputTracks.getTRDTrackletsMCLabels());
+      }
+      if (mWithPID) {
+        tracksOutTPC.back().setSignal(mBase->process(trdTrack, inputTracks, true));
       }
     }
   }
@@ -433,9 +521,13 @@ bool TRDGlobalTracking::refitITSTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::gl
   auto& outerParam = trk.getOuterParam();
   auto detRefs = recoCont->getSingleDetectorRefs(trk.getRefGlobalTrackId());
   int nCl = -1, clEntry = -1, nClRefit = 0, clRefs[14];
-  float chi2Out = 0;
+  float chi2Out = 0, timeZErr = 0.;
+  bool pileUpOn = trk.hasPileUpInfo(); // distance to farthest collision within the pileup integration time is set
+  if (pileUpOn) {
+    timeTRD += trk.getPileUpTimeShiftMUS(); // shift to average pileup position
+  }
   auto geom = o2::its::GeometryTGeo::Instance();
-
+  auto matCorr = o2::base::Propagator::MatCorrType(mRec->GetParam().rec.trd.matCorrType);
   if (detRefs[GTrackID::ITS].isIndexSet()) { // this is ITS track
     const auto& trkITS = mITSTracksArray[detRefs[GTrackID::ITS]];
     outerParam = trkITS.getParamOut();
@@ -450,11 +542,12 @@ bool TRDGlobalTracking::refitITSTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::gl
     nCl = trkITSABref.getNClusters();
     clEntry = trkITSABref.getFirstEntry();
     outerParam = recoCont->getTPCITSTrack(trk.getRefGlobalTrackId()); // start from the inner kinematics of ITS-TPC
+    outerParam.resetCovariance(100);                                  // reset covariance to something big
     // refit
-    for (int icl = 0; icl < nCl; icl++) {                                                                                  // clusters are stored from inner to outer layers
-      const auto& clus = mITSClustersArray[clRefs[nCl - icl - 1] = mITSABTrackClusIdx[clEntry + icl]];                     // register in clRefs from outer to inner layer
+    for (int icl = 0; icl < nCl; icl++) {                                                              // clusters are stored from inner to outer layers
+      const auto& clus = mITSClustersArray[clRefs[nCl - icl - 1] = mITSABTrackClusIdx[clEntry + icl]]; // register in clRefs from outer to inner layer
       if (!outerParam.rotate(geom->getSensorRefAlpha(clus.getSensorID())) ||
-          !propagator->propagateToX(outerParam, clus.getX(), propagator->getNominalBz(), o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, o2::base::Propagator::MatCorrType::USEMatCorrLUT)) {
+          !propagator->propagateToX(outerParam, clus.getX(), propagator->getNominalBz(), o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, matCorr)) {
         break;
       }
       chi2Out += outerParam.getPredictedChi2(clus);
@@ -469,12 +562,13 @@ bool TRDGlobalTracking::refitITSTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::gl
     }
   }
 
-  int retVal = mTPCRefitter->RefitTrackAsTrackParCov(outerParam, mTPCTracksArray[detRefs[GTrackID::TPC]].getClusterRef(), timeTRD * mTPCTBinMUSInv, &chi2Out, true, false); // outward refit
+  int retVal = mTPCRefitter->RefitTrackAsTrackParCov(outerParam, mTPCTracksArray[detRefs[GTrackID::TPC]].getClusterRef(), (timeTRD + mTPCTDriftOffset) * mTPCTBinMUSInv, &chi2Out, true, false); // outward refit
   if (retVal < 0) {
     LOG(debug) << "TPC refit outwards failed";
     return false;
   }
-  if (!refitTRDTrack(trk, chi2Out, false)) {
+
+  if (!refitTRDTrack(trk, chi2Out, false, false)) {
     LOG(debug) << "TRD refit outwards failed";
     return false;
   }
@@ -482,12 +576,12 @@ bool TRDGlobalTracking::refitITSTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::gl
   // refit ITS-TPC-TRD track inwards to innermost ITS cluster
   // here we also calculate the LT integral for matching to TOF
   float chi2In = 0.f;
-  if (!refitTRDTrack(trk, chi2In, true)) {
+  if (!refitTRDTrack(trk, chi2In, true, false)) {
     LOG(debug) << "TRD refit inwards failed";
     return false;
   }
   auto posStart = trk.getXYZGlo();
-  retVal = mTPCRefitter->RefitTrackAsTrackParCov(trk, mTPCTracksArray[detRefs[GTrackID::TPC]].getClusterRef(), timeTRD * mTPCTBinMUSInv, &chi2In, false, false); // inward refit
+  retVal = mTPCRefitter->RefitTrackAsTrackParCov(trk, mTPCTracksArray[detRefs[GTrackID::TPC]].getClusterRef(), (timeTRD + mTPCTDriftOffset) * mTPCTBinMUSInv, &chi2In, false, false); // inward refit
   if (retVal < 0) {
     LOG(debug) << "TPC refit inwards failed";
     return false;
@@ -506,13 +600,28 @@ bool TRDGlobalTracking::refitITSTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::gl
   trk.getLTIntegralOut().addStep(lInt, trk.getP2Inv());
   // trk.getLTIntegralOut().addX2X0(lInt * mTPCmeanX0Inv); // do we need to account for the material budget here? probably
 
+  const auto& trackTune = o2::globaltracking::TrackTuneParams::Instance();
+  if (trackTune.tpcCovInnerType != o2::globaltracking::TrackTuneParams::AddCovType::Disable || trackTune.useTPCInnerCorr) { // if needed, correct TPC track in the middle of TPC->ITS refit
+    if (!propagator->PropagateToXBxByBz(trk, o2::constants::geom::XTPCInnerRef, o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, matCorr, &trk.getLTIntegralOut())) {
+      LOG(debug) << "Propagation to TPC inner reference X for ITS refit inwards failed";
+      return false;
+    }
+    if (!trackTune.useTPCInnerCorr) {
+      trk.updateParams(trackTune.tpcParInner);
+    }
+    if (trackTune.tpcCovInnerType != o2::globaltracking::TrackTuneParams::AddCovType::Disable) {
+      trk.updateCov(trackTune.tpcCovInner, trackTune.tpcCovInnerType == o2::globaltracking::TrackTuneParams::AddCovType::WithCorrelations);
+    }
+  }
+
+  nClRefit = 0;
   for (int icl = 0; icl < nCl; icl++) {
     const auto& clus = mITSClustersArray[clRefs[icl]];
     if (!trk.rotate(geom->getSensorRefAlpha(clus.getSensorID())) ||
         // note: here we also calculate the L,T integral (in the inward direction, but this is irrelevant)
         // note: we should eventually use TPC pid in the refit (TODO)
         // note: since we are at small R, we can use field BZ component at origin rather than 3D field
-        !propagator->propagateToX(trk, clus.getX(), propagator->getNominalBz(), o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, o2::base::Propagator::MatCorrType::USEMatCorrLUT, &trk.getLTIntegralOut())) {
+        !propagator->propagateToX(trk, clus.getX(), propagator->getNominalBz(), o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, matCorr, &trk.getLTIntegralOut())) {
       break;
     }
     chi2In += trk.getPredictedChi2(clus);
@@ -530,7 +639,7 @@ bool TRDGlobalTracking::refitITSTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::gl
   // and since for the LTOF calculation the material effects are irrelevant, we skip material corrections
   const o2::dataformats::VertexBase vtxDummy; // at the moment using dummy vertex: TODO use MeanVertex constraint instead
   o2::track::TrackPar trkPar(trk);
-  if (!propagator->propagateToDCA(vtxDummy.getXYZ(), trkPar, propagator->getNominalBz(), o2::base::Propagator::MAX_STEP, o2::base::Propagator::MatCorrType::USEMatCorrNONE, nullptr, &trk.getLTIntegralOut())) {
+  if (!propagator->propagateToDCA(vtxDummy.getXYZ(), trkPar, propagator->getNominalBz(), o2::base::Propagator::MAX_STEP, matCorr, nullptr, &trk.getLTIntegralOut())) {
     LOG(error) << "LTOF integral might be incorrect";
   }
   return true;
@@ -539,34 +648,46 @@ bool TRDGlobalTracking::refitITSTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::gl
 bool TRDGlobalTracking::refitTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::globaltracking::RecoContainer* recoCont)
 {
   auto propagator = o2::base::Propagator::Instance();
-
+  auto matCorr = o2::base::Propagator::MatCorrType(mRec->GetParam().rec.trd.matCorrType);
   // refit TPC-TRD track outwards toward outermost TRD space point
   auto& outerParam = trk.getOuterParam();
   auto detRefs = recoCont->getSingleDetectorRefs(trk.getRefGlobalTrackId());
   outerParam = trk;
-  float chi2Out = 0;
-  int retVal = mTPCRefitter->RefitTrackAsTrackParCov(outerParam, mTPCTracksArray[detRefs[GTrackID::TPC]].getClusterRef(), timeTRD * mTPCTBinMUSInv, &chi2Out, true, false); // outward refit
+  float chi2Out = 0, timeZErr = 0.;
+  bool pileUpOn = trk.hasPileUpInfo(); // distance to farthest collision within the pileup integration time is set
+  if (pileUpOn) {
+    timeTRD += trk.getPileUpTimeShiftMUS(); // shift to average pileup position
+  }
+  int retVal = mTPCRefitter->RefitTrackAsTrackParCov(outerParam, mTPCTracksArray[detRefs[GTrackID::TPC]].getClusterRef(), (timeTRD + mTPCTDriftOffset) * mTPCTBinMUSInv, &chi2Out, true, false); // outward refit
   if (retVal < 0) {
     LOG(debug) << "TPC refit outwards failed";
     return false;
   }
-  if (!refitTRDTrack(trk, chi2Out, false)) {
+  if (pileUpOn) { // account pileup time uncertainty in Z errors
+    timeZErr = mTPCVdrift * trk.getPileUpTimeErrorMUS();
+    outerParam.updateCov(timeZErr, o2::track::CovLabels::kSigZ2);
+  }
+  if (!refitTRDTrack(trk, chi2Out, false, true)) {
     LOG(debug) << "TRD refit outwards failed";
     return false;
   }
 
   // refit TPC-TRD track inwards toward inner TPC radius
   float chi2In = 0.f;
-  if (!refitTRDTrack(trk, chi2In, true)) {
+  if (!refitTRDTrack(trk, chi2In, true, true)) {
     LOG(debug) << "TRD refit inwards failed";
     return false;
   }
   auto posStart = trk.getXYZGlo();
-  retVal = mTPCRefitter->RefitTrackAsTrackParCov(trk, mTPCTracksArray[detRefs[GTrackID::TPC]].getClusterRef(), timeTRD * mTPCTBinMUSInv, &chi2In, false, false); // inward refit
+  retVal = mTPCRefitter->RefitTrackAsTrackParCov(trk, mTPCTracksArray[detRefs[GTrackID::TPC]].getClusterRef(), (timeTRD + mTPCTDriftOffset) * mTPCTBinMUSInv, &chi2In, false, false); // inward refit
   if (retVal < 0) {
     LOG(debug) << "TPC refit inwards failed";
     return false;
   }
+  if (pileUpOn) { // account pileup time uncertainty in Z errors
+    trk.updateCov(timeZErr, o2::track::CovLabels::kSigZ2);
+  }
+
   auto posEnd = trk.getXYZGlo();
   // account path integrals
   float dX = posEnd.x() - posStart.x(), dY = posEnd.y() - posStart.y(), dZ = posEnd.z() - posStart.z(), d2XY = dX * dX + dY * dY;
@@ -581,21 +702,60 @@ bool TRDGlobalTracking::refitTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::globa
   trk.getLTIntegralOut().addStep(lInt, trk.getP2Inv());
   // trk.getLTIntegralOut().addX2X0(lInt * mTPCmeanX0Inv); // do we need to account for the material budget here? probably?
 
-  if (!propagator->PropagateToXBxByBz(trk, o2::constants::geom::XTPCInnerRef, o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, o2::base::Propagator::MatCorrType::USEMatCorrNONE, &trk.getLTIntegralOut())) {
+  if (!propagator->PropagateToXBxByBz(trk, o2::constants::geom::XTPCInnerRef, o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, matCorr, &trk.getLTIntegralOut())) {
     LOG(debug) << "Final propagation to inner TPC radius failed (not removing the track because of this)";
   }
+
+  const auto& trackTune = o2::globaltracking::TrackTuneParams::Instance(); // if needed, correct the track after inward TPC refit
+  if (!trackTune.useTPCInnerCorr) {
+    trk.updateParams(trackTune.tpcParInner);
+  }
+  if (trackTune.tpcCovInnerType != o2::globaltracking::TrackTuneParams::AddCovType::Disable) {
+    trk.updateCov(trackTune.tpcCovInner, trackTune.tpcCovInnerType == o2::globaltracking::TrackTuneParams::AddCovType::WithCorrelations);
+  }
+
   propagator->estimateLTFast(trk.getLTIntegralOut(), trk); // guess about initial value for the track integral from the origin
   return true;
 }
 
-bool TRDGlobalTracking::refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards)
+bool TRDGlobalTracking::refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards, bool tpcSA)
 {
   auto propagator = o2::base::Propagator::Instance();
+
   int lyStart = inwards ? NLAYER - 1 : 0;
   int direction = inwards ? -1 : 1;
   int lyEnd = inwards ? -1 : NLAYER;
-  o2::track::TrackParCov* trkParam = inwards ? &trk : &trk.getOuterParam();
-  o2::track::TrackLTIntegral* tofL = inwards ? &trk.getLTIntegralOut() : nullptr;
+  o2::track::TrackParCov* trkParam = nullptr;
+  o2::track::TrackLTIntegral* tofL = nullptr;
+  auto matCorr = o2::base::Propagator::MatCorrType(mRec->GetParam().rec.trd.matCorrType);
+
+  if (inwards) {
+    trkParam = &trk;
+    tofL = &trk.getLTIntegralOut();
+  } else {
+    trkParam = &trk.getOuterParam();
+    trkParam->setUserField(trk.getUserField()); // pileup timing info
+
+    const auto& trackTune = o2::globaltracking::TrackTuneParams::Instance();
+    if ((trackTune.useTPCOuterCorr || trackTune.tpcCovOuterType != o2::globaltracking::TrackTuneParams::AddCovType::Disable) &&
+        (!tpcSA || !trackTune.sourceLevelTPC)) { // for TPC standalone make sure correction was not applied ad the source level
+      if (!propagator->PropagateToXBxByBz(*trkParam, o2::constants::geom::XTPCOuterRef, o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, matCorr)) {
+        LOG(debug) << "Propagation to TPC outer reference X for TRD outward refit failed";
+        return false;
+      }
+      if (trackTune.useTPCOuterCorr) {
+        trkParam->updateParams(trackTune.tpcParOuter);
+      }
+      if (trackTune.tpcCovOuterType != o2::globaltracking::TrackTuneParams::AddCovType::Disable) {
+        trkParam->updateCov(trackTune.tpcCovOuter, trackTune.tpcCovOuterType == o2::globaltracking::TrackTuneParams::AddCovType::WithCorrelations);
+      }
+    }
+  }
+
+  if (inwards) {
+    // reset covariance to something big for inwards refit
+    trkParam->resetCovariance(100);
+  }
   for (int iLy = lyStart; iLy != lyEnd; iLy += direction) {
     int trkltId = trk.getTrackletIndex(iLy);
     if (trkltId < 0) {
@@ -609,7 +769,7 @@ bool TRDGlobalTracking::refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards)
         return false;
       }
     }
-    if (!propagator->PropagateToXBxByBz(*trkParam, mTrackletsCalib[trkltId].getX(), o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, o2::base::Propagator::MatCorrType::USEMatCorrNONE, tofL)) {
+    if (!propagator->PropagateToXBxByBz(*trkParam, mTrackletsCalib[trkltId].getX(), o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, matCorr, tofL)) {
       LOGF(debug, "Track propagation failed in layer %i (pt=%f, xTrk=%f, xToGo=%f)", iLy, trkParam->getPt(), trkParam->getX(), mTrackletsCalib[trkltId].getX());
       return false;
     }
@@ -632,6 +792,9 @@ bool TRDGlobalTracking::refitTRDTrack(TrackTRD& trk, float& chi2, bool inwards)
       return false;
     }
   }
+  if (!inwards) { // to make sure that the inward fit will start from the trkParam
+    ((o2::track::TrackParCov&)trk) = *trkParam;
+  }
   return true;
 }
 
@@ -641,7 +804,7 @@ void TRDGlobalTracking::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, bool trigRecFilterActive, bool strict)
+DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, bool trigRecFilterActive, bool strict, bool withPID, PIDPolicy policy)
 {
   std::vector<OutputSpec> outputs;
   uint32_t ss = o2::globaltracking::getSubSpec(strict ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
@@ -669,7 +832,27 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, boo
                                                               inputs,
                                                               true);
   o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
-  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(inputs);
+  Options opts;
+  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(inputs, opts, src[GTrackID::CTP]);
+
+  // Request PID policy data
+  if (withPID) {
+    switch (policy) {
+      case PIDPolicy::LQ1D:
+        // inputs.emplace_back("LQ1D", "TRD", "LQ1D", 0, Lifetime::Condition, ccdbParamSpec("TRD/ppPID/LQ1D"));
+        break;
+      case PIDPolicy::LQ3D:
+        // inputs.emplace_back("LQ3D", "TRD", "LQ3D", 0, Lifetime::Condition, ccdbParamSpec("TRD/ppPID/LQ3D"));
+        break;
+      case PIDPolicy::Test:
+        inputs.emplace_back("mlTest", "TRD", "MLTEST", 0, Lifetime::Condition, ccdbParamSpec("TRD_test/pid/xgb1"));
+        break;
+      case PIDPolicy::Dummy:
+        break;
+      default:
+        throw std::runtime_error("Unable to load requested PID policy data!");
+    }
+  }
 
   if (GTrackID::includesSource(GTrackID::Source::ITSTPC, src)) {
     outputs.emplace_back(o2::header::gDataOriginTRD, "MATCH_ITSTPC", 0, Lifetime::Timeframe);
@@ -677,6 +860,9 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, boo
     if (useMC) {
       outputs.emplace_back(o2::header::gDataOriginTRD, "MCLB_ITSTPC", 0, Lifetime::Timeframe);
       outputs.emplace_back(o2::header::gDataOriginTRD, "MCLB_ITSTPC_TRD", 0, Lifetime::Timeframe);
+    }
+    if (withPID) {
+      outputs.emplace_back(o2::header::gDataOriginTRD, "TRDPID_ITSTPC", 0, Lifetime::Timeframe);
     }
   }
   if (GTrackID::includesSource(GTrackID::Source::TPC, src)) {
@@ -699,8 +885,8 @@ DataProcessorSpec getTRDGlobalTrackingSpec(bool useMC, GTrackID::mask_t src, boo
     processorName,
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TRDGlobalTracking>(useMC, dataRequest, ggRequest, src, trigRecFilterActive, strict)},
-    Options{{"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}}}};
+    AlgorithmSpec{adaptFromTask<TRDGlobalTracking>(useMC, withPID, policy, dataRequest, ggRequest, src, trigRecFilterActive, strict)},
+    opts};
 }
 
 } // namespace trd

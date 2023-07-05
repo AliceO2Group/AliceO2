@@ -20,11 +20,12 @@
 #include <TGeoManager.h>               // for gGeoManager
 #include "Rtypes.h"                    // for Double_t, Int_t, Bool_t, etc
 #include "ITSSimulation/V11Geometry.h" // for V11Geometry
-#include "ITSSimulation/Detector.h"    // for Detector, Detector::Model
 
 class TGeoXtru;
 
 class TGeoCombiTrans;
+
+class TGeoCompositeShape;
 
 class TGeoVolume;
 
@@ -40,6 +41,9 @@ class V3Services : public V11Geometry
  public:
   // Default constructor
   V3Services();
+
+  // Standard constructor
+  V3Services(const char* name);
 
   /// Copy constructor
   V3Services(const V3Services&) = default;
@@ -96,6 +100,16 @@ class V3Services : public V11Geometry
   /// \param mother the TGeoVolume owing the volume structure
   /// \param mgr  The GeoManager (used only to get the proper material)
   void createOBCYSSCylinder(TGeoVolume* mother, const TGeoManager* mgr = gGeoManager);
+
+  /// Creates the Inner Barrel Gamma Conversion Wire
+  /// \param mother the TGeoVolume owing the volume structure
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  void createIBGammaConvWire(TGeoVolume* mother, const TGeoManager* mgr = gGeoManager);
+
+  /// Steering method to creates the ITS Services (tubes, cables, and the like)
+  /// \param motherVolume the TGeoVolume owing the volume supports
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  void createAllITSServices(TGeoVolume* motherVolume, const TGeoManager* mgr = gGeoManager);
 
   /// Creates the Outer Barrel Gamma Conversion Wire
   /// \param mother the TGeoVolume owing the volume structure
@@ -176,6 +190,17 @@ class V3Services : public V11Geometry
   /// \param mother  the volume containing the created wheel
   /// \param mgr  The GeoManager (used only to get the proper material)
   void obCYSS11(TGeoVolume* mother, const TGeoManager* mgr = gGeoManager);
+
+  /// Creates the Inner Barrel Gamma Conversion Wire
+  /// \param mother the TGeoVolume owing the volume structure
+  /// \param mgr  The GeoManager (used only to get the proper material)
+  void ibConvWire(TGeoVolume* mother, const TGeoManager* mgr = gGeoManager);
+
+  /// Creates the internal support of the Inner Barrel Gamma Conversion Wire
+  TGeoCompositeShape* ibConvWireIntSupport(const Bool_t left);
+
+  /// Creates the external support of the Inner Barrel Gamma Conversion Wire
+  TGeoCompositeShape* ibConvWireOutSupport();
 
   /// Creates the Outer Barrel Gamma Conversion Wire
   /// \param mother the TGeoVolume owing the volume structure

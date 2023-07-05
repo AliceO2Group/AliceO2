@@ -35,9 +35,9 @@ int InterCalibEPN::init()
   }
 
   // Inspect calibration parameters
-  o2::zdc::CalibParamZDC& opt = const_cast<o2::zdc::CalibParamZDC&>(CalibParamZDC::Instance());
+  const auto& opt = CalibParamZDC::Instance();
   opt.print();
-  if (opt.rootOutput == true) {
+  if (opt.debugOutput == true) {
     setSaveDebugHistos();
   }
 
@@ -124,7 +124,7 @@ int InterCalibEPN::endOfRun()
     }
   }
   if (mSaveDebugHistos) {
-    write();
+    saveDebugHistos();
   }
   return 0;
 }
@@ -235,7 +235,8 @@ void InterCalibEPN::cumulate(int ih, double tc, double t1, double t2, double t3,
   mC[ih]->fill(val[0], sumquad, w);
 }
 
-int InterCalibEPN::write(const std::string fn)
+//______________________________________________________________________________
+int InterCalibEPN::saveDebugHistos(const std::string fn)
 {
   TDirectory* cwd = gDirectory;
   TFile* f = new TFile(fn.data(), "recreate");

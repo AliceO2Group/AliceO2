@@ -18,8 +18,6 @@
 #define ALIGNABLESENSORTRD_H
 
 #include "Align/AlignableSensor.h"
-//class AliTrackPointArray;
-//class AliESDtrack;
 class AlignmentPoint;
 class TObjArray;
 
@@ -31,19 +29,16 @@ namespace align
 class AlignableSensorTRD : public AlignableSensor
 {
  public:
-  AlignableSensorTRD(const char* name = 0, int vid = 0, int iid = 0, int isec = 0);
-  ~AlignableSensorTRD() final;
-  //
-  int GetSector() const { return fSector; }
-  void SetSector(uint32_t sc) { fSector = (uint8_t)sc; }
-  //
-  void dPosTraDParCalib(const AlignmentPoint* pnt, double* deriv, int calibID, const AlignableVolume* parent = 0) const final;
-  //
+  AlignableSensorTRD() = default;
+  AlignableSensorTRD(const char* name, int vid, int iid, int isec, Controller* ctr);
+  ~AlignableSensorTRD() final = default;
+  int getSector() const { return mSector; }
+  void setSector(int sc) { mSector = (uint8_t)sc; }
+  void dPosTraDParCalib(const AlignmentPoint* pnt, double* deriv, int calibID, const AlignableVolume* parent = nullptr) const final;
   void prepareMatrixT2L() final;
-  //
+
  protected:
-  //
-  uint8_t fSector; // sector ID
+  uint8_t mSector = 0; // sector ID
 
   ClassDef(AlignableSensorTRD, 1)
 };

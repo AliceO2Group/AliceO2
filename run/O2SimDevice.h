@@ -22,12 +22,18 @@
 #include "../macro/o2sim.C"
 #include "TVirtualMC.h"
 #include "TMessage.h"
-#include <SimulationDataFormat/Stack.h>
+#include <DetectorsBase/Stack.h>
 #include <SimulationDataFormat/PrimaryChunk.h>
 #include <TRandom.h>
 #include <SimConfig/SimConfig.h>
 #include <cstring>
 #include "PrimaryServerState.h"
+
+// a helper for logging with worker index prefixed
+void doLogInfo(int workerID, std::string const& message)
+{
+  LOG(info) << "[W" << workerID << "] " << message;
+}
 
 namespace o2
 {
@@ -66,7 +72,7 @@ class O2SimDevice final : public fair::mq::Device
     // NOTE: In a fair::mq::Device this is better done here (instead of outside) since
     // we have to setup simulation + worker in the same thread (due to many threadlocal variables
     // in the simulation) ... at least as long fair::mq::Device is not spawning workers on the master thread
-    initSim(fChannels.at("o2sim-primserv-info").at(0), mSimRun);
+    initSim(GetChannels().at("o2sim-primserv-info").at(0), mSimRun);
 
     // set the vmc and app pointers
     mVMC = TVirtualMC::GetMC();
@@ -206,25 +212,26 @@ class O2SimDevice final : public fair::mq::Device
       return str.str();
     };
 
-    LOG(info) << workerStr() << " Requesting work chunk";
+    doLogInfo(workerID, "Requesting work chunk");
     int timeoutinMS = 2000;
     auto sendcode = requestchannel.Send(request, timeoutinMS);
     if (sendcode > 0) {
-      LOG(info) << workerStr() << " Waiting for answer";
+      doLogInfo(workerID, "Waiting for answer");
       // asking for primary generation
 
       auto code = requestchannel.Receive(reply);
       if (code > 0) {
-        LOG(info) << workerStr() << " Primary chunk received";
+        doLogInfo(workerID, "Primary chunk received");
         auto rawmessage = std::move(reply.At(0));
         auto header = *(o2::PrimaryChunkAnswer*)(rawmessage->GetData());
         if (!header.payload_attached) {
-          LOG(info) << "No payload; Server in state " << PrimStateToString[(int)header.serverstate];
+          doLogInfo(workerID, "No payload; Server in stage " + std::string(PrimStateToString[(int)header.serverstate]));
           // if no payload attached we inspect the server state, to see what to do
           if (header.serverstate == O2PrimaryServerState::Initializing || header.serverstate == O2PrimaryServerState::WaitingEvent) {
             sleep(1); // back-off and retry
             return true;
           }
+          // we need to decide what to do when the server is idle ---> if this happens immediately after a new batch request it means that the server might just lag a bit behind
           return false;
         } else {
           auto payload = std::move(reply.At(1));
@@ -235,7 +242,7 @@ class O2SimDevice final : public fair::mq::Device
           bool goon = true;
           // no particles and eventID == -1 --> indication for no more work
           if (chunk->mParticles.size() == 0 && chunk->mSubEventInfo.eventID == -1) {
-            LOG(info) << workerStr() << " No particles in reply : quitting kernel";
+            doLogInfo(workerID, "No particles in reply : quitting kernel");
             goon = false;
           }
 
@@ -248,11 +255,12 @@ class O2SimDevice final : public fair::mq::Device
             LOG(info) << workerStr() << " Processing " << chunk->mParticles.size() << " primary particles "
                       << "for event " << info.eventID << "/" << info.maxEvents << " "
                       << "part " << info.part << "/" << info.nparts;
+            LOG(info) << workerStr() << " Setting seed for this sub-event to " << chunk->mSubEventInfo.seed;
             gRandom->SetSeed(chunk->mSubEventInfo.seed);
 
             // Process one event
             auto& conf = o2::conf::SimConfig::Instance();
-            if (strcmp(conf.getMCEngine().c_str(), "TGeant4") == 0) {
+            if (strcmp(conf.getMCEngine().c_str(), "TGeant4") == 0 || strcmp(conf.getMCEngine().c_str(), "O2TrivialMCEngine") == 0) {
               // this is preferred and necessary for Geant4
               // since repeated "ProcessRun" might have significant overheads
               mVMC->ProcessEvent();
@@ -285,7 +293,7 @@ class O2SimDevice final : public fair::mq::Device
   /// Overloads the ConditionalRun() method of fair::mq::Device
   bool ConditionalRun() final
   {
-    return Kernel(-1, fChannels.at("primary-get").at(0), fChannels.at("simdata").at(0));
+    return Kernel(-1, GetChannels().at("primary-get").at(0), GetChannels().at("simdata").at(0));
   }
 
   void PostRun() final { LOG(info) << "Shutting down "; }

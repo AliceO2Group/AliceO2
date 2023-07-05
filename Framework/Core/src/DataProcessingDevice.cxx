@@ -18,6 +18,7 @@
 #include "Framework/ControlService.h"
 #include "Framework/ComputingQuotaEvaluator.h"
 #include "Framework/DataProcessingHeader.h"
+#include "Framework/DataProcessingStates.h"
 #include "Framework/DataProcessor.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/DeviceState.h"
@@ -35,12 +36,19 @@
 #include "Framework/InputRecord.h"
 #include "Framework/InputSpan.h"
 #include "Framework/Signpost.h"
+#include "Framework/TimingHelpers.h"
 #include "Framework/SourceInfoHeader.h"
 #include "Framework/Logger.h"
 #include "Framework/DriverClient.h"
 #include "Framework/Monitoring.h"
 #include "Framework/TimesliceIndex.h"
 #include "Framework/VariableContextHelpers.h"
+#include "Framework/DataProcessingContext.h"
+#include "Framework/DeviceContext.h"
+#include "Framework/RawDeviceService.h"
+#include "Framework/StreamContext.h"
+#include "Framework/DefaultsHelpers.h"
+
 #include "PropertyTreeHelpers.h"
 #include "DataProcessingStatus.h"
 #include "DecongestionService.h"
@@ -76,6 +84,8 @@ using namespace o2::framework;
 using ConfigurationInterface = o2::configuration::ConfigurationInterface;
 using DataHeader = o2::header::DataHeader;
 
+constexpr int DEFAULT_MAX_CHANNEL_AHEAD = 128;
+
 namespace o2::framework
 {
 
@@ -108,58 +118,56 @@ void on_communication_requested(uv_async_t* s)
   state->loopReason |= DeviceState::METRICS_MUST_FLUSH;
 }
 
-DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistryRef registry, ProcessingPolicies& policies)
-  : mSpec{registry.get<RunningWorkflowInfo const>().devices[ref.index]},
-    mState{registry.get<DeviceState>()},
-    mInit{mSpec.algorithm.onInit},
-    mStatefulProcess{nullptr},
-    mStatelessProcess{mSpec.algorithm.onProcess},
-    mError{mSpec.algorithm.onError},
+DeviceSpec const& getRunningDevice(RunningDeviceRef const& running, ServiceRegistryRef const& services)
+{
+  auto& devices = services.get<o2::framework::RunningWorkflowInfo const>().devices;
+  return devices[running.index];
+}
+
+struct locked_execution {
+  ServiceRegistryRef& ref;
+  locked_execution(ServiceRegistryRef& ref_) : ref(ref_) { ref.lock(); }
+  ~locked_execution() { ref.unlock(); }
+};
+
+DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegistry& registry, ProcessingPolicies& policies)
+  : mRunningDevice{running},
     mConfigRegistry{nullptr},
     mServiceRegistry{registry},
-    mAllocator{&registry, mSpec.outputs},
-    mProcessingPolicies{policies},
-    mQuotaEvaluator{registry.get<ComputingQuotaEvaluator>()}
+    mProcessingPolicies{policies}
 {
-  /// FIXME: move erro handling to a service?
-  if (mError != nullptr) {
-    mErrorHandling = [&errorCallback = mError,
-                      &serviceRegistry = mServiceRegistry](RuntimeErrorRef e, InputRecord& record) {
-      ZoneScopedN("Error handling");
-      auto& err = error_from_ref(e);
-      LOGP(error, "Exception caught: {} ", err.what);
-      demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
-      serviceRegistry.get<DataProcessingStats>().exceptionCount++;
-      ErrorContext errorContext{record, serviceRegistry, e};
-      errorCallback(errorContext);
-    };
-  } else {
-    mErrorHandling = [&errorPolicy = mProcessingPolicies.error,
-                      &serviceRegistry = mServiceRegistry](RuntimeErrorRef e, InputRecord& record) {
-      ZoneScopedN("Error handling");
-      auto& err = error_from_ref(e);
-      LOGP(error, "Exception caught: {} ", err.what);
-      demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
-      serviceRegistry.get<DataProcessingStats>().exceptionCount++;
-      switch (errorPolicy) {
-        case TerminationPolicy::QUIT:
-          throw e;
-        default:
-          break;
+  GetConfig()->Subscribe<std::string>("dpl", [&cleanupCount = mCleanupCount, &registry = mServiceRegistry](const std::string& key, std::string value) {
+    if (key == "cleanup") {
+      int64_t newCleanupCount = std::stoll(value);
+      if (newCleanupCount <= cleanupCount) {
+        return;
       }
-    };
-  }
+      cleanupCount = newCleanupCount;
+      auto ref = ServiceRegistryRef{registry, ServiceRegistry::globalDeviceSalt()};
+      auto& deviceState = ref.get<DeviceState>();
+      for (auto& info : deviceState.inputChannelInfos) {
+        fair::mq::Parts parts;
+        while (info.channel->Receive(parts, 0)) {
+          LOGP(debug, "Dropping {} parts", parts.Size());
+          if (parts.Size() == 0) {
+            break;
+          }
+        }
+      }
+    }
+  });
 
   std::function<void(const fair::mq::State)> stateWatcher = [this, &registry = mServiceRegistry](const fair::mq::State state) -> void {
-    auto& deviceState = registry.get<DeviceState>();
-    auto& control = registry.get<ControlService>();
-    auto& callbacks = registry.get<CallbackService>();
+    auto ref = ServiceRegistryRef{registry, ServiceRegistry::globalDeviceSalt()};
+    auto& deviceState = ref.get<DeviceState>();
+    auto& control = ref.get<ControlService>();
+    auto& callbacks = ref.get<CallbackService>();
     control.notifyDeviceState(fair::mq::GetStateName(state));
-    callbacks(CallbackService::Id::DeviceStateChanged, registry, state);
+    callbacks.call<CallbackService::Id::DeviceStateChanged>(ServiceRegistryRef{ref}, (int)state);
 
     if (deviceState.nextFairMQState.empty() == false) {
       auto state = deviceState.nextFairMQState.back();
-      this->ChangeState(state);
+      (void)this->ChangeState(state);
       deviceState.nextFairMQState.pop_back();
     }
   };
@@ -170,16 +178,12 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
   mStreams.resize(1);
   mHandles.resize(1);
 
-  mDeviceContext.device = this;
-  mDeviceContext.spec = &mSpec;
-  mDeviceContext.state = &mState;
-  mDeviceContext.quotaEvaluator = &mQuotaEvaluator;
-  mDeviceContext.stats = &mStats;
-
+  ServiceRegistryRef ref{mServiceRegistry};
   mAwakeHandle = (uv_async_t*)malloc(sizeof(uv_async_t));
-  assert(mState.loop);
-  int res = uv_async_init(mState.loop, mAwakeHandle, on_communication_requested);
-  mAwakeHandle->data = &mState;
+  auto& state = ref.get<DeviceState>();
+  assert(state.loop);
+  int res = uv_async_init(state.loop, mAwakeHandle, on_communication_requested);
+  mAwakeHandle->data = &state;
   if (res < 0) {
     LOG(error) << "Unable to initialise subscription";
   }
@@ -200,48 +204,62 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef ref, ServiceRegistry
 void run_callback(uv_work_t* handle)
 {
   ZoneScopedN("run_callback");
-  TaskStreamInfo* task = (TaskStreamInfo*)handle->data;
-  DataProcessorContext& context = *task->context;
-  DataProcessingDevice::doPrepare(context);
-  DataProcessingDevice::doRun(context);
+  auto* task = (TaskStreamInfo*)handle->data;
+  auto ref = ServiceRegistryRef{*task->registry, ServiceRegistry::globalStreamSalt(task->id.index + 1)};
+  DataProcessingDevice::doPrepare(ref);
+  DataProcessingDevice::doRun(ref);
   //  FrameMark;
 }
 
 // Once the processing in a thread is done, this is executed on the main thread.
 void run_completion(uv_work_t* handle, int status)
 {
-  TaskStreamInfo* task = (TaskStreamInfo*)handle->data;
-  DataProcessorContext& context = *task->context;
+  auto* task = (TaskStreamInfo*)handle->data;
+  // Notice that the completion, while running on the main thread, still
+  // has a salt which is associated to the actual stream which was doing the computation
+  auto ref = ServiceRegistryRef{*task->registry, ServiceRegistry::globalStreamSalt(task->id.index + 1)};
+  auto& state = ref.get<DeviceState>();
+  auto& quotaEvaluator = ref.get<ComputingQuotaEvaluator>();
 
   using o2::monitoring::Metric;
   using o2::monitoring::Monitoring;
   using o2::monitoring::tags::Key;
   using o2::monitoring::tags::Value;
 
-  static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats&)> reportConsumedOffer = [&monitoring = context.registry->get<Monitoring>()](ComputingQuotaOffer const& accumulatedConsumed, ComputingQuotaStats& stats) {
+  static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats&)> reportConsumedOffer = [ref](ComputingQuotaOffer const& accumulatedConsumed, ComputingQuotaStats& stats) {
+    auto& dpStats = ref.get<DataProcessingStats>();
     stats.totalConsumedBytes += accumulatedConsumed.sharedMemory;
-    monitoring.send(Metric{(uint64_t)stats.totalConsumedBytes, "shm-offer-bytes-consumed"}.addTag(Key::Subsystem, Value::DPL));
-    monitoring.flushBuffer();
+
+    dpStats.updateStats({static_cast<short>(ProcessingStatsId::SHM_OFFER_BYTES_CONSUMED), DataProcessingStats::Op::Set, stats.totalConsumedBytes});
+    dpStats.processCommandQueue();
+    assert(stats.totalConsumedBytes == dpStats.metrics[(short)ProcessingStatsId::SHM_OFFER_BYTES_CONSUMED]);
   };
 
-  static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats const&)> reportExpiredOffer = [&monitoring = context.registry->get<Monitoring>()](ComputingQuotaOffer const& offer, ComputingQuotaStats const& stats) {
-    monitoring.send(Metric{(uint64_t)stats.totalExpiredOffers, "resource-offer-expired"}.addTag(Key::Subsystem, Value::DPL));
-    monitoring.send(Metric{(uint64_t)stats.totalExpiredBytes, "arrow-bytes-expired"}.addTag(Key::Subsystem, Value::DPL));
-    monitoring.flushBuffer();
+  static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats const&)> reportExpiredOffer = [ref](ComputingQuotaOffer const& offer, ComputingQuotaStats const& stats) {
+    auto& dpStats = ref.get<DataProcessingStats>();
+    dpStats.updateStats({static_cast<short>(ProcessingStatsId::RESOURCE_OFFER_EXPIRED), DataProcessingStats::Op::Set, stats.totalExpiredOffers});
+    dpStats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_BYTES_EXPIRED), DataProcessingStats::Op::Set, stats.totalExpiredBytes});
+    dpStats.processCommandQueue();
+    assert(stats.totalExpiredBytes == 0);
+    assert(stats.totalExpiredOffers == 0);
   };
 
-  for (auto& consumer : context.deviceContext->state->offerConsumers) {
-    context.deviceContext->quotaEvaluator->consume(task->id.index, consumer, reportConsumedOffer);
+  for (auto& consumer : state.offerConsumers) {
+    quotaEvaluator.consume(task->id.index, consumer, reportConsumedOffer);
   }
-  context.deviceContext->state->offerConsumers.clear();
-  context.deviceContext->quotaEvaluator->handleExpired(reportExpiredOffer);
-  context.deviceContext->quotaEvaluator->dispose(task->id.index);
+  state.offerConsumers.clear();
+  quotaEvaluator.handleExpired(reportExpiredOffer);
+  quotaEvaluator.dispose(task->id.index);
   task->running = false;
   ZoneScopedN("run_completion");
 }
 
 // Context for polling
 struct PollerContext {
+  enum struct PollerState : char { Stopped,
+                                   Disconnected,
+                                   Connected,
+                                   Suspended };
   char const* name = nullptr;
   uv_loop_t* loop = nullptr;
   DataProcessingDevice* device = nullptr;
@@ -250,11 +268,12 @@ struct PollerContext {
   InputChannelInfo* channelInfo = nullptr;
   int fd = -1;
   bool read = true;
+  PollerState pollerState = PollerState::Stopped;
 };
 
 void on_socket_polled(uv_poll_t* poller, int status, int events)
 {
-  PollerContext* context = (PollerContext*)poller->data;
+  auto* context = (PollerContext*)poller->data;
   context->state->loopReason |= DeviceState::DATA_SOCKET_POLLED;
   switch (events) {
     case UV_READABLE: {
@@ -264,8 +283,18 @@ void on_socket_polled(uv_poll_t* poller, int status, int events)
     } break;
     case UV_WRITABLE: {
       ZoneScopedN("socket writeable");
-      LOG(debug) << "socket polled UV_WRITEABLE";
-      context->state->loopReason |= DeviceState::DATA_OUTGOING;
+      if (context->read) {
+        LOG(debug) << "socket polled UV_CONNECT" << context->name;
+        uv_poll_start(poller, UV_READABLE | UV_DISCONNECT | UV_PRIORITIZED, &on_socket_polled);
+        context->state->loopReason |= DeviceState::DATA_CONNECTED;
+      } else {
+        LOG(debug) << "socket polled UV_WRITABLE" << context->name;
+        context->state->loopReason |= DeviceState::DATA_OUTGOING;
+        // If the socket is writable, fairmq will handle the rest, so we can stop polling and
+        // just wait for the disconnect.
+        uv_poll_start(poller, UV_DISCONNECT | UV_PRIORITIZED, &on_socket_polled);
+      }
+      context->pollerState = PollerContext::PollerState::Connected;
     } break;
     case UV_DISCONNECT: {
       ZoneScopedN("socket disconnect");
@@ -329,15 +358,21 @@ void on_out_of_band_polled(uv_poll_t* poller, int status, int events)
 /// * Invoke the actual init callback, which returns the processing callback.
 void DataProcessingDevice::Init()
 {
-  TracyAppInfo(mSpec.name.data(), mSpec.name.size());
+  auto ref = ServiceRegistryRef{mServiceRegistry};
+  auto& context = ref.get<DataProcessorContext>();
+  auto& spec = getRunningDevice(mRunningDevice, ref);
+  context.statelessProcess = spec.algorithm.onProcess;
+  context.statefulProcess = nullptr;
+  context.error = spec.algorithm.onError;
+  context.initError = spec.algorithm.onInitError;
+  TracyAppInfo(spec.name.data(), spec.name.size());
   ZoneScopedN("DataProcessingDevice::Init");
-  mRelayer = &mServiceRegistry.get<DataRelayer>();
 
-  auto configStore = DeviceConfigurationHelpers::getConfiguration(mServiceRegistry, mSpec.name.c_str(), mSpec.options);
+  auto configStore = DeviceConfigurationHelpers::getConfiguration(mServiceRegistry, spec.name.c_str(), spec.options);
   if (configStore == nullptr) {
     std::vector<std::unique_ptr<ParamRetriever>> retrievers;
     retrievers.emplace_back(std::make_unique<FairOptionsRetriever>(GetConfig()));
-    configStore = std::make_unique<ConfigParamStore>(mSpec.options, std::move(retrievers));
+    configStore = std::make_unique<ConfigParamStore>(spec.options, std::move(retrievers));
     configStore->preload();
     configStore->activate();
   }
@@ -356,37 +391,101 @@ void DataProcessingDevice::Init()
       str = entry.second.get_value<std::string>();
     }
     std::string configString = fmt::format("[CONFIG] {}={} 1 {}", entry.first, str, configStore->provenance(entry.first.c_str())).c_str();
-    mServiceRegistry.get<DriverClient>().tell(configString.c_str());
+    mServiceRegistry.get<DriverClient>(ServiceRegistry::globalDeviceSalt()).tell(configString.c_str());
   }
 
   mConfigRegistry = std::make_unique<ConfigParamRegistry>(std::move(configStore));
 
-  mExpirationHandlers.clear();
-
-  if (mInit) {
-    InitContext initContext{*mConfigRegistry, mServiceRegistry};
-    mStatefulProcess = mInit(initContext);
+  // Setup the error handlers for init
+  if (context.initError) {
+    context.initErrorHandling = [&errorCallback = context.initError,
+                                 &serviceRegistry = mServiceRegistry](RuntimeErrorRef e) {
+      ZoneScopedN("Error handling");
+      /// FIXME: we should pass the salt in, so that the message
+      ///        can access information which were stored in the stream.
+      ServiceRegistryRef ref{serviceRegistry, ServiceRegistry::globalDeviceSalt()};
+      auto& err = error_from_ref(e);
+      LOGP(error, "Exception caught: {} ", err.what);
+      demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
+      auto& stats = ref.get<DataProcessingStats>();
+      stats.updateStats({(int)ProcessingStatsId::EXCEPTION_COUNT, DataProcessingStats::Op::Add, 1});
+      InitErrorContext errorContext{ref, e};
+      errorCallback(errorContext);
+    };
+  } else {
+    context.initErrorHandling = [&serviceRegistry = mServiceRegistry](RuntimeErrorRef e) {
+      ZoneScopedN("Error handling");
+      auto& err = error_from_ref(e);
+      /// FIXME: we should pass the salt in, so that the message
+      ///        can access information which were stored in the stream.
+      LOGP(error, "Exception caught: {} ", err.what);
+      ServiceRegistryRef ref{serviceRegistry, ServiceRegistry::globalDeviceSalt()};
+      demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
+      auto& stats = ref.get<DataProcessingStats>();
+      stats.updateStats({(int)ProcessingStatsId::EXCEPTION_COUNT, DataProcessingStats::Op::Add, 1});
+      exit(1);
+    };
   }
-  mState.inputChannelInfos.resize(mSpec.inputChannels.size());
+
+  context.expirationHandlers.clear();
+  context.init = spec.algorithm.onInit;
+  if (context.init) {
+    static bool noCatch = getenv("O2_NO_CATCHALL_EXCEPTIONS") && strcmp(getenv("O2_NO_CATCHALL_EXCEPTIONS"), "0");
+    InitContext initContext{*mConfigRegistry, mServiceRegistry};
+
+    if (noCatch) {
+      try {
+        context.statefulProcess = context.init(initContext);
+      } catch (o2::framework::RuntimeErrorRef e) {
+        ZoneScopedN("error handling");
+        if (context.initErrorHandling) {
+          (context.initErrorHandling)(e);
+        }
+      }
+    } else {
+      try {
+        context.statefulProcess = context.init(initContext);
+      } catch (std::exception& ex) {
+        ZoneScopedN("error handling");
+        /// Convert a standard exception to a RuntimeErrorRef
+        /// Notice how this will lose the backtrace information
+        /// and report the exception coming from here.
+        auto e = runtime_error(ex.what());
+        (context.initErrorHandling)(e);
+      } catch (o2::framework::RuntimeErrorRef e) {
+        ZoneScopedN("error handling");
+        (context.initErrorHandling)(e);
+      }
+    }
+  }
+  auto& state = ref.get<DeviceState>();
+  state.inputChannelInfos.resize(spec.inputChannels.size());
   /// Internal channels which will never create an actual message
   /// should be considered as in "Pull" mode, since we do not
   /// expect them to create any data.
   int validChannelId = 0;
-  for (size_t ci = 0; ci < mSpec.inputChannels.size(); ++ci) {
-    auto& name = mSpec.inputChannels[ci].name;
-    if (name.find(mSpec.channelPrefix + "from_internal-dpl-clock") == 0) {
-      mState.inputChannelInfos[ci].state = InputChannelState::Pull;
-      mState.inputChannelInfos[ci].id = {ChannelIndex::INVALID};
+  for (size_t ci = 0; ci < spec.inputChannels.size(); ++ci) {
+    auto& name = spec.inputChannels[ci].name;
+    if (name.find(spec.channelPrefix + "from_internal-dpl-clock") == 0) {
+      state.inputChannelInfos[ci].state = InputChannelState::Pull;
+      state.inputChannelInfos[ci].id = {ChannelIndex::INVALID};
       validChannelId++;
     } else {
-      mState.inputChannelInfos[ci].id = {validChannelId++};
+      state.inputChannelInfos[ci].id = {validChannelId++};
     }
   }
 
   // Invoke the callback policy for this device.
-  if (mSpec.callbacksPolicy.policy != nullptr) {
+  if (spec.callbacksPolicy.policy != nullptr) {
     InitContext initContext{*mConfigRegistry, mServiceRegistry};
-    mSpec.callbacksPolicy.policy(mServiceRegistry.get<CallbackService>(), initContext);
+    spec.callbacksPolicy.policy(mServiceRegistry.get<CallbackService>(ServiceRegistry::globalDeviceSalt()), initContext);
+  }
+
+  // Services which are stream should be initialised now
+  auto* options = GetConfig();
+  for (size_t si = 0; si < mStreams.size(); ++si) {
+    ServiceRegistry::Salt streamSalt = ServiceRegistry::streamSalt(si + 1, ServiceRegistry::globalDeviceSalt().dataProcessorId);
+    mServiceRegistry.lateBindStreamServices(state, *options, streamSalt);
   }
 }
 
@@ -394,11 +493,15 @@ void on_signal_callback(uv_signal_t* handle, int signum)
 {
   ZoneScopedN("Signal callaback");
   LOG(debug) << "Signal " << signum << " received.";
-  auto* context = (DeviceContext*)handle->data;
-  context->state->loopReason |= DeviceState::SIGNAL_ARRIVED;
+  auto* registry = (ServiceRegistry*)handle->data;
+  ServiceRegistryRef ref{*registry};
+  auto& state = ref.get<DeviceState>();
+  auto& quotaEvaluator = ref.get<ComputingQuotaEvaluator>();
+  auto& stats = ref.get<DataProcessingStats>();
+  state.loopReason |= DeviceState::SIGNAL_ARRIVED;
   size_t ri = 0;
-  while (ri != context->quotaEvaluator->mOffers.size()) {
-    auto& offer = context->quotaEvaluator->mOffers[ri];
+  while (ri != quotaEvaluator.mOffers.size()) {
+    auto& offer = quotaEvaluator.mOffers[ri];
     // We were already offered some sharedMemory, so we
     // do not consider the offer.
     // FIXME: in principle this should account for memory
@@ -410,7 +513,7 @@ void on_signal_callback(uv_signal_t* handle, int signum)
     ri++;
   }
   // Find the first empty offer and have 1GB of shared memory there
-  for (auto& offer : context->quotaEvaluator->mOffers) {
+  for (auto& offer : quotaEvaluator.mOffers) {
     if (offer.valid == false) {
       offer.cpu = 0;
       offer.memory = 0;
@@ -420,7 +523,7 @@ void on_signal_callback(uv_signal_t* handle, int signum)
       break;
     }
   }
-  context->stats->totalSigusr1 += 1;
+  stats.updateStats({(int)ProcessingStatsId::TOTAL_SIGUSR1, DataProcessingStats::Op::Add, 1});
 }
 
 static auto toBeForwardedHeader = [](void* header) -> bool {
@@ -556,7 +659,16 @@ static auto forwardInputs = [](ServiceRegistryRef registry, TimesliceSlot slot, 
     auto channel = proxy.getForwardChannel(ChannelIndex{fi});
     LOG(debug) << "Forwarding to " << channel->GetName() << " " << fi;
     // in DPL we are using subchannel 0 only
-    channel->Send(forwardedParts[fi]);
+    auto& parts = forwardedParts[fi];
+    int timeout = 30000;
+    auto res = channel->Send(parts, timeout);
+    if (res == (size_t)fair::mq::TransferCode::timeout) {
+      LOGP(warning, "Timed out sending after {}s. Downstream backpressure detected on {}.", timeout / 1000, channel->GetName());
+      channel->Send(parts);
+      LOGP(info, "Downstream backpressure on {} recovered.", channel->GetName());
+    } else if (res == (size_t)fair::mq::TransferCode::error) {
+      LOGP(fatal, "Error while sending on channel {}", channel->GetName());
+    }
   }
 
   auto& asyncQueue = registry.get<AsyncQueue>();
@@ -601,7 +713,7 @@ void handleRegionCallbacks(ServiceRegistryRef registry, std::vector<fair::mq::Re
           region_read_global_dummy_variable = ((int*)info.ptr)[i];
         }
       }
-      registry.get<CallbackService>()(CallbackService::Id::RegionInfoCallback, info);
+      registry.get<CallbackService>().call<CallbackService::Id::RegionInfoCallback>(info);
     }
   }
 }
@@ -617,17 +729,23 @@ void on_awake_main_thread(uv_async_t* handle)
 
 void DataProcessingDevice::initPollers()
 {
+  auto ref = ServiceRegistryRef{mServiceRegistry};
+  auto& deviceContext = ref.get<DeviceContext>();
+  auto& context = ref.get<DataProcessorContext>();
+  auto& spec = ref.get<DeviceSpec const>();
+  auto& state = ref.get<DeviceState>();
   // We add a timer only in case a channel poller is not there.
-  if ((mStatefulProcess != nullptr) || (mStatelessProcess != nullptr)) {
-    for (auto& [channelName, channel] : fChannels) {
+  if ((context.statefulProcess != nullptr) || (context.statelessProcess != nullptr)) {
+    for (auto& [channelName, channel] : GetChannels()) {
       InputChannelInfo* channelInfo;
-      for (size_t ci = 0; ci < mDeviceContext.spec->inputChannels.size(); ++ci) {
-        auto& channelSpec = mDeviceContext.spec->inputChannels[ci];
-        channelInfo = &mDeviceContext.state->inputChannelInfos[ci];
+      for (size_t ci = 0; ci < spec.inputChannels.size(); ++ci) {
+        auto& channelSpec = spec.inputChannels[ci];
+        channelInfo = &state.inputChannelInfos[ci];
         if (channelSpec.name != channelName) {
           continue;
         }
         channelInfo->channel = &this->GetChannel(channelName, 0);
+        break;
       }
       if ((channelName.rfind("from_internal-dpl", 0) == 0) &&
           (channelName.rfind("from_internal-dpl-aod", 0) != 0) &&
@@ -637,12 +755,12 @@ void DataProcessingDevice::initPollers()
         continue;
       }
       // We only watch receiving sockets.
-      if (channelName.rfind("from_" + mSpec.name + "_", 0) == 0) {
+      if (channelName.rfind("from_" + spec.name + "_", 0) == 0) {
         LOGP(detail, "{} is to send data. Not polling.", channelName);
         continue;
       }
 
-      if (channelName.rfind("from_") != 0) {
+      if (channelName.rfind("from_", 0) != 0) {
         LOGP(detail, "{} is not a DPL socket. Not polling.", channelName);
         continue;
       }
@@ -660,43 +778,44 @@ void DataProcessingDevice::initPollers()
       LOGP(detail, "Polling socket for {}", channelName);
       auto* pCtx = (PollerContext*)malloc(sizeof(PollerContext));
       pCtx->name = strdup(channelName.c_str());
-      pCtx->loop = mState.loop;
+      pCtx->loop = state.loop;
       pCtx->device = this;
-      pCtx->state = &mState;
+      pCtx->state = &state;
       pCtx->fd = zmq_fd;
       assert(channelInfo != nullptr);
       pCtx->channelInfo = channelInfo;
       pCtx->socket = &channel[0].GetSocket();
       pCtx->read = true;
       poller->data = pCtx;
-      uv_poll_init(mState.loop, poller, zmq_fd);
-      if (channelName.rfind("from_") != 0) {
+      uv_poll_init(state.loop, poller, zmq_fd);
+      if (channelName.rfind("from_", 0) != 0) {
         LOGP(detail, "{} is an out of band channel.", channelName);
-        mState.activeOutOfBandPollers.push_back(poller);
+        state.activeOutOfBandPollers.push_back(poller);
       } else {
-        mState.activeInputPollers.push_back(poller);
+        channelInfo->pollerIndex = state.activeInputPollers.size();
+        state.activeInputPollers.push_back(poller);
       }
     }
     // In case we do not have any input channel and we do not have
     // any timers or signal watchers we still wake up whenever we can send data to downstream
     // devices to allow for enumerations.
-    if (mState.activeInputPollers.empty() &&
-        mState.activeOutOfBandPollers.empty() &&
-        mState.activeTimers.empty() &&
-        mState.activeSignals.empty()) {
+    if (state.activeInputPollers.empty() &&
+        state.activeOutOfBandPollers.empty() &&
+        state.activeTimers.empty() &&
+        state.activeSignals.empty()) {
       // FIXME: this is to make sure we do not reset the output timer
       // for readout proxies or similar. In principle this should go once
       // we move to OutOfBand InputSpec.
-      if (mState.inputChannelInfos.empty()) {
+      if (state.inputChannelInfos.empty()) {
         LOGP(detail, "No input channels. Setting exit transition timeout to 0.");
-        mDeviceContext.exitTransitionTimeout = 0;
+        deviceContext.exitTransitionTimeout = 0;
       }
-      for (auto& [channelName, channel] : fChannels) {
-        if (channelName.rfind(mSpec.channelPrefix + "from_internal-dpl", 0) == 0) {
+      for (auto& [channelName, channel] : GetChannels()) {
+        if (channelName.rfind(spec.channelPrefix + "from_internal-dpl", 0) == 0) {
           LOGP(detail, "{} is an internal channel. Not polling.", channelName);
           continue;
         }
-        if (channelName.rfind(mSpec.channelPrefix + "from_" + mSpec.name + "_", 0) == 0) {
+        if (channelName.rfind(spec.channelPrefix + "from_" + spec.name + "_", 0) == 0) {
           LOGP(detail, "{} is an out of band channel. Not polling for output.", channelName);
           continue;
         }
@@ -714,74 +833,93 @@ void DataProcessingDevice::initPollers()
         // FIXME: leak
         auto* pCtx = (PollerContext*)malloc(sizeof(PollerContext));
         pCtx->name = strdup(channelName.c_str());
-        pCtx->loop = mState.loop;
+        pCtx->loop = state.loop;
         pCtx->device = this;
-        pCtx->state = &mState;
+        pCtx->state = &state;
         pCtx->fd = zmq_fd;
         pCtx->read = false;
         poller->data = pCtx;
-        uv_poll_init(mState.loop, poller, zmq_fd);
-        mState.activeOutputPollers.push_back(poller);
+        uv_poll_init(state.loop, poller, zmq_fd);
+        state.activeOutputPollers.push_back(poller);
       }
     }
   } else {
     LOGP(detail, "This is a fake device so we exit after the first iteration.");
-    mDeviceContext.exitTransitionTimeout = 0;
+    deviceContext.exitTransitionTimeout = 0;
     // This is a fake device, so we can request to exit immediately
-    mServiceRegistry.get<ControlService>().readyToQuit(QuitRequest::Me);
+    ServiceRegistryRef ref{mServiceRegistry};
+    ref.get<ControlService>().readyToQuit(QuitRequest::Me);
     // A two second timer to stop internal devices which do not want to
     auto* timer = (uv_timer_t*)malloc(sizeof(uv_timer_t));
-    uv_timer_init(mState.loop, timer);
-    timer->data = &mState;
-    uv_update_time(mState.loop);
+    uv_timer_init(state.loop, timer);
+    timer->data = &state;
+    uv_update_time(state.loop);
     uv_timer_start(timer, on_idle_timer, 2000, 2000);
-    mState.activeTimers.push_back(timer);
+    state.activeTimers.push_back(timer);
   }
 }
 
 void DataProcessingDevice::startPollers()
 {
-  for (auto& poller : mState.activeInputPollers) {
-    uv_poll_start(poller, UV_READABLE | UV_DISCONNECT, &on_socket_polled);
-  }
-  for (auto& poller : mState.activeOutOfBandPollers) {
-    uv_poll_start(poller, UV_WRITABLE, &on_out_of_band_polled);
-  }
-  for (auto& poller : mState.activeOutputPollers) {
+  auto ref = ServiceRegistryRef{mServiceRegistry};
+  auto& deviceContext = ref.get<DeviceContext>();
+  auto& state = ref.get<DeviceState>();
+
+  for (auto& poller : state.activeInputPollers) {
     uv_poll_start(poller, UV_WRITABLE, &on_socket_polled);
+    ((PollerContext*)poller->data)->pollerState = PollerContext::PollerState::Disconnected;
+  }
+  for (auto& poller : state.activeOutOfBandPollers) {
+    uv_poll_start(poller, UV_WRITABLE, &on_out_of_band_polled);
+    ((PollerContext*)poller->data)->pollerState = PollerContext::PollerState::Disconnected;
+  }
+  for (auto& poller : state.activeOutputPollers) {
+    uv_poll_start(poller, UV_WRITABLE, &on_socket_polled);
+    ((PollerContext*)poller->data)->pollerState = PollerContext::PollerState::Disconnected;
   }
 
-  mDeviceContext.gracePeriodTimer = (uv_timer_t*)malloc(sizeof(uv_timer_t));
-  mDeviceContext.gracePeriodTimer->data = &mState;
-  uv_timer_init(mState.loop, mDeviceContext.gracePeriodTimer);
+  deviceContext.gracePeriodTimer = (uv_timer_t*)malloc(sizeof(uv_timer_t));
+  deviceContext.gracePeriodTimer->data = &state;
+  uv_timer_init(state.loop, deviceContext.gracePeriodTimer);
 }
 
 void DataProcessingDevice::stopPollers()
 {
-  LOGP(detail, "Stopping {} input pollers", mState.activeInputPollers.size());
-  for (auto& poller : mState.activeInputPollers) {
+  auto ref = ServiceRegistryRef{mServiceRegistry};
+  auto& deviceContext = ref.get<DeviceContext>();
+  auto& state = ref.get<DeviceState>();
+  LOGP(detail, "Stopping {} input pollers", state.activeInputPollers.size());
+  for (auto& poller : state.activeInputPollers) {
     uv_poll_stop(poller);
+    ((PollerContext*)poller->data)->pollerState = PollerContext::PollerState::Stopped;
   }
-  LOGP(detail, "Stopping {} out of band pollers", mState.activeOutOfBandPollers.size());
-  for (auto& poller : mState.activeOutOfBandPollers) {
+  LOGP(detail, "Stopping {} out of band pollers", state.activeOutOfBandPollers.size());
+  for (auto& poller : state.activeOutOfBandPollers) {
     uv_poll_stop(poller);
+    ((PollerContext*)poller->data)->pollerState = PollerContext::PollerState::Stopped;
   }
-  LOGP(detail, "Stopping {} output pollers", mState.activeOutOfBandPollers.size());
-  for (auto& poller : mState.activeOutputPollers) {
+  LOGP(detail, "Stopping {} output pollers", state.activeOutOfBandPollers.size());
+  for (auto& poller : state.activeOutputPollers) {
     uv_poll_stop(poller);
+    ((PollerContext*)poller->data)->pollerState = PollerContext::PollerState::Stopped;
   }
 
-  uv_timer_stop(mDeviceContext.gracePeriodTimer);
-  free(mDeviceContext.gracePeriodTimer);
-  mDeviceContext.gracePeriodTimer = nullptr;
+  uv_timer_stop(deviceContext.gracePeriodTimer);
+  free(deviceContext.gracePeriodTimer);
+  deviceContext.gracePeriodTimer = nullptr;
 }
 
 void DataProcessingDevice::InitTask()
 {
-  auto distinct = DataRelayerHelpers::createDistinctRouteIndex(mSpec.inputs);
+  auto ref = ServiceRegistryRef{mServiceRegistry};
+  auto& deviceContext = ref.get<DeviceContext>();
+  auto& context = ref.get<DataProcessorContext>();
+  auto& spec = getRunningDevice(mRunningDevice, mServiceRegistry);
+  auto distinct = DataRelayerHelpers::createDistinctRouteIndex(spec.inputs);
+  auto& state = ref.get<DeviceState>();
   int i = 0;
   for (auto& di : distinct) {
-    auto& route = mSpec.inputs[di];
+    auto& route = spec.inputs[di];
     if (route.configurator.has_value() == false) {
       i++;
       continue;
@@ -790,23 +928,23 @@ void DataProcessingDevice::InitTask()
       .name = route.configurator->name,
       .routeIndex = RouteIndex{i++},
       .lifetime = route.matcher.lifetime,
-      .creator = route.configurator->creatorConfigurator(mState, mServiceRegistry, *mConfigRegistry),
-      .checker = route.configurator->danglingConfigurator(mState, *mConfigRegistry),
-      .handler = route.configurator->expirationConfigurator(mState, *mConfigRegistry)};
-    mExpirationHandlers.emplace_back(std::move(handler));
+      .creator = route.configurator->creatorConfigurator(state, mServiceRegistry, *mConfigRegistry),
+      .checker = route.configurator->danglingConfigurator(state, *mConfigRegistry),
+      .handler = route.configurator->expirationConfigurator(state, *mConfigRegistry)};
+    context.expirationHandlers.emplace_back(std::move(handler));
   }
 
-  if (mState.awakeMainThread == nullptr) {
-    mState.awakeMainThread = (uv_async_t*)malloc(sizeof(uv_async_t));
-    mState.awakeMainThread->data = &mState;
-    uv_async_init(mState.loop, mState.awakeMainThread, on_awake_main_thread);
+  if (state.awakeMainThread == nullptr) {
+    state.awakeMainThread = (uv_async_t*)malloc(sizeof(uv_async_t));
+    state.awakeMainThread->data = &state;
+    uv_async_init(state.loop, state.awakeMainThread, on_awake_main_thread);
   }
 
-  mDeviceContext.expectedRegionCallbacks = std::stoi(fConfig->GetValue<std::string>("expected-region-callbacks"));
-  mDeviceContext.exitTransitionTimeout = std::stoi(fConfig->GetValue<std::string>("exit-transition-timeout"));
+  deviceContext.expectedRegionCallbacks = std::stoi(fConfig->GetValue<std::string>("expected-region-callbacks"));
+  deviceContext.exitTransitionTimeout = std::stoi(fConfig->GetValue<std::string>("exit-transition-timeout"));
 
-  for (auto& channel : fChannels) {
-    channel.second.at(0).Transport()->SubscribeToRegionEvents([&context = mDeviceContext,
+  for (auto& channel : GetChannels()) {
+    channel.second.at(0).Transport()->SubscribeToRegionEvents([&context = deviceContext,
                                                                &registry = mServiceRegistry,
                                                                &pendingRegionInfos = mPendingRegionInfos,
                                                                &regionInfoMutex = mRegionInfoMutex](fair::mq::RegionInfo info) {
@@ -819,7 +957,8 @@ void DataProcessingDevice::InitTask()
       context.expectedRegionCallbacks -= 1;
       pendingRegionInfos.push_back(info);
       // We always want to handle these on the main loop
-      uv_async_send(registry.get<DeviceState>().awakeMainThread);
+      ServiceRegistryRef ref{registry};
+      uv_async_send(ref.get<DeviceState>().awakeMainThread);
     });
   }
 
@@ -827,9 +966,9 @@ void DataProcessingDevice::InitTask()
   // an event from the outside, making sure that the event loop can
   // be unblocked (e.g. by a quitting DPL driver) even when there
   // is no data pending to be processed.
-  uv_signal_t* sigusr1Handle = (uv_signal_t*)malloc(sizeof(uv_signal_t));
-  uv_signal_init(mState.loop, sigusr1Handle);
-  sigusr1Handle->data = &mDeviceContext;
+  auto* sigusr1Handle = (uv_signal_t*)malloc(sizeof(uv_signal_t));
+  uv_signal_init(state.loop, sigusr1Handle);
+  sigusr1Handle->data = &mServiceRegistry;
   uv_signal_start(sigusr1Handle, on_signal_callback, SIGUSR1);
 
   /// Initialise the pollers
@@ -843,14 +982,17 @@ void DataProcessingDevice::InitTask()
   // We should be ready to run here. Therefore we copy all the
   // required parts in the DataProcessorContext. Eventually we should
   // do so on a per thread basis, with fine grained locks.
-  mDataProcessorContexes.resize(1);
-  this->fillContext(mDataProcessorContexes.at(0), mDeviceContext);
+  // FIXME: this should not use ServiceRegistry::threadSalt, but
+  // more a ServiceRegistry::globalDataProcessorSalt(N) where
+  // N is the number of the multiplexed data processor.
+  // We will get there.
+  this->fillContext(mServiceRegistry.get<DataProcessorContext>(ServiceRegistry::globalDeviceSalt()), deviceContext);
 
   /// We now run an event loop also in InitTask. This is needed to:
   /// * Make sure region registration callbacks are invoked
   /// on the main thread.
   /// * Wait for enough callbacks to be delivered before moving to START
-  while (mDeviceContext.expectedRegionCallbacks > 0 && uv_run(mState.loop, UV_RUN_ONCE)) {
+  while (deviceContext.expectedRegionCallbacks > 0 && uv_run(state.loop, UV_RUN_ONCE)) {
     // Handle callbacks if any
     {
       std::lock_guard<std::mutex> lock(mRegionInfoMutex);
@@ -863,23 +1005,22 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
 {
   context.wasActive = &mWasActive;
 
-  deviceContext.device = this;
-  deviceContext.spec = &mSpec;
-  deviceContext.state = &mState;
-  deviceContext.quotaEvaluator = &mQuotaEvaluator;
-  deviceContext.stats = &mStats;
   context.isSink = false;
-  context.balancingInputs = true;
   // If nothing is a sink, the rate limiting simply does not trigger.
   bool enableRateLimiting = std::stoi(fConfig->GetValue<std::string>("timeframes-rate-limit"));
 
+  auto ref = ServiceRegistryRef{mServiceRegistry};
+  auto& spec = ref.get<DeviceSpec const>();
+
+  // The policy is now allowed to state the default.
+  context.balancingInputs = spec.completionPolicy.balanceChannels;
   // This is needed because the internal injected dummy sink should not
   // try to balance inputs unless the rate limiting is requested.
-  if (enableRateLimiting == false && deviceContext.spec->name == "internal-dpl-injected-dummy-sink") {
+  if (enableRateLimiting == false && spec.name == "internal-dpl-injected-dummy-sink") {
     context.balancingInputs = false;
   }
   if (enableRateLimiting) {
-    for (auto& spec : mSpec.outputs) {
+    for (auto& spec : spec.outputs) {
       if (spec.matcher.binding.value == "dpl-summary") {
         context.isSink = true;
         break;
@@ -887,73 +1028,145 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
     }
   }
 
-  context.relayer = mRelayer;
   context.registry = &mServiceRegistry;
-  context.completed = &mCompleted;
-  context.expirationHandlers = &mExpirationHandlers;
-  context.timingInfo = &mServiceRegistry.get<TimingInfo>();
-  context.allocator = &mAllocator;
-  context.statefulProcess = &mStatefulProcess;
-  context.statelessProcess = &mStatelessProcess;
-  context.error = &mError;
-  context.deviceContext = &deviceContext;
   /// Callback for the error handling
-  context.errorHandling = &mErrorHandling;
+  /// FIXME: move erro handling to a service?
+  if (context.error != nullptr) {
+    context.errorHandling = [&errorCallback = context.error,
+                             &serviceRegistry = mServiceRegistry](RuntimeErrorRef e, InputRecord& record) {
+      ZoneScopedN("Error handling");
+      /// FIXME: we should pass the salt in, so that the message
+      ///        can access information which were stored in the stream.
+      ServiceRegistryRef ref{serviceRegistry, ServiceRegistry::globalDeviceSalt()};
+      auto& err = error_from_ref(e);
+      LOGP(error, "Exception caught: {} ", err.what);
+      demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
+      auto& stats = ref.get<DataProcessingStats>();
+      stats.updateStats({(int)ProcessingStatsId::EXCEPTION_COUNT, DataProcessingStats::Op::Add, 1});
+      ErrorContext errorContext{record, ref, e};
+      errorCallback(errorContext);
+    };
+  } else {
+    context.errorHandling = [&errorPolicy = mProcessingPolicies.error,
+                             &serviceRegistry = mServiceRegistry](RuntimeErrorRef e, InputRecord& record) {
+      ZoneScopedN("Error handling");
+      auto& err = error_from_ref(e);
+      /// FIXME: we should pass the salt in, so that the message
+      ///        can access information which were stored in the stream.
+      LOGP(error, "Exception caught: {} ", err.what);
+      ServiceRegistryRef ref{serviceRegistry, ServiceRegistry::globalDeviceSalt()};
+      demangled_backtrace_symbols(err.backtrace, err.maxBacktrace, STDERR_FILENO);
+      auto& stats = ref.get<DataProcessingStats>();
+      stats.updateStats({(int)ProcessingStatsId::EXCEPTION_COUNT, DataProcessingStats::Op::Add, 1});
+      switch (errorPolicy) {
+        case TerminationPolicy::QUIT:
+          throw e;
+        default:
+          break;
+      }
+    };
+  }
+
   /// We must make sure there is no optional
   /// if we want to optimize the forwarding
-  context.canForwardEarly = (mSpec.forwards.empty() == false) && mProcessingPolicies.earlyForward != EarlyForwardPolicy::NEVER;
-  for (auto& forwarded : mSpec.forwards) {
+  context.canForwardEarly = (spec.forwards.empty() == false) && mProcessingPolicies.earlyForward != EarlyForwardPolicy::NEVER;
+  bool onlyConditions = true;
+  bool overriddenEarlyForward = false;
+  for (auto& forwarded : spec.forwards) {
+    if (forwarded.matcher.lifetime != Lifetime::Condition) {
+      onlyConditions = false;
+    }
     if (strncmp(DataSpecUtils::asConcreteOrigin(forwarded.matcher).str, "AOD", 3) == 0) {
       context.canForwardEarly = false;
+      overriddenEarlyForward = true;
       LOG(detail) << "Cannot forward early because of AOD input: " << DataSpecUtils::describe(forwarded.matcher);
       break;
     }
     if (DataSpecUtils::partialMatch(forwarded.matcher, o2::header::DataDescription{"RAWDATA"}) && mProcessingPolicies.earlyForward == EarlyForwardPolicy::NORAW) {
       context.canForwardEarly = false;
+      overriddenEarlyForward = true;
       LOG(detail) << "Cannot forward early because of RAWDATA input: " << DataSpecUtils::describe(forwarded.matcher);
       break;
     }
     if (forwarded.matcher.lifetime == Lifetime::Optional) {
       context.canForwardEarly = false;
+      overriddenEarlyForward = true;
       LOG(detail) << "Cannot forward early because of Optional input: " << DataSpecUtils::describe(forwarded.matcher);
       break;
     }
+  }
+  if (!overriddenEarlyForward && onlyConditions) {
+    context.canForwardEarly = true;
+    LOG(detail) << "Enabling early forwarding because only conditions to be forwarded";
   }
 }
 
 void DataProcessingDevice::PreRun()
 {
-  mDeviceContext.state->quitRequested = false;
-  mDeviceContext.state->streaming = StreamingState::Streaming;
-  for (auto& info : mDeviceContext.state->inputChannelInfos) {
+  auto ref = ServiceRegistryRef{mServiceRegistry};
+  auto& state = ref.get<DeviceState>();
+  state.quitRequested = false;
+  state.streaming = StreamingState::Streaming;
+  for (auto& info : state.inputChannelInfos) {
     if (info.state != InputChannelState::Pull) {
       info.state = InputChannelState::Running;
     }
   }
-  mServiceRegistry.preStartCallbacks();
-  mServiceRegistry.get<CallbackService>()(CallbackService::Id::Start);
+  auto& dpContext = ref.get<DataProcessorContext>();
+  dpContext.preStartCallbacks(ref);
+  for (size_t i = 0; i < mStreams.size(); ++i) {
+    auto streamRef = ServiceRegistryRef{mServiceRegistry, ServiceRegistry::globalStreamSalt(i + 1)};
+    auto& context = streamRef.get<StreamContext>();
+    context.preStartStreamCallbacks(streamRef);
+  }
+
+  ref.get<CallbackService>().call<CallbackService::Id::Start>();
   startPollers();
+
+  // Raise to 1 when we are ready to start processing
+  using o2::monitoring::Metric;
+  using o2::monitoring::Monitoring;
+  using o2::monitoring::tags::Key;
+  using o2::monitoring::tags::Value;
+
+  auto& monitoring = ref.get<Monitoring>();
+  monitoring.send(Metric{(uint64_t)1, "device_state"}.addTag(Key::Subsystem, Value::DPL));
 }
 
 void DataProcessingDevice::PostRun()
 {
+  ServiceRegistryRef ref{mServiceRegistry};
+  // Raise to 1 when we are ready to start processing
+  using o2::monitoring::Metric;
+  using o2::monitoring::Monitoring;
+  using o2::monitoring::tags::Key;
+  using o2::monitoring::tags::Value;
+
+  auto& monitoring = ref.get<Monitoring>();
+  monitoring.send(Metric{(uint64_t)0, "device_state"}.addTag(Key::Subsystem, Value::DPL));
+
   stopPollers();
-  mServiceRegistry.get<CallbackService>()(CallbackService::Id::Stop);
-  mServiceRegistry.postStopCallbacks();
+  ref.get<CallbackService>().call<CallbackService::Id::Stop>();
+  auto& dpContext = ref.get<DataProcessorContext>();
+  dpContext.postStopCallbacks(ref);
 }
 
 void DataProcessingDevice::Reset()
 {
-  mServiceRegistry.get<CallbackService>()(CallbackService::Id::Reset);
+  ServiceRegistryRef ref{mServiceRegistry};
+  ref.get<CallbackService>().call<CallbackService::Id::Reset>();
 }
 
 void DataProcessingDevice::Run()
 {
-  mState.loopReason = DeviceState::LoopReason::FIRST_LOOP;
-  while (mState.transitionHandling != TransitionHandlingState::Expired) {
-    if (mState.nextFairMQState.empty() == false) {
-      this->ChangeState(mState.nextFairMQState.back());
-      mState.nextFairMQState.pop_back();
+  ServiceRegistryRef ref{mServiceRegistry};
+  auto& state = ref.get<DeviceState>();
+  state.loopReason = DeviceState::LoopReason::FIRST_LOOP;
+  bool firstLoop = true;
+  while (state.transitionHandling != TransitionHandlingState::Expired) {
+    if (state.nextFairMQState.empty() == false) {
+      (void)this->ChangeState(state.nextFairMQState.back());
+      state.nextFairMQState.pop_back();
     }
     // Notify on the main thread the new region callbacks, making sure
     // no callback is issued if there is something still processing.
@@ -968,31 +1181,38 @@ void DataProcessingDevice::Run()
     {
       ZoneScopedN("uv idle");
       TracyPlot("past activity", (int64_t)mWasActive);
-      mServiceRegistry.get<DriverClient>().flushPending();
+      ServiceRegistryRef ref{mServiceRegistry};
+      ref.get<DriverClient>().flushPending(mServiceRegistry);
       auto shouldNotWait = (mWasActive &&
-                            (mState.streaming != StreamingState::Idle) && (mState.activeSignals.empty())) ||
-                           (mState.streaming == StreamingState::EndOfStreaming);
+                            (state.streaming != StreamingState::Idle) && (state.activeSignals.empty())) ||
+                           (state.streaming == StreamingState::EndOfStreaming);
+      if (firstLoop) {
+        shouldNotWait = true;
+        firstLoop = false;
+      }
       if (mWasActive) {
-        mState.loopReason |= DeviceState::LoopReason::PREVIOUSLY_ACTIVE;
+        state.loopReason |= DeviceState::LoopReason::PREVIOUSLY_ACTIVE;
       }
       if (NewStatePending()) {
         shouldNotWait = true;
-        mState.loopReason |= DeviceState::LoopReason::NEW_STATE_PENDING;
+        state.loopReason |= DeviceState::LoopReason::NEW_STATE_PENDING;
       }
-      if (mState.transitionHandling == TransitionHandlingState::NoTransition && NewStatePending()) {
-        mState.transitionHandling = TransitionHandlingState::Requested;
-        auto timeout = mDeviceContext.exitTransitionTimeout;
-        if (timeout != 0 && mState.streaming != StreamingState::Idle) {
-          mState.transitionHandling = TransitionHandlingState::Requested;
-          uv_update_time(mState.loop);
-          uv_timer_start(mDeviceContext.gracePeriodTimer, on_transition_requested_expired, timeout * 1000, 0);
+      if (state.transitionHandling == TransitionHandlingState::NoTransition && NewStatePending()) {
+        state.transitionHandling = TransitionHandlingState::Requested;
+        auto& deviceContext = ref.get<DeviceContext>();
+        auto timeout = deviceContext.exitTransitionTimeout;
+        if (timeout != 0 && state.streaming != StreamingState::Idle) {
+          state.transitionHandling = TransitionHandlingState::Requested;
+          ref.get<CallbackService>().call<CallbackService::Id::ExitRequested>(ServiceRegistryRef{ref});
+          uv_update_time(state.loop);
+          uv_timer_start(deviceContext.gracePeriodTimer, on_transition_requested_expired, timeout * 1000, 0);
           if (mProcessingPolicies.termination == TerminationPolicy::QUIT) {
             LOGP(info, "New state requested. Waiting for {} seconds before quitting.", timeout);
           } else {
             LOGP(info, "New state requested. Waiting for {} seconds before switching to READY state.", timeout);
           }
         } else {
-          mState.transitionHandling = TransitionHandlingState::Expired;
+          state.transitionHandling = TransitionHandlingState::Expired;
           if (timeout == 0 && mProcessingPolicies.termination == TerminationPolicy::QUIT) {
             LOGP(info, "New state requested. No timeout set, quitting immediately as per --completion-policy");
           } else if (timeout == 0 && mProcessingPolicies.termination != TerminationPolicy::QUIT) {
@@ -1005,20 +1225,21 @@ void DataProcessingDevice::Run()
         }
       }
       // If we are Idle, we can then consider the transition to be expired.
-      if (mState.transitionHandling == TransitionHandlingState::Requested && mState.streaming == StreamingState::Idle) {
-        mState.transitionHandling = TransitionHandlingState::Expired;
+      if (state.transitionHandling == TransitionHandlingState::Requested && state.streaming == StreamingState::Idle) {
+        state.transitionHandling = TransitionHandlingState::Expired;
       }
       TracyPlot("shouldNotWait", (int)shouldNotWait);
-      if (mState.severityStack.empty() == false) {
-        fair::Logger::SetConsoleSeverity((fair::Severity)mState.severityStack.back());
-        mState.severityStack.pop_back();
+      if (state.severityStack.empty() == false) {
+        fair::Logger::SetConsoleSeverity((fair::Severity)state.severityStack.back());
+        state.severityStack.pop_back();
       }
       // for (auto &info : mDeviceContext.state->inputChannelInfos)  {
       //   shouldNotWait |= info.readPolled;
       // }
-      mState.loopReason = DeviceState::NO_REASON;
-      if ((mState.tracingFlags & DeviceState::LoopReason::TRACE_CALLBACKS) != 0) {
-        mState.severityStack.push_back((int)fair::Logger::GetConsoleSeverity());
+      state.loopReason = DeviceState::NO_REASON;
+      state.firedTimers.clear();
+      if ((state.tracingFlags & DeviceState::LoopReason::TRACE_CALLBACKS) != 0) {
+        state.severityStack.push_back((int)fair::Logger::GetConsoleSeverity());
         fair::Logger::SetConsoleSeverity(fair::Severity::trace);
       }
       // Run the asynchronous queue just before sleeping again, so that:
@@ -1027,38 +1248,44 @@ void DataProcessingDevice::Run()
       //   assuming no one else is adding to the queue before this point).
       auto onDrop = [&registry = mServiceRegistry](TimesliceSlot slot, std::vector<MessageSet>& dropped, TimesliceIndex::OldestOutputInfo oldestOutputInfo) {
         LOGP(debug, "Dropping message from slot {}. Forwarding as needed.", slot.index);
-        auto& asyncQueue = registry.get<AsyncQueue>();
-        auto& decongestion = registry.get<DecongestionService>();
-        auto& relayer = registry.get<DataRelayer>();
+        ServiceRegistryRef ref{registry};
+        ref.get<AsyncQueue>();
+        ref.get<DecongestionService>();
+        ref.get<DataRelayer>();
         // Get the current timeslice for the slot.
-        auto& variables = registry.get<TimesliceIndex>().getVariablesForSlot(slot);
-        auto timeslice = VariableContextHelpers::getTimeslice(variables);
+        auto& variables = ref.get<TimesliceIndex>().getVariablesForSlot(slot);
+        VariableContextHelpers::getTimeslice(variables);
         forwardInputs(registry, slot, dropped, oldestOutputInfo, false, true);
       };
-      mRelayer->prunePending(onDrop);
-      auto& queue = mServiceRegistry.get<AsyncQueue>();
-      auto oldestPossibleTimeslice = mRelayer->getOldestPossibleOutput();
+      auto& relayer = ref.get<DataRelayer>();
+      relayer.prunePending(onDrop);
+      auto& queue = ref.get<AsyncQueue>();
+      auto oldestPossibleTimeslice = relayer.getOldestPossibleOutput();
       AsyncQueueHelpers::run(queue, {oldestPossibleTimeslice.timeslice.value});
-      uv_run(mState.loop, shouldNotWait ? UV_RUN_NOWAIT : UV_RUN_ONCE);
-      if ((mState.loopReason & mState.tracingFlags) != 0) {
-        mState.severityStack.push_back((int)fair::Logger::GetConsoleSeverity());
+      if (shouldNotWait == false) {
+        auto& dpContext = ref.get<DataProcessorContext>();
+        dpContext.preLoopCallbacks(ref);
+      }
+      uv_run(state.loop, shouldNotWait ? UV_RUN_NOWAIT : UV_RUN_ONCE);
+      if ((state.loopReason & state.tracingFlags) != 0) {
+        state.severityStack.push_back((int)fair::Logger::GetConsoleSeverity());
         fair::Logger::SetConsoleSeverity(fair::Severity::trace);
-      } else if (mState.severityStack.empty() == false) {
-        fair::Logger::SetConsoleSeverity((fair::Severity)mState.severityStack.back());
-        mState.severityStack.pop_back();
+      } else if (state.severityStack.empty() == false) {
+        fair::Logger::SetConsoleSeverity((fair::Severity)state.severityStack.back());
+        state.severityStack.pop_back();
       }
-      TracyPlot("loopReason", (int64_t)(uint64_t)mState.loopReason);
+      TracyPlot("loopReason", (int64_t)(uint64_t)state.loopReason);
       LOGP(debug, "Loop reason mask {:b} & {:b} = {:b}",
-           mState.loopReason, mState.tracingFlags,
-           mState.loopReason & mState.tracingFlags);
+           state.loopReason, state.tracingFlags,
+           state.loopReason & state.tracingFlags);
 
-      if ((mState.loopReason & DeviceState::LoopReason::OOB_ACTIVITY) != 0) {
+      if ((state.loopReason & DeviceState::LoopReason::OOB_ACTIVITY) != 0) {
         LOGP(debug, "We were awakened by a OOB event. Rescanning everything.");
-        mRelayer->rescan();
+        relayer.rescan();
       }
 
-      if (!mState.pendingOffers.empty()) {
-        mQuotaEvaluator.updateOffers(mState.pendingOffers, uv_now(mState.loop));
+      if (!state.pendingOffers.empty()) {
+        ref.get<ComputingQuotaEvaluator>().updateOffers(state.pendingOffers, uv_now(state.loop));
       }
     }
 
@@ -1081,6 +1308,7 @@ void DataProcessingDevice::Run()
       if (taskInfo.running) {
         continue;
       }
+      // Stream 0 is for when we run in
       streamRef.index = ti;
     }
     using o2::monitoring::Metric;
@@ -1092,34 +1320,39 @@ void DataProcessingDevice::Run()
     if (streamRef.index != -1) {
       // Synchronous execution of the callbacks. This will be moved in the
       // moved in the on_socket_polled once we have threading in place.
-      auto& handle = mHandles[streamRef.index];
-      auto& stream = mStreams[streamRef.index];
+      uv_work_t& handle = mHandles[streamRef.index];
+      TaskStreamInfo& stream = mStreams[streamRef.index];
       handle.data = &mStreams[streamRef.index];
 
-      static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats const& stats)> reportExpiredOffer = [&monitoring = mServiceRegistry.get<o2::monitoring::Monitoring>()](ComputingQuotaOffer const& offer, ComputingQuotaStats const& stats) {
-        monitoring.send(Metric{(uint64_t)stats.totalExpiredOffers, "resource-offer-expired"}.addTag(Key::Subsystem, Value::DPL));
-        monitoring.send(Metric{(uint64_t)stats.totalExpiredBytes, "arrow-bytes-expired"}.addTag(Key::Subsystem, Value::DPL));
-        monitoring.flushBuffer();
+      static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats const& stats)> reportExpiredOffer = [&registry = mServiceRegistry](ComputingQuotaOffer const& offer, ComputingQuotaStats const& stats) {
+        ServiceRegistryRef ref{registry};
+        auto& dpStats = ref.get<DataProcessingStats>();
+        dpStats.updateStats({static_cast<short>(ProcessingStatsId::RESOURCE_OFFER_EXPIRED), DataProcessingStats::Op::Set, stats.totalExpiredOffers});
+        dpStats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_BYTES_EXPIRED), DataProcessingStats::Op::Set, stats.totalExpiredBytes});
+        dpStats.processCommandQueue(); 
       };
+      auto ref = ServiceRegistryRef{mServiceRegistry};
 
       // Deciding wether to run or not can be done by passing a request to
       // the evaluator. In this case, the request is always satisfied and
       // we run on whatever resource is available.
-      bool enough = mQuotaEvaluator.selectOffer(streamRef.index, mSpec.resourcePolicy.request, uv_now(mState.loop));
+      auto& spec = ref.get<DeviceSpec const>();
+      bool enough = ref.get<ComputingQuotaEvaluator>().selectOffer(streamRef.index, spec.resourcePolicy.request, uv_now(state.loop));
 
       if (enough) {
         stream.id = streamRef;
         stream.running = true;
-        stream.context = &mDataProcessorContexes.at(0);
+        stream.registry = &mServiceRegistry;
 #ifdef DPL_ENABLE_THREADING
         stream.task.data = &handle;
-        uv_queue_work(mState.loop, &stream.task, run_callback, run_completion);
+        uv_queue_work(state.loop, &stream.task, run_callback, run_completion);
 #else
         run_callback(&handle);
         run_completion(&handle, 0);
 #endif
       } else {
-        mDataProcessorContexes.at(0).deviceContext->quotaEvaluator->handleExpired(reportExpiredOffer);
+        auto ref = ServiceRegistryRef{mServiceRegistry};
+        ref.get<ComputingQuotaEvaluator>().handleExpired(reportExpiredOffer);
         mWasActive = false;
       }
     } else {
@@ -1127,25 +1360,26 @@ void DataProcessingDevice::Run()
     }
     FrameMark;
   }
+  auto& spec = ref.get<DeviceSpec const>();
   /// Cleanup messages which are still pending on exit.
-  for (size_t ci = 0; ci < mDeviceContext.spec->inputChannels.size(); ++ci) {
-    auto& info = mDeviceContext.state->inputChannelInfos[ci];
+  for (size_t ci = 0; ci < spec.inputChannels.size(); ++ci) {
+    auto& info = state.inputChannelInfos[ci];
     info.parts.fParts.clear();
   }
-  mState.transitionHandling = TransitionHandlingState::NoTransition;
+  state.transitionHandling = TransitionHandlingState::NoTransition;
 }
 
 /// We drive the state loop ourself so that we will be able to support
 /// non-data triggers like those which are time based.
-void DataProcessingDevice::doPrepare(DataProcessorContext& context)
+void DataProcessingDevice::doPrepare(ServiceRegistryRef ref)
 {
   ZoneScopedN("DataProcessingDevice::doPrepare");
-  context.registry->get<DataProcessingStats>().beginIterationTimestamp = uv_hrtime() / 1000000;
+  auto& context = ref.get<DataProcessorContext>();
 
   *context.wasActive = false;
   {
     ZoneScopedN("CallbackService::Id::ClockTick");
-    context.registry->get<CallbackService>()(CallbackService::Id::ClockTick);
+    ref.get<CallbackService>().call<CallbackService::Id::ClockTick>();
   }
   // Whether or not we had something to do.
 
@@ -1156,7 +1390,9 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
   // expect to receive an EndOfStream signal. Thus we do not wait for these
   // to be completed. In the case of data source devices, as they do not have
   // real data input channels, they have to signal EndOfStream themselves.
-  context.allDone = std::any_of(context.deviceContext->state->inputChannelInfos.begin(), context.deviceContext->state->inputChannelInfos.end(), [](const auto& info) {
+  auto& state = ref.get<DeviceState>();
+  auto& spec = ref.get<DeviceSpec const>();
+  context.allDone = std::any_of(state.inputChannelInfos.begin(), state.inputChannelInfos.end(), [](const auto& info) {
     if (info.channel) {
       LOGP(debug, "Input channel {}{} has {} parts left and is in state {}.", info.channel->GetName(), (info.id.value == ChannelIndex::INVALID ? " (non DPL)" : ""), info.parts.fParts.size(), (int)info.state);
     } else {
@@ -1166,13 +1402,13 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
   });
 
   // Whether or not all the channels are completed
-  LOGP(debug, "Processing {} input channels.", context.deviceContext->spec->inputChannels.size());
+  LOGP(debug, "Processing {} input channels.", spec.inputChannels.size());
   /// Sort channels by oldest possible timeframe and
   /// process them in such order.
   static std::vector<int> pollOrder;
-  pollOrder.resize(context.deviceContext->state->inputChannelInfos.size());
+  pollOrder.resize(state.inputChannelInfos.size());
   std::iota(pollOrder.begin(), pollOrder.end(), 0);
-  std::sort(pollOrder.begin(), pollOrder.end(), [&infos = context.deviceContext->state->inputChannelInfos](int a, int b) {
+  std::sort(pollOrder.begin(), pollOrder.end(), [&infos = state.inputChannelInfos](int a, int b) {
     return infos[a].oldestForChannel.value < infos[b].oldestForChannel.value;
   });
 
@@ -1180,25 +1416,41 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
   if (pollOrder.empty()) {
     return;
   }
-  auto currentOldest = context.deviceContext->state->inputChannelInfos[pollOrder.front()].oldestForChannel;
-  auto currentNewest = context.deviceContext->state->inputChannelInfos[pollOrder.back()].oldestForChannel;
+  auto currentOldest = state.inputChannelInfos[pollOrder.front()].oldestForChannel;
+  auto currentNewest = state.inputChannelInfos[pollOrder.back()].oldestForChannel;
   auto delta = currentNewest.value - currentOldest.value;
   LOGP(debug, "oldest possible timeframe range {}, {} => {} delta", currentOldest.value, currentNewest.value,
        delta);
-  auto& infos = context.deviceContext->state->inputChannelInfos;
+  auto& infos = state.inputChannelInfos;
 
   if (context.balancingInputs) {
-    static uint64_t ahead = getenv("DPL_MAX_CHANNEL_AHEAD") ? std::atoll(getenv("DPL_MAX_CHANNEL_AHEAD")) : 8;
+    static int pipelineLength = DefaultsHelpers::pipelineLength();
+    static uint64_t ahead = getenv("DPL_MAX_CHANNEL_AHEAD") ? std::atoll(getenv("DPL_MAX_CHANNEL_AHEAD")) : std::max(8, std::min(pipelineLength - 48, pipelineLength / 2));
     auto newEnd = std::remove_if(pollOrder.begin(), pollOrder.end(), [&infos, limitNew = currentOldest.value + ahead](int a) -> bool {
       return infos[a].oldestForChannel.value > limitNew;
     });
+    for (auto it = pollOrder.begin(); it < pollOrder.end(); it++) {
+      const auto& channelInfo = state.inputChannelInfos[*it];
+      if (channelInfo.pollerIndex != -1) {
+        auto& poller = state.activeInputPollers[channelInfo.pollerIndex];
+        auto& pollerContext = *(PollerContext*)(poller->data);
+        if (pollerContext.pollerState == PollerContext::PollerState::Connected || pollerContext.pollerState == PollerContext::PollerState::Suspended) {
+          bool running = pollerContext.pollerState == PollerContext::PollerState::Connected;
+          bool shouldBeRunning = it < newEnd;
+          if (running != shouldBeRunning) {
+            uv_poll_start(poller, shouldBeRunning ? UV_READABLE | UV_DISCONNECT | UV_PRIORITIZED : 0, &on_socket_polled);
+            pollerContext.pollerState = shouldBeRunning ? PollerContext::PollerState::Connected : PollerContext::PollerState::Suspended;
+          }
+        }
+      }
+    }
     pollOrder.erase(newEnd, pollOrder.end());
   }
   LOGP(debug, "processing {} channels", pollOrder.size());
 
   for (auto sci : pollOrder) {
-    auto& info = context.deviceContext->state->inputChannelInfos[sci];
-    auto& channelSpec = context.deviceContext->spec->inputChannels[sci];
+    auto& info = state.inputChannelInfos[sci];
+    auto& channelSpec = spec.inputChannels[sci];
     LOGP(debug, "Processing channel {}", channelSpec.name);
 
     if (info.state != InputChannelState::Completed && info.state != InputChannelState::Pull) {
@@ -1208,7 +1460,7 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
       // Remember to flush data if we are not running
       // and there is some message pending.
       if (info.parts.Size()) {
-        DataProcessingDevice::handleData(context, info);
+        DataProcessingDevice::handleData(ref, info);
       }
       LOGP(debug, "Flushing channel {} which is in state {} and has {} parts still pending.", channelSpec.name, (int)info.state, info.parts.Size());
       continue;
@@ -1257,7 +1509,7 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
       }
 
       if (info.parts.Size() >= 0) {
-        DataProcessingDevice::handleData(context, info);
+        DataProcessingDevice::handleData(ref, info);
         // Receiving data counts as activity now, so that
         // We can make sure we process all the pending
         // messages without hanging on the uv_run.
@@ -1276,70 +1528,77 @@ void DataProcessingDevice::doPrepare(DataProcessorContext& context)
   }
 }
 
-void DataProcessingDevice::doRun(DataProcessorContext& context)
+void DataProcessingDevice::doRun(ServiceRegistryRef ref)
 {
-  auto switchState = [&registry = context.registry,
-                      &state = context.deviceContext->state](StreamingState newState) {
-    LOG(detail) << "New state " << (int)newState << " old state " << (int)state->streaming;
-    state->streaming = newState;
-    registry->get<ControlService>().notifyStreamingState(state->streaming);
+  auto& context = ref.get<DataProcessorContext>();
+  auto switchState = [ref](StreamingState newState) {
+    auto& state = ref.get<DeviceState>();
+    LOG(detail) << "New state " << (int)newState << " old state " << (int)state.streaming;
+    state.streaming = newState;
+    ref.get<ControlService>().notifyStreamingState(state.streaming);
   };
+  auto& state = ref.get<DeviceState>();
+  auto& spec = ref.get<DeviceSpec const>();
 
-  if (context.deviceContext->state->streaming == StreamingState::Idle) {
+  if (state.streaming == StreamingState::Idle) {
     *context.wasActive = false;
     return;
   }
 
-  context.completed->clear();
-  context.completed->reserve(16);
-  *context.wasActive |= DataProcessingDevice::tryDispatchComputation(context, *context.completed);
+  context.completed.clear();
+  context.completed.reserve(16);
+  *context.wasActive |= DataProcessingDevice::tryDispatchComputation(ref, context.completed);
   DanglingContext danglingContext{*context.registry};
 
-  context.registry->preDanglingCallbacks(danglingContext);
+  context.preDanglingCallbacks(danglingContext);
   if (*context.wasActive == false) {
-    context.registry->get<CallbackService>()(CallbackService::Id::Idle);
+    ref.get<CallbackService>().call<CallbackService::Id::Idle>();
   }
-  auto activity = context.relayer->processDanglingInputs(*context.expirationHandlers, *context.registry, true);
+  auto activity = ref.get<DataRelayer>().processDanglingInputs(context.expirationHandlers, *context.registry, true);
   *context.wasActive |= activity.expiredSlots > 0;
 
-  context.completed->clear();
-  *context.wasActive |= DataProcessingDevice::tryDispatchComputation(context, *context.completed);
+  context.completed.clear();
+  *context.wasActive |= DataProcessingDevice::tryDispatchComputation(ref, context.completed);
 
-  context.registry->postDanglingCallbacks(danglingContext);
+  context.postDanglingCallbacks(danglingContext);
 
   // If we got notified that all the sources are done, we call the EndOfStream
   // callback and return false. Notice that what happens next is actually
   // dependent on the callback, not something which is controlled by the
   // framework itself.
-  if (context.allDone == true && context.deviceContext->state->streaming == StreamingState::Streaming) {
+  if (context.allDone == true && state.streaming == StreamingState::Streaming) {
     switchState(StreamingState::EndOfStreaming);
     *context.wasActive = true;
   }
 
-  if (context.deviceContext->state->streaming == StreamingState::EndOfStreaming) {
+  if (state.streaming == StreamingState::EndOfStreaming) {
     LOGP(detail, "We are in EndOfStreaming. Flushing queues.");
-    context.registry->get<DriverClient>().flushPending();
     // We keep processing data until we are Idle.
     // FIXME: not sure this is the correct way to drain the queues, but
     // I guess we will see.
     /// Besides flushing the queues we must make sure we do not have only
     /// timers as they do not need to be further processed.
-    bool hasOnlyGenerated = (context.deviceContext->spec->inputChannels.size() == 1) && (context.deviceContext->spec->inputs[0].matcher.lifetime == Lifetime::Timer || context.deviceContext->spec->inputs[0].matcher.lifetime == Lifetime::Enumeration);
-    while (DataProcessingDevice::tryDispatchComputation(context, *context.completed) && hasOnlyGenerated == false) {
-      context.relayer->processDanglingInputs(*context.expirationHandlers, *context.registry, false);
+    bool hasOnlyGenerated = (spec.inputChannels.size() == 1) && (spec.inputs[0].matcher.lifetime == Lifetime::Timer || spec.inputs[0].matcher.lifetime == Lifetime::Enumeration);
+    auto& relayer = ref.get<DataRelayer>();
+    while (DataProcessingDevice::tryDispatchComputation(ref, context.completed) && hasOnlyGenerated == false) {
+      relayer.processDanglingInputs(context.expirationHandlers, *context.registry, false);
     }
-    EndOfStreamContext eosContext{*context.registry, *context.allocator};
+    EndOfStreamContext eosContext{*context.registry, ref.get<DataAllocator>()};
 
-    context.registry->preEOSCallbacks(eosContext);
-    context.registry->get<CallbackService>()(CallbackService::Id::EndOfStream, eosContext);
-    context.registry->postEOSCallbacks(eosContext);
+    context.preEOSCallbacks(eosContext);
+    auto& streamContext = ref.get<StreamContext>();
+    streamContext.preEOSCallbacks(eosContext);
+    ref.get<CallbackService>().call<CallbackService::Id::EndOfStream>(eosContext);
+    streamContext.postEOSCallbacks(eosContext);
+    context.postEOSCallbacks(eosContext);
 
-    for (auto& channel : context.deviceContext->spec->outputChannels) {
+    for (auto& channel : spec.outputChannels) {
       LOGP(detail, "Sending end of stream to {}", channel.name);
-      DataProcessingHelpers::sendEndOfStream(*context.deviceContext->device, channel);
+      auto& rawDevice = ref.get<RawDeviceService>();
+      DataProcessingHelpers::sendEndOfStream(*rawDevice.device(), channel);
     }
     // This is needed because the transport is deleted before the device.
-    context.relayer->clear();
+    relayer.clear();
     switchState(StreamingState::Idle);
     if (hasOnlyGenerated) {
       *context.wasActive = false;
@@ -1348,16 +1607,16 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
     }
     // On end of stream we shut down all output pollers.
     LOGP(detail, "Shutting down output pollers");
-    for (auto& poller : context.deviceContext->state->activeOutputPollers) {
+    for (auto& poller : state.activeOutputPollers) {
       uv_poll_stop(poller);
     }
     return;
   }
 
-  if (context.deviceContext->state->streaming == StreamingState::Idle) {
+  if (state.streaming == StreamingState::Idle) {
     // On end of stream we shut down all output pollers.
     LOGP(detail, "We are in Idle. Shutting down output pollers.");
-    for (auto& poller : context.deviceContext->state->activeOutputPollers) {
+    for (auto& poller : state.activeOutputPollers) {
       uv_poll_stop(poller);
     }
   }
@@ -1367,7 +1626,8 @@ void DataProcessingDevice::doRun(DataProcessorContext& context)
 
 void DataProcessingDevice::ResetTask()
 {
-  mRelayer->clear();
+  ServiceRegistryRef ref{mServiceRegistry};
+  ref.get<DataRelayer>().clear();
 }
 
 struct WaitBackpressurePolicy {
@@ -1380,14 +1640,10 @@ struct WaitBackpressurePolicy {
 /// is divided in two parts. In the first one we define a set of lambdas
 /// which describe what is actually going to happen, hiding all the state
 /// boilerplate which the user does not need to care about at top level.
-void DataProcessingDevice::handleData(DataProcessorContext& context, InputChannelInfo& info)
+void DataProcessingDevice::handleData(ServiceRegistryRef ref, InputChannelInfo& info)
 {
+  auto& context = ref.get<DataProcessorContext>();
   ZoneScopedN("DataProcessingDevice::handleData");
-  assert(context.deviceContext->spec->inputChannels.empty() == false);
-
-  // Initial part. Let's hide all the unnecessary and have
-  // simple lambdas for each of the steps I am planning to have.
-  assert(!context.deviceContext->spec->inputs.empty());
 
   enum struct InputType : int {
     Invalid = 0,
@@ -1410,10 +1666,11 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
   // and we do a few stats. We bind parts as a lambda captured variable, rather
   // than an input, because we do not want the outer loop actually be exposed
   // to the implementation details of the messaging layer.
-  auto getInputTypes = [&stats = context.registry->get<DataProcessingStats>(),
-                        &info, &context]() -> std::optional<std::vector<InputInfo>> {
+  auto getInputTypes = [&info, &context]() -> std::optional<std::vector<InputInfo>> {
+    auto ref = ServiceRegistryRef{*context.registry};
+    auto& stats = ref.get<DataProcessingStats>();
     auto& parts = info.parts;
-    stats.inputParts = parts.Size();
+    stats.updateStats({(int)ProcessingStatsId::TOTAL_INPUTS, DataProcessingStats::Op::Set, (int64_t)parts.Size()});
 
     TracyPlot("messages received", (int64_t)parts.Size());
     std::vector<InputInfo> results;
@@ -1492,18 +1749,20 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
     return results;
   };
 
-  auto reportError = [&registry = *context.registry](const char* message) {
-    registry.get<DataProcessingStats>().errorCount++;
+  auto reportError = [ref](const char* message) {
+    auto& stats = ref.get<DataProcessingStats>();
+    stats.updateStats({(int)ProcessingStatsId::ERROR_COUNT, DataProcessingStats::Op::Add, 1});
   };
 
-  auto handleValidMessages = [&info, &context = context, &relayer = *context.relayer, &reportError](std::vector<InputInfo> const& inputInfos) {
+  auto handleValidMessages = [&info, ref, &reportError](std::vector<InputInfo> const& inputInfos) {
+    auto& relayer = ref.get<DataRelayer>();
     static WaitBackpressurePolicy policy;
     auto& parts = info.parts;
     // We relay execution to make sure we have a complete set of parts
     // available.
     bool hasBackpressure = false;
+    size_t minBackpressureTimeslice = -1;
     bool hasData = false;
-    bool hasDomainInfo = false;
     size_t oldestPossibleTimeslice = -1;
     static std::vector<int> ordering;
     // Same as inputInfos but with iota.
@@ -1537,39 +1796,40 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
             nPayloadsPerHeader = 1;
             ii += (nMessages / 2) - 1;
           }
-          auto onDrop = [&registry = *context.registry](TimesliceSlot slot, std::vector<MessageSet>& dropped, TimesliceIndex::OldestOutputInfo oldestOutputInfo) {
+          auto onDrop = [ref](TimesliceSlot slot, std::vector<MessageSet>& dropped, TimesliceIndex::OldestOutputInfo oldestOutputInfo) {
             LOGP(debug, "Dropping message from slot {}. Forwarding as needed. Timeslice {}", slot.index, oldestOutputInfo.timeslice.value);
-            auto& asyncQueue = registry.get<AsyncQueue>();
-            auto& decongestion = registry.get<DecongestionService>();
-            auto& relayer = registry.get<DataRelayer>();
+            ref.get<AsyncQueue>();
+            ref.get<DecongestionService>();
+            ref.get<DataRelayer>();
             // Get the current timeslice for the slot.
-            auto& variables = registry.get<TimesliceIndex>().getVariablesForSlot(slot);
-            auto timeslice = VariableContextHelpers::getTimeslice(variables);
-            forwardInputs(registry, slot, dropped, oldestOutputInfo, false, true);
+            auto& variables = ref.get<TimesliceIndex>().getVariablesForSlot(slot);
+            VariableContextHelpers::getTimeslice(variables);
+            forwardInputs(ref, slot, dropped, oldestOutputInfo, false, true);
           };
           auto relayed = relayer.relay(parts.At(headerIndex)->GetData(),
                                        &parts.At(headerIndex),
                                        nMessages,
                                        nPayloadsPerHeader,
                                        onDrop);
-          switch (relayed) {
-            case DataRelayer::Backpressured:
+          switch (relayed.type) {
+            case DataRelayer::RelayChoice::Type::Backpressured:
               if (info.normalOpsNotified == true && info.backpressureNotified == false) {
                 LOGP(alarm, "Backpressure on channel {}. Waiting.", info.channel->GetName());
-                auto& monitoring = context.registry->get<o2::monitoring::Monitoring>();
+                auto& monitoring = ref.get<o2::monitoring::Monitoring>();
                 monitoring.send(o2::monitoring::Metric{1, fmt::format("backpressure_{}", info.channel->GetName())});
                 info.backpressureNotified = true;
                 info.normalOpsNotified = false;
               }
               policy.backpressure(info);
               hasBackpressure = true;
+              minBackpressureTimeslice = std::min<size_t>(minBackpressureTimeslice, relayed.timeslice.value);
               break;
-            case DataRelayer::Dropped:
-            case DataRelayer::Invalid:
-            case DataRelayer::WillRelay:
+            case DataRelayer::RelayChoice::Type::Dropped:
+            case DataRelayer::RelayChoice::Type::Invalid:
+            case DataRelayer::RelayChoice::Type::WillRelay:
               if (info.normalOpsNotified == false && info.backpressureNotified == true) {
                 LOGP(info, "Back to normal on channel {}.", info.channel->GetName());
-                auto& monitoring = context.registry->get<o2::monitoring::Monitoring>();
+                auto& monitoring = ref.get<o2::monitoring::Monitoring>();
                 monitoring.send(o2::monitoring::Metric{0, fmt::format("backpressure_{}", info.channel->GetName())});
                 info.normalOpsNotified = true;
                 info.backpressureNotified = false;
@@ -1579,6 +1839,7 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
         } break;
         case InputType::SourceInfo: {
           LOGP(detail, "Received SourceInfo");
+          auto& context = ref.get<DataProcessorContext>();
           *context.wasActive = true;
           auto headerIndex = input.position;
           auto payloadIndex = input.position + 1;
@@ -1596,9 +1857,7 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
         case InputType::DomainInfo: {
           /// We have back pressure, therefore we do not process DomainInfo anymore.
           /// until the previous message are processed.
-          if (hasBackpressure) {
-            break;
-          }
+          auto& context = ref.get<DataProcessorContext>();
           *context.wasActive = true;
           auto headerIndex = input.position;
           auto payloadIndex = input.position + 1;
@@ -1607,6 +1866,9 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
           //        split parts.
 
           auto dih = o2::header::get<DomainInfoHeader*>(parts.At(headerIndex)->GetData());
+          if (hasBackpressure && dih->oldestPossibleTimeslice >= minBackpressureTimeslice) {
+            break;
+          }
           oldestPossibleTimeslice = std::min(oldestPossibleTimeslice, dih->oldestPossibleTimeslice);
           LOGP(debug, "Got DomainInfoHeader, new oldestPossibleTimeslice {} on channel {}", oldestPossibleTimeslice, info.id.value);
           parts.At(headerIndex).reset(nullptr);
@@ -1621,8 +1883,9 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
     /// Notice we do so only if the incoming data has been fully processed.
     if (oldestPossibleTimeslice != (size_t)-1) {
       info.oldestForChannel = {oldestPossibleTimeslice};
-      context.registry->domainInfoUpdatedCallback(*context.registry, oldestPossibleTimeslice, info.id);
-      context.registry->get<CallbackService>()(CallbackService::Id::DomainInfoUpdated, (ServiceRegistryRef)*context.registry, (size_t)oldestPossibleTimeslice, (ChannelIndex)info.id);
+      auto& context = ref.get<DataProcessorContext>();
+      context.domainInfoUpdatedCallback(*context.registry, oldestPossibleTimeslice, info.id);
+      ref.get<CallbackService>().call<CallbackService::Id::DomainInfoUpdated>((ServiceRegistryRef)*context.registry, (size_t)oldestPossibleTimeslice, (ChannelIndex)info.id);
       *context.wasActive = true;
     }
     auto it = std::remove_if(parts.fParts.begin(), parts.fParts.end(), [](auto& msg) -> bool { return msg.get() == nullptr; });
@@ -1651,18 +1914,26 @@ void DataProcessingDevice::handleData(DataProcessorContext& context, InputChanne
 
 namespace
 {
-auto calculateInputRecordLatency(InputRecord const& record, uint64_t currentTime) -> DataProcessingStats::InputLatency
+struct InputLatency {
+  uint64_t minLatency = std::numeric_limits<uint64_t>::max();
+  uint64_t maxLatency = std::numeric_limits<uint64_t>::min();
+};
+
+auto calculateInputRecordLatency(InputRecord const& record, uint64_t currentTime) -> InputLatency
 {
-  DataProcessingStats::InputLatency result{static_cast<int>(-1), 0};
+  InputLatency result;
 
   for (auto& item : record) {
     auto* header = o2::header::get<DataProcessingHeader*>(item.header);
     if (header == nullptr) {
       continue;
     }
-    int partLatency = currentTime - header->creation;
-    result.minLatency = std::min(result.minLatency, partLatency);
-    result.maxLatency = std::max(result.maxLatency, partLatency);
+    int64_t partLatency = (0x7fffffffffffffff & currentTime) - (0x7fffffffffffffff & header->creation);
+    if (partLatency < 0) {
+      partLatency = 0;
+    }
+    result.minLatency = std::min(result.minLatency, (uint64_t)partLatency);
+    result.maxLatency = std::max(result.maxLatency, (uint64_t)partLatency);
   }
   return result;
 };
@@ -1690,8 +1961,9 @@ void update_maximum(std::atomic<T>& maximum_value, T const& value) noexcept
 }
 } // namespace
 
-bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context, std::vector<DataRelayer::RecordAction>& completed)
+bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::vector<DataRelayer::RecordAction>& completed)
 {
+  auto& context = ref.get<DataProcessorContext>();
   ZoneScopedN("DataProcessingDevice::tryDispatchComputation");
   LOGP(debug, "DataProcessingDevice::tryDispatchComputation");
   // This is the actual hidden state for the outer loop. In case we decide we
@@ -1700,17 +1972,12 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   // should work just fine.
   std::vector<MessageSet> currentSetOfInputs;
 
-  auto reportError = [&registry = *context.registry](const char* message) {
-    registry.get<DataProcessingStats>().errorCount++;
-  };
-
   // For the moment we have a simple "immediately dispatch" policy for stuff
   // in the cache. This could be controlled from the outside e.g. by waiting
   // for a few sets of inputs to arrive before we actually dispatch the
   // computation, however this can be defined at a later stage.
-  auto canDispatchSomeComputation = [&completed,
-                                     &relayer = context.relayer]() -> bool {
-    relayer->getReadyToProcess(completed);
+  auto canDispatchSomeComputation = [&completed, ref]() -> bool {
+    ref.get<DataRelayer>().getReadyToProcess(completed);
     return completed.empty() == false;
   };
 
@@ -1718,21 +1985,22 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   // indicate a complete set of inputs. Notice how I fill the completed
   // vector and return it, so that I can have a nice for loop iteration later
   // on.
-  auto getReadyActions = [&relayer = context.relayer,
-                          &completed,
-                          &stats = context.registry->get<DataProcessingStats>()]() -> std::vector<DataRelayer::RecordAction> {
-    stats.pendingInputs = (int)relayer->getParallelTimeslices() - completed.size();
-    stats.incomplete = completed.empty() ? 1 : 0;
+  auto getReadyActions = [&completed, ref]() -> std::vector<DataRelayer::RecordAction> {
+    auto& stats = ref.get<DataProcessingStats>();
+    auto& relayer = ref.get<DataRelayer>();
+    using namespace o2::framework;
+    stats.updateStats({(int)ProcessingStatsId::PENDING_INPUTS, DataProcessingStats::Op::Set, static_cast<int64_t>(relayer.getParallelTimeslices() - completed.size())});
+    stats.updateStats({(int)ProcessingStatsId::INCOMPLETE_INPUTS, DataProcessingStats::Op::Set, completed.empty() ? 1 : 0});
     return completed;
   };
 
   //
-  auto getInputSpan = [&relayer = context.relayer,
-                       &currentSetOfInputs](TimesliceSlot slot, bool consume = true) {
+  auto getInputSpan = [ref, &currentSetOfInputs](TimesliceSlot slot, bool consume = true) {
+    auto& relayer = ref.get<DataRelayer>();
     if (consume) {
-      currentSetOfInputs = relayer->consumeAllInputsForTimeslice(slot);
+      currentSetOfInputs = relayer.consumeAllInputsForTimeslice(slot);
     } else {
-      currentSetOfInputs = relayer->consumeExistingInputsForTimeslice(slot);
+      currentSetOfInputs = relayer.consumeExistingInputsForTimeslice(slot);
     }
     auto getter = [&currentSetOfInputs](size_t i, size_t partindex) -> DataRef {
       if (currentSetOfInputs[i].getNumberOfPairs() > partindex) {
@@ -1743,7 +2011,7 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
         // - "part" denotes a sequence of messages belonging together, the first message of the
         //   sequence is the header message
         // - each part has one or more payload messages
-        // - InputRecord provides all payloads as header-payload pairs
+        // - InputRecord provides all payloads as header-payload pair
         auto const& headerMsg = currentSetOfInputs[i].associatedHeader(partindex);
         auto const& payloadMsg = currentSetOfInputs[i].associatedPayload(partindex);
         headerptr = static_cast<char const*>(headerMsg->GetData());
@@ -1759,23 +2027,38 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     return InputSpan{getter, nofPartsGetter, currentSetOfInputs.size()};
   };
 
-  auto markInputsAsDone = [&relayer = context.relayer](TimesliceSlot slot) -> void {
-    relayer->updateCacheStatus(slot, CacheEntryStatus::RUNNING, CacheEntryStatus::DONE);
+  auto markInputsAsDone = [ref](TimesliceSlot slot) -> void {
+    auto& relayer = ref.get<DataRelayer>();
+    relayer.updateCacheStatus(slot, CacheEntryStatus::RUNNING, CacheEntryStatus::DONE);
   };
 
   // I need a preparation step which gets the current timeslice id and
   // propagates it to the various contextes (i.e. the actual entities which
   // create messages) because the messages need to have the timeslice id into
   // it.
-  auto prepareAllocatorForCurrentTimeSlice = [&timingInfo = context.timingInfo,
-                                              &relayer = context.relayer](TimesliceSlot i) {
+  auto prepareAllocatorForCurrentTimeSlice = [ref](TimesliceSlot i) -> void {
+    auto& dataProcessorContext = ref.get<DataProcessorContext>();
+    auto& relayer = ref.get<DataRelayer>();
+    auto& timingInfo = ref.get<TimingInfo>();
     ZoneScopedN("DataProcessingDevice::prepareForCurrentTimeslice");
-    auto timeslice = relayer->getTimesliceForSlot(i);
-    timingInfo->timeslice = timeslice.value;
-    timingInfo->tfCounter = relayer->getFirstTFCounterForSlot(i);
-    timingInfo->firstTForbit = relayer->getFirstTFOrbitForSlot(i);
-    timingInfo->runNumber = relayer->getRunNumberForSlot(i);
-    timingInfo->creation = relayer->getCreationTimeForSlot(i);
+    auto timeslice = relayer.getTimesliceForSlot(i);
+
+    timingInfo.timeslice = timeslice.value;
+    timingInfo.tfCounter = relayer.getFirstTFCounterForSlot(i);
+    timingInfo.firstTForbit = relayer.getFirstTFOrbitForSlot(i);
+    timingInfo.runNumber = relayer.getRunNumberForSlot(i);
+    timingInfo.creation = relayer.getCreationTimeForSlot(i);
+    timingInfo.globalRunNumberChanged = !TimingInfo::timesliceIsTimer(timeslice.value) && dataProcessorContext.lastRunNumberProcessed != timingInfo.runNumber;
+    // A switch to runNumber=0 should not appear and thus does not set globalRunNumberChanged, unless it is seen in the first processed timeslice
+    timingInfo.globalRunNumberChanged &= (dataProcessorContext.lastRunNumberProcessed == -1 || timingInfo.runNumber != 0);
+    // We report wether or not this timing info refers to a new Run.
+    if (timingInfo.globalRunNumberChanged) {
+      dataProcessorContext.lastRunNumberProcessed = timingInfo.runNumber;
+    }
+    // FIXME: for now there is only one stream, however we
+    //        should calculate this correctly once we finally get the
+    //        the StreamContext in.
+    timingInfo.streamRunNumberChanged = timingInfo.globalRunNumberChanged;
   };
 
   // When processing them, timers will have to be cleaned up
@@ -1824,10 +2107,11 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
   };
 #endif
 
-  auto switchState = [&control = context.registry->get<ControlService>(),
-                      &state = context.deviceContext->state](StreamingState newState) {
-    state->streaming = newState;
-    control.notifyStreamingState(state->streaming);
+  auto switchState = [ref](StreamingState newState) {
+    auto& control = ref.get<ControlService>();
+    auto& state = ref.get<DeviceState>();
+    state.streaming = newState;
+    control.notifyStreamingState(state.streaming);
   };
 
   if (canDispatchSomeComputation() == false) {
@@ -1835,35 +2119,52 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     return false;
   }
 
-  auto postUpdateStats = [&stats = context.registry->get<DataProcessingStats>()](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t tStart) {
+  auto postUpdateStats = [ref](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t tStart, uint64_t tStartMilli) {
+    auto& stats = ref.get<DataProcessingStats>();
+    auto& states = ref.get<DataProcessingStates>();
     std::atomic_thread_fence(std::memory_order_release);
+    char relayerSlotState[1024];
+    int written = snprintf(relayerSlotState, 1024, "%d ", DefaultsHelpers::pipelineLength());
+    char* buffer = relayerSlotState + written;
     for (size_t ai = 0; ai != record.size(); ai++) {
-      auto cacheId = action.slot.index * record.size() + ai;
-      auto state = record.isValid(ai) ? 3 : 0;
-      update_maximum(stats.statesSize, cacheId + 1);
-      assert(cacheId < DataProcessingStats::MAX_RELAYER_STATES);
-      stats.relayerState[cacheId].store(state);
+      buffer[ai] = record.isValid(ai) ? '3' : '0';
     }
+    buffer[record.size()] = 0;
+    states.updateState({.id = short((int)ProcessingStateId::DATA_RELAYER_BASE + action.slot.index), (int)(record.size() + buffer - relayerSlotState), relayerSlotState});
     uint64_t tEnd = uv_hrtime();
-    stats.lastElapsedTimeMs = tEnd - tStart;
-    stats.lastProcessedSize = calculateTotalInputRecordSize(record);
-    stats.totalProcessedSize += stats.lastProcessedSize;
-    stats.lastLatency = calculateInputRecordLatency(record, tStart);
+    stats.updateStats({(int)ProcessingStatsId::LAST_ELAPSED_TIME_MS, DataProcessingStats::Op::Set, (int64_t)(tEnd - tStart)});
+    // The time interval is in seconds while tEnd - tStart is in nanoseconds, so we divide by 1000000 to get the fraction in ms/s.
+    stats.updateStats({(short)ProcessingStatsId::CPU_USAGE_FRACTION, DataProcessingStats::Op::CumulativeRate, (int64_t)(tEnd - tStart) / 1000000});
+    stats.updateStats({(int)ProcessingStatsId::LAST_PROCESSED_SIZE, DataProcessingStats::Op::Set, calculateTotalInputRecordSize(record)});
+    stats.updateStats({(int)ProcessingStatsId::TOTAL_PROCESSED_SIZE, DataProcessingStats::Op::Add, calculateTotalInputRecordSize(record)});
+    auto latency = calculateInputRecordLatency(record, tStartMilli);
+    stats.updateStats({(int)ProcessingStatsId::LAST_MIN_LATENCY, DataProcessingStats::Op::Set, (int)latency.minLatency});
+    stats.updateStats({(int)ProcessingStatsId::LAST_MAX_LATENCY, DataProcessingStats::Op::Set, (int)latency.maxLatency});
+    static int count = 0;
+    stats.updateStats({(int)ProcessingStatsId::PROCESSING_RATE_HZ, DataProcessingStats::Op::CumulativeRate, 1});
+    count++;
   };
 
-  auto preUpdateStats = [&stats = context.registry->get<DataProcessingStats>()](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t) {
+  auto preUpdateStats = [ref](DataRelayer::RecordAction const& action, InputRecord const& record, uint64_t) {
+    auto& states = ref.get<DataProcessingStates>();
     std::atomic_thread_fence(std::memory_order_release);
+    char relayerSlotState[1024];
+    snprintf(relayerSlotState, 1024, "%d ", DefaultsHelpers::pipelineLength());
+    char* buffer = strchr(relayerSlotState, ' ') + 1;
     for (size_t ai = 0; ai != record.size(); ai++) {
-      auto cacheId = action.slot.index * record.size() + ai;
-      auto state = record.isValid(ai) ? 2 : 0;
-      update_maximum(stats.statesSize, cacheId + 1);
-      assert(cacheId < DataProcessingStats::MAX_RELAYER_STATES);
-      stats.relayerState[cacheId].store(state);
+      buffer[ai] = record.isValid(ai) ? '2' : '0';
     }
+    buffer[record.size()] = 0;
+    states.updateState({.id = short((int)ProcessingStateId::DATA_RELAYER_BASE + action.slot.index), (int)(record.size() + buffer - relayerSlotState), relayerSlotState});
   };
 
   // This is the main dispatching loop
   LOGP(debug, "Processing actions:");
+  auto& state = ref.get<DeviceState>();
+  auto& spec = ref.get<DeviceSpec const>();
+
+  auto& dpContext = ref.get<DataProcessorContext>();
+  auto& streamContext = ref.get<StreamContext>();
   for (auto action : getReadyActions()) {
     LOGP(debug, "  Begin action");
     if (action.op == CompletionPolicy::CompletionOp::Wait) {
@@ -1884,20 +2185,24 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     bool shouldConsume = action.op == CompletionPolicy::CompletionOp::Consume ||
                          action.op == CompletionPolicy::CompletionOp::Discard;
     InputSpan span = getInputSpan(action.slot, shouldConsume);
-    InputRecord record{context.deviceContext->spec->inputs,
+    auto& spec = ref.get<DeviceSpec const>();
+    InputRecord record{spec.inputs,
                        span,
                        *context.registry};
-    ProcessingContext processContext{record, *context.registry, *context.allocator};
+    ProcessingContext processContext{record, ref, ref.get<DataAllocator>()};
     {
       ZoneScopedN("service pre processing");
-      context.registry->preProcessingCallbacks(processContext);
+      // Notice this should be thread safe and reentrant
+      // as it is called from many threads.
+      streamContext.preProcessingCallbacks(processContext);
+      dpContext.preProcessingCallbacks(processContext);
     }
     if (action.op == CompletionPolicy::CompletionOp::Discard) {
       LOGP(debug, "  - Action is to Discard");
-      context.registry->postDispatchingCallbacks(processContext);
-      if (context.deviceContext->spec->forwards.empty() == false) {
-        auto& timesliceIndex = context.registry->get<TimesliceIndex>();
-        forwardInputs(*context.registry, action.slot, currentSetOfInputs, timesliceIndex.getOldestPossibleOutput(), false);
+      context.postDispatchingCallbacks(processContext);
+      if (spec.forwards.empty() == false) {
+        auto& timesliceIndex = ref.get<TimesliceIndex>();
+        forwardInputs(ref, action.slot, currentSetOfInputs, timesliceIndex.getOldestPossibleOutput(), false);
         continue;
       }
     }
@@ -1905,59 +2210,73 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
     // the messages to that parallel processing can happen.
     // In this case we pass true to indicate that we want to
     // copy the messages to the subsequent data processor.
-    bool hasForwards = context.deviceContext->spec->forwards.empty() == false;
+    bool hasForwards = spec.forwards.empty() == false;
     bool consumeSomething = action.op == CompletionPolicy::CompletionOp::Consume || action.op == CompletionPolicy::CompletionOp::ConsumeExisting;
 
     if (context.canForwardEarly && hasForwards && consumeSomething) {
       LOGP(debug, "  - Early forwarding");
-      auto& timesliceIndex = context.registry->get<TimesliceIndex>();
-      forwardInputs(*context.registry, action.slot, currentSetOfInputs, timesliceIndex.getOldestPossibleOutput(), true, action.op == CompletionPolicy::CompletionOp::Consume);
+      auto& timesliceIndex = ref.get<TimesliceIndex>();
+      forwardInputs(ref, action.slot, currentSetOfInputs, timesliceIndex.getOldestPossibleOutput(), true, action.op == CompletionPolicy::CompletionOp::Consume);
     }
     markInputsAsDone(action.slot);
 
     uint64_t tStart = uv_hrtime();
+    uint64_t tStartMilli = TimingHelpers::getRealtimeSinceEpochStandalone();
     preUpdateStats(action, record, tStart);
 
     static bool noCatch = getenv("O2_NO_CATCHALL_EXCEPTIONS") && strcmp(getenv("O2_NO_CATCHALL_EXCEPTIONS"), "0");
 
-    auto runNoCatch = [&context, &processContext](DataRelayer::RecordAction& action) {
-      if (context.deviceContext->state->quitRequested == false) {
+    auto runNoCatch = [&context, ref, &processContext](DataRelayer::RecordAction& action) mutable {
+      auto& state = ref.get<DeviceState>();
+      auto& spec = ref.get<DeviceSpec const>();
+      auto& streamContext = ref.get<StreamContext>();
+      auto& dpContext = ref.get<DataProcessorContext>();
+      if (state.quitRequested == false) {
         {
           ZoneScopedN("service post processing");
           // Callbacks from services
-          context.registry->preProcessingCallbacks(processContext);
+          dpContext.preProcessingCallbacks(processContext);
+          streamContext.preProcessingCallbacks(processContext);
+          dpContext.preProcessingCallbacks(processContext);
           // Callbacks from users
-          context.registry->get<CallbackService>()(CallbackService::Id::PreProcessing, *(context.registry), (int)action.op);
+          ref.get<CallbackService>().call<CallbackService::Id::PreProcessing>(o2::framework::ServiceRegistryRef{ref}, (int)action.op);
         }
-        if (*context.statefulProcess) {
+        if (context.statefulProcess) {
           ZoneScopedN("statefull process");
-          (*context.statefulProcess)(processContext);
-        } else if (*context.statelessProcess) {
+          (context.statefulProcess)(processContext);
+        } else if (context.statelessProcess) {
           ZoneScopedN("stateless process");
-          (*context.statelessProcess)(processContext);
+          (context.statelessProcess)(processContext);
         } else {
-          context.deviceContext->state->streaming = StreamingState::Idle;
+          state.streaming = StreamingState::Idle;
         }
 
         // Notify the sink we just consumed some timeframe data
         if (context.isSink && action.op == CompletionPolicy::CompletionOp::Consume) {
-          context.allocator->make<int>(OutputRef{"dpl-summary", compile_time_hash(context.deviceContext->spec->name.c_str())}, 1);
+          auto& allocator = ref.get<DataAllocator>();
+          allocator.make<int>(OutputRef{"dpl-summary", compile_time_hash(spec.name.c_str())}, 1);
         }
 
         {
           ZoneScopedN("service post processing");
-          context.registry->get<CallbackService>()(CallbackService::Id::PostProcessing, *(context.registry), (int)action.op);
-          context.registry->postProcessingCallbacks(processContext);
+          ref.get<CallbackService>().call<CallbackService::Id::PostProcessing>(o2::framework::ServiceRegistryRef{ref}, (int)action.op);
+          dpContext.postProcessingCallbacks(processContext);
+          streamContext.postProcessingCallbacks(processContext);
         }
       }
     };
 
-    if ((context.deviceContext->state->tracingFlags & DeviceState::LoopReason::TRACE_USERCODE) != 0) {
-      context.deviceContext->state->severityStack.push_back((int)fair::Logger::GetConsoleSeverity());
+    if ((state.tracingFlags & DeviceState::LoopReason::TRACE_USERCODE) != 0) {
+      state.severityStack.push_back((int)fair::Logger::GetConsoleSeverity());
       fair::Logger::SetConsoleSeverity(fair::Severity::trace);
     }
     if (noCatch) {
-      runNoCatch(action);
+      try {
+        runNoCatch(action);
+      } catch (o2::framework::RuntimeErrorRef e) {
+        ZoneScopedN("error handling");
+        (context.errorHandling)(e, record);
+      }
     } else {
       try {
         runNoCatch(action);
@@ -1967,30 +2286,30 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
         /// Notice how this will lose the backtrace information
         /// and report the exception coming from here.
         auto e = runtime_error(ex.what());
-        (*context.errorHandling)(e, record);
+        (context.errorHandling)(e, record);
       } catch (o2::framework::RuntimeErrorRef e) {
         ZoneScopedN("error handling");
-        (*context.errorHandling)(e, record);
+        (context.errorHandling)(e, record);
       }
     }
-    if (context.deviceContext->state->severityStack.empty() == false) {
-      fair::Logger::SetConsoleSeverity((fair::Severity)context.deviceContext->state->severityStack.back());
-      context.deviceContext->state->severityStack.pop_back();
+    if (state.severityStack.empty() == false) {
+      fair::Logger::SetConsoleSeverity((fair::Severity)state.severityStack.back());
+      state.severityStack.pop_back();
     }
 
-    postUpdateStats(action, record, tStart);
+    postUpdateStats(action, record, tStart, tStartMilli);
     // We forward inputs only when we consume them. If we simply Process them,
     // we keep them for next message arriving.
     if (action.op == CompletionPolicy::CompletionOp::Consume) {
-      context.registry->postDispatchingCallbacks(processContext);
-      context.registry->get<CallbackService>()(CallbackService::Id::DataConsumed, *(context.registry));
+      context.postDispatchingCallbacks(processContext);
+      ref.get<CallbackService>().call<CallbackService::Id::DataConsumed>(o2::framework::ServiceRegistryRef{ref});
     }
     if ((context.canForwardEarly == false) && hasForwards && consumeSomething) {
       LOGP(debug, "Late forwarding");
-      auto& timesliceIndex = context.registry->get<TimesliceIndex>();
-      forwardInputs(*context.registry, action.slot, currentSetOfInputs, timesliceIndex.getOldestPossibleOutput(), false, action.op == CompletionPolicy::CompletionOp::Consume);
+      auto& timesliceIndex = ref.get<TimesliceIndex>();
+      forwardInputs(ref, action.slot, currentSetOfInputs, timesliceIndex.getOldestPossibleOutput(), false, action.op == CompletionPolicy::CompletionOp::Consume);
     }
-    context.registry->postForwardingCallbacks(processContext);
+    context.postForwardingCallbacks(processContext);
     if (action.op == CompletionPolicy::CompletionOp::Consume) {
 #ifdef TRACY_ENABLE
       cleanupRecord(record);
@@ -1999,11 +2318,13 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
       cleanTimers(action.slot, record);
     }
   }
+
   // We now broadcast the end of stream if it was requested
-  if (context.deviceContext->state->streaming == StreamingState::EndOfStreaming) {
+  if (state.streaming == StreamingState::EndOfStreaming) {
     LOGP(detail, "Broadcasting end of stream");
-    for (auto& channel : context.deviceContext->spec->outputChannels) {
-      DataProcessingHelpers::sendEndOfStream(*context.deviceContext->device, channel);
+    for (auto& channel : spec.outputChannels) {
+      auto& rawDevice = ref.get<RawDeviceService>();
+      DataProcessingHelpers::sendEndOfStream(*rawDevice.device(), channel);
     }
     switchState(StreamingState::Idle);
   }
@@ -2014,7 +2335,9 @@ bool DataProcessingDevice::tryDispatchComputation(DataProcessorContext& context,
 void DataProcessingDevice::error(const char* msg)
 {
   LOG(error) << msg;
-  mServiceRegistry.get<DataProcessingStats>().errorCount++;
+  ServiceRegistryRef ref{mServiceRegistry};
+  auto& stats = ref.get<DataProcessingStats>();
+  stats.updateStats({(int)ProcessingStatsId::ERROR_COUNT, DataProcessingStats::Op::Add});
 }
 
 std::unique_ptr<ConfigParamStore> DeviceConfigurationHelpers::getConfiguration(ServiceRegistryRef registry, const char* name, std::vector<ConfigParamSpec> const& options)

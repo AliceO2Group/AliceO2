@@ -20,7 +20,7 @@ namespace o2
 namespace ctp
 {
 
-framework::DataProcessorSpec getDigitsReaderSpec(bool propagateMC = true);
+framework::DataProcessorSpec getDigitsReaderSpec(bool propagateMC = true, const std::string& defFile = "ctpdigits.root");
 
 } // namespace ctp
 } // end namespace o2

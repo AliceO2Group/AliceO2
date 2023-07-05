@@ -25,6 +25,8 @@ std::istream& operator>>(std::istream& in, enum EarlyForwardPolicy& policy);
 std::ostream& operator<<(std::ostream& out, const enum EarlyForwardPolicy& policy);
 std::istream& operator>>(std::istream& in, enum LogParsingHelpers::LogLevel& level);
 std::ostream& operator<<(std::ostream& out, const enum LogParsingHelpers::LogLevel& level);
+std::istream& operator>>(std::istream& in, enum DriverMode& level);
+std::ostream& operator<<(std::ostream& out, const enum DriverMode& level);
 } // namespace o2::framework
 
 #endif // O2_FRAMEWORK_PROCESSINGPOLICIESHELPERS_H_

@@ -106,11 +106,12 @@ void checkNoisyMCMs(std::string inpFile = "trdtracklets.root", bool useMean = tr
   auto n = nTrkltsPerActiveMcm.size() / 2;
   auto median = nTrkltsPerActiveMcm[n]; // the distinction between odd/even number of entries in the vector is irrelevant
   mean90 /= nActiveMcms90;
-  auto noiseThreshold = (useMean) ? 100.f * mean90 : (float)totalTriggerCounter / 10.f;
+  auto noiseThreshold = (useMean) ? 30.f * mean90 : (float)totalTriggerCounter / 5.f;
 
   setlocale(LC_NUMERIC, "en_US.utf-8");
   printf("Info: Found in total %'lu MCMs which sent tracklets with a median of %i tracklets per MCM\n", nTrkltsPerActiveMcm.size(), median);
   printf("Info: Excluding the 10%% of MCMs which sent the highest number of tracklets %'i MCMs remain with on average %.2f tracklets per MCM\n", nActiveMcms90, mean90);
+  printf("Info: Checked %lu triggers in total\n", totalTriggerCounter);
   printf("Important: Masking MCMs which sent more than %.2f tracklets for given period\n", noiseThreshold);
 
   std::vector<int> nTrackletsFromNoisyMcm;

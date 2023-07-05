@@ -184,7 +184,7 @@ GPUd() int GPUTPCCompressionTrackModel::Filter(float y, float z, int iRow)
 {
   // apply kalman filter update with measurement y/z
   float err2Y, err2Z;
-  getClusterRMS2(iRow, z, mTrk.sinphi, mTrk.dzds, err2Y, err2Z);
+  getClusterErrors2(iRow, z, mTrk.sinphi, mTrk.dzds, err2Y, err2Z);
   if (mNDF == -5) {
     // first measurement: no need to filter, as the result is known in advance. so just set it
     // ignore offline statistical errors for now (as is also done by default)
@@ -888,14 +888,15 @@ GPUd() float GPUTPCCompressionTrackModel::approximateBetheBloch(float beta2)
   return ret;
 }
 
-GPUd() void GPUTPCCompressionTrackModel::getClusterRMS2(int iRow, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const
+GPUd() void GPUTPCCompressionTrackModel::getClusterErrors2(int iRow, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const
 {
   // Only O2 geometry considered at the moment. Is AliRoot geometry support needed?
   int rowType = iRow < 97 ? (iRow < 63 ? 0 : 1) : (iRow < 127 ? 2 : 3);
   if (rowType > 2) {
     rowType = 2; // TODO: Add type 3
   }
-  z = CAMath::Abs((250.f - 0.275f) - CAMath::Abs(z));
+  constexpr float tpcLength = 250.f - 0.275f;
+  z = CAMath::Abs(tpcLength - CAMath::Abs(z));
   float s2 = sinPhi * sinPhi;
   if (s2 > 0.95f * 0.95f) {
     s2 = 0.95f * 0.95f;
@@ -904,11 +905,11 @@ GPUd() void GPUTPCCompressionTrackModel::getClusterRMS2(int iRow, float z, float
   float angleY2 = s2 * sec2;          // dy/dx
   float angleZ2 = DzDs * DzDs * sec2; // dz/dx
 
-  const float* cY = mParamRMS0[0][rowType];
+  const float* cY = mParamErrors0[0][rowType];
   ErrY2 = cY[0] + cY[1] * z + cY[2] * angleY2;
   ErrY2 *= ErrY2;
 
-  const float* cZ = mParamRMS0[1][rowType];
+  const float* cZ = mParamErrors0[1][rowType];
   ErrZ2 = cZ[0] + cZ[1] * z + cZ[2] * angleZ2;
   ErrZ2 *= ErrZ2;
 }

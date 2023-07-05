@@ -12,6 +12,7 @@
 #include <boost/program_options.hpp>
 #include <ctime>
 #include <chrono>
+#include <regex>
 #include <TSystem.h>
 #include "DataFormatsParameters/GRPECSObject.h"
 #include "DetectorsCommonDataFormats/DetID.h"
@@ -28,22 +29,34 @@ enum CCDBRefreshMode { NONE,
                        ASYNC,
                        SYNC };
 
-void createGRPECSObject(const std::string& dataPeriod,
-                        int run,
-                        int runTypeI,
-                        int nHBPerTF,
-                        const std::string& detsReadout,
-                        const std::string& detsContinuousRO,
-                        const std::string& detsTrigger,
-                        const std::string& flpList,
-                        long tstart,
-                        long tend,
-                        long marginAtSOR,
-                        long marginAtEOR,
-                        const std::string& ccdbServer = "",
-                        const std::string& metaDataStr = "",
-                        CCDBRefreshMode refresh = CCDBRefreshMode::NONE)
+int createGRPECSObject(const std::string& dataPeriod,
+                       int run,
+                       int runTypeI,
+                       int nHBPerTF,
+                       const std::string& _detsReadout,
+                       const std::string& _detsContinuousRO,
+                       const std::string& _detsTrigger,
+                       const std::string& flpList,
+                       long tstart,
+                       long tend,
+                       long tstartCTP,
+                       long tendCTP,
+                       long marginAtSOR,
+                       long marginAtEOR,
+                       const std::string& ccdbServer = "",
+                       const std::string& metaDataStr = "",
+                       CCDBRefreshMode refresh = CCDBRefreshMode::NONE)
 {
+  int retValGLO = 0;
+  int retValRCT = 0;
+  int retValGLOmd = 0;
+
+  // substitute TRG by CTP
+  std::regex regCTP(R"((^\s*|,\s*)(TRG)(\s*,|\s*$))");
+  std::string detsReadout{std::regex_replace(_detsReadout, regCTP, "$1CTP$3")};
+  std::string detsContinuousRO{std::regex_replace(_detsContinuousRO, regCTP, "$1CTP$3")};
+  std::string detsTrigger{std::regex_replace(_detsTrigger, regCTP, "$1CTP$3")};
+
   auto detMask = DetID::getMask(detsReadout);
   if (detMask.count() == 0) {
     throw std::runtime_error("empty detectors list is provided");
@@ -51,7 +64,7 @@ void createGRPECSObject(const std::string& dataPeriod,
   if (runTypeI < 0 || runTypeI >= int(GRPECSObject::RunType::NRUNTYPES)) {
     LOGP(warning, "run type {} is not recognized, consider updating GRPECSObject.h", runTypeI);
   }
-  GRPECSObject::RunType runType = (GRPECSObject::RunType)runTypeI;
+  auto runType = (GRPECSObject::RunType)runTypeI;
   auto detMaskCont = detMask & DetID::getMask(detsContinuousRO);
   auto detMaskTrig = detMask & DetID::getMask(detsTrigger);
   LOG(info) << tstart << " " << tend;
@@ -67,6 +80,9 @@ void createGRPECSObject(const std::string& dataPeriod,
   GRPECSObject grpecs;
   grpecs.setTimeStart(tstart);
   grpecs.setTimeEnd(tend);
+  grpecs.setTimeStartCTP(tstartCTP);
+  grpecs.setTimeEndCTP(tendCTP);
+
   if (runType == GRPECSObject::RunType::LASER && detMask[DetID::TPC] && detMaskCont[DetID::TPC]) {
     LOGP(important, "Overriding TPC readout mode to triggered for runType={}", o2::parameters::GRPECS::RunTypeNames[runTypeI]);
     detMaskCont.reset(DetID::TPC);
@@ -112,8 +128,12 @@ void createGRPECSObject(const std::string& dataPeriod,
     metadata["responsible"] = "ECS";
     metadata[o2::base::NameConf::CCDBRunTag.data()] = std::to_string(run);
     metadata["EOR"] = fmt::format("{}", tend);
-    api.storeAsTFileAny(&grpecs, objPath, metadata, tstart, tendVal); // making it 1-year valid to be sure we have something
-    LOGP(info, "Uploaded to {}/{} with validity {}:{} for SOR:{}/EOR:{}", ccdbServer, objPath, tstart, tendVal, tstart, tend);
+    retValGLO = api.storeAsTFileAny(&grpecs, objPath, metadata, tstart, tendVal); // making it 1-year valid to be sure we have something
+    if (retValGLO == 0) {
+      LOGP(info, "Uploaded to {}/{} with validity {}:{} for SOR:{}/EOR:{}", ccdbServer, objPath, tstart, tendVal, tstart, tend);
+    } else {
+      LOGP(alarm, "Upload to {}/{} with validity {}:{} for SOR:{}/EOR:{} FAILED, returned with code {}", ccdbServer, objPath, tstart, tendVal, tstart, tend, retValGLO);
+    }
     if (tend > tstart) {
       // override SOR version to the same limits
       metadata.erase("EOR");
@@ -123,17 +143,26 @@ void createGRPECSObject(const std::string& dataPeriod,
         std::string etag = itETag->second;
         etag.erase(remove(etag.begin(), etag.end(), '\"'), etag.end());
         LOGP(info, "Overriding run {} SOR-only version {}{}{}/{} validity to match complete SOR/EOR version validity", run, ccdbServer, ccdbServer.back() == '/' ? "" : "/", prevHeader["Valid-From"], etag);
-        api.updateMetadata(objPath, {}, std::max(tstart, tendVal - 1), etag, tendVal);
+        retValGLOmd = api.updateMetadata(objPath, {}, std::max(tstart, tendVal - 1), etag, tendVal);
+        if (retValGLOmd != 0) {
+          LOGP(alarm, "Overriding run {} SOR-only version {}{}{}/{} validity to match complete SOR/EOR version validity FAILED", run, ccdbServer, ccdbServer.back() == '/' ? "" : "/", prevHeader["Valid-From"], etag);
+        }
       }
-      if (runType == GRPECSObject::RunType::PHYSICS) { // also storing the RCT/Info/RunInformation entry in case the run type is PHYSICS and if we are at the end of run
+      if (runType == GRPECSObject::RunType::PHYSICS || runType == GRPECSObject::RunType::COSMICS) { // also storing the RCT/Info/RunInformation entry in case the run type is PHYSICS and if we are at the end of run
         char tempChar{};
         std::map<std::string, std::string> mdRCT;
         mdRCT["SOR"] = std::to_string(tstart);
         mdRCT["EOR"] = std::to_string(tend);
+        mdRCT["SOX"] = std::to_string(tstartCTP);
+        mdRCT["EOX"] = std::to_string(tendCTP);
         long startValRCT = (long)run;
         long endValRCT = (long)(run + 1);
-        api.storeAsBinaryFile(&tempChar, sizeof(tempChar), "tmp.dat", "char", "RCT/Info/RunInformation", mdRCT, startValRCT, endValRCT);
-        LOGP(info, "Uploaded RCT object to {}/{} with validity {}:{}", ccdbServer, "RCT/Info/RunInformation", startValRCT, endValRCT);
+        retValRCT = api.storeAsBinaryFile(&tempChar, sizeof(tempChar), "tmp.dat", "char", "RCT/Info/RunInformation", mdRCT, startValRCT, endValRCT);
+        if (retValRCT == 0) {
+          LOGP(info, "Uploaded RCT object to {}/{} with validity {}:{}", ccdbServer, "RCT/Info/RunInformation", startValRCT, endValRCT);
+        } else {
+          LOGP(alarm, "Uploaded RCT object to {}/{} with validity {}:{} FAILED, returned with code {}", ccdbServer, "RCT/Info/RunInformation", startValRCT, endValRCT, retValRCT);
+        }
       }
     }
 
@@ -151,6 +180,10 @@ void createGRPECSObject(const std::string& dataPeriod,
     auto t1 = std::chrono::high_resolution_clock::now();
     LOGP(info, "Executed [{}] -> {} in {:.3f} s", cmd, res, std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count() / 1000.f);
   }
+  if (retValGLO != 0 || retValRCT != 0 || retValGLOmd != 0) {
+    return 4;
+  }
+  return 0;
 }
 
 int main(int argc, char** argv)
@@ -176,9 +209,11 @@ int main(int argc, char** argv)
     add_option("continuous,c", bpo::value<string>()->default_value("ITS,TPC,TOF,MFT,MCH,MID,ZDC,FT0,FV0,FDD,CTP"), "comma separated list of detectors in continuous readout mode");
     add_option("triggering,g", bpo::value<string>()->default_value("FT0,FV0"), "comma separated list of detectors providing a trigger");
     add_option("flps,f", bpo::value<string>()->default_value(""), "comma separated list of FLPs in the data taking");
-    add_option("start-time,s", bpo::value<long>()->default_value(0), "run start time in ms, now() if 0");
-    add_option("end-time,e", bpo::value<long>()->default_value(0), "run end time in ms, start-time+3days is used if 0");
-    add_option("ccdb-server", bpo::value<std::string>()->default_value("https://alice-ccdb.cern.ch"), "CCDB server for upload, local file if empty");
+    add_option("start-time,s", bpo::value<long>()->default_value(0), "ECS run start time in ms, now() if 0");
+    add_option("end-time,e", bpo::value<long>()->default_value(0), "ECS run end time in ms, start-time+3days is used if 0");
+    add_option("start-time-ctp", bpo::value<long>()->default_value(0), "run start CTP time in ms, same as ECS if not set or 0");
+    add_option("end-time-ctp", bpo::value<long>()->default_value(0), "run end CTP time in ms, same as ECS if not set or 0");
+    add_option("ccdb-server", bpo::value<std::string>()->default_value("http://alice-ccdb.cern.ch"), "CCDB server for upload, local file if empty");
     add_option("meta-data,m", bpo::value<std::string>()->default_value("")->implicit_value(""), "metadata as key1=value1;key2=value2;..");
     add_option("refresh", bpo::value<string>()->default_value("")->implicit_value("async"), R"(refresh server cache after upload: "none" (or ""), "async" (non-blocking) and "sync" (blocking))");
     add_option("marginSOR", bpo::value<long>()->default_value(4 * o2::ccdb::CcdbObjectInfo::DAY), "validity at SOR");
@@ -225,7 +260,7 @@ int main(int argc, char** argv)
     }
   }
 
-  createGRPECSObject(
+  int retVal = createGRPECSObject(
     vm["period"].as<std::string>(),
     vm["run"].as<int>(),
     vm["run-type"].as<int>(),
@@ -236,9 +271,18 @@ int main(int argc, char** argv)
     vm["flps"].as<std::string>(),
     vm["start-time"].as<long>(),
     vm["end-time"].as<long>(),
+    vm["start-time-ctp"].as<long>(),
+    vm["end-time-ctp"].as<long>(),
     vm["marginSOR"].as<long>(),
     vm["marginEOR"].as<long>(),
     vm["ccdb-server"].as<std::string>(),
     vm["meta-data"].as<std::string>(),
     refresh);
+
+  if (retVal != 0) {
+    std::cerr << "ERROR: "
+              << "Either GLO/Config/GRPECS or RCT/Info/RunInformation could not be stored correctly to CCDB" << std::endl;
+    std::cerr << opt_general << std::endl;
+    exit(retVal);
+  }
 }

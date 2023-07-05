@@ -18,8 +18,10 @@
 #include "Align/AlignableVolume.h"
 #include "Align/AlignableSensorITS.h"
 #include "Align/Controller.h"
+#include "Align/AlignConfig.h"
 #include "ITSBase/GeometryTGeo.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
+#include "DataFormatsITSMFT/TrkClusRef.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "ITStracking/IOUtils.h"
@@ -34,17 +36,12 @@ namespace o2
 namespace align
 {
 
-const char* AlignableDetectorITS::fgkHitsSel[AlignableDetectorITS::kNSPDSelTypes] =
-  {"SPDNoSel", "SPDBoth", "SPDAny", "SPD0", "SPD1"};
-
 //____________________________________________
 AlignableDetectorITS::AlignableDetectorITS(Controller* ctr) : AlignableDetector(DetID::ITS, ctr)
 {
   // default c-tor
-  setUseErrorParam();
-  SetITSSelPatternColl();
-  SetITSSelPatternCosm();
 }
+
 /*
 //____________________________________________
 void AlignableDetectorITS::initGeom()
@@ -100,7 +97,7 @@ void AlignableDetectorITS::defineVolumes()
     if (ich != chID) {
       throw std::runtime_error(fmt::format("mismatch between counter {} and composed {} chip IDs", ich, chID));
     }
-    addVolume(sens = new AlignableSensorITS(o2::base::GeometryManager::getSymbolicName(mDetID, ich), chID, getSensLabel(chID), mController));
+    addVolume(sens = new AlignableSensorITS(o2::base::GeometryManager::getSymbolicName(mDetID, ich), chID, getSensLabel(ich), mController));
     int lay = 0, hba, sta = 0, ssta = 0, modd = 0, chip = 0;
     geom->getChipId(chID, lay, hba, sta, ssta, modd, chip);
     AlignableVolume* parVol = sym2vol[modd < 0 ? geom->composeSymNameStave(lay, hba, sta) : geom->composeSymNameModule(lay, hba, sta, ssta, modd)];
@@ -113,7 +110,7 @@ void AlignableDetectorITS::defineVolumes()
 }
 
 //____________________________________________
-int AlignableDetectorITS::processPoints(GIndex gid, bool inv)
+int AlignableDetectorITS::processPoints(GIndex gid, int npntCut, bool inv)
 {
   // Extract the points corresponding to this detector, recalibrate/realign them to the
   // level of the "starting point" for the alignment/calibration session.
@@ -122,40 +119,55 @@ int AlignableDetectorITS::processPoints(GIndex gid, bool inv)
   //
   auto algTrack = mController->getAlgTrack();
   auto recoData = mController->getRecoContainer();
-  const auto tracks = recoData->getITSTracks();
-  if (tracks.empty()) {
-    return -1; // source not loaded?
-  }
-  const auto& track = tracks[gid.getIndex()];
-  const auto& clusIdx = recoData->getITSTracksClusterRefs();
-  // do we want to apply some cuts?
-  int clEntry = track.getFirstClusterEntry();
-  mNPoints = 0;
-  mFirstPoint = algTrack->getNPoints();
-  for (int icl = track.getNumberOfClusters(); icl--;) {
-    const auto& clus = mITSClustersArray[clusIdx[clEntry++]];
-    auto* sensor = getSensor(clus.getSensorID());
+  const auto& algConf = AlignConfig::Instance();
+  int npoints = 0;
+  auto procClus = [this, inv, &npoints, &algTrack](const ClusterD& clus) {
+    auto* sensor = this->getSensor(clus.getSensorID());
     auto& pnt = algTrack->addDetectorPoint();
-
-    if (!getUseErrorParam()) {
-      const auto* sysE = sensor->getAddError(); // additional syst error
-      pnt.setYZErrTracking(clus.getSigmaY2() + sysE[0] * sysE[0], clus.getSigmaYZ(), clus.getSigmaZ2() + sysE[1] * sysE[1]);
-    } else { // errors will be calculated just before using the point in the fit, using track info
-      pnt.setYZErrTracking(0., 0., 0.);
+    const auto* sysE = sensor->getAddError(); // additional syst error
+    pnt.setYZErrTracking(clus.getSigmaY2() + sysE[0] * sysE[0], clus.getSigmaYZ(), clus.getSigmaZ2() + sysE[1] * sysE[1]);
+    if (this->getUseErrorParam()) { // errors will be calculated just before using the point in the fit, using track info
       pnt.setNeedUpdateFromTrack();
     }
     pnt.setXYZTracking(clus.getX(), clus.getY(), clus.getZ());
     pnt.setSensor(sensor);
     pnt.setAlphaSens(sensor->getAlpTracking());
     pnt.setXSens(sensor->getXTracking());
-    pnt.setDetID(mDetID);
+    pnt.setDetID(this->mDetID);
     pnt.setSID(sensor->getSID());
-    //
     pnt.setContainsMeasurement();
+    pnt.setInvDir(inv);
     pnt.init();
-    mNPoints++;
+    npoints++;
+  };
+  if (gid.getSource() == GIndex::ITS) {
+    const auto tracks = recoData->getITSTracks();
+    if (tracks.empty()) {
+      return -1; // source not loaded?
+    }
+    const auto& track = tracks[gid.getIndex()];
+    if (track.getNClusters() < npntCut) {
+      return -1;
+    }
+    const auto& clusIdx = recoData->getITSTracksClusterRefs();
+    // do we want to apply some cuts?
+    int clEntry = track.getFirstClusterEntry();
+    for (int icl = track.getNumberOfClusters(); icl--;) {
+      const auto& clus = mITSClustersArray[clusIdx[clEntry++]];
+      procClus(clus);
+    }
+  } else { // ITSAB
+    const auto& trkITSABref = recoData->getITSABRefs()[gid.getIndex()];
+    const auto& ABTrackClusIdx = recoData->getITSABClusterRefs();
+    int nCl = trkITSABref.getNClusters();
+    int clEntry = trkITSABref.getFirstEntry();
+    for (int icl = 0; icl < nCl; icl++) { // clusters are stored from inner to outer layers
+      const auto& clus = mITSClustersArray[ABTrackClusIdx[clEntry + icl]];
+      procClus(clus);
+    }
   }
-  return track.getNumberOfClusters(); // RS
+  mNPoints += npoints;
+  return npoints;
 }
 
 //____________________________________________
@@ -166,6 +178,7 @@ bool AlignableDetectorITS::prepareDetectorData()
   const auto clusITS = recoData->getITSClusters();
   const auto patterns = recoData->getITSClustersPatterns();
   auto pattIt = patterns.begin();
+  mITSClustersArray.clear();
   mITSClustersArray.reserve(clusITS.size());
 
   for (auto& c : clusITS) {
@@ -173,7 +186,7 @@ bool AlignableDetectorITS::prepareDetectorData()
     double sigmaY2, sigmaZ2, sigmaYZ = 0, locXYZC[3], traXYZ[3];
     auto locXYZ = o2::its::ioutils::extractClusterDataA(c, pattIt, mITSDict, sigmaY2, sigmaZ2); // local ideal coordinates
     const auto& matAlg = sensor->getMatrixClAlg();                                              // local alignment matrix !!! RS FIXME
-    matAlg.LocalToMaster(locXYZ.data(), locXYZC);                                               // aligned point in the local fram
+    matAlg.LocalToMaster(locXYZ.data(), locXYZC);                                               // aligned point in the local frame
     const auto& mat = sensor->getMatrixT2L();                                                   // RS FIXME check if correct
     mat.MasterToLocal(locXYZC, traXYZ);
     /*
@@ -193,26 +206,7 @@ bool AlignableDetectorITS::prepareDetectorData()
 void AlignableDetectorITS::Print(const Option_t* opt) const
 {
   AlignableDetector::Print(opt);
-  printf("Sel.pattern   Collisions: %7s | Cosmic: %7s\n",
-         GetITSPattName(fITSPatt[Coll]), GetITSPattName(fITSPatt[Cosm]));
 }
-
-/*
-// RSTODO
-//____________________________________________
-bool AlignableDetectorITS::AcceptTrack(const AliESDtrack* trc, int trtype) const
-{
-  // test if detector had seed this track
-  if (!CheckFlags(trc, trtype))
-    return false;
-  if (trc->GetNcls(0) < mNPointsSel[trtype])
-    return false;
-  if (!CheckHitPattern(trc, GetITSSelPattern(trtype)))
-    return false;
-  //
-  return true;
-}
-*/
 
 //____________________________________________
 void AlignableDetectorITS::SetAddErrorLr(int ilr, double sigY, double sigZ)
@@ -239,7 +233,7 @@ void AlignableDetectorITS::SetSkipLr(int ilr)
 //_________________________________________________
 void AlignableDetectorITS::setUseErrorParam(int v)
 {
-  // set type of points error parameterization
+  // set type of points error parameterization // RS DO WE NEED THIS?
   mUseErrorParam = v;
 }
 

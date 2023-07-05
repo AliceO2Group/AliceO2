@@ -461,7 +461,7 @@ GPUd() int GPUTPCGMMerger::RefitSliceTrack(GPUTPCGMSliceTrack& sliceTrack, const
   trk.DzDs() = inTrack->Param().GetDzDs();
   trk.QPt() = inTrack->Param().GetQPt();
   trk.TZOffset() = Param().par.earlyTpcTransform ? inTrack->Param().GetZOffset() : GetConstantMem()->calibObjects.fastTransformHelper->getCorrMap()->convZOffsetToVertexTime(slice, inTrack->Param().GetZOffset(), Param().par.continuousMaxTimeBin);
-  trk.ShiftZ(this, slice, sliceTrack.ClusterZT0(), sliceTrack.ClusterZTN());
+  trk.ShiftZ(this, slice, sliceTrack.ClusterZT0(), sliceTrack.ClusterZTN(), inTrack->Param().GetX(), inTrack->Param().GetX()); // We do not store the inner / outer cluster X, so we just use the track X instead
   sliceTrack.SetX2(0.f);
   for (int way = 0; way < 2; way++) {
     if (way) {
@@ -840,7 +840,7 @@ GPUd() void GPUTPCGMMerger::MergeBorderTracks<3>(int nBlocks, int nThreads, int 
 template <>
 GPUd() void GPUTPCGMMerger::MergeBorderTracks<2>(int nBlocks, int nThreads, int iBlock, int iThread, int iSlice1, GPUTPCGMBorderTrack* B1, int N1, int iSlice2, GPUTPCGMBorderTrack* B2, int N2, int mergeMode)
 {
-  int statAll = 0, statMerged = 0;
+  // int statAll = 0, statMerged = 0;
   float factor2ys = 1.5; // 1.5;//SG!!!
   float factor2zt = 1.5; // 1.5;//SG!!!
   float factor2k = 2.0;  // 2.2;
@@ -870,7 +870,7 @@ GPUd() void GPUTPCGMMerger::MergeBorderTracks<2>(int nBlocks, int nThreads, int 
     }
     int iBest2 = -1;
     int lBest2 = 0;
-    statAll++;
+    // statAll++;
     for (int k2 = i2; k2 < N2; k2++) {
       GPUTPCGMBorderRange r2 = range2[k2];
       if (r2.fMin > r1.fMax) {
@@ -937,7 +937,7 @@ GPUd() void GPUTPCGMMerger::MergeBorderTracks<2>(int nBlocks, int nThreads, int 
     if (iBest2 < 0) {
       continue;
     }
-    statMerged++;
+    // statMerged++;
 
     CADEBUG(GPUInfo("Found match %d %d", b1.TrackID(), iBest2));
 
@@ -1016,7 +1016,7 @@ GPUd() void GPUTPCGMMerger::MergeSlicesPrepare(int nBlocks, int nThreads, int iB
     n += NSLICES;
     b += NSLICES;
   }
-  MakeBorderTracks((nBlocks + 1) >> 1, nThreads, iBlock >> 1, iThread, border, b, n, useOrigTrackParam);
+  MakeBorderTracks((nBlocks + !part2) >> 1, nThreads, iBlock >> 1, iThread, border, b, n, useOrigTrackParam);
 }
 
 GPUdi() void GPUTPCGMMerger::setBlockRange(int elems, int nBlocks, int iBlock, int& start, int& end)
@@ -1368,7 +1368,8 @@ GPUd() void GPUTPCGMMerger::MergeCE(int nBlocks, int nThreads, int iBlock, int i
       if (!trk[1]->OK() || trk[1]->CCE()) {
         continue;
       }
-      bool looper = trk[0]->Looper() || trk[1]->Looper() || (trk[0]->GetParam().GetQPt() * Param().qptB5Scaler > 1 && trk[0]->GetParam().GetQPt() * trk[1]->GetParam().GetQPt() < 0);
+      bool celooper = (trk[0]->GetParam().GetQPt() * Param().qptB5Scaler > 1 && trk[0]->GetParam().GetQPt() * trk[1]->GetParam().GetQPt() < 0);
+      bool looper = trk[0]->Looper() || trk[1]->Looper() || celooper;
       if (!looper && trk[0]->GetParam().GetPar(3) * trk[1]->GetParam().GetPar(3) < 0) {
         continue;
       }
@@ -1437,21 +1438,29 @@ GPUd() void GPUTPCGMMerger::MergeCE(int nBlocks, int nThreads, int iBlock, int i
       }
 
       int pos = newRef;
+      int leg = -1;
+      int lastLeg = -1;
+#pragma unroll
       for (int k = 1; k >= 0; k--) {
-        if (reverse[k]) {
-          for (int j = trk[k]->NClusters() - 1; j >= 0; j--) {
-            if (Param().par.earlyTpcTransform) {
-              mClustersXYZ[pos] = mClustersXYZ[trk[k]->FirstClusterRef() + j];
-            }
-            mClusters[pos++] = mClusters[trk[k]->FirstClusterRef() + j];
+        int loopstart = reverse[k] ? (trk[k]->NClusters() - 1) : 0;
+        int loopend = reverse[k] ? -1 : (int)trk[k]->NClusters();
+        int loopinc = reverse[k] ? -1 : 1;
+        for (int j = loopstart; j != loopend; j += loopinc) {
+          if (Param().par.earlyTpcTransform) {
+            mClustersXYZ[pos] = mClustersXYZ[trk[k]->FirstClusterRef() + j];
           }
-        } else {
-          for (unsigned int j = 0; j < trk[k]->NClusters(); j++) {
-            if (Param().par.earlyTpcTransform) {
-              mClustersXYZ[pos] = mClustersXYZ[trk[k]->FirstClusterRef() + j];
+          mClusters[pos] = mClusters[trk[k]->FirstClusterRef() + j];
+          if (looper) {
+            if (mClusters[trk[k]->FirstClusterRef() + j].leg != lastLeg) {
+              leg++;
+              lastLeg = mClusters[trk[k]->FirstClusterRef() + j].leg;
             }
-            mClusters[pos++] = mClusters[trk[k]->FirstClusterRef() + j];
+            mClusters[pos].leg = leg;
           }
+          pos++;
+        }
+        if (celooper) {
+          lastLeg = -1;
         }
       }
       trk[1]->SetFirstClusterRef(newRef);
@@ -1463,8 +1472,8 @@ GPUd() void GPUTPCGMMerger::MergeCE(int nBlocks, int nThreads, int iBlock, int i
       trk[1]->SetCCE(true);
       if (looper) {
         trk[1]->SetLooper(true);
+        trk[1]->SetLegs(leg + 1);
       }
-      trk[1]->SetLegs(trk[1]->Legs() + trk[0]->Legs());
       trk[0]->SetNClusters(0);
       trk[0]->SetOK(false);
     }

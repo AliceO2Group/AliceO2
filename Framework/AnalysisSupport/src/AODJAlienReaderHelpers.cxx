@@ -12,6 +12,7 @@
 #include "AODJAlienReaderHelpers.h"
 #include "Framework/TableTreeHelpers.h"
 #include "Framework/AnalysisHelpers.h"
+#include "Framework/DataProcessingStats.h"
 #include "Framework/RootTableBuilderHelpers.h"
 #include "Framework/AlgorithmSpec.h"
 #include "Framework/ConfigParamRegistry.h"
@@ -97,12 +98,12 @@ namespace o2::framework::readers
 {
 auto setEOSCallback(InitContext& ic)
 {
-  ic.services().get<CallbackService>().set(CallbackService::Id::EndOfStream,
-                                           [](EndOfStreamContext& eosc) {
-                                             auto& control = eosc.services().get<ControlService>();
-                                             control.endOfStream();
-                                             control.readyToQuit(QuitRequest::Me);
-                                           });
+  ic.services().get<CallbackService>().set<CallbackService::Id::EndOfStream>(
+    [](EndOfStreamContext& eosc) {
+      auto& control = eosc.services().get<ControlService>();
+      control.endOfStream();
+      control.readyToQuit(QuitRequest::Me);
+    });
 }
 
 template <typename O>
@@ -122,13 +123,15 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
 {
   auto callback = AlgorithmSpec{adaptStateful([](ConfigParamRegistry const& options,
                                                  DeviceSpec const& spec,
-                                                 Monitoring& monitoring) {
-    monitoring.send(Metric{(uint64_t)0, "arrow-bytes-created"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
-    monitoring.send(Metric{(uint64_t)0, "arrow-messages-created"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
-    monitoring.send(Metric{(uint64_t)0, "arrow-bytes-destroyed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
-    monitoring.send(Metric{(uint64_t)0, "arrow-messages-destroyed"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
-    monitoring.send(Metric{(uint64_t)0, "arrow-bytes-expired"}.addTag(Key::Subsystem, monitoring::tags::Value::DPL));
-    monitoring.flushBuffer();
+                                                 Monitoring& monitoring,
+                                                 DataProcessingStats& stats) {
+    // FIXME: not actually needed, since data processing stats can specify that we should
+    // send the initial value.
+    stats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_BYTES_CREATED), DataProcessingStats::Op::Set, 0});
+    stats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_MESSAGES_CREATED), DataProcessingStats::Op::Set, 0});
+    stats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_BYTES_DESTROYED), DataProcessingStats::Op::Set, 0});
+    stats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_MESSAGES_DESTROYED), DataProcessingStats::Op::Set, 0});
+    stats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_BYTES_EXPIRED), DataProcessingStats::Op::Set, 0});
 
     if (!options.isSet("aod-file")) {
       LOGP(fatal, "No input file defined!");
@@ -214,8 +217,6 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
         control.readyToQuit(QuitRequest::Me);
         return;
       }
-
-      auto ioStart = uv_hrtime();
 
       for (auto& route : requestedTables) {
         if ((device.inputTimesliceId % route.maxTimeslices) != route.timeslice) {

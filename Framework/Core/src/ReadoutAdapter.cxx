@@ -23,9 +23,7 @@ using DataHeader = o2::header::DataHeader;
 
 InjectorFunction readoutAdapter(OutputSpec const& spec)
 {
-  auto counter = std::make_shared<uint64_t>(0);
-
-  return [spec, counter](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever) {
+  return [spec](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId, bool& stop) {
     for (size_t i = 0; i < parts.Size(); ++i) {
       DataHeader dh;
       // FIXME: this will have to change and extract the actual subspec from
@@ -37,8 +35,7 @@ InjectorFunction readoutAdapter(OutputSpec const& spec)
       dh.payloadSize = parts.At(i)->GetSize();
       dh.payloadSerializationMethod = o2::header::gSerializationMethodNone;
 
-      DataProcessingHeader dph{*counter, 0};
-      (*counter) += 1UL;
+      DataProcessingHeader dph{newTimesliceId, 0};
       o2::header::Stack headerStack{dh, dph};
       sendOnChannel(device, std::move(headerStack), std::move(parts.At(i)), spec, channelRetriever);
     }

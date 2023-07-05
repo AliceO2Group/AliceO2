@@ -18,6 +18,7 @@
 #include "DataFormatsTRD/CalibratedTracklet.h"
 #include "CommonDataFormat/IRFrame.h"
 #include "Framework/CCDBParamSpec.h"
+#include "Framework/ConfigParamRegistry.h"
 
 using namespace o2::framework;
 using namespace o2::globaltracking;
@@ -30,6 +31,9 @@ namespace trd
 void TRDTrackletTransformerSpec::init(o2::framework::InitContext& ic)
 {
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
+  if (ic.options().get<bool>("apply-xor")) {
+    mTransformer.setApplyXOR();
+  }
 }
 
 void TRDTrackletTransformerSpec::run(o2::framework::ProcessingContext& pc)
@@ -120,11 +124,7 @@ void TRDTrackletTransformerSpec::updateTimeDependentParams(ProcessingContext& pc
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
     // init-once stuff
-
     mTransformer.init();
-    if (mApplyXOR) {
-      mTransformer.setApplyXOR();
-    }
   }
   pc.inputs().get<o2::trd::CalVdriftExB*>("calvdexb"); // just to trigger the finaliseCCDB
 }
@@ -141,7 +141,7 @@ void TRDTrackletTransformerSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void
   }
 }
 
-o2::framework::DataProcessorSpec getTRDTrackletTransformerSpec(bool trigRecFilterActive, bool applyXOR)
+o2::framework::DataProcessorSpec getTRDTrackletTransformerSpec(bool trigRecFilterActive)
 {
   std::shared_ptr<DataRequest> dataRequest = std::make_shared<DataRequest>();
   if (trigRecFilterActive) {
@@ -167,8 +167,9 @@ o2::framework::DataProcessorSpec getTRDTrackletTransformerSpec(bool trigRecFilte
     "TRDTRACKLETTRANSFORMER",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TRDTrackletTransformerSpec>(dataRequest, ggRequest, trigRecFilterActive, applyXOR)},
-    Options{}};
+    AlgorithmSpec{adaptFromTask<TRDTrackletTransformerSpec>(dataRequest, ggRequest, trigRecFilterActive)},
+    Options{
+      {"apply-xor", o2::framework::VariantType::Bool, false, {"flip the 8-th bit of slope and position (for processing CTFs from 2021 pilot beam)"}}}};
 }
 
 } //end namespace trd

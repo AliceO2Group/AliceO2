@@ -139,6 +139,23 @@ const typename EventHandler<CellInputType>::CellRange EventHandler<CellInputType
 }
 
 template <class CellInputType>
+std::vector<gsl::span<const o2::emcal::MCLabel>> EventHandler<CellInputType>::getCellMCLabelForEvent(int eventID) const
+{
+  if (mCellLabels && mTriggerRecordsCells.size()) {
+    if (eventID >= mTriggerRecordsCells.size()) {
+      throw RangeException(eventID, mTriggerRecordsCells.size());
+    }
+    auto& trgrecord = mTriggerRecordsCells[eventID];
+    std::vector<gsl::span<const o2::emcal::MCLabel>> eventlabels(trgrecord.getNumberOfObjects());
+    for (int index = 0; index < trgrecord.getNumberOfObjects(); index++) {
+      eventlabels[index] = mCellLabels->getLabels(trgrecord.getFirstEntry() + index);
+    }
+    return eventlabels;
+  }
+  throw NotInitializedException();
+}
+
+template <class CellInputType>
 const typename EventHandler<CellInputType>::CellIndexRange EventHandler<CellInputType>::getClusterCellIndicesForEvent(int eventID) const
 {
   if (mTriggerRecordsCellIndices.size()) {
@@ -160,6 +177,7 @@ void EventHandler<CellInputType>::reset()
   mClusters = ClusterRange();
   mClusterCellIndices = CellIndexRange();
   mCells = CellRange();
+  mCellLabels = nullptr;
 }
 
 template <class CellInputType>
@@ -176,6 +194,9 @@ EventData<CellInputType> EventHandler<CellInputType>::buildEvent(int eventID) co
   }
   if (hasCells()) {
     outputEvent.mCells = getCellsForEvent(eventID);
+  }
+  if (mCellLabels) {
+    outputEvent.mMCCellLabels = getCellMCLabelForEvent(eventID);
   }
 
   return outputEvent;

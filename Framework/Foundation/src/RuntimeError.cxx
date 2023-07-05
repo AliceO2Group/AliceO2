@@ -12,6 +12,7 @@
 #include "Framework/RuntimeError.h"
 
 #include <cstdio>
+#include <climits>
 #include <atomic>
 #include <cstdarg>
 #include <execinfo.h>
@@ -19,6 +20,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cxxabi.h>
+#include <stdexcept>
 
 namespace o2::framework
 {
@@ -61,6 +63,9 @@ RuntimeErrorRef runtime_error_f(const char* format, ...)
   bool expected = false;
   while (gErrorBooking[i].compare_exchange_strong(expected, true) == false) {
     ++i;
+    if (i >= RuntimeError::MAX_RUNTIME_ERRORS) {
+      throw std::runtime_error("Too many o2::framework::runtime_error thrown without proper cleanup.");
+    }
   }
   va_list args;
   va_start(args, format);
@@ -91,6 +96,21 @@ void demangled_backtrace_symbols(void** stackTrace, unsigned int stackDepth, int
 {
   char** stackStrings;
   stackStrings = backtrace_symbols(stackTrace, stackDepth);
+  char exe[PATH_MAX];
+  bool hasExe = false;
+  int exeSize = 0;
+
+#if __linux__
+  exeSize = readlink("/proc/self/exe", exe, PATH_MAX);
+  if (exeSize == -1) {
+    dprintf(fd, "Unable to detect exectuable name\n");
+    hasExe = false;
+  } else {
+    dprintf(fd, "Executable is %.*s\n", exeSize, exe);
+    hasExe = true;
+  }
+#endif
+
   for (size_t i = 1; i < stackDepth; i++) {
 
     size_t sz = 64000; // 64K ought to be enough for our templates...
@@ -106,8 +126,9 @@ void demangled_backtrace_symbols(void** stackTrace, unsigned int stackDepth, int
         break;
       }
     }
+    bool tryAddr2Line = false;
 #else
-    for (char* j = stackStrings[i]; *j; ++j) {
+    for (char* j = stackStrings[i]; j && *j; ++j) {
       if (*j == '(') {
         begin = j;
       } else if (*j == '+') {
@@ -115,6 +136,7 @@ void demangled_backtrace_symbols(void** stackTrace, unsigned int stackDepth, int
         break;
       }
     }
+    bool tryAddr2Line = true;
 #endif
     if (begin && end) {
       *begin++ = '\0';
@@ -126,16 +148,46 @@ void demangled_backtrace_symbols(void** stackTrace, unsigned int stackDepth, int
       if (ret) {
         // return value may be a realloc() of the input
         function = ret;
-      } else {
-        // demangling failed, just pretend it's a C function with no args
-        std::strncpy(function, begin, sz);
-        std::strncat(function, "()", sz);
-        function[sz - 1] = '\0';
+        dprintf(fd, "    %s: %s\n", stackStrings[i], function);
+        tryAddr2Line = false;
       }
-      dprintf(fd, "    %s: %s\n", stackStrings[i], function);
-    } else {
+    }
+    if (tryAddr2Line) {
       // didn't find the mangled name, just print the whole line
-      dprintf(fd, "    %s\n", stackStrings[i]);
+      dprintf(fd, "    %s: ", stackStrings[i]);
+      if (stackTrace[i] && hasExe) {
+        char syscom[4096 + PATH_MAX];
+
+        // Find c++filt from the environment
+        // This is needed for platforms where we still need c++filt -r
+        char const* cxxfilt = getenv("CXXFILT");
+        if (cxxfilt == nullptr) {
+          cxxfilt = "c++filt";
+        }
+        // Do the same for addr2line, just in case we wanted to pass some options
+        char const* addr2line = getenv("ADDR2LINE");
+        if (addr2line == nullptr) {
+          addr2line = "addr2line";
+        }
+        snprintf(syscom, 4096, "%s %p -p -s -f -e %.*s 2>/dev/null | %s ", addr2line, stackTrace[i], exeSize, exe, cxxfilt); // last parameter is the name of this app
+
+        FILE* fp;
+        char path[1024];
+
+        fp = popen(syscom, "r");
+        if (fp == nullptr) {
+          dprintf(fd, "-- no source could be retrieved --\n");
+          continue;
+        }
+
+        while (fgets(path, sizeof(path) - 1, fp) != nullptr) {
+          dprintf(fd, "    %s", path);
+        }
+
+        pclose(fp);
+      } else {
+        dprintf(fd, "-- no source avaliable --\n");
+      }
     }
     free(function);
   }

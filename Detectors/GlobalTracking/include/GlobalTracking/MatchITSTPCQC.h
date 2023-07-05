@@ -16,6 +16,7 @@
 #ifndef ALICEO2_GLOBTRACKING_MATCHTPCITS_QC_
 #define ALICEO2_GLOBTRACKING_MATCHTPCITS_QC_
 
+#include <TH1D.h>
 #include <TH1F.h>
 #include <TH2F.h>
 #include <TEfficiency.h>
@@ -54,13 +55,26 @@ class MatchITSTPCQC
   void setDataRequest(std::shared_ptr<o2::globaltracking::DataRequest> dr) { mDataRequest = dr; }
   void finalize();
   void reset();
-  TH1F* getHistoPt() const { return mPt; }
-  TH1F* getHistoPtTPC() const { return mPtTPC; }
+
+  TH1D* getHistoPt() const { return mPt; }
+  TH1D* getHistoPtTPC() const { return mPtTPC; }
   TEfficiency* getFractionITSTPCmatch() const { return mFractionITSTPCmatch; }
 
   TH1F* getHistoPhi() const { return mPhi; }
   TH1F* getHistoPhiTPC() const { return mPhiTPC; }
   TEfficiency* getFractionITSTPCmatchPhi() const { return mFractionITSTPCmatchPhi; }
+
+  TH2F* getHistoPhiVsPt() const { return mPhiVsPt; }
+  TH2F* getHistoPhiVsPtTPC() const { return mPhiVsPtTPC; }
+  TEfficiency* getFractionITSTPCmatchPhiVsPt() const { return mFractionITSTPCmatchPhiVsPt; }
+
+  TH1F* getHistoEta() const { return mEta; }
+  TH1F* getHistoEtaTPC() const { return mEtaTPC; }
+  TEfficiency* getFractionITSTPCmatchEta() const { return mFractionITSTPCmatchEta; }
+
+  TH2F* getHistoEtaVsPt() const { return mEtaVsPt; }
+  TH2F* getHistoEtaVsPtTPC() const { return mEtaVsPtTPC; }
+  TEfficiency* getFractionITSTPCmatchEtaVsPt() const { return mFractionITSTPCmatchEtaVsPt; }
 
   TH1F* getHistoPtPhysPrim() const { return mPtPhysPrim; }
   TH1F* getHistoPtTPCPhysPrim() const { return mPtTPCPhysPrim; }
@@ -70,7 +84,14 @@ class MatchITSTPCQC
   TH1F* getHistoPhiTPCPhysPrim() const { return mPhiTPCPhysPrim; }
   TEfficiency* getFractionITSTPCmatchPhiPhysPrim() const { return mFractionITSTPCmatchPhiPhysPrim; }
 
-  TH1F* getHistoEta() const { return mEta; }
+  TH1F* getHistoEtaPhysPrim() const { return mEtaPhysPrim; }
+  TH1F* getHistoEtaTPCPhysPrim() const { return mEtaTPCPhysPrim; }
+  TEfficiency* getFractionITSTPCmatchEtaPhysPrim() const { return mFractionITSTPCmatchEtaPhysPrim; }
+
+  TH2F* getHistoResidualPt() const { return mResidualPt; }
+  TH2F* getHistoResidualPhi() const { return mResidualPhi; }
+  TH2F* getHistoResidualEta() const { return mResidualEta; }
+
   TH1F* getHistoChi2Matching() const { return mChi2Matching; }
   TH1F* getHistoChi2Refit() const { return mChi2Refit; }
   TH2F* getHistoTimeResVsPt() const { return mTimeResVsPt; }
@@ -79,8 +100,6 @@ class MatchITSTPCQC
   void setUseMC(bool b) { mUseMC = b; }
   bool getUseMC() const { return mUseMC; }
   void deleteHistograms();
-  void setGRPFileName(std::string fn) { mGRPFileName = fn; }
-  void setGeomFileName(std::string fn) { mGeomFileName = fn; }
   void setBz(float bz) { mBz = bz; }
 
   // track selection
@@ -106,8 +125,6 @@ class MatchITSTPCQC
   // ITS-TPC
   gsl::span<const o2::dataformats::TrackTPCITS> mITSTPCTracks;
   bool mUseMC = false;
-  std::string mGRPFileName = "o2sim_grp.root";
-  std::string mGeomFileName = "o2sim_geometry-aligned.root";
   float mBz = 0;                                              ///< nominal Bz
   std::unordered_map<o2::MCCompLabel, LblInfo> mMapLabels;    // map with labels that have been found for the matched ITSTPC tracks; key is the label,
                                                               // value is the LbLinfo with the id of the track with the highest pT found with that label so far,
@@ -117,22 +134,43 @@ class MatchITSTPCQC
                                                               // with that label so far, and the flag to say if it is a physical primary or not
   o2::steer::MCKinematicsReader mcReader;                     // reader of MC information
 
-  TH1F* mPtTPC = nullptr;
+  // Pt
+  TH1D* mPt = nullptr;
+  TH1D* mPtTPC = nullptr;
   TEfficiency* mFractionITSTPCmatch = nullptr;
-  TH1F* mPt = nullptr;
-  TH1F* mPhiTPC = nullptr;
-  TEfficiency* mFractionITSTPCmatchPhi = nullptr;
-  TH1F* mPhi = nullptr;
+  TH1F* mPtPhysPrim = nullptr;
   TH1F* mPtTPCPhysPrim = nullptr;
   TEfficiency* mFractionITSTPCmatchPhysPrim = nullptr;
-  TH1F* mPtPhysPrim = nullptr;
+  // Phi
+  TH1F* mPhi = nullptr;
+  TH1F* mPhiTPC = nullptr;
+  TEfficiency* mFractionITSTPCmatchPhi = nullptr;
+  TH1F* mPhiPhysPrim = nullptr;
   TH1F* mPhiTPCPhysPrim = nullptr;
   TEfficiency* mFractionITSTPCmatchPhiPhysPrim = nullptr;
-  TH1F* mPhiPhysPrim = nullptr;
+  TH2F* mPhiVsPt = nullptr;
+  TH2F* mPhiVsPtTPC = nullptr;
+  TEfficiency* mFractionITSTPCmatchPhiVsPt = nullptr;
+  // Eta
   TH1F* mEta = nullptr;
+  TH1F* mEtaTPC = nullptr;
+  TEfficiency* mFractionITSTPCmatchEta = nullptr;
+  TH1F* mEtaPhysPrim = nullptr;
+  TH1F* mEtaTPCPhysPrim = nullptr;
+  TEfficiency* mFractionITSTPCmatchEtaPhysPrim = nullptr;
+  TH2F* mEtaVsPt = nullptr;
+  TH2F* mEtaVsPtTPC = nullptr;
+  TEfficiency* mFractionITSTPCmatchEtaVsPt = nullptr;
+  // Residuals
+  TH2F* mResidualPt = nullptr;
+  TH2F* mResidualPhi = nullptr;
+  TH2F* mResidualEta = nullptr;
+  // Others
   TH1F* mChi2Matching = nullptr;
   TH1F* mChi2Refit = nullptr;
   TH2F* mTimeResVsPt = nullptr;
+
+  void setEfficiency(TEfficiency* eff, TH1* hnum, TH1* hden, bool is2D = false);
 
   int mNTPCSelectedTracks = 0;
   int mNITSTPCSelectedTracks = 0;

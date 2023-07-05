@@ -182,6 +182,12 @@ GPUhdi() void rotateZInv(T xG, T yG, T& xL, T& yL, T snAlp, T csAlp)
   rotateZ<T>(xG, yG, xL, yL, -snAlp, csAlp);
 }
 
+template <typename T = float>
+GPUhdi() constexpr T sectorDAlpha()
+{
+  return o2::constants::math::SectorSpanRad * 0.5;
+}
+
 template <typename T>
 GPUhdi() int angle2Sector(T phi)
 {
@@ -207,6 +213,58 @@ GPUhdi() T angle2Alpha(T phi)
 {
   // convert angle to its sector alpha
   return sector2Angle<T>(angle2Sector<T>(phi));
+}
+
+template <typename T>
+GPUhdi() constexpr bool okForPhiMin(T phiMin, T phi)
+{
+  // check if phi is above the phiMin, phi's must be in 0-2pi range
+  const T dphi = phi - phiMin;
+  return ((dphi > 0 && dphi < constants::math::PI) || dphi < -constants::math::PI) ? true : false;
+}
+
+template <typename T>
+GPUhdi() constexpr bool okForPhiMax(T phiMax, T phi)
+{
+  // check if phi is below the phiMax, phi's must be in 0-2pi range
+  const T dphi = phi - phiMax;
+  return ((dphi < 0 && dphi > -constants::math::PI) || dphi > constants::math::PI) ? true : false;
+}
+
+template <typename T>
+GPUhdi() constexpr T meanPhiSmall(T phi0, T phi1)
+{
+  // return mean phi, assume phis in 0:2pi
+  T phi;
+  if (!okForPhiMin(phi0, phi1)) {
+    phi = phi0;
+    phi0 = phi1;
+    phi1 = phi;
+  }
+  if (phi0 > phi1) {
+    phi = 0.5 * (phi1 - (constants::math::TwoPI - phi0)); // wrap
+  } else {
+    phi = 0.5 * (phi0 + phi1);
+  }
+  bringTo02Pi(phi);
+  return phi;
+}
+
+template <typename T>
+GPUhdi() constexpr T deltaPhiSmall(T phi0, T phi1)
+{
+  // return delta phi, assume phi is in 0:2pi
+  T del;
+  if (!okForPhiMin(phi0, phi1)) {
+    del = phi0;
+    phi0 = phi1;
+    phi1 = del;
+  }
+  del = phi1 - phi0;
+  if (del < 0) {
+    del += constants::math::TwoPI;
+  }
+  return del;
 }
 
 template <typename T>

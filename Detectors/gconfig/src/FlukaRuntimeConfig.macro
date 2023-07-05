@@ -13,6 +13,7 @@ TVirtualMC* FlukaRuntimeConfig()
   auto inpFile = params.scoringFile;
   auto userStepping = params.userStepping;
   auto hadronCut = params.activationHadronCut;
+  fluka->SetLowEnergyNeutronTransport(lowNeutron);
   if (!inpFile.empty()) {
     fluka->SetActivationSimulation(isAct, hadronCut);
     fluka->SetUserScoringFileName(inpFile.c_str());

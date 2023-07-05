@@ -12,12 +12,11 @@
 #define O2_FRAMEWORK_SERVICESPEC_H_
 
 #include "Framework/ServiceHandle.h"
-#include "Framework/DeviceMetricsInfo.h"
-#include "Framework/DeviceInfo.h"
+#include "Framework/RoutingIndices.h"
+#include <fairmq/FwdDecls.h>
 #include <string>
+#include <functional>
 #include <vector>
-
-#include <boost/program_options/variables_map.hpp>
 
 namespace fair::mq
 {
@@ -30,15 +29,21 @@ namespace o2::framework
 struct InitContext;
 struct DeviceSpec;
 struct ServiceRegistry;
-using ServiceRegistryRef = ServiceRegistry&;
+struct ServiceRegistryRef;
 struct DeviceState;
 struct ProcessingContext;
 class EndOfStreamContext;
 struct ConfigContext;
 struct WorkflowSpecNode;
 
+struct ServiceMetricsInfo;
+struct DeviceConfig;
+struct DriverServerContext;
+
 class DanglingContext;
 
+/// A callback which returns the uniqueId of the service when invoked
+using ServiceId = std::function<unsigned int()>;
 /// A callback to create a given Service.
 using ServiceInit = ServiceHandle (*)(ServiceRegistryRef, DeviceState&, fair::mq::ProgOptions&);
 /// A callback invoked whenever we start running, before the user processing callback.
@@ -65,7 +70,7 @@ using ServiceEOSCallback = void (*)(EndOfStreamContext&, void*);
 /// Callback executed before the forking of a given device in the driver
 /// Notice the forking can happen multiple times. It's responsibility of
 /// the service to track how many times it happens and act accordingly.
-using ServicePreFork = std::function<void(ServiceRegistryRef, boost::program_options::variables_map const&)>;
+using ServicePreFork = std::function<void(ServiceRegistryRef, DeviceConfig const&)>;
 
 /// Callback executed after forking a given device in the driver,
 /// but before doing exec / starting the device.
@@ -76,18 +81,19 @@ using ServicePostForkChild = std::function<void(ServiceRegistryRef)>;
 using ServicePostForkParent = std::function<void(ServiceRegistryRef)>;
 
 /// Callback executed before each redeployment of the whole configuration
-using ServicePreSchedule = void (*)(ServiceRegistryRef, boost::program_options::variables_map const&);
+using ServicePreSchedule = void (*)(ServiceRegistryRef, DeviceConfig const&);
 
 /// Callback executed after each redeployment of the whole configuration
-using ServicePostSchedule = void (*)(ServiceRegistryRef, boost::program_options::variables_map const&);
+using ServicePostSchedule = void (*)(ServiceRegistryRef, DeviceConfig const&);
 
 /// Callback executed in the driver in order to process a metric.
 using ServiceMetricHandling = void (*)(ServiceRegistryRef,
-                                       std::vector<o2::framework::DeviceMetricsInfo>& metrics,
-                                       std::vector<o2::framework::DeviceSpec>& specs,
-                                       std::vector<o2::framework::DeviceInfo>& infos,
-                                       DeviceMetricsInfo& driverMetrics,
+                                       ServiceMetricsInfo const&,
                                        size_t timestamp);
+
+/// Callback exectuted in the driver in order to provide summary information
+/// at the end of a run.
+using ServiceSummaryHandling = void (*)(ServiceMetricsInfo const& metrics);
 
 /// Callback executed in the child after dispatching happened.
 using ServicePostDispatching = void (*)(ProcessingContext&, void*);
@@ -96,10 +102,15 @@ using ServicePostDispatching = void (*)(ProcessingContext&, void*);
 using ServicePostForwarding = void (*)(ProcessingContext&, void*);
 
 /// Callback invoked when the driver enters the init phase.
-using ServiceDriverInit = void (*)(ServiceRegistryRef, boost::program_options::variables_map const&);
+using ServiceDriverInit = void (*)(ServiceRegistryRef, DeviceConfig const&);
 
 /// Callback invoked when the driver enters the init phase.
-using ServiceDriverStartup = void (*)(ServiceRegistryRef, boost::program_options::variables_map const&);
+using ServiceDriverStartup = void (*)(ServiceRegistryRef, DeviceConfig const&);
+
+/// Callback executed every time we are about to enter the uv_run loop.
+/// This is the last chance to queue something on the loop before it
+/// will wait for events.
+using ServicePreLoop = void (*)(ServiceRegistryRef, void*);
 
 /// Callback invoked when we inject internal devices in the topology
 using ServiceTopologyInject = void (*)(WorkflowSpecNode&, ConfigContext&);
@@ -127,6 +138,8 @@ using ServicePostRenderGUI = void (*)(ServiceRegistryRef);
 struct ServiceSpec {
   /// Name of the service
   std::string name = "please specify name";
+  /// Callback to get the unique id for the Service
+  ServiceId uniqueId = nullptr;
   /// Callback to initialise the service.
   ServiceInit init = nullptr;
   /// Callback to configure the service.
@@ -177,6 +190,9 @@ struct ServiceSpec {
   /// Callback invoked when starting the driver
   ServiceDriverStartup driverStartup = nullptr;
 
+  /// Callback invoked before the loop starts
+  ServicePreLoop preLoop = nullptr;
+
   /// Callback invoked when doing topology creation
   ServiceTopologyInject injectTopology = nullptr;
 
@@ -191,6 +207,9 @@ struct ServiceSpec {
 
   /// Callback invoked after the main GUI has been drawn
   ServicePostRenderGUI postRenderGUI = nullptr;
+
+  /// Callback invoked on the driver quitting
+  ServiceSummaryHandling summaryHandling = nullptr;
 
   /// Active flag. If set to false, the service will not be used by default.
   bool active = true;
@@ -254,6 +273,12 @@ struct ServiceStartHandle {
   void* service;
 };
 
+struct ServiceStartStreamHandle {
+  ServiceSpec const& spec;
+  ServiceStartCallback callback;
+  void* service;
+};
+
 struct ServiceStopHandle {
   ServiceSpec const& spec;
   ServiceStopCallback callback;
@@ -281,6 +306,12 @@ struct ServicePreSendingMessagesHandle {
 struct ServicePostRenderGUIHandle {
   ServiceSpec const& spec;
   ServicePostRenderGUI callback;
+  void* service;
+};
+
+struct ServicePreLoopHandle {
+  ServiceSpec const& spec;
+  ServicePreLoop callback;
   void* service;
 };
 

@@ -117,6 +117,15 @@ void UserLogicElinkDecoder<CHARGESUM>::append(uint64_t data50, uint8_t error, bo
   debugHeader() << (*this) << fmt::format(" --> append50 {:013x} error {} incomplete {} data10={:d} {:d} {:d} {:d} {:d}\n", data50, error, incomplete, static_cast<uint10_t>(data50 & 0x3FF), static_cast<uint10_t>((data50 & 0xFFC00) >> 10), static_cast<uint10_t>((data50 & 0x3FF00000) >> 20), static_cast<uint10_t>((data50 & 0xFFC0000000) >> 30), static_cast<uint10_t>((data50 & 0x3FF0000000000) >> 40));
 #endif
 
+  if (error & 0x1) {
+#ifdef ULDEBUG
+    debugHeader() << (*this) << " data truncated by User Logic --> resetting\n";
+#endif
+    sendError(static_cast<int8_t>(mSampaHeader.chipAddress()), static_cast<uint32_t>(ErrorTruncatedDataUL));
+    reset();
+    return;
+  }
+
   if (isSync(data50)) {
 #ifdef ULDEBUG
     debugHeader() << (*this) << fmt::format(" --> SYNC word found {:013x}   state={}\n", data50, asString(mState));

@@ -40,6 +40,7 @@ class GPUTRDGeometry : public AliTRDgeometry
   double GetPadPlaneRowPos(int layer, int stack, int row) const { return GetPadPlane(layer, stack)->GetRowPos(row); }
   double GetPadPlaneRowSize(int layer, int stack, int row) const { return GetPadPlane(layer, stack)->GetRowSize(row); }
   int GetGeomManagerVolUID(int det, int modId) const { return AliGeomManager::LayerToVolUID(AliGeomManager::ELayerID(AliGeomManager::kTRD1 + GetLayer(det)), modId); }
+  float GetCdrHght() const { return CdrHght(); }
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
@@ -72,6 +73,7 @@ class GPUTRDpadPlane : private o2::trd::PadPlane
   GPUd() float GetColPos(int col) const { return getColPos(col); }
   GPUd() float GetNrows() const { return getNrows(); }
   GPUd() float GetNcols() const { return getNcols(); }
+  GPUd() int GetPadRowNumber(double z) const { return getPadRowNumber(z); }
 };
 
 class GPUTRDGeometry : private o2::trd::GeometryFlat
@@ -88,6 +90,7 @@ class GPUTRDGeometry : private o2::trd::GeometryFlat
   // Base functionality of Geometry
   GPUd() float GetTime0(int layer) const { return getTime0(layer); }
   GPUd() float GetCol0(int layer) const { return getCol0(layer); }
+  GPUd() float GetCdrHght() const { return cdrHght(); }
   GPUd() int GetLayer(int det) const { return getLayer(det); }
   GPUd() bool CreateClusterMatrixArray() const { return false; }
   GPUd() float AnodePos() const { return anodePos(); }
@@ -138,6 +141,7 @@ class GPUTRDpadPlane
   GPUd() float GetColEnd() const { return 0; }
   GPUd() float GetColPos(int col) const { return 0; }
   GPUd() float GetNrows() const { return 0; }
+  GPUd() int GetPadRowNumber(double z) const { return 0; }
 };
 
 class GPUTRDGeometry
@@ -155,6 +159,7 @@ class GPUTRDGeometry
   // Base functionality of Geometry
   GPUd() float GetTime0(int layer) const { return 0; }
   GPUd() float GetCol0(int layer) const { return 0; }
+  GPUd() float GetCdrHght() const { return 0; }
   GPUd() int GetLayer(int det) const { return 0; }
   GPUd() bool CreateClusterMatrixArray() const { return false; }
   GPUd() float AnodePos() const { return 0; }
@@ -170,7 +175,7 @@ class GPUTRDGeometry
   GPUd() int GetRowMax(int layer, int stack, int /* sector */) const { return 0; }
   GPUd() bool ChamberInGeometry(int det) const { return false; }
 
-  static CONSTEXPR int kNstack = 0;
+  static CONSTEXPR const int kNstack = 0;
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE

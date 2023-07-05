@@ -95,6 +95,41 @@ def gencode_do(df, df_cru, solar_map, chamber):
     out.write("}")
     gencode_close_generated(out)
 
+def gencode_solar_crate(df):
+    """ Generate code for alias to solar crate number array
+    """
+
+    out = gencode_open_generated("SolarCrate.cxx")
+
+    out.write('''
+              #include "MCHConditions/SolarCrate.h"
+              #include <map>
+              #include <string>
+              #include <fmt/core.h>
+              ''')
+
+    out.write("namespace o2::mch::dcs {")
+
+    out.write("int aliasToSolarCrate(std::string_view alias) {")
+
+    out.write("static const std::map<std::string,int> a2c = {")
+
+    for row in df.itertuples():
+        if len(row.alias) > 0:
+            print(row.alias,row.crate)
+            out.write("{{ \"{}\", {} }} ,\n".format(row.alias,row.crate))
+
+    out.write("};")
+    out.write("int i = alias.find('.');")
+    out.write("std::string salias(alias.substr(0, i));")
+    out.write("auto p = a2c.find(salias);")
+    out.write("if (p!=a2c.end()) {")
+    out.write("  return p->second; }")
+    out.write("throw std::invalid_argument(fmt::format(\"Cannot extract solar create from alias={}\", alias));")
+    out.write("}")
+    out.write("}")
+    gencode_close_generated(out)
+
 
 def gs_read_sheet(credential_file, workbook, sheet_name):
     """ Read a Google Spreadsheet
@@ -120,6 +155,26 @@ def gs_read_sheet(credential_file, workbook, sheet_name):
                                                           "ds1", "ds2", "ds3", "ds4", "ds5"])
     return df.iloc[3:]
 
+def gs_read_sheet_alias(credential_file, workbook, sheet_name):
+    """ Read a Google Spreadsheet
+
+    """
+
+    scope = ['https://spreadsheets.google.com/feeds',
+             'https://www.googleapis.com/auth/drive']
+
+    credentials = ServiceAccountCredentials.from_json_keyfile_name(
+        credential_file, scope)  # Your json file here
+
+    gc = gspread.authorize(credentials)
+
+    wks = gc.open(workbook).worksheet(sheet_name)
+
+    data = wks.get_all_values()
+
+    cols = np.array([0, 1, 2])
+    df = pd.DataFrame(np.asarray(data)[:, cols], columns=["chamber","alias","crate"])
+    return df.iloc[1:]
 
 def gs_read_sheet_cru(credential_file, workbook, sheet_name):
     """ Read a Google Spreadsheet
@@ -247,6 +302,10 @@ parser.add_argument("--cru_map",
                     dest="crumapfile",
                     help="cru.map output filename")
 
+parser.add_argument("--dcs-to-solar",
+                    dest="dcstosolar", default=False, action="store_true",
+                    help="output DCS Alias to Solar Crate Number C++ code")
+
 args = parser.parse_args()
 
 df = pd.DataFrame()
@@ -256,7 +315,7 @@ if args.excel_filename:
     for ifile in args.excel_filename:
         df = pd.concat([df, excel_is_valid_file(parser, ifile, args.sheet)])
 
-if args.gs_name:
+if args.gs_name and not args.dcstosolar:
     df = pd.concat(
         [df, gs_read_sheet(args.credentials, args.gs_name, args.sheet)])
     df, solar_map = _simplify_dataframe(df)
@@ -301,3 +360,9 @@ if args.crumapfile:
     cru_file = open(args.crumapfile, "w")
     [cru_file.write(line.rstrip()+"\n")
      for line in cru_string.split("\n") if not line.startswith("XXXX")]
+
+if args.gs_name and args.dcstosolar:
+    df = pd.concat(
+        [df, gs_read_sheet_alias(args.credentials, args.gs_name, args.sheet)])
+    gencode_solar_crate(df)
+

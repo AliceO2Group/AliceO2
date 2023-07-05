@@ -107,7 +107,7 @@ void AlignableSensor::dPosTraDParGeomLOC(const AlignmentPoint* pnt, double* deri
   //
   for (int ip = kNDOFGeom; ip--;) {
     //
-    if (!isFreeDOF(ip)) {
+    if (!parent->isFreeDOF(ip)) { // RSCHANGE: was isFreeDOF(ip)
       continue;
     }
     //
@@ -145,7 +145,7 @@ void AlignableSensor::dPosTraDParGeomTRA(const AlignmentPoint* pnt, double* deri
   // tra' = tau*tra
   //
   // Result is stored in array deriv as linearized matrix 6x3
-  const double kDelta[kNDOFGeom] = {0.1, 0.1, 0.1, 0.5, 0.5, 0.5};
+  const double kDelta[kNDOFGeom] = {0.1, 0.1, 0.1, 0.5 * DegToRad(), 0.5 * DegToRad(), 0.5 * DegToRad()}; // changed angles to radians
   double delta[kNDOFGeom], pos0[3], pos1[3], pos2[3], pos3[3];
   TGeoHMatrix matMod;
   //
@@ -188,7 +188,7 @@ void AlignableSensor::dPosTraDParGeomTRA(const AlignmentPoint* pnt, double* deri
 //_________________________________________________________
 void AlignableSensor::dPosTraDParGeomTRA(const AlignmentPoint* pnt, double* deriv, const AlignableVolume* parent) const
 {
-  // Jacobian of position in sensor tracking frame (tra) vs sensor TRACKING
+  // Jacobian of position in sensor tracking frame (tra) vs parent TRACKING
   // frame parameters in TGeoHMatrix convention, i.e. the modified parameter is
   // tra' = tau*tra
   //
@@ -218,7 +218,7 @@ void AlignableSensor::dPosTraDParGeomTRA(const AlignmentPoint* pnt, double* deri
   //
   for (int ip = kNDOFGeom; ip--;) {
     //
-    if (!isFreeDOF(ip)) {
+    if (!parent->isFreeDOF(ip)) { // RSCHANGE: was isFreeDOF(ip)
       continue;
     }
     //
@@ -405,10 +405,9 @@ void AlignableSensor::dPosTraDParCalib(const AlignmentPoint* pnt, double* deriv,
 }
 
 //______________________________________________________
-int AlignableSensor::finalizeStat(DOFStatistics& st)
+int AlignableSensor::finalizeStat()
 {
   // finalize statistics on processed points
-  fillDOFStat(st);
   return mNProcPoints;
 }
 

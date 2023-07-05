@@ -40,7 +40,7 @@ class EntropyDecoderSpec : public o2::framework::Task
 
  private:
   o2::trd::CTFCoder mCTFCoder;
-  int mIRShift = 0;
+  bool mCorrectLML0 = false;
   TStopwatch mTimer;
 };
 
@@ -49,11 +49,23 @@ EntropyDecoderSpec::EntropyDecoderSpec(int verbosity) : mCTFCoder(o2::ctf::CTFCo
   mTimer.Stop();
   mTimer.Reset();
   mCTFCoder.setVerbosity(verbosity);
+  mCTFCoder.setSupportBCShifts(true);
+  mCTFCoder.setDictBinding("ctfdict_TRD");
 }
 
 void EntropyDecoderSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
 {
-  if (mCTFCoder.finaliseCCDB<CTF>(matcher, obj)) {
+  static int bcshift = 0;
+
+  if (mCTFCoder.finaliseCCDB<CTF>(matcher, obj) && mCorrectLML0) {
+    // check if the LM_L0 shift was updated
+    const auto& trigOffsParam = o2::ctp::TriggerOffsetsParam::Instance();
+    if (bcshift != trigOffsParam.LM_L0) {
+      bcshift = trigOffsParam.LM_L0;
+      auto customShift = trigOffsParam.customOffset[o2::detectors::DetID::TRD];
+      LOGP(info, "Decoded IRs will be corrected by {} BCs (LM_L0 {} + custom {}), discarded if become prior to 1st orbit", -(bcshift - customShift), -bcshift, customShift);
+      mCTFCoder.setBCShift(bcshift - customShift);
+    }
     return;
   }
 }
@@ -61,10 +73,8 @@ void EntropyDecoderSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matche
 void EntropyDecoderSpec::init(o2::framework::InitContext& ic)
 {
   mCTFCoder.init<CTF>(ic);
-  if (ic.options().get<bool>("correct-trd-trigger-offset")) {
-    mCTFCoder.setBCShift(o2::ctp::TriggerOffsetsParam::Instance().LM_L0);
-    LOGP(info, "Decoded IRs will be corrected by -{} BCs, discarded if become prior to 1st orbit", o2::ctp::TriggerOffsetsParam::Instance().LM_L0);
-  }
+  mCorrectLML0 = ic.options().get<bool>("correct-trd-trigger-offset");
+
   int checkBogus = ic.options().get<int>("bogus-trigger-rejection");
   mCTFCoder.setCheckBogusTrig(checkBogus);
   LOGP(info, "Bogus triggers rejection flag: {}", checkBogus);
@@ -77,7 +87,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   o2::ctf::CTFIOSize iosize;
 
   mCTFCoder.updateTimeDependentParams(pc);
-  auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf");
+  auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf_TRD");
 
   auto& triggers = pc.outputs().make<std::vector<TriggerRecord>>(OutputRef{"triggers"});
   auto& tracklets = pc.outputs().make<std::vector<Tracklet64>>(OutputRef{"tracklets"});
@@ -86,7 +96,6 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
   if (buff.size()) {
     const auto ctfImage = o2::trd::CTF::getImage(buff.data());
-    mCTFCoder.setFirstTFOrbit(pc.services().get<o2::framework::TimingInfo>().firstTForbit);
     iosize = mCTFCoder.decode(ctfImage, triggers, tracklets, digits);
   }
   pc.outputs().snapshot({"ctfrep", 0}, iosize);
@@ -109,8 +118,9 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
     OutputSpec{{"ctfrep"}, "TRD", "CTFDECREP", 0, Lifetime::Timeframe}};
 
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("ctf", "TRD", "CTFDATA", sspec, Lifetime::Timeframe);
-  inputs.emplace_back("ctfdict", "TRD", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/CTFDictionary"));
+  inputs.emplace_back("ctf_TRD", "TRD", "CTFDATA", sspec, Lifetime::Timeframe);
+  inputs.emplace_back("ctfdict_TRD", "TRD", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/CTFDictionary"));
+  inputs.emplace_back("trigoffset", "CTP", "Trig_Offset", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/TriggerOffsets"));
 
   return DataProcessorSpec{
     "trd-entropy-decoder",

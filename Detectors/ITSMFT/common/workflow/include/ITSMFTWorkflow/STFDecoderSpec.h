@@ -43,6 +43,7 @@ struct STFDecoderInp {
   bool doPatterns = true;
   bool doDigits = false;
   bool doCalib = false;
+  bool doSquashing = false;
   bool askSTFDist = true;
   bool allowReporting = true;
   o2::header::DataOrigin origin{"NIL"};
@@ -66,6 +67,7 @@ class STFDecoder : public Task
  private:
   void updateTimeDependentParams(ProcessingContext& pc);
   void finalize();
+  void reset();
   std::unique_ptr<o2::itsmft::Clusterer> setupClusterer(const std::string& dictName);
   TStopwatch mTimer;
   bool mDoClusters = false;

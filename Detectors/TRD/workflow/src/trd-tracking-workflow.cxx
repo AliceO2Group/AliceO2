@@ -16,10 +16,13 @@
 #include "Framework/CallbacksPolicy.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "TRDWorkflowIO/TRDCalibWriterSpec.h"
+#include "TRDPID/PIDBase.h"
 #include "TRDWorkflowIO/TRDTrackWriterSpec.h"
+#include "TRDWorkflowIO/TRDDigitReaderSpec.h"
 #include "TRDWorkflow/TrackBasedCalibSpec.h"
 #include "TRDWorkflow/TRDGlobalTrackingSpec.h"
 #include "TRDWorkflow/TRDGlobalTrackingQCSpec.h"
+#include "TRDWorkflow/TRDPulseHeightSpec.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 
 using namespace o2::framework;
@@ -42,14 +45,20 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
 {
   // option allowing to set parameters
   std::vector<o2::framework::ConfigParamSpec> options{
-    {"disable-mc", o2::framework::VariantType::Bool, false, {"Disable MC labels"}},
-    {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input readers"}},
-    {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writers"}},
-    {"enable-trackbased-calib", o2::framework::VariantType::Bool, false, {"enable calibration devices which are based on tracking output"}},
-    {"enable-qc", o2::framework::VariantType::Bool, false, {"enable tracking QC"}},
+    {"disable-mc", VariantType::Bool, false, {"Disable MC labels"}},
+    {"disable-root-input", VariantType::Bool, false, {"disable root-files input readers"}},
+    {"disable-root-output", VariantType::Bool, false, {"disable root-files output writers"}},
+    {"enable-vdexb-calib", VariantType::Bool, false, {"enable vDrift and ExB calibration based on tracking output"}},
+    {"enable-gain-calib", VariantType::Bool, false, {"enable collection of dEdx histos for gain calibration"}},
+    {"enable-qc", VariantType::Bool, false, {"enable tracking QC"}},
+    {"enable-pid", VariantType::Bool, false, {"Enable PID"}},
+    {"enable-ph", VariantType::Bool, false, {"Enable creation of PH plots"}},
     {"track-sources", VariantType::String, std::string{GTrackID::ALL}, {"comma-separated list of sources to use for tracking"}},
-    {"filter-trigrec", o2::framework::VariantType::Bool, false, {"ignore interaction records without ITS data"}},
-    {"strict-matching", o2::framework::VariantType::Bool, false, {"High purity preliminary matching"}},
+    {"filter-trigrec", VariantType::Bool, false, {"ignore interaction records without ITS data"}},
+    {"strict-matching", VariantType::Bool, false, {"High purity preliminary matching"}},
+    {"disable-ft0-pileup-tagging", VariantType::Bool, false, {"Do not request FT0 for pile-up determination"}},
+    {"require-ctp-lumi", o2::framework::VariantType::Bool, false, {"require CTP lumi for TPC correction scaling"}},
+    {"policy", VariantType::String, "default", {"Pick PID policy (=default)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -66,23 +75,51 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   // write the configuration used for the workflow
   o2::conf::ConfigurableParam::writeINI("o2trdtracking-workflow_configuration.ini");
-  auto trigRecFilterActive = configcontext.options().get<bool>("filter-trigrec");
+  auto useMC = !configcontext.options().get<bool>("disable-mc");
+  auto pid = configcontext.options().get<bool>("enable-pid");
   auto strict = configcontext.options().get<bool>("strict-matching");
+  auto trigRecFilterActive = configcontext.options().get<bool>("filter-trigrec");
+  auto requireCTPLumi = configcontext.options().get<bool>("require-ctp-lumi");
+  auto vdexb = configcontext.options().get<bool>("enable-vdexb-calib");
+  auto gain = configcontext.options().get<bool>("enable-gain-calib");
+  bool rootInput = !configcontext.options().get<bool>("disable-root-input");
   GTrackID::mask_t srcTRD = allowedSources & GTrackID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
   if (strict && (srcTRD & ~GTrackID::getSourcesMask("TPC")).any()) {
     LOGP(warning, "In strict matching mode only TPC source allowed, {} asked, redefining", GTrackID::getSourcesNames(srcTRD));
     srcTRD = GTrackID::getSourcesMask("TPC");
   }
-  o2::framework::WorkflowSpec specs;
-  bool useMC = !configcontext.options().get<bool>("disable-mc");
+  if (!configcontext.options().get<bool>("disable-ft0-pileup-tagging")) {
+    srcTRD |= GTrackID::getSourcesMask("FT0");
+  }
+  if (requireCTPLumi) {
+    srcTRD = srcTRD | GTrackID::getSourcesMask("CTP");
+  }
+  // Parse PID policy string
+  o2::trd::PIDPolicy policy{o2::trd::PIDPolicy::DEFAULT};
+  if (pid) {
+    auto policyStr = configcontext.options().get<std::string>("policy");
+    auto policyIt = o2::trd::PIDPolicyString.find(policyStr);
+    if (policyIt == o2::trd::PIDPolicyString.end()) {
+      throw std::runtime_error(fmt::format("No PID model named {:s} available!", policyStr));
+    }
+    policy = policyIt->second;
+    LOGF(info, "Using PID policy %s(%u)", policyStr, static_cast<unsigned int>(policy));
+  }
 
   // processing devices
-  specs.emplace_back(o2::trd::getTRDGlobalTrackingSpec(useMC, srcTRD, trigRecFilterActive, strict));
-  if (configcontext.options().get<bool>("enable-trackbased-calib")) {
-    specs.emplace_back(o2::trd::getTRDTrackBasedCalibSpec(srcTRD));
+  o2::framework::WorkflowSpec specs;
+  specs.emplace_back(o2::trd::getTRDGlobalTrackingSpec(useMC, srcTRD, trigRecFilterActive, strict, pid, policy));
+  if (vdexb || gain) {
+    specs.emplace_back(o2::trd::getTRDTrackBasedCalibSpec(srcTRD, vdexb, gain));
   }
   if (configcontext.options().get<bool>("enable-qc")) {
     specs.emplace_back(o2::trd::getTRDGlobalTrackingQCSpec(srcTRD));
+  }
+  if (configcontext.options().get<bool>("enable-ph")) {
+    if (rootInput) {
+      specs.emplace_back(o2::trd::getTRDDigitReaderSpec(useMC));
+    }
+    specs.emplace_back(o2::framework::getTRDPulseHeightSpec(srcTRD, rootInput));
   }
 
   // output devices
@@ -93,8 +130,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     if (GTrackID::includesSource(GTrackID::Source::TPC, srcTRD)) {
       specs.emplace_back(o2::trd::getTRDTPCTrackWriterSpec(useMC, strict));
     }
-    if (configcontext.options().get<bool>("enable-trackbased-calib")) {
-      specs.emplace_back(o2::trd::getTRDCalibWriterSpec());
+    if (vdexb || gain) {
+      specs.emplace_back(o2::trd::getTRDCalibWriterSpec(vdexb, gain));
     }
     if (configcontext.options().get<bool>("enable-qc")) {
       specs.emplace_back(o2::trd::getTRDTrackingQCWriterSpec());

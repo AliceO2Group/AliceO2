@@ -28,10 +28,19 @@ namespace trd
   See https://github.com/AliceO2Group/AliceO2/blob/dev/Common/SimConfig/doc/ConfigurableParam.md
 */
 struct TRDSimParams : public o2::conf::ConfigurableParamHelper<TRDSimParams> {
-  int digithreads = 4;       // number of digitizer threads
-  float maxMCStepSize = 0.1; // maximum size of MC steps
-  bool doTR = true;          // switch for transition radiation
-  SimParam::GasMixture gas = SimParam::GasMixture::Xenon; // the gas mixture in the TRD
+  // Trigger parameters
+  float readoutTimeNS = 3000;                    ///< the time the readout takes in ns (default 30 time bins = 3 us)
+  float deadTimeNS = 11000;                      ///< trigger deadtime in ns (default 11 us)
+  float busyTimeNS() const { return readoutTimeNS + deadTimeNS; } ///< the time for which no new trigger can be received in nanoseconds
+  // digitization settings
+  int digithreads = 4;                                    ///< number of digitizer threads
+  float maxMCStepSize = 0.1;                              ///< maximum size of MC steps
+  bool doTR = true;                                       ///< switch for transition radiation
+  SimParam::GasMixture gas = SimParam::GasMixture::Xenon; ///< the gas mixture in the TRD
+  // TRF parameters
+  int trf = 0;                  // Sampled TRF function. 0: default TRF, 1: TRF described in TRF TDR, 2: No TRF, 3: Landau dist as TRF (parameters specified below)
+  float trf_landau_mu = 0.;     // Mu of the Landau distribution used to describe TRF
+  float trf_landau_sigma = .03; // Sigma of the Landau distribution used to describe TRF
   O2ParamDef(TRDSimParams, "TRDSimParams");
 };
 

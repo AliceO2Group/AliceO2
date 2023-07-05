@@ -87,6 +87,16 @@ export O2DPLDEBUG='xterm -hold -e sudo gdb attach $O2DEBUGGEDPID &'
 Be sure to use single quotes to avoid direct expansion of O2DEBUGGEDPID variable.
 The `&` character add the end is needed to start gdb in a separate process.
 
+### Dumping cores
+
+By default DPL does its best to catch exceptions and avoid core dumps. This behaviour can however be changed by exporting the `O2_NO_CATCHALL_EXCEPTIONS` environment variable. E.g.:
+
+```bash
+export O2_NO_CATCHALL_EXCEPTIONS=1
+```
+
+in the shell where you are running your workflow.
+
 ### Dumping stacktraces on a signal
 
 If you are on linux you can get stacktraces on a various signals via the:
@@ -124,6 +134,9 @@ Note that in this case your workflow should be started with the `-b` option and 
 ```bash
 [INFO] Driver listening on port: 34855
 ```
+
+Notice you can customise the port to your preference using the `DPL_REMOTE_GUI_PORT` variable.
+
 In order to connect to this port with your browser you should go to https://aliceo2group.github.io/DebugGUI/remote/remote.html, enter the port and click on the `LAUNCH` button. If you are running the DebugGUI remotely, but still the processing is done on your laptop (e.g. because the native DebugGUI is not working for some reason) you can download the web page and then open the local html file in your browser.
 
 ![DebugGUI](https://user-images.githubusercontent.com/26281793/192991412-f26a271d-919a-4dd5-af2b-6a8425d6d1eb.png)
@@ -134,7 +147,7 @@ After launching you can select "interactive" mode on the right and click on "fit
 
 
 Notice that in this setup, you might have to adjust your browser sensibility
-to [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing)
+to [CORS](https://en.wikipedia.org/wiki/Cross-origin_resource_sharing). Mac users should try to use Safari if Chrome does not work. In addition, it may be necessary to setup a SOCKS proxy to the remote machine running the DPL workflow.
 
 ### Integrating with non-DPL devices
 
@@ -511,7 +524,8 @@ Sometimes (e.g. when running a child inside valgrind) it might be useful to disa
 some-workflow --monitoring-backend=no-op://
 ```
 
-notice that the GUI will not function properly if you do so.
+notice that the 
+will not function properly if you do so.
 
 ## Profiling
 

@@ -28,6 +28,8 @@
 #include "Framework/RootConfigParamHelpers.h"
 #include "Framework/ExpressionHelpers.h"
 #include "Framework/CommonServices.h"
+#include "Framework/Plugins.h"
+#include "Framework/RootMessageContext.h"
 
 namespace o2::framework
 {
@@ -226,19 +228,20 @@ struct OutputManager {
 /// Produces specialization
 template <typename TABLE>
 struct OutputManager<Produces<TABLE>> {
-  static bool appendOutput(std::vector<OutputSpec>& outputs, Produces<TABLE>& what, uint32_t)
+  static bool appendOutput(std::vector<OutputSpec>& outputs, Produces<TABLE>& /*what*/, uint32_t)
   {
-    outputs.emplace_back(what.spec());
+    outputs.emplace_back(OutputForTable<TABLE>::spec());
     return true;
   }
   static bool prepare(ProcessingContext& context, Produces<TABLE>& what)
   {
-    what.resetCursor(context.outputs().make<TableBuilder>(what.ref()));
+    what.resetCursor(std::move(context.outputs().make<TableBuilder>(OutputForTable<TABLE>::ref())));
     return true;
   }
   static bool finalize(ProcessingContext&, Produces<TABLE>& what)
   {
     what.setLabel(o2::aod::MetadataTrait<TABLE>::metadata::tableLabel());
+    what.release();
     return true;
   }
   static bool postRun(EndOfStreamContext&, Produces<TABLE>&)
@@ -324,7 +327,7 @@ struct OutputManager<Spawns<T>> {
   {
     auto originalTable = soa::ArrowHelpers::joinTables(extractOriginals(what.sources_pack(), pc));
     if (originalTable->schema()->fields().empty() == true) {
-      using base_table_t = typename Spawns<T>::base_table_t;
+      using base_table_t = typename Spawns<T>::base_table_t::table_t;
       originalTable = makeEmptyTable<base_table_t>(aod::MetadataTrait<typename Spawns<T>::extension_t>::metadata::tableLabel());
     }
 
@@ -397,7 +400,7 @@ struct OutputManager<Builds<T>> {
 template <typename T>
 class has_instance
 {
-  typedef char one;
+  using one = char;
   struct two {
     char x[2];
   };
@@ -414,7 +417,7 @@ class has_instance
 template <typename T>
 class has_end_of_stream
 {
-  typedef char one;
+  using one = char;
   struct two {
     char x[2];
   };
@@ -434,7 +437,7 @@ inline constexpr bool has_end_of_stream_v = has_end_of_stream<T>::value;
 template <typename T>
 struct ServiceManager {
   template <typename ANY>
-  static bool add(std::vector<ServiceSpec>&, ANY&)
+  static bool add(std::vector<ServiceSpec>& specs, ANY& any)
   {
     return false;
   }
@@ -454,9 +457,13 @@ struct ServiceManager {
 
 template <typename T>
 struct ServiceManager<Service<T>> {
-  static bool add(std::vector<ServiceSpec>& specs, Service<T>&)
+  static bool add(std::vector<ServiceSpec>& specs, Service<T>& service)
   {
-    CommonAnalysisServices::addAnalysisService<T>(specs);
+    if constexpr (o2::framework::is_base_of_template_v<LoadableServicePlugin, T>) {
+      T p = T{};
+      auto loadableServices = ServiceHelpers::parseServiceSpecString(p.loadSpec.c_str());
+      ServiceHelpers::loadFromPlugin(loadableServices, specs);
+    }
     return true;
   }
 
@@ -482,6 +489,35 @@ struct ServiceManager<Service<T>> {
       return true;
     }
     return false;
+  }
+};
+
+template <typename T>
+struct CacheManager {
+  template <typename ANY>
+  static bool initialize(InitContext&, ANY&)
+  {
+    return false;
+  }
+  template <typename ANY>
+  static bool initialize(ProcessingContext&, ANY&)
+  {
+    return false;
+  }
+};
+
+template <>
+struct CacheManager<SliceCache> {
+  static bool initialize(InitContext&, SliceCache&)
+  {
+    return false;
+  }
+  static bool initialize(ProcessingContext& pc, SliceCache& cache)
+  {
+    if (cache.ptr == nullptr) {
+      cache.ptr = &pc.services().get<ArrowTableSlicingCache>();
+    }
+    return true;
   }
 };
 
@@ -606,31 +642,49 @@ struct IndexManager<Builds<IDX>> {
 /// Manager template to handle slice caching
 template <typename T>
 struct PresliceManager {
-  template <typename T1>
-  static bool processTable(T&, T1&)
+  static bool registerCache(T&, std::vector<StringPair>&, std::vector<StringPair>&)
   {
     return false;
   }
 
-  static bool setNewDF(T&) { return false; };
+  static bool updateSliceInfo(T&, ArrowTableSlicingCache&)
+  {
+    return false;
+  }
 };
 
 template <typename T>
 struct PresliceManager<Preslice<T>> {
-  template <typename T1>
-  static bool processTable(Preslice<T>& container, T1& table)
+  static bool registerCache(Preslice<T>& container, std::vector<StringPair>& bsks, std::vector<StringPair>&)
   {
-    if constexpr (o2::soa::is_binding_compatible_v<T, std::decay_t<T1>>()) {
-      auto status = o2::framework::getSlices(container.index.name.c_str(), table.asArrowTable(), container.mValues, container.mCounts);
-      return status.ok();
-    } else {
-      return false;
+    auto locate = std::find_if(bsks.begin(), bsks.end(), [&](auto const& entry) { return (entry.first == container.bindingKey.first) && (entry.second == container.bindingKey.second); });
+    if (locate == bsks.end()) {
+      bsks.emplace_back(container.getBindingKey());
     }
+    return true;
   }
 
-  static bool setNewDF(Preslice<T>& container)
+  static bool updateSliceInfo(Preslice<T>& container, ArrowTableSlicingCache& cache)
   {
-    container.setNewDF();
+    container.updateSliceInfo(cache.getCacheFor(container.getBindingKey()));
+    return true;
+  }
+};
+
+template <typename T>
+struct PresliceManager<PresliceUnsorted<T>> {
+  static bool registerCache(PresliceUnsorted<T>& container, std::vector<StringPair>&, std::vector<StringPair>& bsksU)
+  {
+    auto locate = std::find_if(bsksU.begin(), bsksU.end(), [&](auto const& entry) { return (entry.first == container.bindingKey.first) && (entry.second == container.bindingKey.second); });
+    if (locate == bsksU.end()) {
+      bsksU.emplace_back(container.getBindingKey());
+    }
+    return true;
+  }
+
+  static bool updateSliceInfo(PresliceUnsorted<T>& container, ArrowTableSlicingCache& cache)
+  {
+    container.updateSliceInfo(cache.getCacheUnsortedFor(container.getBindingKey()));
     return true;
   }
 };

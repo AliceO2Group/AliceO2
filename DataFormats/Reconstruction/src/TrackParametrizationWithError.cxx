@@ -9,22 +9,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   TrackparametrizationWithError.cxx
-/// @author ruben.shahoyan@cern.ch, michael.lettrich@cern.ch
-/// @since  Oct 1, 2020
-/// @brief
-
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
-// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
-// All rights not expressly granted are reserved.
-//
-// This software is distributed under the terms of the GNU General Public
-// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
-//
-// In applying this license CERN does not waive the privileges and immunities
-// granted to it by virtue of its status as an Intergovernmental Organization
-// or submit itself to any jurisdiction.
-
 #include "ReconstructionDataFormats/TrackParametrizationWithError.h"
 #include "ReconstructionDataFormats/Vertex.h"
 #include "ReconstructionDataFormats/DCA.h"
@@ -84,24 +68,24 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, valu
   if (gpu::CAMath::Abs(r2) < constants::math::Almost0) {
     return false;
   }
-  this->setX(xk);
   double dy2dx = (f1 + f2) / (r1 + r2);
+  bool arcz = gpu::CAMath::Abs(x2r) > 0.05f;
   params_t dP{0.f};
-  dP[kY] = dx * dy2dx;
-  dP[kSnp] = x2r;
-  if (gpu::CAMath::Abs(x2r) < 0.05f) {
-    dP[kZ] = dx * (r2 + f2 * dy2dx) * this->getTgl();
-  } else {
+  if (arcz) {
     // for small dx/R the linear apporximation of the arc by the segment is OK,
     // but at large dx/R the error is very large and leads to incorrect Z propagation
     // angle traversed delta = 2*asin(dist_start_end / R / 2), hence the arc is: R*deltaPhi
     // The dist_start_end is obtained from sqrt(dx^2+dy^2) = x/(r1+r2)*sqrt(2+f1*f2+r1*r2)
     //    double chord = dx*TMath::Sqrt(1+dy2dx*dy2dx);   // distance from old position to new one
     //    double rot = 2*TMath::ASin(0.5*chord*crv); // angular difference seen from the circle center
-    //    mP1 += rot/crv*mP3;
+    //    track1 += rot/crv*track3;
     //
-    value_t rot = gpu::CAMath::ASin(r1 * f2 - r2 * f1); // more economic version from Yura.
-    if (f1 * f1 + f2 * f2 > 1.f && f1 * f2 < 0.f) {     // special cases of large rotations or large abs angles
+    auto arg = r1 * f2 - r2 * f1;
+    if (gpu::CAMath::Abs(arg) > constants::math::Almost1) {
+      return false;
+    }
+    value_t rot = gpu::CAMath::ASin(arg);           // more economic version from Yura.
+    if (f1 * f1 + f2 * f2 > 1.f && f1 * f2 < 0.f) { // special cases of large rotations or large abs angles
       if (f2 > 0.f) {
         rot = constants::math::PI - rot; //
       } else {
@@ -109,7 +93,12 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, valu
       }
     }
     dP[kZ] = this->getTgl() / crv * rot;
+  } else {
+    dP[kZ] = dx * (r2 + f2 * dy2dx) * this->getTgl();
   }
+  this->setX(xk);
+  dP[kY] = dx * dy2dx;
+  dP[kSnp] = x2r;
 
   this->updateParams(dP); // apply corrections
 
@@ -182,7 +171,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::rotate(value_t alpha)
   // RS: check if rotation does no invalidate track model (cos(local_phi)>=0, i.e. particle
   // direction in local frame is along the X axis
   if ((csp * ca + snp * sa) < 0) {
-    //LOGP(warning,"Rotation failed: local cos(phi) would become {:.2f}", csp * ca + snp * sa);
+    // LOGP(warning,"Rotation failed: local cos(phi) would become {:.2f}", csp * ca + snp * sa);
     return false;
   }
   //
@@ -230,7 +219,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateToDCA(const o2::dat
   value_t xv = vtx.getX() * cs + vtx.getY() * sn, yv = -vtx.getX() * sn + vtx.getY() * cs, zv = vtx.getZ();
   x -= xv;
   y -= yv;
-  //Estimate the impact parameter neglecting the track curvature
+  // Estimate the impact parameter neglecting the track curvature
   value_t d = gpu::CAMath::Abs(x * snp - y * csp);
   if (d > maxD) {
     return false;
@@ -455,7 +444,7 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, cons
   }
   // Do not propagate tracks outside the ALICE detector
   if (gpu::CAMath::Abs(dx) > 1e5 || gpu::CAMath::Abs(this->getY()) > 1e5 || gpu::CAMath::Abs(this->getZ()) > 1e5) {
-    LOGP(warning, "Anomalous track, target X:{:f}", xk);
+    LOG(warning) << "Anomalous track, target X:" << xk;
     //    print();
     return false;
   }
@@ -614,7 +603,7 @@ GPUd() void TrackParametrizationWithError<value_T>::checkCorrelations()
     for (int j = i; j--;) {
       auto sig2 = mC[DiagMap[i]] * mC[DiagMap[j]];
       auto& cov = mC[CovarMap[i][j]];
-      if (cov * cov >= MaxCorr) { // constrain correlation
+      if (cov * cov >= MaxCorr * sig2) { // constrain correlation
         cov = gpu::CAMath::Sqrt(sig2) * (cov > 0. ? MaxCorr : -MaxCorr);
       }
     }
@@ -732,9 +721,9 @@ GPUd() auto TrackParametrizationWithError<value_T>::getPredictedChi2(const value
   value_t z = this->getZ() - p[1];
   auto chi2 = (d * (szz * d - sdz * z) + z * (sdd * z - d * sdz)) / det;
   if (chi2 < 0.) {
-    LOGP(alarm, "Negative chi2={}, Cluster: {} {} {} Dy:{} Dz:{} | sdd:{} sdz:{} szz:{} det:{}", chi2, cov[0], cov[1], cov[2], d, z, sdd, sdz, szz, det);
+    LOGP(warning, "Negative chi2={}, Cluster: {} {} {} Dy:{} Dz:{} | sdd:{} sdz:{} szz:{} det:{}", chi2, cov[0], cov[1], cov[2], d, z, sdd, sdz, szz, det);
 #ifndef GPUCA_ALIGPUCODE
-    LOGP(alarm, "Track: {}", asString());
+    LOGP(warning, "Track: {}", asString());
 #endif
   }
   return chi2;
@@ -1138,15 +1127,10 @@ template <typename value_T>
 std::string TrackParametrizationWithError<value_T>::asString() const
 {
   return TrackParametrization<value_t>::asString() +
-         fmt::format(
-           "\n{:7s} {:+.3e}\n"
-           "{:7s} {:+.3e} {:+.3e}\n"
-           "{:7s} {:+.3e} {:+.3e} {:+.3e}\n"
-           "{:7s} {:+.3e} {:+.3e} {:+.3e} {:+.3e}\n"
-           "{:7s} {:+.3e} {:+.3e} {:+.3e} {:+.3e} {:+.3e}",
-           "CovMat:", mC[kSigY2], "", mC[kSigZY], mC[kSigZ2], "", mC[kSigSnpY], mC[kSigSnpZ], mC[kSigSnp2], "", mC[kSigTglY],
-           mC[kSigTglZ], mC[kSigTglSnp], mC[kSigTgl2], "", mC[kSigQ2PtY], mC[kSigQ2PtZ], mC[kSigQ2PtSnp], mC[kSigQ2PtTgl],
-           mC[kSigQ2Pt2]);
+         fmt::format(" Cov: [{:+.3e}] [{:+.3e} {:+.3e}] [{:+.3e} {:+.3e} {:+.3e}] [{:+.3e} {:+.3e} {:+.3e} {:+.3e}] [{:+.3e} {:+.3e} {:+.3e} {:+.3e} {:+.3e}]",
+                     mC[kSigY2], mC[kSigZY], mC[kSigZ2], mC[kSigSnpY], mC[kSigSnpZ], mC[kSigSnp2], mC[kSigTglY],
+                     mC[kSigTglZ], mC[kSigTglSnp], mC[kSigTgl2], mC[kSigQ2PtY], mC[kSigQ2PtZ], mC[kSigQ2PtSnp], mC[kSigQ2PtTgl],
+                     mC[kSigQ2Pt2]);
 }
 #endif
 
@@ -1157,6 +1141,17 @@ GPUd() void TrackParametrizationWithError<value_T>::print() const
   // print parameters
 #ifndef GPUCA_ALIGPUCODE
   printf("%s\n", asString().c_str());
+#else
+  TrackParametrization<value_T>::printParam();
+  printf(
+    "\n%7s %+.3e\n"
+    "%7s %+.3e %+.3e\n"
+    "%7s %+.3e %+.3e %+.3e\n"
+    "%7s %+.3e %+.3e %+.3e %+.3e\n"
+    "%7s %+.3e %+.3e %+.3e %+.3e %+.3e",
+    "CovMat:", mC[kSigY2], "", mC[kSigZY], mC[kSigZ2], "", mC[kSigSnpY], mC[kSigSnpZ], mC[kSigSnp2], "", mC[kSigTglY],
+    mC[kSigTglZ], mC[kSigTglSnp], mC[kSigTgl2], "", mC[kSigQ2PtY], mC[kSigQ2PtZ], mC[kSigQ2PtSnp], mC[kSigQ2PtTgl],
+    mC[kSigQ2Pt2]);
 #endif
 }
 

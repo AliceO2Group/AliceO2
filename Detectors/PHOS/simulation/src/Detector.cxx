@@ -29,7 +29,7 @@
 #include "PHOSBase/PHOSSimParams.h"
 
 #include "DetectorsBase/GeometryManager.h"
-#include "SimulationDataFormat/Stack.h"
+#include "DetectorsBase/Stack.h"
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/range/irange.hpp>
@@ -134,7 +134,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   // 2. Collect all energy depositions in Cell by all secondaries from particle first entered PHOS
 
   // Check if this is first entered PHOS particle ("SuperParent")
-  TVirtualMCStack* stack = fMC->GetStack();
+  o2::data::Stack* stack = static_cast<o2::data::Stack*>(fMC->GetStack());
   const Int_t partID = stack->GetCurrentTrackNumber();
   Int_t superParent = -1;
   Bool_t isNewPartile = false;     // Create Hit even if zero energy deposition
@@ -161,13 +161,14 @@ Bool_t Detector::ProcessHits(FairVolume* v)
     superParent = mCurentSuperParent;
   }
 
+  if (isNewPartile) { // mark track to be kept by stack
+    stack->addHit(GetDetId());
+  }
+
   Double_t lostenergy = fMC->Edep();
   if (lostenergy < DBL_EPSILON && !isNewPartile) {
     return false; // do not create hits with zero energy deposition
   }
-
-  //  if(strcmp(mc->CurrentVolName(),"PXTL")!=0) //Non need to check, alwais there...
-  //    return false ; //  We are not inside a PBWO crystal
 
   Int_t moduleNumber;
   fMC->CurrentVolOffID(
@@ -205,7 +206,7 @@ Bool_t Detector::ProcessHits(FairVolume* v)
   fMC->TrackPosition(posX, posY, posZ);
   fMC->TrackMomentum(momX, momY, momZ, energy);
   Double_t estart = fMC->Etot();
-  Double_t time = fMC->TrackTime() * 1.e+9; // time in ns
+  Double_t time = fMC->TrackTime(); // time in s
 
   mCurrentHit = addHit(superParent, detID, math_utils::Point3D<float>(posX, posY, posZ), math_utils::Vector3D<float>(momX, momY, momZ), estart,
                        time, lostenergy);

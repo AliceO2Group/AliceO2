@@ -46,7 +46,7 @@ class GPUSettings
                               RejectionStrategyB = 2 };
 
 #if !defined(__OPENCL__) || defined(__OPENCLCPP__)
-  static CONSTEXPR unsigned int TPC_MAX_TF_TIME_BIN = ((256 * 3564 + 2 * 8 - 2) / 8);
+  static CONSTEXPR const unsigned int TPC_MAX_TF_TIME_BIN = ((256 * 3564 + 2 * 8 - 2) / 8);
 #endif
 };
 
@@ -59,6 +59,7 @@ struct GPUSettingsGRP {
   int homemadeEvents = 0;       // Toy-MC events
   int continuousMaxTimeBin = 0; // 0 for triggered events, -1 for default of 23ms
   int needsClusterer = 0;       // Set to true if the data requires the clusterizer
+  int doCompClusterDecode = 0;  // Set to true if the data contains compressed TPC clusters
 };
 
 // Parameters of the current time frame

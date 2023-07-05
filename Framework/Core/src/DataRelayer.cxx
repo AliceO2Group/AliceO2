@@ -10,6 +10,8 @@
 // or submit itself to any jurisdiction.
 #include "Framework/RootSerializationSupport.h"
 #include "Framework/DataRelayer.h"
+#include "Framework/DataProcessingStats.h"
+#include "Framework/DriverConfig.h"
 
 #include "Framework/CompilerBuiltins.h"
 #include "Framework/DataDescriptorMatcher.h"
@@ -30,8 +32,13 @@
 #include "DataRelayerHelpers.h"
 #include "InputRouteHelpers.h"
 #include "Framework/LifetimeHelpers.h"
+#include "Framework/CommonServices.h"
+#include "Framework/DataProcessingStates.h"
+#include "Framework/DataTakingContext.h"
+#include "Framework/DefaultsHelpers.h"
 
 #include "Headers/DataHeaderHelpers.h"
+#include "Framework/Formatters.h"
 
 #include <Monitoring/Metric.h>
 #include <Monitoring/Monitoring.h>
@@ -53,15 +60,11 @@ namespace o2::framework
 
 constexpr int INVALID_INPUT = -1;
 
-// 128 is just some reasonable numer
-// The number should really be tuned at runtime for each processor.
-constexpr int DEFAULT_PIPELINE_LENGTH = 128;
-
 DataRelayer::DataRelayer(const CompletionPolicy& policy,
                          std::vector<InputRoute> const& routes,
-                         monitoring::Monitoring& metrics,
-                         TimesliceIndex& index)
-  : mMetrics{metrics},
+                         TimesliceIndex& index,
+                         ServiceRegistryRef services)
+  : mContext{services},
     mTimesliceIndex{index},
     mCompletionPolicy{policy},
     mDistinctRoutesIndex{DataRelayerHelpers::createDistinctRouteIndex(routes)},
@@ -71,27 +74,29 @@ DataRelayer::DataRelayer(const CompletionPolicy& policy,
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
 
   if (policy.configureRelayer == nullptr) {
-    char* defaultPipelineLengthTxt = getenv("DPL_DEFAULT_PIPELINE_LENGTH");
-    int defaultPipelineLength = defaultPipelineLengthTxt ? std::stoi(defaultPipelineLengthTxt) : DEFAULT_PIPELINE_LENGTH;
-    setPipelineLength(defaultPipelineLength);
+    static int pipelineLength = DefaultsHelpers::pipelineLength();
+    setPipelineLength(pipelineLength);
   } else {
     policy.configureRelayer(*this);
   }
 
   // The queries are all the same, so we only have width 1
   auto numInputTypes = mDistinctRoutesIndex.size();
-  sQueriesMetricsNames.resize(numInputTypes * 1);
-  mMetrics.send({(int)numInputTypes, "data_queries/h", Verbosity::Debug});
-  mMetrics.send({(int)1, "data_queries/w", Verbosity::Debug});
-  for (size_t i = 0; i < numInputTypes; ++i) {
-    sQueriesMetricsNames[i] = std::string("data_queries/") + std::to_string(i);
+  auto& states = services.get<DataProcessingStates>();
+  std::string queries = "";
+  for (short i = 0; i < numInputTypes; ++i) {
     char buffer[128];
     assert(mDistinctRoutesIndex[i] < routes.size());
     mInputs.push_back(routes[mDistinctRoutesIndex[i]].matcher);
     auto& matcher = routes[mDistinctRoutesIndex[i]].matcher;
     DataSpecUtils::describe(buffer, 127, matcher);
-    mMetrics.send({fmt::format("{} ({})", buffer, mInputs.back().lifetime), sQueriesMetricsNames[i], Verbosity::Debug});
+    queries += std::string_view(buffer, strlen(buffer));
+    queries += ";";
   }
+  auto stateId = (short)ProcessingStateId::DATA_QUERIES;
+  states.registerState({.name = "data_queries", .stateId = stateId, .sendInitialValue = true, .defaultEnabled = true});
+  states.updateState(DataProcessingStates::CommandSpec{.id = stateId, .size = (int)queries.size(), .data = queries.data()});
+  states.processCommandQueue();
 }
 
 TimesliceId DataRelayer::getTimesliceForSlot(TimesliceSlot slot)
@@ -248,30 +253,38 @@ size_t matchToContext(void const* data,
 
 /// Send the contents of a context as metrics, so that we can examine them in
 /// the GUI.
-void sendVariableContextMetrics(VariableContext& context, TimesliceSlot slot,
-                                monitoring::Monitoring& metrics, std::vector<std::string> const& names)
+void sendVariableContextMetrics(VariableContext& context, TimesliceSlot slot, DataProcessingStates& states)
 {
   static const std::string nullstring{"null"};
 
-  context.publish([](ContextElement::Value const& var, std::string const& name, void* context) {
-    monitoring::Monitoring* metrics = reinterpret_cast<monitoring::Monitoring*>(context);
-    if (auto pval = std::get_if<uint64_t>(&var)) {
-      metrics->send(monitoring::Metric{std::to_string(*pval), name, Verbosity::Debug});
-    } else if (auto pval = std::get_if<uint32_t>(&var)) {
-      metrics->send(monitoring::Metric{std::to_string(*pval), name, Verbosity::Debug});
-    } else if (auto pval2 = std::get_if<std::string>(&var)) {
-      metrics->send(monitoring::Metric{*pval2, name, Verbosity::Debug});
-    } else {
-      metrics->send(monitoring::Metric{nullstring, name, Verbosity::Debug});
+  context.publish([](VariableContext const& variables, TimesliceSlot slot, void* context) {
+    auto& states = *static_cast<DataProcessingStates*>(context);
+    std::string state = "";
+    for (size_t i = 0; i < MAX_MATCHING_VARIABLE; ++i) {
+      auto var = variables.get(i);
+      if (auto pval = std::get_if<uint64_t>(&var)) {
+        state += std::to_string(*pval);
+      } else if (auto pval = std::get_if<uint32_t>(&var)) {
+        state += std::to_string(*pval);
+      } else if (auto pval2 = std::get_if<std::string>(&var)) {
+        state += *pval2;
+      } else {
+      }
+      state += ";";
     }
+    states.updateState({.id = short((int)ProcessingStateId::CONTEXT_VARIABLES_BASE + slot.index), (int)state.size(), state.data()});
   },
-                  &metrics, slot, names);
+                  &states, slot);
 }
 
 void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex channel)
 {
   auto newOldest = mTimesliceIndex.setOldestPossibleInput(proposed, channel);
   LOGP(debug, "DataRelayer::setOldestPossibleInput {} from channel {}", newOldest.timeslice.value, newOldest.channel.value);
+  static bool dontDrop = getenv("DPL_DONT_DROP_OLD_TIMESLICE") && atoi(getenv("DPL_DONT_DROP_OLD_TIMESLICE"));
+  if (dontDrop) {
+    return;
+  }
   for (size_t si = 0; si < mCache.size() / mInputs.size(); ++si) {
     auto& variables = mTimesliceIndex.getVariablesForSlot({si});
     auto timestamp = VariableContextHelpers::getTimeslice(variables);
@@ -288,7 +301,7 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
       auto& element = mCache[si * mInputs.size() + mi];
       if (element.size() != 0) {
         if (input.lifetime != Lifetime::Condition && mCompletionPolicy.name != "internal-dpl-injected-dummy-sink") {
-          LOGP(error, "Dropping {} Lifetime::{} data in slot {} with timestamp {} < {}.", DataSpecUtils::describe(input), input.lifetime, si, timestamp.value, newOldest.timeslice.value);
+          LOGP(error, "Dropping incomplete {} Lifetime::{} data in slot {} with timestamp {} < {} as it can never be completed.", DataSpecUtils::describe(input), (int)input.lifetime, si, timestamp.value, newOldest.timeslice.value);
         } else {
           LOGP(debug,
                "Silently dropping data {} in pipeline slot {} because it has timeslice {} < {} after receiving data from channel {}."
@@ -324,7 +337,7 @@ void DataRelayer::pruneCache(TimesliceSlot slot, OnDropCallback onDrop)
                      &cachedStateMetrics = mCachedStateMetrics,
                      numInputTypes = mDistinctRoutesIndex.size(),
                      &index = mTimesliceIndex,
-                     &metrics = mMetrics](TimesliceSlot slot) {
+                     ref = mContext](TimesliceSlot slot) {
     if (onDrop) {
       auto oldestPossibleTimeslice = index.getOldestPossibleOutput();
       // State of the computation
@@ -367,12 +380,6 @@ DataRelayer::RelayChoice
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
   DataProcessingHeader const* dph = o2::header::get<DataProcessingHeader*>(rawHeader);
-  // STATE HOLDING VARIABLES
-  // This is the class level state of the relaying. If we start supporting
-  // multithreading this will have to be made thread safe before we can invoke
-  // relay concurrently.
-  auto const& readonlyCache = mCache;
-
   // IMPLEMENTATION DETAILS
   //
   // This returns true if a given slot is available for the current number of lanes
@@ -416,8 +423,7 @@ DataRelayer::RelayChoice
                      &nMessages,
                      &nPayloads,
                      &cache = mCache,
-                     numInputTypes = mDistinctRoutesIndex.size(),
-                     &metrics = mMetrics](TimesliceId timeslice, int input, TimesliceSlot slot) {
+                     numInputTypes = mDistinctRoutesIndex.size()](TimesliceId timeslice, int input, TimesliceSlot slot) {
     auto cacheIdx = numInputTypes * slot.index + input;
     MessageSet& target = cache[cacheIdx];
     cachedStateMetrics[cacheIdx] = CacheEntryStatus::PENDING;
@@ -431,22 +437,24 @@ DataRelayer::RelayChoice
     }
   };
 
-  auto updateStatistics = [&stats = mStats](TimesliceIndex::ActionTaken action) {
+  auto updateStatistics = [ref = mContext](TimesliceIndex::ActionTaken action) {
+    auto& stats = ref.get<DataProcessingStats>();
+
     // Update statistics for what happened
     switch (action) {
       case TimesliceIndex::ActionTaken::DropObsolete:
-        stats.droppedIncomingMessages++;
+        stats.updateStats({static_cast<short>(ProcessingStatsId::DROPPED_INCOMING_MESSAGES), DataProcessingStats::Op::Add, (int)1});
         break;
       case TimesliceIndex::ActionTaken::DropInvalid:
-        stats.malformedInputs++;
-        stats.droppedIncomingMessages++;
+        stats.updateStats({static_cast<short>(ProcessingStatsId::MALFORMED_INPUTS), DataProcessingStats::Op::Add, (int)1});
+        stats.updateStats({static_cast<short>(ProcessingStatsId::DROPPED_COMPUTATIONS), DataProcessingStats::Op::Add, (int)1});
         break;
       case TimesliceIndex::ActionTaken::ReplaceUnused:
-        stats.relayedMessages++;
+        stats.updateStats({static_cast<short>(ProcessingStatsId::RELAYED_MESSAGES), DataProcessingStats::Op::Add, (int)1});
         break;
       case TimesliceIndex::ActionTaken::ReplaceObsolete:
-        stats.droppedComputations++;
-        stats.relayedMessages++;
+        stats.updateStats({static_cast<short>(ProcessingStatsId::MALFORMED_INPUTS), DataProcessingStats::Op::Add, (int)1});
+        stats.updateStats({static_cast<short>(ProcessingStatsId::DROPPED_COMPUTATIONS), DataProcessingStats::Op::Add, (int)1});
         break;
       case TimesliceIndex::ActionTaken::Wait:
         break;
@@ -498,6 +506,7 @@ DataRelayer::RelayChoice
     }
   }
 
+  auto& stats = mContext.get<DataProcessingStats>();
   /// If we get a valid result, we can store the message in cache.
   if (input != INVALID_INPUT && TimesliceId::isValid(timeslice) && TimesliceSlot::isValid(slot)) {
     O2_SIGNPOST(O2_PROBE_DATARELAYER, timeslice.value, 0, 0, 0);
@@ -508,8 +517,8 @@ DataRelayer::RelayChoice
     saveInSlot(timeslice, input, slot);
     index.publishSlot(slot);
     index.markAsDirty(slot, true);
-    mStats.relayedMessages++;
-    return WillRelay;
+    stats.updateStats({static_cast<short>(ProcessingStatsId::RELAYED_MESSAGES), DataProcessingStats::Op::Add, (int)1});
+    return RelayChoice{RelayChoice::Type::WillRelay, timeslice};
   }
 
   /// If not, we find which timeslice we really were looking at
@@ -531,22 +540,22 @@ DataRelayer::RelayChoice
 
   if (input == INVALID_INPUT) {
     LOG(error) << "Could not match incoming data to any input route: " << DataHeaderInfo();
-    mStats.malformedInputs++;
-    mStats.droppedIncomingMessages++;
+    stats.updateStats({static_cast<short>(ProcessingStatsId::MALFORMED_INPUTS), DataProcessingStats::Op::Add, (int)1});
+    stats.updateStats({static_cast<short>(ProcessingStatsId::DROPPED_INCOMING_MESSAGES), DataProcessingStats::Op::Add, (int)1});
     for (size_t pi = 0; pi < nMessages; ++pi) {
       messages[pi].reset(nullptr);
     }
-    return Invalid;
+    return RelayChoice{.type = RelayChoice::Type::Invalid, timeslice};
   }
 
   if (TimesliceId::isValid(timeslice) == false) {
     LOG(error) << "Could not determine the timeslice for input: " << DataHeaderInfo();
-    mStats.malformedInputs++;
-    mStats.droppedIncomingMessages++;
+    stats.updateStats({static_cast<short>(ProcessingStatsId::MALFORMED_INPUTS), DataProcessingStats::Op::Add, (int)1});
+    stats.updateStats({static_cast<short>(ProcessingStatsId::DROPPED_INCOMING_MESSAGES), DataProcessingStats::Op::Add, (int)1});
     for (size_t pi = 0; pi < nMessages; ++pi) {
       messages[pi].reset(nullptr);
     }
-    return Invalid;
+    return RelayChoice{.type = RelayChoice::Type::Invalid, timeslice};
   }
 
   TimesliceIndex::ActionTaken action;
@@ -556,7 +565,7 @@ DataRelayer::RelayChoice
 
   switch (action) {
     case TimesliceIndex::ActionTaken::Wait:
-      return Backpressured;
+      return RelayChoice{.type = RelayChoice::Type::Backpressured, timeslice};
     case TimesliceIndex::ActionTaken::DropObsolete:
       static std::atomic<size_t> obsoleteCount = 0;
       static std::atomic<size_t> mult = 1;
@@ -566,15 +575,15 @@ DataRelayer::RelayChoice
           mult = mult * 10;
         }
       }
-      return Dropped;
+      return RelayChoice{.type = RelayChoice::Type::Dropped, timeslice};
     case TimesliceIndex::ActionTaken::DropInvalid:
       LOG(warning) << "Incoming data is invalid, not relaying.";
-      mStats.malformedInputs++;
-      mStats.droppedIncomingMessages++;
+      stats.updateStats({static_cast<short>(ProcessingStatsId::MALFORMED_INPUTS), DataProcessingStats::Op::Add, (int)1});
+      stats.updateStats({static_cast<short>(ProcessingStatsId::DROPPED_INCOMING_MESSAGES), DataProcessingStats::Op::Add, (int)1});
       for (size_t pi = 0; pi < nMessages; ++pi) {
         messages[pi].reset(nullptr);
       }
-      return Invalid;
+      return RelayChoice{.type = RelayChoice::Type::Invalid, timeslice};
     case TimesliceIndex::ActionTaken::ReplaceUnused:
     case TimesliceIndex::ActionTaken::ReplaceObsolete:
       // At this point the variables match the new input but the
@@ -584,7 +593,7 @@ DataRelayer::RelayChoice
       saveInSlot(timeslice, input, slot);
       index.publishSlot(slot);
       index.markAsDirty(slot, true);
-      return WillRelay;
+      return RelayChoice{.type = RelayChoice::Type::WillRelay};
   }
   O2_BUILTIN_UNREACHABLE();
 }
@@ -615,7 +624,7 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
   // merging at the end.
   auto updateCompletionResults = [&completed](TimesliceSlot li, uint64_t const* timeslice, CompletionPolicy::CompletionOp op) {
     if (timeslice) {
-      LOGP(debug, "Doing action {} for slot {} (timeslice: {})", op, li.index, *timeslice);
+      LOGP(debug, "Doing action {} for slot {} (timeslice: {})", (int)op, li.index, *timeslice);
       completed.emplace_back(RecordAction{li, {*timeslice}, op});
     } else {
       LOGP(debug, "No timeslice associated with slot ", li.index);
@@ -675,9 +684,9 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
     if (mCompletionPolicy.callback) {
       action = mCompletionPolicy.callback(span);
     } else if (mCompletionPolicy.callbackFull) {
-      action = mCompletionPolicy.callbackFull(span, mInputs);
+      action = mCompletionPolicy.callbackFull(span, mInputs, mContext);
     } else {
-      throw std::runtime_error("No completion policy found");
+      throw runtime_error_f("Completion police %s has no callback set", mCompletionPolicy.name.c_str());
     }
     auto& variables = mTimesliceIndex.getVariablesForSlot(slot);
     auto timeslice = std::get_if<uint64_t>(&variables.get(0));
@@ -807,7 +816,6 @@ std::vector<o2::framework::MessageSet> DataRelayer::consumeExistingInputsForTime
   std::vector<MessageSet> messages(numInputTypes);
   auto& cache = mCache;
   auto& index = mTimesliceIndex;
-  auto& metrics = mMetrics;
 
   // Nothing to see here, this is just to make the outer loop more understandable.
   auto jumpToCacheEntryAssociatedWith = [](TimesliceSlot) {
@@ -820,7 +828,7 @@ std::vector<o2::framework::MessageSet> DataRelayer::consumeExistingInputsForTime
   // cache where to put them.
   auto copyHeaderPayloadToOutput = [&messages,
                                     &cachedStateMetrics = mCachedStateMetrics,
-                                    &cache, &index, &numInputTypes, &metrics](TimesliceSlot s, size_t arg) {
+                                    &cache, &index, &numInputTypes](TimesliceSlot s, size_t arg) {
     auto cacheId = s.index * numInputTypes + arg;
     cachedStateMetrics[cacheId] = CacheEntryStatus::RUNNING;
     // TODO: in the original implementation of the cache, there have been only two messages per entry,
@@ -882,37 +890,32 @@ void DataRelayer::publishMetrics()
   // maybe misleading to have the allocation in a function primarily for
   // metrics publishing, do better in setPipelineLength?
   mCache.resize(numInputTypes * mTimesliceIndex.size());
-  mMetrics.send({(int)numInputTypes, "data_relayer/h", Verbosity::Debug});
-  mMetrics.send({(int)mTimesliceIndex.size(), "data_relayer/w", Verbosity::Debug});
-  sMetricsNames.resize(mCache.size());
+  auto& states = mContext.get<DataProcessingStates>();
+
   mCachedStateMetrics.resize(mCache.size());
-  for (size_t i = 0; i < sMetricsNames.size(); ++i) {
-    sMetricsNames[i] = std::string("data_relayer/") + std::to_string(i);
-  }
+
   // There is maximum 16 variables available. We keep them row-wise so that
   // that we can take mod 16 of the index to understand which variable we
   // are talking about.
-  sVariablesMetricsNames.resize(mVariableContextes.size() * 16);
-  mMetrics.send({(int)16, "matcher_variables/w", Verbosity::Debug});
-  mMetrics.send({(int)mVariableContextes.size(), "matcher_variables/h", Verbosity::Debug});
-  for (size_t i = 0; i < sVariablesMetricsNames.size(); ++i) {
-    sVariablesMetricsNames[i] = std::string("matcher_variables/") + std::to_string(i);
-    mMetrics.send({std::string("null"), sVariablesMetricsNames[i % 16], Verbosity::Debug});
+  for (size_t i = 0; i < mVariableContextes.size(); ++i) {
+    states.registerState(DataProcessingStates::StateSpec{
+      .name = fmt::format("matcher_variables/{}", i),
+      .stateId = static_cast<short>((short)(ProcessingStateId::CONTEXT_VARIABLES_BASE) + i),
+      .minPublishInterval = 500, // if we publish too often we flood the GUI and we are not able to read it in any case
+      .sendInitialValue = true,
+      .defaultEnabled = mContext.get<DriverConfig const>().driverHasGUI,
+    });
   }
 
-  for (size_t ci = 0; ci < mCache.size(); ci++) {
-    assert(ci < sMetricsNames.size());
-    mMetrics.send({0, sMetricsNames[ci], Verbosity::Debug});
+  for (int ci = 0; ci < mTimesliceIndex.size(); ci++) {
+    states.registerState(DataProcessingStates::StateSpec{
+      .name = fmt::format("data_relayer/{}", ci),
+      .stateId = static_cast<short>((short)(ProcessingStateId::DATA_RELAYER_BASE) + (short)ci),
+      .minPublishInterval = 800, // if we publish too often we flood the GUI and we are not able to read it in any case
+      .sendInitialValue = true,
+      .defaultEnabled = mContext.get<DriverConfig const>().driverHasGUI,
+    });
   }
-  for (size_t ci = 0; ci < mVariableContextes.size() * 16; ci++) {
-    assert(ci < sVariablesMetricsNames.size());
-    mMetrics.send({std::string("null"), sVariablesMetricsNames[ci], Verbosity::Debug});
-  }
-}
-
-DataRelayerStats const& DataRelayer::getStats() const
-{
-  return mStats;
 }
 
 uint32_t DataRelayer::getFirstTFOrbitForSlot(TimesliceSlot slot)
@@ -942,22 +945,32 @@ uint64_t DataRelayer::getCreationTimeForSlot(TimesliceSlot slot)
 void DataRelayer::sendContextState()
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
+  auto& states = mContext.get<DataProcessingStates>();
   for (size_t ci = 0; ci < mTimesliceIndex.size(); ++ci) {
     auto slot = TimesliceSlot{ci};
     sendVariableContextMetrics(mTimesliceIndex.getPublishedVariablesForSlot(slot), slot,
-                               mMetrics, sVariablesMetricsNames);
+                               states);
   }
-  for (size_t si = 0; si < mCachedStateMetrics.size(); ++si) {
-    mMetrics.send({static_cast<int>(mCachedStateMetrics[si]), sMetricsNames[si], Verbosity::Debug});
-    // Anything which is done is actually already empty,
-    // so after we report it we mark it as such.
-    if (mCachedStateMetrics[si] == CacheEntryStatus::DONE) {
-      mCachedStateMetrics[si] = CacheEntryStatus::EMPTY;
+  char relayerSlotState[1024];
+  // The number of timeslices is encoded in each state
+  // We serialise the state of a Timeslot in a given state.
+  int written = snprintf(relayerSlotState, 1024, "%d ", (int)mTimesliceIndex.size());
+  char* buffer = relayerSlotState + written;
+  for (size_t ci = 0; ci < mTimesliceIndex.size(); ++ci) {
+    for (size_t si = 0; si < mDistinctRoutesIndex.size(); ++si) {
+      int index = si * mTimesliceIndex.size() + ci;
+      int value = static_cast<int>(mCachedStateMetrics[index]);
+      buffer[si] = value + '0';
+      // Anything which is done is actually already empty,
+      // so after we report it we mark it as such.
+      if (mCachedStateMetrics[index] == CacheEntryStatus::DONE) {
+        mCachedStateMetrics[index] = CacheEntryStatus::EMPTY;
+      }
     }
+    buffer[mDistinctRoutesIndex.size()] = '\0';
+    auto size = (int)(buffer - relayerSlotState + mDistinctRoutesIndex.size());
+    states.updateState({.id = short((int)ProcessingStateId::DATA_RELAYER_BASE + ci), .size = size, .data = relayerSlotState});
   }
 }
 
-std::vector<std::string> DataRelayer::sMetricsNames;
-std::vector<std::string> DataRelayer::sVariablesMetricsNames;
-std::vector<std::string> DataRelayer::sQueriesMetricsNames;
 } // namespace o2::framework

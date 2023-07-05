@@ -21,7 +21,6 @@
 #include <TObjArray.h>
 #include "ReconstructionDataFormats/BaseCluster.h"
 #include "Align/AlignableVolume.h"
-#include "Align/DOFStatistics.h"
 #include "Align/utils.h"
 #include <vector>
 
@@ -80,7 +79,7 @@ class AlignableSensor : public AlignableVolume
   virtual void updatePointByTrackInfo(AlignmentPoint* pnt, const trackParam_t* t) const;
   void updateL2GRecoMatrices(const std::vector<o2::detectors::AlignParam>& algArr, const TGeoHMatrix* cumulDelta) override;
   //
-  int finalizeStat(DOFStatistics& h) override;
+  int finalizeStat() override;
   //
   virtual void prepareMatrixClAlg();
   virtual void prepareMatrixClAlgReco();
@@ -100,11 +99,11 @@ class AlignableSensor : public AlignableVolume
   //
  protected:
   //
-  int mSID;                  // sensor id in detector
-  double mAddError[2];       // additional error increment for measurement
-  AlignableDetector* mDet;   // pointer on detector
-  TGeoHMatrix mMatClAlg;     // reference cluster alignment matrix in tracking frame, i.e. the matrix we want to correct
-  TGeoHMatrix mMatClAlgReco; // reco-time cluster alignment matrix in tracking frame
+  int mSID = -1;                     // sensor id in detector
+  double mAddError[2] = {0, 0};      // additional error increment for measurement
+  AlignableDetector* mDet = nullptr; // pointer on detector
+  TGeoHMatrix mMatClAlg;             // reference cluster alignment matrix in tracking frame, i.e. the matrix we want to correct
+  TGeoHMatrix mMatClAlgReco;         // reco-time cluster alignment matrix in tracking frame
 
   //
   ClassDefOverride(AlignableSensor, 1)

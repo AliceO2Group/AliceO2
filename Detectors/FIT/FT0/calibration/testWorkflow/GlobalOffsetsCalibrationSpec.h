@@ -28,10 +28,13 @@ o2::framework::DataProcessorSpec getGlobalOffsetsCalibrationSpec()
 {
   using CalibrationDeviceType = o2::fit::FITCalibrationDevice<o2::ft0::GlobalOffsetsInfoObject, o2::ft0::GlobalOffsetsContainer, o2::ft0::GlobalOffsetsCalibrationObject>;
   LOG(info) << " getGlobalOffsetsCalibrationSpec()";
-  constexpr const char* DEFAULT_INPUT_LABEL = "calib";
 
   std::vector<o2::framework::InputSpec> inputs;
-  inputs.emplace_back(DEFAULT_INPUT_LABEL, "FT0", "CALIB_INFO");
+  std::vector<o2::framework::OutputSpec> outputs;
+  const o2::header::DataDescription inputDataDescriptor{"CALIB_INFO"};
+  const o2::header::DataDescription outputDataDescriptor{"FT0_GLTIME_CALIB"};
+  CalibrationDeviceType::prepareVecInputSpec(inputs, o2::header::gDataOriginFT0, inputDataDescriptor);
+  CalibrationDeviceType::prepareVecOutputSpec(outputs, outputDataDescriptor);
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
                                                                 true,                           // GRPECS=true
                                                                 false,                          // GRPLHCIF
@@ -39,18 +42,16 @@ o2::framework::DataProcessorSpec getGlobalOffsetsCalibrationSpec()
                                                                 false,                          // askMatLUT
                                                                 o2::base::GRPGeomRequest::None, // geometry
                                                                 inputs);
-  std::vector<o2::framework::OutputSpec> outputs;
-  outputs.emplace_back(o2::framework::ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "FIT_CALIB"}, o2::framework::Lifetime::Sporadic);
-  outputs.emplace_back(o2::framework::ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "FIT_CALIB"}, o2::framework::Lifetime::Sporadic);
   return o2::framework::DataProcessorSpec{
     "ft0-global-offsets",
     inputs, // o2::framework::Inputs{{"input", "FT0", "CALIBDATA"}},
     outputs,
-    o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<CalibrationDeviceType>(DEFAULT_INPUT_LABEL, ccdbRequest)},
+    o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<CalibrationDeviceType>(ccdbRequest, outputDataDescriptor)},
     Options{
       {"tf-per-slot", VariantType::UInt32, 55000u, {"number of TFs per calibration time slot"}},
       {"max-delay", VariantType::UInt32, 3u, {"number of slots in past to consider"}},
-      {"min-entries", VariantType::Int, 500, {"minimum number of entries to fit single time slot"}}}};
+      {"min-entries", VariantType::Int, 500, {"minimum number of entries to fit single time slot"}},
+      {"extra-info-per-slot", o2::framework::VariantType::String, "", {"Extra info for time slot(usually for debugging)"}}}};
 }
 
 } // namespace o2::ft0

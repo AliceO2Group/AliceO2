@@ -23,7 +23,7 @@ Digit::Digit(short absId, float amplitude, float time, int label)
 {
 }
 Digit::Digit(short truId, float amplitude, float time, bool isTrigger2x2, int /*dummy*/)
-  : DigitBase(time), mIsHighGain(true), mAbsId(truId + NREADOUTCHANNELS), mLabel(-1), mAmplitude(amplitude), mTime(time)
+  : DigitBase(time), mIsHighGain(true), mAbsId(truId), mLabel(-1), mAmplitude(amplitude), mTime(time)
 {
   setHighGain(isTrigger2x2);
 }

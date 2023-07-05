@@ -44,13 +44,12 @@ void IntegratingMerger::init(framework::InitContext& ictx)
   mCollector->addGlobalTag(monitoring::tags::Key::Subsystem, monitoring::tags::Value::Mergers);
 
   // set detector field in infologger
-  AliceO2::InfoLogger::InfoLoggerContext* ilContext = nullptr;
   try {
-    ilContext = &ictx.services().get<AliceO2::InfoLogger::InfoLoggerContext>();
+    auto& ilContext = ictx.services().get<AliceO2::InfoLogger::InfoLoggerContext>();
+    ilContext.setField(AliceO2::InfoLogger::InfoLoggerContext::FieldName::Detector, mConfig.detectorName);
   } catch (const RuntimeErrorRef& err) {
     LOG(warn) << "Could not find the DPL InfoLogger Context.";
   }
-  ilContext->setField(AliceO2::InfoLogger::InfoLoggerContext::FieldName::Detector, mConfig.detectorName);
 }
 
 void IntegratingMerger::run(framework::ProcessingContext& ctx)

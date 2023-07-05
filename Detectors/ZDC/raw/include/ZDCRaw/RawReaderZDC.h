@@ -39,7 +39,6 @@ namespace zdc
 class RawReaderZDC
 {
   const ModuleConfig* mModuleConfig = nullptr;     // Trigger/readout configuration object
-  bool mVerifyTrigger = true;                      // Verify trigger condition during conversion to digits
   uint32_t mTriggerMask = 0;                       // Trigger mask from ModuleConfig
   std::map<InteractionRecord, EventData> mMapData; // Raw data cache
   EventChData mCh;                                 // Channel data to be decoded
@@ -67,13 +66,11 @@ class RawReaderZDC
   }
   int getVerbosity() const { return mVerbosity; }
   void setTriggerMask();
-  void setVerifyTrigger(const bool verifyTrigger) { mVerifyTrigger = verifyTrigger; };
-  bool getVerifyTrigger() { return mVerifyTrigger; };
 
   void clear();
 
   // decoding binary data into data blocks
-  void processBinaryData(gsl::span<const uint8_t> payload, int linkID); // processing data blocks into digits
+  int processBinaryData(gsl::span<const uint8_t> payload, int linkID, uint8_t dataFormat); // processing data blocks into digits
   int processWord(const uint32_t* word);
   void process(const EventChData& ch);
 

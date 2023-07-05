@@ -54,19 +54,15 @@
 #ifdef GPUCA_NOCOMPAT
   #define CON_DELETE = delete
   #define CON_DEFAULT = default
-  #define CONSTEXPR constexpr
-  #define CONSTEXPRRET CONSTEXPR
   #if defined(__cplusplus) && __cplusplus >= 201703L
-    #define CONSTEXPR17 constexpr
+    #define CONSTEXPR constexpr
   #else
-    #define CONSTEXPR17
+    #define CONSTEXPR
   #endif
 #else
   #define CON_DELETE
   #define CON_DEFAULT
-  #define CONSTEXPR const
-  #define CONSTEXPR17
-  #define CONSTEXPRRET
+  #define CONSTEXPR
 #endif
 #if defined(__ROOT__) && !defined(GPUCA_NOCOMPAT)
   #define VOLATILE // ROOT5 has a problem with volatile in CINT
@@ -95,6 +91,16 @@
     #error Invalid settings
   #endif
 #endif
+#if !defined(GPUCA_HAVE_O2HEADERS) && (defined(GPUCA_O2_LIB) || (!defined(GPUCA_ALIROOT_LIB) && !defined(GPUCA_STANDALONE)))
+  #define GPUCA_HAVE_O2HEADERS
+#endif
+
+#if defined(GPUCA_HAVE_O2HEADERS) && !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) && defined(DEBUG_STREAMER)
+#define GPUCA_DEBUG_STREAMER_CHECK(...) __VA_ARGS__
+#else
+#define GPUCA_DEBUG_STREAMER_CHECK(...)
+#endif
+
 
 //API Definitions for GPU Compilation
 #include "GPUCommonDefAPI.h"

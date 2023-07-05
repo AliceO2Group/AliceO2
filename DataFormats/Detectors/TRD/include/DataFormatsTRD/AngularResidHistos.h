@@ -38,7 +38,6 @@ class AngularResidHistos
   size_t getNEntries() const { return mNEntriesTotal; }
 
   void fill(const AngularResidHistos& input);
-  void fill(const gsl::span<const AngularResidHistos> input); // dummy!
   void merge(const AngularResidHistos* prev);
   void print();
 

@@ -62,7 +62,7 @@ bool Options::processCommandLine(int argc, char* argv[])
     "json,j", bpo::value<decltype(this->mJSON)>()->zero_tokens()->default_value(false), "use json files as a source")(
     "memorylimit,m", bpo::value<decltype(this->mMemoryLimit)>()->default_value(-1), "memory usage limit (MB) - app will terminate if it is exceeded (pass -1 for no limit)")(
     "online,o", bpo::value<decltype(this->mOnline)>()->zero_tokens()->default_value(false), "use online json files as a source")(
-    "optionsfilename,p", bpo::value<std::string>()->default_value("o2eve.json"), "name of the options file")(
+    "optionsfilename,p", bpo::value<std::string>()->default_value(""), "name of the options file")(
     "randomtracks,r", bpo::value<decltype(this->mRandomTracks)>()->zero_tokens()->default_value(false), "use random tracks")(
     "saveddatafolder,s", bpo::value<decltype(this->mSavedDataFolder)>()->default_value(""), "name of the saved data folder")(
     "hidedplgui", bpo::value<decltype(this->mHideDplGUI)>()->zero_tokens()->default_value(false), "hide DPL GUI when processing AODs")(
@@ -95,7 +95,7 @@ bool Options::processCommandLine(int argc, char* argv[])
   this->mJSON = varmap["json"].as<decltype(this->mJSON)>();
   this->mMemoryLimit = varmap["memorylimit"].as<decltype(this->mMemoryLimit)>();
   this->mOnline = varmap["online"].as<decltype(this->mOnline)>();
-  auto optionsFileName = varmap["optionsfilename"].as<std::string>();
+  this->mOptionsFileName = varmap["optionsfilename"].as<std::string>();
   this->mRandomTracks = varmap["randomtracks"].as<decltype(this->mRandomTracks)>();
   this->mSavedDataFolder = varmap["saveddatafolder"].as<decltype(this->mSavedDataFolder)>();
   this->mHideDplGUI = varmap["hidedplgui"].as<decltype(this->mHideDplGUI)>();

@@ -60,7 +60,7 @@ class FT0CalibInfoSlot
   ClassDefNV(FT0CalibInfoSlot, 1);
 };
 
-class FT0CalibCollector final : public o2::calibration::TimeSlotCalibration<o2::ft0::FT0CalibrationInfoObject, o2::ft0::FT0CalibInfoSlot>
+class FT0CalibCollector final : public o2::calibration::TimeSlotCalibration<o2::ft0::FT0CalibInfoSlot>
 {
   using TFType = o2::calibration::TFType;
   using Slot = o2::calibration::TimeSlot<o2::ft0::FT0CalibInfoSlot>;

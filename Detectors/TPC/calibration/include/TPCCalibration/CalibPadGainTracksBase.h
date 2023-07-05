@@ -57,6 +57,9 @@ class CalibPadGainTracksBase
   /// initializing CalPad object for std dev map
   void initCalPadStdDevMemory() { mSigmaMap = std::make_unique<CalPad>("SigmaMap"); }
 
+  /// initializing CalPad object for std dev map
+  void initCalPadStat() { mNClMap = std::make_unique<CalPad>("NClustersMap"); }
+
   /// copy constructor
   CalibPadGainTracksBase(const CalibPadGainTracksBase& other) : mPadHistosDet(std::make_unique<DataTHistos>(*other.mPadHistosDet)), mGainMap(std::make_unique<CalPad>(*other.mGainMap)) {}
 
@@ -84,7 +87,8 @@ class CalibPadGainTracksBase
   /// \param maxRelgain maximum accpeted relative gain (if the gain is above this value it will be set to 1)
   /// \param low lower truncation range for calculating the rel gain
   /// \param high upper truncation range
-  void finalize(const int minEntries = 10, const float minRelgain = 0.1f, const float maxRelgain = 2.f, const float low = 0.05f, const float high = 0.6f);
+  /// \param minStDev to exlude outliers (histograms with a very narrow distributions) a min std dev cut is used
+  void finalize(const int minEntries = 10, const float minRelgain = 0.1f, const float maxRelgain = 2.f, const float low = 0.05f, const float high = 0.6f, const float minStDev = 0.01);
 
   /// returns calpad containing pad-by-pad histograms
   const auto& getHistos() const { return mPadHistosDet; }
@@ -97,6 +101,9 @@ class CalibPadGainTracksBase
 
   /// \return returns the gainmap object
   const CalPad& getSigmaMap() const { return *mSigmaMap; }
+
+  /// \return returns the number of tracks per pad map
+  const CalPad& getNTracksMap() const { return *mNClMap; }
 
   /// \return return histogram which is used to extract the gain
   /// \param sector sector of the TPC
@@ -125,6 +132,13 @@ class CalibPadGainTracksBase
   /// \param maxZ max z value for drawing (if minZ > maxZ automatic z axis)
   void drawExtractedGainMapSide(const o2::tpc::Side side, const std::string filename = "GainMapSide.pdf", const float minZ = 0, const float maxZ = -1) const { drawExtractedGainMapHelper(true, 0, side == Side::A ? Sector(0) : Sector(Sector::MAXSECTOR - 1), filename, minZ, maxZ); }
 
+  /// draw number of clusters side
+  /// \param side side of the TPC which will be drawn
+  /// \param filename name of the output file. If empty the canvas is drawn
+  /// \param minZ min z value for drawing (if minZ > maxZ automatic z axis)
+  /// \param maxZ max z value for drawing (if minZ > maxZ automatic z axis)
+  void drawNClustersMapSide(const o2::tpc::Side side, const std::string filename = "NClustersMapSide.pdf", const float minZ = 0, const float maxZ = -1) const { drawExtractedGainMapHelper(true, 2, side == Side::A ? Sector(0) : Sector(Sector::MAXSECTOR - 1), filename, minZ, maxZ); }
+
   /// draw sigma map sector
   /// \param sector sector which will be drawn
   /// \param norm normalizing the sigma to the extracted gain map
@@ -140,6 +154,13 @@ class CalibPadGainTracksBase
   /// \param minZ min z value for drawing (if minZ > maxZ automatic z axis)
   /// \param maxZ max z value for drawing (if minZ > maxZ automatic z axis)
   void drawExtractedSigmaMapSide(const o2::tpc::Side side, const bool norm = false, const std::string filename = "StdDevMapSide.pdf", const float minZ = 0, const float maxZ = -1) const { drawExtractedGainMapHelper(true, 1, side == Side::A ? Sector(0) : Sector(Sector::MAXSECTOR - 1), filename, minZ, maxZ, norm); }
+
+  /// draw number of clusters sector
+  /// \param sector sector which will be drawn
+  /// \param filename name of the output file. If empty the canvas is drawn
+  /// \param minZ min z value for drawing (if minZ > maxZ automatic z axis)
+  /// \param maxZ max z value for drawing (if minZ > maxZ automatic z axis)
+  void drawNClustersMapSector(const int sector, const std::string filename = "NClustersMapSector.pdf", const float minZ = 0, const float maxZ = -1) const { drawExtractedGainMapHelper(false, 2, sector, filename, minZ, maxZ, false); }
 
   /// draw gain map using painter functionality
   TCanvas* drawExtractedGainMapPainter() const;
@@ -167,14 +188,26 @@ class CalibPadGainTracksBase
   /// \param mapName name of the caldet
   void setGainMap(const char* inpFile, const char* mapName);
 
-  /// setting a gain map from a file
+  /// setting the gain map
   void setGainMap(const CalPad& gainmap) { mGainMap = std::make_unique<CalPad>(gainmap); }
+
+  /// setting the RMS map
+  void setRMSMap(const CalPad& rmsMap) { mSigmaMap = std::make_unique<CalPad>(rmsMap); }
+
+  /// setting number of clusters map
+  void setNClMap(const CalPad& nclMap) { mNClMap = std::make_unique<CalPad>(nclMap); }
 
   /// set how the extracted gain map is normalized
   void setNormalizationType(const NormType type) { mNormType = type; }
 
   /// \return return how the extracted gain map is normalized
   auto getNormalizationType() const { return mNormType; }
+
+  /// set if the cluster charge is transformed using log(1+Q)
+  bool setLogTransformQ(const bool logTransformQ) { return mLogTransformQ = logTransformQ; }
+
+  /// \return returns if the cluster charge is transformed using log(1+Q)
+  bool getLogTransformQ() const { return mLogTransformQ; }
 
   /// resetting the histograms which are used for extraction of the gain map
   void resetHistos();
@@ -196,7 +229,9 @@ class CalibPadGainTracksBase
   std::unique_ptr<DataTHistos> mPadHistosDet; ///< Calibration object containing for each pad a histogram with normalized charge
   std::unique_ptr<CalPad> mGainMap;           ///< Extracted gain map from tracks
   std::unique_ptr<CalPad> mSigmaMap;          ///< standard deviation map
+  std::unique_ptr<CalPad> mNClMap;            ///< statistics (number of entries per pad)
   NormType mNormType = region;                ///< Normalization type for the extracted gain map
+  bool mLogTransformQ{true};                  ///< transformation of q/dedx -> log(1 + q/dedx)
 
   /// Helper function for drawing the extracted gain map
   void drawExtractedGainMapHelper(const bool type, const int typeMap, const Sector sector, const std::string filename, const float minZ, const float maxZ, const bool norm = false) const;

@@ -18,24 +18,18 @@
 
 using namespace o2::emcal;
 
-///
-/// Constructor
 //____________________________________________________________________________
 template <class InputType>
 Clusterizer<InputType>::Clusterizer(double timeCut, double timeMin, double timeMax, double gradientCut, bool doEnergyGradientCut, double thresholdSeedE, double thresholdCellE) : mSeedList(), mInputMap(), mCellMask(), mTimeCut(timeCut), mTimeMin(timeMin), mTimeMax(timeMax), mGradientCut(gradientCut), mDoEnergyGradientCut(doEnergyGradientCut), mThresholdSeedEnergy(thresholdSeedE), mThresholdCellEnergy(thresholdCellE)
 {
 }
 
-///
-/// Default constructor
 //____________________________________________________________________________
 template <class InputType>
 Clusterizer<InputType>::Clusterizer() : mSeedList(), mInputMap(), mCellMask(), mTimeCut(0), mTimeMin(0), mTimeMax(0), mGradientCut(0), mDoEnergyGradientCut(false), mThresholdSeedEnergy(0), mThresholdCellEnergy(0)
 {
 }
 
-///
-/// Initialize class member vars if not done in constructor
 //____________________________________________________________________________
 template <class InputType>
 void Clusterizer<InputType>::initialize(double timeCut, double timeMin, double timeMax, double gradientCut, bool doEnergyGradientCut, double thresholdSeedE, double thresholdCellE)
@@ -49,8 +43,6 @@ void Clusterizer<InputType>::initialize(double timeCut, double timeMin, double t
   mThresholdCellEnergy = thresholdCellE;
 }
 
-///
-/// Recursively search for neighbours (EMCAL)
 //____________________________________________________________________________
 template <class InputType>
 void Clusterizer<InputType>::getClusterFromNeighbours(std::vector<InputwithIndex>& clusterInputs, int row, int column)
@@ -88,9 +80,6 @@ void Clusterizer<InputType>::getClusterFromNeighbours(std::vector<InputwithIndex
   }
 }
 
-///
-/// Get row (phi) and column (eta) of a cell/digit, values corresponding to topology
-///
 //____________________________________________________________________________
 template <class InputType>
 void Clusterizer<InputType>::getTopologicalRowColumn(const InputType& input, int& row, int& column)
@@ -119,8 +108,6 @@ void Clusterizer<InputType>::getTopologicalRowColumn(const InputType& input, int
   }
 }
 
-///
-/// Return number of found clusters. Start clustering from highest energy cell.
 //____________________________________________________________________________
 template <class InputType>
 void Clusterizer<InputType>::findClusters(const gsl::span<InputType const>& inputArray)

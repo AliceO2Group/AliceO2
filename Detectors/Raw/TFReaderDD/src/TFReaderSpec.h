@@ -36,7 +36,7 @@ struct TFReaderInp {
   o2::detectors::DetID::mask_t detMaskRawOnly{};
   o2::detectors::DetID::mask_t detMaskNonRawOnly{};
   size_t minSHM = 0;
-  int tfRateLimit = 0;
+  int tfRateLimit = -999;
   int maxTFCache = 1;
   int maxFileCache = 1;
   int verbosity = 0;
@@ -46,6 +46,7 @@ struct TFReaderInp {
   bool sendDummyForMissing = true;
   bool sup0xccdb = false;
   std::vector<o2::header::DataHeader> hdVec;
+  std::vector<int> tfIDs{};
 };
 
 o2::framework::DataProcessorSpec getTFReaderSpec(o2::rawdd::TFReaderInp& rinp);

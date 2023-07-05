@@ -26,6 +26,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
+#include "DataFormatsCTP/LumiInfo.h"
 #include <gsl/span>
 #include <memory>
 
@@ -163,6 +164,7 @@ class VtxTrackIndex;
 class VtxTrackRef;
 class V0;
 class Cascade;
+class StrangeTrack;
 class TrackCosmics;
 class GlobalFwdTrack;
 class MatchInfoFwd;
@@ -196,7 +198,7 @@ struct DataRequest {
 
   bool isRequested(const std::string& t) const { return !t.empty() && requestMap.find(t) != requestMap.end(); }
   void requestTracks(o2::dataformats::GlobalTrackID::mask_t src, bool mc);
-  void requestClusters(o2::dataformats::GlobalTrackID::mask_t src, bool useMC);
+  void requestClusters(o2::dataformats::GlobalTrackID::mask_t src, bool useMC, o2::detectors::DetID::mask_t skipDetClusters = {});
 
   void requestITSTracks(bool mc);
   void requestMFTTracks(bool mc);
@@ -223,7 +225,7 @@ struct DataRequest {
   void requestMCHClusters(bool mc);
   void requestMIDClusters(bool mc);
   void requestHMPClusters(bool mc);
-  //  void requestHMPMatches(bool mc); // no input available at the moment
+  void requestHMPMatches(bool mc); // no input available at the moment
 
   void requestCTPDigits(bool mc);
 
@@ -235,7 +237,8 @@ struct DataRequest {
 
   void requestPrimaryVertertices(bool mc);
   void requestPrimaryVerterticesTMP(bool mc);
-  void requestSecondaryVertertices(bool mc);
+  void requestSecondaryVertices(bool mc);
+  void requestStrangeTracks(bool mc);
 
   void requestIRFramesITS();
 };
@@ -285,6 +288,13 @@ struct RecoContainer {
                    PVTX_3BODYREFS, // PV -> 3-body decay references
                    NSVTXSLOTS };
 
+  // slots to register strangeness tracking data
+  enum STRKSlots {
+    STRACK,
+    STRACK_MC,
+    NSTRKSLOTS
+  };
+
   // slots for cosmics
   enum CosmicsSlots { COSM_TRACKS,
                       COSM_TRACKS_MC,
@@ -293,15 +303,19 @@ struct RecoContainer {
   using AccSlots = o2::dataformats::AbstractRefAccessor<int, NCOMMONSLOTS>; // int here is a dummy placeholder
   using PVertexAccessor = o2::dataformats::AbstractRefAccessor<int, NPVTXSLOTS>;
   using SVertexAccessor = o2::dataformats::AbstractRefAccessor<int, NSVTXSLOTS>;
+  using STrackAccessor = o2::dataformats::AbstractRefAccessor<int, NSTRKSLOTS>;
   using CosmicsAccessor = o2::dataformats::AbstractRefAccessor<int, NCOSMSLOTS>;
   using GTrackID = o2::dataformats::GlobalTrackID;
   using GlobalIDSet = std::array<GTrackID, GTrackID::NSources>;
+
+  static constexpr float PS2MUS = 1e-6;
 
   o2::InteractionRecord startIR; // TF start IR
 
   std::array<AccSlots, GTrackID::NSources> commonPool;
   PVertexAccessor pvtxPool; // containers for primary vertex related objects
   SVertexAccessor svtxPool; // containers for secondary vertex related objects
+  STrackAccessor strkPool;  // containers for strangeness tracking related objects
   CosmicsAccessor cosmPool; // containers for cosmics track data
 
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> mcITSClusters;
@@ -314,6 +328,7 @@ struct RecoContainer {
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::mid::MCClusterLabel>> mcMIDTrackClusters;
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::mid::MCClusterLabel>> mcMIDClusters;
   std::unique_ptr<const std::vector<o2::MCCompLabel>> mcMIDTracks;
+  o2::ctp::LumiInfo mCTPLumi;
 
   gsl::span<const unsigned char> clusterShMapTPC; ///< externally set TPC clusters sharing map
 
@@ -341,8 +356,7 @@ struct RecoContainer {
   void addTOFMatchesTPCTRD(o2::framework::ProcessingContext& pc, bool mc);
   void addTOFMatchesITSTPCTRD(o2::framework::ProcessingContext& pc, bool mc);
 
-  //  void addHMPMatches(o2::framework::ProcessingContext& pc, bool mc); // no input available for the moment
-
+  void addHMPMatches(o2::framework::ProcessingContext& pc, bool mc);
   void addMFTMCHMatches(o2::framework::ProcessingContext& pc, bool mc);
   void addMCHMIDMatches(o2::framework::ProcessingContext& pc, bool mc);
 
@@ -372,6 +386,8 @@ struct RecoContainer {
   void addPVertices(o2::framework::ProcessingContext& pc, bool mc);
   void addPVerticesTMP(o2::framework::ProcessingContext& pc, bool mc);
   void addSVertices(o2::framework::ProcessingContext& pc, bool);
+
+  void addStrangeTracks(o2::framework::ProcessingContext& pc, bool mc);
 
   void addIRFramesITS(o2::framework::ProcessingContext& pc);
 
@@ -597,13 +613,9 @@ struct RecoContainer {
   auto getITSTPCTRDTOFMatches() const { return getSpan<o2::dataformats::MatchInfoTOF>(GTrackID::ITSTPCTRDTOF, MATCHES); }
   auto getITSTPCTRDTOFMatchesMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::ITSTPCTRDTOF, MCLABELS); }
 
-  /* no input available for the moment
   // HMPID matches
-  auto getHMPMatchTriggers() const { return getSpan<o2::hmpid::Trigger>(GTrackID::HMP, TRACKREFS); }
   auto getHMPMatches() const { return getSpan<o2::dataformats::MatchInfoHMP>(GTrackID::HMP, MATCHES); }
-  auto getHMPPhotsClusterCharges() const { return getSpan<float>(GTrackID::HMP, PATTERNS); }
   auto getHMPMatchesMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::HMP, MCLABELS); }
-  */
 
   // TOF clusters
   auto getTOFClusters() const { return getSpan<o2::tof::Cluster>(GTrackID::TOF, CLUSTERS); }
@@ -634,6 +646,7 @@ struct RecoContainer {
 
   // CTP
   auto getCTPDigits() const { return getSpan<const o2::ctp::CTPDigit>(GTrackID::CTP, CLUSTERS); }
+  const o2::ctp::LumiInfo& getCTPLumi() const { return mCTPLumi; }
 
   // CPV
   auto getCPVClusters() const { return getSpan<const o2::cpv::Cluster>(GTrackID::CPV, CLUSTERS); }
@@ -670,6 +683,12 @@ struct RecoContainer {
   auto getDecays3Body() const { return svtxPool.getSpan<o2::dataformats::DecayNbody>(DECAY3BODY); }
   auto getPV2Decays3BodyRefs() { return svtxPool.getSpan<o2::dataformats::RangeReference<int, int>>(PVTX_3BODYREFS); }
 
+  // Strangeness track
+  auto getStrangeTracks() const { return strkPool.getSpan<o2::dataformats::StrangeTrack>(STRACK); }
+  auto getStrangeTracksMCLabels() const { return strkPool.getSpan<o2::MCCompLabel>(STRACK_MC); }
+  const o2::dataformats::StrangeTrack& getStrangeTrack(int i) const { return strkPool.get_as<o2::dataformats::StrangeTrack>(STRACK, i); }
+
+  // Cosmic tracks
   const o2::dataformats::TrackCosmics& getCosmicTrack(int i) const { return cosmPool.get_as<o2::dataformats::TrackCosmics>(COSM_TRACKS, i); }
   auto getCosmicTrackMCLabel(int i) const { return cosmPool.get_as<o2::MCCompLabel>(COSM_TRACKS_MC, i); }
   auto getCosmicTracks() const { return cosmPool.getSpan<o2::dataformats::TrackCosmics>(COSM_TRACKS); }
@@ -677,6 +696,18 @@ struct RecoContainer {
 
   // IRFrames where ITS was reconstructed and tracks were seen (e.g. sync.w-flow mult. selection)
   auto getIRFramesITS() const { return getSpan<o2::dataformats::IRFrame>(GTrackID::ITS, VARIA); }
+
+  void getTrackTimeITSTPCTRDTOF(GTrackID gid, float& t, float& tErr) const;
+  void getTrackTimeTPCTRDTOF(GTrackID gid, float& t, float& tErr) const;
+  void getTrackTimeITSTPCTOF(GTrackID gid, float& t, float& tErr) const;
+  void getTrackTimeITSTPCTRD(GTrackID gid, float& t, float& tErr) const;
+  void getTrackTimeTPCTRD(GTrackID gid, float& t, float& tErr) const;
+  void getTrackTimeITSTPC(GTrackID gid, float& t, float& tErr) const;
+  void getTrackTimeTPCTOF(GTrackID gid, float& t, float& tErr) const;
+  void getTrackTimeITS(GTrackID gid, float& t, float& tErr) const;
+  void getTrackTimeTPC(GTrackID gid, float& t, float& tErr) const;
+
+  void getTrackTime(GTrackID gid, float& t, float& tErr) const;
 };
 
 } // namespace globaltracking

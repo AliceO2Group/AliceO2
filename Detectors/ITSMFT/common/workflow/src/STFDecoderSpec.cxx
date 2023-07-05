@@ -23,6 +23,7 @@
 #include "DataFormatsITSMFT/Digit.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "ITSMFTReconstruction/RawPixelDecoder.h"
+#include "ITSMFTReconstruction/DigitPixelReader.h"
 #include "ITSMFTReconstruction/Clusterer.h"
 #include "ITSMFTReconstruction/ClustererParam.h"
 #include "ITSMFTReconstruction/GBTLink.h"
@@ -32,6 +33,7 @@
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "CommonUtils/StringUtils.h"
+#include "CommonUtils/VerbosityConfig.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "DataFormatsParameters/GRPECSObject.h"
 
@@ -67,7 +69,7 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     dataDesc.runtimeInit(v1[1].c_str());
     mDecoder->setUserDataOrigin(dataOrig);
     mDecoder->setUserDataDescription(dataDesc);
-    mDecoder->init();
+    mDecoder->init(); // is this no-op?
   } catch (const std::exception& e) {
     LOG(error) << "exception was thrown in decoder creation: " << e.what();
     throw;
@@ -80,7 +82,6 @@ void STFDecoder<Mapping>::init(InitContext& ic)
   try {
     mNThreads = std::max(1, ic.options().get<int>("nthreads"));
     mDecoder->setNThreads(mNThreads);
-    mDecoder->setFormat(ic.options().get<bool>("old-format") ? GBTLink::OldFormat : GBTLink::NewFormat);
     mUnmutExtraLanes = ic.options().get<bool>("unmute-extra-lanes");
     mVerbosity = ic.options().get<int>("decoder-verbosity");
     mDumpOnError = ic.options().get<int>("raw-data-dumps");
@@ -91,8 +92,11 @@ void STFDecoder<Mapping>::init(InitContext& ic)
     if (mDumpOnError != int(GBTLink::RawDataDumps::DUMP_NONE) && (!dumpDir.empty() && !o2::utils::Str::pathIsDirectory(dumpDir))) {
       throw std::runtime_error(fmt::format("directory {} for raw data dumps does not exist", dumpDir));
     }
+    mDecoder->setAllowEmptyROFs(ic.options().get<bool>("allow-empty-rofs"));
     mDecoder->setRawDumpDirectory(dumpDir);
     mDecoder->setFillCalibData(mDoCalibData);
+    bool ignoreRampUp = !ic.options().get<bool>("accept-rof-rampup-data");
+    mDecoder->setSkipRampUpData(ignoreRampUp);
   } catch (const std::exception& e) {
     LOG(error) << "exception was thrown in decoder configuration: " << e.what();
     throw;
@@ -113,6 +117,9 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
 {
   updateTimeDependentParams(pc);
   static bool firstCall = true;
+  if (!firstCall && pc.services().get<o2::framework::TimingInfo>().globalRunNumberChanged) { // reset at the beginning of the new run
+    reset();
+  }
   if (firstCall) {
     firstCall = false;
     mDecoder->setInstanceID(pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId);
@@ -120,10 +127,10 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
     mDecoder->setVerbosity(mDecoder->getInstanceID() == 0 ? mVerbosity : (mUnmutExtraLanes ? mVerbosity : -1));
     mAllowReporting &= (mDecoder->getInstanceID() == 0) || mUnmutExtraLanes;
   }
+
   int nSlots = pc.inputs().getNofParts(0);
   double timeCPU0 = mTimer.CpuTime(), timeReal0 = mTimer.RealTime();
   mTimer.Start(false);
-  mDecoder->startNewTF(pc.inputs());
   auto orig = Mapping::getOrigin();
   std::vector<o2::itsmft::CompClusterExt> clusCompVec;
   std::vector<o2::itsmft::ROFRecord> clusROFVec;
@@ -132,33 +139,54 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
   std::vector<Digit> digVec;
   std::vector<GBTCalibData> calVec;
   std::vector<ROFRecord> digROFVec;
+  try {
+    mDecoder->startNewTF(pc.inputs());
+    if (mDoDigits) {
+      digVec.reserve(mEstNDig);
+      digROFVec.reserve(mEstNROF);
+    }
+    if (mDoClusters) {
+      clusCompVec.reserve(mEstNClus);
+      clusROFVec.reserve(mEstNROF);
+      clusPattVec.reserve(mEstNClusPatt);
+    }
+    if (mDoCalibData) {
+      calVec.reserve(mEstNCalib);
+    }
 
-  if (mDoDigits) {
-    digVec.reserve(mEstNDig);
-    digROFVec.reserve(mEstNROF);
-  }
-  if (mDoClusters) {
-    clusCompVec.reserve(mEstNClus);
-    clusROFVec.reserve(mEstNROF);
-    clusPattVec.reserve(mEstNClusPatt);
-  }
-  if (mDoCalibData) {
-    calVec.reserve(mEstNCalib);
-  }
-
-  mDecoder->setDecodeNextAuto(false);
-  while (mDecoder->decodeNextTrigger()) {
-    if (mDoDigits) {                                    // call before clusterization, since the latter will hide the digits
-      mDecoder->fillDecodedDigits(digVec, digROFVec);   // lot of copying involved
-      if (mDoCalibData) {
-        mDecoder->fillCalibData(calVec);
+    mDecoder->setDecodeNextAuto(false);
+    while (mDecoder->decodeNextTrigger() >= 0) {
+      if (mDoDigits || mClusterer->getMaxROFDepthToSquash()) { // call before clusterization, since the latter will hide the digits
+        mDecoder->fillDecodedDigits(digVec, digROFVec);        // lot of copying involved
+        if (mDoCalibData) {
+          mDecoder->fillCalibData(calVec);
+        }
+      }
+      if (mDoClusters && !mClusterer->getMaxROFDepthToSquash()) { // !!! THREADS !!!
+        mClusterer->process(mNThreads, *mDecoder.get(), &clusCompVec, mDoPatterns ? &clusPattVec : nullptr, &clusROFVec);
       }
     }
-    if (mDoClusters) { // !!! THREADS !!!
-      mClusterer->process(mNThreads, *mDecoder.get(), &clusCompVec, mDoPatterns ? &clusPattVec : nullptr, &clusROFVec);
+
+    if (mDoClusters && mClusterer->getMaxROFDepthToSquash()) {
+      // Digits squashing require to run on a batch of digits and uses a digit reader, cannot (?) run with decoder
+      //  - Setup decoder for running on a batch of digits
+      o2::itsmft::DigitPixelReader reader;
+      reader.setSquashingDepth(mClusterer->getMaxROFDepthToSquash());
+      reader.setSquashingDist(mClusterer->getMaxRowColDiffToMask()); // Sharing same parameter/logic with masking
+      reader.setMaxBCSeparationToSquash(mClusterer->getMaxBCSeparationToSquash());
+      reader.setDigits(digVec);
+      reader.setROFRecords(digROFVec);
+      reader.init();
+
+      mClusterer->process(mNThreads, reader, &clusCompVec, mDoPatterns ? &clusPattVec : nullptr, &clusROFVec);
+    }
+  } catch (const std::exception& e) {
+    static size_t nErr = 0;
+    auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnRawParser;
+    if (++nErr < maxWarn) {
+      LOGP(alarm, "EXCEPTION {} in raw decoder, abandoning TF decoding {}", e.what(), nErr == maxWarn ? "(will mute further warnings)" : "");
     }
   }
-
   if (mDoDigits) {
     pc.outputs().snapshot(Output{orig, "DIGITS", 0, Lifetime::Timeframe}, digVec);
     pc.outputs().snapshot(Output{orig, "DIGITSROF", 0, Lifetime::Timeframe}, digROFVec);
@@ -170,7 +198,7 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
     }
   }
 
-  if (mDoClusters) {                                                                  // we are not obliged to create vectors which are not requested, but other devices might not know the options of this one
+  if (mDoClusters) { // we are not obliged to create vectors which are not requested, but other devices might not know the options of this one
     pc.outputs().snapshot(Output{orig, "COMPCLUSTERS", 0, Lifetime::Timeframe}, clusCompVec);
     pc.outputs().snapshot(Output{orig, "PATTERNS", 0, Lifetime::Timeframe}, clusPattVec);
     pc.outputs().snapshot(Output{orig, "CLUSTERSROF", 0, Lifetime::Timeframe}, clusROFVec);
@@ -226,9 +254,7 @@ void STFDecoder<Mapping>::updateTimeDependentParams(ProcessingContext& pc)
 {
   // we call these methods just to trigger finaliseCCDB callback
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-  static bool initOnceDone = false;
-  if (!initOnceDone) { // this params need to be queried only once
-    initOnceDone = true;
+  if (pc.services().get<o2::framework::TimingInfo>().globalRunNumberChanged) { // this params need to be queried only in the beginning of the run
     pc.inputs().get<o2::itsmft::NoiseMap*>("noise");
     if (mDoClusters) {
       mClusterer->setContinuousReadOut(o2::base::GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(Mapping::getDetID()));
@@ -238,12 +264,23 @@ void STFDecoder<Mapping>::updateTimeDependentParams(ProcessingContext& pc)
       // settings for the fired pixel overflow masking
       const auto& alpParams = DPLAlpideParam<Mapping::getDetID()>::Instance();
       const auto& clParams = ClustererParam<Mapping::getDetID()>::Instance();
+      if (clParams.maxBCDiffToMaskBias > 0 && clParams.maxBCDiffToSquashBias > 0) {
+        LOGP(fatal, "maxBCDiffToMaskBias = {} and maxBCDiffToMaskBias = {} cannot be set at the same time. Either set masking or squashing with a BCDiff > 0", clParams.maxBCDiffToMaskBias, clParams.maxBCDiffToSquashBias);
+      }
       alpParams.printKeyValues();
       clParams.printKeyValues();
       auto nbc = clParams.maxBCDiffToMaskBias;
       nbc += mClusterer->isContinuousReadOut() ? alpParams.roFrameLengthInBC : (alpParams.roFrameLengthTrig / o2::constants::lhc::LHCBunchSpacingNS);
       mClusterer->setMaxBCSeparationToMask(nbc);
       mClusterer->setMaxRowColDiffToMask(clParams.maxRowColDiffToMask);
+      // Squasher
+      int rofBC = mClusterer->isContinuousReadOut() ? alpParams.roFrameLengthInBC : (alpParams.roFrameLengthTrig / o2::constants::lhc::LHCBunchSpacingNS); // ROF length in BC
+      mClusterer->setMaxBCSeparationToSquash(rofBC + clParams.maxBCDiffToSquashBias);
+      int nROFsToSquash = 0; // squashing disabled if no reset due to maxSOTMUS>0.
+      if (clParams.maxSOTMUS > 0 && rofBC > 0) {
+        nROFsToSquash = 2 + int(clParams.maxSOTMUS / (rofBC * o2::constants::lhc::LHCBunchSpacingMUS)); // use squashing
+      }
+      mClusterer->setMaxROFDepthToSquash(clParams.maxBCDiffToSquashBias > 0 ? nROFsToSquash : 0);
       mClusterer->print();
     }
   }
@@ -274,6 +311,22 @@ void STFDecoder<Mapping>::finaliseCCDB(o2::framework::ConcreteDataMatcher& match
   if (matcher == ConcreteDataMatcher(Mapping::getOrigin(), "ALPIDEPARAM", 0)) {
     LOG(info) << "Alpide param updated";
     return;
+  }
+}
+
+///_______________________________________
+template <class Mapping>
+void STFDecoder<Mapping>::reset()
+{
+  // reset for the new run
+  mFinalizeDone = false;
+  mTFCounter = 0;
+  mTimer.Reset();
+  if (mDecoder) {
+    mDecoder->reset();
+  }
+  if (mClusterer) {
+    mClusterer->reset();
   }
 }
 
@@ -333,12 +386,13 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
     inp.origin == o2::header::gDataOriginITS ? AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingITS>>(inp, ggRequest)} : AlgorithmSpec{adaptFromTask<STFDecoder<ChipMappingMFT>>(inp, ggRequest)},
     Options{
       {"nthreads", VariantType::Int, 1, {"Number of decoding/clustering threads"}},
-      {"old-format", VariantType::Bool, false, {"Use old format (1 trigger per CRU page)"}},
       {"decoder-verbosity", VariantType::Int, 0, {"Verbosity level (-1: silent, 0: errors, 1: headers, 2: data) of 1st lane"}},
       {"raw-data-dumps", VariantType::Int, int(GBTLink::RawDataDumps::DUMP_NONE), {"Raw data dumps on error (0: none, 1: HBF for link, 2: whole TF for all links"}},
       {"raw-data-dumps-directory", VariantType::String, "", {"Destination directory for the raw data dumps"}},
       {"unmute-extra-lanes", VariantType::Bool, false, {"allow extra lanes to be as verbose as 1st one"}},
+      {"allow-empty-rofs", VariantType::Bool, false, {"record ROFs w/o any hit"}},
       {"ignore-noise-map", VariantType::Bool, false, {"do not mask pixels flagged in the noise map"}},
+      {"accept-rof-rampup-data", VariantType::Bool, false, {"do not discard data during ROF ramp up"}},
       {"ignore-cluster-dictionary", VariantType::Bool, false, {"do not use cluster dictionary, always store explicit patterns"}}}};
 }
 

@@ -69,6 +69,9 @@ class MeanVertexObject : public VertexBase
   void print() const;
   std::string asString() const;
 
+  /// sample a vertex from the MeanVertex parameters
+  math_utils::Point3D<float> sample() const;
+
   VertexBase getMeanVertex(float z) const
   {
     // set z-dependent x,z, assuming that the cov.matrix is already set

@@ -8,12 +8,9 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#define BOOST_TEST_MODULE Test Framework DDSConfigHelpers
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
 
 #include "Mocking.h"
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 #include "../src/O2ControlHelpers.h"
 #include "../src/DeviceSpecHelpers.h"
 #include "../src/SimpleResourceManager.h"
@@ -23,11 +20,14 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/WorkflowSpec.h"
+#include "Framework/DriverConfig.h"
 
 #include <sstream>
 
 using namespace o2::framework;
 
+namespace
+{
 WorkflowSpec defineDataProcessing()
 {
   return {{"A",                                                       //
@@ -65,6 +65,7 @@ char* strdiffchr(const char* s1, const char* s2)
   return (*s1 == *s2) ? nullptr : (char*)s1;
 }
 
+} // namespace
 const auto expectedWorkflow = R"EXPECTED(name: testwf
 vars:
   dpl_command: >-
@@ -133,7 +134,8 @@ roles:
 const std::vector expectedTasks{
   R"EXPECTED(name: A
 defaults:
-  log_task_output: none
+  log_task_stdout: none
+  log_task_stderr: none
   exit_transition_timeout: 15
   _module_cmdline: >-
     source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
@@ -155,10 +157,12 @@ bind:
     rcvBufSize: 1
 command:
   shell: true
-  log: "{{ log_task_output }}"
+  stdout: "{{ log_task_stdout }}"
+  stderr: "{{ log_task_stderr }}"
   env:
     - O2_DETECTOR={{ detector }}
     - O2_PARTITION={{ environment_id }}
+    - HOME=/tmp
   user: "{{ user }}"
   value: "{{ len(modulepath)>0 ? _module_cmdline : _plain_cmdline }}"
   arguments:
@@ -187,6 +191,7 @@ command:
     - "'false'"
     - "--log-color"
     - "'false'"
+    - "--no-batch"
     - "--bad-alloc-attempt-interval"
     - "'50'"
     - "--bad-alloc-max-attempts"
@@ -195,6 +200,8 @@ command:
     - "''"
     - "--early-forward-policy"
     - "'never'"
+    - "--io-threads"
+    - "'1'"
     - "--jobs"
     - "'1'"
     - "--severity"
@@ -218,7 +225,8 @@ command:
 )EXPECTED",
   R"EXPECTED(name: B
 defaults:
-  log_task_output: none
+  log_task_stdout: none
+  log_task_stderr: none
   exit_transition_timeout: 15
   _module_cmdline: >-
     source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
@@ -240,10 +248,12 @@ bind:
     rcvBufSize: 1
 command:
   shell: true
-  log: "{{ log_task_output }}"
+  stdout: "{{ log_task_stdout }}"
+  stderr: "{{ log_task_stderr }}"
   env:
     - O2_DETECTOR={{ detector }}
     - O2_PARTITION={{ environment_id }}
+    - HOME=/tmp
   user: "{{ user }}"
   value: "{{ len(modulepath)>0 ? _module_cmdline : _plain_cmdline }}"
   arguments:
@@ -272,6 +282,7 @@ command:
     - "'false'"
     - "--log-color"
     - "'false'"
+    - "--no-batch"
     - "--bad-alloc-attempt-interval"
     - "'50'"
     - "--bad-alloc-max-attempts"
@@ -280,6 +291,8 @@ command:
     - "''"
     - "--early-forward-policy"
     - "'never'"
+    - "--io-threads"
+    - "'1'"
     - "--jobs"
     - "'1'"
     - "--severity"
@@ -303,7 +316,8 @@ command:
 )EXPECTED",
   R"EXPECTED(name: C
 defaults:
-  log_task_output: none
+  log_task_stdout: none
+  log_task_stderr: none
   exit_transition_timeout: 15
   _module_cmdline: >-
     source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
@@ -325,10 +339,12 @@ bind:
     rcvBufSize: 1
 command:
   shell: true
-  log: "{{ log_task_output }}"
+  stdout: "{{ log_task_stdout }}"
+  stderr: "{{ log_task_stderr }}"
   env:
     - O2_DETECTOR={{ detector }}
     - O2_PARTITION={{ environment_id }}
+    - HOME=/tmp
   user: "{{ user }}"
   value: "{{ len(modulepath)>0 ? _module_cmdline : _plain_cmdline }}"
   arguments:
@@ -357,6 +373,7 @@ command:
     - "'false'"
     - "--log-color"
     - "'false'"
+    - "--no-batch"
     - "--bad-alloc-attempt-interval"
     - "'50'"
     - "--bad-alloc-max-attempts"
@@ -365,6 +382,8 @@ command:
     - "''"
     - "--early-forward-policy"
     - "'never'"
+    - "--io-threads"
+    - "'1'"
     - "--jobs"
     - "'1'"
     - "--severity"
@@ -388,7 +407,8 @@ command:
 )EXPECTED",
   R"EXPECTED(name: D
 defaults:
-  log_task_output: none
+  log_task_stdout: none
+  log_task_stderr: none
   exit_transition_timeout: 15
   _module_cmdline: >-
     source /etc/profile.d/modules.sh && MODULEPATH={{ modulepath }} module load O2 QualityControl Control-OCCPlugin &&
@@ -409,10 +429,12 @@ bind:
     global: "outta_dpl-{{ it }}"
 command:
   shell: true
-  log: "{{ log_task_output }}"
+  stdout: "{{ log_task_stdout }}"
+  stderr: "{{ log_task_stderr }}"
   env:
     - O2_DETECTOR={{ detector }}
     - O2_PARTITION={{ environment_id }}
+    - HOME=/tmp
   user: "{{ user }}"
   value: "{{ len(modulepath)>0 ? _module_cmdline : _plain_cmdline }}"
   arguments:
@@ -441,6 +463,7 @@ command:
     - "'false'"
     - "--log-color"
     - "'false'"
+    - "--no-batch"
     - "--bad-alloc-attempt-interval"
     - "'50'"
     - "--bad-alloc-max-attempts"
@@ -449,6 +472,8 @@ command:
     - "''"
     - "--early-forward-policy"
     - "'never'"
+    - "--io-threads"
+    - "'1'"
     - "--jobs"
     - "'1'"
     - "--severity"
@@ -477,7 +502,7 @@ command:
     - "'foo;bar'"
 )EXPECTED"};
 
-BOOST_AUTO_TEST_CASE(TestO2ControlDump)
+TEST_CASE("TestO2ControlDump")
 {
   auto workflow = defineDataProcessing();
   std::ostringstream ss{""};
@@ -505,29 +530,34 @@ BOOST_AUTO_TEST_CASE(TestO2ControlDump)
       {"C", "foo", {}, workflowOptions},
       {"D", "foo", {}, workflowOptions},
     }};
+
+  DriverConfig driverConfig{
+    .batch = false,
+  };
   DeviceSpecHelpers::prepareArguments(false, false, false, 8080,
+                                      driverConfig,
                                       dataProcessorInfos,
                                       devices, executions, controls,
                                       "workflow-id");
 
   dumpWorkflow(ss, devices, executions, commandInfo, "testwf", "");
 
-  BOOST_REQUIRE_EQUAL(strdiffchr(ss.str().data(), expectedWorkflow), strdiffchr(expectedWorkflow, ss.str().data()));
-  BOOST_CHECK_EQUAL(ss.str(), expectedWorkflow);
+  REQUIRE(strdiffchr(ss.str().data(), expectedWorkflow) == strdiffchr(expectedWorkflow, ss.str().data()));
+  REQUIRE(ss.str() == expectedWorkflow);
 
-  BOOST_REQUIRE_EQUAL(devices.size(), executions.size());
-  BOOST_REQUIRE_EQUAL(devices.size(), expectedTasks.size());
+  REQUIRE(devices.size() == executions.size());
+  REQUIRE(devices.size() == expectedTasks.size());
   for (size_t di = 0; di < devices.size(); ++di) {
     auto& spec = devices[di];
     auto& expected = expectedTasks[di];
 
-    BOOST_TEST_CONTEXT("Device " << spec.name)
+    SECTION("Device " + std::string(spec.name))
     {
       ss.str({});
       ss.clear();
       dumpTask(ss, devices[di], executions[di], devices[di].name, "");
-      BOOST_REQUIRE_EQUAL(strdiffchr(ss.str().data(), expected), strdiffchr(expected, ss.str().data()));
-      BOOST_CHECK_EQUAL(ss.str(), expected);
+      REQUIRE(strdiffchr(ss.str().data(), expected) == strdiffchr(expected, ss.str().data()));
+      REQUIRE(ss.str() == expected);
     }
   }
 }

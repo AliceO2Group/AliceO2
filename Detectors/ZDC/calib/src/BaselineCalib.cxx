@@ -26,8 +26,11 @@ using namespace o2::zdc;
 int BaselineCalib::init()
 {
   // Inspect reconstruction parameters
-  o2::zdc::CalibParamZDC& opt = const_cast<o2::zdc::CalibParamZDC&>(CalibParamZDC::Instance());
+  const auto& opt = CalibParamZDC::Instance();
   opt.print();
+  if (opt.debugOutput == true) {
+    setSaveDebugHistos();
+  }
 
   if (mConfig == nullptr) {
     LOG(fatal) << "o2::zdc::BaselineCalib: missing configuration object";
@@ -37,10 +40,6 @@ int BaselineCalib::init()
   if (mVerbosity > DbgZero) {
     mModuleConfig->print();
     mConfig->print();
-  }
-
-  if (opt.rootOutput == true) {
-    setSaveDebugHistos();
   }
 
   clear();
@@ -57,13 +56,27 @@ void BaselineCalib::clear()
 //______________________________________________________________________________
 int BaselineCalib::process(const o2::zdc::BaselineCalibSummaryData* data)
 {
+#ifdef O2_ZDC_DEBUG
+  LOG(info) << "BaselineCalib::process(" << data << ")";
+  if (mVerbosity >= DbgFull) {
+    printf("Data to be added\n");
+    data->print();
+  }
+#endif
+
   if (!mInitDone) {
     init();
   }
+
+#ifdef O2_ZDC_DEBUG
+  printf("Before adding\n");
   if (mVerbosity >= DbgFull) {
-    data->print();
+    mData.print();
   }
+#endif
+
   mData += data;
+
   if (mVerbosity >= DbgFull) {
     mData.print();
   }

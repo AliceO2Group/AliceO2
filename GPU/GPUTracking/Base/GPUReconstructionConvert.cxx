@@ -26,6 +26,7 @@
 #include "GPUDataTypes.h"
 #include "AliHLTTPCRawCluster.h"
 #include "GPUParam.h"
+#include "GPULogging.h"
 #include <algorithm>
 #include <vector>
 
@@ -44,6 +45,7 @@
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
 using namespace o2::tpc::constants;
+using namespace std::string_literals;
 
 void GPUReconstructionConvert::ConvertNativeToClusterData(o2::tpc::ClusterNativeAccess* native, std::unique_ptr<GPUTPCClusterData[]>* clusters, unsigned int* nClusters, const TPCFastTransform* transform, int continuousMaxTimeBin)
 {
@@ -214,6 +216,7 @@ struct zsEncoder {
   float encodeBitsFactor = 0;
   bool needAnotherPage = false;
   unsigned int packetCounter = 0;
+  unsigned int pageCounter = 0;
   void ZSfillEmpty(void* ptr, int shift, unsigned int feeId, int orbit, int linkid);
   static void ZSstreamOut(unsigned short* bufIn, unsigned int& lenIn, unsigned char* bufOut, unsigned int& lenOut, unsigned int nBits);
   long int getHbf(long int timestamp) { return (timestamp * LHCBCPERTIMEBIN + bcShiftInFirstHBF) / o2::constants::lhc::LHCMaxBunches; }
@@ -230,6 +233,7 @@ inline void zsEncoder::ZSfillEmpty(void* ptr, int shift, unsigned int feeId, int
   o2::raw::RDHUtils::setDetectorField(*rdh, 2);
   o2::raw::RDHUtils::setLinkID(*rdh, linkid);
   o2::raw::RDHUtils::setPacketCounter(*rdh, packetCounter++);
+  o2::raw::RDHUtils::setPageCounter(*rdh, pageCounter++);
 }
 
 inline void zsEncoder::ZSstreamOut(unsigned short* bufIn, unsigned int& lenIn, unsigned char* bufOut, unsigned int& lenOut, unsigned int nBits)
@@ -405,7 +409,7 @@ void zsEncoderRow::decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const z
   const TPCZSHDR* decHDR = reinterpret_cast<const TPCZSHDR*>(decPagePtr);
   decPagePtr += sizeof(*decHDR);
   if (decHDR->version != 1 && decHDR->version != 2) {
-    throw std::runtime_error("invalid ZS version");
+    throw std::runtime_error("invalid ZS version "s + std::to_string(decHDR->version) + " (1 or 2 expected)"s);
   }
   const float decodeBitsFactor = 1.f / (1 << (encodeBits - 10));
   unsigned int mask = (1 << encodeBits) - 1;
@@ -498,7 +502,7 @@ void zsEncoderLinkBased::init()
       int sampaOnFEC = 0, channelOnSAMPA = 0;
       Mapper::getSampaAndChannelOnFEC(iCRU, iChannel, sampaOnFEC, channelOnSAMPA);
       if (inverseChannelMapping[sampaOnFEC][channelOnSAMPA] != -1 && inverseChannelMapping[sampaOnFEC][channelOnSAMPA] != iChannel) {
-        printf("ERROR: Channel conflict: %d %d: %d vs %d\n", sampaOnFEC, channelOnSAMPA, inverseChannelMapping[sampaOnFEC][channelOnSAMPA], iChannel);
+        GPUError("ERROR: Channel conflict: %d %d: %d vs %d", sampaOnFEC, channelOnSAMPA, inverseChannelMapping[sampaOnFEC][channelOnSAMPA], iChannel);
         throw std::runtime_error("ZS error");
       }
       inverseChannelMapping[sampaOnFEC][channelOnSAMPA] = iChannel;
@@ -507,7 +511,7 @@ void zsEncoderLinkBased::init()
   for (int i = 0; i < 5; i++) {
     for (int j = 0; j < 32; j++) {
       if (inverseChannelMapping[i][j] == -1) {
-        printf("ERROR: Map missing for sampa %d channel %d\n", i, j);
+        GPUError("ERROR: Map missing for sampa %d channel %d", i, j);
         throw std::runtime_error("ZS error");
       }
     }
@@ -662,7 +666,7 @@ void zsEncoderImprovedLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputB
   const TPCZSHDRV2* decHDR = reinterpret_cast<const TPCZSHDRV2*>(decPagePtr);
   decPagePtr += sizeof(*decHDR);
   if (decHDR->version != ZSVersion::ZSVersionLinkBasedWithMeta) {
-    throw std::runtime_error("invalid ZS version");
+    throw std::runtime_error("invalid ZS version "s + std::to_string(decHDR->version) + " ("s + std::to_string(ZSVersion::ZSVersionLinkBasedWithMeta) + " expected)"s);
   }
   if (decHDR->magicWord != o2::tpc::zerosupp_link_based::CommonHeader::MagicWordLinkZSMetaHeader) {
     throw std::runtime_error("Magic word missing");
@@ -735,12 +739,14 @@ struct zsEncoderDenseLinkBased : public zsEncoderLinkBased {
   void decodePage(std::vector<o2::tpc::Digit>& outputBuffer, const zsPage* page, unsigned int endpoint, unsigned int firstOrbit, unsigned int triggerBC = 0);
   bool writeSubPage();
   void initPage();
+  void amendPageErrorMessage(std::ostringstream& oss, const o2::header::RAWDataHeader* rdh, const TPCZSHDRV2* decHDR, const unsigned char* payloadEnd, const unsigned char* decPagePtr, unsigned int nOutput);
 
   unsigned short curTimeBin = 0;
   std::vector<unsigned char> sequenceBuffer;
   std::vector<unsigned short> sequenceBufferADC;
 
   constexpr static int RAWLNK = rdh_utils::DLBZSLinkID;
+  constexpr static int v2nbits = 10;
 };
 
 bool zsEncoderDenseLinkBased::checkInput(std::vector<o2::tpc::Digit>& tmpBuffer, unsigned int k)
@@ -756,6 +762,9 @@ unsigned int zsEncoderDenseLinkBased::encodeSequence(std::vector<o2::tpc::Digit>
 {
   if (sequenceBuffer.size() == 0) {
     unsigned short bc = (long)tmpBuffer[k].getTimeStamp() * LHCBCPERTIMEBIN - (long)hbf * o2::constants::lhc::LHCMaxBunches;
+    if (zsVersion == ZSVersion::ZSVersionDenseLinkBasedV2) {
+      bc &= 0xFFC;
+    }
     sequenceBuffer.emplace_back(bc << 4);
     sequenceBuffer.emplace_back(bc >> 4);
     curTimeBin = tmpBuffer[k].getTimeStamp() - firstTimebinInPage;
@@ -799,10 +808,25 @@ bool zsEncoderDenseLinkBased::writeSubPage()
 {
   unsigned int offset = sequenceBuffer.size();
   if (sequenceBufferADC.size()) {
-    sequenceBuffer.resize(offset + (sequenceBufferADC.size() * 3 + 1) / 2);
+    bool need12bit = zsVersion != ZSVersion::ZSVersionDenseLinkBasedV2;
+    unsigned int needNow = 0;
+    if (zsVersion == ZSVersion::ZSVersionDenseLinkBasedV2) {
+      for (unsigned int i = 0; i < sequenceBufferADC.size(); i++) {
+        if (sequenceBufferADC[i] >= (1 << v2nbits)) {
+          need12bit = true;
+          break;
+        }
+      }
+    }
+    unsigned int encodeBitsBlock = encodeBits;
+    if (!need12bit) {
+      encodeBitsBlock = v2nbits;
+      sequenceBuffer[0] |= 0x10;
+    }
+    sequenceBuffer.resize(offset + (sequenceBufferADC.size() * encodeBitsBlock + 7) / 8);
     unsigned int tmp = 0;
     unsigned int tmpIn = sequenceBufferADC.size();
-    ZSstreamOut(sequenceBufferADC.data(), tmpIn, sequenceBuffer.data() + offset, tmp, encodeBits);
+    ZSstreamOut(sequenceBufferADC.data(), tmpIn, sequenceBuffer.data() + offset, tmp, encodeBitsBlock);
     sequenceBufferADC.clear();
   }
 
@@ -829,7 +853,7 @@ void zsEncoderDenseLinkBased::initPage()
   hdr->magicWord = o2::tpc::zerosupp_link_based::CommonHeader::MagicWordLinkZSMetaHeader;
   hdr->nTimebinHeaders = 0;
   memcpy(pagePtr, sequenceBuffer.data(), sequenceBuffer.size());
-  hdr->firstZSDataOffset = sequenceBuffer.size();
+  hdr->firstZSDataOffset = sequenceBuffer.size() + sizeof(o2::header::RAWDataHeader);
   pagePtr += sequenceBuffer.size();
   sequenceBuffer.clear();
   hdr->flags = 0;
@@ -845,29 +869,30 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
   }
   const TPCZSHDRV2* decHDR = reinterpret_cast<const TPCZSHDRV2*>(decPagePtr + o2::raw::RDHUtils::getMemorySize(*rdh) - sizeof(TPCZSHDRV2));
   decPagePtr += sizeof(o2::header::RAWDataHeader);
-  if (decHDR->version != ZSVersion::ZSVersionDenseLinkBased) {
-    throw std::runtime_error("invalid ZS version");
+  if (decHDR->version < ZSVersion::ZSVersionDenseLinkBased || decHDR->version > ZSVersion::ZSVersionDenseLinkBasedV2) {
+    throw std::runtime_error("invalid ZS version "s + std::to_string(decHDR->version) + " ("s + std::to_string(ZSVersion::ZSVersionDenseLinkBased) + " - "s + std::to_string(ZSVersion::ZSVersionDenseLinkBasedV2) + " expected)"s);
   }
   if (decHDR->magicWord != o2::tpc::zerosupp_link_based::CommonHeader::MagicWordLinkZSMetaHeader) {
     throw std::runtime_error("Magic word missing");
   }
-  const unsigned char* payloadEnd = ((const unsigned char*)decPage) + o2::raw::RDHUtils::getMemorySize(*rdh) - sizeof(TPCZSHDRV2) - (decHDR->flags & TPCZSHDRV2::ZSFlags::TriggerWordPresent ? TPCZSHDRV2::TRIGGER_WORD_SIZE : 0);
+  const unsigned char* payloadEnd = ((const unsigned char*)decPage) + o2::raw::RDHUtils::getMemorySize(*rdh) - sizeof(TPCZSHDRV2) - ((decHDR->flags & TPCZSHDRV2::ZSFlags::TriggerWordPresent) ? TPCZSHDRV2::TRIGGER_WORD_SIZE : 0);
   const float decodeBitsFactor = 1.f / (1 << (encodeBits - 10));
-  unsigned int mask = (1 << encodeBits) - 1;
   int cruid = decHDR->cruID;
   unsigned int sector = cruid / 10;
   if (sector != iSector) {
     throw std::runtime_error("invalid TPC sector");
   }
   int region = cruid % 10;
-  decPagePtr += decHDR->firstZSDataOffset;
+  decPagePtr += decHDR->firstZSDataOffset - sizeof(o2::header::RAWDataHeader);
   std::vector<unsigned char> tmpBuffer;
+  bool extendFailure = false;
+  unsigned int nOutput = 0;
   for (unsigned int i = 0; i < decHDR->nTimebinHeaders; i++) {
     int sizeLeftInPage = payloadEnd - decPagePtr;
     if (sizeLeftInPage <= 0) {
-      throw std::runtime_error("Decoding ran beyond end of page");
+      throw std::runtime_error("Decoding ran beyond end of page before processing extended timebin");
     }
-    if (i == decHDR->nTimebinHeaders - 1 && decHDR->flags & o2::tpc::TPCZSHDRV2::ZSFlags::payloadExtendsToNextPage) {
+    if (i == decHDR->nTimebinHeaders - 1 && (decHDR->flags & o2::tpc::TPCZSHDRV2::ZSFlags::payloadExtendsToNextPage)) {
       if (o2::raw::RDHUtils::getMemorySize(*rdh) != TPCZSHDR::TPC_ZS_PAGE_SIZE) {
         throw std::runtime_error("pageExtends signaled, but current page is not full");
       }
@@ -875,20 +900,26 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
       const unsigned char* pageNext = ((const unsigned char*)decPage) + TPCZSHDR::TPC_ZS_PAGE_SIZE;
       const o2::header::RAWDataHeader* rdhNext = (const o2::header::RAWDataHeader*)pageNext;
 
-      if ((unsigned char)(o2::raw::RDHUtils::getPacketCounter(*rdh) + 1) != o2::raw::RDHUtils::getPacketCounter(*rdhNext)) {
-        decPagePtr = payloadEnd;
+      if ((unsigned short)(o2::raw::RDHUtils::getPageCounter(*rdh) + 1) != o2::raw::RDHUtils::getPageCounter(*rdhNext)) {
+        GPUError("Incomplete HBF: Payload extended to next page, but next page missing in stream (packet counters %d %d)", (int)o2::raw::RDHUtils::getPageCounter(*rdh), (int)o2::raw::RDHUtils::getPageCounter(*rdhNext));
+        extendFailure = true;
+        decPagePtr = payloadEnd; // Next 8kb page is missing in stream, cannot decode remaining data, skip it
         break;
       }
 
       const TPCZSHDRV2* hdrNext = reinterpret_cast<const TPCZSHDRV2*>(pageNext + o2::raw::RDHUtils::getMemorySize(*rdhNext) - sizeof(TPCZSHDRV2));
-      tmpBuffer.resize(sizeLeftInPage + hdrNext->firstZSDataOffset);
+      tmpBuffer.resize(sizeLeftInPage + hdrNext->firstZSDataOffset - sizeof(o2::header::RAWDataHeader));
       memcpy(tmpBuffer.data(), decPagePtr, sizeLeftInPage);
-      memcpy(tmpBuffer.data() + sizeLeftInPage, pageNext + sizeof(o2::header::RAWDataHeader), hdrNext->firstZSDataOffset);
+      memcpy(tmpBuffer.data() + sizeLeftInPage, pageNext + sizeof(o2::header::RAWDataHeader), hdrNext->firstZSDataOffset - sizeof(o2::header::RAWDataHeader));
       decPagePtr = tmpBuffer.data();
       payloadEnd = decPagePtr + tmpBuffer.size();
     }
     unsigned char linkCount = *((const unsigned char*)decPagePtr) & 0x0F;
     unsigned short linkBC = (*((const unsigned short*)decPagePtr) & 0xFFF0) >> 4;
+    bool v2Flag = decHDR->version == ZSVersion::ZSVersionDenseLinkBasedV2 && *((const unsigned char*)decPagePtr) & 0x10;
+    if (decHDR->version == ZSVersion::ZSVersionDenseLinkBasedV2) {
+      linkBC &= 0xFFC;
+    }
     decPagePtr += sizeof(unsigned short);
     std::vector<int> links;
     std::vector<std::bitset<80>> bitmasks;
@@ -918,7 +949,8 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
     }
 
     const unsigned char* adcData = (const unsigned char*)decPagePtr;
-    decPagePtr += (nTotalSamples * encodeBits + 7) / 8;
+    int encodeBitsBlock = v2Flag ? v2nbits : encodeBits;
+    decPagePtr += (nTotalSamples * encodeBitsBlock + 7) / 8;
 
     if (linkBC < triggerBC) {
       continue;
@@ -926,14 +958,15 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
     int timeBin = (linkBC - triggerBC + (unsigned long)(o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) - firstOrbit) * o2::constants::lhc::LHCMaxBunches) / LHCBCPERTIMEBIN;
 
     std::vector<unsigned short> samples(nTotalSamples);
+    unsigned int mask = (1 << encodeBitsBlock) - 1;
     unsigned int byte = 0, bits = 0, posXbits = 0;
     while (posXbits < nTotalSamples) {
       byte |= *(adcData++) << bits;
       bits += 8;
-      while (bits >= encodeBits) {
+      while (bits >= encodeBitsBlock && posXbits < nTotalSamples) {
         samples[posXbits++] = byte & mask;
-        byte = byte >> encodeBits;
-        bits -= encodeBits;
+        byte = byte >> encodeBitsBlock;
+        bits -= encodeBitsBlock;
       }
     }
     unsigned int samplePos = 0;
@@ -950,13 +983,49 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
           const auto padSecPos = mapper.padSecPos(cruid, decLink, sampaOnFEC, channelOnSAMPA);
           const auto& padPos = padSecPos.getPadPos();
           outputBuffer.emplace_back(o2::tpc::Digit{cruid, samples[samplePos++] * decodeBitsFactor, (tpccf::Row)padPos.getRow(), (tpccf::Pad)padPos.getPad(), timeBin});
+          nOutput++;
         }
       }
     }
   }
-  if (payloadEnd - decPagePtr < 0 || payloadEnd - decPagePtr >= 2 * o2::raw::RDHUtils::GBTWord) {
-    throw std::runtime_error("Decoding didn't reach end of page");
+  if (!extendFailure && nOutput != decHDR->nADCsamples) {
+    std::ostringstream oss;
+    oss << "Number of decoded digits " << nOutput << " does not match value from MetaInfo " << decHDR->nADCsamples;
+    amendPageErrorMessage(oss, rdh, decHDR, nullptr, nullptr, nOutput);
+    throw std::runtime_error(oss.str());
   }
+
+  if (decHDR->nTimebinHeaders && payloadEnd - decPagePtr < 0) {
+    std::ostringstream oss;
+    oss << "Decoding ran over end of page";
+    amendPageErrorMessage(oss, rdh, decHDR, payloadEnd, decPagePtr, nOutput);
+    throw std::runtime_error(oss.str());
+  }
+  if (decHDR->nTimebinHeaders && payloadEnd - decPagePtr >= 2 * o2::raw::RDHUtils::GBTWord128) {
+    std::ostringstream oss;
+    oss << "Decoding didn't reach end of page";
+    amendPageErrorMessage(oss, rdh, decHDR, payloadEnd, decPagePtr, nOutput);
+    throw std::runtime_error(oss.str());
+  }
+}
+
+void zsEncoderDenseLinkBased::amendPageErrorMessage(std::ostringstream& oss, const o2::header::RAWDataHeader* rdh, const TPCZSHDRV2* decHDR, const unsigned char* payloadEnd, const unsigned char* decPagePtr, unsigned int nOutput)
+{
+  if (payloadEnd && decPagePtr) {
+    oss << " (payloadEnd " << (void*)payloadEnd << " - decPagePtr " << (void*)decPagePtr << " - " << (payloadEnd - decPagePtr) << " bytes left, " << nOutput << " of " << decHDR->nADCsamples << " digits decoded)\n";
+  } else {
+    oss << "\n";
+  }
+  constexpr size_t bufferSize = 3 * std::max(sizeof(*rdh), sizeof(*decHDR)) + 1;
+  char dumpBuffer[bufferSize];
+  for (size_t i = 0; i < sizeof(*rdh); i++) {
+    snprintf(dumpBuffer + 3 * i, 4, "%02X ", (int)((unsigned char*)rdh)[i]);
+  }
+  oss << "RDH of page: " << dumpBuffer << "\n";
+  for (size_t i = 0; i < sizeof(*decHDR); i++) {
+    snprintf(dumpBuffer + 3 * i, 4, "%02X ", (int)((unsigned char*)decHDR)[i]);
+  }
+  oss << "Meta header of page: " << dumpBuffer << "\n";
 }
 
 #endif // GPUCA_O2_LIB
@@ -994,6 +1063,7 @@ struct zsEncoderRun : public T {
   using T::packetCounter;
   using T::padding;
   using T::page;
+  using T::pageCounter;
   using T::pagePtr;
   using T::param;
   using T::raw;
@@ -1051,14 +1121,14 @@ inline unsigned int zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vecto
 
       if (page && mustWritePage) {
         if constexpr (std::is_same_v<T, struct zsEncoderDenseLinkBased>) {
-          if ((pagePtr - (unsigned char*)page) % o2::raw::RDHUtils::GBTWord) {
-            pagePtr += o2::raw::RDHUtils::GBTWord - (pagePtr - (unsigned char*)page) % o2::raw::RDHUtils::GBTWord;
+          if ((pagePtr - (unsigned char*)page) % o2::raw::RDHUtils::GBTWord128) {
+            pagePtr += o2::raw::RDHUtils::GBTWord128 - (pagePtr - (unsigned char*)page) % o2::raw::RDHUtils::GBTWord128;
           }
           unsigned char* triggerWord = nullptr;
           if (hbf != nexthbf || endpoint != lastEndpoint) {
             if ((pagePtr - (unsigned char*)page) + sizeof(TPCZSHDRV2) + o2::tpc::TPCZSHDRV2::TRIGGER_WORD_SIZE <= TPCZSHDR::TPC_ZS_PAGE_SIZE) {
-              if ((pagePtr - (unsigned char*)page) % (2 * o2::raw::RDHUtils::GBTWord)) {
-                pagePtr += o2::raw::RDHUtils::GBTWord; // align to 256 bit, size constrained cannot be affected by this
+              if ((pagePtr - (unsigned char*)page) % (2 * o2::raw::RDHUtils::GBTWord128)) {
+                pagePtr += o2::raw::RDHUtils::GBTWord128; // align to 256 bit, size constrained cannot be affected by this
               }
               hdr->flags |= o2::tpc::TPCZSHDRV2::ZSFlags::TriggerWordPresent;
             } else {
@@ -1072,8 +1142,8 @@ inline unsigned int zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vecto
             triggerWord = pagePtr;
             pagePtr += o2::tpc::TPCZSHDRV2::TRIGGER_WORD_SIZE;
           }
-          if ((pagePtr - (unsigned char*)page) % (2 * o2::raw::RDHUtils::GBTWord) == 0) {
-            pagePtr += o2::raw::RDHUtils::GBTWord; // align to 128bit mod 256
+          if ((pagePtr - (unsigned char*)page) % (2 * o2::raw::RDHUtils::GBTWord128) == 0) {
+            pagePtr += o2::raw::RDHUtils::GBTWord128; // align to 128bit mod 256
           }
           TPCZSHDRV2* pagehdr = (TPCZSHDRV2*)pagePtr;
           pagePtr += sizeof(TPCZSHDRV2);
@@ -1090,10 +1160,10 @@ inline unsigned int zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vecto
           *totalSize += !std::is_same_v<T, struct zsEncoderDenseLinkBased> && (lastEndpoint == -1 || hbf == nexthbf) ? TPCZSHDR::TPC_ZS_PAGE_SIZE : (pagePtr - (unsigned char*)page);
         }
         size_t size = !std::is_same_v<T, struct zsEncoderDenseLinkBased> && (padding || lastEndpoint == -1 || hbf == nexthbf) ? TPCZSHDR::TPC_ZS_PAGE_SIZE : (pagePtr - (unsigned char*)page);
-        size = CAMath::nextMultipleOf<o2::raw::RDHUtils::GBTWord>(size);
+        size = CAMath::nextMultipleOf<o2::raw::RDHUtils::GBTWord128>(size);
 #ifdef GPUCA_O2_LIB
         if (raw) {
-          raw->addData(rawfeeid, rawcru, this->RAWLNK, rawendpoint, *ir + hbf * o2::constants::lhc::LHCMaxBunches, gsl::span<char>((char*)page + sizeof(o2::header::RAWDataHeader), (char*)page + size), true, 0, 2);
+          raw->addData(rawfeeid, rawcru, 0, rawendpoint, *ir + hbf * o2::constants::lhc::LHCMaxBunches, gsl::span<char>((char*)page + sizeof(o2::header::RAWDataHeader), (char*)page + size), true, 0, 2);
           maxhbf = std::max<int>(maxhbf, hbf);
           minhbf = std::min<int>(minhbf, hbf);
         } else
@@ -1108,6 +1178,7 @@ inline unsigned int zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vecto
           o2::raw::RDHUtils::setDetectorField(*rdh, 2);
           o2::raw::RDHUtils::setLinkID(*rdh, this->RAWLNK);
           o2::raw::RDHUtils::setPacketCounter(*rdh, packetCounter++);
+          o2::raw::RDHUtils::setPageCounter(*rdh, pageCounter++);
         }
       }
       if (k >= tmpBuffer.size() && !needAnotherPage) {
@@ -1116,6 +1187,9 @@ inline unsigned int zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vecto
     }
     if (mustWritePage) {
       if (!needAnotherPage) {
+        if (hbf != nexthbf) {
+          pageCounter = 0;
+        }
         outputRegion = curRegion;
         outputEndpoint = endpoint;
         hbf = nexthbf;
@@ -1151,7 +1225,7 @@ inline unsigned int zsEncoderRun<T>::run(std::vector<zsPage>* buffer, std::vecto
       hdr->nADCsamples = 0;
       rawcru = iSector * 10 + outputRegion;
       rawendpoint = outputEndpoint & 1;
-      hdr->timeOffset = (long)tmpBuffer[k].getTimeStamp() * LHCBCPERTIMEBIN - (long)hbf * o2::constants::lhc::LHCMaxBunches;
+      hdr->timeOffset = (long)(needAnotherPage ? firstTimebinInPage : tmpBuffer[k].getTimeStamp()) * LHCBCPERTIMEBIN - (long)hbf * o2::constants::lhc::LHCMaxBunches;
       firstTimebinInPage = tmpBuffer[k].getTimeStamp();
       initPage();
       totalPages++;
@@ -1233,11 +1307,14 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
   unsigned int totalPages = 0;
   size_t totalSize = 0;
   size_t nErrors = 0;
+  size_t digitsInput = 0;
+  size_t digitsEncoded = 0;
   // clang-format off
-  GPUCA_OPENMP(parallel for reduction(+ : totalPages) reduction(+ : nErrors))
+  GPUCA_OPENMP(parallel for reduction(+ : totalPages, nErrors, totalSize, digitsInput, digitsEncoded))
   // clang-format on
   for (unsigned int i = 0; i < NSLICES; i++) {
     std::vector<o2::tpc::Digit> tmpBuffer;
+    digitsInput += ZSEncoderGetNDigits(in, i);
     tmpBuffer.resize(ZSEncoderGetNDigits(in, i));
     if (threshold > 0.f && !digitsFilter) {
       auto it = std::copy_if(ZSEncoderGetDigits(in, i), ZSEncoderGetDigits(in, i) + ZSEncoderGetNDigits(in, i), tmpBuffer.begin(), [threshold](auto& v) { return v.getChargeFloat() >= threshold; });
@@ -1255,6 +1332,7 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
         tmpBuffer.resize(std::distance(tmpBuffer.begin(), it));
       }
     }
+    digitsEncoded += tmpBuffer.size();
 
     auto runZS = [&](auto& encoder) {
       encoder.zsVersion = version;
@@ -1273,7 +1351,7 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
       if (version == ZSVersion::ZSVersionLinkBasedWithMeta) {
         zsEncoderRun<zsEncoderImprovedLinkBased> enc{{{{.iSector = i, .raw = raw, .ir = ir, .param = &param, .padding = padding}}}};
         runZS(enc);
-      } else if (version == ZSVersion::ZSVersionDenseLinkBased) {
+      } else if (version >= ZSVersion::ZSVersionDenseLinkBased && version <= ZSVersionDenseLinkBasedV2) {
         zsEncoderRun<zsEncoderDenseLinkBased> enc{{{{.iSector = i, .raw = raw, .ir = ir, .param = &param, .padding = padding}}}};
         runZS(enc);
       }
@@ -1281,7 +1359,7 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
       throw std::runtime_error("Link based ZS encoding not supported in standalone build");
 #endif
     } else {
-      throw std::runtime_error("Invalid ZS version");
+      throw std::runtime_error("Invalid ZS version "s + std::to_string(version) + ", cannot decode"s);
     }
   }
 
@@ -1297,8 +1375,11 @@ void GPUReconstructionConvert::RunZSEncoder(const S& in, std::unique_ptr<unsigne
     }
   }
   if (nErrors) {
-    printf("ERROR: %lld INCORRECT SAMPLES DURING ZS ENCODING VERIFICATION!!!\n", (long long int)nErrors);
+    GPUError("ERROR: %lld INCORRECT SAMPLES DURING ZS ENCODING VERIFICATION!!!", (long long int)nErrors);
+  } else if (verify) {
+    GPUInfo("ENCODING VERIFICATION PASSED");
   }
+  GPUInfo("TOTAL ENCODED SIZE: %lu (%lu of %lu digits encoded)", totalSize, digitsEncoded, digitsInput);
 #endif
 }
 
@@ -1380,10 +1461,10 @@ std::function<void(std::vector<o2::tpc::Digit>&, const void*, unsigned int)> GPU
     return GetDecoder_internal<zsEncoderRow>(param, version);
   } else if (version == ZSVersion::ZSVersionLinkBasedWithMeta) {
     return GetDecoder_internal<zsEncoderImprovedLinkBased>(param, version);
-  } else if (version == ZSVersion::ZSVersionDenseLinkBased) {
+  } else if (version >= ZSVersion::ZSVersionDenseLinkBased && version <= ZSVersion::ZSVersionDenseLinkBasedV2) {
     return GetDecoder_internal<zsEncoderDenseLinkBased>(param, version);
   } else {
-    throw std::runtime_error("Invalid ZS version");
+    throw std::runtime_error("Invalid ZS version "s + std::to_string(version) + ", cannot create decoder"s);
   }
 }
 
@@ -1393,7 +1474,8 @@ void GPUReconstructionZSDecoder::DecodePage(std::vector<o2::tpc::Digit>& outputB
   if (o2::raw::RDHUtils::getMemorySize(*rdh) == sizeof(o2::header::RAWDataHeader)) {
     return;
   }
-  const TPCZSHDR* const hdr = (const TPCZSHDR*)(o2::raw::RDHUtils::getLinkID(*rdh) == rdh_utils::DLBZSLinkID ? ((const char*)page + o2::raw::RDHUtils::getMemorySize(*rdh) - sizeof(TPCZSHDRV2)) : ((const char*)page + sizeof(o2::header::RAWDataHeader)));
+  TPCZSHDR* const hdr = (TPCZSHDR*)(rdh_utils::getLink(o2::raw::RDHUtils::getFEEID(*rdh)) == rdh_utils::DLBZSLinkID ? ((const char*)page + o2::raw::RDHUtils::getMemorySize(*rdh) - sizeof(TPCZSHDRV2)) : ((const char*)page + sizeof(o2::header::RAWDataHeader)));
+
   if (mDecoders.size() < hdr->version + 1) {
     mDecoders.resize(hdr->version + 1);
   }

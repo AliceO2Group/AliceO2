@@ -23,7 +23,7 @@
 #include "Framework/DataProcessingHelpers.h"
 #include "Framework/RateLimiter.h"
 #include "Headers/DataHeaderHelpers.h"
-
+#include "Algorithm/RangeTokenizer.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include <TStopwatch.h>
 #include <fairmq/Device.h>
@@ -42,6 +42,7 @@
 #include <regex>
 #include <deque>
 #include <chrono>
+#include <thread>
 
 using namespace o2::rawdd;
 using namespace std::chrono_literals;
@@ -77,6 +78,7 @@ class TFReaderSpec : public o2f::Task
   std::unordered_map<o2h::DataIdentifier, SubSpecCount> mSeenOutputMap;
   int mTFCounter = 0;
   int mTFBuilderCounter = 0;
+  size_t mSelIDEntry = 0; // next TFID to select from the mInput.tfIDs (if non-empty)
   bool mRunning = false;
   TFReaderInp mInput; // command line inputs
   std::thread mTFBuilderThread{};
@@ -93,9 +95,11 @@ TFReaderSpec::TFReaderSpec(const TFReaderInp& rinp) : mInput(rinp)
 //___________________________________________________________
 void TFReaderSpec::init(o2f::InitContext& ic)
 {
+  mInput.tfIDs = o2::RangeTokenizer::tokenize<int>(ic.options().get<std::string>("select-tf-ids"));
   mFileFetcher = std::make_unique<o2::utils::FileFetcher>(mInput.inpdata, mInput.tffileRegex, mInput.remoteRegex, mInput.copyCmd);
   mFileFetcher->setMaxFilesInQueue(mInput.maxFileCache);
   mFileFetcher->setMaxLoops(mInput.maxLoops);
+  mFileFetcher->setFailThreshold(ic.options().get<float>("fetch-failure-threshold"));
   mFileFetcher->start();
 }
 
@@ -116,8 +120,7 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
   if (device != mDevice) {
     throw std::runtime_error(fmt::format("FMQDevice has changed, old={} new={}", fmt::ptr(mDevice), fmt::ptr(device)));
   }
-  static bool initOnceDone = false;
-  if (!initOnceDone) {
+  if (mInput.tfRateLimit == -999) {
     mInput.tfRateLimit = std::stoi(device->fConfig->GetValue<std::string>("timeframes-rate-limit"));
   }
   auto acknowledgeOutput = [this](fair::mq::Parts& parts, bool verbose = false) {
@@ -244,7 +247,7 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
       setTimingInfo(*tfPtr.get());
       size_t nparts = 0, dataSize = 0;
       if (mInput.sendDummyForMissing) {
-        for (auto& msgIt : *tfPtr.get()) { // complete with empty output for the specs which were requested but not seen in the data
+        for (auto& msgIt : *tfPtr.get()) { // complete with empty output for the specs which were requested but were not seen in the data
           acknowledgeOutput(*msgIt.second.get(), true);
         }
         addMissingParts(*tfPtr.get());
@@ -253,7 +256,7 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
       auto tNow = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
       auto tDiff = tNow - tLastTF + 2 * deltaSending;
       if (mTFCounter && tDiff < mInput.delay_us) {
-        usleep(mInput.delay_us - tDiff); // respect requested delay before sending
+        std::this_thread::sleep_for(std::chrono::microseconds((size_t)(mInput.delay_us - tDiff))); // respect requested delay before sending
       }
       auto tSend = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
       for (auto& msgIt : *tfPtr.get()) {
@@ -336,7 +339,10 @@ void TFReaderSpec::TFBuilder()
       continue;
     }
     tfFileName = mFileFetcher ? mFileFetcher->getNextFileInQueue() : "";
-    if (!mRunning || (tfFileName.empty() && !mFileFetcher->isRunning()) || mTFBuilderCounter >= mInput.maxTFs) {
+    if (!mRunning ||
+        (tfFileName.empty() && !mFileFetcher->isRunning()) ||
+        mTFBuilderCounter >= mInput.maxTFs ||
+        (!mInput.tfIDs.empty() && mSelIDEntry >= mInput.tfIDs.size())) {
       // stopped or no more files in the queue is expected or needed
       LOG(info) << "TFReader stops processing";
       if (mFileFetcher) {
@@ -352,20 +358,36 @@ void TFReaderSpec::TFBuilder()
     LOG(info) << "Processing file " << tfFileName;
     SubTimeFrameFileReader reader(tfFileName, mInput.detMask);
     size_t locID = 0;
-    //try
+    // try
     {
       while (mRunning && mTFBuilderCounter < mInput.maxTFs) {
         if (mTFQueue.size() >= size_t(mInput.maxTFCache)) {
           std::this_thread::sleep_for(sleepTime);
           continue;
         }
-        auto tf = reader.read(mDevice, mOutputRoutes, mInput.rawChannelConfig, mInput.sup0xccdb, mInput.verbosity);
+        auto tf = reader.read(mDevice, mOutputRoutes, mInput.rawChannelConfig, mSelIDEntry, mInput.sup0xccdb, mInput.verbosity);
+        bool acceptTF = true;
         if (tf) {
+          locID++;
+          if (!mInput.tfIDs.empty()) {
+            acceptTF = false;
+            if (mInput.tfIDs[mSelIDEntry] == mTFBuilderCounter) {
+              acceptTF = true;
+              LOGP(info, "Retrieved TF#{} will be pushed as slice {} following user request", mTFBuilderCounter, mSelIDEntry);
+              mSelIDEntry++;
+            } else {
+              LOGP(info, "Retrieved TF#{} will be discared following user request", mTFBuilderCounter);
+            }
+          } else {
+            mSelIDEntry++;
+          }
           mTFBuilderCounter++;
+        }
+        if (!acceptTF) {
+          continue;
         }
         if (mRunning && tf) {
           mTFQueue.push(std::move(tf));
-          locID++;
         } else {
           break;
         }
@@ -387,7 +409,7 @@ o2f::DataProcessorSpec o2::rawdd::getTFReaderSpec(o2::rawdd::TFReaderInp& rinp)
   // check which inputs are present in files to read
   o2f::DataProcessorSpec spec;
   spec.name = "tf-reader";
-  const DetID::mask_t DEFMask = DetID::getMask("ITS,TPC,TRD,TOF,PHS,CPV,EMC,HMP,MFT,MCH,MID,ZDC,FT0,FV0,FDD,CTP");
+  const DetID::mask_t DEFMask = DetID::getMask("ITS,TPC,TRD,TOF,PHS,CPV,EMC,HMP,MFT,MCH,MID,ZDC,FT0,FV0,FDD,CTP,FOC");
   rinp.detMask = DetID::getMask(rinp.detList) & DEFMask;
   rinp.detMaskRawOnly = DetID::getMask(rinp.detListRawOnly) & DEFMask;
   rinp.detMaskNonRawOnly = DetID::getMask(rinp.detListNonRawOnly) & DEFMask;
@@ -431,6 +453,15 @@ o2f::DataProcessorSpec o2::rawdd::getTFReaderSpec(o2::rawdd::TFReaderInp& rinp)
           rinp.hdVec.emplace_back(o2h::DataHeader{"CELLS", DetID::getDataOrigin(id), 0, 0});      // in abcence of real data this will be sent
           rinp.hdVec.emplace_back(o2h::DataHeader{"CELLSTRGR", DetID::getDataOrigin(id), 0, 0});  // in abcence of real data this will be sent
           rinp.hdVec.emplace_back(o2h::DataHeader{"DECODERERR", DetID::getDataOrigin(id), 0, 0}); // in abcence of real data this will be sent
+        } else if (id == DetID::FOC) {
+          spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(id), "PADLAYERS"}});
+          spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(id), "PIXELHITS"}});
+          spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(id), "PIXELCHIPS"}});
+          spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(id), "TRIGGERS"}});
+          rinp.hdVec.emplace_back(o2h::DataHeader{"PADLAYERS", DetID::getDataOrigin(id), 0, 0});  // in abcence of real data this will be sent
+          rinp.hdVec.emplace_back(o2h::DataHeader{"PIXELHITS", DetID::getDataOrigin(id), 0, 0});  // in abcence of real data this will be sent
+          rinp.hdVec.emplace_back(o2h::DataHeader{"PIXELCHIPS", DetID::getDataOrigin(id), 0, 0}); // in abcence of real data this will be sent
+          rinp.hdVec.emplace_back(o2h::DataHeader{"TRIGGERS", DetID::getDataOrigin(id), 0, 0});   // in abcence of real data this will be sent
         }
       }
     }
@@ -458,7 +489,8 @@ o2f::DataProcessorSpec o2::rawdd::getTFReaderSpec(o2::rawdd::TFReaderInp& rinp)
       LOGP(alarm, R"(To avoid reader filling shm buffer use "--shm-throw-bad-alloc 0 --shm-segment-id 2")");
     }
   }
-
+  spec.options.emplace_back(o2f::ConfigParamSpec{"select-tf-ids", o2f::VariantType::String, "", {"comma-separated list TF IDs to inject (from cumulative counter of TFs seen)"}});
+  spec.options.emplace_back(o2f::ConfigParamSpec{"fetch-failure-threshold", o2f::VariantType::Float, 0.f, {"Fatil if too many failures( >0: fraction, <0: abs number, 0: no threshold)"}});
   spec.algorithm = o2f::adaptFromTask<TFReaderSpec>(rinp);
 
   return spec;

@@ -23,6 +23,7 @@
 #include "Framework/ConcreteDataMatcher.h"
 #include "TPCWorkflow/RecoWorkflow.h"
 #include "TPCReaderWorkflow/TPCSectorCompletionPolicy.h"
+#include "Framework/CustomWorkflowTerminationHook.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "Algorithm/RangeTokenizer.h"
 #include "CommonUtils/ConfigurableParam.h"
@@ -36,11 +37,11 @@
 
 // we need a global variable to propagate the type the message dispatching of the
 // publisher will trigger on. This is dependent on the input type
-o2::framework::Output gDispatchTrigger{"", ""};
+static o2::framework::Output gDispatchTrigger{"", ""};
 
 // Global variable used to transport data to the completion policy
-o2::tpc::reco_workflow::CompletionPolicyData gPolicyData;
-unsigned long gTpcSectorMask = 0xFFFFFFFFF;
+static o2::tpc::reco_workflow::CompletionPolicyData gPolicyData;
+static unsigned long gTpcSectorMask = 0xFFFFFFFFF;
 
 void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
 {
@@ -54,8 +55,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   using namespace o2::framework;
 
   std::vector<ConfigParamSpec> options{
-    {"input-type", VariantType::String, "digits", {"digitizer, digits, zsraw, clustershw, clustersnative, compressed-clusters, compressed-clusters-ctf, pass-through"}},
-    {"output-type", VariantType::String, "tracks", {"digits, zsraw, clustershw, clustersnative, tracks, compressed-clusters, encoded-clusters, disable-writer, send-clusters-per-sector, qa, no-shared-cluster-map"}},
+    {"input-type", VariantType::String, "digits", {"digitizer, digits, zsraw, clustershw, clusters, compressed-clusters, compressed-clusters-ctf, pass-through"}},
+    {"output-type", VariantType::String, "tracks", {"digits, zsraw, clustershw, clusters, tracks, compressed-clusters, encoded-clusters, disable-writer, send-clusters-per-sector, qa, no-shared-cluster-map"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"no-ca-clusterer", VariantType::Bool, false, {"Use HardwareClusterer instead of clusterer of GPUCATracking"}},
     {"disable-mc", VariantType::Bool, false, {"disable sending of MC information"}},
@@ -66,6 +67,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g.: 'TPCHwClusterer.peakChargeThreshold=4;...')"}},
     {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}},
+    {"filtered-input", VariantType::Bool, false, {"Filtered tracks, clusters input, prefix dataDescriptors with F"}},
+    {"require-ctp-lumi", o2::framework::VariantType::Bool, false, {"require CTP lumi for TPC correction scaling"}},
     {"select-ir-frames", VariantType::Bool, false, {"Subscribe and filter according to external IR Frames"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -103,6 +106,13 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
   policies.push_back(o2::tpc::TPCSectorCompletionPolicy("tpc-tracker.*", o2::tpc::TPCSectorCompletionPolicy::Config::RequireAll, &gPolicyData, &gTpcSectorMask)());
 }
 
+void customize(o2::framework::OnWorkflowTerminationHook& hook)
+{
+  hook = [](const char* idstring) {
+    o2::tpc::reco_workflow::cleanupCallback();
+  };
+}
+
 #include "Framework/runDataProcessing.h" // the main driver
 
 using namespace o2::framework;
@@ -128,7 +138,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   std::vector<int> laneConfiguration = tpcSectors; // Currently just a copy of the tpcSectors, why?
   auto nLanes = cfgc.options().get<int>("tpc-lanes");
   auto inputType = cfgc.options().get<std::string>("input-type");
-
+  auto requireCTPLumi = cfgc.options().get<bool>("require-ctp-lumi");
   // depending on whether to dispatch early (prompt) and on the input type, we
   // set the matcher. Note that this has to be in accordance with the OutputSpecs
   // configured for the PublisherSpec
@@ -167,7 +177,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
                                                 !cfgc.options().get<bool>("no-ca-clusterer"),      //
                                                 !cfgc.options().get<bool>("no-tpc-zs-on-the-fly"), //
                                                 !cfgc.options().get<bool>("ignore-dist-stf"),      //
-                                                cfgc.options().get<bool>("select-ir-frames"));
+                                                cfgc.options().get<bool>("select-ir-frames"),
+                                                cfgc.options().get<bool>("filtered-input"),
+                                                requireCTPLumi);
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, wf);

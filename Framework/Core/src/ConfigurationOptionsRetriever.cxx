@@ -14,6 +14,7 @@
 #include "Framework/ConfigParamSpec.h"
 #include "PropertyTreeHelpers.h"
 
+#define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <boost/program_options.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>

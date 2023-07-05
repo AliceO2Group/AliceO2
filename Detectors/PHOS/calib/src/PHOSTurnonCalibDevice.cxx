@@ -50,7 +50,7 @@ void PHOSTurnonCalibDevice::run(o2::framework::ProcessingContext& pc)
   auto clusters = pc.inputs().get<gsl::span<Cluster>>("clusters");
   auto cluTR = pc.inputs().get<gsl::span<TriggerRecord>>("clusterTriggerRecords");
 
-  LOG(info) << "[PHOSTurnonCalibDevice - run]  Received " << cells.size() << " cells and " << clusters.size() << " clusters, running calibration";
+  LOG(detail) << "[PHOSTurnonCalibDevice - run]  Received " << cells.size() << " cells and " << clusters.size() << " clusters, running calibration";
 
   mCalibrator->process(tfcounter, cells, cellTR, clusters, cluTR);
 }
@@ -77,7 +77,7 @@ void PHOSTurnonCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
     ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "PHOS_Turnon", 0}, *image.get());
     ec.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "PHOS_Turnon", 0}, info);
   } else {
-    LOG(error) << "Incorrect fit results";
+    LOG(alarm) << "Incorrect fit results";
   }
   // //Send result to QC
   // ec.outputs().snapshot(o2::framework::Output{"PHS", "TRIGMAPDIFF", 0, o2::framework::Lifetime::Timeframe}, mTrigMapDiff);

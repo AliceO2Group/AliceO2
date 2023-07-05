@@ -29,7 +29,6 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
-  o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
 
@@ -38,9 +37,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
-  auto resFile = configcontext.options().get<std::string>("aod-writer-resfile");
   WorkflowSpec wf;
-  wf.emplace_back(o2::aodmcproducer::getAODMcProducerWorkflowSpec(resFile));
-  o2::raw::HBFUtilsInitializer hbfIni(configcontext, wf);
+  wf.emplace_back(o2::aodmcproducer::getAODMcProducerWorkflowSpec());
   return std::move(wf);
 }

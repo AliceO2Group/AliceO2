@@ -10,14 +10,15 @@
 // or submit itself to any jurisdiction.
 #include "Framework/DataProcessor.h"
 #include "Framework/DataSender.h"
+#include "Framework/DataProcessingStats.h"
 #include "Framework/MessageContext.h"
 #include "Framework/StringContext.h"
 #include "Framework/ArrowContext.h"
-#include "Framework/RawBufferContext.h"
 #include "Framework/TMessageSerializer.h"
 #include "Framework/ServiceRegistry.h"
 #include "Framework/FairMQResizableBuffer.h"
 #include "Framework/FairMQDeviceProxy.h"
+#include "Framework/DeviceState.h"
 #include "Headers/DataHeader.h"
 #include "Headers/DataHeaderHelpers.h"
 
@@ -60,7 +61,7 @@ void DataProcessor::doSend(DataSender& sender, MessageContext& context, ServiceR
 
 void DataProcessor::doSend(DataSender& sender, StringContext& context, ServiceRegistryRef services)
 {
-  FairMQDeviceProxy& proxy = services.get<FairMQDeviceProxy>();
+  auto& proxy = services.get<FairMQDeviceProxy>();
   for (auto& messageRef : context) {
     fair::mq::Parts parts;
     fair::mq::MessagePtr payload(sender.create(messageRef.routeIndex));
@@ -85,9 +86,10 @@ void DataProcessor::doSend(DataSender& sender, ArrowContext& context, ServiceReg
   using o2::monitoring::tags::Key;
   using o2::monitoring::tags::Value;
   auto& monitoring = registry.get<Monitoring>();
+  auto& stats = registry.get<DataProcessingStats>();
 
-  std::regex invalid_metric(" ");
-  FairMQDeviceProxy& proxy = registry.get<FairMQDeviceProxy>();
+  static const std::regex invalid_metric(" ");
+  auto& proxy = registry.get<FairMQDeviceProxy>();
   for (auto& messageRef : context) {
     fair::mq::Parts parts;
     // Depending on how the arrow table is constructed, we finalize
@@ -110,7 +112,7 @@ void DataProcessor::doSend(DataSender& sender, ArrowContext& context, ServiceReg
                                        origin,
                                        description)}
                       .addTag(Key::Subsystem, Value::DPL));
-    LOGP(info, "Creating {}MB for table {}/{}.", payload->GetSize() / 1000000., dh->dataOrigin, dh->dataDescription);
+    LOGP(detail, "Creating {}MB for table {}/{}.", payload->GetSize() / 1000000., dh->dataOrigin, dh->dataDescription);
     context.updateBytesSent(payload->GetSize());
     context.updateMessagesSent(1);
     parts.AddPart(std::move(messageRef.header));
@@ -141,31 +143,9 @@ void DataProcessor::doSend(DataSender& sender, ArrowContext& context, ServiceReg
   };
   registry.get<DeviceState>().offerConsumers.emplace_back(disposeResources);
   previousBytesSent = context.bytesSent();
-  monitoring.send(Metric{(uint64_t)context.bytesSent(), "arrow-bytes-created"}.addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{(uint64_t)context.messagesCreated(), "arrow-messages-created"}.addTag(Key::Subsystem, Value::DPL));
-  monitoring.flushBuffer();
-}
-
-void DataProcessor::doSend(DataSender& sender, RawBufferContext& context, ServiceRegistryRef registry)
-{
-  FairMQDeviceProxy& proxy = registry.get<FairMQDeviceProxy>();
-  for (auto& messageRef : context) {
-    fair::mq::Parts parts;
-    fair::mq::MessagePtr payload(sender.create(messageRef.routeIndex));
-    auto buffer = messageRef.serializeMsg().str();
-    // Rebuild the message using the serialized ostringstream as input. For now it involves a copy.
-    size_t size = buffer.length();
-    payload->Rebuild(size);
-    std::memcpy(payload->GetData(), buffer.c_str(), size);
-    const DataHeader* cdh = o2::header::get<DataHeader*>(messageRef.header->GetData());
-    // sigh... See if we can avoid having it const by not
-    // exposing it to the user in the first place.
-    auto* dh = const_cast<DataHeader*>(cdh);
-    dh->payloadSize = size;
-    parts.AddPart(std::move(messageRef.header));
-    parts.AddPart(std::move(payload));
-    sender.send(parts, proxy.getOutputChannelIndex(messageRef.routeIndex));
-  }
+  stats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_BYTES_CREATED), DataProcessingStats::Op::Set, static_cast<int64_t>(context.bytesSent())});
+  stats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_MESSAGES_CREATED), DataProcessingStats::Op::Set, static_cast<int64_t>(context.messagesCreated())});
+  stats.processCommandQueue();
 }
 
 } // namespace o2::framework

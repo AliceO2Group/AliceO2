@@ -24,6 +24,7 @@
 #include <TObject.h>
 #include <TMessage.h>
 #include "CCDB/CcdbObjectInfo.h"
+#include "CCDB/CCDBDownloader.h"
 #include <CommonUtils/ConfigurableParam.h>
 #include <type_traits>
 #include <vector>
@@ -62,6 +63,8 @@ class CcdbApi //: public DatabaseInterface
   virtual ~CcdbApi();
 
   const std::string getUniqueAgentID() const { return mUniqueAgentID; }
+
+  static bool checkAlienToken();
 
   /**
    * Initialize connection to CCDB
@@ -205,8 +208,9 @@ class CcdbApi //: public DatabaseInterface
    * @param metadata The metadata to update
    * @param timestamp The timestamp to select the object
    * @param id The id, if any, to select the object
+   * @return anithing non-0 is CURL error code or -1
    */
-  void updateMetadata(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp, std::string const& id = "", long newEOV = 0);
+  int updateMetadata(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp, std::string const& id = "", long newEOV = 0);
 
   /**
    * Return the listing of objects, and in some cases subfolders, matching this path.
@@ -271,7 +275,7 @@ class CcdbApi //: public DatabaseInterface
    *  @return: True in case operation successful or false if there was a failure/problem.
    */
   bool retrieveBlob(std::string const& path, std::string const& targetdir, std::map<std::string, std::string> const& metadata, long timestamp,
-                    bool preservePathStructure = true, std::string const& localFileName = "snapshot.root") const;
+                    bool preservePathStructure = true, std::string const& localFileName = "snapshot.root", std::string const& createdNotAfter = "", std::string const& createdNotBefore = "") const;
 
   /**
    * Retrieve the headers of a CCDB entry, if it exists.
@@ -363,6 +367,12 @@ class CcdbApi //: public DatabaseInterface
 #endif
 
  private:
+  // Sets the unique agent ID
+  void setUniqueAgentID();
+
+  // internal helper function to update a CCDB file with meta information
+  static void updateMetaInformationInLocalFile(std::string const& filename, std::map<std::string, std::string> const* headers, CCDBQuery const* querysummary = nullptr);
+
   // report what file is read and for which purpose
   void logReading(const std::string& path, long ts, const std::map<std::string, std::string>* headers, const std::string& comment) const;
 
@@ -441,6 +451,23 @@ class CcdbApi //: public DatabaseInterface
                           long timestamp = -1, std::map<std::string, std::string>* headers = nullptr, std::string const& etag = "",
                           const std::string& createdNotAfter = "", const std::string& createdNotBefore = "") const;
 
+  /**
+   * Run the uvLoop belonging to mDownloader once.
+   *
+   * @param noWait Using this flag will cause the loop to run only if sockets have pendind data.
+   */
+  void runDownloaderLoop(bool noWait);
+  /**
+   * Set the number of times curl should retry in case of failure and the delay between thte attempts.
+   * @param numberRetries
+   * @param delay
+   */
+  void setCurlRetriesParameters(int numberRetries, int delay = 100000 /* microseconds */)
+  {
+    mCurlRetries = numberRetries;
+    mCurlDelayRetries = delay;
+  }
+
  private:
   /**
    * A helper function to extract object from a local ROOT file
@@ -483,8 +510,8 @@ class CcdbApi //: public DatabaseInterface
 
   void initCurlOptionsForRetrieve(CURL* curlHandle, void* pointer, CurlWriteCallback writeCallback, bool followRedirect = true) const;
 
-  void initHeadersForRetrieve(CURL* curlHandle, long timestamp, std::map<std::string, std::string>* headers, std::string const& etag,
-                              const std::string& createdNotAfter, const std::string& createdNotBefore) const;
+  /// initialize HTTPS header information for the CURL handle. Needs to be given an existing curl_slist* pointer to work with (may be nullptr), which needs to be free by the caller.
+  void initCurlHTTPHeaderOptionsForRetrieve(CURL* curlHandle, curl_slist*& option_list, long timestamp, std::map<std::string, std::string>* headers, std::string const& etag, const std::string& createdNotAfter, const std::string& createdNotBefore) const;
 
   bool receiveToFile(FILE* fileHandle, std::string const& path, std::map<std::string, std::string> const& metadata,
                      long timestamp, std::map<std::string, std::string>* headers = nullptr, std::string const& etag = "",
@@ -517,6 +544,13 @@ class CcdbApi //: public DatabaseInterface
   {
     return getSnapshotDir(topdir, path) + '/' + sfile;
   }
+
+  // tmp helper and single point of entry for a CURL perform call
+  // helps to switch between easy handle perform and multi handles in a single place
+  CURLcode CURL_perform(CURL* handle) const;
+
+  mutable CCDBDownloader* mDownloader = nullptr; //! the multi-handle (async) CURL downloader
+  bool mIsCCDBDownloaderEnabled = false;
   /// Base URL of the CCDB (with port)
   std::string mUniqueAgentID{}; // Unique User-Agent ID communicated to server for logging
   std::string mUrl{};
@@ -528,6 +562,8 @@ class CcdbApi //: public DatabaseInterface
   mutable TGrid* mAlienInstance = nullptr;                       // a cached connection to TGrid (needed for Alien locations)
   bool mNeedAlienToken = true;                                   // On EPN and FLP we use a local cache and don't need the alien token
   static std::unique_ptr<TJAlienCredentials> mJAlienCredentials; // access JAliEn credentials
+  int mCurlRetries = 3;
+  int mCurlDelayRetries = 100000; // in microseconds
 
   ClassDefNV(CcdbApi, 1);
 };

@@ -13,7 +13,7 @@
 /// \brief Container to store compressed TPC cluster data
 
 #include "DataFormatsTPC/CompressedClusters.h"
-
+#include "GPUCommonLogger.h"
 #include <cstring>
 #ifndef GPUCA_STANDALONE
 #include "DataFormatsTPC/CompressedClustersHelpers.h"
@@ -53,6 +53,26 @@ void CompressedClustersFlat::setForward(const CompressedClusters* p)
 {
   memset((void*)this, 0, sizeof(*this));
   ptrForward = p;
+}
+
+void CompressedClusters::dump()
+{
+  LOG(info) << "nTracks" << nTracks;
+  for (unsigned int i = 0; i < nTracks; i++) {
+    LOG(info) << "  " << i << ":" << (unsigned int)qPtA[i] << " " << (unsigned int)rowA[i] << " " << (unsigned int)sliceA[i] << " " << (unsigned int)timeA[i] << " " << (unsigned int)padA[i];
+  }
+  LOG(info) << "nAttachedClusters" << nAttachedClusters;
+  for (unsigned int i = 0; i < nAttachedClusters; i++) {
+    LOG(info) << "  " << i << ":" << (unsigned int)qTotA[i] << " " << (unsigned int)qMaxA[i] << " " << (unsigned int)flagsA[i] << " " << (unsigned int)sigmaPadA[i] << " " << (unsigned int)sigmaTimeA[i];
+  }
+  LOG(info) << "nAttachedClustersReduced" << nAttachedClustersReduced;
+  for (unsigned int i = 0; i < nAttachedClustersReduced; i++) {
+    LOG(info) << "  " << i << ":" << (unsigned int)rowDiffA[i] << " " << (unsigned int)sliceLegDiffA[i] << " " << (unsigned int)padResA[i] << " " << (unsigned int)timeResA[i];
+  }
+  LOG(info) << "nUnattachedClusters" << nUnattachedClusters;
+  for (unsigned int i = 0; i < nUnattachedClusters; i++) {
+    LOG(info) << "  " << i << ":" << (unsigned int)qTotU[i] << " " << (unsigned int)qMaxU[i] << " " << (unsigned int)flagsU[i] << " " << (unsigned int)padDiffU[i] << " " << (unsigned int)timeDiffU[i] << " " << (unsigned int)sigmaPadU[i] << " " << (unsigned int)sigmaTimeU[i];
+  }
 }
 
 #ifndef GPUCA_STANDALONE
