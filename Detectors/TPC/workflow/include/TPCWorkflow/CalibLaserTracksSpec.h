@@ -56,8 +56,12 @@ class CalibLaserTracksDevice : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
-    mTPCVDriftHelper.extractCCDBInputs(pc);
     const auto dph = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header);
+    if (!dph) {
+      LOGP(warning, "CalibLaserTracksDevice::run: No DataProcessingHeader found for \"input\". Only conditions? Skipping event.");
+      return;
+    }
+    mTPCVDriftHelper.extractCCDBInputs(pc);
     const auto startTime = dph->startTime;
     const auto endTime = dph->startTime + dph->duration;
     mRunNumber = processing_helpers::getRunNumber(pc);
