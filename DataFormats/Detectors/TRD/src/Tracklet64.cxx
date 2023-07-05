@@ -43,6 +43,35 @@ GPUd() int Tracklet64::getPadCol() const
   return CAMath::Nint(6.f + mcmCol * ((float)NCOLMCM) + padLocal);
 }
 
+GPUd() float Tracklet64::PadPositionMCM() const
+{
+  return 12.0 - (getPositionBinSigned() * GRANULARITYTRKLPOS);
+}
+
+GPUd() float Tracklet64::PadPosition() const
+{
+  // int padLocalBin = tracklet.getPosition() ^ 0x80;
+  float padMCM = PadPositionMCM();
+  int mcmCol = HelperMethods::getMCMCol(getROB(), getMCM());
+  return float((mcmCol + 1) * NCOLMCM) + 2.0 - padMCM;
+}
+
+GPUd() float Tracklet64::UncalibratedPad() const
+{
+  float y = getUncalibratedY();
+  int mcmCol = (getMCM() % NMCMROBINCOL) + NMCMROBINCOL * (getROB() % 2);
+  // one pad column has 144 pads, the offset of -63 is the center of the first MCM in that column
+  // which is connected to the pads -63 - 9 = -72 to -63 + 9 = -54
+  // float offset = -63.f + ((float)NCOLMCM) * mcmCol;
+  float padWidth = 0.635f + 0.03f * (getDetector() % NLAYER);
+  return y / padWidth + 71.0;
+}
+
+GPUd() float Tracklet64::Slope() const
+{
+  return getSlopeBinSigned() * GRANULARITYTRKLSLOPE / ADDBITSHIFTSLOPE;
+}
+
 #ifndef GPUCA_GPUCODE_DEVICE
 void Tracklet64::printStream(std::ostream& stream) const
 {

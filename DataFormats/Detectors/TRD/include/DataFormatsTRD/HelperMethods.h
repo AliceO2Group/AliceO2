@@ -150,9 +150,9 @@ struct HelperMethods {
 
   static int getLinkIDfromHCID(int hcid)
   {
-    //return a number in range [0:29] for the link related to this hcid with in its respective CRU
-    //lower 15 is endpoint 0 and upper 15 is endpoint 1
-    //a side has 30, c side has 30 to give 60 links for a supermodule
+    // return a number in range [0:29] for the link related to this hcid with in its respective CRU
+    // lower 15 is endpoint 0 and upper 15 is endpoint 1
+    // a side has 30, c side has 30 to give 60 links for a supermodule
     int sector = hcid / constants::NHCPERSEC;
     return getORIinSuperModule(hcid) + constants::NHCPERSEC * sector;
   }
@@ -203,6 +203,12 @@ struct HelperMethods {
     rob = (mcmCol >= constants::NMCMROBINCOL) ? (row / constants::NMCMROBINROW) * 2 + 1 : (row / constants::NMCMROBINROW) * 2;
     mcm = (row % constants::NMCMROBINROW) * constants::NMCMROBINCOL + (mcmCol % constants::NMCMROBINCOL);
     channel = constants::NADCMCM - 1 - ((chamberIndex % constants::NCHANNELSPERROW) % constants::NADCMCM);
+  }
+
+  static int getMCMCol(int irob, int imcm)
+  {
+    // calculate the column number of the MCM within the TRD detector
+    return (imcm % constants::NMCMROBINCOL) + constants::NMCMROBINCOL * (irob % 2);
   }
 };
 
