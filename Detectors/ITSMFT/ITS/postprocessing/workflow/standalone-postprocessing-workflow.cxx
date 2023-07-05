@@ -56,7 +56,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   GID::mask_t srcTrc = allowedSourcesTrc & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
   srcTrc |= GID::getSourcesMask("ITS"); // guarantee that we will at least use ITS tracks
   GID::mask_t srcCls = allowedSourcesClus & GID::getSourcesMask(configcontext.options().get<std::string>("cluster-sources"));
-  
+
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCls, srcTrc, srcTrc, useMC, srcCls, srcTrc);
   o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC);
   o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, specs);
@@ -64,7 +64,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // Declare specs related to studies hereafter
   // specs.emplace_back(o2::its::study::getImpactParameterStudy(srcTrc, srcCls, useMC));
   specs.emplace_back(o2::its::study::getAvgClusSizeStudy(srcTrc, srcCls, useMC));
-  
+
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
 

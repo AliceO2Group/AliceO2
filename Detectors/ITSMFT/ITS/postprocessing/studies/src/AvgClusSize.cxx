@@ -216,7 +216,7 @@ void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
     pv = recoData.getPrimaryVertex(v0.getVertexID()); // extract primary vertex
     d0recoTrk.propagateToDCA(pv, b, &d0DCA);          // calculate and store DCA objects for both prongs
     d1recoTrk.propagateToDCA(pv, b, &d1DCA);
-    d0R = std::sqrt(d0DCA.getR2());                   // calculate DCA distance
+    d0R = std::sqrt(d0DCA.getR2()); // calculate DCA distance
     d1R = std::sqrt(d1DCA.getR2());
 
     V0eta = v0.getEta();
@@ -226,7 +226,7 @@ void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
     R = std::sqrt(v0.calcR2());              // gives distance from pvertex to origin? in centimeters (?) NOTE: unsure if this is to the primary vertex or to origin
     std::vector<o2::its::TrackITS> dauRecoTrks = {recoData.getITSTrack(v0.getProngID(0)), recoData.getITSTrack(v0.getProngID(1))};
 
-    if (mUseMC) {                         // check whether V0 is a K0s in MC, and fill the cut validation plots
+    if (mUseMC) { // check whether V0 is a K0s in MC, and fill the cut validation plots
       isK0s = false;
       d0lab = mcLabels[v0.getProngID(0)]; // extract MC label for the prongs
       d1lab = mcLabels[v0.getProngID(1)];
@@ -519,7 +519,8 @@ void AvgClusSizeStudy::fitMassSpectrum()
 
 void AvgClusSizeStudy::endOfStream(EndOfStreamContext& ec)
 {
-  if (mParams.performFit) fitMassSpectrum();
+  if (mParams.performFit)
+    fitMassSpectrum();
   if (mParams.generatePlots) {
     saveHistograms();
     plotHistograms();
