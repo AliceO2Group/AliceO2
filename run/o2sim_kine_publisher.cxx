@@ -9,36 +9,49 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "../Framework/Core/src/ArrowSupport.h"
 #include "Framework/AnalysisTask.h"
-#include "Framework/runDataProcessing.h"
+#include "Monitoring/Monitoring.h"
+#include "Framework/CommonDataProcessors.h"
 #include "SimulationDataFormat/MCTrack.h"
 #include "Steer/MCKinematicsReader.h"
+
+#include "Framework/runDataProcessing.h"
 
 using namespace o2::framework;
 using namespace o2::steer;
 
 struct KinePublisher {
-
   Configurable<std::string> kineFileName{"kineFileName", "o2sim", "name of the _Kine.root file (without '_Kine.root')"};
+  Configurable<int> aggregate{"aggregate-timeframe", 300, "Number of events to put in a timeframe"};
 
   int nEvents = 0;
-  int event = 0;
-  MCKinematicsReader* mcKinReader = new o2::steer::MCKinematicsReader();
+  int eventCounter = 0;
+  int tfCounter = 0;
+  std::shared_ptr<MCKinematicsReader> mcKinReader = std::make_shared<MCKinematicsReader>();
 
-  void init(o2::framework::InitContext& ic)
+  void init(o2::framework::InitContext& /*ic*/)
   {
-    mcKinReader->initFromKinematics(std::string(kineFileName));
-    nEvents = mcKinReader->getNEvents(0);
+    if (mcKinReader->initFromKinematics((std::string)kineFileName)) {
+      nEvents = mcKinReader->getNEvents(0);
+    } else {
+      LOGP(fatal, "Cannot open kine file {}", (std::string)kineFileName);
+    }
   }
 
   void run(o2::framework::ProcessingContext& pc)
   {
-    auto mcevent = mcKinReader->getMCEventHeader(0, event);
-    auto mctracks = mcKinReader->getTracks(0, event);
-    pc.outputs().snapshot(Output{"MC", "MCHEADER", 0, Lifetime::Timeframe}, mcevent);
-    pc.outputs().snapshot(Output{"MC", "MCTRACKS", 0, Lifetime::Timeframe}, mctracks);
-    event++;
-    if (event >= nEvents) {
+    for (auto i = 0; i < std::min((int)aggregate, nEvents); ++i) {
+      auto mcevent = mcKinReader->getMCEventHeader(0, i);
+      auto mctracks = mcKinReader->getTracks(0, i);
+      pc.outputs().snapshot(Output{"MC", "MCHEADER", 0, Lifetime::Timeframe}, mcevent);
+      pc.outputs().snapshot(Output{"MC", "MCTRACKS", 0, Lifetime::Timeframe}, mctracks);
+      ++eventCounter;
+    }
+    // report number of TFs injected for the rate limiter to work
+    pc.services().get<o2::monitoring::Monitoring>().send(o2::monitoring::Metric{(uint64_t)tfCounter, "df-sent"}.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL));
+    ++tfCounter;
+    if (eventCounter >= nEvents) {
       pc.services().get<ControlService>().endOfStream();
       pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
     }
@@ -47,12 +60,10 @@ struct KinePublisher {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  WorkflowSpec specs;
-  std::vector<OutputSpec> outputs;
-  outputs.emplace_back("MC", "MCHEADER", 0, Lifetime::Timeframe);
-  outputs.emplace_back("MC", "MCTRACKS", 0, Lifetime::Timeframe);
-  DataProcessorSpec dSpec = adaptAnalysisTask<KinePublisher>(cfgc, TaskName{"o2sim-kine-publisher"});
-  dSpec.outputs = outputs;
-  specs.emplace_back(dSpec);
-  return specs;
+  DataProcessorSpec spec = adaptAnalysisTask<KinePublisher>(cfgc, TaskName{"o2sim-kine-publisher"});
+  spec.outputs.emplace_back("MC", "MCHEADER", 0, Lifetime::Timeframe);
+  spec.outputs.emplace_back("MC", "MCTRACKS", 0, Lifetime::Timeframe);
+  spec.requiredServices.push_back(o2::framework::ArrowSupport::arrowBackendSpec());
+  spec.algorithm = CommonDataProcessors::wrapWithRateLimiting(spec.algorithm);
+  return {spec};
 }
