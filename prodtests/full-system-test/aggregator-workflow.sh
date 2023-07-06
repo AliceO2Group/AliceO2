@@ -124,10 +124,10 @@ if workflow_has_parameter CALIB_PROXIES; then
       echo "ERROR: TPC IDC / SAC calib workflow enabled without EPNSYNCMODE, please note that there will not be input data for it" 1>&2
     fi
     CHANNELS_LIST=
-    [[ $EPNSYNCMODE == 0 ]] && FLP_ADDRESS="tcp://localhost:47900"
+    [[ $EPNSYNCMODE == 0 ]] && FLP_ADDRESS="tcp://localhost:29950"
     if [[ ! -z ${CALIBDATASPEC_TPCIDC_A:-} ]] || [[ ! -z ${CALIBDATASPEC_TPCIDC_C:-} ]]; then
-      # define port for FLP; should be in 47900 - 47999; if nobody defined it, we use 47900
-      : ${TPC_IDC_FLP_PORT:=47900}
+      # define port for FLP
+      : ${TPC_IDC_FLP_PORT:=29950}
       # expand FLPs; TPC uses from 001 to 145, but 145 is reserved for SAC
       for flp in $(seq -f "%03g" 1 144); do
         [[ ! $FLP_IDS =~ (^|,)"$flp"(,|$) ]] && continue
@@ -136,8 +136,8 @@ if workflow_has_parameter CALIB_PROXIES; then
       done
     fi
     if [[ ! -z ${CALIBDATASPEC_TPCSAC:-} ]]; then
-      # define port for FLP; should be in 47900 - 47999; if nobody defined it, we use 47901
-      [[ -z ${TPC_SAC_FLP_PORT:-} ]] && TPC_SAC_FLP_PORT=47901
+      # define port for FLP
+      [[ -z ${TPC_SAC_FLP_PORT:-} ]] && TPC_SAC_FLP_PORT=29951
       [[ $EPNSYNCMODE == 1 ]] && FLP_ADDRESS="tcp://alio2-cr1-flp145-ib:${TPC_SAC_FLP_PORT}"
       CHANNELS_LIST+="type=pull,name=tpcidc_sac,transport=zeromq,address=$FLP_ADDRESS,method=connect,rateLogging=10;"
     fi
