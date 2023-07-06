@@ -507,7 +507,6 @@ GPUd() void GPUTPCCFDecodeZSLinkBase::Decode(int nBlocks, int nThreads, int iBlo
       }
 
       pageDigitOffset = Decoder::DecodePage(smem, clusterer, iBlock, nThreads, iThread, page, pageDigitOffset, firstHBF);
-
     } // [CPU] for (unsigned int j = minJ; j < maxJ; j++)
   }   // [CPU] for (unsigned int i = clusterer.mMinMaxCN[endpoint].zsPtrFirst; i < clusterer.mMinMaxCN[endpoint].zsPtrLast; i++)
 
@@ -639,7 +638,6 @@ GPUd() uint32_t GPUTPCCFDecodeZSDenseLink::DecodePage(GPUSharedMemory& smem, pro
     assert(nSamplesWritten <= nSamplesInPage);
     nSamplesWritten += nSamplesWrittenTB;
     pageDigitOffset += nSamplesWrittenTB;
-
   } // for (unsigned short i = 0; i < decHeader->nTimebinHeaders; i++)
 
 #ifdef GPUCA_CHECK_TPCZS_CORRUPTION
