@@ -43,6 +43,7 @@ o2_target_root_dictionary(DataFormatsTRD
                        include/DataFormatsTRD/KrCluster.h
                        include/DataFormatsTRD/KrClusterTriggerRecord.h
                        include/DataFormatsTRD/NoiseCalibration.h
+                        include/DataFormatsTRD/PHData.h
                        include/DataFormatsTRD/CTF.h
                        include/DataFormatsTRD/CalVdriftExB.h
                        include/DataFormatsTRD/CalGain.h
@@ -66,4 +67,3 @@ o2_add_test(RawData
             ENVIRONMENT O2_ROOT=${CMAKE_BINARY_DIR}/stage
             LABELS trd
             )
-
