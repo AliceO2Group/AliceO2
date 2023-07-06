@@ -887,6 +887,7 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
   std::vector<unsigned char> tmpBuffer;
   bool extendFailure = false;
   unsigned int nOutput = 0;
+  unsigned int minTimeBin = -1, maxTimeBin = 0;
   for (unsigned int i = 0; i < decHDR->nTimebinHeaders; i++) {
     int sizeLeftInPage = payloadEnd - decPagePtr;
     if (sizeLeftInPage <= 0) {
@@ -952,10 +953,16 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
     int encodeBitsBlock = v2Flag ? v2nbits : encodeBits;
     decPagePtr += (nTotalSamples * encodeBitsBlock + 7) / 8;
 
-    if (linkBC < triggerBC) {
+    if (linkBC < triggerBC || nTotalSamples == 0) {
       continue;
     }
     int timeBin = (linkBC - triggerBC + (unsigned long)(o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) - firstOrbit) * o2::constants::lhc::LHCMaxBunches) / LHCBCPERTIMEBIN;
+    if (timeBin > maxTimeBin) {
+      maxTimeBin = timeBin;
+    }
+    if (timeBin < minTimeBin) {
+      minTimeBin = timeBin;
+    }
 
     std::vector<unsigned short> samples(nTotalSamples);
     unsigned int mask = (1 << encodeBitsBlock) - 1;
@@ -988,10 +995,21 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
       }
     }
   }
+
+  unsigned int hdrMinTimeBin = (decHDR->timeOffset + (o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) - firstOrbit) * o2::constants::lhc::LHCMaxBunches) / LHCBCPERTIMEBIN;
+  unsigned int hdrMaxTimeBin = hdrMinTimeBin + decHDR->nTimeBinSpan;
+
   if (!extendFailure && nOutput != decHDR->nADCsamples) {
     std::ostringstream oss;
     oss << "Number of decoded digits " << nOutput << " does not match value from MetaInfo " << decHDR->nADCsamples;
     amendPageErrorMessage(oss, rdh, decHDR, nullptr, nullptr, nOutput);
+    throw std::runtime_error(oss.str());
+  }
+
+  if (decHDR->nADCsamples && (minTimeBin < hdrMinTimeBin || maxTimeBin > hdrMaxTimeBin)) {
+    std::ostringstream oss;
+    oss << "Incorrect time bin range in header, says " << hdrMinTimeBin << " - " << hdrMaxTimeBin << ", data is " << minTimeBin << " - " << maxTimeBin;
+    amendPageErrorMessage(oss, rdh, decHDR, payloadEnd, decPagePtr, nOutput);
     throw std::runtime_error(oss.str());
   }
 
