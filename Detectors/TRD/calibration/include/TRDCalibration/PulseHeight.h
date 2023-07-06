@@ -20,6 +20,10 @@
 #include "DataFormatsTRD/Digit.h"
 #include "DataFormatsTRD/TriggerRecord.h"
 #include "DataFormatsTRD/TrackTriggerRecord.h"
+#include "DataFormatsTRD/PHData.h"
+#include "TRDCalibration/CalibrationParams.h"
+#include "TFile.h"
+#include "TTree.h"
 
 namespace o2
 {
@@ -50,6 +54,15 @@ class PulseHeight
   /// Main processing function
   void process();
 
+  /// Search for up to 3 neighbouring digits matching given tracklet and fill the PH values
+  void findDigitsForTracklet(const Tracklet64& trklt, const TriggerRecord& trig, int type);
+
+  /// Access to output
+  const std::vector<PHData>& getPHData() { return mPHValues; }
+
+  void createOutputFile();
+  void closeOutputFile();
+
  private:
   // input arrays which should not be modified since they are provided externally
   gsl::span<const TrackTRD> mTracksInITSTPCTRD;                      ///< TRD tracks reconstructed from TPC or ITS-TPC seeds
@@ -59,6 +72,16 @@ class PulseHeight
   gsl::span<const TriggerRecord> mTriggerRecords;                    ///< array of trigger records
   gsl::span<const TrackTriggerRecord> mTrackTriggerRecordsTPCTRD;    ///< array of track trigger records
   gsl::span<const TrackTriggerRecord> mTrackTriggerRecordsITSTPCTRD; ///< array of track trigger records
+
+  // output
+  std::vector<PHData> mPHValues, *mPHValuesPtr{&mPHValues}; ///< vector of values used to fill the PH spectra per detector
+  std::vector<int> mDistances, *mDistancesPtr{&mDistances}; ///< pad distance between tracklet column and digit ADC maximum
+  std::unique_ptr<TFile> mOutFile{nullptr};                 ///< output file
+  std::unique_ptr<TTree> mOutTree{nullptr};                 ///< output tree
+
+  // settings
+  const TRDCalibParams& mParams{TRDCalibParams::Instance()}; ///< reference to calibration parameters
+  bool mWriteOutput{false};                                  ///< will be set to true in case createOutputFile() is called
 
   ClassDefNV(PulseHeight, 1);
 };
