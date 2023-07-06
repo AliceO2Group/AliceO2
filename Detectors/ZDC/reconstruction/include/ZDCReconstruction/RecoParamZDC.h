@@ -26,9 +26,9 @@ namespace zdc
 {
 struct RecoParamZDC : public o2::conf::ConfigurableParamHelper<RecoParamZDC> {
   // Trigger
-  int32_t tsh[NTDCChannels] = {4, 4, 4, 4, 4, 4, 4, 4, 4, 4}; // Trigger shift
-  int32_t tth[NTDCChannels] = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8}; // Trigger threshold
-  bool bitset[NTDCChannels] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // Set bits in coincidence
+  int32_t tsh[NTDCChannels] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1}; // Trigger shift
+  int32_t tth[NTDCChannels] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1}; // Trigger threshold
+  bool bitset[NTDCChannels] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};           // Set bits in coincidence
   void setBit(uint32_t ibit, bool val = true);
 
   // Signal processing

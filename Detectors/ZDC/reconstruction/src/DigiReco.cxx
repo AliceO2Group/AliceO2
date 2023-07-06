@@ -88,9 +88,7 @@ void DigiReco::init()
     }
     mLowPassFilter = ropt.low_pass_filter > 0 ? true : false;
   }
-  if (mVerbosity > DbgZero) {
-    LOG(info) << "Low pass filtering is " << (mLowPassFilter ? "enabled" : "disabled");
-  }
+  LOG(info) << "Low pass filtering is " << (mLowPassFilter ? "enabled" : "disabled");
 
   // Full interpolation of waveform (N.B. function call overrides other settings)
   if (mFullInterpolationSet == false) {
@@ -105,6 +103,16 @@ void DigiReco::init()
   }
   if (mVerbosity > DbgZero) {
     LOG(info) << "Full waveform interpolation is " << (mFullInterpolation ? "enabled" : "disabled");
+  }
+
+  if (mTriggerCondition == 0x1) {
+    LOG(info) << "SINGLE trigger condition enforced in reconstruction";
+  } else if (mTriggerCondition == 0x3) {
+    LOG(info) << "DOUBLE trigger condition enforced in reconstruction";
+  } else if (mTriggerCondition == 0x7) {
+    LOG(info) << "TRIPLE trigger condition enforced in reconstruction";
+  } else {
+    LOG(fatal) << "Unsupported trigger condition in ZDC reconstruction: " << mTriggerCondition;
   }
 
   if (mCorrSignalSet == false) {
@@ -133,6 +141,28 @@ void DigiReco::init()
   }
   if (mVerbosity > DbgZero) {
     LOG(info) << "TDC pile-up correction is " << (mCorrBackground ? "enabled" : "disabled");
+  }
+
+  // Trigger configuration
+  for (int itdc = 0; itdc < o2::zdc::NTDCChannels; itdc++) {
+    // If the reconstruction parameters were not manually set
+    if (ropt.tth[itdc] <= 0) {
+      if (!mRecoConfigZDC) {
+        LOG(fatal) << "Trigger threshold for TDC " << itdc << " missing configuration object and no manual override";
+      } else {
+        ropt.tth[itdc] = mRecoConfigZDC->tth[itdc];
+      }
+    }
+    if (ropt.tsh[itdc] <= 0) {
+      if (!mRecoConfigZDC) {
+        LOG(fatal) << "Trigger shift for TDC " << itdc << " missing configuration object and no manual override";
+      } else {
+        ropt.tsh[itdc] = mRecoConfigZDC->tsh[itdc];
+      }
+    }
+    if (mVerbosity > DbgZero) {
+      LOG(info) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " tth= " << ropt.tth[itdc] << " tsh= " << ropt.tsh[itdc];
+    }
   }
 
   // TDC calibration
@@ -425,8 +455,8 @@ int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, cons
       }
     }
   }
-  for (int ich = 0; ich < NChannels; ich++) {
-    if (mVerbosity > DbgZero) {
+  if (mVerbosity > DbgMinimal) {
+    for (int ich = 0; ich < NChannels; ich++) {
       LOG(info) << ChannelNames[ich] << " cnt: " << scaler[ich];
     }
   }
@@ -1953,7 +1983,7 @@ void DigiReco::correctTDCPile()
   }
 } // correctTDCPile
 
-//#define O2_ZDC_DEBUG_CORR
+// #define O2_ZDC_DEBUG_CORR
 
 int DigiReco::correctTDCSignal(int itdc, int16_t TDCVal, float TDCAmp, float& fTDCVal, float& fTDCAmp, bool isbeg, bool isend)
 {
