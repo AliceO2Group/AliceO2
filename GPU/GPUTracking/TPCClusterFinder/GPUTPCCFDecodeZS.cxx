@@ -702,8 +702,9 @@ GPUd() unsigned short GPUTPCCFDecodeZSDenseLink::DecodeTBMultiThread(
       pagePtr = nextPage;                                          \
       ConsumeBytes(pagePtr, sizeof(header::RAWDataHeader) + diff); \
     }                                                              \
-  } else                                                           \
-    assert(pagePtr <= payloadEnd)
+  } else {                                                         \
+    assert(pagePtr <= payloadEnd);                                 \
+  }
 
 #define PEEK_OVERFLOW(pagePtr, offset)                                                      \
   (*(PayloadExtendsToNextPage && (pagePtr) < nextPage && (pagePtr) + (offset) >= payloadEnd \
@@ -729,12 +730,16 @@ GPUd() unsigned short GPUTPCCFDecodeZSDenseLink::DecodeTBMultiThread(
 
   unsigned short nSamplesInTB = 0;
 
+  GPUbarrier();
+
   // Read timebin link headers
   for (unsigned char iLink = 0; iLink < nLinksInTimebin; iLink++) {
     unsigned char timebinLinkHeaderStart = ConsumeByte(page);
     MAYBE_PAGE_OVERFLOW(page);
 
-    smem.linkIds[iLink] = timebinLinkHeaderStart & 0b00011111;
+    if (iThread == 0) {
+      smem.linkIds[iLink] = timebinLinkHeaderStart & 0b00011111;
+    }
     bool bitmaskIsFlat = timebinLinkHeaderStart & 0b00100000;
 
     unsigned short bitmaskL2 = 0x03FF;
@@ -768,7 +773,9 @@ GPUd() unsigned short GPUTPCCFDecodeZSDenseLink::DecodeTBMultiThread(
     ConsumeBytes(page, nBytesBitmask);
     MAYBE_PAGE_OVERFLOW(page);
 
-    smem.samplesPerLinkEnd[iLink] = nSamplesInTB;
+    if (iThread == 0) {
+      smem.samplesPerLinkEnd[iLink] = nSamplesInTB;
+    }
 
   } // for (unsigned char iLink = 0; iLink < nLinksInTimebin; iLink++)
 
@@ -778,6 +785,8 @@ GPUd() unsigned short GPUTPCCFDecodeZSDenseLink::DecodeTBMultiThread(
   if (not fragment.contains(timeBin)) {
     return FillWithInvalid(clusterer, iThread, NTHREADS, pageDigitOffset, nSamplesInTB);
   }
+
+  GPUbarrier();
 
   // Unpack ADC
   int iLink = 0;
@@ -840,8 +849,9 @@ GPUd() unsigned short GPUTPCCFDecodeZSDenseLink::DecodeTBSingleThread(
       pagePtr = nextPage;                                          \
       ConsumeBytes(pagePtr, sizeof(header::RAWDataHeader) + diff); \
     }                                                              \
-  } else                                                           \
-    assert(pagePtr <= payloadEnd)
+  } else {                                                         \
+    assert(pagePtr <= payloadEnd);                                 \
+  }
 
   using zerosupp_link_based::ChannelPerTBHeader;
 
