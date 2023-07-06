@@ -213,9 +213,7 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
         context.detectors = extDetectors;
       }
       auto forcedRaw = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("force_run_as_raw", "false");
-      context.forcedRaw = forcedRaw == "true";
-
-      context.nOrbitsPerTF = services.get<RawDeviceService>().device()->fConfig->GetProperty<uint64_t>("Norbits_per_TF", 128); },
+      context.forcedRaw = forcedRaw == "true"; },
     .kind = ServiceKind::Stream};
 }
 
