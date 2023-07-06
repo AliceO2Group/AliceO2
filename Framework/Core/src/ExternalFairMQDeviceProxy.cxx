@@ -425,7 +425,8 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
                                                    std::vector<OutputSpec> const& outputs,
                                                    char const* defaultChannelConfig,
                                                    InjectorFunction converter,
-                                                   uint64_t minSHM)
+                                                   uint64_t minSHM,
+                                                   bool sendTFcounter)
 {
   DataProcessorSpec spec;
   spec.name = strdup(name);
@@ -437,7 +438,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
   // The Init method will register a new "Out of band" channel and
   // attach an OnData to it which is responsible for converting incoming
   // messages into DPL messages.
-  spec.algorithm = AlgorithmSpec{[converter, minSHM, deviceName = spec.name](InitContext& ctx) {
+  spec.algorithm = AlgorithmSpec{[converter, minSHM, deviceName = spec.name, sendTFcounter](InitContext& ctx) {
     auto* device = ctx.services().get<RawDeviceService>().device();
     // make a copy of the output routes and pass to the lambda by move
     auto outputRoutes = ctx.services().get<RawDeviceService>().spec().outputs;
@@ -593,7 +594,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       }
     };
 
-    auto runHandler = [dataHandler, minSHM](ProcessingContext& ctx) {
+    auto runHandler = [dataHandler, minSHM, sendTFcounter](ProcessingContext& ctx) {
       static RateLimiter limiter;
       auto device = ctx.services().get<RawDeviceService>().device();
       limiter.check(ctx, std::stoi(device->fConfig->GetValue<std::string>("timeframes-rate-limit")), minSHM);
@@ -624,7 +625,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
               timingInfo.creation = dph->creation;
             }
             dataHandler(timingInfo, parts, 0, ci);
-            if (ctx.services().active<o2::monitoring::Monitoring>()) {
+            if (sendTFcounter) {
               ctx.services().get<o2::monitoring::Monitoring>().send(o2::monitoring::Metric{(uint64_t)timingInfo.tfCounter, "df-sent"}.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL));
             }
           }

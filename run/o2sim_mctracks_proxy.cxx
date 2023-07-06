@@ -202,7 +202,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   auto proxy = specifyExternalFairMQDeviceProxy("o2sim-mctrack-proxy",
                                                 outputs,
-                                                channelspec.c_str(), f);
+                                                channelspec.c_str(), f, 0, true);
   // add monitoring service to be able to report number of timeframes sent for the rate limiting to work
   proxy.requiredServices.push_back(o2::framework::ArrowSupport::arrowBackendSpec());
   // if aggregation is requested, set the enumeration repetitions to aggregation size
