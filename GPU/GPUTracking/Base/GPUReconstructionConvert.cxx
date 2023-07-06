@@ -790,7 +790,7 @@ unsigned int zsEncoderDenseLinkBased::encodeSequence(std::vector<o2::tpc::Digit>
     sequenceBuffer.emplace_back(bitmaskL2.to_ulong() & 0xFF);
   }
 
-  for (int i = 9; i >= 0; i--) {
+  for (int i = 0; i < 10; i++) {
     if (bitmaskL2.test(i)) {
       sequenceBuffer.emplace_back(((bitmask >> (i * 8)) & std::bitset<80>(0xFF)).to_ulong());
     }
@@ -937,7 +937,7 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
       }
 
       std::bitset<80> bitmask(0);
-      for (int i = 9; i >= 0; i--) {
+      for (int i = 0; i < 10; i++) {
         if (bitmaskL2.test(i)) {
           bitmask |= std::bitset<80>(*((const unsigned char*)decPagePtr)) << i * 8;
           decPagePtr += sizeof(unsigned char);

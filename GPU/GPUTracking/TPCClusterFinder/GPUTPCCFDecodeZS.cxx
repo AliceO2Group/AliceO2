@@ -755,7 +755,7 @@ GPUd() unsigned short GPUTPCCFDecodeZSDenseLink::DecodeTBMultiThread(
       int chanL2Idx = chan / 8;
       bool l2 = TEST_BIT(bitmaskL2, chanL2Idx);
 
-      int chanByteOffset = CAMath::Popcount(bitmaskL2 >> (chanL2Idx + 1));
+      int chanByteOffset = nBytesBitmask - 1 - CAMath::Popcount(bitmaskL2 >> (chanL2Idx + 1));
 
       unsigned char myChannelHasData = (chan < 80 && l2 ? TEST_BIT(PEEK_OVERFLOW(page, chanByteOffset), chan % 8) : 0);
       assert(myChannelHasData == 0 || myChannelHasData == 1);
@@ -888,7 +888,7 @@ GPUd() unsigned short GPUTPCCFDecodeZSDenseLink::DecodeTBSingleThread(
       MAYBE_PAGE_OVERFLOW(page);
     }
 
-    for (int i = 9; i >= 0; i--) {
+    for (int i = 0; i < 10; i++) {
       if (bitmaskL2 & 1 << i) {
         nSamplesInTB += CAMath::Popcount(*Peek(page));
         channelMasks[10 * iLink + i] = ConsumeByte(page);
