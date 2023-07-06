@@ -471,11 +471,11 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
       }
     }
 
-    // TODO: skip empty voxels?
-    // float voxEntries = v->stat[o2::tpc::TrackResiduals::VoxV];
-    // if (voxEntries < 1.) { // no statistics
-    // continue;
-    //}
+    // skip empty voxels
+    float voxEntries = v->stat[o2::tpc::TrackResiduals::VoxV];
+    if (voxEntries < 1.) { // no statistics
+      continue;
+    }
 
     // double statX = v->stat[o2::tpc::TrackResiduals::VoxX]; // weight
     // double statY = v->stat[o2::tpc::TrackResiduals::VoxF]; // weight
@@ -485,10 +485,10 @@ std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> TPCFastSpaceChargeCorrect
     double dy = x / trackResiduals.getDY2XI(xBin, y2xBin);
     double dz = x * trackResiduals.getDZ2X(z2xBin);
 
-    double correctionX = v->D[o2::tpc::TrackResiduals::ResX];
-    double correctionY = v->D[o2::tpc::TrackResiduals::ResY];
-    double correctionZ = v->D[o2::tpc::TrackResiduals::ResZ];
-    double correctionD = v->D[o2::tpc::TrackResiduals::ResD];
+    double correctionX = v->DS[o2::tpc::TrackResiduals::ResX];
+    double correctionY = v->DS[o2::tpc::TrackResiduals::ResY];
+    double correctionZ = v->DS[o2::tpc::TrackResiduals::ResZ];
+    double correctionD = v->DS[o2::tpc::TrackResiduals::ResD];
 
     // add one point per voxel
 
