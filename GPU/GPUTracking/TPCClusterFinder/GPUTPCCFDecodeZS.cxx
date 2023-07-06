@@ -277,7 +277,7 @@ GPUd() size_t GPUTPCCFDecodeZSLink::DecodePage(GPUSharedMemory& smem, processorT
   (void)nDecoded;
 #ifdef GPUCA_CHECK_TPCZS_CORRUPTION
   if (iThread == 0 && nDecoded != decHdr->nADCsamples) {
-    clusterer.raiseError(GPUErrors::ERROR_TPCZS_INVALID_NADC, clusterer.mISlice, decHdr->nADCsamples, nDecoded);
+    clusterer.raiseError(GPUErrors::ERROR_TPCZS_INVALID_NADC, clusterer.mISlice * 1000 + decHdr->cruID, decHdr->nADCsamples, nDecoded);
     /*#ifndef GPUCA_GPUCODE
             FILE* foo = fopen("dump.bin", "w+b");
             fwrite(pageSrc, 1, o2::raw::RDHUtils::getMemorySize(*rdHdr), foo);
@@ -515,7 +515,7 @@ GPUd() void GPUTPCCFDecodeZSLinkBase::Decode(int nBlocks, int nThreads, int iBlo
   if (iThread == 0 && iBlock < nBlocks - 1) {
     uint32_t maxOffset = clusterer.mPzsOffsets[iBlock + 1].offset;
     if (pageDigitOffset != maxOffset) {
-      clusterer.raiseError(GPUErrors::ERROR_TPCZS_INVALID_OFFSET, clusterer.mISlice, pageDigitOffset, maxOffset);
+      clusterer.raiseError(GPUErrors::ERROR_TPCZS_INVALID_OFFSET, clusterer.mISlice * 1000 + endpoint, pageDigitOffset, maxOffset);
     }
   }
 #endif
@@ -630,7 +630,7 @@ GPUd() uint32_t GPUTPCCFDecodeZSDenseLink::DecodePage(GPUSharedMemory& smem, pro
         nSamplesWrittenTB = FillWithInvalid(clusterer, iThread, nThreads, pageDigitOffset, nSamplesInPage - nSamplesWritten);
 #ifdef GPUCA_CHECK_TPCZS_CORRUPTION
         if (iThread == 0) {
-          clusterer.raiseError(GPUErrors::ERROR_TPCZS_INCOMPLETE_HBF, clusterer.mISlice, raw::RDHUtils::getPageCounter(rawDataHeader), raw::RDHUtils::getPageCounter(nextPage));
+          clusterer.raiseError(GPUErrors::ERROR_TPCZS_INCOMPLETE_HBF, clusterer.mISlice * 1000 + decHeader->cruID, raw::RDHUtils::getPageCounter(rawDataHeader), raw::RDHUtils::getPageCounter(nextPage));
         }
 #endif
       }
@@ -645,7 +645,7 @@ GPUd() uint32_t GPUTPCCFDecodeZSDenseLink::DecodePage(GPUSharedMemory& smem, pro
 
 #ifdef GPUCA_CHECK_TPCZS_CORRUPTION
   if (iThread == 0 && nSamplesWritten != nSamplesInPage) {
-    clusterer.raiseError(GPUErrors::ERROR_TPCZS_INVALID_NADC, clusterer.mISlice, nSamplesInPage, nSamplesWritten);
+    clusterer.raiseError(GPUErrors::ERROR_TPCZS_INVALID_NADC, clusterer.mISlice * 1000 + decHeader->cruID, nSamplesInPage, nSamplesWritten);
     /*#ifndef GPUCA_GPUCODE
             FILE* foo = fopen("dump.bin", "w+b");
             fwrite(pageSrc, 1, o2::raw::RDHUtils::getMemorySize(*rdHdr), foo);
