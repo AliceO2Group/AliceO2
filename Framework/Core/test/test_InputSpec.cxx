@@ -51,7 +51,6 @@ TEST_CASE("TestInputSpecCreation")
   std::stable_sort(inputs.begin(), inputs.end(), sorter);
 }
 
-
 TEST_CASE("TestFormattersLifetime")
 {
   CHECK(fmt::format("{}", Lifetime::Timeframe) == "timeframe");
