@@ -1072,15 +1072,18 @@ std::vector<ServiceSpec> CommonServices::defaultServices(std::string extraPlugin
     CommonMessageBackends::fairMQDeviceProxy(),
     dataSender(),
     objectCache(),
-    ccdbSupportSpec(),
-    ArrowSupport::arrowBackendSpec(),
-    CommonMessageBackends::fairMQBackendSpec(),
-    CommonMessageBackends::stringBackendSpec(),
-    decongestionSpec()};
+    ccdbSupportSpec()};
+
+  DeploymentMode deploymentMode = DefaultsHelpers::deploymentMode();
+  if (deploymentMode != DeploymentMode::OnlineDDS && deploymentMode != DeploymentMode::OnlineECS && deploymentMode != DeploymentMode::OnlineAUX) {
+    specs.push_back(ArrowSupport::arrowBackendSpec());
+  }
+  specs.push_back(CommonMessageBackends::fairMQBackendSpec());
+  specs.push_back(CommonMessageBackends::stringBackendSpec());
+  specs.push_back(decongestionSpec());
 
   std::string loadableServicesStr = extraPlugins;
   // Do not load InfoLogger by default if we are not at P2.
-  DeploymentMode deploymentMode = DefaultsHelpers::deploymentMode();
   if (deploymentMode == DeploymentMode::OnlineDDS || deploymentMode == DeploymentMode::OnlineECS || deploymentMode == DeploymentMode::OnlineAUX) {
     if (loadableServicesStr.empty() == false) {
       loadableServicesStr += ",";
