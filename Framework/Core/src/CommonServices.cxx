@@ -216,7 +216,7 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
       context.forcedRaw = forcedRaw == "true";
 
       context.nOrbitsPerTF = services.get<RawDeviceService>().device()->fConfig->GetProperty<uint64_t>("Norbits_per_TF", 0); }
-    .kind = ServiceKind::Stream};
+               .kind = ServiceKind::Stream};
 }
 
 struct MissingService {
