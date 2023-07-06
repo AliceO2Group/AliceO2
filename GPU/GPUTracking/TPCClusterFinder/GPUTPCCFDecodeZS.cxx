@@ -72,9 +72,9 @@ GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUShared
   {
     {
 #else
-  for (unsigned int i = clusterer.mMinMaxCN[endpoint].minC; i < clusterer.mMinMaxCN[endpoint].maxC; i++) {
-    const unsigned int minJ = (i == clusterer.mMinMaxCN[endpoint].minC) ? clusterer.mMinMaxCN[endpoint].minN : 0;
-    const unsigned int maxJ = (i + 1 == clusterer.mMinMaxCN[endpoint].maxC) ? clusterer.mMinMaxCN[endpoint].maxN : zs.nZSPtr[endpoint][i];
+  for (unsigned int i = clusterer.mMinMaxCN[endpoint].zsPtrFirst; i < clusterer.mMinMaxCN[endpoint].zsPtrLast; i++) {
+    const unsigned int minJ = (i == clusterer.mMinMaxCN[endpoint].zsPtrFirst) ? clusterer.mMinMaxCN[endpoint].zsPageFirst : 0;
+    const unsigned int maxJ = (i + 1 == clusterer.mMinMaxCN[endpoint].zsPtrLast) ? clusterer.mMinMaxCN[endpoint].zsPageLast : zs.nZSPtr[endpoint][i];
     for (unsigned int j = minJ; j < maxJ; j++) {
 #endif
       const unsigned int* pageSrc = (const unsigned int*)(((const unsigned char*)zs.zsPtr[endpoint][i]) + j * TPCZSHDR::TPC_ZS_PAGE_SIZE);
@@ -484,9 +484,9 @@ GPUd() void GPUTPCCFDecodeZSLinkBase::Decode(int nBlocks, int nThreads, int iBlo
   {
     {
 #else // CPU
-  for (unsigned int i = clusterer.mMinMaxCN[endpoint].minC; i < clusterer.mMinMaxCN[endpoint].maxC; i++) {
-    const unsigned int minJ = (i == clusterer.mMinMaxCN[endpoint].minC) ? clusterer.mMinMaxCN[endpoint].minN : 0;
-    const unsigned int maxJ = (i + 1 == clusterer.mMinMaxCN[endpoint].maxC) ? clusterer.mMinMaxCN[endpoint].maxN : zs.nZSPtr[endpoint][i];
+  for (unsigned int i = clusterer.mMinMaxCN[endpoint].zsPtrFirst; i < clusterer.mMinMaxCN[endpoint].zsPtrLast; i++) {
+    const unsigned int minJ = (i == clusterer.mMinMaxCN[endpoint].zsPtrFirst) ? clusterer.mMinMaxCN[endpoint].zsPageFirst : 0;
+    const unsigned int maxJ = (i + 1 == clusterer.mMinMaxCN[endpoint].zsPtrLast) ? clusterer.mMinMaxCN[endpoint].zsPageLast : zs.nZSPtr[endpoint][i];
     for (unsigned int j = minJ; j < maxJ; j++) {
 #endif
       const unsigned int* pageSrc = (const unsigned int*)(((const unsigned char*)zs.zsPtr[endpoint][i]) + j * TPCZSHDR::TPC_ZS_PAGE_SIZE);
@@ -509,7 +509,7 @@ GPUd() void GPUTPCCFDecodeZSLinkBase::Decode(int nBlocks, int nThreads, int iBlo
       pageDigitOffset = Decoder::DecodePage(smem, clusterer, iBlock, nThreads, iThread, page, pageDigitOffset, firstHBF);
 
     } // [CPU] for (unsigned int j = minJ; j < maxJ; j++)
-  }   // [CPU] for (unsigned int i = clusterer.mMinMaxCN[endpoint].minC; i < clusterer.mMinMaxCN[endpoint].maxC; i++)
+  }   // [CPU] for (unsigned int i = clusterer.mMinMaxCN[endpoint].zsPtrFirst; i < clusterer.mMinMaxCN[endpoint].zsPtrLast; i++)
 
 #ifdef GPUCA_CHECK_TPCZS_CORRUPTION
   if (iThread == 0 && iBlock < nBlocks - 1) {
@@ -591,11 +591,10 @@ GPUd() void GPUTPCCFDecodeZSDenseLink::Thread<0>(int nBlocks, int nThreads, int 
 
 GPUd() uint32_t GPUTPCCFDecodeZSDenseLink::DecodePage(GPUSharedMemory& smem, processorType& clusterer, int iBlock, int nThreads, int iThread, const unsigned char* page, uint32_t pageDigitOffset, int firstHBF)
 {
-  constexpr bool DecodeInParallel =
 #ifdef GPUCA_GPUCODE
-    true;
+  constexpr bool DecodeInParallel = true;
 #else
-    false;
+  constexpr bool DecodeInParallel = false;
 #endif
 
   const unsigned char* const pageStart = page;
@@ -618,7 +617,6 @@ GPUd() uint32_t GPUTPCCFDecodeZSDenseLink::DecodePage(GPUSharedMemory& smem, pro
   for (unsigned short i = 0; i < decHeader->nTimebinHeaders; i++) {
     [[maybe_unused]] ptrdiff_t sizeLeftInPage = payloadEnd - page;
     assert(sizeLeftInPage > 0);
-    assert(nSamplesWritten < nSamplesInPage);
 
     unsigned short nSamplesWrittenTB = 0;
 
@@ -638,6 +636,7 @@ GPUd() uint32_t GPUTPCCFDecodeZSDenseLink::DecodePage(GPUSharedMemory& smem, pro
       nSamplesWrittenTB = DecodeTB<DecodeInParallel, false>(clusterer, smem, iThread, page, pageDigitOffset, rawDataHeader, firstHBF, decHeader->cruID, payloadEnd, nextPage);
     }
 
+    assert(nSamplesWritten <= nSamplesInPage);
     nSamplesWritten += nSamplesWrittenTB;
     pageDigitOffset += nSamplesWrittenTB;
 
