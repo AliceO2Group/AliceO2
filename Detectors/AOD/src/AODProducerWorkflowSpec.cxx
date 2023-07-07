@@ -1241,8 +1241,6 @@ void AODProducerWorkflowDPL::fillHMPID(const o2::globaltracking::RecoContainer& 
       photChargeVec2[i] = photChargeVec[i];
     }
 
-    Printf("**********mom = %f***********************", match.getHmpMom());
-
     hmpCursor(match.getTrackIndex(), match.getHMPsignal(), xTrk, yTrk, xMip, yMip, nph, charge, match.getMipClusSize(), match.getHmpMom(), photChargeVec2);
   }
 }
