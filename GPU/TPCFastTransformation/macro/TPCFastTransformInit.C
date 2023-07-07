@@ -1,6 +1,6 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
-// See https://alice-o2.web.cern.ch/copyright for details of the copyright
-// holders. All rights not expressly granted are reserved.
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
 //
 // This software is distributed under the terms of the GNU General Public
 // License v3 (GPL Version 3), copied verbatim in the file "COPYING".
@@ -84,7 +84,7 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
 
   o2::tpc::TPCFastSpaceChargeCorrectionHelper* corrHelper = o2::tpc::TPCFastSpaceChargeCorrectionHelper::instance();
 
-  auto corrPtr = corrHelper->createSpaceChargeCorrection(trackResiduals, voxResTree);
+  auto corrPtr = corrHelper->createFromTrackResiduals(trackResiduals, voxResTree);
 
   std::unique_ptr<o2::gpu::TPCFastTransform> fastTransform(
     helper->create(0, *corrPtr));

@@ -47,6 +47,9 @@ class TPCFastTransformGeo
     float u0;         ///< min. u coordinate
     float scaleUtoSU; ///< scale for su (scaled u ) coordinate
     float scaleSUtoU; ///< scale for u coordinate
+
+    /// get width in U
+    GPUd() float getUwidth() const { return -2.f * u0; }
   };
 
   /// _____________  Constructors / destructors __________________________
@@ -115,6 +118,13 @@ class TPCFastTransformGeo
 
   /// Gives Z length of the TPC, side C
   GPUd() float getTPCzLengthC() const { return mTPCzLengthC; }
+
+  /// Gives Z length of the TPC, depending on the slice
+  GPUd() float getTPCzLength(int slice) const
+  {
+    return (slice < NumberOfSlicesA) ? mTPCzLengthA
+                                     : mTPCzLengthC;
+  }
 
   /// Gives TPC alignment in Z
   GPUd() float getTPCalignmentZ() const { return mTPCalignmentZ; }
