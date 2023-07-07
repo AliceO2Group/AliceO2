@@ -62,6 +62,22 @@ class ConsumerTask
   }
 };
 
+static DataHeader headerFromSpec(OutputSpec const& spec, size_t size, o2::header::SerializationMethod method, int splitParts = 0, int partIndex = 0)
+{
+  DataHeader dh;
+  ConcreteDataMatcher matcher = DataSpecUtils::asConcreteDataMatcher(spec);
+  dh.dataOrigin = matcher.origin;
+  dh.dataDescription = matcher.description;
+  dh.subSpecification = matcher.subSpec;
+  dh.payloadSize = size;
+  dh.payloadSerializationMethod = method;
+  if (splitParts > 0) {
+    dh.splitPayloadParts = splitParts;
+    dh.splitPayloadIndex = partIndex;
+  }
+  return dh;
+}
+
 /// Function converting raw input data to DPL data format. Uses knowledge of how MCTracks and MCEventHeaders
 /// are sent from the o2sim side.
 /// If aggregate-timeframe is set to non-negative value N, this number of events is accumulated and then sent
@@ -69,28 +85,23 @@ class ConsumerTask
 InjectorFunction o2simKinematicsConverter(std::vector<OutputSpec> const& specs, uint64_t startTime, uint64_t step, int nevents, int nPerTF)
 {
   auto timesliceId = std::make_shared<size_t>(startTime);
-  auto totalEventCounter = std::make_shared<size_t>(0);
-  auto eventCounter = std::make_shared<size_t>(0);
+  auto totalEventCounter = std::make_shared<int>(0);
+  auto eventCounter = std::make_shared<int>(0);
   auto TFcounter = std::make_shared<size_t>(startTime);
   auto MCHeadersMessageCache = std::make_shared<fair::mq::Parts>();
   auto MCTracksMessageCache = std::make_shared<fair::mq::Parts>();
+  auto Nparts = std::make_shared<int>(nPerTF);
 
-  return [timesliceId, specs, step, nevents, nPerTF, totalEventCounter, eventCounter, TFcounter, MCHeadersMessageCache = MCHeadersMessageCache, MCTracksMessageCache = MCTracksMessageCache](TimingInfo& ti, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId, bool& stop) mutable {
-    // We iterate on all the parts and we send them two by two,
-    // adding the appropriate O2 header.
+  return [timesliceId, specs, step, nevents, nPerTF, totalEventCounter, eventCounter, TFcounter, Nparts, MCHeadersMessageCache = MCHeadersMessageCache, MCTracksMessageCache = MCTracksMessageCache](TimingInfo& ti, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId, bool& stop) mutable {
     if (nPerTF < 0) {
       // if no aggregation requested, forward each message with the DPL header
       if (*timesliceId != newTimesliceId) {
         LOG(fatal) << "Time slice ID provided from oldestPossible mechanism " << newTimesliceId << " is out of sync with expected value " << *timesliceId;
       }
+      // We iterate on all the parts and we send them two by two,
+      // adding the appropriate O2 header.
       for (auto i = 0U; i < parts.Size(); ++i) {
-        DataHeader dh;
-        ConcreteDataMatcher matcher = DataSpecUtils::asConcreteDataMatcher(specs[i]);
-        dh.dataOrigin = matcher.origin;
-        dh.dataDescription = matcher.description;
-        dh.subSpecification = matcher.subSpec;
-        dh.payloadSize = parts.At(i)->GetSize();
-        dh.payloadSerializationMethod = gSerializationMethodROOT;
+        DataHeader dh = headerFromSpec(specs[i], parts.At(i)->GetSize(), gSerializationMethodROOT);
         DataProcessingHeader dph{newTimesliceId, 0};
         // we have to move the incoming data
         o2::header::Stack headerStack{dh, dph};
@@ -98,34 +109,22 @@ InjectorFunction o2simKinematicsConverter(std::vector<OutputSpec> const& specs, 
       }
       *timesliceId += step;
     } else {
+      if (*eventCounter == 0) {
+        *Nparts = ((nevents - *totalEventCounter) < nPerTF) ? nevents - *totalEventCounter : nPerTF;
+      }
       // if aggregation is requested, colelct the payloads into a multipart message
       ti.timeslice = *TFcounter;
       ti.tfCounter = *TFcounter;
-      DataHeader headerDH;
-      DataHeader tracksDH;
+
       auto headerSize = parts.At(0)->GetSize();
       auto tracksSize = parts.At(1)->GetSize();
 
       DataProcessingHeader hdph{*TFcounter, 0};
-      ConcreteDataMatcher headerMatcher = DataSpecUtils::asConcreteDataMatcher(specs[0]);
-      headerDH.dataOrigin = headerMatcher.origin;
-      headerDH.dataDescription = headerMatcher.description;
-      headerDH.subSpecification = headerMatcher.subSpec;
-      headerDH.payloadSize = headerSize;
-      headerDH.payloadSerializationMethod = gSerializationMethodROOT;
-      headerDH.splitPayloadParts = nPerTF;
-      headerDH.splitPayloadIndex = *eventCounter;
+      DataHeader headerDH = headerFromSpec(specs[0], headerSize, gSerializationMethodROOT, *Nparts, *eventCounter);
       o2::header::Stack hhs{headerDH, hdph};
 
       DataProcessingHeader tdph{*TFcounter, 0};
-      ConcreteDataMatcher tracksMatcher = DataSpecUtils::asConcreteDataMatcher(specs[1]);
-      tracksDH.dataOrigin = tracksMatcher.origin;
-      tracksDH.dataDescription = tracksMatcher.description;
-      tracksDH.subSpecification = tracksMatcher.subSpec;
-      tracksDH.payloadSize = tracksSize;
-      tracksDH.payloadSerializationMethod = gSerializationMethodROOT;
-      tracksDH.splitPayloadParts = nPerTF;
-      tracksDH.splitPayloadIndex = *eventCounter;
+      DataHeader tracksDH = headerFromSpec(specs[1], tracksSize, gSerializationMethodROOT, *Nparts, *eventCounter);
       o2::header::Stack ths{tracksDH, tdph};
 
       appendForSending(device, std::move(hhs), *TFcounter, std::move(parts.At(0)), specs[0], *MCHeadersMessageCache.get(), channelRetriever);
@@ -134,7 +133,7 @@ InjectorFunction o2simKinematicsConverter(std::vector<OutputSpec> const& specs, 
     }
 
     ++(*totalEventCounter);
-    if (nPerTF > 0 && *eventCounter == static_cast<size_t>(nPerTF)) {
+    if (nPerTF > 0 && *eventCounter == nPerTF) {
       // if aggregation is requested, only send the accumulated vectors
       LOGP(info, ">> Events: {}; TF counter: {}", *eventCounter, *TFcounter);
       *eventCounter = 0;
@@ -145,7 +144,7 @@ InjectorFunction o2simKinematicsConverter(std::vector<OutputSpec> const& specs, 
       MCTracksMessageCache->Clear();
     }
 
-    if (*totalEventCounter == static_cast<size_t>(nevents)) {
+    if (*totalEventCounter == nevents) {
       if (nPerTF > 0) {
         // send accumulated messages if the limit is reached
         ++(*TFcounter);
