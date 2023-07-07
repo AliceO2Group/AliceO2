@@ -167,15 +167,14 @@ void DigiReco::init()
 
   // Extended search configuration
   if (ropt.setExtendedSearch == false) {
-    if (!mRecoConfigZDC) {
+    if (mRecoConfigZDC==nullptr) {
       LOG(fatal) << "Extended search configuration: missing configuration object and no manual override";
     } else {
-      ropt.doExtendedSearch = extendedSearch;
+      ropt.doExtendedSearch = mRecoConfigZDC->extendedSearch;
     }
   }
   LOG(info) << "Extended search is " << mRopt->doExtendedSearch;
 
-  for (int itdc = 0; itdc < o2::zdc::NTDCChannels; itdc++) {
   // TDC calibration
   // Recentering
   for (int itdc = 0; itdc < o2::zdc::NTDCChannels; itdc++) {
@@ -1316,7 +1315,7 @@ int DigiReco::processTriggerExtended(int itdc, int ibeg, int iend)
     }
   }
   return interpolate(itdc, ibeg, iend);
-} // processTrigger
+} // processTriggerExtended
 
 // Interpolation for single point
 O2_ZDC_DIGIRECO_FLT DigiReco::getPoint(int isig, int ibeg, int iend, int i)
