@@ -997,7 +997,7 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
   }
 
   unsigned int hdrMinTimeBin = (decHDR->timeOffset + (o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) - firstOrbit) * o2::constants::lhc::LHCMaxBunches) / LHCBCPERTIMEBIN;
-  unsigned int hdrMaxTimeBin = hdrMinTimeBin + decHDR->nTimeBinSpan;
+  unsigned int hdrMaxTimeBin = hdrMinTimeBin + decHDR->nTimeBinSpan + ((decHDR->flags & TPCZSHDRV2::ZSFlags::nTimeBinSpanBit8) ? 256 : 0);
 
   if (!extendFailure && nOutput != decHDR->nADCsamples) {
     std::ostringstream oss;
