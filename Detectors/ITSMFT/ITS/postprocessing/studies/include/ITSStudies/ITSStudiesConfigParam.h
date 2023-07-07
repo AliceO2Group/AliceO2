@@ -38,10 +38,14 @@ struct AvgClusSizeStudyParamConfig : public o2::conf::ConfigurableParamHelper<Av
   bool performFit = false;   // determine if fit to K0s mass spectrum will be done (set to false in the case of low statistics)
   bool generatePlots = true; // TODO: not yet tested
 
-  // Plot parameters
+  // Average cluster size plot: eta binning parameters
   double etaMin = -1.5; // lower edge of lowest bin for eta binning on average cluster size
   double etaMax = 1.5;  // upper edge for highest bin for eta binning on average cluster size
   int etaNBins = 5;     // number of eta bins
+
+  // Average cluster size plot: cluster size binning parameters
+  double sizeMax = 15; // upper edge of highest bin for average cluster size
+  int sizeNBins = 20;   // number of cluster size bins
 
   O2ParamDef(AvgClusSizeStudyParamConfig, "AvgClusSizeStudyParam");
 };

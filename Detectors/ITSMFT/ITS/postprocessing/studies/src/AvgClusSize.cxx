@@ -57,10 +57,26 @@ using DCA = o2::dataformats::DCA;
 
 void AvgClusSizeStudy::init(InitContext& ic)
 {
-
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
-  LOGP(info, "starting");
+  LOGP(info, "Starting average cluster size study...");
+
+  prepareOutput();
+
+  if (mUseMC) { // for counting the missed K0shorts
+    mMCKinReader = std::make_unique<o2::steer::MCKinematicsReader>("collisioncontext.root");
+    for (int iEvent{0}; iEvent < mMCKinReader->getNEvents(0); iEvent++) {
+      auto mctrk = mMCKinReader->getTracks(0, iEvent);
+      mMCTracks.insert(mMCTracks.end(), mctrk.begin(), mctrk.end());
+    }
+  }
+
+  LOGP(important, "Cluster size study initialized.");
+}
+
+void AvgClusSizeStudy::prepareOutput()
+{
   mDBGOut = std::make_unique<o2::utils::TreeStreamRedirector>(mOutName.c_str(), "recreate");
+  mOutputTree = std::make_unique<TTree>("v0", "testing");
 
   mMassSpectrumFull = std::make_unique<THStack>("V0", "V0 mass spectrum; MeV");                                          // auto-set axis ranges
   mMassSpectrumFullNC = std::make_unique<TH1F>("V0_nc", "no cuts; MeV", 100, 250, 1000);                                 // auto-set axis ranges
@@ -71,13 +87,13 @@ void AvgClusSizeStudy::init(InitContext& ic)
   mAvgClusSize = std::make_unique<THStack>("avg_clus_size", "Average cluster size per track; pixels / cluster / track"); // auto-set axis ranges
   mAvgClusSizeNC = std::make_unique<TH1F>("avg_clus_size_NC", "no cuts", 40, 0, 15);                                     // auto-set axis ranges
   mAvgClusSizeC = std::make_unique<TH1F>("avg_clus_size_C", "cut", 40, 0, 15);                                           // auto-set axis ranges
-  mStackCosPA = std::make_unique<THStack>("CosPA_stack", "CosPA");                                                       // auto-set axis ranges
+  mMCStackCosPA = std::make_unique<THStack>("CosPA_stack", "CosPA");                                                     // auto-set axis ranges
   mStackDCA = std::make_unique<THStack>("DCA_stack", "DCA");                                                             // auto-set axis ranges
   mStackR = std::make_unique<THStack>("R_stack", "R");                                                                   // auto-set axis ranges
   mStackPVDCA = std::make_unique<THStack>("PV_DCA_stack", "PV-DCA");                                                     // auto-set axis ranges
   mCosPA = std::make_unique<TH1F>("CosPA", "cos(PA)", 100, -1, 1);                                                       // auto-set axis ranges
-  mCosPA_K0 = std::make_unique<TH1F>("CosPA_K0", "cos(PA)", 100, -1, 1);                                                 // auto-set axis ranges
-  mCosPA_notK0 = std::make_unique<TH1F>("CosPA_notK0", "cos(PA)", 100, -1, 1);                                           // auto-set axis ranges
+  mMCCosPA_K0 = std::make_unique<TH1F>("CosPA_K0", "cos(PA)", 100, -1, 1);                                               // auto-set axis ranges
+  mMCCosPA_notK0 = std::make_unique<TH1F>("CosPA_notK0", "cos(PA)", 100, -1, 1);                                         // auto-set axis ranges
   mR = std::make_unique<TH1F>("R", "R", 40, 1, -1);                                                                      // auto-set axis ranges
   mR_K0 = std::make_unique<TH1F>("R_K0", "R", 40, 0, 20);                                                                // auto-set axis ranges
   mR_notK0 = std::make_unique<TH1F>("R_notK0", "R", 40, 0, 20);                                                          // auto-set axis ranges
@@ -86,17 +102,18 @@ void AvgClusSizeStudy::init(InitContext& ic)
   mDCA_notK0 = std::make_unique<TH1F>("DCA_notK0", "DCA", 40, 0, 0.25);                                                  // auto-set axis ranges
   mEtaNC = std::make_unique<TH1F>("etaNC", "no cuts", 30, 1, -1);                                                        // auto-set axis ranges
   mEtaC = std::make_unique<TH1F>("etaC", "cut", 30, 1, -1);                                                              // auto-set axis ranges
-  mPID = std::make_unique<TH1F>("PID", "PID", 100, 1, -1);
+  mMCMotherPDG = std::make_unique<TH1F>("PID", "MC K0s mother PDG codes", 100, 1, -1);
   mPVDCA_K0 = std::make_unique<TH1F>("PVDCA_K0", "Prong DCA to pVertex", 80, 0, 2);
   mPVDCA_notK0 = std::make_unique<TH1F>("PVDCA_notK0", "Prong DCA to pVertex", 80, 0, 2);
 
   mAvgClusSizeCEta = std::make_unique<THStack>("avg_clus_size_eta", "Average cluster size per track; pixels / cluster / track"); // auto-set axis ranges
-  double binWidth = (etaMax - etaMin) / (double)etaNBins;
-  mEtaBinUL.reserve(etaNBins);
-  for (int i = 0; i < etaNBins; i++) {
-    mEtaBinUL.emplace_back(etaMin + (binWidth * (i + 1)));
-    mAvgClusSizeCEtaVec.push_back(std::make_unique<TH1F>(Form("avg_clus_size_%i", i), Form("%.2f < #eta < %.2f", mEtaBinUL[i] - binWidth, mEtaBinUL[i]), 40, 0, 15));
+  double binWidth = (mParams.etaMax - mParams.etaMin) / (double)mParams.etaNBins;
+  mEtaBinUL.reserve(mParams.etaNBins);
+  for (int i = 0; i < mParams.etaNBins; i++) {
+    mEtaBinUL.emplace_back(mParams.etaMin + (binWidth * (i + 1)));
+    mAvgClusSizeCEtaVec.push_back(std::make_unique<TH1F>(Form("avg_clus_size_%i", i), Form("%.2f < #eta < %.2f", mEtaBinUL[i] - binWidth, mEtaBinUL[i]), mParams.sizeNBins, 0, mParams.sizeMax));
     mAvgClusSizeCEtaVec[i]->SetDirectory(nullptr);
+    // mAvgClusSizeCEtaVec[i]->SetDirectory(nullptr);
     mAvgClusSizeCEta->Add(mAvgClusSizeCEtaVec[i].get());
   }
 
@@ -107,8 +124,8 @@ void AvgClusSizeStudy::init(InitContext& ic)
   mAvgClusSizeNC->SetDirectory(nullptr);
   mAvgClusSizeC->SetDirectory(nullptr);
   mCosPA->SetDirectory(nullptr);
-  mCosPA_K0->SetDirectory(nullptr);
-  mCosPA_notK0->SetDirectory(nullptr);
+  mMCCosPA_K0->SetDirectory(nullptr);
+  mMCCosPA_notK0->SetDirectory(nullptr);
   mR->SetDirectory(nullptr);
   mR_K0->SetDirectory(nullptr);
   mR_notK0->SetDirectory(nullptr);
@@ -117,18 +134,46 @@ void AvgClusSizeStudy::init(InitContext& ic)
   mDCA_notK0->SetDirectory(nullptr);
   mEtaNC->SetDirectory(nullptr);
   mEtaC->SetDirectory(nullptr);
-  mPID->SetDirectory(nullptr);
+  mMCMotherPDG->SetDirectory(nullptr);
   mPVDCA_K0->SetDirectory(nullptr);
   mPVDCA_notK0->SetDirectory(nullptr);
 
-  if (mUseMC) {                                                           // for counting the missed K0shorts
-    for (int iEvent{0}; iEvent < mMCKinReader->getNEvents(0); iEvent++) { // Single TF loaded from File, might extend it to use source
-      auto mctrk = mMCKinReader->getTracks(0, iEvent);
-      mMCTracks.insert(mMCTracks.end(), mctrk.begin(), mctrk.end());
-    }
+  mMassSpectrumFull->Add(mMassSpectrumFullC.get());
+  mMassSpectrumFull->Add(mMassSpectrumFullNC.get());
+  mMassSpectrumK0s->Add(mMassSpectrumK0sC.get());
+  mMassSpectrumK0s->Add(mMassSpectrumK0sNC.get());
+  mAvgClusSize->Add(mAvgClusSizeC.get());
+  mAvgClusSize->Add(mAvgClusSizeNC.get());
+  mMCStackCosPA->Add(mMCCosPA_K0.get());
+  mMCStackCosPA->Add(mMCCosPA_notK0.get());
+  mStackDCA->Add(mDCA_K0.get());
+  mStackDCA->Add(mDCA_notK0.get());
+  mStackR->Add(mR_K0.get());
+  mStackR->Add(mR_notK0.get());
+  mStackPVDCA->Add(mPVDCA_K0.get());
+  mStackPVDCA->Add(mPVDCA_notK0.get());
+}
+
+void AvgClusSizeStudy::setStyle()
+{
+  gStyle->SetPalette(kRainbow);
+
+  for (int i = 0; i < mAvgClusSizeCEtaVec.size(); i++) {
+    mAvgClusSizeCEtaVec[i]->SetMarkerStyle(20 + i);
+    mAvgClusSizeCEtaVec[i]->SetMarkerColor(i + 1);
+    mAvgClusSizeCEtaVec[i]->SetLineColor(i + 1);
+
+    // hist->SetMarkerAttributes();
   }
 
-  LOGP(important, "Cluster size study initialized.");
+  // mMassSpectrumK0sCut->Sumw2();
+  mAvgClusSizeC->SetLineColor(kRed);
+  mMassSpectrumFullC->SetLineColor(kRed);
+  mMassSpectrumK0sC->SetLineColor(kRed);
+  mMCCosPA_K0->SetLineColor(kRed);
+  mDCA_K0->SetLineColor(kRed);
+  mR_K0->SetLineColor(kRed);
+  mPVDCA_K0->SetLineColor(kRed);
 }
 
 void AvgClusSizeStudy::run(ProcessingContext& pc)
@@ -197,6 +242,16 @@ void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
   Int_t V0PdgCode, d0PdgCode, d1PdgCode, m0TrkId, m1TrkId;
   bool isK0s;
 
+  mOutputTree->Branch("clusSize", &avgClusterSize, "clusSize/D");
+  mOutputTree->Branch("mass", &mass, "mass/D");
+  mOutputTree->Branch("dca", &dca, "dca/D");
+  mOutputTree->Branch("cosPA", &cosPA, "cosPA/D");
+  mOutputTree->Branch("R", &R, "R/D");
+  mOutputTree->Branch("v0eta", &V0eta, "v0eta/D");
+  mOutputTree->Branch("d0R", &d0R, "d0R/D");
+  mOutputTree->Branch("d1R", &d1R, "d1R/D");
+  mOutputTree->Branch("isMCK0s", &isK0s, "isMCK0s/O");
+
   loadData(recoData);
   auto V0s = recoData.getV0s();
   auto trks = recoData.getITSTracks();
@@ -254,18 +309,21 @@ void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
               if (V0PdgCode == 310) {
                 isK0s = true;
                 nK0s++;
-                if (abs(d0PdgCode) == 211 && d0PdgCode / d1PdgCode == -1)
+                if (abs(d0PdgCode) == 211 && d0PdgCode / d1PdgCode == -1) {
                   nIsPiPiIsK0s++;
-                else
+                }
+                else {
                   nIsNotPiPiIsK0s++;
+                }
               } else {
                 if (abs(d0PdgCode) == 211 && d0PdgCode / d1PdgCode == -1) {
                   nIsPiPiNotK0s++;
                 }
                 nNotK0s++;
               }
-              if (abs(d0PdgCode) == 211 && d0PdgCode / d1PdgCode == -1)
+              if (abs(d0PdgCode) == 211 && d0PdgCode / d1PdgCode == -1) {
                 nPiPi++;
+              }
             } else {
               nEvIDMismatch++;
             }
@@ -277,13 +335,13 @@ void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
         nNotValid++;
       }
       if (isK0s) {
-        mCosPA_K0->Fill(cosPA);
+        mMCCosPA_K0->Fill(cosPA);
         mDCA_K0->Fill(dca);
         mR_K0->Fill(R);
         mPVDCA_K0->Fill(d0R);
         mPVDCA_K0->Fill(d1R);
       } else {
-        mCosPA_notK0->Fill(cosPA);
+        mMCCosPA_notK0->Fill(cosPA);
         mDCA_notK0->Fill(dca);
         mR_notK0->Fill(R);
         mPVDCA_notK0->Fill(d0R);
@@ -294,6 +352,7 @@ void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
     for (auto daughter : dauRecoTrks) {
       avgClusterSize = getAverageClusterSize(daughter);
       mAvgClusSizeNC->Fill(avgClusterSize);
+      mOutputTree->Fill();
     }
     mCosPA->Fill(cosPA);
     mMassSpectrumFullNC->Fill(mass);
@@ -308,7 +367,7 @@ void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
       for (auto daughter : dauRecoTrks) {
         avgClusterSize = getAverageClusterSize(daughter);
         mAvgClusSizeC->Fill(avgClusterSize);
-        if (V0eta > etaMin && V0eta < etaMax) {
+        if (V0eta > mParams.etaMin && V0eta < mParams.etaMax) {
           nPionsInEtaRange++;
           fillEtaBin(V0eta, avgClusterSize, 0);
         }
@@ -318,23 +377,31 @@ void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
   }
 
   if (mUseMC) {
+    o2::MCTrack V0MotherMCTrk;
     LOGP(info, "OVERALL STATISTICS: {} nonvalid daughter pairs, {} nullptrs, {} motherID mismatches, {} evID mismatches, {} K0-shorts, {} not-K0s, {} pion pairs, out of {} V0s", nNotValid, nNullptrs, nMotherIDMismatch, nEvIDMismatch, nK0s, nNotK0s, nPiPi, V0s.size());
     LOGP(info, "OVERALL STATISTICS: {} Pi Y K0s N, {} Pi Y K0s Y, {} Pi N K0s Y", nIsPiPiNotK0s, nIsPiPiIsK0s, nIsNotPiPiIsK0s);
     LOGP(info, "OVERALL STATISTICS: {} Pions in eta range", nPionsInEtaRange);
-    int totalK0sisPrimary = 0;
+    int nK0sisPrimary = 0;
     int totalK0sMotherMinus1 = 0;
     for (auto mcTrk : mMCTracks) { // search through all MC tracks to find K0s, whether reconstructed or not
-      if (mcTrk.GetPdgCode() == 310 && mcTrk.getMotherTrackId() == -1)
+      if (mcTrk.GetPdgCode() == 310 && mcTrk.getMotherTrackId() == -1) {
         totalK0sMotherMinus1++;
+      }
       if (mcTrk.GetPdgCode() == 310 && mcTrk.isPrimary()) {
-        totalK0sisPrimary++;
-        // LOGP(info, "K0s is primary, motherID is {}", mcTrk.getMotherTrackId());
+        nK0sisPrimary++;
+        // V0MotherMCTrk = mMCTracks[mcTrk.getMotherTrackId()];
+        // mMCMotherPDG->Fill(V0MotherMCTrk.GetPdgCode());
+        // LOGP(info, "K0s is primary, motherID is {} and motherPDG is {}", mcTrk.getMotherTrackId(), V0MotherMCTrk.GetPdgCode());
       }
     }
     LOGP(info, "OVERALL STATISTICS: {} K0s (mother==-1) found in MC tracks out of {} total", totalK0sMotherMinus1, mMCTracks.size());
-    LOGP(info, "OVERALL STATISTICS: {} K0s (isPrimary) found in MC tracks out of {} total", totalK0sisPrimary, mMCTracks.size());
+    LOGP(info, "OVERALL STATISTICS: {} K0s (isPrimary) found in MC tracks out of {} total", nK0sisPrimary, mMCTracks.size());
     // LOGP(info, "OVERALL STATISTICS: {} primary K0s found in MC tracks out of {} total", totalK0sInDataset, mMCTracks.size());
   }
+
+  TFile fout(mOutName.c_str(), "RECREATE");
+  fout.WriteTObject(mOutputTree.get());
+  fout.Close();
 
   // TODO: implement 7 cluster track cut for daughters; if we don't have enough statistics, we can cut even harsher on cosPA and inject more statistics
   // TODO: print the cut on the graph
@@ -375,23 +442,8 @@ void AvgClusSizeStudy::updateTimeDependentParams(ProcessingContext& pc)
 
 void AvgClusSizeStudy::saveHistograms()
 {
-  mMassSpectrumFull->Add(mMassSpectrumFullC.get());
-  mMassSpectrumFull->Add(mMassSpectrumFullNC.get());
-  mMassSpectrumK0s->Add(mMassSpectrumK0sC.get());
-  mMassSpectrumK0s->Add(mMassSpectrumK0sNC.get());
-  mAvgClusSize->Add(mAvgClusSizeC.get());
-  mAvgClusSize->Add(mAvgClusSizeNC.get());
-  mStackCosPA->Add(mCosPA_K0.get());
-  mStackCosPA->Add(mCosPA_notK0.get());
-  mStackDCA->Add(mDCA_K0.get());
-  mStackDCA->Add(mDCA_notK0.get());
-  mStackR->Add(mR_K0.get());
-  mStackR->Add(mR_notK0.get());
-  mStackPVDCA->Add(mPVDCA_K0.get());
-  mStackPVDCA->Add(mPVDCA_notK0.get());
-
   mDBGOut.reset();
-  TFile fout(mOutName.c_str(), "RECREATE");
+  TFile fout(mOutName.c_str(), "UPDATE");
   fout.WriteTObject(mMassSpectrumFullNC.get());
   fout.WriteTObject(mMassSpectrumFullC.get());
   fout.WriteTObject(mMassSpectrumK0sNC.get());
@@ -403,19 +455,22 @@ void AvgClusSizeStudy::saveHistograms()
   fout.WriteTObject(mDCA.get());
   fout.WriteTObject(mEtaNC.get());
   fout.WriteTObject(mEtaC.get());
-  fout.WriteTObject(mPID.get());
-  fout.WriteTObject(mCosPA_K0.get());
-  fout.WriteTObject(mCosPA_notK0.get());
+  fout.WriteTObject(mMCMotherPDG.get());
+  fout.WriteTObject(mMCCosPA_K0.get());
+  fout.WriteTObject(mMCCosPA_notK0.get());
   fout.WriteTObject(mR_K0.get());
   fout.WriteTObject(mR_notK0.get());
   fout.WriteTObject(mDCA_K0.get());
   fout.WriteTObject(mDCA_notK0.get());
   fout.WriteTObject(mPVDCA_K0.get());
   fout.WriteTObject(mPVDCA_notK0.get());
+  LOGP(info, "am here");
+  // mOutputTree->Write();
   fout.Close();
+  LOGP(info, "DONE");
 
-  // mStackCosPA->Add(mCosPA_K0.get());
-  // mStackCosPA->Add(mCosPA_notK0.get());
+  // mMCStackCosPA->Add(mMCCosPA_K0.get());
+  // mMCStackCosPA->Add(mMCCosPA_notK0.get());
   // mStackDCA->Add(mDCA_K0.get());
   // mStackDCA->Add(mDCA_notK0.get());
   // mStackR->Add(mR_K0.get());
@@ -427,17 +482,6 @@ void AvgClusSizeStudy::saveHistograms()
 
 void AvgClusSizeStudy::plotHistograms()
 {
-  gStyle->SetPalette(kRainbow);
-
-  // mMassSpectrumK0sCut->Sumw2();
-  mAvgClusSizeC->SetLineColor(kRed);
-  mMassSpectrumFullC->SetLineColor(kRed);
-  mMassSpectrumK0sC->SetLineColor(kRed);
-  mCosPA_K0->SetLineColor(kRed);
-  mDCA_K0->SetLineColor(kRed);
-  mR_K0->SetLineColor(kRed);
-  mPVDCA_K0->SetLineColor(kRed);
-
   double globalAvgClusSize = (double)globalNPixels / (double)globalNClusters;
 
   TCanvas* c1 = new TCanvas();
@@ -476,38 +520,40 @@ void AvgClusSizeStudy::plotHistograms()
   c9->Print("mEtaC.png");
 
   TCanvas* c10 = new TCanvas();
-  mAvgClusSizeCEta->Draw("plc L NOSTACK HIST");
+  mAvgClusSizeCEta->Draw("P NOSTACK");
   c10->BuildLegend(0.6, 0.6, 0.8, 0.8);
   c10->Print("clusSizeEta.png");
-  for (int i = 0; i < etaNBins; i++) {
+  for (int i = 0; i < mParams.etaNBins; i++) {
     mAvgClusSizeCEtaVec[i]->Scale(1. / mAvgClusSizeCEtaVec[i]->Integral("width"));
   }
 
   TCanvas* c11 = new TCanvas();
-  mAvgClusSizeCEta->Draw("plc L NOSTACK HIST");
+  mAvgClusSizeCEta->Draw("P L NOSTACK HIST");
   mAvgClusSizeCEta->SetTitle("Average cluster size per track (normed)");
   c11->BuildLegend(0.6, 0.6, 0.8, 0.8);
   c11->Print("clusSizeEtaNormed.png");
 
-  TCanvas* c12 = new TCanvas();
-  mPID->Draw();
-  c12->Print("mPID.png");
+  if (mUseMC) {
+    TCanvas* c12 = new TCanvas();
+    mMCMotherPDG->Draw();
+    c12->Print("MCMotherPDG.png");
 
-  TCanvas* c13 = new TCanvas();
-  mStackCosPA->Draw("nostack");
-  c13->Print("MCCosPA.png");
+    TCanvas* c13 = new TCanvas();
+    mMCStackCosPA->Draw("nostack");
+    c13->Print("MCCosPA.png");
 
-  TCanvas* c14 = new TCanvas();
-  mStackDCA->Draw("nostack");
-  c14->Print("MCDCA.png");
+    TCanvas* c14 = new TCanvas();
+    mStackDCA->Draw("nostack");
+    c14->Print("MCDCA.png");
 
-  TCanvas* c15 = new TCanvas();
-  mStackR->Draw("nostack");
-  c15->Print("MCR.png");
+    TCanvas* c15 = new TCanvas();
+    mStackR->Draw("nostack");
+    c15->Print("MCR.png");
 
-  TCanvas* c16 = new TCanvas();
-  mStackPVDCA->Draw("nostack");
-  c16->Print("MCPVDCA.png");
+    TCanvas* c16 = new TCanvas();
+    mStackPVDCA->Draw("nostack");
+    c16->Print("MCPVDCA.png");
+  }
 }
 
 void AvgClusSizeStudy::fitMassSpectrum()
@@ -519,10 +565,12 @@ void AvgClusSizeStudy::fitMassSpectrum()
 
 void AvgClusSizeStudy::endOfStream(EndOfStreamContext& ec)
 {
-  if (mParams.performFit)
+  if (mParams.performFit) {
     fitMassSpectrum();
+  }
   if (mParams.generatePlots) {
     saveHistograms();
+    setStyle();
     plotHistograms();
   }
 }

@@ -26,6 +26,7 @@
 
 #include <TH1F.h>
 #include <THStack.h>
+#include <TTree.h>
 
 namespace o2
 {
@@ -50,11 +51,16 @@ class AvgClusSizeStudy : public Task
   void run(ProcessingContext&) final;
   void endOfStream(EndOfStreamContext&) final;
   void finaliseCCDB(ConcreteDataMatcher&, void*) final;
-  void process(o2::globaltracking::RecoContainer&);
-  void loadData(o2::globaltracking::RecoContainer&);
   void setClusterDictionary(const o2::itsmft::TopologyDictionary* d) { mDict = d; }
 
  private:
+  // Other functions
+  void process(o2::globaltracking::RecoContainer&);
+  void loadData(o2::globaltracking::RecoContainer&);
+
+  // Helper functions
+  void prepareOutput();
+  void setStyle();
   void updateTimeDependentParams(ProcessingContext& pc);
   double getAverageClusterSize(o2::its::TrackITS);
   void getClusterSizes(std::vector<int>&, const gsl::span<const o2::itsmft::CompClusterExt>, gsl::span<const unsigned char>::iterator&, const o2::itsmft::TopologyDictionary*);
@@ -62,7 +68,10 @@ class AvgClusSizeStudy : public Task
   void saveHistograms();
   void plotHistograms();
   void fillEtaBin(double eta, double clusSize, int i);
+
+  // Running options
   bool mUseMC;
+  const o2::its::study::AvgClusSizeStudyParamConfig& mParams = o2::its::study::AvgClusSizeStudyParamConfig::Instance(); // NOTE: unsure if this is implemented in the "typical" way - it does work though
 
   // Data
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
@@ -70,11 +79,12 @@ class AvgClusSizeStudy : public Task
   std::vector<int> mInputClusterSizes;
   gsl::span<const int> mInputITSidxs;
   std::vector<o2::MCTrack> mMCTracks;
-
   const o2::itsmft::TopologyDictionary* mDict = nullptr;
 
   // Output plots
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
+  std::unique_ptr<TTree> mOutputTree;
+
   std::unique_ptr<THStack> mMassSpectrumFull{};
   std::unique_ptr<TH1F> mMassSpectrumFullNC{};
   std::unique_ptr<TH1F> mMassSpectrumFullC{};
@@ -86,13 +96,13 @@ class AvgClusSizeStudy : public Task
   std::unique_ptr<TH1F> mAvgClusSizeC{};
   std::unique_ptr<THStack> mAvgClusSizeCEta{};
   std::vector<std::unique_ptr<TH1F>> mAvgClusSizeCEtaVec{};
-  std::unique_ptr<THStack> mStackCosPA{};
+  std::unique_ptr<THStack> mMCStackCosPA{};
   std::unique_ptr<THStack> mStackDCA{};
   std::unique_ptr<THStack> mStackR{};
   std::unique_ptr<THStack> mStackPVDCA{};
   std::unique_ptr<TH1F> mCosPA{};
-  std::unique_ptr<TH1F> mCosPA_K0{};
-  std::unique_ptr<TH1F> mCosPA_notK0{};
+  std::unique_ptr<TH1F> mMCCosPA_K0{};
+  std::unique_ptr<TH1F> mMCCosPA_notK0{};
   std::unique_ptr<TH1F> mCosPA_trueK0{};
   std::unique_ptr<TH1F> mR{};
   std::unique_ptr<TH1F> mR_K0{};
@@ -104,17 +114,14 @@ class AvgClusSizeStudy : public Task
   std::unique_ptr<TH1F> mDCA_trueK0{};
   std::unique_ptr<TH1F> mEtaNC{};
   std::unique_ptr<TH1F> mEtaC{};
-  std::unique_ptr<TH1F> mPID{};
+  std::unique_ptr<TH1F> mMCMotherPDG{};
   std::unique_ptr<TH1F> mPVDCA_K0{};
   std::unique_ptr<TH1F> mPVDCA_notK0{};
 
   int globalNClusters = 0;
   int globalNPixels = 0;
 
-  std::vector<double> mEtaBinUL;
-  double etaMin = -1.5;
-  double etaMax = 1.5;
-  int etaNBins = 5;
+  std::vector<double> mEtaBinUL; // upper edges for eta bins
 
   // Counters for K0s identification
   int nNotValid = 0;
@@ -128,12 +135,10 @@ class AvgClusSizeStudy : public Task
   int nK0s = 0;
   int nNotK0s = 0;
   int nPionsInEtaRange = 0;
+  int nInvalidK0sMother = 0;
 
-  const std::string mOutName{"massSpectrum.root"};
-  std::unique_ptr<o2::steer::MCKinematicsReader> mMCKinReader = std::make_unique<o2::steer::MCKinematicsReader>("collisioncontext.root");
-  // bool mPerformFit = false;
-
-  const o2::its::study::AvgClusSizeStudyParamConfig& mParams = o2::its::study::AvgClusSizeStudyParamConfig::Instance(); // NOTE: unsure if this is implemented in the "typical" way - it does work though
+  const std::string mOutName{"o2standalone_cluster_size_study.root"};
+  std::unique_ptr<o2::steer::MCKinematicsReader> mMCKinReader;
 };
 
 o2::framework::DataProcessorSpec getAvgClusSizeStudy(mask_t srcTracksMask, mask_t srcClustersMask, bool useMC);
