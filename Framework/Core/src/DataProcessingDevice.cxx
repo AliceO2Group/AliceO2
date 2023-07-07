@@ -240,8 +240,6 @@ void run_completion(uv_work_t* handle, int status)
     dpStats.updateStats({static_cast<short>(ProcessingStatsId::RESOURCE_OFFER_EXPIRED), DataProcessingStats::Op::Set, stats.totalExpiredOffers});
     dpStats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_BYTES_EXPIRED), DataProcessingStats::Op::Set, stats.totalExpiredBytes});
     dpStats.processCommandQueue();
-    assert(stats.totalExpiredBytes == 0);
-    assert(stats.totalExpiredOffers == 0);
   };
 
   for (auto& consumer : state.offerConsumers) {
