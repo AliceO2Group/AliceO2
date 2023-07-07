@@ -70,7 +70,7 @@ int RawDataDecoder::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
         digits[ir].setInputMask(pld);
         LOG(debug) << bcid << " inputs bcid vase 1 orbit " << orbit << " pld:" << pld;
       } else {
-        LOG(error) << "Two CTP IRs with the same timestamp:" << ir.bc << " " << ir.orbit << pld << " dig:" << digits[ir];
+        LOG(error) << "Two CTP IRs with the same timestamp:" << ir.bc << " " << ir.orbit << " pld:" << pld << " dig:" << digits[ir];
       }
     } else {
       LOG(error) << "Two digits with the same rimestamp:" << ir.bc << " " << ir.orbit;
