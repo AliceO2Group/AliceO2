@@ -35,7 +35,7 @@
 #ifndef ALICEO2_ZDC_DIGI_RECO_H
 #define ALICEO2_ZDC_DIGI_RECO_H
 
-//#define ALICEO2_ZDC_DIGI_RECO_DEBUG
+#define ALICEO2_ZDC_DIGI_RECO_DEBUG
 #ifdef O2_ZDC_DEBUG
 #ifndef ALICEO2_ZDC_DIGI_RECO_DEBUG
 #define ALICEO2_ZDC_DIGI_RECO_DEBUG
@@ -163,6 +163,7 @@ class DigiReco
   bool mCorrBackground = true;                              /// Enable TDC pile-up correction
   bool mCorrBackgroundSet = false;                          /// TDC pile-up correction set via function call
   bool mInError = false;                                    /// ZDC reconstruction ends in error
+  int mAssignedTDC[NTDCChannels]={0};                       /// Number of assigned TDCs in sequence (debugging)
 
   int correctTDCSignal(int itdc, int16_t TDCVal, float TDCAmp, float& fTDCVal, float& fTDCAmp, bool isbeg, bool isend); /// Correct TDC single signal
   int correctTDCBackground(int ibc, int itdc, std::deque<DigiRecoTDC>& tdc);                                            /// TDC amplitude and time corrections due to pile-up from previous bunches

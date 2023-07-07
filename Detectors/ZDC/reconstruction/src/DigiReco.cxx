@@ -161,10 +161,21 @@ void DigiReco::init()
       }
     }
     if (mVerbosity > DbgZero) {
-      LOG(info) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " tth= " << ropt.tth[itdc] << " tsh= " << ropt.tsh[itdc];
+      LOG(info) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " tth= " << mRopt->tth[itdc] << " tsh= " << mRopt->tsh[itdc];
     }
   }
 
+  // Extended search configuration
+  if (ropt.setExtendedSearch == false) {
+    if (!mRecoConfigZDC) {
+      LOG(fatal) << "Extended search configuration: missing configuration object and no manual override";
+    } else {
+      ropt.doExtendedSearch = extendedSearch;
+    }
+  }
+  LOG(info) << "Extended search is " << mRopt->doExtendedSearch;
+
+  for (int itdc = 0; itdc < o2::zdc::NTDCChannels; itdc++) {
   // TDC calibration
   // Recentering
   for (int itdc = 0; itdc < o2::zdc::NTDCChannels; itdc++) {
@@ -726,7 +737,10 @@ int DigiReco::reconstructTDC(int ibeg, int iend)
 {
 #ifdef ALICEO2_ZDC_DIGI_RECO_DEBUG
   LOG(info) << "________________________________________________________________________________";
-  LOG(info) << __func__ << "(" << ibeg << ", " << iend << ")";
+  LOG(info) << __func__ << "(" << ibeg << ", " << iend << ") length=" << iend - ibeg + 1;
+  for (int itdc = 0; itdc < NTDCChannels; itdc++) {
+    mAssignedTDC[itdc] = 0;
+  }
 #endif
   // Apply differential discrimination
   for (int itdc = 0; itdc < NTDCChannels; itdc++) {
@@ -746,7 +760,7 @@ int DigiReco::reconstructTDC(int ibeg, int iend)
         if (istart >= 0 && (istop - istart) > 0) {
           // Need data for at least two consecutive bunch crossings
           int rval = 0;
-          if (mRecoConfigZDC->extendedSearch) {
+          if (mRopt->doExtendedSearch) {
             rval = processTriggerExtended(itdc, istart, istop);
           } else {
             rval = processTrigger(itdc, istart, istop);
@@ -762,7 +776,7 @@ int DigiReco::reconstructTDC(int ibeg, int iend)
     // Check if there are consecutive bunch crossings at the end of group
     if (istart >= 0 && (istop - istart) > 0) {
       int rval = 0;
-      if (mRecoConfigZDC->extendedSearch) {
+      if (mRopt->doExtendedSearch) {
         rval = processTriggerExtended(itdc, istart, istop);
       } else {
         rval = processTrigger(itdc, istart, istop);
@@ -818,6 +832,23 @@ int DigiReco::reconstructTDC(int ibeg, int iend)
       }
     }
   }
+#ifdef ALICEO2_ZDC_DIGI_RECO_DEBUG
+  printf("Assiged TDCs:");
+  bool hasMult = false;
+  for (int itdc = 0; itdc < NTDCChannels; itdc++) {
+    if (mAssignedTDC[itdc] > 0) {
+      printf(" %s:%d", ChannelNames[TDCSignal[itdc]].data(), mAssignedTDC[itdc]);
+      if (mAssignedTDC[itdc] > 1) {
+        hasMult = true;
+      }
+    }
+  }
+  if (hasMult) {
+    printf(" MULTIPLE_ASSIGNMENTS\n");
+  } else {
+    printf("\n");
+  }
+#endif
   return 0;
 } // reconstructTDC
 
@@ -1249,9 +1280,9 @@ int DigiReco::processTriggerExtended(int itdc, int ibeg, int iend)
       s[0] = mChData[ref_s].data[s2];
 #endif
     }
-    // Triple trigger condition
     if (diff > thr) {
       isfired = isfired | 0x1;
+      // Check trigger condition
       if ((isfired & mTriggerCondition) == mTriggerCondition) {
         // Fired bit is assigned to the second sample, i.e. to the one that can identify the
         // signal peak position
@@ -1784,6 +1815,7 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
             << " mSource[" << isig << "] = " << unsigned(mSource[isig]) << " = " << mOffset[isig]
             << " amp=" << amp << " -> " << TDCAmpCorr << " calib=" << tdc_calib[itdc] << " -> TDCAmp=" << TDCAmp << "=" << myamp
             << (ibun == ibeg ? " B" : "") << (ibun == iend ? " E" : "");
+  mAssignedTDC[itdc]++;
 #endif
   ihit++;
 } // assignTDC
@@ -1979,6 +2011,19 @@ void DigiReco::correctTDCPile()
           tdc.emplace_back(rec->TDCVal[itdc][ihit], rec->TDCAmp[itdc][ihit], rec->ir);
         }
       } // Single hit in bunch
+#ifdef ALICEO2_ZDC_DIGI_RECO_DEBUG
+      if (rec->tdcPileEvE[TDCSignal[itdc]] || rec->tdcPileM1C[TDCSignal[itdc]] || rec->tdcPileM1E[TDCSignal[itdc]] ||
+          rec->tdcPileM2C[TDCSignal[itdc]] || rec->tdcPileM2E[TDCSignal[itdc]] || rec->tdcPileM3C[TDCSignal[itdc]] || rec->tdcPileM3E[TDCSignal[itdc]]) {
+        printf("%d %u.%-4u %s:%s%s%s%s\n", ibc, rec->ir.orbit, rec->ir.bc, ChannelNames[TDCSignal[itdc]].data(),
+               rec->tdcPileEvE[TDCSignal[itdc]] ? " PileEvE" : "",
+               rec->tdcPileM1C[TDCSignal[itdc]] ? " PileM1C" : "",
+               rec->tdcPileM1E[TDCSignal[itdc]] ? " PileM1E" : "",
+               rec->tdcPileM2C[TDCSignal[itdc]] ? " PileM2C" : "",
+               rec->tdcPileM2E[TDCSignal[itdc]] ? " PileM2E" : "",
+               rec->tdcPileM3C[TDCSignal[itdc]] ? " PileM3C" : "",
+               rec->tdcPileM3E[TDCSignal[itdc]] ? " PileM3E" : "");
+      }
+#endif
     }
   }
 } // correctTDCPile
