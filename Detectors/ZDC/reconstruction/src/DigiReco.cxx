@@ -167,7 +167,7 @@ void DigiReco::init()
 
   // Extended search configuration
   if (ropt.setExtendedSearch == false) {
-    if (mRecoConfigZDC==nullptr) {
+    if (mRecoConfigZDC == nullptr) {
       LOG(fatal) << "Extended search configuration: missing configuration object and no manual override";
     } else {
       ropt.doExtendedSearch = mRecoConfigZDC->extendedSearch;
