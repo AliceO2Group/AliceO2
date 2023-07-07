@@ -311,8 +311,7 @@ void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
                 nK0s++;
                 if (abs(d0PdgCode) == 211 && d0PdgCode / d1PdgCode == -1) {
                   nIsPiPiIsK0s++;
-                }
-                else {
+                } else {
                   nIsNotPiPiIsK0s++;
                 }
               } else {

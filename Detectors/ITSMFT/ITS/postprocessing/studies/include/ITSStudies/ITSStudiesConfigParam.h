@@ -45,7 +45,7 @@ struct AvgClusSizeStudyParamConfig : public o2::conf::ConfigurableParamHelper<Av
 
   // Average cluster size plot: cluster size binning parameters
   double sizeMax = 15; // upper edge of highest bin for average cluster size
-  int sizeNBins = 20;   // number of cluster size bins
+  int sizeNBins = 20;  // number of cluster size bins
 
   O2ParamDef(AvgClusSizeStudyParamConfig, "AvgClusSizeStudyParam");
 };
