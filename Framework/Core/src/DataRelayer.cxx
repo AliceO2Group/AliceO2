@@ -24,7 +24,6 @@
 #include "Framework/Logger.h"
 #include "Framework/PartRef.h"
 #include "Framework/TimesliceIndex.h"
-#include "Framework/Signpost.h"
 #include "Framework/RoutingIndices.h"
 #include "Framework/VariableContextHelpers.h"
 #include "Framework/FairMQDeviceProxy.h"
@@ -509,7 +508,6 @@ DataRelayer::RelayChoice
   auto& stats = mContext.get<DataProcessingStats>();
   /// If we get a valid result, we can store the message in cache.
   if (input != INVALID_INPUT && TimesliceId::isValid(timeslice) && TimesliceSlot::isValid(slot)) {
-    O2_SIGNPOST(O2_PROBE_DATARELAYER, timeslice.value, 0, 0, 0);
     if (needsCleaning) {
       this->pruneCache(slot, onDrop);
       mPruneOps.erase(std::remove_if(mPruneOps.begin(), mPruneOps.end(), [slot](const auto& x) { return x.slot == slot; }), mPruneOps.end());
