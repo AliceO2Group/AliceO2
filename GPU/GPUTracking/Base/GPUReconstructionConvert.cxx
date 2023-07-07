@@ -1008,7 +1008,7 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
 
   if (decHDR->nADCsamples && (minTimeBin < hdrMinTimeBin || maxTimeBin > hdrMaxTimeBin)) {
     std::ostringstream oss;
-    oss << "Incorrect time bin range in header, says " << hdrMinTimeBin << " - " << hdrMaxTimeBin << ", data is " << minTimeBin << " - " << maxTimeBin;
+    oss << "Incorrect time bin range in MetaInfo, header reports " << hdrMinTimeBin << " - " << hdrMaxTimeBin << ", decoded data is " << minTimeBin << " - " << maxTimeBin;
     amendPageErrorMessage(oss, rdh, decHDR, payloadEnd, decPagePtr, nOutput);
     throw std::runtime_error(oss.str());
   }
