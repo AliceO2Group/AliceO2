@@ -708,6 +708,12 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
       using Kind = DataProcessingStats::Kind;
       using Scope = DataProcessingStats::Scope;
 
+#ifdef NDEBUG
+      bool enableDebugMetrics = false;
+#else
+      bool enableDebugMetrics = true;
+#endif
+
       std::vector<DataProcessingStats::MetricSpec> metrics = {
         MetricSpec{.name = "errors",
                    .metricId = (int)ProcessingStatsId::ERROR_COUNT,
@@ -867,6 +873,7 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
                    .maxRefreshLatency = 10000,
                    .sendInitialValue = true},
         MetricSpec{.name = "resources-missing",
+                   .enabled = enableDebugMetrics,
                    .metricId = static_cast<short>(ProcessingStatsId::RESOURCES_MISSING),
                    .kind = Kind::UInt64,
                    .scope = Scope::DPL,
@@ -874,6 +881,7 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
                    .maxRefreshLatency = 1000,
                    .sendInitialValue = true},
         MetricSpec{.name = "resources-insufficient",
+                   .enabled = enableDebugMetrics,
                    .metricId = static_cast<short>(ProcessingStatsId::RESOURCES_INSUFFICIENT),
                    .kind = Kind::UInt64,
                    .scope = Scope::DPL,
@@ -881,6 +889,7 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
                    .maxRefreshLatency = 1000,
                    .sendInitialValue = true},
         MetricSpec{.name = "resources-satisfactory",
+                   .enabled = enableDebugMetrics,
                    .metricId = static_cast<short>(ProcessingStatsId::RESOURCES_SATISFACTORY),
                    .kind = Kind::UInt64,
                    .scope = Scope::DPL,
