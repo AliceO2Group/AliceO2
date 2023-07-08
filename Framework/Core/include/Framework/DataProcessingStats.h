@@ -140,6 +140,8 @@ struct DataProcessingStats {
     // Id of the metric. It must match the index in the metrics array.
     // Name of the metric
     std::string name = "";
+    // Wether or not the metric is enabled
+    bool enabled = true;
     int metricId = -1;
     /// The kind of the metric
     Kind kind = Kind::Int;
