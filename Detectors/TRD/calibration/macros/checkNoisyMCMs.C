@@ -29,15 +29,18 @@
 
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include "CCDB/CcdbApi.h"
+#include "CCDB/BasicCCDBManager.h"
 #include "DataFormatsTRD/NoiseCalibration.h"
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/TriggerRecord.h"
+#include "DataFormatsTRD/HelperMethods.h"
 
 #include <TFile.h>
 #include <TTree.h>
 
 #include <string>
 #include <vector>
+#include <set>
 #include <utility>
 #include <map>
 #include <algorithm>
@@ -151,21 +154,57 @@ void checkNoisyMCMs(std::string inpFile = "trdtracklets.root", bool useMean = tr
 
   printf("Info: Found in total %lu noisy MCMs for %'lu tracklets from %'lu triggers\n", noiseMap.getNumberOfNoisyMCMs(), totalTrackletCounter, totalTriggerCounter);
 
+  std::set<int> channelsToBeMasked;
+  auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
+  auto channelInfos = ccdbmgr.get<o2::trd::ChannelInfoContainer>("TRD/Calib/ChannelStatus");
   if (detailedOutput) {
+    int countFoundMatch = 0;
+    int countFoundNoMatch = 0;
     size_t countTrackletsFromNoisyMcms = 0;
     printf("Info: Number of tracklets sent per masked MCM: \n");
     printf("----->\n");
     for (int idx = 0; idx < constants::MAXHALFCHAMBER * constants::NMCMHCMAX; ++idx) {
       auto mcmIdx = trackletCounter[idx].second;
       if (noiseMap.getIsNoisy(mcmIdx)) {
+        bool partnerFound = false;
         countTrackletsFromNoisyMcms += trackletCounter[idx].first;
         int hcid, rob, mcm;
         NoiseStatusMCM::convertMcmIdxGlb(mcmIdx, hcid, rob, mcm);
-        printf("Masked MCM idx (%i), glbIdx(%i). HCID(%i), ROB(%i), MCM(%i). nTracklets: %i\n", idx, mcmIdx, hcid, rob, mcm, trackletCounter[idx].first);
+        printf("Masked MCM idx (%i), glbIdx(%i), HCID(%i), ROB(%i), MCM(%i). nTracklets: %i\n", idx, mcmIdx, hcid, rob, mcm, trackletCounter[idx].first);
+        for (int iCh = 0; iCh < constants::NADCMCM; ++iCh) {
+          auto chIdx = HelperMethods::getGlobalChannelIndex(hcid / 2, rob, mcm, iCh);
+          auto ch = channelInfos->getChannel(chIdx);
+          if (ch.getMean() > 20 || ch.getRMS() > 15) {
+            channelsToBeMasked.insert(chIdx);
+            ++countFoundMatch;
+            partnerFound = true;
+            printf("Found corresponding noisy channel %i: mean(%f), rms(%f)\n", iCh, ch.getMean(), ch.getRMS());
+          }
+        }
+        if (!partnerFound) {
+          ++countFoundNoMatch;
+          for (int iCh = 0; iCh < constants::NADCMCM; ++iCh) {
+            auto chIdx = HelperMethods::getGlobalChannelIndex(hcid / 2, rob, mcm, iCh);
+            auto ch = channelInfos->getChannel(chIdx);
+            // printf("No matching noisy channel found. Printing channel %i: mean(%f), rms(%f)\n", iCh, ch.getMean(), ch.getRMS());
+          }
+        }
       }
     }
     printf("\n<-----\n");
     printf("Info: Number of tracklets sent from masked MCMs: %'lu (%.2f%%)\n", countTrackletsFromNoisyMcms, (float)countTrackletsFromNoisyMcms / totalTrackletCounter * 100);
+    printf("Found %i with matching noisy channel and %i without\n", countFoundMatch, countFoundNoMatch);
   }
   printf("Info: Done\n");
+  printf("Listing channels to be masked:\n");
+  for (auto chIdx : channelsToBeMasked) {
+    int det, rob, mcm, channel;
+    HelperMethods::getPositionFromGlobalChannelIndex(chIdx, det, rob, mcm, channel);
+    int sec = HelperMethods::getSector(det);
+    int stack = HelperMethods::getStack(det);
+    int layer = HelperMethods::getLayer(det);
+    auto ch = channelInfos->getChannel(chIdx);
+    LOGP(info, "{}_{}_{}: ROB({}), MCM({}), channel({}); Measured ADC values from noise run: mean {}, rms {}, nEntries {}",
+         sec, stack, layer, rob, mcm, channel, ch.getMean(), ch.getRMS(), ch.getEntries());
+  }
 }
