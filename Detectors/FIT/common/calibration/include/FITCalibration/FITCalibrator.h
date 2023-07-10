@@ -63,7 +63,7 @@ class FITCalibrator final : public o2::calibration::TimeSlotCalibration<TimeSlot
   {
     static std::map<std::string, std::string> md;
     auto* container = slot.getContainer();
-    const auto startValidity = slot.getStartTimeMS();
+    const auto startValidity = slot.getStartTimeMS() - o2::ccdb::CcdbObjectInfo::SECOND * 10;
     const auto endValidity = slot.getEndTimeMS() + o2::ccdb::CcdbObjectInfo::MONTH;
     LOGP(info, "!!!! {}<=TF<={}, startValidity: {} endValidity: {}", slot.getTFStart(), slot.getTFEnd(), startValidity, endValidity);
     auto calibrationObject = container->generateCalibrationObject(startValidity, endValidity, mExtraInfo);
