@@ -50,6 +50,10 @@ struct RecoParamZDC : public o2::conf::ConfigurableParamHelper<RecoParamZDC> {
   bool setExtendedSearch = false;
   bool doExtendedSearch = false;
 
+  // Store events with in-event pile-up
+  bool setStoreEvPileup = false;
+  bool doStoreEvPileup = false;
+
   // Charge integration
   int32_t amod[NChannels] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}; // Position of ADC channel in raw data
   int32_t ach[NChannels] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};  // Position of ADC  channel in raw data

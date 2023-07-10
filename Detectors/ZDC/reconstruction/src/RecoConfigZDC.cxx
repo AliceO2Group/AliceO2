@@ -89,6 +89,7 @@ void RecoConfigZDC::print() const
   LOGF(info, "RecoConfigZDC:%s%s%s%s",
        (low_pass_filter ? " LowPassFilter" : ""),
        (full_interpolation ? " FullInterpolation" : ""),
+       (extendedSearch ? " extendedSearch" : "normalSearch"),
        (corr_signal ? " CorrSignal" : ""),
        (corr_background ? " CorrBackground" : ""));
   for (int itdc = 0; itdc < NTDCChannels; itdc++) {

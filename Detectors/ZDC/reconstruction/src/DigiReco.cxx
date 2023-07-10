@@ -173,7 +173,17 @@ void DigiReco::init()
       ropt.doExtendedSearch = mRecoConfigZDC->extendedSearch;
     }
   }
-  LOG(info) << "Extended search is " << mRopt->doExtendedSearch;
+  LOG(info) << "Extended search is " << (mRopt->doExtendedSearch ? "ON" : "OFF");
+
+  // Store hits with in-event pile-up (EvE)
+  if (ropt.setStoreEvPileup == false) {
+    if (mRecoConfigZDC == nullptr) {
+      LOG(fatal) << "Storage of hits with in-event pile-up: missing configuration object and no manual override";
+    } else {
+      ropt.doStoreEvPileup = mRecoConfigZDC->storeEvPileup;
+    }
+  }
+  LOG(info) << "Storage of EvE hits is " << (mRopt->doStoreEvPileup ? "ON" : "OFF");
 
   // TDC calibration
   // Recentering
@@ -1978,6 +1988,12 @@ void DigiReco::correctTDCPile()
       if (rec->ntdc[itdc] > 1) {
         // In-bunch pile-up: cannot correct
         rec->tdcPileEvE[TDCSignal[itdc]] = true;
+        if(mRopt->doStoreEvPileup){
+          // Store also multiple hits
+          for (int ihit = 0; ihit < rec->ntdc[itdc]; ihit++) {
+            tdc.emplace_back(rec->TDCVal[itdc][ihit], rec->TDCAmp[itdc][ihit], rec->ir);
+          }
+        }
       } else if (rec->ntdc[itdc] == 1) {
         // A single TDC hit is present in current bunch
         if (tdc.size() > 0) {
