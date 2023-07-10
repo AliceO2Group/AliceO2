@@ -9,14 +9,17 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 #include "O2ControlHelpers.h"
-#include "Framework/O2ControlLabels.h"
+#include "Framework/O2ControlParameters.h"
 #include "Framework/ChannelSpecHelpers.h"
 #include "Framework/Logger.h"
+#include "Framework/DataProcessorSpec.h"
 
 #include <iostream>
 #include <cstring>
 #include <string>
+#include <string_view>
 #include <filesystem>
+#include <optional>
 #include <set>
 
 namespace bfs = std::filesystem;
@@ -32,6 +35,13 @@ namespace implementation
 std::string taskName(const std::string& workflowName, const std::string& deviceName)
 {
   return workflowName + "-" + deviceName;
+}
+
+std::optional<DataProcessorMetadata> firstMatchingMetadata(DeviceSpec const& spec, std::string_view key)
+{
+  auto sameKey = [otherKey = key](DataProcessorMetadata const& metadata) { return metadata.key == otherKey; };
+  auto result = std::find_if(spec.metadata.begin(), spec.metadata.end(), sameKey);
+  return result != spec.metadata.end() ? std::optional{*result} : std::nullopt;
 }
 
 template <typename T>
@@ -401,6 +411,18 @@ void dumpTask(std::ostream& dumpOut, const DeviceSpec& spec, const DeviceExecuti
   dumpOut << indLevel << "wants:\n";
   dumpOut << indLevel << indScheme << "cpu: 0.01\n";
   dumpOut << indLevel << indScheme << "memory: 1\n";
+
+  auto cpuKillThreshold = implementation::firstMatchingMetadata(spec, ecs::cpuKillThreshold);
+  auto privateMemoryKillThresholdMB = implementation::firstMatchingMetadata(spec, ecs::privateMemoryKillThresholdMB);
+  if (cpuKillThreshold.has_value() || privateMemoryKillThresholdMB.has_value()) {
+    dumpOut << indLevel << "limits:\n";
+    if (cpuKillThreshold.has_value()) {
+      dumpOut << indLevel << indScheme << "cpu: " << cpuKillThreshold.value().value << '\n';
+    }
+    if (privateMemoryKillThresholdMB.has_value()) {
+      dumpOut << indLevel << indScheme << "memory: " << privateMemoryKillThresholdMB.value().value << '\n';
+    }
+  }
 
   dumpOut << indLevel << "bind:\n";
   for (const auto& outputChannel : spec.outputChannels) {
