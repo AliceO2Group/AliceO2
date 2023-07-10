@@ -28,6 +28,7 @@ struct EventHeader {
   static constexpr size_t PayloadPerGBTword = 10;
   static constexpr size_t MinNelements = 1;
   static constexpr size_t MaxNelements = 1;
+  static constexpr uint64_t sDescriptor = 0xf;
   uint64_t bc : 12;
   uint64_t orbit : 32;
   uint64_t phase : 3;
@@ -44,6 +45,7 @@ struct EventHeader {
     bc = intRec.bc;
     orbit = intRec.orbit;
   }
+  inline bool isBadDescriptor() const { return startDescriptor != sDescriptor; }
   void print() const;
 } __attribute__((__packed__));
 

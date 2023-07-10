@@ -10,5 +10,19 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(FITRaw
-               SOURCES src/DataBlockBase.cxx src/DataBlockFIT.cxx src/DigitBlockBase.cxx src/DigitBlockFIT.cxx src/RawReaderBase.cxx src/RawReaderBaseFIT.cxx src/RawWriterFIT.cxx
-               PUBLIC_LINK_LIBRARIES O2::CommonDataFormat O2::Headers Microsoft.GSL::GSL O2::DetectorsRaw O2::CommonUtils)
+               SOURCES src/DataBlockBase.cxx
+                       src/DataBlockFIT.cxx
+                       src/DigitBlockBase.cxx
+                       src/DigitBlockFIT.cxx
+                       src/RawReaderBase.cxx
+                       src/RawReaderBaseFIT.cxx
+                       src/RawWriterFIT.cxx
+               PUBLIC_LINK_LIBRARIES O2::CommonDataFormat
+                                     O2::Headers
+                                     Microsoft.GSL::GSL
+                                     O2::DetectorsRaw
+                                     O2::CommonUtils
+                                     O2::DataFormatsFIT
+                                     O2::DetectorsCommonDataFormats
+                                     O2::DataFormatsParameters
+                                     Boost::program_options)
