@@ -14,7 +14,6 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 #include "SimulationDataFormat/MCGenProperties.h"
-#include "TRandom.h"
 
 using namespace o2::mcgenid;
 
@@ -23,32 +22,28 @@ BOOST_AUTO_TEST_CASE(MCGenId_test)
   // create 2 vectors each with some random integers
   constexpr size_t length{100};
   constexpr int low{-2};
-  constexpr int high{16};
+  constexpr int highGenerator{64};
+  constexpr int highSubGenerator{16};
+  constexpr int highSource{8};
 
-  // initialise the seed (could be anything)
-  gRandom->SetSeed();
+  for (int sourceId = 0; sourceId < highSource; sourceId++) {
+    for (int generatorId = 0; generatorId < highGenerator; generatorId++) {
+      for (int subGeneratorId = 0; subGeneratorId < highSubGenerator; subGeneratorId++) {
+        auto encoded = getEncodedGenId(generatorId, sourceId, subGeneratorId);
+        // decode them
+        auto sourceIdAfter = getSourceId(encoded);
+        auto generatorIdAfter = getGeneratorId(encoded);
+        auto subGeneratorIdAfter = getSubGeneratorId(encoded);
 
-  for (size_t i = 0; i < length; i++) {
-    // draw random integers
-    auto sourceId = static_cast<int>(gRandom->Uniform(low, high));
-    auto generatorId = static_cast<int>(gRandom->Uniform(low, high));
-    auto cocktailId = static_cast<int>(gRandom->Uniform(low, high));
+        std::cout << "SourceID: " << sourceId << " ==> " << sourceIdAfter << "\n"
+                  << "generatorId: " << generatorId << " ==> " << generatorIdAfter << "\n"
+                  << "subGeneratorId: " << subGeneratorId << " ==> " << subGeneratorIdAfter << "\n";
 
-    // encode them
-    auto encoded = getEncodedGenId(generatorId, sourceId, cocktailId);
-
-    // decode them
-    auto sourceIdAfter = getSourceId(encoded);
-    auto generatorIdAfter = getGeneratorId(encoded);
-    auto cocktailIdAfter = getCocktailId(encoded);
-
-    std::cout << "SourceID: " << sourceId << " ==> " << sourceIdAfter << "\n"
-              << "generatorId: " << generatorId << " ==> " << generatorIdAfter << "\n"
-              << "cocktailId: " << cocktailId << " ==> " << cocktailIdAfter << "\n";
-
-    // check if original and decoded numbers are the same
-    BOOST_CHECK(sourceIdAfter == sourceId);
-    BOOST_CHECK(generatorIdAfter == generatorId);
-    BOOST_CHECK(cocktailId == cocktailIdAfter);
+        // check if original and decoded numbers are the same
+        BOOST_CHECK(sourceIdAfter == sourceId);
+        BOOST_CHECK(generatorIdAfter == generatorId);
+        BOOST_CHECK(subGeneratorId == subGeneratorIdAfter);
+      }
+    }
   }
 }

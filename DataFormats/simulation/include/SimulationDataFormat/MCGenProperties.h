@@ -86,8 +86,8 @@ class GeneratorProperty
   typedef const char* Property;
   static constexpr Property GENERATORID{"generator_id"};
   static constexpr Property GENERATORDESCRIPTION{"generator_description"};
-  static constexpr Property COCKTAILID{"cocktail_id"};
-  static constexpr Property COCKTAILDESCRIPTIONMAP{"gcocktail_description_map"};
+  static constexpr Property SUBGENERATORID{"subgenerator_id"};
+  static constexpr Property SUBGENERATORDESCRIPTIONMAP{"subgenerator_description_map"};
 };
 
 // internal structure to allow convenient manipulation of properties as bits on an int to (dis)entangle HepMC and specific generator status codes
@@ -95,18 +95,18 @@ union MCGenIdEncoding {
   MCGenIdEncoding() : fullEncoding(0) {}
   MCGenIdEncoding(int enc) : fullEncoding(enc) {}
   // To be backward-compatible, only set transport to 1 if hepmc status is 1
-  MCGenIdEncoding(int generatorId, int sourceId, int cocktailId = -1) : generatorId(generatorId), sourceId(sourceId), cocktailId(cocktailId) {}
+  MCGenIdEncoding(int generatorId, int sourceId, int subGeneratorId = -1) : generatorId(generatorId), sourceId(sourceId), subGeneratorId(subGeneratorId) {}
   short fullEncoding;
   struct {
-    short generatorId : 5; // an additional identifier for a generator which can be set by the user
-    short sourceId : 5;    // ID used in embedding scenarios
-    short cocktailId : 6;  // reserved bits for future encodings, for instance to identify single cocktail constituents of a generator
+    short generatorId : 7;    // an additional identifier for a generator which can be set by the user
+    short sourceId : 4;       // ID used in embedding scenarios
+    short subGeneratorId : 5; // sub generator ID in case a generator implements some additional logic
   };
 };
 
-inline short getEncodedGenId(int generatorId, int sourceId, int cocktailId = -1)
+inline short getEncodedGenId(int generatorId, int sourceId, int subGeneratorId = -1)
 {
-  return MCGenIdEncoding(generatorId, sourceId, cocktailId).fullEncoding;
+  return MCGenIdEncoding(generatorId, sourceId, subGeneratorId).fullEncoding;
 }
 
 inline int getGeneratorId(short encoded)
@@ -119,9 +119,9 @@ inline int getSourceId(short encoded)
   return static_cast<int>(MCGenIdEncoding(encoded).sourceId);
 }
 
-inline int getCocktailId(short encoded)
+inline int getSubGeneratorId(short encoded)
 {
-  return static_cast<int>(MCGenIdEncoding(encoded).cocktailId);
+  return static_cast<int>(MCGenIdEncoding(encoded).subGeneratorId);
 }
 
 } // namespace mcgenid

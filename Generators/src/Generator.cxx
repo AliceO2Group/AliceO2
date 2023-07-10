@@ -70,8 +70,8 @@ Bool_t
     /** clear particle vector **/
     mParticles.clear();
 
-    /** reset the cocktail ID **/
-    mCocktailId = -1;
+    /** reset the sub-generator ID **/
+    mSubGeneratorId = -1;
 
     /** generate event **/
     if (!generateEvent()) {
@@ -83,11 +83,11 @@ Bool_t
       return kFALSE;
     }
 
-    if (mCocktailIdToDesc.empty() && mCocktailId > -1) {
+    if (mSubGeneratorsIdToDesc.empty() && mSubGeneratorId > -1) {
       return kFALSE;
     }
 
-    if (!mCocktailIdToDesc.empty() && mCocktailId < 0) {
+    if (!mSubGeneratorsIdToDesc.empty() && mSubGeneratorId < 0) {
       return kFALSE;
     }
 
@@ -113,7 +113,7 @@ Bool_t
     return kFALSE;
   }
   updateHeader(o2header);
-  updateCocktailInformation(o2header);
+  updateSubGeneratorInformation(o2header);
 
   /** success **/
   return kTRUE;
@@ -220,13 +220,13 @@ Bool_t
 
 /*****************************************************************/
 
-void Generator::updateCocktailInformation(o2::dataformats::MCEventHeader* header) const
+void Generator::updateSubGeneratorInformation(o2::dataformats::MCEventHeader* header) const
 {
-  if (mCocktailId < 0) {
+  if (mSubGeneratorId < 0) {
     return;
   }
-  header->putInfo<int>(o2::mcgenid::GeneratorProperty::COCKTAILID, mCocktailId);
-  header->putInfo<std::unordered_map<int, std::string>>(o2::mcgenid::GeneratorProperty::COCKTAILDESCRIPTIONMAP, mCocktailIdToDesc);
+  header->putInfo<int>(o2::mcgenid::GeneratorProperty::SUBGENERATORID, mSubGeneratorId);
+  header->putInfo<std::unordered_map<int, std::string>>(o2::mcgenid::GeneratorProperty::SUBGENERATORDESCRIPTIONMAP, mSubGeneratorsIdToDesc);
 }
 
 /*****************************************************************/

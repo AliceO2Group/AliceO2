@@ -1842,7 +1842,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
           auto& header = mcReader->getMCEventHeader(sourceID, eventID);
           bool isValid{};
           mcCollisionsCursor(bcID,
-                             o2::mcgenid::getEncodedGenId(header.getInfo<int>(o2::mcgenid::GeneratorProperty::GENERATORID, isValid), header.getInfo<int>(o2::mcgenid::GeneratorProperty::COCKTAILID, isValid), sourceID),
+                             o2::mcgenid::getEncodedGenId(header.getInfo<int>(o2::mcgenid::GeneratorProperty::GENERATORID, isValid), sourceID, header.getInfo<int>(o2::mcgenid::GeneratorProperty::SUBGENERATORID, isValid)),
                              truncateFloatFraction(header.GetX(), mCollisionPosition),
                              truncateFloatFraction(header.GetY(), mCollisionPosition),
                              truncateFloatFraction(header.GetZ(), mCollisionPosition),

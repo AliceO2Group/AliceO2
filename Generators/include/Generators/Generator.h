@@ -111,11 +111,11 @@ class Generator : public FairGenerator
   Bool_t triggerEvent();
 
   /** to handle cocktail constituents **/
-  void addCocktailConstituent(int cocktailId, std::string const& cocktailDescription)
+  void addSubGenerator(int subGeneratorId, std::string const& subGeneratorDescription)
   {
-    mCocktailIdToDesc.insert({cocktailId, cocktailDescription});
+    mSubGeneratorsIdToDesc.insert({subGeneratorId, subGeneratorDescription});
   }
-  void notifyCocktailConstituent(int cocktailId) { mCocktailId = cocktailId; }
+  void notifySubGenerator(int subGeneratorId) { mSubGeneratorId = subGeneratorId; }
 
   /** generator interface **/
   void* mInterface = nullptr;
@@ -145,10 +145,12 @@ class Generator : public FairGenerator
   Double_t mBoost;
 
  private:
-  void updateCocktailInformation(o2::dataformats::MCEventHeader* header) const;
+  void updateSubGeneratorInformation(o2::dataformats::MCEventHeader* header) const;
 
-  std::unordered_map<int, std::string> mCocktailIdToDesc;
-  int mCocktailId = -1;
+  // collect an ID and a short description of sub-generator entities
+  std::unordered_map<int, std::string> mSubGeneratorsIdToDesc;
+  // the current ID of the sub-generator used in the current event (if applicable)
+  int mSubGeneratorId = -1;
 
   ClassDefOverride(Generator, 2);
 
