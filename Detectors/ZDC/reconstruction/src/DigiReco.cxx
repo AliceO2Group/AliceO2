@@ -1988,7 +1988,7 @@ void DigiReco::correctTDCPile()
       if (rec->ntdc[itdc] > 1) {
         // In-bunch pile-up: cannot correct
         rec->tdcPileEvE[TDCSignal[itdc]] = true;
-        if(mRopt->doStoreEvPileup){
+        if (mRopt->doStoreEvPileup) {
           // Store also multiple hits
           for (int ihit = 0; ihit < rec->ntdc[itdc]; ihit++) {
             tdc.emplace_back(rec->TDCVal[itdc][ihit], rec->TDCAmp[itdc][ihit], rec->ir);
