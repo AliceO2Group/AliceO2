@@ -79,39 +79,39 @@ void AvgClusSizeStudy::prepareOutput()
   mOutputTree = std::make_unique<TTree>("v0", "testing");
 
   mMassSpectrumFull = std::make_unique<THStack>("V0", "V0 mass spectrum; MeV");                                          // auto-set axis ranges
-  mMassSpectrumFullNC = std::make_unique<TH1F>("V0_nc", "no cuts; MeV", 100, 250, 1000);                                 // auto-set axis ranges
-  mMassSpectrumFullC = std::make_unique<TH1F>("V0_c", "cut; MeV", 100, 250, 1000);                                       // auto-set axis ranges
+  mMassSpectrumFullNC = std::make_unique<TH1F>("V0nc", "no cuts; MeV", 100, 250, 1000);                                 // auto-set axis ranges
+  mMassSpectrumFullC = std::make_unique<TH1F>("V0c", "cut; MeV", 100, 250, 1000);                                       // auto-set axis ranges
   mMassSpectrumK0s = std::make_unique<THStack>("K0s", "'K0' mass spectrum; MeV");                                        // set axis ranges near K0short mass
-  mMassSpectrumK0sNC = std::make_unique<TH1F>("K0s_nc", "no cuts; MeV", 15, 475, 525);                                   // set axis ranges near K0short mass
-  mMassSpectrumK0sC = std::make_unique<TH1F>("K0s_c", "cut; MeV", 15, 475, 525);                                         // set axis ranges near K0short mass
-  mAvgClusSize = std::make_unique<THStack>("avg_clus_size", "Average cluster size per track; pixels / cluster / track"); // auto-set axis ranges
-  mAvgClusSizeNC = std::make_unique<TH1F>("avg_clus_size_NC", "no cuts", 40, 0, 15);                                     // auto-set axis ranges
-  mAvgClusSizeC = std::make_unique<TH1F>("avg_clus_size_C", "cut", 40, 0, 15);                                           // auto-set axis ranges
-  mMCStackCosPA = std::make_unique<THStack>("CosPA_stack", "CosPA");                                                     // auto-set axis ranges
-  mStackDCA = std::make_unique<THStack>("DCA_stack", "DCA");                                                             // auto-set axis ranges
-  mStackR = std::make_unique<THStack>("R_stack", "R");                                                                   // auto-set axis ranges
-  mStackPVDCA = std::make_unique<THStack>("PV_DCA_stack", "PV-DCA");                                                     // auto-set axis ranges
+  mMassSpectrumK0sNC = std::make_unique<TH1F>("K0snc", "no cuts; MeV", 15, 475, 525);                                   // set axis ranges near K0short mass
+  mMassSpectrumK0sC = std::make_unique<TH1F>("K0sc", "cut; MeV", 15, 475, 525);                                         // set axis ranges near K0short mass
+  mAvgClusSize = std::make_unique<THStack>("avgclussize", "Average cluster size per track; pixels / cluster / track"); // auto-set axis ranges
+  mAvgClusSizeNC = std::make_unique<TH1F>("avgclussizeNC", "no cuts", 40, 0, 15);                                     // auto-set axis ranges
+  mAvgClusSizeC = std::make_unique<TH1F>("avgclussizeC", "cut", 40, 0, 15);                                           // auto-set axis ranges
+  mMCStackCosPA = std::make_unique<THStack>("CosPAstack", "CosPA");                                                     // auto-set axis ranges
+  mStackDCA = std::make_unique<THStack>("DCAstack", "DCA");                                                             // auto-set axis ranges
+  mStackR = std::make_unique<THStack>("Rstack", "R");                                                                   // auto-set axis ranges
+  mStackPVDCA = std::make_unique<THStack>("PVDCAstack", "PV-DCA");                                                     // auto-set axis ranges
   mCosPA = std::make_unique<TH1F>("CosPA", "cos(PA)", 100, -1, 1);                                                       // auto-set axis ranges
-  mMCCosPA_K0 = std::make_unique<TH1F>("CosPA_K0", "cos(PA)", 100, -1, 1);                                               // auto-set axis ranges
-  mMCCosPA_notK0 = std::make_unique<TH1F>("CosPA_notK0", "cos(PA)", 100, -1, 1);                                         // auto-set axis ranges
+  mMCCosPAK0 = std::make_unique<TH1F>("CosPAK0", "cos(PA)", 100, -1, 1);                                               // auto-set axis ranges
+  mMCCosPAnotK0 = std::make_unique<TH1F>("CosPAnotK0", "cos(PA)", 100, -1, 1);                                         // auto-set axis ranges
   mR = std::make_unique<TH1F>("R", "R", 40, 1, -1);                                                                      // auto-set axis ranges
-  mR_K0 = std::make_unique<TH1F>("R_K0", "R", 40, 0, 20);                                                                // auto-set axis ranges
-  mR_notK0 = std::make_unique<TH1F>("R_notK0", "R", 40, 0, 20);                                                          // auto-set axis ranges
+  mRK0 = std::make_unique<TH1F>("RK0", "R", 40, 0, 20);                                                                // auto-set axis ranges
+  mRnotK0 = std::make_unique<TH1F>("RnotK0", "R", 40, 0, 20);                                                          // auto-set axis ranges
   mDCA = std::make_unique<TH1F>("DCA", "DCA", 40, 1, -1);                                                                // auto-set axis ranges
-  mDCA_K0 = std::make_unique<TH1F>("DCA_K0", "DCA", 40, 0, 0.25);                                                        // auto-set axis ranges
-  mDCA_notK0 = std::make_unique<TH1F>("DCA_notK0", "DCA", 40, 0, 0.25);                                                  // auto-set axis ranges
+  mDCAK0 = std::make_unique<TH1F>("DCAK0", "DCA", 40, 0, 0.25);                                                        // auto-set axis ranges
+  mDCAnotK0 = std::make_unique<TH1F>("DCAnotK0", "DCA", 40, 0, 0.25);                                                  // auto-set axis ranges
   mEtaNC = std::make_unique<TH1F>("etaNC", "no cuts", 30, 1, -1);                                                        // auto-set axis ranges
   mEtaC = std::make_unique<TH1F>("etaC", "cut", 30, 1, -1);                                                              // auto-set axis ranges
   mMCMotherPDG = std::make_unique<TH1F>("PID", "MC K0s mother PDG codes", 100, 1, -1);
-  mPVDCA_K0 = std::make_unique<TH1F>("PVDCA_K0", "Prong DCA to pVertex", 80, 0, 2);
-  mPVDCA_notK0 = std::make_unique<TH1F>("PVDCA_notK0", "Prong DCA to pVertex", 80, 0, 2);
+  mPVDCAK0 = std::make_unique<TH1F>("PVDCAK0", "Prong DCA to pVertex", 80, 0, 2);
+  mPVDCAnotK0 = std::make_unique<TH1F>("PVDCAnotK0", "Prong DCA to pVertex", 80, 0, 2);
 
-  mAvgClusSizeCEta = std::make_unique<THStack>("avg_clus_size_eta", "Average cluster size per track; pixels / cluster / track"); // auto-set axis ranges
+  mAvgClusSizeCEta = std::make_unique<THStack>("avgclussizeeta", "Average cluster size per track; pixels / cluster / track"); // auto-set axis ranges
   double binWidth = (mParams.etaMax - mParams.etaMin) / (double)mParams.etaNBins;
   mEtaBinUL.reserve(mParams.etaNBins);
   for (int i = 0; i < mParams.etaNBins; i++) {
     mEtaBinUL.emplace_back(mParams.etaMin + (binWidth * (i + 1)));
-    mAvgClusSizeCEtaVec.push_back(std::make_unique<TH1F>(Form("avg_clus_size_%i", i), Form("%.2f < #eta < %.2f", mEtaBinUL[i] - binWidth, mEtaBinUL[i]), mParams.sizeNBins, 0, mParams.sizeMax));
+    mAvgClusSizeCEtaVec.push_back(std::make_unique<TH1F>(Form("avgclussize%i", i), Form("%.2f < #eta < %.2f", mEtaBinUL[i] - binWidth, mEtaBinUL[i]), mParams.sizeNBins, 0, mParams.sizeMax));
     mAvgClusSizeCEtaVec[i]->SetDirectory(nullptr);
     // mAvgClusSizeCEtaVec[i]->SetDirectory(nullptr);
     mAvgClusSizeCEta->Add(mAvgClusSizeCEtaVec[i].get());
@@ -124,19 +124,19 @@ void AvgClusSizeStudy::prepareOutput()
   mAvgClusSizeNC->SetDirectory(nullptr);
   mAvgClusSizeC->SetDirectory(nullptr);
   mCosPA->SetDirectory(nullptr);
-  mMCCosPA_K0->SetDirectory(nullptr);
-  mMCCosPA_notK0->SetDirectory(nullptr);
+  mMCCosPAK0->SetDirectory(nullptr);
+  mMCCosPAnotK0->SetDirectory(nullptr);
   mR->SetDirectory(nullptr);
-  mR_K0->SetDirectory(nullptr);
-  mR_notK0->SetDirectory(nullptr);
+  mRK0->SetDirectory(nullptr);
+  mRnotK0->SetDirectory(nullptr);
   mDCA->SetDirectory(nullptr);
-  mDCA_K0->SetDirectory(nullptr);
-  mDCA_notK0->SetDirectory(nullptr);
+  mDCAK0->SetDirectory(nullptr);
+  mDCAnotK0->SetDirectory(nullptr);
   mEtaNC->SetDirectory(nullptr);
   mEtaC->SetDirectory(nullptr);
   mMCMotherPDG->SetDirectory(nullptr);
-  mPVDCA_K0->SetDirectory(nullptr);
-  mPVDCA_notK0->SetDirectory(nullptr);
+  mPVDCAK0->SetDirectory(nullptr);
+  mPVDCAnotK0->SetDirectory(nullptr);
 
   mMassSpectrumFull->Add(mMassSpectrumFullC.get());
   mMassSpectrumFull->Add(mMassSpectrumFullNC.get());
@@ -144,14 +144,14 @@ void AvgClusSizeStudy::prepareOutput()
   mMassSpectrumK0s->Add(mMassSpectrumK0sNC.get());
   mAvgClusSize->Add(mAvgClusSizeC.get());
   mAvgClusSize->Add(mAvgClusSizeNC.get());
-  mMCStackCosPA->Add(mMCCosPA_K0.get());
-  mMCStackCosPA->Add(mMCCosPA_notK0.get());
-  mStackDCA->Add(mDCA_K0.get());
-  mStackDCA->Add(mDCA_notK0.get());
-  mStackR->Add(mR_K0.get());
-  mStackR->Add(mR_notK0.get());
-  mStackPVDCA->Add(mPVDCA_K0.get());
-  mStackPVDCA->Add(mPVDCA_notK0.get());
+  mMCStackCosPA->Add(mMCCosPAK0.get());
+  mMCStackCosPA->Add(mMCCosPAnotK0.get());
+  mStackDCA->Add(mDCAK0.get());
+  mStackDCA->Add(mDCAnotK0.get());
+  mStackR->Add(mRK0.get());
+  mStackR->Add(mRnotK0.get());
+  mStackPVDCA->Add(mPVDCAK0.get());
+  mStackPVDCA->Add(mPVDCAnotK0.get());
 }
 
 void AvgClusSizeStudy::setStyle()
@@ -170,10 +170,10 @@ void AvgClusSizeStudy::setStyle()
   mAvgClusSizeC->SetLineColor(kRed);
   mMassSpectrumFullC->SetLineColor(kRed);
   mMassSpectrumK0sC->SetLineColor(kRed);
-  mMCCosPA_K0->SetLineColor(kRed);
-  mDCA_K0->SetLineColor(kRed);
-  mR_K0->SetLineColor(kRed);
-  mPVDCA_K0->SetLineColor(kRed);
+  mMCCosPAK0->SetLineColor(kRed);
+  mDCAK0->SetLineColor(kRed);
+  mRK0->SetLineColor(kRed);
+  mPVDCAK0->SetLineColor(kRed);
 }
 
 void AvgClusSizeStudy::run(ProcessingContext& pc)
@@ -334,17 +334,17 @@ void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
         nNotValid++;
       }
       if (isK0s) {
-        mMCCosPA_K0->Fill(cosPA);
-        mDCA_K0->Fill(dca);
-        mR_K0->Fill(R);
-        mPVDCA_K0->Fill(d0R);
-        mPVDCA_K0->Fill(d1R);
+        mMCCosPAK0->Fill(cosPA);
+        mDCAK0->Fill(dca);
+        mRK0->Fill(R);
+        mPVDCAK0->Fill(d0R);
+        mPVDCAK0->Fill(d1R);
       } else {
-        mMCCosPA_notK0->Fill(cosPA);
-        mDCA_notK0->Fill(dca);
-        mR_notK0->Fill(R);
-        mPVDCA_notK0->Fill(d0R);
-        mPVDCA_notK0->Fill(d1R);
+        mMCCosPAnotK0->Fill(cosPA);
+        mDCAnotK0->Fill(dca);
+        mRnotK0->Fill(R);
+        mPVDCAnotK0->Fill(d0R);
+        mPVDCAnotK0->Fill(d1R);
       }
     }
 
@@ -455,28 +455,24 @@ void AvgClusSizeStudy::saveHistograms()
   fout.WriteTObject(mEtaNC.get());
   fout.WriteTObject(mEtaC.get());
   fout.WriteTObject(mMCMotherPDG.get());
-  fout.WriteTObject(mMCCosPA_K0.get());
-  fout.WriteTObject(mMCCosPA_notK0.get());
-  fout.WriteTObject(mR_K0.get());
-  fout.WriteTObject(mR_notK0.get());
-  fout.WriteTObject(mDCA_K0.get());
-  fout.WriteTObject(mDCA_notK0.get());
-  fout.WriteTObject(mPVDCA_K0.get());
-  fout.WriteTObject(mPVDCA_notK0.get());
-  LOGP(info, "am here");
-  // mOutputTree->Write();
+  fout.WriteTObject(mMCCosPAK0.get());
+  fout.WriteTObject(mMCCosPAnotK0.get());
+  fout.WriteTObject(mRK0.get());
+  fout.WriteTObject(mRnotK0.get());
+  fout.WriteTObject(mDCAK0.get());
+  fout.WriteTObject(mDCAnotK0.get());
+  fout.WriteTObject(mPVDCAK0.get());
+  fout.WriteTObject(mPVDCAnotK0.get());
   fout.Close();
-  LOGP(info, "DONE");
 
-  // mMCStackCosPA->Add(mMCCosPA_K0.get());
-  // mMCStackCosPA->Add(mMCCosPA_notK0.get());
-  // mStackDCA->Add(mDCA_K0.get());
-  // mStackDCA->Add(mDCA_notK0.get());
-  // mStackR->Add(mR_K0.get());
-  // mStackR->Add(mR_notK0.get());
+  // mMCStackCosPA->Add(mMCCosPAK0.get());
+  // mMCStackCosPA->Add(mMCCosPAnotK0.get());
+  // mStackDCA->Add(mDCAK0.get());
+  // mStackDCA->Add(mDCAnotK0.get());
+  // mStackR->Add(mRK0.get());
+  // mStackR->Add(mRnotK0.get());
 
   LOGP(important, "Stored histograms into {}", mOutName.c_str());
-  // TODO: storing raw analysis data in a ROOT file so combining is easier
 }
 
 void AvgClusSizeStudy::plotHistograms()
