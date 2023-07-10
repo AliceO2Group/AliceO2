@@ -21,6 +21,8 @@
 #include <numeric>
 #include <algorithm>
 #include <chrono>
+#include <random>
+#include <fmt/format.h>
 
 using namespace o2::tpc;
 
@@ -90,11 +92,29 @@ void ResidualsContainer::init(const TrackResiduals* residualsEngine, std::string
   writeTrackData = wTrackData;
   autosaveInterval = autosave;
   if (writeToRootFile) {
+    bool outFileCreated = false;
+    int nTries = 0;
     fileName += std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
-    fileName += ".root";
-    std::string fileNameTmp = outputDir + fileName;
-    fileNameTmp += ".part"; // to prevent premature external usage of the file use temporary name
-    fileOut = std::make_unique<TFile>(fileNameTmp.c_str(), "recreate", "", compression);
+    while (!outFileCreated && nTries < 100) {
+      std::random_device rd;
+      std::mt19937 g(rd());
+      std::uniform_int_distribution<> distr(0, 99);
+      fileName += fmt::format("_{:03}", distr(g)); // add some random number in case multiple slots are opened in an offline job simultaneously
+      fileName += ".root";
+      std::string fileNameTmp = outputDir + fileName;
+      fileNameTmp += ".part"; // to prevent premature external usage of the file use temporary name
+      if (std::filesystem::exists(fileNameTmp)) {
+        fileName.erase(fileName.length() - 9); // remove the _XXX.root from fileName, try with other XXX
+        ++nTries;
+        continue;
+      }
+      fileOut = std::make_unique<TFile>(fileNameTmp.c_str(), "recreate", "", compression);
+      outFileCreated = true;
+    }
+    if (!outFileCreated) {
+      LOG(error) << "Could not create output file for this slot after 100 tries. Disable file writing for this slot";
+      writeToRootFile = false;
+    }
   }
   if (writeUnbinnedResiduals) {
     treeOutResidualsUnbinned = std::make_unique<TTree>("unbinnedResid", "TPC unbinned residuals");
@@ -380,7 +400,7 @@ void ResidualAggregator::finalizeSlot(Slot& slot)
   auto finalizeStartTime = std::chrono::high_resolution_clock::now();
   auto cont = slot.getContainer();
   cont->print();
-  if (!mWriteOutput || cont->getNEntries() == 0) {
+  if (!mWriteOutput || cont->getNEntries() == 0 || !cont->writeToRootFile) {
     LOGP(info, "Skip writing output with {} entries, since file output is disabled or slot is empty", cont->getNEntries());
     return;
   }
