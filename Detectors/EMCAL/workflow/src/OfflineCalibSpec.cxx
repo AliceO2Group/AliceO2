@@ -18,6 +18,7 @@
 
 #include "Framework/ControlService.h"
 #include "Framework/DataRefUtils.h"
+#include "Framework/CCDBParamSpec.h"
 #include "CommonConstants/Triggers.h"
 #include "DataFormatsEMCAL/Cell.h"
 #include "DataFormatsEMCAL/TriggerRecord.h"
@@ -49,8 +50,37 @@ void OfflineCalibSpec::init(o2::framework::InitContext& ctx)
 void OfflineCalibSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
 {
   LOG(info) << "Handling new Calibration objects";
-  if (mCalibrationHandler->finalizeCCDB(matcher, obj)) {
-    return;
+  mCalibrationHandler->finalizeCCDB(matcher, obj);
+
+  if (matcher == o2::framework::ConcreteDataMatcher("EMC", "EMCALCALIBPARAM", 0)) {
+    LOG(info) << "EMCal CalibParams updated";
+    EMCALCalibParams::Instance().printKeyValues(true, true);
+  }
+
+  if (mRejectL0Triggers && matcher == o2::framework::ConcreteDataMatcher("CTP", "CTPCONFIG", 0)) {
+    // clear current class mask and prepare to fill in the updated values
+    // The trigger names are seperated by a ":" in one string in the calib params
+    mSelectedClassMasks.clear();
+    std::string strSelClassMasks = EMCALCalibParams::Instance().selectedClassMasks;
+    std::string delimiter = ":";
+    size_t pos = 0;
+    std::vector<std::string> vSelMasks;
+    while ((pos = strSelClassMasks.find(delimiter)) != std::string::npos) {
+      vSelMasks.push_back(strSelClassMasks.substr(0, pos));
+      strSelClassMasks.erase(0, pos + delimiter.length());
+    }
+    vSelMasks.push_back(strSelClassMasks);
+
+    auto ctpconf = reinterpret_cast<o2::ctp::CTPConfiguration*>(obj);
+
+    for (auto& cls : ctpconf->getCTPClasses()) {
+      LOG(debug) << "CTP class: " << cls.name << "\t " << cls.classMask;
+
+      if (std::find(vSelMasks.begin(), vSelMasks.end(), cls.name) != vSelMasks.end()) {
+        mSelectedClassMasks.push_back(cls.classMask);
+        LOG(info) << "Setting selected class mask " << cls.name << " to bit " << cls.classMask;
+      }
+    }
   }
 }
 
@@ -66,6 +96,18 @@ void OfflineCalibSpec::run(framework::ProcessingContext& pc)
 {
   auto cells = pc.inputs().get<gsl::span<o2::emcal::Cell>>("cells");
   auto triggerrecords = pc.inputs().get<gsl::span<o2::emcal::TriggerRecord>>("triggerrecord");
+
+  // prepare CTPConfiguration such that it can be loaded in finalise ccdb
+  if (mRejectL0Triggers) {
+    pc.inputs().get<o2::ctp::CTPConfiguration*>(getCTPConfigBinding());
+  }
+
+  using ctpDigitsType = std::decay_t<decltype(pc.inputs().get<gsl::span<o2::ctp::CTPDigit>>(getCTPDigitsBinding()))>;
+  std::optional<ctpDigitsType> ctpDigits;
+  if (mRejectL0Triggers) {
+    ctpDigits = pc.inputs().get<gsl::span<o2::ctp::CTPDigit>>(getCTPDigitsBinding());
+  }
+
   mCalibrationHandler->checkUpdates(pc);
   updateCalibObjects();
 
@@ -82,6 +124,35 @@ void OfflineCalibSpec::run(framework::ProcessingContext& pc)
         LOG(debug) << "Trigger: " << trg.getTriggerBits() << "   o2::trigger::Cal " << o2::trigger::Cal;
         if (trg.getTriggerBits() & o2::trigger::Cal) {
           LOG(debug) << "skipping triggered events due to wrong trigger (no Physics trigger)";
+          continue;
+        }
+      }
+
+      // reject all triggers that are not included in the classMask (typically only EMC min. bias should be accepted)
+      uint64_t classMaskCTP = 0;
+      if (mRejectL0Triggers) {
+        bool acceptEvent = false;
+        // Match the EMCal bc to the CTP bc
+        int64_t bcEMC = trg.getBCData().toLong();
+        for (auto& ctpDigit : *ctpDigits) {
+          int64_t bcCTP = ctpDigit.intRecord.toLong();
+          LOG(debug) << "bcEMC " << bcEMC << "   bcCTP " << bcCTP;
+          if (bcCTP == bcEMC) {
+            // obtain trigger mask that belongs to the selected bc
+            classMaskCTP = ctpDigit.CTPClassMask.to_ulong();
+            // now check if min bias trigger is not in mask
+            for (const uint64_t& selectedClassMask : mSelectedClassMasks) {
+              if ((classMaskCTP & selectedClassMask) != 0) {
+                LOG(debug) << "trigger " << selectedClassMask << " found! accepting event";
+                acceptEvent = true;
+                break;
+              }
+            }
+            break; // break as bc was matched
+          }
+        }
+        // if current event is not accepted (selected triggers not present), move on to next event
+        if (!acceptEvent) {
           continue;
         }
       }
@@ -133,13 +204,17 @@ void OfflineCalibSpec::endOfStream(o2::framework::EndOfStreamContext& ec)
   outputFile->Close();
 }
 
-o2::framework::DataProcessorSpec o2::emcal::getEmcalOfflineCalibSpec(bool makeCellIDTimeEnergy, bool rejectCalibTriggers, uint32_t inputsubspec, bool enableGainCalib)
+o2::framework::DataProcessorSpec o2::emcal::getEmcalOfflineCalibSpec(bool makeCellIDTimeEnergy, bool rejectCalibTriggers, bool rejectL0Trigger, uint32_t inputsubspec, bool enableGainCalib, bool ctpcfgperrun)
 {
 
   std::vector<o2::framework::InputSpec>
     inputs = {{"cells", o2::header::gDataOriginEMC, "CELLS", inputsubspec, o2::framework::Lifetime::Timeframe},
               {"triggerrecord", o2::header::gDataOriginEMC, "CELLSTRGR", inputsubspec, o2::framework::Lifetime::Timeframe}};
 
+  if (rejectL0Trigger) {
+    inputs.emplace_back(OfflineCalibSpec::getCTPConfigBinding(), "CTP", "CTPCONFIG", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("CTP/Config/Config", ctpcfgperrun));
+    inputs.emplace_back(OfflineCalibSpec::getCTPDigitsBinding(), "CTP", "DIGITS", 0, o2::framework::Lifetime::Timeframe);
+  }
   auto calibhandler = std::make_shared<o2::emcal::CalibLoader>();
   calibhandler->enableGainCalib(enableGainCalib);
   calibhandler->defineInputSpecs(inputs);
@@ -147,5 +222,5 @@ o2::framework::DataProcessorSpec o2::emcal::getEmcalOfflineCalibSpec(bool makeCe
   return o2::framework::DataProcessorSpec{"EMCALOfflineCalib",
                                           inputs,
                                           {},
-                                          o2::framework::adaptFromTask<o2::emcal::OfflineCalibSpec>(makeCellIDTimeEnergy, rejectCalibTriggers, calibhandler)};
+                                          o2::framework::adaptFromTask<o2::emcal::OfflineCalibSpec>(makeCellIDTimeEnergy, rejectCalibTriggers, rejectL0Trigger, calibhandler)};
 }
