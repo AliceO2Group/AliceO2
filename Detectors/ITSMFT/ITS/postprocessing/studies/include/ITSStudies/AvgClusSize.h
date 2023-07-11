@@ -81,6 +81,18 @@ class AvgClusSizeStudy : public Task
   std::vector<o2::MCTrack> mMCTracks;
   const o2::itsmft::TopologyDictionary* mDict = nullptr;
 
+  // V0 attributes
+  double mD0AvgClusSize;
+  double mD1AvgClusSize;
+  double mV0InvMass;
+  double mDCAd01;
+  double mV0CosPA;
+  double mV0R;
+  double mV0Eta;
+  double mD0PVDCA;
+  double mD1PVDCA;
+  bool mIsMCK0s = false;
+
   // Output plots
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
   std::unique_ptr<TTree> mOutputTree;

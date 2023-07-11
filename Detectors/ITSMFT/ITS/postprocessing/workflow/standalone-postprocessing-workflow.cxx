@@ -69,7 +69,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
 
   // write the configuration used for the studies workflow
-  o2::conf::ConfigurableParam::writeINI("o2standalone_configuration.ini");
+  o2::conf::ConfigurableParam::writeINI("o2_its_standalone_configuration.ini");
 
   return std::move(specs);
 }

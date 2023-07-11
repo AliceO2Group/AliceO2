@@ -75,33 +75,34 @@ void AvgClusSizeStudy::init(InitContext& ic)
 
 void AvgClusSizeStudy::prepareOutput()
 {
+  auto& params = o2::its::study::AvgClusSizeStudyParamConfig::Instance();
   mDBGOut = std::make_unique<o2::utils::TreeStreamRedirector>(mOutName.c_str(), "recreate");
   mOutputTree = std::make_unique<TTree>("v0", "testing");
 
-  mMassSpectrumFull = std::make_unique<THStack>("V0", "V0 mass spectrum; MeV");                                          // auto-set axis ranges
-  mMassSpectrumFullNC = std::make_unique<TH1F>("V0nc", "no cuts; MeV", 100, 250, 1000);                                 // auto-set axis ranges
-  mMassSpectrumFullC = std::make_unique<TH1F>("V0c", "cut; MeV", 100, 250, 1000);                                       // auto-set axis ranges
-  mMassSpectrumK0s = std::make_unique<THStack>("K0s", "'K0' mass spectrum; MeV");                                        // set axis ranges near K0short mass
-  mMassSpectrumK0sNC = std::make_unique<TH1F>("K0snc", "no cuts; MeV", 15, 475, 525);                                   // set axis ranges near K0short mass
-  mMassSpectrumK0sC = std::make_unique<TH1F>("K0sc", "cut; MeV", 15, 475, 525);                                         // set axis ranges near K0short mass
+  mMassSpectrumFull = std::make_unique<THStack>("V0", "V0 mass spectrum; MeV");                                        // auto-set axis ranges
+  mMassSpectrumFullNC = std::make_unique<TH1F>("V0nc", "no cuts; MeV", 100, 250, 1000);                                // auto-set axis ranges
+  mMassSpectrumFullC = std::make_unique<TH1F>("V0c", "cut; MeV", 100, 250, 1000);                                      // auto-set axis ranges
+  mMassSpectrumK0s = std::make_unique<THStack>("K0s", "'K0' mass spectrum; MeV");                                      // set axis ranges near K0short mass
+  mMassSpectrumK0sNC = std::make_unique<TH1F>("K0snc", "no cuts; MeV", 15, 475, 525);                                  // set axis ranges near K0short mass
+  mMassSpectrumK0sC = std::make_unique<TH1F>("K0sc", "cut; MeV", 15, 475, 525);                                        // set axis ranges near K0short mass
   mAvgClusSize = std::make_unique<THStack>("avgclussize", "Average cluster size per track; pixels / cluster / track"); // auto-set axis ranges
-  mAvgClusSizeNC = std::make_unique<TH1F>("avgclussizeNC", "no cuts", 40, 0, 15);                                     // auto-set axis ranges
-  mAvgClusSizeC = std::make_unique<TH1F>("avgclussizeC", "cut", 40, 0, 15);                                           // auto-set axis ranges
-  mMCStackCosPA = std::make_unique<THStack>("CosPAstack", "CosPA");                                                     // auto-set axis ranges
-  mStackDCA = std::make_unique<THStack>("DCAstack", "DCA");                                                             // auto-set axis ranges
-  mStackR = std::make_unique<THStack>("Rstack", "R");                                                                   // auto-set axis ranges
+  mAvgClusSizeNC = std::make_unique<TH1F>("avgclussizeNC", "no cuts", 40, 0, 15);                                      // auto-set axis ranges
+  mAvgClusSizeC = std::make_unique<TH1F>("avgclussizeC", "cut", 40, 0, 15);                                            // auto-set axis ranges
+  mMCStackCosPA = std::make_unique<THStack>("CosPAstack", "CosPA");                                                    // auto-set axis ranges
+  mStackDCA = std::make_unique<THStack>("DCAstack", "DCA");                                                            // auto-set axis ranges
+  mStackR = std::make_unique<THStack>("Rstack", "R");                                                                  // auto-set axis ranges
   mStackPVDCA = std::make_unique<THStack>("PVDCAstack", "PV-DCA");                                                     // auto-set axis ranges
-  mCosPA = std::make_unique<TH1F>("CosPA", "cos(PA)", 100, -1, 1);                                                       // auto-set axis ranges
+  mCosPA = std::make_unique<TH1F>("CosPA", "cos(PA)", 100, -1, 1);                                                     // auto-set axis ranges
   mMCCosPAK0 = std::make_unique<TH1F>("CosPAK0", "cos(PA)", 100, -1, 1);                                               // auto-set axis ranges
   mMCCosPAnotK0 = std::make_unique<TH1F>("CosPAnotK0", "cos(PA)", 100, -1, 1);                                         // auto-set axis ranges
-  mR = std::make_unique<TH1F>("R", "R", 40, 1, -1);                                                                      // auto-set axis ranges
+  mR = std::make_unique<TH1F>("R", "R", 40, 1, -1);                                                                    // auto-set axis ranges
   mRK0 = std::make_unique<TH1F>("RK0", "R", 40, 0, 20);                                                                // auto-set axis ranges
   mRnotK0 = std::make_unique<TH1F>("RnotK0", "R", 40, 0, 20);                                                          // auto-set axis ranges
-  mDCA = std::make_unique<TH1F>("DCA", "DCA", 40, 1, -1);                                                                // auto-set axis ranges
+  mDCA = std::make_unique<TH1F>("DCA", "DCA", 40, 1, -1);                                                              // auto-set axis ranges
   mDCAK0 = std::make_unique<TH1F>("DCAK0", "DCA", 40, 0, 0.25);                                                        // auto-set axis ranges
   mDCAnotK0 = std::make_unique<TH1F>("DCAnotK0", "DCA", 40, 0, 0.25);                                                  // auto-set axis ranges
-  mEtaNC = std::make_unique<TH1F>("etaNC", "no cuts", 30, 1, -1);                                                        // auto-set axis ranges
-  mEtaC = std::make_unique<TH1F>("etaC", "cut", 30, 1, -1);                                                              // auto-set axis ranges
+  mEtaNC = std::make_unique<TH1F>("etaNC", "no cuts", 30, 1, -1);                                                      // auto-set axis ranges
+  mEtaC = std::make_unique<TH1F>("etaC", "cut", 30, 1, -1);                                                            // auto-set axis ranges
   mMCMotherPDG = std::make_unique<TH1F>("PID", "MC K0s mother PDG codes", 100, 1, -1);
   mPVDCAK0 = std::make_unique<TH1F>("PVDCAK0", "Prong DCA to pVertex", 80, 0, 2);
   mPVDCAnotK0 = std::make_unique<TH1F>("PVDCAnotK0", "Prong DCA to pVertex", 80, 0, 2);
@@ -152,6 +153,17 @@ void AvgClusSizeStudy::prepareOutput()
   mStackR->Add(mRnotK0.get());
   mStackPVDCA->Add(mPVDCAK0.get());
   mStackPVDCA->Add(mPVDCAnotK0.get());
+
+  mOutputTree->Branch("d0AvgClusSize", &mD0AvgClusSize);
+  mOutputTree->Branch("d1AvgClusSize", &mD1AvgClusSize);
+  mOutputTree->Branch("mass", &mV0InvMass);
+  mOutputTree->Branch("d01dca", &mDCAd01);
+  mOutputTree->Branch("cosPA", &mV0CosPA);
+  mOutputTree->Branch("V0R", &mV0R);
+  mOutputTree->Branch("eta", &mV0Eta);
+  mOutputTree->Branch("d0pvDCA", &mD0PVDCA);
+  mOutputTree->Branch("d1pvDCA", &mD1PVDCA);
+  mOutputTree->Branch("isMCK0s", &mIsMCK0s);
 }
 
 void AvgClusSizeStudy::setStyle()
@@ -197,7 +209,6 @@ void AvgClusSizeStudy::getClusterSizes(std::vector<int>& clusSizeVec, const gsl:
       patt.acquirePattern(pattIt);
       npix = patt.getNPixels();
     } else {
-
       npix = mdict->getNpixels(pattID);
       patt = mdict->getPattern(pattID);
     }
@@ -225,13 +236,10 @@ void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
   // Alternatively, we should just use the track masks to do this in general... but how?
   // I feel like recoData should already contain only the tracks we need, given that we applied the masks at DataRequest time...
   // but clearly that is not the case? or maybe i'm an idiot
-  double_t avgClusterSize, mass, dca, cosPA, R; // variables to describe the reconstructed V0 and prongs; "dca" stores prong-prong DCA; R is decay length
-  double_t V0eta;                               // pseudorapidity of reconstructed V0
-  Track d0recoTrk, d1recoTrk;                   // daughter ITS tracks
-  std::vector<o2::its::TrackITS> dauRecoTrks;   // vector to store ITS tracks for the two daughters
-  DCA d0DCA, d1DCA;                             // DCA object for prong to primary vertex (DCA = o2::dataformats::DCA)
-  double d0R, d1R;                              // DCA value for prong to primary vertex
-  float b = 5.;                                 // Magnetic field in kG (?)
+  Track d0recoTrk, d1recoTrk;                 // daughter ITS tracks
+  std::vector<o2::its::TrackITS> dauRecoTrks; // vector to store ITS tracks for the two daughters
+  DCA d0DCA, d1DCA;                           // DCA object for prong to primary vertex (DCA = o2::dataformats::DCA)
+  float b = 5.;                               // Magnetic field in kG (?)
   PVertex pv;
 
   // Variables for MC analysis
@@ -239,18 +247,7 @@ void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
   gsl::span<const MCLabel> mcLabels;
   MCLabel d0lab, d1lab;
   const o2::MCTrack *V0mcTrk, *d0mcTrk, *d1mcTrk;
-  Int_t V0PdgCode, d0PdgCode, d1PdgCode, m0TrkId, m1TrkId;
-  bool isK0s;
-
-  mOutputTree->Branch("clusSize", &avgClusterSize, "clusSize/D");
-  mOutputTree->Branch("mass", &mass, "mass/D");
-  mOutputTree->Branch("dca", &dca, "dca/D");
-  mOutputTree->Branch("cosPA", &cosPA, "cosPA/D");
-  mOutputTree->Branch("R", &R, "R/D");
-  mOutputTree->Branch("v0eta", &V0eta, "v0eta/D");
-  mOutputTree->Branch("d0R", &d0R, "d0R/D");
-  mOutputTree->Branch("d1R", &d1R, "d1R/D");
-  mOutputTree->Branch("isMCK0s", &isK0s, "isMCK0s/O");
+  int V0PdgCode, d0PdgCode, d1PdgCode, m0TrkId, m1TrkId;
 
   loadData(recoData);
   auto V0s = recoData.getV0s();
@@ -271,18 +268,18 @@ void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
     pv = recoData.getPrimaryVertex(v0.getVertexID()); // extract primary vertex
     d0recoTrk.propagateToDCA(pv, b, &d0DCA);          // calculate and store DCA objects for both prongs
     d1recoTrk.propagateToDCA(pv, b, &d1DCA);
-    d0R = std::sqrt(d0DCA.getR2()); // calculate DCA distance
-    d1R = std::sqrt(d1DCA.getR2());
+    mD0PVDCA = std::sqrt(d0DCA.getR2()); // calculate DCA distance
+    mD1PVDCA = std::sqrt(d1DCA.getR2());
 
-    V0eta = v0.getEta();
-    dca = v0.getDCA();
-    cosPA = v0.getCosPA();
-    mass = std::sqrt(v0.calcMass2()) * 1000; // convert mass to MeV
-    R = std::sqrt(v0.calcR2());              // gives distance from pvertex to origin? in centimeters (?) NOTE: unsure if this is to the primary vertex or to origin
+    mV0Eta = v0.getEta();
+    mDCAd01 = v0.getDCA();
+    mV0CosPA = v0.getCosPA();
+    mV0InvMass = std::sqrt(v0.calcMass2()) * 1000; // convert mass to MeV
+    mV0R = std::sqrt(v0.calcR2());                 // gives distance from pvertex to origin? in centimeters (?) NOTE: unsure if this is to the primary vertex or to origin
     std::vector<o2::its::TrackITS> dauRecoTrks = {recoData.getITSTrack(v0.getProngID(0)), recoData.getITSTrack(v0.getProngID(1))};
 
     if (mUseMC) { // check whether V0 is a K0s in MC, and fill the cut validation plots
-      isK0s = false;
+      mIsMCK0s = false;
       d0lab = mcLabels[v0.getProngID(0)]; // extract MC label for the prongs
       d1lab = mcLabels[v0.getProngID(1)];
       // Now we check validity, etc. for the labels (essentially strength of reco) to determine which reconstructed V0 are real K0s
@@ -307,7 +304,7 @@ void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
               V0mcTrk = mMCKinReader->getTrack(d1lab.getEventID(), m0TrkId); // assume daughter MCTracks are in same event as V0 MCTrack
               V0PdgCode = V0mcTrk->GetPdgCode();
               if (V0PdgCode == 310) {
-                isK0s = true;
+                mIsMCK0s = true;
                 nK0s++;
                 if (abs(d0PdgCode) == 211 && d0PdgCode / d1PdgCode == -1) {
                   nIsPiPiIsK0s++;
@@ -333,45 +330,45 @@ void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
       } else {
         nNotValid++;
       }
-      if (isK0s) {
-        mMCCosPAK0->Fill(cosPA);
-        mDCAK0->Fill(dca);
-        mRK0->Fill(R);
-        mPVDCAK0->Fill(d0R);
-        mPVDCAK0->Fill(d1R);
+      if (mIsMCK0s) {
+        mMCCosPAK0->Fill(mV0CosPA);
+        mDCAK0->Fill(mDCAd01);
+        mRK0->Fill(mV0R);
+        mPVDCAK0->Fill(mD0PVDCA);
+        mPVDCAK0->Fill(mD1PVDCA);
       } else {
-        mMCCosPAnotK0->Fill(cosPA);
-        mDCAnotK0->Fill(dca);
-        mRnotK0->Fill(R);
-        mPVDCAnotK0->Fill(d0R);
-        mPVDCAnotK0->Fill(d1R);
+        mMCCosPAnotK0->Fill(mV0CosPA);
+        mDCAnotK0->Fill(mDCAd01);
+        mRnotK0->Fill(mV0R);
+        mPVDCAnotK0->Fill(mD0PVDCA);
+        mPVDCAnotK0->Fill(mD1PVDCA);
       }
     }
 
-    for (auto daughter : dauRecoTrks) {
-      avgClusterSize = getAverageClusterSize(daughter);
-      mAvgClusSizeNC->Fill(avgClusterSize);
-      mOutputTree->Fill();
-    }
-    mCosPA->Fill(cosPA);
-    mMassSpectrumFullNC->Fill(mass);
-    mMassSpectrumK0sNC->Fill(mass);
-    mEtaNC->Fill(V0eta);
-    mR->Fill(R);
-    mDCA->Fill(dca);
+    mD0AvgClusSize = getAverageClusterSize(dauRecoTrks[0]);
+    mD1AvgClusSize = getAverageClusterSize(dauRecoTrks[1]);
+    mAvgClusSizeNC->Fill(mD0AvgClusSize);
+    mAvgClusSizeNC->Fill(mD1AvgClusSize);
+    mOutputTree->Fill();
+
+    mCosPA->Fill(mV0CosPA);
+    mMassSpectrumFullNC->Fill(mV0InvMass);
+    mMassSpectrumK0sNC->Fill(mV0InvMass);
+    mEtaNC->Fill(mV0Eta);
+    mR->Fill(mV0R);
+    mDCA->Fill(mDCAd01);
     // innermost layer of ITS lies at 2.3cm, idk where outer layer is :^)
-    if (cosPA > mParams.cosPAmin && R < mParams.Rmax && R > mParams.Rmin && dca < mParams.prongDCAmax && d0R > mParams.dauPVDCAmin && d1R > mParams.dauPVDCAmin) {
-      mMassSpectrumK0sC->Fill(mass);
-      mMassSpectrumFullC->Fill(mass);
-      for (auto daughter : dauRecoTrks) {
-        avgClusterSize = getAverageClusterSize(daughter);
-        mAvgClusSizeC->Fill(avgClusterSize);
-        if (V0eta > mParams.etaMin && V0eta < mParams.etaMax) {
-          nPionsInEtaRange++;
-          fillEtaBin(V0eta, avgClusterSize, 0);
-        }
+    if (mV0CosPA > mParams.cosPAmin && mV0R < mParams.Rmax && mV0R > mParams.Rmin && mDCAd01 < mParams.prongDCAmax && mD0PVDCA > mParams.dauPVDCAmin && mD1PVDCA > mParams.dauPVDCAmin) {
+      mMassSpectrumK0sC->Fill(mV0InvMass);
+      mMassSpectrumFullC->Fill(mV0InvMass);
+      mAvgClusSizeC->Fill(mD0AvgClusSize);
+      mAvgClusSizeC->Fill(mD1AvgClusSize);
+      if (mV0Eta > mParams.etaMin && mV0Eta < mParams.etaMax) {
+        nPionsInEtaRange++;
+        fillEtaBin(mV0Eta, mD0AvgClusSize, 0);
+        fillEtaBin(mV0Eta, mD1AvgClusSize, 0);
       }
-      mEtaC->Fill(V0eta);
+      mEtaC->Fill(mV0Eta);
     }
   }
 
@@ -402,7 +399,7 @@ void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
   fout.WriteTObject(mOutputTree.get());
   fout.Close();
 
-  // TODO: implement 7 cluster track cut for daughters; if we don't have enough statistics, we can cut even harsher on cosPA and inject more statistics
+  // TODO: implement 7 cluster track cut for daughters; if we don't have enough statistics, we can cut even harsher on mV0CosPA and inject more statistics
   // TODO: print the cut on the graph
 }
 
@@ -416,7 +413,7 @@ double AvgClusSizeStudy::getAverageClusterSize(o2::its::TrackITS daughter)
     globalNPixels += mInputClusterSizes[mInputITSidxs[firstClus + icl]];
   }
   globalNClusters += ncl;
-  return (double_t)totalSize / (double_t)ncl;
+  return (double)totalSize / (double)ncl;
 }
 
 void AvgClusSizeStudy::fillEtaBin(double eta, double clusSize, int i)
@@ -592,7 +589,6 @@ DataProcessorSpec getAvgClusSizeStudy(mask_t srcTracksMask, mask_t srcClustersMa
   dataRequest->requestPrimaryVertertices(useMC); // NOTE: may be necessary to use requestPrimaryVerterticesTMP()...
   // dataRequest->requestPrimaryVerterticesTMP(useMC);
 
-  // HACK: I have no idea what these parameters are - shamelessly stolen from StrangenessTrackingSpec.cxx, with GRPMagField and askMatLUT as false instead of true
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
                                                               true,                              // GRPECS=true
                                                               false,                             // GRPLHCIF
