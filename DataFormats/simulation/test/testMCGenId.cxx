@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test MCGenStatus class
+#define BOOST_TEST_MODULE Test MCGenId class
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
@@ -19,16 +19,17 @@ using namespace o2::mcgenid;
 
 BOOST_AUTO_TEST_CASE(MCGenId_test)
 {
-  // create 2 vectors each with some random integers
-  constexpr size_t length{100};
-  constexpr int low{-2};
-  constexpr int highGenerator{64};
-  constexpr int highSubGenerator{16};
-  constexpr int highSource{8};
+  // possible generator IDs range from 0 to 127 (included)
+  constexpr int highGenerator{128};
+  // possible sub-generator IDs range from -1 to 30 (included)
+  constexpr int highSubGenerator{31};
+  // possible soufce IDs range from 0 to 15 (included)
+  constexpr int highSource{16};
 
+  // test all combinations
   for (int sourceId = 0; sourceId < highSource; sourceId++) {
     for (int generatorId = 0; generatorId < highGenerator; generatorId++) {
-      for (int subGeneratorId = 0; subGeneratorId < highSubGenerator; subGeneratorId++) {
+      for (int subGeneratorId = -1; subGeneratorId < highSubGenerator; subGeneratorId++) {
         auto encoded = getEncodedGenId(generatorId, sourceId, subGeneratorId);
         // decode them
         auto sourceIdAfter = getSourceId(encoded);

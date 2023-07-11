@@ -90,27 +90,28 @@ class GeneratorProperty
   static constexpr Property SUBGENERATORDESCRIPTIONMAP{"subgenerator_description_map"};
 };
 
-// internal structure to allow convenient manipulation of properties as bits on an int to (dis)entangle HepMC and specific generator status codes
+// internal structure to allow encoding of generator IDs and map different numbers to a single short
 union MCGenIdEncoding {
   MCGenIdEncoding() : fullEncoding(0) {}
   MCGenIdEncoding(int enc) : fullEncoding(enc) {}
-  // To be backward-compatible, only set transport to 1 if hepmc status is 1
-  MCGenIdEncoding(int generatorId, int sourceId, int subGeneratorId = -1) : generatorId(generatorId), sourceId(sourceId), subGeneratorId(subGeneratorId) {}
+  MCGenIdEncoding(int generatorId, int sourceId, int subGeneratorId) : generatorId(generatorId), sourceId(sourceId), subGeneratorId(subGeneratorId) {}
   short fullEncoding;
   struct {
-    short generatorId : 7;    // an additional identifier for a generator which can be set by the user
-    short sourceId : 4;       // ID used in embedding scenarios
-    short subGeneratorId : 5; // sub generator ID in case a generator implements some additional logic
+    unsigned short generatorId : 7;    // an additional identifier for a generator which can be set by the user
+    unsigned short sourceId : 4;       // ID used in embedding scenarios
+    unsigned short subGeneratorId : 5; // sub generator ID in case a generator implements some additional logic
   };
 };
 
 inline short getEncodedGenId(int generatorId, int sourceId, int subGeneratorId = -1)
 {
-  return MCGenIdEncoding(generatorId, sourceId, subGeneratorId).fullEncoding;
+
+  return MCGenIdEncoding(generatorId, sourceId, subGeneratorId + 1).fullEncoding;
 }
 
 inline int getGeneratorId(short encoded)
 {
+
   return static_cast<int>(MCGenIdEncoding(encoded).generatorId);
 }
 
@@ -121,7 +122,7 @@ inline int getSourceId(short encoded)
 
 inline int getSubGeneratorId(short encoded)
 {
-  return static_cast<int>(MCGenIdEncoding(encoded).subGeneratorId);
+  return static_cast<int>(MCGenIdEncoding(encoded).subGeneratorId) - 1;
 }
 
 } // namespace mcgenid

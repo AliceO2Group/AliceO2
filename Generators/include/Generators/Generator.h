@@ -111,10 +111,7 @@ class Generator : public FairGenerator
   Bool_t triggerEvent();
 
   /** to handle cocktail constituents **/
-  void addSubGenerator(int subGeneratorId, std::string const& subGeneratorDescription)
-  {
-    mSubGeneratorsIdToDesc.insert({subGeneratorId, subGeneratorDescription});
-  }
+  void addSubGenerator(int subGeneratorId, std::string const& subGeneratorDescription);
   void notifySubGenerator(int subGeneratorId) { mSubGeneratorId = subGeneratorId; }
 
   /** generator interface **/
