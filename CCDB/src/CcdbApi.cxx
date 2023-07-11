@@ -21,6 +21,8 @@
 #include "CommonUtils/FileSystemUtils.h"
 #include "CommonUtils/MemFileHelper.h"
 #include "MemoryResources/MemoryResources.h"
+#include "Framework/DefaultsHelpers.h"
+#include "Framework/DataTakingContext.h"
 #include <chrono>
 #include <memory>
 #include <sstream>
@@ -55,9 +57,17 @@ unique_ptr<TJAlienCredentials> CcdbApi::mJAlienCredentials = nullptr;
 
 CcdbApi::CcdbApi()
 {
+  using namespace o2::framework;
   setUniqueAgentID();
 
-  mIsCCDBDownloaderEnabled = getenv("ALICEO2_ENABLE_MULTIHANDLE_CCDBAPI") && atoi(getenv("ALICEO2_ENABLE_MULTIHANDLE_CCDBAPI"));
+  DeploymentMode deploymentMode = DefaultsHelpers::deploymentMode();
+  mIsCCDBDownloaderEnabled = 0;
+  if (deploymentMode == DeploymentMode::OnlineDDS && deploymentMode == DeploymentMode::OnlineECS && deploymentMode == DeploymentMode::OnlineAUX && deploymentMode == DeploymentMode::FST) {
+    mIsCCDBDownloaderEnabled = 1;
+  }
+  if (getenv("ALICEO2_ENABLE_MULTIHANDLE_CCDBAPI")) {
+    mIsCCDBDownloaderEnabled = atoi(getenv("ALICEO2_ENABLE_MULTIHANDLE_CCDBAPI"));
+  }
   if (mIsCCDBDownloaderEnabled) {
     mDownloader = new CCDBDownloader();
   }

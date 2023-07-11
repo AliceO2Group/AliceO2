@@ -21,6 +21,7 @@ o2_add_library(CCDB
                                     FairMQ::FairMQ
                                     libjalien::libjalienO2
                                     LibUV::LibUV
+                                    O2::Framework
                TARGETVARNAME targetName)
 
 o2_target_root_dictionary(CCDB
