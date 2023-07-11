@@ -713,6 +713,11 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
 #else
       bool enableDebugMetrics = true;
 #endif
+      bool arrowAndResourceLimitingMetrics = false;
+      DeploymentMode deploymentMode = DefaultsHelpers::deploymentMode();
+      if (deploymentMode != DeploymentMode::OnlineDDS && deploymentMode != DeploymentMode::OnlineECS && deploymentMode != DeploymentMode::OnlineAUX && deploymentMode != DeploymentMode::FST) {
+        arrowAndResourceLimitingMetrics = true;
+      }
 
       std::vector<DataProcessingStats::MetricSpec> metrics = {
         MetricSpec{.name = "errors",
@@ -831,6 +836,7 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
         MetricSpec{.name = "dropped_incoming_messages", .metricId = static_cast<short>(ProcessingStatsId::DROPPED_INCOMING_MESSAGES), .kind = Kind::UInt64, .minPublishInterval = quickUpdateInterval},
         MetricSpec{.name = "relayed_messages", .metricId = static_cast<short>(ProcessingStatsId::RELAYED_MESSAGES), .kind = Kind::UInt64, .minPublishInterval = quickUpdateInterval},
         MetricSpec{.name = "arrow-bytes-destroyed",
+                   .enabled = arrowAndResourceLimitingMetrics,
                    .metricId = static_cast<short>(ProcessingStatsId::ARROW_BYTES_DESTROYED),
                    .kind = Kind::UInt64,
                    .scope = Scope::DPL,
@@ -838,6 +844,7 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
                    .maxRefreshLatency = 10000,
                    .sendInitialValue = true},
         MetricSpec{.name = "arrow-messages-destroyed",
+                   .enabled = arrowAndResourceLimitingMetrics,
                    .metricId = static_cast<short>(ProcessingStatsId::ARROW_MESSAGES_DESTROYED),
                    .kind = Kind::UInt64,
                    .scope = Scope::DPL,
@@ -845,6 +852,7 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
                    .maxRefreshLatency = 10000,
                    .sendInitialValue = true},
         MetricSpec{.name = "arrow-bytes-created",
+                   .enabled = arrowAndResourceLimitingMetrics,
                    .metricId = static_cast<short>(ProcessingStatsId::ARROW_BYTES_CREATED),
                    .kind = Kind::UInt64,
                    .scope = Scope::DPL,
@@ -852,6 +860,7 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
                    .maxRefreshLatency = 10000,
                    .sendInitialValue = true},
         MetricSpec{.name = "arrow-messages-created",
+                   .enabled = arrowAndResourceLimitingMetrics,
                    .metricId = static_cast<short>(ProcessingStatsId::ARROW_MESSAGES_CREATED),
                    .kind = Kind::UInt64,
                    .scope = Scope::DPL,
@@ -859,6 +868,7 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
                    .maxRefreshLatency = 10000,
                    .sendInitialValue = true},
         MetricSpec{.name = "arrow-bytes-expired",
+                   .enabled = arrowAndResourceLimitingMetrics,
                    .metricId = static_cast<short>(ProcessingStatsId::ARROW_BYTES_EXPIRED),
                    .kind = Kind::UInt64,
                    .scope = Scope::DPL,
@@ -866,6 +876,7 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
                    .maxRefreshLatency = 10000,
                    .sendInitialValue = true},
         MetricSpec{.name = "shm-offer-bytes-consumed",
+                   .enabled = arrowAndResourceLimitingMetrics,
                    .metricId = static_cast<short>(ProcessingStatsId::SHM_OFFER_BYTES_CONSUMED),
                    .kind = Kind::UInt64,
                    .scope = Scope::DPL,
@@ -897,6 +908,7 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
                    .maxRefreshLatency = 1000,
                    .sendInitialValue = true},
         MetricSpec{.name = "resource-offer-expired",
+                   .enabled = arrowAndResourceLimitingMetrics,
                    .metricId = static_cast<short>(ProcessingStatsId::RESOURCE_OFFER_EXPIRED),
                    .kind = Kind::UInt64,
                    .scope = Scope::DPL,
@@ -1084,7 +1096,7 @@ std::vector<ServiceSpec> CommonServices::defaultServices(std::string extraPlugin
     ccdbSupportSpec()};
 
   DeploymentMode deploymentMode = DefaultsHelpers::deploymentMode();
-  if (deploymentMode != DeploymentMode::OnlineDDS && deploymentMode != DeploymentMode::OnlineECS && deploymentMode != DeploymentMode::OnlineAUX) {
+  if (deploymentMode != DeploymentMode::OnlineDDS && deploymentMode != DeploymentMode::OnlineECS && deploymentMode != DeploymentMode::OnlineAUX && deploymentMode != DeploymentMode::FST) {
     specs.push_back(ArrowSupport::arrowBackendSpec());
   }
   specs.push_back(CommonMessageBackends::fairMQBackendSpec());
