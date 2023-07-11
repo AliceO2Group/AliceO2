@@ -29,6 +29,7 @@ o2_add_library(
           src/TrackCuts.cxx
           src/CalibdEdxCorrection.cxx
           src/DCS.cxx
+          src/PIDResponse.cxx
   PUBLIC_LINK_LIBRARIES O2::GPUCommon
                         O2::SimulationDataFormat
                         O2::ReconstructionDataFormats
@@ -62,7 +63,8 @@ o2_target_root_dictionary(
           include/DataFormatsTPC/LtrCalibData.h
           include/DataFormatsTPC/VDriftCorrFact.h
           include/DataFormatsTPC/CalibdEdxCorrection.h
-          include/DataFormatsTPC/BetheBlochAleph.h)
+          include/DataFormatsTPC/BetheBlochAleph.h
+          include/DataFormatsTPC/PIDResponse.h)
 
 o2_add_test(
   ClusterNative
