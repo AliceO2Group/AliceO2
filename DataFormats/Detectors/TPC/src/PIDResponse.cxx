@@ -21,21 +21,29 @@ using namespace o2::tpc;
 
 double PIDResponse::getExpectedSignal(const TrackTPC& track, const o2::track::PID::ID id) const
 {
-  const double bethe = mMIP * o2::tpc::BetheBlochAleph(static_cast<double>(track.getP() / o2::track::pid_constants::sMasses[id]), mBetheBlochParams[0], mBetheBlochParams[1], mBetheBlochParams[2], mBetheBlochParams[3], mBetheBlochParams[4]) * std::pow(static_cast<float>(o2::track::pid_constants::sCharges[id]), mChargeFactor);
-  return bethe >= 0.f ? bethe : -999.f;
+  const double bg = static_cast<double>(track.getP() / o2::track::pid_constants::sMasses[id]);
+  if (bg < 0.05) {
+    return -999.;
+  }
+  const double bethe = mMIP * o2::tpc::BetheBlochAleph(bg, mBetheBlochParams[0], mBetheBlochParams[1], mBetheBlochParams[2], mBetheBlochParams[3], mBetheBlochParams[4]) * std::pow(static_cast<double>(o2::track::pid_constants::sCharges[id]), mChargeFactor);
+  return bethe >= 0. ? bethe : -999.;
 }
 
 // get most probable PID
-o2::track::PID::ID PIDResponse::getMostProbablePID(const TrackTPC& track)
+o2::track::PID::ID PIDResponse::getMostProbablePID(const TrackTPC& track) const
 {
-  const int count = 8;
   const double dEdx = track.getdEdx().dEdxTotTPC;
 
-  double distanceMin = std::abs(dEdx - getExpectedSignal(track, 0));
-  int id = 0;
+  if (dEdx < 10) {
+    return o2::track::PID::Pion;
+  }
+
+  auto id = o2::track::PID::Electron;
+  double distanceMin = std::abs(dEdx - getExpectedSignal(track, id));
 
   // calculate the distance to the expected dEdx signals
-  for (int i = 2; i < count; i++) {
+  // start from Pion to exlude Muons
+  for (o2::track::PID::ID i = o2::track::PID::Pion; i < o2::track::PID::NIDs; i++) {
     const double distance = std::abs(dEdx - getExpectedSignal(track, i));
     if (distance < distanceMin) {
       id = i;

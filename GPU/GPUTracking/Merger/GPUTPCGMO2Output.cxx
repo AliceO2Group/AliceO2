@@ -17,6 +17,7 @@
 #include "GPUCommonAlgorithm.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTPC/Constants.h"
+#include "DataFormatsTPC/PIDResponse.h"
 #include "TPCFastTransform.h"
 #include "CorrectionMapsHelper.h"
 
@@ -113,6 +114,7 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int nBlocks, in
   const unsigned int flagsRequired = getFlagsRequired(merger.Param().rec);
   TrackTPC* outputTracks = merger.OutputTracksTPCO2();
   unsigned int* clusRefs = merger.OutputClusRefsTPCO2();
+  PIDResponse pidResponse{};
 
   GPUTPCGMMerger::tmpSort* GPUrestrict() trackSort = merger.TrackSortO2();
   uint2* GPUrestrict() tmpData = merger.ClusRefTmp();
@@ -134,6 +136,10 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int nBlocks, in
     if (merger.Param().par.dodEdx) {
       oTrack.setdEdx(tracksdEdx[i]);
     }
+
+    auto pid = pidResponse.getMostProbablePID(oTrack);
+    oTrack.setPID(pid);
+
     oTrack.setOuterParam(o2::track::TrackParCov(
       outerPar.X, outerPar.alpha,
       {outerPar.P[0], outerPar.P[1], outerPar.P[2], outerPar.P[3], outerPar.P[4]},
