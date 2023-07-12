@@ -113,6 +113,7 @@ void CalibratorGain::finalizeSlot(Slot& slot)
     mdEdxhists[iDet]->Reset();
     for (int iBin = 0; iBin < NBINSGAINCALIB; ++iBin) {
       mdEdxhists[iDet]->SetBinContent(iBin + 1, dEdxHists->getHistogramEntry(iDet * NBINSGAINCALIB + iBin));
+      mdEdxhists[iDet]->SetBinError(iBin + 1, sqrt(dEdxHists->getHistogramEntry(iDet * NBINSGAINCALIB + iBin)));
     }
     int nEntries = mdEdxhists[iDet]->Integral();
     // Check if we have the minimum amount of entries
@@ -124,7 +125,6 @@ void CalibratorGain::finalizeSlot(Slot& slot)
 
     // Fitting histogram
     mFitFunction->SetParameter(0, mdEdxhists[iDet]->GetMean() / 1.25);
-
     int fitStatus = mdEdxhists[iDet]->Fit("fitConvLandau", "LQB", "", 1, NBINSGAINCALIB - 4);
 
     if (fitStatus != 0) {
