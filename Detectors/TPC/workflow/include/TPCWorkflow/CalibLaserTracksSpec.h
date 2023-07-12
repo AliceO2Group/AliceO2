@@ -25,7 +25,6 @@
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
 #include "CommonUtils/NameConf.h"
-#include "TPCCalibration/VDriftHelper.h"
 
 #include "TPCWorkflow/ProcessingHelpers.h"
 
@@ -56,8 +55,11 @@ class CalibLaserTracksDevice : public o2::framework::Task
 
   void run(o2::framework::ProcessingContext& pc) final
   {
-    mTPCVDriftHelper.extractCCDBInputs(pc);
     const auto dph = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header);
+    if (!dph) {
+      LOGP(warning, "CalibLaserTracksDevice::run: No DataProcessingHeader found for \"input\". Only conditions? Skipping event.");
+      return;
+    }
     const auto startTime = dph->startTime;
     const auto endTime = dph->startTime + dph->duration;
     mRunNumber = processing_helpers::getRunNumber(pc);
@@ -83,20 +85,8 @@ class CalibLaserTracksDevice : public o2::framework::Task
     sendOutput(ec.outputs());
   }
 
-  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final
-  {
-    if (mTPCVDriftHelper.accountCCDBInputs(matcher, obj)) {
-      if (mTPCVDriftHelper.isUpdated()) {
-        mTPCVDriftHelper.acknowledgeUpdate();
-        mCalib.setVDriftRef(mTPCVDriftHelper.getVDriftObject().getVDrift());
-      }
-      return;
-    }
-  }
-
  private:
   CalibLaserTracks mCalib;       ///< laser track calibration component
-  o2::tpc::VDriftHelper mTPCVDriftHelper{};
   uint64_t mRunNumber{0};        ///< processed run number
   int mMinNumberTFs{100};        ///< minimum number of TFs required for good calibration
   bool mPublished{false};        ///< if calibration was already published
@@ -155,12 +145,10 @@ DataProcessorSpec getCalibLaserTracks(const std::string inputSpec)
   outputs.emplace_back(ConcreteDataTypeMatcher{"TPC", "LtrCalibData"}, Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_CalibLtr"}, Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_CalibLtr"}, Lifetime::Sporadic);
-  std::vector<InputSpec> inputs = select(inputSpec.data());
-  o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
 
   return DataProcessorSpec{
     "tpc-calib-laser-tracks",
-    inputs,
+    select(inputSpec.data()),
     outputs,
     AlgorithmSpec{adaptFromTask<device>()},
     Options{

@@ -35,6 +35,10 @@ void DataProcessingStats::updateStats(CommandSpec cmd)
   if (metricSpecs[cmd.id].name.empty()) {
     throw runtime_error_f("MetricID %d was not registered", (int)cmd.id);
   }
+  if (metricSpecs[cmd.id].enabled == false) {
+    LOGP(debug, "MetricID {} is disabled", (int)cmd.id);
+    return;
+  }
   if (cmd.id >= metrics.size()) {
     throw runtime_error_f("MetricID %d is out of range", (int)cmd.id);
   }
@@ -197,6 +201,10 @@ void DataProcessingStats::flushChangedMetrics(std::function<void(DataProcessingS
     auto& update = updateInfos[mi];
     MetricSpec& spec = metricSpecs[mi];
     if (spec.name.empty()) {
+      continue;
+    }
+    if (spec.enabled == false) {
+      LOGP(debug, "Metric {} is disabled", spec.name);
       continue;
     }
     if (updated[mi] == false && currentTimestamp - update.timestamp > spec.maxRefreshLatency) {

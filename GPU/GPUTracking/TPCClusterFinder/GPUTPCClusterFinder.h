@@ -73,7 +73,7 @@ class GPUTPCClusterFinder : public GPUProcessor
   };
 
   struct MinMaxCN {
-    unsigned int minC, minN, maxC, maxN;
+    unsigned int zsPtrFirst, zsPageFirst, zsPtrLast, zsPageLast;
   };
 
 #ifndef GPUCA_GPUCODE

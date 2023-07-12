@@ -9,25 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_TRDCALIBWRITERSPEC_H
-#define O2_TRDCALIBWRITERSPEC_H
+#include "Framework/O2ControlParameters.h"
 
-namespace o2
-{
-namespace framework
-{
-struct DataProcessorSpec;
-}
-} // namespace o2
-
-namespace o2
-{
-namespace trd
+namespace o2::framework::ecs
 {
 
-o2::framework::DataProcessorSpec getTRDCalibWriterSpec(bool vdexb, bool gain, bool ph);
+const decltype(DataProcessorMetadata::key) cpuKillThreshold = "ecs-cpu-kill-threshold";
+const decltype(DataProcessorMetadata::key) privateMemoryKillThresholdMB = "ecs-private-memory-kill-threshold-mb";
 
-} // end namespace trd
-} // end namespace o2
-
-#endif // O2_TRDCALIBWRITERSPEC_H
+} // namespace o2::framework::ecs

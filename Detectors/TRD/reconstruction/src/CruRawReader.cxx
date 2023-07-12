@@ -1125,7 +1125,7 @@ void CruRawReader::printHalfChamberHeaderReport() const
 //write the output data directly to the given DataAllocator from the datareader task.
 void CruRawReader::buildDPLOutputs(o2::framework::ProcessingContext& pc)
 {
-  mEventRecords.sendData(pc, mOptions[TRDGenerateStats]);
+  mEventRecords.sendData(pc, mOptions[TRDGenerateStats], mOptions[TRDSortDigits]);
 }
 
 void CruRawReader::reset()

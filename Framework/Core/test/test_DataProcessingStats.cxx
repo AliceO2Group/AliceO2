@@ -33,15 +33,15 @@ TEST_CASE("DataProcessingStats")
                             TimingHelpers::defaultCPUTimeConfigurator(uv_default_loop()));
 
   o2::framework::clean_all_runtime_errors();
-  stats.registerMetric({"dummy_metric", DummyMetric});
+  stats.registerMetric({.name = "dummy_metric", .metricId = DummyMetric});
   /// Registering twice should throw.
-  REQUIRE_THROWS(stats.registerMetric({"dummy_metric", DummyMetric2}));
+  REQUIRE_THROWS(stats.registerMetric({.name = "dummy_metric", .metricId = DummyMetric2}));
   /// Registering with a different name should throw.
-  REQUIRE_THROWS(stats.registerMetric({"dummy_metric2", DummyMetric}));
+  REQUIRE_THROWS(stats.registerMetric({.name = "dummy_metric2", .metricId = DummyMetric}));
   /// Registering with a different name should throw.
-  REQUIRE_THROWS(stats.registerMetric({"", ZeroSize}));
+  REQUIRE_THROWS(stats.registerMetric({.name = "", .metricId = ZeroSize}));
 
-  stats.registerMetric({"dummy_metric2", DummyMetric2});
+  stats.registerMetric({.name = "dummy_metric2", .metricId = DummyMetric2});
   REQUIRE(stats.metricsNames[DummyMetric] == "dummy_metric");
   stats.updateStats({DummyMetric, DataProcessingStats::Op::Add, 1});
   REQUIRE_THROWS(stats.updateStats({Missing, DataProcessingStats::Op::Add, 1}));
@@ -192,7 +192,7 @@ TEST_CASE("DataProcessingStatsOutOfOrder")
   };
   DataProcessingStats stats(realtimeTime, cpuTime);
   // Notice this will consume one value in the cpuTime.
-  stats.registerMetric({"dummy_metric", DummyMetric});
+  stats.registerMetric({.name = "dummy_metric", .metricId = DummyMetric});
   stats.updateStats({DummyMetric, DataProcessingStats::Op::Set, 2});
   // In reality this should have a lower timestamp than the previous one
   // so it will be committed before.

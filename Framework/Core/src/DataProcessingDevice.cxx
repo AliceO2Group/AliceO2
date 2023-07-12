@@ -124,6 +124,12 @@ DeviceSpec const& getRunningDevice(RunningDeviceRef const& running, ServiceRegis
   return devices[running.index];
 }
 
+struct locked_execution {
+  ServiceRegistryRef& ref;
+  locked_execution(ServiceRegistryRef& ref_) : ref(ref_) { ref.lock(); }
+  ~locked_execution() { ref.unlock(); }
+};
+
 DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegistry& registry, ProcessingPolicies& policies)
   : mRunningDevice{running},
     mConfigRegistry{nullptr},
@@ -234,8 +240,6 @@ void run_completion(uv_work_t* handle, int status)
     dpStats.updateStats({static_cast<short>(ProcessingStatsId::RESOURCE_OFFER_EXPIRED), DataProcessingStats::Op::Set, stats.totalExpiredOffers});
     dpStats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_BYTES_EXPIRED), DataProcessingStats::Op::Set, stats.totalExpiredBytes});
     dpStats.processCommandQueue();
-    assert(stats.totalExpiredBytes == 0);
-    assert(stats.totalExpiredOffers == 0);
   };
 
   for (auto& consumer : state.offerConsumers) {
@@ -1314,8 +1318,8 @@ void DataProcessingDevice::Run()
     if (streamRef.index != -1) {
       // Synchronous execution of the callbacks. This will be moved in the
       // moved in the on_socket_polled once we have threading in place.
-      auto& handle = mHandles[streamRef.index];
-      auto& stream = mStreams[streamRef.index];
+      uv_work_t& handle = mHandles[streamRef.index];
+      TaskStreamInfo& stream = mStreams[streamRef.index];
       handle.data = &mStreams[streamRef.index];
 
       static std::function<void(ComputingQuotaOffer const&, ComputingQuotaStats const& stats)> reportExpiredOffer = [&registry = mServiceRegistry](ComputingQuotaOffer const& offer, ComputingQuotaStats const& stats) {
