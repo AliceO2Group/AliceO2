@@ -9,17 +9,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \file AvgClusSize.cxx
+/// \brief Study to calculate average cluster size per track in the ITS
+/// \author Tucker Hwang mhwang@cern.ch
+
 #include "ITSStudies/AvgClusSize.h"
 
 #include "DataFormatsITS/TrackITS.h"
-// #include "Framework/CCDBParamSpec.h"
 #include "Framework/Task.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "ReconstructionDataFormats/V0.h"
 #include "ReconstructionDataFormats/PrimaryVertex.h"
 #include "CommonUtils/TreeStreamRedirector.h"
-// #include "ITStracking/IOUtils.h"
 #include "DataFormatsParameters/GRPObject.h"
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "ITSBase/GeometryTGeo.h"
@@ -36,6 +38,7 @@
 #include <TLine.h>
 #include <numeric>
 #include <TStyle.h>
+#include <TNtuple.h>
 
 namespace o2
 {
@@ -53,6 +56,7 @@ using ITSCluster = o2::BaseCluster<float>;
 using mask_t = o2::dataformats::GlobalTrackID::mask_t;
 using AvgClusSizeStudy = o2::its::study::AvgClusSizeStudy;
 using Track = o2::track::TrackParCov;
+using TrackITS = o2::its::TrackITS;
 using DCA = o2::dataformats::DCA;
 
 void AvgClusSizeStudy::init(InitContext& ic)
@@ -77,7 +81,7 @@ void AvgClusSizeStudy::prepareOutput()
 {
   auto& params = o2::its::study::AvgClusSizeStudyParamConfig::Instance();
   mDBGOut = std::make_unique<o2::utils::TreeStreamRedirector>(mOutName.c_str(), "recreate");
-  mOutputTree = std::make_unique<TTree>("v0", "testing");
+  mOutputNtuple = std::make_unique<TNtuple>("v0_data", "v0 data", "d0ACS:d1ACS:mass:d01dca:cosPA:V0R:eta:d0pvDCA:d1pvDCA:isMCK0s");
 
   mMassSpectrumFull = std::make_unique<THStack>("V0", "V0 mass spectrum; MeV");                                        // auto-set axis ranges
   mMassSpectrumFullNC = std::make_unique<TH1F>("V0nc", "no cuts; MeV", 100, 250, 1000);                                // auto-set axis ranges
@@ -108,13 +112,12 @@ void AvgClusSizeStudy::prepareOutput()
   mPVDCAnotK0 = std::make_unique<TH1F>("PVDCAnotK0", "Prong DCA to pVertex", 80, 0, 2);
 
   mAvgClusSizeCEta = std::make_unique<THStack>("avgclussizeeta", "Average cluster size per track; pixels / cluster / track"); // auto-set axis ranges
-  double binWidth = (mParams.etaMax - mParams.etaMin) / (double)mParams.etaNBins;
-  mEtaBinUL.reserve(mParams.etaNBins);
-  for (int i = 0; i < mParams.etaNBins; i++) {
-    mEtaBinUL.emplace_back(mParams.etaMin + (binWidth * (i + 1)));
-    mAvgClusSizeCEtaVec.push_back(std::make_unique<TH1F>(Form("avgclussize%i", i), Form("%.2f < #eta < %.2f", mEtaBinUL[i] - binWidth, mEtaBinUL[i]), mParams.sizeNBins, 0, mParams.sizeMax));
+  double binWidth = (params.etaMax - params.etaMin) / (double)params.etaNBins;
+  mEtaBinUL.reserve(params.etaNBins);
+  for (int i = 0; i < params.etaNBins; i++) {
+    mEtaBinUL.emplace_back(params.etaMin + (binWidth * (i + 1)));
+    mAvgClusSizeCEtaVec.push_back(std::make_unique<TH1F>(Form("avgclussize%i", i), Form("%.2f < #eta < %.2f", mEtaBinUL[i] - binWidth, mEtaBinUL[i]), params.sizeNBins, 0, params.sizeMax));
     mAvgClusSizeCEtaVec[i]->SetDirectory(nullptr);
-    // mAvgClusSizeCEtaVec[i]->SetDirectory(nullptr);
     mAvgClusSizeCEta->Add(mAvgClusSizeCEtaVec[i].get());
   }
 
@@ -139,6 +142,8 @@ void AvgClusSizeStudy::prepareOutput()
   mPVDCAK0->SetDirectory(nullptr);
   mPVDCAnotK0->SetDirectory(nullptr);
 
+  mOutputNtuple->SetDirectory(nullptr);
+
   mMassSpectrumFull->Add(mMassSpectrumFullC.get());
   mMassSpectrumFull->Add(mMassSpectrumFullNC.get());
   mMassSpectrumK0s->Add(mMassSpectrumK0sC.get());
@@ -153,17 +158,6 @@ void AvgClusSizeStudy::prepareOutput()
   mStackR->Add(mRnotK0.get());
   mStackPVDCA->Add(mPVDCAK0.get());
   mStackPVDCA->Add(mPVDCAnotK0.get());
-
-  mOutputTree->Branch("d0AvgClusSize", &mD0AvgClusSize);
-  mOutputTree->Branch("d1AvgClusSize", &mD1AvgClusSize);
-  mOutputTree->Branch("mass", &mV0InvMass);
-  mOutputTree->Branch("d01dca", &mDCAd01);
-  mOutputTree->Branch("cosPA", &mV0CosPA);
-  mOutputTree->Branch("V0R", &mV0R);
-  mOutputTree->Branch("eta", &mV0Eta);
-  mOutputTree->Branch("d0pvDCA", &mD0PVDCA);
-  mOutputTree->Branch("d1pvDCA", &mD1PVDCA);
-  mOutputTree->Branch("isMCK0s", &mIsMCK0s);
 }
 
 void AvgClusSizeStudy::setStyle()
@@ -174,11 +168,8 @@ void AvgClusSizeStudy::setStyle()
     mAvgClusSizeCEtaVec[i]->SetMarkerStyle(20 + i);
     mAvgClusSizeCEtaVec[i]->SetMarkerColor(i + 1);
     mAvgClusSizeCEtaVec[i]->SetLineColor(i + 1);
-
-    // hist->SetMarkerAttributes();
   }
 
-  // mMassSpectrumK0sCut->Sumw2();
   mAvgClusSizeC->SetLineColor(kRed);
   mMassSpectrumFullC->SetLineColor(kRed);
   mMassSpectrumK0sC->SetLineColor(kRed);
@@ -236,10 +227,12 @@ void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
   // Alternatively, we should just use the track masks to do this in general... but how?
   // I feel like recoData should already contain only the tracks we need, given that we applied the masks at DataRequest time...
   // but clearly that is not the case? or maybe i'm an idiot
-  Track d0recoTrk, d1recoTrk;                 // daughter ITS tracks
-  std::vector<o2::its::TrackITS> dauRecoTrks; // vector to store ITS tracks for the two daughters
-  DCA d0DCA, d1DCA;                           // DCA object for prong to primary vertex (DCA = o2::dataformats::DCA)
-  float b = 5.;                               // Magnetic field in kG (?)
+  auto& params = o2::its::study::AvgClusSizeStudyParamConfig::Instance();
+  float d0ACS, d1ACS, v0InvMass, d01DCA, cosPA, v0R, eta, d0pvDCA, d1pvDCA;
+  bool isMCK0s = false;
+  TrackITS d0recoTrk, d1recoTrk; // daughter ITS tracks
+  DCA d0DCA, d1DCA;              // DCA object for prong to primary vertex (DCA = o2::dataformats::DCA)
+  float b = 5.;                  // Magnetic field in kG (?)
   PVertex pv;
 
   // Variables for MC analysis
@@ -262,24 +255,23 @@ void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
   }
 
   for (V0 v0 : V0s) {
-    d0recoTrk = v0.getProng(0); // extract prong ITS tracks
-    d1recoTrk = v0.getProng(1);
+    d0recoTrk = recoData.getITSTrack(v0.getProngID(0));
+    d1recoTrk = recoData.getITSTrack(v0.getProngID(1));
 
     pv = recoData.getPrimaryVertex(v0.getVertexID()); // extract primary vertex
     d0recoTrk.propagateToDCA(pv, b, &d0DCA);          // calculate and store DCA objects for both prongs
     d1recoTrk.propagateToDCA(pv, b, &d1DCA);
-    mD0PVDCA = std::sqrt(d0DCA.getR2()); // calculate DCA distance
-    mD1PVDCA = std::sqrt(d1DCA.getR2());
+    d0pvDCA = std::sqrt(d0DCA.getR2()); // calculate DCA distance
+    d1pvDCA = std::sqrt(d1DCA.getR2());
 
-    mV0Eta = v0.getEta();
-    mDCAd01 = v0.getDCA();
-    mV0CosPA = v0.getCosPA();
-    mV0InvMass = std::sqrt(v0.calcMass2()) * 1000; // convert mass to MeV
-    mV0R = std::sqrt(v0.calcR2());                 // gives distance from pvertex to origin? in centimeters (?) NOTE: unsure if this is to the primary vertex or to origin
-    std::vector<o2::its::TrackITS> dauRecoTrks = {recoData.getITSTrack(v0.getProngID(0)), recoData.getITSTrack(v0.getProngID(1))};
+    eta = v0.getEta();
+    d01DCA = v0.getDCA();
+    cosPA = v0.getCosPA();
+    v0InvMass = std::sqrt(v0.calcMass2()) * 1000; // convert mass to MeV
+    v0R = std::sqrt(v0.calcR2());                 // gives distance from pvertex to origin? in centimeters (?) NOTE: unsure if this is to the primary vertex or to origin
 
     if (mUseMC) { // check whether V0 is a K0s in MC, and fill the cut validation plots
-      mIsMCK0s = false;
+      isMCK0s = false;
       d0lab = mcLabels[v0.getProngID(0)]; // extract MC label for the prongs
       d1lab = mcLabels[v0.getProngID(1)];
       // Now we check validity, etc. for the labels (essentially strength of reco) to determine which reconstructed V0 are real K0s
@@ -304,7 +296,7 @@ void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
               V0mcTrk = mMCKinReader->getTrack(d1lab.getEventID(), m0TrkId); // assume daughter MCTracks are in same event as V0 MCTrack
               V0PdgCode = V0mcTrk->GetPdgCode();
               if (V0PdgCode == 310) {
-                mIsMCK0s = true;
+                isMCK0s = true;
                 nK0s++;
                 if (abs(d0PdgCode) == 211 && d0PdgCode / d1PdgCode == -1) {
                   nIsPiPiIsK0s++;
@@ -330,45 +322,46 @@ void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
       } else {
         nNotValid++;
       }
-      if (mIsMCK0s) {
-        mMCCosPAK0->Fill(mV0CosPA);
-        mDCAK0->Fill(mDCAd01);
-        mRK0->Fill(mV0R);
-        mPVDCAK0->Fill(mD0PVDCA);
-        mPVDCAK0->Fill(mD1PVDCA);
+      if (isMCK0s) {
+        mMCCosPAK0->Fill(cosPA);
+        mDCAK0->Fill(d01DCA);
+        mRK0->Fill(v0R);
+        mPVDCAK0->Fill(d0pvDCA);
+        mPVDCAK0->Fill(d1pvDCA);
       } else {
-        mMCCosPAnotK0->Fill(mV0CosPA);
-        mDCAnotK0->Fill(mDCAd01);
-        mRnotK0->Fill(mV0R);
-        mPVDCAnotK0->Fill(mD0PVDCA);
-        mPVDCAnotK0->Fill(mD1PVDCA);
+        mMCCosPAnotK0->Fill(cosPA);
+        mDCAnotK0->Fill(d01DCA);
+        mRnotK0->Fill(v0R);
+        mPVDCAnotK0->Fill(d0pvDCA);
+        mPVDCAnotK0->Fill(d1pvDCA);
       }
     }
 
-    mD0AvgClusSize = getAverageClusterSize(dauRecoTrks[0]);
-    mD1AvgClusSize = getAverageClusterSize(dauRecoTrks[1]);
-    mAvgClusSizeNC->Fill(mD0AvgClusSize);
-    mAvgClusSizeNC->Fill(mD1AvgClusSize);
-    mOutputTree->Fill();
+    d0ACS = getAverageClusterSize(&d0recoTrk);
+    d1ACS = getAverageClusterSize(&d1recoTrk);
+    mAvgClusSizeNC->Fill(d0ACS);
+    mAvgClusSizeNC->Fill(d1ACS);
 
-    mCosPA->Fill(mV0CosPA);
-    mMassSpectrumFullNC->Fill(mV0InvMass);
-    mMassSpectrumK0sNC->Fill(mV0InvMass);
-    mEtaNC->Fill(mV0Eta);
-    mR->Fill(mV0R);
-    mDCA->Fill(mDCAd01);
-    // innermost layer of ITS lies at 2.3cm, idk where outer layer is :^)
-    if (mV0CosPA > mParams.cosPAmin && mV0R < mParams.Rmax && mV0R > mParams.Rmin && mDCAd01 < mParams.prongDCAmax && mD0PVDCA > mParams.dauPVDCAmin && mD1PVDCA > mParams.dauPVDCAmin) {
-      mMassSpectrumK0sC->Fill(mV0InvMass);
-      mMassSpectrumFullC->Fill(mV0InvMass);
-      mAvgClusSizeC->Fill(mD0AvgClusSize);
-      mAvgClusSizeC->Fill(mD1AvgClusSize);
-      if (mV0Eta > mParams.etaMin && mV0Eta < mParams.etaMax) {
+    mOutputNtuple->Fill(d0ACS, d1ACS, v0InvMass, d01DCA, cosPA, v0R, eta, d0pvDCA, d1pvDCA, (float)isMCK0s);
+
+    mCosPA->Fill(cosPA);
+    mMassSpectrumFullNC->Fill(v0InvMass);
+    mMassSpectrumK0sNC->Fill(v0InvMass);
+    mEtaNC->Fill(eta);
+    mR->Fill(v0R);
+    mDCA->Fill(d01DCA);
+    // innermost layer of ITS lies at 2.3cm
+    if (cosPA > params.cosPAmin && v0R < params.Rmax && v0R > params.Rmin && d01DCA < params.prongDCAmax && d0pvDCA > params.dauPVDCAmin && d1pvDCA > params.dauPVDCAmin) {
+      mMassSpectrumK0sC->Fill(v0InvMass);
+      mMassSpectrumFullC->Fill(v0InvMass);
+      mAvgClusSizeC->Fill(d0ACS);
+      mAvgClusSizeC->Fill(d1ACS);
+      if (eta > params.etaMin && eta < params.etaMax) {
         nPionsInEtaRange++;
-        fillEtaBin(mV0Eta, mD0AvgClusSize, 0);
-        fillEtaBin(mV0Eta, mD1AvgClusSize, 0);
+        fillEtaBin(eta, d0ACS, 0);
+        fillEtaBin(eta, d1ACS, 0);
       }
-      mEtaC->Fill(mV0Eta);
+      mEtaC->Fill(eta);
     }
   }
 
@@ -395,25 +388,21 @@ void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
     // LOGP(info, "OVERALL STATISTICS: {} primary K0s found in MC tracks out of {} total", totalK0sInDataset, mMCTracks.size());
   }
 
-  TFile fout(mOutName.c_str(), "RECREATE");
-  fout.WriteTObject(mOutputTree.get());
-  fout.Close();
-
-  // TODO: implement 7 cluster track cut for daughters; if we don't have enough statistics, we can cut even harsher on mV0CosPA and inject more statistics
+  // TODO: implement 7 cluster track cut for daughters; if we don't have enough statistics, we can cut even harsher on cosPA and inject more statistics
   // TODO: print the cut on the graph
 }
 
-double AvgClusSizeStudy::getAverageClusterSize(o2::its::TrackITS daughter)
+float AvgClusSizeStudy::getAverageClusterSize(TrackITS* daughter)
 {
   int totalSize{0};
-  auto firstClus = daughter.getFirstClusterEntry();
-  auto ncl = daughter.getNumberOfClusters();
+  auto firstClus = daughter->getFirstClusterEntry();
+  auto ncl = daughter->getNumberOfClusters();
   for (int icl = 0; icl < ncl; icl++) {
     totalSize += mInputClusterSizes[mInputITSidxs[firstClus + icl]];
     globalNPixels += mInputClusterSizes[mInputITSidxs[firstClus + icl]];
   }
   globalNClusters += ncl;
-  return (double)totalSize / (double)ncl;
+  return (float)totalSize / (float)ncl;
 }
 
 void AvgClusSizeStudy::fillEtaBin(double eta, double clusSize, int i)
@@ -439,7 +428,10 @@ void AvgClusSizeStudy::updateTimeDependentParams(ProcessingContext& pc)
 void AvgClusSizeStudy::saveHistograms()
 {
   mDBGOut.reset();
-  TFile fout(mOutName.c_str(), "UPDATE");
+  TFile fout(mOutName.c_str(), "RECREATE");
+
+  fout.WriteTObject(mOutputNtuple.get());
+
   fout.WriteTObject(mMassSpectrumFullNC.get());
   fout.WriteTObject(mMassSpectrumFullC.get());
   fout.WriteTObject(mMassSpectrumK0sNC.get());
@@ -474,6 +466,7 @@ void AvgClusSizeStudy::saveHistograms()
 
 void AvgClusSizeStudy::plotHistograms()
 {
+  auto& params = o2::its::study::AvgClusSizeStudyParamConfig::Instance();
   double globalAvgClusSize = (double)globalNPixels / (double)globalNClusters;
 
   TCanvas* c1 = new TCanvas();
@@ -515,7 +508,7 @@ void AvgClusSizeStudy::plotHistograms()
   mAvgClusSizeCEta->Draw("P NOSTACK");
   c10->BuildLegend(0.6, 0.6, 0.8, 0.8);
   c10->Print("clusSizeEta.png");
-  for (int i = 0; i < mParams.etaNBins; i++) {
+  for (int i = 0; i < params.etaNBins; i++) {
     mAvgClusSizeCEtaVec[i]->Scale(1. / mAvgClusSizeCEtaVec[i]->Integral("width"));
   }
 
@@ -557,10 +550,11 @@ void AvgClusSizeStudy::fitMassSpectrum()
 
 void AvgClusSizeStudy::endOfStream(EndOfStreamContext& ec)
 {
-  if (mParams.performFit) {
+  auto& params = o2::its::study::AvgClusSizeStudyParamConfig::Instance();
+  if (params.performFit) {
     fitMassSpectrum();
   }
-  if (mParams.generatePlots) {
+  if (params.generatePlots) {
     saveHistograms();
     setStyle();
     plotHistograms();

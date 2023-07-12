@@ -9,6 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// \file AvgClusSize.h
+/// \author Tucker Hwang mhwang@cern.ch
+
 #ifndef O2_AVGCLUSSIZE_STUDY_H
 #define O2_AVGCLUSSIZE_STUDY_H
 
@@ -26,7 +29,7 @@
 
 #include <TH1F.h>
 #include <THStack.h>
-#include <TTree.h>
+#include <TNtuple.h>
 
 namespace o2
 {
@@ -62,7 +65,7 @@ class AvgClusSizeStudy : public Task
   void prepareOutput();
   void setStyle();
   void updateTimeDependentParams(ProcessingContext& pc);
-  double getAverageClusterSize(o2::its::TrackITS);
+  float getAverageClusterSize(o2::its::TrackITS*);
   void getClusterSizes(std::vector<int>&, const gsl::span<const o2::itsmft::CompClusterExt>, gsl::span<const unsigned char>::iterator&, const o2::itsmft::TopologyDictionary*);
   void fitMassSpectrum();
   void saveHistograms();
@@ -71,7 +74,6 @@ class AvgClusSizeStudy : public Task
 
   // Running options
   bool mUseMC;
-  const o2::its::study::AvgClusSizeStudyParamConfig& mParams = o2::its::study::AvgClusSizeStudyParamConfig::Instance(); // NOTE: unsure if this is implemented in the "typical" way - it does work though
 
   // Data
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
@@ -81,21 +83,9 @@ class AvgClusSizeStudy : public Task
   std::vector<o2::MCTrack> mMCTracks;
   const o2::itsmft::TopologyDictionary* mDict = nullptr;
 
-  // V0 attributes
-  double mD0AvgClusSize;
-  double mD1AvgClusSize;
-  double mV0InvMass;
-  double mDCAd01;
-  double mV0CosPA;
-  double mV0R;
-  double mV0Eta;
-  double mD0PVDCA;
-  double mD1PVDCA;
-  bool mIsMCK0s = false;
-
   // Output plots
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
-  std::unique_ptr<TTree> mOutputTree;
+  std::unique_ptr<TNtuple> mOutputNtuple;
 
   std::unique_ptr<THStack> mMassSpectrumFull{};
   std::unique_ptr<TH1F> mMassSpectrumFullNC{};
