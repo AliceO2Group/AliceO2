@@ -80,6 +80,14 @@ class CorrectionMapsHelper
     }
   }
 
+  void setLumiScaleMode(int v)
+  {
+    if (v != mLumiScaleMode) {
+      mLumiScaleMode = v;
+      updateLumiScale();
+    }
+  }
+
   void updateLumiScale(bool report = true)
   {
     if (mMeanLumi < 0.f || mInstLumi < 0.f) {
