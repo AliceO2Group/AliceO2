@@ -451,6 +451,23 @@ class CcdbApi //: public DatabaseInterface
                           long timestamp = -1, std::map<std::string, std::string>* headers = nullptr, std::string const& etag = "",
                           const std::string& createdNotAfter = "", const std::string& createdNotBefore = "") const;
 
+  /**
+   * Run the uvLoop belonging to mDownloader once.
+   *
+   * @param noWait Using this flag will cause the loop to run only if sockets have pendind data.
+   */
+  void runDownloaderLoop(bool noWait);
+  /**
+   * Set the number of times curl should retry in case of failure and the delay between thte attempts.
+   * @param numberRetries
+   * @param delay
+   */
+  void setCurlRetriesParameters(int numberRetries, int delay = 100000 /* microseconds */)
+  {
+    mCurlRetries = numberRetries;
+    mCurlDelayRetries = delay;
+  }
+
  private:
   /**
    * A helper function to extract object from a local ROOT file
@@ -545,6 +562,8 @@ class CcdbApi //: public DatabaseInterface
   mutable TGrid* mAlienInstance = nullptr;                       // a cached connection to TGrid (needed for Alien locations)
   bool mNeedAlienToken = true;                                   // On EPN and FLP we use a local cache and don't need the alien token
   static std::unique_ptr<TJAlienCredentials> mJAlienCredentials; // access JAliEn credentials
+  int mCurlRetries = 3;
+  int mCurlDelayRetries = 100000; // in microseconds
 
   ClassDefNV(CcdbApi, 1);
 };

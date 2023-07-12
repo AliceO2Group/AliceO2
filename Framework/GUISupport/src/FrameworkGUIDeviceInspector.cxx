@@ -289,7 +289,7 @@ void displayDeviceInspector(DeviceSpec const& spec,
       "osascript -e 'tell application \"Terminal\"'"
       " -e 'activate'"
       " -e 'do script \"xcrun xctrace record --output dpl-profile-{0}.trace"
-      " --time-limit 30s --template Time\\\\ Profiler --attach {0} "
+      " --instrument os_signpost --time-limit 30s --template Time\\\\ Profiler --attach {0} "
       " && open dpl-profile-{0}.trace && exit\"'"
       " -e 'end tell'",
       pid);
@@ -311,7 +311,7 @@ void displayDeviceInspector(DeviceSpec const& spec,
       "osascript -e 'tell application \"Terminal\"'"
       " -e 'activate'"
       " -e 'do script \"xcrun xctrace record --output dpl-profile-{0}.trace"
-      " --time-limit 30s --template Allocations --attach {0} "
+      " --time-limit 30s --instrument os_signpost --template Allocations --attach {0} "
       " && open dpl-profile-{0}.trace && exit\"'"
       " -e 'end tell'",
       pid);

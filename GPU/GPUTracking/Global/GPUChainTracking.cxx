@@ -742,11 +742,19 @@ int GPUChainTracking::RunChain()
     mRec->SetNOMPThreads(-1);
   }
 
+  int retVal = 0;
   if (CheckErrorCodes(false, false, mRec->getErrorCodeOutput())) {
-    return 3;
+    retVal = 3;
+    if (!GetProcessingSettings().ignoreNonFatalGPUErrors) {
+      return retVal;
+    }
   }
 
-  return GetProcessingSettings().doublePipeline ? 0 : RunChainFinalize();
+  if (GetProcessingSettings().doublePipeline) {
+    return retVal;
+  }
+  int retVal2 = RunChainFinalize();
+  return retVal2 ? retVal2 : retVal;
 }
 
 int GPUChainTracking::RunChainFinalize()

@@ -64,31 +64,23 @@ class CorrectionMapsHelper
   void setCorrMap(GPUCA_NAMESPACE::gpu::TPCFastTransform* m);
   void setCorrMapRef(GPUCA_NAMESPACE::gpu::TPCFastTransform* m);
   void reportScaling();
-  void setInstLumi(float v)
+  void setInstLumi(float v, bool report = true)
   {
     if (v != mInstLumi) {
       mInstLumi = v;
-      updateLumiScale();
+      updateLumiScale(report);
     }
   }
 
-  void setMeanLumi(float v)
+  void setMeanLumi(float v, bool report = true)
   {
     if (v != mMeanLumi) {
       mMeanLumi = v;
-      updateLumiScale();
+      updateLumiScale(report);
     }
   }
 
-  void setLumiScaleMode(int v)
-  {
-    if (v != mLumiScaleMode) {
-      mLumiScaleMode = v;
-      updateLumiScale();
-    }
-  }
-
-  void updateLumiScale()
+  void updateLumiScale(bool report = true)
   {
     if (mMeanLumi < 0.f || mInstLumi < 0.f) {
       mLumiScale = -1.f;
@@ -98,7 +90,9 @@ class CorrectionMapsHelper
       mLumiScale = mMeanLumi ? mInstLumi / mMeanLumi : 0.f;
     }
     setUpdatedLumi();
-    reportScaling();
+    if (report) {
+      reportScaling();
+    }
   }
 
   GPUd() float getInstLumi() const { return mInstLumi; }
@@ -107,9 +101,9 @@ class CorrectionMapsHelper
   GPUd() int getLumiScaleMode() const { return mLumiScaleMode; }
 
   bool isUpdated() const { return mUpdatedFlags != 0; }
-  bool isUpdatedMap() const { return (mUpdatedFlags & UpdateFlags::MapBit) == 0; }
-  bool isUpdatedMapRef() const { return (mUpdatedFlags & UpdateFlags::MapRefBit) == 0; }
-  bool isUpdatedLumi() const { return (mUpdatedFlags & UpdateFlags::LumiBit) == 0; }
+  bool isUpdatedMap() const { return (mUpdatedFlags & UpdateFlags::MapBit) != 0; }
+  bool isUpdatedMapRef() const { return (mUpdatedFlags & UpdateFlags::MapRefBit) != 0; }
+  bool isUpdatedLumi() const { return (mUpdatedFlags & UpdateFlags::LumiBit) != 0; }
   void setUpdatedMap() { mUpdatedFlags |= UpdateFlags::MapBit; }
   void setUpdatedMapRef() { mUpdatedFlags |= UpdateFlags::MapRefBit; }
   void setUpdatedLumi() { mUpdatedFlags |= UpdateFlags::LumiBit; }
@@ -129,6 +123,8 @@ class CorrectionMapsHelper
 
   void setInstLumiOverride(float f) { mInstLumiOverride = f; }
   float getInstLumiOverride() const { return mInstLumiOverride; }
+
+  int getUpdateFlags() const { return mUpdatedFlags; }
 
  protected:
   enum UpdateFlags { MapBit = 0x1,

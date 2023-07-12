@@ -37,6 +37,8 @@ struct ConfigContext;
 
 /// Possible states for the DPL Driver application
 ///
+/// BIND_GUI_PORT => Binding of the GUI port, to avoid doing it at each level of they
+///                 hierarchy if a pipe is detected and we only need to dump a workflow.
 /// INIT => Initial state where global initialization should happen
 /// MERGE_CONFIGS => Invoked to rework the configuration so that common
 ///                  options are homogeneous between different invokations.
@@ -77,6 +79,7 @@ enum struct DriverState {
   IMPORT_CURRENT_WORKFLOW,
   DO_CHILD,
   MERGE_CONFIGS,
+  BIND_GUI_PORT,
   LAST
 };
 

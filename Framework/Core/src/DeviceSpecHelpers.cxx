@@ -246,7 +246,7 @@ struct ExpirationHandlerHelpers {
       }
 
       auto device = services.get<RawDeviceService>().device();
-      auto& channel = device->fChannels[channelName];
+      auto& channel = device->GetChannels()[channelName];
 
       // We assume there is always a ZeroMQ socket behind.
       int zmq_fd = 0;
@@ -542,7 +542,8 @@ void DeviceSpecHelpers::processOutEdgeActions(ConfigContext const& configContext
       .inputTimesliceId = edge.producerTimeIndex,
       .maxInputTimeslices = processor.maxInputTimeslices,
       .resource = {acceptedOffer},
-      .labels = processor.labels});
+      .labels = processor.labels,
+      .metadata = processor.metadata});
     /// If any of the inputs or outputs are "Lifetime::OutOfBand"
     /// create the associated channels.
     //
@@ -828,7 +829,8 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
       .inputTimesliceId = edge.timeIndex,
       .maxInputTimeslices = processor.maxInputTimeslices,
       .resource = {acceptedOffer},
-      .labels = processor.labels};
+      .labels = processor.labels,
+      .metadata = processor.metadata};
 
     if (processor.maxInputTimeslices != 1) {
       device.id += "_t" + std::to_string(edge.timeIndex);

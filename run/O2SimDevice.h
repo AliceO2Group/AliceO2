@@ -23,6 +23,7 @@
 #include "TVirtualMC.h"
 #include "TMessage.h"
 #include <DetectorsBase/Stack.h>
+#include <DetectorsBase/VMCSeederService.h>
 #include <SimulationDataFormat/PrimaryChunk.h>
 #include <TRandom.h>
 #include <SimConfig/SimConfig.h>
@@ -72,7 +73,7 @@ class O2SimDevice final : public fair::mq::Device
     // NOTE: In a fair::mq::Device this is better done here (instead of outside) since
     // we have to setup simulation + worker in the same thread (due to many threadlocal variables
     // in the simulation) ... at least as long fair::mq::Device is not spawning workers on the master thread
-    initSim(fChannels.at("o2sim-primserv-info").at(0), mSimRun);
+    initSim(GetChannels().at("o2sim-primserv-info").at(0), mSimRun);
 
     // set the vmc and app pointers
     mVMC = TVirtualMC::GetMC();
@@ -257,6 +258,7 @@ class O2SimDevice final : public fair::mq::Device
                       << "part " << info.part << "/" << info.nparts;
             LOG(info) << workerStr() << " Setting seed for this sub-event to " << chunk->mSubEventInfo.seed;
             gRandom->SetSeed(chunk->mSubEventInfo.seed);
+            o2::base::VMCSeederService::instance().setSeed();
 
             // Process one event
             auto& conf = o2::conf::SimConfig::Instance();
@@ -293,7 +295,7 @@ class O2SimDevice final : public fair::mq::Device
   /// Overloads the ConditionalRun() method of fair::mq::Device
   bool ConditionalRun() final
   {
-    return Kernel(-1, fChannels.at("primary-get").at(0), fChannels.at("simdata").at(0));
+    return Kernel(-1, GetChannels().at("primary-get").at(0), GetChannels().at("simdata").at(0));
   }
 
   void PostRun() final { LOG(info) << "Shutting down "; }

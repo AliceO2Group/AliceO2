@@ -81,6 +81,10 @@ class MatLayerCylSet : public o2::gpu::FlatObject
 
   void flatten();
 
+  MatLayerCyl& getLayer(int i) { return get()->mLayers[i]; }
+  MatLayerCylSet* extractCopy(float rmin, float rmax, float tol = 1e-3) const;
+  void finalizeStructures();
+
 #endif // !GPUCA_ALIGPUCODE
 
 #ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version

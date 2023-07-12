@@ -50,9 +50,8 @@ class EventRecord
   // needed, in order to check if a trigger already exist for this bunch crossing
   bool operator==(const EventRecord& o) const { return mBCData == o.mBCData; }
 
-  // only the tracklets are sorted by detector ID
-  // TODO: maybe at some point a finer sorting might be helpful (padrow, padcolumn?)
-  void sortTrackletsByDetector();
+  // sort the tracklets (and optionally digits) by detector, pad row, pad column
+  void sortData(bool sortDigits);
 
   //statistics stuff these get passed to the per tf data at the end of the timeframe,
   //but as we read in per link, events are seperated hence these counters
@@ -83,7 +82,7 @@ class EventRecordContainer
   EventRecordContainer() = default;
   ~EventRecordContainer() = default;
 
-  void sendData(o2::framework::ProcessingContext& pc, bool generatestats);
+  void sendData(o2::framework::ProcessingContext& pc, bool generatestats, bool sortDigits);
 
   void setCurrentEventRecord(const InteractionRecord& ir);
   EventRecord& getCurrentEventRecord() { return mEventRecords.at(mCurrEventRecord); }

@@ -39,7 +39,7 @@
 #include <fairmq/Device.h>
 #include <fairmq/Parts.h>
 #include "CommonUtils/StringUtils.h"
-#include "DataFormatsCTP/Configuration.h"
+#include "DataFormatsCTP/RunManager.h"
 #include <vector>
 #include <string>
 

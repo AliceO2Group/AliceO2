@@ -63,6 +63,11 @@ bool Digit::isSharedDigit() const
   }
 }
 
+bool Digit::isNeighbour(const Digit& other) const
+{
+  return (getDetector() == other.getDetector() && getROB() == other.getROB() && getMCM() == other.getMCM() && std::abs(getChannel() - other.getChannel()) == 1);
+}
+
 ADC_t Digit::getADCmax(int& idx) const
 {
   auto itMax = std::max_element(mADC.begin(), mADC.end());

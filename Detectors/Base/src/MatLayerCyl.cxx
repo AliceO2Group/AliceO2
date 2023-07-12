@@ -193,20 +193,25 @@ void MatLayerCyl::optimizePhiSlices(float maxRelDiff)
     return;
   }
   int newSl = 0;
+  std::vector<int> phi2SlNew(getNPhiBins());
+  for (int i = 0; i < getNPhiBins(); i++) {
+    phi2SlNew[i] = mPhiBin2Slice[i];
+  }
   for (int is = 1; is < getNPhiSlices(); is++) {
     if (!canMergePhiSlices(is - 1, is, maxRelDiff)) {
       newSl++;
+    } else {
+      mPhiBin2Slice[is] = mPhiBin2Slice[is - 1];
     }
-    mPhiBin2Slice[is] = newSl;
+    phi2SlNew[is] = newSl; // new numbering
   }
-  LOG(info) << newSl + 1 << " slices out of " << getNPhiBins();
   if (newSl + 1 == getNPhiSlices()) {
     return;
   }
   newSl = 0;
   int slMin = 0, slMax = 0, is = 0;
   while (is++ < getNPhiSlices()) {
-    while (is < getNPhiSlices() && mPhiBin2Slice[is] == newSl) { // select similar slices
+    while (is < getNPhiSlices() && phi2SlNew[is] == newSl) { // select similar slices
       slMax++;
       is++;
     }
@@ -228,6 +233,9 @@ void MatLayerCyl::optimizePhiSlices(float maxRelDiff)
     }
     newSl++;
     slMin = slMax = is;
+  }
+  for (int i = 0; i < getNPhiBins(); i++) {
+    mPhiBin2Slice[i] = phi2SlNew[i];
   }
   mNPhiSlices = newSl;
 
