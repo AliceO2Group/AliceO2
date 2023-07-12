@@ -29,8 +29,8 @@ using namespace constants;
 
 void Tracklet64::print() const
 {
-  LOGF(info, "%02i_%i_%i, row(%i), col(%i), position(%i), slope(%i), pid(%i), q0(%i), q1(%i), q2(%i). Format(%i)",
-       HelperMethods::getSector(getDetector()), HelperMethods::getStack(getDetector()), HelperMethods::getLayer(getDetector()), getPadRow(), getColumn(), getPosition(), getSlope(), getPID(), getQ0(), getQ1(), getQ2(), getFormat());
+  LOGF(info, "%02i_%i_%i, ROB(%i), MCM(%i), row(%i), col(%i), position(%i), slope(%i), pid(%i), q0(%i), q1(%i), q2(%i). Format(%i)",
+       HelperMethods::getSector(getDetector()), HelperMethods::getStack(getDetector()), HelperMethods::getLayer(getDetector()), getROB(), getMCM(), getPadRow(), getColumn(), getPosition(), getSlope(), getPID(), getQ0(), getQ1(), getQ2(), getFormat());
 }
 
 GPUd() int Tracklet64::getPadCol() const
@@ -39,8 +39,8 @@ GPUd() int Tracklet64::getPadCol() const
   int padLocal = getPositionBinSigned() * GRANULARITYTRKLPOS;
   // MCM number in column direction (0..7)
   int mcmCol = (getMCM() % NMCMROBINCOL) + NMCMROBINCOL * (getROB() % 2);
-  // FIXME: understand why the offset seems to be 6 pads and not nChannels / 2 = 10.5
-  return CAMath::Nint(6.f + mcmCol * ((float)NCOLMCM) + padLocal);
+  // FIXME: understand why the offset seems to be 8 pads and not nChannels / 2 = 10.5
+  return CAMath::Nint(8.f + mcmCol * ((float)NCOLMCM) + padLocal);
 }
 
 #ifndef GPUCA_GPUCODE_DEVICE

@@ -119,7 +119,8 @@ enum OptionBits {
   TRDVerboseErrorsBit,
   TRDIgnore2StageTrigger,
   TRDGenerateStats,
-  TRDOnlyCalibrationTriggerBit
+  TRDOnlyCalibrationTriggerBit,
+  TRDSortDigits
 }; // this is currently 16 options, the array is 16, if you add here you need to change the 16;
 
 //Data to be stored and accumulated on an event basis.

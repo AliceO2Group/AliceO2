@@ -39,6 +39,9 @@ struct TRDCalibParams : public o2::conf::ConfigurableParamHelper<TRDCalibParams>
   float dEdxTPCMin = 30.;
   float dEdxTPCMax = 70.;
 
+  // Creation of PH plots
+  float pileupCut = 0.7;
+
   // parameters related to noise calibration
   size_t minNumberOfDigits = 1'000'000'000UL; ///< when reached, noise calibration will be finalized
 
