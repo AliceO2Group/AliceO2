@@ -47,30 +47,36 @@ void CalculatedEdx::setRefit()
   mRefit = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mClusterIndex, &mTPCCorrMapsHelper, mField, mTPCTrackClIdxVecInput->data(), nullptr, mTracks);
 }
 
-void CalculatedEdx::fillMissingClusters(std::vector<float>& charge, int missingClusters, float minCharge, int method)
+void CalculatedEdx::fillMissingClusters(std::array<std::vector<float>, 5> chargeROC, int missingClusters[4], float minCharge, int method)
 {
   // adding minimum charge
   if (method == 0) {
-    for (int i = 0; i < missingClusters; i++) {
-      charge.emplace_back(minCharge);
+    for (int roc = 0; roc < 4; roc++) {
+      for (int i = 0; i < missingClusters[roc]; i++) {
+        chargeROC[roc].emplace_back(minCharge);
+      }
     }
   }
   // adding minimum charge/2
   if (method == 1) {
-    for (int i = 0; i < missingClusters; i++) {
-      float result = minCharge / 2;
-      charge.emplace_back(result);
+    for (int roc = 0; roc < 4; roc++) {
+      for (int i = 0; i < missingClusters[roc]; i++) {
+        float result = minCharge / 2;
+        chargeROC[roc].emplace_back(result);
+      }
     }
   }
 }
 
-float CalculatedEdx::getTruncMean(o2::tpc::TrackTPC& track, float low, float high, ChargeType chargeType, RegionType regionType, CorrectionFlags mask)
+void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, float low, float high, CorrectionFlags mask)
 {
   // get number of clusters
   const int nClusters = track.getNClusterReferences();
 
-  // memory for truncated mean calculation
-  std::vector<float> chargeTmp;
+  std::array<std::vector<float>, 5> chargeTotROC;
+  std::array<std::vector<float>, 5> chargeMaxROC;
+  int nClsROC[4] = {0};
+  int nClsSubThreshROC[4] = {0};
 
   std::vector<int> regionVector;             ///< debug streamer vector for region
   std::vector<unsigned char> rowIndexVector; ///< debug streamer vector for row index
@@ -78,12 +84,15 @@ float CalculatedEdx::getTruncMean(o2::tpc::TrackTPC& track, float low, float hig
   std::vector<int> stackVector;              ///< debug streamer vector for stack
   std::vector<unsigned char> sectorVector;   ///< debug streamer vector for sector
 
-  std::vector<float> effectiveLengthVector;  ///< debug streamer vector for efective length
+  std::vector<float> topologyCorrVector;     ///< debug streamer vector for simple topology correction
+  std::vector<float> topologyCorrTotVector;  ///< debug streamer vector for polynomial topology correction
+  std::vector<float> topologyCorrMaxVector;  ///< debug streamer vector for polynomial topology correction
   std::vector<float> gainVector;             ///< debug streamer vector for gain
-  std::vector<float> residualCorrVector;     ///< debug streamer vector for residual dEdx correction
+  std::vector<float> residualCorrTotVector;  ///< debug streamer vector for residual dEdx correction
+  std::vector<float> residualCorrMaxVector;  ///< debug streamer vector for residual dEdx correction
 
-  std::vector<float> chargeVector;           ///< debug streamer vector for charge
-  std::vector<float> chargeNormVector;       ///< debug streamer vector for normalized charge with effectiveLength, gain and residual dEdx correction
+  std::vector<float> chargeTotVector;        ///< debug streamer vector for charge
+  std::vector<float> chargeMaxVector;        ///< debug streamer vector for charge
 
   if (mDebug) {
     regionVector.reserve(nClusters);
@@ -91,18 +100,21 @@ float CalculatedEdx::getTruncMean(o2::tpc::TrackTPC& track, float low, float hig
     padVector.reserve(nClusters);
     stackVector.reserve(nClusters);
     sectorVector.reserve(nClusters);
-    effectiveLengthVector.reserve(nClusters);
+    topologyCorrVector.reserve(nClusters);
+    topologyCorrTotVector.reserve(nClusters);
+    topologyCorrMaxVector.reserve(nClusters);
     gainVector.reserve(nClusters);
-    residualCorrVector.reserve(nClusters);
-    chargeVector.reserve(nClusters);
-    chargeNormVector.reserve(nClusters);
+    residualCorrTotVector.reserve(nClusters);
+    residualCorrMaxVector.reserve(nClusters);
+    chargeTotVector.reserve(nClusters);
+    chargeMaxVector.reserve(nClusters);
   }
 
-  // check for missing clusters
+  // for missing clusters
   unsigned char rowIndexOld = 0;
   unsigned char sectorIndexOld = 0;
-  int missingClusters = 0;
-  float minCharge = 100000;
+  float minChargeTot = 100000.f;
+  float minChargeMax = 100000.f;
 
   // loop over the clusters
   for (int iCl = 0; iCl < nClusters; iCl++) {
@@ -115,13 +127,6 @@ float CalculatedEdx::getTruncMean(o2::tpc::TrackTPC& track, float low, float hig
 
     // set sectorIndex, rowIndex, clusterIndexNumb
     track.getClusterReference(*mTPCTrackClIdxVecInput, iCl, sectorIndex, rowIndex, clusterIndexNumb);
-
-    // find missing clusters
-    if ((rowIndexOld - rowIndex - 1 == mMaxMissingCl) && (sectorIndexOld == sectorIndex)) {
-      missingClusters = missingClusters + (rowIndexOld - rowIndex - 1);
-    }
-    rowIndexOld = rowIndex;
-    sectorIndexOld = sectorIndex;
 
     // get x position of the track
     float xPosition = Mapper::instance().getPadCentre(PadPos(rowIndex, 0)).X();
@@ -144,19 +149,48 @@ float CalculatedEdx::getTruncMean(o2::tpc::TrackTPC& track, float low, float hig
 
     // get region and charge value
     const int region = Mapper::REGION[rowIndex];
-    const float charge = (chargeType == ChargeType::Tot) ? cl.qTot : cl.qMax;
+    float chargeTot = cl.qTot;
+    float chargeMax = cl.qMax;
 
     // get pad and threshold
     const unsigned char pad = std::clamp(static_cast<unsigned int>(cl.getPad() + 0.5f), static_cast<unsigned int>(0), Mapper::PADSPERROW[region][Mapper::getLocalRowFromGlobalRow(rowIndex)] - 1); // the left side of the pad is defined at e.g. 3.5 and the right side at 4.5
     const float threshold = mCalibCont.getZeroSupressionThreshold(sectorIndex, rowIndex, pad);
 
+    // get stack and stack ID
+    const CRU cru(Sector(sectorIndex), region);
+    const auto stack = cru.gemStack();
+    StackID stackID{sectorIndex, stack};
+
+    // find missing clusters
+    int missingClusters = rowIndexOld - rowIndex - 1;
+    if ((missingClusters == mMaxMissingCl) && (sectorIndexOld == sectorIndex)) {
+      if (stack == GEMstack::IROCgem) {
+        nClsSubThreshROC[0] += missingClusters;
+      } else if (stack == GEMstack::OROC1gem) {
+        nClsSubThreshROC[1] += missingClusters;
+      } else if (stack == GEMstack::OROC2gem) {
+        nClsSubThreshROC[2] += missingClusters;
+      } else if (stack == GEMstack::OROC3gem) {
+        nClsSubThreshROC[3] += missingClusters;
+      }
+    };
+    rowIndexOld = rowIndex;
+    sectorIndexOld = sectorIndex;
+
     // get effective length
     float effectiveLength = 1.0f;
+    float effectiveLengthTot = 1.0f;
+    float effectiveLengthMax = 1.0f;
     if ((mask & CorrectionFlags::TopologySimple) == CorrectionFlags::TopologySimple) {
       effectiveLength = getTrackTopologyCorrection(track, region);
+      chargeTot /= effectiveLength;
+      chargeMax /= effectiveLength;
     };
     if ((mask & CorrectionFlags::TopologyPol) == CorrectionFlags::TopologyPol) {
-      effectiveLength = getTrackTopologyCorrectionPol(track, cl, region, charge, chargeType, threshold);
+      effectiveLengthTot = getTrackTopologyCorrectionPol(track, cl, region, chargeTot, ChargeType::Tot, threshold);
+      effectiveLengthMax = getTrackTopologyCorrectionPol(track, cl, region, chargeMax, ChargeType::Max, threshold);
+      chargeTot /= effectiveLengthTot;
+      chargeMax /= effectiveLengthMax;
     };
 
     // get gain
@@ -167,38 +201,48 @@ float CalculatedEdx::getTruncMean(o2::tpc::TrackTPC& track, float low, float hig
     if ((mask & CorrectionFlags::GainResidual) == CorrectionFlags::GainResidual) {
       gain *= mCalibCont.getResidualGain(sectorIndex, rowIndex, pad);
     };
-
-    // get stack and stack ID
-    const CRU cru(Sector(sectorIndex), region);
-    const auto stack = cru.gemStack();
-    StackID stackID{sectorIndex, stack};
+    chargeTot /= gain;
+    chargeMax /= gain;
 
     // get dEdx correction on tgl and sector plane
-    float corr = 1.0f;
+    float corrTot = 1.0f;
+    float corrMax = 1.0f;
     if ((mask & CorrectionFlags::dEdxResidual) == CorrectionFlags::dEdxResidual) {
-      corr = mCalibCont.getResidualCorrection(stackID, chargeType, track.getTgl(), track.getSnp());
+      corrTot = mCalibCont.getResidualCorrection(stackID, ChargeType::Tot, track.getTgl(), track.getSnp());
+      corrMax = mCalibCont.getResidualCorrection(stackID, ChargeType::Max, track.getTgl(), track.getSnp());
+      chargeTot /= corrTot;
+      chargeMax /= corrMax;
     };
-
-    // get normalized charge value
-    const float chargeNorm = charge / (effectiveLength * gain * corr);
 
     // set the min charge
-    if (chargeNorm < minCharge) {
-      minCharge = chargeNorm;
+    if (chargeTot < minChargeTot) {
+      minChargeTot = chargeTot;
     };
 
-    // store normalized charge per region
-    if (regionType == Entire) {
-      chargeTmp.emplace_back(chargeNorm);
-    } else if (regionType == IROC && stack == GEMstack::IROCgem) {
-      chargeTmp.emplace_back(chargeNorm);
-    } else if (regionType == OROC1 && stack == GEMstack::OROC1gem) {
-      chargeTmp.emplace_back(chargeNorm);
-    } else if (regionType == OROC2 && stack == GEMstack::OROC2gem) {
-      chargeTmp.emplace_back(chargeNorm);
-    } else if (regionType == OROC3 && stack == GEMstack::OROC3gem) {
-      chargeTmp.emplace_back(chargeNorm);
-    }
+    if (chargeMax < minChargeMax) {
+      minChargeMax = chargeMax;
+    };
+
+    if (stack == GEMstack::IROCgem) {
+      chargeTotROC[0].emplace_back(chargeTot);
+      chargeMaxROC[0].emplace_back(chargeMax);
+      nClsROC[0]++;
+    } else if (stack == GEMstack::OROC1gem) {
+      chargeTotROC[1].emplace_back(chargeTot);
+      chargeMaxROC[1].emplace_back(chargeMax);
+      nClsROC[1]++;
+    } else if (stack == GEMstack::OROC2gem) {
+      chargeTotROC[2].emplace_back(chargeTot);
+      chargeMaxROC[2].emplace_back(chargeMax);
+      nClsROC[2]++;
+    } else if (stack == GEMstack::OROC3gem) {
+      chargeTotROC[3].emplace_back(chargeTot);
+      chargeMaxROC[3].emplace_back(chargeMax);
+      nClsROC[3]++;
+    };
+
+    chargeTotROC[4].emplace_back(chargeTot);
+    chargeMaxROC[4].emplace_back(chargeMax);
 
     // for debugging
     if (mDebug) {
@@ -216,30 +260,51 @@ float CalculatedEdx::getTruncMean(o2::tpc::TrackTPC& track, float low, float hig
       stackVector.emplace_back(map[stack]);
       sectorVector.emplace_back(sectorIndex);
 
-      effectiveLengthVector.emplace_back(effectiveLength);
+      topologyCorrVector.emplace_back(effectiveLength);
+      topologyCorrTotVector.emplace_back(effectiveLengthTot);
+      topologyCorrMaxVector.emplace_back(effectiveLengthMax);
       gainVector.emplace_back(gain);
-      residualCorrVector.emplace_back(corr);
+      residualCorrTotVector.emplace_back(corrTot);
+      residualCorrMaxVector.emplace_back(corrMax);
 
-      chargeVector.emplace_back(charge);
-      chargeNormVector.emplace_back(chargeNorm);
-    }
+      chargeTotVector.emplace_back(chargeTot);
+      chargeMaxVector.emplace_back(chargeMax);
+    };
   }
 
-  // fill missing clusters
-  if (missingClusters > 0 && minCharge < 100000) {
-    fillMissingClusters(chargeTmp, missingClusters, minCharge, 1);
-  }
+  // number of clusters
+  output.NHitsIROC = nClsROC[0];
+  output.NHitsOROC1 = nClsROC[1];
+  output.NHitsOROC2 = nClsROC[2];
+  output.NHitsOROC3 = nClsROC[3];
 
-  // get truncated mean
-  float dEdx = getTruncMean(chargeTmp, low, high);
+  // number of missing clusters
+  output.NHitsSubThresholdIROC = nClsSubThreshROC[0];
+  output.NHitsSubThresholdOROC1 = nClsSubThreshROC[1];
+  output.NHitsSubThresholdOROC2 = nClsSubThreshROC[2];
+  output.NHitsSubThresholdOROC3 = nClsSubThreshROC[3];
+
+  fillMissingClusters(chargeTotROC, nClsROC, minChargeTot, 1);
+  fillMissingClusters(chargeMaxROC, nClsROC, minChargeMax, 1);
+
+  // calculate dEdx
+  output.dEdxTotIROC = getTruncMean(chargeTotROC[0], low, high);
+  output.dEdxTotOROC1 = getTruncMean(chargeTotROC[1], low, high);
+  output.dEdxTotOROC2 = getTruncMean(chargeTotROC[2], low, high);
+  output.dEdxTotOROC3 = getTruncMean(chargeTotROC[3], low, high);
+  output.dEdxTotTPC = getTruncMean(chargeTotROC[4], low, high);
+
+  output.dEdxMaxIROC = getTruncMean(chargeMaxROC[0], low, high);
+  output.dEdxMaxOROC1 = getTruncMean(chargeMaxROC[1], low, high);
+  output.dEdxMaxOROC2 = getTruncMean(chargeMaxROC[2], low, high);
+  output.dEdxMaxOROC3 = getTruncMean(chargeMaxROC[3], low, high);
+  output.dEdxMaxTPC = getTruncMean(chargeMaxROC[4], low, high);
 
   // for debugging
   if (mDebug) {
     if (mStreamer == nullptr) {
       setStreamer();
     }
-    int typeRegion = static_cast<int>(regionType);
-    int typeCharge = static_cast<int>(chargeType);
 
     (*mStreamer) << "dEdxDebug"
                  << "trackVector=" << &track
@@ -248,23 +313,19 @@ float CalculatedEdx::getTruncMean(o2::tpc::TrackTPC& track, float low, float hig
                  << "padVector=" << padVector
                  << "stackVector=" << stackVector
                  << "sectorVector=" << sectorVector
-                 << "effectiveLengthVector=" << effectiveLengthVector
+                 << "topologyCorrVector=" << topologyCorrVector
+                 << "topologyCorrTotVector=" << topologyCorrTotVector
+                 << "topologyCorrMaxVector=" << topologyCorrMaxVector
                  << "gainVector=" << gainVector
-                 << "residualCorrVector=" << residualCorrVector
-                 << "chargeVector=" << chargeVector
-                 << "chargeNormVector=" << chargeNormVector
-                 << "typeRegion=" << typeRegion
-                 << "typeCharge=" << typeCharge
-                 << "missingClusters=" << missingClusters
-                 << "minCharge=" << minCharge
-                 << "dEdx=" << dEdx
+                 << "residualCorrTotVector=" << residualCorrTotVector
+                 << "residualCorrMaxVector=" << residualCorrMaxVector
+                 << "chargeTotVector=" << chargeTotVector
+                 << "chargeMaxVector=" << chargeMaxVector
+                 << "minChargeTot=" << minChargeTot
+                 << "minChargeMax=" << minChargeMax
+                 << "output=" << output
                  << "\n";
   }
-
-  missingClusters = 0;
-  minCharge = 100000;
-
-  return dEdx;
 }
 
 float CalculatedEdx::getTruncMean(std::vector<float>& charge, float low, float high)

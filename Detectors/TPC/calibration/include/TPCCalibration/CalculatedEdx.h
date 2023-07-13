@@ -19,6 +19,7 @@
 
 // o2 includes
 #include "DataFormatsTPC/TrackTPC.h"
+#include "DataFormatsTPC/dEdxInfo.h"
 #include "GPUO2InterfaceRefit.h"
 #include "CalibdEdxContainer.h"
 #include "CorrectionMapsHelper.h"
@@ -46,7 +47,7 @@ namespace o2::tpc
 /// calc.setMembers(tpcTrackClIdxVecInput, clusterIndex, tpcTracks); // set the member variables: TrackTPC, TPCClRefElem, o2::tpc::ClusterNativeAccess
 /// calc.setRefit(); // set the refit pointer to perform refitting of tracks, otherwise setPropagateTrack to true
 /// start looping over the tracks
-/// calc.getTruncMean(track, 0.01, 0.6, ChargeType::Tot, CalculatedEdx::RegionType::Entire, CorrectionFlags::TopologyPol | CorrectionFlags::GainFull | CorrectionFlags::GainResidual | CorrectionFlags::dEdxResidual) // this will return the calculated dEdx value for the given track
+/// calc.getTruncMean(track, output, 0.01, 0.6, ChargeType::Tot, CalculatedEdx::RegionType::Entire, CorrectionFlags::TopologyPol | CorrectionFlags::GainFull | CorrectionFlags::GainResidual | CorrectionFlags::dEdxResidual) // this will fill the dEdxInfo output for given track
 
 enum class CorrectionFlags : unsigned short {
   TopologySimple = 1 << 0, ///< flag for simple analytical topology correction
@@ -63,14 +64,6 @@ inline CorrectionFlags operator|(CorrectionFlags a, CorrectionFlags b) { return 
 class CalculatedEdx
 {
  public:
-  enum RegionType : unsigned char {
-    IROC,
-    OROC1,
-    OROC2,
-    OROC3,
-    Entire
-  };
-
   CalculatedEdx();
 
   ~CalculatedEdx() = default;
@@ -106,18 +99,17 @@ class CalculatedEdx
   int getMaxMissingCl() { return mMaxMissingCl; }
 
   /// fill missing clusters with minimum charge (method=0) or minimum charge/2 (method=1)
-  void fillMissingClusters(std::vector<float>& charge, int missingClusters, float minCharge, int method);
+  void fillMissingClusters(std::array<std::vector<float>, 5> chargeROC, int missingClusters[4], float minCharge, int method);
 
   /// get the truncated mean for the input track with the truncation range, charge type, region and corrections
   /// the cluster charge is normalized by effective length*gain, you can turn off the normalization by setting all corrections to false
   /// \param track input track
+  /// \param output output dEdxInfo
   /// \param low lower cluster cut
   /// \param high higher cluster cut
-  /// \param chargeType cluster charge type that will be used for truncation, options: ChargeType::Tot, ChargeType::Max
-  /// \param regionType region that will be used for truncation, options: RegionType::IROC, RegionType::OROC1, RegionType::OROC2, RegionType::OROC3, RegionType::Entire
   /// \param mask to apply different corrections: TopologySimple = simple analytical topology correction, TopologyPol = topology correction from polynomials, GainFull = full gain map from calibration container,
   ///                                                      GainResidual = residuals gain map from calibration container, dEdxResidual = residual dEdx correction
-  float getTruncMean(TrackTPC& track, float low = 0.05f, float high = 0.6f, ChargeType chargeType = ChargeType::Tot, RegionType regionType = RegionType::Entire, CorrectionFlags mask = CorrectionFlags::TopologyPol | CorrectionFlags::GainFull | CorrectionFlags::GainResidual | CorrectionFlags::dEdxResidual);
+  void calculatedEdx(TrackTPC& track, dEdxInfo& output, float low = 0.05f, float high = 0.6f, CorrectionFlags mask = CorrectionFlags::TopologyPol | CorrectionFlags::GainFull | CorrectionFlags::GainResidual | CorrectionFlags::dEdxResidual);
 
   /// get the truncated mean for the input charge vector and the truncation range low*nCl<nCl<high*nCl
   /// \param charge input vector
