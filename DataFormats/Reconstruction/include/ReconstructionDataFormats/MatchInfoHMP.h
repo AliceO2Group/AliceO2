@@ -28,7 +28,7 @@ class MatchInfoHMP
   using GTrackID = o2::dataformats::GlobalTrackID;
 
  public:
-  MatchInfoHMP(int idxHMPClus, GTrackID idxTrack, float xmip = 0, float ymip = 0, float xtrk = 0, float ytrk = 0, float theta = 0, float phi = 0, float angle = 0, float size = 0, int idxPhotClus = 0, int hmpqn = 0) : mIdxHMPClus(idxHMPClus), mIdxTrack(idxTrack), mCkovAngle(angle), mMipX(xmip), mMipY(ymip), mTrkX(xtrk), mTrkY(ytrk), mTrkTheta(theta), mTrkPhi(phi), mMipCluSize(size), mIdxPhotClus(idxPhotClus), mHMPqn(hmpqn)
+  MatchInfoHMP(int idxHMPClus, GTrackID idxTrack, float xmip = 0, float ymip = 0, float xtrk = 0, float ytrk = 0, float theta = 0, float phi = 0, float angle = 0, float size = 0, int idxPhotClus = 0, int hmpqn = 0, float hmpMom = 0) : mIdxHMPClus(idxHMPClus), mIdxTrack(idxTrack), mCkovAngle(angle), mMipX(xmip), mMipY(ymip), mTrkX(xtrk), mTrkY(ytrk), mTrkTheta(theta), mTrkPhi(phi), mMipCluSize(size), mIdxPhotClus(idxPhotClus), mHMPqn(hmpqn), mHmpMom(hmpMom)
   { // Initialize the mPhotCharge array
     for (int i = 0; i < 10; i++) {
       mPhotCharge[i] = 0.0;
@@ -108,14 +108,17 @@ class MatchInfoHMP
     nph = mHMPqn / 1000000;
   }
 
-  void setPhotCharge(const float* chargeArray)
+  void setHmpMom(float p) { mHmpMom = p; }
+  float getHmpMom() const { return mHmpMom; }
+
+  void setPhotCharge(float* chargeArray)
   {
     for (int i = 0; i < 10; i++) {
       mPhotCharge[i] = chargeArray[i];
     }
   }
 
-  float* getPhotCharge() { return mPhotCharge; }
+  const float* getPhotCharge() const { return mPhotCharge; }
 
   void print() const;
 
@@ -133,6 +136,7 @@ class MatchInfoHMP
   int mNPhots = 0.0;     // number of candidate photo-electrons
   int mIdxPhotClus;      // index of the first photo
   int mHMPqn;            // 1000000*number of photon clusters + QDC
+  float mHmpMom;         // track momentum at HMPID chambers
   float mPhotCharge[10] = {};
 
   ClassDefNV(MatchInfoHMP, 2);

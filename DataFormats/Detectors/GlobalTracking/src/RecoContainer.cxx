@@ -762,10 +762,10 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
   if (req != reqMap.end()) {
     addIRFramesITS(pc);
   }
-  //  req = reqMap.find("matchHMP");
-  //  if (req != reqMap.end()) {
-  //    addHMPMatches(pc, req->second);
-  //  }
+  req = reqMap.find("matchHMP");
+  if (req != reqMap.end()) {
+    addHMPMatches(pc, req->second);
+  }
 }
 
 //____________________________________________________________
