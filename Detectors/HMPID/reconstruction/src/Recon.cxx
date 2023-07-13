@@ -148,9 +148,9 @@ bool Recon::findPhotCkov(double cluX, double cluY, double& thetaCer, double& phi
 
   TVector3 dirCkov;
 
-  double zRad = -0.5 * fParam->radThick() - 0.5 * fParam->winThick();   // z position of middle of RAD
-  TVector3 rad(fTrkPos.X(), fTrkPos.Y(), zRad);                         // impact point at middle of RAD
-  TVector3 pc(cluX, cluY, 0.5 * fParam->winThick() + fParam->gapIdx()); // mip at PC
+  double zRad = -0.5 * fParam->radThick() - 0.5 * fParam->winThick();     // z position of middle of RAD
+  TVector3 rad(fTrkPos.X(), fTrkPos.Y(), zRad);                           // impact point at middle of RAD
+  TVector3 pc(cluX, cluY, 0.5 * fParam->winThick() + fParam->gapThick()); // mip at PC
   double cluR = TMath::Sqrt((cluX - fPc.X()) * (cluX - fPc.X()) +
                             (cluY - fPc.Y()) * (cluY - fPc.Y())); // ref. distance impact RAD-CLUSTER
   double phi = (pc - rad).Phi();                                  // phi of photon
@@ -200,7 +200,7 @@ bool Recon::findPhotCkov2(double cluX, double cluY, double& thetaCer, double& ph
   TVector3 emissionV(fTrkPos.X(), fTrkPos.Y(), zRad);                 // impact point at middle of RAD
 
   TVector3 photonHitV, apparentV, surfaceV;
-  photonHitV.SetXYZ(cluX, cluY, 0.5 * fParam->winThick() + fParam->gapIdx());
+  photonHitV.SetXYZ(cluX, cluY, 0.5 * fParam->winThick() + fParam->gapThick());
   apparentV = photonHitV - emissionV;
   surfaceV = emissionV;
   // surfaceV.SetZ(0);
