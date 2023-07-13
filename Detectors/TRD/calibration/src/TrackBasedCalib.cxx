@@ -145,6 +145,10 @@ int TrackBasedCalib::filldEdx(gsl::span<const TrackTRD>& tracks, bool isTPCTRD)
       float tgl = trkIn.getTgl();
       float snp = trkIn.getSnpAt(o2::math_utils::sector2Angle(trkltSec), trackletCalib.getX(), bz);
 
+      if (abs(snp) > 1.) {
+        continue;
+      }
+
       // This is the track length normalised to the track length at zero angle
       // l/l0 = sqrt(dx^2 + dy^2 + dz^2)/dx = sqrt(1 + (dy/dx)^2 + (dz/dx)^2)
       // (dz/dx)^2 = tan^2(lambda), (dy/dx)^2 = tan^2(phi) = sin^2(phi)/(1-sin^2(phi))
