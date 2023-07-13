@@ -643,6 +643,7 @@ namespace hmpid
 {
 DECLARE_SOA_INDEX_COLUMN(Track, track);                            //! Track index
 DECLARE_SOA_COLUMN(HMPIDSignal, hmpidSignal, float);               //! Signal of the HMPID
+DECLARE_SOA_COLUMN(HMPIDDistance, hmpidDistance, float);           //! Distance between the matched HMPID signal and the propagated track
 DECLARE_SOA_COLUMN(HMPIDXTrack, hmpidXTrack, float);               //! Extrapolated track point x coordinate
 DECLARE_SOA_COLUMN(HMPIDYTrack, hmpidYTrack, float);               //! Extrapolated track point y coordinate
 DECLARE_SOA_COLUMN(HMPIDXMip, hmpidXMip, float);                   //! Matched MIP track point x coordinate
@@ -654,19 +655,29 @@ DECLARE_SOA_COLUMN(HMPIDMom, hmpidMom, float);                     //! Matched M
 DECLARE_SOA_COLUMN(HMPIDPhotsCharge, hmpidPhotsCharge, float[10]); //! Photon cluster charge
 } // namespace hmpid
 
-DECLARE_SOA_TABLE(HMPIDs, "AOD", "HMPID", //! HMPID information
+DECLARE_SOA_TABLE(HMPID_000, "AOD", "HMPID", //! HMPID information
                   o2::soa::Index<>,
                   hmpid::TrackId,
                   hmpid::HMPIDSignal,
-                  hmpid::HMPIDXTrack,
-                  hmpid::HMPIDYTrack,
-                  hmpid::HMPIDXMip,
-                  hmpid::HMPIDYMip,
+                  hmpid::HMPIDDistance,
                   hmpid::HMPIDNPhotons,
-                  hmpid::HMPIDQMip,
-                  hmpid::HMPIDClusSize,
-                  hmpid::HMPIDMom,
-                  hmpid::HMPIDPhotsCharge);
+                  hmpid::HMPIDQMip);
+
+DECLARE_SOA_TABLE_VERSIONED(HMPID_001, "AOD", "HMPID", 1, //! HMPID information  version 1
+                            o2::soa::Index<>,
+                            hmpid::TrackId,
+                            hmpid::HMPIDSignal,
+                            hmpid::HMPIDXTrack,
+                            hmpid::HMPIDYTrack,
+                            hmpid::HMPIDXMip,
+                            hmpid::HMPIDYMip,
+                            hmpid::HMPIDNPhotons,
+                            hmpid::HMPIDQMip,
+                            hmpid::HMPIDClusSize,
+                            hmpid::HMPIDMom,
+                            hmpid::HMPIDPhotsCharge);
+
+using HMPIDs = HMPID_001;
 using HMPID = HMPIDs::iterator;
 
 namespace calo
