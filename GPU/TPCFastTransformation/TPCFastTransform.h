@@ -158,6 +158,7 @@ class TPCFastTransform : public FlatObject
   void setLumi(float l) { mLumi = l; }
   void setLumiError(float e) { mLumiError = e; }
   void setLumiScaleFactor(float s) { mLumiScaleFactor = s; }
+  void setLumiScaleMode(int m) { mLumiScaleMode = m; }
 
   /// Sets the time stamp of the current calibaration
   void setTimeStamp(long int v) { mTimeStamp = v; }
@@ -253,6 +254,9 @@ class TPCFastTransform : public FlatObject
   /// Return map user defined lumi scale factor
   GPUd() float getLumiScaleFactor() const { return mLumiScaleFactor; }
 
+  /// Return map user defined lumi scale mode
+  GPUd() int getLumiScaleMode() const { return mLumiScaleMode; }
+
   /// maximal possible drift time of the active area
   GPUd() float getMaxDriftTime(int slice, int row, float pad) const;
 
@@ -329,6 +333,7 @@ class TPCFastTransform : public FlatObject
   float mLumi;            ///< luminosity estimator
   float mLumiError;       ///< error on luminosity
   float mLumiScaleFactor; ///< user correction factor for lumi (e.g. normalization, efficiency correction etc.)
+  int mLumiScaleMode;     ///< scale mode for the derivative or reference luminosity map
 
   /// Correction of (x,u,v) with tricubic interpolator on a regular grid
   TPCSlowSpaceChargeCorrection* mCorrectionSlow{nullptr}; ///< reference space charge corrections
@@ -336,7 +341,7 @@ class TPCFastTransform : public FlatObject
   GPUd() void TransformInternal(int slice, int row, float& u, float& v, float& x, const TPCFastTransform* ref, float scale) const;
 
 #ifndef GPUCA_ALIROOT_LIB
-  ClassDefNV(TPCFastTransform, 3);
+  ClassDefNV(TPCFastTransform, 4);
 #endif
 };
 
@@ -464,11 +469,19 @@ GPUdi() void TPCFastTransform::TransformInternal(int slice, int row, float& u, f
       {
         mCorrection.getCorrection(slice, row, u, v, dx, du, dv);
         if (ref && scale > 0.f) { // scaling was requested
-          float dxRef, duRef, dvRef;
-          ref->mCorrection.getCorrection(slice, row, u, v, dxRef, duRef, dvRef);
-          dx = (dx - dxRef) * scale + dxRef;
-          du = (du - duRef) * scale + duRef;
-          dv = (dv - dvRef) * scale + dvRef;
+          if (mLumiScaleMode == 0) {
+            float dxRef, duRef, dvRef;
+            ref->mCorrection.getCorrection(slice, row, u, v, dxRef, duRef, dvRef);
+            dx = (dx - dxRef) * scale + dxRef;
+            du = (du - duRef) * scale + duRef;
+            dv = (dv - dvRef) * scale + dvRef;
+          } else if (mLumiScaleMode == 1) {
+            float dxRef, duRef, dvRef;
+            ref->mCorrection.getCorrection(slice, row, u, v, dxRef, duRef, dvRef);
+            dx = dxRef * scale + dx;
+            du = duRef * scale + du;
+            dv = dvRef * scale + dv;
+          }
         }
       }
     }
@@ -726,9 +739,15 @@ GPUdi() void TPCFastTransform::InverseTransformYZtoX(int slice, int row, float y
   if (scale >= 0.f) {
     mCorrection.getCorrectionInvCorrectedX(slice, row, u, v, x);
     if (ref && scale > 0.f) { // scaling was requested
-      float xr;
-      ref->mCorrection.getCorrectionInvCorrectedX(slice, row, u, v, xr);
-      x = (x - xr) * scale + xr;
+      if (mLumiScaleMode == 0) {
+        float xr;
+        ref->mCorrection.getCorrectionInvCorrectedX(slice, row, u, v, xr);
+        x = (x - xr) * scale + xr;
+      } else if (mLumiScaleMode == 1) {
+        float xr;
+        ref->mCorrection.getCorrectionInvCorrectedX(slice, row, u, v, xr);
+        x = xr * scale + x;
+      }
     }
   }
   GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamFastTransform)) {
@@ -753,10 +772,17 @@ GPUdi() void TPCFastTransform::InverseTransformYZtoNominalYZ(int slice, int row,
   if (scale >= 0.f) {
     mCorrection.getCorrectionInvUV(slice, row, u, v, un, vn);
     if (ref && scale > 0.f) { // scaling was requested
-      float unr = 0, vnr = 0;
-      ref->mCorrection.getCorrectionInvUV(slice, row, u, v, unr, vnr);
-      un = (un - unr) * scale + unr;
-      vn = (vn - vnr) * scale + vnr;
+      if (mLumiScaleMode == 0) {
+        float unr = 0, vnr = 0;
+        ref->mCorrection.getCorrectionInvUV(slice, row, u, v, unr, vnr);
+        un = (un - unr) * scale + unr;
+        vn = (vn - vnr) * scale + vnr;
+      } else if (mLumiScaleMode == 1) {
+        float unr = 0, vnr = 0;
+        ref->mCorrection.getCorrectionInvUV(slice, row, u, v, unr, vnr);
+        un = unr * scale + un;
+        vn = vnr * scale + vn;
+      }
     }
   }
   getGeometry().convUVtoLocal(slice, un, vn, ny, nz);
