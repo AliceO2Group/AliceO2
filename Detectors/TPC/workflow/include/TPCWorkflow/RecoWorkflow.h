@@ -83,12 +83,11 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData,           
                                     bool askDISTSTF = true,
                                     bool selIR = false,
                                     bool filteredInp = false,
-                                    bool requireCTPLumi = false,
-                                    int lumiScaleMode = 0);
+                                    bool requireCTPLumi = false);
 
 void cleanupCallback();
 
 } // end namespace reco_workflow
 } // end namespace tpc
 } // end namespace o2
-#endif // O2_TPC_RECOWORKFLOW_H
+#endif //O2_TPC_RECOWORKFLOW_H

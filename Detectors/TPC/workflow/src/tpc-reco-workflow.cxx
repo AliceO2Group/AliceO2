@@ -69,7 +69,6 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}},
     {"filtered-input", VariantType::Bool, false, {"Filtered tracks, clusters input, prefix dataDescriptors with F"}},
     {"require-ctp-lumi", o2::framework::VariantType::Bool, false, {"require CTP lumi for TPC correction scaling"}},
-    {"corrmap-lumi-mode", VariantType::Int, 0, {"scaling mode: (default) 0  = static + scale * full; 1 = full + scale * derivative"}},
     {"select-ir-frames", VariantType::Bool, false, {"Subscribe and filter according to external IR Frames"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -140,7 +139,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   auto nLanes = cfgc.options().get<int>("tpc-lanes");
   auto inputType = cfgc.options().get<std::string>("input-type");
   auto requireCTPLumi = cfgc.options().get<bool>("require-ctp-lumi");
-  auto lumiScaleMode = cfgc.options().get<int>("corrmap-lumi-mode");
   // depending on whether to dispatch early (prompt) and on the input type, we
   // set the matcher. Note that this has to be in accordance with the OutputSpecs
   // configured for the PublisherSpec
@@ -181,8 +179,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
                                                 !cfgc.options().get<bool>("ignore-dist-stf"),      //
                                                 cfgc.options().get<bool>("select-ir-frames"),
                                                 cfgc.options().get<bool>("filtered-input"),
-                                                requireCTPLumi,
-                                                lumiScaleMode);
+                                                requireCTPLumi);
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, wf);
