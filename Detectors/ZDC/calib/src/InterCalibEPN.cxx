@@ -111,10 +111,10 @@ int InterCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
     if ((ev.ezdcDecoded & MaskZEM) == MaskZEM) {
       cumulate(HidZEM, ev.EZDC(IdZEM1), ev.EZDC(IdZEM2), 0., 0., 0., 1.);
     }
-    if ((ev.ezdcDecoded & MaskZNA) == MaskZNA && (ev.ezdcDecoded & MaskZNC) == MaskZNC) {
+    if ((ev.ezdcDecoded & MaskZNA) == MaskZNA && (ev.ezdcDecoded & MaskZNC) == MaskZNC ) {
       cumulate(HidZNI, ev.EZDC(IdZNAC), ev.EZDC(IdZNCC), 0., 0., 0., 1.);
     }
-    if ((ev.ezdcDecoded & MaskZPA) == MaskZPA && (ev.ezdcDecoded & MaskZPC) == MaskZPC) {
+    if ((ev.ezdcDecoded & MaskZPA) == MaskZPA && (ev.ezdcDecoded & MaskZPC) == MaskZPC ) {
       cumulate(HidZPI, ev.EZDC(IdZPAC), ev.EZDC(IdZPCC), 0., 0., 0., 1.);
     }
   }
