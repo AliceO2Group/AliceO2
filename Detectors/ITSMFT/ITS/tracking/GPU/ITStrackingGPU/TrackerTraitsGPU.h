@@ -38,9 +38,17 @@ class TrackerTraitsGPU : public TrackerTraits
   void setBz(float) override;
   void findCellsNeighbours(const int iteration) override;
   void findRoads(const int iteration) override;
+
+  // Methods to get CPU execution from traits
+  void initialiseTimeFrameHybrid(const int iteration) override { initialiseTimeFrame(iteration); };
+  void computeTrackletsHybrid(const int iteration) override { TrackerTraits::computeLayerTracklets(iteration); };
+  void computeCellsHybrid(const int iteration) override { TrackerTraits::computeLayerCells(iteration); };
+  void findCellsNeighboursHybrid(const int iteration) override { TrackerTraits::findCellsNeighbours(iteration); };
+  void findRoadsHybrid(const int iteration) override { TrackerTraits::findRoads(iteration); };
+  void findTracksHybrid(const int iteration) override;
+
   void findTracks() override;
   void extendTracks(const int iteration) override;
-  // void refitTracks(const std::vector<std::vector<TrackingFrameInfo>>& tf, std::vector<TrackITSExt>& tracks) override;
 
   // TimeFrameGPU information forwarding
   int getTFNumberOfClusters() const override;
@@ -57,6 +65,8 @@ template <int nLayers>
 inline void TrackerTraitsGPU<nLayers>::adoptTimeFrame(TimeFrame* tf)
 {
   mTimeFrameGPU = static_cast<gpu::TimeFrameGPU<nLayers>*>(tf);
+  mTimeFrame = static_cast<TimeFrame*>(tf);
+  LOGP(info, "Flag is still {} ", mTimeFrame->getExtAllocator());
 }
 } // namespace its
 } // namespace o2

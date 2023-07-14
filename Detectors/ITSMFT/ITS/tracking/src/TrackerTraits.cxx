@@ -818,19 +818,6 @@ bool TrackerTraits::fitTrack(TrackITSExt& track, int start, int end, int step, f
   return std::abs(track.getQ2Pt()) < maxQoverPt && track.getChi2() < chi2ndfcut * (nCl * 2 - 5);
 }
 
-void TrackerTraits::refitTracks(const int iteration, const std::vector<std::vector<TrackingFrameInfo>>& tf, std::vector<TrackITSExt>& tracks)
-{
-  std::vector<const Cell*> cells;
-  for (int iLayer = 0; iLayer < mTrkParams[iteration].CellsPerRoad(); iLayer++) {
-    cells.push_back(mTimeFrame->getCells()[iLayer].data());
-  }
-  std::vector<const Cluster*> clusters;
-  for (int iLayer = 0; iLayer < mTrkParams[iteration].NLayers; iLayer++) {
-    clusters.push_back(mTimeFrame->getClusters()[iLayer].data());
-  }
-  mChainRunITSTrackFit(*mChain, mTimeFrame->getRoads(), clusters, cells, tf, tracks);
-}
-
 bool TrackerTraits::trackFollowing(TrackITSExt* track, int rof, bool outward, const int iteration)
 {
   auto propInstance = o2::base::Propagator::Instance();

@@ -24,12 +24,17 @@ o2_add_library(ITStrackingCUDA
                        VertexerTraitsGPU.cu
                        Utils.cu
                PUBLIC_INCLUDE_DIRECTORIES ../
+               PRIVATE_INCLUDE_DIRECTORIES
+                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base/cuda
                PUBLIC_LINK_LIBRARIES O2::ITStracking
                                      O2::SimConfig
                                      O2::SimulationDataFormat
                                      CUDA::nvToolsExt # TODO: change to CUDA::nvtx3 when CMake bump >= 3.25
+                                     O2::GPUTracking
                TARGETVARNAME targetName)
 
 set_property(TARGET ${targetName} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB $<TARGET_PROPERTY:O2::ITStracking,COMPILE_DEFINITIONS>)
+set_target_cuda_arch(${targetName})
+
 endif()

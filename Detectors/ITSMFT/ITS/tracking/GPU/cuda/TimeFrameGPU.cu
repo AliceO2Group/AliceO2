@@ -21,6 +21,10 @@
 #include <unistd.h>
 #include <thread>
 
+#define GPUCA_TPC_GEOMETRY_O2 // To set working switch in GPUTPCGeometry whose else statement is bugged
+#include "GPUReconstructionCUDADef.h"
+#include "GPUChainITS.h"
+
 #ifndef __HIPCC__
 #define THRUST_NAMESPACE thrust::cuda
 #else
@@ -46,7 +50,7 @@ GpuTimeFrameChunk<nLayers>::~GpuTimeFrameChunk()
   if (mAllocated) {
     for (int i = 0; i < nLayers; ++i) {
       checkGPUError(cudaFree(mClustersDevice[i]));
-      checkGPUError(cudaFree(mTrackingFrameInfoDevice[i]));
+      // checkGPUError(cudaFree(mTrackingFrameInfoDevice[i]));
       checkGPUError(cudaFree(mClusterExternalIndicesDevice[i]));
       checkGPUError(cudaFree(mIndexTablesDevice[i]));
       if (i < nLayers - 1) {
@@ -63,7 +67,7 @@ GpuTimeFrameChunk<nLayers>::~GpuTimeFrameChunk()
         }
       }
     }
-    checkGPUError(cudaFree(mRoadsDevice));
+    // checkGPUError(cudaFree(mRoadsDevice));
     checkGPUError(cudaFree(mCUBTmpBufferDevice));
     checkGPUError(cudaFree(mFoundTrackletsDevice));
     checkGPUError(cudaFree(mNFoundCellsDevice));
@@ -80,7 +84,7 @@ void GpuTimeFrameChunk<nLayers>::allocate(const size_t nrof, Stream& stream)
   mNRof = nrof;
   for (int i = 0; i < nLayers; ++i) {
     checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&(mClustersDevice[i])), sizeof(Cluster) * mTFGPUParams->clustersPerROfCapacity * nrof, stream.get()));
-    checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&(mTrackingFrameInfoDevice[i])), sizeof(TrackingFrameInfo) * mTFGPUParams->clustersPerROfCapacity * nrof, stream.get()));
+    // checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&(mTrackingFrameInfoDevice[i])), sizeof(TrackingFrameInfo) * mTFGPUParams->clustersPerROfCapacity * nrof, stream.get()));
     checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&(mClusterExternalIndicesDevice[i])), sizeof(int) * mTFGPUParams->clustersPerROfCapacity * nrof, stream.get()));
     checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&(mIndexTablesDevice[i])), sizeof(int) * (256 * 128 + 1) * nrof, stream.get()));
     if (i < nLayers - 1) {
@@ -106,7 +110,7 @@ void GpuTimeFrameChunk<nLayers>::allocate(const size_t nrof, Stream& stream)
   checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&mNExclusiveFoundLinesDevice), sizeof(int) * mTFGPUParams->clustersPerROfCapacity * nrof + 1, stream.get())); // + 1 for cub::DeviceScan::ExclusiveSum, to cover cases where we have maximum number of clusters per ROF
   checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&mUsedTrackletsDevice), sizeof(unsigned char) * mTFGPUParams->maxTrackletsPerCluster * mTFGPUParams->clustersPerROfCapacity * nrof, stream.get()));
   checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&mClusteredLinesDevice), sizeof(int) * mTFGPUParams->clustersPerROfCapacity * mTFGPUParams->maxTrackletsPerCluster * nrof, stream.get()));
-  checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&mRoadsDevice), sizeof(Road<nLayers - 2>) * mTFGPUParams->maxRoadPerRofSize * nrof, stream.get()));
+  // checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&mRoadsDevice), sizeof(Road<nLayers - 2>) * mTFGPUParams->maxRoadPerRofSize * nrof, stream.get()));
 
   /// Invariant allocations
   checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(&mFoundTrackletsDevice), (nLayers - 1) * sizeof(int) * nrof, stream.get())); // No need to reset, we always read it after writing
@@ -180,8 +184,8 @@ size_t GpuTimeFrameChunk<nLayers>::computeScalingSizeBytes(const int nrof, const
   rofsize += sizeof(int) * config.clustersPerROfCapacity;                                                      // found lines exclusive sum
   rofsize += sizeof(int) * config.clustersPerROfCapacity * config.maxTrackletsPerCluster;                      // lines used in clusterlines
 
-  rofsize += (nLayers - 1) * sizeof(int); // total found tracklets
-  rofsize += (nLayers - 2) * sizeof(int); // total found cells
+  rofsize += (nLayers - 1) * sizeof(int);                                                                      // total found tracklets
+  rofsize += (nLayers - 2) * sizeof(int);                                                                      // total found cells
 
   return rofsize * nrof;
 }
@@ -207,11 +211,11 @@ Cluster* GpuTimeFrameChunk<nLayers>::getDeviceClusters(const int layer)
   return mClustersDevice[layer];
 }
 
-template <int nLayers>
-TrackingFrameInfo* GpuTimeFrameChunk<nLayers>::getDeviceTrackingFrameInfo(const int layer)
-{
-  return mTrackingFrameInfoDevice[layer];
-}
+// template <int nLayers>
+// TrackingFrameInfo* GpuTimeFrameChunk<nLayers>::getDeviceTrackingFrameInfo(const int layer)
+// {
+//   return mTrackingFrameInfoDevice[layer];
+// }
 
 template <int nLayers>
 int* GpuTimeFrameChunk<nLayers>::getDeviceClusterExternalIndices(const int layer)
@@ -308,6 +312,18 @@ template <int nLayers>
 TimeFrameGPU<nLayers>::~TimeFrameGPU() = default;
 
 template <int nLayers>
+void TimeFrameGPU<nLayers>::allocMemAsync(void** ptr, size_t size, Stream* strPtr)
+{
+  if (getExtAllocator()) {
+    LOGP(info, "Calling external allocator on {} chain and {} reconstruction", (void*)mChain, (void*)mChain->rec());
+    *ptr = mChain->rec()->AllocateUnmanagedMemory(size, o2::gpu::GPUMemoryResource::MEMORY_GPU);
+  } else {
+    LOGP(info, "Calling default CUDA allocator");
+    checkGPUError(cudaMallocAsync(ptr, size, strPtr->get()));
+  }
+}
+
+template <int nLayers>
 void TimeFrameGPU<nLayers>::registerHostMemory(const int maxLayers)
 {
   if (mHostRegistered) {
@@ -359,6 +375,35 @@ void TimeFrameGPU<nLayers>::initialise(const int iteration,
   o2::its::TimeFrame::initialise(iteration, trkParam, maxLayers);
   registerHostMemory(maxLayers);
   t1.join();
+}
+
+template <int nLayers>
+void TimeFrameGPU<nLayers>::initialiseHybrid(const int iteration,
+                                             const TrackingParameters& trkParam,
+                                             const int maxLayers,
+                                             IndexTableUtils* utils,
+                                             const TimeFrameGPUParameters* gpuParam)
+{
+  mGpuStreams.resize(mGpuParams.nTimeFrameChunks);
+  // mHostNTracklets.resize((nLayers - 1) * mGpuParams.nTimeFrameChunks, 0);
+  // mHostNCells.resize((nLayers - 2) * mGpuParams.nTimeFrameChunks, 0);
+  
+  auto init = [&](int p) -> void {
+    this->initDeviceSAFitting(/*p, utils, trkParam, *gpuParam, maxLayers, iteration*/);
+  };
+  std::thread t1{init, mGpuParams.nTimeFrameChunks};
+  RANGE("tf_cpu_initialisation", 1);
+  o2::its::TimeFrame::initialise(iteration, trkParam, maxLayers);
+  // registerHostMemory(maxLayers);
+  t1.join();
+}
+
+template <int nLayers>
+void TimeFrameGPU<nLayers>::loadForHybridTracking()
+{
+  // REgister and loads roads
+  checkGPUError(cudaHostRegister(mRoads.data(), mRoads.size() * sizeof(Road<nLayers - 2>), cudaHostRegisterPortable));
+  checkGPUError(cudaMemcpyAsync(mRoadsDevice, mRoads.data(), mRoads.size() * sizeof(Road<nLayers - 2>), cudaMemcpyHostToDevice, mGpuStreams[0].get()));
 }
 
 template <int nLayers>
@@ -432,6 +477,13 @@ void TimeFrameGPU<nLayers>::initDevice(const int chunks,
     }
   }
   checkGPUError(cudaMemcpy(mIndexTableUtilsDevice, &mIndexTableUtils, sizeof(IndexTableUtils), cudaMemcpyHostToDevice));
+}
+
+template <int nLayers>
+void TimeFrameGPU<nLayers>::initDeviceSAFitting()
+{
+  allocMemAsync(reinterpret_cast<void**>(&mRoadsDevice), sizeof(Road<nLayers - 2>) * mGpuParams.maxRoadPerRofSize * 2304, nullptr);
+  LOGP(info, "Check: {}", (void*)mRoadsDevice);
 }
 
 template <int nLayers>

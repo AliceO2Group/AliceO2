@@ -23,6 +23,7 @@ if(HIP_ENABLED)
                          ../cuda/Utils.cu
                  PUBLIC_INCLUDE_DIRECTORIES ../
                  PUBLIC_LINK_LIBRARIES O2::ITStracking
+                                       O2::GPUTracking
                                        hip::host
                                        hip::device
                                        hip::hipcub

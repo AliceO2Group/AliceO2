@@ -50,9 +50,18 @@ float Vertexer::clustersToVertices(std::function<void(std::string s)> logger)
   return total;
 }
 
-void Vertexer::findVertices()
+float Vertexer::clustersToVerticesHybrid(std::function<void(std::string s)> logger)
 {
-  mTraits->computeVertices();
+  float total{0.f};
+  TrackingParameters trkPars;
+  trkPars.PhiBins = mTraits->getVertexingParameters().PhiBins;
+  trkPars.ZBins = mTraits->getVertexingParameters().ZBins;
+  total += evaluateTask(&Vertexer::initialiseVertexerHybrid, "Hybrid Vertexer initialisation", logger, trkPars);
+  total += evaluateTask(&Vertexer::findTrackletsHybrid, "Hybrid Vertexer tracklet finding", logger);
+  total += evaluateTask(&Vertexer::validateTrackletsHybrid, "Hybrid Vertexer adjacent tracklets validation", logger);
+  total += evaluateTask(&Vertexer::findVerticesHybrid, "Hybrid Vertexer vertex finding", logger);
+  printEpilog(logger, total);
+  return total;
 }
 
 void Vertexer::getGlobalConfiguration()

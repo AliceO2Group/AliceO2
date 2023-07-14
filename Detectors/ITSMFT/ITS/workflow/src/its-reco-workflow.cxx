@@ -18,9 +18,6 @@
 #include "Framework/ConfigContext.h"
 #include "Framework/CompletionPolicyHelpers.h"
 
-#include "GPUO2Interface.h"
-#include "GPUReconstruction.h"
-#include "GPUChainITS.h"
 #include <vector>
 
 using namespace o2::framework;

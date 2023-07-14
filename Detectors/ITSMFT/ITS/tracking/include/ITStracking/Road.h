@@ -35,7 +35,7 @@ class Road final
   GPUhd() Road() : mCellIds{}, mRoadSize{}, mIsFakeRoad{} { resetRoad(); }
   GPUhd() Road(int cellLayer, int cellId) : Road() { addCell(cellLayer, cellId); }
 
-  int getRoadSize() const;
+  GPUhd() int getRoadSize() const;
   int getLabel() const;
   void setLabel(const int);
   bool isFakeRoad() const;
@@ -77,7 +77,7 @@ class Road final
 };
 
 template <unsigned char maxRoadSize>
-inline int Road<maxRoadSize>::getRoadSize() const
+GPUhdi() int Road<maxRoadSize>::getRoadSize() const
 {
   return mRoadSize;
 }

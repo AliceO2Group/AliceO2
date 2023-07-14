@@ -577,12 +577,25 @@ GPUg() void computeLayerRoadsKernel(
   }
 }
 
+template <int nLayers = 7>
+GPUg() void fitTracksKernel(
+  const Road<nLayers - 2>* roads,
+  const size_t nRoads)
+{
+  for (int iCurrentRoadIndex = blockIdx.x * blockDim.x + threadIdx.x; iCurrentRoadIndex < nRoads; iCurrentRoadIndex += blockDim.x * gridDim.x) {
+    auto& currentRoad{roads[iCurrentRoadIndex]};
+    if (iCurrentRoadIndex < 5) {
+      printf("Test road: %d\n", currentRoad.getRoadSize());
+    }
+  }
+}
+
 } // namespace gpu
 
 template <int nLayers>
 void TrackerTraitsGPU<nLayers>::initialiseTimeFrame(const int iteration)
 {
-  mTimeFrameGPU->initialise(iteration, mTrkParams[iteration], nLayers);
+  mTimeFrameGPU->initialiseHybrid(iteration, mTrkParams[iteration], nLayers);
 }
 
 template <int nLayers>
@@ -832,6 +845,13 @@ void TrackerTraitsGPU<nLayers>::findRoads(const int iteration){};
 
 template <int nLayers>
 void TrackerTraitsGPU<nLayers>::findTracks(){};
+
+template <int nLayers>
+void TrackerTraitsGPU<nLayers>::findTracksHybrid(const int iteration)
+{
+  mTimeFrameGPU->loadForHybridTracking();
+  gpu::fitTracksKernel<<<1, 1>>>(mTimeFrameGPU->getDeviceRoads(), mTimeFrameGPU->getRoads().size());
+}
 
 template <int nLayers>
 void TrackerTraitsGPU<nLayers>::extendTracks(const int iteration){};
