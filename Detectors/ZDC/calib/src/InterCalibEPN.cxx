@@ -164,9 +164,9 @@ int InterCalibEPN::process(const char* hname, int ic)
   } else if (hn.EqualTo("hZEM")) {
     ih = HidZEM;
   } else if (hn.EqualTo("hZNI")) {
-    ih = HidZEM;
+    ih = HidZNI;
   } else if (hn.EqualTo("hZPI")) {
-    ih = HidZEM;
+    ih = HidZPI;
   } else {
     LOGF(error, "Not recognized histogram name: %s\n", hname);
     return -1;
