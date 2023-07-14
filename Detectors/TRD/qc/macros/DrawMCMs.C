@@ -49,8 +49,12 @@ void DrawMCMs(std::string dirname = ".")
 
       for (auto& mcm : dman.getEvent().iterateByMCM()) {
         // skip MCMs without digits
-        if (mcm.digits.size() == 0) { continue; }
-        if (mcm.tracklets.size() == 0) { continue; }
+        if (mcm.digits.size() == 0) {
+          continue;
+        }
+        if (mcm.tracklets.size() == 0) {
+          continue;
+        }
 
         // we skipped MCMs without digits, so we can use the first digit to find out where we are
         auto firstdigit = *mcm.digits.begin();
@@ -68,8 +72,12 @@ void DrawMCMs(std::string dirname = ".")
 
         cout << "==============================================================" << endl;
         // for (auto hit : mcm.hits) { cout << hit << endl; }
-        for (auto digit : mcm.digits) { cout << digit << endl; }
-        for (auto tracklet : mcm.tracklets) { cout << tracklet << endl; }
+        for (auto digit : mcm.digits) {
+          cout << digit << endl;
+        }
+        for (auto tracklet : mcm.tracklets) {
+          cout << tracklet << endl;
+        }
 
         // the actual drawing
         o2::trd::MCMDisplay disp(mcm);
@@ -80,7 +88,7 @@ void DrawMCMs(std::string dirname = ".")
         disp.drawTracklets();
 
         disp.drawHits();
-        disp.drawMCTrackSegments();        
+        disp.drawMCTrackSegments();
       }
 
     } // event/trigger record loop
