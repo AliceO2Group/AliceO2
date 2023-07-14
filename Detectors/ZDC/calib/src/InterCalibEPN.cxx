@@ -111,6 +111,12 @@ int InterCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
     if ((ev.ezdcDecoded & MaskZEM) == MaskZEM) {
       cumulate(HidZEM, ev.EZDC(IdZEM1), ev.EZDC(IdZEM2), 0., 0., 0., 1.);
     }
+    if ((ev.ezdcDecoded & MaskZNA) == MaskZNA && (ev.ezdcDecoded & MaskZNC) == MaskZNC ) {
+      cumulate(HidZNI, ev.EZDC(IdZNAC), ev.EZDC(IdZNCC), 0., 0., 0., 1.);
+    }
+    if ((ev.ezdcDecoded & MaskZPA) == MaskZPA && (ev.ezdcDecoded & MaskZPC) == MaskZPC ) {
+      cumulate(HidZPI, ev.EZDC(IdZPAC), ev.EZDC(IdZPCC), 0., 0., 0., 1.);
+    }
   }
   return 0;
 }
@@ -156,6 +162,10 @@ int InterCalibEPN::process(const char* hname, int ic)
   } else if (hn.EqualTo("hZPC")) {
     ih = HidZPC;
   } else if (hn.EqualTo("hZEM")) {
+    ih = HidZEM;
+  } else if (hn.EqualTo("hZNI")) {
+    ih = HidZEM;
+  } else if (hn.EqualTo("hZPI")) {
     ih = HidZEM;
   } else {
     LOGF(error, "Not recognized histogram name: %s\n", hname);
