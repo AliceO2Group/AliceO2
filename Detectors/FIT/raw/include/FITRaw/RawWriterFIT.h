@@ -213,7 +213,7 @@ struct DigitToRawConfig {
     mCcdbPath = vm["ccdb-path"].as<std::string>();
     mChannelMapPath = vm["lut-path"].as<std::string>();
 
-    mMetricStatusEmu = vm["emu-rawdata-metrics"].as<MetricStatus_t>();
+    mMetricStatusEmu = static_cast<MetricStatus_t>(vm["emu-rawdata-metrics"].as<uint64_t>());
     mIsRandomMetric = vm["emu-rawdata-metrics-random"].as<bool>();
 
     adjustDataFormat();
@@ -237,7 +237,7 @@ struct DigitToRawConfig {
     add_option("ccdb-path", bpo::value<std::string>()->default_value(""), "CCDB url which contains LookupTable");
     add_option("lut-path", bpo::value<std::string>()->default_value(""), "LookupTable path");
     // raw data metric emulation mode
-    add_option("emu-rawdata-metrics", bpo::value<MetricStatus_t>()->default_value(MetricStatus_t{}), "Raw data metric emulation, specify 1-byte status word with o2::fit::RawDataMetric::EStatusBits");
+    add_option("emu-rawdata-metrics", bpo::value<uint64_t>()->default_value(0), "Raw data metric emulation, specify 1-byte status word with o2::fit::RawDataMetric::EStatusBits");
     add_option("emu-rawdata-metrics-random", bpo::value<bool>()->default_value(false)->implicit_value(true), "Raw data metric emulation, randomly specifies 1-byte status word with o2::fit::RawDataMetric::EStatusBits. If --emu-rawdata-metrics is not specified then all bits will be on and randomly will be taken");
   }
   void adjustDataFormat()

@@ -78,7 +78,7 @@ struct EventData {
 struct TCMdata {
   static constexpr size_t PayloadSize = 10;
   static constexpr size_t PayloadPerGBTword = 10;
-  static constexpr size_t MinNelements = 1;
+  static constexpr size_t MinNelements = 0;
   static constexpr size_t MaxNelements = 1;
 
   uint64_t orA : 1,        // 0 bit (0 byte)
