@@ -34,11 +34,17 @@ class ChamberSpacePoint
 {
  public:
   ChamberSpacePoint(int det = -999) : mDetector(det){};
-  ChamberSpacePoint(int detector, float x, float y, float z, std::array<float, 3> rct)
-    : mDetector(detector), mX(x), mY(y), mZ(z), mPadrow(rct[0]), mPadcol(rct[1]), mTimebin(rct[2]){};
+  ChamberSpacePoint(int id, int detector, float x, float y, float z, std::array<float, 3> rct, bool inDrift)
+    : mID(id), mDetector(detector), mX(x), mY(y), mZ(z), mPadrow(rct[0]), mPadcol(rct[1]), mTimebin(rct[2]), mInDrift(inDrift){};
 
   /// check if the space point has been initialized
   bool isValid() const { return mDetector >= 0; }
+
+  /// check if the space point is in the drift region
+  bool isFromDriftRegion() const { return mInDrift; }
+
+  /// return the ID of the associated track (either MC or reconstructed)
+  int getID() const { return mID; }
 
   /// spatial x coordinate of space point
   float getX() const { return mX; }
@@ -62,6 +68,11 @@ class ChamberSpacePoint
   /// time coordinate in drift direction
   float getTimeBin() const { return mTimebin; }
 
+  /// calculate the channel number within the MCM. 0..21 if valid, -1 if not within this MCM
+  float getMCMChannel(int mcmcol) const;
+
+  bool isInMCM(int detector, int padrow, int mcmcol) const;
+
   /// calculate MCM corresponding to pad row/column
   // int getMCM() const { return o2::trd::HelperMethods::getMCMfromPad(mPadrow, mPadcol); }
 
@@ -70,6 +81,8 @@ class ChamberSpacePoint
 
  protected:
   float mX, mY, mZ;
+  bool mInDrift;
+  int mID;
   int mDetector;
   float mPadrow, mPadcol, mTimebin;
 
@@ -98,7 +111,48 @@ class HitPoint : public ChamberSpacePoint
   float mCharge{0.0};
 };
 
+/// A track segment: a straight line connecting two points. The points are generally given in spatial coordinates,
+/// which are then converted to pad row / column / timebin coordinates. These are then used to calculate the
+/// position and slope of the track segment in a given pad row, which should correspond to the reconstructed
+/// tracklet.
+class TrackSegment
+{
+ public:
+  TrackSegment(){}; // default constructor, will create invalid start and end points
+  TrackSegment(ChamberSpacePoint start, ChamberSpacePoint end, int id)
+    : mStartPoint(start), mEndPoint(end), mTrackID(id)
+  {
+    assert(start.getDetector() == end.getDetector());
+  }
 
+  /// check if the space point has been initialized
+  bool isValid() const { return mStartPoint.isValid(); }
+
+  /// position of track segment at timebin 0
+  float getPadColAtTimeBin(float timebin = 0) const
+  {
+    return mStartPoint.getPadCol() - getSlope() * (mStartPoint.getTimeBin() - timebin);
+  }
+
+  float getSlope() const
+  {
+    return (mEndPoint.getPadCol() - mStartPoint.getPadCol()) / (mEndPoint.getTimeBin() - mStartPoint.getTimeBin());
+  }
+
+  /// detector number
+  int getDetector() const { return mStartPoint.getDetector(); }
+
+  ChamberSpacePoint& getStartPoint() { return mStartPoint; }
+  ChamberSpacePoint& getEndPoint() { return mEndPoint; }
+
+ protected:
+  ChamberSpacePoint mStartPoint, mEndPoint;
+  int mTrackID;
+
+  // int mDetector;
+};
+
+// std::ostream& operator<<(std::ostream& os, const ChamberSpacePoint& p);
 
 /// CoordinateTransformer: translate between local spatial and pad/timebin coordinates
 ///

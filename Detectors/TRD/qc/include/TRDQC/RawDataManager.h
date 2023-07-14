@@ -37,7 +37,6 @@
 #include <filesystem>
 #include <boost/range.hpp>
 
-
 class TFile;
 class TTreeReader;
 
@@ -75,6 +74,8 @@ struct RawDataSpan {
   std::vector<RawDataSpan> iterateByMCM();
   std::vector<RawDataSpan> iterateByPadRow();
   // std::vector<RawDataSpan> iterateDetector();
+
+  std::vector<TrackSegment> makeMCTrackSegments();
 
   //   pair<int, int> getMaxADCsumAndChannel();
   //   int getMaxADCsum(){ return getMaxADCsumAndChannel().first; }
@@ -154,18 +155,15 @@ class RawDataManager
   TTreeReaderArray<o2::dataformats::TrackTPCITS>* mTracks{0};
   // TTreeReaderArray<o2::tpc::TrackTPC> *mTpcTracks{0};
 
-  // access to Monte-Carlo hits
-  // TFile* mHitsFile{0};
-  // TTree* mHitsTree{0};
-  // TTreeReader* mHitsReader{0};
+  // access to Monte-Carlo events, tracks, hits
   TFile* mMCFile{0};
   TTree* mMCTree{0};
   TTreeReader* mMCReader{0};
-
   TTreeReaderValue<o2::dataformats::MCEventHeader>* mMCEventHeader{0};
   TTreeReaderArray<o2::MCTrackT<Float_t>>* mMCTracks{0};
   TTreeReaderArray<o2::trd::Hit>* mHits{0};
 
+  // MC hits, converted to chamber coordinates
   std::vector<o2::trd::HitPoint> mHitPoints;
 
   // time frame information (for data only)

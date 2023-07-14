@@ -24,6 +24,7 @@
 #include "Framework/Logger.h"
 
 #include <set>
+#include <utility>
 
 using namespace o2::trd;
 
@@ -122,9 +123,9 @@ std::vector<RawDataSpan> RawDataSpan::iterateBy()
   }
 
   // spanmap contains all TRD data - either digits or tracklets. Now we insert hit information into these spans. The
-  // tricky part is that space points or hits can belong to more than one MCM, i.e. they could appear in two spans. 
+  // tricky part is that space points or hits can belong to more than one MCM, i.e. they could appear in two spans.
   // We keep the begin iterator for each key in a map
-  std::map<uint32_t, std::vector<HitPoint>::iterator> firsthit; 
+  std::map<uint32_t, std::vector<HitPoint>::iterator> firsthit;
   for (auto cur = hits.begin(); cur != hits.end(); ++cur) {
     // calculate the keys for this hit
     auto keys = keyfunc::keys(*cur);
@@ -141,57 +142,7 @@ std::vector<RawDataSpan> RawDataSpan::iterateBy()
         ++it;
       }
     }
-
   }
-  // // We keep the begin iterator for each key in a map
-  // // std::map<uint32_t, std::vector<HitPoint>::iterator> firsthit; 
-
-  // uint32_t key1=0xFFFFFFFF, key2=0xFFFFFFFF;
-  // std::vector<HitPoint>::iterator itr1, itr2;
-  // for (auto cur = hits.begin(); cur != hits.end(); ++cur) {
-  //   // calculate the keys for this hit
-  //   auto keys = keyfunc::keys(*cur);
-  //   // if we are not yet aware of this key, register the current hit as the first hit
-  //   for (auto key : keys) {
-  //     if (key == key1 || key == key2) {
-  //       continue;
-  //     } else if (key1 == 0xFFFFFFFF) {
-  //       key1 = key;
-  //       itr1 = cur;
-  //     } else if (key2 == 0xFFFFFFFF) {
-  //       key2 = key;
-  //       itr2 = cur;
-  //     } else {
-  //       assert(0);
-  //     }
-  //   }
-
-  //   if (key2 != 0xFFFFFFFF && keys.find(key2) == keys.end()) {
-  //     spanmap[key2].hits = boost::make_iterator_range(itr2, cur);
-  //     key2 = 0xFFFFFFFF;
-  //   }
-
-  //   if (key1 != 0xFFFFFFFF && keys.find(key1) == keys.end()) {
-  //     spanmap[key1].hits = boost::make_iterator_range(itr1, cur);
-  //     key1 = key2;
-  //     itr1 = itr2;
-  //   }
-  // }
-
-  // for (auto cur = event.trackpoints.begin(); cur != event.trackpoints.end(); /* noop */) {
-  //   auto nxt = std::adjacent_find(cur, event.trackpoints.end(), classifier::comp_trackpoints);
-  //   if (nxt != event.trackpoints.e) { ++nxt; }
-  //   (*this)[classifier::key(*cur)].trackpoints.begin() = cur;
-  //   (*this)[classifier::key(*cur)].trackpoints.end() = nxt;
-  //   cur = nxt;
-  // }
-  // cout << "Found " << this->size() << " spans" << endl;
-
-  // for (auto &[key, sp] : spanmap) {
-  //   std::cout << key << ": " << sp.digits.length() << " digits, "
-  //        << sp.tracklets.length() << " tracklets, "
-  //        << sp.hits.length() << " hits" << std::endl;
-  // }
 
   // convert the map of spans into a vector, as we do not need the access by key
   // and longer, and having a vector makes the looping by the user easier.
@@ -244,11 +195,12 @@ struct MCM_ID {
     uint32_t detrow = 1000 * x.getDetector() + 8 * x.getPadRow();
     uint32_t mcmcol = uint32_t(x.getPadCol() / float(o2::trd::constants::NCOLMCM));
 
-    float c = x.getPadCol() - float(mcmcol * o2::trd::constants::NCOLMCM);
+    // float c = x.getPadCol() - float(mcmcol * o2::trd::constants::NCOLMCM);
+    float c = x.getMCMChannel(mcmcol);
 
-    if (c <= 2.0 && mcmcol >= 1) {
+    if (c >= 19.0 && mcmcol >= 1) {
       return {detrow + mcmcol - 1, detrow + mcmcol};
-    } else if (c >= 20 && mcmcol <= 6) {
+    } else if (c <= 1.0 && mcmcol <= 6) {
       return {detrow + mcmcol, detrow + mcmcol + 1};
     } else {
       return {detrow + mcmcol};
@@ -284,6 +236,52 @@ std::vector<RawDataSpan> RawDataSpan::iterateByMCM() { return iterateBy<MCM_ID>(
 //     return key == x.getDetector();
 //   }
 // };
+
+std::vector<TrackSegment> RawDataSpan::makeMCTrackSegments()
+{
+  // define a struct to keep track of the first and last MC hit of one track in one chamber
+  struct SegmentInfo {
+    // The first hit is the hit closest to the anode region, i.e. with the largest x coordinate.
+    size_t firsthit{0}; //
+    // The last hit is the hit closest to the radiator, i.e. with the smallest x coordinate.
+    size_t lasthit{0};
+    float start{-999.9}; // local x cordinate of the first hit, init value ensures any hit updates
+    float end{999.9};    // local x cordinate of the last hit, init value ensures any hit updates
+  };
+  // Keep information about found track segments in a map indexed by track ID and detector number.
+  // If the span only covers (part of) a detector, the detector information is redundant, but in
+  // the case of processing a whole event, the distinction by detector will be needed.
+  std::map<std::pair<int, int>, SegmentInfo> trackSegmentInfo;
+
+  for (int iHit = 0; iHit < hits.size(); ++iHit) {
+    auto hit = hits[iHit];
+
+    // in the following, we will look for track segments using hits in the drift region
+    if (hit.isFromDriftRegion()) {
+      // The first hit is the hit closest to the anode region, i.e. with the largest x coordinate.
+      auto id = std::make_pair(hit.getID(), hit.getDetector());
+      if (hit.getX() > trackSegmentInfo[id].start) {
+        trackSegmentInfo[id].firsthit = iHit;
+        trackSegmentInfo[id].start = hit.getX();
+      }
+      // The last hit is the hit closest to the radiator, i.e. with the smallest x coordinate.
+      if (hit.getX() < trackSegmentInfo[id].end) {
+        trackSegmentInfo[id].lasthit = iHit;
+        trackSegmentInfo[id].end = hit.getX();
+      }
+    }
+  } // hit loop
+
+  std::vector<TrackSegment> trackSegments;
+  for (auto x : trackSegmentInfo) {
+    auto trackid = x.first.first;
+    auto detector = x.first.second;
+    auto firsthit = hits[x.second.firsthit];
+    auto lasthit = hits[x.second.lasthit];
+    trackSegments.emplace_back(firsthit, lasthit, trackid);
+  }
+  return trackSegments;
+}
 
 /// The RawDataManager constructor: connects all data files and sets up trees, readers etc.
 RawDataManager::RawDataManager(std::filesystem::path dir)
@@ -411,17 +409,7 @@ RawDataSpan RawDataManager::getEvent()
   ev.digits = boost::make_iterator_range_n(mDigits->begin() + mTriggerRecord.getFirstDigit(), mTriggerRecord.getNumberOfDigits());
   ev.tracklets = boost::make_iterator_range_n(mTracklets->begin() + mTriggerRecord.getFirstTracklet(), mTriggerRecord.getNumberOfTracklets());
 
-  // std::cout << mTriggerRecord.getFirstTracklet() << " " << mTriggerRecord.getNumberOfTracklets() << "   "
-    // << boost::distance(ev.tracklets) << std::endl; 
-  // ev.digits.begin() = mDigits->begin() + mTriggerRecord.getFirstDigit();
-  // ev.digits.end() = ev.digits.begin() + mTriggerRecord.getNumberOfDigits();
-  // ev.tracklets.begin() = mTracklets->begin() + mTriggerRecord.getFirstTracklet();
-  // ev.tracklets.end() = ev.tracklets.begin() + mTriggerRecord.getNumberOfTracklets();
-
   ev.hits = boost::make_iterator_range(mHitPoints.begin(), mHitPoints.end());
-
-  // ev.hits.begin() = mHitPoints.begin();
-  // ev.hits.end() = mHitPoints.end();
 
   auto evtime = getTriggerTime();
 

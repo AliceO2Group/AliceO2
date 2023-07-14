@@ -42,11 +42,6 @@ float PadColF(o2::trd::Tracklet64& tracklet)
   return float((mcmCol + 1) * constants::NCOLMCM) + padLocal - 10.0;
 }
 
-float SlopeF(o2::trd::Tracklet64& trkl)
-{
-  return -trkl.getSlopeBinSigned() * constants::GRANULARITYTRKLSLOPE / constants::ADDBITSHIFTSLOPE;
-}
-
 }; // namespace o2::trd
 
 RawDisplay::RawDisplay(RawDataSpan& dataspan, TVirtualPad* pad)
@@ -119,7 +114,7 @@ void RawDisplay::drawTracklets()
 
   for (auto tracklet : mDataSpan.tracklets) {
     auto pos = PadColF(tracklet);
-    auto slope = SlopeF(tracklet);
+    auto slope = -tracklet.getSlopeBinSigned() * constants::GRANULARITYTRKLSLOPE / constants::ADDBITSHIFTSLOPE;
     trkl.DrawLine(pos, 0, pos + 30 * slope, 30);
   }
 }
@@ -164,12 +159,23 @@ void RawDisplay::drawClusters()
 void RawDisplay::drawHits()
 {
   TMarker hitmarker;
-  hitmarker.SetMarkerColor(kBlack);
+  hitmarker.SetMarkerColor(kBlue);
   hitmarker.SetMarkerStyle(38);
   for (auto hit : mDataSpan.hits) {
     if (hit.getCharge() > 0.0) {
       hitmarker.SetMarkerSize(log10(hit.getCharge()));
       hitmarker.DrawMarker(hit.getPadCol(), hit.getTimeBin());
     }
+  }
+}
+
+void RawDisplay::drawMCTrackSegments()
+{
+  TLine line;
+  line.SetLineColor(kBlue);
+  line.SetLineWidth(2.0);
+
+  for (auto& trkl : mDataSpan.makeMCTrackSegments()) {
+    line.DrawLine(trkl.getStartPoint().getPadCol(), trkl.getStartPoint().getTimeBin(), trkl.getEndPoint().getPadCol(), trkl.getEndPoint().getTimeBin());
   }
 }

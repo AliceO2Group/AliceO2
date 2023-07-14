@@ -11,9 +11,35 @@
 
 #include "TRDQC/CoordinateTransformer.h"
 #include <TMath.h>
+#include "DataFormatsTRD/Constants.h"
 #include "TRDBase/Geometry.h"
 
 using namespace o2::trd;
+
+float ChamberSpacePoint::getMCMChannel(int mcmcol) const
+{
+  float c = float(mcmcol * o2::trd::constants::NCOLMCM + o2::trd::constants::NADCMCM) - getPadCol();
+  if (c < 0.0 || c > o2::trd::constants::NADCMCM) {
+    return -1;
+  } else {
+    return c;
+  }
+}
+
+bool ChamberSpacePoint::isInMCM(int detector, int padrow, int mcmcol) const
+{
+  if (detector != mDetector || padrow != mPadrow) {
+    return false;
+  } else {
+    // calculate the channel number in the MCM for the
+    float c = getMCMChannel(mcmcol);
+    if (c < 0.0 || c > o2::trd::constants::NADCMCM) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+}
 
 CoordinateTransformer::CoordinateTransformer()
   : mGeo(o2::trd::Geometry::instance())
@@ -109,7 +135,7 @@ o2::trd::ChamberSpacePoint CoordinateTransformer::MakeSpacePoint(o2::trd::Hit& h
   float y = hit.getLocalC();
   float z = hit.getLocalR();
   auto rct = Local2RCT(hit.GetDetectorID(), x, y, z);
-  return o2::trd::ChamberSpacePoint(hit.GetDetectorID(), x, y, y, rct);
+  return o2::trd::ChamberSpacePoint(hit.GetTrackID(), hit.GetDetectorID(), x, y, y, rct, hit.isFromDriftRegion());
 }
 
 namespace o2::trd
