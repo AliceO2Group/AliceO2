@@ -1144,7 +1144,7 @@ Inputs GPURecoWorkflowSpec::inputs()
     inputs.emplace_back("tpcthreshold", gDataOriginTPC, "PADTHRESHOLD", 0, Lifetime::Condition, ccdbParamSpec("TPC/Config/FEEPad"));
     o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
     Options optsDummy;
-    mFastTransformHelper->requestCCDBInputs(inputs, optsDummy, mSpecConfig.requireCTPLumi, mSpecConfig.lumiScaleMode); // option filled here is lost
+    mFastTransformHelper->requestCCDBInputs(inputs, optsDummy, mSpecConfig.requireCTPLumi); // option filled here is lost
   }
   if (mSpecConfig.decompressTPC) {
     inputs.emplace_back(InputSpec{"input", ConcreteDataTypeMatcher{gDataOriginTPC, mSpecConfig.decompressTPCFromROOT ? o2::header::DataDescription("COMPCLUSTERS") : o2::header::DataDescription("COMPCLUSTERSFLAT")}, Lifetime::Timeframe});
@@ -1350,7 +1350,6 @@ void GPURecoWorkflowSpec::initFunctionTPCCalib(InitContext& ic)
   mFastTransformRef = std::move(o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
   mFastTransformHelper->setCorrMap(mFastTransform.get()); // just to reserve the space
   mFastTransformHelper->setCorrMapRef(mFastTransformRef.get());
-  mFastTransformHelper->setLumiScaleMode(mSpecConfig.lumiScaleMode);
   if (mSpecConfig.outputTracks) {
     mFastTransformHelper->init(ic);
   }
@@ -1612,7 +1611,6 @@ bool GPURecoWorkflowSpec::fetchCalibsCCDBTPC(ProcessingContext& pc, T& newCalibO
           mFastTransformHelperNew->setUseCTPLumi(mFastTransformHelper->getUseCTPLumi());
           mFastTransformHelperNew->setMeanLumiOverride(mFastTransformHelper->getMeanLumiOverride());
           mFastTransformHelperNew->setInstLumiOverride(mFastTransformHelper->getInstLumiOverride());
-          mFastTransformHelperNew->setLumiScaleMode(mFastTransformHelper->getLumiScaleMode());
           mFastTransformHelperNew->setCorrMap(mFastTransformNew ? mFastTransformNew.get() : mFastTransform.get());
           mFastTransformHelperNew->setCorrMapRef(mFastTransformRefNew ? mFastTransformRefNew.get() : mFastTransformRef.get());
           mFastTransformHelperNew->acknowledgeUpdate();
