@@ -297,9 +297,9 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
       digits.push_back(dig.second);
     }
   }
-  if(ret) {
-    if(nwrites < 3) {
-      std::ofstream dumpctp("/tmp/dumpCTP.bin",std::ios::binary);
+  if (ret) {
+    if (nwrites < 3) {
+      std::ofstream dumpctp("/tmp/dumpCTP.bin", std::ios::binary);
 
       nwrites++;
     }
