@@ -118,8 +118,7 @@ class DataBlockTCM : public DataBlockBase<DataBlockTCM, ConfigType, RawHeaderTCM
       auto dataBlockTmp = (*this);
       dataBlockTmp.HeaderTCM::mData[0].nGBTWords = DataTCM::MaxNwords + 1;
       dataBlockTmp.HeaderTCM::serialize(vecBytes, HeaderTCM::MaxNwords, destBytes);
-    }
-    else {
+    } else {
       HeaderTCM::serialize(vecBytes, HeaderTCM::MaxNwords, destBytes);
     }
     DataTCM::serialize(vecBytes, nGBTWords, destBytes);
@@ -175,8 +174,7 @@ class DataBlockTCMext : public DataBlockBase<DataBlockTCMext, ConfigType, RawHea
       auto dataBlockTmp = (*this);
       dataBlockTmp.HeaderTCMext::mData[0].nGBTWords = DataTCM::MaxNwords + 1;
       dataBlockTmp.HeaderTCMext::serialize(vecBytes, HeaderTCMext::MaxNwords, destBytes);
-    }
-    else {
+    } else {
       HeaderTCMext::serialize(vecBytes, HeaderTCMext::MaxNwords, destBytes);
     }
     DataTCM::serialize(vecBytes, DataTCM::MaxNwords, destBytes);
