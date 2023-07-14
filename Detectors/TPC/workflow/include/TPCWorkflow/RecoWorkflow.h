@@ -90,4 +90,4 @@ void cleanupCallback();
 } // end namespace reco_workflow
 } // end namespace tpc
 } // end namespace o2
-#endif //O2_TPC_RECOWORKFLOW_H
+#endif // O2_TPC_RECOWORKFLOW_H
