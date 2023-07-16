@@ -286,10 +286,10 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
   if (ret) {
     if (nwrites < 1) {
       std::ofstream dumpctp("/tmp/dumpCTP.bin", std::ios::out | std::ios::binary);
-      //rdh = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
+      // rdh = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
       for (auto it = parser.begin(); it != parser.end(); ++it) {
         char* dataout = (char*)(it.raw());
-        dumpctp.write(dataout,it.size());
+        dumpctp.write(dataout, it.size());
       }
       dumpctp.close();
       nwrites++;
