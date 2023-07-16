@@ -99,11 +99,11 @@ int RawDataDecoder::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
         LOG(debug) << bcid << " class bcid case 1 orbit " << orbit << " pld:" << pld;
       } else {
         LOG(error) << "Two CTP Class masks for same timestamp";
-        ret = 1;
+        ret = 2;
       }
     } else {
-      LOG(error) << "Two digits with the same rimestamp:" << ir.bc << " " << ir.orbit;
-      ret = 1;
+      LOG(error) << "Two digits with the same timestamp:" << ir.bc << " " << ir.orbit;
+      ret = 2;
     }
   } else {
     LOG(error) << "Unxpected  CTP CRU link:" << linkCRU;
@@ -216,14 +216,6 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
       if ((wc == 0) && (wordCount != 0)) {
         if (gbtWord80.count() != 80) {
           gbtwords80.push_back(gbtWord80);
-          /* uint64_t bcid = (gbtWord80 & bcmask).to_ullong();
-          if (bcid < 279)
-            bcid += 3564 - 279;
-          else
-            bcid += -279;
-          std::string ss = fmt::format("{:x}", bcid);
-          LOG(info) << "w80:" << gbtWord80 << " " << ss;
-          // LOGP(info,"w80: {} bcid:{%x}", gbtWord80,bcid); */
         }
         gbtWord80.set();
       }
@@ -236,13 +228,6 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
     }
     if ((gbtWord80.count() != 80) && (gbtWord80.count() > 0)) {
       gbtwords80.push_back(gbtWord80);
-      /*uint64_t bcid = (gbtWord80 & bcmask).to_ullong();
-      if (bcid < 279)
-        bcid += 3564 - 279;
-      else
-        bcid += -279;
-      std::string ss = fmt::format("{:x}", bcid);
-      LOG(info) << "w80l:" << gbtWord80 << " " << ss;  */
     }
     // decode 80 bits payload
     for (auto word : gbtwords80) {
@@ -297,10 +282,16 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
       digits.push_back(dig.second);
     }
   }
+  ret = 1;
   if (ret) {
-    if (nwrites < 3) {
-      std::ofstream dumpctp("/tmp/dumpCTP.bin", std::ios::binary);
-
+    if (nwrites < 1) {
+      std::ofstream dumpctp("/tmp/dumpCTP.bin", std::ios::out | std::ios::binary);
+      //rdh = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
+      for (auto it = parser.begin(); it != parser.end(); ++it) {
+        char* dataout = (char*)(it.raw());
+        dumpctp.write(dataout,it.size());
+      }
+      dumpctp.close();
       nwrites++;
     }
   }
