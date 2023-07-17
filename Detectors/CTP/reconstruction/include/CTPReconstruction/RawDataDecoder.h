@@ -64,6 +64,10 @@ class RawDataDecoder
   bool mPadding = true;
   uint32_t mTFOrbit = 0;
   std::vector<uint32_t> mTFOrbits;
+  // error verbosness
+  int mErrorIR = 0;
+  int mErrorTCR = 0;
+  int mErrorMax = 3;
 };
 } // namespace ctp
 } // namespace o2

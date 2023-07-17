@@ -71,8 +71,11 @@ int RawDataDecoder::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
         digits[ir].setInputMask(pld);
         LOG(debug) << bcid << " inputs bcid vase 1 orbit " << orbit << " pld:" << pld;
       } else {
-        LOG(error) << "Two CTP IRs with the same timestamp:" << ir.bc << " " << ir.orbit << " pld:" << pld << " dig:" << digits[ir];
+        if(mErrorIR < mErrorMax) {
+          LOG(error) << "Two CTP IRs with the same timestamp:" << ir.bc << " " << ir.orbit << " pld:" << pld << " dig:" << digits[ir];
+        }
         ret = 1;
+        mErrorIR++;
       }
     } else {
       LOG(error) << "Two digits with the same rimestamp:" << ir.bc << " " << ir.orbit;
@@ -98,7 +101,9 @@ int RawDataDecoder::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
         digits[ir].setClassMask(pld);
         LOG(debug) << bcid << " class bcid case 1 orbit " << orbit << " pld:" << pld;
       } else {
-        LOG(error) << "Two CTP Class masks for same timestamp";
+        if(mErrorTCR < mErrorMax) {
+          LOG(error) << "Two CTP Class masks for same timestamp";
+        }
         ret = 2;
       }
     } else {
@@ -170,7 +175,7 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
     } else {
       LOG(error) << "Unxpected  CTP CRU link:" << linkCRU;
     }
-    LOG(info) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << rdhOrbit << " triggerType:" << triggerType;
+    LOG(debug) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << rdhOrbit << " triggerType:" << triggerType;
     // LOG(info) << "remnant :" << remnant.count();
     gbtword80_t pldmask = 0;
     for (uint32_t i = 0; i < payloadCTP; i++) {
@@ -202,7 +207,7 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
     if (mPadding == 1) {
       wordSize = 16;
     }
-    LOG(info) << ii << " payload size:" << payload.size();
+    //LOG(info) << ii << " payload size:" << payload.size();
     /* if (payload.size()) {
       //LOG(info) << "payload size:" << payload.size();
       // LOG(info) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << triggerOrbit << " stopbit:" << stopBit << " packet:" << packetCounter;
@@ -282,19 +287,25 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
       digits.push_back(dig.second);
     }
   }
-  ret = 1;
+  //ret = 1;
   if (ret) {
-    if (nwrites < 1) {
-      std::ofstream dumpctp("/tmp/dumpCTP.bin", std::ios::out | std::ios::binary);
-      // rdh = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
-      for (auto it = parser.begin(); it != parser.end(); ++it) {
-        char* dataout = (char*)(it.raw());
-        dumpctp.write(dataout, it.size());
+    if (nwrites < 3) {
+      std::string file = "/tmp/dumpCTP" + std::to_string(nwrites) + ".bin";
+      std::ofstream dumpctp(file.c_str(), std::ios::out | std::ios::binary);
+      if(!dumpctp.good()) {
+        LOGP(error,"Failed to open file {}",file);
+      } else {
+        LOGP(info,"CTP dump file open {}",file);
+        for (auto it = parser.begin(); it != parser.end(); ++it) {
+          char* dataout = (char*)(it.raw());
+          dumpctp.write(dataout, it.size());
+        }
+        dumpctp.close();
       }
-      dumpctp.close();
       nwrites++;
     }
   }
+  LOG(error) << "CTP decoding IR errors" << mErrorIR << " TCR error:" << mErrorTCR;
   return ret;
 }
 //
