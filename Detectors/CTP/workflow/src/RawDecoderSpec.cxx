@@ -25,10 +25,12 @@ void RawDecoderSpec::init(framework::InitContext& ctx)
 {
   mNTFToIntegrate = ctx.options().get<int>("ntf-to-average");
   mVerbose = ctx.options().get<bool>("use-verbose-mode");
+  int maxerrors = ctx.options().get<int>("print-errors-num");
   mDecoder.setVerbose(mVerbose);
   mDecoder.setDoLumi(mDoLumi);
   mDecoder.setDoDigits(mDoDigits);
-  LOG(info) << "CTP reco init done. DoLumi:" << mDoLumi << " DoDigits:" << mDoDigits << " NTF:" << mNTFToIntegrate;
+  mDecoder.setMAXErrors(maxerrors);
+  LOG(info) << "CTP reco init done. DoLumi:" << mDoLumi << " DoDigits:" << mDoDigits << " NTF:" << mNTFToIntegrate << " Max errors:" << maxerrors;
 }
 void RawDecoderSpec::endOfStream(framework::EndOfStreamContext& ec)
 {
@@ -170,5 +172,6 @@ o2::framework::DataProcessorSpec o2::ctp::reco_workflow::getRawDecoderSpec(bool 
     o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<o2::ctp::reco_workflow::RawDecoderSpec>(digits, lumi)},
     o2::framework::Options{
       {"ntf-to-average", o2::framework::VariantType::Int, 90, {"Time interval for averaging luminosity in units of TF"}},
+      {"print-errors-num", o2::framework::VariantType::Int, 3, {"Max number of errors to print"}},
       {"use-verbose-mode", o2::framework::VariantType::Bool, false, {"Verbose logging"}}}};
 }
