@@ -104,6 +104,7 @@ int RawDataDecoder::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
         if (mErrorTCR < mErrorMax) {
           LOG(error) << "Two CTP Class masks for same timestamp";
         }
+        mErrorTCR++;
         ret = 2;
       }
     } else {
