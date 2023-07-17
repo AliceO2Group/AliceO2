@@ -71,7 +71,7 @@ int RawDataDecoder::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
         digits[ir].setInputMask(pld);
         LOG(debug) << bcid << " inputs bcid vase 1 orbit " << orbit << " pld:" << pld;
       } else {
-        if(mErrorIR < mErrorMax) {
+        if (mErrorIR < mErrorMax) {
           LOG(error) << "Two CTP IRs with the same timestamp:" << ir.bc << " " << ir.orbit << " pld:" << pld << " dig:" << digits[ir];
         }
         ret = 1;
@@ -101,7 +101,7 @@ int RawDataDecoder::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
         digits[ir].setClassMask(pld);
         LOG(debug) << bcid << " class bcid case 1 orbit " << orbit << " pld:" << pld;
       } else {
-        if(mErrorTCR < mErrorMax) {
+        if (mErrorTCR < mErrorMax) {
           LOG(error) << "Two CTP Class masks for same timestamp";
         }
         ret = 2;
@@ -207,7 +207,7 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
     if (mPadding == 1) {
       wordSize = 16;
     }
-    //LOG(info) << ii << " payload size:" << payload.size();
+    // LOG(info) << ii << " payload size:" << payload.size();
     /* if (payload.size()) {
       //LOG(info) << "payload size:" << payload.size();
       // LOG(info) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << triggerOrbit << " stopbit:" << stopBit << " packet:" << packetCounter;
@@ -287,15 +287,15 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
       digits.push_back(dig.second);
     }
   }
-  //ret = 1;
+  // ret = 1;
   if (ret) {
     if (nwrites < 3) {
       std::string file = "/tmp/dumpCTP" + std::to_string(nwrites) + ".bin";
       std::ofstream dumpctp(file.c_str(), std::ios::out | std::ios::binary);
-      if(!dumpctp.good()) {
-        LOGP(error,"Failed to open file {}",file);
+      if (!dumpctp.good()) {
+        LOGP(error, "Failed to open file {}", file);
       } else {
-        LOGP(info,"CTP dump file open {}",file);
+        LOGP(info, "CTP dump file open {}", file);
         for (auto it = parser.begin(); it != parser.end(); ++it) {
           char* dataout = (char*)(it.raw());
           dumpctp.write(dataout, it.size());
