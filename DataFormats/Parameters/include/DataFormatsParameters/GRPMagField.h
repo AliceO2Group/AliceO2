@@ -34,8 +34,16 @@ class GRPMagField
   ~GRPMagField() = default;
 
   /// getters/setters for magnets currents
-  o2::units::Current_t getL3Current() const { return mL3Current; }
-  o2::units::Current_t getDipoleCurrent() const { return mDipoleCurrent; }
+  o2::units::Current_t getL3Current() const
+  {
+    static bool forceZero = forceZeroField();
+    return forceZero ? 0 : mL3Current;
+  }
+  o2::units::Current_t getDipoleCurrent() const
+  {
+    static bool forceZero = forceZeroField();
+    return forceZero ? 0 : mDipoleCurrent;
+  }
   bool getFieldUniformity() const { return mUniformField; }
   int8_t getNominalL3Field();
   void setL3Current(o2::units::Current_t v) { mL3Current = v; }
@@ -48,6 +56,8 @@ class GRPMagField
   static GRPMagField* loadFrom(const std::string& grpMagFieldFileName = "");
 
  private:
+  static bool forceZeroField();
+
   o2::units::Current_t mL3Current = 0.f;     ///< signed current in L3
   o2::units::Current_t mDipoleCurrent = 0.f; ///< signed current in Dipole
   bool mUniformField = false;                ///< uniformity of magnetic field
@@ -62,7 +72,7 @@ inline int8_t GRPMagField::getNominalL3Field()
   // compute nominal L3 field in kG
 
   if (mNominalL3FieldValid == false) {
-    mNominalL3Field = std::lround(5.f * mL3Current / 30000.f);
+    mNominalL3Field = std::lround(5.f * getL3Current() / 30000.f);
     mNominalL3FieldValid = true;
   }
   return mNominalL3Field;

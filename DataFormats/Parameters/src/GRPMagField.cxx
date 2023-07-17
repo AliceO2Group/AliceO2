@@ -41,3 +41,14 @@ void GRPMagField::print() const
 {
   printf("magnet currents (A) L3 = %.3f, Dipole = %.f; uniformity = %s\n", getL3Current(), getDipoleCurrent(), mUniformField ? "true" : "false");
 }
+
+bool GRPMagField::forceZeroField()
+{
+  static bool forceZero = getenv("O2_FORCE_ZERO_MAGNETIC_FIELDS") && atoi(getenv("O2_FORCE_ZERO_MAGNETIC_FIELDS"));
+  static bool alarmShown = false;
+  if (forceZero && !alarmShown) {
+    LOG(alarm) << "CAUTION, MAGNETIC FIELD VALUE IS FORCED TO ZERO! USE ONLY FOR TESTING! REMOVE O2_FORCE_ZERO_MAGNETIC_FIELDS ENV VAR TO DISABLE";
+    alarmShown = true;
+  }
+  return forceZero;
+}
