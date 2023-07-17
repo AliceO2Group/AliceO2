@@ -133,7 +133,6 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
   uint32_t size_gbt = 0;
   mTFOrbit = 0;
   uint32_t orbit0 = 0;
-  int ii = 0;
   for (auto it = parser.begin(); it != parser.end(); ++it) {
     const o2::header::RDHAny* rdh = nullptr;
     try {
@@ -276,7 +275,6 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
       LOG(debug) << "diglet:" << remnant << " " << (remnant & bcmask).to_ullong();
       remnant = 0;
     }
-    ii++;
   }
   if (mDoLumi) {
     lumiPointsHBF1.emplace_back(LumiInfo{orbit0, 0, 0, countsMBT, countsMBV});
@@ -289,7 +287,7 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
   }
   // ret = 1;
   if (ret) {
-    if (nwrites < 3) {
+    if (nwrites < mErrorMax) {
       std::string file = "/tmp/dumpCTP" + std::to_string(nwrites) + ".bin";
       std::ofstream dumpctp(file.c_str(), std::ios::out | std::ios::binary);
       if (!dumpctp.good()) {
@@ -305,7 +303,9 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
       nwrites++;
     }
   }
-  LOG(error) << "CTP decoding IR errors" << mErrorIR << " TCR error:" << mErrorTCR;
+  if(mErrorIR || mErrorTCR) {
+    LOG(error) << "CTP decoding IR errors:" << mErrorIR << " TCR errors:" << mErrorTCR;
+  }
   return ret;
 }
 //
