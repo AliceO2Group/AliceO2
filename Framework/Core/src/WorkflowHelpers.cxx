@@ -514,8 +514,11 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     } else {
       aodReader.algorithm = algo;
     }
-    aodReader.outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
-    aodReader.outputs.emplace_back(OutputSpec{"TFF", "TFFilename"});
+    auto mctracks2aod = std::find_if(workflow.begin(), workflow.end(), [](auto const& x) { return x.name == "mctracks-to-aod"; });
+    if (mctracks2aod == workflow.end()) {
+      aodReader.outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
+      aodReader.outputs.emplace_back(OutputSpec{"TFF", "TFFilename"});
+    }
     extraSpecs.push_back(timePipeline(aodReader, ctx.options().get<int64_t>("readers")));
     auto concrete = DataSpecUtils::asConcreteDataMatcher(aodReader.inputs[0]);
     timer.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration});
