@@ -74,12 +74,12 @@ int RawDataDecoder::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
         if (mErrorIR < mErrorMax) {
           LOG(error) << "Two CTP IRs with the same timestamp:" << ir.bc << " " << ir.orbit << " pld:" << pld << " dig:" << digits[ir];
         }
-        ret = 1;
+        ret = 2;
         mErrorIR++;
       }
     } else {
       LOG(error) << "Two digits with the same rimestamp:" << ir.bc << " " << ir.orbit;
-      ret = 1;
+      ret = 2;
     }
   } else if (linkCRU == o2::ctp::GBTLinkIDClassRec) {
     int32_t offset = BCShiftCorrection + o2::ctp::TriggerOffsetsParam::Instance().LM_L0 + o2::ctp::TriggerOffsetsParam::Instance().L0_L1 - 1;
@@ -105,11 +105,11 @@ int RawDataDecoder::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
           LOG(error) << "Two CTP Class masks for same timestamp";
         }
         mErrorTCR++;
-        ret = 2;
+        ret = 3;
       }
     } else {
       LOG(error) << "Two digits with the same timestamp:" << ir.bc << " " << ir.orbit;
-      ret = 2;
+      ret = 3;
     }
   } else {
     LOG(error) << "Unxpected  CTP CRU link:" << linkCRU;
