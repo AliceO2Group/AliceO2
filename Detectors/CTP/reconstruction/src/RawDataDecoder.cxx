@@ -303,7 +303,7 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
       nwrites++;
     }
   }
-  if(mErrorIR || mErrorTCR) {
+  if (mErrorIR || mErrorTCR) {
     LOG(error) << "CTP decoding IR errors:" << mErrorIR << " TCR errors:" << mErrorTCR;
   }
   return ret;

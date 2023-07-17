@@ -172,6 +172,6 @@ o2::framework::DataProcessorSpec o2::ctp::reco_workflow::getRawDecoderSpec(bool 
     o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<o2::ctp::reco_workflow::RawDecoderSpec>(digits, lumi)},
     o2::framework::Options{
       {"ntf-to-average", o2::framework::VariantType::Int, 90, {"Time interval for averaging luminosity in units of TF"}},
-      {"print-errors-num",o2::framework::VariantType::Int,3,{"Max number of errors to print"}},
+      {"print-errors-num", o2::framework::VariantType::Int, 3, {"Max number of errors to print"}},
       {"use-verbose-mode", o2::framework::VariantType::Bool, false, {"Verbose logging"}}}};
 }
