@@ -82,10 +82,8 @@ enum class CDBType {
   CalITPC0,            ///< 2D average TPC clusters for longer time interval
   CalITPC1,            ///< 1D integrated TPC clusters
                        ///
-  CalCorrMap,          ///< Cluster correction map (high IR rate distortions)
+  CalCorrMap,          ///< Cluster correction map
   CalCorrMapRef,       ///< Cluster correction reference map (static distortions)
-                       ///
-  CalCorrDerivMap,     ///< Cluster correction map (derivative map)
 };
 
 /// Upload intervention type
@@ -143,8 +141,6 @@ const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   // correction maps
   {CDBType::CalCorrMap, "TPC/Calib/CorrectionMap"},
   {CDBType::CalCorrMapRef, "TPC/Calib/CorrectionMapRef"},
-  // derivative map correction
-  {CDBType::CalCorrDerivMap, "TPC/Calib/CorrectionMapDerivative"},
 };
 
 /// Poor enum reflection ...

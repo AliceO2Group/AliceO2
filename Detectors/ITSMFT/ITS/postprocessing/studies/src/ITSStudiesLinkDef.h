@@ -15,4 +15,7 @@
 #pragma link off all classes;
 #pragma link off all functions;
 
+#pragma link C++ class o2::its::study::AvgClusSizeStudyParamConfig + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::its::study::AvgClusSizeStudyParamConfig> + ;
+
 #endif

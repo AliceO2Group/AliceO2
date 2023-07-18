@@ -49,17 +49,10 @@ void CorrectionMapsLoader::extractCCDBInputs(ProcessingContext& pc)
 }
 
 //________________________________________________________
-void CorrectionMapsLoader::requestCCDBInputs(std::vector<InputSpec>& inputs, std::vector<o2::framework::ConfigParamSpec>& options, bool requestCTPLumi, int lumiScaleMode)
+void CorrectionMapsLoader::requestCCDBInputs(std::vector<InputSpec>& inputs, std::vector<o2::framework::ConfigParamSpec>& options, bool requestCTPLumi)
 {
   addInput(inputs, {"tpcCorrMap", "TPC", "CorrMap", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalCorrMap), {}, 1)});          // time-dependent
-  if (lumiScaleMode == 0) {
-    addInput(inputs, {"tpcCorrMapRef", "TPC", "CorrMapRef", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalCorrMapRef), {}, 0)}); // load once
-  } else if (lumiScaleMode == 1) {
-    addInput(inputs, {"tpcCorrMapRef", "TPC", "CorrMapRef", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalCorrDerivMap), {}, 1)}); // time-dependent
-  } else {
-    LOG(fatal) << "Correction mode unknown! Choose either 0 (default) or 1 (derivative map) for flag corrmap-lumi-mode.";
-  }
-
+  addInput(inputs, {"tpcCorrMapRef", "TPC", "CorrMapRef", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalCorrMapRef), {}, 0)}); // load once
   if (requestCTPLumi) {
     addInput(inputs, {"CTPLumi", "CTP", "LUMI", 0, Lifetime::Timeframe});
   }
@@ -98,7 +91,6 @@ bool CorrectionMapsLoader::accountCCDBInputs(const ConcreteDataMatcher& matcher,
     if (getMeanLumiOverride() <= 0 && mCorrMap->getLumi() > 0.) {
       setMeanLumi(mCorrMap->getLumi());
     }
-    mCorrMap->setLumiScaleMode(getLumiScaleMode());
     LOGP(debug, "MeanLumiOverride={} MeanLumiMap={} -> meanLumi = {}", getMeanLumiOverride(), mCorrMap->getLumi(), getMeanLumi());
     setUpdatedMap();
     return true;
@@ -130,6 +122,6 @@ void CorrectionMapsLoader::init(o2::framework::InitContext& ic)
   if (mInstLumiOverride != 0.) {
     setInstLumi(mInstLumiOverride);
   }
-  LOGP(info, "CTP Lumi request for TPC corr.map scaling={}, override values: lumiMean={} lumiInst={} lumiScaleMode={}", getUseCTPLumi() ? "ON" : "OFF", mMeanLumiOverride, mInstLumiOverride, mLumiScaleMode);
+  LOGP(info, "CTP Lumi request for TPC corr.map scaling={}, override values: lumiMean={} lumiInst={}", getUseCTPLumi() ? "ON" : "OFF", mMeanLumiOverride, mInstLumiOverride);
 }
 #endif // #ifndef GPUCA_GPUCODE_DEVICE

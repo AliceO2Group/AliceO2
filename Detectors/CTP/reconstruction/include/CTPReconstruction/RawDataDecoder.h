@@ -41,6 +41,7 @@ class RawDataDecoder
   void setDoLumi(bool lumi) { mDoLumi = lumi; }
   void setDoDigits(bool digi) { mDoDigits = digi; }
   void setVerbose(bool v) { mVerbose = v; }
+  void setMAXErrors(int m) { mErrorMax = m; }
   uint32_t getIRRejected() const { return mIRRejected; }
   uint32_t getTCRRejected() const { return mTCRRejected; }
   std::vector<uint32_t>& getTFOrbits() { return mTFOrbits; }
@@ -64,6 +65,10 @@ class RawDataDecoder
   bool mPadding = true;
   uint32_t mTFOrbit = 0;
   std::vector<uint32_t> mTFOrbits;
+  // error verbosness
+  int mErrorIR = 0;
+  int mErrorTCR = 0;
+  int mErrorMax = 3;
 };
 } // namespace ctp
 } // namespace o2

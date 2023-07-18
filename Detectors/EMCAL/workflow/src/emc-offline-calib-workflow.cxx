@@ -25,6 +25,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
                                        {"no-rejectCalibTrigg", VariantType::Bool, false, {"if set to true, all events, including calibration triggered events, will be accepted"}},
                                        {"input-subspec", VariantType::UInt32, 0U, {"Subspecification for input objects"}},
                                        {"applyGainCalib", VariantType::Bool, false, {"Apply the gain calibration parameters for the bad channel calibration"}},
+                                       {"rejectL0Trigger", VariantType::Bool, false, {"Reject all emcal triggers except the minimum bias trigger"}},
+                                       {"ctpconfig-per-run", VariantType::Bool, false, {"Use CTP config per run. 1 -- on (Data), 0 -- off (MC)"}},
                                        {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   workflowOptions.insert(workflowOptions.end(), options.begin(), options.end());
 }
@@ -40,11 +42,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   bool makeCellIDTimeEnergy = cfgc.options().get<bool>("makeCellIDTimeEnergy");
   bool rejectCalibTrigg = !cfgc.options().get<bool>("no-rejectCalibTrigg");
   bool doApplyGainCalib = cfgc.options().get<bool>("applyGainCalib");
+  bool doRejectL0Trigger = cfgc.options().get<bool>("rejectL0Trigger");
+  bool ctpcfgperrun = cfgc.options().get<bool>("ctpconfig-per-run");
 
   // subpsecs for input
   auto inputsubspec = cfgc.options().get<uint32_t>("input-subspec");
 
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
-  wf.emplace_back(o2::emcal::getEmcalOfflineCalibSpec(makeCellIDTimeEnergy, rejectCalibTrigg, inputsubspec, doApplyGainCalib));
+  wf.emplace_back(o2::emcal::getEmcalOfflineCalibSpec(makeCellIDTimeEnergy, rejectCalibTrigg, inputsubspec, doApplyGainCalib, doRejectL0Trigger, ctpcfgperrun));
   return wf;
 }

@@ -83,8 +83,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData,           
                                     bool askDISTSTF = true,
                                     bool selIR = false,
                                     bool filteredInp = false,
-                                    bool requireCTPLumi = false,
-                                    int lumiScaleMode = 0);
+                                    bool requireCTPLumi = false);
 
 void cleanupCallback();
 

@@ -23,6 +23,7 @@
 // #include "CommonUtils/BoostHistogramUtils.h"
 // #include "EMCALCalib/BadChannelMap.h"
 // #include "EMCALCalib/TimeCalibrationParams.h"
+#include "EMCALCalib/GainCalibrationFactors.h"
 #include "EMCALCalib/EMCALChannelScaleFactors.h"
 #include "EMCALCalibration/EMCALCalibExtractor.h"
 #include "EMCALCalibration/EMCALCalibParams.h"
@@ -132,6 +133,12 @@ class EMCALChannelData
   long unsigned int getNEntriesInHisto() const { return mNEntriesInHisto; }
   void setNEntriesInHisto(long unsigned int n) { mNEntriesInHisto = n; }
 
+  void setGainCalibFactors(o2::emcal::GainCalibrationFactors* calibFactors)
+  {
+    mGainCalibFactors = calibFactors;
+    mApplyGainCalib = true;
+  }
+
  private:
   float mRange = 10;                                    ///< Maximum energy range of boost histogram (will be overwritten by values in the EMCALCalibParams)
   int mNBins = 1000;                                    ///< Number of bins in the boost histogram (will be overwritten by values in the EMCALCalibParams)
@@ -147,6 +154,8 @@ class EMCALChannelData
   boostHisto mCellAmplitude;                            ///< is the input for the calibration, hist of cell E vs. ID
   bool mTest = false;                                   ///< flag to be used when running in test mode: it simplify the processing
   BadChannelMap mOutputBCM;                             ///< output bad channel map for the calibration
+  bool mApplyGainCalib = false;                         ///< Switch if gain calibration is applied or not
+  o2::emcal::GainCalibrationFactors* mGainCalibFactors; ///< Gain calibration factors applied to the data before filling the histograms
   std::shared_ptr<EMCALCalibExtractor> mCalibExtractor; ///< calib extractor
 
   ClassDefNV(EMCALChannelData, 1);
