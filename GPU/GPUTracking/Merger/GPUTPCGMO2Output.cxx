@@ -137,15 +137,17 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int nBlocks, in
       oTrack.setdEdx(tracksdEdx[i]);
     }
 
-    auto pid = pidResponse.getMostProbablePID(oTrack);
-    oTrack.setPID(pid);
-
     oTrack.setOuterParam(o2::track::TrackParCov(
       outerPar.X, outerPar.alpha,
       {outerPar.P[0], outerPar.P[1], outerPar.P[2], outerPar.P[3], outerPar.P[4]},
       {outerPar.C[0], outerPar.C[1], outerPar.C[2], outerPar.C[3], outerPar.C[4], outerPar.C[5],
        outerPar.C[6], outerPar.C[7], outerPar.C[8], outerPar.C[9], outerPar.C[10], outerPar.C[11],
        outerPar.C[12], outerPar.C[13], outerPar.C[14]}));
+
+    const auto pid = pidResponse.getMostProbablePID(oTrack);
+    oTrack.setPID(pid);
+    oTrack.getParamOut().setPID(pid);
+
     unsigned int nOutCl = tmpData[i].x;
     unsigned int clBuff = tmpData[i].y;
     oTrack.setClusterRef(clBuff, nOutCl);

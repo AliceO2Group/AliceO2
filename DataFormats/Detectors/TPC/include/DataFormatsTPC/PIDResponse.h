@@ -18,11 +18,13 @@
 #define AliceO2_TPC_PIDResponse_H
 
 // o2 includes
+#include "GPUCommonDef.h"
+#include "GPUCommonRtypes.h"
 #include "ReconstructionDataFormats/PID.h"
-#include "DataFormatsTPC/TrackTPC.h"
 
 namespace o2::tpc
 {
+class TrackTPC;
 
 /// \brief PID response class
 ///
@@ -33,31 +35,35 @@ class PIDResponse
 {
  public:
   /// default constructor
-  PIDResponse() = default;
+  PIDResponse() CON_DEFAULT;
 
   /// default destructor
-  ~PIDResponse() = default;
+  ~PIDResponse() CON_DEFAULT;
 
   /// setters
-  void setBetheBlochParams(const std::array<double, 5>& betheBlochParams) { mBetheBlochParams = betheBlochParams; }
-  void setMIP(double mip) { mMIP = mip; }
-  void setChargeFactor(double chargeFactor) { mChargeFactor = chargeFactor; }
+  GPUd() void setBetheBlochParams(const float betheBlochParams[5]);
+  GPUd() void setMIP(float mip) { mMIP = mip; }
+  GPUd() void setChargeFactor(float chargeFactor) { mChargeFactor = chargeFactor; }
 
   /// getters
-  std::array<double, 5> getBetheBlochParams() const { return mBetheBlochParams; }
-  double getMIP() const { return mMIP; }
-  double getChargeFactor() const { return mChargeFactor; }
+  GPUd() const float* getBetheBlochParams() const { return mBetheBlochParams; }
+  GPUd() float getMIP() const { return mMIP; }
+  GPUd() float getChargeFactor() const { return mChargeFactor; }
 
   /// get expected signal of the track
-  double getExpectedSignal(const TrackTPC& track, const o2::track::PID::ID id) const;
+  GPUd() float getExpectedSignal(const TrackTPC& track, const o2::track::PID::ID id) const;
 
   /// get most probable PID of the track
-  o2::track::PID::ID getMostProbablePID(const TrackTPC& track) const;
+  GPUd() o2::track::PID::ID getMostProbablePID(const TrackTPC& track) const;
 
  private:
-  std::array<double, 5> mBetheBlochParams = {0.19310481, 4.26696118, 0.00522579, 2.38124907, 0.98055396}; // BBAleph average fit parameters
-  double mMIP = 50.f;
-  double mChargeFactor = 2.299999952316284f;
+  float mBetheBlochParams[5] = {0.19310481, 4.26696118, 0.00522579, 2.38124907, 0.98055396}; // BBAleph average fit parameters
+  float mMIP = 50.f;
+  float mChargeFactor = 2.299999952316284f;
+
+#ifndef GPUCA_ALIROOT_LIB
+  ClassDefNV(PIDResponse, 1);
+#endif
 };
 } // namespace o2::tpc
 
