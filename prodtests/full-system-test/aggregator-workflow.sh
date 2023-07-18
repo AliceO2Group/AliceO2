@@ -19,7 +19,7 @@ if [[ -z ${WORKFLOW_DETECTORS:-} ]]; then echo "WORKFLOW_DETECTORS must be defin
 
 # CCDB destination for uploads
 if [[ -z ${CCDB_POPULATOR_UPLOAD_PATH+x} ]]; then
-  if [[ $RUNTYPE == "SYNTHETIC" ]]; then
+  if [[ $RUNTYPE == "SYNTHETIC" || "${GEN_TOPO_DEPLOYMENT_TYPE:-}" == "ALICE_STAGING" ]]; then
     CCDB_POPULATOR_UPLOAD_PATH="http://ccdb-test.cern.ch:8080"
   elif [[ $RUNTYPE == "PHYSICS" ]]; then
     if [[ $EPNSYNCMODE == 1 ]]; then
