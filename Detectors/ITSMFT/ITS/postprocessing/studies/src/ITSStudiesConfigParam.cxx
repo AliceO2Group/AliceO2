@@ -9,11 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_K0SINVMASS_STUDY_H
-#define O2_K0SINVMASS_STUDY_H
-
-#include "Framework/DataProcessorSpec.h"
-#include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "ITSStudies/ITSStudiesConfigParam.h"
 
 namespace o2
 {
@@ -21,11 +17,11 @@ namespace its
 {
 namespace study
 {
-using mask_t = o2::dataformats::GlobalTrackID::mask_t;
 
-o2::framework::DataProcessorSpec getK0sInvMassStudy(mask_t srcTracksMask, bool useMC = false);
+static auto& sAvgClusSizeParam = o2::its::study::AvgClusSizeStudyParamConfig::Instance(); // modeled on TrackingConfigParam.cxx
+
+O2ParamImpl(o2::its::study::AvgClusSizeStudyParamConfig);
+
 } // namespace study
 } // namespace its
 } // namespace o2
-
-#endif

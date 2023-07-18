@@ -11,7 +11,7 @@
 
 /// \file RawDataDecoder.cxx
 /// \author Roman Lietava
-
+#include <fstream>
 #include "DetectorsRaw/RDHUtils.h"
 #include "CTPReconstruction/RawDataDecoder.h"
 
@@ -39,6 +39,7 @@ void RawDataDecoder::makeGBTWordInverse(std::vector<gbtword80_t>& diglets, gbtwo
 }
 int RawDataDecoder::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& diglet, gbtword80_t& pldmask, std::map<o2::InteractionRecord, CTPDigit>& digits)
 {
+  int ret = 0;
   gbtword80_t pld = (diglet & pldmask);
   if (pld.count() == 0) {
     return 0;
@@ -70,10 +71,15 @@ int RawDataDecoder::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
         digits[ir].setInputMask(pld);
         LOG(debug) << bcid << " inputs bcid vase 1 orbit " << orbit << " pld:" << pld;
       } else {
-        LOG(error) << "Two CTP IRs with the same timestamp:" << ir.bc << " " << ir.orbit << " pld:" << pld << " dig:" << digits[ir];
+        if (mErrorIR < mErrorMax) {
+          LOG(error) << "Two CTP IRs with the same timestamp:" << ir.bc << " " << ir.orbit << " pld:" << pld << " dig:" << digits[ir];
+        }
+        ret = 2;
+        mErrorIR++;
       }
     } else {
       LOG(error) << "Two digits with the same rimestamp:" << ir.bc << " " << ir.orbit;
+      ret = 2;
     }
   } else if (linkCRU == o2::ctp::GBTLinkIDClassRec) {
     int32_t offset = BCShiftCorrection + o2::ctp::TriggerOffsetsParam::Instance().LM_L0 + o2::ctp::TriggerOffsetsParam::Instance().L0_L1 - 1;
@@ -95,18 +101,26 @@ int RawDataDecoder::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
         digits[ir].setClassMask(pld);
         LOG(debug) << bcid << " class bcid case 1 orbit " << orbit << " pld:" << pld;
       } else {
-        LOG(error) << "Two CTP Class masks for same timestamp";
+        if (mErrorTCR < mErrorMax) {
+          LOG(error) << "Two CTP Class masks for same timestamp";
+        }
+        mErrorTCR++;
+        ret = 3;
       }
     } else {
+      LOG(error) << "Two digits with the same timestamp:" << ir.bc << " " << ir.orbit;
+      ret = 3;
     }
   } else {
     LOG(error) << "Unxpected  CTP CRU link:" << linkCRU;
   }
-  return 0;
+  return ret;
 }
 //
 int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2::framework::InputSpec>& filter, std::vector<CTPDigit>& digits, std::vector<LumiInfo>& lumiPointsHBF1)
 {
+  int ret = 0;
+  static int nwrites = 0;
   uint64_t countsMBT = 0;
   uint64_t countsMBV = 0;
   std::map<o2::InteractionRecord, CTPDigit> digitsMap;
@@ -193,6 +207,7 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
     if (mPadding == 1) {
       wordSize = 16;
     }
+    // LOG(info) << ii << " payload size:" << payload.size();
     /* if (payload.size()) {
       //LOG(info) << "payload size:" << payload.size();
       // LOG(info) << "RDH FEEid: " << feeID << " CTP CRU link:" << linkCRU << " Orbit:" << triggerOrbit << " stopbit:" << stopBit << " packet:" << packetCounter;
@@ -206,14 +221,6 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
       if ((wc == 0) && (wordCount != 0)) {
         if (gbtWord80.count() != 80) {
           gbtwords80.push_back(gbtWord80);
-          /* uint64_t bcid = (gbtWord80 & bcmask).to_ullong();
-          if (bcid < 279)
-            bcid += 3564 - 279;
-          else
-            bcid += -279;
-          std::string ss = fmt::format("{:x}", bcid);
-          LOG(info) << "w80:" << gbtWord80 << " " << ss;
-          // LOGP(info,"w80: {} bcid:{%x}", gbtWord80,bcid); */
         }
         gbtWord80.set();
       }
@@ -226,13 +233,6 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
     }
     if ((gbtWord80.count() != 80) && (gbtWord80.count() > 0)) {
       gbtwords80.push_back(gbtWord80);
-      /*uint64_t bcid = (gbtWord80 & bcmask).to_ullong();
-      if (bcid < 279)
-        bcid += 3564 - 279;
-      else
-        bcid += -279;
-      std::string ss = fmt::format("{:x}", bcid);
-      LOG(info) << "w80l:" << gbtWord80 << " " << ss;  */
     }
     // decode 80 bits payload
     for (auto word : gbtwords80) {
@@ -254,7 +254,7 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
           continue;
         }
         LOG(debug) << "diglet:" << diglet << " " << (diglet & bcmask).to_ullong();
-        addCTPDigit(linkCRU, rdhOrbit, diglet, pldmask, digitsMap);
+        ret = addCTPDigit(linkCRU, rdhOrbit, diglet, pldmask, digitsMap);
       }
     }
     // if ((remnant.count() > 0) && stopBit) {
@@ -272,7 +272,7 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
       if (!mDoDigits) {
         continue;
       }
-      addCTPDigit(linkCRU, rdhOrbit, remnant, pldmask, digitsMap);
+      ret = addCTPDigit(linkCRU, rdhOrbit, remnant, pldmask, digitsMap);
       LOG(debug) << "diglet:" << remnant << " " << (remnant & bcmask).to_ullong();
       remnant = 0;
     }
@@ -286,7 +286,28 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
       digits.push_back(dig.second);
     }
   }
-  return 0;
+  // ret = 1;
+  if (ret) {
+    if (nwrites < mErrorMax) {
+      std::string file = "/tmp/dumpCTP" + std::to_string(nwrites) + ".bin";
+      std::ofstream dumpctp(file.c_str(), std::ios::out | std::ios::binary);
+      if (!dumpctp.good()) {
+        LOGP(error, "Failed to open file {}", file);
+      } else {
+        LOGP(info, "CTP dump file open {}", file);
+        for (auto it = parser.begin(); it != parser.end(); ++it) {
+          char* dataout = (char*)(it.raw());
+          dumpctp.write(dataout, it.size());
+        }
+        dumpctp.close();
+      }
+      nwrites++;
+    }
+  }
+  if (mErrorIR || mErrorTCR) {
+    LOG(error) << "CTP decoding IR errors:" << mErrorIR << " TCR errors:" << mErrorTCR;
+  }
+  return ret;
 }
 //
 int RawDataDecoder::init()

@@ -13,6 +13,9 @@
 #include "Framework/DataProcessorSpec.h"
 #include "EMCALWorkflow/CalibLoader.h"
 #include "EMCALCalib/GainCalibrationFactors.h"
+#include "EMCALCalibration/EMCALCalibParams.h"
+#include "DataFormatsCTP/Digits.h"
+#include "DataFormatsCTP/Configuration.h"
 #include "Framework/Task.h"
 
 #include "TFile.h"
@@ -35,11 +38,13 @@ namespace emcal
 /// This task fills offline calibration objects for the EMCAL.
 class OfflineCalibSpec : public framework::Task
 {
+  using EMCALCalibParams = o2::emcal::EMCALCalibParams;
+
  public:
   /// \brief Constructor
   /// \param makeCellIDTimeEnergy If true the THnSparseF of cell ID, time, and energy is made
   /// \param rejectCalibTriggers if true, only events which have the o2::trigger::PhT flag will be taken into account
-  OfflineCalibSpec(bool makeCellIDTimeEnergy, bool rejectCalibTriggers, std::shared_ptr<o2::emcal::CalibLoader> calibHandler) : mMakeCellIDTimeEnergy(makeCellIDTimeEnergy), mRejectCalibTriggers(rejectCalibTriggers), mCalibrationHandler(calibHandler){};
+  OfflineCalibSpec(bool makeCellIDTimeEnergy, bool rejectCalibTriggers, bool rejectL0Trigger, std::shared_ptr<o2::emcal::CalibLoader> calibHandler) : mMakeCellIDTimeEnergy(makeCellIDTimeEnergy), mRejectCalibTriggers(rejectCalibTriggers), mRejectL0Triggers(rejectL0Trigger), mCalibrationHandler(calibHandler){};
 
   /// \brief Destructor
   ~OfflineCalibSpec() override = default;
@@ -63,6 +68,9 @@ class OfflineCalibSpec : public framework::Task
   ///
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
+  static const char* getCTPDigitsBinding() { return "CTPDigits"; }
+  static const char* getCTPConfigBinding() { return "CTPConfig"; }
+
  private:
   /// \brief Update calibration objects (if changed)
   void updateCalibObjects();
@@ -77,12 +85,14 @@ class OfflineCalibSpec : public framework::Task
   bool mMakeCellIDTimeEnergy = true;                ///< Switch whether or not to make a THnSparseF of cell ID, time, and energy
   bool mRejectCalibTriggers = true;                 ///< Switch to select if calib triggerred events should be rejected
   bool mEnableGainCalib = false;                    ///< Switch weather gain calibration should be applied or not when filling the hsitograms
+  bool mRejectL0Triggers = false;                   ///< Switch to select if L0 triggerred events should be rejected
+  std::vector<uint64_t> mSelectedClassMasks = {};   ///< vector with selected trigger masks that are accepted for processing
 };
 
 /// \brief Creating offline calib spec
 /// \ingroup EMCALworkflow
 ///
-o2::framework::DataProcessorSpec getEmcalOfflineCalibSpec(bool makeCellIDTimeEnergy, bool rejectCalibTriggers, uint32_t inputsubspec, bool enableGainCalib);
+o2::framework::DataProcessorSpec getEmcalOfflineCalibSpec(bool makeCellIDTimeEnergy, bool rejectCalibTriggers, bool rejectL0Trigger, uint32_t inputsubspec, bool enableGainCalib, bool ctpcfgperrun);
 
 } // namespace emcal
 

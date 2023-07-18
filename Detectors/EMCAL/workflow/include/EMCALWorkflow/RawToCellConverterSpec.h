@@ -239,6 +239,7 @@ class RawToCellConverterSpec : public framework::Task
   int mErrorMessagesSuppressed = 0;                                  ///< Counter of suppressed error messages
   int mMaxErrorMessages = 100;                                       ///< Max. number of error messages
   bool mMergeLGHG = true;                                            ///< Merge low and high gain cells
+  bool mActiveLinkCheck = true;                                      ///< Run check for active links
   bool mPrintTrailer = false;                                        ///< Print RCU trailer
   bool mDisablePedestalEvaluation = false;                           ///< Disable pedestal evaluation independent of settings in the RCU trailer
   bool mCreateRawDataErrors = false;                                 ///< Create raw data error objects for monitoring
