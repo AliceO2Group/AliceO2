@@ -852,6 +852,25 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
       }
     }
   }
+  // mark calorimeter signals as reconstructed particles
+  if (mInputSources[GIndex::EMC]) {
+    auto& mcCaloEMCCellLabels = data.getEMCALCellsMCLabels()->getTruthArray();
+    for (auto& mcTruth : mcCaloEMCCellLabels) {
+      if (!mcTruth.isValid()) {
+        continue;
+      }
+      keepMCParticle(mToStore, mcTruth.getSourceID(), mcTruth.getEventID(), mcTruth.getTrackID());
+    }
+  }
+  if (mInputSources[GIndex::PHS]) {
+    auto& mcCaloPHOSCellLabels = data.getPHOSCellsMCLabels()->getTruthArray();
+    for (auto& mcTruth : mcCaloPHOSCellLabels) {
+      if (!mcTruth.isValid()) {
+        continue;
+      }
+      keepMCParticle(mToStore, mcTruth.getSourceID(), mcTruth.getEventID(), mcTruth.getTrackID());
+    }
+  }
   int tableIndex = 1;
   for (auto& colInfo : mcColToEvSrc) { // loop over "<eventID, sourceID> <-> combined MC col. ID" key pairs
     int event = colInfo[2];
@@ -895,7 +914,7 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
           keepMCParticle(mToStore, source, event, daughterL);
         }
       }
-      LOG(info) << "The fraction of MC particles kept is " << mToStore[source][event]->size() / (1. * mcParticles.size()) << " for source " << source << " and event " << event;
+      LOG(debug) << "The fraction of MC particles kept is " << mToStore[source][event]->size() / (1. * mcParticles.size()) << " for source " << source << " and event " << event;
 
       particleIDsToKeep.clear();
       for (auto& p : *mToStore[source][event]) {
