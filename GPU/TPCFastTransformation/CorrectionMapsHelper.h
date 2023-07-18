@@ -53,7 +53,7 @@ class CorrectionMapsHelper
 
   GPUd() void InverseTransformYZtoNominalYZ(int slice, int row, float y, float z, float& ny, float& nz) const
   {
-    mCorrMap->InverseTransformYZtoNominalYZ(slice, row, y, z, ny, nz, mCorrMapRef, mLumiScale, mLumiScaleMode); // FIXME: Wrong, but call at least one of the functions to set ny / nz to non-bogus values
+    mCorrMap->InverseTransformYZtoNominalYZ(slice, row, y, z, ny, nz, mCorrMapRef, mLumiScale, mLumiScaleMode);
   }
 
   GPUd() const GPUCA_NAMESPACE::gpu::TPCFastTransform* getCorrMap() const { return mCorrMap; }
