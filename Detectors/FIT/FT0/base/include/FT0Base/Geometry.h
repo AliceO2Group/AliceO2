@@ -69,12 +69,12 @@ class Geometry
   // Calculate the coordinates of all the channels.
   void calculateChannelCenter();
   // Get the coordinates of the center of the channel channelId.
-  TVector3 getChannelCenter(UInt_t channelId) {return mChannelCenter[channelId];}
+  TVector3 getChannelCenter(UInt_t channelId) { return mChannelCenter[channelId]; }
 
  private:
   TVector3 mMCP[52];
   TVector3 mAngles[28];
-  std::array<TVector3, Nchannels> mChannelCenter;  ///< NEW: Center of each channel in FT0 A (96) and C (112) combined.
+  std::array<TVector3, Nchannels> mChannelCenter; ///< NEW: Center of each channel in FT0 A (96) and C (112) combined.
 
   // Convert the local ordering of the channels to the official one and apply it to the channel map.
   // localChannelOrder[local channel index] = official channel.
@@ -90,8 +90,7 @@ class Geometry
     162, 160, 163, 161, 193, 195, 192, 194, 107, 105, 106, 104, 128, 130, 129, 131,
     159, 157, 158, 156, 188, 190, 189, 191, 99, 98, 97, 96, 120, 121, 122, 123,
     103, 102, 101, 100, 124, 125, 126, 127, 155, 153, 154, 152, 184, 186, 185, 187,
-    147, 146, 145, 144, 176, 177, 178, 179, 151, 150, 149, 148, 180, 181, 182, 183
-  };
+    147, 146, 145, 144, 176, 177, 178, 179, 151, 150, 149, 148, 180, 181, 182, 183};
 
   ClassDefNV(Geometry, 3);
 };
