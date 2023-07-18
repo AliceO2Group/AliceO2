@@ -18,10 +18,15 @@
 namespace o2::framework
 {
 struct O2DatabasePDGImpl : public TDatabasePDG {
-  Double_t Mass(int pdg, bool& success)
+  Double_t Mass(int pdg)
   {
     // wrap our own Mass function to expose it in the service
-    return o2::O2DatabasePDG::Mass(pdg, success, this);
+    bool success = false;
+    auto mass = o2::O2DatabasePDG::Mass(pdg, success, this);
+    if (!success) {
+      LOGF(error, "Unknown particle with PDG code %d", pdg);
+    }
+    return mass;
   }
 };
 
