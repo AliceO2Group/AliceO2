@@ -17,7 +17,7 @@
 #define ALICEO2_DATA_MCTRACK_H_
 
 #include "SimulationDataFormat/ParticleStatus.h"
-#include "SimulationDataFormat/MCGenStatus.h"
+#include "SimulationDataFormat/MCGenProperties.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "Rtypes.h"
 #include "SimulationDataFormat/O2DatabasePDG.h"

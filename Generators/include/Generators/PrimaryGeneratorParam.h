@@ -9,10 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \author R+Preghenella - September 2020
-
-#ifndef ALICEO2_EVENTGEN_GENERATOREXTERNALPARAM_H_
-#define ALICEO2_EVENTGEN_GENERATOREXTERNALPARAM_H_
+#ifndef ALICEO2_EVENTGEN_PRIMARYGENERATORPARAM_H_
+#define ALICEO2_EVENTGEN_PRIMARYGENERATORPARAM_H_
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
@@ -24,16 +22,16 @@ namespace eventgen
 
 /**
  ** a parameter class/struct to keep the settings of
- ** the external event-generator and
+ ** the event-generator external trigger and
  ** allow the user to modify them
  **/
-struct GeneratorExternalParam : public o2::conf::ConfigurableParamHelper<GeneratorExternalParam> {
-  std::string fileName = "";
-  std::string funcName = "";
-  O2ParamDef(GeneratorExternalParam, "GeneratorExternal");
+struct PrimaryGeneratorParam : public o2::conf::ConfigurableParamHelper<PrimaryGeneratorParam> {
+  int id = -1;
+  std::string description = "";
+  O2ParamDef(PrimaryGeneratorParam, "PrimaryGenerator");
 };
 
 } // end namespace eventgen
 } // end namespace o2
 
-#endif // ALICEO2_EVENTGEN_GENERATOREXTERNALPARAM_H_
+#endif // ALICEO2_EVENTGEN_PRIMARYGENERATORPARAM_H_
