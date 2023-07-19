@@ -111,7 +111,7 @@ void TDCCalibEPNSpec::run(ProcessingContext& pc)
 
   if (mProcessed >= mModTF) {
     // Send debug histograms and intermediate calibration data
-    if(mVerbosity > DbgMedium && mModTF > 0){
+    if (mVerbosity > DbgMedium && mModTF > 0) {
       LOG(info) << "Send intermediate calibration data mProcessed=" << mProcessed << " >= mModTF=" << mModTF;
     }
     o2::framework::Output output("ZDC", "TDCCALIBDATA", 0, Lifetime::Timeframe);
@@ -142,7 +142,7 @@ framework::DataProcessorSpec getTDCCalibEPNSpec()
   inputs.emplace_back("tdccalibconfig", "ZDC", "TDCCALIBCONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(o2::zdc::CCDBPathTDCCalibConfig.data()));
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("ZDC", "TDCCALIBDATA", 0, Lifetime::Sporadic); //added by me
+  outputs.emplace_back("ZDC", "TDCCALIBDATA", 0, Lifetime::Sporadic); // added by me
   outputs.emplace_back(ConcreteDataTypeMatcher{"ZDC", "TDC_1DH"}, Lifetime::Sporadic);
 
   return DataProcessorSpec{

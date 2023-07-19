@@ -159,7 +159,7 @@ void TDCCalibEPN::fill1D(int iTDC, int nHits, o2::zdc::RecEventFlat ev)
 
 int TDCCalibEPN::write(const std::string fn)
 {
-  if(mVerbosity>DbgZero){
+  if (mVerbosity > DbgZero) {
     LOG(info) << "Saving EPN debug histos on file " << fn;
   }
   TDirectory* cwd = gDirectory;
@@ -173,7 +173,7 @@ int TDCCalibEPN::write(const std::string fn)
       auto p = mTDCSum[ih]->createTH1F(TDCCalibData::CTDC[ih]);
       p->SetTitle(TDCCalibData::CTDC[ih]);
       p->Write("", TObject::kOverwrite);
-      if(mVerbosity>DbgMinimal){
+      if (mVerbosity > DbgMinimal) {
         LOG(info) << p->GetName() << " entries: " << p->GetEntries();
       }
     }
