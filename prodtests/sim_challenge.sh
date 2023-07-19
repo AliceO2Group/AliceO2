@@ -225,7 +225,7 @@ if [ "$doreco" == "1" ]; then
   #needs results of HMPID clusters data from o2-hmpid-digits-to-clusters-workflow
   taskwrapper hmpidMatchTracks.log o2-hmpid-matcher-workflow $gloOpt
   echo "Return status of o2-hmpid-matcher-workflow: $?"
-  
+
   echo "Running TOF matching QA"
   #need results of ITSTPC-TOF matching (+ TOF clusters and ITS-TPC tracks)
   taskwrapper tofmatch_qa.log root -b -q -l $O2_ROOT/share/macro/checkTOFMatching.C
