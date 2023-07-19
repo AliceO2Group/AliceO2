@@ -28,6 +28,7 @@ typedef struct uv_poll_s uv_poll_t;
 typedef struct uv_signal_s uv_signal_t;
 typedef struct uv_async_s uv_async_t;
 typedef struct uv_handle_s uv_handle_t;
+typedef struct uv_work_s uv_work_t;
 
 using namespace std;
 
@@ -131,9 +132,36 @@ class CCDBDownloader
 
   /**
    * Perform on a batch of handles in a blocking manner. Has the same effect as calling curl_easy_perform() on all handles in the vector.
+   *
    * @param handleVector Handles to be performed on.
    */
   std::vector<CURLcode> batchBlockingPerform(std::vector<CURL*> const& handleVector);
+
+  /**
+   * Contains the results of asynchronous call. It is updated via running mUVLoop.
+   * Shared pointers are used to avoid the need to free members of this structor manually before deleting the struct.
+   */
+  typedef struct {
+    shared_ptr<std::vector<CURLcode>> curlCodes;
+    shared_ptr<size_t> requestsLeft;
+    shared_ptr<bool> callbackFinished;
+  } AsynchronousResults;
+
+  /**
+   * Schedules performing on a batch of handles. To perform run the mUVLoop.
+   *
+   * @param handleVector Handles to be performed on.
+   */
+  AsynchronousResults batchAsynchPerform(std::vector<CURL*> const& handleVector);
+
+  /**
+   * Schedules performing on a batch of handles. To perform run the mUVLoop. After all callbacks finish it will execute `func(arg)`
+   *
+   * @param handleVector Handles to be performed on.
+   * @param func Function to be called as callback.
+   * @param arg Argument to be passed to func.
+   */
+  AsynchronousResults batchAsynchWithCallback(std::vector<CURL*> const& handleVector, void func(void*), void* arg);
 
   /**
    * Limits the number of parallel connections. Should be used only if no transfers are happening.
@@ -169,6 +197,14 @@ class CCDBDownloader
    * Sets the timeout values selected for the online environment.
    */
   void setOnlineTimeoutSettings();
+
+  /**
+   * Is called a short time after uvWorkWrapper finished executing.
+   *
+   * @param workHandle Work handle which was used to perform the callback.
+   * @param status Not used but required by template. Its value would be set as UV_ECANCELED if the callback was cancelled.
+   */
+  static void afterWorkCleanup(uv_work_t *req, int status);
 
   /**
    * Run the uvLoop once.
@@ -237,15 +273,19 @@ class CCDBDownloader
    * All easy handles coming from one request have an identical PerformData structure.
    */
   typedef struct PerformData {
-    std::condition_variable* cv;
-    bool* completionFlag;
     CURLcode* codeDestination;
     void (*cbFun)(void*);
-    std::thread* cbThread;
     void* cbData;
-    size_t* requestsLeft;
+    shared_ptr<size_t> requestsLeft;
     RequestType type;
+    shared_ptr<bool> callbackFinished;
   } PerformData;
+
+  typedef struct CallbackData {
+    void (*cbFun)(void*);
+    void* cbData;
+    shared_ptr<bool> callbackFinished;
+  } CallbackData;
 
   /**
    * Called by CURL in order to close a socket. It will be called by CURL even if a timeout timer closed the socket beforehand.
@@ -312,6 +352,13 @@ class CCDBDownloader
   void initializeMultiHandle();
 
   /**
+   * Schedules the callback function to run via uv_work.
+   *
+   * @param data Data describing the function and arguments which will be used to perform callback.
+   */
+  void uvCallbackWrapper(CallbackData* data);
+
+  /**
    * Release resources reserver for the transfer, mark transfer as complete, passe the CURLcode to the destination and launche callbacks if it is specified in PerformData.
    *
    * @param handle The easy_handle for which the transfer completed
@@ -340,6 +387,13 @@ class CCDBDownloader
    * If multi_handles uses less then maximum number of handles then add handles from the queue.
    */
   void checkHandleQueue();
+
+  /**
+   * Wrapper which calls the uv_queue_work. Used in asynchronous callbacks.
+   *
+   * @param workHandle Work handle that will be used to perform the callback.
+   */
+  static void uvWorkWrapper(uv_work_t* workHandle);
 };
 
 /**

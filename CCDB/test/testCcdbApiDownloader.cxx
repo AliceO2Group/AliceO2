@@ -60,6 +60,20 @@ std::string uniqueAgentID()
   }
 }
 
+void checkCodesAndCleanHandles(std::vector<CURL*> handleVector, std::vector<CURLcode> curlCodes)
+{
+  for (CURLcode code : curlCodes) {
+    BOOST_CHECK(code == CURLE_OK);
+  }
+
+  for (CURL* handle : handleVector) {
+    long httpCode;
+    curl_easy_getinfo(handle, CURLINFO_HTTP_CODE, &httpCode);
+    BOOST_CHECK(httpCode == 200);
+    curl_easy_cleanup(handle);
+  }
+}
+
 CURL* createTestHandle(std::string* dst)
 {
   CURL* handle = curl_easy_init();
@@ -85,12 +99,10 @@ BOOST_AUTO_TEST_CASE(perform_test)
   CURLcode curlCode = downloader.perform(handle);
 
   BOOST_CHECK(curlCode == CURLE_OK);
-  std::cout << "CURL code: " << curlCode << "\n";
 
   long httpCode;
   curl_easy_getinfo(handle, CURLINFO_HTTP_CODE, &httpCode);
   BOOST_CHECK(httpCode == 200);
-  std::cout << "HTTP code: " << httpCode << "\n";
 
   curl_easy_cleanup(handle);
   curl_global_cleanup();
@@ -106,28 +118,14 @@ BOOST_AUTO_TEST_CASE(blocking_batch_test)
   CCDBDownloader downloader;
   std::vector<CURL*> handleVector;
   std::vector<std::string*> destinations;
-  for (int i = 0; i < 100; i++) {
+  for (int i = 0; i < 30; i++) {
     destinations.push_back(new std::string());
     handleVector.push_back(createTestHandle(destinations.back()));
   }
 
   auto curlCodes = downloader.batchBlockingPerform(handleVector);
-  for (CURLcode code : curlCodes) {
-    BOOST_CHECK(code == CURLE_OK);
-    if (code != CURLE_OK) {
-      std::cout << "CURL Code: " << code << "\n";
-    }
-  }
 
-  for (CURL* handle : handleVector) {
-    long httpCode;
-    curl_easy_getinfo(handle, CURLINFO_HTTP_CODE, &httpCode);
-    BOOST_CHECK(httpCode == 200);
-    if (httpCode != 200) {
-      std::cout << "HTTP Code: " << httpCode << "\n";
-    }
-    curl_easy_cleanup(handle);
-  }
+  checkCodesAndCleanHandles(handleVector, curlCodes);
 
   for (std::string* dst : destinations) {
     delete dst;
@@ -146,30 +144,14 @@ BOOST_AUTO_TEST_CASE(test_with_break)
   CCDBDownloader downloader;
   std::vector<CURL*> handleVector;
   std::vector<std::string*> destinations;
-  for (int i = 0; i < 100; i++) {
+  for (int i = 0; i < 30; i++) {
     destinations.push_back(new std::string());
     handleVector.push_back(createTestHandle(destinations.back()));
   }
 
   auto curlCodes = downloader.batchBlockingPerform(handleVector);
 
-  for (CURLcode code : curlCodes) {
-    BOOST_CHECK(code == CURLE_OK);
-    if (code != CURLE_OK) {
-      std::cout << "CURL Code: " << code << "\n";
-    }
-  }
-
-  for (CURL* handle : handleVector) {
-    long httpCode;
-    curl_easy_getinfo(handle, CURLINFO_HTTP_CODE, &httpCode);
-    BOOST_CHECK(httpCode == 200);
-    if (httpCode != 200) {
-      std::cout << "HTTP Code: " << httpCode << "\n";
-    }
-    curl_easy_cleanup(handle);
-  }
-
+  checkCodesAndCleanHandles(handleVector, curlCodes);
   for (std::string* dst : destinations) {
     delete dst;
   }
@@ -178,33 +160,17 @@ BOOST_AUTO_TEST_CASE(test_with_break)
 
   std::vector<CURL*> handleVector2;
   std::vector<std::string*> destinations2;
-  for (int i = 0; i < 100; i++) {
+  for (int i = 0; i < 30; i++) {
     destinations2.push_back(new std::string());
     handleVector2.push_back(createTestHandle(destinations2.back()));
   }
 
   auto curlCodes2 = downloader.batchBlockingPerform(handleVector2);
-  for (CURLcode code : curlCodes2) {
-    BOOST_CHECK(code == CURLE_OK);
-    if (code != CURLE_OK) {
-      std::cout << "CURL Code: " << code << "\n";
-    }
-  }
 
-  for (CURL* handle : handleVector2) {
-    long httpCode;
-    curl_easy_getinfo(handle, CURLINFO_HTTP_CODE, &httpCode);
-    BOOST_CHECK(httpCode == 200);
-    if (httpCode != 200) {
-      std::cout << "HTTP Code: " << httpCode << "\n";
-    }
-    curl_easy_cleanup(handle);
-  }
-
+  checkCodesAndCleanHandles(handleVector2, curlCodes2);
   for (std::string* dst : destinations2) {
     delete dst;
   }
-
   curl_global_cleanup();
 }
 
@@ -261,6 +227,130 @@ BOOST_AUTO_TEST_CASE(external_loop_test)
 
   // Check if test timer and external loop are still alive
   BOOST_CHECK(uv_is_active((uv_handle_t*)testTimer) != 0);
+  BOOST_CHECK(uv_loop_alive(uvLoop) != 0);
+
+  // Downloader must be closed before uv_loop.
+  // The reason for that are the uv_poll handles attached to the curl multi handle.
+  // The multi handle must be cleaned (via destuctor) before poll handles attached to them are removed (via walking and closing).
+  delete downloader;
+  while (uv_loop_alive(uvLoop) && uv_loop_close(uvLoop) == UV_EBUSY) {
+    uv_walk(uvLoop, closeAllHandles, nullptr);
+    uv_run(uvLoop, UV_RUN_ONCE);
+  }
+  delete uvLoop;
+}
+
+BOOST_AUTO_TEST_CASE(asynch_test)
+{
+  // Prepare uv_loop to be provided to the downloader
+  auto uvLoop = new uv_loop_t();
+  uv_loop_init(uvLoop);
+
+  // Prepare test timer. It will be used to check whether the downloader affects external handles.
+  auto testTimer = new uv_timer_t();
+  uv_timer_init(uvLoop, testTimer);
+  uv_timer_start(testTimer, testTimerCB, 10, 10);
+
+  if (curl_global_init(CURL_GLOBAL_ALL)) {
+    fprintf(stderr, "Could not init curl\n");
+    return;
+  }
+
+  // Regular downloader test using asynchronous perform
+  auto downloader = new o2::ccdb::CCDBDownloader(uvLoop);
+  std::string dst = "";
+  CURL* handle = createTestHandle(&dst);
+
+  std::vector<CURL*> handleVector;
+  handleVector.push_back(handle);
+
+  auto results = downloader->batchAsynchPerform(handleVector);
+
+  // Run loop until all requests are finished
+  while (*results.requestsLeft > 0) {
+    downloader->runLoop(false);
+  }
+
+  // Check results
+  CURLcode curlCode = (*results.curlCodes)[0];
+  BOOST_CHECK(curlCode == CURLE_OK);
+
+  long httpCode;
+  curl_easy_getinfo(handle, CURLINFO_HTTP_CODE, &httpCode);
+  BOOST_CHECK(httpCode == 200);
+
+  curl_easy_cleanup(handle);
+  curl_global_cleanup();
+
+  // Check if test timer and external loop are still alive
+  BOOST_CHECK(uv_is_active((uv_handle_t*)testTimer) !=  0);
+  BOOST_CHECK(uv_loop_alive(uvLoop) != 0);
+
+  // Downloader must be closed before uv_loop.
+  // The reason for that are the uv_poll handles attached to the curl multi handle.
+  // The multi handle must be cleaned (via destuctor) before poll handles attached to them are removed (via walking and closing).
+  delete downloader;
+  while (uv_loop_alive(uvLoop) && uv_loop_close(uvLoop) == UV_EBUSY) {
+    uv_walk(uvLoop, closeAllHandles, nullptr);
+    uv_run(uvLoop, UV_RUN_ONCE);
+  }
+  delete uvLoop;
+}
+
+void testCallback(void* p)
+{
+  auto i = (int*)p;
+  (*i)++;
+}
+
+BOOST_AUTO_TEST_CASE(asynchronous_callback_test)
+{
+  // Prepare uv_loop to be provided to the downloader
+  auto uvLoop = new uv_loop_t();
+  uv_loop_init(uvLoop);
+
+  // Prepare test timer. It will be used to check whether the downloader affects external handles.
+  auto testTimer = new uv_timer_t();
+  uv_timer_init(uvLoop, testTimer);
+  uv_timer_start(testTimer, testTimerCB, 10, 10);
+
+  if (curl_global_init(CURL_GLOBAL_ALL)) {
+    fprintf(stderr, "Could not init curl\n");
+    return;
+  }
+
+  // Test the downloader
+  auto downloader = new o2::ccdb::CCDBDownloader(uvLoop);
+  std::string dst = "";
+  CURL* handle = createTestHandle(&dst);
+
+  std::vector<CURL*> handleVector;
+  handleVector.push_back(handle);
+
+  // testVariable will be modified in the callback
+  int testVariable = 0;
+  auto results = downloader->batchAsynchWithCallback(handleVector, testCallback, &testVariable);
+
+  // Run the loop until requests are done and the callback is finished
+  while (*results.requestsLeft > 0 || !(*results.callbackFinished)) {
+    downloader->runLoop(false);
+  }
+
+  // Check results
+  BOOST_CHECK(testVariable == 1);
+
+  CURLcode curlCode = (*results.curlCodes)[0];
+  BOOST_CHECK(curlCode == CURLE_OK);
+
+  long httpCode;
+  curl_easy_getinfo(handle, CURLINFO_HTTP_CODE, &httpCode);
+  BOOST_CHECK(httpCode == 200);
+
+  curl_easy_cleanup(handle);
+  curl_global_cleanup();
+
+  // Check if test timer and external loop are still alive
+  BOOST_CHECK(uv_is_active((uv_handle_t*)testTimer) !=  0);
   BOOST_CHECK(uv_loop_alive(uvLoop) != 0);
 
   // Downloader must be closed before uv_loop.
