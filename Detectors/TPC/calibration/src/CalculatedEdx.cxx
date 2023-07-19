@@ -163,15 +163,19 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
 
     // find missing clusters
     int missingClusters = rowIndexOld - rowIndex - 1;
-    if ((missingClusters == mMaxMissingCl) && (sectorIndexOld == sectorIndex)) {
+    if ((missingClusters > 0) && (missingClusters <= mMaxMissingCl) && (sectorIndexOld == sectorIndex)) {
       if (stack == GEMstack::IROCgem) {
         nClsSubThreshROC[0] += missingClusters;
+        nClsROC[0] += missingClusters;
       } else if (stack == GEMstack::OROC1gem) {
         nClsSubThreshROC[1] += missingClusters;
+        nClsROC[1] += missingClusters;
       } else if (stack == GEMstack::OROC2gem) {
         nClsSubThreshROC[2] += missingClusters;
+        nClsROC[2] += missingClusters;
       } else if (stack == GEMstack::OROC3gem) {
         nClsSubThreshROC[3] += missingClusters;
+        nClsROC[3] += missingClusters;
       }
     };
     rowIndexOld = rowIndex;
@@ -273,19 +277,18 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
   }
 
   // number of clusters
-  output.NHitsIROC = nClsROC[0];
-  output.NHitsOROC1 = nClsROC[1];
-  output.NHitsOROC2 = nClsROC[2];
-  output.NHitsOROC3 = nClsROC[3];
+  output.NHitsIROC = nClsROC[0] - nClsSubThreshROC[0];
+  output.NHitsOROC1 = nClsROC[1] - nClsSubThreshROC[1];
+  output.NHitsOROC2 = nClsROC[2] - nClsSubThreshROC[2];
+  output.NHitsOROC3 = nClsROC[3] - nClsSubThreshROC[3];
 
-  // number of missing clusters
-  output.NHitsSubThresholdIROC = nClsSubThreshROC[0];
-  output.NHitsSubThresholdOROC1 = nClsSubThreshROC[1];
-  output.NHitsSubThresholdOROC2 = nClsSubThreshROC[2];
-  output.NHitsSubThresholdOROC3 = nClsSubThreshROC[3];
+  output.NHitsSubThresholdIROC = nClsROC[0];
+  output.NHitsSubThresholdOROC1 = nClsROC[1];
+  output.NHitsSubThresholdOROC2 = nClsROC[2];
+  output.NHitsSubThresholdOROC3 = nClsROC[3];
 
-  fillMissingClusters(chargeTotROC, nClsROC, minChargeTot, 1);
-  fillMissingClusters(chargeMaxROC, nClsROC, minChargeMax, 1);
+  fillMissingClusters(chargeTotROC, nClsSubThreshROC, minChargeTot, 1);
+  fillMissingClusters(chargeMaxROC, nClsSubThreshROC, minChargeMax, 1);
 
   // calculate dEdx
   output.dEdxTotIROC = getTruncMean(chargeTotROC[0], low, high);

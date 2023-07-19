@@ -35,7 +35,6 @@ namespace o2::tpc
 /// This class is used to calculate dEdx of reconstructed tracks.
 /// Calibration objects are loaded from CCDB with the run number.
 /// For the calculation of dEdx:
-///   charge type and the region can be set
 ///   different corrections (track topology correction, gain map and residual dEdx correction) can be switched on and off
 ///   truncation range can be set for truncated mean calculation
 ///
@@ -47,7 +46,7 @@ namespace o2::tpc
 /// calc.setMembers(tpcTrackClIdxVecInput, clusterIndex, tpcTracks); // set the member variables: TrackTPC, TPCClRefElem, o2::tpc::ClusterNativeAccess
 /// calc.setRefit(); // set the refit pointer to perform refitting of tracks, otherwise setPropagateTrack to true
 /// start looping over the tracks
-/// calc.getTruncMean(track, output, 0.01, 0.6, ChargeType::Tot, CalculatedEdx::RegionType::Entire, CorrectionFlags::TopologyPol | CorrectionFlags::GainFull | CorrectionFlags::GainResidual | CorrectionFlags::dEdxResidual) // this will fill the dEdxInfo output for given track
+/// calc.getTruncMean(track, output, 0.01, 0.6, CorrectionFlags::TopologyPol | CorrectionFlags::GainFull | CorrectionFlags::GainResidual | CorrectionFlags::dEdxResidual) // this will fill the dEdxInfo output for given track
 
 enum class CorrectionFlags : unsigned short {
   TopologySimple = 1 << 0, ///< flag for simple analytical topology correction
