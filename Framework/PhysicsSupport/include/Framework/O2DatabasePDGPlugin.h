@@ -13,6 +13,7 @@
 #define O2_FRAMEWORK_O2DATABASEPDG_H_
 
 #include "Framework/Plugins.h"
+#include "TDatabasePDG.h"
 #include "SimulationDataFormat/O2DatabasePDG.h"
 
 namespace o2::framework
