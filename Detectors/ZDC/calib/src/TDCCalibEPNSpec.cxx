@@ -36,6 +36,7 @@
 #include "ZDCReconstruction/ZDCEnergyParam.h"
 #include "ZDCReconstruction/ZDCTowerParam.h"
 #include "ZDCCalib/TDCCalibEPNSpec.h"
+#include "ZDCCalib/CalibParamZDC.h"
 
 using namespace o2::framework;
 
@@ -60,6 +61,8 @@ void TDCCalibEPNSpec::init(o2::framework::InitContext& ic)
 {
   mVerbosity = ic.options().get<int>("verbosity-level");
   mWorker.setVerbosity(mVerbosity);
+  const auto& opt = CalibParamZDC::Instance();
+  mModTF = opt.modTF;
 }
 
 void TDCCalibEPNSpec::updateTimeDependentParams(ProcessingContext& pc)
@@ -101,15 +104,19 @@ void TDCCalibEPNSpec::run(ProcessingContext& pc)
 
   // Process reconstructed data
   mWorker.process(bcrec, energy, tdc, info);
+  mProcessed++;
 
-  // Send debug histograms and intermediate calibration data
-  o2::framework::Output output("ZDC", "TDCCALIBDATA", 0, Lifetime::Timeframe);
-  pc.outputs().snapshot(output, mWorker.mData);
-  for (int ih = 0; ih < TDCCalibData::NTDC; ih++) {
-    o2::framework::Output output("ZDC", "TDC_1DH", ih, Lifetime::Timeframe);
-    pc.outputs().snapshot(output, mWorker.mTDC[ih]->getBase());
+  if (mProcessed >= mModTF) {
+    // Send debug histograms and intermediate calibration data
+    o2::framework::Output output("ZDC", "TDCCALIBDATA", 0, Lifetime::Timeframe);
+    pc.outputs().snapshot(output, mWorker.mData);
+    for (int ih = 0; ih < TDCCalibData::NTDC; ih++) {
+      o2::framework::Output output("ZDC", "TDC_1DH", ih, Lifetime::Timeframe);
+      pc.outputs().snapshot(output, mWorker.mTDC[ih]->getBase());
+    }
+    mWorker.clear();
+    mProcessed = 0;
   }
-  mWorker.clear();
 }
 
 void TDCCalibEPNSpec::endOfStream(EndOfStreamContext& ec)
