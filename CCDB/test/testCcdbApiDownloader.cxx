@@ -283,7 +283,7 @@ BOOST_AUTO_TEST_CASE(asynch_test)
   curl_global_cleanup();
 
   // Check if test timer and external loop are still alive
-  BOOST_CHECK(uv_is_active((uv_handle_t*)testTimer) !=  0);
+  BOOST_CHECK(uv_is_active((uv_handle_t*)testTimer) != 0);
   BOOST_CHECK(uv_loop_alive(uvLoop) != 0);
 
   // Downloader must be closed before uv_loop.
@@ -350,7 +350,7 @@ BOOST_AUTO_TEST_CASE(asynchronous_callback_test)
   curl_global_cleanup();
 
   // Check if test timer and external loop are still alive
-  BOOST_CHECK(uv_is_active((uv_handle_t*)testTimer) !=  0);
+  BOOST_CHECK(uv_is_active((uv_handle_t*)testTimer) != 0);
   BOOST_CHECK(uv_loop_alive(uvLoop) != 0);
 
   // Downloader must be closed before uv_loop.

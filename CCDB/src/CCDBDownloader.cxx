@@ -345,7 +345,7 @@ void CCDBDownloader::destroyCurlContext(curl_context_t* context)
   uv_close((uv_handle_t*)context->poll_handle, curlCloseCB);
 }
 
-void CCDBDownloader::afterWorkCleanup(uv_work_t *workHandle, int status)
+void CCDBDownloader::afterWorkCleanup(uv_work_t* workHandle, int status)
 {
   auto data = (CallbackData*)workHandle->data;
   delete data;
