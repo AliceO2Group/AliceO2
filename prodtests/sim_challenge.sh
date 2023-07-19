@@ -183,7 +183,7 @@ if [ "$doreco" == "1" ]; then
   #needs MID digitized data
   taskwrapper midreco.log "o2-mid-digits-reader-workflow | o2-mid-reco-workflow $gloOpt"
   echo "Return status of midreco: $?"
-
+  
   echo "Running HMPID reco flow to produce clusters"
   #needs HMPID digitized data
   taskwrapper hmpreco.log "o2-hmpid-digits-to-clusters-workflow $gloOpt"
@@ -220,9 +220,9 @@ if [ "$doreco" == "1" ]; then
   #needs results of TOF clusters data from o2-tof-reco-workflow and results of o2-tpc-reco-workflow and ITS-TPC matching
   taskwrapper tofMatchTracks.log o2-tof-matcher-workflow $gloOpt
   echo "Return status of o2-tof-matcher-workflow: $?"
-
+  
   echo "Running Track-HMPID macthing flow"
-  #needs results of HMPID clusters data from o2-hmpid-digits-to-clusters-workflow 
+  #needs results of HMPID clusters data from o2-hmpid-digits-to-clusters-workflow
   taskwrapper hmpidMatchTracks.log o2-hmpid-matcher-workflow $gloOpt
   echo "Return status of o2-hmpid-matcher-workflow: $?"
   
