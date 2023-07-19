@@ -29,7 +29,6 @@ o2_add_library(
           src/TrackCuts.cxx
           src/CalibdEdxCorrection.cxx
           src/DCS.cxx
-          src/PIDResponse.cxx
   PUBLIC_LINK_LIBRARIES O2::GPUCommon
                         O2::SimulationDataFormat
                         O2::ReconstructionDataFormats
