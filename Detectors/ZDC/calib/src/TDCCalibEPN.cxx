@@ -47,9 +47,11 @@ int TDCCalibEPN::init()
   int ih;
   // clang-format off
   for (int iTDC = 0; iTDC < NTDC; iTDC++) {
-    mTDC[iTDC] =    new o2::dataformats::FlatHisto1D<float>(cfg->nb1[iTDC],cfg->amin1[iTDC],cfg->amax1[iTDC]);
+    mTDC[iTDC] = new o2::dataformats::FlatHisto1D<float>(cfg->nb1[iTDC], cfg->amin1[iTDC], cfg->amax1[iTDC]);
+    if(mSaveDebugHistos){
+      mTDCSum[iTDC] = new o2::dataformats::FlatHisto1D<float>(cfg->nb1[iTDC], cfg->amin1[iTDC], cfg->amax1[iTDC]);
+    }
   }
-
   // clang-format on
   mInitDone = true;
   return 0;
@@ -146,6 +148,9 @@ void TDCCalibEPN::fill1D(int iTDC, int nHits, o2::zdc::RecEventFlat ev)
   //Fill histo
   for (int hit = 0; hit < nHits; hit++) {
     mTDC[iTDC]->fill(tdcVal[hit]);
+    if (mSaveDebugHistos) {
+      mTDCSum[iTDC]->fill(tdcVal[hit]);
+    }
   }
   mData.entries[iTDC] += nHits;
 }
@@ -154,6 +159,9 @@ void TDCCalibEPN::fill1D(int iTDC, int nHits, o2::zdc::RecEventFlat ev)
 
 int TDCCalibEPN::write(const std::string fn)
 {
+  if(mVerbosity>DbgZero){
+    LOG(info) << "Saving EPN debug histos on file " << fn;
+  }
   TDirectory* cwd = gDirectory;
   TFile* f = new TFile(fn.data(), "recreate");
   if (f->IsZombie()) {
@@ -161,10 +169,13 @@ int TDCCalibEPN::write(const std::string fn)
     return 1;
   }
   for (int32_t ih = 0; ih < NTDC; ih++) {
-    if (mTDC[ih]) {
-      auto p = mTDC[ih]->createTH1F(TDCCalibData::CTDC[ih]);
+    if (mTDCSum[ih]) {
+      auto p = mTDCSum[ih]->createTH1F(TDCCalibData::CTDC[ih]);
       p->SetTitle(TDCCalibData::CTDC[ih]);
       p->Write("", TObject::kOverwrite);
+      if(mVerbosity>DbgMinimal){
+        LOG(info) << p->GetName() << " entries: " << p->GetEntries();
+      }
     }
   }
   f->Close();

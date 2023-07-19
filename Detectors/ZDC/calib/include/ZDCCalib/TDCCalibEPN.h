@@ -66,12 +66,13 @@ class TDCCalibEPN
   TDCCalibData mData;
   TDCCalibData& getData() { return mData; }
   std::array<o2::dataformats::FlatHisto1D<float>*, NTDC> mTDC{};
+  std::array<o2::dataformats::FlatHisto1D<float>*, NTDC> mTDCSum{};
 
  private:
   bool mInitDone = false;
   bool mSaveDebugHistos = false;
-  int32_t mVerbosity = DbgMinimal;
   const TDCCalibConfig* mTDCCalibConfig = nullptr; /// Configuration of intercalibration
+  int32_t mVerbosity = DbgMinimal;
 };
 } // namespace zdc
 } // namespace o2

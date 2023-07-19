@@ -177,6 +177,7 @@ framework::DataProcessorSpec getBaselineCalibEPNSpec()
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ZDC", "BASECALIBDATA", 0, Lifetime::Sporadic);
+
   return DataProcessorSpec{
     "zdc-calib-baseline-epn",
     inputs,
