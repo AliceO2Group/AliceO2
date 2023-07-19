@@ -184,6 +184,11 @@ if [ "$doreco" == "1" ]; then
   taskwrapper midreco.log "o2-mid-digits-reader-workflow | o2-mid-reco-workflow $gloOpt"
   echo "Return status of midreco: $?"
 
+  echo "Running HMPID reco flow to produce clusters"
+  #needs HMPID digitized data
+  taskwrapper hmpreco.log "o2-hmpid-digits-to-clusters-workflow $gloOpt"
+  echo "Return status of hmpid cluster reco: $?"
+
   echo "Running MCH-MID matching flow"
   taskwrapper mchmidMatch.log "o2-muon-tracks-matcher-workflow $gloOpt"
   echo "Return status of mchmidmatch: $?"
@@ -216,6 +221,11 @@ if [ "$doreco" == "1" ]; then
   taskwrapper tofMatchTracks.log o2-tof-matcher-workflow $gloOpt
   echo "Return status of o2-tof-matcher-workflow: $?"
 
+  echo "Running Track-HMPID macthing flow"
+  #needs results of HMPID clusters data from o2-hmpid-digits-to-clusters-workflow 
+  taskwrapper hmpidMatchTracks.log o2-hmpid-matcher-workflow $gloOpt
+  echo "Return status of o2-hmpid-matcher-workflow: $?"
+  
   echo "Running TOF matching QA"
   #need results of ITSTPC-TOF matching (+ TOF clusters and ITS-TPC tracks)
   taskwrapper tofmatch_qa.log root -b -q -l $O2_ROOT/share/macro/checkTOFMatching.C
