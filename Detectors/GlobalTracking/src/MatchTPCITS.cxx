@@ -32,7 +32,6 @@
 #include <Math/SVector.h>
 #include <TFile.h>
 #include <TGeoGlobalMagField.h>
-#include "DataFormatsParameters/GRPObject.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "CommonUtils/NameConf.h"
@@ -42,7 +41,7 @@
 #include "DataFormatsGlobalTracking/RecoContainerCreateTracksVariadic.h"
 #include "DataFormatsGlobalTracking/TrackTuneParams.h"
 #include "DataFormatsTPC/WorkflowHelper.h"
-
+#include "DetectorsBase/GRPGeomHelper.h"
 #include "ITStracking/IOUtils.h"
 
 #include "GPUO2Interface.h" // Needed for propper settings in GPUParam.h
@@ -579,15 +578,18 @@ bool MatchTPCITS::prepareITSData()
   for (int sec = o2::constants::math::NSectors; sec--;) {
     mITSTimeStart[sec].resize(nROFs, -1); // start of ITS work tracks in every sector
   }
+  long nHBF = o2::base::GRPGeomHelper::getNHBFPerTF();
+  long maxBCs = nHBF * long(o2::constants::lhc::LHCMaxBunches);
 
   for (int irof = 0; irof < nROFs; irof++) {
     const auto& rofRec = mITSTrackROFRec[irof];
-    auto nBC = rofRec.getBCData().differenceInBC(mStartIR);
-    if (uint64_t(nBC) > 256 * uint64_t(o2::constants::lhc::LHCMaxBunches)) { // RS: fixme: use real NHBFPerTF from GRP
+    long nBC = rofRec.getBCData().differenceInBC(mStartIR);
+    if (nBC > maxBCs) {
       if (++errCount < MaxErrors2Report) {
-        LOG(alarm) << "ITS ROF start " << rofRec.getBCData() << " does not match to TF with 1st orbit " << mStartIR;
+        LOGP(alarm, "ITS ROF#{} start is not compatible with TF 1st orbit {} and TF length of {} HBFs",
+             irof, rofRec.getBCData().asString(), mStartIR.asString(), nHBF);
       }
-      return false;
+      break;
     }
     float tMin = nBC * o2::constants::lhc::LHCBunchSpacingMUS + mITSTimeBiasMUS;
     float tMax = (nBC + mITSROFrameLengthInBC) * o2::constants::lhc::LHCBunchSpacingMUS + mITSTimeBiasMUS;
