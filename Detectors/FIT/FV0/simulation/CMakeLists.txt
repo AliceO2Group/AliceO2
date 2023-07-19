@@ -29,12 +29,8 @@ o2_target_root_dictionary(FV0Simulation
 o2_add_executable(digi2raw
         COMPONENT_NAME fv0
         SOURCES src/digit2raw.cxx
-        PUBLIC_LINK_LIBRARIES O2::FV0Simulation
-                              O2::DetectorsRaw
-                              O2::DetectorsCommonDataFormats
-                              O2::CommonUtils
-                              Boost::program_options
-                              O2::FV0Raw)
+        PUBLIC_LINK_LIBRARIES O2::FV0Raw
+                              Boost::program_options)
 
 o2_data_file(COPY data DESTINATION Detectors/FV0/simulation)
 

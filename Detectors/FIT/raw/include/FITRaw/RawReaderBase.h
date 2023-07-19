@@ -22,6 +22,7 @@
 #include <type_traits>
 #include <vector>
 #include <map>
+#include <unordered_map>
 #include <tuple>
 
 #include <boost/mpl/vector.hpp>
@@ -34,6 +35,7 @@
 #include "Headers/RAWDataHeader.h"
 #include <Framework/Logger.h>
 #include <FITRaw/DataBlockBase.h>
+#include <DataFormatsFIT/RawDataMetric.h>
 
 #include <gsl/span>
 namespace o2
@@ -47,9 +49,13 @@ class RawReaderBase
   RawReaderBase() = default;
   ~RawReaderBase() = default;
   typedef DigitBlockType DigitBlock_t;
+  typedef RawDataMetric RawDataMetric_t;
+  using LookupTable_t = typename DigitBlock_t::LookupTable_t;
+  using EntryCRU_t = typename LookupTable_t::EntryCRU_t;
+  using HashTableCRU_t = std::unordered_map<EntryCRU_t, RawDataMetric, typename LookupTable_t::MapEntryCRU2ModuleType_t::hasher, typename LookupTable_t::MapEntryCRU2ModuleType_t::key_equal>;
+
+  HashTableCRU_t mHashTableMetrics{};
   typedef boost::mpl::vector<typename DataBlockTypes::DataBlockInvertedPadding_t..., DataBlockTypes...> VecDataBlocks_t;
-  //  typedef boost::mpl::vector<DataBlockTypes...> VecDataBlocks_t;
-  //  std::tuple<std::vector<DataBlockTypes>...> mTupleVecDataBlocks;
   std::tuple<std::vector<typename DataBlockTypes::DataBlockInvertedPadding_t>..., std::vector<DataBlockTypes>...> mTupleVecDataBlocks;
 
   std::map<InteractionRecord, DigitBlock_t> mMapDigits;
@@ -61,27 +67,19 @@ class RawReaderBase
   }
   // decoding binary data into data blocks
   template <class DataBlockType>
-  size_t decodeBlocks(const gsl::span<const uint8_t> binaryPayload, std::vector<DataBlockType>& vecDataBlocks)
+  size_t decodeBlocks(const gsl::span<const uint8_t> binaryPayload, RawDataMetric& metric, std::vector<DataBlockType>& vecDataBlocks)
   {
     size_t srcPos = 0;
-    const auto payloadSize = binaryPayload.size();
-    const int padding = payloadSize % DataBlockType::DataBlockWrapperHeader_t::sSizeWord;
-    const int nCruWords = payloadSize / SIZE_WORD;
-    const int pageSizeThreshold = SIZE_WORD * (nCruWords - int(padding > 0));
+    const auto& payloadSize = binaryPayload.size();
+    const int nWords = payloadSize / DataBlockType::DataBlockWrapperHeader_t::sSizeWord;
+    const int pageSizeThreshold = DataBlockType::DataBlockWrapperHeader_t::sSizeWord * (nWords - int(nWords > 1)); // no need in reading last GBT word, this will be 0xff... or empty header
     while (srcPos < pageSizeThreshold) {
       auto& refDataBlock = vecDataBlocks.emplace_back();
       refDataBlock.decodeBlock(binaryPayload, srcPos);
       srcPos += refDataBlock.mSize;
-      if (refDataBlock.isOnlyHeader()) {
+      if (metric.checkBadDataBlock(refDataBlock.mStatusBitsAll)) {
         // exclude data block in case of single header(no data, total size == 16 bytes)
         vecDataBlocks.pop_back();
-        continue;
-      }
-      if (!refDataBlock.isCorrect()) {
-        LOG(warning) << "INCORRECT DATA BLOCK! Byte position: " << srcPos - refDataBlock.mSize << " | Payload size: " << binaryPayload.size() << " | DataBlock size: " << refDataBlock.mSize;
-        refDataBlock.print();
-        vecDataBlocks.pop_back();
-        return srcPos;
       }
     }
     return srcPos;
@@ -89,32 +87,24 @@ class RawReaderBase
 
   // processing data blocks into digits
   template <class DataBlockType, typename... T>
-  void processBinaryData(gsl::span<const uint8_t> payload, T&&... feeParameters)
+  void processBinaryData(gsl::span<const uint8_t> payload, uint16_t feeID, uint8_t linkID, uint8_t epID)
   {
     auto& vecDataBlocks = getVecDataBlocks<DataBlockType>();
-    auto srcPos = decodeBlocks(payload, vecDataBlocks);
+    auto& metric = addMetric(feeID, linkID, epID);
+    auto srcPos = decodeBlocks(payload, metric, vecDataBlocks);
     for (const auto& dataBlock : vecDataBlocks) {
       auto intRec = dataBlock.getInteractionRecord();
       auto [digitIter, isNew] = mMapDigits.try_emplace(intRec, intRec);
-      digitIter->second.template processDigits<DataBlockType>(dataBlock, std::forward<T>(feeParameters)...);
+      digitIter->second.template processDigits<DataBlockType>(dataBlock, metric, static_cast<int>(linkID), static_cast<int>(epID));
+      metric.addStatusBit(RawDataMetric::EStatusBits::kDecodedDataBlock);
     }
     vecDataBlocks.clear();
-    /* //Must be checked for perfomance
-    std::size_t srcPos = 0;
-    while (srcPos < payload.size()) {
-      DataBlockType dataBlock{};
-      dataBlock.decodeBlock(payload, srcPos);
-      srcPos += dataBlock.mSize;
-      if (!dataBlock.isCorrect()) {
-        LOG(warning) << "INCORRECT DATA BLOCK! Byte position: " << srcPos << " | Payload size: " << payload.size() << " | DataBlock size: " << dataBlock.mSize;
-        //dataBlock.print();
-        return;
-      }
-      auto intRec = dataBlock.getInteractionRecord();
-      auto [digitIter, isNew] = mMapDigits.try_emplace(intRec, intRec);
-      digitIter->second.template processDigits<DataBlockType>(dataBlock, std::forward<T>(feeParameters)...);
-    }
-    */
+  }
+  RawDataMetric& addMetric(uint16_t feeID, uint8_t linkID, uint8_t epID, bool isRegisteredFEE = true)
+  {
+    auto metricPair = mHashTableMetrics.try_emplace(EntryCRU_t{static_cast<int>(linkID), static_cast<int>(epID)}, linkID, epID, feeID, isRegisteredFEE);
+    auto& metric = metricPair.first->second;
+    return metric;
   }
   // pop digits
   template <typename... VecDigitType>
@@ -126,6 +116,13 @@ class RawReaderBase
     }
     mMapDigits.clear();
     return digitCounter;
+  }
+  void getMetrics(std::vector<RawDataMetric>& vecMetrics)
+  {
+    for (const auto& en : mHashTableMetrics) {
+      vecMetrics.push_back(en.second);
+    }
+    mHashTableMetrics.clear();
   }
 
  private:
