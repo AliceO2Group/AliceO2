@@ -49,7 +49,7 @@ void HMPMatchedReader::connectTree(const std::string& filename)
   mTree.reset((TTree*)mFile->Get(mInTreeName.c_str()));
   assert(mTree);
   mTree->SetBranchAddress("HMPMatchInfo", &mMatchesPtr);
-
+  
   if (mUseMC) {
     mTree->SetBranchAddress("MatchHMPMCTruth", &mLabelHMPPtr);
   }
@@ -62,7 +62,7 @@ void HMPMatchedReader::run(ProcessingContext& pc)
   assert(currEntry < mTree->GetEntries()); // this should not happen
   mTree->GetEntry(currEntry);
   LOG(debug) << "Pushing " << mMatches.size() << " HMP matchings at entry " << currEntry;
-
+    
   pc.outputs().snapshot(Output{o2::header::gDataOriginHMP, "MATCHES", 0, Lifetime::Timeframe}, mMatches);
   if (mUseMC) {
     pc.outputs().snapshot(Output{o2::header::gDataOriginHMP, "MCLABELS", 0, Lifetime::Timeframe}, mLabelHMP);
@@ -92,7 +92,7 @@ DataProcessorSpec getHMPMatchedReaderSpec(bool useMC)
       {"input-dir", VariantType::String, "none", {"Input directory"}},
       {"treename", VariantType::String, "matchHMP", {"Name of top-level TTree"}},
     }*/
-  };
+    };
 }
 } // namespace hmpid
 } // namespace o2
