@@ -51,10 +51,12 @@ class FITDataReaderDPLSpec : public Task
   ConcreteDataMatcher mMatcherChMapCCDB; // matcher for Channel map(LUT) from CCDB
   bool mIsSampledRawData;
   bool mUpdateCCDB{true};
+  bool mDumpMetrics{false};
   void init(InitContext& ic) final
   {
     auto ccdbUrl = ic.options().get<std::string>("ccdb-path");
     auto lutPath = ic.options().get<std::string>("lut-path");
+    mDumpMetrics = ic.options().get<bool>("dump-raw-data-metric");
     if (!ic.options().get<bool>("disable-empty-tf-protection")) {
       mRawReader.enableEmptyTFprotection();
     }
@@ -123,10 +125,10 @@ class FITDataReaderDPLSpec : public Task
         const auto rdhDataFormat = o2::raw::RDHUtils::getDataFormat(rdhPtr);
         if (rdhDataFormat == 0) { // padded
           cntDF0++;
-          mRawReader.process(true, payload, o2::raw::RDHUtils::getLinkID(rdhPtr), o2::raw::RDHUtils::getEndPointID(rdhPtr));
+          mRawReader.process(true, payload, o2::raw::RDHUtils::getFEEID(rdhPtr), o2::raw::RDHUtils::getLinkID(rdhPtr), o2::raw::RDHUtils::getEndPointID(rdhPtr));
         } else if (rdhDataFormat == 2) { // no padding
           cntDF2++;
-          mRawReader.process(false, payload, o2::raw::RDHUtils::getLinkID(rdhPtr), o2::raw::RDHUtils::getEndPointID(rdhPtr));
+          mRawReader.process(false, payload, o2::raw::RDHUtils::getFEEID(rdhPtr), o2::raw::RDHUtils::getLinkID(rdhPtr), o2::raw::RDHUtils::getEndPointID(rdhPtr));
         } else {
           cntDF_unknown++;
           continue; // or break?
@@ -140,6 +142,9 @@ class FITDataReaderDPLSpec : public Task
     mRawReader.accumulateDigits();
     mRawReader.emptyTFprotection();
     mRawReader.makeSnapshot(pc);
+    if (mDumpMetrics) {
+      mRawReader.dumpRawDataMetrics();
+    }
     mRawReader.clear();
     if ((cntDF0 > 0 && cntDF2 > 0) || cntDF_unknown > 0) {
       LOG(error) << "Strange RDH::dataFormat in TF. Number of pages: DF=0 - " << cntDF0 << " , DF=2 - " << cntDF2 << " , DF=unknown - " << cntDF_unknown;
@@ -194,6 +199,7 @@ framework::DataProcessorSpec getFITDataReaderDPLSpec(const RawReaderType& rawRea
      o2::framework::ConfigParamSpec{"reserve-vec-chdata", VariantType::Int, 0, {"Reserve memory for ChannelData vector, to DPL channel"}},
      o2::framework::ConfigParamSpec{"reserve-vec-buffer", VariantType::Int, 0, {"Reserve memory for DataBlock vector, buffer for each page"}},
      o2::framework::ConfigParamSpec{"reserve-map-dig", VariantType::Int, 0, {"Reserve memory for Digit map, mapping in RawReader"}},
+     o2::framework::ConfigParamSpec{"dump-raw-data-metric", VariantType::Bool, false, {"Dump raw data metrics, for debugging"}},
      o2::framework::ConfigParamSpec{"disable-empty-tf-protection", VariantType::Bool, false, {"Disable empty TF protection. In case of empty payload within TF, only dummy ChannelData object will be sent."}}}};
 }
 

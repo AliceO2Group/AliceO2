@@ -10,3 +10,6 @@
 // or submit itself to any jurisdiction.
 
 #include "FT0Raw/RawReaderFT0Base.h"
+
+template class o2::fit::RawReaderBaseFIT<o2::ft0::DigitBlockFT0, o2::ft0::DataBlockPM, o2::ft0::DataBlockTCM>;
+template class o2::fit::RawReaderBaseFIT<o2::ft0::DigitBlockFT0ext, o2::ft0::DataBlockPM, o2::ft0::DataBlockTCMext>;

@@ -10,3 +10,6 @@
 // or submit itself to any jurisdiction.
 
 #include "FV0Raw/RawWriterFV0.h"
+
+template class o2::fit::RawWriterFIT<o2::fv0::DigitBlockFV0, o2::fv0::DataBlockPM, o2::fv0::DataBlockTCM>;
+template class o2::fit::RawWriterFIT<o2::fv0::DigitBlockFV0, o2::fv0::DataBlockPM::DataBlockInvertedPadding_t, o2::fv0::DataBlockTCM::DataBlockInvertedPadding_t>;

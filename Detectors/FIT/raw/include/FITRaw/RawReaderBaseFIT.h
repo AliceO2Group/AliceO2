@@ -25,6 +25,8 @@
 #include "FITRaw/RawReaderBase.h"
 #include <CommonDataFormat/InteractionRecord.h>
 #include "Headers/RAWDataHeader.h"
+#include <DataFormatsFIT/RawDataMetric.h>
+#include <Framework/Logger.h>
 
 #include <gsl/span>
 
@@ -64,22 +66,27 @@ class RawReaderBaseFIT : public RawReaderBase<DigitBlockFITtype, DataBlockPMtype
   }
   // deserialize payload to raw data blocks and proccesss them to digits
   template <typename... T>
-  void process(bool isPadded, gsl::span<const uint8_t> payload, T&&... feeParameters)
+  void process(bool isPadded, gsl::span<const uint8_t> payload, uint16_t feeID, T&&... feeParameters)
   {
     if (LookupTable_t::Instance().isTCM(std::forward<T>(feeParameters)...)) {
       // TCM data proccessing
       if (isPadded) {
-        RawReaderBase_t::template processBinaryData<DataBlockTCMpadded_t>(payload, std::forward<T>(feeParameters)...);
+        RawReaderBase_t::template processBinaryData<DataBlockTCMpadded_t>(payload, feeID, std::forward<T>(feeParameters)...);
       } else {
-        RawReaderBase_t::template processBinaryData<DataBlockTCM_t>(payload, std::forward<T>(feeParameters)...);
+        RawReaderBase_t::template processBinaryData<DataBlockTCM_t>(payload, feeID, std::forward<T>(feeParameters)...);
       }
-    } else {
+    } else if (LookupTable_t::Instance().isPM(std::forward<T>(feeParameters)...)) {
       // PM data proccessing
       if (isPadded) {
-        RawReaderBase_t::template processBinaryData<DataBlockPMpadded_t>(payload, std::forward<T>(feeParameters)...);
+        RawReaderBase_t::template processBinaryData<DataBlockPMpadded_t>(payload, feeID, std::forward<T>(feeParameters)...);
       } else {
-        RawReaderBase_t::template processBinaryData<DataBlockPM_t>(payload, std::forward<T>(feeParameters)...);
+        RawReaderBase_t::template processBinaryData<DataBlockPM_t>(payload, feeID, std::forward<T>(feeParameters)...);
       }
+    } else {
+      auto& metric = RawReaderBase_t::addMetric(feeID, std::forward<T>(feeParameters)..., false);
+      metric.addStatusBit(RawDataMetric::EStatusBits::kWrongChannelMapping);
+      LOG(error) << "Unregistered in ChannelMap link!";
+      metric.print();
     }
   }
 };
