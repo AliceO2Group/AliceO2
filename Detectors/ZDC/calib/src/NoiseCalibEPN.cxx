@@ -123,11 +123,11 @@ int NoiseCalibEPN::init()
 void NoiseCalibEPN::clear()
 {
   mData.clear();
-  for (int ihis = 0; ihis < NoiseCalibData::NHA; ihis++){
-  for (int isig = 0; isig < NChannels; isig++) {
-    mH[ihis][isig]->clear();
+  for (int ihis = 0; ihis < NoiseCalibData::NHA; ihis++) {
+    for (int isig = 0; isig < NChannels; isig++) {
+      mH[ihis][isig]->clear();
+    }
   }
-}
 }
 
 //______________________________________________________________________________
@@ -145,14 +145,14 @@ int NoiseCalibEPN::process(const gsl::span<const o2::zdc::OrbitData>& orbitData,
   }
   if (mSaveDebugHistos) {
     int norb = orbitData.size();
-//    if (mVerbosity >= DbgFull) {
-//      LOG(info) << "Dump of pedestal data lookup table";
-//    }
+    //    if (mVerbosity >= DbgFull) {
+    //      LOG(info) << "Dump of pedestal data lookup table";
+    //    }
     for (int iorb = 0; iorb < norb; iorb++) {
       orbit[orbitData[iorb].ir.orbit] = iorb;
-//      if (mVerbosity >= DbgFull) {
-//        LOG(info) << "orbitData[" << orbitData[iorb].ir.orbit << "] = " << iorb;
-//      }
+      //      if (mVerbosity >= DbgFull) {
+      //        LOG(info) << "orbitData[" << orbitData[iorb].ir.orbit << "] = " << iorb;
+      //      }
     }
   }
 

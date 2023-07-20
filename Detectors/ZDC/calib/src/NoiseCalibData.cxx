@@ -150,11 +150,11 @@ NoiseCalibData& NoiseCalibData::operator+=(const NoiseCalibSummaryData* s)
 void NoiseCalibData::mergeCreationTime(uint64_t ctime)
 {
   if (mCTimeBeg == 0 || ctime < mCTimeBeg) {
-  mCTimeBeg = ctime;
-}
+    mCTimeBeg = ctime;
+  }
   if (ctime > mCTimeEnd) {
-  mCTimeEnd = ctime;
-}
+    mCTimeEnd = ctime;
+  }
 #ifdef O2_ZDC_DEBUG
   LOGF(info, "NoiseCalibData::setCreationTime %llu", ctime);
 #endif

@@ -117,16 +117,16 @@ void NoiseCalibEPNSpec::run(ProcessingContext& pc)
     pc.outputs().snapshot(outputData, summary);
     for (int ih = 0; ih < NChannels; ih++) {
       {
-      o2::framework::Output output("ZDC", "NOISE_1DH", ih, Lifetime::Sporadic);
-      pc.outputs().snapshot(output, mWorker.mH[0][ih]->getBase());
+        o2::framework::Output output("ZDC", "NOISE_1DH", ih, Lifetime::Sporadic);
+        pc.outputs().snapshot(output, mWorker.mH[0][ih]->getBase());
       }
       {
-      o2::framework::Output output("ZDC", "NOISE_1DH_S", ih, Lifetime::Sporadic);
-      pc.outputs().snapshot(output, mWorker.mH[1][ih]->getBase());
+        o2::framework::Output output("ZDC", "NOISE_1DH_S", ih, Lifetime::Sporadic);
+        pc.outputs().snapshot(output, mWorker.mH[1][ih]->getBase());
       }
       {
-      o2::framework::Output output("ZDC", "NOISE_1DH_D", ih, Lifetime::Sporadic);
-      pc.outputs().snapshot(output, mWorker.mH[2][ih]->getBase());
+        o2::framework::Output output("ZDC", "NOISE_1DH_D", ih, Lifetime::Sporadic);
+        pc.outputs().snapshot(output, mWorker.mH[2][ih]->getBase());
       }
     }
     mWorker.clear();
