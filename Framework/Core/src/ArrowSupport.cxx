@@ -390,7 +390,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        arrow->updateMessagesDestroyed(totalMessages);
                        auto& stats = ctx.services().get<DataProcessingStats>();
                        stats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_BYTES_DESTROYED), DataProcessingStats::Op::Set, static_cast<int64_t>(arrow->bytesDestroyed())});
-                       stats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_MESSAGES_DESTROYED), DataProcessingStats::Op::Set, static_cast<int64_t>(arrow->messagesDestroyed())}); 
+                       stats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_MESSAGES_DESTROYED), DataProcessingStats::Op::Set, static_cast<int64_t>(arrow->messagesDestroyed())});
                        stats.processCommandQueue(); },
     .driverInit = [](ServiceRegistryRef registry, DeviceConfig const& dc) {
                        auto config = new RateLimitConfig{};
