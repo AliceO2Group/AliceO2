@@ -414,7 +414,7 @@ void TrackCheckStudy::endOfStream(EndOfStreamContext& ec)
   mEffFakePt->Draw("pz same");
   mEffClonesPt->Draw("pz same");
   mLegendPt = std::make_unique<TLegend>(0.19, 0.8, 0.40, 0.96);
-  mLegendPt->SetHeader(Form("%d events PbPb min bias", mKineReader->getNEvents(0)), "C");
+  mLegendPt->SetHeader(Form("%zu events PbPb min bias", mKineReader->getNEvents(0)), "C");
   mLegendPt->AddEntry("Good_pt", "good (100% cluster purity)", "lep");
   mLegendPt->AddEntry("Fake_pt", "fake", "lep");
   mLegendPt->AddEntry("Clone_pt", "clone", "lep");
@@ -428,7 +428,7 @@ void TrackCheckStudy::endOfStream(EndOfStreamContext& ec)
   mEffFakeEta->Draw("pz same");
   mEffClonesEta->Draw("pz same");
   mLegendEta = std::make_unique<TLegend>(0.19, 0.8, 0.40, 0.96);
-  mLegendEta->SetHeader(Form("%d events PbPb min bias", mKineReader->getNEvents(0)), "C");
+  mLegendEta->SetHeader(Form("%zu events PbPb min bias", mKineReader->getNEvents(0)), "C");
   mLegendEta->AddEntry("Good_eta", "good (100% cluster purity)", "lep");
   mLegendEta->AddEntry("Fake_eta", "fake", "lep");
   mLegendEta->AddEntry("Clone_eta", "clone", "lep");
