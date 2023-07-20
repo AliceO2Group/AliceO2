@@ -555,6 +555,16 @@ too all workflows (e.g. via ARGS_ALL).
 The IPCID is the NUMA domain ID (usually 0 on non-EPN workflow).
 Additionally, one may throttle on the free SHM by providing an option to the reader `--timeframes-shm-limit <shm-size>`.
 
+## Raw TF to raw files conversion
+
+The workflow `o2-raw-tf-dump-workflow` allows to convert rawTF files to raw files used by `o2-raw-file-reader-workflow` (or `readout.exe` replay), creating also `raw-file-reader` configuration files (one per detector). Example of usage:
+```
+ulimit -n 10000
+o2-raw-tf-reader-workflow --max-tf 4  --shm-segment-size 16000000000  --input-data pbpb/o2_rawtf_run00529397_tf00033857_epn151.tf --detOnly "ITS,TPC" | o2-raw-tf-dump-workflow --detOnly "ITS,TPC"  --shm-segment-size 16000000000 --fatal-on-deadbeef --output-directory  rawpb --run
+cat rawpb/{ITS,TPC}*raw.cfg > rawAll.cfg
+o2-raw-file-reader-workflow --input-conf rawAll.cfg --nocheck-packet-increment --nocheck-page-increment --nocheck-hbf-jump --configKeyValues "HBFUtils.nHBFPerTF=128"
+```
+
 ## Miscellaneous macros
 
 *   `rawStat.C`: writes into the tree the size per HBF contained in the raw data provided in the RawFileReader config file. No check for synchronization between different links is done.
