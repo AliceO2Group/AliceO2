@@ -38,7 +38,6 @@
 #include "DataFormatsITSMFT/ROFRecord.h"
 #include "DataFormatsITS/TrackITS.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
-#include "CCDB/BasicCCDBManager.h"
 #endif
 
 using namespace o2::itsmft;
@@ -343,7 +342,7 @@ TEveElement* Data::getEveTracks()
     TEveRecTrackD t;
     t.fP = {p[0], p[1], p[2]};
     t.fV = {v[0], v[1], v[2]};
-    // t.fV = {v[0] - p[0] / p[1] * v[1], 0, v[2] - p[2] / p[1] * v[1]};
+    //t.fV = {v[0] - p[0] / p[1] * v[1], 0, v[2] - p[2] / p[1] * v[1]};
     t.fSign = (rec.getSign() < 0) ? -1 : 1;
     TEveTrack* track = new TEveTrack(&t, prop);
     track->SetLineColor(kMagenta);
@@ -439,12 +438,9 @@ void init(int tf, int trigger, int chip,
           bool rawdata = false,
           std::string clusfile = "o2clus_its.root",
           std::string tracfile = "o2trac_its.root",
-          std::string inputGeom = "simple_geom_ITS.root")
+          std::string inputGeom = "")
 {
-  // Topology dictionary
-  auto& cc = o2::ccdb::BasicCCDBManager::instance();
-  auto dict = cc.get<o2::itsmft::TopologyDictionary>("ITS/Calib/ClusterDictionary");
-  // dict.readFromFile(o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS));
+  dict.readFromFile(o2::base::DetectorNameConf::getAlpideClusterDictionaryFileName(o2::detectors::DetID::ITS));
 
   TEveManager::Create(kTRUE, "V");
   TEveBrowser* browser = gEve->GetBrowser();
@@ -520,7 +516,7 @@ void init(int tf, int trigger, int chip,
       file->Close();
       std::cout << "Running with MC digits...\n";
       evdata.setDigitPixelReader(digifile.data(), tf);
-      // evdata.setDigiTree((TTree*)gFile->Get("o2sim"));
+      //evdata.setDigiTree((TTree*)gFile->Get("o2sim"));
     } else
       std::cerr << "\nERROR: Cannot open file: " << digifile << "\n\n";
   }

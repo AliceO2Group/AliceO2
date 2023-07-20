@@ -28,6 +28,9 @@
 #include <SimulationDataFormat/MCTrack.h>
 #include "ReconstructionDataFormats/Track.h"
 #include "ReconstructionDataFormats/DCA.h"
+#include "Steer/MCKinematicsReader.h"
+#include "DetectorsBase/GRPGeomHelper.h"
+#include "ITStracking/IOUtils.h"
 
 #include <TH1F.h>
 #include <TFile.h>
@@ -54,10 +57,110 @@ using PVertex = o2::dataformats::PrimaryVertex;
 using V0 = o2::dataformats::V0;
 using ITSCluster = o2::BaseCluster<float>;
 using mask_t = o2::dataformats::GlobalTrackID::mask_t;
-using AvgClusSizeStudy = o2::its::study::AvgClusSizeStudy;
 using Track = o2::track::TrackParCov;
 using TrackITS = o2::its::TrackITS;
 using DCA = o2::dataformats::DCA;
+
+class AvgClusSizeStudy : public Task
+{
+ public:
+  AvgClusSizeStudy(std::shared_ptr<DataRequest> dr,
+                   std::shared_ptr<o2::base::GRPGeomRequest> gr,
+                   bool isMC,
+                   std::shared_ptr<o2::steer::MCKinematicsReader> kineReader) : mDataRequest{dr}, mGGCCDBRequest(gr), mUseMC(isMC), mKineReader(kineReader){};
+  ~AvgClusSizeStudy() = default;
+  void init(InitContext& ic) final;
+  void run(ProcessingContext&) final;
+  void endOfStream(EndOfStreamContext&) final;
+  void finaliseCCDB(ConcreteDataMatcher&, void*) final;
+  void setClusterDictionary(const o2::itsmft::TopologyDictionary* d) { mDict = d; }
+
+ private:
+  // Other functions
+  void process(o2::globaltracking::RecoContainer&);
+  void loadData(o2::globaltracking::RecoContainer&);
+
+  // Helper functions
+  void prepareOutput();
+  void setStyle();
+  void updateTimeDependentParams(ProcessingContext& pc);
+  float getAverageClusterSize(o2::its::TrackITS*);
+  void getClusterSizes(std::vector<int>&, const gsl::span<const o2::itsmft::CompClusterExt>, gsl::span<const unsigned char>::iterator&, const o2::itsmft::TopologyDictionary*);
+  void fitMassSpectrum();
+  void saveHistograms();
+  void plotHistograms();
+  void fillEtaBin(float eta, float clusSize, int i);
+
+  // Running options
+  bool mUseMC;
+
+  // Data
+  std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
+  std::shared_ptr<DataRequest> mDataRequest;
+  std::vector<int> mInputClusterSizes;
+  gsl::span<const int> mInputITSidxs;
+  std::vector<o2::MCTrack> mMCTracks;
+  const o2::itsmft::TopologyDictionary* mDict = nullptr;
+
+  // Output plots
+  std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
+  std::unique_ptr<TNtuple> mOutputNtuple;
+
+  std::unique_ptr<THStack> mMassSpectrumFull{};
+  std::unique_ptr<TH1F> mMassSpectrumFullNC{};
+  std::unique_ptr<TH1F> mMassSpectrumFullC{};
+  std::unique_ptr<THStack> mMassSpectrumK0s{};
+  std::unique_ptr<TH1F> mMassSpectrumK0sNC{};
+  std::unique_ptr<TH1F> mMassSpectrumK0sC{};
+  std::unique_ptr<THStack> mAvgClusSize{};
+  std::unique_ptr<TH1F> mAvgClusSizeNC{};
+  std::unique_ptr<TH1F> mAvgClusSizeC{};
+  std::unique_ptr<THStack> mAvgClusSizeCEta{};
+  std::vector<std::unique_ptr<TH1F>> mAvgClusSizeCEtaVec{};
+  std::unique_ptr<THStack> mMCStackCosPA{};
+  std::unique_ptr<THStack> mStackDCA{};
+  std::unique_ptr<THStack> mStackR{};
+  std::unique_ptr<THStack> mStackPVDCA{};
+  std::unique_ptr<TH1F> mCosPA{};
+  std::unique_ptr<TH1F> mMCCosPAK0{};
+  std::unique_ptr<TH1F> mMCCosPAnotK0{};
+  std::unique_ptr<TH1F> mCosPAtrueK0{};
+  std::unique_ptr<TH1F> mR{};
+  std::unique_ptr<TH1F> mRK0{};
+  std::unique_ptr<TH1F> mRnotK0{};
+  std::unique_ptr<TH1F> mRtrueK0{};
+  std::unique_ptr<TH1F> mDCA{};
+  std::unique_ptr<TH1F> mDCAK0{};
+  std::unique_ptr<TH1F> mDCAnotK0{};
+  std::unique_ptr<TH1F> mDCAtrueK0{};
+  std::unique_ptr<TH1F> mEtaNC{};
+  std::unique_ptr<TH1F> mEtaC{};
+  std::unique_ptr<TH1F> mMCMotherPDG{};
+  std::unique_ptr<TH1F> mPVDCAK0{};
+  std::unique_ptr<TH1F> mPVDCAnotK0{};
+
+  int globalNClusters = 0;
+  int globalNPixels = 0;
+
+  std::vector<float> mEtaBinUL; // upper edges for eta bins
+
+  // Counters for K0s identification
+  int nNotValid = 0;
+  int nNullptrs = 0;
+  int nPiPi = 0;
+  int nIsPiPiNotK0s = 0;
+  int nIsPiPiIsK0s = 0;
+  int nIsNotPiPiIsK0s = 0;
+  int nMotherIDMismatch = 0;
+  int nEvIDMismatch = 0;
+  int nK0s = 0;
+  int nNotK0s = 0;
+  int nPionsInEtaRange = 0;
+  int nInvalidK0sMother = 0;
+
+  const std::string mOutName{"o2standalone_cluster_size_study.root"};
+  std::shared_ptr<o2::steer::MCKinematicsReader> mKineReader;
+};
 
 void AvgClusSizeStudy::init(InitContext& ic)
 {
@@ -67,9 +170,9 @@ void AvgClusSizeStudy::init(InitContext& ic)
   prepareOutput();
 
   if (mUseMC) { // for counting the missed K0shorts
-    mMCKinReader = std::make_unique<o2::steer::MCKinematicsReader>("collisioncontext.root");
-    for (int iEvent{0}; iEvent < mMCKinReader->getNEvents(0); iEvent++) {
-      auto mctrk = mMCKinReader->getTracks(0, iEvent);
+    mKineReader = std::make_unique<o2::steer::MCKinematicsReader>("collisioncontext.root");
+    for (int iEvent{0}; iEvent < mKineReader->getNEvents(0); iEvent++) {
+      auto mctrk = mKineReader->getTracks(0, iEvent);
       mMCTracks.insert(mMCTracks.end(), mctrk.begin(), mctrk.end());
     }
   }
@@ -79,7 +182,7 @@ void AvgClusSizeStudy::init(InitContext& ic)
 
 void AvgClusSizeStudy::prepareOutput()
 {
-  auto& params = o2::its::study::AvgClusSizeStudyParamConfig::Instance();
+  auto& params = o2::its::study::ITSAvgClusSizeParamConfig::Instance();
   mDBGOut = std::make_unique<o2::utils::TreeStreamRedirector>(mOutName.c_str(), "recreate");
   mOutputNtuple = std::make_unique<TNtuple>("v0_data", "v0 data", "d0ACS:d1ACS:mass:d01dca:cosPA:V0R:eta:d0pvDCA:d1pvDCA:isMCK0s");
 
@@ -112,7 +215,7 @@ void AvgClusSizeStudy::prepareOutput()
   mPVDCAnotK0 = std::make_unique<TH1F>("PVDCAnotK0", "Prong DCA to pVertex", 80, 0, 2);
 
   mAvgClusSizeCEta = std::make_unique<THStack>("avgclussizeeta", "Average cluster size per track; pixels / cluster / track"); // auto-set axis ranges
-  double binWidth = (params.etaMax - params.etaMin) / (double)params.etaNBins;
+  float binWidth = (params.etaMax - params.etaMin) / (float)params.etaNBins;
   mEtaBinUL.reserve(params.etaNBins);
   for (int i = 0; i < params.etaNBins; i++) {
     mEtaBinUL.emplace_back(params.etaMin + (binWidth * (i + 1)));
@@ -223,11 +326,7 @@ void AvgClusSizeStudy::loadData(o2::globaltracking::RecoContainer& recoData)
 
 void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
 {
-  // to get ITS-TPC tracks, we would call recoData.getTPCITSTracks() (line 534) of RecoContainer.h
-  // Alternatively, we should just use the track masks to do this in general... but how?
-  // I feel like recoData should already contain only the tracks we need, given that we applied the masks at DataRequest time...
-  // but clearly that is not the case? or maybe i'm an idiot
-  auto& params = o2::its::study::AvgClusSizeStudyParamConfig::Instance();
+  auto& params = o2::its::study::ITSAvgClusSizeParamConfig::Instance();
   float d0ACS, d1ACS, v0InvMass, d01DCA, cosPA, v0R, eta, d0pvDCA, d1pvDCA;
   bool isMCK0s = false;
   TrackITS d0recoTrk, d1recoTrk; // daughter ITS tracks
@@ -237,8 +336,8 @@ void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
 
   // Variables for MC analysis
   int totalK0sInDataset = 0;
-  gsl::span<const MCLabel> mcLabels;
-  MCLabel d0lab, d1lab;
+  gsl::span<const o2::MCCompLabel> mcLabels;
+  o2::MCCompLabel d0lab, d1lab;
   const o2::MCTrack *V0mcTrk, *d0mcTrk, *d1mcTrk;
   int V0PdgCode, d0PdgCode, d1PdgCode, m0TrkId, m1TrkId;
 
@@ -254,7 +353,7 @@ void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
     LOGP(info, "Found {} labels.", mcLabels.size());
   }
 
-  for (V0 v0 : V0s) {
+  for (auto& v0 : V0s) {
     d0recoTrk = recoData.getITSTrack(v0.getProngID(0));
     d1recoTrk = recoData.getITSTrack(v0.getProngID(1));
 
@@ -269,31 +368,30 @@ void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
     cosPA = v0.getCosPA();
     v0InvMass = std::sqrt(v0.calcMass2()) * 1000; // convert mass to MeV
     v0R = std::sqrt(v0.calcR2());                 // gives distance from pvertex to origin? in centimeters (?) NOTE: unsure if this is to the primary vertex or to origin
-
-    if (mUseMC) { // check whether V0 is a K0s in MC, and fill the cut validation plots
+    if (mUseMC) {                                 // check whether V0 is a K0s in MC, and fill the cut validation plots
       isMCK0s = false;
       d0lab = mcLabels[v0.getProngID(0)]; // extract MC label for the prongs
       d1lab = mcLabels[v0.getProngID(1)];
       // Now we check validity, etc. for the labels (essentially strength of reco) to determine which reconstructed V0 are real K0s
       if (d0lab.isValid() && d1lab.isValid()) {
-        d0mcTrk = mMCKinReader->getTrack(d0lab);
-        // LOGP(info, "Got d0 track");
-        d1mcTrk = mMCKinReader->getTrack(d1lab);
-        // LOGP(info, "Got d1 track");
+        d0mcTrk = mKineReader->getTrack(d0lab);
+        LOGP(debug, "Got d0 track");
+        d1mcTrk = mKineReader->getTrack(d1lab);
+        LOGP(debug, "Got d1 track");
         if (d0mcTrk == nullptr || d1mcTrk == nullptr) {
-          // LOGP(info, "Nullptr found, skipping this V0");
+          LOGP(debug, "Nullptr found, skipping this V0");
           nNullptrs++;
         } else {
-          // LOGP(info, "About to query Pdg codes");
+          LOGP(debug, "About to query Pdg codes");
           d0PdgCode = d0mcTrk->GetPdgCode();
           d1PdgCode = d1mcTrk->GetPdgCode();
           m0TrkId = d0mcTrk->getMotherTrackId();
           m1TrkId = d1mcTrk->getMotherTrackId();
-          // LOGP(info, "pdgcodes are {} and {}", d0PdgCode, d1PdgCode);
+          LOGP(debug, "pdgcodes are {} and {}", d0PdgCode, d1PdgCode);
 
           if (m0TrkId == m1TrkId && m0TrkId != -1 && m1TrkId != -1) {
             if (d1lab.getEventID() == d0lab.getEventID()) {
-              V0mcTrk = mMCKinReader->getTrack(d1lab.getEventID(), m0TrkId); // assume daughter MCTracks are in same event as V0 MCTrack
+              V0mcTrk = mKineReader->getTrack(d1lab.getEventID(), m0TrkId); // assume daughter MCTracks are in same event as V0 MCTrack
               V0PdgCode = V0mcTrk->GetPdgCode();
               if (V0PdgCode == 310) {
                 isMCK0s = true;
@@ -405,7 +503,7 @@ float AvgClusSizeStudy::getAverageClusterSize(TrackITS* daughter)
   return (float)totalSize / (float)ncl;
 }
 
-void AvgClusSizeStudy::fillEtaBin(double eta, double clusSize, int i)
+void AvgClusSizeStudy::fillEtaBin(float eta, float clusSize, int i)
 {
   if (eta < mEtaBinUL[i]) { // FIXME: there is a problem if eta is outside the full range (< etaMin or > etaMax)...
     mAvgClusSizeCEtaVec[i]->Fill(clusSize);
@@ -466,8 +564,8 @@ void AvgClusSizeStudy::saveHistograms()
 
 void AvgClusSizeStudy::plotHistograms()
 {
-  auto& params = o2::its::study::AvgClusSizeStudyParamConfig::Instance();
-  double globalAvgClusSize = (double)globalNPixels / (double)globalNClusters;
+  auto& params = o2::its::study::ITSAvgClusSizeParamConfig::Instance();
+  float globalAvgClusSize = (float)globalNPixels / (float)globalNClusters;
 
   TCanvas* c1 = new TCanvas();
   mMassSpectrumFull->Draw("nostack");
@@ -550,7 +648,7 @@ void AvgClusSizeStudy::fitMassSpectrum()
 
 void AvgClusSizeStudy::endOfStream(EndOfStreamContext& ec)
 {
-  auto& params = o2::its::study::AvgClusSizeStudyParamConfig::Instance();
+  auto& params = o2::its::study::ITSAvgClusSizeParamConfig::Instance();
   if (params.performFit) {
     fitMassSpectrum();
   }
@@ -573,7 +671,7 @@ void AvgClusSizeStudy::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   }
 }
 
-DataProcessorSpec getAvgClusSizeStudy(mask_t srcTracksMask, mask_t srcClustersMask, bool useMC)
+DataProcessorSpec getAvgClusSizeStudy(mask_t srcTracksMask, mask_t srcClustersMask, bool useMC, std::shared_ptr<o2::steer::MCKinematicsReader> kineReader)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
@@ -595,7 +693,7 @@ DataProcessorSpec getAvgClusSizeStudy(mask_t srcTracksMask, mask_t srcClustersMa
     "its-study-AvgClusSize",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<AvgClusSizeStudy>(dataRequest, ggRequest, useMC)},
+    AlgorithmSpec{adaptFromTask<AvgClusSizeStudy>(dataRequest, ggRequest, useMC, kineReader)},
     Options{}};
 }
 } // namespace study

@@ -11,22 +11,13 @@
 
 #include "Framework/CallbacksPolicy.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
-<<<<<<< HEAD
-#include "ITSStudies/MCKinematicReaderSpec.h"
-=======
->>>>>>> c1abeba684 (CP)
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 
 // Include studies hereafter
 #include "ITSStudies/ImpactParameter.h"
-<<<<<<< HEAD
 #include "ITSStudies/AvgClusSize.h"
 #include "ITSStudies/TrackCheck.h"
-=======
-#include "ITSStudies/K0sInvMass.h"
-#include "ITSStudies/TrackCheck.h"
 #include "Steer/MCKinematicsReader.h"
->>>>>>> c1abeba684 (CP)
 
 using namespace o2::framework;
 using GID = o2::dataformats::GlobalTrackID;
@@ -46,6 +37,9 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"cluster-sources", VariantType::String, std::string{"ITS"}, {"comma-separated list of cluster sources to use"}},
     {"disable-root-input", VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-mc", VariantType::Bool, false, {"disable MC propagation even if available"}},
+    {"cluster-size-study", VariantType::Bool, false, {"Perform the average cluster size study"}},
+    {"track-study", VariantType::Bool, false, {"Perform the track study"}},
+    {"impact-parameter-study", VariantType::Bool, false, {"Perform the impact parameter study"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   std::swap(workflowOptions, options);
 }
@@ -74,10 +68,23 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     mcKinematicsReader = std::make_shared<o2::steer::MCKinematicsReader>("collisioncontext.root");
   }
 
+  bool anyStudy{false};
   // Declare specs related to studies hereafter
-  // specs.emplace_back(o2::its::study::getImpactParameterStudy(srcTrc, srcCls, useMC));
-  specs.emplace_back(o2::its::study::getAvgClusSizeStudy(srcTrc, srcCls, useMC));
-  specs.emplace_back(o2::its::study::getTrackCheckStudy(GID::getSourcesMask("ITS"), GID::getSourcesMask("ITS"), useMC, mcKinematicsReader));
+  if (configcontext.options().get<bool>("impact-parameter-study")) {
+    anyStudy = true;
+    specs.emplace_back(o2::its::study::getImpactParameterStudy(srcTrc, srcCls, useMC));
+  }
+  if (configcontext.options().get<bool>("cluster-size-study")) {
+    anyStudy = true;
+    specs.emplace_back(o2::its::study::getAvgClusSizeStudy(srcTrc, srcCls, useMC, mcKinematicsReader));
+  }
+  if (configcontext.options().get<bool>("track-study")) {
+    anyStudy = true;
+    specs.emplace_back(o2::its::study::getTrackCheckStudy(GID::getSourcesMask("ITS"), GID::getSourcesMask("ITS"), useMC, mcKinematicsReader));
+  }
+  if (!anyStudy) {
+    LOGP(info, "No study selected, dryrunning");
+  }
 
   // write the configuration used for the studies workflow
   o2::conf::ConfigurableParam::writeINI("o2_its_standalone_configuration.ini");
