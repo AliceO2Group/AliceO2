@@ -37,7 +37,7 @@ class NoiseCalib
   void clear();
   // int process(const o2::zdc::NoiseCalibSummaryData& data);
   int process(const o2::zdc::NoiseCalibSummaryData* data);
-  void add(int ih, o2::dataformats::FlatHisto1D<double>& h1);
+  void add(int ih, int iarr, o2::dataformats::FlatHisto1D<double>& h1);
   int endOfRun();
   int saveDebugHistos(const std::string fn = "ZDCNoiseCalib.root");
   void setSaveDebugHistos() { mSaveDebugHistos = true; }
@@ -50,7 +50,9 @@ class NoiseCalib
 
   NoiseCalibData& getData() { return mData; }
   NoiseParam& getParam() { return mParam; }
-  std::array<o2::dataformats::FlatHisto1D<double>*, NChannels> mH{};
+
+  static constexpr int NHA = 3;
+  std::array<std::array<o2::dataformats::FlatHisto1D<double>*, NChannels>, NHA> mH{};
 
  private:
   NoiseCalibData mData;

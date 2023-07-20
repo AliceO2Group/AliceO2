@@ -67,7 +67,9 @@ int TDCCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
   if (!mInitDone) {
     init();
   }
-  LOG(info) << "o2::zdc::TDCCalibEPN processing " << RecBC.size() << " b.c. @ TS " << mData.mCTimeBeg << " : " << mData.mCTimeEnd;
+  if (mVerbosity > DbgMinimal) {
+    LOG(info) << "o2::zdc::TDCCalibEPN processing " << RecBC.size() << " b.c. @ TS " << mData.mCTimeBeg << " : " << mData.mCTimeEnd;
+  }
   o2::zdc::RecEventFlat ev;
   ev.init(RecBC, Energy, TDCData, Info);
   while (ev.next()) {
@@ -160,7 +162,7 @@ void TDCCalibEPN::fill1D(int iTDC, int nHits, o2::zdc::RecEventFlat ev)
 int TDCCalibEPN::write(const std::string fn)
 {
   if (mVerbosity > DbgZero) {
-    LOG(info) << "Saving EPN debug histos on file " << fn;
+    LOG(info) << "Saving EPN debug histograms on file " << fn;
   }
   TDirectory* cwd = gDirectory;
   TFile* f = new TFile(fn.data(), "recreate");

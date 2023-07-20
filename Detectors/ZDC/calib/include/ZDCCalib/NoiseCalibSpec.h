@@ -17,6 +17,7 @@
 #define O2_ZDC_NOISECALIB_SPEC
 
 #include <TStopwatch.h>
+#include <array>
 #include "Framework/Logger.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataAllocator.h"
@@ -28,6 +29,7 @@
 #include "ZDCCalib/NoiseCalib.h"
 #include "ZDCReconstruction/NoiseParam.h"
 #include "CCDB/CcdbObjectInfo.h"
+#include "Headers/DataHeader.h"
 
 namespace o2
 {

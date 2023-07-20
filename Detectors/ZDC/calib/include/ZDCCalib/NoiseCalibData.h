@@ -119,15 +119,18 @@ struct NoiseCalibData {
     }
   }
 
+  static constexpr int NHA = 3;
+
   uint64_t getEntries(int is) const;
   uint32_t getMaxBin(int is) const;
   int getStat(int is, uint64_t& en, double& mean, double& var) const;
   void print() const;
   void clear();
   void setCreationTime(uint64_t ctime);
+  void mergeCreationTime(uint64_t ctime);
   void setN(int n);
   NoiseCalibSummaryData& getSummary();
-  int saveDebugHistos(const std::string fn);
+  int saveDebugHistos(const std::string fn, bool is_epn = false);
   ClassDefNV(NoiseCalibData, 1);
 };
 

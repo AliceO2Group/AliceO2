@@ -98,11 +98,29 @@ void NoiseCalibSpec::run(ProcessingContext& pc)
     mRunStartTime = tinfo.creation; // approximate time in ms
     mRunNumber = tinfo.runNumber;
   }
-  std::vector<InputSpec> filterHisto = {{"noise_1dh", ConcreteDataTypeMatcher{"ZDC", "NOISE_1DH"}, Lifetime::Timeframe}};
-  for (auto const& inputRef : InputRecordWalker(pc.inputs(), filterHisto)) {
-    auto const* dh = framework::DataRefUtils::getHeader<o2::header::DataHeader*>(inputRef);
-    o2::dataformats::FlatHisto1D<double> histoView(pc.inputs().get<gsl::span<double>>(inputRef));
-    mWorker.add(dh->subSpecification, histoView);
+  {
+    std::vector<InputSpec> filterHisto = {{"noise_1dh", ConcreteDataTypeMatcher{"ZDC", "NOISE_1DH"}, Lifetime::Timeframe}};
+    for (auto const& inputRef : InputRecordWalker(pc.inputs(), filterHisto)) {
+      auto const* dh = framework::DataRefUtils::getHeader<o2::header::DataHeader*>(inputRef);
+      o2::dataformats::FlatHisto1D<double> histoView(pc.inputs().get<gsl::span<double>>(inputRef));
+      mWorker.add(dh->subSpecification, 0, histoView);
+    }
+  }
+  {
+    std::vector<InputSpec> filterHisto = {{"noise_1dh_s", ConcreteDataTypeMatcher{"ZDC", "NOISE_1DH_S"}, Lifetime::Timeframe}};
+    for (auto const& inputRef : InputRecordWalker(pc.inputs(), filterHisto)) {
+      auto const* dh = framework::DataRefUtils::getHeader<o2::header::DataHeader*>(inputRef);
+      o2::dataformats::FlatHisto1D<double> histoView(pc.inputs().get<gsl::span<double>>(inputRef));
+      mWorker.add(dh->subSpecification, 1, histoView);
+    }
+  }
+  {
+    std::vector<InputSpec> filterHisto = {{"noise_1dh_d", ConcreteDataTypeMatcher{"ZDC", "NOISE_1DH_D"}, Lifetime::Timeframe}};
+    for (auto const& inputRef : InputRecordWalker(pc.inputs(), filterHisto)) {
+      auto const* dh = framework::DataRefUtils::getHeader<o2::header::DataHeader*>(inputRef);
+      o2::dataformats::FlatHisto1D<double> histoView(pc.inputs().get<gsl::span<double>>(inputRef));
+      mWorker.add(dh->subSpecification, 2, histoView);
+    }
   }
   auto data = pc.inputs().get<o2::zdc::NoiseCalibSummaryData*>("noisecalibdata");
   mWorker.process(data.get());
@@ -184,6 +202,8 @@ framework::DataProcessorSpec getNoiseCalibSpec()
   inputs.emplace_back("noisecalibdata", "ZDC", "NOISECALIBDATA", 0, Lifetime::Timeframe);
   inputs.emplace_back("moduleconfig", "ZDC", "MODULECONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(o2::zdc::CCDBPathConfigModule.data()));
   inputs.emplace_back("noise_1dh", ConcreteDataTypeMatcher{"ZDC", "NOISE_1DH"}, Lifetime::Timeframe);
+  inputs.emplace_back("noise_1dh_s", ConcreteDataTypeMatcher{"ZDC", "NOISE_1DH_S"}, Lifetime::Timeframe);
+  inputs.emplace_back("noise_1dh_d", ConcreteDataTypeMatcher{"ZDC", "NOISE_1DH_D"}, Lifetime::Timeframe);
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ZDCNoisecalib"}, Lifetime::Sporadic);
