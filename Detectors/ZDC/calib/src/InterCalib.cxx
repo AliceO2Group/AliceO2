@@ -496,6 +496,7 @@ int InterCalib::mini(int ih)
   for (Int_t i = 0; i < NPAR; i++) {
     mMn[ih]->GetParameter(i, mPar[ih][i], mErr[ih][i]);
   }
+  // Fallback in case fit fails
   mMtx.unlock();
   return ierflg;
 }

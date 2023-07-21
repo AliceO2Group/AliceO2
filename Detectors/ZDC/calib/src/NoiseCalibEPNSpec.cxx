@@ -77,7 +77,7 @@ void NoiseCalibEPNSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher
 {
   if (matcher == ConcreteDataMatcher("ZDC", "MODULECONFIG", 0)) {
     auto* config = (const o2::zdc::ModuleConfig*)obj;
-    if (mVerbosity > DbgZero) {
+    if (mVerbosity > DbgMinimal) {
       LOG(info) << "Loaded ModuleConfig configuration object";
       config->print();
     }

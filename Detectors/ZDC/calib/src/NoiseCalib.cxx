@@ -122,7 +122,9 @@ int NoiseCalib::endOfRun()
     }
   }
 
-  mParam.print();
+  if (mVerbosity > DbgZero) {
+    mParam.print();
+  }
 
   // Creating calibration object and info
   auto clName = o2::utils::MemFileHelper::getClassName(mParam);

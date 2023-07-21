@@ -93,12 +93,12 @@ int TDCCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
       continue;
     }
 
-    //Fill 1d histograms with tdc values. Check if channel is acquired or not
-    for (int itdc = 0; itdc < NTDC; itdc++) { //loop over all TDCs
+    // Fill 1d histograms with tdc values. Check if channel is acquired or not
+    for (int itdc = 0; itdc < NTDC; itdc++) { // loop over all TDCs
       int nhits = ev.NtdcV(itdc);
 
       if (nhits > 0) {
-        //call fill function to fill histo
+        // call fill function to fill histo
         fill1D(itdc, nhits, ev);
       }
     }
@@ -112,9 +112,10 @@ int TDCCalibEPN::endOfRun()
 {
   if (mVerbosity > DbgZero) {
     LOGF(info, "TDCCalibEPN::endOfRun ts (%llu:%llu)", mData.mCTimeBeg, mData.mCTimeEnd);
-    std::cout << "End of run here" << std::endl;
-    for (int ih = 0; ih < NTDC; ih++) {
-      LOGF(info, "%s %i events and cuts (%g:%g)", TDCCalibData::CTDC[ih], mData.entries[ih], mTDCCalibConfig->cutLow[ih], mTDCCalibConfig->cutHigh[ih]);
+    if (mVerbosity > DbgMinimal) {
+      for (int ih = 0; ih < NTDC; ih++) {
+        LOGF(info, "%s %i events and cuts (%g:%g)", TDCCalibData::CTDC[ih], mData.entries[ih], mTDCCalibConfig->cutLow[ih], mTDCCalibConfig->cutHigh[ih]);
+      }
     }
   }
   if (mSaveDebugHistos) {
@@ -141,13 +142,13 @@ void TDCCalibEPN::clear()
 
 void TDCCalibEPN::fill1D(int iTDC, int nHits, o2::zdc::RecEventFlat ev)
 {
-  //Get TDC values
+  // Get TDC values
   float tdcVal[nHits];
   for (int i = 0; i < nHits; i++) {
     tdcVal[i] = ev.tdcV(iTDC, i);
   }
 
-  //Fill histo
+  // Fill histo
   for (int hit = 0; hit < nHits; hit++) {
     mTDC[iTDC]->fill(tdcVal[hit]);
     if (mSaveDebugHistos) {

@@ -254,9 +254,7 @@ void DigiReco::init()
       LOG(info) << "Energy Calibration from command line " << ChannelNames[ChEnergyCalib[il]] << " = " << ropt.energy_calib[ChEnergyCalib[il]];
     } else if (mEnergyParam && mEnergyParam->energy_calib[ChEnergyCalib[il]] > 0) {
       ropt.energy_calib[ChEnergyCalib[il]] = mEnergyParam->energy_calib[ChEnergyCalib[il]];
-      if (mVerbosity > DbgZero) {
-        LOG(info) << "Energy Calibration from CCDB " << ChannelNames[ChEnergyCalib[il]] << " = " << ropt.energy_calib[ChEnergyCalib[il]];
-      }
+      LOG(info) << "Energy Calibration from CCDB " << ChannelNames[ChEnergyCalib[il]] << " = " << ropt.energy_calib[ChEnergyCalib[il]];
     } else {
       if (ChEnergyCalib[il] == CaloCommonPM[ChEnergyCalib[il]]) {
         // Is a common PM or a ZEM
@@ -266,22 +264,18 @@ void DigiReco::init()
         // Is one of the analog sums -> same calibration as common PM
         // N.B. the calibration for common has already been set in the loop
         ropt.energy_calib[ChEnergyCalib[il]] = ropt.energy_calib[CaloCommonPM[il]];
-        if (mVerbosity > DbgZero) {
-          LOG(info) << "SUM Energy Calibration  " << ChannelNames[ChEnergyCalib[il]] << " = " << ropt.energy_calib[ChEnergyCalib[il]];
-        }
+        LOG(info) << "SUM Energy Calibration  " << ChannelNames[ChEnergyCalib[il]] << " = " << ropt.energy_calib[ChEnergyCalib[il]];
       }
     }
   }
 
-  // Tower calibration
+  // Tower calibration (intercalibration of towers)
   for (int il = 0; il < ChTowerCalib.size(); il++) {
     if (ropt.tower_calib[ChTowerCalib[il]] > 0) {
       LOG(info) << "Tower Calibration from command line " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.tower_calib[ChTowerCalib[il]];
     } else if (mTowerParam && mTowerParam->tower_calib[ChTowerCalib[il]] > 0) {
       ropt.tower_calib[ChTowerCalib[il]] = mTowerParam->tower_calib[ChTowerCalib[il]];
-      if (mVerbosity > DbgZero) {
-        LOG(info) << "Tower Calibration from CCDB " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.tower_calib[ChTowerCalib[il]];
-      }
+      LOG(info) << "Tower Calibration from CCDB " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.tower_calib[ChTowerCalib[il]];
     } else {
       ropt.tower_calib[ChTowerCalib[il]] = 1;
       LOG(warning) << "Default Tower Calibration " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.tower_calib[ChTowerCalib[il]];
@@ -289,6 +283,9 @@ void DigiReco::init()
   }
 
   // Tower energy calibration
+  // For the common PM and sum is given by the calibration parameters
+  // for the towers is the product of energy calibration of common PM and tower calibration
+  // It is possible to override from command line
   for (int il = 0; il < ChTowerCalib.size(); il++) {
     if (ropt.energy_calib[ChTowerCalib[il]] > 0) {
       LOG(info) << "Tower Energy Calibration set to " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.energy_calib[ChTowerCalib[il]];

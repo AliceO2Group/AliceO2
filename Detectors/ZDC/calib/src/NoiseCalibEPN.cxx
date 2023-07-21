@@ -23,7 +23,7 @@ using namespace o2::zdc;
 
 int NoiseCalibEPN::init()
 {
-  if (mVerbosity > DbgZero) {
+  if (mVerbosity > DbgMedium) {
     mModuleConfig->print();
   }
 
@@ -34,7 +34,7 @@ int NoiseCalibEPN::init()
 
   // Inspect calibration parameters
   const auto& opt = CalibParamZDC::Instance();
-  if (mVerbosity >= DbgFull) {
+  if (mVerbosity > DbgMedium) {
     opt.print();
   }
   if (opt.debugOutput == true) {
@@ -110,7 +110,7 @@ int NoiseCalibEPN::init()
       }
     }
   next_ich:;
-    if (mVerbosity > DbgZero) {
+    if (mVerbosity > DbgMinimal) {
       LOG(info) << "Channel " << ich << "(" << ChannelNames[ich] << ") mod " << ropt.amod[ich] << " ch " << ropt.ach[ich];
     }
   }

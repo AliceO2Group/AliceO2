@@ -78,7 +78,7 @@ void TDCCalibEPNSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, 
 {
   if (matcher == ConcreteDataMatcher("ZDC", "TDCCALIBCONFIG", 0)) {
     auto* config = (const o2::zdc::TDCCalibConfig*)obj;
-    if (mVerbosity > DbgZero) {
+    if (mVerbosity > DbgMedium) {
       LOG(info) << "Loaded TDCCalib configuration object";
       config->print();
     }
