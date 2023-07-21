@@ -47,10 +47,10 @@ DataProcessorSpec getHMPMatchedWriterSpec(bool useMC, const char* outdef) //, bo
   return MakeRootTreeWriterSpec(taskName,
                                 outdef,
                                 "matchHMP",
-                                BranchDefinition<MatchInfo>{InputSpec{"hmpmatching", gDataOriginHMP, "CONSTRAINED", 0},
+                                BranchDefinition<MatchInfo>{InputSpec{"hmpmatching", gDataOriginHMP, "MATCHES", 0},
                                                             "HMPMatchInfo",
                                                             "HMPMatchInfo-branch-name"},
-                                BranchDefinition<LabelsType>{InputSpec{"matchhmplabels", gDataOriginHMP, "MC_CONSTRAINED", 0},
+                                BranchDefinition<LabelsType>{InputSpec{"matchhmplabels", gDataOriginHMP, "MCLABELS", 0},
                                                              "MatchHMPMCTruth",
                                                              "MatchHMPMCTruth-branch-name",
                                                              (useMC ? 1 : 0)})();
