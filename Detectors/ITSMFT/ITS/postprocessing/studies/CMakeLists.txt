@@ -15,10 +15,13 @@ o2_add_library(ITSPostprocessing
                        src/ITSStudiesConfigParam.cxx
                        src/TrackCheck.cxx
                        src/ITSStudiesConfigParam.cxx
+                       src/Helpers.cxx
                PUBLIC_LINK_LIBRARIES O2::GlobalTracking
                                      O2::GlobalTrackingWorkflowReaders
                                      O2::GlobalTrackingWorkflowHelpers
-                                     O2::DataFormatsGlobalTracking)
+                                     O2::DataFormatsGlobalTracking
+                                     O2::DetectorsVertexing
+                                     O2::DetectorsBase)
 
 o2_target_root_dictionary(ITSPostprocessing
                 HEADERS include/ITSStudies/ITSStudiesConfigParam.h
