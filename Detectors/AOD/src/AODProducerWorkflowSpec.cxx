@@ -1857,8 +1857,12 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
           // use generators' names for generatorIDs (?)
           auto& header = mcReader->getMCEventHeader(sourceID, eventID);
           bool isValid{};
+          int subGeneratorId{-1};
+          if (header.hasInfo(o2::mcgenid::GeneratorProperty::SUBGENERATORID)) {
+            subGeneratorId = header.getInfo<int>(o2::mcgenid::GeneratorProperty::SUBGENERATORID, isValid);
+          }
           mcCollisionsCursor(bcID,
-                             o2::mcgenid::getEncodedGenId(header.getInfo<int>(o2::mcgenid::GeneratorProperty::GENERATORID, isValid), sourceID, header.getInfo<int>(o2::mcgenid::GeneratorProperty::SUBGENERATORID, isValid)),
+                             o2::mcgenid::getEncodedGenId(header.getInfo<int>(o2::mcgenid::GeneratorProperty::GENERATORID, isValid), sourceID, subGeneratorId),
                              truncateFloatFraction(header.GetX(), mCollisionPosition),
                              truncateFloatFraction(header.GetY(), mCollisionPosition),
                              truncateFloatFraction(header.GetZ(), mCollisionPosition),
