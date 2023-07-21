@@ -9,35 +9,25 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file AvgClusSize.h
-/// \author Tucker Hwang mhwang@cern.ch
-
-#ifndef O2_AVGCLUSSIZE_STUDY_H
-#define O2_AVGCLUSSIZE_STUDY_H
+#ifndef O2_TRACK_CHECK_STUDY_H
+#define O2_TRACK_CHECK_STUDY_H
 
 #include "Framework/DataProcessorSpec.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
-#include "Framework/Task.h"
-#include <Steer/MCKinematicsReader.h>
-
-#include "ITSStudies/ITSStudiesConfigParam.h"
-
-#include <TH1F.h>
-#include <THStack.h>
-#include <TNtuple.h>
 
 namespace o2
 {
+namespace steer
+{
+class MCKinematicsReader;
+}
 namespace its
 {
 namespace study
 {
-
 using mask_t = o2::dataformats::GlobalTrackID::mask_t;
-
-o2::framework::DataProcessorSpec getAvgClusSizeStudy(mask_t srcTracksMask, mask_t srcClustersMask, bool useMC, std::shared_ptr<o2::steer::MCKinematicsReader> kineReader);
+o2::framework::DataProcessorSpec getTrackCheckStudy(mask_t srcTracksMask, mask_t srcClustersMask, bool useMC, std::shared_ptr<o2::steer::MCKinematicsReader> kineReader);
 } // namespace study
 } // namespace its
 } // namespace o2
-
 #endif

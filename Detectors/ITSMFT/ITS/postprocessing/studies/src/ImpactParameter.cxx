@@ -11,14 +11,13 @@
 
 // Skeleton derived from RS's code in ITSOffStudy
 
-#include "ITSStudies/ImpactParameter.h"
-
-#include "Framework/CCDBParamSpec.h"
-#include "Framework/Task.h"
-#include "DetectorsCommonDataFormats/DetID.h"
-#include "ReconstructionDataFormats/VtxTrackRef.h"
-#include "ReconstructionDataFormats/PrimaryVertex.h"
-#include "DataFormatsGlobalTracking/RecoContainer.h"
+#include <ITSStudies/ImpactParameter.h>
+#include <Framework/CCDBParamSpec.h>
+#include <Framework/Task.h>
+#include <DetectorsCommonDataFormats/DetID.h>
+#include <ReconstructionDataFormats/VtxTrackRef.h>
+#include <ReconstructionDataFormats/PrimaryVertex.h>
+#include <DataFormatsGlobalTracking/RecoContainer.h>
 
 namespace o2
 {
