@@ -19,7 +19,7 @@ if [[ -z ${WORKFLOW_DETECTORS:-} ]]; then echo "WORKFLOW_DETECTORS must be defin
 
 # CCDB destination for uploads
 if [[ -z ${CCDB_POPULATOR_UPLOAD_PATH+x} ]]; then
-  if [[ $RUNTYPE == "SYNTHETIC" ]]; then
+  if [[ $RUNTYPE == "SYNTHETIC" || "${GEN_TOPO_DEPLOYMENT_TYPE:-}" == "ALICE_STAGING" ]]; then
     CCDB_POPULATOR_UPLOAD_PATH="http://ccdb-test.cern.ch:8080"
   elif [[ $RUNTYPE == "PHYSICS" ]]; then
     if [[ $EPNSYNCMODE == 1 ]]; then
@@ -64,6 +64,7 @@ if [[ "${GEN_TOPO_VERBOSE:-}" == "1" ]]; then
   echo "CALIB_PHS_RUNBYRUNCALIB = $CALIB_PHS_RUNBYRUNCALIB" 1>&2
   echo "CALIB_PHS_L1PHASE = $CALIB_PHS_L1PHASE" 1>&2
   echo "CALIB_TRD_VDRIFTEXB = $CALIB_TRD_VDRIFTEXB" 1>&2
+  echo "CALIB_TRD_GAIN = $CALIB_TRD_GAIN" 1>&2
   echo "CALIB_TPC_TIMEGAIN = $CALIB_TPC_TIMEGAIN" 1>&2
   echo "CALIB_TPC_RESPADGAIN = $CALIB_TPC_RESPADGAIN" 1>&2
   echo "CALIB_TPC_SCDCALIB = $CALIB_TPC_SCDCALIB" 1>&2
@@ -124,20 +125,25 @@ if workflow_has_parameter CALIB_PROXIES; then
       echo "ERROR: TPC IDC / SAC calib workflow enabled without EPNSYNCMODE, please note that there will not be input data for it" 1>&2
     fi
     CHANNELS_LIST=
-    [[ $EPNSYNCMODE == 0 ]] && FLP_ADDRESS="tcp://localhost:47900"
+    [[ $EPNSYNCMODE == 0 ]] && FLP_ADDRESS="tcp://localhost:29950"
     if [[ ! -z ${CALIBDATASPEC_TPCIDC_A:-} ]] || [[ ! -z ${CALIBDATASPEC_TPCIDC_C:-} ]]; then
-      # define port for FLP; should be in 47900 - 47999; if nobody defined it, we use 47900
-      : ${TPC_IDC_FLP_PORT:=47900}
+      # define port for FLP
+      : ${TPC_IDC_FLP_PORT:=29950}
       # expand FLPs; TPC uses from 001 to 145, but 145 is reserved for SAC
-      for flp in $(seq -f "%03g" 1 144); do
-        [[ ! $FLP_IDS =~ (^|,)"$flp"(,|$) ]] && continue
-        [[ $EPNSYNCMODE == 1 ]] && FLP_ADDRESS="tcp://alio2-cr1-flp${flp}-ib:${TPC_IDC_FLP_PORT}"
-        CHANNELS_LIST+="type=pull,name=tpcidc_flp${flp},transport=zeromq,address=$FLP_ADDRESS,method=connect,rateLogging=10;"
-      done
+      if [[ "${GEN_TOPO_DEPLOYMENT_TYPE:-}" == "ALICE_STAGING" ]]; then
+        FLP_ADDRESS="tcp://alio2-cr1-mvs03-ib:${TPC_IDC_FLP_PORT}"
+        CHANNELS_LIST+="type=pull,name=tpcidc_flp,transport=zeromq,address=$FLP_ADDRESS,method=connect,rateLogging=10;"
+      else
+        for flp in $(seq -f "%03g" 1 144); do
+          [[ ! $FLP_IDS =~ (^|,)"$flp"(,|$) ]] && continue
+          [[ $EPNSYNCMODE == 1 ]] && FLP_ADDRESS="tcp://alio2-cr1-flp${flp}-ib:${TPC_IDC_FLP_PORT}"
+          CHANNELS_LIST+="type=pull,name=tpcidc_flp${flp},transport=zeromq,address=$FLP_ADDRESS,method=connect,rateLogging=10;"
+        done
+      fi
     fi
     if [[ ! -z ${CALIBDATASPEC_TPCSAC:-} ]]; then
-      # define port for FLP; should be in 47900 - 47999; if nobody defined it, we use 47901
-      [[ -z ${TPC_SAC_FLP_PORT:-} ]] && TPC_SAC_FLP_PORT=47901
+      # define port for FLP
+      [[ -z ${TPC_SAC_FLP_PORT:-} ]] && TPC_SAC_FLP_PORT=29951
       [[ $EPNSYNCMODE == 1 ]] && FLP_ADDRESS="tcp://alio2-cr1-flp145-ib:${TPC_SAC_FLP_PORT}"
       CHANNELS_LIST+="type=pull,name=tpcidc_sac,transport=zeromq,address=$FLP_ADDRESS,method=connect,rateLogging=10;"
     fi
@@ -211,8 +217,15 @@ if [[ $AGGREGATOR_TASKS == BARREL_TF ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
     add_W o2-tpc-vdrift-tgl-calibration-workflow ""
   fi
   # TRD
+  TRD_CALIB_CONFIG=
   if [[ $CALIB_TRD_VDRIFTEXB == 1 ]]; then
-    add_W o2-calibration-trd-workflow "--vDriftAndExB"
+    TRD_CALIB_CONFIG+=" --vDriftAndExB"
+  fi
+  if [[ $CALIB_TRD_GAIN == 1 ]]; then
+    TRD_CALIB_CONFIG+=" --gain"
+  fi
+  if [[ ! -z ${TRD_CALIB_CONFIG} ]]; then
+    add_W o2-calibration-trd-workflow "${TRD_CALIB_CONFIG}"
   fi
 fi
 
@@ -240,6 +253,7 @@ nBuffer=$((100 * 128 / ${NHBPERTF}))
 IDC_DELTA="--disable-IDCDelta true" # off by default
 # deltas are on by default; you need to request explicitly to switch them off;
 if [[ "${DISABLE_IDC_DELTA:-}" == "1" ]]; then IDC_DELTA=""; fi
+if [[ "${ENABLE_IDC_DELTA_FILE:-}" == "1" ]]; then IDC_DELTA+=" --dump-IDCDelta-calib-data true --output-dir $CALIB_DIR --meta-output-dir $CALIB_DIR"; fi
 
 if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
   if [[ $CALIB_TPC_IDC == 1 ]] && [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC || $AGGREGATOR_TASKS == ALL ]]; then
@@ -258,11 +272,15 @@ fi
 # calibrations for AGGREGATOR_TASKS == CALO_TF
 if [[ $AGGREGATOR_TASKS == CALO_TF || $AGGREGATOR_TASKS == ALL ]]; then
   # EMC
+  EMCAL_CALIB_CTP_OPT=
+  if true || ! has_detector CTP; then # FIXME: Currently we cannot send CTP/DIGITS to both CALO and BARREL workflow.
+    EMCAL_CALIB_CTP_OPT="--no-rejectL0Trigger"
+  fi
   if [[ $CALIB_EMC_BADCHANNELCALIB == 1 ]]; then
-    add_W o2-calibration-emcal-channel-calib-workflow "--calibType \"badchannels\""
+    add_W o2-calibration-emcal-channel-calib-workflow "${EMCAL_CALIB_CTP_OPT} --calibType \"badchannels\""
   fi
   if [[ $CALIB_EMC_TIMECALIB == 1 ]]; then
-    add_W o2-calibration-emcal-channel-calib-workflow "--calibType \"time\""
+    add_W o2-calibration-emcal-channel-calib-workflow "${EMCAL_CALIB_CTP_OPT} --calibType \"time\""
   fi
 
   # PHS

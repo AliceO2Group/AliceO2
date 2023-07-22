@@ -178,6 +178,9 @@ WorkflowSpec combine(char const* name, std::vector<DataProcessorSpec> const& spe
     for (auto& label : spec.labels) {
       combined.labels.push_back(label);
     }
+    for (auto& metadatum : spec.metadata) {
+      combined.metadata.push_back(metadatum);
+    }
     for (auto& service : spec.requiredServices) {
       // Insert in the final list of services
       // only if a spec with the same name is not there

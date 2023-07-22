@@ -288,9 +288,6 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   // FIXME: source branch is DataOrigin, for the moment. We should
   //        make it configurable via ConfigParamsOptions
   auto aodLifetime = Lifetime::Enumeration;
-  if (ctx.options().get<int64_t>("aod-memory-rate-limit")) {
-    aodLifetime = Lifetime::Signal;
-  }
 
   DataProcessorSpec aodReader{
     .name = "internal-dpl-aod-reader",

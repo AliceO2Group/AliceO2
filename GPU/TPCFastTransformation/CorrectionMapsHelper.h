@@ -38,22 +38,22 @@ class CorrectionMapsHelper
 
   GPUd() void Transform(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime = 0) const
   {
-    mCorrMap->Transform(slice, row, pad, time, x, y, z, vertexTime, mCorrMapRef, mLumiScale);
+    mCorrMap->Transform(slice, row, pad, time, x, y, z, vertexTime, mCorrMapRef, mLumiScale, mLumiScaleMode);
   }
 
   GPUd() void TransformXYZ(int slice, int row, float& x, float& y, float& z) const
   {
-    mCorrMap->TransformXYZ(slice, row, x, y, z, mCorrMapRef, mLumiScale);
+    mCorrMap->TransformXYZ(slice, row, x, y, z, mCorrMapRef, mLumiScale, mLumiScaleMode);
   }
 
   GPUd() void InverseTransformYZtoX(int slice, int row, float y, float z, float& x) const
   {
-    mCorrMap->InverseTransformYZtoX(slice, row, y, z, x, mCorrMapRef, mLumiScale);
+    mCorrMap->InverseTransformYZtoX(slice, row, y, z, x, mCorrMapRef, mLumiScale, mLumiScaleMode);
   }
 
   GPUd() void InverseTransformYZtoNominalYZ(int slice, int row, float y, float z, float& ny, float& nz) const
   {
-    mCorrMap->InverseTransformYZtoNominalYZ(slice, row, y, z, ny, nz); // FIXME: Wrong, but call at least one of the functions to set ny / nz to non-bogus values
+    mCorrMap->InverseTransformYZtoNominalYZ(slice, row, y, z, ny, nz, mCorrMapRef, mLumiScale, mLumiScaleMode);
   }
 
   GPUd() const GPUCA_NAMESPACE::gpu::TPCFastTransform* getCorrMap() const { return mCorrMap; }
@@ -64,41 +64,54 @@ class CorrectionMapsHelper
   void setCorrMap(GPUCA_NAMESPACE::gpu::TPCFastTransform* m);
   void setCorrMapRef(GPUCA_NAMESPACE::gpu::TPCFastTransform* m);
   void reportScaling();
-  void setInstLumi(float v)
+  void setInstLumi(float v, bool report = true)
   {
     if (v != mInstLumi) {
       mInstLumi = v;
-      updateLumiScale();
+      updateLumiScale(report);
     }
   }
 
-  void setMeanLumi(float v)
+  void setMeanLumi(float v, bool report = true)
   {
     if (v != mMeanLumi) {
       mMeanLumi = v;
+      updateLumiScale(report);
+    }
+  }
+
+  void setLumiScaleMode(int v)
+  {
+    if (v != mLumiScaleMode) {
+      mLumiScaleMode = v;
       updateLumiScale();
     }
   }
 
-  void updateLumiScale()
+  void updateLumiScale(bool report = true)
   {
     if (mMeanLumi < 0.f || mInstLumi < 0.f) {
       mLumiScale = -1.f;
+    } else if (mLumiScaleMode == 1) {
+      mLumiScale = mMeanLumi ? mInstLumi / mMeanLumi - 1. : 0.f;
     } else {
       mLumiScale = mMeanLumi ? mInstLumi / mMeanLumi : 0.f;
     }
     setUpdatedLumi();
-    reportScaling();
+    if (report) {
+      reportScaling();
+    }
   }
 
   GPUd() float getInstLumi() const { return mInstLumi; }
   GPUd() float getMeanLumi() const { return mMeanLumi; }
   GPUd() float getLumiScale() const { return mLumiScale; }
+  GPUd() int getLumiScaleMode() const { return mLumiScaleMode; }
 
   bool isUpdated() const { return mUpdatedFlags != 0; }
-  bool isUpdatedMap() const { return (mUpdatedFlags & UpdateFlags::MapBit) == 0; }
-  bool isUpdatedMapRef() const { return (mUpdatedFlags & UpdateFlags::MapRefBit) == 0; }
-  bool isUpdatedLumi() const { return (mUpdatedFlags & UpdateFlags::LumiBit) == 0; }
+  bool isUpdatedMap() const { return (mUpdatedFlags & UpdateFlags::MapBit) != 0; }
+  bool isUpdatedMapRef() const { return (mUpdatedFlags & UpdateFlags::MapRefBit) != 0; }
+  bool isUpdatedLumi() const { return (mUpdatedFlags & UpdateFlags::LumiBit) != 0; }
   void setUpdatedMap() { mUpdatedFlags |= UpdateFlags::MapBit; }
   void setUpdatedMapRef() { mUpdatedFlags |= UpdateFlags::MapRefBit; }
   void setUpdatedLumi() { mUpdatedFlags |= UpdateFlags::LumiBit; }
@@ -119,22 +132,25 @@ class CorrectionMapsHelper
   void setInstLumiOverride(float f) { mInstLumiOverride = f; }
   float getInstLumiOverride() const { return mInstLumiOverride; }
 
+  int getUpdateFlags() const { return mUpdatedFlags; }
+
  protected:
   enum UpdateFlags { MapBit = 0x1,
                      MapRefBit = 0x2,
                      LumiBit = 0x4 };
-  bool mOwner = false; // is content of pointers owned by the helper
+  bool mOwner = false;      // is content of pointers owned by the helper
   bool mUseCTPLumi = false; // require CTP Lumi for mInstLumi
   int mUpdatedFlags = 0;
-  float mInstLumi = 0.;                            // instanteneous luminosity (a.u)
-  float mMeanLumi = 0.;                            // mean luminosity of the map (a.u)
-  float mLumiScale = 0.;                           // precalculated mInstLumi/mMeanLumi
-  float mMeanLumiOverride = -1.f;                  // optional value to override mean lumi
-  float mInstLumiOverride = -1.f;                  // optional value to override inst lumi
+  float mInstLumi = 0.;                                         // instanteneous luminosity (a.u)
+  float mMeanLumi = 0.;                                         // mean luminosity of the map (a.u)
+  float mLumiScale = 0.;                                        // precalculated mInstLumi/mMeanLumi
+  int mLumiScaleMode = 0;                                       // scaling-mode of the correciton maps
+  float mMeanLumiOverride = -1.f;                               // optional value to override mean lumi
+  float mInstLumiOverride = -1.f;                               // optional value to override inst lumi
   GPUCA_NAMESPACE::gpu::TPCFastTransform* mCorrMap{nullptr};    // current transform
   GPUCA_NAMESPACE::gpu::TPCFastTransform* mCorrMapRef{nullptr}; // reference transform
 #ifndef GPUCA_ALIROOT_LIB
-  ClassDefNV(CorrectionMapsHelper, 1);
+  ClassDefNV(CorrectionMapsHelper, 2);
 #endif
 };
 

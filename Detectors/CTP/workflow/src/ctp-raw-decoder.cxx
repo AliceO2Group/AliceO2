@@ -30,6 +30,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"no-lumi", o2::framework::VariantType::Bool, false, {"do not produce luminosity output"}},
     {"no-digits", o2::framework::VariantType::Bool, false, {"do not produce digits output"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
+    {"print-errors-number", o2::framework::VariantType::Int, 3, {"number of error to print by CTP raw decoder"}},
     {"configKeyValues", o2::framework::VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   std::swap(workflowOptions, options);
 }
@@ -50,7 +51,7 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
                                                                !cfgc.options().get<bool>("no-digits"),
                                                                !cfgc.options().get<bool>("no-lumi")));
   if (!cfgc.options().get<bool>("disable-root-output")) {
-    specs.emplace_back(o2::ctp::getDigitWriterSpec(true));
+    specs.emplace_back(o2::ctp::getDigitWriterSpec(!cfgc.options().get<bool>("no-lumi")));
   }
   return specs;
 }

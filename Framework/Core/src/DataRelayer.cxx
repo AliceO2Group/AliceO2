@@ -24,7 +24,6 @@
 #include "Framework/Logger.h"
 #include "Framework/PartRef.h"
 #include "Framework/TimesliceIndex.h"
-#include "Framework/Signpost.h"
 #include "Framework/RoutingIndices.h"
 #include "Framework/VariableContextHelpers.h"
 #include "Framework/FairMQDeviceProxy.h"
@@ -301,7 +300,7 @@ void DataRelayer::setOldestPossibleInput(TimesliceId proposed, ChannelIndex chan
       auto& element = mCache[si * mInputs.size() + mi];
       if (element.size() != 0) {
         if (input.lifetime != Lifetime::Condition && mCompletionPolicy.name != "internal-dpl-injected-dummy-sink") {
-          LOGP(error, "Dropping incomplete {} Lifetime::{} data in slot {} with timestamp {} < {} as it can never be completed.", DataSpecUtils::describe(input), (int)input.lifetime, si, timestamp.value, newOldest.timeslice.value);
+          LOGP(error, "Dropping incomplete {} Lifetime::{} data in slot {} with timestamp {} < {} as it can never be completed.", DataSpecUtils::describe(input), input.lifetime, si, timestamp.value, newOldest.timeslice.value);
         } else {
           LOGP(debug,
                "Silently dropping data {} in pipeline slot {} because it has timeslice {} < {} after receiving data from channel {}."
@@ -509,7 +508,6 @@ DataRelayer::RelayChoice
   auto& stats = mContext.get<DataProcessingStats>();
   /// If we get a valid result, we can store the message in cache.
   if (input != INVALID_INPUT && TimesliceId::isValid(timeslice) && TimesliceSlot::isValid(slot)) {
-    O2_SIGNPOST(O2_PROBE_DATARELAYER, timeslice.value, 0, 0, 0);
     if (needsCleaning) {
       this->pruneCache(slot, onDrop);
       mPruneOps.erase(std::remove_if(mPruneOps.begin(), mPruneOps.end(), [slot](const auto& x) { return x.slot == slot; }), mPruneOps.end());
@@ -684,7 +682,7 @@ void DataRelayer::getReadyToProcess(std::vector<DataRelayer::RecordAction>& comp
     if (mCompletionPolicy.callback) {
       action = mCompletionPolicy.callback(span);
     } else if (mCompletionPolicy.callbackFull) {
-      action = mCompletionPolicy.callbackFull(span, mInputs);
+      action = mCompletionPolicy.callbackFull(span, mInputs, mContext);
     } else {
       throw runtime_error_f("Completion police %s has no callback set", mCompletionPolicy.name.c_str());
     }

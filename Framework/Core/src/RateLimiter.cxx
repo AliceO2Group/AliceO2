@@ -14,7 +14,9 @@
 #include "Framework/ServiceRegistry.h"
 #include "Framework/RunningWorkflowInfo.h"
 #include "Framework/DataTakingContext.h"
+#include "Framework/DeviceState.h"
 #include <fairmq/Device.h>
+#include <uv.h>
 #include <fairmq/shmem/Monitor.h>
 #include <fairmq/shmem/Common.h>
 #include <chrono>
@@ -28,7 +30,8 @@ void RateLimiter::check(ProcessingContext& ctx, int maxInFlight, size_t minSHM)
     return;
   }
   auto device = ctx.services().get<RawDeviceService>().device();
-  if (maxInFlight && device->fChannels.count("metric-feedback")) {
+  auto& deviceState = ctx.services().get<DeviceState>();
+  if (maxInFlight && device->GetChannels().count("metric-feedback")) {
     int waitMessage = 0;
     int recvTimeot = 0;
     auto& dtc = ctx.services().get<DataTakingContext>();
@@ -100,6 +103,7 @@ void RateLimiter::check(ProcessingContext& ctx, int maxInFlight, size_t minSHM)
         float elapsed = std::chrono::duration_cast<std::chrono::duration<float>>(curTime - mLastTime).count();
         if (elapsed < mSmothDelay) {
           LOG(debug) << "TF Throttling: Elapsed " << elapsed << " --> Waiting for " << mSmothDelay - elapsed;
+          uv_run(deviceState.loop, UV_RUN_NOWAIT);
           std::this_thread::sleep_for(std::chrono::microseconds((size_t)((mSmothDelay - elapsed) * 1.e6f)));
         }
       }

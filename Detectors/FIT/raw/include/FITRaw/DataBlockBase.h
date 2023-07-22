@@ -41,6 +41,7 @@
 #include <vector>
 #include <Rtypes.h>
 #include "CommonDataFormat/InteractionRecord.h"
+#include "DataFormatsFIT/RawDataMetric.h"
 #include "Headers/RAWDataHeader.h"
 #include <gsl/span>
 #include <boost/mpl/inherit.hpp>
@@ -145,49 +146,50 @@ struct DataBlockWrapper {
   constexpr static std::size_t sSizeWord = getWordSize();
   void serialize(std::vector<char>& vecBytes, size_t nWords, size_t& destPos) const
   {
-    const uint8_t* srcAddress = (uint8_t*)mData;
-    if (nWords == 0 || nWords > MaxNwords || vecBytes.size() - destPos < nWords * sSizeWord) {
+    const auto nBytesToWrite = nWords * sSizeWord;
+    if ((vecBytes.size() - destPos) < nBytesToWrite || nWords < MinNwords || nWords > MaxNwords) {
       LOG(info) << "Warning! Incorrect serialisation procedure!";
       return;
+    } else if (nWords == 0) {
+      // nothing to do
+      return;
     }
+    const uint8_t* srcAddress = (uint8_t*)mData;
     gsl::span<char> serializedBytes(vecBytes);
     if constexpr (sIsPadded) { // in case of padding one need to use byte map
       int nSteps = std::get<kNSTEPS>(sReadingLookupTable[nWords]);
       for (int iStep = 0; iStep < nSteps; iStep++) {
         memcpy(serializedBytes.data() + std::get<kSRCBYTEPOS>(sByteLookupTable[iStep]) + destPos, srcAddress + std::get<kDESTBYTEPOS>(sByteLookupTable[iStep]), std::get<kNBYTES>(sByteLookupTable[iStep]));
       }
-      destPos += nWords * sSizeWord;
     } else { // no need in byte map
-      const std::size_t nBytes = nWords * sSizeWord;
-      memcpy(serializedBytes.data() + destPos, srcAddress, nBytes);
-      destPos += nBytes;
+      memcpy(serializedBytes.data() + destPos, srcAddress, nBytesToWrite);
     }
+    destPos += nBytesToWrite;
   }
 
   void deserialize(const gsl::span<const uint8_t> inputBytes, size_t nWords, size_t& srcPos)
   {
     mNelements = 0;
-    mNwords = 0;
-    if (nWords < MinNwords || nWords > MaxNwords || inputBytes.size() - srcPos < nWords * sSizeWord) {
+    const auto nBytesToRead = nWords * sSizeWord;
+    if ((inputBytes.size() - srcPos) < nBytesToRead || nWords < MinNwords || nWords > MaxNwords) {
       // in case of bad fields responsible for deserialization logic, byte position will be pushed to the end of binary sequence
+      LOG(error) << "Incomplete payload! |N GBT words " << nWords << " |bytes to read " << nBytesToRead << " |src pos " << srcPos << " |payload size " << inputBytes.size() << " |";
       srcPos = inputBytes.size();
+      RawDataMetric::setStatusBit(mStatusBits, RawDataMetric::EStatusBits::kIncompletePayload);
       mIsIncorrect = true;
       return;
     }
     uint8_t* destAddress = (uint8_t*)mData;
-    mNwords = nWords;
     mNelements = std::get<kNELEMENTS>(sReadingLookupTable[nWords]);
     if constexpr (sIsPadded) { // in case of padding one need to use byte map
       int nSteps = std::get<kNSTEPS>(sReadingLookupTable[nWords]);
       for (int iStep = 0; iStep < nSteps; iStep++) {
         memcpy(destAddress + std::get<kDESTBYTEPOS>(sByteLookupTable[iStep]), inputBytes.data() + std::get<kSRCBYTEPOS>(sByteLookupTable[iStep]) + srcPos, std::get<kNBYTES>(sByteLookupTable[iStep]));
       }
-      srcPos += mNwords * sSizeWord;
     } else { // no need in byte map
-      const std::size_t nBytes = mNwords * sSizeWord;
-      memcpy(destAddress, inputBytes.data() + srcPos, nBytes);
-      srcPos += nBytes;
+      memcpy(destAddress, inputBytes.data() + srcPos, nBytesToRead);
     }
+    srcPos += nBytesToRead;
   }
 
   static constexpr int MaxNwords = Data_t::PayloadSize * Data_t::MaxNelements / Data_t::PayloadPerGBTword + (Data_t::PayloadSize * Data_t::MaxNelements % Data_t::PayloadPerGBTword > 0); // calculating max GBT words per block
@@ -376,8 +378,8 @@ struct DataBlockWrapper {
     }
   }
   Data_t mData[Data_t::MaxNelements];
-  unsigned int mNelements; // number of deserialized elements;
-  unsigned int mNwords;    // number of deserialized GBT words; //can be excluded
+  unsigned int mNelements;                        // number of deserialized elements;
+  typename RawDataMetric::Status_t mStatusBits{}; // Contains status bits
   bool mIsIncorrect;
 };
 
@@ -445,16 +447,20 @@ class DataBlockBase : public boost::mpl::inherit<DataBlockWrapper<ConfigType, He
     mIsCorrect = true;
     checkDeserialization(mIsCorrect, DataBlockWrapperHeader_t::mIsIncorrect);                          // checking deserialization status for header
     (checkDeserialization(mIsCorrect, DataBlockWrapper<Config_t, DataStructures>::mIsIncorrect), ...); // checking deserialization status for sub-block
-    static_cast<DataBlock_t*>(this)->sanityCheck(mIsCorrect);
+    mergeStatusBits(mStatusBitsAll, DataBlockWrapperHeader_t::mStatusBits);                            // checking deserialization status for header
+    (mergeStatusBits(mStatusBitsAll, DataBlockWrapper<Config_t, DataStructures>::mStatusBits), ...);   // checking deserialization status for sub-block
+    static_cast<DataBlock_t*>(this)->sanityCheck(mIsCorrect, mStatusBitsAll);
   }
 
-  size_t mSize; // deserialized size
-  bool mIsCorrect;
+  size_t mSize{0}; // deserialized size
+  bool mIsCorrect{false};
+  typename RawDataMetric::Status_t mStatusBitsAll{};
 
  protected:
   // check if there are sub blocks with zero number of elements
   void isNonZeroBlockSizes(bool& flag, unsigned int nElements) { flag &= (bool)nElements; }
   void checkDeserialization(bool& flag, bool isIncorrect) { flag &= !(isIncorrect); }
+  void mergeStatusBits(uint8_t& statusBitsResult, uint8_t statusBits) { statusBitsResult |= statusBits; }
 };
 
 } // namespace fit

@@ -19,7 +19,7 @@
 #include "CommonConstants/PhysicsConstants.h"
 #include "CommonConstants/GeomConstants.h"
 #include "CommonConstants/ZDCConstants.h"
-#include "SimulationDataFormat/MCGenStatus.h"
+#include "SimulationDataFormat/MCGenProperties.h"
 
 using namespace o2::constants::math;
 
@@ -1270,14 +1270,20 @@ using Run2BCInfo = Run2BCInfos::iterator;
 namespace mccollision
 {
 DECLARE_SOA_INDEX_COLUMN(BC, bc); //! BC index
-// TODO enum to be added to O2
-DECLARE_SOA_COLUMN(GeneratorsID, generatorsID, short);       //!
+DECLARE_SOA_COLUMN(GeneratorsID, generatorsID, short);       //! disentangled generator IDs should be accessed from dynamic columns using getGenId, getCocktailId and getSourceId
 DECLARE_SOA_COLUMN(PosX, posX, float);                       //! X vertex position in cm
 DECLARE_SOA_COLUMN(PosY, posY, float);                       //! Y vertex position in cm
 DECLARE_SOA_COLUMN(PosZ, posZ, float);                       //! Z vertex position in cm
 DECLARE_SOA_COLUMN(T, t, float);                             //! Collision time relative to given bc in ns
 DECLARE_SOA_COLUMN(Weight, weight, float);                   //! MC weight
 DECLARE_SOA_COLUMN(ImpactParameter, impactParameter, float); //! Impact parameter for A-A
+DECLARE_SOA_DYNAMIC_COLUMN(GetGeneratorId, getGeneratorId,   //! The global generator ID which might have been assigned by the user
+                           [](short generatorsID) -> int { return o2::mcgenid::getGeneratorId(generatorsID); });
+DECLARE_SOA_DYNAMIC_COLUMN(GetSubGeneratorId, getSubGeneratorId, //! A specific sub-generator ID in case the generator has some sub-generator logic
+                           [](short generatorsID) -> int { return o2::mcgenid::getSubGeneratorId(generatorsID); });
+DECLARE_SOA_DYNAMIC_COLUMN(GetSourceId, getSourceId, //! The source ID to differentiate between signals and background in an embedding simulation
+                           [](short generatorsID) -> int { return o2::mcgenid::getSourceId(generatorsID); });
+
 } // namespace mccollision
 
 DECLARE_SOA_TABLE(McCollisions, "AOD", "MCCOLLISION", //! MC collision table

@@ -13,7 +13,6 @@
 #include "Generators/GeneratorFromO2KineParam.h"
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCEventHeader.h"
-#include "SimulationDataFormat/MCGenStatus.h"
 #include <fairlogger/Logger.h>
 #include <FairPrimaryGenerator.h>
 #include <TBranch.h>

@@ -19,7 +19,7 @@
 #include "TF1.h"
 #include "TRandom.h"
 #include "SimulationDataFormat/MCEventHeader.h"
-#include "SimulationDataFormat/MCGenStatus.h"
+#include "SimulationDataFormat/MCGenProperties.h"
 #include "SimulationDataFormat/ParticleStatus.h"
 #include "Pythia8/HIUserHooks.h"
 #include "TSystem.h"

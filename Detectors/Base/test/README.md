@@ -30,3 +30,5 @@ auto mb = mbl.getMatBudget(xyz0[0],xyz0[1],xyz0[2], xyz1[0],xyz1[1],xyz1[2]);
 
 std::cout << "<rho>= " << mb.meanRho << " <x/X0>= " << mb.meanX2X0 << "\n";
 ```
+
+Macro `extractLUTLayers.C` can be used to extract layers covering certain radius range to obtain more compact LUT.

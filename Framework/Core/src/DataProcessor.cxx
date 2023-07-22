@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 #include "Framework/DataProcessor.h"
 #include "Framework/DataSender.h"
+#include "Framework/DataProcessingStats.h"
 #include "Framework/MessageContext.h"
 #include "Framework/StringContext.h"
 #include "Framework/ArrowContext.h"
@@ -85,6 +86,7 @@ void DataProcessor::doSend(DataSender& sender, ArrowContext& context, ServiceReg
   using o2::monitoring::tags::Key;
   using o2::monitoring::tags::Value;
   auto& monitoring = registry.get<Monitoring>();
+  auto& stats = registry.get<DataProcessingStats>();
 
   static const std::regex invalid_metric(" ");
   auto& proxy = registry.get<FairMQDeviceProxy>();
@@ -141,9 +143,9 @@ void DataProcessor::doSend(DataSender& sender, ArrowContext& context, ServiceReg
   };
   registry.get<DeviceState>().offerConsumers.emplace_back(disposeResources);
   previousBytesSent = context.bytesSent();
-  monitoring.send(Metric{(uint64_t)context.bytesSent(), "arrow-bytes-created"}.addTag(Key::Subsystem, Value::DPL));
-  monitoring.send(Metric{(uint64_t)context.messagesCreated(), "arrow-messages-created"}.addTag(Key::Subsystem, Value::DPL));
-  monitoring.flushBuffer();
+  stats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_BYTES_CREATED), DataProcessingStats::Op::Set, static_cast<int64_t>(context.bytesSent())});
+  stats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_MESSAGES_CREATED), DataProcessingStats::Op::Set, static_cast<int64_t>(context.messagesCreated())});
+  stats.processCommandQueue();
 }
 
 } // namespace o2::framework

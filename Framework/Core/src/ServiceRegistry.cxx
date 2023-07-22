@@ -296,4 +296,31 @@ void ServiceRegistry::bindService(ServiceRegistry::Salt salt, ServiceSpec const&
   }
 }
 
+static std::map<std::thread::id, int> locks;
+
+#define LOCKING_DEBUG debug
+void ServiceRegistry::lock(Salt salt) const ACQUIRE(mMutex)
+{
+  // Should probably use compare and exchange here.
+  if (mMutex.try_lock()) {
+    locks[std::this_thread::get_id()]++;
+    LOG(LOCKING_DEBUG) << "ServiceRegistry locked for salt stream " << salt.streamId << " dataprocessor " << salt.dataProcessorId
+                       << " (" << lockCounter.load() << ", " << std::this_thread::get_id() << "). " << locks[std::this_thread::get_id()];
+  } else {
+    LOG(LOCKING_DEBUG) << "Stream " << salt.streamId << " dataprocessor "
+                       << salt.dataProcessorId << " (" << std::this_thread::get_id() << ") is attempting to lock mutex";
+    mMutex.lock();
+    locks[std::this_thread::get_id()]++;
+    LOG(LOCKING_DEBUG) << "ServiceRegistry locked for stream " << salt.streamId << " dataprocessor " << salt.dataProcessorId << " (" << std::this_thread::get_id() << "). " << locks[std::this_thread::get_id()];
+  }
+}
+
+void ServiceRegistry::unlock(Salt salt) const RELEASE(mMutex)
+{
+  LOG(LOCKING_DEBUG) << "ServiceRegistry unlocked by salt stream " << salt.streamId << " dataprocessor " << salt.dataProcessorId << " (" << std::this_thread::get_id() << "). " << locks[std::this_thread::get_id()];
+
+  locks[std::this_thread::get_id()]--;
+  mMutex.unlock();
+}
+
 } // namespace o2::framework

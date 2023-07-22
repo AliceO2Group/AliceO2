@@ -9,23 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_K0SINVMASS_STUDY_H
-#define O2_K0SINVMASS_STUDY_H
+#include "Framework/O2ControlParameters.h"
 
-#include "Framework/DataProcessorSpec.h"
-#include "ReconstructionDataFormats/GlobalTrackID.h"
-
-namespace o2
+namespace o2::framework::ecs
 {
-namespace its
-{
-namespace study
-{
-using mask_t = o2::dataformats::GlobalTrackID::mask_t;
 
-o2::framework::DataProcessorSpec getK0sInvMassStudy(mask_t srcTracksMask, bool useMC = false);
-} // namespace study
-} // namespace its
-} // namespace o2
+const decltype(DataProcessorMetadata::key) cpuKillThreshold = "ecs-cpu-kill-threshold";
+const decltype(DataProcessorMetadata::key) privateMemoryKillThresholdMB = "ecs-private-memory-kill-threshold-mb";
 
-#endif
+} // namespace o2::framework::ecs

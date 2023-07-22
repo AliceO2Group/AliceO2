@@ -84,3 +84,8 @@ o2_add_test(MCGenStatus
             SOURCES test/testMCGenStatus.cxx
             COMPONENT_NAME SimulationDataFormat
             PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat)
+
+o2_add_test(MCGenId
+            SOURCES test/testMCGenId.cxx
+            COMPONENT_NAME SimulationDataFormat
+            PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat)

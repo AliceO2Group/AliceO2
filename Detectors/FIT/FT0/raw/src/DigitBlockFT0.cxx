@@ -10,3 +10,6 @@
 // or submit itself to any jurisdiction.
 
 #include "FT0Raw/DigitBlockFT0.h"
+
+template class o2::fit::DigitBlockFIT<o2::ft0::SingleLUT, o2::ft0::Digit, o2::ft0::ChannelData>;
+template class o2::fit::DigitBlockFIText<o2::ft0::SingleLUT, o2::ft0::Digit, o2::ft0::ChannelData, o2::ft0::TriggersExt>;

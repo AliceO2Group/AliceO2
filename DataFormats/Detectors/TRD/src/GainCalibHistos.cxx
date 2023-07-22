@@ -36,7 +36,7 @@ void GainCalibHistos::addEntry(float dEdx, int chamberId)
   // add entry for given dEdx
   int chamberOffset = chamberId * NBINSGAINCALIB;
   int iBin = (int)dEdx;
-  if (iBin >= NBINSGAINCALIB) {
+  if (iBin < 0 || iBin >= NBINSGAINCALIB) {
     // This could happen because of local gain correction but should be very rare, so we can just skip it
     return;
   }

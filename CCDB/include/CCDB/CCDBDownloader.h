@@ -80,12 +80,12 @@ class CCDBDownloader
   std::unordered_map<curl_socket_t, uv_timer_t*> mSocketTimerMap;
 
   /**
-   * The UV loop which handles transfers.
+   * The UV loop which handles transfers. Can be created internally or provided through a constructor.
    */
   uv_loop_t* mUVLoop;
 
   /**
-   * Map used to store active uv_handles.
+   * Map used to store active uv_handles belonging to the CcdbDownloader. If internal uv_loop is used, then all uv_handles should be marked in this map.
    */
   std::unordered_map<uv_handle_t*, bool> mHandleMap;
 
@@ -114,7 +114,12 @@ class CCDBDownloader
    */
   int mMaxHandlesInUse = 3;
 
-  CCDBDownloader();
+  /**
+   * Variable denoting whether an external or internal uv_loop is being used.
+   */
+  bool mExternalLoop;
+
+  CCDBDownloader(uv_loop_t* uv_loop = nullptr);
   ~CCDBDownloader();
 
   /**
@@ -125,27 +130,10 @@ class CCDBDownloader
   CURLcode perform(CURL* handle);
 
   /**
-   * Perform on a batch of handles. Callback will be exectuted in it's own thread after all handles finish their transfers.
-   *
-   * @param handles Handles to be performed on.
-   */
-  std::vector<CURLcode> asynchBatchPerformWithCallback(std::vector<CURL*> const& handles, bool* completionFlag, void (*cbFun)(void*), void* cbData);
-
-  /**
    * Perform on a batch of handles in a blocking manner. Has the same effect as calling curl_easy_perform() on all handles in the vector.
    * @param handleVector Handles to be performed on.
    */
   std::vector<CURLcode> batchBlockingPerform(std::vector<CURL*> const& handleVector);
-
-  /**
-   * Perform on a batch of handles. Completion flag will be set to true when all handles finish their transfers.
-   * @param handleVector Handles to be performed on.
-   * @param completionFlag Should be set to false before passing it to this function. Will be set to true after all transfers finish.
-   */
-  std::vector<CURLcode> batchAsynchPerform(std::vector<CURL*> const& handleVector, bool* completionFlag);
-
-  void sendCloseLoopHandle();
-  static void closeLoop(uv_async_t* handle);
 
   /**
    * Limits the number of parallel connections. Should be used only if no transfers are happening.
@@ -182,12 +170,19 @@ class CCDBDownloader
    */
   void setOnlineTimeoutSettings();
 
+  /**
+   * Run the uvLoop once.
+   *
+   * @param noWait Using this flag will cause the loop to run only if sockets have pendind data.
+   */
+  void runLoop(bool noWait);
+
  private:
   std::string mUserAgentId = "CCDBDownloader";
   /**
-   * Used in debug to detect whether uv loop closed prematurely.
+   * Sets up internal UV loop.
    */
-  bool mIsClosing = false;
+  void setupInternalUVLoop();
 
   /**
    * Current amount of handles which are performed on.
@@ -208,31 +203,6 @@ class CCDBDownloader
    * Queue of handles awaiting their transfers to start.
    */
   std::vector<CURL*> mHandlesToBeAdded;
-
-  /**
-   * Lock protecting the mHandlesToBeAdded container
-   */
-  std::mutex mHandlesQueueLock;
-
-  /**
-   * Blocks the constructor from returning before the uv_loop has started running
-   */
-  std::condition_variable* mConstructorCV;
-
-  /**
-   * Prevents the mConstructorCV from being notified after the constructor returned
-   */
-  bool mLoopRunning = false;
-
-  /**
-   * Thread on which the thread with uv_loop runs.
-   */
-  std::thread* mLoopThread;
-
-  /**
-   * Vector with reference to callback threads with a flag marking whether they finished running.
-   */
-  std::vector<std::pair<std::thread*, bool*>> mThreadFlagPairVector;
 
   /**
    * Types of requests.
@@ -295,23 +265,9 @@ class CCDBDownloader
   static void curlPerform(uv_poll_t* handle, int status, int events);
 
   /**
-   * This handle should be always running to keep the uv_loop from closing.
-   *
-   * @param handle uv_handle to which this callbacks is assigned
-   */
-  static void upkeepTimerFunction(uv_timer_t* handle);
-
-  /**
    * Used by CURL to react to action happening on a socket.
    */
   static int handleSocket(CURL* easy, curl_socket_t s, int action, void* userp, void* socketp);
-
-  /**
-   * Asynchronously notify the loop to check its CURL handle queue.
-   *
-   * @param handle Handle which is assigned to this callback.
-   */
-  static void asyncUVHandleCheckQueue(uv_async_t* handle);
 
   /**
    * Close socket assigned to the timer handle.
@@ -335,13 +291,6 @@ class CCDBDownloader
   static void curlCloseCB(uv_handle_t* handle);
 
   /**
-   * Callback for the asynchronous handle that closes the uv_loop
-   *
-   * @param handle Handle assigned to this callback.
-   */
-  static void uvCloseCallback(uv_async_t* handle);
-
-  /**
    * Close poll handle assigned to the socket contained in the context and free data within the handle.
    *
    * @param context Structure containing information about socket and handle to be closed.
@@ -356,16 +305,6 @@ class CCDBDownloader
    * @param userp Pointer to the uv_timer_t handle that is used for timeout.
    */
   static int startTimeout(CURLM* multi, long timeout_ms, void* userp);
-
-  /**
-   * Sends an asynchronous handle that signalls the uvloop to close.
-   */
-  void signalToClose();
-
-  /**
-   * Check if any of the callback threads have finished running and approprietly join them.
-   */
-  void checkForThreadsToJoin();
 
   /**
    * Create a new multi_handle for the downloader
@@ -398,19 +337,9 @@ class CCDBDownloader
   curl_context_t* createCurlContext(curl_socket_t sockfd);
 
   /**
-   * Asynchroniously signal the event loop to check for new easy_handles to add to multi handle.
-   */
-  void makeLoopCheckQueueAsync();
-
-  /**
    * If multi_handles uses less then maximum number of handles then add handles from the queue.
    */
   void checkHandleQueue();
-
-  /**
-   * Start the event loop. This function should be ran in the `loopThread`.
-   */
-  void runLoop();
 };
 
 /**

@@ -21,6 +21,7 @@
 #include "Framework/ProcessingContext.h"
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DriverConfig.h"
+#include "Framework/O2ControlParameters.h"
 
 #include <sstream>
 
@@ -39,10 +40,12 @@ WorkflowSpec defineDataProcessing()
                             {"Out-of-band channel config"}}}},
           {"B", // producer, no inputs
            Inputs{},
-           Outputs{OutputSpec{"TST", "B1"}}},
+           Outputs{OutputSpec{"TST", "B1"}},
+           .metadata = {{ecs::cpuKillThreshold, "3.0"}}},
           {"C", // first consumer of A1, consumer of B1
            {InputSpec{"y", "TST", "A1"}, InputSpec{"y", "TST", "B1"}},
-           Outputs{}},
+           Outputs{},
+           .metadata = {{ecs::privateMemoryKillThresholdMB, "5000"}}},
           {"D", // second consumer of A1
            Inputs{
              InputSpec{"x", "TST", "A1"}},
@@ -238,6 +241,8 @@ control:
 wants:
   cpu: 0.01
   memory: 1
+limits:
+  cpu: 3.0
 bind:
   - name: from_B_to_C
     type: push
@@ -329,6 +334,8 @@ control:
 wants:
   cpu: 0.01
   memory: 1
+limits:
+  memory: 5000
 bind:
   - name: from_C_to_D
     type: push

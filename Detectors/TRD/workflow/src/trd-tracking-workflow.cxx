@@ -82,6 +82,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto requireCTPLumi = configcontext.options().get<bool>("require-ctp-lumi");
   auto vdexb = configcontext.options().get<bool>("enable-vdexb-calib");
   auto gain = configcontext.options().get<bool>("enable-gain-calib");
+  auto pulseHeight = configcontext.options().get<bool>("enable-ph");
   bool rootInput = !configcontext.options().get<bool>("disable-root-input");
   GTrackID::mask_t srcTRD = allowedSources & GTrackID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
   if (strict && (srcTRD & ~GTrackID::getSourcesMask("TPC")).any()) {
@@ -115,7 +116,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (configcontext.options().get<bool>("enable-qc")) {
     specs.emplace_back(o2::trd::getTRDGlobalTrackingQCSpec(srcTRD));
   }
-  if (configcontext.options().get<bool>("enable-ph")) {
+  if (pulseHeight) {
     if (rootInput) {
       specs.emplace_back(o2::trd::getTRDDigitReaderSpec(useMC));
     }
@@ -130,8 +131,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     if (GTrackID::includesSource(GTrackID::Source::TPC, srcTRD)) {
       specs.emplace_back(o2::trd::getTRDTPCTrackWriterSpec(useMC, strict));
     }
-    if (vdexb || gain) {
-      specs.emplace_back(o2::trd::getTRDCalibWriterSpec(vdexb, gain));
+    if (vdexb || gain || pulseHeight) {
+      specs.emplace_back(o2::trd::getTRDCalibWriterSpec(vdexb, gain, pulseHeight));
     }
     if (configcontext.options().get<bool>("enable-qc")) {
       specs.emplace_back(o2::trd::getTRDTrackingQCWriterSpec());

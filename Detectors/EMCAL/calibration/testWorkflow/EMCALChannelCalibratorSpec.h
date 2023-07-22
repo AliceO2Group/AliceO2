@@ -38,6 +38,7 @@
 
 // for time measurements
 #include <chrono>
+#include <optional>
 
 using namespace o2::framework;
 
@@ -52,7 +53,7 @@ class EMCALChannelCalibDevice : public o2::framework::Task
   using EMCALCalibParams = o2::emcal::EMCALCalibParams;
 
  public:
-  EMCALChannelCalibDevice(std::shared_ptr<o2::base::GRPGeomRequest> req, bool params, std::string calibType, bool rejCalibTrg, bool rejL0Trig) : mCCDBRequest(req), mLoadCalibParamsFromCCDB(params), mCalibType(calibType), mRejectCalibTriggers(rejCalibTrg), mRejectL0Triggers(rejL0Trig) {}
+  EMCALChannelCalibDevice(std::shared_ptr<o2::base::GRPGeomRequest> req, bool params, std::string calibType, bool rejCalibTrg, bool rejL0Trig, bool applyGainCalib) : mCCDBRequest(req), mLoadCalibParamsFromCCDB(params), mCalibType(calibType), mRejectCalibTriggers(rejCalibTrg), mRejectL0Triggers(rejL0Trig), mApplyGainCalib(applyGainCalib) {}
 
   void init(o2::framework::InitContext& ic) final
   {
@@ -97,7 +98,21 @@ class EMCALChannelCalibDevice : public o2::framework::Task
         mScaleFactorsInitialized = true;
       }
     }
-    if (matcher == ConcreteDataMatcher("CTP", "CTPCONFIG", 0)) {
+    if (mApplyGainCalib && matcher == ConcreteDataMatcher("EMC", "EMCGAINCALIB", 0)) {
+      if (mBadChannelCalibrator) {
+        LOG(info) << "Configuring gain calib factors for bad channel";
+        if (mBadChannelCalibrator->setGainCalibrationFactors(reinterpret_cast<o2::emcal::GainCalibrationFactors*>(obj))) {
+          mGainCalibFactorsInitialized = true;
+        }
+      }
+      if (mTimeCalibrator) {
+        LOG(info) << "Configuring gain calib factors for time calib";
+        if (mTimeCalibrator->setGainCalibrationFactors(reinterpret_cast<o2::emcal::GainCalibrationFactors*>(obj))) {
+          mGainCalibFactorsInitialized = true;
+        }
+      }
+    }
+    if (mRejectL0Triggers && matcher == ConcreteDataMatcher("CTP", "CTPCONFIG", 0)) {
       // clear current class mask and prepare to fill in the updated values
       // The trigger names are seperated by a ":" in one string in the calib params
       mSelectedClassMasks.clear();
@@ -149,7 +164,9 @@ class EMCALChannelCalibDevice : public o2::framework::Task
     }
 
     // prepare CTPConfiguration such that it can be loaded in finalise ccdb
-    pc.inputs().get<o2::ctp::CTPConfiguration*>(getCTPConfigBinding());
+    if (mRejectL0Triggers) {
+      pc.inputs().get<o2::ctp::CTPConfiguration*>(getCTPConfigBinding());
+    }
 
     if (!mIsConfigured) {
       // configure calibrators (after calib params are loaded from the CCDB)
@@ -157,7 +174,23 @@ class EMCALChannelCalibDevice : public o2::framework::Task
       mIsConfigured = true;
     }
 
-    auto ctpDigits = pc.inputs().get<gsl::span<o2::ctp::CTPDigit>>(getCTPDigitsBinding());
+    if (mApplyGainCalib && !mGainCalibFactorsInitialized) {
+      // process dummy data with no cells to create a slot
+      std::vector<o2::emcal::Cell> cellDummyData(0);
+      if (isBadChannelCalib) {
+        mBadChannelCalibrator->process(cellDummyData);
+      } else {
+        mTimeCalibrator->process(cellDummyData);
+      }
+      // for reading the calib objects from the CCDB
+      pc.inputs().get<o2::emcal::GainCalibrationFactors*>(getGainCalibBinding());
+    }
+
+    using ctpDigitsType = std::decay_t<decltype(pc.inputs().get<gsl::span<o2::ctp::CTPDigit>>(getCTPDigitsBinding()))>;
+    std::optional<ctpDigitsType> ctpDigits;
+    if (mRejectL0Triggers) {
+      ctpDigits = pc.inputs().get<gsl::span<o2::ctp::CTPDigit>>(getCTPDigitsBinding());
+    }
 
     // reset EOR behaviour
     if (mTimeCalibrator) {
@@ -197,7 +230,7 @@ class EMCALChannelCalibDevice : public o2::framework::Task
         bool acceptEvent = false;
         // Match the EMCal bc to the CTP bc
         int64_t bcEMC = trg.getBCData().toLong();
-        for (auto& ctpDigit : ctpDigits) {
+        for (auto& ctpDigit : *ctpDigits) {
           int64_t bcCTP = ctpDigit.intRecord.toLong();
           LOG(debug) << "bcEMC " << bcEMC << "   bcCTP " << bcCTP;
           if (bcCTP == bcEMC) {
@@ -284,6 +317,7 @@ class EMCALChannelCalibDevice : public o2::framework::Task
   static const char* getCellTriggerRecordBinding() { return "EMCCellsTrgR"; }
   static const char* getCTPDigitsBinding() { return "CTPDigits"; }
   static const char* getCTPConfigBinding() { return "CTPConfig"; }
+  static const char* getGainCalibBinding() { return "EMCGainCalib"; }
 
  private:
   std::unique_ptr<o2::emcal::EMCALChannelCalibrator<o2::emcal::EMCALChannelData, o2::emcal::BadChannelMap>> mBadChannelCalibrator;     ///< Bad channel calibrator
@@ -297,6 +331,8 @@ class EMCALChannelCalibDevice : public o2::framework::Task
   bool mLoadCalibParamsFromCCDB = true;                                                                                                ///< Switch for loading calib params from the CCDB
   bool mRejectCalibTriggers = true;                                                                                                    ///! reject calibration triggers in the online calibration
   bool mRejectL0Triggers = true;                                                                                                       ///! reject EMCal Gamma and Jet triggers in the online calibration
+  bool mApplyGainCalib = true;                                                                                                         ///! switch if gain calibration should be applied during filling of histograms or not
+  bool mGainCalibFactorsInitialized = false;                                                                                           ///! Gain calibration init status
   std::array<double, 2> timeMeas;                                                                                                      ///! Used for time measurement and holds the start and end time in the run function
   std::vector<uint64_t> mSelectedClassMasks = {};                                                                                      ///! EMCal minimum bias trigger bit. Only this bit will be used for calibration
 
@@ -370,7 +406,7 @@ class EMCALChannelCalibDevice : public o2::framework::Task
 namespace framework
 {
 
-DataProcessorSpec getEMCALChannelCalibDeviceSpec(const std::string calibType, const bool loadCalibParamsFromCCDB, const bool rejectCalibTrigger, const bool rejectL0Trigger, const bool ctpcfgperrun)
+DataProcessorSpec getEMCALChannelCalibDeviceSpec(const std::string calibType, const bool loadCalibParamsFromCCDB, const bool rejectCalibTrigger, const bool rejectL0Trigger, const bool ctpcfgperrun, const bool applyGainCalib)
 {
   using device = o2::calibration::EMCALChannelCalibDevice;
   using clbUtils = o2::calibration::Utils;
@@ -400,11 +436,15 @@ DataProcessorSpec getEMCALChannelCalibDeviceSpec(const std::string calibType, co
   if (calibType.find("badchannel") != std::string::npos) {
     inputs.emplace_back("EMC_Scalefactors", o2::header::gDataOriginEMC, "SCALEFACTORS", 0, Lifetime::Condition, ccdbParamSpec(CalibDB::getCDBPathChannelScaleFactors()));
   }
-  // inputs.emplace_back("EMC_BadChannelMap", o2::header::gDataOriginEMC, "BADCHANNELMAP", 0, Lifetime::Condition, ccdbParamSpec("EMC/Calib/BadChannelMap"));
+  if (applyGainCalib) {
+    inputs.emplace_back(device::getGainCalibBinding(), o2::header::gDataOriginEMC, "EMCGAINCALIB", 0, Lifetime::Condition, ccdbParamSpec("EMC/Calib/GainCalibFactors"));
+  }
 
   // data request needed for rejection of EMCal trigger
-  inputs.emplace_back(device::getCTPConfigBinding(), "CTP", "CTPCONFIG", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/Config", ctpcfgperrun));
-  inputs.emplace_back(device::getCTPDigitsBinding(), "CTP", "DIGITS", 0, Lifetime::Timeframe);
+  if (rejectL0Trigger) {
+    inputs.emplace_back(device::getCTPConfigBinding(), "CTP", "CTPCONFIG", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/Config", ctpcfgperrun));
+    inputs.emplace_back(device::getCTPDigitsBinding(), "CTP", "DIGITS", 0, Lifetime::Timeframe);
+  }
 
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
                                                                 true,                           // GRPECS=true
@@ -418,7 +458,7 @@ DataProcessorSpec getEMCALChannelCalibDeviceSpec(const std::string calibType, co
     processorName,
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<device>(ccdbRequest, loadCalibParamsFromCCDB, calibType, rejectCalibTrigger, rejectL0Trigger)},
+    AlgorithmSpec{adaptFromTask<device>(ccdbRequest, loadCalibParamsFromCCDB, calibType, rejectCalibTrigger, rejectL0Trigger, applyGainCalib)},
     Options{}};
 }
 
