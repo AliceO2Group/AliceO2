@@ -313,9 +313,10 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
 //
 int RawDataDecoder::setLumiInp(int lumiinp, std::string inp)
 {
-  // check if valis input
+  // check if valid input
   int index = o2::ctp::CTPInputsConfiguration::getInputIndexFromName(inp);
   if (index == 0xff) {
+    LOG(fatal) << "CTP raw decoder: input index not found:" << inp;
     return 0xff;
   }
   if (lumiinp == 1) {

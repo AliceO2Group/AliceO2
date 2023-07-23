@@ -11,9 +11,9 @@
 
 #ifndef _ALICEO2_CTP_LUMIINFO_H_
 #define _ALICEO2_CTP_LUMIINFO_H_
-#include "DataFormatsCTP/Configuration.h"
 #include "CommonConstants/LHCConstants.h"
 #include <Rtypes.h>
+#include <cmath>
 
 /// \brief Luminosity information as a moving average over certain number of TFs
 
@@ -34,7 +34,7 @@ struct LumiInfo {
   float getLumiFV0() const { return nHBFCountedFV0 > 0 ? float(countsFV0 / (nHBFCountedFV0 * o2::constants::lhc::LHCOrbitMUS * 1e-6)) : 0.f; }
   float getLumiError() const { return nHBFCounted > 0 ? float(std::sqrt(counts) / (nHBFCounted * o2::constants::lhc::LHCOrbitMUS * 1e-6)) : 0.f; }
   float getLumiFV0Error() const { return nHBFCountedFV0 > 0 ? float(std::sqrt(countsFV0) / (nHBFCountedFV0 * o2::constants::lhc::LHCOrbitMUS * 1e-6)) : 0.f; }
-  void printInputs() const { LOG(info) << "Lumi inp1:" << inp1 << ":" << o2::ctp::CTPInputsConfiguration::getInputNameFromIndex(inp1) << " inp2:" << inp2 << ":" << o2::ctp::CTPInputsConfiguration::getInputNameFromIndex(inp2); }
+  void printInputs() const;
   ClassDefNV(LumiInfo, 3);
 };
 } // namespace ctp
