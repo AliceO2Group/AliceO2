@@ -14,6 +14,7 @@
 #include <fstream>
 #include "DetectorsRaw/RDHUtils.h"
 #include "DPLUtils/DPLRawParser.h"
+#include "DataFormatsCTP/TriggerOffsetsParam.h"
 #include "CTPReconstruction/RawDataDecoder.h"
 #include "DataFormatsCTP/Configuration.h"
 

@@ -18,6 +18,8 @@
 #include "DetectorsRaw/RDHUtils.h"
 #include "CTPWorkflow/RawDecoderSpec.h"
 #include "CommonUtils/VerbosityConfig.h"
+#include "Framework/InputRecord.h"
+#include "DataFormatsCTP/TriggerOffsetsParam.h"
 
 using namespace o2::ctp::reco_workflow;
 

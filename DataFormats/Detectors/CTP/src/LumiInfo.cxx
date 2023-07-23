@@ -12,9 +12,12 @@
 /// \file LumiInfo.cxx
 
 #include "DataFormatsCTP/LumiInfo.h"
-// #include "DataFormatsCTP/Configuration.h"
+#include "DataFormatsCTP/Configuration.h"
+#include <fairlogger/Logger.h>
+
+using namespace o2::ctp;
 
 void LumiInfo::printInputs() const
 {
-  // LOG(info) << "Lumi inp1:" << inp1 << ":" << o2::ctp::CTPInputsConfiguration::getInputNameFromIndex(inp1) << " inp2:" << inp2 << ":" << o2::ctp::CTPInputsConfiguration::getInputNameFromIndex(inp2);
+  LOG(info) << "Lumi inp1:" << inp1 << ":" << o2::ctp::CTPInputsConfiguration::getInputNameFromIndex(inp1) << " inp2:" << inp2 << ":" << o2::ctp::CTPInputsConfiguration::getInputNameFromIndex(inp2);
 }
