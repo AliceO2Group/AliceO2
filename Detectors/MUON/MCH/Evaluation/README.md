@@ -17,3 +17,51 @@ $ o2-mch-tracks-reader-workflow --hbfutils-config o2_tfidinfo.root --infile mcht
 $ root
 root[0] o2::mch::eval::drawAll("compare.root")
 ```
+
+
+#  MCH Cluster Maps 
+
+The general purpose is to track "unexpected" detector issues not well reproduced with MC simulations. These problems generate non-negligible bias in Acc*Eff corrections resulting in large tracking systematic uncertainties.
+
+During  the data reconstruction, the status of the detector is calculated with the CCDB which is used to discard most of the detector issues. 
+This status map is built with information based on pedestals, high voltage tension, occupancy etc. 
+
+Nevertheless, some detector issues (e.g. a cable swapping) are not  well detected online and consequently not properly reproduced by the CCBD.
+The main objective of this code is to spot these  issues not included in the status map.
+
+
+--------------------------------------------------------------------------------------
+
+Input files used: 
+
+    - Clusters_Bending.root
+    - ClustersMCH_LHC22t.root
+    - o2sim_geometry-aligned.root (path: alice/sw/BUILD/O2-latest/O2)
+
+
+Src file:
+
+    - map_mch.cxx
+
+
+COMPILATION (commands):
+
+    cd alice ==>    alienv enter O2/latest
+
+    cd sw/BUILD/O2-latest/O2 ==>   cmake --build . 
+
+EXECUTION (command):
+
+    stage/bin/o2-mch-map_mch --normperarea --green
+
+HELP MESSAGE (command):
+
+    stage/bin/o2-mch-map_mch --help 
+
+
+OPEN OUTPUT FILES: 
+
+    open CHAMBERS-1-NB.html CHAMBERS-2-NB.html CHAMBERS-3-NB.html CHAMBERS-4-NB.html CHAMBERS-5-NB.html CHAMBERS-6-NB.html CHAMBERS-7-NB.html CHAMBERS-8-NB.html CHAMBERS-9-NB.html CHAMBERS-10-NB.html
+
+    open  CHAMBERS-1-B.html CHAMBERS-2-B.html CHAMBERS-3-B.html  CHAMBERS-4-B.html CHAMBERS-5-B.html CHAMBERS-6-B.html CHAMBERS-7-B.html CHAMBERS-8-B.html CHAMBERS-9-B.html  CHAMBERS-10-B.html
+
