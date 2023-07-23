@@ -19,8 +19,6 @@
 #include <vector>
 #include <map>
 #include <deque>
-#include "DPLUtils/DPLRawParser.h"
-#include "Framework/InputRecord.h"
 #include "Framework/InputRecord.h"
 #include "DataFormatsCTP/Digits.h"
 #include "DataFormatsCTP/LumiInfo.h"

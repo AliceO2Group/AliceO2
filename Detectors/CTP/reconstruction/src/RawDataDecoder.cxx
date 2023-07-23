@@ -13,6 +13,7 @@
 /// \author Roman Lietava
 #include <fstream>
 #include "DetectorsRaw/RDHUtils.h"
+#include "DPLUtils/DPLRawParser.h"
 #include "CTPReconstruction/RawDataDecoder.h"
 #include "DataFormatsCTP/Configuration.h"
 
