@@ -30,7 +30,14 @@ void RawDecoderSpec::init(framework::InitContext& ctx)
   mDecoder.setDoLumi(mDoLumi);
   mDecoder.setDoDigits(mDoDigits);
   mDecoder.setMAXErrors(maxerrors);
-  LOG(info) << "CTP reco init done. DoLumi:" << mDoLumi << " DoDigits:" << mDoDigits << " NTF:" << mNTFToIntegrate << " Max errors:" << maxerrors;
+  std::string lumiinp1 = ctx.options().get<std::string>("lumi-inp1");
+  std::string lumiinp2 = ctx.options().get<std::string>("lumi-inp2");
+  int inp1 = mDecoder.setLumiInp(1, lumiinp1);
+  int inp2 = mDecoder.setLumiInp(2, lumiinp2);
+  mOutputLumiInfo.inp1 = inp1;
+  mOutputLumiInfo.inp2 = inp2;
+  LOG(info) << "CTP reco init done. DoLumi:" << mDoLumi << " DoDigits:" << mDoDigits << " NTF:" << mNTFToIntegrate << " Lumi inputs:" << lumiinp1 << ":" << inp1 << " " << lumiinp2 << ":" << inp2 << " Max errors:" << maxerrors;
+  // mOutputLumiInfo.printInputs();
 }
 void RawDecoderSpec::endOfStream(framework::EndOfStreamContext& ec)
 {
@@ -142,7 +149,8 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     mOutputLumiInfo.nHBFCounted = mNHBIntegratedT;
     mOutputLumiInfo.nHBFCountedFV0 = mNHBIntegratedV;
     if (mVerbose) {
-      LOGP(info, "Orbit {}: {}/{} counts T/V in {}/{} HBFs -> lumiT = {:.3e}+-{:.3e} lumiV = {:.3e}+-{:.3e}", mOutputLumiInfo.orbit, mCountsT, mCountsV, mNHBIntegratedT, mNHBIntegratedV, mOutputLumiInfo.getLumi(), mOutputLumiInfo.getLumiError(), mOutputLumiInfo.getLumiFV0(), mOutputLumiInfo.getLumiFV0Error());
+      mOutputLumiInfo.printInputs();
+      LOGP(info, "Orbit {}: {}/{} counts inp1/inp2 in {}/{} HBFs -> lumi_inp1 = {:.3e}+-{:.3e} lumi_inp2 = {:.3e}+-{:.3e}", mOutputLumiInfo.orbit, mCountsT, mCountsV, mNHBIntegratedT, mNHBIntegratedV, mOutputLumiInfo.getLumi(), mOutputLumiInfo.getLumiError(), mOutputLumiInfo.getLumiFV0(), mOutputLumiInfo.getLumiFV0Error());
     }
     ctx.outputs().snapshot(o2::framework::Output{"CTP", "LUMI", 0, o2::framework::Lifetime::Timeframe}, mOutputLumiInfo);
   }
@@ -173,5 +181,7 @@ o2::framework::DataProcessorSpec o2::ctp::reco_workflow::getRawDecoderSpec(bool 
     o2::framework::Options{
       {"ntf-to-average", o2::framework::VariantType::Int, 90, {"Time interval for averaging luminosity in units of TF"}},
       {"print-errors-num", o2::framework::VariantType::Int, 3, {"Max number of errors to print"}},
+      {"lumi-inp1", o2::framework::VariantType::String, "TVX", {"The first input used for online lumi. Name in capital."}},
+      {"lumi-inp2", o2::framework::VariantType::String, "VBA", {"The second input used for online lumi. Name in capital."}},
       {"use-verbose-mode", o2::framework::VariantType::Bool, false, {"Verbose logging"}}}};
 }

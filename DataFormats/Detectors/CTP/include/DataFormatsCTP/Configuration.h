@@ -119,10 +119,12 @@ struct CTPClass {
 struct CTPInputsConfiguration {
   CTPInputsConfiguration() = default;
   std::vector<CTPInput> CTPInputs;
+  static const std::vector<CTPInput> CTPInputsDefault;
   int createInputsConfigFromFile(std::string& filename);
   void printStream(std::ostream& strem) const;
   static CTPInputsConfiguration defaultInputConfig;
   static void initDefaultInputConfig();
+  static std::string getInputNameFromIndex100(int index);
   static std::string getInputNameFromIndex(int index);
   static int getInputIndexFromName(std::string& name);
   ClassDefNV(CTPInputsConfiguration, 0);

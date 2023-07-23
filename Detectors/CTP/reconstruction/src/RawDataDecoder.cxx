@@ -14,6 +14,7 @@
 #include <fstream>
 #include "DetectorsRaw/RDHUtils.h"
 #include "CTPReconstruction/RawDataDecoder.h"
+#include "DataFormatsCTP/Configuration.h"
 
 using namespace o2::ctp;
 
@@ -308,6 +309,23 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
     LOG(error) << "CTP decoding IR errors:" << mErrorIR << " TCR errors:" << mErrorTCR;
   }
   return ret;
+}
+//
+int RawDataDecoder::setLumiInp(int lumiinp, std::string inp)
+{
+  // check if valis input
+  int index = o2::ctp::CTPInputsConfiguration::getInputIndexFromName(inp);
+  if (index == 0xff) {
+    return 0xff;
+  }
+  if (lumiinp == 1) {
+    mTVXMask.reset();
+    mTVXMask[index - 1] = true;
+  } else {
+    mVBAMask.reset();
+    mVBAMask[index - 1] = true;
+  }
+  return index;
 }
 //
 int RawDataDecoder::init()
