@@ -16,6 +16,7 @@ o2_add_library(DataFormatsCTP
           src/CTF.cxx
           src/TriggerOffsetsParam.cxx
           src/RunManager.cxx
+          src/LumiInfo.cxx
   PUBLIC_LINK_LIBRARIES O2::CommonDataFormat
                         O2::Headers
                         O2::CommonUtils
