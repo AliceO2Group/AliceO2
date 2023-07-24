@@ -109,11 +109,12 @@ void Alice3Pipe::ConstructGeometry()
   TGeoCompositeShape* outerBerylliumTubeVacuumComposite;                                                                                                   // Composite volume to subctract to vacuum
   TGeoVolume* outerBerylliumTubeVacuumVolume;                                                                                                              // Final volume to be used
 
-  TString compositeFormula{"OUT_PIPEVACUUM_BASEsh"}; // If pipe is alone we won't subctract anything
+  TString compositeFormula{"OUT_PIPEVACUUM_BASEsh"};                                                                                                       // If pipe is alone we won't subctract anything
   TString subtractorsFormula;
 
   if (!mIsTRKActivated) {
     std::vector<TGeoTube*> trkLayerShapes;
+
     std::vector<std::array<float, 3>> layersQuotas = {std::array<float, 3>{0.5f, 50.f, 50.e-4}, // TODO: Set layers dynamically. {radius, zLen, thickness}
                                                       std::array<float, 3>{1.2f, 50.f, 50.e-4},
                                                       std::array<float, 3>{2.5f, 50.f, 50.e-4}};
@@ -126,9 +127,14 @@ void Alice3Pipe::ConstructGeometry()
         subtractorsFormula += Form("+TRKLAYER_%dsh", iLayer);
       }
     }
-    LOG(debug) << "Subtractors formula before: " << subtractorsFormula;
+
+    // Escavate vacuum for hosting cold plate
+    TGeoTube* coldPlate = new TGeoTube("TRK_COLDPLATEsh", 2.6f, 2.6f + 150.e-3, 50.f);
+    subtractorsFormula += "+TRK_COLDPLATEsh";
+
+    LOG(info) << "Subtractors formula before : " << subtractorsFormula;
     subtractorsFormula = Form("-(%s)", subtractorsFormula.Data());
-    LOG(debug) << "Subtractors formula after: " << subtractorsFormula;
+    LOG(info) << "Subtractors formula after: " << subtractorsFormula;
 
     outerBerylliumTubeVacuumComposite = new TGeoCompositeShape("OUT_PIPEVACUUMsh", (compositeFormula + subtractorsFormula).Data());
     outerBerylliumTubeVacuumVolume = new TGeoVolume("OUT_PIPEVACUUM", outerBerylliumTubeVacuumComposite, kMedVac);
