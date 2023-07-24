@@ -10,4 +10,6 @@
 // or submit itself to any jurisdiction.
 
 #include "FDDRaw/RawReaderFDDBase.h"
-//using namespace o2::fdd;
+
+template class o2::fit::RawReaderBaseFIT<o2::fdd::DigitBlockFDD, o2::fdd::DataBlockPM, o2::fdd::DataBlockTCM>;
+template class o2::fit::RawReaderBaseFIT<o2::fdd::DigitBlockFDDext, o2::fdd::DataBlockPM, o2::fdd::DataBlockTCMext>;

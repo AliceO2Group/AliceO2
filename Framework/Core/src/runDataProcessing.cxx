@@ -41,7 +41,6 @@
 #include "Framework/ParallelContext.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/SimpleRawDeviceService.h"
-#define O2_SIGNPOST_DEFINE_CONTEXT
 #include "Framework/Signpost.h"
 #include "Framework/ControlService.h"
 #include "Framework/CallbackService.h"
@@ -175,6 +174,8 @@ std::vector<DeviceMetricsInfo> gDeviceMetricsInfos;
 // overloaded in the config spec
 bpo::options_description gHiddenDeviceOptions("Hidden child options");
 
+O2_DECLARE_DYNAMIC_LOG(driver);
+
 // Read from a given fd and print it.
 // return true if we can still read from it,
 // return false if we need to close the input pipe.
@@ -186,25 +187,23 @@ void getChildData(int infd, DeviceInfo& outinfo)
   int bytes_read;
   // NOTE: do not quite understand read ends up blocking if I read more than
   //        once. Oh well... Good enough for now.
-  O2_SIGNPOST_START(DriverStatus::ID, DriverStatus::BYTES_READ, outinfo.pid, infd, 0);
+  int64_t total_bytes_read = 0;
+  int64_t count = 0;
+  bool once = false;
   while (true) {
     bytes_read = read(infd, buffer, 1024 * 16);
     if (bytes_read == 0) {
-      O2_SIGNPOST_END(DriverStatus::ID, DriverStatus::BYTES_READ, bytes_read, 0, 0);
       return;
     }
+    if (!once) {
+      once = true;
+    }
     if (bytes_read < 0) {
-      switch (errno) {
-        case EWOULDBLOCK:
-          O2_SIGNPOST_END(DriverStatus::ID, DriverStatus::BYTES_READ, bytes_read, 0, 0);
-          return;
-        default:
-          O2_SIGNPOST_END(DriverStatus::ID, DriverStatus::BYTES_READ, bytes_read, 0, 0);
-          return;
-      }
+      return;
     }
     assert(bytes_read > 0);
     outinfo.unprinted.append(buffer, bytes_read);
+    count++;
   }
 }
 
@@ -796,7 +795,8 @@ void processChildrenOutput(DriverInfo& driverInfo,
       continue;
     }
 
-    O2_SIGNPOST_START(DriverStatus::ID, DriverStatus::BYTES_PROCESSED, info.pid, 0, 0);
+    O2_SIGNPOST_ID_FROM_POINTER(sid, driver, &info);
+    O2_SIGNPOST_START(driver, sid, "bytes_processed", "bytes processed by " O2_ENG_TYPE(pid, "d"), info.pid);
 
     std::string_view s = info.unprinted;
     size_t pos = 0;
@@ -843,7 +843,8 @@ void processChildrenOutput(DriverInfo& driverInfo,
     }
     size_t oldSize = info.unprinted.size();
     info.unprinted = std::string(s);
-    O2_SIGNPOST_END(DriverStatus::ID, DriverStatus::BYTES_PROCESSED, oldSize - info.unprinted.size(), 0, 0);
+    int64_t bytesProcessed = oldSize - info.unprinted.size();
+    O2_SIGNPOST_END(driver, sid, "bytes_processed", "bytes processed by " O2_ENG_TYPE(network - size - in - bytes, PRIi64), bytesProcessed);
   }
 }
 
@@ -2566,7 +2567,6 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
            std::vector<ConfigParamSpec> const& currentWorkflowOptions,
            o2::framework::ConfigContext& configContext)
 {
-  O2_SIGNPOST_INIT();
   std::vector<std::string> currentArgs;
   std::vector<PluginInfo> plugins;
 

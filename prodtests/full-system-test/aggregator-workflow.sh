@@ -19,7 +19,7 @@ if [[ -z ${WORKFLOW_DETECTORS:-} ]]; then echo "WORKFLOW_DETECTORS must be defin
 
 # CCDB destination for uploads
 if [[ -z ${CCDB_POPULATOR_UPLOAD_PATH+x} ]]; then
-  if [[ $RUNTYPE == "SYNTHETIC" ]]; then
+  if [[ $RUNTYPE == "SYNTHETIC" || "${GEN_TOPO_DEPLOYMENT_TYPE:-}" == "ALICE_STAGING" ]]; then
     CCDB_POPULATOR_UPLOAD_PATH="http://ccdb-test.cern.ch:8080"
   elif [[ $RUNTYPE == "PHYSICS" ]]; then
     if [[ $EPNSYNCMODE == 1 ]]; then
@@ -130,11 +130,16 @@ if workflow_has_parameter CALIB_PROXIES; then
       # define port for FLP
       : ${TPC_IDC_FLP_PORT:=29950}
       # expand FLPs; TPC uses from 001 to 145, but 145 is reserved for SAC
-      for flp in $(seq -f "%03g" 1 144); do
-        [[ ! $FLP_IDS =~ (^|,)"$flp"(,|$) ]] && continue
-        [[ $EPNSYNCMODE == 1 ]] && FLP_ADDRESS="tcp://alio2-cr1-flp${flp}-ib:${TPC_IDC_FLP_PORT}"
-        CHANNELS_LIST+="type=pull,name=tpcidc_flp${flp},transport=zeromq,address=$FLP_ADDRESS,method=connect,rateLogging=10;"
-      done
+      if [[ "${GEN_TOPO_DEPLOYMENT_TYPE:-}" == "ALICE_STAGING" ]]; then
+        FLP_ADDRESS="tcp://alio2-cr1-mvs03-ib:${TPC_IDC_FLP_PORT}"
+        CHANNELS_LIST+="type=pull,name=tpcidc_flp,transport=zeromq,address=$FLP_ADDRESS,method=connect,rateLogging=10;"
+      else
+        for flp in $(seq -f "%03g" 1 144); do
+          [[ ! $FLP_IDS =~ (^|,)"$flp"(,|$) ]] && continue
+          [[ $EPNSYNCMODE == 1 ]] && FLP_ADDRESS="tcp://alio2-cr1-flp${flp}-ib:${TPC_IDC_FLP_PORT}"
+          CHANNELS_LIST+="type=pull,name=tpcidc_flp${flp},transport=zeromq,address=$FLP_ADDRESS,method=connect,rateLogging=10;"
+        done
+      fi
     fi
     if [[ ! -z ${CALIBDATASPEC_TPCSAC:-} ]]; then
       # define port for FLP

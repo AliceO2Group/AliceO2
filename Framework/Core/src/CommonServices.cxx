@@ -213,9 +213,7 @@ o2::framework::ServiceSpec CommonServices::datatakingContextSpec()
         context.detectors = extDetectors;
       }
       auto forcedRaw = services.get<RawDeviceService>().device()->fConfig->GetProperty<std::string>("force_run_as_raw", "false");
-      context.forcedRaw = forcedRaw == "true";
-
-      context.nOrbitsPerTF = services.get<RawDeviceService>().device()->fConfig->GetProperty<uint64_t>("Norbits_per_TF", 128); },
+      context.forcedRaw = forcedRaw == "true"; },
     .kind = ServiceKind::Stream};
 }
 
@@ -646,14 +644,16 @@ auto flushStates(ServiceRegistryRef registry, DataProcessingStates& states) -> v
   });
 }
 
+O2_DECLARE_DYNAMIC_LOG(monitoring_service);
+
 /// This will flush metrics only once every second.
 auto flushMetrics(ServiceRegistryRef registry, DataProcessingStats& stats) -> void
 {
-  ZoneScopedN("flush metrics");
+  O2_SIGNPOST_ID_GENERATE(sid, monitoring_service);
+  O2_SIGNPOST_START(monitoring_service, sid, "flush", "flushing metrics");
   auto& monitoring = registry.get<Monitoring>();
   auto& relayer = registry.get<DataRelayer>();
 
-  O2_SIGNPOST_START(MonitoringStatus::ID, MonitoringStatus::FLUSH, 0, 0, O2_SIGNPOST_RED);
   // Send all the relevant metrics for the relayer to update the GUI
   stats.flushChangedMetrics([&monitoring](DataProcessingStats::MetricSpec const& spec, int64_t timestamp, int64_t value) mutable -> void {
     // convert timestamp to a time_point
@@ -683,7 +683,7 @@ auto flushMetrics(ServiceRegistryRef registry, DataProcessingStats& stats) -> vo
   });
   relayer.sendContextState();
   monitoring.flushBuffer();
-  O2_SIGNPOST_END(MonitoringStatus::ID, MonitoringStatus::FLUSH, 0, 0, O2_SIGNPOST_RED);
+  O2_SIGNPOST_END(monitoring_service, sid, "flush", "done flushing metrics");
 };
 } // namespace
 

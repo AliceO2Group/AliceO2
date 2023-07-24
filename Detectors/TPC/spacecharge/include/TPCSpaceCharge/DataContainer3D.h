@@ -102,6 +102,7 @@ struct DataContainer3D {
   /// \param nr number of vertices in r
   /// \param nphi number of vertices in phi
   static size_t getIndexZ(size_t index, const int nz, const int nr, const int nphi);
+  size_t getIndexZ(size_t index) const { return getIndexZ(index, getNZ(), getNR(), getNPhi()); }
 
   /// \return returns index ir for given global index (can be used for TTree::Draw("second : o2::tpc::DataContainer3D<float>::getIndexR(first+Iteration$, 129, 129, 360) ","","colz"))
   /// \param index global index
@@ -109,6 +110,7 @@ struct DataContainer3D {
   /// \param nr number of vertices in r
   /// \param nphi number of vertices in phi
   static size_t getIndexR(size_t index, const int nz, const int nr, const int nphi);
+  size_t getIndexR(size_t index) const { return getIndexR(index, getNZ(), getNR(), getNPhi()); }
 
   /// \return returns index iphi for given global index (can be used for TTree::Draw("second : o2::tpc::DataContainer3D<float>::getIndexPhi(first+Iteration$, 129, 129, 360) ","","colz"))
   /// \param index global index
@@ -116,6 +118,7 @@ struct DataContainer3D {
   /// \param nr number of vertices in r
   /// \param nphi number of vertices in phi
   static size_t getIndexPhi(size_t index, const int nz, const int nr, const int nphi);
+  size_t getIndexPhi(size_t index) const { return getIndexPhi(index, getNZ(), getNR(), getNPhi()); }
 
   /// set the grid points
   void setGrid(unsigned short nZ, unsigned short nR, unsigned short nPhi, const bool resize);
@@ -186,6 +189,7 @@ struct DataContainer3D {
   /// operator overload
   DataContainer3D<DataT>& operator*=(const DataT value);
   DataContainer3D<DataT>& operator+=(const DataContainer3D<DataT>& other);
+  DataContainer3D<DataT>& operator-=(const DataContainer3D<DataT>& other);
 
  private:
   unsigned short mZVertices{};   ///< number of z vertices

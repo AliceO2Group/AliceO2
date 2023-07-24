@@ -17,6 +17,7 @@ o2_add_library(DataFormatsFT0
           src/RecPoints.cxx
           src/RawEventData.cxx
           src/CTF.cxx
+          src/LookUpTable.cxx
   PUBLIC_LINK_LIBRARIES O2::FT0Base
                         O2::DataFormatsFIT
                         O2::SimulationDataFormat

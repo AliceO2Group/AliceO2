@@ -41,3 +41,25 @@ void GRPMagField::print() const
 {
   printf("magnet currents (A) L3 = %.3f, Dipole = %.f; uniformity = %s\n", getL3Current(), getDipoleCurrent(), mUniformField ? "true" : "false");
 }
+
+o2::units::Current_t GRPMagField::checkDipoleOverride()
+{
+  static float v = getenv("O2_OVERRIDE_DIPOLE_CURRENT") ? atof(getenv("O2_OVERRIDE_DIPOLE_CURRENT")) : NOOVERRIDEVAL;
+  static bool alarmShown = false;
+  if (v != NOOVERRIDEVAL && !alarmShown) {
+    LOGP(error, "Overriding DIPOLE current to {}", v);
+    alarmShown = true;
+  }
+  return v;
+}
+
+o2::units::Current_t GRPMagField::checkL3Override()
+{
+  static float v = getenv("O2_OVERRIDE_L3_CURRENT") ? atof(getenv("O2_OVERRIDE_L3_CURRENT")) : NOOVERRIDEVAL;
+  static bool alarmShown = false;
+  if (v != NOOVERRIDEVAL && !alarmShown) {
+    LOGP(error, "Overriding L3 current to {}", v);
+    alarmShown = true;
+  }
+  return v;
+}

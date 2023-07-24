@@ -167,7 +167,7 @@ o2::framework::DataProcessorSpec specCombiner(std::string const& name, std::vect
       if (inputBindings.find(is.binding) != inputBindings.end()) {
         // we can accept duplicate binding if it is bound to the same spec (e.g. ccdbParamSpec)
         if (std::find(combinedInputSpec.begin(), combinedInputSpec.end(), is) == combinedInputSpec.end()) {
-          LOG(error) << "Found duplicate input binding with different spec.:" << is.binding;
+          LOG(error) << "Found duplicate input binding with different spec.:" << is;
         } else {
           continue; // consider as already accounted
         }

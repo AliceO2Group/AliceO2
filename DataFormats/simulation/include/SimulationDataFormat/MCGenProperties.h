@@ -9,8 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_SIMDATA_MCGENSTATUS_H_
-#define ALICEO2_SIMDATA_MCGENSTATUS_H_
+#ifndef ALICEO2_SIMDATA_MCGENPROPERTIES_H_
+#define ALICEO2_SIMDATA_MCGENPROPERTIES_H_
 
 namespace o2
 {
@@ -75,6 +75,57 @@ inline int getGenStatusCode(int encoded)
 }
 
 } // namespace mcgenstatus
+
+namespace mcgenid
+{
+
+// Define some common properties that can be set for Generators
+class GeneratorProperty
+{
+ public:
+  typedef const char* Property;
+  static constexpr Property GENERATORID{"generator_id"};
+  static constexpr Property GENERATORDESCRIPTION{"generator_description"};
+  static constexpr Property SUBGENERATORID{"subgenerator_id"};
+  static constexpr Property SUBGENERATORDESCRIPTIONMAP{"subgenerator_description_map"};
+};
+
+// internal structure to allow encoding of generator IDs and map different numbers to a single short
+union MCGenIdEncoding {
+  MCGenIdEncoding() : fullEncoding(0) {}
+  MCGenIdEncoding(int enc) : fullEncoding(enc) {}
+  MCGenIdEncoding(int generatorId, int sourceId, int subGeneratorId) : generatorId(generatorId), sourceId(sourceId), subGeneratorId(subGeneratorId) {}
+  short fullEncoding;
+  struct {
+    unsigned short generatorId : 7;    // an additional identifier for a generator which can be set by the user
+    unsigned short sourceId : 4;       // ID used in embedding scenarios
+    unsigned short subGeneratorId : 5; // sub generator ID in case a generator implements some additional logic
+  };
+};
+
+inline short getEncodedGenId(int generatorId, int sourceId, int subGeneratorId = -1)
+{
+
+  return MCGenIdEncoding(generatorId, sourceId, subGeneratorId + 1).fullEncoding;
+}
+
+inline int getGeneratorId(short encoded)
+{
+
+  return static_cast<int>(MCGenIdEncoding(encoded).generatorId);
+}
+
+inline int getSourceId(short encoded)
+{
+  return static_cast<int>(MCGenIdEncoding(encoded).sourceId);
+}
+
+inline int getSubGeneratorId(short encoded)
+{
+  return static_cast<int>(MCGenIdEncoding(encoded).subGeneratorId) - 1;
+}
+
+} // namespace mcgenid
 
 } // namespace o2
 

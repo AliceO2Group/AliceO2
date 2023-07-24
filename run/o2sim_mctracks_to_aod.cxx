@@ -13,6 +13,7 @@
 #include "Framework/runDataProcessing.h"
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCEventHeader.h"
+#include "SimulationDataFormat/MCUtils.h"
 #include "Framework/AnalysisDataModel.h"
 
 using namespace o2::framework;
@@ -66,7 +67,7 @@ struct McTracksToAOD {
           daughters[1] = mctrack.getLastDaughterTrackId();
         }
         int PdgCode = mctrack.GetPdgCode();
-        int statusCode = mctrack.getStatusCode().fullEncoding;
+        int statusCode = 0;
         float weight = mctrack.getWeight();
         float px = mctrack.Px();
         float py = mctrack.Py();
@@ -77,7 +78,16 @@ struct McTracksToAOD {
         float z = mctrack.GetStartVertexCoordinatesZ();
         float t = mctrack.GetStartVertexCoordinatesT();
         int flags = 0;
-        mcparticles(i, // collisionId,
+        if (!mctrack.isPrimary()) {
+          flags |= o2::aod::mcparticle::enums::ProducedByTransport; // mark as produced by transport
+          statusCode = mctrack.getProcess();
+        } else {
+          statusCode = mctrack.getStatusCode().fullEncoding;
+        }
+        if (o2::mcutils::MCTrackNavigator::isPhysicalPrimary(mctrack, mctracks)) {
+          flags |= o2::aod::mcparticle::enums::PhysicalPrimary; // mark as physical primary
+        }
+        mcparticles(mcollisions.lastIndex(), // collisionId,
                     PdgCode,
                     statusCode,
                     flags,
