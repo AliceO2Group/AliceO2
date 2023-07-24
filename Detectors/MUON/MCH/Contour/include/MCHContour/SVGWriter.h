@@ -69,11 +69,10 @@ class SVGWriter
     mSVGBuffer << boost::format(R"(<text x="%f" y="%f">%s</text>)") % x % y % text.c_str() << "\n";
   }
 
-
   template <typename T>
   void polygon(const o2::mch::contour::Polygon<T>& p)
   {
-    // modification
+
     mSVGBuffer << R"(<polygon fill="blue" points=")";
     auto vertices = getVertices(p);
     for (auto j = 0; j < vertices.size(); ++j) {
@@ -92,10 +91,10 @@ class SVGWriter
     }
   }
 
-    template <typename T>
-  void polygon(const o2::mch::contour::Polygon<T>& p,  const std::string& fillColor)
+  template <typename T>
+  void polygon(const o2::mch::contour::Polygon<T>& p, const std::string& fillColor)
   {
-    // modification
+
     mSVGBuffer << R"(<polygon fill=")" << fillColor << R"(" points=")";
     auto vertices = getVertices(p);
     for (auto j = 0; j < vertices.size(); ++j) {
@@ -109,12 +108,11 @@ class SVGWriter
   template <typename T>
   void contour(const o2::mch::contour::Contour<T>& c, const std::string& color)
   {
-    
+
     for (auto& p : c.getPolygons()) {
       polygon(p, color);
     }
   }
-
 
   void points(const std::vector<std::pair<double, double>>& pts, double radius = 0.05)
   {
