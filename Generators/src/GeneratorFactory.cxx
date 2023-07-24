@@ -13,7 +13,6 @@
 
 #include <SimulationDataFormat/O2DatabasePDG.h>
 #include <Generators/GeneratorFactory.h>
-#include "FairPrimaryGenerator.h"
 #include "FairGenerator.h"
 #include "FairBoxGenerator.h"
 #include <fairlogger/Logger.h>
@@ -33,6 +32,7 @@
 #include <Generators/GeneratorHepMC.h>
 #include <Generators/GeneratorHepMCParam.h>
 #endif
+#include <Generators/PrimaryGenerator.h>
 #include <Generators/BoxGunParam.h>
 #include <Generators/TriggerParticle.h>
 #include <Generators/TriggerExternalParam.h>
@@ -54,6 +54,8 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     LOG(warning) << "No primary generator instance; Cannot setup";
     return;
   }
+
+  auto primGenO2 = dynamic_cast<PrimaryGenerator*>(primGen);
 
   auto makeBoxGen = [](int pdgid, int mult, double etamin, double etamax, double pmin, double pmax, double phimin, double phimax, bool debug = false) {
     auto gen = new FairBoxGenerator(pdgid, mult);

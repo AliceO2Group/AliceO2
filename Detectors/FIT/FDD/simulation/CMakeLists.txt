@@ -27,10 +27,6 @@ o2_target_root_dictionary(FDDSimulation
 o2_add_executable(digit2raw
         COMPONENT_NAME fdd
         SOURCES src/digit2raw.cxx
-        PUBLIC_LINK_LIBRARIES O2::FDDSimulation
-        O2::DetectorsRaw
-        O2::DetectorsCommonDataFormats
-        O2::CommonUtils
-        Boost::program_options
-        O2::FDDRaw)
+        PUBLIC_LINK_LIBRARIES O2::FDDRaw
+                              Boost::program_options)
 o2_data_file(COPY data DESTINATION Detectors/FDD/simulation)

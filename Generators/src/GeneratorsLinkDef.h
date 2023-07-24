@@ -54,6 +54,7 @@
 #pragma link C++ class o2::eventgen::GeneratorFromO2KineParam + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::GeneratorFromO2KineParam> + ;
 #pragma link C++ class o2::eventgen::PrimaryGenerator + ;
+#pragma link C++ class o2::eventgen::PrimaryGeneratorParam + ;
 
 #pragma link C++ enum o2::eventgen::EVertexDistribution;
 #pragma link C++ class o2::eventgen::TriggerExternalParam + ;

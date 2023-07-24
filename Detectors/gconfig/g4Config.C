@@ -97,7 +97,8 @@ void Config()
                                  // one and all of its secondaries have been transported
                                  // any other choice is dangerously inconsistent with the FinishPrimary() interface of VMCApp
 
-  auto& physicsSetup = ::o2::conf::G4Params::Instance().getPhysicsConfigString();
+  auto& g4Params = ::o2::conf::G4Params::Instance();
+  auto& physicsSetup = g4Params.getPhysicsConfigString();
   std::cout << "PhysicsSetup wanted " << physicsSetup << "\n";
   auto runConfiguration = new TG4RunConfiguration("geomRoot", physicsSetup, "stepLimiter+specialCuts",
                                                   specialStacking, mtMode);
@@ -114,12 +115,18 @@ void Config()
   // setup decayer
   decayerSetup(geant4);
 
-  TString configm(gSystem->Getenv("VMCWORKDIR"));
-  auto configm1 = configm + "/Detectors/gconfig/g4config.in";
+  // eventually apply custom g4config.in
+  if (g4Params.configMacroFile.size() > 0) {
+    std::cout << "Applying custom config file " << g4Params.configMacroFile << "\n";
+    geant4->ProcessGeantMacro(g4Params.configMacroFile.c_str());
+  } else {
+    TString configm(gSystem->Getenv("VMCWORKDIR"));
+    auto configm1 = configm + "/Detectors/gconfig/g4config.in";
 
-  /// Customise Geant4 setting
-  /// (verbose level, global range cut, ..)
-  geant4->ProcessGeantMacro(configm1.Data());
+    /// Customise Geant4 setting
+    /// (verbose level, global range cut, ..)
+    geant4->ProcessGeantMacro(configm1.Data());
+  }
 
   // Enter in Geant4 Interactive mode
   // geant4->StartGeantUI();
