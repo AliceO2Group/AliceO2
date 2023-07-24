@@ -40,13 +40,13 @@ namespace o2::tpc
 ///
 /// How to use:
 /// Example:
-/// CalculatedEdx calc{};
-/// calc.loadCalibsFromCCDB(runNumber);
+/// CalculatedEdx c{};
+/// c.loadCalibsFromCCDB(runNumber);
 /// start looping over the data
-/// calc.setMembers(tpcTrackClIdxVecInput, clusterIndex, tpcTracks); // set the member variables: TrackTPC, TPCClRefElem, o2::tpc::ClusterNativeAccess
-/// calc.setRefit(); // set the refit pointer to perform refitting of tracks, otherwise setPropagateTrack to true
+/// c.setMembers(tpcTrackClIdxVecInput, clusterIndex, tpcTracks); // set the member variables: TrackTPC, TPCClRefElem, o2::tpc::ClusterNativeAccess
+/// c.setRefit(); // set the refit pointer to perform refitting of tracks, otherwise setPropagateTrack to true
 /// start looping over the tracks
-/// calc.getTruncMean(track, output, 0.01, 0.6, CorrectionFlags::TopologyPol | CorrectionFlags::GainFull | CorrectionFlags::GainResidual | CorrectionFlags::dEdxResidual) // this will fill the dEdxInfo output for given track
+/// c.calculatedEdx(track, output, 0.01, 0.6, CorrectionFlags::TopologyPol | CorrectionFlags::GainFull | CorrectionFlags::GainResidual | CorrectionFlags::dEdxResidual) // this will fill the dEdxInfo output for given track
 
 enum class CorrectionFlags : unsigned short {
   TopologySimple = 1 << 0, ///< flag for simple analytical topology correction
@@ -98,7 +98,7 @@ class CalculatedEdx
   int getMaxMissingCl() { return mMaxMissingCl; }
 
   /// fill missing clusters with minimum charge (method=0) or minimum charge/2 (method=1)
-  void fillMissingClusters(std::array<std::vector<float>, 5> chargeROC, int missingClusters[4], float minCharge, int method);
+  void fillMissingClusters(int missingClusters[4], float minChargeTot, float minChargeMax, int method);
 
   /// get the truncated mean for the input track with the truncation range, charge type, region and corrections
   /// the cluster charge is normalized by effective length*gain, you can turn off the normalization by setting all corrections to false
@@ -137,11 +137,11 @@ class CalculatedEdx
   void loadCalibsFromCCDB(int runNumber);
 
  private:
-  std::vector<TrackTPC>* mTracks{nullptr};                             ///< vector containing the tpc tracks which will be processed.
-  std::vector<TPCClRefElem>* mTPCTrackClIdxVecInput{nullptr};          ///< input vector with TPC tracks cluster indicies
-  const o2::tpc::ClusterNativeAccess* mClusterIndex{nullptr};          ///< needed to access clusternative with tpctracks
-  o2::gpu::CorrectionMapsHelper mTPCCorrMapsHelper;                    ///< cluster corrections map helper
-  std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mRefit{nullptr};       ///< TPC refitter used for TPC tracks refit during the reconstruction
+  std::vector<TrackTPC>* mTracks{nullptr};                       ///< vector containing the tpc tracks which will be processed.
+  std::vector<TPCClRefElem>* mTPCTrackClIdxVecInput{nullptr};    ///< input vector with TPC tracks cluster indicies
+  const o2::tpc::ClusterNativeAccess* mClusterIndex{nullptr};    ///< needed to access clusternative with tpctracks
+  o2::gpu::CorrectionMapsHelper mTPCCorrMapsHelper;              ///< cluster corrections map helper
+  std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mRefit{nullptr}; ///< TPC refitter used for TPC tracks refit during the reconstruction
 
   int mMaxMissingCl{2};                                                ///< maximum number of missing clusters for subthreshold check
   float mField{5};                                                     ///< magnetic field in kG, used for track propagation
@@ -149,6 +149,9 @@ class CalculatedEdx
   bool mDebug{false};                                                  ///< use the debug streamer
   CalibdEdxContainer mCalibCont;                                       ///< calibration container
   std::unique_ptr<o2::utils::TreeStreamRedirector> mStreamer{nullptr}; ///< debug streamer
+
+  std::array<std::vector<float>, 5> mChargeTotROC;
+  std::array<std::vector<float>, 5> mChargeMaxROC;
 };
 
 } // namespace o2::tpc

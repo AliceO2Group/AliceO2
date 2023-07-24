@@ -47,22 +47,30 @@ void CalculatedEdx::setRefit()
   mRefit = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mClusterIndex, &mTPCCorrMapsHelper, mField, mTPCTrackClIdxVecInput->data(), nullptr, mTracks);
 }
 
-void CalculatedEdx::fillMissingClusters(std::array<std::vector<float>, 5> chargeROC, int missingClusters[4], float minCharge, int method)
+void CalculatedEdx::fillMissingClusters(int missingClusters[4], float minChargeTot, float minChargeMax, int method)
 {
   // adding minimum charge
   if (method == 0) {
     for (int roc = 0; roc < 4; roc++) {
       for (int i = 0; i < missingClusters[roc]; i++) {
-        chargeROC[roc].emplace_back(minCharge);
+        mChargeTotROC[roc].emplace_back(minChargeTot);
+        mChargeTotROC[4].emplace_back(minChargeTot);
+
+        mChargeMaxROC[roc].emplace_back(minChargeMax);
+        mChargeMaxROC[4].emplace_back(minChargeMax);
       }
     }
   }
+
   // adding minimum charge/2
   if (method == 1) {
     for (int roc = 0; roc < 4; roc++) {
       for (int i = 0; i < missingClusters[roc]; i++) {
-        float result = minCharge / 2;
-        chargeROC[roc].emplace_back(result);
+        mChargeTotROC[roc].emplace_back(minChargeTot / 2);
+        mChargeTotROC[4].emplace_back(minChargeTot / 2);
+
+        mChargeMaxROC[roc].emplace_back(minChargeMax / 2);
+        mChargeMaxROC[4].emplace_back(minChargeMax / 2);
       }
     }
   }
@@ -73,10 +81,20 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
   // get number of clusters
   const int nClusters = track.getNClusterReferences();
 
-  std::array<std::vector<float>, 5> chargeTotROC;
-  std::array<std::vector<float>, 5> chargeMaxROC;
   int nClsROC[4] = {0};
   int nClsSubThreshROC[4] = {0};
+
+  mChargeTotROC[0].clear();
+  mChargeTotROC[1].clear();
+  mChargeTotROC[2].clear();
+  mChargeTotROC[3].clear();
+  mChargeTotROC[4].clear();
+
+  mChargeMaxROC[0].clear();
+  mChargeMaxROC[1].clear();
+  mChargeMaxROC[2].clear();
+  mChargeMaxROC[3].clear();
+  mChargeMaxROC[4].clear();
 
   std::vector<int> regionVector;             ///< debug streamer vector for region
   std::vector<unsigned char> rowIndexVector; ///< debug streamer vector for row index
@@ -84,15 +102,12 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
   std::vector<int> stackVector;              ///< debug streamer vector for stack
   std::vector<unsigned char> sectorVector;   ///< debug streamer vector for sector
 
-  std::vector<float> topologyCorrVector;     ///< debug streamer vector for simple topology correction
-  std::vector<float> topologyCorrTotVector;  ///< debug streamer vector for polynomial topology correction
-  std::vector<float> topologyCorrMaxVector;  ///< debug streamer vector for polynomial topology correction
-  std::vector<float> gainVector;             ///< debug streamer vector for gain
-  std::vector<float> residualCorrTotVector;  ///< debug streamer vector for residual dEdx correction
-  std::vector<float> residualCorrMaxVector;  ///< debug streamer vector for residual dEdx correction
-
-  std::vector<float> chargeTotVector;        ///< debug streamer vector for charge
-  std::vector<float> chargeMaxVector;        ///< debug streamer vector for charge
+  std::vector<float> topologyCorrVector;    ///< debug streamer vector for simple topology correction
+  std::vector<float> topologyCorrTotVector; ///< debug streamer vector for polynomial topology correction
+  std::vector<float> topologyCorrMaxVector; ///< debug streamer vector for polynomial topology correction
+  std::vector<float> gainVector;            ///< debug streamer vector for gain
+  std::vector<float> residualCorrTotVector; ///< debug streamer vector for residual dEdx correction
+  std::vector<float> residualCorrMaxVector; ///< debug streamer vector for residual dEdx correction
 
   if (mDebug) {
     regionVector.reserve(nClusters);
@@ -106,8 +121,6 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
     gainVector.reserve(nClusters);
     residualCorrTotVector.reserve(nClusters);
     residualCorrMaxVector.reserve(nClusters);
-    chargeTotVector.reserve(nClusters);
-    chargeMaxVector.reserve(nClusters);
   }
 
   // for missing clusters
@@ -144,6 +157,8 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
     }
 
     if (!check || std::isnan(track.getParam(1))) {
+      rowIndexOld = rowIndex;
+      sectorIndexOld = sectorIndex;
       continue;
     }
 
@@ -228,25 +243,25 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
     };
 
     if (stack == GEMstack::IROCgem) {
-      chargeTotROC[0].emplace_back(chargeTot);
-      chargeMaxROC[0].emplace_back(chargeMax);
+      mChargeTotROC[0].emplace_back(chargeTot);
+      mChargeMaxROC[0].emplace_back(chargeMax);
       nClsROC[0]++;
     } else if (stack == GEMstack::OROC1gem) {
-      chargeTotROC[1].emplace_back(chargeTot);
-      chargeMaxROC[1].emplace_back(chargeMax);
+      mChargeTotROC[1].emplace_back(chargeTot);
+      mChargeMaxROC[1].emplace_back(chargeMax);
       nClsROC[1]++;
     } else if (stack == GEMstack::OROC2gem) {
-      chargeTotROC[2].emplace_back(chargeTot);
-      chargeMaxROC[2].emplace_back(chargeMax);
+      mChargeTotROC[2].emplace_back(chargeTot);
+      mChargeMaxROC[2].emplace_back(chargeMax);
       nClsROC[2]++;
     } else if (stack == GEMstack::OROC3gem) {
-      chargeTotROC[3].emplace_back(chargeTot);
-      chargeMaxROC[3].emplace_back(chargeMax);
+      mChargeTotROC[3].emplace_back(chargeTot);
+      mChargeMaxROC[3].emplace_back(chargeMax);
       nClsROC[3]++;
     };
 
-    chargeTotROC[4].emplace_back(chargeTot);
-    chargeMaxROC[4].emplace_back(chargeMax);
+    mChargeTotROC[4].emplace_back(chargeTot);
+    mChargeMaxROC[4].emplace_back(chargeMax);
 
     // for debugging
     if (mDebug) {
@@ -270,9 +285,6 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
       gainVector.emplace_back(gain);
       residualCorrTotVector.emplace_back(corrTot);
       residualCorrMaxVector.emplace_back(corrMax);
-
-      chargeTotVector.emplace_back(chargeTot);
-      chargeMaxVector.emplace_back(chargeMax);
     };
   }
 
@@ -287,21 +299,24 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
   output.NHitsSubThresholdOROC2 = nClsROC[2];
   output.NHitsSubThresholdOROC3 = nClsROC[3];
 
-  fillMissingClusters(chargeTotROC, nClsSubThreshROC, minChargeTot, 1);
-  fillMissingClusters(chargeMaxROC, nClsSubThreshROC, minChargeMax, 1);
+  // fill subthreshold clusters
+  fillMissingClusters(nClsSubThreshROC, minChargeTot, minChargeMax, 0);
+
+  auto chargeTotVector = mChargeTotROC[4];
+  auto chargeMaxVector = mChargeMaxROC[4];
 
   // calculate dEdx
-  output.dEdxTotIROC = getTruncMean(chargeTotROC[0], low, high);
-  output.dEdxTotOROC1 = getTruncMean(chargeTotROC[1], low, high);
-  output.dEdxTotOROC2 = getTruncMean(chargeTotROC[2], low, high);
-  output.dEdxTotOROC3 = getTruncMean(chargeTotROC[3], low, high);
-  output.dEdxTotTPC = getTruncMean(chargeTotROC[4], low, high);
+  output.dEdxTotIROC = getTruncMean(mChargeTotROC[0], low, high);
+  output.dEdxTotOROC1 = getTruncMean(mChargeTotROC[1], low, high);
+  output.dEdxTotOROC2 = getTruncMean(mChargeTotROC[2], low, high);
+  output.dEdxTotOROC3 = getTruncMean(mChargeTotROC[3], low, high);
+  output.dEdxTotTPC = getTruncMean(mChargeTotROC[4], low, high);
 
-  output.dEdxMaxIROC = getTruncMean(chargeMaxROC[0], low, high);
-  output.dEdxMaxOROC1 = getTruncMean(chargeMaxROC[1], low, high);
-  output.dEdxMaxOROC2 = getTruncMean(chargeMaxROC[2], low, high);
-  output.dEdxMaxOROC3 = getTruncMean(chargeMaxROC[3], low, high);
-  output.dEdxMaxTPC = getTruncMean(chargeMaxROC[4], low, high);
+  output.dEdxMaxIROC = getTruncMean(mChargeMaxROC[0], low, high);
+  output.dEdxMaxOROC1 = getTruncMean(mChargeMaxROC[1], low, high);
+  output.dEdxMaxOROC2 = getTruncMean(mChargeMaxROC[2], low, high);
+  output.dEdxMaxOROC3 = getTruncMean(mChargeMaxROC[3], low, high);
+  output.dEdxMaxTPC = getTruncMean(mChargeMaxROC[4], low, high);
 
   // for debugging
   if (mDebug) {
