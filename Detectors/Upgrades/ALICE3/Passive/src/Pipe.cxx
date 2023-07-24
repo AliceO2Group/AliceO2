@@ -109,7 +109,7 @@ void Alice3Pipe::ConstructGeometry()
   TGeoCompositeShape* outerBerylliumTubeVacuumComposite;                                                                                                   // Composite volume to subctract to vacuum
   TGeoVolume* outerBerylliumTubeVacuumVolume;                                                                                                              // Final volume to be used
 
-  TString compositeFormula{"OUT_PIPEVACUUM_BASEsh"};                                                                                                       // If pipe is alone we won't subctract anything
+  TString compositeFormula{"OUT_PIPEVACUUM_BASEsh"}; // If pipe is alone we won't subctract anything
   TString subtractorsFormula;
 
   if (!mIsTRKActivated) {
