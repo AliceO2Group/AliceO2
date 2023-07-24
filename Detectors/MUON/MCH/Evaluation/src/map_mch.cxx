@@ -243,7 +243,7 @@ std::vector<o2::mch::contour::Contour<double>> transformLocalToGlobal(int deId, 
         o2::math_utils::Point3D<float> lpos(vertexIn.x, vertexIn.y, 0.0); // local
         o2::math_utils::Point3D<float> gpos;                              // global
 
-        transformDeId.LocalToMaster(lpos, gpos);                          // Transformations: Rotations + Translations (local --> global) with LocalToMaster
+        transformDeId.LocalToMaster(lpos, gpos); // Transformations: Rotations + Translations (local --> global) with LocalToMaster
 
         o2::mch::contour::Vertex<double> vertexOut;
 
@@ -677,7 +677,7 @@ void svgChamber(o2::mch::contour::SVGWriter& w, int nChamber, bool bending, cons
 
   int colorId;
 
-  std::vector<std::pair<double, int>> areas;                                                                   // Vector with Areas of DS Contours paired with dsIndex
+  std::vector<std::pair<double, int>> areas; // Vector with Areas of DS Contours paired with dsIndex
 
   double Nmax = calculateNmax(nChamber, bending, ClustersperDualSampa, transformation, IsNormalizedPerDSArea); // Maximun Ratio
 
