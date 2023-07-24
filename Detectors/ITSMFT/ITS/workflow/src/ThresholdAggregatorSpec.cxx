@@ -75,7 +75,7 @@ void ITSThresholdAggregator::run(ProcessingContext& pc)
     LOG(info) << "LHC period: " << mLHCPeriod;
     LOG(info) << "Scan type : " << mScanType;
     LOG(info) << "Fit type  : " << std::to_string(mFitType);
-    LOG(info) << "DB version (no sense in pulse length 2D): " << mDBversion;
+    LOG(info) << "DB version (no sense in pulse length 2D and vresetd 2D): " << mDBversion;
   }
   for (auto const& inputRef : InputRecordWalker(pc.inputs(), {{"check", ConcreteDataTypeMatcher{"ITS", "TSTR"}}})) {
     // Read strings with tuning info
@@ -223,6 +223,11 @@ void ITSThresholdAggregator::finalize(EndOfStreamContext* ec)
 // fairMQ functionality; called automatically when the DDS stops processing
 void ITSThresholdAggregator::stop()
 {
+  if (!mStopped && (mScanType == 'R' || mScanType == 'r')) {
+    mStopped = true;
+    LOG(info) << "VRESETD scan: aggregator will not call finalize() since nothing needs to be shipped to CCDB";
+    return; // doing nothing
+  }
   if (!mStopped) {
     this->finalize(nullptr);
     this->mStopped = true;
@@ -235,6 +240,11 @@ void ITSThresholdAggregator::stop()
 // tells that there will be no more input data
 void ITSThresholdAggregator::endOfStream(EndOfStreamContext& ec)
 {
+  if (!mStopped && (mScanType == 'R' || mScanType == 'r')) {
+    mStopped = true;
+    LOG(info) << "VRESETD scan: aggregator will not call finalize() since nothing needs to be shipped to CCDB";
+    return; // doing nothing
+  }
   if (!mStopped) {
     this->finalize(&ec);
     this->mStopped = true;
