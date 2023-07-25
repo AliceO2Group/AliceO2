@@ -188,6 +188,9 @@ if [[ $EPNSYNCMODE == 1 ]]; then
 fi
 if [[ $SYNCRAWMODE == 1 ]]; then
   GPU_CONFIG_KEY+="GPU_proc.tpcIncreasedMinClustersPerRow=500000;GPU_proc.ignoreNonFatalGPUErrors=1;GPU_proc.throttleAlarms=1;GPU_proc.conservativeMemoryEstimate=1;"
+  if [[ $RUNTYPE == "PHYSICS" || $RUNTYPE == "COSMICS" || $RUNTYPE == "TECHNICAL" ]]; then
+    GPU_CONFIG_KEY+="GPU_global.checkFirstTfOrbit=1;"
+  fi
   # option for avoinding masking problematic channels from previous calibrations
   TOF_CONFIG+=" --for-calib"
 fi
