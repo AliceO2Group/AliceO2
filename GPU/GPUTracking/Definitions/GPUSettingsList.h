@@ -468,6 +468,7 @@ AddOption(partialOutputForNonFatalErrors, bool, false, "", 0, "In case of a non-
 AddOption(checkFirstTfOrbit, bool, false, "", 0, "Check consistency of firstTfOrbit")
 AddOption(tpcTriggeredMode, bool, false, "", 0, "In case we have triggered TPC data, this must be set to true")
 AddOption(zsOnTheFlyDigitsFilter, bool, false, "", 0, "Run on the fly digits filter during zs encoding")
+AddOption(dumpBadTFs, int, 0, "", 0, "Number of bad timeframes (with decoding / processing) errors to decode at max")
 EndConfig()
 #endif // GPUCA_O2_LIB
 #endif // !GPUCA_GPUCODE_DEVICE

@@ -174,6 +174,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   unsigned long mTPCSectorMask = 0;
   int mVerbosity = 0;
   unsigned int mNTFs = 0;
+  unsigned int mNDebugDumps = 0;
   bool mUpdateGainMapCCDB = true;
   std::unique_ptr<o2::gpu::GPUSettingsTF> mTFSettings;
   Config mSpecConfig;
