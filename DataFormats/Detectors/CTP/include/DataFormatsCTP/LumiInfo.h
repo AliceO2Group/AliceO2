@@ -13,6 +13,7 @@
 #define _ALICEO2_CTP_LUMIINFO_H_
 #include "CommonConstants/LHCConstants.h"
 #include <Rtypes.h>
+#include <cmath>
 
 /// \brief Luminosity information as a moving average over certain number of TFs
 
@@ -27,11 +28,14 @@ struct LumiInfo {
   uint32_t nHBFCountedFV0 = 0;
   uint64_t counts = 0;      // counts in the interval for the nominal lumi detector (FT0)
   uint64_t countsFV0 = 0;   // connts for FV0 (less reliable)
+  int inp1 = 3;             // TVX
+  int inp2 = 6;             // VBA
   float getLumi() const { return nHBFCounted > 0 ? float(counts / (nHBFCounted * o2::constants::lhc::LHCOrbitMUS * 1e-6)) : 0.f; }
   float getLumiFV0() const { return nHBFCountedFV0 > 0 ? float(countsFV0 / (nHBFCountedFV0 * o2::constants::lhc::LHCOrbitMUS * 1e-6)) : 0.f; }
   float getLumiError() const { return nHBFCounted > 0 ? float(std::sqrt(counts) / (nHBFCounted * o2::constants::lhc::LHCOrbitMUS * 1e-6)) : 0.f; }
   float getLumiFV0Error() const { return nHBFCountedFV0 > 0 ? float(std::sqrt(countsFV0) / (nHBFCountedFV0 * o2::constants::lhc::LHCOrbitMUS * 1e-6)) : 0.f; }
-  ClassDefNV(LumiInfo, 2);
+  void printInputs() const;
+  ClassDefNV(LumiInfo, 3);
 };
 } // namespace ctp
 
