@@ -178,8 +178,9 @@ bool ComputingQuotaEvaluator::selectOffer(int task, ComputingQuotaRequest const&
   if (minValidity != 0) {
     LOGP(LOGLEVEL, "Next offer to expire in {} milliseconds", minValidity);
     uv_timer_start(mTimer, [](uv_timer_t* handle) {
-        LOGP(LOGLEVEL, "Offer should be expired by now, checking again");
-    }, minValidity, 0);
+      LOGP(LOGLEVEL, "Offer should be expired by now, checking again");
+    },
+                   minValidity + 100, 0);
   }
   // If we get here it means we never got enough offers, so we return false.
   return summarizeWhatHappended(enough, stats.selectedOffers, accumulated, stats);
