@@ -35,6 +35,11 @@ class CustomMergeableObject : public MergeInterface
 
   int getSecret() const { return mSecret; }
 
+  MergeInterface* cloneMovingWindow() const override
+  {
+    return new CustomMergeableObject{mSecret};
+  }
+
  private:
   int mSecret = 0;
 
