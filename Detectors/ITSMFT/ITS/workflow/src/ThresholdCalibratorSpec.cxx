@@ -669,7 +669,7 @@ void ITSThresholdCalibrator::extractThresholdRow(const short int& chipID, const 
         for (short int chg_i = 0; chg_i < 2; chg_i++) {
           int checkchg = !chg_i ? chargeA / mStep2 : chargeB / mStep2;
           for (short int sdel_i = N_RANGE - 1; sdel_i >= 0; sdel_i--) {
-            if (mPixelHits[chipID][row][col_i][checkchg][sdel_i] == nInj) {
+            if (mPixelHits[chipID][row][col_i][checkchg - 1][sdel_i] == nInj) {
               if (!chg_i) {
                 delA = sdel_i * mStep + mStep / 2;
               } else {
