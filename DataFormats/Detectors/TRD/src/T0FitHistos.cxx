@@ -19,7 +19,6 @@
 using namespace o2::trd;
 using namespace o2::trd::constants;
 
-
 void T0FitHistos::reset()
 {
   mDet.resize(0);

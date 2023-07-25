@@ -31,7 +31,6 @@
 #include "DetectorsBase/GRPGeomHelper.h"
 #include <chrono>
 
-
 using namespace o2::framework;
 
 namespace o2

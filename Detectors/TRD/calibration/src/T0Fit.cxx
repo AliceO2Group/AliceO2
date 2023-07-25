@@ -117,7 +117,6 @@ void T0Fit::initProcessing()
   mInitDone = true;
 }
 
-
 void T0Fit::finalizeSlot(Slot& slot)
 {
   // do actual fits for the data provided in the given slot
