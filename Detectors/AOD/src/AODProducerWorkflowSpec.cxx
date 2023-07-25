@@ -2069,33 +2069,35 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   fillStrangenessTrackingTables(recoData, trackedV0Cursor, trackedCascadeCursor, tracked3BodyCurs);
 
   // helper map for fast search of a corresponding class mask for a bc
-  std::unordered_map<uint64_t, uint64_t> bcToClassMask;
+  std::unordered_map<uint64_t, std::vector<uint64_t>> bcToClassMask;
   if (mInputSources[GID::CTP]) {
     LOG(debug) << "CTP input available";
     for (auto& ctpDigit : ctpDigits) {
       uint64_t bc = ctpDigit.intRecord.toLong();
       uint64_t classMask = ctpDigit.CTPClassMask.to_ulong();
-      bcToClassMask[bc] = classMask;
+      uint64_t inputMask = ctpDigit.CTPInputMask.to_ulong();
+      bcToClassMask[bc] = {classMask, inputMask};
       // LOG(debug) << Form("classmask:0x%llx", classMask);
     }
   }
 
   // filling BC table
-  uint64_t triggerMask = 0;
+  std::vector<uint64_t> masks;
   bcCursor.reserve(bcsMap.size());
   for (auto& item : bcsMap) {
     uint64_t bc = item.first;
     if (mInputSources[GID::CTP]) {
       auto bcClassPair = bcToClassMask.find(bc);
       if (bcClassPair != bcToClassMask.end()) {
-        triggerMask = bcClassPair->second;
+        masks = bcClassPair->second;
       } else {
-        triggerMask = 0;
+        masks = {0,0};
       }
     }
     bcCursor(runNumber,
              bc,
-             triggerMask);
+             masks[0],
+             masks[1]);
   }
 
   bcToClassMask.clear();
