@@ -43,6 +43,8 @@ class RawDataDecoder
   uint32_t getIRRejected() const { return mIRRejected; }
   uint32_t getTCRRejected() const { return mTCRRejected; }
   std::vector<uint32_t>& getTFOrbits() { return mTFOrbits; }
+  int getErrorIR() { return mErrorIR; }
+  int getErrorTCR() { return mErrorTCR; }
   int init();
 
  private:

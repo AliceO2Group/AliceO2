@@ -290,7 +290,7 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
     }
   }
   // ret = 1;
-  if (ret) {
+  if (mErrorIR || mErrorTCR) {
     if (nwrites < mErrorMax) {
       std::string file = "/tmp/dumpCTP" + std::to_string(nwrites) + ".bin";
       std::ofstream dumpctp(file.c_str(), std::ios::out | std::ios::binary);
@@ -306,9 +306,7 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
       }
       nwrites++;
     }
-  }
-  if (mErrorIR || mErrorTCR) {
-    LOG(error) << "CTP decoding IR errors:" << mErrorIR << " TCR errors:" << mErrorTCR;
+    //LOG(error) << "CTP decoding IR errors:" << mErrorIR << " TCR errors:" << mErrorTCR;
   }
   return ret;
 }
