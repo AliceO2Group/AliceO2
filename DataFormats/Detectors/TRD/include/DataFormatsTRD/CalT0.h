@@ -35,9 +35,9 @@ class CalT0
   void setT0av(float t0) { mT0av = t0; }
 
   float getT0(int iDet) const { return mT0[iDet]; }
-  //getT0av() returns the average T0 obtained by fitting the data from all chambers combined
+  // getT0av() returns the average T0 obtained by fitting the data from all chambers combined
   float getT0av() const { return mT0av; }
-  //calcT0av() returns the average T0 from all individual chambers
+  // calcT0av() returns the average T0 from all individual chambers
   float calcT0av() const
   {
     if (mT0.size() == 0) {
