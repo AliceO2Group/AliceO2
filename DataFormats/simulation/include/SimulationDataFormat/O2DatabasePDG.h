@@ -296,13 +296,13 @@ inline void O2DatabasePDG::addALICEParticles(TDatabasePDG* db)
                     2.5e-15, 6, "Ion", ionCode);
   }
 
-  //Lithium 4 ground state
+  // Lithium 4 ground state
   ionCode = 1000030040;
   if (!db->GetParticle(ionCode)) {
     db->AddParticle("Lithium4", "Lithium4", 3.74976, kFALSE,
                     0.005, 9, "Ion", ionCode);
   }
-  //anti Lithium 4 ground state
+  // anti Lithium 4 ground state
   ionCode = -1000030040;
   if (!db->GetParticle(ionCode)) {
     db->AddParticle("AntiLithium4", "AntiLithium4", 3.74976, kFALSE,
