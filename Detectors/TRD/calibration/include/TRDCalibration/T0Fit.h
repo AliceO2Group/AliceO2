@@ -25,8 +25,6 @@
 #include "TRDCalibration/CalibrationParams.h"
 
 #include "Rtypes.h"
-#include "TH2.h"
-#include "TH1.h"
 #include "TProfile.h"
 #include "TF1.h"
 #include "Fit/Fitter.h"
@@ -77,15 +75,10 @@ class T0Fit final : public o2::calibration::TimeSlotCalibration<o2::trd::T0FitHi
 
   void initProcessing();
 
-  /// Initialize the fit values once with the previous valid ones if they are
-  /// available.
-  void retrievePrev(o2::framework::ProcessingContext& pc);
-
  private:
   bool mInitDone{false};                                         ///< flag to avoid creating output etc multiple times
   const TRDCalibParams& mParams{TRDCalibParams::Instance()};     ///< reference to calibration parameters
-  size_t mMinEntriesTotal{mParams.minEntriesTotalT0Fit};         ///< minimum total number of angular deviations
-  size_t mMinEntriesChamber{mParams.minEntriesChamberT0Fit};     ///< minimum number of angular deviations per chamber for accepting refitted value
+  size_t mMinEntriesTotal{mParams.minEntriesTotalT0Fit};         ///< minimum number of entries in inclusive PH profile
   bool mEnableOutput{false};                                     ///< enable output in a root file instead of the ccdb
   std::unique_ptr<TFile> mOutFile{nullptr};                      ///< output file
   std::unique_ptr<TTree> mOutTree{nullptr};                      ///< output tree
@@ -93,6 +86,7 @@ class T0Fit final : public o2::calibration::TimeSlotCalibration<o2::trd::T0FitHi
   ROOT::Fit::Fitter mFitter;                                     ///< instance of the ROOT fitter
   std::array<double, 4> mParamsStart;                            ///< Starting parameters for fit
   std::unique_ptr<TF1> mFuncErfLandau;                           ///< helper function to calculate the t0 value after the fitting procedure
+  float mDummyT0{-5};                                            ///< dummy value for t0, to be used if fit fails or not enough statistics
   std::array<float, o2::trd::constants::MAXCHAMBER> t0_chambers; ///< t0 values of the individual chambers
   float t0_average{-5};                                          ///< average t0 value across all chambers
 

@@ -34,7 +34,6 @@ class T0FitHistos
   T0FitHistos() = default;
   T0FitHistos(const T0FitHistos&) = default;
   ~T0FitHistos() = default;
-  void init();
   void reset();
   auto getDetector(int index) const { return mDet[index]; }
   auto getTimeBin(int index) const { return mTB[index]; }
@@ -50,7 +49,6 @@ class T0FitHistos
   std::vector<int> mTB{};
   std::vector<int> mADC{};
   size_t mNEntriesTot{0};
-  bool mInitialized{false};
 
   ClassDefNV(T0FitHistos, 1);
 };

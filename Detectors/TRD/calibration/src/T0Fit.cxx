@@ -28,7 +28,6 @@
 #include <TTree.h>
 
 #include "TMath.h"
-#include "TCanvas.h"
 
 #include <string>
 #include <map>
@@ -61,7 +60,6 @@ double ErfLandauChi2Functor::operator()(const double* par) const
     double funcVal = par[0] * TMath::Erf(x[i]) + par[1] * TMath::Landau(x[i], par[2], par[3]);
 
     sum2 += TMath::Power(y[i] - funcVal, 2) / y[i];
-    // sum2 += TMath::Power((y[i] - funcVal)/yErr[i],2);
   }
 
   return sum2;
@@ -119,27 +117,6 @@ void T0Fit::initProcessing()
   mInitDone = true;
 }
 
-void T0Fit::retrievePrev(o2::framework::ProcessingContext& pc)
-{
-  // We either get a pointer to a valid object from the last ~hour or to the default object
-  // which is always present. The first has precedence over the latter.
-  auto dataCalT0 = pc.inputs().get<o2::trd::CalT0*>("calt0");
-  std::string msg = "Default Object";
-  // We check if the object we got is the default one by comparing it to the defaults.
-  for (int iDet = 0; iDet < constants::MAXCHAMBER; ++iDet) {
-    if (dataCalT0->getT0(iDet) != constants::T0DEFAULT) {
-      msg = "Previous Object";
-      break;
-    }
-  }
-  LOG(info) << "FitInstance: From CCDB retrieved " << msg;
-
-  // Here we set each entry regardless if it is the default or not.
-  for (int iDet = 0; iDet < constants::MAXCHAMBER; ++iDet) {
-    t0_chambers[iDet] = dataCalT0->getT0(iDet);
-  }
-  t0_average = dataCalT0->getT0av();
-}
 
 void T0Fit::finalizeSlot(Slot& slot)
 {
@@ -174,15 +151,15 @@ void T0Fit::finalizeSlot(Slot& slot)
     mFuncErfLandau->SetParameters(fitResult.GetParams()[0], fitResult.GetParams()[1], fitResult.GetParams()[2], fitResult.GetParams()[3]);
     t0_average = mFuncErfLandau->GetMaximumX();
   } else {
-    LOG(info) << "t0 fit for inclusive distribtion is not valid, set to -5";
-    t0_average = -5;
+    LOG(info) << "t0 fit for inclusive distribtion is not valid, set to " << mDummyT0;
+    t0_average = mDummyT0;
   }
 
   // single chambers
   for (int iDet = 0; iDet < constants::MAXCHAMBER; ++iDet) {
-    if (adcProfDet[iDet]->GetEntries() < mMinEntriesChamber) {
-      LOG(info) << "not enough entries in chamber " << iDet << " for t0 fit, set to -5";
-      t0_chambers[iDet] = -5;
+    if (adcProfDet[iDet]->GetEntries() < mParams.minEntriesChamberT0Fit) {
+      LOG(info) << "not enough entries in chamber " << iDet << " for t0 fit, set to " << mDummyT0;
+      t0_chambers[iDet] = mDummyT0;
       continue;
     }
 
@@ -200,8 +177,8 @@ void T0Fit::finalizeSlot(Slot& slot)
       mFuncErfLandau->SetParameters(fitResult.GetParams()[0], fitResult.GetParams()[1], fitResult.GetParams()[2], fitResult.GetParams()[3]);
       t0_chambers[iDet] = mFuncErfLandau->GetMaximumX();
     } else {
-      LOG(info) << "t0 fit for chamber " << iDet << " is not valid, set to -5";
-      t0_chambers[iDet] = -5;
+      LOG(info) << "t0 fit for chamber " << iDet << " is not valid, set to " << mDummyT0;
+      t0_chambers[iDet] = mDummyT0;
     }
   }
 

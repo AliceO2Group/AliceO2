@@ -19,13 +19,6 @@
 using namespace o2::trd;
 using namespace o2::trd::constants;
 
-void T0FitHistos::init()
-{
-  mDet.resize(0);
-  mTB.resize(0);
-  mADC.resize(0);
-  mInitialized = true;
-}
 
 void T0FitHistos::reset()
 {
@@ -37,11 +30,6 @@ void T0FitHistos::reset()
 
 void T0FitHistos::fill(const std::vector<o2::trd::PHData> data)
 {
-
-  if (!mInitialized) {
-    init();
-  }
-
   for (auto ph : data) {
     int det = ph.getDetector();
     int tb = ph.getTimebin();

@@ -31,8 +31,6 @@
 #include "DetectorsBase/GRPGeomHelper.h"
 #include <chrono>
 
-#include "TH2.h"
-#include "TH1.h"
 
 using namespace o2::framework;
 
@@ -67,10 +65,6 @@ class T0FitDevice : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) final
   {
     const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
-    if (tinfo.globalRunNumberChanged) { // new run is starting
-      mRunStopRequested = false;
-      mFitInstance->retrievePrev(pc); // SOR initialization is performed here
-    }
     if (mRunStopRequested) {
       return;
     }

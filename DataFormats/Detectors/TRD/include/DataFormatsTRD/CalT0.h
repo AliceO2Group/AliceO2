@@ -35,7 +35,9 @@ class CalT0
   void setT0av(float t0) { mT0av = t0; }
 
   float getT0(int iDet) const { return mT0[iDet]; }
+  //getT0av() returns the average T0 obtained by fitting the data from all chambers combined
   float getT0av() const { return mT0av; }
+  //calcT0av() returns the average T0 from all individual chambers
   float calcT0av() const
   {
     if (mT0.size() == 0) {
@@ -59,7 +61,7 @@ class CalT0
 
  private:
   std::array<float, constants::MAXCHAMBER> mT0{}; ///< calibrated T0 per TRD chamber
-  float mT0av{-1};                                ///< calibrated average T0
+  float mT0av{-1};                                ///< average T0 obtained from fitting the PH data from all chambers combined
 
   ClassDefNV(CalT0, 1);
 };
