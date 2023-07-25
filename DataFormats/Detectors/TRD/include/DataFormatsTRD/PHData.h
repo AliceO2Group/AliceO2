@@ -13,6 +13,7 @@
 #define ALICEO2_TRD_PHDATA_H_
 
 #include <cstdint>
+#include "Rtypes.h"
 
 namespace o2::trd
 {
