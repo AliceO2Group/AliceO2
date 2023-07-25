@@ -61,6 +61,7 @@ void NoiseCalibSpec::init(o2::framework::InitContext& ic)
 {
   mVerbosity = ic.options().get<int>("verbosity-level");
   mWorker.setVerbosity(mVerbosity);
+  mTimer.Start(false);
 }
 
 void NoiseCalibSpec::updateTimeDependentParams(ProcessingContext& pc)
@@ -85,6 +86,9 @@ void NoiseCalibSpec::run(ProcessingContext& pc)
   if (!mInitialized) {
     mInitialized = true;
     updateTimeDependentParams(pc);
+    mOutput = &(pc.outputs());
+    mHistoFileMetaData = std::make_unique<o2::dataformats::FileMetaData>();
+    mHistoFileMetaData->setDataTakingContext(pc.services().get<o2::framework::DataTakingContext>());
     mTimer.Stop();
     mTimer.Reset();
     mTimer.Start(false);
@@ -94,11 +98,29 @@ void NoiseCalibSpec::run(ProcessingContext& pc)
     mRunStartTime = tinfo.creation; // approximate time in ms
     mRunNumber = tinfo.runNumber;
   }
-  std::vector<InputSpec> filterHisto = {{"noise_1dh", ConcreteDataTypeMatcher{"ZDC", "NOISE_1DH"}, Lifetime::Timeframe}};
-  for (auto const& inputRef : InputRecordWalker(pc.inputs(), filterHisto)) {
-    auto const* dh = framework::DataRefUtils::getHeader<o2::header::DataHeader*>(inputRef);
-    o2::dataformats::FlatHisto1D<double> histoView(pc.inputs().get<gsl::span<double>>(inputRef));
-    mWorker.add(dh->subSpecification, histoView);
+  {
+    std::vector<InputSpec> filterHisto = {{"noise_1dh", ConcreteDataTypeMatcher{"ZDC", "NOISE_1DH"}, Lifetime::Timeframe}};
+    for (auto const& inputRef : InputRecordWalker(pc.inputs(), filterHisto)) {
+      auto const* dh = framework::DataRefUtils::getHeader<o2::header::DataHeader*>(inputRef);
+      o2::dataformats::FlatHisto1D<double> histoView(pc.inputs().get<gsl::span<double>>(inputRef));
+      mWorker.add(dh->subSpecification, 0, histoView);
+    }
+  }
+  {
+    std::vector<InputSpec> filterHisto = {{"noise_1dh_s", ConcreteDataTypeMatcher{"ZDC", "NOISE_1DH_S"}, Lifetime::Timeframe}};
+    for (auto const& inputRef : InputRecordWalker(pc.inputs(), filterHisto)) {
+      auto const* dh = framework::DataRefUtils::getHeader<o2::header::DataHeader*>(inputRef);
+      o2::dataformats::FlatHisto1D<double> histoView(pc.inputs().get<gsl::span<double>>(inputRef));
+      mWorker.add(dh->subSpecification, 1, histoView);
+    }
+  }
+  {
+    std::vector<InputSpec> filterHisto = {{"noise_1dh_d", ConcreteDataTypeMatcher{"ZDC", "NOISE_1DH_D"}, Lifetime::Timeframe}};
+    for (auto const& inputRef : InputRecordWalker(pc.inputs(), filterHisto)) {
+      auto const* dh = framework::DataRefUtils::getHeader<o2::header::DataHeader*>(inputRef);
+      o2::dataformats::FlatHisto1D<double> histoView(pc.inputs().get<gsl::span<double>>(inputRef));
+      mWorker.add(dh->subSpecification, 2, histoView);
+    }
   }
   auto data = pc.inputs().get<o2::zdc::NoiseCalibSummaryData*>("noisecalibdata");
   mWorker.process(data.get());
@@ -132,8 +154,8 @@ void NoiseCalibSpec::sendOutput(EndOfStreamContext& ec)
   if (mVerbosity > DbgMinimal) {
     payload.print();
   }
-  output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ZDCNoisecalib", 0}, *image.get()); // vector<char>
-  output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ZDCNoisecalib", 0}, info);         // root-serialized
+  mOutput->snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ZDCNoisecalib", 0}, *image.get()); // vector<char>
+  mOutput->snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ZDCNoisecalib", 0}, info);         // root-serialized
   // TODO: reset the outputs once they are already sent (is it necessary?)
   // mWorker.init();
 
@@ -148,17 +170,14 @@ void NoiseCalibSpec::sendOutput(EndOfStreamContext& ec)
       }
       std::string metaFileDir = opt.metaFileDir;
       if (metaFileDir.compare("/dev/null")) {
-        std::unique_ptr<o2::dataformats::FileMetaData> histoFileMetaData;
-        histoFileMetaData = std::make_unique<o2::dataformats::FileMetaData>();
-        histoFileMetaData->setDataTakingContext(ec.services().get<DataTakingContext>());
-        histoFileMetaData->fillFileData(mHistoFileName);
-        histoFileMetaData->type = "calib";
-        histoFileMetaData->priority = "high";
+        mHistoFileMetaData->fillFileData(mHistoFileName);
+        mHistoFileMetaData->type = "calib";
+        mHistoFileMetaData->priority = "high";
         std::string metaFileNameTmp = metaFileDir + (metaFileDir.back() == '/' ? "" : "/") + fmt::format("{}_{}.tmp", fn, mRunNumber);
         std::string metaFileName = metaFileDir + (metaFileDir.back() == '/' ? "" : "/") + fmt::format("{}_{}.done", fn, mRunNumber);
         try {
           std::ofstream metaFileOut(metaFileNameTmp);
-          metaFileOut << *histoFileMetaData.get();
+          metaFileOut << *mHistoFileMetaData.get();
           metaFileOut.close();
           std::filesystem::rename(metaFileNameTmp, metaFileName);
         } catch (std::exception const& e) {
@@ -183,6 +202,8 @@ framework::DataProcessorSpec getNoiseCalibSpec()
   inputs.emplace_back("noisecalibdata", "ZDC", "NOISECALIBDATA", 0, Lifetime::Timeframe);
   inputs.emplace_back("moduleconfig", "ZDC", "MODULECONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(o2::zdc::CCDBPathConfigModule.data()));
   inputs.emplace_back("noise_1dh", ConcreteDataTypeMatcher{"ZDC", "NOISE_1DH"}, Lifetime::Timeframe);
+  inputs.emplace_back("noise_1dh_s", ConcreteDataTypeMatcher{"ZDC", "NOISE_1DH_S"}, Lifetime::Timeframe);
+  inputs.emplace_back("noise_1dh_d", ConcreteDataTypeMatcher{"ZDC", "NOISE_1DH_D"}, Lifetime::Timeframe);
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "ZDCNoisecalib"}, Lifetime::Sporadic);

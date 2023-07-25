@@ -32,11 +32,28 @@ int NoiseCalib::init()
     setSaveDebugHistos();
   }
 
+  int nbx = 4096 * NTimeBinsPerBC - NTimeBinsPerBC + 1;
+  double xmin = -2048 * NTimeBinsPerBC - 0.5;
+  double xmax = 2047 * NTimeBinsPerBC + 0.5;
+
   for (int isig = 0; isig < NChannels; isig++) {
-    if (mH[isig] == nullptr) {
-      mH[isig] = new o2::dataformats::FlatHisto1D<double>(4096, -2048.5, 2047.5);
+    // Baseline single samples
+    if (mH[0][isig] == nullptr) {
+      mH[0][isig] = new o2::dataformats::FlatHisto1D<double>(4096, -2048.5, 2047.5);
     } else {
-      mH[isig]->clear();
+      mH[0][isig]->clear();
+    }
+    // Bunch average of baseline samples
+    if (mH[1][isig] == nullptr) {
+      mH[1][isig] = new o2::dataformats::FlatHisto1D<double>(nbx, xmin, xmax);
+    } else {
+      mH[1][isig]->clear();
+    }
+    // Difference between single samples and average
+    if (mH[2][isig] == nullptr) {
+      mH[2][isig] = new o2::dataformats::FlatHisto1D<double>(nbx, xmin / double(NTimeBinsPerBC), xmax / double(NTimeBinsPerBC));
+    } else {
+      mH[2][isig]->clear();
     }
   }
 
@@ -69,15 +86,15 @@ int NoiseCalib::process(const o2::zdc::NoiseCalibSummaryData* data)
 
 //______________________________________________________________________________
 // Add histograms
-void NoiseCalib::add(int ih, o2::dataformats::FlatHisto1D<double>& h1)
+void NoiseCalib::add(int ih, int iarr, o2::dataformats::FlatHisto1D<double>& h1)
 {
   if (!mInitDone) {
     init();
   }
-  if (ih >= 0 && ih < NChannels) {
-    mH[ih]->add(h1);
+  if (ih >= 0 && ih < NChannels && iarr >= 0 && iarr < NHA) {
+    mH[iarr][ih]->add(h1);
   } else {
-    LOG(error) << "InterCalib::add: unsupported FlatHisto1D " << ih;
+    LOG(error) << "InterCalib::add: unsupported FlatHisto1D ih=" << ih << " iarr=" << iarr;
   }
 }
 
@@ -105,7 +122,9 @@ int NoiseCalib::endOfRun()
     }
   }
 
-  mParam.print();
+  if (mVerbosity > DbgZero) {
+    mParam.print();
+  }
 
   // Creating calibration object and info
   auto clName = o2::utils::MemFileHelper::getClassName(mParam);
@@ -146,8 +165,18 @@ int NoiseCalib::saveDebugHistos(const std::string fn)
     return 1;
   }
   for (int32_t is = 0; is < NChannels; is++) {
-    auto p = mH[is]->createTH1F(TString::Format("hs%d", is).Data());
+    auto p = mH[0][is]->createTH1F(TString::Format("hs%d", is).Data());
     p->SetTitle(TString::Format("Baseline samples %s", ChannelNames[is].data()));
+    p->Write("", TObject::kOverwrite);
+  }
+  for (int32_t is = 0; is < NChannels; is++) {
+    auto p = mH[1][is]->createTH1F(TString::Format("hss%d", is).Data());
+    p->SetTitle(TString::Format("Bunch sum of samples %s", ChannelNames[is].data()));
+    p->Write("", TObject::kOverwrite);
+  }
+  for (int32_t is = 0; is < NChannels; is++) {
+    auto p = mH[2][is]->createTH1F(TString::Format("hsd%d", is).Data());
+    p->SetTitle(TString::Format("Baseline estimation difference %s", ChannelNames[is].data()));
     p->Write("", TObject::kOverwrite);
   }
   f->Close();

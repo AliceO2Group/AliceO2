@@ -107,15 +107,17 @@ int BaselineCalib::endOfRun()
     }
     if (nsum > 0 && mConfig->min_e[ic]) {
       float ave = sum / nsum;
-      LOGF(info, "Baseline %s %g events and cuts (%g:%g): %f", ChannelNames[ic].data(), nsum, bmin, bmax, ave);
+      if (mVerbosity > DbgZero) {
+        LOGF(info, "Baseline %s %g events and cuts (%g:%g): %f", ChannelNames[ic].data(), nsum, bmin, bmax, ave);
+      }
       mParamUpd.setCalib(ic, ave, true);
     } else {
       if (mParam == nullptr) {
-        LOGF(error, "Baseline %s %g events and cuts (%g:%g): CANNOT UPDATE AND MISSING OLD VALUE", ChannelNames[ic].data(), nsum, bmin, bmax);
+        LOGF(warn, "Baseline %s %g events and cuts (%g:%g): CANNOT UPDATE AND MISSING OLD VALUE", ChannelNames[ic].data(), nsum, bmin, bmax);
         mParamUpd.setCalib(ic, -std::numeric_limits<float>::infinity(), false);
       } else {
         float val = mParam->getCalib(ic);
-        LOGF(info, "Baseline %s %g events and cuts (%g:%g): %f NOT UPDATED", ChannelNames[ic].data(), nsum, bmin, bmax, val);
+        LOGF(warn, "Baseline %s %g events and cuts (%g:%g): %f NOT UPDATED", ChannelNames[ic].data(), nsum, bmin, bmax, val);
         mParamUpd.setCalib(ic, val, false);
       }
     }

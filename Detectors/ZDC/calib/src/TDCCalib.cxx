@@ -195,6 +195,9 @@ double TDCCalib::extractShift(int ih)
 
 int TDCCalib::write(const std::string fn)
 {
+  if (mVerbosity > DbgZero) {
+    LOG(info) << "Saving aggregator histos on file " << fn;
+  }
   TDirectory* cwd = gDirectory;
   TFile* f = new TFile(fn.data(), "recreate");
   if (f->IsZombie()) {
@@ -206,9 +209,11 @@ int TDCCalib::write(const std::string fn)
       auto p = mCTDC[ih]->createTH1F(TDCCalibData::CTDC[ih]); // createTH1F(histo_name)
       p->SetTitle(TDCCalibData::CTDC[ih]);
       p->Write("", TObject::kOverwrite);
+      if (mVerbosity > DbgMinimal) {
+        LOG(info) << p->GetName() << " entries: " << p->GetEntries();
+      }
     }
   }
-
   f->Close();
   cwd->cd();
   return 0;

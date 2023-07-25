@@ -147,6 +147,20 @@ NoiseCalibData& NoiseCalibData::operator+=(const NoiseCalibSummaryData* s)
 }
 
 //______________________________________________________________________________
+void NoiseCalibData::mergeCreationTime(uint64_t ctime)
+{
+  if (mCTimeBeg == 0 || ctime < mCTimeBeg) {
+    mCTimeBeg = ctime;
+  }
+  if (ctime > mCTimeEnd) {
+    mCTimeEnd = ctime;
+  }
+#ifdef O2_ZDC_DEBUG
+  LOGF(info, "NoiseCalibData::setCreationTime %llu", ctime);
+#endif
+}
+
+//______________________________________________________________________________
 void NoiseCalibData::setCreationTime(uint64_t ctime)
 {
   mCTimeBeg = ctime;
@@ -233,7 +247,7 @@ int NoiseCalibChData::getStat(uint64_t& en, double& mean, double& var) const
 }
 
 //______________________________________________________________________________
-int NoiseCalibData::saveDebugHistos(const std::string fn)
+int NoiseCalibData::saveDebugHistos(const std::string fn, bool is_epn)
 {
   TDirectory* cwd = gDirectory;
   TFile* f = new TFile(fn.data(), "recreate");
@@ -247,7 +261,7 @@ int NoiseCalibData::saveDebugHistos(const std::string fn)
     if (nen > 0) {
       int32_t max = mHisto[is].getMaxBin();
       TString n = TString::Format("h%d", is);
-      TString t = TString::Format("Noise %d %s", is, ChannelNames[is].data());
+      TString t = TString::Format("%sNoise %d %s", is_epn ? "EPN " : "", is, ChannelNames[is].data());
       TH1F h(n, t, max + 1, -0.5 * factor, (max + 0.5) * factor);
       for (int ibx = 0; ibx < max; ibx++) {
         h.SetBinContent(ibx + 1, mHisto[is].mData[ibx] * factor);

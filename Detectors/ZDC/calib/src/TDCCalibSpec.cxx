@@ -207,7 +207,7 @@ framework::DataProcessorSpec getTDCCalibSpec()
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "ZDC_TDCcalib"}, Lifetime::Sporadic);
 
   return DataProcessorSpec{
-    "zdc-tdc-calib",
+    "zdc-tdccalib",
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<device>()},
