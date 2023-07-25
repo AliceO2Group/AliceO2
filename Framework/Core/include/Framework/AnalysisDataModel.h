@@ -1433,6 +1433,7 @@ DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredMcParticles_000, aod::StoredMcParticles_
 DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracks, aod::StoredTracksIU);
 DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracks, aod::StoredTracksExtra);
 DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracksIU, aod::StoredTracksExtra);
+DECLARE_EQUIVALENT_FOR_INDEX(aod::HMPID_000, aod::HMPID_001);
 } // namespace soa
 
 namespace aod
