@@ -14,32 +14,34 @@
 /// \author Tucker Hwang mhwang@cern.ch
 
 #include "ITSStudies/AvgClusSize.h"
+#include "ITSStudies/ITSStudiesConfigParam.h"
 
-#include "DataFormatsITS/TrackITS.h"
 #include "Framework/Task.h"
-#include "DetectorsCommonDataFormats/DetID.h"
-#include "DataFormatsGlobalTracking/RecoContainer.h"
-#include "ReconstructionDataFormats/V0.h"
-#include "ReconstructionDataFormats/PrimaryVertex.h"
-#include "CommonUtils/TreeStreamRedirector.h"
-#include "DataFormatsParameters/GRPObject.h"
-#include "SimulationDataFormat/MCCompLabel.h"
 #include "ITSBase/GeometryTGeo.h"
-#include <SimulationDataFormat/MCTrack.h>
-#include "ReconstructionDataFormats/Track.h"
-#include "ReconstructionDataFormats/DCA.h"
 #include "Steer/MCKinematicsReader.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "ITStracking/IOUtils.h"
+#include "CommonUtils/TreeStreamRedirector.h"
+#include "DataFormatsParameters/GRPObject.h"
+#include "DataFormatsITS/TrackITS.h"
+#include "DataFormatsGlobalTracking/RecoContainer.h"
+#include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "ReconstructionDataFormats/PrimaryVertex.h"
+#include "ReconstructionDataFormats/PID.h"
+#include "ReconstructionDataFormats/V0.h"
+#include "ReconstructionDataFormats/Track.h"
+#include "ReconstructionDataFormats/DCA.h"
+#include "SimulationDataFormat/MCTrack.h"
+#include "SimulationDataFormat/MCCompLabel.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 
+#include <numeric>
 #include <TH1F.h>
+#include <TH2F.h>
+#include <THStack.h>
 #include <TFile.h>
 #include <TCanvas.h>
-#include <TF1.h>
-#include <TFitResultPtr.h>
-#include <TFitResult.h>
 #include <TLine.h>
-#include <numeric>
 #include <TStyle.h>
 #include <TNtuple.h>
 
@@ -60,6 +62,7 @@ using mask_t = o2::dataformats::GlobalTrackID::mask_t;
 using Track = o2::track::TrackParCov;
 using TrackITS = o2::its::TrackITS;
 using DCA = o2::dataformats::DCA;
+using PID = o2::track::PID;
 
 class AvgClusSizeStudy : public Task
 {
@@ -85,8 +88,9 @@ class AvgClusSizeStudy : public Task
   void setStyle();
   void updateTimeDependentParams(ProcessingContext& pc);
   float getAverageClusterSize(o2::its::TrackITS*);
+  float calcV0HypoMass(const V0&, PID, PID);
+  void calcAPVars(const V0&, float*, float*);
   void getClusterSizes(std::vector<int>&, const gsl::span<const o2::itsmft::CompClusterExt>, gsl::span<const unsigned char>::iterator&, const o2::itsmft::TopologyDictionary*);
-  void fitMassSpectrum();
   void saveHistograms();
   void plotHistograms();
   void fillEtaBin(float eta, float clusSize, int i);
@@ -97,68 +101,60 @@ class AvgClusSizeStudy : public Task
   // Data
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   std::shared_ptr<DataRequest> mDataRequest;
-  std::vector<int> mInputClusterSizes;
+  std::vector<int> mClusterSizes;
   gsl::span<const int> mInputITSidxs;
   std::vector<o2::MCTrack> mMCTracks;
   const o2::itsmft::TopologyDictionary* mDict = nullptr;
 
   // Output plots
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
-  std::unique_ptr<TNtuple> mOutputNtuple;
+  std::unique_ptr<TNtuple> mOutputNtupleAll;
+  std::unique_ptr<TNtuple> mOutputNtupleCut;
 
-  std::unique_ptr<THStack> mMassSpectrumFull{};
-  std::unique_ptr<TH1F> mMassSpectrumFullNC{};
-  std::unique_ptr<TH1F> mMassSpectrumFullC{};
-  std::unique_ptr<THStack> mMassSpectrumK0s{};
-  std::unique_ptr<TH1F> mMassSpectrumK0sNC{};
-  std::unique_ptr<TH1F> mMassSpectrumK0sC{};
-  std::unique_ptr<THStack> mAvgClusSize{};
-  std::unique_ptr<TH1F> mAvgClusSizeNC{};
-  std::unique_ptr<TH1F> mAvgClusSizeC{};
+  std::unique_ptr<THStack> mMCR{};
+  std::unique_ptr<THStack> mMCCosPA{};
+  std::unique_ptr<THStack> mMCPosACS{};
+  std::unique_ptr<THStack> mMCNegACS{};
+  std::unique_ptr<THStack> mMCDauDCA{};
+  std::unique_ptr<THStack> mMCPosPVDCA{};
+  std::unique_ptr<THStack> mMCNegPVDCA{};
+  std::unique_ptr<THStack> mMCV0PVDCA{};
+
+  std::unique_ptr<TH1F> mMCRisTg{};
+  std::unique_ptr<TH1F> mMCRisBg{};
+  std::unique_ptr<TH1F> mMCCosPAisTg{};
+  std::unique_ptr<TH1F> mMCCosPAisBg{};
+  std::unique_ptr<TH1F> mMCPosACSisTg{};
+  std::unique_ptr<TH1F> mMCPosACSisBg{};
+  std::unique_ptr<TH1F> mMCNegACSisTg{};
+  std::unique_ptr<TH1F> mMCNegACSisBg{};
+  std::unique_ptr<TH1F> mMCDauDCAisTg{};
+  std::unique_ptr<TH1F> mMCDauDCAisBg{};
+  std::unique_ptr<TH1F> mMCPosPVDCAisTg{};
+  std::unique_ptr<TH1F> mMCPosPVDCAisBg{};
+  std::unique_ptr<TH1F> mMCNegPVDCAisTg{};
+  std::unique_ptr<TH1F> mMCNegPVDCAisBg{};
+  std::unique_ptr<TH1F> mMCV0PVDCAisTg{};
+  std::unique_ptr<TH1F> mMCV0PVDCAisBg{};
+
+  std::unique_ptr<TH2F> mMCArmPodolisTg{};
+  std::unique_ptr<TH2F> mMCArmPodolisBg{};
+
   std::unique_ptr<THStack> mAvgClusSizeCEta{};
   std::vector<std::unique_ptr<TH1F>> mAvgClusSizeCEtaVec{};
-  std::unique_ptr<THStack> mMCStackCosPA{};
-  std::unique_ptr<THStack> mStackDCA{};
-  std::unique_ptr<THStack> mStackR{};
-  std::unique_ptr<THStack> mStackPVDCA{};
-  std::unique_ptr<TH1F> mCosPA{};
-  std::unique_ptr<TH1F> mMCCosPAK0{};
-  std::unique_ptr<TH1F> mMCCosPAnotK0{};
-  std::unique_ptr<TH1F> mCosPAtrueK0{};
-  std::unique_ptr<TH1F> mR{};
-  std::unique_ptr<TH1F> mRK0{};
-  std::unique_ptr<TH1F> mRnotK0{};
-  std::unique_ptr<TH1F> mRtrueK0{};
-  std::unique_ptr<TH1F> mDCA{};
-  std::unique_ptr<TH1F> mDCAK0{};
-  std::unique_ptr<TH1F> mDCAnotK0{};
-  std::unique_ptr<TH1F> mDCAtrueK0{};
-  std::unique_ptr<TH1F> mEtaNC{};
-  std::unique_ptr<TH1F> mEtaC{};
-  std::unique_ptr<TH1F> mMCMotherPDG{};
-  std::unique_ptr<TH1F> mPVDCAK0{};
-  std::unique_ptr<TH1F> mPVDCAnotK0{};
-
-  int globalNClusters = 0;
-  int globalNPixels = 0;
 
   std::vector<float> mEtaBinUL; // upper edges for eta bins
 
-  // Counters for K0s identification
+  // Counters for target V0 identification
   int nNotValid = 0;
   int nNullptrs = 0;
-  int nPiPi = 0;
-  int nIsPiPiNotK0s = 0;
-  int nIsPiPiIsK0s = 0;
-  int nIsNotPiPiIsK0s = 0;
   int nMotherIDMismatch = 0;
   int nEvIDMismatch = 0;
-  int nK0s = 0;
-  int nNotK0s = 0;
-  int nPionsInEtaRange = 0;
-  int nInvalidK0sMother = 0;
+  int nTargetV0 = 0;
+  int nNotTargetV0 = 0;
+  int nV0OutOfEtaRange = 0;
 
-  const std::string mOutName{"o2standalone_cluster_size_study.root"};
+  std::string mOutName;
   std::shared_ptr<o2::steer::MCKinematicsReader> mKineReader;
 };
 
@@ -177,44 +173,47 @@ void AvgClusSizeStudy::init(InitContext& ic)
     }
   }
 
-  LOGP(important, "Cluster size study initialized.");
+  LOGP(info, "Cluster size study initialized.");
 }
 
 void AvgClusSizeStudy::prepareOutput()
 {
   auto& params = o2::its::study::ITSAvgClusSizeParamConfig::Instance();
+  mOutName = params.outFileName;
   mDBGOut = std::make_unique<o2::utils::TreeStreamRedirector>(mOutName.c_str(), "recreate");
-  mOutputNtuple = std::make_unique<TNtuple>("v0_data", "v0 data", "d0ACS:d1ACS:mass:d01dca:cosPA:V0R:eta:d0pvDCA:d1pvDCA:isMCK0s");
+  mOutputNtupleAll = std::make_unique<TNtuple>("v0_data", "v0 data", "dPosACS:dNegACS:cosPA:V0R:eta:dauDCA:dPospvDCA:dNegpvDCA:v0pvDCA:alpha:pT:K0mass:lambdaMass:antilambdaMass:v0PDGcode");
+  mOutputNtupleCut = std::make_unique<TNtuple>("cut_v0_data", "v0 data (cut)", "dPosACS:dNegACS:cosPA:V0R:eta:dauDCA:dPospvDCA:dNegpvDCA:v0pvDCA:alpha:pT:K0mass:lambdaMass:antilambdaMass:v0PDGcode");
 
-  mMassSpectrumFull = std::make_unique<THStack>("V0", "V0 mass spectrum; MeV");                                        // auto-set axis ranges
-  mMassSpectrumFullNC = std::make_unique<TH1F>("V0nc", "no cuts; MeV", 100, 250, 1000);                                // auto-set axis ranges
-  mMassSpectrumFullC = std::make_unique<TH1F>("V0c", "cut; MeV", 100, 250, 1000);                                      // auto-set axis ranges
-  mMassSpectrumK0s = std::make_unique<THStack>("K0s", "'K0' mass spectrum; MeV");                                      // set axis ranges near K0short mass
-  mMassSpectrumK0sNC = std::make_unique<TH1F>("K0snc", "no cuts; MeV", 15, 475, 525);                                  // set axis ranges near K0short mass
-  mMassSpectrumK0sC = std::make_unique<TH1F>("K0sc", "cut; MeV", 15, 475, 525);                                        // set axis ranges near K0short mass
-  mAvgClusSize = std::make_unique<THStack>("avgclussize", "Average cluster size per track; pixels / cluster / track"); // auto-set axis ranges
-  mAvgClusSizeNC = std::make_unique<TH1F>("avgclussizeNC", "no cuts", 40, 0, 15);                                      // auto-set axis ranges
-  mAvgClusSizeC = std::make_unique<TH1F>("avgclussizeC", "cut", 40, 0, 15);                                            // auto-set axis ranges
-  mMCStackCosPA = std::make_unique<THStack>("CosPAstack", "CosPA");                                                    // auto-set axis ranges
-  mStackDCA = std::make_unique<THStack>("DCAstack", "DCA");                                                            // auto-set axis ranges
-  mStackR = std::make_unique<THStack>("Rstack", "R");                                                                  // auto-set axis ranges
-  mStackPVDCA = std::make_unique<THStack>("PVDCAstack", "PV-DCA");                                                     // auto-set axis ranges
-  mCosPA = std::make_unique<TH1F>("CosPA", "cos(PA)", 100, -1, 1);                                                     // auto-set axis ranges
-  mMCCosPAK0 = std::make_unique<TH1F>("CosPAK0", "cos(PA)", 100, -1, 1);                                               // auto-set axis ranges
-  mMCCosPAnotK0 = std::make_unique<TH1F>("CosPAnotK0", "cos(PA)", 100, -1, 1);                                         // auto-set axis ranges
-  mR = std::make_unique<TH1F>("R", "R", 40, 1, -1);                                                                    // auto-set axis ranges
-  mRK0 = std::make_unique<TH1F>("RK0", "R", 40, 0, 20);                                                                // auto-set axis ranges
-  mRnotK0 = std::make_unique<TH1F>("RnotK0", "R", 40, 0, 20);                                                          // auto-set axis ranges
-  mDCA = std::make_unique<TH1F>("DCA", "DCA", 40, 1, -1);                                                              // auto-set axis ranges
-  mDCAK0 = std::make_unique<TH1F>("DCAK0", "DCA", 40, 0, 0.25);                                                        // auto-set axis ranges
-  mDCAnotK0 = std::make_unique<TH1F>("DCAnotK0", "DCA", 40, 0, 0.25);                                                  // auto-set axis ranges
-  mEtaNC = std::make_unique<TH1F>("etaNC", "no cuts", 30, 1, -1);                                                      // auto-set axis ranges
-  mEtaC = std::make_unique<TH1F>("etaC", "cut", 30, 1, -1);                                                            // auto-set axis ranges
-  mMCMotherPDG = std::make_unique<TH1F>("PID", "MC K0s mother PDG codes", 100, 1, -1);
-  mPVDCAK0 = std::make_unique<TH1F>("PVDCAK0", "Prong DCA to pVertex", 80, 0, 2);
-  mPVDCAnotK0 = std::make_unique<TH1F>("PVDCAnotK0", "Prong DCA to pVertex", 80, 0, 2);
+  mMCR = std::make_unique<THStack>("R", "V0 decay length R;R (cm?)");
+  mMCCosPA = std::make_unique<THStack>("cosPA", "cos(#theta_{p})");
+  mMCPosACS = std::make_unique<THStack>("acsPos", "Average cluster size per track;pixels / cluster / track");
+  mMCNegACS = std::make_unique<THStack>("acsNeg", "Average cluster size per track;pixels / cluster / track");
+  mMCDauDCA = std::make_unique<THStack>("dauDCA", "Prong-prong DCA;cm?");
+  mMCPosPVDCA = std::make_unique<THStack>("posPVDCA", "Positive prong-primary vertex DCA;cm?");
+  mMCNegPVDCA = std::make_unique<THStack>("negPVDCA", "Negative prong-primary vertex DCA;cm?");
+  mMCV0PVDCA = std::make_unique<THStack>("v0PVDCA", "V0 reconstructed track-primary vertex DCA;cm?");
 
-  mAvgClusSizeCEta = std::make_unique<THStack>("avgclussizeeta", "Average cluster size per track; pixels / cluster / track"); // auto-set axis ranges
+  mMCRisTg = std::make_unique<TH1F>("mcRTg", "target V0", 40, 0, 2);
+  mMCRisBg = std::make_unique<TH1F>("mcRBg", "background", 100, 0, 2);
+  mMCCosPAisTg = std::make_unique<TH1F>("mcCosPATg", "target V0", 40, 0, 1);
+  mMCCosPAisBg = std::make_unique<TH1F>("mcCosPABg", "background", 100, 0, 1);
+  mMCPosACSisTg = std::make_unique<TH1F>("mcPosACSTg", "target V0", 60, 0, 30);
+  mMCPosACSisBg = std::make_unique<TH1F>("mcPosACSBg", "background", 150, 0, 30);
+  mMCNegACSisTg = std::make_unique<TH1F>("mcNegACSTg", "target V0", 60, 0, 30);
+  mMCNegACSisBg = std::make_unique<TH1F>("mcNegACSBg", "background", 150, 0, 30);
+  mMCDauDCAisTg = std::make_unique<TH1F>("mcDauDCATg", "target V0", 40, 0, 2);
+  mMCDauDCAisBg = std::make_unique<TH1F>("mcDauDCABg", "background", 100, 0, 2);
+  mMCPosPVDCAisTg = std::make_unique<TH1F>("mcPosPVDCATg", "target V0", 40, 0, 15);
+  mMCPosPVDCAisBg = std::make_unique<TH1F>("mcPosPVDCABg", "background", 100, 0, 15);
+  mMCNegPVDCAisTg = std::make_unique<TH1F>("mcNegPVDCATg", "target V0", 40, 0, 15);
+  mMCNegPVDCAisBg = std::make_unique<TH1F>("mcNegPVDCABg", "background", 100, 0, 15);
+  mMCV0PVDCAisTg = std::make_unique<TH1F>("mcV0PVDCATg", "target V0", 40, 0, 15);
+  mMCV0PVDCAisBg = std::make_unique<TH1F>("mcV0PVDCABg", "background", 100, 0, 15);
+
+  mMCArmPodolisTg = std::make_unique<TH2F>("apPlotTg", "Armenteros-Podolanski;#alpha_{Arm};p_{T}^{Arm} (GeV/c)", 150, -2, 2, 150, 0, 0.5);
+  mMCArmPodolisBg = std::make_unique<TH2F>("apPlotBg", "Armenteros-Podolanski;#alpha_{Arm};p_{T}^{Arm} (GeV/c)", 150, -2, 2, 150, 0, 0.5);
+
+  mAvgClusSizeCEta = std::make_unique<THStack>("avgclussizeeta", "Average cluster size per track;pixels / cluster / track"); // auto-set axis ranges
   float binWidth = (params.etaMax - params.etaMin) / (float)params.etaNBins;
   mEtaBinUL.reserve(params.etaNBins);
   for (int i = 0; i < params.etaNBins; i++) {
@@ -224,62 +223,89 @@ void AvgClusSizeStudy::prepareOutput()
     mAvgClusSizeCEta->Add(mAvgClusSizeCEtaVec[i].get());
   }
 
-  mMassSpectrumFullNC->SetDirectory(nullptr);
-  mMassSpectrumFullC->SetDirectory(nullptr);
-  mMassSpectrumK0sNC->SetDirectory(nullptr);
-  mMassSpectrumK0sC->SetDirectory(nullptr);
-  mAvgClusSizeNC->SetDirectory(nullptr);
-  mAvgClusSizeC->SetDirectory(nullptr);
-  mCosPA->SetDirectory(nullptr);
-  mMCCosPAK0->SetDirectory(nullptr);
-  mMCCosPAnotK0->SetDirectory(nullptr);
-  mR->SetDirectory(nullptr);
-  mRK0->SetDirectory(nullptr);
-  mRnotK0->SetDirectory(nullptr);
-  mDCA->SetDirectory(nullptr);
-  mDCAK0->SetDirectory(nullptr);
-  mDCAnotK0->SetDirectory(nullptr);
-  mEtaNC->SetDirectory(nullptr);
-  mEtaC->SetDirectory(nullptr);
-  mMCMotherPDG->SetDirectory(nullptr);
-  mPVDCAK0->SetDirectory(nullptr);
-  mPVDCAnotK0->SetDirectory(nullptr);
+  mMCRisTg->SetDirectory(nullptr);
+  mMCRisBg->SetDirectory(nullptr);
+  mMCCosPAisTg->SetDirectory(nullptr);
+  mMCCosPAisBg->SetDirectory(nullptr);
+  mMCDauDCAisTg->SetDirectory(nullptr);
+  mMCDauDCAisBg->SetDirectory(nullptr);
+  mMCPosACSisTg->SetDirectory(nullptr);
+  mMCPosACSisBg->SetDirectory(nullptr);
+  mMCNegACSisTg->SetDirectory(nullptr);
+  mMCNegACSisBg->SetDirectory(nullptr);
+  mMCPosPVDCAisTg->SetDirectory(nullptr);
+  mMCPosPVDCAisBg->SetDirectory(nullptr);
+  mMCNegPVDCAisTg->SetDirectory(nullptr);
+  mMCNegPVDCAisBg->SetDirectory(nullptr);
+  mMCV0PVDCAisTg->SetDirectory(nullptr);
+  mMCV0PVDCAisBg->SetDirectory(nullptr);
 
-  mOutputNtuple->SetDirectory(nullptr);
+  mMCArmPodolisTg->SetDirectory(nullptr);
+  mMCArmPodolisBg->SetDirectory(nullptr);
 
-  mMassSpectrumFull->Add(mMassSpectrumFullC.get());
-  mMassSpectrumFull->Add(mMassSpectrumFullNC.get());
-  mMassSpectrumK0s->Add(mMassSpectrumK0sC.get());
-  mMassSpectrumK0s->Add(mMassSpectrumK0sNC.get());
-  mAvgClusSize->Add(mAvgClusSizeC.get());
-  mAvgClusSize->Add(mAvgClusSizeNC.get());
-  mMCStackCosPA->Add(mMCCosPAK0.get());
-  mMCStackCosPA->Add(mMCCosPAnotK0.get());
-  mStackDCA->Add(mDCAK0.get());
-  mStackDCA->Add(mDCAnotK0.get());
-  mStackR->Add(mRK0.get());
-  mStackR->Add(mRnotK0.get());
-  mStackPVDCA->Add(mPVDCAK0.get());
-  mStackPVDCA->Add(mPVDCAnotK0.get());
+  // mMassSpectrumFullNC->SetDirectory(nullptr);
+  // mMassSpectrumFullC->SetDirectory(nullptr);
+  // mMassSpectrumK0sNC->SetDirectory(nullptr);
+  // mMassSpectrumK0sC->SetDirectory(nullptr);
+  // mAvgClusSizeNC->SetDirectory(nullptr);
+  // mAvgClusSizeC->SetDirectory(nullptr);
+  // mCosPA->SetDirectory(nullptr);
+  // mMCCosPAK0->SetDirectory(nullptr);
+  // mMCCosPAnotK0->SetDirectory(nullptr);
+  // mR->SetDirectory(nullptr);
+  // mRK0->SetDirectory(nullptr);
+  // mRnotK0->SetDirectory(nullptr);
+  // mDCA->SetDirectory(nullptr);
+  // mDCAK0->SetDirectory(nullptr);
+  // mDCAnotK0->SetDirectory(nullptr);
+  // mEtaNC->SetDirectory(nullptr);
+  // mEtaC->SetDirectory(nullptr);
+  // mMCMotherPDG->SetDirectory(nullptr);
+  // mPVDCAK0->SetDirectory(nullptr);
+  // mPVDCAnotK0->SetDirectory(nullptr);
+  // mArmPodolNC->SetDirectory(nullptr);
+  // mArmPodolC->SetDirectory(nullptr);
+
+  mOutputNtupleAll->SetDirectory(nullptr);
+  mOutputNtupleCut->SetDirectory(nullptr);
+
+  mMCR->Add(mMCRisTg.get());
+  mMCR->Add(mMCRisBg.get());
+  mMCCosPA->Add(mMCCosPAisTg.get());
+  mMCCosPA->Add(mMCCosPAisBg.get());
+  mMCPosACS->Add(mMCPosACSisTg.get());
+  mMCPosACS->Add(mMCPosACSisBg.get());
+  mMCNegACS->Add(mMCNegACSisTg.get());
+  mMCNegACS->Add(mMCNegACSisBg.get());
+  mMCDauDCA->Add(mMCDauDCAisTg.get());
+  mMCDauDCA->Add(mMCDauDCAisBg.get());
+  mMCPosPVDCA->Add(mMCPosPVDCAisTg.get());
+  mMCPosPVDCA->Add(mMCPosPVDCAisBg.get());
+  mMCNegPVDCA->Add(mMCNegPVDCAisTg.get());
+  mMCNegPVDCA->Add(mMCNegPVDCAisBg.get());
+  mMCV0PVDCA->Add(mMCV0PVDCAisTg.get());
+  mMCV0PVDCA->Add(mMCV0PVDCAisBg.get());
 }
 
 void AvgClusSizeStudy::setStyle()
 {
   gStyle->SetPalette(kRainbow);
-
+  std::vector<int> colors = {1, 2, 3, 4, 6, 7, 41, 47};
+  std::vector<int> markers = {2, 3, 4, 5, 25, 26, 27, 28, 32};
   for (int i = 0; i < mAvgClusSizeCEtaVec.size(); i++) {
-    mAvgClusSizeCEtaVec[i]->SetMarkerStyle(20 + i);
-    mAvgClusSizeCEtaVec[i]->SetMarkerColor(i + 1);
-    mAvgClusSizeCEtaVec[i]->SetLineColor(i + 1);
+    mAvgClusSizeCEtaVec[i]->SetMarkerStyle(markers[i]);
+    mAvgClusSizeCEtaVec[i]->SetMarkerColor(colors[i]);
+    mAvgClusSizeCEtaVec[i]->SetLineColor(colors[i]);
   }
 
-  mAvgClusSizeC->SetLineColor(kRed);
-  mMassSpectrumFullC->SetLineColor(kRed);
-  mMassSpectrumK0sC->SetLineColor(kRed);
-  mMCCosPAK0->SetLineColor(kRed);
-  mDCAK0->SetLineColor(kRed);
-  mRK0->SetLineColor(kRed);
-  mPVDCAK0->SetLineColor(kRed);
+  mMCRisTg->SetLineColor(kRed);
+  mMCCosPAisTg->SetLineColor(kRed);
+  mMCPosACSisTg->SetLineColor(kRed);
+  mMCNegACSisTg->SetLineColor(kRed);
+  mMCDauDCAisTg->SetLineColor(kRed);
+  mMCPosPVDCAisTg->SetLineColor(kRed);
+  mMCNegPVDCAisTg->SetLineColor(kRed);
+  mMCV0PVDCAisTg->SetLineColor(kRed);
 }
 
 void AvgClusSizeStudy::run(ProcessingContext& pc)
@@ -315,179 +341,165 @@ void AvgClusSizeStudy::loadData(o2::globaltracking::RecoContainer& recoData)
   mInputITSidxs = recoData.getITSTracksClusterRefs();
   auto compClus = recoData.getITSClusters();
   auto clusPatt = recoData.getITSClustersPatterns();
-  // auto pattIt = clusPatt.begin(); // NOTE: possibly these are not needed; looks like it just finds the 3D spacepoint of the cluster?
-  // std::vector<ITSCluster> inputITSclusters;
-  // inputITSclusters.reserve(compClus.size());
-  // o2::its::ioutils::convertCompactClusters(compClus, pattIt, inputITSclusters, mDict);
-  mInputClusterSizes.resize(compClus.size());
-  auto pattIt2 = clusPatt.begin();
-  getClusterSizes(mInputClusterSizes, compClus, pattIt2, mDict);
+  mClusterSizes.resize(compClus.size());
+  auto pattIt = clusPatt.begin();
+  getClusterSizes(mClusterSizes, compClus, pattIt, mDict);
 }
 
 void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
 {
   auto& params = o2::its::study::ITSAvgClusSizeParamConfig::Instance();
-  float d0ACS, d1ACS, v0InvMass, d01DCA, cosPA, v0R, eta, d0pvDCA, d1pvDCA;
-  bool isMCK0s = false;
-  TrackITS d0recoTrk, d1recoTrk; // daughter ITS tracks
-  DCA d0DCA, d1DCA;              // DCA object for prong to primary vertex (DCA = o2::dataformats::DCA)
-  float b = 5.;                  // Magnetic field in kG (?)
+  float dPosACS, dNegACS, dauDCA, cosPA, v0R, eta, dPospvDCA, dNegpvDCA, v0pvDCA, tgV0HypoMass, bgV0HypoMass, alphaArm, pT; // ACS=average cluster size
+  bool isMCTarget = false;
+  int targetPDGCode = 310;
+  TrackITS dPosRecoTrk, dNegRecoTrk; // daughter ITS tracks
+  DCA dPosDCA, dNegDCA, v0DCA;       // DCA object for prong to primary vertex (DCA = o2::dataformats::DCA)
   PVertex pv;
 
+  PID targetV0 = PID("K0");
+  PID backgroundV0 = PID("Lambda");
+  PID tgPos, tgNeg, bgPos, bgNeg;
+  if (params.targetV0 == "K0") {
+    bgPos = PID("Proton");
+    LOGP(info, "V0 target set to K0-short.");
+  } else if (params.targetV0 == "Lambda") {
+    targetV0 = PID("Lambda");
+    tgPos = PID("Proton");
+    backgroundV0 = PID("K0");
+    targetPDGCode = 3122;
+    LOGP(info, "V0 target set to Lambda.");
+  } else {
+    LOGP(warning, "Given V0 target not recognized, defaulting to K0-short.");
+    bgPos = PID("Proton");
+  }
+
   // Variables for MC analysis
-  int totalK0sInDataset = 0;
   gsl::span<const o2::MCCompLabel> mcLabels;
-  o2::MCCompLabel d0lab, d1lab;
-  const o2::MCTrack *V0mcTrk, *d0mcTrk, *d1mcTrk;
-  int V0PdgCode, d0PdgCode, d1PdgCode, m0TrkId, m1TrkId;
+  o2::MCCompLabel dPosLab, dNegLab;
+  const o2::MCTrack *V0mcTrk, *dPosMCTrk, *dNegMCTrk;
+  int V0PdgCode, mPosTrkId, mNegTrkId;
 
   loadData(recoData);
   auto V0s = recoData.getV0s();
-  auto trks = recoData.getITSTracks();
 
   LOGP(info, "Found {} reconstructed V0s.", V0s.size());
-  LOGP(info, "Found {} ITS tracks.", trks.size());
+  LOGP(info, "Found {} ITS tracks.", recoData.getITSTracks().size());
   LOGP(info, "Found {} ROFs.", recoData.getITSTracksROFRecords().size());
   if (mUseMC) {
     mcLabels = recoData.getITSTracksMCLabels();
     LOGP(info, "Found {} labels.", mcLabels.size());
   }
 
-  for (auto& v0 : V0s) {
-    d0recoTrk = recoData.getITSTrack(v0.getProngID(0));
-    d1recoTrk = recoData.getITSTrack(v0.getProngID(1));
+  for (auto v0 : V0s) {
+    dPosRecoTrk = recoData.getITSTrack(v0.getProngID(0)); // cannot use v0.getProng() since it returns TrackParCov not TrackITS
+    dNegRecoTrk = recoData.getITSTrack(v0.getProngID(1));
 
-    pv = recoData.getPrimaryVertex(v0.getVertexID()); // extract primary vertex
-    d0recoTrk.propagateToDCA(pv, b, &d0DCA);          // calculate and store DCA objects for both prongs
-    d1recoTrk.propagateToDCA(pv, b, &d1DCA);
-    d0pvDCA = std::sqrt(d0DCA.getR2()); // calculate DCA distance
-    d1pvDCA = std::sqrt(d1DCA.getR2());
+    pv = recoData.getPrimaryVertex(v0.getVertexID());   // extract primary vertex
+    dPosRecoTrk.propagateToDCA(pv, params.b, &dPosDCA); // calculate and store DCA objects for both prongs
+    dNegRecoTrk.propagateToDCA(pv, params.b, &dNegDCA);
+    v0.propagateToDCA(pv, params.b, &v0DCA);
+
+    dPospvDCA = std::sqrt(dPosDCA.getR2()); // extract DCA distance from DCA object
+    dNegpvDCA = std::sqrt(dNegDCA.getR2());
+    v0pvDCA = std::sqrt(v0DCA.getR2());
 
     eta = v0.getEta();
-    d01DCA = v0.getDCA();
+    dauDCA = v0.getDCA();
     cosPA = v0.getCosPA();
-    v0InvMass = std::sqrt(v0.calcMass2()) * 1000; // convert mass to MeV
-    v0R = std::sqrt(v0.calcR2());                 // gives distance from pvertex to origin? in centimeters (?) NOTE: unsure if this is to the primary vertex or to origin
-    if (mUseMC) {                                 // check whether V0 is a K0s in MC, and fill the cut validation plots
-      isMCK0s = false;
-      d0lab = mcLabels[v0.getProngID(0)]; // extract MC label for the prongs
-      d1lab = mcLabels[v0.getProngID(1)];
-      // Now we check validity, etc. for the labels (essentially strength of reco) to determine which reconstructed V0 are real K0s
-      if (d0lab.isValid() && d1lab.isValid()) {
-        d0mcTrk = mKineReader->getTrack(d0lab);
-        LOGP(debug, "Got d0 track");
-        d1mcTrk = mKineReader->getTrack(d1lab);
-        LOGP(debug, "Got d1 track");
-        if (d0mcTrk == nullptr || d1mcTrk == nullptr) {
-          LOGP(debug, "Nullptr found, skipping this V0");
+    v0R = std::sqrt(v0.calcR2()); // gives distance from pvertex to origin? in centimeters (?) NOTE: unsure if this is to the primary vertex or to origin
+
+    dPosACS = getAverageClusterSize(&dPosRecoTrk);
+    dNegACS = getAverageClusterSize(&dNegRecoTrk);
+    // mAvgClusSizeNC->Fill(dPosACS);
+    // mAvgClusSizeNC->Fill(dNegACS);
+
+    tgV0HypoMass = calcV0HypoMass(v0, tgPos, tgNeg);
+    bgV0HypoMass = calcV0HypoMass(v0, bgPos, bgNeg);
+    calcAPVars(v0, &alphaArm, &pT);
+
+    if (mUseMC) { // check whether queried V0 is the target V0 in MC, and fill the cut validation plots
+      V0PdgCode = 0;
+      isMCTarget = false;
+      dPosLab = mcLabels[v0.getProngID(0)]; // extract MC labels for the prongs
+      dNegLab = mcLabels[v0.getProngID(1)];
+      if (!dPosLab.isValid() || !dNegLab.isValid()) {
+        LOGP(debug, "Daughter MCCompLabel not valid: {}(+) and {}(-). Skipping.", dPosLab.isValid(), dNegLab.isValid());
+        nNotValid++;
+      } else {
+        dPosMCTrk = mKineReader->getTrack(dPosLab);
+        dNegMCTrk = mKineReader->getTrack(dNegLab);
+        if (dPosMCTrk == nullptr || dNegMCTrk == nullptr) {
+          LOGP(debug, "Nullptr found: {}(+) and {}(-). Skipping.", (void*)dPosMCTrk, (void*)dNegMCTrk);
           nNullptrs++;
         } else {
-          LOGP(debug, "About to query Pdg codes");
-          d0PdgCode = d0mcTrk->GetPdgCode();
-          d1PdgCode = d1mcTrk->GetPdgCode();
-          m0TrkId = d0mcTrk->getMotherTrackId();
-          m1TrkId = d1mcTrk->getMotherTrackId();
-          LOGP(debug, "pdgcodes are {} and {}", d0PdgCode, d1PdgCode);
-
-          if (m0TrkId == m1TrkId && m0TrkId != -1 && m1TrkId != -1) {
-            if (d1lab.getEventID() == d0lab.getEventID()) {
-              V0mcTrk = mKineReader->getTrack(d1lab.getEventID(), m0TrkId); // assume daughter MCTracks are in same event as V0 MCTrack
-              V0PdgCode = V0mcTrk->GetPdgCode();
-              if (V0PdgCode == 310) {
-                isMCK0s = true;
-                nK0s++;
-                if (abs(d0PdgCode) == 211 && d0PdgCode / d1PdgCode == -1) {
-                  nIsPiPiIsK0s++;
-                } else {
-                  nIsNotPiPiIsK0s++;
-                }
-              } else {
-                if (abs(d0PdgCode) == 211 && d0PdgCode / d1PdgCode == -1) {
-                  nIsPiPiNotK0s++;
-                }
-                nNotK0s++;
-              }
-              if (abs(d0PdgCode) == 211 && d0PdgCode / d1PdgCode == -1) {
-                nPiPi++;
-              }
-            } else {
-              nEvIDMismatch++;
-            }
-          } else {
+          mPosTrkId = dPosMCTrk->getMotherTrackId();
+          mNegTrkId = dNegMCTrk->getMotherTrackId();
+          LOGP(debug, "Daughter PDG codes: {}(+) and {}(-)", dPosMCTrk->GetPdgCode(), dNegMCTrk->GetPdgCode());
+          if (mPosTrkId != mNegTrkId || mPosTrkId == -1 || mNegTrkId == -1) {
+            LOGP(debug, "Mother track ID mismatch or default -1: {}(+) and {}(-). Skipping.", mPosTrkId, mNegTrkId);
             nMotherIDMismatch++;
+          } else {
+            if (dNegLab.getEventID() != dPosLab.getEventID()) {
+              LOGP(debug, "Daughter EvID mismatch: {}(+) and {}(-). Skipping.", dPosLab.getEventID(), dNegLab.getEventID());
+              nEvIDMismatch++;
+            } else {
+              V0mcTrk = mKineReader->getTrack(dNegLab.getEventID(), mPosTrkId); // assume daughter MCTracks are in same event as V0 MCTrack
+              V0PdgCode = V0mcTrk->GetPdgCode();
+              if (V0PdgCode == targetPDGCode) {
+                isMCTarget = true;
+                nTargetV0++;
+              } else {
+                nNotTargetV0++;
+              }
+            }
           }
         }
-      } else {
-        nNotValid++;
       }
-      if (isMCK0s) {
-        mMCCosPAK0->Fill(cosPA);
-        mDCAK0->Fill(d01DCA);
-        mRK0->Fill(v0R);
-        mPVDCAK0->Fill(d0pvDCA);
-        mPVDCAK0->Fill(d1pvDCA);
+      if (isMCTarget) {
+        mMCCosPAisTg->Fill(cosPA);
+        mMCDauDCAisTg->Fill(dauDCA);
+        mMCRisTg->Fill(v0R);
+        mMCPosPVDCAisTg->Fill(dPospvDCA);
+        mMCNegPVDCAisTg->Fill(dNegpvDCA);
+        mMCPosACSisTg->Fill(dPosACS);
+        mMCNegACSisTg->Fill(dNegACS);
+        mMCV0PVDCAisTg->Fill(v0pvDCA);
+        mMCArmPodolisTg->Fill(alphaArm, pT);
       } else {
-        mMCCosPAnotK0->Fill(cosPA);
-        mDCAnotK0->Fill(d01DCA);
-        mRnotK0->Fill(v0R);
-        mPVDCAnotK0->Fill(d0pvDCA);
-        mPVDCAnotK0->Fill(d1pvDCA);
+        mMCCosPAisBg->Fill(cosPA);
+        mMCDauDCAisBg->Fill(dauDCA);
+        mMCRisBg->Fill(v0R);
+        mMCPosPVDCAisBg->Fill(dPospvDCA);
+        mMCNegPVDCAisBg->Fill(dNegpvDCA);
+        mMCPosACSisBg->Fill(dPosACS);
+        mMCNegACSisBg->Fill(dNegACS);
+        mMCV0PVDCAisBg->Fill(v0pvDCA);
+        mMCArmPodolisBg->Fill(alphaArm, pT);
       }
     }
 
-    d0ACS = getAverageClusterSize(&d0recoTrk);
-    d1ACS = getAverageClusterSize(&d1recoTrk);
-    mAvgClusSizeNC->Fill(d0ACS);
-    mAvgClusSizeNC->Fill(d1ACS);
-
-    mOutputNtuple->Fill(d0ACS, d1ACS, v0InvMass, d01DCA, cosPA, v0R, eta, d0pvDCA, d1pvDCA, (float)isMCK0s);
-
-    mCosPA->Fill(cosPA);
-    mMassSpectrumFullNC->Fill(v0InvMass);
-    mMassSpectrumK0sNC->Fill(v0InvMass);
-    mEtaNC->Fill(eta);
-    mR->Fill(v0R);
-    mDCA->Fill(d01DCA);
-    // innermost layer of ITS lies at 2.3cm
-    if (cosPA > params.cosPAmin && v0R < params.Rmax && v0R > params.Rmin && d01DCA < params.prongDCAmax && d0pvDCA > params.dauPVDCAmin && d1pvDCA > params.dauPVDCAmin) {
-      mMassSpectrumK0sC->Fill(v0InvMass);
-      mMassSpectrumFullC->Fill(v0InvMass);
-      mAvgClusSizeC->Fill(d0ACS);
-      mAvgClusSizeC->Fill(d1ACS);
+    mOutputNtupleAll->Fill(dPosACS, dNegACS, cosPA, v0R, eta, dauDCA, dPospvDCA, dNegpvDCA, v0pvDCA, alphaArm, pT, calcV0HypoMass(v0, PID::Pion, PID::Pion), calcV0HypoMass(v0, PID::Proton, PID::Pion), calcV0HypoMass(v0, PID::Pion, PID::Proton), (float)V0PdgCode);
+    if ((cosPA > params.cosPAmin || params.disableCosPA) && (v0R < params.Rmax || params.disableRmax) && (v0R > params.Rmin || params.disableRmin) && (dauDCA < params.prongDCAmax || params.disableProngDCAmax) && (dPospvDCA > params.dauPVDCAmin || params.disableDauPVDCAmin) && (dNegpvDCA > params.dauPVDCAmin || params.disableDauPVDCAmin) && (v0pvDCA < params.v0PVDCAmax || params.disableV0PVDCAmax) && (abs(bgV0HypoMass - backgroundV0.getMass()) > params.bgV0window || params.disableMassHypoth) && (abs(tgV0HypoMass - targetV0.getMass()) < params.tgV0window || params.disableMassHypoth)) {
+      mOutputNtupleCut->Fill(dPosACS, dNegACS, cosPA, v0R, eta, dauDCA, dPospvDCA, dNegpvDCA, v0pvDCA, alphaArm, pT, calcV0HypoMass(v0, PID::Pion, PID::Pion), calcV0HypoMass(v0, PID::Proton, PID::Pion), calcV0HypoMass(v0, PID::Pion, PID::Proton), (float)V0PdgCode);
       if (eta > params.etaMin && eta < params.etaMax) {
-        nPionsInEtaRange++;
-        fillEtaBin(eta, d0ACS, 0);
-        fillEtaBin(eta, d1ACS, 0);
-      }
-      mEtaC->Fill(eta);
+        fillEtaBin(eta, dPosACS, 0);
+        fillEtaBin(eta, dNegACS, 0);
+      } else
+        nV0OutOfEtaRange++;
     }
   }
 
   if (mUseMC) {
-    o2::MCTrack V0MotherMCTrk;
-    LOGP(info, "OVERALL STATISTICS: {} nonvalid daughter pairs, {} nullptrs, {} motherID mismatches, {} evID mismatches, {} K0-shorts, {} not-K0s, {} pion pairs, out of {} V0s", nNotValid, nNullptrs, nMotherIDMismatch, nEvIDMismatch, nK0s, nNotK0s, nPiPi, V0s.size());
-    LOGP(info, "OVERALL STATISTICS: {} Pi Y K0s N, {} Pi Y K0s Y, {} Pi N K0s Y", nIsPiPiNotK0s, nIsPiPiIsK0s, nIsNotPiPiIsK0s);
-    LOGP(info, "OVERALL STATISTICS: {} Pions in eta range", nPionsInEtaRange);
-    int nK0sisPrimary = 0;
-    int totalK0sMotherMinus1 = 0;
-    for (auto mcTrk : mMCTracks) { // search through all MC tracks to find K0s, whether reconstructed or not
-      if (mcTrk.GetPdgCode() == 310 && mcTrk.getMotherTrackId() == -1) {
-        totalK0sMotherMinus1++;
-      }
-      if (mcTrk.GetPdgCode() == 310 && mcTrk.isPrimary()) {
-        nK0sisPrimary++;
-        // V0MotherMCTrk = mMCTracks[mcTrk.getMotherTrackId()];
-        // mMCMotherPDG->Fill(V0MotherMCTrk.GetPdgCode());
-        // LOGP(info, "K0s is primary, motherID is {} and motherPDG is {}", mcTrk.getMotherTrackId(), V0MotherMCTrk.GetPdgCode());
+    LOGP(info, "MONTE CARLO OVERALL STATISTICS: {} total V0s, {} nonvalid daughter labels, {} nullptrs, {} motherID mismatches, {} evID mismatches, {} matching target, {} not matching target", V0s.size(), nNotValid, nNullptrs, nMotherIDMismatch, nEvIDMismatch, nTargetV0, nNotTargetV0);
+    int nPrimaryTargetV0 = 0;
+    for (auto& mcTrk : mMCTracks) { // search through all MC tracks to find primary target V0s, whether reconstructed or not
+      if (mcTrk.GetPdgCode() == targetPDGCode && mcTrk.isPrimary()) {
+        nPrimaryTargetV0++;
       }
     }
-    LOGP(info, "OVERALL STATISTICS: {} K0s (mother==-1) found in MC tracks out of {} total", totalK0sMotherMinus1, mMCTracks.size());
-    LOGP(info, "OVERALL STATISTICS: {} K0s (isPrimary) found in MC tracks out of {} total", nK0sisPrimary, mMCTracks.size());
-    // LOGP(info, "OVERALL STATISTICS: {} primary K0s found in MC tracks out of {} total", totalK0sInDataset, mMCTracks.size());
+    LOGP(info, "MONTE CARLO OVERALL STATISTICS: {} MC target V0s (isPrimary) found in MC tracks out of {} total MC tracks", nPrimaryTargetV0, mMCTracks.size());
   }
-
-  // TODO: implement 7 cluster track cut for daughters; if we don't have enough statistics, we can cut even harsher on cosPA and inject more statistics
-  // TODO: print the cut on the graph
+  LOGP(info, "{} V0s out of eta range ({}, {})", nV0OutOfEtaRange, params.etaMin, params.etaMax);
 }
 
 float AvgClusSizeStudy::getAverageClusterSize(TrackITS* daughter)
@@ -496,16 +508,49 @@ float AvgClusSizeStudy::getAverageClusterSize(TrackITS* daughter)
   auto firstClus = daughter->getFirstClusterEntry();
   auto ncl = daughter->getNumberOfClusters();
   for (int icl = 0; icl < ncl; icl++) {
-    totalSize += mInputClusterSizes[mInputITSidxs[firstClus + icl]];
-    globalNPixels += mInputClusterSizes[mInputITSidxs[firstClus + icl]];
+    totalSize += mClusterSizes[mInputITSidxs[firstClus + icl]];
   }
-  globalNClusters += ncl;
   return (float)totalSize / (float)ncl;
 }
 
+float AvgClusSizeStudy::calcV0HypoMass(const V0& v0, PID hypothPIDPos, PID hypothPIDNeg)
+{
+  // Taken from StrangenessTracker.h lines 127-141
+  std::array<float, 3> pPos, pNeg, pV0;
+  v0.getProng(0).getPxPyPzGlo(pPos);
+  v0.getProng(1).getPxPyPzGlo(pNeg);
+  v0.getPxPyPzGlo(pV0);
+  double m2Pos = PID::getMass2(hypothPIDPos);
+  double m2Neg = PID::getMass2(hypothPIDNeg);
+  double p2Pos = (pPos[0] * pPos[0]) + (pPos[1] * pPos[1]) + (pPos[2] * pPos[2]);
+  double p2Neg = (pNeg[0] * pNeg[0]) + (pNeg[1] * pNeg[1]) + (pNeg[2] * pNeg[2]);
+  double ePos = std::sqrt(p2Pos + m2Pos), eNeg = std::sqrt(p2Neg + m2Neg);
+  double e2V0 = (ePos + eNeg) * (ePos + eNeg);
+  double pxV0 = (pPos[0] + pNeg[0]);
+  double pyV0 = (pPos[1] + pNeg[1]);
+  double pzV0 = (pPos[2] + pNeg[2]);
+  double p2V0 = (pxV0 * pxV0) + (pyV0 * pyV0) + (pzV0 * pzV0);
+  return (float)std::sqrt(e2V0 - p2V0);
+}
+
+void AvgClusSizeStudy::calcAPVars(const V0& v0, float* alphaArm, float* pT)
+{
+  // Calculation of the Armenteros-Podolanski variables
+  std::array<float, 3> pV0, pPos, pNeg;
+  v0.getProng(0).getPxPyPzGlo(pPos);
+  v0.getProng(1).getPxPyPzGlo(pNeg);
+  v0.getPxPyPzGlo(pV0);
+  double p2V0 = pV0[0] * pV0[0] + pV0[1] * pV0[1] + pV0[2] * pV0[2];
+  double qNeg = pNeg[0] * pV0[0] + pNeg[1] * pV0[1] + pNeg[2] * pV0[2];
+  double qPos = pPos[0] * pV0[0] + pPos[1] * pV0[1] + pPos[2] * pV0[2];
+  *alphaArm = (float)(qPos - qNeg) / (qPos + qNeg);
+  double p2Pos = pPos[0] * pPos[0] + pPos[1] * pPos[1] + pPos[2] * pPos[2];
+  *pT = (float)std::sqrt(p2Pos - ((qPos * qPos) / p2V0));
+};
+
 void AvgClusSizeStudy::fillEtaBin(float eta, float clusSize, int i)
 {
-  if (eta < mEtaBinUL[i]) { // FIXME: there is a problem if eta is outside the full range (< etaMin or > etaMax)...
+  if (eta < mEtaBinUL[i]) {
     mAvgClusSizeCEtaVec[i]->Fill(clusSize);
   } else {
     fillEtaBin(eta, clusSize, i + 1);
@@ -528,133 +573,80 @@ void AvgClusSizeStudy::saveHistograms()
   mDBGOut.reset();
   TFile fout(mOutName.c_str(), "RECREATE");
 
-  fout.WriteTObject(mOutputNtuple.get());
+  fout.WriteTObject(mOutputNtupleAll.get());
+  fout.WriteTObject(mOutputNtupleCut.get());
+  fout.WriteTObject(mMCR.get());
+  fout.WriteTObject(mMCCosPA.get());
+  fout.WriteTObject(mMCPosACS.get());
+  fout.WriteTObject(mMCNegACS.get());
+  fout.WriteTObject(mMCDauDCA.get());
+  fout.WriteTObject(mMCPosPVDCA.get());
+  fout.WriteTObject(mMCNegPVDCA.get());
+  fout.WriteTObject(mMCV0PVDCA.get());
+  fout.WriteTObject(mMCArmPodolisTg.get());
+  fout.WriteTObject(mMCArmPodolisBg.get());
 
-  fout.WriteTObject(mMassSpectrumFullNC.get());
-  fout.WriteTObject(mMassSpectrumFullC.get());
-  fout.WriteTObject(mMassSpectrumK0sNC.get());
-  fout.WriteTObject(mMassSpectrumK0sC.get());
-  fout.WriteTObject(mAvgClusSize.get());
-  fout.WriteTObject(mAvgClusSizeCEta.get()); // NOTE: storing the THStack does work, but it's a little more complicated to extract the individual histograms
-  fout.WriteTObject(mCosPA.get());
-  fout.WriteTObject(mR.get());
-  fout.WriteTObject(mDCA.get());
-  fout.WriteTObject(mEtaNC.get());
-  fout.WriteTObject(mEtaC.get());
-  fout.WriteTObject(mMCMotherPDG.get());
-  fout.WriteTObject(mMCCosPAK0.get());
-  fout.WriteTObject(mMCCosPAnotK0.get());
-  fout.WriteTObject(mRK0.get());
-  fout.WriteTObject(mRnotK0.get());
-  fout.WriteTObject(mDCAK0.get());
-  fout.WriteTObject(mDCAnotK0.get());
-  fout.WriteTObject(mPVDCAK0.get());
-  fout.WriteTObject(mPVDCAnotK0.get());
+  fout.WriteTObject(mAvgClusSizeCEta.get());
   fout.Close();
 
-  // mMCStackCosPA->Add(mMCCosPAK0.get());
-  // mMCStackCosPA->Add(mMCCosPAnotK0.get());
-  // mStackDCA->Add(mDCAK0.get());
-  // mStackDCA->Add(mDCAnotK0.get());
-  // mStackR->Add(mRK0.get());
-  // mStackR->Add(mRnotK0.get());
-
-  LOGP(important, "Stored histograms into {}", mOutName.c_str());
+  LOGP(info, "Stored histograms into {}", mOutName.c_str());
 }
 
 void AvgClusSizeStudy::plotHistograms()
 {
-  auto& params = o2::its::study::ITSAvgClusSizeParamConfig::Instance();
-  float globalAvgClusSize = (float)globalNPixels / (float)globalNClusters;
-
-  TCanvas* c1 = new TCanvas();
-  mMassSpectrumFull->Draw("nostack");
-  c1->Print("massSpectrumFull.png");
-
-  TCanvas* c2 = new TCanvas();
-  mMassSpectrumK0s->Draw("nostack E");
-  c2->BuildLegend();
-  c2->Print("massSpectrumK0s.png");
-
-  TCanvas* c3 = new TCanvas();
-  mAvgClusSize->Draw("nostack");
-  TLine* globalAvg = new TLine(globalAvgClusSize, 0, globalAvgClusSize, mAvgClusSizeNC->GetMaximum());
-  globalAvg->Draw();
-  c3->Print("clusSize.png");
-
-  TCanvas* c4 = new TCanvas();
-  mCosPA->Draw();
-  c4->Print("cosPA.png");
-
-  TCanvas* c6 = new TCanvas();
-  mR->Draw();
-  c6->Print("mR.png");
-
-  TCanvas* c7 = new TCanvas();
-  mDCA->Draw();
-  c7->Print("mDCA.png");
-
-  TCanvas* c8 = new TCanvas();
-  mEtaNC->Draw();
-  c8->Print("mEtaNC.png");
-
-  TCanvas* c9 = new TCanvas();
-  mEtaC->Draw();
-  c9->Print("mEtaC.png");
+  if (mUseMC) {
+    TCanvas* cMCR = new TCanvas();
+    mMCR->Draw("nostack");
+    cMCR->BuildLegend();
+    cMCR->Print("mcR.png");
+    TCanvas* cMCCosPA = new TCanvas();
+    mMCCosPA->Draw("nostack");
+    cMCCosPA->BuildLegend();
+    cMCCosPA->Print("mcCosPA.png");
+    TCanvas* cMCPosACS = new TCanvas();
+    mMCPosACS->Draw("nostack");
+    cMCPosACS->BuildLegend();
+    cMCPosACS->Print("mcPosACS.png");
+    TCanvas* cMCNegACS = new TCanvas();
+    mMCNegACS->Draw("nostack");
+    cMCNegACS->BuildLegend();
+    cMCNegACS->Print("mcNegACS.png");
+    TCanvas* cMCDauDCA = new TCanvas();
+    mMCDauDCA->Draw("nostack");
+    cMCDauDCA->BuildLegend();
+    cMCDauDCA->Print("mcDauDCA.png");
+    TCanvas* cMCPosPVDCA = new TCanvas();
+    mMCPosPVDCA->Draw("nostack");
+    cMCPosPVDCA->BuildLegend();
+    cMCPosPVDCA->Print("mcPosPVDCA.png");
+    TCanvas* cMCNegPVDCA = new TCanvas();
+    mMCNegPVDCA->Draw("nostack");
+    cMCNegPVDCA->BuildLegend();
+    cMCNegPVDCA->Print("mcNegPVDCA.png");
+    TCanvas* cMCV0PVDCA = new TCanvas();
+    mMCV0PVDCA->Draw("nostack");
+    cMCV0PVDCA->BuildLegend();
+    cMCV0PVDCA->Print("mcV0PVDCA.png");
+    TCanvas* cMCArmPodolTg = new TCanvas();
+    mMCArmPodolisTg->Draw("COLZ");
+    cMCArmPodolTg->Print("mcArmPodolTg.png");
+    TCanvas* cMCArmPodolBg = new TCanvas();
+    mMCArmPodolisBg->Draw("COLZ");
+    cMCArmPodolBg->Print("mcArmPodolBg.png");
+  }
 
   TCanvas* c10 = new TCanvas();
   mAvgClusSizeCEta->Draw("P NOSTACK");
   c10->BuildLegend(0.6, 0.6, 0.8, 0.8);
   c10->Print("clusSizeEta.png");
-  for (int i = 0; i < params.etaNBins; i++) {
-    mAvgClusSizeCEtaVec[i]->Scale(1. / mAvgClusSizeCEtaVec[i]->Integral("width"));
-  }
-
-  TCanvas* c11 = new TCanvas();
-  mAvgClusSizeCEta->Draw("P L NOSTACK HIST");
-  mAvgClusSizeCEta->SetTitle("Average cluster size per track (normed)");
-  c11->BuildLegend(0.6, 0.6, 0.8, 0.8);
-  c11->Print("clusSizeEtaNormed.png");
-
-  if (mUseMC) {
-    TCanvas* c12 = new TCanvas();
-    mMCMotherPDG->Draw();
-    c12->Print("MCMotherPDG.png");
-
-    TCanvas* c13 = new TCanvas();
-    mMCStackCosPA->Draw("nostack");
-    c13->Print("MCCosPA.png");
-
-    TCanvas* c14 = new TCanvas();
-    mStackDCA->Draw("nostack");
-    c14->Print("MCDCA.png");
-
-    TCanvas* c15 = new TCanvas();
-    mStackR->Draw("nostack");
-    c15->Print("MCR.png");
-
-    TCanvas* c16 = new TCanvas();
-    mStackPVDCA->Draw("nostack");
-    c16->Print("MCPVDCA.png");
-  }
-}
-
-void AvgClusSizeStudy::fitMassSpectrum()
-{
-  TF1* gaus = new TF1("gaus", "gaus", 485, 505);
-  TFitResultPtr fit = mMassSpectrumK0sC->Fit("gaus", "S", "", 480, 510);
-  fit->Print();
 }
 
 void AvgClusSizeStudy::endOfStream(EndOfStreamContext& ec)
 {
   auto& params = o2::its::study::ITSAvgClusSizeParamConfig::Instance();
-  if (params.performFit) {
-    fitMassSpectrum();
-  }
+  setStyle();
+  saveHistograms();
   if (params.generatePlots) {
-    saveHistograms();
-    setStyle();
     plotHistograms();
   }
 }
