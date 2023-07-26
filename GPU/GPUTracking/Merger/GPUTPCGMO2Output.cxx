@@ -114,7 +114,6 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int nBlocks, in
   const unsigned int flagsRequired = getFlagsRequired(merger.Param().rec);
   TrackTPC* outputTracks = merger.OutputTracksTPCO2();
   unsigned int* clusRefs = merger.OutputClusRefsTPCO2();
-  PIDResponse pidResponse{};
 
   GPUTPCGMMerger::tmpSort* GPUrestrict() trackSort = merger.TrackSortO2();
   uint2* GPUrestrict() tmpData = merger.ClusRefTmp();
@@ -145,7 +144,8 @@ GPUdii() void GPUTPCGMO2Output::Thread<GPUTPCGMO2Output::output>(int nBlocks, in
        outerPar.C[12], outerPar.C[13], outerPar.C[14]}));
 
     if (merger.Param().par.dodEdx) {
-      const auto pid = pidResponse.getMostProbablePID(oTrack);
+      PIDResponse pidResponse{};
+      const auto pid = pidResponse.getMostProbablePID(oTrack, merger.Param().rec.tpc.PID_EKrangeMin, merger.Param().rec.tpc.PID_EKrangeMax, merger.Param().rec.tpc.PID_EPrangeMin, merger.Param().rec.tpc.PID_EPrangeMax);
       oTrack.setPID(pid);
       oTrack.getParamOut().setPID(pid);
     }
