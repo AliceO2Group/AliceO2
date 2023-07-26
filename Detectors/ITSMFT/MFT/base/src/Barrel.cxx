@@ -380,8 +380,8 @@ TGeoVolumeAssembly* Barrel::createBarrel()
       xPosIniA = xPosIniA - 0.03;
     }
   }
-  Double_t xIsol = (rin_wireA[2] - 0.1) * TMath::Sin(50.5 * kDegRad);
-  Double_t yIsol = sqrt((rin_wireA[2] - 0.1) * (rin_wireA[2] - 0.1) - xIsol * xIsol);
+  Double_t xIsol = (rin_wireA[0] - 0.1) * TMath::Sin(50.5 * kDegRad);
+  Double_t yIsol = sqrt((rin_wireA[0] - 0.1) * (rin_wireA[0] - 0.1) - xIsol * xIsol);
   BarrelVolume->AddNode(BarrelWiresIsolA, 1, new TGeoTranslation(xIsol, -yIsol, 81.325));
   BarrelVolume->AddNode(BarrelWiresIsolA, 1, new TGeoTranslation(-xIsol, -yIsol, 81.325));
 
