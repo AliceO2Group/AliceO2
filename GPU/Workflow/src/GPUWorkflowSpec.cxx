@@ -653,6 +653,20 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   }
   ptrs.settingsTF = mTFSettings.get();
 
+  if (mConfParam->checkFirstTfOrbit) {
+    static uint32_t lastFirstTFOrbit = -1;
+    static uint32_t lastTFCounter = -1;
+    if (lastFirstTFOrbit != -1 && lastTFCounter != -1) {
+      int diffOrbit = tinfo.firstTForbit - lastFirstTFOrbit;
+      int diffCounter = tinfo.tfCounter - lastTFCounter;
+      if (diffOrbit != diffCounter * mTFSettings->nHBFPerTF) {
+        LOG(error) << "Time frame has mismatching firstTfOrbit - Last orbit/counter: " << lastFirstTFOrbit << " " << lastTFCounter << " - Current: " << tinfo.firstTForbit << " " << tinfo.tfCounter;
+      }
+    }
+    lastFirstTFOrbit = tinfo.firstTForbit;
+    lastTFCounter = tinfo.tfCounter;
+  }
+
   if (mTPCSectorMask != 0xFFFFFFFFF) {
     // Clean out the unused sectors, such that if they were present by chance, they are not processed, and if the values are uninitialized, we should not crash
     for (unsigned int i = 0; i < NSectors; i++) {

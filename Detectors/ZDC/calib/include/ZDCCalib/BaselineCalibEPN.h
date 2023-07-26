@@ -39,8 +39,10 @@ class BaselineCalibEPN
   void setSaveDebugHistos() { mSaveDebugHistos = true; }
   void setDontSaveDebugHistos() { mSaveDebugHistos = false; }
   void setVerbosity(int val) { mVerbosity = val; }
-  BaselineCalibData mData;
+  BaselineCalibData mData;    // Data to be transmitted to aggregator
+  BaselineCalibData mDataSum; // Debug histograms to be saved on EPN node
   BaselineCalibData& getData() { return mData; }
+  BaselineCalibData& getDataSum() { return mDataSum; }
 
  private:
   bool mInitDone = false;

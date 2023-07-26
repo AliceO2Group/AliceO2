@@ -641,20 +641,43 @@ using AmbiguousFwdTrack = AmbiguousFwdTracks::iterator;
 // HMPID information
 namespace hmpid
 {
-DECLARE_SOA_INDEX_COLUMN(Track, track);                  //! Track index
-DECLARE_SOA_COLUMN(HMPIDSignal, hmpidSignal, float);     //! Signal of the HMPID
-DECLARE_SOA_COLUMN(HMPIDDistance, hmpidDistance, float); //! Distance between the matched HMPID signal and the propagated track
-DECLARE_SOA_COLUMN(HMPIDNPhotons, hmpidNPhotons, short); //! Number of detected photons in HMPID
-DECLARE_SOA_COLUMN(HMPIDQMip, hmpidQMip, short);         //! Collected charge in the HMPID
+DECLARE_SOA_INDEX_COLUMN(Track, track);                            //! Track index
+DECLARE_SOA_COLUMN(HMPIDSignal, hmpidSignal, float);               //! Signal of the HMPID
+DECLARE_SOA_COLUMN(HMPIDDistance, hmpidDistance, float);           //! Distance between the matched HMPID signal and the propagated track
+DECLARE_SOA_COLUMN(HMPIDXTrack, hmpidXTrack, float);               //! Extrapolated track point x coordinate
+DECLARE_SOA_COLUMN(HMPIDYTrack, hmpidYTrack, float);               //! Extrapolated track point y coordinate
+DECLARE_SOA_COLUMN(HMPIDXMip, hmpidXMip, float);                   //! Matched MIP track point x coordinate
+DECLARE_SOA_COLUMN(HMPIDYMip, hmpidYMip, float);                   //! Matched MIP track point y coordinate
+DECLARE_SOA_COLUMN(HMPIDNPhotons, hmpidNPhotons, int);             //! Number of detected photons in HMPID
+DECLARE_SOA_COLUMN(HMPIDQMip, hmpidQMip, float);                   //! Matched MIP cluster charge
+DECLARE_SOA_COLUMN(HMPIDClusSize, hmpidClusSize, int);             //! Matched MIP cluster size
+DECLARE_SOA_COLUMN(HMPIDMom, hmpidMom, float);                     //! Matched MIP cluster size
+DECLARE_SOA_COLUMN(HMPIDPhotsCharge, hmpidPhotsCharge, float[10]); //! Photon cluster charge
 } // namespace hmpid
 
-DECLARE_SOA_TABLE(HMPIDs, "AOD", "HMPID", //! HMPID information
+DECLARE_SOA_TABLE(HMPID_000, "AOD", "HMPID", //! HMPID information
                   o2::soa::Index<>,
                   hmpid::TrackId,
                   hmpid::HMPIDSignal,
                   hmpid::HMPIDDistance,
                   hmpid::HMPIDNPhotons,
                   hmpid::HMPIDQMip);
+
+DECLARE_SOA_TABLE_VERSIONED(HMPID_001, "AOD", "HMPID", 1, //! HMPID information  version 1
+                            o2::soa::Index<>,
+                            hmpid::TrackId,
+                            hmpid::HMPIDSignal,
+                            hmpid::HMPIDXTrack,
+                            hmpid::HMPIDYTrack,
+                            hmpid::HMPIDXMip,
+                            hmpid::HMPIDYMip,
+                            hmpid::HMPIDNPhotons,
+                            hmpid::HMPIDQMip,
+                            hmpid::HMPIDClusSize,
+                            hmpid::HMPIDMom,
+                            hmpid::HMPIDPhotsCharge);
+
+using HMPIDs = HMPID_000;
 using HMPID = HMPIDs::iterator;
 
 namespace calo
@@ -1410,6 +1433,7 @@ DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredMcParticles_000, aod::StoredMcParticles_
 DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracks, aod::StoredTracksIU);
 DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracks, aod::StoredTracksExtra);
 DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracksIU, aod::StoredTracksExtra);
+DECLARE_EQUIVALENT_FOR_INDEX(aod::HMPID_000, aod::HMPID_001);
 } // namespace soa
 
 namespace aod
