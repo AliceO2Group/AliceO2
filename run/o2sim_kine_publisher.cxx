@@ -21,7 +21,7 @@
 using namespace o2::framework;
 using namespace o2::steer;
 
-struct KinePublisher {
+struct O2simKinePublisher {
   Configurable<std::string> kineFileName{"kineFileName", "o2sim", "name of the _Kine.root file (without '_Kine.root')"};
   Configurable<int> aggregate{"aggregate-timeframe", 300, "Number of events to put in a timeframe"};
 
@@ -60,7 +60,7 @@ struct KinePublisher {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  DataProcessorSpec spec = adaptAnalysisTask<KinePublisher>(cfgc, TaskName{"o2sim-kine-publisher"});
+  auto spec = adaptAnalysisTask<O2simKinePublisher>(cfgc);
   spec.outputs.emplace_back("MC", "MCHEADER", 0, Lifetime::Timeframe);
   spec.outputs.emplace_back("MC", "MCTRACKS", 0, Lifetime::Timeframe);
   spec.requiredServices.push_back(o2::framework::ArrowSupport::arrowBackendSpec());
