@@ -291,7 +291,7 @@ void _o2_signpost_interval_end_v(_o2_log_t* log, _o2_signpost_id_t id, char cons
   _o2_activity_t* activity = &log->activities[i];
   int leading = activity->indentation * 2;
   char prebuffer[4096];
-  int s = snprintf(prebuffer, 4096, "id%.16llx:%-16sE>%*c", id.id, name, leading, ' ');
+  int s = snprintf(prebuffer, 4096, "id%.16" PRIx64 ":%-16sE>%*c", id.id, name, leading, ' ');
   vsnprintf(prebuffer + s, 4096 - s, format, args);
   O2_LOG_MACRO("%s", prebuffer);
   // Clear the slot
