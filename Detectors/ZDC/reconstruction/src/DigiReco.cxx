@@ -88,9 +88,7 @@ void DigiReco::init()
     }
     mLowPassFilter = ropt.low_pass_filter > 0 ? true : false;
   }
-  if (mVerbosity > DbgZero) {
-    LOG(info) << "Low pass filtering is " << (mLowPassFilter ? "enabled" : "disabled");
-  }
+  LOG(info) << "Low pass filtering is " << (mLowPassFilter ? "enabled" : "disabled");
 
   // Full interpolation of waveform (N.B. function call overrides other settings)
   if (mFullInterpolationSet == false) {
@@ -105,6 +103,16 @@ void DigiReco::init()
   }
   if (mVerbosity > DbgZero) {
     LOG(info) << "Full waveform interpolation is " << (mFullInterpolation ? "enabled" : "disabled");
+  }
+
+  if (mTriggerCondition == 0x1) {
+    LOG(info) << "SINGLE trigger condition enforced in reconstruction";
+  } else if (mTriggerCondition == 0x3) {
+    LOG(info) << "DOUBLE trigger condition enforced in reconstruction";
+  } else if (mTriggerCondition == 0x7) {
+    LOG(info) << "TRIPLE trigger condition enforced in reconstruction";
+  } else {
+    LOG(fatal) << "Unsupported trigger condition in ZDC reconstruction: " << mTriggerCondition;
   }
 
   if (mCorrSignalSet == false) {
@@ -134,6 +142,48 @@ void DigiReco::init()
   if (mVerbosity > DbgZero) {
     LOG(info) << "TDC pile-up correction is " << (mCorrBackground ? "enabled" : "disabled");
   }
+
+  // Trigger configuration
+  for (int itdc = 0; itdc < o2::zdc::NTDCChannels; itdc++) {
+    // If the reconstruction parameters were not manually set
+    if (ropt.tth[itdc] <= 0) {
+      if (!mRecoConfigZDC) {
+        LOG(fatal) << "Trigger threshold for TDC " << itdc << " missing configuration object and no manual override";
+      } else {
+        ropt.tth[itdc] = mRecoConfigZDC->tth[itdc];
+      }
+    }
+    if (ropt.tsh[itdc] <= 0) {
+      if (!mRecoConfigZDC) {
+        LOG(fatal) << "Trigger shift for TDC " << itdc << " missing configuration object and no manual override";
+      } else {
+        ropt.tsh[itdc] = mRecoConfigZDC->tsh[itdc];
+      }
+    }
+    if (mVerbosity > DbgZero) {
+      LOG(info) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " tth= " << mRopt->tth[itdc] << " tsh= " << mRopt->tsh[itdc];
+    }
+  }
+
+  // Extended search configuration
+  if (ropt.setExtendedSearch == false) {
+    if (mRecoConfigZDC == nullptr) {
+      LOG(fatal) << "Extended search configuration: missing configuration object and no manual override";
+    } else {
+      ropt.doExtendedSearch = mRecoConfigZDC->extendedSearch;
+    }
+  }
+  LOG(info) << "Extended search is " << (mRopt->doExtendedSearch ? "ON" : "OFF");
+
+  // Store hits with in-event pile-up (EvE)
+  if (ropt.setStoreEvPileup == false) {
+    if (mRecoConfigZDC == nullptr) {
+      LOG(fatal) << "Storage of hits with in-event pile-up: missing configuration object and no manual override";
+    } else {
+      ropt.doStoreEvPileup = mRecoConfigZDC->storeEvPileup;
+    }
+  }
+  LOG(info) << "Storage of EvE hits is " << (mRopt->doStoreEvPileup ? "ON" : "OFF");
 
   // TDC calibration
   // Recentering
@@ -204,9 +254,7 @@ void DigiReco::init()
       LOG(info) << "Energy Calibration from command line " << ChannelNames[ChEnergyCalib[il]] << " = " << ropt.energy_calib[ChEnergyCalib[il]];
     } else if (mEnergyParam && mEnergyParam->energy_calib[ChEnergyCalib[il]] > 0) {
       ropt.energy_calib[ChEnergyCalib[il]] = mEnergyParam->energy_calib[ChEnergyCalib[il]];
-      if (mVerbosity > DbgZero) {
-        LOG(info) << "Energy Calibration from CCDB " << ChannelNames[ChEnergyCalib[il]] << " = " << ropt.energy_calib[ChEnergyCalib[il]];
-      }
+      LOG(info) << "Energy Calibration from CCDB " << ChannelNames[ChEnergyCalib[il]] << " = " << ropt.energy_calib[ChEnergyCalib[il]];
     } else {
       if (ChEnergyCalib[il] == CaloCommonPM[ChEnergyCalib[il]]) {
         // Is a common PM or a ZEM
@@ -216,22 +264,18 @@ void DigiReco::init()
         // Is one of the analog sums -> same calibration as common PM
         // N.B. the calibration for common has already been set in the loop
         ropt.energy_calib[ChEnergyCalib[il]] = ropt.energy_calib[CaloCommonPM[il]];
-        if (mVerbosity > DbgZero) {
-          LOG(info) << "SUM Energy Calibration  " << ChannelNames[ChEnergyCalib[il]] << " = " << ropt.energy_calib[ChEnergyCalib[il]];
-        }
+        LOG(info) << "SUM Energy Calibration  " << ChannelNames[ChEnergyCalib[il]] << " = " << ropt.energy_calib[ChEnergyCalib[il]];
       }
     }
   }
 
-  // Tower calibration
+  // Tower calibration (intercalibration of towers)
   for (int il = 0; il < ChTowerCalib.size(); il++) {
     if (ropt.tower_calib[ChTowerCalib[il]] > 0) {
       LOG(info) << "Tower Calibration from command line " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.tower_calib[ChTowerCalib[il]];
     } else if (mTowerParam && mTowerParam->tower_calib[ChTowerCalib[il]] > 0) {
       ropt.tower_calib[ChTowerCalib[il]] = mTowerParam->tower_calib[ChTowerCalib[il]];
-      if (mVerbosity > DbgZero) {
-        LOG(info) << "Tower Calibration from CCDB " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.tower_calib[ChTowerCalib[il]];
-      }
+      LOG(info) << "Tower Calibration from CCDB " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.tower_calib[ChTowerCalib[il]];
     } else {
       ropt.tower_calib[ChTowerCalib[il]] = 1;
       LOG(warning) << "Default Tower Calibration " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.tower_calib[ChTowerCalib[il]];
@@ -239,6 +283,9 @@ void DigiReco::init()
   }
 
   // Tower energy calibration
+  // For the common PM and sum is given by the calibration parameters
+  // for the towers is the product of energy calibration of common PM and tower calibration
+  // It is possible to override from command line
   for (int il = 0; il < ChTowerCalib.size(); il++) {
     if (ropt.energy_calib[ChTowerCalib[il]] > 0) {
       LOG(info) << "Tower Energy Calibration set to " << ChannelNames[ChTowerCalib[il]] << " = " << ropt.energy_calib[ChTowerCalib[il]];
@@ -425,8 +472,8 @@ int DigiReco::process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, cons
       }
     }
   }
-  for (int ich = 0; ich < NChannels; ich++) {
-    if (mVerbosity > DbgZero) {
+  if (mVerbosity > DbgMinimal) {
+    for (int ich = 0; ich < NChannels; ich++) {
       LOG(info) << ChannelNames[ich] << " cnt: " << scaler[ich];
     }
   }
@@ -696,7 +743,10 @@ int DigiReco::reconstructTDC(int ibeg, int iend)
 {
 #ifdef ALICEO2_ZDC_DIGI_RECO_DEBUG
   LOG(info) << "________________________________________________________________________________";
-  LOG(info) << __func__ << "(" << ibeg << ", " << iend << ")";
+  LOG(info) << __func__ << "(" << ibeg << ", " << iend << ") length=" << iend - ibeg + 1;
+  for (int itdc = 0; itdc < NTDCChannels; itdc++) {
+    mAssignedTDC[itdc] = 0;
+  }
 #endif
   // Apply differential discrimination
   for (int itdc = 0; itdc < NTDCChannels; itdc++) {
@@ -716,7 +766,7 @@ int DigiReco::reconstructTDC(int ibeg, int iend)
         if (istart >= 0 && (istop - istart) > 0) {
           // Need data for at least two consecutive bunch crossings
           int rval = 0;
-          if (mRecoConfigZDC->extendedSearch) {
+          if (mRopt->doExtendedSearch) {
             rval = processTriggerExtended(itdc, istart, istop);
           } else {
             rval = processTrigger(itdc, istart, istop);
@@ -732,7 +782,7 @@ int DigiReco::reconstructTDC(int ibeg, int iend)
     // Check if there are consecutive bunch crossings at the end of group
     if (istart >= 0 && (istop - istart) > 0) {
       int rval = 0;
-      if (mRecoConfigZDC->extendedSearch) {
+      if (mRopt->doExtendedSearch) {
         rval = processTriggerExtended(itdc, istart, istop);
       } else {
         rval = processTrigger(itdc, istart, istop);
@@ -788,6 +838,23 @@ int DigiReco::reconstructTDC(int ibeg, int iend)
       }
     }
   }
+#ifdef ALICEO2_ZDC_DIGI_RECO_DEBUG
+  printf("Assiged TDCs:");
+  bool hasMult = false;
+  for (int itdc = 0; itdc < NTDCChannels; itdc++) {
+    if (mAssignedTDC[itdc] > 0) {
+      printf(" %s:%d", ChannelNames[TDCSignal[itdc]].data(), mAssignedTDC[itdc]);
+      if (mAssignedTDC[itdc] > 1) {
+        hasMult = true;
+      }
+    }
+  }
+  if (hasMult) {
+    printf(" MULTIPLE_ASSIGNMENTS\n");
+  } else {
+    printf("\n");
+  }
+#endif
   return 0;
 } // reconstructTDC
 
@@ -1219,9 +1286,9 @@ int DigiReco::processTriggerExtended(int itdc, int ibeg, int iend)
       s[0] = mChData[ref_s].data[s2];
 #endif
     }
-    // Triple trigger condition
     if (diff > thr) {
       isfired = isfired | 0x1;
+      // Check trigger condition
       if ((isfired & mTriggerCondition) == mTriggerCondition) {
         // Fired bit is assigned to the second sample, i.e. to the one that can identify the
         // signal peak position
@@ -1255,7 +1322,7 @@ int DigiReco::processTriggerExtended(int itdc, int ibeg, int iend)
     }
   }
   return interpolate(itdc, ibeg, iend);
-} // processTrigger
+} // processTriggerExtended
 
 // Interpolation for single point
 O2_ZDC_DIGIRECO_FLT DigiReco::getPoint(int isig, int ibeg, int iend, int i)
@@ -1754,6 +1821,7 @@ void DigiReco::assignTDC(int ibun, int ibeg, int iend, int itdc, int tdc, float 
             << " mSource[" << isig << "] = " << unsigned(mSource[isig]) << " = " << mOffset[isig]
             << " amp=" << amp << " -> " << TDCAmpCorr << " calib=" << tdc_calib[itdc] << " -> TDCAmp=" << TDCAmp << "=" << myamp
             << (ibun == ibeg ? " B" : "") << (ibun == iend ? " E" : "");
+  mAssignedTDC[itdc]++;
 #endif
   ihit++;
 } // assignTDC
@@ -1917,6 +1985,12 @@ void DigiReco::correctTDCPile()
       if (rec->ntdc[itdc] > 1) {
         // In-bunch pile-up: cannot correct
         rec->tdcPileEvE[TDCSignal[itdc]] = true;
+        if (mRopt->doStoreEvPileup) {
+          // Store also multiple hits
+          for (int ihit = 0; ihit < rec->ntdc[itdc]; ihit++) {
+            tdc.emplace_back(rec->TDCVal[itdc][ihit], rec->TDCAmp[itdc][ihit], rec->ir);
+          }
+        }
       } else if (rec->ntdc[itdc] == 1) {
         // A single TDC hit is present in current bunch
         if (tdc.size() > 0) {
@@ -1949,11 +2023,24 @@ void DigiReco::correctTDCPile()
           tdc.emplace_back(rec->TDCVal[itdc][ihit], rec->TDCAmp[itdc][ihit], rec->ir);
         }
       } // Single hit in bunch
+#ifdef ALICEO2_ZDC_DIGI_RECO_DEBUG
+      if (rec->tdcPileEvE[TDCSignal[itdc]] || rec->tdcPileM1C[TDCSignal[itdc]] || rec->tdcPileM1E[TDCSignal[itdc]] ||
+          rec->tdcPileM2C[TDCSignal[itdc]] || rec->tdcPileM2E[TDCSignal[itdc]] || rec->tdcPileM3C[TDCSignal[itdc]] || rec->tdcPileM3E[TDCSignal[itdc]]) {
+        printf("%d %u.%-4u %s:%s%s%s%s\n", ibc, rec->ir.orbit, rec->ir.bc, ChannelNames[TDCSignal[itdc]].data(),
+               rec->tdcPileEvE[TDCSignal[itdc]] ? " PileEvE" : "",
+               rec->tdcPileM1C[TDCSignal[itdc]] ? " PileM1C" : "",
+               rec->tdcPileM1E[TDCSignal[itdc]] ? " PileM1E" : "",
+               rec->tdcPileM2C[TDCSignal[itdc]] ? " PileM2C" : "",
+               rec->tdcPileM2E[TDCSignal[itdc]] ? " PileM2E" : "",
+               rec->tdcPileM3C[TDCSignal[itdc]] ? " PileM3C" : "",
+               rec->tdcPileM3E[TDCSignal[itdc]] ? " PileM3E" : "");
+      }
+#endif
     }
   }
 } // correctTDCPile
 
-//#define O2_ZDC_DEBUG_CORR
+// #define O2_ZDC_DEBUG_CORR
 
 int DigiReco::correctTDCSignal(int itdc, int16_t TDCVal, float TDCAmp, float& fTDCVal, float& fTDCAmp, bool isbeg, bool isend)
 {

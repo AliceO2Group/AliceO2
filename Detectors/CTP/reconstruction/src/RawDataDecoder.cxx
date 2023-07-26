@@ -79,6 +79,7 @@ int RawDataDecoder::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
         }
         ret = 2;
         mErrorIR++;
+        mStickyError = true;
       }
     } else {
       LOG(error) << "Two digits with the same rimestamp:" << ir.bc << " " << ir.orbit;
@@ -106,6 +107,7 @@ int RawDataDecoder::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
       } else {
         if (mErrorTCR < mErrorMax) {
           LOG(error) << "Two CTP Class masks for same timestamp";
+          mStickyError = true;
         }
         mErrorTCR++;
         ret = 3;
@@ -290,7 +292,7 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
     }
   }
   // ret = 1;
-  if (ret) {
+  if (mStickyError) {
     if (nwrites < mErrorMax) {
       std::string file = "/tmp/dumpCTP" + std::to_string(nwrites) + ".bin";
       std::ofstream dumpctp(file.c_str(), std::ios::out | std::ios::binary);
@@ -306,9 +308,8 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
       }
       nwrites++;
     }
-  }
-  if (mErrorIR || mErrorTCR) {
-    LOG(error) << "CTP decoding IR errors:" << mErrorIR << " TCR errors:" << mErrorTCR;
+    mStickyError = false;
+    // LOG(error) << "CTP decoding IR errors:" << mErrorIR << " TCR errors:" << mErrorTCR;
   }
   return ret;
 }
