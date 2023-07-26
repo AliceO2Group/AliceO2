@@ -496,7 +496,35 @@ int InterCalib::mini(int ih)
   for (Int_t i = 0; i < NPAR; i++) {
     mMn[ih]->GetParameter(i, mPar[ih][i], mErr[ih][i]);
   }
-  // TODO: insert fallback in case fit fails
+  // Fallback in case fit fails on proton calorimeters
+  if (ih == 1 || ih == 3) {
+    for(int iretry = 0; iretry<2; iretry++){
+      bool retry = false;
+      const char* parn[5] = {"c0fix", "c1fix", "c2fix", "c3fix", "c4fix"};
+      l_bnd = mInterCalibConfig->l_bnd[ih];
+      u_bnd = mInterCalibConfig->u_bnd[ih];
+      for (int i = 1; i <= 4; i++) {
+        if (TMath::Abs(mPar[ih][i] - l_bnd) < 1e-3 || TMath::Abs(mPar[ih][i] - u_bnd) < 1e-3) {
+          retry = true;
+          LOG(warn) << "ih=" << ih << " par " << i << " too close to boundaries";
+          if (ih == 1) {
+            mMn[ih]->mnparm(i, parn[i], mTowerParam->tower_calib[IdZPAC + i], 0, l_bnd, u_bnd, ierflg);
+          } else if (ih == 3) {
+            mMn[ih]->mnparm(i, parn[i], mTowerParam->tower_calib[IdZPCC + i], 0, l_bnd, u_bnd, ierflg);
+          } else {
+            LOG(fatal) << "ERROR on InterCalib minimization ih=" << ih;
+          }
+        }
+      }
+      if (retry) {
+        LOG(warn) << "Retry minimization on ih=" << ih;
+        mMn[ih]->mnexcm("MIGRAD", arglist, 0, ierflg);
+        for (Int_t i = 0; i < NPAR; i++) {
+          mMn[ih]->GetParameter(i, mPar[ih][i], mErr[ih][i]);
+        }
+      }
+    }
+  }
   mMtx.unlock();
   return ierflg;
 }
