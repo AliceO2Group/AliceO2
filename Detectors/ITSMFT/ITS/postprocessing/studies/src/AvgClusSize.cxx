@@ -243,29 +243,6 @@ void AvgClusSizeStudy::prepareOutput()
   mMCArmPodolisTg->SetDirectory(nullptr);
   mMCArmPodolisBg->SetDirectory(nullptr);
 
-  // mMassSpectrumFullNC->SetDirectory(nullptr);
-  // mMassSpectrumFullC->SetDirectory(nullptr);
-  // mMassSpectrumK0sNC->SetDirectory(nullptr);
-  // mMassSpectrumK0sC->SetDirectory(nullptr);
-  // mAvgClusSizeNC->SetDirectory(nullptr);
-  // mAvgClusSizeC->SetDirectory(nullptr);
-  // mCosPA->SetDirectory(nullptr);
-  // mMCCosPAK0->SetDirectory(nullptr);
-  // mMCCosPAnotK0->SetDirectory(nullptr);
-  // mR->SetDirectory(nullptr);
-  // mRK0->SetDirectory(nullptr);
-  // mRnotK0->SetDirectory(nullptr);
-  // mDCA->SetDirectory(nullptr);
-  // mDCAK0->SetDirectory(nullptr);
-  // mDCAnotK0->SetDirectory(nullptr);
-  // mEtaNC->SetDirectory(nullptr);
-  // mEtaC->SetDirectory(nullptr);
-  // mMCMotherPDG->SetDirectory(nullptr);
-  // mPVDCAK0->SetDirectory(nullptr);
-  // mPVDCAnotK0->SetDirectory(nullptr);
-  // mArmPodolNC->SetDirectory(nullptr);
-  // mArmPodolC->SetDirectory(nullptr);
-
   mOutputNtupleAll->SetDirectory(nullptr);
   mOutputNtupleCut->SetDirectory(nullptr);
 
@@ -410,8 +387,6 @@ void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
 
     dPosACS = getAverageClusterSize(&dPosRecoTrk);
     dNegACS = getAverageClusterSize(&dNegRecoTrk);
-    // mAvgClusSizeNC->Fill(dPosACS);
-    // mAvgClusSizeNC->Fill(dNegACS);
 
     tgV0HypoMass = calcV0HypoMass(v0, tgPos, tgNeg);
     bgV0HypoMass = calcV0HypoMass(v0, bgPos, bgNeg);
@@ -484,8 +459,9 @@ void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
       if (eta > params.etaMin && eta < params.etaMax) {
         fillEtaBin(eta, dPosACS, 0);
         fillEtaBin(eta, dNegACS, 0);
-      } else
+      } else {
         nV0OutOfEtaRange++;
+      }
     }
   }
 
@@ -515,7 +491,7 @@ float AvgClusSizeStudy::getAverageClusterSize(TrackITS* daughter)
 
 float AvgClusSizeStudy::calcV0HypoMass(const V0& v0, PID hypothPIDPos, PID hypothPIDNeg)
 {
-  // Taken from StrangenessTracker.h lines 127-141
+  // Mass hypothesis calculation; taken from o2::strangeness_tracking::StrangenessTracker::calcMotherMass()
   std::array<float, 3> pPos, pNeg, pV0;
   v0.getProng(0).getPxPyPzGlo(pPos);
   v0.getProng(1).getPxPyPzGlo(pNeg);
@@ -561,7 +537,7 @@ void AvgClusSizeStudy::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   static bool initOnceDone = false;
-  if (!initOnceDone) { // this params need to be queried only once
+  if (!initOnceDone) { // this param need to be queried only once
     initOnceDone = true;
     o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
     geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot, o2::math_utils::TransformType::T2G));
