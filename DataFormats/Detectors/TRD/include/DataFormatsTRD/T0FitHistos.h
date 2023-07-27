@@ -34,7 +34,6 @@ class T0FitHistos
   T0FitHistos() = default;
   T0FitHistos(const T0FitHistos&) = default;
   ~T0FitHistos() = default;
-  void reset();
   auto getDetector(int index) const { return mDet[index]; }
   auto getTimeBin(int index) const { return mTB[index]; }
   auto getADC(int index) const { return mADC[index]; }

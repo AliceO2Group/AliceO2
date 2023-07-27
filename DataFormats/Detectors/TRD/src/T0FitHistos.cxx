@@ -19,13 +19,6 @@
 using namespace o2::trd;
 using namespace o2::trd::constants;
 
-void T0FitHistos::reset()
-{
-  mDet.resize(0);
-  mTB.resize(0);
-  mADC.resize(0);
-  mNEntriesTot = 0;
-}
 
 void T0FitHistos::fill(const std::vector<o2::trd::PHData> data)
 {
