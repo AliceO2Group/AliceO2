@@ -19,7 +19,6 @@
 using namespace o2::trd;
 using namespace o2::trd::constants;
 
-
 void T0FitHistos::fill(const std::vector<o2::trd::PHData> data)
 {
   for (auto ph : data) {
