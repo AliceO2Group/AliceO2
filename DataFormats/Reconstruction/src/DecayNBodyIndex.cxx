@@ -9,24 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_SECONDARY_VERTEXER_SPEC_H
-#define O2_SECONDARY_VERTEXER_SPEC_H
+#include "ReconstructionDataFormats/DecayNBodyIndex.h"
 
-/// @file SecondaryVertexingSpec.h
-
-#include "ReconstructionDataFormats/GlobalTrackID.h"
-#include "Framework/DataProcessorSpec.h"
-#include "Framework/Task.h"
-
-namespace o2
+namespace o2::dataformats
 {
-namespace vertexing
-{
-
-/// create a processor spec
-o2::framework::DataProcessorSpec getSecondaryVertexingSpec(o2::dataformats::GlobalTrackID::mask_t src, bool enableCasc, bool enable3body, bool enableStrangenesTracking, bool useMC);
-
-} // namespace vertexing
-} // namespace o2
-
-#endif
+template class DecayNBodyIndex<2>;
+template class DecayNBodyIndex<3>;
+} // namespace o2::dataformats

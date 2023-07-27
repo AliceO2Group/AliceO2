@@ -1138,9 +1138,9 @@ template <typename V0CursorType, typename CascadeCursorType, typename Decay3Body
 void AODProducerWorkflowDPL::fillSecondaryVertices(const o2::globaltracking::RecoContainer& recoData, V0CursorType& v0Cursor, CascadeCursorType& cascadeCursor, Decay3BodyCursorType& decay3BodyCursor)
 {
 
-  auto v0s = recoData.getV0s();
-  auto cascades = recoData.getCascades();
-  auto decays3Body = recoData.getDecays3Body();
+  auto v0s = recoData.getV0sIdx();
+  auto cascades = recoData.getCascadesIdx();
+  auto decays3Body = recoData.getDecays3BodyIdx();
 
   v0Cursor.reserve(v0s.size());
   // filling v0s table
@@ -1234,9 +1234,9 @@ void AODProducerWorkflowDPL::fillSecondaryVertices(const o2::globaltracking::Rec
 
 void AODProducerWorkflowDPL::prepareStrangenessTracking(const o2::globaltracking::RecoContainer& recoData)
 {
-  auto v0s = recoData.getV0s();
-  auto cascades = recoData.getCascades();
-  auto decays3Body = recoData.getDecays3Body();
+  auto v0s = recoData.getV0sIdx();
+  auto cascades = recoData.getCascadesIdx();
+  auto decays3Body = recoData.getDecays3BodyIdx();
 
   int sTrkID = 0;
   mCollisionStrTrk.clear();
@@ -1995,9 +1995,9 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   mGIDToTableMFTID.clear();
 
   if (mPropTracks) {
-    auto v0s = recoData.getV0s();
-    auto cascades = recoData.getCascades();
-    auto decays3Body = recoData.getDecays3Body();
+    auto v0s = recoData.getV0sIdx();
+    auto cascades = recoData.getCascadesIdx();
+    auto decays3Body = recoData.getDecays3BodyIdx();
     mGIDUsedBySVtx.reserve(v0s.size() * 2 + cascades.size() + decays3Body.size() * 3);
     for (const auto& v0 : v0s) {
       mGIDUsedBySVtx.insert(v0.getProngID(0));

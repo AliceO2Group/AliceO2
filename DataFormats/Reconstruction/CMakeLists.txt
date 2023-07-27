@@ -24,7 +24,8 @@ o2_add_library(ReconstructionDataFormats
                        src/DCA.cxx
                        src/V0.cxx
                        src/Cascade.cxx
-                       src/DecayNbody.cxx
+                       src/Decay3Body.cxx
+                       src/DecayNBodyIndex.cxx
                        src/StrangeTrack.cxx
                        src/GlobalTrackID.cxx
                        src/VtxTrackIndex.cxx
@@ -57,7 +58,8 @@ o2_target_root_dictionary(
           include/ReconstructionDataFormats/DCA.h
           include/ReconstructionDataFormats/V0.h
           include/ReconstructionDataFormats/Cascade.h
-          include/ReconstructionDataFormats/DecayNbody.h
+          include/ReconstructionDataFormats/DecayNBodyIndex.h
+          include/ReconstructionDataFormats/Decay3Body.h
           include/ReconstructionDataFormats/StrangeTrack.h
           include/ReconstructionDataFormats/GlobalTrackID.h
           include/ReconstructionDataFormats/VtxTrackIndex.h

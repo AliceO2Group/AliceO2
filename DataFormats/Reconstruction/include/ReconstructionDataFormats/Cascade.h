@@ -28,15 +28,15 @@ class Cascade : public V0
 {
  public:
   Cascade() = default;
+  Cascade(const std::array<float, 3>& xyz, const std::array<float, 3>& pxyz, const std::array<float, 6>& covxyz, // RS Remove after dropping indices in O2Physics
+          const o2::track::TrackParCov& v0, const o2::track::TrackParCov& bachelor,
+          int v0ID, GIndex bachelorID, o2::track::PID pid = o2::track::PID::XiMinus) : Cascade(xyz, pxyz, covxyz, v0, bachelor, pid)
+  {
+  }
+
   Cascade(const std::array<float, 3>& xyz, const std::array<float, 3>& pxyz, const std::array<float, 6>& covxyz,
           const o2::track::TrackParCov& v0, const o2::track::TrackParCov& bachelor,
-          int v0ID, GIndex bachelorID, o2::track::PID pid = o2::track::PID::XiMinus);
-
-  GIndex getBachelorID() const { return mProngIDs[1]; }
-  void setBachelorID(GIndex gid) { mProngIDs[1] = gid; }
-
-  int getV0ID() const { return int(mProngIDs[0].getRaw()); }
-  void setV0ID(int vid) { mProngIDs[0].setRaw(GIndex::Base_t(vid)); }
+          o2::track::PID pid = o2::track::PID::XiMinus);
 
   const Track& getV0Track() const { return mProngs[0]; }
   Track& getV0Track() { return mProngs[0]; }
@@ -47,10 +47,7 @@ class Cascade : public V0
   void setV0Track(const Track& t) { mProngs[0] = t; }
   void setBachelorTrack(const Track& t) { mProngs[1] = t; }
 
- protected:
-  GIndex getProngID(int i) const = delete;
-
-  ClassDefNV(Cascade, 1);
+  ClassDefNV(Cascade, 2);
 };
 
 } // namespace dataformats
