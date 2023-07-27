@@ -57,7 +57,7 @@ class T0Fit final : public o2::calibration::TimeSlotCalibration<o2::trd::T0FitHi
   T0Fit() = default;
   ~T0Fit() final = default;
 
-  bool hasEnoughData(const Slot& slot) const final { return slot.getContainer()->getNEntries() >= mMinEntriesTotal; }
+  bool hasEnoughData(const Slot& slot) const final { return slot.getContainer()->getNEntries() >= mParams.minEntriesTotalT0Fit; }
   void initOutput() final;
   void finalizeSlot(Slot& slot) final;
   Slot& emplaceNewSlot(bool front, TFType tStart, TFType tEnd) final;
@@ -78,7 +78,6 @@ class T0Fit final : public o2::calibration::TimeSlotCalibration<o2::trd::T0FitHi
  private:
   bool mInitDone{false};                                         ///< flag to avoid creating output etc multiple times
   const TRDCalibParams& mParams{TRDCalibParams::Instance()};     ///< reference to calibration parameters
-  size_t mMinEntriesTotal{mParams.minEntriesTotalT0Fit};         ///< minimum number of entries in inclusive PH profile
   bool mEnableOutput{false};                                     ///< enable output in a root file instead of the ccdb
   std::unique_ptr<TFile> mOutFile{nullptr};                      ///< output file
   std::unique_ptr<TTree> mOutTree{nullptr};                      ///< output tree
