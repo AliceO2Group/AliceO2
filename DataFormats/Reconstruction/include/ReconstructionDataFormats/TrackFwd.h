@@ -174,7 +174,6 @@ class TrackParCovFwd : public TrackParFwd
 
   bool getCovXYZPxPyPzGlo(std::array<float, 21>& cv) const;
 
-
  private:
   /// Covariance matrix of track parameters, ordered as follows:    <pre>
   ///  <X,X>         <Y,X>           <PHI,X>       <TANL,X>        <INVQPT,X>
