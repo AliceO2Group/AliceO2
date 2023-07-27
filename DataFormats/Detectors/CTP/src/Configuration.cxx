@@ -209,7 +209,7 @@ int CTPConfiguration::addInput(std::string& inp, int clsindex, std::map<int, std
     ctpinp.name = inp;
   } else if (isNumber(sinp)) { // inputs as number
     int index = std::stoi(sinp);
-    ctpinp.name = CTPInputsConfiguration::getInputNameFromIndex(index);
+    ctpinp.name = CTPInputsConfiguration::getInputNameFromIndex100(index);
     ctpinp.inputMask = 1ull << (index - 1);
     ctpinp.level = ctpinp.name[0];
     if (ctpinp.neg == 0) {
@@ -1037,7 +1037,6 @@ int CTPInputsConfiguration::createInputsConfigFromFile(std::string& filename)
     ret++;
   }
   return ret;
-  ;
 }
 ///
 /// CTP inputs config
@@ -1050,47 +1049,22 @@ void CTPInputsConfiguration::printStream(std::ostream& stream) const
     input.printStream(stream);
   }
 }
+const std::vector<CTPInput> CTPInputsConfiguration::CTPInputsDefault =
+  {
+    CTPInput("MT0A", "FT0", 1), CTPInput("MT0C", "FT0", 2), CTPInput("MTVX", "FT0", 3), CTPInput("MTSC", "FT0", 4), CTPInput("MTCE", "FT0", 5),
+    CTPInput("MVBA", "FV0", 6), CTPInput("MVOR", "FV0", 7), CTPInput("MVIR", "FV0", 8), CTPInput("MVNC", "FV0", 9), CTPInput("MVCH", "FV0", 10),
+    CTPInput("0UCE", "FDD", 13), CTPInput("0USC", "FDD", 15), CTPInput("0UVX", "FDD", 16), CTPInput("0U0C", "FDD", 17), CTPInput("0U0A", "FDD", 18),
+    CTPInput("0DMC", "EMC", 14), CTPInput("0DJ1", "EMC", 41), CTPInput("0DG1", "EMC", 42), CTPInput("0DJ2", "EMC", 43), CTPInput("0DG2", "EMC", 44),
+    CTPInput("0EMC", "EMC", 21), CTPInput("0EJ1", "EMC", 37), CTPInput("0EG1", "EMC", 38), CTPInput("0EJ2", "EMC", 39), CTPInput("0EG2", "EMC", 40),
+    CTPInput("0PH0", "PHS", 22), CTPInput("1PHL", "PHS", 27), CTPInput("1PHH", "PHS", 28), CTPInput("1PHL", "PHM", 29),
+    CTPInput("1ZED", "ZDC", 25), CTPInput("1ZNC", "ZDC", 26)};
 void CTPInputsConfiguration::initDefaultInputConfig()
 {
-  defaultInputConfig.CTPInputs.push_back(CTPInput("MT0A", "FT0", 1));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("MT0C", "FT0", 2));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("MTVX", "FT0", 3));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("MTSC", "FT0", 4));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("MTCE", "FT0", 5));
-  //
-  defaultInputConfig.CTPInputs.push_back(CTPInput("MVBA", "FV0", 6));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("MVOR", "FV0", 7));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("MVIR", "FV0", 8));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("MVNC", "FV0", 9));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("MVCH", "FV0", 10));
-  //
-  defaultInputConfig.CTPInputs.push_back(CTPInput("0UCE", "FT0", 13));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("0USC", "FT0", 15));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("0UVX", "FT0", 16));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("0U0C", "FT0", 17));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("0U0A", "FT0", 18));
-  //
-  defaultInputConfig.CTPInputs.push_back(CTPInput("0DMC", "EMC", 14));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("0DJ1", "EMC", 41));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("0DG1", "EMC", 42));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("0DJ2", "EMC", 43));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("0DG2", "EMC", 44));
-  //
-  defaultInputConfig.CTPInputs.push_back(CTPInput("0EMC", "EMC", 21));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("0EJ1", "EMC", 37));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("0EG1", "EMC", 38));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("0EJ2", "EMC", 39));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("0EG2", "EMC", 40));
-  //
-  defaultInputConfig.CTPInputs.push_back(CTPInput("0PH0", "PHS", 22));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("1PHL", "PHS", 27));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("1PHH", "PHS", 28));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("1PHL", "PHM", 29));
-  //
-  defaultInputConfig.CTPInputs.push_back(CTPInput("1ZED", "ZDC", 25));
-  defaultInputConfig.CTPInputs.push_back(CTPInput("1ZNC", "ZDC", 26));
+  defaultInputConfig.CTPInputs = CTPInputsConfiguration::CTPInputsDefault;
 }
-std::string CTPInputsConfiguration::getInputNameFromIndex(int index)
+/// Return input name from default inputs configuration.
+/// Take into account convention that L0 inputs has (index+100) in the first version of CTP config file (*.rcfg)
+std::string CTPInputsConfiguration::getInputNameFromIndex100(int index)
 {
   int indexcor = index;
   if (index > 100) {
@@ -1108,17 +1082,36 @@ std::string CTPInputsConfiguration::getInputNameFromIndex(int index)
   LOG(info) << "Input with index:" << index << " not in deafult input config";
   return "";
 }
+/// Return input name from default inputs configuration.
+/// Index has to be in range [1::48]
+std::string CTPInputsConfiguration::getInputNameFromIndex(int index)
+{
+  if (index > o2::ctp::CTP_NINPUTS) {
+    LOG(warn) << "getInputNameFRomIndex: index too big:" << index;
+    return "none";
+  }
+  for (auto& inp : o2::ctp::CTPInputsConfiguration::CTPInputsDefault) {
+    if (inp.getIndex() == index) {
+      std::string name = inp.name;
+      return name;
+    }
+  }
+  LOG(info) << "Input with index:" << index << " not in deafult input config";
+  return "none";
+}
 int CTPInputsConfiguration::getInputIndexFromName(std::string& name)
 {
   std::string namecorr = name;
-  if (name[0] == '0') {
-    name.substr(1, name.size() - 1);
+  if ((name[0] == '0') || (name[0] == 'M') || (name[0] == '1')) {
+    namecorr.substr(1, namecorr.size() - 1);
+  } else {
+    LOG(warn) << "Input name without level:" << name;
   }
-  for (auto& inp : defaultInputConfig.CTPInputs) {
+  for (auto& inp : o2::ctp::CTPInputsConfiguration::CTPInputsDefault) {
     if (inp.name.find(namecorr) != std::string::npos) {
       return inp.getIndex();
     }
   }
-  LOG(info) << "Input with name:" << name << " not in default input config";
+  LOG(warn) << "Input with name:" << name << " not in default input config";
   return 0xff;
 }

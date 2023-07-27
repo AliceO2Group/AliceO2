@@ -24,6 +24,7 @@
 #include "EMCALBase/Geometry.h"
 #include "CCDB/CcdbObjectInfo.h"
 #include "EMCALCalib/TimeCalibrationParams.h"
+#include "EMCALCalib/GainCalibrationFactors.h"
 #include "EMCALCalibration/EMCALCalibParams.h"
 
 #include "Framework/Logger.h"
@@ -95,6 +96,12 @@ class EMCALTimeCalibData
   boostHisto& getHisto() { return mTimeHisto; }
   const boostHisto& getHisto() const { return mTimeHisto; }
 
+  void setGainCalibFactors(o2::emcal::GainCalibrationFactors* calibFactors)
+  {
+    mGainCalibFactors = calibFactors;
+    mApplyGainCalib = true;
+  }
+
   /// \brief Set new calibration histogram
   void setHisto(boostHisto hist) { mTimeHisto = hist; }
 
@@ -106,8 +113,10 @@ class EMCALTimeCalibData
  private:
   boostHisto mTimeHisto; ///< histogram with cell time vs. cell ID
 
-  int mEvents = 0;                        ///< current number of events
-  long unsigned int mNEntriesInHisto = 0; ///< number of entries in histogram
+  int mEvents = 0;                                      ///< current number of events
+  long unsigned int mNEntriesInHisto = 0;               ///< number of entries in histogram
+  bool mApplyGainCalib = false;                         ///< Switch if gain calibration is applied or not
+  o2::emcal::GainCalibrationFactors* mGainCalibFactors; ///< Gain calibration factors applied to the data before filling the histograms
 
   ClassDefNV(EMCALTimeCalibData, 1);
 };

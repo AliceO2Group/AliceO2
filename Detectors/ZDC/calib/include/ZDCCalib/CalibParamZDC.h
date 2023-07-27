@@ -27,7 +27,7 @@ namespace o2
 namespace zdc
 {
 struct CalibParamZDC : public o2::conf::ConfigurableParamHelper<CalibParamZDC> {
-  bool debugOutput = true;                           // Debug output
+  bool debugOutput = false;                          // Debug output
   bool rootOutput = true;                            // Output histograms to EOS
   std::string outputDir = "./";                      // ROOT files output directory
   std::string metaFileDir = "/dev/null";             // Metafile output directory

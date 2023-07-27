@@ -31,14 +31,14 @@ void CreateInterCalibConfig(long tmin = 0, long tmax = -1, std::string ccdbHost 
   // Shortcuts: internal, external, test, local, root
 
   // This object allows for the configuration of the intercalibration of the 4 towers of each calorimeter
-  // and the calibration of ZEM2 relative to ZEM1
+  // and the calibration of ZEM2 relative to ZEM1, ZNC relative to ZNA, ZPC relative to ZPA
   InterCalibConfig conf;
 
   // Enable intercalibration for all calorimeters
   // If intercalibration is disabled the intercalibration coefficients
   // are copied from previous valid object and flagged as not modified
-  //          ZNA   ZPA   ZNC   ZPC   ZEM2
-  conf.enable(true, true, true, true, true);
+  //          ZNA   ZPA   ZNC   ZPC   ZEM2  ZNI    ZPI
+  conf.enable(true, true, true, true, true, false, false);
 
   // The version for this macro considers NO energy calibration, i.e. all coefficients = 1
   // It is necessary to set the binning

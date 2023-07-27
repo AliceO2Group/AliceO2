@@ -38,22 +38,22 @@ class CorrectionMapsHelper
 
   GPUd() void Transform(int slice, int row, float pad, float time, float& x, float& y, float& z, float vertexTime = 0) const
   {
-    mCorrMap->Transform(slice, row, pad, time, x, y, z, vertexTime, mCorrMapRef, mLumiScale);
+    mCorrMap->Transform(slice, row, pad, time, x, y, z, vertexTime, mCorrMapRef, mLumiScale, mLumiScaleMode);
   }
 
   GPUd() void TransformXYZ(int slice, int row, float& x, float& y, float& z) const
   {
-    mCorrMap->TransformXYZ(slice, row, x, y, z, mCorrMapRef, mLumiScale);
+    mCorrMap->TransformXYZ(slice, row, x, y, z, mCorrMapRef, mLumiScale, mLumiScaleMode);
   }
 
   GPUd() void InverseTransformYZtoX(int slice, int row, float y, float z, float& x) const
   {
-    mCorrMap->InverseTransformYZtoX(slice, row, y, z, x, mCorrMapRef, mLumiScale);
+    mCorrMap->InverseTransformYZtoX(slice, row, y, z, x, mCorrMapRef, mLumiScale, mLumiScaleMode);
   }
 
   GPUd() void InverseTransformYZtoNominalYZ(int slice, int row, float y, float z, float& ny, float& nz) const
   {
-    mCorrMap->InverseTransformYZtoNominalYZ(slice, row, y, z, ny, nz); // FIXME: Wrong, but call at least one of the functions to set ny / nz to non-bogus values
+    mCorrMap->InverseTransformYZtoNominalYZ(slice, row, y, z, ny, nz, mCorrMapRef, mLumiScale, mLumiScaleMode);
   }
 
   GPUd() const GPUCA_NAMESPACE::gpu::TPCFastTransform* getCorrMap() const { return mCorrMap; }
@@ -143,7 +143,7 @@ class CorrectionMapsHelper
   int mUpdatedFlags = 0;
   float mInstLumi = 0.;                                         // instanteneous luminosity (a.u)
   float mMeanLumi = 0.;                                         // mean luminosity of the map (a.u)
-  float mLumiScale = 0.;                                        // precalculated lumi scaling
+  float mLumiScale = 0.;                                        // precalculated mInstLumi/mMeanLumi
   int mLumiScaleMode = 0;                                       // scaling-mode of the correciton maps
   float mMeanLumiOverride = -1.f;                               // optional value to override mean lumi
   float mInstLumiOverride = -1.f;                               // optional value to override inst lumi

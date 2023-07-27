@@ -107,23 +107,23 @@ void RDHUtils::dumpRDH(const void* rdhP)
 }
 
 //_________________________________________________
-bool RDHUtils::checkRDH(const void* rdhP, bool verbose)
+bool RDHUtils::checkRDH(const void* rdhP, bool verbose, bool checkZeros)
 {
   int version = getVersion(rdhP);
   bool ok = true;
   switch (version) {
     case 7:
-      ok = checkRDH(*reinterpret_cast<const RAWDataHeaderV7*>(rdhP), verbose);
+      ok = checkRDH(*reinterpret_cast<const RAWDataHeaderV7*>(rdhP), verbose, checkZeros);
       break;
     case 6:
-      ok = checkRDH(*reinterpret_cast<const RAWDataHeaderV6*>(rdhP), verbose);
+      ok = checkRDH(*reinterpret_cast<const RAWDataHeaderV6*>(rdhP), verbose, checkZeros);
       break;
     case 3:
     case 4:
-      ok = checkRDH(*reinterpret_cast<const RAWDataHeaderV4*>(rdhP), verbose);
+      ok = checkRDH(*reinterpret_cast<const RAWDataHeaderV4*>(rdhP), verbose, checkZeros);
       break;
     case 5:
-      ok = checkRDH(*reinterpret_cast<const RAWDataHeaderV5*>(rdhP), verbose);
+      ok = checkRDH(*reinterpret_cast<const RAWDataHeaderV5*>(rdhP), verbose, checkZeros);
       break;
     default:
       ok = false;
@@ -139,7 +139,7 @@ bool RDHUtils::checkRDH(const void* rdhP, bool verbose)
 }
 
 //_____________________________________________________________________
-bool RDHUtils::checkRDH(const RAWDataHeaderV4& rdh, bool verbose)
+bool RDHUtils::checkRDH(const RAWDataHeaderV4& rdh, bool verbose, bool checkZeros)
 {
   // check if rdh conforms with RDH4 fields
   bool ok = true;
@@ -162,7 +162,7 @@ bool RDHUtils::checkRDH(const RAWDataHeaderV4& rdh, bool verbose)
     }
     ok = false;
   }
-  if (rdh.zero0 || rdh.word3 || rdh.zero41 || rdh.zero42 || rdh.word5 || rdh.zero6 || rdh.word7) {
+  if (checkZeros && (rdh.zero0 || rdh.word3 || rdh.zero41 || rdh.zero42 || rdh.word5 || rdh.zero6 || rdh.word7)) {
     if (verbose) {
       LOG(alarm) << "Some reserved fields of RDH v4 are not empty";
     }
@@ -175,7 +175,7 @@ bool RDHUtils::checkRDH(const RAWDataHeaderV4& rdh, bool verbose)
 }
 
 //_____________________________________________________________________
-bool RDHUtils::checkRDH(const RAWDataHeaderV5& rdh, bool verbose)
+bool RDHUtils::checkRDH(const RAWDataHeaderV5& rdh, bool verbose, bool checkZeros)
 {
   // check if rdh conforms with RDH5 fields
   bool ok = true;
@@ -198,7 +198,7 @@ bool RDHUtils::checkRDH(const RAWDataHeaderV5& rdh, bool verbose)
     }
     ok = false;
   }
-  if (rdh.zero0 || rdh.word3 || rdh.zero4 || rdh.word5 || rdh.zero6 || rdh.word7) {
+  if (checkZeros && (rdh.zero0 || rdh.word3 || rdh.zero4 || rdh.word5 || rdh.zero6 || rdh.word7)) {
     if (verbose) {
       LOG(alarm) << "Some reserved fields of RDH v5 are not empty";
     }
@@ -211,7 +211,7 @@ bool RDHUtils::checkRDH(const RAWDataHeaderV5& rdh, bool verbose)
 }
 
 //_____________________________________________________________________
-bool RDHUtils::checkRDH(const RAWDataHeaderV6& rdh, bool verbose)
+bool RDHUtils::checkRDH(const RAWDataHeaderV6& rdh, bool verbose, bool checkZeros)
 {
   // check if rdh conforms with RDH6 fields
   bool ok = true;
@@ -234,7 +234,7 @@ bool RDHUtils::checkRDH(const RAWDataHeaderV6& rdh, bool verbose)
     }
     ok = false;
   }
-  if (rdh.zero0 || rdh.word3 || rdh.zero4 || rdh.word5 || rdh.zero6 || rdh.word7) {
+  if (checkZeros && (rdh.zero0 || rdh.word3 || rdh.zero4 || rdh.word5 || rdh.zero6 || rdh.word7)) {
     if (verbose) {
       LOG(alarm) << "Some reserved fields of RDH v6 are not empty";
     }
@@ -247,7 +247,7 @@ bool RDHUtils::checkRDH(const RAWDataHeaderV6& rdh, bool verbose)
 }
 
 //_____________________________________________________________________
-bool RDHUtils::checkRDH(const RAWDataHeaderV7& rdh, bool verbose)
+bool RDHUtils::checkRDH(const RAWDataHeaderV7& rdh, bool verbose, bool checkZeros)
 {
   // check if rdh conforms with RDH7 fields
   bool ok = true;
@@ -270,7 +270,7 @@ bool RDHUtils::checkRDH(const RAWDataHeaderV7& rdh, bool verbose)
     }
     ok = false;
   }
-  if (rdh.zero0 || rdh.zero3 || rdh.zero4 || rdh.word5 || rdh.zero6 || rdh.word7) {
+  if (checkZeros && (rdh.zero0 || rdh.zero3 || rdh.zero4 || rdh.word5 || rdh.zero6 || rdh.word7)) {
     if (verbose) {
       LOG(alarm) << "Some reserved fields of RDH v7 are not empty";
     }

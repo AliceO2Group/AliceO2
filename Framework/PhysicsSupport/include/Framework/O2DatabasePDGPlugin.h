@@ -8,17 +8,27 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
+
 #ifndef O2_FRAMEWORK_O2DATABASEPDG_H_
 #define O2_FRAMEWORK_O2DATABASEPDG_H_
 
 #include "Framework/Plugins.h"
 #include "TDatabasePDG.h"
+#include "SimulationDataFormat/O2DatabasePDG.h"
 
 namespace o2::framework
 {
-
 struct O2DatabasePDGImpl : public TDatabasePDG {
-  Double_t Mass(int pdg, bool& success);
+  Double_t Mass(int pdg)
+  {
+    // wrap our own Mass function to expose it in the service
+    bool success = false;
+    auto mass = o2::O2DatabasePDG::Mass(pdg, success, this);
+    if (!success) {
+      LOGF(error, "Unknown particle with PDG code %d", pdg);
+    }
+    return mass;
+  }
 };
 
 struct O2DatabasePDG : LoadableServicePlugin<O2DatabasePDGImpl> {

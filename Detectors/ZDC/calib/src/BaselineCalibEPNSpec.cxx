@@ -64,6 +64,9 @@ void BaselineCalibEPNSpec::init(o2::framework::InitContext& ic)
   mWorker.setVerbosity(mVerbosity);
   const auto& opt = CalibParamZDC::Instance();
   mModTF = opt.modTF;
+  if (mVerbosity >= DbgZero) {
+    LOG(info) << "Sending calibration data to aggregator every mModTF = " << mModTF << " TF";
+  }
 }
 
 void BaselineCalibEPNSpec::updateTimeDependentParams(ProcessingContext& pc)
@@ -135,6 +138,8 @@ void BaselineCalibEPNSpec::run(ProcessingContext& pc)
       // Prepare to process other time frames
       mWorker.resetInitFlag();
     }
+    // Clear data already transmitted
+    mWorker.mData.clear();
     mProcessed = 0;
   }
 }
@@ -156,8 +161,8 @@ void BaselineCalibEPNSpec::endOfStream(EndOfStreamContext& ec)
   //     o2::framework::Output outputData("ZDC", "BASECALIBDATA", 0, Lifetime::Sporadic);
   //     printf("Sending last processed data mProcessed = %u\n", mProcessed);
   //     ec.outputs().snapshot(outputData, summary);
-  //     mWorker.endOfRun();
   //   }
+  mWorker.endOfRun();
   mTimer.Stop();
   LOGF(info, "ZDC EPN Baseline calibration total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
   mRunStopRequested = true;
@@ -172,6 +177,7 @@ framework::DataProcessorSpec getBaselineCalibEPNSpec()
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back("ZDC", "BASECALIBDATA", 0, Lifetime::Sporadic);
+
   return DataProcessorSpec{
     "zdc-calib-baseline-epn",
     inputs,

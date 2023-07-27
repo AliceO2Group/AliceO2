@@ -72,6 +72,7 @@
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCUtils.h"
+#include "SimulationDataFormat/MCGenProperties.h"
 #include "ZDCBase/Constants.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "GPUTPCGMMergedTrackHit.h"
@@ -853,6 +854,25 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
       }
     }
   }
+  // mark calorimeter signals as reconstructed particles
+  if (mInputSources[GIndex::EMC]) {
+    auto& mcCaloEMCCellLabels = data.getEMCALCellsMCLabels()->getTruthArray();
+    for (auto& mcTruth : mcCaloEMCCellLabels) {
+      if (!mcTruth.isValid()) {
+        continue;
+      }
+      keepMCParticle(mToStore, mcTruth.getSourceID(), mcTruth.getEventID(), mcTruth.getTrackID());
+    }
+  }
+  if (mInputSources[GIndex::PHS]) {
+    auto& mcCaloPHOSCellLabels = data.getPHOSCellsMCLabels()->getTruthArray();
+    for (auto& mcTruth : mcCaloPHOSCellLabels) {
+      if (!mcTruth.isValid()) {
+        continue;
+      }
+      keepMCParticle(mToStore, mcTruth.getSourceID(), mcTruth.getEventID(), mcTruth.getTrackID());
+    }
+  }
   int tableIndex = 1;
   for (auto& colInfo : mcColToEvSrc) { // loop over "<eventID, sourceID> <-> combined MC col. ID" key pairs
     int event = colInfo[2];
@@ -896,7 +916,7 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
           keepMCParticle(mToStore, source, event, daughterL);
         }
       }
-      LOG(info) << "The fraction of MC particles kept is " << mToStore[source][event]->size() / (1. * mcParticles.size()) << " for source " << source << " and event " << event;
+      LOG(debug) << "The fraction of MC particles kept is " << mToStore[source][event]->size() / (1. * mcParticles.size()) << " for source " << source << " and event " << event;
 
       particleIDsToKeep.clear();
       for (auto& p : *mToStore[source][event]) {
@@ -1869,10 +1889,14 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
         if (nParts == 1 || sourceID == 0) {
           // FIXME:
           // use generators' names for generatorIDs (?)
-          short generatorID = sourceID;
           auto& header = mcReader->getMCEventHeader(sourceID, eventID);
+          bool isValid{};
+          int subGeneratorId{-1};
+          if (header.hasInfo(o2::mcgenid::GeneratorProperty::SUBGENERATORID)) {
+            subGeneratorId = header.getInfo<int>(o2::mcgenid::GeneratorProperty::SUBGENERATORID, isValid);
+          }
           mcCollisionsCursor(bcID,
-                             generatorID,
+                             o2::mcgenid::getEncodedGenId(header.getInfo<int>(o2::mcgenid::GeneratorProperty::GENERATORID, isValid), sourceID, subGeneratorId),
                              truncateFloatFraction(header.GetX(), mCollisionPosition),
                              truncateFloatFraction(header.GetY(), mCollisionPosition),
                              truncateFloatFraction(header.GetZ(), mCollisionPosition),

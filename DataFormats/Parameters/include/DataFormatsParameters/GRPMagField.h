@@ -34,8 +34,18 @@ class GRPMagField
   ~GRPMagField() = default;
 
   /// getters/setters for magnets currents
-  o2::units::Current_t getL3Current() const { return mL3Current; }
-  o2::units::Current_t getDipoleCurrent() const { return mDipoleCurrent; }
+  o2::units::Current_t getL3Current() const
+  {
+    static float v = checkL3Override();
+    return v == NOOVERRIDEVAL ? mL3Current : v;
+  }
+
+  o2::units::Current_t getDipoleCurrent() const
+  {
+    static float v = checkDipoleOverride();
+    return v == NOOVERRIDEVAL ? mDipoleCurrent : v;
+  }
+
   bool getFieldUniformity() const { return mUniformField; }
   int8_t getNominalL3Field();
   void setL3Current(o2::units::Current_t v) { mL3Current = v; }
@@ -54,6 +64,10 @@ class GRPMagField
   int8_t mNominalL3Field = 0;                //!< Nominal L3 field deduced from mL3Current
   bool mNominalL3FieldValid = false;         //!< Has the field been computed (for caching)
 
+  static constexpr float NOOVERRIDEVAL = 1e99;
+  static float checkL3Override();
+  static float checkDipoleOverride();
+
   ClassDefNV(GRPMagField, 2);
 };
 
@@ -62,7 +76,7 @@ inline int8_t GRPMagField::getNominalL3Field()
   // compute nominal L3 field in kG
 
   if (mNominalL3FieldValid == false) {
-    mNominalL3Field = std::lround(5.f * mL3Current / 30000.f);
+    mNominalL3Field = std::lround(5.f * getL3Current() / 30000.f);
     mNominalL3FieldValid = true;
   }
   return mNominalL3Field;

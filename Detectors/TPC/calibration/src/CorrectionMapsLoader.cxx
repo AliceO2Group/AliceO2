@@ -71,6 +71,7 @@ void CorrectionMapsLoader::addOptions(std::vector<ConfigParamSpec>& options)
 {
   addOption(options, ConfigParamSpec{"corrmap-lumi-mean", VariantType::Float, 0.f, {"override TPC corr.map mean lumi (if > 0), disable corrections if < 0"}});
   addOption(options, ConfigParamSpec{"corrmap-lumi-inst", VariantType::Float, 0.f, {"override instantaneous CTP lumi (if > 0) for TPC corr.map scaling, disable corrections if < 0"}});
+  addOption(options, ConfigParamSpec{"corrmap-lumi-mode", VariantType::Int, 0, {"scaling mode: (default) 0 = static + scale * full; 1 = full + scale * derivative"}});
 }
 
 //________________________________________________________
@@ -98,7 +99,6 @@ bool CorrectionMapsLoader::accountCCDBInputs(const ConcreteDataMatcher& matcher,
     if (getMeanLumiOverride() <= 0 && mCorrMap->getLumi() > 0.) {
       setMeanLumi(mCorrMap->getLumi());
     }
-    mCorrMap->setLumiScaleMode(getLumiScaleMode());
     LOGP(debug, "MeanLumiOverride={} MeanLumiMap={} -> meanLumi = {}", getMeanLumiOverride(), mCorrMap->getLumi(), getMeanLumi());
     setUpdatedMap();
     return true;
@@ -124,6 +124,7 @@ void CorrectionMapsLoader::init(o2::framework::InitContext& ic)
   }
   mMeanLumiOverride = ic.options().get<float>("corrmap-lumi-mean");
   mInstLumiOverride = ic.options().get<float>("corrmap-lumi-inst");
+  mLumiScaleMode = ic.options().get<int>("corrmap-lumi-mode");
   if (mMeanLumiOverride != 0.) {
     setMeanLumi(mMeanLumiOverride);
   }

@@ -8,7 +8,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-//
+
 #include "Framework/Plugins.h"
 #include "Framework/ServiceHandle.h"
 #include "Framework/ServiceSpec.h"
@@ -18,12 +18,6 @@
 #include "SimulationDataFormat/O2DatabasePDG.h"
 
 using namespace o2::framework;
-
-Double_t O2DatabasePDGImpl::Mass(int pdg, bool& success)
-{
-  // wrap our own Mass function to expose it in the service
-  return o2::O2DatabasePDG::Mass(pdg, success, this);
-}
 
 struct PDGSupport : o2::framework::ServicePlugin {
   o2::framework::ServiceSpec* create() final

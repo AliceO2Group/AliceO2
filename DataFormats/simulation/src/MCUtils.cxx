@@ -14,7 +14,7 @@
 //
 
 #include <SimulationDataFormat/MCUtils.h>
-#include <SimulationDataFormat/MCGenStatus.h>
+#include <SimulationDataFormat/MCGenProperties.h>
 
 namespace o2::mcutils
 {
