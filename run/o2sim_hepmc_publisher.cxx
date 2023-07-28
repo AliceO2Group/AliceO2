@@ -20,6 +20,7 @@
 #include "HepMC3/GenParticle.h"
 #include "HepMC3/GenVertex.h"
 #include "HepMC3/ReaderAscii.h"
+#include "HepMC3/ReaderAsciiHepMC2.h"
 
 #include "Framework/runDataProcessing.h"
 
@@ -29,16 +30,21 @@ struct O2simHepmcPublisher {
   Configurable<std::string> hepmcFileName{"hepmc", "input.hepmc", "name of the input file with HepMC events"};
   Configurable<int> aggregate{"aggregate-timeframe", 300, "Number of events to put in a timeframe"};
   Configurable<int> maxEvents{"nevents", -1, "Maximum number of events to convert"};
+  Configurable<bool> hepmcv2{"v2", false, "If the input is HepMCv2"};
 
   int eventCounter = 0;
   int tfCounter = 0;
-  std::shared_ptr<HepMC3::ReaderAscii> hepMCReader;
+  std::shared_ptr<HepMC3::Reader> hepMCReader;
   bool eos = false;
   std::vector<o2::MCTrack> mcTracks;
 
   void init(o2::framework::InitContext& /*ic*/)
   {
-    hepMCReader = std::make_shared<HepMC3::ReaderAscii>((std::string)hepmcFileName);
+    if (hepmcv2) {
+      hepMCReader = std::make_shared<HepMC3::ReaderAsciiHepMC2>((std::string)hepmcFileName);
+    } else {
+      hepMCReader = std::make_shared<HepMC3::ReaderAscii>((std::string)hepmcFileName);
+    }
     if (hepMCReader->failed()) {
       LOGP(fatal, "Cannot open HEPMC kine file {}", (std::string)hepmcFileName);
     }
@@ -50,14 +56,15 @@ struct O2simHepmcPublisher {
   {
     HepMC3::GenEvent event;
     for (auto i = 0; i < (int)aggregate; ++i) {
+      // read next entry
+      hepMCReader->read_event(event);
       if (hepMCReader->failed()) {
         LOGP(warn, "Failed to read from HEPMC input file");
         eos = true;
         break;
       }
-      hepMCReader->read_event(event);
-      // create O2 MCHeader and MCtracks vector out of HEPMC event
 
+      // create O2 MCHeader and MCtracks vector out of HEPMC event
       o2::dataformats::MCEventHeader mcHeader;
       mcHeader.SetEventID(event.event_number());
       mcHeader.SetVertex(event.event_pos().px(), event.event_pos().py(), event.event_pos().pz());
