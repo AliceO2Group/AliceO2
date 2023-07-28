@@ -106,6 +106,9 @@ void PropertyTreeHelpers::populateDefaults(std::vector<ConfigParamSpec> const& s
         case VariantType::LabeledArrayDouble:
           pt.put_child(key, labeledArrayToBranch(spec.defaultValue.get<LabeledArray<double>>()));
           break;
+        case VariantType::LabeledArrayString:
+          pt.put_child(key, labeledArrayToBranch(spec.defaultValue.get<LabeledArray<std::string>>()));
+          break;
         case VariantType::Unknown:
         case VariantType::Empty:
         default:
@@ -315,6 +318,14 @@ void PropertyTreeHelpers::populate(std::vector<ConfigParamSpec> const& schema,
         case VariantType::LabeledArrayDouble: {
           auto v = labeledArrayFromBranch<double>(it.value());
           if (!replaceLabels(v, spec.defaultValue.get<LabeledArray<double>>())) {
+            pt.put_child(key, *it);
+          } else {
+            pt.put_child(key, labeledArrayToBranch(std::move(v)));
+          }
+        }; break;
+        case VariantType::LabeledArrayString: {
+          auto v = labeledArrayFromBranch<std::string>(it.value());
+          if (!replaceLabels(v, spec.defaultValue.get<LabeledArray<std::string>>())) {
             pt.put_child(key, *it);
           } else {
             pt.put_child(key, labeledArrayToBranch(std::move(v)));
