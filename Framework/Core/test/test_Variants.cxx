@@ -218,14 +218,20 @@ TEST_CASE("Array2DTest")
 TEST_CASE("LabeledArrayTest")
 {
   float m[3][4] = {{0.1, 0.2, 0.3, 0.4}, {0.5, 0.6, 0.7, 0.8}, {0.9, 1.0, 1.1, 1.2}};
+  std::string mS[3][4] = {{"a", "b", "c", "d"}, {"e", "f", "g", "h"}, {"i", "l", "m", "n"}};
   std::string xl[] = {"c1", "c2", "c3", "c4"};
   std::string yl[] = {"r1", "r2", "r3"};
   LabeledArray<float> laf{&m[0][0], 3, 4, {"r1", "r2", "r3"}, {"c1", "c2", "c3", "c4"}};
+  LabeledArray<std::string> las{&mS[0][0], 3, 4, {"r1", "r2", "r3"}, {"c1", "c2", "c3", "c4"}};
   for (auto i = 0u; i < 3; ++i) {
     for (auto j = 0u; j < 4; ++j) {
       REQUIRE(laf.get(yl[i].c_str(), xl[j].c_str()) == laf.get(i, j));
       REQUIRE(laf.get(i, xl[j].c_str()) == laf.get(i, j));
       REQUIRE(laf.get(yl[i].c_str(), j) == laf.get(i, j));
+
+      REQUIRE(las.get(yl[i].c_str(), xl[j].c_str()) == las.get(i, j));
+      REQUIRE(las.get(i, xl[j].c_str()) == las.get(i, j));
+      REQUIRE(las.get(yl[i].c_str(), j) == las.get(i, j));
     }
   }
 }
