@@ -379,6 +379,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   gsl::span<const o2::tpc::ZeroSuppressedContainer8kb> inputZS;
 
   bool getWorkflowTPCInput_clusters = false, getWorkflowTPCInput_mc = false, getWorkflowTPCInput_digits = false;
+  bool debugTFDump = false;
 
   // unsigned int totalZSPages = 0;
   if (mSpecConfig.processMC) {
@@ -471,6 +472,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     // the sequencer processes all inputs matching the filter and finds sequences of consecutive
     // raw pages based on the matcher predicate, and calls the inserter for each sequence
     if (DPLRawPageSequencer(pc.inputs(), filter)(isSameRdh, insertPages, checkForZSData)) {
+      debugTFDump = true;
       static unsigned int nErrors = 0;
       nErrors++;
       if (nErrors == 1 || (nErrors < 100 && nErrors % 10 == 0) || nErrors % 1000 == 0 || mNTFs % 1000 == 0) {
@@ -653,6 +655,20 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   }
   ptrs.settingsTF = mTFSettings.get();
 
+  if (mConfParam->checkFirstTfOrbit) {
+    static uint32_t lastFirstTFOrbit = -1;
+    static uint32_t lastTFCounter = -1;
+    if (lastFirstTFOrbit != -1 && lastTFCounter != -1) {
+      int diffOrbit = tinfo.firstTForbit - lastFirstTFOrbit;
+      int diffCounter = tinfo.tfCounter - lastTFCounter;
+      if (diffOrbit != diffCounter * mTFSettings->nHBFPerTF) {
+        LOG(error) << "Time frame has mismatching firstTfOrbit - Last orbit/counter: " << lastFirstTFOrbit << " " << lastTFCounter << " - Current: " << tinfo.firstTForbit << " " << tinfo.tfCounter;
+      }
+    }
+    lastFirstTFOrbit = tinfo.firstTForbit;
+    lastTFCounter = tinfo.tfCounter;
+  }
+
   if (mTPCSectorMask != 0xFFFFFFFFF) {
     // Clean out the unused sectors, such that if they were present by chance, they are not processed, and if the values are uninitialized, we should not crash
     for (unsigned int i = 0; i < NSectors; i++) {
@@ -686,6 +702,9 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   int retVal = 0;
   if (mConfParam->dump < 2) {
     retVal = mTracker->RunTracking(&ptrs, &outputRegions);
+    if (retVal != 0) {
+      debugTFDump = true;
+    }
 
     if (retVal == 0 && mSpecConfig.runITSTracking) {
       retVal = runITSTracking(pc);
@@ -699,6 +718,20 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   storeUpdatedCalibsTPCPtrs();
 
   mTracker->Clear(false);
+
+  if (debugTFDump && mNDebugDumps < mConfParam->dumpBadTFs) {
+    mNDebugDumps++;
+    std::string filename = std::string("tpc_dump_") + std::to_string(pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId) + "_" + std::to_string(mNDebugDumps) + ".dump";
+    FILE* fp = fopen(filename.c_str(), "w+b");
+    std::vector<InputSpec> filter = {{"check", ConcreteDataTypeMatcher{gDataOriginTPC, "RAWDATA"}, Lifetime::Timeframe}};
+    for (auto const& ref : InputRecordWalker(pc.inputs(), filter)) {
+      auto data = pc.inputs().get<gsl::span<char>>(ref);
+      unsigned long size = data.size();
+      fwrite(&size, 1, sizeof(size), fp);
+      fwrite(data.data(), 1, data.size(), fp);
+    }
+    fclose(fp);
+  }
 
   if (mConfParam->dump == 2) {
     return;

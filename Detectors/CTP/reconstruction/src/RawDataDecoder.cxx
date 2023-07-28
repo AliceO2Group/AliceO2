@@ -13,7 +13,10 @@
 /// \author Roman Lietava
 #include <fstream>
 #include "DetectorsRaw/RDHUtils.h"
+#include "DPLUtils/DPLRawParser.h"
+#include "DataFormatsCTP/TriggerOffsetsParam.h"
 #include "CTPReconstruction/RawDataDecoder.h"
+#include "DataFormatsCTP/Configuration.h"
 
 using namespace o2::ctp;
 
@@ -76,6 +79,7 @@ int RawDataDecoder::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
         }
         ret = 2;
         mErrorIR++;
+        mStickyError = true;
       }
     } else {
       LOG(error) << "Two digits with the same rimestamp:" << ir.bc << " " << ir.orbit;
@@ -103,6 +107,7 @@ int RawDataDecoder::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
       } else {
         if (mErrorTCR < mErrorMax) {
           LOG(error) << "Two CTP Class masks for same timestamp";
+          mStickyError = true;
         }
         mErrorTCR++;
         ret = 3;
@@ -287,7 +292,7 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
     }
   }
   // ret = 1;
-  if (ret) {
+  if (mStickyError) {
     if (nwrites < mErrorMax) {
       std::string file = "/tmp/dumpCTP" + std::to_string(nwrites) + ".bin";
       std::ofstream dumpctp(file.c_str(), std::ios::out | std::ios::binary);
@@ -303,11 +308,28 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
       }
       nwrites++;
     }
-  }
-  if (mErrorIR || mErrorTCR) {
-    LOG(error) << "CTP decoding IR errors:" << mErrorIR << " TCR errors:" << mErrorTCR;
+    mStickyError = false;
+    // LOG(error) << "CTP decoding IR errors:" << mErrorIR << " TCR errors:" << mErrorTCR;
   }
   return ret;
+}
+//
+int RawDataDecoder::setLumiInp(int lumiinp, std::string inp)
+{
+  // check if valid input
+  int index = o2::ctp::CTPInputsConfiguration::getInputIndexFromName(inp);
+  if (index == 0xff) {
+    LOG(fatal) << "CTP raw decoder: input index not found:" << inp;
+    return 0xff;
+  }
+  if (lumiinp == 1) {
+    mTVXMask.reset();
+    mTVXMask[index - 1] = true;
+  } else {
+    mVBAMask.reset();
+    mVBAMask[index - 1] = true;
+  }
+  return index;
 }
 //
 int RawDataDecoder::init()

@@ -14,13 +14,10 @@
 
 #include <vector>
 #include <deque>
-#include "DPLUtils/DPLRawParser.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include "Framework/InputRecord.h"
 #include "DataFormatsCTP/Digits.h"
 #include "DataFormatsCTP/LumiInfo.h"
-#include "DataFormatsCTP/TriggerOffsetsParam.h"
 #include "CTPReconstruction/RawDataDecoder.h"
 
 namespace o2

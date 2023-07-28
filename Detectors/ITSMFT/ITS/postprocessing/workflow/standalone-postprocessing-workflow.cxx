@@ -41,6 +41,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"track-study", VariantType::Bool, false, {"Perform the track study"}},
     {"impact-parameter-study", VariantType::Bool, false, {"Perform the impact parameter study"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
+  o2::raw::HBFUtilsInitializer::addConfigOption(options, "o2_tfidinfo.root");
   std::swap(workflowOptions, options);
 }
 
@@ -86,6 +87,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     LOGP(info, "No study selected, dryrunning");
   }
 
+  o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
   // write the configuration used for the studies workflow
   o2::conf::ConfigurableParam::writeINI("o2_its_standalone_configuration.ini");
 

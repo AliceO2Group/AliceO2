@@ -32,17 +32,34 @@ struct ITSCheckTracksParamConfig : public o2::conf::ConfigurableParamHelper<ITSC
 };
 
 struct ITSAvgClusSizeParamConfig : public o2::conf::ConfigurableParamHelper<ITSAvgClusSizeParamConfig> {
+  // Data parameters
+  double b = 5; // Solenoid field in kG (+/-)
 
   // K0s ID cuts
-  float Rmin = 0.5;        // lower limit on V0 decay length
-  float Rmax = 5.4;        // upper limit on V0 decay length
-  float cosPAmin = 0.995;  // lower limit on cosine of pointing angle
-  float prongDCAmax = 0.2; // upper limit on DCA between two daughter prongs
-  float dauPVDCAmin = 0.2; // lower limit on DCA between prong and primary vertex
+  std::string targetV0 = "K0"; // target V0; set as "K0" or "Lambda"
+  float tgV0window = 0.02;     // half-width of mass window for target V0 mass hypothesis testing (GeV)
+  float bgV0window = 0.01;     // half-width of mass window for background V0 mass hypothesis testing (GeV)
+  float Rmin = 0.;             // lower limit on V0 decay length (cm?)
+  float Rmax = 5.4;            // upper limit on V0 decay length (cm?)
+  float cosPAmin = 0.995;      // lower limit on cosine of pointing angle
+  float prongDCAmax = 0.2;     // upper limit on DCA between two daughter prongs (cm?)
+  float dauPVDCAmin = 0.2;     // lower limit on DCA between prong and primary vertex (cm?)
+  float v0PVDCAmax = 0.2;      // upper limit on DCA between V0 and primary vertex (cm?)
+  int dauNClusMin = 0;         // lower limit on number of ITS clusters on daughter tracks TODO: not yet implemented
+
+  // Kinematic cut disable flags, false="leave this cut on"; NOTE: may be a better way to implement this with std::bitset<8>
+  bool disableCosPA = false;
+  bool disableRmin = false;
+  bool disableRmax = false;
+  bool disableProngDCAmax = false;
+  bool disableDauPVDCAmin = false;
+  bool disableV0PVDCAmax = false;
+  bool disableDauNClusmin = false; // TODO: not yet implemented
+  bool disableMassHypoth = true;   // applies to both target and background V0 cuts
 
   // Plotting options
-  bool performFit = false;   // determine if fit to K0s mass spectrum will be done (set to false in the case of low statistics)
-  bool generatePlots = true; // TODO: not yet tested
+  bool generatePlots = true;                                        // flag to generate plots
+  std::string outFileName = "o2standalone_cluster_size_study.root"; // filename for the ROOT output of this study
 
   // Average cluster size plot: eta binning parameters
   float etaMin = -1.5; // lower edge of lowest bin for eta binning on average cluster size

@@ -269,6 +269,9 @@ void DDSConfigHelpers::dumpDeviceSpec2DDS(std::ostream& out,
   for (const auto& spec : specs) {
     out << fmt::format("          <name>{}{}</name>\n", spec.id, workflowSuffix);
   }
+  if (driverMode == DriverMode::EMBEDDED) {
+    out << fmt::format("          <name>{}{}</name>\n", "dplDriver", workflowSuffix);
+  }
   out << "       </tasks>\n   </declcollection>\n";
   out << "</topology>\n";
 }

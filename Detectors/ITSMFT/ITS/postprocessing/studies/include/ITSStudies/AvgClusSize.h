@@ -17,14 +17,7 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
-#include "Framework/Task.h"
 #include <Steer/MCKinematicsReader.h>
-
-#include "ITSStudies/ITSStudiesConfigParam.h"
-
-#include <TH1F.h>
-#include <THStack.h>
-#include <TNtuple.h>
 
 namespace o2
 {

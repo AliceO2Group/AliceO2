@@ -19,12 +19,9 @@
 #include <vector>
 #include <map>
 #include <deque>
-#include "DPLUtils/DPLRawParser.h"
-#include "Framework/InputRecord.h"
 #include "Framework/InputRecord.h"
 #include "DataFormatsCTP/Digits.h"
 #include "DataFormatsCTP/LumiInfo.h"
-#include "DataFormatsCTP/TriggerOffsetsParam.h"
 
 namespace o2
 {
@@ -42,9 +39,12 @@ class RawDataDecoder
   void setDoDigits(bool digi) { mDoDigits = digi; }
   void setVerbose(bool v) { mVerbose = v; }
   void setMAXErrors(int m) { mErrorMax = m; }
+  int setLumiInp(int lumiinp, std::string inp);
   uint32_t getIRRejected() const { return mIRRejected; }
   uint32_t getTCRRejected() const { return mTCRRejected; }
   std::vector<uint32_t>& getTFOrbits() { return mTFOrbits; }
+  int getErrorIR() { return mErrorIR; }
+  int getErrorTCR() { return mErrorTCR; }
   int init();
 
  private:
@@ -58,7 +58,6 @@ class RawDataDecoder
   //
   gbtword80_t mTVXMask = 0x4;  // TVX is 3rd input
   gbtword80_t mVBAMask = 0x20; // VBA is 6 th input
-  LumiInfo mOutputLumiInfo;
   bool mVerbose = false;
   uint32_t mIRRejected = 0;
   uint32_t mTCRRejected = 0;
@@ -69,6 +68,7 @@ class RawDataDecoder
   int mErrorIR = 0;
   int mErrorTCR = 0;
   int mErrorMax = 3;
+  bool mStickyError = false;
 };
 } // namespace ctp
 } // namespace o2

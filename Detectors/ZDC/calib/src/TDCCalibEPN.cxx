@@ -47,9 +47,11 @@ int TDCCalibEPN::init()
   int ih;
   // clang-format off
   for (int iTDC = 0; iTDC < NTDC; iTDC++) {
-    mTDC[iTDC] =    new o2::dataformats::FlatHisto1D<float>(cfg->nb1[iTDC],cfg->amin1[iTDC],cfg->amax1[iTDC]);
+    mTDC[iTDC] = new o2::dataformats::FlatHisto1D<float>(cfg->nb1[iTDC], cfg->amin1[iTDC], cfg->amax1[iTDC]);
+    if(mSaveDebugHistos){
+      mTDCSum[iTDC] = new o2::dataformats::FlatHisto1D<float>(cfg->nb1[iTDC], cfg->amin1[iTDC], cfg->amax1[iTDC]);
+    }
   }
-
   // clang-format on
   mInitDone = true;
   return 0;
@@ -65,7 +67,9 @@ int TDCCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
   if (!mInitDone) {
     init();
   }
-  LOG(info) << "o2::zdc::TDCCalibEPN processing " << RecBC.size() << " b.c. @ TS " << mData.mCTimeBeg << " : " << mData.mCTimeEnd;
+  if (mVerbosity > DbgMinimal) {
+    LOG(info) << "o2::zdc::TDCCalibEPN processing " << RecBC.size() << " b.c. @ TS " << mData.mCTimeBeg << " : " << mData.mCTimeEnd;
+  }
   o2::zdc::RecEventFlat ev;
   ev.init(RecBC, Energy, TDCData, Info);
   while (ev.next()) {
@@ -89,12 +93,12 @@ int TDCCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
       continue;
     }
 
-    //Fill 1d histograms with tdc values. Check if channel is acquired or not
-    for (int itdc = 0; itdc < NTDC; itdc++) { //loop over all TDCs
+    // Fill 1d histograms with tdc values. Check if channel is acquired or not
+    for (int itdc = 0; itdc < NTDC; itdc++) { // loop over all TDCs
       int nhits = ev.NtdcV(itdc);
 
       if (nhits > 0) {
-        //call fill function to fill histo
+        // call fill function to fill histo
         fill1D(itdc, nhits, ev);
       }
     }
@@ -108,9 +112,10 @@ int TDCCalibEPN::endOfRun()
 {
   if (mVerbosity > DbgZero) {
     LOGF(info, "TDCCalibEPN::endOfRun ts (%llu:%llu)", mData.mCTimeBeg, mData.mCTimeEnd);
-    std::cout << "End of run here" << std::endl;
-    for (int ih = 0; ih < NTDC; ih++) {
-      LOGF(info, "%s %i events and cuts (%g:%g)", TDCCalibData::CTDC[ih], mData.entries[ih], mTDCCalibConfig->cutLow[ih], mTDCCalibConfig->cutHigh[ih]);
+    if (mVerbosity > DbgMinimal) {
+      for (int ih = 0; ih < NTDC; ih++) {
+        LOGF(info, "%s %i events and cuts (%g:%g)", TDCCalibData::CTDC[ih], mData.entries[ih], mTDCCalibConfig->cutLow[ih], mTDCCalibConfig->cutHigh[ih]);
+      }
     }
   }
   if (mSaveDebugHistos) {
@@ -137,15 +142,18 @@ void TDCCalibEPN::clear()
 
 void TDCCalibEPN::fill1D(int iTDC, int nHits, o2::zdc::RecEventFlat ev)
 {
-  //Get TDC values
+  // Get TDC values
   float tdcVal[nHits];
   for (int i = 0; i < nHits; i++) {
     tdcVal[i] = ev.tdcV(iTDC, i);
   }
 
-  //Fill histo
+  // Fill histo
   for (int hit = 0; hit < nHits; hit++) {
     mTDC[iTDC]->fill(tdcVal[hit]);
+    if (mSaveDebugHistos) {
+      mTDCSum[iTDC]->fill(tdcVal[hit]);
+    }
   }
   mData.entries[iTDC] += nHits;
 }
@@ -154,6 +162,9 @@ void TDCCalibEPN::fill1D(int iTDC, int nHits, o2::zdc::RecEventFlat ev)
 
 int TDCCalibEPN::write(const std::string fn)
 {
+  if (mVerbosity > DbgZero) {
+    LOG(info) << "Saving EPN debug histograms on file " << fn;
+  }
   TDirectory* cwd = gDirectory;
   TFile* f = new TFile(fn.data(), "recreate");
   if (f->IsZombie()) {
@@ -161,10 +172,13 @@ int TDCCalibEPN::write(const std::string fn)
     return 1;
   }
   for (int32_t ih = 0; ih < NTDC; ih++) {
-    if (mTDC[ih]) {
-      auto p = mTDC[ih]->createTH1F(TDCCalibData::CTDC[ih]);
+    if (mTDCSum[ih]) {
+      auto p = mTDCSum[ih]->createTH1F(TDCCalibData::CTDC[ih]);
       p->SetTitle(TDCCalibData::CTDC[ih]);
       p->Write("", TObject::kOverwrite);
+      if (mVerbosity > DbgMinimal) {
+        LOG(info) << p->GetName() << " entries: " << p->GetEntries();
+      }
     }
   }
   f->Close();

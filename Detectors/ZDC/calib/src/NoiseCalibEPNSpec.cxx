@@ -35,6 +35,7 @@
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "ZDCCalib/NoiseCalibData.h"
 #include "ZDCCalib/NoiseCalibEPNSpec.h"
+#include "ZDCCalib/CalibParamZDC.h"
 
 using namespace o2::framework;
 
@@ -59,6 +60,11 @@ void NoiseCalibEPNSpec::init(o2::framework::InitContext& ic)
 {
   mVerbosity = ic.options().get<int>("verbosity-level");
   mWorker.setVerbosity(mVerbosity);
+  const auto& opt = CalibParamZDC::Instance();
+  mModTF = opt.modTF;
+  if (mVerbosity >= DbgZero) {
+    LOG(info) << "Sending calibration data to aggregator every mModTF = " << mModTF << " TF";
+  }
 }
 
 void NoiseCalibEPNSpec::updateTimeDependentParams(ProcessingContext& pc)
@@ -71,7 +77,8 @@ void NoiseCalibEPNSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher
 {
   if (matcher == ConcreteDataMatcher("ZDC", "MODULECONFIG", 0)) {
     auto* config = (const o2::zdc::ModuleConfig*)obj;
-    if (mVerbosity > DbgZero) {
+    if (mVerbosity > DbgMinimal) {
+      LOG(info) << "Loaded ModuleConfig configuration object";
       config->print();
     }
     mWorker.setModuleConfig(config);
@@ -89,7 +96,8 @@ void NoiseCalibEPNSpec::run(ProcessingContext& pc)
   }
 
   auto creationTime = pc.services().get<o2::framework::TimingInfo>().creation; // approximate time in ms
-  mWorker.getData().setCreationTime(creationTime);
+  mWorker.getData().mergeCreationTime(creationTime);
+  mWorker.getDataSum().mergeCreationTime(creationTime);
 
   auto trig = pc.inputs().get<gsl::span<o2::zdc::BCData>>("trig");
   auto chan = pc.inputs().get<gsl::span<o2::zdc::ChannelData>>("chan");
@@ -97,15 +105,32 @@ void NoiseCalibEPNSpec::run(ProcessingContext& pc)
 
   // Process digits
   mWorker.process(peds, trig, chan);
+  mProcessed++;
 
-  auto& summary = mWorker.mData.getSummary();
-
-  // Send intermediate calibration data and histograms
-  o2::framework::Output outputData("ZDC", "NOISECALIBDATA", 0, Lifetime::Timeframe);
-  pc.outputs().snapshot(outputData, summary);
-  for (int ih = 0; ih < NChannels; ih++) {
-    o2::framework::Output output("ZDC", "NOISE_1DH", ih, Lifetime::Timeframe);
-    pc.outputs().snapshot(output, mWorker.mH[ih]->getBase());
+  if (mProcessed >= mModTF) {
+    auto& summary = mWorker.mData.getSummary();
+    // Send intermediate calibration data and histograms
+    if (mVerbosity > DbgMedium && mModTF > 0) {
+      LOG(info) << "Send intermediate calibration data mProcessed=" << mProcessed << " >= mModTF=" << mModTF;
+    }
+    o2::framework::Output outputData("ZDC", "NOISECALIBDATA", 0, Lifetime::Sporadic);
+    pc.outputs().snapshot(outputData, summary);
+    for (int ih = 0; ih < NChannels; ih++) {
+      {
+        o2::framework::Output output("ZDC", "NOISE_1DH", ih, Lifetime::Sporadic);
+        pc.outputs().snapshot(output, mWorker.mH[0][ih]->getBase());
+      }
+      {
+        o2::framework::Output output("ZDC", "NOISE_1DH_S", ih, Lifetime::Sporadic);
+        pc.outputs().snapshot(output, mWorker.mH[1][ih]->getBase());
+      }
+      {
+        o2::framework::Output output("ZDC", "NOISE_1DH_D", ih, Lifetime::Sporadic);
+        pc.outputs().snapshot(output, mWorker.mH[2][ih]->getBase());
+      }
+    }
+    mWorker.clear();
+    mProcessed = 0;
   }
 }
 
@@ -125,9 +150,11 @@ framework::DataProcessorSpec getNoiseCalibEPNSpec()
   inputs.emplace_back("moduleconfig", "ZDC", "MODULECONFIG", 0, Lifetime::Condition, o2::framework::ccdbParamSpec(o2::zdc::CCDBPathConfigModule.data()));
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("ZDC", "NOISECALIBDATA", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ZDC", "NOISECALIBDATA", 0, Lifetime::Sporadic);
   for (int ih = 0; ih < NChannels; ih++) {
-    outputs.emplace_back("ZDC", "NOISE_1DH", ih, Lifetime::Timeframe);
+    outputs.emplace_back("ZDC", "NOISE_1DH", ih, Lifetime::Sporadic);
+    outputs.emplace_back("ZDC", "NOISE_1DH_S", ih, Lifetime::Sporadic);
+    outputs.emplace_back("ZDC", "NOISE_1DH_D", ih, Lifetime::Sporadic);
   }
   return DataProcessorSpec{
     "zdc-calib-noise-epn",
