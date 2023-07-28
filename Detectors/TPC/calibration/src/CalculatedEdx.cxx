@@ -96,18 +96,27 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
   mChargeMaxROC[3].clear();
   mChargeMaxROC[4].clear();
 
-  std::vector<int> regionVector;             ///< debug streamer vector for region
-  std::vector<unsigned char> rowIndexVector; ///< debug streamer vector for row index
-  std::vector<unsigned char> padVector;      ///< debug streamer vector for pad
-  std::vector<int> stackVector;              ///< debug streamer vector for stack
-  std::vector<unsigned char> sectorVector;   ///< debug streamer vector for sector
+  // debug vectors
+  std::vector<int> regionVector;
+  std::vector<unsigned char> rowIndexVector;
+  std::vector<unsigned char> padVector;
+  std::vector<int> stackVector;
+  std::vector<unsigned char> sectorVector;
 
-  std::vector<float> topologyCorrVector;    ///< debug streamer vector for simple topology correction
-  std::vector<float> topologyCorrTotVector; ///< debug streamer vector for polynomial topology correction
-  std::vector<float> topologyCorrMaxVector; ///< debug streamer vector for polynomial topology correction
-  std::vector<float> gainVector;            ///< debug streamer vector for gain
-  std::vector<float> residualCorrTotVector; ///< debug streamer vector for residual dEdx correction
-  std::vector<float> residualCorrMaxVector; ///< debug streamer vector for residual dEdx correction
+  std::vector<float> topologyCorrVector;
+  std::vector<float> topologyCorrTotVector;
+  std::vector<float> topologyCorrMaxVector;
+  std::vector<float> gainVector;
+  std::vector<float> gainResidualVector;
+  std::vector<float> residualCorrTotVector;
+  std::vector<float> residualCorrMaxVector;
+
+  std::vector<float> xPositionVector;
+  std::vector<float> localYVector;
+  std::vector<float> offsPadVector;
+
+  std::vector<o2::tpc::TrackTPC> trackVector;
+  std::vector<o2::tpc::ClusterNative> clVector;
 
   if (mDebug) {
     regionVector.reserve(nClusters);
@@ -119,8 +128,14 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
     topologyCorrTotVector.reserve(nClusters);
     topologyCorrMaxVector.reserve(nClusters);
     gainVector.reserve(nClusters);
+    gainResidualVector.reserve(nClusters);
     residualCorrTotVector.reserve(nClusters);
     residualCorrMaxVector.reserve(nClusters);
+    xPositionVector.reserve(nClusters);
+    localYVector.reserve(nClusters);
+    offsPadVector.reserve(nClusters);
+    trackVector.reserve(nClusters);
+    clVector.reserve(nClusters);
   }
 
   // for missing clusters
@@ -153,6 +168,7 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
       check = (mRefit->RefitTrackAsGPU(track, false, true) < 0) ? false : true;
     } else {
       // propagate this track to the plane X=xk (cm) in the field "b" (kG)
+      track.rotate(o2::math_utils::detail::sector2Angle<float>(sectorIndex));
       check = o2::base::Propagator::Instance()->PropagateToXBxByBz(track, xPosition, 0.9f, 2., o2::base::Propagator::MatCorrType::USEMatCorrLUT);
     }
 
@@ -214,14 +230,15 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
 
     // get gain
     float gain = 1.0f;
+    float gainResidual = 1.0f;
     if ((mask & CorrectionFlags::GainFull) == CorrectionFlags::GainFull) {
       gain = mCalibCont.getGain(sectorIndex, rowIndex, pad);
     };
     if ((mask & CorrectionFlags::GainResidual) == CorrectionFlags::GainResidual) {
-      gain *= mCalibCont.getResidualGain(sectorIndex, rowIndex, pad);
+      gainResidual = mCalibCont.getResidualGain(sectorIndex, rowIndex, pad);
     };
-    chargeTot /= gain;
-    chargeMax /= gain;
+    chargeTot /= gain * gainResidual;
+    chargeMax /= gain * gainResidual;
 
     // get dEdx correction on tgl and sector plane
     float corrTot = 1.0f;
@@ -229,8 +246,12 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
     if ((mask & CorrectionFlags::dEdxResidual) == CorrectionFlags::dEdxResidual) {
       corrTot = mCalibCont.getResidualCorrection(stackID, ChargeType::Tot, track.getTgl(), track.getSnp());
       corrMax = mCalibCont.getResidualCorrection(stackID, ChargeType::Max, track.getTgl(), track.getSnp());
-      chargeTot /= corrTot;
-      chargeMax /= corrMax;
+      if (corrTot > 0) {
+        chargeTot /= corrTot;
+      };
+      if (corrMax > 0) {
+        chargeMax /= corrMax;
+      };
     };
 
     // set the min charge
@@ -272,6 +293,9 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
       map[GEMstack::OROC2gem] = 2;
       map[GEMstack::OROC3gem] = 3;
 
+      float localY = o2::tpc::Mapper::instance().getPadCentre(o2::tpc::PadPos(rowIndex, pad)).Y();
+      const float offsPad = (cl.getPad() - pad) * o2::tpc::Mapper::instance().getPadRegionInfo(Mapper::REGION[rowIndex]).getPadWidth();
+
       // filling debug vectors
       regionVector.emplace_back(region);
       rowIndexVector.emplace_back(rowIndex);
@@ -283,8 +307,16 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
       topologyCorrTotVector.emplace_back(effectiveLengthTot);
       topologyCorrMaxVector.emplace_back(effectiveLengthMax);
       gainVector.emplace_back(gain);
+      gainResidualVector.emplace_back(gainResidual);
       residualCorrTotVector.emplace_back(corrTot);
       residualCorrMaxVector.emplace_back(corrMax);
+
+      xPositionVector.emplace_back(xPosition);
+      localYVector.emplace_back(localY);
+      offsPadVector.emplace_back(offsPad);
+
+      trackVector.emplace_back(track);
+      clVector.emplace_back(cl);
     };
   }
 
@@ -325,7 +357,6 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
     }
 
     (*mStreamer) << "dEdxDebug"
-                 << "trackVector=" << &track
                  << "regionVector=" << regionVector
                  << "rowIndexVector=" << rowIndexVector
                  << "padVector=" << padVector
@@ -335,8 +366,14 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
                  << "topologyCorrTotVector=" << topologyCorrTotVector
                  << "topologyCorrMaxVector=" << topologyCorrMaxVector
                  << "gainVector=" << gainVector
+                 << "gainResidualVector=" << gainResidualVector
                  << "residualCorrTotVector=" << residualCorrTotVector
                  << "residualCorrMaxVector=" << residualCorrMaxVector
+                 << "xPositionVector=" << xPositionVector
+                 << "localYVector=" << localYVector
+                 << "offsPadVector=" << offsPadVector
+                 << "trackVector=" << trackVector
+                 << "clVector=" << clVector
                  << "chargeTotVector=" << chargeTotVector
                  << "chargeMaxVector=" << chargeMaxVector
                  << "minChargeTot=" << minChargeTot
