@@ -498,7 +498,7 @@ int InterCalib::mini(int ih)
   }
   // Fallback in case fit fails on proton calorimeters
   if (ih == 1 || ih == 3) {
-    for(int iretry = 0; iretry<2; iretry++){
+    for (int iretry = 0; iretry < 2; iretry++) {
       bool retry = false;
       const char* parn[5] = {"c0fix", "c1fix", "c2fix", "c3fix", "c4fix"};
       l_bnd = mInterCalibConfig->l_bnd[ih];
