@@ -171,6 +171,10 @@ void CalibTOFapi::loadDiagnosticFrequencies()
 
     int channel = mDiaFreq->getChannel(key);
     if (channel > -1) { // noisy
+      if (!mDiaFreq->isNoisyChannel(channel, mNoisyThreshold)) {
+        continue;
+      }
+
       int crate = channel / NCH_PER_CRATE;
       float prob = pair.second / (nrow - ncrate[crate]);
       mNoisy.push_back(std::make_pair(channel, prob));
