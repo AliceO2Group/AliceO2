@@ -290,8 +290,8 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
     // std::cout << "last lumi:" << nhb  << std::endl;
   }
   int nClasswoInp = 0; // counting classes without input which should never happen
-  int nL0 = 0; // number of L0 shifts
-  int nL1 = 0; // number of L1 shifts
+  int nL0 = 0;         // number of L0 shifts
+  int nL1 = 0;         // number of L1 shifts
   if (mDoDigits) {
     std::map<o2::InteractionRecord, CTPDigit> digitsMapShifted;
     auto L0shift = o2::ctp::TriggerOffsetsParam::Instance().LM_L0;
@@ -304,37 +304,37 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
       int lm = inpmaskLM.count() > 0;
       int l0 = inpmaskL0.count() > 0;
       int l1 = inpmaskL1.count() > 0;
-      int lut = lm + (l0<<1) +(l1<<2);
-      //std::cout << "L0mask:" << L0MASKInputs << std::endl;
-      //std::cout << "L0:" << inpmaskL0 << std::endl;
-      //std::cout << "L1:" << inpmaskL1 << std::endl;
-      if( lut==0 || lut == 1) { // no inps or LM
+      int lut = lm + (l0 << 1) + (l1 << 2);
+      // std::cout << "L0mask:" << L0MASKInputs << std::endl;
+      // std::cout << "L0:" << inpmaskL0 << std::endl;
+      // std::cout << "L1:" << inpmaskL1 << std::endl;
+      if (lut == 0 || lut == 1) { // no inps or LM
         digitsMapShifted[dig.first] = dig.second;
-      } else if(lut == 2) {  // L0
-        shiftNew(dig.first,inpmask,L0shift,0,digitsMapShifted);
-        if(dig.second.CTPClassMask.count()) {
+      } else if (lut == 2) { // L0
+        shiftNew(dig.first, inpmask, L0shift, 0, digitsMapShifted);
+        if (dig.second.CTPClassMask.count()) {
           LOG(error) << "Adding class mask without input ?";
-          CTPDigit digi = {dig.first,0,dig.second.CTPClassMask};
+          CTPDigit digi = {dig.first, 0, dig.second.CTPClassMask};
           digitsMapShifted[dig.first] = digi;
         }
-      } else if(lut == 4) { // L1
-        shiftNew(dig.first,inpmask,L1shift,1,digitsMapShifted);
-      } else if(lut == 6) { // L0 and L1
-        shiftNew(dig.first,inpmask,L0shift,0,digitsMapShifted);
-        shiftNew(dig.first,inpmask,L1shift,1,digitsMapShifted);
-      } else if(lut == 3) { // LM and L0
-        shiftNew(dig.first,inpmask,L0shift,0,digitsMapShifted);
-        CTPDigit digi = {dig.first,inpmask&(~L0MASKInputs),dig.second.CTPClassMask};
-        //LOG(info) << "LM-L0 present";
+      } else if (lut == 4) { // L1
+        shiftNew(dig.first, inpmask, L1shift, 1, digitsMapShifted);
+      } else if (lut == 6) { // L0 and L1
+        shiftNew(dig.first, inpmask, L0shift, 0, digitsMapShifted);
+        shiftNew(dig.first, inpmask, L1shift, 1, digitsMapShifted);
+      } else if (lut == 3) { // LM and L0
+        shiftNew(dig.first, inpmask, L0shift, 0, digitsMapShifted);
+        CTPDigit digi = {dig.first, inpmask & (~L0MASKInputs), dig.second.CTPClassMask};
+        // LOG(info) << "LM-L0 present";
         digitsMapShifted[dig.first] = digi;
-      } else if(lut == 5) { // LM and L1
-        shiftNew(dig.first,inpmask,L1shift,1,digitsMapShifted);
-        CTPDigit digi = {dig.first,inpmask&(~L1MASKInputs),dig.second.CTPClassMask};
+      } else if (lut == 5) { // LM and L1
+        shiftNew(dig.first, inpmask, L1shift, 1, digitsMapShifted);
+        CTPDigit digi = {dig.first, inpmask & (~L1MASKInputs), dig.second.CTPClassMask};
         digitsMapShifted[dig.first] = digi;
-      } else if(lut == 7) { // LM and L0 and L1
-        shiftNew(dig.first,inpmask,L0shift,0,digitsMapShifted);
-        shiftNew(dig.first,inpmask,L1shift,1,digitsMapShifted);
-        CTPDigit digi = {dig.first,inpmaskLM,dig.second.CTPClassMask};
+      } else if (lut == 7) { // LM and L0 and L1
+        shiftNew(dig.first, inpmask, L0shift, 0, digitsMapShifted);
+        shiftNew(dig.first, inpmask, L1shift, 1, digitsMapShifted);
+        CTPDigit digi = {dig.first, inpmaskLM, dig.second.CTPClassMask};
         digitsMapShifted[dig.first] = digi;
       } else {
         LOG(fatal) << "lut = " << lut;
@@ -369,22 +369,22 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
 //
 // Not to be called with level LM
 // Keeping shift in params if needed to be generalised
-int RawDataDecoder::shiftNew(const o2::InteractionRecord& irin,std::bitset<48>& inpmask,int64_t shift, int level,std::map<o2::InteractionRecord,CTPDigit>& digmap)
+int RawDataDecoder::shiftNew(const o2::InteractionRecord& irin, std::bitset<48>& inpmask, int64_t shift, int level, std::map<o2::InteractionRecord, CTPDigit>& digmap)
 {
   //
-  if(irin.orbit > mTFOrbit || irin.bc >= shift) {
+  if (irin.orbit > mTFOrbit || irin.bc >= shift) {
     auto lxmask = L0MASKInputs;
-    if(level == 1) {
+    if (level == 1) {
       lxmask = L1MASKInputs;
     }
-    auto ir = irin - shift;  // add L0 to prev digit
-    if(digmap.count(ir)) {
-      if((digmap[ir].CTPInputMask & lxmask).count()) {
+    auto ir = irin - shift; // add L0 to prev digit
+    if (digmap.count(ir)) {
+      if ((digmap[ir].CTPInputMask & lxmask).count()) {
         LOG(error) << " Overwriting LX ? X:" << level;
       }
       digmap[ir].CTPInputMask = digmap[ir].CTPInputMask | (inpmask & lxmask);
     } else {
-      CTPDigit digit = {ir,inpmask & lxmask,0};
+      CTPDigit digit = {ir, inpmask & lxmask, 0};
       digmap[ir] = digit;
     }
   } else {
