@@ -63,6 +63,7 @@
 #include "ReconstructionDataFormats/Track.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/TrackMCHMID.h"
+#include "ReconstructionDataFormats/MatchInfoHMP.h"
 #include "ReconstructionDataFormats/V0.h"
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
@@ -1232,6 +1233,38 @@ void AODProducerWorkflowDPL::fillSecondaryVertices(const o2::globaltracking::Rec
   }
 }
 
+template <typename HMPCursorType>
+void AODProducerWorkflowDPL::fillHMPID(const o2::globaltracking::RecoContainer& recoData, HMPCursorType& hmpCursor)
+{
+  auto hmpMatches = recoData.getHMPMatches();
+
+  hmpCursor.reserve(hmpMatches.size());
+
+  // filling HMPs table
+  for (size_t iHmp = 0; iHmp < hmpMatches.size(); iHmp++) {
+
+    const auto& match = hmpMatches[iHmp];
+
+    float xTrk, yTrk, theta, phi;
+    float xMip, yMip;
+    int charge, nph;
+
+    match.getHMPIDtrk(xTrk, yTrk, theta, phi);
+    match.getHMPIDmip(xMip, yMip, charge, nph);
+
+    auto photChargeVec = match.getPhotCharge();
+
+    float photChargeVec2[10]; // = {0.,0.,0.,0.,0.,0.,0.,0.,0.,0.};
+
+    for (Int_t i = 0; i < 10; i++) {
+
+      photChargeVec2[i] = photChargeVec[i];
+    }
+
+    hmpCursor(match.getTrackIndex(), match.getHMPsignal(), xTrk, yTrk, xMip, yMip, nph, charge, match.getMipClusSize(), match.getHmpMom(), photChargeVec2);
+  }
+}
+
 void AODProducerWorkflowDPL::prepareStrangenessTracking(const o2::globaltracking::RecoContainer& recoData)
 {
   auto v0s = recoData.getV0s();
@@ -1722,6 +1755,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto ambigFwdTracksCursor = createTableCursor<o2::aod::AmbiguousFwdTracks>(pc);
   auto v0sCursor = createTableCursor<o2::aod::V0s>(pc);
   auto zdcCursor = createTableCursor<o2::aod::Zdcs>(pc);
+  auto hmpCursor = createTableCursor<o2::aod::HMPIDs>(pc);
   auto caloCellsCursor = createTableCursor<o2::aod::Calos>(pc);
   auto caloCellsTRGTableCursor = createTableCursor<o2::aod::CaloTriggers>(pc);
   auto mcCaloLabelsCursor = createTableCursor<o2::aod::McCaloLabels_001>(pc);
@@ -2066,6 +2100,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   }
 
   fillSecondaryVertices(recoData, v0sCursor, cascadesCursor, decay3BodyCursor);
+  fillHMPID(recoData, hmpCursor);
   fillStrangenessTrackingTables(recoData, trackedV0Cursor, trackedCascadeCursor, tracked3BodyCurs);
 
   // helper map for fast search of a corresponding class mask for a bc
@@ -2743,6 +2778,7 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
     OutputForTable<AmbiguousMFTTracks>::spec(),
     OutputForTable<AmbiguousFwdTracks>::spec(),
     OutputForTable<V0s>::spec(),
+    OutputForTable<HMPIDs>::spec(),
     OutputForTable<Zdcs>::spec(),
     OutputForTable<Calos>::spec(),
     OutputForTable<CaloTriggers>::spec(),

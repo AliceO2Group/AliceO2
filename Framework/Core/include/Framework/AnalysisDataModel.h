@@ -677,7 +677,7 @@ DECLARE_SOA_TABLE_VERSIONED(HMPID_001, "AOD", "HMPID", 1, //! HMPID information 
                             hmpid::HMPIDMom,
                             hmpid::HMPIDPhotsCharge);
 
-using HMPIDs = HMPID_000;
+using HMPIDs = HMPID_001;
 using HMPID = HMPIDs::iterator;
 
 namespace calo

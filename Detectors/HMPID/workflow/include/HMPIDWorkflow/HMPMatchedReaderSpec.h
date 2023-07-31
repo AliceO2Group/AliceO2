@@ -47,6 +47,7 @@ class HMPMatchedReader : public o2::framework::Task
   std::unique_ptr<TFile> mFile = nullptr;
   std::unique_ptr<TTree> mTree = nullptr;
   std::vector<o2::dataformats::MatchInfoHMP> mMatches, *mMatchesPtr = &mMatches;
+  // std::vector<o2::dataformats::MatchInfoHMP> *mMatchesPtr = nullptr;
   std::vector<o2::MCCompLabel> mLabelHMP, *mLabelHMPPtr = &mLabelHMP;
 };
 
