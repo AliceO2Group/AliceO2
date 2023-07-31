@@ -48,6 +48,7 @@ struct RUDecodeData {
   int nLinks = 0;          // number of links seen for this TF
   int nLinksDone = 0;      // number of links finished for this TF
   int verbosity = 0;       // verbosity level, for -1,0 print only summary data, for 1: print once every error
+  bool ROFRampUpStage = false; // flag that the data come from the ROF rate ramp-up stage
   GBTCalibData calibData{}; // calibration info from GBT calibration word
   std::unordered_map<uint32_t, std::pair<uint32_t, uint32_t>> chipErrorsTF{}; // vector of chip decoding errors seen in the given TF
   const RUInfo* ruInfo = nullptr;
