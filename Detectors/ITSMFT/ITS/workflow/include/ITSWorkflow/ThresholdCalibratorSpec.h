@@ -312,6 +312,7 @@ class ITSThresholdCalibrator : public Task
 
   // Flag to calculate the slope in pulse shape 2d scans, y of the 1st point, y of the second point
   bool doSlopeCalculation = false;
+  bool mCalculate2DParams = true;
   int chargeA = 0;
   int chargeB = 0;
 };
