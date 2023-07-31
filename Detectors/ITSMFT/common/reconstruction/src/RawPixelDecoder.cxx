@@ -106,6 +106,7 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger()
     for (int iru = 0; iru < nru; iru++) {
       auto& ru = mRUDecodeVec[iru];
       if (ru.nNonEmptyLinks) {
+        ru.ROFRampUpStage = mROFRampUpStage;
         mNPixelsFiredROF += ru.decodeROF(mMAP, mInteractionRecord);
         mNChipsFiredROF += ru.nChipsFired;
       }
