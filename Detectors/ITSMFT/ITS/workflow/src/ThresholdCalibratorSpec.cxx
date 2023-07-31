@@ -672,10 +672,10 @@ void ITSThresholdCalibrator::extractThresholdRow(const short int& chipID, const 
           for (short int sdel_i = N_RANGE - 1; sdel_i >= 0; sdel_i--) {
             if (mPixelHits[chipID][row][col_i][checkchg - 1][sdel_i] == nInj) {
               if (!chg_i) {
-                delA = sdel_i * mStep + mStep / 2;
+                delA = mMin + sdel_i * mStep + mStep / 2;
                 isFound = true;
               } else {
-                delB = sdel_i * mStep + mStep / 2;
+                delB = mMin + sdel_i * mStep + mStep / 2;
                 isFound = true;
               }
               break;
@@ -686,9 +686,9 @@ void ITSThresholdCalibrator::extractThresholdRow(const short int& chipID, const 
             for (short int sdel_i = 0; sdel_i < N_RANGE; sdel_i++) {
               if (mPixelHits[chipID][row][col_i][checkchg - 1][sdel_i] > 0) {
                 if (!chg_i) {
-                  delA = sdel_i * mStep + mStep / 2;
+                  delA = mMin + sdel_i * mStep + mStep / 2;
                 } else {
-                  delB = sdel_i * mStep + mStep / 2;
+                  delB = mMin + sdel_i * mStep + mStep / 2;
                 }
                 break;
               }
