@@ -698,6 +698,11 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     }
     mTracker->DumpEvent(mNTFs - 1, &ptrs);
   }
+  std::unique_ptr<GPUTrackingInOutPointers> ptrsDump;
+  if (mConfParam->dumpBadTFMode == 2) {
+    ptrsDump.reset(new GPUTrackingInOutPointers);
+    memcpy((void*)ptrsDump.get(), (const void*)&ptrs, sizeof(ptrs));
+  }
 
   int retVal = 0;
   if (mConfParam->dump < 2) {
@@ -721,16 +726,22 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
 
   if (debugTFDump && mNDebugDumps < mConfParam->dumpBadTFs) {
     mNDebugDumps++;
-    std::string filename = std::string("tpc_dump_") + std::to_string(pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId) + "_" + std::to_string(mNDebugDumps) + ".dump";
-    FILE* fp = fopen(filename.c_str(), "w+b");
-    std::vector<InputSpec> filter = {{"check", ConcreteDataTypeMatcher{gDataOriginTPC, "RAWDATA"}, Lifetime::Timeframe}};
-    for (auto const& ref : InputRecordWalker(pc.inputs(), filter)) {
-      auto data = pc.inputs().get<gsl::span<char>>(ref);
-      unsigned long size = data.size();
-      fwrite(&size, 1, sizeof(size), fp);
-      fwrite(data.data(), 1, data.size(), fp);
+    if (mConfParam->dumpBadTFMode <= 1) {
+      std::string filename = std::string("tpc_dump_") + std::to_string(pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId) + "_" + std::to_string(mNDebugDumps) + ".dump";
+      FILE* fp = fopen(filename.c_str(), "w+b");
+      std::vector<InputSpec> filter = {{"check", ConcreteDataTypeMatcher{gDataOriginTPC, "RAWDATA"}, Lifetime::Timeframe}};
+      for (auto const& ref : InputRecordWalker(pc.inputs(), filter)) {
+        auto data = pc.inputs().get<gsl::span<char>>(ref);
+        if (mConfParam->dumpBadTFMode == 1) {
+          unsigned long size = data.size();
+          fwrite(&size, 1, sizeof(size), fp);
+        }
+        fwrite(data.data(), 1, data.size(), fp);
+      }
+      fclose(fp);
+    } else if (mConfParam->dumpBadTFMode == 2) {
+      mTracker->DumpEvent(mNDebugDumps - 1, ptrsDump.get());
     }
-    fclose(fp);
   }
 
   if (mConfParam->dump == 2) {
