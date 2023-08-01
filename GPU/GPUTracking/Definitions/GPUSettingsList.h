@@ -469,6 +469,7 @@ AddOption(checkFirstTfOrbit, bool, false, "", 0, "Check consistency of firstTfOr
 AddOption(tpcTriggeredMode, bool, false, "", 0, "In case we have triggered TPC data, this must be set to true")
 AddOption(zsOnTheFlyDigitsFilter, bool, false, "", 0, "Run on the fly digits filter during zs encoding")
 AddOption(dumpBadTFs, int, 0, "", 0, "Number of bad timeframes (with decoding / processing) errors to decode at max")
+AddOption(dumpBadTFMode, int, 0, "", 0, "Type of dump to create: 0 = raw-reader compatible raw file, 1 = buffer-wise dump, 2 = standalone-benchmark compatible dump")
 EndConfig()
 #endif // GPUCA_O2_LIB
 #endif // !GPUCA_GPUCODE_DEVICE
