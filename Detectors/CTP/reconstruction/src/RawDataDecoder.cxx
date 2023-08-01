@@ -294,7 +294,7 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
   // ret = 1;
   if (mStickyError) {
     if (nwrites < mErrorMax) {
-      std::string file = "/tmp/dumpCTP" + std::to_string(nwrites) + ".bin";
+      std::string file = "dumpCTP" + std::to_string(nwrites) + ".bin";
       std::ofstream dumpctp(file.c_str(), std::ios::out | std::ios::binary);
       if (!dumpctp.good()) {
         LOGP(error, "Failed to open file {}", file);
