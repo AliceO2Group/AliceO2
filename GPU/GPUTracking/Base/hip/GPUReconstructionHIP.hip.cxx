@@ -160,13 +160,7 @@ template <class T, int I, typename... Args>
 void GPUReconstructionHIPBackend::runKernelBackendInternal(krnlSetup& _xyz, const Args&... args)
 {
   if (mProcessingSettings.deviceTimers && mProcessingSettings.debugLevel > 0) {
-#ifdef __CUDACC__
-    GPUFailedMsg(hipEventRecord((hipEvent_t)mDebugEvents->DebugStart, mInternals->Streams[x.stream]));
-#endif
     backendInternal<T, I>::runKernelBackendMacro(_xyz, this, (hipEvent_t*)&mDebugEvents->DebugStart, (hipEvent_t*)&mDebugEvents->DebugStop, args...);
-#ifdef __CUDACC__
-    GPUFailedMsg(hipEventRecord((hipEvent_t)mDebugEvents->DebugStop, mInternals->Streams[x.stream]));
-#endif
     GPUFailedMsg(hipEventSynchronize((hipEvent_t)mDebugEvents->DebugStop));
     float v;
     GPUFailedMsg(hipEventElapsedTime(&v, (hipEvent_t)mDebugEvents->DebugStart, (hipEvent_t)mDebugEvents->DebugStop));
