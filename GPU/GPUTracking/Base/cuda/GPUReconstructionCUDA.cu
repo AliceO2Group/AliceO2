@@ -411,8 +411,8 @@ int GPUReconstructionCUDA::ExitDevice_Runtime()
 {
   // Uninitialize CUDA
   GPUFailedMsgI(cuCtxPushCurrent(mInternals->CudaContext));
-
   SynchronizeGPU();
+
   for (unsigned int i = 0; i < mEvents.size(); i++) {
     cudaEvent_t* events = (cudaEvent_t*)mEvents[i].data();
     for (unsigned int j = 0; j < mEvents[i].size(); j++) {
