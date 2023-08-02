@@ -11,7 +11,7 @@
 
 # FIXME: do we actually need a library here, or is the executable enough ?
 
-#add_compile_options(-O0 -g -fPIC)
+# add_compile_options(-O0 -g -fPIC)
 
 o2_add_library(GlobalTrackingWorkflow
                SOURCES src/TrackWriterTPCITSSpec.cxx

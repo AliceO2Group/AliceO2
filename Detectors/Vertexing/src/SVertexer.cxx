@@ -42,16 +42,14 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData, o2::f
   updateTimeDependentParams(); // TODO RS: strictly speaking, one should do this only in case of the CCDB objects update
   mPVertices = recoData.getPrimaryVertices();
   buildT2V(recoData); // build track->vertex refs from vertex->track (if other workflow will need this, consider producing a message in the VertexTrackMatcher)
-  int ntrP = mTracksPool[POS].size(), ntrN = mTracksPool[NEG].size(), iThread = 0;
+  int ntrP = mTracksPool[POS].size(), ntrN = mTracksPool[NEG].size();
   if (mStrTracker) {
     mStrTracker->loadData(recoData);
     mStrTracker->prepareITStracks();
   }
-
 #ifdef WITH_OPENMP
   int dynGrp = std::min(4, std::max(1, mNThreads / 2));
-#pragma omp parallel for num_threads(mNThreads)
-  // #pragma omp parallel for schedule(dynamic, dynGrp) num_threads(mNThreads)
+#pragma omp parallel for schedule(dynamic, dynGrp) num_threads(mNThreads)
 #endif
   for (int itp = 0; itp < ntrP; itp++) {
     auto& seedP = mTracksPool[POS][itp];
@@ -60,9 +58,6 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData, o2::f
       LOG(debug) << "No partner is found for pos.track " << itp << " out of " << ntrP;
       continue;
     }
-#ifdef WITH_OPENMP
-    iThread = omp_get_thread_num();
-#endif
     for (int itn = firstN; itn < ntrN; itn++) { // start from the 1st negative track of lowest-ID vertex of positive
       auto& seedN = mTracksPool[NEG][itn];
       if (seedN.vBracket > seedP.vBracket) { // all vertices compatible with seedN are in future wrt that of seedP
@@ -72,6 +67,11 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData, o2::f
       if (mSVParams->maxPVContributors < 2 && seedP.gid.isPVContributor() + seedN.gid.isPVContributor() > mSVParams->maxPVContributors) {
         continue;
       }
+#ifdef WITH_OPENMP
+      int iThread = omp_get_thread_num();
+#else
+      int iThread = 0;
+#endif
       checkV0(seedP, seedN, itp, itn, iThread);
     }
   }
@@ -168,7 +168,7 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData, o2::f
   if (mStrTracker) {
     mNStrangeTracks = 0;
     for (int ith = 0; ith < mNThreads; ith++) {
-      mNStrangeTracks += mStrTracker->getNTracks();
+      mNStrangeTracks += mStrTracker->getNTracks(ith);
     }
     auto& strTracksOut = pc.outputs().make<std::vector<o2::dataformats::StrangeTrack>>(o2f::Output{"GLO", "STRANGETRACKS", 0, o2f::Lifetime::Timeframe});
     auto& strClustOut = pc.outputs().make<std::vector<o2::strangeness_tracking::ClusAttachments>>(o2f::Output{"GLO", "CLUSUPDATES", 0, o2f::Lifetime::Timeframe});
@@ -489,8 +489,6 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
 {
   auto& fitterV0 = mFitterV0[ithread];
   int nCand = fitterV0.process(seedP, seedN);
-  auto callID0 = fitterV0.getCallID();
-  auto fitID = fitterV0.getFitterID();
   if (nCand == 0) { // discard this pair
     return false;
   }
@@ -507,28 +505,9 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
     LOG(debug) << "RejCausality " << drv0P << " " << drv0N;
     return false;
   }
-  int cand = 0;
-  int ord0 = fitterV0.getCandidatePosition(cand);
-  float dca0 = fitterV0.getChi2AtPCACandidate(0), dca1 = fitterV0.getChi2AtPCACandidate(1);
-  bool propDone0 = fitterV0.isPropagateTracksToVertexDone(0), propDone1 = fitterV0.isPropagateTracksToVertexDone(1);
-  int ittt = ithread;
+  const int cand = 0;
   if (!fitterV0.isPropagateTracksToVertexDone(cand) && !fitterV0.propagateTracksToVertex(cand)) {
     return false;
-  }
-  if (callID0 != fitterV0.getCallID()) {
-    LOGP(warn, "MISMATCH in callID: {} {}, FitID: {} {}, thread {}", callID0, fitterV0.getCallID(), fitID, fitterV0.getFitterID(), ithread);
-  }
-  try {
-    fitterV0.getTrack(0, cand);
-    fitterV0.getTrack(1, cand);
-  } catch (std::exception& e) {
-    LOGP(info, "HERE th{}/{}  before: FID:{}/Call:{}, ord0: {} /{}:{} dca {}:{}| after: FID:{}/Call:{} {} /{}:{} dca {}:{} || {} : {} || what = {}", ittt, ithread,
-         fitID, callID0,
-         ord0, propDone0, propDone1, dca0, dca1,
-         fitterV0.getFitterID(), fitterV0.getCallID(),
-         fitterV0.getCandidatePosition(cand), fitterV0.isPropagateTracksToVertexDone(0), fitterV0.isPropagateTracksToVertexDone(1),
-         fitterV0.getChi2AtPCACandidate(0), fitterV0.getChi2AtPCACandidate(1),
-         seedP.gid.asString(), seedN.gid.asString(), e.what());
   }
   auto& trPProp = fitterV0.getTrack(0, cand);
   auto& trNProp = fitterV0.getTrack(1, cand);
