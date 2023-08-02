@@ -65,16 +65,6 @@ class GPUReconstructionCUDA : public GPUReconstructionKernels<GPUReconstructionC
   int ExitDevice_Runtime() override;
   void UpdateSettings() override;
 
-  class GPUThreadContextCUDA : public GPUThreadContext
-  {
-   public:
-    GPUThreadContextCUDA(GPUReconstructionCUDAInternals* context);
-    ~GPUThreadContextCUDA() override;
-
-   private:
-    GPUReconstructionCUDAInternals* mContext = nullptr;
-  };
-
   std::unique_ptr<GPUThreadContext> GetThreadContext() override;
   bool CanQueryMaxMemory() override { return true; }
   void SynchronizeGPU() override;

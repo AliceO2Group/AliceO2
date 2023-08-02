@@ -24,7 +24,6 @@ namespace GPUCA_NAMESPACE
 namespace gpu
 {
 struct GPUReconstructionHIPInternals {
-  hipCtx_t HIPContext;                    // HIP Context
   hipStream_t Streams[GPUCA_MAX_STREAMS]; // Pointer to array of HIP Streams
 };
 

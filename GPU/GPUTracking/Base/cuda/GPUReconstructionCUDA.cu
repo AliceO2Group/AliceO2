@@ -135,10 +135,6 @@ int GPUReconstructionCUDA::InitDevice_Runtime()
     cudaDeviceProp cudaDeviceProp;
     int count, bestDevice = -1;
     double bestDeviceSpeed = -1, deviceSpeed;
-    if (GPUFailedMsgI(cuInit(0))) {
-      GPUError("Error initializing CUDA!");
-      return (1);
-    }
     if (GPUFailedMsgI(cudaGetDeviceCount(&count))) {
       GPUError("Error getting CUDA Device Count");
       return (1);
@@ -156,27 +152,22 @@ int GPUReconstructionCUDA::InitDevice_Runtime()
         GPUInfo("Examining device %d", i);
       }
       size_t free, total;
-      CUdevice tmpDevice;
-      if (GPUFailedMsgI(cuDeviceGet(&tmpDevice, i))) {
-        GPUError("Could not set CUDA device!");
-        return (1);
-      }
-      if (GPUFailedMsgI(cuCtxCreate(&mInternals->CudaContext, 0, tmpDevice))) {
+      if (GPUFailedMsgI(cudaInitDevice(i, 0, 0))) {
         if (mProcessingSettings.debugLevel >= 4) {
           GPUWarning("Couldn't create context for device %d. Skipping it.", i);
         }
         continue;
       }
       contextCreated = true;
-      if (GPUFailedMsgI(cuMemGetInfo(&free, &total))) {
+      if (GPUFailedMsgI(cudaMemGetInfo(&free, &total))) {
         if (mProcessingSettings.debugLevel >= 4) {
           GPUWarning("Error obtaining CUDA memory info about device %d! Skipping it.", i);
         }
-        GPUFailedMsg(cuCtxDestroy(mInternals->CudaContext));
+        GPUFailedMsg(cudaDeviceReset());
         continue;
       }
       if (count > 1) {
-        GPUFailedMsg(cuCtxDestroy(mInternals->CudaContext));
+        GPUFailedMsg(cudaDeviceReset());
         contextCreated = false;
       }
       if (mProcessingSettings.debugLevel >= 4) {
@@ -235,7 +226,7 @@ int GPUReconstructionCUDA::InitDevice_Runtime()
     }
     if (noDevice) {
       if (contextCreated) {
-        GPUFailedMsgI(cuCtxDestroy(mInternals->CudaContext));
+        GPUFailedMsgI(cudaDeviceReset());
       }
       return (1);
     }
@@ -289,7 +280,7 @@ int GPUReconstructionCUDA::InitDevice_Runtime()
     }
 #endif
 
-    if (contextCreated == 0 && GPUFailedMsgI(cuCtxCreate(&mInternals->CudaContext, CU_CTX_SCHED_AUTO, mDeviceId))) {
+    if (contextCreated == 0 && GPUFailedMsgI(cudaInitDevice(mDeviceId, 0, 0))) {
       GPUError("Could not set CUDA Device!");
       return (1);
     }
@@ -383,11 +374,9 @@ int GPUReconstructionCUDA::InitDevice_Runtime()
     mDeviceConstantMemRTC.resize(master->mDeviceConstantMemRTC.size());
     std::copy(master->mDeviceConstantMemRTC.begin(), master->mDeviceConstantMemRTC.end(), mDeviceConstantMemRTC.begin());
     mInternals = master->mInternals;
-    GPUFailedMsgI(cuCtxPushCurrent(mInternals->CudaContext));
+    GPUFailedMsg(cudaSetDevice(mDeviceId));
   }
 
-  if (mProcessingSettings.debugLevel >= 1) {
-  }
   for (unsigned int i = 0; i < mEvents.size(); i++) {
     cudaEvent_t* events = (cudaEvent_t*)mEvents[i].data();
     for (unsigned int j = 0; j < mEvents[i].size(); j++) {
@@ -399,18 +388,13 @@ int GPUReconstructionCUDA::InitDevice_Runtime()
     }
   }
 
-  if (GPUFailedMsgI(cuCtxPopCurrent(&mInternals->CudaContext))) {
-    GPUError("Error popping CUDA context!");
-    return (1);
-  }
-
   return (0);
 }
 
 int GPUReconstructionCUDA::ExitDevice_Runtime()
 {
   // Uninitialize CUDA
-  GPUFailedMsgI(cuCtxPushCurrent(mInternals->CudaContext));
+  GPUFailedMsg(cudaSetDevice(mDeviceId));
   SynchronizeGPU();
 
   for (unsigned int i = 0; i < mEvents.size(); i++) {
@@ -431,18 +415,11 @@ int GPUReconstructionCUDA::ExitDevice_Runtime()
     }
 
     GPUFailedMsgI(cudaFreeHost(mHostMemoryBase));
-    GPUFailedMsgI(cuCtxDestroy(mInternals->CudaContext));
+    GPUFailedMsgI(cudaDeviceReset());
     GPUInfo("CUDA Uninitialized");
-  } else {
-    GPUFailedMsgI(cuCtxPopCurrent(&mInternals->CudaContext));
   }
   mDeviceMemoryBase = nullptr;
   mHostMemoryBase = nullptr;
-
-  /*if (GPUFailedMsgI(cudaDeviceReset())) { // No longer doing this, another thread might have used the GPU
-    GPUError("Could not uninitialize GPU");
-    return (1);
-  }*/
 
   return (0);
 }
@@ -507,19 +484,11 @@ size_t GPUReconstructionCUDA::WriteToConstantMemory(size_t offset, const void* s
 void GPUReconstructionCUDA::ReleaseEvent(deviceEvent* ev) {}
 void GPUReconstructionCUDA::RecordMarker(deviceEvent* ev, int stream) { GPUFailedMsg(cudaEventRecord(*(cudaEvent_t*)ev, mInternals->Streams[stream])); }
 
-GPUReconstructionCUDA::GPUThreadContextCUDA::GPUThreadContextCUDA(GPUReconstructionCUDAInternals* context) : GPUThreadContext(), mContext(context)
+std::unique_ptr<GPUReconstruction::GPUThreadContext> GPUReconstructionCUDA::GetThreadContext()
 {
-  if (mContext->cudaContextObtained++ == 0) {
-    cuCtxPushCurrent(mContext->CudaContext);
-  }
+  GPUFailedMsgI(cudaSetDevice(mDeviceId));
+  return std::unique_ptr<GPUThreadContext>(new GPUThreadContext);
 }
-GPUReconstructionCUDA::GPUThreadContextCUDA::~GPUThreadContextCUDA()
-{
-  if (--mContext->cudaContextObtained == 0) {
-    cuCtxPopCurrent(&mContext->CudaContext);
-  }
-}
-std::unique_ptr<GPUReconstruction::GPUThreadContext> GPUReconstructionCUDA::GetThreadContext() { return std::unique_ptr<GPUThreadContext>(new GPUThreadContextCUDA(mInternals)); }
 
 void GPUReconstructionCUDA::SynchronizeGPU() { GPUFailedMsg(cudaDeviceSynchronize()); }
 void GPUReconstructionCUDA::SynchronizeStream(int stream) { GPUFailedMsg(cudaStreamSynchronize(mInternals->Streams[stream])); }
