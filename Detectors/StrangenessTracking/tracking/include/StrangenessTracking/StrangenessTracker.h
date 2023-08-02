@@ -193,7 +193,7 @@ class StrangenessTracker
   {
     std::vector<ITSCluster> outVec;
     outVec.reserve(7);
-    auto firstClus = mITStrack.getFirstClusterEntry();
+    auto firstClus = itsTrack.getFirstClusterEntry();
     auto ncl = itsTrack.getNumberOfClusters();
     for (int icl = 0; icl < ncl; icl++) {
       outVec.push_back(mInputITSclusters[mInputITSidxs[firstClus + icl]]);
@@ -292,7 +292,6 @@ class StrangenessTracker
   std::vector<std::vector<o2::track::TrackParCovF>> mDaughterTracks; // vector of daughter tracks (per thread)
   StrangeTrack mStrangeTrack;                           // structure containing updated mother and daughter track refs
   ClusAttachments mStructClus;                          // # of attached tracks, 1 for mother, 2 for daughter
-  o2::its::TrackITS mITStrack;                          // ITS track
 
   ClassDefNV(StrangenessTracker, 1);
 };
