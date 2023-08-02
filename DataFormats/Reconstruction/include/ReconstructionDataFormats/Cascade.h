@@ -27,6 +27,7 @@ namespace dataformats
 class Cascade : public V0
 {
  public:
+  using V0::V0;
   Cascade() = default;
   Cascade(const std::array<float, 3>& xyz, const std::array<float, 3>& pxyz, const std::array<float, 6>& covxyz, // RS Remove after dropping indices in O2Physics
           const o2::track::TrackParCov& v0, const o2::track::TrackParCov& bachelor,
@@ -36,7 +37,7 @@ class Cascade : public V0
 
   Cascade(const std::array<float, 3>& xyz, const std::array<float, 3>& pxyz, const std::array<float, 6>& covxyz,
           const o2::track::TrackParCov& v0, const o2::track::TrackParCov& bachelor,
-          o2::track::PID pid = o2::track::PID::XiMinus);
+          o2::track::PID pid = o2::track::PID::XiMinus) : V0(xyz, pxyz, covxyz, v0, bachelor, pid) {}
 
   const Track& getV0Track() const { return mProngs[0]; }
   Track& getV0Track() { return mProngs[0]; }

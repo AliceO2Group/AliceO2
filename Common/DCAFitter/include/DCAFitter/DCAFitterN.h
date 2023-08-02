@@ -112,6 +112,9 @@ class DCAFitterN
     return std::array<float, 3>{float(vd[0]), float(vd[1]), float(vd[2])};
   }
 
+  ///< return position of quality-ordered candidate in the internal structures
+  int getCandidatePosition(int cand = 0) const { return mOrder[cand]; }
+
   ///< return Chi2 at PCA candidate (no check for its validity)
   float getChi2AtPCACandidate(int cand = 0) const { return mChi2[mOrder[cand]]; }
 
@@ -205,6 +208,10 @@ class DCAFitterN
   template <class... Tr>
   int process(const Tr&... args);
   void print() const;
+
+  int getFitterID() const { return mFitterID; }
+  void setFitterID(int i) { mFitterID = i; }
+  size_t getCallID() const { return mCallID; }
 
  protected:
   bool calcPCACoefs();
@@ -326,7 +333,8 @@ class DCAFitterN
   float mMaxDist2ToMergeSeeds = 1.;                                                               // merge 2 seeds to their average if their distance^2 is below the threshold
   float mMaxSnp = 0.95;                                                                           // Max snp for propagation with Propagator
   float mMaxStep = 2.0;                                                                           // Max step for propagation with Propagator
-
+  int mFitterID = 0;                                                                              // locat fitter ID (mostly for debugging)
+  size_t mCallID = 0;
   ClassDefNV(DCAFitterN, 1);
 };
 
@@ -336,6 +344,7 @@ template <class... Tr>
 int DCAFitterN<N, Args...>::process(const Tr&... args)
 {
   // This is a main entry point: fit PCA of N tracks
+  mCallID++;
   static_assert(sizeof...(args) == N, "incorrect number of input tracks");
   assign(0, args...);
   clear();
@@ -392,7 +401,6 @@ int DCAFitterN<N, Args...>::process(const Tr&... args)
       recalculatePCAWithErrors(i);
     }
   }
-
   return mCurHyp;
 }
 
