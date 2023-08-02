@@ -43,6 +43,7 @@ class GPUReconstructionHIPBackend : public GPUReconstructionDeviceBase
   int ExitDevice_Runtime() override;
   void UpdateSettings() override;
 
+  std::unique_ptr<GPUThreadContext> GetThreadContext() override;
   void SynchronizeGPU() override;
   int GPUDebug(const char* state = "UNKNOWN", int stream = -1, bool force = false) override;
   void SynchronizeStream(int stream) override;
