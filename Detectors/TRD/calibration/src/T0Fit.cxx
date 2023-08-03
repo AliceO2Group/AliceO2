@@ -150,7 +150,7 @@ void T0Fit::finalizeSlot(Slot& slot)
     mFuncErfLandau->SetParameters(fitResult.GetParams()[0], fitResult.GetParams()[1], fitResult.GetParams()[2], fitResult.GetParams()[3]);
     t0_average = mFuncErfLandau->GetMaximumX();
   } else {
-    LOG(info) << "t0 fit for inclusive distribtion is not valid, set to " << mDummyT0;
+    LOG(warn) << "t0 fit for inclusive distribtion is not valid, set to " << mDummyT0;
     t0_average = mDummyT0;
   }
 
