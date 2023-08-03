@@ -11,6 +11,8 @@
 
 # add_compile_options(-O0 -g -fPIC)
 
+add_subdirectory(StrangenessTracking)
+
 o2_add_library(DetectorsVertexing
                TARGETVARNAME targetName
                SOURCES src/PVertexer.cxx
