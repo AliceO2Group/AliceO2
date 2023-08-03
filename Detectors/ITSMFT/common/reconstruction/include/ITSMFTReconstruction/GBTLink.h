@@ -68,6 +68,7 @@ struct GBTLink {
                                       AbortedOnError,
                                       StoppedOnEndOfData,
                                       DataSeen,
+                                      Recovery,
                                       CachedDataExist }; // None is set before starting collectROFCableData
 
   enum ErrorType : uint8_t { NoError = 0x0,
@@ -143,6 +144,7 @@ struct GBTLink {
   }
 
   bool needToPrintError(uint32_t count) { return verbosity == Silent ? false : (verbosity > VerboseErrors || count == 1); }
+  void accountLinkRecovery(o2::InteractionRecord ir);
 
  private:
   void discardData() { rawData.setDone(); }
