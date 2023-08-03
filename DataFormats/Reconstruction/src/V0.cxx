@@ -14,9 +14,7 @@
 using namespace o2::dataformats;
 
 V0::V0(const std::array<float, 3>& xyz, const std::array<float, 3>& pxyz, const std::array<float, 6>& covxyz,
-       const o2::track::TrackParCov& trPos, const o2::track::TrackParCov& trNeg,
-       GIndex trPosID, GIndex trNegID, o2::track::PID pid)
-  : mProngIDs{trPosID, trNegID}, mProngs{trPos, trNeg}
+       const o2::track::TrackParCov& trPos, const o2::track::TrackParCov& trNeg, o2::track::PID pid) : mProngs{trPos, trNeg}
 {
   std::array<float, 21> covV{0.}, covP, covN;
   trPos.getCovXYZPxPyPzGlo(covP);

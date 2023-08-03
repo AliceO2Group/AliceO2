@@ -18,29 +18,35 @@
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "DataFormatsTPC/VDriftCorrFact.h"
 #include "CorrectionMapsHelper.h"
+#include "Framework/ProcessingContext.h"
+#include "Framework/DataProcessorSpec.h"
+#include "ReconstructionDataFormats/StrangeTrack.h"
 
 #ifdef WITH_OPENMP
 #include <omp.h>
 #endif
 
 #include "ReconstructionDataFormats/GlobalTrackID.h"
-using namespace o2::vertexing;
 
+using namespace o2::vertexing;
+namespace o2f = o2::framework;
 using PID = o2::track::PID;
 using TrackTPCITS = o2::dataformats::TrackTPCITS;
 using TrackITS = o2::its::TrackITS;
 using TrackTPC = o2::tpc::TrackTPC;
 
 //__________________________________________________________________
-void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // accessor to various reconstrucred data types
+void SVertexer::process(const o2::globaltracking::RecoContainer& recoData, o2::framework::ProcessingContext& pc)
 {
+  mNV0s = mNCascades = mN3Bodies = 0;
   updateTimeDependentParams(); // TODO RS: strictly speaking, one should do this only in case of the CCDB objects update
   mPVertices = recoData.getPrimaryVertices();
   buildT2V(recoData); // build track->vertex refs from vertex->track (if other workflow will need this, consider producing a message in the VertexTrackMatcher)
-  int ntrP = mTracksPool[POS].size(), ntrN = mTracksPool[NEG].size(), iThread = 0;
-  mV0sTmp[0].clear();
-  mCascadesTmp[0].clear();
-  m3bodyTmp[0].clear();
+  int ntrP = mTracksPool[POS].size(), ntrN = mTracksPool[NEG].size();
+  if (mStrTracker) {
+    mStrTracker->loadData(recoData);
+    mStrTracker->prepareITStracks();
+  }
 #ifdef WITH_OPENMP
   int dynGrp = std::min(4, std::max(1, mNThreads / 2));
 #pragma omp parallel for schedule(dynamic, dynGrp) num_threads(mNThreads)
@@ -58,84 +64,158 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
         LOG(debug) << "Brackets do not match";
         break;
       }
-#ifdef WITH_OPENMP
-      iThread = omp_get_thread_num();
-#endif
       if (mSVParams->maxPVContributors < 2 && seedP.gid.isPVContributor() + seedN.gid.isPVContributor() > mSVParams->maxPVContributors) {
         continue;
       }
+#ifdef WITH_OPENMP
+      int iThread = omp_get_thread_num();
+#else
+      int iThread = 0;
+#endif
       checkV0(seedP, seedN, itp, itn, iThread);
     }
   }
+
   // sort V0s and Cascades in vertex id
   struct vid {
     int thrID;
     int entry;
     int vtxID;
   };
-  size_t nv0 = 0, ncsc = 0, n3body = 0;
-  for (int i = 0; i < mNThreads; i++) {
-    nv0 += mV0sTmp[0].size();
-    ncsc += mCascadesTmp[i].size();
-    n3body += m3bodyTmp[i].size();
+  for (int ith = 0; ith < mNThreads; ith++) {
+    mNV0s += mV0sIdxTmp[ith].size();
+    mNCascades += mCascadesIdxTmp[ith].size();
+    mN3Bodies += m3bodyIdxTmp[ith].size();
   }
   std::vector<vid> v0SortID, cascSortID, nbodySortID;
-  v0SortID.reserve(nv0);
-  cascSortID.reserve(ncsc);
-  nbodySortID.reserve(n3body);
-  for (int i = 0; i < mNThreads; i++) {
-    for (int j = 0; j < (int)mV0sTmp[i].size(); j++) {
-      v0SortID.emplace_back(vid{i, j, mV0sTmp[i][j].getVertexID()});
+  v0SortID.reserve(mNV0s);
+  cascSortID.reserve(mNCascades);
+  nbodySortID.reserve(mN3Bodies);
+  for (int ith = 0; ith < mNThreads; ith++) {
+    for (int j = 0; j < (int)mV0sIdxTmp[ith].size(); j++) {
+      v0SortID.emplace_back(vid{ith, j, mV0sIdxTmp[ith][j].getVertexID()});
     }
-    for (int j = 0; j < (int)mCascadesTmp[i].size(); j++) {
-      cascSortID.emplace_back(vid{i, j, mCascadesTmp[i][j].getVertexID()});
+    for (int j = 0; j < (int)mCascadesIdxTmp[ith].size(); j++) {
+      cascSortID.emplace_back(vid{ith, j, mCascadesIdxTmp[ith][j].getVertexID()});
     }
-    for (int j = 0; j < (int)m3bodyTmp[i].size(); j++) {
-      nbodySortID.emplace_back(vid{i, j, m3bodyTmp[i][j].getVertexID()});
+    for (int j = 0; j < (int)m3bodyIdxTmp[ith].size(); j++) {
+      nbodySortID.emplace_back(vid{ith, j, m3bodyIdxTmp[ith][j].getVertexID()});
     }
   }
-  std::sort(v0SortID.begin(), v0SortID.end(), [](const vid& a, const vid& b) { return a.vtxID > b.vtxID; });
-  std::sort(cascSortID.begin(), cascSortID.end(), [](const vid& a, const vid& b) { return a.vtxID > b.vtxID; });
-  std::sort(nbodySortID.begin(), nbodySortID.end(), [](const vid& a, const vid& b) { return a.vtxID > b.vtxID; });
+  std::sort(v0SortID.begin(), v0SortID.end(), [](const vid& a, const vid& b) { return a.vtxID < b.vtxID; });
+  std::sort(cascSortID.begin(), cascSortID.end(), [](const vid& a, const vid& b) { return a.vtxID < b.vtxID; });
+  std::sort(nbodySortID.begin(), nbodySortID.end(), [](const vid& a, const vid& b) { return a.vtxID < b.vtxID; });
   // sorted V0s
-  std::vector<V0> bufV0;
-  bufV0.reserve(nv0);
-  for (const auto& id : v0SortID) {
-    auto& v0 = mV0sTmp[id.thrID][id.entry];
-    int pos = bufV0.size();
-    bufV0.push_back(v0);
-    v0.setVertexID(pos); // this v0 copy will be discarded, use its vertexID to store the new position of final V0
-  }
-  // since V0s were reshuffled, we need to correct the cascade -> V0 reference indices
-  for (int i = 0; i < mNThreads; i++) {  // merge results of all threads
-    for (auto& casc : mCascadesTmp[i]) { // before merging fix cascades references on v0
-      casc.setV0ID(mV0sTmp[i][casc.getV0ID()].getVertexID());
-    }
+
+  auto& v0sIdx = pc.outputs().make<std::vector<V0Index>>(o2f::Output{"GLO", "V0S_IDX", 0, o2f::Lifetime::Timeframe});
+  auto& cascsIdx = pc.outputs().make<std::vector<CascadeIndex>>(o2f::Output{"GLO", "CASCS_IDX", 0, o2f::Lifetime::Timeframe});
+  auto& body3Idx = pc.outputs().make<std::vector<Decay3BodyIndex>>(o2f::Output{"GLO", "DECAYS3BODY_IDX", 0, o2f::Lifetime::Timeframe});
+  auto& fullv0s = pc.outputs().make<std::vector<V0>>(o2f::Output{"GLO", "V0S", 0, o2f::Lifetime::Timeframe});
+  auto& fullcascs = pc.outputs().make<std::vector<Cascade>>(o2f::Output{"GLO", "CASCS", 0, o2f::Lifetime::Timeframe});
+  auto& full3body = pc.outputs().make<std::vector<Decay3Body>>(o2f::Output{"GLO", "DECAYS3BODY", 0, o2f::Lifetime::Timeframe});
+  auto& v0Refs = pc.outputs().make<std::vector<RRef>>(o2f::Output{"GLO", "PVTX_V0REFS", 0, o2f::Lifetime::Timeframe});
+  auto& cascRefs = pc.outputs().make<std::vector<RRef>>(o2f::Output{"GLO", "PVTX_CASCREFS", 0, o2f::Lifetime::Timeframe});
+  auto& vtx3bodyRefs = pc.outputs().make<std::vector<RRef>>(o2f::Output{"GLO", "PVTX_3BODYREFS", 0, o2f::Lifetime::Timeframe});
+
+  // sorted V0s
+  v0sIdx.reserve(mNV0s);
+  if (mSVParams->createFullV0s) {
+    fullv0s.reserve(mNV0s);
   }
   // sorted Cascades
-  std::vector<Cascade> bufCasc;
-  bufCasc.reserve(ncsc);
-  for (const auto& id : cascSortID) {
-    bufCasc.push_back(mCascadesTmp[id.thrID][id.entry]);
+  cascsIdx.reserve(mNCascades);
+  if (mSVParams->createFullCascades) {
+    fullcascs.reserve(mNCascades);
   }
   // sorted 3 body decays
-  std::vector<DecayNbody> buf3body;
-  buf3body.reserve(n3body);
+  body3Idx.reserve(mN3Bodies);
+  if (mSVParams->createFull3Bodies) {
+    full3body.reserve(mN3Bodies);
+  }
+
+  for (const auto& id : v0SortID) {
+    auto& v0idx = mV0sIdxTmp[id.thrID][id.entry];
+    int pos = v0sIdx.size();
+    v0sIdx.push_back(v0idx);
+    v0idx.setVertexID(pos); // this v0 copy will be discarded, use its vertexID to store the new position of final V0
+    if (mSVParams->createFullV0s) {
+      fullv0s.push_back(mV0sTmp[id.thrID][id.entry]);
+    }
+  }
+  // since V0s were reshuffled, we need to correct the cascade -> V0 reference indices
+  for (int ith = 0; ith < mNThreads; ith++) {                     // merge results of all threads
+    for (size_t ic = 0; ic < mCascadesIdxTmp[ith].size(); ic++) { // before merging fix cascades references on v0
+      auto& cidx = mCascadesIdxTmp[ith][ic];
+      cidx.setV0ID(mV0sIdxTmp[ith][cidx.getV0ID()].getVertexID());
+    }
+  }
+  int cascCnt = 0;
+  for (const auto& id : cascSortID) {
+    cascsIdx.push_back(mCascadesIdxTmp[id.thrID][id.entry]);
+    mCascadesIdxTmp[id.thrID][id.entry].setVertexID(cascCnt++); // memorize new ID
+    if (mSVParams->createFullCascades) {
+      fullcascs.push_back(mCascadesTmp[id.thrID][id.entry]);
+    }
+  }
+  int b3cnt = 0;
   for (const auto& id : nbodySortID) {
-    auto& decay3body = m3bodyTmp[id.thrID][id.entry];
-    int pos = bufV0.size();
-    buf3body.push_back(decay3body);
+    body3Idx.push_back(m3bodyIdxTmp[id.thrID][id.entry]);
+    m3bodyIdxTmp[id.thrID][id.entry].setVertexID(b3cnt++); // memorize new ID
+    if (mSVParams->createFull3Bodies) {
+      full3body.push_back(m3bodyTmp[id.thrID][id.entry]);
+    }
+  }
+  if (mStrTracker) {
+    mNStrangeTracks = 0;
+    for (int ith = 0; ith < mNThreads; ith++) {
+      mNStrangeTracks += mStrTracker->getNTracks(ith);
+    }
+    auto& strTracksOut = pc.outputs().make<std::vector<o2::dataformats::StrangeTrack>>(o2f::Output{"GLO", "STRANGETRACKS", 0, o2f::Lifetime::Timeframe});
+    auto& strClustOut = pc.outputs().make<std::vector<o2::strangeness_tracking::ClusAttachments>>(o2f::Output{"GLO", "CLUSUPDATES", 0, o2f::Lifetime::Timeframe});
+    o2::pmr::vector<o2::MCCompLabel> mcLabsOut;
+    strTracksOut.reserve(mNStrangeTracks);
+    strClustOut.reserve(mNStrangeTracks);
+    if (mStrTracker->getMCTruthOn()) {
+      mcLabsOut.reserve(mNStrangeTracks);
+    }
+    for (int ith = 0; ith < mNThreads; ith++) { // merge results of all threads
+      auto& strTracks = mStrTracker->getStrangeTrackVec(ith);
+      auto& strClust = mStrTracker->getClusAttachments(ith);
+      auto& stcTrMCLab = mStrTracker->getStrangeTrackLabels(ith);
+      for (int i = 0; i < (int)strTracks.size(); i++) {
+        auto& t = strTracks[i];
+        if (t.mPartType == o2::dataformats::kStrkV0) {
+          t.mDecayRef = mV0sIdxTmp[ith][t.mDecayRef].getVertexID(); // reassign merged V0 ID
+        } else if (t.mPartType == o2::dataformats::kStrkCascade) {
+          t.mDecayRef = mCascadesIdxTmp[ith][t.mDecayRef].getVertexID(); // reassign merged Cascase ID
+        } else if (t.mPartType == o2::dataformats::kStrkThreeBody) {
+          t.mDecayRef = m3bodyIdxTmp[ith][t.mDecayRef].getVertexID(); // reassign merged Cascase ID
+        } else {
+          LOGP(fatal, "Unknown strange track decay reference type {} for index {}", int(t.mPartType), t.mDecayRef);
+        }
+        strTracksOut.push_back(t);
+        strClustOut.push_back(strClust[i]);
+        if (mStrTracker->getMCTruthOn()) {
+          mcLabsOut.push_back(stcTrMCLab[i]);
+        }
+      }
+    }
+    if (mStrTracker->getMCTruthOn()) {
+      auto& strTrMCLableOut = pc.outputs().make<std::vector<o2::MCCompLabel>>(o2f::Output{"GLO", "STRANGETRACKS_MC", 0, o2f::Lifetime::Timeframe});
+      strTrMCLableOut.swap(mcLabsOut);
+    }
   }
   //
-  mV0sTmp[0].swap(bufV0);               // the final result is fetched from here
-  mCascadesTmp[0].swap(bufCasc);        // the final result is fetched from here
-  m3bodyTmp[0].swap(buf3body);          // the final result is fetched from here
-  for (int i = 1; i < mNThreads; i++) { // clean unneeded s.vertices
-    mV0sTmp[i].clear();
-    mCascadesTmp[i].clear();
-    m3bodyTmp[i].clear();
+  for (int ith = 0; ith < mNThreads; ith++) { // clean unneeded s.vertices
+    mV0sTmp[ith].clear();
+    mCascadesTmp[ith].clear();
+    m3bodyTmp[ith].clear();
+    mV0sIdxTmp[ith].clear();
+    mCascadesIdxTmp[ith].clear();
+    m3bodyIdxTmp[ith].clear();
   }
-  LOG(debug) << "DONE : " << mV0sTmp[0].size() << " " << mCascadesTmp[0].size() << " " << m3bodyTmp[0].size();
+
+  extractPVReferences(v0sIdx, v0Refs, cascsIdx, cascRefs, body3Idx, vtx3bodyRefs);
 }
 
 //__________________________________________________________________
@@ -218,9 +298,14 @@ void SVertexer::setupThreads()
   mV0sTmp.resize(mNThreads);
   mCascadesTmp.resize(mNThreads);
   m3bodyTmp.resize(mNThreads);
+  mV0sIdxTmp.resize(mNThreads);
+  mCascadesIdxTmp.resize(mNThreads);
+  m3bodyIdxTmp.resize(mNThreads);
   mFitterV0.resize(mNThreads);
   auto bz = o2::base::Propagator::Instance()->getNominalBz();
+  int fitCounter = 0;
   for (auto& fitter : mFitterV0) {
+    fitter.setFitterID(fitCounter++);
     fitter.setBz(bz);
     fitter.setUseAbsDCA(mSVParams->useAbsDCA);
     fitter.setPropagateToPCA(false);
@@ -237,7 +322,9 @@ void SVertexer::setupThreads()
     fitter.setMinXSeed(mSVParams->minXSeed);
   }
   mFitterCasc.resize(mNThreads);
+  fitCounter = 1000;
   for (auto& fitter : mFitterCasc) {
+    fitter.setFitterID(fitCounter++);
     fitter.setBz(bz);
     fitter.setUseAbsDCA(mSVParams->useAbsDCA);
     fitter.setPropagateToPCA(false);
@@ -255,7 +342,9 @@ void SVertexer::setupThreads()
   }
 
   mFitter3body.resize(mNThreads);
+  fitCounter = 2000;
   for (auto& fitter : mFitter3body) {
+    fitter.setFitterID(fitCounter++);
     fitter.setBz(bz);
     fitter.setUseAbsDCA(mSVParams->useAbsDCA);
     fitter.setPropagateToPCA(false);
@@ -398,7 +487,6 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
 //__________________________________________________________________
 bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, int iN, int ithread)
 {
-
   auto& fitterV0 = mFitterV0[ithread];
   int nCand = fitterV0.process(seedP, seedN);
   if (nCand == 0) { // discard this pair
@@ -417,11 +505,10 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
     LOG(debug) << "RejCausality " << drv0P << " " << drv0N;
     return false;
   }
-
-  if (!fitterV0.isPropagateTracksToVertexDone() && !fitterV0.propagateTracksToVertex()) {
+  const int cand = 0;
+  if (!fitterV0.isPropagateTracksToVertexDone(cand) && !fitterV0.propagateTracksToVertex(cand)) {
     return false;
   }
-  int cand = 0;
   auto& trPProp = fitterV0.getTrack(0, cand);
   auto& trNProp = fitterV0.getTrack(1, cand);
   std::array<float, 3> pP, pN;
@@ -509,9 +596,11 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   }
 
   auto vlist = seedP.vBracket.getOverlap(seedN.vBracket); // indices of vertices shared by both seeds
-  bool added = false;
+  bool candFound = false;
   auto bestCosPA = checkForCascade ? mSVParams->minCosPACascV0 : mSVParams->minCosPA;
   bestCosPA = checkFor3BodyDecays ? std::min(mSVParams->minCosPA3bodyV0, bestCosPA) : bestCosPA;
+  V0 v0new;
+  V0Index v0Idxnew;
 
   for (int iv = vlist.getMin(); iv <= vlist.getMax(); iv++) {
     const auto& pv = mPVertices[iv];
@@ -523,17 +612,17 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
       LOG(debug) << "Rej. cosPA: " << cosPA;
       continue;
     }
-    if (!added) {
-      auto& v0new = mV0sTmp[ithread].emplace_back(v0XYZ, pV0, fitterV0.calcPCACovMatrixFlat(cand), trPProp, trNProp, seedP.gid, seedN.gid);
-      v0new.setDCA(fitterV0.getChi2AtPCACandidate());
-      added = true;
+    if (!candFound) {
+      new (&v0new) V0(v0XYZ, pV0, fitterV0.calcPCACovMatrixFlat(cand), trPProp, trNProp);
+      new (&v0Idxnew) V0Index(-1, seedP.gid, seedN.gid);
+      v0new.setDCA(fitterV0.getChi2AtPCACandidate(cand));
+      candFound = true;
     }
-    auto& v0 = mV0sTmp[ithread].back();
-    v0.setCosPA(cosPA);
-    v0.setVertexID(iv);
+    v0new.setCosPA(cosPA);
+    v0Idxnew.setVertexID(iv);
     bestCosPA = cosPA;
   }
-  if (!added) {
+  if (!candFound) {
     return false;
   }
   if (bestCosPA < mSVParams->minCosPACascV0) {
@@ -542,45 +631,60 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   if (bestCosPA < mSVParams->minCosPA && checkForCascade) {
     rejectIfNotCascade = true;
   }
-
+  int nV0Ini = mV0sIdxTmp[ithread].size();
   // check 3 body decays
   if (checkFor3BodyDecays) {
     int n3bodyDecays = 0;
-    n3bodyDecays += check3bodyDecays(rv0, pV0, p2V0, iN, NEG, vlist, ithread);
-    n3bodyDecays += check3bodyDecays(rv0, pV0, p2V0, iP, POS, vlist, ithread);
+    n3bodyDecays += check3bodyDecays(v0Idxnew, v0new, rv0, pV0, p2V0, iN, NEG, vlist, ithread);
+    n3bodyDecays += check3bodyDecays(v0Idxnew, v0new, rv0, pV0, p2V0, iP, POS, vlist, ithread);
   }
   if (rejectAfter3BodyCheck) {
-    mV0sTmp[ithread].pop_back();
     return false;
   }
 
   // check cascades
+  int nCascIni = mCascadesIdxTmp[ithread].size(), nV0Used = 0; // number of times this particular v0 (with assigned PV) was used (not counting using its clones with other PV)
   if (checkForCascade) {
-    int nCascAdded = 0;
     if (hypCheckStatus[HypV0::Lambda] || !mSVParams->checkCascadeHypothesis) {
-      nCascAdded += checkCascades(rv0, pV0, p2V0, iN, NEG, vlist, ithread);
+      nV0Used += checkCascades(v0Idxnew, v0new, rv0, pV0, p2V0, iN, NEG, vlist, ithread);
     }
     if (hypCheckStatus[HypV0::AntiLambda] || !mSVParams->checkCascadeHypothesis) {
-      nCascAdded += checkCascades(rv0, pV0, p2V0, iP, POS, vlist, ithread);
-    }
-    if (!nCascAdded && rejectIfNotCascade) { // v0 would be accepted only if it creates a cascade
-      mV0sTmp[ithread].pop_back();
-      return false;
+      nV0Used += checkCascades(v0Idxnew, v0new, rv0, pV0, p2V0, iP, POS, vlist, ithread);
     }
   }
 
-  return true;
+  if (nV0Used) { // need to fix the index of V0 for the cascades using this v0
+    for (unsigned int ic = nCascIni; ic < mCascadesIdxTmp[ithread].size(); ic++) {
+      if (mCascadesIdxTmp[ithread][ic].getV0ID() == -1) {
+        mCascadesIdxTmp[ithread][ic].setV0ID(nV0Ini);
+      }
+    }
+  }
+
+  if (nV0Used || !rejectIfNotCascade) { // need to add this v0
+    mV0sIdxTmp[ithread].push_back(v0Idxnew);
+    if (mSVParams->createFullV0s) {
+      mV0sTmp[ithread].push_back(v0new);
+    }
+  }
+
+  if (mStrTracker) {
+    for (int iv = nV0Ini; iv < (int)mV0sIdxTmp[ithread].size(); iv++) {
+      mStrTracker->processV0(iv, v0new, v0Idxnew, ithread);
+    }
+  }
+
+  return mV0sIdxTmp[ithread].size() - nV0Ini != 0;
 }
 
 //__________________________________________________________________
-int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, int avoidTrackID, int posneg, VBracket v0vlist, int ithread)
+int SVertexer::checkCascades(const V0Index& v0Idx, const V0& v0, float rv0, std::array<float, 3> pV0, float p2V0, int avoidTrackID, int posneg, VBracket v0vlist, int ithread)
 {
 
   // check last added V0 for belonging to cascade
   auto& fitterCasc = mFitterCasc[ithread];
-  const auto v0Id = mV0sTmp[ithread].size() - 1; // we check the last V0 but some cascades may add V0 clones
   auto& tracks = mTracksPool[posneg];
-  int nCascIni = mCascadesTmp[ithread].size();
+  int nCascIni = mCascadesIdxTmp[ithread].size(), nv0use = 0;
 
   // check if a given PV has already been used in a cascade
   std::unordered_map<int, int> pvMap;
@@ -599,15 +703,14 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
       LOG(debug) << "Skipping";
       break; // all other bachelor candidates will be also not compatible with this PV
     }
-    const auto& v0 = mV0sTmp[ithread][v0Id];
     auto cascVlist = v0vlist.getOverlap(bach.vBracket); // indices of vertices shared by V0 and bachelor
     if (mSVParams->selectBestV0) {
       // select only the best V0 candidate among the compatible ones
-      if (v0.getVertexID() < cascVlist.getMin() || v0.getVertexID() > cascVlist.getMax()) {
+      if (v0Idx.getVertexID() < cascVlist.getMin() || v0Idx.getVertexID() > cascVlist.getMax()) {
         continue;
       }
-      cascVlist.setMin(v0.getVertexID());
-      cascVlist.setMax(v0.getVertexID());
+      cascVlist.setMin(v0Idx.getVertexID());
+      cascVlist.setMax(v0Idx.getVertexID());
     }
 
     int nCandC = fitterCasc.process(v0, bach);
@@ -624,7 +727,7 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
     }
     // do we want to apply mass cut ?
     //
-    if (!fitterCasc.isPropagateTracksToVertexDone() && !fitterCasc.propagateTracksToVertex()) {
+    if (!fitterCasc.isPropagateTracksToVertexDone(candC) && !fitterCasc.propagateTracksToVertex(candC)) {
       continue;
     }
 
@@ -689,54 +792,61 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
       LOG(debug) << "Casc not compatible with any hypothesis";
       continue;
     }
-    auto& casc = mCascadesTmp[ithread].emplace_back(cascXYZ, pCasc, fitterCasc.calcPCACovMatrixFlat(candC), trNeut, trBach, v0Id, bach.gid);
+    // note: at the moment the v0 was not added yet. If some cascade will use v0 (with its PV), the v0 will be added after checkCascades
+    // but not necessarily at the and of current v0s vector, since meanwhile checkCascades may add v0 clones (with PV redefined).
+    Cascade casc(cascXYZ, pCasc, fitterCasc.calcPCACovMatrixFlat(candC), trNeut, trBach);
     o2::track::TrackParCov trc = casc;
     o2::dataformats::DCA dca;
     if (!trc.propagateToDCA(cascPv, fitterCasc.getBz(), &dca, 5.) ||
         std::abs(dca.getY()) > mSVParams->maxDCAXYCasc || std::abs(dca.getZ()) > mSVParams->maxDCAZCasc) {
       LOG(debug) << "Casc not compatible with PV";
       LOG(debug) << "DCA: " << dca.getY() << " " << dca.getZ();
-      mCascadesTmp[ithread].pop_back();
       continue;
     }
+    CascadeIndex cascIdx(cascVtxID, -1, bach.gid); // the v0Idx was not yet added, this will be done after the checkCascades
 
-    LOG(debug) << "Casc successfully added";
-    casc.setCosPA(bestCosPA);
-    casc.setVertexID(cascVtxID);
-    casc.setDCA(fitterCasc.getChi2AtPCACandidate());
+    LOGP(debug, "cascade successfully validated");
 
     // clone the V0, set new cosPA and VerteXID, add it to the list of V0s
-    if (cascVtxID != v0.getVertexID()) {
-      auto v0clone = v0;
-      const auto& pv = mPVertices[cascVtxID];
-
-      float dx = v0.getX() - pv.getX(), dy = v0.getY() - pv.getY(), dz = v0.getZ() - pv.getZ(), prodXYZ = dx * pV0[0] + dy * pV0[1] + dz * pV0[2];
-      float cosPA = prodXYZ / std::sqrt((dx * dx + dy * dy + dz * dz) * p2V0);
-      v0clone.setCosPA(cosPA);
-      v0clone.setVertexID(cascVtxID);
-
+    if (cascVtxID != v0Idx.getVertexID()) {
       auto pvIdx = pvMap.find(cascVtxID);
       if (pvIdx != pvMap.end()) {
-        casc.setV0ID(pvIdx->second); // V0 already exists, add reference to the cascade
-      } else {
-        mV0sTmp[ithread].push_back(v0clone);
-        casc.setV0ID(mV0sTmp[ithread].size() - 1);      // set the new V0 index in the cascade
-        pvMap[cascVtxID] = mV0sTmp[ithread].size() - 1; // add the new V0 index to the map
+        cascIdx.setV0ID(pvIdx->second); // V0 already exists, add reference to the cascade
+      } else {                          // add V0 clone for this cascade (may be used also by other cascades)
+        const auto& pv = mPVertices[cascVtxID];
+        cascIdx.setV0ID(mV0sIdxTmp[ithread].size()); // set the new V0 index in the cascade
+        pvMap[cascVtxID] = mV0sTmp[ithread].size();  // add the new V0 index to the map
+        mV0sIdxTmp[ithread].emplace_back(cascVtxID, v0Idx.getProngs());
+        if (mSVParams->createFullV0s) {
+          mV0sTmp[ithread].push_back(v0);
+          float dx = v0.getX() - pv.getX(), dy = v0.getY() - pv.getY(), dz = v0.getZ() - pv.getZ(), prodXYZ = dx * pV0[0] + dy * pV0[1] + dz * pV0[2];
+          mV0sTmp[ithread].back().setCosPA(prodXYZ / std::sqrt((dx * dx + dy * dy + dz * dz) * p2V0));
+        }
       }
+    } else {
+      nv0use++; // original v0 was used
+    }
+    mCascadesIdxTmp[ithread].push_back(cascIdx);
+    if (mSVParams->createFullCascades) {
+      casc.setCosPA(bestCosPA);
+      casc.setDCA(fitterCasc.getChi2AtPCACandidate(candC));
+      mCascadesTmp[ithread].push_back(casc);
+    }
+    if (mStrTracker) {
+      mStrTracker->processCascade(mCascadesIdxTmp[ithread].size() - 1, casc, cascIdx, v0, ithread);
     }
   }
 
-  return mCascadesTmp[ithread].size() - nCascIni;
+  return nv0use;
 }
 
 //__________________________________________________________________
-int SVertexer::check3bodyDecays(float rv0, std::array<float, 3> pV0, float p2V0, int avoidTrackID, int posneg, VBracket v0vlist, int ithread)
+int SVertexer::check3bodyDecays(const V0Index& v0Idx, const V0& v0, float rv0, std::array<float, 3> pV0, float p2V0, int avoidTrackID, int posneg, VBracket v0vlist, int ithread)
 {
   // check last added V0 for belonging to cascade
   auto& fitter3body = mFitter3body[ithread];
-  const auto& v0 = mV0sTmp[ithread].back();
   auto& tracks = mTracksPool[posneg];
-  int n3BodyIni = m3bodyTmp[ithread].size();
+  int n3BodyIni = m3bodyIdxTmp[ithread].size();
 
   // start from the 1st bachelor track compatible with earliest vertex in the v0vlist
   int firstTr = mVtxFirstTrack[posneg][v0vlist.getMin()], nTr = tracks.size();
@@ -760,11 +870,11 @@ int SVertexer::check3bodyDecays(float rv0, std::array<float, 3> pV0, float p2V0,
     auto decay3bodyVlist = v0vlist.getOverlap(bach.vBracket); // indices of vertices shared by V0 and bachelor
     if (mSVParams->selectBestV0) {
       // select only the best V0 candidate among the compatible ones
-      if (v0.getVertexID() < decay3bodyVlist.getMin() || v0.getVertexID() > decay3bodyVlist.getMax()) {
+      if (v0Idx.getVertexID() < decay3bodyVlist.getMin() || v0Idx.getVertexID() > decay3bodyVlist.getMax()) {
         continue;
       }
-      decay3bodyVlist.setMin(v0.getVertexID());
-      decay3bodyVlist.setMax(v0.getVertexID());
+      decay3bodyVlist.setMin(v0Idx.getVertexID());
+      decay3bodyVlist.setMax(v0Idx.getVertexID());
     }
 
     if (bach.getPt() < 0.6) {
@@ -844,20 +954,116 @@ int SVertexer::check3bodyDecays(float rv0, std::array<float, 3> pV0, float p2V0,
     if (!goodHyp) {
       continue;
     }
-    auto& candidate3B = m3bodyTmp[ithread].emplace_back(PID::HyperTriton, vertexXYZ, p3B, fitter3body.calcPCACovMatrixFlat(cand3B), tr0, tr1, tr2, v0.getProngID(0), v0.getProngID(1), bach.gid);
+    Decay3Body candidate3B(PID::HyperTriton, vertexXYZ, p3B, fitter3body.calcPCACovMatrixFlat(cand3B), tr0, tr1, tr2);
     o2::track::TrackParCov trc = candidate3B;
     o2::dataformats::DCA dca;
     if (!trc.propagateToDCA(decay3bodyPv, fitter3body.getBz(), &dca, 5.) ||
         std::abs(dca.getY()) > mSVParams->maxDCAXY3Body || std::abs(dca.getZ()) > mSVParams->maxDCAZ3Body) {
-      m3bodyTmp[ithread].pop_back();
       continue;
     }
-
-    candidate3B.setCosPA(bestCosPA);
-    candidate3B.setVertexID(decay3bodyVtxID);
-    candidate3B.setDCA(fitter3body.getChi2AtPCACandidate());
+    if (mSVParams->createFull3Bodies) {
+      candidate3B.setCosPA(bestCosPA);
+      candidate3B.setDCA(fitter3body.getChi2AtPCACandidate());
+      m3bodyTmp[ithread].push_back(candidate3B);
+    }
+    m3bodyIdxTmp[ithread].emplace_back(decay3bodyVtxID, v0Idx.getProngID(0), v0Idx.getProngID(1), bach.gid);
   }
-  return m3bodyTmp[ithread].size() - n3BodyIni;
+  return m3bodyIdxTmp[ithread].size() - n3BodyIni;
+}
+
+//__________________________________________________________________
+template <class TVI, class TCI, class T3I, class TR>
+void SVertexer::extractPVReferences(const TVI& v0s, TR& vtx2V0Refs, const TCI& cascades, TR& vtx2CascRefs, const T3I& vtx3, TR& vtx2body3Refs)
+{
+  // V0s, cascades and 3bodies are already sorted in PV ID
+  vtx2V0Refs.clear();
+  vtx2V0Refs.resize(mPVertices.size());
+  vtx2CascRefs.clear();
+  vtx2CascRefs.resize(mPVertices.size());
+  vtx2body3Refs.clear();
+  vtx2body3Refs.resize(mPVertices.size());
+  int nv0 = v0s.size(), nCasc = cascades.size(), n3body = vtx3.size();
+
+  // relate V0s to primary vertices
+  int pvID = -1, nForPV = 0;
+  for (int iv = 0; iv < nv0; iv++) {
+    if (pvID < v0s[iv].getVertexID()) {
+      if (pvID > -1) {
+        vtx2V0Refs[pvID].setEntries(nForPV);
+      }
+      pvID = v0s[iv].getVertexID();
+      vtx2V0Refs[pvID].setFirstEntry(iv);
+      nForPV = 0;
+    }
+    nForPV++;
+  }
+  if (pvID != -1) { // finalize
+    vtx2V0Refs[pvID].setEntries(nForPV);
+    // fill empty slots
+    int ent = nv0;
+    for (int ip = vtx2V0Refs.size(); ip--;) {
+      if (vtx2V0Refs[ip].getEntries()) {
+        ent = vtx2V0Refs[ip].getFirstEntry();
+      } else {
+        vtx2V0Refs[ip].setFirstEntry(ent);
+      }
+    }
+  }
+
+  // relate Cascades to primary vertices
+  pvID = -1;
+  nForPV = 0;
+  for (int iv = 0; iv < nCasc; iv++) {
+    if (pvID < cascades[iv].getVertexID()) {
+      if (pvID > -1) {
+        vtx2CascRefs[pvID].setEntries(nForPV);
+      }
+      pvID = cascades[iv].getVertexID();
+      vtx2CascRefs[pvID].setFirstEntry(iv);
+      nForPV = 0;
+    }
+    nForPV++;
+  }
+  if (pvID != -1) { // finalize
+    vtx2CascRefs[pvID].setEntries(nForPV);
+    // fill empty slots
+    int ent = nCasc;
+    for (int ip = vtx2CascRefs.size(); ip--;) {
+      if (vtx2CascRefs[ip].getEntries()) {
+        ent = vtx2CascRefs[ip].getFirstEntry();
+      } else {
+        vtx2CascRefs[ip].setFirstEntry(ent);
+      }
+    }
+  }
+
+  // relate 3 body decays to primary vertices
+  pvID = -1;
+  nForPV = 0;
+  for (int iv = 0; iv < n3body; iv++) {
+    const auto& vertex3body = vtx3[iv];
+    if (pvID < vertex3body.getVertexID()) {
+      if (pvID > -1) {
+        vtx2body3Refs[pvID].setEntries(nForPV);
+      }
+      pvID = vertex3body.getVertexID();
+      vtx2body3Refs[pvID].setFirstEntry(iv);
+      nForPV = 0;
+    }
+    nForPV++;
+  }
+  if (pvID != -1) { // finalize
+    vtx2body3Refs[pvID].setEntries(nForPV);
+    // fill empty slots
+    int ent = n3body;
+    for (int ip = vtx2body3Refs.size(); ip--;) {
+      if (vtx2body3Refs[ip].getEntries()) {
+        ent = vtx2body3Refs[ip].getFirstEntry();
+      } else {
+        vtx2body3Refs[ip].setFirstEntry(ent);
+      }
+    }
+  }
 }
 
 //__________________________________________________________________

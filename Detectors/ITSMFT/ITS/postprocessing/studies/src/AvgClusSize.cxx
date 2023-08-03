@@ -358,8 +358,13 @@ void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
 
   loadData(recoData);
   auto V0s = recoData.getV0s();
+  auto V0sIdx = recoData.getV0sIdx();
+  size_t nV0s = V0sIdx.size();
+  if (nV0s && nV0s != V0s.size()) {
+    LOGP(fatal, "This data has not secondary vertices kinematics filled");
+  }
 
-  LOGP(info, "Found {} reconstructed V0s.", V0s.size());
+  LOGP(info, "Found {} reconstructed V0s.", nV0s);
   LOGP(info, "Found {} ITS tracks.", recoData.getITSTracks().size());
   LOGP(info, "Found {} ROFs.", recoData.getITSTracksROFRecords().size());
   if (mUseMC) {
@@ -367,11 +372,13 @@ void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
     LOGP(info, "Found {} labels.", mcLabels.size());
   }
 
-  for (auto v0 : V0s) {
-    dPosRecoTrk = recoData.getITSTrack(v0.getProngID(0)); // cannot use v0.getProng() since it returns TrackParCov not TrackITS
-    dNegRecoTrk = recoData.getITSTrack(v0.getProngID(1));
+  for (size_t iv = 0; iv < nV0s; iv++) {
+    auto v0 = V0s[iv];
+    const auto& v0Idx = V0sIdx[iv];
+    dPosRecoTrk = recoData.getITSTrack(v0Idx.getProngID(0)); // cannot use v0.getProng() since it returns TrackParCov not TrackITS
+    dNegRecoTrk = recoData.getITSTrack(v0Idx.getProngID(1));
 
-    pv = recoData.getPrimaryVertex(v0.getVertexID());   // extract primary vertex
+    pv = recoData.getPrimaryVertex(v0Idx.getVertexID()); // extract primary vertex
     dPosRecoTrk.propagateToDCA(pv, params.b, &dPosDCA); // calculate and store DCA objects for both prongs
     dNegRecoTrk.propagateToDCA(pv, params.b, &dNegDCA);
     v0.propagateToDCA(pv, params.b, &v0DCA);
@@ -395,8 +402,8 @@ void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
     if (mUseMC) { // check whether queried V0 is the target V0 in MC, and fill the cut validation plots
       V0PdgCode = 0;
       isMCTarget = false;
-      dPosLab = mcLabels[v0.getProngID(0)]; // extract MC labels for the prongs
-      dNegLab = mcLabels[v0.getProngID(1)];
+      dPosLab = mcLabels[v0Idx.getProngID(0)]; // extract MC labels for the prongs
+      dNegLab = mcLabels[v0Idx.getProngID(1)];
       if (!dPosLab.isValid() || !dNegLab.isValid()) {
         LOGP(debug, "Daughter MCCompLabel not valid: {}(+) and {}(-). Skipping.", dPosLab.isValid(), dNegLab.isValid());
         nNotValid++;

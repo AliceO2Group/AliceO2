@@ -9,6 +9,8 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
+# add_compile_options(-O0 -g -fPIC)
+
 o2_add_library(DetectorsVertexing
                TARGETVARNAME targetName
                SOURCES src/PVertexer.cxx
@@ -31,6 +33,8 @@ o2_add_library(DetectorsVertexing
                                      O2::DataFormatsFT0
                                      O2::GlobalTracking
                                      O2::DCAFitter
+                                     O2::Framework
+                                     O2::StrangenessTracking
                                      Microsoft.GSL::GSL)
 
 o2_target_root_dictionary(DetectorsVertexing

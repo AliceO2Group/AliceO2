@@ -11,6 +11,7 @@
 
 #include "GlobalTrackingWorkflow/SecondaryVertexingSpec.h"
 #include "GlobalTrackingWorkflow/SecondaryVertexWriterSpec.h"
+#include "GlobalTrackingWorkflow/StrangenessTrackingWriterSpec.h"
 #include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/PrimaryVertexReaderSpec.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
@@ -50,9 +51,12 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   std::vector<o2::framework::ConfigParamSpec> options{
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
+    {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC (relevant for strangeness tracker only))"}},
     {"vertexing-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use in vertexing"}},
     {"disable-cascade-finder", o2::framework::VariantType::Bool, false, {"do not run cascade finder"}},
-    {"disable-3body-finder", o2::framework::VariantType::Bool, false, {"run 3 body finder"}},
+    {"disable-3body-finder", o2::framework::VariantType::Bool, false, {"do not run 3 body finder"}},
+    {"disable-strangeness-tracker", o2::framework::VariantType::Bool, false, {"do not run strangeness tracker"}},
+
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}},
     {"require-ctp-lumi", o2::framework::VariantType::Bool, false, {"require CTP lumi for TPC correction scaling"}},
     {"combine-source-devices", o2::framework::VariantType::Bool, false, {"merge DPL source devices"}}};
@@ -72,20 +76,24 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   // write the configuration used for the workflow
   o2::conf::ConfigurableParam::writeINI("o2secondary-vertexing-workflow_configuration.ini");
-  bool useMC = false;
+  bool useMC = !configcontext.options().get<bool>("disable-mc");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
   auto enableCasc = !configcontext.options().get<bool>("disable-cascade-finder");
   auto enable3body = !configcontext.options().get<bool>("disable-3body-finder");
+  auto enagleStrTr = !configcontext.options().get<bool>("disable-strangeness-tracker");
   auto requireCTPLumi = configcontext.options().get<bool>("require-ctp-lumi");
 
   GID::mask_t src = allowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("vertexing-sources"));
   GID::mask_t dummy, srcClus = GID::includesDet(DetID::TOF, src) ? GID::getSourceMask(GID::TOF) : dummy; // eventually, TPC clusters will be needed for refit
+  if (enagleStrTr) {
+    srcClus |= GID::getSourceMask(GID::ITS);
+  }
   if (requireCTPLumi) {
     src = src | GID::getSourcesMask("CTP");
   }
   WorkflowSpec specs;
 
-  specs.emplace_back(o2::vertexing::getSecondaryVertexingSpec(src, enableCasc, enable3body));
+  specs.emplace_back(o2::vertexing::getSecondaryVertexingSpec(src, enableCasc, enable3body, enagleStrTr, useMC));
 
   // only TOF clusters are needed if TOF is involved, no clusters MC needed
   WorkflowSpec inputspecs;
@@ -110,6 +118,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   if (!disableRootOut) {
     specs.emplace_back(o2::vertexing::getSecondaryVertexWriterSpec());
+    if (enagleStrTr) {
+      specs.emplace_back(o2::strangeness_tracking::getStrangenessTrackingWriterSpec(useMC));
+    }
   }
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit

@@ -12,7 +12,7 @@
 /// @file  SecondaryVertexingSpec.cxx
 
 #include <vector>
-#include "ReconstructionDataFormats/DecayNbody.h"
+#include "ReconstructionDataFormats/Decay3Body.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
@@ -24,6 +24,7 @@
 #include "SimulationDataFormat/MCEventLabel.h"
 #include "CommonUtils/NameConf.h"
 #include "DetectorsVertexing/SVertexer.h"
+#include "StrangenessTracking/StrangenessTracker.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "TStopwatch.h"
 #include "TPCCalibration/VDriftHelper.h"
@@ -39,7 +40,7 @@ using VRef = o2::dataformats::VtxTrackRef;
 using PVertex = const o2::dataformats::PrimaryVertex;
 using V0 = o2::dataformats::V0;
 using Cascade = o2::dataformats::Cascade;
-using DecayNbody = o2::dataformats::DecayNbody;
+using Decay3Body = o2::dataformats::Decay3Body;
 using RRef = o2::dataformats::RangeReference<int, int>;
 using DataRequest = o2::globaltracking::DataRequest;
 
@@ -53,7 +54,7 @@ namespace o2d = o2::dataformats;
 class SecondaryVertexingSpec : public Task
 {
  public:
-  SecondaryVertexingSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool enabCasc, bool enable3body) : mDataRequest(dr), mGGCCDBRequest(gr), mEnableCascades(enabCasc), mEnable3BodyVertices(enable3body) {}
+  SecondaryVertexingSpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool enabCasc, bool enable3body, bool enableStrangenessTracking, bool useMC) : mDataRequest(dr), mGGCCDBRequest(gr), mEnableCascades(enabCasc), mEnable3BodyVertices(enable3body), mEnableStrangenessTracking(enableStrangenessTracking), mUseMC(useMC) {}
   ~SecondaryVertexingSpec() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -68,7 +69,10 @@ class SecondaryVertexingSpec : public Task
   o2::tpc::CorrectionMapsLoader mTPCCorrMapsLoader{};
   bool mEnableCascades = false;
   bool mEnable3BodyVertices = false;
+  bool mEnableStrangenessTracking = false;
+  bool mUseMC = false;
   o2::vertexing::SVertexer mVertexer;
+  o2::strangeness_tracking::StrangenessTracker mStrTracker;
   TStopwatch mTimer;
 };
 
@@ -81,6 +85,15 @@ void SecondaryVertexingSpec::init(InitContext& ic)
   mVertexer.setEnableCascades(mEnableCascades);
   mVertexer.setEnable3BodyDecays(mEnable3BodyVertices);
   mVertexer.setNThreads(ic.options().get<int>("threads"));
+  mVertexer.setUseMC(mUseMC);
+  if (mEnableStrangenessTracking) {
+    mStrTracker.setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT);
+    mStrTracker.setConfigParams(&o2::strangeness_tracking::StrangenessTrackingParamConfig::Instance());
+    mStrTracker.setupThreads(ic.options().get<int>("threads"));
+    mStrTracker.setupFitters();
+    mStrTracker.setMCTruthOn(mUseMC);
+    mVertexer.setStrangenessTracker(&mStrTracker);
+  }
   mTPCCorrMapsLoader.init(ic);
 }
 
@@ -93,19 +106,11 @@ void SecondaryVertexingSpec::run(ProcessingContext& pc)
   recoData.collectData(pc, *mDataRequest.get());
   updateTimeDependentParams(pc);
 
-  auto& v0s = pc.outputs().make<std::vector<V0>>(Output{"GLO", "V0S", 0, Lifetime::Timeframe});
-  auto& v0Refs = pc.outputs().make<std::vector<RRef>>(Output{"GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe});
-  auto& cascs = pc.outputs().make<std::vector<Cascade>>(Output{"GLO", "CASCS", 0, Lifetime::Timeframe});
-  auto& cascRefs = pc.outputs().make<std::vector<RRef>>(Output{"GLO", "PVTX_CASCREFS", 0, Lifetime::Timeframe});
-  auto& vtx3body = pc.outputs().make<std::vector<DecayNbody>>(Output{"GLO", "DECAYS3BODY", 0, Lifetime::Timeframe});
-  auto& vtx3bodyRefs = pc.outputs().make<std::vector<RRef>>(Output{"GLO", "PVTX_3BODYREFS", 0, Lifetime::Timeframe});
-
-  mVertexer.process(recoData);
-  mVertexer.extractSecondaryVertices(v0s, v0Refs, cascs, cascRefs, vtx3body, vtx3bodyRefs);
+  mVertexer.process(recoData, pc);
 
   mTimer.Stop();
-  LOG(info) << "Found " << v0s.size() << " V0s, " << cascs.size() << " cascades, and " << vtx3body.size() << " 3-body decays; timing: CPU: "
-            << mTimer.CpuTime() - timeCPU0 << " Real: " << mTimer.RealTime() - timeReal0 << " s";
+  LOG(info) << "Found " << mVertexer.getNV0s() << " V0s, " << mVertexer.getNCascades() << " cascades, " << mVertexer.getN3Bodies() << " 3-body decays, "
+            << mVertexer.getNStrangeTracks() << " strange tracks. Timing: CPU: " << mTimer.CpuTime() - timeCPU0 << " Real: " << mTimer.RealTime() - timeReal0 << " s";
 }
 
 void SecondaryVertexingSpec::endOfStream(EndOfStreamContext& ec)
@@ -125,6 +130,11 @@ void SecondaryVertexingSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* ob
   if (mTPCCorrMapsLoader.accountCCDBInputs(matcher, obj)) {
     return;
   }
+  if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
+    LOG(info) << "cluster dictionary updated";
+    mStrTracker.setClusterDictionary((const o2::itsmft::TopologyDictionary*)obj);
+    return;
+  }
 }
 
 void SecondaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
@@ -138,6 +148,10 @@ void SecondaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
     mVertexer.init();
     if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
       SVertexerParams::Instance().printKeyValues();
+    }
+    if (mEnableStrangenessTracking) {
+      o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
+      geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot, o2::math_utils::TransformType::T2G));
     }
   }
   // we may have other params which need to be queried regularly
@@ -159,42 +173,65 @@ void SecondaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
   if (updateMaps) {
     mTPCCorrMapsLoader.updateVDrift(mTPCVDriftHelper.getVDriftObject().corrFact, mTPCVDriftHelper.getVDriftObject().refVDrift, mTPCVDriftHelper.getVDriftObject().getTimeOffset());
   }
+  if (mEnableStrangenessTracking) {
+    if (o2::base::Propagator::Instance()->getNominalBz() != mStrTracker.getBz()) {
+      mStrTracker.setBz(o2::base::Propagator::Instance()->getNominalBz());
+      mStrTracker.setupFitters();
+    }
+  }
 }
 
-DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCasc, bool enable3body)
+DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCasc, bool enable3body, bool enableStrangenesTracking, bool useMC)
 {
   std::vector<OutputSpec> outputs;
   Options opts{
     {"material-lut-path", VariantType::String, "", {"Path of the material LUT file"}},
     {"threads", VariantType::Int, 1, {"Number of threads"}}};
   auto dataRequest = std::make_shared<DataRequest>();
-
-  bool useMC = false;
+  GTrackID::mask_t srcClus{};
+  if (enableStrangenesTracking) {
+    src |= (srcClus = GTrackID::getSourceMask(GTrackID::Source::ITS));
+    dataRequest->requestClusters(srcClus, useMC);
+  }
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestPrimaryVertertices(useMC);
-  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime
-                                                              true,                           // GRPECS=true
-                                                              false,                          // GRPLHCIF
-                                                              true,                           // GRPMagField
-                                                              true,                           // askMatLUT
-                                                              o2::base::GRPGeomRequest::None, // geometry
+  auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                                                                                         // orbitResetTime
+                                                              true,                                                                                          // GRPECS=true
+                                                              false,                                                                                         // GRPLHCIF
+                                                              true,                                                                                          // GRPMagField
+                                                              true,                                                                                          // askMatLUT
+                                                              enableStrangenesTracking ? o2::base::GRPGeomRequest::Aligned : o2::base::GRPGeomRequest::None, // geometry
                                                               dataRequest->inputs,
                                                               true);
   o2::tpc::VDriftHelper::requestCCDBInputs(dataRequest->inputs);
   o2::tpc::CorrectionMapsLoader::requestCCDBInputs(dataRequest->inputs, opts, src[GTrackID::CTP]);
 
+  outputs.emplace_back("GLO", "V0S_IDX", 0, Lifetime::Timeframe);        // found V0s indices
   outputs.emplace_back("GLO", "V0S", 0, Lifetime::Timeframe);            // found V0s
   outputs.emplace_back("GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe);    // prim.vertex -> V0s refs
+
+  outputs.emplace_back("GLO", "CASCS_IDX", 0, Lifetime::Timeframe);      // found Cascades indices
   outputs.emplace_back("GLO", "CASCS", 0, Lifetime::Timeframe);          // found Cascades
   outputs.emplace_back("GLO", "PVTX_CASCREFS", 0, Lifetime::Timeframe);  // prim.vertex -> Cascades refs
+
+  outputs.emplace_back("GLO", "DECAYS3BODY_IDX", 0, Lifetime::Timeframe); // found 3 body vertices indices
   outputs.emplace_back("GLO", "DECAYS3BODY", 0, Lifetime::Timeframe);    // found 3 body vertices
   outputs.emplace_back("GLO", "PVTX_3BODYREFS", 0, Lifetime::Timeframe); // prim.vertex -> 3 body vertices refs
+
+  if (enableStrangenesTracking) {
+    outputs.emplace_back("GLO", "STRANGETRACKS", 0, Lifetime::Timeframe); // found strange track
+    outputs.emplace_back("GLO", "CLUSUPDATES", 0, Lifetime::Timeframe);
+    if (useMC) {
+      outputs.emplace_back("GLO", "STRANGETRACKS_MC", 0, Lifetime::Timeframe);
+      LOG(info) << "Strangeness tracker will use MC";
+    }
+  }
 
   return DataProcessorSpec{
     "secondary-vertexing",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<SecondaryVertexingSpec>(dataRequest, ggRequest, enableCasc, enable3body)},
+    AlgorithmSpec{adaptFromTask<SecondaryVertexingSpec>(dataRequest, ggRequest, enableCasc, enable3body, enableStrangenesTracking, useMC)},
     opts};
 }
 

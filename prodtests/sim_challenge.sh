@@ -261,10 +261,13 @@ if [ "$doreco" == "1" ]; then
   taskwrapper svfinder.log o2-secondary-vertexing-workflow $gloOpt
   echo "Return status of secondary vertexing: $?"
 
-  echo "Running strangeness tracking flow"
-  #needs results of S.Vertexer + ITS reco
-  taskwrapper sttracking.log o2-strangeness-tracking-workflow $gloOpt
-  echo "Return status of strangeness tracking: $?"
+  # the strangeness trackin is now called from the secondary-vertexing. To enable it as a standalone workflow
+  # one should run the previous o2-secondary-vertexing-workflow with options
+  # --configKeyValues "svertexer.createFullV0s=true;svertexer.createFullCascades=true;svertexer.createFull3Bodies=true" --disable-strangeness-tracker
+  #  echo "Running strangeness tracking flow"
+  #  #needs results of S.Vertexer + ITS reco
+  #  taskwrapper sttracking.log o2-strangeness-tracking-workflow $gloOpt
+  #  echo "Return status of strangeness tracking: $?"
 
   echo "Producing AOD"
   taskwrapper aod.log o2-aod-producer-workflow $gloOpt --aod-writer-keep dangling --aod-writer-resfile "AO2D" --aod-writer-resmode UPDATE --aod-timeframe-id 1 --run-number 300000
