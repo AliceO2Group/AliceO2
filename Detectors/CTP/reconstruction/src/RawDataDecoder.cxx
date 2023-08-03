@@ -53,16 +53,16 @@ int RawDataDecoder::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
   uint16_t bcid = (diglet & bcidmask).to_ulong();
   LOG(debug) << bcid << "    pld:" << pld;
   o2::InteractionRecord ir = {bcid, orbit};
-  int32_t BCShiftCorrection = o2::ctp::TriggerOffsetsParam::Instance().customOffset[o2::detectors::DetID::CTP];
   if (linkCRU == o2::ctp::GBTLinkIDIntRec) {
+    int32_t BCShiftCorrectionInps = o2::ctp::TriggerOffsetsParam::Instance().globalInputsShift;
     LOG(debug) << "InputMaskCount:" << digits[ir].CTPInputMask.count();
     LOG(debug) << "ir ir ori:" << ir;
-    if ((ir.orbit <= mTFOrbit) && ((int32_t)ir.bc < BCShiftCorrection)) {
+    if ((ir.orbit <= mTFOrbit) && ((int32_t)ir.bc < BCShiftCorrectionInps)) {
       // LOG(warning) << "Loosing ir:" << ir;
       mIRRejected++;
       return 0;
     }
-    ir -= BCShiftCorrection;
+    ir -= BCShiftCorrectionInps;
     LOG(debug) << "ir ir corrected:" << ir;
     digit.intRecord = ir;
     if (digits.count(ir) == 0) {
@@ -86,6 +86,7 @@ int RawDataDecoder::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
       ret = 2;
     }
   } else if (linkCRU == o2::ctp::GBTLinkIDClassRec) {
+    int32_t BCShiftCorrection = o2::ctp::TriggerOffsetsParam::Instance().customOffset[o2::detectors::DetID::CTP];
     int32_t offset = BCShiftCorrection + o2::ctp::TriggerOffsetsParam::Instance().LM_L0 + o2::ctp::TriggerOffsetsParam::Instance().L0_L1 - 1;
     LOG(debug) << "tcr ir ori:" << ir;
     if ((ir.orbit <= mTFOrbit) && ((int32_t)ir.bc < offset)) {
@@ -289,10 +290,13 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
     lumiPointsHBF1.emplace_back(LumiInfo{orbit0, 0, 0, countsMBT, countsMBV});
     // std::cout << "last lumi:" << nhb  << std::endl;
   }
-  int nClasswoInp = 0; // counting classes without input which should never happen
-  int nL0 = 0;         // number of L0 shifts
-  int nL1 = 0;         // number of L1 shifts
-  if (mDoDigits) {
+  if (mDoDigits & mDecodeInps) {
+    int nClasswoInp = 0; // counting classes without input which should never happen
+    int nLM = 0;
+    int nL0 = 0;
+    int nL1 = 0;
+    int nTwI = 0;
+    int nTwoI = 0;
     std::map<o2::InteractionRecord, CTPDigit> digitsMapShifted;
     auto L0shift = o2::ctp::TriggerOffsetsParam::Instance().LM_L0;
     auto L1shift = L0shift + o2::ctp::TriggerOffsetsParam::Instance().L0_L1;
@@ -341,13 +345,38 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
       }
     }
     for (auto const& dig : digitsMapShifted) {
+      auto d = dig.second;
+      if((d.CTPInputMask & LMMASKInputs).count()) {
+        nLM++;
+      }
+      if((d.CTPInputMask & L0MASKInputs).count()) {
+        nL0++;
+      }
+      if((d.CTPInputMask & L1MASKInputs).count()) {
+        nL1++;
+      }
+      if(d.CTPClassMask.count()) {
+        if(d.CTPInputMask.count()) {
+          nTwI++;
+        } else {
+          nTwoI++;
+        }
+      }
+      digits.push_back(dig.second);
+    }
+    if( nTwoI) { // Trigger class wo Input
+     LOG(error) << "LM:" << nLM << " L0:" << nL0 << " L1:" << nL1 << " TwI:" << nTwI << " Trigger cals wo inputTwoI:" << nTwoI;
+   }
+  }
+  if( mDoDigits && ~mDecodeInps ) {
+    for (auto const& dig : digitsMap) {
       digits.push_back(dig.second);
     }
   }
   // ret = 1;
   if (mStickyError) {
     if (nwrites < mErrorMax) {
-      std::string file = "/tmp/dumpCTP" + std::to_string(nwrites) + ".bin";
+      std::string file = "dumpCTP" + std::to_string(nwrites) + ".bin";
       std::ofstream dumpctp(file.c_str(), std::ios::out | std::ios::binary);
       if (!dumpctp.good()) {
         LOGP(error, "Failed to open file {}", file);
