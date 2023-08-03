@@ -189,5 +189,5 @@ o2::framework::DataProcessorSpec o2::ctp::reco_workflow::getRawDecoderSpec(bool 
       {"lumi-inp1", o2::framework::VariantType::String, "TVX", {"The first input used for online lumi. Name in capital."}},
       {"lumi-inp2", o2::framework::VariantType::String, "VBA", {"The second input used for online lumi. Name in capital."}},
       {"use-verbose-mode", o2::framework::VariantType::Bool, false, {"Verbose logging"}},
-      {"inputs-decoding",o2::framework::VariantType::Bool, false, {"Inputs alignment: false - CTF decoder, true - here "}}}};
+      {"inputs-decoding", o2::framework::VariantType::Bool, false, {"Inputs alignment: false - CTF decoder, true - here "}}}};
 }

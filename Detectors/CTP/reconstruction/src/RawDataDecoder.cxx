@@ -346,17 +346,17 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
     }
     for (auto const& dig : digitsMapShifted) {
       auto d = dig.second;
-      if((d.CTPInputMask & LMMASKInputs).count()) {
+      if ((d.CTPInputMask & LMMASKInputs).count()) {
         nLM++;
       }
-      if((d.CTPInputMask & L0MASKInputs).count()) {
+      if ((d.CTPInputMask & L0MASKInputs).count()) {
         nL0++;
       }
-      if((d.CTPInputMask & L1MASKInputs).count()) {
+      if ((d.CTPInputMask & L1MASKInputs).count()) {
         nL1++;
       }
-      if(d.CTPClassMask.count()) {
-        if(d.CTPInputMask.count()) {
+      if (d.CTPClassMask.count()) {
+        if (d.CTPInputMask.count()) {
           nTwI++;
         } else {
           nTwoI++;
@@ -364,11 +364,11 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
       }
       digits.push_back(dig.second);
     }
-    if( nTwoI) { // Trigger class wo Input
-     LOG(error) << "LM:" << nLM << " L0:" << nL0 << " L1:" << nL1 << " TwI:" << nTwI << " Trigger cals wo inputTwoI:" << nTwoI;
-   }
+    if (nTwoI) { // Trigger class wo Input
+      LOG(error) << "LM:" << nLM << " L0:" << nL0 << " L1:" << nL1 << " TwI:" << nTwI << " Trigger cals wo inputTwoI:" << nTwoI;
+    }
   }
-  if( mDoDigits && ~mDecodeInps ) {
+  if (mDoDigits && ~mDecodeInps) {
     for (auto const& dig : digitsMap) {
       digits.push_back(dig.second);
     }
