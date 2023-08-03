@@ -75,8 +75,8 @@ class GPUReconstructionCUDA : public GPUReconstructionKernels<GPUReconstructionC
   bool IsEventDone(deviceEvent* evList, int nEvents = 1) override;
 
   int PrepareTextures() override;
-  int registerMemoryForGPU(const void* ptr, size_t size) override;
-  int unregisterMemoryForGPU(const void* ptr) override;
+  int registerMemoryForGPU_internal(const void* ptr, size_t size) override;
+  int unregisterMemoryForGPU_internal(const void* ptr) override;
   void startGPUProfiling() override;
   void endGPUProfiling() override;
 

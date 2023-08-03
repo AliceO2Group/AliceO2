@@ -50,8 +50,8 @@ class GPUReconstructionHIPBackend : public GPUReconstructionDeviceBase
   void SynchronizeEvents(deviceEvent* evList, int nEvents = 1) override;
   void StreamWaitForEvents(int stream, deviceEvent* evList, int nEvents = 1) override;
   bool IsEventDone(deviceEvent* evList, int nEvents = 1) override;
-  int registerMemoryForGPU(const void* ptr, size_t size) override;
-  int unregisterMemoryForGPU(const void* ptr) override;
+  int registerMemoryForGPU_internal(const void* ptr, size_t size) override;
+  int unregisterMemoryForGPU_internal(const void* ptr) override;
   void* getGPUPointer(void* ptr) override;
 
   size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent ev = nullptr) override;
