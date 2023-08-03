@@ -469,6 +469,7 @@ int GPUReconstructionHIPBackend::ExitDevice_Runtime()
   // Uninitialize HIP
   GPUFailedMsgI(hipSetDevice(mDeviceId));
   SynchronizeGPU();
+  unregisterRemainingRegisteredMemory();
 
   for (unsigned int i = 0; i < mEvents.size(); i++) {
     hipEvent_t* events = (hipEvent_t*)mEvents[i].data();
@@ -626,14 +627,14 @@ int GPUReconstructionHIPBackend::GPUDebug(const char* state, int stream, bool fo
   return (0);
 }
 
-int GPUReconstructionHIPBackend::registerMemoryForGPU(const void* ptr, size_t size)
+int GPUReconstructionHIPBackend::registerMemoryForGPU_internal(const void* ptr, size_t size)
 {
-  return mProcessingSettings.noGPUMemoryRegistration ? 0 : GPUFailedMsgI(hipHostRegister((void*)ptr, size, hipHostRegisterDefault));
+  return GPUFailedMsgI(hipHostRegister((void*)ptr, size, hipHostRegisterDefault));
 }
 
-int GPUReconstructionHIPBackend::unregisterMemoryForGPU(const void* ptr)
+int GPUReconstructionHIPBackend::unregisterMemoryForGPU_internal(const void* ptr)
 {
-  return mProcessingSettings.noGPUMemoryRegistration ? 0 : GPUFailedMsgI(hipHostUnregister((void*)ptr));
+  return GPUFailedMsgI(hipHostUnregister((void*)ptr));
 }
 
 void* GPUReconstructionHIPBackend::getGPUPointer(void* ptr)

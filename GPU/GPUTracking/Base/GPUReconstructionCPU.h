@@ -141,8 +141,6 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   constexpr static const char* GetKernelName();
 
   virtual int GPUDebug(const char* state = "UNKNOWN", int stream = -1, bool force = false);
-  int registerMemoryForGPU(const void* ptr, size_t size) override { return 0; }
-  int unregisterMemoryForGPU(const void* ptr) override { return 0; }
   int GPUStuck() { return mGPUStuck; }
   void ResetDeviceProcessorTypes();
   template <class T>
@@ -164,6 +162,9 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   };
 
   GPUReconstructionCPU(const GPUSettingsDeviceBackend& cfg) : GPUReconstructionKernels(cfg) {}
+
+  int registerMemoryForGPU_internal(const void* ptr, size_t size) override { return 0; }
+  int unregisterMemoryForGPU_internal(const void* ptr) override { return 0; }
 
   virtual void SynchronizeStream(int stream) {}
   virtual void SynchronizeEvents(deviceEvent* evList, int nEvents = 1) {}

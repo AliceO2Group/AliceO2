@@ -396,6 +396,7 @@ int GPUReconstructionCUDA::ExitDevice_Runtime()
   // Uninitialize CUDA
   GPUFailedMsg(cudaSetDevice(mDeviceId));
   SynchronizeGPU();
+  unregisterRemainingRegisteredMemory();
 
   for (unsigned int i = 0; i < mEvents.size(); i++) {
     cudaEvent_t* events = (cudaEvent_t*)mEvents[i].data();
@@ -553,14 +554,14 @@ int GPUReconstructionCUDA::PrepareTextures()
   return (0);
 }
 
-int GPUReconstructionCUDA::registerMemoryForGPU(const void* ptr, size_t size)
+int GPUReconstructionCUDA::registerMemoryForGPU_internal(const void* ptr, size_t size)
 {
-  return mProcessingSettings.noGPUMemoryRegistration ? 0 : GPUFailedMsgI(cudaHostRegister((void*)ptr, size, cudaHostRegisterDefault));
+  return GPUFailedMsgI(cudaHostRegister((void*)ptr, size, cudaHostRegisterDefault));
 }
 
-int GPUReconstructionCUDA::unregisterMemoryForGPU(const void* ptr)
+int GPUReconstructionCUDA::unregisterMemoryForGPU_internal(const void* ptr)
 {
-  return mProcessingSettings.noGPUMemoryRegistration ? 0 : GPUFailedMsgI(cudaHostUnregister((void*)ptr));
+  return GPUFailedMsgI(cudaHostUnregister((void*)ptr));
 }
 
 void GPUReconstructionCUDA::startGPUProfiling()
