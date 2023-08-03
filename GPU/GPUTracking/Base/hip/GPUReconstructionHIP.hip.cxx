@@ -267,7 +267,7 @@ int GPUReconstructionHIPBackend::InitDevice_Runtime()
         GPUInfo("Examining device %d", i);
       }
       size_t free, total;
-      if (GPUFailedMsgI(hipSetDevice(mDeviceId))) {
+      if (GPUFailedMsgI(hipSetDevice(i))) {
         if (mProcessingSettings.debugLevel >= 4) {
           GPUWarning("Couldn't create context for device %d. Skipping it.", i);
         }
