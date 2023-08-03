@@ -257,20 +257,20 @@ class StrangenessTracker
   }
 
  protected:
-  bool mMCTruthON = false;                      /// flag availability of MC truth
-  int mNThreads = 1;                            /// number of threads (externally driven)
-  gsl::span<const TrackITS> mInputITStracks;    // input ITS tracks
-  std::vector<VBracket> mITSvtxBrackets;        // time brackets for ITS tracks
-  std::vector<int> mTracksIdxTable;             // index table for ITS tracks
-  std::vector<int> mInputClusterSizes;          // input cluster sizes
-  std::vector<ITSCluster> mInputITSclusters;    // input ITS clusters
-  gsl::span<const int> mInputITSidxs;           // input ITS track-cluster indexes
-  gsl::span<const V0> mInputV0tracks;           // input V0 of decay daughters
-  gsl::span<const V0Index> mInputV0Indices;     // input V0 indices of decay daughters
-  gsl::span<const Cascade> mInputCascadeTracks; // input cascade of decay daughters
+  bool mMCTruthON = false;                            /// flag availability of MC truth
+  int mNThreads = 1;                                  /// number of threads (externally driven)
+  gsl::span<const TrackITS> mInputITStracks;          // input ITS tracks
+  std::vector<VBracket> mITSvtxBrackets;              // time brackets for ITS tracks
+  std::vector<int> mTracksIdxTable;                   // index table for ITS tracks
+  std::vector<int> mInputClusterSizes;                // input cluster sizes
+  std::vector<ITSCluster> mInputITSclusters;          // input ITS clusters
+  gsl::span<const int> mInputITSidxs;                 // input ITS track-cluster indexes
+  gsl::span<const V0> mInputV0tracks;                 // input V0 of decay daughters
+  gsl::span<const V0Index> mInputV0Indices;           // input V0 indices of decay daughters
+  gsl::span<const Cascade> mInputCascadeTracks;       // input cascade of decay daughters
   gsl::span<const CascadeIndex> mInputCascadeIndices; // input cascade indices of decay daughters
-  const MCLabContCl* mITSClsLabels = nullptr;   /// input ITS Cluster MC labels
-  MCLabSpan mITSTrkLabels;                      /// input ITS Track MC labels
+  const MCLabContCl* mITSClsLabels = nullptr;         /// input ITS Cluster MC labels
+  MCLabSpan mITSTrkLabels;                            /// input ITS Track MC labels
 
   std::vector<o2::its::TrackITS> mSortedITStracks; // sorted ITS tracks
   std::vector<int> mSortedITSindexes;              // indexes of sorted ITS tracks
@@ -290,8 +290,8 @@ class StrangenessTracker
   o2::base::PropagatorImpl<float>::MatCorrType mCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE; // use mat correction
 
   std::vector<std::vector<o2::track::TrackParCovF>> mDaughterTracks; // vector of daughter tracks (per thread)
-  StrangeTrack mStrangeTrack;                           // structure containing updated mother and daughter track refs
-  ClusAttachments mStructClus;                          // # of attached tracks, 1 for mother, 2 for daughter
+  StrangeTrack mStrangeTrack;                                        // structure containing updated mother and daughter track refs
+  ClusAttachments mStructClus;                                       // # of attached tracks, 1 for mother, 2 for daughter
 
   ClassDefNV(StrangenessTracker, 1);
 };
