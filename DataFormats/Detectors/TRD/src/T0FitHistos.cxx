@@ -21,7 +21,7 @@ using namespace o2::trd::constants;
 
 void T0FitHistos::fill(const std::vector<o2::trd::PHData>& data)
 {
-  for (auto ph : data) {
+  for (const auto& ph : data) {
     int det = ph.getDetector();
     int tb = ph.getTimebin();
     int adc = ph.getADC();
