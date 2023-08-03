@@ -39,7 +39,7 @@ class T0FitHistos
   auto getADC(int index) const { return mADC[index]; }
   auto getNEntries() const { return mNEntriesTot; }
 
-  void fill(const std::vector<o2::trd::PHData> data);
+  void fill(const std::vector<o2::trd::PHData>& data);
   void merge(const T0FitHistos* prev);
   void print();
 
