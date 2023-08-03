@@ -56,7 +56,7 @@ class GPUDebugTiming
   }
 
  private:
-  void** mDeviceTimers;
+  GPUReconstruction::deviceEvent* mDeviceTimers;
   cudaStream_t* mStreams;
   GPUReconstruction::krnlSetup& mXYZ;
   GPUReconstructionCUDABackend* mRec;

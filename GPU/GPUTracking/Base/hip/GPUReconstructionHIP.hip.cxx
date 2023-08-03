@@ -105,7 +105,7 @@ class GPUDebugTiming
   }
 
  private:
-  void** mDeviceTimers;
+  GPUReconstruction::deviceEvent* mDeviceTimers;
   hipStream_t* mStreams;
   GPUReconstruction::krnlSetup& mXYZ;
   GPUReconstructionHIPBackend* mRec;
@@ -503,7 +503,7 @@ int GPUReconstructionHIPBackend::ExitDevice_Runtime()
   return (0);
 }
 
-size_t GPUReconstructionHIPBackend::GPUMemCpy(void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev, deviceEvent* evList, int nEvents)
+size_t GPUReconstructionHIPBackend::GPUMemCpy(void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent ev, deviceEvent* evList, int nEvents)
 {
   if (mProcessingSettings.debugLevel >= 3) {
     stream = -1;
@@ -526,7 +526,7 @@ size_t GPUReconstructionHIPBackend::GPUMemCpy(void* dst, const void* src, size_t
   return size;
 }
 
-size_t GPUReconstructionHIPBackend::TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst)
+size_t GPUReconstructionHIPBackend::TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst)
 {
   if (!(res->Type() & GPUMemoryResource::MEMORY_GPU)) {
     if (mProcessingSettings.debugLevel >= 4) {
@@ -540,7 +540,7 @@ size_t GPUReconstructionHIPBackend::TransferMemoryInternal(GPUMemoryResource* re
   return GPUMemCpy(dst, src, res->Size(), stream, toGPU, ev, evList, nEvents);
 }
 
-size_t GPUReconstructionHIPBackend::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev)
+size_t GPUReconstructionHIPBackend::WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent ev)
 {
 #ifdef GPUCA_CONSTANT_AS_ARGUMENT
   memcpy(((char*)&gGPUConstantMemBufferHost) + offset, src, size);
@@ -564,9 +564,9 @@ size_t GPUReconstructionHIPBackend::WriteToConstantMemory(size_t offset, const v
   return size;
 }
 
-void GPUReconstructionHIPBackend::ReleaseEvent(deviceEvent* ev) {}
+void GPUReconstructionHIPBackend::ReleaseEvent(deviceEvent ev) {}
 
-void GPUReconstructionHIPBackend::RecordMarker(deviceEvent* ev, int stream) { GPUFailedMsg(hipEventRecord(*(hipEvent_t*)ev, mInternals->Streams[stream])); }
+void GPUReconstructionHIPBackend::RecordMarker(deviceEvent ev, int stream) { GPUFailedMsg(hipEventRecord(*(hipEvent_t*)ev, mInternals->Streams[stream])); }
 
 std::unique_ptr<GPUReconstruction::GPUThreadContext> GPUReconstructionHIPBackend::GetThreadContext()
 {

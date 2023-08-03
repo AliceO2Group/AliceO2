@@ -124,7 +124,7 @@ class GPUReconstruction
   {
   };
 
-  typedef void deviceEvent; // We use only pointers anyway, and since cl_event and cudaEvent_t are actually pointers, we can cast them to deviceEvent* this way.
+  typedef void* deviceEvent; // We use only pointers anyway, and since cl_event and cudaEvent_t and hipEvent_t are actually pointers, we can cast them to deviceEvent (void*) this way.
 
   enum class krnlDeviceType : int { CPU = 0,
                                     Device = 1,
@@ -148,8 +148,8 @@ class GPUReconstruction
     int num = 0;
   };
   struct krnlEvent {
-    constexpr krnlEvent(deviceEvent* e = nullptr, deviceEvent* el = nullptr, int n = 1) : ev(e), evList(el), nEvents(n) {}
-    deviceEvent* ev;
+    constexpr krnlEvent(deviceEvent e = nullptr, deviceEvent* el = nullptr, int n = 1) : ev(e), evList(el), nEvents(n) {}
+    deviceEvent ev;
     deviceEvent* evList;
     int nEvents;
   };
@@ -283,7 +283,7 @@ class GPUReconstruction
   int InitPhaseAfterDevice();
   void WriteConstantParams();
   virtual int ExitDevice() = 0;
-  virtual size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) = 0;
+  virtual size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent ev = nullptr) = 0;
   void UpdateMaxMemoryUsed();
   int EnqueuePipeline(bool terminate = false);
   GPUChain* GetNextChainInQueue();
