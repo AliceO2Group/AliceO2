@@ -55,6 +55,7 @@ class TPCDigitDumpDevice : public o2::framework::Task
     mMaxEvents = static_cast<uint32_t>(ic.options().get<int>("max-events"));
     mSyncOffsetReference = ic.options().get<uint32_t>("sync-offset-reference");
     mDecoderType = ic.options().get<uint32_t>("decoder-type");
+    mUseTrigger = !ic.options().get<bool>("ignore-trigger");
     mUseOldSubspec = ic.options().get<bool>("use-old-subspec");
     const bool createOccupancyMaps = ic.options().get<bool>("create-occupancy-maps");
     mForceQuit = ic.options().get<bool>("force-quit");
@@ -143,7 +144,7 @@ class TPCDigitDumpDevice : public o2::framework::Task
     }
 
     auto& reader = mRawReader.getReaders()[0];
-    mActiveSectors = calib_processing_helper::processRawData(pc.inputs(), reader, mUseOldSubspec, std::vector<int>(), nullptr, mSyncOffsetReference, mDecoderType);
+    mActiveSectors = calib_processing_helper::processRawData(pc.inputs(), reader, mUseOldSubspec, std::vector<int>(), nullptr, mSyncOffsetReference, mDecoderType, mUseTrigger);
 
     mDigitDump.incrementNEvents();
     if (mClusterQC) {
@@ -194,6 +195,7 @@ class TPCDigitDumpDevice : public o2::framework::Task
   bool mRemoveDuplicates{false};
   bool mRemoveCEdigits{false};
   bool mSendCEdigits{false};
+  bool mUseTrigger{false};
   uint64_t mActiveSectors{0};  ///< bit mask of active sectors
   std::vector<int> mSectors{}; ///< tpc sector configuration
 
@@ -283,6 +285,7 @@ DataProcessorSpec getRawToDigitsSpec(int channel, const std::string inputSpec, b
       {"ignore-grp", VariantType::Bool, false, {"ignore GRP file"}},
       {"sync-offset-reference", VariantType::UInt32, 144u, {"Reference BCs used for the global sync offset in the CRUs"}},
       {"decoder-type", VariantType::UInt32, 1u, {"Decoder to use: 0 - TPC, 1 - GPU"}},
+      {"ignore-trigger", VariantType::Bool, false, {"Ignore the trigger information"}},
     } // end Options
   };  // end DataProcessorSpec
 }
