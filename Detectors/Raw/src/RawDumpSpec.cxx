@@ -542,7 +542,7 @@ std::string RawDump::getBaseFileNameTRD(const header::RDHAny* rdh)
     LOGP(error, "Got wrong link {}, setting TRF file name to unrecognized flp {}", flpname);
     return flpname;
   }
-  return fmt::format("alio2-cr1-flp{}-cru{}_{}", trdHWMap[cru].flpid, trdHWMap[cru].cruHWID, ep);
+  return fmt::format("alio2-cr1-flp{}_cru{}_{}", trdHWMap[cru].flpid, trdHWMap[cru].cruHWID, ep);
 }
 
 //_____________________________________________________________________
