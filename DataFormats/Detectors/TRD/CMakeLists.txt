@@ -36,7 +36,6 @@ o2_target_root_dictionary(DataFormatsTRD
                        include/DataFormatsTRD/CalibratedTracklet.h
                        include/DataFormatsTRD/DcsCcdbObjects.h
                        include/DataFormatsTRD/AngularResidHistos.h
-                       include/DataFormatsTRD/GainCalibHistos.h
                        include/DataFormatsTRD/HelperMethods.h
                        include/DataFormatsTRD/Hit.h
                        include/DataFormatsTRD/Digit.h
