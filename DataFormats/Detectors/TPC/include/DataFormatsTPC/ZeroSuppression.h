@@ -84,6 +84,25 @@ struct ZeroSuppressedContainer { // Struct for the TPC zero suppressed data form
   TPCZSHDR hdr;                  // ZS header
 };
 
+/// Trigger word for dense link-base ZS
+///
+/// Trigger word is always 128bit and occurs always in the last page of a HBF before the meta header
+struct TriggerWordDLBZS {
+  static constexpr uint16_t MaxTriggerEntries = 8; ///< Maximum number of trigger information
+
+  /// trigger types as in the ttype bits
+  enum TriggerType : uint8_t {
+    PhT = 1, ///< Physics Trigger
+    PP = 2,  ///< Pre Pulse for calibration
+    Cal = 4, ///< Laser (Calibration trigger)
+  };
+  uint16_t triggerEntries[MaxTriggerEntries] = {};
+
+  uint16_t getTriggerBC(int entry = 0) const { return triggerEntries[entry] & 0xFFF; }
+  uint16_t getTriggerType(int entry = 0) const { return (triggerEntries[entry] >> 12) & 0x7; }
+  bool isValid(int entry = 0) const { return triggerEntries[entry] & 0x8000; }
+};
+
 } // namespace tpc
 } // namespace o2
 #endif
