@@ -25,6 +25,8 @@ using namespace o2::ctp::reco_workflow;
 
 void RawDecoderSpec::init(framework::InitContext& ctx)
 {
+  bool decodeinps = ctx.options().get<bool>("inputs-decoding");
+  mDecoder.setDecodeInps(decodeinps);
   mNTFToIntegrate = ctx.options().get<int>("ntf-to-average");
   mVerbose = ctx.options().get<bool>("use-verbose-mode");
   int maxerrors = ctx.options().get<int>("print-errors-num");
@@ -38,7 +40,7 @@ void RawDecoderSpec::init(framework::InitContext& ctx)
   int inp2 = mDecoder.setLumiInp(2, lumiinp2);
   mOutputLumiInfo.inp1 = inp1;
   mOutputLumiInfo.inp2 = inp2;
-  LOG(info) << "CTP reco init done. DoLumi:" << mDoLumi << " DoDigits:" << mDoDigits << " NTF:" << mNTFToIntegrate << " Lumi inputs:" << lumiinp1 << ":" << inp1 << " " << lumiinp2 << ":" << inp2 << " Max errors:" << maxerrors;
+  LOG(info) << "CTP reco init done. Inputs decoding here:" << decodeinps << " DoLumi:" << mDoLumi << " DoDigits:" << mDoDigits << " NTF:" << mNTFToIntegrate << " Lumi inputs:" << lumiinp1 << ":" << inp1 << " " << lumiinp2 << ":" << inp2 << " Max errors:" << maxerrors;
   // mOutputLumiInfo.printInputs();
 }
 void RawDecoderSpec::endOfStream(framework::EndOfStreamContext& ec)
@@ -186,5 +188,6 @@ o2::framework::DataProcessorSpec o2::ctp::reco_workflow::getRawDecoderSpec(bool 
       {"print-errors-num", o2::framework::VariantType::Int, 3, {"Max number of errors to print"}},
       {"lumi-inp1", o2::framework::VariantType::String, "TVX", {"The first input used for online lumi. Name in capital."}},
       {"lumi-inp2", o2::framework::VariantType::String, "VBA", {"The second input used for online lumi. Name in capital."}},
-      {"use-verbose-mode", o2::framework::VariantType::Bool, false, {"Verbose logging"}}}};
+      {"use-verbose-mode", o2::framework::VariantType::Bool, false, {"Verbose logging"}},
+      {"inputs-decoding", o2::framework::VariantType::Bool, false, {"Inputs alignment: false - CTF decoder, true - here "}}}};
 }
