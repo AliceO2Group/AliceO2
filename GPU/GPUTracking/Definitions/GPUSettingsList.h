@@ -203,6 +203,7 @@ AddOption(lateO2PropagatorProvisioning, bool, false, "", 0, "The user will provi
 AddOption(lateO2MatLutProvisioningSize, unsigned int, 0u, "", 0, "Memory size to reserve for late provisioning of matlut table")
 AddOption(throttleAlarms, bool, false, "", 0, "Throttle rate at which alarms are sent to the InfoLogger in online runs")
 AddOption(outputSanityCheck, bool, false, "", 0, "Run some simple sanity checks finding errors in the output")
+AddOption(tpcSingleSector, int, -1, "", 0, "Restrict TPC processing to a single sector")
 AddVariable(eventDisplay, GPUCA_NAMESPACE::gpu::GPUDisplayFrontendInterface*, nullptr)
 AddSubConfig(GPUSettingsProcessingRTC, rtc)
 AddHelp("help", 'h')
