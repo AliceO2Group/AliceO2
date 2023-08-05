@@ -430,9 +430,7 @@ void MatchHMP::doMatching()
           if (cluster.ch() != iCh) {
             continue;
           }
-
           oneEventClusters.push_back(cluster);
-
           double qthre = pParam->qCut();
 
           if (cluster.q() < 150.) {
