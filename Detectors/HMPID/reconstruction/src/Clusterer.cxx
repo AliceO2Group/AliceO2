@@ -48,7 +48,7 @@ void Clusterer::Dig2Clu(gsl::span<const o2::hmpid::Digit> digs, std::vector<o2::
   int pUsedDig = -1;
   int padChX = 0, padChY = 0, module = 0;
   std::vector<Pad> vPad;
-
+  std::vector<const Digit*> digVec;
   for (int iCh = Param::kMinCh; iCh <= Param::kMaxCh; iCh++) { // chambers loop
     padMap = (Float_t)-1;                                      // reset map to -1 (means no digit for this pad)
     for (size_t iDig = 0; iDig < digs.size(); iDig++) {
@@ -64,7 +64,9 @@ void Clusterer::Dig2Clu(gsl::span<const o2::hmpid::Digit> digs, std::vector<o2::
       if (vPad.at(iDig).m != iCh || (pUsedDig = UseDig(vPad.at(iDig).x, vPad.at(iDig).y, padMap)) == -1) { // this digit is from other module or already taken in FormClu(), go after next digit
         continue;
       }
+      digVec.clear();
       Cluster clu;
+      clu.setDigits(&digVec);
       clu.setCh(iCh);
       FormClu(clu, pUsedDig, digs, padMap); // form cluster starting from this digit by recursion
       clu.solve(&clus, pUserCut, isUnfold); // solve this cluster and add all unfolded clusters to provided list
