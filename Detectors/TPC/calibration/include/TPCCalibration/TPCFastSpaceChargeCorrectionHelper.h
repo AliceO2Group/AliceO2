@@ -86,8 +86,7 @@ class TPCFastSpaceChargeCorrectionHelper
 
   /// Create SpaceCharge correction out of the voxel tree
   std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> createFromTrackResiduals(
-    const o2::tpc::TrackResiduals& trackResiduals, TTree* voxResTree);
-
+    const o2::tpc::TrackResiduals& trackResiduals, TTree* voxResTree, bool useSmoothed = false, bool invertSigns = false);
   /// _______________  Utilities   ________________________
 
   const TPCFastTransformGeo& getGeometry() { return mGeo; }

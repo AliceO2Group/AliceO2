@@ -25,6 +25,10 @@
 
 using namespace GPUCA_NAMESPACE::gpu;
 
+#ifndef GPUCA_ALIROOT_LIB
+ClassImp(TPCFastSpaceChargeCorrection);
+#endif
+
 TPCFastSpaceChargeCorrection::TPCFastSpaceChargeCorrection()
   : FlatObject(),
     mConstructionRowInfos(nullptr),
