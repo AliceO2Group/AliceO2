@@ -17,11 +17,9 @@
 
 #include "DataFormatsTRD/Constants.h"
 #include "DataFormatsTRD/PHData.h"
-#include "Framework/InputRecord.h"
 #include "Rtypes.h"
 #include <vector>
 #include <memory>
-#include <gsl/span>
 
 namespace o2
 {

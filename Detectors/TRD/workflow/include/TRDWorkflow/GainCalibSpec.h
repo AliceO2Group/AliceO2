@@ -70,9 +70,9 @@ class GainCalibDevice : public o2::framework::Task
       return;
     }
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-    auto dataGainCalib = pc.inputs().get<o2::trd::GainCalibHistos*>("input");
+    auto dataGainCalib = pc.inputs().get<std::vector<int>>("input");
     o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mCalibrator->getCurrentTFInfo());
-    LOG(info) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << dataGainCalib->getNEntries() << " GainCalibHistos entries";
+    LOG(info) << "Processing TF " << mCalibrator->getCurrentTFInfo().tfCounter << " with " << dataGainCalib.size() << " GainCalibHistos entries";
     mCalibrator->process(dataGainCalib);
     if (pc.transitionState() == TransitionHandlingState::Requested) {
       LOG(info) << "Run stop requested, finalizing";
