@@ -39,6 +39,10 @@ struct TRDCalibParams : public o2::conf::ConfigurableParamHelper<TRDCalibParams>
   float dEdxTPCMin = 30.;
   float dEdxTPCMax = 70.;
 
+  // For t0 fits
+  size_t minEntriesTotalT0Fit = 1'000'000; ///< minimum number of entries in inclusive distribution for (meaningful) t0 fit
+  size_t minEntriesChamberT0Fit = 30'000;  ///< minimum number of entries in one chamber for (meaningful) t0 fit
+
   // Creation of PH plots
   float pileupCut = 0.7;
 
