@@ -352,7 +352,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
         int cableHW = gbtD->getCableID(), cableSW = chmap.cableHW2SW(ruPtr->ruInfo->ruType, cableHW);
         GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsCableID(gbtD, cableSW));
         if (errRes != uint8_t(GBTLink::Skip)) {
-          GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsGBTData(chmap.cableHW2Pos(ruPtr->ruInfo->ruType, cableHW)));
+          // GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsGBTData(chmap.cableHW2Pos(ruPtr->ruInfo->ruType, cableHW)));
           ruPtr->cableData[cableSW].add(gbtD->getW8(), 9);
           ruPtr->cableHWID[cableSW] = cableHW;
           ruPtr->cableLinkID[cableSW] = idInRU;
