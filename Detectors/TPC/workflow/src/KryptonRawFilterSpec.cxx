@@ -48,7 +48,9 @@ class KrRawFilterDevice : public o2::framework::Task
     mThresholdSigma = ic.options().get<float>("threshold-sigma");
     mTimeBinsBefore = ic.options().get<int>("time-bins-before");
     mTimeBinsAfter = ic.options().get<int>("time-bins-after");
+    mMaxTimeBins = ic.options().get<int>("max-time-bins");
     mSkipIROCTSensors = ic.options().get<bool>("skip-iroc-tsen");
+    LOGP(info, "threshold-max: {}, threshold-abs: {}, threshold-sigma: {}, time-bins-before: {}, time-bins-after: {}, max-time-bins: {}, skip-iroc-tsen: {}", mThresholdMax, mThresholdAbs, mThresholdSigma, mTimeBinsBefore, mTimeBinsAfter, mMaxTimeBins, mSkipIROCTSensors);
   }
 
   void run(o2::framework::ProcessingContext& pc) final
@@ -56,7 +58,6 @@ class KrRawFilterDevice : public o2::framework::Task
     const auto& mapper = Mapper::instance();
     const size_t MAXROWS = 152;
     const size_t MAXPADS = 138;
-    const size_t MAXTIMEBINS = 450;
 
     for (auto const& inputRef : InputRecordWalker(pc.inputs())) {
       auto const* sectorHeader = DataRefUtils::getHeader<TPCSectorHeader*>(inputRef);
@@ -71,7 +72,7 @@ class KrRawFilterDevice : public o2::framework::Task
 
       // ===| flatten digits for simple access and register interesting digit positions  |===
       // flat digit structure
-      std::vector<float> inDigits(MAXROWS * MAXPADS * MAXTIMEBINS);
+      std::vector<float> inDigits(MAXROWS * MAXPADS * mMaxTimeBins);
 
       // counter how often a pad triggered to filter extremely noisy or struck pads
       std::vector<size_t> nTriggered(MAXROWS * MAXPADS);
@@ -85,7 +86,7 @@ class KrRawFilterDevice : public o2::framework::Task
 
       for (const auto& digit : inDigitsO) {
         const auto time = digit.getTimeStamp();
-        if (time > MAXTIMEBINS) {
+        if (time >= mMaxTimeBins) {
           continue;
         }
 
@@ -93,13 +94,13 @@ class KrRawFilterDevice : public o2::framework::Task
         const auto row = digit.getRow();
         const auto charge = digit.getChargeFloat();
 
-        const size_t offset = row * MAXPADS * MAXTIMEBINS + pad * MAXTIMEBINS;
+        const size_t offset = row * MAXPADS * mMaxTimeBins + pad * mMaxTimeBins;
         inDigits[offset + time] = charge;
 
         const auto noiseThreshold = mNoise ? mThresholdSigma * mNoise->getValue(Sector(sector), row, pad) : 0.f;
         if ((charge > mThresholdMax) && (charge > noiseThreshold)) {
           if (!(mSkipIROCTSensors && (row == 47) && (pad > 40))) {
-            if ((time > mTimeBinsBefore) && (time < (MAXTIMEBINS - mTimeBinsAfter))) {
+            if ((time > mTimeBinsBefore) && (time < (mMaxTimeBins - mTimeBinsAfter))) {
               maxDigits.emplace_back(DigitInfo{row, pad, time});
               ++nTriggered[row * MAXPADS + pad];
             }
@@ -110,8 +111,8 @@ class KrRawFilterDevice : public o2::framework::Task
       // ===| find local maxima |===
 
       // simple local maximum detection in time and pad direction
-      auto isLocalMaximum = [&inDigits](const int row, const int pad, const int time) {
-        const size_t offset = row * MAXPADS * MAXTIMEBINS + pad * MAXTIMEBINS + time;
+      auto isLocalMaximum = [&inDigits, this](const int row, const int pad, const int time) {
+        const size_t offset = row * MAXPADS * mMaxTimeBins + pad * mMaxTimeBins + time;
         const auto testCharge = inDigits[offset];
 
         // look in time direction
@@ -123,24 +124,24 @@ class KrRawFilterDevice : public o2::framework::Task
         }
 
         // look in pad direction
-        if (!(testCharge > inDigits[offset + MAXTIMEBINS])) {
+        if (!(testCharge > inDigits[offset + mMaxTimeBins])) {
           return false;
         }
-        if (testCharge < inDigits[offset - MAXTIMEBINS]) {
+        if (testCharge < inDigits[offset - mMaxTimeBins]) {
           return false;
         }
 
         // check diagonals
-        if (!(testCharge > inDigits[offset + MAXTIMEBINS + 1])) {
+        if (!(testCharge > inDigits[offset + mMaxTimeBins + 1])) {
           return false;
         }
-        if (!(testCharge > inDigits[offset + MAXTIMEBINS - 1])) {
+        if (!(testCharge > inDigits[offset + mMaxTimeBins - 1])) {
           return false;
         }
-        if (testCharge < inDigits[offset - MAXTIMEBINS + 1]) {
+        if (testCharge < inDigits[offset - mMaxTimeBins + 1]) {
           return false;
         }
-        if (testCharge < inDigits[offset - MAXTIMEBINS - 1]) {
+        if (testCharge < inDigits[offset - mMaxTimeBins - 1]) {
           return false;
         }
 
@@ -153,7 +154,7 @@ class KrRawFilterDevice : public o2::framework::Task
       // fill digits and return true if the neigbouring pad should be filtered as well
       auto fillDigits = [&digits, &inDigits, &sector, this](const size_t row, const size_t pad, const size_t time) {
         int cru = Mapper::REGION[row] + sector * Mapper::NREGIONS;
-        const size_t offset = row * MAXPADS * MAXTIMEBINS + pad * MAXTIMEBINS;
+        const size_t offset = row * MAXPADS * mMaxTimeBins + pad * mMaxTimeBins;
 
         const auto chargeMax = inDigits[offset + time];
 
@@ -175,7 +176,7 @@ class KrRawFilterDevice : public o2::framework::Task
         const auto row = maxDigit.row;
         const auto pad = maxDigit.pad;
         // skip extremely noisy pads
-        if (nTriggered[row * MAXPADS + pad] > MAXTIMEBINS / 4) {
+        if (nTriggered[row * MAXPADS + pad] > mMaxTimeBins / 4) {
           continue;
         }
         const auto time = maxDigit.time;
@@ -212,6 +213,7 @@ class KrRawFilterDevice : public o2::framework::Task
   float mThresholdSigma{10.f};
   int mTimeBinsBefore{10};
   int mTimeBinsAfter{100};
+  size_t mMaxTimeBins{450};
   uint32_t mProcessedTFs{0};
   bool mSkipIROCTSensors{true};
   CalPad* mNoise{nullptr};
@@ -247,6 +249,7 @@ o2::framework::DataProcessorSpec getKryptonRawFilterSpec(CalPad* noise)
       {"threshold-sigma", VariantType::Float, 10.f, {"threshold in sigma noise above which time sequences will be written out"}},
       {"time-bins-before", VariantType::Int, 10, {"time bins before trigger digit to be written"}},
       {"time-bins-after", VariantType::Int, 100, {"time bins after trigger digit to be written"}},
+      {"max-time-bins", VariantType::Int, 450, {"maximum number of time bins to process"}},
       {"skip-iroc-tsen", VariantType::Bool, true, {"skip IROC T-Sensor pads in maxima detection"}},
     } // end Options
   };  // end DataProcessorSpec
