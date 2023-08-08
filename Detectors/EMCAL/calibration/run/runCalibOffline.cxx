@@ -50,11 +50,9 @@ int main(int argc, char** argv)
   std::string nameCalibInputHist;    // hCellIdVsTimeAbove300 for time, hCellIdVsEnergy for bad channel
   std::string nameCalibInputHistAdd; // additional input histogram for bad channel calibration if time should be considered
   std::string namePathStoreLocal;    // name for path + histogram to store the calibration locally in root TH1 format
-
-  unsigned int nthreads; // number of threads used by openMP
-
-  unsigned long rangestart; //30/10/2021, 01:02:32 for run 505566 -> 1635548552000
-  unsigned long rangeend;   // 30/10/2021, 02:31:10 for run 505566 -> 1635553870000
+  unsigned int nthreads;             // number of threads used by openMP
+  unsigned long rangestart;          // 30/10/2021, 01:02:32 for run 505566 -> 1635548552000
+  unsigned long rangeend;            // 30/10/2021, 02:31:10 for run 505566 -> 1635553870000
 
   double timeRangeLow;
   double timeRangeHigh;
@@ -211,7 +209,7 @@ int main(int argc, char** argv)
   CalibExtractor.setNThreads(nthreads);
 
   // convert the test root histogram to boost
-  auto hCalibInputHist = o2::utils::boostHistoFromRoot_2D(hCalibInputHist_ROOT);
+  boostHisto2d_VarAxis hCalibInputHist = o2::utils::boostHistoFromRoot_2D<boostHisto2d_VarAxis>(hCalibInputHist_ROOT);
 
   // instance of CalibDB
   o2::emcal::CalibDB calibdb(ccdbServerPath);
@@ -225,7 +223,7 @@ int main(int argc, char** argv)
     o2::emcal::BadChannelMap BCMap;
 
     if (doBCCalibWithTime) {
-      auto hCalibInputHistAdd = o2::utils::boostHistoFromRoot_2D(hCalibInputHistAdd_ROOT);
+      boostHisto2d_VarAxis hCalibInputHistAdd = o2::utils::boostHistoFromRoot_2D<boostHisto2d_VarAxis>(hCalibInputHistAdd_ROOT);
       BCMap = CalibExtractor.calibrateBadChannels(hCalibInputHist, hCalibInputHistAdd);
     } else {
       BCMap = CalibExtractor.calibrateBadChannels(hCalibInputHist);
