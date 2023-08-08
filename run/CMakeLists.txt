@@ -111,6 +111,11 @@ o2_add_executable(kine-publisher
                   SOURCES o2sim_kine_publisher.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::SimulationDataFormat O2::Steer)
 
+o2_add_executable(hepmc-publisher
+                  COMPONENT_NAME sim
+                  SOURCES o2sim_hepmc_publisher.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::SimulationDataFormat O2::Steer MC::HepMC3)
+
 o2_add_executable(mctracks-to-aod
                   COMPONENT_NAME sim
                   SOURCES o2sim_mctracks_to_aod.cxx
