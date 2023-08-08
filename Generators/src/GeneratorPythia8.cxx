@@ -171,7 +171,7 @@ Bool_t
   /** import particles **/
 
   /* loop over particles */
-  //  auto weight = mPythia.info.weight(); // TBD: use weights
+  auto weight = mPythia.info.weight();
   auto nParticles = event.size();
   for (Int_t iparticle = 1; iparticle < nParticles; iparticle++) { // first particle is system
     auto particle = event[iparticle];
@@ -191,6 +191,7 @@ Bool_t
     auto d2 = particle.daughter2() - 1;
     mParticles.push_back(TParticle(pdg, st, m1, m2, d1, d2, px, py, pz, et, vx, vy, vz, vt));
     mParticles.back().SetBit(ParticleStatus::kToBeDone, particle.statusHepMC() == 1);
+    mParticles.back().SetWeight(weight);
   }
 
   /** success **/
