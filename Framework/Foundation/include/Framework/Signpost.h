@@ -11,7 +11,7 @@
 #ifndef O2_FRAMEWORK_SIGNPOST_H_
 #define O2_FRAMEWORK_SIGNPOST_H_
 
-#if !defined(O2_FORCE_LOGGER_SIGNPOST) && defined(__APPLE__) && !defined(NDEBUG)
+#if !defined(O2_FORCE_LOGGER_SIGNPOST) && defined(__APPLE__) && (!defined(NDEBUG) || defined(O2_FORCE_SIGNPOSTS))
 #include <os/log.h>
 #include <os/signpost.h>
 #define O2_DECLARE_DYNAMIC_LOG(x) static os_log_t private_o2_log_##x = os_log_create("ch.cern.aliceo2." #x, OS_LOG_CATEGORY_DYNAMIC_TRACING)
@@ -28,7 +28,7 @@
 #define O2_SIGNPOST_START(log, id, name, ...) os_signpost_interval_begin(private_o2_log_##log, id, name, __VA_ARGS__)
 #define O2_SIGNPOST_END(log, id, name, ...) os_signpost_interval_end(private_o2_log_##log, id, name, __VA_ARGS__)
 #define O2_ENG_TYPE(x, what) "%{xcode:" #x "}" what
-#elif !defined(NDEBUG) || defined(O2_FORCE_LOGGER_SIGNPOST)
+#elif !defined(NDEBUG) || defined(O2_FORCE_LOGGER_SIGNPOST) || defined(O2_FORCE_SIGNPOSTS)
 
 #ifndef O2_LOG_MACRO
 #if __has_include("Framework/Logger.h")
@@ -36,7 +36,7 @@
 // If NDEBUG is not defined, we use the logger to print out the signposts at the debug level.
 #if !defined(NDEBUG)
 #define O2_LOG_MACRO(...) LOGF(debug, __VA_ARGS__)
-#elif defined(O2_FORCE_LOGGER_SIGNPOST)
+#elif defined(O2_FORCE_LOGGER_SIGNPOST) || defined(O2_FORCE_SIGNPOSTS)
 // If we force the presence of the logger, we use it to print out the signposts at the detail level, which is not optimized out.
 #define O2_LOG_MACRO(...) LOGF(info, __VA_ARGS__)
 #endif
