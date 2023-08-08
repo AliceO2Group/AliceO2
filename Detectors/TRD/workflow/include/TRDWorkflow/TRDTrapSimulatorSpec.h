@@ -29,6 +29,7 @@ namespace trd
 {
 
 class TrapConfig;
+class TrapConfigEvent;
 
 class TRDDPLTrapSimulatorTask : public o2::framework::Task
 {
@@ -41,7 +42,7 @@ class TRDDPLTrapSimulatorTask : public o2::framework::Task
 
 
  private:
-  TrapConfig* mTrapConfig{nullptr};
+  TrapConfigEvent* mTrapConfigEvent{nullptr};
   int mRunNumber{297595}; // run number to anchor simulation to.
   int mDigitDownscaling{1}; // only digits of every mDigitDownscaling-th trigger will be kept
   int mChargeScalingFactor{-1}; // can be overwritten to set custom charge scaling factor for tracklets
@@ -52,11 +53,11 @@ class TRDDPLTrapSimulatorTask : public o2::framework::Task
   bool mInitCcdbObjectsDone{false}; // flag whether one time download of CCDB objects has been done
   int mNumThreads{-1};              // number of threads used for parallel processing
   std::string mTrapConfigName;      // the name of the config to be used.
-  std::string mOnlineGainTableName;
-  std::unique_ptr<Calibrations> mCalib; // store the calibrations connection to CCDB. Used primarily for the gaintables in line above.
+                                    //  std::string mOnlineGainTableName;
+                                    //  std::unique_ptr<Calibrations> mCalib; // store the calibrations connection to CCDB. Used primarily for the gaintables in line above.
 
   void initTrapConfig(long timeStamp);
-  void setOnlineGainTables();
+  // void setOnlineGainTables();
   void processTRAPchips(int& nTracklets, std::vector<Tracklet64>& trackletsAccum, std::array<TrapSimulator, constants::NMCMHCMAX>& trapSimulators, std::vector<short>& digitCounts, std::vector<int>& digitIndices);
 };
 

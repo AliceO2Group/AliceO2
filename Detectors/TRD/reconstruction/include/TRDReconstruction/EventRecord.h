@@ -17,15 +17,23 @@
 #include <fairlogger/Logger.h>
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/RawDataStats.h"
+#include "DataFormatsTRD/RawData.h"
 #include "DataFormatsTRD/Digit.h"
+#include "DataFormatsTRD/TrapConfigEvent.h"
 
-namespace o2::framework
+namespace o2
+{
+namespace framework
 {
 class ProcessingContext;
 }
+} // namespace o2
 
-namespace o2::trd
+namespace o2
 {
+namespace trd
+{
+
 class TriggerRecord;
 
 /// \class EventRecord
@@ -96,6 +104,7 @@ class EventRecordContainer
   void incLinkWordsRead(int hcid, int count) { mTFStats.mLinkWordsRead[hcid] += count; }
   void incLinkWordsRejected(int hcid, int count) { mTFStats.mLinkWordsRejected[hcid] += count; }
   void incMajorVersion(int version) { mTFStats.mDataFormatRead[version]++; }
+  void addConfigEvent(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>& data, uint32_t start, uint32_t end, uint32_t configeventlength, DigitHCHeaderAll& digithcheaders, InteractionRecord& ir);
 
   void incParsingError(int error, int hcid)
   {
@@ -111,12 +120,21 @@ class EventRecordContainer
   void reset();
   void accumulateStats();
 
+  void incHCIDProducedData(const int hcid) { mHCIDProducedData[hcid]++; }
+  void incMCMProducedData(const int mcmid) { mMCMProducedData[mcmid]++; }
+
  private:
   int mCurrEventRecord = 0;
   std::vector<EventRecord> mEventRecords;
   TRDDataCountersPerTimeFrame mTFStats;
+  std::vector<uint32_t> mConfigEventData; ///< unparse config event data, format : IR, HcHeader, event data, repeat.
+  bool mConfigEventPresent{false};
+  // used by config events to figure out which links/mcm are live and which are not.
+  std::array<uint32_t, constants::MAXHALFCHAMBER> mHCIDProducedData;
+  std::array<uint32_t, constants::MAXMCMCOUNT> mMCMProducedData;
 };
 
-} // namespace o2::trd
+} // namespace trd
+} // namespace o2
 
 #endif

@@ -22,6 +22,8 @@ o2_add_library(TRDWorkflowIO
                        src/TRDTrackReaderSpec.cxx
                        src/TRDCalibWriterSpec.cxx
                        src/TRDPHReaderSpec.cxx
+                       src/TRDConfigEventWriterSpec.cxx
+                       src/TRDConfigEventReaderSpec.cxx
                        include/TRDWorkflowIO/KrClusterWriterSpec.h
                PUBLIC_LINK_LIBRARIES O2::DataFormatsTRD O2::SimulationDataFormat O2::DPLUtils O2::GPUDataTypeHeaders O2::DataFormatsTPC)
 
@@ -41,4 +43,12 @@ o2_add_executable(calib-reader-workflow
 o2_add_executable(digittracklet-writer
                  COMPONENT_NAME trd
                  SOURCES src/trd-digittracklet-writer-workflow.cxx
+                 PUBLIC_LINK_LIBRARIES O2::TRDWorkflowIO)
+o2_add_executable(configevent-reader-workflow
+                 COMPONENT_NAME trd
+                 SOURCES src/trd-configevent-reader-workflow.cxx
+                 PUBLIC_LINK_LIBRARIES O2::TRDWorkflowIO)
+o2_add_executable(configevent-writer-workflow
+                 COMPONENT_NAME trd
+                 SOURCES src/trd-configevent-writer-workflow.cxx
                  PUBLIC_LINK_LIBRARIES O2::TRDWorkflowIO)

@@ -50,13 +50,16 @@ void DataReaderTask::endOfStream(o2::framework::EndOfStreamContext& ec)
 
 void DataReaderTask::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
+  LOG(info) << " finalise CCDB " << __func__ << " " << __LINE__;
   if (matcher == ConcreteDataMatcher("CTP", "Trig_Offset", 0)) {
     LOG(info) << " CTP/Config/TriggerOffsets updated.";
     o2::ctp::TriggerOffsetsParam::Instance().printKeyValues();
+    LOG(info) << "trigger offset done from ctp ";
     return;
   } else if (matcher == ConcreteDataMatcher("TRD", "LinkToHcid", 0)) {
     LOG(info) << "Updated Link ID to HCID mapping";
     mReader.setLinkMap((const o2::trd::LinkToHCIDMapping*)obj);
+    LOG(info) << "link to hcid mapping done ";
     return;
   }
 }
@@ -131,7 +134,8 @@ void DataReaderTask::run(ProcessingContext& pc)
       LOG(info) << "relevant vectors to read : " << mReader.getTrackletsFound() << " tracklets and " << mReader.getDigitsFound() << " compressed digits";
     }
   }
-
+  // end of time frame build a list of links that fired, in particular for major=0x47
+  // check hcid with tracklets vs hcid that had no config events.
   mReader.buildDPLOutputs(pc);
   std::chrono::duration<double, std::milli> dataReadTime = std::chrono::high_resolution_clock::now() - dataReadStart;
   LOGP(info, "Digits: {}, Tracklets: {}, DataRead in: {:.3f} MB, Rejected: {:.3f} kB for TF {} in {} ms",

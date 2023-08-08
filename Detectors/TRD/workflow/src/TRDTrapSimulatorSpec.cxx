@@ -32,6 +32,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/ConstMCTruthContainer.h"
 #include "TRDSimulation/TRDSimParams.h"
+#include "DataFormatsTRD/TrapConfigEvent.h"
 #include "TRDSimulation/TrapConfig.h"
 #include "DataFormatsTRD/Digit.h"
 #include "DataFormatsTRD/TriggerRecord.h"
@@ -48,20 +49,23 @@ using namespace constants;
 void TRDDPLTrapSimulatorTask::initTrapConfig(long timeStamp)
 {
   auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
-  mTrapConfig = ccdbmgr.getForTimeStamp<o2::trd::TrapConfig>("TRD/TrapConfig/" + mTrapConfigName, timeStamp);
+  mTrapConfigEvent = ccdbmgr.getForTimeStamp<o2::trd::TrapConfigEvent>("TRD/TrapConfig/" + mTrapConfigName, timeStamp);
 
-  if (mEnableTrapConfigDump) {
-    mTrapConfig->DumpTrapConfig2File("run3trapconfig_dump");
-  }
-
-  if (mTrapConfig->getConfigName() == "" && mTrapConfig->getConfigVersion() == "") {
-    //some trap configs dont have config name and version set, in those cases, just show the file name used.
-    LOG(info) << "using TRAPconfig: " << mTrapConfigName;
-  } else {
-    LOG(info) << "using TRAPconfig :\"" << mTrapConfig->getConfigName().c_str() << "\".\"" << mTrapConfig->getConfigVersion().c_str() << "\"";
-  }
+  //  if (mEnableTrapConfigDump) {
+  //    mTrapConfig->DumpTrapConfig2File("run3trapconfig_dump");
+  //  }
+  //  //TODO come back here
+  /*
+    if (mTrapConfig->getConfigName() == "" && mTrapConfig->getConfigVersion() == "") {
+      //some trap configs dont have config name and version set, in those cases, just show the file name used.
+      LOG(info) << "using TRAPconfig: " << mTrapConfigName;
+    } else {
+      LOG(info) << "using TRAPconfig :\"" << mTrapConfig->getConfigName().c_str() << "\".\"" << mTrapConfig->getConfigVersion().c_str() << "\"";
+    }*/
 }
 
+/*
+ * TODO check we really are doing not online gain tables
 void TRDDPLTrapSimulatorTask::setOnlineGainTables()
 {
   //check FGBY from trapconfig.
@@ -79,10 +83,10 @@ void TRDDPLTrapSimulatorTask::setOnlineGainTables()
     // gain factors are per MCM
     // allocate the registers accordingly
     for (int ch = 0; ch < NADCMCM; ++ch) {
-      TrapConfig::TrapReg_t regFGAN = (TrapConfig::TrapReg_t)(TrapConfig::kFGA0 + ch);
-      TrapConfig::TrapReg_t regFGFN = (TrapConfig::TrapReg_t)(TrapConfig::kFGF0 + ch);
-      mTrapConfig->setTrapRegAlloc(regFGAN, TrapConfig::kAllocByMCM);
-      mTrapConfig->setTrapRegAlloc(regFGFN, TrapConfig::kAllocByMCM);
+      uint32_t regFGAN = TrapConfig::kFGA0 + ch;
+      uint32_t regFGFN = TrapConfig::kFGF0 + ch;
+     //] mTrapConfig->setTrapRegAlloc(regFGAN, TrapConfig::kAllocByMCM);
+     // mTrapConfig->setTrapRegAlloc(regFGFN, TrapConfig::kAllocByMCM);
     }
 
     for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
@@ -104,7 +108,7 @@ void TRDDPLTrapSimulatorTask::setOnlineGainTables()
   } else if (mTrapConfig->getTrapReg(TrapConfig::kFGBY) == 1) {
     LOG(warn) << "you have asked to not use online gain calibrations but the selected trap config does have FGBY enabled. Gain calibrations will be 1, i.e. no effect";
   }
-}
+}*/
 
 void TRDDPLTrapSimulatorTask::processTRAPchips(int& nTracklets, std::vector<Tracklet64>& trackletsAccum, std::array<TrapSimulator, NMCMHCMAX>& trapSimulators, std::vector<short>& digitCounts, std::vector<int>& digitIndices)
 {
@@ -133,7 +137,7 @@ void TRDDPLTrapSimulatorTask::init(o2::framework::InitContext& ic)
 {
   mTrapConfigName = ic.options().get<std::string>("trd-trapconfig");
   mEnableOnlineGainCorrection = ic.options().get<bool>("trd-onlinegaincorrection");
-  mOnlineGainTableName = ic.options().get<std::string>("trd-onlinegaintable");
+  //  mOnlineGainTableName = ic.options().get<std::string>("trd-onlinegaintable");
   mRunNumber = ic.options().get<int>("trd-runnum");
   mEnableTrapConfigDump = ic.options().get<bool>("trd-dumptrapconfig");
   mUseFloatingPointForQ = ic.options().get<bool>("float-arithmetic");
@@ -178,10 +182,10 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
   if (!mInitCcdbObjectsDone) {
     auto creationTime = pc.services().get<o2::framework::TimingInfo>().creation;
     auto timeStamp = (mRunNumber < 0) ? creationTime : mRunNumber;
-    mCalib = std::make_unique<Calibrations>();
-    mCalib->getCCDBObjects(timeStamp);
+    // mCalib = std::make_unique<Calibrations>();
+    // mCalib->getCCDBObjects(timeStamp);
     initTrapConfig(timeStamp);
-    setOnlineGainTables();
+    // setOnlineGainTables();
     mInitCcdbObjectsDone = true;
   }
 
@@ -252,7 +256,7 @@ void TRDDPLTrapSimulatorTask::run(o2::framework::ProcessingContext& pc)
       // fill the digit data into the corresponding TRAP chip
       int trapIdx = (digit->getROB() / 2) * NMCMROB + digit->getMCM();
       if (!trapSimulators[trapIdx].isDataSet()) {
-        trapSimulators[trapIdx].init(mTrapConfig, digit->getDetector(), digit->getROB(), digit->getMCM());
+        trapSimulators[trapIdx].init(mTrapConfigEvent, digit->getDetector(), digit->getROB(), digit->getMCM());
         if (mUseFloatingPointForQ) {
           trapSimulators[trapIdx].setUseFloatingPointForQ();
         } else if (mChargeScalingFactor != -1) {

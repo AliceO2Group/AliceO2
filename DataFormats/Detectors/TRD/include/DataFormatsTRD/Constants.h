@@ -98,6 +98,10 @@ constexpr unsigned int ETYPEPHYSICSTRIGGER = 0x2;     ///< CRU Half Chamber head
 constexpr unsigned int ETYPECALIBRATIONTRIGGER = 0x3; ///< CRU Half Chamber header eventtype definition
 constexpr int MAXCRUERRORVALUE = 0x2;                 ///< Max possible value for a CRU Halfchamber link error. As of may 2022, can only be 0x0, 0x1, and 0x2, at least that is all so far(may2022).
 constexpr int INVALIDPRETRIGGERPHASE = 0xf;           ///< Invalid value for phase, used to signify there is no hcheader.
+constexpr int CONFIGEVENTNUMBER = 0x47;               ///< Major version number in Digit HC Header defining a configuration "digit" event
+constexpr int CONFIGEVENTENDA = 0x42424242;           ///< End of packed config event in message to be passed on for processing
+constexpr int CONFIGEVENTENDB = 0xedededed;           ///< End of packed config event in message to be passed on for processing
+constexpr int CONFIGEVENTBLOCKENDMARKER = 0x7fff00fe; ///< End marker for a configuration event block.
 
 } // namespace constants
 } // namespace trd

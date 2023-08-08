@@ -58,7 +58,7 @@ void EventRecord::sortData(bool sortDigits)
 
 void EventRecordContainer::sendData(o2::framework::ProcessingContext& pc, bool generatestats, bool sortDigits, bool sendLinkStats)
 {
-  //at this point we know the total number of tracklets and digits and triggers.
+  // at this point we know the total number of tracklets and digits and triggers.
   auto dataReadStart = std::chrono::high_resolution_clock::now();
 
   size_t digitcount = 0;
@@ -91,6 +91,10 @@ void EventRecordContainer::sendData(o2::framework::ProcessingContext& pc, bool g
 
   std::chrono::duration<double, std::micro> dataReadTime = std::chrono::high_resolution_clock::now() - dataReadStart;
   LOG(debug) << "Preparing for sending and sending data took  " << std::chrono::duration_cast<std::chrono::milliseconds>(dataReadTime).count() << "ms";
+  if (mConfigEventPresent) {
+    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "CONFEVT", 0}, mConfigEventData);
+    // pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "CONFEVT", 0, o2::framework::Lifetime::Condition}, mConfigEventData);
+  }
 }
 
 void EventRecordContainer::accumulateStats()
@@ -129,5 +133,29 @@ void EventRecordContainer::reset()
 {
   mEventRecords.clear();
   mTFStats.clear();
+  mConfigEventPresent = false;
+  mConfigEventData.clear();
 }
+
+void EventRecordContainer::addConfigEvent(std::array<uint32_t, o2::trd::constants::HBFBUFFERMAX>& data, uint32_t start, uint32_t end, uint32_t configeventlength, DigitHCHeaderAll& digithcheaders, InteractionRecord& ir)
+{
+  // copy the config event into the outgoing message.
+  // Ir, digitheaders, event payload data.
+  mConfigEventPresent = true;
+  // append the new incoming config event to the end of the last one.
+  mConfigEventData.push_back(end - start); //(uint32_t)ir.bc);
+  mConfigEventData.push_back(ir.orbit);
+  for (int dcheadercount = 0; dcheadercount < 4; ++dcheadercount) {
+    mConfigEventData.push_back(digithcheaders.getHeader(dcheadercount));
+  }
+  uint32_t length = end - start;
+  mConfigEventData.push_back(length);
+
+  for (uint32_t datapos = start; datapos < end; ++datapos) {
+    mConfigEventData.push_back(data[datapos]);
+  }
+  mConfigEventData.push_back(constants::CONFIGEVENTENDA);
+  mConfigEventData.push_back(constants::CONFIGEVENTENDB);
+}
+
 } // namespace o2::trd

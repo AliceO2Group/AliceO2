@@ -25,8 +25,8 @@
 #include <gsl/span>
 
 #include "TRDBase/FeeParam.h"
-#include "TRDSimulation/TrapConfig.h"
 
+#include "DataFormatsTRD/TrapConfigEvent.h"
 #include "DataFormatsTRD/Digit.h"
 #include "DataFormatsTRD/Tracklet64.h"
 #include "DataFormatsTRD/RawData.h"
@@ -107,7 +107,7 @@ class TrapSimulator
   ~TrapSimulator() = default;
 
   // Initialize MCM by the position parameters
-  void init(TrapConfig* trapconfig, int det, int rob, int mcm);
+  void init(TrapConfigEvent* trapconfig, int det, int rob, int mcm);
 
   bool checkInitialized() const { return mInitialized; }
 
@@ -138,7 +138,7 @@ class TrapSimulator
   int getDetector() const { return mDetector; }; // Returns Chamber ID (0-539)
   int getRobPos() const { return mRobPos; };     // Returns ROB position (0-7)
   int getMcmPos() const { return mMcmPos; };     // Returns MCM position (0-17) (16,17 are mergers)
-  int getNumberOfTimeBins() const { return mNTimeBin; }; // Set via TrapConfig, but should be the same as o2::trd::constants::TIMEBINS
+  int getNumberOfTimeBins() const { return mNTimeBin; }; // Set via TrapConfigEvent, but should be the same as o2::trd::constants::TIMEBINS
 
   // transform Tracklet64 data into raw data format (up to 4 32-bit words)
   // FIXME offset is not used, should it be removed?
@@ -189,12 +189,11 @@ class TrapSimulator
   // I/O
   void printFitRegXml(std::ostream& os) const;
   void printTrackletsXml(std::ostream& os) const;
-  void printAdcDatTxt(std::ostream& os) const;
   void printAdcDatHuman(std::ostream& os) const;
   void printAdcDatXml(std::ostream& os) const;
   void printAdcDatDatx(std::ostream& os, bool broadcast = kFALSE, int timeBinOffset = -1) const;
 
-  static bool readPackedConfig(TrapConfig* cfg, int hc, unsigned int* data, int size);
+  static bool readPackedConfig(TrapConfigEvent* cfg, int hc, unsigned int* data, int size);
 
   // DMEM addresses
   static constexpr int mgkDmemAddrLUTcor0 = 0xC02A;
@@ -214,7 +213,7 @@ class TrapSimulator
   static constexpr int mgkDmemAddrDeflCutEnd = 0xc055;   // DMEM end address of deflection cut
   static constexpr int mgkDmemAddrTimeOffset = 0xc3fe;   // DMEM address of time offset t0
   static constexpr int mgkDmemAddrYcorr = 0xc3ff;        // DMEM address of y correction (mis-alignment)
-  static constexpr int mQ2Startbin = 3;              // Start range of Q2, for now here. TODO pull from a revised TrapConfig?
+  static constexpr int mQ2Startbin = 3;                  // Start range of Q2, for now here. TODO pull from a revised TrapConfigEvent?
   static constexpr int mQ2Endbin = 5;                // End range of Q2, also pull from a revised trapconfig at some point.
 
   static const int mgkFormatIndex;   // index for format settings in stream
@@ -275,7 +274,9 @@ class TrapSimulator
 
   // Parameter classes
   FeeParam* mFeeParam{FeeParam::instance()}; // FEE parameters, a singleton
-  TrapConfig* mTrapConfig{nullptr};          // TRAP config
+  TrapConfigEvent* mTrapConfigEvent{nullptr}; // TRAP config
+  // wrappers for trap config events.
+  uint32_t getTrapReg(uint32_t reg, uint32_t det, uint32_t rob, uint32_t mcm);
 
   // Sort functions as in TRAP
   void sort2(uint16_t idx1i, uint16_t idx2i, uint16_t val1i, uint16_t val2i,
