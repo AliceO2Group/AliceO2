@@ -507,18 +507,34 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
   // add the reader
   if (aodReader.outputs.empty() == false) {
-
-    auto&& algo = PluginManager::loadAlgorithmFromPlugin("O2FrameworkAnalysisSupport", "ROOTFileReader");
-    if (internalRateLimiting) {
-      aodReader.algorithm = CommonDataProcessors::wrapWithRateLimiting(algo);
+    auto mctracks2aod = std::find_if(workflow.begin(), workflow.end(), [](auto const& x) { return x.name == "mctracks-to-aod"; });
+    if (mctracks2aod == workflow.end()) {
+      // add normal reader
+      auto&& algo = PluginManager::loadAlgorithmFromPlugin("O2FrameworkAnalysisSupport", "ROOTFileReader");
+      if (internalRateLimiting) {
+        aodReader.algorithm = CommonDataProcessors::wrapWithRateLimiting(algo);
+      } else {
+        aodReader.algorithm = algo;
+      }
+      aodReader.outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
+      aodReader.outputs.emplace_back(OutputSpec{"TFF", "TFFilename"});
     } else {
-      aodReader.algorithm = algo;
+      // AODs are being injected on-the-fly, add dummy reader
+      aodReader.algorithm = AlgorithmSpec{
+        adaptStateful(
+          [outputs = aodReader.outputs](DeviceSpec const&) {
+            LOGP(warn, "Workflow with injected AODs has unsatisfied inputs:");
+            for (auto const& output : outputs) {
+              LOGP(warn, "  {}", DataSpecUtils::describe(output));
+            }
+            LOGP(fatal, "Stopping.");
+            // to ensure the output type for adaptStateful
+            return adaptStateless([](DataAllocator&) {});
+          })};
     }
-    aodReader.outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
-    aodReader.outputs.emplace_back(OutputSpec{"TFF", "TFFilename"});
-    extraSpecs.push_back(timePipeline(aodReader, ctx.options().get<int64_t>("readers")));
     auto concrete = DataSpecUtils::asConcreteDataMatcher(aodReader.inputs[0]);
-    timer.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration});
+    timer.outputs.emplace_back(concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration);
+    extraSpecs.push_back(timePipeline(aodReader, ctx.options().get<int64_t>("readers")));
   }
 
   ConcreteDataMatcher dstf{"FLP", "DISTSUBTIMEFRAME", 0xccdb};

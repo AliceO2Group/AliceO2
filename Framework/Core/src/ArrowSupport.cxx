@@ -390,7 +390,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        arrow->updateMessagesDestroyed(totalMessages);
                        auto& stats = ctx.services().get<DataProcessingStats>();
                        stats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_BYTES_DESTROYED), DataProcessingStats::Op::Set, static_cast<int64_t>(arrow->bytesDestroyed())});
-                       stats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_MESSAGES_DESTROYED), DataProcessingStats::Op::Set, static_cast<int64_t>(arrow->messagesDestroyed())}); 
+                       stats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_MESSAGES_DESTROYED), DataProcessingStats::Op::Set, static_cast<int64_t>(arrow->messagesDestroyed())});
                        stats.processCommandQueue(); },
     .driverInit = [](ServiceRegistryRef registry, DeviceConfig const& dc) {
                        auto config = new RateLimitConfig{};
@@ -504,6 +504,10 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
           return !DataSpecUtils::partialMatch(o, o2::header::DataDescription{"TFNumber"}) && !DataSpecUtils::partialMatch(o, o2::header::DataDescription{"TFFilename"}) && std::none_of(requestedAODs.begin(), requestedAODs.end(), [&](InputSpec const& i) { return DataSpecUtils::match(i, o); });
         });
         reader->outputs.erase(o_end, reader->outputs.end());
+        if (reader->outputs.empty()) {
+          // nothing to read
+          workflow.erase(reader);
+        }
       }
 
       // replace writer as some outputs may have become dangling and some are now consumed
