@@ -207,6 +207,7 @@ void GeneratorPythia8::updateHeader(o2::dataformats::MCEventHeader* eventHeader)
   eventHeader->putInfo<int>("version", PYTHIA_VERSION_INTEGER);
   eventHeader->putInfo<std::string>("processName", mPythia.info.name());
   eventHeader->putInfo<int>("processCode", mPythia.info.code());
+  eventHeader->putInfo<float>("weight", mPythia.info.weight());
 
 #if PYTHIA_VERSION_INTEGER < 8300
   auto hiinfo = mPythia.info.hiinfo;
