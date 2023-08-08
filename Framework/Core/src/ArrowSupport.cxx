@@ -531,21 +531,21 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         }
       }
 
-        // file sink for any AOD output
-        if (!outputsInputsAOD.empty()) {
-          // add TFNumber and TFFilename as input to the writer
-          outputsInputsAOD.emplace_back("tfn", "TFN", "TFNumber");
-          outputsInputsAOD.emplace_back("tff", "TFF", "TFFilename");
-          workflow.push_back(CommonDataProcessors::getGlobalAODSink(dod, outputsInputsAOD));
+      // file sink for any AOD output
+      if (!outputsInputsAOD.empty()) {
+        // add TFNumber and TFFilename as input to the writer
+        outputsInputsAOD.emplace_back("tfn", "TFN", "TFNumber");
+        outputsInputsAOD.emplace_back("tff", "TFF", "TFFilename");
+        workflow.push_back(CommonDataProcessors::getGlobalAODSink(dod, outputsInputsAOD));
+      }
+      // Move the dummy sink at the end, if needed
+      for (size_t i = 0; i < workflow.size(); ++i) {
+        if (workflow[i].name == "internal-dpl-injected-dummy-sink") {
+          workflow.push_back(workflow[i]);
+          workflow.erase(workflow.begin() + i);
+          break;
         }
-        // Move the dummy sink at the end, if needed
-        for (size_t i = 0; i < workflow.size(); ++i) {
-          if (workflow[i].name == "internal-dpl-injected-dummy-sink") {
-            workflow.push_back(workflow[i]);
-            workflow.erase(workflow.begin() + i);
-            break;
-          }
-        } },
+      } },
     .kind = ServiceKind::Global};
 }
 
