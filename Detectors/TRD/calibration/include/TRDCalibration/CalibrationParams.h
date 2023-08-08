@@ -49,6 +49,10 @@ struct TRDCalibParams : public o2::conf::ConfigurableParamHelper<TRDCalibParams>
   // parameters related to noise calibration
   size_t minNumberOfDigits = 1'000'000'000UL; ///< when reached, noise calibration will be finalized
 
+  // parameters for config events.
+  uint32_t configEventAccumulationTime = 15; ///< time to accumulate config events before comparison to
+  bool takeAllConfigEvents = 0;              ///< do we save all the intermediary config events
+
   // boilerplate
   O2ParamDef(TRDCalibParams, "TRDCalibParams");
 };

@@ -13,10 +13,12 @@
 #include "TRDWorkflowIO/TRDCalibReaderSpec.h"
 #include "TRDWorkflowIO/TRDDigitReaderSpec.h"
 #include "TRDWorkflowIO/TRDPHReaderSpec.h"
+#include "TRDWorkflowIO/TRDConfigEventReaderSpec.h"
 #include "TRDWorkflow/VdAndExBCalibSpec.h"
 #include "TRDWorkflow/GainCalibSpec.h"
 #include "TRDWorkflow/NoiseCalibSpec.h"
 #include "TRDWorkflow/T0FitSpec.h"
+#include "TRDWorkflow/ConfigEventCalibSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 
 using namespace o2::framework;
@@ -31,8 +33,10 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"noise", o2::framework::VariantType::Bool, false, {"enable noise and pad status calibration"}},
     {"gain", o2::framework::VariantType::Bool, false, {"enable gain calibration"}},
     {"t0", o2::framework::VariantType::Bool, false, {"enable t0 fit"}},
+    {"configevents", o2::framework::VariantType::Bool, false, {"enable config even handling"}},
     {"calib-dds-collection-index", VariantType::Int, -1, {"allow only single collection to produce calibration objects (use -1 for no limit)"}},
-    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
+    {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
+  };
 
   std::swap(workflowOptions, options);
 }
@@ -85,6 +89,13 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       specs.emplace_back(o2::trd::getTRDPHReaderSpec());
     }
     specs.emplace_back(getTRDT0FitSpec());
+  }
+
+  if (configcontext.options().get<bool>("configevents")) {
+    if (enableRootInp) {
+      specs.emplace_back(o2::trd::getTRDConfigEventReaderSpec());
+    }
+    specs.emplace_back(o2::trd::getTRDConfigEventCalibSpec());
   }
 
   return specs;

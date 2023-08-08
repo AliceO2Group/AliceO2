@@ -16,6 +16,7 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::trd::CalibratorVdExB + ;
+#pragma link C++ class o2::trd::CalibratorConfigEvents + ;
 #pragma link C++ class o2::calibration::TimeSlot < o2::trd::AngularResidHistos> + ;
 #pragma link C++ class o2::calibration::TimeSlotCalibration < o2::trd::AngularResidHistos> + ;
 #pragma link C++ class o2::calibration::TimeSlot < o2::trd::GainCalibHistos> + ;

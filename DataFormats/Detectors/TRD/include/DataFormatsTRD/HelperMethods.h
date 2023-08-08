@@ -13,6 +13,7 @@
 #define ALICEO2_TRD_HELPERMETHODS_HH
 
 #include "DataFormatsTRD/Constants.h"
+#include "DataFormatsTRD/RawData.h"
 #include <iostream>
 #include <string>
 #include <fmt/format.h>
@@ -210,6 +211,30 @@ struct HelperMethods {
     rob = (mcmCol >= constants::NMCMROBINCOL) ? (row / constants::NMCMROBINROW) * 2 + 1 : (row / constants::NMCMROBINROW) * 2;
     mcm = (row % constants::NMCMROBINROW) * constants::NMCMROBINCOL + (mcmCol % constants::NMCMROBINCOL);
     channel = constants::NADCMCM - 1 - ((chamberIndex % constants::NCHANNELSPERROW) % constants::NADCMCM);
+  }
+
+  static int getMCMId(int sector, int stack, int layer, int rob, int mcm)
+  {
+    // return the mcmid of the indexed mcm
+    int mcmid = (sector * constants::NSTACK * constants::NLAYER + stack * constants::NLAYER + layer) * constants::NROBC1 * constants::NMCMROB + rob * constants::NMCMROB + mcm;
+    return mcmid;
+  }
+
+  static int getMCMId(int det, int rob, int mcm)
+  {
+    // return the mcmid of the indexed mcm
+    int mcmid = det * constants::NROBC1 * constants::NMCMROB + rob * constants::NMCMROB + mcm;
+    return mcmid;
+  }
+
+  static int getHCIDFromMCMId(int mcmid)
+  {
+    return mcmid / (constants::NROBC1 * constants::NMCMROB);
+  }
+
+  static int getHCIDFromDigitHCHeader(DigitHCHeader header)
+  {
+    return header.supermodule * constants::NHCPERSEC + header.stack * constants::NLAYER * 2 + header.layer * 2 + header.side;
   }
 };
 

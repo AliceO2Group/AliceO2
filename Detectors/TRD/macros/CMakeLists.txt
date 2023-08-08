@@ -31,5 +31,10 @@ o2_add_test_root_macro(CheckNoiseRun.C
                        PUBLIC_LINK_LIBRARIES O2::TRDBase
                        LABELS trd)
 
+                   #o2_add_test_root_macro(CheckTrapConfig.C
+                   #    PUBLIC_LINK_LIBRARIES O2::TRDBase O2::DataFormatsTRD
+                   #    LABELS trd)
+
 install(FILES CheckNoiseRun.C
     DESTINATION share/Detectors/TRD/macros/)
+

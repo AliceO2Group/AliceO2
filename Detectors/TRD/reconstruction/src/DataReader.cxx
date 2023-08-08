@@ -46,6 +46,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"tracklethcheader", VariantType::Int, 2, {"Status of TrackletHalfChamberHeader 0 off always, 1 iff tracklet data, 2 on always"}},
     {"disable-stats", VariantType::Bool, false, {"Do not generate stat messages for qc"}},
     {"disable-root-output", VariantType::Bool, false, {"Do not write the digits and tracklets to file"}},
+    {"enable-config-events", VariantType::Bool, false, {"Permit the handling of config events"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   std::swap(workflowOptions, options);
 }
@@ -68,6 +69,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   outputs.emplace_back("TRD", "TRACKLETS", 0, Lifetime::Timeframe);
   outputs.emplace_back("TRD", "DIGITS", 0, Lifetime::Timeframe);
   outputs.emplace_back("TRD", "TRKTRGRD", 0, Lifetime::Timeframe);
+  outputs.emplace_back("TRD", "CONFEVT", 0, Lifetime::Sporadic);
 
   std::bitset<16> binaryoptions;
   binaryoptions[o2::trd::TRDVerboseBit] = cfgc.options().get<bool>("verbose");
@@ -77,6 +79,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   binaryoptions[o2::trd::TRDOnlyCalibrationTriggerBit] = cfgc.options().get<bool>("onlycalibrationtrigger");
   binaryoptions[o2::trd::TRDSortDigits] = cfgc.options().get<bool>("sortDigits");
   binaryoptions[o2::trd::TRDLinkStats] = cfgc.options().get<bool>("detailed-link-stats");
+  binaryoptions[o2::trd::TRDEnableConfigEvents] = cfgc.options().get<bool>("enable-config-events");
+
   AlgorithmSpec algoSpec;
   algoSpec = AlgorithmSpec{adaptFromTask<o2::trd::DataReaderTask>(tracklethcheader, halfchamberwords, halfchambermajor, binaryoptions)};
   if (binaryoptions[o2::trd::TRDGenerateStats]) {
