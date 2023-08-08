@@ -35,7 +35,7 @@ o2::framework::DataProcessorSpec getTRDCalibWriterSpec(bool vdexb, bool gain, bo
                                 "calibdata",
                                 BranchDefinition<o2::trd::AngularResidHistos>{InputSpec{"calibdata", "TRD", "ANGRESHISTS"}, "AngularResids", (vdexb ? 1 : 0)},
                                 BranchDefinition<std::vector<o2::trd::PHData>>{InputSpec{"phValues", "TRD", "PULSEHEIGHT"}, "PulseHeight", (ph ? 1 : 0)},
-                                BranchDefinition<o2::trd::GainCalibHistos>{InputSpec{"calibdatagain", "TRD", "GAINCALIBHISTS"}, "GainHistograms", (gain ? 1 : 0)})();
+                                BranchDefinition<std::vector<int>>{InputSpec{"calibdatagain", "TRD", "GAINCALIBHISTS"}, "GainHistograms", (gain ? 1 : 0)})();
 };
 
 } // end namespace trd
