@@ -365,7 +365,8 @@ void Spline2DHelper<DataT>::approximateDataPoints(
     }
   } // data points
 
-  // add extra smoothness for a case some data is missing
+  // add extra smoothness in case some data is missing
+
   for (int iu = 0; iu < nu - 1; iu++) {
     for (int iv = 0; iv < nv - 1; iv++) {
       int smoothPoint[4][2] = {
@@ -524,7 +525,7 @@ int Spline2DHelper<DataT>::test(const bool draw, const bool drawDataPoints)
     auto stopTime = std::chrono::high_resolution_clock::now();
     statTime += std::chrono::duration_cast<std::chrono::nanoseconds>(stopTime - startTime);
 
-    //if (itry == 0)
+    // if (itry == 0)
     if (0) {
       TFile outf("testSpline2D.root", "recreate");
       if (outf.IsZombie()) {

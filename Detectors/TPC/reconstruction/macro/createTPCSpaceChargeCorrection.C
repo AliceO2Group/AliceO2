@@ -84,9 +84,8 @@ void createTPCSpaceChargeCorrection(
 {
   initSpaceCharge(histoFileName, histoName);
 
-  TPCFastSpaceChargeCorrectionHelper::instance()->setGlobalSpaceChargeCorrection(getGlobalSpaceChargeCorrection);
-  std::unique_ptr<TPCFastSpaceChargeCorrection> spCorrection = TPCFastSpaceChargeCorrectionHelper::instance()->create();
-
+  TPCFastSpaceChargeCorrectionHelper::instance()->setNthreadsToMaximum();
+  std::unique_ptr<TPCFastSpaceChargeCorrection> spCorrection = TPCFastSpaceChargeCorrectionHelper::instance()->createFromGlobalCorrection(getGlobalSpaceChargeCorrection);
   std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0, *spCorrection));
 
   fastTransform->writeToFile(outputFileName);
@@ -120,9 +119,9 @@ void createTPCSpaceChargeCorrection(
   spaceCharge = std::make_unique<SC>(mField, nZ, nR, nPhi);
   spaceCharge->setGlobalCorrectionsFromFile(scFile, Side::A);
   spaceCharge->setGlobalCorrectionsFromFile(scFile, Side::C);
-  TPCFastSpaceChargeCorrectionHelper::instance()->setGlobalSpaceChargeCorrection(getGlobalSpaceChargeCorrection);
 
-  std::unique_ptr<TPCFastSpaceChargeCorrection> spCorrection = TPCFastSpaceChargeCorrectionHelper::instance()->create();
+  TPCFastSpaceChargeCorrectionHelper::instance()->setNthreadsToMaximum();
+  std::unique_ptr<TPCFastSpaceChargeCorrection> spCorrection = TPCFastSpaceChargeCorrectionHelper::instance()->createFromGlobalCorrection(getGlobalSpaceChargeCorrection);
   std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0, *spCorrection));
 
   fastTransform->writeToFile(outputFileName, "ccdb_object");
@@ -182,9 +181,10 @@ void createTPCSpaceChargeCorrectionLinearCombination(
     spaceChargeStack->setGlobalCorrectionsFromFile(stackBoundaryFile, Side::C);
   }
 
-  TPCFastSpaceChargeCorrectionHelper::instance()->setGlobalSpaceChargeCorrection(getGlobalSpaceChargeCorrectionLinearCombination);
-  std::unique_ptr<TPCFastSpaceChargeCorrection> spCorrection = TPCFastSpaceChargeCorrectionHelper::instance()->create();
+  TPCFastSpaceChargeCorrectionHelper::instance()->setNthreadsToMaximum();
+  std::unique_ptr<TPCFastSpaceChargeCorrection> spCorrection = TPCFastSpaceChargeCorrectionHelper::instance()->createFromGlobalCorrection(getGlobalSpaceChargeCorrectionLinearCombination);
   std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0, *spCorrection));
+
   fastTransform->writeToFile(outputFileName, "ccdb_object");
 
   if (debug > 0) {
@@ -230,9 +230,8 @@ void createTPCSpaceChargeCorrectionAnalytical(
   TFile fSC("distortions_analytical.root", "RECREATE");
   spaceCharge->dumpAnalyticalCorrectionsDistortions(fSC);
 
-  TPCFastSpaceChargeCorrectionHelper::instance()->setLocalSpaceChargeCorrection(getLocalSpaceChargeCorrection);
-
-  std::unique_ptr<TPCFastSpaceChargeCorrection> spCorrection = TPCFastSpaceChargeCorrectionHelper::instance()->create();
+  TPCFastSpaceChargeCorrectionHelper::instance()->setNthreadsToMaximum();
+  std::unique_ptr<TPCFastSpaceChargeCorrection> spCorrection = TPCFastSpaceChargeCorrectionHelper::instance()->createFromLocalCorrection(getLocalSpaceChargeCorrection);
   std::unique_ptr<TPCFastTransform> fastTransform(TPCFastTransformHelperO2::instance()->create(0, *spCorrection));
 
   fastTransform->writeToFile(outputFileName, "ccdb_object");

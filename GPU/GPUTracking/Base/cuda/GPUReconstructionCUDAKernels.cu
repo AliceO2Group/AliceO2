@@ -56,7 +56,7 @@ class GPUDebugTiming
   }
 
  private:
-  void** mDeviceTimers;
+  GPUReconstruction::deviceEvent* mDeviceTimers;
   cudaStream_t* mStreams;
   GPUReconstruction::krnlSetup& mXYZ;
   GPUReconstructionCUDABackend* mRec;
@@ -183,7 +183,7 @@ void GPUReconstructionCUDABackend::PrintKernelOccupancies()
 {
   int maxBlocks = 0, threads = 0, suggestedBlocks = 0;
   cudaFuncAttributes attr;
-  GPUFailedMsg(cuCtxPushCurrent(mInternals->CudaContext));
+  GPUFailedMsg(cudaSetDevice(mDeviceId));
 #define GPUCA_KRNL(x_class, x_attributes, x_arguments, x_forward) GPUCA_KRNL_WRAP(GPUCA_KRNL_LOAD_, x_class, x_attributes, x_arguments, x_forward)
 #define GPUCA_KRNL_LOAD_single(x_class, x_attributes, x_arguments, x_forward)                                                          \
   GPUFailedMsg(cudaOccupancyMaxPotentialBlockSize(&suggestedBlocks, &threads, GPUCA_M_CAT(krnl_, GPUCA_M_KRNL_NAME(x_class))));        \
@@ -199,7 +199,6 @@ void GPUReconstructionCUDABackend::PrintKernelOccupancies()
 #undef GPUCA_KRNL
 #undef GPUCA_KRNL_LOAD_single
 #undef GPUCA_KRNL_LOAD_multi
-  GPUFailedMsg(cuCtxPopCurrent(&mInternals->CudaContext));
 }
 
 template class GPUReconstructionKernels<GPUReconstructionCUDABackend>;

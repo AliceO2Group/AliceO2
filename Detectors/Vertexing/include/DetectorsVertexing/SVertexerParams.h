@@ -30,6 +30,10 @@ namespace vertexing
 struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParams> {
 
   // parameters
+  bool createFullV0s = false;      ///< fill V0s prongs/kinematics
+  bool createFullCascades = false; ///< fill cascades prongs/kinematics
+  bool createFull3Bodies = false;  ///< fill 3-body decays prongs/kinematics
+
   bool useAbsDCA = true;        ///< use abs dca minimization
   bool selectBestV0 = false;    ///< match only the best v0 for each cascade candidate
   float maxChi2 = 2.;           ///< max dca from prongs to vertex

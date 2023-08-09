@@ -99,33 +99,9 @@ class MatchHMP
                             ITSTPCTRD,
                             SIZEALL };
 
-  ///< check if partucular flags are set
-  bool isDebugFlag(UInt_t flags) const { return mDBGFlags & flags; }
-
-  ///< get debug trees flags
-  UInt_t getDebugFlags() const { return mDBGFlags; }
-
-  ///< set or unset debug stream flag
-  void setDebugFlag(UInt_t flag, bool on = true);
-
   std::vector<o2::dataformats::MatchInfoHMP>& getMatchedTrackVector(o2::globaltracking::MatchHMP::trackType index) { return mMatchedTracks[index]; }
 
   std::vector<o2::MCCompLabel>& getMatchedHMPLabelsVector(o2::globaltracking::MatchHMP::trackType index) { return mOutHMPLabels[index]; } ///< get vector of HMP label of matched tracks
-
-  ///< set input TPC cluster sharing map
-  void setTPCClustersSharingMap(const gsl::span<const unsigned char> inp)
-  {
-    mTPCRefitterShMap = inp;
-  }
-
-  ///< set input TPC clusters
-  void setTPCClustersInp(const o2::tpc::ClusterNativeAccess* inp)
-  {
-    mTPCClusterIdxStruct = inp;
-  }
-
-  void setFIT(bool value = true) { mIsFIT = value; }
-  int findFITIndex(int bc);
 
   void setTS(unsigned long creationTime)
   {
@@ -195,46 +171,23 @@ class MatchHMP
 
   unsigned long mTimestamp = 0; ///< in ms
 
-  // from ruben
-  gsl::span<const o2::tpc::TrackTPC> mTPCTracksArray; ///< input TPC tracks span
-
   ///>>>------ these are input arrays which should not be modified by the matching code
   //           since this info is provided by external device
   std::vector<o2::dataformats::TrackTPCITS> mITSTPCTracksArrayInp; ///< input tracks
   gsl::span<const Cluster> mHMPClustersArray;                      ///< input HMPID clusters
   gsl::span<const Trigger> mHMPTriggersArray;                      ///< input HMPID triggers
 
-  /// data needed for refit of time-constrained TPC tracks
-  gsl::span<const o2::tpc::TPCClRefElem> mTPCTrackClusIdx;            ///< input TPC track cluster indices span
-  gsl::span<const unsigned char> mTPCRefitterShMap;                   ///< externally set TPC clusters sharing map
-  const o2::tpc::ClusterNativeAccess* mTPCClusterIdxStruct = nullptr; ///< struct holding the TPC cluster indices
-  std::unique_ptr<o2::gpu::TPCFastTransform> mTPCTransform;           ///< TPC cluster transformation
-  std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mTPCRefitter;         ///< TPC refitter used for TPC tracks refit during the reconstruction
-
   const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mHMPClusLabels; ///< input HMP clusters MC labels (pointer to read from tree)
 
   int mNotPropagatedToHMP[o2::globaltracking::MatchHMP::trackType::SIZE]; ///< number of tracks failing in propagation
 
   ///< working copy of the input tracks
-  std::vector<matchTrack> mTracksWork[o2::globaltracking::MatchHMP::trackType::SIZE];               ///< track params prepared for matching + time value
-  std::vector<matchTrack> mTracksWorkFastSpaceMatch[o2::globaltracking::MatchHMP::trackType::SIZE]; ///< track params prepared for matching + time value
-  std::vector<matchTrack> mTracksWorkTimeMatch[o2::globaltracking::MatchHMP::trackType::SIZE];      ///< track params prepared for matching + time value
-  std::vector<matchTrack> mTracksWorkSpaceMatch[o2::globaltracking::MatchHMP::trackType::SIZE];     ///< track params prepared for matching + time value
-
-  std::vector<o2::MCCompLabel> mTracksLblWork[o2::globaltracking::MatchHMP::trackType::SIZE]; ///< TPCITS track labels
-  ///< per sector indices of track entry in mTracksWork
-  std::vector<int> mTracksSectIndexCache[o2::globaltracking::MatchHMP::trackType::SIZE];
-  std::vector<int> mTracksSectIndexCacheFastSpaceMatch[o2::globaltracking::MatchHMP::trackType::SIZE];
-
+  std::vector<matchTrack> mTracksWork[o2::globaltracking::MatchHMP::trackType::SIZE]; ///< track params prepared for matching + time value
   std::vector<Trigger> mHMPTriggersWork;
-  std::vector<Cluster> mHMPClusWork; ///< track params prepared for matching
-  std::vector<int8_t> mSideTPC;      ///< track side for TPC tracks
+  std::vector<o2::MCCompLabel> mTracksLblWork[o2::globaltracking::MatchHMP::trackType::SIZE]; ///< track labels
 
-  std::vector<float> mExtraTPCFwdTime; ///< track extra params for TPC tracks: Fws Max time
-
-  ///< per sector indices of HMP cluster entry in mHMPClusWork
-  std::array<std::vector<int>, o2::constants::math::NSectors> mHMPClusSectIndexCache;
-  std::vector<int> mHMPTriggersIndexCache;
+  std::vector<int> mTracksIndexCache[o2::globaltracking::MatchHMP::trackType::SIZE]; ///< indices of track entry in mTracksWork
+  std::vector<int> mHMPTriggersIndexCache;                                           ///< indices of track entry in mHMPTriggersWork
 
   ///< array of matched HMPCluster with matching information
   std::vector<o2::dataformats::MatchInfoHMP> mMatchedTracks[o2::globaltracking::MatchHMP::trackType::SIZE]; // this is the output of the matching -> UNCONS, CONSTR
@@ -243,11 +196,7 @@ class MatchHMP
   std::vector<o2::dataformats::GlobalTrackID> mTrackGid[o2::globaltracking::MatchHMP::trackType::SIZE]; ///< expected times and others
   std::vector<int> mMatchedTracksIndex[o2::globaltracking::MatchHMP::trackType::SIZE];                  // vector of indexes of the tracks to be matched
 
-  int mNumOfTriggers;                  // number of HMP triggers
-  int* mSortedTriggersIndex = nullptr; //[mNumOfTriggers]
-
-  std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
-  UInt_t mDBGFlags = 0;
+  int mNumOfTriggers; // number of HMP triggers
 
   ///----------- aux stuff --------------///
   static constexpr float MAXSNP = 0.85; // max snp of ITS or TPC track at xRef to be matched

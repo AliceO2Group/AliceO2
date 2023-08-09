@@ -65,16 +65,6 @@ class GPUReconstructionCUDA : public GPUReconstructionKernels<GPUReconstructionC
   int ExitDevice_Runtime() override;
   void UpdateSettings() override;
 
-  class GPUThreadContextCUDA : public GPUThreadContext
-  {
-   public:
-    GPUThreadContextCUDA(GPUReconstructionCUDAInternals* context);
-    ~GPUThreadContextCUDA() override;
-
-   private:
-    GPUReconstructionCUDAInternals* mContext = nullptr;
-  };
-
   std::unique_ptr<GPUThreadContext> GetThreadContext() override;
   bool CanQueryMaxMemory() override { return true; }
   void SynchronizeGPU() override;
@@ -85,16 +75,16 @@ class GPUReconstructionCUDA : public GPUReconstructionKernels<GPUReconstructionC
   bool IsEventDone(deviceEvent* evList, int nEvents = 1) override;
 
   int PrepareTextures() override;
-  int registerMemoryForGPU(const void* ptr, size_t size) override;
-  int unregisterMemoryForGPU(const void* ptr) override;
+  int registerMemoryForGPU_internal(const void* ptr, size_t size) override;
+  int unregisterMemoryForGPU_internal(const void* ptr) override;
   void startGPUProfiling() override;
   void endGPUProfiling() override;
 
-  size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) override;
-  size_t TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst) override;
-  size_t GPUMemCpy(void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) override;
-  void ReleaseEvent(deviceEvent* ev) override;
-  void RecordMarker(deviceEvent* ev, int stream) override;
+  size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent ev = nullptr) override;
+  size_t TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst) override;
+  size_t GPUMemCpy(void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) override;
+  void ReleaseEvent(deviceEvent ev) override;
+  void RecordMarker(deviceEvent ev, int stream) override;
 
   void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits, std::unique_ptr<o2::its::TimeFrame>* timeFrame) override;
 

@@ -20,8 +20,11 @@
 #pragma link C++ class o2::calibration::TimeSlotCalibration < o2::trd::AngularResidHistos> + ;
 #pragma link C++ class o2::calibration::TimeSlot < o2::trd::GainCalibHistos> + ;
 #pragma link C++ class o2::calibration::TimeSlotCalibration < o2::trd::GainCalibHistos> + ;
+#pragma link C++ class o2::calibration::TimeSlot < o2::trd::T0FitHistos> + ;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::trd::T0FitHistos> + ;
 #pragma link C++ class o2::trd::CalibratorNoise + ;
 #pragma link C++ class o2::trd::CalibratorGain + ;
+#pragma link C++ class o2::trd::T0Fit + ;
 #pragma link C++ class o2::trd::ChannelInfoDetailed + ;
 #pragma link C++ class o2::trd::TrackBasedCalib + ;
 #pragma link C++ class o2::trd::PadCalibCCDBBuilder + ;

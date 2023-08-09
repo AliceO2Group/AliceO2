@@ -102,10 +102,10 @@ class GPUChain
     }
   }
   inline bool IsEventDone(deviceEvent* evList, int nEvents = 1) { return mRec->IsEventDone(evList, nEvents); }
-  inline void RecordMarker(deviceEvent* ev, int stream) { mRec->RecordMarker(ev, stream); }
+  inline void RecordMarker(deviceEvent ev, int stream) { mRec->RecordMarker(ev, stream); }
   virtual inline std::unique_ptr<GPUReconstruction::GPUThreadContext> GetThreadContext() { return mRec->GetThreadContext(); }
   inline void SynchronizeGPU() { mRec->SynchronizeGPU(); }
-  inline void ReleaseEvent(deviceEvent* ev, bool doGPU = true)
+  inline void ReleaseEvent(deviceEvent ev, bool doGPU = true)
   {
     if (doGPU) {
       mRec->ReleaseEvent(ev);
@@ -120,16 +120,16 @@ class GPUChain
   inline void ResetHelperThreads(int helpers) { mRec->ResetHelperThreads(helpers); }
   inline int GPUDebug(const char* state = "UNKNOWN", int stream = -1) { return mRec->GPUDebug(state, stream); }
   // nEvents is forced to 0 if evList ==  nullptr
-  inline void TransferMemoryResourceToGPU(RecoStep step, GPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { timeCpy(step, true, &GPUReconstructionCPU::TransferMemoryResourceToGPU, res, stream, ev, evList, nEvents); }
-  inline void TransferMemoryResourceToHost(RecoStep step, GPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { timeCpy(step, false, &GPUReconstructionCPU::TransferMemoryResourceToHost, res, stream, ev, evList, nEvents); }
+  inline void TransferMemoryResourceToGPU(RecoStep step, GPUMemoryResource* res, int stream = -1, deviceEvent ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { timeCpy(step, true, &GPUReconstructionCPU::TransferMemoryResourceToGPU, res, stream, ev, evList, nEvents); }
+  inline void TransferMemoryResourceToHost(RecoStep step, GPUMemoryResource* res, int stream = -1, deviceEvent ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { timeCpy(step, false, &GPUReconstructionCPU::TransferMemoryResourceToHost, res, stream, ev, evList, nEvents); }
   inline void TransferMemoryResourcesToGPU(RecoStep step, GPUProcessor* proc, int stream = -1, bool all = false) { timeCpy(step, true, &GPUReconstructionCPU::TransferMemoryResourcesToGPU, proc, stream, all); }
   inline void TransferMemoryResourcesToHost(RecoStep step, GPUProcessor* proc, int stream = -1, bool all = false) { timeCpy(step, false, &GPUReconstructionCPU::TransferMemoryResourcesToHost, proc, stream, all); }
-  inline void TransferMemoryResourceLinkToGPU(RecoStep step, short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { timeCpy(step, true, &GPUReconstructionCPU::TransferMemoryResourceLinkToGPU, res, stream, ev, evList, nEvents); }
-  inline void TransferMemoryResourceLinkToHost(RecoStep step, short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { timeCpy(step, false, &GPUReconstructionCPU::TransferMemoryResourceLinkToHost, res, stream, ev, evList, nEvents); }
+  inline void TransferMemoryResourceLinkToGPU(RecoStep step, short res, int stream = -1, deviceEvent ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { timeCpy(step, true, &GPUReconstructionCPU::TransferMemoryResourceLinkToGPU, res, stream, ev, evList, nEvents); }
+  inline void TransferMemoryResourceLinkToHost(RecoStep step, short res, int stream = -1, deviceEvent ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { timeCpy(step, false, &GPUReconstructionCPU::TransferMemoryResourceLinkToHost, res, stream, ev, evList, nEvents); }
   // Todo: retrieve step from proc, move kernelClass->GetStep to retrieve it from GetProcessor
-  inline void WriteToConstantMemory(RecoStep step, size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) { timeCpy(step, true, &GPUReconstructionCPU::WriteToConstantMemory, offset, src, size, stream, ev); }
-  inline void GPUMemCpy(RecoStep step, void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { timeCpy(step, toGPU, &GPUReconstructionCPU::GPUMemCpy, dst, src, size, stream, toGPU, ev, evList, nEvents); }
-  inline void GPUMemCpyAlways(RecoStep step, void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1)
+  inline void WriteToConstantMemory(RecoStep step, size_t offset, const void* src, size_t size, int stream = -1, deviceEvent ev = nullptr) { timeCpy(step, true, &GPUReconstructionCPU::WriteToConstantMemory, offset, src, size, stream, ev); }
+  inline void GPUMemCpy(RecoStep step, void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { timeCpy(step, toGPU, &GPUReconstructionCPU::GPUMemCpy, dst, src, size, stream, toGPU, ev, evList, nEvents); }
+  inline void GPUMemCpyAlways(RecoStep step, void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1)
   {
     if (toGPU == -1) {
       memcpy(dst, src, size);

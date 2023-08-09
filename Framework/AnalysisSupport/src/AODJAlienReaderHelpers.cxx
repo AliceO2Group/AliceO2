@@ -164,6 +164,8 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
 
     // selected the TFN input and
     // create list of requested tables
+    bool reportTFN = false;
+    bool reportTFFileName = false;
     header::DataHeader TFNumberHeader;
     header::DataHeader TFFileNameHeader;
     std::vector<OutputRoute> requestedTables;
@@ -172,9 +174,11 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
       if (DataSpecUtils::partialMatch(route.matcher, header::DataOrigin("TFN"))) {
         auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
         TFNumberHeader = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
+        reportTFN = true;
       } else if (DataSpecUtils::partialMatch(route.matcher, header::DataOrigin("TFF"))) {
         auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
         TFFileNameHeader = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
+        reportTFFileName = true;
       } else {
         requestedTables.emplace_back(route);
       }
@@ -188,7 +192,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
                            fileCounter,
                            numTF,
                            watchdog,
-                           didir](Monitoring& monitoring, DataAllocator& outputs, ControlService& control, DeviceSpec const& device) {
+                           didir, reportTFN, reportTFFileName](Monitoring& monitoring, DataAllocator& outputs, ControlService& control, DeviceSpec const& device) {
       // Each parallel reader device.inputTimesliceId reads the files fileCounter*device.maxInputTimeslices+device.inputTimesliceId
       // the TF to read is numTF
       assert(device.inputTimesliceId < device.maxInputTimeslices);
@@ -252,21 +256,25 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
         }
 
         if (first) {
-          // TF number
-          auto timeFrameNumber = didir->getTimeFrameNumber(dh, fcnt, ntf);
-          auto o = Output(TFNumberHeader);
-          outputs.make<uint64_t>(o) = timeFrameNumber;
-
-          // Origin file name for derived output map
-          auto o2 = Output(TFFileNameHeader);
-          auto fileAndFolder = didir->getFileFolder(dh, fcnt, ntf);
-          std::string currentFilename(fileAndFolder.file->GetName());
-          if (strcmp(fileAndFolder.file->GetEndpointUrl()->GetProtocol(), "file") == 0 && fileAndFolder.file->GetEndpointUrl()->GetFile()[0] != '/') {
-            // This is not an absolute local path. Make it absolute.
-            static std::string pwd = gSystem->pwd() + std::string("/");
-            currentFilename = pwd + std::string(fileAndFolder.file->GetName());
+          if (reportTFN) {
+            // TF number
+            auto timeFrameNumber = didir->getTimeFrameNumber(dh, fcnt, ntf);
+            auto o = Output(TFNumberHeader);
+            outputs.make<uint64_t>(o) = timeFrameNumber;
           }
-          outputs.make<std::string>(o2) = currentFilename;
+
+          if (reportTFFileName) {
+            // Origin file name for derived output map
+            auto o2 = Output(TFFileNameHeader);
+            auto fileAndFolder = didir->getFileFolder(dh, fcnt, ntf);
+            std::string currentFilename(fileAndFolder.file->GetName());
+            if (strcmp(fileAndFolder.file->GetEndpointUrl()->GetProtocol(), "file") == 0 && fileAndFolder.file->GetEndpointUrl()->GetFile()[0] != '/') {
+              // This is not an absolute local path. Make it absolute.
+              static std::string pwd = gSystem->pwd() + std::string("/");
+              currentFilename = pwd + std::string(fileAndFolder.file->GetName());
+            }
+            outputs.make<std::string>(o2) = currentFilename;
+          }
         }
 
         first = false;

@@ -69,5 +69,6 @@
 #pragma link C++ class o2::tpc::dcs::DataPoint < o2::tpc::dcs::HV::StackState> + ;
 #pragma link C++ class o2::tpc::dcs::DataPointVector < o2::tpc::dcs::HV::StackState> + ;
 #pragma link C++ class o2::tpc::dcs::Gas + ;
+#pragma link C++ class o2::tpc::PIDResponse + ;
 
 #endif

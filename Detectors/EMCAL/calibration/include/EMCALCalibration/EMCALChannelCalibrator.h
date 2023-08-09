@@ -42,8 +42,6 @@
 #include <boost/histogram.hpp>
 #include <fstream>
 
-using boostHisto2d = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>, boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>>, boost::histogram::unlimited_storage<std::allocator<char>>>;
-
 namespace o2
 {
 namespace emcal
@@ -168,7 +166,7 @@ void EMCALChannelCalibrator<DataInput, DataOutput>::finalizeSlot(o2::calibration
   std::map<std::string, std::string> md;
   if constexpr (std::is_same<DataInput, o2::emcal::EMCALChannelData>::value) {
     LOG(debug) << "Launching the calibration.";
-    auto bcm = mCalibrator->calibrateBadChannels(c->getHisto(), c->getHistoTime());
+    o2::emcal::BadChannelMap bcm = mCalibrator->calibrateBadChannels(c->getHisto(), c->getHistoTime());
     LOG(debug) << "Done with the calibraiton";
     // for the CCDB entry
     auto clName = o2::utils::MemFileHelper::getClassName(bcm);
@@ -181,6 +179,7 @@ void EMCALChannelCalibrator<DataInput, DataOutput>::finalizeSlot(o2::calibration
 
       TFile fLocalStorage((EMCALCalibParams::Instance().localRootFilePath).c_str(), ffile.good() == true ? "update" : "recreate");
       fLocalStorage.cd();
+
       TH2F* histBCMap = (TH2F*)bcm.getHistogramRepresentation();
       std::string nameBCHist = "BadChannels_" + std::to_string(slot.getStartTimeMS());
       histBCMap->Write(nameBCHist.c_str(), TObject::kOverwrite);
@@ -196,13 +195,13 @@ void EMCALChannelCalibrator<DataInput, DataOutput>::finalizeSlot(o2::calibration
       fLocalStorage.Close();
     }
   } else if constexpr (std::is_same<DataInput, o2::emcal::EMCALTimeCalibData>::value) {
-    auto tcd = mCalibrator->calibrateTime(c->getHisto(), EMCALCalibParams::Instance().minTimeForFit_tc, EMCALCalibParams::Instance().maxTimeForFit_tc, EMCALCalibParams::Instance().restrictFitRangeToMax_tc);
+    o2::emcal::TimeCalibrationParams tcd = mCalibrator->calibrateTime(c->getHisto(), EMCALCalibParams::Instance().minTimeForFit_tc, EMCALCalibParams::Instance().maxTimeForFit_tc, EMCALCalibParams::Instance().restrictFitRangeToMax_tc);
 
     // for the CCDB entry
     auto clName = o2::utils::MemFileHelper::getClassName(slot);
     auto flName = o2::ccdb::CcdbApi::generateFileName(clName);
 
-    //prepareCCDBobjectInfo
+    // prepareCCDBobjectInfo
     mInfoVector.emplace_back(CalibDB::getCDBPathTimeCalibrationParams(), clName, flName, md, slot.getStartTimeMS(), slot.getEndTimeMS() + EMCALCalibParams::Instance().endTimeMargin, true);
     mCalibObjectVector.push_back(tcd);
 
@@ -300,8 +299,8 @@ bool EMCALChannelCalibrator<DataInput, DataOutput>::adoptSavedData(const o2::cal
     if (!hEnergy || !hTime) {
       return false;
     }
-    auto hEnergyBoost = o2::utils::boostHistoFromRoot_2D(hEnergy);
-    auto hTimeBoost = o2::utils::boostHistoFromRoot_2D(hTime);
+    auto hEnergyBoost = o2::utils::boostHistoFromRoot_2D<boostHisto2d>(hEnergy);
+    auto hTimeBoost = o2::utils::boostHistoFromRoot_2D<boostHisto2d>(hTime);
 
     c->setHisto(hEnergyBoost);
     c->setHistoTime(hTimeBoost);
@@ -311,7 +310,7 @@ bool EMCALChannelCalibrator<DataInput, DataOutput>::adoptSavedData(const o2::cal
     if (!hTime) {
       return false;
     }
-    auto hTimeBoost = o2::utils::boostHistoFromRoot_2D(hTime);
+    auto hTimeBoost = o2::utils::boostHistoFromRoot_2D<boostHisto2d>(hTime);
 
     c->setHisto(hTimeBoost);
   }

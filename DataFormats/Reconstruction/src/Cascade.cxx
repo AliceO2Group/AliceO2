@@ -12,10 +12,9 @@
 #include "ReconstructionDataFormats/Cascade.h"
 
 using namespace o2::dataformats;
-
+/*
 Cascade::Cascade(const std::array<float, 3>& xyz, const std::array<float, 3>& pxyz, const std::array<float, 6>& covxyz,
-                 const o2::track::TrackParCov& v0, const o2::track::TrackParCov& bachelor,
-                 int v0ID, GIndex bachelorID, o2::track::PID pid)
+                 const o2::track::TrackParCov& v0, const o2::track::TrackParCov& bachelor, o2::track::PID pid) : mProngs{v0, bachelor}
 {
   std::array<float, 21> covC{0.}, covV{}, covB{};
   v0.getCovXYZPxPyPzGlo(covV);
@@ -27,8 +26,7 @@ Cascade::Cascade(const std::array<float, 3>& xyz, const std::array<float, 3>& px
   }
   this->set(xyz, pxyz, covC, v0.getCharge() + bachelor.getCharge(), true, pid);
   this->checkCorrelations();
-  setV0ID(v0ID);
-  setBachelorID(bachelorID);
   setV0Track(v0);
   setBachelorTrack(bachelor);
 }
+*/

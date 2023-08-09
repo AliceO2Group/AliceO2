@@ -390,7 +390,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
                        arrow->updateMessagesDestroyed(totalMessages);
                        auto& stats = ctx.services().get<DataProcessingStats>();
                        stats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_BYTES_DESTROYED), DataProcessingStats::Op::Set, static_cast<int64_t>(arrow->bytesDestroyed())});
-                       stats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_MESSAGES_DESTROYED), DataProcessingStats::Op::Set, static_cast<int64_t>(arrow->messagesDestroyed())}); 
+                       stats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_MESSAGES_DESTROYED), DataProcessingStats::Op::Set, static_cast<int64_t>(arrow->messagesDestroyed())});
                        stats.processCommandQueue(); },
     .driverInit = [](ServiceRegistryRef registry, DeviceConfig const& dc) {
                        auto config = new RateLimitConfig{};
@@ -504,6 +504,10 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
           return !DataSpecUtils::partialMatch(o, o2::header::DataDescription{"TFNumber"}) && !DataSpecUtils::partialMatch(o, o2::header::DataDescription{"TFFilename"}) && std::none_of(requestedAODs.begin(), requestedAODs.end(), [&](InputSpec const& i) { return DataSpecUtils::match(i, o); });
         });
         reader->outputs.erase(o_end, reader->outputs.end());
+        if (reader->outputs.empty()) {
+          // nothing to read
+          workflow.erase(reader);
+        }
       }
 
       // replace writer as some outputs may have become dangling and some are now consumed
@@ -527,21 +531,21 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
         }
       }
 
-        // file sink for any AOD output
-        if (!outputsInputsAOD.empty()) {
-          // add TFNumber and TFFilename as input to the writer
-          outputsInputsAOD.emplace_back("tfn", "TFN", "TFNumber");
-          outputsInputsAOD.emplace_back("tff", "TFF", "TFFilename");
-          workflow.push_back(CommonDataProcessors::getGlobalAODSink(dod, outputsInputsAOD));
+      // file sink for any AOD output
+      if (!outputsInputsAOD.empty()) {
+        // add TFNumber and TFFilename as input to the writer
+        outputsInputsAOD.emplace_back("tfn", "TFN", "TFNumber");
+        outputsInputsAOD.emplace_back("tff", "TFF", "TFFilename");
+        workflow.push_back(CommonDataProcessors::getGlobalAODSink(dod, outputsInputsAOD));
+      }
+      // Move the dummy sink at the end, if needed
+      for (size_t i = 0; i < workflow.size(); ++i) {
+        if (workflow[i].name == "internal-dpl-injected-dummy-sink") {
+          workflow.push_back(workflow[i]);
+          workflow.erase(workflow.begin() + i);
+          break;
         }
-        // Move the dummy sink at the end, if needed
-        for (size_t i = 0; i < workflow.size(); ++i) {
-          if (workflow[i].name == "internal-dpl-injected-dummy-sink") {
-            workflow.push_back(workflow[i]);
-            workflow.erase(workflow.begin() + i);
-            break;
-          }
-        } },
+      } },
     .kind = ServiceKind::Global};
 }
 

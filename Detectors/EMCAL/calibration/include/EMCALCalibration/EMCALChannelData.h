@@ -49,9 +49,9 @@ class EMCALCalibExtractor;
 
 class EMCALChannelData
 {
-  //using Slot = o2::calibration::TimeSlot<o2::emcal::EMCALChannelData>;
+  // using Slot = o2::calibration::TimeSlot<o2::emcal::EMCALChannelData>;
   using Cells = o2::emcal::Cell;
-  using boostHisto = boost::histogram::histogram<std::tuple<boost::histogram::axis::variable<double, boost::use_default, boost::use_default, std::allocator<double>>, boost::histogram::axis::variable<double, boost::use_default, boost::use_default, std::allocator<double>>>>;
+  using boostHisto = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>, boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>>>;
   using BadChannelMap = o2::emcal::BadChannelMap;
 
  public:
@@ -66,22 +66,8 @@ class EMCALChannelData
     o2::emcal::Geometry* mGeometry = o2::emcal::Geometry::GetInstanceFromRunNumber(300000);
     int NCELLS = mGeometry->GetNCells();
 
-    // boost histogram with amplitude vs. cell ID, specify the range and binning of the amplitude axis
-    std::vector<double> binEdgesCells;
-    for (int i = 0; i <= NCELLS; i++) {
-      binEdgesCells.push_back(i);
-    }
-    std::vector<double> binEdgesEnergy;
-    for (int i = 0; i <= mNBins; i++) {
-      binEdgesEnergy.push_back(static_cast<double>(i) * mRange / mNBins);
-    }
-    std::vector<double> binEdgesTime;
-    for (int i = 0; i <= mNBinsTime; i++) {
-      binEdgesTime.push_back(mRangeTimeLow + (static_cast<double>(i) * std::abs(mRangeTimeHigh - mRangeTimeLow)) / mNBinsTime);
-    }
-
-    mHisto = boost::histogram::make_histogram(boost::histogram::axis::variable<>(binEdgesEnergy), boost::histogram::axis::variable<>(binEdgesCells));
-    mHistoTime = boost::histogram::make_histogram(boost::histogram::axis::variable<>(binEdgesTime), boost::histogram::axis::variable<>(binEdgesCells));
+    mHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(mNBins, 0., mRange), boost::histogram::axis::regular<>(NCELLS, -0.5, NCELLS - 0.5));
+    mHistoTime = boost::histogram::make_histogram(boost::histogram::axis::regular<>(mNBinsTime, mRangeTimeHigh, mRangeTimeLow), boost::histogram::axis::regular<>(NCELLS, -0.5, NCELLS - 0.5));
   }
 
   ~EMCALChannelData() = default;

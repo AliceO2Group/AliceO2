@@ -456,5 +456,52 @@ bool TrackParCovFwd::propagateToVtxlinearWithMCS(double z, const std::array<floa
   return update(p, cov);
 }
 
+bool TrackParCovFwd::getCovXYZPxPyPzGlo(std::array<float, 21>& cv) const
+{
+  //---------------------------------------------------------------------
+  // This function returns the global covariance matrix of the fwdtrack params
+  //
+  // Cov(x,x) ... :   cv[0]
+  // Cov(y,x) ... :   cv[1]  cv[2]
+  // Cov(z,x) ... :   cv[3]  cv[4]  cv[5]
+  // Cov(px,x)... :   cv[6]  cv[7]  cv[8]  cv[9]
+  // Cov(py,x)... :   cv[10] cv[11] cv[12] cv[13] cv[14]
+  // Cov(pz,x)... :   cv[15] cv[16] cv[17] cv[18] cv[19] cv[20]
+  //---------------------------------------------------------------------
+  auto pt = getPt();
+  auto pt2 = pt * pt;
+  auto sign = getCharge();
+  auto spt = pt * getSnp();
+  auto cpt = std::sqrt((1. - getSnp()) * (1. + getSnp())) * pt * sign;
+  auto tpt2 = getTgl() * pt2 * sign;
+  auto scpt2 = spt * cpt * sign;
+  auto s2pt2 = spt * spt * sign;
+  auto c2pt2 = cpt * cpt * sign;
+
+  cv[0] = mCovariances(0, 0);
+  cv[1] = mCovariances(1, 0);
+  cv[2] = mCovariances(1, 1);
+  cv[3] = 0;
+  cv[4] = 0;
+  cv[5] = 0;
+  cv[6] = -mCovariances(0, 2) * spt - mCovariances(0, 4) * cpt * pt;
+  cv[7] = -mCovariances(1, 2) * spt - mCovariances(1, 4) * cpt * pt;
+  cv[8] = 0;
+  cv[9] = 2 * mCovariances(2, 4) * spt * cpt * pt + mCovariances(2, 2) * spt * spt + mCovariances(4, 4) * c2pt2 * pt2;
+  cv[10] = mCovariances(0, 2) * cpt * sign - mCovariances(0, 4) * spt * pt * sign;
+  cv[11] = mCovariances(1, 2) * cpt * sign - mCovariances(1, 4) * spt * pt * sign;
+  cv[12] = 0;
+  cv[13] = mCovariances(2, 4) * (s2pt2 - c2pt2) - mCovariances(2, 2) * scpt2 + mCovariances(4, 4) * scpt2 * pt2;
+  cv[14] = -2 * mCovariances(2, 4) * spt * cpt * pt + mCovariances(2, 2) * cpt * cpt + mCovariances(4, 4) * s2pt2 * pt2;
+  cv[15] = mCovariances(0, 3) * pt - mCovariances(0, 4) * tpt2;
+  cv[16] = mCovariances(1, 3) * pt - mCovariances(1, 4) * tpt2;
+  cv[17] = 0;
+  cv[18] = -mCovariances(2, 3) * spt * pt - mCovariances(3, 4) * cpt * pt2 + mCovariances(2, 4) * spt * tpt2 + mCovariances(4, 4) * cpt * tpt2 * pt;
+  cv[19] = mCovariances(2, 3) * cpt * pt * sign - mCovariances(3, 4) * spt * pt2 * sign - mCovariances(2, 4) * spt * tpt2 * sign + mCovariances(2, 4) * spt * tpt2 * pt2 * sign;
+  cv[20] = -2 * mCovariances(3, 4) * tpt2 * pt + mCovariances(3, 3) * pt2 + mCovariances(4, 4) * tpt2 * tpt2;
+
+  return true;
+}
+
 } // namespace track
 } // namespace o2

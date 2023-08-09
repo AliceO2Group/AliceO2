@@ -108,30 +108,19 @@ void DigitsToClustersTask::run(framework::ProcessingContext& pc)
         size_t(trig.getNumberOfObjects())};
       size_t clStart = clusters.size();
       mRec->Dig2Clu(trigDigits, clusters, mSigmaCut, true);
-      clusterTriggers.emplace_back(trig.getIr(), clStart,
-                                   clusters.size() - clStart);
+      clusterTriggers.emplace_back(trig.getIr(), clStart, clusters.size() - clStart);
     }
   }
   LOGP(info, "Received {} triggers with {} digits -> {} triggers with {} clusters",
-       triggers.size(), digits.size(), clusterTriggers.size(),
-       clusters.size());
-
+       triggers.size(), digits.size(), clusterTriggers.size(), clusters.size());
   mDigitsReceived += digits.size();
   mClustersReceived += clusters.size();
 
-  pc.outputs().snapshot(
-    o2::framework::Output{"HMP", "CLUSTERS", 0,
-                          o2::framework::Lifetime::Timeframe},
-    clusters);
-  pc.outputs().snapshot(
-    o2::framework::Output{"HMP", "INTRECORDS1", 0,
-                          o2::framework::Lifetime::Timeframe},
-    clusterTriggers);
+  pc.outputs().snapshot(o2::framework::Output{"HMP", "CLUSTERS", 0, o2::framework::Lifetime::Timeframe}, clusters);
+  pc.outputs().snapshot(o2::framework::Output{"HMP", "INTRECORDS1", 0, o2::framework::Lifetime::Timeframe}, clusterTriggers);
 
-  mExTimer.elapseMes("Clusterization of Digits received = " +
-                     std::to_string(mDigitsReceived));
-  mExTimer.elapseMes("Clusterization of Clusters received = " +
-                     std::to_string(mClustersReceived));
+  mExTimer.elapseMes("Clusterization of Digits received = " + std::to_string(mDigitsReceived));
+  mExTimer.elapseMes("Clusterization of Clusters received = " + std::to_string(mClustersReceived));
 }
 
 void DigitsToClustersTask::endOfStream(framework::EndOfStreamContext& ec)
