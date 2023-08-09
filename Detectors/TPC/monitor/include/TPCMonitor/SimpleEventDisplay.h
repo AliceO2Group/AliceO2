@@ -102,7 +102,7 @@ class SimpleEventDisplay : public CalibRawBase
   Int_t mFirstTimeBin;     //!< first time bin to accept
   Int_t mLastTimeBin;      //!< last time bin to accept
   UInt_t mSignalThreshold; //!< minimum adc value
-  Bool_t mShowOccupancy;   //<! true iff occupancy should be calculated, false otherwise
+  Bool_t mShowOccupancy;   //!< true iff occupancy should be calculated, false otherwise
 
   const Mapper& mTPCmapper; //! mapper
 

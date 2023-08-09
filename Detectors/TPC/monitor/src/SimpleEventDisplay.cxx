@@ -149,7 +149,7 @@ Int_t SimpleEventDisplay::updateROC(const Int_t roc,
   }
 
   CalROC& calROCOccupancy = mPadOccupancy.getCalArray(mCurrentROC);
-  auto occupancy = calROCOccupancy.getValue(row, pad);
+  const auto occupancy = calROCOccupancy.getValue(row, pad);
 
   if (corrSignal >= mSignalThreshold) {
     calROCOccupancy.setValue(row, pad, occupancy + 1.0f);
