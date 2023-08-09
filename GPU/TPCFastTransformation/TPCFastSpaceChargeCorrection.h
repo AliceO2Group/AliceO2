@@ -263,6 +263,9 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   char* mSplineData[3]; //! (transient!!) pointer to the spline data in the flat buffer
 
   size_t mSliceDataSizeBytes[3]; ///< size of the data for one slice in the flat buffer
+#ifndef GPUCA_ALIROOT_LIB
+  ClassDefNV(TPCFastSpaceChargeCorrection, 3);
+#endif
 };
 
 /// ====================================================
