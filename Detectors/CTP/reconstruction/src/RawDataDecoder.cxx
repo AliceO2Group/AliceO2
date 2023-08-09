@@ -368,7 +368,7 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
       LOG(error) << "LM:" << nLM << " L0:" << nL0 << " L1:" << nL1 << " TwI:" << nTwI << " Trigger cals wo inputTwoI:" << nTwoI;
     }
   }
-  if (mDoDigits && ~mDecodeInps) {
+  if (mDoDigits && !mDecodeInps) {
     for (auto const& dig : digitsMap) {
       digits.push_back(dig.second);
     }
