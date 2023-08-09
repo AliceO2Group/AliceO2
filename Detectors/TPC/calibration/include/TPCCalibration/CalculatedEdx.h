@@ -41,7 +41,7 @@ namespace o2::tpc
 /// How to use:
 /// Example:
 /// CalculatedEdx c{};
-/// c.loadCalibsFromCCDB(runNumber);
+/// c.loadCalibsFromCCDB(runNumberOrTimeStamp);
 /// start looping over the data
 /// c.setMembers(tpcTrackClIdxVecInput, clusterIndex, tpcTracks); // set the member variables: TrackTPC, TPCClRefElem, o2::tpc::ClusterNativeAccess
 /// c.setRefit(); // set the refit pointer to perform refitting of tracks, otherwise setPropagateTrack to true
@@ -114,7 +114,7 @@ class CalculatedEdx
   /// \param charge input vector
   /// \param low lower cluster cut (e.g. 0.05)
   /// \param high higher cluster cut (e.g. 0.6)
-  float getTruncMean(std::vector<float>& charge, float low, float high);
+  float getTruncMean(std::vector<float>& charge, float low, float high) const;
 
   /// get effective track length using simple analytical topology correction
   /// \param track input track
@@ -133,15 +133,15 @@ class CalculatedEdx
   float getTrackTopologyCorrectionPol(const o2::tpc::TrackTPC& track, const o2::tpc::ClusterNative& cl, const unsigned int region, const float charge, ChargeType chargeType, const float threshold) const;
 
   /// load calibration objects from CCDB
-  /// \param runNumber run number
-  void loadCalibsFromCCDB(int runNumber);
+  /// \param runNumberOrTimeStamp run number or time stamp
+  void loadCalibsFromCCDB(long runNumberOrTimeStamp);
 
  private:
-  std::vector<TrackTPC>* mTracks{nullptr};                       ///< vector containing the tpc tracks which will be processed.
-  std::vector<TPCClRefElem>* mTPCTrackClIdxVecInput{nullptr};    ///< input vector with TPC tracks cluster indicies
-  const o2::tpc::ClusterNativeAccess* mClusterIndex{nullptr};    ///< needed to access clusternative with tpctracks
-  o2::gpu::CorrectionMapsHelper mTPCCorrMapsHelper;              ///< cluster corrections map helper
-  std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mRefit{nullptr}; ///< TPC refitter used for TPC tracks refit during the reconstruction
+  std::vector<TrackTPC>* mTracks{nullptr};                             ///< vector containing the tpc tracks which will be processed.
+  std::vector<TPCClRefElem>* mTPCTrackClIdxVecInput{nullptr};          ///< input vector with TPC tracks cluster indicies
+  const o2::tpc::ClusterNativeAccess* mClusterIndex{nullptr};          ///< needed to access clusternative with tpctracks
+  o2::gpu::CorrectionMapsHelper mTPCCorrMapsHelper;                    ///< cluster corrections map helper
+  std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mRefit{nullptr};       ///< TPC refitter used for TPC tracks refit during the reconstruction
 
   int mMaxMissingCl{2};                                                ///< maximum number of missing clusters for subthreshold check
   float mField{5};                                                     ///< magnetic field in kG, used for track propagation

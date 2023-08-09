@@ -63,7 +63,7 @@ void CalculatedEdx::fillMissingClusters(int missingClusters[4], float minChargeT
   }
 
   // adding minimum charge/2
-  if (method == 1) {
+  else if (method == 1) {
     for (int roc = 0; roc < 4; roc++) {
       for (int i = 0; i < missingClusters[roc]; i++) {
         mChargeTotROC[roc].emplace_back(minChargeTot / 2);
@@ -157,7 +157,7 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
     track.getClusterReference(*mTPCTrackClIdxVecInput, iCl, sectorIndex, rowIndex, clusterIndexNumb);
 
     // get x position of the track
-    float xPosition = Mapper::instance().getPadCentre(PadPos(rowIndex, 0)).X();
+    const float xPosition = Mapper::instance().getPadCentre(PadPos(rowIndex, 0)).X();
 
     bool check = true;
     if (!mPropagateTrack) {
@@ -293,7 +293,7 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
       map[GEMstack::OROC2gem] = 2;
       map[GEMstack::OROC3gem] = 3;
 
-      float localY = o2::tpc::Mapper::instance().getPadCentre(o2::tpc::PadPos(rowIndex, pad)).Y();
+      const float localY = o2::tpc::Mapper::instance().getPadCentre(o2::tpc::PadPos(rowIndex, pad)).Y();
       const float offsPad = (cl.getPad() - pad) * o2::tpc::Mapper::instance().getPadRegionInfo(Mapper::REGION[rowIndex]).getPadWidth();
 
       // filling debug vectors
@@ -383,7 +383,7 @@ void CalculatedEdx::calculatedEdx(o2::tpc::TrackTPC& track, dEdxInfo& output, fl
   }
 }
 
-float CalculatedEdx::getTruncMean(std::vector<float>& charge, float low, float high)
+float CalculatedEdx::getTruncMean(std::vector<float>& charge, float low, float high) const
 {
   // sort the charge vector
   std::sort(charge.begin(), charge.end());
@@ -435,13 +435,17 @@ float CalculatedEdx::getTrackTopologyCorrectionPol(const o2::tpc::TrackTPC& trac
   return effectiveLength;
 }
 
-void CalculatedEdx::loadCalibsFromCCDB(int runNumber)
+void CalculatedEdx::loadCalibsFromCCDB(long runNumberOrTimeStamp)
 {
   // setup CCDB manager
   auto& cm = o2::ccdb::BasicCCDBManager::instance();
   cm.setURL("http://alice-ccdb.cern.ch/");
-  auto runDuration = cm.getRunDuration(runNumber);
-  auto tRun = runDuration.first + (runDuration.second - runDuration.first) / 2; // time stamp for the middle of the run duration
+
+  auto tRun = runNumberOrTimeStamp;
+  if (runNumberOrTimeStamp < 10000000) {
+    auto runDuration = cm.getRunDuration(runNumberOrTimeStamp);
+    tRun = runDuration.first + (runDuration.second - runDuration.first) / 2; // time stamp for the middle of the run duration
+  }
   LOGP(info, "Timestamp: {}", tRun);
   cm.setTimestamp(tRun);
 
