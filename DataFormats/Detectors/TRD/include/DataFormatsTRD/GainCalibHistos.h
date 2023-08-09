@@ -16,11 +16,8 @@
 #define ALICEO2_GAINCALIBHISTOS_H
 
 #include "DataFormatsTRD/Constants.h"
-#include "Framework/InputRecord.h"
 #include "Rtypes.h"
 #include <vector>
-#include <memory>
-#include <gsl/span>
 
 namespace o2
 {
@@ -35,11 +32,10 @@ class GainCalibHistos
   ~GainCalibHistos() = default;
   void reset();
   void init();
-  void addEntry(float dEdx, int chamberId);
   auto getHistogramEntry(int index) const { return mdEdxEntries[index]; }
   auto getNEntries() const { return mNEntriesTot; }
 
-  void fill(const std::unique_ptr<const GainCalibHistos, o2::framework::InputRecord::Deleter<const o2::trd::GainCalibHistos>>& input);
+  void fill(const std::vector<int>& input);
   void merge(const GainCalibHistos* prev);
   void print();
 

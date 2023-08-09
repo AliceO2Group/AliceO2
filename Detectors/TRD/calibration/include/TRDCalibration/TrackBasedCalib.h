@@ -82,7 +82,7 @@ class TrackBasedCalib
   bool propagateAndUpdate(TrackTRD& trk, int iLayer, bool doUpdate) const;
 
   const AngularResidHistos& getAngResHistos() const { return mAngResHistos; }
-  const GainCalibHistos& getGainCalibHistos() const { return mGainCalibHistos; }
+  const auto& getGainCalibHistos() const { return mGainCalibHistos; }
 
  private:
   float mMaxSnp{o2::base::Propagator::MAX_SIN_PHI};  ///< max snp when propagating tracks
@@ -90,7 +90,7 @@ class TrackBasedCalib
   MatCorrType mMatCorr{MatCorrType::USEMatCorrNONE}; ///< if material correction should be done
   RecoParam mRecoParam;                              ///< parameters required for TRD reconstruction
   AngularResidHistos mAngResHistos;                  ///< aggregated data for the track based calibration
-  GainCalibHistos mGainCalibHistos;                  ///< aggregated data for the track based calibration
+  std::vector<int> mGainCalibHistos;                 ///< aggregated input data for gain calibration
   float bz;                                          ///< magnetic field
 
   // input arrays which should not be modified since they are provided externally
