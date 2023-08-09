@@ -64,7 +64,7 @@ struct GroupedCombinationsGenerator {
     {
     }
     template <typename... T2s>
-    GroupedIterator(const GroupingPolicy& groupingPolicy, const G& grouping, std::tuple<T2s...>& associated, SliceCache* cache_)
+    GroupedIterator(const GroupingPolicy& groupingPolicy, const G& grouping, const std::tuple<T2s...>& associated, SliceCache* cache_)
       : GroupingPolicy(groupingPolicy),
         mGrouping{std::make_shared<G>(std::vector{grouping.asArrowTable()})},
         mAssociated{std::make_shared<std::tuple<As...>>(std::make_tuple(std::get<has_type_at<As>(pack<T2s...>{})>(associated)...))},
@@ -87,7 +87,7 @@ struct GroupedCombinationsGenerator {
     ~GroupedIterator() = default;
 
     template <typename... T2s>
-    void setTables(const G& grouping, std::tuple<T2s...>& associated)
+    void setTables(const G& grouping, const std::tuple<T2s...>& associated)
     {
       if constexpr (soa::is_soa_filtered_v<std::decay_t<G>>) {
         mGrouping = std::make_shared<G>(std::vector{grouping.asArrowTable()}, grouping.getSelectedRows());
@@ -209,7 +209,7 @@ struct GroupedCombinationsGenerator {
     : mBegin(GroupingPolicy(binningPolicy, catNeighbours, outsider), cache),
       mEnd(GroupingPolicy(binningPolicy, catNeighbours, outsider), cache) {}
   template <typename... T2s>
-  GroupedCombinationsGenerator(const BP& binningPolicy, int catNeighbours, const T1& outsider, G& grouping, std::tuple<T2s...>& associated, SliceCache* cache)
+  GroupedCombinationsGenerator(const BP& binningPolicy, int catNeighbours, const T1& outsider, const G& grouping, const std::tuple<T2s...>& associated, SliceCache* cache)
     : GroupedCombinationsGenerator(binningPolicy, catNeighbours, outsider, cache)
   {
     setTables(grouping, associated);
@@ -219,7 +219,7 @@ struct GroupedCombinationsGenerator {
   ~GroupedCombinationsGenerator() = default;
 
   template <typename... T2s>
-  void setTables(G& grouping, std::tuple<T2s...>& associated)
+  void setTables(const G& grouping, const std::tuple<T2s...>& associated)
   {
     mBegin.setTables(grouping, associated);
     mEnd.setTables(grouping, associated);
