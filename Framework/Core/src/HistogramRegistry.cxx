@@ -183,6 +183,13 @@ double HistogramRegistry::getSize(double fillFraction)
   return size;
 }
 
+void HistogramRegistry::clean()
+{
+  for (auto& value : mRegistryValue) {
+    std::visit([](auto&& hist) { hist.reset(); }, value);
+  }
+}
+
 // print some useful meta-info about the stored histograms
 void HistogramRegistry::print(bool showAxisDetails)
 {
@@ -272,7 +279,7 @@ void HistogramRegistry::print(bool showAxisDetails)
 }
 
 // create output structure will be propagated to file-sink
-TList* HistogramRegistry::operator*()
+TList* HistogramRegistry::getListOfHistograms()
 {
   TList* list = new TList();
   list->SetName(mName.data());
