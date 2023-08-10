@@ -25,6 +25,7 @@ o2_add_library(DetectorsRaw
         O2::DetectorsCommonDataFormats
         O2::Framework
         O2::DPLUtils
+        O2::Algorithm
         FairMQ::FairMQ)
 
 add_subdirectory(TFReaderDD)
