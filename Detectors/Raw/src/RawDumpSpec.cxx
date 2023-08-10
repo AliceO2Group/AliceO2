@@ -422,7 +422,7 @@ std::string RawDump::getBaseFileNameCPV(const header::RDHAny* rdh)
     LOGP(error, "Unrecognized CPV flp, setting to {}", flpname);
     return flpname;
   }
-  return fmt::format("alio2-cr1-flp162_cru{}_{}", feeid, RDHUtils::getEndPointID(rdh));
+  return fmt::format("alio2-cr1-flp162_cru{}_{}", RDHUtils::getCRUID(rdh), RDHUtils::getEndPointID(rdh));
 }
 
 //_____________________________________________________________________
