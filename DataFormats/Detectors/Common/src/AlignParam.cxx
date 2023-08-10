@@ -17,10 +17,20 @@
 #include <TGeoMatrix.h>
 #include <TGeoOverlap.h>
 #include <TGeoPhysicalNode.h>
+#include <TGeoParallelWorld.h>
 
 #include "DetectorsCommonDataFormats/AlignParam.h"
 
 using namespace o2::detectors;
+
+std::string getDetFromSymName(const std::string& input)
+{
+  size_t pos = input.find("/"); // Detector name is before the first slash
+  if (pos != std::string::npos) {
+    return input.substr(0, pos);
+  }
+  return input;
+}
 
 //___________________________________________________
 AlignParam::AlignParam(const char* symname, int algID,       // volume symbolic name and its alignable ID
@@ -277,6 +287,10 @@ bool AlignParam::applyToGeometry() const
   const char* symname = getSymName().c_str();
   const char* path;
   TGeoPhysicalNode* node;
+  TGeoParallelWorld* pw = nullptr;
+  if (getDetFromSymName(getSymName()) == "ITS") {
+    pw = gGeoManager->GetParallelWorld();
+  }
   TGeoPNEntry* pne = gGeoManager->GetAlignableEntry(symname);
   if (pne) {
     path = pne->GetTitle();
@@ -314,7 +328,9 @@ bool AlignParam::applyToGeometry() const
   LOG(debug) << "Aligning volume " << symname;
 
   node->Align(ginv);
-
+  if (getDetFromSymName(getSymName()) == "ITS") {
+    pw->AddNode(path);
+  }
   return true;
 }
 

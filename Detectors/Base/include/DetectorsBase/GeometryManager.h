@@ -15,7 +15,7 @@
 #ifndef ALICEO2_BASE_GEOMETRYMANAGER_H_
 #define ALICEO2_BASE_GEOMETRYMANAGER_H_
 
-#include <TGeoManager.h> // for TGeoManager
+#include <TGeoManager.h>      // for TGeoManager
 #include <TGeoMaterial.h>
 #include <TGeoPhysicalNode.h> // for TGeoPNEntry
 #include <TGeoShape.h>
@@ -86,8 +86,7 @@ class GeometryManager : public TObject
     double meanZ = 0.;    // mean Z: sum(x_i*Z_i)/sum(x_i) [adimensional]
     double meanZ2A = 0.;  // Z/A mean: sum(x_i*Z_i/A_i)/sum(x_i) [adimensional]
     double length = -1.;  // length: sum(x_i) [cm]
-    int nCross = 0;
-    ; // number of boundary crosses
+    int nCross = 0;       // number of boundary crosses
 
     MatBudgetExt() = default;
     ~MatBudgetExt() = default;
@@ -132,11 +131,12 @@ class GeometryManager : public TObject
   /// detector geometry. The output global matrix is stored in 'm'.
   /// Returns kFALSE in case TGeo has not been initialized or the volume path is not valid.
   static Bool_t getOriginalMatrixFromPath(const char* path, TGeoHMatrix& m);
+
  private:
   /// sensitive volume identifier composed from (det_ID<<sDetOffset)|(sensid&sSensorMask)
   static constexpr UInt_t sDetOffset = 15; /// detector identifier will start from this bit
   static constexpr UInt_t sSensorMask =
-    (0x1 << sDetOffset) - 1; /// mask=max sensitive volumes allowed per detector (0xffff)
+    (0x1 << sDetOffset) - 1;               /// mask=max sensitive volumes allowed per detector (0xffff)
   static std::mutex sTGMutex;
 
   ClassDefOverride(GeometryManager, 0); // Manager of geometry information for alignment

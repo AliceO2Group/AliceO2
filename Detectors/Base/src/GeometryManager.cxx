@@ -12,12 +12,13 @@
 /// \file GeometryManager.cxx
 /// \brief Implementation of the GeometryManager class
 
-#include <fairlogger/Logger.h>  // for LOG
-#include <TCollection.h> // for TIter
+#include <fairlogger/Logger.h> // for LOG
+#include <TCollection.h>       // for TIter
 #include <TFile.h>
-#include <TGeoMatrix.h>       // for TGeoHMatrix
-#include <TGeoNode.h>         // for TGeoNode
-#include <TGeoPhysicalNode.h> // for TGeoPhysicalNode, TGeoPNEntry
+#include <TGeoMatrix.h>        // for TGeoHMatrix
+#include <TGeoNode.h>          // for TGeoNode
+#include <TGeoPhysicalNode.h>  // for TGeoPhysicalNode, TGeoPNEntry
+#include <TGeoParallelWorld.h>
 #include <string>
 #include <cassert>
 #include <cstddef> // for NULL

@@ -15,6 +15,7 @@
 #include "DetectorsCommonDataFormats/AlignParam.h"
 #include "DetectorsCommonDataFormats/DetectorNameConf.h"
 #include <chrono>
+#include <TGeoParallelWorld.h>
 
 O2ParamImpl(o2::base::Aligner);
 
@@ -48,6 +49,7 @@ void Aligner::applyAlignment(long timestamp, DetID::mask_t addMask) const
   ccdbmgr.setTimestamp(timestamp);
   DetID::mask_t done, skipped;
   DetID::mask_t detGeoMask(gGeoManager->GetUniqueID());
+  TGeoParallelWorld* pw = gGeoManager->CreateParallelWorld("priority_its_sensor");
   for (auto id = DetID::First; id <= DetID::Last; id++) {
     if (!msk[id] || (detGeoMask.any() && !detGeoMask[id])) {
       continue;
@@ -64,6 +66,9 @@ void Aligner::applyAlignment(long timestamp, DetID::mask_t addMask) const
       skipped.set(id);
     }
   }
+  // pw->AddOverlap(gGeoManager->GetVolume("ITSUWrapVol0"));
+  pw->CloseGeometry();
+  gGeoManager->SetUseParallelWorldNav(true);
   std::string log = fmt::format("Alignment from {} for timestamp {}: ", o2::base::NameConf::getCCDBServer(), timestamp);
   if (done.any()) {
     log += fmt::format("applied to [{}]", DetID::getNames(done));
