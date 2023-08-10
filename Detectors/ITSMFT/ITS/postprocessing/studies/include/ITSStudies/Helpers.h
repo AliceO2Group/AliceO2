@@ -19,12 +19,15 @@
 #include <vector>
 #include "TH1F.h"
 #include "TH2F.h"
+#include "TGraphAsymmErrors.h"
+#include "TCanvas.h"
+#include "TPaveText.h"
 
 namespace o2
 {
 namespace its
 {
-namespace studies
+namespace study
 {
 namespace helpers
 {
@@ -34,29 +37,30 @@ namespace helpers
 
 /// get a vector containing binning info for constant sized bins on a log axis
 std::vector<double> makeLogBinning(const int nbins, const double min, const double max);
-/*
+
 /// Set nice style for single 1D histograms
-void setStyleHistogram1D(TH1F& histo);
-
-/// Set nice style for vector of 1D histograms
-void setStyleHistogram1D(std::vector<TH1F>& histos);
-
-/// Set nice style for 2D histograms
+void setStyleHistogram1D(TH1F& histo, int color);
+void setStyleHistogram1D(TH1F& histo, int color, TString title, TString titleYaxis, TString titleXaxis);
+void setStyleHistogram1DMeanValues(TH1F& histo, int color);
 void setStyleHistogram2D(TH2F& histo);
 
-/// Set nice style for vector of 2D histograms
-void setStyleHistogram2D(std::vector<TH2F>& histos);
+/// prepare canvas with two TH1F plots
+TCanvas* prepareSimpleCanvas2Histograms(TH1F& h1, int color1, TH1F& h2, int color2);
+TCanvas* prepareSimpleCanvas2Histograms(TH1F& h1, int color1, TString nameHisto1, TH1F& h2, int color2, TString nameHisto2, bool logScale = true);
+TCanvas* prepareSimpleCanvas2Histograms(TH1F& h1, int color1, TString nameHisto1, TH1F& h2, int color2, TString nameHisto2, TString intRate);
+TCanvas* prepareSimpleCanvas2DcaMeanValues(TH1F& h1, int color1, TString nameHisto1, TH1F& h2, int color2, TString nameHisto2);
 
-/// set nice style for 1D histograms ptr
-void setStyleHistogram(TH1F& histo);
+/// plot canvas with TH2D + TH1D(Mean and Sigma) from slice
+TCanvas* plot2DwithMeanAndSigma(TH2F& h2D, TH1F& hMean, TH1F& hSigma, int color);
 
- // set nice style of histograms in a map of vectors
-void setStyleHistogramsInMap(std::unordered_map<std::string_view, std::vector<std::unique_ptr<TH1>>>& mapOfvectors);
-// set nice style of histograms in a map
-void setStyleHistogramsInMap(std::unordered_map<std::string_view, std::unique_ptr<TH1>>& mapOfHisto); */
+/// prepare TPaveText with labels
+void paveTextITS(TPaveText* pave, TString intRate);
+
+/// Convert TH1F in TGraphAsymmetricError
+void ConvertTH1ToTGraphAsymmError(TH1F& hMean, TH1F& hSigma, TGraphAsymmErrors*& gr);
 
 } // namespace helpers
-} // namespace studies
+} // namespace study
 } // namespace its
 } // namespace o2
 

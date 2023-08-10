@@ -11,7 +11,12 @@
 
 // Skeleton derived from RS's code in ITSOffStudy
 
+#include <set>
+#include <vector>
+#include <utility>
+#include <string>
 #include "ITSStudies/ImpactParameter.h"
+#include "ITSStudies/TrackCuts.h"
 #include "ITSStudies/Helpers.h"
 #include "Framework/CCDBParamSpec.h"
 #include "Framework/Task.h"
@@ -23,13 +28,22 @@
 #include "DetectorsBase/Propagator.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "DetectorsBase/GRPGeomHelper.h"
+#include "DataFormatsParameters/GRPECSObject.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "Framework/DeviceSpec.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "Framework/CompletionPolicy.h"
+#include "Framework/ConfigParamSpec.h"
+#include "Framework/CompletionPolicyHelpers.h"
+#include "Framework/CallbacksPolicy.h"
+#include "Framework/ConfigParamRegistry.h"
 #include <TH1F.h>
 #include <TH2F.h>
 #include <TMath.h>
-#include "TROOT.h"
+#include <TROOT.h>
+#include <TSystem.h>
+#include <TString.h>
 #include "TGeoGlobalMagField.h"
 
 namespace o2
@@ -40,6 +54,7 @@ namespace study
 {
 using namespace o2::framework;
 using namespace o2::globaltracking;
+using namespace o2::its::study;
 
 using DetID = o2::detectors::DetID;
 using PVertex = o2::dataformats::PrimaryVertex;
@@ -48,41 +63,75 @@ using GTrackID = o2::dataformats::GlobalTrackID;
 class ImpactParameterStudy : public Task
 {
  public:
-  ImpactParameterStudy(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, mask_t src) : mDataRequest(dr), mGGCCDBRequest(gr), mTracksSrc(src){};
+  ImpactParameterStudy(std::shared_ptr<DataRequest> dr,
+                       std::shared_ptr<o2::base::GRPGeomRequest> gr,
+                       mask_t src,
+                       bool useMC) : mDataRequest(dr),
+                                     mGGCCDBRequest(gr),
+                                     mTracksSrc(src),
+                                     mUseMC(useMC) {}
   ~ImpactParameterStudy() final = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext&) final;
+  void endOfStream(EndOfStreamContext&) final;
   void finaliseCCDB(ConcreteDataMatcher&, void*) final;
   void process(o2::globaltracking::RecoContainer&);
-  void endOfStream(EndOfStreamContext&) final;
 
  private:
   void updateTimeDependentParams(ProcessingContext& pc);
+  void saveHistograms();
+  void plotHistograms();
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   GTrackID::mask_t mTracksSrc{};
+  bool mUseMC{false}; ///< MC flag
   o2::vertexing::PVertexer mVertexer;
   float mITSROFrameLengthMUS = 0.;
   float mITSROFBiasMUS = 0.;
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
   // output histograms
-  std::unique_ptr<TH1F> mHisto_contributorsPV{};
-  std::unique_ptr<TH1F> mHisto_trackType;
-  std::unique_ptr<TH1F> mHisto_trackTypeRej;
-  std::unique_ptr<TH1F> mHisto_trackTypeAcc;
-  std::unique_ptr<TH2F> mHisto_X_PVrefitChi2minus1{};
-  std::unique_ptr<TH2F> mHisto_Y_PVrefitChi2minus1{};
-  std::unique_ptr<TH2F> mHisto_Z_PVrefitChi2minus1{};
-  std::unique_ptr<TH1F> mHisto_X_DeltaPVrefitChi2minus1{};
-  std::unique_ptr<TH1F> mHisto_Y_DeltaPVrefitChi2minus1{};
-  std::unique_ptr<TH1F> mHisto_Z_DeltaPVrefitChi2minus1{};
-  std::unique_ptr<TH2F> mHisto_ImpParXY{};
-  std::unique_ptr<TH2F> mHisto_ImpParZ{};
-  std::unique_ptr<TH1F> mHisto_ImpParXY_2{};
-  std::unique_ptr<TH1F> mHisto_ImpParZ_2{};
-  std::unique_ptr<TH2F> mHisto_Phi{};
+  std::unique_ptr<TH1F> mHistoContributorsPV{};
+  std::unique_ptr<TH1F> mHistoTrackType;
+  std::unique_ptr<TH1F> mHistoTrackTypeRej;
+  std::unique_ptr<TH1F> mHistoTrackTypeAcc;
+  std::unique_ptr<TH2F> mHistoXPvVsRefitted{};
+  std::unique_ptr<TH2F> mHistoYPvVsRefitted{};
+  std::unique_ptr<TH2F> mHistoZPvVsRefitted{};
+  std::unique_ptr<TH1F> mHistoXDeltaPVrefit{};
+  std::unique_ptr<TH1F> mHistoYDeltaPVrefit{};
+  std::unique_ptr<TH1F> mHistoZDeltaPVrefit{};
+  std::unique_ptr<TH2F> mHistoImpParXy{};
+  std::unique_ptr<TH2F> mHistoImpParZ{};
+  std::unique_ptr<TH2F> mHistoImpParXyPhi{};
+  std::unique_ptr<TH2F> mHistoImpParZPhi{};
+  std::unique_ptr<TH2F> mHistoImpParXyTop{};
+  std::unique_ptr<TH2F> mHistoImpParZTop{};
+  std::unique_ptr<TH2F> mHistoImpParXyBottom{};
+  std::unique_ptr<TH2F> mHistoImpParZBottom{};
+  std::unique_ptr<TH2F> mHistoImpParXyPositiveCharge{};
+  std::unique_ptr<TH2F> mHistoImpParZPositiveCharge{};
+  std::unique_ptr<TH2F> mHistoImpParXyNegativeCharge{};
+  std::unique_ptr<TH2F> mHistoImpParZNegativeCharge{};
+  std::unique_ptr<TH1F> mHistoImpParXyMeanPhi{};
+  std::unique_ptr<TH1F> mHistoImpParZMeanPhi{};
+  std::unique_ptr<TH1F> mHistoImpParXySigmaPhi{};
+  std::unique_ptr<TH1F> mHistoImpParZSigmaPhi{};
+  std::unique_ptr<TH1F> mHistoImpParXySigma{};
+  std::unique_ptr<TH1F> mHistoImpParZSigma{};
+  std::unique_ptr<TH1F> mHistoImpParXySigmaTop{};
+  std::unique_ptr<TH1F> mHistoImpParZSigmaTop{};
+  std::unique_ptr<TH1F> mHistoImpParXySigmaBottom{};
+  std::unique_ptr<TH1F> mHistoImpParZSigmaBottom{};
+  std::unique_ptr<TH1F> mHistoImpParXyMeanTop{};
+  std::unique_ptr<TH1F> mHistoImpParZMeanTop{};
+  std::unique_ptr<TH1F> mHistoImpParXyMeanBottom{};
+  std::unique_ptr<TH1F> mHistoImpParZMeanBottom{};
+  std::unique_ptr<TH1F> mHistoImpParXySigmaPositiveCharge{};
+  std::unique_ptr<TH1F> mHistoImpParZSigmaPositiveCharge{};
+  std::unique_ptr<TH1F> mHistoImpParXySigmaNegativeCharge{};
+  std::unique_ptr<TH1F> mHistoImpParZSigmaNegativeCharge{};
 
   // output file
-  const std::string mOutName{"its_ImpParameter.root"};
+  TString mOutName{};
 
   // Data
   std::shared_ptr<DataRequest> mDataRequest;
@@ -92,138 +141,199 @@ class ImpactParameterStudy : public Task
 void ImpactParameterStudy::init(InitContext& ic)
 {
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
+  auto& params = ITSImpactParameterParamConfig::Instance();
+  mOutName = params.outFileName;
+  mDBGOut = std::make_unique<o2::utils::TreeStreamRedirector>(mOutName.Data(), "recreate");
 
-  const auto logPtBinning = o2::its::studies::helpers::makeLogBinning(100, 0.1, 10);
-  mDBGOut = std::make_unique<o2::utils::TreeStreamRedirector>(mOutName.c_str(), "recreate");
-  mHisto_trackType = std::make_unique<TH1F>("trackType", "# Track Type", 32, -0.5, 31.5);
-  mHisto_trackType->SetDirectory(nullptr);
-  mHisto_trackTypeRej = std::make_unique<TH1F>("trackTypeRej", "# Rejected Track Type", 32, -0.5, 31.5);
-  mHisto_trackTypeRej->SetDirectory(nullptr);
-  mHisto_trackTypeAcc = std::make_unique<TH1F>("trackTypeAcc", "# Filtered Track Type", 32, -0.5, 31.5);
-  mHisto_trackTypeAcc->SetDirectory(nullptr);
-  mHisto_contributorsPV = std::make_unique<TH1F>("nContrib_PVrefitNotDoable", "# Contributors per PV", 100, 0, 100);
-  mHisto_contributorsPV->SetDirectory(nullptr);
-  mHisto_X_PVrefitChi2minus1 = std::make_unique<TH2F>("h2_X_PvVsPVrefit", "#X PV vs PV_{-1}, #mum", 100, -10, 10, 100, -10, 10);
-  mHisto_X_PVrefitChi2minus1->SetDirectory(nullptr);
-  mHisto_Y_PVrefitChi2minus1 = std::make_unique<TH2F>("h2_Y_PvVsPVrefit", "#Y  PV vs PV_{-1}, #mum", 100, -10, 10, 100, -10, 10);
-  mHisto_Y_PVrefitChi2minus1->SetDirectory(nullptr);
-  mHisto_Z_PVrefitChi2minus1 = std::make_unique<TH2F>("h2_Z_PvVsPVrefit", "#Z PV vs PV_{-1}, #mum", 100, -10, 10, 100, -10, 10);
-  mHisto_Z_PVrefitChi2minus1->SetDirectory(nullptr);
-  mHisto_X_DeltaPVrefitChi2minus1 = std::make_unique<TH1F>("h_DeltaXPVrefit", "#DeltaX (PV-PV_{-1}), #mum", 300, -15, 15);
-  mHisto_X_DeltaPVrefitChi2minus1->SetDirectory(nullptr);
-  mHisto_Y_DeltaPVrefitChi2minus1 = std::make_unique<TH1F>("h_DeltaYPVrefit", "#DeltaY (PV-PV_{-1}), #mum", 300, -15, 15);
-  mHisto_Y_DeltaPVrefitChi2minus1->SetDirectory(nullptr);
-  mHisto_Z_DeltaPVrefitChi2minus1 = std::make_unique<TH1F>("h_DeltaZPVrefit", "#DeltaZ (PV-PV_{-1}), #mum", 300, -15, 15);
-  mHisto_Z_DeltaPVrefitChi2minus1->SetDirectory(nullptr);
-  mHisto_ImpParZ = std::make_unique<TH2F>("h1_ImpParZ", "Impact Parameter Z, #mum; p_{T};",  logPtBinning.size() - 1, logPtBinning.data(), 100, -1000, 1000);
-  mHisto_ImpParZ->SetDirectory(nullptr);
-  mHisto_ImpParXY = std::make_unique<TH2F>("h1_ImpParXY", "Impact Parameter XY, #mum; p_{T};",   logPtBinning.size() - 1, logPtBinning.data(), 100, -1000, 1000);
-  mHisto_ImpParXY->SetDirectory(nullptr);
-  mHisto_ImpParXY_2 = std::make_unique<TH1F>("h1_ImpParXY_2", "Impact Parameter XY, #mum; p_{T};", logPtBinning.size() - 1, logPtBinning.data());
-  mHisto_ImpParXY_2->SetDirectory(nullptr);
-  mHisto_ImpParZ_2 = std::make_unique<TH1F>("h1_ImpParZ_2", "Impact Parameter Z, #mum; p_{T};",  logPtBinning.size() - 1, logPtBinning.data());
-  mHisto_ImpParZ_2->SetDirectory(nullptr);
-  mHisto_Phi = std::make_unique<TH2F>("hdphi", "#Phi; #phi; ImpactParam d#phi(#mum);", 100, 0., 6.28, 100, -1000, 1000);
-  mHisto_Phi->SetDirectory(nullptr);
+  std::vector<double> logPtBinning = helpers::makeLogBinning(100, 0.1, 10);
+  mHistoTrackType = std::make_unique<TH1F>("trackType", "# Track Type", 32, -0.5, 31.5);
+  mHistoTrackTypeRej = std::make_unique<TH1F>("trackTypeRej", "# Rejected Track Type", 32, -0.5, 31.5);
+  mHistoTrackTypeAcc = std::make_unique<TH1F>("trackTypeAcc", "# Filtered Track Type", 32, -0.5, 31.5);
+  mHistoContributorsPV = std::make_unique<TH1F>("nContribPVrefit", "# Contributors per PV", 100, 0, 100);
+  mHistoXPvVsRefitted = std::make_unique<TH2F>("histo2dXPvVsPVrefit", "#X PV vs PV_{-1}, #mum", 100, -10, 10, 100, -10, 10);
+  mHistoYPvVsRefitted = std::make_unique<TH2F>("histo2dYPvVsPVrefit", "#Y PV vs PV_{-1}, #mum", 100, -10, 10, 100, -10, 10);
+  mHistoZPvVsRefitted = std::make_unique<TH2F>("histo2dZPvVsPVrefit", "#Z PV vs PV_{-1}, #mum", 100, -10, 10, 100, -10, 10);
+  mHistoXDeltaPVrefit = std::make_unique<TH1F>("histoDeltaXPVrefit", "#DeltaX (PV-PV_{-1}), #mum", 300, -15, 15);
+  mHistoYDeltaPVrefit = std::make_unique<TH1F>("histoDeltaYPVrefit", "#DeltaY (PV-PV_{-1}), #mum", 300, -15, 15);
+  mHistoZDeltaPVrefit = std::make_unique<TH1F>("histoDeltaZPVrefit", "#DeltaZ (PV-PV_{-1}), #mum", 300, -15, 15);
+  mHistoImpParXyPhi = std::make_unique<TH2F>("histoImpParXyPhi", "#Phi; #phi; Impact Parameter XY (#mum);", 100, 0., 6.28, 100, -1000, 1000);
+  mHistoImpParZPhi = std::make_unique<TH2F>("histoImpParZPhi", "#Phi; #phi; Impact Parameter Z (#mum);", 100, 0., 6.28, 100, -1000, 1000);
+  mHistoImpParZ = std::make_unique<TH2F>("histoImpParZ", "Impact Parameter Z; #it{p}_{T} (GeV/#it{c}); #mum", logPtBinning.size() - 1, logPtBinning.data(), 100, -1000, 1000);
+  mHistoImpParXy = std::make_unique<TH2F>("histoImpParXy", "Impact Parameter XY; #it{p}_{T} (GeV/#it{c}); #mum", logPtBinning.size() - 1, logPtBinning.data(), 100, -1000, 1000);
+  mHistoImpParXyTop = std::make_unique<TH2F>("histoImpParXyTop", "Impact Parameter XY, #phi(track)<#pi; #it{p}_{T} (GeV/#it{c}); #mum", logPtBinning.size() - 1, logPtBinning.data(), 100, -1000, 1000);
+  mHistoImpParXyBottom = std::make_unique<TH2F>("histoImpParXyBottom", "Impact Parameter XY, #phi(track)>#pi; #it{p}_{T} (GeV/#it{c}); #mum", logPtBinning.size() - 1, logPtBinning.data(), 100, -1000, 1000);
+  mHistoImpParZTop = std::make_unique<TH2F>("histoImpParZTop", "Impact Parameter Z, #phi(track)<#pi; #it{p}_{T} (GeV/#it{c}); #mum", logPtBinning.size() - 1, logPtBinning.data(), 100, -1000, 1000);
+  mHistoImpParZBottom = std::make_unique<TH2F>("histoImpParZBottom", "Impact Parameter Z, #phi(track)>#pi; #it{p}_{T} (GeV/#it{c}); #mum", logPtBinning.size() - 1, logPtBinning.data(), 100, -1000, 1000);
+  mHistoImpParXyNegativeCharge = std::make_unique<TH2F>("histoImpParXyNegativeCharge", "Impact Parameter XY, sign<0; #it{p}_{T} (GeV/#it{c}); #mum", logPtBinning.size() - 1, logPtBinning.data(), 100, -1000, 1000);
+  mHistoImpParXyPositiveCharge = std::make_unique<TH2F>("histoImpParXyPositiveCharge", "Impact Parameter XY, sign>0; #it{p}_{T} (GeV/#it{c}); #mum", logPtBinning.size() - 1, logPtBinning.data(), 100, -1000, 1000);
+  mHistoImpParZNegativeCharge = std::make_unique<TH2F>("histoImpParZNegativeCharge", "Impact Parameter Z, sign<0; #it{p}_{T} (GeV/#it{c}); #mum", logPtBinning.size() - 1, logPtBinning.data(), 100, -1000, 1000);
+  mHistoImpParZPositiveCharge = std::make_unique<TH2F>("histoImpParZPositiveCharge", "Impact Parameter Z, sign>0; #it{p}_{T} (GeV/#it{c}); #mum", logPtBinning.size() - 1, logPtBinning.data(), 100, -1000, 1000);
 
+  mHistoImpParXySigma = std::make_unique<TH1F>("histoImpParXySigma", "Impact Parameter XY; #it{p}_{T} (GeV/#it{c}); #mum", logPtBinning.size() - 1, logPtBinning.data());
+  mHistoImpParZSigma = std::make_unique<TH1F>("histoImpParZSigma", "Impact Parameter Z; #it{p}_{T} (GeV/#it{c}); #mum", logPtBinning.size() - 1, logPtBinning.data());
+  mHistoImpParXyMeanPhi = std::make_unique<TH1F>("histoImpParXyMean", "Impact Parameter XY; #phi; Mean #mum", 100, 0., 6.28);
+  mHistoImpParZMeanPhi = std::make_unique<TH1F>("histoImpParZMean", "Impact Parameter Z; #phi; Mean #mum", 100, 0., 6.28);
+  mHistoImpParXySigmaPhi = std::make_unique<TH1F>("histoImpParXySigmaPhi", "Impact Parameter XY; #phi; #sigma #mum", 100, 0., 6.28);
+  mHistoImpParZSigmaPhi = std::make_unique<TH1F>("histoImpParZSigmaPhi", "Impact Parameter Z; #phi; #sigma #mum", 100, 0., 6.28);
+  mHistoImpParXySigmaTop = std::make_unique<TH1F>("histoImpParXySigmaTop", "Impact Parameter XY, Top; #it{p}_{T} (GeV/#it{c}); #mum", logPtBinning.size() - 1, logPtBinning.data());
+  mHistoImpParZSigmaTop = std::make_unique<TH1F>("histoImpParZSigmaTop", "Impact Parameter Z, Top; #it{p}_{T} (GeV/#it{c}); #mum", logPtBinning.size() - 1, logPtBinning.data());
+  mHistoImpParXySigmaBottom = std::make_unique<TH1F>("histoImpParXySigmaBottom", "Impact Parameter XY, Bottom; #it{p}_{T} (GeV/#it{c}); #mum", logPtBinning.size() - 1, logPtBinning.data());
+  mHistoImpParZSigmaBottom = std::make_unique<TH1F>("histoImpParZSigmaBottom", "Impact Parameter Z, Bottom; #it{p}_{T} (GeV/#it{c}); #mum", logPtBinning.size() - 1, logPtBinning.data());
+  mHistoImpParXyMeanTop = std::make_unique<TH1F>("histoImpParXyMeanTop", "Impact Parameter XY, Top; #it{p}_{T} (GeV/#it{c}); #mum", logPtBinning.size() - 1, logPtBinning.data());
+  mHistoImpParZMeanTop = std::make_unique<TH1F>("histoImpParZMeanTop", "Impact Parameter Z, Top; #it{p}_{T} (GeV/#it{c}); #mum", logPtBinning.size() - 1, logPtBinning.data());
+  mHistoImpParXyMeanBottom = std::make_unique<TH1F>("histoImpParXyMeanBottom", "Mean Impact Parameter XY, Bottom; #it{p}_{T} (GeV/#it{c}); #mum", logPtBinning.size() - 1, logPtBinning.data());
+  mHistoImpParZMeanBottom = std::make_unique<TH1F>("histoImpParZMeanBottom", "Mean Impact Parameter Z, Bottom; #it{p}_{T} (GeV/#it{c}); #mum", logPtBinning.size() - 1, logPtBinning.data());
+  mHistoImpParXySigmaPositiveCharge = std::make_unique<TH1F>("histoImpParXySigmaPositiveCharge", "Impact Parameter XY, sign>0; #it{p}_{T} (GeV/#it{c}); #mum", logPtBinning.size() - 1, logPtBinning.data());
+  mHistoImpParZSigmaPositiveCharge = std::make_unique<TH1F>("histoImpParZSigmaPositiveCharge", "Impact Parameter Z, sign>0; #it{p}_{T} (GeV/#it{c}); #mum", logPtBinning.size() - 1, logPtBinning.data());
+  mHistoImpParXySigmaNegativeCharge = std::make_unique<TH1F>("histoImpParXySigmaNegativeCharge", "Impact Parameter XY, sign<0; #it{p}_{T} (GeV/#it{c}); #mum", logPtBinning.size() - 1, logPtBinning.data());
+  mHistoImpParZSigmaNegativeCharge = std::make_unique<TH1F>("histoImpParZSigmaNegativeCharge", "Impact Parameter Z, sign<0; #it{p}_{T} (GeV/#it{c}); #mum", logPtBinning.size() - 1, logPtBinning.data());
+
+  mHistoTrackType->SetDirectory(nullptr);
+  mHistoTrackTypeRej->SetDirectory(nullptr);
+  mHistoTrackTypeAcc->SetDirectory(nullptr);
+  mHistoContributorsPV->SetDirectory(nullptr);
+  mHistoXPvVsRefitted->SetDirectory(nullptr);
+  mHistoYPvVsRefitted->SetDirectory(nullptr);
+  mHistoZPvVsRefitted->SetDirectory(nullptr);
+  mHistoXDeltaPVrefit->SetDirectory(nullptr);
+  mHistoYDeltaPVrefit->SetDirectory(nullptr);
+  mHistoZDeltaPVrefit->SetDirectory(nullptr);
+  mHistoImpParZ->SetDirectory(nullptr);
+  mHistoImpParXy->SetDirectory(nullptr);
+  mHistoImpParXyPhi->SetDirectory(nullptr);
+  mHistoImpParZPhi->SetDirectory(nullptr);
+  mHistoImpParXyTop->SetDirectory(nullptr);
+  mHistoImpParXyBottom->SetDirectory(nullptr);
+  mHistoImpParZTop->SetDirectory(nullptr);
+  mHistoImpParZBottom->SetDirectory(nullptr);
+  mHistoImpParXyNegativeCharge->SetDirectory(nullptr);
+  mHistoImpParXyPositiveCharge->SetDirectory(nullptr);
+  mHistoImpParZNegativeCharge->SetDirectory(nullptr);
+  mHistoImpParZPositiveCharge->SetDirectory(nullptr);
+  mHistoImpParXyMeanPhi->SetDirectory(nullptr);
+  mHistoImpParZMeanPhi->SetDirectory(nullptr);
+  mHistoImpParXySigmaPhi->SetDirectory(nullptr);
+  mHistoImpParZSigmaPhi->SetDirectory(nullptr);
+  mHistoImpParXySigma->SetDirectory(nullptr);
+  mHistoImpParZSigma->SetDirectory(nullptr);
+  mHistoImpParXySigmaTop->SetDirectory(nullptr);
+  mHistoImpParZSigmaTop->SetDirectory(nullptr);
+  mHistoImpParXySigmaBottom->SetDirectory(nullptr);
+  mHistoImpParZSigmaBottom->SetDirectory(nullptr);
+  mHistoImpParXyMeanTop->SetDirectory(nullptr);
+  mHistoImpParZMeanTop->SetDirectory(nullptr);
+  mHistoImpParXyMeanBottom->SetDirectory(nullptr);
+  mHistoImpParZMeanBottom->SetDirectory(nullptr);
+  mHistoImpParXySigmaPositiveCharge->SetDirectory(nullptr);
+  mHistoImpParZSigmaPositiveCharge->SetDirectory(nullptr);
+  mHistoImpParXySigmaNegativeCharge->SetDirectory(nullptr);
+  mHistoImpParZSigmaNegativeCharge->SetDirectory(nullptr);
 }
 
 void ImpactParameterStudy::run(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-  //o2::base::Propagator::Instance()->setBz(5);
   o2::globaltracking::RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());
-  updateTimeDependentParams(pc); // Make sure this is called after recoData.collectData, which may load some conditions
+  updateTimeDependentParams(pc);
   process(recoData);
 }
 
 void ImpactParameterStudy::process(o2::globaltracking::RecoContainer& recoData)
 {
+  auto& params = ITSImpactParameterParamConfig::Instance();
+
+  o2::base::GRPGeomHelper::instance().getGRPMagField()->print();
   o2::base::Propagator::MatCorrType matCorr = o2::base::Propagator::MatCorrType::USEMatCorrLUT;
   std::vector<o2::track::TrackParCov> vecPvContributorTrackParCov;
   std::vector<int64_t> vec_globID_contr = {};
   std::vector<o2::track::TrackParCov> trueVecPvContributorTrackParCov;
   std::vector<int64_t> trueVec_globID_contr = {};
-  // o2::vertexing::PVertexer vertexer;
   float impParRPhi, impParZ;
-  constexpr float toMicrometers = 10000.f; // Conversion from [cm] to [mum]
-  bool keepAllTracksPVrefit = false;
-  bool removeDiamondConstraint = false;
+  constexpr float toMicrometers = 10000.f;                    // Conversion from [cm] to [mum]
   auto trackIndex = recoData.getPrimaryVertexMatchedTracks(); // Global ID's for associated tracks
   auto vtxRefs = recoData.getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
   auto pvertices = recoData.getPrimaryVertices();
- 
+  auto trmTPCTracks = recoData.getTPCTracks();
+
+  TrackCuts cuts; // ITS and TPC(commented) cut implementation
 
   int nv = vtxRefs.size() - 1;      // The last entry is for unassigned tracks, ignore them
   for (int iv = 0; iv < nv; iv++) { // Loop over PVs
-    LOGP(info, "*** NEW VERTEX ***");
+    LOGP(info, "*** NEW VERTEX  {}***", iv);
     const auto& vtref = vtxRefs[iv];
     const o2::dataformats::VertexBase& pv = pvertices[iv];
     int it = vtref.getFirstEntry(), itLim = it + vtref.getEntries();
-    int i=0;
+    int i = 0;
 
     for (; it < itLim; it++) {
       auto tvid = trackIndex[it];
-      //LOGP(info,"ORIGIN: {}", tvid.getSourceName(tvid.getSource()));
-      mHisto_trackType->Fill(tvid.getSource());
+      // LOGP(info,"ORIGIN: {}", tvid.getSourceName(tvid.getSource()));
+      mHistoTrackType->Fill(tvid.getSource());
       if (!recoData.isTrackSourceLoaded(tvid.getSource())) {
-        //LOGP(info,"SOURCE Rej: {}", tvid.getSourceName(tvid.getSource()));
-        mHisto_trackTypeRej->Fill(tvid.getSource());
+        // LOGP(info,"SOURCE Rej: {}", tvid.getSourceName(tvid.getSource()));
+        mHistoTrackTypeRej->Fill(tvid.getSource());
         continue;
       }
-      //LOGP(info,"ORIGIN: {}  INDEX: {}", tvid.getSourceName(tvid.getSource()), trackIndex[it]);
-      mHisto_trackTypeAcc->Fill(tvid.getSource());
+      // LOGP(info,"ORIGIN: {}  INDEX: {}", tvid.getSourceName(tvid.getSource()), trackIndex[it]);
+      mHistoTrackTypeAcc->Fill(tvid.getSource());
       const o2::track::TrackParCov& trc = recoData.getTrackParam(tvid); // The actual track
 
       auto refs = recoData.getSingleDetectorRefs(tvid);
       if (!refs[GTrackID::ITS].isIndexSet()) { // might be an afterburner track
-          LOGP(info, " ** AFTERBURN **");
+        // LOGP(info, " ** AFTERBURN **");
+        continue;
+      }
+      // Apply track selections
+      if (params.applyTrackCuts) {
+        if (!cuts.isSelected(tvid, recoData)) {
+          // LOGP(info, "Fail");
           continue;
+        }
       }
       // Vectors for reconstructing the vertex
       vec_globID_contr.push_back(trackIndex[it]);
       vecPvContributorTrackParCov.push_back(trc);
-      //Store vector with index and tracks ITS only   -- same order as the GLOBAL vectors
+      // Store vector with index and tracks ITS only   -- same order as the GLOBAL vectors
       int itsTrackID = refs[GTrackID::ITS].getIndex();
       const o2::track::TrackParCov& trcITS = recoData.getTrackParam(itsTrackID); // The actual ITS track
       trueVec_globID_contr.push_back(itsTrackID);
       trueVecPvContributorTrackParCov.push_back(trcITS);
-      LOGP(info,"SOURCE: {}  indexGLOBAL:  {}  indexITS:  {}", tvid.getSourceName(tvid.getSource()), trackIndex[it], trueVec_globID_contr[i]);
+      // LOGP(info, "SOURCE: {}  indexGLOBAL:  {}  indexITS:  {}", tvid.getSourceName(tvid.getSource()), trackIndex[it], trueVec_globID_contr[i]);
       i++;
     } // end loop tracks
-    // LOGP(info,"************  SIZE CONTR:   {}   ", vecPvContributorTrackParCov.size());
-    LOGP(info,"************  SIZE INDEX GLOBAL:   {}   ", vec_globID_contr.size());
-    LOGP(info,"************  SIZE INDEX ITS:   {}   ", trueVec_globID_contr.size());
-    
+    LOGP(info, "************  SIZE INDEX GLOBAL:   {}   ", vec_globID_contr.size());
+    LOGP(info, "************  SIZE INDEX ITS:   {}   ", trueVec_globID_contr.size());
+
     it = vtref.getFirstEntry();
     // Preparation PVertexer refit
     o2::conf::ConfigurableParam::updateFromString("pvertexer.useMeanVertexConstraint=false");
     bool PVrefit_doable = mVertexer.prepareVertexRefit(vecPvContributorTrackParCov, pv);
     if (!PVrefit_doable) {
       LOG(info) << "Not enough tracks accepted for the refit --> Skipping vertex";
-    }
-    else{
-      mHisto_contributorsPV->Fill(vecPvContributorTrackParCov.size());
-      if(vecPvContributorTrackParCov.size() < 6 ) continue;
-      for (it=0; it < vec_globID_contr.size(); it++) {
-        //vector of booleans to keep track of the track to be skipped
+    } else {
+      mHistoContributorsPV->Fill(vecPvContributorTrackParCov.size());
+      // Neglect vertices with small number of contributors (configurable)
+      if (vecPvContributorTrackParCov.size() < params.minNumberOfContributors)
+        continue;
+      for (it = 0; it < vec_globID_contr.size(); it++) {
+        // vector of booleans to keep track of the track to be skipped
         std::vector<bool> vec_useTrk_PVrefit(vec_globID_contr.size(), true);
         auto tvid = vec_globID_contr[it];
-        auto trackIterator = std::find(vec_globID_contr.begin(), vec_globID_contr.end(),vec_globID_contr[it]);
+        auto trackIterator = std::find(vec_globID_contr.begin(), vec_globID_contr.end(), vec_globID_contr[it]);
         if (trackIterator != vec_globID_contr.end()) {
-          //LOGP(info,"************  Trackiterator:   {}  : {} ", it+1, vec_globID_contr[it]);
+          // LOGP(info,"************  Trackiterator:   {}  : {} ", it+1, vec_globID_contr[it]);
           o2::dataformats::VertexBase PVbase_recalculated;
           /// this track contributed to the PV fit: let's do the refit without it
           const int entry = std::distance(vec_globID_contr.begin(), trackIterator);
-          if (!keepAllTracksPVrefit) {
-              vec_useTrk_PVrefit[entry] = false; /// remove the track from the PV refitting
+          if (!params.useAllTracks) {
+            vec_useTrk_PVrefit[entry] = false; /// remove the track from the PV refitting
           }
           auto Pvtx_refitted = mVertexer.refitVertex(vec_useTrk_PVrefit, pv); // vertex refit
           // enable the dca recalculation for the current PV contributor, after removing it from the PV refit
           bool recalc_imppar = true;
           if (Pvtx_refitted.getChi2() < 0) {
-            LOG(info) << "---> Refitted vertex has bad chi2 = " << Pvtx_refitted.getChi2();
+            // LOG(info) << "---> Refitted vertex has bad chi2 = " << Pvtx_refitted.getChi2();
             recalc_imppar = false;
           }
           vec_useTrk_PVrefit[entry] = true; /// restore the track for the next PV refitting
@@ -231,12 +341,12 @@ void ImpactParameterStudy::process(o2::globaltracking::RecoContainer& recoData)
             const double DeltaX = pv.getX() - Pvtx_refitted.getX();
             const double DeltaY = pv.getY() - Pvtx_refitted.getY();
             const double DeltaZ = pv.getZ() - Pvtx_refitted.getZ();
-            mHisto_X_PVrefitChi2minus1->Fill(pv.getX(), Pvtx_refitted.getX());
-            mHisto_Y_PVrefitChi2minus1->Fill(pv.getY(), Pvtx_refitted.getY());
-            mHisto_Z_PVrefitChi2minus1->Fill(pv.getZ(), Pvtx_refitted.getZ());
-            mHisto_X_DeltaPVrefitChi2minus1->Fill(DeltaX);
-            mHisto_Y_DeltaPVrefitChi2minus1->Fill(DeltaY);
-            mHisto_Z_DeltaPVrefitChi2minus1->Fill(DeltaZ);
+            mHistoXPvVsRefitted->Fill(pv.getX(), Pvtx_refitted.getX());
+            mHistoYPvVsRefitted->Fill(pv.getY(), Pvtx_refitted.getY());
+            mHistoZPvVsRefitted->Fill(pv.getZ(), Pvtx_refitted.getZ());
+            mHistoXDeltaPVrefit->Fill(DeltaX);
+            mHistoYDeltaPVrefit->Fill(DeltaY);
+            mHistoZDeltaPVrefit->Fill(DeltaZ);
 
             // fill the newly calculated PV
             PVbase_recalculated.setX(Pvtx_refitted.getX());
@@ -246,90 +356,171 @@ void ImpactParameterStudy::process(o2::globaltracking::RecoContainer& recoData)
 
             auto trueID = trueVec_globID_contr[it];
             const o2::track::TrackParCov& trc = recoData.getTrackParam(trueID);
-            //auto trackPar = getTrackPar(trc);
-            //LOGP(info, "BEFORE");
             auto pt = trc.getPt();
-            //LOGP(info, "HERE");
             o2::gpu::gpustd::array<float, 2> dcaInfo{-999., -999.};
-            LOGP(info, " ---> Bz={}", o2::base::Propagator::Instance()->getNominalBz());
+            // LOGP(info, " ---> Bz={}", o2::base::Propagator::Instance()->getNominalBz());
             if (o2::base::Propagator::Instance()->propagateToDCABxByBz({Pvtx_refitted.getX(), Pvtx_refitted.getY(), Pvtx_refitted.getZ()}, const_cast<o2::track::TrackParCov&>(trc), 2.f, matCorr, &dcaInfo)) {
               impParRPhi = dcaInfo[0] * toMicrometers;
               impParZ = dcaInfo[1] * toMicrometers;
-              mHisto_ImpParZ->Fill(pt, impParZ);
-              mHisto_ImpParXY->Fill(pt, impParRPhi);
+              mHistoImpParXy->Fill(pt, impParRPhi);
+              mHistoImpParZ->Fill(pt, impParZ);
               double phi = trc.getPhi();
-              if (phi < 0) phi += 6.28318;
-                  mHisto_Phi->Fill(phi, impParRPhi);
+              mHistoImpParXyPhi->Fill(phi, impParRPhi);
+              mHistoImpParZPhi->Fill(phi, impParZ);
+              if (phi < TMath::Pi()) {
+                mHistoImpParXyTop->Fill(pt, impParRPhi);
+                mHistoImpParZTop->Fill(pt, impParZ);
+              }
+              if (phi > TMath::Pi()) {
+                mHistoImpParXyBottom->Fill(pt, impParRPhi);
+                mHistoImpParZBottom->Fill(pt, impParZ);
+              }
+              double sign = trc.getSign();
+              if (sign < 0) {
+                mHistoImpParXyNegativeCharge->Fill(pt, impParRPhi);
+                mHistoImpParZNegativeCharge->Fill(pt, impParZ);
+              } else {
+                mHistoImpParXyPositiveCharge->Fill(pt, impParRPhi);
+                mHistoImpParZPositiveCharge->Fill(pt, impParZ);
+              }
             }
-          } //end recalc impact param
+          } // end recalc impact param
         }
-      } // end loop tracks in pv
-    } // else pv refit duable */
+      } // end loop tracks in pv refitted
+    }   // else pv refit duable */
     vec_globID_contr.clear();
     vecPvContributorTrackParCov.clear();
     trueVec_globID_contr.clear();
     trueVecPvContributorTrackParCov.clear();
-/* 
-    mHisto_ImpParXY->FitSlicesY();
-    mHisto_ImpParZ->FitSlicesY();
-    mHisto_ImpParZ_2 = (std::make_unique<TH1F*>)gROOT->FindObject("h1_ImpParXY_2");
-    mHisto_ImpParXY_2 = (std::make_unique<TH1F*>)gROOT->FindObject("h1_ImpParZ_2"); */
-    
+
   } // end loop pv
 
-} // end process
+  mHistoImpParXy->FitSlicesY();
+  mHistoImpParZ->FitSlicesY();
+  mHistoImpParXyPhi->FitSlicesY();
+  mHistoImpParZPhi->FitSlicesY();
+  mHistoImpParXyTop->FitSlicesY();
+  mHistoImpParZTop->FitSlicesY();
+  mHistoImpParXyBottom->FitSlicesY();
+  mHistoImpParZBottom->FitSlicesY();
+  mHistoImpParXyNegativeCharge->FitSlicesY();
+  mHistoImpParZNegativeCharge->FitSlicesY();
+  mHistoImpParXyPositiveCharge->FitSlicesY();
+  mHistoImpParZPositiveCharge->FitSlicesY();
+  mHistoImpParXySigma = std::unique_ptr<TH1F>(static_cast<TH1F*>((gROOT->FindObject("histoImpParZ_2"))->Clone()));
+  mHistoImpParZSigma = std::unique_ptr<TH1F>(static_cast<TH1F*>((gROOT->FindObject("histoImpParXy_2"))->Clone()));
+  mHistoImpParXyMeanPhi = std::unique_ptr<TH1F>(static_cast<TH1F*>((gROOT->FindObject("histoImpParXyPhi_1"))->Clone()));
+  mHistoImpParZMeanPhi = std::unique_ptr<TH1F>(static_cast<TH1F*>((gROOT->FindObject("histoImpParZPhi_1"))->Clone()));
+  mHistoImpParXySigmaPhi = std::unique_ptr<TH1F>(static_cast<TH1F*>((gROOT->FindObject("histoImpParXyPhi_2"))->Clone()));
+  mHistoImpParZSigmaPhi = std::unique_ptr<TH1F>(static_cast<TH1F*>((gROOT->FindObject("histoImpParZPhi_2"))->Clone()));
+  mHistoImpParXyMeanTop = std::unique_ptr<TH1F>(static_cast<TH1F*>((gROOT->FindObject("histoImpParZTop_1"))->Clone()));
+  mHistoImpParZMeanTop = std::unique_ptr<TH1F>(static_cast<TH1F*>((gROOT->FindObject("histoImpParXyTop_1"))->Clone()));
+  mHistoImpParXyMeanBottom = std::unique_ptr<TH1F>(static_cast<TH1F*>((gROOT->FindObject("histoImpParZBottom_1"))->Clone()));
+  mHistoImpParZMeanBottom = std::unique_ptr<TH1F>(static_cast<TH1F*>((gROOT->FindObject("histoImpParXyBottom_1"))->Clone()));
+  mHistoImpParXySigmaTop = std::unique_ptr<TH1F>(static_cast<TH1F*>((gROOT->FindObject("histoImpParZTop_2"))->Clone()));
+  mHistoImpParZSigmaTop = std::unique_ptr<TH1F>(static_cast<TH1F*>((gROOT->FindObject("histoImpParXyTop_2"))->Clone()));
+  mHistoImpParXySigmaBottom = std::unique_ptr<TH1F>(static_cast<TH1F*>((gROOT->FindObject("histoImpParZBottom_2"))->Clone()));
+  mHistoImpParZSigmaBottom = std::unique_ptr<TH1F>(static_cast<TH1F*>((gROOT->FindObject("histoImpParXyBottom_2"))->Clone()));
+  mHistoImpParXySigmaNegativeCharge = std::unique_ptr<TH1F>(static_cast<TH1F*>((gROOT->FindObject("histoImpParZNegativeCharge_2"))->Clone()));
+  mHistoImpParZSigmaNegativeCharge = std::unique_ptr<TH1F>(static_cast<TH1F*>((gROOT->FindObject("histoImpParXyNegativeCharge_2"))->Clone()));
+  mHistoImpParXySigmaPositiveCharge = std::unique_ptr<TH1F>(static_cast<TH1F*>((gROOT->FindObject("histoImpParZPositiveCharge_2"))->Clone()));
+  mHistoImpParZSigmaPositiveCharge = std::unique_ptr<TH1F>(static_cast<TH1F*>((gROOT->FindObject("histoImpParXyPositiveCharge_2"))->Clone()));
+}
+// end process
 
 void ImpactParameterStudy::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
-  o2::base::Propagator::Instance();
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
-    // Note: reading of the ITS AlpideParam needed for ITS timing is done by the RecoContainer
     auto grp = o2::base::GRPGeomHelper::instance().getGRPECS();
-
-    // const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
-    // if (!grp->isDetContinuousReadOut(DetID::ITS)) {
-    //   mITSROFrameLengthMUS = alpParams.roFrameLengthTrig / 1.e3;                                         // ITS ROFrame duration in \mus
-    // } else {
-    //   mITSROFrameLengthMUS = alpParams.roFrameLengthInBC * o2::constants::lhc::LHCBunchSpacingNS * 1e-3; // ITS ROFrame duration in \mus
-    // }
-    // mITSROFBiasMUS = alpParams.roFrameBiasInBC * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
-    // if (o2::base::GRPGeomHelper::instance().getGRPECS()->getRunType() != o2::parameters::GRPECSObject::RunType::COSMICS) {
-    //   mVertexer.setBunchFilling(o2::base::GRPGeomHelper::instance().getGRPLHCIF()->getBunchFilling());
-    // }
-    // mVertexer.setITSROFrameLength(mITSROFrameLengthMUS);
-    //LOGP(info, "prima");
     mVertexer.init();
-    //LOGP(info, "dopo");
     if (pc.services().get<const o2::framework::DeviceSpec>().inputTimesliceId == 0) {
-      // PVertexerParams::Instance().printKeyValues();
     }
   }
 }
 
-void ImpactParameterStudy::endOfStream(EndOfStreamContext& ec)
+void ImpactParameterStudy::saveHistograms()
 {
   mDBGOut.reset();
-  TFile fout(mOutName.c_str(), "update");
-  fout.WriteTObject(mHisto_contributorsPV.get()); 
-  fout.WriteTObject(mHisto_trackType.get()); 
-  fout.WriteTObject(mHisto_trackTypeRej.get());   
-  fout.WriteTObject(mHisto_trackTypeAcc.get());   
-  fout.WriteTObject(mHisto_X_PVrefitChi2minus1.get());
-  fout.WriteTObject(mHisto_Y_PVrefitChi2minus1.get());
-  fout.WriteTObject(mHisto_Z_PVrefitChi2minus1.get());
-  fout.WriteTObject(mHisto_X_DeltaPVrefitChi2minus1.get());
-  fout.WriteTObject(mHisto_Y_DeltaPVrefitChi2minus1.get());
-  fout.WriteTObject(mHisto_Z_DeltaPVrefitChi2minus1.get());
-  fout.WriteTObject(mHisto_ImpParZ.get());
-  fout.WriteTObject(mHisto_ImpParXY.get());
-  fout.WriteTObject(mHisto_ImpParZ_2.get());
-  fout.WriteTObject(mHisto_ImpParXY_2.get());
-  fout.WriteTObject(mHisto_Phi.get());
-  LOGP(info, "Stored Impact Parameters histograms {} and {} into {}", mHisto_ImpParZ->GetName(), mHisto_ImpParXY->GetName(), mOutName.c_str());
+  TFile fout(mOutName.Data(), "update");
+  fout.WriteTObject(mHistoContributorsPV.get());
+  fout.WriteTObject(mHistoTrackType.get());
+  fout.WriteTObject(mHistoTrackTypeRej.get());
+  fout.WriteTObject(mHistoTrackTypeAcc.get());
+  fout.WriteTObject(mHistoXPvVsRefitted.get());
+  fout.WriteTObject(mHistoYPvVsRefitted.get());
+  fout.WriteTObject(mHistoZPvVsRefitted.get());
+  fout.WriteTObject(mHistoXDeltaPVrefit.get());
+  fout.WriteTObject(mHistoYDeltaPVrefit.get());
+  fout.WriteTObject(mHistoZDeltaPVrefit.get());
+  fout.WriteTObject(mHistoImpParZ.get());
+  fout.WriteTObject(mHistoImpParXy.get());
+  fout.WriteTObject(mHistoImpParXyPhi.get());
+  fout.WriteTObject(mHistoImpParZPhi.get());
+  fout.WriteTObject(mHistoImpParXyTop.get());
+  fout.WriteTObject(mHistoImpParZTop.get());
+  fout.WriteTObject(mHistoImpParXyBottom.get());
+  fout.WriteTObject(mHistoImpParZBottom.get());
+  fout.WriteTObject(mHistoImpParXyPositiveCharge.get());
+  fout.WriteTObject(mHistoImpParZPositiveCharge.get());
+  fout.WriteTObject(mHistoImpParXyNegativeCharge.get());
+  fout.WriteTObject(mHistoImpParZNegativeCharge.get());
+  fout.WriteTObject(mHistoImpParZMeanPhi.get());
+  fout.WriteTObject(mHistoImpParXyMeanPhi.get());
+  fout.WriteTObject(mHistoImpParZSigmaPhi.get());
+  fout.WriteTObject(mHistoImpParXySigmaPhi.get());
+  fout.WriteTObject(mHistoImpParZSigma.get());
+  fout.WriteTObject(mHistoImpParXySigma.get());
+  fout.WriteTObject(mHistoImpParZMeanTop.get());
+  fout.WriteTObject(mHistoImpParXyMeanTop.get());
+  fout.WriteTObject(mHistoImpParZMeanBottom.get());
+  fout.WriteTObject(mHistoImpParXyMeanBottom.get());
+  fout.WriteTObject(mHistoImpParZSigmaTop.get());
+  fout.WriteTObject(mHistoImpParXySigmaTop.get());
+  fout.WriteTObject(mHistoImpParZSigmaBottom.get());
+  fout.WriteTObject(mHistoImpParXySigmaBottom.get());
+  fout.WriteTObject(mHistoImpParZSigmaPositiveCharge.get());
+  fout.WriteTObject(mHistoImpParXySigmaPositiveCharge.get());
+  fout.WriteTObject(mHistoImpParZSigmaNegativeCharge.get());
+  fout.WriteTObject(mHistoImpParXySigmaNegativeCharge.get());
+  LOGP(info, "Impact Parameters histograms stored in {}", mOutName.Data());
   fout.Close();
+}
+
+void ImpactParameterStudy::plotHistograms()
+{
+  TString directoryName = "./plotsImpactParameter";
+  gSystem->mkdir(directoryName);
+  TCanvas* dcaXyVsdcaZ = helpers::prepareSimpleCanvas2Histograms(*mHistoImpParXySigma, kRed, "#sigma_{XY}", *mHistoImpParZSigma, kBlue, "#sigma_{Z}");
+  TCanvas* dcaXyTopVsBottom = helpers::prepareSimpleCanvas2Histograms(*mHistoImpParXySigmaTop, kRed, "#sigma_{XY}^{TOP}", *mHistoImpParXySigmaBottom, kBlue, "#sigma_{XY}^{BOTTOM}");
+  TCanvas* dcaZTopVsBottom = helpers::prepareSimpleCanvas2Histograms(*mHistoImpParZSigmaTop, kRed, "#sigma_{Z}^{TOP}", *mHistoImpParZSigmaBottom, kBlue, "#sigma_{Z}^{BOTTOM}");
+  TCanvas* dcaXyPosVsNeg = helpers::prepareSimpleCanvas2Histograms(*mHistoImpParXySigmaPositiveCharge, kRed, "#sigma_{XY}^{positive}", *mHistoImpParXySigmaNegativeCharge, kBlue, "#sigma_{XY}^{negative}");
+  TCanvas* dcaZPosVsNeg = helpers::prepareSimpleCanvas2Histograms(*mHistoImpParZSigmaPositiveCharge, kRed, "#sigma_{Z}^{positive}", *mHistoImpParZSigmaNegativeCharge, kBlue, "#sigma_{Z}^{negative}");
+  TCanvas* dcaXYvsPhi = helpers::plot2DwithMeanAndSigma(*mHistoImpParXyPhi, *mHistoImpParXyMeanPhi, *mHistoImpParXySigmaPhi, kRed);
+  TCanvas* dcaZvsPhi = helpers::plot2DwithMeanAndSigma(*mHistoImpParZPhi, *mHistoImpParZMeanPhi, *mHistoImpParZSigmaPhi, kRed);
+  TCanvas* dcaXyPhiMeanTopVsBottom = helpers::prepareSimpleCanvas2DcaMeanValues(*mHistoImpParXyMeanTop, kRed, "mean_{XY}^{TOP}", *mHistoImpParXyMeanBottom, kBlue, "mean_{XY}^{BOTTOM}");
+  TCanvas* dcaZPhiMeanTopVsBottom = helpers::prepareSimpleCanvas2DcaMeanValues(*mHistoImpParZMeanTop, kRed, "mean_{Z}^{TOP}", *mHistoImpParZMeanBottom, kBlue, "mean_{Z}^{BOTTOM}");
+
+  dcaXyVsdcaZ->SaveAs(Form("%s/ComparisonDCAXYvsZ.png", directoryName.Data()));
+  dcaXyTopVsBottom->SaveAs(Form("%s/ComparisonDCAXyTopVsBottom.png", directoryName.Data()));
+  dcaXyPosVsNeg->SaveAs(Form("%s/ComparisonDCAXyPosVsNeg.png", directoryName.Data()));
+  dcaZTopVsBottom->SaveAs(Form("%s/ComparisonDCAZTopVsBottom.png", directoryName.Data()));
+  dcaZPosVsNeg->SaveAs(Form("%s/ComparisonDCAZPosVsNeg.png", directoryName.Data()));
+  dcaXYvsPhi->SaveAs(Form("%s/dcaXYvsPhi.png", directoryName.Data()));
+  dcaZvsPhi->SaveAs(Form("%s/dcaZvsPhi.png", directoryName.Data()));
+  dcaXyPhiMeanTopVsBottom->SaveAs(Form("%s/dcaXyPhiMeanTopVsBottom.png", directoryName.Data()));
+  dcaZPhiMeanTopVsBottom->SaveAs(Form("%s/dcaZPhiMeanTopVsBottom.png", directoryName.Data()));
+}
+
+void ImpactParameterStudy::endOfStream(EndOfStreamContext& ec)
+{
+  auto& params = ITSImpactParameterParamConfig::Instance();
+  if (params.generatePlots) {
+    saveHistograms();
+    plotHistograms();
+  }
 }
 
 void ImpactParameterStudy::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
@@ -359,9 +550,10 @@ DataProcessorSpec getImpactParameterStudy(mask_t srcTracksMask, mask_t srcCluste
     "its-study-impactparameter",
     dataRequest->inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<ImpactParameterStudy>(dataRequest, ggRequest, srcTracksMask)},
+    AlgorithmSpec{adaptFromTask<ImpactParameterStudy>(dataRequest, ggRequest, srcTracksMask, useMC)},
     Options{}};
 }
+
 } // namespace study
 } // namespace its
 } // namespace o2

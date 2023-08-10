@@ -10,6 +10,10 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/CallbacksPolicy.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "Framework/CompletionPolicy.h"
+#include "Framework/ConfigParamSpec.h"
+#include "Framework/CompletionPolicyHelpers.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 
@@ -86,6 +90,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (!anyStudy) {
     LOGP(info, "No study selected, dryrunning");
   }
+
+  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
+  o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
 
   // write the configuration used for the studies workflow
   o2::conf::ConfigurableParam::writeINI("o2_its_standalone_configuration.ini");
