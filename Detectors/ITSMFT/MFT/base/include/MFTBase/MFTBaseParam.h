@@ -41,6 +41,9 @@ struct MFTBaseParam : public o2::conf::ConfigurableParamHelper<MFTBaseParam> {
   bool buildReadoutCables = true;
   bool buildServices = true;
 
+  // To perform chips alignment
+  bool buildAlignment = false;
+
   // General configurations
   bool minimal = false; // Disables all elements out of MFT acceptance
 
