@@ -86,9 +86,9 @@ HeatExchanger::HeatExchanger()
 
   // for the chips aligment --> decrease of the HE thickness then increase of the rohacell density
   Double_t decreaseHE = 0.0;
-  if (mftBaseParam.buildAlignment)
+  if (mftBaseParam.buildAlignment) {
     decreaseHE = 0.4;
-
+  }
   mHeatExchangerThickness = 1.398 - decreaseHE;
   mCarbonThickness = (0.0290) / 2.; // half thickness of the carbon plate
   initParameters();
