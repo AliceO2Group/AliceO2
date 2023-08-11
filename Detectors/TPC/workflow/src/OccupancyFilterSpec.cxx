@@ -73,6 +73,7 @@ class OccupancyFilterDevice : public o2::framework::Task
         if (timeBinOccupancy > mOccupancyThreshold) {
           LOGP(info, "Sector {}, timeBinOccupancy {} > occupancy-threshold {}", sector, timeBinOccupancy, mOccupancyThreshold);
           isAboveThreshold = true;
+          break;
         }
       }
 
