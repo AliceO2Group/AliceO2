@@ -49,7 +49,7 @@
 #define AddVariableRTC(...) AddVariable(__VA_ARGS__)
 #define AddOptionSet(name, type, value, optname, optnameshort, help, ...)
 #define AddOptionVec(name, type, optname, optnameshort, help, ...)
-#define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...) type name[count] = {default};
+#define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...) type name[count] = {GPUCA_M_STRIP(default)};
 #define AddSubConfig(name, instance)
 #define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr, o2prefix)                                           \
   struct GPUCA_M_CAT(GPUConfigurableParam, name) : public o2::conf::ConfigurableParamHelper<GPUCA_M_CAT(GPUConfigurableParam, name)> { \

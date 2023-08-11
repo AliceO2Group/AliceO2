@@ -41,11 +41,30 @@ GPUdi() void MEM_LG(GPUParam)::Global2Slice(int iSlice, float X, float Y, float 
   *z = Z;
 }
 
+#ifdef GPUCA_TPC_GEOMETRY_O2
+
+MEM_CLASS_PRE()
+GPUdi() void MEM_LG(GPUParam)::GetClusterErrorsSeeding2(int iRow, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const
+{
+  GetClusterErrors2(iRow, z, sinPhi, DzDs, ErrY2, ErrZ2);
+}
+
+MEM_CLASS_PRE()
+GPUdi() float MEM_LG(GPUParam)::GetClusterError2(int yz, int type, float z, float angle2) const
+{
+  MakeType(const float*) c = ParamErrors[yz][type];
+  float v = c[0] + c[1] * angle2 + c[2] * z + c[3] * 0;
+  v = CAMath::Abs(v);
+  v *= yz ? rec.tpc.clusterError2CorrectionZ : rec.tpc.clusterError2CorrectionY;
+  v += yz ? rec.tpc.clusterError2AdditionalZ : rec.tpc.clusterError2AdditionalY;
+  return v;
+}
+
+#else // GPUCA_TPC_GEOMETRY_O2
+
 MEM_CLASS_PRE()
 GPUdi() float MEM_LG(GPUParam)::GetClusterErrorSeeding(int yz, int type, float z, float angle2) const
 {
-  //* recalculate the cluster ErrorsSeeding wih respect to the track slope
-
   MakeType(const float*) c = ParamErrorsSeeding0[yz][type];
   float v = c[0] + c[1] * z + c[2] * angle2;
   v = CAMath::Abs(v);
@@ -56,10 +75,7 @@ MEM_CLASS_PRE()
 GPUdi() void MEM_LG(GPUParam)::GetClusterErrorsSeeding2(int iRow, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const
 {
   int rowType = tpcGeometry.GetROC(iRow);
-  if (rowType > 2) {
-    rowType = 2; // TODO: Add type 3
-  }
-  z = CAMath::Abs(GPUTPCGeometry::TPCLength() - CAMath::Abs(z));
+  z = CAMath::Abs(tpcGeometry.TPCLength() - CAMath::Abs(z));
   float s2 = sinPhi * sinPhi;
   if (s2 > 0.95f * 0.95f) {
     s2 = 0.95f * 0.95f;
@@ -77,8 +93,6 @@ GPUdi() void MEM_LG(GPUParam)::GetClusterErrorsSeeding2(int iRow, float z, float
 MEM_CLASS_PRE()
 GPUdi() float MEM_LG(GPUParam)::GetClusterError2(int yz, int type, float z, float angle2) const
 {
-  //* recalculate the cluster error wih respect to the track slope
-
   MakeType(const float*) c = ParamS0Par[yz][type];
   float v = c[0] + c[1] * z + c[2] * angle2 + c[3] * z * z + c[4] * angle2 * angle2 + c[5] * z * angle2;
   v = CAMath::Abs(v);
@@ -90,15 +104,14 @@ GPUdi() float MEM_LG(GPUParam)::GetClusterError2(int yz, int type, float z, floa
   return v;
 }
 
+#endif // !GPUCA_TPC_GEOMETRY_O2
+
 MEM_CLASS_PRE()
 GPUdi() void MEM_LG(GPUParam)::GetClusterErrors2(int iRow, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const
 {
   // Calibrated cluster error from OCDB for Y and Z
   int rowType = tpcGeometry.GetROC(iRow);
-  if (rowType > 2) {
-    rowType = 2; // TODO: Add type 3
-  }
-  z = CAMath::Abs(GPUTPCGeometry::TPCLength() - CAMath::Abs(z));
+  z = CAMath::Abs(tpcGeometry.TPCLength() - CAMath::Abs(z));
   float s2 = sinPhi * sinPhi;
   if (s2 > 0.95f * 0.95f) {
     s2 = 0.95f * 0.95f;

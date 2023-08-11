@@ -63,8 +63,12 @@ struct GPUParam_t {
   GPUParamSlice SliceParam[GPUCA_NSLICES];
 
  protected:
+#ifdef GPUCA_TPC_GEOMETRY_O2
+  float ParamErrors[2][4][4];
+#else
   float ParamErrorsSeeding0[2][3][4]; // cluster shape parameterization coeficients
   float ParamS0Par[2][3][6]; // cluster error parameterization coeficients
+#endif
 };
 } // namespace internal
 
@@ -78,6 +82,7 @@ struct GPUParam : public internal::GPUParam_t<GPUSettingsRec, GPUSettingsParam> 
   void UpdateSettings(const GPUSettingsGRP* g, const GPUSettingsProcessing* p = nullptr);
   void LoadClusterErrors(bool Print = 0);
   o2::base::Propagator* GetDefaultO2Propagator(bool useGPUField = false) const;
+  void UpdateRun3ClusterErrors(const float* yErrorParam, const float* zErrorParam);
 #endif
 
   GPUd() float Alpha(int iSlice) const
