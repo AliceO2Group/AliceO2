@@ -82,7 +82,10 @@ class OccupancyFilterDevice : public o2::framework::Task
 
       if (isAboveThreshold) {
         snapshot(pc.outputs(), inDigitsO, sector);
-      }
+      } else {
+        std::vector<o2::tpc::Digit> empty;
+        snapshot(pc.outputs(), empty, sector);
+      } 
 
       ++mProcessedTFs;
       LOGP(info, "Number of processed time frames: {}", mProcessedTFs);
