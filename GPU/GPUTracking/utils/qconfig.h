@@ -283,7 +283,8 @@ enum qConfigRetVal { qcrOK = 0,
 #if !defined(QCONFIG_GPU)
 #define AddOption(name, type, default, optname, optnameshort, help, ...) type name = default;
 #define AddVariable(name, type, default) type name = default;
-#define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...) type name[count] = {default};
+#define _AddOptionArray_INTERNAL_EXPAND(...) __VA_ARGS__
+#define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...) type name[count] = {_AddOptionArray_INTERNAL_EXPAND default};
 #define AddOptionVec(name, type, optname, optnameshort, help, ...) std::vector<type> name;
 #else
 #define AddOption(name, type, default, optname, optnameshort, help, ...) type name;

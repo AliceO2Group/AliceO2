@@ -24,6 +24,8 @@
 #define qon_mxcat3(a, b, c) qon_mcat3(a, b, c)
 #define qon_mstr(a) #a
 #define qon_mxstr(a) qon_mstr(a)
+#define qon_mexp(...) __VA_ARGS__
+#define qon_mxexp(X) qon_mexp X
 
 namespace qConfig
 {

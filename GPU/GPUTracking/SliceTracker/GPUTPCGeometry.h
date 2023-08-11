@@ -107,6 +107,7 @@ class GPUTPCGeometry // TODO: Make values constexpr
   GPUd() static CONSTEXPR float TPCLength() { return 250.f - 0.275f; }
   GPUd() float Row2X(int row) const { return (mX[row]); }
   GPUd() float PadHeight(int row) const { return (mPadHeight[GetRegion(row)]); }
+  GPUd() float PadHeightByRegion(int region) const { return (mPadHeight[region]); }
   GPUd() float PadWidth(int row) const { return (mPadWidth[GetRegion(row)]); }
   GPUd() unsigned char NPads(int row) const { return mNPads[row]; }
 
