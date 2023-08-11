@@ -44,6 +44,7 @@ class OccupancyFilterDevice : public o2::framework::Task
   void init(o2::framework::InitContext& ic) final
   {
     mOccupancyThreshold = ic.options().get<float>("occupancy-threshold");
+    mAdcValueThreshold = ic.options().get<float>("adc-threshold");
   }
 
   void run(o2::framework::ProcessingContext& pc) final
@@ -65,7 +66,9 @@ class OccupancyFilterDevice : public o2::framework::Task
       std::vector<size_t> digitsPerTimeBin(int(128 * 445.5));
 
       for (const auto& digit : inDigitsO) {
-        ++digitsPerTimeBin[digit.getTimeStamp()];
+        if (digit.getChargeFloat() > mAdcValueThreshold) {
+          ++digitsPerTimeBin[digit.getTimeStamp()];
+        }
       }
 
       bool isAboveThreshold{false};
@@ -88,6 +91,7 @@ class OccupancyFilterDevice : public o2::framework::Task
 
  private:
   float mOccupancyThreshold{50.f};
+  float mAdcValueThreshold{0.f};
   uint32_t mProcessedTFs{0};
 
   //____________________________________________________________________________
@@ -117,6 +121,7 @@ o2::framework::DataProcessorSpec getOccupancyFilterSpec()
     AlgorithmSpec{adaptFromTask<device>()},
     Options{
       {"occupancy-threshold", VariantType::Float, 50.f, {"threshold for occupancy in one time bin"}},
+      {"adc-threshold", VariantType::Float, 0.f, {"threshold for adc value"}},
     } // end Options
   };  // end DataProcessorSpec
 }
