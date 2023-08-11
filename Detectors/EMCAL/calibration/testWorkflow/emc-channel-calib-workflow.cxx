@@ -42,7 +42,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"no-rejectCalibTrigger", VariantType::Bool, false, {"disabled by default such that calib triggers are rejected. If enabled, calibration triggers (LED events etc.) also enter the calibration"}},
     {"no-rejectL0Trigger", VariantType::Bool, false, {"disabled by default such that L0 triggers are rejected. If enabled, L0 triggers (Gamma trigger and jet trigger) also enter the calibration"}},
     {"no-applyGainCalib", VariantType::Bool, false, {"if appplication of gain calibration should be disabled"}},
-    {"ctpconfig-per-run", VariantType::Bool, false, {"Use CTP config per run. 1 -- on (Data), 0 -- off (MC)"}}};
+    {"ctpconfig-run-independent", VariantType::Bool, false, {"Use CTP config w/o runNumber tag"}}};
 
   std::swap(workflowOptions, options);
 }
@@ -57,7 +57,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   bool loadCalibParamsFromCCDB = !cfgc.options().get<bool>("no-loadCalibParamsFromCCDB");
   bool rejectCalibTrigger = !cfgc.options().get<bool>("no-rejectCalibTrigger");
   bool rejectL0Trigger = !cfgc.options().get<bool>("no-rejectL0Trigger");
-  bool ctpcfgperrun = cfgc.options().get<bool>("ctpconfig-per-run");
+  bool ctpcfgperrun = !cfgc.options().get<bool>("ctpconfig-run-independent");
   bool applyGainCalib = !cfgc.options().get<bool>("no-applyGainCalib");
 
   WorkflowSpec specs;
