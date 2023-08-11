@@ -283,15 +283,17 @@ void Detector::createMaterials()
     //  smaller rohacell thickness, greater density by 15% (from 1.327cm to 1.117cm)
     dRohacell = 0.032 / (1 - 0.158);
     // to perform chips aligment
-    if (mftBaseParam.buildAlignment)
+    if (mftBaseParam.buildAlignment) {
       dRohacell = dRohacell / (1 - 0.358); // decrase by 4mm of the rohacell thickness
+    }
   }
   if (Geometry::sGrooves == 1) {
     // With grooves, usual rohacell density: 0.032 g/cm3 rohacell 31
     dRohacell = 0.032;
     // to perform chips aligment
-    if (mftBaseParam.buildAlignment)
+    if (mftBaseParam.buildAlignment) {
       dRohacell = dRohacell / (1 - 0.301); // decrase by 4mm of the rohacell thickness
+    }
   }
 
   // Polyimide pipe mixture
