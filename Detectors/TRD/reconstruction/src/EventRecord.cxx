@@ -88,27 +88,16 @@ void EventRecordContainer::sendData(o2::framework::ProcessingContext& pc, bool g
 
 void EventRecordContainer::accumulateStats()
 {
-  int eventcount = mEventRecords.size();
-  int sumtracklets = 0;
-  int sumdigits = 0;
-  double sumdigittime = 0;
-  double sumtracklettime = 0;
-  double sumtime = 0;
-  uint64_t sumwordsrejected = 0;
-  uint64_t sumwordsread = 0;
-  for (auto event : mEventRecords) {
-    sumtracklets += event.getEventStats().mTrackletsFound;
-    sumdigits += event.getEventStats().mDigitsFound;
-    sumtracklettime += event.getEventStats().mTimeTakenForTracklets;
-    sumdigittime += event.getEventStats().mTimeTakenForDigits;
-    sumtime += event.getEventStats().mTimeTaken;
-  }
-  if (eventcount != 0) {
-    mTFStats.mTrackletsPerEvent = sumtracklets / eventcount;
-    mTFStats.mDigitsPerEvent = sumdigits / eventcount;
-    mTFStats.mTimeTakenForTracklets = sumtracklettime;
-    mTFStats.mTimeTakenForDigits = sumdigittime;
-    mTFStats.mTimeTaken = sumtime;
+  mTFStats.mNTriggersTotal = mEventRecords.size();
+  for (const auto& event : mEventRecords) {
+    mTFStats.mTrackletsFound += event.getTracklets().size();
+    mTFStats.mDigitsFound += event.getDigits().size();
+    mTFStats.mTimeTakenForTracklets += event.getTrackletTime();
+    mTFStats.mTimeTakenForDigits += event.getDigitTime();
+    mTFStats.mTimeTaken += event.getTotalTime();
+    if (event.getIsCalibTrigger()) {
+      ++mTFStats.mNTriggersCalib;
+    }
   }
 }
 

@@ -46,6 +46,10 @@ class EventRecord
 
   const std::vector<Digit>& getDigits() const { return mDigits; }
   const std::vector<Tracklet64>& getTracklets() const { return mTracklets; }
+  bool getIsCalibTrigger() const { return mIsCalibTrigger; }
+  float getTotalTime() const { return mTimeTaken; }
+  float getDigitTime() const { return mTimeTakenForDigits; }
+  float getTrackletTime() const { return mTimeTakenForTracklets; }
 
   // needed, in order to check if a trigger already exist for this bunch crossing
   bool operator==(const EventRecord& o) const { return mBCData == o.mBCData; }
@@ -53,24 +57,19 @@ class EventRecord
   // sort the tracklets (and optionally digits) by detector, pad row, pad column
   void sortData(bool sortDigits);
 
-  //statistics stuff these get passed to the per tf data at the end of the timeframe,
-  //but as we read in per link, events are seperated hence these counters
-  const TRDDataCountersPerEvent& getEventStats() const { return mEventStats; }
-  void incTrackletTime(double timeadd) { mEventStats.mTimeTakenForTracklets += timeadd; }
-  void incDigitTime(double timeadd) { mEventStats.mTimeTakenForDigits += timeadd; }
-  void incTime(double duration) { mEventStats.mTimeTaken += duration; }
-  void incWordsRead(int count) { mEventStats.mWordsRead += count; }         // words read in
-  void incWordsRejected(int count) { mEventStats.mWordsRejected += count; } // words read in
-  void incTrackletsFound(int count) { mEventStats.mTrackletsFound += count; }
-  void incDigitsFound(int count) { mEventStats.mDigitsFound += count; }
-  // OS: Do we need to keep event statistics at all? Are they not anyhow accumulated for a whole TF?
-  //     or are they also used on a per event basis somewhere?
+  void incTrackletTime(float timeadd) { mTimeTakenForTracklets += timeadd; }
+  void incDigitTime(float timeadd) { mTimeTakenForDigits += timeadd; }
+  void incTime(float duration) { mTimeTaken += duration; }
+  void setIsCalibTrigger() { mIsCalibTrigger = true; }
 
  private:
   BCData mBCData;                       /// orbit and Bunch crossing data of the physics trigger
   std::vector<Digit> mDigits{};         /// digit data, for this event
   std::vector<Tracklet64> mTracklets{}; /// tracklet data, for this event
-  TRDDataCountersPerEvent mEventStats{}; /// statistics, for this trigger
+  float mTimeTaken = 0.;                // total parsing time [us] (including digit and tracklet parsing time)
+  float mTimeTakenForDigits = 0.;       // time take to process tracklet data blocks [us].
+  float mTimeTakenForTracklets = 0.;    // time take to process digit data blocks [us].
+  bool mIsCalibTrigger = false;         // flag calibration trigger
 };
 
 /// \class EventRecordContainer
@@ -87,11 +86,7 @@ class EventRecordContainer
   void setCurrentEventRecord(const InteractionRecord& ir);
   EventRecord& getCurrentEventRecord() { return mEventRecords.at(mCurrEventRecord); }
 
-  //statistics to keep
-  void incTrackletTime(double timeadd) { mTFStats.mTimeTakenForTracklets += timeadd; }
-  void incDigitTime(double timeadd) { mTFStats.mTimeTakenForDigits += timeadd; }
-  void incTrackletsFound(int count) { mTFStats.mTrackletsFound += count; }
-  void incDigitsFound(int count) { mTFStats.mDigitsFound += count; }
+  // statistics to keep
   void incLinkErrorFlags(int hcid, unsigned int flag) { mTFStats.mLinkErrorFlag[hcid] |= flag; }
   void incLinkNoData(int hcid) { mTFStats.mLinkNoData[hcid]++; }
   void incLinkWords(int hcid, int count) { mTFStats.mLinkWords[hcid] += count; }
@@ -103,7 +98,11 @@ class EventRecordContainer
   {
     mTFStats.mParsingErrors[error]++;
     if (hcid >= 0) { // hcid==-1 is reserved for those errors where we don't have the corresponding link ID
-      mTFStats.mParsingErrorsByLink[hcid * TRDLastParsingError + error]++;
+      if (error == NoError) {
+        mTFStats.mParsingOK[hcid]++;
+      } else {
+        mTFStats.mParsingErrorsByLink.push_back(hcid * TRDLastParsingError + error);
+      }
     }
   }
   void reset();
