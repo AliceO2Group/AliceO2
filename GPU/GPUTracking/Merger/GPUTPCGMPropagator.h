@@ -168,22 +168,21 @@ class GPUTPCGMPropagator
   GPUd() float getGlobalY(float X, float Y) const;
 
   const GPUTPCGMPolynomialField* mField = nullptr;
-  FieldRegion mFieldRegion = TPC;
-
+  const o2::base::MatLayerCylSet* mMatLUT = nullptr;
   GPUTPCGMTrackParam* mT = nullptr;
   float mAlpha = 0.f;    // rotation angle of the track coordinate system
   float mCosAlpha = 1.f; // cos of the rotation angle
   float mSinAlpha = 0.f; // sin of the rotation angle
+  float mMaxSinPhi = GPUCA_MAX_SIN_PHI;
   GPUTPCGMPhysicalTrackModel mT0;
   MaterialCorrection mMaterial;
+  FieldRegion mFieldRegion = TPC;
   bool mSeedingErrors = 0;
   bool mFitInProjections = 1; // fit (Y,SinPhi,QPt) and (Z,DzDs) paramteres separatelly
   bool mPropagateBzOnly = 0;  // Use Bz only in propagation
   bool mToyMCEvents = 0;      // events are simulated with simple home-made simulation
-  float mMaxSinPhi = GPUCA_MAX_SIN_PHI;
 
   GPUTPCGMOfflineStatisticalErrors mStatErrors;
-  const o2::base::MatLayerCylSet* mMatLUT = nullptr;
 };
 
 GPUdi() void GPUTPCGMPropagator::GetBxByBz(float Alpha, float X, float Y, float Z, float B[3]) const

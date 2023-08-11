@@ -33,7 +33,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 BeginNamespace(GPUCA_NAMESPACE)
 BeginNamespace(gpu)
 
-// Settings concerning the reconstruction
+// Settings concerning the reconstruction, stored as parameters in GPU constant memory
 // There must be no bool in here, use char, as sizeof(bool) is compiler dependent and fails on GPUs!!!!!!
 BeginSubConfig(GPUSettingsRecTPC, tpc, configStandalone.rec, "RECTPC", 0, "Reconstruction settings", rec_tpc)
 AddOptionRTC(rejectQPtB5, float, 1.f / GPUCA_MIN_TRACK_PTB5_REJECT, "", 0, "QPt threshold to reject clusters of TPC tracks (Inverse Pt, scaled to B=0.5T!!!)")
@@ -88,7 +88,7 @@ AddOptionRTC(dropLoopers, unsigned char, 0, "", 0, "Drop looping tracks starting
 AddOptionRTC(mergerCovSource, unsigned char, 2, "", 0, "Method to obtain covariance in track merger: 0 = simple filterErrors method, 1 = use cov from track following, 2 = refit (default)")
 AddOptionRTC(mergerInterpolateErrors, unsigned char, 1, "", 0, "Use interpolation instead of extrapolation for chi2 based cluster rejection")
 AddOptionRTC(mergeCE, unsigned char, 1, "", 0, "Merge tracks accross the central electrode")
-AddOptionRTC(retryRefit, char, 1, "", 0, "Retry refit when fit fails")
+AddOptionRTC(retryRefit, char, 1, "", 0, "Retry refit with seeding errors and without cluster rejection when fit fails")
 AddOptionRTC(loopInterpolationInExtraPass, char, -1, "", 0, "Perform loop interpolation in an extra pass")
 AddOptionRTC(mergerReadFromTrackerDirectly, char, 1, "", 0, "Forward data directly from tracker to merger on GPU")
 AddOptionRTC(dropSecondaryLegsInOutput, char, 1, "", 0, "Do not store secondary legs of looping track in TrackTPC")
@@ -133,12 +133,18 @@ AddSubConfig(GPUSettingsRecTRD, trd)
 AddHelp("help", 'h')
 EndConfig()
 
-// Settings steering the processing once the device was selected
+// Settings steering the processing once the device was selected, only available on the host
 BeginSubConfig(GPUSettingsProcessingRTC, rtc, configStandalone.proc, "RTC", 0, "Processing settings", proc_rtc)
 AddOption(cacheOutput, bool, false, "", 0, "Cache RTC compilation results")
 AddOption(optConstexpr, bool, true, "", 0, "Replace constant variables by static constexpr expressions")
 AddOption(compilePerKernel, bool, true, "", 0, "Run one RTC compilation per kernel")
 AddOption(enable, bool, false, "", 0, "Use RTC to optimize GPU code")
+AddHelp("help", 'h')
+EndConfig()
+
+BeginSubConfig(GPUSettingsProcessingParam, param, configStandalone.proc, "PARAM", 0, "Processing settings", proc_param)
+AddOptionArray(tpcErrorParamY, float, 4, (0.06, 0.24, 0.12, 0.1), "", 0, "TPC Cluster Y Error Parameterization")
+AddOptionArray(tpcErrorParamZ, float, 4, (0.06, 0.24, 0.15, 0.1), "", 0, "TPC Cluster Z Error Parameterization")
 AddHelp("help", 'h')
 EndConfig()
 
@@ -211,6 +217,7 @@ AddOption(outputSanityCheck, bool, false, "", 0, "Run some simple sanity checks 
 AddOption(tpcSingleSector, int, -1, "", 0, "Restrict TPC processing to a single sector")
 AddVariable(eventDisplay, GPUCA_NAMESPACE::gpu::GPUDisplayFrontendInterface*, nullptr)
 AddSubConfig(GPUSettingsProcessingRTC, rtc)
+AddSubConfig(GPUSettingsProcessingParam, param)
 AddHelp("help", 'h')
 EndConfig()
 
@@ -299,7 +306,6 @@ AddOption(nFramesInFlight, int, 0, "", 0, "Max number of render frames in flight
 AddOption(uniformBuffersInDeviceMemory, bool, 1, "", 0, "Have uniform buffers in host-accessible device memory")
 AddHelp("help", 'h')
 EndConfig()
-
 
 // Settings concerning the event display (fixed settings, cannot be changed)
 BeginSubConfig(GPUSettingsDisplay, display, configStandalone, "GL", 'g', "OpenGL display settings", display)
