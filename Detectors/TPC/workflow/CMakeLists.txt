@@ -23,6 +23,7 @@ o2_add_library(TPCWorkflow
                        src/CalDetMergerPublisherSpec.cxx
                        src/KryptonClustererSpec.cxx
                        src/KryptonRawFilterSpec.cxx
+                       src/OccupancyFilterSpec.cxx
                        src/SACProcessorSpec.cxx
                        src/IDCToVectorSpec.cxx
                        src/CalibdEdxSpec.cxx
@@ -168,6 +169,11 @@ o2_add_executable(krypton-clusterer
 o2_add_executable(krypton-raw-filter
                   COMPONENT_NAME tpc
                   SOURCES src/tpc-krypton-raw-filter.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(occupancy-filter
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-occupancy-filter.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
 o2_add_executable(idc-to-vector
