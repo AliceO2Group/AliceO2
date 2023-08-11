@@ -403,7 +403,8 @@ bool ITSThresholdCalibrator::findUpperLower(
   if (flip) { // ITHR case. lower is at large mX[i], upper is at small mX[i]
 
     for (int i = 0; i < NPoints; i++) {
-      if (data[i][iloop2] == 0) {
+      int comp = mScanType != 'r' ? data[iloop2][i] : data[i][iloop2];
+      if (comp == 0) {
         upper = i;
         break;
       }
@@ -413,7 +414,8 @@ bool ITSThresholdCalibrator::findUpperLower(
       return false;
     }
     for (int i = upper; i > 0; i--) {
-      if (data[i][iloop2] >= nInj) {
+      int comp = mScanType != 'r' ? data[iloop2][i] : data[i][iloop2];
+      if (comp >= nInj) {
         lower = i;
         break;
       }
@@ -422,7 +424,8 @@ bool ITSThresholdCalibrator::findUpperLower(
   } else { // not flipped
 
     for (int i = 0; i < NPoints; i++) {
-      if (data[i][iloop2] >= nInj) {
+      int comp = mScanType != 'r' ? data[iloop2][i] : data[i][iloop2];
+      if (comp >= nInj) {
         upper = i;
         break;
       }
@@ -432,7 +435,8 @@ bool ITSThresholdCalibrator::findUpperLower(
       return false;
     }
     for (int i = upper; i > 0; i--) {
-      if (data[i][iloop2] == 0) {
+      int comp = mScanType != 'r' ? data[iloop2][i] : data[i][iloop2];
+      if (comp == 0) {
         lower = i;
         break;
       }
@@ -496,7 +500,7 @@ bool ITSThresholdCalibrator::findThresholdFit(
 
     if (isDumpS && (dumpCounterS[chipID] < maxDumpS || maxDumpS < 0) && (fndVal != chipDumpList.end() || !chipDumpList.size())) { // save bad s-curves
       for (int i = 0; i < NPoints; i++) {
-        this->mFitHist->SetBinContent(i + 1, data[i][iloop2]);
+        this->mFitHist->SetBinContent(i + 1, mScanType != 'r' ? data[iloop2][i] : data[i][iloop2]);
       }
       fileDumpS->cd();
       mFitHist->Write();
@@ -517,7 +521,7 @@ bool ITSThresholdCalibrator::findThresholdFit(
   }
 
   for (int i = 0; i < NPoints; i++) {
-    this->mFitHist->SetBinContent(i + 1, data[i][iloop2]);
+    this->mFitHist->SetBinContent(i + 1, mScanType != 'r' ? data[iloop2][i] : data[i][iloop2]);
   }
 
   // Initialize starting parameters
@@ -568,7 +572,7 @@ bool ITSThresholdCalibrator::findThresholdDerivative(std::vector<std::vector<uns
 
   // Fill array with derivatives
   for (int i = lower; i < upper; i++) {
-    deriv[i - lower] = std::abs(data[i + 1][iloop2] - data[i][iloop2]) / (this->mX[i + 1] - mX[i]);
+    deriv[i - lower] = std::abs(mScanType != 'r' ? (data[iloop2][i + 1] - data[iloop2][i]) : (data[i + 1][iloop2] - data[i][iloop2])) / (this->mX[i + 1] - mX[i]);
     xfx += this->mX[i] * deriv[i - lower];
     fx += deriv[i - lower];
   }
@@ -599,8 +603,9 @@ bool ITSThresholdCalibrator::findThresholdHitcounting(
   unsigned short int numberOfHits = 0;
   bool is50 = false;
   for (unsigned short int i = 0; i < NPoints; i++) {
-    numberOfHits += data[i][iloop2];
-    if (!is50 && data[i][iloop2] == nInj) {
+    numberOfHits += (mScanType != 'r') ? data[iloop2][i] : data[i][iloop2];
+    int comp = (mScanType != 'r') ? data[iloop2][i] : data[i][iloop2];
+    if (!is50 && comp == nInj) {
       is50 = true;
     }
   }
