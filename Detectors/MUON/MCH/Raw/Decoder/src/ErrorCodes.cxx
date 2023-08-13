@@ -23,6 +23,14 @@ uint32_t getErrorCodesSize()
   return 16;
 }
 
+ErrorSeverity getErrorCodeSeverity(uint32_t code)
+{
+  if (code < ErrorParity) {
+    return ErrorSeverity::Warning;
+  }
+  return ErrorSeverity::Error;
+}
+
 void append(const char* msg, std::string& to)
 {
   std::string s = to.size() ? "& " + to : "";

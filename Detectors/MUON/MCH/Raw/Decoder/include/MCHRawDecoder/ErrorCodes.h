@@ -23,16 +23,16 @@ namespace raw
 {
 
 enum ErrorCodes {
-  ErrorParity = 1,                           // 1
-  ErrorHammingCorrectable = 1 << 1,          // 2
-  ErrorHammingUncorrectable = 1 << 2,        // 4
-  ErrorBadSyncPacket = 1 << 3,               // 8
-  ErrorBadHeartBeatPacket = 1 << 4,          // 16
-  ErrorBadDataPacket = 1 << 5,               // 32
-  ErrorBadClusterSize = 1 << 6,              // 64
-  ErrorBadIncompleteWord = 1 << 7,           // 128
-  ErrorTruncatedData = 1 << 8,               // 256
-  ErrorTruncatedDataUL = 1 << 9,             // 512
+  ErrorTruncatedData = 1,                    // 1
+  ErrorTruncatedDataUL = 1 << 1,             // 2
+  ErrorParity = 1 << 2,                      // 4
+  ErrorHammingCorrectable = 1 << 3,          // 8
+  ErrorHammingUncorrectable = 1 << 4,        // 16
+  ErrorBadSyncPacket = 1 << 5,               // 32
+  ErrorBadHeartBeatPacket = 1 << 6,          // 64
+  ErrorBadDataPacket = 1 << 7,               // 128
+  ErrorBadClusterSize = 1 << 8,              // 256
+  ErrorBadIncompleteWord = 1 << 9,           // 512
   ErrorUnexpectedSyncPacket = 1 << 10,       // 1024
   ErrorBadELinkID = 1 << 11,                 // 2048
   ErrorBadLinkID = 1 << 12,                  // 4096
@@ -41,7 +41,15 @@ enum ErrorCodes {
   ErrorNonRecoverableDecodingError = 1 << 15 // 32768
 };
 
+enum ErrorSeverity {
+  Warning,
+  Error,
+  Fatal
+};
+
 uint32_t getErrorCodesSize();
+
+ErrorSeverity getErrorCodeSeverity(uint32_t code);
 
 std::string errorCodeAsString(uint32_t code);
 
