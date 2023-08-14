@@ -354,9 +354,9 @@ void TrackCheckStudy::initialiseRun(o2::globaltracking::RecoContainer& recoData)
 void TrackCheckStudy::process()
 {
   LOGP(info, "** Filling particle table ... ");
-  mParticleInfo.resize(mKineReader->getNSources());                                          // sources
+  mParticleInfo.resize(mKineReader->getNSources()); // sources
   for (int iSource{0}; iSource < mKineReader->getNSources(); ++iSource) {
-    mParticleInfo[iSource].resize(mKineReader->getNEvents(iSource));                         // events
+    mParticleInfo[iSource].resize(mKineReader->getNEvents(iSource)); // events
     for (int iEvent{0}; iEvent < mKineReader->getNEvents(iSource); ++iEvent) {
       mParticleInfo[iSource][iEvent].resize(mKineReader->getTracks(iSource, iEvent).size()); // tracks
       for (auto iPart{0}; iPart < mKineReader->getTracks(iEvent).size(); ++iPart) {
