@@ -159,7 +159,9 @@ fi
 workflow_has_parameter CALIB && [[ $CALIB_TRD_VDRIFTEXB == 1 ]] && TRD_CONFIG+=" --enable-vdexb-calib"
 workflow_has_parameter CALIB && [[ $CALIB_TRD_GAIN == 1 ]] && TRD_CONFIG+=" --enable-gain-calib"
 ! has_detector FT0 && TRD_CONFIG+=" --disable-ft0-pileup-tagging"
-[[ ${DISABLE_TRD_PH:-} != 1 ]] && TRD_CONFIG+=" --enable-ph"
+if ( workflow_has_parameter CALIB && [[ $CALIB_TRD_T0 == 1 ]] ) || [[ ${DISABLE_TRD_PH:-} != 1 ]]; then
+  TRD_CONFIG+=" --enable-ph"
+fi
 
 SEND_ITSTPC_DTGL=
 workflow_has_parameter CALIB && [[ $CALIB_TPC_VDRIFTTGL == 1 ]] && SEND_ITSTPC_DTGL="--produce-calibration-data"
