@@ -188,7 +188,7 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCELL& c
     firstEntry = cellVec.size();
 
     for (uint16_t ic = 0; ic < entries[itrig]; ic++) {
-      cell.setPacked(tower[cellCount], cellTime[cellCount], energy[cellCount], status[cellCount]);
+      cell.initialiseFromEncoded(tower[cellCount], cellTime[cellCount], energy[cellCount], status[cellCount]);
       cellVec.emplace_back(cell);
       cellCount++;
     }

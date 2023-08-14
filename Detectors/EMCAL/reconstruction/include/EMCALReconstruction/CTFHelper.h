@@ -201,8 +201,8 @@ class CTFHelper
   {
    public:
     using _Iter<Iter_towerID, Cell, uint16_t>::_Iter;
-    value_type operator*() const { return mData[mIndex].getPackedTowerID(); }
-    value_type operator[](difference_type i) const { return mData[mIndex + i].getPackedTowerID(); }
+    value_type operator*() const { return mData[mIndex].getTowerIDEncoded(); }
+    value_type operator[](difference_type i) const { return mData[mIndex + i].getTowerIDEncoded(); }
   };
 
   //_______________________________________________
@@ -210,8 +210,8 @@ class CTFHelper
   {
    public:
     using _Iter<Iter_time, Cell, uint16_t>::_Iter;
-    value_type operator*() const { return mData[mIndex].getPackedTime(); }
-    value_type operator[](difference_type i) const { return mData[mIndex + i].getPackedTime(); }
+    value_type operator*() const { return mData[mIndex].getTimeStampEncoded(); }
+    value_type operator[](difference_type i) const { return mData[mIndex + i].getTimeStampEncoded(); }
   };
 
   //_______________________________________________
@@ -219,8 +219,8 @@ class CTFHelper
   {
    public:
     using _Iter<Iter_energy, Cell, uint16_t>::_Iter;
-    value_type operator*() const { return mData[mIndex].getPackedEnergy(); }
-    value_type operator[](difference_type i) const { return mData[mIndex + i].getPackedEnergy(); }
+    value_type operator*() const { return mData[mIndex].getEnergyEncoded(); }
+    value_type operator[](difference_type i) const { return mData[mIndex + i].getEnergyEncoded(); }
   };
 
   //_______________________________________________
@@ -228,8 +228,8 @@ class CTFHelper
   {
    public:
     using _Iter<Iter_status, Cell, uint8_t>::_Iter;
-    value_type operator*() const { return mData[mIndex].getPackedCellStatus(); }
-    value_type operator[](difference_type i) const { return mData[mIndex + i].getPackedCellStatus(); }
+    value_type operator*() const { return mData[mIndex].getCellTypeEncoded(); }
+    value_type operator[](difference_type i) const { return mData[mIndex + i].getCellTypeEncoded(); }
   };
 
   //<<< =========================== ITERATORS ========================================
