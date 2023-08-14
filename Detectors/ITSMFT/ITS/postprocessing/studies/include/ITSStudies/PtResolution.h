@@ -9,23 +9,31 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "ITSStudies/ITSStudiesConfigParam.h"
+/// \file PtResolution.h
+/// \author Roberta Ferioli roberta.ferioli@cern.ch
+
+#ifndef O2_PT_RESOLUTION_STUDY_H
+#define O2_PT_RESOLUTION_STUDY_H
+
+#include <ReconstructionDataFormats/GlobalTrackID.h>
+#include <Framework/DataProcessorSpec.h>
+#include <Steer/MCKinematicsReader.h>
 
 namespace o2
 {
+namespace steer
+{
+class MCKinematicsReader;
+}
 namespace its
 {
 namespace study
 {
-static auto& sAvgClusSizeParamITS = o2::its::study::ITSAvgClusSizeParamConfig::Instance();
-static auto& sCheckTracksParamsITS = o2::its::study::ITSCheckTracksParamConfig::Instance();
-static auto& sPtResParamsITS= o2::its::study::ITSPtTracksResParamConfig::Instance();
+using mask_t = o2::dataformats::GlobalTrackID::mask_t;
 
-
-O2ParamImpl(o2::its::study::ITSAvgClusSizeParamConfig);
-O2ParamImpl(o2::its::study::ITSCheckTracksParamConfig);
-O2ParamImpl(o2::its::study::ITSPtTracksResParamConfig);
-
+o2::framework::DataProcessorSpec getPtResolutionStudy(mask_t srcTracksMask, mask_t srcClustersMask, bool useMC , std::shared_ptr<o2::steer::MCKinematicsReader> kineReader);
 } // namespace study
 } // namespace its
 } // namespace o2
+
+#endif // O2_PT_RESOLUTION_STUDY

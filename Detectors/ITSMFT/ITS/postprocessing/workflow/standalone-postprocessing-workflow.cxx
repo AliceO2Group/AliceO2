@@ -17,6 +17,7 @@
 #include "ITSStudies/ImpactParameter.h"
 #include "ITSStudies/AvgClusSize.h"
 #include "ITSStudies/TrackCheck.h"
+#include "ITSStudies/PtResolution.h"
 #include "Steer/MCKinematicsReader.h"
 
 using namespace o2::framework;
@@ -39,6 +40,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-mc", VariantType::Bool, false, {"disable MC propagation even if available"}},
     {"cluster-size-study", VariantType::Bool, false, {"Perform the average cluster size study"}},
     {"track-study", VariantType::Bool, false, {"Perform the track study"}},
+    {"pt-res-study", VariantType::Bool, false, {"Perform the Pt resolution study"}},
     {"impact-parameter-study", VariantType::Bool, false, {"Perform the impact parameter study"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options, "o2_tfidinfo.root");
@@ -61,8 +63,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   GID::mask_t srcCls = allowedSourcesClus & GID::getSourcesMask(configcontext.options().get<std::string>("cluster-sources"));
 
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCls, srcTrc, srcTrc, useMC, srcCls, srcTrc);
-  o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC);
-  o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, specs);
+  //o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC);
+  //o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, specs);
 
   std::shared_ptr<o2::steer::MCKinematicsReader> mcKinematicsReader;
   if (useMC) {
@@ -82,6 +84,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (configcontext.options().get<bool>("track-study")) {
     anyStudy = true;
     specs.emplace_back(o2::its::study::getTrackCheckStudy(GID::getSourcesMask("ITS"), GID::getSourcesMask("ITS"), useMC, mcKinematicsReader));
+  }
+  if (configcontext.options().get<bool>("pt-res-study")) {
+    anyStudy = true;
+    specs.emplace_back(o2::its::study::getPtResolutionStudy(GID::getSourcesMask("ITS"), GID::getSourcesMask("ITS"), useMC, mcKinematicsReader));
   }
   if (!anyStudy) {
     LOGP(info, "No study selected, dryrunning");
