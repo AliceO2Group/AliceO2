@@ -20,5 +20,4 @@
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::its::study::ITSCheckTracksParamConfig> + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::its::study::ITSPtTracksResParamConfig> + ;
 
-
 #endif

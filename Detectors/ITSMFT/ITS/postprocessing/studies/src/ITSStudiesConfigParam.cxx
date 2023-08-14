@@ -19,8 +19,7 @@ namespace study
 {
 static auto& sAvgClusSizeParamITS = o2::its::study::ITSAvgClusSizeParamConfig::Instance();
 static auto& sCheckTracksParamsITS = o2::its::study::ITSCheckTracksParamConfig::Instance();
-static auto& sPtResParamsITS= o2::its::study::ITSPtTracksResParamConfig::Instance();
-
+static auto& sPtResParamsITS = o2::its::study::ITSPtTracksResParamConfig::Instance();
 
 O2ParamImpl(o2::its::study::ITSAvgClusSizeParamConfig);
 O2ParamImpl(o2::its::study::ITSCheckTracksParamConfig);

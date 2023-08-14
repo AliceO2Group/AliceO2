@@ -68,10 +68,10 @@ class PtResolutionStudy : public Task
 
  public:
   PtResolutionStudy(std::shared_ptr<DataRequest> dr,
-                  mask_t src,
-                  bool useMC,
-                  std::shared_ptr<o2::steer::MCKinematicsReader> kineReader,
-                  std::shared_ptr<o2::base::GRPGeomRequest> gr) : mDataRequest(dr), mTracksSrc(src), mKineReader(kineReader), mGGCCDBRequest(gr)
+                    mask_t src,
+                    bool useMC,
+                    std::shared_ptr<o2::steer::MCKinematicsReader> kineReader,
+                    std::shared_ptr<o2::base::GRPGeomRequest> gr) : mDataRequest(dr), mTracksSrc(src), mKineReader(kineReader), mGGCCDBRequest(gr)
   {
     if (useMC) {
       LOGP(info, "Read MCKine reader with {} sources", mKineReader->getNSources());
@@ -115,7 +115,7 @@ class PtResolutionStudy : public Task
   std::unique_ptr<TH2D> mPtResolutionSec2D;
   std::unique_ptr<TGraphErrors> g1;
 
-  //Canvas & decorations
+  // Canvas & decorations
   std::unique_ptr<TLegend> mLegendPt;
   std::unique_ptr<TLegend> mLegendPt4;
   std::unique_ptr<TCanvas> mCanvasPt;
@@ -128,11 +128,10 @@ class PtResolutionStudy : public Task
   double sigmaerr[100];
   double meanPt[100];
   double aa[100];
-  int bb=0;
+  int bb = 0;
 };
 
-
-  void PtResolutionStudy::init(InitContext& ic)
+void PtResolutionStudy::init(InitContext& ic)
 {
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
 
@@ -140,23 +139,21 @@ class PtResolutionStudy : public Task
   mOutFileName = pars.outFileName;
   mMask = pars.trackLengthMask;
 
-  
-  mPtResolution = std::make_unique<TH1D>("PtResolution", ";#it{p}_{T} ;Den", 100, -1,1);
-  mPtResolutionSec = std::make_unique<TH1D>("PtResolutionSec", ";#it{p}_{T} ;Den", 100, -1,1);
-  mPtResolutionPrim = std::make_unique<TH1D>("PtResolutionPrim", ";#it{p}_{T} ;Den", 100, -1,1);
-  mPtResolution2D = std::make_unique<TH2D>("#it{p}_{T} Resolution vs #it{p}_{T}", ";#it{p}_{T} (GeV/#it{c});#Delta p_{T}/p_{T_{MC}", 100, 0,10,100,-1,1);
-  mPtResolutionSec2D=std::make_unique<TH2D>("#it{p}_{T} Resolution vs #it{p}_{T} sec ", ";#it{p}_{T} (GeV/#it{c});#Delta p_{T}/p_{T_{MC}", 100, 0,10,100,-1,1);
+  mPtResolution = std::make_unique<TH1D>("PtResolution", ";#it{p}_{T} ;Den", 100, -1, 1);
+  mPtResolutionSec = std::make_unique<TH1D>("PtResolutionSec", ";#it{p}_{T} ;Den", 100, -1, 1);
+  mPtResolutionPrim = std::make_unique<TH1D>("PtResolutionPrim", ";#it{p}_{T} ;Den", 100, -1, 1);
+  mPtResolution2D = std::make_unique<TH2D>("#it{p}_{T} Resolution vs #it{p}_{T}", ";#it{p}_{T} (GeV/#it{c});#Delta p_{T}/p_{T_{MC}", 100, 0, 10, 100, -1, 1);
+  mPtResolutionSec2D = std::make_unique<TH2D>("#it{p}_{T} Resolution vs #it{p}_{T} sec ", ";#it{p}_{T} (GeV/#it{c});#Delta p_{T}/p_{T_{MC}", 100, 0, 10, 100, -1, 1);
   mPtResolution->Sumw2();
   mPtResolutionSec->Sumw2();
   mPtResolutionPrim->Sumw2();
-
 }
 
 void PtResolutionStudy::run(ProcessingContext& pc)
 {
   o2::globaltracking::RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());
-  LOGP(info,"*****RUN*****");
+  LOGP(info, "*****RUN*****");
   updateTimeDependentParams(pc); // Make sure this is called after recoData.collectData, which may load some conditions
   initialiseRun(recoData);
   process();
@@ -167,7 +164,7 @@ void PtResolutionStudy::initialiseRun(o2::globaltracking::RecoContainer& recoDat
   mTracksROFRecords = recoData.getITSTracksROFRecords();
   mTracks = recoData.getITSTracks();
   mTracksMCLabels = recoData.getITSTracksMCLabels();
-  LOGP(info,"***** INITI RUN*****");
+  LOGP(info, "***** INITI RUN*****");
   LOGP(info, "** Found in {} rofs:\n\t-  {} tracks with {} labels",
        mTracksROFRecords.size(), mTracks.size(), mTracksMCLabels.size());
   LOGP(info, "** Found {} sources from kinematic files", mKineReader->getNSources());
@@ -176,9 +173,9 @@ void PtResolutionStudy::initialiseRun(o2::globaltracking::RecoContainer& recoDat
 void PtResolutionStudy::process()
 {
   LOGP(info, "** Filling particle table ... ");
-  mParticleInfo.resize(mKineReader->getNSources()); // sources
+  mParticleInfo.resize(mKineReader->getNSources());                                          // sources
   for (int iSource{0}; iSource < mKineReader->getNSources(); ++iSource) {
-    mParticleInfo[iSource].resize(mKineReader->getNEvents(iSource)); // events
+    mParticleInfo[iSource].resize(mKineReader->getNEvents(iSource));                         // events
     for (int iEvent{0}; iEvent < mKineReader->getNEvents(iSource); ++iEvent) {
       mParticleInfo[iSource][iEvent].resize(mKineReader->getTracks(iSource, iEvent).size()); // tracks
       for (auto iPart{0}; iPart < mKineReader->getTracks(iEvent).size(); ++iPart) {
@@ -197,7 +194,7 @@ void PtResolutionStudy::process()
     }
   }
   LOGP(info, "** Analysing tracks ... ");
-  int  good{0}, fakes{0}, total{0};
+  int good{0}, fakes{0}, total{0};
   for (auto iTrack{0}; iTrack < mTracks.size(); ++iTrack) {
     auto& lab = mTracksMCLabels[iTrack];
     if (!lab.isSet() || lab.isNoise()) {
@@ -223,44 +220,41 @@ void PtResolutionStudy::process()
   }
   LOGP(info, "** Analysing pT resolution...");
   for (auto iTrack{0}; iTrack < mTracks.size(); ++iTrack) {
-        auto& lab = mTracksMCLabels[iTrack];
-        if (!lab.isSet() || lab.isNoise()) continue;
-        int trackID, evID, srcID;
-        bool fake;
-        const_cast<o2::MCCompLabel&>(lab).get(trackID, evID, srcID, fake);
-        bool pass{true};
-        if (srcID == 99) continue;// skip QED
-        //PtResVec[iTrack]=(mParticleInfo[srcID][evID][trackID].pt-mTracks[iTrack].getPt())/mParticleInfo[srcID][evID][trackID].pt;
-        mPtResolution->Fill((mParticleInfo[srcID][evID][trackID].pt-mTracks[iTrack].getPt())/mParticleInfo[srcID][evID][trackID].pt);
-        mPtResolution2D->Fill(mParticleInfo[srcID][evID][trackID].pt,(mParticleInfo[srcID][evID][trackID].pt-mTracks[iTrack].getPt())/mParticleInfo[srcID][evID][trackID].pt);
-        if(!mParticleInfo[srcID][evID][trackID].isPrimary)  mPtResolutionSec->Fill((mParticleInfo[srcID][evID][trackID].pt-mTracks[iTrack].getPt())/mParticleInfo[srcID][evID][trackID].pt);
-        if(mParticleInfo[srcID][evID][trackID].isPrimary)  mPtResolutionPrim->Fill((mParticleInfo[srcID][evID][trackID].pt-mTracks[iTrack].getPt())/mParticleInfo[srcID][evID][trackID].pt);
-   }
-    for(int yy=0;yy<100;yy++)
-   {
-       aa[yy]=0.;
-       sigma[yy]=0.;
-       sigmaerr[yy]=0.;
-       meanPt[yy]=0.;
-   }
-  
-   for(int yy=0;yy<100;yy++)
-   {
-       TH1D * projh2X = mPtResolution2D->ProjectionY("projh2X",yy,yy+1,"");
-       TF1 *f1 = new TF1("f1","gaus",-0.2,0.2);
-       projh2X->Fit("f1");
-       if(f1->GetParameter(2)>0. && f1->GetParameter(2)<1. && f1->GetParameter(1)<1.)
-       {
-       sigma[yy]=f1->GetParameter(2);
-       sigmaerr[yy]=f1->GetParError(2);
-       meanPt[yy]=((8./100.)*yy+(8./100.)*(yy+1))/2;
-       aa[yy]=0.0125;
-       }
-   }
-   
-    
+    auto& lab = mTracksMCLabels[iTrack];
+    if (!lab.isSet() || lab.isNoise())
+      continue;
+    int trackID, evID, srcID;
+    bool fake;
+    const_cast<o2::MCCompLabel&>(lab).get(trackID, evID, srcID, fake);
+    bool pass{true};
+    if (srcID == 99)
+      continue; // skip QED
+    // PtResVec[iTrack]=(mParticleInfo[srcID][evID][trackID].pt-mTracks[iTrack].getPt())/mParticleInfo[srcID][evID][trackID].pt;
+    mPtResolution->Fill((mParticleInfo[srcID][evID][trackID].pt - mTracks[iTrack].getPt()) / mParticleInfo[srcID][evID][trackID].pt);
+    mPtResolution2D->Fill(mParticleInfo[srcID][evID][trackID].pt, (mParticleInfo[srcID][evID][trackID].pt - mTracks[iTrack].getPt()) / mParticleInfo[srcID][evID][trackID].pt);
+    if (!mParticleInfo[srcID][evID][trackID].isPrimary)
+      mPtResolutionSec->Fill((mParticleInfo[srcID][evID][trackID].pt - mTracks[iTrack].getPt()) / mParticleInfo[srcID][evID][trackID].pt);
+    if (mParticleInfo[srcID][evID][trackID].isPrimary)
+      mPtResolutionPrim->Fill((mParticleInfo[srcID][evID][trackID].pt - mTracks[iTrack].getPt()) / mParticleInfo[srcID][evID][trackID].pt);
+  }
+  for (int yy = 0; yy < 100; yy++) {
+    aa[yy] = 0.;
+    sigma[yy] = 0.;
+    sigmaerr[yy] = 0.;
+    meanPt[yy] = 0.;
+  }
 
-
+  for (int yy = 0; yy < 100; yy++) {
+    TH1D* projh2X = mPtResolution2D->ProjectionY("projh2X", yy, yy + 1, "");
+    TF1* f1 = new TF1("f1", "gaus", -0.2, 0.2);
+    projh2X->Fit("f1");
+    if (f1->GetParameter(2) > 0. && f1->GetParameter(2) < 1. && f1->GetParameter(1) < 1.) {
+      sigma[yy] = f1->GetParameter(2);
+      sigmaerr[yy] = f1->GetParError(2);
+      meanPt[yy] = ((8. / 100.) * yy + (8. / 100.) * (yy + 1)) / 2;
+      aa[yy] = 0.0125;
+    }
+  }
 }
 
 void PtResolutionStudy::updateTimeDependentParams(ProcessingContext& pc)
@@ -284,13 +278,12 @@ void PtResolutionStudy::endOfStream(EndOfStreamContext& ec)
   mPtResolutionPrim->SetTitle(";#Delta p_{T}/p_{T_{MC}} ;Entries");
   mPtResolutionSec->SetTitle(";#Delta #it{p}_{T}/#it{p}_{T_{MC}} ;Entries");
   mPtResolution2D->SetTitle(";#it{p}_{T_{MC}} [GeV];#Delta #it{p}_{T}/#it{p}_{T_{MC}}");
-  
-  
+
   fout.WriteTObject(mPtResolution.get());
   fout.WriteTObject(mPtResolutionPrim.get());
   fout.WriteTObject(mPtResolutionSec.get());
   fout.WriteTObject(mPtResolution2D.get());
-  
+
   mCanvasPt = std::make_unique<TCanvas>("cPt", "cPt", 1600, 1200);
   mCanvasPt->cd();
   mPtResolution->Draw("HIST");
@@ -309,14 +302,14 @@ void PtResolutionStudy::endOfStream(EndOfStreamContext& ec)
   mCanvasPt2->Write();
   mCanvasPt3 = std::make_unique<TCanvas>("cPt3", "cPt3", 1600, 1200);
   mCanvasPt3->cd();
- 
-  TGraphErrors *g1 = new TGraphErrors(100,meanPt,sigma,aa,sigmaerr);
+
+  TGraphErrors* g1 = new TGraphErrors(100, meanPt, sigma, aa, sigmaerr);
   g1->SetMarkerStyle(8);
   g1->SetMarkerColor(kGreen);
   g1->GetXaxis()->SetTitle("Pt [GeV]");
   g1->GetYaxis()->SetTitle("#sigma #Delta #it{p}_{T}/#it{p}_{T_{MC}}");
-  g1->GetYaxis()->SetLimits(0,1);
-  g1->GetXaxis()->SetLimits(0,10.);
+  g1->GetYaxis()->SetLimits(0, 1);
+  g1->GetXaxis()->SetLimits(0, 10.);
   g1->Draw("AP");
   g1->GetYaxis()->SetRangeUser(0, 1);
   g1->GetXaxis()->SetRangeUser(0, 10.);
@@ -324,21 +317,21 @@ void PtResolutionStudy::endOfStream(EndOfStreamContext& ec)
   fout.cd();
   mCanvasPt3->Write();
 
- mCanvasPt4 = std::make_unique<TCanvas>("cPt4", "cPt4", 1600, 1200);
- mCanvasPt4->cd();
- mPtResolutionPrim->SetName("mPtResolutionPrim");
- mPtResolutionSec->SetName("mPtResolutionSec");
- mPtResolutionPrim->Draw("same hist");
- mPtResolutionSec->Draw("same hist");
- mLegendPt4 = std::make_unique<TLegend>(0.19, 0.8, 0.40, 0.96);
+  mCanvasPt4 = std::make_unique<TCanvas>("cPt4", "cPt4", 1600, 1200);
+  mCanvasPt4->cd();
+  mPtResolutionPrim->SetName("mPtResolutionPrim");
+  mPtResolutionSec->SetName("mPtResolutionSec");
+  mPtResolutionPrim->Draw("same hist");
+  mPtResolutionSec->Draw("same hist");
+  mLegendPt4 = std::make_unique<TLegend>(0.19, 0.8, 0.40, 0.96);
 
- mLegendPt4->SetHeader(Form("%zu events PP", mKineReader->getNEvents(0)), "C");
- mLegendPt4->AddEntry("mPtResolutionPrim", "Primary events","f");
- mLegendPt4->AddEntry("mPtResolutionSec", "Secondary events","f");
- mLegendPt4->Draw("same");
- mCanvasPt4->SaveAs("ptRes4.png");
- fout.cd();
- mCanvasPt4->Write();
+  mLegendPt4->SetHeader(Form("%zu events PP", mKineReader->getNEvents(0)), "C");
+  mLegendPt4->AddEntry("mPtResolutionPrim", "Primary events", "f");
+  mLegendPt4->AddEntry("mPtResolutionSec", "Secondary events", "f");
+  mLegendPt4->Draw("same");
+  mCanvasPt4->SaveAs("ptRes4.png");
+  fout.cd();
+  mCanvasPt4->Write();
 
   fout.Close();
 }

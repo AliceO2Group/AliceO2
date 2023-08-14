@@ -31,7 +31,7 @@ namespace study
 {
 using mask_t = o2::dataformats::GlobalTrackID::mask_t;
 
-o2::framework::DataProcessorSpec getPtResolutionStudy(mask_t srcTracksMask, mask_t srcClustersMask, bool useMC , std::shared_ptr<o2::steer::MCKinematicsReader> kineReader);
+o2::framework::DataProcessorSpec getPtResolutionStudy(mask_t srcTracksMask, mask_t srcClustersMask, bool useMC, std::shared_ptr<o2::steer::MCKinematicsReader> kineReader);
 } // namespace study
 } // namespace its
 } // namespace o2
