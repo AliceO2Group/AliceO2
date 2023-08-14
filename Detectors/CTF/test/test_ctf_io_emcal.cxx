@@ -126,9 +126,9 @@ BOOST_AUTO_TEST_CASE(CTFTest)
   for (size_t i = 0; i < cells.size(); i++) {
     const auto& cor = cells[i];
     const auto& cdc = cellsD[i];
-    BOOST_CHECK_EQUAL(cor.getPackedTowerID(), cdc.getPackedTowerID());
-    BOOST_CHECK_EQUAL(cor.getPackedTime(), cdc.getPackedTime());
-    BOOST_CHECK_EQUAL(cor.getPackedEnergy(), cdc.getPackedEnergy());
-    BOOST_CHECK_EQUAL(cor.getPackedCellStatus(), cdc.getPackedCellStatus());
+    BOOST_CHECK_EQUAL(cor.getTowerIDEncoded(), cdc.getTowerIDEncoded());
+    BOOST_CHECK_EQUAL(cor.getTimeStampEncoded(), cdc.getTimeStampEncoded());
+    BOOST_CHECK_EQUAL(cor.getEnergyEncoded(), cdc.getEnergyEncoded());
+    BOOST_CHECK_EQUAL(cor.getCellTypeEncoded(), cdc.getCellTypeEncoded());
   }
 }
