@@ -44,6 +44,9 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   struct RowInfo {
     int splineScenarioID{0};      ///< scenario index (which of Spline2D splines to use)
     size_t dataOffsetBytes[3]{0}; ///< offset for the spline data withing a TPC slice
+#ifndef GPUCA_ALIROOT_LIB
+    ClassDefNV(RowInfo, 1);
+#endif
   };
 
   struct RowActiveArea {
@@ -52,19 +55,28 @@ class TPCFastSpaceChargeCorrection : public FlatObject
     float cuMin{0.};
     float cuMax{0.};
     float cvMax{0.};
+#ifndef GPUCA_ALIROOT_LIB
+    ClassDefNV(RowActiveArea, 1);
+#endif
   };
 
   struct SliceRowInfo {
-    float gridV0{0.};           // V coordinate of the V-grid start
-    float gridCorrU0{0.};       // U coordinate of the U-grid start for corrected U
-    float gridCorrV0{0.};       // V coordinate of the V-grid start for corrected V
-    float scaleCorrUtoGrid{0.}; // scale corrected U to U-grid coordinate
-    float scaleCorrVtoGrid{0.}; // scale corrected V to V-grid coordinate
+    float gridV0{0.};           ///< V coordinate of the V-grid start
+    float gridCorrU0{0.};       ///< U coordinate of the U-grid start for corrected U
+    float gridCorrV0{0.};       ///< V coordinate of the V-grid start for corrected V
+    float scaleCorrUtoGrid{0.}; ///< scale corrected U to U-grid coordinate
+    float scaleCorrVtoGrid{0.}; ///< scale corrected V to V-grid coordinate
     RowActiveArea activeArea;
+#ifndef GPUCA_ALIROOT_LIB
+    ClassDefNV(SliceRowInfo, 1);
+#endif
   };
 
   struct SliceInfo {
-    float vMax{0.};
+    float vMax{0.}; ///< Max value of V coordinate
+#ifndef GPUCA_ALIROOT_LIB
+    ClassDefNV(SliceInfo, 1);
+#endif
   };
 
   typedef Spline2D<float, 3> SplineType;
@@ -254,8 +266,6 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   RowInfo* mRowInfoPtr;           //! (transient!!) pointer to RowInfo array inside the mFlatBufferPtr buffer
   SliceRowInfo* mSliceRowInfoPtr; //! (transient!!) pointer to SliceRowInfo array inside the mFlatBufferPtr
 
-  float fInterpolationSafetyMargin{0.1}; // 10% area around the TPC row. Outside of this area the interpolation returns the boundary values.
-
   /// _______________  Calibration data  _______________________________________________
 
   long int mTimeStamp; ///< time stamp of the current calibration
@@ -263,6 +273,12 @@ class TPCFastSpaceChargeCorrection : public FlatObject
   char* mSplineData[3]; //! (transient!!) pointer to the spline data in the flat buffer
 
   size_t mSliceDataSizeBytes[3]; ///< size of the data for one slice in the flat buffer
+
+  float fInterpolationSafetyMargin{0.1}; // 10% area around the TPC row. Outside of this area the interpolation returns the boundary values.
+
+#ifndef GPUCA_ALIROOT_LIB
+  ClassDefNV(TPCFastSpaceChargeCorrection, 3);
+#endif
 };
 
 /// ====================================================

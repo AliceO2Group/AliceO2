@@ -15,17 +15,24 @@
 #include "SimulationDataFormat/MCEventHeader.h"
 #include "SimulationDataFormat/MCUtils.h"
 #include "Framework/AnalysisDataModel.h"
+#include "SimulationDataFormat/InteractionSampler.h"
 
 using namespace o2::framework;
 
 struct McTracksToAOD {
-  size_t bcCounter = 0;
   Produces<o2::aod::McCollisions> mcollisions;
   Produces<o2::aod::StoredMcParticles_001> mcparticles;
+  Configurable<float> IR{"interaction-rate", 100.f, "Interaction rate to simulate"};
 
-  long timeframe = 0;
+  uint64_t timeframe = 0;
+  o2::steer::InteractionSampler sampler;
 
-  void init(o2::framework::InitContext& /*ic*/) {}
+  void init(o2::framework::InitContext& /*ic*/)
+  {
+    sampler.setInteractionRate(IR);
+    sampler.setFirstIR({0, 0});
+    sampler.init();
+  }
 
   void run(o2::framework::ProcessingContext& pc)
   {
@@ -35,17 +42,20 @@ struct McTracksToAOD {
       LOG(warn) << "Mismatch between number of MC headers and number of track vectors: " << Nparts << " != " << Nparts_verify << ", shipping the empty timeframe";
       return;
     }
+    // TODO: include BC simulation
+    auto bcCounter = 0UL;
     for (auto i = 0U; i < Nparts; ++i) {
+      auto record = sampler.generateCollisionTime();
       auto mcheader = pc.inputs().get<o2::dataformats::MCEventHeader*>("mcheader", i);
       auto mctracks = pc.inputs().get<std::vector<o2::MCTrack>>("mctracks", i);
 
-      mcollisions(bcCounter++, // bc
+      mcollisions(bcCounter++, // bcId
                   0,           // generatorId
                   mcheader->GetX(),
                   mcheader->GetY(),
                   mcheader->GetZ(),
-                  mcheader->GetT(),
-                  1., // weight
+                  record.timeInBCNS * 1.e-3, // ns to ms
+                  1.,                        // weight
                   mcheader->GetB());
       for (auto& mctrack : mctracks) {
         std::vector<int> mothers;

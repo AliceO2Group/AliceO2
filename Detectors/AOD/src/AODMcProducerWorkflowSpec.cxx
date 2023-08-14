@@ -219,18 +219,23 @@ void AODMcProducerWorkflowDPL::run(ProcessingContext& pc)
   }
 
   // filling mcCollision table
-
-  // TODO: figure out collision weight
-  float mcColWeight = 1.;
-
   // dummy time information
   int bcID = 0;
   float time = 0;
 
-  auto updateMCCollisions = [this, mcColWeight, bcID, time, &mcCollisionsCursor](dataformats::MCEventHeader const& header, short generatorID) {
+  auto updateMCCollisions = [this, bcID, time, &mcCollisionsCursor](dataformats::MCEventHeader const& header, short generatorID, int sourceID) {
+    bool isValid = false;
+    int subGeneratorId{-1};
+    if (header.hasInfo(o2::mcgenid::GeneratorProperty::SUBGENERATORID)) {
+      subGeneratorId = header.getInfo<int>(o2::mcgenid::GeneratorProperty::SUBGENERATORID, isValid);
+    }
+    float mcColWeight = 1.;
+    if (header.hasInfo("weight")) {
+      mcColWeight = header.getInfo<float>("weight", isValid);
+    }
     mcCollisionsCursor(0,
                        bcID,
-                       generatorID,
+                       o2::mcgenid::getEncodedGenId(header.getInfo<int>(o2::mcgenid::GeneratorProperty::GENERATORID, isValid), sourceID, subGeneratorId),
                        truncateFloatFraction(header.GetX(), mCollisionPosition),
                        truncateFloatFraction(header.GetY(), mCollisionPosition),
                        truncateFloatFraction(header.GetZ(), mCollisionPosition),
@@ -247,7 +252,7 @@ void AODMcProducerWorkflowDPL::run(ProcessingContext& pc)
       int nEvents = mcReader->getNEvents(isrc);
       for (int ievt = 0; ievt < nEvents; ievt++) {
         auto& header = mcReader->getMCEventHeader(isrc, ievt);
-        updateMCCollisions(header, generatorID);
+        updateMCCollisions(header, generatorID, isrc);
         mMCColToEvSrc.emplace_back(std::vector<int>{icol, isrc, ievt});
         icol++;
       }
@@ -266,7 +271,7 @@ void AODMcProducerWorkflowDPL::run(ProcessingContext& pc)
         if (nParts == 1 || sourceID == 0) {
           short generatorID = sourceID;
           auto& header = mcReader->getMCEventHeader(sourceID, eventID);
-          updateMCCollisions(header, generatorID);
+          updateMCCollisions(header, generatorID, sourceID);
         }
         mMCColToEvSrc.emplace_back(std::vector<int>{icol, sourceID, eventID}); // point background and injected signal events to one collision
       }

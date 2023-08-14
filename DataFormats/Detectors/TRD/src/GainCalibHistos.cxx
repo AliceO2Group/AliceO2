@@ -31,28 +31,15 @@ void GainCalibHistos::reset()
   mNEntriesTot = 0;
 }
 
-void GainCalibHistos::addEntry(float dEdx, int chamberId)
-{
-  // add entry for given dEdx
-  int chamberOffset = chamberId * NBINSGAINCALIB;
-  int iBin = (int)dEdx;
-  if (iBin < 0 || iBin >= NBINSGAINCALIB) {
-    // This could happen because of local gain correction but should be very rare, so we can just skip it
-    return;
-  }
-  ++mdEdxEntries[chamberOffset + iBin];
-  ++mNEntriesTot;
-}
-
-void GainCalibHistos::fill(const std::unique_ptr<const GainCalibHistos, o2::framework::InputRecord::Deleter<const o2::trd::GainCalibHistos>>& input)
+void GainCalibHistos::fill(const std::vector<int>& input)
 {
   if (!mInitialized) {
     init();
   }
-  for (int i = 0; i < MAXCHAMBER * NBINSGAINCALIB; ++i) {
-    mdEdxEntries[i] += input->getHistogramEntry(i);
-    mNEntriesTot += input->getHistogramEntry(i);
+  for (auto elem : input) {
+    ++mdEdxEntries[elem];
   }
+  mNEntriesTot += input.size();
 }
 
 void GainCalibHistos::merge(const GainCalibHistos* prev)

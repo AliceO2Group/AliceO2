@@ -271,7 +271,8 @@ struct OutputManager<HistogramRegistry> {
 
   static bool postRun(EndOfStreamContext& context, HistogramRegistry& what)
   {
-    context.outputs().snapshot(what.ref(), *(*what));
+    context.outputs().snapshot(what.ref(), *(what.getListOfHistograms()));
+    what.clean();
     return true;
   }
 };

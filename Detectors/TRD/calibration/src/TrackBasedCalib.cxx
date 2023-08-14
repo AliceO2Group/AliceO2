@@ -29,14 +29,13 @@ using namespace o2::trd::constants;
 void TrackBasedCalib::reset()
 {
   mAngResHistos.reset();
-  mGainCalibHistos.reset();
+  mGainCalibHistos.clear();
 }
 
 void TrackBasedCalib::init()
 {
   bz = o2::base::Propagator::Instance()->getNominalBz();
   mRecoParam.setBfield(bz);
-  mGainCalibHistos.init();
 }
 
 void TrackBasedCalib::setInput(const o2::globaltracking::RecoContainer& input)
@@ -58,8 +57,8 @@ void TrackBasedCalib::calculateGainCalibObjs()
   int nTracksSuccessTPCTRD = filldEdx(mTracksInTPCTRD, true);
   int nTracksSuccessITSTPCTRD = filldEdx(mTracksInITSTPCTRD, false);
 
-  LOGF(info, "Gain Calibration: Successfully processed %i tracks (%i from ITS-TPC-TRD and %i from TPC-TRD) and collected %d tracklets",
-       nTracksSuccessITSTPCTRD + nTracksSuccessTPCTRD, nTracksSuccessITSTPCTRD, nTracksSuccessTPCTRD, mGainCalibHistos.getNEntries());
+  LOGP(info, "Gain Calibration: Successfully processed {} tracks ({} from ITS-TPC-TRD and {} from TPC-TRD) and collected {} data points",
+       nTracksSuccessITSTPCTRD + nTracksSuccessTPCTRD, nTracksSuccessITSTPCTRD, nTracksSuccessTPCTRD, mGainCalibHistos.size());
 }
 
 void TrackBasedCalib::calculateAngResHistos()
@@ -133,10 +132,10 @@ int TrackBasedCalib::filldEdx(gsl::span<const TrackTRD>& tracks, bool isTPCTRD)
 
       const auto& tracklet = mTrackletsRaw[trkltId];
 
-      float Q0 = tracklet.getQ0();
-      float Q1 = tracklet.getQ1();
-      float Q2 = tracklet.getQ2();
-      if (Q0 == 0 || Q1 == 0 || Q2 == 0 || Q0 >= 127 || Q1 >= 127 || Q2 >= 62) {
+      auto q0 = tracklet.getQ0();
+      auto q1 = tracklet.getQ1();
+      auto q2 = tracklet.getQ2();
+      if (q0 == 0 || q1 == 0 || q2 == 0 || q0 >= 127 || q1 >= 127 || q2 >= 62) {
         continue;
       }
 
@@ -153,14 +152,26 @@ int TrackBasedCalib::filldEdx(gsl::span<const TrackTRD>& tracks, bool isTPCTRD)
       // l/l0 = sqrt(dx^2 + dy^2 + dz^2)/dx = sqrt(1 + (dy/dx)^2 + (dz/dx)^2)
       // (dz/dx)^2 = tan^2(lambda), (dy/dx)^2 = tan^2(phi) = sin^2(phi)/(1-sin^2(phi))
       float trkLength = sqrt(1 + snp * snp / (1 - snp * snp) + tgl * tgl);
+      if (TMath::Abs(trkLength) < 1) {
+        LOGP(warn, "Invalid track length {} for angles snp {} and tgl {}", trkLength, snp, tgl);
+        continue;
+      }
 
       float localGainCorr = 1.;
       if (mLocalGain) {
-        localGainCorr = mLocalGain->getValue(tracklet.getDetector(), tracklet.getPadCol(), tracklet.getPadRow());
+        localGainCorr = mLocalGain->getValue(trkltDet, tracklet.getPadCol(), tracklet.getPadRow());
       }
-      float dEdx = (Q0 + Q1 + Q2) / trkLength / localGainCorr;
+      if (TMath::Abs(localGainCorr) < 0.0001f) {
+        LOGP(warn, "Invalid localGainCorr {} for det {}, pad col {}, pad row {}", localGainCorr, trkltDet, tracklet.getPadCol(), tracklet.getPadRow());
+        continue;
+      }
 
-      mGainCalibHistos.addEntry(dEdx, mTrackletsRaw[trkIn.getTrackletIndex(iLayer)].getDetector());
+      unsigned int dEdx = (q0 + q1 + q2) / trkLength / localGainCorr;
+      if (dEdx >= NBINSGAINCALIB) {
+        continue;
+      }
+      int chamberOffset = trkltDet * NBINSGAINCALIB;
+      mGainCalibHistos.push_back(chamberOffset + trkltDet + dEdx);
     }
 
     // here we can count the number of successfully processed tracks

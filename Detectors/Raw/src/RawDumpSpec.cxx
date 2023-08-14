@@ -17,6 +17,7 @@
 #include "DetectorsRaw/RDHUtils.h"
 #include "DPLUtils/DPLRawParser.h"
 #include "CommonUtils/StringUtils.h"
+#include "Algorithm/RangeTokenizer.h"
 #include <cstdio>
 #include <unordered_map>
 #include <filesystem>
@@ -63,6 +64,7 @@ class RawDump : public Task
   bool mSkipDump{false};
   bool mTOFUncompressed{false};
   int mVerbosity{0};
+  uint64_t mTPCLinkRej{0}; // pattern of TPC links to reject
   std::string mOutDir{};
   std::unordered_map<uint64_t, FILE*> mDetFEEID2File{};
   std::unordered_map<std::string, FILE*> mName2File{};
@@ -86,6 +88,15 @@ void RawDump::init(InitContext& ic)
   mVerbosity = ic.options().get<int>("dump-verbosity");
   mOutDir = ic.options().get<std::string>("output-directory");
   mSkipDump = ic.options().get<bool>("skip-dump");
+  auto vrej = o2::RangeTokenizer::tokenize<int>(ic.options().get<std::string>("reject-tpc-links"));
+  for (auto i : vrej) {
+    if (i < 63) {
+      mTPCLinkRej |= 0x1UL << i;
+      LOGP(info, "Will reject TPC link {}", i);
+    } else {
+      LOGP(error, "LinkID cannot exceed 63, asked {}", i);
+    }
+  }
   if (mOutDir.size()) {
     if (!std::filesystem::exists(mOutDir)) {
 #if defined(__clang__)
@@ -138,9 +149,10 @@ void RawDump::run(ProcessingContext& pc)
     if (mVerbosity > 1) {
       o2::raw::RDHUtils::printRDH(rdh);
     }
-    if (!mSkipDump) {
+    FILE* fh = nullptr;
+    if (!mSkipDump && (fh = getFile(dh->dataOrigin, rdh))) {
       auto sz = o2::raw::RDHUtils::getOffsetToNext(rdh);
-      auto ws = std::fwrite(raw, 1, sz, getFile(dh->dataOrigin, rdh));
+      auto ws = std::fwrite(raw, 1, sz, fh);
       if (ws != sz) {
         LOGP(fatal, "Failed to write payload of {} bytes", sz);
       }
@@ -182,6 +194,9 @@ FILE* RawDump::getFile(o2h::DataOrigin detOr, const header::RDHAny* rdh)
   if (!fhandler) {
     DetID detID = mOrigin2DetID[detOr];
     auto name = getFileName(detID, rdh);
+    if (name.empty()) {
+      return nullptr; // reject data of this RDH
+    }
     fhandler = mName2File[name];
     if (!fhandler) {
       fhandler = std::fopen(name.c_str(), "w");
@@ -210,7 +225,7 @@ FILE* RawDump::getFile(o2h::DataOrigin detOr, const header::RDHAny* rdh)
 std::string RawDump::getFileName(DetID detID, const header::RDHAny* rdh)
 {
   // TODO
-  std::string baseName;
+  std::string baseName{};
   switch (detID) {
     case DetID::ITS:
       baseName = getBaseFileNameITS(rdh);
@@ -265,8 +280,7 @@ std::string RawDump::getFileName(DetID detID, const header::RDHAny* rdh)
       baseName = fmt::format("feeID0x{:05x}", RDHUtils::getFEEID(rdh));
       break;
   }
-  auto str = fmt::format("{}{}{}_{}.raw", mOutDir, mOutDir.back() == '/' ? "" : "/", detID.getName(), baseName);
-  return str;
+  return baseName.empty() ? std::string{} : fmt::format("{}{}{}_{}.raw", mOutDir, mOutDir.back() == '/' ? "" : "/", detID.getName(), baseName);
 }
 
 //_____________________________________________________________________
@@ -422,7 +436,7 @@ std::string RawDump::getBaseFileNameCPV(const header::RDHAny* rdh)
     LOGP(error, "Unrecognized CPV flp, setting to {}", flpname);
     return flpname;
   }
-  return fmt::format("alio2-cr1-flp162_cru{}_{}", feeid, RDHUtils::getEndPointID(rdh));
+  return fmt::format("alio2-cr1-flp162_cru{}_{}", RDHUtils::getCRUID(rdh), RDHUtils::getEndPointID(rdh));
 }
 
 //_____________________________________________________________________
@@ -512,6 +526,10 @@ std::string RawDump::getBaseFileNameTPC(const header::RDHAny* rdh)
     "alio2-cr1-flp138", "alio2-cr1-flp137", "alio2-cr1-flp140", "alio2-cr1-flp139", "alio2-cr1-flp140", "alio2-cr1-flp139", "alio2-cr1-flp140", "alio2-cr1-flp139", "alio2-cr1-flp142", "alio2-cr1-flp141", "alio2-cr1-flp142", "alio2-cr1-flp141", "alio2-cr1-flp144", "alio2-cr1-flp143", "alio2-cr1-flp144", "alio2-cr1-flp143", "alio2-cr1-flp144", "alio2-cr1-flp143",
     "alio2-cr1-flp145"};
 
+  if (mTPCLinkRej && (mTPCLinkRej & (0x1UL << RDHUtils::getLinkID(rdh)))) {
+    return "";
+  }
+
   int cru = RDHUtils::getCRUID(rdh);
   if (cru >= NFLP) {
     auto flpname = fmt::format("flp-unknown_cru{}_ep{}_feeid0x{:05x}", RDHUtils::getCRUID(rdh), int(RDHUtils::getEndPointID(rdh)), RDHUtils::getFEEID(rdh));
@@ -569,6 +587,7 @@ DataProcessorSpec getRawDumpSpec(DetID::mask_t detMask, bool TOFUncompressed)
     {ConfigParamSpec{"fatal-on-deadbeef", VariantType::Bool, false, {"produce fata if 0xdeadbeef received for some detector"}},
      ConfigParamSpec{"skip-dump", VariantType::Bool, false, {"do not produce binary data"}},
      ConfigParamSpec{"dump-verbosity", VariantType::Int, 0, {"0:minimal, 1:report Det/FeeID->filename, 2: print RDH"}},
+     ConfigParamSpec{"reject-tpc-links", VariantType::String, "", {"comma-separated list TPC links to reject"}},
      ConfigParamSpec{"output-directory", VariantType::String, "./", {"Output directory (create if needed)"}}}};
 }
 
