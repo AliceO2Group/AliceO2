@@ -108,7 +108,7 @@ class TrackCuts
   {
     o2::track::TrackParCov trk;
     auto contributorsGID = data.getSingleDetectorRefs(trackIndex);
-    auto src = trackIndex.getSource(); // make selections depending on track source    
+    auto src = trackIndex.getSource(); // make selections depending on track source
     // ITS tracks
     if (contributorsGID[GIndex::Source::ITS].isIndexSet()) { // ITS tracks selection
       isBarrelTrack = true;
@@ -117,10 +117,10 @@ class TrackCuts
       float ITSchi2 = itsTrk.getChi2();
       float itsChi2NCl = ITSnClusters != 0 ? ITSchi2 / (float)ITSnClusters : 0;
       uint8_t itsClusterMap = itsTrk.getPattern();
-      SetRequireHitsInITSLayers(1, {0,1,2});
-      if(itsChi2NCl >= mMaxChi2PerClusterITS ||
+      SetRequireHitsInITSLayers(1, {0, 1, 2});
+      if (itsChi2NCl >= mMaxChi2PerClusterITS ||
           TrackMethods::FulfillsITSHitRequirements(itsClusterMap, mRequiredITSHits) == false) {
-        //LOGP(info,"FAILURE hits in ITS layers");
+        // LOGP(info,"FAILURE hits in ITS layers");
         return false;
       }
     }
@@ -163,13 +163,12 @@ class TrackCuts
 
   void SetRequireHitsInITSLayers(int8_t minNRequiredHits, std::set<uint8_t> requiredLayers)
   {
-  // layer 0 corresponds to the the innermost ITS layer
-  mRequiredITSHits.push_back(std::make_pair(minNRequiredHits, requiredLayers));
-  //LOG(info) << "Track selection, set require hits in ITS layers: " << static_cast<int>(minNRequiredHits);
+    // layer 0 corresponds to the the innermost ITS layer
+    mRequiredITSHits.push_back(std::make_pair(minNRequiredHits, requiredLayers));
+    // LOG(info) << "Track selection, set require hits in ITS layers: " << static_cast<int>(minNRequiredHits);
   }
 
  private:
-
   // counters for TPC clusters
   struct TPCCounters {
     uint8_t shared = 0;
@@ -177,7 +176,7 @@ class TrackCuts
     uint8_t crossed = 0;
   };
   std::vector<TPCCounters> mTPCCounters;
-  
+
   bool isBarrelTrack = true; // all barrel tracks must have either ITS or TPC contribution -> true if ITS || TPC track source condition is passed
   // cut values
   float mPtTPCCut = 0.1f;
@@ -186,23 +185,23 @@ class TrackCuts
   float mDCACut = 100.f;
   float mDCACutY = 10.f;
   // kinematic cuts
-  float mMinPt{0.1f},  mMaxPt{1e10f};                       // range in pT
-  float mMinEta{0.8}, mMaxEta{0.8}; // range in eta
+  float mMinPt{0.1f}, mMaxPt{1e10f}; // range in pT
+  float mMinEta{0.8}, mMaxEta{0.8};  // range in eta
   float mBz = o2::base::Propagator::Instance()->getNominalBz();
 
   float mMaxChi2PerClusterITS{36.0}; // max its fit chi2 per ITS cluster
-  float mMaxChi2PerClusterTPC{4.0}; // max its fit chi2 per ITS cluster
-  int mMinNClustersITS{0};            // min number of ITS clusters
+  float mMaxChi2PerClusterTPC{4.0};  // max its fit chi2 per ITS cluster
+  int mMinNClustersITS{0};           // min number of ITS clusters
 
   // vector of ITS requirements (minNRequiredHits in specific requiredLayers)
-  int8_t minNRequiredHits=1;
-  std::set<uint8_t> requiredLayers{0, 1, 2}; //one hit in the first three layers
+  int8_t minNRequiredHits = 1;
+  std::set<uint8_t> requiredLayers{0, 1, 2}; // one hit in the first three layers
   std::vector<std::pair<int8_t, std::set<uint8_t>>> mRequiredITSHits{};
 
   ClassDefNV(TrackCuts, 1);
 };
-} // namespace o2
 } // namespace study
 } // namespace its
+} // namespace o2
 
 #endif

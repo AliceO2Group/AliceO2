@@ -26,9 +26,9 @@
 
 namespace o2
 {
-  namespace its
+namespace its
 {
- namespace study
+namespace study
 {
 class TrackMethods
 {
@@ -95,7 +95,7 @@ class TrackMethods
     return true;
   }
 
-  private:
+ private:
   std::vector<std::pair<int8_t, std::set<uint8_t>>> mRequiredITSHits{};
   ClassDefNV(TrackMethods, 1);
 };

@@ -91,9 +91,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     LOGP(info, "No study selected, dryrunning");
   }
 
-  // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
-
   // write the configuration used for the studies workflow
   o2::conf::ConfigurableParam::writeINI("o2_its_standalone_configuration.ini");
 
