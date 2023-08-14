@@ -137,11 +137,11 @@ class CalculatedEdx
   void loadCalibsFromCCDB(long runNumberOrTimeStamp);
 
  private:
-  std::vector<TrackTPC>* mTracks{nullptr};                             ///< vector containing the tpc tracks which will be processed.
-  std::vector<TPCClRefElem>* mTPCTrackClIdxVecInput{nullptr};          ///< input vector with TPC tracks cluster indicies
-  const o2::tpc::ClusterNativeAccess* mClusterIndex{nullptr};          ///< needed to access clusternative with tpctracks
-  o2::gpu::CorrectionMapsHelper mTPCCorrMapsHelper;                    ///< cluster corrections map helper
-  std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mRefit{nullptr};       ///< TPC refitter used for TPC tracks refit during the reconstruction
+  std::vector<TrackTPC>* mTracks{nullptr};                       ///< vector containing the tpc tracks which will be processed.
+  std::vector<TPCClRefElem>* mTPCTrackClIdxVecInput{nullptr};    ///< input vector with TPC tracks cluster indicies
+  const o2::tpc::ClusterNativeAccess* mClusterIndex{nullptr};    ///< needed to access clusternative with tpctracks
+  o2::gpu::CorrectionMapsHelper mTPCCorrMapsHelper;              ///< cluster corrections map helper
+  std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mRefit{nullptr}; ///< TPC refitter used for TPC tracks refit during the reconstruction
 
   int mMaxMissingCl{2};                                                ///< maximum number of missing clusters for subthreshold check
   float mField{5};                                                     ///< magnetic field in kG, used for track propagation
