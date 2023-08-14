@@ -111,8 +111,8 @@ class SimpleEventDisplayGUI
 
   TH1* getBinInfoXY(int& binx, int& biny, float& bincx, float& bincy);
 
-  void initOccupancyHists(void);
-  void deleteOccupancyHists(void);
+  void initOccupancyHists();
+  void deleteOccupancyHists();
 
   ClassDefNV(SimpleEventDisplayGUI, 0);
 };
