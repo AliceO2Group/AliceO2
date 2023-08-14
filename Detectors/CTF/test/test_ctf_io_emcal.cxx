@@ -65,6 +65,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
           break;
 
         default:
+          std::cerr << "Unknown type" << std::endl;
           break;
       }
       cells.emplace_back(tower, en, timeCell, chantype);
