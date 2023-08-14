@@ -15,6 +15,9 @@
 #include <catch_amalgamated.hpp>
 #include <algorithm>
 #include <vector>
+#include <fmt/format.h>
+#include "Framework/Formatters.h"
+#include <fmt/ostream.h>
 
 using namespace o2::framework;
 using namespace o2::framework::data_matcher;
@@ -46,4 +49,9 @@ TEST_CASE("TestInputSpecCreation")
     return a.binding < b.binding;
   };
   std::stable_sort(inputs.begin(), inputs.end(), sorter);
+}
+
+TEST_CASE("TestFormattersLifetime")
+{
+  CHECK(fmt::format("{}", Lifetime::Timeframe) == "timeframe");
 }

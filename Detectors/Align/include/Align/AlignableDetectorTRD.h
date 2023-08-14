@@ -25,7 +25,7 @@ namespace o2
 namespace align
 {
 
-class AlignableDetectorTRD : public AlignableDetector
+class AlignableDetectorTRD final : public AlignableDetector
 {
  public:
   //
@@ -61,7 +61,7 @@ class AlignableDetectorTRD : public AlignableDetector
     mExtraErrRC[1] = z;
   }
 
-  int processPoints(GIndex gid, bool inv) final;
+  int processPoints(GIndex gid, int npntCut, bool inv) final;
 
  protected:
   o2::trd::RecoParam mRecoParam;    // parameters required for TRD reconstruction

@@ -12,6 +12,8 @@
 #include "Framework/DefaultsHelpers.h"
 #include "Framework/DataTakingContext.h"
 #include <cstdlib>
+#include <cstring>
+#include <stdexcept>
 
 namespace o2::framework
 {
@@ -27,15 +29,38 @@ unsigned int DefaultsHelpers::pipelineLength()
   // just some reasonable numers
   // The number should really be tuned at runtime for each processor.
   if (deploymentMode == DeploymentMode::OnlineDDS || deploymentMode == DeploymentMode::OnlineECS || deploymentMode == DeploymentMode::FST) {
-    return 256;
+    return 512;
   } else {
     return 64;
   }
 }
 
+static DeploymentMode getDeploymentMode_internal()
+{
+  char* explicitMode = getenv("O2_DPL_DEPLOYMENT_MODE");
+  if (explicitMode != nullptr) {
+    if (strcmp(explicitMode, "OnlineDDS") == 0) {
+      return DeploymentMode::OnlineDDS;
+    } else if (strcmp(explicitMode, "OnlineECS") == 0) {
+      return DeploymentMode::OnlineECS;
+    } else if (strcmp(explicitMode, "OnlineAUX") == 0) {
+      return DeploymentMode::OnlineAUX;
+    } else if (strcmp(explicitMode, "Local") == 0) {
+      return DeploymentMode::Local;
+    } else if (strcmp(explicitMode, "Grid") == 0) {
+      return DeploymentMode::Grid;
+    } else if (strcmp(explicitMode, "FST") == 0) {
+      return DeploymentMode::FST;
+    } else {
+      throw std::runtime_error("Invalid deployment mode");
+    }
+  }
+  return getenv("DDS_SESSION_ID") != nullptr ? DeploymentMode::OnlineDDS : (getenv("OCC_CONTROL_PORT") != nullptr ? DeploymentMode::OnlineECS : (getenv("ALIEN_JOB_ID") != nullptr ? DeploymentMode::Grid : (getenv("ALICE_O2_FST") ? DeploymentMode::FST : (DeploymentMode::Local))));
+}
+
 DeploymentMode DefaultsHelpers::deploymentMode()
 {
-  static DeploymentMode retVal = getenv("DDS_SESSION_ID") != nullptr ? DeploymentMode::OnlineDDS : (getenv("OCC_CONTROL_PORT") != nullptr ? DeploymentMode::OnlineECS : (getenv("ALIEN_JOB_ID") != nullptr ? DeploymentMode::Grid : (getenv("ALICE_O2_FST") ? DeploymentMode::FST : (DeploymentMode::Local))));
+  static DeploymentMode retVal = getDeploymentMode_internal();
   return retVal;
 }
 

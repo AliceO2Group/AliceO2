@@ -48,7 +48,7 @@ class TDCCalibEPN
   static constexpr int HtdcZPCC = 8;
   static constexpr int HtdcZPCS = 9;
   static constexpr int NTDC = TDCCalibData::NTDC;
-  void clear(int ih = -1);
+  void clear();
   int process(const gsl::span<const o2::zdc::BCRecData>& bcrec,
               const gsl::span<const o2::zdc::ZDCEnergy>& energy,
               const gsl::span<const o2::zdc::ZDCTDCData>& tdc,
@@ -66,12 +66,13 @@ class TDCCalibEPN
   TDCCalibData mData;
   TDCCalibData& getData() { return mData; }
   std::array<o2::dataformats::FlatHisto1D<float>*, NTDC> mTDC{};
+  std::array<o2::dataformats::FlatHisto1D<float>*, NTDC> mTDCSum{};
 
  private:
   bool mInitDone = false;
   bool mSaveDebugHistos = false;
-  int32_t mVerbosity = DbgMinimal;
   const TDCCalibConfig* mTDCCalibConfig = nullptr; /// Configuration of intercalibration
+  int32_t mVerbosity = DbgMinimal;
 };
 } // namespace zdc
 } // namespace o2

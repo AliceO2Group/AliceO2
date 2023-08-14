@@ -38,7 +38,7 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     IN_START,
     IN_EXECUTION,
     IN_WORKFLOW,
-    IN_METADATA,
+    IN_DATAPROCESSOR_INFOS,
     IN_COMMAND,
     IN_DATAPROCESSORS,
     IN_DATAPROCESSOR,
@@ -51,6 +51,7 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     IN_OUTPUTS,
     IN_OPTIONS,
     IN_LABELS,
+    IN_METADATA,
     IN_WORKFLOW_OPTIONS,
     IN_INPUT,
     IN_INPUT_BINDING,
@@ -82,12 +83,15 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     IN_OPTION_KIND,
     IN_LABEL,
     IN_METADATUM,
-    IN_METADATUM_NAME,
-    IN_METADATUM_EXECUTABLE,
-    IN_METADATUM_ARGS,
-    IN_METADATUM_ARG,
-    IN_METADATUM_CHANNELS,
-    IN_METADATUM_CHANNEL,
+    IN_METADATUM_KEY,
+    IN_METADATUM_VALUE,
+    IN_DATAPROCESSOR_INFO,
+    IN_DATAPROCESSOR_INFO_NAME,
+    IN_DATAPROCESSOR_INFO_EXECUTABLE,
+    IN_DATAPROCESSOR_INFO_ARGS,
+    IN_DATAPROCESSOR_INFO_ARG,
+    IN_DATAPROCESSOR_INFO_CHANNELS,
+    IN_DATAPROCESSOR_INFO_CHANNEL,
     IN_ERROR
   };
 
@@ -138,6 +142,9 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
         break;
       case State::IN_LABELS:
         s << "IN_LABELS";
+        break;
+      case State::IN_METADATA:
+        s << "IN_METADATA";
         break;
       case State::IN_WORKFLOW_OPTIONS:
         s << "IN_WORKFLOW_OPTIONS";
@@ -229,32 +236,41 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       case State::IN_LABEL:
         s << "IN_LABEL";
         break;
-      case State::IN_ERROR:
-        s << "IN_ERROR";
-        break;
-      case State::IN_METADATA:
-        s << "IN_METADATA";
-        break;
       case State::IN_METADATUM:
         s << "IN_METADATUM";
         break;
-      case State::IN_METADATUM_NAME:
-        s << "IN_METADATUM_NAME";
+      case State::IN_METADATUM_KEY:
+        s << "IN_METADATUM_KEY";
         break;
-      case State::IN_METADATUM_EXECUTABLE:
-        s << "IN_METADATUM_EXECUTABLE";
+      case State::IN_METADATUM_VALUE:
+        s << "IN_METADATUM_VALUE";
         break;
-      case State::IN_METADATUM_ARGS:
-        s << "IN_METADATUM_ARGS";
+      case State::IN_ERROR:
+        s << "IN_ERROR";
         break;
-      case State::IN_METADATUM_ARG:
-        s << "IN_METADATUM_ARG";
+      case State::IN_DATAPROCESSOR_INFOS:
+        s << "IN_DATAPROCESSOR_INFOS";
         break;
-      case State::IN_METADATUM_CHANNELS:
-        s << "IN_METADATUM_CHANNELS";
+      case State::IN_DATAPROCESSOR_INFO:
+        s << "IN_DATAPROCESSOR_INFO";
         break;
-      case State::IN_METADATUM_CHANNEL:
-        s << "IN_METADATUM_CHANNEL";
+      case State::IN_DATAPROCESSOR_INFO_NAME:
+        s << "IN_DATAPROCESSOR_INFO_NAME";
+        break;
+      case State::IN_DATAPROCESSOR_INFO_EXECUTABLE:
+        s << "IN_DATAPROCESSOR_INFO_EXECUTABLE";
+        break;
+      case State::IN_DATAPROCESSOR_INFO_ARGS:
+        s << "IN_DATAPROCESSOR_INFO_ARGS";
+        break;
+      case State::IN_DATAPROCESSOR_INFO_ARG:
+        s << "IN_DATAPROCESSOR_INFO_ARG";
+        break;
+      case State::IN_DATAPROCESSOR_INFO_CHANNELS:
+        s << "IN_DATAPROCESSOR_INFO_CHANNELS";
+        break;
+      case State::IN_DATAPROCESSOR_INFO_CHANNEL:
+        s << "IN_DATAPROCESSOR_INFO_CHANNEL";
         break;
     }
     return s;
@@ -303,11 +319,15 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       push(State::IN_OPTION);
     } else if (in(State::IN_WORKFLOW_OPTIONS)) {
       push(State::IN_OPTION);
+    } else if (in(State::IN_DATAPROCESSOR_INFOS)) {
+      push(State::IN_DATAPROCESSOR_INFO);
+      metadata.push_back(DataProcessorInfo{});
+    } else if (in(State::IN_DATAPROCESSOR_INFO)) {
+      metadata.push_back(DataProcessorInfo{});
     } else if (in(State::IN_METADATA)) {
       push(State::IN_METADATUM);
-      metadata.push_back(DataProcessorInfo{});
-    } else if (in(State::IN_METADATUM)) {
-      metadata.push_back(DataProcessorInfo{});
+      metadatumKey.clear();
+      metadatumValue.clear();
     } else if (in(State::IN_COMMAND)) {
       command = CommandInfo{};
     }
@@ -505,6 +525,8 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       } else {
         assert(false);
       }
+    } else if (in(State::IN_METADATUM)) {
+      dataProcessors.back().metadata.push_back({metadatumKey, metadatumValue});
     }
     pop();
     return true;
@@ -532,10 +554,12 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       push(State::IN_LABEL);
     } else if (in(State::IN_METADATA)) {
       push(State::IN_METADATUM);
-    } else if (in(State::IN_METADATUM_ARGS)) {
-      push(State::IN_METADATUM_ARG);
-    } else if (in(State::IN_METADATUM_CHANNELS)) {
-      push(State::IN_METADATUM_CHANNEL);
+    } else if (in(State::IN_DATAPROCESSOR_INFOS)) {
+      push(State::IN_DATAPROCESSOR_INFO);
+    } else if (in(State::IN_DATAPROCESSOR_INFO_ARGS)) {
+      push(State::IN_DATAPROCESSOR_INFO_ARG);
+    } else if (in(State::IN_DATAPROCESSOR_INFO_CHANNELS)) {
+      push(State::IN_DATAPROCESSOR_INFO_CHANNEL);
     }
     return true;
   }
@@ -545,7 +569,9 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     enter("END_ARRAY");
     // Handle the case in which inputs / options / outputs are
     // empty.
-    if (in(State::IN_INPUT) || in(State::IN_OUTPUT) || in(State::IN_OPTION) || in(State::IN_LABEL) || in(State::IN_METADATUM) || in(State::IN_METADATUM_ARG) || in(State::IN_METADATUM_CHANNEL) || in(State::IN_DATAPROCESSORS)) {
+    if (in(State::IN_INPUT) || in(State::IN_OUTPUT) || in(State::IN_OPTION) || in(State::IN_LABEL) || in(State::IN_METADATUM) ||
+        in(State::IN_DATAPROCESSOR_INFO) || in(State::IN_DATAPROCESSOR_INFO_ARG) || in(State::IN_DATAPROCESSOR_INFO_CHANNEL) ||
+        in(State::IN_DATAPROCESSORS)) {
       pop();
     }
     pop();
@@ -650,10 +676,16 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       push(State::IN_OPTIONS);
     } else if (in(State::IN_DATAPROCESSOR) && strncmp(str, "labels", length) == 0) {
       push(State::IN_LABELS);
+    } else if (in(State::IN_DATAPROCESSOR) && strncmp(str, "metadata", length) == 0) {
+      push(State::IN_METADATA);
+    } else if (in(State::IN_METADATUM) && strncmp(str, "key", length) == 0) {
+      push(State::IN_METADATUM_KEY);
+    } else if (in(State::IN_METADATUM) && strncmp(str, "value", length) == 0) {
+      push(State::IN_METADATUM_VALUE);
     } else if (in(State::IN_EXECUTION) && strncmp(str, "workflow", length) == 0) {
       push(State::IN_WORKFLOW);
     } else if (in(State::IN_EXECUTION) && strncmp(str, "metadata", length) == 0) {
-      push(State::IN_METADATA);
+      push(State::IN_DATAPROCESSOR_INFOS);
     } else if (in(State::IN_OPTION) && strncmp(str, "name", length) == 0) {
       push(State::IN_OPTION_NAME);
     } else if (in(State::IN_OPTION) && strncmp(str, "type", length) == 0) {
@@ -664,16 +696,16 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       push(State::IN_OPTION_HELP);
     } else if (in(State::IN_OPTION) && strncmp(str, "kind", length) == 0) {
       push(State::IN_OPTION_KIND);
-    } else if (in(State::IN_METADATUM) && strncmp(str, "name", length) == 0) {
-      push(State::IN_METADATUM_NAME);
-    } else if (in(State::IN_METADATUM) && strncmp(str, "executable", length) == 0) {
-      push(State::IN_METADATUM_EXECUTABLE);
-    } else if (in(State::IN_METADATUM) && strncmp(str, "cmdLineArgs", length) == 0) {
-      push(State::IN_METADATUM_ARGS);
-    } else if (in(State::IN_METADATUM) && strncmp(str, "workflowOptions", length) == 0) {
+    } else if (in(State::IN_DATAPROCESSOR_INFO) && strncmp(str, "name", length) == 0) {
+      push(State::IN_DATAPROCESSOR_INFO_NAME);
+    } else if (in(State::IN_DATAPROCESSOR_INFO) && strncmp(str, "executable", length) == 0) {
+      push(State::IN_DATAPROCESSOR_INFO_EXECUTABLE);
+    } else if (in(State::IN_DATAPROCESSOR_INFO) && strncmp(str, "cmdLineArgs", length) == 0) {
+      push(State::IN_DATAPROCESSOR_INFO_ARGS);
+    } else if (in(State::IN_DATAPROCESSOR_INFO) && strncmp(str, "workflowOptions", length) == 0) {
       push(State::IN_WORKFLOW_OPTIONS);
-    } else if (in(State::IN_METADATUM) && strncmp(str, "channels", length) == 0) {
-      push(State::IN_METADATUM_CHANNELS);
+    } else if (in(State::IN_DATAPROCESSOR_INFO) && strncmp(str, "channels", length) == 0) {
+      push(State::IN_DATAPROCESSOR_INFO_CHANNELS);
     } else if (in(State::IN_EXECUTION) && strncmp(str, "command", length) == 0) {
       push(State::IN_COMMAND);
     }
@@ -688,10 +720,10 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
     if (in(State::IN_DATAPROCESSOR_NAME)) {
       assert(dataProcessors.size());
       dataProcessors.back().name = s;
-    } else if (in(State::IN_METADATUM_NAME)) {
+    } else if (in(State::IN_DATAPROCESSOR_INFO_NAME)) {
       assert(metadata.size());
       metadata.back().name = s;
-    } else if (in(State::IN_METADATUM_EXECUTABLE)) {
+    } else if (in(State::IN_DATAPROCESSOR_INFO_EXECUTABLE)) {
       assert(metadata.size());
       metadata.back().executable = s;
     } else if (in(State::IN_INPUT_BINDING)) {
@@ -749,16 +781,20 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
       // This is in an array, so we do not actually want to
       // exit from the state.
       push(State::IN_LABEL);
-    } else if (in(State::IN_METADATUM_ARG)) {
+    } else if (in(State::IN_METADATUM_KEY)) {
+      metadatumKey = s;
+    } else if (in(State::IN_METADATUM_VALUE)) {
+      metadatumValue = s;
+    } else if (in(State::IN_DATAPROCESSOR_INFO_ARG)) {
       metadata.back().cmdLineArgs.push_back(s);
       // This is in an array, so we do not actually want to
       // exit from the state.
-      push(State::IN_METADATUM_ARG);
-    } else if (in(State::IN_METADATUM_CHANNEL)) {
+      push(State::IN_DATAPROCESSOR_INFO_ARG);
+    } else if (in(State::IN_DATAPROCESSOR_INFO_CHANNEL)) {
       metadata.back().channels.push_back(s);
       // This is in an array, so we do not actually want to
       // exit from the state.
-      push(State::IN_METADATUM_CHANNEL);
+      push(State::IN_DATAPROCESSOR_INFO_CHANNEL);
     } else if (in(State::IN_COMMAND)) {
       command.merge({s});
     } else {
@@ -870,6 +906,8 @@ struct WorkflowImporter : public rapidjson::BaseReaderHandler<rapidjson::UTF8<>,
   size_t subspec;
   size_t ref;
   Lifetime lifetime;
+  std::string metadatumKey;
+  std::string metadatumValue;
   std::string optionName;
   VariantType optionType;
   std::string optionDefault;
@@ -1173,6 +1211,17 @@ void WorkflowSerializationHelpers::dump(std::ostream& out,
     w.StartArray();
     for (auto& label : processor.labels) {
       w.String(label.value.c_str());
+    }
+    w.EndArray();
+    w.Key("metadata");
+    w.StartArray();
+    for (auto& metadatum : processor.metadata) {
+      w.StartObject();
+      w.Key("key");
+      w.String(metadatum.key.c_str());
+      w.Key("value");
+      w.String(metadatum.value.c_str());
+      w.EndObject();
     }
     w.EndArray();
     w.Key("rank");

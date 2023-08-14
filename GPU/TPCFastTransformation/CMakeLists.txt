@@ -94,6 +94,7 @@ if(${ALIGPU_BUILD_TYPE} STREQUAL "O2")
                                                  O2::DataFormatsTPC
                                                  O2::TPCSimulation
                                                  O2::TPCReconstruction
+                                                 O2::TPCCalibration
                                                  O2::SpacePoints
                           PUBLIC_INCLUDE_DIRECTORIES
                                                  ${CMAKE_BINARY_DIR}/stage/include

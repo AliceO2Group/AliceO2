@@ -133,7 +133,7 @@ class GloFwdAssessment
   std::array<std::unique_ptr<TH1F>, 7> mTrackPhiNCls = {nullptr};
   std::array<std::unique_ptr<TH2F>, 7> mTrackXYNCls = {nullptr};
   std::array<std::unique_ptr<TH2F>, 7> mTrackEtaPhiNCls = {nullptr};
-  std::unique_ptr<TH1F> mTrackTanl = nullptr;
+  std::unique_ptr<TH1F> mTrackCotl = nullptr;
 
   // Histos and data for MC analysis
   std::vector<std::string> mNameOfTrackTypes = {"Rec",
@@ -176,7 +176,7 @@ class GloFwdAssessment
     kTH3GMTrackXPullPtEta,
     kTH3GMTrackYPullPtEta,
     kTH3GMTrackPhiPullPtEta,
-    kTH3GMTrackTanlPullPtEta,
+    kTH3GMTrackCotlPullPtEta,
     kTH3GMTrackInvQPtPullPtEta,
     kTH3GMTrackReducedChi2PtEta,
     kTH3GMTrackPtEtaChi2,
@@ -200,7 +200,7 @@ class GloFwdAssessment
     {kTH3GMTrackXPullPtEta, "TH3GMTrackXPullPtEta"},
     {kTH3GMTrackYPullPtEta, "TH3GMTrackYPullPtEta"},
     {kTH3GMTrackPhiPullPtEta, "TH3GMTrackPhiPullPtEta"},
-    {kTH3GMTrackTanlPullPtEta, "TH3GMTrackTanlPullPtEta"},
+    {kTH3GMTrackCotlPullPtEta, "TH3GMTrackCotlPullPtEta"},
     {kTH3GMTrackInvQPtPullPtEta, "TH3GMTrackInvQPtPullPtEta"},
     {kTH3GMTrackReducedChi2PtEta, "TH3GMTrackReducedChi2PtEta"},
     {kTH3GMCloseMatchPtEtaChi2, "TH3GMCloseMatchPtEtaChi2"},
@@ -222,7 +222,7 @@ class GloFwdAssessment
     {kTH3GMTrackXPullPtEta, "TH3GMTrackXPullPtEta"},
     {kTH3GMTrackYPullPtEta, "TH3GMTrackYPullPtEta"},
     {kTH3GMTrackPhiPullPtEta, "TH3GMTrackPhiPullPtEta"},
-    {kTH3GMTrackTanlPullPtEta, "TH3GMTrackTanlPullPtEta"},
+    {kTH3GMTrackCotlPullPtEta, "TH3GMTrackCotlPullPtEta"},
     {kTH3GMTrackInvQPtPullPtEta, "TH3GMTrackInvQPtPullPtEta"},
     {kTH3GMTrackReducedChi2PtEta, "TH3GMTrackReducedChi2PtEta"},
     {kTH3GMCloseMatchPtEtaChi2, "TH3GMCloseMatchPtEtaChi2"},
@@ -244,7 +244,7 @@ class GloFwdAssessment
     {kTH3GMTrackXPullPtEta, {40, 0, 20, 16, 2.2, 3.8, 200, -10, 10}},
     {kTH3GMTrackYPullPtEta, {40, 0, 20, 16, 2.2, 3.8, 200, -10, 10}},
     {kTH3GMTrackPhiPullPtEta, {40, 0, 20, 16, 2.2, 3.8, 200, -10, 10}},
-    {kTH3GMTrackTanlPullPtEta, {40, 0, 20, 16, 2.2, 3.8, 200, -10, 10}},
+    {kTH3GMTrackCotlPullPtEta, {40, 0, 20, 16, 2.2, 3.8, 200, -10, 10}},
     {kTH3GMTrackInvQPtPullPtEta, {40, 0, 20, 16, 2.2, 3.8, 200, -50, 50}},
     {kTH3GMTrackReducedChi2PtEta, {40, 0, 20, 16, 2.2, 3.8, 1000, 0, 100}},
     {kTH3GMCloseMatchPtEtaChi2, {40, 0, 20, 16, 2.2, 3.8, 1000, 0, 100}},
@@ -266,7 +266,7 @@ class GloFwdAssessment
     {kTH3GMTrackXPullPtEta, R"(p_{t}_{MC})"},
     {kTH3GMTrackYPullPtEta, R"(p_{t}_{MC})"},
     {kTH3GMTrackPhiPullPtEta, R"(p_{t}_{MC})"},
-    {kTH3GMTrackTanlPullPtEta, R"(p_{t}_{MC})"},
+    {kTH3GMTrackCotlPullPtEta, R"(p_{t}_{MC})"},
     {kTH3GMTrackInvQPtPullPtEta, R"(p_{t}_{MC})"},
     {kTH3GMTrackReducedChi2PtEta, R"(p_{t}_{MC})"},
     {kTH3GMCloseMatchPtEtaChi2, R"(p_{t}_{Fit})"},
@@ -288,7 +288,7 @@ class GloFwdAssessment
     {kTH3GMTrackXPullPtEta, R"(\eta_{MC})"},
     {kTH3GMTrackYPullPtEta, R"(\eta_{MC})"},
     {kTH3GMTrackPhiPullPtEta, R"(\eta_{MC})"},
-    {kTH3GMTrackTanlPullPtEta, R"(\eta_{MC})"},
+    {kTH3GMTrackCotlPullPtEta, R"(\eta_{MC})"},
     {kTH3GMTrackInvQPtPullPtEta, R"(\eta_{MC})"},
     {kTH3GMTrackReducedChi2PtEta, R"(\eta_{MC})"},
     {kTH3GMCloseMatchPtEtaChi2, R"(\eta_{Fit})"},
@@ -310,7 +310,7 @@ class GloFwdAssessment
     {kTH3GMTrackXPullPtEta, R"(\Delta X/\sigma_{X})"},
     {kTH3GMTrackYPullPtEta, R"(\Delta Y/\sigma_{Y})"},
     {kTH3GMTrackPhiPullPtEta, R"(\Delta \phi/\sigma_{\phi})"},
-    {kTH3GMTrackTanlPullPtEta, R"(\Delta \tan(\lambda)/\sigma_{tan(\lambda)})"},
+    {kTH3GMTrackCotlPullPtEta, R"(\Delta \cot(\lambda)/\sigma_{cot(\lambda)})"},
     {kTH3GMTrackInvQPtPullPtEta, R"((\Delta q/p_t)/\sigma_{q/p_{t}})"},
     {kTH3GMTrackReducedChi2PtEta, R"(\chi^2/d.f.)"},
     {kTH3GMCloseMatchPtEtaChi2, R"(Match \chi^2)"},
@@ -337,8 +337,8 @@ class GloFwdAssessment
     kInvQPtResMCHVsPt,
     kPhiPullVsEta,
     kPhiPullVsPt,
-    kTanlPullVsEta,
-    kTanlPullVsPt,
+    kCotlPullVsEta,
+    kCotlPullVsPt,
     kInvQPtPullVsEta,
     kInvQPtPullVsPt,
     kNSlicedTH3
@@ -359,8 +359,8 @@ class GloFwdAssessment
     {kInvQPtResMCHVsPt, "InvQPtResMCHVsPt"},
     {kPhiPullVsEta, "PhiPullVsEta"},
     {kPhiPullVsPt, "PhiPullVsPt"},
-    {kTanlPullVsEta, "TanlPullVsEta"},
-    {kTanlPullVsPt, "TanlPullVsPt"},
+    {kCotlPullVsEta, "CotlPullVsEta"},
+    {kCotlPullVsPt, "CotlPullVsPt"},
     {kInvQPtPullVsEta, "InvQPtPullVsEta"},
     {kInvQPtPullVsPt, "InvQPtPullVsPt"}};
 
@@ -379,8 +379,8 @@ class GloFwdAssessment
     {kInvQPtResMCHVsPt, kTH3GMTrackInvQPtResMCHPtEta},
     {kPhiPullVsEta, kTH3GMTrackPhiPullPtEta},
     {kPhiPullVsPt, kTH3GMTrackPhiPullPtEta},
-    {kTanlPullVsEta, kTH3GMTrackTanlPullPtEta},
-    {kTanlPullVsPt, kTH3GMTrackTanlPullPtEta},
+    {kCotlPullVsEta, kTH3GMTrackCotlPullPtEta},
+    {kCotlPullVsPt, kTH3GMTrackCotlPullPtEta},
     {kInvQPtPullVsEta, kTH3GMTrackInvQPtPullPtEta},
     {kInvQPtPullVsPt, kTH3GMTrackInvQPtPullPtEta}};
 

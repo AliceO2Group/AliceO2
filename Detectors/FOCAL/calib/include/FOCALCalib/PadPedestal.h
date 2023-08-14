@@ -91,12 +91,15 @@ class PadPedestal
   PadPedestal() = default;
   ~PadPedestal() = default;
 
+  bool operator==(const PadPedestal& rhs) const;
+
   void clear();
   void setPedestal(std::size_t layer, std::size_t channel, double pedestal);
   double getPedestal(std::size_t layer, std::size_t channel) const;
 
   TH1* getHistogramRepresentation(int layer) const;
   std::array<TH1*, 18> getLayerHistogramRepresentations() const;
+  int getNumberOfChannels() const { return mPedestalValues.size(); }
 
  private:
   std::unordered_map<ChannelID, double, ChannelIDHasher> mPedestalValues;

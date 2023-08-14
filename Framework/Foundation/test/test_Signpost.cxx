@@ -9,16 +9,38 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include <iostream>
-#define O2_SIGNPOST_DEFINE_CONTEXT
+#define O2_FORCE_LOGGER_SIGNPOST 1
 #include "Framework/Signpost.h"
+#include <iostream>
 
 int main(int argc, char** argv)
 {
-  // To be run inside some profiler (e.g. instruments) to make sure it actually
-  // works.
-  O2_SIGNPOST_INIT();
-  O2_SIGNPOST(dpl, 1000, 0, 0, 0);
-  O2_SIGNPOST_START(dpl, 1, 0, 0, 0);
-  O2_SIGNPOST_END(dpl, 1, 0, 0, 0);
+  O2_DECLARE_LOG(test_Signpost, "my category");
+  O2_DECLARE_DYNAMIC_LOG(test_SignpostDynamic);
+
+  O2_LOG_DEBUG(test_Signpost, "%s %d", "test_Signpost", 1);
+  O2_SIGNPOST_ID_GENERATE(id, test_Signpost);
+  O2_SIGNPOST_ID_GENERATE(id2, test_Signpost);
+  O2_SIGNPOST_START(test_Signpost, id, "Test category", "This is a test signpost");
+  O2_SIGNPOST_START(test_Signpost, id2, "Test category", "A sepaarate interval");
+  O2_SIGNPOST_EVENT_EMIT(test_Signpost, id, "Test category", "An event in an interval");
+  O2_SIGNPOST_END(test_Signpost, id, "Test category", "End of the first interval");
+  O2_SIGNPOST_END(test_Signpost, id2, "Test category", "A sepaarate interval");
+  O2_SIGNPOST_ID_FROM_POINTER(id3, test_Signpost, &id2);
+  O2_SIGNPOST_START(test_Signpost, id3, "Test category", "A signpost interval from a pointer");
+  O2_SIGNPOST_END(test_Signpost, id3, "Test category", "A signpost interval from a pointer");
+
+  // This has an engineering type, which we will not use on Linux / FairLogger
+  O2_SIGNPOST_ID_FROM_POINTER(id4, test_Signpost, &id3);
+  O2_SIGNPOST_START(test_Signpost, id4, "Test category", "A signpost with an engineering type formatter " O2_ENG_TYPE(size - in - bytes, "d"), 1);
+  O2_SIGNPOST_END(test_Signpost, id4, "Test category", "A signpost interval from a pointer");
+
+  O2_SIGNPOST_START(test_SignpostDynamic, id, "Test category", "This is dynamic signpost which you will not see, because they are off by default");
+  O2_SIGNPOST_END(test_SignpostDynamic, id, "Test category", "This is dynamic signpost which you will not see, because they are off by default");
+  O2_LOG_ENABLE_DYNAMIC(test_SignpostDynamic);
+#ifdef __APPLE__
+  // On Apple there is no way to turn on signposts in the logger, so we do not display this message
+  O2_SIGNPOST_START(test_SignpostDynamic, id, "Test category", "This is dynamic signpost which you will see, because we turned them on");
+  O2_SIGNPOST_END(test_SignpostDynamic, id, "Test category", "This is dynamic signpost which you will see, because we turned them on");
+#endif
 }

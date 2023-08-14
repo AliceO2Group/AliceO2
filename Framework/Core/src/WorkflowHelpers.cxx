@@ -226,9 +226,15 @@ std::string defaultConditionBackend()
 }
 
 // get the default value for condition query rate
-int64_t defaultConditionQueryRate()
+int defaultConditionQueryRate()
 {
-  return getenv("DPL_CONDITION_QUERY_RATE") ? std::stoll(getenv("DPL_CONDITION_QUERY_RATE")) : 0;
+  return getenv("DPL_CONDITION_QUERY_RATE") ? std::stoi(getenv("DPL_CONDITION_QUERY_RATE")) : 0;
+}
+
+// get the default value for condition query rate multiplier
+int defaultConditionQueryRateMultiplier()
+{
+  return getenv("DPL_CONDITION_QUERY_RATE_MULTIPLIER") ? std::stoi(getenv("DPL_CONDITION_QUERY_RATE_MULTIPLIER")) : 1;
 }
 
 void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext const& ctx)
@@ -252,7 +258,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
                 {"condition-not-before", VariantType::Int64, 0ll, {"do not fetch from CCDB objects created before provide timestamp"}},
                 {"condition-not-after", VariantType::Int64, 3385078236000ll, {"do not fetch from CCDB objects created after the timestamp"}},
                 {"condition-remap", VariantType::String, "", {"remap condition path in CCDB based on the provided string."}},
-                {"condition-tf-per-query", VariantType::Int64, defaultConditionQueryRate(), {"check condition validity per requested number of TFs, fetch only once if <0"}},
+                {"condition-tf-per-query", VariantType::Int, defaultConditionQueryRate(), {"check condition validity per requested number of TFs, fetch only once if <=0"}},
+                {"condition-tf-per-query-multiplier", VariantType::Int, defaultConditionQueryRateMultiplier(), {"check conditions once per this amount of nominal checks"}},
                 {"condition-time-tolerance", VariantType::Int64, 5000ll, {"prefer creation time if its difference to orbit-derived time exceeds threshold (ms), impose if <0"}},
                 {"orbit-offset-enumeration", VariantType::Int64, 0ll, {"initial value for the orbit"}},
                 {"orbit-multiplier-enumeration", VariantType::Int64, 0ll, {"multiplier to get the orbit from the counter"}},
@@ -281,30 +288,26 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   // FIXME: source branch is DataOrigin, for the moment. We should
   //        make it configurable via ConfigParamsOptions
   auto aodLifetime = Lifetime::Enumeration;
-  if (ctx.options().get<int64_t>("aod-memory-rate-limit")) {
-    aodLifetime = Lifetime::Signal;
-  }
 
   DataProcessorSpec aodReader{
-    "internal-dpl-aod-reader",
-    {InputSpec{"enumeration",
-               "DPL",
-               "ENUM",
-               static_cast<DataAllocator::SubSpecificationType>(compile_time_hash("internal-dpl-aod-reader")),
-               aodLifetime}},
-    {},
-    AlgorithmSpec::dummyAlgorithm(),
-    {ConfigParamSpec{"aod-file", VariantType::String, {"Input AOD file"}},
-     ConfigParamSpec{"aod-reader-json", VariantType::String, {"json configuration file"}},
-     ConfigParamSpec{"aod-parent-access-level", VariantType::String, {"Allow parent file access up to specified level. Default: no (0)"}},
-     ConfigParamSpec{"aod-parent-base-path-replacement", VariantType::String, {R"(Replace base path of parent files. Syntax: FROM;TO. E.g. "alien:///path/in/alien;/local/path". Enclose in "" on the command line.)"}},
-     ConfigParamSpec{"time-limit", VariantType::Int64, 0ll, {"Maximum run time limit in seconds"}},
-     ConfigParamSpec{"orbit-offset-enumeration", VariantType::Int64, 0ll, {"initial value for the orbit"}},
-     ConfigParamSpec{"orbit-multiplier-enumeration", VariantType::Int64, 0ll, {"multiplier to get the orbit from the counter"}},
-     ConfigParamSpec{"start-value-enumeration", VariantType::Int64, 0ll, {"initial value for the enumeration"}},
-     ConfigParamSpec{"end-value-enumeration", VariantType::Int64, -1ll, {"final value for the enumeration"}},
-     ConfigParamSpec{"step-value-enumeration", VariantType::Int64, 1ll, {"step between one value and the other"}}},
-  };
+    .name = "internal-dpl-aod-reader",
+    .inputs = {InputSpec{"enumeration",
+                         "DPL",
+                         "ENUM",
+                         static_cast<DataAllocator::SubSpecificationType>(compile_time_hash("internal-dpl-aod-reader")),
+                         aodLifetime}},
+    .algorithm = AlgorithmSpec::dummyAlgorithm(),
+    .options = {ConfigParamSpec{"aod-file", VariantType::String, {"Input AOD file"}},
+                ConfigParamSpec{"aod-reader-json", VariantType::String, {"json configuration file"}},
+                ConfigParamSpec{"aod-parent-access-level", VariantType::String, {"Allow parent file access up to specified level. Default: no (0)"}},
+                ConfigParamSpec{"aod-parent-base-path-replacement", VariantType::String, {R"(Replace base path of parent files. Syntax: FROM;TO. E.g. "alien:///path/in/alien;/local/path". Enclose in "" on the command line.)"}},
+                ConfigParamSpec{"time-limit", VariantType::Int64, 0ll, {"Maximum run time limit in seconds"}},
+                ConfigParamSpec{"orbit-offset-enumeration", VariantType::Int64, 0ll, {"initial value for the orbit"}},
+                ConfigParamSpec{"orbit-multiplier-enumeration", VariantType::Int64, 0ll, {"multiplier to get the orbit from the counter"}},
+                ConfigParamSpec{"start-value-enumeration", VariantType::Int64, 0ll, {"initial value for the enumeration"}},
+                ConfigParamSpec{"end-value-enumeration", VariantType::Int64, -1ll, {"final value for the enumeration"}},
+                ConfigParamSpec{"step-value-enumeration", VariantType::Int64, 1ll, {"step between one value and the other"}}},
+    .requiredServices = CommonServices::defaultServices("O2FrameworkAnalysisSupport:RunSummary")};
 
   // AOD reader can be rate limited
   int rateLimitingIPCID = std::stoi(ctx.options().get<std::string>("timeframes-rate-limit-ipcid"));
@@ -504,18 +507,34 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
   // add the reader
   if (aodReader.outputs.empty() == false) {
-
-    auto&& algo = PluginManager::loadAlgorithmFromPlugin("O2FrameworkAnalysisSupport", "ROOTFileReader");
-    if (internalRateLimiting) {
-      aodReader.algorithm = CommonDataProcessors::wrapWithRateLimiting(algo);
+    auto mctracks2aod = std::find_if(workflow.begin(), workflow.end(), [](auto const& x) { return x.name == "mctracks-to-aod"; });
+    if (mctracks2aod == workflow.end()) {
+      // add normal reader
+      auto&& algo = PluginManager::loadAlgorithmFromPlugin("O2FrameworkAnalysisSupport", "ROOTFileReader");
+      if (internalRateLimiting) {
+        aodReader.algorithm = CommonDataProcessors::wrapWithRateLimiting(algo);
+      } else {
+        aodReader.algorithm = algo;
+      }
+      aodReader.outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
+      aodReader.outputs.emplace_back(OutputSpec{"TFF", "TFFilename"});
     } else {
-      aodReader.algorithm = algo;
+      // AODs are being injected on-the-fly, add dummy reader
+      aodReader.algorithm = AlgorithmSpec{
+        adaptStateful(
+          [outputs = aodReader.outputs](DeviceSpec const&) {
+            LOGP(warn, "Workflow with injected AODs has unsatisfied inputs:");
+            for (auto const& output : outputs) {
+              LOGP(warn, "  {}", DataSpecUtils::describe(output));
+            }
+            LOGP(fatal, "Stopping.");
+            // to ensure the output type for adaptStateful
+            return adaptStateless([](DataAllocator&) {});
+          })};
     }
-    aodReader.outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
-    aodReader.outputs.emplace_back(OutputSpec{"TFF", "TFFilename"});
-    extraSpecs.push_back(timePipeline(aodReader, ctx.options().get<int64_t>("readers")));
     auto concrete = DataSpecUtils::asConcreteDataMatcher(aodReader.inputs[0]);
-    timer.outputs.emplace_back(OutputSpec{concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration});
+    timer.outputs.emplace_back(concrete.origin, concrete.description, concrete.subSpec, Lifetime::Enumeration);
+    extraSpecs.push_back(timePipeline(aodReader, ctx.options().get<int64_t>("readers")));
   }
 
   ConcreteDataMatcher dstf{"FLP", "DISTSUBTIMEFRAME", 0xccdb};

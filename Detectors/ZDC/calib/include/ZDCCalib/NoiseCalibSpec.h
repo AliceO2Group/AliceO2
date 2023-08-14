@@ -17,6 +17,7 @@
 #define O2_ZDC_NOISECALIB_SPEC
 
 #include <TStopwatch.h>
+#include <array>
 #include "Framework/Logger.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataAllocator.h"
@@ -28,6 +29,7 @@
 #include "ZDCCalib/NoiseCalib.h"
 #include "ZDCReconstruction/NoiseParam.h"
 #include "CCDB/CcdbObjectInfo.h"
+#include "Headers/DataHeader.h"
 
 namespace o2
 {
@@ -52,9 +54,11 @@ class NoiseCalibSpec : public o2::framework::Task
   bool mInitialized = false;   // Connect once to CCDB during initialization
   NoiseCalib mWorker;          // Noise calibration object
   TStopwatch mTimer;
-  long mRunStartTime = 0;     /// start time of the run (ms)
-  std::string mOutputDir;     /// where to write calibration digits
-  std::string mHistoFileName; /// file name of output calib digits
+  long mRunStartTime = 0;                                                      /// start time of the run (ms)
+  o2::framework::DataAllocator* mOutput = nullptr;                             /// Pointer to output object
+  std::unique_ptr<o2::dataformats::FileMetaData> mHistoFileMetaData = nullptr; /// Pointer to metadata file
+  std::string mOutputDir;                                                      /// where to write calibration digits
+  std::string mHistoFileName;                                                  /// file name of output calib digits
   std::string mLHCPeriod;
   int mRunNumber = -1;
 };

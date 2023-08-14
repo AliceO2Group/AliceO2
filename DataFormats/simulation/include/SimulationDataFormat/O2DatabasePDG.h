@@ -15,6 +15,7 @@
 
 #ifndef O2_O2DATABASEPDG_H
 #define O2_O2DATABASEPDG_H
+
 #include <string>
 #include "TDatabasePDG.h"
 #include "TParticlePDG.h"
@@ -61,10 +62,8 @@ class O2DatabasePDG
   }
 
   // determine particle to get mass for based on PDG
-  static Double_t Mass(int pdg, bool& success)
+  static Double_t Mass(int pdg, bool& success, TDatabasePDG* db = O2DatabasePDG::Instance())
   {
-    auto db = Instance();
-
     if (pdg < IONBASELOW || pdg > IONBASEHIGH) {
       // not an ion, return immediately
       return MassImpl(db->GetParticle(pdg), success);
@@ -78,9 +77,10 @@ class O2DatabasePDG
     return MassImpl(db->GetParticle(pdg), success);
   }
 
- private:
-  // private constructor
+  // remove default constructor
   O2DatabasePDG() = delete;
+
+ private:
   static constexpr int IONBASELOW{1000000000};
   static constexpr int IONBASEHIGH{1099999999};
 };
@@ -108,18 +108,23 @@ inline void O2DatabasePDG::addALICEParticles(TDatabasePDG* db)
   const Double_t khShGev = khSlash * kErg2Gev;
   const Double_t kYear2Sec = 3600 * 24 * 365.25;
 
+  // Heavy-flavour particles
+
+  // χc1(3872) aka X(3872), taken from PDG 2022 (https://pdg.lbl.gov/2022/listings/rpp2022-list-chi-c1-3872.pdf)
+  db->AddParticle("Chi_c1(3872)", "Chi_c1(3872)", 3.87165, kFALSE, 0, 0, "CCBarMeson", 9920443);
+
   //
   // Bottom mesons
   // mass and life-time from PDG
   //
   db->AddParticle("Upsilon(3S)", "Upsilon(3S)", 10.3552, kTRUE,
-                  0, 1, "Bottonium", 200553);
+                  0, 0, "Bottonium", 200553);
 
   // QCD diffractive states
   db->AddParticle("rho_diff0", "rho_diff0", 0, kTRUE,
                   0, 0, "QCD diffr. state", 9900110);
   db->AddParticle("pi_diffr+", "pi_diffr+", 0, kTRUE,
-                  0, 1, "QCD diffr. state", 9900210);
+                  0, 3, "QCD diffr. state", 9900210);
   db->AddParticle("omega_di", "omega_di", 0, kTRUE,
                   0, 0, "QCD diffr. state", 9900220);
   db->AddParticle("phi_diff", "phi_diff", 0, kTRUE,
@@ -129,7 +134,7 @@ inline void O2DatabasePDG::addALICEParticles(TDatabasePDG* db)
   db->AddParticle("n_diffr0", "n_diffr0", 0, kTRUE,
                   0, 0, "QCD diffr. state", 9902110);
   db->AddParticle("p_diffr+", "p_diffr+", 0, kTRUE,
-                  0, 1, "QCD diffr. state", 9902210);
+                  0, 3, "QCD diffr. state", 9902210);
 
   // From Herwig
   db->AddParticle("PSID    ", " ", 3.7699, kFALSE, 0.0, 0, "meson", 30443);
@@ -229,9 +234,6 @@ inline void O2DatabasePDG::addALICEParticles(TDatabasePDG* db)
                   0, 0, "Special", kspe + 50);
   db->AddParticle("FeedbackPhoton", "FeedbackPhoton", 0, kFALSE,
                   0, 0, "Special", kspe + 51);
-  db->AddParticle("Lambda1520", "Lambda1520", 1.5195, kFALSE,
-                  0.0156, 0, "Resonance", 3124);
-  db->AddAntiParticle("Lambda1520bar", -3124);
 
   //Hyper nuclei and exotica
   ionCode = 1010010030;
@@ -293,6 +295,19 @@ inline void O2DatabasePDG::addALICEParticles(TDatabasePDG* db)
   if (!db->GetParticle(ionCode)) {
     db->AddParticle("AntiHyperhelium4*", "AntiHyperhelium4*", 3.9231, kFALSE,
                     2.5e-15, 6, "Ion", ionCode);
+  }
+
+  // Lithium 4 ground state
+  ionCode = 1000030040;
+  if (!db->GetParticle(ionCode)) {
+    db->AddParticle("Lithium4", "Lithium4", 3.74976, kFALSE,
+                    0.005, 9, "Ion", ionCode);
+  }
+  // anti Lithium 4 ground state
+  ionCode = -1000030040;
+  if (!db->GetParticle(ionCode)) {
+    db->AddParticle("AntiLithium4", "AntiLithium4", 3.74976, kFALSE,
+                    0.005, 9, "Ion", ionCode);
   }
 
   ionCode = 1010020050;

@@ -125,6 +125,7 @@ class CTFWriterSpec : public o2::framework::Task
   bool mStoreMetaFile = false;
   bool mRejectCurrentTF = false;
   bool mFallBackDirUsed = false;
+  bool mFallBackDirProvided = false;
   int mReportInterval = -1;
   int mVerbosity = 0;
   int mSaveDictAfter = 0;          // if positive and mWriteCTF==true, save dictionary after each mSaveDictAfter TFs processed
@@ -138,11 +139,15 @@ class CTFWriterSpec : public o2::framework::Task
   size_t mNCTF = 0;                  // total number of CTFs written
   size_t mNCTFPrevDict = 0;          // total number of CTFs used for previous dictionary version
   size_t mNAccCTF = 0;               // total number of CTFs accumulated in the current file
+  int mWaitDiskFull = 0;             // if mCheckDiskFull triggers, pause for this amount of ms before new attempt
+  int mWaitDiskFullMax = -1;         // produce fatal mCheckDiskFull block the workflow for more than this time (in ms)
+  float mCheckDiskFull = 0.;         // wait for if available abs. disk space is < mCheckDiskFull (if >0) or if its fraction is < -mCheckDiskFull (if <0)
   long mCTFAutoSave = 0;             // if > 0, autosave after so many TFs
   size_t mNCTFFiles = 0;             // total number of CTF files written
   int mMaxCTFPerFile = 0;            // max CTFs per files to store
   int mRejRate = 0;                  // CTF rejection rule (>0: percentage to reject randomly, <0: reject if timeslice%|value|!=0)
   int mCTFFileCompression = 0;       // CTF file compression level (if >= 0)
+  bool mFillMD5 = false;
   std::vector<uint32_t> mTFOrbits{}; // 1st orbits of TF accumulated in current file
   o2::framework::DataTakingContext mDataTakingContext{};
   o2::framework::TimingInfo mTimingInfo{};
@@ -217,6 +222,7 @@ void CTFWriterSpec::init(InitContext& ic)
   if (mCTFMetaFileDir != "/dev/null") {
     mCTFMetaFileDir = o2::utils::Str::rectifyDirectory(mCTFMetaFileDir);
     mStoreMetaFile = true;
+    mFillMD5 = ic.options().get<bool>("md5-for-meta");
   }
   mDictDir = o2::utils::Str::rectifyDirectory(ic.options().get<std::string>("ctf-dict-dir"));
   mCTFDir = ic.options().get<std::string>("output-dir");
@@ -229,6 +235,7 @@ void CTFWriterSpec::init(InitContext& ic)
   mCTFDirFallBack = ic.options().get<std::string>("output-dir-alt");
   if (mCTFDirFallBack != "/dev/null") {
     mCTFDirFallBack = o2::utils::Str::rectifyDirectory(mCTFDirFallBack);
+    mFallBackDirProvided = true;
   }
   mCreateRunEnvDir = !ic.options().get<bool>("ignore-partition-run-dir");
   mMinSize = ic.options().get<int64_t>("min-file-size");
@@ -249,6 +256,11 @@ void CTFWriterSpec::init(InitContext& ic)
       }
     }
   }
+
+  mCheckDiskFull = ic.options().get<float>("require-free-disk");
+  mWaitDiskFull = 1000 * ic.options().get<float>("wait-for-free-disk");
+  mWaitDiskFullMax = 1000 * ic.options().get<float>("max-wait-for-free-disk");
+
   mChkSize = std::max(size_t(mMinSize * 1.1), mMaxSize);
   o2::utils::createDirectoriesIfAbsent(LOCKFileDir);
 
@@ -418,6 +430,40 @@ void CTFWriterSpec::run(ProcessingContext& pc)
   mCurrCTFSize = estimateCTFSize(pc);
   if (mWriteCTF && !mRejectCurrentTF) {
     prepareTFTreeAndFile();
+
+    int totalWait = 0, nwaitCycles = 0;
+    while ((mFallBackDirUsed || !mFallBackDirProvided) && mCheckDiskFull) { // we are on the physical disk and not on the RAM disk
+      constexpr size_t MB = 1024 * 1024;
+      constexpr int showFirstN = 10, prsecaleWarnings = 50;
+      try {
+        const auto si = std::filesystem::space(mCTFFileOut->GetName());
+        std::string wmsg{};
+        if (mCheckDiskFull > 0.f && si.available < mCheckDiskFull) {
+          nwaitCycles++;
+          wmsg = fmt::format("Disk has {} MB available while at least {} MB is requested, wait for {} ms (on top of {} ms)", si.available / MB, size_t(mCheckDiskFull) / MB, mWaitDiskFull, totalWait);
+        } else if (mCheckDiskFull < 0.f && float(si.available) / si.capacity < -mCheckDiskFull) { // relative margin requested
+          nwaitCycles++;
+          wmsg = fmt::format("Disk has {:.3f}% available while at least {:.3f}% is requested, wait for {} ms (on top of {} ms)", si.capacity ? float(si.available) / si.capacity * 100.f : 0., -mCheckDiskFull, mWaitDiskFull, totalWait);
+        } else {
+          nwaitCycles = 0;
+        }
+        if (nwaitCycles) {
+          if (mWaitDiskFullMax > 0 && totalWait > mWaitDiskFullMax) {
+            closeTFTreeAndFile(); // try to save whatever we have
+            LOGP(fatal, "Disk has {} MB available out of {} MB after waiting for {} ms", si.available / MB, si.capacity / MB, mWaitDiskFullMax);
+          }
+          if (nwaitCycles < showFirstN + 1 || (prsecaleWarnings && (nwaitCycles % prsecaleWarnings) == 0)) {
+            LOG(alarm) << wmsg;
+          }
+          pc.services().get<RawDeviceService>().waitFor((unsigned int)(mWaitDiskFull));
+          totalWait += mWaitDiskFull;
+          continue;
+        }
+      } catch (std::exception const& e) {
+        LOG(fatal) << "unable to query disk space info for path " << mCurrentCTFFileNameFull << ", reason: " << e.what();
+      }
+      break;
+    }
   }
   // create header
   CTFHeader header{mTimingInfo.runNumber, mTimingInfo.creation, mTimingInfo.firstTForbit, mTimingInfo.tfCounter};
@@ -518,7 +564,7 @@ void CTFWriterSpec::prepareTFTreeAndFile()
     closeTFTreeAndFile();
     mFallBackDirUsed = false;
     auto ctfDir = mCTFDir.empty() ? o2::utils::Str::rectifyDirectory("./") : mCTFDir;
-    if (mChkSize > 0 && (mCTFDirFallBack != "/dev/null")) {
+    if (mChkSize > 0 && mFallBackDirProvided) {
       createLockFile(0);
       auto sz = getAvailableDiskSpace(ctfDir, 0); // check main storage
       if (sz < mChkSize) {
@@ -557,13 +603,13 @@ void CTFWriterSpec::closeTFTreeAndFile()
       mCTFTreeOut.reset();
       mCTFFileOut->Close();
       mCTFFileOut.reset();
-      if (!TMPFileEnding.empty()) {
-        std::filesystem::rename(o2::utils::Str::concat_string(mCurrentCTFFileNameFull, TMPFileEnding), mCurrentCTFFileNameFull);
-      }
       // write CTF file metaFile data
+      auto actualFileName = TMPFileEnding.empty() ? mCurrentCTFFileNameFull : o2::utils::Str::concat_string(mCurrentCTFFileNameFull, TMPFileEnding);
       if (mStoreMetaFile) {
         o2::dataformats::FileMetaData ctfMetaData;
-        ctfMetaData.fillFileData(mCurrentCTFFileNameFull);
+        if (!ctfMetaData.fillFileData(actualFileName, mFillMD5, TMPFileEnding)) {
+          throw std::runtime_error("metadata file was requested but not created");
+        }
         ctfMetaData.setDataTakingContext(mDataTakingContext);
         ctfMetaData.type = mMetaDataType;
         ctfMetaData.priority = mFallBackDirUsed ? "low" : "high";
@@ -574,10 +620,15 @@ void CTFWriterSpec::closeTFTreeAndFile()
           std::ofstream metaFileOut(metaFileNameTmp);
           metaFileOut << ctfMetaData;
           metaFileOut.close();
+          if (!TMPFileEnding.empty()) {
+            std::filesystem::rename(actualFileName, mCurrentCTFFileNameFull);
+          }
           std::filesystem::rename(metaFileNameTmp, metaFileName);
         } catch (std::exception const& e) {
           LOG(error) << "Failed to store CTF meta data file " << metaFileName << ", reason: " << e.what();
         }
+      } else if (!TMPFileEnding.empty()) {
+        std::filesystem::rename(actualFileName, mCurrentCTFFileNameFull);
       }
     } catch (std::exception const& e) {
       LOG(error) << "Failed to finalize CTF file " << mCurrentCTFFileNameFull << ", reason: " << e.what();
@@ -745,11 +796,15 @@ DataProcessorSpec getCTFWriterSpec(DetID::mask_t dets, const std::string& outTyp
             {"output-dir", VariantType::String, "none", {"CTF output directory, must exist"}},
             {"output-dir-alt", VariantType::String, "/dev/null", {"Alternative CTF output directory, must exist (if not /dev/null)"}},
             {"meta-output-dir", VariantType::String, "/dev/null", {"CTF metadata output directory, must exist (if not /dev/null)"}},
+            {"md5-for-meta", VariantType::Bool, false, {"fill CTF file MD5 sum in the metadata file"}},
             {"min-file-size", VariantType::Int64, 0l, {"accumulate CTFs until given file size reached"}},
             {"max-file-size", VariantType::Int64, 0l, {"if > 0, try to avoid exceeding given file size, also used for space check"}},
             {"max-ctf-per-file", VariantType::Int, 0, {"if > 0, avoid storing more than requested CTFs per file"}},
             {"ctf-rejection", VariantType::Int, 0, {">0: percentage to reject randomly, <0: reject if timeslice%|value|!=0"}},
             {"ctf-file-compression", VariantType::Int, 0, {"if >= 0: impose CTF file compression level"}},
+            {"require-free-disk", VariantType::Float, 0.f, {"pause writing op. if available disk space is below this margin, in bytes if >0, as a fraction of total if <0"}},
+            {"wait-for-free-disk", VariantType::Float, 10.f, {"if paused due to the low disk space, recheck after this time (in s)"}},
+            {"max-wait-for-free-disk", VariantType::Float, 60.f, {"produce fatal if paused due to the low disk space for more than this amount in s."}},
             {"ignore-partition-run-dir", VariantType::Bool, false, {"Do not creare partition-run directory in output-dir"}}}};
 }
 

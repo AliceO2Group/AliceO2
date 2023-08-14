@@ -3,8 +3,6 @@
 source $O2DPG_ROOT/DATA/common/setenv.sh || { echo "setenv.sh failed" 1>&2 && exit 1; }
 source $O2DPG_ROOT/DATA/common/setenv_calib.sh || { echo "setenv_calib.sh failed" 1>&2 && exit 1; }
 
-: ${TPC_CORR_SCALING:=""}             # TPC corr.map lumi scaling options, any combination of --require-ctp-lumi, --corrmap-lumi-mean <float>, --corrmap-lumi-inst <float>
-
 if [[ -z "$WORKFLOW" ]] || [[ -z "$GEN_TOPO_MYDIR" ]]; then
   echo This script must be called from the dpl-workflow.sh and not standalone 1>&2
   exit 1
@@ -15,6 +13,12 @@ if workflow_has_parameters CALIB_LOCAL_INTEGRATED_AGGREGATOR CALIB_PROXIES; then
   echo "you cannot have a locally integrated aggregator with the proxies" 1>&2
   exit 2
 fi
+
+if [[ -z ${TPC_IDCCALIB_NSLICESPERTF:-} ]]; then
+  TPC_IDCCALIB_NSLICESPERTF=$(echo "scale=2;$NHBPERTF/128*11" | bc)
+  TPC_IDCCALIB_NSLICESPERTF=$(echo $TPC_IDCCALIB_NSLICESPERTF | awk '{print int($1 + 0.5)}')
+fi
+
 
 if [[ "${CALIB_TPC_SCDCALIB_SENDTRKDATA:-}" == "1" ]]; then ENABLE_TRKDATA_OUTPUT="--send-track-data"; else ENABLE_TRKDATA_OUTPUT=""; fi
 
@@ -31,6 +35,13 @@ if [[ $CALIB_TPC_RESPADGAIN == 1 ]]; then
 fi
 if [[ $CALIB_ZDC_TDC == 1 ]]; then add_W o2-zdc-tdccalib-epn-workflow "" "" 0; fi
 if [[ $CALIB_FT0_TIMEOFFSET == 1 ]]; then add_W o2-calibration-ft0-time-spectra-processor; fi
+
+# current integration
+if [[ $CALIB_FT0_INTEGRATEDCURR == 1 ]]; then add_W o2-ft0-integrate-cluster-workflow "$DISABLE_ROOT_OUTPUT --nSlicesTF $TPC_IDCCALIB_NSLICESPERTF"; fi
+if [[ $CALIB_FV0_INTEGRATEDCURR == 1 ]]; then add_W o2-fv0-integrate-cluster-workflow "$DISABLE_ROOT_OUTPUT --nSlicesTF $TPC_IDCCALIB_NSLICESPERTF"; fi
+if [[ $CALIB_FDD_INTEGRATEDCURR == 1 ]]; then add_W o2-fdd-integrate-cluster-workflow "$DISABLE_ROOT_OUTPUT --nSlicesTF $TPC_IDCCALIB_NSLICESPERTF"; fi
+if [[ $CALIB_TOF_INTEGRATEDCURR == 1 ]]; then add_W o2-tof-integrate-cluster-workflow "$DISABLE_ROOT_OUTPUT --nSlicesTF $TPC_IDCCALIB_NSLICESPERTF"; fi
+
 # for async calibrations
 if [[ $CALIB_EMC_ASYNC_RECALIB == 1 ]]; then add_W o2-emcal-emc-offline-calib-workflow "--input-subspec 1 --applyGainCalib"; fi
 
@@ -57,7 +68,9 @@ if workflow_has_parameter CALIB_PROXIES; then
   if [[ ! -z ${CALIBDATASPEC_FORWARD_TF:-} ]]; then
     add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_FORWARD_TF\" $(get_proxy_connection fwd_tf output timeframe)" "" 0
   fi
-
+  if [[ ! -z ${CALIBDATASPEC_FORWARD_SPORADIC:-} ]]; then
+    add_W o2-dpl-output-proxy "--dataspec \"$CALIBDATASPEC_FORWARD_SPORADIC\" $(get_proxy_connection fwd_sp output sporadic)" "" 0
+  fi
 fi
 
 true # everything OK up to this point, so the script should return 0 (it is !=0 already if a has_detector check fails)

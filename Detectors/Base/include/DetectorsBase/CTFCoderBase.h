@@ -135,6 +135,14 @@ class CTFCoderBase
   void setSupportBCShifts(bool v = true) { mSupportBCShifts = v; }
   bool getSupportBCShifts() const { return mSupportBCShifts; }
 
+  void setDictBinding(const std::string& s) { mDictBinding = s; }
+  const std::string& getDictBinding() const { return mDictBinding; }
+
+  void setTrigOffsBinding(const std::string& s) { mTrigOffsBinding = s; }
+  const std::string& getTrigOffsBinding() const { return mTrigOffsBinding; }
+
+  const DetID getDet() const { return mDet; }
+
  protected:
   void reportIRFrames();
   std::string getPrefix() const { return o2::utils::Str::concat_string(mDet.getName(), "_CTF: "); }
@@ -151,6 +159,8 @@ class CTFCoderBase
   std::vector<char> loadDictionaryFromTree(TTree* tree);
   std::vector<std::shared_ptr<void>> mCoders; // encoders/decoders
   DetID mDet;
+  std::string mDictBinding{"ctfdict"};
+  std::string mTrigOffsBinding{"trigoffset"};
   CTFDictHeader mExtHeader;      // external dictionary header
   o2::utils::IRFrameSelector mIRFrameSelector; // optional IR frames selector
   float mMemMarginFactor = 1.0f; // factor for memory allocation in EncodedBlocks

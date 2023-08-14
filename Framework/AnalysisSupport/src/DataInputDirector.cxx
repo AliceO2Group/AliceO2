@@ -389,25 +389,25 @@ bool DataInputDescriptor::readTree(DataAllocator& outputs, header::DataHeader dh
 
   // create table output
   auto o = Output(dh);
-  auto& t2t = outputs.make<TreeToTable>(o);
+  auto t2t = outputs.make<TreeToTable>(o);
 
   // add branches to read
   // fill the table
   auto colnames = getColumnNames(dh);
-  t2t.setLabel(tree->GetName());
+  t2t->setLabel(tree->GetName());
   if (colnames.size() == 0) {
     totalSizeCompressed += tree->GetZipBytes();
     totalSizeUncompressed += tree->GetTotBytes();
-    t2t.addAllColumns(tree);
+    t2t->addAllColumns(tree);
   } else {
     for (auto& colname : colnames) {
       TBranch* branch = tree->GetBranch(colname.c_str());
       totalSizeCompressed += branch->GetZipBytes("*");
       totalSizeUncompressed += branch->GetTotBytes("*");
     }
-    t2t.addAllColumns(tree, std::move(colnames));
+    t2t->addAllColumns(tree, std::move(colnames));
   }
-  t2t.fill(tree);
+  t2t->fill(tree);
   delete tree;
 
   mIOTime += (uv_hrtime() - ioStart);

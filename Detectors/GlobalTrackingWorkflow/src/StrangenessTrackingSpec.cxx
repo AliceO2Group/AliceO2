@@ -56,6 +56,7 @@ void StrangenessTrackerSpec::init(framework::InitContext& ic)
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mTracker.setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT);
   mTracker.setConfigParams(&StrangenessTrackingParamConfig::Instance());
+  mTracker.setupThreads(1);
   mTracker.setupFitters();
 
   LOG(info) << "Initialized strangeness tracker...";
@@ -71,15 +72,14 @@ void StrangenessTrackerSpec::run(framework::ProcessingContext& pc)
   updateTimeDependentParams(pc);
 
   auto geom = o2::its::GeometryTGeo::Instance();
-  mTracker.setBz(o2::base::Propagator::Instance()->getNominalBz());
   mTracker.loadData(recoData);
   mTracker.prepareITStracks();
   mTracker.process();
-  pc.outputs().snapshot(Output{"STK", "STRTRACKS", 0, Lifetime::Timeframe}, mTracker.getStrangeTrackVec());
-  pc.outputs().snapshot(Output{"STK", "CLUSUPDATES", 0, Lifetime::Timeframe}, mTracker.getClusAttachments());
+  pc.outputs().snapshot(Output{"GLO", "STRANGETRACKS", 0, Lifetime::Timeframe}, mTracker.getStrangeTrackVec());
+  pc.outputs().snapshot(Output{"GLO", "CLUSUPDATES", 0, Lifetime::Timeframe}, mTracker.getClusAttachments());
 
   if (mUseMC) {
-    pc.outputs().snapshot(Output{"STK", "STRK_MC", 0, Lifetime::Timeframe}, mTracker.getStrangeTrackLabels());
+    pc.outputs().snapshot(Output{"GLO", "STRANGETRACKS_MC", 0, Lifetime::Timeframe}, mTracker.getStrangeTrackLabels());
   }
 
   mTimer.Stop();
@@ -95,6 +95,10 @@ void StrangenessTrackerSpec::updateTimeDependentParams(ProcessingContext& pc)
     // pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
     o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
     geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot, o2::math_utils::TransformType::T2G));
+  }
+  if (o2::base::Propagator::Instance()->getNominalBz() != mTracker.getBz()) {
+    mTracker.setBz(o2::base::Propagator::Instance()->getNominalBz());
+    mTracker.setupFitters();
   }
   mTracker.setMCTruthOn(mUseMC);
 }
@@ -120,13 +124,12 @@ void StrangenessTrackerSpec::endOfStream(framework::EndOfStreamContext& ec)
 
 DataProcessorSpec getStrangenessTrackerSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC)
 {
-
   // ITS
   auto dataRequest = std::make_shared<DataRequest>();
   dataRequest->requestITSClusters(useMC);
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestPrimaryVertertices(useMC);
-  dataRequest->requestSecondaryVertertices(useMC);
+  dataRequest->requestSecondaryVertices(useMC);
 
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
                                                               true,                              // GRPECS=true
@@ -138,10 +141,10 @@ DataProcessorSpec getStrangenessTrackerSpec(o2::dataformats::GlobalTrackID::mask
                                                               true);
 
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("STK", "STRTRACKS", 0, Lifetime::Timeframe);
-  outputs.emplace_back("STK", "CLUSUPDATES", 0, Lifetime::Timeframe);
+  outputs.emplace_back("GLO", "STRANGETRACKS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("GLO", "CLUSUPDATES", 0, Lifetime::Timeframe);
   if (useMC) {
-    outputs.emplace_back("STK", "STRK_MC", 0, Lifetime::Timeframe);
+    outputs.emplace_back("GLO", "STRANGETRACKS_MC", 0, Lifetime::Timeframe);
     LOG(info) << "Strangeness tracker will use MC";
   }
 

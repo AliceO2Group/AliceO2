@@ -86,6 +86,10 @@ enum RunTypes {
   ANALOGUE_SCAN = 14,
   PULSELENGTH_SCAN = 32,
   TOT_CALIBRATION = 36,
+  TOT_CALIBRATION_1_ROW = 41,
+  VRESETD_150 = 38,
+  VRESETD_300 = 39,
+  VRESETD_2D = 42,
   END_RUN = 0
 };
 
@@ -116,7 +120,7 @@ class ITSThresholdCalibrator : public Task
   void run(ProcessingContext& pc) final;
   void endOfStream(EndOfStreamContext& ec) final;
 
-  void finalize(EndOfStreamContext* ec);
+  void finalize();
   void stop() final;
   void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
 
@@ -160,7 +164,7 @@ class ITSThresholdCalibrator : public Task
   short int vThreshold[N_COL];
   bool vSuccess[N_COL];
   unsigned char vNoise[N_COL];
-  short int vStrobeDel[N_COL];
+  short int vMixData[N_COL];
   unsigned char vCharge[N_COL];
   float vSlope[N_COL];
   float vIntercept[N_COL];
@@ -181,18 +185,17 @@ class ITSThresholdCalibrator : public Task
 
   // Helper functions related to threshold extraction
   void initThresholdTree(bool recreate = true);
-  bool findUpperLower(std::vector<std::vector<unsigned short int>>, const short int&, short int&, short int&, bool);
-  bool findThreshold(const short int&, std::vector<std::vector<unsigned short int>>, const float*, short int&, float&, float&);
-  bool findThresholdFit(const short int&, std::vector<std::vector<unsigned short int>>, const float*, const short int&, float&, float&);
-  bool findThresholdDerivative(std::vector<std::vector<unsigned short int>>, const float*, const short int&, float&, float&);
-  bool findThresholdHitcounting(std::vector<std::vector<unsigned short int>>, const float*, const short int&, float&);
+  bool findUpperLower(std::vector<std::vector<unsigned short int>>, const short int&, short int&, short int&, bool, int);
+  bool findThreshold(const short int&, std::vector<std::vector<unsigned short int>>, const float*, short int&, float&, float&, int);
+  bool findThresholdFit(const short int&, std::vector<std::vector<unsigned short int>>, const float*, const short int&, float&, float&, int);
+  bool findThresholdDerivative(std::vector<std::vector<unsigned short int>>, const float*, const short int&, float&, float&, int);
+  bool findThresholdHitcounting(std::vector<std::vector<unsigned short int>>, const float*, const short int&, float&, int);
   bool isScanFinished(const short int&, const short int&, const short int&);
   void findAverage(const std::array<long int, 6>&, float&, float&, float&, float&);
   void saveThreshold();
 
   // Helper functions for writing to the database
   void addDatabaseEntry(const short int&, const char*, std::vector<float>, bool);
-  void sendToAggregator(EndOfStreamContext*);
 
   // Utils
   std::vector<short int> getIntegerVect(std::string&);
@@ -207,6 +210,7 @@ class ITSThresholdCalibrator : public Task
 
   int mTFCounter = 0;
   bool mVerboseOutput = false;
+  bool isFinalizeEos = false;
   std::string mMetaType;
   std::string mOutputDir;
   std::string mMetafileDir = "/dev/null";
@@ -223,6 +227,7 @@ class ITSThresholdCalibrator : public Task
   short int mRunTypeUp = -1;
   short int mRunTypeRU[N_RU] = {0};
   short int mRunTypeChip[24120] = {0};
+  short int mChipLastRow[24120] = {-1};
   bool mActiveLinks[N_RU][3] = {{false}};
   std::set<short int> mRuSet;
   short int mRu = 0;
@@ -251,8 +256,8 @@ class ITSThresholdCalibrator : public Task
   // CDW version
   short int mCdwVersion = 0; // for now: v0, v1
 
-  // Flag to check if endOfStream is available
-  bool mCheckEos = false;
+  // Flag to avoid that endOfStream and stop are both done
+  bool isEnded = false;
 
   // Flag to enable cw counter check
   bool mCheckCw = false;
@@ -307,6 +312,7 @@ class ITSThresholdCalibrator : public Task
 
   // Flag to calculate the slope in pulse shape 2d scans, y of the 1st point, y of the second point
   bool doSlopeCalculation = false;
+  bool mCalculate2DParams = true;
   int chargeA = 0;
   int chargeB = 0;
 };

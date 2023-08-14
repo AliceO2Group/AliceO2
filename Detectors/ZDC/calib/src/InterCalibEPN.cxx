@@ -43,23 +43,19 @@ int InterCalibEPN::init()
 
   clear();
   auto* cfg = mInterCalibConfig;
-  int ih;
+
   // clang-format off
-  ih = 0; mH[ih] =    new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  ih = 1; mH[ih] =    new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  ih = 2; mH[ih] =    new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  ih = 3; mH[ih] =    new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  ih = 4; mH[ih] =    new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  ih = 0; mH[NH+ih] = new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  ih = 1; mH[NH+ih] = new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  ih = 2; mH[NH+ih] = new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  ih = 3; mH[NH+ih] = new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  ih = 4; mH[NH+ih] = new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  ih = 0; mC[ih] =    new o2::dataformats::FlatHisto2D<float>(cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
-  ih = 1; mC[ih] =    new o2::dataformats::FlatHisto2D<float>(cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
-  ih = 2; mC[ih] =    new o2::dataformats::FlatHisto2D<float>(cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
-  ih = 3; mC[ih] =    new o2::dataformats::FlatHisto2D<float>(cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
-  ih = 4; mC[ih] =    new o2::dataformats::FlatHisto2D<float>(cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
+  for(int ih=0; ih<NH; ih++){
+    if(ih == HidZNI || ih == HidZPI){
+      // Avoid duplication
+      mH[ih] = nullptr;
+      mH[NH+ih] = nullptr;
+    }else{
+      mH[ih] =    new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
+      mH[NH+ih] = new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
+    }
+    mC[ih] =    new o2::dataformats::FlatHisto2D<float>(cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
+  }
   // clang-format on
   mInitDone = true;
   return 0;
@@ -73,7 +69,9 @@ int InterCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
   if (!mInitDone) {
     init();
   }
-  LOG(info) << "o2::zdc::InterCalibEPN processing " << RecBC.size() << " b.c. @ TS " << mData.mCTimeBeg << " : " << mData.mCTimeEnd;
+  if (mVerbosity > DbgMinimal) {
+    LOG(info) << "o2::zdc::InterCalibEPN processing " << RecBC.size() << " b.c. @ TS " << mData.mCTimeBeg << " : " << mData.mCTimeEnd;
+  }
   o2::zdc::RecEventFlat ev;
   ev.init(RecBC, Energy, TDCData, Info);
   while (ev.next()) {
@@ -110,6 +108,12 @@ int InterCalibEPN::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
     }
     if ((ev.ezdcDecoded & MaskZEM) == MaskZEM) {
       cumulate(HidZEM, ev.EZDC(IdZEM1), ev.EZDC(IdZEM2), 0., 0., 0., 1.);
+    }
+    if ((ev.ezdcDecoded & MaskZNA) == MaskZNA && (ev.ezdcDecoded & MaskZNC) == MaskZNC) {
+      cumulate(HidZNI, ev.EZDC(IdZNAC), ev.EZDC(IdZNCC), 0., 0., 0., 1.);
+    }
+    if ((ev.ezdcDecoded & MaskZPA) == MaskZPA && (ev.ezdcDecoded & MaskZPC) == MaskZPC) {
+      cumulate(HidZPI, ev.EZDC(IdZPAC), ev.EZDC(IdZPCC), 0., 0., 0., 1.);
     }
   }
   return 0;
@@ -157,6 +161,10 @@ int InterCalibEPN::process(const char* hname, int ic)
     ih = HidZPC;
   } else if (hn.EqualTo("hZEM")) {
     ih = HidZEM;
+  } else if (hn.EqualTo("hZNI")) {
+    ih = HidZNI;
+  } else if (hn.EqualTo("hZPI")) {
+    ih = HidZPI;
   } else {
     LOGF(error, "Not recognized histogram name: %s\n", hname);
     return -1;
@@ -214,6 +222,7 @@ void InterCalibEPN::clear(int ih)
 
 void InterCalibEPN::cumulate(int ih, double tc, double t1, double t2, double t3, double t4, double w = 1)
 {
+  // printf("%s: ih=%d tc=%g t1=%g t2=%g t3=%g t4=%g w=%g\n",__func__,ih, tc, t1, t2, t3, t4, w); fflush(stdout);
   if (tc < mInterCalibConfig->cutLow[ih] || tc > mInterCalibConfig->cutHigh[ih]) {
     return;
   }
@@ -230,8 +239,13 @@ void InterCalibEPN::cumulate(int ih, double tc, double t1, double t2, double t3,
   }
   // mData.mSum[ih][5][5] contains the number of analyzed events
   double sumquad = val[1] + val[2] + val[3] + val[4];
-  mH[ih]->fill(sumquad, w);
-  mH[ih + NH]->fill(val[0]);
+  // Avoid filling duplicate histograms
+  if (mH[ih] != nullptr) {
+    mH[ih]->fill(sumquad, w);
+  }
+  if (mH[ih + NH] != nullptr) {
+    mH[ih + NH]->fill(val[0]);
+  }
   mC[ih]->fill(val[0], sumquad, w);
 }
 

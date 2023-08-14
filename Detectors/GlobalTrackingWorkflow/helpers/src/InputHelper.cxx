@@ -19,6 +19,8 @@
 #include "TPCReaderWorkflow/TrackReaderSpec.h"
 #include "TPCReaderWorkflow/ClusterReaderSpec.h"
 #include "TPCWorkflow/ClusterSharingMapSpec.h"
+#include "HMPIDWorkflow/ClustersReaderSpec.h"
+#include "HMPIDWorkflow/HMPMatchedReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/TrackTPCITSReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/GlobalFwdTrackReaderSpec.h"
 #include "GlobalTrackingWorkflowReaders/MatchedMFTMCHReaderSpec.h"
@@ -66,7 +68,7 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
     maskTracksMC = GID::getSourcesMask(GID::NONE);
   } else {
     // some detectors do not support MC labels
-    if (maskClustersMC[GID::MCH]) {
+    if (maskClusters[GID::MCH] && maskClustersMC[GID::MCH]) {
       LOG(warn) << "MCH global clusters do not support MC lables, disabling";
       maskClustersMC &= ~GID::getSourceMask(GID::MCH);
     }
@@ -122,8 +124,14 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
       maskMatches[GID::ITSTPCTOF] || maskMatches[GID::ITSTPCTRDTOF] || maskMatches[GID::TPCTRDTOF]) {
     specs.emplace_back(o2::tof::getClusterReaderSpec(maskClustersMC[GID::TOF]));
   }
+  if (maskClusters[GID::HMP]) {
+    specs.emplace_back(o2::hmpid::getClusterReaderSpec());
+  }
   if (maskMatches[GID::TPCTOF] || maskTracks[GID::TPCTOF]) {
     specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(maskTracksMC[GID::TPCTOF], 0, maskTracks[GID::TPCTOF], subSpecStrict));
+  }
+  if (maskMatches[GID::HMP]) {
+    specs.emplace_back(o2::hmpid::getHMPMatchedReaderSpec(maskTracksMC[GID::HMP]));
   }
   if (maskTracks[GID::FT0] || maskClusters[GID::FT0]) {
     specs.emplace_back(o2::ft0::getRecPointReaderSpec(maskTracksMC[GID::FT0] || maskClustersMC[GID::FT0]));

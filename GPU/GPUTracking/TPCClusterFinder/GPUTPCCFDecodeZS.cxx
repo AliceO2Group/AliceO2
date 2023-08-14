@@ -72,9 +72,9 @@ GPUdii() void GPUTPCCFDecodeZS::decode(GPUTPCClusterFinder& clusterer, GPUShared
   {
     {
 #else
-  for (unsigned int i = clusterer.mMinMaxCN[endpoint].minC; i < clusterer.mMinMaxCN[endpoint].maxC; i++) {
-    const unsigned int minJ = (i == clusterer.mMinMaxCN[endpoint].minC) ? clusterer.mMinMaxCN[endpoint].minN : 0;
-    const unsigned int maxJ = (i + 1 == clusterer.mMinMaxCN[endpoint].maxC) ? clusterer.mMinMaxCN[endpoint].maxN : zs.nZSPtr[endpoint][i];
+  for (unsigned int i = clusterer.mMinMaxCN[endpoint].zsPtrFirst; i < clusterer.mMinMaxCN[endpoint].zsPtrLast; i++) {
+    const unsigned int minJ = (i == clusterer.mMinMaxCN[endpoint].zsPtrFirst) ? clusterer.mMinMaxCN[endpoint].zsPageFirst : 0;
+    const unsigned int maxJ = (i + 1 == clusterer.mMinMaxCN[endpoint].zsPtrLast) ? clusterer.mMinMaxCN[endpoint].zsPageLast : zs.nZSPtr[endpoint][i];
     for (unsigned int j = minJ; j < maxJ; j++) {
 #endif
       const unsigned int* pageSrc = (const unsigned int*)(((const unsigned char*)zs.zsPtr[endpoint][i]) + j * TPCZSHDR::TPC_ZS_PAGE_SIZE);
@@ -277,7 +277,7 @@ GPUd() size_t GPUTPCCFDecodeZSLink::DecodePage(GPUSharedMemory& smem, processorT
   (void)nDecoded;
 #ifdef GPUCA_CHECK_TPCZS_CORRUPTION
   if (iThread == 0 && nDecoded != decHdr->nADCsamples) {
-    clusterer.raiseError(GPUErrors::ERROR_TPCZS_INVALID_NADC, clusterer.mISlice, decHdr->nADCsamples, nDecoded);
+    clusterer.raiseError(GPUErrors::ERROR_TPCZS_INVALID_NADC, clusterer.mISlice * 1000 + decHdr->cruID, decHdr->nADCsamples, nDecoded);
     /*#ifndef GPUCA_GPUCODE
             FILE* foo = fopen("dump.bin", "w+b");
             fwrite(pageSrc, 1, o2::raw::RDHUtils::getMemorySize(*rdHdr), foo);
@@ -484,9 +484,9 @@ GPUd() void GPUTPCCFDecodeZSLinkBase::Decode(int nBlocks, int nThreads, int iBlo
   {
     {
 #else // CPU
-  for (unsigned int i = clusterer.mMinMaxCN[endpoint].minC; i < clusterer.mMinMaxCN[endpoint].maxC; i++) {
-    const unsigned int minJ = (i == clusterer.mMinMaxCN[endpoint].minC) ? clusterer.mMinMaxCN[endpoint].minN : 0;
-    const unsigned int maxJ = (i + 1 == clusterer.mMinMaxCN[endpoint].maxC) ? clusterer.mMinMaxCN[endpoint].maxN : zs.nZSPtr[endpoint][i];
+  for (unsigned int i = clusterer.mMinMaxCN[endpoint].zsPtrFirst; i < clusterer.mMinMaxCN[endpoint].zsPtrLast; i++) {
+    const unsigned int minJ = (i == clusterer.mMinMaxCN[endpoint].zsPtrFirst) ? clusterer.mMinMaxCN[endpoint].zsPageFirst : 0;
+    const unsigned int maxJ = (i + 1 == clusterer.mMinMaxCN[endpoint].zsPtrLast) ? clusterer.mMinMaxCN[endpoint].zsPageLast : zs.nZSPtr[endpoint][i];
     for (unsigned int j = minJ; j < maxJ; j++) {
 #endif
       const unsigned int* pageSrc = (const unsigned int*)(((const unsigned char*)zs.zsPtr[endpoint][i]) + j * TPCZSHDR::TPC_ZS_PAGE_SIZE);
@@ -507,14 +507,15 @@ GPUd() void GPUTPCCFDecodeZSLinkBase::Decode(int nBlocks, int nThreads, int iBlo
       }
 
       pageDigitOffset = Decoder::DecodePage(smem, clusterer, iBlock, nThreads, iThread, page, pageDigitOffset, firstHBF);
-
     } // [CPU] for (unsigned int j = minJ; j < maxJ; j++)
-  }   // [CPU] for (unsigned int i = clusterer.mMinMaxCN[endpoint].minC; i < clusterer.mMinMaxCN[endpoint].maxC; i++)
+  }   // [CPU] for (unsigned int i = clusterer.mMinMaxCN[endpoint].zsPtrFirst; i < clusterer.mMinMaxCN[endpoint].zsPtrLast; i++)
 
 #ifdef GPUCA_CHECK_TPCZS_CORRUPTION
-  unsigned int maxOffset = iBlock < nBlocks - 1 ? clusterer.mPzsOffsets[iBlock + 1].offset : clusterer.mPzsOffsets[iBlock].offset + zs.count[endpoint];
-  if (iThread == 0 && pageDigitOffset != maxOffset) {
-    clusterer.raiseError(GPUErrors::ERROR_TPCZS_INVALID_OFFSET, clusterer.mISlice, pageDigitOffset, maxOffset);
+  if (iThread == 0 && iBlock < nBlocks - 1) {
+    uint32_t maxOffset = clusterer.mPzsOffsets[iBlock + 1].offset;
+    if (pageDigitOffset != maxOffset) {
+      clusterer.raiseError(GPUErrors::ERROR_TPCZS_INVALID_OFFSET, clusterer.mISlice * 1000 + endpoint, pageDigitOffset, maxOffset);
+    }
   }
 #endif
 }
@@ -554,7 +555,7 @@ GPUd() void GPUTPCCFDecodeZSLinkBase::WriteCharge(processorType& clusterer, floa
 #ifdef GPUCA_CHECK_TPCZS_CORRUPTION
   if (padAndRow.getRow() >= GPUCA_ROW_COUNT) {
     positions[positionOffset] = INVALID_CHARGE_POS;
-    clusterer.raiseError(GPUErrors::ERROR_CF_ROW_CLUSTER_OVERFLOW, clusterer.mISlice * 1000 + padAndRow.getRow(), 0, 0);
+    clusterer.raiseError(GPUErrors::ERROR_TPCZS_INVALID_ROW, clusterer.mISlice * 1000 + padAndRow.getRow());
     return;
   }
 #endif
@@ -589,11 +590,10 @@ GPUd() void GPUTPCCFDecodeZSDenseLink::Thread<0>(int nBlocks, int nThreads, int 
 
 GPUd() uint32_t GPUTPCCFDecodeZSDenseLink::DecodePage(GPUSharedMemory& smem, processorType& clusterer, int iBlock, int nThreads, int iThread, const unsigned char* page, uint32_t pageDigitOffset, int firstHBF)
 {
-  constexpr bool DecodeInParallel =
 #ifdef GPUCA_GPUCODE
-    true;
+  constexpr bool DecodeInParallel = true;
 #else
-    false;
+  constexpr bool DecodeInParallel = false;
 #endif
 
   const unsigned char* const pageStart = page;
@@ -616,20 +616,18 @@ GPUd() uint32_t GPUTPCCFDecodeZSDenseLink::DecodePage(GPUSharedMemory& smem, pro
   for (unsigned short i = 0; i < decHeader->nTimebinHeaders; i++) {
     [[maybe_unused]] ptrdiff_t sizeLeftInPage = payloadEnd - page;
     assert(sizeLeftInPage > 0);
-    assert(nSamplesWritten < nSamplesInPage);
 
     unsigned short nSamplesWrittenTB = 0;
 
     if (i == decHeader->nTimebinHeaders - 1 && decHeader->flags & o2::tpc::TPCZSHDRV2::ZSFlags::payloadExtendsToNextPage) {
       assert(o2::raw::RDHUtils::getMemorySize(*rawDataHeader) == TPCZSHDR::TPC_ZS_PAGE_SIZE);
-      // Disable check for dropped pages temporarily, decoding fails on large dataset when enabled...
-      if ((unsigned char)(raw::RDHUtils::getPacketCounter(rawDataHeader) + 1) == raw::RDHUtils::getPacketCounter(nextPage)) {
+      if ((unsigned short)(raw::RDHUtils::getPageCounter(rawDataHeader) + 1) == raw::RDHUtils::getPageCounter(nextPage)) {
         nSamplesWrittenTB = DecodeTB<DecodeInParallel, true>(clusterer, smem, iThread, page, pageDigitOffset, rawDataHeader, firstHBF, decHeader->cruID, payloadEnd, nextPage);
       } else {
         nSamplesWrittenTB = FillWithInvalid(clusterer, iThread, nThreads, pageDigitOffset, nSamplesInPage - nSamplesWritten);
 #ifdef GPUCA_CHECK_TPCZS_CORRUPTION
         if (iThread == 0) {
-          clusterer.raiseError(GPUErrors::ERROR_TPCZS_INCOMPLETE_HBF, clusterer.mISlice, raw::RDHUtils::getPacketCounter(rawDataHeader), raw::RDHUtils::getPacketCounter(nextPage));
+          clusterer.raiseError(GPUErrors::ERROR_TPCZS_INCOMPLETE_HBF, clusterer.mISlice * 1000 + decHeader->cruID, raw::RDHUtils::getPageCounter(rawDataHeader), raw::RDHUtils::getPageCounter(nextPage));
         }
 #endif
       }
@@ -637,14 +635,14 @@ GPUd() uint32_t GPUTPCCFDecodeZSDenseLink::DecodePage(GPUSharedMemory& smem, pro
       nSamplesWrittenTB = DecodeTB<DecodeInParallel, false>(clusterer, smem, iThread, page, pageDigitOffset, rawDataHeader, firstHBF, decHeader->cruID, payloadEnd, nextPage);
     }
 
+    assert(nSamplesWritten <= nSamplesInPage);
     nSamplesWritten += nSamplesWrittenTB;
     pageDigitOffset += nSamplesWrittenTB;
-
   } // for (unsigned short i = 0; i < decHeader->nTimebinHeaders; i++)
 
 #ifdef GPUCA_CHECK_TPCZS_CORRUPTION
   if (iThread == 0 && nSamplesWritten != nSamplesInPage) {
-    clusterer.raiseError(GPUErrors::ERROR_TPCZS_INVALID_NADC, clusterer.mISlice, nSamplesInPage, nSamplesWritten);
+    clusterer.raiseError(GPUErrors::ERROR_TPCZS_INVALID_NADC, clusterer.mISlice * 1000 + decHeader->cruID, nSamplesInPage, nSamplesWritten);
     /*#ifndef GPUCA_GPUCODE
             FILE* foo = fopen("dump.bin", "w+b");
             fwrite(pageSrc, 1, o2::raw::RDHUtils::getMemorySize(*rdHdr), foo);
@@ -701,8 +699,9 @@ GPUd() unsigned short GPUTPCCFDecodeZSDenseLink::DecodeTBMultiThread(
       pagePtr = nextPage;                                          \
       ConsumeBytes(pagePtr, sizeof(header::RAWDataHeader) + diff); \
     }                                                              \
-  } else                                                           \
-    assert(pagePtr <= payloadEnd)
+  } else {                                                         \
+    assert(pagePtr <= payloadEnd);                                 \
+  }
 
 #define PEEK_OVERFLOW(pagePtr, offset)                                                      \
   (*(PayloadExtendsToNextPage && (pagePtr) < nextPage && (pagePtr) + (offset) >= payloadEnd \
@@ -728,12 +727,16 @@ GPUd() unsigned short GPUTPCCFDecodeZSDenseLink::DecodeTBMultiThread(
 
   unsigned short nSamplesInTB = 0;
 
+  GPUbarrier();
+
   // Read timebin link headers
   for (unsigned char iLink = 0; iLink < nLinksInTimebin; iLink++) {
     unsigned char timebinLinkHeaderStart = ConsumeByte(page);
     MAYBE_PAGE_OVERFLOW(page);
 
-    smem.linkIds[iLink] = timebinLinkHeaderStart & 0b00011111;
+    if (iThread == 0) {
+      smem.linkIds[iLink] = timebinLinkHeaderStart & 0b00011111;
+    }
     bool bitmaskIsFlat = timebinLinkHeaderStart & 0b00100000;
 
     unsigned short bitmaskL2 = 0x03FF;
@@ -749,7 +752,7 @@ GPUd() unsigned short GPUTPCCFDecodeZSDenseLink::DecodeTBMultiThread(
       int chanL2Idx = chan / 8;
       bool l2 = TEST_BIT(bitmaskL2, chanL2Idx);
 
-      int chanByteOffset = CAMath::Popcount(bitmaskL2 >> (chanL2Idx + 1));
+      int chanByteOffset = nBytesBitmask - 1 - CAMath::Popcount(bitmaskL2 >> (chanL2Idx + 1));
 
       unsigned char myChannelHasData = (chan < 80 && l2 ? TEST_BIT(PEEK_OVERFLOW(page, chanByteOffset), chan % 8) : 0);
       assert(myChannelHasData == 0 || myChannelHasData == 1);
@@ -767,7 +770,9 @@ GPUd() unsigned short GPUTPCCFDecodeZSDenseLink::DecodeTBMultiThread(
     ConsumeBytes(page, nBytesBitmask);
     MAYBE_PAGE_OVERFLOW(page);
 
-    smem.samplesPerLinkEnd[iLink] = nSamplesInTB;
+    if (iThread == 0) {
+      smem.samplesPerLinkEnd[iLink] = nSamplesInTB;
+    }
 
   } // for (unsigned char iLink = 0; iLink < nLinksInTimebin; iLink++)
 
@@ -777,6 +782,8 @@ GPUd() unsigned short GPUTPCCFDecodeZSDenseLink::DecodeTBMultiThread(
   if (not fragment.contains(timeBin)) {
     return FillWithInvalid(clusterer, iThread, NTHREADS, pageDigitOffset, nSamplesInTB);
   }
+
+  GPUbarrier();
 
   // Unpack ADC
   int iLink = 0;
@@ -839,8 +846,9 @@ GPUd() unsigned short GPUTPCCFDecodeZSDenseLink::DecodeTBSingleThread(
       pagePtr = nextPage;                                          \
       ConsumeBytes(pagePtr, sizeof(header::RAWDataHeader) + diff); \
     }                                                              \
-  } else                                                           \
-    assert(pagePtr <= payloadEnd)
+  } else {                                                         \
+    assert(pagePtr <= payloadEnd);                                 \
+  }
 
   using zerosupp_link_based::ChannelPerTBHeader;
 
@@ -877,7 +885,7 @@ GPUd() unsigned short GPUTPCCFDecodeZSDenseLink::DecodeTBSingleThread(
       MAYBE_PAGE_OVERFLOW(page);
     }
 
-    for (int i = 9; i >= 0; i--) {
+    for (int i = 0; i < 10; i++) {
       if (bitmaskL2 & 1 << i) {
         nSamplesInTB += CAMath::Popcount(*Peek(page));
         channelMasks[10 * iLink + i] = ConsumeByte(page);

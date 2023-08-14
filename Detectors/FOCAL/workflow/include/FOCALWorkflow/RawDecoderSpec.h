@@ -61,7 +61,7 @@ class RawDecoderSpec : public framework::Task
   void decodePadEvent(const gsl::span<const char> padWords, o2::InteractionRecord& hbIR);
   int decodePixelData(const gsl::span<const char> pixelWords, o2::InteractionRecord& hbIR, int fecID);
   std::array<PadLayerEvent, constants::PADS_NLAYERS> createPadLayerEvent(const o2::focal::PadData& data) const;
-  void fillChipsToLayer(PixelLayerEvent& pixellayer, const gsl::span<const PixelChip>& chipData, int feeID);
+  void fillChipToLayer(PixelLayerEvent& pixellayer, const PixelChip& chipData, int feeID);
   void fillEventPixeHitContainer(std::vector<PixelHit>& eventHits, std::vector<PixelChipRecord>& eventChips, const PixelLayerEvent& pixelLayer, int layerIndex);
   int filterIncompletePixelsEventsHBF(HBFData& data, const std::vector<int>& expectFEEs);
   void buildEvents();
@@ -82,6 +82,7 @@ class RawDecoderSpec : public framework::Task
   uint32_t mOutputSubspec = 0;
   PadDecoder mPadDecoder;
   PixelDecoder mPixelDecoder;
+  std::unique_ptr<PixelMapper> mPixelMapping;
   std::map<o2::InteractionRecord, HBFData> mHBFs;
   std::vector<TriggerRecord> mOutputTriggerRecords;
   std::vector<PixelHit> mOutputPixelHits;

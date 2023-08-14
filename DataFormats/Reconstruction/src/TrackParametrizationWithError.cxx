@@ -603,7 +603,7 @@ GPUd() void TrackParametrizationWithError<value_T>::checkCorrelations()
     for (int j = i; j--;) {
       auto sig2 = mC[DiagMap[i]] * mC[DiagMap[j]];
       auto& cov = mC[CovarMap[i][j]];
-      if (cov * cov >= MaxCorr) { // constrain correlation
+      if (cov * cov >= MaxCorr * sig2) { // constrain correlation
         cov = gpu::CAMath::Sqrt(sig2) * (cov > 0. ? MaxCorr : -MaxCorr);
       }
     }

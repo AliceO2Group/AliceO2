@@ -8,7 +8,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-//
+
 #include "Framework/Plugins.h"
 #include "Framework/ServiceHandle.h"
 #include "Framework/ServiceSpec.h"
@@ -26,7 +26,7 @@ struct PDGSupport : o2::framework::ServicePlugin {
       .name = "database-pdg",
       .init = [](ServiceRegistryRef, DeviceState&, fair::mq::ProgOptions&) -> ServiceHandle {
         auto* wrapper = new o2::framework::O2DatabasePDG();
-        auto* ptr = new TDatabasePDG();
+        auto* ptr = new o2::framework::O2DatabasePDGImpl();
         o2::O2DatabasePDG::addALICEParticles(ptr);
         wrapper->setInstance(ptr);
         return ServiceHandle{TypeIdHelpers::uniqueId<O2DatabasePDG>(), wrapper, ServiceKind::Serial, "database-pdg"};

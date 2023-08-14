@@ -35,8 +35,13 @@ add_executable(o2-test-framework-foundation
 target_link_libraries(o2-test-framework-foundation PRIVATE O2::FrameworkFoundation)
 target_link_libraries(o2-test-framework-foundation PRIVATE O2::Catch2)
 
+add_executable(o2-test-framework-Signpost
+               test/test_Signpost.cxx)
+target_link_libraries(o2-test-framework-Signpost PRIVATE O2::FrameworkFoundation)
+
 get_filename_component(outdir ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/../tests ABSOLUTE)
 set_property(TARGET o2-test-framework-foundation PROPERTY RUNTIME_OUTPUT_DIRECTORY ${outdir})
+set_property(TARGET o2-test-framework-Signpost PROPERTY RUNTIME_OUTPUT_DIRECTORY ${outdir})
 
 add_test(NAME framework:foundation COMMAND o2-test-framework-foundation)
 

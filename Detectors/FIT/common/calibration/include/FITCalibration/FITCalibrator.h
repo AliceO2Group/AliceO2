@@ -63,13 +63,12 @@ class FITCalibrator final : public o2::calibration::TimeSlotCalibration<TimeSlot
   {
     static std::map<std::string, std::string> md;
     auto* container = slot.getContainer();
-    static const double TFlength = 1E-3 * o2::raw::HBFUtils::Instance().getNOrbitsPerTF() * o2::constants::lhc::LHCOrbitMUS; // in ms
-    auto starting = slot.getStartTimeMS();
-    auto stopping = slot.getEndTimeMS();
-    LOGP(info, "!!!! {}({})<=TF<={}({}), starting: {} stopping {}", slot.getTFStart(), slot.getStartTimeMS(), slot.getTFEnd(), slot.getEndTimeMS(), starting, stopping);
-    auto calibrationObject = container->generateCalibrationObject(slot.getStartTimeMS(), slot.getEndTimeMS(), mExtraInfo);
+    const auto startValidity = slot.getStartTimeMS() - o2::ccdb::CcdbObjectInfo::SECOND * 10;
+    const auto endValidity = slot.getEndTimeMS() + o2::ccdb::CcdbObjectInfo::MONTH;
+    LOGP(info, "!!!! {}<=TF<={}, startValidity: {} endValidity: {}", slot.getTFStart(), slot.getTFEnd(), startValidity, endValidity);
+    auto calibrationObject = container->generateCalibrationObject(startValidity, endValidity, mExtraInfo);
     std::vector<CalibObjWithInfoType> preparedCalibObjects;
-    preparedCalibObjects.emplace_back(doSerializationAndPrepareObjectInfo(calibrationObject, starting, stopping));
+    preparedCalibObjects.emplace_back(doSerializationAndPrepareObjectInfo(calibrationObject, startValidity, endValidity));
     mStoredCalibrationObjects.insert(mStoredCalibrationObjects.end(),
                                      std::make_move_iterator(preparedCalibObjects.begin()),
                                      std::make_move_iterator(preparedCalibObjects.end()));

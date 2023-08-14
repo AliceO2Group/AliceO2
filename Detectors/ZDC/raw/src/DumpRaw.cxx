@@ -91,6 +91,10 @@ void DumpRaw::init()
     mLoss = std::make_unique<TH1F>("hloss", "Data loss", NModules * NChPerModule, -0.5, NModules * NChPerModule - 0.5);
     setModuleLabel(mLoss.get());
   }
+  if (mError == nullptr) {
+    mError = std::make_unique<TH1F>("hError", "Error bit", NModules * NChPerModule, -0.5, NModules * NChPerModule - 0.5);
+    setModuleLabel(mError.get());
+  }
   if (mOve == nullptr) {
     mOve = std::make_unique<TH1F>("hove", "BC overflow", NModules * NChPerModule, -0.5, NModules * NChPerModule - 0.5);
     setModuleLabel(mOve.get());
@@ -205,6 +209,7 @@ void DumpRaw::write()
   mBits->Write();
   mBitsH->Write();
   mLoss->Write();
+  mError->Write();
   mOve->Write();
   f->Close();
 }
@@ -417,8 +422,11 @@ int DumpRaw::process(const EventChData& ch)
     word16.uns = f.offset;
     mBaseline[ih]->Fill(word16.sig);
     mCounts[ih]->Fill(f.hits & 0xfff);
-    if (f.hits & 0x8000) {
+    if (f.dLoss) {
       mLoss->Fill(ih);
+    }
+    if (f.error) {
+      mError->Fill(ih);
     }
   }
   return 0;

@@ -49,7 +49,7 @@ void GPUErrors::clear()
 }
 
 static std::unordered_map<unsigned int, const char*> errorNames = {
-#define GPUCA_ERROR_CODE(num, name) {num, GPUCA_M_STR(name)},
+#define GPUCA_ERROR_CODE(num, name, ...) {num, GPUCA_M_STR(name)},
 #include "GPUErrorCodes.h"
 #undef GPUCA_ERROR_CODE
 };
@@ -75,6 +75,16 @@ void GPUErrors::printErrors(bool silent)
       GPUError("Additional errors occured (codes not stored)");
     }
   }
+}
+
+unsigned int GPUErrors::getNErrors() const
+{
+  return std::min(*mErrors, GPUCA_MAX_ERRORS);
+}
+
+const unsigned int* GPUErrors::getErrorPtr() const
+{
+  return mErrors + 1;
 }
 
 #endif

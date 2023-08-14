@@ -68,6 +68,7 @@ struct GBTLink {
                                       AbortedOnError,
                                       StoppedOnEndOfData,
                                       DataSeen,
+                                      Recovery,
                                       CachedDataExist }; // None is set before starting collectROFCableData
 
   enum ErrorType : uint8_t { NoError = 0x0,
@@ -143,6 +144,7 @@ struct GBTLink {
   }
 
   bool needToPrintError(uint32_t count) { return verbosity == Silent ? false : (verbosity > VerboseErrors || count == 1); }
+  void accountLinkRecovery(o2::InteractionRecord ir);
 
  private:
   void discardData() { rawData.setDone(); }
@@ -350,7 +352,7 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
         int cableHW = gbtD->getCableID(), cableSW = chmap.cableHW2SW(ruPtr->ruInfo->ruType, cableHW);
         GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsCableID(gbtD, cableSW));
         if (errRes != uint8_t(GBTLink::Skip)) {
-          GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsGBTData(chmap.cableHW2Pos(ruPtr->ruInfo->ruType, cableHW)));
+          // GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsGBTData(chmap.cableHW2Pos(ruPtr->ruInfo->ruType, cableHW)));
           ruPtr->cableData[cableSW].add(gbtD->getW8(), 9);
           ruPtr->cableHWID[cableSW] = cableHW;
           ruPtr->cableLinkID[cableSW] = idInRU;

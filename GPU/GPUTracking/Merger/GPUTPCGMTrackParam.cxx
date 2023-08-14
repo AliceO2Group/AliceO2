@@ -517,7 +517,7 @@ GPUd() void GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestrict
     Y = mP[0];
     Z = mP[1];
   } else {
-    float X;
+    float X = 0;
     Merger->GetConstantMem()->calibObjects.fastTransformHelper->InverseTransformYZtoX(slice, iRow, mP[0], mP[1], X);
     if (prop.GetPropagatedYZ(X, Y, Z)) {
       Y = mP[0];
@@ -563,6 +563,10 @@ GPUd() void GPUTPCGMTrackParam::AttachClusters(const GPUTPCGMMerger* GPUrestrict
     nZ = Z;
   } else {
     Merger->GetConstantMem()->calibObjects.fastTransformHelper->InverseTransformYZtoNominalYZ(slice, iRow, Y, Z, nY, nZ);
+  }
+
+  if (CAMath::Abs(nY) > row.getTPCMaxY()) {
+    return;
   }
   row.Grid().GetBinArea(nY, nZ + zOffset, tubeY, tubeZ, bin, ny, nz);
 

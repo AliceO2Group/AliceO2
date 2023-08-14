@@ -49,7 +49,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 if(BUILD_DEBUG)
-  set(CMAKE_CXX_FLAGS "-O0 -ggdb")
+  set(CMAKE_CXX_FLAGS "-O0 -ggdb") # -fsanitize=address,undefined -fno-sanitize=vptr
   set(CMAKE_BUILD_TYPE DEBUG)
 else()
   set(CMAKE_CXX_FLAGS "-O3 -march=native -ggdb -minline-all-stringops -funroll-loops -fno-stack-protector")

@@ -420,6 +420,7 @@ TEST_CASE("TestOutEdgeProcessingHelpers")
   WorkflowSpec workflow = defineDataProcessing7();
   auto configContext = makeEmptyConfigContext();
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(*configContext);
+  auto sendingPolicies = SendingPolicy::createDefaultPolicies();
 
   std::vector<ComputingResource> resources{ComputingResourceHelpers::getLocalhostResource()};
   SimpleResourceManager rm(resources);
@@ -427,8 +428,8 @@ TEST_CASE("TestOutEdgeProcessingHelpers")
   defaultOffer.cpu = 0.01;
   defaultOffer.memory = 0.01;
 
-  DeviceSpecHelpers::processOutEdgeActions(devices, deviceIndex, connections, rm, edgeOutIndex, logicalEdges,
-                                           actions, workflow, globalOutputs, channelPolicies, "", defaultOffer);
+  DeviceSpecHelpers::processOutEdgeActions(*configContext, devices, deviceIndex, connections, rm, edgeOutIndex, logicalEdges,
+                                           actions, workflow, globalOutputs, channelPolicies, sendingPolicies, "", defaultOffer);
 
   std::vector<DeviceId> expectedDeviceIndex = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {1, 0, 1}, {1, 0, 1}, {1, 1, 2}, {1, 1, 2}, {1, 2, 3}, {1, 2, 3}};
   REQUIRE(devices.size() == 4);
@@ -515,24 +516,25 @@ TEST_CASE("TestOutEdgeProcessingHelpers")
   REQUIRE(devices[4].outputs.size() == 0);
   REQUIRE(devices[5].outputs.size() == 0);
 
+  SendingPolicy dummy;
   // Check that the output specs and the timeframe ids are correct
   std::vector<std::vector<OutputRoute>> expectedRoutes = {
     {
-      OutputRoute{0, 3, globalOutputs[0], "from_A_to_B_t0"},
-      OutputRoute{1, 3, globalOutputs[0], "from_A_to_B_t1"},
-      OutputRoute{2, 3, globalOutputs[0], "from_A_to_B_t2"},
+      OutputRoute{0, 3, globalOutputs[0], "from_A_to_B_t0", &dummy},
+      OutputRoute{1, 3, globalOutputs[0], "from_A_to_B_t1", &dummy},
+      OutputRoute{2, 3, globalOutputs[0], "from_A_to_B_t2", &dummy},
     },
     {
-      OutputRoute{0, 2, globalOutputs[1], "from_B_t0_to_C_t0"},
-      OutputRoute{1, 2, globalOutputs[1], "from_B_t0_to_C_t1"},
+      OutputRoute{0, 2, globalOutputs[1], "from_B_t0_to_C_t0", &dummy},
+      OutputRoute{1, 2, globalOutputs[1], "from_B_t0_to_C_t1", &dummy},
     },
     {
-      OutputRoute{0, 2, globalOutputs[1], "from_B_t1_to_C_t0"},
-      OutputRoute{1, 2, globalOutputs[1], "from_B_t1_to_C_t1"},
+      OutputRoute{0, 2, globalOutputs[1], "from_B_t1_to_C_t0", &dummy},
+      OutputRoute{1, 2, globalOutputs[1], "from_B_t1_to_C_t1", &dummy},
     },
     {
-      OutputRoute{0, 2, globalOutputs[1], "from_B_t2_to_C_t0"},
-      OutputRoute{1, 2, globalOutputs[1], "from_B_t2_to_C_t1"},
+      OutputRoute{0, 2, globalOutputs[1], "from_B_t2_to_C_t0", &dummy},
+      OutputRoute{1, 2, globalOutputs[1], "from_B_t2_to_C_t1", &dummy},
     },
   };
 
@@ -710,6 +712,7 @@ TEST_CASE("TestSimpleWildcard")
   SimpleResourceManager rm(resources);
   auto configContext = makeEmptyConfigContext();
   auto channelPolicies = ChannelConfigurationPolicy::createDefaultPolicies(*configContext);
+  auto sendingPolicies = SendingPolicy::createDefaultPolicies();
 
   std::vector<DeviceSpec> devices;
   std::vector<DeviceId> deviceIndex;
@@ -747,8 +750,8 @@ TEST_CASE("TestSimpleWildcard")
   defaultOffer.cpu = 0.01;
   defaultOffer.memory = 0.01;
 
-  DeviceSpecHelpers::processOutEdgeActions(devices, deviceIndex, connections, rm, edgeOutIndex, logicalEdges,
-                                           outActions, workflow, globalOutputs, channelPolicies, "", defaultOffer);
+  DeviceSpecHelpers::processOutEdgeActions(*configContext, devices, deviceIndex, connections, rm, edgeOutIndex, logicalEdges,
+                                           outActions, workflow, globalOutputs, channelPolicies, sendingPolicies, "", defaultOffer);
 
   REQUIRE(devices.size() == 2);
   ; // Two devices have outputs: A and Timer

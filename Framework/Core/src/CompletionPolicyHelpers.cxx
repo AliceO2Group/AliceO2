@@ -15,6 +15,8 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/CompilerBuiltins.h"
 #include "Framework/Logger.h"
+#include "Framework/TimingInfo.h"
+#include "DecongestionService.h"
 
 #include <cassert>
 #include <regex>
@@ -119,8 +121,9 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAll(const char* name, Compl
 
 CompletionPolicy CompletionPolicyHelpers::consumeWhenAllOrdered(const char* name, CompletionPolicy::Matcher matcher)
 {
-  auto nextTimeSlice = std::make_shared<long int>(0);
-  auto callback = [nextTimeSlice](InputSpan const& inputs) -> CompletionPolicy::CompletionOp {
+  auto callbackFull = [](InputSpan const& inputs, std::vector<InputSpec> const&, ServiceRegistryRef& ref) -> CompletionPolicy::CompletionOp {
+    auto& decongestionService = ref.get<DecongestionService>();
+    decongestionService.orderedCompletionPolicyActive = 1;
     for (auto& input : inputs) {
       if (input.header == nullptr) {
         return CompletionPolicy::CompletionOp::Wait;
@@ -128,16 +131,16 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAllOrdered(const char* name
       long int startTime = framework::DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(input)->startTime;
       if (startTime == 0) {
         LOGP(debug, "startTime is 0, which means we have the first message, so we can process it.");
-        *nextTimeSlice = 0;
+        decongestionService.nextTimeslice = 0;
       }
-      if (framework::DataRefUtils::isValid(input) && startTime != *nextTimeSlice) {
+      if (framework::DataRefUtils::isValid(input) && startTime != decongestionService.nextTimeslice) {
         return CompletionPolicy::CompletionOp::Retry;
       }
     }
-    (*nextTimeSlice)++;
+    decongestionService.nextTimeslice++;
     return CompletionPolicy::CompletionOp::ConsumeAndRescan;
   };
-  return CompletionPolicy{name, matcher, callback};
+  return CompletionPolicy{name, matcher, callbackFull};
 }
 
 CompletionPolicy CompletionPolicyHelpers::consumeWhenAllOrdered(std::string matchName)
@@ -153,7 +156,7 @@ CompletionPolicy CompletionPolicyHelpers::consumeExistingWhenAny(const char* nam
   return CompletionPolicy{
     name,
     matcher,
-    [](InputSpan const& inputs, std::vector<InputSpec> const& specs) -> CompletionPolicy::CompletionOp {
+    [](InputSpan const& inputs, std::vector<InputSpec> const& specs, ServiceRegistryRef&) -> CompletionPolicy::CompletionOp {
       size_t present = 0;
       size_t current = 0;
       size_t withPayload = 0;
@@ -191,9 +194,7 @@ CompletionPolicy CompletionPolicyHelpers::consumeExistingWhenAny(const char* nam
         return CompletionPolicy::CompletionOp::Wait;
       }
       return CompletionPolicy::CompletionOp::ConsumeAndRescan;
-    }
-
-  };
+    }};
 }
 
 CompletionPolicy CompletionPolicyHelpers::consumeWhenAny(const char* name, CompletionPolicy::Matcher matcher)
@@ -215,6 +216,75 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAny(std::string matchName)
     return std::regex_match(device.name.begin(), device.name.end(), std::regex(matchName));
   };
   return consumeWhenAny(matcher);
+}
+
+CompletionPolicy CompletionPolicyHelpers::consumeWhenAnyWithAllConditions(const char* name, CompletionPolicy::Matcher matcher)
+{
+  auto callback = [](InputSpan const& inputs, std::vector<InputSpec> const& specs, ServiceRegistryRef&) -> CompletionPolicy::CompletionOp {
+    bool canConsume = false;
+    bool hasConditions = false;
+    bool conditionMissing = false;
+    size_t timeslice = -1;
+    static size_t timesliceOK = -1; // FIXME: This breaks start/stop/start, since it must be reset!
+                                    // FIXME: Also, this just checks the max timeslice that was already consumed.
+                                    // In case timeslices do not come in order, we might have consumed a later
+                                    // condition object, but not the one for the current time slice.
+                                    // But I don't see any possibility to handle this in a better way.
+
+    // Iterate on all specs and all inputs simultaneously
+    for (size_t i = 0; i < inputs.size(); ++i) {
+      char const* header = inputs.header(i);
+      auto& spec = specs[i];
+      // In case a condition object is not there, we need to wait.
+      if (header != nullptr) {
+        canConsume = true;
+      }
+      if (spec.lifetime == Lifetime::Condition) {
+        hasConditions = true;
+        if (header == nullptr) {
+          conditionMissing = true;
+        }
+      }
+    }
+    if (canConsume || conditionMissing) {
+      for (auto it = inputs.begin(), end = inputs.end(); it != end; ++it) {
+        for (auto const& ref : it) {
+          if (!framework::DataRefUtils::isValid(ref)) {
+            continue;
+          }
+          auto const* dph = framework::DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(ref);
+          if (dph && !TimingInfo::timesliceIsTimer(dph->startTime)) {
+            timeslice = dph->startTime;
+            break;
+          }
+        }
+        if (timeslice != -1) {
+          break;
+        }
+      }
+    }
+
+    // If there are no conditions, just consume.
+    if (!hasConditions) {
+      canConsume = true;
+    } else if (conditionMissing && (timeslice == -1 || timesliceOK == -1 || timeslice > timesliceOK)) {
+      return CompletionPolicy::CompletionOp::Wait;
+    }
+
+    if (canConsume && timeslice != -1 && (timeslice > timesliceOK || timesliceOK == -1)) {
+      timesliceOK = timeslice;
+    }
+    return canConsume ? CompletionPolicy::CompletionOp::Consume : CompletionPolicy::CompletionOp::Wait;
+  };
+  return CompletionPolicy{name, matcher, callback, false};
+}
+
+CompletionPolicy CompletionPolicyHelpers::consumeWhenAnyWithAllConditions(std::string matchName)
+{
+  auto matcher = [matchName](DeviceSpec const& device) -> bool {
+    return std::regex_match(device.name.begin(), device.name.end(), std::regex(matchName));
+  };
+  return consumeWhenAnyWithAllConditions(matcher);
 }
 
 CompletionPolicy CompletionPolicyHelpers::processWhenAny(const char* name, CompletionPolicy::Matcher matcher)

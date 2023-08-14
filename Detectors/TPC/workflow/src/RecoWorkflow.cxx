@@ -162,7 +162,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
       auto storedlabels = reinterpret_cast<o2::dataformats::IOMCTruthContainerView const*>(data);
       o2::dataformats::ConstMCTruthContainer<o2::MCCompLabel> flatlabels;
       storedlabels->copyandflatten(flatlabels);
-      //LOG(info) << "PUBLISHING CONST LABELS " << flatlabels.getNElements();
+      // LOG(info) << "PUBLISHING CONST LABELS " << flatlabels.getNElements();
       context.outputs().snapshot(output, flatlabels);
       return true;
     }
@@ -241,7 +241,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   runGPUReco &= caClusterer || runHWDecoder || inputType == InputType::Clusters || decompressTPC;
 
   bool outRaw = inputType == InputType::Digits && isEnabled(OutputType::ZSRaw) && !isEnabled(OutputType::DisableWriter);
-  //bool runZSDecode = inputType == InputType::ZSRaw;
+  // bool runZSDecode = inputType == InputType::ZSRaw;
   bool zsToDigit = inputType == InputType::ZSRaw && isEnabled(OutputType::Digits);
 
   if (inputType == InputType::PassThrough) {
@@ -366,7 +366,8 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   if (isEnabled(OutputType::Digits) && !isEnabled(OutputType::DisableWriter)) {
     using DigitOutputType = std::vector<o2::tpc::Digit>;
     specs.push_back(makeWriterSpec("tpc-digits-writer",
-                                   inputType == InputType::ZSRaw ? "tpc-zs-digits.root" : inputType == InputType::Digits ? "tpc-filtered-digits.root" : "tpcdigits.root",
+                                   inputType == InputType::ZSRaw ? "tpc-zs-digits.root" : inputType == InputType::Digits ? "tpc-filtered-digits.root"
+                                                                                                                         : "tpcdigits.root",
                                    "o2sim",
                                    BranchDefinition<DigitOutputType>{InputSpec{"data", "TPC", "DIGITS", 0},
                                                                      "TPCDigit",
@@ -428,6 +429,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
   // selected by output type 'tracks'
   if (runGPUReco) {
     o2::gpu::GPURecoWorkflowSpec::Config cfg;
+    cfg.runTPCTracking = true;
     cfg.requireCTPLumi = requireCTPLumi;
     cfg.decompressTPC = decompressTPC;
     cfg.decompressTPCFromROOT = decompressTPC && inputType == InputType::CompClusters;
@@ -483,7 +485,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
     const char* defaultFileName = filteredInp ? "tpctracks_filtered.root" : "tpctracks.root";
     const char* defaultTreeName = "tpcrec";
 
-    //branch definitions for RootTreeWriter spec
+    // branch definitions for RootTreeWriter spec
     using TrackOutputType = std::vector<o2::tpc::TrackTPC>;
 
     using ClusRefsOutputType = std::vector<o2::tpc::TPCClRefElem>;
@@ -522,13 +524,13 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
     const char* defaultFileName = "tpc-compclusters.root";
     const char* defaultTreeName = "tpcrec";
 
-    //branch definitions for RootTreeWriter spec
+    // branch definitions for RootTreeWriter spec
     using CCluSerializedType = ROOTSerialized<CompressedClustersROOT>;
     auto ccldef = BranchDefinition<CCluSerializedType>{InputSpec{"inputCompCl", "TPC", "COMPCLUSTERS"}, //
                                                        "TPCCompClusters_0", "compcluster-branch-name"}; //
 
-    specs.push_back(MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName,            //
-                                           std::move(ccldef))());                                    //
+    specs.push_back(MakeRootTreeWriterSpec(processName, defaultFileName, defaultTreeName, //
+                                           std::move(ccldef))());                         //
   }
 
   return std::move(specs);

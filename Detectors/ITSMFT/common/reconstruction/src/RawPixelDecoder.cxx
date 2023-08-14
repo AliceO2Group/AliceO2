@@ -40,6 +40,7 @@ RawPixelDecoder<Mapping>::RawPixelDecoder()
   mTimerDecode.Stop();
   mTimerFetchData.Stop();
   mSelfName = o2::utils::Str::concat_string(Mapping::getName(), "Decoder");
+  DPLRawParser<>::setCheckIncompleteHBF(false); // Disable incomplete HBF checking, see ErrPacketCounterJump check in GBTLink.cxx
 }
 
 ///______________________________________________________________
@@ -78,10 +79,12 @@ void RawPixelDecoder<Mapping>::printReport(bool decstat, bool skipNoErr) const
 template <class Mapping>
 int RawPixelDecoder<Mapping>::decodeNextTrigger()
 {
-  mTimerDecode.Start(false);
   mNChipsFiredROF = 0;
   mNPixelsFiredROF = 0;
   mInteractionRecord.clear();
+  if (mROFRampUpStage && mSkipRampUpData) {
+    return -1;
+  }
   int nru = mRUDecodeVec.size();
   int prevNTrig = mExtTriggers.size();
   do {
@@ -103,6 +106,7 @@ int RawPixelDecoder<Mapping>::decodeNextTrigger()
     for (int iru = 0; iru < nru; iru++) {
       auto& ru = mRUDecodeVec[iru];
       if (ru.nNonEmptyLinks) {
+        ru.ROFRampUpStage = mROFRampUpStage;
         mNPixelsFiredROF += ru.decodeROF(mMAP, mInteractionRecord);
         mNChipsFiredROF += ru.nChipsFired;
       }
@@ -214,6 +218,8 @@ bool RawPixelDecoder<Mapping>::doIRMajorityPoll()
 template <class Mapping>
 void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
 {
+  constexpr uint32_t ROF_RAMP_FLAG = 0x1 << 4;
+  constexpr uint32_t LINK_RECOVERY_FLAG = 0x1 << 5;
   mNLinksInTF = 0;
   mCurRUDecodeID = NORUDECODED;
   auto nLinks = mGBTLinks.size();
@@ -241,14 +247,14 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
     }
     contDeadBeef = 0; // if good data, reset the counter
   }
-
+  mROFRampUpStage = false;
   DPLRawParser parser(inputs, filter, o2::conf::VerbosityConfig::Instance().rawParserSeverity);
   parser.setMaxFailureMessages(o2::conf::VerbosityConfig::Instance().maxWarnRawParser);
   static size_t cntParserFailures = 0;
   parser.setExtFailureCounter(&cntParserFailures);
 
   uint32_t currSSpec = 0xffffffff; // dummy starting subspec
-  int linksAdded = 0, linksSeen = 0;
+  int linksAdded = 0;
   for (auto it = parser.begin(); it != parser.end(); ++it) {
     auto const* dh = it.o2DataHeader();
     auto& lnkref = mSubsSpec2LinkID[dh->subSpecification];
@@ -269,7 +275,7 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
     auto& link = mGBTLinks[lnkref.entry];
     if (currSSpec != dh->subSpecification) { // this is the 1st part for this link in this TF, next parts must follow contiguously!!!
       currSSpec = dh->subSpecification;
-      if (link.statusInTF == GBTLink::DataSeen) {
+      if (link.statusInTF != GBTLink::None) {
         static bool errorDone = false;
         if (!errorDone) {
           LOGP(error, "{} was already registered, inform PDP on-call about error!!!", link.describe());
@@ -278,16 +284,21 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
       }
       link.statusInTF = GBTLink::DataSeen;
       mNLinksInTF++;
-
-      if (!linksSeen) { // designate 1st link to register triggers
-        link.extTrigVec = &mExtTriggers;
-        mLinkForTriggers = &link;
-      } else {
-        link.extTrigVec = nullptr;
-      }
     }
-    linksSeen++;
-    link.cacheData(it.raw(), RDHUtils::getMemorySize(rdh));
+    auto detField = RDHUtils::getDetectorField(&rdh);
+    if (detField & ROF_RAMP_FLAG) {
+      mROFRampUpStage = true;
+    }
+    if ((detField & LINK_RECOVERY_FLAG) && (link.statusInTF != GBTLink::Recovery)) {
+      link.statusInTF = GBTLink::Recovery; // data will be discarded
+      link.rawData.clear();
+      uint8_t errRes = uint8_t(GBTLink::NoError);
+      link.accountLinkRecovery(RDHUtils::getHeartBeatIR(rdh));
+      mNLinksInTF--;
+    }
+    if (link.statusInTF != GBTLink::Recovery) {
+      link.cacheData(it.raw(), RDHUtils::getMemorySize(rdh));
+    }
   }
 
   if (linksAdded) { // new links were added, update link<->RU mapping, usually is done for 1st TF only
@@ -322,6 +333,14 @@ void RawPixelDecoder<Mapping>::setupLinks(InputRecord& inputs)
       link.ruPtr->nLinks++;
     }
   }
+  // set the link extracting triggers
+  for (auto& link : mGBTLinks) {
+    if (link.statusInTF == GBTLink::DataSeen) { // designate 1st link with valid data to register triggers
+      link.extTrigVec = &mExtTriggers;
+      mLinkForTriggers = &link;
+      break;
+    }
+  }
 }
 
 ///______________________________________________________________
@@ -353,13 +372,15 @@ ChipPixelData* RawPixelDecoder<Mapping>::getNextChipData(std::vector<ChipPixelDa
     auto& ru = mRUDecodeVec[mCurRUDecodeID];
     if (ru.lastChipChecked < ru.nChipsFired) {
       auto& chipData = ru.chipsData[ru.lastChipChecked++];
-      assert(mLastReadChipID < chipData.getChipID());
+      //      assert(mLastReadChipID < chipData.getChipID());
       if (mLastReadChipID >= chipData.getChipID()) {
-        const int MaxErrLog = 5;
-        static int errLocCount = 0;
-        if (errLocCount < MaxErrLog) {
-          LOGP(error, "Wrong order/duplication: encountered chip {} after processing chip {}, skippin. Inform PDP (message {} of max {} allowed)",
-               chipData.getChipID(), mLastReadChipID, ++errLocCount, MaxErrLog);
+        if (!mROFRampUpStage) {
+          const int MaxErrLog = 5;
+          static int errLocCount = 0;
+          if (errLocCount < MaxErrLog) {
+            LOGP(error, "Wrong order/duplication: encountered chip {} after processing chip {}, skippin. Inform PDP (message {} of max {} allowed)",
+                 chipData.getChipID(), mLastReadChipID, ++errLocCount, MaxErrLog);
+          }
         }
         continue;
       }

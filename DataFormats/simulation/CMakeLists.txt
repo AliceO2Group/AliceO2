@@ -26,6 +26,7 @@ o2_add_library(SimulationDataFormat
                                      O2::DetectorsCommonDataFormats
                                      O2::DataFormatsParameters
                                      O2::DataFormatsCalibration
+                                     O2::DataFormatsCTP
                                      O2::GPUCommon
                                      ROOT::TreePlayer)
 
@@ -81,5 +82,10 @@ o2_add_test(MCTrack
 
 o2_add_test(MCGenStatus
             SOURCES test/testMCGenStatus.cxx
+            COMPONENT_NAME SimulationDataFormat
+            PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat)
+
+o2_add_test(MCGenId
+            SOURCES test/testMCGenId.cxx
             COMPONENT_NAME SimulationDataFormat
             PUBLIC_LINK_LIBRARIES O2::SimulationDataFormat)

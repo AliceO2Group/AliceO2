@@ -72,17 +72,21 @@ GPUdii() void GPUTPCCFClusterizer::computeClustersImpl(int nBlocks, int nThreads
     &pc,
     labelAcc);
 
-  if (idx >= clusternum || fragment.isOverlap(pos.time())) {
+  if (idx >= clusternum) {
+    return;
+  }
+  if (fragment.isOverlap(pos.time())) {
+    if (clusterPosInRow) {
+      clusterPosInRow[idx] = maxClusterPerRow;
+    }
     return;
   }
   pc.finalize(pos, charge, fragment.start, clusterer.Param().tpcGeometry);
 
   tpc::ClusterNative myCluster;
-  pc.toNative(pos, charge, calib.tpc.cfMinSplitNum, myCluster, clusterer.Param().tpcGeometry);
+  bool rejectCluster = !pc.toNative(pos, charge, myCluster, clusterer.Param());
 
-  bool aboveQTotCutoff = (myCluster.qTot > calib.tpc.cfQTotCutoff);
-
-  if (!aboveQTotCutoff) {
+  if (rejectCluster) {
     if (clusterPosInRow) {
       clusterPosInRow[idx] = maxClusterPerRow;
     }

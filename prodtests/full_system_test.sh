@@ -58,6 +58,7 @@ RUNFIRSTORBIT=${RUNFIRSTORBIT:-0}
 FIRSTSAMPLEDORBIT=${FIRSTSAMPLEDORBIT:-0}
 OBLIGATORYSOR=${OBLIGATORYSOR:-false}
 FST_TPC_ZSVERSION=${FST_TPC_ZSVERSION:-4}
+TPC_SLOW_REALISITC_FULL_SIM=${TPC_SLOW_REALISITC_FULL_SIM:-0}
 if [[ $BEAMTYPE == "PbPb" ]]; then
   FST_GENERATOR=${FST_GENERATOR:-pythia8hi}
   FST_COLRATE=${FST_COLRATE:-50000}
@@ -95,8 +96,8 @@ echo "versions,${TAG} alidist=\"${ALIDISTCOMMIT}\",O2=\"${O2COMMIT}\" " > ${METR
 
 GLOBALDPLOPT="-b" # --monitoring-backend no-op:// is currently removed due to https://alice.its.cern.ch/jira/browse/O2-1887
 
-HBFUTILPARAMS="HBFUtils.nHBFPerTF=${NHBPERTF};HBFUtils.orbitFirst=${RUNFIRSTORBIT};HBFUtils.orbitFirstSampled=${FIRSTSAMPLEDORBIT};HBFUtils.obligatorySOR=${OBLIGATORYSOR};HBFUtils.runNumber=${RUNNUMBER}"
-[[ "0$ALLOW_MULTIPLE_TF" != "01" ]] && HBFUTILPARAMS+=";HBFUtils.maxNOrbits=$((${FIRSTSAMPLEDORBIT} + ${NHBPERTF}));"
+HBFUTILPARAMS="HBFUtils.nHBFPerTF=${NHBPERTF};HBFUtils.orbitFirst=${RUNFIRSTORBIT};HBFUtils.orbitFirstSampled=${FIRSTSAMPLEDORBIT};HBFUtils.obligatorySOR=${OBLIGATORYSOR};HBFUtils.runNumber=${RUNNUMBER};"
+[[ "0$ALLOW_MULTIPLE_TF" != "01" || "0$ALLOW_MULTIPLE_TF_N" != "01" ]] && HBFUTILPARAMS+=";HBFUtils.maxNOrbits=$((${FIRSTSAMPLEDORBIT} + ${ALLOW_MULTIPLE_TF_N:-1} * ${NHBPERTF}));"
 
 ulimit -n 4096 # Make sure we can open sufficiently many files
 [[ $? == 0 ]] || (echo Failed setting ulimit && exit 1)
@@ -105,11 +106,12 @@ if [[ $BEAMTYPE == "PbPb" && -z $FST_QED ]]; then
   FST_QED=1
 fi
 DIGIQED=
+SIMOPTKEY="Diamond.width[2]=6.;"
 if [[ $FST_QED == 1 ]]; then
   mkdir -p qed
   cd qed
   PbPbXSec="8."
-  taskwrapper qedsim.log o2-sim ${FST_BFIELD+--field=}${FST_BFIELD} --seed $O2SIMSEED -j $NJOBS -n $NEventsQED -m PIPE ITS MFT FT0 FV0 FDD -g extgen -e ${FST_MC_ENGINE} --configKeyValues '"GeneratorExternal.fileName=$O2_ROOT/share/Generators/external/QEDLoader.C;QEDGenParam.yMin=-7;QEDGenParam.yMax=7;QEDGenParam.ptMin=0.001;QEDGenParam.ptMax=1.;Diamond.width[2]=6."' --run ${RUNNUMBER}
+  taskwrapper qedsim.log o2-sim ${FST_BFIELD+--field=}${FST_BFIELD} --seed $O2SIMSEED -j $NJOBS -n $NEventsQED -m PIPE ITS MFT FT0 FV0 FDD -g extgen -e ${FST_MC_ENGINE} --configKeyValues '"GeneratorExternal.fileName=$O2_ROOT/share/Generators/external/QEDLoader.C;QEDGenParam.yMin=-7;QEDGenParam.yMax=7;QEDGenParam.ptMin=0.001;QEDGenParam.ptMax=1.;${SIMOPTKEY}"' --run ${RUNNUMBER}
   QED2HAD=$(awk "BEGIN {printf \"%.2f\",`grep xSectionQED qedgenparam.ini | cut -d'=' -f 2`/$PbPbXSec}")
   echo "Obtained ratio of QED to hadronic x-sections = $QED2HAD" >> qedsim.log
   cd ..
@@ -117,27 +119,33 @@ if [[ $FST_QED == 1 ]]; then
 fi
 
 DIGITOPT=
-DIGITOPTKEYTRD="${HBFUTILPARAMS};TRDSimParams.digithreads=${NJOBS};"
+DIGITOPTKEYTRD="TRDSimParams.digithreads=${NJOBS};"
 DIGITOPTKEY=${HBFUTILPARAMS}
 [[ ! -z $ITS_STROBE ]] && DIGITOPTKEY+="ITSAlpideParam.roFrameLengthInBC=$ITS_STROBE;"
 [[ ! -z $MFT_STROBE ]] && DIGITOPTKEY+="MFTAlpideParam.roFrameLengthInBC=$MFT_STROBE;"
 if [ $SPLITTRDDIGI == "1" ]; then
   DIGITOPT+=" --skipDet TRD"
+  DIGITOPTKEYTRD+=${HBFUTILPARAMS}
 else
   DIGITOPT+=" --trd-digit-downscaling ${DIGITDOWNSCALINGTRD}"
   DIGITOPTKEY+=$DIGITOPTKEYTRD
 fi
 
-taskwrapper sim.log o2-sim ${FST_BFIELD+--field=}${FST_BFIELD} --seed $O2SIMSEED -n $NEvents --configKeyValues "Diamond.width[2]=6." -g ${FST_GENERATOR} -e ${FST_MC_ENGINE} -j $NJOBS --run ${RUNNUMBER} -o o2sim
+if [[ $TPC_SLOW_REALISITC_FULL_SIM == 1 ]]; then
+  SIMOPTKEY+="G4.physicsmode=3;SimCutParams.lowneut=true;TPCEleParam.doCommonModePerPad=0;TPCEleParam.doIonTailPerPad=1;TPCEleParam.commonModeCoupling=0;TPCEleParam.doNoiseEmptyPads=1;TPCEleParam.doSaturationTail=0;TPCDetParam.TPCRecoWindowSim=10;"
+  DIGITOPTKEY+="TPCEleParam.doCommonModePerPad=0;TPCEleParam.doIonTailPerPad=1;TPCEleParam.commonModeCoupling=0;TPCEleParam.doNoiseEmptyPads=1;TPCEleParam.doSaturationTail=0;TPCDetParam.TPCRecoWindowSim=10;"
+fi
+
+taskwrapper sim.log o2-sim ${FST_BFIELD+--field=}${FST_BFIELD} --seed $O2SIMSEED -n $NEvents --configKeyValues "\"$SIMOPTKEY\"" -g ${FST_GENERATOR} -e ${FST_MC_ENGINE} -j $NJOBS --run ${RUNNUMBER} -o o2sim
 if [[ $DO_EMBEDDING == 1 ]]; then
-taskwrapper embed.log o2-sim ${FST_BFIELD+--field=}${FST_BFIELD} -j $NJOBS --run ${RUNNUMBER} -n $NEvents -g pythia8pp -e ${FST_MC_ENGINE} -o sig --configKeyValues ${FST_EMBEDDING_CONFIG} --embedIntoFile o2sim_Kine.root
+  taskwrapper embed.log o2-sim ${FST_BFIELD+--field=}${FST_BFIELD} -j $NJOBS --run ${RUNNUMBER} -n $NEvents -g pythia8pp -e ${FST_MC_ENGINE} -o sig --configKeyValues ${FST_EMBEDDING_CONFIG} --embedIntoFile o2sim_Kine.root
 fi
 taskwrapper digi.log o2-sim-digitizer-workflow -n $NEvents ${DIGIQED} ${NOMCLABELS} --sims ${SIM_SOURCES} --tpc-lanes $((NJOBS < 36 ? NJOBS : 36)) --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} ${DIGITOPT} --configKeyValues "\"${DIGITOPTKEY}\"" --interactionRate $FST_COLRATE
 [[ $SPLITTRDDIGI == "1" ]] && taskwrapper digiTRD.log o2-sim-digitizer-workflow -n $NEvents ${NOMCLABELS} --onlyDet TRD --trd-digit-downscaling ${DIGITDOWNSCALINGTRD} --shm-segment-size $SHMSIZE ${GLOBALDPLOPT} --incontext collisioncontext.root --configKeyValues "\"${DIGITOPTKEYTRD}\""
 touch digiTRD.log_done
 
 if [[ "0$GENERATE_ITSMFT_DICTIONARIES" == "01" ]]; then
-  taskwrapper itsmftdict1.log o2-its-reco-workflow --trackerCA --disable-mc --configKeyValues '"fastMultConfig.cutMultClusLow=30000;fastMultConfig.cutMultClusHigh=2000000;fastMultConfig.cutMultVtxHigh=500"'
+  taskwrapper itsmftdict1.log o2-its-reco-workflow --trackerCA --disable-mc --configKeyValues '"fastMultConfig.cutMultClusLow=30000;fastMultConfig.cutMultClusHigh=2000000;fastMultConfig.cutMultVtxHigh=500;"'
   cp ~/alice/O2/Detectors/ITSMFT/ITS/macros/test/CreateDictionaries.C .
   taskwrapper itsmftdict2.log root -b -q CreateDictionaries.C++
   rm -f CreateDictionaries_C* CreateDictionaries.C

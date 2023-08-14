@@ -23,6 +23,7 @@
 // #include "CommonUtils/BoostHistogramUtils.h"
 // #include "EMCALCalib/BadChannelMap.h"
 // #include "EMCALCalib/TimeCalibrationParams.h"
+#include "EMCALCalib/GainCalibrationFactors.h"
 #include "EMCALCalib/EMCALChannelScaleFactors.h"
 #include "EMCALCalibration/EMCALCalibExtractor.h"
 #include "EMCALCalibration/EMCALCalibParams.h"
@@ -48,9 +49,9 @@ class EMCALCalibExtractor;
 
 class EMCALChannelData
 {
-  //using Slot = o2::calibration::TimeSlot<o2::emcal::EMCALChannelData>;
+  // using Slot = o2::calibration::TimeSlot<o2::emcal::EMCALChannelData>;
   using Cells = o2::emcal::Cell;
-  using boostHisto = boost::histogram::histogram<std::tuple<boost::histogram::axis::variable<double, boost::use_default, boost::use_default, std::allocator<double>>, boost::histogram::axis::variable<double, boost::use_default, boost::use_default, std::allocator<double>>>>;
+  using boostHisto = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>, boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>>>;
   using BadChannelMap = o2::emcal::BadChannelMap;
 
  public:
@@ -65,22 +66,8 @@ class EMCALChannelData
     o2::emcal::Geometry* mGeometry = o2::emcal::Geometry::GetInstanceFromRunNumber(300000);
     int NCELLS = mGeometry->GetNCells();
 
-    // boost histogram with amplitude vs. cell ID, specify the range and binning of the amplitude axis
-    std::vector<double> binEdgesCells;
-    for (int i = 0; i <= NCELLS; i++) {
-      binEdgesCells.push_back(i);
-    }
-    std::vector<double> binEdgesEnergy;
-    for (int i = 0; i <= mNBins; i++) {
-      binEdgesEnergy.push_back(static_cast<double>(i) * mRange / mNBins);
-    }
-    std::vector<double> binEdgesTime;
-    for (int i = 0; i <= mNBinsTime; i++) {
-      binEdgesTime.push_back(mRangeTimeLow + (static_cast<double>(i) * std::abs(mRangeTimeHigh - mRangeTimeLow)) / mNBinsTime);
-    }
-
-    mHisto = boost::histogram::make_histogram(boost::histogram::axis::variable<>(binEdgesEnergy), boost::histogram::axis::variable<>(binEdgesCells));
-    mHistoTime = boost::histogram::make_histogram(boost::histogram::axis::variable<>(binEdgesTime), boost::histogram::axis::variable<>(binEdgesCells));
+    mHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(mNBins, 0., mRange), boost::histogram::axis::regular<>(NCELLS, -0.5, NCELLS - 0.5));
+    mHistoTime = boost::histogram::make_histogram(boost::histogram::axis::regular<>(mNBinsTime, mRangeTimeHigh, mRangeTimeLow), boost::histogram::axis::regular<>(NCELLS, -0.5, NCELLS - 0.5));
   }
 
   ~EMCALChannelData() = default;
@@ -132,6 +119,12 @@ class EMCALChannelData
   long unsigned int getNEntriesInHisto() const { return mNEntriesInHisto; }
   void setNEntriesInHisto(long unsigned int n) { mNEntriesInHisto = n; }
 
+  void setGainCalibFactors(o2::emcal::GainCalibrationFactors* calibFactors)
+  {
+    mGainCalibFactors = calibFactors;
+    mApplyGainCalib = true;
+  }
+
  private:
   float mRange = 10;                                    ///< Maximum energy range of boost histogram (will be overwritten by values in the EMCALCalibParams)
   int mNBins = 1000;                                    ///< Number of bins in the boost histogram (will be overwritten by values in the EMCALCalibParams)
@@ -147,6 +140,8 @@ class EMCALChannelData
   boostHisto mCellAmplitude;                            ///< is the input for the calibration, hist of cell E vs. ID
   bool mTest = false;                                   ///< flag to be used when running in test mode: it simplify the processing
   BadChannelMap mOutputBCM;                             ///< output bad channel map for the calibration
+  bool mApplyGainCalib = false;                         ///< Switch if gain calibration is applied or not
+  o2::emcal::GainCalibrationFactors* mGainCalibFactors; ///< Gain calibration factors applied to the data before filling the histograms
   std::shared_ptr<EMCALCalibExtractor> mCalibExtractor; ///< calib extractor
 
   ClassDefNV(EMCALChannelData, 1);

@@ -23,6 +23,7 @@
 #include <iosfwd>
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "GPUTRDDef.h"
 #include "GPUParam.h"
@@ -124,7 +125,7 @@ class GPUReconstruction
   {
   };
 
-  typedef void deviceEvent; // We use only pointers anyway, and since cl_event and cudaEvent_t are actually pointers, we can cast them to deviceEvent* this way.
+  typedef void* deviceEvent; // We use only pointers anyway, and since cl_event and cudaEvent_t and hipEvent_t are actually pointers, we can cast them to deviceEvent (void*) this way.
 
   enum class krnlDeviceType : int { CPU = 0,
                                     Device = 1,
@@ -148,8 +149,8 @@ class GPUReconstruction
     int num = 0;
   };
   struct krnlEvent {
-    constexpr krnlEvent(deviceEvent* e = nullptr, deviceEvent* el = nullptr, int n = 1) : ev(e), evList(el), nEvents(n) {}
-    deviceEvent* ev;
+    constexpr krnlEvent(deviceEvent e = nullptr, deviceEvent* el = nullptr, int n = 1) : ev(e), evList(el), nEvents(n) {}
+    deviceEvent ev;
     deviceEvent* evList;
     int nEvents;
   };
@@ -184,12 +185,12 @@ class GPUReconstruction
   virtual int RunChains() = 0;
   unsigned int getNEventsProcessed() { return mNEventsProcessed; }
   unsigned int getNEventsProcessedInStat() { return mStatNEvents; }
-  virtual int registerMemoryForGPU(const void* ptr, size_t size) = 0;
-  virtual int unregisterMemoryForGPU(const void* ptr) = 0;
+  int registerMemoryForGPU(const void* ptr, size_t size);
+  int unregisterMemoryForGPU(const void* ptr);
   virtual void* getGPUPointer(void* ptr) { return ptr; }
   virtual void startGPUProfiling() {}
   virtual void endGPUProfiling() {}
-  int CheckErrorCodes(bool cpuOnly = false, bool forceShowErrors = false);
+  int CheckErrorCodes(bool cpuOnly = false, bool forceShowErrors = false, std::vector<std::array<unsigned int, 4>>* fillErrors = nullptr);
   void RunPipelineWorker();
   void TerminatePipelineWorker();
 
@@ -222,8 +223,7 @@ class GPUReconstruction
   GPUMemorySizeScalers* MemoryScalers() { return mMemoryScalers.get(); }
 
   // Helpers to fetch processors from other shared libraries
-  virtual void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits);
-  virtual void GetITSTimeframe(std::unique_ptr<o2::its::TimeFrame>* timeFrame);
+  virtual void GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>* trackerTraits, std::unique_ptr<o2::its::VertexerTraits>* vertexerTraits, std::unique_ptr<o2::its::TimeFrame>* timeFrame);
   bool slavesExist() { return mSlaves.size() || mMaster; }
 
   // Getters / setters for parameters
@@ -257,6 +257,9 @@ class GPUReconstruction
   int getRecoStepNum(RecoStep step, bool validCheck = true);
   int getGeneralStepNum(GeneralStep step, bool validCheck = true);
 
+  void setErrorCodeOutput(std::vector<std::array<unsigned int, 4>>* v) { mOutputErrorCodes = v; }
+  std::vector<std::array<unsigned int, 4>>* getErrorCodeOutput() { return mOutputErrorCodes; }
+
   // Registration of GPU Processors
   template <class T>
   void RegisterGPUProcessor(T* proc, bool deviceSlave);
@@ -281,10 +284,13 @@ class GPUReconstruction
   int InitPhaseAfterDevice();
   void WriteConstantParams();
   virtual int ExitDevice() = 0;
-  virtual size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) = 0;
+  virtual size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent ev = nullptr) = 0;
   void UpdateMaxMemoryUsed();
   int EnqueuePipeline(bool terminate = false);
   GPUChain* GetNextChainInQueue();
+
+  virtual int registerMemoryForGPU_internal(const void* ptr, size_t size) = 0;
+  virtual int unregisterMemoryForGPU_internal(const void* ptr) = 0;
 
   // Management for GPU thread contexts
   class GPUThreadContext
@@ -362,6 +368,8 @@ class GPUReconstruction
   void* mVolatileMemoryStart = nullptr;     // Ptr to beginning of temporary volatile memory allocation, nullptr if uninitialized
   size_t mDeviceMemoryUsedMax = 0;          //
 
+  std::unordered_set<const void*> mRegisteredMemoryPtrs; // List of pointers registered for GPU
+
   GPUReconstruction* mMaster = nullptr;    // Ptr to a GPUReconstruction object serving as master, sharing GPU memory, events, etc.
   std::vector<GPUReconstruction*> mSlaves; // Ptr to slave GPUReconstructions
 
@@ -372,6 +380,7 @@ class GPUReconstruction
   double mStatKernelTime = 0.;
   double mStatWallTime = 0.;
   std::shared_ptr<GPUROOTDumpCore> mROOTDump;
+  std::vector<std::array<unsigned int, 4>>* mOutputErrorCodes = nullptr;
 
   int mMaxThreads = 0;    // Maximum number of threads that may be running, on CPU or GPU
   int mThreadId = -1;     // Thread ID that is valid for the local CUDA context

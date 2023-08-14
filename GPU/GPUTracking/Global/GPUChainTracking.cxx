@@ -503,6 +503,7 @@ int GPUChainTracking::Finalize()
 
 void* GPUChainTracking::GPUTrackingFlatObjects::SetPointersFlatObjects(void* mem)
 {
+  char* fastTransformBase = (char*)mem;
   if (mChainTracking->processors()->calibObjects.fastTransform) {
     computePointerWithAlignment(mem, mCalibObjects.fastTransform, 1);
     computePointerWithAlignment(mem, mTpcTransformBuffer, mChainTracking->processors()->calibObjects.fastTransform->getFlatBufferSize());
@@ -513,6 +514,9 @@ void* GPUChainTracking::GPUTrackingFlatObjects::SetPointersFlatObjects(void* mem
   }
   if (mChainTracking->processors()->calibObjects.fastTransformHelper) {
     computePointerWithAlignment(mem, mCalibObjects.fastTransformHelper, 1);
+  }
+  if ((char*)mem - fastTransformBase < mChainTracking->GetProcessingSettings().fastTransformObjectsMinMemorySize) {
+    mem = fastTransformBase + mChainTracking->GetProcessingSettings().fastTransformObjectsMinMemorySize; // TODO: Fixme and do proper dynamic allocation
   }
   if (mChainTracking->processors()->calibObjects.tpcPadGain) {
     computePointerWithAlignment(mem, mCalibObjects.tpcPadGain, 1);
@@ -542,7 +546,7 @@ void* GPUChainTracking::GPUTrackingFlatObjects::SetPointersFlatObjects(void* mem
   }
 #endif
   if (!mChainTracking->mUpdateNewCalibObjects) {
-    mem = (char*)mem + mChainTracking->GetProcessingSettings().calibObjectsExtraMemorySize;
+    mem = (char*)mem + mChainTracking->GetProcessingSettings().calibObjectsExtraMemorySize; // TODO: Fixme and do proper dynamic allocation
   }
   return mem;
 }
@@ -738,11 +742,19 @@ int GPUChainTracking::RunChain()
     mRec->SetNOMPThreads(-1);
   }
 
-  if (CheckErrorCodes()) {
-    return 3;
+  int retVal = 0;
+  if (CheckErrorCodes(false, false, mRec->getErrorCodeOutput())) {
+    retVal = 3;
+    if (!GetProcessingSettings().ignoreNonFatalGPUErrors) {
+      return retVal;
+    }
   }
 
-  return GetProcessingSettings().doublePipeline ? 0 : RunChainFinalize();
+  if (GetProcessingSettings().doublePipeline) {
+    return retVal;
+  }
+  int retVal2 = RunChainFinalize();
+  return retVal2 ? retVal2 : retVal;
 }
 
 int GPUChainTracking::RunChainFinalize()
@@ -865,7 +877,7 @@ int GPUChainTracking::HelperOutput(int iSlice, int threadId, GPUReconstructionHe
   return 0;
 }
 
-int GPUChainTracking::CheckErrorCodes(bool cpuOnly, bool forceShowErrors)
+int GPUChainTracking::CheckErrorCodes(bool cpuOnly, bool forceShowErrors, std::vector<std::array<unsigned int, 4>>* fillErrors)
 {
   int retVal = 0;
   for (int i = 0; i < 1 + (!cpuOnly && mRec->IsGPU()); i++) {
@@ -901,6 +913,13 @@ int GPUChainTracking::CheckErrorCodes(bool cpuOnly, bool forceShowErrors)
       }
       if (!quiet) {
         processors()->errorCodes.printErrors(GetProcessingSettings().throttleAlarms && !forceShowErrors);
+      }
+      if (fillErrors) {
+        unsigned int nErrors = processors()->errorCodes.getNErrors();
+        const unsigned int* pErrors = processors()->errorCodes.getErrorPtr();
+        for (unsigned int j = 0; j < nErrors; j++) {
+          fillErrors->emplace_back(std::array<unsigned int, 4>{pErrors[4 * j], pErrors[4 * j + 1], pErrors[4 * j + 2], pErrors[4 * j + 3]});
+        }
       }
     }
   }

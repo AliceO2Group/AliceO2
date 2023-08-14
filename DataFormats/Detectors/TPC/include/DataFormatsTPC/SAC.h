@@ -81,7 +81,7 @@ struct dataDef {
   };                         ///
                              ///
   uint32_t pktNumber = 0;    ///< packet number of this front end card. Should always increase by 1
-  uint32_t timeStamp = 0;    ///< tims stamp
+  uint32_t timeStamp = 0;    ///< time stamp
   char dataWords[DataSize];  ///< ASCI encoded SAC data
   uint32_t crc32 = 0;        ///< CRC32 checksum
   uint32_t trailer = 0;      ///< trailer magic word, should always be TrailerWord

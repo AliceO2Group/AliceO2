@@ -13,7 +13,7 @@
 #define O2_FRAMEWORK_O2DATAMODELHELPERS_H_
 
 #include "Headers/DataHeader.h"
-#include <fairmq/FairMQParts.h>
+#include <fairmq/Parts.h>
 #include "Framework/OutputSpec.h"
 
 namespace o2::framework

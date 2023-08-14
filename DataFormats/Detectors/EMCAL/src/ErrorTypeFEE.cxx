@@ -40,6 +40,9 @@ void ErrorTypeFEE::PrintStream(std::ostream& stream) const
     case ErrorSource_t::STU_ERROR:
       typestring = "STU decoder error";
       break;
+    case ErrorSource_t::LINK_ERROR:
+      typestring = "Link missing error";
+      break;
     case ErrorSource_t::UNDEFINED:
       typestring = "unknown error";
       break;
@@ -73,6 +76,8 @@ const char* ErrorTypeFEE::getErrorTypeName(unsigned int errorTypeID)
       return "GainType";
     case ErrorSource_t::STU_ERROR:
       return "STUDecoding";
+    case ErrorSource_t::LINK_ERROR:
+      return "LinkMissing";
     case ErrorSource_t::UNDEFINED:
       return "Undefined";
     default:
@@ -97,6 +102,8 @@ const char* ErrorTypeFEE::getErrorTypeTitle(unsigned int errorTypeID)
       return "Gain";
     case ErrorSource_t::STU_ERROR:
       return "STUDecoding";
+    case ErrorSource_t::LINK_ERROR:
+      return "Link missing";
     case ErrorSource_t::UNDEFINED:
       return "Unknown";
     default:

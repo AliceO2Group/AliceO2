@@ -53,13 +53,26 @@ struct ChannelsTableHelper {
 
 void deviceStateTable(DataProcessingStates const& states)
 {
+  static std::vector<char> statesActive(states.statesViews.size(), false);
+  if (statesActive.size() != states.statesViews.size()) {
+    statesActive.resize(states.statesViews.size(), false);
+  }
+
   if (ImGui::CollapsingHeader("Remote state", ImGuiTreeNodeFlags_DefaultOpen)) {
     for (size_t i = 0; i < states.stateNames.size(); ++i) {
       if (states.stateNames[i].empty()) {
         continue;
       }
       auto& view = states.statesViews[i];
-      ImGui::Text("%zu: %s, %d-%d", i, states.stateNames[i].c_str(), view.first, view.first + view.size);
+      if (view.size == 0) {
+        continue;
+      }
+      ImGui::Checkbox(states.stateNames[i].c_str(), (bool*)&statesActive[i]);
+      if (view.size && statesActive[i] != 0) {
+        ImGui::Begin(states.stateNames[i].c_str());
+        ImGui::Text("%d-%d\n %.*s", view.first, view.first + view.size, view.size, states.statesBuffer.data() + view.first);
+        ImGui::End();
+      }
     }
   }
 }
@@ -276,7 +289,7 @@ void displayDeviceInspector(DeviceSpec const& spec,
       "osascript -e 'tell application \"Terminal\"'"
       " -e 'activate'"
       " -e 'do script \"xcrun xctrace record --output dpl-profile-{0}.trace"
-      " --time-limit 30s --template Time\\\\ Profiler --attach {0} "
+      " --instrument os_signpost --time-limit 30s --template Time\\\\ Profiler --attach {0} "
       " && open dpl-profile-{0}.trace && exit\"'"
       " -e 'end tell'",
       pid);
@@ -298,7 +311,7 @@ void displayDeviceInspector(DeviceSpec const& spec,
       "osascript -e 'tell application \"Terminal\"'"
       " -e 'activate'"
       " -e 'do script \"xcrun xctrace record --output dpl-profile-{0}.trace"
-      " --time-limit 30s --template Allocations --attach {0} "
+      " --time-limit 30s --instrument os_signpost --template Allocations --attach {0} "
       " && open dpl-profile-{0}.trace && exit\"'"
       " -e 'end tell'",
       pid);

@@ -30,6 +30,8 @@
 #include "MathUtils/Utils.h"
 #include "DataFormatsParameters/GRPMagField.h"
 #include "GPUDebugStreamer.h"
+#include "TPCBase/ParameterElectronics.h"
+#include "CommonConstants/LHCConstants.h"
 
 #include <numeric>
 #include <chrono>
@@ -41,6 +43,7 @@
 #include "TROOT.h"
 #include "TStopwatch.h"
 #include "ROOT/RDataFrame.hxx"
+#include "THnSparse.h"
 
 #include <random>
 
@@ -260,10 +263,21 @@ size_t SpaceCharge<DataT>::getPhiBinsGapFrame(const Side side) const
 template <typename DataT>
 void SpaceCharge<DataT>::setPotentialBoundaryGEMFrameAlongR(const std::function<DataT(DataT)>& potentialFunc, const Side side)
 {
-  const bool simOneSectorOnly = MGParameters::normalizeGridToOneSector;
   initContainer(mPotential[side], true);
+  const auto indices = getPotentialBoundaryGEMFrameAlongRIndices(side);
+  setBoundaryFromIndices(potentialFunc, indices, side);
+}
+
+template <typename DataT>
+std::vector<size_t> SpaceCharge<DataT>::getPotentialBoundaryGEMFrameAlongRIndices(const Side side) const
+{
+  const bool simOneSectorOnly = MGParameters::normalizeGridToOneSector;
   const auto radiusStart = std::sqrt(std::pow(GEMFrameParameters<DataT>::LENGTHFRAMEIROCBOTTOM / 2, 2) + std::pow(GEMFrameParameters<DataT>::POSBOTTOM[0], 2));
   const auto rStart = getNearestRVertex(radiusStart, side);
+
+  const auto radiusEnd = std::sqrt(std::pow(GEMFrameParameters<DataT>::LENGTHFRAMEOROC3TOP / 2, 2) + std::pow(GEMFrameParameters<DataT>::POSTOP[3], 2));
+  const auto rEnd = getNearestRVertex(radiusEnd, side); // mParamGrid.NRVertices - 1
+
   const int verticesPerSector = simOneSectorOnly ? mParamGrid.NPhiVertices : mParamGrid.NPhiVertices / SECTORSPERSIDE;
 
   const auto& regInf = Mapper::instance().getPadRegionInfo(0);
@@ -287,7 +301,8 @@ void SpaceCharge<DataT>::setPotentialBoundaryGEMFrameAlongR(const std::function<
     radii.emplace_back(std::sqrt(std::pow(GEMFrameParameters<DataT>::POSTOP[stack], 2) + std::pow(localYEdge, 2)));
   }
 
-  for (size_t iR = rStart; iR < mParamGrid.NRVertices - 1; ++iR) {
+  std::vector<size_t> potentialInd;
+  for (size_t iR = rStart; iR < rEnd; ++iR) {
     const DataT radius = getRVertex(iR, side);
     auto const it = std::lower_bound(radii.begin(), radii.end(), radius);
     const int stack = (it == radii.end()) ? (stacks - 1) : (it - radii.begin());
@@ -304,21 +319,58 @@ void SpaceCharge<DataT>::setPotentialBoundaryGEMFrameAlongR(const std::function<
       for (int sector = 0; sector < (simOneSectorOnly ? 1 : SECTORSPERSIDE); ++sector) {
         const size_t iPhiLeft = sector * verticesPerSector + iPhiTmp;
         const size_t iZ = mParamGrid.NZVertices - 1;
-        mPotential[side](iZ, iR, iPhiLeft) = potentialFunc(radius);
+        potentialInd.emplace_back(mPotential[side].getDataIndex(iZ, iR, iPhiLeft));
         if (iPhiTmp > 0) {
           const size_t iPhiRight = (sector + 1) * verticesPerSector - iPhiTmp;
-          mPotential[side](iZ, iR, iPhiRight) = potentialFunc(radius);
+          potentialInd.emplace_back(mPotential[side].getDataIndex(iZ, iR, iPhiRight));
         }
       }
     }
   }
+  std::sort(potentialInd.begin(), potentialInd.end());
+  return potentialInd;
 }
 
 template <typename DataT>
 void SpaceCharge<DataT>::setPotentialBoundaryGEMFrameAlongPhi(const std::function<DataT(DataT)>& potentialFunc, const GEMstack stack, const bool bottom, const Side side, const bool outerFrame)
 {
-  const bool simOneSectorOnly = MGParameters::normalizeGridToOneSector;
   initContainer(mPotential[side], true);
+  const auto indices = getPotentialBoundaryGEMFrameAlongPhiIndices(stack, bottom, side, outerFrame);
+  setBoundaryFromIndices(potentialFunc, indices, side);
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::setBoundaryFromIndices(const std::function<DataT(DataT)>& potentialFunc, const std::vector<size_t>& indices, const Side side)
+{
+  for (const auto& index : indices) {
+    const int iZ = mPotential[side].getIndexZ(index);
+    const int iR = mPotential[side].getIndexR(index);
+    const int iPhi = mPotential[side].getIndexPhi(index);
+    const DataT radius = getRVertex(iR, side);
+    mPotential[side](iZ, iR, iPhi) = potentialFunc(radius);
+  }
+}
+
+template <typename DataT>
+std::vector<size_t> SpaceCharge<DataT>::getPotentialBoundaryGEMFrameAlongPhiIndices(const GEMstack stack, const bool bottom, const Side side, const bool outerFrame, const bool noGap) const
+{
+  const bool simOneSectorOnly = MGParameters::normalizeGridToOneSector;
+
+  // to avoid double counting
+  auto indices = getPotentialBoundaryGEMFrameAlongRIndices(side);
+
+  if (!bottom && outerFrame) {
+    // if OROC3 to OFC check outer GEM frame from OROC3!
+    const auto indicesOROC3 = getPotentialBoundaryGEMFrameAlongPhiIndices(GEMstack::OROC3gem, false, side, false);
+    indices.insert(indices.end(), indicesOROC3.begin(), indicesOROC3.end());
+    std::sort(indices.begin(), indices.end());
+  } else if (bottom && outerFrame) {
+    // if IROC to IFC check inner GEM frame from IROC
+    const auto indicesIROC = getPotentialBoundaryGEMFrameAlongPhiIndices(GEMstack::IROCgem, true, side, false);
+    indices.insert(indices.end(), indicesIROC.begin(), indicesIROC.end());
+    std::sort(indices.begin(), indices.end());
+  }
+
   int region = 0;
   float offsStart = 0;
   float offsEnd = 0;
@@ -364,8 +416,9 @@ void SpaceCharge<DataT>::setPotentialBoundaryGEMFrameAlongPhi(const std::functio
     nVerticesR = 1;
   }
 
+  std::vector<size_t> potentialInd;
   const int verticesPerSector = simOneSectorOnly ? mParamGrid.NPhiVertices : mParamGrid.NPhiVertices / SECTORSPERSIDE;
-  const auto nBinsPhi = outerFrame ? 0 : (simOneSectorOnly ? 0 : getPhiBinsGapFrame(side));
+  const auto nBinsPhi = (outerFrame || noGap) ? 0 : (simOneSectorOnly ? 0 : getPhiBinsGapFrame(side));
   for (int sector = 0; sector < (simOneSectorOnly ? 1 : SECTORSPERSIDE); ++sector) {
     const auto offsetPhi = sector * verticesPerSector + verticesPerSector / 2;
     for (size_t iPhiLocal = 0; iPhiLocal <= (verticesPerSector / 2 - nBinsPhi); ++iPhiLocal) {
@@ -389,22 +442,23 @@ void SpaceCharge<DataT>::setPotentialBoundaryGEMFrameAlongPhi(const std::functio
 
       for (size_t iR = rStart; iR < nREnd; ++iR) {
         const size_t iZ = mParamGrid.NZVertices - 1;
-        if (!outerFrame) {
-          if (iPhiLeft < getNPhiVertices()) {
-            mPotential[side](iZ, iR, iPhiLeft) = potentialFunc(phiLeft);
+        if (iPhiLeft < getNPhiVertices()) {
+          if (noGap || !std::binary_search(indices.begin(), indices.end(), mPotential[side].getDataIndex(iZ, iR, iPhiLeft))) {
+            potentialInd.emplace_back(mPotential[side].getDataIndex(iZ, iR, iPhiLeft));
           }
-          mPotential[side](iZ, iR, iPhiRight) = potentialFunc(phiRight);
-        } else {
-          const DataT r = getRVertex(iR, side);
-          const DataT pot = potentialFunc(r);
-          if (iPhiLeft < getNPhiVertices()) {
-            mPotential[side](iZ, iR, iPhiLeft) = pot;
-          }
-          mPotential[side](iZ, iR, iPhiRight) = pot;
+        }
+
+        if (iPhiLocal && (noGap || !std::binary_search(indices.begin(), indices.end(), mPotential[side].getDataIndex(iZ, iR, iPhiRight)))) {
+          potentialInd.emplace_back(mPotential[side].getDataIndex(iZ, iR, iPhiRight));
         }
       }
     }
   }
+  // remove duplicate entries
+  std::unordered_set<size_t> set(potentialInd.begin(), potentialInd.end());
+  potentialInd.assign(set.begin(), set.end());
+  std::sort(potentialInd.begin(), potentialInd.end());
+  return potentialInd;
 }
 
 template <typename DataT>
@@ -416,7 +470,7 @@ void SpaceCharge<DataT>::setPotentialBoundaryInnerRadius(const std::function<Dat
     const auto pot = potentialFunc(z);
     for (size_t iPhi = 0; iPhi < mParamGrid.NPhiVertices; ++iPhi) {
       const size_t iR = 0;
-      mPotential[side](iZ, iR, iPhi) = pot;
+      mPotential[side](iZ, iR, iPhi) += pot;
     }
   }
 }
@@ -797,23 +851,6 @@ void SpaceCharge<DataT>::fillChargeDensityFromFile(TFile& fInp, const char* name
 }
 
 template <typename DataT>
-void SpaceCharge<DataT>::fillChargeDensityFromHisto(const TH3& hisSCDensity3D)
-{
-  TH3DataT hRebin = rebinDensityHisto(hisSCDensity3D, mParamGrid.NZVertices, mParamGrid.NRVertices, mParamGrid.NPhiVertices);
-  for (int side = Side::A; side < SIDES; ++side) {
-    initContainer(mDensity[side], true);
-    for (size_t iPhi = 0; iPhi < mParamGrid.NPhiVertices; ++iPhi) {
-      for (size_t iR = 0; iR < mParamGrid.NRVertices; ++iR) {
-        for (size_t iZ = 0; iZ < mParamGrid.NZVertices; ++iZ) {
-          const size_t zBin = side == Side::A ? mParamGrid.NZVertices + iZ + 1 : mParamGrid.NZVertices - iZ;
-          mDensity[side](iZ, iR, iPhi) = hRebin.GetBinContent(iPhi + 1, iR + 1, zBin);
-        }
-      }
-    }
-  }
-}
-
-template <typename DataT>
 void SpaceCharge<DataT>::fillChargeDensityFromCalDet(const std::vector<CalDet<float>>& calSCDensity3D)
 {
   const auto hConverted = o2::tpc::painter::convertCalDetToTH3(calSCDensity3D, true, mParamGrid.NRVertices, getRMin(Side::A), getRMax(Side::A), mParamGrid.NPhiVertices, getZMax(Side::A));
@@ -829,22 +866,33 @@ void SpaceCharge<DataT>::fillChargeFromCalDet(const std::vector<CalDet<float>>& 
 }
 
 template <typename DataT>
-typename SpaceCharge<DataT>::TH3DataT SpaceCharge<DataT>::rebinDensityHisto(const TH3& hOrig, const unsigned short nBinsZNew, const unsigned short nBinsRNew, const unsigned short nBinsPhiNew)
+void SpaceCharge<DataT>::fillChargeDensityFromHisto(const TH3& hOrig)
 {
-  TH3DataT hRebin{};
-  const int nBinsZNewTwo = 2 * nBinsZNew;
+  const unsigned short nBinsZNew = mParamGrid.NZVertices;
+  const unsigned short nBinsRNew = mParamGrid.NRVertices;
+  const unsigned short nBinsPhiNew = mParamGrid.NPhiVertices;
 
+  initContainer(mDensity[Side::A], true);
+  initContainer(mDensity[Side::C], true);
+
+  const int nBinsZNewTwo = 2 * nBinsZNew;
   const auto phiLow = hOrig.GetXaxis()->GetBinLowEdge(1);
   const auto phiUp = hOrig.GetXaxis()->GetBinUpEdge(hOrig.GetNbinsX());
   const auto rLow = hOrig.GetYaxis()->GetBinLowEdge(1);
   const auto rUp = hOrig.GetYaxis()->GetBinUpEdge(hOrig.GetNbinsY());
   const auto zLow = hOrig.GetZaxis()->GetBinLowEdge(1);
   const auto zUp = hOrig.GetZaxis()->GetBinUpEdge(hOrig.GetNbinsZ());
-  hRebin.SetBins(nBinsPhiNew, phiLow, phiUp, nBinsRNew, rLow, rUp, nBinsZNewTwo, zLow, zUp);
 
+  const int dim = 3;
+  int bins[dim]{nBinsPhiNew, nBinsRNew, nBinsZNewTwo};
+  double xmin[dim]{phiLow, rLow, zLow};
+  double xmax[dim]{phiUp, rUp, zUp};
+  const THnSparseF hRebin("hTmp", "hTmp", dim, bins, xmin, xmax);
+
+#pragma omp parallel for num_threads(sNThreads)
   for (int iBinPhi = 1; iBinPhi <= nBinsPhiNew; ++iBinPhi) {
-    const auto phiLowEdge = hRebin.GetXaxis()->GetBinLowEdge(iBinPhi);
-    const auto phiUpEdge = hRebin.GetXaxis()->GetBinUpEdge(iBinPhi);
+    const auto phiLowEdge = hRebin.GetAxis(0)->GetBinLowEdge(iBinPhi);
+    const auto phiUpEdge = hRebin.GetAxis(0)->GetBinUpEdge(iBinPhi);
 
     const int phiLowBinOrig = hOrig.GetXaxis()->FindBin(phiLowEdge);
     const int phiUpBinOrig = hOrig.GetXaxis()->FindBin(phiUpEdge);
@@ -855,8 +903,8 @@ typename SpaceCharge<DataT>::TH3DataT SpaceCharge<DataT>::rebinDensityHisto(cons
     const auto upperBinWeightPhi = std::abs(phiUpEdge - hOrig.GetXaxis()->GetBinLowEdge(phiUpBinOrig)) / binWidthPhiOrig;
 
     for (int iBinR = 1; iBinR <= nBinsRNew; ++iBinR) {
-      const auto rLowEdge = hRebin.GetYaxis()->GetBinLowEdge(iBinR);
-      const auto rUpEdge = hRebin.GetYaxis()->GetBinUpEdge(iBinR);
+      const auto rLowEdge = hRebin.GetAxis(1)->GetBinLowEdge(iBinR);
+      const auto rUpEdge = hRebin.GetAxis(1)->GetBinUpEdge(iBinR);
 
       const int rLowBinOrig = hOrig.GetYaxis()->FindBin(rLowEdge);
       const int rUpBinOrig = hOrig.GetYaxis()->FindBin(rUpEdge);
@@ -867,9 +915,9 @@ typename SpaceCharge<DataT>::TH3DataT SpaceCharge<DataT>::rebinDensityHisto(cons
       const auto upperBinWeightR = std::abs(rUpEdge - hOrig.GetYaxis()->GetBinLowEdge(rUpBinOrig)) / binWidthROrig;
 
       for (int iBinZ = 1; iBinZ <= nBinsZNewTwo; ++iBinZ) {
-        const auto zLowEdge = hRebin.GetZaxis()->GetBinLowEdge(iBinZ);
-        const auto zUpEdge = hRebin.GetZaxis()->GetBinUpEdge(iBinZ);
-        const auto zCenter = hRebin.GetZaxis()->GetBinCenter(iBinZ);
+        const auto zLowEdge = hRebin.GetAxis(2)->GetBinLowEdge(iBinZ);
+        const auto zUpEdge = hRebin.GetAxis(2)->GetBinUpEdge(iBinZ);
+        const auto zCenter = hRebin.GetAxis(2)->GetBinCenter(iBinZ);
 
         int zLowBinOrig = hOrig.GetZaxis()->FindBin(zLowEdge);
         int zUpBinOrig = hOrig.GetZaxis()->FindBin(zUpEdge);
@@ -954,11 +1002,12 @@ typename SpaceCharge<DataT>::TH3DataT SpaceCharge<DataT>::rebinDensityHisto(cons
           }
         }
         sum /= sumW;
-        hRebin.SetBinContent(iBinPhi, iBinR, iBinZ, sum);
+        const Side side = (iBinZ > mParamGrid.NZVertices) ? Side::A : Side::C;
+        const int iZ = (side == Side::A) ? (iBinZ - mParamGrid.NZVertices - 1) : (mParamGrid.NZVertices - iBinZ);
+        mDensity[side](iZ, iBinR - 1, iBinPhi - 1) = sum;
       }
     }
   }
-  return hRebin;
 }
 
 template <typename DataT>
@@ -1326,16 +1375,24 @@ void SpaceCharge<DataT>::calcGlobalCorrections(const Formulas& formulaStruct, co
         // flag which is set when the central electrode is reached. if the central electrode is reached the calculation of the global corrections is aborted and the value set is the last calculated value.
         bool centralElectrodeReached = false;
         for (int iter = 0; iter < iSteps; ++iter) {
-          if (centralElectrodeReached || isOutOfVolume) {
+          if ((type != 3) && (centralElectrodeReached || isOutOfVolume)) {
             break;
           }
-          const DataT radius = regulateR(r0 + drCorr, side);     // current radial position of the electron
-          const DataT phi = regulatePhi(phi0 + dPhiCorr, side);  // current phi position of the electron
-          const DataT z0Tmp = z0 + dzCorr + iter * stepSize;     // starting z position
-          const DataT z1Tmp = regulateZ(z0Tmp + stepSize, side); // follow electron from z0Tmp to z1Tmp
-          DataT ddR = 0;                                         // distortion dR for z0Tmp to z1Tmp
-          DataT ddPhi = 0;                                       // distortion dPhi for z0Tmp to z1Tmp
-          DataT ddZ = 0;                                         // distortion dZ for z0Tmp to z1Tmp
+          DataT radius = r0 + drCorr;                        // current radial position of the electron
+          DataT phi = phi0 + dPhiCorr;                       // current phi position of the electron
+          const DataT z0Tmp = z0 + dzCorr + iter * stepSize; // starting z position
+          DataT z1Tmp = z0Tmp + stepSize;                    // follow electron from z0Tmp to z1Tmp
+
+          // restrict to inner TPC volume
+          if (type != 3) {
+            radius = regulateR(radius, side);
+            phi = regulatePhi(phi, side);
+            z1Tmp = regulateZ(z1Tmp, side);
+          }
+
+          DataT ddR = 0;   // distortion dR for z0Tmp to z1Tmp
+          DataT ddPhi = 0; // distortion dPhi for z0Tmp to z1Tmp
+          DataT ddZ = 0;   // distortion dZ for z0Tmp to z1Tmp
 
           // get the distortion from interpolation of local distortions or calculate distortions with the electric field
           processGlobalDistCorr(radius, phi, z0Tmp, z1Tmp, ddR, ddPhi, ddZ, formulaStruct);
@@ -1355,7 +1412,7 @@ void SpaceCharge<DataT>::calcGlobalCorrections(const Formulas& formulaStruct, co
           const DataT zCurr = z0Tmp + dzCorr + ddZ + stepSize;
 
           // check if current position lies in the TPC volume if not the electron gets corrected outside of the TPC volume and the calculation of the following corrections can be skipped
-          if (rCurr <= getRMinSim(side) || rCurr >= getRMaxSim(side) || (std::abs(zCurr) > 1.2 * std::abs(getZMax(side)))) {
+          if ((type != 3) && (rCurr <= getRMinSim(side) || rCurr >= getRMaxSim(side) || (std::abs(zCurr) > 1.2 * std::abs(getZMax(side))))) {
             isOutOfVolume = true;
             break;
           }
@@ -1367,7 +1424,7 @@ void SpaceCharge<DataT>::calcGlobalCorrections(const Formulas& formulaStruct, co
 
           // set loop to exit if the central electrode is reached and approximate correction of 'missing' (one never ends exactly on the central electrode: z1Tmp + ddZ != ZMIN) distance.
           // approximation is done by the current calculated values of the corrections and scaled linear to the 'missing' distance deltaZ. (NOT TESTED)
-          if (centralElectrodeReached) {
+          if ((type != 3) && centralElectrodeReached) {
             const DataT endPoint = z1Tmp + ddZ;
             const DataT deltaZ = endPoint - getZMin(side);
             const DataT diff = z0Tmp - endPoint;
@@ -1379,7 +1436,7 @@ void SpaceCharge<DataT>::calcGlobalCorrections(const Formulas& formulaStruct, co
           }
         }
         // store global corrections
-        if ((type != 0) && (centralElectrodeReached || isOutOfVolume)) {
+        if ((type == 1 || type == 2) && (centralElectrodeReached || isOutOfVolume)) {
           mGlobalCorrdR[side](iZ - 1, iR, iPhi) = -1;
           mGlobalCorrdRPhi[side](iZ - 1, iR, iPhi) = -1;
           mGlobalCorrdZ[side](iZ - 1, iR, iPhi) = -1;
@@ -3067,6 +3124,399 @@ void SpaceCharge<DataT>::setOmegaTauT1T2(const DataT omegaTau, const DataT t1, c
   const DataT wt1 = t1 * omegaTau;
   mC1 = wt1 / (1 + wt1 * wt1);
   mC2 = wt02 / (1 + wt02);
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::addChargeDensity(const SpaceCharge<DataT>& otherSC)
+{
+  const bool sameGrid = (getNPhiVertices() == otherSC.getNPhiVertices()) && (getNRVertices() == otherSC.getNRVertices()) && (getNZVertices() == otherSC.getNZVertices());
+  if (!sameGrid) {
+    LOGP(warning, "Space charge objects have different grid definition");
+    return;
+  }
+
+  mDensity[Side::A] += otherSC.mDensity[Side::A];
+  mDensity[Side::C] += otherSC.mDensity[Side::C];
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::fillChargeDensityFromHisto(const char* file, const char* nameA, const char* nameC)
+{
+  TFile fInp(file, "READ");
+  TH3F* hSCA = (TH3F*)fInp.Get(nameA);
+  TH3F* hSCC = (TH3F*)fInp.Get(nameC);
+  if (!hSCA) {
+    LOGP(error, "Histogram {} not found", nameA);
+  }
+  if (!hSCC) {
+    LOGP(error, "Histogram {} not found", nameC);
+  }
+  fillChargeDensityFromHisto(*hSCA, *hSCC);
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::fillChargeDensityFromHisto(const TH3& hisSCDensity3D_A, const TH3& hisSCDensity3D_C)
+{
+  const int nPhiBinsTmp = hisSCDensity3D_A.GetXaxis()->GetNbins();
+  const int nRBinsTmp = hisSCDensity3D_A.GetYaxis()->GetNbins();
+  const int nZBins = hisSCDensity3D_A.GetZaxis()->GetNbins();
+  const auto phiLow = hisSCDensity3D_A.GetXaxis()->GetBinLowEdge(1);
+  const auto phiUp = hisSCDensity3D_A.GetXaxis()->GetBinUpEdge(nPhiBinsTmp);
+  const auto rLow = hisSCDensity3D_A.GetYaxis()->GetBinLowEdge(1);
+  const auto rUp = hisSCDensity3D_A.GetYaxis()->GetBinUpEdge(nRBinsTmp);
+  const auto zUp = hisSCDensity3D_A.GetZaxis()->GetBinUpEdge(nZBins);
+
+  TH3F hisSCMerged("hisMerged", "hisMerged", nPhiBinsTmp, phiLow, phiUp, nRBinsTmp, rLow, rUp, 2 * nZBins, -zUp, zUp);
+
+  for (int iside = 0; iside < FNSIDES; ++iside) {
+    const auto& hSC = (iside == 0) ? hisSCDensity3D_A : hisSCDensity3D_C;
+#pragma omp parallel for num_threads(sNThreads)
+    for (int iz = 1; iz <= nZBins; ++iz) {
+      const int izTmp = (iside == 0) ? (nZBins + iz) : iz;
+      for (int ir = 1; ir <= nRBinsTmp; ++ir) {
+        for (int iphi = 1; iphi <= nPhiBinsTmp; ++iphi) {
+          hisSCMerged.SetBinContent(iphi, ir, izTmp, hSC.GetBinContent(iphi, ir, iz));
+        }
+      }
+    }
+  }
+  fillChargeDensityFromHisto(hisSCMerged);
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::convertIDCsToCharge(std::vector<CalDet<float>>& idcZero, const CalDet<float>& mapIBF, const float ionDriftTimeMS, const bool normToPadArea)
+{
+  // 1. integration time per IDC interval in ms
+  const int nOrbits = 12;
+  const float idcIntegrationTimeMS = (nOrbits * o2::constants::lhc::LHCOrbitMUS) / 1e3;
+
+  // number of time stamps for each integration interval (5346) (see: IDCSim.h getNTimeStampsPerIntegrationInterval())
+  const unsigned int nTimeStampsPerIDCInterval{(o2::constants::lhc::LHCMaxBunches * nOrbits) / o2::tpc::constants::LHCBCPERTIMEBIN};
+
+  const int nIDCSlices = idcZero.size();
+  // IDCs are normalized for each interval to 5346 time bins
+  // IDC0 = <IDC> per ms = 5346 / ~1ms
+  const float idcsPerMS = nTimeStampsPerIDCInterval / idcIntegrationTimeMS;
+
+  // length of one z slice on ms
+  const float lengthZSliceMS = ionDriftTimeMS / nIDCSlices;
+
+  // IDCs for one z slice
+  const float scaleToIonDrift = lengthZSliceMS * idcsPerMS;
+
+  // get conversion factor from ADC to electrons (see: SAMPAProcessing::getADCvalue())
+  const static ParameterElectronics& parameterElectronics = ParameterElectronics::Instance();
+  const float conversionADCToEle = parameterElectronics.ElectronCharge * 1.e15 * parameterElectronics.ChipGain * parameterElectronics.ADCsaturation / parameterElectronics.ADCdynamicRange;
+
+  const float conversionFactor = scaleToIonDrift / conversionADCToEle;
+  LOGP(info, "Converting IDCs to space-charge density with conversion factor of {}", conversionFactor);
+
+  for (auto& calIDC : idcZero) {
+    if (normToPadArea) {
+      for (unsigned int sector = 0; sector < Mapper::NSECTORS; ++sector) {
+        for (unsigned int region = 0; region < Mapper::NREGIONS; ++region) {
+          for (int lrow = 0; lrow < Mapper::ROWSPERREGION[region]; ++lrow) {
+            for (unsigned int pad = 0; pad < Mapper::PADSPERROW[region][lrow]; ++pad) {
+              const int globalPad = Mapper::getGlobalPadNumber(lrow, pad, region);
+              float idcTmp = calIDC.getValue(sector, globalPad);
+              calIDC.setValue(sector, globalPad, conversionFactor * idcTmp / Mapper::INVPADAREA[region]);
+            }
+          }
+        }
+      }
+    } else {
+      calIDC *= conversionFactor;
+    }
+    // take IBF into account
+    calIDC *= mapIBF;
+    calIDC *= 0.01f; // ibf values are in %
+  }
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::fillChargeFromIDCs(std::vector<CalDet<float>>& idcZero, const CalDet<float>& mapIBF, const float ionDriftTimeMS, const bool normToPadArea)
+{
+  convertIDCsToCharge(idcZero, mapIBF, ionDriftTimeMS, normToPadArea);
+  fillChargeFromCalDet(idcZero);
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::initRodAlignmentVoltages(const MisalignmentType misalignmentType, const FCType fcType, const int sector, const Side side, const float deltaPot)
+{
+  // see also original implementation in AliTPCFCVoltError3D::InitFCVoltError3D (https://github.com/alisw/AliRoot/blob/master/TPC/TPCbase/AliTPCFCVoltError3D.h)
+
+  const int iside = static_cast<int>(side);
+  initContainer(mPotential[iside], true);
+  const int phiVerticesPerSector = mParamGrid.NPhiVertices / SECTORSPERSIDE;
+  int phiVerticesEnd = phiVerticesPerSector;
+
+  if (misalignmentType == MisalignmentType::RodShift) {
+    const float rodDiameter = 1; // 1 cm SET SOMEWEHERE ELSE
+    const float rodRadius = rodDiameter / 2;
+    const float radiusTmp = (fcType == FCType::IFC) ? TPCParameters<DataT>::IFCRADIUS : TPCParameters<DataT>::OFCRADIUS;
+    int nPhiVerticesPerRod = static_cast<int>(rodRadius * mParamGrid.NPhiVertices / (TWOPI * radiusTmp) + 0.5);
+    if (nPhiVerticesPerRod == 0) {
+      nPhiVerticesPerRod = 1;
+    }
+    phiVerticesEnd = nPhiVerticesPerRod;
+  }
+
+  const int phiStart = sector * phiVerticesPerSector;
+  const int phiEnd = phiStart + phiVerticesEnd;
+  const int nRVertex = (fcType == FCType::IFC) ? 0 : (mParamGrid.NRVertices - 1);
+  for (size_t iPhi = phiStart; iPhi < phiEnd; ++iPhi) {
+    const int iPhiSector = iPhi % phiVerticesPerSector;
+
+    float potentialSector = 0;
+    float potentialLastSector = 0;
+    if ((misalignmentType == MisalignmentType::ShiftedClip) || (misalignmentType == MisalignmentType::RodShift)) {
+      const float potentialShiftedClips = deltaPot - iPhiSector * deltaPot / phiVerticesEnd;
+      potentialSector = potentialShiftedClips;
+      potentialLastSector = potentialShiftedClips;
+    } else if (misalignmentType == MisalignmentType::RotatedClip) {
+      // set to zero for first vertex
+      if (iPhiSector == 0) {
+        potentialSector = 0;
+        potentialLastSector = 0;
+      } else {
+        const float potentialRotatedClip = -deltaPot + (iPhiSector - 1) * deltaPot / (phiVerticesPerSector - 2);
+        potentialSector = potentialRotatedClip;
+        potentialLastSector = -potentialRotatedClip;
+      }
+    }
+
+    for (size_t iZ = 0; iZ < mParamGrid.NZVertices; ++iZ) {
+      mPotential[iside](iZ, nRVertex, iPhi) += potentialSector;
+      if (iPhiSector > 0) {
+        const int iPhiMirror = ((phiStart - iPhiSector) + mParamGrid.NPhiVertices) % mParamGrid.NPhiVertices;
+        mPotential[iside](iZ, nRVertex, iPhiMirror) += potentialLastSector;
+      }
+    }
+  }
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::setIFCChargeUpLinear(const float deltaPot, const float zMaxDeltaPot, const bool cutOff, const Side side)
+{
+  std::function<DataT(DataT)> chargeUpIFCLinear = [cutOff, zMax = getZMax(Side::A), deltaPot, zMaxDeltaPot](const DataT z) {
+    const float absZ = std::abs(z);
+    const float absZMaxDeltaPot = std::abs(zMaxDeltaPot);
+    if (absZ <= absZMaxDeltaPot) {
+      return static_cast<DataT>(deltaPot / absZMaxDeltaPot * absZ);
+    } else {
+      if (cutOff) {
+        return DataT(0);
+      }
+      const float zPos = absZ - zMax;
+      return static_cast<DataT>(deltaPot / (absZMaxDeltaPot - zMax) * zPos);
+    }
+  };
+  setPotentialBoundaryInnerRadius(chargeUpIFCLinear, side);
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::setGlobalCorrections(const std::function<void(int sector, DataT gx, DataT gy, DataT gz, DataT& gCx, DataT& gCy, DataT& gCz)>& gCorr, const Side side)
+{
+  initContainer(mGlobalCorrdR[side], true);
+  initContainer(mGlobalCorrdZ[side], true);
+  initContainer(mGlobalCorrdRPhi[side], true);
+
+#pragma omp parallel for num_threads(sNThreads)
+  for (unsigned int iPhi = 0; iPhi < mParamGrid.NPhiVertices; ++iPhi) {
+    const int sector = iPhi / (mParamGrid.NPhiVertices / SECTORSPERSIDE) + (side == Side::A ? 0 : SECTORSPERSIDE);
+    DataT phi = getPhiVertex(iPhi, side);
+    phi = o2::math_utils::detail::toPMPi(phi);
+
+    for (unsigned int iR = 0; iR < mParamGrid.NRVertices; ++iR) {
+      const DataT radius = getRVertex(iR, side);
+      const DataT x = getXFromPolar(radius, phi);
+      const DataT y = getYFromPolar(radius, phi);
+
+      for (unsigned int iZ = 0; iZ < mParamGrid.NZVertices; ++iZ) {
+        const DataT z = getZVertex(iZ, side);
+
+        // get corrected points
+        DataT gCx = 0;
+        DataT gCy = 0;
+        DataT gCz = 0;
+        gCorr(sector, x, y, z, gCx, gCy, gCz);
+        const DataT gCxCorr = x + gCx;
+        const DataT gCyCorr = y + gCy;
+
+        // get corrections
+        const DataT corrR = getRadiusFromCartesian(gCxCorr, gCyCorr) - radius;
+        DataT phiDiff = getPhiFromCartesian(gCxCorr, gCyCorr) - phi;
+        phiDiff = o2::math_utils::detail::toPMPi(phiDiff);
+        const DataT corrRPhi = phiDiff * radius;
+
+        // store corrections
+        mGlobalCorrdR[side](iZ, iR, iPhi) = corrR;
+        mGlobalCorrdZ[side](iZ, iR, iPhi) = gCz;
+        mGlobalCorrdRPhi[side](iZ, iR, iPhi) = corrRPhi;
+      }
+    }
+  }
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::setROCMisalignmentShiftZ(const int sector, const int type, const float potential)
+{
+  setROCMisalignment(type, 2, sector, potential, potential);
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::setROCMisalignmentRotationAlongX(const int sector, const int type, const float potentialMin, const float potentialMax)
+{
+  setROCMisalignment(type, 0, sector, potentialMin, potentialMax);
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::setROCMisalignmentRotationAlongY(const int sector, const int type, const float potentialMin, const float potentialMax)
+{
+  setROCMisalignment(type, 1, sector, potentialMin, potentialMax);
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::setROCMisalignment(int stackType, int misalignmentType, int sector, const float potMin, const float potMax)
+{
+  initContainer(mPotential[Sector(sector).side()], true);
+  const auto indPhiTopIROC = getPotentialBoundaryGEMFrameAlongPhiIndices(GEMstack::IROCgem, false, Side::A, false, true);
+
+  const auto rotationPoints = [](const int regStart, const int regEnd, int misalignmentType, const float potMax, const float potMin) {
+    if (misalignmentType == 0) {
+      const auto& mapper = o2::tpc::Mapper::instance();
+      const float radStart = mapper.getPadRegionInfo(regStart).getRadiusFirstRow();
+      const auto& padReg = mapper.getPadRegionInfo(regEnd);
+      const float radEnd = padReg.getRadiusFirstRow() + padReg.getPadHeight() * padReg.getNumberOfPadRows() - radStart;
+      const float rotationPoint = radStart + radEnd / 2;
+      const float slope = (potMax - potMin) / radEnd;
+      return std::pair<float, float>{rotationPoint, slope};
+    } else if (misalignmentType == 1) {
+      return std::pair<float, float>{0, (potMax - potMin) / 100};
+    } else {
+      return std::pair<float, float>{0, (potMax + potMin) / 2};
+    }
+  };
+
+  if (stackType == 0) {
+    const auto deltaPotPar = rotationPoints(0, 3, misalignmentType, potMax, potMin);
+    const auto indPhiBottomIROC = getPotentialBoundaryGEMFrameAlongPhiIndices(GEMstack::IROCgem, true, Side::A, false, true);
+    fillROCMisalignment(indPhiTopIROC, indPhiBottomIROC, sector, misalignmentType, deltaPotPar);
+  } else if (stackType == 1) {
+    const auto deltaPotPar = rotationPoints(4, 9, misalignmentType, potMax, potMin);
+    const auto indPhiTopOROC3 = getPotentialBoundaryGEMFrameAlongPhiIndices(GEMstack::OROC3gem, false, Side::A, false, true);
+    fillROCMisalignment(indPhiTopOROC3, indPhiTopIROC, sector, misalignmentType, deltaPotPar);
+  } else if (stackType == 2) {
+    const auto deltaPotPar = rotationPoints(0, 9, misalignmentType, potMax, potMin);
+    const auto indPhiBottomIROC = getPotentialBoundaryGEMFrameAlongPhiIndices(GEMstack::IROCgem, true, Side::A, false, true);
+    const auto indPhiTopOROC3 = getPotentialBoundaryGEMFrameAlongPhiIndices(GEMstack::OROC3gem, false, Side::A, false, true);
+    fillROCMisalignment(indPhiTopIROC, indPhiBottomIROC, sector, misalignmentType, deltaPotPar);
+    fillROCMisalignment(indPhiTopOROC3, indPhiTopIROC, sector, misalignmentType, deltaPotPar);
+  }
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::fillROCMisalignment(const std::vector<size_t>& indicesTop, const std::vector<size_t>& indicesBottom, int sector, int misalignmentType, const std::pair<float, float>& deltaPotPar)
+{
+  for (const auto& index : indicesTop) {
+    const int iZ = DataContainer3D<float>::getIndexZ(index, getNZVertices(), getNRVertices(), getNPhiVertices());
+    const int iRStart = DataContainer3D<float>::getIndexR(index, getNZVertices(), getNRVertices(), getNPhiVertices());
+    const int iPhi = DataContainer3D<float>::getIndexPhi(index, getNZVertices(), getNRVertices(), getNPhiVertices());
+
+    const int sectorTmp = iPhi / (getNPhiVertices() / SECTORSPERSIDE) + ((sector >= SECTORSPERSIDE) ? SECTORSPERSIDE : 0);
+    if ((sector != -1) && (sectorTmp != sector)) {
+      continue;
+    }
+    const Sector sec(sectorTmp);
+
+    for (size_t iR = iRStart; iR > 0; --iR) {
+      const size_t currInd = (iZ + getNZVertices() * (iR + iPhi * getNRVertices()));
+      const bool foundVertexBottom = std::binary_search(indicesBottom.begin(), indicesBottom.end(), currInd);
+      if (foundVertexBottom) {
+        break;
+      }
+
+      // get local coordinates
+      const float rPos = getRVertex(iR, sec.side());
+      const float phiPos = getPhiVertex(iPhi, sec.side());
+      const float zPos = getZVertex(iZ, sec.side());
+      const float x = getXFromPolar(rPos, phiPos);
+      const float y = getYFromPolar(rPos, phiPos);
+      const LocalPosition3D pos(x, y, zPos);
+      const LocalPosition3D lPos = Mapper::GlobalToLocal(pos, sec);
+      float deltaPot = 0;
+      if (misalignmentType == 0) {
+        deltaPot = (lPos.X() - deltaPotPar.first) * deltaPotPar.second;
+      } else if (misalignmentType == 1) {
+        deltaPot = lPos.Y() * deltaPotPar.second;
+      } else {
+        deltaPot = deltaPotPar.second;
+      }
+      mPotential[sec.side()](iZ, iR, iPhi) += deltaPot;
+    }
+  }
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::substractGlobalCorrections(const SpaceCharge<DataT>& otherSC, const Side side)
+{
+  mGlobalCorrdR[side] -= otherSC.mGlobalCorrdR[side];
+  mGlobalCorrdZ[side] -= otherSC.mGlobalCorrdZ[side];
+  mGlobalCorrdRPhi[side] -= otherSC.mGlobalCorrdRPhi[side];
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::scaleCorrections(const float val, const Side side)
+{
+  mGlobalCorrdR[side] *= val;
+  mGlobalCorrdZ[side] *= val;
+  mGlobalCorrdRPhi[side] *= val;
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::averageDensityPerSector(const Side side)
+{
+  initContainer(mDensity[side], true);
+  const int verticesPerSector = mParamGrid.NPhiVertices / SECTORSPERSIDE;
+  for (unsigned int iR = 0; iR < mParamGrid.NRVertices; ++iR) {
+    for (unsigned int iZ = 0; iZ < mParamGrid.NZVertices; ++iZ) {
+      for (unsigned int iPhi = 0; iPhi <= (verticesPerSector / 2); ++iPhi) {
+        float meanDensity = 0;
+        for (int iter = 0; iter < 2; ++iter) {
+          for (unsigned int sec = 0; sec < SECTORSPERSIDE; ++sec) {
+            const int iPhiTmpA = iPhi + sec * verticesPerSector;
+            const int iPhiTmpB = ((sec + 1) * verticesPerSector - iPhi) % mParamGrid.NPhiVertices;
+            if (iter == 0) {
+              meanDensity += mDensity[side](iZ, iR, iPhiTmpA);
+              meanDensity += mDensity[side](iZ, iR, iPhiTmpB);
+            } else {
+              const float densMean = meanDensity / (2 * SECTORSPERSIDE);
+              mDensity[side](iZ, iR, iPhiTmpA) = densMean;
+              mDensity[side](iZ, iR, iPhiTmpB) = densMean;
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::scaleChargeDensitySector(const float scalingFactor, const Sector sector)
+{
+  const Side side = sector.side();
+  initContainer(mDensity[side], true);
+  const int verticesPerSector = mParamGrid.NPhiVertices / SECTORSPERSIDE;
+  const int sectorInSide = sector % SECTORSPERSIDE;
+  const int iPhiFirst = sectorInSide * verticesPerSector;
+  const int iPhiLast = iPhiFirst + verticesPerSector;
+  for (unsigned int iR = 0; iR < mParamGrid.NRVertices; ++iR) {
+    for (unsigned int iZ = 0; iZ < mParamGrid.NZVertices; ++iZ) {
+      for (unsigned int iPhi = iPhiFirst; iPhi < iPhiLast; ++iPhi) {
+        mDensity[side](iZ, iR, iPhi) *= scalingFactor;
+      }
+    }
+  }
 }
 
 using DataTD = double;

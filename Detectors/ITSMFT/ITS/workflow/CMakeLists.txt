@@ -39,7 +39,8 @@ o2_add_library(ITSWorkflow
                                O2::DetectorsCalibration
                                O2::GlobalTrackingWorkflowWriters
                                O2::CCDB
-                               O2::GPUTracking)
+                               O2::GPUTracking
+                               O2::GPUWorkflow)
 
 o2_add_executable(reco-workflow
                   SOURCES src/its-reco-workflow.cxx

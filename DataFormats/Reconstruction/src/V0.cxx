@@ -14,20 +14,18 @@
 using namespace o2::dataformats;
 
 V0::V0(const std::array<float, 3>& xyz, const std::array<float, 3>& pxyz, const std::array<float, 6>& covxyz,
-       const o2::track::TrackParCov& trPos, const o2::track::TrackParCov& trNeg,
-       GIndex trPosID, GIndex trNegID, o2::track::PID pid)
-  : mProngIDs{trPosID, trNegID}, mProngs{trPos, trNeg}
+       const o2::track::TrackParCov& trPos, const o2::track::TrackParCov& trNeg, o2::track::PID pid) : mProngs{trPos, trNeg}
 {
-  std::array<float, 21> covV{}, covN{};
-  trPos.getCovXYZPxPyPzGlo(covV);
+  std::array<float, 21> covV{0.}, covP, covN;
+  trPos.getCovXYZPxPyPzGlo(covP);
   trNeg.getCovXYZPxPyPzGlo(covN);
-  for (int i = 0; i < 21; i++) {
-    covV[i] += covN[i];
-  }
+  constexpr int MomInd[6] = {9, 13, 14, 18, 19, 20}; // cov matrix elements for momentum component
   for (int i = 0; i < 6; i++) {
     covV[i] = covxyz[i];
+    covV[MomInd[i]] = covP[MomInd[i]] + covN[MomInd[i]];
   }
   this->set(xyz, pxyz, covV, trPos.getCharge() + trNeg.getCharge(), true, pid);
+  this->checkCorrelations();
 }
 
 float V0::calcMass2(float massPos2, float massNeg2) const

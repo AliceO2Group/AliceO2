@@ -39,7 +39,7 @@ namespace trd
 class TRDTrackBasedCalibDevice : public Task
 {
  public:
-  TRDTrackBasedCalibDevice(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr) : mDataRequest(dr), mGGCCDBRequest(gr) {}
+  TRDTrackBasedCalibDevice(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, bool vdexb, bool gain) : mDataRequest(dr), mGGCCDBRequest(gr), mDoVdExBCalib(vdexb), mDoGainCalib(gain) {}
   ~TRDTrackBasedCalibDevice() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -48,6 +48,9 @@ class TRDTrackBasedCalibDevice : public Task
 
  private:
   void updateTimeDependentParams(framework::ProcessingContext& pc);
+
+  bool mDoGainCalib{false};
+  bool mDoVdExBCalib{false};
 
   std::shared_ptr<DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
@@ -69,8 +72,17 @@ void TRDTrackBasedCalibDevice::run(ProcessingContext& pc)
   recoData.collectData(pc, *mDataRequest.get());
   updateTimeDependentParams(pc); // Make sure this is called after recoData.collectData, which may load some conditions
   mCalibrator.setInput(recoData);
-  mCalibrator.calculateAngResHistos();
-  pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "ANGRESHISTS", 0, Lifetime::Timeframe}, mCalibrator.getAngResHistos());
+
+  if (mDoVdExBCalib) {
+    mCalibrator.calculateAngResHistos();
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "ANGRESHISTS", 0, Lifetime::Timeframe}, mCalibrator.getAngResHistos());
+  }
+
+  if (mDoGainCalib) {
+    mCalibrator.calculateGainCalibObjs();
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTRD, "GAINCALIBHISTS", 0, Lifetime::Timeframe}, mCalibrator.getGainCalibHistos());
+  }
+
   mCalibrator.reset();
   mTimer.Stop();
 }
@@ -79,6 +91,9 @@ void TRDTrackBasedCalibDevice::updateTimeDependentParams(ProcessingContext& pc)
 {
   o2::base::GRPGeomHelper::instance().checkUpdates(pc);
   pc.inputs().get<o2::trd::NoiseStatusMCM*>("mcmnoisemap"); // just to trigger the finaliseCCDB
+  if (mDoGainCalib) {
+    pc.inputs().get<o2::trd::LocalGainFactor*>("localgainfactors"); // just to trigger the finaliseCCDB
+  }
   static bool initOnceDone = false;
   if (!initOnceDone) { // this params need to be queried only once
     initOnceDone = true;
@@ -97,6 +112,11 @@ void TRDTrackBasedCalibDevice::finaliseCCDB(ConcreteDataMatcher& matcher, void* 
     mCalibrator.setNoiseMapMCM((const o2::trd::NoiseStatusMCM*)obj);
     return;
   }
+  if (matcher == ConcreteDataMatcher("TRD", "LOCALGAINFACTORS", 0)) {
+    LOG(info) << "Local gain factors object has been updated";
+    mCalibrator.setLocalGainFactors((const o2::trd::LocalGainFactor*)obj);
+    return;
+  }
 }
 
 void TRDTrackBasedCalibDevice::endOfStream(EndOfStreamContext& ec)
@@ -105,7 +125,7 @@ void TRDTrackBasedCalibDevice::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getTRDTrackBasedCalibSpec(o2::dataformats::GlobalTrackID::mask_t src)
+DataProcessorSpec getTRDTrackBasedCalibSpec(o2::dataformats::GlobalTrackID::mask_t src, bool vdexb, bool gain)
 {
   std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
@@ -114,10 +134,16 @@ DataProcessorSpec getTRDTrackBasedCalibSpec(o2::dataformats::GlobalTrackID::mask
   if (GTrackID::includesSource(GTrackID::Source::ITSTPC, src)) {
     LOGF(info, "Found ITS-TPC tracks as input, loading ITS-TPC-TRD");
     srcTrk |= GTrackID::getSourcesMask("ITS-TPC-TRD");
+    if (gain) {
+      srcTrk |= GTrackID::getSourcesMask("ITS-TPC");
+    }
   }
   if (GTrackID::includesSource(GTrackID::Source::TPC, src)) {
     LOGF(info, "Found TPC tracks as input, loading TPC-TRD");
     srcTrk |= GTrackID::getSourcesMask("TPC-TRD");
+  }
+  if (gain) {
+    srcTrk |= GTrackID::getSourcesMask("TPC");
   }
   GTrackID::mask_t srcClu = GTrackID::getSourcesMask("TRD");         // we don't need all clusters, only TRD tracklets
   dataRequest->requestTracks(srcTrk, false);
@@ -125,6 +151,9 @@ DataProcessorSpec getTRDTrackBasedCalibSpec(o2::dataformats::GlobalTrackID::mask
 
   auto& inputs = dataRequest->inputs;
   inputs.emplace_back("mcmnoisemap", "TRD", "MCMNOISEMAP", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/NoiseMapMCM"));
+  if (gain) {
+    inputs.emplace_back("localgainfactors", "TRD", "LOCALGAINFACTORS", 0, Lifetime::Condition, ccdbParamSpec("TRD/Calib/LocalGainFactor"));
+  }
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
                                                               false,                             // GRPECS=true
                                                               false,                             // GRPLHCIF
@@ -133,13 +162,21 @@ DataProcessorSpec getTRDTrackBasedCalibSpec(o2::dataformats::GlobalTrackID::mask
                                                               o2::base::GRPGeomRequest::Aligned, // geometry
                                                               inputs,
                                                               true);
-  outputs.emplace_back(o2::header::gDataOriginTRD, "ANGRESHISTS", 0, Lifetime::Timeframe);
+  if (gain) {
+    outputs.emplace_back(o2::header::gDataOriginTRD, "GAINCALIBHISTS", 0, Lifetime::Timeframe);
+  }
+  if (vdexb) {
+    outputs.emplace_back(o2::header::gDataOriginTRD, "ANGRESHISTS", 0, Lifetime::Timeframe);
+  }
+  if (!gain && !vdexb) {
+    LOG(error) << "TRD track based calibration requested, but neither gain nor vD and ExB calibration enabled";
+  }
 
   return DataProcessorSpec{
     "trd-trackbased-calib",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TRDTrackBasedCalibDevice>(dataRequest, ggRequest)},
+    AlgorithmSpec{adaptFromTask<TRDTrackBasedCalibDevice>(dataRequest, ggRequest, vdexb, gain)},
     Options{}};
 }
 

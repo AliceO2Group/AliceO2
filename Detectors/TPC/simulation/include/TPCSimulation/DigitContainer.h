@@ -126,6 +126,11 @@ inline void DigitContainer::addDigit(const MCCompLabel& label, const CRU& cru, T
                                      float signal)
 {
   mEffectiveTimeBin = timeBin - mFirstTimeBin;
+  if (mEffectiveTimeBin >= mTimeBins.size()) {
+    // LOG(warning) << "Out of bound access to digit container .. dropping digit";
+    return;
+  }
+
   if (mTimeBins[mEffectiveTimeBin] == nullptr) {
     mTimeBins[mEffectiveTimeBin] = new DigitTime();
   }

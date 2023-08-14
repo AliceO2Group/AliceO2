@@ -31,6 +31,8 @@ enum class EG4Physics {
 // parameters to influence the G4 engine
 struct G4Params : public o2::conf::ConfigurableParamHelper<G4Params> {
   EG4Physics physicsmode = EG4Physics::kFTFP_BERT_optical; // physics mode with which to configure G4
+
+  std::string configMacroFile = ""; // a user provided g4Config.in file (otherwise standard one fill be taken)
   std::string const& getPhysicsConfigString() const;
 
   O2ParamDef(G4Params, "G4");

@@ -32,6 +32,7 @@ struct MatchCosmicsParams : public o2::conf::ConfigurableParamHelper<MatchCosmic
   float maxSnp = 0.99;
   float minSeedPt = 0.10;  // use only tracks above this pT (scaled with field)
   float nSigmaTError = 4.; // number of sigmas on track time error for matching (except for TPC which provides an interval)
+  bool allowTPCOnly = true;
   o2::base::Propagator::MatCorrType matCorr = o2::base::Propagator::MatCorrType::USEMatCorrLUT;
 
   O2ParamDef(MatchCosmicsParams, "cosmicsMatch");

@@ -25,7 +25,7 @@ namespace o2
 namespace trd
 {
 
-o2::framework::DataProcessorSpec getTRDCalibWriterSpec();
+o2::framework::DataProcessorSpec getTRDCalibWriterSpec(bool vdexb, bool gain, bool ph);
 
 } // end namespace trd
 } // end namespace o2

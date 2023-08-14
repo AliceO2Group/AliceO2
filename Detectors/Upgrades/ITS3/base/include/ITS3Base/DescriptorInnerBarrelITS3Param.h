@@ -29,11 +29,11 @@ namespace its3
  **/
 
 enum class ITS3Version {
-  None = 0,                   /* none */
-  ThreeLayersNoDeadZones = 1, /* three layers without dead zones */
-  ThreeLayers = 2,            /* three layers with dead zones */
-  FourLayers = 3,             /* four layers with dead zones */
-  FiveLayers = 4              /* five layers with dead zones */
+  None = 0,                         /* none */
+  ThreeLayersNoDeadZones = 1,       /* three layers without dead zones */
+  ThreeLayers = 2,                  /* three layers with dead zones */
+  FourLayers = 3,                   /* four layers with dead zones */
+  ThreeLayersDeadZonesFirstOnly = 4 /* three layers with dead zones only in first layer */
 };
 
 struct DescriptorInnerBarrelITS3Param : public o2::conf::ConfigurableParamHelper<DescriptorInnerBarrelITS3Param> {
@@ -44,6 +44,7 @@ struct DescriptorInnerBarrelITS3Param : public o2::conf::ConfigurableParamHelper
   double mRadii[4] = {1.8f, 2.4f, 3.0f, 6.0f};
   double mLength{26.f};
   double mGapXDirection4thLayer{0.f};
+  double mAddMaterial3rdLayer{0.f};
   std::string const& getITS3LayerConfigString() const;
   O2ParamDef(DescriptorInnerBarrelITS3Param, "DescriptorInnerBarrelITS3");
 };

@@ -50,7 +50,7 @@ class SubTimeFrameFileReader
   ~SubTimeFrameFileReader();
 
   /// Read a single TF from the file
-  std::unique_ptr<MessagesPerRoute> read(fair::mq::Device* device, const std::vector<o2f::OutputRoute>& outputRoutes, const std::string& rawChannel, bool sup0xccdb, int verbosity);
+  std::unique_ptr<MessagesPerRoute> read(fair::mq::Device* device, const std::vector<o2f::OutputRoute>& outputRoutes, const std::string& rawChannel, size_t slice, bool sup0xccdb, int verbosity);
 
   /// Tell the current position of the file
   inline std::uint64_t position() const { return mFileMapOffset; }

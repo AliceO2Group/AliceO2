@@ -91,21 +91,24 @@ void Cave::ConstructGeometry()
   TGeoCompositeShape* shCaveTR = new TGeoCompositeShape("shCaveTR", "shCaveTR1-shCaveTR2:transTR2");
   TGeoVolume* voBarrel = new TGeoVolume("barrel", shCaveTR, kMedAir);
   cavevol->AddNode(voBarrel, 1, new TGeoTranslation(0., -30., 0.));
+  if (mHasRB24) { // should be not true only for alice 3
+    // mother volume for RB24 side (FDD, Compensator)
+    const Float_t kRB24CL = 2. * 597.9;
+    auto shCaveRB24 = new TGeoPcon(0., 360., 6);
+    Float_t z0 = kRB24CL / 2 + 714.6;
+    shCaveRB24->DefineSection(0, -kRB24CL / 2., 0., 105.);
+    shCaveRB24->DefineSection(1, -z0 + 1705., 0., 105.);
+    shCaveRB24->DefineSection(2, -z0 + 1705., 0., 14.5);
+    shCaveRB24->DefineSection(3, -z0 + 1880., 0., 14.5);
+    shCaveRB24->DefineSection(4, -z0 + 1880., 0., 40.0);
+    shCaveRB24->DefineSection(5, kRB24CL / 2, 0., 40.0);
 
-  // mother volune for RB24 side (FDD, Compensator)
-  const Float_t kRB24CL = 2. * 597.9;
-  auto shCaveRB24 = new TGeoPcon(0., 360., 6);
-  Float_t z0 = kRB24CL / 2 + 714.6;
-  shCaveRB24->DefineSection(0, -kRB24CL / 2., 0., 105.);
-  shCaveRB24->DefineSection(1, -z0 + 1705., 0., 105.);
-  shCaveRB24->DefineSection(2, -z0 + 1705., 0., 14.5);
-  shCaveRB24->DefineSection(3, -z0 + 1880., 0., 14.5);
-  shCaveRB24->DefineSection(4, -z0 + 1880., 0., 40.0);
-  shCaveRB24->DefineSection(5, kRB24CL / 2, 0., 40.0);
-
-  TGeoVolume* caveRB24 = new TGeoVolume("caveRB24", shCaveRB24, kMedAir);
-  caveRB24->SetVisibility(0);
-  cavevol->AddNode(caveRB24, 1, new TGeoTranslation(0., 0., z0));
+    TGeoVolume* caveRB24 = new TGeoVolume("caveRB24", shCaveRB24, kMedAir);
+    caveRB24->SetVisibility(0);
+    cavevol->AddNode(caveRB24, 1, new TGeoTranslation(0., 0., z0));
+  } else {
+    LOGP(info, "Setting up CAVE without RB24");
+  }
   //
 }
 

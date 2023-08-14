@@ -12,9 +12,11 @@
 /// \author R+Preghenella - June 2017
 
 #include "Generators/PrimaryGenerator.h"
+#include <Generators/PrimaryGeneratorParam.h>
 #include "Generators/Generator.h"
 #include "SimConfig/InteractionDiamondParam.h"
 #include "SimulationDataFormat/MCEventHeader.h"
+#include "SimulationDataFormat/MCGenProperties.h"
 #include "DataFormatsCalibration/MeanVertexObject.h"
 #include "DetectorsBase/Stack.h"
 #include <fairlogger/Logger.h>
@@ -56,6 +58,11 @@ Bool_t PrimaryGenerator::Init()
 
   LOG(info) << "Initialising primary generator";
 
+  // set generator ID and description
+  auto& params = PrimaryGeneratorParam::Instance();
+  setGeneratorId(params.id);
+  setGeneratorDescription(params.description);
+
   /** embedding **/
   if (mEmbedTree) {
     LOG(info) << "Embedding into: " << mEmbedFile->GetName()
@@ -76,7 +83,11 @@ Bool_t PrimaryGenerator::GenerateEvent(FairGenericStack* pStack)
   /** normal generation if no embedding **/
   if (!mEmbedTree) {
     fixInteractionVertex(); // <-- always fixes vertex outside of FairROOT
-    return FairPrimaryGenerator::GenerateEvent(pStack);
+    auto ret = FairPrimaryGenerator::GenerateEvent(pStack);
+    if (ret) {
+      setGeneratorInformation();
+    }
+    return ret;
   }
 
   /** this is for embedding **/
@@ -105,6 +116,7 @@ Bool_t PrimaryGenerator::GenerateEvent(FairGenericStack* pStack)
     o2event->setEmbeddingFileName(mEmbedFile->GetName());
     o2event->setEmbeddingEventIndex(mEmbedIndex);
   }
+  setGeneratorInformation();
 
   /** increment embedding counter **/
   mEmbedIndex++;
@@ -127,7 +139,7 @@ void PrimaryGenerator::AddTrack(Int_t pdgid, Double_t px, Double_t py, Double_t 
   /** add track **/
 
   // check the status encoding
-  if (!mcgenstatus::isEncoded(generatorStatus)) {
+  if (!mcgenstatus::isEncoded(generatorStatus) && proc == TMCProcess::kPPrimary) {
     LOG(fatal) << "Generatror status " << generatorStatus << " of particle is not encoded properly.";
   }
 
@@ -335,6 +347,17 @@ Bool_t PrimaryGenerator::embedInto(TString fname)
 
   /** success **/
   return kTRUE;
+}
+
+/*****************************************************************/
+
+void PrimaryGenerator::setGeneratorInformation()
+{
+  auto o2event = dynamic_cast<MCEventHeader*>(fEvent);
+  if (o2event) {
+    o2event->putInfo<int>(o2::mcgenid::GeneratorProperty::GENERATORID, mGeneratorId);
+    o2event->putInfo<std::string>(o2::mcgenid::GeneratorProperty::GENERATORDESCRIPTION, mGeneratorDescription);
+  }
 }
 
 /*****************************************************************/

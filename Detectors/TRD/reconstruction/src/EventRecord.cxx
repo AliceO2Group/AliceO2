@@ -40,13 +40,22 @@
 namespace o2::trd
 {
 
-void EventRecord::sortTrackletsByDetector()
+void EventRecord::sortData(bool sortDigits)
 {
-  // sort the tracklets by detector ID
-  std::stable_sort(std::begin(mTracklets), std::end(mTracklets), [this](const Tracklet64& trackleta, const Tracklet64& trackletb) { return trackleta.getDetector() < trackletb.getDetector(); });
+  auto ordering = [](const auto& lhs, const auto& rhs) {
+    return (lhs.getDetector() < rhs.getDetector()) ||
+           (lhs.getDetector() == rhs.getDetector() && lhs.getPadRow() < rhs.getPadRow()) ||
+           (lhs.getDetector() == rhs.getDetector() && lhs.getPadRow() == rhs.getPadRow() && lhs.getPadCol() < rhs.getPadCol());
+  };
+  std::sort(mTracklets.begin(), mTracklets.end(), ordering);
+  if (sortDigits) {
+    // after this digits are not strictly ordered by MCM anymore because of shared digits!
+    // not needed for noise runs
+    std::sort(mDigits.begin(), mDigits.end(), ordering);
+  }
 }
 
-void EventRecordContainer::sendData(o2::framework::ProcessingContext& pc, bool generatestats)
+void EventRecordContainer::sendData(o2::framework::ProcessingContext& pc, bool generatestats, bool sortDigits)
 {
   //at this point we know the total number of tracklets and digits and triggers.
   auto dataReadStart = std::chrono::high_resolution_clock::now();
@@ -57,7 +66,7 @@ void EventRecordContainer::sendData(o2::framework::ProcessingContext& pc, bool g
   std::vector<Digit> digits;
   std::vector<TriggerRecord> triggers;
   for (auto& event : mEventRecords) {
-    event.sortTrackletsByDetector();
+    event.sortData(sortDigits);
     tracklets.insert(tracklets.end(), event.getTracklets().begin(), event.getTracklets().end());
     digits.insert(digits.end(), event.getDigits().begin(), event.getDigits().end());
     triggers.emplace_back(event.getBCData(), digitcount, event.getDigits().size(), trackletcount, event.getTracklets().size());

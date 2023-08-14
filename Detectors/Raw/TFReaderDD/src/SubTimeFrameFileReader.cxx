@@ -178,14 +178,13 @@ Stack SubTimeFrameFileReader::getHeaderStack(std::size_t& pOrigsize)
   return Stack(lStackMem);
 }
 
-std::uint64_t SubTimeFrameFileReader::sStfId = 0; // TODO: add id to files metadata
 std::uint32_t sRunNumber = 0;                     // TODO: add id to files metadata
 std::uint32_t sFirstTForbit = 0;                  // TODO: add id to files metadata
 std::uint64_t sCreationTime = 0;
 std::mutex stfMtx;
 
 std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device* device, const std::vector<o2f::OutputRoute>& outputRoutes,
-                                                               const std::string& rawChannel, bool sup0xccdb, int verbosity)
+                                                               const std::string& rawChannel, size_t slice, bool sup0xccdb, int verbosity)
 {
   std::unique_ptr<MessagesPerRoute> messagesPerRoute = std::make_unique<MessagesPerRoute>();
   auto& msgMap = *messagesPerRoute.get();
@@ -227,7 +226,7 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device*
   if (lTfStartPosition == size() || !mFileMap.is_open() || eof()) {
     return nullptr;
   }
-  auto tfID = sStfId;
+  auto tfID = slice;
   uint32_t runNumberFallBack = sRunNumber;
   uint32_t firstTForbitFallBack = sFirstTForbit;
   uint64_t creationFallBack = sCreationTime;
@@ -441,7 +440,6 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device*
     stfDistDataHeader.firstTForbit = stfHeader.firstOrbit;
     stfDistDataHeader.runNumber = stfHeader.runNumber;
     stfDistDataHeader.tfCounter = stfHeader.id;
-    stfHeader.id = tfID;
     const auto fmqChannel = findOutputChannel(&stfDistDataHeader, tfID);
     if (!fmqChannel.empty()) { // no output channel
       auto fmqFactory = device->GetChannel(fmqChannel, 0).Transport();
@@ -470,7 +468,6 @@ std::unique_ptr<MessagesPerRoute> SubTimeFrameFileReader::read(fair::mq::Device*
   LOG(info) << "CreMsg  Timer CPU: " << msgSW.CpuTime() << " Wall: " << msgSW.RealTime() << " s";
   LOG(info) << "FndChan Timer CPU: " << findChanSW.CpuTime() << " Wall: " << findChanSW.RealTime() << " s";
 #endif
-  ++sStfId;
   return messagesPerRoute;
 }
 

@@ -77,11 +77,14 @@ ferst 1 \n\
   ctpcfg.loadConfigurationRun3(cfgRun3str);
   ctpcfg.printStream(std::cout);
   std::cout << "CTP config done" << std::endl;
-  CTPRunManager* man = new CTPRunManager;
-  man->setCCDBHost("http://ccdb-test.cern.ch:8080");
-  man->saveRunConfigToCCDB(&ctpcfg, 1665784953);
-  // uint64_t classmask = ctpcfg.getClassMaskForInputMask(0x4);
-  // std::cout << "classmask:" << std::hex << classmask << std::dec << std::endl;
+  ctpcfg.checkConfigConsistency();
+  if (0) {
+    CTPRunManager* man = new CTPRunManager;
+    man->setCCDBHost("http://ccdb-test.cern.ch:8080");
+    man->saveRunConfigToCCDB(&ctpcfg, 1665784953);
+    // uint64_t classmask = ctpcfg.getClassMaskForInputMask(0x4);
+    // std::cout << "classmask:" << std::hex << classmask << std::dec << std::endl;
+  }
   if (writeToFile == 1) {
     std::unique_ptr<TFile> myFile(TFile::Open("CTPConfig.root", "RECREATE"));
     myFile->WriteObject(&ctpcfg, "CTPConfig");

@@ -45,6 +45,7 @@ struct DataProcessorContext {
   AlgorithmSpec::ProcessCallback statefulProcess;
   AlgorithmSpec::ProcessCallback statelessProcess;
   AlgorithmSpec::ErrorCallback error = nullptr;
+  AlgorithmSpec::InitErrorCallback initError = nullptr;
 
   DataProcessorSpec* spec = nullptr; /// Invoke callbacks to be executed in PreRun(), before the User Start callbacks
 
@@ -70,6 +71,10 @@ struct DataProcessorContext {
 
   /// Invoke callbacks on stop.
   void postStopCallbacks(ServiceRegistryRef);
+
+  /// Invoke callbacks before we enter the event loop
+  void preLoopCallbacks(ServiceRegistryRef);
+
   /// Invoke callbacks on exit.
   /// Note how this is a static helper because otherwise we would need to
   /// handle differently the deletion of the DataProcessingContext itself.
@@ -109,6 +114,8 @@ struct DataProcessorContext {
   mutable std::vector<ServiceDomainInfoHandle> domainInfoHandles;
   /// Callbacks for services to be executed before sending messages
   mutable std::vector<ServicePreSendingMessagesHandle> preSendingMessagesHandles;
+  /// Callbacks for services to be executed before we enter the event loop
+  mutable std::vector<ServicePreLoopHandle> preLoopHandles;
 
   /// Wether or not the associated DataProcessor can forward things early
   bool canForwardEarly = true;
@@ -116,6 +123,7 @@ struct DataProcessorContext {
   bool balancingInputs = true;
 
   std::function<void(o2::framework::RuntimeErrorRef e, InputRecord& record)> errorHandling;
+  std::function<void(o2::framework::RuntimeErrorRef e)> initErrorHandling;
 };
 
 } // namespace o2::framework

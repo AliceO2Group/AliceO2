@@ -52,17 +52,19 @@ class DescriptorInnerBarrelITS3 : public o2::its::DescriptorInnerBarrel
   std::vector<double> mHeightStripFoam{};         //! Vector of strip foam height (in cm)
   std::vector<double> mLengthSemiCircleFoam{};    //! Vector of semi-circle foam length (in cm)
   std::vector<double> mThickGluedFoam{};          //! Vector of glued foam thickness (in cm)
-  double mGapXDirection4thLayer;                  //! x-direction gap for layer 4  (in cm)
+  double mGapXDirection4thLayer{0.};              //! x-direction gap for layer 4  (in cm)
 
   std::vector<ITS3Layer*> mLayer{}; //! Vector of layers
 
-  double mCyssCylInnerD;       //! CYSS cylinder inner diameter
-  double mCyssCylOuterD;       //! CYSS cylinder outer diameter
-  double mCyssCylFabricThick;  //! CYSS cylinder fabric thickness
-  double mCyssConeIntSectDmin; //! CYSS cone internal section min diameter
-  double mCyssConeIntSectDmax; //! CYSS cone internal section max diameter
-  double mCyssConeFabricThick; //! CYSS cone fabric thickness
-  double mCyssFlangeCDExt;     //! CYSS flange on side C external diameter
+  double mCyssCylInnerD{0.};       //! CYSS cylinder inner diameter
+  double mCyssCylOuterD{0.};       //! CYSS cylinder outer diameter
+  double mCyssCylFabricThick{0.};  //! CYSS cylinder fabric thickness
+  double mCyssConeIntSectDmin{0.}; //! CYSS cone internal section min diameter
+  double mCyssConeIntSectDmax{0.}; //! CYSS cone internal section max diameter
+  double mCyssConeFabricThick{0.}; //! CYSS cone fabric thickness
+  double mCyssFlangeCDExt{0.};     //! CYSS flange on side C external diameter
+
+  double mAddMaterial3rdLayer{0.}; //! additional material for layer 3 to mimic services (in cm)
 
   /// \cond CLASSIMP
   ClassDef(DescriptorInnerBarrelITS3, 1); /// ITS3 inner barrel geometry descriptor

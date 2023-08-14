@@ -21,6 +21,8 @@
 #include "CommonUtils/FileSystemUtils.h"
 #include "CommonUtils/MemFileHelper.h"
 #include "MemoryResources/MemoryResources.h"
+#include "Framework/DefaultsHelpers.h"
+#include "Framework/DataTakingContext.h"
 #include <chrono>
 #include <memory>
 #include <sstream>
@@ -55,9 +57,17 @@ unique_ptr<TJAlienCredentials> CcdbApi::mJAlienCredentials = nullptr;
 
 CcdbApi::CcdbApi()
 {
+  using namespace o2::framework;
   setUniqueAgentID();
 
-  mIsCCDBDownloaderEnabled = getenv("ALICEO2_ENABLE_MULTIHANDLE_CCDBAPI") && atoi(getenv("ALICEO2_ENABLE_MULTIHANDLE_CCDBAPI"));
+  DeploymentMode deploymentMode = DefaultsHelpers::deploymentMode();
+  mIsCCDBDownloaderEnabled = 0;
+  if (deploymentMode == DeploymentMode::OnlineDDS && deploymentMode == DeploymentMode::OnlineECS && deploymentMode == DeploymentMode::OnlineAUX && deploymentMode == DeploymentMode::FST) {
+    mIsCCDBDownloaderEnabled = 1;
+  }
+  if (getenv("ALICEO2_ENABLE_MULTIHANDLE_CCDBAPI")) {
+    mIsCCDBDownloaderEnabled = atoi(getenv("ALICEO2_ENABLE_MULTIHANDLE_CCDBAPI"));
+  }
   if (mIsCCDBDownloaderEnabled) {
     mDownloader = new CCDBDownloader();
   }
@@ -115,7 +125,7 @@ void CcdbApi::curlInit()
       auto timeoutMS = atoi(getenv("ALICEO2_CCDB_SOCKET_TIMEOUT"));
       if (timeoutMS >= 0) {
         LOG(info) << "Setting socket timeout to " << timeoutMS << " milliseconds";
-        mDownloader->setSocketTimoutTime(timeoutMS);
+        mDownloader->setKeepaliveTimeoutTime(timeoutMS);
       }
     }
   }
@@ -172,6 +182,11 @@ void CcdbApi::init(std::string const& host)
 
   LOGP(info, "Init CcdApi with UserAgentID: {}, Host: {}{}", mUniqueAgentID, host,
        mInSnapshotMode ? "(snapshot readonly mode)" : snapshotReport.c_str());
+}
+
+void CcdbApi::runDownloaderLoop(bool noWait)
+{
+  mDownloader->runLoop(noWait);
 }
 
 // A helper function used in a few places. Updates a ROOT file with meta/header information.
@@ -311,15 +326,11 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
   checkMetadataKeys(metadata);
 
   if (curl != nullptr) {
-    struct curl_httppost* formpost = nullptr;
-    struct curl_httppost* lastptr = nullptr;
-    curl_formadd(&formpost,
-                 &lastptr,
-                 CURLFORM_COPYNAME, "send",
-                 CURLFORM_BUFFER, filename.c_str(),
-                 CURLFORM_BUFFERPTR, buffer, //.Buffer(),
-                 CURLFORM_BUFFERLENGTH, size,
-                 CURLFORM_END);
+    auto mime = curl_mime_init(curl);
+    auto field = curl_mime_addpart(mime);
+    curl_mime_name(field, "send");
+    curl_mime_filedata(field, filename.c_str());
+    curl_mime_data(field, buffer, size);
 
     struct curl_slist* headerlist = nullptr;
     static const char buf[] = "Expect:";
@@ -327,8 +338,8 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
 
     curlSetSSLOptions(curl);
 
+    curl_easy_setopt(curl, CURLOPT_MIMEPOST, mime);
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headerlist);
-    curl_easy_setopt(curl, CURLOPT_HTTPPOST, formpost);
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
 
@@ -352,10 +363,10 @@ int CcdbApi::storeAsBinaryFile(const char* buffer, size_t size, const std::strin
     /* always cleanup */
     curl_easy_cleanup(curl);
 
-    /* then cleanup the formpost chain */
-    curl_formfree(formpost);
     /* free slist */
     curl_slist_free_all(headerlist);
+    /* free mime */
+    curl_mime_free(mime);
   } else {
     LOGP(alarm, "curl initialization failure");
     returnValue = -2;
@@ -607,6 +618,7 @@ bool CcdbApi::receiveObject(void* dataHolder, std::string const& path, std::map<
   CURL* curlHandle;
 
   curlHandle = curl_easy_init();
+  curl_easy_setopt(curlHandle, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
 
   if (curlHandle != nullptr) {
 
@@ -1036,6 +1048,7 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
   // normal mode follows
 
   CURL* curl_handle = curl_easy_init();
+  curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
   string fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp); // todo check if function still works correctly in case mInSnapshotMode
   // if we are in snapshot mode we can simply open the file; extract the object and return
   if (mInSnapshotMode) {
@@ -1084,6 +1097,7 @@ std::string CcdbApi::list(std::string const& path, bool latestOnly, std::string 
   if (curl != nullptr) {
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, CurlWrite_CallbackFunc_StdString2);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &result);
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
 
     struct curl_slist* headers = nullptr;
     headers = curl_slist_append(headers, (string("Accept: ") + returnFormat).c_str());
@@ -1129,6 +1143,7 @@ void CcdbApi::deleteObject(std::string const& path, long timestamp) const
   curl = curl_easy_init();
   if (curl != nullptr) {
     curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
     curlSetSSLOptions(curl);
 
     for (size_t hostIndex = 0; hostIndex < hostsPool.size(); hostIndex++) {
@@ -1155,6 +1170,7 @@ void CcdbApi::truncate(std::string const& path) const
     fullUrl << url << "/truncate/" << path;
 
     curl = curl_easy_init();
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
     if (curl != nullptr) {
       curl_easy_setopt(curl, CURLOPT_URL, fullUrl.str().c_str());
 
@@ -1182,6 +1198,7 @@ bool CcdbApi::isHostReachable() const
   bool result = false;
 
   curl = curl_easy_init();
+  curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
   if (curl) {
     for (size_t hostIndex = 0; hostIndex < hostsPool.size() && res != CURLE_OK; hostIndex++) {
       curl_easy_setopt(curl, CURLOPT_URL, mUrl.data());
@@ -1385,9 +1402,11 @@ TClass* CcdbApi::tinfo2TClass(std::type_info const& tinfo)
   return cl;
 }
 
-void CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp, std::string const& id, long newEOV)
+int CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std::string> const& metadata, long timestamp, std::string const& id, long newEOV)
 {
+  int ret = -1;
   CURL* curl = curl_easy_init();
+  curl_easy_setopt(curl, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
   if (curl != nullptr) {
     CURLcode res;
     stringstream fullUrl;
@@ -1423,12 +1442,16 @@ void CcdbApi::updateMetadata(std::string const& path, std::map<std::string, std:
         // Perform the request, res will get the return code
         res = CURL_perform(curl);
         if (res != CURLE_OK) {
-          LOGP(alarm, "CURL_perform() failed: {}", curl_easy_strerror(res));
+          LOGP(alarm, "CURL_perform() failed: {}, code: {}", curl_easy_strerror(res), int(res));
+          ret = int(res);
+        } else {
+          ret = 0;
         }
         curl_easy_cleanup(curl);
       }
     }
   }
+  return ret;
 }
 
 std::vector<std::string> CcdbApi::splitString(const std::string& str, const char* delimiters)
@@ -1508,6 +1531,7 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& p
     fromSnapshot = 2;
   } else { // look on the server
     CURL* curl_handle = curl_easy_init();
+    curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, mUniqueAgentID.c_str());
     string fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp);
 
     curl_slist* options_list = nullptr;
@@ -1555,16 +1579,17 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& p
 // navigate sequence of URLs until TFile content is found; object is extracted and returned
 void CcdbApi::navigateURLsAndLoadFileToMemory(o2::pmr::vector<char>& dest, CURL* curl_handle, std::string const& url, std::map<string, string>* headers) const
 {
-  // a global internal data structure that can be filled with HTTP header information
-  // static --> to avoid frequent alloc/dealloc as optimization
-  // not sure if thread_local takes away that benefit
-  static thread_local std::multimap<std::string, std::string> headerData;
-
   // let's see first of all if the url is something specific that curl cannot handle
   if (url.find("alien:/", 0) != std::string::npos) {
     return loadFileToMemory(dest, url, nullptr); // headers loaded from the file in case of the snapshot reading only
   }
   // otherwise make an HTTP/CURL request
+  struct HeaderObjectPair_t {
+    std::map<std::string, std::string> header;
+    o2::pmr::vector<char>* object = nullptr;
+    int counter = 0;
+  } hoPair{{}, &dest, 0};
+
   bool errorflag = false;
   auto signalError = [&chunk = dest, &errorflag]() {
     chunk.clear();
@@ -1572,14 +1597,25 @@ void CcdbApi::navigateURLsAndLoadFileToMemory(o2::pmr::vector<char>& dest, CURL*
     errorflag = true;
   };
   auto writeCallBack = [](void* contents, size_t size, size_t nmemb, void* chunkptr) {
-    o2::pmr::vector<char>& chunk = *static_cast<o2::pmr::vector<char>*>(chunkptr);
-    size_t realsize = size * nmemb;
+    auto& ho = *static_cast<HeaderObjectPair_t*>(chunkptr);
+    auto& chunk = *ho.object;
+    size_t realsize = size * nmemb, sz = 0;
+    ho.counter++;
     try {
-      chunk.reserve(chunk.size() + realsize);
+      if (chunk.capacity() < chunk.size() + realsize) {
+        auto cl = ho.header.find("Content-Length");
+        if (cl != ho.header.end()) {
+          sz = std::max(chunk.size() + realsize, (size_t)std::stol(cl->second));
+        } else {
+          sz = chunk.size() + realsize;
+          LOGP(debug, "SIZE IS NOT IN HEADER, allocate {}", sz);
+        }
+        chunk.reserve(sz);
+      }
       char* contC = (char*)contents;
       chunk.insert(chunk.end(), contC, contC + realsize);
     } catch (std::exception e) {
-      LOGP(info, "failed to expand by {} bytes chunk provided to CURL: {}", realsize, e.what());
+      LOGP(alarm, "failed to reserve {} bytes in CURL write callback (realsize = {}): {}", sz, realsize, e.what());
       realsize = 0;
     }
     return realsize;
@@ -1587,17 +1623,17 @@ void CcdbApi::navigateURLsAndLoadFileToMemory(o2::pmr::vector<char>& dest, CURL*
 
   // specify URL to get
   curl_easy_setopt(curl_handle, CURLOPT_URL, url.c_str());
-  initCurlOptionsForRetrieve(curl_handle, (void*)&dest, writeCallBack, false);
-  curl_easy_setopt(curl_handle, CURLOPT_HEADERFUNCTION, header_map_callback<decltype(headerData)>);
-  headerData.clear();
-  curl_easy_setopt(curl_handle, CURLOPT_HEADERDATA, (void*)&headerData);
+  initCurlOptionsForRetrieve(curl_handle, (void*)&hoPair, writeCallBack, false);
+  curl_easy_setopt(curl_handle, CURLOPT_HEADERFUNCTION, header_map_callback<decltype(hoPair.header)>);
+  hoPair.header.clear();
+  curl_easy_setopt(curl_handle, CURLOPT_HEADERDATA, (void*)&hoPair.header);
   curlSetSSLOptions(curl_handle);
 
   auto res = CURL_perform(curl_handle);
   long response_code = -1;
   if (res == CURLE_OK && curl_easy_getinfo(curl_handle, CURLINFO_RESPONSE_CODE, &response_code) == CURLE_OK) {
     if (headers) {
-      for (auto& p : headerData) {
+      for (auto& p : hoPair.header) {
         (*headers)[p.first] = p.second;
       }
     }
@@ -1621,14 +1657,14 @@ void CcdbApi::navigateURLsAndLoadFileToMemory(o2::pmr::vector<char>& dest, CURL*
       };
 
       std::vector<std::string> locs;
-      auto iter = headerData.find("Location");
-      if (iter != headerData.end()) {
+      auto iter = hoPair.header.find("Location");
+      if (iter != hoPair.header.end()) {
         locs.push_back(complement_Location(iter->second));
       }
       // add alternative locations (not yet included)
-      auto iter2 = headerData.find("Content-Location");
-      if (iter2 != headerData.end()) {
-        auto range = headerData.equal_range("Content-Location");
+      auto iter2 = hoPair.header.find("Content-Location");
+      if (iter2 != hoPair.header.end()) {
+        auto range = hoPair.header.equal_range("Content-Location");
         for (auto it = range.first; it != range.second; ++it) {
           if (std::find(locs.begin(), locs.end(), it->second) == locs.end()) {
             locs.push_back(complement_Location(it->second));
@@ -1771,7 +1807,11 @@ CURLcode CcdbApi::CURL_perform(CURL* handle) const
   if (mIsCCDBDownloaderEnabled) {
     return mDownloader->perform(handle);
   }
-  return curl_easy_perform(handle);
+  CURLcode result;
+  for (int i = 1; i <= mCurlRetries && (result = curl_easy_perform(handle)) != CURLE_OK; i++) {
+    usleep(mCurlDelayRetries * i);
+  }
+  return result;
 }
 
 } // namespace o2

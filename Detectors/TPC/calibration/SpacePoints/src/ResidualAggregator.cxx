@@ -21,6 +21,8 @@
 #include <numeric>
 #include <algorithm>
 #include <chrono>
+#include <random>
+#include <fmt/format.h>
 
 using namespace o2::tpc;
 
@@ -90,17 +92,35 @@ void ResidualsContainer::init(const TrackResiduals* residualsEngine, std::string
   writeTrackData = wTrackData;
   autosaveInterval = autosave;
   if (writeToRootFile) {
+    bool outFileCreated = false;
+    int nTries = 0;
     fileName += std::to_string(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
-    fileName += ".root";
-    std::string fileNameTmp = outputDir + fileName;
-    fileNameTmp += ".part"; // to prevent premature external usage of the file use temporary name
-    fileOut = std::make_unique<TFile>(fileNameTmp.c_str(), "recreate", "", compression);
+    while (!outFileCreated && nTries < 100) {
+      std::random_device rd;
+      std::mt19937 g(rd());
+      std::uniform_int_distribution<> distr(0, 99);
+      fileName += fmt::format("_{:03}", distr(g)); // add some random number in case multiple slots are opened in an offline job simultaneously
+      fileName += ".root";
+      std::string fileNameTmp = outputDir + fileName;
+      fileNameTmp += ".part"; // to prevent premature external usage of the file use temporary name
+      if (std::filesystem::exists(fileNameTmp)) {
+        fileName.erase(fileName.length() - 9); // remove the _XXX.root from fileName, try with other XXX
+        ++nTries;
+        continue;
+      }
+      fileOut = std::make_unique<TFile>(fileNameTmp.c_str(), "recreate", "", compression);
+      outFileCreated = true;
+    }
+    if (!outFileCreated) {
+      LOG(error) << "Could not create output file for this slot after 100 tries. Disable file writing for this slot";
+      writeToRootFile = false;
+    }
   }
   if (writeUnbinnedResiduals) {
     treeOutResidualsUnbinned = std::make_unique<TTree>("unbinnedResid", "TPC unbinned residuals");
     treeOutResidualsUnbinned->Branch("res", &unbinnedResPtr);
     treeOutResidualsUnbinned->Branch("trackInfo", &trackInfoPtr);
-    treeOutResidualsUnbinned->Branch("lumi", &lumiTF);
+    treeOutResidualsUnbinned->Branch("CTPLumi", &lumiTF);
     treeOutResidualsUnbinned->Branch("timeMS", &timeMS);
   }
   if (writeTrackData) {
@@ -131,7 +151,7 @@ void ResidualsContainer::init(const TrackResiduals* residualsEngine, std::string
   treeOutRecords->Branch("firstTForbit", &tfOrbitsPtr);
   treeOutRecords->Branch("sumOfBinnedResiduals", &sumBinnedResidPtr);
   treeOutRecords->Branch("sumOfUnbinnedResiduals", &sumUnbinnedResidPtr);
-  treeOutRecords->Branch("lumi", &lumiPtr);
+  treeOutRecords->Branch("CTPLumi", &lumiPtr);
   LOG(debug) << "Done initializing residuals container for file named " << fileName;
 }
 
@@ -380,7 +400,7 @@ void ResidualAggregator::finalizeSlot(Slot& slot)
   auto finalizeStartTime = std::chrono::high_resolution_clock::now();
   auto cont = slot.getContainer();
   cont->print();
-  if (!mWriteOutput || cont->getNEntries() == 0) {
+  if (!mWriteOutput || cont->getNEntries() == 0 || !cont->writeToRootFile) {
     LOGP(info, "Skip writing output with {} entries, since file output is disabled or slot is empty", cont->getNEntries());
     return;
   }
@@ -404,11 +424,6 @@ void ResidualAggregator::finalizeSlot(Slot& slot)
     try {
       std::ofstream metaFileOut(metaFileNameTmp);
       metaFileOut << fileMetaData;
-      metaFileOut << "TFOrbits: ";
-      for (size_t i = 0; i < cont->tfOrbits.size(); i++) {
-        metaFileOut << fmt::format("{}{}", i ? ", " : "", cont->tfOrbits[i]);
-      }
-      metaFileOut << '\n';
       metaFileOut.close();
       std::filesystem::rename(metaFileNameTmp, metaFileName);
     } catch (std::exception const& e) {

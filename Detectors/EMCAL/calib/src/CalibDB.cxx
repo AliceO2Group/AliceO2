@@ -30,6 +30,8 @@ CalibDB::CalibDB(const std::string_view server) : CalibDB()
 void CalibDB::init()
 {
   mCCDBManager.init(mCCDBServer);
+  auto& mgr = CcdbManager::instance();
+  mgr.setURL(mCCDBServer);
   mInit = true;
 }
 
@@ -102,7 +104,8 @@ BadChannelMap* CalibDB::readBadChannelMap(ULong_t timestamp, const std::map<std:
   if (!mInit) {
     init();
   }
-  BadChannelMap* result = mCCDBManager.retrieveFromTFileAny<o2::emcal::BadChannelMap>(getCDBPathBadChannelMap(), metadata, timestamp);
+  auto& mgr = CcdbManager::instance();
+  BadChannelMap* result = mgr.getForTimeStamp<o2::emcal::BadChannelMap>(getCDBPathBadChannelMap(), timestamp);
   if (!result) {
     throw ObjectNotFoundException(mCCDBServer, getCDBPathBadChannelMap(), metadata, timestamp);
   }
@@ -114,7 +117,8 @@ TimeCalibrationParams* CalibDB::readTimeCalibParam(ULong_t timestamp, const std:
   if (!mInit) {
     init();
   }
-  TimeCalibrationParams* result = mCCDBManager.retrieveFromTFileAny<o2::emcal::TimeCalibrationParams>(getCDBPathTimeCalibrationParams(), metadata, timestamp);
+  auto& mgr = CcdbManager::instance();
+  TimeCalibrationParams* result = mgr.getForTimeStamp<o2::emcal::TimeCalibrationParams>(getCDBPathTimeCalibrationParams(), timestamp);
   if (!result) {
     throw ObjectNotFoundException(mCCDBServer, getCDBPathTimeCalibrationParams(), metadata, timestamp);
   }
@@ -126,7 +130,8 @@ TimeCalibParamL1Phase* CalibDB::readTimeCalibParamL1Phase(ULong_t timestamp, con
   if (!mInit) {
     init();
   }
-  TimeCalibParamL1Phase* result = mCCDBManager.retrieveFromTFileAny<o2::emcal::TimeCalibParamL1Phase>(getCDBPathL1Phase(), metadata, timestamp);
+  auto& mgr = CcdbManager::instance();
+  TimeCalibParamL1Phase* result = mgr.getForTimeStamp<o2::emcal::TimeCalibParamL1Phase>(getCDBPathL1Phase(), timestamp);
   if (!result) {
     throw ObjectNotFoundException(mCCDBServer, getCDBPathL1Phase(), metadata, timestamp);
   }
@@ -138,7 +143,8 @@ TempCalibrationParams* CalibDB::readTempCalibParam(ULong_t timestamp, const std:
   if (!mInit) {
     init();
   }
-  TempCalibrationParams* result = mCCDBManager.retrieveFromTFileAny<o2::emcal::TempCalibrationParams>(getCDBPathTemperatureCalibrationParams(), metadata, timestamp);
+  auto& mgr = CcdbManager::instance();
+  TempCalibrationParams* result = mgr.getForTimeStamp<o2::emcal::TempCalibrationParams>(getCDBPathTemperatureCalibrationParams(), timestamp);
   if (!result) {
     throw ObjectNotFoundException(mCCDBServer, getCDBPathTemperatureCalibrationParams(), metadata, timestamp);
   }
@@ -150,7 +156,8 @@ TempCalibParamSM* CalibDB::readTempCalibParamSM(ULong_t timestamp, const std::ma
   if (!mInit) {
     init();
   }
-  TempCalibParamSM* result = mCCDBManager.retrieveFromTFileAny<o2::emcal::TempCalibParamSM>(getCDBPathTemperatureCalibrationParamsSM(), metadata, timestamp);
+  auto& mgr = CcdbManager::instance();
+  TempCalibParamSM* result = mgr.getForTimeStamp<o2::emcal::TempCalibParamSM>(getCDBPathTemperatureCalibrationParamsSM(), timestamp);
   if (!result) {
     throw ObjectNotFoundException(mCCDBServer, getCDBPathTemperatureCalibrationParamsSM(), metadata, timestamp);
   }
@@ -162,7 +169,8 @@ GainCalibrationFactors* CalibDB::readGainCalibFactors(ULong_t timestamp, const s
   if (!mInit) {
     init();
   }
-  GainCalibrationFactors* result = mCCDBManager.retrieveFromTFileAny<o2::emcal::GainCalibrationFactors>(getCDBPathGainCalibrationParams(), metadata, timestamp);
+  auto& mgr = CcdbManager::instance();
+  GainCalibrationFactors* result = mgr.getForTimeStamp<o2::emcal::GainCalibrationFactors>(getCDBPathGainCalibrationParams(), timestamp);
   if (!result) {
     throw ObjectNotFoundException(mCCDBServer, getCDBPathGainCalibrationParams(), metadata, timestamp);
   }
@@ -174,7 +182,8 @@ EMCALChannelScaleFactors* CalibDB::readChannelScaleFactors(ULong_t timestamp, co
   if (!mInit) {
     init();
   }
-  EMCALChannelScaleFactors* result = mCCDBManager.retrieveFromTFileAny<o2::emcal::EMCALChannelScaleFactors>(getCDBPathChannelScaleFactors(), metadata, timestamp);
+  auto& mgr = CcdbManager::instance();
+  EMCALChannelScaleFactors* result = mgr.getForTimeStamp<o2::emcal::EMCALChannelScaleFactors>(getCDBPathChannelScaleFactors(), timestamp);
   if (!result) {
     throw ObjectNotFoundException(mCCDBServer, getCDBPathChannelScaleFactors(), metadata, timestamp);
   }
@@ -186,7 +195,8 @@ FeeDCS* CalibDB::readFeeDCSData(ULong_t timestamp, const std::map<std::string, s
   if (!mInit) {
     init();
   }
-  FeeDCS* result = mCCDBManager.retrieveFromTFileAny<o2::emcal::FeeDCS>(getCDBPathFeeDCS(), metadata, timestamp);
+  auto& mgr = CcdbManager::instance();
+  FeeDCS* result = mgr.getForTimeStamp<o2::emcal::FeeDCS>(getCDBPathFeeDCS(), timestamp);
   if (!result) {
     throw ObjectNotFoundException(mCCDBServer, getCDBPathFeeDCS(), metadata, timestamp);
   }
@@ -198,7 +208,8 @@ ElmbData* CalibDB::readTemperatureSensorData(ULong_t timestamp, const std::map<s
   if (!mInit) {
     init();
   }
-  ElmbData* result = mCCDBManager.retrieveFromTFileAny<o2::emcal::ElmbData>(getCDBPathTemperatureSensor(), metadata, timestamp);
+  auto& mgr = CcdbManager::instance();
+  ElmbData* result = mgr.getForTimeStamp<o2::emcal::ElmbData>(getCDBPathTemperatureSensor(), timestamp);
   if (!result) {
     throw ObjectNotFoundException(mCCDBServer, getCDBPathTemperatureSensor(), metadata, timestamp);
   }

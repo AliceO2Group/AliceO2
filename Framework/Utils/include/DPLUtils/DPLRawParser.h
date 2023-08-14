@@ -63,10 +63,11 @@ namespace o2::framework
 ///     // offset of payload in the raw page
 ///     size_t offset = it.offset();
 ///   }
+template <bool BOUNDS_CHECKS = true>
 class DPLRawParser
 {
  public:
-  using rawparser_type = RawParser<8192>;
+  using rawparser_type = RawParser<8192, BOUNDS_CHECKS>;
   using buffer_type = typename rawparser_type::buffer_type;
 
   DPLRawParser() = delete;
@@ -74,10 +75,11 @@ class DPLRawParser
 
   void setMaxFailureMessages(size_t n) { mMaxFailureMessages = n; }
   void setExtFailureCounter(size_t* cnt) { mExtFailureCounter = cnt; }
+  static void setCheckIncompleteHBF(bool v) { rawparser_type::setCheckIncompleteHBF(v); }
 
   // this is a dummy default buffer used to initialize the RawParser in the iterator
   // constructor
-  static constexpr o2::header::RAWDataHeaderV4 initializer = o2::header::RAWDataHeaderV4{};
+  static constexpr o2::header::RAWDataHeader initializer = o2::header::RAWDataHeader{.memorySize = sizeof(o2::header::RAWDataHeader)};
 
   /// Iterator implementation
   /// Supports the following operations:
@@ -191,7 +193,7 @@ class DPLRawParser
     template <typename U>
     U const* get_if() const
     {
-      return mCurrent.get_if<U>();
+      return mCurrent.template get_if<U>();
     }
 
     friend std::ostream& operator<<(std::ostream& os, self_type const& it)
@@ -234,21 +236,21 @@ class DPLRawParser
 
     bool next()
     {
-
       auto logFailure = [this](const std::string& msg, const std::runtime_error& e) {
-     if (!this->mExtFailureCounter || (*this->mExtFailureCounter)++ < this->mMaxFailureMessages) {
-       if (this->mSeverity == fair::Severity::alarm) {
-         LOG(alarm) << msg << (*this->mInputIterator).spec->binding << " : " << e.what();
-       } else if (this->mSeverity == fair::Severity::warn) {
-         LOG(warn) << msg << (*this->mInputIterator).spec->binding << " : " << e.what();
-       } else if (this->mSeverity == fair::Severity::fatal) {
-         LOG(fatal) << msg << (*this->mInputIterator).spec->binding << " : " << e.what();
-       } else if (this->mSeverity == fair::Severity::info) {
-         LOG(info) << msg << (*this->mInputIterator).spec->binding << " : " << e.what();
-       } else {
-         LOG(debug) << msg << (*this->mInputIterator).spec->binding << " : " << e.what();
-       }
-     } };
+        if (!this->mExtFailureCounter || (*this->mExtFailureCounter)++ < this->mMaxFailureMessages) {
+          if (this->mSeverity == fair::Severity::alarm) {
+            LOG(alarm) << msg << (*this->mInputIterator).spec->binding << " : " << e.what();
+          } else if (this->mSeverity == fair::Severity::warn) {
+            LOG(warn) << msg << (*this->mInputIterator).spec->binding << " : " << e.what();
+          } else if (this->mSeverity == fair::Severity::fatal) {
+            LOG(fatal) << msg << (*this->mInputIterator).spec->binding << " : " << e.what();
+          } else if (this->mSeverity == fair::Severity::info) {
+            LOG(info) << msg << (*this->mInputIterator).spec->binding << " : " << e.what();
+          } else {
+            LOG(debug) << msg << (*this->mInputIterator).spec->binding << " : " << e.what();
+          }
+        }
+      };
 
       while (mInputIterator != mEnd) {
         bool isInitial = mParser == nullptr;
@@ -330,7 +332,7 @@ class DPLRawParser
 
   /// Format helper for stream output of the iterator content,
   /// print RDH version and table header
-  using RDHInfo = const_iterator::Fmt<raw_parser::FormatSpec::Info>;
+  using RDHInfo = typename o2::framework::DPLRawParser<BOUNDS_CHECKS>::const_iterator::template Fmt<raw_parser::FormatSpec::Info>;
 
  private:
   InputRecord& mInputs;

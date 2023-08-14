@@ -40,6 +40,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"halfchambermajor", VariantType::Int, 0, {"Fix half chamber for when it is version is 0.0 integer value of major version, ignored if version is not 0.0"}},
     {"fixforoldtrigger", VariantType::Bool, false, {"Fix for the old data not having a 2 stage trigger stored in the cru header."}},
     {"onlycalibrationtrigger", VariantType::Bool, false, {"Only permit calibration triggers, used for debugging traclets and their digits, maybe other uses."}},
+    {"sortDigits", VariantType::Bool, false, {"Sort the digits in det/row/col (tracklets are always sorted)"}},
     {"tracklethcheader", VariantType::Int, 2, {"Status of TrackletHalfChamberHeader 0 off always, 1 iff tracklet data, 2 on always"}},
     {"disable-stats", VariantType::Bool, false, {"Do not generate stat messages for qc"}},
     {"disable-root-output", VariantType::Bool, false, {"Do not write the digits and tracklets to file"}},
@@ -73,6 +74,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   binaryoptions[o2::trd::TRDIgnore2StageTrigger] = cfgc.options().get<bool>("fixforoldtrigger");
   binaryoptions[o2::trd::TRDGenerateStats] = !cfgc.options().get<bool>("disable-stats");
   binaryoptions[o2::trd::TRDOnlyCalibrationTriggerBit] = cfgc.options().get<bool>("onlycalibrationtrigger");
+  binaryoptions[o2::trd::TRDSortDigits] = cfgc.options().get<bool>("sortDigits");
   AlgorithmSpec algoSpec;
   algoSpec = AlgorithmSpec{adaptFromTask<o2::trd::DataReaderTask>(tracklethcheader, halfchamberwords, halfchambermajor, binaryoptions)};
 
@@ -94,7 +96,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     outputs,
     algoSpec,
     Options{{"log-max-errors", VariantType::Int, 20, {"maximum number of errors to log"}},
-            {"log-max-warnings", VariantType::Int, 20, {"maximum number of warnings to log"}}}});
+            {"log-max-warnings", VariantType::Int, 20, {"maximum number of warnings to log"}},
+            {"every-nth-tf", VariantType::Int, 1, {"process only every n-th TF"}}}});
 
   if (!cfgc.options().get<bool>("disable-root-output")) {
     workflow.emplace_back(o2::trd::getTRDDigitWriterSpec(false, false));
