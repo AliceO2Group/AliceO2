@@ -23,7 +23,6 @@ static auto& sPtResParamsITS = o2::its::study::ITSPtTracksResParamConfig::Instan
 
 O2ParamImpl(o2::its::study::ITSAvgClusSizeParamConfig);
 O2ParamImpl(o2::its::study::ITSCheckTracksParamConfig);
-O2ParamImpl(o2::its::study::ITSPtTracksResParamConfig);
 
 } // namespace study
 } // namespace its

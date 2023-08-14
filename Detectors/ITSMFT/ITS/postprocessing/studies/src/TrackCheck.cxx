@@ -24,10 +24,13 @@
 #include "DetectorsBase/GRPGeomHelper.h"
 
 #include <TH1D.h>
+#include <TH2D.h>
 #include <TCanvas.h>
 #include <TEfficiency.h>
 #include <TStyle.h>
 #include <TLegend.h>
+#include <TGraphErrors.h>
+#include <TF1.h>
 
 namespace o2
 {
@@ -177,25 +180,41 @@ class TrackCheckStudy : public Task
   std::unique_ptr<TH1D> mPtSec2Eta;
   std::unique_ptr<TH1D> mPtSec3Eta;
 
+  std::unique_ptr<TH1D> mPtResolution;
+  std::unique_ptr<TH2D> mPtResolution2D;
+  std::unique_ptr<TH1D> mPtResolutionSec;
+  std::unique_ptr<TH1D> mPtResolutionPrim;
+  std::unique_ptr<TGraphErrors> g1;
+
   // Canvas & decorations
   std::unique_ptr<TCanvas> mCanvasPt;
   std::unique_ptr<TCanvas> mCanvasPt2;
   std::unique_ptr<TCanvas> mCanvasPt2fake;
-  std::unique_ptr<TCanvas> mCanvasPtRes;
   std::unique_ptr<TCanvas> mCanvasEta;
   std::unique_ptr<TCanvas> mCanvasEta2;
   std::unique_ptr<TCanvas> mCanvasEta2fake;
+  std::unique_ptr<TCanvas> mCanvasPtRes;
+  std::unique_ptr<TCanvas> mCanvasPtRes2;
+  std::unique_ptr<TCanvas> mCanvasPtRes3;
+  std::unique_ptr<TCanvas> mCanvasPtRes4;
   std::unique_ptr<TLegend> mLegendPt;
   std::unique_ptr<TLegend> mLegendPt2;
   std::unique_ptr<TLegend> mLegendPt2Fake;
   std::unique_ptr<TLegend> mLegendEta;
   std::unique_ptr<TLegend> mLegendEta2;
   std::unique_ptr<TLegend> mLegendEta2Fake;
+  std::unique_ptr<TLegend> mLegendPtRes;
+  std::unique_ptr<TLegend> mLegendPtRes2;
 
   float rLayer0 = 2.34;
   float rLayer1 = 3.15;
   float rLayer2 = 3.93;
   float rLayer3 = 19.605;
+
+  double sigma[100];
+  double sigmaerr[100];
+  double meanPt[100];
+  double aa[100];
 
   // Debug output tree
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
@@ -261,6 +280,15 @@ void TrackCheckStudy::init(InitContext& ic)
   mPtSec1Eta = std::make_unique<TH1D>("mPtSec1Eta", ";#eta;Number of tracks", 60, -3, 3);
   mPtSec2Eta = std::make_unique<TH1D>("mPtSec2Eta", ";#eta;Number of tracks", 60, -3, 3);
   mPtSec3Eta = std::make_unique<TH1D>("mPtSec3Eta", ";#eta;Number of tracks", 60, -3, 3);
+
+  mPtResolution = std::make_unique<TH1D>("PtResolution", ";#it{p}_{T} ;Den", 100, -1, 1);
+  mPtResolutionSec = std::make_unique<TH1D>("PtResolutionSec", ";#it{p}_{T} ;Den", 100, -1, 1);
+  mPtResolutionPrim = std::make_unique<TH1D>("PtResolutionPrim", ";#it{p}_{T} ;Den", 100, -1, 1);
+  mPtResolution2D = std::make_unique<TH2D>("#it{p}_{T} Resolution vs #it{p}_{T}", ";#it{p}_{T} (GeV/#it{c});#Delta p_{T}/p_{T_{MC}", 100, 0, 10, 100, -1, 1);
+
+  mPtResolution->Sumw2();
+  mPtResolutionSec->Sumw2();
+  mPtResolutionPrim->Sumw2();
 
   mGoodPt0->Sumw2();
   mGoodPt1->Sumw2();
@@ -545,6 +573,45 @@ void TrackCheckStudy::process()
   mEff1FakeEta = std::make_unique<TEfficiency>(*mFakeEta1, *mPtSec1Eta);
   mEff2FakeEta = std::make_unique<TEfficiency>(*mFakeEta2, *mPtSec2Eta);
   mEff3FakeEta = std::make_unique<TEfficiency>(*mFakeEta3, *mPtSec3Eta);
+
+  LOGP(info, "** Analysing pT resolution...");
+  for (auto iTrack{0}; iTrack < mTracks.size(); ++iTrack) {
+    auto& lab = mTracksMCLabels[iTrack];
+    if (!lab.isSet() || lab.isNoise())
+      continue;
+    int trackID, evID, srcID;
+    bool fake;
+    const_cast<o2::MCCompLabel&>(lab).get(trackID, evID, srcID, fake);
+    bool pass{true};
+    if (srcID == 99)
+      continue; // skip QED
+    // PtResVec[iTrack]=(mParticleInfo[srcID][evID][trackID].pt-mTracks[iTrack].getPt())/mParticleInfo[srcID][evID][trackID].pt;
+    mPtResolution->Fill((mParticleInfo[srcID][evID][trackID].pt - mTracks[iTrack].getPt()) / mParticleInfo[srcID][evID][trackID].pt);
+    mPtResolution2D->Fill(mParticleInfo[srcID][evID][trackID].pt, (mParticleInfo[srcID][evID][trackID].pt - mTracks[iTrack].getPt()) / mParticleInfo[srcID][evID][trackID].pt);
+    if (!mParticleInfo[srcID][evID][trackID].isPrimary)
+      mPtResolutionSec->Fill((mParticleInfo[srcID][evID][trackID].pt - mTracks[iTrack].getPt()) / mParticleInfo[srcID][evID][trackID].pt);
+    if (mParticleInfo[srcID][evID][trackID].isPrimary)
+      mPtResolutionPrim->Fill((mParticleInfo[srcID][evID][trackID].pt - mTracks[iTrack].getPt()) / mParticleInfo[srcID][evID][trackID].pt);
+  }
+
+  for (int yy = 0; yy < 100; yy++) {
+    aa[yy] = 0.;
+    sigma[yy] = 0.;
+    sigmaerr[yy] = 0.;
+    meanPt[yy] = 0.;
+  }
+
+  for (int yy = 0; yy < 100; yy++) {
+    TH1D* projh2X = mPtResolution2D->ProjectionY("projh2X", yy, yy + 1, "");
+    TF1* f1 = new TF1("f1", "gaus", -0.2, 0.2);
+    projh2X->Fit("f1");
+    if (f1->GetParameter(2) > 0. && f1->GetParameter(2) < 1. && f1->GetParameter(1) < 1.) {
+      sigma[yy] = f1->GetParameter(2);
+      sigmaerr[yy] = f1->GetParError(2);
+      meanPt[yy] = ((8. / 100.) * yy + (8. / 100.) * (yy + 1)) / 2;
+      aa[yy] = 0.0125;
+    }
+  }
 }
 
 void TrackCheckStudy::updateTimeDependentParams(ProcessingContext& pc)
@@ -924,6 +991,67 @@ void TrackCheckStudy::endOfStream(EndOfStreamContext& ec)
   mLegendEta2Fake->Draw();
   mCanvasEta2fake->SaveAs("eff_sec_Eta_fake.png");
 
+  mPtResolution->SetName("#it{p}_{T} resolution");
+  mPtResolution->SetTitle(";#Delta p_{T}/p_{T_{MC}} ;Entries");
+  mPtResolution->SetFillColor(kAzure + 4);
+  mPtResolutionPrim->SetFillColor(kRed);
+  mPtResolutionSec->SetFillColor(kOrange);
+  mPtResolutionPrim->SetTitle(";#Delta p_{T}/p_{T_{MC}} ;Entries");
+  mPtResolutionSec->SetTitle(";#Delta #it{p}_{T}/#it{p}_{T_{MC}} ;Entries");
+  mPtResolution2D->SetTitle(";#it{p}_{T_{MC}} [GeV];#Delta #it{p}_{T}/#it{p}_{T_{MC}}");
+
+  fout.WriteTObject(mPtResolution.get());
+  fout.WriteTObject(mPtResolutionPrim.get());
+  fout.WriteTObject(mPtResolutionSec.get());
+  fout.WriteTObject(mPtResolution2D.get());
+
+  mCanvasPtRes = std::make_unique<TCanvas>("cPtr", "cPtr", 1600, 1200);
+  mCanvasPtRes->cd();
+  mPtResolution->Draw("HIST");
+  mLegendPtRes = std::make_unique<TLegend>(0.19, 0.8, 0.40, 0.96);
+  mLegendPtRes->SetHeader(Form("%zu events PP min bias", mKineReader->getNEvents(0)), "C");
+  mLegendPtRes->AddEntry("mPtResolution", "All events", "lep");
+  mLegendPtRes->Draw();
+  mCanvasPtRes->SaveAs("ptRes.png");
+  fout.cd();
+  mCanvasPtRes2->Write();
+  mCanvasPtRes2 = std::make_unique<TCanvas>("cPtr2", "cPtr2", 1600, 1200);
+  mCanvasPtRes2->cd();
+  mPtResolution2D->Draw();
+  mCanvasPtRes2->SaveAs("ptRes2.png");
+  fout.cd();
+  mCanvasPtRes2->Write();
+  mCanvasPtRes3 = std::make_unique<TCanvas>("cPtr3", "cPtr3", 1600, 1200);
+  mCanvasPtRes3->cd();
+
+  TGraphErrors* g1 = new TGraphErrors(100, meanPt, sigma, aa, sigmaerr);
+  g1->SetMarkerStyle(8);
+  g1->SetMarkerColor(kGreen);
+  g1->GetXaxis()->SetTitle(" #it{p}_{T} [GeV]");
+  g1->GetYaxis()->SetTitle("#sigma #Delta #it{p}_{T}/#it{p}_{T_{MC}}");
+  g1->GetYaxis()->SetLimits(0, 1);
+  g1->GetXaxis()->SetLimits(0, 10.);
+  g1->Draw("AP");
+  g1->GetYaxis()->SetRangeUser(0, 1);
+  g1->GetXaxis()->SetRangeUser(0, 10.);
+  mCanvasPtRes3->SaveAs("ptRes3.png");
+  fout.cd();
+  mCanvasPtRes3->Write();
+
+  mCanvasPtRes4 = std::make_unique<TCanvas>("cPt4", "cPt4", 1600, 1200);
+  mCanvasPtRes4->cd();
+  mPtResolutionPrim->SetName("mPtResolutionPrim");
+  mPtResolutionSec->SetName("mPtResolutionSec");
+  mPtResolutionPrim->Draw("same hist");
+  mPtResolutionSec->Draw("same hist");
+  mLegendPtRes2 = std::make_unique<TLegend>(0.19, 0.8, 0.40, 0.96);
+
+  mLegendPtRes2->SetHeader(Form("%zu events PP", mKineReader->getNEvents(0)), "C");
+  mLegendPtRes2->AddEntry("mPtResolutionPrim", "Primary events", "f");
+  mLegendPtRes2->AddEntry("mPtResolutionSec", "Secondary events", "f");
+  mLegendPtRes2->Draw("same");
+  mLegendPtRes2->SaveAs("ptRes4.png");
+
   fout.cd();
   mCanvasPt->Write();
   mCanvasEta->Write();
@@ -931,6 +1059,10 @@ void TrackCheckStudy::endOfStream(EndOfStreamContext& ec)
   mCanvasPt2fake->Write();
   mCanvasEta2->Write();
   mCanvasEta2fake->Write();
+  mCanvasPtRes->Write();
+  mCanvasPtRes2->Write();
+  mCanvasPtRes3->Write();
+  mCanvasPtRes4->Write();
 
   fout.Close();
 }
