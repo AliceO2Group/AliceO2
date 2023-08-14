@@ -251,14 +251,20 @@ nTFs=$((1000 * 128 / ${NHBPERTF}))
 nTFs_SAC=$((1000 * 128 / ${NHBPERTF}))
 nBuffer=$((100 * 128 / ${NHBPERTF}))
 IDC_DELTA="--disable-IDCDelta true" # off by default
+
 # deltas are on by default; you need to request explicitly to switch them off;
 if [[ "${DISABLE_IDC_DELTA:-}" == "1" ]]; then IDC_DELTA=""; fi
 if [[ "${ENABLE_IDC_DELTA_FILE:-}" == "1" ]]; then IDC_DELTA+=" --dump-IDCDelta-calib-data true --output-dir $CALIB_DIR --meta-output-dir $EPN2EOS_METAFILES_DIR "; fi
 
+TPC_WRITING_PAD_STATUS_MAP="--enableWritingPadStatusMap true"
+if [[ ! -z "${DISABLE_IDC_PAD_MAP_WRITING:-}" ]]; then TPC_WRITING_PAD_STATUS_MAP="--enableWritingPadStatusMap false"; fi
+
+
+
 if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
   if [[ $CALIB_TPC_IDC == 1 ]] && [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC || $AGGREGATOR_TASKS == ALL ]]; then
     add_W o2-tpc-idc-distribute "--crus ${crus} --timeframes ${nTFs} --output-lanes ${lanesFactorize} --send-precise-timestamp true --condition-tf-per-query ${nTFs} --n-TFs-buffer ${nBuffer}"
-    add_W o2-tpc-idc-factorize "--n-TFs-buffer ${nBuffer} --input-lanes ${lanesFactorize} --crus ${crus} --timeframes ${nTFs} --nthreads-grouping 8 --nthreads-IDC-factorization 8 --sendOutputFFT true --enable-CCDB-output true --enablePadStatusMap true --enableWritingPadStatusMap true --use-precise-timestamp true $IDC_DELTA" "TPCIDCGroupParam.groupPadsSectorEdges=32211"
+    add_W o2-tpc-idc-factorize "--n-TFs-buffer ${nBuffer} --input-lanes ${lanesFactorize} --crus ${crus} --timeframes ${nTFs} --nthreads-grouping 8 --nthreads-IDC-factorization 8 --sendOutputFFT true --enable-CCDB-output true --enablePadStatusMap true ${TPC_WRITING_PAD_STATUS_MAP}--enableWritingPadStatusMap true --use-precise-timestamp true $IDC_DELTA" "TPCIDCGroupParam.groupPadsSectorEdges=32211"
     add_W o2-tpc-idc-ft-aggregator "--rangeIDC 200 --inputLanes ${lanesFactorize} --nFourierCoeff 40 --nthreads 8"
   fi
   if [[ $CALIB_TPC_SAC == 1 ]] && [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC || $AGGREGATOR_TASKS == ALL ]]; then
