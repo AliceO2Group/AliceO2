@@ -192,6 +192,12 @@ class Cell
   /// \return Encoded bit representation
   uint16_t getCellTypeEncoded() const;
 
+  static uint16_t encodeEnergyV0(float energy);
+  static uint16_t encodeEnergyV1(float energy, ChannelType_t celltype);
+  static uint16_t V0toV1(uint16_t energybits, ChannelType_t celltype);
+  static float decodeEnergyV0(uint16_t energybits);
+  static float decodeEnergyV1(uint16_t energybits, ChannelType_t celltype);
+
  private:
   /// \brief Set cell energy from encoded bit representation (from CTF)
   /// \param energyBits Bit representation of energy
