@@ -23,23 +23,19 @@ const float TIME_SHIFT = 600.,
             ENERGY_TRUNCATION = 250.,
             ENERGY_RESOLUTION = ENERGY_TRUNCATION / 16383.;
 
-Cell::Cell()
+Cell::Cell(short tower, float energy, float timestamp, ChannelType_t ctype) : mTowerID(tower), mEnergy(energy), mTimestamp(timestamp), mChannelType(ctype)
 {
-  memset(mCellWords, 0, 6);
 }
 
-Cell::Cell(short tower, float energy, float time, ChannelType_t ctype)
+uint16_t Cell::getTowerIDEncoded() const
 {
-  memset(mCellWords, 0, 6);
-  setTower(tower);
-  setTimeStamp(time);
-  setEnergy(energy);
-  setType(ctype);
+  return mTowerID;
 }
 
-void Cell::setTimeStamp(float timestamp)
+uint16_t Cell::getTimeStampEncoded() const
 {
   // truncate:
+  auto timestamp = mTimestamp;
   const float TIME_MIN = -1. * TIME_SHIFT,
               TIME_MAX = TIME_RANGE - TIME_SHIFT;
   if (timestamp < TIME_MIN) {
@@ -47,28 +43,49 @@ void Cell::setTimeStamp(float timestamp)
   } else if (timestamp > TIME_MAX) {
     timestamp = TIME_MAX;
   }
-  getDataRepresentation()->mTime = static_cast<uint16_t>(std::round((timestamp + TIME_SHIFT) / TIME_RESOLUTION));
+  return static_cast<uint16_t>(std::round((timestamp + TIME_SHIFT) / TIME_RESOLUTION));
 }
 
-float Cell::getTimeStamp() const
+uint16_t Cell::getEnergyEncoded() const
 {
-  return (static_cast<float>(getDataRepresentation()->mTime) * TIME_RESOLUTION) - TIME_SHIFT;
-}
-
-void Cell::setEnergy(float energy)
-{
-  double truncatedEnergy = energy;
+  double truncatedEnergy = mEnergy;
   if (truncatedEnergy < 0.) {
     truncatedEnergy = 0.;
   } else if (truncatedEnergy > ENERGY_TRUNCATION) {
     truncatedEnergy = ENERGY_TRUNCATION;
   }
-  getDataRepresentation()->mEnergy = static_cast<int16_t>(std::round(truncatedEnergy / ENERGY_RESOLUTION));
+  return static_cast<int16_t>(std::round(truncatedEnergy / ENERGY_RESOLUTION));
 }
 
-float Cell::getEnergy() const
+uint16_t Cell::getCellTypeEncoded() const
 {
-  return static_cast<float>(getDataRepresentation()->mEnergy) * ENERGY_RESOLUTION;
+  return static_cast<uint16_t>(mChannelType);
+}
+
+void Cell::setEnergyEncoded(uint16_t energyBits)
+{
+  mEnergy = energyBits * ENERGY_RESOLUTION;
+}
+
+void Cell::setTimestampEncoded(uint16_t timestampBits)
+{
+  mTimestamp = (timestampBits * TIME_RESOLUTION) - TIME_SHIFT;
+}
+
+void Cell::setTowerIDEncoded(uint16_t towerIDBits)
+{
+  mTowerID = towerIDBits;
+}
+
+void Cell::setChannelTypeEncoded(uint16_t channelTypeBits)
+{
+  mChannelType = static_cast<ChannelType_t>(channelTypeBits);
+}
+
+void Cell::truncate()
+{
+  setEnergyEncoded(getEnergyEncoded());
+  setTimestampEncoded(getTimeStampEncoded());
 }
 
 void Cell::PrintStream(std::ostream& stream) const
