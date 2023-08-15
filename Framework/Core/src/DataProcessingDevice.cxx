@@ -1110,12 +1110,27 @@ void DataProcessingDevice::PreRun()
       info.state = InputChannelState::Running;
     }
   }
-  auto& dpContext = ref.get<DataProcessorContext>();
-  dpContext.preStartCallbacks(ref);
-  for (size_t i = 0; i < mStreams.size(); ++i) {
-    auto streamRef = ServiceRegistryRef{mServiceRegistry, ServiceRegistry::globalStreamSalt(i + 1)};
-    auto& context = streamRef.get<StreamContext>();
-    context.preStartStreamCallbacks(streamRef);
+
+  // Catch callbacks which fail before we start.
+  // Notice that when running multiple dataprocessors
+  // we should probably allow expendable ones to fail.
+  try {
+    auto& dpContext = ref.get<DataProcessorContext>();
+    dpContext.preStartCallbacks(ref);
+    for (size_t i = 0; i < mStreams.size(); ++i) {
+      auto streamRef = ServiceRegistryRef{mServiceRegistry, ServiceRegistry::globalStreamSalt(i + 1)};
+      auto& context = streamRef.get<StreamContext>();
+      context.preStartStreamCallbacks(streamRef);
+    }
+  } catch (std::exception& e) {
+    LOGP(error, "Exception caught: {} ", e.what());
+    throw;
+  } catch (o2::framework::RuntimeErrorRef& e) {
+    auto& err = error_from_ref(e);
+    LOGP(error, "Exception caught: {} ", err.what);
+    throw;
+  } catch (...) {
+    throw;
   }
 
   ref.get<CallbackService>().call<CallbackService::Id::Start>();
