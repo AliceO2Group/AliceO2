@@ -48,7 +48,8 @@ class CalArray;
 class CalibTreeDump
 {
  public:
-  using DataTypes = CalDet<float>; //boost::variant<CalDet<int>, CalDet<float>, CalDet<double>, CalDet<bool>, CalDet<unsigned int>>;
+  using DataTypes = CalDet<float>; // boost::variant<CalDet<int>, CalDet<float>, CalDet<double>, CalDet<bool>, CalDet<unsigned int>>;
+  using CalPadMapType = std::unordered_map<std::string, DataTypes>;
 
   CalibTreeDump() = default;
   ~CalibTreeDump() = default;
@@ -59,7 +60,7 @@ class CalibTreeDump
   {
     mCalDetObjects.emplace_back(calDet);
   }
-  //void add(const CalDet<DataTypes>& calDet) { mCalDetObjects.push_back(calDet); }
+  // void add(const CalDet<DataTypes>& calDet) { mCalDetObjects.push_back(calDet); }
 
   /// Add CalArray objects
   template <typename T>
@@ -67,6 +68,10 @@ class CalibTreeDump
   {
     mCalArrayObjects.emplace_back(calArray);
   }
+  ///
+  /// Add map of CalArray objects changes the name of the CalDet to the map name
+  /// to have unique identifier
+  void add(CalPadMapType& calibs);
 
   /// Set adding of FEE mapping to the tree
   void setAddFEEInfo(bool add = true) { mAddFEEInfo = add; }
