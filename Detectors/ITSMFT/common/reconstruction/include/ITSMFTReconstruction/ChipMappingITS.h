@@ -35,9 +35,9 @@ class ChipMappingITS
 {
  public:
   struct Overlaps {
-    enum OverlappingRow : char { NONE = -1,
-                                 LowRow = 0,
-                                 HighRow = 1 };
+    enum OverlappingRow : signed char { NONE = -1,
+                                        LowRow = 0,
+                                        HighRow = 1 };
     uint16_t lowRow = 0xffff;  // chip overlapping from high row side
     uint16_t highRow = 0xffff; // chip overlapping from low row side
     OverlappingRow lowRowOverlap = NONE;
