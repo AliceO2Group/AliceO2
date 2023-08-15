@@ -54,6 +54,7 @@ class CalibratordEdxDevice : public Task
     const auto minEntries2D = ic.options().get<int>("min-entries-2d");
     const auto fitPasses = ic.options().get<int>("fit-passes");
     const auto fitThreshold = ic.options().get<float>("fit-threshold");
+    const auto fitThresholdLowFactor = ic.options().get<float>("fit-threshold-low-factor");
 
     const auto dEdxBins = ic.options().get<int>("dedxbins");
     const auto mindEdx = ic.options().get<float>("min-dedx");
@@ -70,7 +71,7 @@ class CalibratordEdxDevice : public Task
     mCalibrator->setMinEntries(minEntries);
     mCalibrator->setSlotLength(slotLength);
     mCalibrator->setMaxSlotsDelay(maxDelay);
-    mCalibrator->setElectronCut({fitThreshold, fitPasses});
+    mCalibrator->setElectronCut({fitThreshold, fitPasses, fitThresholdLowFactor});
 
     if (dumpData) {
       mCalibrator->enableDebugOutput("calibratordEdx.root");
@@ -160,6 +161,7 @@ DataProcessorSpec getCalibratordEdxSpec()
       {"min-entries-2d", VariantType::Int, 50000, {"minimum entries per stack to fit 2D correction"}},
       {"fit-passes", VariantType::Int, 3, {"number of fit iterations"}},
       {"fit-threshold", VariantType::Float, 0.2f, {"dEdx width around the MIP peak used in the fit"}},
+      {"fit-threshold-low-factor", VariantType::Float, 1.5f, {"factor for low dEdx width around the MIP peak used in the fit"}},
 
       {"dedxbins", VariantType::Int, 60, {"number of dEdx bins"}},
       {"min-dedx", VariantType::Float, 20.0f, {"minimum value for dEdx histograms"}},
