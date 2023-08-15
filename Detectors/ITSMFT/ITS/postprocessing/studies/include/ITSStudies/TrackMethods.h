@@ -11,10 +11,10 @@
 
 /// \file TrackCuts.h
 /// \brief Class to store some methods used in TrackCuts
-/// \author amelia.lindner@cern.ch
+/// \author antonio.palasciano@ba.infn.it
 
-#ifndef ALICEO2_TRACKMETHODS_H
-#define ALICEO2_TRACKMETHODS_H
+#ifndef O2_TRACK_METHODS_STUDY_H
+#define O2_TRACK_METHODS_STUDY_H
 
 #include "DataFormatsTPC/TrackTPC.h"
 #include "GPUTPCGMMergedTrackHit.h"

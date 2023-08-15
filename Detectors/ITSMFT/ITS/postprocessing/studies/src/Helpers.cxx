@@ -69,8 +69,8 @@ void helpers::setStyleHistogram1DMeanValues(TH1F& histo, int color)
 {
   // common and 1D case
   helpers::setStyleHistogram1D(histo, color);
-  histo.SetMinimum(-10.);
-  histo.SetMaximum(10.);
+  histo.SetMinimum(-15.);
+  histo.SetMaximum(15.);
   histo.GetXaxis()->SetTitleOffset(1.4);
   histo.GetYaxis()->SetTitleOffset(1.2);
 }
@@ -108,8 +108,17 @@ TCanvas* helpers::prepareSimpleCanvas2Histograms(TH1F& h1, int color1, TString n
     c1->SetLogy(); // c1->SetGridy();
     c1->SetLogx(); // c1->SetGridx();
   }
-  helpers::setStyleHistogram1D(h1, color1);
-  helpers::setStyleHistogram1D(h2, color2);
+  TString direction = "";
+  TString histoName1 = h1.GetName();
+  TString histoName2 = h2.GetName();
+  if (histoName1.Contains("Xy"))
+    direction = "XY";
+  if (histoName1.Contains("Z"))
+    direction = "Z";
+  if ((histoName1.Contains("Xy")) && (histoName2.Contains("Z")))
+    direction = "";
+  helpers::setStyleHistogram1D(h1, color1, "", Form("Pointing Resolution %s (#mum)", direction.Data()), h1.GetXaxis()->GetName());
+  helpers::setStyleHistogram1D(h2, color2, "", Form("Pointing Resolution %s (#mum)", direction.Data()), h2.GetXaxis()->GetName());
   TLegend* leg = new TLegend(0.6, 0.3, 0.8, 0.5);
   leg->SetBorderSize(0);
   leg->SetFillStyle(0);
@@ -194,7 +203,7 @@ void helpers::paveTextITS(TPaveText* pave, TString intRate)
 //______________________________________________________________________________
 void helpers::ConvertTH1ToTGraphAsymmError(TH1F& hMean, TH1F& hSigma, TGraphAsymmErrors*& gr)
 {
-  const Int_t nbinsxx = hMean.GetNbinsX();
+  const Int_t nbinsxx = hMean.GetNbinsX() + 1;
   Double_t x[nbinsxx], y[nbinsxx], ex1[nbinsxx], ex2[nbinsxx], ey1[nbinsxx], ey2[nbinsxx];
 
   for (int i = 0; i < nbinsxx; i++) {
