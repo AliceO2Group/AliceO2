@@ -15,6 +15,7 @@
 
 #include "TROOT.h"
 
+#include "Framework/Logger.h"
 #include "TPCBase/CRUCalibHelpers.h"
 
 using namespace o2::tpc;
@@ -99,4 +100,111 @@ void cru_calib_helpers::debugDiff(std::string_view file1, std::string_view file2
       }
     }
   }
+}
+
+std::unordered_map<std::string, CalPad> cru_calib_helpers::preparePedestalFiles(const CalPad& pedestals, const CalPad& noise, float sigmaNoise, float minADC, float pedestalOffset, bool onlyFilled, bool maskBad, float noisyChannelThreshold, float sigmaNoiseNoisyChannels, float badChannelThreshold, bool fixedSize)
+{
+  const auto& mapper = Mapper::instance();
+
+  std::unordered_map<std::string, CalPad> pedestalsThreshold;
+  pedestalsThreshold["Pedestals"] = CalPad("Pedestals");
+  pedestalsThreshold["ThresholdMap"] = CalPad("ThresholdMap");
+  pedestalsThreshold["PedestalsPhys"] = CalPad("Pedestals");
+  pedestalsThreshold["ThresholdMapPhys"] = CalPad("ThresholdMap");
+
+  auto& pedestalsCRU = pedestalsThreshold["Pedestals"];
+  auto& thresholdCRU = pedestalsThreshold["ThresholdMap"];
+
+  // ===| prepare values |===
+  for (size_t iroc = 0; iroc < pedestals.getData().size(); ++iroc) {
+    const ROC roc(iroc);
+
+    const auto& rocPedestal = pedestals.getCalArray(iroc);
+    const auto& rocNoise = noise.getCalArray(iroc);
+
+    const int padOffset = roc.isOROC() ? mapper.getPadsInIROC() : 0;
+    const auto& traceLengths = roc.isIROC() ? mapper.getTraceLengthsIROC() : mapper.getTraceLengthsOROC();
+
+    // skip empty
+    if (!(std::abs(rocPedestal.getSum() + rocNoise.getSum()) > 0)) {
+      continue;
+    }
+
+    // loop over pads
+    for (size_t ipad = 0; ipad < rocPedestal.getData().size(); ++ipad) {
+      const int globalPad = ipad + padOffset;
+      const FECInfo& fecInfo = mapper.fecInfo(globalPad);
+      const CRU cru = mapper.getCRU(roc.getSector(), globalPad);
+      const uint32_t region = cru.region();
+      const int cruID = cru.number();
+      const int sampa = fecInfo.getSampaChip();
+      const int sampaChannel = fecInfo.getSampaChannel();
+      // int globalLinkID = fecInfo.getIndex();
+
+      const PartitionInfo& partInfo = mapper.getMapPartitionInfo()[cru.partition()];
+      const int nFECs = partInfo.getNumberOfFECs();
+      const int fecOffset = (nFECs + 1) / 2;
+      const int fecInPartition = fecInfo.getIndex() - partInfo.getSectorFECOffset();
+      // const int dataWrapperID = fecInPartition >= fecOffset;
+      // const int globalLinkID = (fecInPartition % fecOffset) + dataWrapperID * 12;
+
+      const auto traceLength = traceLengths[ipad];
+
+      float pedestal = rocPedestal.getValue(ipad);
+      if ((pedestal > 0) && (pedestalOffset > pedestal)) {
+        LOGP(warning, "ROC: {:2}, pad: {:3} -- pedestal offset {:.2f} larger than the pedestal value {:.2f}. Pedestal and noise will be set to 0", iroc, ipad, pedestalOffset, pedestal);
+      } else {
+        pedestal -= pedestalOffset;
+      }
+
+      float noise = std::abs(rocNoise.getValue(ipad)); // it seems with the new fitting procedure, the noise can also be negative, since in gaus sigma is quadratic
+      float noiseCorr = noise - (0.847601 + 0.031514 * traceLength);
+      if ((pedestal <= 0) || (pedestal > 150) || (noise <= 0) || (noise > 50)) {
+        LOGP(info, "Bad pedestal or noise value in ROC {:2}, CRU {:3}, fec in CRU: {:2}, SAMPA: {}, channel: {:2}, pedestal: {:.4f}, noise {:.4f}", iroc, cruID, fecInPartition, sampa, sampaChannel, pedestal, noise);
+        if (maskBad) {
+          pedestal = 1023;
+          noise = 1023;
+          LOGP(info, ", they will be masked using pedestal value {:.0f} and noise {:.0f}", pedestal, noise);
+        } else {
+          LOGP(info, ", setting both to 0");
+          pedestal = 0;
+          noise = 0;
+        }
+      }
+      float threshold = (noise > 0) ? std::max(sigmaNoise * noise, minADC) : 0;
+      threshold = std::min(threshold, 1023.f);
+      float thresholdHighNoise = (noiseCorr > noisyChannelThreshold) ? std::max(sigmaNoiseNoisyChannels * noise, minADC) : threshold;
+
+      float pedestalHighNoise = pedestal;
+      if (noiseCorr > badChannelThreshold) {
+        pedestalHighNoise = 1023;
+        thresholdHighNoise = 1023;
+      }
+
+      const int hwChannel = getHWChannel(sampa, sampaChannel, region % 2);
+      // for debugging
+      // printf("%4d %4d %4d %4d %4d: %u\n", cru.number(), globalLinkID, hwChannel, fecInfo.getSampaChip(), fecInfo.getSampaChannel(), getADCValue(pedestal));
+
+      // default thresholds
+      if (fixedSize) {
+        pedestal = floatToFixedSize(pedestal);
+        threshold = floatToFixedSize(threshold);
+
+        // higher thresholds for physics data taking
+        pedestalHighNoise = floatToFixedSize(pedestalHighNoise);
+        thresholdHighNoise = floatToFixedSize(thresholdHighNoise);
+      }
+
+      pedestalsThreshold["Pedestals"].getCalArray(iroc).setValue(ipad, pedestal);
+      pedestalsThreshold["ThresholdMap"].getCalArray(iroc).setValue(ipad, threshold);
+      pedestalsThreshold["PedestalsPhys"].getCalArray(iroc).setValue(ipad, pedestalHighNoise);
+      pedestalsThreshold["ThresholdMapPhys"].getCalArray(iroc).setValue(ipad, thresholdHighNoise);
+      // for debugging
+      // if(!(std::abs(pedestal - fixedSizeToFloat(adcPedestal)) <= 0.5 * 0.25)) {
+      // printf("%4d %4d %4d %4d %4d: %u %.2f %.4f %.4f\n", cru.number(), globalLinkID, hwChannel, sampa, sampaChannel, adcPedestal, fixedSizeToFloat(adcPedestal), pedestal, pedestal - fixedSizeToFloat(adcPedestal));
+      //}
+    }
+  }
+
+  return pedestalsThreshold;
 }
