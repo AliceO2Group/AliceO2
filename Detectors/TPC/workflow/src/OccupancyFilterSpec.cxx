@@ -87,16 +87,15 @@ class OccupancyFilterDevice : public o2::framework::Task
       std::vector<o2::tpc::Digit> cpDigits;
       if (isAboveThreshold) {
         std::copy_if(inDigitsO.begin(), inDigitsO.end(), std::back_inserter(cpDigits),
-            [this](const auto& digit) {
-              return (!mFilterTimeStamp || (digit.getTimeStamp() > mMinimumTimeStamp)) 
-                     && (!mFilterAdcValue || (digit.getChargeFloat() > mAdcValueThreshold));
-            }); 
+                     [this](const auto& digit) {
+                       return (!mFilterTimeStamp || (digit.getTimeStamp() > mMinimumTimeStamp)) && (!mFilterAdcValue || (digit.getChargeFloat() > mAdcValueThreshold));
+                     });
 
         snapshot(pc.outputs(), cpDigits, sector);
       } else {
         std::vector<o2::tpc::Digit> empty;
         snapshot(pc.outputs(), empty, sector);
-      } 
+      }
 
       ++mProcessedTFs;
       LOGP(info, "Number of processed time frames: {}", mProcessedTFs);
