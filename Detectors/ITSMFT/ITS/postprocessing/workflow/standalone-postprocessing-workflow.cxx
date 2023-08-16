@@ -10,6 +10,10 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/CallbacksPolicy.h"
+#include "CommonUtils/ConfigurableParam.h"
+#include "Framework/CompletionPolicy.h"
+#include "Framework/ConfigParamSpec.h"
+#include "Framework/CompletionPolicyHelpers.h"
 #include "GlobalTrackingWorkflowHelpers/InputHelper.h"
 #include "DetectorsRaw/HBFUtilsInitializer.h"
 

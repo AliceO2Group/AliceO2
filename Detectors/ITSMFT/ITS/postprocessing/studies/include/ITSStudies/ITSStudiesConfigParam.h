@@ -72,6 +72,17 @@ struct ITSAvgClusSizeParamConfig : public o2::conf::ConfigurableParamHelper<ITSA
 
   O2ParamDef(ITSAvgClusSizeParamConfig, "ITSAvgClusSizeParam");
 };
+
+struct ITSImpactParameterParamConfig : public o2::conf::ConfigurableParamHelper<ITSImpactParameterParamConfig> {
+  std::string outFileName = "its_ImpParameter.root";
+  int minNumberOfContributors = 0;
+  bool applyTrackCuts = false;
+  bool useAllTracks = false;
+  bool generatePlots = false;
+
+  O2ParamDef(ITSImpactParameterParamConfig, "ITSImpactParameterParam");
+};
+
 } // namespace study
 } // namespace its
 } // namespace o2
