@@ -124,6 +124,16 @@ void on_connect(uv_connect_t* connection, int status)
     state.nextFairMQState.emplace_back("STOP");
   });
 
+  client->observe("/start", [ref = context->ref](std::string_view) {
+    auto& state = ref.get<DeviceState>();
+    state.nextFairMQState.emplace_back("RUN");
+  });
+
+  client->observe("/stop", [ref = context->ref](std::string_view) {
+    auto& state = ref.get<DeviceState>();
+    state.nextFairMQState.emplace_back("STOP");
+  });
+
   client->observe("/trace", [ref = context->ref](std::string_view cmd) {
     auto& state = ref.get<DeviceState>();
     static constexpr int prefixSize = std::string_view{"/trace "}.size();
