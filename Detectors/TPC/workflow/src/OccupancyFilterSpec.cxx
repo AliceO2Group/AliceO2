@@ -45,6 +45,10 @@ class OccupancyFilterDevice : public o2::framework::Task
   {
     mOccupancyThreshold = ic.options().get<float>("occupancy-threshold");
     mAdcValueThreshold = ic.options().get<float>("adc-threshold");
+    mMinimumTimeStamp = ic.options().get<uint64_t>("min-timestamp");
+    mFilterAdcValue = ic.options().get<bool>("filter-adc");
+    mFilterTimeStamp = ic.options().get<bool>("filter-timestamp");
+    LOGP(debug, "got minimum timestamp {}", mMinimumTimeStamp);
   }
 
   void run(o2::framework::ProcessingContext& pc) final
@@ -66,7 +70,7 @@ class OccupancyFilterDevice : public o2::framework::Task
       std::vector<size_t> digitsPerTimeBin(int(128 * 445.5));
 
       for (const auto& digit : inDigitsO) {
-        if (digit.getChargeFloat() > mAdcValueThreshold) {
+        if ((digit.getChargeFloat() > mAdcValueThreshold) && (digit.getTimeStamp() > mMinimumTimeStamp)) {
           ++digitsPerTimeBin[digit.getTimeStamp()];
         }
       }
@@ -80,8 +84,15 @@ class OccupancyFilterDevice : public o2::framework::Task
         }
       }
 
+      std::vector<o2::tpc::Digit> cpDigits;
       if (isAboveThreshold) {
-        snapshot(pc.outputs(), inDigitsO, sector);
+        std::copy_if(inDigitsO.begin(), inDigitsO.end(), std::back_inserter(cpDigits),
+            [this](const auto& digit) {
+              return (!mFilterTimeStamp || (digit.getTimeStamp() > mMinimumTimeStamp)) 
+                     && (!mFilterAdcValue || (digit.getChargeFloat() > mAdcValueThreshold));
+            }); 
+
+        snapshot(pc.outputs(), cpDigits, sector);
       } else {
         std::vector<o2::tpc::Digit> empty;
         snapshot(pc.outputs(), empty, sector);
@@ -95,6 +106,9 @@ class OccupancyFilterDevice : public o2::framework::Task
  private:
   float mOccupancyThreshold{50.f};
   float mAdcValueThreshold{0.f};
+  uint64_t mMinimumTimeStamp{0ULL};
+  bool mFilterAdcValue{false};
+  bool mFilterTimeStamp{false};
   uint32_t mProcessedTFs{0};
 
   //____________________________________________________________________________
@@ -125,6 +139,9 @@ o2::framework::DataProcessorSpec getOccupancyFilterSpec()
     Options{
       {"occupancy-threshold", VariantType::Float, 50.f, {"threshold for occupancy in one time bin"}},
       {"adc-threshold", VariantType::Float, 0.f, {"threshold for adc value"}},
+      {"min-timestamp", VariantType::UInt64, 0ULL, {"minimum time bin"}},
+      {"filter-adc", VariantType::Bool, false, {"filter the data by the given adc threshold"}},
+      {"filter-timestamp", VariantType::Bool, false, {"filter the data by the given minimum timestamp"}},
     } // end Options
   };  // end DataProcessorSpec
 }
