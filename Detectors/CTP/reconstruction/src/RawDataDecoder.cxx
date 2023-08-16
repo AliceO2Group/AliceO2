@@ -384,7 +384,7 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
         LOGP(info, "CTP dump file open {}", file);
         for (auto it = parser.begin(); it != parser.end(); ++it) {
           char* dataout = (char*)(it.raw());
-          dumpctp.write(dataout, it.size());
+          dumpctp.write(dataout, it.sizeTotal());
         }
         dumpctp.close();
       }
