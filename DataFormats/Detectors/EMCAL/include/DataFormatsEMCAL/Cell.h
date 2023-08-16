@@ -192,9 +192,18 @@ class Cell
   /// \return Encoded bit representation
   uint16_t getCellTypeEncoded() const;
 
+  void initializeFromPackedBitfieldV0(const char* bitfield);
+
+  static float getEnergyFromPackedBitfieldV0(const char* bitfield);
+  static float getTimeFromPackedBitfieldV0(const char* bitfield);
+  static ChannelType_t getCellTypeFromPackedBitfieldV0(const char* bitfield);
+  static short getTowerFromPackedBitfieldV0(const char* bitfield);
+
+  static uint16_t encodeTime(float timestamp);
   static uint16_t encodeEnergyV0(float energy);
   static uint16_t encodeEnergyV1(float energy, ChannelType_t celltype);
   static uint16_t V0toV1(uint16_t energybits, ChannelType_t celltype);
+  static float decodeTime(uint16_t timestampBits);
   static float decodeEnergyV0(uint16_t energybits);
   static float decodeEnergyV1(uint16_t energybits, ChannelType_t celltype);
 
@@ -215,12 +224,12 @@ class Cell
   /// \param channelTypeBits Bit representation of cell type
   void setChannelTypeEncoded(uint16_t channelTypeBits);
 
-  short mTowerID = SHRT_MAX;                             ///< Tower ID
   float mEnergy = FLT_MIN;                               ///< Energy
   float mTimestamp = FLT_MIN;                            ///< Timestamp
+  short mTowerID = SHRT_MAX;                             ///< Tower ID
   ChannelType_t mChannelType = ChannelType_t::HIGH_GAIN; ///< Cell type
 
-  ClassDefNV(Cell, 2);
+  ClassDefNV(Cell, 3);
 };
 
 /// \brief Stream operator for EMCAL cell
