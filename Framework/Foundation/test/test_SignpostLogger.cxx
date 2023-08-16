@@ -9,8 +9,14 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#ifdef __APPLE__
+#define O2_SIGNPOST_IMPLEMENTATION
+#endif
+#define O2_FORCE_LOGGER_SIGNPOST 1
 #include "Framework/Signpost.h"
 #include <iostream>
+
+O2_DECLARE_LOG(test_Signpost2, "my category2");
 
 int main(int argc, char** argv)
 {
