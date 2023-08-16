@@ -17,9 +17,13 @@
 
 using namespace o2::emcal;
 
+namespace TimeEncoding
+{
 const float TIME_SHIFT = 600.,
             TIME_RANGE = 1500.,
             TIME_RESOLUTION = TIME_RANGE / 2047.;
+
+}
 namespace EnergyEncoding
 {
 namespace v0
@@ -42,6 +46,17 @@ const float
 }
 } // namespace EnergyEncoding
 
+namespace DecodingV0
+{
+struct __attribute__((packed)) CellDataPacked {
+  uint16_t mTowerID : 15;   ///< bits 0-14   Tower ID
+  uint16_t mTime : 11;      ///< bits 15-25: Time (signed, can become negative after calibration)
+  uint16_t mEnergy : 14;    ///< bits 26-39: Energy
+  uint16_t mCellStatus : 2; ///< bits 40-41: Cell status
+  uint16_t mZerod : 6;      ///< bits 42-47: Zerod
+};
+} // namespace DecodingV0
+
 Cell::Cell(short tower, float energy, float timestamp, ChannelType_t ctype) : mTowerID(tower), mEnergy(energy), mTimestamp(timestamp), mChannelType(ctype)
 {
 }
@@ -53,16 +68,7 @@ uint16_t Cell::getTowerIDEncoded() const
 
 uint16_t Cell::getTimeStampEncoded() const
 {
-  // truncate:
-  auto timestamp = mTimestamp;
-  const float TIME_MIN = -1. * TIME_SHIFT,
-              TIME_MAX = TIME_RANGE - TIME_SHIFT;
-  if (timestamp < TIME_MIN) {
-    timestamp = TIME_MIN;
-  } else if (timestamp > TIME_MAX) {
-    timestamp = TIME_MAX;
-  }
-  return static_cast<uint16_t>(std::round((timestamp + TIME_SHIFT) / TIME_RESOLUTION));
+  return encodeTime(mTimestamp);
 }
 
 uint16_t Cell::getEnergyEncoded() const
@@ -82,7 +88,7 @@ void Cell::setEnergyEncoded(uint16_t energyBits)
 
 void Cell::setTimestampEncoded(uint16_t timestampBits)
 {
-  mTimestamp = (timestampBits * TIME_RESOLUTION) - TIME_SHIFT;
+  mTimestamp = decodeTime(timestampBits);
 }
 
 void Cell::setTowerIDEncoded(uint16_t towerIDBits)
@@ -95,10 +101,53 @@ void Cell::setChannelTypeEncoded(uint16_t channelTypeBits)
   mChannelType = static_cast<ChannelType_t>(channelTypeBits);
 }
 
+void Cell::initializeFromPackedBitfieldV0(const char* bitfield)
+{
+  auto bitrepresentation = reinterpret_cast<const DecodingV0::CellDataPacked*>(bitfield);
+  mEnergy = decodeEnergyV0(bitrepresentation->mEnergy);
+  mTimestamp = decodeTime(bitrepresentation->mTime);
+  mTowerID = bitrepresentation->mTowerID;
+  mChannelType = static_cast<ChannelType_t>(bitrepresentation->mCellStatus);
+}
+
+float Cell::getEnergyFromPackedBitfieldV0(const char* bitfield)
+{
+  return decodeEnergyV0(reinterpret_cast<const DecodingV0::CellDataPacked*>(bitfield)->mEnergy);
+}
+
+float Cell::getTimeFromPackedBitfieldV0(const char* bitfield)
+{
+  return decodeTime(reinterpret_cast<const DecodingV0::CellDataPacked*>(bitfield)->mTime);
+}
+
+ChannelType_t Cell::getCellTypeFromPackedBitfieldV0(const char* bitfield)
+{
+  return static_cast<ChannelType_t>(reinterpret_cast<const DecodingV0::CellDataPacked*>(bitfield)->mCellStatus);
+}
+
+short Cell::getTowerFromPackedBitfieldV0(const char* bitfield)
+{
+  return reinterpret_cast<const DecodingV0::CellDataPacked*>(bitfield)->mTowerID;
+}
+
 void Cell::truncate()
 {
   setEnergyEncoded(getEnergyEncoded());
   setTimestampEncoded(getTimeStampEncoded());
+}
+
+uint16_t Cell::encodeTime(float timestamp)
+{
+  // truncate
+  auto timestampTruncated = timestamp;
+  const float TIME_MIN = -1. * TimeEncoding::TIME_SHIFT,
+              TIME_MAX = TimeEncoding::TIME_RANGE - TimeEncoding::TIME_SHIFT;
+  if (timestampTruncated < TIME_MIN) {
+    timestampTruncated = TIME_MIN;
+  } else if (timestampTruncated > TIME_MAX) {
+    timestampTruncated = TIME_MAX;
+  }
+  return static_cast<uint16_t>(std::round((timestampTruncated + TimeEncoding::TIME_SHIFT) / TimeEncoding::TIME_RESOLUTION));
 }
 
 uint16_t Cell::encodeEnergyV0(float energy)
@@ -149,6 +198,11 @@ uint16_t Cell::V0toV1(uint16_t energyBits, ChannelType_t celltype)
   return encodeEnergyV1(decodedEnergy, celltype);
 }
 
+float Cell::decodeTime(uint16_t timestampBits)
+{
+  return (static_cast<float>(timestampBits) * TimeEncoding::TIME_RESOLUTION) - TimeEncoding::TIME_SHIFT;
+}
+
 float Cell::decodeEnergyV0(uint16_t energyBits)
 {
   return static_cast<float>(energyBits) * EnergyEncoding::v0::ENERGY_RESOLUTION;
@@ -185,7 +239,7 @@ void Cell::PrintStream(std::ostream& stream) const
   stream << "EMCAL Cell: Type " << getType() << ", Energy " << getEnergy() << ", Time " << getTimeStamp() << ", Tower " << getTower();
 }
 
-std::ostream& operator<<(std::ostream& stream, const Cell& c)
+std::ostream& o2::emcal::operator<<(std::ostream& stream, const Cell& c)
 {
   c.PrintStream(stream);
   return stream;
