@@ -188,6 +188,12 @@ class DPLRawParser
       return mCurrent.size();
     }
 
+    /// get size of header + payload at current position
+    size_t sizeTotal() const
+    {
+      return mCurrent.sizeTotal();
+    }
+
     /// get header as specific type
     /// @return pointer to header of the specified type, or nullptr if type does not match to actual type
     template <typename U>
