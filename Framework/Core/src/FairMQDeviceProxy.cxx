@@ -342,16 +342,15 @@ void FairMQDeviceProxy::bind(std::vector<OutputRoute> const& outputs, std::vecto
       mForwardRoutes.emplace_back(RouteState{channelIndex, false});
       ri++;
     }
-    for (auto& route : mForwardRoutes) {
-      assert(route.channel.value != -1);
-      assert(route.channel.value < mForwardChannelInfos.size());
-    }
     LOGP(detail, "Total forward channels found {}, total routes {}", mForwardChannelInfos.size(), mForwardRoutes.size());
-    // List all routes
-    for (auto& route : mForwards) {
-      LOGP(detail, "Forward route {}@{}%{} to index {} and channelIndex {}", DataSpecUtils::describe(route.matcher), route.timeslice, route.maxTimeslices);
-    }
     assert(mForwardRoutes.size() == forwards.size());
+    for (size_t fi = 0; fi < mForwards.size(); fi++) {
+      auto& route = mForwards[fi];
+      auto& state = mForwardRoutes[fi];
+      assert(state.channel.value != -1);
+      assert(state.channel.value < mForwardChannelInfos.size());
+      LOGP(detail, "Forward route {}@{}%{} to index {} and channelIndex {}", DataSpecUtils::describe(route.matcher), route.timeslice, route.maxTimeslices, fi, state.channel.value);
+    }
   }
   mStateChangeCallback = [&device]() -> bool { return device.NewStatePending(); };
 }
