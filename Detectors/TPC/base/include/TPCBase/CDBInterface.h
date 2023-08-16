@@ -141,10 +141,10 @@ const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   {CDBType::CalITPC0, "TPC/Calib/ITPCC_0"},
   {CDBType::CalITPC1, "TPC/Calib/ITPCC_1"},
   // correction maps
-  {CDBType::CalCorrMap, "TPC/Calib/CorrectionMap"},
-  {CDBType::CalCorrMapRef, "TPC/Calib/CorrectionMapRef"},
+  {CDBType::CalCorrMap, "TPC/Calib/CorrectionMapV2"},
+  {CDBType::CalCorrMapRef, "TPC/Calib/CorrectionMapRefV2"},
   // derivative map correction
-  {CDBType::CalCorrDerivMap, "TPC/Calib/CorrectionMapDerivative"},
+  {CDBType::CalCorrDerivMap, "TPC/Calib/CorrectionMapDerivativeV2"},
 };
 
 /// Poor enum reflection ...
@@ -162,7 +162,7 @@ const std::unordered_map<CDBIntervention, std::string> CDBInterventionMap{
 /// To use this one needs to call
 /// <pre>CDBInterface::instance().setUseDefaults();</pre>
 /// at some point.
-/// It also allows to specifically load pedestals and noise from file using the
+/// It also allows to specifically load pedestals and noise from a file using the
 /// <pre>loadNoiseAndPedestalFromFile(...)</pre> function
 class CDBInterface
 {
