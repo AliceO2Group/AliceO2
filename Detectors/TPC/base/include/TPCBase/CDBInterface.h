@@ -162,7 +162,7 @@ const std::unordered_map<CDBIntervention, std::string> CDBInterventionMap{
 /// To use this one needs to call
 /// <pre>CDBInterface::instance().setUseDefaults();</pre>
 /// at some point.
-/// It also allows to specifically load pedestals and noise from file using the
+/// It also allows to specifically load pedestals and noise from a file using the
 /// <pre>loadNoiseAndPedestalFromFile(...)</pre> function
 class CDBInterface
 {
