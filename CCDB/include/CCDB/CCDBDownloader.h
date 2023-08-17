@@ -131,9 +131,33 @@ class CCDBDownloader
 
   /**
    * Perform on a batch of handles in a blocking manner. Has the same effect as calling curl_easy_perform() on all handles in the vector.
+   *
    * @param handleVector Handles to be performed on.
    */
   std::vector<CURLcode> batchBlockingPerform(std::vector<CURL*> const& handleVector);
+
+  /**
+   * Structure created for a batch of requests. Holds the information about current state of transfers from that batch.
+   */
+  typedef struct {
+    std::vector<CURLcode> curlCodes;
+    std::vector<bool> transferFinishedFlags;
+    size_t requestsLeft;
+  } TransferResults;
+
+  /**
+   * Schedules performing on a batch of handles. To perform run the mUVLoop or use getAll().
+   *
+   * @param handleVector Handles to be performed on.
+   */
+  TransferResults* batchAsynchPerform(std::vector<CURL*> const& handleVector);
+
+  /**
+   * Performs on a batch of handles, identified via transfer results. It's the equivalent of using future.get()
+   *
+   * @param transferResults Structure returned by batchAsynchPerform.
+   */
+  std::vector<CURLcode>::iterator getAll(TransferResults* transferResults);
 
   /**
    * Limits the number of parallel connections. Should be used only if no transfers are happening.
@@ -234,18 +258,29 @@ class CCDBDownloader
 
   /**
    * Structure which is stored in a easy_handle. It carries information about the request which the easy_handle is part of.
-   * All easy handles coming from one request have an identical PerformData structure.
    */
   typedef struct PerformData {
-    std::condition_variable* cv;
-    bool* completionFlag;
     CURLcode* codeDestination;
-    void (*cbFun)(void*);
-    std::thread* cbThread;
-    void* cbData;
     size_t* requestsLeft;
     RequestType type;
+    vector<bool>::iterator transferFinished; // vector<bool> positions must be handled via iterators
   } PerformData;
+
+  /**
+   * PerformData is stored within a CURL handle and is used to retrieve and modify information about the batch it belongs to.
+   *
+   * @param handleIndex Index of CURL handle for which the PerformData is created
+   * @param results Structure holding the information about current state of the batch
+   * @param requestType Type of request
+   */
+  CCDBDownloader::PerformData* createPerformData(uint handleIndex, TransferResults* results, RequestType requestType);
+
+  /**
+   * Creates an TransferResults stucture with default values.
+   *
+   * @param numberOfHandles Number of handles in batch.
+   */
+  TransferResults* prepareResultsStruct(size_t numberOfHandles);
 
   /**
    * Called by CURL in order to close a socket. It will be called by CURL even if a timeout timer closed the socket beforehand.
@@ -256,7 +291,7 @@ class CCDBDownloader
   static void closesocketCallback(void* clientp, curl_socket_t item);
 
   /**
-   *  Is used to react to polling file descriptors in poll_handle.
+   * Is used to react to polling file descriptors in poll_handle.
    *
    * @param handle Handle assigned to this callback.
    * @param status Used to signal errors.
@@ -312,7 +347,7 @@ class CCDBDownloader
   void initializeMultiHandle();
 
   /**
-   * Release resources reserver for the transfer, mark transfer as complete, passe the CURLcode to the destination and launche callbacks if it is specified in PerformData.
+   * Release resources reserver for the transfer, mark transfer as complete, pass the CURLcode to the destination.
    *
    * @param handle The easy_handle for which the transfer completed
    * @param curlCode The code produced for the handle by the transfer
@@ -343,7 +378,7 @@ class CCDBDownloader
 };
 
 /**
- * Structure assigned  to a uv_timer_t before adding it to socketTimerMap. It stores the information about the socket connected to the timer.
+ * Structure assigned to a uv_timer_t before adding it to socketTimerMap. It stores the information about the socket connected to the timer.
  */
 typedef struct DataForClosingSocket {
   CCDBDownloader* CD;

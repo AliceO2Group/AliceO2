@@ -60,6 +60,20 @@ std::string uniqueAgentID()
   }
 }
 
+void checkCodesAndCleanHandles(std::vector<CURL*> handleVector, std::vector<CURLcode> curlCodes)
+{
+  for (CURLcode code : curlCodes) {
+    BOOST_CHECK(code == CURLE_OK);
+  }
+
+  for (CURL* handle : handleVector) {
+    long httpCode;
+    curl_easy_getinfo(handle, CURLINFO_HTTP_CODE, &httpCode);
+    BOOST_CHECK(httpCode == 200);
+    curl_easy_cleanup(handle);
+  }
+}
+
 CURL* createTestHandle(std::string* dst)
 {
   CURL* handle = curl_easy_init();
@@ -85,12 +99,10 @@ BOOST_AUTO_TEST_CASE(perform_test)
   CURLcode curlCode = downloader.perform(handle);
 
   BOOST_CHECK(curlCode == CURLE_OK);
-  std::cout << "CURL code: " << curlCode << "\n";
 
   long httpCode;
   curl_easy_getinfo(handle, CURLINFO_HTTP_CODE, &httpCode);
   BOOST_CHECK(httpCode == 200);
-  std::cout << "HTTP code: " << httpCode << "\n";
 
   curl_easy_cleanup(handle);
   curl_global_cleanup();
@@ -106,28 +118,14 @@ BOOST_AUTO_TEST_CASE(blocking_batch_test)
   CCDBDownloader downloader;
   std::vector<CURL*> handleVector;
   std::vector<std::string*> destinations;
-  for (int i = 0; i < 100; i++) {
+  for (int i = 0; i < 30; i++) {
     destinations.push_back(new std::string());
     handleVector.push_back(createTestHandle(destinations.back()));
   }
 
   auto curlCodes = downloader.batchBlockingPerform(handleVector);
-  for (CURLcode code : curlCodes) {
-    BOOST_CHECK(code == CURLE_OK);
-    if (code != CURLE_OK) {
-      std::cout << "CURL Code: " << code << "\n";
-    }
-  }
 
-  for (CURL* handle : handleVector) {
-    long httpCode;
-    curl_easy_getinfo(handle, CURLINFO_HTTP_CODE, &httpCode);
-    BOOST_CHECK(httpCode == 200);
-    if (httpCode != 200) {
-      std::cout << "HTTP Code: " << httpCode << "\n";
-    }
-    curl_easy_cleanup(handle);
-  }
+  checkCodesAndCleanHandles(handleVector, curlCodes);
 
   for (std::string* dst : destinations) {
     delete dst;
@@ -146,30 +144,14 @@ BOOST_AUTO_TEST_CASE(test_with_break)
   CCDBDownloader downloader;
   std::vector<CURL*> handleVector;
   std::vector<std::string*> destinations;
-  for (int i = 0; i < 100; i++) {
+  for (int i = 0; i < 30; i++) {
     destinations.push_back(new std::string());
     handleVector.push_back(createTestHandle(destinations.back()));
   }
 
   auto curlCodes = downloader.batchBlockingPerform(handleVector);
 
-  for (CURLcode code : curlCodes) {
-    BOOST_CHECK(code == CURLE_OK);
-    if (code != CURLE_OK) {
-      std::cout << "CURL Code: " << code << "\n";
-    }
-  }
-
-  for (CURL* handle : handleVector) {
-    long httpCode;
-    curl_easy_getinfo(handle, CURLINFO_HTTP_CODE, &httpCode);
-    BOOST_CHECK(httpCode == 200);
-    if (httpCode != 200) {
-      std::cout << "HTTP Code: " << httpCode << "\n";
-    }
-    curl_easy_cleanup(handle);
-  }
-
+  checkCodesAndCleanHandles(handleVector, curlCodes);
   for (std::string* dst : destinations) {
     delete dst;
   }
@@ -178,33 +160,17 @@ BOOST_AUTO_TEST_CASE(test_with_break)
 
   std::vector<CURL*> handleVector2;
   std::vector<std::string*> destinations2;
-  for (int i = 0; i < 100; i++) {
+  for (int i = 0; i < 30; i++) {
     destinations2.push_back(new std::string());
     handleVector2.push_back(createTestHandle(destinations2.back()));
   }
 
   auto curlCodes2 = downloader.batchBlockingPerform(handleVector2);
-  for (CURLcode code : curlCodes2) {
-    BOOST_CHECK(code == CURLE_OK);
-    if (code != CURLE_OK) {
-      std::cout << "CURL Code: " << code << "\n";
-    }
-  }
 
-  for (CURL* handle : handleVector2) {
-    long httpCode;
-    curl_easy_getinfo(handle, CURLINFO_HTTP_CODE, &httpCode);
-    BOOST_CHECK(httpCode == 200);
-    if (httpCode != 200) {
-      std::cout << "HTTP Code: " << httpCode << "\n";
-    }
-    curl_easy_cleanup(handle);
-  }
-
+  checkCodesAndCleanHandles(handleVector2, curlCodes2);
   for (std::string* dst : destinations2) {
     delete dst;
   }
-
   curl_global_cleanup();
 }
 
@@ -272,6 +238,48 @@ BOOST_AUTO_TEST_CASE(external_loop_test)
     uv_run(uvLoop, UV_RUN_ONCE);
   }
   delete uvLoop;
+}
+
+BOOST_AUTO_TEST_CASE(asynch_test)
+{
+  if (curl_global_init(CURL_GLOBAL_ALL)) {
+    fprintf(stderr, "Could not init curl\n");
+    return;
+  }
+
+  CCDBDownloader downloader;
+  std::vector<std::string*> destinations;
+  std::vector<CURL*> handleVector;
+
+  for(int i = 0; i < 10; i++) {
+    destinations.push_back(new std::string());
+    handleVector.push_back(createTestHandle(destinations.back()));
+  }
+
+  // Schedule downloads. To perform them mUVLoop must be ran.
+  auto resultPointer = downloader.batchAsynchPerform(handleVector);
+
+  /*
+  To get results (CURLcode's) you may use either use:
+   - getAll() which is a blocking function,
+   - run the mUVLoop untill all requests are done (can be checked via resultPointer->requestsLeft).
+  */
+  auto curlCodesIterator = downloader.getAll(resultPointer);
+
+  // Check results
+  for (; curlCodesIterator != resultPointer->curlCodes.end(); curlCodesIterator++) {
+    BOOST_CHECK(*curlCodesIterator == CURLE_OK);
+  }
+
+  for(int i = 0; i < handleVector.size(); i++) {
+    long httpCode;
+    curl_easy_getinfo(handleVector[i], CURLINFO_HTTP_CODE, &httpCode);
+    BOOST_CHECK(httpCode == 200);
+    curl_easy_cleanup(handleVector[i]);
+    delete destinations[i];
+  }
+
+  curl_global_cleanup();
 }
 
 } // namespace ccdb

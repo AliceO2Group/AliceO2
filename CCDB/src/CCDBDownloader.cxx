@@ -54,6 +54,7 @@ void curlMultiErrorCheck(CURLMcode code)
     LOG(error) << "CCDBDownloader: CURL error - " << curl_multi_strerror(code);
   }
 }
+
 namespace
 {
 std::string uniqueAgentID()
@@ -352,22 +353,8 @@ void CCDBDownloader::transferFinished(CURL* easy_handle, CURLcode curlCode)
 
   curlMultiErrorCheck(curl_multi_remove_handle(mCurlMultiHandle, easy_handle));
   *data->codeDestination = curlCode;
-
-  // If no requests left then signal finished based on type of operation
-  if (--(*data->requestsLeft) == 0) {
-    switch (data->type) {
-      case BLOCKING:
-        break;
-      case ASYNCHRONOUS:
-        // Temporary change before asynchronous calls are reintroduced
-        LOG(error) << "CCDBDownloader: Illegal request type";
-        break;
-      case ASYNCHRONOUS_WITH_CALLBACK:
-        // Temporary change before asynchronous calls will callbacks are reintroduced
-        LOG(error) << "CCDBDownloader: Illegal request type";
-        break;
-    }
-  }
+  *data->transferFinished = true;
+  --(*data->requestsLeft);
   delete data;
 
   checkHandleQueue();
@@ -450,27 +437,72 @@ CURLcode CCDBDownloader::perform(CURL* handle)
   return batchBlockingPerform(handleVector).back();
 }
 
+CCDBDownloader::TransferResults* CCDBDownloader::prepareResultsStruct(size_t numberOfHandles)
+{
+  auto results = new CCDBDownloader::TransferResults();
+  results->requestsLeft = numberOfHandles;
+  // We will save pointers to positions in the vectors `curlCodes` and `transferFinishedFlags` at a later point.
+  // To make sure the vectors aren't relocated after saving pointers (and positions invalidated) we set the final size here.
+  // The size must not be changed later.
+  results->curlCodes.resize(numberOfHandles);
+  results->transferFinishedFlags.resize(numberOfHandles);
+
+  // Fill with default values
+  for (int i = 0; i < numberOfHandles; i++) {
+    results->transferFinishedFlags[i] = false;
+    results->curlCodes[i] = CURLE_FAILED_INIT;
+  }
+  return results;
+}
+
+CCDBDownloader::PerformData* CCDBDownloader::createPerformData(uint handleIndex, TransferResults* results, RequestType requestType)
+{
+  auto* data = new CCDBDownloader::PerformData();
+  data->type = requestType;
+  data->codeDestination = &results->curlCodes[handleIndex];
+  // vector<bool> positions must be passed via iterator. It is because of a quirk that only vector<bool> has.
+  data->transferFinished = results->transferFinishedFlags.begin() + handleIndex;
+  data->requestsLeft = &results->requestsLeft;
+  return data;
+}
+
 std::vector<CURLcode> CCDBDownloader::batchBlockingPerform(std::vector<CURL*> const& handleVector)
 {
-  std::vector<CURLcode> codeVector(handleVector.size());
-  size_t requestsLeft = handleVector.size();
+  auto results = prepareResultsStruct(handleVector.size());
 
-  for (int i = 0; i < handleVector.size(); i++) {
-    auto* data = new CCDBDownloader::PerformData();
-    data->codeDestination = &codeVector[i];
-    codeVector[i] = CURLE_FAILED_INIT;
-
-    data->type = BLOCKING;
-    data->requestsLeft = &requestsLeft;
-
-    setHandleOptions(handleVector[i], data);
-    mHandlesToBeAdded.push_back(handleVector[i]);
+  for (int handleIndex = 0; handleIndex < handleVector.size(); handleIndex++) {
+    auto* data = createPerformData(handleIndex, results, BLOCKING);
+    setHandleOptions(handleVector[handleIndex], data);
+    mHandlesToBeAdded.push_back(handleVector[handleIndex]);
   }
   checkHandleQueue();
-  while (requestsLeft > 0) {
+  while (results->requestsLeft > 0) {
     uv_run(mUVLoop, UV_RUN_ONCE);
   }
-  return codeVector;
+  vector<CURLcode> curlCodes = results->curlCodes;
+  delete results;
+  return curlCodes;
+}
+
+CCDBDownloader::TransferResults* CCDBDownloader::batchAsynchPerform(std::vector<CURL*> const& handleVector)
+{
+  auto results = prepareResultsStruct(handleVector.size());
+
+  for (int handleIndex = 0; handleIndex < handleVector.size(); handleIndex++) {
+    auto* data = createPerformData(handleIndex, results, ASYNCHRONOUS);
+    setHandleOptions(handleVector[handleIndex], data);
+    mHandlesToBeAdded.push_back(handleVector[handleIndex]);
+  }
+  checkHandleQueue();
+  return results;
+}
+
+std::vector<CURLcode>::iterator CCDBDownloader::getAll(TransferResults* results)
+{
+  while (results->requestsLeft > 0) {
+    runLoop(false);
+  }
+  return results->curlCodes.begin();
 }
 
 } // namespace o2
