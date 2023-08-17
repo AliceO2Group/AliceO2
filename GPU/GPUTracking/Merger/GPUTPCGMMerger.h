@@ -193,6 +193,11 @@ class GPUTPCGMMerger : public GPUProcessor
   void DumpFitPrepare(std::ostream& out);
   void DumpRefit(std::ostream& out);
   void DumpFinal(std::ostream& out);
+
+  template <int mergeType>
+  void MergedTrackStreamerInternal(const GPUTPCGMBorderTrack& b1, const GPUTPCGMBorderTrack& b2, const char* name, int slice1, int slice2, int mergeMode);
+  void MergedTrackStreamer(const GPUTPCGMBorderTrack& b1, const GPUTPCGMBorderTrack& b2, const char* name, int slice1, int slice2, int mergeMode);
+  const GPUTPCGMBorderTrack& MergedTrackStreamerFindBorderTrack(const GPUTPCGMBorderTrack* tracks, int N, int trackId);
 #endif
 
  private:

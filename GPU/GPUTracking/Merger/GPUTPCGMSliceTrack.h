@@ -119,12 +119,12 @@ class GPUTPCGMSliceTrack
   GPUd() bool TransportToX(GPUTPCGMMerger* merger, float x, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi, bool doCov = true) const;
   GPUd() bool TransportToXAlpha(GPUTPCGMMerger* merger, float x, float sinAlpha, float cosAlpha, float Bz, GPUTPCGMBorderTrack& b, float maxSinPhi) const;
   GPUd() void CopyBaseTrackCov();
-
- private:
   struct sliceTrackParam {
     float mX, mY, mZ, mSinPhi, mDzDs, mQPt, mCosPhi, mSecPhi; // parameters
     float mC0, mC2, mC3, mC5, mC7, mC9, mC10, mC12, mC14;     // covariances
   };
+
+ private:
   const GPUTPCTrack* mOrigTrack; // pointer to original slice track
   sliceTrackParam mParam;        // Track parameters
   sliceTrackParam mParam2;       // Parameters at other side
@@ -138,6 +138,8 @@ class GPUTPCGMSliceTrack
   int mGlobalTrackIds[2];        // IDs of associated global tracks
   unsigned char mSlice;          // slice of this track segment
   unsigned char mLeg;            // Leg of this track segment
+
+  ClassDefNV(GPUTPCGMSliceTrack, 1);
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
