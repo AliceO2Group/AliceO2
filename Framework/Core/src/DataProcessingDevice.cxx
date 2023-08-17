@@ -639,6 +639,8 @@ static auto forwardInputs = [](ServiceRegistryRef registry, TimesliceSlot slot, 
             newPayload->Copy(*messageSet.payload(pi, payloadIndex));
             forwardedParts[cachedForwardingChoice.value].AddPart(std::move(newPayload));
           }
+          // Without this, the behavior should be exactly the same as before.
+          break;
         }
       } else {
         forwardedParts[cachedForwardingChoices.back().value].AddPart(std::move(messageSet.header(pi)));
