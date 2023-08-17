@@ -61,6 +61,14 @@ Cell::Cell(short tower, float energy, float timestamp, ChannelType_t ctype) : mT
 {
 }
 
+Cell::Cell(uint16_t towerBits, uint16_t energyBits, uint16_t timestampBits, uint16_t channelBits)
+{
+  setEnergyEncoded(energyBits);
+  setTimestampEncoded(timestampBits);
+  setTowerIDEncoded(towerBits);
+  setChannelTypeEncoded(channelBits);
+}
+
 uint16_t Cell::getTowerIDEncoded() const
 {
   return mTowerID;

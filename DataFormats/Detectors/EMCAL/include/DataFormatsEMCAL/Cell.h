@@ -68,6 +68,13 @@ class Cell
   /// \param ctype Channel type
   Cell(short tower, float energy, float timestamp, ChannelType_t ctype = ChannelType_t::LOW_GAIN);
 
+  /// \brief Constructor, from encoded bit representation
+  /// \param tower Tower bitsets
+  /// \param energy Energy bits
+  /// \param timestamp Cell time bits
+  /// \param ctype Channel type bits
+  Cell(uint16_t towerBits, uint16_t energyBits, uint16_t timestampBits, uint16_t channelBits);
+
   /// \brief Destructor
   ~Cell() = default; // override
 
