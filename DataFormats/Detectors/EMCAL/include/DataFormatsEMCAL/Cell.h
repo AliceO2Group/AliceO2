@@ -185,7 +185,7 @@ class Cell
 
   char mCellWords[6]; ///< data word
 
-  ClassDefNV(Cell, 1);
+  ClassDefNV(Cell, 2);
 };
 
 /// \brief Stream operator for EMCAL cell

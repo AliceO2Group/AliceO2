@@ -24,6 +24,9 @@
 #pragma link C++ class o2::emcal::MCLabel + ;
 #pragma link C++ class o2::emcal::ErrorTypeFEE + ;
 
+#pragma read \
+  sourceClass = "o2::emcal::Cell" targetClass = "o2::emcal::Cell" source = "UShort_t mCellWords[3]" version = "[1]" include = "iostream" target = "mCellWords" code = "{const char *oldwords = reinterpret_cast<const char *>(onfile.mCellWords); for(int i = 0; i < 6; i++) {mCellWords[i] = oldwords[i];} }"
+
 #pragma link C++ class std::vector < o2::emcal::TriggerRecord> + ;
 #pragma link C++ class std::vector < o2::emcal::Cell> + ;
 #pragma link C++ class std::vector < o2::emcal::Digit> + ;
