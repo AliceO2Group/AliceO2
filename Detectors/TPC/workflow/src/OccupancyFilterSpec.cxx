@@ -43,7 +43,7 @@ class OccupancyFilterDevice : public o2::framework::Task
   {
     mOccupancyThreshold = ic.options().get<float>("occupancy-threshold");
     mAdcValueThreshold = ic.options().get<float>("adc-threshold");
-    mMinimumTimeStamp = ic.options().get<uint64_t>("min-timestamp");
+    mMinimumTimeStamp = ic.options().get<long>("min-timestamp");
     mFilterAdcValue = ic.options().get<bool>("filter-adc");
     mFilterTimeStamp = ic.options().get<bool>("filter-timestamp");
     LOGP(debug, "got minimum timestamp {}", mMinimumTimeStamp);
