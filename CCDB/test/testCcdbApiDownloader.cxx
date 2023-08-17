@@ -251,7 +251,7 @@ BOOST_AUTO_TEST_CASE(asynch_test)
   std::vector<std::string*> destinations;
   std::vector<CURL*> handleVector;
 
-  for(int i = 0; i < 10; i++) {
+  for (int i = 0; i < 10; i++) {
     destinations.push_back(new std::string());
     handleVector.push_back(createTestHandle(destinations.back()));
   }
@@ -271,7 +271,7 @@ BOOST_AUTO_TEST_CASE(asynch_test)
     BOOST_CHECK(*curlCodesIterator == CURLE_OK);
   }
 
-  for(int i = 0; i < handleVector.size(); i++) {
+  for (int i = 0; i < handleVector.size(); i++) {
     long httpCode;
     curl_easy_getinfo(handleVector[i], CURLINFO_HTTP_CODE, &httpCode);
     BOOST_CHECK(httpCode == 200);

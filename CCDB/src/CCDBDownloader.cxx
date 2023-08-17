@@ -448,7 +448,7 @@ CCDBDownloader::TransferResults* CCDBDownloader::prepareResultsStruct(size_t num
   results->transferFinishedFlags.resize(numberOfHandles);
 
   // Fill with default values
-  for(int i = 0; i < numberOfHandles; i++) {
+  for (int i = 0; i < numberOfHandles; i++) {
     results->transferFinishedFlags[i] = false;
     results->curlCodes[i] = CURLE_FAILED_INIT;
   }
@@ -470,13 +470,13 @@ std::vector<CURLcode> CCDBDownloader::batchBlockingPerform(std::vector<CURL*> co
 {
   auto results = prepareResultsStruct(handleVector.size());
 
-  for(int handleIndex = 0; handleIndex < handleVector.size(); handleIndex++) {
+  for (int handleIndex = 0; handleIndex < handleVector.size(); handleIndex++) {
     auto* data = createPerformData(handleIndex, results, BLOCKING);
     setHandleOptions(handleVector[handleIndex], data);
     mHandlesToBeAdded.push_back(handleVector[handleIndex]);
   }
   checkHandleQueue();
-  while(results->requestsLeft > 0) {
+  while (results->requestsLeft > 0) {
     uv_run(mUVLoop, UV_RUN_ONCE);
   }
   vector<CURLcode> curlCodes = results->curlCodes;
@@ -488,7 +488,7 @@ CCDBDownloader::TransferResults* CCDBDownloader::batchAsynchPerform(std::vector<
 {
   auto results = prepareResultsStruct(handleVector.size());
 
-  for(int handleIndex = 0; handleIndex < handleVector.size(); handleIndex++) {
+  for (int handleIndex = 0; handleIndex < handleVector.size(); handleIndex++) {
     auto* data = createPerformData(handleIndex, results, ASYNCHRONOUS);
     setHandleOptions(handleVector[handleIndex], data);
     mHandlesToBeAdded.push_back(handleVector[handleIndex]);
@@ -499,7 +499,7 @@ CCDBDownloader::TransferResults* CCDBDownloader::batchAsynchPerform(std::vector<
 
 std::vector<CURLcode>::iterator CCDBDownloader::getAll(TransferResults* results)
 {
-  while(results->requestsLeft > 0) {
+  while (results->requestsLeft > 0) {
     runLoop(false);
   }
   return results->curlCodes.begin();
