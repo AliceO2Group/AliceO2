@@ -124,6 +124,8 @@ class GPUTPCGMBorderTrack
   float mZOffsetLinear; // Z Offset, in case of T offset scaled linearly to Z with nominal vDrift. Used only for matching / merging
   float mC[5];
   float mD[2];
+
+  ClassDefNV(GPUTPCGMBorderTrack, 1);
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
