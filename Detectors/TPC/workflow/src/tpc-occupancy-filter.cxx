@@ -32,7 +32,6 @@
 #include "TPCWorkflow/OccupancyFilterSpec.h"
 #include "TPCWorkflow/FileWriterSpec.h"
 #include "TPCReaderWorkflow/TPCSectorCompletionPolicy.h"
-#include "TPCBase/CalDet.h"
 
 using namespace o2::framework;
 using namespace o2::tpc;
@@ -51,7 +50,7 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
   // we customize the pipeline processors to consume data as it comes
   //
   // the custom completion policy for the tracker
-  policies.push_back(o2::tpc::TPCSectorCompletionPolicy("file-writer", o2::tpc::TPCSectorCompletionPolicy::Config::RequireAll, &gPolicyData, &gTpcSectorMask)());
+  policies.push_back(o2::tpc::TPCSectorCompletionPolicy("occupancy-file-writer", o2::tpc::TPCSectorCompletionPolicy::Config::RequireAll, &gPolicyData, &gTpcSectorMask)());
 }
 
 // we need to add workflow options before including Framework/runDataProcessing
@@ -63,7 +62,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   std::vector<ConfigParamSpec> options{
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g.: 'TPCCalibPedestal.FirstTimeBin=10;...')"}},
     {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}},
-    {"outputFile", VariantType::String, "./filtered-krypton-raw.root", {"output file name for the filtered krypton file"}},
+    {"outputFile", VariantType::String, "./occupancy-filtered-digits.root", {"output file name for the filtered krypton file"}},
     {"lanes", VariantType::Int, defaultlanes, {"Number of parallel processing lanes."}},
     {"sectors", VariantType::String, sectorDefault.c_str(), {"List of TPC sectors, comma separated ranges, e.g. 0-3,7,9-15"}},
     {"writer-type", VariantType::String, "local", {"Writer type (local, EPN, none)"}},
