@@ -30,15 +30,16 @@ namespace o2::utils
 
 /// struct defining the flags which can be used to check if a certain debug streamer is used
 enum StreamFlags {
-  streamdEdx = 1 << 0,          ///< stream corrections and cluster properties used for the dE/dx
-  streamDigitFolding = 1 << 1,  ///< stream ion tail and saturatio information
-  streamDigits = 1 << 2,        ///< stream digit information
-  streamFastTransform = 1 << 3, ///< stream tpc fast transform
-  streamITCorr = 1 << 4,        ///< stream ion tail correction information
-  streamDistortionsSC = 1 << 5, ///< stream distortions applied in the TPC space-charge class (used for example in the tpc digitizer)
-  streamUpdateTrack = 1 << 6,   ///< stream update track informations
-  streamRejectCluster = 1 << 7, ///< stream cluster rejection informations
-  streamFlagsCount = 8          ///< total number of streamers
+  streamdEdx = 1 << 0,              ///< stream corrections and cluster properties used for the dE/dx
+  streamDigitFolding = 1 << 1,      ///< stream ion tail and saturatio information
+  streamDigits = 1 << 2,            ///< stream digit information
+  streamFastTransform = 1 << 3,     ///< stream tpc fast transform
+  streamITCorr = 1 << 4,            ///< stream ion tail correction information
+  streamDistortionsSC = 1 << 5,     ///< stream distortions applied in the TPC space-charge class (used for example in the tpc digitizer)
+  streamUpdateTrack = 1 << 6,       ///< stream update track informations
+  streamRejectCluster = 1 << 7,     ///< stream cluster rejection informations
+  streamMergeBorderTracks = 1 << 8, ///< stream MergeBorderTracks
+  streamFlagsCount = 9              ///< total number of streamers
 };
 
 enum SamplingTypes {

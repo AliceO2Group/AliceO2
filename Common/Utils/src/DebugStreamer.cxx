@@ -145,13 +145,15 @@ int o2::utils::DebugStreamer::getNTrees(const size_t id) const { return isStream
 void o2::utils::DebugStreamer::mergeTrees(const char* inpFile, const char* outFile, const char* option)
 {
   TFile fInp(inpFile, "READ");
-  std::unordered_map<int, TList> lists;
+  std::unordered_map<std::string, TList> lists;
   for (TObject* keyAsObj : *fInp.GetListOfKeys()) {
     const auto key = dynamic_cast<TKey*>(keyAsObj);
     TTree* tree = (TTree*)fInp.Get(key->GetName());
     // perform simple check on the number of entries to merge only TTree with same content (ToDo: Do check on name of branches)
     const int entries = tree->GetListOfBranches()->GetEntries();
-    lists[entries].Add(tree);
+    const std::string brName = key->GetName();
+    const std::string nameBr = brName.substr(0, brName.find_last_of("_"));
+    lists[nameBr].Add(tree);
   }
 
   TFile fOut(outFile, "RECREATE");

@@ -906,6 +906,9 @@ GPUd() void GPUTPCGMMerger::MergeBorderTracks<2>(int nBlocks, int nThreads, int 
             CADEBUG2(continue, printf("!CE SinPhi/Tgl\n")); // Crude cut to avoid totally wrong matches, TODO: check cut
           }
         }
+
+        GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamMergeBorderTracks, b1.TrackID())) { MergedTrackStreamer(b1, b2, "merge_all_tracks", iSlice1, iSlice2, mergeMode); });
+
         if (!b1.CheckChi2Y(b2, factor2ys)) {
           CADEBUG2(continue, printf("!Y\n"));
         }
@@ -938,6 +941,8 @@ GPUd() void GPUTPCGMMerger::MergeBorderTracks<2>(int nBlocks, int nThreads, int 
     if (iBest2 < 0) {
       continue;
     }
+    GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamMergeBorderTracks, b1.TrackID())) { MergedTrackStreamer(b1, MergedTrackStreamerFindBorderTrack(B2, N2, iBest2), "merge_best_track", iSlice1, iSlice2, mergeMode); });
+
     // statMerged++;
 
     CADEBUG(GPUInfo("Found match %d %d", b1.TrackID(), iBest2));
