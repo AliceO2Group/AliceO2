@@ -19,7 +19,12 @@
 #pragma link off all functions;
 
 #pragma link C++ class o2::gpu::GPUTPCGMMergedTrack + ;
+#pragma link C++ class o2::gpu::GPUTPCGMSliceTrack + ;
+#pragma link C++ class o2::gpu::GPUTPCGMBorderTrack + ;
 #pragma link C++ class o2::gpu::GPUTPCGMTrackParam + ;
+#pragma link C++ class o2::gpu::GPUTPCTrack + ;
+#pragma link C++ struct o2::gpu::GPUTPCBaseTrackParam + ;
+#pragma link C++ struct o2::gpu::GPUTPCGMSliceTrack::sliceTrackParam + ;
 #pragma link C++ class o2::gpu::gputpcgmmergertypes::GPUTPCOuterParam + ;
 #pragma link C++ class o2::gpu::gputpcgmmergertypes::InterpolationErrorHit + ;
 
