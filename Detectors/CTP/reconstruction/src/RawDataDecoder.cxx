@@ -120,6 +120,7 @@ int RawDataDecoder::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
   } else {
     LOG(error) << "Unxpected  CTP CRU link:" << linkCRU;
   }
+  mStickyError = true;
   return ret;
 }
 //
@@ -291,6 +292,62 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
     // std::cout << "last lumi:" << nhb  << std::endl;
   }
   if (mDoDigits & mDecodeInps) {
+    shiftInputs(digitsMap,digits,mTFOrbit);
+  }
+  if (mDoDigits && !mDecodeInps) {
+    for (auto const& dig : digitsMap) {
+      digits.push_back(dig.second);
+    }
+  }
+  // ret = 1;
+  if (mStickyError) {
+    if (nwrites < mErrorMax) {
+      std::string file = "dumpCTP" + std::to_string(nwrites) + ".bin";
+      std::ofstream dumpctp(file.c_str(), std::ios::out | std::ios::binary);
+      if (!dumpctp.good()) {
+        LOGP(error, "Failed to open file {}", file);
+      } else {
+        LOGP(info, "CTP dump file open {}", file);
+        for (auto it = parser.begin(); it != parser.end(); ++it) {
+          char* dataout = (char*)(it.raw());
+          dumpctp.write(dataout, it.sizeTotal());
+        }
+        dumpctp.close();
+      }
+      nwrites++;
+    }
+    // LOG(error) << "CTP decoding IR errors:" << mErrorIR << " TCR errors:" << mErrorTCR;
+  }
+  return ret;
+}
+//
+// Not to be called with level LM
+// Keeping shift in params if needed to be generalised
+int RawDataDecoder::shiftNew(const o2::InteractionRecord& irin, uint32_t TFOrbit, std::bitset<48>& inpmask, int64_t shift, int level, std::map<o2::InteractionRecord, CTPDigit>& digmap)
+{
+  //
+  if (irin.orbit > TFOrbit || irin.bc >= shift) {
+    auto lxmask = L0MASKInputs;
+    if (level == 1) {
+      lxmask = L1MASKInputs;
+    }
+    auto ir = irin - shift; // add L0 to prev digit
+    if (digmap.count(ir)) {
+      if ((digmap[ir].CTPInputMask & lxmask).count()) {
+        LOG(error) << " Overwriting LX ? X:" << level;
+      }
+      digmap[ir].CTPInputMask = digmap[ir].CTPInputMask | (inpmask & lxmask);
+    } else {
+      CTPDigit digit = {ir, inpmask & lxmask, 0};
+      digmap[ir] = digit;
+    }
+  } else {
+    LOG(info) << "LOST:" << irin << " shift:" << shift;
+  }
+  return 0;
+}
+int RawDataDecoder::shiftInputs(std::map<o2::InteractionRecord, CTPDigit>& digitsMap,std::vector<CTPDigit>& digits,uint32_t TFOrbit)
+{
     int nClasswoInp = 0; // counting classes without input which should never happen
     int nLM = 0;
     int nL0 = 0;
@@ -315,29 +372,29 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
       if (lut == 0 || lut == 1) { // no inps or LM
         digitsMapShifted[dig.first] = dig.second;
       } else if (lut == 2) { // L0
-        shiftNew(dig.first, inpmask, L0shift, 0, digitsMapShifted);
+        shiftNew(dig.first, TFOrbit, inpmask, L0shift, 0, digitsMapShifted);
         if (dig.second.CTPClassMask.count()) {
           LOG(error) << "Adding class mask without input ?";
           CTPDigit digi = {dig.first, 0, dig.second.CTPClassMask};
           digitsMapShifted[dig.first] = digi;
         }
       } else if (lut == 4) { // L1
-        shiftNew(dig.first, inpmask, L1shift, 1, digitsMapShifted);
+        shiftNew(dig.first, TFOrbit, inpmask, L1shift, 1, digitsMapShifted);
       } else if (lut == 6) { // L0 and L1
-        shiftNew(dig.first, inpmask, L0shift, 0, digitsMapShifted);
-        shiftNew(dig.first, inpmask, L1shift, 1, digitsMapShifted);
+        shiftNew(dig.first, TFOrbit, inpmask, L0shift, 0, digitsMapShifted);
+        shiftNew(dig.first, TFOrbit, inpmask, L1shift, 1, digitsMapShifted);
       } else if (lut == 3) { // LM and L0
-        shiftNew(dig.first, inpmask, L0shift, 0, digitsMapShifted);
+        shiftNew(dig.first, TFOrbit, inpmask, L0shift, 0, digitsMapShifted);
         CTPDigit digi = {dig.first, inpmask & (~L0MASKInputs), dig.second.CTPClassMask};
         // LOG(info) << "LM-L0 present";
         digitsMapShifted[dig.first] = digi;
       } else if (lut == 5) { // LM and L1
-        shiftNew(dig.first, inpmask, L1shift, 1, digitsMapShifted);
+        shiftNew(dig.first, TFOrbit, inpmask, L1shift, 1, digitsMapShifted);
         CTPDigit digi = {dig.first, inpmask & (~L1MASKInputs), dig.second.CTPClassMask};
         digitsMapShifted[dig.first] = digi;
       } else if (lut == 7) { // LM and L0 and L1
-        shiftNew(dig.first, inpmask, L0shift, 0, digitsMapShifted);
-        shiftNew(dig.first, inpmask, L1shift, 1, digitsMapShifted);
+        shiftNew(dig.first, TFOrbit, inpmask, L0shift, 0, digitsMapShifted);
+        shiftNew(dig.first, TFOrbit, inpmask, L1shift, 1, digitsMapShifted);
         CTPDigit digi = {dig.first, inpmaskLM, dig.second.CTPClassMask};
         digitsMapShifted[dig.first] = digi;
       } else {
@@ -367,58 +424,6 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
     if (nTwoI) { // Trigger class wo Input
       LOG(error) << "LM:" << nLM << " L0:" << nL0 << " L1:" << nL1 << " TwI:" << nTwI << " Trigger cals wo inputTwoI:" << nTwoI;
     }
-  }
-  if (mDoDigits && !mDecodeInps) {
-    for (auto const& dig : digitsMap) {
-      digits.push_back(dig.second);
-    }
-  }
-  // ret = 1;
-  if (mStickyError) {
-    if (nwrites < mErrorMax) {
-      std::string file = "dumpCTP" + std::to_string(nwrites) + ".bin";
-      std::ofstream dumpctp(file.c_str(), std::ios::out | std::ios::binary);
-      if (!dumpctp.good()) {
-        LOGP(error, "Failed to open file {}", file);
-      } else {
-        LOGP(info, "CTP dump file open {}", file);
-        for (auto it = parser.begin(); it != parser.end(); ++it) {
-          char* dataout = (char*)(it.raw());
-          dumpctp.write(dataout, it.sizeTotal());
-        }
-        dumpctp.close();
-      }
-      nwrites++;
-    }
-    mStickyError = false;
-    // LOG(error) << "CTP decoding IR errors:" << mErrorIR << " TCR errors:" << mErrorTCR;
-  }
-  return ret;
-}
-//
-// Not to be called with level LM
-// Keeping shift in params if needed to be generalised
-int RawDataDecoder::shiftNew(const o2::InteractionRecord& irin, std::bitset<48>& inpmask, int64_t shift, int level, std::map<o2::InteractionRecord, CTPDigit>& digmap)
-{
-  //
-  if (irin.orbit > mTFOrbit || irin.bc >= shift) {
-    auto lxmask = L0MASKInputs;
-    if (level == 1) {
-      lxmask = L1MASKInputs;
-    }
-    auto ir = irin - shift; // add L0 to prev digit
-    if (digmap.count(ir)) {
-      if ((digmap[ir].CTPInputMask & lxmask).count()) {
-        LOG(error) << " Overwriting LX ? X:" << level;
-      }
-      digmap[ir].CTPInputMask = digmap[ir].CTPInputMask | (inpmask & lxmask);
-    } else {
-      CTPDigit digit = {ir, inpmask & lxmask, 0};
-      digmap[ir] = digit;
-    }
-  } else {
-    LOG(info) << "LOST:" << irin << " shift:" << shift;
-  }
   return 0;
 }
 //

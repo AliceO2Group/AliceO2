@@ -25,6 +25,7 @@
 #include "DetectorsBase/CTFCoderBase.h"
 #include "rANS/rans.h"
 #include "CTPReconstruction/CTFHelper.h"
+#include "CTPReconstruction/RawDataDecoder.h"
 
 class TTree;
 
@@ -48,6 +49,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   o2::ctf::CTFIOSize decode(const CTF::base& ec, VTRG& data, LumiInfo& lumi);
 
   void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
+  void setDecodeInps(bool decodeinps){ mDecodeInps=decodeinps; }
 
  private:
   template <typename VEC>
@@ -56,6 +58,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   void appendToTree(TTree& tree, CTF& ec);
   void readFromTree(TTree& tree, int entry, std::vector<CTPDigit>& data, LumiInfo& lumi);
   std::vector<CTPDigit> mDataFilt;
+  bool mDecodeInps = false;
 };
 
 /// entropy-encode clusters to buffer with CTF
@@ -135,7 +138,8 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& data, LumiInfo& l
   // clang-format on
   //
   data.clear();
-
+  mBCShift = 3;
+  std::map<o2::InteractionRecord, CTPDigit> digitsMap;
   o2::InteractionRecord ir(header.firstBC, header.firstOrbit);
   lumi.nHBFCounted = header.lumiNHBFs;
   lumi.counts = header.lumiCounts;
@@ -143,6 +147,7 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& data, LumiInfo& l
   auto itInp = bytesInput.begin();
   auto itCls = bytesClass.begin();
   bool checkIROK = (mBCShift == 0); // need to check if CTP offset correction does not make the local time negative ?
+  bool checkIROKInputs = (mBCShiftInputs == 0); // need to check if CTP offset correction does not make the local time negative ?
   for (uint32_t itrig = 0; itrig < header.nTriggers; itrig++) {
     // restore TrigRecord
     if (orbitInc[itrig]) {  // non-0 increment => new orbit
@@ -151,20 +156,62 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& data, LumiInfo& l
     } else {
       ir.bc += bcInc[itrig];
     }
-    if (checkIROK || canApplyBCShift(ir)) { // correction will be ok
-      checkIROK = true;
+    if (checkIROKInputs || canApplyBCShiftInputs(ir)) { // correction will be ok
+      //checkIROK = true;
+      //CTPDigit dig;
+      auto irs = ir - mBCShiftInputs;
+      uint64_t CTPInputMask = 0;
+      for (int i = 0; i < CTFHelper::CTPInpNBytes; i++) {
+        CTPInputMask |= static_cast<uint64_t>(*itInp++) << (8 * i);
+      }
+      if(digitsMap.count(irs)) {
+        if(digitsMap[irs].CTPInputMask.count() == 0 ) {
+          digitsMap[irs].CTPInputMask = CTPInputMask;
+        } else {
+          LOG(error) << "CTPInpurMask already exist:" << irs << " dig.CTPInputMask:" << digitsMap[irs].CTPInputMask << " CTPInputMask:" << CTPInputMask;
+        }
+      } else {
+        CTPDigit dig = {irs,CTPInputMask,0};
+        digitsMap[irs] = dig;
+      }
     } else { // correction would make IR prior to mFirstTFOrbit, skip
       itInp += CTFHelper::CTPInpNBytes;
+      //itCls += CTFHelper::CTPClsNBytes;
+      //continue;
+    }
+    if (checkIROK || canApplyBCShift(ir)) { // correction will be ok
+      //checkIROK = true;
+      auto irs = ir - mBCShift;
+      uint64_t CTPClassMask = 0;
+      for (int i = 0; i < CTFHelper::CTPClsNBytes; i++) {
+        CTPClassMask |= static_cast<uint64_t>(*itCls++) << (8 * i);
+      }
+      if(digitsMap.count(irs)) {
+        if(digitsMap[irs].CTPClassMask.count() == 0) {
+          digitsMap[irs].CTPClassMask = CTPClassMask;
+        } else {
+          LOG(error) << "CTPClassMask already exist:" << irs << " dig.CTPClassMask:" << digitsMap[irs].CTPClassMask << " CTPClassMask:" << CTPClassMask;
+        }
+      } else {
+        CTPDigit dig = {irs,0,CTPClassMask};
+        digitsMap[irs] = dig;
+      }
+    } else { // correction would make IR prior to mFirstTFOrbit, skip
+      //itInp += CTFHelper::CTPInpNBytes;
       itCls += CTFHelper::CTPClsNBytes;
-      continue;
+      //continue;
     }
-    auto& dig = data.emplace_back();
-    dig.intRecord = ir - mBCShift;
-    for (int i = 0; i < CTFHelper::CTPInpNBytes; i++) {
-      dig.CTPInputMask |= static_cast<uint64_t>(*itInp++) << (8 * i);
+    //digitsMap[dig.intRecord] = dig;
+  }
+  if(mDecodeInps) {
+    std::vector<CTPDigit> digits;
+    o2::ctp::RawDataDecoder::shiftInputs(digitsMap,digits,mFirstTFOrbit);
+    for (auto const& dig : digits) {
+      data.emplace_back(dig);
     }
-    for (int i = 0; i < CTFHelper::CTPClsNBytes; i++) {
-      dig.CTPClassMask |= static_cast<uint64_t>(*itCls++) << (8 * i);
+  } else {
+    for (auto const& dig : digitsMap) {
+      data.emplace_back(dig.second);
     }
   }
   assert(itInp == bytesInput.end());

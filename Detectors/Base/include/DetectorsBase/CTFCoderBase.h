@@ -129,8 +129,10 @@ class CTFCoderBase
   long getIRFrameSelShift() const { return mIRFrameSelShift; }
 
   void setBCShift(int64_t n) { mBCShift = n; }
+  void setBCShiftInputs(int64_t n) { mBCShiftInputs = n; }
   void setFirstTFOrbit(uint32_t n) { mFirstTFOrbit = n; }
   auto getBCShift() const { return mBCShift; }
+  auto getBCShiftInputs() const { return mBCShiftInputs; }
   auto getFirstTFOrbit() const { return mFirstTFOrbit; }
   void setSupportBCShifts(bool v = true) { mSupportBCShifts = v; }
   bool getSupportBCShifts() const { return mSupportBCShifts; }
@@ -154,6 +156,7 @@ class CTFCoderBase
     return diff < 0 ? true : diff >= shift;
   }
   bool canApplyBCShift(const o2::InteractionRecord& ir) const { return canApplyBCShift(ir, mBCShift); }
+  bool canApplyBCShiftInputs(const o2::InteractionRecord& ir) const { return canApplyBCShift(ir, mBCShiftInputs); }
 
   template <typename CTF>
   std::vector<char> loadDictionaryFromTree(TTree* tree);
@@ -167,7 +170,8 @@ class CTFCoderBase
   bool mLoadDictFromCCDB{true};
   bool mSupportBCShifts{false};
   OpType mOpType; // Encoder or Decoder
-  int64_t mBCShift = 0; // shift to apply to decoded IR (i.e. CTP offset if was not corrected on raw data decoding level)
+  int64_t mBCShift = 0; // shift to apply to decoded Trigger Class Mask (i.e. CTP offset if was not corrected on raw data decoding level)
+  int64_t mBCShiftInputs = 0; // shift to apply to decoded Input Mask (i.e. CTP offset if was not corrected on raw data decoding level)
   uint32_t mFirstTFOrbit = 0;
   size_t mIRFrameSelMarginBwd = 0; // margin in BC to add to the IRFrame lower boundary when selection is requested
   size_t mIRFrameSelMarginFwd = 0; // margin in BC to add to the IRFrame upper boundary when selection is requested
@@ -331,10 +335,13 @@ bool CTFCoderBase::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, voi
   } else if ((match = (matcher == o2::framework::ConcreteDataMatcher("CTP", "Trig_Offset", 0)))) {
     const auto& trigOffsParam = o2::ctp::TriggerOffsetsParam::Instance();
     auto bcshift = trigOffsParam.customOffset[mDet.getID()];
-    if (bcshift) {
+    auto bcshiftInp = trigOffsParam.globalInputsShift;
+    if (bcshift || bcshiftInp) {
       if (mSupportBCShifts) {
         LOGP(info, "Decoded IRs will be augmented by {} BCs, discarded if become prior to 1st orbit", bcshift);
         setBCShift(-bcshift); // offset is subtracted
+        setBCShiftInputs(-bcshiftInp);
+        LOG(info) << "BC shifts: Trig Classes:" << bcshift << " Inputs:" << bcshiftInp;
       } else {
         LOGP(alarm, "Decoding with {} BCs shift is requested, but the {} does not support this operation, ignoring request", bcshift, mDet.getName());
       }
