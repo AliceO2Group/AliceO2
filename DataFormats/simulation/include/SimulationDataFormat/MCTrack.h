@@ -69,7 +69,7 @@ class MCTrackT
   Int_t GetPdgCode() const { return mPdgCode; }
   Int_t getMotherTrackId() const { return mMotherTrackId; }
   Int_t getSecondMotherTrackId() const { return mSecondMotherTrackId; }
-  bool isPrimary() const { return getProcess() == TMCProcess::kPPrimary; }
+  bool isPrimary() const { return (getProcess() == TMCProcess::kPPrimary) || (getMotherTrackId() < 0 && getSecondMotherTrackId() < 0); }
   bool isSecondary() const { return !isPrimary(); }
   Int_t getFirstDaughterTrackId() const { return mFirstDaughterTrackId; }
   Int_t getLastDaughterTrackId() const { return mLastDaughterTrackId; }

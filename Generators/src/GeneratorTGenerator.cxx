@@ -12,11 +12,13 @@
 #include "SimulationDataFormat/MCGenProperties.h"
 #include "SimulationDataFormat/ParticleStatus.h"
 #include "Generators/GeneratorTGenerator.h"
+#include "Generators/GeneratorExternalParam.h"
 #include <fairlogger/Logger.h>
 #include "FairPrimaryGenerator.h"
 #include "TGenerator.h"
 #include "TClonesArray.h"
 #include "TParticle.h"
+#include "TMCProcess.h" // for VMC Particle Production Process
 
 namespace o2
 {
@@ -95,6 +97,12 @@ Bool_t
     mParticles.push_back(*particle);
     // Set the transport bit according to the HepMC status code as it always used to be
     mParticles.back().SetBit(ParticleStatus::kToBeDone, mcgenstatus::getHepMCStatusCode(particle->GetStatusCode()) == 1);
+
+    if (GeneratorExternalParam::Instance().markAllAsPrimary) {
+      // The production process will be set to kPPrimary which is the expected default for generator-level particles in O2
+      // not doing this might confuse transport and selection of particles to keep in AOD
+      mParticles.back().SetUniqueID(kPPrimary);
+    }
   }
 
   /** success **/
