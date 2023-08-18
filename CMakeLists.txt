@@ -37,7 +37,7 @@ set_property(GLOBAL PROPERTY JOB_POOLS analysis=${ANALYSIS_COMPILE_POOL})
 
 include(O2BuildSanityChecks)
 o2_build_sanity_checks()
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
 find_package(ONNXRuntime::ONNXRuntime CONFIG)
