@@ -49,6 +49,7 @@ struct DebugGUI {
   virtual bool pollGUIPreRender(void* context, float delta) = 0;
   virtual void* pollGUIRender(std::function<void(void)> guiCallback) = 0;
   virtual void pollGUIPostRender(void* context, void* draw_data) = 0;
+  virtual bool supportsDeferredClose() = 0;
   virtual void disposeGUI() = 0;
 };
 } // namespace o2::framework
