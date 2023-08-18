@@ -95,7 +95,7 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
     outputs,
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
     Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
-            {"inputs-decoding-ctf",VariantType::Bool, false,{"Inputs alignment: true - CTF decoder - has to be compatible with reco: allowed options: 10,01,00"}}}};
+            {"inputs-decoding-ctf", VariantType::Bool, false, {"Inputs alignment: true - CTF decoder - has to be compatible with reco: allowed options: 10,01,00"}}}};
 }
 
 } // namespace ctp

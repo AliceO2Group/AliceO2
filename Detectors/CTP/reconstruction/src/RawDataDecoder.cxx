@@ -292,7 +292,7 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
     // std::cout << "last lumi:" << nhb  << std::endl;
   }
   if (mDoDigits & mDecodeInps) {
-    shiftInputs(digitsMap,digits,mTFOrbit);
+    shiftInputs(digitsMap, digits, mTFOrbit);
   }
   if (mDoDigits && !mDecodeInps) {
     for (auto const& dig : digitsMap) {
@@ -346,84 +346,84 @@ int RawDataDecoder::shiftNew(const o2::InteractionRecord& irin, uint32_t TFOrbit
   }
   return 0;
 }
-int RawDataDecoder::shiftInputs(std::map<o2::InteractionRecord, CTPDigit>& digitsMap,std::vector<CTPDigit>& digits,uint32_t TFOrbit)
+int RawDataDecoder::shiftInputs(std::map<o2::InteractionRecord, CTPDigit>& digitsMap, std::vector<CTPDigit>& digits, uint32_t TFOrbit)
 {
-    int nClasswoInp = 0; // counting classes without input which should never happen
-    int nLM = 0;
-    int nL0 = 0;
-    int nL1 = 0;
-    int nTwI = 0;
-    int nTwoI = 0;
-    std::map<o2::InteractionRecord, CTPDigit> digitsMapShifted;
-    auto L0shift = o2::ctp::TriggerOffsetsParam::Instance().LM_L0;
-    auto L1shift = L0shift + o2::ctp::TriggerOffsetsParam::Instance().L0_L1;
-    for (auto const& dig : digitsMap) {
-      auto inpmask = dig.second.CTPInputMask;
-      auto inpmaskLM = inpmask & LMMASKInputs;
-      auto inpmaskL0 = inpmask & L0MASKInputs;
-      auto inpmaskL1 = inpmask & L1MASKInputs;
-      int lm = inpmaskLM.count() > 0;
-      int l0 = inpmaskL0.count() > 0;
-      int l1 = inpmaskL1.count() > 0;
-      int lut = lm + (l0 << 1) + (l1 << 2);
-      // std::cout << "L0mask:" << L0MASKInputs << std::endl;
-      // std::cout << "L0:" << inpmaskL0 << std::endl;
-      // std::cout << "L1:" << inpmaskL1 << std::endl;
-      if (lut == 0 || lut == 1) { // no inps or LM
-        digitsMapShifted[dig.first] = dig.second;
-      } else if (lut == 2) { // L0
-        shiftNew(dig.first, TFOrbit, inpmask, L0shift, 0, digitsMapShifted);
-        if (dig.second.CTPClassMask.count()) {
-          LOG(error) << "Adding class mask without input ?";
-          CTPDigit digi = {dig.first, 0, dig.second.CTPClassMask};
-          digitsMapShifted[dig.first] = digi;
-        }
-      } else if (lut == 4) { // L1
-        shiftNew(dig.first, TFOrbit, inpmask, L1shift, 1, digitsMapShifted);
-      } else if (lut == 6) { // L0 and L1
-        shiftNew(dig.first, TFOrbit, inpmask, L0shift, 0, digitsMapShifted);
-        shiftNew(dig.first, TFOrbit, inpmask, L1shift, 1, digitsMapShifted);
-      } else if (lut == 3) { // LM and L0
-        shiftNew(dig.first, TFOrbit, inpmask, L0shift, 0, digitsMapShifted);
-        CTPDigit digi = {dig.first, inpmask & (~L0MASKInputs), dig.second.CTPClassMask};
-        // LOG(info) << "LM-L0 present";
+  int nClasswoInp = 0; // counting classes without input which should never happen
+  int nLM = 0;
+  int nL0 = 0;
+  int nL1 = 0;
+  int nTwI = 0;
+  int nTwoI = 0;
+  std::map<o2::InteractionRecord, CTPDigit> digitsMapShifted;
+  auto L0shift = o2::ctp::TriggerOffsetsParam::Instance().LM_L0;
+  auto L1shift = L0shift + o2::ctp::TriggerOffsetsParam::Instance().L0_L1;
+  for (auto const& dig : digitsMap) {
+    auto inpmask = dig.second.CTPInputMask;
+    auto inpmaskLM = inpmask & LMMASKInputs;
+    auto inpmaskL0 = inpmask & L0MASKInputs;
+    auto inpmaskL1 = inpmask & L1MASKInputs;
+    int lm = inpmaskLM.count() > 0;
+    int l0 = inpmaskL0.count() > 0;
+    int l1 = inpmaskL1.count() > 0;
+    int lut = lm + (l0 << 1) + (l1 << 2);
+    // std::cout << "L0mask:" << L0MASKInputs << std::endl;
+    // std::cout << "L0:" << inpmaskL0 << std::endl;
+    // std::cout << "L1:" << inpmaskL1 << std::endl;
+    if (lut == 0 || lut == 1) { // no inps or LM
+      digitsMapShifted[dig.first] = dig.second;
+    } else if (lut == 2) { // L0
+      shiftNew(dig.first, TFOrbit, inpmask, L0shift, 0, digitsMapShifted);
+      if (dig.second.CTPClassMask.count()) {
+        LOG(error) << "Adding class mask without input ?";
+        CTPDigit digi = {dig.first, 0, dig.second.CTPClassMask};
         digitsMapShifted[dig.first] = digi;
-      } else if (lut == 5) { // LM and L1
-        shiftNew(dig.first, TFOrbit, inpmask, L1shift, 1, digitsMapShifted);
-        CTPDigit digi = {dig.first, inpmask & (~L1MASKInputs), dig.second.CTPClassMask};
-        digitsMapShifted[dig.first] = digi;
-      } else if (lut == 7) { // LM and L0 and L1
-        shiftNew(dig.first, TFOrbit, inpmask, L0shift, 0, digitsMapShifted);
-        shiftNew(dig.first, TFOrbit, inpmask, L1shift, 1, digitsMapShifted);
-        CTPDigit digi = {dig.first, inpmaskLM, dig.second.CTPClassMask};
-        digitsMapShifted[dig.first] = digi;
+      }
+    } else if (lut == 4) { // L1
+      shiftNew(dig.first, TFOrbit, inpmask, L1shift, 1, digitsMapShifted);
+    } else if (lut == 6) { // L0 and L1
+      shiftNew(dig.first, TFOrbit, inpmask, L0shift, 0, digitsMapShifted);
+      shiftNew(dig.first, TFOrbit, inpmask, L1shift, 1, digitsMapShifted);
+    } else if (lut == 3) { // LM and L0
+      shiftNew(dig.first, TFOrbit, inpmask, L0shift, 0, digitsMapShifted);
+      CTPDigit digi = {dig.first, inpmask & (~L0MASKInputs), dig.second.CTPClassMask};
+      // LOG(info) << "LM-L0 present";
+      digitsMapShifted[dig.first] = digi;
+    } else if (lut == 5) { // LM and L1
+      shiftNew(dig.first, TFOrbit, inpmask, L1shift, 1, digitsMapShifted);
+      CTPDigit digi = {dig.first, inpmask & (~L1MASKInputs), dig.second.CTPClassMask};
+      digitsMapShifted[dig.first] = digi;
+    } else if (lut == 7) { // LM and L0 and L1
+      shiftNew(dig.first, TFOrbit, inpmask, L0shift, 0, digitsMapShifted);
+      shiftNew(dig.first, TFOrbit, inpmask, L1shift, 1, digitsMapShifted);
+      CTPDigit digi = {dig.first, inpmaskLM, dig.second.CTPClassMask};
+      digitsMapShifted[dig.first] = digi;
+    } else {
+      LOG(fatal) << "lut = " << lut;
+    }
+  }
+  for (auto const& dig : digitsMapShifted) {
+    auto d = dig.second;
+    if ((d.CTPInputMask & LMMASKInputs).count()) {
+      nLM++;
+    }
+    if ((d.CTPInputMask & L0MASKInputs).count()) {
+      nL0++;
+    }
+    if ((d.CTPInputMask & L1MASKInputs).count()) {
+      nL1++;
+    }
+    if (d.CTPClassMask.count()) {
+      if (d.CTPInputMask.count()) {
+        nTwI++;
       } else {
-        LOG(fatal) << "lut = " << lut;
+        nTwoI++;
       }
     }
-    for (auto const& dig : digitsMapShifted) {
-      auto d = dig.second;
-      if ((d.CTPInputMask & LMMASKInputs).count()) {
-        nLM++;
-      }
-      if ((d.CTPInputMask & L0MASKInputs).count()) {
-        nL0++;
-      }
-      if ((d.CTPInputMask & L1MASKInputs).count()) {
-        nL1++;
-      }
-      if (d.CTPClassMask.count()) {
-        if (d.CTPInputMask.count()) {
-          nTwI++;
-        } else {
-          nTwoI++;
-        }
-      }
-      digits.push_back(dig.second);
-    }
-    if (nTwoI) { // Trigger class wo Input
-      LOG(error) << "LM:" << nLM << " L0:" << nL0 << " L1:" << nL1 << " TwI:" << nTwI << " Trigger cals wo inputTwoI:" << nTwoI;
-    }
+    digits.push_back(dig.second);
+  }
+  if (nTwoI) { // Trigger class wo Input
+    LOG(error) << "LM:" << nLM << " L0:" << nL0 << " L1:" << nL1 << " TwI:" << nTwI << " Trigger cals wo inputTwoI:" << nTwoI;
+  }
   return 0;
 }
 //

@@ -170,7 +170,7 @@ class CTFCoderBase
   bool mLoadDictFromCCDB{true};
   bool mSupportBCShifts{false};
   OpType mOpType; // Encoder or Decoder
-  int64_t mBCShift = 0; // shift to apply to decoded Trigger Class Mask (i.e. CTP offset if was not corrected on raw data decoding level)
+  int64_t mBCShift = 0;       // shift to apply to decoded Trigger Class Mask (i.e. CTP offset if was not corrected on raw data decoding level)
   int64_t mBCShiftInputs = 0; // shift to apply to decoded Input Mask (i.e. CTP offset if was not corrected on raw data decoding level)
   uint32_t mFirstTFOrbit = 0;
   size_t mIRFrameSelMarginBwd = 0; // margin in BC to add to the IRFrame lower boundary when selection is requested
