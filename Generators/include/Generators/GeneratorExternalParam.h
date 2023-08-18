@@ -30,6 +30,7 @@ namespace eventgen
 struct GeneratorExternalParam : public o2::conf::ConfigurableParamHelper<GeneratorExternalParam> {
   std::string fileName = "";
   std::string funcName = "";
+  bool markAllAsPrimary = true; // marks all generator level particles as "primary" with kPPrimary as process (like Pythia8 is doing)
   O2ParamDef(GeneratorExternalParam, "GeneratorExternal");
 };
 
