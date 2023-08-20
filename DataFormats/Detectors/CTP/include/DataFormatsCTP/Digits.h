@@ -55,6 +55,9 @@ struct CTPDigit {
   void printStream(std::ostream& stream) const;
   void setInputMask(gbtword80_t mask);
   void setClassMask(gbtword80_t mask);
+  bool isInputEmpty() {return CTPInputMask.count() == 0; }
+  bool isClassEmty() {return CTPClassMask.count() == 0; }
+  bool isEmty() {return isInputEmpty() && isClassEmty(); }
   bool operator==(const CTPDigit& d) const
   {
     return intRecord == d.intRecord && CTPInputMask == d.CTPInputMask && CTPClassMask == d.CTPClassMask;

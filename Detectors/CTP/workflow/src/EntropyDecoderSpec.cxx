@@ -44,7 +44,7 @@ void EntropyDecoderSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matche
 void EntropyDecoderSpec::init(o2::framework::InitContext& ic)
 {
   mCTFCoder.init<CTF>(ic);
-  bool decodeinps = ic.options().get<bool>("inputs-decoding-ctf");
+  bool decodeinps = ic.options().get<bool>("ctpinputs-decoding-ctf");
   mCTFCoder.setDecodeInps(decodeinps);
   LOG(info) << "Decode inputs:" << decodeinps;
 }
@@ -95,7 +95,7 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
     outputs,
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
     Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
-            {"inputs-decoding-ctf", VariantType::Bool, false, {"Inputs alignment: true - CTF decoder - has to be compatible with reco: allowed options: 10,01,00"}}}};
+            {"ctpinputs-decoding-ctf", VariantType::Bool, false, {"Inputs alignment: true - CTF decoder - has to be compatible with reco: allowed options: 10,01,00"}}}};
 }
 
 } // namespace ctp

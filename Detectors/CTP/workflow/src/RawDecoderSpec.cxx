@@ -25,7 +25,7 @@ using namespace o2::ctp::reco_workflow;
 
 void RawDecoderSpec::init(framework::InitContext& ctx)
 {
-  bool decodeinps = ctx.options().get<bool>("inputs-decoding");
+  bool decodeinps = ctx.options().get<bool>("ctpinputs-decoding");
   mDecoder.setDecodeInps(decodeinps);
   mNTFToIntegrate = ctx.options().get<int>("ntf-to-average");
   mVerbose = ctx.options().get<bool>("use-verbose-mode");
@@ -189,5 +189,5 @@ o2::framework::DataProcessorSpec o2::ctp::reco_workflow::getRawDecoderSpec(bool 
       {"lumi-inp1", o2::framework::VariantType::String, "TVX", {"The first input used for online lumi. Name in capital."}},
       {"lumi-inp2", o2::framework::VariantType::String, "VBA", {"The second input used for online lumi. Name in capital."}},
       {"use-verbose-mode", o2::framework::VariantType::Bool, false, {"Verbose logging"}},
-      {"inputs-decoding", o2::framework::VariantType::Bool, false, {"Inputs alignment: true - raw decoder - has to be compatible with CTF decoder: allowed options: 10,01,00"}}}};
+      {"ctpinputs-decoding", o2::framework::VariantType::Bool, false, {"Inputs alignment: true - raw decoder - has to be compatible with CTF decoder: allowed options: 10,01,00"}}}};
 }

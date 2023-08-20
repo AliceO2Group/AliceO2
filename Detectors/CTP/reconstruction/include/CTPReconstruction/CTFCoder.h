@@ -138,7 +138,6 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& data, LumiInfo& l
   // clang-format on
   //
   data.clear();
-  mBCShift = 3;
   std::map<o2::InteractionRecord, CTPDigit> digitsMap;
   o2::InteractionRecord ir(header.firstBC, header.firstOrbit);
   lumi.nHBFCounted = header.lumiNHBFs;
@@ -158,21 +157,26 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& data, LumiInfo& l
     }
     if (checkIROKInputs || canApplyBCShiftInputs(ir)) { // correction will be ok
       // checkIROK = true;
-      // CTPDigit dig;
       auto irs = ir - mBCShiftInputs;
       uint64_t CTPInputMask = 0;
       for (int i = 0; i < CTFHelper::CTPInpNBytes; i++) {
         CTPInputMask |= static_cast<uint64_t>(*itInp++) << (8 * i);
       }
-      if (digitsMap.count(irs)) {
-        if (digitsMap[irs].CTPInputMask.count() == 0) {
-          digitsMap[irs].CTPInputMask = CTPInputMask;
+        if(CTPInputMask) {
+        if (digitsMap.count(irs)) {
+          if (digitsMap[irs].isInputEmpty()) {
+            digitsMap[irs].CTPInputMask = CTPInputMask;
+            //LOG(info) << "IR1:";
+            //digitsMap[irs].printStream(std::cout);
+          } else {
+            LOG(error) << "CTPInpurMask already exist:" << irs << " dig.CTPInputMask:" << digitsMap[irs].CTPInputMask << " CTPInputMask:" << CTPInputMask;
+          }
         } else {
-          LOG(error) << "CTPInpurMask already exist:" << irs << " dig.CTPInputMask:" << digitsMap[irs].CTPInputMask << " CTPInputMask:" << CTPInputMask;
+          CTPDigit dig = {irs, CTPInputMask, 0};
+          digitsMap[irs] = dig;
+          //LOG(info) << "IR2:";
+          //digitsMap[irs].printStream(std::cout);
         }
-      } else {
-        CTPDigit dig = {irs, CTPInputMask, 0};
-        digitsMap[irs] = dig;
       }
     } else { // correction would make IR prior to mFirstTFOrbit, skip
       itInp += CTFHelper::CTPInpNBytes;
@@ -186,22 +190,27 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& data, LumiInfo& l
       for (int i = 0; i < CTFHelper::CTPClsNBytes; i++) {
         CTPClassMask |= static_cast<uint64_t>(*itCls++) << (8 * i);
       }
-      if (digitsMap.count(irs)) {
-        if (digitsMap[irs].CTPClassMask.count() == 0) {
-          digitsMap[irs].CTPClassMask = CTPClassMask;
+      if(CTPClassMask) {
+        if (digitsMap.count(irs)) {
+          if (digitsMap[irs].isClassEmty()) {
+            digitsMap[irs].CTPClassMask = CTPClassMask;
+            //LOG(info) << "TCM1:";
+            //digitsMap[irs].printStream(std::cout);
+          } else {
+            LOG(error) << "CTPClassMask already exist:" << irs << " dig.CTPClassMask:" << digitsMap[irs].CTPClassMask << " CTPClassMask:" << CTPClassMask;
+          }
         } else {
-          LOG(error) << "CTPClassMask already exist:" << irs << " dig.CTPClassMask:" << digitsMap[irs].CTPClassMask << " CTPClassMask:" << CTPClassMask;
+          CTPDigit dig = {irs, 0, CTPClassMask};
+          digitsMap[irs] = dig;
+          //LOG(info) << "TCM2:";
+          //digitsMap[irs].printStream(std::cout);
         }
-      } else {
-        CTPDigit dig = {irs, 0, CTPClassMask};
-        digitsMap[irs] = dig;
       }
     } else { // correction would make IR prior to mFirstTFOrbit, skip
       // itInp += CTFHelper::CTPInpNBytes;
       itCls += CTFHelper::CTPClsNBytes;
       // continue;
     }
-    // digitsMap[dig.intRecord] = dig;
   }
   if (mDecodeInps) {
     std::vector<CTPDigit> digits;
