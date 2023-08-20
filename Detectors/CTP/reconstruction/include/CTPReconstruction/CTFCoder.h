@@ -162,20 +162,20 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& data, LumiInfo& l
       for (int i = 0; i < CTFHelper::CTPInpNBytes; i++) {
         CTPInputMask |= static_cast<uint64_t>(*itInp++) << (8 * i);
       }
-        if(CTPInputMask) {
+      if (CTPInputMask) {
         if (digitsMap.count(irs)) {
           if (digitsMap[irs].isInputEmpty()) {
             digitsMap[irs].CTPInputMask = CTPInputMask;
-            //LOG(info) << "IR1:";
-            //digitsMap[irs].printStream(std::cout);
+            // LOG(info) << "IR1:";
+            // digitsMap[irs].printStream(std::cout);
           } else {
             LOG(error) << "CTPInpurMask already exist:" << irs << " dig.CTPInputMask:" << digitsMap[irs].CTPInputMask << " CTPInputMask:" << CTPInputMask;
           }
         } else {
           CTPDigit dig = {irs, CTPInputMask, 0};
           digitsMap[irs] = dig;
-          //LOG(info) << "IR2:";
-          //digitsMap[irs].printStream(std::cout);
+          // LOG(info) << "IR2:";
+          // digitsMap[irs].printStream(std::cout);
         }
       }
     } else { // correction would make IR prior to mFirstTFOrbit, skip
@@ -190,20 +190,20 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& data, LumiInfo& l
       for (int i = 0; i < CTFHelper::CTPClsNBytes; i++) {
         CTPClassMask |= static_cast<uint64_t>(*itCls++) << (8 * i);
       }
-      if(CTPClassMask) {
+      if (CTPClassMask) {
         if (digitsMap.count(irs)) {
           if (digitsMap[irs].isClassEmty()) {
             digitsMap[irs].CTPClassMask = CTPClassMask;
-            //LOG(info) << "TCM1:";
-            //digitsMap[irs].printStream(std::cout);
+            // LOG(info) << "TCM1:";
+            // digitsMap[irs].printStream(std::cout);
           } else {
             LOG(error) << "CTPClassMask already exist:" << irs << " dig.CTPClassMask:" << digitsMap[irs].CTPClassMask << " CTPClassMask:" << CTPClassMask;
           }
         } else {
           CTPDigit dig = {irs, 0, CTPClassMask};
           digitsMap[irs] = dig;
-          //LOG(info) << "TCM2:";
-          //digitsMap[irs].printStream(std::cout);
+          // LOG(info) << "TCM2:";
+          // digitsMap[irs].printStream(std::cout);
         }
       }
     } else { // correction would make IR prior to mFirstTFOrbit, skip
