@@ -48,8 +48,15 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   template <typename VTRG>
   o2::ctf::CTFIOSize decode(const CTF::base& ec, VTRG& data, LumiInfo& lumi);
 
+  /// add CTP related shifts
+  template <typename CTF>
+  bool finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj);
+
   void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
+  void setBCShiftInputs(int64_t n) { mBCShiftInputs = n; }
   void setDecodeInps(bool decodeinps) { mDecodeInps = decodeinps; }
+  auto getBCShiftInputs() const { return mBCShiftInputs; }
+  bool canApplyBCShiftInputs(const o2::InteractionRecord& ir) const { return canApplyBCShift(ir, mBCShiftInputs); }
 
  private:
   template <typename VEC>
@@ -58,6 +65,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   void appendToTree(TTree& tree, CTF& ec);
   void readFromTree(TTree& tree, int entry, std::vector<CTPDigit>& data, LumiInfo& lumi);
   std::vector<CTPDigit> mDataFilt;
+  int mBCShiftInputs = 0;
   bool mDecodeInps = false;
 };
 
@@ -227,6 +235,45 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& data, LumiInfo& l
   assert(itCls == bytesClass.end());
   iosize.rawIn = header.nTriggers * sizeof(CTPDigit);
   return iosize;
+}
+///________________________________
+template <typename CTF>
+bool CTFCoder::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+{
+  LOG(info) << "CTFCoder::finaliseCCDB called";
+  bool match = false;
+  if (mLoadDictFromCCDB && (match = (matcher == o2::framework::ConcreteDataMatcher(mDet.getDataOrigin(), "CTFDICT", 0)))) {
+    const auto* dict = (std::vector<char>*)obj;
+    if (dict->empty()) {
+      LOGP(info, "Empty dictionary object fetched from CCDB, internal per-TF CTF Dict will be created");
+    } else {
+      std::vector<char> bufVec;
+      if (isTreeDictionary(obj)) {
+        auto v = loadDictionaryFromTree<CTF>(reinterpret_cast<TTree*>(obj));
+        bufVec.swap(v);
+        dict = &bufVec;
+      }
+      createCoders(*dict, mOpType);
+      mExtHeader = static_cast<const o2::ctf::CTFDictHeader&>(CTF::get(dict->data())->getHeader());
+      LOGP(info, "Loaded {} from CCDB", mExtHeader.asString());
+    }
+    mLoadDictFromCCDB = false; // we read the dictionary at most once!
+  } else if ((match = (matcher == o2::framework::ConcreteDataMatcher("CTP", "Trig_Offset", 0)))) {
+    const auto& trigOffsParam = o2::ctp::TriggerOffsetsParam::Instance();
+    auto bcshift = trigOffsParam.customOffset[mDet.getID()];
+    auto bcshiftInp = trigOffsParam.globalInputsShift;
+    if (bcshift || bcshiftInp) {
+      if (mSupportBCShifts) {
+        LOGP(info, "Decoded IRs will be augmented by {} BCs, discarded if become prior to 1st orbit", bcshift);
+        setBCShift(-bcshift); // offset is subtracted
+        setBCShiftInputs(-bcshiftInp);
+        LOG(info) << "BC shifts: Trig Classes:" << bcshift << " Inputs:" << bcshiftInp;
+      } else {
+        LOGP(alarm, "Decoding with {} BCs shift is requested, but the {} does not support this operation, ignoring request", bcshift, mDet.getName());
+      }
+    }
+  }
+  return match;
 }
 
 } // namespace ctp

@@ -120,7 +120,6 @@ int RawDataDecoder::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
   } else {
     LOG(error) << "Unxpected  CTP CRU link:" << linkCRU;
   }
-  mStickyError = true;
   return ret;
 }
 //
