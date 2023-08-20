@@ -54,7 +54,7 @@ int RawDataDecoder::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
   LOG(debug) << bcid << "    pld:" << pld;
   o2::InteractionRecord ir = {bcid, orbit};
   if (linkCRU == o2::ctp::GBTLinkIDIntRec) {
-    int32_t BCShiftCorrectionInps = o2::ctp::TriggerOffsetsParam::Instance().globalInputsShift;
+    int32_t BCShiftCorrectionInps = -o2::ctp::TriggerOffsetsParam::Instance().globalInputsShift;
     LOG(debug) << "InputMaskCount:" << digits[ir].CTPInputMask.count();
     LOG(debug) << "ir ir ori:" << ir;
     if ((ir.orbit <= mTFOrbit) && ((int32_t)ir.bc < BCShiftCorrectionInps)) {
@@ -86,7 +86,7 @@ int RawDataDecoder::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
       ret = 2;
     }
   } else if (linkCRU == o2::ctp::GBTLinkIDClassRec) {
-    int32_t BCShiftCorrection = o2::ctp::TriggerOffsetsParam::Instance().customOffset[o2::detectors::DetID::CTP];
+    int32_t BCShiftCorrection = -o2::ctp::TriggerOffsetsParam::Instance().customOffset[o2::detectors::DetID::CTP];
     int32_t offset = BCShiftCorrection + o2::ctp::TriggerOffsetsParam::Instance().LM_L0 + o2::ctp::TriggerOffsetsParam::Instance().L0_L1 - 1;
     LOG(debug) << "tcr ir ori:" << ir;
     if ((ir.orbit <= mTFOrbit) && ((int32_t)ir.bc < offset)) {
