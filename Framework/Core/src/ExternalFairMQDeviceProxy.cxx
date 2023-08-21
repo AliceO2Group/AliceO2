@@ -493,7 +493,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       std::vector<bool> lastNewStatePending(deviceState.inputChannelInfos.size(), false);
 
       // Continue iterating until all channels have seen a new state.
-      while (std::all_of(lastNewStatePending.begin(), lastNewStatePending.end(), [](bool b) { return b; })) {
+      while (std::all_of(lastNewStatePending.begin(), lastNewStatePending.end(), [](bool b) { return b; }) != true) {
         fair::mq::Parts parts;
         for (size_t ci = 0; ci < deviceState.inputChannelInfos.size(); ++ci) {
           auto& info = deviceState.inputChannelInfos[ci];
