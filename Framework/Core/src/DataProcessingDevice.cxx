@@ -1481,6 +1481,10 @@ void DataProcessingDevice::doPrepare(ServiceRegistryRef ref)
     if (info.channel == nullptr) {
       continue;
     }
+    // Only poll DPL channels for now.
+    if (info.channelType != ChannelAccountingType::DPL) {
+      continue;
+    }
     auto& socket = info.channel->GetSocket();
     // If we have pending events from a previous iteration,
     // we do receive in any case.
