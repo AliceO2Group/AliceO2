@@ -9,6 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "CCDB/BasicCCDBManager.h"
+#include "DataFormatsCalibration/MeanVertexObject.h"
 #include "Framework/AnalysisTask.h"
 #include "Framework/runDataProcessing.h"
 #include "SimulationDataFormat/MCTrack.h"
@@ -20,18 +22,29 @@
 using namespace o2::framework;
 
 struct MctracksToAod {
+  Service<o2::ccdb::BasicCCDBManager> ccdb;
   Produces<o2::aod::McCollisions> mcollisions;
   Produces<o2::aod::StoredMcParticles_001> mcparticles;
   Configurable<float> IR{"interaction-rate", 100.f, "Interaction rate to simulate"};
 
+  Configurable<std::string> ccdburl{"ccdb-url", "http://alice-ccdb.cern.ch", "url of the ccdb repository"};
+  Configurable<std::string> meanvertexPath{"mean-vertex-path", "GLO/Calib/MeanVertex", "Path to mean vertex object"};
+  Configurable<int64_t> timestamp{"timestamp", 1657464565193, "SOR timestamp for mean vertex set up"};
+  Configurable<bool> useMeanVertex{"use-mean-vertex", false, "Use mean vertex from CCDB"};
+
   uint64_t timeframe = 0;
   o2::steer::InteractionSampler sampler;
+  std::unique_ptr<o2::dataformats::MeanVertexObject> vertex = nullptr;
 
   void init(o2::framework::InitContext& /*ic*/)
   {
     sampler.setInteractionRate(IR);
     sampler.setFirstIR({0, 0});
     sampler.init();
+    if (useMeanVertex) {
+      ccdb->setURL(ccdburl);
+      vertex.reset(ccdb->getForTimeStamp<o2::dataformats::MeanVertexObject>(meanvertexPath, timestamp));
+    }
   }
 
   void run(o2::framework::ProcessingContext& pc)
@@ -46,16 +59,25 @@ struct MctracksToAod {
     auto bcCounter = 0UL;
     for (auto i = 0U; i < Nparts; ++i) {
       auto record = sampler.generateCollisionTime();
+      o2::math_utils::Point3D<float> v;
+      if (useMeanVertex ) {
+        v = vertex->sample();
+      }
       auto mcheader = pc.inputs().get<o2::dataformats::MCEventHeader*>("mcheader", i);
       auto mctracks = pc.inputs().get<std::vector<o2::MCTrack>>("mctracks", i);
+      auto xc = useMeanVertex ? v.Coordinates().x() : mcheader->GetX();
+      auto yc = useMeanVertex ? v.Coordinates().y() : mcheader->GetY();
+      auto zc = useMeanVertex ? v.Coordinates().z() : mcheader->GetZ();
+
+      auto tc = record.timeInBCNS * 1.e-3; // ns to ms
 
       mcollisions(bcCounter++, // bcId
                   0,           // generatorId
-                  mcheader->GetX(),
-                  mcheader->GetY(),
-                  mcheader->GetZ(),
-                  record.timeInBCNS * 1.e-3, // ns to ms
-                  1.,                        // weight
+                  xc,
+                  yc,
+                  zc,
+                  tc,
+                  1.,          // weight
                   mcheader->GetB());
       for (auto& mctrack : mctracks) {
         std::vector<int> mothers;
