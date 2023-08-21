@@ -32,7 +32,8 @@ namespace o2::mergers
 
 MergerBuilder::MergerBuilder() : mName("INVALID"),
                                  mInputSpecs{},
-                                 mOutputSpec{header::gDataOriginInvalid, header::gDataDescriptionInvalid},
+                                 mOutputSpecIntegral{header::gDataOriginInvalid, header::gDataDescriptionInvalid},
+                                 mOutputSpecMovingWindow{header::gDataOriginInvalid, header::gDataDescriptionInvalid},
                                  mConfig{}
 {
 }
@@ -58,10 +59,16 @@ void MergerBuilder::setInputSpecs(const framework::Inputs& inputs)
   mInputSpecs = inputs;
 }
 
-void MergerBuilder::setOutputSpec(const framework::OutputSpec& output)
+void MergerBuilder::setOutputSpec(const framework::OutputSpec& outputSpec)
 {
-  mOutputSpec = output;
-  mOutputSpec.binding = {MergerBuilder::mergerOutputBinding()};
+  mOutputSpecIntegral = outputSpec;
+  mOutputSpecIntegral.binding = {MergerBuilder::mergerIntegralOutputBinding()};
+}
+
+void MergerBuilder::setOutputSpecMovingWindow(const framework::OutputSpec& outputSpec)
+{
+  mOutputSpecMovingWindow = outputSpec;
+  mOutputSpecMovingWindow.binding = {MergerBuilder::mergerMovingWindowOutputBinding()};
 }
 
 void MergerBuilder::setConfig(MergerConfig config)
@@ -77,18 +84,22 @@ framework::DataProcessorSpec MergerBuilder::buildSpec()
 
   merger.inputs = mInputSpecs;
 
-  merger.outputs.push_back(mOutputSpec);
-  framework::DataAllocator::SubSpecificationType subSpec = DataSpecUtils::getOptionalSubSpec(mOutputSpec).value();
-  if (DataSpecUtils::validate(mOutputSpec) == false) {
+  merger.outputs.push_back(mOutputSpecIntegral);
+  framework::DataAllocator::SubSpecificationType subSpec = DataSpecUtils::getOptionalSubSpec(mOutputSpecIntegral).value();
+  if (DataSpecUtils::validate(mOutputSpecIntegral) == false) {
     // inner layer => generate output spec according to scheme
     subSpec = mergerSubSpec(mLayer, mId);
-    merger.outputs[0] = OutputSpec{{mergerOutputBinding()},
+    merger.outputs[0] = OutputSpec{{mergerIntegralOutputBinding()},
                                    mergerDataOrigin(),
                                    mergerDataDescription(mName),
                                    subSpec}; // it servers as a unique merger output ID
   } else {
     // last layer
-    merger.outputs[0].binding = {mergerOutputBinding()};
+    merger.outputs[0].binding = {mergerIntegralOutputBinding()};
+  }
+
+  if (mConfig.publishMovingWindow.value == PublishMovingWindow::Yes) {
+    merger.outputs.push_back(mOutputSpecMovingWindow);
   }
 
   if (mConfig.inputObjectTimespan.value == InputObjectsTimespan::LastDifference) {

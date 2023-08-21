@@ -172,17 +172,17 @@ void FullHistoryMerger::publish(framework::DataAllocator& allocator)
   if (std::holds_alternative<std::monostate>(mMergedObject)) {
     LOG(info) << "No objects received since start or reset, nothing to publish";
   } else if (std::holds_alternative<MergeInterfacePtr>(mMergedObject)) {
-    allocator.snapshot(framework::OutputRef{MergerBuilder::mergerOutputBinding(), mSubSpec},
+    allocator.snapshot(framework::OutputRef{MergerBuilder::mergerIntegralOutputBinding(), mSubSpec},
                        *std::get<MergeInterfacePtr>(mMergedObject));
     LOG(info) << "Published the merged object containing " << mCache.size() + 1 << " incomplete objects. "
               << mUpdatesReceived << " updates were received during the last cycle.";
   } else if (std::holds_alternative<TObjectPtr>(mMergedObject)) {
-    allocator.snapshot(framework::OutputRef{MergerBuilder::mergerOutputBinding(), mSubSpec},
+    allocator.snapshot(framework::OutputRef{MergerBuilder::mergerIntegralOutputBinding(), mSubSpec},
                        *std::get<TObjectPtr>(mMergedObject));
     LOG(info) << "Published the merged object containing " << mCache.size() + 1 << " incomplete objects. "
               << mUpdatesReceived << " updates were received during the last cycle.";
   } else {
-    throw std::runtime_error("mMergedObject' variant has no value.");
+    throw std::runtime_error("mMergedObjectIntegral' variant has no value.");
   }
 
   mTotalObjectsMerged += mObjectsMerged;

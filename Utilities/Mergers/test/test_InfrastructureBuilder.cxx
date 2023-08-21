@@ -299,6 +299,7 @@ BOOST_AUTO_TEST_CASE(InfrastructureBuilderMergersPerLayer)
   {
     config.topologySize = {TopologySize::MergersPerLayer, std::vector<size_t>{10, 1}};
     config.parallelismType = {ParallelismType::RoundRobin};
+    config.publishMovingWindow = {PublishMovingWindow::Yes};
     builder.setInputSpecs({{"one", "TST", "test", 1}});
     builder.setConfig(config);
     auto mergersTopology = builder.generateInfrastructure();
@@ -312,7 +313,7 @@ BOOST_AUTO_TEST_CASE(InfrastructureBuilderMergersPerLayer)
 
     // the second layer
     BOOST_CHECK_EQUAL(mergersTopology[1].inputs.size(), 2); // 1 input + 1 timer
-    BOOST_CHECK_EQUAL(mergersTopology[1].outputs.size(), 1);
+    BOOST_CHECK_EQUAL(mergersTopology[1].outputs.size(), 2); // 1 integral + 1 moving window
     BOOST_CHECK_EQUAL(mergersTopology[1].maxInputTimeslices, 1);
 
     auto concrete = DataSpecUtils::asConcreteDataMatcher(mergersTopology[1].outputs[0]);
