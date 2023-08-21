@@ -54,7 +54,7 @@ double_t computeExpectedCodewordLength(const Histogram<source_T>& histogram, con
   double_t expectedCodewordLength = 0;
   value_type trueIncompressibleFrequency = 0;
 
-  assert(histogram.countNUsedAlphabetSymbols() >= rescaledHistogram.countNUsedAlphabetSymbols());
+  assert(countNUsedAlphabetSymbols(histogram) >= countNUsedAlphabetSymbols(rescaledHistogram));
 
   double_t reciprocalNumSamples = 1.0 / histogram.getNumSamples();
   double_t reciprocalNumSamplesRescaled = 1.0 / rescaledHistogram.getNumSamples();

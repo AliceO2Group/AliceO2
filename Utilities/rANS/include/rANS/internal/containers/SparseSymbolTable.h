@@ -9,13 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   SymbolTable.h
+/// @file   SparseSymbolTable.h
 /// @author Michael Lettrich
 /// @since  2019-06-21
 /// @brief  Lookup table containing statistical information for each symbol in the alphabet required for encoding/decoding
 
-#ifndef RANS_INTERNAL_CONTAINERS_SYMBOLTABLE_H_
-#define RANS_INTERNAL_CONTAINERS_SYMBOLTABLE_H_
+#ifndef RANS_INTERNAL_CONTAINERS_SPARSESYMBOLTABLE_H_
+#define RANS_INTERNAL_CONTAINERS_SPARSESYMBOLTABLE_H_
 
 #include <vector>
 #include <cstdint>
@@ -24,16 +24,15 @@
 
 #include "rANS/internal/containers/Container.h"
 #include "rANS/internal/containers/RenormedHistogram.h"
-#include "rANS/internal/containers/HistogramView.h"
 #include "rANS/internal/transform/algorithm.h"
 
 namespace o2::rans
 {
 
 template <class source_T, class symbol_T>
-class SymbolTable : public internal::VectorContainer<source_T, symbol_T>
+class SparseSymbolTable : public internal::SparseVectorContainer<source_T, symbol_T>
 {
-  using base_type = internal::VectorContainer<source_T, symbol_T>;
+  using base_type = internal::SparseVectorContainer<source_T, symbol_T>;
   friend base_type;
 
  public:
@@ -48,33 +47,19 @@ class SymbolTable : public internal::VectorContainer<source_T, symbol_T>
   using const_pointer = typename base_type::const_pointer;
   using const_iterator = typename base_type::const_iterator;
 
-  SymbolTable() = default;
+  SparseSymbolTable() = default;
 
-  inline SymbolTable(const RenormedHistogram<source_type>& renormedHistogram) { init(renormedHistogram); };
-  inline SymbolTable(const RenormedSparseHistogram<source_type>& renormedHistogram) { init(renormedHistogram); };
-  inline SymbolTable(const RenormedHashHistogram<source_type>& renormedHistogram) { init(renormedHistogram); };
-  inline SymbolTable(const RenormedSetHistogram<source_type>& renormedHistogram) { init(renormedHistogram); };
+  template <typename container_T>
+  explicit SparseSymbolTable(const container_T& renormedHistogram);
 
   [[nodiscard]] inline const_reference operator[](source_type sourceSymbol) const noexcept
   {
-    const size_type index = static_cast<size_type>(sourceSymbol - this->getOffset());
-    // static cast to unsigned: idx < 0 => (uint)idx > MAX_INT => idx > mIndex.size()
-    if (index < this->size()) {
-      return this->mContainer[sourceSymbol];
-    } else {
-      return this->getEscapeSymbol();
-    }
+    return this->mContainer.at(sourceSymbol);
   };
 
   [[nodiscard]] inline const_pointer lookupSafe(source_type sourceSymbol) const
   {
-    const size_type index = static_cast<size_type>(sourceSymbol - this->getOffset());
-    // static cast to unsigned: idx < 0 => (uint)idx > MAX_INT => idx > mIndex.size()
-    if (index < this->size()) {
-      return this->mContainer.data() + index;
-    } else {
-      return nullptr;
-    }
+    return &this->mContainer.at(sourceSymbol);
   };
 
   [[nodiscard]] inline const_pointer lookupUnsafe(source_type sourceSymbol) const
@@ -100,64 +85,55 @@ class SymbolTable : public internal::VectorContainer<source_T, symbol_T>
     return !this->isEscapeSymbol(value);
   };
 
-  template <typename histogram_T>
-  void init(const RenormedHistogramImpl<histogram_T>& renormedHistogram);
-
   symbol_type mEscapeSymbol{};
   size_type mSize{};
   size_type mSymbolTablePrecision{};
 };
 
 template <class source_T, class value_T>
-template <typename histogram_T>
-void SymbolTable<source_T, value_T>::init(const RenormedHistogramImpl<histogram_T>& renormedHistogram)
+template <typename container_T>
+SparseSymbolTable<source_T, value_T>::SparseSymbolTable(const container_T& histogram)
 {
   using namespace utils;
   using namespace internal;
   using count_type = typename value_T::value_type;
 
-  this->mSymbolTablePrecision = renormedHistogram.getRenormingBits();
+  this->mSymbolTablePrecision = histogram.getRenormingBits();
   this->mEscapeSymbol = [&]() -> value_T {
-    const count_type symbolFrequency = renormedHistogram.getIncompressibleSymbolFrequency();
-    const count_type cumulatedFrequency = renormedHistogram.getNumSamples() - symbolFrequency;
+    const count_type symbolFrequency = histogram.getIncompressibleSymbolFrequency();
+    const count_type cumulatedFrequency = histogram.getNumSamples() - symbolFrequency;
     return {symbolFrequency, cumulatedFrequency, this->getPrecision()};
   }();
 
-  const auto [trimmedBegin, trimmedEnd] = trim(renormedHistogram);
-  const auto [min, max] = getMinMax(renormedHistogram, trimmedBegin, trimmedEnd);
-  // one cacheline worth of padding in the back of the container to ensure SIMD reads do not cause out of bounds reads
-  // then first reserve to increase the capacity
-  // finally use resize to set size of the vector. this does not change capacity and retains the padding.
-  constexpr size_t padding = nBytesTo<symbol_type>(toBytes(512));
-  const size_t symbolTableSize = trimmedBegin == trimmedEnd ? 0 : (max - min + 1);
-  const source_type offset = min;
-  this->mContainer.reserve(symbolTableSize + padding);
-  this->mContainer.resize(symbolTableSize, offset, this->mEscapeSymbol);
+  this->mContainer = container_type{mEscapeSymbol};
 
   count_type cumulatedFrequency = 0;
-  forEachIndexValue(
-    renormedHistogram, trimmedBegin, trimmedEnd, [&, this](const source_type& sourceSymbol, const count_type& symbolFrequency) {
-      if (symbolFrequency) {
-        this->mContainer[sourceSymbol] = symbol_type{symbolFrequency, cumulatedFrequency, this->getPrecision()};
-        cumulatedFrequency += symbolFrequency;
-      }
-    });
-
+  forEachIndexValue(histogram, [&, this](const source_type& sourceSymbol, const count_type& symbolFrequency) {
+    if (symbolFrequency) {
+      this->mContainer[sourceSymbol] = symbol_type{symbolFrequency, cumulatedFrequency, this->getPrecision()};
+      cumulatedFrequency += symbolFrequency;
+    }
+  });
   mSize = this->mContainer.size();
 };
 
 template <typename source_T, typename symbol_T>
-std::pair<source_T, source_T> getMinMax(const SymbolTable<source_T, symbol_T>& symbolTable)
+std::pair<source_T, source_T> getMinMax(const SparseSymbolTable<source_T, symbol_T>& symbolTable)
 {
   return internal::getMinMax(symbolTable, symbolTable.getEscapeSymbol());
 };
 
 template <typename source_T, typename symbol_T>
-size_t countNUsedAlphabetSymbols(const SymbolTable<source_T, symbol_T>& symbolTable)
+size_t countNUsedAlphabetSymbols(const SparseSymbolTable<source_T, symbol_T>& histogram)
 {
-  return std::count_if(symbolTable.begin(), symbolTable.end(), [&symbolTable](typename SymbolTable<source_T, symbol_T>::const_reference v) { return !symbolTable.isEscapeSymbol(v); });
+  using container_type = typename SparseSymbolTable<source_T, symbol_T>::container_type;
+
+  return std::count_if(histogram.begin(), histogram.end(),
+                       [&](const auto& value) {
+                         return !histogram.isEscapeSymbol(internal::getValue(value));
+                       });
 }
 
 } // namespace o2::rans
 
-#endif /* RANS_INTERNAL_CONTAINERS_SYMBOLTABLE_H_ */
+#endif /* RANS_INTERNAL_CONTAINERS_SPARSESYMBOLTABLE_H_ */

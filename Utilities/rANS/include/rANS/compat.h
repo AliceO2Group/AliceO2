@@ -77,7 +77,7 @@ RenormedHistogram<source_T> renorm(Histogram<source_T> histogram, size_t newPrec
     LOG(warning) << "rescaling empty histogram";
   }
 
-  size_t nUsedAlphabetSymbols = histogram.countNUsedAlphabetSymbols();
+  size_t nUsedAlphabetSymbols = countNUsedAlphabetSymbols(histogram);
 
   if (newPrecision == 0) {
     newPrecision = computeRenormingPrecision(nUsedAlphabetSymbols);

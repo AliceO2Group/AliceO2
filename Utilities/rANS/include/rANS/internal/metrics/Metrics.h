@@ -23,11 +23,12 @@
 
 #include "rANS/internal/common/utils.h"
 #include "rANS/internal/containers/Histogram.h"
-#include "rANS/internal/containers/RenormedHistogram.h"
-#include "rANS/internal/containers/SymbolTable.h"
+#include "rANS/internal/containers/SparseHistogram.h"
+#include "rANS/internal/containers/HashHistogram.h"
 #include "rANS/internal/metrics/properties.h"
 #include "rANS/internal/metrics/utils.h"
 #include "rANS/internal/metrics/SizeEstimate.h"
+#include "rANS/internal/transform/algorithm.h"
 
 namespace o2::rans
 {
@@ -35,11 +36,21 @@ namespace o2::rans
 template <typename source_T>
 class Metrics
 {
+  inline static constexpr float_t defaultCutoffPrecision = 0.999;
+
  public:
   using source_type = source_T;
 
   Metrics() = default;
-  Metrics(const Histogram<source_type>& histogram, float_t cutoffPrecision = 0.999);
+  inline Metrics(const Histogram<source_type>& histogram, float_t cutoffPrecision = defaultCutoffPrecision) { init(histogram, {}, {}, cutoffPrecision); };
+  inline Metrics(const SparseHistogram<source_type>& histogram, float_t cutoffPrecision = defaultCutoffPrecision) { init(histogram, {}, {}, cutoffPrecision); };
+  inline Metrics(const HashHistogram<source_type>& histogram, float_t cutoffPrecision = defaultCutoffPrecision) { init(histogram, {}, {}, cutoffPrecision); };
+  inline Metrics(const SetHistogram<source_type>& histogram, float_t cutoffPrecision = defaultCutoffPrecision) { init(histogram, {}, {}, cutoffPrecision); };
+
+  inline Metrics(const Histogram<source_type>& histogram, source_type min, source_type max, float_t cutoffPrecision = defaultCutoffPrecision) { init(histogram, {min}, {max}, cutoffPrecision); };
+  inline Metrics(const SparseHistogram<source_type>& histogram, source_type min, source_type max, float_t cutoffPrecision = defaultCutoffPrecision) { init(histogram, {min}, {max}, cutoffPrecision); };
+  inline Metrics(const HashHistogram<source_type>& histogram, source_type min, source_type max, float_t cutoffPrecision = defaultCutoffPrecision) { init(histogram, {min}, {max}, cutoffPrecision); };
+  inline Metrics(const SetHistogram<source_type>& histogram, source_type min, source_type max, float_t cutoffPrecision = defaultCutoffPrecision) { init(histogram, {min}, {max}, cutoffPrecision); };
 
   [[nodiscard]] inline const DatasetProperties<source_type>& getDatasetProperties() const noexcept { return mDatasetProperties; };
   [[nodiscard]] inline const CoderProperties<source_type>& getCoderProperties() const noexcept { return mCoderProperties; };
@@ -49,7 +60,11 @@ class Metrics
   [[nodiscard]] inline SizeEstimate getSizeEstimate() const noexcept { return SizeEstimate(*this); };
 
  protected:
-  void computeMetrics(const Histogram<source_T>& frequencyTable);
+  template <typename histogram_T>
+  void init(const histogram_T& histogram, std::optional<source_type> min, std::optional<source_type> max, float_t cutoffPrecision);
+
+  template <typename histogram_T>
+  void computeMetrics(const histogram_T& histogram, std::optional<source_type> min, std::optional<source_type> max);
   size_t computeRenormingPrecision(float_t cutoffPrecision) noexcept;
   size_t computeIncompressibleCount(gsl::span<uint32_t> distribution, uint32_t renormingPrecision) noexcept;
 
@@ -58,50 +73,62 @@ class Metrics
 };
 
 template <typename source_T>
-inline Metrics<source_T>::Metrics(const Histogram<source_T>& histogram, float_t cutoffPrecision)
+template <typename histogram_T>
+inline void Metrics<source_T>::init(const histogram_T& histogram, std::optional<source_type> min, std::optional<source_type> max, float_t cutoffPrecision)
 {
-  computeMetrics(histogram);
+  computeMetrics(histogram, min, max);
   mCoderProperties.renormingPrecisionBits = computeRenormingPrecision(cutoffPrecision);
   mCoderProperties.nIncompressibleSymbols = computeIncompressibleCount(mDatasetProperties.symbolLengthDistribution, *mCoderProperties.renormingPrecisionBits);
   mCoderProperties.nIncompressibleSamples = computeIncompressibleCount(mDatasetProperties.weightedSymbolLengthDistribution, *mCoderProperties.renormingPrecisionBits);
 }
 
 template <typename source_T>
-void Metrics<source_T>::computeMetrics(const Histogram<source_T>& histogram)
+template <typename histogram_T>
+void Metrics<source_T>::computeMetrics(const histogram_T& histogram, std::optional<source_type> min, std::optional<source_type> max)
 {
   using namespace internal;
   using namespace utils;
+  using source_type = typename histogram_T::source_type;
+  using value_type = typename histogram_T::value_type;
+  static_assert(std::is_same_v<source_type, source_T>);
 
   mCoderProperties.dictSizeEstimate = DictSizeEstimate{histogram.getNumSamples()};
-  DictSizeEstimateCounter dictSizeCounter{&(mCoderProperties.dictSizeEstimate)};
-
-  const auto trimmedFrequencyView = trim(makeHistogramView(histogram));
-  mDatasetProperties.min = trimmedFrequencyView.getMin();
-  mDatasetProperties.max = trimmedFrequencyView.getMax();
-  assert(mDatasetProperties.max >= mDatasetProperties.min);
-  mDatasetProperties.numSamples = histogram.getNumSamples();
-  mDatasetProperties.alphabetRangeBits = getRangeBits(mDatasetProperties.min, mDatasetProperties.max);
-
-  const double_t reciprocalNumSamples = 1.0 / static_cast<double_t>(histogram.getNumSamples());
-
-  for (size_t i = 0; i < trimmedFrequencyView.size(); ++i) {
-    const uint32_t frequency = trimmedFrequencyView.data()[i];
-    dictSizeCounter.update();
-
-    if (frequency) {
-      dictSizeCounter.update(frequency);
-      ++mDatasetProperties.nUsedAlphabetSymbols;
-
-      const double_t probability = static_cast<double_t>(frequency) * reciprocalNumSamples;
-      const float_t fractionalBitLength = -fastlog2(probability);
-      const uint32_t bitLength = std::ceil(fractionalBitLength);
-
-      assert(bitLength > 0);
-      const uint32_t symbolDistributionBucket = bitLength - 1;
-      mDatasetProperties.entropy += probability * fractionalBitLength;
-      ++mDatasetProperties.symbolLengthDistribution[symbolDistributionBucket];
-      mDatasetProperties.weightedSymbolLengthDistribution[symbolDistributionBucket] += frequency;
+  if (histogram.getNumSamples() > 0) {
+    const auto [trimmedBegin, trimmedEnd] = trim(histogram);
+    if (min.has_value()) {
+      mDatasetProperties.min = *min;
+      mDatasetProperties.max = *max;
+    } else {
+      std::tie(mDatasetProperties.min, mDatasetProperties.max) = getMinMax(histogram, trimmedBegin, trimmedEnd);
     }
+    assert(mDatasetProperties.max >= mDatasetProperties.min);
+    mDatasetProperties.numSamples = histogram.getNumSamples();
+    mDatasetProperties.alphabetRangeBits = getRangeBits(mDatasetProperties.min, mDatasetProperties.max);
+
+    const double_t reciprocalNumSamples = 1.0 / static_cast<double_t>(histogram.getNumSamples());
+
+    source_type lastIndex = mDatasetProperties.min;
+
+    forEachIndexValue(histogram, trimmedBegin, trimmedEnd, [&, this](const source_type& index, const uint32_t& frequency) {
+      if (frequency) {
+        assert(lastIndex <= index);
+        source_type delta = index - lastIndex;
+        mCoderProperties.dictSizeEstimate.updateIndexSize(delta + (delta == 0));
+        lastIndex = index;
+        mCoderProperties.dictSizeEstimate.updateFreqSize(frequency);
+        ++mDatasetProperties.nUsedAlphabetSymbols;
+
+        const double_t probability = static_cast<double_t>(frequency) * reciprocalNumSamples;
+        const float_t fractionalBitLength = -fastlog2(probability);
+        const uint32_t bitLength = std::ceil(fractionalBitLength);
+
+        assert(bitLength > 0);
+        const uint32_t symbolDistributionBucket = bitLength - 1;
+        mDatasetProperties.entropy += probability * fractionalBitLength;
+        ++mDatasetProperties.symbolLengthDistribution[symbolDistributionBucket];
+        mDatasetProperties.weightedSymbolLengthDistribution[symbolDistributionBucket] += frequency;
+      }
+    });
   }
 };
 

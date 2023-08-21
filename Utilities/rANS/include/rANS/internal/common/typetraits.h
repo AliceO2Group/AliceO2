@@ -17,9 +17,6 @@
 #define RANS_INTERNAL_COMMON_TYPETRAITS_H_
 
 #include "rANS/internal/common/defaults.h"
-#include "rANS/internal/containers/Histogram.h"
-#include "rANS/internal/containers/RenormedHistogram.h"
-#include "rANS/internal/containers/SymbolTable.h"
 #include "rANS/internal/containers/Symbol.h"
 
 #include "rANS/internal/encode/Encoder.h"
@@ -68,46 +65,6 @@ struct getCoderTag<Encoder<encoderImpl_T, symbolTable_T, nStreams_V>> : public g
 
 template <typename T>
 inline constexpr CoderTag getCoderTag_v = getCoderTag<T>::value;
-
-template <typename T>
-struct isSymbolTable : std::false_type {
-};
-
-template <typename source_T, typename value_T>
-struct isSymbolTable<SymbolTable<source_T, value_T>> : std::true_type {
-};
-
-template <typename T>
-inline constexpr bool isSymbolTable_v = isSymbolTable<T>::value;
-
-template <typename T>
-struct isHistogram : std::false_type {
-};
-
-template <typename source_T>
-struct isHistogram<Histogram<source_T>> : std::true_type {
-};
-
-template <typename T>
-inline constexpr bool isHistogram_v = isHistogram<T>::value;
-
-template <typename T>
-struct isCountingContainer : public std::is_base_of<CountingContainer<typename T::source_type, T>, T> {
-};
-
-template <typename T>
-inline constexpr bool isCountingContainer_v = isCountingContainer<T>::value;
-
-template <typename T>
-struct isRenormedHistogram : std::false_type {
-};
-
-template <typename source_T>
-struct isRenormedHistogram<RenormedHistogram<source_T>> : std::true_type {
-};
-
-template <typename T>
-inline constexpr bool isRenormedHistogram_v = isRenormedHistogram<T>::value;
 
 template <CoderTag tag_V>
 struct SymbolTraits {

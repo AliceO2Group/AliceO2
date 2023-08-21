@@ -9,18 +9,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   histogram.h
+/// @file   encode.h
 /// @author michael.lettrich@cern.ch
-/// @brief  public interface for building and renorming histograms from source data.
+/// @brief  public interface for encoding.
 
-#ifndef RANS_HISTOGRAM_H_
-#define RANS_HISTOGRAM_H_
+#ifndef RANS_PACK_H_
+#define RANS_PACK_H_
 
-#include "rANS/internal/containers/Histogram.h"
-#include "rANS/internal/containers/SparseHistogram.h"
-#include "rANS/internal/containers/HashHistogram.h"
-#include "rANS/internal/containers/SetHistogram.h"
-#include "rANS/internal/containers/RenormedHistogram.h"
-#include "rANS/internal/transform/renorm.h"
+#include "rANS/internal/containers/BitPtr.h"
+#include "rANS/internal/metrics/Metrics.h"
+#include "rANS/internal/pack/pack.h"
 
-#endif /* RANS_HISTOGRAM_H_ */
+#endif /* RANS_PACK_H_ */

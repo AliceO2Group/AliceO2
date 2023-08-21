@@ -21,6 +21,7 @@
 #include <cassert>
 
 #include <boost/test/unit_test.hpp>
+#include <boost/mp11.hpp>
 #include <gsl/span>
 
 #include "rANS/histogram.h"
@@ -28,10 +29,12 @@
 
 using namespace o2::rans;
 
+using source_type = uint32_t;
+using histogram_types = boost::mp11::mp_list<Histogram<source_type>, SparseHistogram<source_type>, HashHistogram<source_type>>;
+
 BOOST_AUTO_TEST_SUITE(test_DictSizeEstimate)
 BOOST_AUTO_TEST_CASE(test_initDictSizeEstimate)
 {
-  using source_type = uint32_t;
   using namespace internal;
   using namespace utils;
 
@@ -43,25 +46,28 @@ BOOST_AUTO_TEST_CASE(test_initDictSizeEstimate)
   BOOST_CHECK_EQUAL(estimate.getSizeB(0, defaults::MinRenormPrecisionBits), 0);
 };
 
-BOOST_AUTO_TEST_CASE(test_emptyDictSizeEstimate)
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_emptyDictSizeEstimate, histogram_T, histogram_types)
 {
-  using source_type = uint32_t;
   using namespace internal;
   using namespace utils;
 
   std::vector<uint32_t> frequencies{};
-  Histogram<source_type> histogram{frequencies.begin(), frequencies.end(), 0};
-  const auto view = trim(makeHistogramView(histogram));
+  histogram_T histogram{frequencies.begin(), frequencies.end(), 0};
+  const auto [trimmedBegin, trimmedEnd] = internal::trim(histogram);
+  const auto [min, max] = internal::getMinMax(histogram, trimmedBegin, trimmedEnd);
 
   DictSizeEstimate estimate{histogram.getNumSamples()};
-  DictSizeEstimateCounter counter{&estimate};
 
-  for (auto elem : view) {
-    counter.update();
-    if (elem > 0) {
-      counter.update(elem);
+  source_type lastIndex = min;
+  forEachIndexValue(histogram, trimmedBegin, trimmedEnd, [&](const source_type& index, const uint32_t& frequency) {
+    if (frequency) {
+      BOOST_CHECK(lastIndex <= index);
+      source_type delta = index - lastIndex;
+      estimate.updateIndexSize(delta + (delta == 0));
+      lastIndex = index;
+      estimate.updateFreqSize(frequency);
     }
-  }
+  });
 
   BOOST_CHECK_EQUAL(estimate.getIndexSize(), 0);
   BOOST_CHECK_EQUAL(estimate.getIndexSizeB(), 0);
@@ -70,53 +76,58 @@ BOOST_AUTO_TEST_CASE(test_emptyDictSizeEstimate)
   BOOST_CHECK_EQUAL(estimate.getSizeB(0, defaults::MinRenormPrecisionBits), 0);
 };
 
-BOOST_AUTO_TEST_CASE(test_defaultDictSizeEstimate)
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_defaultDictSizeEstimate, histogram_T, histogram_types)
 {
-  using source_type = uint32_t;
   using namespace internal;
   using namespace utils;
 
   std::vector<uint32_t> frequencies{9, 0, 8, 0, 7, 0, 6, 0, 5, 0, 4, 0, 3, 0, 2, 0, 1};
-  Histogram<source_type> histogram{frequencies.begin(), frequencies.end(), 0};
-  const auto view = trim(makeHistogramView(histogram));
+  histogram_T histogram{frequencies.begin(), frequencies.end(), 0};
+
+  const auto [trimmedBegin, trimmedEnd] = internal::trim(histogram);
+  const auto [min, max] = internal::getMinMax(histogram, trimmedBegin, trimmedEnd);
 
   DictSizeEstimate estimate{histogram.getNumSamples()};
-  DictSizeEstimateCounter counter{&estimate};
 
-  for (auto elem : view) {
-    counter.update();
-    if (elem > 0) {
-      counter.update(elem);
+  source_type lastIndex = min;
+  forEachIndexValue(histogram, trimmedBegin, trimmedEnd, [&](const source_type& index, const uint32_t& frequency) {
+    if (frequency) {
+      BOOST_CHECK(lastIndex <= index);
+      source_type delta = index - lastIndex;
+      estimate.updateIndexSize(delta + (delta == 0));
+      lastIndex = index;
+      estimate.updateFreqSize(frequency);
     }
-  }
+  });
 
   BOOST_CHECK_EQUAL(estimate.getIndexSize(), 33);
   BOOST_CHECK_EQUAL(estimate.getIndexSizeB(), 5);
   BOOST_CHECK_EQUAL(estimate.getFreqSize(), 224);
   BOOST_CHECK_EQUAL(estimate.getFreqSizeB(), 28);
-  BOOST_CHECK_EQUAL(estimate.getSizeB(histogram.countNUsedAlphabetSymbols(), defaults::MinRenormPrecisionBits), 21);
+  BOOST_CHECK_EQUAL(estimate.getSizeB(countNUsedAlphabetSymbols(histogram), defaults::MinRenormPrecisionBits), 21);
 };
 BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_AUTO_TEST_SUITE(test_RenormingPrecision)
 
-class MetricsTester : public Metrics<uint32_t>
+class MetricsTester : public Metrics<source_type>
 {
  public:
   inline MetricsTester(const Histogram<source_type>& histogram, float_t cutoffPrecision = 0.999) : Metrics(histogram, cutoffPrecision){};
+  inline MetricsTester(const SparseHistogram<source_type>& histogram, float_t cutoffPrecision = 0.999) : Metrics(histogram, cutoffPrecision){};
+  inline MetricsTester(const HashHistogram<source_type>& histogram, float_t cutoffPrecision = 0.999) : Metrics(histogram, cutoffPrecision){};
   inline size_t testComputeRenormingPrecision(float_t cutoffPrecision = 0.999) noexcept { return computeRenormingPrecision(cutoffPrecision); };
-  inline size_t testComputeIncompressibleCount(gsl::span<uint32_t> distribution, uint32_t renormingPrecision) noexcept { return computeIncompressibleCount(distribution, renormingPrecision); };
+  inline size_t testComputeIncompressibleCount(gsl::span<source_type> distribution, source_type renormingPrecision) noexcept { return computeIncompressibleCount(distribution, renormingPrecision); };
 };
 
-BOOST_AUTO_TEST_CASE(test_EmptyRenormingPrecision)
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_EmptyRenormingPrecision, histogram_T, histogram_types)
 {
-
   std::array<uint32_t, 32> symbolLengthDistribution;
   std::array<uint32_t, 32> weightedSymbolLengthDistribution;
   const size_t nSamples = 0;
   const uint32_t renormingPrecision = 0;
 
-  MetricsTester tester{Histogram<uint32_t>{}};
+  MetricsTester tester{histogram_T{}};
   tester.getDatasetProperties().symbolLengthDistribution = symbolLengthDistribution;
   tester.getDatasetProperties().weightedSymbolLengthDistribution = weightedSymbolLengthDistribution;
   tester.getDatasetProperties().numSamples = nSamples;
@@ -126,7 +137,7 @@ BOOST_AUTO_TEST_CASE(test_EmptyRenormingPrecision)
   BOOST_CHECK_EQUAL(tester.testComputeIncompressibleCount(weightedSymbolLengthDistribution, renormingPrecision), 1);
 }
 
-BOOST_AUTO_TEST_CASE(test_cutoffRenormingPrecision)
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_cutoffRenormingPrecision, histogram_T, histogram_types)
 {
   std::array<uint32_t, 32> symbolLengthDistribution{{}};
   std::array<uint32_t, 32> weightedSymbolLengthDistribution{{}};
@@ -135,7 +146,7 @@ BOOST_AUTO_TEST_CASE(test_cutoffRenormingPrecision)
   const size_t nSamples = 44;
   const uint32_t renormingPrecision = defaults::MaxRenormPrecisionBits;
 
-  MetricsTester tester{Histogram<uint32_t>{}};
+  MetricsTester tester{histogram_T{}};
   tester.getDatasetProperties().symbolLengthDistribution = symbolLengthDistribution;
   tester.getDatasetProperties().weightedSymbolLengthDistribution = weightedSymbolLengthDistribution;
   tester.getDatasetProperties().numSamples = nSamples;
@@ -145,7 +156,7 @@ BOOST_AUTO_TEST_CASE(test_cutoffRenormingPrecision)
   BOOST_CHECK_EQUAL(tester.testComputeIncompressibleCount(weightedSymbolLengthDistribution, renormingPrecision), nSamples);
 }
 
-BOOST_AUTO_TEST_CASE(test_noCutoffRenormingPrecision)
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_noCutoffRenormingPrecision, histogram_T, histogram_types)
 {
   std::array<uint32_t, 32> symbolLengthDistribution{{}};
   std::array<uint32_t, 32> weightedSymbolLengthDistribution{{}};
@@ -164,7 +175,7 @@ BOOST_AUTO_TEST_CASE(test_noCutoffRenormingPrecision)
   const size_t nSamples = 100;
   const uint32_t renormingPrecision = 17;
 
-  MetricsTester tester{Histogram<uint32_t>{}};
+  MetricsTester tester{histogram_T{}};
   tester.getDatasetProperties().symbolLengthDistribution = symbolLengthDistribution;
   tester.getDatasetProperties().weightedSymbolLengthDistribution = weightedSymbolLengthDistribution;
   tester.getDatasetProperties().numSamples = nSamples;
@@ -176,22 +187,20 @@ BOOST_AUTO_TEST_CASE(test_noCutoffRenormingPrecision)
 BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_AUTO_TEST_SUITE(test_Metrics)
-BOOST_AUTO_TEST_CASE(test_emptyMetrics)
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_emptyMetrics, histogram_T, histogram_types)
 {
-  using source_type = uint32_t;
-
   std::vector<uint32_t> frequencies{};
-  Histogram<source_type> histogram{frequencies.begin(), frequencies.end(), 0};
-  const auto view = trim(makeHistogramView(histogram));
+  histogram_T histogram{frequencies.begin(), frequencies.end(), 0};
   const float eps = 1e-2;
   const size_t nUsedAlphabetSymbols = 0;
+  const auto [min, max] = getMinMax(histogram);
 
   const Metrics<source_type> metrics{histogram};
   const auto& dataProperies = metrics.getDatasetProperties();
   const auto& coderProperties = metrics.getCoderProperties();
 
-  BOOST_CHECK_EQUAL(dataProperies.min, view.getMin());
-  BOOST_CHECK_EQUAL(dataProperies.max, view.getMax());
+  BOOST_CHECK_EQUAL(dataProperies.min, min);
+  BOOST_CHECK_EQUAL(dataProperies.max, max);
   BOOST_CHECK_EQUAL(dataProperies.numSamples, histogram.getNumSamples());
   BOOST_CHECK_EQUAL(dataProperies.alphabetRangeBits, 0);
   BOOST_CHECK_EQUAL(dataProperies.nUsedAlphabetSymbols, nUsedAlphabetSymbols);
@@ -224,22 +233,20 @@ BOOST_AUTO_TEST_CASE(test_emptyMetrics)
   BOOST_CHECK_EQUAL(estimate.getSizeB(0, defaults::MinRenormPrecisionBits), 0);
 }
 
-BOOST_AUTO_TEST_CASE(test_singleElementMetrics)
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_singleElementMetrics, histogram_T, histogram_types)
 {
-  using source_type = uint32_t;
-
   std::vector<uint32_t> frequencies{5};
-  Histogram<source_type> histogram{frequencies.begin(), frequencies.end(), 2};
-  const auto view = trim(makeHistogramView(histogram));
+  histogram_T histogram{frequencies.begin(), frequencies.end(), 2};
+  const auto [min, max] = getMinMax(histogram);
   const float eps = 1e-2;
-  const size_t nUsedAlphabetSymbols = histogram.countNUsedAlphabetSymbols();
+  const size_t nUsedAlphabetSymbols = countNUsedAlphabetSymbols(histogram);
 
   const Metrics<source_type> metrics{histogram};
   const auto& dataProperies = metrics.getDatasetProperties();
   const auto& coderProperties = metrics.getCoderProperties();
 
-  BOOST_CHECK_EQUAL(dataProperies.min, view.getMin());
-  BOOST_CHECK_EQUAL(dataProperies.max, view.getMax());
+  BOOST_CHECK_EQUAL(dataProperies.min, min);
+  BOOST_CHECK_EQUAL(dataProperies.max, max);
   BOOST_CHECK_EQUAL(dataProperies.numSamples, histogram.getNumSamples());
   BOOST_CHECK_EQUAL(dataProperies.alphabetRangeBits, 0);
   BOOST_CHECK_EQUAL(dataProperies.nUsedAlphabetSymbols, nUsedAlphabetSymbols);
@@ -268,24 +275,22 @@ BOOST_AUTO_TEST_CASE(test_singleElementMetrics)
   BOOST_CHECK_EQUAL(*coderProperties.nIncompressibleSymbols, 0);
 }
 
-BOOST_AUTO_TEST_CASE(test_computeMetrics)
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_computeMetrics, histogram_T, histogram_types)
 {
-  using source_type = uint32_t;
-
   std::vector<uint32_t> frequencies{9, 0, 8, 0, 7, 0, 6, 0, 5, 0, 4, 0, 3, 0, 2, 0, 1};
-  Histogram<source_type> histogram{frequencies.begin(), frequencies.end(), 0};
-  const auto view = trim(makeHistogramView(histogram));
+  histogram_T histogram{frequencies.begin(), frequencies.end(), 0};
+  const auto [min, max] = getMinMax(histogram);
   const float eps = 1e-2;
-  const size_t nUsedAlphabetSymbols = histogram.countNUsedAlphabetSymbols();
+  const size_t nUsedAlphabetSymbols = countNUsedAlphabetSymbols(histogram);
 
   const Metrics<source_type> metrics{histogram};
   const auto& dataProperies = metrics.getDatasetProperties();
   const auto& coderProperties = metrics.getCoderProperties();
 
-  BOOST_CHECK_EQUAL(dataProperies.min, view.getMin());
-  BOOST_CHECK_EQUAL(dataProperies.max, view.getMax());
+  BOOST_CHECK_EQUAL(dataProperies.min, min);
+  BOOST_CHECK_EQUAL(dataProperies.max, max);
   BOOST_CHECK_EQUAL(dataProperies.numSamples, histogram.getNumSamples());
-  BOOST_CHECK_EQUAL(dataProperies.alphabetRangeBits, internal::numBitsForNSymbols(view.size()));
+  BOOST_CHECK_EQUAL(dataProperies.alphabetRangeBits, internal::numBitsForNSymbols(max - min + 1));
   BOOST_CHECK_EQUAL(dataProperies.nUsedAlphabetSymbols, nUsedAlphabetSymbols);
   BOOST_CHECK_CLOSE(dataProperies.entropy, 2.957295041922758, eps);
 
@@ -328,11 +333,10 @@ BOOST_AUTO_TEST_CASE(test_computeMetrics)
 BOOST_AUTO_TEST_SUITE_END()
 
 BOOST_AUTO_TEST_SUITE(test_SizeEstimate)
-BOOST_AUTO_TEST_CASE(test_emptySizeEstimate)
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_emptySizeEstimate, histogram_T, histogram_types)
 {
-  using source_type = uint32_t;
-  Histogram<source_type> histogram{};
-  Metrics<uint32_t> metrics{histogram};
+  histogram_T histogram{};
+  Metrics<source_type> metrics{histogram};
   SizeEstimate estimate{metrics};
   BOOST_CHECK_EQUAL(estimate.getEntropySizeB(), 0);
   BOOST_CHECK_EQUAL(estimate.getCompressedDatasetSize<>(1.0), 0);
@@ -342,14 +346,13 @@ BOOST_AUTO_TEST_CASE(test_emptySizeEstimate)
   BOOST_CHECK_EQUAL(estimate.preferPacking(1.0), true);
 }
 
-BOOST_AUTO_TEST_CASE(test_normalSizeEstimate)
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_normalSizeEstimate, histogram_T, histogram_types)
 {
   constexpr size_t entropySizeB = 17;
 
-  using source_type = uint32_t;
   std::vector<uint32_t> frequencies{9, 0, 8, 0, 7, 0, 6, 0, 5, 0, 4, 0, 3, 0, 2, 0, 1};
-  Histogram<source_type> histogram{frequencies.begin(), frequencies.end(), 0};
-  Metrics<uint32_t> metrics{histogram};
+  histogram_T histogram{frequencies.begin(), frequencies.end(), 0};
+  Metrics<source_type> metrics{histogram};
   SizeEstimate estimate{metrics};
   BOOST_CHECK_EQUAL(estimate.getEntropySizeB(), entropySizeB);
   BOOST_CHECK_EQUAL(estimate.getCompressedDatasetSize<>(1.0), addEncoderOverheadEstimateB<>(entropySizeB));

@@ -26,6 +26,15 @@
 #include "rANS/internal/containers/Histogram.h"
 #include "rANS/internal/containers/RenormedHistogram.h"
 #include "rANS/internal/containers/SymbolTable.h"
+
+#include "rANS/internal/containers/SparseHistogram.h"
+#include "rANS/internal/containers/SparseSymbolTable.h"
+
+#include "rANS/internal/containers/HashHistogram.h"
+#include "rANS/internal/containers/HashSymbolTable.h"
+
+#include "rANS/internal/containers/SetHistogram.h"
+
 #include "rANS/internal/containers/Symbol.h"
 
 #include "rANS/internal/encode/Encoder.h"
@@ -79,11 +88,110 @@ struct makeHistogram {
     return f;
   };
 
+  template <typename source_IT>
+  [[nodiscard]] inline static decltype(auto) fromSamples(source_IT begin, source_IT end,
+                                                         typename std::iterator_traits<source_IT>::value_type min,
+                                                         typename std::iterator_traits<source_IT>::value_type max)
+  {
+    using source_type = typename std::iterator_traits<source_IT>::value_type;
+    using histogram_type = Histogram<source_type>;
+
+    histogram_type f{};
+    f.addSamples(begin, end, min, max);
+    return f;
+  };
+
   template <typename source_T>
   [[nodiscard]] inline static decltype(auto) fromSamples(gsl::span<const source_T> range)
   {
     using source_type = typename std::remove_cv_t<source_T>;
     using histogram_type = Histogram<source_type>;
+
+    histogram_type f;
+    f.addSamples(range);
+    return f;
+  };
+
+  template <typename source_T>
+  [[nodiscard]] inline static decltype(auto) fromSamples(gsl::span<const source_T> range, source_T min, source_T max)
+  {
+    using source_type = typename std::remove_cv_t<source_T>;
+    using histogram_type = Histogram<source_type>;
+
+    histogram_type f;
+    f.addSamples(range, min, max);
+    return f;
+  };
+};
+
+struct makeSparseHistogram {
+
+  template <typename source_IT>
+  [[nodiscard]] inline static decltype(auto) fromSamples(source_IT begin, source_IT end)
+  {
+    using source_type = typename std::iterator_traits<source_IT>::value_type;
+    using histogram_type = SparseHistogram<source_type>;
+
+    histogram_type f{};
+    f.addSamples(begin, end);
+    return f;
+  };
+
+  template <typename source_T>
+  [[nodiscard]] inline static decltype(auto) fromSamples(gsl::span<const source_T> range)
+  {
+    using source_type = typename std::remove_cv_t<source_T>;
+    using histogram_type = SparseHistogram<source_type>;
+
+    histogram_type f;
+    f.addSamples(range);
+    return f;
+  };
+};
+
+struct makeHashHistogram {
+
+  template <typename source_IT>
+  [[nodiscard]] inline static decltype(auto) fromSamples(source_IT begin, source_IT end)
+  {
+    using source_type = typename std::iterator_traits<source_IT>::value_type;
+    using histogram_type = HashHistogram<source_type>;
+
+    histogram_type f{};
+    f.addSamples(begin, end);
+    return f;
+  };
+
+  template <typename source_T>
+  [[nodiscard]] inline static decltype(auto) fromSamples(gsl::span<const source_T> range)
+  {
+    using source_type = typename std::remove_cv_t<source_T>;
+    using histogram_type = HashHistogram<source_type>;
+
+    histogram_type f;
+    f.addSamples(range);
+    return f;
+  };
+};
+
+struct makeSetHistogram {
+
+  template <typename source_IT>
+  [[nodiscard]] inline static decltype(auto) fromSamples(source_IT begin, source_IT end)
+  {
+    using source_type = typename std::iterator_traits<source_IT>::value_type;
+    using histogram_type = SetHistogram<source_type>;
+
+    histogram_type f{};
+    f.addSamples(begin, end);
+    return f;
+  };
+
+  template <typename source_T>
+  [[nodiscard]] inline static decltype(auto) fromSamples(gsl::span<const source_T> range)
+  {
+    using source_type = typename std::remove_cv_t<source_T>;
+    using histogram_type = SetHistogram<source_type>;
 
     histogram_type f;
     f.addSamples(range);
@@ -112,6 +220,69 @@ class makeEncoder
     using encoderType = Encoder<coder_command, symbolTable_type, this_type::NStreams>;
 
     return encoderType{renormed};
+  };
+
+  template <typename source_T>
+  [[nodiscard]] inline static constexpr decltype(auto) fromRenormed(const RenormedSparseHistogram<source_T>& renormed)
+  {
+    using namespace internal;
+    constexpr CoderTag coderTag = coderTag_V;
+    using source_type = source_T;
+    using symbol_type = typename SymbolTraits<coderTag>::type;
+    using coder_command = typename CoderTraits<coderTag>::template type<this_type::RenormingLowerBound>;
+    using symbolTable_type = SparseSymbolTable<source_type, symbol_type>;
+    using encoderType = Encoder<coder_command, symbolTable_type, this_type::NStreams>;
+
+    return encoderType{renormed};
+  };
+
+  template <typename source_T>
+  [[nodiscard]] inline static constexpr decltype(auto) fromRenormed(const RenormedHashHistogram<source_T>& renormed)
+  {
+    using namespace internal;
+    constexpr CoderTag coderTag = coderTag_V;
+    using source_type = source_T;
+    using symbol_type = typename SymbolTraits<coderTag>::type;
+    using coder_command = typename CoderTraits<coderTag>::template type<this_type::RenormingLowerBound>;
+    using symbolTable_type = HashSymbolTable<source_type, symbol_type>;
+    using encoderType = Encoder<coder_command, symbolTable_type, this_type::NStreams>;
+
+    return encoderType{renormed};
+  };
+
+  template <typename source_T>
+  [[nodiscard]] inline static constexpr decltype(auto) fromRenormed(const RenormedSetHistogram<source_T>& renormed)
+  {
+    using namespace internal;
+    constexpr CoderTag coderTag = coderTag_V;
+    using source_type = source_T;
+    using symbol_type = typename SymbolTraits<coderTag>::type;
+    using coder_command = typename CoderTraits<coderTag>::template type<this_type::RenormingLowerBound>;
+    using symbolTable_type = HashSymbolTable<source_type, symbol_type>;
+    using encoderType = Encoder<coder_command, symbolTable_type, this_type::NStreams>;
+
+    return encoderType{renormed};
+  };
+
+  template <typename source_T>
+  [[nodiscard]] inline static decltype(auto) fromHistogram(SparseHistogram<source_T> histogram, RenormingPolicy renormingPolicy = RenormingPolicy::Auto)
+  {
+    const auto renormedHistogram = renorm(std::move(histogram), renormingPolicy);
+    return this_type::fromRenormed(renormedHistogram);
+  };
+
+  template <typename source_T>
+  [[nodiscard]] inline static decltype(auto) fromHistogram(SparseHistogram<source_T> histogram, Metrics<source_T>& metrics, RenormingPolicy renormingPolicy = RenormingPolicy::Auto)
+  {
+    const auto renormedHistogram = renorm(std::move(histogram), metrics, renormingPolicy);
+    return this_type::fromRenormed(renormedHistogram);
+  };
+
+  template <typename source_T>
+  [[nodiscard]] inline static decltype(auto) fromHistogram(SparseHistogram<source_T> histogram, size_t renormingPrecision, RenormingPolicy renormingPolicy = RenormingPolicy::Auto)
+  {
+    const auto renormedHistogram = renorm(std::move(histogram), renormingPrecision, renormingPolicy);
+    return this_type::fromRenormed(renormedHistogram);
   };
 
   template <typename source_T>
@@ -269,6 +440,12 @@ class makeDecoder
 
 template <typename source_T>
 using defaultEncoder_type = decltype(makeEncoder<>::fromRenormed(RenormedHistogram<source_T>{}));
+
+template <typename source_T>
+using defaultSparseEncoder_type = decltype(makeEncoder<>::fromRenormed(RenormedSparseHistogram<source_T>{}));
+
+template <typename source_T>
+using defaultHashEncoder_type = decltype(makeEncoder<>::fromRenormed(RenormedHashHistogram<source_T>{}));
 
 template <typename source_T>
 using defaultDecoder_type = decltype(makeDecoder<>::fromRenormed(RenormedHistogram<source_T>{}));

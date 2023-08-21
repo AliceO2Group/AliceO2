@@ -28,5 +28,6 @@
 #include <fairlogger/Logger.h>
 #include "rANS/internal/common/exceptions.h"
 #include "rANS/internal/common/utils.h"
+#include "rANS/internal/transform/SourceProxy.h"
 
 #endif /* RANS_UTILS_H_ */

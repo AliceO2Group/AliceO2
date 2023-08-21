@@ -62,8 +62,8 @@ class ShiftableVector
 
   ShiftableVector& operator=(const ShiftableVector& vec)
   {
-    this->mContainer = vec.mContainer;
-    this->setOffset(vec.getOffset());
+    ShiftableVector tmp = vec;
+    swap(tmp, *this);
     return *this;
   }
 
@@ -113,16 +113,25 @@ class ShiftableVector
     this->setOffset(this->getOffset());
   };
 
-  inline void resize(size_type newSize)
+  inline void resize(size_type newSize, source_type offset, const value_type& value)
   {
     assert(newSize <= utils::pow2(utils::toBits<source_type>()));
-    this->resize(newSize, this->getOffset());
+    this->mContainer.resize(newSize, value);
+    this->setOffset(offset);
   };
-
   inline void resize(size_type newSize, source_type offset)
   {
-    this->resize(newSize);
-    this->setOffset(offset);
+    this->mContainer.resize(newSize, offset, {});
+  };
+
+  inline void resize(size_type newSize, const value_type& value)
+  {
+    this->resize(newSize, this->getOffset(), value);
+  };
+
+  inline void resize(size_type newSize)
+  {
+    this->resize(newSize, this->getOffset());
   };
 
   inline void push_back(value_type value)
