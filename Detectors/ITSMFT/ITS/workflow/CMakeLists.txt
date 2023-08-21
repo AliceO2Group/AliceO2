@@ -28,7 +28,7 @@ o2_add_library(ITSWorkflow
                        src/DCSAdaposParserWorkflow.cxx
                        src/DCSAdaposParserSpec.cxx
                        src/DCSDataGeneratorWorkflow.cxx
-		       src/DCSGeneratorSpec.cxx
+           src/DCSGeneratorSpec.cxx
          PUBLIC_LINK_LIBRARIES O2::Framework
                                O2::SimConfig
                                O2::DetectorsDCS
