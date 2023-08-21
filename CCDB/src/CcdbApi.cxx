@@ -897,6 +897,9 @@ void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string con
   if (url.find("alien:/", 0) != std::string::npos) {
     return downloadAlienContent(url, tinfo);
   }
+  if (url.find("file:///", 0) != std::string::npos) {
+    return (void*)TFile::Open(url.c_str());
+  }
   // add other final cases here
   // example root://
 
