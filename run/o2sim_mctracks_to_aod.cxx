@@ -60,7 +60,7 @@ struct MctracksToAod {
     for (auto i = 0U; i < Nparts; ++i) {
       auto record = sampler.generateCollisionTime();
       o2::math_utils::Point3D<float> v;
-      if (useMeanVertex ) {
+      if (useMeanVertex) {
         v = vertex->sample();
       }
       auto mcheader = pc.inputs().get<o2::dataformats::MCEventHeader*>("mcheader", i);
@@ -77,7 +77,7 @@ struct MctracksToAod {
                   yc,
                   zc,
                   tc,
-                  1.,          // weight
+                  1., // weight
                   mcheader->GetB());
       for (auto& mctrack : mctracks) {
         std::vector<int> mothers;
