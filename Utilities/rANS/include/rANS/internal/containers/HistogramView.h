@@ -24,6 +24,7 @@
 #include <fairlogger/Logger.h>
 
 #include "rANS/internal/common/utils.h"
+#include "rANS/internal/transform/algorithm.h"
 
 namespace o2::rans
 {
@@ -94,23 +95,28 @@ class HistogramView
   iterator mBegin{};
   iterator mEnd{};
   difference_type mOffset{};
+
+  static_assert(std::is_same_v<typename std::iterator_traits<Hist_IT>::iterator_category, std::random_access_iterator_tag>, "This template is defined only for random access iterators");
 };
 
 template <typename Hist_IT>
 [[nodiscard]] HistogramView<Hist_IT> trim(const HistogramView<Hist_IT>& buffer)
 {
-  using value_type = typename HistogramView<Hist_IT>::value_type;
-  value_type zeroElem{};
-  auto isZero = [&zeroElem](value_type i) { return i == zeroElem; };
-  auto nonZeroBegin = std::find_if_not(buffer.begin(), buffer.end(), isZero);
-  auto nonZeroEnd = std::find_if_not(buffer.rbegin(), buffer.rend(), isZero).base();
 
-  if (std::distance(nonZeroBegin, nonZeroEnd) < 0) {
-    return {buffer.end(), buffer.end(), buffer.getOffset()};
+  using value_type = typename HistogramView<Hist_IT>::value_type;
+
+  auto isZero = [](const value_type& i) { return i == value_type{}; };
+  auto nonZeroBegin = std::find_if_not(buffer.begin(), buffer.end(), isZero);
+  auto nonZeroEnd = nonZeroBegin == buffer.end() ? buffer.end() : std::find_if_not(std::make_reverse_iterator(buffer.end()), std::make_reverse_iterator(buffer.begin()), isZero).base();
+
+  std::ptrdiff_t newOffset;
+  if (nonZeroBegin == nonZeroEnd) {
+    newOffset = buffer.getOffset();
   } else {
-    const std::ptrdiff_t newOffset = buffer.getMin() + std::distance(buffer.begin(), nonZeroBegin);
-    return {nonZeroBegin, nonZeroEnd, newOffset};
+    newOffset = buffer.getMin() + std::distance(buffer.begin(), nonZeroBegin);
   }
+
+  return {nonZeroBegin, nonZeroEnd, newOffset};
 };
 
 template <typename HistA_IT, typename HistB_IT>

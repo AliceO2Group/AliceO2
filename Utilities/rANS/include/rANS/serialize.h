@@ -29,6 +29,7 @@
 #include "rANS/internal/pack/pack.h"
 #include "rANS/internal/pack/eliasDelta.h"
 #include "rANS/internal/common/exceptions.h"
+#include "rANS/internal/transform/algorithm.h"
 
 namespace o2::rans
 {
@@ -37,14 +38,26 @@ namespace internal
 {
 
 template <typename container_T>
-inline constexpr count_t getFrequency(const container_T& container, typename container_T::const_iterator iter)
+inline constexpr count_t getFrequency(const container_T& container, typename container_T::const_reference symbol)
 {
-  const auto& ret = *iter;
   if constexpr (isSymbolTable_v<container_T>) {
-    return container.isEscapeSymbol(ret) ? 0 : ret.getFrequency();
+    return container.isEscapeSymbol(symbol) ? 0 : symbol.getFrequency();
   } else {
-    return ret;
+    return symbol;
   }
+};
+
+template <typename container_T, std::enable_if_t<isSparseContainer_v<container_T>, bool> = true>
+inline constexpr count_t getFrequency(const container_T& container, typename container_T::const_iterator::value_type symbolPair)
+{
+  return getFrequency(container, symbolPair.second);
+};
+
+template <typename container_T, std::enable_if_t<isHashContainer_v<container_T>, bool> = true>
+inline constexpr count_t getFrequency(const container_T& container, const typename container_T::const_iterator::value_type& symbolPair)
+{
+  const auto& symbol = symbolPair.second;
+  return getFrequency(container, symbol);
 };
 
 template <typename container_T>
@@ -58,6 +71,16 @@ inline constexpr count_t getIncompressibleFrequency(const container_T& container
     return 0;
   }
 };
+
+template <typename container_T>
+auto getNullElement(const container_T& container) -> typename container_T::value_type
+{
+  if constexpr (isSymbolTable_v<container_T>) {
+    return container.getEscapeSymbol();
+  } else {
+    return {};
+  }
+}
 
 template <typename T>
 [[nodiscard]] inline constexpr size_t getDictExtent(T min, T max, size_t renormingPrecision) noexcept
@@ -141,41 +164,29 @@ dest_IT compressRenormedDictionary(const container_T& container, dest_IT dstBuff
   static_assert(std::is_pointer_v<dest_IT>, "only raw pointers are permited as a target for serialization");
   static_assert((isSymbolTable_v<container_T> || isRenormedHistogram_v<container_T>), "only renormed Histograms and symbol tables are accepted. Non-renormed histograms might not compress well");
 
-  auto getNextNonzeroIter = [&container](auto begin, auto end) {
-    for (auto iter = begin; iter != end; ++iter) {
-      if (getFrequency(container, iter) > 0) {
-        return iter;
-      }
-    }
-    return end;
-  };
+  using source_type = typename container_T::source_type;
+  using const_iterator = typename container_T::const_iterator;
 
   BitPtr dstIter{dstBufferBegin};
-  // encoding the container values back-to-front, so that the decoder can run in correct order.
-
-  // find the first non-zero entry
-  const auto begin = getNextNonzeroIter(container.cbegin(), container.cend());
-  // and write it;
-  auto iter = begin;
-  uint32_t offset{};
-  if (iter != container.cend()) {
-    auto frequency = getFrequency(container, iter);
-    dstIter = eliasDeltaEncode(dstIter, getFrequency(container, iter));
-    ++iter;
-    offset = 1;
-  }
-
-  // all subsequent entries
-  for (; iter != container.end(); ++iter) {
-    auto frequency = getFrequency(container, iter);
-    if (frequency > 0) {
-      dstIter = eliasDeltaEncode(dstIter, offset);
-      dstIter = eliasDeltaEncode(dstIter, frequency);
-      offset = 1;
+  const auto [trimmedBegin, trimmedEnd] = trim(container, getNullElement(container));
+  std::optional<source_type> lastValidIndex{};
+  forEachIndexValue(container, trimmedBegin, trimmedEnd, [&](const source_type& index, const auto& symbol) {
+    auto frequency = getFrequency(container, symbol);
+    if (lastValidIndex.has_value()) {
+      if (frequency > 0) {
+        assert(index > *lastValidIndex);
+        uint32_t offset = index - *lastValidIndex;
+        lastValidIndex = index;
+        dstIter = eliasDeltaEncode(dstIter, offset);
+        dstIter = eliasDeltaEncode(dstIter, frequency);
+      }
     } else {
-      ++offset;
+      if (frequency > 0) {
+        dstIter = eliasDeltaEncode(dstIter, frequency);
+        lastValidIndex = index;
+      }
     }
-  }
+  });
   // write out incompressibleFrequency
   dstIter = eliasDeltaEncode(dstIter, getIncompressibleFrequency(container) + 1);
   // finish off by a 1 to identify start of the sequence.
@@ -190,7 +201,7 @@ dest_IT compressRenormedDictionary(const container_T& container, dest_IT dstBuff
   }();
 
   return iterEnd;
-}
+} // namespace o2::rans
 
 template <typename source_T, typename buffer_IT>
 RenormedHistogram<source_T> readRenormedDictionary(buffer_IT begin, buffer_IT end, source_T min, source_T max, size_t renormingPrecision)

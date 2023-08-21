@@ -31,11 +31,15 @@ endif()
 
 o2_add_header_only_library(rANS
                TARGETVARNAME LIBRANS
-               INTERFACE_LINK_LIBRARIES FairLogger::FairLogger Microsoft.GSL::GSL)
+               INTERFACE_LINK_LIBRARIES FairLogger::FairLogger Microsoft.GSL::GSL absl::flat_hash_map)
                target_compile_options(${LIBRANS} INTERFACE ${RANS_OPTIONS})
 if(${RANS_ENABLE_JSON})
   target_compile_definitions(${LIBRANS} INTERFACE RANS_ENABLE_JSON)
   target_link_libraries(${LIBRANS} INTERFACE RapidJSON::RapidJSON)
+endif()
+if (OpenMP_CXX_FOUND AND ( NOT APPLE ) )
+    target_compile_definitions(${LIBRANS} INTERFACE RANS_OPENMP)
+    target_link_libraries(${LIBRANS} INTERFACE OpenMP::OpenMP_CXX)
 endif()
 if(${ENABLE_VTUNE_PROFILER})
   target_compile_definitions(${LIBRANS} INTERFACE ENABLE_VTUNE_PROFILER)
@@ -68,6 +72,16 @@ o2_add_test(BitPtr
             TARGETVARNAME TEST_BITPTR
             LABELS utils)
             target_compile_options(${TEST_BITPTR} PRIVATE ${RANS_TEST_ARCH})
+
+o2_add_test(SparseVector
+            NAME ransSparseVector
+            SOURCES test/test_ransSparseVector.cxx
+            PUBLIC_LINK_LIBRARIES O2::rANS
+            COMPONENT_NAME rANS
+            TARGETVARNAME TEST_SPARSEVECTOR
+            LABELS utils)
+            target_compile_options(${TEST_SPARSEVECTOR} PRIVATE ${RANS_TEST_ARCH})
+
 
 o2_add_test(Pack
             NAME ransPack
@@ -182,6 +196,12 @@ if(${RANS_ENABLE_JSON})
 
     o2_add_executable(CombinedIterator
                       SOURCES benchmarks/bench_ransCombinedIterator.cxx
+                      COMPONENT_NAME rANS
+                      IS_BENCHMARK
+                      PUBLIC_LINK_LIBRARIES O2::libransBenchmark)
+
+    o2_add_executable(Histogram
+                      SOURCES benchmarks/bench_ransHistogram.cxx
                       COMPONENT_NAME rANS
                       IS_BENCHMARK
                       PUBLIC_LINK_LIBRARIES O2::libransBenchmark)

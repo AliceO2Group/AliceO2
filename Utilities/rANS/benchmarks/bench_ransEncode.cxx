@@ -46,7 +46,7 @@ class SourceMessageProxy
   {
     if (mSourceMessage.empty()) {
       std::mt19937 mt(0); // same seed we want always the same distrubution of random numbers;
-      const size_t draws = std::min(1ul << 20, static_cast<size_t>(std::numeric_limits<source_T>::max()));
+      const size_t draws = std::min(utils::pow2(20), static_cast<size_t>(std::numeric_limits<source_T>::max()));
       const double probability = 0.5;
       std::binomial_distribution<source_T> dist(draws, probability);
       const size_t sourceSize = messageSize / sizeof(source_T) + 1;
@@ -174,16 +174,120 @@ void ransLiteralCompressionBenchmark(benchmark::State& st)
   st.counters["CompressionWRTEntropy"] = st.counters["CompressedSize"] / st.counters["LowerBound"];
 };
 
+template <typename source_T, CoderTag coderTag_V>
+void ransSparseCompressionBenchmark(benchmark::State& st)
+{
+  using source_type = source_T;
+
+  const auto& inputData = getMessage<source_type>();
+  EncodeBuffer<source_type> encodeBuffer{inputData.size()};
+  DecodeBuffer<source_type> decodeBuffer{inputData.size()};
+
+  const auto histogram = makeHistogram::fromSamples(gsl::span<const source_type>(inputData));
+  auto sparseHistogram = makeSparseHistogram::fromSamples(gsl::span<const source_type>(inputData));
+  Metrics<source_type> metrics{histogram};
+  Metrics<source_type> sparseMetrics{sparseHistogram};
+  const auto renormedHistogram = renorm(histogram, metrics, RenormingPolicy::Auto, 10);
+  const auto renormedSparseHistogram = renorm(std::move(sparseHistogram), sparseMetrics, RenormingPolicy::Auto, 10);
+
+  auto encoder = makeEncoder<coderTag_V>::fromRenormed(renormedSparseHistogram);
+
+#ifdef ENABLE_VTUNE_PROFILER
+  __itt_resume();
+#endif
+  for (auto _ : st) {
+    benchmark::DoNotOptimize(encodeBuffer.encodeBufferEnd = encoder.process(inputData.data(), inputData.data() + inputData.size(), encodeBuffer.buffer.data()));
+  }
+#ifdef ENABLE_VTUNE_PROFILER
+  __itt_pause();
+#endif
+
+  auto decoder = makeDecoder<>::fromRenormed(renormedHistogram);
+  decoder.process(encodeBuffer.encodeBufferEnd, decodeBuffer.buffer.data(), inputData.size(), encoder.getNStreams());
+  if (!(decodeBuffer == inputData)) {
+    st.SkipWithError("Missmatch between encoded and decoded Message");
+  }
+
+  const auto& datasetProperties = sparseMetrics.getDatasetProperties();
+  st.SetItemsProcessed(static_cast<int64_t>(inputData.size()) * static_cast<int64_t>(st.iterations()));
+  st.SetBytesProcessed(static_cast<int64_t>(inputData.size()) * sizeof(source_type) * static_cast<int64_t>(st.iterations()));
+  st.counters["AlphabetRangeBits"] = datasetProperties.alphabetRangeBits;
+  st.counters["nUsedAlphabetSymbols"] = datasetProperties.nUsedAlphabetSymbols;
+  st.counters["SymbolTablePrecision"] = renormedSparseHistogram.getRenormingBits();
+  st.counters["Entropy"] = datasetProperties.entropy;
+  st.counters["ExpectedCodewordLength"] = computeExpectedCodewordLength(histogram, renormedHistogram);
+  st.counters["SourceSize"] = inputData.size() * sizeof(source_type);
+  st.counters["CompressedSize"] = std::distance(encodeBuffer.buffer.data(), encodeBuffer.encodeBufferEnd) * sizeof(typename decltype(encoder)::stream_type);
+  st.counters["Compression"] = st.counters["SourceSize"] / static_cast<double>(st.counters["CompressedSize"]);
+  st.counters["LowerBound"] = inputData.size() * (static_cast<double>(st.counters["Entropy"]) / 8);
+  st.counters["CompressionWRTEntropy"] = st.counters["CompressedSize"] / st.counters["LowerBound"];
+};
+
+template <typename source_T, CoderTag coderTag_V>
+void ransSparseLiteralCompressionBenchmark(benchmark::State& st)
+{
+  using source_type = source_T;
+
+  const auto& inputData = getMessage<source_type>();
+  EncodeBuffer<source_type> encodeBuffer{inputData.size()};
+  encodeBuffer.literals.resize(inputData.size(), 0);
+  encodeBuffer.literalsEnd = encodeBuffer.literals.data();
+  DecodeBuffer<source_type> decodeBuffer{inputData.size()};
+
+  const auto histogram = makeHistogram::fromSamples(gsl::span<const source_type>(inputData));
+  auto sparseHistogram = makeSparseHistogram::fromSamples(gsl::span<const source_type>(inputData));
+  Metrics<source_type> metrics{histogram};
+  Metrics<source_type> sparseMetrics{sparseHistogram};
+  const auto renormedHistogram = renorm(histogram, metrics);
+  const auto renormedSparseHistogram = renorm(std::move(sparseHistogram), sparseMetrics);
+
+  auto encoder = makeEncoder<coderTag_V>::fromRenormed(renormedSparseHistogram);
+
+#ifdef ENABLE_VTUNE_PROFILER
+  __itt_resume();
+#endif
+  for (auto _ : st) {
+    encodeBuffer.literalsEnd = encodeBuffer.literals.data();
+    benchmark::DoNotOptimize(std::tie(encodeBuffer.encodeBufferEnd, encodeBuffer.literalsEnd) = encoder.process(inputData.data(), inputData.data() + inputData.size(), encodeBuffer.buffer.data(), encodeBuffer.literalsEnd));
+  }
+#ifdef ENABLE_VTUNE_PROFILER
+  __itt_pause();
+#endif
+
+  auto decoder = makeDecoder<>::fromRenormed(renormedHistogram);
+  decoder.process(encodeBuffer.encodeBufferEnd, decodeBuffer.buffer.data(), inputData.size(), encoder.getNStreams(), encodeBuffer.literalsEnd);
+  if (!(decodeBuffer == inputData)) {
+    st.SkipWithError("Missmatch between encoded and decoded Message");
+  }
+
+  const auto& datasetProperties = sparseMetrics.getDatasetProperties();
+  st.SetItemsProcessed(static_cast<int64_t>(inputData.size()) * static_cast<int64_t>(st.iterations()));
+  st.SetBytesProcessed(static_cast<int64_t>(inputData.size()) * sizeof(source_type) * static_cast<int64_t>(st.iterations()));
+  st.counters["AlphabetRangeBits"] = datasetProperties.alphabetRangeBits;
+  st.counters["nUsedAlphabetSymbols"] = datasetProperties.nUsedAlphabetSymbols;
+  st.counters["SymbolTablePrecision"] = renormedSparseHistogram.getRenormingBits();
+  st.counters["Entropy"] = datasetProperties.entropy;
+  st.counters["ExpectedCodewordLength"] = computeExpectedCodewordLength(histogram, renormedHistogram);
+  st.counters["SourceSize"] = inputData.size() * sizeof(source_type);
+  st.counters["CompressedSize"] = std::distance(encodeBuffer.buffer.data(), encodeBuffer.encodeBufferEnd) * sizeof(typename decltype(encoder)::stream_type);
+  st.counters["Compression"] = st.counters["SourceSize"] / static_cast<double>(st.counters["CompressedSize"]);
+  st.counters["LowerBound"] = inputData.size() * (static_cast<double>(st.counters["Entropy"]) / 8);
+  st.counters["CompressionWRTEntropy"] = st.counters["CompressedSize"] / st.counters["LowerBound"];
+};
+
 BENCHMARK(ransCompressionBenchmark<uint8_t, CoderTag::Compat>);
 BENCHMARK(ransCompressionBenchmark<uint16_t, CoderTag::Compat>);
 BENCHMARK(ransCompressionBenchmark<uint32_t, CoderTag::Compat>);
 
+BENCHMARK(ransSparseCompressionBenchmark<uint32_t, CoderTag::Compat>);
 //########################################################################################
 
 #ifdef RANS_SINGLE_STREAM
 BENCHMARK(ransCompressionBenchmark<uint8_t, CoderTag::SingleStream>);
 BENCHMARK(ransCompressionBenchmark<uint16_t, CoderTag::SingleStream>);
 BENCHMARK(ransCompressionBenchmark<uint32_t, CoderTag::SingleStream>);
+
+BENCHMARK(ransSparseCompressionBenchmark<uint32_t, CoderTag::SingleStream>);
 #endif /* RANS_SINGLE_STREAM */
 
 //########################################################################################
@@ -192,6 +296,8 @@ BENCHMARK(ransCompressionBenchmark<uint32_t, CoderTag::SingleStream>);
 BENCHMARK(ransCompressionBenchmark<uint8_t, CoderTag::SSE>);
 BENCHMARK(ransCompressionBenchmark<uint16_t, CoderTag::SSE>);
 BENCHMARK(ransCompressionBenchmark<uint32_t, CoderTag::SSE>);
+
+BENCHMARK(ransSparseCompressionBenchmark<uint32_t, CoderTag::SSE>);
 #endif /* RANS SSE */
 
 // //########################################################################################
@@ -200,6 +306,8 @@ BENCHMARK(ransCompressionBenchmark<uint32_t, CoderTag::SSE>);
 BENCHMARK(ransCompressionBenchmark<uint8_t, CoderTag::AVX2>);
 BENCHMARK(ransCompressionBenchmark<uint16_t, CoderTag::AVX2>);
 BENCHMARK(ransCompressionBenchmark<uint32_t, CoderTag::AVX2>);
+
+BENCHMARK(ransSparseCompressionBenchmark<uint32_t, CoderTag::AVX2>);
 #endif /* RANS_AVX2 */
 
 //########################################################################################
@@ -208,12 +316,16 @@ BENCHMARK(ransLiteralCompressionBenchmark<uint8_t, CoderTag::Compat>);
 BENCHMARK(ransLiteralCompressionBenchmark<uint16_t, CoderTag::Compat>);
 BENCHMARK(ransLiteralCompressionBenchmark<uint32_t, CoderTag::Compat>);
 
+BENCHMARK(ransSparseLiteralCompressionBenchmark<uint32_t, CoderTag::Compat>);
+
 //########################################################################################
 
 #ifdef RANS_SINGLE_STREAM
 BENCHMARK(ransLiteralCompressionBenchmark<uint8_t, CoderTag::SingleStream>);
 BENCHMARK(ransLiteralCompressionBenchmark<uint16_t, CoderTag::SingleStream>);
 BENCHMARK(ransLiteralCompressionBenchmark<uint32_t, CoderTag::SingleStream>);
+
+BENCHMARK(ransSparseLiteralCompressionBenchmark<uint32_t, CoderTag::SingleStream>);
 #endif /* RANS_SINGLE_STREAM */
 
 //########################################################################################
@@ -222,6 +334,8 @@ BENCHMARK(ransLiteralCompressionBenchmark<uint32_t, CoderTag::SingleStream>);
 BENCHMARK(ransLiteralCompressionBenchmark<uint8_t, CoderTag::SSE>);
 BENCHMARK(ransLiteralCompressionBenchmark<uint16_t, CoderTag::SSE>);
 BENCHMARK(ransLiteralCompressionBenchmark<uint32_t, CoderTag::SSE>);
+
+BENCHMARK(ransSparseLiteralCompressionBenchmark<uint32_t, CoderTag::SSE>);
 #endif /* RANS_SSE */
 
 //########################################################################################
@@ -230,6 +344,8 @@ BENCHMARK(ransLiteralCompressionBenchmark<uint32_t, CoderTag::SSE>);
 BENCHMARK(ransLiteralCompressionBenchmark<uint8_t, CoderTag::AVX2>);
 BENCHMARK(ransLiteralCompressionBenchmark<uint16_t, CoderTag::AVX2>);
 BENCHMARK(ransLiteralCompressionBenchmark<uint32_t, CoderTag::AVX2>);
+
+BENCHMARK(ransSparseLiteralCompressionBenchmark<uint32_t, CoderTag::AVX2>);
 #endif /* RANS_AVX2 */
 
 BENCHMARK_MAIN();

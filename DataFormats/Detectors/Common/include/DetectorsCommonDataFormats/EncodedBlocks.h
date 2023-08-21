@@ -29,7 +29,9 @@
 #include "DetectorsCommonDataFormats/CTFDictHeader.h"
 #include "DetectorsCommonDataFormats/CTFIOSize.h"
 #include "DetectorsCommonDataFormats/ANSHeader.h"
-#include "DetectorsCommonDataFormats/CTFEntropyCoder.h"
+#include "DetectorsCommonDataFormats/internal/ExternalEntropyCoder.h"
+#include "DetectorsCommonDataFormats/internal/InplaceEntropyCoder.h"
+#include "DetectorsCommonDataFormats/internal/Packer.h"
 #include "DetectorsCommonDataFormats/Metadata.h"
 #include "rANS/compat.h"
 #include "rANS/histogram.h"
@@ -37,6 +39,7 @@
 #include "rANS/factory.h"
 #include "rANS/metrics.h"
 #include "rANS/serialize.h"
+#include "rANS/utils.h"
 
 namespace o2
 {
@@ -71,6 +74,7 @@ inline constexpr bool mayPack(Metadata::OptStore opt) noexcept
 }
 
 } // namespace detail
+constexpr size_t PackingThreshold = 512;
 
 constexpr size_t Alignment = 16;
 
@@ -561,14 +565,17 @@ class EncodedBlocks
   inline o2::ctf::CTFIOSize pack(const input_IT srcBegin, const input_IT srcEnd, int slot, buffer_T* buffer = nullptr)
   {
     using source_type = typename std::iterator_traits<input_IT>::value_type;
+
     rans::Metrics<source_type> metrics{};
-    try {
-      auto histogram = rans::makeHistogram::fromSamples(srcBegin, srcEnd);
-      metrics = rans::Metrics<source_type>{histogram};
-    } catch (const rans::HistogramError& error) {
-      LOGP(warning, "Failed to build Dictionary for rANS encoding, using fallback option");
-      return store(srcBegin, srcEnd, slot, this->FallbackStorageType, buffer);
+
+    const auto [minIter, maxIter] = std::minmax_element(srcBegin, srcEnd);
+    if (minIter != maxIter) {
+      metrics.getDatasetProperties().min = *minIter;
+      metrics.getDatasetProperties().max = *maxIter;
+      metrics.getDatasetProperties().alphabetRangeBits = rans::utils::getRangeBits(metrics.getDatasetProperties().min,
+                                                                                   metrics.getDatasetProperties().max);
     }
+
     return pack(srcBegin, srcEnd, slot, metrics, buffer);
   }
 
@@ -1180,7 +1187,7 @@ o2::ctf::CTFIOSize EncodedBlocks<H, N, W>::entropyCodeRANSCompat(const input_IT 
     return size_t(0);
   }();
 
-  LOGP(info, "Min, {} Max, {}, size, {}, nusedAlphabetSymbols {}, nSamples {}", view.getMin(), view.getMax(), view.size(), frequencyTable.countNUsedAlphabetSymbols(), frequencyTable.getNumSamples());
+  LOGP(info, "Min, {} Max, {}, size, {}, nSamples {}", view.getMin(), view.getMax(), view.size(), frequencyTable.getNumSamples());
 
   *thisMetadata = detail::makeMetadataRansCompat<input_t, ransState_t, ransStream_t>(encoder.getNStreams(),
                                                                                      messageLength,
@@ -1200,10 +1207,17 @@ template <typename input_IT, typename buffer_T>
 o2::ctf::CTFIOSize EncodedBlocks<H, N, W>::entropyCodeRANSV1(const input_IT srcBegin, const input_IT srcEnd, int slot, Metadata::OptStore opt, buffer_T* buffer, const std::any& encoderExt, float memfc)
 {
   CTFIOSize encoderStatistics{};
-  if (encoderExt.has_value()) {
-    encoderStatistics = encodeRANSV1External(srcBegin, srcEnd, slot, encoderExt, buffer, memfc);
+
+  const size_t nSamples = std::distance(srcBegin, srcEnd);
+  if (detail::mayPack(opt) && nSamples < PackingThreshold) {
+    encoderStatistics = pack(srcBegin, srcEnd, slot, buffer);
   } else {
-    encoderStatistics = encodeRANSV1Inplace(srcBegin, srcEnd, slot, opt, buffer, memfc);
+
+    if (encoderExt.has_value()) {
+      encoderStatistics = encodeRANSV1External(srcBegin, srcEnd, slot, encoderExt, buffer, memfc);
+    } else {
+      encoderStatistics = encodeRANSV1Inplace(srcBegin, srcEnd, slot, opt, buffer, memfc);
+    }
   }
   return encoderStatistics;
 }
@@ -1214,7 +1228,7 @@ CTFIOSize EncodedBlocks<H, N, W>::encodeRANSV1External(const input_IT srcBegin, 
 {
   using storageBuffer_t = W;
   using input_t = typename std::iterator_traits<input_IT>::value_type;
-  using ransEncoder_t = typename ExternalEntropyCoder<input_t>::encoder_type;
+  using ransEncoder_t = typename internal::ExternalEntropyCoder<input_t>::encoder_type;
   using ransState_t = typename ransEncoder_t::coder_type::state_type;
   using ransStream_t = typename ransEncoder_t::stream_type;
 
@@ -1226,7 +1240,7 @@ CTFIOSize EncodedBlocks<H, N, W>::encodeRANSV1External(const input_IT srcBegin, 
   auto* thisMetadata = &mMetadata[slot];
 
   const size_t messageLength = std::distance(srcBegin, srcEnd);
-  ExternalEntropyCoder<input_t> encoder{std::any_cast<const ransEncoder_t&>(encoderExt)};
+  internal::ExternalEntropyCoder<input_t> encoder{std::any_cast<const ransEncoder_t&>(encoderExt)};
 
   const size_t payloadSizeWords = encoder.template computePayloadSizeEstimate<storageBuffer_t>(messageLength);
   std::tie(thisBlock, thisMetadata) = expandStorage(slot, payloadSizeWords, buffer);
@@ -1286,18 +1300,40 @@ CTFIOSize EncodedBlocks<H, N, W>::encodeRANSV1Inplace(const input_IT srcBegin, c
   auto* thisBlock = &mBlocks[slot];
   auto* thisMetadata = &mMetadata[slot];
 
-  InplaceEntropyCoder<input_t> encoder{};
+  internal::InplaceEntropyCoder<input_t> encoder{};
+  rans::SourceProxy<input_IT> proxy{srcBegin, srcEnd, [](input_IT begin, input_IT end) {
+                                      const size_t nSamples = std::distance(begin, end);
+                                      return (!std::is_pointer_v<input_IT> && (nSamples < rans::utils::pow2(23)));
+                                    }};
+
   try {
-    encoder = InplaceEntropyCoder<input_t>{srcBegin, srcEnd};
+    if (proxy.isCached()) {
+      encoder = internal::InplaceEntropyCoder<input_t>{proxy.beginCache(), proxy.endCache()};
+    } else {
+      encoder = internal::InplaceEntropyCoder<input_t>{proxy.beginIter(), proxy.endIter()};
+    }
   } catch (const rans::HistogramError& error) {
     LOGP(warning, "Failed to build Dictionary for rANS encoding, using fallback option");
-    return store(srcBegin, srcEnd, slot, this->FallbackStorageType, buffer);
+    if (proxy.isCached()) {
+      return store(proxy.beginCache(), proxy.endCache(), slot, this->FallbackStorageType, buffer);
+    } else {
+      return store(proxy.beginIter(), proxy.endIter(), slot, this->FallbackStorageType, buffer);
+    }
   }
 
   const rans::Metrics<input_t>& metrics = encoder.getMetrics();
 
+  if constexpr (sizeof(input_t) > 2) {
+    const auto& dp = metrics.getDatasetProperties();
+    LOGP(info, "Metrics:{{slot: {}, numSamples: {}, min: {}, max: {}, alphabetRangeBits: {}, nUsedAlphabetSymbols: {}, preferPacking: {}}}", slot, dp.numSamples, dp.min, dp.max, dp.alphabetRangeBits, dp.nUsedAlphabetSymbols, metrics.getSizeEstimate().preferPacking());
+  }
+
   if (detail::mayPack(opt) && metrics.getSizeEstimate().preferPacking()) {
-    return pack(srcBegin, srcEnd, slot, metrics, buffer);
+    if (proxy.isCached()) {
+      return pack(proxy.beginCache(), proxy.endCache(), slot, metrics, buffer);
+    } else {
+      return pack(proxy.beginIter(), proxy.endIter(), slot, metrics, buffer);
+    };
   }
 
   encoder.makeEncoder();
@@ -1317,7 +1353,12 @@ CTFIOSize EncodedBlocks<H, N, W>::encodeRANSV1Inplace(const input_IT srcBegin, c
   LOGP(info, "StoreDict {} bytes, offs: {}:{}", dictSize * sizeof(storageBuffer_t), thisBlock->getOffsDict(), thisBlock->getOffsDict() + dictSize * sizeof(storageBuffer_t));
 
   // encode payload
-  auto encodedMessageEnd = encoder.encode(srcBegin, srcEnd, thisBlock->getCreateData(), thisBlock->getEndOfBlock());
+  auto encodedMessageEnd = thisBlock->getCreateData();
+  if (proxy.isCached()) {
+    encodedMessageEnd = encoder.encode(proxy.beginCache(), proxy.endCache(), thisBlock->getCreateData(), thisBlock->getEndOfBlock());
+  } else {
+    encodedMessageEnd = encoder.encode(proxy.beginIter(), proxy.endIter(), thisBlock->getCreateData(), thisBlock->getEndOfBlock());
+  }
   const size_t dataSize = std::distance(thisBlock->getCreateData(), encodedMessageEnd);
   thisBlock->setNData(dataSize);
   thisBlock->realignBlock();
@@ -1335,11 +1376,11 @@ CTFIOSize EncodedBlocks<H, N, W>::encodeRANSV1Inplace(const input_IT srcBegin, c
   }
 
   // write metadata
-  *thisMetadata = detail::makeMetadataRansV1<input_t, ransState_t, ransStream_t>(encoder.getEncoder().getNStreams(),
+  *thisMetadata = detail::makeMetadataRansV1<input_t, ransState_t, ransStream_t>(encoder.getNStreams(),
                                                                                  rans::utils::getStreamingLowerBound_v<typename ransEncoder_t::coder_type>,
                                                                                  std::distance(srcBegin, srcEnd),
                                                                                  encoder.getNIncompressibleSamples(),
-                                                                                 encoder.getEncoder().getSymbolTable().getPrecision(),
+                                                                                 encoder.getSymbolTablePrecision(),
                                                                                  *metrics.getCoderProperties().min,
                                                                                  *metrics.getCoderProperties().max,
                                                                                  metrics.getDatasetProperties().min,
@@ -1349,7 +1390,7 @@ CTFIOSize EncodedBlocks<H, N, W>::encodeRANSV1Inplace(const input_IT srcBegin, c
                                                                                  literalsSize);
 
   return {0, thisMetadata->getUncompressedSize(), thisMetadata->getCompressedSize()};
-};
+}; // namespace ctf
 
 template <typename H, int N, typename W>
 template <typename input_IT, typename buffer_T>
@@ -1360,7 +1401,7 @@ o2::ctf::CTFIOSize EncodedBlocks<H, N, W>::pack(const input_IT srcBegin, const i
 
   const size_t messageLength = std::distance(srcBegin, srcEnd);
 
-  Packer<input_t> packer{metrics};
+  internal::Packer<input_t> packer{metrics};
   size_t packingBufferWords = packer.template getPackingBufferSize<storageBuffer_t>(messageLength);
   auto [thisBlock, thisMetadata] = expandStorage(slot, packingBufferWords, buffer);
 

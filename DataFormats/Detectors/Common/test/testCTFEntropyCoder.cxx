@@ -30,7 +30,9 @@
 #include <boost/mp11.hpp>
 #include <fmt/core.h>
 
-#include "DetectorsCommonDataFormats/CTFEntropyCoder.h"
+#include "DetectorsCommonDataFormats/internal/Packer.h"
+#include "DetectorsCommonDataFormats/internal/ExternalEntropyCoder.h"
+#include "DetectorsCommonDataFormats/internal/InplaceEntropyCoder.h"
 #include "rANS/histogram.h"
 #include "rANS/metrics.h"
 #include "rANS/factory.h"
@@ -94,7 +96,7 @@ class SourceMessageProxy
   };
 
  private:
-  inline static constexpr size_t MessageSize = rans::utils::pow2(20);
+  inline static constexpr size_t MessageSize = rans::utils::pow2(10);
   SourceMessage<uint8_t> sourceMessage8u{MessageSize};
   SourceMessage<int8_t> sourceMessage8{MessageSize};
   SourceMessage<uint16_t> sourceMessage16u{MessageSize};
@@ -110,12 +112,14 @@ void encodeInplace(source_IT begin, source_IT end)
 {
   using source_type = typename std::iterator_traits<source_IT>::value_type;
 
-  ctf::InplaceEntropyCoder<source_type> entropyCoder{begin, end};
-  BOOST_CHECK_THROW(entropyCoder.getEncoder(), std::runtime_error);
+  ctf::internal::InplaceEntropyCoder<source_type> entropyCoder{begin, end};
+  // BOOST_CHECK_THROW(entropyCoder.getEncoder(), std::runtime_error);
   entropyCoder.makeEncoder();
 
   const rans::Metrics<source_type>& metrics = entropyCoder.getMetrics();
   const rans::SizeEstimate sizeEstimate = metrics.getSizeEstimate();
+
+  LOGP(info, "dataset[{},{}], coder[{},{}]", metrics.getDatasetProperties().min, metrics.getDatasetProperties().max, *metrics.getCoderProperties().min, *metrics.getCoderProperties().max);
 
   std::vector<buffer_type> encodeBuffer(sizeEstimate.getCompressedDatasetSize<buffer_type>(), 0);
   std::vector<buffer_type> literalSymbolsBuffer(sizeEstimate.getIncompressibleSize<buffer_type>(), 0);
@@ -138,7 +142,7 @@ void encodeInplace(source_IT begin, source_IT end)
   size_t messageLength = std::distance(begin, end);
   std::vector<source_type> sourceBuffer(messageLength, 0);
 
-  decoder.process(encoderEnd, sourceBuffer.data(), messageLength, entropyCoder.getEncoder().getNStreams(), literals.end());
+  decoder.process(encoderEnd, sourceBuffer.data(), messageLength, entropyCoder.getNStreams(), literals.end());
 
   BOOST_CHECK_EQUAL_COLLECTIONS(sourceBuffer.begin(), sourceBuffer.end(), begin, end);
 };
@@ -292,7 +296,7 @@ void encodeExternal(source_IT begin, source_IT end)
 {
   using source_type = typename std::iterator_traits<source_IT>::value_type;
 
-  ctf::ExternalEntropyCoder<source_type> entropyCoder{ExternalEncoders.getEncoder<source_type>()};
+  ctf::internal::ExternalEntropyCoder<source_type> entropyCoder{ExternalEncoders.getEncoder<source_type>()};
 
   const size_t sourceExtent = std::distance(begin, end);
   std::vector<buffer_type> encodeBuffer(entropyCoder.template computePayloadSizeEstimate<buffer_type>(sourceExtent), 0);

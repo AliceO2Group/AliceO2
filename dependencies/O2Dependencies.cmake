@@ -173,6 +173,9 @@ find_package(FastJet)
 find_package(FFTW3f CONFIG)
 set_package_properties(FFTW3f PROPERTIES TYPE REQUIRED)
 
+find_package(absl CONFIG)
+set_package_properties(absl PROPERTIES TYPE REQUIRED)
+
 find_package(Vtune)
 set_package_properties(Vtune PROPERTIES TYPE OPTIONAL)
 
