@@ -97,8 +97,8 @@ class CaloRawFitter
   FitStatus mStatus = kNotEvaluated; ///< status of last evaluated sample: -1: not yet evaluated; 0: OK; 1: overflow; 2: too large RMS; 3: single spikes
   short mMaxSample = 0;              ///< maximal sample
   float mAmp;                        ///< amplitude of last processed sample
-  float mTime;                       ///< time of last processed sample
-  float mChi2;                       ///< chi2 calculated in last fit
+  float mTime = 0;                   ///< time of last processed sample
+  float mChi2 = 1e10;                ///< chi2 calculated in last fit
   short mSpikeThreshold;
   short mBaseLine;
   short mPreSamples;
