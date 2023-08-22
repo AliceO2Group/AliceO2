@@ -2554,6 +2554,9 @@ void AODProducerWorkflowDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* ob
 {
   // Note: strictly speaking, for Configurable params we don't need finaliseCCDB check, the singletons are updated at the CCDB fetcher level
   if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    if (matcher == ConcreteDataMatcher("GLO", "GRPMAGFIELD", 0)) {
+      o2::mch::TrackExtrap::setField();
+    }
     return;
   }
   if (matcher == ConcreteDataMatcher("ITS", "ALPIDEPARAM", 0)) {
