@@ -92,7 +92,7 @@ function(o2_add_executable baseTargetName)
   endif()
 
   # add the executable with its sources
-  add_executable(${target} ${A_SOURCES})
+  add_executable(${target} ${A_SOURCES} ${CMAKE_SOURCE_DIR}/Common/Utils/src/fpu.cxx)
 
   # set the executable output name
   set_property(TARGET ${target} PROPERTY OUTPUT_NAME ${exeName})
@@ -115,6 +115,9 @@ function(o2_add_executable baseTargetName)
     endif()
     target_link_libraries(${target} PUBLIC ${lib})
   endforeach()
+
+  # needed for fpu.c
+  target_link_libraries(${target} PUBLIC ROOT::XMLIO)
 
   if(NOT A_NO_INSTALL)
     # install the executable
