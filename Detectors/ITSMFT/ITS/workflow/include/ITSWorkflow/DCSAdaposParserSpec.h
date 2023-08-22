@@ -38,6 +38,7 @@
 #include "DetectorsDCS/DataPointValue.h"
 #include "DetectorsDCS/DataPointCompositeObject.h"
 #include "ITSMFTBase/DPLAlpideParam.h"
+#include "CCDB/BasicCCDBManager.h"
 
 using namespace o2::framework;
 using namespace o2::itsmft;
@@ -66,20 +67,22 @@ class ITSDCSAdaposParser : public Task
   void process(const gsl::span<const DPCOM> dps);
   void processDP(const DPCOM& dpcom);
   void pushToCCDB(ProcessingContext&);
+  void getCurrentCcdbAlpideParam();
 
   // Ccdb url for ccdb upload withing the wf
   std::string mCcdbUrl = "";
 
   // store the strobe length for each DPID = stave
-  std::unordered_map<DPID, std::vector<DPVAL>> mDPstrobe;
+  std::unordered_map<DPID, DPVAL> mDPstrobe;
   double mStrobeToUpload = 0.;
   bool doStrobeUpload = false;
-  bool isFirstCheck = true;
-  DPID checkDp;
 
-  long int mTF = 0;
   std::string mSelfName;
   bool mVerboseOutput = false;
+
+  // for ccdb alpide param fetching
+  o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>* mCcdbAlpideParam;
+  std::string mCcdbFetchUrl = "http://ccdb-test.cern.ch:8080";
 };
 
 // Create a processor spec

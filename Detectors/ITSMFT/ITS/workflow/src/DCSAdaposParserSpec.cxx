@@ -34,6 +34,10 @@ void ITSDCSAdaposParser::init(InitContext& ic)
 
   this->mVerboseOutput = ic.options().get<bool>("verbose");
 
+  // Read alpide param object from ccdb: this is the first read, object will be refreshed in run()
+  this->mCcdbFetchUrl = ic.options().get<std::string>("ccdb-fetch-url");
+  getCurrentCcdbAlpideParam();
+
   return;
 }
 
@@ -50,15 +54,26 @@ void ITSDCSAdaposParser::run(ProcessingContext& pc)
   if (doStrobeUpload && dps.size() > 0) {
     // upload to ccdb
     pushToCCDB(pc);
+    // refresh the local alpide param object
+    getCurrentCcdbAlpideParam();
   }
 
-  if (mTF % 50 == 0) { // clean memory after some TFs
-    mDPstrobe.clear();
-  }
-
-  mTF++;
+  // clear memory
+  mDPstrobe.clear();
 
   return;
+}
+
+////////////////////////////////////////////////////////////////////////////
+// Function to retrieve AlpideParam object from CCDB
+void ITSDCSAdaposParser::getCurrentCcdbAlpideParam()
+{
+  long int ts = o2::ccdb::getCurrentTimestamp();
+  LOG(info) << "Getting AlpideParam from CCDB url " << mCcdbFetchUrl << " with timestamp " << ts;
+  auto& mgr = o2::ccdb::BasicCCDBManager::instance();
+  mgr.setURL(mCcdbFetchUrl);
+  mgr.setTimestamp(ts);
+  mCcdbAlpideParam = mgr.get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>>("ITS/Config/AlpideParam");
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -79,9 +94,10 @@ void ITSDCSAdaposParser::process(const gsl::span<const DPCOM> dps)
 
   /**************************************
      decide whether to upload or not the object to ccdb. The logic for strobe length is:
-     - if the strobe length it's the first value filled in mDPstrobe, then upload it to CCDB (only at the first call of the wf)
-     - if the strobe length it's the second value filled, compare it with the previous one: if different, upload the most recent
-     - the logic continue... memory is cleaned every 50 TFs (random number of TFs).
+     - compare the value which arrived from ADAPOS with the one stored in CCDB
+     - if the values are different, store it and create a new object for ccdb
+     - refresh the local ccdb object (int run() method)
+     - the logic continue... memory is cleaned at the end of every run() cycle
   ***************************************/
   auto mapel = mDPstrobe.begin();
   if (!mDPstrobe.size()) {
@@ -89,20 +105,9 @@ void ITSDCSAdaposParser::process(const gsl::span<const DPCOM> dps)
     return;
   }
 
-  if (mapel->second.size() == 1 && isFirstCheck) {
-    mStrobeToUpload = mapel->second[0].payload_pt1;
+  if (mapel->second.payload_pt1 + 8 != mCcdbAlpideParam->roFrameLengthInBC) {
+    mStrobeToUpload = mapel->second.payload_pt1;
     doStrobeUpload = true;
-    isFirstCheck = false;
-  } else if (mapel->second.size() == 1 && mapel->second[0].payload_pt1 != mStrobeToUpload && !isFirstCheck) { // in case the new value to be uploaded is the first on the list (we erase memory every 50 TFs)
-    mStrobeToUpload = mapel->second[0].payload_pt1;
-    doStrobeUpload = true;
-  } else if (mapel->second.size() > 1) {
-    if (mapel->second.rbegin()[0].payload_pt1 == mapel->second.rbegin()[1].payload_pt1) {
-      doStrobeUpload = false;
-    } else {
-      mStrobeToUpload = mapel->second.rbegin()[0].payload_pt1; // take the last
-      doStrobeUpload = true;
-    }
   } else {
     doStrobeUpload = false;
   }
@@ -129,11 +134,9 @@ void ITSDCSAdaposParser::processDP(const DPCOM& dpcom)
     }
     return;
   }
-  // Checking if the DP is updated with time stamp information
-  auto etime = val.get_epoch_time();
 
   if (o2::dcs::getValue<int>(dpcom) > 189) { // Discard strobe length lower than this: thr scan
-    mDPstrobe[dpid].push_back(val);
+    mDPstrobe[dpid] = val;
   }
 }
 
@@ -152,7 +155,7 @@ void ITSDCSAdaposParser::pushToCCDB(ProcessingContext& pc)
   tend = tstart + 365L * 2 * 24 * 3600 * 1000; // valid two years by default
 
   // Create metadata for database object
-  metadata = {{"comment", "uploaded by flp199 (ADAPOS data)"}};
+  metadata = {{"comment", "uploaded by flp199 (ADAPOS data)"}, {"StrobeLength", std::to_string(mStrobeToUpload + 8)}};
 
   std::string path("ITS/Config/AlpideParam");
 
@@ -166,14 +169,13 @@ void ITSDCSAdaposParser::pushToCCDB(ProcessingContext& pc)
   auto image = o2::ccdb::CcdbApi::createObjectImage(&dplAlpideParams, &info);
   info.setFileName(filename);
 
-  // Send to ccdb-populator wf
-  LOG(info) << "Class Name: " << class_name << " | File Name: " << filename
-            << "\nSending to ccdb-populator the object " << info.getPath() << "/" << info.getFileName()
-            << " of size " << image->size() << " bytes, valid for "
-            << info.getStartValidityTimestamp() << " : "
-            << info.getEndValidityTimestamp();
-
+  // Send to ccdb-populator wf or upload directly from here
   if (mCcdbUrl.empty()) {
+    LOG(info) << "Class Name: " << class_name << " | File Name: " << filename
+              << "\nSending to ccdb-populator the object " << info.getPath() << "/" << info.getFileName()
+              << " of size " << image->size() << " bytes, valid for "
+              << info.getStartValidityTimestamp() << " : "
+              << info.getEndValidityTimestamp();
 
     pc.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ITSALPIDEPARAM", 0}, *image);
     pc.outputs().snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ITSALPIDEPARAM", 0}, info);
@@ -210,7 +212,8 @@ DataProcessorSpec getITSDCSAdaposParserSpec()
     AlgorithmSpec{adaptFromTask<o2::its::ITSDCSAdaposParser>()},
     Options{
       {"verbose", VariantType::Bool, false, {"Use verbose output mode"}},
-      {"ccdb-url", VariantType::String, "", {"CCDB url, default is empty (i.e. send output to CCDB populator workflow)"}}}};
+      {"ccdb-url", VariantType::String, "", {"CCDB url, default is empty (i.e. send output to CCDB populator workflow)"}},
+      {"ccdb-fetch-url", VariantType::String, "", {"CCDB url from when to fetch the AlpideParam object, default is ccdb-test"}}}};
 }
 } // namespace its
 } // namespace o2
