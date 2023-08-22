@@ -262,7 +262,7 @@ class TrackCheckStudy : public Task
   std::unique_ptr<TLegend> mLegendZD;
   std::unique_ptr<TLegend> mLegendRadD;
   std::vector<TH1D> HistoMC;
-  std::vector<std::unique_ptr<TEfficiency>> EffVec;
+  // std::vector<std::unique_ptr<TEfficiency>> EffVec;
 
   float rLayer0 = 2.34;
   float rLayer1 = 3.15;
@@ -292,9 +292,7 @@ void TrackCheckStudy::init(InitContext& ic)
   for (int i{0}; i <= pars.effHistBins; i++) {
     xbins[i] = pars.effPtCutLow * std::exp(i * a);
   }
-  // to do: cut a lot of lines (reminder: use form like bt, for canvas a vector + function and from bt)
   mGoodPt = std::make_unique<TH1D>("goodPt", ";#it{p}_{T} (GeV/#it{c});Efficiency (fake-track rate)", pars.effHistBins, xbins.data());
-  //EffVec.push_back(mGoodPt);
   mGoodEta = std::make_unique<TH1D>("goodEta", ";#eta;Number of tracks", 60, -3, 3);
   mGoodChi2 = std::make_unique<TH1D>("goodChi2", ";#it{p}_{T} (GeV/#it{c});Efficiency (fake-track rate)", 200, 0, 100);
 
@@ -425,6 +423,74 @@ void TrackCheckStudy::init(InitContext& ic)
   mDenominatorPt->Sumw2();
   mDenominatorSecRad->Sumw2();
   mDenominatorSecZ->Sumw2();
+
+  histLength.resize(4); // fake clusters study
+  histLength1Fake.resize(4);
+  histLength2Fake.resize(4);
+  histLength3Fake.resize(2);
+  histLengthNoCl.resize(4);
+  histLength1FakeNoCl.resize(4);
+  histLength2FakeNoCl.resize(4);
+  histLength3FakeNoCl.resize(2);
+  stackLength.resize(4);
+  stackLength1Fake.resize(4);
+  stackLength2Fake.resize(4);
+  stackLength3Fake.resize(2);
+  legends.resize(4);
+  legends1Fake.resize(4);
+  legends2Fake.resize(4);
+  legends3Fake.resize(2);
+
+  for (int iH{4}; iH < 8; ++iH) {
+    histLength[iH - 4] = new TH1I(Form("trk_len_%d", iH), "#exists cluster", 7, -.5, 6.5);
+    histLength[iH - 4]->SetFillColor(kGreen + 3);
+    histLength[iH - 4]->SetLineColor(kGreen + 3);
+    histLength[iH - 4]->SetFillStyle(3352);
+    histLengthNoCl[iH - 4] = new TH1I(Form("trk_len_%d_nocl", iH), "#slash{#exists} cluster", 7, -.5, 6.5);
+    histLengthNoCl[iH - 4]->SetFillColor(kOrange + 7);
+    histLengthNoCl[iH - 4]->SetLineColor(kOrange + 7);
+    histLengthNoCl[iH - 4]->SetFillStyle(3352);
+    stackLength[iH - 4] = new THStack(Form("stack_trk_len_%d", iH), Form("trk_len=%d", iH));
+    stackLength[iH - 4]->Add(histLength[iH - 4]);
+    stackLength[iH - 4]->Add(histLengthNoCl[iH - 4]);
+
+    histLength1Fake[iH - 4] = new TH1I(Form("trk_len_%d_1f", iH), "#exists cluster", 7, -.5, 6.5);
+    histLength1Fake[iH - 4]->SetFillColor(kGreen + 3);
+    histLength1Fake[iH - 4]->SetLineColor(kGreen + 3);
+    histLength1Fake[iH - 4]->SetFillStyle(3352);
+    histLength1FakeNoCl[iH - 4] = new TH1I(Form("trk_len_%d_1f_nocl", iH), "#slash{#exists} cluster", 7, -.5, 6.5);
+    histLength1FakeNoCl[iH - 4]->SetFillColor(kOrange + 7);
+    histLength1FakeNoCl[iH - 4]->SetLineColor(kOrange + 7);
+    histLength1FakeNoCl[iH - 4]->SetFillStyle(3352);
+    stackLength1Fake[iH - 4] = new THStack(Form("stack_trk_len_%d_1f", iH), Form("trk_len=%d, 1 Fake", iH));
+    stackLength1Fake[iH - 4]->Add(histLength1Fake[iH - 4]);
+    stackLength1Fake[iH - 4]->Add(histLength1FakeNoCl[iH - 4]);
+
+    histLength2Fake[iH - 4] = new TH1I(Form("trk_len_%d_2f", iH), "#exists cluster", 7, -.5, 6.5);
+    histLength2Fake[iH - 4]->SetFillColor(kGreen + 3);
+    histLength2Fake[iH - 4]->SetLineColor(kGreen + 3);
+    histLength2Fake[iH - 4]->SetFillStyle(3352);
+    histLength2FakeNoCl[iH - 4] = new TH1I(Form("trk_len_%d_2f_nocl", iH), "#slash{#exists} cluster", 7, -.5, 6.5);
+    histLength2FakeNoCl[iH - 4]->SetFillColor(kOrange + 7);
+    histLength2FakeNoCl[iH - 4]->SetLineColor(kOrange + 7);
+    histLength2FakeNoCl[iH - 4]->SetFillStyle(3352);
+    stackLength2Fake[iH - 4] = new THStack(Form("stack_trk_len_%d_2f", iH), Form("trk_len=%d, 2 Fake", iH));
+    stackLength2Fake[iH - 4]->Add(histLength2Fake[iH - 4]);
+    stackLength2Fake[iH - 4]->Add(histLength2FakeNoCl[iH - 4]);
+    if (iH > 5) {
+      histLength3Fake[iH - 6] = new TH1I(Form("trk_len_%d_3f", iH), "#exists cluster", 7, -.5, 6.5);
+      histLength3Fake[iH - 6]->SetFillColor(kGreen + 3);
+      histLength3Fake[iH - 6]->SetLineColor(kGreen + 3);
+      histLength3Fake[iH - 6]->SetFillStyle(3352);
+      histLength3FakeNoCl[iH - 6] = new TH1I(Form("trk_len_%d_3f_nocl", iH), "#slash{#exists} cluster", 7, -.5, 6.5);
+      histLength3FakeNoCl[iH - 6]->SetFillColor(kOrange + 7);
+      histLength3FakeNoCl[iH - 6]->SetLineColor(kOrange + 7);
+      histLength3FakeNoCl[iH - 6]->SetFillStyle(3352);
+      stackLength3Fake[iH - 6] = new THStack(Form("stack_trk_len_%d_3f", iH), Form("trk_len=%d, 3 Fake", iH));
+      stackLength3Fake[iH - 6]->Add(histLength3Fake[iH - 6]);
+      stackLength3Fake[iH - 6]->Add(histLength3FakeNoCl[iH - 6]);
+    }
+  }
 }
 
 void TrackCheckStudy::run(ProcessingContext& pc)
@@ -527,73 +593,6 @@ void TrackCheckStudy::process()
   LOGP(info, "\t- Total number of fakes: {} ({:.2f} %)", fakes, fakes * 100. / mTracks.size());
   LOGP(info, "\t- Total number of good: {} ({:.2f} %)", good, good * 100. / mTracks.size());
 
-  histLength.resize(4);
-  histLength1Fake.resize(4);
-  histLength2Fake.resize(4);
-  histLength3Fake.resize(2);
-  histLengthNoCl.resize(4);
-  histLength1FakeNoCl.resize(4);
-  histLength2FakeNoCl.resize(4);
-  histLength3FakeNoCl.resize(2);
-  stackLength.resize(4);
-  stackLength1Fake.resize(4);
-  stackLength2Fake.resize(4);
-  stackLength3Fake.resize(2);
-  legends.resize(4);
-  legends1Fake.resize(4);
-  legends2Fake.resize(4);
-  legends3Fake.resize(2);
-
-  for (int iH{4}; iH < 8; ++iH) {
-    histLength[iH - 4] = new TH1I(Form("trk_len_%d", iH), "#exists cluster", 7, -.5, 6.5);
-    histLength[iH - 4]->SetFillColor(kGreen + 3);
-    histLength[iH - 4]->SetLineColor(kGreen + 3);
-    histLength[iH - 4]->SetFillStyle(3352);
-    histLengthNoCl[iH - 4] = new TH1I(Form("trk_len_%d_nocl", iH), "#slash{#exists} cluster", 7, -.5, 6.5);
-    histLengthNoCl[iH - 4]->SetFillColor(kOrange + 7);
-    histLengthNoCl[iH - 4]->SetLineColor(kOrange + 7);
-    histLengthNoCl[iH - 4]->SetFillStyle(3352);
-    stackLength[iH - 4] = new THStack(Form("stack_trk_len_%d", iH), Form("trk_len=%d", iH));
-    stackLength[iH - 4]->Add(histLength[iH - 4]);
-    stackLength[iH - 4]->Add(histLengthNoCl[iH - 4]);
-
-    histLength1Fake[iH - 4] = new TH1I(Form("trk_len_%d_1f", iH), "#exists cluster", 7, -.5, 6.5);
-    histLength1Fake[iH - 4]->SetFillColor(kGreen + 3);
-    histLength1Fake[iH - 4]->SetLineColor(kGreen + 3);
-    histLength1Fake[iH - 4]->SetFillStyle(3352);
-    histLength1FakeNoCl[iH - 4] = new TH1I(Form("trk_len_%d_1f_nocl", iH), "#slash{#exists} cluster", 7, -.5, 6.5);
-    histLength1FakeNoCl[iH - 4]->SetFillColor(kOrange + 7);
-    histLength1FakeNoCl[iH - 4]->SetLineColor(kOrange + 7);
-    histLength1FakeNoCl[iH - 4]->SetFillStyle(3352);
-    stackLength1Fake[iH - 4] = new THStack(Form("stack_trk_len_%d_1f", iH), Form("trk_len=%d, 1 Fake", iH));
-    stackLength1Fake[iH - 4]->Add(histLength1Fake[iH - 4]);
-    stackLength1Fake[iH - 4]->Add(histLength1FakeNoCl[iH - 4]);
-
-    histLength2Fake[iH - 4] = new TH1I(Form("trk_len_%d_2f", iH), "#exists cluster", 7, -.5, 6.5);
-    histLength2Fake[iH - 4]->SetFillColor(kGreen + 3);
-    histLength2Fake[iH - 4]->SetLineColor(kGreen + 3);
-    histLength2Fake[iH - 4]->SetFillStyle(3352);
-    histLength2FakeNoCl[iH - 4] = new TH1I(Form("trk_len_%d_2f_nocl", iH), "#slash{#exists} cluster", 7, -.5, 6.5);
-    histLength2FakeNoCl[iH - 4]->SetFillColor(kOrange + 7);
-    histLength2FakeNoCl[iH - 4]->SetLineColor(kOrange + 7);
-    histLength2FakeNoCl[iH - 4]->SetFillStyle(3352);
-    stackLength2Fake[iH - 4] = new THStack(Form("stack_trk_len_%d_2f", iH), Form("trk_len=%d, 2 Fake", iH));
-    stackLength2Fake[iH - 4]->Add(histLength2Fake[iH - 4]);
-    stackLength2Fake[iH - 4]->Add(histLength2FakeNoCl[iH - 4]);
-    if (iH > 5) {
-      histLength3Fake[iH - 6] = new TH1I(Form("trk_len_%d_3f", iH), "#exists cluster", 7, -.5, 6.5);
-      histLength3Fake[iH - 6]->SetFillColor(kGreen + 3);
-      histLength3Fake[iH - 6]->SetLineColor(kGreen + 3);
-      histLength3Fake[iH - 6]->SetFillStyle(3352);
-      histLength3FakeNoCl[iH - 6] = new TH1I(Form("trk_len_%d_3f_nocl", iH), "#slash{#exists} cluster", 7, -.5, 6.5);
-      histLength3FakeNoCl[iH - 6]->SetFillColor(kOrange + 7);
-      histLength3FakeNoCl[iH - 6]->SetLineColor(kOrange + 7);
-      histLength3FakeNoCl[iH - 6]->SetFillStyle(3352);
-      stackLength3Fake[iH - 6] = new THStack(Form("stack_trk_len_%d_3f", iH), Form("trk_len=%d, 3 Fake", iH));
-      stackLength3Fake[iH - 6]->Add(histLength3Fake[iH - 6]);
-      stackLength3Fake[iH - 6]->Add(histLength3FakeNoCl[iH - 6]);
-    }
-  }
   LOGP(info, "** Filling histograms ... ");
   int evID = 0;
   int trackID = 0;
@@ -840,7 +839,7 @@ void TrackCheckStudy::process()
         auto len = track.getNClusters();
         for (int iLayer{0}; iLayer < 7; ++iLayer) {
           if (track.hasHitOnLayer(iLayer)) {
-            if (track.isFakeOnLayer(iLayer)) { // Reco track has fake cluster
+            if (track.isFakeOnLayer(iLayer)) {       // Reco track has fake cluster
               if (part.clusters & (0x1 << iLayer)) { // Correct cluster exists
                 histLength[len - 4]->Fill(iLayer);
                 if (track.getNFakeClusters() == 1) {
@@ -1195,7 +1194,7 @@ void TrackCheckStudy::endOfStream(EndOfStreamContext& ec)
   mCanvasRad->SetGrid();
   mEffRad->Draw("pz");
   mEffFakeRad->Draw("pz same");
-  HistoMC[0].Draw("hist same"); // HistoMC[0]
+  HistoMC[0].Draw("hist same");
   mCanvasRad->SetLogy();
   mLegendRad = std::make_unique<TLegend>(0.8, 0.4, 0.95, 0.6);
   mLegendRad->SetHeader(Form("%zu events PP ", mKineReader->getNEvents(0)), "C");
@@ -1211,7 +1210,7 @@ void TrackCheckStudy::endOfStream(EndOfStreamContext& ec)
   mCanvasZ->SetLogy();
   mEffZ->Draw("pz");
   mEffFakeZ->Draw("pz same");
-  HistoMC[3].Draw(" histsame"); // HistoMC[1]
+  HistoMC[3].Draw(" histsame");
   mLegendZ = std::make_unique<TLegend>(0.19, 0.8, 0.40, 0.96);
   mLegendZ->SetHeader(Form("%zu events PP", mKineReader->getNEvents(0)), "C");
   mLegendZ->AddEntry("Good_Z", "good", "lep");
@@ -1248,11 +1247,10 @@ void TrackCheckStudy::endOfStream(EndOfStreamContext& ec)
   mCanvasZD->SetGrid();
   mEffZk->Draw("pz");
   mEffFakeZk->Draw("pz same");
-  HistoMC[4].Draw("same hist"); // HistoMC[4]
+  HistoMC[4].Draw("same hist");
   mEffZLam->Draw("pz same");
   mEffFakeZLam->Draw("pz same");
-  HistoMC[5].Draw("same hist"); // HistoMC[5]
-  mCanvasZD->SetLogy();
+  HistoMC[5].Draw("same hist");
   mLegendZD = std::make_unique<TLegend>(0.19, 0.5, 0.30, 0.7);
   mLegendZD->SetHeader(Form("%zu events PP", mKineReader->getNEvents(0)), "C");
   mLegendZD->AddEntry("Good_Zk", " k^{0}_{s} good", "lep");
@@ -1400,7 +1398,6 @@ void TrackCheckStudy::endOfStream(EndOfStreamContext& ec)
 
   auto canvas = new TCanvas("fc_canvas", "Fake clusters", 1600, 1000);
   canvas->Divide(4, 2);
- 
   for (int iH{0}; iH < 4; ++iH) {
     canvas->cd(iH + 1);
     stackLength[iH]->Draw();
@@ -1414,20 +1411,20 @@ void TrackCheckStudy::endOfStream(EndOfStreamContext& ec)
 
   canvas->SaveAs("fakeClusters2.png", "recreate");
 
-auto canvas2 = new TCanvas("fc_canvas2", "Fake clusters", 1600, 1000);
- canvas2->Divide(4, 2);
- 
-  for (int iH{0}; iH < 4; ++iH) {
-   canvas2->cd(iH + 1);
-    stackLength2Fake[iH]->Draw();
-    gPad->BuildLegend();
+  auto canvas2 = new TCanvas("fc_canvas2", "Fake clusters", 1600, 1000);
+  canvas2->Divide(4, 2);
+
+    for (int iH{0}; iH < 4; ++iH) {
+      canvas2->cd(iH + 1);
+      stackLength2Fake[iH]->Draw();
+      gPad->BuildLegend();
   }
   for (int iH{0}; iH < 2; ++iH) {
-   canvas2->cd(iH + 5);
+    canvas2->cd(iH + 5);
     stackLength3Fake[iH]->Draw();
     gPad->BuildLegend();
   }
-canvas2->SaveAs("fakeClusters3.png", "recreate");
+  canvas2->SaveAs("fakeClusters3.png", "recreate");
   fout.cd();
   mCanvasPt->Write();
   mCanvasEta->Write();
@@ -1445,7 +1442,6 @@ canvas2->SaveAs("fakeClusters3.png", "recreate");
   mCanvasZD->Write();
   canvas->Write();
   canvas2->Write();
-
 
   fout.Close();
 }
