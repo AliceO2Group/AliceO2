@@ -320,6 +320,15 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
   return ret;
 }
 //
+int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2::framework::InputSpec>& filter, std::vector<CTPDigit>& digits, std::vector<LumiInfo>& lumiPointsHBF1)
+{
+  o2::pmr::vector<CTPDigit> pmrdigits;
+  for(auto const d: digits) {
+    pmrdigits.push_back(d);
+  }
+  return decodeRaw(inputs,filter,pmrdigits,lumiPointsHBF1);
+}
+//
 // Not to be called with level LM
 // Keeping shift in params if needed to be generalised
 int RawDataDecoder::shiftNew(const o2::InteractionRecord& irin, uint32_t TFOrbit, std::bitset<48>& inpmask, int64_t shift, int level, std::map<o2::InteractionRecord, CTPDigit>& digmap)
@@ -345,6 +354,8 @@ int RawDataDecoder::shiftNew(const o2::InteractionRecord& irin, uint32_t TFOrbit
   }
   return 0;
 }
+//
+
 int RawDataDecoder::shiftInputs(std::map<o2::InteractionRecord, CTPDigit>& digitsMap, o2::pmr::vector<CTPDigit>& digits, uint32_t TFOrbit)
 {
   int nClasswoInp = 0; // counting classes without input which should never happen
