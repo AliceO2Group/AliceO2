@@ -31,6 +31,8 @@
 #include <TLegend.h>
 #include <TGraphErrors.h>
 #include <TF1.h>
+#include <TObjArray.h>
+#include <THStack.h>
 
 namespace o2
 {
@@ -56,7 +58,7 @@ class TrackCheckStudy : public Task
     float vx;
     float vy;
     float vz;
-    unsigned short clusters = 0u;
+    int unsigned short clusters = 0u;
     unsigned char isReco = 0u;
     unsigned char isFake = 0u;
     bool isPrimary = 0u;
@@ -82,6 +84,9 @@ class TrackCheckStudy : public Task
   void finaliseCCDB(ConcreteDataMatcher&, void*) final;
   void initialiseRun(o2::globaltracking::RecoContainer&);
   void process();
+  void setEfficiencyGraph(std::unique_ptr<TEfficiency>&, const char*, const char*, const int, const double, const double, const int, const double);
+  void setHistoMCGraph(TH1D&, std::unique_ptr<TH1D>&, const char*, const char*, const int, const double);
+  void NormalizeHistos(std::vector<TH1D>&);
 
  private:
   void updateTimeDependentParams(ProcessingContext& pc);
@@ -115,22 +120,61 @@ class TrackCheckStudy : public Task
   std::unique_ptr<TH1D> mFakeEta;
   std::unique_ptr<TH1D> mMultiFake;
   std::unique_ptr<TH1D> mFakeChi2;
-
   std::unique_ptr<TH1D> mClonePt;
   std::unique_ptr<TH1D> mCloneEta;
 
   std::unique_ptr<TH1D> mDenominatorPt;
   std::unique_ptr<TH1D> mDenominatorEta;
+  std::unique_ptr<TH1D> mDenominatorSecRad;
+  std::unique_ptr<TH1D> mDenominatorSecZ;
 
-  std::unique_ptr<TEfficiency> mEffPt;
+  std::unique_ptr<TH1D> mGoodRad; // decay radius and z of sv for secondary particle
+  std::unique_ptr<TH1D> mFakeRad;
+  std::unique_ptr<TH1D> mGoodZ;
+  std::unique_ptr<TH1D> mFakeZ;
+
+  std::unique_ptr<TH1D> mRadk; // decay radius and z of sv for particle with mother k e lambda
+  std::unique_ptr<TH1D> mZk;
+  std::unique_ptr<TH1D> mRadLam;
+  std::unique_ptr<TH1D> mZLam;
+
+  std::unique_ptr<TH1D> mGoodRadk;
+  std::unique_ptr<TH1D> mFakeRadk;
+  std::unique_ptr<TH1D> mGoodZk;
+  std::unique_ptr<TH1D> mFakeZk;
+
+  std::unique_ptr<TH1D> mGoodRadLam;
+  std::unique_ptr<TH1D> mFakeRadLam;
+  std::unique_ptr<TH1D> mGoodZLam;
+  std::unique_ptr<TH1D> mFakeZLam;
+
+  std::unique_ptr<TEfficiency> mEffPt; // Eff vs Pt primary
   std::unique_ptr<TEfficiency> mEffFakePt;
   std::unique_ptr<TEfficiency> mEffClonesPt;
 
-  std::unique_ptr<TEfficiency> mEffEta;
+  std::unique_ptr<TEfficiency> mEffEta; // Eff vs Eta primary
   std::unique_ptr<TEfficiency> mEffFakeEta;
   std::unique_ptr<TEfficiency> mEffClonesEta;
 
-  std::unique_ptr<TEfficiency> mEff0Pt;
+  std::unique_ptr<TEfficiency> mEffRad; // Eff vs Radius secondary
+  std::unique_ptr<TEfficiency> mEffFakeRad;
+
+  std::unique_ptr<TEfficiency> mEffZ; // Eff vs Z of sv secondary
+  std::unique_ptr<TEfficiency> mEffFakeZ;
+
+  std::unique_ptr<TEfficiency> mEffRadk; // Eff vs Z of sv and decay radius secondary for particle with mother k e lambda
+  std::unique_ptr<TEfficiency> mEffFakeRadk;
+
+  std::unique_ptr<TEfficiency> mEffZk;
+  std::unique_ptr<TEfficiency> mEffFakeZk;
+
+  std::unique_ptr<TEfficiency> mEffRadLam;
+  std::unique_ptr<TEfficiency> mEffFakeRadLam;
+
+  std::unique_ptr<TEfficiency> mEffZLam;
+  std::unique_ptr<TEfficiency> mEffFakeZLam;
+
+  std::unique_ptr<TEfficiency> mEff0Pt; // Eff vs Pt secondary for different layer
   std::unique_ptr<TEfficiency> mEff1Pt;
   std::unique_ptr<TEfficiency> mEff2Pt;
   std::unique_ptr<TEfficiency> mEff3Pt;
@@ -140,7 +184,7 @@ class TrackCheckStudy : public Task
   std::unique_ptr<TEfficiency> mEff2FakePt;
   std::unique_ptr<TEfficiency> mEff3FakePt;
 
-  std::unique_ptr<TEfficiency> mEff0Eta;
+  std::unique_ptr<TEfficiency> mEff0Eta; // Eff vs eta secondary for different layer
   std::unique_ptr<TEfficiency> mEff1Eta;
   std::unique_ptr<TEfficiency> mEff2Eta;
   std::unique_ptr<TEfficiency> mEff3Eta;
@@ -150,7 +194,7 @@ class TrackCheckStudy : public Task
   std::unique_ptr<TEfficiency> mEff2FakeEta;
   std::unique_ptr<TEfficiency> mEff3FakeEta;
 
-  std::unique_ptr<TH1D> mGoodPt0;
+  std::unique_ptr<TH1D> mGoodPt0; // Pt secondary for different layer
   std::unique_ptr<TH1D> mGoodPt1;
   std::unique_ptr<TH1D> mGoodPt2;
   std::unique_ptr<TH1D> mGoodPt3;
@@ -160,7 +204,7 @@ class TrackCheckStudy : public Task
   std::unique_ptr<TH1D> mFakePt2;
   std::unique_ptr<TH1D> mFakePt3;
 
-  std::unique_ptr<TH1D> mGoodEta0;
+  std::unique_ptr<TH1D> mGoodEta0; // eta secondary for different layer
   std::unique_ptr<TH1D> mGoodEta1;
   std::unique_ptr<TH1D> mGoodEta2;
   std::unique_ptr<TH1D> mGoodEta3;
@@ -180,17 +224,25 @@ class TrackCheckStudy : public Task
   std::unique_ptr<TH1D> mPtSec2Eta;
   std::unique_ptr<TH1D> mPtSec3Eta;
 
-  std::unique_ptr<TH1D> mPtResolution;
+  std::unique_ptr<TH1D> mPtResolution; // Pt resolution for both primary and secondary
   std::unique_ptr<TH2D> mPtResolution2D;
   std::unique_ptr<TH1D> mPtResolutionSec;
   std::unique_ptr<TH1D> mPtResolutionPrim;
   std::unique_ptr<TGraphErrors> g1;
 
+  std::vector<TH1I*> histLength, histLength1Fake, histLength2Fake, histLength3Fake, histLengthNoCl, histLength1FakeNoCl, histLength2FakeNoCl, histLength3FakeNoCl; // FakeCluster Study
+  std::vector<THStack*> stackLength, stackLength1Fake, stackLength2Fake, stackLength3Fake;
+  std::vector<TLegend*> legends, legends1Fake, legends2Fake, legends3Fake;
+  ParticleInfo pInfo;
   // Canvas & decorations
   std::unique_ptr<TCanvas> mCanvasPt;
   std::unique_ptr<TCanvas> mCanvasPt2;
   std::unique_ptr<TCanvas> mCanvasPt2fake;
   std::unique_ptr<TCanvas> mCanvasEta;
+  std::unique_ptr<TCanvas> mCanvasRad;
+  std::unique_ptr<TCanvas> mCanvasZ;
+  std::unique_ptr<TCanvas> mCanvasRadD;
+  std::unique_ptr<TCanvas> mCanvasZD;
   std::unique_ptr<TCanvas> mCanvasEta2;
   std::unique_ptr<TCanvas> mCanvasEta2fake;
   std::unique_ptr<TCanvas> mCanvasPtRes;
@@ -205,6 +257,12 @@ class TrackCheckStudy : public Task
   std::unique_ptr<TLegend> mLegendEta2Fake;
   std::unique_ptr<TLegend> mLegendPtRes;
   std::unique_ptr<TLegend> mLegendPtRes2;
+  std::unique_ptr<TLegend> mLegendZ;
+  std::unique_ptr<TLegend> mLegendRad;
+  std::unique_ptr<TLegend> mLegendZD;
+  std::unique_ptr<TLegend> mLegendRadD;
+  std::vector<TH1D> HistoMC;
+  std::vector<std::unique_ptr<TEfficiency>> EffVec;
 
   float rLayer0 = 2.34;
   float rLayer1 = 3.15;
@@ -234,14 +292,29 @@ void TrackCheckStudy::init(InitContext& ic)
   for (int i{0}; i <= pars.effHistBins; i++) {
     xbins[i] = pars.effPtCutLow * std::exp(i * a);
   }
-
+  // to do: cut a lot of lines (reminder: use form like bt, for canvas a vector + function and from bt)
   mGoodPt = std::make_unique<TH1D>("goodPt", ";#it{p}_{T} (GeV/#it{c});Efficiency (fake-track rate)", pars.effHistBins, xbins.data());
+  //EffVec.push_back(mGoodPt);
   mGoodEta = std::make_unique<TH1D>("goodEta", ";#eta;Number of tracks", 60, -3, 3);
   mGoodChi2 = std::make_unique<TH1D>("goodChi2", ";#it{p}_{T} (GeV/#it{c});Efficiency (fake-track rate)", 200, 0, 100);
+
+  mGoodRad = std::make_unique<TH1D>("goodRad", ";#Radius [cm];Number of tracks", 100, 0, 25);
+  mGoodZ = std::make_unique<TH1D>("goodZ", ";#z of secondary vertex [cm];Number of tracks", 100, -50, 50);
+  mGoodRadk = std::make_unique<TH1D>("goodRadk", ";#Radius [cm];Number of tracks", 100, 0, 25);
+  mGoodZk = std::make_unique<TH1D>("goodZk", ";#z of secondary vertex [cm];Number of tracks", 100, -50, 50);
+  mGoodRadLam = std::make_unique<TH1D>("goodRadLam", ";#Radius [cm];Number of tracks", 100, 0, 25);
+  mGoodZLam = std::make_unique<TH1D>("goodZLam", ";#z of secondary vertex [cm];Number of tracks", 100, -50, 50);
 
   mFakePt = std::make_unique<TH1D>("fakePt", ";#it{p}_{T} (GeV/#it{c});Fak", pars.effHistBins, xbins.data());
   mFakeEta = std::make_unique<TH1D>("fakeEta", ";#eta;Number of tracks", 60, -3, 3);
   mFakeChi2 = std::make_unique<TH1D>("fakeChi2", ";#it{p}_{T} (GeV/#it{c});Fak", 200, 0, 100);
+
+  mFakeRad = std::make_unique<TH1D>("fakeRad", ";#Radius [cm];Number of tracks", 100, 0, 25);
+  mFakeZ = std::make_unique<TH1D>("fakeZ", ";#z of secondary vertex [cm];Number of tracks", 100, -50, 50);
+  mFakeRadk = std::make_unique<TH1D>("fakeRadLam", ";#Radius [cm];Number of tracks", 100, 0, 25);
+  mFakeZk = std::make_unique<TH1D>("fakeZLam", ";#z of secondary vertex [cm];Number of tracks", 100, -50, 50);
+  mFakeRadLam = std::make_unique<TH1D>("fakeRadLam", ";#Radius [cm];Number of tracks", 100, 0, 25);
+  mFakeZLam = std::make_unique<TH1D>("fakeZLam", ";#z of secondary vertex [cm];Number of tracks", 100, -50, 50);
 
   mMultiFake = std::make_unique<TH1D>("multiFake", ";#it{p}_{T} (GeV/#it{c});Fak", pars.effHistBins, xbins.data());
 
@@ -250,6 +323,13 @@ void TrackCheckStudy::init(InitContext& ic)
 
   mDenominatorPt = std::make_unique<TH1D>("denominatorPt", ";#it{p}_{T} (GeV/#it{c});Den", pars.effHistBins, xbins.data());
   mDenominatorEta = std::make_unique<TH1D>("denominatorEta", ";#eta;Number of tracks", 60, -3, 3);
+  mDenominatorSecRad = std::make_unique<TH1D>("denominatorSecRad", ";Radius [cm];Number of tracks", 100, 0, 25);
+  mDenominatorSecZ = std::make_unique<TH1D>("denominatorSecZ", ";z of secondary vertex [cm];Number of tracks", 100, -50, 50);
+
+  mRadk = std::make_unique<TH1D>("mRadk", ";Radius [cm];Number of tracks", 100, 0, 25);
+  mRadLam = std::make_unique<TH1D>("mRadLam", ";Radius [cm];Number of tracks", 100, 0, 25);
+  mZk = std::make_unique<TH1D>("mZk", ";z of secondary vertex [cm]", 100, -50, 50);
+  mZLam = std::make_unique<TH1D>("mZLam", ";z of secondary vertex [cm]", 100, -50, 50);
 
   mGoodPt0 = std::make_unique<TH1D>("goodPt0", ";#it{p}_{T} (GeV/#it{c});Efficiency (fake-track rate)", pars.effHistBins, xbins.data());
   mGoodPt1 = std::make_unique<TH1D>("goodPt1", ";#it{p}_{T} (GeV/#it{c});Efficiency (fake-track rate)", pars.effHistBins, xbins.data());
@@ -290,6 +370,11 @@ void TrackCheckStudy::init(InitContext& ic)
   mPtResolutionSec->Sumw2();
   mPtResolutionPrim->Sumw2();
 
+  mRadk->Sumw2();
+  mRadLam->Sumw2();
+  mZk->Sumw2();
+  mZLam->Sumw2();
+
   mGoodPt0->Sumw2();
   mGoodPt1->Sumw2();
   mGoodPt2->Sumw2();
@@ -322,10 +407,24 @@ void TrackCheckStudy::init(InitContext& ic)
 
   mGoodPt->Sumw2();
   mGoodEta->Sumw2();
+  mGoodRad->Sumw2();
+  mGoodZ->Sumw2();
+  mGoodRadk->Sumw2();
+  mGoodZk->Sumw2();
+  mGoodRadLam->Sumw2();
+  mGoodZLam->Sumw2();
+  mFakeRadk->Sumw2();
+  mFakeZk->Sumw2();
+  mFakeRadLam->Sumw2();
+  mFakeZLam->Sumw2();
   mFakePt->Sumw2();
+  mFakeRad->Sumw2();
+  mFakeZ->Sumw2();
   mMultiFake->Sumw2();
   mClonePt->Sumw2();
   mDenominatorPt->Sumw2();
+  mDenominatorSecRad->Sumw2();
+  mDenominatorSecZ->Sumw2();
 }
 
 void TrackCheckStudy::run(ProcessingContext& pc)
@@ -370,6 +469,7 @@ void TrackCheckStudy::process()
         mParticleInfo[iSource][iEvent][iPart].vy = part.Vy();
         mParticleInfo[iSource][iEvent][iPart].vz = part.Vz();
         mParticleInfo[iSource][iEvent][iPart].isPrimary = part.isPrimary();
+        mParticleInfo[iSource][iEvent][iPart].mother = part.getMotherTrackId();
         // mParticleInfo[iSource][iEvent][iPart].first = part.getFirstDaughterTrackId();
       }
     }
@@ -427,115 +527,360 @@ void TrackCheckStudy::process()
   LOGP(info, "\t- Total number of fakes: {} ({:.2f} %)", fakes, fakes * 100. / mTracks.size());
   LOGP(info, "\t- Total number of good: {} ({:.2f} %)", good, good * 100. / mTracks.size());
 
-  LOGP(info, "** Filling histograms ... ");
+  histLength.resize(4);
+  histLength1Fake.resize(4);
+  histLength2Fake.resize(4);
+  histLength3Fake.resize(2);
+  histLengthNoCl.resize(4);
+  histLength1FakeNoCl.resize(4);
+  histLength2FakeNoCl.resize(4);
+  histLength3FakeNoCl.resize(2);
+  stackLength.resize(4);
+  stackLength1Fake.resize(4);
+  stackLength2Fake.resize(4);
+  stackLength3Fake.resize(2);
+  legends.resize(4);
+  legends1Fake.resize(4);
+  legends2Fake.resize(4);
+  legends3Fake.resize(2);
 
+  for (int iH{4}; iH < 8; ++iH) {
+    histLength[iH - 4] = new TH1I(Form("trk_len_%d", iH), "#exists cluster", 7, -.5, 6.5);
+    histLength[iH - 4]->SetFillColor(kGreen + 3);
+    histLength[iH - 4]->SetLineColor(kGreen + 3);
+    histLength[iH - 4]->SetFillStyle(3352);
+    histLengthNoCl[iH - 4] = new TH1I(Form("trk_len_%d_nocl", iH), "#slash{#exists} cluster", 7, -.5, 6.5);
+    histLengthNoCl[iH - 4]->SetFillColor(kOrange + 7);
+    histLengthNoCl[iH - 4]->SetLineColor(kOrange + 7);
+    histLengthNoCl[iH - 4]->SetFillStyle(3352);
+    stackLength[iH - 4] = new THStack(Form("stack_trk_len_%d", iH), Form("trk_len=%d", iH));
+    stackLength[iH - 4]->Add(histLength[iH - 4]);
+    stackLength[iH - 4]->Add(histLengthNoCl[iH - 4]);
+
+    histLength1Fake[iH - 4] = new TH1I(Form("trk_len_%d_1f", iH), "#exists cluster", 7, -.5, 6.5);
+    histLength1Fake[iH - 4]->SetFillColor(kGreen + 3);
+    histLength1Fake[iH - 4]->SetLineColor(kGreen + 3);
+    histLength1Fake[iH - 4]->SetFillStyle(3352);
+    histLength1FakeNoCl[iH - 4] = new TH1I(Form("trk_len_%d_1f_nocl", iH), "#slash{#exists} cluster", 7, -.5, 6.5);
+    histLength1FakeNoCl[iH - 4]->SetFillColor(kOrange + 7);
+    histLength1FakeNoCl[iH - 4]->SetLineColor(kOrange + 7);
+    histLength1FakeNoCl[iH - 4]->SetFillStyle(3352);
+    stackLength1Fake[iH - 4] = new THStack(Form("stack_trk_len_%d_1f", iH), Form("trk_len=%d, 1 Fake", iH));
+    stackLength1Fake[iH - 4]->Add(histLength1Fake[iH - 4]);
+    stackLength1Fake[iH - 4]->Add(histLength1FakeNoCl[iH - 4]);
+
+    histLength2Fake[iH - 4] = new TH1I(Form("trk_len_%d_2f", iH), "#exists cluster", 7, -.5, 6.5);
+    histLength2Fake[iH - 4]->SetFillColor(kGreen + 3);
+    histLength2Fake[iH - 4]->SetLineColor(kGreen + 3);
+    histLength2Fake[iH - 4]->SetFillStyle(3352);
+    histLength2FakeNoCl[iH - 4] = new TH1I(Form("trk_len_%d_2f_nocl", iH), "#slash{#exists} cluster", 7, -.5, 6.5);
+    histLength2FakeNoCl[iH - 4]->SetFillColor(kOrange + 7);
+    histLength2FakeNoCl[iH - 4]->SetLineColor(kOrange + 7);
+    histLength2FakeNoCl[iH - 4]->SetFillStyle(3352);
+    stackLength2Fake[iH - 4] = new THStack(Form("stack_trk_len_%d_2f", iH), Form("trk_len=%d, 2 Fake", iH));
+    stackLength2Fake[iH - 4]->Add(histLength2Fake[iH - 4]);
+    stackLength2Fake[iH - 4]->Add(histLength2FakeNoCl[iH - 4]);
+    if (iH > 5) {
+      histLength3Fake[iH - 6] = new TH1I(Form("trk_len_%d_3f", iH), "#exists cluster", 7, -.5, 6.5);
+      histLength3Fake[iH - 6]->SetFillColor(kGreen + 3);
+      histLength3Fake[iH - 6]->SetLineColor(kGreen + 3);
+      histLength3Fake[iH - 6]->SetFillStyle(3352);
+      histLength3FakeNoCl[iH - 6] = new TH1I(Form("trk_len_%d_3f_nocl", iH), "#slash{#exists} cluster", 7, -.5, 6.5);
+      histLength3FakeNoCl[iH - 6]->SetFillColor(kOrange + 7);
+      histLength3FakeNoCl[iH - 6]->SetLineColor(kOrange + 7);
+      histLength3FakeNoCl[iH - 6]->SetFillStyle(3352);
+      stackLength3Fake[iH - 6] = new THStack(Form("stack_trk_len_%d_3f", iH), Form("trk_len=%d, 3 Fake", iH));
+      stackLength3Fake[iH - 6]->Add(histLength3Fake[iH - 6]);
+      stackLength3Fake[iH - 6]->Add(histLength3FakeNoCl[iH - 6]);
+    }
+  }
+  LOGP(info, "** Filling histograms ... ");
+  int evID = 0;
+  int trackID = 0;
   // Currently process only sourceID = 0, to be extended later if needed
   for (auto& evInfo : mParticleInfo[0]) {
+    trackID = 0;
     for (auto& part : evInfo) {
-      if ((part.clusters & 0x7f) != mMask) {
+      if ((part.clusters & 0x7f) == mMask) {
         // part.clusters != 0x3f && part.clusters != 0x3f << 1 &&
         // part.clusters != 0x1f && part.clusters != 0x1f << 1 && part.clusters != 0x1f << 2 &&
         // part.clusters != 0x0f && part.clusters != 0x0f << 1 && part.clusters != 0x0f << 2 && part.clusters != 0x0f << 3) {
-        continue;
-      }
-      if (part.isPrimary) {
-        mDenominatorPt->Fill(part.pt);
-        mDenominatorEta->Fill(part.eta);
-        if (part.isReco) {
-          mGoodPt->Fill(part.pt);
-          mGoodEta->Fill(part.eta);
-          if (part.isReco > 1) {
-            for (int _i{0}; _i < part.isReco - 1; ++_i) {
-              mClonePt->Fill(part.pt);
-              mCloneEta->Fill(part.eta);
+        // continue;
+
+        if (part.isPrimary) {
+          mDenominatorPt->Fill(part.pt);
+          mDenominatorEta->Fill(part.eta);
+          if (part.isReco) {
+            mGoodPt->Fill(part.pt);
+            mGoodEta->Fill(part.eta);
+            if (part.isReco > 1) {
+              for (int _i{0}; _i < part.isReco - 1; ++_i) {
+                mClonePt->Fill(part.pt);
+                mCloneEta->Fill(part.eta);
+              }
             }
           }
-        }
-        if (part.isFake) {
-          mFakePt->Fill(part.pt);
-          mFakeEta->Fill(part.eta);
-          if (part.isFake > 1) {
-            for (int _i{0}; _i < part.isFake - 1; ++_i) {
-              mMultiFake->Fill(part.pt);
+          if (part.isFake) {
+            mFakePt->Fill(part.pt);
+            mFakeEta->Fill(part.eta);
+            if (part.isFake > 1) {
+              for (int _i{0}; _i < part.isFake - 1; ++_i) {
+                mMultiFake->Fill(part.pt);
+              }
             }
           }
         }
       }
 
       if (!part.isPrimary) {
+
         totalsec++;
+        int pdgcode = mParticleInfo[0][evID][part.mother].pdg;
         float rad = sqrt(pow(part.vx, 2) + pow(part.vy, 2));
-        if (rad < rLayer0) // layer 0
+
+        if ((rad < rLayer0) && (part.clusters == 0x7f || part.clusters == 0x3f || part.clusters == 0x1f || part.clusters == 0x0f)) // layer 0
         {
+          if (pdgcode == 310) // k0s
+          {
+            mRadk->Fill(rad);
+            mZk->Fill(part.vz);
+          }
+          if (pdgcode == 3122) { // Lambda
+            mRadLam->Fill(rad);
+            mZLam->Fill(part.vz);
+          }
           totsec0++;
           mPtSec0Pt->Fill(part.pt);
           mPtSec0Eta->Fill(part.eta);
-
+          mDenominatorSecRad->Fill(rad);
+          mDenominatorSecZ->Fill(part.vz);
           if (part.isReco) {
             mGoodPt0->Fill(part.pt);
             mGoodEta0->Fill(part.eta);
+            mGoodRad->Fill(rad);
+            mGoodZ->Fill(part.vz);
+            if (pdgcode == 310) {
+              mGoodRadk->Fill(rad);
+              mGoodZk->Fill(part.vz);
+            }
+            if (pdgcode == 3122) {
+              mGoodRadLam->Fill(rad);
+              mGoodZLam->Fill(part.vz);
+            }
             good0++;
           }
           if (part.isFake) {
             mFakePt0->Fill(part.pt);
             mFakeEta0->Fill(part.eta);
+            mFakeRad->Fill(rad);
+            mFakeZ->Fill(part.vz);
+            if (pdgcode == 310) {
+              mFakeRadk->Fill(rad);
+              mFakeZk->Fill(part.vz);
+            }
+            if (pdgcode == 3122) {
+              mFakeRadLam->Fill(rad);
+              mFakeZLam->Fill(part.vz);
+            }
             fake0++;
           }
         }
 
-        if (rad < rLayer1 && rad > rLayer0) // layer 1
+        if (rad < rLayer1 && rad > rLayer0 && (part.clusters == 0x1e || part.clusters == 0x3e || part.clusters == 0x7e)) // layer 1
         {
+          if (pdgcode == 310) {
+            mRadk->Fill(rad);
+            mZk->Fill(part.vz);
+          }
+          if (pdgcode == 3122) {
+            mRadLam->Fill(rad);
+            mZLam->Fill(part.vz);
+          }
           totsec1++;
           mPtSec1Pt->Fill(part.pt);
           mPtSec1Eta->Fill(part.eta);
+          mDenominatorSecRad->Fill(rad);
+          mDenominatorSecZ->Fill(part.vz);
           if (part.isReco) {
             mGoodPt1->Fill(part.pt);
             mGoodEta1->Fill(part.eta);
+            mGoodRad->Fill(rad);
+            mGoodZ->Fill(part.vz);
+            if (pdgcode == 310) {
+              mGoodRadk->Fill(rad);
+              mGoodZk->Fill(part.vz);
+            }
+            if (pdgcode == 3122) {
+              mGoodRadLam->Fill(rad);
+              mGoodZLam->Fill(part.vz);
+            }
             good1++;
           }
           if (part.isFake) {
             mFakePt1->Fill(part.pt);
             mFakeEta1->Fill(part.eta);
+            mFakeRad->Fill(rad);
+            mFakeZ->Fill(part.vz);
+            if (pdgcode == 310) {
+              mFakeRadk->Fill(rad);
+              mFakeZk->Fill(part.vz);
+            }
+            if (pdgcode == 3122) {
+              mFakeRadLam->Fill(rad);
+              mFakeZLam->Fill(part.vz);
+            }
             fake1++;
           }
         }
 
-        if (rad < rLayer2 && rad > rLayer1) // layer 2
+        if (rad < rLayer2 && rad > rLayer1 && (part.clusters == 0x7c || part.clusters == 0x3c)) // layer 2
         {
+          if (pdgcode == 310) {
+            mRadk->Fill(rad);
+            mZk->Fill(part.vz);
+          }
+          if (pdgcode == 3122) {
+            mRadLam->Fill(rad);
+            mZLam->Fill(part.vz);
+          }
           totsec2++;
           mPtSec2Pt->Fill(part.pt);
           mPtSec2Eta->Fill(part.eta);
+          mDenominatorSecRad->Fill(rad);
+          mDenominatorSecZ->Fill(part.vz);
           if (part.isReco) {
             mGoodPt2->Fill(part.pt);
             mGoodEta2->Fill(part.eta);
+            mGoodRad->Fill(rad);
+            mGoodZ->Fill(part.vz);
+            if (pdgcode == 310) {
+              mGoodRadk->Fill(rad);
+              mGoodZk->Fill(part.vz);
+            }
+            if (pdgcode == 3122) {
+              mGoodRadLam->Fill(rad);
+              mGoodZLam->Fill(part.vz);
+            }
             good2++;
           }
           if (part.isFake) {
             mFakePt2->Fill(part.pt);
             mFakeEta2->Fill(part.eta);
+            mFakeRad->Fill(rad);
+            mFakeZ->Fill(part.vz);
+            if (pdgcode == 310) {
+              mFakeRadk->Fill(rad);
+              mFakeZk->Fill(part.vz);
+            }
+            if (pdgcode == 3122) {
+              mFakeRadLam->Fill(rad);
+              mFakeZLam->Fill(part.vz);
+            }
             fake2++;
           }
         }
 
-        if (rad < rLayer3 && rad > rLayer2) // layer 3
+        if (rad < rLayer3 && rad > rLayer2 && part.clusters == 0x78) // layer 3
         {
+          if (pdgcode == 310) {
+            mRadk->Fill(rad);
+            mZk->Fill(part.vz);
+          }
+          if (pdgcode == 3122) {
+            mRadLam->Fill(rad);
+            mZLam->Fill(part.vz);
+          }
           totsec3++;
           mPtSec3Pt->Fill(part.pt);
           mPtSec3Eta->Fill(part.eta);
+          mDenominatorSecRad->Fill(rad);
+          mDenominatorSecZ->Fill(part.vz);
           if (part.isReco) {
             mGoodPt3->Fill(part.pt);
             mGoodEta3->Fill(part.eta);
+            mGoodRad->Fill(rad);
+            mGoodZ->Fill(part.vz);
+            if (pdgcode == 310) {
+              mGoodRadk->Fill(rad);
+              mGoodZk->Fill(part.vz);
+            }
+            if (pdgcode == 3122) {
+              mGoodRadLam->Fill(rad);
+              mGoodZLam->Fill(part.vz);
+            }
             good3++;
           }
           if (part.isFake) {
             mFakePt3->Fill(part.pt);
             mFakeEta3->Fill(part.eta);
+            mFakeRad->Fill(rad);
+            mFakeZ->Fill(part.vz);
+            if (pdgcode == 310) {
+              mFakeRadk->Fill(rad);
+              mFakeZk->Fill(part.vz);
+            }
+            if (pdgcode == 3122) {
+              mFakeRadLam->Fill(rad);
+              mFakeZLam->Fill(part.vz);
+            }
             fake3++;
           }
         }
+
+        // Analysing fake clusters
+
+        int nCl{0};
+        for (unsigned int bit{0}; bit < sizeof(part.clusters) * 8; ++bit) {
+          nCl += bool(part.clusters & (1 << bit));
+        }
+        if (nCl < 3) {
+          continue;
+        }
+        auto& track = part.track;
+        auto len = track.getNClusters();
+        for (int iLayer{0}; iLayer < 7; ++iLayer) {
+          if (track.hasHitOnLayer(iLayer)) {
+            if (track.isFakeOnLayer(iLayer)) { // Reco track has fake cluster
+              if (part.clusters & (0x1 << iLayer)) { // Correct cluster exists
+                histLength[len - 4]->Fill(iLayer);
+                if (track.getNFakeClusters() == 1) {
+                  histLength1Fake[len - 4]->Fill(iLayer);
+                }
+                if (track.getNFakeClusters() == 2) {
+                  histLength2Fake[len - 4]->Fill(iLayer);
+                }
+                if (track.getNFakeClusters() == 3) {
+                  histLength3Fake[len - 6]->Fill(iLayer);
+                }
+
+              } else {
+                histLengthNoCl[len - 4]->Fill(iLayer);
+                if (track.getNFakeClusters() == 1) {
+                  histLength1FakeNoCl[len - 4]->Fill(iLayer);
+                }
+                if (track.getNFakeClusters() == 2) {
+                  histLength2FakeNoCl[len - 4]->Fill(iLayer);
+                }
+                if (track.getNFakeClusters() == 3) {
+                  histLength3FakeNoCl[len - 6]->Fill(iLayer);
+                }
+              }
+            }
+          }
+        }
       }
+      trackID++;
     }
+    evID++;
   }
+
+  HistoMC.push_back(*mDenominatorSecRad);
+  HistoMC.push_back(*mRadk);
+  HistoMC.push_back(*mRadLam);
+  HistoMC.push_back(*mDenominatorSecZ);
+  HistoMC.push_back(*mZk);
+  HistoMC.push_back(*mZLam);
+
   LOGP(info, "** Some statistics on secondary tracks:");
 
   LOGP(info, "\t- Total number of secondary tracks: {}", totalsec);
@@ -543,7 +888,7 @@ void TrackCheckStudy::process()
   LOGP(info, "\t- Total number of secondary tracks on layer 1: {}, good: {}, fake: {}", totsec1, good1, fake1);
   LOGP(info, "\t- Total number of secondary tracks on layer 2: {}, good: {}, fake: {}", totsec2, good2, fake2);
   LOGP(info, "\t- Total number of secondary tracks on layer 3: {}, good: {}, fake: {}", totsec3, good3, fake3);
-
+  LOGP(info, "fraction of k = {}, fraction of lambda= {}", (*mRadk).GetEntries() / (*mDenominatorSecRad).GetEntries(), (*mRadLam).GetEntries() / (*mDenominatorSecRad).GetEntries());
   LOGP(info, "** Computing efficiencies ...");
 
   mEffPt = std::make_unique<TEfficiency>(*mGoodPt, *mDenominatorPt);
@@ -553,6 +898,24 @@ void TrackCheckStudy::process()
   mEffEta = std::make_unique<TEfficiency>(*mGoodEta, *mDenominatorEta);
   mEffFakeEta = std::make_unique<TEfficiency>(*mFakeEta, *mDenominatorEta);
   mEffClonesEta = std::make_unique<TEfficiency>(*mCloneEta, *mDenominatorEta);
+
+  mEffRad = std::make_unique<TEfficiency>(*mGoodRad, *mDenominatorSecRad);
+  mEffFakeRad = std::make_unique<TEfficiency>(*mFakeRad, *mDenominatorSecRad);
+
+  mEffZ = std::make_unique<TEfficiency>(*mGoodZ, *mDenominatorSecZ);
+  mEffFakeZ = std::make_unique<TEfficiency>(*mFakeZ, *mDenominatorSecZ);
+
+  mEffRadk = std::make_unique<TEfficiency>(*mGoodRadk, *mRadk);
+  mEffFakeRadk = std::make_unique<TEfficiency>(*mFakeRadk, *mRadk);
+
+  mEffZk = std::make_unique<TEfficiency>(*mGoodZk, *mZk);
+  mEffFakeZk = std::make_unique<TEfficiency>(*mFakeZk, *mZk);
+
+  mEffRadLam = std::make_unique<TEfficiency>(*mGoodRadLam, *mRadLam);
+  mEffFakeRadLam = std::make_unique<TEfficiency>(*mFakeRadLam, *mRadLam);
+
+  mEffZLam = std::make_unique<TEfficiency>(*mGoodZLam, *mZLam);
+  mEffFakeZLam = std::make_unique<TEfficiency>(*mFakeZLam, *mZLam);
 
   mEff0Pt = std::make_unique<TEfficiency>(*mGoodPt0, *mPtSec0Pt);
   mEff1Pt = std::make_unique<TEfficiency>(*mGoodPt1, *mPtSec1Pt);
@@ -590,8 +953,7 @@ void TrackCheckStudy::process()
     mPtResolution2D->Fill(mParticleInfo[srcID][evID][trackID].pt, (mParticleInfo[srcID][evID][trackID].pt - mTracks[iTrack].getPt()) / mParticleInfo[srcID][evID][trackID].pt);
     if (!mParticleInfo[srcID][evID][trackID].isPrimary)
       mPtResolutionSec->Fill((mParticleInfo[srcID][evID][trackID].pt - mTracks[iTrack].getPt()) / mParticleInfo[srcID][evID][trackID].pt);
-    if (mParticleInfo[srcID][evID][trackID].isPrimary)
-      mPtResolutionPrim->Fill((mParticleInfo[srcID][evID][trackID].pt - mTracks[iTrack].getPt()) / mParticleInfo[srcID][evID][trackID].pt);
+    mPtResolutionPrim->Fill((mParticleInfo[srcID][evID][trackID].pt - mTracks[iTrack].getPt()) / mParticleInfo[srcID][evID][trackID].pt);
   }
 
   for (int yy = 0; yy < 100; yy++) {
@@ -614,6 +976,40 @@ void TrackCheckStudy::process()
   }
 }
 
+void TrackCheckStudy::NormalizeHistos(std::vector<TH1D>& HistoMC)
+{
+  int nHist = HistoMC.size();
+  for (int jh = 0; jh < nHist; jh++) {
+    double tot = HistoMC[jh].Integral();
+    if (tot > 0)
+      HistoMC[jh].Scale(1. / tot);
+  }
+}
+
+void TrackCheckStudy::setEfficiencyGraph(std::unique_ptr<TEfficiency>& eff, const char* name, const char* title, const int color, const double alpha = 1, const double linew = 2, const int markerStyle = kFullCircle, const double markersize = 1.7)
+{
+  eff->SetName(name);
+  eff->SetTitle(title);
+  eff->SetLineColor(color);
+  eff->SetLineColorAlpha(color, alpha);
+  eff->SetMarkerColor(color);
+  eff->SetMarkerColorAlpha(color, alpha);
+  eff->SetLineWidth(linew);
+  eff->SetMarkerStyle(markerStyle);
+  eff->SetMarkerSize(markersize);
+  eff->SetDirectory(gDirectory);
+}
+
+void TrackCheckStudy::setHistoMCGraph(TH1D& histo, std::unique_ptr<TH1D>& histo2, const char* name, const char* title, const int color, const double alpha = 0.5)
+{
+  histo.SetName(name);
+  histo2->SetName(name);
+  histo.SetTitle(title);
+  histo.SetFillColor(color);
+  histo.SetFillColorAlpha(color, alpha);
+  histo.SetDirectory(gDirectory);
+}
+
 void TrackCheckStudy::updateTimeDependentParams(ProcessingContext& pc)
 {
   static bool initOnceDone = false;
@@ -628,248 +1024,127 @@ void TrackCheckStudy::updateTimeDependentParams(ProcessingContext& pc)
 void TrackCheckStudy::endOfStream(EndOfStreamContext& ec)
 {
   TFile fout(mOutFileName.c_str(), "recreate");
-  mEffPt->SetName("Good_pt");
-  mEffPt->SetTitle(";#it{p}_{T} (GeV/#it{c});efficiency primary particle");
-  mEffPt->SetLineColor(kAzure + 4);
-  mEffPt->SetLineColorAlpha(kAzure + 4, 0.65);
-  mEffPt->SetLineWidth(2);
-  mEffPt->SetMarkerColorAlpha(kAzure + 4, 0.65);
-  mEffPt->SetMarkerStyle(kFullCircle);
-  mEffPt->SetMarkerSize(1.35);
-  mEffPt->SetDirectory(gDirectory);
+  NormalizeHistos(HistoMC);
+
+  setEfficiencyGraph(mEffPt, "Good_pt", ";#it{p}_{T} (GeV/#it{c});efficiency primary particle", kAzure + 4, 0.65);
   fout.WriteTObject(mEffPt.get());
 
-  mEffFakePt->SetName("Fake_pt");
-  mEffFakePt->SetTitle(";#it{p}_{T} (GeV/#it{c});efficiency primary particle");
-  mEffFakePt->SetLineColor(kRed + 1);
-  mEffFakePt->SetLineColorAlpha(kRed + 1, 0.65);
-  mEffFakePt->SetLineWidth(2);
-  mEffFakePt->SetMarkerColorAlpha(kRed + 1, 0.65);
-  mEffFakePt->SetMarkerStyle(kFullCircle);
-  mEffFakePt->SetMarkerSize(1.35);
-  mEffFakePt->SetDirectory(gDirectory);
+  setEfficiencyGraph(mEffFakePt, "Fake_pt", ";#it{p}_{T} (GeV/#it{c});efficiency primary particle", kRed + 1, 0.65);
   fout.WriteTObject(mEffFakePt.get());
 
-  mEffClonesPt->SetName("Clone_pt");
-  mEffClonesPt->SetTitle(";#it{p}_{T} (GeV/#it{c});efficiency primary particle");
-  mEffClonesPt->SetLineColor(kGreen + 2);
-  mEffClonesPt->SetLineColorAlpha(kGreen + 2, 0.65);
-  mEffClonesPt->SetLineWidth(2);
-  mEffClonesPt->SetMarkerColorAlpha(kGreen + 2, 0.65);
-
-  mEffClonesPt->SetMarkerStyle(kFullCircle);
-  mEffClonesPt->SetMarkerSize(1.35);
-  mEffClonesPt->SetDirectory(gDirectory);
+  setEfficiencyGraph(mEffClonesPt, "Clone_pt", ";#it{p}_{T} (GeV/#it{c});efficiency primary particle", kGreen + 2, 0.65);
   fout.WriteTObject(mEffClonesPt.get());
 
-  mEffEta->SetName("Good_eta");
-  mEffEta->SetTitle(";#eta;efficiency primary particle");
-  mEffEta->SetLineColor(kAzure + 4);
-  mEffEta->SetLineColorAlpha(kAzure + 4, 0.65);
-  mEffEta->SetLineWidth(2);
-  mEffEta->SetMarkerColorAlpha(kAzure + 4, 0.65);
-  mEffEta->SetMarkerStyle(kFullCircle);
-  mEffEta->SetMarkerSize(1.35);
-  mEffEta->SetDirectory(gDirectory);
+  setEfficiencyGraph(mEffEta, "Good_eta", ";#it{p}_{T} (GeV/#it{c});efficiency primary particle", kAzure + 4, 0.65);
   fout.WriteTObject(mEffEta.get());
 
-  mEffFakeEta->SetName("Fake_eta");
-  mEffFakeEta->SetTitle(";#eta;efficiency primary particle");
-  mEffFakeEta->SetLineColor(kRed + 1);
-  mEffFakeEta->SetLineColorAlpha(kRed + 1, 0.65);
-  mEffFakeEta->SetLineWidth(2);
-  mEffFakeEta->SetMarkerColorAlpha(kRed + 1, 0.65);
-  mEffFakeEta->SetMarkerStyle(kFullCircle);
-  mEffFakeEta->SetMarkerSize(1.35);
-  mEffFakeEta->SetDirectory(gDirectory);
+  setEfficiencyGraph(mEffFakeEta, "Fake_eta", ";#it{p}_{T} (GeV/#it{c});efficiency primary particle", kRed + 1, 0.65);
   fout.WriteTObject(mEffFakeEta.get());
 
-  mEffClonesEta->SetName("Clone_eta");
-  mEffClonesEta->SetTitle(";#eta;efficiency primary particle");
-  mEffClonesEta->SetLineColor(kGreen + 2);
-  mEffClonesEta->SetLineColorAlpha(kGreen + 2, 0.65);
-  mEffClonesEta->SetLineWidth(2);
-  mEffClonesEta->SetMarkerColorAlpha(kGreen + 2, 0.65);
-  mEffClonesEta->SetMarkerStyle(kFullCircle);
-  mEffClonesEta->SetMarkerSize(1.35);
-  mEffClonesEta->SetDirectory(gDirectory);
+  setEfficiencyGraph(mEffClonesEta, "Clone_eta", ";#it{p}_{T} (GeV/#it{c});efficiency primary particle", kGreen + 2, 0.65);
   fout.WriteTObject(mEffClonesEta.get());
 
-  mEff0Pt->SetName("Good_pt0"); //******LAYER 0******
-  mEff0Pt->SetTitle(";#it{p}_{T} (GeV/#it{c});efficiency secondary particle ");
-  mEff0Pt->SetLineColor(kAzure + 4);
-  mEff0Pt->SetLineColorAlpha(kAzure + 4, 1);
-  mEff0Pt->SetLineWidth(2);
-  mEff0Pt->SetMarkerColorAlpha(kAzure + 4, 1);
-  mEff0Pt->SetMarkerStyle(kFullCircle);
-  mEff0Pt->SetMarkerSize(1.7);
-  mEff0Pt->SetDirectory(gDirectory);
+  setEfficiencyGraph(mEffRad, "Good_Rad", ";Radius [cm];efficiency secondary particle", kBlue, 1);
+  fout.WriteTObject(mEffRad.get());
+
+  setEfficiencyGraph(mEffFakeRad, "Fake_Rad", ";Radius [cm];efficiency secondary particle", kOrange + 7, 1);
+  fout.WriteTObject(mEffFakeRad.get());
+
+  setEfficiencyGraph(mEffRadk, "Good_Radk", ";Radius [cm];efficiency secondary particle", kBlue, 1);
+  fout.WriteTObject(mEffRadk.get());
+
+  setEfficiencyGraph(mEffFakeRadk, "Fake_Radk", ";Radius [cm];efficiency secondary particle", kAzure + 10, 1);
+  fout.WriteTObject(mEffFakeRadk.get());
+
+  setEfficiencyGraph(mEffRadLam, "Good_RadLam", ";Radius [cm];efficiency secondary particle", kRed + 2, 1);
+  fout.WriteTObject(mEffRadLam.get());
+
+  setEfficiencyGraph(mEffFakeRadLam, "Fake_RadLam", ";Radius [cm];efficiency secondary particle", kMagenta - 9, 1);
+  fout.WriteTObject(mEffFakeRadLam.get());
+
+  setEfficiencyGraph(mEffZ, "Good_Z", ";z secondary vertex [cm];efficiency secondary particle", kTeal + 2, 1);
+  fout.WriteTObject(mEffZ.get());
+
+  setEfficiencyGraph(mEffFakeZ, "Fake_Z", ";z secondary vertex [cm];efficiency secondary particle", kMagenta - 4, 1);
+  fout.WriteTObject(mEffFakeZ.get());
+
+  setEfficiencyGraph(mEffZk, "Good_Zk", ";z of sv  [cm];efficiency secondary particle", kBlue);
+  fout.WriteTObject(mEffZk.get());
+
+  setEfficiencyGraph(mEffFakeZk, "Fake_Zk", ";z of sv  [cm];efficiency secondary particle", kAzure + 10);
+  fout.WriteTObject(mEffFakeZk.get());
+
+  setEfficiencyGraph(mEffZLam, "Good_ZLam", ";z of sv  [cm];efficiency secondary particle", kRed + 2);
+  fout.WriteTObject(mEffZLam.get());
+
+  setEfficiencyGraph(mEffFakeZLam, "Fake_ZLam", ";z of sv  [cm];efficiency secondary particle", kMagenta - 9);
+  fout.WriteTObject(mEffFakeZLam.get());
+
+  setEfficiencyGraph(mEff0Pt, "Good_pt0", ";#it{p}_{T} (GeV/#it{c});efficiency secondary particle ", kAzure + 4);
   fout.WriteTObject(mEff0Pt.get());
 
-  mEff0FakePt->SetName("Fake_pt0");
-  mEff0FakePt->SetTitle(";#it{p}_{T} (GeV/#it{c});efficiency secondary particle ");
-  mEff0FakePt->SetLineColor(kAzure + 4);
-  mEff0FakePt->SetLineColorAlpha(kAzure + 4, 1);
-  mEff0FakePt->SetLineWidth(2);
-  mEff0FakePt->SetMarkerColorAlpha(kAzure + 4, 1);
-  mEff0FakePt->SetMarkerStyle(kFullCircle);
-  mEff0FakePt->SetMarkerSize(1.7);
-  mEff0FakePt->SetDirectory(gDirectory);
+  setEfficiencyGraph(mEff0FakePt, "Fake_pt0", ";#it{p}_{T} (GeV/#it{c});efficiency secondary particle ", kAzure + 4);
   fout.WriteTObject(mEff0FakePt.get());
 
-  mEff0Eta->SetName("Good_eta0");
-  mEff0Eta->SetTitle(";#eta;efficiency secondary particle");
-  mEff0Eta->SetLineColor(kAzure + 4);
-  mEff0Eta->SetLineColorAlpha(kAzure + 4, 1);
-  mEff0Eta->SetLineWidth(2);
-  mEff0Eta->SetMarkerColorAlpha(kAzure + 4, 1);
-  mEff0Eta->SetMarkerStyle(kFullCircle);
-  mEff0Eta->SetMarkerSize(1.7);
-  mEff0Eta->SetDirectory(gDirectory);
+  setEfficiencyGraph(mEff0Eta, "Good_eta0", ";#eta;efficiency secondary particle ", kAzure + 4);
   fout.WriteTObject(mEff0Eta.get());
 
-  mEff0FakeEta->SetName("Fake_eta0");
-  mEff0FakeEta->SetTitle(";#eta;efficiency secondary particle");
-  mEff0FakeEta->SetLineColor(kAzure + 4);
-  mEff0FakeEta->SetLineColorAlpha(kAzure + 4, 1);
-  mEff0FakeEta->SetLineWidth(2);
-  mEff0FakeEta->SetMarkerColorAlpha(kAzure + 4, 1);
-  mEff0FakeEta->SetMarkerStyle(kFullCircle);
-  mEff0FakeEta->SetMarkerSize(1.7);
-  mEff0FakeEta->SetDirectory(gDirectory);
+  setEfficiencyGraph(mEff0FakeEta, "Fake_eta0", ";#eta;efficiency secondary particle ", kAzure + 4);
   fout.WriteTObject(mEff0FakeEta.get());
 
-  mEff1Pt->SetName("Good_pt1"); //*****LAYER 1 ********
-  mEff1Pt->SetTitle(";#it{p}_{T} (GeV/#it{c});efficiency secondary particle ");
-  mEff1Pt->SetLineColor(kRed);
-  mEff1Pt->SetLineColorAlpha(kRed, 1);
-  mEff1Pt->SetLineWidth(2);
-  mEff1Pt->SetMarkerColorAlpha(kRed, 1);
-  mEff1Pt->SetMarkerStyle(kFullCircle);
-  mEff1Pt->SetMarkerSize(1.7);
-  mEff1Pt->SetDirectory(gDirectory);
+  setEfficiencyGraph(mEff1Pt, "Good_pt1", ";#it{p}_{T} (GeV/#it{c});efficiency secondary particle ", kRed);
   fout.WriteTObject(mEff1Pt.get());
 
-  mEff1FakePt->SetName("Fake_pt1");
-  mEff1FakePt->SetTitle(";#it{p}_{T} (GeV/#it{c});efficiency secondary particle ");
-  mEff1FakePt->SetLineColor(kRed);
-  mEff1FakePt->SetLineColorAlpha(kRed, 1);
-  mEff1FakePt->SetLineWidth(2);
-  mEff1FakePt->SetMarkerColorAlpha(kRed, 1);
-  mEff1FakePt->SetMarkerStyle(kFullCircle);
-  mEff1FakePt->SetMarkerSize(1.7);
-  mEff1FakePt->SetDirectory(gDirectory);
+  setEfficiencyGraph(mEff1FakePt, "Fake_pt1", ";#it{p}_{T} (GeV/#it{c});efficiency secondary particle ", kRed);
   fout.WriteTObject(mEff1FakePt.get());
 
-  mEff1Eta->SetName("Good_eta1");
-  mEff1Eta->SetTitle(";#eta;efficiency secondary particle");
-  mEff1Eta->SetLineColor(kRed);
-  mEff1Eta->SetLineColorAlpha(kRed, 1);
-  mEff1Eta->SetLineWidth(2);
-  mEff1Eta->SetMarkerColorAlpha(kRed, 1);
-  mEff1Eta->SetMarkerStyle(kFullCircle);
-  mEff1Eta->SetMarkerSize(1.7);
-  mEff1Eta->SetDirectory(gDirectory);
+  setEfficiencyGraph(mEff1Eta, "Good_eta1", ";#eta;efficiency secondary particle ", kRed);
   fout.WriteTObject(mEff1Eta.get());
 
-  mEff1FakeEta->SetName("Fake_eta1");
-  mEff1FakeEta->SetTitle(";#eta;efficiency secondary particle");
-  mEff1FakeEta->SetLineColor(kRed);
-  mEff1FakeEta->SetLineColorAlpha(kRed, 1);
-  mEff1FakeEta->SetLineWidth(2);
-  mEff1FakeEta->SetMarkerColorAlpha(kRed, 1);
-  mEff1FakeEta->SetMarkerStyle(kFullCircle);
-  mEff1FakeEta->SetMarkerSize(1.7);
-  mEff1FakeEta->SetDirectory(gDirectory);
+  setEfficiencyGraph(mEff1FakeEta, "Fake_eta1", ";#eta;efficiency secondary particle ", kRed);
   fout.WriteTObject(mEff1FakeEta.get());
 
-  mEff2Pt->SetName("Good_pt2"); //*****LAYER 2 ********
-  mEff2Pt->SetTitle(";#it{p}_{T} (GeV/#it{c});efficiency secondary particle ");
-  mEff2Pt->SetLineColor(kGreen + 1);
-  mEff2Pt->SetLineColorAlpha(kGreen + 1, 1);
-  mEff2Pt->SetLineWidth(2);
-  mEff2Pt->SetMarkerColorAlpha(kGreen + 1, 1);
-  mEff2Pt->SetMarkerStyle(kFullCircle);
-  mEff2Pt->SetMarkerSize(1.7);
-  mEff2Pt->SetDirectory(gDirectory);
+  setEfficiencyGraph(mEff2Pt, "Good_pt2", ";#it{p}_{T} (GeV/#it{c});efficiency secondary particle ", kGreen + 1);
   fout.WriteTObject(mEff2Pt.get());
 
-  mEff2FakePt->SetName("Fake_pt2");
-  mEff2FakePt->SetTitle(";#it{p}_{T} (GeV/#it{c});efficiency secondary particle ");
-  mEff2FakePt->SetLineColor(kGreen + 1);
-  mEff2FakePt->SetLineColorAlpha(kGreen + 1, 1);
-  mEff2FakePt->SetLineWidth(2);
-  mEff2FakePt->SetMarkerColorAlpha(kGreen + 1, 1);
-  mEff2FakePt->SetMarkerStyle(kFullCircle);
-  mEff2FakePt->SetMarkerSize(1.7);
-  mEff2FakePt->SetDirectory(gDirectory);
+  setEfficiencyGraph(mEff2FakePt, "Fake_pt2", ";#it{p}_{T} (GeV/#it{c});efficiency secondary particle ", kGreen + 1);
   fout.WriteTObject(mEff2FakePt.get());
 
-  mEff2Eta->SetName("Good_eta2");
-  mEff2Eta->SetTitle(";#eta;efficiency secondary particle");
-  mEff2Eta->SetLineColor(kGreen + 1);
-  mEff2Eta->SetLineColorAlpha(kGreen + 1, 1);
-  mEff2Eta->SetLineWidth(2);
-  mEff2Eta->SetMarkerColorAlpha(kGreen + 1, 1);
-  mEff2Eta->SetMarkerStyle(kFullCircle);
-  mEff2Eta->SetMarkerSize(1.7);
-  mEff2Eta->SetDirectory(gDirectory);
+  setEfficiencyGraph(mEff2Eta, "Good_eta2", ";#eta;efficiency secondary particle ", kGreen + 1);
   fout.WriteTObject(mEff2Eta.get());
 
-  mEff2FakeEta->SetName("Fake_eta2");
-  mEff2FakeEta->SetTitle(";#eta;efficiency secondary particle");
-  mEff2FakeEta->SetLineColor(kGreen + 1);
-  mEff2FakeEta->SetLineColorAlpha(kGreen + 1, 1);
-  mEff2FakeEta->SetLineWidth(2);
-  mEff2FakeEta->SetMarkerColorAlpha(kGreen + 1, 1);
-  mEff2FakeEta->SetMarkerStyle(kFullCircle);
-  mEff2FakeEta->SetMarkerSize(1.7);
-  mEff2FakeEta->SetDirectory(gDirectory);
+  setEfficiencyGraph(mEff2FakeEta, "Fake_eta2", ";#eta;efficiency secondary particle ", kGreen + 1);
   fout.WriteTObject(mEff2FakeEta.get());
 
-  mEff3Pt->SetName("Good_pt3"); //*****LAYER 3 ********
-  mEff3Pt->SetTitle(";#it{p}_{T} (GeV/#it{c});efficiency secondary particle ");
-  mEff3Pt->SetLineColor(kOrange - 3);
-  mEff3Pt->SetLineColorAlpha(kOrange - 3, 1);
-  mEff3Pt->SetLineWidth(2);
-  mEff3Pt->SetMarkerColorAlpha(kOrange - 3, 1);
-  mEff3Pt->SetMarkerStyle(kFullCircle);
-  mEff3Pt->SetMarkerSize(1.7);
-  mEff3Pt->SetDirectory(gDirectory);
+  setEfficiencyGraph(mEff3Pt, "Good_pt3", ";#it{p}_{T} (GeV/#it{c});efficiency secondary particle ", kOrange - 3);
   fout.WriteTObject(mEff3Pt.get());
 
-  mEff3FakePt->SetName("Fake_pt3");
-  mEff3FakePt->SetTitle(";#it{p}_{T} (GeV/#it{c});efficiency secondary particle ");
-  mEff3FakePt->SetLineColor(kOrange - 3);
-  mEff3FakePt->SetLineColorAlpha(kOrange - 3, 1);
-  mEff3FakePt->SetLineWidth(2);
-  mEff3FakePt->SetMarkerColorAlpha(kOrange - 3, 1);
-  mEff3FakePt->SetMarkerStyle(kFullCircle);
-  mEff3FakePt->SetMarkerSize(1.7);
-  mEff3FakePt->SetDirectory(gDirectory);
+  setEfficiencyGraph(mEff3FakePt, "Fake_pt3", ";#it{p}_{T} (GeV/#it{c});efficiency secondary particle ", kOrange - 3);
   fout.WriteTObject(mEff3FakePt.get());
 
-  mEff3Eta->SetName("Good_eta3");
-  mEff3Eta->SetTitle(";#eta;efficiency secondary particle");
-  mEff3Eta->SetLineColor(kOrange - 3);
-  mEff3Eta->SetLineColorAlpha(kOrange - 3, 1);
-  mEff3Eta->SetLineWidth(2);
-  mEff3Eta->SetMarkerColorAlpha(kOrange - 3, 1);
-  mEff3Eta->SetMarkerStyle(kFullCircle);
-  mEff3Eta->SetMarkerSize(1.7);
-  mEff3Eta->SetDirectory(gDirectory);
+  setEfficiencyGraph(mEff3Eta, "Good_eta3", ";#eta;efficiency secondary particle", kOrange - 3);
   fout.WriteTObject(mEff3Eta.get());
 
-  mEff3FakeEta->SetName("Fake_eta3");
-  mEff3FakeEta->SetTitle(";#eta;efficiency secondary particle");
-  mEff3FakeEta->SetLineColor(kOrange - 3);
-  mEff3FakeEta->SetLineColorAlpha(kOrange - 3, 1);
-  mEff3FakeEta->SetLineWidth(2);
-  mEff3FakeEta->SetMarkerColorAlpha(kOrange - 3, 1);
-  mEff3FakeEta->SetMarkerStyle(kFullCircle);
-  mEff3FakeEta->SetMarkerSize(1.7);
-  mEff3FakeEta->SetDirectory(gDirectory);
+  setEfficiencyGraph(mEff3FakeEta, "Fake_eta3", ";#eta;efficiency secondary particle", kOrange - 3);
   fout.WriteTObject(mEff3FakeEta.get());
+
+  setHistoMCGraph(HistoMC[0], mDenominatorSecRad, "Decay_Radius_MC", ";Decay Radius ;Entries", kGray, 0.4);
+  fout.WriteTObject(mDenominatorSecRad.get());
+
+  setHistoMCGraph(HistoMC[3], mDenominatorSecZ, "Zsv_MC", ";z of secondary vertex ;Entries", kGray, 0.4);
+  fout.WriteTObject(mDenominatorSecZ.get());
+
+  setHistoMCGraph(HistoMC[1], mRadk, "Decay_Radius_MC_k", ";Decay Radius ;Entries", kBlue, 0.2);
+  fout.WriteTObject(mRadk.get());
+
+  setHistoMCGraph(HistoMC[4], mZk, "Zsv_MC_k", ";Zsv ;Entries", kBlue, 0.2);
+  fout.WriteTObject(mZk.get());
+
+  setHistoMCGraph(HistoMC[2], mRadLam, "Decay_Radius_MC_Lam", ";Decay Radius ;Entries", kRed, 0.2);
+  fout.WriteTObject(mRadLam.get());
+
+  setHistoMCGraph(HistoMC[5], mZLam, "Zsv_MC_Lam", ";Zsv ;Entries", kRed, 0.2);
+  fout.WriteTObject(mZLam.get());
 
   // Paint the histograms
   // todo:  delegate to a dedicated helper
@@ -914,6 +1189,81 @@ void TrackCheckStudy::endOfStream(EndOfStreamContext& ec)
   mLegendEta->AddEntry("Clone_eta", "clone", "lep");
   mLegendEta->Draw();
   mCanvasEta->SaveAs("eff_eta.png");
+
+  mCanvasRad = std::make_unique<TCanvas>("cRad", "cRad", 1600, 1200);
+  mCanvasRad->cd();
+  mCanvasRad->SetGrid();
+  mEffRad->Draw("pz");
+  mEffFakeRad->Draw("pz same");
+  HistoMC[0].Draw("hist same"); // HistoMC[0]
+  mCanvasRad->SetLogy();
+  mLegendRad = std::make_unique<TLegend>(0.8, 0.4, 0.95, 0.6);
+  mLegendRad->SetHeader(Form("%zu events PP ", mKineReader->getNEvents(0)), "C");
+  mLegendRad->AddEntry("Good_Rad", "good", "lep");
+  mLegendRad->AddEntry("Fake_Rad", "fake", "lep");
+  mLegendRad->AddEntry("Decay_Radius_MC", "MC", "f");
+  mLegendRad->Draw();
+  mCanvasRad->SaveAs("eff_rad_sec_MC.png");
+
+  mCanvasZ = std::make_unique<TCanvas>("cZ", "cZ", 1600, 1200);
+  mCanvasZ->cd();
+  mCanvasZ->SetGrid();
+  mCanvasZ->SetLogy();
+  mEffZ->Draw("pz");
+  mEffFakeZ->Draw("pz same");
+  HistoMC[3].Draw(" histsame"); // HistoMC[1]
+  mLegendZ = std::make_unique<TLegend>(0.19, 0.8, 0.40, 0.96);
+  mLegendZ->SetHeader(Form("%zu events PP", mKineReader->getNEvents(0)), "C");
+  mLegendZ->AddEntry("Good_Z", "good", "lep");
+  mLegendZ->AddEntry("Fake_Z", "fake", "lep");
+  mLegendZ->AddEntry("Zsv_MC", "MC", "f");
+
+  mLegendZ->Draw();
+  mCanvasZ->SaveAs("eff_Z_sec_MC.png");
+
+  mCanvasRadD = std::make_unique<TCanvas>("cRadD", "cRadD", 1600, 1200);
+  mCanvasRadD->cd();
+  mCanvasRadD->SetGrid();
+  mEffRadk->Draw("pz");
+  mEffFakeRadk->Draw("pz same");
+  HistoMC[1].Draw(" hist same");
+  mEffRadLam->Draw("pz same");
+  mEffFakeRadLam->Draw("pz same");
+  HistoMC[2].Draw(" hist same");
+  mCanvasRadD->SetLogy();
+  mLegendRadD = std::make_unique<TLegend>(0.8, 0.64, 0.95, 0.8);
+  mLegendRadD->SetHeader(Form("%zu events PP ", mKineReader->getNEvents(0)), "C");
+  mLegendRadD->AddEntry("Good_Radk", " k^{0}_{s} good", "lep");
+  mLegendRadD->AddEntry("Fake_Radk", "k^{0}_{s} fake", "lep");
+  mLegendRadD->AddEntry("Decay_Radius_MC_k", "k^{0}_{s} MC", "f");
+  mLegendRadD->AddEntry("Good_RadLam", " #Lambda good", "lep");
+  mLegendRadD->AddEntry("Fake_RadLam", "#Lambda fake", "lep");
+  mLegendRadD->AddEntry("Decay_Radius_MC_Lam", "#Lambda MC", "f");
+
+  mLegendRadD->Draw();
+  mCanvasRadD->SaveAs("eff_RadD_sec_MC.png");
+
+  mCanvasZD = std::make_unique<TCanvas>("cZ", "cZ", 1600, 1200);
+  mCanvasZD->cd();
+  mCanvasZD->SetGrid();
+  mEffZk->Draw("pz");
+  mEffFakeZk->Draw("pz same");
+  HistoMC[4].Draw("same hist"); // HistoMC[4]
+  mEffZLam->Draw("pz same");
+  mEffFakeZLam->Draw("pz same");
+  HistoMC[5].Draw("same hist"); // HistoMC[5]
+  mCanvasZD->SetLogy();
+  mLegendZD = std::make_unique<TLegend>(0.19, 0.5, 0.30, 0.7);
+  mLegendZD->SetHeader(Form("%zu events PP", mKineReader->getNEvents(0)), "C");
+  mLegendZD->AddEntry("Good_Zk", " k^{0}_{s} good", "lep");
+  mLegendZD->AddEntry("Fake_Zk", "k^{0}_{s} fake", "lep");
+  mLegendZD->AddEntry("Zsv_MC_k", "k^{0}_{s} MC", "f");
+  mLegendZD->AddEntry("Good_ZLam", "#Lambda good", "lep");
+  mLegendZD->AddEntry("Fake_ZLam", "#Lambda fake", "lep");
+  mLegendZD->AddEntry("Zsv_MC_Lam", "#Lambda MC", "f");
+
+  mLegendZD->Draw();
+  mCanvasZD->SaveAs("eff_ZD_sec_MC.png");
 
   mCanvasPt2 = std::make_unique<TCanvas>("cPt2", "cPt2", 1600, 1200);
   mCanvasPt2->cd();
@@ -1013,14 +1363,12 @@ void TrackCheckStudy::endOfStream(EndOfStreamContext& ec)
   mLegendPtRes->AddEntry("mPtResolution", "All events", "lep");
   mLegendPtRes->Draw();
   mCanvasPtRes->SaveAs("ptRes.png");
-  fout.cd();
-  mCanvasPtRes2->Write();
+
   mCanvasPtRes2 = std::make_unique<TCanvas>("cPtr2", "cPtr2", 1600, 1200);
   mCanvasPtRes2->cd();
   mPtResolution2D->Draw();
   mCanvasPtRes2->SaveAs("ptRes2.png");
-  fout.cd();
-  mCanvasPtRes2->Write();
+
   mCanvasPtRes3 = std::make_unique<TCanvas>("cPtr3", "cPtr3", 1600, 1200);
   mCanvasPtRes3->cd();
 
@@ -1035,8 +1383,6 @@ void TrackCheckStudy::endOfStream(EndOfStreamContext& ec)
   g1->GetYaxis()->SetRangeUser(0, 1);
   g1->GetXaxis()->SetRangeUser(0, 10.);
   mCanvasPtRes3->SaveAs("ptRes3.png");
-  fout.cd();
-  mCanvasPtRes3->Write();
 
   mCanvasPtRes4 = std::make_unique<TCanvas>("cPt4", "cPt4", 1600, 1200);
   mCanvasPtRes4->cd();
@@ -1052,6 +1398,36 @@ void TrackCheckStudy::endOfStream(EndOfStreamContext& ec)
   mLegendPtRes2->Draw("same");
   mLegendPtRes2->SaveAs("ptRes4.png");
 
+  auto canvas = new TCanvas("fc_canvas", "Fake clusters", 1600, 1000);
+  canvas->Divide(4, 2);
+ 
+  for (int iH{0}; iH < 4; ++iH) {
+    canvas->cd(iH + 1);
+    stackLength[iH]->Draw();
+    gPad->BuildLegend();
+  }
+  for (int iH{0}; iH < 4; ++iH) {
+    canvas->cd(iH + 5);
+    stackLength1Fake[iH]->Draw();
+    gPad->BuildLegend();
+  }
+
+  canvas->SaveAs("fakeClusters2.png", "recreate");
+
+auto canvas2 = new TCanvas("fc_canvas2", "Fake clusters", 1600, 1000);
+ canvas2->Divide(4, 2);
+ 
+  for (int iH{0}; iH < 4; ++iH) {
+   canvas2->cd(iH + 1);
+    stackLength2Fake[iH]->Draw();
+    gPad->BuildLegend();
+  }
+  for (int iH{0}; iH < 2; ++iH) {
+   canvas2->cd(iH + 5);
+    stackLength3Fake[iH]->Draw();
+    gPad->BuildLegend();
+  }
+canvas2->SaveAs("fakeClusters3.png", "recreate");
   fout.cd();
   mCanvasPt->Write();
   mCanvasEta->Write();
@@ -1063,6 +1439,13 @@ void TrackCheckStudy::endOfStream(EndOfStreamContext& ec)
   mCanvasPtRes2->Write();
   mCanvasPtRes3->Write();
   mCanvasPtRes4->Write();
+  mCanvasRad->Write();
+  mCanvasZ->Write();
+  mCanvasRadD->Write();
+  mCanvasZD->Write();
+  canvas->Write();
+  canvas2->Write();
+
 
   fout.Close();
 }
