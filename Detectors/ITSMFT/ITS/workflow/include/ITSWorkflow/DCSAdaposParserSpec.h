@@ -83,6 +83,8 @@ class ITSDCSAdaposParser : public Task
   // for ccdb alpide param fetching
   o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>* mCcdbAlpideParam;
   std::string mCcdbFetchUrl = "http://ccdb-test.cern.ch:8080";
+  o2::ccdb::BasicCCDBManager& mMgr = o2::ccdb::BasicCCDBManager::instance();
+  long int startTime;
 };
 
 // Create a processor spec

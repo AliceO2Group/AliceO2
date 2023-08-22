@@ -36,7 +36,9 @@ void ITSDCSAdaposParser::init(InitContext& ic)
 
   // Read alpide param object from ccdb: this is the first read, object will be refreshed in run()
   this->mCcdbFetchUrl = ic.options().get<std::string>("ccdb-fetch-url");
+  mMgr.setURL(mCcdbFetchUrl);
   getCurrentCcdbAlpideParam();
+  startTime = o2::ccdb::getCurrentTimestamp();
 
   return;
 }
@@ -54,8 +56,14 @@ void ITSDCSAdaposParser::run(ProcessingContext& pc)
   if (doStrobeUpload && dps.size() > 0) {
     // upload to ccdb
     pushToCCDB(pc);
-    // refresh the local alpide param object
+  }
+
+  // refresh the local Alpide Param object in case another software/user uploaded an object in that path
+  // do the update every 10s
+  long int currentTs = o2::ccdb::getCurrentTimestamp();
+  if (currentTs - startTime > 10000) {
     getCurrentCcdbAlpideParam();
+    startTime = currentTs;
   }
 
   // clear memory
@@ -70,10 +78,8 @@ void ITSDCSAdaposParser::getCurrentCcdbAlpideParam()
 {
   long int ts = o2::ccdb::getCurrentTimestamp();
   LOG(info) << "Getting AlpideParam from CCDB url " << mCcdbFetchUrl << " with timestamp " << ts;
-  auto& mgr = o2::ccdb::BasicCCDBManager::instance();
-  mgr.setURL(mCcdbFetchUrl);
-  mgr.setTimestamp(ts);
-  mCcdbAlpideParam = mgr.get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>>("ITS/Config/AlpideParam");
+  mMgr.setTimestamp(ts);
+  mCcdbAlpideParam = mMgr.get<o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>>("ITS/Config/AlpideParam");
 }
 
 //////////////////////////////////////////////////////////////////////////////
