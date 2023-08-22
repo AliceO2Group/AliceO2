@@ -42,7 +42,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"no-rejectCalibTrigger", VariantType::Bool, false, {"disabled by default such that calib triggers are rejected. If enabled, calibration triggers (LED events etc.) also enter the calibration"}},
     {"no-rejectL0Trigger", VariantType::Bool, false, {"disabled by default such that L0 triggers are rejected. If enabled, L0 triggers (Gamma trigger and jet trigger) also enter the calibration"}},
     {"no-applyGainCalib", VariantType::Bool, false, {"if appplication of gain calibration should be disabled"}},
-    {"ctpconfig-run-independent", VariantType::Bool, false, {"Use CTP config w/o runNumber tag"}}};
+    {"ctpconfig-run-independent", VariantType::Bool, false, {"Use CTP config w/o runNumber tag"}},
+    {"input-subspec-ctp", VariantType::UInt32, 0U, {"Subspecification for CTP input objects"}}};
 
   std::swap(workflowOptions, options);
 }
@@ -59,9 +60,10 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   bool rejectL0Trigger = !cfgc.options().get<bool>("no-rejectL0Trigger");
   bool ctpcfgperrun = !cfgc.options().get<bool>("ctpconfig-run-independent");
   bool applyGainCalib = !cfgc.options().get<bool>("no-applyGainCalib");
+  uint32_t inputsubspecCTP = cfgc.options().get<uint32_t>("input-subspec-ctp");
 
   WorkflowSpec specs;
-  specs.emplace_back(getEMCALChannelCalibDeviceSpec(calibType, loadCalibParamsFromCCDB, rejectCalibTrigger, rejectL0Trigger, ctpcfgperrun, applyGainCalib));
+  specs.emplace_back(getEMCALChannelCalibDeviceSpec(calibType, loadCalibParamsFromCCDB, rejectCalibTrigger, rejectL0Trigger, ctpcfgperrun, applyGainCalib, inputsubspecCTP));
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   // o2::raw::HBFUtilsInitializer hbfIni(cfgc, specs);

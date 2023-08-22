@@ -406,7 +406,7 @@ class EMCALChannelCalibDevice : public o2::framework::Task
 namespace framework
 {
 
-DataProcessorSpec getEMCALChannelCalibDeviceSpec(const std::string calibType, const bool loadCalibParamsFromCCDB, const bool rejectCalibTrigger, const bool rejectL0Trigger, const bool ctpcfgperrun, const bool applyGainCalib)
+DataProcessorSpec getEMCALChannelCalibDeviceSpec(const std::string calibType, const bool loadCalibParamsFromCCDB, const bool rejectCalibTrigger, const bool rejectL0Trigger, const bool ctpcfgperrun, const bool applyGainCalib, const uint32_t inputsubspecCTP)
 {
   using device = o2::calibration::EMCALChannelCalibDevice;
   using clbUtils = o2::calibration::Utils;
@@ -443,7 +443,7 @@ DataProcessorSpec getEMCALChannelCalibDeviceSpec(const std::string calibType, co
   // data request needed for rejection of EMCal trigger
   if (rejectL0Trigger) {
     inputs.emplace_back(device::getCTPConfigBinding(), "CTP", "CTPCONFIG", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/Config", ctpcfgperrun));
-    inputs.emplace_back(device::getCTPDigitsBinding(), "CTP", "DIGITS", 0, Lifetime::Timeframe);
+    inputs.emplace_back(device::getCTPDigitsBinding(), "CTP", "DIGITS", inputsubspecCTP, Lifetime::Timeframe);
   }
 
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
