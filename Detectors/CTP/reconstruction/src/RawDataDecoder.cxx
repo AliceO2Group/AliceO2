@@ -126,7 +126,7 @@ int RawDataDecoder::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
 // Decodes one page
 // It is assumed that CTP HBF has never more than one page - valid until ~ 5Mhz rate:
 // 1 HBF/page <= 8000kB = 8*1024*8/120 = 546 GBT words = 546 IRs/page = 5.5 MHz
-int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2::framework::InputSpec>& filter, std::vector<CTPDigit>& digits, std::vector<LumiInfo>& lumiPointsHBF1)
+int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2::framework::InputSpec>& filter, o2::pmr::vector<CTPDigit>& digits, std::vector<LumiInfo>& lumiPointsHBF1)
 {
   int ret = 0;
   static int nwrites = 0;
@@ -345,7 +345,7 @@ int RawDataDecoder::shiftNew(const o2::InteractionRecord& irin, uint32_t TFOrbit
   }
   return 0;
 }
-int RawDataDecoder::shiftInputs(std::map<o2::InteractionRecord, CTPDigit>& digitsMap, std::vector<CTPDigit>& digits, uint32_t TFOrbit)
+int RawDataDecoder::shiftInputs(std::map<o2::InteractionRecord, CTPDigit>& digitsMap, o2::pmr::vector<CTPDigit>& digits, uint32_t TFOrbit)
 {
   int nClasswoInp = 0; // counting classes without input which should never happen
   int nLM = 0;

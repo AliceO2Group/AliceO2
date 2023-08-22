@@ -53,9 +53,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   bool finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj);
 
   void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
-  void setBCShiftInputs(int64_t n) { mBCShiftInputs = n; }
   void setDecodeInps(bool decodeinps) { mDecodeInps = decodeinps; }
-  auto getBCShiftInputs() const { return mBCShiftInputs; }
   bool canApplyBCShiftInputs(const o2::InteractionRecord& ir) const { return canApplyBCShift(ir, mBCShiftInputs); }
 
  private:
@@ -164,7 +162,6 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& data, LumiInfo& l
       ir.bc += bcInc[itrig];
     }
     if (checkIROKInputs || canApplyBCShiftInputs(ir)) { // correction will be ok
-      // checkIROK = true;
       auto irs = ir - mBCShiftInputs;
       uint64_t CTPInputMask = 0;
       for (int i = 0; i < CTFHelper::CTPInpNBytes; i++) {
@@ -188,11 +185,8 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& data, LumiInfo& l
       }
     } else { // correction would make IR prior to mFirstTFOrbit, skip
       itInp += CTFHelper::CTPInpNBytes;
-      // itCls += CTFHelper::CTPClsNBytes;
-      // continue;
     }
     if (checkIROK || canApplyBCShift(ir)) { // correction will be ok
-      // checkIROK = true;
       auto irs = ir - mBCShift;
       uint64_t CTPClassMask = 0;
       for (int i = 0; i < CTFHelper::CTPClsNBytes; i++) {
@@ -200,7 +194,7 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& data, LumiInfo& l
       }
       if (CTPClassMask) {
         if (digitsMap.count(irs)) {
-          if (digitsMap[irs].isClassEmty()) {
+          if (digitsMap[irs].isClassEmpty()) {
             digitsMap[irs].CTPClassMask = CTPClassMask;
             // LOG(info) << "TCM1:";
             // digitsMap[irs].printStream(std::cout);
@@ -215,13 +209,11 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& data, LumiInfo& l
         }
       }
     } else { // correction would make IR prior to mFirstTFOrbit, skip
-      // itInp += CTFHelper::CTPInpNBytes;
       itCls += CTFHelper::CTPClsNBytes;
-      // continue;
     }
   }
   if (mDecodeInps) {
-    std::vector<CTPDigit> digits;
+    o2::pmr::vector<CTPDigit> digits;
     o2::ctp::RawDataDecoder::shiftInputs(digitsMap, digits, mFirstTFOrbit);
     for (auto const& dig : digits) {
       data.emplace_back(dig);
@@ -237,42 +229,11 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& data, LumiInfo& l
   return iosize;
 }
 ///________________________________
-template <typename CTF>
+template <typename CTF=o2::ctp::CTF>
 bool CTFCoder::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
 {
-  LOG(info) << "CTFCoder::finaliseCCDB called";
-  bool match = false;
-  if (mLoadDictFromCCDB && (match = (matcher == o2::framework::ConcreteDataMatcher(mDet.getDataOrigin(), "CTFDICT", 0)))) {
-    const auto* dict = (std::vector<char>*)obj;
-    if (dict->empty()) {
-      LOGP(info, "Empty dictionary object fetched from CCDB, internal per-TF CTF Dict will be created");
-    } else {
-      std::vector<char> bufVec;
-      if (isTreeDictionary(obj)) {
-        auto v = loadDictionaryFromTree<CTF>(reinterpret_cast<TTree*>(obj));
-        bufVec.swap(v);
-        dict = &bufVec;
-      }
-      createCoders(*dict, mOpType);
-      mExtHeader = static_cast<const o2::ctf::CTFDictHeader&>(CTF::get(dict->data())->getHeader());
-      LOGP(info, "Loaded {} from CCDB", mExtHeader.asString());
-    }
-    mLoadDictFromCCDB = false; // we read the dictionary at most once!
-  } else if ((match = (matcher == o2::framework::ConcreteDataMatcher("CTP", "Trig_Offset", 0)))) {
-    const auto& trigOffsParam = o2::ctp::TriggerOffsetsParam::Instance();
-    auto bcshift = trigOffsParam.customOffset[mDet.getID()];
-    auto bcshiftInp = trigOffsParam.globalInputsShift;
-    if (bcshift || bcshiftInp) {
-      if (mSupportBCShifts) {
-        LOGP(info, "Decoded IRs will be augmented by {} BCs, discarded if become prior to 1st orbit", bcshift);
-        setBCShift(-bcshift); // offset is subtracted
-        setBCShiftInputs(-bcshiftInp);
-        LOG(info) << "BC shifts: Trig Classes:" << bcshift << " Inputs:" << bcshiftInp;
-      } else {
-        LOGP(alarm, "Decoding with {} BCs shift is requested, but the {} does not support this operation, ignoring request", bcshift, mDet.getName());
-      }
-    }
-  }
+  auto match = o2::ctf::CTFCoderBase::finaliseCCDB<CTF>(matcher, obj);
+  mBCShiftInputs = -o2::ctp::TriggerOffsetsParam::Instance().globalInputsShift;
   return match;
 }
 
