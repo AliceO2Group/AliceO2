@@ -70,6 +70,7 @@ class GPUChain
   GPUReconstruction::RecoStepField GetRecoStepsGPU() const { return mRec->GetRecoStepsGPU(); }
   GPUReconstruction::InOutTypeField GetRecoStepsInputs() const { return mRec->GetRecoStepsInputs(); }
   GPUReconstruction::InOutTypeField GetRecoStepsOutputs() const { return mRec->GetRecoStepsOutputs(); }
+  inline GPUConstantMem* processorsShadow() { return mRec->mProcessorsShadow; }
 
  protected:
   GPUReconstructionCPU* mRec;
@@ -79,7 +80,6 @@ class GPUChain
 
   // Make functions from GPUReconstruction*** available
   inline GPUConstantMem* processors() { return mRec->processors(); }
-  inline GPUConstantMem* processorsShadow() { return mRec->mProcessorsShadow; }
   inline GPUConstantMem* processorsDevice() { return mRec->mDeviceConstantMem; }
   inline GPUParam& param() { return mRec->param(); }
   inline const GPUConstantMem* processors() const { return mRec->processors(); }
@@ -252,7 +252,7 @@ class GPUChain
 template <class T>
 inline void GPUChain::RunHelperThreads(T function, GPUReconstructionHelpers::helperDelegateBase* functionCls, int count)
 {
-  mRec->RunHelperThreads((int (GPUReconstructionHelpers::helperDelegateBase::*)(int, int, GPUReconstructionHelpers::helperParam*))function, functionCls, count);
+  mRec->RunHelperThreads((int(GPUReconstructionHelpers::helperDelegateBase::*)(int, int, GPUReconstructionHelpers::helperParam*))function, functionCls, count);
 }
 
 template <bool Always, class T, class S, typename... Args>

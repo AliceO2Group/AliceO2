@@ -41,10 +41,10 @@ class TrackerTraitsGPU : public TrackerTraits
 
   // Methods to get CPU execution from traits
   void initialiseTimeFrameHybrid(const int iteration) override { initialiseTimeFrame(iteration); };
-  void computeTrackletsHybrid(const int iteration) override { TrackerTraits::computeLayerTracklets(iteration); };
-  void computeCellsHybrid(const int iteration) override { TrackerTraits::computeLayerCells(iteration); };
-  void findCellsNeighboursHybrid(const int iteration) override { TrackerTraits::findCellsNeighbours(iteration); };
-  void findRoadsHybrid(const int iteration) override { TrackerTraits::findRoads(iteration); };
+  void computeTrackletsHybrid(const int iteration) override;
+  void computeCellsHybrid(const int iteration) override;
+  void findCellsNeighboursHybrid(const int iteration) override;
+  void findRoadsHybrid(const int iteration) override;
   void findTracksHybrid(const int iteration) override;
 
   void findTracks() override;

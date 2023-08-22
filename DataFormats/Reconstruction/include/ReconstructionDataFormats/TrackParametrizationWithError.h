@@ -84,6 +84,7 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
 #endif
 
   // parameters + covmat manipulation
+  GPUd() bool testRotate(value_t alpha) const;
   GPUd() bool rotate(value_t alpha);
   GPUd() bool propagateTo(value_t xk, value_t b);
   GPUd() bool propagateTo(value_t xk, const dim3_t& b);

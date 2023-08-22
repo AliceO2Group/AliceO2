@@ -29,6 +29,7 @@ o2_add_library(ITStrackingCUDA
                PUBLIC_LINK_LIBRARIES O2::ITStracking
                                      O2::SimConfig
                                      O2::SimulationDataFormat
+                                     O2::ReconstructionDataFormats
                                      CUDA::nvToolsExt # TODO: change to CUDA::nvtx3 when CMake bump >= 3.25
                                      O2::GPUTracking
                TARGETVARNAME targetName)

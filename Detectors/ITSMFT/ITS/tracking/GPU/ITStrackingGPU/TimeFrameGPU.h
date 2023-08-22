@@ -182,11 +182,18 @@ class TimeFrameGPU : public TimeFrame
   /// Most relevant operations
   void registerHostMemory(const int);
   void unregisterHostMemory(const int);
-  void loadForHybridTracking();
   void initialise(const int, const TrackingParameters&, const int, IndexTableUtils* utils = nullptr, const TimeFrameGPUParameters* pars = nullptr);
   void initialiseHybrid(const int, const TrackingParameters&, const int, IndexTableUtils* utils = nullptr, const TimeFrameGPUParameters* pars = nullptr);
   void initDevice(const int, IndexTableUtils*, const TrackingParameters& trkParam, const TimeFrameGPUParameters&, const int, const int);
   void initDeviceSAFitting();
+  void loadTrackingFrameInfoDevice();
+  void loadUnsortedClustersDevice();
+  void loadClustersDevice();
+  void loadTrackletsDevice();
+  void loadCellsDevice();
+  void loadTrackSeedsDevice();
+  void loadTrackSeedsChi2Device();
+  void loadRoadsDevice();
   void initDeviceChunks(const int, const int);
   template <Task task>
   size_t loadChunkData(const size_t, const size_t, const size_t);
@@ -207,16 +214,25 @@ class TimeFrameGPU : public TimeFrame
   Vertex* getDeviceVertices() { return mVerticesDevice; }
   int* getDeviceROframesPV() { return mROframesPVDevice; }
   unsigned char* getDeviceUsedClusters(const int);
+  const o2::base::Propagator* getChainPropagator();
+
   // Hybrid
   Road<nLayers - 2>* getDeviceRoads() { return mRoadsDevice; }
   TrackingFrameInfo* getDeviceTrackingFrameInfo(const int);
+  TrackingFrameInfo** getDeviceArrayTrackingFrameInfo() { return mTrackingFrameInfoDeviceArray; }
+  Cluster** getDeviceArrayClusters() const { return mClustersDeviceArray; }
+  Cluster** getDeviceArrayUnsortedClusters() const { return mUnsortedClustersDeviceArray; }
+  Tracklet** getDeviceArrayTracklets() const { return mTrackletsDeviceArray; }
+  Cell** getDeviceArrayCells() const { return mCellsDeviceArray; }
+  o2::track::TrackParCovF** getDeviceArrayTrackSeeds() { return mCellSeedsDeviceArray; }
+  float** getDeviceArrayTrackSeedsChi2() { return mCellSeedsChi2DeviceArray; }
 
   // Host-specific getters
   gsl::span<int> getHostNTracklets(const int chunkId);
   gsl::span<int> getHostNCells(const int chunkId);
 
  private:
-  void allocMemAsync(void**, size_t, Stream*); // Abstract owned and unowned memory allocations
+  void allocMemAsync(void**, size_t, Stream*, bool); // Abstract owned and unowned memory allocations
   bool mHostRegistered = false;
   std::vector<GpuTimeFrameChunk<nLayers>> mMemChunks;
   TimeFrameGPUParameters mGpuParams;
@@ -229,9 +245,25 @@ class TimeFrameGPU : public TimeFrame
   std::array<unsigned char*, nLayers> mUsedClustersDevice;
   Vertex* mVerticesDevice;
   int* mROframesPVDevice;
+
+  // Hybrid pref
+  std::array<Cluster*, nLayers> mClustersDevice;
+  std::array<Cluster*, nLayers> mUnsortedClustersDevice;
+  Cluster** mClustersDeviceArray;
+  Cluster** mUnsortedClustersDeviceArray;
+  std::array<Tracklet*, nLayers - 1> mTrackletsDevice;
+  Tracklet** mTrackletsDeviceArray;
+  std::array<Cell*, nLayers - 2> mCellsDevice;
+  Cell** mCellsDeviceArray;
+  std::array<o2::track::TrackParCovF*, nLayers - 2> mCellSeedsDevice;
+  o2::track::TrackParCovF** mCellSeedsDeviceArray;
+  std::array<float*, nLayers - 2> mCellSeedsChi2Device;
+  float** mCellSeedsChi2DeviceArray;
+
   Road<nLayers - 2>* mRoadsDevice;
   TrackITSExt* mTrackITSExtDevice;
   std::array<TrackingFrameInfo*, nLayers> mTrackingFrameInfoDevice;
+  TrackingFrameInfo** mTrackingFrameInfoDeviceArray;
 
   // State
   std::vector<Stream> mGpuStreams;

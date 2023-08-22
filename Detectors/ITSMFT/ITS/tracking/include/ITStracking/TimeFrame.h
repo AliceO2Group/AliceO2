@@ -248,7 +248,12 @@ class TimeFrame
   // State if memory will be externally managed.
   bool mExtAllocator = false;
   o2::gpu::GPUChainITS* mChain = nullptr;
+  std::vector<std::vector<Cluster>> mUnsortedClusters;
+  std::vector<std::vector<Tracklet>> mTracklets;
+  std::vector<std::vector<Cell>> mCells;
   std::vector<Road<5>> mRoads;
+  std::vector<std::vector<o2::track::TrackParCovF>> mCellSeeds;
+  std::vector<std::vector<float>> mCellSeedsChi2;
   std::vector<std::vector<TrackITSExt>> mTracks;
 
  private:
@@ -264,20 +269,14 @@ class TimeFrame
   std::vector<uint8_t> mClusterSize;
   std::vector<bool> mMultiplicityCutMask;
   std::vector<std::array<float, 2>> mPValphaX; /// PV x and alpha for track propagation
-  std::vector<std::vector<Cluster>> mUnsortedClusters;
   std::vector<std::vector<MCCompLabel>> mTrackletLabels;
   std::vector<std::vector<MCCompLabel>> mCellLabels;
-  std::vector<std::vector<Cell>> mCells;
-  std::vector<std::vector<o2::track::TrackParCovF>> mCellSeeds;
-  std::vector<std::vector<float>> mCellSeedsChi2;
   std::vector<std::vector<int>> mCellsLookupTable;
   std::vector<std::vector<int>> mCellsNeighbours;
   std::vector<std::vector<int>> mCellsNeighboursLUT;
   std::vector<Road<5>> mRoads;
   std::vector<std::vector<MCCompLabel>> mTracksLabel;
   std::vector<int> mBogusClusters; /// keep track of clusters with wild coordinates
-
-  std::vector<std::vector<Tracklet>> mTracklets;
 
   std::vector<std::pair<unsigned long long, bool>> mRoadLabels;
   int mCutClusterMult;
