@@ -19,7 +19,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #include "ReconstructionDataFormats/GlobalTrackAccessor.h"
 #include "CommonDataFormat/RangeReference.h"
-#include "ReconstructionDataFormats/DecayNbody.h"
+#include "ReconstructionDataFormats/Decay3Body.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "ReconstructionDataFormats/MatchingType.h"
 #include "CommonDataFormat/AbstractRefAccessor.h"
@@ -163,7 +163,11 @@ class PrimaryVertex;
 class VtxTrackIndex;
 class VtxTrackRef;
 class V0;
+class V0Index;
 class Cascade;
+class CascadeIndex;
+class Decay3Body;
+class Decay3BodyIndex;
 class StrangeTrack;
 class TrackCosmics;
 class GlobalFwdTrack;
@@ -280,10 +284,13 @@ struct RecoContainer {
                    NPVTXSLOTS };
 
   // slots to register secondary vertex data
-  enum SVTXSlots { V0S,            // V0 objects
+  enum SVTXSlots { V0SIDX,         // V0s indices
+                   V0S,            // V0 objects
                    PVTX_V0REFS,    // PV -> V0 references
+                   CASCSIDX,       // Cascade indices
                    CASCS,          // Cascade objects
                    PVTX_CASCREFS,  // PV -> Cascade reference
+                   DECAY3BODYIDX,  // 3-body decay indices
                    DECAY3BODY,     // 3-body decay objects
                    PVTX_3BODYREFS, // PV -> 3-body decay references
                    NSVTXSLOTS };
@@ -674,13 +681,21 @@ struct RecoContainer {
   auto getPrimaryVertexMCLabels() const { return pvtxPool.getSpan<o2::MCEventLabel>(PVTX_MCTR); }
 
   // Secondary vertices
+  const o2::dataformats::V0Index& getV0Idx(int i) const { return svtxPool.get_as<o2::dataformats::V0Index>(V0SIDX, i); }
   const o2::dataformats::V0& getV0(int i) const { return svtxPool.get_as<o2::dataformats::V0>(V0S, i); }
+  const o2::dataformats::CascadeIndex& getCascadeIdx(int i) const { return svtxPool.get_as<o2::dataformats::CascadeIndex>(CASCSIDX, i); }
   const o2::dataformats::Cascade& getCascade(int i) const { return svtxPool.get_as<o2::dataformats::Cascade>(CASCS, i); }
+
+  auto getV0sIdx() const { return svtxPool.getSpan<o2::dataformats::V0Index>(V0SIDX); }
   auto getV0s() const { return svtxPool.getSpan<o2::dataformats::V0>(V0S); }
   auto getPV2V0Refs() { return svtxPool.getSpan<o2::dataformats::RangeReference<int, int>>(PVTX_V0REFS); }
+
+  auto getCascadesIdx() const { return svtxPool.getSpan<o2::dataformats::CascadeIndex>(CASCSIDX); }
   auto getCascades() const { return svtxPool.getSpan<o2::dataformats::Cascade>(CASCS); }
   auto getPV2CascadesRefs() { return svtxPool.getSpan<o2::dataformats::RangeReference<int, int>>(PVTX_CASCREFS); }
-  auto getDecays3Body() const { return svtxPool.getSpan<o2::dataformats::DecayNbody>(DECAY3BODY); }
+
+  auto getDecays3BodyIdx() const { return svtxPool.getSpan<o2::dataformats::Decay3BodyIndex>(DECAY3BODYIDX); }
+  auto getDecays3Body() const { return svtxPool.getSpan<o2::dataformats::Decay3Body>(DECAY3BODY); }
   auto getPV2Decays3BodyRefs() { return svtxPool.getSpan<o2::dataformats::RangeReference<int, int>>(PVTX_3BODYREFS); }
 
   // Strangeness track

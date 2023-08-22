@@ -16,8 +16,8 @@
 #ifndef O2_MCUTILS_H
 #define O2_MCUTILS_H
 
+#include <string>
 #include <SimulationDataFormat/MCTrack.h>
-#include <SimulationDataFormat/MCGenStatus.h>
 #include <SimulationDataFormat/ParticleStatus.h>
 #include "TPDGCode.h"
 #include "TParticle.h"
@@ -26,6 +26,7 @@ namespace o2
 {
 namespace mcutils
 {
+
 /// A couple of functions to query on MC tracks ( that needs navigation within the global container
 /// of available tracks. It is a class so as to make it available for interactive ROOT more easily.
 class MCTrackNavigator
@@ -79,7 +80,6 @@ class MCGenHelper
   // Has to be in a class as a static methid. Just in a namespace it doesn't work to use this function in ROOT macros.
   static void encodeParticleStatusAndTracking(TParticle& particle, bool wanttracking = true);
   static void encodeParticleStatusAndTracking(TParticle& particle, int hepmcStatus, int genStatus, bool wanttracking = true);
-
   ClassDefNV(MCGenHelper, 1)
 };
 

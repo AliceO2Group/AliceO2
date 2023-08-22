@@ -87,7 +87,7 @@ void MatchHMP::run(const o2::globaltracking::RecoContainer& inp)
     return;
   }
 
-  mExtraTPCFwdTime.clear();
+  // mExtraTPCFwdTime.clear();
 
   mTimerTot.Start();
   if (!prepareTracks()) {
@@ -155,7 +155,7 @@ bool MatchHMP::prepareTracks()
 
       // sort tracks in each sector according to their time (increasing in time)
       //  for (int sec = o2::constants::math::NSectors; sec--;) {
-      auto& indexCache = mTracksSectIndexCache[o2::globaltracking::MatchHMP::trackType::UNCONS];
+      auto& indexCache = mTracksIndexCache[o2::globaltracking::MatchHMP::trackType::UNCONS];
       LOG(debug) << indexCache.size() << " tracks";
       if (!indexCache.size()) {
         return false;
@@ -172,7 +172,7 @@ bool MatchHMP::prepareTracks()
 
   if (mIsITSTPCused || mIsTPCTRDused || mIsITSTPCTRDused || mIsITSTPCTOFused || mIsTPCTOFused || mIsITSTPCTRDTOFused || mIsTPCTRDTOFused) {
 
-    auto& indexCache = mTracksSectIndexCache[o2::globaltracking::MatchHMP::trackType::CONSTR];
+    auto& indexCache = mTracksIndexCache[o2::globaltracking::MatchHMP::trackType::CONSTR];
     LOG(debug) << indexCache.size() << " tracks";
     if (!indexCache.size()) {
       return false;
@@ -191,13 +191,6 @@ bool MatchHMP::prepareTracks()
 void MatchHMP::addITSTPCSeed(const o2::dataformats::TrackTPCITS& _tr, o2::dataformats::GlobalTrackID srcGID, float time0, float terr)
 {
   mIsITSTPCused = true;
-
-  /* if (srcGID.getSource() == o2::dataformats::GlobalTrackID::ITSTPCTOF) {
-     mIsITSTPCTOFused = true;
-   } else { // shouldn't happen
-     LOG(error) << "MatchHMP::addITSTPCSeed: srcGID.getSource() = " << srcGID.getSource() << " not allowed; expected ones are: " << o2::dataformats::GlobalTrackID::ITSTPCTOF;
-   }
- */
 
   auto trc = _tr.getParamOut();
   o2::track::TrackLTIntegral intLT0 = _tr.getLTIntegralOut();
@@ -245,9 +238,6 @@ void MatchHMP::addTPCTOFSeed(const o2::dataformats::TrackTPCTOF& _tr, o2::datafo
 
   auto trc = _tr.getParamOut();
 
-  // o2::track::TrackLTIntegral intLT0 = _tr.getLTIntegralOut();
-
-  // o2::dataformats::TimeStampWithError<float, float>
   timeEst ts(time0, terr + mExtraTimeToleranceTOF);
 
   addConstrainedSeed(trc, srcGID, ts);
@@ -268,7 +258,7 @@ void MatchHMP::addConstrainedSeed(o2::track::TrackParCov& trc, o2::dataformats::
     mTracksLblWork[o2::globaltracking::MatchHMP::trackType::CONSTR].emplace_back(mRecoCont->getTPCITSTrackMCLabel(srcGID));
   }
 
-  mTracksSectIndexCache[o2::globaltracking::MatchHMP::trackType::CONSTR].push_back(it);
+  mTracksIndexCache[o2::globaltracking::MatchHMP::trackType::CONSTR].push_back(it);
 }
 //______________________________________________
 void MatchHMP::addTPCSeed(const o2::tpc::TrackTPC& _tr, o2::dataformats::GlobalTrackID srcGID, float time0, float terr)
@@ -290,20 +280,19 @@ void MatchHMP::addTPCSeed(const o2::tpc::TrackTPC& _tr, o2::dataformats::GlobalT
   float trackTime0 = _tr.getTime0() * mTPCTBinMUS;
 
   timeInfo.setTimeStampError((_tr.getDeltaTBwd() + 5) * mTPCTBinMUS + extraErr);
-  mExtraTPCFwdTime.push_back((_tr.getDeltaTFwd() + 5) * mTPCTBinMUS + extraErr);
+  // mExtraTPCFwdTime.push_back((_tr.getDeltaTFwd() + 5) * mTPCTBinMUS + extraErr);
 
   timeInfo.setTimeStamp(trackTime0);
 
   trc.getXYZGlo(globalPos);
 
   mTracksWork[o2::globaltracking::MatchHMP::trackType::UNCONS].emplace_back(std::make_pair(trc, timeInfo));
-  // mTrackGid[trkType::UNCONS].emplace_back(srcGID);
 
   if (mMCTruthON) {
     mTracksLblWork[o2::globaltracking::MatchHMP::trackType::UNCONS].emplace_back(mRecoCont->getTPCTrackMCLabel(srcGID));
   }
 
-  mTracksSectIndexCache[o2::globaltracking::MatchHMP::trackType::UNCONS].push_back(it);
+  mTracksIndexCache[o2::globaltracking::MatchHMP::trackType::UNCONS].push_back(it);
 }
 //==================================================================================================================================================
 bool MatchHMP::prepareHMPClusters()
@@ -324,7 +313,6 @@ bool MatchHMP::prepareHMPClusters()
     const Trigger& clOrig = mHMPTriggersArray[it];
     // create working copy of track param
     mHMPTriggersWork.emplace_back(clOrig);
-    // auto& cl = mHMPTriggersWork.back();
     //  cache work track index
     mHMPTriggersIndexCache.push_back(mHMPTriggersWork.size() - 1);
   }
@@ -357,8 +345,7 @@ void MatchHMP::doMatching()
 
   //< do the real matching
   auto& cacheTriggerHMP = mHMPTriggersIndexCache; // array of cached HMP triggers indices; reminder: they are ordered in time!
-  // auto& cacheTrk = mTracksSectIndexCacheFastSpaceMatch[type]; // array of cached tracks indices in the HMP acceptance;
-  auto& cacheTrk = mTracksSectIndexCache[type]; // array of cached tracks indices for this sector;
+  auto& cacheTrk = mTracksIndexCache[type];       // array of cached tracks indices;
   int nTracks = cacheTrk.size(), nHMPtriggers = cacheTriggerHMP.size();
 
   LOG(debug) << " ************************number of tracks: " << nTracks << ", number of HMP triggers: " << nHMPtriggers;
@@ -386,12 +373,13 @@ void MatchHMP::doMatching()
     for (int itrk = 0; itrk < cacheTrk.size(); itrk++) { // tracks loop
 
       auto& trackWork = mTracksWork[type][cacheTrk[itrk]];
+      auto& trackGid = mTrackGid[type][cacheTrk[itrk]];
       auto& trefTrk = trackWork.first;
 
       prop->getFieldXYZ(trefTrk.getXYZGlo(), bxyz);
       Double_t bz = -bxyz[2];
 
-      double timeUncert = trackWork.second.getTimeStampError();
+      double timeUncert = 100.; //= trackWork.second.getTimeStampError();
 
       float minTrkTime = (trackWork.second.getTimeStamp() - mSigmaTimeCut * timeUncert) * 1.E3; // minimum track time in ns
       float maxTrkTime = (trackWork.second.getTimeStamp() + mSigmaTimeCut * timeUncert) * 1.E3; // maximum track time in ns
@@ -406,6 +394,7 @@ void MatchHMP::doMatching()
         matching->setHMPIDmip(0, 0, 0, 0);            // store mip info in any case
         matching->setIdxHMPClus(99, 99999);           // chamber not found, mip not yet considered
         matching->setHMPsignal(Recon::kNotPerformed); // ring reconstruction not yet performed
+        matching->setIdxTrack(trackGid);
 
         TrackHMP* hmpTrk = new TrackHMP(trefTrk); // create a hmpid track to be used for propagation and matching
         TrackHMP* hmpTrkConstrained = nullptr;    // create a hmpid track to be used for propagation and matching
@@ -441,9 +430,7 @@ void MatchHMP::doMatching()
           if (cluster.ch() != iCh) {
             continue;
           }
-
           oneEventClusters.push_back(cluster);
-
           double qthre = pParam->qCut();
 
           if (cluster.q() < 150.) {
@@ -515,12 +502,12 @@ void MatchHMP::doMatching()
           continue;
         }
 
+        matching->setHmpMom(hmpTrkConstrained->getP());
+
         // 5. Propagation in the last 10 cm with the fast method
 
         double xPc0 = 0., yPc0 = 0.;
-        // intTrkCha(iCh, hmpTrk, xPc0, yPc0, xRa, yRa, theta, phi, bz);
         intTrkCha(iCh, hmpTrkConstrained, xPc0, yPc0, xRa, yRa, theta, phi, bz);
-        // Printf("*******************************ch = %i, yPc0 = %f*******************",iCh,yPc0);
 
         // 6. Set match information
 
@@ -543,7 +530,6 @@ void MatchHMP::doMatching()
         // dmin recalculated
 
         dmin = TMath::Sqrt((xPc - bestHmpCluster->x()) * (xPc - bestHmpCluster->x()) + (yPc - bestHmpCluster->y()) * (yPc - bestHmpCluster->y()));
-        // dmin = TMath::Sqrt((xPc0 - bestHmpCluster->x()) * (xPc0 - bestHmpCluster->x()) + (yPc0 - bestHmpCluster->y()) * (yPc0 - bestHmpCluster->y()));
 
         if (dmin < 6.) {
           isOkDcut = kTRUE;
@@ -592,7 +578,7 @@ int MatchHMP::intTrkCha(o2::track::TrackParCov* pTrk, double& xPc, double& yPc, 
 {
   // Static method to find intersection in between given track and HMPID chambers
   // Arguments: pTrk- ESD track; xPc,yPc- track intersection with PC in LORS [cm]
-  //   Returns: intersected chamber ID or -1
+  // Returns: intersected chamber ID or -1
   TrackHMP* hmpTrk = new TrackHMP(*pTrk);                                        // create a hmpid track to be used for propagation and matching
   for (Int_t i = o2::hmpid::Param::kMinCh; i <= o2::hmpid::Param::kMaxCh; i++) { // chambers loop
     Int_t chInt = intTrkCha(i, hmpTrk, xPc, yPc, xRa, yRa, theta, phi, bz);

@@ -35,18 +35,19 @@ class NoiseCalibEPN
   void setModuleConfig(const ModuleConfig* moduleConfig) { mModuleConfig = moduleConfig; };
   const ModuleConfig* getModuleConfig() { return mModuleConfig; };
 
-  void clear(int ih = -1);
+  void clear();
   int process(const gsl::span<const o2::zdc::OrbitData>& orbitdata, const gsl::span<const o2::zdc::BCData>& bcdata, const gsl::span<const o2::zdc::ChannelData>& chdata);
   int endOfRun();
   int saveDebugHistos(const std::string fn = "ZDCNoiseCalibEPN.root");
   void setSaveDebugHistos() { mSaveDebugHistos = true; }
   void setDontSaveDebugHistos() { mSaveDebugHistos = false; }
   void setVerbosity(int val) { mVerbosity = val; }
-  NoiseCalibData mData;
+  NoiseCalibData mData;    // Data to compute RMS of noise
+  NoiseCalibData mDataSum; // Data to compute RMS of noise (cumulated)
   NoiseCalibData& getData() { return mData; }
-  std::array<o2::dataformats::FlatHisto1D<double>*, NChannels> mH{};
-  std::array<o2::dataformats::FlatHisto1D<double>*, NChannels> mHS{};
-  std::array<o2::dataformats::FlatHisto1D<double>*, NChannels> mHD{};
+  NoiseCalibData& getDataSum() { return mDataSum; }
+  std::array<std::array<o2::dataformats::FlatHisto1D<double>*, NChannels>, NoiseCalibData::NHA> mH{};
+  std::array<std::array<o2::dataformats::FlatHisto1D<double>*, NChannels>, NoiseCalibData::NHA> mHSum{};
 
  private:
   bool mInitDone = false;

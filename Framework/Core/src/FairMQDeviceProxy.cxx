@@ -240,10 +240,14 @@ void FairMQDeviceProxy::bind(std::vector<OutputRoute> const& outputs, std::vecto
       if (channelPos == channelNameToChannel.end()) {
         channelIndex = ChannelIndex{(int)mOutputChannelInfos.size()};
         ChannelAccountingType dplChannel = (route.channel.rfind("from_", 0) == 0) ? ChannelAccountingType::DPL : ChannelAccountingType::RAWFMQ;
+        auto channel = device.GetChannels().find(route.channel);
+        if (channel == device.GetChannels().end()) {
+          LOGP(fatal, "Expected channel {} not configured.", route.channel);
+        }
         OutputChannelInfo info{
           .name = route.channel,
           .channelType = dplChannel,
-          .channel = device.fChannels.at(route.channel).at(0),
+          .channel = channel->second.at(0),
           .policy = route.policy,
         };
         mOutputChannelInfos.push_back(info);
@@ -282,7 +286,11 @@ void FairMQDeviceProxy::bind(std::vector<OutputRoute> const& outputs, std::vecto
 
       if (channelPos == channelNameToChannel.end()) {
         channelIndex = ChannelIndex{(int)mInputChannels.size()};
-        mInputChannels.push_back(&device.fChannels.at(route.sourceChannel).at(0));
+        auto channel = device.GetChannels().find(route.sourceChannel);
+        if (channel == device.GetChannels().end()) {
+          LOGP(fatal, "Expected channel {} not configured.", route.sourceChannel);
+        }
+        mInputChannels.push_back(&channel->second.at(0));
         mInputChannelNames.push_back(route.sourceChannel);
         channelNameToChannel[route.sourceChannel] = channelIndex;
         LOGP(detail, "Binding channel {} to channel index {}", route.sourceChannel, channelIndex.value);
@@ -317,9 +325,12 @@ void FairMQDeviceProxy::bind(std::vector<OutputRoute> const& outputs, std::vecto
 
       if (channelPos == channelNameToChannel.end()) {
         channelIndex = ChannelIndex{(int)mForwardChannelInfos.size()};
-        auto& channel = device.fChannels.at(route.channel).at(0);
+        auto channel = device.GetChannels().find(route.channel);
+        if (channel == device.GetChannels().end()) {
+          LOGP(fatal, "Expected channel {} not configured.", route.channel);
+        }
         ChannelAccountingType dplChannel = (route.channel.rfind("from_", 0) == 0) ? ChannelAccountingType::DPL : ChannelAccountingType::RAWFMQ;
-        mForwardChannelInfos.push_back(ForwardChannelInfo{route.channel, dplChannel, channel});
+        mForwardChannelInfos.push_back(ForwardChannelInfo{route.channel, dplChannel, channel->second.at(0)});
         mForwardChannelStates.push_back(ForwardChannelState{0});
         channelNameToChannel[route.channel] = channelIndex;
         LOGP(detail, "Binding forward channel {} to channel index {}", route.channel, channelIndex.value);
@@ -331,16 +342,15 @@ void FairMQDeviceProxy::bind(std::vector<OutputRoute> const& outputs, std::vecto
       mForwardRoutes.emplace_back(RouteState{channelIndex, false});
       ri++;
     }
-    for (auto& route : mForwardRoutes) {
-      assert(route.channel.value != -1);
-      assert(route.channel.value < mForwardChannelInfos.size());
-    }
     LOGP(detail, "Total forward channels found {}, total routes {}", mForwardChannelInfos.size(), mForwardRoutes.size());
-    // List all routes
-    for (auto& route : mForwards) {
-      LOGP(detail, "Forward route {}@{}%{} to index {} and channelIndex {}", DataSpecUtils::describe(route.matcher), route.timeslice, route.maxTimeslices);
-    }
     assert(mForwardRoutes.size() == forwards.size());
+    for (size_t fi = 0; fi < mForwards.size(); fi++) {
+      auto& route = mForwards[fi];
+      auto& state = mForwardRoutes[fi];
+      assert(state.channel.value != -1);
+      assert(state.channel.value < mForwardChannelInfos.size());
+      LOGP(detail, "Forward route {}@{}%{} to index {} and channelIndex {}", DataSpecUtils::describe(route.matcher), route.timeslice, route.maxTimeslices, fi, state.channel.value);
+    }
   }
   mStateChangeCallback = [&device]() -> bool { return device.NewStatePending(); };
 }

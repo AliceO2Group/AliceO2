@@ -27,6 +27,7 @@ o2_add_library(TRDWorkflow
                        include/TRDWorkflow/TRDPulseHeightSpec.h
                        include/TRDWorkflow/TRDGlobalTrackingQCSpec.h
                        include/TRDWorkflow/NoiseCalibSpec.h
+                       include/TRDWorkflow/T0FitSpec.h
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DPLUtils
                                      O2::Steer
                                      O2::Algorithm

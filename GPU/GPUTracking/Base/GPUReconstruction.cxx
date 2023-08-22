@@ -905,6 +905,31 @@ void GPUReconstruction::PrintMemoryStatistics()
   }
 }
 
+int GPUReconstruction::registerMemoryForGPU(const void* ptr, size_t size)
+{
+  if (mProcessingSettings.noGPUMemoryRegistration) {
+    return 0;
+  }
+  int retVal = registerMemoryForGPU_internal(ptr, size);
+  if (retVal == 0) {
+    mRegisteredMemoryPtrs.emplace(ptr);
+  }
+  return retVal;
+}
+
+int GPUReconstruction::unregisterMemoryForGPU(const void* ptr)
+{
+  if (mProcessingSettings.noGPUMemoryRegistration) {
+    return 0;
+  }
+  const auto& pos = mRegisteredMemoryPtrs.find(ptr);
+  if (pos != mRegisteredMemoryPtrs.end()) {
+    mRegisteredMemoryPtrs.erase(pos);
+    return unregisterMemoryForGPU_internal(ptr);
+  }
+  return 1;
+}
+
 template <class T>
 static inline int getStepNum(T step, bool validCheck, int N, const char* err = "Invalid step num")
 {

@@ -18,17 +18,30 @@
 #include "DetectorsRaw/RDHUtils.h"
 #include "CTPWorkflow/RawDecoderSpec.h"
 #include "CommonUtils/VerbosityConfig.h"
+#include "Framework/InputRecord.h"
+#include "DataFormatsCTP/TriggerOffsetsParam.h"
 
 using namespace o2::ctp::reco_workflow;
 
 void RawDecoderSpec::init(framework::InitContext& ctx)
 {
+  bool decodeinps = ctx.options().get<bool>("inputs-decoding");
+  mDecoder.setDecodeInps(decodeinps);
   mNTFToIntegrate = ctx.options().get<int>("ntf-to-average");
   mVerbose = ctx.options().get<bool>("use-verbose-mode");
+  int maxerrors = ctx.options().get<int>("print-errors-num");
   mDecoder.setVerbose(mVerbose);
   mDecoder.setDoLumi(mDoLumi);
   mDecoder.setDoDigits(mDoDigits);
-  LOG(info) << "CTP reco init done. DoLumi:" << mDoLumi << " DoDigits:" << mDoDigits << " NTF:" << mNTFToIntegrate;
+  mDecoder.setMAXErrors(maxerrors);
+  std::string lumiinp1 = ctx.options().get<std::string>("lumi-inp1");
+  std::string lumiinp2 = ctx.options().get<std::string>("lumi-inp2");
+  int inp1 = mDecoder.setLumiInp(1, lumiinp1);
+  int inp2 = mDecoder.setLumiInp(2, lumiinp2);
+  mOutputLumiInfo.inp1 = inp1;
+  mOutputLumiInfo.inp2 = inp2;
+  LOG(info) << "CTP reco init done. Inputs decoding here:" << decodeinps << " DoLumi:" << mDoLumi << " DoDigits:" << mDoDigits << " NTF:" << mNTFToIntegrate << " Lumi inputs:" << lumiinp1 << ":" << inp1 << " " << lumiinp2 << ":" << inp2 << " Max errors:" << maxerrors;
+  // mOutputLumiInfo.printInputs();
 }
 void RawDecoderSpec::endOfStream(framework::EndOfStreamContext& ec)
 {
@@ -54,6 +67,7 @@ void RawDecoderSpec::endOfStream(framework::EndOfStreamContext& ec)
   }
   std::cout << std::endl;
   std::cout << "Number of missing TF:" << nmiss << std::endl;
+  std::cout << "# of IR errors:" << mDecoder.getErrorIR() << " TCR errors:" << mDecoder.getErrorTCR() << std::endl;
 }
 void RawDecoderSpec::run(framework::ProcessingContext& ctx)
 {
@@ -140,7 +154,8 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
     mOutputLumiInfo.nHBFCounted = mNHBIntegratedT;
     mOutputLumiInfo.nHBFCountedFV0 = mNHBIntegratedV;
     if (mVerbose) {
-      LOGP(info, "Orbit {}: {}/{} counts T/V in {}/{} HBFs -> lumiT = {:.3e}+-{:.3e} lumiV = {:.3e}+-{:.3e}", mOutputLumiInfo.orbit, mCountsT, mCountsV, mNHBIntegratedT, mNHBIntegratedV, mOutputLumiInfo.getLumi(), mOutputLumiInfo.getLumiError(), mOutputLumiInfo.getLumiFV0(), mOutputLumiInfo.getLumiFV0Error());
+      mOutputLumiInfo.printInputs();
+      LOGP(info, "Orbit {}: {}/{} counts inp1/inp2 in {}/{} HBFs -> lumi_inp1 = {:.3e}+-{:.3e} lumi_inp2 = {:.3e}+-{:.3e}", mOutputLumiInfo.orbit, mCountsT, mCountsV, mNHBIntegratedT, mNHBIntegratedV, mOutputLumiInfo.getLumi(), mOutputLumiInfo.getLumiError(), mOutputLumiInfo.getLumiFV0(), mOutputLumiInfo.getLumiFV0Error());
     }
     ctx.outputs().snapshot(o2::framework::Output{"CTP", "LUMI", 0, o2::framework::Lifetime::Timeframe}, mOutputLumiInfo);
   }
@@ -170,5 +185,9 @@ o2::framework::DataProcessorSpec o2::ctp::reco_workflow::getRawDecoderSpec(bool 
     o2::framework::AlgorithmSpec{o2::framework::adaptFromTask<o2::ctp::reco_workflow::RawDecoderSpec>(digits, lumi)},
     o2::framework::Options{
       {"ntf-to-average", o2::framework::VariantType::Int, 90, {"Time interval for averaging luminosity in units of TF"}},
-      {"use-verbose-mode", o2::framework::VariantType::Bool, false, {"Verbose logging"}}}};
+      {"print-errors-num", o2::framework::VariantType::Int, 3, {"Max number of errors to print"}},
+      {"lumi-inp1", o2::framework::VariantType::String, "TVX", {"The first input used for online lumi. Name in capital."}},
+      {"lumi-inp2", o2::framework::VariantType::String, "VBA", {"The second input used for online lumi. Name in capital."}},
+      {"use-verbose-mode", o2::framework::VariantType::Bool, false, {"Verbose logging"}},
+      {"inputs-decoding", o2::framework::VariantType::Bool, false, {"Inputs alignment: false - CTF decoder, true - here "}}}};
 }

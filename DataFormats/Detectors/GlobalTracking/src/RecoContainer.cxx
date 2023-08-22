@@ -23,9 +23,10 @@
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "ReconstructionDataFormats/PrimaryVertex.h"
 #include "SimulationDataFormat/MCEventLabel.h"
+#include "ReconstructionDataFormats/DecayNBodyIndex.h"
 #include "ReconstructionDataFormats/V0.h"
 #include "ReconstructionDataFormats/Cascade.h"
-#include "ReconstructionDataFormats/DecayNbody.h"
+#include "ReconstructionDataFormats/Decay3Body.h"
 #include "ReconstructionDataFormats/StrangeTrack.h"
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
@@ -392,10 +393,13 @@ void DataRequest::requestPrimaryVerterticesTMP(bool mc) // primary vertices befo
 
 void DataRequest::requestSecondaryVertices(bool)
 {
+  addInput({"v0sIdx", "GLO", "V0S_IDX", 0, Lifetime::Timeframe});
   addInput({"v0s", "GLO", "V0S", 0, Lifetime::Timeframe});
   addInput({"p2v0s", "GLO", "PVTX_V0REFS", 0, Lifetime::Timeframe});
+  addInput({"cascsIdx", "GLO", "CASCS_IDX", 0, Lifetime::Timeframe});
   addInput({"cascs", "GLO", "CASCS", 0, Lifetime::Timeframe});
   addInput({"p2cascs", "GLO", "PVTX_CASCREFS", 0, Lifetime::Timeframe});
+  addInput({"decay3bodyIdx", "GLO", "DECAYS3BODY_IDX", 0, Lifetime::Timeframe});
   addInput({"decay3body", "GLO", "DECAYS3BODY", 0, Lifetime::Timeframe});
   addInput({"p2decay3body", "GLO", "PVTX_3BODYREFS", 0, Lifetime::Timeframe});
   requestMap["SVertex"] = false; // no MC provided for secondary vertices
@@ -762,20 +766,23 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
   if (req != reqMap.end()) {
     addIRFramesITS(pc);
   }
-  //  req = reqMap.find("matchHMP");
-  //  if (req != reqMap.end()) {
-  //    addHMPMatches(pc, req->second);
-  //  }
+  req = reqMap.find("matchHMP");
+  if (req != reqMap.end()) {
+    addHMPMatches(pc, req->second);
+  }
 }
 
 //____________________________________________________________
 void RecoContainer::addSVertices(ProcessingContext& pc, bool)
 {
+  svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::V0Index>>("v0sIdx"), V0SIDX);
   svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::V0>>("v0s"), V0S);
   svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::RangeReference<int, int>>>("p2v0s"), PVTX_V0REFS);
+  svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::CascadeIndex>>("cascsIdx"), CASCSIDX);
   svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::Cascade>>("cascs"), CASCS);
   svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::RangeReference<int, int>>>("p2cascs"), PVTX_CASCREFS);
-  svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::DecayNbody>>("decay3body"), DECAY3BODY);
+  svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::Decay3BodyIndex>>("decay3bodyIdx"), DECAY3BODYIDX);
+  svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::Decay3Body>>("decay3body"), DECAY3BODY);
   svtxPool.registerContainer(pc.inputs().get<gsl::span<o2::dataformats::RangeReference<int, int>>>("p2decay3body"), PVTX_3BODYREFS);
   // no mc
 }

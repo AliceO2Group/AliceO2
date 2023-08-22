@@ -24,6 +24,7 @@
 #include "EMCALBase/Geometry.h"
 #include "CCDB/CcdbObjectInfo.h"
 #include "EMCALCalib/TimeCalibrationParams.h"
+#include "EMCALCalib/GainCalibrationFactors.h"
 #include "EMCALCalibration/EMCALCalibParams.h"
 
 #include "Framework/Logger.h"
@@ -45,22 +46,15 @@ class EMCALTimeCalibData
 {
  public:
   using Cells = o2::emcal::Cell;
-  using boostHisto = boost::histogram::histogram<std::tuple<boost::histogram::axis::variable<double, boost::use_default, boost::use_default, std::allocator<double>>, boost::histogram::axis::variable<double, boost::use_default, boost::use_default, std::allocator<double>>>>;
+  using boostHisto = boost::histogram::histogram<std::tuple<boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>, boost::histogram::axis::regular<double, boost::use_default, boost::use_default, boost::use_default>>>;
 
   o2::emcal::Geometry* mGeometry = o2::emcal::Geometry::GetInstanceFromRunNumber(300000);
   int NCELLS = mGeometry->GetNCells();
 
   EMCALTimeCalibData()
   {
-    std::vector<double> binEdgesCells;
-    for (int i = 0; i <= NCELLS; i++) {
-      binEdgesCells.push_back(i);
-    }
-    std::vector<double> binEdgesTime;
-    for (int i = 0; i <= EMCALCalibParams::Instance().nBinsTimeAxis_tc; i++) {
-      binEdgesTime.push_back(EMCALCalibParams::Instance().minValueTimeAxis_tc + (static_cast<double>(i) * std::abs(EMCALCalibParams::Instance().maxValueTimeAxis_tc - EMCALCalibParams::Instance().minValueTimeAxis_tc)) / EMCALCalibParams::Instance().nBinsTimeAxis_tc);
-    }
-    mTimeHisto = boost::histogram::make_histogram(boost::histogram::axis::variable<>(binEdgesTime), boost::histogram::axis::variable<>(binEdgesCells));
+
+    mTimeHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(EMCALCalibParams::Instance().nBinsTimeAxis_tc, EMCALCalibParams::Instance().minValueTimeAxis_tc, EMCALCalibParams::Instance().maxValueTimeAxis_tc), boost::histogram::axis::regular<>(NCELLS, -0.5, NCELLS - 0.5));
 
     LOG(debug) << "initialize time histogram with " << NCELLS << " cells";
   }
@@ -95,6 +89,12 @@ class EMCALTimeCalibData
   boostHisto& getHisto() { return mTimeHisto; }
   const boostHisto& getHisto() const { return mTimeHisto; }
 
+  void setGainCalibFactors(o2::emcal::GainCalibrationFactors* calibFactors)
+  {
+    mGainCalibFactors = calibFactors;
+    mApplyGainCalib = true;
+  }
+
   /// \brief Set new calibration histogram
   void setHisto(boostHisto hist) { mTimeHisto = hist; }
 
@@ -104,10 +104,11 @@ class EMCALTimeCalibData
   o2::emcal::TimeCalibrationParams process();
 
  private:
-  boostHisto mTimeHisto; ///< histogram with cell time vs. cell ID
-
-  int mEvents = 0;                        ///< current number of events
-  long unsigned int mNEntriesInHisto = 0; ///< number of entries in histogram
+  boostHisto mTimeHisto;                                ///< histogram with cell time vs. cell ID
+  int mEvents = 0;                                      ///< current number of events
+  long unsigned int mNEntriesInHisto = 0;               ///< number of entries in histogram
+  bool mApplyGainCalib = false;                         ///< Switch if gain calibration is applied or not
+  o2::emcal::GainCalibrationFactors* mGainCalibFactors; ///< Gain calibration factors applied to the data before filling the histograms
 
   ClassDefNV(EMCALTimeCalibData, 1);
 };

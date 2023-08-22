@@ -141,8 +141,6 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   constexpr static const char* GetKernelName();
 
   virtual int GPUDebug(const char* state = "UNKNOWN", int stream = -1, bool force = false);
-  int registerMemoryForGPU(const void* ptr, size_t size) override { return 0; }
-  int unregisterMemoryForGPU(const void* ptr) override { return 0; }
   int GPUStuck() { return mGPUStuck; }
   void ResetDeviceProcessorTypes();
   template <class T>
@@ -165,13 +163,16 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
 
   GPUReconstructionCPU(const GPUSettingsDeviceBackend& cfg) : GPUReconstructionKernels(cfg) {}
 
+  int registerMemoryForGPU_internal(const void* ptr, size_t size) override { return 0; }
+  int unregisterMemoryForGPU_internal(const void* ptr) override { return 0; }
+
   virtual void SynchronizeStream(int stream) {}
   virtual void SynchronizeEvents(deviceEvent* evList, int nEvents = 1) {}
   virtual void StreamWaitForEvents(int stream, deviceEvent* evList, int nEvents = 1) {}
   virtual bool IsEventDone(deviceEvent* evList, int nEvents = 1) { return true; }
-  virtual void RecordMarker(deviceEvent* ev, int stream) {}
+  virtual void RecordMarker(deviceEvent ev, int stream) {}
   virtual void SynchronizeGPU() {}
-  virtual void ReleaseEvent(deviceEvent* ev) {}
+  virtual void ReleaseEvent(deviceEvent ev) {}
   virtual int StartHelperThreads() { return 0; }
   virtual int StopHelperThreads() { return 0; }
   virtual void RunHelperThreads(int (GPUReconstructionHelpers::helperDelegateBase::*function)(int, int, GPUReconstructionHelpers::helperParam*), GPUReconstructionHelpers::helperDelegateBase* functionCls, int count) {}
@@ -180,16 +181,16 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   virtual int HelperDone(int iThread) const { return 0; }
   virtual void ResetHelperThreads(int helpers) {}
 
-  size_t TransferMemoryResourceToGPU(GPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { return TransferMemoryInternal(res, stream, ev, evList, nEvents, true, res->Ptr(), res->PtrDevice()); }
-  size_t TransferMemoryResourceToHost(GPUMemoryResource* res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { return TransferMemoryInternal(res, stream, ev, evList, nEvents, false, res->PtrDevice(), res->Ptr()); }
+  size_t TransferMemoryResourceToGPU(GPUMemoryResource* res, int stream = -1, deviceEvent ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { return TransferMemoryInternal(res, stream, ev, evList, nEvents, true, res->Ptr(), res->PtrDevice()); }
+  size_t TransferMemoryResourceToHost(GPUMemoryResource* res, int stream = -1, deviceEvent ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { return TransferMemoryInternal(res, stream, ev, evList, nEvents, false, res->PtrDevice(), res->Ptr()); }
   size_t TransferMemoryResourcesToGPU(GPUProcessor* proc, int stream = -1, bool all = false) { return TransferMemoryResourcesHelper(proc, stream, all, true); }
   size_t TransferMemoryResourcesToHost(GPUProcessor* proc, int stream = -1, bool all = false) { return TransferMemoryResourcesHelper(proc, stream, all, false); }
-  size_t TransferMemoryResourceLinkToGPU(short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { return TransferMemoryResourceToGPU(&mMemoryResources[res], stream, ev, evList, nEvents); }
-  size_t TransferMemoryResourceLinkToHost(short res, int stream = -1, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { return TransferMemoryResourceToHost(&mMemoryResources[res], stream, ev, evList, nEvents); }
-  virtual size_t GPUMemCpy(void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1);
-  virtual size_t GPUMemCpyAlways(bool onGpu, void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent* ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1);
-  size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent* ev) override;
-  virtual size_t TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent* ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst);
+  size_t TransferMemoryResourceLinkToGPU(short res, int stream = -1, deviceEvent ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { return TransferMemoryResourceToGPU(&mMemoryResources[res], stream, ev, evList, nEvents); }
+  size_t TransferMemoryResourceLinkToHost(short res, int stream = -1, deviceEvent ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1) { return TransferMemoryResourceToHost(&mMemoryResources[res], stream, ev, evList, nEvents); }
+  virtual size_t GPUMemCpy(void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1);
+  virtual size_t GPUMemCpyAlways(bool onGpu, void* dst, const void* src, size_t size, int stream, int toGPU, deviceEvent ev = nullptr, deviceEvent* evList = nullptr, int nEvents = 1);
+  size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream, deviceEvent ev) override;
+  virtual size_t TransferMemoryInternal(GPUMemoryResource* res, int stream, deviceEvent ev, deviceEvent* evList, int nEvents, bool toGPU, const void* src, void* dst);
 
   int InitDevice() override;
   int ExitDevice() override;
@@ -236,7 +237,7 @@ class GPUReconstructionCPU : public GPUReconstructionKernels<GPUReconstructionCP
   template <class T, int J = -1>
   HighResTimer& getTimer(const char* name, int num = -1);
 
-  std::vector<std::vector<deviceEvent*>> mEvents;
+  std::vector<std::vector<deviceEvent>> mEvents;
 
  private:
   size_t TransferMemoryResourcesHelper(GPUProcessor* proc, int stream, bool all, bool toGPU);
@@ -326,7 +327,7 @@ inline int GPUReconstructionCPU::runKernel(const krnlExec& x, const krnlRunRange
 template <class T>
 inline void GPUReconstructionCPU::AddGPUEvents(T*& events)
 {
-  mEvents.emplace_back(std::vector<deviceEvent*>(sizeof(T) / sizeof(deviceEvent*)));
+  mEvents.emplace_back(std::vector<deviceEvent>(sizeof(T) / sizeof(deviceEvent)));
   events = (T*)mEvents.back().data();
 }
 

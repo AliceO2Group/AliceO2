@@ -35,6 +35,14 @@ using o2::math_utils::median;
 
 using namespace o2::tpc;
 
+void CalibTreeDump::add(CalPadMapType& calibs)
+{
+  for (auto& [name, calDet] : calibs) {
+    calDet.setName(name);
+    mCalDetObjects.emplace_back(&calDet);
+  }
+}
+
 void CalibTreeDump::addCalPads(const std::string_view file, const std::string_view calPadNames)
 {
   auto calPads = utils::readCalPads(file, calPadNames);
@@ -167,7 +175,7 @@ void CalibTreeDump::addFEEMapping(TTree* tree)
   // ===| loop over readout chambers |==========================================
   for (ROC roc; !roc.looped(); ++roc) {
     int rocNumber = roc;
-    //tree->GetEntry(rocNumber);
+    // tree->GetEntry(rocNumber);
     traceLength = ((roc.rocType() == RocType::IROC) ? &mTraceLengthIROC : &mTraceLengthOROC);
 
     // ===| clear position vectors |============================================

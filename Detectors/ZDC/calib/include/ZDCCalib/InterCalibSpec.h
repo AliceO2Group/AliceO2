@@ -55,9 +55,11 @@ class InterCalibSpec : public o2::framework::Task
   bool mInitialized = false;   // Connect once to CCDB during initialization
   InterCalib mWorker;          // Intercalibration object
   TStopwatch mTimer;
-  long mRunStartTime = 0;     /// start time of the run (ms)
-  std::string mOutputDir;     /// where to write calibration digits
-  std::string mHistoFileName; /// file name of output calib digits
+  long mRunStartTime = 0;                                                      /// start time of the run (ms)
+  o2::framework::DataAllocator* mOutput = nullptr;                             /// Pointer to output object
+  std::unique_ptr<o2::dataformats::FileMetaData> mHistoFileMetaData = nullptr; /// Pointer to metadata file
+  std::string mOutputDir;                                                      /// where to write calibration digits
+  std::string mHistoFileName;                                                  /// file name of output calib digits
   std::string mLHCPeriod;
   int mRunNumber = -1;
 };

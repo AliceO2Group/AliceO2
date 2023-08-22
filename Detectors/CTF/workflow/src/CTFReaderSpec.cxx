@@ -167,11 +167,14 @@ void CTFReaderSpec::openCTFFile(const std::string& flname)
     mFilesRead++;
     mCTFFile.reset(TFile::Open(flname.c_str()));
     if (!mCTFFile || !mCTFFile->IsOpen() || mCTFFile->IsZombie()) {
-      throw std::runtime_error("failed to open CTF file");
+      throw std::runtime_error(fmt::format("failed to open CTF file {}, skipping", flname));
     }
     mCTFTree.reset((TTree*)mCTFFile->Get(std::string(o2::base::NameConf::CTFTREENAME).c_str()));
     if (!mCTFTree) {
-      throw std::runtime_error("failed to load CTF tree from");
+      throw std::runtime_error(fmt::format("failed to load CTF tree from {}, skipping", flname));
+    }
+    if (mCTFTree->GetEntries() < 1) {
+      throw std::runtime_error(fmt::format("CTF tree in {} has 0 entries, skipping", flname));
     }
   } catch (const std::exception& e) {
     LOG(error) << "Cannot process " << flname << ", reason: " << e.what();

@@ -15,6 +15,7 @@
 
 #include "DetectorsBase/Stack.h"
 #include "DetectorsBase/Detector.h"
+#include <DetectorsBase/VMCSeederService.h>
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "SimulationDataFormat/MCTrack.h"
 
@@ -362,6 +363,7 @@ TParticle* Stack::PopNextTrack(Int_t& iTrack)
         // LOG(info) << "SEEDING NEW TRACK USING HASH" << hash;
         // init seed per track
         gRandom->SetSeed(hash);
+        o2::base::VMCSeederService::instance().setSeed();
         // NOTE: THE BETTER PLACE WOULD BE IN PRETRACK HOOK BUT THIS DOES NOT SEEM TO WORK
         // WORKS ONLY WITH G3 SINCE G4 DOES NOT CALL THIS FUNCTION
       } // .trackSeed ?

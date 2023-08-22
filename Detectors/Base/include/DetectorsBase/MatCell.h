@@ -33,6 +33,12 @@ struct MatCell {
   GPUd() MatCell() : meanRho(0.f), meanX2X0(0.f) {}
   GPUdDefault() MatCell(const MatCell& src) CON_DEFAULT;
 
+  GPUd() void set(const MatCell& c)
+  {
+    meanRho = c.meanRho;
+    meanX2X0 = c.meanX2X0;
+  }
+
   GPUd() void scale(float scale)
   {
     meanRho *= scale;

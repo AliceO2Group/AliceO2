@@ -185,10 +185,6 @@ int TPCFastTransformHelperO2::updateCalibration(TPCFastTransform& fastTransform,
 
   fastTransform.setCalibration(TimeStamp, t0, vDrift, vdCorrY, ldCorr, tofCorr, primVtxZ);
 
-  // The next line should not be needed
-  // fastTransform.getCorrection().initInverse();
-  // for the future: set back the time-of-flight correction
-
   return 0;
 }
 

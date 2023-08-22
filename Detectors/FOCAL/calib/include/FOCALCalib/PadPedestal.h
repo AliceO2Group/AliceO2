@@ -99,6 +99,7 @@ class PadPedestal
 
   TH1* getHistogramRepresentation(int layer) const;
   std::array<TH1*, 18> getLayerHistogramRepresentations() const;
+  int getNumberOfChannels() const { return mPedestalValues.size(); }
 
  private:
   std::unordered_map<ChannelID, double, ChannelIDHasher> mPedestalValues;

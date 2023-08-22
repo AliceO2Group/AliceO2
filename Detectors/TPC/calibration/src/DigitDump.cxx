@@ -217,7 +217,7 @@ void DigitDump::checkDuplicates(bool removeDuplicates)
       static std::array<size_t, Sector::MAXSECTOR> nWarning{};
       static std::array<size_t, Sector::MAXSECTOR> suppression{};
       if (nWarning[iSec] < 5 || nWarning[iSec] == suppression[iSec]) {
-        LOGP(warning, "{} {} duplicate digits in sector {}, warned {} times in this sector", removeDuplicates ? "removed" : "found", nDuplicates, iSec, nWarning[iSec]);
+        LOGP(alarm, "{} {} duplicate digits in sector {}, warned {} times in this sector", removeDuplicates ? "removed" : "found", nDuplicates, iSec, nWarning[iSec]);
         if (nWarning[iSec] == 4) {
           suppression[iSec] = 10;
         }

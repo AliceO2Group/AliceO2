@@ -12,8 +12,11 @@
 /// @file   AODProducerWorkflowSpec.cxx
 
 #include "AODProducerWorkflow/AODProducerWorkflowSpec.h"
+#include "DataFormatsEMCAL/TriggerRecord.h"
+#include "DataFormatsEMCAL/EventHandler.h"
 #include "DataFormatsFT0/RecPoints.h"
 #include "DataFormatsFDD/RecPoint.h"
+#include "DataFormatsFV0/RecPoints.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "DataFormatsCTP/Digits.h"
 #include "DataFormatsCTP/Configuration.h"
@@ -25,14 +28,15 @@
 #include "DataFormatsMCH/Cluster.h"
 #include "DataFormatsMID/Track.h"
 #include "DataFormatsMFT/TrackMFT.h"
+#include "DataFormatsPHOS/TriggerRecord.h"
+#include "DataFormatsPHOS/EventHandler.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTRD/TriggerRecord.h"
+#include "DataFormatsZDC/BCRecData.h"
 #include "DataFormatsZDC/ZDCEnergy.h"
 #include "DataFormatsZDC/ZDCTDCData.h"
 #include "DataFormatsParameters/GRPECSObject.h"
-#include "CommonUtils/NameConf.h"
 #include "MathUtils/Utils.h"
-#include "DetectorsBase/GeometryManager.h"
 #include "CCDB/BasicCCDBManager.h"
 #include "CommonConstants/Triggers.h"
 #include "CommonConstants/PhysicsConstants.h"
@@ -43,15 +47,9 @@
 #include "Framework/AnalysisDataModel.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/DataTypes.h"
-#include "Framework/InputRecordWalker.h"
-#include "Framework/Logger.h"
 #include "Framework/TableBuilder.h"
-#include "Framework/TableTreeHelpers.h"
 #include "Framework/CCDBParamSpec.h"
-#include "Framework/AnalysisManagers.h"
-#include "FDDBase/Constants.h"
 #include "FT0Base/Geometry.h"
-#include "FV0Base/Geometry.h"
 #include "GlobalTracking/MatchTOF.h"
 #include "ReconstructionDataFormats/Cascade.h"
 #include "MCHTracking/TrackExtrap.h"
@@ -60,10 +58,12 @@
 #include "DetectorsVertexing/PVertexerParams.h"
 #include "ReconstructionDataFormats/GlobalFwdTrack.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "ReconstructionDataFormats/PrimaryVertex.h"
 #include "ReconstructionDataFormats/StrangeTrack.h"
 #include "ReconstructionDataFormats/Track.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "ReconstructionDataFormats/TrackMCHMID.h"
+#include "ReconstructionDataFormats/MatchInfoHMP.h"
 #include "ReconstructionDataFormats/V0.h"
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
@@ -72,6 +72,7 @@
 #include "SimulationDataFormat/MCTrack.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "SimulationDataFormat/MCUtils.h"
+#include "SimulationDataFormat/MCGenProperties.h"
 #include "ZDCBase/Constants.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "GPUTPCGMMergedTrackHit.h"
@@ -80,9 +81,7 @@
 #include "TMath.h"
 #include "MathUtils/Utils.h"
 #include "Math/SMatrix.h"
-#include "TMatrixD.h"
 #include "TString.h"
-#include "TObjString.h"
 #include <map>
 #include <numeric>
 #include <unordered_map>
@@ -176,7 +175,7 @@ void AODProducerWorkflowDPL::createCTPReadout(const o2::globaltracking::RecoCont
         uint64_t globalBC = trigger.getBCData().toLong();
         auto t0entry = bcsMapT0triggers.find(globalBC);
         if (t0entry != bcsMapT0triggers.end()) {
-          auto ctpdig = std::find_if(ctpDigits.begin(), ctpDigits.end(), [globalBC](const o2::ctp::CTPDigit& dig) { return dig.intRecord.toLong() == globalBC; });
+          auto ctpdig = std::find_if(ctpDigits.begin(), ctpDigits.end(), [globalBC](const o2::ctp::CTPDigit& dig) { return static_cast<uint64_t>(dig.intRecord.toLong()) == globalBC; });
           if (ctpdig != ctpDigits.end()) {
             // CTP digit existing from other trigger, merge detector class mask
             ctpdig->CTPClassMask |= std::bitset<64>(classmask);
@@ -773,8 +772,8 @@ void dimensionMCKeepStore(std::vector<std::vector<std::unordered_map<int, int>*>
 
 void clearMCKeepStore(std::vector<std::vector<std::unordered_map<int, int>*>>& store)
 {
-  for (int s = 0; s < store.size(); ++s) {
-    for (int e = 0; e < store[s].size(); ++e) {
+  for (auto s = 0U; s < store.size(); ++s) {
+    for (auto e = 0U; e < store[s].size(); ++e) {
       if (store[s][e]) {
         store[s][e]->clear();
       }
@@ -855,6 +854,25 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
       }
     }
   }
+  // mark calorimeter signals as reconstructed particles
+  if (mInputSources[GIndex::EMC]) {
+    auto& mcCaloEMCCellLabels = data.getEMCALCellsMCLabels()->getTruthArray();
+    for (auto& mcTruth : mcCaloEMCCellLabels) {
+      if (!mcTruth.isValid()) {
+        continue;
+      }
+      keepMCParticle(mToStore, mcTruth.getSourceID(), mcTruth.getEventID(), mcTruth.getTrackID());
+    }
+  }
+  if (mInputSources[GIndex::PHS]) {
+    auto& mcCaloPHOSCellLabels = data.getPHOSCellsMCLabels()->getTruthArray();
+    for (auto& mcTruth : mcCaloPHOSCellLabels) {
+      if (!mcTruth.isValid()) {
+        continue;
+      }
+      keepMCParticle(mToStore, mcTruth.getSourceID(), mcTruth.getEventID(), mcTruth.getTrackID());
+    }
+  }
   int tableIndex = 1;
   for (auto& colInfo : mcColToEvSrc) { // loop over "<eventID, sourceID> <-> combined MC col. ID" key pairs
     int event = colInfo[2];
@@ -898,7 +916,7 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
           keepMCParticle(mToStore, source, event, daughterL);
         }
       }
-      LOG(info) << "The fraction of MC particles kept is " << mToStore[source][event]->size() / (1. * mcParticles.size()) << " for source " << source << " and event " << event;
+      LOG(debug) << "The fraction of MC particles kept is " << mToStore[source][event]->size() / (1. * mcParticles.size()) << " for source " << source << " and event " << event;
 
       particleIDsToKeep.clear();
       for (auto& p : *mToStore[source][event]) {
@@ -912,7 +930,7 @@ void AODProducerWorkflowDPL::fillMCParticlesTable(o2::steer::MCKinematicsReader&
     } else {
       // if all mc particles are stored, all mc particles will be enumerated
       particleIDsToKeep.clear();
-      for (int particle = 0; particle < mcParticles.size(); particle++) {
+      for (auto particle = 0U; particle < mcParticles.size(); particle++) {
         keepMCParticle(mToStore, source, event, particle, tableIndex - 1);
         tableIndex++;
         particleIDsToKeep.push_back(particle);
@@ -1121,9 +1139,9 @@ template <typename V0CursorType, typename CascadeCursorType, typename Decay3Body
 void AODProducerWorkflowDPL::fillSecondaryVertices(const o2::globaltracking::RecoContainer& recoData, V0CursorType& v0Cursor, CascadeCursorType& cascadeCursor, Decay3BodyCursorType& decay3BodyCursor)
 {
 
-  auto v0s = recoData.getV0s();
-  auto cascades = recoData.getCascades();
-  auto decays3Body = recoData.getDecays3Body();
+  auto v0s = recoData.getV0sIdx();
+  auto cascades = recoData.getCascadesIdx();
+  auto decays3Body = recoData.getDecays3BodyIdx();
 
   v0Cursor.reserve(v0s.size());
   // filling v0s table
@@ -1215,11 +1233,43 @@ void AODProducerWorkflowDPL::fillSecondaryVertices(const o2::globaltracking::Rec
   }
 }
 
+template <typename HMPCursorType>
+void AODProducerWorkflowDPL::fillHMPID(const o2::globaltracking::RecoContainer& recoData, HMPCursorType& hmpCursor)
+{
+  auto hmpMatches = recoData.getHMPMatches();
+
+  hmpCursor.reserve(hmpMatches.size());
+
+  // filling HMPs table
+  for (size_t iHmp = 0; iHmp < hmpMatches.size(); iHmp++) {
+
+    const auto& match = hmpMatches[iHmp];
+
+    float xTrk, yTrk, theta, phi;
+    float xMip, yMip;
+    int charge, nph;
+
+    match.getHMPIDtrk(xTrk, yTrk, theta, phi);
+    match.getHMPIDmip(xMip, yMip, charge, nph);
+
+    auto photChargeVec = match.getPhotCharge();
+
+    float photChargeVec2[10]; // = {0.,0.,0.,0.,0.,0.,0.,0.,0.,0.};
+
+    for (Int_t i = 0; i < 10; i++) {
+
+      photChargeVec2[i] = photChargeVec[i];
+    }
+
+    hmpCursor(match.getTrackIndex(), match.getHMPsignal(), xTrk, yTrk, xMip, yMip, nph, charge, match.getMipClusSize(), match.getHmpMom(), photChargeVec2);
+  }
+}
+
 void AODProducerWorkflowDPL::prepareStrangenessTracking(const o2::globaltracking::RecoContainer& recoData)
 {
-  auto v0s = recoData.getV0s();
-  auto cascades = recoData.getCascades();
-  auto decays3Body = recoData.getDecays3Body();
+  auto v0s = recoData.getV0sIdx();
+  auto cascades = recoData.getCascadesIdx();
+  auto decays3Body = recoData.getDecays3BodyIdx();
 
   int sTrkID = 0;
   mCollisionStrTrk.clear();
@@ -1401,7 +1451,7 @@ void AODProducerWorkflowDPL::addToCaloTable(TCaloHandler& caloHandler, TCaloCurs
   if (mUseMC) {
     mcCaloCellLabelCursor.reserve(cellsInEvent.size() + mcCaloCellLabelCursor.lastIndex());
   }
-  for (int iCell = 0; iCell < cellsInEvent.size(); iCell++) {
+  for (auto iCell = 0U; iCell < cellsInEvent.size(); iCell++) {
     caloCellCursor(bcID,
                    CellHelper::getCellNumber(cellsInEvent[iCell]),
                    truncateFloatFraction(CellHelper::getAmplitude(cellsInEvent[iCell]), mCaloAmp),
@@ -1705,6 +1755,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   auto ambigFwdTracksCursor = createTableCursor<o2::aod::AmbiguousFwdTracks>(pc);
   auto v0sCursor = createTableCursor<o2::aod::V0s>(pc);
   auto zdcCursor = createTableCursor<o2::aod::Zdcs>(pc);
+  auto hmpCursor = createTableCursor<o2::aod::HMPIDs>(pc);
   auto caloCellsCursor = createTableCursor<o2::aod::Calos>(pc);
   auto caloCellsTRGTableCursor = createTableCursor<o2::aod::CaloTriggers>(pc);
   auto mcCaloLabelsCursor = createTableCursor<o2::aod::McCaloLabels_001>(pc);
@@ -1805,8 +1856,6 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   std::vector<std::vector<int>> mcColToEvSrc;
 
   if (mUseMC) {
-    // TODO: figure out collision weight
-    float mcColWeight = 1.;
     // filling mcCollision table
     int nMCCollisions = mcReader->getDigitizationContext()->getNCollisions();
     const auto& mcRecords = mcReader->getDigitizationContext()->getEventRecords();
@@ -1838,10 +1887,19 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
         if (nParts == 1 || sourceID == 0) {
           // FIXME:
           // use generators' names for generatorIDs (?)
-          short generatorID = sourceID;
           auto& header = mcReader->getMCEventHeader(sourceID, eventID);
+          bool isValid = false;
+          int subGeneratorId{-1};
+          if (header.hasInfo(o2::mcgenid::GeneratorProperty::SUBGENERATORID)) {
+            subGeneratorId = header.getInfo<int>(o2::mcgenid::GeneratorProperty::SUBGENERATORID, isValid);
+          }
+          isValid = false;
+          float mcColWeight = 1.;
+          if (header.hasInfo("weight")) {
+            mcColWeight = header.getInfo<float>("weight", isValid);
+          }
           mcCollisionsCursor(bcID,
-                             generatorID,
+                             o2::mcgenid::getEncodedGenId(header.getInfo<int>(o2::mcgenid::GeneratorProperty::GENERATORID, isValid), sourceID, subGeneratorId),
                              truncateFloatFraction(header.GetX(), mCollisionPosition),
                              truncateFloatFraction(header.GetY(), mCollisionPosition),
                              truncateFloatFraction(header.GetZ(), mCollisionPosition),
@@ -1974,9 +2032,9 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   mGIDToTableMFTID.clear();
 
   if (mPropTracks) {
-    auto v0s = recoData.getV0s();
-    auto cascades = recoData.getCascades();
-    auto decays3Body = recoData.getDecays3Body();
+    auto v0s = recoData.getV0sIdx();
+    auto cascades = recoData.getCascadesIdx();
+    auto decays3Body = recoData.getDecays3BodyIdx();
     mGIDUsedBySVtx.reserve(v0s.size() * 2 + cascades.size() + decays3Body.size() * 3);
     for (const auto& v0 : v0s) {
       mGIDUsedBySVtx.insert(v0.getProngID(0));
@@ -2045,6 +2103,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   }
 
   fillSecondaryVertices(recoData, v0sCursor, cascadesCursor, decay3BodyCursor);
+  fillHMPID(recoData, hmpCursor);
   fillStrangenessTrackingTables(recoData, trackedV0Cursor, trackedCascadeCursor, tracked3BodyCurs);
 
   // helper map for fast search of a corresponding class mask for a bc
@@ -2123,7 +2182,7 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
 
     // need to go through labels in the same order as for tracks
     fillMCTrackLabelsTable(mcTrackLabelCursor, mcMFTTrackLabelCursor, mcFwdTrackLabelCursor, primVer2TRefs.back(), primVerGIs, recoData);
-    for (int iref = 0; iref < primVer2TRefs.size() - 1; iref++) {
+    for (auto iref = 0U; iref < primVer2TRefs.size() - 1; iref++) {
       auto& trackRef = primVer2TRefs[iref];
       fillMCTrackLabelsTable(mcTrackLabelCursor, mcMFTTrackLabelCursor, mcFwdTrackLabelCursor, trackRef, primVerGIs, recoData, iref);
     }
@@ -2464,7 +2523,7 @@ void AODProducerWorkflowDPL::updateTimeDependentParams(ProcessingContext& pc)
     auto grpECS = o2::base::GRPGeomHelper::instance().getGRPECS();
     o2::BunchFilling bcf = o2::base::GRPGeomHelper::instance().getGRPLHCIF()->getBunchFilling();
     std::bitset<3564> bs = bcf.getBCPattern();
-    for (int i = 0; i < bs.size(); i++) {
+    for (auto i = 0U; i < bs.size(); i++) {
       if (bs.test(i)) {
         o2::tof::Utils::addInteractionBC(i);
       }
@@ -2640,7 +2699,7 @@ std::uint64_t AODProducerWorkflowDPL::fillBCSlice(int (&slice)[2], double tmin, 
   return bcOfTimeRef;
 }
 
-void AODProducerWorkflowDPL::endOfStream(EndOfStreamContext& ec)
+void AODProducerWorkflowDPL::endOfStream(EndOfStreamContext& /*ec*/)
 {
   LOGF(info, "aod producer dpl total timing: Cpu: %.3e Real: %.3e s in %d slots",
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
@@ -2648,7 +2707,6 @@ void AODProducerWorkflowDPL::endOfStream(EndOfStreamContext& ec)
 
 DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, bool enableStrangenessTracking, bool useMC, bool CTPConfigPerRun)
 {
-  std::vector<OutputSpec> outputs;
   auto dataRequest = std::make_shared<DataRequest>();
   dataRequest->inputs.emplace_back("ctpconfig", "CTP", "CTPCONFIG", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/Config", CTPConfigPerRun));
 
@@ -2697,47 +2755,48 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   using namespace o2::aod;
   using namespace o2::aodproducer;
 
-  addTableToOutput<BCs>(outputs);
-  addTableToOutput<Cascades>(outputs, 1);
-  addTableToOutput<Collisions>(outputs, 1);
-  addTableToOutput<Decay3Bodys>(outputs);
-  addTableToOutput<FDDs>(outputs, 1);
-  addTableToOutput<FT0s>(outputs);
-  addTableToOutput<FV0As>(outputs);
-  addTableToOutput<StoredFwdTracks>(outputs);
-  addTableToOutput<StoredFwdTracksCov>(outputs);
-  addTableToOutput<McCollisions>(outputs);
-  // todo: use addTableToOuput helper?
-  //  currently the description is MCCOLLISLABEL, so
-  //  the name in AO2D would be O2mccollislabel
-  // addTableToOutput<McCollisionLabels>(outputs);
-  outputs.emplace_back(OutputLabel{"McCollisionLabels"}, "AOD", "MCCOLLISIONLABEL", 0, Lifetime::Timeframe);
-  addTableToOutput<McMFTTrackLabels>(outputs);
-  addTableToOutput<McFwdTrackLabels>(outputs);
-  addTableToOutput<StoredMcParticles_001>(outputs, 1);
-  addTableToOutput<McTrackLabels>(outputs);
-  addTableToOutput<StoredMFTTracks>(outputs);
-  addTableToOutput<StoredTracksIU>(outputs);
-  addTableToOutput<StoredTracksCovIU>(outputs);
-  addTableToOutput<StoredTracksExtra>(outputs);
-  addTableToOutput<TrackedCascades>(outputs);
-  addTableToOutput<TrackedV0s>(outputs);
-  addTableToOutput<Tracked3Bodys>(outputs);
-  addTableToOutput<AmbiguousTracks>(outputs);
-  addTableToOutput<AmbiguousMFTTracks>(outputs);
-  addTableToOutput<AmbiguousFwdTracks>(outputs);
-  addTableToOutput<V0s>(outputs, 1);
-  addTableToOutput<Zdcs>(outputs, 1);
-  addTableToOutput<Calos>(outputs);
-  addTableToOutput<CaloTriggers>(outputs);
-  addTableToOutput<CPVClusters>(outputs);
-  addTableToOutput<McCaloLabels_001>(outputs, 1);
-  addTableToOutput<Origin>(outputs);
-
-  outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
-  outputs.emplace_back(OutputSpec{"TFF", "TFFilename"});
-  outputs.emplace_back(OutputSpec{"AMD", "AODMetadataKeys"});
-  outputs.emplace_back(OutputSpec{"AMD", "AODMetadataVals"});
+  std::vector<OutputSpec> outputs{
+    OutputForTable<BCs>::spec(),
+    OutputForTable<Cascades>::spec(),
+    OutputForTable<Collisions>::spec(),
+    OutputForTable<Decay3Bodys>::spec(),
+    OutputForTable<FDDs>::spec(),
+    OutputForTable<FT0s>::spec(),
+    OutputForTable<FV0As>::spec(),
+    OutputForTable<StoredFwdTracks>::spec(),
+    OutputForTable<StoredFwdTracksCov>::spec(),
+    OutputForTable<McCollisions>::spec(),
+    OutputForTable<McMFTTrackLabels>::spec(),
+    OutputForTable<McFwdTrackLabels>::spec(),
+    OutputForTable<StoredMcParticles_001>::spec(),
+    OutputForTable<McTrackLabels>::spec(),
+    OutputForTable<StoredMFTTracks>::spec(),
+    OutputForTable<StoredTracksIU>::spec(),
+    OutputForTable<StoredTracksCovIU>::spec(),
+    OutputForTable<StoredTracksExtra>::spec(),
+    OutputForTable<TrackedCascades>::spec(),
+    OutputForTable<TrackedV0s>::spec(),
+    OutputForTable<Tracked3Bodys>::spec(),
+    OutputForTable<AmbiguousTracks>::spec(),
+    OutputForTable<AmbiguousMFTTracks>::spec(),
+    OutputForTable<AmbiguousFwdTracks>::spec(),
+    OutputForTable<V0s>::spec(),
+    OutputForTable<HMPIDs>::spec(),
+    OutputForTable<Zdcs>::spec(),
+    OutputForTable<Calos>::spec(),
+    OutputForTable<CaloTriggers>::spec(),
+    OutputForTable<CPVClusters>::spec(),
+    OutputForTable<McCaloLabels_001>::spec(),
+    OutputForTable<Origin>::spec(),
+    // todo: use addTableToOuput helper?
+    //  currently the description is MCCOLLISLABEL, so
+    //  the name in AO2D would be O2mccollislabel
+    // addTableToOutput<McCollisionLabels>(outputs);
+    {OutputLabel{"McCollisionLabels"}, "AOD", "MCCOLLISIONLABEL", 0, Lifetime::Timeframe},
+    OutputSpec{"TFN", "TFNumber"},
+    OutputSpec{"TFF", "TFFilename"},
+    OutputSpec{"AMD", "AODMetadataKeys"},
+    OutputSpec{"AMD", "AODMetadataVals"}};
 
   return DataProcessorSpec{
     "aod-producer-workflow",

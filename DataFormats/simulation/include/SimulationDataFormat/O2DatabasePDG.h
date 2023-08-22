@@ -15,6 +15,7 @@
 
 #ifndef O2_O2DATABASEPDG_H
 #define O2_O2DATABASEPDG_H
+
 #include <string>
 #include "TDatabasePDG.h"
 #include "TParticlePDG.h"
@@ -233,9 +234,6 @@ inline void O2DatabasePDG::addALICEParticles(TDatabasePDG* db)
                   0, 0, "Special", kspe + 50);
   db->AddParticle("FeedbackPhoton", "FeedbackPhoton", 0, kFALSE,
                   0, 0, "Special", kspe + 51);
-  db->AddParticle("Lambda1520", "Lambda1520", 1.5195, kFALSE,
-                  0.0156, 0, "Resonance", 3124);
-  db->AddAntiParticle("Lambda1520bar", -3124);
 
   //Hyper nuclei and exotica
   ionCode = 1010010030;
@@ -297,6 +295,19 @@ inline void O2DatabasePDG::addALICEParticles(TDatabasePDG* db)
   if (!db->GetParticle(ionCode)) {
     db->AddParticle("AntiHyperhelium4*", "AntiHyperhelium4*", 3.9231, kFALSE,
                     2.5e-15, 6, "Ion", ionCode);
+  }
+
+  // Lithium 4 ground state
+  ionCode = 1000030040;
+  if (!db->GetParticle(ionCode)) {
+    db->AddParticle("Lithium4", "Lithium4", 3.74976, kFALSE,
+                    0.005, 9, "Ion", ionCode);
+  }
+  // anti Lithium 4 ground state
+  ionCode = -1000030040;
+  if (!db->GetParticle(ionCode)) {
+    db->AddParticle("AntiLithium4", "AntiLithium4", 3.74976, kFALSE,
+                    0.005, 9, "Ion", ionCode);
   }
 
   ionCode = 1010020050;

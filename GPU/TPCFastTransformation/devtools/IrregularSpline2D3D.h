@@ -193,6 +193,10 @@ class IrregularSpline2D3D : public FlatObject
 
   IrregularSpline1D mGridU; ///< grid for U axis
   IrregularSpline1D mGridV; ///< grid for V axis
+
+#ifndef GPUCA_ALIROOT_LIB
+  ClassDefNV(IrregularSpline2D3D, 1);
+#endif
 };
 
 /// ====================================================

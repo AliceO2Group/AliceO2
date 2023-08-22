@@ -9,12 +9,12 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#include "ReconstructionDataFormats/DecayNbody.h"
+#include "ReconstructionDataFormats/Decay3Body.h"
 
 using namespace o2::dataformats;
 
-DecayNbody::DecayNbody(PID pid, const std::array<float, 3>& xyz, const std::array<float, 3>& pxyz, const std::array<float, 6>& covxyz, const Track& tr0, const Track& tr1, const Track& tr2, GIndex trID0, GIndex trID1, GIndex trID2)
-  : mProngIDs{trID0, trID1, trID2}, mProngs{tr0, tr1, tr2}
+Decay3Body::Decay3Body(PID pid, const std::array<float, 3>& xyz, const std::array<float, 3>& pxyz, const std::array<float, 6>& covxyz, const Track& tr0, const Track& tr1, const Track& tr2)
+  : mProngs{tr0, tr1, tr2}
 {
   std::array<float, 21> cov{}, cov1{}, cov2{};
   tr0.getCovXYZPxPyPzGlo(cov);
@@ -29,7 +29,7 @@ DecayNbody::DecayNbody(PID pid, const std::array<float, 3>& xyz, const std::arra
   this->set(xyz, pxyz, cov, tr0.getCharge() + tr1.getCharge() + tr2.getCharge(), true, pid);
 }
 
-float DecayNbody::calcMass2(float mass0, float mass1, float mass2) const
+float Decay3Body::calcMass2(float mass0, float mass1, float mass2) const
 {
   auto p2 = getP2();
   auto energy = std::sqrt(mass0 + mProngs[0].getP2()) + std::sqrt(mass1 + mProngs[1].getP2()) + std::sqrt(mass1 + mProngs[2].getP2());

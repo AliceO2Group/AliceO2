@@ -15,6 +15,8 @@ o2_add_library(DataFormatsCTP
           src/Scalers.cxx
           src/CTF.cxx
           src/TriggerOffsetsParam.cxx
+          src/RunManager.cxx
+          src/LumiInfo.cxx
   PUBLIC_LINK_LIBRARIES O2::CommonDataFormat
                         O2::Headers
                         O2::CommonUtils
@@ -27,5 +29,6 @@ o2_target_root_dictionary(DataFormatsCTP
                                   include/DataFormatsCTP/Configuration.h
                                   include/DataFormatsCTP/Scalers.h
                                   include/DataFormatsCTP/LumiInfo.h
-                                  include/DataFormatsCTP/TriggerOffsetsParam.h)
+                                  include/DataFormatsCTP/TriggerOffsetsParam.h
+                                  include/DataFormatsCTP/RunManager.h)
 

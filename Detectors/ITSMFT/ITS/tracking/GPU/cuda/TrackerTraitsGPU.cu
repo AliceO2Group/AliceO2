@@ -51,66 +51,6 @@ using namespace constants::its2;
 namespace gpu
 {
 
-class GpuTimer
-{
- public:
-  GpuTimer() = delete;
-  GpuTimer(const int offset, cudaStream_t stream = nullptr) : mOffset(offset)
-  {
-    mStream = stream;
-    cudaEventCreateWithFlags(&mStart, cudaEventBlockingSync);
-    cudaEventCreateWithFlags(&mStop, cudaEventBlockingSync);
-    cudaEventCreateWithFlags(&mLifetimeStart, cudaEventBlockingSync);
-    cudaEventCreateWithFlags(&mLifetimeEnd, cudaEventBlockingSync);
-    cudaEventRecord(mLifetimeStart, mStream);
-  }
-  ~GpuTimer()
-  {
-    cudaEventDestroy(mStart);
-    cudaEventDestroy(mStop);
-    cudaEventDestroy(mLifetimeStart);
-    cudaEventDestroy(mLifetimeEnd);
-  }
-  void Start(std::string task = "undefined")
-  {
-    mTask = task;
-    cudaEventRecord(mStart, mStream);
-  }
-  void Stop()
-  {
-    cudaEventRecord(mStop, mStream);
-    cudaEventSynchronize(mStop);
-    cudaEventElapsedTime(&mElapsedTimeMS, mStart, mStop);
-  }
-  void Print()
-  {
-    printf("%s\t%d\t%f\t#?#\n", (mTask + "_" + std::to_string(mOffset)).c_str(), mStream, mElapsedTimeMS);
-  }
-  void PrintLifetime(size_t mem = 0)
-  {
-    cudaEventRecord(mLifetimeEnd, mStream);
-    cudaEventSynchronize(mLifetimeEnd);
-    float lifetime;
-    cudaEventElapsedTime(&lifetime, mLifetimeStart, mLifetimeEnd);
-    printf("trLifeTime_%d\t%d\t%f\t%lu\t#?#\n", mOffset, mStream, lifetime, mem);
-  }
-  float getElapsedTimeMS()
-  {
-    return mElapsedTimeMS;
-  }
-
- private:
-  std::string mTask;
-  cudaEvent_t mStart;
-  cudaEvent_t mStop;
-  cudaEvent_t mLifetimeStart;
-  cudaEvent_t mLifetimeEnd;
-  cudaStream_t mStream;
-  float mElapsedTimeMS;
-  float mData;
-  int mOffset;
-};
-
 GPUd() const int4 getBinsRect(const Cluster& currentCluster, const int layerIndex,
                               const o2::its::IndexTableUtils& utils,
                               const float z1, const float z2, float maxdeltaz, float maxdeltaphi)
@@ -531,7 +471,6 @@ GPUg() void computeLayerCellsKernel(
       }
       const Tracklet& nextTracklet = trackletsNextLayer[iNextTrackletIndex];
       const float deltaTanLambda{o2::gpu::GPUCommonMath::Abs(currentTracklet.tanLambda - nextTracklet.tanLambda)};
-      const float tanLambda{(currentTracklet.tanLambda + nextTracklet.tanLambda) * 0.5f};
 
       if (deltaTanLambda / trkPars->CellDeltaTanLambdaSigma < trkPars->NSigmaCut) {
         if constexpr (!initRun) {
@@ -614,7 +553,7 @@ GPUg() void computeLayerRoadsKernel(
     if (level == 1) {
       continue;
     }
-    // **** check! I'm tired
+
     const auto currentCellNeighOffset{neighboursLUT[layerIndex - 1][iCurrentCellIndex]};
     const int cellNeighboursNum{neighboursLUT[layerIndex - 1][iCurrentCellIndex + 1] - currentCellNeighOffset};
     bool isFirstValidNeighbour{true};
@@ -668,8 +607,7 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration)
         auto rofs = mTimeFrameGPU->loadChunkData<gpu::Task::Tracker>(chunkId, offset, maxROF);
         ////////////////////
         /// Tracklet finding
-        gpu::GpuTimer timer{offset, mTimeFrameGPU->getStream(chunkId).get()};
-        // timer.Start("trTrackletFinder");
+
         for (int iLayer{0}; iLayer < nLayers - 1; ++iLayer) {
           auto nclus = mTimeFrameGPU->getTotalClustersPerROFrange(offset, rofs, iLayer);
           const float meanDeltaR{mTrkParams[iteration].LayerRadii[iLayer + 1] - mTrkParams[iteration].LayerRadii[iLayer]};

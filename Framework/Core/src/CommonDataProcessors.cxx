@@ -552,17 +552,20 @@ DataProcessorSpec CommonDataProcessors::getDummySink(std::vector<InputSpec> cons
         static size_t lastTimeslice = -1;
         auto& timesliceIndex = services.get<TimesliceIndex>();
         auto device = services.get<RawDeviceService>().device();
-        auto channel = device->fChannels.find("metric-feedback");
-        if (channel != device->fChannels.end()) {
+        auto channel = device->GetChannels().find("metric-feedback");
+        auto oldestPossingTimeslice = timesliceIndex.getOldestPossibleOutput().timeslice.value;
+        if (channel != device->GetChannels().end()) {
           fair::mq::MessagePtr payload(device->NewMessage());
           size_t* consumed = (size_t*)malloc(sizeof(size_t));
-          *consumed = timesliceIndex.getOldestPossibleOutput().timeslice.value;
+          *consumed = oldestPossingTimeslice;
           if (*consumed != lastTimeslice) {
             payload->Rebuild(consumed, sizeof(int64_t), nullptr, nullptr);
             channel->second[0].Send(payload);
             lastTimeslice = *consumed;
           }
         }
+        auto& stats = services.get<DataProcessingStats>();
+        stats.updateStats({(int)ProcessingStatsId::CONSUMED_TIMEFRAMES, DataProcessingStats::Op::Set, (int64_t)oldestPossingTimeslice});
       };
       callbacks.set<CallbackService::Id::DomainInfoUpdated>(domainInfoUpdated);
 

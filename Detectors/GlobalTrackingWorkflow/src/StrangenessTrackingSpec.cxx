@@ -56,6 +56,7 @@ void StrangenessTrackerSpec::init(framework::InitContext& ic)
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mTracker.setCorrType(o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT);
   mTracker.setConfigParams(&StrangenessTrackingParamConfig::Instance());
+  mTracker.setupThreads(1);
   mTracker.setupFitters();
 
   LOG(info) << "Initialized strangeness tracker...";
@@ -71,7 +72,6 @@ void StrangenessTrackerSpec::run(framework::ProcessingContext& pc)
   updateTimeDependentParams(pc);
 
   auto geom = o2::its::GeometryTGeo::Instance();
-  mTracker.setBz(o2::base::Propagator::Instance()->getNominalBz());
   mTracker.loadData(recoData);
   mTracker.prepareITStracks();
   mTracker.process();
@@ -95,6 +95,10 @@ void StrangenessTrackerSpec::updateTimeDependentParams(ProcessingContext& pc)
     // pc.inputs().get<o2::itsmft::TopologyDictionary*>("cldict"); // just to trigger the finaliseCCDB
     o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
     geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::T2GRot, o2::math_utils::TransformType::T2G));
+  }
+  if (o2::base::Propagator::Instance()->getNominalBz() != mTracker.getBz()) {
+    mTracker.setBz(o2::base::Propagator::Instance()->getNominalBz());
+    mTracker.setupFitters();
   }
   mTracker.setMCTruthOn(mUseMC);
 }
@@ -120,7 +124,6 @@ void StrangenessTrackerSpec::endOfStream(framework::EndOfStreamContext& ec)
 
 DataProcessorSpec getStrangenessTrackerSpec(o2::dataformats::GlobalTrackID::mask_t src, bool useMC)
 {
-
   // ITS
   auto dataRequest = std::make_shared<DataRequest>();
   dataRequest->requestITSClusters(useMC);

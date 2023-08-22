@@ -19,7 +19,7 @@
 #include "CommonConstants/PhysicsConstants.h"
 #include "CommonConstants/GeomConstants.h"
 #include "CommonConstants/ZDCConstants.h"
-#include "SimulationDataFormat/MCGenStatus.h"
+#include "SimulationDataFormat/MCGenProperties.h"
 
 using namespace o2::constants::math;
 
@@ -641,20 +641,43 @@ using AmbiguousFwdTrack = AmbiguousFwdTracks::iterator;
 // HMPID information
 namespace hmpid
 {
-DECLARE_SOA_INDEX_COLUMN(Track, track);                  //! Track index
-DECLARE_SOA_COLUMN(HMPIDSignal, hmpidSignal, float);     //! Signal of the HMPID
-DECLARE_SOA_COLUMN(HMPIDDistance, hmpidDistance, float); //! Distance between the matched HMPID signal and the propagated track
-DECLARE_SOA_COLUMN(HMPIDNPhotons, hmpidNPhotons, short); //! Number of detected photons in HMPID
-DECLARE_SOA_COLUMN(HMPIDQMip, hmpidQMip, short);         //! Collected charge in the HMPID
+DECLARE_SOA_INDEX_COLUMN(Track, track);                            //! Track index
+DECLARE_SOA_COLUMN(HMPIDSignal, hmpidSignal, float);               //! Signal of the HMPID
+DECLARE_SOA_COLUMN(HMPIDDistance, hmpidDistance, float);           //! Distance between the matched HMPID signal and the propagated track
+DECLARE_SOA_COLUMN(HMPIDXTrack, hmpidXTrack, float);               //! Extrapolated track point x coordinate
+DECLARE_SOA_COLUMN(HMPIDYTrack, hmpidYTrack, float);               //! Extrapolated track point y coordinate
+DECLARE_SOA_COLUMN(HMPIDXMip, hmpidXMip, float);                   //! Matched MIP track point x coordinate
+DECLARE_SOA_COLUMN(HMPIDYMip, hmpidYMip, float);                   //! Matched MIP track point y coordinate
+DECLARE_SOA_COLUMN(HMPIDNPhotons, hmpidNPhotons, int);             //! Number of detected photons in HMPID
+DECLARE_SOA_COLUMN(HMPIDQMip, hmpidQMip, float);                   //! Matched MIP cluster charge
+DECLARE_SOA_COLUMN(HMPIDClusSize, hmpidClusSize, int);             //! Matched MIP cluster size
+DECLARE_SOA_COLUMN(HMPIDMom, hmpidMom, float);                     //! Matched MIP cluster size
+DECLARE_SOA_COLUMN(HMPIDPhotsCharge, hmpidPhotsCharge, float[10]); //! Photon cluster charge
 } // namespace hmpid
 
-DECLARE_SOA_TABLE(HMPIDs, "AOD", "HMPID", //! HMPID information
+DECLARE_SOA_TABLE(HMPID_000, "AOD", "HMPID", //! HMPID information
                   o2::soa::Index<>,
                   hmpid::TrackId,
                   hmpid::HMPIDSignal,
                   hmpid::HMPIDDistance,
                   hmpid::HMPIDNPhotons,
                   hmpid::HMPIDQMip);
+
+DECLARE_SOA_TABLE_VERSIONED(HMPID_001, "AOD", "HMPID", 1, //! HMPID information  version 1
+                            o2::soa::Index<>,
+                            hmpid::TrackId,
+                            hmpid::HMPIDSignal,
+                            hmpid::HMPIDXTrack,
+                            hmpid::HMPIDYTrack,
+                            hmpid::HMPIDXMip,
+                            hmpid::HMPIDYMip,
+                            hmpid::HMPIDNPhotons,
+                            hmpid::HMPIDQMip,
+                            hmpid::HMPIDClusSize,
+                            hmpid::HMPIDMom,
+                            hmpid::HMPIDPhotsCharge);
+
+using HMPIDs = HMPID_001;
 using HMPID = HMPIDs::iterator;
 
 namespace calo
@@ -1270,14 +1293,20 @@ using Run2BCInfo = Run2BCInfos::iterator;
 namespace mccollision
 {
 DECLARE_SOA_INDEX_COLUMN(BC, bc); //! BC index
-// TODO enum to be added to O2
-DECLARE_SOA_COLUMN(GeneratorsID, generatorsID, short);       //!
+DECLARE_SOA_COLUMN(GeneratorsID, generatorsID, short);       //! disentangled generator IDs should be accessed from dynamic columns using getGenId, getCocktailId and getSourceId
 DECLARE_SOA_COLUMN(PosX, posX, float);                       //! X vertex position in cm
 DECLARE_SOA_COLUMN(PosY, posY, float);                       //! Y vertex position in cm
 DECLARE_SOA_COLUMN(PosZ, posZ, float);                       //! Z vertex position in cm
 DECLARE_SOA_COLUMN(T, t, float);                             //! Collision time relative to given bc in ns
 DECLARE_SOA_COLUMN(Weight, weight, float);                   //! MC weight
 DECLARE_SOA_COLUMN(ImpactParameter, impactParameter, float); //! Impact parameter for A-A
+DECLARE_SOA_DYNAMIC_COLUMN(GetGeneratorId, getGeneratorId,   //! The global generator ID which might have been assigned by the user
+                           [](short generatorsID) -> int { return o2::mcgenid::getGeneratorId(generatorsID); });
+DECLARE_SOA_DYNAMIC_COLUMN(GetSubGeneratorId, getSubGeneratorId, //! A specific sub-generator ID in case the generator has some sub-generator logic
+                           [](short generatorsID) -> int { return o2::mcgenid::getSubGeneratorId(generatorsID); });
+DECLARE_SOA_DYNAMIC_COLUMN(GetSourceId, getSourceId, //! The source ID to differentiate between signals and background in an embedding simulation
+                           [](short generatorsID) -> int { return o2::mcgenid::getSourceId(generatorsID); });
+
 } // namespace mccollision
 
 DECLARE_SOA_TABLE(McCollisions, "AOD", "MCCOLLISION", //! MC collision table
@@ -1393,6 +1422,7 @@ DECLARE_SOA_EXTENDED_TABLE(McParticles_001, StoredMcParticles_001, "MCPARTICLE",
                            mcparticle::P,
                            mcparticle::Y);
 
+using StoredMcParticles = StoredMcParticles_001;
 using McParticles = McParticles_001;
 using McParticle = McParticles::iterator;
 } // namespace aod
@@ -1403,6 +1433,7 @@ DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredMcParticles_000, aod::StoredMcParticles_
 DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracks, aod::StoredTracksIU);
 DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracks, aod::StoredTracksExtra);
 DECLARE_EQUIVALENT_FOR_INDEX(aod::StoredTracksIU, aod::StoredTracksExtra);
+DECLARE_EQUIVALENT_FOR_INDEX(aod::HMPID_000, aod::HMPID_001);
 } // namespace soa
 
 namespace aod

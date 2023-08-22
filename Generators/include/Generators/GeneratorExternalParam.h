@@ -25,7 +25,7 @@ namespace eventgen
 /**
  ** a parameter class/struct to keep the settings of
  ** the external event-generator and
- ** allow the user to modify them 
+ ** allow the user to modify them
  **/
 struct GeneratorExternalParam : public o2::conf::ConfigurableParamHelper<GeneratorExternalParam> {
   std::string fileName = "";

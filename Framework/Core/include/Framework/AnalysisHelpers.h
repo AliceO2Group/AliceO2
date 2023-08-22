@@ -101,42 +101,33 @@ struct WritingCursor<soa::Table<PC...>> {
   int64_t mCount = -1;
 };
 
+/// Helper to define output for a Table
+template <typename T>
+struct OutputForTable {
+  using table_t = T;
+  using metadata = typename aod::MetadataTrait<table_t>::metadata;
+
+  static OutputSpec const spec()
+  {
+    return OutputSpec{OutputLabel{metadata::tableLabel()}, metadata::origin(), metadata::description(), metadata::version()};
+  }
+
+  static OutputRef ref()
+  {
+    return OutputRef{metadata::tableLabel(), metadata::version()};
+  }
+};
+
 /// This helper class allows you to declare things which will be created by a
 /// given analysis task. Notice how the actual cursor is implemented by the
 /// means of the WritingCursor helper class, from which produces actually
 /// derives.
 template <typename T>
 struct Produces : WritingCursor<typename soa::PackToTable<typename T::table_t::persistent_columns_t>::table> {
-  using table_t = T;
-  using metadata = typename aod::MetadataTrait<T>::metadata;
-
-  // @return the associated OutputSpec
-  OutputSpec const spec()
-  {
-    return OutputSpec{OutputLabel{metadata::tableLabel()}, metadata::origin(), metadata::description()};
-  }
-
-  OutputRef ref()
-  {
-    return OutputRef{metadata::tableLabel(), 0};
-  }
 };
 
 template <template <typename...> class T, typename... C>
 struct Produces<T<C...>> : WritingCursor<typename soa::PackToTable<typename T<C...>::table_t::persistent_columns_t>::table> {
-  using table_t = T<C...>;
-  using metadata = typename aod::MetadataTrait<table_t>::metadata;
-
-  // @return the associated OutputSpec
-  OutputSpec const spec()
-  {
-    return OutputSpec{OutputLabel{metadata::tableLabel()}, metadata::origin(), metadata::description(), metadata::version()};
-  }
-
-  OutputRef ref()
-  {
-    return OutputRef{metadata::tableLabel(), metadata::version()};
-  }
 };
 
 /// Helper template for table transformations

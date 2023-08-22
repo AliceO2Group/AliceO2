@@ -40,7 +40,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"info-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}},
     {"combine-source-devices", o2::framework::VariantType::Bool, false, {"merge DPL source devices"}},
-    {"ctpconfig-per-run", o2::framework::VariantType::Bool, false, {"Use CTP config per run. 1 -- on (Data), 0 -- off (MC)"}}};
+    {"ctpconfig-run-independent", o2::framework::VariantType::Bool, false, {"Use CTP config w/o runNumber tag"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -53,9 +53,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   bool enableSV = !configcontext.options().get<bool>("disable-secondary-vertices");
   bool enableST = !configcontext.options().get<bool>("disable-strangeness-tracking");
-  bool ctpcfgperrun = configcontext.options().get<bool>("ctpconfig-per-run");
+  bool ctpcfgperrun = !configcontext.options().get<bool>("ctpconfig-run-independent");
 
-  GID::mask_t allowedSrc = GID::getSourcesMask("ITS,MFT,MCH,MID,MCH-MID,TPC,TRD,ITS-TPC,TPC-TOF,TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD,TPC-TRD-TOF,ITS-TPC-TRD-TOF,MFT-MCH,FT0,FV0,FDD,ZDC,EMC,CTP,PHS,CPV");
+  GID::mask_t allowedSrc = GID::getSourcesMask("ITS,MFT,MCH,MID,MCH-MID,TPC,TRD,ITS-TPC,TPC-TOF,TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD,TPC-TRD-TOF,ITS-TPC-TRD-TOF,MFT-MCH,FT0,FV0,FDD,ZDC,EMC,CTP,PHS,CPV,HMP");
   GID::mask_t src = allowedSrc & GID::getSourcesMask(configcontext.options().get<std::string>("info-sources"));
 
   // manually add TOF to MC mask for addInputSpecs()

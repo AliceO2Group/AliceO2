@@ -106,6 +106,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
     bool runITSTracking = false;
     int itsTriggerType = 0;
     bool itsOverrBeamEst = false;
+    int lumiScaleMode = 0;
   };
 
   GPURecoWorkflowSpec(CompletionPolicyData* policyData, Config const& specconfig, std::vector<int> const& tpcsectors, unsigned long tpcSectorMask, std::shared_ptr<o2::base::GRPGeomRequest>& ggr);
@@ -173,6 +174,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   unsigned long mTPCSectorMask = 0;
   int mVerbosity = 0;
   unsigned int mNTFs = 0;
+  unsigned int mNDebugDumps = 0;
   bool mUpdateGainMapCCDB = true;
   std::unique_ptr<o2::gpu::GPUSettingsTF> mTFSettings;
   Config mSpecConfig;

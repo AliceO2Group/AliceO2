@@ -12,8 +12,9 @@
 #ifndef O2_IMPACT_PARAMETER_STUDY_H
 #define O2_IMPACT_PARAMETER_STUDY_H
 
-#include "ReconstructionDataFormats/GlobalTrackID.h"
-#include "Framework/DataProcessorSpec.h"
+#include <ReconstructionDataFormats/GlobalTrackID.h>
+#include <Framework/DataProcessorSpec.h>
+#include "ITSStudies/ITSStudiesConfigParam.h"
 
 namespace o2
 {

@@ -9,23 +9,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_K0SINVMASS_STUDY_H
-#define O2_K0SINVMASS_STUDY_H
+/// \file LumiInfo.cxx
 
-#include "Framework/DataProcessorSpec.h"
-#include "ReconstructionDataFormats/GlobalTrackID.h"
+#include "DataFormatsCTP/LumiInfo.h"
+#include "DataFormatsCTP/Configuration.h"
+#include <fairlogger/Logger.h>
 
-namespace o2
+using namespace o2::ctp;
+
+void LumiInfo::printInputs() const
 {
-namespace its
-{
-namespace study
-{
-using mask_t = o2::dataformats::GlobalTrackID::mask_t;
-
-o2::framework::DataProcessorSpec getK0sInvMassStudy(mask_t srcTracksMask, bool useMC = false);
-} // namespace study
-} // namespace its
-} // namespace o2
-
-#endif
+  LOG(info) << "Lumi inp1:" << inp1 << ":" << o2::ctp::CTPInputsConfiguration::getInputNameFromIndex(inp1) << " inp2:" << inp2 << ":" << o2::ctp::CTPInputsConfiguration::getInputNameFromIndex(inp2);
+}

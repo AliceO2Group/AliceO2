@@ -9,6 +9,8 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
+# add_compile_options(-O0 -g -fPIC)
+
 o2_add_library(StrangenessTracking
                SOURCES src/StrangenessTracker.cxx
                        src/StrangenessTrackingConfigParam.cxx
@@ -16,11 +18,12 @@ o2_add_library(StrangenessTracking
                                              O2::ITSBase
                                              O2::ITSMFTReconstruction
                                              O2::ITSMFTSimulation
+                                             O2::ITStracking
                                              O2::DataFormatsITSMFT
                                              O2::DataFormatsITS
                                              O2::SimulationDataFormat
-                                             O2::DetectorsVertexing
                                              O2::ReconstructionDataFormats
+                                             O2::DataFormatsGlobalTracking
                                              O2::DCAFitter
                )
 

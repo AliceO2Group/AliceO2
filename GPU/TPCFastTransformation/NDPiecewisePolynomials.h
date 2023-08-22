@@ -296,6 +296,10 @@ class NDPiecewisePolynomials : public FlatObject
   // construct the object (flatbuffer)
   void construct();
 #endif
+
+#ifndef GPUCA_ALIROOT_LIB
+  ClassDefNV(NDPiecewisePolynomials, 1);
+#endif
 };
 
 //=================================================================================

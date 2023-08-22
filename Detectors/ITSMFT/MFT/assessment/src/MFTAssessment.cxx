@@ -521,7 +521,7 @@ void MFTAssessment::addMCParticletoHistos(const MCTrack* mcTr, const int trackTy
   mHistPtVsEta[trackType]->Fill(eta, pt);
   mHistPhiVsEta[trackType]->Fill(eta, phi);
   mHistPhiVsPt[trackType]->Fill(pt, phi);
-  mHistZvtxVsEta[trackType]->Fill(zVtx, eta);
+  mHistZvtxVsEta[trackType]->Fill(z, eta);
   mHistRVsZ[trackType]->Fill(z, R);
   mHistIsPrimary[trackType]->Fill(mcTr->isPrimary());
 }
@@ -618,13 +618,13 @@ void MFTAssessment::processTrueAndFakeTracks()
           mHistPhiVsEta[kRecoTrue]->Fill(eta_Rec, phi_Rec);
           mHistPhiVsPt[kRecoTrue]->Fill(pt_Rec, phi_Rec);
           mHistTrackChi2[kRecoTrue]->Fill(Chi2_Rec);
-          mHistZvtxVsEta[kRecoTrue]->Fill(zVtx, eta_Rec);
+          mHistZvtxVsEta[kRecoTrue]->Fill(vzGen, eta_Rec);
           mHistRVsZ[kRecoTrueMC]->Fill(vzGen, R);
           mHistIsPrimary[kRecoTrueMC]->Fill(mcParticle->isPrimary());
           mHistPtVsEta[kRecoTrueMC]->Fill(etaGen, ptGen);
           mHistPhiVsEta[kRecoTrueMC]->Fill(etaGen, phiGen);
           mHistPhiVsPt[kRecoTrueMC]->Fill(ptGen, phiGen);
-          mHistZvtxVsEta[kRecoTrueMC]->Fill(zVtx, etaGen);
+          mHistZvtxVsEta[kRecoTrueMC]->Fill(vzGen, etaGen);
 
           mHistPhiRecVsPhiGen->Fill(phiGen, phi_Rec);
           mHistEtaRecVsEtaGen->Fill(etaGen, eta_Rec);

@@ -47,7 +47,7 @@ struct EMCALCalibParams : public o2::conf::ConfigurableParamHelper<EMCALCalibPar
   bool UpdateAtEndOfRunOnly_bc = false; ///< switch to enable trigger of calibration only at end of run
   float minNHitsForMeanEnergyCut = 100; ///< mean number of hits per cell that is needed to cut on the mean energy per hit. Needed for high energy intervals as outliers can distort the distribution
   float minNHitsForNHitCut = 1;         ///< mean number of hits per cell that is needed to cut on the mean number of hits. Needed for high energy intervals as outliers can distort the distribution
-  float minCellEnergy_bc = 0.075;       ///< minimum cell energy considered for filling the histograms for bad channel calib. Should speedup the filling of the histogram to suppress noise
+  float minCellEnergy_bc = 0.1;         ///< minimum cell energy considered for filling the histograms for bad channel calib. Should speedup the filling of the histogram to suppress noise
 
   // parameters for time calibration
   unsigned int minNEvents_tc = 1e7;      ///< minimum number of events to trigger the calibration
@@ -66,13 +66,14 @@ struct EMCALCalibParams : public o2::conf::ConfigurableParamHelper<EMCALCalibPar
   float maxAllowedDeviationFromMax = 10; ///< maximum deviation allowed between the estimated maximum of the fit and the true maximum from the distribution. If deviation is larger then value, the fit likely failed. In this case, the true value is taken
 
   // common parameters
-  std::string calibType = "time";         ///< type of calibration to run
-  std::string localRootFilePath = "";     ///< path to local root file in order to store the calibration histograms (off by default, only to be used for testing)
-  bool enableFastCalib = false;           ///< switch to enable fast calibration. Instead of filling boost histograms, mean and sigma of cells is calculated on the fly
-  bool enableTimeProfiling = false;       ///< enable to log how much time is spent in the run function in the calibrator spec. Needed for speed tests offline and at point 2
-  bool setSavedSlotAllowed_EMC = true;    ///< if true, saving and loading of calibrations from last run and for next run is enabled
-  bool setSavedSlotAllowedSOR_EMC = true; ///< if true, stored calibrations from last run can be loaded in the next run (if false, storing of the calib histograms is still active in contrast to setSavedSlotAllowed_EMC)
-  long endTimeMargin = 2592000000;        ///< set end TS to 30 days after slot ends (1000 * 60 * 60 * 24 * 30)
+  std::string calibType = "time";                      ///< type of calibration to run
+  std::string localRootFilePath = "";                  ///< path to local root file in order to store the calibration histograms (off by default, only to be used for testing)
+  bool enableFastCalib = false;                        ///< switch to enable fast calibration. Instead of filling boost histograms, mean and sigma of cells is calculated on the fly
+  bool enableTimeProfiling = false;                    ///< enable to log how much time is spent in the run function in the calibrator spec. Needed for speed tests offline and at point 2
+  bool setSavedSlotAllowed_EMC = true;                 ///< if true, saving and loading of calibrations from last run and for next run is enabled
+  bool setSavedSlotAllowedSOR_EMC = true;              ///< if true, stored calibrations from last run can be loaded in the next run (if false, storing of the calib histograms is still active in contrast to setSavedSlotAllowed_EMC)
+  long endTimeMargin = 2592000000;                     ///< set end TS to 30 days after slot ends (1000 * 60 * 60 * 24 * 30)
+  std::string selectedClassMasks = "C0TVX-B-NOPF-EMC"; ///< name of EMCal min. bias trigger that is used for calibration
 
   // old parameters. Keep them for a bit (can be deleted after september 5th) as otherwise ccdb and o2 version might not be in synch
   unsigned int minNEvents = 1e7;              ///< minimum number of events to trigger the calibration

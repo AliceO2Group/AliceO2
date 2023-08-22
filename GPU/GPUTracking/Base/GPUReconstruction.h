@@ -23,6 +23,7 @@
 #include <iosfwd>
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "GPUTRDDef.h"
 #include "GPUParam.h"
@@ -124,7 +125,7 @@ class GPUReconstruction
   {
   };
 
-  typedef void deviceEvent; // We use only pointers anyway, and since cl_event and cudaEvent_t are actually pointers, we can cast them to deviceEvent* this way.
+  typedef void* deviceEvent; // We use only pointers anyway, and since cl_event and cudaEvent_t and hipEvent_t are actually pointers, we can cast them to deviceEvent (void*) this way.
 
   enum class krnlDeviceType : int { CPU = 0,
                                     Device = 1,
@@ -148,8 +149,8 @@ class GPUReconstruction
     int num = 0;
   };
   struct krnlEvent {
-    constexpr krnlEvent(deviceEvent* e = nullptr, deviceEvent* el = nullptr, int n = 1) : ev(e), evList(el), nEvents(n) {}
-    deviceEvent* ev;
+    constexpr krnlEvent(deviceEvent e = nullptr, deviceEvent* el = nullptr, int n = 1) : ev(e), evList(el), nEvents(n) {}
+    deviceEvent ev;
     deviceEvent* evList;
     int nEvents;
   };
@@ -184,8 +185,8 @@ class GPUReconstruction
   virtual int RunChains() = 0;
   unsigned int getNEventsProcessed() { return mNEventsProcessed; }
   unsigned int getNEventsProcessedInStat() { return mStatNEvents; }
-  virtual int registerMemoryForGPU(const void* ptr, size_t size) = 0;
-  virtual int unregisterMemoryForGPU(const void* ptr) = 0;
+  int registerMemoryForGPU(const void* ptr, size_t size);
+  int unregisterMemoryForGPU(const void* ptr);
   virtual void* getGPUPointer(void* ptr) { return ptr; }
   virtual void startGPUProfiling() {}
   virtual void endGPUProfiling() {}
@@ -283,10 +284,13 @@ class GPUReconstruction
   int InitPhaseAfterDevice();
   void WriteConstantParams();
   virtual int ExitDevice() = 0;
-  virtual size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent* ev = nullptr) = 0;
+  virtual size_t WriteToConstantMemory(size_t offset, const void* src, size_t size, int stream = -1, deviceEvent ev = nullptr) = 0;
   void UpdateMaxMemoryUsed();
   int EnqueuePipeline(bool terminate = false);
   GPUChain* GetNextChainInQueue();
+
+  virtual int registerMemoryForGPU_internal(const void* ptr, size_t size) = 0;
+  virtual int unregisterMemoryForGPU_internal(const void* ptr) = 0;
 
   // Management for GPU thread contexts
   class GPUThreadContext
@@ -363,6 +367,8 @@ class GPUReconstruction
   size_t mDeviceMemorySize = 0;             //
   void* mVolatileMemoryStart = nullptr;     // Ptr to beginning of temporary volatile memory allocation, nullptr if uninitialized
   size_t mDeviceMemoryUsedMax = 0;          //
+
+  std::unordered_set<const void*> mRegisteredMemoryPtrs; // List of pointers registered for GPU
 
   GPUReconstruction* mMaster = nullptr;    // Ptr to a GPUReconstruction object serving as master, sharing GPU memory, events, etc.
   std::vector<GPUReconstruction*> mSlaves; // Ptr to slave GPUReconstructions

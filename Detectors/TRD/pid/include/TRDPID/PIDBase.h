@@ -19,6 +19,9 @@
 #include "Rtypes.h"
 #include "DataFormatsTRD/PID.h"
 #include "DataFormatsTRD/TrackTRD.h"
+#include "DataFormatsTRD/Tracklet64.h"
+#include "DataFormatsTRD/Constants.h"
+#include "TRDBase/PadCalibrationsAliases.h"
 #include "TRDPID/PIDParameters.h"
 #include "Framework/ProcessingContext.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
@@ -34,7 +37,7 @@ namespace trd
 /// This is the PID Base class which defines the interface all other models
 /// must provide.
 ///
-/// A 'policy' describes how a PID value (PIDValue) should be
+/// A 'policy' describes how a PID value (float) should be
 /// calculated. For the classical algorithms there is no
 /// initialization needed since these work off LUTs. However, for ML
 /// models some initialization is needed, e.g. creating the
@@ -52,18 +55,33 @@ class PIDBase
   virtual void init(o2::framework::ProcessingContext& pc) = 0;
 
   /// Calculate a PID for a given track.
-  virtual PIDValue process(const TrackTRD& trk, const o2::globaltracking::RecoContainer& input, bool isTPC) = 0;
+  virtual float process(const TrackTRD& trk, const o2::globaltracking::RecoContainer& input, bool isTPCTRD) const = 0;
+
+  /// Set krypton calibration
+  void setLocalGainFactors(const LocalGainFactor* localGain) { mLocalGain = localGain; }
 
  protected:
+  /// Getter for pid information, applies Z-Row merging of tracklets and gain correction.
+  /// Some tracklets due to their inclination cross over two pads in z-row, where MCMs do not share ADC lanes.
+  /// This can be recovered in software, by taking the attached tracklets and looking for nearby tracklets.
+  /// Only modifies the tracklet if the flag is set.
+  std::array<float, constants::NCHARGES> getCharges(const Tracklet64& tracklet, const int layer, const TrackTRD& trk, const o2::globaltracking::RecoContainer& input, float snp, float tgl) const noexcept;
+
   const TRDPIDParams& mParams{TRDPIDParams::Instance()}; ///< parameters
-  PIDPolicy mPolicy;                                     ///< policy
+  const PIDPolicy mPolicy;                               ///< policy
 
  private:
-  ClassDefNV(PIDBase, 1);
+  /// Correct the charges of the tracklet
+  std::array<float, constants::NCHARGES> correctCharges(const Tracklet64& trklt, float snp, float tgl) const noexcept;
+
+  // correction factors
+  const LocalGainFactor* mLocalGain; ///< local gain factors from krypton calibration
+
+  ClassDef(PIDBase, 1);
 };
 
 /// Factory function to create a PID policy.
-std::unique_ptr<PIDBase> getTRDPIDBase(PIDPolicy policy);
+std::unique_ptr<PIDBase> getTRDPIDPolicy(PIDPolicy policy);
 
 } // namespace trd
 } // namespace o2

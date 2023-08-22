@@ -12,17 +12,16 @@
 #include "Framework/AnalysisTask.h"
 #include "Framework/HistogramRegistry.h"
 #include "Framework/AnalysisDataModel.h"
-#include "Framework/ConfigParamSpec.h"
 #include "Framework/runDataProcessing.h"
 
 using namespace o2;
 using namespace o2::framework;
 
-struct SimpleTask {
+struct AodConsumerTestTask {
 
   HistogramRegistry registry{"registry", {}};
 
-  void init(o2::framework::InitContext& ic)
+  void init(o2::framework::InitContext& /*ic*/)
   {
     registry.add<TH1>("NEvents", "NEvents", HistType::kTH1F, {{1, 0, 1}}, false);
     registry.add<TH1>("phi", "phi", HistType::kTH1F, {{100, 0, 2 * PI}}, false);
@@ -43,8 +42,5 @@ struct SimpleTask {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  WorkflowSpec specs;
-  DataProcessorSpec dSpec = adaptAnalysisTask<SimpleTask>(cfgc, TaskName{"mctracks-to-aod-simple-task"});
-  specs.emplace_back(dSpec);
-  return specs;
+  return {adaptAnalysisTask<AodConsumerTestTask>(cfgc)};
 }

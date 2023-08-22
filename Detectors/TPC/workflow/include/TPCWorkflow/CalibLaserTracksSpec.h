@@ -25,6 +25,7 @@
 #include "CCDB/CcdbApi.h"
 #include "CCDB/CcdbObjectInfo.h"
 #include "CommonUtils/NameConf.h"
+#include "TPCCalibration/VDriftHelper.h"
 
 #include "TPCWorkflow/ProcessingHelpers.h"
 
@@ -47,7 +48,7 @@ class CalibLaserTracksDevice : public o2::framework::Task
         const auto nTFs = mCalib.getCalibData().processedTFs;
         const auto nMatchA = mCalib.getMatchedPairsA();
         const auto nMatchC = mCalib.getMatchedPairsC();
-        LOGP(error, "Calibration data was not published, laser track calibration might have enough statistics: {} ({}) matched tracks in {} TFs on the A (C) < {} min TFs * {} min matches per side per TF ", nMatchA, nMatchC, nTFs, mMinNumberTFs, CalibLaserTracks::MinTrackPerSidePerTF);
+        LOGP(error, "Calibration data was not published, laser track calibration might not have enough statistics: {} ({}) matched tracks in {} TFs on the A (C) < {} min TFs * {} min matches per side per TF? Or eos was not called by the framework.", nMatchA, nMatchC, nTFs, mMinNumberTFs, CalibLaserTracks::MinTrackPerSidePerTF);
       }
     };
     ic.services().get<CallbackService>().set<CallbackService::Id::Stop>(finishFunction);
@@ -56,6 +57,11 @@ class CalibLaserTracksDevice : public o2::framework::Task
   void run(o2::framework::ProcessingContext& pc) final
   {
     const auto dph = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get("input").header);
+    if (!dph) {
+      LOGP(warning, "CalibLaserTracksDevice::run: No DataProcessingHeader found for \"input\". Only conditions? Skipping event.");
+      return;
+    }
+    mTPCVDriftHelper.extractCCDBInputs(pc);
     const auto startTime = dph->startTime;
     const auto endTime = dph->startTime + dph->duration;
     mRunNumber = processing_helpers::getRunNumber(pc);
@@ -81,8 +87,20 @@ class CalibLaserTracksDevice : public o2::framework::Task
     sendOutput(ec.outputs());
   }
 
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final
+  {
+    if (mTPCVDriftHelper.accountCCDBInputs(matcher, obj)) {
+      if (mTPCVDriftHelper.isUpdated()) {
+        mTPCVDriftHelper.acknowledgeUpdate();
+        mCalib.setVDriftRef(mTPCVDriftHelper.getVDriftObject().getVDrift());
+      }
+      return;
+    }
+  }
+
  private:
   CalibLaserTracks mCalib;       ///< laser track calibration component
+  o2::tpc::VDriftHelper mTPCVDriftHelper{};
   uint64_t mRunNumber{0};        ///< processed run number
   int mMinNumberTFs{100};        ///< minimum number of TFs required for good calibration
   bool mPublished{false};        ///< if calibration was already published
@@ -118,7 +136,7 @@ class CalibLaserTracksDevice : public o2::framework::Task
 
     const auto now = std::chrono::system_clock::now();
     const long timeStart = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-    //const auto timeStart = ltrCalib.firstTime; //TODO: use once it is a correct time not TFid
+    // const auto timeStart = ltrCalib.firstTime; //TODO: use once it is a correct time not TFid
     const long timeEnd = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP;
 
     w.setPath("TPC/Calib/LaserTracks");
@@ -141,10 +159,12 @@ DataProcessorSpec getCalibLaserTracks(const std::string inputSpec)
   outputs.emplace_back(ConcreteDataTypeMatcher{"TPC", "LtrCalibData"}, Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_CalibLtr"}, Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_CalibLtr"}, Lifetime::Sporadic);
+  std::vector<InputSpec> inputs = select(inputSpec.data());
+  o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
 
   return DataProcessorSpec{
     "tpc-calib-laser-tracks",
-    select(inputSpec.data()),
+    inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<device>()},
     Options{

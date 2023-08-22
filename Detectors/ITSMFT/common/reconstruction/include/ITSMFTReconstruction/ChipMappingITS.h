@@ -34,6 +34,16 @@ namespace itsmft
 class ChipMappingITS
 {
  public:
+  struct Overlaps {
+    enum OverlappingRow : signed char { NONE = -1,
+                                        LowRow = 0,
+                                        HighRow = 1 };
+    uint16_t lowRow = 0xffff;  // chip overlapping from high row side
+    uint16_t highRow = 0xffff; // chip overlapping from low row side
+    OverlappingRow lowRowOverlap = NONE;
+    OverlappingRow highRowOverlap = NONE;
+  };
+
   ///< these public methods must be defined in the mapping class for raw data encoding/decoding
   ChipMappingITS();
   ~ChipMappingITS() = default;
@@ -135,6 +145,16 @@ class ChipMappingITS
   uint16_t getGlobalChipID(uint16_t chOnModuleHW, int cableHW, const RUInfo& ruInfo) const
   {
     return ruInfo.firstChipIDSW + mCableHWFirstChip[ruInfo.ruType][cableHW] + chipModuleIDHW2SW(ruInfo.ruType, chOnModuleHW);
+  }
+
+  ///< get chip global SW ID from Layer, abs Stave, module in Stave and chipID_on_module SW IDs
+  uint16_t getGlobalChipIDSW(int lay, int staSW, int modSW, int chipInModSW) const
+  {
+    uint16_t id = getFirstChipsOnLayer(lay) + (staSW - getFirstStavesOnLr(lay)) * NChipsPerStaveSB[RUTypeLr[lay]] + chipInModSW;
+    if (RUTypeLr[lay] != 0) {
+      id += modSW * NChipsPerModuleSB[RUTypeLr[lay]];
+    }
+    return id;
   }
 
   ///< get SW id of the RU from RU HW id
@@ -239,9 +259,11 @@ class ChipMappingITS
     } while (++i < NLayers);
     return i;
   }
-
+  static constexpr int getNModulesPerStave(int ruType) { return NModulesPerStaveSB[ruType]; }
   static constexpr int getNChipsOnLayer(int lr) { return NChipsOnLr[lr]; }
   static constexpr int getFirstChipsOnLayer(int lr) { return FirstChipsOnLr[lr]; }
+
+  std::vector<Overlaps> getOverlapsInfo() const;
 
   // sub-barrel types, their number, N layers, Max N GBT Links per RU
   static constexpr int IB = 0, MB = 1, OB = 2, NSubB = 3, NLayers = 7, NLinks = 3;
@@ -253,7 +275,7 @@ class ChipMappingITS
   static constexpr std::array<int, NSubB> NChipsPerCableSB = {1, 7, 7};
 
   ///< N modules along the stave (or halfstave..)
-  static constexpr std::array<int, NSubB> NModulesAlongStaveSB = {9, 4, 7};
+  static constexpr std::array<int, NSubB> NModulesAlongStaveSB = {1, 4, 7};
 
   ///< N chips per module of each sub-barrel
   static constexpr std::array<int, NSubB> NChipsPerModuleSB = {9, 14, 14};

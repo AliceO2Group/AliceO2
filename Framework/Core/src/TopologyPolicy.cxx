@@ -68,6 +68,13 @@ bool dataDeps(DataProcessorSpec const& a, DataProcessorSpec const& b)
 
 bool expendableDataDeps(DataProcessorSpec const& a, DataProcessorSpec const& b)
 {
+  // We never put anything behind the dummy sink.
+  if (b.name.find("internal-dpl-injected-dummy-sink") != std::string::npos) {
+    return false;
+  }
+  if (a.name.find("internal-dpl-injected-dummy-sink") != std::string::npos) {
+    return true;
+  }
   /// If there is an actual dependency between a and b, we return true.
   if (dataDeps(a, b)) {
     return true;
@@ -99,10 +106,7 @@ bool expendableDataDeps(DataProcessorSpec const& a, DataProcessorSpec const& b)
     LOGP(debug, "Both {} and {} are expendable. No dependency.", a.name, b.name);
     return false;
   }
-  // We never put anything behind the dummy sink.
-  if (b.name == "internal-dpl-injected-dummy-sink") {
-    return false;
-  }
+
   // If a is expendable we consider it as if there was a dependency from a to b,
   // but we still need to check if there is not one already from b to a.
   if (isAExpendable) {

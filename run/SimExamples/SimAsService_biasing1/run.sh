@@ -27,6 +27,7 @@ NTRIALEVENTS=20 # number of trial events in each batch
 NTRIGGEREDEVENTS=20  # number of targeted triggered events
 
 # helper to make a random file name
+# TODO: work with FIFO or ramfiles or the like instead of real files on disc
 rname1=$(hexdump -n 16 -v -e '/1 "%02X"' -e '/16 "\n"' /dev/urandom | head -c 6)
 
 set -x
@@ -38,7 +39,7 @@ SERVICE1_PID=$(grep "detached as pid" /tmp/${rname1} | awk '//{print $4}')
 
 # a second service is used for the continue features (currently reconfiguration of engines/stacks is limited, otherwise
 # the first service could be used as well)
-( o2-sim-client.py --startup "-j ${NWORKERS} -n 0 -m ${MODULES} -o simservice2 --configKeyValues GeneratorFromO2Kine.continueMode=true" \
+( o2-sim-client.py --startup "-j ${NWORKERS} -n 0 -m ${MODULES} -o simservice2 --configKeyValues GeneratorFromO2Kine.continueMode=true;align-geom.mDetectors=none" \
                    --block ) | tee /tmp/${rname1}  # <--- return when everything is fully initialized
 SERVICE2_PID=$(grep "detached as pid" /tmp/${rname1} | awk '//{print $4}')
 
@@ -68,6 +69,8 @@ echo "Transported ${trialevents} trial events."
 echo "Triggered on ${biasedcount} events.     "
 echo "****************************************"
 
+
+rm /tmp/${rname1}*
 
 # SIMULATE REMAINING PRIMARIES FOR GOOD TRIGGERED EVENTS
 o2-sim-client.py --pid ${SERVICE2_PID} --command "-g extkinO2 --extKinFile filtered_Kine.root -n ${NTRIGGEREDEVENTS} -o filtered_part2 \

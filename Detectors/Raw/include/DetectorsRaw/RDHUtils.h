@@ -673,12 +673,12 @@ struct RDHUtils {
   static void dumpRDH(const void* rdhP);
 
   ///_______________________________
-  static bool checkRDH(const RDHv4& rdh, bool verbose = true);
-  static bool checkRDH(const RDHv5& rdh, bool verbose = true);
-  static bool checkRDH(const RDHv6& rdh, bool verbose = true);
-  static bool checkRDH(const RDHv7& rdh, bool verbose = true);
-  static bool checkRDH(const RDHAny rdh, bool verbose = true) { return checkRDH(rdh.voidify(), verbose); }
-  static bool checkRDH(const void* rdhP, bool verbose = true);
+  static bool checkRDH(const RDHv4& rdh, bool verbose = true, bool checkZeros = false);
+  static bool checkRDH(const RDHv5& rdh, bool verbose = true, bool checkZeros = false);
+  static bool checkRDH(const RDHv6& rdh, bool verbose = true, bool checkZeros = false);
+  static bool checkRDH(const RDHv7& rdh, bool verbose = true, bool checkZeros = false);
+  static bool checkRDH(const RDHAny rdh, bool verbose = true, bool checkZeros = false) { return checkRDH(rdh.voidify(), verbose, checkZeros); }
+  static bool checkRDH(const void* rdhP, bool verbose = true, bool checkZeros = false);
 
   ///_______________________________
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)

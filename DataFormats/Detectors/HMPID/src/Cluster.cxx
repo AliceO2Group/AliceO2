@@ -25,84 +25,20 @@ namespace hmpid
 
 bool o2::hmpid::Cluster::fgDoCorrSin = true;
 
-/*Cluster::Cluster()
-{
-  mCh = -1;
-  mSi = -1;
-  mSt = kEmp;
-  mBox = -1;
-  mNlocMax = -1;
-  mMaxQpad = -1;
-  mMaxQ = -1;
-  mQRaw = 0;
-  mQ = 0;
-  mErrQ = -1;
-  mXX = 0;
-  mErrX = -1;
-  mYY = 0;
-  mErrY = -1;
-  mChi2 = -1;
-  mDigs.clear();
-
-  // delete [] &mDigs;
-  mParam = (o2::hmpid::Param::instanceNoGeo());
-  // mParam = (o2::hmpid::Param());
-};
-*/
-/*Cluster::~Cluster()
-{
-  delete mDigs;
-}
-*/
-/*void Cluster::setClusterParams(float xL,float yL,int iCh)
-{
-  //------------------------------------------------------------------------
-  //Set the cluster properties for the AliCluster3D part
-  //------------------------------------------------------------------------
-  mParam = o2::hmpid::Param::instance();
-  if(!mParam->getInstType()) { //if there is no geometry we cannot retrieve the volId (only for monitoring)
-  //  new(this) AliCluster3D(); return;
-  }
-  //Get the volume ID from the previously set PNEntry
-  uint16_t volId = AliGeomManager::LayerToVolUID(AliGeomManager::kHMPID, iCh);
-
-  //get L->T cs matrix for a given chamber
-  const TGeoHMatrix *t2l = AliGeomManager::GetTracking2LocalMatrix(volId);
-  mParam = o2::hmpid::Param::instance();
-  //transformation from the pad cs to local
-  xL -= 0.5 * mParam->sizeAllX(); //size of all pads with dead zones included
-  yL -= 0.5 * mParam->sizeAllY();
-
-  // Get the position in the tracking cs
-  float posL[3]={xL, yL, 0.}; //this is the LORS of HMPID
-  float posT[3];
-  t2l->MasterToLocal(posL,posT);
-
- //Get the cluster covariance matrix in the tracking cs
-  float covL[9] = { 0.8 * 0.8 / 12.0, 0.0, 0.0, //pad size X
-                    0.0, 0.84 * 0.84 / 12.0, 0.0, //pad size Y
-                    0.0, 0.0, 0.1 }; //just 1 , no Z dimension ???
-
-  TGeoHMatrix m;
-  m.SetRotation(covL);
-  m.Multiply(t2l);
-  const TGeoHMatrix& t2li = t2l->Inverse();
-  m.MultiplyLeft(&t2li);
-  float *covT = m.GetRotationMatrix();
-
-  // ===> new(this) AliCluster3D(volId,posT[0],posT[1],posT[2],covT[0],covT[1],covT[2],covT[4],covT[5],covT[8],0x0); // No MC labels ?
-}
-*/
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Calculates naive cluster position as a center of gravity of its digits.
 void Cluster::coG()
 {
+  if (!mDigs) {
+    LOGP(fatal, "digits are missing in the cluster");
+  }
+
   int minPadX = 999;
   int minPadY = 999;
   int maxPadX = -1;
   int maxPadY = -1; // for box finding
 
-  if (mDigs.size() == 0) {
+  if (mDigs->size() == 0) {
     return;
   }                      // no digits in this cluster
   mXX = mYY = mQRaw = 0; // init summable parameters
@@ -111,9 +47,9 @@ void Cluster::coG()
   int maxQ = -1; // to calculate the pad with the highest charge
 
   o2::hmpid::Digit* pDig = nullptr;
-  for (int iDig = 0; iDig < mDigs.size(); iDig++) { // digits loop
+  for (int iDig = 0; iDig < mDigs->size(); iDig++) { // digits loop
     int x, y, mod;
-    int padId = mDigs[iDig]->getPadID();
+    int padId = (*mDigs)[iDig]->getPadID();
     o2::hmpid::Digit::pad2Absolute(padId, &mod, &x, &y);
     if (x > maxPadX) {
       maxPadX = x;
@@ -128,7 +64,7 @@ void Cluster::coG()
       minPadY = y;
     } // MinY
 
-    float q = mDigs[iDig]->mQ; // get QDC
+    float q = (*mDigs)[iDig]->mQ; // get QDC
     mXX += o2::hmpid::Digit::lorsX(padId) * q;
     mYY += o2::hmpid::Digit::lorsY(padId) * q; // add digit center weighted by QDC
     mQRaw += q;                                // increment total charge
@@ -145,7 +81,7 @@ void Cluster::coG()
     mYY /= mQRaw;
   } // final center of gravity
 
-  if (mDigs.size() > 1 && fgDoCorrSin) {
+  if (mDigs->size() > 1 && fgDoCorrSin) {
     corrSin();
   } // correct it by sinoid
 
@@ -163,11 +99,12 @@ void Cluster::coG()
 // Correction of cluster x position due to sinoid, see HMPID TDR  page 30
 void Cluster::corrSin()
 {
+  const auto param = o2::hmpid::Param::instanceNoGeo();
   int pc;
   int px;
   int py;
   o2::hmpid::Param::lors2Pad(mXX, mYY, pc, px, py); // tmp digit to get it center
-  double x = mXX - mParam->lorsX(pc, px);           // diff between cluster x and center of the pad contaning this cluster
+  double x = mXX - param->lorsX(pc, px);            // diff between cluster x and center of the pad contaning this cluster
   double xpi8on10 = M_PI / 0.8 * x;
   mXX += 3.31267e-2 * sin(2.0 * xpi8on10) - 2.66575e-3 * sin(4.0 * xpi8on10) + 2.80553e-3 * sin(6.0 * xpi8on10) + 0.0070;
   return;
@@ -307,10 +244,10 @@ void Cluster::print(Option_t* opt) const
   }
   printf("%sCLU: ch=%i  (X = %7.3f, Y = %7.3f) Q=%8.3f Qraw=%8.3f(%3.0f%%) Size=%2i DimBox=%i LocMax=%i Chi2=%7.3f   %s\n",
          opt, mCh, mXX, mYY, mQ, mQRaw, ratio, mSi, mBox, mNlocMax, mChi2, status);
-  if (mDigs.size() > 0) {
+  if (mDigs && mDigs->size() > 0) {
     std::cout << "Digits of Cluster" << std::endl;
-    for (int i; i < mDigs.size(); i++) {
-      std::cout << mDigs[i] << std::endl;
+    for (int i; i < mDigs->size(); i++) {
+      std::cout << (*mDigs)[i] << std::endl;
     }
   }
   return;
@@ -327,7 +264,10 @@ int Cluster::solve(std::vector<o2::hmpid::Cluster>* pCluLst, float* pSigmaCut, b
   // Arguments: pCluLst     - cluster list pointer where to add new cluster(s)
   //            isTryUnfold - flag to switch on/off unfolding
   //   Returns: number of local maxima of original cluster
-
+  const auto param = o2::hmpid::Param::instanceNoGeo();
+  if (!mDigs) {
+    LOGP(fatal, "digits are missing in the cluster");
+  }
   const int kMaxLocMax = 6;      // max allowed number of loc max for fitting
   coG();                         // First calculate CoG for the given cluster
   int iCluCnt = pCluLst->size(); // get current number of clusters already stored in the list by previous operations
@@ -343,6 +283,7 @@ int Cluster::solve(std::vector<o2::hmpid::Cluster>* pCluLst, float* pSigmaCut, b
     // setClusterParams(mXX, mYY, mCh); //                               2 - flag is set to FALSE
     // new ((*pCluLst)[iCluCnt++]) Cluster(*this); //                      3 - size = 1
     pCluLst->push_back(o2::hmpid::Cluster(*this));
+    pCluLst->back().cleanPointers();
     return 1; // add this raw cluster
   }
 
@@ -363,13 +304,13 @@ int Cluster::solve(std::vector<o2::hmpid::Cluster>* pCluLst, float* pSigmaCut, b
   // Phase 1. Find number of local maxima. Strategy is to check if the current pad has QDC more then all neigbours. Also find the box contaning the cluster
   mNlocMax = 0;
   for (int iDig1 = 0; iDig1 < rawSize; iDig1++) {   // first digits loop
-    auto pDig1 = mDigs.at(iDig1);                   // take next digit
+    auto pDig1 = (*mDigs)[iDig1];                   // take next digit
     int iCnt = 0;                                   // counts how many neighbouring pads has QDC more then current one
     for (int iDig2 = 0; iDig2 < rawSize; iDig2++) { // loop on all digits again
       if (iDig1 == iDig2) {
         continue;
       }                                                                                                   // the same digit, no need to compare
-      auto pDig2 = mDigs.at(iDig2);                                                                       // take second digit to compare with the first one
+      auto pDig2 = (*mDigs)[iDig2];                                                                       // take second digit to compare with the first one
       int dist = TMath::Sign(int(pDig1->mX - pDig2->mX), 1) + TMath::Sign(int(pDig1->mY - pDig2->mY), 1); // distance between pads
       if (dist == 1) {                                                                                    // means dig2 is a neighbour of dig1
         if (pDig2->mQ >= pDig1->mQ) {
@@ -380,10 +321,10 @@ int Cluster::solve(std::vector<o2::hmpid::Cluster>* pCluLst, float* pSigmaCut, b
     if (iCnt == 0 && mNlocMax < kMaxLocMax) { // this pad has Q more then any neighbour so it's local maximum
       float xStart = o2::hmpid::Digit::lorsX(pDig1->getPadID());
       float yStart = o2::hmpid::Digit::lorsY(pDig1->getPadID());
-      float xMin = xStart - mParam->sizePadX();
-      float xMax = xStart + mParam->sizePadX();
-      float yMin = yStart - mParam->sizePadY();
-      float yMax = yStart + mParam->sizePadY();
+      float xMin = xStart - param->sizePadX();
+      float xMax = xStart + param->sizePadX();
+      float yMin = yStart - param->sizePadY();
+      float yMax = yStart + param->sizePadY();
       ierflg = fitter->SetParameter(3 * mNlocMax, Form("x%i", mNlocMax), xStart, 0.1, xMin, xMax);      // X,Y,Q initial values of the loc max pad
       ierflg = fitter->SetParameter(3 * mNlocMax + 1, Form("y%i", mNlocMax), yStart, 0.1, yMin, yMax);  // X, Y constrained to be near the loc max
       ierflg = fitter->SetParameter(3 * mNlocMax + 2, Form("q%i", mNlocMax), pDig1->mQ, 0.1, 0, 10000); // Q constrained to be positive
@@ -398,6 +339,7 @@ int Cluster::solve(std::vector<o2::hmpid::Cluster>* pCluLst, float* pSigmaCut, b
     mSt = kNoLoc;
     // setClusterParams(mXX, mYY, mCh); //need to fill the AliCluster3D part
     pCluLst->push_back(o2::hmpid::Cluster(*this)); // add new unfolded cluster pCluLst->push_back(o2::hmpid::Cluster(*this));
+    pCluLst->back().cleanPointers();
     return mNlocMax;
   }
 
@@ -406,6 +348,7 @@ int Cluster::solve(std::vector<o2::hmpid::Cluster>* pCluLst, float* pSigmaCut, b
     // setClusterParams(mXX, mYY, mCh); // if # of local maxima exceeds kMaxLocMax...
     mSt = kMax;
     pCluLst->push_back(o2::hmpid::Cluster(*this)); //...add this raw cluster
+    pCluLst->back().cleanPointers();
   } else {                                         // or resonable number of local maxima to fit and user requested it
     // Now ready for minimization step
     arglist[0] = 500;                                       // number of steps and sigma on pads charges
@@ -459,6 +402,7 @@ int Cluster::solve(std::vector<o2::hmpid::Cluster>* pCluLst, float* pSigmaCut, b
       }
       // setClusterParams(mXX, mYY, mCh); //need to fill the AliCluster3D part
       pCluLst->push_back(o2::hmpid::Cluster(*this)); // add new unfolded cluster
+      pCluLst->back().cleanPointers();
       if (mNlocMax > 1) {
         setSize(rawSize); // Original raw size is set again to its proper value
       }
@@ -494,7 +438,10 @@ Bool_t Cluster::isInPc()
   // Check if (X,Y) position is inside the PC limits
   // Arguments:
   //   Returns: True or False
-  int pc = mDigs[0]->getPh(); // (o2::hmpid::Digit*)&mDigs.at(iDig)
+  if (!mDigs) {
+    LOGP(fatal, "digits are missing in the cluster");
+  }
+  int pc = (*mDigs)[0]->getPh(); // (o2::hmpid::Digit*)&mDigs.at(iDig)
 
   if (mXX < Param::minPcX(pc) || mXX > Param::maxPcX(pc) || mYY < Param::minPcY(pc) || mYY > Param::maxPcY(pc)) {
     return false;
@@ -508,13 +455,14 @@ void Cluster::digAdd(const Digit* pDig)
   // Adds a given digit to the list of digits belonging to this cluster, cluster is not owner of digits
   // Arguments: pDig - pointer to digit to be added
   // Returns: none
-
-  if (mDigs.size() == 0) { // create list of digits in the first invocation
+  if (!mDigs) {
+    LOGP(fatal, "digits are not set to the cluster");
+  }
+  if (mDigs->size() == 0) { // create list of digits in the first invocation
     mSi = 0;
-    //  std::vector<o2::hmpid::Digit*> fDigs;
   }
   // fDigs->Add(pDig);
-  mDigs.push_back(pDig);
+  mDigs->push_back(pDig);
   mSt = kFrm;
   mSi++;
   return;
@@ -523,11 +471,7 @@ void Cluster::digAdd(const Digit* pDig)
 void Cluster::reset()
 {
   //
-  //
-  //
-  if (mDigs.size() > 0) {
-    mDigs.clear();
-  }
+  cleanPointers();
   // mDigs={0x0};
   mSt = kEmp;
   mQRaw = mQ = 0;

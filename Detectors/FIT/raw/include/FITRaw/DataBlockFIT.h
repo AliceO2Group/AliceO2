@@ -20,11 +20,11 @@
 #include <iostream>
 #include <Rtypes.h>
 #include <FITRaw/DataBlockBase.h>
+#include <DataFormatsFIT/RawDataMetric.h>
 
 #include <gsl/span>
 #include <iostream>
 #include <cassert>
-using namespace o2::fit;
 namespace o2
 {
 namespace fit
@@ -52,18 +52,31 @@ class DataBlockPM : public DataBlockBase<DataBlockPM, ConfigType, RawHeaderPMtyp
   std::vector<char> serialize() const
   {
     std::size_t nBytes = HeaderPM::MaxNwords * HeaderPM::sSizeWord;
-    nBytes += HeaderPM::mData[0].nGBTWords * HeaderPM::sSizeWord;
+    const std::size_t nGBTWords = HeaderPM::mData[0].nGBTWords;
+    nBytes += nGBTWords * HeaderPM::sSizeWord;
     std::vector<char> vecBytes(nBytes);
     std::size_t destBytes = 0;
-    HeaderPM::serialize(vecBytes, HeaderPM::MaxNwords, destBytes);
-    DataPM::serialize(vecBytes, HeaderPM::mData[0].nGBTWords, destBytes);
+    const auto statusBits = HeaderPM::mStatusBits | DataPM::mStatusBits;
+    if (RawDataMetric::isBitActive(statusBits, RawDataMetric::EStatusBits::kIncompletePayload)) {
+      // Emulation for IncompletePayload
+      auto dataBlockTmp = (*this);
+      dataBlockTmp.HeaderPM::mData[0].nGBTWords = DataPM::MaxNwords + 1;
+      dataBlockTmp.HeaderPM::serialize(vecBytes, HeaderPM::MaxNwords, destBytes);
+    } else {
+      HeaderPM::serialize(vecBytes, HeaderPM::MaxNwords, destBytes);
+    }
+    DataPM::serialize(vecBytes, nGBTWords, destBytes);
     return vecBytes;
   }
   // Custom sanity checking for current deserialized block
   //  put here code for raw data checking
-  void sanityCheck(bool& flag)
+  void sanityCheck(bool& flag, typename RawDataMetric::Status_t& metric)
   {
+    if (HeaderPM::mData[0].isBadDescriptor()) {
+      RawDataMetric::setStatusBit(metric, RawDataMetric::EStatusBits::kWrongDescriptor);
+    }
     if (DataPM::mNelements == 0) {
+      RawDataMetric::setStatusBit(metric, RawDataMetric::EStatusBits::kEmptyDataBlock);
       flag = false;
       return;
     }
@@ -95,18 +108,34 @@ class DataBlockTCM : public DataBlockBase<DataBlockTCM, ConfigType, RawHeaderTCM
   std::vector<char> serialize() const
   {
     std::size_t nBytes = HeaderTCM::MaxNwords * HeaderTCM::sSizeWord;
-    nBytes += HeaderTCM::mData[0].nGBTWords * HeaderTCM::sSizeWord;
+    const std::size_t nGBTWords = HeaderTCM::mData[0].nGBTWords;
+    nBytes += nGBTWords * HeaderTCM::sSizeWord;
     std::vector<char> vecBytes(nBytes);
     std::size_t destBytes = 0;
-    HeaderTCM::serialize(vecBytes, HeaderTCM::MaxNwords, destBytes);
-    DataTCM::serialize(vecBytes, HeaderTCM::mData[0].nGBTWords, destBytes);
+    const auto statusBits = HeaderTCM::mStatusBits | DataTCM::mStatusBits;
+    if (RawDataMetric::isBitActive(statusBits, RawDataMetric::EStatusBits::kIncompletePayload)) {
+      // Emulation for IncompletePayload
+      auto dataBlockTmp = (*this);
+      dataBlockTmp.HeaderTCM::mData[0].nGBTWords = DataTCM::MaxNwords + 1;
+      dataBlockTmp.HeaderTCM::serialize(vecBytes, HeaderTCM::MaxNwords, destBytes);
+    } else {
+      HeaderTCM::serialize(vecBytes, HeaderTCM::MaxNwords, destBytes);
+    }
+    DataTCM::serialize(vecBytes, nGBTWords, destBytes);
     return vecBytes;
   }
   // Custom sanity checking for current deserialized block
   //  put here code for raw data checking
-  void sanityCheck(bool& flag)
+  void sanityCheck(bool& flag, typename RawDataMetric::Status_t& metric)
   {
-    // TODO, Descriptor checking
+    if (HeaderTCM::mData[0].isBadDescriptor()) {
+      RawDataMetric::setStatusBit(metric, RawDataMetric::EStatusBits::kWrongDescriptor);
+    }
+    if (DataTCM::mNelements == 0) {
+      RawDataMetric::setStatusBit(metric, RawDataMetric::EStatusBits::kEmptyDataBlock);
+      flag = false;
+      return;
+    }
   }
 };
 
@@ -135,20 +164,34 @@ class DataBlockTCMext : public DataBlockBase<DataBlockTCMext, ConfigType, RawHea
   std::vector<char> serialize() const
   {
     std::size_t nBytes = HeaderTCMext::MaxNwords * HeaderTCMext::sSizeWord;
-    nBytes += HeaderTCMext::mData[0].nGBTWords * HeaderTCMext::sSizeWord;
+    const std::size_t nGBTWords = HeaderTCMext::mData[0].nGBTWords;
+    nBytes += nGBTWords * HeaderTCMext::sSizeWord;
     std::vector<char> vecBytes(nBytes);
     std::size_t destBytes = 0;
-    HeaderTCMext::serialize(vecBytes, HeaderTCMext::MaxNwords, destBytes);
+    const auto statusBits = HeaderTCMext::mStatusBits | DataTCM::mStatusBits;
+    if (RawDataMetric::isBitActive(statusBits, RawDataMetric::EStatusBits::kIncompletePayload)) {
+      // Emulation for IncompletePayload
+      auto dataBlockTmp = (*this);
+      dataBlockTmp.HeaderTCMext::mData[0].nGBTWords = DataTCM::MaxNwords + 1;
+      dataBlockTmp.HeaderTCMext::serialize(vecBytes, HeaderTCMext::MaxNwords, destBytes);
+    } else {
+      HeaderTCMext::serialize(vecBytes, HeaderTCMext::MaxNwords, destBytes);
+    }
     DataTCM::serialize(vecBytes, DataTCM::MaxNwords, destBytes);
-    DataTCMext::serialize(vecBytes, HeaderTCMext::mData[0].nGBTWords - DataTCM::MaxNwords, destBytes);
+    DataTCMext::serialize(vecBytes, nGBTWords - DataTCM::MaxNwords, destBytes);
     return vecBytes;
   }
   // Custom sanity checking for current deserialized block
   //  put here code for raw data checking
-  void sanityCheck(bool& flag)
+  void sanityCheck(bool& flag, typename RawDataMetric::Status_t& metric)
   {
-
-    // TODO, Descriptor checking
+    if (HeaderTCMext::mData[0].isBadDescriptor()) {
+      RawDataMetric::setStatusBit(metric, RawDataMetric::EStatusBits::kWrongDescriptor);
+    }
+    if (DataTCMext::mNelements == 0) {
+      RawDataMetric::setStatusBit(metric, RawDataMetric::EStatusBits::kEmptyDataBlock);
+      flag = false;
+    }
   }
 };
 

@@ -59,41 +59,34 @@ class TPCFastSpaceChargeCorrectionHelper
   /// Singleton
   static TPCFastSpaceChargeCorrectionHelper* instance();
 
+  /// _______________  Settings   ________________________
+
+  /// sets number of threads to use
+  void setNthreads(int n);
+
+  /// sets number of threads to N cpu cores
+  void setNthreadsToMaximum();
+
+  /// get the number of threads
+  int getNthreads() const { return mNthreads; }
+
   /// _______________  Main functionality  ________________________
 
-  /// set space charge correction in the global coordinates
-  /// as a continious function
-  void setGlobalSpaceChargeCorrection(
+  /// creates TPCFastSpaceChargeCorrection object from a continious space charge correction in local coordinates
+  std::unique_ptr<TPCFastSpaceChargeCorrection> createFromLocalCorrection(
+    std::function<void(int roc, int irow, double y, double z, double& dx, double& dy, double& dz)> correctionLocal,
+    const int nKnotsY = 10, const int nKnotsZ = 20);
+
+  /// creates TPCFastSpaceChargeCorrection object from a continious space charge correction in global coordinates
+  std::unique_ptr<TPCFastSpaceChargeCorrection> createFromGlobalCorrection(
     std::function<void(int roc, double gx, double gy, double gz,
                        double& dgx, double& dgy, double& dgz)>
-      correctionGlobal);
+      correctionGlobal,
+    const int nKnotsY = 10, const int nKnotsZ = 20);
 
-  template <typename F>
-  void setGlobalSpaceChargeCorrection(F&& correctionGlobal)
-  {
-    std::function<void(int roc, double gx, double gy, double gz,
-                       double& dgx, double& dgy, double& dgz)>
-      f = correctionGlobal;
-    setGlobalSpaceChargeCorrection(f);
-  }
-
-  /// set space charge correction in the local coordinates
-  /// as a continious function
-  template <typename F>
-  void setLocalSpaceChargeCorrection(F&& correctionLocal)
-  {
-    std::function<void(int roc, int irow, double y, double z, double& dx, double& dy, double& dz)> f = correctionLocal;
-    setLocalSpaceChargeCorrection(f);
-  }
-
-  /// set space charge correction in the local coordinates
-  /// as a continious function
-  void setLocalSpaceChargeCorrection(
-    std::function<void(int roc, int irow, double y, double z, double& dx, double& dy, double& dz)> correctionLocal);
-
-  /// creates TPCFastSpaceChargeCorrection object
-  std::unique_ptr<TPCFastSpaceChargeCorrection> create(const int nKnotsY = 10, const int nKnotsZ = 20);
-
+  /// Create SpaceCharge correction out of the voxel tree
+  std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> createFromTrackResiduals(
+    const o2::tpc::TrackResiduals& trackResiduals, TTree* voxResTree, bool useSmoothed = false, bool invertSigns = false);
   /// _______________  Utilities   ________________________
 
   const TPCFastTransformGeo& getGeometry() { return mGeo; }
@@ -104,10 +97,6 @@ class TPCFastSpaceChargeCorrectionHelper
 
   void testGeometry(const TPCFastTransformGeo& geo) const;
 
-  /// Create SpaceCharge correction out of the voxel tree
-  std::unique_ptr<o2::gpu::TPCFastSpaceChargeCorrection> createSpaceChargeCorrection(
-    const o2::tpc::TrackResiduals& trackResiduals, TTree* voxResTree);
-
  private:
   /// geometry initialization
   void initGeometry();
@@ -115,8 +104,15 @@ class TPCFastSpaceChargeCorrectionHelper
   /// get space charge correction in internal TPCFastTransform coordinates u,v->dx,du,dv
   void getSpaceChargeCorrection(const TPCFastSpaceChargeCorrection& correction, int slice, int row, o2::gpu::TPCFastSpaceChargeCorrectionMap::CorrectionPoint p, double& su, double& sv, double& dx, double& du, double& dv);
 
+  /// initialise max drift length
+  void initMaxDriftLength(o2::gpu::TPCFastSpaceChargeCorrection& correction, bool prn);
+
+  /// initialise inverse transformation
+  void initInverse(o2::gpu::TPCFastSpaceChargeCorrection& correction, bool prn);
+
   static TPCFastSpaceChargeCorrectionHelper* sInstance; ///< singleton instance
   bool mIsInitialized = 0;                              ///< initialization flag
+  int mNthreads = 1;                                    ///< n of threads to use
   TPCFastTransformGeo mGeo;                             ///< geometry parameters
 
   TPCFastSpaceChargeCorrectionMap mCorrectionMap{0, 0};

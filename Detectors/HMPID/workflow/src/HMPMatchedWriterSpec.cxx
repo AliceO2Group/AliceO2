@@ -36,68 +36,21 @@ namespace hmpid
 template <typename T>
 using BranchDefinition = MakeRootTreeWriterSpec::BranchDefinition<T>;
 using MatchInfo = std::vector<o2::dataformats::MatchInfoHMP>;
-// using TrackInfo = std::vector<o2::dataformats::TrackTPCTOF>;
 using LabelsType = std::vector<o2::MCCompLabel>;
 using namespace o2::header;
 
 DataProcessorSpec getHMPMatchedWriterSpec(bool useMC, const char* outdef) //, bool writeTracks, int mode, bool strict)
 {
-  // spectators for logging
-  /* auto loggerMatched = [](MatchInfo const& indata) {
-     LOG(debug) << "RECEIVED MATCHED SIZE " << indata.size();
-   };
-   auto loggerTofLabels = [](LabelsType const& labeltof) {
-     LOG(debug) << "HMP LABELS GOT " << labeltof.size() << " LABELS ";
-   };
- */
-  /*  o2::header::DataDescription ddMatchInfo[4] = {{"MTC_TPC"}, {"MTC_ITSTPC"}, {"MTC_TPCTRD"}, {"MTC_ITSTPCTRD"}};
-    o2::header::DataDescription ddMCMatchTOF[4] = {{"MCMTC_TPC"}, {"MCMTC_ITSTPC"}, {"MCMTC_TPCTRD"}, {"MCMTC_ITSTPCTRD"}};
-
-    uint32_t ss = o2::globaltracking::getSubSpec(strict ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
-
-    const char* match_name[4] = {"TOFMatchedWriter_TPC", "TOFMatchedWriter_ITSTPC", "TOFMatchedWriter_TPCTRD", "TOFMatchedWriter_ITSTPCTRD"};
-    const char* match_name_strict[4] = {"TOFMatchedWriter_TPC_str", "TOFMatchedWriter_ITSTPC_str", "TOFMatchedWriter_TPCTRD_str", "TOFMatchedWriter_ITSTPCTRD_str"};
-
-    const char* taskName = match_name[mode];
-    if (strict) {
-      taskName = match_name_strict[mode];
-    }
-  */
-
-  // inputBindings better be unique for each data spec, otherwise
-  // they can not be "combined" into a single DPL device
-  // std::stringstream inputBinding1, inputBinding2, inputBinding3;
-  // inputBinding1 << "hmpmatching_" << mode;
-  // inputBinding3 << "matchtoflabels_" << mode;
-  /*
-    return MakeRootTreeWriterSpec(taskName,
-                                  outdef,
-                                  "matchTOF",
-                                  BranchDefinition<MatchInfo>{InputSpec{inputBinding1.str().c_str(), gDataOriginTOF, ddMatchInfo[mode], ss},
-                                                              "TOFMatchInfo",
-                                                              "TOFMatchInfo-branch-name",
-                                                              1,
-                                                              loggerMatched},
-                                  BranchDefinition<TrackInfo>{InputSpec{inputBinding2.str().c_str(), gDataOriginTOF, "TOFTRACKS_TPC", ss},
-                                                              "TPCTOFTracks",
-                                                              "TPCTOFTracks-branch-name",
-                                                              writeTracks},
-                                  BranchDefinition<LabelsType>{InputSpec{inputBinding3.str().c_str(), gDataOriginTOF, ddMCMatchTOF[mode], ss},
-                                                               "MatchTOFMCTruth",
-                                                               "MatchTOFMCTruth-branch-name",
-                                                               (useMC ? 1 : 0), // one branch if mc labels enabled
-                                                               loggerTofLabels})();
-  */
 
   const char* taskName = "HMPMatchedWriter";
 
   return MakeRootTreeWriterSpec(taskName,
                                 outdef,
                                 "matchHMP",
-                                BranchDefinition<MatchInfo>{InputSpec{"hmpmatching", gDataOriginHMP, "CONSTRAINED", 0},
+                                BranchDefinition<MatchInfo>{InputSpec{"hmpmatching", gDataOriginHMP, "MATCHES", 0},
                                                             "HMPMatchInfo",
                                                             "HMPMatchInfo-branch-name"},
-                                BranchDefinition<LabelsType>{InputSpec{"matchhmplabels", gDataOriginHMP, "MC_CONSTRAINED", 0},
+                                BranchDefinition<LabelsType>{InputSpec{"matchhmplabels", gDataOriginHMP, "MCLABELS", 0},
                                                              "MatchHMPMCTruth",
                                                              "MatchHMPMCTruth-branch-name",
                                                              (useMC ? 1 : 0)})();

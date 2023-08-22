@@ -53,6 +53,16 @@ enum struct ProcessingStatsId : short {
   DROPPED_INCOMING_MESSAGES,
   RELAYED_MESSAGES,
   CPU_USAGE_FRACTION,
+  ARROW_BYTES_CREATED,
+  ARROW_BYTES_DESTROYED,
+  ARROW_MESSAGES_CREATED,
+  ARROW_MESSAGES_DESTROYED,
+  ARROW_BYTES_EXPIRED,
+  RESOURCE_OFFER_EXPIRED,
+  SHM_OFFER_BYTES_CONSUMED,
+  RESOURCES_MISSING,
+  RESOURCES_INSUFFICIENT,
+  RESOURCES_SATISFACTORY,
   AVAILABLE_MANAGED_SHM_BASE = 512,
 };
 
@@ -130,6 +140,8 @@ struct DataProcessingStats {
     // Id of the metric. It must match the index in the metrics array.
     // Name of the metric
     std::string name = "";
+    // Wether or not the metric is enabled
+    bool enabled = true;
     int metricId = -1;
     /// The kind of the metric
     Kind kind = Kind::Int;

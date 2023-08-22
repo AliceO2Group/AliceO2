@@ -38,6 +38,9 @@ class PuseHeightDevice : public o2::framework::Task
   void init(o2::framework::InitContext& ic) final
   {
     mPulseHeight = std::make_unique<PulseHeight>();
+    if (ic.options().get<bool>("enable-root-output")) {
+      mPulseHeight->createOutputFile();
+    }
   }
 
   void run(o2::framework::ProcessingContext& pc) final
@@ -53,9 +56,9 @@ class PuseHeightDevice : public o2::framework::Task
     recoData.collectData(pc, *mDataRequest.get());
     auto digits = pc.inputs().get<gsl::span<o2::trd::Digit>>("digits");
     mPulseHeight->setInput(recoData, &digits);
+    mPulseHeight->reset();
     mPulseHeight->process();
-    // the output should not be sent for every TF, but be accumulated for some time so that QC can fetch it without any sampling
-    // pc.outputs().snapshot(Output{"TRD", "PULSEHEIGHT", 0, Lifetime::Sporadic}, mPulseHeight->getPHSpectrum());
+    pc.outputs().snapshot(Output{"TRD", "PULSEHEIGHT", 0, Lifetime::Timeframe}, mPulseHeight->getPHData());
     if (pc.transitionState() == TransitionHandlingState::Requested) {
       LOG(info) << "Run stop requested, finalizing";
       mRunStopRequested = true;
@@ -64,6 +67,7 @@ class PuseHeightDevice : public o2::framework::Task
 
   void endOfStream(o2::framework::EndOfStreamContext& ec) final
   {
+    mPulseHeight->closeOutputFile();
     if (mRunStopRequested) {
       return;
     }
@@ -88,7 +92,7 @@ DataProcessorSpec getTRDPulseHeightSpec(GID::mask_t src, bool digitsFromReader)
 {
 
   std::vector<OutputSpec> outputs;
-  // outputs.emplace_back(o2::header::gDataOriginTRD, "PULSEHEIGHT", 0, Lifetime::Sporadic)
+  outputs.emplace_back(o2::header::gDataOriginTRD, "PULSEHEIGHT", 0, Lifetime::Timeframe);
 
   bool isTPCavailable = false;
   if (GID::includesSource(GID::Source::ITSTPC, src)) {
@@ -113,8 +117,7 @@ DataProcessorSpec getTRDPulseHeightSpec(GID::mask_t src, bool digitsFromReader)
     outputs,
     AlgorithmSpec{adaptFromTask<o2::trd::PuseHeightDevice>(dataRequest)},
     Options{
-      {"enable-root-output", VariantType::Bool, false, {"output PH plot to root file"}} // TODO: implement
-    }};
+      {"enable-root-output", VariantType::Bool, false, {"output PH and debug data to root file"}}}};
 }
 } // namespace framework
 } // namespace o2

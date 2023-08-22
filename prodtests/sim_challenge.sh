@@ -126,7 +126,8 @@ fi
 if [ "$dodigi" == "1" ]; then
   echo "Running digitization for $intRate kHz interaction rate"
   intRate=$((1000*(intRate)));
-  taskwrapper digi.log o2-sim-digitizer-workflow $gloOpt --interactionRate $intRate $tpcLanes --configKeyValues "HBFUtils.runNumber=${runNumber}" --early-forward-policy always --combine-devices
+  if [[ "$dotrdtrap" == "1" ]]; then trddigioption="--disable-trd-trapsim"; fi # no need to run the TRAP simulation twice
+  taskwrapper digi.log o2-sim-digitizer-workflow $gloOpt $trddigioption --interactionRate $intRate $tpcLanes --configKeyValues "HBFUtils.runNumber=${runNumber}" --early-forward-policy always --combine-devices
   echo "Return status of digitization: $?"
   # existing checks
   #root -b -q O2/Detectors/ITSMFT/ITS/macros/test/CheckDigits.C+
@@ -184,6 +185,11 @@ if [ "$doreco" == "1" ]; then
   taskwrapper midreco.log "o2-mid-digits-reader-workflow | o2-mid-reco-workflow $gloOpt"
   echo "Return status of midreco: $?"
 
+  echo "Running HMPID reco flow to produce clusters"
+  #needs HMPID digitized data
+  taskwrapper hmpreco.log "o2-hmpid-digits-to-clusters-workflow $gloOpt"
+  echo "Return status of hmpid cluster reco: $?"
+
   echo "Running MCH-MID matching flow"
   taskwrapper mchmidMatch.log "o2-muon-tracks-matcher-workflow $gloOpt"
   echo "Return status of mchmidmatch: $?"
@@ -215,6 +221,11 @@ if [ "$doreco" == "1" ]; then
   #needs results of TOF clusters data from o2-tof-reco-workflow and results of o2-tpc-reco-workflow and ITS-TPC matching
   taskwrapper tofMatchTracks.log o2-tof-matcher-workflow $gloOpt
   echo "Return status of o2-tof-matcher-workflow: $?"
+
+  echo "Running Track-HMPID macthing flow"
+  #needs results of HMPID clusters data from o2-hmpid-digits-to-clusters-workflow
+  taskwrapper hmpidMatchTracks.log o2-hmpid-matcher-workflow $gloOpt
+  echo "Return status of o2-hmpid-matcher-workflow: $?"
 
   echo "Running TOF matching QA"
   #need results of ITSTPC-TOF matching (+ TOF clusters and ITS-TPC tracks)
@@ -251,10 +262,13 @@ if [ "$doreco" == "1" ]; then
   taskwrapper svfinder.log o2-secondary-vertexing-workflow $gloOpt
   echo "Return status of secondary vertexing: $?"
 
-  echo "Running strangeness tracking flow"
-  #needs results of S.Vertexer + ITS reco
-  taskwrapper sttracking.log o2-strangeness-tracking-workflow $gloOpt
-  echo "Return status of strangeness tracking: $?"
+  # the strangeness trackin is now called from the secondary-vertexing. To enable it as a standalone workflow
+  # one should run the previous o2-secondary-vertexing-workflow with options
+  # --configKeyValues "svertexer.createFullV0s=true;svertexer.createFullCascades=true;svertexer.createFull3Bodies=true" --disable-strangeness-tracker
+  #  echo "Running strangeness tracking flow"
+  #  #needs results of S.Vertexer + ITS reco
+  #  taskwrapper sttracking.log o2-strangeness-tracking-workflow $gloOpt
+  #  echo "Return status of strangeness tracking: $?"
 
   echo "Producing AOD"
   taskwrapper aod.log o2-aod-producer-workflow $gloOpt --aod-writer-keep dangling --aod-writer-resfile "AO2D" --aod-writer-resmode UPDATE --aod-timeframe-id 1 --run-number 300000

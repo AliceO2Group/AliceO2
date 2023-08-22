@@ -9,6 +9,10 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-o2_add_test_root_macro(ccdbModelUpload.C
+o2_add_test_root_macro(ccdbPIDUpload.C
+                       PUBLIC_LINK_LIBRARIES O2::TRDPID
+                       LABELS trd)
+
+o2_add_test_root_macro(makeTestLUTs.C
                        PUBLIC_LINK_LIBRARIES O2::TRDPID
                        LABELS trd)
