@@ -229,7 +229,7 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& data, LumiInfo& l
   return iosize;
 }
 ///________________________________
-template <typename CTF=o2::ctp::CTF>
+template <typename CTF = o2::ctp::CTF>
 bool CTFCoder::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
 {
   auto match = o2::ctf::CTFCoderBase::finaliseCCDB<CTF>(matcher, obj);
