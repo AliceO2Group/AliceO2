@@ -1414,10 +1414,10 @@ void TrackCheckStudy::endOfStream(EndOfStreamContext& ec)
   auto canvas2 = new TCanvas("fc_canvas2", "Fake clusters", 1600, 1000);
   canvas2->Divide(4, 2);
 
-    for (int iH{0}; iH < 4; ++iH) {
-      canvas2->cd(iH + 1);
-      stackLength2Fake[iH]->Draw();
-      gPad->BuildLegend();
+  for (int iH{0}; iH < 4; ++iH) {
+    canvas2->cd(iH + 1);
+    stackLength2Fake[iH]->Draw();
+    gPad->BuildLegend();
   }
   for (int iH{0}; iH < 2; ++iH) {
     canvas2->cd(iH + 5);
