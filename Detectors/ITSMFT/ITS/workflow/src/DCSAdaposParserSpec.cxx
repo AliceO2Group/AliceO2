@@ -160,8 +160,7 @@ void ITSDCSAdaposParser::pushToCCDB(ProcessingContext& pc)
   o2::ccdb::CcdbObjectInfo info(path, "dplalpideparam", filename, metadata, tstart, tend);
   // Define the dpl alpide param and set the strobe length to ship
   auto& dplAlpideParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
-  int* sl = (int*)&dplAlpideParams.roFrameLengthInBC;
-  *sl = (int)mStrobeToUpload + 8; // +8 is because the strobe length of ALPIDE (sent via ADAPOS) is 200ns shorted than the external trigger strobe length.
+  dplAlpideParams.updateFromString(fmt::format("ITSAlpideParam.roFrameLengthInBC = {}", (int)mStrobeToUpload + 8)); // +8 is because the strobe length of ALPIDE (sent via ADAPOS) is 200ns shorter than the external trigger strobe length.
   auto class_name = o2::utils::MemFileHelper::getClassName(dplAlpideParams);
 
   auto image = o2::ccdb::CcdbApi::createObjectImage(&dplAlpideParams, &info);
