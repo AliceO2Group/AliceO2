@@ -151,6 +151,13 @@ int CruRawReader::processHBFs()
   bool firstRdh = true;
   uint32_t totalDataInputSize = 0;
   mTotalHBFPayLoad = 0;
+  if (o2::raw::RDHUtils::getStop(rdh)) {
+    if (mMaxErrsPrinted > 0) {
+      LOGP(error, "First RDH for given HBF for FEE ID {:#04x} has stop bit set", o2::raw::RDHUtils::getFEEID(rdh));
+      checkNoErr();
+    }
+    return -1;
+  }
 
   // loop until RDH stop header
   while (!o2::raw::RDHUtils::getStop(rdh)) { // carry on till the end of the event.
