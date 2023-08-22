@@ -48,8 +48,7 @@ namespace tof
 class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
 {
  public:
-  TOFDPLDigitizerTask(bool useCCDB, std::string ccdb_url, int timestamp) : mUseCCDB{useCCDB}, mCCDBurl(ccdb_url), mTimestamp(timestamp), o2::base::BaseDPLDigitizer(o2::base::InitServices::FIELD | o2::base::InitServices::GEOM), mPass("unanchored"){};
-  // mPass("unanchored") to be replaced with mPass(o2::conf::DigiParams::Instance().passName) once ccdb ready
+  TOFDPLDigitizerTask(bool useCCDB, std::string ccdb_url, int timestamp) : mUseCCDB{useCCDB}, mCCDBurl(ccdb_url), mTimestamp(timestamp), o2::base::BaseDPLDigitizer(o2::base::InitServices::FIELD | o2::base::InitServices::GEOM), mPass(o2::conf::DigiParams::Instance().passName){};
 
   void initDigitizerTask(framework::InitContext& ic) override
   {
@@ -130,6 +129,11 @@ class TOFDPLDigitizerTask : public o2::base::BaseDPLDigitizer
       const auto diagnosticIn = pc.inputs().get<o2::tof::Diagnostic*>("tofccdbDia");
       const auto statusIn = pc.inputs().get<o2::tof::TOFFEElightInfo*>("tofccdbStatus");
       const auto tofParams = pc.inputs().get<o2::tof::ParameterCollection*>("tofccdbParams");
+
+      if (tofParams->getSize(mPass) < 0) { // this is supposed to be temporary till all the pieces are in place
+        LOG(info) << "Pass " << mPass << " requested but not found in the tofParams object -> using unanchored";
+        mPass = "unanchored";
+      }
 
       if (tofParams->getSize(mPass) < 0) {
         LOG(fatal) << "Pass " << mPass << " not found in the tofParams object (stop here!)";
