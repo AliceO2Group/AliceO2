@@ -33,8 +33,10 @@ static void __attribute__((constructor)) trapfpe()
 {
   // allows to disable set of particular FE's by setting corresponding bit of the O2_DISABLE_FPE_TRAP,
   // i.e. to enable only FE_DIVBYZERO use O2_DISABLE_FPE_TRAP=9
-  const char* ev = std::getenv("O2_DISABLE_FPE_TRAP");
-  int enabledFE = (FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW) & ~(ev ? atoi(ev) : 0);
+  //  const char* ev = std::getenv("O2_DISABLE_FPE_TRAP");
+  //  int enabledFE = (FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW) & ~(ev ? atoi(ev) : 0);
+  const char* ev = std::getenv("O2_ENABLE_FPE_TRAP");
+  int enabledFE = (FE_INVALID | FE_DIVBYZERO | FE_OVERFLOW) & (ev ? atoi(ev) : 0);
   if (enabledFE) {
     feenableexcept(enabledFE);
   }
