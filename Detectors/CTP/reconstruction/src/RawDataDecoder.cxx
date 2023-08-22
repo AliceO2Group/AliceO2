@@ -323,10 +323,10 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
 int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2::framework::InputSpec>& filter, std::vector<CTPDigit>& digits, std::vector<LumiInfo>& lumiPointsHBF1)
 {
   o2::pmr::vector<CTPDigit> pmrdigits;
-  for(auto const d: digits) {
+  for (auto const d : digits) {
     pmrdigits.push_back(d);
   }
-  return decodeRaw(inputs,filter,pmrdigits,lumiPointsHBF1);
+  return decodeRaw(inputs, filter, pmrdigits, lumiPointsHBF1);
 }
 //
 // Not to be called with level LM
