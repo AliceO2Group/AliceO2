@@ -17,7 +17,6 @@ namespace o2
 {
 namespace its
 {
-
 //////////////////////////////////////////////////////////////////////////////
 // Default constructor
 ITSDCSAdaposParser::ITSDCSAdaposParser()
