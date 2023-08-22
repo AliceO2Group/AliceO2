@@ -71,7 +71,8 @@ inline double_t computeEntropy(const FrequencyTable& table)
 
 count_t computeRenormingPrecision(const FrequencyTable& frequencyTable)
 {
-  const uint8_t minBits = std::ceil(std::log2(frequencyTable.getNUsedAlphabetSymbols()));
+  const auto nused = frequencyTable.getNUsedAlphabetSymbols();
+  const uint8_t minBits = nused > 0 ? std::ceil(std::log2(nused)) : 0;
   const uint8_t estimate = minBits * 3u / 2u;
   const uint8_t maxThreshold = std::max(minBits, MaxRenormThreshold);
   const uint8_t minThreshold = std::max(estimate, MinRenormThreshold);
