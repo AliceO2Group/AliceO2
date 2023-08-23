@@ -47,8 +47,8 @@ o2_add_executable(digitizer-workflow
                                         O2::ITSMFTWorkflow
                                         O2::MCHSimulation
                                         O2::MCHMappingImpl4
-                                        O2::DataFormatsMCH
                                         O2::MCHIO
+                                        O2::MCHDigitFiltering
                                         O2::MFTSimulation
                                         O2::MIDSimulation
                                         O2::PHOSSimulation
@@ -106,6 +106,7 @@ o2_add_executable(digitizer-workflow
                                         O2::MCHSimulation
                                         O2::MCHMappingImpl4
                                         O2::MCHIO
+                                        O2::MCHDigitFiltering
                                         O2::MFTSimulation
                                         O2::MIDSimulation
                                         O2::PHOSSimulation
