@@ -215,7 +215,7 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int
           dy = y - tParam.Y();
           dz = z - tParam.Z();
           if (dy * dy > sy2 || dz * dz > sz2) {
-            if (++r.mNMissed >= GPUCA_TRACKLET_CONSTRUCTOR_MAX_ROW_GAP_SEED) {
+            if (++r.mNMissed >= tracker.Param().rec.tpc.trackFollowingMaxRowGapSeed) {
               r.mCurrIH = CALINK_INVAL;
             }
             rowHit = CALINK_INVAL;
@@ -253,7 +253,7 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int
       if (r.mStage == 2 && iRow > r.mEndRow) {
         break;
       }
-      if (r.mNMissed > GPUCA_TRACKLET_CONSTRUCTOR_MAX_ROW_GAP) {
+      if (r.mNMissed > tracker.Param().rec.tpc.trackFollowingMaxRowGap) {
         r.mGo = 0;
         break;
       }
@@ -328,7 +328,7 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int
             float dy = y - yUncorrected;
             float dz = z - zUncorrected;
             if (dy * dy < sy2 && dz * dz < sz2) {
-              float dds = GPUCA_Y_FACTOR * CAMath::Abs(dy) + CAMath::Abs(dz);
+              float dds = tracker.Param().rec.tpc.trackFollowingYFactor * CAMath::Abs(dy) + CAMath::Abs(dz);
               if (dds < ds) {
                 ds = dds;
                 best = ih;

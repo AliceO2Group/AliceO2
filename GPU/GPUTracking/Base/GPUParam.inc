@@ -128,20 +128,20 @@ MEM_CLASS_PRE()
 GPUdi() void MEM_LG(GPUParam)::UpdateClusterError2ByState(short clusterState, float& ErrY2, float& ErrZ2) const
 {
   if (clusterState & GPUTPCGMMergedTrackHit::flagEdge) {
-    ErrY2 += 0.35f;
-    ErrZ2 += 0.15f;
+    ErrY2 += rec.tpc.extraClusterErrorEdgeY2;
+    ErrZ2 += rec.tpc.extraClusterErrorEdgeZ2;
   }
   if (clusterState & GPUTPCGMMergedTrackHit::flagSingle) {
-    ErrY2 += 0.2f;
-    ErrZ2 += 0.2f;
+    ErrY2 += rec.tpc.extraClusterErrorSingleY2;
+    ErrZ2 += rec.tpc.extraClusterErrorSingleZ2;
   }
   if (clusterState & (GPUTPCGMMergedTrackHit::flagSplitPad | GPUTPCGMMergedTrackHit::flagShared | GPUTPCGMMergedTrackHit::flagSingle)) {
-    ErrY2 += 0.03f;
-    ErrY2 *= 3;
+    ErrY2 += rec.tpc.extraClusterErrorSplitPadSharedSingleY2;
+    ErrY2 *= rec.tpc.extraClusterErrorFactorSplitPadSharedSingleY2;
   }
   if (clusterState & (GPUTPCGMMergedTrackHit::flagSplitTime | GPUTPCGMMergedTrackHit::flagShared | GPUTPCGMMergedTrackHit::flagSingle)) {
-    ErrZ2 += 0.03f;
-    ErrZ2 *= 3;
+    ErrZ2 += rec.tpc.extraClusterErrorSplitTimeSharedSingleZ2;
+    ErrZ2 *= rec.tpc.extraClusterErrorFactorSplitTimeSharedSingleZ2;
   }
 }
 
