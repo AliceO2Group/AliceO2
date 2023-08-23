@@ -553,7 +553,7 @@ static auto toBeForwardedHeader = [](void* header) -> bool {
   return true;
 };
 
-static auto toBeforwardedMessageSet = [](ChannelIndex& cachedForwardingChoice,
+static auto toBeforwardedMessageSet = [](std::vector<ChannelIndex>& cachedForwardingChoices,
                                          FairMQDeviceProxy& proxy,
                                          std::unique_ptr<fair::mq::Message>& header,
                                          std::unique_ptr<fair::mq::Message>& payload,
@@ -589,13 +589,9 @@ static auto toBeforwardedMessageSet = [](ChannelIndex& cachedForwardingChoice,
   // part of a split payload. All the others will use the same.
   // but always check if we have a sequence of multiple payloads
   if (fdh->splitPayloadIndex == 0 || fdh->splitPayloadParts <= 1 || total > 1) {
-    cachedForwardingChoice = proxy.getForwardChannelIndex(*fdh, fdph->startTime);
+    proxy.getMatchingForwardChannelIndexes(cachedForwardingChoices, *fdh, fdph->startTime);
   }
-  /// We did not find a match. Skip it.
-  if (cachedForwardingChoice.value == ChannelIndex::INVALID) {
-    return false;
-  }
-  return true;
+  return cachedForwardingChoices.empty() == false;
 };
 
 // This is how we do the forwarding, i.e. we push
@@ -609,6 +605,7 @@ static auto forwardInputs = [](ServiceRegistryRef registry, TimesliceSlot slot, 
   // we collect all messages per forward in a map and send them together
   std::vector<fair::mq::Parts> forwardedParts;
   forwardedParts.resize(proxy.getNumForwards());
+  std::vector<ChannelIndex> cachedForwardingChoices{};
 
   for (size_t ii = 0, ie = currentSetOfInputs.size(); ii < ie; ++ii) {
     auto& messageSet = currentSetOfInputs[ii];
@@ -619,7 +616,7 @@ static auto forwardInputs = [](ServiceRegistryRef registry, TimesliceSlot slot, 
     if (!toBeForwardedHeader(messageSet.header(0)->GetData())) {
       continue;
     }
-    ChannelIndex cachedForwardingChoice{ChannelIndex::INVALID};
+    cachedForwardingChoices.clear();
 
     for (size_t pi = 0; pi < currentSetOfInputs[ii].size(); ++pi) {
       auto& messageSet = currentSetOfInputs[ii];
@@ -627,24 +624,31 @@ static auto forwardInputs = [](ServiceRegistryRef registry, TimesliceSlot slot, 
       auto& payload = messageSet.payload(pi);
       auto total = messageSet.getNumberOfPayloads(pi);
 
-      if (!toBeforwardedMessageSet(cachedForwardingChoice, proxy, header, payload, total, consume)) {
+      if (!toBeforwardedMessageSet(cachedForwardingChoices, proxy, header, payload, total, consume)) {
         continue;
       }
 
+      // In case of more than one forward route, we need to copy the message.
+      // This will eventually use the same mamory if running with the same backend.
+      if (cachedForwardingChoices.size() > 1) {
+        copy = true;
+      }
       if (copy) {
-        auto&& newHeader = header->GetTransport()->CreateMessage();
-        newHeader->Copy(*header);
-        forwardedParts[cachedForwardingChoice.value].AddPart(std::move(newHeader));
+        for (auto& cachedForwardingChoice : cachedForwardingChoices) {
+          auto&& newHeader = header->GetTransport()->CreateMessage();
+          newHeader->Copy(*header);
+          forwardedParts[cachedForwardingChoice.value].AddPart(std::move(newHeader));
 
-        for (size_t payloadIndex = 0; payloadIndex < messageSet.getNumberOfPayloads(pi); ++payloadIndex) {
-          auto&& newPayload = header->GetTransport()->CreateMessage();
-          newPayload->Copy(*messageSet.payload(pi, payloadIndex));
-          forwardedParts[cachedForwardingChoice.value].AddPart(std::move(newPayload));
+          for (size_t payloadIndex = 0; payloadIndex < messageSet.getNumberOfPayloads(pi); ++payloadIndex) {
+            auto&& newPayload = header->GetTransport()->CreateMessage();
+            newPayload->Copy(*messageSet.payload(pi, payloadIndex));
+            forwardedParts[cachedForwardingChoice.value].AddPart(std::move(newPayload));
+          }
         }
       } else {
-        forwardedParts[cachedForwardingChoice.value].AddPart(std::move(messageSet.header(pi)));
+        forwardedParts[cachedForwardingChoices.back().value].AddPart(std::move(messageSet.header(pi)));
         for (size_t payloadIndex = 0; payloadIndex < messageSet.getNumberOfPayloads(pi); ++payloadIndex) {
-          forwardedParts[cachedForwardingChoice.value].AddPart(std::move(messageSet.payload(pi, payloadIndex)));
+          forwardedParts[cachedForwardingChoices.back().value].AddPart(std::move(messageSet.payload(pi, payloadIndex)));
         }
       }
     }
@@ -1065,38 +1069,47 @@ void DataProcessingDevice::fillContext(DataProcessorContext& context, DeviceCont
     };
   }
 
-  /// We must make sure there is no optional
-  /// if we want to optimize the forwarding
-  context.canForwardEarly = (spec.forwards.empty() == false) && mProcessingPolicies.earlyForward != EarlyForwardPolicy::NEVER;
-  bool onlyConditions = true;
-  bool overriddenEarlyForward = false;
-  for (auto& forwarded : spec.forwards) {
-    if (forwarded.matcher.lifetime != Lifetime::Condition) {
-      onlyConditions = false;
+  auto decideEarlyForward = [&context, &spec, this]() -> bool {
+    // There is nothing produced by this device, so we can forward early
+    // because this is a proxy.
+    if (spec.forwards.empty() == false && spec.outputs.empty() == true) {
+      return true;
     }
-    if (strncmp(DataSpecUtils::asConcreteOrigin(forwarded.matcher).str, "AOD", 3) == 0) {
-      context.canForwardEarly = false;
-      overriddenEarlyForward = true;
-      LOG(detail) << "Cannot forward early because of AOD input: " << DataSpecUtils::describe(forwarded.matcher);
-      break;
+    /// We must make sure there is no optional
+    /// if we want to optimize the forwarding
+    bool canForwardEarly = (spec.forwards.empty() == false) && mProcessingPolicies.earlyForward != EarlyForwardPolicy::NEVER;
+    bool onlyConditions = true;
+    bool overriddenEarlyForward = false;
+    for (auto& forwarded : spec.forwards) {
+      if (forwarded.matcher.lifetime != Lifetime::Condition) {
+        onlyConditions = false;
+      }
+      if (strncmp(DataSpecUtils::asConcreteOrigin(forwarded.matcher).str, "AOD", 3) == 0) {
+        context.canForwardEarly = false;
+        overriddenEarlyForward = true;
+        LOG(detail) << "Cannot forward early because of AOD input: " << DataSpecUtils::describe(forwarded.matcher);
+        break;
+      }
+      if (DataSpecUtils::partialMatch(forwarded.matcher, o2::header::DataDescription{"RAWDATA"}) && mProcessingPolicies.earlyForward == EarlyForwardPolicy::NORAW) {
+        context.canForwardEarly = false;
+        overriddenEarlyForward = true;
+        LOG(detail) << "Cannot forward early because of RAWDATA input: " << DataSpecUtils::describe(forwarded.matcher);
+        break;
+      }
+      if (forwarded.matcher.lifetime == Lifetime::Optional) {
+        context.canForwardEarly = false;
+        overriddenEarlyForward = true;
+        LOG(detail) << "Cannot forward early because of Optional input: " << DataSpecUtils::describe(forwarded.matcher);
+        break;
+      }
     }
-    if (DataSpecUtils::partialMatch(forwarded.matcher, o2::header::DataDescription{"RAWDATA"}) && mProcessingPolicies.earlyForward == EarlyForwardPolicy::NORAW) {
-      context.canForwardEarly = false;
-      overriddenEarlyForward = true;
-      LOG(detail) << "Cannot forward early because of RAWDATA input: " << DataSpecUtils::describe(forwarded.matcher);
-      break;
+    if (!overriddenEarlyForward && onlyConditions) {
+      context.canForwardEarly = true;
+      LOG(detail) << "Enabling early forwarding because only conditions to be forwarded";
     }
-    if (forwarded.matcher.lifetime == Lifetime::Optional) {
-      context.canForwardEarly = false;
-      overriddenEarlyForward = true;
-      LOG(detail) << "Cannot forward early because of Optional input: " << DataSpecUtils::describe(forwarded.matcher);
-      break;
-    }
-  }
-  if (!overriddenEarlyForward && onlyConditions) {
-    context.canForwardEarly = true;
-    LOG(detail) << "Enabling early forwarding because only conditions to be forwarded";
-  }
+    return canForwardEarly;
+  };
+  context.canForwardEarly = decideEarlyForward();
 }
 
 void DataProcessingDevice::PreRun()
@@ -1342,7 +1355,7 @@ void DataProcessingDevice::Run()
         auto& dpStats = ref.get<DataProcessingStats>();
         dpStats.updateStats({static_cast<short>(ProcessingStatsId::RESOURCE_OFFER_EXPIRED), DataProcessingStats::Op::Set, stats.totalExpiredOffers});
         dpStats.updateStats({static_cast<short>(ProcessingStatsId::ARROW_BYTES_EXPIRED), DataProcessingStats::Op::Set, stats.totalExpiredBytes});
-        dpStats.processCommandQueue(); 
+        dpStats.processCommandQueue();
       };
       auto ref = ServiceRegistryRef{mServiceRegistry};
 
