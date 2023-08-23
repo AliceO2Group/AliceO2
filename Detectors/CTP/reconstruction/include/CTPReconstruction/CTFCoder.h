@@ -48,7 +48,9 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   template <typename VTRG>
   o2::ctf::CTFIOSize decode(const CTF::base& ec, VTRG& data, LumiInfo& lumi);
 
-  void updateTimeDependentParams(o2::framework::ProcessingContext& pc, bool askTree);
+  /// add CTP related shifts
+  template <typename CTF>
+  bool finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj);
 
   void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
   void setDecodeInps(bool decodeinps) { mDecodeInps = decodeinps; }
@@ -225,6 +227,18 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& data, LumiInfo& l
   assert(itCls == bytesClass.end());
   iosize.rawIn = header.nTriggers * sizeof(CTPDigit);
   return iosize;
+}
+///________________________________
+template <typename CTF = o2::ctp::CTF>
+bool CTFCoder::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+{
+  bool match = false;
+  match = o2::ctf::CTFCoderBase::finaliseCCDB<CTF>(matcher, obj);
+  if ((match = (matcher == o2::framework::ConcreteDataMatcher("CTP", "Trig_Offset", 0)))) {
+    mBCShiftInputs = -o2::ctp::TriggerOffsetsParam::Instance().globalInputsShift;
+    LOG(info) << "CTP BC shifts inputs:" << mBCShiftInputs << " TClasses:" << mBCShift;
+  }
+  return match;
 }
 
 } // namespace ctp

@@ -18,12 +18,6 @@
 #include <TTree.h>
 
 using namespace o2::ctp;
-///________________________________
-void CTFCoder::updateTimeDependentParams(o2::framework::ProcessingContext& pc, bool askTree)
-{
-  o2::ctf::CTFCoderBase::updateTimeDependentParams(pc, askTree);
-  mBCShiftInputs = -o2::ctp::TriggerOffsetsParam::Instance().globalInputsShift;
-}
 ///___________________________________________________________________________________
 // Register encoded data in the tree (Fill is not called, will be done by caller)
 void CTFCoder::appendToTree(TTree& tree, CTF& ec)
