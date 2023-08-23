@@ -31,6 +31,8 @@
 #include "GlobalTrackingStudy/TrackingStudy.h"
 #include "TPCBase/ParameterElectronics.h"
 #include "ReconstructionDataFormats/PrimaryVertex.h"
+#include "ReconstructionDataFormats/PrimaryVertexExt.h"
+#include "DataFormatsFT0/RecPoints.h"
 #include "CommonUtils/TreeStreamRedirector.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "ReconstructionDataFormats/DCA.h"
@@ -69,6 +71,7 @@ class TrackingStudySpec : public Task
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   bool mUseMC{false}; ///< MC flag
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
+  std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOutVtx;
   float mITSROFrameLengthMUS = 0.;
   GTrackID::mask_t mTracksSrc{};
   o2::steer::MCKinematicsReader mcReader; // reader of MC information
@@ -78,6 +81,7 @@ void TrackingStudySpec::init(InitContext& ic)
 {
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
   mDBGOut = std::make_unique<o2::utils::TreeStreamRedirector>("trackStudy.root", "recreate");
+  mDBGOutVtx = std::make_unique<o2::utils::TreeStreamRedirector>("trackStudyVtx.root", "recreate");
 }
 
 void TrackingStudySpec::run(ProcessingContext& pc)
@@ -111,19 +115,44 @@ void TrackingStudySpec::process(o2::globaltracking::RecoContainer& recoData)
   auto trackIndex = recoData.getPrimaryVertexMatchedTracks(); // Global ID's for associated tracks
   auto vtxRefs = recoData.getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
   auto prop = o2::base::Propagator::Instance();
-
+  auto FITInfo = recoData.getFT0RecPoints();
   int nv = vtxRefs.size() - 1;
+  o2::dataformats::PrimaryVertexExt pveDummy;
+  std::vector<o2::dataformats::PrimaryVertexExt> pveVec;
+
   for (int iv = 0; iv < nv; iv++) {
+    LOGP(debug, "processing PV {} of {}", iv, nv);
+
     const auto& vtref = vtxRefs[iv];
     auto pv = pvvec[iv];
+    auto& pve = pveVec.emplace_back();
+    static_cast<o2::dataformats::PrimaryVertex&>(pve) = pv;
+
+    float bestTimeDiff = 1000, bestTime = -999, bestAmp = -1;
+    for (int ift0 = vtref.getFirstEntryOfSource(GTrackID::FT0); ift0 < vtref.getFirstEntryOfSource(GTrackID::FT0) + vtref.getEntriesOfSource(GTrackID::FT0); ift0++) {
+      const auto& ft0 = FITInfo[trackIndex[ift0]];
+      if (ft0.isValidTime(o2::ft0::RecPoints::TimeMean) && ft0.getTrigger().getAmplA() + ft0.getTrigger().getAmplC() > 20) {
+        auto fitTime = ft0.getInteractionRecord().differenceInBCMUS(recoData.startIR);
+        if (std::abs(fitTime - pv.getTimeStamp().getTimeStamp()) < bestTimeDiff) {
+          bestTimeDiff = fitTime - pv.getTimeStamp().getTimeStamp();
+          bestTime = fitTime;
+          bestAmp = ft0.getTrigger().getAmplA() + ft0.getTrigger().getAmplC();
+        }
+      }
+    }
+    pve.FT0Amp = bestAmp;
+    pve.FT0Time = bestTime;
     for (int is = 0; is < GTrackID::NSources; is++) {
       if (!GTrackID::getSourceDetectorsMask(is)[GTrackID::ITS]) {
         continue;
       }
-      int idMin = vtxRefs[iv].getFirstEntryOfSource(is), idMax = idMin + vtxRefs[iv].getEntriesOfSource(is);
+      int idMin = vtref.getFirstEntryOfSource(is), idMax = idMin + vtref.getEntriesOfSource(is);
       for (int i = idMin; i < idMax; i++) {
         auto vid = trackIndex[i];
         bool pvCont = vid.isPVContributor();
+        if (pvCont) {
+          pve.nSrc[is]++;
+        }
         bool ambig = vid.isAmbiguous();
         auto trc = recoData.getTrackParam(vid);
         float xmin = trc.getX();
@@ -136,11 +165,23 @@ void TrackingStudySpec::process(o2::globaltracking::RecoContainer& recoData)
       }
     }
   }
+
+  for (size_t cnt = 0; cnt < pveVec.size(); cnt++) {
+    const auto& pve = pveVec[cnt];
+    const auto& pvePrev = cnt > 0 ? pveVec[cnt - 1] : pveDummy;
+    const auto& pveNext = cnt == pveVec.size() - 1 ? pveDummy : pveVec[cnt + 1];
+    (*mDBGOutVtx) << "pvExt"
+                  << "pve=" << pve
+                  << "pveP=" << pvePrev
+                  << "pveN=" << pveNext
+                  << "\n";
+  }
 }
 
 void TrackingStudySpec::endOfStream(EndOfStreamContext& ec)
 {
   mDBGOut.reset();
+  mDBGOutVtx.reset();
 }
 
 void TrackingStudySpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
