@@ -168,6 +168,7 @@ int CruRawReader::processHBFs()
       } catch (std::runtime_error& e) {
         LOG(error) << e.what();
       }
+      LOGP(debug, "mDataBufferSize {}, mDataBufferPtr {}, mCurrRdhPtr {}, totalDataInputSize {}. Already read: {}. Current payload {}", mDataBufferSize, fmt::ptr(mDataBufferPtr), fmt::ptr(mCurrRdhPtr), totalDataInputSize, mCurrRdhPtr - mDataBufferPtr, o2::raw::RDHUtils::getMemorySize(rdh));
     }
     if (!checkRDH(rdh)) {
       return -1;
@@ -187,14 +188,15 @@ int CruRawReader::processHBFs()
     mCRUID = o2::raw::RDHUtils::getCRUID(rdh);
     mIR = o2::raw::RDHUtils::getTriggerIR(rdh); // the orbit counter is taken from the RDH here, the bc is overwritten later from the HalfCRUHeader
 
-    if (mTotalHBFPayLoad + memorySize >= mDataBufferSize) {
+    if (totalDataInputSize + memorySize >= mDataBufferSize) {
       // the size of the current RDH is larger than it can possibly be (we still expect a STOP RDH)
       if (mMaxErrsPrinted > 0) {
-        LOGP(error, "RDH memory size of {} + HBF payload of {} >= total buffer size of {}. CRU for FEE ID {:#04x} misconfigured with too large number of HBFs per TF?",
-             memorySize, mTotalHBFPayLoad, mDataBufferSize, mFEEID.word);
+        LOGP(error, "RDH memory size of {} + already read data size {} = {} >= {} (total available buffer size) from CRU with FEE ID {:#04x}",
+             memorySize, totalDataInputSize, memorySize + totalDataInputSize, mDataBufferSize, mFEEID.word);
         checkNoErr();
       }
-      return -1;
+      // we drop this broken RDH block, but try to process what we have already put into mHBFPayload
+      break;
     }
 
     // copy the contents of the current RDH into the buffer to be parsed, RDH payload is memory size minus header size
@@ -203,26 +205,18 @@ int CruRawReader::processHBFs()
     mTotalHBFPayLoad += rdhpayload;
     totalDataInputSize += offsetToNext;
     // move to next rdh
-    rdh = reinterpret_cast<const o2::header::RDHAny*>(reinterpret_cast<const char*>(rdh) + offsetToNext);
-    // increment the data pointer by the size of the next RDH.
-    mCurrRdhPtr = reinterpret_cast<const char*>(rdh) + offsetToNext;
+    mCurrRdhPtr += offsetToNext;
+    rdh = reinterpret_cast<const o2::header::RDHAny*>(mCurrRdhPtr);
+  }
+  // move past the STOP RDH
+  mCurrRdhPtr += o2::raw::RDHUtils::getOffsetToNext(rdh);
 
-    if (mOptions[TRDVerboseBit]) {
-      LOG(info) << "Next RDH is as follows:";
-      try {
-        o2::raw::RDHUtils::printRDH(rdh);
-      } catch (std::runtime_error& e) {
-        LOG(error) << e.what();
-      }
-    }
-
-    if (!o2::raw::RDHUtils::getStop(rdh) && offsetToNext >= mCurrRdhPtr - mDataBufferPtr) {
-      // we can still copy into this buffer.
-      if (mMaxWarnPrinted > 0) {
-        LOGP(alarm, "RDH offsetToNext = {} is larger than it can possibly be. Remaining data in the buffer = {}", offsetToNext, mCurrRdhPtr - mDataBufferPtr);
-        checkNoWarn(false);
-      }
-      return -1;
+  if (mOptions[TRDVerboseBit]) {
+    LOG(info) << "Current RDH is as follows (should have STOP bit set):";
+    try {
+      o2::raw::RDHUtils::printRDH(rdh);
+    } catch (std::runtime_error& e) {
+      LOG(error) << e.what();
     }
   }
 
@@ -1082,7 +1076,7 @@ void CruRawReader::run()
       break;
     } else {
       if (mOptions[TRDVerboseBit]) {
-        LOGP(info, "Done processing HBFs. Total input size was {} bytes (including all headers and padding words)", dataRead);
+        LOGP(info, "Done processing HBFs. Total input size was {} bytes (including all headers and padding words, excluding 64 bytes for stop RDH)", dataRead);
       }
     }
   }
