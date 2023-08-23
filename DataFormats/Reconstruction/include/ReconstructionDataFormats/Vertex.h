@@ -178,9 +178,6 @@ template <>
 struct is_messageable<o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>> : std::true_type {
 };
 template <>
-struct is_messageable<o2::dataformats::Vertex<o2::dataformats::TimeStamp<float>>> : std::true_type {
-};
-template <>
 struct is_messageable<o2::dataformats::Vertex<o2::dataformats::TimeStampWithError<float, float>>> : std::true_type {
 };
 } // namespace framework
