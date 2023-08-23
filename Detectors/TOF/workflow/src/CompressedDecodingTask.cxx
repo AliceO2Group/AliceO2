@@ -214,7 +214,7 @@ void CompressedDecodingTask::decodeTF(ProcessingContext& pc)
   }
   /** loop over inputs routes **/
 
-  std::vector<InputSpec> sel{InputSpec{"filter", ConcreteDataTypeMatcher{"TOF", "CRAWDATA"}}};
+  std::vector<InputSpec> sel{InputSpec{"filter", ConcreteDataTypeMatcher{"TOF", mDataDesc.str}}};
   for (const auto& ref : InputRecordWalker(pc.inputs(), sel)) {
     //  for (auto const& ref : o2::framework::InputRecordWalker(pc.inputs())) {
     //  for (auto iit = pc.inputs().begin(), iend = pc.inputs().end(); iit != iend; ++iit) {
