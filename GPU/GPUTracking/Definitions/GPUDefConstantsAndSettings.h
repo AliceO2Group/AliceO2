@@ -32,25 +32,11 @@
 
 #define GPUCA_TRACKLET_SELECTOR_MIN_HITS_B5(QPTB5) (CAMath::Abs(QPTB5) > 10 ? 10 : (CAMath::Abs(QPTB5) > 5 ? 15 : 29)) // Minimum hits should depend on Pt, low Pt tracks can have few hits. 29 Hits default, 15 for < 200 mev, 10 for < 100 mev
 
-#define GPUCA_GLOBAL_TRACKING_RANGE 45                // Number of rows from the upped/lower limit to search for global track candidates in for
-#define GPUCA_GLOBAL_TRACKING_Y_RANGE_UPPER 0.85f     // Inner portion of y-range in slice that is not used in searching for global track candidates
-#define GPUCA_GLOBAL_TRACKING_Y_RANGE_LOWER 0.85f
-#define GPUCA_GLOBAL_TRACKING_MIN_ROWS 10             // Min num of rows an additional global track must span over
-#define GPUCA_GLOBAL_TRACKING_MIN_HITS 8              // Min num of hits for an additional global track
-
-#define GPUCA_MERGER_CE_ROWLIMIT 5                    //Distance from first / last row in order to attempt merging accross CE
-#define GPUCA_MERGER_LOOPER_QPTB5_LIMIT 4             // Min Q/Pt (@B=0.5T) to run special looper merging procedure
-#define GPUCA_MERGER_HORIZONTAL_DOUBLE_QPTB5_LIMIT 2  // Min Q/Pt (@B=0.5T) to attempt second horizontal merge between slices after a vertical merge was found
 #define GPUCA_MERGER_MAX_TRACK_CLUSTERS 1000          // Maximum number of clusters a track may have after merging
 
-#define GPUCA_Y_FACTOR 4                              // Weight of y residual vs z residual in tracklet constructor
 #define GPUCA_MAXN 40                                 // Maximum number of neighbor hits to consider in one row in neightbors finder
-#define GPUCA_TRACKLET_CONSTRUCTOR_MAX_ROW_GAP 4      // Maximum number of consecutive rows without hit in track following
-#define GPUCA_TRACKLET_CONSTRUCTOR_MAX_ROW_GAP_SEED 2 // Same, but during fit of seed
-#define GPUCA_MERGER_MAXN_MISSED_HARD 10              // Hard limit for number of missed rows in fit / propagation
-#define GPUCA_MERGER_COV_LIMIT 1000                   // Abort fit when y/z cov exceed the limit
 #define GPUCA_MIN_TRACK_PTB5_DEFAULT 0.010            // Default setting for minimum track Pt at some places (at B=0.5T)
-#define GPUCA_MIN_TRACK_PTB5_REJECT 0.050f            // Default setting for Pt (at B=0.5T) where tracks are rejected
+#define GPUCA_MIN_TRACK_PTB5_REJECT_DEFAULT 0.050f    // Default setting for Pt (at B=0.5T) where tracks are rejected
 
 #define GPUCA_MAX_SIN_PHI_LOW 0.99f                   // Limits for maximum sin phi during fit
 #define GPUCA_MAX_SIN_PHI 0.999f                      // Must be preprocessor define because c++ pre 11 cannot use static constexpr for initializes
