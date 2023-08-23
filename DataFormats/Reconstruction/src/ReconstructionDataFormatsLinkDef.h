@@ -73,10 +73,12 @@
 #pragma link C++ class o2::dataformats::Vertex < o2::dataformats::TimeStamp < int>> + ;
 #pragma link C++ class o2::dataformats::Vertex < o2::dataformats::TimeStampWithError < float, float>> + ;
 #pragma link C++ class o2::dataformats::PrimaryVertex + ;
+#pragma link C++ class o2::dataformats::PrimaryVertexExt + ;
 
 #pragma link C++ class std::vector < o2::dataformats::Vertex < o2::dataformats::TimeStamp < int>>> + ;
 #pragma link C++ class std::vector < o2::dataformats::Vertex < o2::dataformats::TimeStampWithError < float, float>>> + ;
 #pragma link C++ class std::vector < o2::dataformats::PrimaryVertex> + ;
+#pragma link C++ class std::vector < o2::dataformats::PrimaryVertexExt> + ;
 
 #pragma link C++ class o2::dataformats::GlobalTrackID + ;
 #pragma link C++ class std::vector < o2::dataformats::GlobalTrackID> + ;
