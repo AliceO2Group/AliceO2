@@ -850,9 +850,9 @@ bool CcdbApi::initTGrid() const
   return mAlienInstance != nullptr;
 }
 
-void* CcdbApi::downloadAlienContent(std::string const& url, std::type_info const& tinfo) const
+void* CcdbApi::downloadFilesystemContent(std::string const& url, std::type_info const& tinfo) const
 {
-  if (!initTGrid()) {
+  if ((url.find("alien:/", 0) != std::string::npos) && !initTGrid()) {
     return nullptr;
   }
   std::lock_guard<std::mutex> guard(gIOMutex);
@@ -894,8 +894,8 @@ void* CcdbApi::navigateURLsAndRetrieveContent(CURL* curl_handle, std::string con
   static thread_local std::multimap<std::string, std::string> headerData;
 
   // let's see first of all if the url is something specific that curl cannot handle
-  if (url.find("alien:/", 0) != std::string::npos) {
-    return downloadAlienContent(url, tinfo);
+  if ((url.find("alien:/", 0) != std::string::npos) || (url.find("file:/", 0) != std::string::npos)) {
+    return downloadFilesystemContent(url, tinfo);
   }
   // add other final cases here
   // example root://

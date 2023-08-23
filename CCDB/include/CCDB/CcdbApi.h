@@ -478,12 +478,12 @@ class CcdbApi //: public DatabaseInterface
   void* extractFromLocalFile(std::string const& filename, std::type_info const& tinfo, std::map<std::string, std::string>* headers) const;
 
   /**
-   * Helper function to download binary content from alien:// storage
+   * Helper function to download binary content from alien://, cvmfs or local storage
    * @param fullUrl The alien URL
    * @param tcl The TClass object describing the serialized type
    * @return raw pointer to created object
    */
-  void* downloadAlienContent(std::string const& fullUrl, std::type_info const& tinfo) const;
+  void* downloadFilesystemContent(std::string const& fullUrl, std::type_info const& tinfo) const;
 
   // initialize the TGrid (Alien connection)
   bool initTGrid() const;
