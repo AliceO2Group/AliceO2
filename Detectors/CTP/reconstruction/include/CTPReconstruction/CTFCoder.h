@@ -232,12 +232,9 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& data, LumiInfo& l
 template <typename CTF = o2::ctp::CTF>
 bool CTFCoder::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
 {
-  bool match = false;
-  match = o2::ctf::CTFCoderBase::finaliseCCDB<CTF>(matcher, obj);
-  if ((match = (matcher == o2::framework::ConcreteDataMatcher("CTP", "Trig_Offset", 0)))) {
-    mBCShiftInputs = -o2::ctp::TriggerOffsetsParam::Instance().globalInputsShift;
-    LOG(info) << "CTP BC shifts inputs:" << mBCShiftInputs << " TClasses:" << mBCShift;
-  }
+  auto match = o2::ctf::CTFCoderBase::finaliseCCDB<CTF>(matcher, obj);
+  mBCShiftInputs = -o2::ctp::TriggerOffsetsParam::Instance().globalInputsShift;
+  LOG(info) << "BCShiftInputs:" << mBCShiftInputs;
   return match;
 }
 
