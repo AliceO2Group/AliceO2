@@ -494,6 +494,8 @@ bool CruRawReader::processHalfCRU(int iteration)
     int halfCruIdx = cruIdx * 2 + mFEEID.endpoint;                        // endpoint (0 or 1) defines half-CRU
     int linkIdxGlobal = halfCruIdx * NLINKSPERHALFCRU + currentlinkindex; // global link ID [0..1079]
     int halfChamberId = mLinkMap->getHCID(linkIdxGlobal);
+    mEventRecords.getCurrentEventRecord().getCounters().mLinkWords[halfChamberId] = mCurrentHalfCRULinkLengths[currentlinkindex];
+    mEventRecords.getCurrentEventRecord().getCounters().mLinkErrorFlag[halfChamberId] = mCurrentHalfCRULinkErrorFlags[currentlinkindex];
     mEventRecords.incLinkErrorFlags(halfChamberId, mCurrentHalfCRULinkErrorFlags[currentlinkindex]); // TODO maybe has more meaning on a per event basis?
     mEventRecords.incLinkWords(halfChamberId, mCurrentHalfCRULinkLengths[currentlinkindex]);
     uint32_t currentlinksize32 = mCurrentHalfCRULinkLengths[currentlinkindex] * 8; // x8 to go from 256 bits to 32 bit;
@@ -1116,7 +1118,7 @@ void CruRawReader::printHalfChamberHeaderReport() const
 //write the output data directly to the given DataAllocator from the datareader task.
 void CruRawReader::buildDPLOutputs(o2::framework::ProcessingContext& pc)
 {
-  mEventRecords.sendData(pc, mOptions[TRDGenerateStats], mOptions[TRDSortDigits]);
+  mEventRecords.sendData(pc, mOptions[TRDGenerateStats], mOptions[TRDSortDigits], mOptions[TRDLinkStats]);
 }
 
 void CruRawReader::reset()

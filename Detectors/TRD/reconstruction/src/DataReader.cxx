@@ -25,6 +25,7 @@
 #include "DetectorsRaw/RDHUtils.h"
 #include "TRDWorkflowIO/TRDTrackletWriterSpec.h"
 #include "TRDWorkflowIO/TRDDigitWriterSpec.h"
+#include "TRDWorkflowIO/TRDRawStatWriterSpec.h"
 #include "DataFormatsTRD/RawDataStats.h"
 
 // add workflow options, note that customization needs to be declared before
@@ -41,6 +42,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"fixforoldtrigger", VariantType::Bool, false, {"Fix for the old data not having a 2 stage trigger stored in the cru header."}},
     {"onlycalibrationtrigger", VariantType::Bool, false, {"Only permit calibration triggers, used for debugging traclets and their digits, maybe other uses."}},
     {"sortDigits", VariantType::Bool, false, {"Sort the digits in det/row/col (tracklets are always sorted)"}},
+    {"detailed-link-stats", VariantType::Bool, false, {"Collect link statistics per trigger"}},
     {"tracklethcheader", VariantType::Int, 2, {"Status of TrackletHalfChamberHeader 0 off always, 1 iff tracklet data, 2 on always"}},
     {"disable-stats", VariantType::Bool, false, {"Do not generate stat messages for qc"}},
     {"disable-root-output", VariantType::Bool, false, {"Do not write the digits and tracklets to file"}},
@@ -66,7 +68,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   outputs.emplace_back("TRD", "TRACKLETS", 0, Lifetime::Timeframe);
   outputs.emplace_back("TRD", "DIGITS", 0, Lifetime::Timeframe);
   outputs.emplace_back("TRD", "TRKTRGRD", 0, Lifetime::Timeframe);
-  outputs.emplace_back("TRD", "RAWSTATS", 0, Lifetime::Timeframe);
 
   std::bitset<16> binaryoptions;
   binaryoptions[o2::trd::TRDVerboseBit] = cfgc.options().get<bool>("verbose");
@@ -75,8 +76,15 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   binaryoptions[o2::trd::TRDGenerateStats] = !cfgc.options().get<bool>("disable-stats");
   binaryoptions[o2::trd::TRDOnlyCalibrationTriggerBit] = cfgc.options().get<bool>("onlycalibrationtrigger");
   binaryoptions[o2::trd::TRDSortDigits] = cfgc.options().get<bool>("sortDigits");
+  binaryoptions[o2::trd::TRDLinkStats] = cfgc.options().get<bool>("detailed-link-stats");
   AlgorithmSpec algoSpec;
   algoSpec = AlgorithmSpec{adaptFromTask<o2::trd::DataReaderTask>(tracklethcheader, halfchamberwords, halfchambermajor, binaryoptions)};
+  if (binaryoptions[o2::trd::TRDGenerateStats]) {
+    outputs.emplace_back("TRD", "RAWSTATS", 0, Lifetime::Timeframe);
+  }
+  if (binaryoptions[o2::trd::TRDLinkStats]) {
+    outputs.emplace_back("TRD", "LINKSTATS", 0, Lifetime::Timeframe);
+  }
 
   WorkflowSpec workflow;
 
@@ -102,6 +110,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   if (!cfgc.options().get<bool>("disable-root-output")) {
     workflow.emplace_back(o2::trd::getTRDDigitWriterSpec(false, false));
     workflow.emplace_back(o2::trd::getTRDTrackletWriterSpec(false));
+    if (binaryoptions[o2::trd::TRDGenerateStats]) {
+      workflow.emplace_back(o2::trd::getTRDRawStatWriterSpec(binaryoptions[o2::trd::TRDLinkStats]));
+    }
   }
 
   return workflow;
