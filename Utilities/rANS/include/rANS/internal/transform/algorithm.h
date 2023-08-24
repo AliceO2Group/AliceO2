@@ -67,7 +67,7 @@ inline constexpr auto getIndex(const container_T& container, typename container_
   return container.getOffset() + std::distance(container.begin(), iter);
 };
 
-template <typename container_T, std::enable_if_t<isSparseContainer_v<container_T> ||
+template <typename container_T, std::enable_if_t<isAdaptiveContainer_v<container_T> ||
                                                    isHashContainer_v<container_T> ||
                                                    isSetContainer_v<container_T>,
                                                  bool> = true>
@@ -128,7 +128,7 @@ inline decltype(auto) trim(const container_T& container, const typename containe
 
 template <class container_T,
           std::enable_if_t<isDenseContainer_v<container_T> ||
-                             isSparseContainer_v<container_T> ||
+                             isAdaptiveContainer_v<container_T> ||
                              isSetContainer_v<container_T>,
                            bool> = true>
 auto getMinMax(const container_T& container,

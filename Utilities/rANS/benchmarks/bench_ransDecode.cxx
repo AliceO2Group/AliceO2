@@ -114,11 +114,11 @@ void ransDecodeBenchmark(benchmark::State& st, Args&&... args)
   EncodeBuffer<source_type> encodeBuffer{inputData.size()};
   DecodeBuffer<source_type> decodeBuffer{inputData.size()};
 
-  const auto histogram = makeHistogram::fromSamples(gsl::span<const source_type>(inputData));
+  const auto histogram = makeDenseHistogram::fromSamples(gsl::span<const source_type>(inputData));
   Metrics<source_type> metrics{histogram};
   const auto renormedHistogram = renorm(histogram, metrics, RenormingPolicy::Auto, 10);
 
-  auto encoder = makeEncoder<>::fromRenormed(renormedHistogram);
+  auto encoder = makeDenseEncoder<>::fromRenormed(renormedHistogram);
   encodeBuffer.encodeBufferEnd = encoder.process(inputData.data(), inputData.data() + inputData.size(), encodeBuffer.buffer.data());
 
   auto decoder = makeDecoder<>::fromRenormed(renormedHistogram);

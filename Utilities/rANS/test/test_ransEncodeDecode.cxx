@@ -110,10 +110,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_encodeDecode, test_types, testCase_types)
 
   // TODO(milettri): renorming is not satisfactory.
   size_t precision = dictString.size() == 0 ? 0 : RansRenormingPrecision;
-
-  auto encoder = makeEncoder<coderTag>::template fromSamples<>(dictString.begin(), dictString.end(), precision);
-
-  auto decoder = makeDecoder<>::fromSamples<>(dictString.begin(), dictString.end(), precision);
+  auto renormed = renorm(makeDenseHistogram::fromSamples(dictString.begin(), dictString.end()), precision);
+  auto encoder = makeDenseEncoder<coderTag>::fromRenormed(renormed);
+  auto decoder = makeDecoder<>::fromRenormed(renormed);
 
   if (dictString == encodeString) {
     std::vector<stream_type> encodeBuffer(encodeString.size());

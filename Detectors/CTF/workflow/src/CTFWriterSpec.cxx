@@ -91,7 +91,7 @@ size_t appendToTree(TTree& tree, const std::string brname, T& ptr)
 }
 
 using DetID = o2::detectors::DetID;
-using FTrans = o2::rans::Histogram<int32_t>;
+using FTrans = o2::rans::DenseHistogram<int32_t>;
 
 class CTFWriterSpec : public o2::framework::Task
 {

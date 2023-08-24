@@ -20,9 +20,9 @@
 
 #include "rANS/internal/common/typetraits.h"
 
-#include "rANS/internal/containers/Histogram.h"
+#include "rANS/internal/containers/DenseHistogram.h"
 #include "rANS/internal/containers/RenormedHistogram.h"
-#include "rANS/internal/containers/SymbolTable.h"
+#include "rANS/internal/containers/DenseSymbolTable.h"
 #include "rANS/internal/containers/Symbol.h"
 #include "rANS/internal/containers/LowRangeDecoderTable.h"
 
@@ -68,7 +68,7 @@ inline size_t computeRenormingPrecision(size_t nUsedAlphabetSymbols)
 };
 
 template <typename source_T>
-RenormedHistogram<source_T> renorm(Histogram<source_T> histogram, size_t newPrecision = 0)
+RenormedDenseHistogram<source_T> renorm(DenseHistogram<source_T> histogram, size_t newPrecision = 0)
 {
   using namespace o2::rans::internal;
 
@@ -150,37 +150,37 @@ RenormedHistogram<source_T> renorm(Histogram<source_T> histogram, size_t newPrec
   }
 #endif
 
-  typename RenormedHistogram<source_T>::container_type rescaledFrequencies(histogram.size(), histogram.getOffset());
+  typename RenormedDenseHistogram<source_T>::container_type rescaledFrequencies(histogram.size(), histogram.getOffset());
 
   assert(cumulativeFrequencies.size() == histogram.size() + 2);
   // calculate updated frequencies
   for (size_t i = 0; i < histogram.size(); ++i) {
     rescaledFrequencies(i) = getFrequency(i);
   }
-  const typename RenormedHistogram<source_T>::value_type incompressibleSymbolFrequency = getFrequency(histogram.size());
+  const typename RenormedDenseHistogram<source_T>::value_type incompressibleSymbolFrequency = getFrequency(histogram.size());
 
-  return RenormedHistogram<source_T>{std::move(rescaledFrequencies), newPrecision, incompressibleSymbolFrequency};
+  return RenormedDenseHistogram<source_T>{std::move(rescaledFrequencies), newPrecision, incompressibleSymbolFrequency};
 };
 
 class makeEncoder
 {
 
  public:
-  template <typename source_T>
-  [[nodiscard]] inline static constexpr decltype(auto) fromRenormed(const RenormedHistogram<source_T>& renormed)
+  template <typename container_T>
+  [[nodiscard]] inline static constexpr decltype(auto) fromRenormed(const RenormedHistogramConcept<container_T>& renormed)
   {
     using namespace o2::rans::internal;
-    using source_type = source_T;
+    using source_type = typename RenormedHistogramConcept<container_T>::source_type;
     using symbol_type = internal::PrecomputedSymbol;
     using coder_command = SingleStreamEncoderImpl<mRenormingLowerBound>;
-    using symbolTable_type = SymbolTable<source_type, symbol_type>;
+    using symbolTable_type = DenseSymbolTable<source_type, symbol_type>;
     using encoderType = Encoder<coder_command, symbolTable_type, mNstreams>;
 
     return encoderType{renormed};
   };
 
   template <typename source_T>
-  [[nodiscard]] inline static decltype(auto) fromHistogram(Histogram<source_T> histogram, size_t renormingPrecision = 0)
+  [[nodiscard]] inline static decltype(auto) fromHistogram(DenseHistogram<source_T> histogram, size_t renormingPrecision = 0)
   {
     const auto renormedHistogram = o2::rans::compat::renorm(std::move(histogram), renormingPrecision);
     return makeEncoder::fromRenormed(renormedHistogram);
@@ -189,7 +189,7 @@ class makeEncoder
   template <typename source_IT>
   [[nodiscard]] inline static decltype(auto) fromSamples(source_IT begin, source_IT end, size_t renormingPrecision = 0)
   {
-    auto histogram = o2::rans::makeHistogram::fromSamples(begin, end);
+    auto histogram = makeDenseHistogram::fromSamples(begin, end);
 
     return makeEncoder::fromHistogram(std::move(histogram), renormingPrecision);
   };
@@ -197,7 +197,7 @@ class makeEncoder
   template <typename source_T>
   [[nodiscard]] inline static decltype(auto) fromSamples(gsl::span<const source_T> range, size_t renormingPrecision = 0)
   {
-    auto histogram = makeHistogram::template fromSamples(range);
+    auto histogram = makeDenseHistogram::template fromSamples(range);
     return makeEncoder::fromHistogram(std::move(histogram), renormingPrecision);
   };
 
@@ -213,20 +213,20 @@ class makeDecoder
   using this_type = makeDecoder;
 
  public:
-  template <typename source_T>
-  [[nodiscard]] inline static constexpr decltype(auto) fromRenormed(const RenormedHistogram<source_T>& renormed)
+  template <typename container_T>
+  [[nodiscard]] inline static constexpr decltype(auto) fromRenormed(const RenormedHistogramConcept<container_T>& renormed)
   {
     using namespace internal;
 
-    using source_type = source_T;
+    using source_type = typename RenormedHistogramConcept<container_T>::source_type;
     using coder_type = DecoderImpl<mRenormingLowerBound>;
-    using decoder_type = Decoder<source_T, coder_type>;
+    using decoder_type = Decoder<source_type, coder_type>;
 
     return decoder_type{renormed};
   };
 
   template <typename source_T>
-  [[nodiscard]] inline static decltype(auto) fromHistogram(Histogram<source_T> histogram, size_t renormingPrecision = 0)
+  [[nodiscard]] inline static decltype(auto) fromHistogram(DenseHistogram<source_T> histogram, size_t renormingPrecision = 0)
   {
     const auto renormedHistogram = o2::rans::compat::renorm(std::move(histogram), renormingPrecision);
     return this_type::fromRenormed(renormedHistogram);
@@ -235,14 +235,14 @@ class makeDecoder
   template <typename source_IT>
   [[nodiscard]] inline static decltype(auto) fromSamples(source_IT begin, source_IT end, size_t renormingPrecision = 0)
   {
-    auto histogram = makeHistogram::fromSamples(begin, end);
+    auto histogram = makeDenseHistogram::fromSamples(begin, end);
     return this_type::fromHistogram(std::move(histogram), renormingPrecision);
   };
 
   template <typename source_T>
   [[nodiscard]] inline static decltype(auto) fromSamples(gsl::span<const source_T> range, size_t renormingPrecision = 0)
   {
-    auto histogram = makeHistogram::fromSamples(range);
+    auto histogram = makeDenseHistogram::fromSamples(range);
     return this_type::fromHistogram(std::move(histogram), renormingPrecision);
   };
 
@@ -253,7 +253,7 @@ class makeDecoder
 };
 
 template <typename source_T>
-inline size_t getAlphabetRangeBits(const Histogram<source_T>& histogram) noexcept
+inline size_t getAlphabetRangeBits(const DenseHistogram<source_T>& histogram) noexcept
 {
   using namespace o2::rans::internal;
   const auto view = trim(makeHistogramView(histogram));
@@ -261,7 +261,7 @@ inline size_t getAlphabetRangeBits(const Histogram<source_T>& histogram) noexcep
 };
 
 template <typename source_T>
-inline size_t getAlphabetRangeBits(const RenormedHistogram<source_T>& histogram) noexcept
+inline size_t getAlphabetRangeBits(const RenormedDenseHistogram<source_T>& histogram) noexcept
 {
   using namespace o2::rans::internal;
   const auto view = trim(makeHistogramView(histogram));
@@ -269,7 +269,7 @@ inline size_t getAlphabetRangeBits(const RenormedHistogram<source_T>& histogram)
 };
 
 template <typename source_T, typename symbol_T>
-inline size_t getAlphabetRangeBits(const SymbolTable<source_T, symbol_T>& symbolTable) noexcept
+inline size_t getAlphabetRangeBits(const DenseSymbolTable<source_T, symbol_T>& symbolTable) noexcept
 {
   const bool hasIncompressibleSymbol = symbolTable.getEscapeSymbol().getFrequency() > 0;
   return internal::numBitsForNSymbols(symbolTable.size() + hasIncompressibleSymbol);
@@ -285,10 +285,10 @@ inline size_t calculateMaxBufferSizeB(size_t nElements, size_t rangeBits)
 }
 
 template <typename source_T>
-using encoder_type = decltype(makeEncoder::fromRenormed(RenormedHistogram<source_T>{}));
+using encoder_type = decltype(makeEncoder::fromRenormed(RenormedDenseHistogram<source_T>{}));
 
 template <typename source_T>
-using decoder_type = decltype(makeDecoder::fromRenormed(RenormedHistogram<source_T>{}));
+using decoder_type = decltype(makeDecoder::fromRenormed(RenormedDenseHistogram<source_T>{}));
 
 } // namespace o2::rans::compat
 

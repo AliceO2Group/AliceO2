@@ -67,7 +67,7 @@ class RenormingData
     std::generate(mSourceMessage.begin(), mSourceMessage.end(), [&dist, &mt]() { return dist(mt); });
 #endif
 
-    const auto histogram = makeHistogram::fromSamples(gsl::span<const source_T>(mSourceMessage));
+    const auto histogram = makeDenseHistogram::fromSamples(gsl::span<const source_T>(mSourceMessage));
     Metrics<source_T> metrics{histogram};
     mRenormedHistogram = renorm(histogram, metrics);
 
@@ -86,7 +86,7 @@ class RenormingData
 
  private:
   std::vector<source_T> mSourceMessage{};
-  RenormedHistogram<source_T> mRenormedHistogram{};
+  RenormedDenseHistogram<source_T> mRenormedHistogram{};
   ransState_t mState{};
 };
 

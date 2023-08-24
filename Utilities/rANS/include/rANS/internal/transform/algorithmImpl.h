@@ -41,7 +41,7 @@ inline auto trim(IT begin, IT end, typename container_T::const_reference zeroEle
   return {nonZeroBegin, nonZeroEnd};
 };
 
-template <typename container_T, typename IT, std::enable_if_t<isSparseContainer_v<container_T>, bool> = true>
+template <typename container_T, typename IT, std::enable_if_t<isAdaptiveContainer_v<container_T>, bool> = true>
 inline auto trim(IT begin, IT end, typename container_T::const_reference zeroElem) -> std::pair<IT, IT>
 {
   using value_type = typename container_T::value_type;
@@ -166,7 +166,7 @@ inline void forEachIndexValue(container_T&& container, IT begin, IT end, F funct
   }
 }
 
-template <typename container_T, typename IT, class F, std::enable_if_t<isSparseContainer_v<container_T>, bool> = true>
+template <typename container_T, typename IT, class F, std::enable_if_t<isAdaptiveContainer_v<container_T>, bool> = true>
 inline void forEachIndexValue(container_T&& container, IT begin, IT end, F functor)
 {
   using container_type = removeCVRef_t<container_T>;

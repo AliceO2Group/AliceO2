@@ -28,6 +28,7 @@
 #include "rANS/internal/containers/HistogramView.h"
 #include "rANS/internal/pack/pack.h"
 #include "rANS/internal/pack/eliasDelta.h"
+#include "rANS/internal/pack/DictionaryStreamReader.h"
 #include "rANS/internal/common/exceptions.h"
 #include "rANS/internal/transform/algorithm.h"
 
@@ -47,7 +48,7 @@ inline constexpr count_t getFrequency(const container_T& container, typename con
   }
 };
 
-template <typename container_T, std::enable_if_t<isSparseContainer_v<container_T>, bool> = true>
+template <typename container_T, std::enable_if_t<isAdaptiveContainer_v<container_T>, bool> = true>
 inline constexpr count_t getFrequency(const container_T& container, typename container_T::const_iterator::value_type symbolPair)
 {
   return getFrequency(container, symbolPair.second);
@@ -93,31 +94,6 @@ template <typename T>
     return static_cast<size_t>(max - min) + 1;
   }
 };
-
-template <typename buffer_IT>
-[[nodiscard]] inline constexpr BitPtr seekEliasDeltaEnd(buffer_IT begin, buffer_IT end)
-{
-  using value_type = uint64_t;
-  assert(end >= begin);
-
-  for (buffer_IT iter = end; iter-- != begin;) {
-    auto value = static_cast<value_type>(*iter);
-    if (value > 0) {
-      const intptr_t offset = utils::toBits<value_type>() - __builtin_clzl(value);
-      return {iter, offset};
-    }
-  }
-
-  return {};
-};
-
-[[nodiscard]] inline constexpr intptr_t getEliasDeltaOffset(BitPtr begin, BitPtr iter)
-{
-  assert(iter >= begin);
-  intptr_t delta = (iter - begin);
-  assert(delta > 0);
-  return std::min<intptr_t>(delta, EliasDeltaDecodeMaxBits);
-}
 
 }; // namespace internal
 
@@ -204,54 +180,60 @@ dest_IT compressRenormedDictionary(const container_T& container, dest_IT dstBuff
 } // namespace o2::rans
 
 template <typename source_T, typename buffer_IT>
-RenormedHistogram<source_T> readRenormedDictionary(buffer_IT begin, buffer_IT end, source_T min, source_T max, size_t renormingPrecision)
+RenormedDenseHistogram<source_T> readRenormedDictionary(buffer_IT begin, buffer_IT end, source_T min, source_T max, size_t renormingPrecision)
 {
   static_assert(std::is_pointer_v<buffer_IT>, "can only deserialize from raw pointers");
 
   using namespace internal;
-  using container_type = typename RenormedHistogram<source_T>::container_type;
+  using container_type = typename RenormedDenseHistogram<source_T>::container_type;
   using value_type = typename container_type::value_type;
+
+  DictionaryStreamParser<source_T> dictStream{begin, end, max};
 
   const size_t dictExtent = getDictExtent(min, max, renormingPrecision);
 
   container_type container(dictExtent, min);
 
-  BitPtr iter = seekEliasDeltaEnd(begin, end);
-  BitPtr beginPos{begin};
-
-  auto deltaDecode = [beginPos](BitPtr& iter) -> value_type {
-    intptr_t delta = getEliasDeltaOffset(beginPos, iter);
-    return eliasDeltaDecode<value_type>(iter, delta);
-  };
-
-  if (iter == BitPtr{}) {
-    throw ParsingError{"failed to read renormed dictionary: could not find end of data stream"};
+  while (dictStream.hasNext()) {
+    const auto [index, frequency] = dictStream.getNext();
+    container[index] = frequency;
   }
 
-  if (deltaDecode(iter) != 1) {
-    throw ParsingError{"failed to read renormed dictionary: could not find end of stream delimiter"};
+  const auto index = dictStream.getIndex();
+  if (index != min) {
+    throw ParsingError{fmt::format("failed to read renormed dictionary: reached EOS at index {} before parsing min {} ", index, min)};
   }
-
-  const value_type incompressibleSymbolFrequency = deltaDecode(iter) - 1;
-
-  source_T idx = max;
-  if (iter != beginPos) {
-    // first value at max, without index offset
-    container[idx] = deltaDecode(iter);
-  }
-
-  while (iter != beginPos) {
-    const auto offset = deltaDecode(iter);
-    const auto frequency = deltaDecode(iter);
-    idx -= offset;
-    container[idx] = frequency;
-  }
-
-  if (idx != min) {
-    throw ParsingError{fmt::format("failed to read renormed dictionary: reached EOS at index {} before parsing min {} ", idx, min)};
-  }
-  return {std::move(container), renormingPrecision, incompressibleSymbolFrequency};
+  return {std::move(container), renormingPrecision, dictStream.getIncompressibleSymbolFrequency()};
 };
+
+template <typename source_T, typename buffer_IT>
+RenormedSparseHistogram<source_T> readRenormedSetDictionary(buffer_IT begin, buffer_IT end, source_T min, source_T max, size_t renormingPrecision)
+{
+  static_assert(std::is_pointer_v<buffer_IT>, "can only deserialize from raw pointers");
+
+  using namespace internal;
+  using streamParser_type = DictionaryStreamParser<source_T>;
+  using value_type = typename streamParser_type::value_type;
+  using container_type = typename RenormedSparseHistogram<source_T>::container_type;
+  using base_container_type = typename container_type::container_type;
+
+  streamParser_type dictStream{begin, end, max};
+  base_container_type container{};
+
+  while (dictStream.hasNext()) {
+    container.emplace_back(dictStream.getNext());
+  }
+
+  std::reverse(container.begin(), container.end());
+  container_type setContainer{std::move(container), 0, OrderedSetState::ordered};
+
+  const auto index = dictStream.getIndex();
+  if (index != min) {
+    throw ParsingError{fmt::format("failed to read renormed dictionary: reached EOS at index {} before parsing min {} ", index, min)};
+  }
+  return {std::move(setContainer), renormingPrecision, dictStream.getIncompressibleSymbolFrequency()};
+};
+
 } // namespace o2::rans
 
 #endif /* RANS_SERIALIZE_H_ */

@@ -26,7 +26,7 @@ namespace o2::rans
 {
 
 template <class container_T>
-class RenormedHistogramImpl : public container_T
+class RenormedHistogramConcept : public container_T
 {
   using base_type = container_T;
 
@@ -42,9 +42,9 @@ class RenormedHistogramImpl : public container_T
   using const_pointer = typename base_type::const_pointer;
   using const_iterator = typename base_type::const_iterator;
 
-  RenormedHistogramImpl() : base_type(){};
+  RenormedHistogramConcept() : base_type(){};
 
-  inline RenormedHistogramImpl(container_type frequencies, size_t renormingBits, value_type nIncompressible) : mNIncompressible(nIncompressible)
+  inline RenormedHistogramConcept(container_type frequencies, size_t renormingBits, value_type nIncompressible) : mNIncompressible(nIncompressible)
   {
     this->mContainer = std::move(frequencies);
     this->mNSamples = utils::pow2(renormingBits);
@@ -76,23 +76,20 @@ class RenormedHistogramImpl : public container_T
 };
 
 template <typename source_T>
-using RenormedHistogram = RenormedHistogramImpl<internal::VectorContainer<source_T, uint32_t>>;
+using RenormedDenseHistogram = RenormedHistogramConcept<internal::VectorContainer<source_T, uint32_t>>;
 
 template <typename source_T>
-using RenormedSparseHistogram = RenormedHistogramImpl<internal::SparseVectorContainer<source_T, uint32_t>>;
+using RenormedAdaptiveHistogram = RenormedHistogramConcept<internal::SparseVectorContainer<source_T, uint32_t>>;
 
 template <typename source_T>
-using RenormedHashHistogram = RenormedHistogramImpl<internal::HashContainer<source_T, uint32_t>>;
-
-template <typename source_T>
-using RenormedSetHistogram = RenormedHistogramImpl<internal::SetContainer<source_T, uint32_t>>;
+using RenormedSparseHistogram = RenormedHistogramConcept<internal::SetContainer<source_T, uint32_t>>;
 
 template <typename container_T>
-size_t countNUsedAlphabetSymbols(const RenormedHistogramImpl<container_T>& histogram)
+size_t countNUsedAlphabetSymbols(const RenormedHistogramConcept<container_T>& histogram)
 {
   return std::count_if(histogram.begin(), histogram.end(),
-                       [](typename RenormedHistogramImpl<container_T>::const_reference v) {
-                         return v != typename RenormedHistogramImpl<container_T>::value_type{};
+                       [](typename RenormedHistogramConcept<container_T>::const_reference v) {
+                         return v != typename RenormedHistogramConcept<container_T>::value_type{};
                        });
 }
 

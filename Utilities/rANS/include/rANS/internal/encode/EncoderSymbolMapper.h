@@ -29,7 +29,7 @@
 #include "rANS/internal/encode/simdKernel.h"
 #endif /* RANS_SIMD */
 #include "rANS/internal/encode/SingleStreamEncoderImpl.h"
-#include "rANS/internal/containers/SymbolTable.h"
+#include "rANS/internal/containers/DenseSymbolTable.h"
 
 namespace o2::rans::internal
 {

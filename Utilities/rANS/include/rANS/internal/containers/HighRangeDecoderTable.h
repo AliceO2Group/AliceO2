@@ -46,7 +46,7 @@ class HighRangeDecoderTable
   inline HighRangeDecoderTable() noexcept = default;
 
   template <typename container_T>
-  explicit HighRangeDecoderTable(const RenormedHistogramImpl<container_T>& renormedHistogram);
+  explicit HighRangeDecoderTable(const RenormedHistogramConcept<container_T>& renormedHistogram);
 
   [[nodiscard]] inline size_type size() const noexcept { return mContainer.size(); };
 
@@ -68,7 +68,7 @@ class HighRangeDecoderTable
 
 template <typename source_T>
 template <typename container_T>
-HighRangeDecoderTable<source_T>::HighRangeDecoderTable(const RenormedHistogramImpl<container_T>& renormedHistogram) : mSymbolTablePrecision{renormedHistogram.getRenormingBits()}
+HighRangeDecoderTable<source_T>::HighRangeDecoderTable(const RenormedHistogramConcept<container_T>& renormedHistogram) : mSymbolTablePrecision{renormedHistogram.getRenormingBits()}
 {
   if (renormedHistogram.empty()) {
     LOG(warning) << "SymbolStatistics of empty message passed to " << __func__;

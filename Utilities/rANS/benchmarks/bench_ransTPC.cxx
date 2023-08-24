@@ -145,14 +145,14 @@ void ransEncodeDecode(const std::string& name, const std::vector<source_T>& inpu
 
   LOGP(info, "processing: {} (nItems: {}, size: {} MiB)", name, inputData.size(), inputData.size() * sizeof(source_type) / 1024.0 / 1024.0);
   auto histogram = t.timeAndLog(
-    "FrequencyTable", "Built Frequency Table", [&]() { return makeHistogram::fromSamples(gsl::span<const source_type>(inputData)); });
+    "FrequencyTable", "Built Frequency Table", [&]() { return makeDenseHistogram::fromSamples(gsl::span<const source_type>(inputData)); });
 
   // writerFrequencies.Key(name.c_str());
   // toJSON(histogram, writerFrequencies);
 
   auto tmpHist = histogram;
   Metrics<source_type> metrics{};
-  RenormedHistogram<source_type> renormedHistogram{};
+  RenormedDenseHistogram<source_type> renormedHistogram{};
   t.timeAndLog("Renorming", "Renormed Frequency Table", [&]() mutable {
     metrics = Metrics<source_type>{histogram};
     renormedHistogram = renorm(std::move(tmpHist), metrics);
@@ -160,7 +160,7 @@ void ransEncodeDecode(const std::string& name, const std::vector<source_T>& inpu
   // writerRenormed.Key(name.c_str());
   // toJSON(renormedFrequencyTable, writerRenormed);
 
-  auto encoder = t.timeAndLog("Encoder", "Built Encoder", [&]() { return makeEncoder<coderTag_V>::fromRenormed(renormedHistogram); });
+  auto encoder = t.timeAndLog("Encoder", "Built Encoder", [&]() { return makeDenseEncoder<coderTag_V>::fromRenormed(renormedHistogram); });
 
   t.timeAndLog("Encoding", "Encoded", [&]() mutable {
 #ifdef ENABLE_VTUNE_PROFILER

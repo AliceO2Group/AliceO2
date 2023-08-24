@@ -26,9 +26,6 @@
 #include <fmt/format.h>
 
 #include "rANS/histogram.h"
-#include "rANS/internal/containers/SparseHistogram.h"
-#include "rANS/internal/containers/HashHistogram.h"
-#include "rANS/internal/containers/SetHistogram.h"
 #include "rANS/internal/transform/algorithm.h"
 #include "rANS/internal/common/typetraits.h"
 #include "rANS/compat.h"
@@ -37,23 +34,20 @@ using namespace o2::rans;
 
 namespace mp = boost::mp11;
 
-using small_histogram_types = mp::mp_list<
-  Histogram<char>,
-  Histogram<uint8_t>,
-  Histogram<int8_t>,
-  Histogram<uint16_t>,
-  Histogram<int16_t>>;
+using small_dense_histogram_types = mp::mp_list<
+  DenseHistogram<char>,
+  DenseHistogram<uint8_t>,
+  DenseHistogram<int8_t>,
+  DenseHistogram<uint16_t>,
+  DenseHistogram<int16_t>>;
 
-using large_histogram_types = mp::mp_list<Histogram<int32_t>>;
+using large_dense_histogram_types = mp::mp_list<DenseHistogram<int32_t>>;
 
-using sparse_histogram_types = mp::mp_list<SparseHistogram<uint32_t>,
-                                           SparseHistogram<int32_t>>;
+using adaptive_histogram_types = mp::mp_list<AdaptiveHistogram<uint32_t>,
+                                             AdaptiveHistogram<int32_t>>;
 
-using hash_histogram_types = mp::mp_list<HashHistogram<uint32_t>,
-                                         HashHistogram<int32_t>>;
-
-using key_value_histograms = mp::mp_list<SetHistogram<uint32_t>,
-                                         SetHistogram<int32_t>>;
+using sparse_histograms = mp::mp_list<SparseHistogram<uint32_t>,
+                                      SparseHistogram<int32_t>>;
 
 namespace boost
 {
@@ -76,9 +70,9 @@ struct print_log_value<::std::pair<F, S>> {
 } // namespace test_tools
 } // namespace boost
 
-using histogram_types = mp::mp_flatten<mp::mp_list<small_histogram_types, large_histogram_types, sparse_histogram_types, hash_histogram_types, key_value_histograms>>;
+using histogram_types = mp::mp_flatten<mp::mp_list<small_dense_histogram_types, large_dense_histogram_types, adaptive_histogram_types, sparse_histograms>>;
 
-using variable_histograms_types = mp::mp_flatten<mp::mp_list<large_histogram_types, sparse_histogram_types, hash_histogram_types, key_value_histograms>>;
+using variable_histograms_types = mp::mp_flatten<mp::mp_list<large_dense_histogram_types, adaptive_histogram_types, sparse_histograms>>;
 
 template <typename histogram_T>
 void checkEquivalent(const histogram_T& a, const histogram_T& b)
@@ -102,7 +96,7 @@ size_t getTableSize(const map_T& resultsMap)
       const auto [minIter, maxIter] = std::minmax_element(std::begin(resultsMap), std::end(resultsMap), [](const auto& a, const auto& b) { return a.first < b.first; });
       return maxIter->first - minIter->first + std::is_signed_v<source_type>;
     }
-  } else if constexpr (isSparseContainer_v<histogram_T>) {
+  } else if constexpr (isAdaptiveContainer_v<histogram_T>) {
     std::vector<int32_t> buckets;
     for (const auto [key, value] : resultsMap) {
       buckets.push_back(key / histogram_T::container_type::getBucketSize());
@@ -128,7 +122,7 @@ auto getOffset(const map_T& resultsMap) -> typename map_T::key_type
       const auto [minIter, maxIter] = std::minmax_element(std::begin(resultsMap), std::end(resultsMap), [](const auto& a, const auto& b) { return a.first < b.first; });
       return minIter->first;
     }
-  } else if constexpr (isSparseContainer_v<histogram_T>) {
+  } else if constexpr (isAdaptiveContainer_v<histogram_T>) {
     return std::numeric_limits<source_type>::min();
   } else if constexpr (isHashContainer_v<histogram_T>) {
     return 0;
@@ -145,7 +139,7 @@ auto getOffset(const map_T& resultsMap) -> typename map_T::key_type
   }
 };
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(test_emptyTablesSmall, histogram_T, small_histogram_types)
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_emptyTablesSmall, histogram_T, small_dense_histogram_types)
 {
   using source_type = typename histogram_T::source_type;
   histogram_T histogram{};
@@ -394,7 +388,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_addFrequenciesSignChange, histogram_T, histog
   if constexpr (std::is_signed_v<source_type>) {
     const std::ptrdiff_t offset = utils::pow2(utils::toBits<source_type>() - 1);
 
-    if constexpr (std::is_same_v<histogram_T, Histogram<int32_t>>) {
+    if constexpr (std::is_same_v<histogram_T, DenseHistogram<int32_t>>) {
       const std::ptrdiff_t largeOffset = utils::toBits<source_type>() - 1;
       BOOST_CHECK_THROW(histogram.addFrequencies(frequencies2.begin(), frequencies2.end(), offset), HistogramError);
       BOOST_CHECK_THROW(histogram2.addFrequencies(gsl::make_span(frequencies2), offset), HistogramError);
@@ -425,7 +419,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_addFrequenciesSignChange, histogram_T, histog
     BOOST_CHECK_EQUAL(countNUsedAlphabetSymbols(histogram), 7);
   }
 
-  if constexpr (std::is_same_v<histogram_T, Histogram<int32_t>>) {
+  if constexpr (std::is_same_v<histogram_T, DenseHistogram<int32_t>>) {
     // for the int32_t case we couldn't add samples, so no changes
     BOOST_CHECK_EQUAL(histogram.getNumSamples(), 15);
   } else {
@@ -444,7 +438,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_addFrequenciesSignChange, histogram_T, histog
   BOOST_CHECK(histogram.cbegin() != histogram.cend());
 };
 
-using renorm_types = mp::mp_list<Histogram<uint8_t>, Histogram<uint32_t>, SparseHistogram<int32_t>, HashHistogram<int32_t>, SetHistogram<int32_t>>;
+using renorm_types = mp::mp_list<DenseHistogram<uint8_t>, DenseHistogram<uint32_t>, AdaptiveHistogram<int32_t>, SparseHistogram<int32_t>>;
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_renorm, histogram_T, renorm_types)
 {
@@ -466,7 +460,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_renorm, histogram_T, renorm_types)
   }
 }
 
-using legacy_renorm_types = mp::mp_list<Histogram<uint8_t>, Histogram<uint32_t>>;
+using legacy_renorm_types = mp::mp_list<DenseHistogram<uint8_t>, DenseHistogram<uint32_t>>;
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_renormLegacy, histogram_T, legacy_renorm_types)
 {
@@ -491,7 +485,7 @@ BOOST_AUTO_TEST_CASE(test_ExpectedCodewordLength)
   constexpr double_t eps = 1e-2;
 
   std::vector<uint32_t> frequencies{9, 0, 8, 0, 7, 0, 6, 0, 5, 0, 4, 0, 3, 0, 2, 0, 1};
-  Histogram<source_type> histogram{frequencies.begin(), frequencies.end(), 0};
+  DenseHistogram<source_type> histogram{frequencies.begin(), frequencies.end(), 0};
   Metrics<source_type> metrics{histogram};
   const auto renormedHistogram = renorm(histogram, metrics);
 
