@@ -16,10 +16,9 @@
 #ifndef RANS_HISTOGRAM_H_
 #define RANS_HISTOGRAM_H_
 
-#include "rANS/internal/containers/Histogram.h"
+#include "rANS/internal/containers/DenseHistogram.h"
+#include "rANS/internal/containers/AdaptiveHistogram.h"
 #include "rANS/internal/containers/SparseHistogram.h"
-#include "rANS/internal/containers/HashHistogram.h"
-#include "rANS/internal/containers/SetHistogram.h"
 #include "rANS/internal/containers/RenormedHistogram.h"
 #include "rANS/internal/transform/renorm.h"
 

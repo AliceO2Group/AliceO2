@@ -42,7 +42,7 @@ class ReverseSymbolLookupTable
   inline ReverseSymbolLookupTable() noexcept {}; // NOLINT
 
   template <typename container_T>
-  explicit ReverseSymbolLookupTable(const RenormedHistogramImpl<container_T>& renormedHistogram)
+  explicit ReverseSymbolLookupTable(const RenormedHistogramConcept<container_T>& renormedHistogram)
   {
     if (renormedHistogram.empty()) {
       LOG(warning) << "SymbolStatistics of empty message passed to " << __func__;

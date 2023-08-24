@@ -9,13 +9,13 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   SymbolTable.h
+/// @file   DenseSymbolTable.h
 /// @author Michael Lettrich
 /// @since  2019-06-21
 /// @brief  Lookup table containing statistical information for each symbol in the alphabet required for encoding/decoding
 
-#ifndef RANS_INTERNAL_CONTAINERS_SYMBOLTABLE_H_
-#define RANS_INTERNAL_CONTAINERS_SYMBOLTABLE_H_
+#ifndef RANS_INTERNAL_CONTAINERS_DENSESYMBOLTABLE_H_
+#define RANS_INTERNAL_CONTAINERS_DENSESYMBOLTABLE_H_
 
 #include <vector>
 #include <cstdint>
@@ -31,7 +31,7 @@ namespace o2::rans
 {
 
 template <class source_T, class symbol_T>
-class SymbolTable : public internal::VectorContainer<source_T, symbol_T>
+class DenseSymbolTable : public internal::VectorContainer<source_T, symbol_T>
 {
   using base_type = internal::VectorContainer<source_T, symbol_T>;
   friend base_type;
@@ -48,10 +48,10 @@ class SymbolTable : public internal::VectorContainer<source_T, symbol_T>
   using const_pointer = typename base_type::const_pointer;
   using const_iterator = typename base_type::const_iterator;
 
-  SymbolTable() = default;
+  DenseSymbolTable() = default;
 
   template <typename container_T>
-  inline SymbolTable(const RenormedHistogramImpl<container_T>& renormedHistogram);
+  inline DenseSymbolTable(const RenormedHistogramConcept<container_T>& renormedHistogram);
 
   [[nodiscard]] inline const_reference operator[](source_type sourceSymbol) const noexcept;
 
@@ -81,7 +81,7 @@ class SymbolTable : public internal::VectorContainer<source_T, symbol_T>
 
 template <class source_T, class value_T>
 template <typename container_T>
-SymbolTable<source_T, value_T>::SymbolTable(const RenormedHistogramImpl<container_T>& renormedHistogram)
+DenseSymbolTable<source_T, value_T>::DenseSymbolTable(const RenormedHistogramConcept<container_T>& renormedHistogram)
 {
   using namespace utils;
   using namespace internal;
@@ -118,7 +118,7 @@ SymbolTable<source_T, value_T>::SymbolTable(const RenormedHistogramImpl<containe
 };
 
 template <class source_T, class value_T>
-[[nodiscard]] inline auto SymbolTable<source_T, value_T>::operator[](source_type sourceSymbol) const noexcept -> const_reference
+[[nodiscard]] inline auto DenseSymbolTable<source_T, value_T>::operator[](source_type sourceSymbol) const noexcept -> const_reference
 {
   const size_type index = static_cast<size_type>(sourceSymbol - this->getOffset());
   // static cast to unsigned: idx < 0 => (uint)idx > MAX_INT => idx > mIndex.size()
@@ -130,7 +130,7 @@ template <class source_T, class value_T>
 };
 
 template <class source_T, class value_T>
-[[nodiscard]] inline auto SymbolTable<source_T, value_T>::lookupSafe(source_type sourceSymbol) const -> const_pointer
+[[nodiscard]] inline auto DenseSymbolTable<source_T, value_T>::lookupSafe(source_type sourceSymbol) const -> const_pointer
 {
   const size_type index = static_cast<size_type>(sourceSymbol - this->getOffset());
   // static cast to unsigned: idx < 0 => (uint)idx > MAX_INT => idx > mIndex.size()
@@ -142,17 +142,17 @@ template <class source_T, class value_T>
 };
 
 template <typename source_T, typename symbol_T>
-std::pair<source_T, source_T> getMinMax(const SymbolTable<source_T, symbol_T>& symbolTable)
+std::pair<source_T, source_T> getMinMax(const DenseSymbolTable<source_T, symbol_T>& symbolTable)
 {
   return internal::getMinMax(symbolTable, symbolTable.getEscapeSymbol());
 };
 
 template <typename source_T, typename symbol_T>
-size_t countNUsedAlphabetSymbols(const SymbolTable<source_T, symbol_T>& symbolTable)
+size_t countNUsedAlphabetSymbols(const DenseSymbolTable<source_T, symbol_T>& symbolTable)
 {
-  return std::count_if(symbolTable.begin(), symbolTable.end(), [&symbolTable](typename SymbolTable<source_T, symbol_T>::const_reference v) { return !symbolTable.isEscapeSymbol(v); });
+  return std::count_if(symbolTable.begin(), symbolTable.end(), [&symbolTable](typename DenseSymbolTable<source_T, symbol_T>::const_reference v) { return !symbolTable.isEscapeSymbol(v); });
 }
 
 } // namespace o2::rans
 
-#endif /* RANS_INTERNAL_CONTAINERS_SYMBOLTABLE_H_ */
+#endif /* RANS_INTERNAL_CONTAINERS_DENSESYMBOLTABLE_H_ */

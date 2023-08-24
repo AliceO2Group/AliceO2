@@ -34,13 +34,13 @@ namespace o2::ctf::internal
 template <typename source_T>
 class InplaceEntropyCoder
 {
-  using dense_histogram_type = rans::Histogram<source_T>;
-  using adaptive_histogram_type = rans::SparseHistogram<source_T>;
-  using sparse_histogram_type = rans::SetHistogram<source_T>;
+  using dense_histogram_type = rans::DenseHistogram<source_T>;
+  using adaptive_histogram_type = rans::AdaptiveHistogram<source_T>;
+  using sparse_histogram_type = rans::SparseHistogram<source_T>;
 
-  using dense_encoder_type = rans::defaultEncoder_type<source_T>;
-  using adaptive_encoder_type = rans::defaultSparseEncoder_type<source_T>;
-  using sparse_encoder_type = rans::defaultHashEncoder_type<source_T>;
+  using dense_encoder_type = rans::denseEncoder_type<source_T>;
+  using adaptive_encoder_type = rans::adaptiveEncoder_type<source_T>;
+  using sparse_encoder_type = rans::sparseEncoder_type<source_T>;
 
   using dict_buffer_type = std::vector<uint8_t>;
 
@@ -252,7 +252,7 @@ template <typename source_T>
 template <typename source_IT, std::enable_if_t<(sizeof(typename std::iterator_traits<source_IT>::value_type) < 4), bool>>
 void InplaceEntropyCoder<source_T>::init(source_IT srcBegin, source_IT srcEnd, source_type min, source_type max)
 {
-  mHistogram.emplace(histogram_type{rans::makeHistogram::fromSamples(srcBegin, srcEnd)});
+  mHistogram.emplace(histogram_type{rans::makeDenseHistogram::fromSamples(srcBegin, srcEnd)});
   mMetrics = metrics_type{std::get<dense_histogram_type>(*mHistogram), min, max};
 };
 
@@ -266,15 +266,15 @@ void InplaceEntropyCoder<source_T>::init(source_IT srcBegin, source_IT srcEnd, s
   if ((rangeBits <= 18) || ((nSamples / rans::utils::pow2(rangeBits)) >= 0.80)) {
     // either the range of source symbols is distrubuted such that it fits into L3 Cache
     // Or it is possible for the data to cover a very significant fraction of the total [min,max] range
-    mHistogram = histogram_type{std::in_place_type<dense_histogram_type>, rans::makeHistogram::fromSamples(srcBegin, srcEnd, min, max)};
+    mHistogram = histogram_type{std::in_place_type<dense_histogram_type>, rans::makeDenseHistogram::fromSamples(srcBegin, srcEnd, min, max)};
     mMetrics = metrics_type{std::get<dense_histogram_type>(*mHistogram), min, max};
   } else if (nSamples / rans::utils::pow2(rangeBits) <= 0.3) {
     // or the range of source symbols is spread very thinly accross a large range
-    mHistogram = histogram_type{std::in_place_type<sparse_histogram_type>, rans::makeSetHistogram::fromSamples(srcBegin, srcEnd)};
+    mHistogram = histogram_type{std::in_place_type<sparse_histogram_type>, rans::makeSparseHistogram::fromSamples(srcBegin, srcEnd)};
     mMetrics = metrics_type{std::get<sparse_histogram_type>(*mHistogram), min, max};
   } else {
     // no strong evidence of either extreme case
-    mHistogram = histogram_type{std::in_place_type<adaptive_histogram_type>, rans::makeSparseHistogram::fromSamples(srcBegin, srcEnd)};
+    mHistogram = histogram_type{std::in_place_type<adaptive_histogram_type>, rans::makeAdaptiveHistogram::fromSamples(srcBegin, srcEnd)};
     mMetrics = metrics_type{std::get<adaptive_histogram_type>(*mHistogram), min, max};
   }
 };
@@ -283,7 +283,7 @@ template <typename source_T>
 template <typename source_IT, std::enable_if_t<(sizeof(typename std::iterator_traits<source_IT>::value_type) < 4), bool>>
 void InplaceEntropyCoder<source_T>::init(source_IT srcBegin, source_IT srcEnd)
 {
-  mHistogram = histogram_type{std::in_place_type<dense_histogram_type>, rans::makeHistogram::fromSamples(srcBegin, srcEnd)};
+  mHistogram = histogram_type{std::in_place_type<dense_histogram_type>, rans::makeDenseHistogram::fromSamples(srcBegin, srcEnd)};
   mMetrics = metrics_type{std::get<dense_histogram_type>(*mHistogram)};
 };
 
@@ -291,7 +291,7 @@ template <typename source_T>
 template <typename source_IT, std::enable_if_t<(sizeof(typename std::iterator_traits<source_IT>::value_type) == 4), bool>>
 void InplaceEntropyCoder<source_T>::init(source_IT srcBegin, source_IT srcEnd)
 {
-  mHistogram = histogram_type{std::in_place_type<sparse_histogram_type>, rans::makeSetHistogram::fromSamples(srcBegin, srcEnd)};
+  mHistogram = histogram_type{std::in_place_type<sparse_histogram_type>, rans::makeSparseHistogram::fromSamples(srcBegin, srcEnd)};
   mMetrics = metrics_type{std::get<sparse_histogram_type>(*mHistogram)};
 };
 

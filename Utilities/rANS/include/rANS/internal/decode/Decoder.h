@@ -57,7 +57,7 @@ class Decoder
   Decoder() noexcept = default;
 
   template <typename container_T>
-  explicit Decoder(const RenormedHistogramImpl<container_T>& renormedHistogram)
+  explicit Decoder(const RenormedHistogramConcept<container_T>& renormedHistogram)
   {
 
     const auto [min, max] = internal::getMinMax(renormedHistogram);

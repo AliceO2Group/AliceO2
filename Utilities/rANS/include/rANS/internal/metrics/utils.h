@@ -22,7 +22,7 @@
 #include <numeric>
 
 #include "rANS/internal/common/utils.h"
-#include "rANS/internal/containers/Histogram.h"
+#include "rANS/internal/containers/DenseHistogram.h"
 #include "rANS/internal/containers/RenormedHistogram.h"
 #include "rANS/internal/containers/HistogramView.h"
 
@@ -30,7 +30,7 @@ namespace o2::rans
 {
 
 template <typename source_T>
-double_t computeExpectedCodewordLength(const Histogram<source_T>& histogram, const RenormedHistogram<source_T>& rescaledHistogram)
+double_t computeExpectedCodewordLength(const DenseHistogram<source_T>& histogram, const RenormedDenseHistogram<source_T>& rescaledHistogram)
 {
   assert(histogram.getNumSamples() > 0);
   assert(rescaledHistogram.getNumSamples() > 0);
@@ -38,7 +38,7 @@ double_t computeExpectedCodewordLength(const Histogram<source_T>& histogram, con
   using namespace internal;
   using namespace utils;
 
-  using value_type = typename Histogram<source_T>::value_type;
+  using value_type = typename DenseHistogram<source_T>::value_type;
 
   const auto histogramView = makeHistogramView(histogram);
   const auto renormedView = makeHistogramView(rescaledHistogram);

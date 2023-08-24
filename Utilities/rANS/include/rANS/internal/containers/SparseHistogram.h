@@ -9,10 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   FrequencyTableImpl.h
+/// @file   SparseHistogram.h
 /// @author Michael Lettrich
-/// @since  2019-05-08
-/// @brief Histogram to depict frequencies of source symbols for rANS compression.
+/// @brief Histogram to depict frequencies of source symbols for rANS compression, based on an ordered set
 
 #ifndef INCLUDE_RANS_INTERNAL_CONTAINERS_SPARSEHISTOGRAM_H_
 #define INCLUDE_RANS_INTERNAL_CONTAINERS_SPARSEHISTOGRAM_H_
@@ -25,16 +24,16 @@ namespace o2::rans
 {
 
 template <typename source_T>
-class SparseHistogram : public internal::SparseVectorContainer<source_T, uint32_t>,
+class SparseHistogram : public internal::SetContainer<source_T, uint32_t>,
                         public internal::HistogramConcept<source_T,
-                                                          typename internal::SparseVectorContainer<source_T, uint32_t>::value_type,
-                                                          typename internal::SparseVectorContainer<source_T, uint32_t>::difference_type,
+                                                          typename internal::SetContainer<source_T, uint32_t>::value_type,
+                                                          typename internal::SetContainer<source_T, uint32_t>::difference_type,
                                                           SparseHistogram<source_T>>
 {
-  using containerBase_type = internal::SparseVectorContainer<source_T, uint32_t>;
+  using containerBase_type = internal::SetContainer<source_T, uint32_t>;
   using HistogramConcept_type = internal::HistogramConcept<source_T,
-                                                           typename internal::SparseVectorContainer<source_T, uint32_t>::value_type,
-                                                           typename internal::SparseVectorContainer<source_T, uint32_t>::difference_type,
+                                                           typename internal::SetContainer<source_T, uint32_t>::value_type,
+                                                           typename internal::SetContainer<source_T, uint32_t>::difference_type,
                                                            SparseHistogram<source_T>>;
 
   friend HistogramConcept_type;
@@ -76,30 +75,27 @@ template <typename source_IT>
 auto SparseHistogram<source_T>::addSamplesImpl(source_IT begin, source_IT end) -> SparseHistogram&
 {
 
-  if constexpr (std::is_same_v<typename std::iterator_traits<source_IT>::iterator_category, std::random_access_iterator_tag>) {
+  absl::flat_hash_map<source_type, value_type> map;
 
-    const auto size = std::distance(begin, end);
-    constexpr size_t nUnroll = 2;
+  // first build a hash map of existing samples
+  std::for_each(this->mContainer.begin(), this->mContainer.end(), [this, &map](const auto& keyValuePair) {
+    map.emplace(keyValuePair.first, keyValuePair.second);
+  });
 
-    size_t pos{};
-    if (end - nUnroll > begin) {
-      for (pos = 0; pos < size - nUnroll; pos += nUnroll) {
-        ++this->mContainer[begin[pos + 0]];
-        ++this->mContainer[begin[pos + 1]];
-        this->mNSamples += nUnroll;
-      }
-    }
+  // then add new samples to the same map
+  std::for_each(begin, end, [this, &map](const source_type& symbol) {
+    ++this->mNSamples;
+    ++map[symbol];
+  });
 
-    for (auto iter = begin + pos; iter != end; ++iter) {
-      ++this->mNSamples;
-      ++this->mContainer[*iter];
-    }
-  } else {
-    std::for_each(begin, end, [this](const source_type& symbol) {
-      ++this->mNSamples;
-      ++this->mContainer[symbol];
-    });
-  }
+  //
+  typename container_type::container_type mergedSymbols;
+  mergedSymbols.reserve(map.size());
+  std::for_each(map.begin(), map.end(), [&](const auto& keyValuePair) { mergedSymbols.emplace_back(keyValuePair.first, keyValuePair.second); });
+
+  // and build a OrderedSet from it
+  this->mContainer = container_type(std::move(mergedSymbols), 0, internal::OrderedSetState::unordered);
+
   return *this;
 }
 
@@ -107,25 +103,43 @@ template <typename source_T>
 template <typename freq_IT>
 auto SparseHistogram<source_T>::addFrequenciesImpl(freq_IT begin, freq_IT end, source_type offset) -> SparseHistogram&
 {
-  source_type sourceSymbol = offset;
-  for (auto iter = begin; iter != end; ++iter) {
-    auto value = *iter;
-    if (value > 0) {
-      auto& currentValue = this->mContainer[sourceSymbol];
-      currentValue = internal::safeadd(currentValue, this->countSamples(value));
+  if (begin != end) {
+    // first build a map of the current list items
+    absl::flat_hash_map<source_type, value_type> map;
+
+    auto container = std::move(this->mContainer).release();
+    for (const auto& [key, value] : container) {
+      map.emplace(key, value);
     }
-    ++sourceSymbol;
+
+    // then add all new values to the map
+    source_type sourceSymbol = offset;
+    for (auto iter = begin; iter != end; ++iter) {
+      auto value = *iter;
+      if (value > 0) {
+        auto& currentValue = map[sourceSymbol];
+        currentValue = internal::safeadd(currentValue, this->countSamples(value));
+      }
+      ++sourceSymbol;
+    }
+
+    // then extract key/value pairs
+    container.clear();
+    container.reserve(map.size());
+    std::for_each(map.begin(), map.end(), [&](const auto& pair) { container.emplace_back(pair.first, pair.second); });
+
+    // and build a OrderedSet from it
+    this->mContainer = container_type{container, 0, internal::OrderedSetState::unordered};
   }
   return *this;
-}
+};
 
 template <typename source_T>
 size_t countNUsedAlphabetSymbols(const SparseHistogram<source_T>& histogram)
 {
-  using iterator_value_type = typename SparseHistogram<source_T>::const_iterator::value_type;
   using value_type = typename SparseHistogram<source_T>::value_type;
 
-  return std::count_if(histogram.begin(), histogram.end(), [](iterator_value_type v) { return v.second != value_type{}; });
+  return std::count_if(histogram.begin(), histogram.end(), [](const auto& v) { return v.second != value_type{}; });
 }
 
 } // namespace o2::rans

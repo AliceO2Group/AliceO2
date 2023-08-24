@@ -333,6 +333,9 @@ class EncodedBlocks
  public:
   typedef EncodedBlocks<H, N, W> base;
 
+  template <typename source_T>
+  using dictionaryType = std::variant<rans::RenormedSparseHistogram<source_T>, rans::RenormedDenseHistogram<source_T>>;
+
   void setHeader(const H& h) { mHeader = h; }
   const H& getHeader() const { return mHeader; }
   H& getHeader() { return mHeader; }
@@ -355,7 +358,7 @@ class EncodedBlocks
   }
 
   template <typename source_T>
-  rans::RenormedHistogram<source_T> getFrequencyTable(int i, ANSHeader ansVersion = ANSVersionUnspecified) const
+  dictionaryType<source_T> getDictionary(int i, ANSHeader ansVersion = ANSVersionUnspecified) const
   {
     const auto& block = getBlock(i);
     const auto& metadata = getMetadata(i);
@@ -365,20 +368,26 @@ class EncodedBlocks
     assert(static_cast<int64_t>(std::numeric_limits<source_T>::max()) >= static_cast<int64_t>(metadata.min));
 
     if (ansVersion == ANSVersionCompat) {
-      rans::Histogram<source_T> histogram{block.getDict(), block.getDict() + block.getNDict(), metadata.min};
+      rans::DenseHistogram<source_T> histogram{block.getDict(), block.getDict() + block.getNDict(), metadata.min};
       return rans::compat::renorm(std::move(histogram), metadata.probabilityBits);
     } else if (ansVersion == ANSVersion1) {
       // dictionary is loaded from an explicit dict file and is stored densly
       if (getANSHeader() == ANSVersionUnspecified) {
-        rans::Histogram<source_T> histogram{block.getDict(), block.getDict() + block.getNDict(), metadata.min};
+        rans::DenseHistogram<source_T> histogram{block.getDict(), block.getDict() + block.getNDict(), metadata.min};
         size_t renormingBits = rans::utils::sanitizeRenormingBitRange(metadata.probabilityBits);
         LOG_IF(debug, renormingBits != metadata.probabilityBits) << fmt::format("While reading metadata from external dictionary, rANSV1 is rounding renorming precision from {} to {}");
         return rans::renorm(std::move(histogram), renormingBits, rans::RenormingPolicy::ForceIncompressible);
       } else {
         // dictionary is elias-delta coded inside the block
-        return rans::readRenormedDictionary(block.getDict(), block.getDict() + block.getNDict(),
-                                            static_cast<source_T>(metadata.min), static_cast<source_T>(metadata.max),
-                                            metadata.probabilityBits);
+        if constexpr (sizeof(source_T) > 2) {
+          return rans::readRenormedSetDictionary(block.getDict(), block.getDict() + block.getNDict(),
+                                                 static_cast<source_T>(metadata.min), static_cast<source_T>(metadata.max),
+                                                 metadata.probabilityBits);
+        } else {
+          return rans::readRenormedDictionary(block.getDict(), block.getDict() + block.getNDict(),
+                                              static_cast<source_T>(metadata.min), static_cast<source_T>(metadata.max),
+                                              metadata.probabilityBits);
+        }
       }
     } else {
       throw std::runtime_error(fmt::format("Failed to load serialized Dictionary. Unsupported ANS Version: {}", static_cast<std::string>(ansVersion)));
@@ -472,7 +481,7 @@ class EncodedBlocks
   o2::ctf::CTFIOSize decode(D_IT dest, int slot, const std::any& decoderExt = {}) const;
 
   /// create a special EncodedBlocks containing only dictionaries made from provided vector of frequency tables
-  static std::vector<char> createDictionaryBlocks(const std::vector<rans::Histogram<int32_t>>& vfreq, const std::vector<Metadata>& prbits);
+  static std::vector<char> createDictionaryBlocks(const std::vector<rans::DenseHistogram<int32_t>>& vfreq, const std::vector<Metadata>& prbits);
 
   /// print itself
   void print(const std::string& prefix = "", int verbosity = 1) const;
@@ -596,7 +605,7 @@ class EncodedBlocks
   CTFIOSize decodeCopyImpl(dst_IT dest, int slot) const;
 
   ClassDefNV(EncodedBlocks, 3);
-}; // namespace ctf
+};
 
 ///_____________________________________________________________________________
 /// read from tree to non-flat object
@@ -919,7 +928,7 @@ CTFIOSize EncodedBlocks<H, N, W>::decodeCompatImpl(dst_IT dstBegin, int slot, co
 
   std::optional<decoder_type> inplaceDecoder{};
   if (md.nDictWords > 0) {
-    inplaceDecoder = decoder_type{this->getFrequencyTable<dst_type>(slot)};
+    inplaceDecoder = decoder_type{std::get<rans::RenormedDenseHistogram<dst_type>>(this->getDictionary<dst_type>(slot))};
   } else if (!decoderExt.has_value()) {
     throw std::runtime_error("neither dictionary nor external decoder provided");
   }
@@ -958,7 +967,7 @@ CTFIOSize EncodedBlocks<H, N, W>::decodeRansV1Impl(dst_IT dstBegin, int slot, co
 
   std::optional<decoder_type> inplaceDecoder{};
   if (md.nDictWords > 0) {
-    inplaceDecoder = decoder_type{this->getFrequencyTable<dst_type>(slot)};
+    std::visit([&](auto&& arg) { inplaceDecoder = decoder_type{arg}; }, this->getDictionary<dst_type>(slot));
   } else if (!decoderExt.has_value()) {
     throw std::runtime_error("no dictionary nor external decoder provided");
   }
@@ -1123,15 +1132,15 @@ o2::ctf::CTFIOSize EncodedBlocks<H, N, W>::entropyCodeRANSCompat(const input_IT 
   const float SizeEstMarginRel = 1.5 * memfc;
 
   const size_t messageLength = std::distance(srcBegin, srcEnd);
-  rans::Histogram<input_t> frequencyTable{};
+  rans::DenseHistogram<input_t> frequencyTable{};
   rans::compat::encoder_type<input_t> inplaceEncoder{};
 
   try {
     std::tie(inplaceEncoder, frequencyTable) = [&]() {
       if (encoderExt.has_value()) {
-        return std::make_tuple(ransEncoder_t{}, rans::Histogram<input_t>{});
+        return std::make_tuple(ransEncoder_t{}, rans::DenseHistogram<input_t>{});
       } else {
-        auto histogram = rans::makeHistogram::fromSamples(srcBegin, srcEnd);
+        auto histogram = rans::makeDenseHistogram::fromSamples(srcBegin, srcEnd);
         auto encoder = rans::compat::makeEncoder::fromHistogram(histogram, symbolTablePrecision);
         return std::make_tuple(std::move(encoder), std::move(histogram));
       }
@@ -1289,7 +1298,7 @@ CTFIOSize EncodedBlocks<H, N, W>::encodeRANSV1Inplace(const input_IT srcBegin, c
 {
   using storageBuffer_t = W;
   using input_t = typename std::iterator_traits<input_IT>::value_type;
-  using ransEncoder_t = typename rans::defaultEncoder_type<input_t>;
+  using ransEncoder_t = typename rans::denseEncoder_type<input_t>;
   using ransState_t = typename ransEncoder_t::coder_type::state_type;
   using ransStream_t = typename ransEncoder_t::stream_type;
 
@@ -1440,7 +1449,7 @@ o2::ctf::CTFIOSize EncodedBlocks<H, N, W>::store(const input_IT srcBegin, const 
 
 /// create a special EncodedBlocks containing only dictionaries made from provided vector of frequency tables
 template <typename H, int N, typename W>
-std::vector<char> EncodedBlocks<H, N, W>::createDictionaryBlocks(const std::vector<rans::Histogram<int32_t>>& vfreq, const std::vector<Metadata>& vmd)
+std::vector<char> EncodedBlocks<H, N, W>::createDictionaryBlocks(const std::vector<rans::DenseHistogram<int32_t>>& vfreq, const std::vector<Metadata>& vmd)
 {
 
   if (vfreq.size() != N) {

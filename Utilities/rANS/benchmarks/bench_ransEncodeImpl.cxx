@@ -72,7 +72,7 @@ class SymbolTableData
     std::generate(mSourceMessage.begin(), mSourceMessage.end(), [&dist, &mt]() { return dist(mt); });
 #endif
 
-    const auto histogram = makeHistogram::fromSamples(gsl::span<const source_T>(mSourceMessage));
+    const auto histogram = makeDenseHistogram::fromSamples(gsl::span<const source_T>(mSourceMessage));
     Metrics<source_T> metrics{histogram};
     mRenormedFrequencies = renorm(histogram, metrics);
 
@@ -91,7 +91,7 @@ class SymbolTableData
 
  private:
   std::vector<source_T> mSourceMessage{};
-  RenormedHistogram<source_T> mRenormedFrequencies{};
+  RenormedDenseHistogram<source_T> mRenormedFrequencies{};
   ransState_t mState{};
 };
 
@@ -119,7 +119,7 @@ struct SimpleFixture : public benchmark::Fixture {
   void SetUp(const ::benchmark::State& state) final
   {
     const auto& sourceMessage = getData<source_T>().getSourceMessage();
-    SymbolTable<source_t, symbol_t> symbolTable{getData<source_T>().getRenormedFrequencies()};
+    DenseSymbolTable<source_t, symbol_t> symbolTable{getData<source_T>().getRenormedFrequencies()};
     for (auto& symbol : sourceMessage) {
       mSymbols.push_back(symbolTable[symbol]);
     }
@@ -142,7 +142,7 @@ struct Fixture : public benchmark::Fixture {
   void SetUp(const ::benchmark::State& state) final
   {
     const auto& sourceMessage = getData<source_T>().getSourceMessage();
-    SymbolTable<source_t, symbol_t> symbolTable{getData<source_T>().getRenormedFrequencies()};
+    DenseSymbolTable<source_t, symbol_t> symbolTable{getData<source_T>().getRenormedFrequencies()};
     for (auto& symbol : sourceMessage) {
       mSymbols.push_back(symbolTable[symbol]);
     }
@@ -170,7 +170,7 @@ struct SIMDFixture : public benchmark::Fixture {
     mNSamples = simd::setAll<width_V>(static_cast<double>(pow2(getData<source_T>().getRenormedFrequencies().getRenormingBits())));
 
     const auto& sourceMessage = getData<source_T>().getSourceMessage();
-    SymbolTable<source_t, symbol_t> symbolTable{getData<source_T>().getRenormedFrequencies()};
+    DenseSymbolTable<source_t, symbol_t> symbolTable{getData<source_T>().getRenormedFrequencies()};
     for (size_t i = 0; i < sourceMessage.size(); i += nElems) {
       if constexpr (width_V == simd::SIMDWidth::SSE) {
         mSymbols.push_back({

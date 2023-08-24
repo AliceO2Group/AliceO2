@@ -26,8 +26,8 @@
 #include <benchmark/benchmark.h>
 
 #include "rANS/factory.h"
-#include "rANS/internal/containers/Histogram.h"
-#include "rANS/internal/containers/SparseHistogram.h"
+#include "rANS/internal/containers/DenseHistogram.h"
+#include "rANS/internal/containers/AdaptiveHistogram.h"
 
 #ifdef ENABLE_VTUNE_PROFILER
 #include <ittnotify.h>
@@ -116,7 +116,7 @@ void ransMakeHistogramBenchmark(benchmark::State& st, Args&&... args)
   using input_data_type = std::remove_cv_t<std::remove_reference_t<decltype(inputData)>>;
   using source_type = typename input_data_type::value_type;
 
-  const auto histogram = makeHistogram::fromSamples(gsl::span<const source_type>(inputData));
+  const auto histogram = makeDenseHistogram::fromSamples(gsl::span<const source_type>(inputData));
   Metrics<source_type> metrics{histogram};
 
 #ifdef ENABLE_VTUNE_PROFILER
@@ -169,7 +169,7 @@ void ransAccessHistogramBenchmark(benchmark::State& st, Args&&... args)
   using input_data_type = std::remove_cv_t<std::remove_reference_t<decltype(inputData)>>;
   using source_type = typename input_data_type::value_type;
 
-  const auto histogram = makeHistogram::fromSamples(gsl::span<const source_type>(inputData));
+  const auto histogram = makeDenseHistogram::fromSamples(gsl::span<const source_type>(inputData));
   Metrics<source_type> metrics{histogram};
 
   histogram_type hist{};
@@ -211,19 +211,16 @@ void ransAccessHistogramBenchmark(benchmark::State& st, Args&&... args)
   st.counters["LowerBound"] = inputData.size() * (static_cast<double>(st.counters["Entropy"]) / 8);
 };
 
-BENCHMARK_CAPTURE(ransMakeHistogramBenchmark, makeHistogram_Vector_binomial_32, std::reference_wrapper(sourceMessageBinomial32), Histogram<uint32_t>{});
-BENCHMARK_CAPTURE(ransMakeHistogramBenchmark, makeHistogram_Vector_uniform_32, std::reference_wrapper(sourceMessageUniform32), Histogram<uint32_t>{});
+BENCHMARK_CAPTURE(ransMakeHistogramBenchmark, makeHistogram_Vector_binomial_32, std::reference_wrapper(sourceMessageBinomial32), DenseHistogram<uint32_t>{});
+BENCHMARK_CAPTURE(ransMakeHistogramBenchmark, makeHistogram_Vector_uniform_32, std::reference_wrapper(sourceMessageUniform32), DenseHistogram<uint32_t>{});
 
-BENCHMARK_CAPTURE(ransMakeHistogramBenchmark, makeHistogram_SparseVector_binomial_32, std::reference_wrapper(sourceMessageBinomial32), SparseHistogram<uint32_t>{});
-BENCHMARK_CAPTURE(ransMakeHistogramBenchmark, makeHistogram_SparseVector_uniform_32, std::reference_wrapper(sourceMessageUniform32), SparseHistogram<uint32_t>{});
+BENCHMARK_CAPTURE(ransMakeHistogramBenchmark, makeHistogram_SparseVector_binomial_32, std::reference_wrapper(sourceMessageBinomial32), AdaptiveHistogram<uint32_t>{});
+BENCHMARK_CAPTURE(ransMakeHistogramBenchmark, makeHistogram_SparseVector_uniform_32, std::reference_wrapper(sourceMessageUniform32), AdaptiveHistogram<uint32_t>{});
 
-// BENCHMARK_CAPTURE(ransMakeHistogramBenchmark, makeHistogram_Hash_binomial_32, sourceMessageBinomial32, HashHistogram<uint32_t>{});
-// BENCHMARK_CAPTURE(ransMakeHistogramBenchmark, makeHistogram_Hash_uniform_32, sourceMessageUniform32, HashHistogram<uint32_t>{});
+BENCHMARK_CAPTURE(ransAccessHistogramBenchmark, accessHistogram_Vector_binomial_32, std::reference_wrapper(sourceMessageBinomial32), DenseHistogram<uint32_t>{});
+BENCHMARK_CAPTURE(ransAccessHistogramBenchmark, accessHistogram_Vector_uniform_32, std::reference_wrapper(sourceMessageUniform32), DenseHistogram<uint32_t>{});
 
-BENCHMARK_CAPTURE(ransAccessHistogramBenchmark, accessHistogram_Vector_binomial_32, std::reference_wrapper(sourceMessageBinomial32), Histogram<uint32_t>{});
-BENCHMARK_CAPTURE(ransAccessHistogramBenchmark, accessHistogram_Vector_uniform_32, std::reference_wrapper(sourceMessageUniform32), Histogram<uint32_t>{});
-
-BENCHMARK_CAPTURE(ransAccessHistogramBenchmark, accessHistogram_SparseVector_binomial_32, std::reference_wrapper(sourceMessageBinomial32), SparseHistogram<uint32_t>{});
-BENCHMARK_CAPTURE(ransAccessHistogramBenchmark, accessHistogram_SparseVector_uniform_32, std::reference_wrapper(sourceMessageUniform32), SparseHistogram<uint32_t>{});
+BENCHMARK_CAPTURE(ransAccessHistogramBenchmark, accessHistogram_SparseVector_binomial_32, std::reference_wrapper(sourceMessageBinomial32), AdaptiveHistogram<uint32_t>{});
+BENCHMARK_CAPTURE(ransAccessHistogramBenchmark, accessHistogram_SparseVector_uniform_32, std::reference_wrapper(sourceMessageUniform32), AdaptiveHistogram<uint32_t>{});
 
 BENCHMARK_MAIN();

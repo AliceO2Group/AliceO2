@@ -25,7 +25,7 @@
 #include "rANS/internal/containers/RenormedHistogram.h"
 #include "rANS/internal/containers/Symbol.h"
 #include "rANS/internal/containers/ReverseSymbolLookupTable.h"
-#include "rANS/internal/containers/SymbolTable.h"
+#include "rANS/internal/containers/DenseSymbolTable.h"
 
 namespace o2::rans
 {
@@ -42,13 +42,13 @@ class LowRangeDecoderTable
   using difference_type = std::ptrdiff_t;
 
  private:
-  using symbolTable_type = SymbolTable<source_type, symbol_type>;
+  using symbolTable_type = DenseSymbolTable<source_type, symbol_type>;
 
  public:
   LowRangeDecoderTable() noexcept = default;
 
   template <typename container_T>
-  explicit LowRangeDecoderTable(const RenormedHistogramImpl<container_T>& renormedHistogram) : mSymbolTable{renormedHistogram}, mRLUT{renormedHistogram} {};
+  explicit LowRangeDecoderTable(const RenormedHistogramConcept<container_T>& renormedHistogram) : mSymbolTable{renormedHistogram}, mRLUT{renormedHistogram} {};
 
   [[nodiscard]] inline size_type size() const noexcept { return mRLUT.size(); };
 

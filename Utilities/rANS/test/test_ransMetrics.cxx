@@ -30,7 +30,7 @@
 using namespace o2::rans;
 
 using source_type = uint32_t;
-using histogram_types = boost::mp11::mp_list<Histogram<source_type>, SparseHistogram<source_type>, HashHistogram<source_type>>;
+using histogram_types = boost::mp11::mp_list<DenseHistogram<source_type>, AdaptiveHistogram<source_type>, SparseHistogram<source_type>>;
 
 BOOST_AUTO_TEST_SUITE(test_DictSizeEstimate)
 BOOST_AUTO_TEST_CASE(test_initDictSizeEstimate)
@@ -113,9 +113,9 @@ BOOST_AUTO_TEST_SUITE(test_RenormingPrecision)
 class MetricsTester : public Metrics<source_type>
 {
  public:
-  inline MetricsTester(const Histogram<source_type>& histogram, float_t cutoffPrecision = 0.999) : Metrics(histogram, cutoffPrecision){};
+  inline MetricsTester(const DenseHistogram<source_type>& histogram, float_t cutoffPrecision = 0.999) : Metrics(histogram, cutoffPrecision){};
+  inline MetricsTester(const AdaptiveHistogram<source_type>& histogram, float_t cutoffPrecision = 0.999) : Metrics(histogram, cutoffPrecision){};
   inline MetricsTester(const SparseHistogram<source_type>& histogram, float_t cutoffPrecision = 0.999) : Metrics(histogram, cutoffPrecision){};
-  inline MetricsTester(const HashHistogram<source_type>& histogram, float_t cutoffPrecision = 0.999) : Metrics(histogram, cutoffPrecision){};
   inline size_t testComputeRenormingPrecision(float_t cutoffPrecision = 0.999) noexcept { return computeRenormingPrecision(cutoffPrecision); };
   inline size_t testComputeIncompressibleCount(gsl::span<source_type> distribution, source_type renormingPrecision) noexcept { return computeIncompressibleCount(distribution, renormingPrecision); };
 };

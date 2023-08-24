@@ -45,7 +45,7 @@ class DecoderConcept
   DecoderConcept() = default;
 
   template <typename container_T>
-  explicit DecoderConcept(const RenormedHistogramImpl<container_T>& renormedHistogram) : mSymbolTable{renormedHistogram} {};
+  explicit DecoderConcept(const RenormedHistogramConcept<container_T>& renormedHistogram) : mSymbolTable{renormedHistogram} {};
 
   [[nodiscard]] inline const symbolTable_type& getSymbolTable() const noexcept { return this->mSymbolTable; };
 

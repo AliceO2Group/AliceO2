@@ -45,7 +45,7 @@ void CTFCoder::createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBa
   int32_t orbitIncTrig, orbitIncEOD;
   uint16_t moduleTrig, nchanTrig, chanData, pedData, triggersHL, channelsHL;
   uint8_t extTriggers, chanID;
-#define MAKECODER(part, slot) createCoder(op, ctf.getFrequencyTable<decltype(part)>(slot, mANSVersion), int(slot))
+#define MAKECODER(part, slot) createCoder(op, std::get<rans::RenormedDenseHistogram<decltype(part)>>(ctf.getDictionary<decltype(part)>(slot, mANSVersion)), int(slot))
   // clang-format off
   MAKECODER(bcIncTrig,         CTF::BLC_bcIncTrig);
   MAKECODER(orbitIncTrig,      CTF::BLC_orbitIncTrig);

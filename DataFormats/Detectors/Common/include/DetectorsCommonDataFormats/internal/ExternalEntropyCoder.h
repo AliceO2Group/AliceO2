@@ -34,7 +34,7 @@ class ExternalEntropyCoder
 {
  public:
   using source_type = source_T;
-  using encoder_type = typename rans::defaultEncoder_type<source_type>;
+  using encoder_type = typename rans::denseEncoder_type<source_type>;
   using metrics_type = rans::Metrics<source_type>;
 
   ExternalEntropyCoder(const encoder_type& encoder);

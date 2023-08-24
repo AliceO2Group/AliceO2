@@ -211,19 +211,19 @@ class ExternalEncoderDecoderProxy
   {
     SourceMessageProxy proxy{};
 
-    auto renormed8u = rans::renorm(rans::makeHistogram::fromSamples(proxy.getMessage<uint8_t>().begin(), proxy.getMessage<uint8_t>().end()), rans::RenormingPolicy::ForceIncompressible);
-    auto renormed8 = rans::renorm(rans::makeHistogram::fromSamples(proxy.getMessage<int8_t>().begin(), proxy.getMessage<int8_t>().end()), rans::RenormingPolicy::ForceIncompressible);
-    auto renormed16u = rans::renorm(rans::makeHistogram::fromSamples(proxy.getMessage<uint16_t>().begin(), proxy.getMessage<uint16_t>().end()), rans::RenormingPolicy::ForceIncompressible);
-    auto renormed16 = rans::renorm(rans::makeHistogram::fromSamples(proxy.getMessage<int16_t>().begin(), proxy.getMessage<int16_t>().end()), rans::RenormingPolicy::ForceIncompressible);
-    auto renormed32u = rans::renorm(rans::makeHistogram::fromSamples(proxy.getMessage<uint32_t>().begin(), proxy.getMessage<uint32_t>().end()), rans::RenormingPolicy::ForceIncompressible);
-    auto renormed32 = rans::renorm(rans::makeHistogram::fromSamples(proxy.getMessage<int32_t>().begin(), proxy.getMessage<int32_t>().end()), rans::RenormingPolicy::ForceIncompressible);
+    auto renormed8u = rans::renorm(rans::makeDenseHistogram::fromSamples(proxy.getMessage<uint8_t>().begin(), proxy.getMessage<uint8_t>().end()), rans::RenormingPolicy::ForceIncompressible);
+    auto renormed8 = rans::renorm(rans::makeDenseHistogram::fromSamples(proxy.getMessage<int8_t>().begin(), proxy.getMessage<int8_t>().end()), rans::RenormingPolicy::ForceIncompressible);
+    auto renormed16u = rans::renorm(rans::makeDenseHistogram::fromSamples(proxy.getMessage<uint16_t>().begin(), proxy.getMessage<uint16_t>().end()), rans::RenormingPolicy::ForceIncompressible);
+    auto renormed16 = rans::renorm(rans::makeDenseHistogram::fromSamples(proxy.getMessage<int16_t>().begin(), proxy.getMessage<int16_t>().end()), rans::RenormingPolicy::ForceIncompressible);
+    auto renormed32u = rans::renorm(rans::makeDenseHistogram::fromSamples(proxy.getMessage<uint32_t>().begin(), proxy.getMessage<uint32_t>().end()), rans::RenormingPolicy::ForceIncompressible);
+    auto renormed32 = rans::renorm(rans::makeDenseHistogram::fromSamples(proxy.getMessage<int32_t>().begin(), proxy.getMessage<int32_t>().end()), rans::RenormingPolicy::ForceIncompressible);
 
-    encoder8u = rans::makeEncoder<>::fromRenormed(renormed8u);
-    encoder8 = rans::makeEncoder<>::fromRenormed(renormed8);
-    encoder16u = rans::makeEncoder<>::fromRenormed(renormed16u);
-    encoder16 = rans::makeEncoder<>::fromRenormed(renormed16);
-    encoder32u = rans::makeEncoder<>::fromRenormed(renormed32u);
-    encoder32 = rans::makeEncoder<>::fromRenormed(renormed32);
+    encoder8u = rans::makeDenseEncoder<>::fromRenormed(renormed8u);
+    encoder8 = rans::makeDenseEncoder<>::fromRenormed(renormed8);
+    encoder16u = rans::makeDenseEncoder<>::fromRenormed(renormed16u);
+    encoder16 = rans::makeDenseEncoder<>::fromRenormed(renormed16);
+    encoder32u = rans::makeDenseEncoder<>::fromRenormed(renormed32u);
+    encoder32 = rans::makeDenseEncoder<>::fromRenormed(renormed32);
 
     decoder8u = rans::makeDecoder<>::fromRenormed(renormed8u);
     decoder8 = rans::makeDecoder<>::fromRenormed(renormed8);
@@ -274,12 +274,12 @@ class ExternalEncoderDecoderProxy
   };
 
  private:
-  rans::defaultEncoder_type<uint8_t> encoder8u{};
-  rans::defaultEncoder_type<int8_t> encoder8{};
-  rans::defaultEncoder_type<uint16_t> encoder16u{};
-  rans::defaultEncoder_type<int16_t> encoder16{};
-  rans::defaultEncoder_type<uint32_t> encoder32u{};
-  rans::defaultEncoder_type<int32_t> encoder32{};
+  rans::denseEncoder_type<uint8_t> encoder8u{};
+  rans::denseEncoder_type<int8_t> encoder8{};
+  rans::denseEncoder_type<uint16_t> encoder16u{};
+  rans::denseEncoder_type<int16_t> encoder16{};
+  rans::denseEncoder_type<uint32_t> encoder32u{};
+  rans::denseEncoder_type<int32_t> encoder32{};
 
   rans::defaultDecoder_type<uint8_t> decoder8u{};
   rans::defaultDecoder_type<int8_t> decoder8{};

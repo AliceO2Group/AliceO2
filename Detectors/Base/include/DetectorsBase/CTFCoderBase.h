@@ -81,23 +81,23 @@ class CTFCoderBase
   void createCodersFromFile(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op, bool mayFail = false);
 
   template <typename S>
-  void createCoder(OpType op, const o2::rans::RenormedHistogram<S>& renormedHistogram, int slot)
+  void createCoder(OpType op, const o2::rans::RenormedDenseHistogram<S>& renormedHistogram, int slot)
   {
     LOG_IF(warning, renormedHistogram.empty()) << fmt::format("Empty dictionary provided for slot {}, {} will assume literal symbols only", slot, (op == OpType::Encoder ? "encoding" : "decoding"));
 
     if (mANSVersion == ANSVersionCompat) {
       switch (op) {
         case OpType::Encoder:
-          mCoders[slot] = std::make_any<rans::compat::encoder_type<S>>(rans::compat::makeEncoder::fromRenormed<S>(renormedHistogram));
+          mCoders[slot] = std::make_any<rans::compat::encoder_type<S>>(rans::compat::makeEncoder::fromRenormed(renormedHistogram));
           break;
         case OpType::Decoder:
-          mCoders[slot] = std::make_any<rans::compat::decoder_type<S>>(rans::compat::makeDecoder::fromRenormed<S>(renormedHistogram));
+          mCoders[slot] = std::make_any<rans::compat::decoder_type<S>>(rans::compat::makeDecoder::fromRenormed(renormedHistogram));
           break;
       }
     } else if (mANSVersion == ANSVersion1) {
       switch (op) {
         case OpType::Encoder:
-          mCoders[slot] = std::make_any<rans::defaultEncoder_type<S>>(rans::makeEncoder<>::fromRenormed(renormedHistogram));
+          mCoders[slot] = std::make_any<rans::denseEncoder_type<S>>(rans::makeDenseEncoder<>::fromRenormed(renormedHistogram));
           break;
         case OpType::Decoder:
           mCoders[slot] = std::make_any<rans::defaultDecoder_type<S>>(rans::makeDecoder<>::fromRenormed(renormedHistogram));
@@ -406,7 +406,7 @@ template <typename source_T>
         auto view = rans::trim(rans::makeHistogramView(encoder.getSymbolTable()));
         return rans::utils::getRangeBits(view.getMin(), view.getMax());
       } else if (mANSVersion == ANSVersion1) {
-        const auto& encoder = std::any_cast<const rans::defaultEncoder_type<source_T>&>(coder);
+        const auto& encoder = std::any_cast<const rans::denseEncoder_type<source_T>&>(coder);
         auto view = rans::trim(rans::makeHistogramView(encoder.getSymbolTable()));
         return rans::utils::getRangeBits(view.getMin(), view.getMax());
       } else {

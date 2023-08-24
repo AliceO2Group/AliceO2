@@ -97,10 +97,10 @@ int main(int argc, char* argv[])
   std::vector<source_type> tokens = readFile<source_type>(filename);
 
   // build encoders
-  auto histogram = makeHistogram::fromSamples(tokens.begin(), tokens.end());
+  auto histogram = makeDenseHistogram::fromSamples(tokens.begin(), tokens.end());
   Metrics<source_type> metrics{histogram};
   auto renormedHistogram = renorm(std::move(histogram), metrics);
-  auto encoder = makeEncoder<CoderTag::SingleStream, NSTREAMS, LOWER_BOUND>::fromRenormed(renormedHistogram);
+  auto encoder = makeDenseEncoder<CoderTag::SingleStream, NSTREAMS, LOWER_BOUND>::fromRenormed(renormedHistogram);
   auto decoder = makeDecoder<LOWER_BOUND>::fromRenormed(renormedHistogram);
 
   std::vector<stream_type> encoderBuffer;

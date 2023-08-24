@@ -16,7 +16,7 @@
 #ifndef RANS_DECODE_H_
 #define RANS_DECODE_H_
 
-#include "rANS/internal/containers/SymbolTable.h"
+#include "rANS/internal/containers/DenseSymbolTable.h"
 #include "rANS/internal/containers/Symbol.h"
 #include "rANS/internal/decode/Decoder.h"
 
