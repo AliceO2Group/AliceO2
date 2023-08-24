@@ -18,7 +18,6 @@
 #include <TTree.h>
 
 using namespace o2::ctp;
-
 ///___________________________________________________________________________________
 // Register encoded data in the tree (Fill is not called, will be done by caller)
 void CTFCoder::appendToTree(TTree& tree, CTF& ec)
