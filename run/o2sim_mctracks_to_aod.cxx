@@ -105,9 +105,9 @@ struct MctracksToAod {
         float py = mctrack.Py();
         float pz = mctrack.Pz();
         float e = mctrack.GetEnergy();
-        float x = mctrack.GetStartVertexCoordinatesX();
-        float y = mctrack.GetStartVertexCoordinatesY();
-        float z = mctrack.GetStartVertexCoordinatesZ();
+        float x = useMeanVertex ? v.Coordinates().x() : mctrack.GetStartVertexCoordinatesX();
+        float y = useMeanVertex ? v.Coordinates().y() : mctrack.GetStartVertexCoordinatesY();
+        float z = useMeanVertex ? v.Coordinates().z() : mctrack.GetStartVertexCoordinatesZ();
         float t = mctrack.GetStartVertexCoordinatesT();
         int flags = 0;
         if (!mctrack.isPrimary()) {
