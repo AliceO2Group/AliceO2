@@ -20,7 +20,7 @@
 #include "GPUCommonDef.h"
 #ifndef GPUCA_GPUCODE_DEVICE
 #include <memory>
-#include "Rtypes.h"
+#include "GPUCommonRtypes.h"
 #endif
 
 namespace GPUCA_NAMESPACE
