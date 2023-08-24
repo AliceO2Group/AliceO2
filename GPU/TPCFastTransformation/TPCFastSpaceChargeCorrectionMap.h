@@ -18,7 +18,7 @@
 #define ALICEO2_GPUCOMMON_TPCFASTTRANSFORMATION_TPCFASTSPACECHARGECORRECTIONMAP_H
 
 #include "GPUCommonDef.h"
-#include "Rtypes.h"
+#include "GPUCommonRtypes.h"
 #include <vector>
 
 namespace GPUCA_NAMESPACE
