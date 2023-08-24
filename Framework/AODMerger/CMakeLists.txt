@@ -9,27 +9,12 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(Logger)
+o2_add_executable(merger
+                  COMPONENT_NAME aod
+                  SOURCES src/aodMerger.cxx
+                  PUBLIC_LINK_LIBRARIES  ROOT::Core ROOT::Net)
 
-add_subdirectory(Foundation)
-
-add_subdirectory(Core)
-
-add_subdirectory(Utils)
-
-add_subdirectory(AnalysisSupport) 
-add_subdirectory(CCDBSupport)
-add_subdirectory(PhysicsSupport)
-add_subdirectory(DataTakingSupport)
-
-add_subdirectory(RootAnalysisHelpers)
-
-
-# Build the GUI support only if we have DebugGUI
-if (TARGET AliceO2::DebugGUI)
-add_subdirectory(GUISupport)
-endif()
-
-add_subdirectory(TestWorkflows)
-
-add_subdirectory(AODMerger)
+o2_add_executable(thinner
+                  COMPONENT_NAME aod
+                  SOURCES src/aodThinner.cxx
+                  PUBLIC_LINK_LIBRARIES  ROOT::Core ROOT::Net)
