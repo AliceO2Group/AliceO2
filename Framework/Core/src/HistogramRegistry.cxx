@@ -47,9 +47,9 @@ OutputSpec const HistogramRegistry::spec()
   return OutputSpec{OutputLabel{mName}, "ATSK", desc, 0, Lifetime::QA};
 }
 
-OutputRef HistogramRegistry::ref()
+OutputRef HistogramRegistry::ref(uint16_t pipelineIndex, uint16_t pipelineSize)
 {
-  return OutputRef{std::string{mName}, 0, o2::header::Stack{OutputObjHeader{mPolicy, OutputObjSourceType::HistogramRegistrySource, mTaskHash}}};
+  return OutputRef{std::string{mName}, 0, o2::header::Stack{OutputObjHeader{mPolicy, OutputObjSourceType::HistogramRegistrySource, mTaskHash, pipelineIndex, pipelineSize}}};
 }
 
 void HistogramRegistry::setHash(uint32_t hash)

@@ -115,7 +115,7 @@ class HistogramRegistry
   // return the OutputSpec associated to the HistogramRegistry
   OutputSpec const spec();
 
-  OutputRef ref();
+  OutputRef ref(uint16_t idx, uint16_t pipelineSize);
 
   void setHash(uint32_t hash);
 

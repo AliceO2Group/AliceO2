@@ -30,6 +30,7 @@
 #include "Framework/CommonServices.h"
 #include "Framework/Plugins.h"
 #include "Framework/RootMessageContext.h"
+#include "Framework/DeviceSpec.h"
 
 namespace o2::framework
 {
@@ -271,7 +272,8 @@ struct OutputManager<HistogramRegistry> {
 
   static bool postRun(EndOfStreamContext& context, HistogramRegistry& what)
   {
-    context.outputs().snapshot(what.ref(), *(what.getListOfHistograms()));
+    auto& deviceSpec = context.services().get<o2::framework::DeviceSpec const>();
+    context.outputs().snapshot(what.ref(deviceSpec.inputTimesliceId, deviceSpec.maxInputTimeslices), *(what.getListOfHistograms()));
     what.clean();
     return true;
   }
@@ -298,7 +300,8 @@ struct OutputManager<OutputObj<T>> {
 
   static bool postRun(EndOfStreamContext& context, OutputObj<T>& what)
   {
-    context.outputs().snapshot(what.ref(), *what);
+    auto& deviceSpec = context.services().get<o2::framework::DeviceSpec const>();
+    context.outputs().snapshot(what.ref(deviceSpec.inputTimesliceId, deviceSpec.maxInputTimeslices), *what);
     return true;
   }
 };
