@@ -38,6 +38,7 @@
 
 // for time measurements
 #include <chrono>
+#include <random>
 #include <optional>
 
 using namespace o2::framework;
@@ -46,6 +47,31 @@ namespace o2
 {
 namespace calibration
 {
+
+class CalibInputDownsampler
+{
+ public:
+  CalibInputDownsampler() { initSeed(); }
+  ~CalibInputDownsampler() = default;
+
+  void setSamplingFraction(float samplingFraction) { mSamplingFraction = samplingFraction; }
+  bool acceptEvent()
+  {
+    auto rnr = mSampler(mRandomGenerator);
+    return rnr < mSamplingFraction;
+  }
+
+ private:
+  void initSeed()
+  {
+    auto now = std::chrono::system_clock::now().time_since_epoch().count();
+    std::seed_seq randomseed{uint32_t(now & 0xffffffff), uint32_t(now >> 32)};
+    mRandomGenerator.seed(randomseed);
+  }
+  std::mt19937_64 mRandomGenerator;
+  std::uniform_real_distribution<float> mSampler{0, 1};
+  float mSamplingFraction = 1;
+};
 
 class EMCALChannelCalibDevice : public o2::framework::Task
 {
@@ -186,6 +212,14 @@ class EMCALChannelCalibDevice : public o2::framework::Task
       pc.inputs().get<o2::emcal::GainCalibrationFactors*>(getGainCalibBinding());
     }
 
+    float samplingFraction = isBadChannelCalib ? EMCALCalibParams::Instance().fractionEvents_bc : EMCALCalibParams::Instance().fractionEvents_tc;
+    if (samplingFraction < 1) {
+      if (!mDownsampler) {
+        mDownsampler = std::make_unique<CalibInputDownsampler>();
+      }
+      mDownsampler->setSamplingFraction(samplingFraction);
+    }
+
     using ctpDigitsType = std::decay_t<decltype(pc.inputs().get<gsl::span<o2::ctp::CTPDigit>>(getCTPDigitsBinding()))>;
     std::optional<ctpDigitsType> ctpDigits;
     if (mRejectL0Triggers) {
@@ -253,6 +287,9 @@ class EMCALChannelCalibDevice : public o2::framework::Task
         }
       }
 
+      if (mDownsampler && !mDownsampler->acceptEvent()) {
+        continue;
+      }
       gsl::span<const o2::emcal::Cell> eventData(data.data() + trg.getFirstEntry(), trg.getNumberOfObjects());
 
       // fast calibration
@@ -335,6 +372,7 @@ class EMCALChannelCalibDevice : public o2::framework::Task
   bool mGainCalibFactorsInitialized = false;                                                                                           ///! Gain calibration init status
   std::array<double, 2> timeMeas;                                                                                                      ///! Used for time measurement and holds the start and end time in the run function
   std::vector<uint64_t> mSelectedClassMasks = {};                                                                                      ///! EMCal minimum bias trigger bit. Only this bit will be used for calibration
+  std::unique_ptr<CalibInputDownsampler> mDownsampler;
 
   //________________________________________________________________
   template <typename DataOutput>

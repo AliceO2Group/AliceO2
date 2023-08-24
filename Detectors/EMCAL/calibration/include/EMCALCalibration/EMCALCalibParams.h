@@ -48,6 +48,7 @@ struct EMCALCalibParams : public o2::conf::ConfigurableParamHelper<EMCALCalibPar
   float minNHitsForMeanEnergyCut = 100; ///< mean number of hits per cell that is needed to cut on the mean energy per hit. Needed for high energy intervals as outliers can distort the distribution
   float minNHitsForNHitCut = 1;         ///< mean number of hits per cell that is needed to cut on the mean number of hits. Needed for high energy intervals as outliers can distort the distribution
   float minCellEnergy_bc = 0.1;         ///< minimum cell energy considered for filling the histograms for bad channel calib. Should speedup the filling of the histogram to suppress noise
+  float fractionEvents_bc = 1.;         ///< fraction of events used in bad channel calibration
 
   // parameters for time calibration
   unsigned int minNEvents_tc = 1e7;      ///< minimum number of events to trigger the calibration
@@ -64,6 +65,7 @@ struct EMCALCalibParams : public o2::conf::ConfigurableParamHelper<EMCALCalibPar
   unsigned int slotLength_tc = 0;        ///< Lenght of the slot before calibration is triggered. If set to 0 calibration is triggered when hasEnoughData returns true
   bool UpdateAtEndOfRunOnly_tc = false;  ///< switch to enable trigger of calibration only at end of run
   float maxAllowedDeviationFromMax = 10; ///< maximum deviation allowed between the estimated maximum of the fit and the true maximum from the distribution. If deviation is larger then value, the fit likely failed. In this case, the true value is taken
+  float fractionEvents_tc = 1.;          ///< fraction of events used in time calibration
 
   // common parameters
   std::string calibType = "time";                      ///< type of calibration to run
