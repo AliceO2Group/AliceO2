@@ -34,8 +34,8 @@ namespace o2
 {
 namespace tof
 {
-static constexpr o2::header::DataDescription ddMatchInfo[4] = {"MTC_TPC", "MTC_ITSTPC", "MTC_TPCTRD", "MTC_ITSTPCTRD"};
-static constexpr o2::header::DataDescription ddMCMatchTOF[4] = {"MCMTC_TPC", "MCMTC_ITSTPC", "MCMTC_TPCTRD", "MCMTC_ITSTPCTRD"};
+static constexpr o2::header::DataDescription ddMatchInfo[5] = {"MTC_TPC", "MTC_ITSTPC", "MTC_TPCTRD", "MTC_ITSTPCTRD", "MTC_ITS"};
+static constexpr o2::header::DataDescription ddMCMatchTOF[5] = {"MCMTC_TPC", "MCMTC_ITSTPC", "MCMTC_TPCTRD", "MCMTC_ITSTPCTRD", "MCMTC_ITS"};
 void TOFMatchedReader::init(InitContext& ic)
 {
   // get the option from the init context
@@ -90,9 +90,9 @@ void TOFMatchedReader::run(ProcessingContext& pc)
 
 DataProcessorSpec getTOFMatchedReaderSpec(bool useMC, int mode, bool readTracks, bool subSpecStrict)
 {
-  const char* match_name[4] = {"TOFMatchedReader_TPC", "TOFMatchedReader_ITSTPC", "TOFMatchedReader_TPCTRD", "TOFMatchedReader_ITSTPCTRD"};
-  const char* match_name_strict[4] = {"TOFMatchedReader_TPC_str", "TOFMatchedReader_ITSTPC_str", "TOFMatchedReader_TPCTRD_str", "TOFMatchedReader_ITSTPCTRD_str"};
-  const char* file_name[4] = {"o2match_tof_tpc.root", "o2match_tof_itstpc.root", "o2match_tof_tpctrd.root", "o2match_tof_itstpctrd.root"};
+  const char* match_name[5] = {"TOFMatchedReader_TPC", "TOFMatchedReader_ITSTPC", "TOFMatchedReader_TPCTRD", "TOFMatchedReader_ITSTPCTRD", "TOFMatchedReader_ITS"};
+  const char* match_name_strict[5] = {"TOFMatchedReader_TPC_str", "TOFMatchedReader_ITSTPC_str", "TOFMatchedReader_TPCTRD_str", "TOFMatchedReader_ITSTPCTRD_str", "TOFMatchedReader_ITS_str"};
+  const char* file_name[5] = {"o2match_tof_tpc.root", "o2match_tof_itstpc.root", "o2match_tof_tpctrd.root", "o2match_tof_itstpctrd.root", "o2match_tof_its.root"};
   const char* taskName = match_name[mode];
   const char* fileName = file_name[mode];
   if (subSpecStrict) {

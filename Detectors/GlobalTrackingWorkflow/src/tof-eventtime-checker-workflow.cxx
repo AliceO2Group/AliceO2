@@ -102,7 +102,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   LOG(debug) << "TOF EVENTTIME CHECKER WORKFLOW configuration";
   LOG(debug) << "TOF track inputs = " << configcontext.options().get<std::string>("track-sources");
 
-  GID::mask_t alowedSources = GID::getSourcesMask("ITS-TPC-TOF,TPC-TOF,ITS-TPC-TRD-TOF,TPC-TRD-TOF,ITS-TPC,TPC,ITS-TPC-TRD,TPC-TRD");
+  GID::mask_t alowedSources = GID::getSourcesMask("ITS-TPC-TOF,TPC-TOF,ITS-TPC-TRD-TOF,TPC-TRD-TOF,ITS-TPC,TPC,ITS-TPC-TRD,TPC-TRD,ITS,ITS-TOF");
 
   GID::mask_t src = alowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
   GID::mask_t mcmaskcl;

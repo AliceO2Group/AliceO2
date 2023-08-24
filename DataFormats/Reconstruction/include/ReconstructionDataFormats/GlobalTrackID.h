@@ -65,7 +65,8 @@ class GlobalTrackID : public AbstractRef<25, 5, 2>
     ITSAB,        // ITS AfterBurner tracklets
     CTP,
     //
-    MCHMID, // Temporary ordering
+    MCHMID,
+    ITSTOF, // Temporary ordering
     //
     NSources
   };
@@ -148,7 +149,8 @@ GPUconstexpr() DetID::mask_t SourceDetectorsMasks[GlobalTrackID::NSources] = {
   DetID::mask_t(DetID::getMask(DetID::ITS) | DetID::getMask(DetID::TPC) | DetID::getMask(DetID::TRD) | DetID::getMask(DetID::TOF)),
   DetID::mask_t(DetID::getMask(DetID::ITS)),
   DetID::mask_t(DetID::getMask(DetID::CTP)),
-  DetID::mask_t(DetID::getMask(DetID::MCH) | DetID::getMask(DetID::MID)) // Temporary ordering
+  DetID::mask_t(DetID::getMask(DetID::MCH) | DetID::getMask(DetID::MID)),
+  DetID::mask_t(DetID::getMask(DetID::ITS) | DetID::getMask(DetID::TOF)) // Temporary ordering
 };
 
 GPUconstexpr() GlobalTrackID::mask_t sMasks[GlobalTrackID::NSources] = ///< detector masks
@@ -160,14 +162,15 @@ GPUconstexpr() GlobalTrackID::mask_t sMasks[GlobalTrackID::NSources] = ///< dete
     GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::ITSTPCTOF)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::TPCTRDTOF)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::MFTMCHMID)), GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::ITSTPCTRDTOF)),
     GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::ITSAB)),
     GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::CTP)),
-    GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::MCHMID)) // Temporary ordering
+    GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::MCHMID)),
+    GlobalTrackID::mask_t(math_utils::bit2Mask(GlobalTrackID::ITSTOF)) // Temporary ordering
 };
 
 #ifndef __OPENCL__
 GPUconstexpr() GlobalTrackID::mask_t sTrackSources =
   sMasks[GlobalTrackID::ITS] | sMasks[GlobalTrackID::TPC] | sMasks[GlobalTrackID::MFT] | sMasks[GlobalTrackID::MCH] | sMasks[GlobalTrackID::ITSTPC] | sMasks[GlobalTrackID::TPCTOF] |
   sMasks[GlobalTrackID::TPCTRD] | sMasks[GlobalTrackID::MFTMCH] | sMasks[GlobalTrackID::ITSTPCTRD] | sMasks[GlobalTrackID::ITSTPCTOF] | sMasks[GlobalTrackID::TPCTRDTOF] |
-  sMasks[GlobalTrackID::MFTMCHMID] | sMasks[GlobalTrackID::ITSTPCTRDTOF] | sMasks[GlobalTrackID::ITSAB] | sMasks[GlobalTrackID::MCHMID];
+  sMasks[GlobalTrackID::MFTMCHMID] | sMasks[GlobalTrackID::ITSTPCTRDTOF] | sMasks[GlobalTrackID::ITSAB] | sMasks[GlobalTrackID::MCHMID] | sMasks[GlobalTrackID::ITSTOF];
 #endif
 
 } // namespace globaltrackid_internal

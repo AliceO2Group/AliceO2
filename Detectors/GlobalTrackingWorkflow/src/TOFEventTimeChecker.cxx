@@ -27,6 +27,7 @@
 #include "ReconstructionDataFormats/GlobalTrackAccessor.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "GlobalTracking/MatchTPCITS.h"
+#include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTRD/TrackTRD.h"
 
@@ -126,6 +127,7 @@ class TOFEventTimeChecker : public Task
   bool mIsTPCTRD;
   bool mIsITSTPCTRD;
   bool mIsITSTPC;
+  bool mIsITS;
   gsl::span<const o2::tof::Cluster> mTOFClustersArrayInp; ///< input TOF clusters
   std::vector<MyTrack> mMyTracks;
   TimeSlewing* mSlewing = nullptr;
@@ -414,11 +416,34 @@ void TOFEventTimeChecker::fillMatching(GID gid, float time0, float time0res)
     trk.mEta = srctrk.getEta();
     trk.mPhi = srctrk.getPhi();
     trksource = 3;
+  } else if (gid.getSource() == GID::ITSTOF) {
+    const o2::dataformats::MatchInfoTOF& match = mRecoData.getTOFMatch(gid);
+    const auto& array = mRecoData.getITSTracks();
+    GID gTrackId = match.getTrackRef();
+    const auto& srctrk = array[gTrackId.getIndex()];
+    trk.mPt = srctrk.getPt() * srctrk.getCharge();
+    trk.mPTPC = srctrk.getP();
+    trk.mP = srctrk.getP();
+    trk.mEta = srctrk.getEta();
+    trk.mPhi = srctrk.getPhi();
+    trksource = 4;
+    trk.mDx = match.getDXatTOF();
+    trk.mDz = match.getDZatTOF();
+  } else if (gid.getSource() == GID::ITS) {
+    const auto& array = mRecoData.getITSTracks();
+    GID gTrackId = gid; // match.getTrackRef();
+    const auto& srctrk = array[gTrackId.getIndex()];
+    trk.mPt = srctrk.getPt() * srctrk.getCharge();
+    trk.mPTPC = srctrk.getP();
+    trk.mP = srctrk.getP();
+    trk.mEta = srctrk.getEta();
+    trk.mPhi = srctrk.getPhi();
+    trksource = 4;
   }
 
   trk.mSource = trksource;
 
-  const char* sources[5] = {"TPC", "ITS-TPC", "TPC-TRD", "ITS-TPC-TRD", "NONE"};
+  const char* sources[6] = {"TPC", "ITS-TPC", "TPC-TRD", "ITS-TPC-TRD", "ITS", "NONE"};
 
   if (trk.mHasTOF) {
     const o2::dataformats::MatchInfoTOF& match = mRecoData.getTOFMatch(gid);
@@ -562,6 +587,7 @@ void TOFEventTimeChecker::run(ProcessingContext& pc)
   mIsITSTPC = (mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTOF) && mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTOF));
   mIsITSTPCTRD = (mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTRD) && mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTRDTOF));
   mIsTPCTRD = (mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTRD) && mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTRDTOF));
+  mIsITS = (mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITS) && mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTOF));
 
   mTOFClustersArrayInp = mRecoData.getTOFClusters();
 
@@ -569,6 +595,7 @@ void TOFEventTimeChecker::run(ProcessingContext& pc)
   LOG(debug) << "isTrackSourceLoaded: ITSTPC -> " << mIsITSTPC << " (t=" << mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTOF) << ",m=" << mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTOF) << ")";
   LOG(debug) << "isTrackSourceLoaded: TPCTRD -> " << mIsTPCTRD << " (t=" << mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTRDTOF) << ",m=" << mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTRDTOF) << ")";
   LOG(debug) << "isTrackSourceLoaded: ITSTPCTRD -> " << mIsITSTPCTRD << " (t=" << mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTRDTOF) << ",m=" << mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTRDTOF) << ")";
+  LOG(debug) << "isTrackSourceLoaded: ITS -> " << mIsITS << " (t=" << mRecoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTOF) << ",m=" << mRecoData.isMatchSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTOF) << ")";
   LOG(debug) << "TOF cluster size = " << mTOFClustersArrayInp.size();
 
   if (!mTOFClustersArrayInp.size()) {

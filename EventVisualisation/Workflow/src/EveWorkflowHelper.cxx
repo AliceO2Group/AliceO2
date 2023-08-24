@@ -51,6 +51,7 @@ const std::unordered_map<GID::Source, EveWorkflowHelper::PropagationRange> EveWo
   {GID::ITSTPCTOF, {EveWorkflowHelper::prITS.minR, EveWorkflowHelper::prTOF.maxR, EveWorkflowHelper::prTOF.minZ, EveWorkflowHelper::prTOF.maxZ}},
   {GID::TPCTRDTOF, {EveWorkflowHelper::prTPC.minR, EveWorkflowHelper::prTOF.maxR, EveWorkflowHelper::prTOF.minZ, EveWorkflowHelper::prTOF.maxZ}},
   {GID::ITSTPCTRDTOF, {EveWorkflowHelper::prITS.minR, EveWorkflowHelper::prTOF.maxR, EveWorkflowHelper::prTOF.minZ, EveWorkflowHelper::prTOF.maxZ}},
+  {GID::ITSTOF, {EveWorkflowHelper::prITS.minR, EveWorkflowHelper::prTOF.maxR, EveWorkflowHelper::prTOF.minZ, EveWorkflowHelper::prTOF.maxZ}},
 };
 
 o2::mch::TrackParam EveWorkflowHelper::forwardTrackToMCHTrack(const o2::track::TrackParFwd& track)
@@ -407,6 +408,9 @@ void EveWorkflowHelper::draw(std::size_t primaryVertexIdx, bool sortTracks)
         case GID::ITSTPCTRDTOF:
           drawITSTPCTRDTOF(gid, tim);
           break;
+        case GID::ITSTOF:
+          drawITSTOF(gid, tim);
+          break;
         case GID::MCHMID:
           drawMCHMID(gid, tim);
           break;
@@ -674,6 +678,15 @@ void EveWorkflowHelper::drawTPCTRDTOF(GID gid, float trackTime)
   const auto& match = mRecoCont->getTPCTRDTOFMatches()[gid.getIndex()];
   auto gidTPCTRD = match.getTrackRef();
   drawTPCTRD(gidTPCTRD, trackTime, GID::TPCTRDTOF);
+  drawTOFClusters(gid, trackTime);
+}
+
+void EveWorkflowHelper::drawITSTOF(GID gid, float trackTime)
+{
+  // LOG(info) << "EveWorkflowHelper::drawITSTPCTRDTOF " << gid;
+  const auto& match = mRecoCont->getITSTOFMatches()[gid.getIndex()];
+  auto gidITS = match.getTrackRef();
+  drawITSClusters(gidITS, trackTime);
   drawTOFClusters(gid, trackTime);
 }
 
@@ -1092,8 +1105,8 @@ GID::Source EveWorkflowHelper::detectorMapToGIDSource(uint8_t dm)
       return GID::ITSTPCTRD;
     case static_cast<uint8_t>(o2::aod::track::ITS) | static_cast<uint8_t>(o2::aod::track::TPC) | static_cast<uint8_t>(o2::aod::track::TOF):
       return GID::ITSTPCTOF;
-    case static_cast<uint8_t>(o2::aod::track::TPC) | static_cast<uint8_t>(o2::aod::track::TRD) | static_cast<uint8_t>(o2::aod::track::TOF):
-      return GID::TPCTRDTOF;
+    case static_cast<uint8_t>(o2::aod::track::ITS) | static_cast<uint8_t>(o2::aod::track::TOF):
+      return GID::ITSTOF;
     default:
       return GID::ITSTPCTRDTOF;
   }

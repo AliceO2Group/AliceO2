@@ -49,6 +49,7 @@ VisualisationEvent::GIDVisualisation VisualisationEvent::mVis = [] {
       res.contains[o2::dataformats::GlobalTrackID::ITSTPCTRD][filter] = true;
       res.contains[o2::dataformats::GlobalTrackID::ITSTPCTOF][filter] = true;
       res.contains[o2::dataformats::GlobalTrackID::ITSTPCTRDTOF][filter] = true;
+      res.contains[o2::dataformats::GlobalTrackID::ITSTOF][filter] = true;
     }
     if (filter == o2::event_visualisation::EVisualisationGroup::TRD) {
       res.contains[o2::dataformats::GlobalTrackID::TRD][filter] = true;
@@ -63,6 +64,7 @@ VisualisationEvent::GIDVisualisation VisualisationEvent::mVis = [] {
       res.contains[o2::dataformats::GlobalTrackID::ITSTPCTOF][filter] = true;
       res.contains[o2::dataformats::GlobalTrackID::TPCTRDTOF][filter] = true;
       res.contains[o2::dataformats::GlobalTrackID::ITSTPCTRDTOF][filter] = true;
+      res.contains[o2::dataformats::GlobalTrackID::ITSTOF][filter] = true;
     }
     if (filter == o2::event_visualisation::EVisualisationGroup::MFT) {
       res.contains[o2::dataformats::GlobalTrackID::MFT][filter] = true;

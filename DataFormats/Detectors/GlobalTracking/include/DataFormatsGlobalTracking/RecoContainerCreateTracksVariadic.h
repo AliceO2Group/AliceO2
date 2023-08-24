@@ -109,6 +109,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator, GTrackID
   const auto matchesITSTPCTRDTOF = getITSTPCTRDTOFMatches(); // just matches, no refit done
   const auto tofClusters = getTOFClusters();
   const auto tracksITSTPCTRD = getITSTPCTRDTracks<o2::trd::TrackTRD>();
+  const auto matchesITSTOF = getITSTOFMatches(); // just matches, no refit done
 
   const auto trigTPCTRD = getTPCTRDTriggers();
 
@@ -125,6 +126,7 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator, GTrackID
   usedData[GTrackID::ITSTPCTOF].resize(getITSTPCTOFMatches().size());       // to flag used ITSTPC-TOF matches
   usedData[GTrackID::TPCTRDTOF].resize(getTPCTRDTOFMatches().size());       // to flag used ITSTPC-TOF matches
   usedData[GTrackID::ITSTPCTRDTOF].resize(getITSTPCTRDTOFMatches().size()); // to flag used ITSTPC-TOF matches
+  usedData[GTrackID::ITSTOF].resize(getITSTOFMatches().size());             // to flag used ITSTPC-TOF matches
 
   static int BCDiffErrCount = 0;
   constexpr int MAXBCDiffErrCount = 5;
@@ -303,6 +305,29 @@ void o2::globaltracking::RecoContainer::createTracksVariadic(T creator, GTrackID
     }
   }
 
+  // ITS-TOF matches
+  {
+    currentSource = GTrackID::ITSTOF;
+    if (srcSel[currentSource]) {
+      if (matchesITSTOF.size() && (!tofClusters.size() || !tracksITS.size())) {
+        throw std::runtime_error(fmt::format("ITS-TOF tracks ({}) require ITS tracks ({}) and TOF clusters ({})",
+                                             matchesITSTOF.size(), tracksITS.size(), tofClusters.size()));
+      }
+      for (unsigned i = 0; i < matchesITSTOF.size(); i++) {
+        const auto& match = matchesITSTOF[i];
+        const auto& gidx = match.getTrackRef(); // TPC track global idx
+        if (isUsed(gidx)) {                     // flag used TPC tracks
+          continue;
+        }
+        const auto& tofCl = tofClusters[match.getTOFClIndex()];
+        float timeTOFMUS = (tofCl.getTime() - match.getLTIntegralOut().getTOF(o2::track::PID::Pion)) * PS2MUS; // tof time in \mus, FIXME: account for time of flight to R TOF
+        const float timeErr = 0.010f;
+        if (creator(tracksITS[gidx.getIndex()], {i, currentSource}, timeTOFMUS, timeErr)) {
+          flagUsed(gidx); // flag used TPC tracks
+        }
+      }
+    }
+  }
   // MFT-MCH tracks
   {
     currentSource = GTrackID::MFTMCH;

@@ -154,6 +154,7 @@ class EveWorkflowHelper
   void drawITSTPCTRD(GID gid, float trackTime, GID::Source source = GID::ITSTPCTRD);
   void drawITSTPCTRDTOF(GID gid, float trackTime);
   void drawTPCTRDTOF(GID gid, float trackTime);
+  void drawITSTOF(GID gid, float trackTime);
   void drawMFTMCHMID(GID gid, float trackTime);
   void drawTPCTRD(GID gid, float trackTime, GID::Source source = GID::TPCTRD);
   void drawTPCTOF(GID gid, float trackTime);

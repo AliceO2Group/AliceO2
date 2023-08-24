@@ -34,6 +34,7 @@
 #include "TOFBase/Geo.h"
 #include "DataFormatsTOF/Cluster.h"
 #include "GlobalTracking/MatchTPCITS.h"
+#include "DataFormatsITS/TrackITS.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTRD/TrackTRD.h"
 #include "ReconstructionDataFormats/PID.h"
@@ -206,6 +207,7 @@ class MatchTOF
   int prepareInteractionTimes();
   bool prepareTPCData();
   void addTPCSeed(const o2::tpc::TrackTPC& _tr, o2::dataformats::GlobalTrackID srcGID, float time0, float terr);
+  void addITSSeed(const o2::its::TrackITS& _tr, o2::dataformats::GlobalTrackID srcGID, float time0, float terr);
   void addITSTPCSeed(const o2::dataformats::TrackTPCITS& _tr, o2::dataformats::GlobalTrackID srcGID, float time0, float terr);
   void addTRDSeed(const o2::trd::TrackTRD& _tr, o2::dataformats::GlobalTrackID srcGID, float time0, float terr);
   void addConstrainedSeed(o2::track::TrackParCov& trc, o2::dataformats::GlobalTrackID srcGID, o2::track::TrackLTIntegral intLT0, timeEst timeMUS);
@@ -260,6 +262,7 @@ class MatchTOF
   float mSigmaTimeCut = 3;              ///< number of sigmas to cut on time when matching the track to the TOF cluster
 
   bool mIsFIT = false;
+  bool mIsITSused = false;
   bool mIsITSTPCused = false;
   bool mIsTPCused = false;
   bool mIsTPCTRDused = false;

@@ -56,7 +56,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
-    {"track-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use: allowed TPC,ITS-TPC,TPC-TRD,ITS-TPC-TRD (all)"}},
+    {"track-sources", VariantType::String, "TPC,ITS-TPC,TPC-TRD,ITS-TPC-TRD", {"comma-separated list of sources to use: allowed TPC,ITS-TPC,TPC-TRD,ITS-TPC-TRD (TPC,ITS-TPC,TPC-TRD,ITS-TPC-TRD)"}},
     {"use-fit", o2::framework::VariantType::Bool, false, {"enable access to fit info for calibration"}},
     {"use-ccdb", o2::framework::VariantType::Bool, false, {"enable access to ccdb tof calibration objects"}},
     {"strict-matching", o2::framework::VariantType::Bool, false, {"High purity preliminary matching"}},
@@ -125,7 +125,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   LOG(debug) << "Store all matchables = " << writeMatchable;
 
   //GID::mask_t alowedSources = GID::getSourcesMask("TPC,ITS-TPC");
-  GID::mask_t alowedSources = GID::getSourcesMask("TPC,ITS-TPC,TPC-TRD,ITS-TPC-TRD");
+  GID::mask_t alowedSources = GID::getSourcesMask("TPC,ITS-TPC,TPC-TRD,ITS-TPC-TRD,ITS");
 
   GID::mask_t src = alowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
   if (strict && (src & ~GID::getSourcesMask("TPC,TPC-TRD")).any()) {
@@ -175,6 +175,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       }
       if (GID::includesSource(GID::ITSTPCTRD, src)) { // matching to ITS-TPC-TRD was requested, there is not strict mode in this case
         writers.emplace_back(o2::tof::getTOFMatchedWriterSpec(useMC, "o2match_tof_itstpctrd.root", false, (int)o2::dataformats::MatchInfoTOFReco::TrackType::ITSTPCTRD, false));
+      }
+      if (GID::includesSource(GID::ITS, src)) { // matching to ITS was requested, there is not strict mode in this case
+        writers.emplace_back(o2::tof::getTOFMatchedWriterSpec(useMC, "o2match_tof_its.root", false, (int)o2::dataformats::MatchInfoTOFReco::TrackType::ITS, false));
       }
     }
     if (writecalib) {

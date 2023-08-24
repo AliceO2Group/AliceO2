@@ -107,6 +107,15 @@ std::shared_ptr<const GPUWorkflowHelper::tmpDataContainer> GPUWorkflowHelper::fi
     //LOG(info) << "Got " << ioPtr.nITSTPCTRDTOFMatches << " ITS-TPC-TRD-TOF Matches";
   }
 
+  if ((maskMatch[GID::TOF] || maskMatch[GID::ITSTOF]) && ioPtr.nITSTOFMatches == 0) {
+    const auto& itstofMatches = recoCont.getITSTOFMatches();
+    if (itstofMatches.size()) {
+      ioPtr.nITSTOFMatches = itstofMatches.size();
+      ioPtr.itstofMatches = itstofMatches.data();
+    }
+    // LOG(info) << "Got " << ioPtr.nITSTOFMatches << " ITS-TOF Matches";
+  }
+
   if ((maskMatch[GID::TOF] || maskMatch[GID::TPCTOF]) && ioPtr.nTPCTOFMatches == 0) {
     const auto& tpctofMatches = recoCont.getTPCTOFMatches();
     if (tpctofMatches.size()) {

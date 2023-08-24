@@ -53,13 +53,13 @@ DataProcessorSpec getTOFMatchedWriterSpec(bool useMC, const char* outdef, bool w
   //  o2::header::DataDescription ddMatchInfo{"MTC_ITSTPC"}, ddMatchInfo_tpc{"MTC_TPC"},
   //    ddMCMatchTOF{"MCMTC_ITSTPC"}, ddMCMatchTOF_tpc{"MCMTC_TPC"};
 
-  o2::header::DataDescription ddMatchInfo[4] = {{"MTC_TPC"}, {"MTC_ITSTPC"}, {"MTC_TPCTRD"}, {"MTC_ITSTPCTRD"}};
-  o2::header::DataDescription ddMCMatchTOF[4] = {{"MCMTC_TPC"}, {"MCMTC_ITSTPC"}, {"MCMTC_TPCTRD"}, {"MCMTC_ITSTPCTRD"}};
+  o2::header::DataDescription ddMatchInfo[5] = {{"MTC_TPC"}, {"MTC_ITSTPC"}, {"MTC_TPCTRD"}, {"MTC_ITSTPCTRD"}, {"MTC_ITS"}};
+  o2::header::DataDescription ddMCMatchTOF[5] = {{"MCMTC_TPC"}, {"MCMTC_ITSTPC"}, {"MCMTC_TPCTRD"}, {"MCMTC_ITSTPCTRD"}, {"MCMTC_ITS"}};
 
   uint32_t ss = o2::globaltracking::getSubSpec(strict ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
 
-  const char* match_name[4] = {"TOFMatchedWriter_TPC", "TOFMatchedWriter_ITSTPC", "TOFMatchedWriter_TPCTRD", "TOFMatchedWriter_ITSTPCTRD"};
-  const char* match_name_strict[4] = {"TOFMatchedWriter_TPC_str", "TOFMatchedWriter_ITSTPC_str", "TOFMatchedWriter_TPCTRD_str", "TOFMatchedWriter_ITSTPCTRD_str"};
+  const char* match_name[5] = {"TOFMatchedWriter_TPC", "TOFMatchedWriter_ITSTPC", "TOFMatchedWriter_TPCTRD", "TOFMatchedWriter_ITSTPCTRD", "TOFMatchedWriter_ITS"};
+  const char* match_name_strict[5] = {"TOFMatchedWriter_TPC_str", "TOFMatchedWriter_ITSTPC_str", "TOFMatchedWriter_TPCTRD_str", "TOFMatchedWriter_ITSTPCTRD_str", "TOFMatchedWriter_ITS_str"};
 
   const char* taskName = match_name[mode];
   if (strict) {

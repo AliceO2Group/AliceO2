@@ -296,6 +296,8 @@ bool FilteringSpec::selectTrack(GIndex id, const o2::globaltracking::RecoContain
     t = recoData.getTrack<o2::track::TrackParCov>(recoData.getTPCTRDTOFMatches()[id].getTrackRef()); // TPCTRDTOF is TPCTRD + TOF cluster
   } else if (src == GID::ITSTPCTOF) {
     t = recoData.getTrack<o2::track::TrackParCov>(recoData.getTOFMatch(id).getTrackRef()); // ITSTPCTOF is ITSTPC + TOF cluster
+  } else if (src == GID::ITSTOF) {
+    t = recoData.getTrack<o2::track::TrackParCov>(recoData.getTOFMatch(id).getTrackRef()); // ITSTOF is ITSTPC + TOF cluster
   } else {                                                                                 // for the rest, get the track directly
     t = recoData.getTrack<o2::track::TrackParCov>(id);
   }

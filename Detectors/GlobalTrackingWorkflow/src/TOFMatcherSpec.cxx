@@ -160,6 +160,7 @@ void TOFMatcherSpec::run(ProcessingContext& pc)
   bool isITSTPCused = recoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPC);
   bool isTPCTRDused = recoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::TPCTRD);
   bool isITSTPCTRDused = recoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITSTPCTRD);
+  bool isITSused = recoData.isTrackSourceLoaded(o2::dataformats::GlobalTrackID::Source::ITS);
   uint32_t ss = o2::globaltracking::getSubSpec(mStrict ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
   mMatcher.setFIT(mUseFIT);
 
@@ -190,6 +191,12 @@ void TOFMatcherSpec::run(ProcessingContext& pc)
     }
   }
 
+  if (isITSused) {
+    pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MTC_ITS", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOFReco::TrackType::ITS));
+    if (mUseMC) {
+      pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MCMTC_ITS", 0, Lifetime::Timeframe}, mMatcher.getMatchedTOFLabelsVector(o2::dataformats::MatchInfoTOFReco::TrackType::ITS));
+    }
+  }
   if (isTPCTRDused) {
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MTC_TPCTRD", ss, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOFReco::TrackType::TPCTRD));
     if (mUseMC) {
@@ -273,6 +280,12 @@ DataProcessorSpec getTOFMatcherSpec(GID::mask_t src, bool useMC, bool useFIT, bo
     outputs.emplace_back(o2::header::gDataOriginTOF, "MTC_ITSTPC", 0, Lifetime::Timeframe);
     if (useMC) {
       outputs.emplace_back(o2::header::gDataOriginTOF, "MCMTC_ITSTPC", 0, Lifetime::Timeframe);
+    }
+  }
+  if (GID::includesSource(GID::ITS, src)) {
+    outputs.emplace_back(o2::header::gDataOriginTOF, "MTC_ITS", 0, Lifetime::Timeframe);
+    if (useMC) {
+      outputs.emplace_back(o2::header::gDataOriginTOF, "MCMTC_ITS", 0, Lifetime::Timeframe);
     }
   }
   if (GID::includesSource(GID::ITSTPCTRD, src)) {

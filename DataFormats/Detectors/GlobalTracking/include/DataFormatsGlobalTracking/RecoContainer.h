@@ -364,6 +364,7 @@ struct RecoContainer {
   void addTOFMatchesITSTPC(o2::framework::ProcessingContext& pc, bool mc);
   void addTOFMatchesTPCTRD(o2::framework::ProcessingContext& pc, bool mc);
   void addTOFMatchesITSTPCTRD(o2::framework::ProcessingContext& pc, bool mc);
+  void addTOFMatchesITS(o2::framework::ProcessingContext& pc, bool mc);
 
   void addHMPMatches(o2::framework::ProcessingContext& pc, bool mc);
   void addMFTMCHMatches(o2::framework::ProcessingContext& pc, bool mc);
@@ -615,6 +616,9 @@ struct RecoContainer {
   // TPC-TRD-TOF matches
   auto getTPCTRDTOFMatches() const { return getSpan<o2::dataformats::MatchInfoTOF>(GTrackID::TPCTRDTOF, MATCHES); }
   auto getTPCTRDTOFTracksMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::TPCTRDTOF, MCLABELS); }
+  // ITS-TOF matches
+  auto getITSTOFMatches() const { return getSpan<o2::dataformats::MatchInfoTOF>(GTrackID::ITSTOF, MATCHES); }
+  auto getITSTOFTracksMCLabels() const { return getSpan<o2::MCCompLabel>(GTrackID::ITSTOF, MCLABELS); }
   // global ITS-TPC-TOF matches
   const o2::dataformats::TrackTPCITS& getITSTPCTOFTrack(GTrackID id) const; // this is special since global TOF track is just a reference on TPCITS
   auto getITSTPCTOFMatches() const { return getSpan<o2::dataformats::MatchInfoTOF>(GTrackID::ITSTPCTOF, MATCHES); }
@@ -718,6 +722,7 @@ struct RecoContainer {
 
   void getTrackTimeITSTPCTRDTOF(GTrackID gid, float& t, float& tErr) const;
   void getTrackTimeTPCTRDTOF(GTrackID gid, float& t, float& tErr) const;
+  void getTrackTimeITSTOF(GTrackID gid, float& t, float& tErr) const;
   void getTrackTimeITSTPCTOF(GTrackID gid, float& t, float& tErr) const;
   void getTrackTimeITSTPCTRD(GTrackID gid, float& t, float& tErr) const;
   void getTrackTimeTPCTRD(GTrackID gid, float& t, float& tErr) const;

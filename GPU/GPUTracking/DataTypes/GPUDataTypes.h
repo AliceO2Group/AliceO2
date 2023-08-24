@@ -324,6 +324,8 @@ struct GPUTrackingInOutPointers {
   unsigned int nTPCTRDTOFMatches = 0;
   const o2::dataformats::MatchInfoTOF* tpctofMatches = nullptr;
   unsigned int nTPCTOFMatches = 0;
+  const o2::dataformats::MatchInfoTOF* itstofMatches = nullptr;
+  unsigned int nITSTOFMatches = 0;
 
   // ITS
   const o2::itsmft::CompClusterExt* itsCompClusters = nullptr;

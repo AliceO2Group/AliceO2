@@ -123,6 +123,9 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
   if (maskMatches[GID::TPCTRDTOF] || maskTracks[GID::TPCTRDTOF]) {
     specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(maskTracksMC[GID::TPCTRDTOF], 2, /*maskTracks[GID::ITSTPCTOF]*/ false)); // ITSTPCTOF does not provide tracks, only matchInfo
   }
+  if (maskMatches[GID::ITSTOF] || maskTracks[GID::ITSTOF]) {
+    specs.emplace_back(o2::tof::getTOFMatchedReaderSpec(maskTracksMC[GID::ITSTOF], 4, /*maskTracks[GID::ITSTOF]*/ false)); // ITSTOF does not provide tracks, only matchInfo
+  }
   if (maskClusters[GID::TOF] ||
       maskTracks[GID::ITSTPCTOF] || maskTracks[GID::ITSTPCTRDTOF] || maskTracks[GID::TPCTRDTOF] ||
       maskMatches[GID::ITSTPCTOF] || maskMatches[GID::ITSTPCTRDTOF] || maskMatches[GID::TPCTRDTOF]) {
