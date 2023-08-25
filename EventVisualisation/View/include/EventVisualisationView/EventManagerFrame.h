@@ -52,6 +52,7 @@ class EventManagerFrame : public TGMainFrame
   TGDoubleHSlider* mTimeFrameSlider;       // Slider to narrow TimeFrame data
   TGNumberEntryField* mTimeFrameSliderMin; // Number entry for slider's min.
   TGNumberEntryField* mTimeFrameSliderMax; // Number entry for slider's max.
+  TGLabel* mSavedScreenshotFileName;       // name of the saved screenshot file
   TGTextButton* mOnlineModeBtn;            // needed as we would like to make it selected
   TGTextButton* mSavedModeBtn;             // needed as we would like to make it shared
   TGTextButton* mSequentialModeBtn;        // needed as we would like to make it shared
@@ -129,7 +130,6 @@ class EventManagerFrame : public TGMainFrame
  public: // static functions
   static std::vector<std::string> getSourceDirectory(EventManagerFrame::RunMode runMode, EventManagerFrame::DisplayMode displayMode);
   static RunMode decipherRunMode(TString name, RunMode defaultRun = SyntheticRun);
-  static TString getRunTypeString(EventManagerFrame::RunMode runMode);
 };
 
 } // namespace event_visualisation
