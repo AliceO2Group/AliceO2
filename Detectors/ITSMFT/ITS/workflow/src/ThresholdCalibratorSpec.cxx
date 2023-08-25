@@ -926,7 +926,7 @@ void ITSThresholdCalibrator::setRunType(const short int& runtype)
     this->N_RANGE = mMax - mMin + 1;
     this->mCheckExactRow = true;
 
-  } else if (runtype == DIGITAL_SCAN || runtype == DIGITAL_SCAN_100HZ) {
+  } else if (runtype == DIGITAL_SCAN || runtype == DIGITAL_SCAN_100HZ || runtype == DIGITAL_SCAN_NOMASK) {
     // Digital scan -- only storing one value per chip, no fit needed
     this->mScanType = 'D';
     this->initThresholdTree();
