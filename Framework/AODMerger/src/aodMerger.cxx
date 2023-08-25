@@ -450,7 +450,7 @@ int main(int argc, char* argv[])
     }
     if (totalCompressed > 0 && totalUncompressed > 0) {
       for (auto const& tree : sizeCompressed) {
-        printf("  Tree %20s | Compressed: %12lu (%2.0f%%) | Uncompressed: %12lu (%2.0f%%)\n", tree.first.c_str(), tree.second, 100.0 * tree.second / totalCompressed, sizeUncompressed[tree.first], 100.0 * sizeUncompressed[tree.first] / totalUncompressed);
+        printf("  Tree %20s | Compressed: %12llu (%2.0f%%) | Uncompressed: %12llu (%2.0f%%)\n", tree.first.c_str(), tree.second, 100.0 * tree.second / totalCompressed, sizeUncompressed[tree.first], 100.0 * sizeUncompressed[tree.first] / totalUncompressed);
       }
     }
   }
