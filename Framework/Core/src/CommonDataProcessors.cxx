@@ -202,54 +202,58 @@ DataProcessorSpec CommonDataProcessors::getOutputObjHistSink(std::vector<OutputO
       auto route = existing->first;
       auto entry = existing->second;
       auto file = ROOTfileNames.find(route.policy);
-      if (file != ROOTfileNames.end()) {
-        auto filename = file->second;
-        if (f[route.policy] == nullptr) {
-          f[route.policy] = TFile::Open(filename.c_str(), "RECREATE");
+      if (file == ROOTfileNames.end()) {
+        return;
+      }
+      auto filename = file->second;
+      if (f[route.policy] == nullptr) {
+        f[route.policy] = TFile::Open(filename.c_str(), "RECREATE");
+      }
+      auto nextDirectory = route.directory;
+      if ((nextDirectory != currentDirectory) || (filename != currentFile)) {
+        if (!f[route.policy]->FindKey(nextDirectory.c_str())) {
+          f[route.policy]->mkdir(nextDirectory.c_str());
         }
-        auto nextDirectory = route.directory;
-        if ((nextDirectory != currentDirectory) || (filename != currentFile)) {
-          if (!f[route.policy]->FindKey(nextDirectory.c_str())) {
-            f[route.policy]->mkdir(nextDirectory.c_str());
+        currentDirectory = nextDirectory;
+        currentFile = filename;
+      }
+
+      // translate the list-structure created by the registry into a directory structure within the file
+      std::function<void(TList*, TDirectory*)> writeListToFile;
+      writeListToFile = [&](TList* list, TDirectory* parentDir) {
+        TIter next(list);
+        TObject* object = nullptr;
+        while ((object = next())) {
+          if (object->InheritsFrom(TList::Class())) {
+            writeListToFile(static_cast<TList*>(object), parentDir->mkdir(object->GetName(), object->GetName(), true));
+          } else {
+            parentDir->WriteObjectAny(object, object->Class(), object->GetName());
+            auto* written = list->Remove(object);
+            delete written;
           }
-          currentDirectory = nextDirectory;
-          currentFile = filename;
+        }
+      };
+
+      TDirectory* currentDir = f[route.policy]->GetDirectory(currentDirectory.c_str());
+      if (route.sourceType == OutputObjSourceType::HistogramRegistrySource) {
+        auto* outputList = static_cast<TList*>(entry.obj);
+        outputList->SetOwner(false);
+
+        // if registry should live in dedicated folder a TNamed object is appended to the list
+        if (outputList->Last() && outputList->Last()->IsA() == TNamed::Class()) {
+          delete outputList->Last();
+          outputList->RemoveLast();
+          currentDir = currentDir->mkdir(outputList->GetName(), outputList->GetName(), true);
         }
 
-        // translate the list-structure created by the registry into a directory structure within the file
-        std::function<void(TList*, TDirectory*)> writeListToFile;
-        writeListToFile = [&](TList* list, TDirectory* parentDir) {
-          TIter next(list);
-          TObject* object = nullptr;
-          while ((object = next())) {
-            if (object->InheritsFrom(TList::Class())) {
-              writeListToFile(static_cast<TList*>(object), parentDir->mkdir(object->GetName(), object->GetName(), true));
-            } else {
-              parentDir->WriteObjectAny(object, object->Class(), object->GetName());
-              list->Remove(object);
-            }
-          }
-        };
-
-        TDirectory* currentDir = f[route.policy]->GetDirectory(currentDirectory.c_str());
-        if (route.sourceType == OutputObjSourceType::HistogramRegistrySource) {
-          auto* outputList = static_cast<TList*>(entry.obj);
-          outputList->SetOwner(false);
-
-          // if registry should live in dedicated folder a TNamed object is appended to the list
-          if (outputList->Last() && outputList->Last()->IsA() == TNamed::Class()) {
-            delete outputList->Last();
-            outputList->RemoveLast();
-            currentDir = currentDir->mkdir(outputList->GetName(), outputList->GetName(), true);
-          }
-
-          writeListToFile(outputList, currentDir);
-          outputList->SetOwner();
-          delete outputList;
-          entry.obj = nullptr;
-        } else {
-          currentDir->WriteObjectAny(entry.obj, entry.kind, entry.name.c_str());
-        }
+        writeListToFile(outputList, currentDir);
+        outputList->SetOwner();
+        delete outputList;
+        entry.obj = nullptr;
+      } else {
+        currentDir->WriteObjectAny(entry.obj, entry.kind, entry.name.c_str());
+        delete (TObject*)entry.obj;
+        entry.obj = nullptr;
       }
     };
   };
