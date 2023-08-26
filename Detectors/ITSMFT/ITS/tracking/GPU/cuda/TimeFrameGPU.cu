@@ -22,14 +22,34 @@
 #include <thread>
 
 #define GPUCA_TPC_GEOMETRY_O2 // To set working switch in GPUTPCGeometry whose else statement is bugged
-#include "GPUReconstructionCUDADef.h"
-#include "GPUChainITS.h"
+#define GPUCA_O2_INTERFACE    // To suppress errors related to the weird dependency between itsgputracking and GPUTracking
 
 #ifndef __HIPCC__
 #define THRUST_NAMESPACE thrust::cuda
+#include "GPUReconstructionCUDADef.h"
 #else
 #define THRUST_NAMESPACE thrust::hip
+// clang-format off
+#ifndef GPUCA_NO_CONSTANT_MEMORY
+  #ifdef GPUCA_CONSTANT_AS_ARGUMENT
+    #define GPUCA_CONSMEM_PTR const GPUConstantMemCopyable gGPUConstantMemBufferByValue,
+    #define GPUCA_CONSMEM_CALL gGPUConstantMemBufferHost,
+    #define GPUCA_CONSMEM (const_cast<GPUConstantMem&>(gGPUConstantMemBufferByValue.v))
+  #else
+    #define GPUCA_CONSMEM_PTR
+    #define GPUCA_CONSMEM_CALL
+    #define GPUCA_CONSMEM (gGPUConstantMemBuffer.v)
+  #endif
+#else
+  #define GPUCA_CONSMEM_PTR const GPUConstantMem *gGPUConstantMemBuffer,
+  #define GPUCA_CONSMEM_CALL me->mDeviceConstantMem,
+  #define GPUCA_CONSMEM const_cast<GPUConstantMem&>(*gGPUConstantMemBuffer)
 #endif
+#define GPUCA_KRNL_BACKEND_CLASS GPUReconstructionHIPBackend
+// clang-format on
+#endif
+
+#include "GPUChainITS.h"
 
 namespace o2
 {

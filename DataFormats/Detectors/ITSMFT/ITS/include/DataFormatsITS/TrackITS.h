@@ -47,8 +47,8 @@ class TrackITS : public o2::track::TrackParCov
 
   GPUdDefault() TrackITS() = default;
   GPUdDefault() TrackITS(const TrackITS& t) = default;
-  GPUd() TrackITS(const o2::track::TrackParCov& parcov) : o2::track::TrackParCov{parcov} {}
-  GPUd() TrackITS(const o2::track::TrackParCov& parCov, float chi2, const o2::track::TrackParCov& outer)
+  GPUhd() TrackITS(const o2::track::TrackParCov& parcov) : o2::track::TrackParCov{parcov} {}
+  GPUhd() TrackITS(const o2::track::TrackParCov& parCov, float chi2, const o2::track::TrackParCov& outer)
     : o2::track::TrackParCov{parCov}, mParamOut{outer}, mChi2{chi2} {}
   GPUdDefault() TrackITS& operator=(const TrackITS& tr) = default;
   GPUdDefault() ~TrackITS() = default;

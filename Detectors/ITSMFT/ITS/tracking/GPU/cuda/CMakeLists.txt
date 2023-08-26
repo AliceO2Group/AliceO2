@@ -26,6 +26,8 @@ o2_add_library(ITStrackingCUDA
                PUBLIC_INCLUDE_DIRECTORIES ../
                PRIVATE_INCLUDE_DIRECTORIES
                        ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base/cuda
+                       ${CMAKE_SOURCE_DIR}/DataFormats/Reconstruction/src
+                       ${CMAKE_SOURCE_DIR}/Detectors/Base/src
                PUBLIC_LINK_LIBRARIES O2::ITStracking
                                      O2::SimConfig
                                      O2::SimulationDataFormat

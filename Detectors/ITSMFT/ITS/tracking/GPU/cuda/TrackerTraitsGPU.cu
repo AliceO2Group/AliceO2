@@ -31,6 +31,9 @@
 #include "DetectorsBase/Propagator.h"
 #include "DataFormatsITS/TrackITS.h"
 
+#define GPUCA_TPC_GEOMETRY_O2 // To set working switch in GPUTPCGeometry whose else statement is bugged
+#define GPUCA_O2_INTERFACE    // To suppress errors related to the weird dependency between itsgputracking and GPUTracking
+
 #include "ITStrackingGPU/TrackerTraitsGPU.h"
 #include "ITStrackingGPU/TracerGPU.h"
 
@@ -38,10 +41,39 @@
 #include "GPUCommonAlgorithmThrust.h"
 
 #ifndef __HIPCC__
-#define THRUST_NAMESPACE thrust::cuda
+  #define THRUST_NAMESPACE thrust::cuda
+  #include "GPUReconstructionCUDADef.h"
 #else
 #define THRUST_NAMESPACE thrust::hip
+// clang-format off
+#ifndef GPUCA_NO_CONSTANT_MEMORY
+  #ifdef GPUCA_CONSTANT_AS_ARGUMENT
+    #define GPUCA_CONSMEM_PTR const GPUConstantMemCopyable gGPUConstantMemBufferByValue,
+    #define GPUCA_CONSMEM_CALL gGPUConstantMemBufferHost,
+    #define GPUCA_CONSMEM (const_cast<GPUConstantMem&>(gGPUConstantMemBufferByValue.v))
+  #else
+    #define GPUCA_CONSMEM_PTR
+    #define GPUCA_CONSMEM_CALL
+    #define GPUCA_CONSMEM (gGPUConstantMemBuffer.v)
+  #endif
+#else
+  #define GPUCA_CONSMEM_PTR const GPUConstantMem *gGPUConstantMemBuffer,
+  #define GPUCA_CONSMEM_CALL me->mDeviceConstantMem,
+  #define GPUCA_CONSMEM const_cast<GPUConstantMem&>(*gGPUConstantMemBuffer)
 #endif
+#define GPUCA_KRNL_BACKEND_CLASS GPUReconstructionHIPBackend
+// clang-format on
+#endif
+#include "GPUConstantMem.h"
+
+// Files for propagation with material
+#include "MatLayerCylSet.cxx"
+#include "MatLayerCyl.cxx"
+
+// O2 track model
+#include "TrackParametrization.cxx"
+#include "TrackParametrizationWithError.cxx"
+#include "Propagator.cxx"
 
 namespace o2
 {
@@ -135,22 +167,19 @@ GPUd() bool fitTrack(TrackITSExt& track,
                      bool debugPrint = false)
 {
   for (int iLayer{start}; iLayer != end; iLayer += step) {
-    if (debugPrint) {
-      printf("fitTrack: layer %d ClusterIndex(iLayer): %d eta: %f sZ2: %f\n", iLayer, track.getClusterIndex(iLayer), track.getEta(), track.getSigmaZ2());
-    }
     if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
       continue;
     }
     const TrackingFrameInfo& trackingHit = tfInfos[iLayer][track.getClusterIndex(iLayer)];
-    if (!track.o2::track::TrackParCovF::testRotate(trackingHit.alphaTrackingFrame)) {
+    if (!track.o2::track::TrackParCovF::rotate(trackingHit.alphaTrackingFrame)) {
       return false;
     }
-    //   if (!prop->propagateToX(track, trackingHit.xTrackingFrame,
-    //                           prop->getNominalBz(),
-    //                           o2::base::PropagatorImpl<float>::MAX_SIN_PHI,
-    //                           o2::base::PropagatorImpl<float>::MAX_STEP, matCorrType)) {
-    //     return false;
-    //   }
+      if (!prop->propagateToX(track, trackingHit.xTrackingFrame,
+                              prop->getNominalBz(),
+                              o2::base::PropagatorImpl<float>::MAX_SIN_PHI,
+                              o2::base::PropagatorImpl<float>::MAX_STEP, matCorrType)) {
+        return false;
+      }
     //   // To be implemented
     //   if (matCorrType == o2::base::PropagatorF::MatCorrType::USEMatCorrNONE) {
     //     // float radl = 9.36f; // Radiation length of Si [cm]

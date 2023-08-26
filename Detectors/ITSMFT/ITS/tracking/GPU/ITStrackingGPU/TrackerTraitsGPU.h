@@ -66,7 +66,6 @@ inline void TrackerTraitsGPU<nLayers>::adoptTimeFrame(TimeFrame* tf)
 {
   mTimeFrameGPU = static_cast<gpu::TimeFrameGPU<nLayers>*>(tf);
   mTimeFrame = static_cast<TimeFrame*>(tf);
-  LOGP(info, "Flag is still {} ", mTimeFrame->getExtAllocator());
 }
 } // namespace its
 } // namespace o2
