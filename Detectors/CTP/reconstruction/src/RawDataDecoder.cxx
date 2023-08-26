@@ -124,7 +124,7 @@ int RawDataDecoder::addCTPDigit(uint32_t linkCRU, uint32_t orbit, gbtword80_t& d
 }
 //
 // Decodes one page
-// It is assumed that CTP HBF has never more than one page - valid until ~ 5Mhz rate:
+// It is NOT assumed that CTP HBF has never more than one page.
 // 1 HBF/page <= 8000kB = 8*1024*8/120 = 546 GBT words = 546 IRs/page = 5.5 MHz
 int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2::framework::InputSpec>& filter, o2::pmr::vector<CTPDigit>& digits, std::vector<LumiInfo>& lumiPointsHBF1)
 {
@@ -266,8 +266,7 @@ int RawDataDecoder::decodeRaw(o2::framework::InputRecord& inputs, std::vector<o2
         ret = addCTPDigit(linkCRU, rdhOrbit, diglet, pldmask, digitsMap);
       }
     }
-    // if ((remnant.count() > 0) && stopBit) {
-    if (remnant.count() > 0) {
+    if ((remnant.count() > 0) && stopBit) {
       if (mDoLumi && payloadCTP == o2::ctp::NIntRecPayload) {
         gbtword80_t pld = (remnant >> 12) & mTVXMask;
         if (pld.count() != 0) {
