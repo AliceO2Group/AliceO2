@@ -9,6 +9,7 @@ if [[ ${IGNORE_UNBOUND_VARIABLES:-} != 1 ]]; then  set -u; fi
 # ---------------------------------------------------------------------------------------------------------------------
 # Get this script's directory and load common settings
 : ${GEN_TOPO_MYDIR:=$(dirname $(realpath $0))}
+export GEN_TOPO_AUTOSCALE_PROCESSES_GLOBAL_WORKFLOW=1
 source $GEN_TOPO_MYDIR/gen_topo_helper_functions.sh || { echo "gen_topo_helper_functions.sh failed" 1>&2 && exit 1; }
 source $GEN_TOPO_MYDIR/setenv.sh || { echo "setenv.sh failed" 1>&2 && exit 1; }
 
