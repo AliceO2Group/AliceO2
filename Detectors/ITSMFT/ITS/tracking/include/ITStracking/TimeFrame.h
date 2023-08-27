@@ -39,6 +39,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 
 #include "ReconstructionDataFormats/Vertex.h"
+#include "DetectorsBase/Propagator.h"
 
 namespace o2
 {
@@ -68,6 +69,12 @@ struct lightVertex {
   float mAvgDistance2;
   int mContributors;
   int mTimeStamp;
+};
+
+class ExternalAllocator
+{
+ public:
+  virtual void* allocate(size_t) = 0;
 };
 
 class TimeFrame
@@ -207,6 +214,20 @@ class TimeFrame
   void setBz(float bz) { mBz = bz; }
   float getBz() const { return mBz; }
 
+  void setExternalAllocator(ExternalAllocator* allocator)
+  {
+    if (mIsGPU) {
+      LOGP(debug, "Setting timeFrame allocator to external");
+      mAllocator = allocator;
+      mExtAllocator = true; // to be removed
+    } else {
+      LOGP(debug, "External allocator is currently only supported for GPU");
+    }
+  }
+
+  virtual void setDevicePropagator(const o2::base::PropagatorImpl<float>*){};
+  const o2::base::PropagatorImpl<float>* getDevicePropagator() const { return mPropagatorDevice; }
+
   template <typename... T>
   void addClusterToLayer(int layer, T&&... args);
   template <typename... T>
@@ -228,7 +249,7 @@ class TimeFrame
   IndexTableUtils mIndexTableUtils;
 
   bool mIsGPU = false;
-  void setChain(o2::gpu::GPUChainITS*);
+  // void setChain(o2::gpu::GPUChainITS*);
   void setExtAllocator(bool ext) { mExtAllocator = ext; }
   bool getExtAllocator() const { return mExtAllocator; }
   std::vector<std::vector<Cluster>> mClusters;
@@ -247,7 +268,8 @@ class TimeFrame
 
   // State if memory will be externally managed.
   bool mExtAllocator = false;
-  o2::gpu::GPUChainITS* mChain = nullptr;
+  // o2::gpu::GPUChainITS* mChain = nullptr;
+  ExternalAllocator* mAllocator = nullptr;
   std::vector<std::vector<Cluster>> mUnsortedClusters;
   std::vector<std::vector<Tracklet>> mTracklets;
   std::vector<std::vector<Cell>> mCells;
@@ -256,6 +278,7 @@ class TimeFrame
   std::vector<std::vector<float>> mCellSeedsChi2;
   std::vector<std::vector<TrackITSExt>> mTracks;
 
+  const o2::base::PropagatorImpl<float>* mPropagatorDevice = nullptr; // Needed only for GPU
  private:
   float mBz = 5.;
   int mBeamPosWeight = 0;
@@ -632,7 +655,6 @@ inline size_t TimeFrame::getNumberOfTracks() const
   return nTracks;
 }
 
-<<<<<<< HEAD
 inline size_t TimeFrame::getNumberOfUsedClusters() const
 {
   size_t nClusters = 0;
@@ -640,13 +662,6 @@ inline size_t TimeFrame::getNumberOfUsedClusters() const
     nClusters += std::count(layer.begin(), layer.end(), true);
   }
   return nClusters;
-=======
-inline void TimeFrame::setChain(o2::gpu::GPUChainITS* chain)
-{
-  LOGP(info, "Setting ITS chain to: {}", (void*)chain);
-  mChain = chain;
-  mExtAllocator = true;
->>>>>>> 247b67a989 (Add hybrid tracking approach for GPU processing)
 }
 
 } // namespace its

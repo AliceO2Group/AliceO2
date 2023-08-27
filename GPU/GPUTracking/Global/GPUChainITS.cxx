@@ -18,7 +18,23 @@
 #include <algorithm>
 
 using namespace GPUCA_NAMESPACE::gpu;
-using namespace o2::its;
+
+namespace o2::its
+{
+class GPUFrameworkExternalAllocator : public o2::its::ExternalAllocator
+{
+ public:
+  void* allocate(size_t size)
+  {
+    return mFWReco->AllocateUnmanagedMemory(size, GPUMemoryResource::MEMORY_GPU);
+  }
+
+  void setReconstructionFramework(o2::gpu::GPUReconstruction* fwr) { mFWReco = fwr; }
+
+ private:
+  o2::gpu::GPUReconstruction* mFWReco;
+};
+} // namespace o2::its
 
 GPUChainITS::~GPUChainITS()
 {
@@ -45,16 +61,15 @@ void GPUChainITS::MemorySize(size_t& gpuMem, size_t& pageLockedHostMem)
 
 int GPUChainITS::Init() { return 0; }
 
-TrackerTraits* GPUChainITS::GetITSTrackerTraits()
+o2::its::TrackerTraits* GPUChainITS::GetITSTrackerTraits()
 {
   if (mITSTrackerTraits == nullptr) {
     mRec->GetITSTraits(&mITSTrackerTraits, nullptr, nullptr);
-    mITSTrackerTraits->SetRecoChain(this);
   }
   return mITSTrackerTraits.get();
 }
 
-VertexerTraits* GPUChainITS::GetITSVertexerTraits()
+o2::its::VertexerTraits* GPUChainITS::GetITSVertexerTraits()
 {
   if (mITSVertexerTraits == nullptr) {
     mRec->GetITSTraits(nullptr, &mITSVertexerTraits, nullptr);
@@ -62,14 +77,18 @@ VertexerTraits* GPUChainITS::GetITSVertexerTraits()
   return mITSVertexerTraits.get();
 }
 
-TimeFrame* GPUChainITS::GetITSTimeframe()
+o2::its::TimeFrame* GPUChainITS::GetITSTimeframe()
 {
   if (mITSTimeFrame == nullptr) {
     mRec->GetITSTraits(nullptr, nullptr, &mITSTimeFrame);
   }
-  LOGP(info, "Setting timeFrame allocator to external");
-  mITSTimeFrame->setExtAllocator(true); // meaningful only when GPU
-  mITSTimeFrame->setChain(this);
+  auto doFWExtAlloc = [this](size_t size) -> void* { return rec()->AllocateUnmanagedMemory(size, GPUMemoryResource::MEMORY_GPU); };
+
+  mFrameworkAllocator.reset(new o2::its::GPUFrameworkExternalAllocator);
+  mFrameworkAllocator->setReconstructionFramework(rec());
+  mITSTimeFrame->setExternalAllocator(mFrameworkAllocator.get());
+  LOGP(info, "GPUChainITS is giving me ps: {} prop: {}", (void*)processorsShadow(), (void*)processorsShadow()->calibObjects.o2Propagator);
+  mITSTimeFrame->setDevicePropagator(processorsShadow()->calibObjects.o2Propagator);
   return mITSTimeFrame.get();
 }
 

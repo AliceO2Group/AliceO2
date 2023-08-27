@@ -39,9 +39,13 @@ class GPUChainITS;
 }
 namespace its
 {
-
 namespace gpu
 {
+
+class DefaultGPUAllocator : public ExternalAllocator
+{
+  void* allocate(size_t size) override;
+};
 
 template <int nLayers>
 struct StaticTrackingParameters {
@@ -226,6 +230,7 @@ class TimeFrameGPU : public TimeFrame
   Cell** getDeviceArrayCells() const { return mCellsDeviceArray; }
   o2::track::TrackParCovF** getDeviceArrayTrackSeeds() { return mCellSeedsDeviceArray; }
   float** getDeviceArrayTrackSeedsChi2() { return mCellSeedsChi2DeviceArray; }
+  void setDevicePropagator(const o2::base::PropagatorImpl<float>*) override;
 
   // Host-specific getters
   gsl::span<int> getHostNTracklets(const int chunkId);

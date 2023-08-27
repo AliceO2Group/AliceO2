@@ -41,8 +41,8 @@
 #include "GPUCommonAlgorithmThrust.h"
 
 #ifndef __HIPCC__
-  #define THRUST_NAMESPACE thrust::cuda
-  #include "GPUReconstructionCUDADef.h"
+#define THRUST_NAMESPACE thrust::cuda
+#include "GPUReconstructionCUDADef.h"
 #else
 #define THRUST_NAMESPACE thrust::hip
 // clang-format off
@@ -67,6 +67,7 @@
 #include "GPUConstantMem.h"
 
 // Files for propagation with material
+#include "Ray.cxx"
 #include "MatLayerCylSet.cxx"
 #include "MatLayerCyl.cxx"
 
@@ -84,7 +85,6 @@ using namespace constants::its2;
 
 namespace gpu
 {
-
 GPUd() const int4 getBinsRect(const Cluster& currentCluster, const int layerIndex,
                               const o2::its::IndexTableUtils& utils,
                               const float z1, const float z2, float maxdeltaz, float maxdeltaphi)
@@ -163,7 +163,7 @@ GPUd() bool fitTrack(TrackITSExt& track,
                      int nCl,
                      TrackingFrameInfo** tfInfos,
                      const o2::base::Propagator* prop,
-                     o2::base::PropagatorF::MatCorrType matCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT,
+                     o2::base::PropagatorF::MatCorrType matCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE,
                      bool debugPrint = false)
 {
   for (int iLayer{start}; iLayer != end; iLayer += step) {
@@ -171,15 +171,19 @@ GPUd() bool fitTrack(TrackITSExt& track,
       continue;
     }
     const TrackingFrameInfo& trackingHit = tfInfos[iLayer][track.getClusterIndex(iLayer)];
+    if (debugPrint) {
+      printf("nominal bZ: %f", prop->getNominalBz());
+    }
     if (!track.o2::track::TrackParCovF::rotate(trackingHit.alphaTrackingFrame)) {
       return false;
     }
-      if (!prop->propagateToX(track, trackingHit.xTrackingFrame,
-                              prop->getNominalBz(),
-                              o2::base::PropagatorImpl<float>::MAX_SIN_PHI,
-                              o2::base::PropagatorImpl<float>::MAX_STEP, matCorrType)) {
-        return false;
-      }
+    // if (!prop->propagateToX(track, trackingHit.xTrackingFrame,
+    //                         prop->getNominalBz(),
+    //                         o2::base::PropagatorImpl<float>::MAX_SIN_PHI,
+    //                         o2::base::PropagatorImpl<float>::MAX_STEP,
+    //                         matCorrType)) {
+    //   return false;
+    // }
     //   // To be implemented
     //   if (matCorrType == o2::base::PropagatorF::MatCorrType::USEMatCorrNONE) {
     //     // float radl = 9.36f; // Radiation length of Si [cm]
@@ -676,7 +680,6 @@ GPUg() void fitTracksKernel(
   const o2::base::Propagator* propagator)
 {
   o2::track::TrackParCovF track;
-  printf("+++++> %f", track.getEta());
   for (int iCurrentRoadIndex = blockIdx.x * blockDim.x + threadIdx.x; iCurrentRoadIndex < nRoads; iCurrentRoadIndex += blockDim.x * gridDim.x) {
     auto& currentRoad{roads[iCurrentRoadIndex]};
     int clusters[nLayers];
@@ -740,17 +743,17 @@ GPUg() void fitTracksKernel(
     for (size_t iC = 0; iC < nLayers; ++iC) {
       temporaryTrack.setExternalClusterIndex(iC, clusters[iC], clusters[iC] != constants::its::UnusedIndex);
     }
-    bool fitSuccess = fitTrack(temporaryTrack,                                              // TrackITSExt& track,
-                               lastCellLevel - 1,                                           // int lastLayer,
-                               -1,                                                          // int firstLayer,
-                               -1,                                                          // int firstCluster,
-                               maxChi2ClusterAttachment,                                    // float maxChi2ClusterAttachment,
-                               maxChi2NDF,                                                  // float maxChi2NDF,
-                               1.e3,                                                        // float maxChi2PerCluster,
-                               3,                                                           // int maxIterations,
-                               foundTrackingFrameInfo,                                      // TrackingFrameInfo** trackingFrameInfo,
-                               propagator,                                                  // const o2::base::Propagator* propagator,
-                               o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT, // o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT
+    bool fitSuccess = fitTrack(temporaryTrack,                                               // TrackITSExt& track,
+                               lastCellLevel - 1,                                            // int lastLayer,
+                               -1,                                                           // int firstLayer,
+                               -1,                                                           // int firstCluster,
+                               maxChi2ClusterAttachment,                                     // float maxChi2ClusterAttachment,
+                               maxChi2NDF,                                                   // float maxChi2NDF,
+                               1.e3,                                                         // float maxChi2PerCluster,
+                               3,                                                            // int maxIterations,
+                               foundTrackingFrameInfo,                                       // TrackingFrameInfo** trackingFrameInfo,
+                               propagator,                                                   // const o2::base::Propagator* propagator,
+                               o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE, // o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT
                                iCurrentRoadIndex < 5);
     // if (fitSuccess) {
     //   printf("Fit success\n");
@@ -1081,12 +1084,7 @@ void TrackerTraitsGPU<nLayers>::findRoadsHybrid(const int iteration)
 template <int nLayers>
 void TrackerTraitsGPU<nLayers>::findTracksHybrid(const int iteration)
 {
-  // LOGP(info, "========================");
-  // mTimeFrameGPU->getCellSeeds()[0][0].print();
-  // mTimeFrameGPU->getCellSeeds()[1][0].print();
-  // mTimeFrameGPU->getCellSeeds()[2][0].print();
-  // mTimeFrameGPU->getCellSeeds()[3][0].print();
-  // LOGP(info, "========================");
+  LOGP(info, "propagator device pointer: {}", (void*)mTimeFrameGPU->getDevicePropagator());
   gpu::fitTracksKernel<<<1, 1>>>(mTimeFrameGPU->getDeviceArrayClusters(),          // Cluster** foundClusters,
                                  mTimeFrameGPU->getDeviceArrayUnsortedClusters(),  // Cluster** foundUnsortedClusters,
                                  mTimeFrameGPU->getDeviceArrayTrackingFrameInfo(), // TrackingFrameInfo** foundTrackingFrameInfo,
@@ -1098,7 +1096,7 @@ void TrackerTraitsGPU<nLayers>::findTracksHybrid(const int iteration)
                                  mTimeFrameGPU->getRoads().size(),                 // const size_t nRoads,
                                  mTrkParams[0].MaxChi2ClusterAttachment,           // float maxChi2ClusterAttachment,
                                  mTrkParams[0].MaxChi2NDF,                         // float maxChi2NDF,
-                                 mTimeFrameGPU->getChainPropagator());             // const o2::base::Propagator* propagator
+                                 mTimeFrameGPU->getDevicePropagator());            // const o2::base::Propagator* propagator
 }
 
 template class TrackerTraitsGPU<7>;

@@ -49,8 +49,6 @@
 // clang-format on
 #endif
 
-#include "GPUChainITS.h"
-
 namespace o2
 {
 namespace its
@@ -61,6 +59,13 @@ using constants::MB;
 namespace gpu
 {
 using utils::checkGPUError;
+
+void* DefaultGPUAllocator::allocate(size_t size)
+{
+  LOGP(info, "Called DefaultGPUAllocator::allocate with size {}", size);
+  return nullptr; // to be implemented
+}
+
 /////////////////////////////////////////////////////////////////////////////////////////
 // GpuChunk
 /////////////////////////////////////////////////////////////////////////////////////////
@@ -335,8 +340,7 @@ template <int nLayers>
 void TimeFrameGPU<nLayers>::allocMemAsync(void** ptr, size_t size, Stream* strPtr, bool extAllocator)
 {
   if (extAllocator) {
-    LOGP(debug, "Calling external allocator on {} chain and {} reconstruction", (void*)mChain, (void*)mChain->rec());
-    *ptr = mChain->rec()->AllocateUnmanagedMemory(size, o2::gpu::GPUMemoryResource::MEMORY_GPU);
+    *ptr = mAllocator->allocate(size);
   } else {
     LOGP(debug, "Calling default CUDA allocator");
     checkGPUError(cudaMallocAsync(reinterpret_cast<void**>(ptr), size, strPtr->get()));
@@ -344,9 +348,9 @@ void TimeFrameGPU<nLayers>::allocMemAsync(void** ptr, size_t size, Stream* strPt
 }
 
 template <int nLayers>
-const o2::base::Propagator* TimeFrameGPU<nLayers>::getChainPropagator()
+void TimeFrameGPU<nLayers>::setDevicePropagator(const o2::base::PropagatorImpl<float>* propagator)
 {
-  return mChain->processorsShadow()->calibObjects.o2Propagator;
+  mPropagatorDevice = propagator;
 }
 
 template <int nLayers>
@@ -491,7 +495,7 @@ template <int nLayers>
 void TimeFrameGPU<nLayers>::loadUnsortedClustersDevice()
 {
   for (auto iLayer{0}; iLayer < nLayers; ++iLayer) {
-    LOGP(info, "gpu-transfer: loading {} unsorted clusters on layer {}, for {} MB.", mUnsortedClusters[iLayer].size(), iLayer, mUnsortedClusters[iLayer].size() * sizeof(Cluster) / MB);
+    LOGP(debug, "gpu-transfer: loading {} unsorted clusters on layer {}, for {} MB.", mUnsortedClusters[iLayer].size(), iLayer, mUnsortedClusters[iLayer].size() * sizeof(Cluster) / MB);
     allocMemAsync(reinterpret_cast<void**>(&mUnsortedClustersDevice[iLayer]), mUnsortedClusters[iLayer].size() * sizeof(Cluster), nullptr, getExtAllocator());
     // Register and move data
     checkGPUError(cudaHostRegister(mUnsortedClusters[iLayer].data(), mUnsortedClusters[iLayer].size() * sizeof(Cluster), cudaHostRegisterPortable));
@@ -506,7 +510,7 @@ template <int nLayers>
 void TimeFrameGPU<nLayers>::loadClustersDevice()
 {
   for (auto iLayer{0}; iLayer < nLayers; ++iLayer) {
-    LOGP(info, "gpu-transfer: loading {} clusters on layer {}, for {} MB.", mClusters[iLayer].size(), iLayer, mClusters[iLayer].size() * sizeof(Cluster) / MB);
+    LOGP(debug, "gpu-transfer: loading {} clusters on layer {}, for {} MB.", mClusters[iLayer].size(), iLayer, mClusters[iLayer].size() * sizeof(Cluster) / MB);
     allocMemAsync(reinterpret_cast<void**>(&mClustersDevice[iLayer]), mClusters[iLayer].size() * sizeof(Cluster), nullptr, getExtAllocator());
     // Register and move data
     checkGPUError(cudaHostRegister(mClusters[iLayer].data(), mClusters[iLayer].size() * sizeof(Cluster), cudaHostRegisterPortable));
@@ -521,7 +525,7 @@ template <int nLayers>
 void TimeFrameGPU<nLayers>::loadTrackingFrameInfoDevice()
 {
   for (auto iLayer{0}; iLayer < nLayers; ++iLayer) {
-    LOGP(info, "gpu-transfer: loading {} tfinfo on layer {}, for {} MB.", mTrackingFrameInfo[iLayer].size(), iLayer, mTrackingFrameInfo[iLayer].size() * sizeof(TrackingFrameInfo) / MB);
+    LOGP(debug, "gpu-transfer: loading {} tfinfo on layer {}, for {} MB.", mTrackingFrameInfo[iLayer].size(), iLayer, mTrackingFrameInfo[iLayer].size() * sizeof(TrackingFrameInfo) / MB);
     allocMemAsync(reinterpret_cast<void**>(&mTrackingFrameInfoDevice[iLayer]), mTrackingFrameInfo[iLayer].size() * sizeof(TrackingFrameInfo), nullptr, getExtAllocator());
     // Register and move data
     checkGPUError(cudaHostRegister(mTrackingFrameInfo[iLayer].data(), mTrackingFrameInfo[iLayer].size() * sizeof(TrackingFrameInfo), cudaHostRegisterPortable));
@@ -536,7 +540,7 @@ template <int nLayers>
 void TimeFrameGPU<nLayers>::loadTrackletsDevice()
 {
   for (auto iLayer{0}; iLayer < nLayers - 1; ++iLayer) {
-    LOGP(info, "gpu-transfer: loading {} tracklets on layer {}, for {} MB.", mTracklets[iLayer].size(), iLayer, mTracklets[iLayer].size() * sizeof(Tracklet) / MB);
+    LOGP(debug, "gpu-transfer: loading {} tracklets on layer {}, for {} MB.", mTracklets[iLayer].size(), iLayer, mTracklets[iLayer].size() * sizeof(Tracklet) / MB);
     allocMemAsync(reinterpret_cast<void**>(&mTrackletsDevice[iLayer]), mTracklets[iLayer].size() * sizeof(Tracklet), nullptr, getExtAllocator());
     // Register and move data
     checkGPUError(cudaHostRegister(mTracklets[iLayer].data(), mTracklets[iLayer].size() * sizeof(Tracklet), cudaHostRegisterPortable));
@@ -551,7 +555,7 @@ template <int nLayers>
 void TimeFrameGPU<nLayers>::loadCellsDevice()
 {
   for (auto iLayer{0}; iLayer < nLayers - 2; ++iLayer) {
-    LOGP(info, "gpu-transfer: loading {} cells on layer {}, for {} MB.", mCells[iLayer].size(), iLayer, mCells[iLayer].size() * sizeof(Cell) / MB);
+    LOGP(debug, "gpu-transfer: loading {} cells on layer {}, for {} MB.", mCells[iLayer].size(), iLayer, mCells[iLayer].size() * sizeof(Cell) / MB);
     allocMemAsync(reinterpret_cast<void**>(&mCellsDevice[iLayer]), mCells[iLayer].size() * sizeof(Cell), nullptr, getExtAllocator());
     // Register and move data
     checkGPUError(cudaHostRegister(mCells[iLayer].data(), mCells[iLayer].size() * sizeof(Cell), cudaHostRegisterPortable));
@@ -566,7 +570,7 @@ template <int nLayers>
 void TimeFrameGPU<nLayers>::loadTrackSeedsDevice()
 {
   for (auto iLayer{0}; iLayer < nLayers - 2; ++iLayer) {
-    LOGP(info, "gpu-transfer: loading {} seeds on layer {}, for {} MB.", mCellSeeds[iLayer].size(), iLayer, mCellSeeds[iLayer].size() * sizeof(o2::track::TrackParCovF) / MB);
+    LOGP(debug, "gpu-transfer: loading {} seeds on layer {}, for {} MB.", mCellSeeds[iLayer].size(), iLayer, mCellSeeds[iLayer].size() * sizeof(o2::track::TrackParCovF) / MB);
     allocMemAsync(reinterpret_cast<void**>(&mCellSeedsDevice[iLayer]), mCellSeeds[iLayer].size() * sizeof(o2::track::TrackParCovF), nullptr, getExtAllocator());
     // Register and move data
     checkGPUError(cudaHostRegister(mCellSeeds[iLayer].data(), mCellSeeds[iLayer].size() * sizeof(o2::track::TrackParCovF), cudaHostRegisterPortable));
@@ -581,7 +585,7 @@ template <int nLayers>
 void TimeFrameGPU<nLayers>::loadTrackSeedsChi2Device()
 {
   for (auto iLayer{0}; iLayer < nLayers - 2; ++iLayer) {
-    LOGP(info, "gpu-transfer: loading {} seeds' chi2 on layer {}, for {} MB.", mCellSeedsChi2[iLayer].size(), iLayer, mCellSeedsChi2[iLayer].size() * sizeof(float) / MB);
+    LOGP(debug, "gpu-transfer: loading {} seeds' chi2 on layer {}, for {} MB.", mCellSeedsChi2[iLayer].size(), iLayer, mCellSeedsChi2[iLayer].size() * sizeof(float) / MB);
     allocMemAsync(reinterpret_cast<void**>(&mCellSeedsChi2Device[iLayer]), mCellSeedsChi2[iLayer].size() * sizeof(float), nullptr, getExtAllocator());
     // Register and move data
     checkGPUError(cudaHostRegister(mCellSeedsChi2[iLayer].data(), mCellSeedsChi2[iLayer].size() * sizeof(float), cudaHostRegisterPortable));
@@ -595,7 +599,7 @@ void TimeFrameGPU<nLayers>::loadTrackSeedsChi2Device()
 template <int nLayers>
 void TimeFrameGPU<nLayers>::loadRoadsDevice()
 {
-  LOGP(info, "gpu-transfer: loading {} roads, for {} MB.", mRoads.size(), mRoads.size() * sizeof(Road<nLayers - 2>) / MB);
+  LOGP(debug, "gpu-transfer: loading {} roads, for {} MB.", mRoads.size(), mRoads.size() * sizeof(Road<nLayers - 2>) / MB);
   allocMemAsync(reinterpret_cast<void**>(&mRoadsDevice), mRoads.size() * sizeof(Road<nLayers - 2>), &(mGpuStreams[0]), false);
   checkGPUError(cudaHostRegister(mRoads.data(), mRoads.size() * sizeof(Road<nLayers - 2>), cudaHostRegisterPortable));
   checkGPUError(cudaMemcpyAsync(mRoadsDevice, mRoads.data(), mRoads.size() * sizeof(Road<nLayers - 2>), cudaMemcpyHostToDevice, mGpuStreams[0].get()));

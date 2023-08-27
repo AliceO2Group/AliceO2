@@ -24,6 +24,7 @@ class Road;
 class Cell;
 struct TrackingFrameInfo;
 class TrackITSExt;
+class GPUFrameworkExternalAllocator;
 } // namespace o2::its
 
 namespace GPUCA_NAMESPACE::gpu
@@ -51,6 +52,8 @@ class GPUChainITS : public GPUChain
   std::unique_ptr<o2::its::TrackerTraits> mITSTrackerTraits;
   std::unique_ptr<o2::its::VertexerTraits> mITSVertexerTraits;
   std::unique_ptr<o2::its::TimeFrame> mITSTimeFrame;
+  std::unique_ptr<o2::its::GPUFrameworkExternalAllocator> mFrameworkAllocator;
+
   unsigned int mMaxTracks;
 };
 } // namespace GPUCA_NAMESPACE::gpu
