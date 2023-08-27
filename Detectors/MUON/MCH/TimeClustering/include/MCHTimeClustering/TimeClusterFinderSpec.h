@@ -29,6 +29,7 @@ o2::framework::DataProcessorSpec
                            std::string_view inputDigitDataDescription = "F-DIGITS",
                            std::string_view inputDigitRofDataDescription = "F-DIGITROFS",
                            std::string_view outputDigitRofDataDescription = "TC-F-DIGITROFS",
+                           std::string_view outputUnfilteredDigitRofDataDescription = "UTC-F-DIGITROFS",
                            std::string_view inputIRFrameDataDescription = "ITS/IRFRAMES");
 
 } // end namespace mch

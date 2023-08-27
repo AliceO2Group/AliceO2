@@ -66,6 +66,7 @@ class TimeClusterFinderTask
     mOnlyTrackable = param.onlyTrackable;
     mPeakSearchSignalOnly = param.peakSearchSignalOnly;
     mIRFramesOnly = param.irFramesOnly;
+    mEnableUnfilteredOutput = param.enableUnfilteredOutput;
     mDebug = ic.options().get<bool>("mch-debug");
     mROFRejectionFraction = param.rofRejectionFraction;
 
@@ -130,8 +131,17 @@ class TimeClusterFinderTask
       LOGP(warning, "{:=>60} ", fmt::format("{:6d} Output ROFS", rofProcessor.getROFRecords().size()));
     }
 
-    auto& outRofs = pc.outputs().make<std::vector<ROFRecord>>(OutputRef{"rofs"});
     const auto& pRofs = rofProcessor.getROFRecords();
+
+    if (mEnableUnfilteredOutput) {
+      auto& outRofsUnfiltered = pc.outputs().make<std::vector<ROFRecord>>(OutputRef{"urofs"});
+      outRofsUnfiltered.reserve(pRofs.size());
+      std::copy(begin(pRofs),
+                end(pRofs),
+                std::back_inserter(outRofsUnfiltered));
+    }
+
+    auto& outRofs = pc.outputs().make<std::vector<ROFRecord>>(OutputRef{"rofs"});
 
     // prepare the list of filters we want to apply to ROFs
     std::vector<ROFFilter> filters;
@@ -191,15 +201,16 @@ class TimeClusterFinderTask
   std::chrono::duration<double, std::milli>
     mTimeProcess{}; ///< timer
 
-  uint32_t mTimeClusterWidth;  ///< maximum size of one time cluster, in bunch crossings
-  uint32_t mNbinsInOneWindow;  ///< number of time bins considered for the peak search
-  int mTFcount{0};             ///< number of processed time frames
-  int mDebug{0};               ///< verbosity flag
-  int mMinDigitPerROF;         ///< minimum digit per ROF threshold
-  bool mPeakSearchSignalOnly;  ///< only use signal-like hits in peak search
-  bool mOnlyTrackable;         ///< only keep ROFs that are trackable
-  bool mIRFramesOnly;          ///< only keep ROFs that overlap some IRFrame
-  float mROFRejectionFraction; ///< fraction of output ROFs to reject (to save time in sync reco). MUST BE 0 for anything but Pt2 reco !
+  uint32_t mTimeClusterWidth;   ///< maximum size of one time cluster, in bunch crossings
+  uint32_t mNbinsInOneWindow;   ///< number of time bins considered for the peak search
+  int mTFcount{0};              ///< number of processed time frames
+  int mDebug{0};                ///< verbosity flag
+  int mMinDigitPerROF;          ///< minimum digit per ROF threshold
+  bool mPeakSearchSignalOnly;   ///< only use signal-like hits in peak search
+  bool mOnlyTrackable;          ///< only keep ROFs that are trackable
+  bool mIRFramesOnly;           ///< only keep ROFs that overlap some IRFrame
+  bool mEnableUnfilteredOutput; ///< optionally enable the output of all the time-clustered ROFs wthout filtering
+  float mROFRejectionFraction;  ///< fraction of output ROFs to reject (to save time in sync reco). MUST BE 0 for anything but Pt2 reco !
   std::uniform_real_distribution<double> mDistribution{0.0, 1.0};
   std::mt19937 mGenerator;
 };
@@ -210,8 +221,11 @@ o2::framework::DataProcessorSpec
                            std::string_view inputDigitDataDescription,
                            std::string_view inputDigitRofDataDescription,
                            std::string_view outputDigitRofDataDescription,
+                           std::string_view outputUnfilteredDigitRofDataDescription,
                            std::string_view inputIRFrameDataDescription)
 {
+  const auto& param = o2::mch::TimeClusterizerParam::Instance();
+
   std::string input = fmt::format("rofs:MCH/{}/0;digits:MCH/{}/0",
                                   inputDigitRofDataDescription.data(),
                                   inputDigitDataDescription.data());
@@ -220,9 +234,18 @@ o2::framework::DataProcessorSpec
     input += ";irframes:";
     input += inputIRFrameDataDescription;
   }
-  std::string output = fmt::format("rofs:MCH/{}/0", outputDigitRofDataDescription.data());
 
   std::vector<OutputSpec> outputs;
+
+  if (param.enableUnfilteredOutput) {
+    std::string output = fmt::format("urofs:MCH/{}/0", outputUnfilteredDigitRofDataDescription.data());
+    auto matchers = select(output.c_str());
+    for (auto& matcher : matchers) {
+      outputs.emplace_back(DataSpecUtils::asOutputSpec(matcher));
+    }
+  }
+
+  std::string output = fmt::format("rofs:MCH/{}/0", outputDigitRofDataDescription.data());
   auto matchers = select(output.c_str());
   for (auto& matcher : matchers) {
     outputs.emplace_back(DataSpecUtils::asOutputSpec(matcher));
