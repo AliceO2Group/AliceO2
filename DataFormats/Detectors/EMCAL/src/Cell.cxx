@@ -61,12 +61,9 @@ Cell::Cell(short tower, float energy, float timestamp, ChannelType_t ctype) : mT
 {
 }
 
-Cell::Cell(uint16_t towerBits, uint16_t energyBits, uint16_t timestampBits, uint16_t channelBits)
+Cell::Cell(uint16_t towerBits, uint16_t energyBits, uint16_t timestampBits, uint16_t channelBits, EncoderVersion version)
 {
-  setEnergyEncoded(energyBits);
-  setTimestampEncoded(timestampBits);
-  setTowerIDEncoded(towerBits);
-  setChannelTypeEncoded(channelBits);
+  initialiseFromEncoded(towerBits, timestampBits, energyBits, channelBits, version);
 }
 
 uint16_t Cell::getTowerIDEncoded() const
@@ -79,9 +76,19 @@ uint16_t Cell::getTimeStampEncoded() const
   return encodeTime(mTimestamp);
 }
 
-uint16_t Cell::getEnergyEncoded() const
+uint16_t Cell::getEnergyEncoded(EncoderVersion version) const
 {
-  return encodeEnergyV0(mEnergy);
+  uint16_t energyBits = 0;
+  switch (version) {
+    case EncoderVersion::EncodingV0:
+      energyBits = encodeEnergyV0(mEnergy);
+      break;
+
+    case EncoderVersion::EncodingV1:
+      energyBits = encodeEnergyV1(mEnergy, mChannelType);
+      break;
+  }
+  return energyBits;
 }
 
 uint16_t Cell::getCellTypeEncoded() const
@@ -89,9 +96,16 @@ uint16_t Cell::getCellTypeEncoded() const
   return static_cast<uint16_t>(mChannelType);
 }
 
-void Cell::setEnergyEncoded(uint16_t energyBits)
+void Cell::setEnergyEncoded(uint16_t energyBits, uint16_t channelTypeBits, EncoderVersion version)
 {
-  mEnergy = decodeEnergyV0(energyBits);
+  switch (version) {
+    case EncoderVersion::EncodingV0:
+      mEnergy = decodeEnergyV0(energyBits);
+      break;
+    case EncoderVersion::EncodingV1:
+      mEnergy = decodeEnergyV1(energyBits, static_cast<ChannelType_t>(channelTypeBits));
+      break;
+  }
 }
 
 void Cell::setTimestampEncoded(uint16_t timestampBits)
@@ -138,9 +152,9 @@ short Cell::getTowerFromPackedBitfieldV0(const char* bitfield)
   return reinterpret_cast<const DecodingV0::CellDataPacked*>(bitfield)->mTowerID;
 }
 
-void Cell::truncate()
+void Cell::truncate(EncoderVersion version)
 {
-  setEnergyEncoded(getEnergyEncoded());
+  setEnergyEncoded(getEnergyEncoded(version), getCellTypeEncoded(), version);
   setTimestampEncoded(getTimeStampEncoded());
 }
 
@@ -166,7 +180,7 @@ uint16_t Cell::encodeEnergyV0(float energy)
   } else if (truncatedEnergy > EnergyEncoding::v0::ENERGY_TRUNCATION) {
     truncatedEnergy = EnergyEncoding::v0::ENERGY_TRUNCATION;
   }
-  return static_cast<int16_t>(std::round(truncatedEnergy / EnergyEncoding::v0::ENERGY_RESOLUTION));
+  return static_cast<uint16_t>(std::round(truncatedEnergy / EnergyEncoding::v0::ENERGY_RESOLUTION));
 }
 
 uint16_t Cell::encodeEnergyV1(float energy, ChannelType_t celltype)

@@ -58,6 +58,10 @@ namespace emcal
 class Cell
 {
  public:
+  enum class EncoderVersion {
+    EncodingV0,
+    EncodingV1
+  };
   /// \brief Default constructor
   Cell() = default;
 
@@ -73,7 +77,8 @@ class Cell
   /// \param energy Energy bits
   /// \param timestamp Cell time bits
   /// \param ctype Channel type bits
-  Cell(uint16_t towerBits, uint16_t energyBits, uint16_t timestampBits, uint16_t channelBits);
+  /// \param version Encoding version
+  Cell(uint16_t towerBits, uint16_t energyBits, uint16_t timestampBits, uint16_t channelBits, EncoderVersion version = EncoderVersion::EncodingV1);
 
   /// \brief Destructor
   ~Cell() = default; // override
@@ -152,7 +157,8 @@ class Cell
   Bool_t getTRU() const { return isChannelType(ChannelType_t::TRU); }
 
   /// \brief Apply compression as done during writing to / reading from CTF
-  void truncate();
+  /// \param version Encoder version
+  void truncate(EncoderVersion version = EncoderVersion::EncodingV1);
 
   void PrintStream(std::ostream& stream) const;
 
@@ -161,9 +167,10 @@ class Cell
   /// \param timestampBits Encoded timestamp
   /// \param energyBits Encoded energy
   /// \param celltypeBits Encoded cell type
-  void initialiseFromEncoded(uint16_t towerIDBits, uint16_t timestampBits, uint16_t energyBits, uint16_t celltypeBits)
+  /// \param version Encoder version
+  void initialiseFromEncoded(uint16_t towerIDBits, uint16_t timestampBits, uint16_t energyBits, uint16_t celltypeBits, EncoderVersion version = EncoderVersion::EncodingV1)
   {
-    setEnergyEncoded(energyBits);
+    setEnergyEncoded(energyBits, static_cast<ChannelType_t>(celltypeBits), version);
     setTimestampEncoded(timestampBits);
     setTowerIDEncoded(towerIDBits);
     setChannelTypeEncoded(celltypeBits);
@@ -186,6 +193,7 @@ class Cell
   uint16_t getTimeStampEncoded() const;
 
   /// \brief Get encoded bit representation of energy (for CTF)
+  /// \param version Encoding verions
   /// \return Encoded bit representation
   ///
   /// The energy range covered by the cell
@@ -194,7 +202,7 @@ class Cell
   /// the limits is provided the energy is
   /// set to the limits (0 in case of negative
   /// energy, 250. in case of energies > 250 GeV)
-  uint16_t getEnergyEncoded() const;
+  uint16_t getEnergyEncoded(EncoderVersion version = EncoderVersion::EncodingV1) const;
 
   /// \brief Get encoded bit representation of cell type (for CTF)
   /// \return Encoded bit representation
@@ -218,7 +226,8 @@ class Cell
  private:
   /// \brief Set cell energy from encoded bit representation (from CTF)
   /// \param energyBits Bit representation of energy
-  void setEnergyEncoded(uint16_t energyBits);
+  /// \param cellTypeBits Bit representation of cell type
+  void setEnergyEncoded(uint16_t energyBits, uint16_t cellTypeBits, EncoderVersion version = EncoderVersion::EncodingV1);
 
   /// \brief Set cell time from encoded bit representation (from CTF)
   /// \param timestampBits Bit representation of timestamp

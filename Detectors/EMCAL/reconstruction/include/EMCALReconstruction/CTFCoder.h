@@ -54,6 +54,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   o2::ctf::CTFIOSize encode_impl(VEC& buff, const gsl::span<const TriggerRecord>& trigData, const gsl::span<const Cell>& cellData);
   void appendToTree(TTree& tree, CTF& ec);
   void readFromTree(TTree& tree, int entry, std::vector<TriggerRecord>& trigVec, std::vector<Cell>& cellVec);
+  void assignDictVersion(o2::ctf::CTFDictHeader& h) const final;
   std::vector<TriggerRecord> mTrgDataFilt;
   std::vector<Cell> mCellDataFilt;
 };
@@ -166,12 +167,10 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCELL& c
   trigVec.reserve(header.nTriggers);
   status.reserve(header.nCells);
 
-  /*
-  Bool_t isVersion1 = kFALSE;
-  if (header.majorVersion == 0 && header.minorVersion == 1) {
-    isVersion1 = kTRUE;
+  Cell::EncoderVersion encodingversion = o2::emcal::Cell::EncoderVersion::EncodingV0;
+  if (header.majorVersion == 1 && header.minorVersion == 1) {
+    encodingversion = o2::emcal::Cell::EncoderVersion::EncodingV1;
   }
-  */
 
   uint32_t firstEntry = 0, cellCount = 0;
   o2::InteractionRecord ir(header.firstBC, header.firstOrbit);
@@ -195,13 +194,7 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCELL& c
     firstEntry = cellVec.size();
 
     for (uint16_t ic = 0; ic < entries[itrig]; ic++) {
-      uint16_t packedEnergy = energy[cellCount];
-      /*
-      if (isVersion1) {
-        packedEnergy = o2::emcal::Cell::V0toV1(energy[cellCount], static_cast<ChannelType_t>(status[cellCount]));
-      }
-      */
-      cellVec.emplace_back(tower[cellCount], packedEnergy, cellTime[cellCount], status[cellCount]);
+      cellVec.emplace_back(tower[cellCount], energy[cellCount], cellTime[cellCount], status[cellCount], encodingversion);
       cellCount++;
     }
     trg.setBCData(ir - mBCShift);
