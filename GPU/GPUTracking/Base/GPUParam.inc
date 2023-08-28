@@ -60,6 +60,35 @@ GPUdi() float MEM_LG(GPUParam)::GetClusterError2(int yz, int type, float z, floa
   return v;
 }
 
+MEM_CLASS_PRE()
+GPUdi() float MEM_LG(GPUParam)::GetSystematicClusterErrorIFC2(float x, float z, bool sideC) const
+{
+  const float kEpsZBoundary = 1.e-6f; // to disentangle A,C and A+C-common regions
+  const float kMaxExpArg = 9.f;       // limit r-dumped error to this exp. argument
+  const float kMaxExpArgZ = CAMath::Sqrt(2.f * kMaxExpArg);
+
+  double sysErr = 0;
+  if (rec.tpc.sysClusErrorInner0 > 0.f) {
+    double dr = CAMath::Abs(x - 85.f);
+    float argExp = dr / rec.tpc.sysClusErrorInner1; // is the Z-range limited ?
+    if (argExp < kMaxExpArg) {
+      if (rec.tpc.sysClusErrorZRegion < -kEpsZBoundary && !sideC) {
+        return 0;    // don't apply to A-side clusters if the Z-boundary is for C-region
+      } else if (rec.tpc.sysClusErrorZRegion > kEpsZBoundary && sideC) {
+        return 0; // don't apply to C-side clusters if the Z-boundary is for A-region
+      }
+      const float dz = CAMath::Abs((rec.tpc.sysClusErrorZRegion-z)*rec.tpc.sysClusErrorZRegionSigInv);
+      if (dz < kMaxExpArgZ) { // is it small enough to call exp?
+        argExp += 0.5f * dz*dz;
+        if (argExp<kMaxExpArg) {
+          sysErr = rec.tpc.sysClusErrorInner0 * CAMath::Exp(-argExp);
+        }
+      }
+    }
+  }
+  return sysErr * sysErr;
+}
+
 #else // GPUCA_TPC_GEOMETRY_O2
 
 MEM_CLASS_PRE()
@@ -102,6 +131,12 @@ GPUdi() float MEM_LG(GPUParam)::GetClusterError2(int yz, int type, float z, floa
   v *= yz ? rec.tpc.clusterError2CorrectionZ : rec.tpc.clusterError2CorrectionY;
   v += yz ? rec.tpc.clusterError2AdditionalZ : rec.tpc.clusterError2AdditionalY;
   return v;
+}
+
+MEM_CLASS_PRE()
+GPUdi() float MEM_LG(GPUParam)::GetSystematicClusterErrorIFC2(float x, float z, bool sideC) const
+{
+  return 0;
 }
 
 #endif // !GPUCA_TPC_GEOMETRY_O2
