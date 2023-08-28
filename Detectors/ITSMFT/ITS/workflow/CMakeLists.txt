@@ -25,8 +25,13 @@ o2_add_library(ITSWorkflow
                        src/ThresholdAggregatorSpec.cxx
                        src/DCSParserWorkflow.cxx
                        src/DCSParserSpec.cxx
+                       src/DCSAdaposParserWorkflow.cxx
+                       src/DCSAdaposParserSpec.cxx
+                       src/DCSDataGeneratorWorkflow.cxx
+           src/DCSGeneratorSpec.cxx
          PUBLIC_LINK_LIBRARIES O2::Framework
                                O2::SimConfig
+                               O2::DetectorsDCS
                                O2::DataFormatsITS
                                O2::DataFormatsDCS
                                O2::DataFormatsTRD
@@ -70,6 +75,16 @@ o2_add_executable(threshold-aggregator-workflow
 
 o2_add_executable(dcs-parser-workflow
                   SOURCES src/its-dcs-parser-workflow.cxx
+                  COMPONENT_NAME its
+                  PUBLIC_LINK_LIBRARIES O2::ITSWorkflow)
+
+o2_add_executable(dcs-generator-workflow
+                  SOURCES src/its-dcs-generator-workflow.cxx
+                  COMPONENT_NAME its
+                  PUBLIC_LINK_LIBRARIES O2::ITSWorkflow)
+
+o2_add_executable(dcs-adapos-parser-workflow
+                  SOURCES src/its-dcs-adapos-parser-workflow.cxx
                   COMPONENT_NAME its
                   PUBLIC_LINK_LIBRARIES O2::ITSWorkflow)
 
