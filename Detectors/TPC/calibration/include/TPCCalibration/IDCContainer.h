@@ -31,10 +31,11 @@ namespace tpc
 {
 
 /// IDC types
-enum class IDCType { IDC = 0,     ///< integrated and grouped IDCs
-                     IDCZero = 1, ///< IDC0: I_0(r,\phi) = <I(r,\phi,t)>_t
-                     IDCOne = 2,  ///< IDC1: I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
-                     IDCDelta = 3 ///< IDCDelta: \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
+enum class IDCType { IDC = 0,       ///< integrated and grouped IDCs
+                     IDCZero = 1,   ///< IDC0: I_0(r,\phi) = <I(r,\phi,t)>_t
+                     IDCOne = 2,    ///< IDC1: I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
+                     IDCDelta = 3,  ///< IDCDelta: \Delta I(r,\phi,t) = I(r,\phi,t) / ( I_0(r,\phi) * I_1(t) )
+                     IDCOutlier = 4 //< IDCOutlier: for outlier maps
 };
 
 /// define alias for SACs

@@ -43,6 +43,11 @@ class SACs
   /// \param stack stack
   float getSACZeroVal(const unsigned int stack) const { return mSACZero->getValueIDCZero(getSide(stack), stack % GEMSTACKSPERSIDE); }
 
+  /// \return sets new SAC0 value
+  /// \param stack stack
+  /// \param float factor
+  void setSACZeroVal(float factor, const unsigned int stack) const { mSACZero->setValueSACZero(factor, getSide(stack), stack % GEMSTACKSPERSIDE); }
+
   /// \return returns SAC1 value
   /// \param Side TPC side
   /// \param interval integration interval
@@ -58,8 +63,13 @@ class SACs
   /// \param interval local integration interval
   unsigned int getSACDeltaIndex(const unsigned int stack, unsigned int interval) const { return stack % GEMSTACKSPERSIDE + GEMSTACKSPERSIDE * interval; }
 
+  /// \return returns if SAC Zero was rejected or not
+  /// \param stack stack
+  int getSACRejection(const unsigned int stack) const { return mIsSACZeroOutlier[stack]; }
+
   void setSACZero(SACZero* sacZero) { mSACZero = sacZero; }
   void setSACOne(SACOne* sacOne, const Side side = Side::A) { mSACOne[side] = sacOne; }
+  void setSACZeroMaxDeviation(float maxdeviation) { mSACZeroMaxDeviation = maxdeviation; }
 
   template <typename T>
   void setSACDelta(SACDelta<T>* sacDelta)
@@ -73,6 +83,11 @@ class SACs
   TCanvas* drawSACTypeSides(const SACType type, const unsigned int integrationInterval, const int minZ = 0, const int maxZ = -1, TCanvas* canv = nullptr);
   TCanvas* drawSACOneCanvas(int nbins1D, float xMin1D, float xMax1D, int integrationIntervals = -1, TCanvas* outputCanvas = nullptr) const;
   TCanvas* drawFourierCoeffSAC(Side side, int nbins1D, float xMin1D, float xMax1, TCanvas* outputCanvas = nullptr) const;
+  TCanvas* drawSACZeroScale(TCanvas* outputCanvas = nullptr) const;
+
+  void scaleSAC0(const float factor, const Side side);
+  void setSACZeroScale(const bool rejectOutlier);
+  float getMeanSACZero(const o2::tpc::Side side, bool rejectOutliers);
 
   void dumpToFile(std::string filename, int type = 0);
 
@@ -82,6 +97,10 @@ class SACs
   std::array<SACOne*, SIDES> mSACOne{}; ///< I_1(t) = <I(r,\phi,t) / I_0(r,\phi)>_{r,\phi}
   SACDelta<unsigned char>* mSACDelta = nullptr;
   FourierCoeffSAC* mFourierSAC = nullptr; ///< fourier coefficients of SACOne
+  float mScaleSACZeroAside = 1.0;
+  float mScaleSACZeroCside = 1.0;
+  float mSACZeroMaxDeviation = 0.;
+  int mIsSACZeroOutlier[GEMSTACKSPERSIDE * o2::tpc::SECTORSPERSIDE * 2] = {0};
 
   /// \return returns side for given GEM stack
   Side getSide(const unsigned int gemStack) const { return (gemStack < GEMSTACKSPERSIDE) ? Side::A : Side::C; }
@@ -89,7 +108,7 @@ class SACs
   /// \return returns stack for given sector and stack
   unsigned int getStack(const unsigned int sector, const unsigned int stack) const { return static_cast<unsigned int>(stack + sector * GEMSTACKSPERSECTOR); }
 
-  ClassDefNV(SACs, 1)
+  ClassDefNV(SACs, 2)
 };
 } // namespace o2::tpc::qc
 #endif
