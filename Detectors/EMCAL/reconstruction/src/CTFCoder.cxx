@@ -57,3 +57,14 @@ void CTFCoder::createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBa
   MAKECODER(trigger,    CTF::BLC_trigger);
   // clang-format on
 }
+
+///___________________________________________________________________________________
+void CTFCoder::assignDictVersion(o2::ctf::CTFDictHeader& h) const
+{
+  if (mExtHeader.isValidDictTimeStamp()) {
+    h = mExtHeader;
+  } else {
+    h.majorVersion = 1;
+    h.minorVersion = 1;
+  }
+}

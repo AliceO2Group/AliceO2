@@ -25,7 +25,9 @@
 #pragma link C++ class o2::emcal::ErrorTypeFEE + ;
 
 #pragma read \
-  sourceClass = "o2::emcal::Cell" targetClass = "o2::emcal::Cell" source = "UShort_t mCellWords[3]" version = "[1]" include = "iostream" target = "mCellWords" code = "{const char *oldwords = reinterpret_cast<const char *>(onfile.mCellWords); for(int i = 0; i < 6; i++) {mCellWords[i] = oldwords[i];} }"
+  sourceClass = "o2::emcal::Cell" targetClass = "o2::emcal::Cell" source = "UShort_t mCellWords[3]" version = "[1]" include = "iostream" target = "mEnergy,mTimestamp,mTowerID,mChannelType" code = "{const char * oldwords = reinterpret_cast<const char *>(onfile.mCellWords); mEnergy=o2::emcal::Cell::getEnergyFromPackedBitfieldV0(oldwords); mTimestamp=o2::emcal::Cell::getTimeFromPackedBitfieldV0(oldwords); mTowerID=o2::emcal::Cell::getTowerFromPackedBitfieldV0(oldwords); mChannelType=o2::emcal::Cell::getCellTypeFromPackedBitfieldV0(oldwords);}"
+#pragma read \
+  sourceClass = "o2::emcal::Cell" targetClass = "o2::emcal::Cell" source = "char mCellWords[6]" version = "[2]" include = "iostream" target = "mEnergy,mTimestamp,mTowerID,mChannelType" code = "{mEnergy=o2::emcal::Cell::getEnergyFromPackedBitfieldV0(onfile.mCellWords); mTimestamp=o2::emcal::Cell::getTimeFromPackedBitfieldV0(onfile.mCellWords); mTowerID=o2::emcal::Cell::getTowerFromPackedBitfieldV0(onfile.mCellWords); mChannelType=o2::emcal::Cell::getCellTypeFromPackedBitfieldV0(onfile.mCellWords);}"
 
 #pragma link C++ class std::vector < o2::emcal::TriggerRecord> + ;
 #pragma link C++ class std::vector < o2::emcal::Cell> + ;
