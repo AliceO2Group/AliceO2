@@ -37,11 +37,19 @@ namespace bc
 DECLARE_SOA_COLUMN(RunNumber, runNumber, int);          //! Run number
 DECLARE_SOA_COLUMN(GlobalBC, globalBC, uint64_t);       //! Bunch crossing number (globally unique in this run)
 DECLARE_SOA_COLUMN(TriggerMask, triggerMask, uint64_t); //! CTP trigger mask
+DECLARE_SOA_COLUMN(InputMask, inputMask, uint64_t);     //! CTP input mask
 } // namespace bc
 
-DECLARE_SOA_TABLE(BCs, "AOD", "BC", o2::soa::Index<>, //! Root of data model for tables pointing to a bunch crossing
+DECLARE_SOA_TABLE(BCs_000, "AOD", "BC", //! Root of data model for tables pointing to a bunch crossing
+                  o2::soa::Index<>,
                   bc::RunNumber, bc::GlobalBC,
                   bc::TriggerMask);
+DECLARE_SOA_TABLE_VERSIONED(BCs_001, "AOD", "BC", 1, //! Root of data model for tables pointing to a bunch crossing, version 1
+                            o2::soa::Index<>,
+                            bc::RunNumber, bc::GlobalBC,
+                            bc::TriggerMask, bc::InputMask);
+
+using BCs = BCs_000; // current version
 using BC = BCs::iterator;
 
 namespace timestamp
