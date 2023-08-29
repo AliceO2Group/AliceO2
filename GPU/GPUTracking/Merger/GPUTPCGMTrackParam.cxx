@@ -1183,3 +1183,24 @@ GPUd() void GPUTPCGMTrackParam::Rotate(float alpha)
     mC[11] = -mC[11];
   }
 }
+
+GPUd() void GPUTPCGMTrackParam::AddCovDiagErrors(const float* GPUrestrict() errors2)
+{
+  mC[0] += errors2[0];
+  mC[2] += errors2[1];
+  mC[5] += errors2[2];
+  mC[9] += errors2[3];
+  mC[14] += errors2[4];
+}
+
+GPUd() void GPUTPCGMTrackParam::AddCovDiagErrorsWithCorrelations(const float* GPUrestrict() errors2)
+{
+  const int diagMap[5] = {0, 2, 5, 9, 14};
+  const float oldDiag[5] = {mC[0], mC[2], mC[5], mC[9], mC[14]};
+  for (int i = 0; i < 5; i++) {
+    mC[diagMap[i]] += errors2[i];
+    for (int j = 0; j < i; j++) {
+      mC[diagMap[i - 1] + j + 1] *= gpu::CAMath::Sqrt(mC[diagMap[i]] * mC[diagMap[j]] / (oldDiag[i] * oldDiag[j]));
+    }
+  }
+}
