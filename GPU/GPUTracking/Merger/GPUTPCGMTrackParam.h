@@ -160,6 +160,9 @@ class GPUTPCGMTrackParam
   GPUd() void StoreOuter(gputpcgmmergertypes::GPUTPCOuterParam* outerParam, const GPUTPCGMPropagator& prop, int phase);
   GPUd() static void RefitLoop(const GPUTPCGMMerger* GPUrestrict() Merger, int loopIdx);
 
+  GPUd() void AddCovDiagErrors(const float* GPUrestrict() errors2);
+  GPUd() void AddCovDiagErrorsWithCorrelations(const float* GPUrestrict() errors2);
+
   GPUdi() void MarkClusters(GPUTPCGMMergedTrackHit* GPUrestrict() clusters, int ihitFirst, int ihitLast, int wayDirection, unsigned char state)
   {
     clusters[ihitFirst].state |= state;
