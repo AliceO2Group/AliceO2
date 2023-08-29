@@ -105,6 +105,16 @@ void DigiReco::init()
     LOG(info) << "Full waveform interpolation is " << (mFullInterpolation ? "enabled" : "disabled");
   }
 
+  if (ropt.triggerCondition == 0) {
+    if (!mRecoConfigZDC) {
+      LOG(fatal) << "Trigger condition: missing configuration object and no manual override";
+    } else {
+      mTriggerCondition = mRecoConfigZDC->triggerCondition;
+    }
+  } else {
+    mTriggerCondition = ropt.triggerCondition;
+  }
+
   if (mTriggerCondition == 0x1) {
     LOG(info) << "SINGLE trigger condition enforced in reconstruction";
   } else if (mTriggerCondition == 0x3) {

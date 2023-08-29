@@ -30,6 +30,11 @@ struct RecoConfigZDC {
   int32_t tth[NTDCChannels] = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8};             // Trigger threshold
   std::array<bool, NTDCChannels> bitset = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // Set bits in coincidence
   void setBit(uint32_t ibit, bool val = true);
+  uint8_t triggerCondition = 0x3; /// Trigger condition: 0x1 single, 0x3 double and 0x7 triple
+  uint8_t getTriggerCondition() { return triggerCondition; }
+  void setTripleTrigger() { triggerCondition = 0x7; }
+  void setDoubleTrigger() { triggerCondition = 0x3; }
+  void setSingleTrigger() { triggerCondition = 0x1; }
 
   // Signal processing
   bool low_pass_filter = true;     // Low pass filtering
@@ -61,7 +66,7 @@ struct RecoConfigZDC {
 
   void print() const;
 
-  ClassDefNV(RecoConfigZDC, 3);
+  ClassDefNV(RecoConfigZDC, 4);
 };
 } // namespace zdc
 } // namespace o2
