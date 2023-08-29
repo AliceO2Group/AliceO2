@@ -90,11 +90,12 @@ class EMCALCalibExtractor
   /// \param hist histogram cell energy vs. cell ID. Main histogram for the bad channel calibration
   /// \param histTime histogram cell time vs. cell ID. If default argument is taken, no calibration based on the timing signal will be performed
   template <typename... axes>
-  o2::emcal::BadChannelMap calibrateBadChannels(boost::histogram::histogram<axes...>& hist, const boost::histogram::histogram<axes...>& histTime = boost::histogram::make_histogram(boost::histogram::axis::variable<>{0., 1.}, boost::histogram::axis::variable<>{0., 1.}))
+  o2::emcal::BadChannelMap calibrateBadChannels(const boost::histogram::histogram<axes...>& hist, const boost::histogram::histogram<axes...>& histTime = boost::histogram::make_histogram(boost::histogram::axis::variable<>{0., 1.}, boost::histogram::axis::variable<>{0., 1.}))
   {
     double time1 = std::chrono::duration_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now().time_since_epoch()).count();
     std::map<int, std::pair<double, double>> slices = {{0, {0.1, 0.3}}, {1, {0.3, 0.5}}, {2, {0.5, 1.0}}, {3, {1.0, 4.0}}, {4, {4.0, 39.0}}};
 
+    auto histScaled = hist;
     if (mBCMScaleFactors) {
       LOG(info) << "Rescaling BCM histo";
       // rescale the histogram
@@ -103,13 +104,13 @@ class EMCALCalibExtractor
           double lowerE = hist.axis(0).bin(ebin).lower();
           double upperE = hist.axis(0).bin(ebin).upper();
           double midE = (lowerE + upperE) / 2.;
-          hist.at(ebin, icell) = hist.at(ebin, icell) / mBCMScaleFactors->getScaleVal(icell, midE);
+          histScaled.at(ebin, icell) = hist.at(ebin, icell) / mBCMScaleFactors->getScaleVal(icell, midE);
         }
       }
     }
 
     // get all ofthe calibration information that we need in a struct
-    BadChannelCalibInfo calibrationInformation = buildHitAndEnergyMean(slices, hist);
+    BadChannelCalibInfo calibrationInformation = buildHitAndEnergyMean(slices, histScaled);
 
     // only initialize this if the histo is not the default one
     const bool doIncludeTime = (histTime.axis(0).size() > 1 && EMCALCalibParams::Instance().useTimeInfoForCalib_bc) ? true : false;
@@ -338,7 +339,7 @@ class EMCALCalibExtractor
   /// \param maxTime -- max. time considered for fit
   /// \param restrictFitRangeToMax -- restrict the fit range to the maximum entry in the histogram in the range +-restrictFitRangeToMax (default: 25ns)
   template <typename... axes>
-  o2::emcal::TimeCalibrationParams calibrateTime(boost::histogram::histogram<axes...>& hist, double minTime = 0, double maxTime = 1000, double restrictFitRangeToMax = 25)
+  o2::emcal::TimeCalibrationParams calibrateTime(const boost::histogram::histogram<axes...>& hist, double minTime = 0, double maxTime = 1000, double restrictFitRangeToMax = 25)
   {
 
     auto histReduced = boost::histogram::algorithm::reduce(hist, boost::histogram::algorithm::shrink(minTime, maxTime), boost::histogram::algorithm::shrink(0, mNcells));
