@@ -28,6 +28,7 @@
 #endif
 #include <Generators/GeneratorTGenerator.h>
 #include <Generators/GeneratorExternalParam.h>
+#include "Generators/GeneratorFromO2KineParam.h"
 #ifdef GENERATORS_WITH_HEPMC3
 #include <Generators/GeneratorHepMC.h>
 #include <Generators/GeneratorHepMCParam.h>
@@ -148,6 +149,12 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     auto extGen = new o2::eventgen::GeneratorFromO2Kine(conf.getExtKinematicsFileName().c_str());
     extGen->SetStartEvent(conf.getStartEvent());
     primGen->AddGenerator(extGen);
+    if (GeneratorFromO2KineParam::Instance().continueMode) {
+      auto o2PrimGen = dynamic_cast<o2::eventgen::PrimaryGenerator*>(primGen);
+      if (o2PrimGen) {
+        o2PrimGen->setApplyVertex(false);
+      }
+    }
     LOG(info) << "using external O2 kinematics";
 #ifdef GENERATORS_WITH_HEPMC3
   } else if (genconfig.compare("hepmc") == 0) {

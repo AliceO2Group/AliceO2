@@ -162,6 +162,12 @@ Bool_t GeneratorFromFile::ReadEvent(FairPrimaryGenerator* primGen)
 
 GeneratorFromO2Kine::GeneratorFromO2Kine(const char* name)
 {
+  // this generator should leave all dimensions the same as in the incoming kinematics file
+  setMomentumUnit(1.);
+  setEnergyUnit(1.);
+  setPositionUnit(1.);
+  setTimeUnit(1.);
+
   mEventFile = TFile::Open(name);
   if (mEventFile == nullptr) {
     LOG(fatal) << "EventFile " << name << " not found";
@@ -235,7 +241,7 @@ bool GeneratorFromO2Kine::importParticles()
       auto d1 = t.getFirstDaughterTrackId();
       auto d2 = t.getLastDaughterTrackId();
       auto e = t.GetEnergy();
-      auto vt = t.T();
+      auto vt = t.T() * 1e-9; // MCTrack stores in ns ... generators and engines use seconds
       auto weight = t.getWeight();
       auto wanttracking = t.getToBeDone();
 
