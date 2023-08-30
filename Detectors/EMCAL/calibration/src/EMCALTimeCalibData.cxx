@@ -80,8 +80,9 @@ void EMCALTimeCalibData::fill(const gsl::span<const o2::emcal::Cell> data)
   // the fill function is called once per event
   mEvents++;
 
-  if (data.size() == 0)
+  if (data.size() == 0) {
     return;
+  }
   auto fillfunction = [this](int thread, const gsl::span<const o2::emcal::Cell> data, double minCellEnergy) {
     LOG(debug) << "filling in thread " << thread << " ncells = " << data.size();
     auto& mCurrentHist = mTimeHisto[thread];
