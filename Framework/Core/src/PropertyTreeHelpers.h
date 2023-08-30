@@ -14,7 +14,7 @@
 #include "Framework/ConfigParamSpec.h"
 
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
-#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/ptree_fwd.hpp>
 #include <boost/program_options/variables_map.hpp>
 #include <functional>
 
@@ -51,14 +51,16 @@ struct PropertyTreeHelpers {
                        std::string const& propertyLabel);
 
   //using WalkerFunction = std::function<void(boost::property_tree::ptree const&, boost::property_tree::ptree::path_type, boost::property_tree::ptree const&)>;
-  using WalkerFunction = std::function<void(boost::property_tree::ptree const&, boost::property_tree::ptree::path_type, boost::property_tree::ptree const&)>;
+  template <typename T> using WalkerFunction = std::function<void(boost::property_tree::ptree const&, typename T::path_type, boost::property_tree::ptree const&)>;
   /// Traverse the tree recursively calling @a WalkerFunction on each leaf.
-  static void traverse(boost::property_tree::ptree const& parent, WalkerFunction& method);
+  template <typename T>
+  static void traverse(boost::property_tree::ptree const& parent, WalkerFunction<T>& method);
 
   /// Merge @a source ptree into @a dest
+  template <typename T>
   static void merge(boost::property_tree::ptree& dest,
                     boost::property_tree::ptree const& source,
-                    boost::property_tree::ptree::path_type const& mergePoint);
+                    typename T::path_type const& mergePoint);
 };
 
 } // namespace o2::framework

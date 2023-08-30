@@ -341,7 +341,7 @@ namespace
 void traverseRecursive(const boost::property_tree::ptree& parent,
                        const boost::property_tree::ptree::path_type& childPath,
                        const boost::property_tree::ptree& child,
-                       PropertyTreeHelpers::WalkerFunction& method)
+                       PropertyTreeHelpers::WalkerFunction<boost::property_tree::ptree>& method)
 {
   using boost::property_tree::ptree;
 
@@ -353,7 +353,8 @@ void traverseRecursive(const boost::property_tree::ptree& parent,
 }
 } // namespace
 
-void PropertyTreeHelpers::traverse(const boost::property_tree::ptree& parent, PropertyTreeHelpers::WalkerFunction& method)
+template <>
+void PropertyTreeHelpers::traverse<boost::property_tree::ptree>(const boost::property_tree::ptree& parent, PropertyTreeHelpers::WalkerFunction<boost::property_tree::ptree>& method)
 {
   traverseRecursive(parent, "", parent, method);
 }
