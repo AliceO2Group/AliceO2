@@ -44,9 +44,9 @@ void CreateRecoConfigZDC(long tmin = 0, long tmax = -1, std::string ccdbHost = "
   // conf.setBit(IdZPCC);
   // conf.setBit(IdZPCSum);
 
-  // conf.setTripleTrigger()();
-  conf.setDoubleTrigger()();
-  // conf.setSingleTrigger()();
+  // conf.setTripleTrigger();
+  conf.setDoubleTrigger();
+  // conf.setSingleTrigger();
 
   // TDC
   int def_search = 250; // Unit of ~10 ps
