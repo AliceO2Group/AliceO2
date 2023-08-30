@@ -78,6 +78,7 @@ struct EMCALCalibParams : public o2::conf::ConfigurableParamHelper<EMCALCalibPar
   bool setSavedSlotAllowedSOR_EMC = true;              ///< if true, stored calibrations from last run can be loaded in the next run (if false, storing of the calib histograms is still active in contrast to setSavedSlotAllowed_EMC)
   long endTimeMargin = 2592000000;                     ///< set end TS to 30 days after slot ends (1000 * 60 * 60 * 24 * 30)
   std::string selectedClassMasks = "C0TVX-B-NOPF-EMC"; ///< name of EMCal min. bias trigger that is used for calibration
+  int bcShiftCTP = 0;                                  ///< bc shift of CTP digits to align them with EMC bc in case they are misaligned
 
   // old parameters. Keep them for a bit (can be deleted after september 5th) as otherwise ccdb and o2 version might not be in synch
   unsigned int minNEvents = 1e7;              ///< minimum number of events to trigger the calibration

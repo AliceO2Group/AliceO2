@@ -235,6 +235,23 @@ class EMCALChannelCalibDevice : public o2::framework::Task
         mBadChannelCalibrator->setSaveAtEOR(false);
     }
 
+    // prepare CTP information to reject EMCal triggers
+    uint64_t classMaskCTP = 0;
+    std::unordered_set<int64_t> numBCAccepted;
+    if (mRejectL0Triggers) {
+      for (auto& ctpDigit : *ctpDigits) {
+        // obtain trigger mask that belongs to the selected bc
+        classMaskCTP = ctpDigit.CTPClassMask.to_ulong();
+        // now check if min bias trigger is not in mask
+        for (const uint64_t& selectedClassMask : mSelectedClassMasks) {
+          if ((classMaskCTP & selectedClassMask) != 0) {
+            LOG(debug) << "classmask " << selectedClassMask << " added for the bc " << ctpDigit.intRecord.toLong() + EMCALCalibParams::Instance().bcShiftCTP;
+            numBCAccepted.insert(ctpDigit.intRecord.toLong() + EMCALCalibParams::Instance().bcShiftCTP);
+          }
+        }
+      }
+    }
+
     auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get(getCellBinding()).header)->startTime;
 
     auto data = pc.inputs().get<gsl::span<o2::emcal::Cell>>(getCellBinding());
@@ -259,30 +276,9 @@ class EMCALChannelCalibDevice : public o2::framework::Task
       }
 
       // reject all triggers that are not included in the classMask (typically only EMC min. bias should be accepted)
-      uint64_t classMaskCTP = 0;
       if (mRejectL0Triggers) {
-        bool acceptEvent = false;
-        // Match the EMCal bc to the CTP bc
-        int64_t bcEMC = trg.getBCData().toLong();
-        for (auto& ctpDigit : *ctpDigits) {
-          int64_t bcCTP = ctpDigit.intRecord.toLong();
-          LOG(debug) << "bcEMC " << bcEMC << "   bcCTP " << bcCTP;
-          if (bcCTP == bcEMC) {
-            // obtain trigger mask that belongs to the selected bc
-            classMaskCTP = ctpDigit.CTPClassMask.to_ulong();
-            // now check if min bias trigger is not in mask
-            for (const uint64_t& selectedClassMask : mSelectedClassMasks) {
-              if ((classMaskCTP & selectedClassMask) != 0) {
-                LOG(debug) << "trigger " << selectedClassMask << " found! accepting event";
-                acceptEvent = true;
-                break;
-              }
-            }
-            break; // break as bc was matched
-          }
-        }
-        // if current event is not accepted (selected triggers not present), move on to next event
-        if (!acceptEvent) {
+        if (numBCAccepted.find(trg.getBCData().toLong()) == numBCAccepted.end()) {
+          LOG(debug) << "correct trigger not found, rejecting event";
           continue;
         }
       }
