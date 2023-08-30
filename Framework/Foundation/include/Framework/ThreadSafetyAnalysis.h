@@ -18,6 +18,10 @@
 /// Moreover, since we do not want to wrap every single
 /// std::mutex into our own class, we expect _LIBCPP_ENABLE_THREAD_SAFETY_ANNOTATIONS
 /// to be defined by the user to actually enable this feature.
+
+// Assume that we only need this is someone else is not using the
+// same clang provided macros
+#ifndef THREAD_ANNOTATION_ATTRIBUTE__
 #if defined(__clang__) && (!defined(SWIG)) && defined(_LIBCPP_ENABLE_THREAD_SAFETY_ANNOTATIONS)
 #define THREAD_ANNOTATION_ATTRIBUTE__(x) __attribute__((x))
 #else
@@ -84,4 +88,5 @@
 #define NO_THREAD_SAFETY_ANALYSIS \
   THREAD_ANNOTATION_ATTRIBUTE__(no_thread_safety_analysis)
 
+#endif // THREAD_ANNOTATION_ATTRIBUTE__
 #endif // O2_FRAMEWORK_THREADSAFETYANALYSIS_H_
