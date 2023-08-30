@@ -103,12 +103,14 @@ void CalibratorGain::retrievePrev(o2::framework::ProcessingContext& pc)
 
 void CalibratorGain::finalizeSlot(Slot& slot)
 {
+  LOG(info) << "Finalizing gain calibration";
   // do actual calibration for the data provided in the given slot
   TStopwatch timer;
   timer.Start();
   initProcessing();
 
   auto dEdxHists = slot.getContainer();
+  LOGP(info, "Current slot has {} entries", dEdxHists->getNEntries());
   for (int iDet = 0; iDet < MAXCHAMBER; ++iDet) {
     mdEdxhists[iDet]->Reset();
     for (int iBin = 0; iBin < NBINSGAINCALIB; ++iBin) {
@@ -166,6 +168,7 @@ Slot& CalibratorGain::emplaceNewSlot(bool front, TFType tStart, TFType tEnd)
   auto& container = getSlots();
   auto& slot = front ? container.emplace_front(tStart, tEnd) : container.emplace_back(tStart, tEnd);
   slot.setContainer(std::make_unique<GainCalibHistos>());
+  slot.getContainer()->init();
   return slot;
 }
 

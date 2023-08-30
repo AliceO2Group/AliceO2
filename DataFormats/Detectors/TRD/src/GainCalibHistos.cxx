@@ -27,6 +27,9 @@ void GainCalibHistos::init()
 
 void GainCalibHistos::reset()
 {
+  if (!mInitialized) {
+    init();
+  }
   std::fill(mdEdxEntries.begin(), mdEdxEntries.end(), 0);
   mNEntriesTot = 0;
 }
@@ -44,6 +47,9 @@ void GainCalibHistos::fill(const std::vector<int>& input)
 
 void GainCalibHistos::merge(const GainCalibHistos* prev)
 {
+  if (!mInitialized) {
+    init();
+  }
   for (int i = 0; i < MAXCHAMBER * NBINSGAINCALIB; ++i) {
     mdEdxEntries[i] += prev->getHistogramEntry(i);
     mNEntriesTot += prev->getHistogramEntry(i);
