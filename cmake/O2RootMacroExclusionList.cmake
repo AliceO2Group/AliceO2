@@ -31,9 +31,6 @@ list(APPEND O2_ROOT_MACRO_EXCLUSION_LIST
             Detectors/TRD/base/macros/TestTrapSim.C
             Detectors/TRD/macros/convertRun2ToRun3Digits.C
             Detectors/TRD/simulation/macros/CheckTRDFST.C
-            Detectors/TRD/reconstruction/macros/checkTrackletCharges.C
-            Detectors/TRD/reconstruction/macros/CompareDigitsAndTracklets.C
-            Detectors/TRD/reconstruction/macros/createLinkToHCIDMapping.C
             Detectors/gconfig/g4Config.C
             Detectors/TRD/macros/ParseTrapRawOutput.C
             Detectors/EMCAL/calib/macros/ReadTestBadChannelMap_CCDBApi.C
