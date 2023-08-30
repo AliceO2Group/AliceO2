@@ -81,6 +81,11 @@ class MCTrackT
   Double_t GetStartVertexCoordinatesZ() const { return mStartVertexCoordinatesZ; }
   Double_t GetStartVertexCoordinatesT() const { return mStartVertexCoordinatesT; }
 
+  /// production radius squared
+  Double_t R2() const { return Vx() * Vx() + Vy() * Vy(); }
+  /// production radius
+  Double_t R() const { return std::sqrt(R2()); }
+
   /// return mass from PDG Database if known (print message in case cannot look up)
   Double_t GetMass() const;
 
