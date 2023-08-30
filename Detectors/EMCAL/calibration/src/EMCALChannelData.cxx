@@ -102,10 +102,10 @@ void EMCALChannelData::fill(const gsl::span<const o2::emcal::Cell> data)
   double minCellEnergyTime = o2::emcal::EMCALCalibParams::Instance().minCellEnergyTime_bc;
 
 #if (defined(WITH_OPENMP) && !defined(__CLING__))
-  LOG(info) << "Number of threads that will be used = " << mNThreads;
+  LOG(debug) << "Number of threads that will be used = " << mNThreads;
 #pragma omp parallel for num_threads(mNThreads)
 #else
-  LOG(info) << "OPEN MP will not be used for the bad channel calibration";
+  LOG(debug) << "OPEN MP will not be used for the bad channel calibration";
 #endif
   for (int ithread = 0; ithread < mNThreads; ithread++) {
     fillfunction(ithread, ranges[ithread], minCellEnergy, minCellEnergyTime);
