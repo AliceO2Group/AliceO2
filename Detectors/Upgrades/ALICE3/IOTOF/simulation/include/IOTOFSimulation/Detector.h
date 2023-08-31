@@ -9,22 +9,22 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef ALICEO2_TRK_DETECTOR_H
-#define ALICEO2_TRK_DETECTOR_H
+#ifndef ALICEO2_IOTOF_DETECTOR_H
+#define ALICEO2_IOTOF_DETECTOR_H
 
 #include "DetectorsBase/Detector.h"
 #include "ITSMFTSimulation/Hit.h"
 
-#include "TRKSimulation/TRKLayer.h"
-#include "TRKSimulation/TRKServices.h"
-#include "TRKBase/GeometryTGeo.h"
+#include "IOTOFSimulation/IOTOFLayer.h"
+// #include "IOTOFSimulation/TRKServices.h"
+#include "IOTOFBase/GeometryTGeo.h"
 
 #include <TLorentzVector.h>
 #include <TString.h>
 
 namespace o2
 {
-namespace trk
+namespace iotof
 {
 
 class Detector : public o2::base::DetImpl<Detector>
@@ -61,10 +61,8 @@ class Detector : public o2::base::DetImpl<Detector>
   }
 
   void configDefault();
-  void configFromFile(std::string fileName = "alice3_TRK_layout.txt");
-  void configToFile(std::string fileName = "alice3_TRK_layout.txt");
 
-  void configServices(); // To get special conf from CLI options
+  void configServices();
   void createMaterials();
   void createGeometry();
 
@@ -77,10 +75,10 @@ class Detector : public o2::base::DetImpl<Detector>
     TLorentzVector mMomentumStart;     // momentum
     double mEnergyLoss;                // energy loss
   } mTrackData;                        //! transient data
+
   GeometryTGeo* mGeometryTGeo;         //!
   std::vector<o2::itsmft::Hit>* mHits; // ITSMFT ones for the moment
-  std::vector<TRKLayer> mLayers;
-  TRKServices mServices;
+  std::vector<IOTOFLayer> mLayers;
 
   void defineSensitiveVolumes();
 
@@ -88,7 +86,7 @@ class Detector : public o2::base::DetImpl<Detector>
   friend class o2::base::DetImpl;
   ClassDefOverride(Detector, 1);
 };
-} // namespace trk
+} // namespace iotof
 } // namespace o2
 
 #ifdef USESHM
@@ -97,7 +95,7 @@ namespace o2
 namespace base
 {
 template <>
-struct UseShm<o2::trk::Detector> {
+struct UseShm<o2::iotof::Detector> {
   static constexpr bool value = true;
 };
 } // namespace base

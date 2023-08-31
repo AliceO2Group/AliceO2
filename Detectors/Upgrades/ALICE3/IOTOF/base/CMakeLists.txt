@@ -9,9 +9,11 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-add_subdirectory(Passive)
-add_subdirectory(TRK)
-add_subdirectory(FT3)
-add_subdirectory(FCT)
-add_subdirectory(AOD)
-add_subdirectory(IOTOF)
+o2_add_library(IOTOFBase
+               SOURCES src/GeometryTGeo.cxx
+                       src/IOTOFBaseParam.cxx
+               PUBLIC_LINK_LIBRARIES O2::DetectorsBase)
+
+o2_target_root_dictionary(IOTOFBase
+               HEADERS include/IOTOFBase/GeometryTGeo.h
+                       include/IOTOFBase/IOTOFBaseParam.h)
