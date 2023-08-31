@@ -9,6 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#ifndef O2_EMCAL_RAWTOCELLCONVERTER_SPEC
+#define O2_EMCAL_RAWTOCELLCONVERTER_SPEC
+
 #include <chrono>
 #include <exception>
 #include <vector>
@@ -267,3 +270,5 @@ framework::DataProcessorSpec getRawToCellConverterSpec(bool askDISTSTF, bool dis
 } // namespace emcal
 
 } // namespace o2
+
+#endif // O2_EMCAL_RAWTOCELLCONVERTER_SPEC
