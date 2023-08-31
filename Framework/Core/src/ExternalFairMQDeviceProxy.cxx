@@ -38,6 +38,7 @@
 
 #include <fairmq/Parts.h>
 #include <fairmq/Device.h>
+#include <uv.h>
 #include <cstring>
 #include <cassert>
 #include <memory>
@@ -467,11 +468,12 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       for (auto& channel : channels) {
         LOGP(detail, "Injecting channel '{}' into DPL configuration", channel);
         // Converter should pump messages
+        auto& channelPtr = services.get<RawDeviceService>().device()->GetChannel(channel, 0);
         deviceState.inputChannelInfos.push_back(InputChannelInfo{
           .state = InputChannelState::Running,
           .hasPendingEvents = false,
           .readPolled = false,
-          .channel = nullptr,
+          .channel = &channelPtr,
           .id = {ChannelIndex::INVALID},
           .channelType = ChannelAccountingType::RAWFMQ,
         });
@@ -490,14 +492,39 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       }
       // We keep track of whether or not all channels have seen a new state.
       std::vector<bool> lastNewStatePending(deviceState.inputChannelInfos.size(), false);
+      uv_update_time(deviceState.loop);
+      auto start = uv_now(deviceState.loop);
 
       // Continue iterating until all channels have seen a new state.
-      while (std::all_of(lastNewStatePending.begin(), lastNewStatePending.end(), [](bool b) { return b; })) {
+      while (std::all_of(lastNewStatePending.begin(), lastNewStatePending.end(), [](bool b) { return b; }) != true) {
+        if (uv_now(deviceState.loop) - start > 5000) {
+          LOGP(info, "Timeout while draining messages, going to next state anyway.");
+          break;
+        }
         fair::mq::Parts parts;
         for (size_t ci = 0; ci < deviceState.inputChannelInfos.size(); ++ci) {
           auto& info = deviceState.inputChannelInfos[ci];
+          // We only care about rawfmq channels.
+          if (info.channelType != ChannelAccountingType::RAWFMQ) {
+            lastNewStatePending[ci] = true;
+            continue;
+          }
+          // This means we have not set things up yet. I.e. the first iteration from
+          // ready to run has not happened yet.
+          if (info.channel == nullptr) {
+            lastNewStatePending[ci] = true;
+            continue;
+          }
           info.channel->Receive(parts, 10);
-          lastNewStatePending[ci] = device->NewStatePending();
+          // Handle both cases of state changes:
+          //
+          // - The state has been changed from the outside and FairMQ knows about it.
+          // - The state has been changed from the GUI, and deviceState.nextFairMQState knows about it.
+          //
+          // This latter case is probably better handled from DPL itself, after all it's fair to
+          // assume we need to switch state as soon as the GUI notifies us.
+          // For now we keep it here to avoid side effects.
+          lastNewStatePending[ci] = device->NewStatePending() || (deviceState.nextFairMQState.empty() == false);
           if (parts.Size() == 0) {
             continue;
           }
@@ -511,6 +538,8 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
             info.readPolled = true;
           }
         }
+        // Keep state transitions going also when running with the standalone GUI.
+        uv_run(deviceState.loop, UV_RUN_NOWAIT);
       }
     };
 
