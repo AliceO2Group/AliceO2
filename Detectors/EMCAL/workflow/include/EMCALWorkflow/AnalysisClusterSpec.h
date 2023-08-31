@@ -9,6 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#ifndef O2_EMCAL_ANALYSISCLUSTER_SPEC
+#define O2_EMCAL_ANALYSISCLUSTER_SPEC
+
 #include <vector>
 
 #include "DataFormatsEMCAL/Cluster.h"
@@ -67,10 +70,10 @@ class AnalysisClusterSpec : public framework::Task
 
  private:
   void updateTimeDependentParams(framework::ProcessingContext& pc);
-  o2::emcal::Clusterizer<InputType> mClusterizer;                        ///< Clusterizer object
-  o2::emcal::Geometry* mGeometry = nullptr;                              ///< Pointer to geometry object
-  o2::emcal::EventHandler<InputType>* mEventHandler = nullptr;           ///< Pointer to the event builder
-  o2::emcal::ClusterFactory<InputType>* mClusterFactory = nullptr;       ///< Pointer to the cluster builder
+  o2::emcal::Clusterizer<InputType> mClusterizer;                  ///< Clusterizer object
+  o2::emcal::Geometry* mGeometry = nullptr;                        ///< Pointer to geometry object
+  o2::emcal::EventHandler<InputType>* mEventHandler = nullptr;     ///< Pointer to the event builder
+  o2::emcal::ClusterFactory<InputType>* mClusterFactory = nullptr; ///< Pointer to the cluster builder
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   std::vector<o2::emcal::AnalysisCluster>* mOutputAnaClusters = nullptr; ///< Container with output clusters (pointer)
 };
@@ -86,3 +89,5 @@ framework::DataProcessorSpec getAnalysisClusterSpec(bool useDigits);
 } // namespace emcal
 
 } // namespace o2
+
+#endif // O2_EMCAL_ANALYSISCLUSTER_SPEC
