@@ -49,7 +49,7 @@ DECLARE_SOA_TABLE_VERSIONED(BCs_001, "AOD", "BC", 1, //! Root of data model for 
                             bc::RunNumber, bc::GlobalBC,
                             bc::TriggerMask, bc::InputMask);
 
-using BCs = BCs_000; // current version
+using BCs = BCs_001; // current version
 using BC = BCs::iterator;
 
 namespace timestamp
