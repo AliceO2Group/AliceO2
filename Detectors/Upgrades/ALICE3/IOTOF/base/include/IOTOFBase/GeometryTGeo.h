@@ -27,14 +27,15 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   void fillMatrixCache(int mask);
   static GeometryTGeo* Instance();
 
+  // Common i/oTOF
+  static const char* getIOTOFVolPattern() { return sIOTOFVolumeName.c_str(); }
+
   // Inner TOF
-  static const char* getITOFVolPattern() { return sITOFVolumeName.c_str(); }
   static const char* getITOFLayerPattern() { return sITOFLayerName.c_str(); }
   static const char* getITOFChipPattern() { return sITOFChipName.c_str(); }
   static const char* getITOFSensorPattern() { return sITOFSensorName.c_str(); }
 
   // Outer TOF
-  static const char* getOTOFVolPattern() { return sOTOFVolumeName.c_str(); }
   static const char* getOTOFLayerPattern() { return sOTOFLayerName.c_str(); }
   static const char* getOTOFChipPattern() { return sOTOFChipName.c_str(); }
   static const char* getOTOFSensorPattern() { return sOTOFSensorName.c_str(); }
@@ -60,14 +61,15 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static const char* composeOTOFSymNameSensor(int d, int layer);
 
  protected:
+  // i/oTOF mother volume
+  static std::string sIOTOFVolumeName;
+
   // Inner TOF
-  static std::string sITOFVolumeName;
   static std::string sITOFLayerName;
   static std::string sITOFChipName;
   static std::string sITOFSensorName;
 
   // Outer TOF
-  static std::string sOTOFVolumeName;
   static std::string sOTOFLayerName;
   static std::string sOTOFChipName;
   static std::string sOTOFSensorName;

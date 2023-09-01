@@ -60,7 +60,7 @@ class Detector : public o2::base::DetImpl<Detector>
     return nullptr;
   }
 
-  void configDefault();
+  void configLayers(bool itof = true, bool otof = true);
 
   void configServices();
   void createMaterials();
@@ -69,16 +69,17 @@ class Detector : public o2::base::DetImpl<Detector>
  private:
   // Transient data about track passing the sensor
   struct TrackData {
-    bool mHitStarted;                  // hit creation started
-    unsigned char mTrkStatusStart;     // track status flag
-    TLorentzVector mPositionStart;     // position at entrance
-    TLorentzVector mMomentumStart;     // momentum
-    double mEnergyLoss;                // energy loss
-  } mTrackData;                        //! transient data
+    bool mHitStarted;              // hit creation started
+    unsigned char mTrkStatusStart; // track status flag
+    TLorentzVector mPositionStart; // position at entrance
+    TLorentzVector mMomentumStart; // momentum
+    double mEnergyLoss;            // energy loss
+  } mTrackData;                    //! transient data
 
   GeometryTGeo* mGeometryTGeo;         //!
   std::vector<o2::itsmft::Hit>* mHits; // ITSMFT ones for the moment
-  std::vector<IOTOFLayer> mLayers;
+  ITOFLayer mITOFLayer;                //!
+  OTOFLayer mOTOFLayer;                //!
 
   void defineSensitiveVolumes();
 

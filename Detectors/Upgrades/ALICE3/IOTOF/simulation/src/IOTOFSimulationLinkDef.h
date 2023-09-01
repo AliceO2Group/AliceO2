@@ -9,25 +9,16 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#ifndef O2_IOTOF_BASEPARAM_H
-#define O2_IOTOF_BASEPARAM_H
+#ifdef __CLING__
 
-#include "CommonUtils/ConfigurableParam.h"
-#include "CommonUtils/ConfigurableParamHelper.h"
+#pragma link off all globals;
+#pragma link off all classes;
+#pragma link off all functions;
 
-namespace o2
-{
-namespace iotof
-{
-
-struct IOTOFBaseParam : public o2::conf::ConfigurableParamHelper<IOTOFBaseParam> {
-  bool enableInnerTOF = true;
-  bool enableOuterTOF = true;
-
-  O2ParamDef(IOTOFBaseParam, "IOTOFBase");
-};
-
-} // namespace iotof
-} // end namespace o2
+#pragma link C++ class o2::iotof::Layer + ; 
+#pragma link C++ class o2::iotof::ITOFLayer + ;
+#pragma link C++ class o2::iotof::OTOFLayer + ;
+#pragma link C++ class o2::iotof::Detector + ;
+#pragma link C++ class o2::base::DetImpl < o2::iotof::Detector> + ;
 
 #endif

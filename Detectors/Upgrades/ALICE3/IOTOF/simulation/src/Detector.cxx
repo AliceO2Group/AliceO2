@@ -40,7 +40,7 @@ Detector::Detector(bool active)
     mHits(o2::utils::createSimVector<o2::itsmft::Hit>())
 {
   auto& iotofPars = IOTOFBaseParam::Instance();
-  configDefault();
+  configLayers(iotofPars.enableInnerTOF, iotofPars.enableOuterTOF);
 }
 
 Detector::~Detector()
@@ -56,13 +56,14 @@ void Detector::ConstructGeometry()
   createGeometry();
 }
 
-void Detector::configDefault()
+void Detector::configLayers(bool itof, bool otof)
 {
-  mLayers.clear();
-
-  LOGP(warning, "Loading default configuration for ALICE3 IOTOF");
-  mLayers.emplace_back(0, std::string{GeometryTGeo::getIOTOFLayerPattern() + std::to_string(0)}, ***, ***, ***);
-  mLayers.emplace_back(1, std::string{GeometryTGeo::getIOTOFLayerPattern() + std::to_string(1)}, ***,***, ***);
+  if (itof) {
+    mITOFLayer = ITOFLayer(std::string{GeometryTGeo::getITOFLayerPattern()}, 19.f, 680.f, 0.02f); // iTOF
+  }
+  if (otof) {
+    mOTOFLayer = OTOFLayer(std::string{GeometryTGeo::getOTOFLayerPattern()}, 85.f, 680.f, 0.02f); // oTOF
+  }
 }
 
 void Detector::configServices()
@@ -111,8 +112,12 @@ void Detector::createGeometry()
   char vstrng[100] = "IOTOFVol";
   vIOTOF->SetTitle(vstrng);
 
-  for (auto& layer : mLayers) {
-    layer.createLayer(vIOTOF);
+  auto& iotofPars = IOTOFBaseParam::Instance();
+  if (iotofPars.enableInnerTOF) {
+    mITOFLayer.createLayer(vIOTOF);
+  }
+  if (iotofPars.enableOuterTOF) {
+    mOTOFLayer.createLayer(vIOTOF);
   }
 }
 
@@ -128,14 +133,15 @@ void Detector::defineSensitiveVolumes()
   TGeoManager* geoManager = gGeoManager;
   TGeoVolume* v;
 
-  TString volumeName;
-  LOGP(info, "Adding IOTOF Sensitive Volumes");
-
   // The names of the IOTOF sensitive volumes have the format: IOTOFLayer(0...mLayers.size()-1)
-  for (int j{0}; j < mLayers.size(); j++) {
-    volumeName = GeometryTGeo::getIOTOFSensorPattern() + TString::Itoa(j, 10);
-    LOGP(info, "Trying {}", volumeName.Data());
-    v = geoManager->GetVolume(volumeName.Data());
+  auto& iotofPars = IOTOFBaseParam::Instance();
+  if (iotofPars.enableInnerTOF) {
+    v = geoManager->GetVolume(GeometryTGeo::getITOFSensorPattern());
+    LOGP(info, "Adding IOTOF Sensitive Volume {}", v->GetName());
+    AddSensitiveVolume(v);
+  }
+  if (iotofPars.enableOuterTOF) {
+    v = geoManager->GetVolume(GeometryTGeo::getOTOFSensorPattern());
     LOGP(info, "Adding IOTOF Sensitive Volume {}", v->GetName());
     AddSensitiveVolume(v);
   }
@@ -173,7 +179,7 @@ bool Detector::ProcessHits(FairVolume* vol)
 
   // Is it needed to keep a track reference when the outer ITS volume is encountered?
   auto stack = (o2::data::Stack*)fMC->GetStack();
-  if (fMC->IsTrackExiting() && (lay == 0 || lay == mLayers.size() - 1)) {
+  if (fMC->IsTrackExiting() /*&& (lay == 0 || lay == mLayers.size() - 1)*/) {
     // Keep the track refs for the innermost and outermost layers only
     o2::TrackReference tr(*fMC, GetDetId());
     tr.setTrackID(stack->GetCurrentTrackNumber());
