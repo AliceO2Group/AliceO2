@@ -40,14 +40,9 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static const char* getOTOFChipPattern() { return sOTOFChipName.c_str(); }
   static const char* getOTOFSensorPattern() { return sOTOFSensorName.c_str(); }
 
-  static const char* composeSymNameITOF(int d)
+  static const char* composeSymNameIOTOF(int d)
   {
-    return Form("%s_%d", o2::detectors::DetID(o2::detectors::DetID::ITF).getName(), d);
-  }
-
-  static const char* composeSymNameOTOF(int d)
-  {
-    return Form("%s_%d", o2::detectors::DetID(o2::detectors::DetID::OTF).getName(), d);
+    return Form("%s_%d", o2::detectors::DetID(o2::detectors::DetID::TF3).getName(), d);
   }
 
   // Inner TOF

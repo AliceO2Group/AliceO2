@@ -70,7 +70,7 @@ GeometryTGeo* GeometryTGeo::Instance()
 // Inner TOF
 const char* GeometryTGeo::composeITOFSymNameLayer(int d, int lr)
 {
-  return Form("%s/%s%d", composeSymNameITOF(d), getITOFLayerPattern(), lr);
+  return Form("%s/%s%d", composeSymNameIOTOF(d), getITOFLayerPattern(), lr);
 }
 
 const char* GeometryTGeo::composeITOFSymNameChip(int d, int lr)
@@ -86,7 +86,7 @@ const char* GeometryTGeo::composeITOFSymNameSensor(int d, int lr)
 // Outer TOF
 const char* GeometryTGeo::composeOTOFSymNameLayer(int d, int lr)
 {
-  return Form("%s/%s%d", composeSymNameOTOF(d), getOTOFLayerPattern(), lr);
+  return Form("%s/%s%d", composeSymNameIOTOF(d), getOTOFLayerPattern(), lr);
 }
 
 const char* GeometryTGeo::composeOTOFSymNameChip(int d, int lr)

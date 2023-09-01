@@ -73,6 +73,7 @@
 #include <FT3Simulation/Detector.h>
 #include <FCTSimulation/Detector.h>
 #include <ITS3Simulation/DescriptorInnerBarrelITS3.h>
+#include <IOTOFSimulation/Detector.h>
 #endif
 
 #include <tbb/concurrent_unordered_map.h>
