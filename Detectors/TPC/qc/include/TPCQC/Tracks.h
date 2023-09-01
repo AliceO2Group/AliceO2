@@ -21,6 +21,8 @@
 #include <string_view>
 #include <unordered_map>
 #include <memory>
+#include "CCDB/CcdbApi.h"
+#include "CCDB/BasicCCDBManager.h"
 
 // root includes
 #include "TH1.h"
@@ -77,6 +79,13 @@ class Tracks
     mCutMinnCls = nClusterCut;
     mCutMindEdxTot = dEdxTot;
   }
+
+  // To set the runNumber
+  void setRunNumber(int RunNumber)
+  {
+    runNumber = RunNumber;
+  }
+
   // Just for backward compatibility with crrent QC, temporary, will be removed in the next PR
   /// get 1D histograms
   std::vector<TH1F>& getHistograms1D() { return mHist1D; }
@@ -100,6 +109,7 @@ class Tracks
   float mCutAbsEta = 1.f;      // Eta cut
   int mCutMinnCls = 60;        // minimum N clusters
   float mCutMindEdxTot = 20.f; // dEdxTot min value
+  int runNumber = -999;        // runNumber
   std::unordered_map<std::string_view, std::unique_ptr<TH1>> mMapHist;
   std::vector<TH1F> mHist1D{};      ///< Initialize vector of 1D histograms
   std::vector<TH2F> mHist2D{};      ///< Initialize vector of 2D histograms
