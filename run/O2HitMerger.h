@@ -980,6 +980,10 @@ void O2HitMerger::initDetInstances()
       mDetectorInstances[i] = std::move(std::make_unique<o2::fct::Detector>(true));
       counter++;
     }
+    if (i == DetID::TF3) {
+      mDetectorInstances[i] = std::move(std::make_unique<o2::iotof::Detector>(true));
+      counter++;
+    }
 #endif
   }
   if (counter != DetID::nDetectors) {

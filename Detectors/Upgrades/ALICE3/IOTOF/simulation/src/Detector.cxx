@@ -59,7 +59,7 @@ void Detector::ConstructGeometry()
 void Detector::configLayers(bool itof, bool otof)
 {
   if (itof) {
-    mITOFLayer = ITOFLayer(std::string{GeometryTGeo::getITOFLayerPattern()}, 19.f, 680.f, 0.02f); // iTOF
+    mITOFLayer = ITOFLayer(std::string{GeometryTGeo::getITOFLayerPattern()}, 19.f, 124.f, 0.02f); // iTOF
   }
   if (otof) {
     mOTOFLayer = OTOFLayer(std::string{GeometryTGeo::getOTOFLayerPattern()}, 85.f, 680.f, 0.02f); // oTOF
@@ -93,6 +93,9 @@ void Detector::createMaterials()
   float zAir[4] = {6., 7., 8., 18.};
   float wAir[4] = {0.000124, 0.755267, 0.231781, 0.012827};
   float dAir = 1.20479E-3;
+
+  o2::base::Detector::Mixture(1, "AIR$", aAir, zAir, dAir, 4, wAir);
+  o2::base::Detector::Medium(1, "AIR$", 1, 0, ifield, fieldm, tmaxfdAir, stemaxAir, deemaxAir, epsilAir, stminAir);
 
   o2::base::Detector::Material(3, "SI$", 0.28086E+02, 0.14000E+02, 0.23300E+01, 0.93600E+01, 0.99900E+03);
   o2::base::Detector::Medium(3, "SI$", 3, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
