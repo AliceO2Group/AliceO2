@@ -51,19 +51,6 @@ using namespace constants::its2;
 namespace gpu
 {
 
-GPUg() void printBufferLayerOnThread(const int layer, const int* v, size_t size, const int len = 150, const unsigned int tId = 0)
-{
-  if (blockIdx.x * blockDim.x + threadIdx.x == tId) {
-    for (int i{0}; i < size; ++i) {
-      if (!(i % len)) {
-        printf("\n layer %d: ===>%d/%d\t", layer, i, (int)size);
-      }
-      printf("%d\t", v[i]);
-    }
-    printf("\n");
-  }
-}
-
 GPUd() const int4 getBinsRect(const Cluster& currentCluster, const int layerIndex,
                               const o2::its::IndexTableUtils& utils,
                               const float z1, const float z2, float maxdeltaz, float maxdeltaphi)
@@ -85,11 +72,54 @@ GPUd() const int4 getBinsRect(const Cluster& currentCluster, const int layerInde
               utils.getPhiBinIndex(math_utils::getNormalizedPhi(phiRangeMax))};
 }
 
+// template <bool dryRun, int nLayers = 7>
+// GPUd() void traverseCellsTreeDevice(
+//   const int currentCellId,
+//   const int currentLayerId,
+//   const int startingCellId, // used to compile LUT
+//   int& nRoadsStartingCell,
+//   int* roadsLookUpTable,
+//   Cell** cells,
+//   int** cellNeighbours,
+//   int** cellNeighboursLUT,
+//   Road<nLayers - 2>* roads)
+// {
+//   Cell& currentCell{cells[currentLayerId][currentCellId]};
+//   const int currentCellLevel = currentCell.getLevel();
+//   if constexpr (dryRun) {
+//     ++nRoadsStartingCell; // in dry run I just want to count the total number of roads
+//   } else {
+//     // mTimeFrame->getRoads().back().addCell(currentLayerId, currentCellId);
+//   }
+//   if (currentLayerId > 0 && currentCellLevel > 1) {
+//     const int cellNeighboursNum{cellNeighboursLUT[currentLayerId - 1][currentCellId + 1] - cellNeighboursLUT[currentLayerId - 1][currentCellId]}; // careful!
+//     bool isFirstValidNeighbour{true};
+
+//     for (int iNeighbourCell{0}; iNeighbourCell < cellNeighboursNum; ++iNeighbourCell) {
+//       const int neighbourCellId =cellNeighbours[currentLayerId - 1][currentCellId][iNeighbourCell];
+//         const Cell& neighbourCell = mTimeFrame->getCells()[currentLayerId - 1][neighbourCellId];
+
+//       if (currentCellLevel - 1 != neighbourCell.getLevel()) {
+//         continue;
+//       }
+
+//       if (isFirstValidNeighbour) {
+//         isFirstValidNeighbour = false;
+//       } else {
+//         // mTimeFrame->getRoads().push_back(mTimeFrame->getRoads().back());
+//       }
+//       traverseCellsTree<dryRun>(neighbourCellId, currentLayerId - 1, cells, cellNeighbours, cellNeighboursLUT, roads);
+//       ++nRoadsStartingCell;
+//     }
+//   }
+// }
+
 GPUhd() float Sq(float q)
 {
   return q * q;
 }
 
+// Functors to sort tracklets
 template <typename T>
 struct trackletSortEmptyFunctor : public thrust::binary_function<T, T, bool> {
   GPUhd() bool operator()(const T& lhs, const T& rhs) const
@@ -105,6 +135,20 @@ struct trackletSortIndexFunctor : public thrust::binary_function<T, T, bool> {
     return lhs.firstClusterIndex < rhs.firstClusterIndex || (lhs.firstClusterIndex == rhs.firstClusterIndex && lhs.secondClusterIndex < rhs.secondClusterIndex);
   }
 };
+
+// Print layer buffer
+GPUg() void printBufferLayerOnThread(const int layer, const int* v, size_t size, const int len = 150, const unsigned int tId = 0)
+{
+  if (blockIdx.x * blockDim.x + threadIdx.x == tId) {
+    for (int i{0}; i < size; ++i) {
+      if (!(i % len)) {
+        printf("\n layer %d: ===> %d/%d\t", layer, i, (int)size);
+      }
+      printf("%d\t", v[i]);
+    }
+    printf("\n");
+  }
+}
 
 // Dump vertices
 GPUg() void printVertices(const Vertex* v, size_t size, const unsigned int tId = 0)
@@ -249,9 +293,9 @@ GPUg() void computeLayerTrackletsKernelSingleRof(
         }
       }
     }
-    if (storedTracklets > maxTrackletsPerCluster) {
-      printf("its-gpu-tracklet finder: found more tracklets per clusters (%d) than maximum set (%d), check the configuration!\n", maxTrackletsPerCluster, storedTracklets);
-    }
+    // if (storedTracklets > maxTrackletsPerCluster) {
+    //   printf("its-gpu-tracklet finder: found more tracklets per clusters (%d) than maximum set (%d), check the configuration!\n", maxTrackletsPerCluster, storedTracklets);
+    // }
   }
 }
 
@@ -300,14 +344,14 @@ GPUg() void computeLayerTrackletsKernelMultipleRof(
   const int zBins{utils->getNzBins()};
   for (unsigned int iRof{blockIdx.x}; iRof < rofSize; iRof += gridDim.x) {
     auto rof0 = iRof + startRofId;
-    auto nClustersCurrentLayerRof = roFrameClustersCurrentLayer[rof0 + 1] - roFrameClustersCurrentLayer[rof0];
+    auto nClustersCurrentLayerRof = o2::gpu::GPUCommonMath::Min(roFrameClustersCurrentLayer[rof0 + 1] - roFrameClustersCurrentLayer[rof0], (int)maxClustersPerRof);
+    // if (nClustersCurrentLayerRof > maxClustersPerRof) {
+    //   printf("its-gpu-tracklet finder: on layer %d found more clusters per ROF (%d) than maximum set (%d), check the configuration!\n", layerIndex, nClustersCurrentLayerRof, maxClustersPerRof);
+    // }
     auto* clustersCurrentLayerRof = clustersCurrentLayer + (roFrameClustersCurrentLayer[rof0] - roFrameClustersCurrentLayer[startRofId]);
     auto nVerticesRof0 = nVertices[rof0 + 1] - nVertices[rof0];
     auto trackletsRof0 = tracklets + maxTrackletsPerCluster * maxClustersPerRof * iRof;
     for (int currentClusterIndex = threadIdx.x; currentClusterIndex < nClustersCurrentLayerRof; currentClusterIndex += blockDim.x) {
-      if (nClustersCurrentLayerRof > maxClustersPerRof) {
-        printf("its-gpu-tracklet finder: on layer %d found more clusters per ROF (%d) than maximum set (%d), check the configuration!\n", layerIndex, nClustersCurrentLayerRof, maxClustersPerRof);
-      }
       unsigned int storedTracklets{0};
       const Cluster& currentCluster{clustersCurrentLayerRof[currentClusterIndex]};
       const int currentSortedIndex{roFrameClustersCurrentLayer[rof0] + currentClusterIndex};
@@ -427,15 +471,13 @@ GPUg() void computeLayerCellsKernel(
       }
       const Tracklet& nextTracklet = trackletsNextLayer[iNextTrackletIndex];
       const float deltaTanLambda{o2::gpu::GPUCommonMath::Abs(currentTracklet.tanLambda - nextTracklet.tanLambda)};
-      const float tanLambda{(currentTracklet.tanLambda + nextTracklet.tanLambda) * 0.5f};
 
       if (deltaTanLambda / trkPars->CellDeltaTanLambdaSigma < trkPars->NSigmaCut) {
         if constexpr (!initRun) {
           new (cells + cellsLUT[iCurrentTrackletIndex] + foundCells) Cell{currentTracklet.firstClusterIndex, nextTracklet.firstClusterIndex,
                                                                           nextTracklet.secondClusterIndex,
                                                                           iCurrentTrackletIndex,
-                                                                          iNextTrackletIndex,
-                                                                          tanLambda};
+                                                                          iNextTrackletIndex};
         }
         ++foundCells;
       }
@@ -486,6 +528,55 @@ GPUg() void computeLayerCellNeighboursKernel(Cell* cellsCurrentLayer,
   }
 }
 
+template <bool dryRun, int nLayers = 7>
+GPUg() void computeLayerRoadsKernel(
+  const int level,
+  const int layerIndex,
+  Cell** cells,
+  const int* nCells,
+  int** neighbours,
+  int** neighboursLUT,
+  Road<nLayers - 2>* roads,
+  int* roadsLookupTable)
+{
+  for (int iCurrentCellIndex = blockIdx.x * blockDim.x + threadIdx.x; iCurrentCellIndex < nCells[layerIndex]; iCurrentCellIndex += blockDim.x * gridDim.x) {
+    auto& currentCell{cells[layerIndex][iCurrentCellIndex]};
+    if (currentCell.getLevel() != level) {
+      continue;
+    }
+    int nRoadsCurrentCell{0};
+    if constexpr (dryRun) {
+      roadsLookupTable[iCurrentCellIndex]++;
+    } else {
+      roads[roadsLookupTable[iCurrentCellIndex] + nRoadsCurrentCell++] = Road<nLayers - 2>{layerIndex, iCurrentCellIndex};
+    }
+    if (level == 1) {
+      continue;
+    }
+
+    const auto currentCellNeighOffset{neighboursLUT[layerIndex - 1][iCurrentCellIndex]};
+    const int cellNeighboursNum{neighboursLUT[layerIndex - 1][iCurrentCellIndex + 1] - currentCellNeighOffset};
+    bool isFirstValidNeighbour{true};
+    for (int iNeighbourCell{0}; iNeighbourCell < cellNeighboursNum; ++iNeighbourCell) {
+      const int neighbourCellId = neighbours[layerIndex - 1][currentCellNeighOffset + iNeighbourCell];
+      const Cell& neighbourCell = cells[layerIndex - 1][neighbourCellId];
+      if (level - 1 != neighbourCell.getLevel()) {
+        continue;
+      }
+      if (isFirstValidNeighbour) {
+        isFirstValidNeighbour = false;
+      } else {
+        if constexpr (dryRun) {
+          roadsLookupTable[iCurrentCellIndex]++; // dry run we just count the number of roads
+        } else {
+          roads[roadsLookupTable[iCurrentCellIndex] + nRoadsCurrentCell++] = Road<nLayers - 2>{layerIndex, iCurrentCellIndex};
+        }
+      }
+      // traverseCellsTreeDevice<dryRun>(neighbourCellId, layerIndex - 1, iCurrentCellIndex, nRoadsCurrentCell, roadsLookupTable, cells, roads);
+    }
+  }
+}
+
 } // namespace gpu
 
 template <int nLayers>
@@ -503,7 +594,7 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration)
   const Vertex diamondVert({mTrkParams[iteration].Diamond[0], mTrkParams[iteration].Diamond[1], mTrkParams[iteration].Diamond[2]}, {25.e-6f, 0.f, 0.f, 25.e-6f, 0.f, 36.f}, 1, 1.f);
   gsl::span<const Vertex> diamondSpan(&diamondVert, 1);
   std::vector<std::thread> threads(mTimeFrameGPU->getNChunks());
-  // std::array<std::array<int, 3>, nLayers - 1> totTrackletsChunk{std::array<int, 3>{0, 0, 0}, std::array<int, 3>{0, 0, 0}, std::array<int, 3>{0, 0, 0}, std::array<int, 3>{0, 0, 0}, std::array<int, 3>{0, 0, 0}};
+
   for (int chunkId{0}; chunkId < mTimeFrameGPU->getNChunks(); ++chunkId) {
     int maxTracklets{static_cast<int>(mTimeFrameGPU->getChunk(chunkId).getTimeFrameGPUParameters()->clustersPerROfCapacity) *
                      static_cast<int>(mTimeFrameGPU->getChunk(chunkId).getTimeFrameGPUParameters()->maxTrackletsPerCluster)};
@@ -514,7 +605,9 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration)
       auto maxROF = offset + maxRofPerChunk;
       while (offset < maxROF) {
         auto rofs = mTimeFrameGPU->loadChunkData<gpu::Task::Tracker>(chunkId, offset, maxROF);
-        RANGE("chunk_gpu_tracking", 1);
+        ////////////////////
+        /// Tracklet finding
+
         for (int iLayer{0}; iLayer < nLayers - 1; ++iLayer) {
           auto nclus = mTimeFrameGPU->getTotalClustersPerROFrange(offset, rofs, iLayer);
           const float meanDeltaR{mTrkParams[iteration].LayerRadii[iLayer + 1] - mTrkParams[iteration].LayerRadii[iLayer]};
@@ -601,6 +694,9 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration)
             checkGPUError(cudaHostUnregister(tracklets.data()));
           }
         }
+
+        ////////////////
+        /// Cell finding
         for (int iLayer{0}; iLayer < nLayers - 2; ++iLayer) {
           // Compute layer cells.
           gpu::computeLayerCellsKernel<true><<<10, 1024, 0, mTimeFrameGPU->getStream(chunkId).get()>>>(
@@ -641,7 +737,9 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration)
                                       (nLayers - 2) * sizeof(int),
                                       cudaMemcpyDeviceToHost,
                                       mTimeFrameGPU->getStream(chunkId).get()));
-        // Create cells labels TODO: make it work after fixing the tracklets labels
+
+        // Create cells labels
+        // TODO: make it work after fixing the tracklets labels
         if (mTimeFrameGPU->hasMCinformation()) {
           for (int iLayer{0}; iLayer < nLayers - 2; ++iLayer) {
             std::vector<o2::its::Cell> cells(mTimeFrameGPU->getHostNCells(chunkId)[iLayer]);
@@ -655,6 +753,8 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration)
           }
         }
 
+        /////////////////////
+        /// Neighbour finding
         for (int iLayer{0}; iLayer < nLayers - 3; ++iLayer) {
           gpu::computeLayerCellNeighboursKernel<true><<<10, 1024, 0, mTimeFrameGPU->getStream(chunkId).get()>>>(
             mTimeFrameGPU->getChunk(chunkId).getDeviceCells(iLayer),
@@ -683,11 +783,27 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration)
             mTimeFrameGPU->getChunk(chunkId).getDeviceCellNeighbours(iLayer),
             mTimeFrameGPU->getChunk(chunkId).getDeviceNFoundCells(),
             mTimeFrameGPU->getChunk(chunkId).getTimeFrameGPUParameters()->maxNeighboursSize);
+
           // if (!chunkId) {
           //   gpu::printBufferLayerOnThread<<<1, 1, 0, mTimeFrameGPU->getStream(chunkId).get()>>>(iLayer,
           //                                                                                       mTimeFrameGPU->getChunk(chunkId).getDeviceCellNeighbours(iLayer),
           //                                                                                       mTimeFrameGPU->getChunk(chunkId).getTimeFrameGPUParameters()->maxNeighboursSize * rofs);
           // }
+        }
+        // Download cells into vectors
+
+        for (int iLevel{nLayers - 2}; iLevel >= mTrkParams[iteration].CellMinimumLevel(); --iLevel) {
+          const int minimumLevel{iLevel - 1};
+          for (int iLayer{nLayers - 3}; iLayer >= minimumLevel; --iLayer) {
+            // gpu::computeLayerRoadsKernel<true><<<1, 1, 0, mTimeFrameGPU->getStream(chunkId).get()>>>(iLevel,                                                               // const int level,
+            //  iLayer,                                                               // const int layerIndex,
+            //  mTimeFrameGPU->getChunk(chunkId).getDeviceArrayCells(),               // const Cell** cells,
+            //  mTimeFrameGPU->getChunk(chunkId).getDeviceNFoundCells(),              // const int* nCells,
+            //  mTimeFrameGPU->getChunk(chunkId).getDeviceArrayNeighboursCell(),      // const int** neighbours,
+            //  mTimeFrameGPU->getChunk(chunkId).getDeviceArrayNeighboursCellLUT(),   // const int** neighboursLUT,
+            //  mTimeFrameGPU->getChunk(chunkId).getDeviceRoads(),                    // Road* roads,
+            //  mTimeFrameGPU->getChunk(chunkId).getDeviceRoadsLookupTables(iLayer)); // int* roadsLookupTable
+          }
         }
 
         // End of tracking for this chunk
@@ -707,21 +823,6 @@ template <int nLayers>
 void TrackerTraitsGPU<nLayers>::computeLayerCells(const int iteration)
 {
 }
-
-// void TrackerTraitsGPU::refitTracks(const std::vector<std::vector<TrackingFrameInfo>>& tf, std::vector<TrackITSExt>& tracks)
-// {
-//   PrimaryVertexContextNV* pvctx = static_cast<PrimaryVertexContextNV*>(nullptr); //TODO: FIX THIS with Time Frames
-//   std::array<const Cell*, 5> cells;
-//   for (int iLayer = 0; iLayer < 5; iLayer++) {
-//     cells[iLayer] = pvctx->getDeviceCells()[iLayer].get();
-//   }
-//   std::array<const Cluster*, 7> clusters;
-//   for (int iLayer = 0; iLayer < 7; iLayer++) {
-//     clusters[iLayer] = pvctx->getDeviceClusters()[iLayer].get();
-//   }
-//   //TODO: restore this
-//   // mChainRunITSTrackFit(*mChain, mPrimaryVertexContext->getRoads(), clusters, cells, tf, tracks);
-// }
 
 template <int nLayers>
 void TrackerTraitsGPU<nLayers>::findCellsNeighbours(const int iteration){};

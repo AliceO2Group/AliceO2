@@ -131,6 +131,7 @@ o2_add_test_root_macro(macro/testRawRead.C
 o2_add_test_root_macro(macro/createTPCSpaceChargeCorrection.C
                        COMPILE_ONLY
                        PUBLIC_LINK_LIBRARIES O2::TPCReconstruction
+                                             O2::TPCCalibration
                                              O2::CommonConstants
                                              O2::CommonUtils
                                              O2::TPCSpaceCharge

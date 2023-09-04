@@ -9,6 +9,7 @@ if [[ ${IGNORE_UNBOUND_VARIABLES:-} != 1 ]]; then  set -u; fi
 # ---------------------------------------------------------------------------------------------------------------------
 # Get this script's directory and load common settings
 : ${GEN_TOPO_MYDIR:=$(dirname $(realpath $0))}
+export GEN_TOPO_AUTOSCALE_PROCESSES_GLOBAL_WORKFLOW=1
 source $GEN_TOPO_MYDIR/gen_topo_helper_functions.sh || { echo "gen_topo_helper_functions.sh failed" 1>&2 && exit 1; }
 source $GEN_TOPO_MYDIR/setenv.sh || { echo "setenv.sh failed" 1>&2 && exit 1; }
 
@@ -26,7 +27,12 @@ fi
 : ${RECO_NUM_NODES_WORKFLOW:="230"}   # Number of EPNs running this workflow in parallel, to increase multiplicities if necessary, by default assume we are 1 out of 250 servers
 : ${CTF_MINSIZE:="10000000000"}       # accumulate CTFs until file size reached
 : ${CTF_MAX_PER_FILE:="40000"}        # but no more than given number of CTFs per file
-: ${TPC_CORR_SCALING:=""}             # TPC corr.map lumi scaling options, any combination of --require-ctp-lumi, --corrmap-lumi-mean <float>, --corrmap-lumi-inst <float>
+: ${CTF_FREE_DISK_WAIT:="10"}         # if disk on EPNs is close to full, wait X seconds before retrying to write
+: ${CTF_MAX_FREE_DISK_WAIT:="600"}    # if not enough disk space after this time throw error
+
+# entropy encoding/decoding mode, default "" is equivalent to '--ans-version compat' (compatible with < 09/2023 data),
+# use '--ans-version 1.0 --ccdb-dict none' for the new per-TF dictionary mode
+: ${RANS_OPT:=""}
 
 workflow_has_parameter CTF && export SAVECTF=1
 workflow_has_parameter GPU && { export GPUTYPE=HIP; export NGPUS=4; }
@@ -42,8 +48,8 @@ if [[ $EPNSYNCMODE == 1 ]] || type numactl >/dev/null 2>&1 && [[ `numactl -H | g
   [[ $NUMAGPUIDS != 0 ]] && ARGS_ALL+=" --child-driver 'numactl --membind $NUMAID --cpunodebind $NUMAID'"
 fi
 if [[ -z ${TIMEFRAME_RATE_LIMIT:-} ]] && [[ $DIGITINPUT != 1 ]]; then
-  TIMEFRAME_RATE_LIMIT=$((12 * 230 / $RECO_NUM_NODES_WORKFLOW * ($NUMAGPUIDS != 0 ? 1 : 2)))
-  [[ $BEAMTYPE != "PbPb" ]] && TIMEFRAME_RATE_LIMIT=$(($TIMEFRAME_RATE_LIMIT * 3))
+  TIMEFRAME_RATE_LIMIT=$((12 * 230 / $RECO_NUM_NODES_WORKFLOW * ($NUMAGPUIDS != 0 ? 1 : 2) * 128 / $NHBPERTF))
+  [[ $BEAMTYPE != "PbPb" && ${HIGH_RATE_PP:-0} == 0 ]] && TIMEFRAME_RATE_LIMIT=$(($TIMEFRAME_RATE_LIMIT * 3))
   ! has_detector TPC && TIMEFRAME_RATE_LIMIT=$(($TIMEFRAME_RATE_LIMIT * 4))
   [[ ! -z ${EPN_GLOBAL_SCALING:-} ]] && TIMEFRAME_RATE_LIMIT=$(($TIMEFRAME_RATE_LIMIT * $EPN_GLOBAL_SCALING))
 fi
@@ -93,18 +99,17 @@ fi
 
 if [[ $SYNCMODE == 1 ]]; then
   if [[ $BEAMTYPE == "PbPb" ]]; then
-    ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=30;fastMultConfig.cutMultClusHigh=2000;fastMultConfig.cutMultVtxHigh=500;"
+    ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=${CUT_MULT_MIN_ITS:-100};fastMultConfig.cutMultClusHigh=${CUT_MULT_MAX_ITS:-200};fastMultConfig.cutMultVtxHigh=${CUT_MULT_VTX_ITS:-20};"
     MCH_CONFIG_KEY="MCHTracking.maxCandidates=50000;MCHTracking.maxTrackingDuration=20;"
   elif [[ $BEAMTYPE == "pp" ]]; then
-    ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=-1;fastMultConfig.cutMultClusHigh=-1;fastMultConfig.cutMultVtxHigh=-1;ITSVertexerParam.phiCut=0.5;ITSVertexerParam.clusterContributorsCut=3;ITSVertexerParam.tanLambdaCut=0.2;"
-    [[ ! -z ${CUT_RANDOM_FRACTION_ITS:-} ]] && ITS_CONFIG_KEY+="fastMultConfig.cutRandomFraction=$CUT_RANDOM_FRACTION_ITS;"
+    ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=${CUT_MULT_MIN_ITS:--1};fastMultConfig.cutMultClusHigh=${CUT_MULT_MAX_ITS:-1};fastMultConfig.cutMultVtxHigh=${CUT_MULT_VTX_ITS:--1};ITSVertexerParam.phiCut=0.5;ITSVertexerParam.clusterContributorsCut=3;ITSVertexerParam.tanLambdaCut=0.2;"
     MCH_CONFIG_KEY="MCHTracking.maxCandidates=20000;MCHTracking.maxTrackingDuration=10;"
   fi
+  [[ ! -z ${CUT_RANDOM_FRACTION_ITS:-} ]] && ITS_CONFIG_KEY+="fastMultConfig.cutRandomFraction=$CUT_RANDOM_FRACTION_ITS;"
   if has_detector_reco ITS; then
     [[ $RUNTYPE == "COSMICS" ]] && MFT_CONFIG_KEY+="MFTTracking.irFramesOnly=1;"
-  else
-    MFT_CONFIG_KEY+="MFTTracking.cutMultClusLow=0;MFTTracking.cutMultClusHigh=2000;"
   fi
+  MFT_CONFIG_KEY+="MFTTracking.cutMultClusLow=0;MFTTracking.cutMultClusHigh=2000;"
 
   PVERTEXING_CONFIG_KEY+="pvertexer.meanVertexExtraErrConstraint=0.3;" # for calibration relax the constraint
   if [[ $SYNCRAWMODE == 1 ]]; then # add extra tolerance in sync mode to account for eventual time misalignment
@@ -147,7 +152,7 @@ else
   [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode async"
 fi
 
-if [[ $SYNCMODE == 1 ]]; then
+if [[ $SYNCMODE == 1 ]] && [[ ${PRESCALE_ITS_WO_TRIGGER:-} != 1 ]]; then
   if has_detector TRD && [[ ! -z ${PRESCALE_ITS_WITH_TRD:-} ]]; then
     ITS_CONFIG+=" --select-with-triggers trd "
   else
@@ -156,8 +161,12 @@ if [[ $SYNCMODE == 1 ]]; then
 fi
 
 
-workflow_has_parameter CALIB && [[ $CALIB_TRD_VDRIFTEXB == 1 ]] && TRD_CONFIG+=" --enable-trackbased-calib"
+workflow_has_parameter CALIB && [[ $CALIB_TRD_VDRIFTEXB == 1 ]] && TRD_CONFIG+=" --enable-vdexb-calib"
+workflow_has_parameter CALIB && [[ $CALIB_TRD_GAIN == 1 ]] && TRD_CONFIG+=" --enable-gain-calib"
 ! has_detector FT0 && TRD_CONFIG+=" --disable-ft0-pileup-tagging"
+if ( workflow_has_parameter CALIB && [[ $CALIB_TRD_T0 == 1 ]] ) || [[ ${DISABLE_TRD_PH:-} != 1 ]]; then
+  TRD_CONFIG+=" --enable-ph"
+fi
 
 SEND_ITSTPC_DTGL=
 workflow_has_parameter CALIB && [[ $CALIB_TPC_VDRIFTTGL == 1 ]] && SEND_ITSTPC_DTGL="--produce-calibration-data"
@@ -167,7 +176,7 @@ PVERTEXING_CONFIG_KEY+="${ITSMFT_STROBES};"
 has_processing_step ENTROPY_ENCODER && has_detector_ctf TPC && GPU_OUTPUT+=",compressed-clusters-ctf"
 
 if [[ $SYNCMODE == 1 ]] && workflow_has_parameter QC && has_detector_qc TPC; then
-  GPU_OUTPUT+=",qa"
+  GPU_OUTPUT+=",qa,error-qa"
   [[ -z ${TPC_TRACKING_QC_RUN_FRACTION:-} ]] && TPC_TRACKING_QC_RUN_FRACTION=1
   GPU_CONFIG_KEY+="GPU_QA.clusterRejectionHistograms=1;GPU_proc.qcRunFraction=$TPC_TRACKING_QC_RUN_FRACTION;"
   [[ $GPUTYPE != "CPU" && $HOSTMEMSIZE == "0" && $TPC_TRACKING_QC_RUN_FRACTION == "100" ]] && HOSTMEMSIZE=$(( 5 << 30 ))
@@ -187,6 +196,9 @@ if [[ $EPNSYNCMODE == 1 ]]; then
 fi
 if [[ $SYNCRAWMODE == 1 ]]; then
   GPU_CONFIG_KEY+="GPU_proc.tpcIncreasedMinClustersPerRow=500000;GPU_proc.ignoreNonFatalGPUErrors=1;GPU_proc.throttleAlarms=1;GPU_proc.conservativeMemoryEstimate=1;"
+  if [[ $RUNTYPE == "PHYSICS" || $RUNTYPE == "COSMICS" || $RUNTYPE == "TECHNICAL" ]]; then
+    GPU_CONFIG_KEY+="GPU_global.checkFirstTfOrbit=1;"
+  fi
   # option for avoinding masking problematic channels from previous calibrations
   TOF_CONFIG+=" --for-calib"
 fi
@@ -255,13 +267,13 @@ elif [[ -z "$DISABLE_ROOT_OUTPUT" ]] && has_detector_reco TOF && ! has_detector_
 fi
 
 if has_detector_calib PHS && workflow_has_parameter CALIB; then
-  PHS_CONFIG+="--fullclu-output"
+  PHS_CONFIG+=" --fullclu-output"
 fi
 
 ( workflow_has_parameter AOD || [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-emcal-cell-writer-workflow ) && has_detector EMC && RAW_EMC_SUBSPEC=" --subspecification 1 "
 has_detector_reco MID && has_detector_matching MCHMID && MFTMCHConf="FwdMatching.useMIDMatch=true;" || MFTMCHConf="FwdMatching.useMIDMatch=false;"
 
-[[ $IS_SIMULATED_DATA == "1" ]] && EMCRAW2C_CONFIG+=" --no-mergeHGLG"
+[[ $IS_SIMULATED_DATA == "1" ]] && EMCRAW2C_CONFIG+=" --no-checkactivelinks"
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Temporary extra options
@@ -320,7 +332,7 @@ if [[ ! -z $INPUT_DETECTOR_LIST ]]; then
     if [[ $NTIMEFRAMES == -1 ]]; then NTIMEFRAMES_CMD= ; else NTIMEFRAMES_CMD="--max-tf $NTIMEFRAMES"; fi
     CTF_EMC_SUBSPEC=
     ( workflow_has_parameter AOD || [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-emcal-cell-writer-workflow ) && has_detector EMC && CTF_EMC_SUBSPEC="--emcal-decoded-subspec 1"
-    add_W o2-ctf-reader-workflow "--delay $TFDELAY --loop $TFLOOP $NTIMEFRAMES_CMD --ctf-input ${CTFName} ${INPUT_FILE_COPY_CMD+--copy-cmd} ${INPUT_FILE_COPY_CMD:-} --onlyDet $INPUT_DETECTOR_LIST $CTF_EMC_SUBSPEC ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} ${TIMEFRAME_SHM_LIMIT:-} --pipeline $(get_N tpc-entropy-decoder TPC REST 1 TPCENTDEC)"
+    add_W o2-ctf-reader-workflow "$RANS_OPT --delay $TFDELAY --loop $TFLOOP $NTIMEFRAMES_CMD --ctf-input ${CTFName} ${INPUT_FILE_COPY_CMD+--copy-cmd} ${INPUT_FILE_COPY_CMD:-} --onlyDet $INPUT_DETECTOR_LIST $CTF_EMC_SUBSPEC ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} ${TIMEFRAME_SHM_LIMIT:-} --pipeline $(get_N tpc-entropy-decoder TPC REST 1 TPCENTDEC)"
   elif [[ $RAWTFINPUT == 1 ]]; then
     TFName=`ls -t $RAWINPUTDIR/o2_*.tf 2> /dev/null | head -n1`
     [[ -z $TFName && $WORKFLOWMODE == "print" ]] && TFName='$TFName'
@@ -378,9 +390,9 @@ if [[ ! -z $INPUT_DETECTOR_LIST ]]; then
     has_detector TPC && add_W o2-tpc-reco-workflow "--input-type digits --output-type zsraw,disable-writer $DISABLE_MC --pipeline $(get_N tpc-zsEncoder TPC RAW 1 TPCRAWDEC)"
     has_detector MID && add_W o2-mid-digits-reader-workflow "$DISABLE_MC" ""
   else
-    if [[ $NTIMEFRAMES == -1 ]]; then NTIMEFRAMES_CMD= ; else NTIMEFRAMES_CMD="--loop $NTIMEFRAMES"; fi
+    if [[ $NTIMEFRAMES == -1 ]]; then NTIMEFRAMES_CMD= ; else NTIMEFRAMES_CMD="--max-tf 0 --loop $NTIMEFRAMES"; fi
     [[ ! -f $RAWINPUTDIR/rawAll.cfg ]] && { echo "rawAll.cfg missing" 1>&2; exit 1; }
-    add_W o2-raw-file-reader-workflow "--detect-tf0 --delay $TFDELAY $NTIMEFRAMES_CMD --max-tf 0 --input-conf $RAWINPUTDIR/rawAll.cfg --onlyDet $INPUT_DETECTOR_LIST ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} ${TIMEFRAME_SHM_LIMIT:-}" "HBFUtils.nHBFPerTF=$NHBPERTF"
+    add_W o2-raw-file-reader-workflow "--detect-tf0 --delay $TFDELAY $NTIMEFRAMES_CMD --input-conf $RAWINPUTDIR/rawAll.cfg --onlyDet $INPUT_DETECTOR_LIST ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} ${TIMEFRAME_SHM_LIMIT:-}" "HBFUtils.nHBFPerTF=$NHBPERTF"
   fi
 fi
 
@@ -394,7 +406,7 @@ if [[ $CTFINPUT == 0 && $DIGITINPUT == 0 ]]; then
   if has_detector TPC && [[ "${TPC_CONVERT_LINKZS_TO_RAW:-}" == "1" ]]; then
     GPU_INPUT=zsonthefly
     add_W o2-tpc-raw-to-digits-workflow "--input-spec \"\" --remove-duplicates --pipeline $(get_N tpc-raw-to-digits-0 TPC RAW 1 TPCRAWDEC)"
-    add_W o2-tpc-reco-workflow "--input-type digitizer --output-type zsraw,disable-writer --pipeline $(get_N tpc-zsEncoder TPC RAW 1 TPCRAWDEC)"
+    add_W o2-tpc-reco-workflow "--input-type digitizer --output-type zsraw,disable-writer --pipeline $(get_N tpc-zsEncoder TPC RAW 1 TPCRAWDEC)" "GPU_rec_tpc.zsThreshold=0"
   fi
   has_detector ITS && ! has_detector_from_global_reader ITS && add_W o2-itsmft-stf-decoder-workflow "--nthreads ${NITSDECTHREADS} --raw-data-dumps $ALPIDE_ERR_DUMPS --pipeline $(get_N its-stf-decoder ITS RAW 1 ITSRAWDEC)" "$ITSMFT_STROBES;VerbosityConfig.rawParserSeverity=warn;"
   has_detector MFT && ! has_detector_from_global_reader MFT && add_W o2-itsmft-stf-decoder-workflow "--nthreads ${NMFTDECTHREADS} --raw-data-dumps $ALPIDE_ERR_DUMPS --pipeline $(get_N mft-stf-decoder MFT RAW 1 MFTRAWDEC) --runmft true" "$ITSMFT_STROBES;VerbosityConfig.rawParserSeverity=warn;"
@@ -404,7 +416,7 @@ if [[ $CTFINPUT == 0 && $DIGITINPUT == 0 ]]; then
   has_detector MCH && ! has_detector_from_global_reader MCH && add_W o2-mch-raw-to-digits-workflow "--pipeline $(get_N mch-data-decoder MCH RAW 1)"
   has_detector TOF && ! has_detector_from_global_reader TOF && ! has_detector_flp_processing TOF && add_W o2-tof-compressor "--pipeline $(get_N tof-compressor-0 TOF RAW 1)"
   has_detector FDD && ! has_detector_from_global_reader FDD && ! has_detector_flp_processing FDD && add_W o2-fdd-flp-dpl-workflow "$DISABLE_ROOT_OUTPUT --pipeline $(get_N fdd-datareader-dpl FDD RAW 1)"
-  has_detector TRD && ! has_detector_from_global_reader TRD && add_W o2-trd-datareader "$DISABLE_ROOT_OUTPUT --pipeline $(get_N trd-datareader TRD RAW 1 TRDRAWDEC)" "" 0
+  has_detector TRD && ! has_detector_from_global_reader TRD && add_W o2-trd-datareader "$DISABLE_ROOT_OUTPUT --sortDigits --pipeline $(get_N trd-datareader TRD RAW 1 TRDRAWDEC)" "" 0
   has_detector ZDC && ! has_detector_from_global_reader ZDC && add_W o2-zdc-raw2digits "$DISABLE_ROOT_OUTPUT --pipeline $(get_N zdc-datareader-dpl ZDC RAW 1)"
   has_detector HMP && ! has_detector_from_global_reader HMP && add_W o2-hmpid-raw-to-digits-stream-workflow "--pipeline $(get_N HMP-RawStreamDecoder HMP RAW 1)"
   has_detector CTP && ! has_detector_from_global_reader CTP && add_W o2-ctp-reco-workflow "$DISABLE_ROOT_OUTPUT $CTP_CONFIG --ntf-to-average 1 --pipeline $(get_N ctp-raw-decoder CTP RAW 1)"
@@ -434,6 +446,7 @@ has_detector FDD && ! has_detector_from_global_reader FDD && has_processing_step
 has_detector FV0 && ! has_detector_from_global_reader FV0 && has_processing_step FV0_RECO && add_W o2-fv0-reco-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC"
 has_detector ZDC && ! has_detector_from_global_reader ZDC && has_processing_step ZDC_RECO && add_W o2-zdc-digits-reco "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC"
 has_detector HMP && ! has_detector_from_global_reader HMP && has_processing_step HMP_RECO && add_W o2-hmpid-digits-to-clusters-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT --pipeline $(get_N HMP-Clusterization HMP REST 1 HMPCLUS)"
+has_detector HMP && ! has_detector_from_global_reader HMP && has_processing_step HMP_RECO && add_W o2-hmpid-matcher-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC"
 has_detectors_reco MCH MID && has_detector_matching MCHMID && add_W o2-muon-tracks-matcher-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_MC $DISABLE_ROOT_OUTPUT --pipeline $(get_N muon-track-matcher MATCH REST 1)"
 has_detectors_reco MFT MCH && has_detector_matching MFTMCH && add_W o2-globalfwd-matcher-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N globalfwd-track-matcher MATCH REST 1 FWDMATCH)" "$MFTMCHConf"
 
@@ -465,29 +478,31 @@ has_detector_reco MCH && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output 
 has_detector_matching PRIMVTX && [[ ! -z "$VERTEXING_SOURCES" ]] && add_W o2-primary-vertexing-workflow "$DISABLE_MC $DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $PVERTEX_CONFIG --pipeline $(get_N primary-vertexing MATCH REST 1 PRIMVTX),$(get_N pvertex-track-matching MATCH REST 1 PRIMVTXMATCH)" "${PVERTEXING_CONFIG_KEY}"
 
 if [[ $BEAMTYPE != "cosmic" ]]; then
-  has_detectors_reco ITS && has_detector_matching SECVTX && [[ ! -z "$SVERTEXING_SOURCES" ]] && add_W o2-secondary-vertexing-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $TPC_CORR_SCALING --vertexing-sources $SVERTEXING_SOURCES --threads $SVERTEX_THREADS --pipeline $(get_N secondary-vertexing MATCH REST $SVERTEX_THREADS SECVTX)"
+  : ${STRTRACKING:="--disable-strangeness-tracker"}
+  has_detectors_reco ITS && has_detector_matching SECVTX && has_detector_matching && STRTRACKING=""
+  has_detectors_reco ITS && has_detector_matching SECVTX && [[ ! -z "$SVERTEXING_SOURCES" ]] && add_W o2-secondary-vertexing-workflow "$DISABLE_MC $STRTRACKING $DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $TPC_CORR_SCALING --vertexing-sources $SVERTEXING_SOURCES --threads $SVERTEX_THREADS --pipeline $(get_N secondary-vertexing MATCH REST $SVERTEX_THREADS SECVTX)"
 fi
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Entropy encoding / ctf creation workflows - disabled in async mode
 if has_processing_step ENTROPY_ENCODER && [[ ! -z "$WORKFLOW_DETECTORS_CTF" ]] && [[ $WORKFLOW_DETECTORS_CTF != "NONE" ]]; then
   # Entropy encoder workflows
-  has_detector_ctf MFT && add_W o2-itsmft-entropy-encoder-workflow "--mem-factor ${MFT_ENC_MEMFACT:-1.5} --runmft true --pipeline $(get_N mft-entropy-encoder MFT CTF 1)"
-  has_detector_ctf FT0 && add_W o2-ft0-entropy-encoder-workflow "--mem-factor ${FT0_ENC_MEMFACT:-1.5} --pipeline $(get_N ft0-entropy-encoder FT0 CTF 1)"
-  has_detector_ctf FV0 && add_W o2-fv0-entropy-encoder-workflow "--mem-factor ${FV0_ENC_MEMFACT:-1.5} --pipeline $(get_N fv0-entropy-encoder FV0 CTF 1)"
-  has_detector_ctf MID && add_W o2-mid-entropy-encoder-workflow "--mem-factor ${MID_ENC_MEMFACT:-1.5} --pipeline $(get_N mid-entropy-encoder MID CTF 1)"
-  has_detector_ctf MCH && add_W o2-mch-entropy-encoder-workflow "--mem-factor ${MCH_ENC_MEMFACT:-1.5} --pipeline $(get_N mch-entropy-encoder MCH CTF 1)"
-  has_detector_ctf PHS && add_W o2-phos-entropy-encoder-workflow "--mem-factor ${PHS_ENC_MEMFACT:-1.5} --pipeline $(get_N phos-entropy-encoder PHS CTF 1)"
-  has_detector_ctf CPV && add_W o2-cpv-entropy-encoder-workflow "--mem-factor ${CPV_ENC_MEMFACT:-1.5} --pipeline $(get_N cpv-entropy-encoder CPV CTF 1)"
-  has_detector_ctf EMC && add_W o2-emcal-entropy-encoder-workflow "--mem-factor ${EMC_ENC_MEMFACT:-1.5} --pipeline $(get_N emcal-entropy-encoder EMC CTF 1)"
-  has_detector_ctf ZDC && add_W o2-zdc-entropy-encoder-workflow "--mem-factor ${ZDC_ENC_MEMFACT:-1.5} --pipeline $(get_N zdc-entropy-encoder ZDC CTF 1)"
-  has_detector_ctf FDD && add_W o2-fdd-entropy-encoder-workflow "--mem-factor ${FDD_ENC_MEMFACT:-1.5} --pipeline $(get_N fdd-entropy-encoder FDD CTF 1)"
-  has_detector_ctf HMP && add_W o2-hmpid-entropy-encoder-workflow "--mem-factor ${HMP_ENC_MEMFACT:-1.5} --pipeline $(get_N hmpid-entropy-encoder HMP CTF 1)"
-  has_detector_ctf TOF && add_W o2-tof-entropy-encoder-workflow "--mem-factor ${TOF_ENC_MEMFACT:-1.5} --pipeline $(get_N tof-entropy-encoder TOF CTF 1)"
-  has_detector_ctf ITS && add_W o2-itsmft-entropy-encoder-workflow "--mem-factor ${ITS_ENC_MEMFACT:-1.5} --pipeline $(get_N its-entropy-encoder ITS CTF 1)"
-  has_detector_ctf TRD && add_W o2-trd-entropy-encoder-workflow "--mem-factor ${TRD_ENC_MEMFACT:-1.5} --pipeline $(get_N trd-entropy-encoder TRD CTF 1 TRDENT)"
-  has_detector_ctf TPC && add_W o2-tpc-reco-workflow "--mem-factor ${TPC_ENC_MEMFACT:-1.} --input-type compressed-clusters-flat --output-type encoded-clusters,disable-writer --pipeline $(get_N tpc-entropy-encoder TPC CTF 1 TPCENT)"
-  has_detector_ctf CTP && add_W o2-ctp-entropy-encoder-workflow "--mem-factor ${CTP_ENC_MEMFACT:-1.5} --pipeline $(get_N its-entropy-encoder CTP CTF 1)"
+  has_detector_ctf MFT && add_W o2-itsmft-entropy-encoder-workflow "$RANS_OPT --mem-factor ${MFT_ENC_MEMFACT:-1.5} --runmft true --pipeline $(get_N mft-entropy-encoder MFT CTF 1)"
+  has_detector_ctf FT0 && add_W o2-ft0-entropy-encoder-workflow "$RANS_OPT --mem-factor ${FT0_ENC_MEMFACT:-1.5} --pipeline $(get_N ft0-entropy-encoder FT0 CTF 1)"
+  has_detector_ctf FV0 && add_W o2-fv0-entropy-encoder-workflow "$RANS_OPT --mem-factor ${FV0_ENC_MEMFACT:-1.5} --pipeline $(get_N fv0-entropy-encoder FV0 CTF 1)"
+  has_detector_ctf MID && add_W o2-mid-entropy-encoder-workflow "$RANS_OPT --mem-factor ${MID_ENC_MEMFACT:-1.5} --pipeline $(get_N mid-entropy-encoder MID CTF 1)"
+  has_detector_ctf MCH && add_W o2-mch-entropy-encoder-workflow "$RANS_OPT --mem-factor ${MCH_ENC_MEMFACT:-1.5} --pipeline $(get_N mch-entropy-encoder MCH CTF 1)"
+  has_detector_ctf PHS && add_W o2-phos-entropy-encoder-workflow "$RANS_OPT --mem-factor ${PHS_ENC_MEMFACT:-1.5} --pipeline $(get_N phos-entropy-encoder PHS CTF 1)"
+  has_detector_ctf CPV && add_W o2-cpv-entropy-encoder-workflow "$RANS_OPT --mem-factor ${CPV_ENC_MEMFACT:-1.5} --pipeline $(get_N cpv-entropy-encoder CPV CTF 1)"
+  has_detector_ctf EMC && add_W o2-emcal-entropy-encoder-workflow "$RANS_OPT --mem-factor ${EMC_ENC_MEMFACT:-1.5} --pipeline $(get_N emcal-entropy-encoder EMC CTF 1)"
+  has_detector_ctf ZDC && add_W o2-zdc-entropy-encoder-workflow "$RANS_OPT --mem-factor ${ZDC_ENC_MEMFACT:-1.5} --pipeline $(get_N zdc-entropy-encoder ZDC CTF 1)"
+  has_detector_ctf FDD && add_W o2-fdd-entropy-encoder-workflow "$RANS_OPT --mem-factor ${FDD_ENC_MEMFACT:-1.5} --pipeline $(get_N fdd-entropy-encoder FDD CTF 1)"
+  has_detector_ctf HMP && add_W o2-hmpid-entropy-encoder-workflow "$RANS_OPT --mem-factor ${HMP_ENC_MEMFACT:-1.5} --pipeline $(get_N hmpid-entropy-encoder HMP CTF 1)"
+  has_detector_ctf TOF && add_W o2-tof-entropy-encoder-workflow "$RANS_OPT --mem-factor ${TOF_ENC_MEMFACT:-1.5} --pipeline $(get_N tof-entropy-encoder TOF CTF 1)"
+  has_detector_ctf ITS && add_W o2-itsmft-entropy-encoder-workflow "$RANS_OPT --mem-factor ${ITS_ENC_MEMFACT:-1.5} --pipeline $(get_N its-entropy-encoder ITS CTF 1)"
+  has_detector_ctf TRD && add_W o2-trd-entropy-encoder-workflow "$RANS_OPT --mem-factor ${TRD_ENC_MEMFACT:-1.5} --pipeline $(get_N trd-entropy-encoder TRD CTF 1 TRDENT)"
+  has_detector_ctf TPC && add_W o2-tpc-reco-workflow " $RANS_OPT --mem-factor ${TPC_ENC_MEMFACT:-1.} --input-type compressed-clusters-flat --output-type encoded-clusters,disable-writer --pipeline $(get_N tpc-entropy-encoder TPC CTF 1 TPCENT)"
+  has_detector_ctf CTP && add_W o2-ctp-entropy-encoder-workflow "$RANS_OPT --mem-factor ${CTP_ENC_MEMFACT:-1.5} --pipeline $(get_N its-entropy-encoder CTP CTF 1)"
 
   if [[ $CREATECTFDICT == 1 && $WORKFLOWMODE == "run" ]] ; then
     [[ -f $CTF_DICT ]] && rm -f $CTF_DICT
@@ -503,6 +518,7 @@ if has_processing_step ENTROPY_ENCODER && [[ ! -z "$WORKFLOW_DETECTORS_CTF" ]] &
   fi
   CONFIG_CTF="--output-dir \"$CTF_DIR\" $CTF_CONFIG --output-type $CTF_OUTPUT_TYPE --min-file-size ${CTF_MINSIZE} --max-ctf-per-file ${CTF_MAX_PER_FILE} --onlyDet ${WORKFLOW_DETECTORS_CTF/TST/} --meta-output-dir $EPN2EOS_METAFILES_DIR"
   if [[ $CREATECTFDICT == 1 ]] && [[ $EXTINPUT == 1 ]]; then CONFIG_CTF+=" --save-dict-after $SAVE_CTFDICT_NTIMEFRAMES"; fi
+  [[ $EPNSYNCMODE == 1 ]] && CONFIG_CTF+=" --require-free-disk 53687091200 --wait-for-free-disk $CTF_FREE_DISK_WAIT --max-wait-for-free-disk $CTF_MAX_FREE_DISK_WAIT"
   add_W o2-ctf-writer-workflow "$CONFIG_CTF"
 fi
 
@@ -524,7 +540,9 @@ workflow_has_parameter GPU_DISPLAY && [[ $NUMAID == 0 ]] && add_W o2-gpu-display
 # AOD
 : ${AOD_INPUT:=$TRACK_SOURCES}
 : ${AODPROD_OPT:=}
-( ! has_detector_matching SECVTX || ! has_detectors_reco ITS || [[ $BEAMTYPE == "cosmic" ]]) && AODPROD_OPT+="--disable-secondary-vertices"
+( ! has_detector_matching SECVTX || ! has_detectors_reco ITS || [[ $BEAMTYPE == "cosmic" ]]) && AODPROD_OPT+=" --disable-secondary-vertices"
+( ! has_detector_matching STRK || ! has_detector_matching SECVTX || ! has_detectors_reco ITS || [[ $BEAMTYPE == "cosmic" ]]) && AODPROD_OPT+=" --disable-strangeness-tracking"
+
 workflow_has_parameter AOD && [[ ! -z "$AOD_INPUT" ]] && add_W o2-aod-producer-workflow "$AODPROD_OPT --info-sources $AOD_INPUT $DISABLE_DIGIT_ROOT_INPUT --aod-writer-keep dangling --aod-writer-resfile \"AO2D\" --aod-writer-resmode UPDATE $DISABLE_MC --pipeline $(get_N aod-producer-workflow AOD REST 1 AODPROD)"
 
 # ---------------------------------------------------------------------------------------------------------------------

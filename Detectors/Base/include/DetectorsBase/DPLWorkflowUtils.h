@@ -167,7 +167,7 @@ o2::framework::DataProcessorSpec specCombiner(std::string const& name, std::vect
       if (inputBindings.find(is.binding) != inputBindings.end()) {
         // we can accept duplicate binding if it is bound to the same spec (e.g. ccdbParamSpec)
         if (std::find(combinedInputSpec.begin(), combinedInputSpec.end(), is) == combinedInputSpec.end()) {
-          LOG(error) << "Found duplicate input binding with different spec.:" << is.binding;
+          LOG(error) << "Found duplicate input binding with different spec.:" << is;
         } else {
           continue; // consider as already accounted
         }
@@ -257,14 +257,21 @@ o2::framework::DataProcessorSpec specCombiner(std::string const& name, std::vect
     void run(o2::framework::ProcessingContext& pc)
     {
       std::cerr << "Processing Combined with " << mNThreads << " threads\n";
-      size_t nt = tasks.size();
+      if (mNThreads > 1) {
+        size_t nt = tasks.size();
 #ifdef WITH_OPENMP
 #pragma omp parallel for schedule(dynamic) num_threads(mNThreads)
 #endif
-      for (size_t i = 0; i < nt; i++) {
-        auto t = tasks[i];
-        std::cerr << " Executing sub-device " << t.name << "\n";
-        t.algorithm.onProcess(pc);
+        for (size_t i = 0; i < nt; i++) {
+          auto& t = tasks[i];
+          std::cerr << " Executing sub-device " << t.name << "\n";
+          t.algorithm.onProcess(pc);
+        }
+      } else {
+        for (auto& t : tasks) {
+          std::cerr << " Executing sub-device " << t.name << "\n";
+          t.algorithm.onProcess(pc);
+        }
       }
     }
 

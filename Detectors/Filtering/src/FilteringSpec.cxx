@@ -333,7 +333,7 @@ DataProcessorSpec getDataFilteringSpec(GID::mask_t src, bool enableSV, bool useM
     dataRequest->requestCTPDigits(useMC);
   }
   if (enableSV) {
-    dataRequest->requestSecondaryVertertices(useMC);
+    dataRequest->requestSecondaryVertices(useMC);
   }
   if (src[GID::TPC]) {
     dataRequest->requestClusters(GIndex::getSourcesMask("TPC"), false); // no need to ask for TOF clusters as they are requested with TOF tracks

@@ -12,10 +12,12 @@
 #include "MCHDigitFiltering/DigitFilter.h"
 
 #include "DataFormatsMCH/Digit.h"
+#include "Framework/Logger.h"
 #include "MCHDigitFiltering/DigitFilterParam.h"
-#include <vector>
+#include "MCHStatus/StatusMap.h"
 #include <functional>
 #include <gsl/span>
+#include <vector>
 
 namespace
 {
@@ -96,7 +98,39 @@ o2::mch::DigitFilter createSelectSignal()
 
 namespace o2::mch
 {
-DigitFilter createDigitFilter(uint32_t minADC, bool rejectBackground, bool selectSignal)
+void report(const std::map<int, std::vector<int>>& rejectList, uint32_t statusMask)
+{
+  int nbad{0};
+  for (const auto it : rejectList) {
+    nbad += it.second.size();
+  }
+  LOGP(info, "Got {} bad channels in {} detection element{} (using statusMask=0x{:x})", nbad,
+       rejectList.size(), rejectList.size() > 1 ? "s" : "", statusMask);
+}
+
+DigitFilter createBadChannelFilter(const StatusMap& statusMap,
+                                   uint32_t statusMask)
+{
+  auto rejectList = applyMask(statusMap, statusMask);
+  report(rejectList, statusMask);
+
+  return [rejectList](const o2::mch::Digit& digit) -> bool {
+    bool goodChannel{true};
+    auto deID = digit.getDetID();
+    auto it = rejectList.find(digit.getDetID());
+    if (it != rejectList.end()) {
+      // channel is good if it's not found in the rejectlist
+      goodChannel = std::find(it->second.begin(), it->second.end(), digit.getPadID()) == it->second.end();
+    }
+    return goodChannel;
+  };
+}
+
+DigitFilter createDigitFilter(uint32_t minADC,
+                              bool rejectBackground,
+                              bool selectSignal,
+                              const StatusMap& statusMap,
+                              uint32_t statusMask)
 {
   std::vector<DigitFilter> parts;
 
@@ -108,6 +142,9 @@ DigitFilter createDigitFilter(uint32_t minADC, bool rejectBackground, bool selec
   }
   if (selectSignal) {
     parts.emplace_back(createSelectSignal());
+  }
+  if (!statusMap.empty() && statusMask) {
+    parts.emplace_back(createBadChannelFilter(statusMap, statusMask));
   }
   return [parts](const Digit& digit) {
     for (const auto& p : parts) {

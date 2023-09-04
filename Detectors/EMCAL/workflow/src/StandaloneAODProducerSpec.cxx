@@ -64,15 +64,15 @@ void StandaloneAODProducerSpec::run(ProcessingContext& pc)
   LOG(info) << "FOUND " << cellsIn.size() << " EMC cells in CTF";
   LOG(info) << "FOUND " << triggersIn.size() << " EMC tiggers in CTF";
 
-  auto& bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC"});
-  auto& collisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "COLLISION"});
-  auto& caloCellsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CALO"});
-  auto& caloCellsTRGTableBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CALOTRIGGER"});
+  auto bcBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "BC"});
+  auto collisionsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "COLLISION"});
+  auto caloCellsBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CALO"});
+  auto caloCellsTRGTableBuilder = pc.outputs().make<TableBuilder>(Output{"AOD", "CALOTRIGGER"});
 
-  auto bcCursor = bcBuilder.cursor<o2::aod::BCs>();
-  auto collisionsCursor = collisionsBuilder.cursor<o2::aod::Collisions>();
-  auto caloCellsCursor = caloCellsBuilder.cursor<o2::aod::Calos>();
-  auto caloCellsTRGTableCursor = caloCellsTRGTableBuilder.cursor<o2::aod::CaloTriggers>();
+  auto bcCursor = bcBuilder->cursor<o2::aod::BCs>();
+  auto collisionsCursor = collisionsBuilder->cursor<o2::aod::Collisions>();
+  auto caloCellsCursor = caloCellsBuilder->cursor<o2::aod::Calos>();
+  auto caloCellsTRGTableCursor = caloCellsTRGTableBuilder->cursor<o2::aod::CaloTriggers>();
 
   // build event for easier handling
   mCaloEventHandler->reset();

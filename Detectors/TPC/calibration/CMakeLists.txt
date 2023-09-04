@@ -50,6 +50,8 @@ o2_add_library(TPCCalibration
                        src/VDriftHelper.cxx
                        src/CorrectionMapsLoader.cxx
                        src/SACCCDBHelper.cxx
+                       src/TPCFastSpaceChargeCorrectionHelper.cxx
+                       src/CalculatedEdx.cxx
                PUBLIC_LINK_LIBRARIES O2::DataFormatsTPC O2::TPCBase
                                      O2::TPCReconstruction ROOT::Minuit
                                      Microsoft.GSL::GSL
@@ -58,7 +60,8 @@ o2_add_library(TPCCalibration
                                      O2::GPUTracking
                                      O2::TPCFastTransformation
                                      O2::DataFormatsCTP
-                                     O2::CCDB)
+                                     O2::CCDB
+                                     O2::SpacePoints)
 
 o2_target_root_dictionary(TPCCalibration
                           HEADERS include/TPCCalibration/CalibRawBase.h
@@ -98,7 +101,9 @@ o2_target_root_dictionary(TPCCalibration
                                   include/TPCCalibration/SACParameter.h
                                   include/TPCCalibration/SACDrawHelper.h
                                   include/TPCCalibration/VDriftHelper.h
-                                  include/TPCCalibration/SACCCDBHelper.h)
+                                  include/TPCCalibration/SACCCDBHelper.h
+                                  include/TPCCalibration/TPCFastSpaceChargeCorrectionHelper.h
+                                  include/TPCCalibration/CalculatedEdx.h)
 
 o2_add_test_root_macro(macro/comparePedestalsAndNoise.C
                        PUBLIC_LINK_LIBRARIES O2::TPCBase

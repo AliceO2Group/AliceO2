@@ -10,4 +10,6 @@
 // or submit itself to any jurisdiction.
 
 #include "FDDRaw/DigitBlockFDD.h"
-//using namespace o2::fdd;
+
+template class o2::fit::DigitBlockFIT<o2::fdd::SingleLUT, o2::fdd::Digit, o2::fdd::ChannelData>;
+template class o2::fit::DigitBlockFIText<o2::fdd::SingleLUT, o2::fdd::Digit, o2::fdd::ChannelData, o2::fdd::TriggersExt>;

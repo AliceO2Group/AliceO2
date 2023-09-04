@@ -58,6 +58,7 @@ class TPCInterpolationDPL : public Task
   bool mDebugOutput{false};       ///< add more information to the output (track points of ITS, TRD and TOF)
   bool mSendTrackData{false};     ///< if true, not only the clusters but also corresponding track data will be sent
   uint32_t mSlotLength{600u};     ///< the length of one calibration slot required to calculate max number of tracks per TF
+  int mMatCorr{2};                ///< the material correction to be used for track interpolation
   TStopwatch mTimer;
 };
 

@@ -57,6 +57,7 @@ class ErrorTypeFEE
     FIT_ERROR,         ///< Raw fit failed
     GEOMETRY_ERROR,    ///< Decoded position outside EMCAL
     GAIN_ERROR,        ///< Error due to gain type
+    LINK_ERROR,        ///< Error due to missing DDL links
     STU_ERROR,         ///< Error from STU data
     UNDEFINED          ///< Error source undefined
   };
@@ -97,6 +98,10 @@ class ErrorTypeFEE
   /// \brief Set the error as gain type error and store the error code
   /// \param gainError Error code of the gain type error
   void setGainErrorType(int gainError) { setError(ErrorSource_t::GAIN_ERROR, gainError); }
+
+  /// \brief Set the error type as link error and store the error code
+  /// \param linkError Error code of the link error
+  void setLinkErrorTYpe(int linkError) { setError(ErrorSource_t::LINK_ERROR, linkError); }
 
   /// \brief Set the error as STU decoder error and store the error code
   /// \param gainError Error code of the STU decoder error
@@ -161,6 +166,10 @@ class ErrorTypeFEE
   /// \brief Get the error code of the obect in case the object is a gain type error
   /// \return Error code (-1 in case the object is not a gain type error)
   int getGainTypeErrorType() const { return getRawErrorForType(ErrorSource_t::GAIN_ERROR); }
+
+  /// \brief Get the error code of the obect in case the object is a link error
+  /// \return Error code (-1 in case the object is not a gain type error)
+  int getLinkErrorType() const { return getRawErrorForType(ErrorSource_t::LINK_ERROR); }
 
   /// \brief Get the error code of the obect in case the object is a STU decoder error
   /// \return Error code (-1 in case the object is not a STU decoder error)

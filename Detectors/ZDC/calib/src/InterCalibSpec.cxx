@@ -66,6 +66,7 @@ void InterCalibSpec::init(o2::framework::InitContext& ic)
 {
   mVerbosity = ic.options().get<int>("verbosity-level");
   mWorker.setVerbosity(mVerbosity);
+  mTimer.Start(false);
 }
 
 void InterCalibSpec::updateTimeDependentParams(ProcessingContext& pc)
@@ -109,6 +110,9 @@ void InterCalibSpec::run(ProcessingContext& pc)
   if (!mInitialized) {
     mInitialized = true;
     updateTimeDependentParams(pc);
+    mOutput = &(pc.outputs());
+    mHistoFileMetaData = std::make_unique<o2::dataformats::FileMetaData>();
+    mHistoFileMetaData->setDataTakingContext(pc.services().get<o2::framework::DataTakingContext>());
     mTimer.Stop();
     mTimer.Reset();
     mTimer.Start(false);
@@ -166,8 +170,8 @@ void InterCalibSpec::sendOutput(EndOfStreamContext& ec)
   if (mVerbosity > DbgMinimal) {
     payload.print();
   }
-  output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ZDC_Intercalib", 0}, *image.get()); // vector<char>
-  output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ZDC_Intercalib", 0}, info);         // root-serialized
+  mOutput->snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ZDC_Intercalib", 0}, *image.get()); // vector<char>
+  mOutput->snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ZDC_Intercalib", 0}, info);         // root-serialized
   // TODO: reset the outputs once they are already sent (is it necessary?)
   // mWorker.init();
 
@@ -182,17 +186,14 @@ void InterCalibSpec::sendOutput(EndOfStreamContext& ec)
       }
       std::string metaFileDir = opt.metaFileDir;
       if (metaFileDir.compare("/dev/null")) {
-        std::unique_ptr<o2::dataformats::FileMetaData> histoFileMetaData;
-        histoFileMetaData = std::make_unique<o2::dataformats::FileMetaData>();
-        histoFileMetaData->setDataTakingContext(ec.services().get<DataTakingContext>());
-        histoFileMetaData->fillFileData(mHistoFileName);
-        histoFileMetaData->type = "calib";
-        histoFileMetaData->priority = "high";
+        mHistoFileMetaData->fillFileData(mHistoFileName);
+        mHistoFileMetaData->type = "calib";
+        mHistoFileMetaData->priority = "high";
         std::string metaFileNameTmp = metaFileDir + (metaFileDir.back() == '/' ? "" : "/") + fmt::format("{}_{}.tmp", fn, mRunNumber);
         std::string metaFileName = metaFileDir + (metaFileDir.back() == '/' ? "" : "/") + fmt::format("{}_{}.done", fn, mRunNumber);
         try {
           std::ofstream metaFileOut(metaFileNameTmp);
-          metaFileOut << *histoFileMetaData.get();
+          metaFileOut << *mHistoFileMetaData.get();
           metaFileOut.close();
           std::filesystem::rename(metaFileNameTmp, metaFileName);
         } catch (std::exception const& e) {

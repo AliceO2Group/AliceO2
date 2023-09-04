@@ -57,7 +57,7 @@ class CalibratordEdx final : public o2::calibration::TimeSlotCalibration<o2::tpc
   void setMinEntries(int minEntries) { mMinEntries = minEntries; }
   void setFitThresholds(int minEntriesSector, int minEntries1D, int minEntries2D) { mFitThreshold = {minEntriesSector, minEntries1D, minEntriesSector}; }
   void setApplyCuts(bool apply) { mApplyCuts = apply; }
-  void setElectronCut(std::pair<float, int> values) { mElectronCut = values; }
+  void setElectronCut(std::tuple<float, int, float> values) { mElectronCut = values; }
 
   /// \brief Check if there are enough data to compute the calibration.
   /// \return false if any of the histograms has less entries than mMinEntries
@@ -94,16 +94,16 @@ class CalibratordEdx final : public o2::calibration::TimeSlotCalibration<o2::tpc
   void finalizeDebugOutput() const;
 
  private:
-  int mdEdxBins{};                      ///< Number of dEdx bins
-  float mMindEdx{};                     ///< Minimum value for the dEdx histograms
-  float mMaxdEdx{};                     ///< Maximum value for the dEdx histograms
-  int mAngularBins{};                   ///< Number of bins for angular data, like Tgl and Snp
-  bool mFitSnp{};                       ///< enable Snp correction
-  int mMinEntries{};                    ///< Minimum amount of tracks in each time slot, to get enough statics
-  std::array<int, 3> mFitThreshold{};   ///< Minimum entries per stack to perform sector, 1D and 2D fit
-  bool mApplyCuts{true};                ///< Flag to enable tracks cuts
-  std::pair<float, int> mElectronCut{}; ///< Values passed to CalibdEdx::setElectronCut
-  TrackCuts mCuts;                      ///< Cut object
+  int mdEdxBins{};                              ///< Number of dEdx bins
+  float mMindEdx{};                             ///< Minimum value for the dEdx histograms
+  float mMaxdEdx{};                             ///< Maximum value for the dEdx histograms
+  int mAngularBins{};                           ///< Number of bins for angular data, like Tgl and Snp
+  bool mFitSnp{};                               ///< enable Snp correction
+  int mMinEntries{};                            ///< Minimum amount of tracks in each time slot, to get enough statics
+  std::array<int, 3> mFitThreshold{};           ///< Minimum entries per stack to perform sector, 1D and 2D fit
+  bool mApplyCuts{true};                        ///< Flag to enable tracks cuts
+  std::tuple<float, int, float> mElectronCut{}; ///< Values passed to CalibdEdx::setElectronCut
+  TrackCuts mCuts;                              ///< Cut object
 
   TFinterval mTFIntervals;     ///< start and end time frame IDs of each calibration time slots
   TimeInterval mTimeIntervals; ///< start and end times of each calibration time slots

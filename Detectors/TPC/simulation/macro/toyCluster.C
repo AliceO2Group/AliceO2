@@ -44,6 +44,7 @@
 #include "TPCBase/Mapper.h"
 #include "TPCBase/ParameterDetector.h"
 #include "TPCBase/ParameterElectronics.h"
+#include "TPCBase/CDBInterface.h"
 #include "TPCSimulation/ElectronTransport.h"
 #include "TPCSimulation/SAMPAProcessing.h"
 #include "TPCSimulation/Point.h"
@@ -125,7 +126,7 @@ void simulateTracks(const int maxEvents = 1, const char* outputFolder = "./", co
 /// fill the hitGroupSector object which will be written to the tree (create the track)
 /// \param theta theta of the track
 /// \param phi phi of the track
-/// \parma dedx dedx of the track
+/// \param dedx dedx of the track
 /// \param hitGroupSector output vector containing the hits of the track
 void fillTPCHits(const float theta, const float phi, const float dedx, std::vector<HitGroup>& hitGroupSector, std::pair<GlobalPosition3D, GlobalPosition3D>& trackInfo)
 {
@@ -352,37 +353,34 @@ void createDigitsFromSim(const char* inpFileSim = "o2sim_HitsTPC.root", const st
   TBranch* brlabel = tree.Branch(fmt::format("TPCDigitMCTruth_{}", mSector).data(), &labels);
   TBranch* brmCommon = tree.Branch(fmt::format("TPCCommonMode_{}", mSector).data(), &commonMode);
 
+  DigitContainer digitContainer;
+  const auto firstTimeBinForCurrentEvent = sampaProcessing.getTimeBinFromTime(0.f);
   // loop over hits
   const int nEvents = hitTree->GetEntries(); // number of simulated events per hit file
   for (int iev = 0; iev < nEvents; ++iev) {
-    const double eventTime = 0;
     if (iev % 50 == false) {
       LOG(info) << "event: " << iev + 1 << " from " << nEvents << " events";
     }
     hitTree->GetEntry(iev);
 
-    DigitContainer digitContainer;
-    const auto firstTimeBinForCurrentEvent = sampaProcessing.getTimeBinFromTime(eventTime);
+    digitContainer.reset();
     digitContainer.setStartTime(firstTimeBinForCurrentEvent);
     digitContainer.reserve(firstTimeBinForCurrentEvent);
 
     const float maxEleTime = (int(digitContainer.size()) - nShapedPoints) * zbinWidth;
-    auto vecTracks = arrSectors;
-    for (auto& hitGroup : *vecTracks) {
+    for (auto& hitGroup : *arrSectors) {
       const int MCTrackID = hitGroup.GetTrackID();
       for (size_t ihit = 0; ihit < hitGroup.getSize(); ++ihit) {
         const auto& eh = hitGroup.getHit(ihit);
         GlobalPosition3D posEle(eh.GetX(), eh.GetY(), eh.GetZ());
 
         const int nPrimaryElectrons = static_cast<int>(eh.GetEnergyLoss());
-        const float hitTime = eh.GetTime() * 0.001f;
         if (nPrimaryElectrons <= 0) {
           continue;
         }
+        const float hitTime = eh.GetTime() * 0.001f;
 
         for (int iele = 0; iele < nPrimaryElectrons; iele++) {
-          const GlobalPosition3D posEleDiff = getElectronDrift(posEle);
-
           // add secondaries
           int nSecondaries = (maxSecondaries == 0) ? 0 : getNsec();
 
@@ -394,24 +392,20 @@ void createDigitsFromSim(const char* inpFileSim = "o2sim_HitsTPC.root", const st
           // storage for all electrons (primary + secondaries)
           std::vector<GlobalPosition3D> posTotElectrons;
           posTotElectrons.reserve(nSecondaries + 1);
+          const GlobalPosition3D posEleDiff = getElectronDrift(posEle);
           posTotElectrons.emplace_back(posEleDiff);
 
           // apply some diffusion to secondaries
           for (int isec = 0; isec < nSecondaries; ++isec) {
             // electrons are created randomly
-            const double x = gRandom->Gaus(0, std::abs(posEle.X() - posEleDiff.X())) + posEle.X();
-            const double y = gRandom->Gaus(0, std::abs(posEle.Y() - posEleDiff.Y())) + posEle.Y();
-            const double z = gRandom->Gaus(0, std::abs(posEle.Z() - posEleDiff.Z())) + posEle.Z();
-            posTotElectrons.emplace_back(GlobalPosition3D(x, y, z));
-          }
+            posTotElectrons.emplace_back(GlobalPosition3D(
+              gRandom->Gaus(0, std::abs(posEle.X() - posEleDiff.X())) + posEle.X(),
+              gRandom->Gaus(0, std::abs(posEle.Y() - posEleDiff.Y())) + posEle.Y(),
+              gRandom->Gaus(0, std::abs(posEle.Z() - posEleDiff.Z())) + posEle.Z()));
+            // auto posEleTmp = posTotElectrons[j];
+            const float driftTime = (detParam.TPClength - posTotElectrons.at(isec).Z()) / gasParam.DriftV;
 
-          // loop over all electrons
-          for (unsigned int j = 0; j < posTotElectrons.size(); ++j) {
-            auto posEleTmp = posTotElectrons[j];
-            const float driftTime = (detParam.TPClength - posEleTmp.Z()) / gasParam.DriftV;
-
-            const float eleTime = driftTime + hitTime; /// in us
-            if (eleTime > maxEleTime) {
+            if ((driftTime + hitTime) > maxEleTime) {
               LOG(warning) << "Skipping electron with driftTime " << driftTime << " from hit at time " << hitTime;
               continue;
             }
@@ -422,13 +416,13 @@ void createDigitsFromSim(const char* inpFileSim = "o2sim_HitsTPC.root", const st
             }
 
             // Remove electrons that end up outside the active volume
-            if (std::abs(posEleTmp.Z()) > detParam.TPClength) {
+            if (std::abs(posTotElectrons.at(isec).Z()) > detParam.TPClength) {
               continue;
             }
 
             // When the electron is not in the mSector we're processing, abandon
             // create dummy pos at A-Side
-            auto posEleTmpTmp = posEleTmp;
+            auto posEleTmpTmp = posTotElectrons.at(isec);
             posEleTmpTmp.SetZ(1);
             if (mapper.isOutOfSector(posEleTmpTmp, mSector)) {
               continue;
@@ -440,35 +434,28 @@ void createDigitsFromSim(const char* inpFileSim = "o2sim_HitsTPC.root", const st
             }
 
             const CRU cru = digiPadPos.getCRU();
-            int sectorTmp = cru.sector();
-            if (sectorTmp != mSector) {
+            if (static_cast<int>(cru.sector()) != mSector) {
               continue;
             }
 
-            // fixed GEM amplification for gaussian response (could be changed)
-            const float nElectronsGEM = (nEleGEM == -1) ? static_cast<int>(gemAmplification.getEffectiveStackAmplification()) : nEleGEM;
-
             // convert electrons to ADC signal
             const GlobalPadNumber globalPad = mapper.globalPadNumber(digiPadPos.getGlobalPadPos());
-            const float adcsignal = sampaProcessing.getADCvalue(static_cast<float>(nElectronsGEM));
+            const float adcsignal = sampaProcessing.getADCvalue(static_cast<float>((nEleGEM == -1) ? static_cast<int>(gemAmplification.getEffectiveStackAmplification()) : nEleGEM));
             sampaProcessing.getShapedSignal(adcsignal, driftTime, signalArray);
 
             // set up MC label
-            const int eventID = iev;
-            const int sourceID = 0; // TPC
-            const o2::MCCompLabel label(MCTrackID, eventID, sourceID, false);
+            const o2::MCCompLabel label(MCTrackID, iev, 0, false);
 
             for (int i = 0; i < nShapedPoints; ++i) {
-              const float timebin = driftTime / eleParam.ZbinWidth + i;
-              digitContainer.addDigit(label, cru, timebin, globalPad, signalArray[i]);
+              digitContainer.addDigit(label, cru, driftTime / eleParam.ZbinWidth + i, globalPad, signalArray[i]);
             }
-          }
-        } // electron loop
-      }   // hit loop
-    }     // track loop
+          } // secondary loop
+        }   // electron loop
+      }     // hit loop
+    }       // track loop
 
     // dump digits for each event to a file
-    dumpDigits(digitContainer, eventTime, digits, labels, commonMode, brdigits, brlabel, brmCommon);
+    dumpDigits(digitContainer, 0.l, digits, labels, commonMode, brdigits, brlabel, brmCommon);
   } // event loop
 
   fOut.cd();
@@ -489,10 +476,8 @@ void dumpDigits(DigitContainer& digitContainer, const float eventtime, std::vect
   sampaProcessing.updateParameters();
 
   Sector sec(mSector);
-  const bool isContinuous = false;
-  const bool finalFlush = false;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> labelsTmp;
-  digitContainer.fillOutputContainer(digits, labelsTmp, commonMode, sec, sampaProcessing.getTimeBinFromTime(eventtime), isContinuous, finalFlush);
+  digitContainer.fillOutputContainer(digits, labelsTmp, commonMode, sec, sampaProcessing.getTimeBinFromTime(eventtime), false, false);
 
   // flatten labels
   std::vector<char> buffer;
@@ -659,7 +644,7 @@ void createCluster(const char* inpHits = "o2sim_HitsTPC.root", const char* outFi
         // check for mSector edge pad
         const int off = 2;
         const int offPad = 2;
-        const int localPadRow = Mapper::getLocalRowFromGlobalRow(padrow);
+        const unsigned int localPadRow = Mapper::getLocalRowFromGlobalRow(padrow);
         bool isEdge = false;
         if (pad < offPad || pad >= (Mapper::PADSPERROW[region][localPadRow] - offPad - 1) || localPadRow < off || localPadRow >= Mapper::ROWSPERREGION[region] - off) {
           isEdge = true;

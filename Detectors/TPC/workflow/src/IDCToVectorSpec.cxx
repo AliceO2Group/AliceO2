@@ -157,8 +157,16 @@ class IDCToVectorDevice : public o2::framework::Task
       const gsl::span<const char> raw = pc.inputs().get<gsl::span<char>>(ref);
       try {
         o2::framework::RawParser parser(raw.data(), raw.size());
+        size_t lastErrorCount = 0;
+
         for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
           const auto size = it.size();
+
+          if (parser.getNErrors() > lastErrorCount) {
+            lastErrorCount = parser.getNErrors();
+            hasErrors = true;
+          }
+
           // skip empty packages (HBF open)
           if (size == 0) {
             continue;

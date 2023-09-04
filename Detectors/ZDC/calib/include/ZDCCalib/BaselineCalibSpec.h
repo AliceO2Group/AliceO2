@@ -17,6 +17,7 @@
 #define O2_ZDC_BASELINECALIB_SPEC
 
 #include <TStopwatch.h>
+#include "Headers/DataHeader.h"
 #include "Framework/Logger.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataAllocator.h"
@@ -46,18 +47,24 @@ class BaselineCalibSpec : public o2::framework::Task
   void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final;
   void run(o2::framework::ProcessingContext& pc) final;
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
-  void sendOutput(o2::framework::EndOfStreamContext& ec);
+  void sendOutput(); // Send output to CCDB
+  void reset();      // Ask for a reset internal structures
 
  private:
   int mVerbosity = DbgMinimal; // Verbosity level
   bool mInitialized = false;   // Connect once to CCDB during initialization
+  uint64_t mCTimeEnd = 0;      // Time of last processed time frame
+  uint64_t mCTimeMod = 0;      // Integration time slot
+  uint32_t mProcessed = 0;     // Number of cycles since last CCDB write
   BaselineCalib mWorker;       // Baseline calibration object
   TStopwatch mTimer;
-  long mRunStartTime = 0;     /// start time of the run (ms)
-  std::string mOutputDir;     /// where to write calibration digits
-  std::string mHistoFileName; /// file name of output calib digits
+  o2::framework::DataAllocator* mOutput = nullptr;                             /// Pointer to output object
+  std::unique_ptr<o2::dataformats::FileMetaData> mHistoFileMetaData = nullptr; /// Pointer to metadata file
+  std::string mOutputDir;                                                      /// where to write calibration digits
+  std::string mHistoFileName;                                                  /// file name of output calib digits
   std::string mLHCPeriod;
-  int mRunNumber = -1;
+  o2::header::DataHeader::RunNumberType mRunNumber = 0; /// Current run number
+  long mRunStartTime = 0;                               /// start time of the run (ms)
 };
 
 framework::DataProcessorSpec getBaselineCalibSpec();

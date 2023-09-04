@@ -111,6 +111,21 @@ o2_add_executable(kine-publisher
                   SOURCES o2sim_kine_publisher.cxx
                   PUBLIC_LINK_LIBRARIES O2::Framework O2::SimulationDataFormat O2::Steer)
 
+o2_add_executable(hepmc-publisher
+                  COMPONENT_NAME sim
+                  SOURCES o2sim_hepmc_publisher.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::SimulationDataFormat O2::Steer MC::HepMC3)
+
+o2_add_executable(mctracks-to-aod
+                  COMPONENT_NAME sim
+                  SOURCES o2sim_mctracks_to_aod.cxx
+                  PUBLIC_LINK_LIBRARIES O2::Framework O2::SimulationDataFormat)
+
+o2_add_dpl_workflow(mctracks-to-aod-simple-task
+                    SOURCES SimExamples/McTracksToAOD/mctracks_to_aod_simple_task.cxx
+                    PUBLIC_LINK_LIBRARIES O2::Framework
+                    COMPONENT_NAME Analysis)
+
 o2_data_file(COPY o2simtopology_template.json DESTINATION config)
 
 # * # add a complex simulation as a unit test (if simulation was enabled)
@@ -285,7 +300,7 @@ o2_add_test_command(NAME o2sim_G4_checklogs
                     LABELS long sim
 )
 
-set_tests_properties(o2sim_G3_checklogs
+set_tests_properties(o2sim_G4_checklogs
                      PROPERTIES FIXTURES_REQUIRED G4)
 endif()
 

@@ -18,7 +18,14 @@
 #pragma link C++ class o2::trd::PIDBase + ;
 #pragma link C++ class o2::trd::ML + ;
 #pragma link C++ class o2::trd::Dummy + ;
+#pragma link C++ class o2::trd::LQND < 1> + ;
+#pragma link C++ class o2::trd::LQND < 2> + ;
+#pragma link C++ class o2::trd::LQND < 3> + ;
+#pragma link C++ class o2::trd::detail::LUT < 1> + ;
+#pragma link C++ class o2::trd::detail::LUT < 2> + ;
+#pragma link C++ class o2::trd::detail::LUT < 3> + ;
 #pragma link C++ class o2::trd::TRDPIDParams + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::trd::TRDPIDParams> + ;
+#pragma link C++ class std::vector < TGraph> + ;
 
 #endif

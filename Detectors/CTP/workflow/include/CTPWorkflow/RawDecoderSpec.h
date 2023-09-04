@@ -14,13 +14,10 @@
 
 #include <vector>
 #include <deque>
-#include "DPLUtils/DPLRawParser.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/Task.h"
-#include "Framework/InputRecord.h"
 #include "DataFormatsCTP/Digits.h"
 #include "DataFormatsCTP/LumiInfo.h"
-#include "DataFormatsCTP/TriggerOffsetsParam.h"
 #include "CTPReconstruction/RawDataDecoder.h"
 
 namespace o2
@@ -58,7 +55,7 @@ class RawDecoderSpec : public framework::Task
  private:
   // for digits
   bool mDoDigits = true;
-  std::vector<CTPDigit> mOutputDigits;
+  o2::pmr::vector<CTPDigit> mOutputDigits;
   // for lumi
   bool mDoLumi = true;
   //

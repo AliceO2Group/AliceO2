@@ -49,10 +49,10 @@ void DigitsMerger::process(gsl::span<const ColumnData> inDigitStore, gsl::span<c
     mDigitStore.insert(mDigitStore.end(), digits.begin(), digits.end());
 
     if (inMCContainer) {
-      for (auto& dig : digits) {
-        auto indexes = mHandler.getMergedIndexes(dig);
+      for (auto imdig = 0; imdig < digits.size(); ++imdig) {
+        auto indexes = mHandler.getMergedIndexes(digits[imdig]);
         for (auto labelIdx : indexes) {
-          mMCContainer.addElements(mDigitStore.size() - 1, inMCContainer->getLabels(labelIdx));
+          mMCContainer.addElements(firstEntry + imdig, inMCContainer->getLabels(labelIdx));
         }
       }
     }

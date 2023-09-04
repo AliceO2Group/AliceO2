@@ -19,8 +19,15 @@ struct DataProcessorSpec;
 struct DeviceSpec;
 struct ConfigContext;
 
+// A matcher for a given DataProcessorSpec @p spec.
 using DataProcessorMatcher = std::function<bool(DataProcessorSpec const& spec)>;
+// A matcher which is specific to a given DeviceSpec. @a context is the ConfigContext associated with the topology.
 using DeviceMatcher = std::function<bool(DeviceSpec const& spec, ConfigContext const& context)>;
+// A matcher which is specific to a given edge between two DataProcessors, described
+// by @p source and @p dest. @p context is the ConfigContext associated with the topology.
+// NOTE: we use DataProcessorSpecs rather than devices, because when we assign the policy
+//       we do not have all the devices yet.
+using EdgeMatcher = std::function<bool(DataProcessorSpec const& source, DataProcessorSpec const& dest, ConfigContext const& context)>;
 
 /// A set of helper to build policies that need to
 /// be applied based on some DataProcessorSpec property
@@ -32,6 +39,12 @@ struct DataProcessorMatchers {
 
 struct DeviceMatchers {
   static DeviceMatcher matchByName(const char* name);
+};
+
+struct EdgeMatchers {
+  static EdgeMatcher matchSourceByName(const char* name);
+  static EdgeMatcher matchDestByName(const char* name);
+  static EdgeMatcher matchEndsByName(const char* sourceName, const char* destName);
 };
 
 } // namespace o2::framework

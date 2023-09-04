@@ -29,7 +29,7 @@ namespace o2
 namespace trd
 {
 /// create a processor spec
-framework::DataProcessorSpec getTRDTrackBasedCalibSpec(o2::dataformats::GlobalTrackID::mask_t src);
+framework::DataProcessorSpec getTRDTrackBasedCalibSpec(o2::dataformats::GlobalTrackID::mask_t src, bool vdexb, bool gain);
 
 } // namespace trd
 } // namespace o2

@@ -63,7 +63,6 @@ void ExtendedTrack::extrapToVertex(double x, double y, double z)
   mMomentum4D.SetPy(trackParamAtVertex.py());
   mMomentum4D.SetPz(trackParamAtVertex.pz());
   mMomentum4D.SetM(muMass);
-  mSign = trackParamAtVertex.getCharge();
 
   // extrapolate to DCA
   TrackParam trackParamAtDCA(mTrack.first());
@@ -153,7 +152,7 @@ bool areMatching(const ExtendedTrack& t1, const ExtendedTrack& t2, double chi2Ma
 
 std::ostream& operator<<(std::ostream& out, const ExtendedTrack& track)
 {
-  out << "{" << track.asString() << "}\n";
+  out << "{" << track.asString() << "}";
   return out;
 }
 
@@ -166,6 +165,9 @@ double ExtendedTrack::getNormalizedChi2() const
 
 std::string ExtendedTrack::asString() const
 {
-  return fmt::format("x = {:7.2f}, y= {:7.2f}, z = {:7.2f}, px = {:7.2f}, py = {:7.2f}, pz = {:7.2f}, sign = {}", P().X(), P().Y(), P().Z(), P().Px(), P().Py(), P().Pz(), getCharge());
+  const auto& param = mTrack.first();
+  return fmt::format("x = {:7.2f}, y = {:7.2f}, z = {:7.2f}, px = {:7.2f}, py = {:7.2f}, pz = {:7.2f}, sign = {}",
+                     param.getNonBendingCoor(), param.getBendingCoor(), param.getZ(),
+                     param.px(), param.py(), param.pz(), param.getCharge());
 }
 } // namespace o2::mch::eval

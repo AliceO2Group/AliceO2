@@ -16,8 +16,6 @@
 
 #include "Framework/InputRecord.h"
 
-using o2::tpc::rawreader::RawReaderCRU;
-
 namespace o2
 {
 namespace tpc
@@ -26,10 +24,24 @@ namespace rawreader
 {
 class RawReaderCRU;
 }
+
 namespace calib_processing_helper
 {
 
-uint64_t processRawData(o2::framework::InputRecord& inputs, std::unique_ptr<RawReaderCRU>& reader, bool useOldSubspec = false, const std::vector<int>& sectors = {}, size_t* nerrors = nullptr, uint32_t syncOffsetReference = 144, uint32_t decoderType = 1);
+uint64_t processRawData(o2::framework::InputRecord& inputs, std::unique_ptr<o2::tpc::rawreader::RawReaderCRU>& reader, bool useOldSubspec = false, const std::vector<int>& sectors = {}, size_t* nerrors = nullptr, uint32_t syncOffsetReference = 144, uint32_t decoderType = 1, bool useTrigger = true);
+
+/// absolute BC relative to TF start (firstOrbit)
+std::vector<o2::framework::InputSpec> getFilter(o2::framework::InputRecord& inputs);
+
+/// absolute BC relative to TF start (firstOrbit)
+int getTriggerBCoffset(o2::framework::InputRecord& inputs, std::vector<o2::framework::InputSpec> filter = {}, bool slowScan = false);
+
+/// absolute BC relative to TF start (firstOrbit)
+/// \param data full raw page (incl. RDH)
+/// \param size size of raw page
+/// \param firstOrbit first orbit of the TF
+int getTriggerBCoffset(const char* data, size_t size, uint32_t firstOrbit);
+
 } // namespace calib_processing_helper
 } // namespace tpc
 } // namespace o2

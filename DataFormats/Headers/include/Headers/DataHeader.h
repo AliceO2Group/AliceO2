@@ -575,6 +575,8 @@ constexpr o2::header::DataOrigin gDataOriginTRK{"TRK"};
 constexpr o2::header::DataOrigin gDataOriginFT3{"FT3"};
 constexpr o2::header::DataOrigin gDataOriginFCT{"FCT"};
 
+constexpr o2::header::DataOrigin gDataOriginGPU{"GPU"};
+
 // possible data types
 constexpr o2::header::DataDescription gDataDescriptionAny{"***************"};
 constexpr o2::header::DataDescription gDataDescriptionInvalid{"INVALID_DESC"};

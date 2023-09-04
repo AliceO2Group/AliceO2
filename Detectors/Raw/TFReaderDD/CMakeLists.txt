@@ -17,6 +17,7 @@ o2_add_library(TFReaderDD
                                      O2::Framework
                                      O2::DetectorsRaw
                                      O2::CommonUtils
+                                     O2::Algorithm
                                      FairMQ::FairMQ)
 
 o2_add_executable(tf-reader-workflow

@@ -219,7 +219,7 @@ class Controller final : public TObject
   void initMPRecOutput();
   void initMIlleOutput();
   void initResidOutput();
-  bool storeProcessedTrack(o2::dataformats::GlobalTrackID tid);
+  bool storeProcessedTrack(o2::dataformats::GlobalTrackID tid = {});
   void printStatistics() const;
   //
   void genPedeSteerFile(const Option_t* opt = "") const;

@@ -84,7 +84,7 @@ struct CommonServices {
   static ServiceSpec dataAllocatorSpec();
   static ServiceSpec streamContextSpec();
 
-  static std::vector<ServiceSpec> defaultServices(int numWorkers = 0);
+  static std::vector<ServiceSpec> defaultServices(std::string extraPlugins = "", int numWorkers = 0);
   static std::vector<ServiceSpec> arrowServices();
   static std::vector<ServiceSpec> requiredServices();
 };

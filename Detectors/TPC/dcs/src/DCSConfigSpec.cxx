@@ -214,6 +214,8 @@ void DCSConfigDevice::updateCCDB(DataAllocator& output, const TagInfo& tagInfo)
   std::map<std::string, std::string> md = mCDBStorage.getMetaData();
   o2::ccdb::CcdbObjectInfo w(false);
   o2::calibration::Utils::prepareCCDBobjectInfo(mFEEConfig, w, CDBTypeMap.at(CDBType::ConfigFEE), md, tagInfo.tag, tagInfo.tag + 1);
+
+  mFEEConfig.tag = FEEConfig::Tags(tagInfo.tag);
   auto image = o2::ccdb::CcdbApi::createObjectImage(&mFEEConfig, &w);
 
   LOGP(info, "Sending object {} / {} of size {} bytes, valid for {} : {} ", w.getPath(), w.getFileName(), image->size(), w.getStartValidityTimestamp(), w.getEndValidityTimestamp());

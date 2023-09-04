@@ -157,6 +157,10 @@ class MultivariatePolynomial : public FlatObject, public MultivariatePolynomialH
   // construct the object (flatbuffer)
   void construct();
 #endif
+
+#ifndef GPUCA_ALIROOT_LIB
+  ClassDefNV(MultivariatePolynomial, 1);
+#endif
 };
 
 //=================================================================================

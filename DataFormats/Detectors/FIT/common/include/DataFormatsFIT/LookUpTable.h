@@ -16,6 +16,7 @@
 //////////////////////////////////////////////
 
 #include "CCDB/BasicCCDBManager.h"
+#include "DetectorsCommonDataFormats/DetID.h"
 #define BOOST_BIND_GLOBAL_PLACEHOLDERS
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -183,6 +184,12 @@ class LookupTableBase
   {
     return mEntryCRU_TCM.mLinkID == linkID && mEntryCRU_TCM.mEndPointID == epID;
   }
+
+  bool isPM(int linkID, int epID) const
+  {
+    return isPM(EntryCRU_t{linkID, epID});
+  }
+
   bool isTCM(const EntryCRU_t& entryCRU) const
   {
     if (getModuleType(entryCRU) == EModuleType::kTCM) {
@@ -413,6 +420,66 @@ class LookupTableBase
   MapEntryCRU2ModuleType_t mMapEntryCRU2ModuleType;
   MapEntryPM2ChannelID_t mMapEntryPM2ChannelID;
 };
+
+// Singleton for LookUpTable, coomon for all three FIT detectors
+template <o2::detectors::DetID::ID DetID, typename LUT>
+class SingleLUT : public LUT
+{
+ private:
+  SingleLUT() = default;
+  SingleLUT(const std::string& ccdbPath, const std::string& ccdbPathToLUT) : LUT(ccdbPath, ccdbPathToLUT) {}
+  SingleLUT(const std::string& pathToFile) : LUT(pathToFile) {}
+  SingleLUT(const SingleLUT&) = delete;
+  SingleLUT& operator=(SingleLUT&) = delete;
+  constexpr static bool isValidDet()
+  {
+    return (DetID == o2::detectors::DetID::FDD) || (DetID == o2::detectors::DetID::FT0) || (DetID == o2::detectors::DetID::FV0);
+  }
+
+ public:
+  typedef LUT LookupTable_t;
+  typedef typename LookupTable_t::Table_t Table_t;
+
+  constexpr static const char* getObjectPath()
+  {
+    static_assert(isValidDet(), "Invalid detector type(o2::detectors::DetID::ID)! Should be one of the FIT detector!");
+    if constexpr (DetID == o2::detectors::DetID::FDD) {
+      return "FDD/Config/LookupTable";
+    } else if constexpr (DetID == o2::detectors::DetID::FT0) {
+      return "FT0/Config/LookupTable";
+    } else if constexpr (DetID == o2::detectors::DetID::FV0) {
+      return "FV0/Config/LookupTable";
+    }
+    return "";
+  }
+  static constexpr o2::detectors::DetID sDetID = o2::detectors::DetID(DetID);
+  static constexpr const char* sDetectorName = o2::detectors::DetID::getName(DetID);
+  static constexpr const char* sDefaultLUTpath = getObjectPath();
+  static constexpr const char sObjectName[] = "LookupTable";
+  inline static std::string sCurrentCCDBpath = "";
+  inline static std::string sCurrentLUTpath = sDefaultLUTpath;
+  // Before instance() call, setup url and path
+  static void setCCDBurl(const std::string& url) { sCurrentCCDBpath = url; }
+  static void setLUTpath(const std::string& path) { sCurrentLUTpath = path; }
+  bool mFirstUpdate{true}; // option in case if LUT should be updated during workflow initialization
+  static SingleLUT& Instance(const Table_t* table = nullptr, long timestamp = -1)
+  {
+    if (sCurrentCCDBpath == "") {
+      sCurrentCCDBpath = o2::base::NameConf::getCCDBServer();
+    }
+    static SingleLUT instanceLUT;
+    if (table != nullptr) {
+      instanceLUT.initFromTable(table);
+      instanceLUT.mFirstUpdate = false;
+    } else if (instanceLUT.mFirstUpdate) {
+      instanceLUT.initCCDB(sCurrentCCDBpath, sCurrentLUTpath, timestamp);
+      instanceLUT.mFirstUpdate = false;
+    }
+    return instanceLUT;
+  }
+};
+
 } // namespace fit
 } // namespace o2
+
 #endif

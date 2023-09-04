@@ -48,6 +48,7 @@ EntropyDecoderSpec::EntropyDecoderSpec(int verbosity) : mCTFCoder(o2::ctf::CTFCo
   mTimer.Reset();
   mCTFCoder.setVerbosity(verbosity);
   mCTFCoder.setSupportBCShifts(true);
+  mCTFCoder.setDictBinding("ctfdict_HMP");
 }
 
 void EntropyDecoderSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
@@ -68,8 +69,8 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   mTimer.Start(false);
   o2::ctf::CTFIOSize iosize;
 
-  mCTFCoder.updateTimeDependentParams(pc);
-  auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf");
+  mCTFCoder.updateTimeDependentParams(pc, true);
+  auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf_HMP");
 
   auto& triggers = pc.outputs().make<std::vector<Trigger>>(OutputRef{"triggers"});
   auto& digits = pc.outputs().make<std::vector<Digit>>(OutputRef{"digits"});
@@ -98,8 +99,8 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
     OutputSpec{{"ctfrep"}, "HMP", "CTFDECREP", 0, Lifetime::Timeframe}};
 
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("ctf", "HMP", "CTFDATA", sspec, Lifetime::Timeframe);
-  inputs.emplace_back("ctfdict", "HMP", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("HMP/Calib/CTFDictionary"));
+  inputs.emplace_back("ctf_HMP", "HMP", "CTFDATA", sspec, Lifetime::Timeframe);
+  inputs.emplace_back("ctfdict_HMP", "HMP", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("HMP/Calib/CTFDictionaryTree"));
   inputs.emplace_back("trigoffset", "CTP", "Trig_Offset", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/TriggerOffsets"));
 
   return DataProcessorSpec{
@@ -107,7 +108,8 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
-    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}}}};
+    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
+            {"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
 }
 
 } // namespace hmpid

@@ -41,8 +41,8 @@ struct CompressedDigits {
 
   // trigger data
   std::vector<uint8_t> trigger;    // trigger bits
-  std::vector<uint16_t> bcInc;     // increment in BC if the same orbit, otherwise abs bc
-  std::vector<uint32_t> orbitInc;  // increment in orbit
+  std::vector<int16_t> bcInc;      // increment in BC if the same orbit, otherwise abs bc
+  std::vector<int32_t> orbitInc;   // increment in orbit
   std::vector<uint8_t> nChan;      // number of fired channels
   std::vector<uint8_t> eventStatus; // special flags about event conditions: pile-up, not use for collision time, not use for event plane, etc.
 

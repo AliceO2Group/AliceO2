@@ -104,8 +104,10 @@ void InterCalibEPNSpec::run(ProcessingContext& pc)
   o2::framework::Output output("ZDC", "INTERCALIBDATA", 0, Lifetime::Timeframe);
   pc.outputs().snapshot(output, mWorker.mData);
   for (int ih = 0; ih < (2 * InterCalibData::NH); ih++) {
-    o2::framework::Output output("ZDC", "INTER_1DH", ih, Lifetime::Timeframe);
-    pc.outputs().snapshot(output, mWorker.mH[ih]->getBase());
+    if (mWorker.mH[ih] != nullptr) {
+      o2::framework::Output output("ZDC", "INTER_1DH", ih, Lifetime::Timeframe);
+      pc.outputs().snapshot(output, mWorker.mH[ih]->getBase());
+    }
   }
   for (int ih = 0; ih < InterCalibData::NH; ih++) {
     o2::framework::Output output("ZDC", "INTER_2DH", ih, Lifetime::Timeframe);

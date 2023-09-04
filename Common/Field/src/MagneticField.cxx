@@ -558,18 +558,29 @@ MagFieldParam::BMap_t MagneticField::getFieldMapScale(float& l3, float& dip, boo
 
   MagFieldParam::BMap_t map = MagFieldParam::k5kG;
   float sclL3, sclDip;
+  float l3sav = l3, dipsav = dip;
 
   float l3Pol = l3 > 0 ? 1 : -1;
   float diPol = dip > 0 ? 1 : -1;
 
   l3 = TMath::Abs(l3);
   dip = TMath::Abs(dip);
+  static bool overrideL3 = std::getenv("O2_OVERRIDE_L3_CURRENT") != nullptr;
+  static bool overrideDIP = std::getenv("O2_OVERRIDE_DIPOLE_CURRENT") != nullptr;
+  static bool warnL3Done = false, warnDipDone = false, warnPolarityDone = false;
 
   if (TMath::Abs((sclDip = dip / diNominalCurrent) - 1.) > tolerance && !uniform) {
     if (dip <= zero) {
       sclDip = 0.; // some small current.. -> Dipole OFF
     } else {
-      LOG(fatal) << "MagneticField::createFieldMap: Wrong dipole current (" << dip << " A)!";
+      if (!overrideDIP) {
+        LOG(fatal) << "MagneticField::createFieldMap: Wrong dipole current (" << dipsav << " A)!";
+      } else {
+        if (!warnDipDone) {
+          LOGP(error, "Dipole current was overridden to unsupported value {}", dipsav);
+          warnDipDone = true;
+        }
+      }
     }
   }
   if (uniform) {
@@ -587,15 +598,33 @@ MagFieldParam::BMap_t MagneticField::getFieldMapScale(float& l3, float& dip, boo
       sclDip = 0;
       map = MagFieldParam::k5kGUniform;
     } else {
-      LOG(fatal) << "MagneticField::createFieldMap: Wrong L3 current (" << l3 << "  A)!";
+      if (!overrideL3) {
+        LOG(fatal) << "MagneticField::createFieldMap: Wrong L3 current (" << l3sav << "  A)!";
+      } else {
+        if (!warnL3Done) {
+          LOGP(error, "L3 current was overridden to unsupported value {}", l3sav);
+          warnL3Done = true;
+        }
+        map = MagFieldParam::k5kG;
+        sclL3 = l3 / l3NominalCurrent1;
+      }
     }
   }
   if (sclDip != 0 && map != MagFieldParam::k5kGUniform) {
     if ((l3 <= zero) ||
         ((convention == kConvLHC && l3Pol != diPol) || (convention == kConvDCS2008 && l3Pol == diPol))) {
-      LOG(fatal) << "MagneticField::createFieldMap: Wrong combination for L3/Dipole polarities ("
-                 << (l3Pol > 0 ? '+' : '-') << "/" << (diPol > 0 ? '+' : '-') << ") for convention "
-                 << getPolarityConvention();
+      if (overrideL3 || overrideDIP) {
+        if (!warnPolarityDone) {
+          LOG(error) << "Overriden currents have wrong combination for L3/Dipole polarities ("
+                     << (l3Pol > 0 ? '+' : '-') << "/" << (diPol > 0 ? '+' : '-') << ") for convention "
+                     << getPolarityConvention();
+          warnPolarityDone = true;
+        }
+      } else {
+        LOG(fatal) << "MagneticField::createFieldMap: Wrong combination for L3/Dipole polarities ("
+                   << (l3Pol > 0 ? '+' : '-') << "/" << (diPol > 0 ? '+' : '-') << ") for convention "
+                   << getPolarityConvention();
+      }
     }
   }
   l3 = (l3Pol < 0) ? -sclL3 : sclL3;

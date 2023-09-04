@@ -66,7 +66,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
 {
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
-  mCTFCoder.updateTimeDependentParams(pc);
+  mCTFCoder.updateTimeDependentParams(pc, true);
   auto rofs = pc.inputs().get<gsl::span<o2::mch::ROFRecord>>("rofs", 0);
   auto digits = pc.inputs().get<gsl::span<o2::mch::Digit>>("digits", 0);
   if (mSelIR) {
@@ -90,7 +90,7 @@ DataProcessorSpec getEntropyEncoderSpec(const char* specName, bool selIR)
   std::vector<InputSpec> inputs;
   inputs.emplace_back("rofs", "MCH", "DIGITROFS", 0, Lifetime::Timeframe);
   inputs.emplace_back("digits", "MCH", "DIGITS", 0, Lifetime::Timeframe);
-  inputs.emplace_back("ctfdict", "MCH", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("MCH/Calib/CTFDictionary"));
+  inputs.emplace_back("ctfdict", "MCH", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("MCH/Calib/CTFDictionaryTree"));
   if (selIR) {
     inputs.emplace_back("selIRFrames", "CTF", "SELIRFRAMES", 0, Lifetime::Timeframe);
   }
@@ -103,7 +103,8 @@ DataProcessorSpec getEntropyEncoderSpec(const char* specName, bool selIR)
     Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
             {"irframe-margin-bwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame lower boundary when selection is requested"}},
             {"irframe-margin-fwd", VariantType::UInt32, 0u, {"margin in BC to add to the IRFrame upper boundary when selection is requested"}},
-            {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}}}};
+            {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}},
+            {"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
 }
 
 } // namespace mch

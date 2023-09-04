@@ -38,6 +38,7 @@ struct WorkflowSpecNode;
 
 struct ServiceMetricsInfo;
 struct DeviceConfig;
+struct DriverServerContext;
 
 class DanglingContext;
 
@@ -90,6 +91,10 @@ using ServiceMetricHandling = void (*)(ServiceRegistryRef,
                                        ServiceMetricsInfo const&,
                                        size_t timestamp);
 
+/// Callback exectuted in the driver in order to provide summary information
+/// at the end of a run.
+using ServiceSummaryHandling = void (*)(ServiceMetricsInfo const& metrics);
+
 /// Callback executed in the child after dispatching happened.
 using ServicePostDispatching = void (*)(ProcessingContext&, void*);
 
@@ -101,6 +106,11 @@ using ServiceDriverInit = void (*)(ServiceRegistryRef, DeviceConfig const&);
 
 /// Callback invoked when the driver enters the init phase.
 using ServiceDriverStartup = void (*)(ServiceRegistryRef, DeviceConfig const&);
+
+/// Callback executed every time we are about to enter the uv_run loop.
+/// This is the last chance to queue something on the loop before it
+/// will wait for events.
+using ServicePreLoop = void (*)(ServiceRegistryRef, void*);
 
 /// Callback invoked when we inject internal devices in the topology
 using ServiceTopologyInject = void (*)(WorkflowSpecNode&, ConfigContext&);
@@ -180,6 +190,9 @@ struct ServiceSpec {
   /// Callback invoked when starting the driver
   ServiceDriverStartup driverStartup = nullptr;
 
+  /// Callback invoked before the loop starts
+  ServicePreLoop preLoop = nullptr;
+
   /// Callback invoked when doing topology creation
   ServiceTopologyInject injectTopology = nullptr;
 
@@ -194,6 +207,9 @@ struct ServiceSpec {
 
   /// Callback invoked after the main GUI has been drawn
   ServicePostRenderGUI postRenderGUI = nullptr;
+
+  /// Callback invoked on the driver quitting
+  ServiceSummaryHandling summaryHandling = nullptr;
 
   /// Active flag. If set to false, the service will not be used by default.
   bool active = true;
@@ -290,6 +306,12 @@ struct ServicePreSendingMessagesHandle {
 struct ServicePostRenderGUIHandle {
   ServiceSpec const& spec;
   ServicePostRenderGUI callback;
+  void* service;
+};
+
+struct ServicePreLoopHandle {
+  ServiceSpec const& spec;
+  ServicePreLoop callback;
   void* service;
 };
 

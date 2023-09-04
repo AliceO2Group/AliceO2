@@ -24,7 +24,7 @@ namespace o2
 namespace align
 {
 
-class AlignableDetectorTOF : public AlignableDetector
+class AlignableDetectorTOF final : public AlignableDetector
 {
  public:
   AlignableDetectorTOF() = default;
@@ -33,7 +33,7 @@ class AlignableDetectorTOF : public AlignableDetector
   //
   void defineVolumes() final;
   //
-  int processPoints(GIndex gid, bool inv) final;
+  int processPoints(GIndex gid, int npntCut, bool inv) final;
   //
  protected:
   //

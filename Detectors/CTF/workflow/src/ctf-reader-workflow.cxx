@@ -21,6 +21,7 @@
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "CommonUtils/ConfigurableParam.h"
 #include "Algorithm/RangeTokenizer.h"
+#include "DetectorsBase/DPLWorkflowUtils.h"
 
 // Specific detectors specs
 #include "ITSMFTWorkflow/EntropyDecoderSpec.h"
@@ -38,6 +39,9 @@
 #include "CPVWorkflow/EntropyDecoderSpec.h"
 #include "ZDCWorkflow/EntropyDecoderSpec.h"
 #include "CTPWorkflow/EntropyDecoderSpec.h"
+#ifdef WITH_OPENMP
+#include <omp.h>
+#endif
 
 using namespace o2::framework;
 using DetID = o2::detectors::DetID;
@@ -72,6 +76,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
   //
   options.push_back(ConfigParamSpec{"timeframes-shm-limit", VariantType::String, "0", {"Minimum amount of SHM required in order to publish data"}});
   options.push_back(ConfigParamSpec{"metric-feedback-channel-format", VariantType::String, "name=metric-feedback,type=pull,method=connect,address=ipc://{}metric-feedback-{},transport=shmem,rateLogging=0", {"format for the metric-feedback channel for TF rate limiting"}});
+  options.push_back(ConfigParamSpec{"combine-devices", VariantType::Bool, false, {"combine multiple DPL devices (entropy decoders)"}});
   std::swap(workflowOptions, options);
 }
 
@@ -134,54 +139,117 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   specs.push_back(o2::ctf::getCTFReaderSpec(ctfInput));
 
+  auto pipes = configcontext.options().get<std::string>("pipeline");
+  std::unordered_map<std::string, int> plines;
+  auto ptokens = o2::utils::Str::tokenize(pipes, ',');
+  for (auto& token : ptokens) {
+    auto split = token.find(":");
+    if (split == std::string::npos) {
+      throw std::runtime_error("bad pipeline definition. Syntax <processor>:<pipeline>");
+    }
+    auto key = token.substr(0, split);
+    token.erase(0, split + 1);
+    size_t error;
+    auto value = std::stoll(token, &error, 10);
+    if (token[error] != '\0') {
+      throw std::runtime_error("Bad pipeline definition. Expecting integer");
+    }
+    if (value > 1) {
+      plines[key] = value;
+    }
+  }
+
+  std::vector<WorkflowSpec> decSpecsV;
+
+  auto addSpecs = [&decSpecsV, &plines](DataProcessorSpec&& s) {
+    auto entry = plines.find(s.name);
+    size_t mult = (entry == plines.end() || entry->second < 2) ? 1 : entry->second;
+    if (mult > decSpecsV.size()) {
+      decSpecsV.resize(mult);
+    }
+    decSpecsV[mult - 1].push_back(s);
+  };
+
   // add decoders for all allowed detectors.
   if (ctfInput.detMask[DetID::ITS]) {
-    specs.push_back(o2::itsmft::getEntropyDecoderSpec(DetID::getDataOrigin(DetID::ITS), verbosity, configcontext.options().get<bool>("its-digits"), ctfInput.subspec));
+    addSpecs(o2::itsmft::getEntropyDecoderSpec(DetID::getDataOrigin(DetID::ITS), verbosity, configcontext.options().get<bool>("its-digits"), ctfInput.subspec));
   }
   if (ctfInput.detMask[DetID::MFT]) {
-    specs.push_back(o2::itsmft::getEntropyDecoderSpec(DetID::getDataOrigin(DetID::MFT), verbosity, configcontext.options().get<bool>("mft-digits"), ctfInput.subspec));
+    addSpecs(o2::itsmft::getEntropyDecoderSpec(DetID::getDataOrigin(DetID::MFT), verbosity, configcontext.options().get<bool>("mft-digits"), ctfInput.subspec));
   }
   if (ctfInput.detMask[DetID::TPC]) {
-    specs.push_back(o2::tpc::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
+    addSpecs(o2::tpc::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
   }
   if (ctfInput.detMask[DetID::TRD]) {
-    specs.push_back(o2::trd::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
+    addSpecs(o2::trd::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
   }
   if (ctfInput.detMask[DetID::TOF]) {
-    specs.push_back(o2::tof::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
+    addSpecs(o2::tof::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
   }
   if (ctfInput.detMask[DetID::FT0]) {
-    specs.push_back(o2::ft0::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
+    addSpecs(o2::ft0::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
   }
   if (ctfInput.detMask[DetID::FV0]) {
-    specs.push_back(o2::fv0::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
+    addSpecs(o2::fv0::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
   }
   if (ctfInput.detMask[DetID::FDD]) {
-    specs.push_back(o2::fdd::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
+    addSpecs(o2::fdd::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
   }
   if (ctfInput.detMask[DetID::MID]) {
-    specs.push_back(o2::mid::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
+    addSpecs(o2::mid::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
   }
   if (ctfInput.detMask[DetID::MCH]) {
-    specs.push_back(o2::mch::getEntropyDecoderSpec(verbosity, "mch-entropy-decoder", ctfInput.subspec));
+    addSpecs(o2::mch::getEntropyDecoderSpec(verbosity, "mch-entropy-decoder", ctfInput.subspec));
   }
   if (ctfInput.detMask[DetID::EMC]) {
-    specs.push_back(o2::emcal::getEntropyDecoderSpec(verbosity, ctfInput.subspec, ctfInput.decSSpecEMC));
+    addSpecs(o2::emcal::getEntropyDecoderSpec(verbosity, ctfInput.subspec, ctfInput.decSSpecEMC));
   }
   if (ctfInput.detMask[DetID::PHS]) {
-    specs.push_back(o2::phos::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
+    addSpecs(o2::phos::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
   }
   if (ctfInput.detMask[DetID::CPV]) {
-    specs.push_back(o2::cpv::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
+    addSpecs(o2::cpv::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
   }
   if (ctfInput.detMask[DetID::ZDC]) {
-    specs.push_back(o2::zdc::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
+    addSpecs(o2::zdc::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
   }
   if (ctfInput.detMask[DetID::HMP]) {
-    specs.push_back(o2::hmpid::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
+    addSpecs(o2::hmpid::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
   }
   if (ctfInput.detMask[DetID::CTP]) {
-    specs.push_back(o2::ctp::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
+    addSpecs(o2::ctp::getEntropyDecoderSpec(verbosity, ctfInput.subspec));
+  }
+
+  bool combine = configcontext.options().get<bool>("combine-devices");
+  if (!combine) {
+    for (auto& decSpecs : decSpecsV) {
+      for (auto& s : decSpecs) {
+        specs.push_back(s);
+      }
+    }
+  } else {
+    std::vector<DataProcessorSpec> remaining;
+    if (decSpecsV.size() && decSpecsV[0].size()) {
+      specs.push_back(specCombiner("EntropyDecoders", decSpecsV[0], remaining)); // processing w/o pipelining
+    }
+    bool updatePipelines = false;
+    for (size_t i = 1; i < decSpecsV.size(); i++) { // add pipelined processes separately, consider combining them to separate groups (need to have modify argument of pipeline option)
+      if (decSpecsV[i].size() > 1) {
+        specs.push_back(specCombiner(fmt::format("EntropyDecodersP{}", i + 1), decSpecsV[i], remaining)); // processing pipelining multiplicity i+1
+        updatePipelines = true;
+        pipes += fmt::format(",EntropyDecodersP{}:{}", i + 1, i + 1);
+      } else {
+        for (auto& s : decSpecsV[i]) {
+          specs.push_back(s);
+        }
+      }
+    }
+    for (auto& s : remaining) {
+      specs.push_back(s);
+    }
+    if (updatePipelines) {
+      configcontext.options().override("pipeline", pipes);
+    }
   }
 
   return std::move(specs);

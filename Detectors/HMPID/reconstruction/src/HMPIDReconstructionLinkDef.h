@@ -18,6 +18,7 @@
 //#pragma link C++ class o2::hmpid::DataReader + ;
 #pragma link C++ class o2::hmpid::Clusterer + ;
 //#pragma link C++ class o2::hmpid::HmpidDecodeRawMem + ;
+#pragma link C++ class o2::hmpid::Recon + ;
 //#pragma link C++ class o2::hmpid::HmpidDecoder + ;
 #pragma link C++ class o2::hmpid::HmpidDecoder2 + ;
 #pragma link C++ class o2::hmpid::HmpidEquipment + ;

@@ -82,9 +82,13 @@ DataT TriCubicInterpolator<DataT>::interpolateSparse(const DataT z, const DataT 
   const Vector<DataT, FDim> coordinates{{z, r, phi}};                                                           // vector holding the coordinates
   Vector<DataT, FDim> posRel{(coordinates - mGridProperties->getGridMin()) * mGridProperties->getInvSpacing()}; // needed for the grid index
   posRel[FPHI] = mGridProperties->clampToGridCircularRel(posRel[FPHI], FPHI);
-  const Vector<DataT, FDim> posRelN{posRel};
+  Vector<DataT, FDim> posRelN{posRel};
   posRel[FZ] = mGridProperties->clampToGridRel(posRel[FZ], FZ);
   posRel[FR] = mGridProperties->clampToGridRel(posRel[FR], FR);
+  if (!mExtraPolateValues) {
+    posRelN[FZ] = posRel[FZ];
+    posRelN[FR] = posRel[FR];
+  }
 
   const int nPoints = 4;
   std::array<Vector<DataT, nPoints>, 16> cVals;

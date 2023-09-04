@@ -26,10 +26,29 @@
 #include <iostream>
 #endif
 using namespace o2::ctp;
-void ReadCTPRunScalersFromFile(std::string name = "519903.root")
+void ReadCTPRunScalersFromFile(std::string name = "s.root")
 {
   std::cout << "Reading file:" << name << std::endl;
   TFile* myFile = TFile::Open(name.c_str());
-  CTPRunScalers* ctpscalers = myFile->Get<CTPRunScalers>("CTPRunScalers");
-  ctpscalers->printStream(std::cout);
+  bool doscalers = 1;
+  bool doconfig = 0;
+  if (doscalers) {
+    // CTPRunScalers* ctpscalers = myFile->Get<CTPRunScalers>("ccdb_object");
+    CTPRunScalers* ctpscalers = myFile->Get<CTPRunScalers>("CTPRunScalers");
+    if (ctpscalers != nullptr) {
+      ctpscalers->printStream(std::cout);
+      ctpscalers->convertRawToO2();
+      ctpscalers->printIntegrals();
+    } else {
+      std::cout << "Scalers not there ?" << std::endl;
+    }
+  }
+  if (doconfig) {
+    CTPConfiguration* ctpconfig = myFile->Get<CTPConfiguration>("CTPConfig");
+    if (ctpconfig != nullptr) {
+      ctpconfig->printStream(std::cout);
+    } else {
+      std::cout << "Config not there ?" << std::endl;
+    }
+  }
 }

@@ -10,37 +10,19 @@
 // or submit itself to any jurisdiction.
 
 #include "DataFormatsTRD/Tracklet64.h"
-#include "DataFormatsTRD/Constants.h"
 #include "DataFormatsTRD/HelperMethods.h"
-#include "GPUCommonMath.h"
-
 #include "fairlogger/Logger.h"
 #include <iostream>
 
-using namespace GPUCA_NAMESPACE::gpu;
-
 namespace o2
 {
-
 namespace trd
 {
 
-using namespace constants;
-
 void Tracklet64::print() const
 {
-  LOGF(info, "%02i_%i_%i, row(%i), col(%i), position(%i), slope(%i), pid(%i), q0(%i), q1(%i), q2(%i). Format(%i)",
-       HelperMethods::getSector(getDetector()), HelperMethods::getStack(getDetector()), HelperMethods::getLayer(getDetector()), getPadRow(), getColumn(), getPosition(), getSlope(), getPID(), getQ0(), getQ1(), getQ2(), getFormat());
-}
-
-GPUd() int Tracklet64::getPadCol() const
-{
-  // obtain pad number relative to MCM center
-  int padLocal = getPositionBinSigned() * GRANULARITYTRKLPOS;
-  // MCM number in column direction (0..7)
-  int mcmCol = (getMCM() % NMCMROBINCOL) + NMCMROBINCOL * (getROB() % 2);
-  // FIXME: understand why the offset seems to be 6 pads and not nChannels / 2 = 10.5
-  return CAMath::Nint(6.f + mcmCol * ((float)NCOLMCM) + padLocal);
+  LOGF(info, "%02i_%i_%i, ROB(%i), MCM(%i), row(%i), col(%i), position(%i), slope(%i), pid(%i), q0(%i), q1(%i), q2(%i). Format(%i)",
+       HelperMethods::getSector(getDetector()), HelperMethods::getStack(getDetector()), HelperMethods::getLayer(getDetector()), getROB(), getMCM(), getPadRow(), getColumn(), getPosition(), getSlope(), getPID(), getQ0(), getQ1(), getQ2(), getFormat());
 }
 
 #ifndef GPUCA_GPUCODE_DEVICE

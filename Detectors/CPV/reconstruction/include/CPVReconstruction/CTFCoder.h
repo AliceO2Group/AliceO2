@@ -23,7 +23,6 @@
 #include "DataFormatsCPV/CTF.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsBase/CTFCoderBase.h"
-#include "rANS/rans.h"
 #include "CPVReconstruction/CTFHelper.h"
 
 class TTree;
@@ -47,7 +46,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
   template <typename VTRG, typename VCLUSTER>
   o2::ctf::CTFIOSize decode(const CTF::base& ec, VTRG& trigVec, VCLUSTER& cluVec);
 
-  void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
+  void createCoders(const std::vector<char>& bufVec, ctf::CTFCoderBase::OpType op) final;
 
  private:
   template <typename VEC>
@@ -86,13 +85,13 @@ o2::ctf::CTFIOSize CTFCoder::encode_impl(VEC& buff, const gsl::span<const Trigge
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation
   constexpr MD optField[CTF::getNBlocks()] = {
-    MD::EENCODE, // BLC_bcIncTrig
-    MD::EENCODE, // BLC_orbitIncTrig
-    MD::EENCODE, // BLC_entriesTrig
-    MD::EENCODE, // BLC_posX
-    MD::EENCODE, // BLC_posZ
-    MD::EENCODE, // BLC_energy
-    MD::EENCODE  // BLC_status
+    MD::EENCODE_OR_PACK, // BLC_bcIncTrig
+    MD::EENCODE_OR_PACK, // BLC_orbitIncTrig
+    MD::EENCODE_OR_PACK, // BLC_entriesTrig
+    MD::EENCODE_OR_PACK, // BLC_posX
+    MD::EENCODE_OR_PACK, // BLC_posZ
+    MD::EENCODE_OR_PACK, // BLC_energy
+    MD::EENCODE_OR_PACK  // BLC_status
   };
 
   CTFHelper helper(trigData, cluData);
@@ -106,11 +105,10 @@ o2::ctf::CTFIOSize CTFCoder::encode_impl(VEC& buff, const gsl::span<const Trigge
 
   ec->setHeader(helper.createHeader());
   assignDictVersion(static_cast<o2::ctf::CTFDictHeader&>(ec->getHeader()));
-  ec->getANSHeader().majorVersion = 0;
-  ec->getANSHeader().minorVersion = 1;
+  ec->setANSHeader(mANSVersion);
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
   o2::ctf::CTFIOSize iosize;
-#define ENCODECPV(beg, end, slot, bits) CTF::get(buff.data())->encode(beg, end, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get(), getMemMarginFactor());
+#define ENCODECPV(beg, end, slot, bits) CTF::get(buff.data())->encode(beg, end, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)], getMemMarginFactor());
   // clang-format off
   iosize += ENCODECPV(helper.begin_bcIncTrig(),    helper.end_bcIncTrig(),     CTF::BLC_bcIncTrig,    0);
   iosize += ENCODECPV(helper.begin_orbitIncTrig(), helper.end_orbitIncTrig(),  CTF::BLC_orbitIncTrig, 0);
@@ -134,12 +132,13 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCLUSTER
   auto header = ec.getHeader();
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
   ec.print(getPrefix(), mVerbosity);
-  std::vector<uint16_t> bcInc, entries, posX, posZ;
-  std::vector<uint32_t> orbitInc;
+  std::vector<int16_t> bcInc;
+  std::vector<int32_t> orbitInc;
+  std::vector<uint16_t> entries, posX, posZ;
   std::vector<uint8_t> energy, status;
 
   o2::ctf::CTFIOSize iosize;
-#define DECODECPV(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
+#define DECODECPV(part, slot) ec.decode(part, int(slot), mCoders[int(slot)])
   // clang-format off
   iosize += DECODECPV(bcInc,       CTF::BLC_bcIncTrig);
   iosize += DECODECPV(orbitInc,    CTF::BLC_orbitIncTrig);

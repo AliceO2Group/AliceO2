@@ -7,12 +7,14 @@
 
 trigger.class.filter:                   none
 
+
+refresh.rate:                           6
 axes.show:                              0
 fullscreen.mode:                        0
 background.color:                       1
 
 # screenshot
-screenshot.path:                        /home/ed/Screenshot
+screenshot.path:                        /home/ed/cernbox_screenshots
 screenshot.logo.o2:                     /home/ed/alice/O2/EventVisualisation/Scripts/o2.png
 screenshot.logo.alice:                  /home/ed/alice/O2/EventVisualisation/Scripts/alice-white.png
 #screenshot.logo.alice:                 /home/ed/alice/O2/EventVisualisation/Scripts/alice-black.png
@@ -21,6 +23,13 @@ screenshot.height:                      4320
 screenshot.pixel_object_scale.3d:       15
 screenshot.pixel_object_scale.rphi:     10
 screenshot.pixel_object_scale.zy:       10
+
+# outreach
+outreach.path:                        /home/ed/outreach/images
+outreach.width:                       1920
+outreach.height:                      1080
+outreach.frequency.refresh.rate:      1
+
 #screenshot.message.line.0:             Run number: 520144 <- change/comment it in .o2eve_config
 #screenshot.message.line.1:             First TF orbit: 1301515 <- change/comment it in .o2eve_config
 #screenshot.message.line.2:             Date: Tue Jul 5 17:48:51 2022 <- change/comment it in .o2eve_config
@@ -53,12 +62,12 @@ camera.R-Phi.zoom:                      1.0
 camera.Z-Y.zoom:                        1.0
 
 simple.geom.default:                    R3
-simple.geom.R3.path:                    /home/jmy/CERN/alice/dev/o2-dev/O2/EventVisualisation/Geometry
+simple.geom.R3.path:                    /home/ed/geom/O2
 
 data.synthetic.run.dir:                 /home/ed/jsons/synthetic
 data.cosmics.run.dir:                   /home/ed/jsons/cosmics
 data.physics.run.dir:                   /home/ed/jsons/physics
-data.default:                           SYNTHETIC
+data.default:                           NEWEST
 
 tracks.width:                           2
 

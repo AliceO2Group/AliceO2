@@ -163,6 +163,7 @@ class DigiReco
   bool mCorrBackground = true;                              /// Enable TDC pile-up correction
   bool mCorrBackgroundSet = false;                          /// TDC pile-up correction set via function call
   bool mInError = false;                                    /// ZDC reconstruction ends in error
+  int mAssignedTDC[NTDCChannels] = {0};                     /// Number of assigned TDCs in sequence (debugging)
 
   int correctTDCSignal(int itdc, int16_t TDCVal, float TDCAmp, float& fTDCVal, float& fTDCAmp, bool isbeg, bool isend); /// Correct TDC single signal
   int correctTDCBackground(int ibc, int itdc, std::deque<DigiRecoTDC>& tdc);                                            /// TDC amplitude and time corrections due to pile-up from previous bunches
@@ -174,7 +175,7 @@ class DigiReco
   void findSignals(int ibeg, int iend);                                       /// Find signals around main-main that satisfy condition on TDC
   const RecoParamZDC* mRopt = nullptr;
   bool mIsContinuous = true;                     /// continuous (self-triggered) or externally-triggered readout
-  uint8_t mTriggerCondition = 0x7;               /// Trigger condition: 0x1 single, 0x3 double and 0x7 triple
+  uint8_t mTriggerCondition = 0x3;               /// Trigger condition: 0x1 single, 0x3 double and 0x7 triple
   int mNBCAHead = 0;                             /// when storing triggered BC, store also mNBCAHead BCs
   const ZDCTDCParam* mTDCParam = nullptr;        /// TDC calibration object
   const ZDCTDCCorr* mTDCCorr = nullptr;          /// TDC correction coefficients

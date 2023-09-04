@@ -115,11 +115,15 @@ class HistogramRegistry
   // return the OutputSpec associated to the HistogramRegistry
   OutputSpec const spec();
 
-  OutputRef ref();
+  OutputRef ref(uint16_t idx, uint16_t pipelineSize);
 
   void setHash(uint32_t hash);
 
-  TList* operator*();
+  /// returns the list of histograms, properly sorted for writing.
+  TList* getListOfHistograms();
+
+  /// deletes all the histograms from the registry
+  void clean();
 
   // fill hist with values
   template <typename... Ts>

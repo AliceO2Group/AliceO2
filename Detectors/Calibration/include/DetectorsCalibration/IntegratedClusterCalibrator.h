@@ -281,6 +281,67 @@ struct IFV0C {
   ClassDefNV(IFV0C, 1);
 };
 
+/// struct containing the integrated FDD currents
+struct IFDDC {
+  std::vector<float> mINChanA;                                                        ///< integrated 1D FIT currents for NChan A
+  std::vector<float> mINChanC;                                                        ///< integrated 1D FIT currents for NChan C
+  std::vector<float> mIAmplA;                                                         ///< integrated 1D FIT currents for Ampl A
+  std::vector<float> mIAmplC;                                                         ///< integrated 1D FIT currents for Ampl C
+  bool areSameSize() const { return sameSize(mINChanA, mINChanC, mIAmplA, mIAmplC); } ///< check if stored currents have same number of entries
+  bool isEmpty() const { return mINChanA.empty(); }                                   ///< check if values are empty
+  size_t getEntries() const { return mINChanA.size(); }                               ///< \return returns number of values stored
+
+  /// acummulate integrated currents at given index
+  /// \param posIndex index where data will be copied to
+  /// \param data integrated currents which will be copied
+  void fill(const unsigned int posIndex, const IFDDC& data)
+  {
+    std::copy(data.mINChanA.begin(), data.mINChanA.end(), mINChanA.begin() + posIndex);
+    std::copy(data.mINChanC.begin(), data.mINChanC.end(), mINChanC.begin() + posIndex);
+    std::copy(data.mIAmplA.begin(), data.mIAmplA.end(), mIAmplA.begin() + posIndex);
+    std::copy(data.mIAmplC.begin(), data.mIAmplC.end(), mIAmplC.begin() + posIndex);
+  }
+
+  /// \param nDummyValues number of empty values which are inserted at the beginning of the accumulated integrated currents
+  void insert(const unsigned int nDummyValues)
+  {
+    std::vector<float> vecTmp(nDummyValues, 0);
+    mINChanA.insert(mINChanA.begin(), vecTmp.begin(), vecTmp.end());
+    mINChanC.insert(mINChanC.begin(), vecTmp.begin(), vecTmp.end());
+    mIAmplA.insert(mIAmplA.begin(), vecTmp.begin(), vecTmp.end());
+    mIAmplC.insert(mIAmplC.begin(), vecTmp.begin(), vecTmp.end());
+  }
+
+  /// resize buffer for accumulated currents
+  void resize(const unsigned int nTotal)
+  {
+    mINChanA.resize(nTotal);
+    mINChanC.resize(nTotal);
+    mIAmplA.resize(nTotal);
+    mIAmplC.resize(nTotal);
+  }
+
+  /// reset buffered currents
+  void reset()
+  {
+    std::fill(mINChanA.begin(), mINChanA.end(), 0);
+    std::fill(mINChanC.begin(), mINChanC.end(), 0);
+    std::fill(mIAmplA.begin(), mIAmplA.end(), 0);
+    std::fill(mIAmplC.begin(), mIAmplC.end(), 0);
+  }
+
+  /// normalize currents
+  void normalize(const float factor)
+  {
+    std::transform(mINChanA.begin(), mINChanA.end(), mINChanA.begin(), [factor](const float val) { return val * factor; });
+    std::transform(mINChanC.begin(), mINChanC.end(), mINChanC.begin(), [factor](const float val) { return val * factor; });
+    std::transform(mIAmplA.begin(), mIAmplA.end(), mIAmplA.begin(), [factor](const float val) { return val * factor; });
+    std::transform(mIAmplC.begin(), mIAmplC.end(), mIAmplC.begin(), [factor](const float val) { return val * factor; });
+  }
+
+  ClassDefNV(IFDDC, 1);
+};
+
 } // end namespace fit
 } // end namespace o2
 

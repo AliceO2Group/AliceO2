@@ -858,8 +858,10 @@ void HmpidDecoder2::decodePageFast(uint32_t** streamBuf)
     } else {
       if (isPadWord(wp, &pwer, &Column, &Dilogic, &Channel, &Charge) == true) {
         if (pwer != true) {
-          setPad(eq, Column - 1, Dilogic - 1, Channel, Charge);
-          eq->mSampleNumber++;
+          if (!((equipmentIndex == 6 && Column == 16 && Dilogic == 10) || (equipmentIndex == 13 && Column == 18 && Dilogic == 2))) {
+            setPad(eq, Column - 1, Dilogic - 1, Channel, Charge);
+            eq->mSampleNumber++;
+          }
         }
       }
     }

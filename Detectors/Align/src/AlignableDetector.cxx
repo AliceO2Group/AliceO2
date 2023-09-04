@@ -55,7 +55,7 @@ AlignableDetector::~AlignableDetector()
 }
 
 //____________________________________________
-int AlignableDetector::processPoints(GIndex gid, bool inv)
+int AlignableDetector::processPoints(GIndex gid, int npntCut, bool inv)
 {
   // Create alignment points corresponding to this detector, recalibrate/realign them to the
   // level of the "starting point" for the alignment/calibration session.
@@ -116,7 +116,7 @@ void AlignableDetector::updateL2GRecoMatrices()
 void AlignableDetector::reset()
 {
   // prepare for the next track processing
-  mNPoints = mFirstPoint = 0;
+  mNPoints = 0;
 }
 
 //_________________________________________________________

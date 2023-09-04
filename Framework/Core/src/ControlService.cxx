@@ -56,7 +56,6 @@ void ControlService::readyToQuit(QuitRequest what)
       mDriverClient.tell("CONTROL_ACTION: READY_TO_QUIT_ME");
       break;
   }
-  mDriverClient.flushPending();
 }
 
 void ControlService::notifyStreamingState(StreamingState state)
@@ -75,21 +74,18 @@ void ControlService::notifyStreamingState(StreamingState state)
     default:
       throw std::runtime_error("Unknown streaming state");
   }
-  mDriverClient.flushPending();
 }
 
 void ControlService::push(std::string_view key, std::string_view value, int64_t timestamp)
 {
   std::scoped_lock lock(mMutex);
-  mDriverClient.tell(fmt::format("CONTROL_ACTION: PUT {} {} {}", key, timestamp, value));
-  mDriverClient.flushPending();
+  mDriverClient.tell(fmt::format("CONTROL_ACTION: PUT {} {} {}", key, timestamp, value), true);
 }
 
 void ControlService::notifyDeviceState(std::string currentState)
 {
   std::scoped_lock lock(mMutex);
   mDriverClient.tell(fmt::format("CONTROL_ACTION: NOTIFY_DEVICE_STATE {}", currentState));
-  mDriverClient.flushPending();
 }
 
 } // namespace o2::framework

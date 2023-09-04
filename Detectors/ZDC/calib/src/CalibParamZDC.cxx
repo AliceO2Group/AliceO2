@@ -9,6 +9,8 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <string>
+#include <fmt/format.h>
 #include "Framework/Logger.h"
 #include "ZDCCalib/CalibParamZDC.h"
 
@@ -16,8 +18,11 @@ O2ParamImpl(o2::zdc::CalibParamZDC);
 
 int o2::zdc::CalibParamZDC::updateCcdbObjectInfo(o2::ccdb::CcdbObjectInfo& info) const
 {
+  // Tune the validity of calibration object
   auto eov = info.getEndValidityTimestamp();
-  if (eovTune > 0) {
+  auto sov = info.getStartValidityTimestamp();
+  LOG(info) << "Initial validity of calibration object: " << sov << ":" << eov;
+  if (eovTune > 0) { // Absolute
     info.setEndValidityTimestamp(eovTune);
     if (eovTune < eov) {
       LOG(warning) << __func__ << " New EOV: " << eovTune << " < old EOV " << eov;
@@ -26,7 +31,7 @@ int o2::zdc::CalibParamZDC::updateCcdbObjectInfo(o2::ccdb::CcdbObjectInfo& info)
       LOG(info) << __func__ << " Updating EOV from " << eov << " to " << eovTune;
       return 0;
     }
-  } else if (eovTune < 0) {
+  } else if (eovTune < 0) { // Increase eov by -eovTune
     auto neov = eov - eovTune;
     info.setEndValidityTimestamp(neov);
     if (neov < eov) {
@@ -43,40 +48,30 @@ int o2::zdc::CalibParamZDC::updateCcdbObjectInfo(o2::ccdb::CcdbObjectInfo& info)
 
 void o2::zdc::CalibParamZDC::print() const
 {
+  std::string msg = "";
   bool printed = false;
   if (rootOutput) {
-    if (!printed) {
-      LOG(info) << "CalibParamZDC::print()";
-      printed = true;
-    }
-    printf("rootOutput=%s\n", rootOutput ? "true" : "false");
+    msg = msg + fmt::format(" rootOutput={}", rootOutput ? "true" : "false");
   }
   if (debugOutput) {
-    if (!printed) {
-      LOG(info) << "CalibParamZDC::print()";
-      printed = true;
-    }
-    printf("debugOutput=%s\n", debugOutput ? "true" : "false");
+    msg = msg + fmt::format(" debugOutput={}", debugOutput ? "true" : "false");
   }
   if (outputDir.compare("./")) {
-    if (!printed) {
-      LOG(info) << "CalibParamZDC::print()";
-      printed = true;
-    }
-    printf("outputDir=%s\n", outputDir.data());
+    msg = msg + fmt::format(" outputDir={}", outputDir);
   }
   if (metaFileDir.compare("/dev/null")) {
-    if (!printed) {
-      LOG(info) << "CalibParamZDC::print()";
-      printed = true;
-    }
-    printf("metaFileDir=%s\n", metaFileDir.data());
+    msg = msg + fmt::format(" metaFileDir={}", metaFileDir);
   }
   if (descr.size() > 0) {
-    if (!printed) {
-      LOG(info) << "CalibParamZDC::print()";
-      printed = true;
-    }
-    printf("descr=%s\n", descr.data());
+    msg = msg + fmt::format(" descr={}", descr);
+  }
+  if (modTF > 0) {
+    msg = msg + fmt::format(" modTF={}", modTF);
+  }
+  if (mCTimeMod > 0) {
+    msg = msg + fmt::format(" mCTimeMod={}", mCTimeMod);
+  }
+  if (msg.size() > 0) {
+    LOG(info) << "CalibParamZDC::print():" << msg;
   }
 }

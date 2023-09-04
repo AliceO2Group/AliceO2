@@ -37,7 +37,6 @@
 #include "ZDCCalib/BaselineCalibSpec.h"
 #include "ZDCCalib/BaselineCalibData.h"
 #include "ZDCCalib/CalibParamZDC.h"
-
 using namespace o2::framework;
 
 namespace o2
@@ -61,6 +60,10 @@ void BaselineCalibSpec::init(o2::framework::InitContext& ic)
 {
   mVerbosity = ic.options().get<int>("verbosity-level");
   mWorker.setVerbosity(mVerbosity);
+  const auto& opt = CalibParamZDC::Instance();
+  mCTimeMod = opt.mCTimeMod;
+  LOG(info) << "BaselineCalibSpec::init: mVerbosity=" << mVerbosity << " mCTimeMod=" << mCTimeMod;
+  mProcessed = 0;
 }
 
 void BaselineCalibSpec::updateTimeDependentParams(ProcessingContext& pc)
@@ -82,35 +85,92 @@ void BaselineCalibSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher
 
 void BaselineCalibSpec::run(ProcessingContext& pc)
 {
+  const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
+  const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(pc.inputs().getFirstValid(true));
+
+#ifdef O2_ZDC_DEBUG
+  LOG(info) << "BaselineCalibSpec::run mInitialized=" << mInitialized << " run(ti:dh)=" << tinfo.runNumber << ":" << dh->runNumber << " mRunStartTime=" << mRunStartTime << " mProcessed " << mProcessed;
+#endif
+
+  // Close calibration if a new run has started or we are receiving data from another run
+  if (mInitialized && (tinfo.globalRunNumberChanged == true || mRunNumber != tinfo.runNumber)) {
+    if (mProcessed != 0) {
+      mProcessed = 0;
+      mWorker.endOfRun();
+      sendOutput(); // Send output and ask for a reset of the worker
+    }
+    reset();
+    mTimer.Stop();
+    LOGF(info, "ZDC Baseline calibration: run change. Timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+  }
+
+  // Initialization at startup or after a reset
   if (!mInitialized) {
     mInitialized = true;
     updateTimeDependentParams(pc);
+    mOutput = &(pc.outputs());
+    mHistoFileMetaData = std::make_unique<o2::dataformats::FileMetaData>();
+    mHistoFileMetaData->setDataTakingContext(pc.services().get<o2::framework::DataTakingContext>());
     mTimer.Stop();
     mTimer.Reset();
     mTimer.Start(false);
-  }
-  if (mRunStartTime == 0) {
-    const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
     mRunStartTime = tinfo.creation; // approximate time in ms
-    mRunNumber = tinfo.runNumber;
+    mRunNumber = tinfo.runNumber;   // new current run number
   }
+
   auto data = pc.inputs().get<o2::zdc::BaselineCalibSummaryData*>("basecalibdata");
   mWorker.process(data.get());
+  mProcessed++;
+  // Send intermediate calibration data if enough statistics has been collected
+  if (mCTimeMod > 0) {
+    auto& outd = mWorker.getData();
+    auto reft = mCTimeEnd == 0 ? outd.mCTimeBeg : mCTimeEnd;
+    if ((reft + mCTimeMod) < outd.mCTimeEnd) {
+      // Send output to CCDB but don't reset structures
+      mProcessed = 0;
+      mWorker.endOfRun();
+      sendOutput();
+      mCTimeEnd = outd.mCTimeEnd;
+    }
+  }
+
+  if (mInitialized && pc.transitionState() == TransitionHandlingState::Requested) {
+    if (mProcessed != 0) {
+      mProcessed = 0;
+      mWorker.endOfRun();
+      sendOutput(); // Send output and ask for a reset of the worker
+    }
+    reset();
+    mTimer.Stop();
+    LOGF(info, "ZDC Baseline calibration: transition. Timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+  }
 }
 
 void BaselineCalibSpec::endOfStream(EndOfStreamContext& ec)
 {
-  mWorker.endOfRun();
-  mTimer.Stop();
-  sendOutput(ec);
-  LOGF(info, "ZDC Baseline calibration total timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+  if (mInitialized) {
+    if (mProcessed != 0) {
+      mProcessed = 0;
+      mWorker.endOfRun();
+      sendOutput(); // Send output and ask for a reset of the worker
+    }
+    reset();
+    mTimer.Stop();
+    LOGF(info, "ZDC Baseline calibration: end of stream. Timing: Cpu: %.3e Real: %.3e s in %d slots", mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
+  }
 }
 
 //________________________________________________________________
-void BaselineCalibSpec::sendOutput(o2::framework::EndOfStreamContext& ec)
+void BaselineCalibSpec::reset()
+{
+  mWorker.resetInitFlag();
+  mInitialized = false;
+}
+
+//________________________________________________________________
+void BaselineCalibSpec::sendOutput()
 {
   std::string fn = "ZDC_BaselineCalib";
-  o2::framework::DataAllocator& output = ec.outputs();
 
   // extract CCDB infos and calibration objects, convert it to TMemFile and send them to the output
   // TODO in principle, this routine is generic, can be moved to Utils.h
@@ -126,10 +186,9 @@ void BaselineCalibSpec::sendOutput(o2::framework::EndOfStreamContext& ec)
   if (mVerbosity > DbgMinimal) {
     payload.print();
   }
-  output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ZDCBaselinecalib", 0}, *image.get()); // vector<char>
-  output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ZDCBaselinecalib", 0}, info);         // root-serialized
-  // TODO: reset the outputs once they are already sent (is it necessary?)
-  // mWorker.init();
+
+  mOutput->snapshot(Output{o2::calibration::Utils::gDataOriginCDBPayload, "ZDCBaselinecalib", 0}, *image.get()); // vector<char>
+  mOutput->snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "ZDCBaselinecalib", 0}, info);         // root-serialized
 
   if (opt.rootOutput == true) {
     mOutputDir = opt.outputDir;
@@ -142,17 +201,14 @@ void BaselineCalibSpec::sendOutput(o2::framework::EndOfStreamContext& ec)
       }
       std::string metaFileDir = opt.metaFileDir;
       if (metaFileDir.compare("/dev/null")) {
-        std::unique_ptr<o2::dataformats::FileMetaData> histoFileMetaData;
-        histoFileMetaData = std::make_unique<o2::dataformats::FileMetaData>();
-        histoFileMetaData->setDataTakingContext(ec.services().get<DataTakingContext>());
-        histoFileMetaData->fillFileData(mHistoFileName);
-        histoFileMetaData->type = "calib";
-        histoFileMetaData->priority = "high";
+        mHistoFileMetaData->fillFileData(mHistoFileName);
+        mHistoFileMetaData->type = "calib";
+        mHistoFileMetaData->priority = "high";
         std::string metaFileNameTmp = metaFileDir + (metaFileDir.back() == '/' ? "" : "/") + fmt::format("{}_{}.tmp", fn, mRunNumber);
         std::string metaFileName = metaFileDir + (metaFileDir.back() == '/' ? "" : "/") + fmt::format("{}_{}.done", fn, mRunNumber);
         try {
           std::ofstream metaFileOut(metaFileNameTmp);
-          metaFileOut << *histoFileMetaData.get();
+          metaFileOut << *mHistoFileMetaData.get();
           metaFileOut.close();
           std::filesystem::rename(metaFileNameTmp, metaFileName);
         } catch (std::exception const& e) {

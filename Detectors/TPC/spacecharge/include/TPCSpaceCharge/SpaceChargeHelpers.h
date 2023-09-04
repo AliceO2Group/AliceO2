@@ -219,7 +219,13 @@ class NumericalFields
   /// \param gridProperties properties of the grid
   /// \param side side of the tpc
   NumericalFields(const DataContainer& dataEr, const DataContainer& dataEz, const DataContainer& dataEphi, const RegularGrid& gridProperties, const o2::tpc::Side side)
-    : mInterpolatorEr{dataEr, gridProperties}, mInterpolatorEz{dataEz, gridProperties}, mInterpolatorEphi{dataEphi, gridProperties}, mSide{side} {};
+    : mInterpolatorEr{dataEr, gridProperties}, mInterpolatorEz{dataEz, gridProperties}, mInterpolatorEphi{dataEphi, gridProperties}, mSide{side}
+  {
+    // restrict electric fields to inner volume of the TPC!
+    mInterpolatorEr.setExtrapolateValues(false);
+    mInterpolatorEz.setExtrapolateValues(false);
+    mInterpolatorEphi.setExtrapolateValues(false);
+  };
 
   /// \param r r coordinate
   /// \param phi phi coordinate

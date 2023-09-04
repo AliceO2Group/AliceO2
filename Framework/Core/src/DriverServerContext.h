@@ -39,6 +39,8 @@ struct DriverServerContext {
   std::vector<DeviceSpec>* specs = nullptr;
   std::vector<DeviceMetricsInfo>* metrics = nullptr;
   std::vector<ServiceMetricHandling>* metricProcessingCallbacks = nullptr;
+  std::vector<ServiceSummaryHandling>* summaryCallbacks = nullptr;
+
   DriverInfo* driver = nullptr;
   GuiCallbackContext* gui = nullptr;
   /// Whether or not this server is associated to
@@ -46,6 +48,10 @@ struct DriverServerContext {
   /// FIXME: we should probably rename this completely and simply call it "DPLServerContext"
   ///        or something like that.
   bool isDriver = false;
+
+  /// The handle to the server component of the
+  /// driver.
+  uv_tcp_t serverHandle;
 };
 } // namespace o2::framework
 

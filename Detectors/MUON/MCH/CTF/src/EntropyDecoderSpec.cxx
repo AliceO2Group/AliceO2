@@ -48,6 +48,7 @@ EntropyDecoderSpec::EntropyDecoderSpec(int verbosity) : mCTFCoder(o2::ctf::CTFCo
   mTimer.Stop();
   mTimer.Reset();
   mCTFCoder.setVerbosity(verbosity);
+  mCTFCoder.setDictBinding("ctfdict_MCH");
 }
 
 void EntropyDecoderSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
@@ -68,8 +69,8 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   mTimer.Start(false);
   o2::ctf::CTFIOSize iosize;
 
-  mCTFCoder.updateTimeDependentParams(pc);
-  auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf");
+  mCTFCoder.updateTimeDependentParams(pc, true);
+  auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf_MCH");
 
   auto& rofs = pc.outputs().make<std::vector<o2::mch::ROFRecord>>(OutputRef{"rofs", 0});
   auto& digits = pc.outputs().make<std::vector<o2::mch::Digit>>(OutputRef{"digits", 0});
@@ -99,8 +100,8 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, const char* specName, uns
   };
 
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("ctf", "MCH", "CTFDATA", sspec, Lifetime::Timeframe);
-  inputs.emplace_back("ctfdict", "MCH", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("MCH/Calib/CTFDictionary"));
+  inputs.emplace_back("ctf_MCH", "MCH", "CTFDATA", sspec, Lifetime::Timeframe);
+  inputs.emplace_back("ctfdict_MCH", "MCH", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("MCH/Calib/CTFDictionaryTree"));
   inputs.emplace_back("trigoffset", "CTP", "Trig_Offset", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/TriggerOffsets"));
 
   return DataProcessorSpec{
@@ -108,7 +109,8 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, const char* specName, uns
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
-    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}}}};
+    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
+            {"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
 }
 
 } // namespace mch

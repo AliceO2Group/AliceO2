@@ -55,7 +55,8 @@ class FT0TimeOffsetSlotContainer final
   bool mIsReady{false};
   // Once it is upper than max entry threshold it stops increasing
   std::array<std::size_t, sNCHANNELS> mArrEntries{};
-
+  // Total number of events
+  uint64_t mTotalNevents{0};
   // Contains all information about time spectra
   FlatHisto2D_t mHistogram;
   ClassDefNV(FT0TimeOffsetSlotContainer, 1);

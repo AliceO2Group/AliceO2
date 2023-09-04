@@ -81,6 +81,7 @@ struct DeviceSpec {
   ComputingResource resource;
   unsigned short resourceMonitoringInterval;
   std::vector<DataProcessorLabel> labels;
+  std::vector<DataProcessorMetadata> metadata;
 };
 
 } // namespace o2::framework

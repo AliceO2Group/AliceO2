@@ -66,7 +66,7 @@ void AlignableDetectorTPC::Print(const Option_t* opt) const
 }
 
 //____________________________________________
-int AlignableDetectorTPC::processPoints(GIndex gid, bool inv)
+int AlignableDetectorTPC::processPoints(GIndex gid, int npntCut, bool inv)
 {
   // Extract the points corresponding to this detector, recalibrate/realign them to the
   // level of the "starting point" for the alignment/calibration session.
@@ -79,17 +79,16 @@ int AlignableDetectorTPC::processPoints(GIndex gid, bool inv)
   gsl::span<const unsigned char> TPCShMap = recoData->clusterShMapTPC;
 
   int nClus = trk.getNClusters();
-  if (nClus < algConf.minTPCClusters) {
+  if (nClus < npntCut) {
     return -1;
   }
+  int npointsIni = mNPoints;
   auto prop = o2::base::Propagator::Instance(); // float version!
 
   const auto clusterIdxStruct = recoData->getTPCTracksClusterRefs();
   const auto clusterNativeAccess = recoData->inputsTPCclusters->clusterIndex;
-  mNPoints = 0;
   bool fail = false;
   auto algTrack = mController->getAlgTrack();
-  mFirstPoint = algTrack->getNPoints();
 
   o2::track::TrackParCov trkParam = inv ? trk : trk.getOuterParam(); // we refit outer param inward
   trkParam.resetCovariance();
@@ -106,6 +105,7 @@ int AlignableDetectorTPC::processPoints(GIndex gid, bool inv)
   short clusterState = 0, nextState;
   float tOffset = mTrackTimeStamp / (o2::constants::lhc::LHCBunchSpacingMUS * 8);
   bool stopLoop = false;
+  int npoints = 0;
   for (int i = start; i != stop; i += cl ? 0 : direction) {
     float x, y, z, charge = 0.f;
     int clusters = 0;
@@ -170,7 +170,7 @@ int AlignableDetectorTPC::processPoints(GIndex gid, bool inv)
     if (!trkParam.rotate(math_utils::detail::sector2Angle<float>(currentSector)) || !prop->PropagateToXBxByBz(trkParam, x, algConf.maxSnp)) {
       break;
     }
-    if (!mNPoints) {
+    if (!npoints) {
       trkParam.setZ(z);
     }
     gpu::gpustd::array<float, 2> p = {y, z};
@@ -195,14 +195,18 @@ int AlignableDetectorTPC::processPoints(GIndex gid, bool inv)
     pnt.setDetID(mDetID);
     pnt.setSID(sectSensor->getSID());
     pnt.setContainsMeasurement();
+    pnt.setInvDir(inv);
     pnt.init();
-    mNPoints++;
+    npoints++;
   }
-  if (mNPoints < algConf.minTPCClusters) {
-    algTrack->suppressLastPoints(mNPoints);
-    mNPoints = 0;
+  if (npoints < npntCut) {
+    algTrack->suppressLastPoints(npoints);
+    mNPoints = npointsIni;
+    npoints = -1;
   }
-  return mNPoints;
+  mNPoints += npoints;
+
+  return npoints;
 }
 
 } // namespace align

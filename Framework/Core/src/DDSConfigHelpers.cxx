@@ -135,7 +135,7 @@ void DDSConfigHelpers::dumpDeviceSpec2DDS(std::ostream& out,
   }
   out << R"(<topology name="o2-dataflow">)"
          "\n";
-  if (hasExpendableTask) {
+  if (hasExpendableTask || driverMode == DriverMode::EMBEDDED) {
     out << R"(<declrequirement name="odc_expendable_task" type="custom" value="true" />)"
            "\n";
   }
@@ -180,6 +180,9 @@ void DDSConfigHelpers::dumpDeviceSpec2DDS(std::ostream& out,
         << R"(<exe reachable="true">)";
     out << fmt::format("cat ${{DDS_LOCATION}}/dpl_json{}.asset | o2-dpl-run --driver-mode embedded", workflowSuffix);
     out << R"(</exe>)"
+        << "<requirements>\n"
+        << "  <requirement name=\"odc_expendable_task\" />\n"
+        << "</requirements>\n"
         << "\n";
     out << "</decltask>";
   }
@@ -268,6 +271,9 @@ void DDSConfigHelpers::dumpDeviceSpec2DDS(std::ostream& out,
   out << "   <declcollection name=\"DPL\">\n       <tasks>\n";
   for (const auto& spec : specs) {
     out << fmt::format("          <name>{}{}</name>\n", spec.id, workflowSuffix);
+  }
+  if (driverMode == DriverMode::EMBEDDED) {
+    out << fmt::format("          <name>{}{}</name>\n", "dplDriver", workflowSuffix);
   }
   out << "       </tasks>\n   </declcollection>\n";
   out << "</topology>\n";

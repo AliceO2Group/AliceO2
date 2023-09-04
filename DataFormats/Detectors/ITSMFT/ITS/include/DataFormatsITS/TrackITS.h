@@ -99,8 +99,8 @@ class TrackITS : public o2::track::TrackParCov
 
   void setPattern(uint32_t p) { mPattern = p; }
   uint32_t getPattern() const { return mPattern; }
-  bool hasHitOnLayer(int i) { return mPattern & (0x1 << i); }
-  bool isFakeOnLayer(int i) { return !(mPattern & (0x1 << (16 + i))); }
+  bool hasHitOnLayer(int i) const { return mPattern & (0x1 << i); }
+  bool isFakeOnLayer(int i) const { return !(mPattern & (0x1 << (16 + i))); }
   uint32_t getLastClusterLayer() const
   {
     uint32_t r{0}, v{mPattern & ((1 << 16) - 1)};

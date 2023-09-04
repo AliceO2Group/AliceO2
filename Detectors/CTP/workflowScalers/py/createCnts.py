@@ -8,9 +8,21 @@ socket = context.socket(zmq.PUB)
 socket.bind("tcp://*:%s" % port)
 time.sleep(1)
 #
+path = "/home/rl/countersLHCo/"
+#
 run = "527345"
-path = "/home/rl/counters/"
 filename = path + "20221014.cc"
+#
+#run = "528543"
+#run = "528537"
+#filename = path + "20221102.cc"
+#
+#run = "527963"
+#filename = path + "20221024.cc"
+#
+#run = "527349"
+#filename = path + "20221015.cc"
+#
 filecfg = path + run + ".rcfg"
 #
 if len(sys.argv) == 2:
@@ -42,7 +54,8 @@ def senddata(header, messagedata):
   print("Sending:",header, data)
   data = str(messagedata).encode('UTF-8')
   header = str(header).encode('UTF-8')
-  msg = [header, data]
+  test = str("test").encode('UTF-8')
+  msg = [header, data,test]
   socket.send_multipart(msg)
   time.sleep(1)
 ##########################

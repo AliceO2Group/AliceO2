@@ -12,8 +12,11 @@
 #include "Framework/DataProcessorSpec.h"
 #include "TRDWorkflowIO/TRDCalibReaderSpec.h"
 #include "TRDWorkflowIO/TRDDigitReaderSpec.h"
+#include "TRDWorkflowIO/TRDPHReaderSpec.h"
 #include "TRDWorkflow/VdAndExBCalibSpec.h"
+#include "TRDWorkflow/GainCalibSpec.h"
 #include "TRDWorkflow/NoiseCalibSpec.h"
+#include "TRDWorkflow/T0FitSpec.h"
 #include "CommonUtils/ConfigurableParam.h"
 
 using namespace o2::framework;
@@ -26,6 +29,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"enable-root-input", o2::framework::VariantType::Bool, false, {"enable root-files input readers"}},
     {"vDriftAndExB", o2::framework::VariantType::Bool, false, {"enable vDrift and ExB calibration"}},
     {"noise", o2::framework::VariantType::Bool, false, {"enable noise and pad status calibration"}},
+    {"gain", o2::framework::VariantType::Bool, false, {"enable gain calibration"}},
+    {"t0", o2::framework::VariantType::Bool, false, {"enable t0 fit"}},
+    {"calib-dds-collection-index", VariantType::Int, -1, {"allow only single collection to produce calibration objects (use -1 for no limit)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
 
   std::swap(workflowOptions, options);
@@ -53,7 +59,32 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     if (enableRootInp) {
       specs.emplace_back(o2::trd::getTRDDigitReaderSpec(false));
     }
-    specs.emplace_back(o2::trd::getTRDNoiseCalibSpec());
+    int ddsCollectionIdx = configcontext.options().get<int>("calib-dds-collection-index");
+    bool noiseCalibIsDummy = true;
+    if (ddsCollectionIdx != -1) {
+      char* colIdx = getenv("DDS_COLLECTION_INDEX");
+      int myIdx = colIdx ? atoi(colIdx) : -1;
+      if (myIdx == ddsCollectionIdx) {
+        LOG(info) << "TRD noise calib is enabled for this collection, my index " << myIdx;
+        noiseCalibIsDummy = false;
+      } else {
+        LOG(info) << "TRD noise calib is disabled for this collection, my index " << myIdx;
+      }
+    } else {
+      noiseCalibIsDummy = false;
+    }
+    specs.emplace_back(o2::trd::getTRDNoiseCalibSpec(noiseCalibIsDummy));
+  }
+
+  if (configcontext.options().get<bool>("gain")) {
+    specs.emplace_back(getTRDGainCalibSpec());
+  }
+
+  if (configcontext.options().get<bool>("t0")) {
+    if (enableRootInp) {
+      specs.emplace_back(o2::trd::getTRDPHReaderSpec());
+    }
+    specs.emplace_back(getTRDT0FitSpec());
   }
 
   return specs;

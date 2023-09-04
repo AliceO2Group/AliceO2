@@ -15,6 +15,9 @@
 #include <cmath>
 
 #include "TAxis.h"
+#include "TMultiGraph.h"
+#include "TGraphErrors.h"
+#include "TTree.h"
 #include "TH1.h"
 #include "TH2.h"
 #include "TH3.h"
@@ -27,6 +30,7 @@
 #include "TPaletteAxis.h"
 #include "TObjArray.h"
 
+#include "CommonUtils/StringUtils.h"
 #include "DataFormatsTPC/Defs.h"
 #include "TPCBase/ROC.h"
 #include "TPCBase/Sector.h"
@@ -42,9 +46,13 @@
 #include <boost/geometry.hpp>
 #include <boost/geometry/geometries/point_xy.hpp>
 #include <boost/geometry/geometries/polygon.hpp>
+#include <string_view>
 #include "MathUtils/Utils.h"
 
 using namespace o2::tpc;
+
+std::array<int, 6> painter::colors = {EColor::kBlack, EColor::kRed + 1, EColor::kOrange + 2, EColor::kGreen + 2, EColor::kBlue + 1, EColor::kMagenta + 1};
+std::array<int, 10> painter::markers = {20, 21, 33, 34, 47, 24, 25, 27, 28, 46};
 
 std::vector<painter::PadCoordinates> painter::getPadCoordinatesSector()
 {
@@ -138,12 +146,89 @@ std::vector<painter::PadCoordinates> painter::getStackCoordinatesSector()
   return padCoords;
 }
 
+std::vector<painter::PadCoordinates> painter::getFECCoordinatesSector()
+{
+  std::vector<painter::PadCoordinates> padCoords;
+  const Mapper& mapper = Mapper::instance();
+  const auto& regInf = mapper.getMapPadRegionInfo();
+
+  for (int stack = 0; stack < 5; ++stack) {
+    const int regionStart = 2 * stack;
+    const int regionEnd = regionStart + 2;
+
+    struct fecInf {
+      void addPad(int pad, int row) { pad_map[row].emplace_back(pad); }
+      const std::vector<int>& getPads(const int row) { return pad_map[row]; }
+      std::unordered_map<int, std::vector<int>> pad_map;
+    };
+
+    std::unordered_map<size_t, std::array<fecInf, 2>> fecs;
+    for (int region = regionStart; region < regionEnd; ++region) {
+      for (unsigned int lrow = 0; lrow < Mapper::ROWSPERREGION[region]; ++lrow) {
+        for (unsigned int pad = 0; pad < Mapper::PADSPERROW[region][lrow]; ++pad) {
+          const FECInfo& fec = mapper.fecInfo(Mapper::getGlobalPadNumber(lrow, pad, region));
+          const size_t fecIndex = fec.getIndex();
+          fecs[fecIndex][region - regionStart].addPad(pad, lrow);
+        }
+      }
+    }
+
+    for (auto& fec : fecs) {
+      auto& padCoord = padCoords.emplace_back();
+      padCoord.xVals.resize(0);
+      padCoord.yVals.resize(0);
+      for (int j = 0; j < 2; ++j) {
+        for (int regionTmp = regionStart; regionTmp < regionEnd; ++regionTmp) {
+          const int region = (j == 0) ? regionTmp : (regionStart + regionEnd - regionTmp - 1);
+          const auto& padReg = regInf[region];
+          const auto npr = padReg.getNumberOfPadRows();
+          const auto ro = padReg.getRowOffset();
+          const auto xm = padReg.getXhelper();
+          const auto ph = padReg.getPadHeight();
+          const auto pw = padReg.getPadWidth();
+          const auto yro = padReg.getRadiusFirstRow();
+          const auto ks = ph / pw * std::tan(1.74532925199432948e-01);
+
+          for (int irowTmp = 0; irowTmp < npr; ++irowTmp) {
+            const int irow = (j == 0) ? irowTmp : (npr - irowTmp - 1);
+            const auto npads = std::floor(ks * (irow + ro) + xm);
+            const std::vector<int>& padsFEC = fec.second[region - regionStart].getPads(irow);
+            const int padOff = (j == 0) ? padsFEC.front() : (padsFEC.back() + 1);
+            const int ipad = -npads + padOff;
+            const auto xPadBottomRight = yro + ph * irow;
+            const auto xPadTopRight = yro + ph * (irow + 1);
+            const auto ri = xPadBottomRight;
+            const auto yPadBottomRight = pw * ipad * xPadBottomRight / (ri + ph / 2);
+            const auto yPadTopRight = pw * ipad * xPadTopRight / (ri + ph / 2);
+            const auto yPadBottomLeft = pw * (ipad + 1) * xPadBottomRight / (ri + ph / 2);
+            const auto yPadTopLeft = pw * (ipad + 1) * xPadTopRight / (ri + ph / 2);
+            if (j == 0) {
+              padCoord.xVals.emplace_back(xPadBottomRight);
+              padCoord.yVals.emplace_back(yPadBottomRight);
+              padCoord.xVals.emplace_back(xPadTopRight);
+              padCoord.yVals.emplace_back(yPadTopRight);
+            } else {
+              padCoord.yVals.emplace_back(yPadTopRight);
+              padCoord.xVals.emplace_back(xPadTopRight);
+              padCoord.yVals.emplace_back(yPadBottomRight);
+              padCoord.xVals.emplace_back(xPadBottomRight);
+            }
+          }
+        }
+      }
+    }
+  }
+  return padCoords;
+}
+
 std::vector<o2::tpc::painter::PadCoordinates> painter::getCoordinates(const Type type)
 {
   if (type == Type::Pad) {
     return painter::getPadCoordinatesSector();
   } else if (type == Type::Stack) {
     return painter::getStackCoordinatesSector();
+  } else if (type == Type::FEC) {
+    return painter::getFECCoordinatesSector();
   } else {
     LOGP(warning, "Wrong Type provided!");
     return std::vector<o2::tpc::painter::PadCoordinates>();
@@ -1109,6 +1194,54 @@ void painter::adjustPalette(TH1* h, float x2ndc, float tickLength)
   palette->SetX2NDC(x2ndc);
   auto ax = h->GetZaxis();
   ax->SetTickLength(tickLength);
+}
+
+TMultiGraph* painter::makeMultiGraph(TTree& tree, std::string_view varX, std::string_view varsY, std::string_view errVarsY, std::string_view cut, bool makeSparse)
+{
+  bool hasErrors = errVarsY.size() > 0 && (std::count(varsY.begin(), varsY.end(), ':') == std::count(errVarsY.begin(), errVarsY.end(), ':'));
+
+  tree.Draw(fmt::format("{} : {} {} {}", varX, varsY, hasErrors ? " : " : "", hasErrors ? errVarsY : "").data(), cut.data(), "goff");
+  const auto nRows = tree.GetSelectedRows();
+
+  // get sort index
+  std::vector<size_t> idx(tree.GetSelectedRows());
+  std::iota(idx.begin(), idx.end(), static_cast<size_t>(0));
+  std::sort(idx.begin(), idx.end(), [&tree](auto a, auto b) { return tree.GetVal(0)[a] < tree.GetVal(0)[b]; });
+
+  auto mgr = new TMultiGraph();
+  const auto params = o2::utils::Str::tokenize(varsY.data(), ':');
+
+  for (size_t ivarY = 0; ivarY < params.size(); ++ivarY) {
+    auto gr = new TGraphErrors(nRows);
+    gr->SetMarkerSize(1);
+    gr->SetMarkerStyle(markers[ivarY % markers.size()]);
+    gr->SetMarkerColor(colors[ivarY % colors.size()]);
+    gr->SetLineColor(colors[ivarY % colors.size()]);
+    gr->SetNameTitle(params[ivarY].data(), params[ivarY].data());
+    for (Long64_t iEntry = 0; iEntry < nRows; ++iEntry) {
+      if (makeSparse) {
+        gr->SetPoint(iEntry, iEntry + 0.5, tree.GetVal(ivarY + 1)[idx[iEntry]]);
+      } else {
+        gr->SetPoint(iEntry, tree.GetVal(0)[idx[iEntry]], tree.GetVal(ivarY + 1)[idx[iEntry]]);
+      }
+      if (hasErrors) {
+        gr->SetPointError(iEntry, 0, tree.GetVal(ivarY + 1 + params.size())[idx[iEntry]]);
+      }
+    }
+
+    mgr->Add(gr, "lp");
+  }
+
+  if (makeSparse) {
+    auto xax = mgr->GetXaxis();
+    xax->Set(nRows, 0., static_cast<Double_t>(nRows));
+    for (Long64_t iEntry = 0; iEntry < nRows; ++iEntry) {
+      xax->SetBinLabel(iEntry + 1, fmt::format("{}", tree.GetVal(0)[idx[iEntry]]).data());
+    }
+    xax->LabelsOption("v");
+  }
+
+  return mgr;
 }
 
 // ===| explicit instantiations |===============================================

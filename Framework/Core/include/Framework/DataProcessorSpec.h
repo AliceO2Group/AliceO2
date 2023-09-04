@@ -33,6 +33,11 @@ using Options = std::vector<ConfigParamSpec>;
 class ConfigParamRegistry;
 class ServiceRegistry;
 
+struct DataProcessorMetadata {
+  std::string key;
+  std::string value;
+};
+
 struct DataProcessorSpec {
   std::string name;
   Inputs inputs;
@@ -54,6 +59,10 @@ struct DataProcessorSpec {
   /// which involve a DataProcessorSpec with a given label.
   /// Examples labels could be "reco", "qc".
   std::vector<DataProcessorLabel> labels = {};
+
+  /// Extra key, value pairs which can be used to describe extra information
+  /// about a given data processor.
+  std::vector<DataProcessorMetadata> metadata = {};
 
   // FIXME: for the moment I put them here, but it's a hack
   //        since we do not want to expose this to users...

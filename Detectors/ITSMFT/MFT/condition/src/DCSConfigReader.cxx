@@ -96,14 +96,15 @@ void DCSConfigReader::parseConfig()
         arrDeadChip.emplace_back(atoi(col.c_str()));
         ++ndeadmap;
       } else {
-        LOG(fatal) << "Not expected parameters are sent from DCS!!!!";
+        LOG(warning) << "Not expected parameters are sent from DCS!!!!";
       }
     }
     ++nrow;
   }
-  LOG(info) << "Configuration version / type: " << verName;
-
-  LOG(info) << "Found " << nru << " RU parameters";
+  if (mVerbose) {
+    LOG(info) << "Configuration version / type: " << verName;
+    LOG(info) << "Found " << nru << " RU parameters";
+  }
   for (int iRUconf = 0; iRUconf < nru; ++iRUconf) {
     if (mVerbose) {
       LOG(info) << "(" << arrRUAdd[iRUconf] << ")   "
@@ -119,7 +120,9 @@ void DCSConfigReader::parseConfig()
     mDCSConfig.emplace_back(conf);
   }
 
-  LOG(info) << "Found " << nalpide << " ALPIDE parameters";
+  if (mVerbose) {
+    LOG(info) << "Found " << nalpide << " ALPIDE parameters";
+  }
   for (int iALPIDEconf = 0; iALPIDEconf < nalpide; ++iALPIDEconf) {
     if (mVerbose) {
       LOG(info) << "(" << arrALPIDEAdd[iALPIDEconf] << ")   "
@@ -135,7 +138,9 @@ void DCSConfigReader::parseConfig()
     mDCSConfig.emplace_back(conf);
   }
 
-  LOG(info) << "Found " << nubb << " UBB parameters";
+  if (mVerbose) {
+    LOG(info) << "Found " << nubb << " UBB parameters";
+  }
   for (int iUBBconf = 0; iUBBconf < nubb; ++iUBBconf) {
     if (mVerbose) {
       LOG(info) << "(" << mDCSUtils->getAddress(arrUBBName[iUBBconf], "UBB") << ")   "
@@ -151,7 +156,9 @@ void DCSConfigReader::parseConfig()
     mDCSConfig.emplace_back(conf);
   }
 
-  LOG(info) << "Found " << ndeadmap << " Dead chips";
+  if (mVerbose) {
+    LOG(info) << "Found " << ndeadmap << " Dead chips";
+  }
   for (int iDeadMap = 0; iDeadMap < ndeadmap; ++iDeadMap) {
     if (mVerbose) {
       LOG(info) << "Chip" << arrDeadChip[iDeadMap] << " is dead.";

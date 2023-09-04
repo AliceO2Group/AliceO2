@@ -23,9 +23,9 @@ namespace o2::framework
 /// Describe the possible states for DataProcessing
 enum struct DataProcessingStatus : uint32_t {
   ID = 0,
-  IN_DPL_OVERHEAD = O2_SIGNPOST_RED,
-  IN_DPL_USER_CALLBACK = O2_SIGNPOST_GREEN,
-  IN_DPL_ERROR_CALLBACK = O2_SIGNPOST_PURPLE
+  IN_DPL_OVERHEAD,
+  IN_DPL_USER_CALLBACK,
+  IN_DPL_ERROR_CALLBACK
 };
 
 /// Describe the possible states for Monitoring

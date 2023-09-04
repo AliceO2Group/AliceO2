@@ -9,7 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 //
-//file DigitBlockFDD.h class  for proccessing RAW data into Digits
+// file DigitBlockFDD.h class  for proccessing RAW data into Digits
 //
 // Artur.Furs
 // afurs@cern.ch
@@ -25,10 +25,10 @@ namespace o2
 {
 namespace fdd
 {
-//Normal data taking mode
-using DigitBlockFDD = DigitBlockFIT<o2::fdd::SingleLUT, o2::fdd::Digit, o2::fdd::ChannelData>;
-//TCM extended data taking mode
-using DigitBlockFDDext = DigitBlockFIText<o2::fdd::SingleLUT, o2::fdd::Digit, o2::fdd::ChannelData, o2::fdd::TriggersExt>;
+// Normal data taking mode
+using DigitBlockFDD = o2::fit::DigitBlockFIT<o2::fdd::SingleLUT, o2::fdd::Digit, o2::fdd::ChannelData>;
+// TCM extended data taking mode
+using DigitBlockFDDext = o2::fit::DigitBlockFIText<o2::fdd::SingleLUT, o2::fdd::Digit, o2::fdd::ChannelData, o2::fdd::TriggersExt>;
 } // namespace fdd
 } // namespace o2
 #endif

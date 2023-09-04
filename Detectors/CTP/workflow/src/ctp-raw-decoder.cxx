@@ -50,7 +50,7 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
                                                                !cfgc.options().get<bool>("no-digits"),
                                                                !cfgc.options().get<bool>("no-lumi")));
   if (!cfgc.options().get<bool>("disable-root-output")) {
-    specs.emplace_back(o2::ctp::getDigitWriterSpec(true));
+    specs.emplace_back(o2::ctp::getDigitWriterSpec(!cfgc.options().get<bool>("no-lumi")));
   }
   return specs;
 }

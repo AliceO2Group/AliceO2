@@ -18,9 +18,9 @@
 #include <arrow/builder.h>
 #include <arrow/memory_pool.h>
 #include <arrow/record_batch.h>
+#include <arrow/status.h>
 #include <arrow/table.h>
 #include <arrow/type_traits.h>
-#include <arrow/status.h>
 #include <arrow/util/key_value_metadata.h>
 #if defined(__GNUC__)
 #pragma GCC diagnostic pop
@@ -59,8 +59,8 @@ void addLabelToSchema(std::shared_ptr<arrow::Schema>& schema, const char* label)
 std::shared_ptr<arrow::Table>
   TableBuilder::finalize()
 {
-  bool status = mFinalizer(mSchema, mArrays, mHolders);
-  if (status == false) {
+  bool status = mFinalizer(mArrays, mHolders);
+  if (!status) {
     throwError(runtime_error("Unable to finalize"));
   }
   assert(mSchema->num_fields() > 0 && "Schema needs to be non-empty");
@@ -84,7 +84,7 @@ void TableBuilder::setLabel(const char* label)
   mSchema = mSchema->WithMetadata(std::make_shared<arrow::KeyValueMetadata>(std::vector{std::string{"label"}}, std::vector{std::string{label}}));
 }
 
-std::shared_ptr<arrow::Table> spawnerHelper(std::shared_ptr<arrow::Table> fullTable, std::shared_ptr<arrow::Schema> newSchema, size_t nColumns,
+std::shared_ptr<arrow::Table> spawnerHelper(std::shared_ptr<arrow::Table>& fullTable, std::shared_ptr<arrow::Schema> newSchema, size_t nColumns,
                                             expressions::Projector* projectors, std::vector<std::shared_ptr<arrow::Field>> const& fields, const char* name)
 {
   auto mergedProjectors = framework::expressions::createProjectorHelper(nColumns, projectors, fullTable->schema(), fields);
@@ -113,12 +113,13 @@ std::shared_ptr<arrow::Table> spawnerHelper(std::shared_ptr<arrow::Table> fullTa
       throw runtime_error_f("Cannot apply projector to source table of %s: exception caught: %s", name, e.what());
     }
 
-    for (auto i = 0u; i < nColumns; ++i) {
+    for (auto i = 0U; i < nColumns; ++i) {
       chunks[i].emplace_back(v.at(i));
     }
   }
 
-  for (auto i = 0u; i < nColumns; ++i) {
+  arrays.reserve(nColumns);
+  for (auto i = 0U; i < nColumns; ++i) {
     arrays.push_back(std::make_shared<arrow::ChunkedArray>(chunks[i]));
   }
 

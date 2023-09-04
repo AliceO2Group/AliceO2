@@ -51,13 +51,13 @@ void CTFCoderBase::updateTimeDependentParams(ProcessingContext& pc, bool askTree
   setFirstTFOrbit(pc.services().get<o2::framework::TimingInfo>().firstTForbit);
   if (pc.services().get<o2::framework::TimingInfo>().globalRunNumberChanged) { // this params need to be queried only once
     if (mOpType == OpType::Decoder) {
-      pc.inputs().get<o2::ctp::TriggerOffsetsParam*>("trigoffset"); // this is a configurable param
+      pc.inputs().get<o2::ctp::TriggerOffsetsParam*>(mTrigOffsBinding); // this is a configurable param
     }
     if (mLoadDictFromCCDB) {
       if (askTree) {
-        pc.inputs().get<TTree*>("ctfdict"); // just to trigger the finaliseCCDB
+        pc.inputs().get<TTree*>(mDictBinding); // just to trigger the finaliseCCDB
       } else {
-        pc.inputs().get<std::vector<char>*>("ctfdict"); // just to trigger the finaliseCCDB
+        pc.inputs().get<std::vector<char>*>(mDictBinding); // just to trigger the finaliseCCDB
       }
     }
   }

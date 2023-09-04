@@ -180,6 +180,7 @@ void Controller::process()
       int start = trackRef.getFirstEntryOfSource(src), end = start + trackRef.getEntriesOfSource(src);
       for (int ti = start; ti < end; ti++) {
         auto trackIndex = primVerGIs[ti];
+        bool tpcIn = false;
         if (trackIndex.isAmbiguous()) {
           auto& ambSeen = ambigTable[trackIndex];
           if (ambSeen) { // processed
@@ -213,10 +214,10 @@ void Controller::process()
         int ndet = 0, npntDet = 0;
 
         if ((det = getDetector(DetID::ITS))) {
-          if (contributorsGID[GIndex::ITS].isIndexSet() && (npntDet = det->processPoints(contributorsGID[GIndex::ITS], false)) >= algConf.minITSClusters) {
+          if (contributorsGID[GIndex::ITS].isIndexSet() && (npntDet = det->processPoints(contributorsGID[GIndex::ITS], algConf.minITSClusters, false)) > 0) {
             npnt += npntDet;
             ndet++;
-          } else if (mAllowAfterburnerTracks && contributorsGID[GIndex::ITSAB].isIndexSet() && (npntDet = det->processPoints(contributorsGID[GIndex::ITSAB], false)) > 0) {
+          } else if (mAllowAfterburnerTracks && contributorsGID[GIndex::ITSAB].isIndexSet() && (npntDet = det->processPoints(contributorsGID[GIndex::ITSAB], 2, false)) > 0) {
             npnt += npntDet;
             ndet++;
           } else {
@@ -227,18 +228,19 @@ void Controller::process()
           float t0 = 0, t0err = 0;
           mRecoData->getTrackTime(trackIndex, t0, t0err);
           ((AlignableDetectorTPC*)det)->setTrackTimeStamp(t0);
-          npntDet = det->processPoints(contributorsGID[GIndex::TPC], false);
-          if (npntDet >= algConf.minTPCClusters) {
+          npntDet = det->processPoints(contributorsGID[GIndex::TPC], algConf.minTPCClusters, false);
+          if (npntDet > 0) {
             npnt += npntDet;
             ndet++;
+            tpcIn = true;
           }
         }
 
-        if ((det = getDetector(DetID::TRD)) && contributorsGID[GIndex::TRD].isIndexSet() && (npntDet = det->processPoints(contributorsGID[GIndex::TRD], false)) >= algConf.minTRDTracklets) {
+        if ((det = getDetector(DetID::TRD)) && contributorsGID[GIndex::TRD].isIndexSet() && (npntDet = det->processPoints(contributorsGID[GIndex::TRD], algConf.minTRDTracklets, false)) > 0) {
           npnt += npntDet;
           ndet++;
         }
-        if ((det = getDetector(DetID::TOF)) && contributorsGID[GIndex::TOF].isIndexSet() && (npntDet = det->processPoints(contributorsGID[GIndex::TOF], false)) > 0) {
+        if ((det = getDetector(DetID::TOF)) && contributorsGID[GIndex::TOF].isIndexSet() && (npntDet = det->processPoints(contributorsGID[GIndex::TOF], algConf.minTOFClusters, false)) > 0) {
           npnt += npntDet;
           ndet++;
         }
@@ -246,7 +248,7 @@ void Controller::process()
         if (algConf.verbose > 1) {
           LOGP(info, "processing track {} {} of vtref {}, Ndets:{}, Npoints: {}, use vertex: {} | Kin: {} Kout: {}", ti, trackIndex.asString(), ivref, ndet, npnt, useVertexConstrain && trackIndex.isPVContributor(), trcIn.asString(), trcOut.asString());
         }
-        if (ndet < algConf.minDetectors) {
+        if (ndet < algConf.minDetectors || (tpcIn && ndet == 1)) { // we don't want TPC only track
           continue;
         }
         if (npnt < algConf.minPointTotal) {
@@ -394,6 +396,12 @@ void Controller::process()
 void Controller::processCosmic()
 {
   auto timerStart = std::chrono::system_clock::now();
+  const auto tracks = mRecoData->getCosmicTracks();
+  if (!tracks.size()) {
+    LOGP(info, "Sipping TF {}: No cosmic tracks", mNTF);
+    mNTF++;
+    return;
+  }
   int nTrc = 0, nTrcAcc = 0;
   for (auto id = DetID::First; id <= DetID::Last; id++) {
     auto* det = getDetector(id);
@@ -401,18 +409,138 @@ void Controller::processCosmic()
       det->prepareDetectorData(); // in case the detector needs to preprocess the RecoContainer data
     }
   }
-
   const auto& algConf = AlignConfig::Instance();
-  // process vertices with contributor tracks
   bool fieldON = std::abs(PropagatorD::Instance()->getNominalBz()) > 0.1;
-  const auto tracks = mRecoData->getCosmicTracks();
   for (const auto& track : tracks) {
+    resetForNextTrack();
     nTrc++;
     mStat.data[ProcStat::kInput][ProcStat::kCosmic]++;
+    std::array<GTrackID, GTrackID::NSources> contributorsGID[2] = {mRecoData->getSingleDetectorRefs(track.getRefBottom()), mRecoData->getSingleDetectorRefs(track.getRefTop())};
+
+    // check detectors contributions
+    AlignableDetector* det = nullptr;
+    int ndet = 0, npnt = 0;
+    bool accTrack = true;
+    bool tpcIn = false;
+    if ((det = getDetector(DetID::ITS))) {
+      int npntDet = 0;
+      for (int ibt = 0; ibt < 2; ibt++) {
+        int npntDetBT = 0;
+        if (contributorsGID[ibt][GIndex::ITS].isIndexSet() && (npntDetBT = det->processPoints(contributorsGID[ibt][GIndex::ITS], algConf.minITSClustersCosmLeg, ibt)) < 0) {
+          accTrack = false;
+          break;
+        }
+        npntDet += npntDetBT;
+      }
+      if (!accTrack || npntDet < algConf.minITSClustersCosm) {
+        continue;
+      }
+      if (npntDet) {
+        ndet++;
+        npnt += npntDet;
+      }
+    }
+
+    if ((det = getDetector(DetID::TPC))) {
+      int npntDet = 0;
+      ((AlignableDetectorTPC*)det)->setTrackTimeStamp(track.getTimeMUS().getTimeStamp());
+      for (int ibt = 0; ibt < 2; ibt++) {
+        int npntDetBT = 0;
+        if (contributorsGID[ibt][GIndex::TPC].isIndexSet() && (npntDetBT = det->processPoints(contributorsGID[ibt][GIndex::TPC], algConf.minTPCClustersCosmLeg, ibt)) < 0) {
+          accTrack = false;
+          break;
+        }
+        npntDet += npntDetBT;
+      }
+      if (!accTrack || npntDet < algConf.minTPCClustersCosm) {
+        continue;
+      }
+      if (npntDet) {
+        ndet++;
+        npnt += npntDet;
+        tpcIn = true;
+      }
+    }
+
+    if ((det = getDetector(DetID::TRD))) {
+      int npntDet = 0;
+      for (int ibt = 0; ibt < 2; ibt++) {
+        int npntDetBT = 0;
+        if (contributorsGID[ibt][GIndex::TRD].isIndexSet() && (npntDetBT = det->processPoints(contributorsGID[ibt][GIndex::TRD], algConf.minTRDTrackletsCosmLeg, ibt)) < 0) {
+          accTrack = false;
+          break;
+        }
+        npntDet += npntDetBT;
+      }
+      if (!accTrack || npntDet < algConf.minTRDTrackletsCosm) {
+        continue;
+      }
+      if (npntDet) {
+        ndet++;
+        npnt += npntDet;
+      }
+    }
+
+    if ((det = getDetector(DetID::TOF))) {
+      int npntDet = 0;
+      for (int ibt = 0; ibt < 2; ibt++) {
+        int npntDetBT = 0;
+        if (contributorsGID[ibt][GIndex::TOF].isIndexSet() && (npntDetBT = det->processPoints(contributorsGID[ibt][GIndex::TOF], algConf.minTOFClustersCosmLeg, ibt)) < 0) {
+          accTrack = false;
+          break;
+        }
+        npntDet += npntDetBT;
+      }
+      if (!accTrack || npntDet < algConf.minTOFClustersCosm) {
+        continue;
+      }
+      if (npntDet) {
+        ndet++;
+        npnt += npntDet;
+      }
+    }
+    if (algConf.verbose > 1) {
+      LOGP(info, "processing cosmic track B-Leg:{} T-Leg:{}, Ndets:{}, Npoints: {}", track.getRefBottom().asString(), track.getRefTop().asString(), ndet, npnt);
+    }
+    if (ndet < algConf.minDetectorsCosm || (tpcIn && ndet == 1)) {
+      continue;
+    }
+    if (npnt < algConf.minPointTotalCosm) {
+      if (algConf.verbose > 0) {
+        LOGP(info, "too few points {} < {}", npnt, algConf.minPointTotalCosm);
+      }
+      continue;
+    }
+    mAlgTrack->setCosmic(true);
+    mAlgTrack->copyFrom(mRecoData->getTrackParamOut(track.getRefBottom())); // copy kinematices of outer track as the refit will be done inward
+    mAlgTrack->setFieldON(fieldON);
+    mAlgTrack->sortPoints();
+    if (!mAlgTrack->iniFit()) {
+      if (algConf.verbose > 0) {
+        LOGP(warn, "iniFit failed");
+      }
+      continue;
+    }
+    if (!mAlgTrack->processMaterials()) {
+      if (algConf.verbose > 0) {
+        LOGP(warn, "processMaterials failed");
+      }
+      continue;
+    }
+    mAlgTrack->defineDOFs();
+    if (!mAlgTrack->calcResidDeriv()) {
+      if (algConf.verbose > 0) {
+        LOGP(warn, "calcResidDeriv failed");
+      }
+      continue;
+    }
+    storeProcessedTrack();
+    mStat.data[ProcStat::kAccepted][ProcStat::kCosmic]++;
+    nTrcAcc++;
   }
   auto timerEnd = std::chrono::system_clock::now();
   std::chrono::duration<float, std::milli> duration = timerEnd - timerStart;
-  LOGP(info, "Processed TF {}: {} vertices ({} used), {} tracks ({} used) in {} ms", mNTF, nTrc, nTrcAcc, duration.count());
+  LOGP(info, "Processed cosmic TF {}: {} tracks ({} used) in {} ms", mNTF, nTrc, nTrcAcc, duration.count());
   mNTF++;
 }
 

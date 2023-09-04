@@ -172,7 +172,7 @@ std::string ChannelSpecHelpers::channelUrl(OutputChannelSpec const& channel)
     case ChannelProtocol::IPC:
       return composeIPCName(channel.ipcPrefix, channel.hostname, channel.port);
     default:
-      return channel.method == ChannelMethod::Bind ? fmt::format("tcp://*:{}", channel.port)
+      return channel.method == ChannelMethod::Bind ? fmt::format("tcp://*:{},autoBind=false", channel.port)
                                                    : fmt::format("tcp://{}:{}", channel.hostname, channel.port);
   }
 }
@@ -183,7 +183,7 @@ std::string ChannelSpecHelpers::channelUrl(InputChannelSpec const& channel)
     case ChannelProtocol::IPC:
       return composeIPCName(channel.ipcPrefix, channel.hostname, channel.port);
     default:
-      return channel.method == ChannelMethod::Bind ? fmt::format("tcp://*:{}", channel.port)
+      return channel.method == ChannelMethod::Bind ? fmt::format("tcp://*:{},autoBind=false", channel.port)
                                                    : fmt::format("tcp://{}:{}", channel.hostname, channel.port);
   }
 }

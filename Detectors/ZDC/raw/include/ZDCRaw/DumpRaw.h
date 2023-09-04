@@ -48,6 +48,7 @@ class DumpRaw
   std::unique_ptr<TH2> mBits = nullptr;
   std::unique_ptr<TH2> mBitsH = nullptr;
   std::unique_ptr<TH1> mLoss = nullptr;
+  std::unique_ptr<TH1> mError = nullptr;
   std::unique_ptr<TH1> mOve = nullptr;
   std::unique_ptr<TH1> mBaseline[NDigiChannels] = {nullptr};
   std::unique_ptr<TH1> mCounts[NDigiChannels] = {nullptr};

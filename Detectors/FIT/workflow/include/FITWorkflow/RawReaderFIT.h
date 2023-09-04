@@ -44,6 +44,7 @@ class RawReaderFIT : public RawReaderType
   ~RawReaderFIT() = default;
   typedef RawReaderType RawReader_t;
   typedef typename RawReader_t::DigitBlockFIT_t DigitBlockFIT_t;
+  typedef typename RawReader_t::RawDataMetric_t RawDataMetric_t;
   typedef typename DigitBlockFIT_t::LookupTable_t LookupTable_t;
   typedef typename DigitBlockFIT_t::Digit_t Digit_t;
   typedef typename DigitBlockFIT_t::SubDigit_t SubDigitTmp_t;
@@ -61,10 +62,17 @@ class RawReaderFIT : public RawReaderType
   o2::header::DataOrigin mDataOrigin;
   std::vector<Digit_t> mVecDigit;
   std::vector<DetTrigInput_t> mVecTrgInput;
+  std::vector<RawDataMetric> mVecRawDataMetric;
   SubDigit_t mVecSubDigit;             // tuple of vectors
   SingleSubDigit_t mVecSingleSubDigit; // tuple of vectors
   bool mEnableEmptyTFprotection{false};
   bool mDumpData;
+  void dumpRawDataMetrics() const
+  {
+    for (const auto& entry : mVecRawDataMetric) {
+      entry.print();
+    }
+  }
   void reserveVecDPL(std::size_t nDigits, std::size_t nSubDigits)
   {
     mVecDigit.reserve(nDigits);
@@ -97,6 +105,7 @@ class RawReaderFIT : public RawReaderType
       },
                  mVecSingleSubDigit);
     }
+    mVecRawDataMetric.clear();
   }
   template <std::size_t... IsubDigits, std::size_t... IsingleSubDigits>
   auto callGetDigit(std::index_sequence<IsubDigits...>, std::index_sequence<IsingleSubDigits...>)
@@ -132,6 +141,7 @@ class RawReaderFIT : public RawReaderType
     if (mDumpData) {
       callPrint(IndexesSubDigit{}, IndexesSingleSubDigit{});
     }
+    RawReader_t::getMetrics(mVecRawDataMetric);
   }
   void configureOutputSpec(std::vector<o2::framework::OutputSpec>& outputSpec) const
   {
@@ -151,6 +161,7 @@ class RawReaderFIT : public RawReaderType
     if constexpr (sUseTrgInput) {
       outputSpec.emplace_back(mDataOrigin, DetTrigInput_t::sChannelNameDPL, 0, o2::framework::Lifetime::Timeframe);
     }
+    outputSpec.emplace_back(mDataOrigin, "RawDataMetric", 0, o2::framework::Lifetime::Timeframe);
   }
   void makeSnapshot(o2::framework::ProcessingContext& pc) const
   {
@@ -170,6 +181,7 @@ class RawReaderFIT : public RawReaderType
     if constexpr (sUseTrgInput) {
       pc.outputs().snapshot(o2::framework::Output{mDataOrigin, DetTrigInput_t::sChannelNameDPL, 0, o2::framework::Lifetime::Timeframe}, mVecTrgInput);
     }
+    pc.outputs().snapshot(o2::framework::Output{mDataOrigin, "RawDataMetric", 0, o2::framework::Lifetime::Timeframe}, mVecRawDataMetric);
   }
   template <typename VecDigitType>
   auto& getRefVec(o2::framework::ProcessingContext& pc)

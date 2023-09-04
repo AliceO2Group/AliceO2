@@ -29,7 +29,6 @@
 #include "ITSMFTReconstruction/Clusterer.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsBase/CTFCoderBase.h"
-#include "rANS/rans.h"
 
 //#define _CHECK_INCREMENTES_ // Uncoment this the check the incremements being non-negative
 
@@ -92,16 +91,16 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>&
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation
   constexpr MD optField[CTF::getNBlocks()] = {
-    MD::EENCODE, //BLCfirstChipROF
-    MD::EENCODE, //BLCbcIncROF
-    MD::EENCODE, //BLCorbitIncROF
-    MD::EENCODE, //BLCnclusROF
-    MD::EENCODE, //BLCchipInc
-    MD::EENCODE, //BLCchipMul
-    MD::EENCODE, //BLCrow
-    MD::EENCODE, //BLCcolInc
-    MD::EENCODE, //BLCpattID
-    MD::EENCODE  //BLCpattMap
+    MD::EENCODE_OR_PACK, // BLCfirstChipROF
+    MD::EENCODE_OR_PACK, // BLCbcIncROF
+    MD::EENCODE_OR_PACK, // BLCorbitIncROF
+    MD::EENCODE_OR_PACK, // BLCnclusROF
+    MD::EENCODE_OR_PACK, // BLCchipInc
+    MD::EENCODE_OR_PACK, // BLCchipMul
+    MD::EENCODE_OR_PACK, // BLCrow
+    MD::EENCODE_OR_PACK, // BLCcolInc
+    MD::EENCODE_OR_PACK, // BLCpattID
+    MD::EENCODE_OR_PACK  // BLCpattMap
   };
   CompressedClusters compCl;
   compress(compCl, rofRecVec, cclusVec, pattVec, clPattLookup, strobeLength);
@@ -114,11 +113,10 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const ROFRecord>&
 
   ec->setHeader(compCl.header);
   assignDictVersion(static_cast<o2::ctf::CTFDictHeader&>(ec->getHeader()));
-  ec->getANSHeader().majorVersion = 0;
-  ec->getANSHeader().minorVersion = 1;
+  ec->setANSHeader(mANSVersion);
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
   o2::ctf::CTFIOSize iosize;
-#define ENCODEITSMFT(part, slot, bits) CTF::get(buff.data())->encode(part, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get(), getMemMarginFactor());
+#define ENCODEITSMFT(part, slot, bits) CTF::get(buff.data())->encode(part, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)], getMemMarginFactor());
   // clang-format off
   iosize += ENCODEITSMFT(compCl.firstChipROF, CTF::BLCfirstChipROF, 0);
   iosize += ENCODEITSMFT(compCl.bcIncROF, CTF::BLCbcIncROF, 0);
@@ -251,10 +249,10 @@ void CTFCoder::decompress(const CompressedClusters& compCl, VROF& rofRecVec, VCL
       patt = clPattLookup.getPattern(clus.getPatternID());
     }
     int rowSpan = patt.getRowSpan(), colSpan = patt.getColumnSpan(), nMasked = 0;
-    if (rowSpan == 1 && colSpan == 1) {                                        // easy case: 1 pixel cluster
-      if (noiseMap->isNoisy(clus.getChipID(), rowRef, colRef)) {               // just kill the cluster
-        std::copy(pattItStored, pattItPrev, back_inserter(pattVec));           // save patterns from after last saved to the one before killing this
-        pattItStored = pattIt;                                                 // advance to the head of the pattern iterator
+    if (rowSpan == 1 && colSpan == 1) {                              // easy case: 1 pixel cluster
+      if (noiseMap->isNoisy(clus.getChipID(), rowRef, colRef)) {     // just kill the cluster
+        std::copy(pattItStored, pattItPrev, back_inserter(pattVec)); // save patterns from after last saved to the one before killing this
+        pattItStored = pattIt;                                       // advance to the head of the pattern iterator
         cclusVec.pop_back();
       }
       // otherwise do nothing: cluster was already added, eventual patterns will be copied in large block at next modified cluster writing

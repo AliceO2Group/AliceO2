@@ -10,6 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/HistogramRegistry.h"
+#include "TClass.h"
 #include <regex>
 #include <TList.h>
 
@@ -46,9 +47,9 @@ OutputSpec const HistogramRegistry::spec()
   return OutputSpec{OutputLabel{mName}, "ATSK", desc, 0, Lifetime::QA};
 }
 
-OutputRef HistogramRegistry::ref()
+OutputRef HistogramRegistry::ref(uint16_t pipelineIndex, uint16_t pipelineSize)
 {
-  return OutputRef{std::string{mName}, 0, o2::header::Stack{OutputObjHeader{mPolicy, OutputObjSourceType::HistogramRegistrySource, mTaskHash}}};
+  return OutputRef{std::string{mName}, 0, o2::header::Stack{OutputObjHeader{mPolicy, OutputObjSourceType::HistogramRegistrySource, mTaskHash, pipelineIndex, pipelineSize}}};
 }
 
 void HistogramRegistry::setHash(uint32_t hash)
@@ -182,6 +183,13 @@ double HistogramRegistry::getSize(double fillFraction)
   return size;
 }
 
+void HistogramRegistry::clean()
+{
+  for (auto& value : mRegistryValue) {
+    std::visit([](auto&& hist) { hist.reset(); }, value);
+  }
+}
+
 // print some useful meta-info about the stored histograms
 void HistogramRegistry::print(bool showAxisDetails)
 {
@@ -271,7 +279,7 @@ void HistogramRegistry::print(bool showAxisDetails)
 }
 
 // create output structure will be propagated to file-sink
-TList* HistogramRegistry::operator*()
+TList* HistogramRegistry::getListOfHistograms()
 {
   TList* list = new TList();
   list->SetName(mName.data());

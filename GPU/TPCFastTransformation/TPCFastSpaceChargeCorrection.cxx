@@ -20,11 +20,14 @@
 #if !defined(GPUCA_GPUCODE)
 #include <iostream>
 #include <cmath>
-#include "ChebyshevFit1D.h"
 #include "Spline2DHelper.h"
 #endif
 
 using namespace GPUCA_NAMESPACE::gpu;
+
+#ifndef GPUCA_ALIROOT_LIB
+ClassImp(TPCFastSpaceChargeCorrection);
+#endif
 
 TPCFastSpaceChargeCorrection::TPCFastSpaceChargeCorrection()
   : FlatObject(),
@@ -366,9 +369,9 @@ void TPCFastSpaceChargeCorrection::finishConstruction()
   mSliceRowInfoPtr = reinterpret_cast<SliceRowInfo*>(mFlatBufferPtr + sliceRowsOffset);
   for (int s = 0; s < mGeo.getNumberOfSlices(); s++) {
     for (int r = 0; r < mGeo.getNumberOfRows(); r++) {
-      mSliceRowInfoPtr[s * mGeo.getNumberOfRows() + r].CorrU0 = 0;
-      mSliceRowInfoPtr[s * mGeo.getNumberOfRows() + r].scaleCorrUtoGrid = 0;
-      mSliceRowInfoPtr[s * mGeo.getNumberOfRows() + r].scaleCorrVtoGrid = 0;
+      mSliceRowInfoPtr[s * mGeo.getNumberOfRows() + r].gridCorrU0 = 0.;
+      mSliceRowInfoPtr[s * mGeo.getNumberOfRows() + r].scaleCorrUtoGrid = 0.;
+      mSliceRowInfoPtr[s * mGeo.getNumberOfRows() + r].scaleCorrVtoGrid = 0.;
     }
   }
 
@@ -425,279 +428,29 @@ GPUd() void TPCFastSpaceChargeCorrection::setNoCorrection()
       area.cuMax = -area.cuMin;
       area.vMax = vLength;
       area.cvMax = vLength;
-      info.CorrU0 = area.cuMin;
-      info.scaleCorrUtoGrid = (spline.getGridX1().getNumberOfKnots() - 1) / (area.cuMax - area.cuMin);
-      info.scaleCorrVtoGrid = (spline.getGridX2().getNumberOfKnots() - 1) / area.cvMax;
+      info.gridV0 = 0.f;
+      info.gridCorrU0 = area.cuMin;
+      info.gridCorrV0 = info.gridV0;
+      info.scaleCorrUtoGrid = spline.getGridX1().getUmax() / (area.cuMax - area.cuMin);
+      info.scaleCorrVtoGrid = spline.getGridX2().getUmax() / area.cvMax;
     } // row
   }   // slice
 }
 
-void TPCFastSpaceChargeCorrection::initMaxDriftLength(bool prn)
+void TPCFastSpaceChargeCorrection::constructWithNoCorrection(const TPCFastTransformGeo& geo)
 {
-  double tpcR2min = mGeo.getRowInfo(0).x - 1.;
-  tpcR2min = tpcR2min * tpcR2min;
-  double tpcR2max = mGeo.getRowInfo(mGeo.getNumberOfRows() - 1).x;
-  tpcR2max = tpcR2max / cos(2 * M_PI / mGeo.getNumberOfSlicesA() / 2) + 1.;
-  tpcR2max = tpcR2max * tpcR2max;
-
-  ChebyshevFit1D chebFitter;
-
-  for (int slice = 0; slice < mGeo.getNumberOfSlices(); slice++) {
-    if (prn) {
-      LOG(info) << "init MaxDriftLength for slice " << slice;
-    }
-    double vLength = (slice < mGeo.getNumberOfSlicesA()) ? mGeo.getTPCzLengthA() : mGeo.getTPCzLengthC();
-    SliceInfo& sliceInfo = getSliceInfo(slice);
-    sliceInfo.vMax = 0.f;
-
-    for (int row = 0; row < mGeo.getNumberOfRows(); row++) {
-      RowActiveArea& area = getSliceRowInfo(slice, row).activeArea;
-      area.cvMax = 0;
-      area.vMax = 0;
-      area.cuMin = mGeo.convPadToU(row, 0.f);
-      area.cuMax = -area.cuMin;
-      chebFitter.reset(4, 0., mGeo.getRowInfo(row).maxPad);
-      double x = mGeo.getRowInfo(row).x;
-      for (int pad = 0; pad < mGeo.getRowInfo(row).maxPad; pad++) {
-        float u = mGeo.convPadToU(row, (float)pad);
-        float v0 = 0;
-        float v1 = 1.1 * vLength;
-        float vLastValid = -1;
-        float cvLastValid = -1;
-        while (v1 - v0 > 0.1) {
-          float v = 0.5 * (v0 + v1);
-          float dx, du, dv;
-          getCorrection(slice, row, u, v, dx, du, dv);
-          double cx = x + dx;
-          double cu = u + du;
-          double cv = v + dv;
-          double r2 = cx * cx + cu * cu;
-          if (cv < 0) {
-            v0 = v;
-          } else if (cv <= vLength && r2 >= tpcR2min && r2 <= tpcR2max) {
-            v0 = v;
-            vLastValid = v;
-            cvLastValid = cv;
-          } else {
-            v1 = v;
-          }
-        }
-        if (vLastValid > 0.) {
-          chebFitter.addMeasurement(pad, vLastValid);
-        }
-        if (area.vMax < vLastValid) {
-          area.vMax = vLastValid;
-        }
-        if (area.cvMax < cvLastValid) {
-          area.cvMax = cvLastValid;
-        }
-      }
-      chebFitter.fit();
-      for (int i = 0; i < 5; i++) {
-        area.maxDriftLengthCheb[i] = chebFitter.getCoefficients()[i];
-      }
-      if (sliceInfo.vMax < area.vMax) {
-        sliceInfo.vMax = area.vMax;
-      }
-    } // row
-  }   // slice
-}
-
-void TPCFastSpaceChargeCorrection::initInverse(bool prn)
-{
-
-  initMaxDriftLength(prn);
-
-  Spline2DHelper<float> helper;
-  std::vector<double> dataPointF;
-  std::vector<float> splineParameters;
-
-  ChebyshevFit1D chebFitterX, chebFitterU, chebFitterV;
-
-  double tpcR2min = mGeo.getRowInfo(0).x - 1.;
-  tpcR2min = tpcR2min * tpcR2min;
-  double tpcR2max = mGeo.getRowInfo(mGeo.getNumberOfRows() - 1).x;
-  tpcR2max = tpcR2max / cos(2 * M_PI / mGeo.getNumberOfSlicesA() / 2) + 1.;
-  tpcR2max = tpcR2max * tpcR2max;
-
-  for (int slice = 0; slice < mGeo.getNumberOfSlices(); slice++) {
-    // LOG(info) << "inverse transform for slice " << slice ;
-    double vLength = (slice < mGeo.getNumberOfSlicesA()) ? mGeo.getTPCzLengthA() : mGeo.getTPCzLengthC();
-    for (int row = 0; row < mGeo.getNumberOfRows(); row++) {
-      const SplineType& spline = getSpline(slice, row);
-      helper.setSpline(spline, 3, 3);
-
-      float u0, u1, v0, v1;
-      mGeo.convScaledUVtoUV(slice, row, 0., 0., u0, v0);
-      mGeo.convScaledUVtoUV(slice, row, 1., 1., u1, v1);
-
-      double x = mGeo.getRowInfo(row).x;
-      double stepU = (u1 - u0) / (1. * (helper.getNumberOfDataPointsU1() - 1));
-      double stepV = (v1 - v0) / (1. * (helper.getNumberOfDataPointsU2() - 1));
-
-      if (prn) {
-        LOG(info) << "u0 " << u0 << " u1 " << u1 << " v0 " << v0 << " v1 " << v1;
-      }
-      RowActiveArea& area = getSliceRowInfo(slice, row).activeArea;
-      area.cuMin = 1.e10;
-      area.cuMax = -1.e10;
-
-      v1 = area.vMax;
-      stepV = (v1 - v0) / (1. * (helper.getNumberOfDataPointsU2() - 1));
-      if (stepV < 1.f) {
-        stepV = 1.f;
-      }
-      int nCheb = helper.getNumberOfDataPointsU2();
-      nCheb = 20;
-      chebFitterV.reset(nCheb - 1, 0, vLength);
-
-      struct Entry {
-        double cu, cv, dx, du, dv;
-      };
-      std::vector<Entry> dataRowsV[helper.getNumberOfDataPointsU2()];
-
-      for (double u = u0; u < u1 + stepU; u += stepU) {
-        chebFitterV.reset();
-        //double vvMax = 0;
-        for (double v = v0; v < v1 + stepV; v += stepV) {
-          float dx, du, dv;
-          getCorrectionOld(slice, row, u, v, dx, du, dv);
-          double cx = x + dx;
-          double cu = u + du;
-          double cv = v + dv;
-          double r2 = cx * cx + cu * cu;
-          if (cv < 0 || cv > vLength || r2 < tpcR2min || r2 > tpcR2max) {
-            continue;
-          }
-          if (cu < area.cuMin) {
-            area.cuMin = cu;
-          }
-          if (cu > area.cuMax) {
-            area.cuMax = cu;
-          }
-          //if (v > vvMax) {
-          //vvMax = v;
-          //}
-          if (prn) {
-            LOG(info) << "measurement cu " << cu << " cv " << cv << " dx " << dx << " du " << du << " dv " << dv;
-          }
-          chebFitterV.addMeasurement(cv, dv);
-        } // v
-        if (prn) {
-          LOG(info) << "u " << u << " nmeas " << chebFitterV.getNmeasurements();
-        }
-        if (chebFitterV.getNmeasurements() < 1) {
-          continue;
-        }
-        chebFitterV.fit();
-        if (prn) {
-          LOG(info) << "slice " << slice << " row " << row << " u " << u;
-          LOG(info) << "n cheb " << nCheb << " n measurements " << chebFitterV.getNmeasurements();
-          for (int i = 0; i < nCheb; i++) {
-            LOG(info) << i << " " << chebFitterV.getCoefficients()[i] << " ";
-          }
-          LOG(info);
-          //exit(0);
-        }
-        // TODO: refit with extra measurements close to cv == data points cv
-
-        // fill data for cv data rows
-        double drow = area.cvMax / (helper.getNumberOfDataPointsU2() - 1);
-        for (int i = 0; i < helper.getNumberOfDataPointsU2(); i++) {
-          double cv = i * drow;
-          double dvCheb = chebFitterV.eval(cv);
-          double v = cv - dvCheb;
-          // weighted combination between cheb and nominal
-          //if (v < 0 || v > vvMax) {
-          //continue;
-          //}
-
-          float dx, du, dv;
-          getCorrectionOld(slice, row, u, v, dx, du, dv);
-          // LOG(info)<<" u "<<u<<" cv0 "<<cv<<" v "<<v<<" cu "<<u+du<<" cv "<<v+dv;
-          double cu = u + du;
-          cv = v + dv;
-          // double cx = x + dx;
-          // double r2 = cx * cx + cu * cu;
-
-          //if (cv < 0 || cv > vLength || r2 < tpcR2min || r2 > tpcR2max) {
-          //continue;
-          //}
-          Entry e{cu, cv, dx, du, dv};
-          dataRowsV[i].push_back(e);
-        }
-      } // u
-
-      if (prn) {
-        LOG(info) << " cuMin " << area.cuMin << " cuMax " << area.cuMax << " cvMax " << area.cvMax;
-      }
-      if (area.cuMax - area.cuMin < 0.2) {
-        area.cuMax = .1;
-        area.cuMin = -.1;
-      }
-      if (area.cvMax < 0.1) {
-        area.cvMax = .1;
-      }
-      SliceRowInfo& info = mSliceRowInfoPtr[slice * mGeo.getNumberOfRows() + row];
-      info.CorrU0 = area.cuMin;
-      info.scaleCorrUtoGrid = (spline.getGridX1().getNumberOfKnots() - 1) / (area.cuMax - area.cuMin);
-      info.scaleCorrVtoGrid = (spline.getGridX2().getNumberOfKnots() - 1) / area.cvMax;
-
-      dataPointF.resize(helper.getNumberOfDataPoints() * 3);
-
-      // fit u(cu)
-      nCheb = helper.getNumberOfDataPointsU1();
-      nCheb = 20;
-      chebFitterX.reset(nCheb - 1, area.cuMin, area.cuMax);
-      chebFitterU.reset(nCheb - 1, area.cuMin, area.cuMax);
-      chebFitterV.reset(nCheb - 1, area.cuMin, area.cuMax);
-
-      // double drow = area.cvMax / (helper.getNumberOfDataPointsU2() - 1);
-      double dcol = (area.cuMax - area.cuMin) / (helper.getNumberOfDataPointsU1() - 1);
-      for (int iv = 0; iv < helper.getNumberOfDataPointsU2(); iv++) {
-        // double cv = iv * drow;
-        double* dataPointFrow = &dataPointF[iv * helper.getNumberOfDataPointsU1() * 3];
-        for (int iu = 0; iu < helper.getNumberOfDataPointsU1(); iu++) {
-          dataPointFrow[iu * 3 + 0] = 0;
-          dataPointFrow[iu * 3 + 1] = 0;
-          dataPointFrow[iu * 3 + 2] = 0;
-        }
-        chebFitterX.reset();
-        chebFitterU.reset();
-        chebFitterV.reset();
-        for (unsigned int i = 0; i < dataRowsV[iv].size(); i++) {
-          chebFitterX.addMeasurement(dataRowsV[iv][i].cu, dataRowsV[iv][i].dx);
-          chebFitterU.addMeasurement(dataRowsV[iv][i].cu, dataRowsV[iv][i].du);
-          chebFitterV.addMeasurement(dataRowsV[iv][i].cu, dataRowsV[iv][i].dv);
-        }
-        if (chebFitterU.getNmeasurements() < 1) {
-          continue;
-        }
-
-        chebFitterX.fit();
-        chebFitterU.fit();
-        chebFitterV.fit();
-
-        // fill data points
-        for (int iu = 0; iu < helper.getNumberOfDataPointsU1(); iu++) {
-          double cu = area.cuMin + iu * dcol;
-          dataPointFrow[iu * 3 + 0] = chebFitterX.eval(cu);
-          dataPointFrow[iu * 3 + 1] = chebFitterU.eval(cu);
-          dataPointFrow[iu * 3 + 2] = chebFitterV.eval(cu);
-        } // iu
-      }   // iv
-
-      splineParameters.resize(spline.getNumberOfParameters());
-      helper.approximateFunction(splineParameters.data(), dataPointF.data());
-      float* splineX = getSplineData(slice, row, 1);
-      float* splineUV = getSplineData(slice, row, 2);
-      for (int i = 0; i < spline.getNumberOfParameters() / 3; i++) {
-        splineX[i] = splineParameters[3 * i + 0];
-        splineUV[2 * i + 0] = splineParameters[3 * i + 1];
-        splineUV[2 * i + 1] = splineParameters[3 * i + 2];
-      }
-    } // row
-  }   // slice
+  const int nCorrectionScenarios = 1;
+  startConstruction(geo, nCorrectionScenarios);
+  for (int row = 0; row < geo.getNumberOfRows(); row++) {
+    setRowScenarioID(row, 0);
+  }
+  {
+    TPCFastSpaceChargeCorrection::SplineType spline;
+    spline.recreate(2, 2);
+    setSplineScenario(0, spline);
+  }
+  finishConstruction();
+  setNoCorrection();
 }
 
 double TPCFastSpaceChargeCorrection::testInverse(bool prn)
@@ -750,7 +503,7 @@ double TPCFastSpaceChargeCorrection::testInverse(bool prn)
             }
           }
 
-          if (prn && fabs(d[0]) + fabs(d[1]) + fabs(d[2]) > 0.1) {
+          if (0 && prn && fabs(d[0]) + fabs(d[1]) + fabs(d[2]) > 0.1) {
             LOG(info) << nx - cx << " " << nu - u << " " << nv - v
                       << " x,u,v " << x << ", " << u << ", " << v
                       << " dx,du,dv " << cx - x << ", " << cu - u << ", " << cv - v
@@ -758,7 +511,7 @@ double TPCFastSpaceChargeCorrection::testInverse(bool prn)
           }
         }
       }
-      if (prn) {
+      if (0 && prn) {
         LOG(info) << "slice " << slice << " row " << row
                   << " dx " << maxDrow[0] << " du " << maxDrow[1] << " dv " << maxDrow[2];
       }

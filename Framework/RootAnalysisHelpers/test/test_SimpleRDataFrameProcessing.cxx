@@ -38,7 +38,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
       },
       AlgorithmSpec{adaptStateless([](DataAllocator& outputs) {
         // We ask the framework for something which can build a Table
-        auto& out = outputs.make<TableBuilder>(Output{"TES", "RFRAME"});
+        auto out = outputs.make<TableBuilder>(Output{"TES", "RFRAME"});
         // We use RDataFrame to create a few columns with 100 rows.
         // The final action is the one which allows the user to create the
         // output message.
@@ -51,7 +51,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
         auto t = rdf.Define("x", "1.f")
                    .Define("y", "2.f")
                    .Define("z", "x+y");
-        t.ForeachSlot(out.persist<float, float>({"x", "z"}), {"x", "z"});
+        t.ForeachSlot(out->persist<float, float>({"x", "z"}), {"x", "z"});
       })} //
     },    //
     DataProcessorSpec{

@@ -10,3 +10,6 @@
 // or submit itself to any jurisdiction.
 
 #include "FDDRaw/RawWriterFDD.h"
+
+template class o2::fit::RawWriterFIT<o2::fdd::DigitBlockFDD, o2::fdd::DataBlockPM, o2::fdd::DataBlockTCM>;
+template class o2::fit::RawWriterFIT<o2::fdd::DigitBlockFDD, o2::fdd::DataBlockPM::DataBlockInvertedPadding_t, o2::fdd::DataBlockTCM::DataBlockInvertedPadding_t>;

@@ -49,6 +49,11 @@ class CustomMergeableTObject : public TObject, public MergeInterface
     return mName.c_str();
   }
 
+  MergeInterface* cloneMovingWindow() const override
+  {
+    return new CustomMergeableTObject{mName + "_mw", mSecret};
+  }
+
  private:
   int mSecret = 0;
   std::string mName;

@@ -33,7 +33,7 @@ namespace trd
 class TRDNoiseCalibSpec : public o2::framework::Task
 {
  public:
-  TRDNoiseCalibSpec() = default;
+  TRDNoiseCalibSpec(bool dummy) : mIsDummy(dummy) {}
   void init(o2::framework::InitContext& ic) final
   {
     // Do we need to initialize something?
@@ -43,6 +43,10 @@ class TRDNoiseCalibSpec : public o2::framework::Task
   {
     auto digits = pc.inputs().get<gsl::span<Digit>>("trddigits");
     auto trigRecs = pc.inputs().get<gsl::span<TriggerRecord>>("trdtriggerrec");
+
+    if (mIsDummy) {
+      return;
+    }
 
     // Obtain rough time from the data header (done only once)
     if (mStartTime == 0) {
@@ -63,7 +67,7 @@ class TRDNoiseCalibSpec : public o2::framework::Task
         sendOutput(pc.outputs());
         mHaveSentOutput = true;
       } else {
-        if ((mNTFsProcessed % 50) == 0) {
+        if ((mNTFsProcessed % 200) == 0) {
           LOGP(important, "Not processing anymore. Seen {} TFs in total. Run can be stopped", mNTFsProcessed);
         }
       }
@@ -96,7 +100,9 @@ class TRDNoiseCalibSpec : public o2::framework::Task
     if (mHaveSentOutput) {
       LOGP(important, "Received EoS after sending calibration object. All OK");
     } else {
-      LOGP(alarm, "Received EoS before sending calibration object. Not enough digits received");
+      if (!mIsDummy) {
+        LOGP(alarm, "Received EoS before sending calibration object. Not enough digits received");
+      }
     }
   }
 
@@ -104,10 +110,11 @@ class TRDNoiseCalibSpec : public o2::framework::Task
   CalibratorNoise mCalibrator{};
   size_t mNTFsProcessed{0};
   bool mHaveSentOutput{false};
+  bool mIsDummy{false};
   uint64_t mStartTime{0};
 };
 
-o2::framework::DataProcessorSpec getTRDNoiseCalibSpec()
+o2::framework::DataProcessorSpec getTRDNoiseCalibSpec(bool dummy)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("trddigits", o2::header::gDataOriginTRD, "DIGITS", 0, Lifetime::Timeframe);
@@ -121,7 +128,7 @@ o2::framework::DataProcessorSpec getTRDNoiseCalibSpec()
     "trd-noise-calib",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TRDNoiseCalibSpec>()},
+    AlgorithmSpec{adaptFromTask<TRDNoiseCalibSpec>(dummy)},
     Options{}};
 }
 

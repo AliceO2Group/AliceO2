@@ -84,6 +84,12 @@ class PrimaryGenerator : public FairPrimaryGenerator
 
   // sets the vertex mode; if mode is kCCDB, a valid MeanVertexObject pointer must be given at the same time
   void setVertexMode(o2::conf::VertexMode const& mode, o2::dataformats::MeanVertexObject const* obj = nullptr);
+  // if we apply vertex smearing
+  void setApplyVertex(bool onoff) { mApplyVertex = onoff; }
+
+  // set identifier and description
+  void setGeneratorId(int id) { mGeneratorId = id; }
+  void setGeneratorDescription(std::string const& desc) { mGeneratorDescription = desc; }
 
  protected:
   /** copy constructor **/
@@ -110,10 +116,17 @@ class PrimaryGenerator : public FairPrimaryGenerator
   Int_t mEmbedIndex = 0;
   o2::dataformats::MCEventHeader* mEmbedEvent = nullptr;
 
+  bool mApplyVertex = true;
   o2::conf::VertexMode mVertexMode = o2::conf::VertexMode::kDiamondParam; // !vertex mode
   std::unique_ptr<o2::dataformats::MeanVertexObject> mMeanVertex;
 
-  ClassDefOverride(PrimaryGenerator, 2);
+ private:
+  void setGeneratorInformation();
+  // generator identifier and description
+  int mGeneratorId = -1;
+  std::string mGeneratorDescription;
+
+  ClassDefOverride(PrimaryGenerator, 3);
 
 }; /** class PrimaryGenerator **/
 

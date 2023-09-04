@@ -128,7 +128,7 @@ NoiseCalibData& NoiseCalibData::operator+=(const NoiseCalibSummaryData* s)
   }
   // Check if sum will result into an overflow
   for (auto& bin : s->mData) {
-    uint64_t sum = mHisto[bin.id()].mData[bin.bin()] = bin.cont;
+    uint64_t sum = mHisto[bin.id()].mData[bin.bin()] + bin.cont;
     if (sum > 0xffffffff) {
       LOG(warn) << __func__ << " Addition would result in an overflow for ch " << bin.id() << " BREAK!";
       return *this;
@@ -141,9 +141,23 @@ NoiseCalibData& NoiseCalibData::operator+=(const NoiseCalibSummaryData* s)
     mCTimeEnd = s->mCTimeEnd;
   }
   for (auto& bin : s->mData) {
-    mHisto[bin.id()].mData[bin.bin()] += bin.cont;
+    mHisto[bin.id()].mData[bin.bin()] = mHisto[bin.id()].mData[bin.bin()] + bin.cont;
   }
   return *this;
+}
+
+//______________________________________________________________________________
+void NoiseCalibData::mergeCreationTime(uint64_t ctime)
+{
+  if (mCTimeBeg == 0 || ctime < mCTimeBeg) {
+    mCTimeBeg = ctime;
+  }
+  if (ctime > mCTimeEnd) {
+    mCTimeEnd = ctime;
+  }
+#ifdef O2_ZDC_DEBUG
+  LOGF(info, "NoiseCalibData::setCreationTime %llu", ctime);
+#endif
 }
 
 //______________________________________________________________________________
@@ -170,7 +184,7 @@ uint64_t NoiseCalibChData::getEntries() const
 {
   uint64_t sum = 0;
   for (const auto& [key, value] : mData) {
-    sum += value;
+    sum = sum + value;
   }
   return sum;
 }
@@ -210,8 +224,8 @@ int NoiseCalibChData::getStat(uint64_t& en, double& mean, double& var) const
   en = 0;
   uint64_t sum = 0;
   for (const auto& [key, value] : mData) {
-    en += value;
-    sum += key * value;
+    en = en + value;
+    sum = sum + key * value;
   }
   if (en == 0) {
     return 1;
@@ -221,7 +235,7 @@ int NoiseCalibChData::getStat(uint64_t& en, double& mean, double& var) const
     double sums = 0;
     for (const auto& [key, value] : mData) {
       double diff = key - mean;
-      sums += (value * diff * diff);
+      sums = sums + (value * diff * diff);
     }
     var = sums / (en - 1);
   } else {
@@ -233,7 +247,7 @@ int NoiseCalibChData::getStat(uint64_t& en, double& mean, double& var) const
 }
 
 //______________________________________________________________________________
-int NoiseCalibData::saveDebugHistos(const std::string fn)
+int NoiseCalibData::saveDebugHistos(const std::string fn, bool is_epn)
 {
   TDirectory* cwd = gDirectory;
   TFile* f = new TFile(fn.data(), "recreate");
@@ -247,7 +261,7 @@ int NoiseCalibData::saveDebugHistos(const std::string fn)
     if (nen > 0) {
       int32_t max = mHisto[is].getMaxBin();
       TString n = TString::Format("h%d", is);
-      TString t = TString::Format("Noise %d %s", is, ChannelNames[is].data());
+      TString t = TString::Format("%sNoise %d %s", is_epn ? "EPN " : "", is, ChannelNames[is].data());
       TH1F h(n, t, max + 1, -0.5 * factor, (max + 0.5) * factor);
       for (int ibx = 0; ibx < max; ibx++) {
         h.SetBinContent(ibx + 1, mHisto[is].mData[ibx] * factor);
@@ -322,8 +336,8 @@ void NoiseCalibSummaryData::print() const
   int nbin[NChannels] = {0};
   uint64_t ccont[NChannels] = {0};
   for (auto& bin : mData) {
-    nbin[bin.id()]++;
-    ccont[bin.id()] += bin.cont;
+    nbin[bin.id()] = nbin[bin.id()] + 1;
+    ccont[bin.id()] = ccont[bin.id()] + bin.cont;
   }
   for (int32_t is = 0; is < NChannels; is++) {
     LOG(info) << "Summary ch " << is << " nbin = " << nbin[is] << " ccont = " << ccont[is];

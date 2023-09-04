@@ -212,6 +212,7 @@ struct GBTLinkDecodingStat {
     ErrWrongAlignmentWord,       // unexpected alignment word
     ErrMissingROF,               // missing ROF (desync?)
     ErrOldROF,                   // old ROF (desync?)
+    ErrLinkRecovery,             // data skipped since recovery is declared
     NErrorsDefined
   };
   static constexpr std::array<std::string_view, NErrorsDefined> ErrNames = {
@@ -238,6 +239,7 @@ struct GBTLinkDecodingStat {
     "Unexpected CRU page alignment padding word",                        // ErrWrongAlignmentWord
     "ROF in future, pause decoding to synchronize",                      // ErrMissingROF
     "Old ROF, discarding",                                               // ErrOldROF
+    "Data discarded due to the recovery flag in RDH",                    // ErrLinkRecovery
   };
 
   uint16_t feeID = 0; // FeeID

@@ -54,5 +54,10 @@ o2_add_executable(writer-workflow
 o2_add_executable(reader-workflow
                   SOURCES src/ctf-reader-workflow.cxx
                   COMPONENT_NAME ctf
+                  TARGETVARNAME targetName
                   PUBLIC_LINK_LIBRARIES O2::CTFWorkflow)
 
+if (OpenMP_CXX_FOUND)
+    target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)
+    target_link_libraries(${targetName} PRIVATE OpenMP::OpenMP_CXX)
+endif()

@@ -124,9 +124,9 @@ int main(int argc, char* argv[])
   writeBFieldToFile((float)magFieldL3Curr);
 
   LOGP(info, "Checking IR and duration");
-  if (run < 523141) {
-    // LHC22c, d, e, f
-    LOGP(info, "Run number < 523141 --> we are in 22c, d, e, or f, so IR is < 100 kHz, writing 0.f");
+  if (run < 519041) {
+    // LHC22c, d
+    LOGP(info, "Run number < 519041 --> we are in 22c, or 22d, so IR is < 100 kHz, writing 0.f");
     LOGP(info, "In addition, the duration for these runs is O2end - O2start: if the run was short, this might overestimate the duration");
     // In these runs, sometimes the CCDB does not contain correct scalers, so we use 0 as a placeholder
     writeIRtoFile(ir);

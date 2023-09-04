@@ -51,7 +51,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"tracking-mode", o2::framework::VariantType::String, "sync", {"sync,async,cosmics"}},
     {"disable-tracking", o2::framework::VariantType::Bool, false, {"disable tracking step"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}},
-    {"gpuDevice", o2::framework::VariantType::Int, 1, {"use gpu device: CPU=1,CUDA=2,HIP=3 (default: CPU)"}}};
+    {"gpuDevice", o2::framework::VariantType::Int, 1, {"use gpu device: CPU=1,CUDA=2,HIP=3,GPUReco=4 (default: CPU)"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }

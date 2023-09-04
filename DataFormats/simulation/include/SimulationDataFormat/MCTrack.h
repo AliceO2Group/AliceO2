@@ -17,7 +17,7 @@
 #define ALICEO2_DATA_MCTRACK_H_
 
 #include "SimulationDataFormat/ParticleStatus.h"
-#include "SimulationDataFormat/MCGenStatus.h"
+#include "SimulationDataFormat/MCGenProperties.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "Rtypes.h"
 #include "SimulationDataFormat/O2DatabasePDG.h"
@@ -69,7 +69,7 @@ class MCTrackT
   Int_t GetPdgCode() const { return mPdgCode; }
   Int_t getMotherTrackId() const { return mMotherTrackId; }
   Int_t getSecondMotherTrackId() const { return mSecondMotherTrackId; }
-  bool isPrimary() const { return getProcess() == TMCProcess::kPPrimary; }
+  bool isPrimary() const { return (getProcess() == TMCProcess::kPPrimary) || (getMotherTrackId() < 0 && getSecondMotherTrackId() < 0); }
   bool isSecondary() const { return !isPrimary(); }
   Int_t getFirstDaughterTrackId() const { return mFirstDaughterTrackId; }
   Int_t getLastDaughterTrackId() const { return mLastDaughterTrackId; }
@@ -80,6 +80,11 @@ class MCTrackT
   Double_t GetStartVertexCoordinatesY() const { return mStartVertexCoordinatesY; }
   Double_t GetStartVertexCoordinatesZ() const { return mStartVertexCoordinatesZ; }
   Double_t GetStartVertexCoordinatesT() const { return mStartVertexCoordinatesT; }
+
+  /// production radius squared
+  Double_t R2() const { return Vx() * Vx() + Vy() * Vy(); }
+  /// production radius
+  Double_t R() const { return std::sqrt(R2()); }
 
   /// return mass from PDG Database if known (print message in case cannot look up)
   Double_t GetMass() const;
@@ -139,11 +144,11 @@ class MCTrackT
 
   Double_t GetRapidity() const;
 
-  void GetMomentum(TVector3& momentum);
+  void GetMomentum(TVector3& momentum) const;
 
-  void Get4Momentum(TLorentzVector& momentum);
+  void Get4Momentum(TLorentzVector& momentum) const;
 
-  void GetStartVertex(TVector3& vertex);
+  void GetStartVertex(TVector3& vertex) const;
 
   /// Accessors to the hit mask
   Int_t getHitMask() const { return ((PropEncoding)mProp).hitmask; }
@@ -255,9 +260,8 @@ class MCTrackT
     struct {
       int storage : 1;  // encoding whether to store this track to the output
       unsigned int process : 6; // encoding process that created this track (enough to store TMCProcess from ROOT)
-      int hitmask : 21; // encoding hits per detector
-      int reserved1 : 1; // bit reserved for possible future purposes
-      int reserved2 : 1; // bit reserved for possible future purposes
+      int hitmask : 22;         // encoding hits per detector
+      int reserved1 : 1;        // bit reserved for possible future purposes
       int inhibited : 1; // whether tracking of this was inhibited
       int toBeDone : 1; // whether this (still) needs tracking --> we might more complete information to cover full ParticleStatus space
     };
@@ -280,19 +284,19 @@ inline Double_t MCTrackT<T>::GetEnergy() const
 }
 
 template <typename T>
-inline void MCTrackT<T>::GetMomentum(TVector3& momentum)
+inline void MCTrackT<T>::GetMomentum(TVector3& momentum) const
 {
   momentum.SetXYZ(mStartVertexMomentumX, mStartVertexMomentumY, mStartVertexMomentumZ);
 }
 
 template <typename T>
-inline void MCTrackT<T>::Get4Momentum(TLorentzVector& momentum)
+inline void MCTrackT<T>::Get4Momentum(TLorentzVector& momentum) const
 {
   momentum.SetXYZT(mStartVertexMomentumX, mStartVertexMomentumY, mStartVertexMomentumZ, GetEnergy());
 }
 
 template <typename T>
-inline void MCTrackT<T>::GetStartVertex(TVector3& vertex)
+inline void MCTrackT<T>::GetStartVertex(TVector3& vertex) const
 {
   vertex.SetXYZ(mStartVertexCoordinatesX, mStartVertexCoordinatesY, mStartVertexCoordinatesZ);
 }

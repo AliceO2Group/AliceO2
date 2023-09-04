@@ -44,9 +44,11 @@ class NoiseCalibEPNSpec : public o2::framework::Task
   void endOfStream(o2::framework::EndOfStreamContext& ec) final;
 
  private:
-  int mVerbosity = DbgZero;  // Verbosity level
-  bool mInitialized = false; // Connect once to CCDB during initialization
-  NoiseCalibEPN mWorker;     // Noise calibration object
+  int mVerbosity = DbgMinimal; // Verbosity level
+  int mProcessed = 0;          // Number of TF processed
+  int mModTF = 0;              // Number of TF to cumulate before transmitting data
+  bool mInitialized = false;   // Connect once to CCDB during initialization
+  NoiseCalibEPN mWorker;       // Noise calibration object
   TStopwatch mTimer;
 };
 

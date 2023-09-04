@@ -85,6 +85,7 @@ class Digit
   int getChannel() const { return mChannel; }
   int getPreTrigPhase() const { return ((mDetector >> 12) & 0xf); }
   bool isSharedDigit() const;
+  bool isNeighbour(const Digit& other) const;
 
   ArrayADC const& getADC() const { return mADC; }
   ADC_t getADCsum() const { return std::accumulate(mADC.begin(), mADC.end(), (ADC_t)0); }

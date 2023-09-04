@@ -40,31 +40,31 @@ class ML : public PIDBase
 
  public:
   void init(o2::framework::ProcessingContext& pc) final;
-  PIDValue process(const TrackTRD& trk, const o2::globaltracking::RecoContainer& input, bool isTPC) final;
+  float process(const TrackTRD& trk, const o2::globaltracking::RecoContainer& input, bool isTPCTRD) const final;
 
  private:
   /// Return the electron likelihood.
   /// Different models have different ways to return the probability.
-  virtual PIDValue getELikelihood(const std::vector<Ort::Value>& tensorData) const noexcept = 0;
+  virtual inline float getELikelihood(const std::vector<Ort::Value>& tensorData) const noexcept = 0;
 
   /// Fetch a ML model from the ccdb via its binding
-  std::string fetchModelCCDB(o2::framework::ProcessingContext& pc, const char* binding) const;
-
-  /// Calculate pid value
-  template <bool isTPCTRD>
-  PIDValue calculate(const TrackTRD& trkTRD, const o2::globaltracking::RecoContainer& inputTracks);
+  std::string fetchModelCCDB(o2::framework::ProcessingContext& pc, const char* binding) const noexcept;
 
   /// Prepare model input
   /// Collect track properties in vector as flat array
-  template <bool isTPCTRD>
-  std::vector<float> prepareModelInput(const TrackTRD& trkTRD, const o2::globaltracking::RecoContainer& inputTracks);
+  std::vector<float> prepareModelInput(const TrackTRD& trkTRD, const o2::globaltracking::RecoContainer& inputTracks) const noexcept;
 
   /// Pretty print model shape
   std::string printShape(const std::vector<int64_t>& v) const noexcept;
 
+  /// Get DPL name
+  virtual inline std::string getName() const noexcept = 0;
+
   // ONNX runtime
   Ort::Env mEnv{ORT_LOGGING_LEVEL_WARNING, "TRD-PID",
-                // integrate ORT logging into Fairlogger
+                // Integrate ORT logging into Fairlogger this way we can have
+                // all the nice logging while taking advantage of ORT telling us
+                // what to do.
                 [](void* param, OrtLoggingLevel severity, const char* category, const char* logid, const char* code_location, const char* message) {
                   LOG(warn) << "Ort " << severity << ": [" << logid << "|" << category << "|" << code_location << "]: " << message << ((intptr_t)param == 3 ? " [valid]" : " [error]");
                 },
@@ -79,7 +79,7 @@ class ML : public PIDBase
   std::vector<std::string> mOutputNames;           ///< model output names
   std::vector<std::vector<int64_t>> mOutputShapes; ///< output shape
 
-  ClassDefNV(ML, 1);
+  ClassDefOverride(ML, 1);
 };
 
 /// XGBoost Model
@@ -88,12 +88,38 @@ class XGB final : public ML
   using ML::ML;
 
  public:
-  ~XGB() final = default;
+  ~XGB() = default;
 
  private:
-  PIDValue getELikelihood(const std::vector<Ort::Value>& tensorData) const noexcept final;
+  /// XGBoost export is like this:
+  /// (label|eprob, 1-eprob).
+  inline float getELikelihood(const std::vector<Ort::Value>& tensorData) const noexcept
+  {
+    return tensorData[1].GetTensorData<float>()[1];
+  }
+
+  inline std::string getName() const noexcept { return "xgb"; }
 
   ClassDefNV(XGB, 1);
+};
+
+/// PyTorch Model
+class PY final : public ML
+{
+  using ML::ML;
+
+ public:
+  ~PY() = default;
+
+ private:
+  inline float getELikelihood(const std::vector<Ort::Value>& tensorData) const noexcept
+  {
+    return tensorData[0].GetTensorData<float>()[0];
+  }
+
+  inline std::string getName() const noexcept { return "py"; }
+
+  ClassDefNV(PY, 1);
 };
 
 } // namespace trd

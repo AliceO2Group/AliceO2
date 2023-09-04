@@ -719,9 +719,11 @@ namespace test
 {
 DECLARE_SOA_INDEX_COLUMN(Origint, origint);
 DECLARE_SOA_INDEX_COLUMN_FULL(AltOrigint, altOrigint, int, Origints, "_alt");
+DECLARE_SOA_ARRAY_INDEX_COLUMN(Origint, origints);
 } // namespace test
 DECLARE_SOA_TABLE(References, "TST", "REFS", o2::soa::Index<>, test::OrigintId);
 DECLARE_SOA_TABLE(OtherReferences, "TST", "OREFS", o2::soa::Index<>, test::AltOrigintId);
+DECLARE_SOA_TABLE(ManyReferences, "TST", "MREFS", o2::soa::Index<>, test::OrigintIds);
 } // namespace o2::aod
 TEST_CASE("TestIndexToFiltered")
 {
@@ -733,6 +735,19 @@ TEST_CASE("TestIndexToFiltered")
   auto origins = b.finalize();
   o2::aod::Origints o{origins};
 
+  TableBuilder z;
+  auto writer_z = z.cursor<o2::aod::ManyReferences>();
+  std::vector<int> ids;
+  for (auto i = 0; i < 5; ++i) {
+    ids.clear();
+    for (auto j = 0; j < 20; ++j) {
+      ids.push_back(j);
+    }
+    writer_z(0, ids);
+  }
+  auto mrefs = z.finalize();
+  o2::aod::ManyReferences m{mrefs};
+
   TableBuilder w;
   auto writer_w = w.cursor<o2::aod::References>();
   for (auto i = 0; i < 5 * 20; ++i) {
@@ -742,7 +757,8 @@ TEST_CASE("TestIndexToFiltered")
   o2::aod::References r{refs};
   expressions::Filter flt = o2::aod::test::someBool == true;
   using Flt = o2::soa::Filtered<o2::aod::Origints>;
-  Flt f{{o.asArrowTable()}, expressions::createSelection(o.asArrowTable(), flt)};
+  auto selection = expressions::createSelection(o.asArrowTable(), flt);
+  Flt f{{o.asArrowTable()}, selection};
   r.bindExternalIndices(&f);
   auto it = r.begin();
   it.moveByIndex(23);
@@ -751,6 +767,14 @@ TEST_CASE("TestIndexToFiltered")
   REQUIRE(it.origint().globalIndex() == 4);
   it++;
   REQUIRE(it.origint().globalIndex() == 5);
+
+  m.bindExternalIndices(&f);
+  for (auto const& row : m) {
+    auto os = row.origints_as<Flt>();
+    auto fos = row.filtered_origints_as<Flt>();
+    REQUIRE(os.size() == 20);
+    REQUIRE(fos.size() == 6);
+  }
 }
 namespace o2::aod
 {
@@ -1062,6 +1086,47 @@ TEST_CASE("TestIndexUnboundExceptions")
       auto pg = row.pointGroup();
     } catch (RuntimeErrorRef ref) {
       REQUIRE(std::string{error_from_ref(ref).what} == "Index pointing to Points3Ds is not bound! Did you subscribe to the table?");
+    }
+  }
+}
+
+namespace o2::aod
+{
+namespace test
+{
+DECLARE_SOA_COLUMN(SmallIntArray, smallIntArray, int8_t[32]);
+DECLARE_SOA_BITMAP_COLUMN(BoolArray, boolArray, 32);
+} // namespace test
+
+DECLARE_SOA_TABLE(BILists, "TST", "BILISTS", o2::soa::Index<>, test::SmallIntArray, test::BoolArray);
+} // namespace o2::aod
+
+TEST_CASE("TestArrayColumns")
+{
+  TableBuilder b;
+  auto writer = b.cursor<o2::aod::BILists>();
+  int8_t ii[32];
+  uint32_t bb;
+  for (auto i = 0; i < 20; ++i) {
+    bb = 0;
+    for (auto j = 0; j < 32; ++j) {
+      ii[j] = j;
+      if (j % 2 == 0) {
+        bb |= 1 << j;
+      }
+    }
+    writer(0, ii, bb);
+  }
+  auto t = b.finalize();
+
+  o2::aod::BILists li{t};
+  for (auto const& row : li) {
+    auto iir = row.smallIntArray();
+    auto bbrr = row.boolArray_raw();
+    REQUIRE(std::is_same_v<std::decay_t<decltype(iir)>, int8_t const*>);
+    for (auto i = 0; i < 32; ++i) {
+      REQUIRE(iir[i] == i);
+      REQUIRE(row.boolArray_bit(i) == (i % 2 == 0));
     }
   }
 }

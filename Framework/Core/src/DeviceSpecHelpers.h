@@ -138,6 +138,7 @@ struct DeviceSpecHelpers {
   /// to the outgoing edges i.e. those which refer
   /// to the act of producing data.
   static void processOutEdgeActions(
+    ConfigContext const& configContext,
     std::vector<DeviceSpec>& devices,
     std::vector<DeviceId>& deviceIndex,
     std::vector<DeviceConnectionId>& connections,
@@ -148,6 +149,7 @@ struct DeviceSpecHelpers {
     const WorkflowSpec& workflow,
     const std::vector<OutputSpec>& outputs,
     std::vector<ChannelConfigurationPolicy> const& channelPolicies,
+    std::vector<SendingPolicy> const& sendingPolicies,
     std::string const& channelPrefix,
     ComputingOffer const& defaultOffer,
     OverrideServiceSpecs const& overrideServices = {});

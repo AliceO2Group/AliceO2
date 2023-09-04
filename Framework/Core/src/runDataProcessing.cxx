@@ -41,7 +41,6 @@
 #include "Framework/ParallelContext.h"
 #include "Framework/RawDeviceService.h"
 #include "Framework/SimpleRawDeviceService.h"
-#define O2_SIGNPOST_DEFINE_CONTEXT
 #include "Framework/Signpost.h"
 #include "Framework/ControlService.h"
 #include "Framework/CallbackService.h"
@@ -175,6 +174,8 @@ std::vector<DeviceMetricsInfo> gDeviceMetricsInfos;
 // overloaded in the config spec
 bpo::options_description gHiddenDeviceOptions("Hidden child options");
 
+O2_DECLARE_DYNAMIC_LOG(driver);
+
 // Read from a given fd and print it.
 // return true if we can still read from it,
 // return false if we need to close the input pipe.
@@ -186,25 +187,23 @@ void getChildData(int infd, DeviceInfo& outinfo)
   int bytes_read;
   // NOTE: do not quite understand read ends up blocking if I read more than
   //        once. Oh well... Good enough for now.
-  O2_SIGNPOST_START(DriverStatus::ID, DriverStatus::BYTES_READ, outinfo.pid, infd, 0);
+  int64_t total_bytes_read = 0;
+  int64_t count = 0;
+  bool once = false;
   while (true) {
     bytes_read = read(infd, buffer, 1024 * 16);
     if (bytes_read == 0) {
-      O2_SIGNPOST_END(DriverStatus::ID, DriverStatus::BYTES_READ, bytes_read, 0, 0);
       return;
     }
+    if (!once) {
+      once = true;
+    }
     if (bytes_read < 0) {
-      switch (errno) {
-        case EWOULDBLOCK:
-          O2_SIGNPOST_END(DriverStatus::ID, DriverStatus::BYTES_READ, bytes_read, 0, 0);
-          return;
-        default:
-          O2_SIGNPOST_END(DriverStatus::ID, DriverStatus::BYTES_READ, bytes_read, 0, 0);
-          return;
-      }
+      return;
     }
     assert(bytes_read > 0);
     outinfo.unprinted.append(buffer, bytes_read);
+    count++;
   }
 }
 
@@ -796,7 +795,8 @@ void processChildrenOutput(DriverInfo& driverInfo,
       continue;
     }
 
-    O2_SIGNPOST_START(DriverStatus::ID, DriverStatus::BYTES_PROCESSED, info.pid, 0, 0);
+    O2_SIGNPOST_ID_FROM_POINTER(sid, driver, &info);
+    O2_SIGNPOST_START(driver, sid, "bytes_processed", "bytes processed by " O2_ENG_TYPE(pid, "d"), info.pid);
 
     std::string_view s = info.unprinted;
     size_t pos = 0;
@@ -843,7 +843,8 @@ void processChildrenOutput(DriverInfo& driverInfo,
     }
     size_t oldSize = info.unprinted.size();
     info.unprinted = std::string(s);
-    O2_SIGNPOST_END(DriverStatus::ID, DriverStatus::BYTES_PROCESSED, oldSize - info.unprinted.size(), 0, 0);
+    int64_t bytesProcessed = oldSize - info.unprinted.size();
+    O2_SIGNPOST_END(driver, sid, "bytes_processed", "bytes processed by " O2_ENG_TYPE(network - size - in - bytes, PRIi64), bytesProcessed);
   }
 }
 
@@ -1011,7 +1012,7 @@ int doChild(int argc, char** argv, ServiceRegistry& serviceRegistry,
     deviceState->tracingFlags = DeviceStateHelpers::parseTracingFlags(r.fConfig.GetPropertyAsString("dpl-tracing-flags"));
     serviceRef.registerService(ServiceRegistryHelpers::handleForService<DeviceState>(deviceState.get()));
 
-    quotaEvaluator = std::make_unique<ComputingQuotaEvaluator>(uv_now(loop));
+    quotaEvaluator = std::make_unique<ComputingQuotaEvaluator>(serviceRef);
     serviceRef.registerService(ServiceRegistryHelpers::handleForService<ComputingQuotaEvaluator>(quotaEvaluator.get()));
 
     deviceContext = std::make_unique<DeviceContext>();
@@ -1060,28 +1061,60 @@ void gui_callback(uv_timer_s* ctx)
   if (gui->plugin == nullptr) {
     return;
   }
-  void* draw_data = nullptr;
 
-  uint64_t frameStart = uv_hrtime();
-  uint64_t frameLatency = frameStart - gui->frameLast;
+  // New version which allows deferred closure of windows
+  if (gui->plugin->supportsDeferredClose()) {
+    // For now, there is nothing for which we want to defer the close
+    // so if the flag is set, we simply exit
+    if (*(gui->guiQuitRequested)) {
+      return;
+    }
+    void* draw_data = nullptr;
+    uint64_t frameStart = uv_hrtime();
+    uint64_t frameLatency = frameStart - gui->frameLast;
 
-  // if less than 15ms have passed reuse old frame
-  if (frameLatency / 1000000 > 15) {
+    // if less than 15ms have passed reuse old frame
+    if (frameLatency / 1000000 <= 15) {
+      draw_data = gui->lastFrame;
+      return;
+    }
+    // The result of the pollGUIPreRender is used to determine if we
+    // should quit the GUI, however, the rendering is started in any
+    // case, so we should complete it.
     if (!gui->plugin->pollGUIPreRender(gui->window, (float)frameLatency / 1000000000.0f)) {
       *(gui->guiQuitRequested) = true;
-      return;
     }
     draw_data = gui->plugin->pollGUIRender(gui->callback);
     gui->plugin->pollGUIPostRender(gui->window, draw_data);
-  } else {
-    draw_data = gui->lastFrame;
-  }
 
-  if (frameLatency / 1000000 > 15) {
     uint64_t frameEnd = uv_hrtime();
     *(gui->frameCost) = (frameEnd - frameStart) / 1000000.f;
     *(gui->frameLatency) = frameLatency / 1000000.f;
     gui->frameLast = frameStart;
+  } else {
+    void* draw_data = nullptr;
+
+    uint64_t frameStart = uv_hrtime();
+    uint64_t frameLatency = frameStart - gui->frameLast;
+
+    // if less than 15ms have passed reuse old frame
+    if (frameLatency / 1000000 > 15) {
+      if (!gui->plugin->pollGUIPreRender(gui->window, (float)frameLatency / 1000000000.0f)) {
+        *(gui->guiQuitRequested) = true;
+        return;
+      }
+      draw_data = gui->plugin->pollGUIRender(gui->callback);
+      gui->plugin->pollGUIPostRender(gui->window, draw_data);
+    } else {
+      draw_data = gui->lastFrame;
+    }
+
+    if (frameLatency / 1000000 > 15) {
+      uint64_t frameEnd = uv_hrtime();
+      *(gui->frameCost) = (frameEnd - frameStart) / 1000000.f;
+      *(gui->frameLatency) = frameLatency / 1000000.f;
+      gui->frameLast = frameStart;
+    }
   }
 }
 
@@ -1123,6 +1156,105 @@ void dumpMetricsCallback(uv_timer_t* handle)
   ResourcesMonitoringHelper::dumpMetricsToJSON(*(context->metrics),
                                                context->driver->metrics, *(context->specs), performanceMetrics);
 }
+
+void dumpRunSummary(DriverServerContext& context, DriverInfo const& driverInfo, DeviceInfos const& infos, DeviceSpecs const& specs)
+{
+  if (infos.empty()) {
+    return;
+  }
+  LOGP(info, "## Processes completed. Run summary:");
+  LOGP(info, "### Devices started: {}", infos.size());
+  for (size_t di = 0; di < infos.size(); ++di) {
+    auto& info = infos[di];
+    auto& spec = specs[di];
+    if (info.exitStatus) {
+      LOGP(error, " - Device {}: pid {} (exit {})", spec.name, info.pid, info.exitStatus);
+    } else {
+      LOGP(info, " - Device {}: pid {} (exit {})", spec.name, info.pid, info.exitStatus);
+    }
+    if (info.exitStatus != 0 && info.firstSevereError.empty() == false) {
+      LOGP(info, "   - First error: {}", info.firstSevereError);
+    }
+    if (info.exitStatus != 0 && info.lastError != info.firstSevereError) {
+      LOGP(info, "   - Last error: {}", info.lastError);
+    }
+  }
+  for (auto& summary : *context.summaryCallbacks) {
+    summary(ServiceMetricsInfo{*context.metrics, *context.specs, *context.infos, context.driver->metrics, driverInfo});
+  }
+}
+
+auto bindGUIPort = [](DriverInfo& driverInfo, DriverServerContext& serverContext, std::string frameworkId) {
+  uv_tcp_init(serverContext.loop, &serverContext.serverHandle);
+
+  driverInfo.port = 8080 + (getpid() % 30000);
+
+  if (getenv("DPL_REMOTE_GUI_PORT")) {
+    try {
+      driverInfo.port = stoi(std::string(getenv("DPL_REMOTE_GUI_PORT")));
+    } catch (std::invalid_argument) {
+      LOG(error) << "DPL_REMOTE_GUI_PORT not a valid integer";
+    } catch (std::out_of_range) {
+      LOG(error) << "DPL_REMOTE_GUI_PORT out of range (integer)";
+    }
+    if (driverInfo.port < 1024 || driverInfo.port > 65535) {
+      LOG(error) << "DPL_REMOTE_GUI_PORT out of range (1024-65535)";
+    }
+  }
+
+  int result = 0;
+  struct sockaddr_in* serverAddr = nullptr;
+
+  // Do not offer websocket endpoint for devices
+  // FIXME: this was blocking david's workflows. For now
+  //        there is no point in any case to have devices
+  //        offering a web based API, but it might make sense in
+  //        the future to inspect them via some web based interface.
+  if (serverContext.isDriver) {
+    do {
+      free(serverAddr);
+      if (driverInfo.port > 64000) {
+        throw runtime_error_f("Unable to find a free port for the driver. Last attempt returned %d", result);
+      }
+      serverAddr = (sockaddr_in*)malloc(sizeof(sockaddr_in));
+      uv_ip4_addr("0.0.0.0", driverInfo.port, serverAddr);
+      auto bindResult = uv_tcp_bind(&serverContext.serverHandle, (const struct sockaddr*)serverAddr, 0);
+      if (bindResult != 0) {
+        driverInfo.port++;
+        usleep(1000);
+        continue;
+      }
+      result = uv_listen((uv_stream_t*)&serverContext.serverHandle, 100, ws_connect_callback);
+      if (result != 0) {
+        driverInfo.port++;
+        usleep(1000);
+        continue;
+      }
+    } while (result != 0);
+  } else if (getenv("DPL_DEVICE_REMOTE_GUI") && !serverContext.isDriver) {
+    do {
+      free(serverAddr);
+      if (driverInfo.port > 64000) {
+        throw runtime_error_f("Unable to find a free port for the driver. Last attempt returned %d", result);
+      }
+      serverAddr = (sockaddr_in*)malloc(sizeof(sockaddr_in));
+      uv_ip4_addr("0.0.0.0", driverInfo.port, serverAddr);
+      auto bindResult = uv_tcp_bind(&serverContext.serverHandle, (const struct sockaddr*)serverAddr, 0);
+      if (bindResult != 0) {
+        driverInfo.port++;
+        usleep(1000);
+        continue;
+      }
+      result = uv_listen((uv_stream_t*)&serverContext.serverHandle, 100, ws_connect_callback);
+      if (result != 0) {
+        driverInfo.port++;
+        usleep(1000);
+        continue;
+      }
+      LOG(info) << "Device GUI port: " << driverInfo.port << " " << frameworkId;
+    } while (result != 0);
+  }
+};
 
 // This is the handler for the parent inner loop.
 int runStateMachine(DataProcessorSpecs const& workflow,
@@ -1235,6 +1367,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
   }
 
   std::vector<ServiceMetricHandling> metricProcessingCallbacks;
+  std::vector<ServiceSummaryHandling> summaryCallbacks;
   std::vector<ServicePreSchedule> preScheduleCallbacks;
   std::vector<ServicePostSchedule> postScheduleCallbacks;
   std::vector<ServiceDriverInit> driverInitCallbacks;
@@ -1266,81 +1399,13 @@ int runStateMachine(DataProcessorSpecs const& workflow,
     .specs = &runningWorkflow.devices,
     .metrics = &metricsInfos,
     .metricProcessingCallbacks = &metricProcessingCallbacks,
+    .summaryCallbacks = &summaryCallbacks,
     .driver = &driverInfo,
     .gui = &guiContext,
-    .isDriver = frameworkId.empty()};
+    .isDriver = frameworkId.empty(),
+  };
 
-  uv_tcp_t serverHandle;
-  serverHandle.data = &serverContext;
-  uv_tcp_init(loop, &serverHandle);
-
-  driverInfo.port = 8080 + (getpid() % 30000);
-
-  if (getenv("DPL_REMOTE_GUI_PORT")) {
-    try {
-      driverInfo.port = stoi(std::string(getenv("DPL_REMOTE_GUI_PORT")));
-    } catch (std::invalid_argument) {
-      LOG(error) << "DPL_REMOTE_GUI_PORT not a valid integer";
-    } catch (std::out_of_range) {
-      LOG(error) << "DPL_REMOTE_GUI_PORT out of range (integer)";
-    }
-    if (driverInfo.port < 1024 || driverInfo.port > 65535) {
-      LOG(error) << "DPL_REMOTE_GUI_PORT out of range (1024-65535)";
-    }
-  }
-
-  int result = 0;
-  struct sockaddr_in* serverAddr = nullptr;
-
-  // Do not offer websocket endpoint for devices
-  // FIXME: this was blocking david's workflows. For now
-  //        there is no point in any case to have devices
-  //        offering a web based API, but it might make sense in
-  //        the future to inspect them via some web based interface.
-  if (frameworkId.empty()) {
-    do {
-      free(serverAddr);
-      if (driverInfo.port > 64000) {
-        throw runtime_error_f("Unable to find a free port for the driver. Last attempt returned %d", result);
-      }
-      serverAddr = (sockaddr_in*)malloc(sizeof(sockaddr_in));
-      uv_ip4_addr("0.0.0.0", driverInfo.port, serverAddr);
-      auto bindResult = uv_tcp_bind(&serverHandle, (const struct sockaddr*)serverAddr, 0);
-      if (bindResult != 0) {
-        driverInfo.port++;
-        usleep(1000);
-        continue;
-      }
-      result = uv_listen((uv_stream_t*)&serverHandle, 100, ws_connect_callback);
-      if (result != 0) {
-        driverInfo.port++;
-        usleep(1000);
-        continue;
-      }
-    } while (result != 0);
-  } else if (getenv("DPL_DEVICE_REMOTE_GUI") && !frameworkId.empty()) {
-    do {
-      free(serverAddr);
-      if (driverInfo.port > 64000) {
-        throw runtime_error_f("Unable to find a free port for the driver. Last attempt returned %d", result);
-      }
-      serverAddr = (sockaddr_in*)malloc(sizeof(sockaddr_in));
-      uv_ip4_addr("0.0.0.0", driverInfo.port, serverAddr);
-      auto bindResult = uv_tcp_bind(&serverHandle, (const struct sockaddr*)serverAddr, 0);
-      if (bindResult != 0) {
-        driverInfo.port++;
-        usleep(1000);
-        continue;
-      }
-      result = uv_listen((uv_stream_t*)&serverHandle, 100, ws_connect_callback);
-      if (result != 0) {
-        driverInfo.port++;
-        usleep(1000);
-        continue;
-      }
-      LOG(info) << "Device GUI port: " << driverInfo.port << " " << frameworkId;
-    } while (result != 0);
-  }
+  serverContext.serverHandle.data = &serverContext;
 
   uv_timer_t force_step_timer;
   uv_timer_init(loop, &force_step_timer);
@@ -1391,6 +1456,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
     }
     driverInfo.states.pop_back();
     switch (current) {
+      case DriverState::BIND_GUI_PORT:
+        bindGUIPort(driverInfo, serverContext, frameworkId);
+        break;
       case DriverState::INIT:
         LOGP(info, "Initialising O2 Data Processing Layer. Driver PID: {}.", getpid());
         LOGP(info, "Driver listening on port: {}", driverInfo.port);
@@ -1580,32 +1648,72 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                                                             varmap["channel-prefix"].as<std::string>(),
                                                             overrides);
           metricProcessingCallbacks.clear();
+          std::vector<std::string> matchingServices;
+
+          // FIXME: once moving to C++20, we can use templated lambdas.
+          matchingServices.clear();
           for (auto& device : runningWorkflow.devices) {
             for (auto& service : device.services) {
+              // If a service with the same name is already registered, skip it
+              if (std::find(matchingServices.begin(), matchingServices.end(), service.name) != matchingServices.end()) {
+                continue;
+              }
               if (service.metricHandling) {
                 metricProcessingCallbacks.push_back(service.metricHandling);
+                matchingServices.push_back(service.name);
               }
             }
           }
-          preScheduleCallbacks.clear();
+
+          // FIXME: once moving to C++20, we can use templated lambdas.
+          matchingServices.clear();
           for (auto& device : runningWorkflow.devices) {
             for (auto& service : device.services) {
+              // If a service with the same name is already registered, skip it
+              if (std::find(matchingServices.begin(), matchingServices.end(), service.name) != matchingServices.end()) {
+                continue;
+              }
+              if (service.summaryHandling) {
+                summaryCallbacks.push_back(service.summaryHandling);
+                matchingServices.push_back(service.name);
+              }
+            }
+          }
+
+          preScheduleCallbacks.clear();
+          matchingServices.clear();
+          for (auto& device : runningWorkflow.devices) {
+            for (auto& service : device.services) {
+              // If a service with the same name is already registered, skip it
+              if (std::find(matchingServices.begin(), matchingServices.end(), service.name) != matchingServices.end()) {
+                continue;
+              }
               if (service.preSchedule) {
                 preScheduleCallbacks.push_back(service.preSchedule);
               }
             }
           }
           postScheduleCallbacks.clear();
+          matchingServices.clear();
           for (auto& device : runningWorkflow.devices) {
             for (auto& service : device.services) {
+              // If a service with the same name is already registered, skip it
+              if (std::find(matchingServices.begin(), matchingServices.end(), service.name) != matchingServices.end()) {
+                continue;
+              }
               if (service.postSchedule) {
                 postScheduleCallbacks.push_back(service.postSchedule);
               }
             }
           }
           driverInitCallbacks.clear();
+          matchingServices.clear();
           for (auto& device : runningWorkflow.devices) {
             for (auto& service : device.services) {
+              // If a service with the same name is already registered, skip it
+              if (std::find(matchingServices.begin(), matchingServices.end(), service.name) != matchingServices.end()) {
+                continue;
+              }
               if (service.driverInit) {
                 driverInitCallbacks.push_back(service.driverInit);
               }
@@ -2005,6 +2113,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
           LOG(info) << "Dumping performance metrics to performanceMetrics.json file";
           dumpMetricsCallback(&metricDumpTimer);
         }
+        dumpRunSummary(serverContext, driverInfo, infos, runningWorkflow.devices);
         // This is a clean exit. Before we do so, if required,
         // we dump the configuration of all the devices so that
         // we can reuse it. Notice we do not dump anything if
@@ -2376,6 +2485,7 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
     //        it's own configuration by the driver.
     control.forcedTransitions = {
       DriverState::DO_CHILD,                //
+      DriverState::BIND_GUI_PORT,           //
       DriverState::MERGE_CONFIGS,           //
       DriverState::IMPORT_CURRENT_WORKFLOW, //
       DriverState::MATERIALISE_WORKFLOW     //
@@ -2406,6 +2516,7 @@ void initialiseDriverControl(bpo::variables_map const& varmap,
     // By default we simply start the main loop of the driver.
     control.forcedTransitions = {
       DriverState::INIT,                    //
+      DriverState::BIND_GUI_PORT,           //
       DriverState::IMPORT_CURRENT_WORKFLOW, //
       DriverState::MATERIALISE_WORKFLOW     //
     };
@@ -2488,7 +2599,6 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
            std::vector<ConfigParamSpec> const& currentWorkflowOptions,
            o2::framework::ConfigContext& configContext)
 {
-  O2_SIGNPOST_INIT();
   std::vector<std::string> currentArgs;
   std::vector<PluginInfo> plugins;
 
@@ -2593,6 +2703,21 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
       if (found == physicalWorkflow.end()) {
         physicalWorkflow.push_back(dp);
         rankIndex.insert(std::make_pair(dp.name, workflowHashB));
+      }
+    }
+  }
+
+  /// Iterate over the physicalWorkflow, any DataProcessorSpec that has a
+  /// expendable label should have all the timeframe lifetime outputs changed
+  /// to sporadic, because there is no guarantee that the device will be alive,
+  /// so we should not expect its data to always arrive.
+  for (auto& dp : physicalWorkflow) {
+    auto isExpendable = [](DataProcessorLabel const& label) { return label.value == "expendable" || label.value == "non-critical"; };
+    if (std::find_if(dp.labels.begin(), dp.labels.end(), isExpendable) != dp.labels.end()) {
+      for (auto& output : dp.outputs) {
+        if (output.lifetime == Lifetime::Timeframe) {
+          output.lifetime = Lifetime::Sporadic;
+        }
       }
     }
   }
@@ -2826,6 +2951,9 @@ int doMain(int argc, char** argv, o2::framework::WorkflowSpec const& workflow,
   }
   driverInfo.minFailureLevel = varmap["min-failure-level"].as<LogParsingHelpers::LogLevel>();
   driverInfo.startTime = uv_hrtime();
+  driverInfo.startTimeMsFromEpoch = std::chrono::duration_cast<std::chrono::milliseconds>(
+                                      std::chrono::system_clock::now().time_since_epoch())
+                                      .count();
   driverInfo.timeout = varmap["timeout"].as<uint64_t>();
   driverInfo.deployHostname = varmap["hostname"].as<std::string>();
   driverInfo.resources = varmap["resources"].as<std::string>();

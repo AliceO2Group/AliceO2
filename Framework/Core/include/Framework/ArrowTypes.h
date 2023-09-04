@@ -82,6 +82,11 @@ struct arrow_array_for<double[N]> {
   using type = arrow::FixedSizeListArray;
   using value_type = double;
 };
+template <int N>
+struct arrow_array_for<int8_t[N]> {
+  using type = arrow::FixedSizeListArray;
+  using value_type = int8_t;
+};
 
 #define ARROW_VECTOR_FOR(_type_)                \
   template <>                                   \

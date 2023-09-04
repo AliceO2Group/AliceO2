@@ -8,7 +8,7 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-
+#include <cfloat>
 #include <DataFormatsFOCAL/Constants.h>
 #include <FOCALCalib/PadPedestal.h>
 
@@ -18,6 +18,45 @@ using namespace o2::focal;
 
 void PadPedestal::clear()
 {
+}
+
+bool PadPedestal::operator==(const PadPedestal& rhs) const
+{
+  if (mPedestalValues.size() != rhs.mPedestalValues.size()) {
+    LOG(debug) << "Error size: this " << mPedestalValues.size() << ", other " << rhs.mPedestalValues.size();
+    return false;
+  }
+  bool failure = false;
+  // check equalty of content based on other object
+  for (auto [channel, pedestal] : rhs.mPedestalValues) {
+    auto found = mPedestalValues.find(channel);
+    if (found == mPedestalValues.end()) {
+      LOG(debug) << "Key not found this: Layer " << channel.mLayer << ", channel " << channel.mChannel;
+      failure = true;
+    } else {
+      if (std::abs(found->second - pedestal) > DBL_EPSILON) {
+        LOG(debug) << "Value error channel layer " << channel.mLayer << ", channel " << channel.mChannel << " this " << found->second << ", other " << pedestal;
+        failure = true;
+      }
+    }
+  }
+  if (failure) {
+    return false;
+  }
+  // check equality of content based on this object
+  for (auto [channel, pedestal] : mPedestalValues) {
+    auto found = rhs.mPedestalValues.find(channel);
+    if (found == rhs.mPedestalValues.end()) {
+      LOG(debug) << "Key not found other: Layer " << channel.mLayer << ", channel: " << channel.mChannel;
+      failure = true;
+    } else {
+      if (std::abs(found->second - pedestal) > DBL_EPSILON) {
+        LOG(debug) << "Value error channel layer " << channel.mLayer << ", channel " << channel.mChannel << " other " << found->second << ", this " << pedestal;
+        failure = true;
+      }
+    }
+  }
+  return !failure;
 }
 
 void PadPedestal::setPedestal(std::size_t layer, std::size_t channel, double pedestal)

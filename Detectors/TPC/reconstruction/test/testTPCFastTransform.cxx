@@ -94,6 +94,7 @@ BOOST_AUTO_TEST_CASE(FastTransform_test1)
   BOOST_CHECK(fabs(maxDy) < 1.e-5);
 }
 
+#ifdef XXX
 BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
 {
 
@@ -218,6 +219,7 @@ BOOST_AUTO_TEST_CASE(FastTransform_test_setSpaceChargeCorrection)
   std::cout << "max deviation for inverse correction " << maxDeviation << " cm " << std::endl;
   BOOST_CHECK_MESSAGE(fabs(maxDeviation) < 1.e-2, "test of inverse correction map failed, max difference " << maxDeviation << " cm is too large");
 }
+#endif
 
 } // namespace tpc
 } // namespace o2

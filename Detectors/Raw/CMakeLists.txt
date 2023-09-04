@@ -17,12 +17,15 @@ o2_add_library(DetectorsRaw
         src/RDHUtils.cxx
         src/HBFUtilsInitializer.cxx
         src/DistSTFSenderSpec.cxx
+        src/RawDumpSpec.cxx
         PUBLIC_LINK_LIBRARIES AliceO2::Common
         FairRoot::Base
         O2::Headers
         O2::CommonDataFormat
         O2::DetectorsCommonDataFormats
         O2::Framework
+        O2::DPLUtils
+        O2::Algorithm
         FairMQ::FairMQ)
 
 add_subdirectory(TFReaderDD)
@@ -53,6 +56,11 @@ o2_add_executable(file-reader-workflow
 o2_add_executable(sender-workflow
         COMPONENT_NAME diststf
         SOURCES src/diststf-sender-workflow.cxx
+        PUBLIC_LINK_LIBRARIES O2::DetectorsRaw)
+
+o2_add_executable(data-dump-workflow
+        COMPONENT_NAME raw
+        SOURCES src/raw-data-dump-workflow.cxx
         PUBLIC_LINK_LIBRARIES O2::DetectorsRaw)
 
 o2_add_test(HBFUtils

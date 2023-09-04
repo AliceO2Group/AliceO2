@@ -196,5 +196,8 @@ template class IntegratedClusterCalibrator<o2::fit::IFV0C>;
 template class IntegratedClusters<o2::tpc::ITPCC>;
 template class IntegratedClusterCalibrator<o2::tpc::ITPCC>;
 
+template class IntegratedClusters<o2::fit::IFDDC>;
+template class IntegratedClusterCalibrator<o2::fit::IFDDC>;
+
 } // end namespace calibration
 } // end namespace o2

@@ -76,7 +76,7 @@ TEST_CASE("test_DPLRawParser")
     if (last != dh) {
       // this is a special wrapper to print the RDU info and table header, this will
       // be extended
-      INFO(DPLRawParser::RDHInfo(it));
+      INFO(DPLRawParser<>::RDHInfo(it));
       last = dh;
     }
     INFO(it << " payload size " << it.size());

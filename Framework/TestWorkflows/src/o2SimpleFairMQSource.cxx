@@ -53,7 +53,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
      .outputs = {OutputSpec{"TST", "A", 0, Lifetime::OutOfBand}},
      .algorithm = AlgorithmSpec{adaptStateless(
        [](RawDeviceService& service) {
-         for (auto& channel : service.device()->fChannels) {
+         for (auto& channel : service.device()->GetChannels()) {
            LOG(info) << channel.first;
          }
          std::this_thread::sleep_for(std::chrono::seconds(rand() % 2));
@@ -69,7 +69,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
          // we have to move the incoming data
          o2::header::Stack headerStack{dh, dph};
 
-         auto channelAlloc = o2::pmr::getTransportAllocator(service.device()->fChannels["downstream"][0].Transport());
+         auto channelAlloc = o2::pmr::getTransportAllocator(service.device()->GetChannels()["downstream"][0].Transport());
          fair::mq::MessagePtr headerMessage = o2::pmr::getMessage(std::move(headerStack), channelAlloc);
 
          fair::mq::Parts out;

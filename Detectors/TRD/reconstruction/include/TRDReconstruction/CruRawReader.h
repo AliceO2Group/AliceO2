@@ -178,8 +178,8 @@ class CruRawReader
   std::set<std::pair<int, int>> mHalfChamberMismatches; // first element is HCID from RDH and second element is HCID from TrackletHCHeader
 
   o2::InteractionRecord mIR;
-  std::array<uint32_t, 15> mCurrentHalfCRULinkLengths;
-  std::array<uint32_t, 15> mCurrentHalfCRULinkErrorFlags;
+  std::array<uint16_t, 15> mCurrentHalfCRULinkLengths;
+  std::array<uint8_t, 15> mCurrentHalfCRULinkErrorFlags;
 
   const LinkToHCIDMapping* mLinkMap = nullptr; // to retrieve HCID from Link ID
 

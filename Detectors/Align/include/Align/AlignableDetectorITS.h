@@ -49,7 +49,7 @@ class AlignableDetectorITS : public AlignableDetector
   // RSTODO
   //  bool AcceptTrack(const AliESDtrack* trc, int trtype) const;
 
-  int processPoints(GIndex gid, bool inv) final;
+  int processPoints(GIndex gid, int npntCut, bool inv) final;
   bool prepareDetectorData() final;
 
   void SetAddErrorLr(int ilr, double sigY, double sigZ);

@@ -16,3 +16,9 @@
 
 #include "TPCFastSpaceChargeCorrectionMap.h"
 #include "GPUCommonLogger.h"
+
+using namespace GPUCA_NAMESPACE::gpu;
+
+#ifndef GPUCA_ALIROOT_LIB
+ClassImp(TPCFastSpaceChargeCorrectionMap);
+#endif

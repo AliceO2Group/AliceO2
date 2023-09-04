@@ -12,8 +12,15 @@
 #define BOOST_TEST_MODULE Test EMCCTFIO
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
+
+#undef NDEBUG
+#include <cassert>
+
 #include <boost/test/unit_test.hpp>
+#include <boost/test/data/test_case.hpp>
+#include <boost/test/data/dataset.hpp>
 #include "CommonUtils/NameConf.h"
+#include "DataFormatsEMCAL/Constants.h"
 #include "EMCALReconstruction/CTFCoder.h"
 #include "DataFormatsEMCAL/CTF.h"
 #include "Framework/Logger.h"
@@ -24,8 +31,11 @@
 #include <cstring>
 
 using namespace o2::emcal;
+namespace boost_data = boost::unit_test::data;
 
-BOOST_AUTO_TEST_CASE(CTFTest)
+inline std::vector<o2::ctf::ANSHeader> ANSVersions{o2::ctf::ANSVersionCompat, o2::ctf::ANSVersion1};
+
+BOOST_DATA_TEST_CASE(CTFTest, boost_data::make(ANSVersions), ansVersion)
 {
   std::vector<TriggerRecord> triggers;
   std::vector<Cell> cells;
@@ -41,8 +51,33 @@ BOOST_AUTO_TEST_CASE(CTFTest)
     while (tower < 17665) {
       float timeCell = gRandom->Rndm() * 1500 - 600.;
       float en = gRandom->Rndm() * 250.;
-      int stat = gRandom->Integer(5);
-      cells.emplace_back(tower, en, timeCell, (ChannelType_t)stat);
+      // In case of cell type 3 cases must be distinguished (FEE, LEDMON, TRU)
+      // In case the cell is a FEE cell the cell type is correlated with the energy
+      int readoutsource = gRandom->Integer(3); //
+      ChannelType_t chantype = ChannelType_t::HIGH_GAIN;
+      switch (readoutsource) {
+        case 0: {
+          // Cell is a FEE cell, determine cell type according to HGLG transition
+          const auto ENHGLG = o2::emcal::constants::EMCAL_HGLGTRANSITION * o2::emcal::constants::EMCAL_ADCENERGY;
+          if (en >= ENHGLG) {
+            chantype = ChannelType_t::LOW_GAIN;
+          } else {
+            chantype = ChannelType_t::HIGH_GAIN;
+          }
+          break;
+        }
+        case 1:
+          chantype = ChannelType_t::LEDMON;
+          break;
+        case 2:
+          chantype = ChannelType_t::TRU;
+          break;
+
+        default:
+          std::cerr << "Unknown type" << std::endl;
+          break;
+      }
+      cells.emplace_back(tower, en, timeCell, chantype);
       tower += 1 + gRandom->Integer(100);
     }
     uint32_t trigBits = gRandom->Integer(0xFFFFFFFF); // will be converted internally to uint16_t by the coder
@@ -53,6 +88,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
   std::vector<o2::ctf::BufferType> vec;
   {
     CTFCoder coder(o2::ctf::CTFCoderBase::OpType::Encoder);
+    coder.setANSVersion(ansVersion);
     coder.encode(vec, triggers, cells); // compress
   }
   sw.Stop();
@@ -126,9 +162,9 @@ BOOST_AUTO_TEST_CASE(CTFTest)
   for (size_t i = 0; i < cells.size(); i++) {
     const auto& cor = cells[i];
     const auto& cdc = cellsD[i];
-    BOOST_CHECK_EQUAL(cor.getPackedTowerID(), cdc.getPackedTowerID());
-    BOOST_CHECK_EQUAL(cor.getPackedTime(), cdc.getPackedTime());
-    BOOST_CHECK_EQUAL(cor.getPackedEnergy(), cdc.getPackedEnergy());
-    BOOST_CHECK_EQUAL(cor.getPackedCellStatus(), cdc.getPackedCellStatus());
+    BOOST_CHECK_EQUAL(cor.getTowerIDEncoded(), cdc.getTowerIDEncoded());
+    BOOST_CHECK_EQUAL(cor.getTimeStampEncoded(), cdc.getTimeStampEncoded());
+    BOOST_CHECK_EQUAL(cor.getEnergyEncoded(), cdc.getEnergyEncoded());
+    BOOST_CHECK_EQUAL(cor.getCellTypeEncoded(), cdc.getCellTypeEncoded());
   }
 }

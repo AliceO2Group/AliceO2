@@ -629,7 +629,10 @@ void o2::tpc::IDCFactorization::checkFECs(const float maxOutliersPerFEC)
             } else {
               // mark whole FEC
               if (nOutliersPerFEC[fecIndex] / static_cast<float>(FECInfo::ChannelsPerFEC) > maxOutliersPerFEC) {
-                flag = o2::tpc::PadFlags::flagFEC | o2::tpc::PadFlags::flagSkip;
+                // turn bit off
+                flag = flag & ~o2::tpc::PadFlags::flagGoodPad;
+                // set bit
+                flag = flag | o2::tpc::PadFlags::flagFEC | o2::tpc::PadFlags::flagSkip;
                 mPadFlagsMap->getCalArray(cru).setValue(padInRegion, flag);
               }
             }
@@ -690,7 +693,10 @@ void o2::tpc::IDCFactorization::checkNeighbourOutliers(const int maxIter, const 
                 ++countTotOutlier;
               }
 
-              flag = o2::tpc::PadFlags::flagNeighbour | o2::tpc::PadFlags::flagSkip;
+              // turn bit off
+              flag = flag & ~o2::tpc::PadFlags::flagGoodPad;
+              // set bit
+              flag = flag | o2::tpc::PadFlags::flagNeighbour | o2::tpc::PadFlags::flagSkip;
               mPadFlagsMap->getCalArray(cru).setValue(padInRegion, flag);
             }
           }

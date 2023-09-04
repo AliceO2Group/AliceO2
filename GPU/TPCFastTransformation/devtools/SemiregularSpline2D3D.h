@@ -182,6 +182,10 @@ class SemiregularSpline2D3D : public FlatObject
   int mNumberOfRows;
   int mNumberOfKnots;
   int mDataIndexMapOffset;
+
+#ifndef GPUCA_ALIROOT_LIB
+  ClassDefNV(SemiregularSpline2D3D, 1);
+#endif
 };
 
 /// ====================================================
@@ -399,30 +403,30 @@ inline void SemiregularSpline2D3D::getSplineVec(const float* correctedData, floa
 #if !defined(__CINT__) && !defined(__ROOTCINT__) && !defined(__ROOTCLING__) && !defined(GPUCA_GPUCODE) && !defined(GPUCA_NO_VC)
   //&& !defined(__CLING__)
   /*
-	Idea: There are 16 knots important for (u, v).
-	a,b,c,d := Knots in first u-grid
-	e,f,g,h := Knots in second u-grid
-	i,j,k,l := Knots in third u-grid
-	m,n,o,p := Knots in fourth u-grid.
-        It could be possible to calculate the spline in 3 dimentions for a,b,c,d at the same time as e,f,g,h etc.
-	3 of the 4 parallel threads of the vector would calculate x,y,z for one row and the last task already calculates x for the next one.
-	=> 4x faster
+    Idea: There are 16 knots important for (u, v).
+    a,b,c,d := Knots in first u-grid
+    e,f,g,h := Knots in second u-grid
+    i,j,k,l := Knots in third u-grid
+    m,n,o,p := Knots in fourth u-grid.
+    It could be possible to calculate the spline in 3 dimentions for a,b,c,d at the same time as e,f,g,h etc.
+    3 of the 4 parallel threads of the vector would calculate x,y,z for one row and the last task already calculates x for the next one.
+    => 4x faster
 
-	Problem:To do this, we need vectors where every i-th element is used for the calculation. So what we need is:
-	[a,e,i,m]
-	[b,f,j,n]
-	[c,g,k,o]
-	[d,h,l,p]
-	This is barely possible to do with a good performance because e.g. a,e,i,m do not lay beside each other in data.
-	
-	Work around 1:
-	Don't calculate knots parrallel but the dimensions. But you can only be 3x faster this way because the 4th thread would be the x-dimension of the next point.
+    Problem:To do this, we need vectors where every i-th element is used for the calculation. So what we need is:
+    [a,e,i,m]
+    [b,f,j,n]
+    [c,g,k,o]
+    [d,h,l,p]
+    This is barely possible to do with a good performance because e.g. a,e,i,m do not lay beside each other in data.
 
-	Work around 2:
-	Try to create a matrix as it was mentioned earlier ([a,e,i,m][b,f,..]...) by copying data.
-	This may be less efficient than Work around 1 but needs to be measured.
-	
-      */
+    Work around 1:
+    Don't calculate knots parrallel but the dimensions. But you can only be 3x faster this way because the 4th thread would be the x-dimension of the next point.
+
+    Work around 2:
+    Try to create a matrix as it was mentioned earlier ([a,e,i,m][b,f,..]...) by copying data.
+    This may be less efficient than Work around 1 but needs to be measured.
+
+  */
 
   //workaround 1:
   int vGridi = mGridV.getKnotIndex(v);

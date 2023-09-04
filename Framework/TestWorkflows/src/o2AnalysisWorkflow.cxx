@@ -22,13 +22,27 @@ using namespace o2;
 using namespace o2::framework;
 using namespace o2::framework::expressions;
 
+namespace o2::aod
+{
+namespace test
+{
+DECLARE_SOA_COLUMN(X, x, float);
+DECLARE_SOA_COLUMN(Y, y, float);
+DECLARE_SOA_COLUMN(Z, z, float);
+} // namespace test
+DECLARE_SOA_TABLE(Points, "AOD", "POINTS",
+                  test::X, test::Y, test::Z);
+} // namespace o2::aod
+
 struct EtaAndClsHistograms {
   OutputObj<TH3F> etaClsH{TH3F("eta_vs_cls_vs_sigmapT", "#eta vs N_{cls} vs sigma_{1/pT}", 102, -2.01, 2.01, 160, -0.5, 159.5, 100, 0, 10)};
+  Produces<aod::Points> points;
 
   void process(soa::Join<aod::FullTracks, aod::TracksCov> const& tracks)
   {
     for (auto& track : tracks) {
       etaClsH->Fill(track.eta(), track.tpcNClsFindable(), track.sigma1Pt());
+      points(1, 2, 3);
     }
   }
 };

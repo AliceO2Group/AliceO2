@@ -151,7 +151,7 @@ void CTFCoder::createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBa
 {
   const auto ctf = CTF::getImage(bufVec.data());
   CompressedInfos cc; // just to get member types
-#define MAKECODER(part, slot) createCoder<decltype(part)::value_type>(op, ctf.getFrequencyTable(slot), int(slot))
+#define MAKECODER(part, slot) createCoder(op, std::get<rans::RenormedDenseHistogram<decltype(part)::value_type>>(ctf.getDictionary<decltype(part)::value_type>(slot, mANSVersion)), int(slot))
   // clang-format off
   MAKECODER(cc.bcIncROF,     CTF::BLCbcIncROF);
   MAKECODER(cc.orbitIncROF,  CTF::BLCorbitIncROF);
@@ -172,24 +172,19 @@ void CTFCoder::createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBa
 size_t CTFCoder::estimateCompressedSize(const CompressedInfos& cc)
 {
   size_t sz = 0;
-  // clang-format off
   // RS FIXME this is very crude estimate, instead, an empirical values should be used
-#define VTP(vec) typename std::remove_reference<decltype(vec)>::type::value_type
-#define ESTSIZE(vec, slot) mCoders[int(slot)] ?                         \
-  rans::calculateMaxBufferSize(vec.size(), reinterpret_cast<const o2::rans::LiteralEncoder64<VTP(vec)>*>(mCoders[int(slot)].get())->getAlphabetRangeBits(), sizeof(VTP(vec)) ) : vec.size()*sizeof(VTP(vec))
 
-  sz += ESTSIZE(cc.bcIncROF,     CTF::BLCbcIncROF);
-  sz += ESTSIZE(cc.orbitIncROF,  CTF::BLCorbitIncROF);
-  sz += ESTSIZE(cc.ndigROF,      CTF::BLCndigROF);
-  sz += ESTSIZE(cc.ndiaROF,      CTF::BLCndiaROF);
-  sz += ESTSIZE(cc.ndiaCrate,    CTF::BLCndiaCrate);
-  sz += ESTSIZE(cc.timeFrameInc, CTF::BLCtimeFrameInc);
-  sz += ESTSIZE(cc.timeTDCInc,   CTF::BLCtimeTDCInc);
-  sz += ESTSIZE(cc.stripID,      CTF::BLCstripID);
-  sz += ESTSIZE(cc.chanInStrip,  CTF::BLCchanInStrip);
-  sz += ESTSIZE(cc.tot,          CTF::BLCtot);
-  sz += ESTSIZE(cc.pattMap,      CTF::BLCpattMap);
-  // clang-format on
+  sz += estimateBufferSize(static_cast<int>(CTF::BLCbcIncROF), cc.bcIncROF);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLCorbitIncROF), cc.orbitIncROF);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLCndigROF), cc.ndigROF);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLCndiaROF), cc.ndiaROF);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLCndiaCrate), cc.ndiaCrate);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLCtimeFrameInc), cc.timeFrameInc);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLCtimeTDCInc), cc.timeTDCInc);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLCstripID), cc.stripID);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLCchanInStrip), cc.chanInStrip);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLCtot), cc.tot);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLCpattMap), cc.pattMap);
   sz *= 2. / 3; // if needed, will be autoexpanded
   LOG(debug) << "Estimated output size is " << sz << " bytes";
   return sz;

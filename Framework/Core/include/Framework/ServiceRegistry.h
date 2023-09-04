@@ -43,9 +43,9 @@ struct NoLocking {
   void unlock() {}
 };
 
-struct CAPABILITY("mutex") MutexLock {
-  void lock() ACQUIRE() { mutex.lock(); }
-  void unlock() RELEASE() { mutex.unlock(); }
+struct O2_DPL_CAPABILITY("mutex") MutexLock {
+  void lock() O2_DPL_ACQUIRE() { mutex.lock(); }
+  void unlock() O2_DPL_RELEASE() { mutex.unlock(); }
   std::mutex& mutex;
 };
 
@@ -83,6 +83,17 @@ struct ServiceRegistry {
   struct Salt {
     short streamId = 0;
     short dataProcessorId = 0;
+  };
+
+  enum struct SpecialStreamId : short {
+    Global = 0,
+    Callback = -1,
+    Invalid = -2
+  };
+
+  enum struct SpecialDataProcessorId : short {
+    Device = -1,
+    Invalid = -2
   };
 
   static constexpr Salt GLOBAL_CONTEXT_SALT{0, 0};
@@ -250,6 +261,9 @@ struct ServiceRegistry {
   mutable std::array<void*, MAX_SERVICES + MAX_DISTANCE> mServicesValue;
   mutable std::array<Meta, MAX_SERVICES + MAX_DISTANCE> mServicesMeta;
   mutable std::array<std::atomic<bool>, MAX_SERVICES + MAX_DISTANCE> mServicesBooked;
+  mutable std::recursive_mutex mMutex;
+  mutable int64_t mLastLock = -1;
+  mutable std::atomic<int> lockCounter = {0};
 
   /// @deprecated old API to be substituted with the ServiceHandle one
   template <class I, class C, enum ServiceKind K = ServiceKind::Serial>
@@ -312,6 +326,13 @@ struct ServiceRegistry {
   /// FIXME: Needs to stay here for the moment as it is used by
   /// the driver and not by one of the data processors.
   void postRenderGUICallbacks(ServiceRegistryRef ref);
+  /// Lock the service registry for a given salt. For
+  /// the moment this is a global lock for anything but stream services.
+  void lock(Salt salt) const O2_DPL_ACQUIRE(mMutex);
+
+  /// Unlock the service registry for a given salt. For
+  /// the moment this is a global unlock for anything but stream services.
+  void unlock(Salt salt) const O2_DPL_RELEASE(mMutex);
 };
 
 } // namespace o2::framework

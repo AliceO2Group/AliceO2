@@ -21,6 +21,25 @@
 namespace o2::framework::raw_parser
 {
 
+int RawParserHelper::sErrorMode = getenv("O2_DPL_RAWPARSER_ERRORMODE") ? atoi(getenv("O2_DPL_RAWPARSER_ERRORMODE")) : 1;
+int RawParserHelper::sCheckIncompleteHBF = getenv("O2_DPL_RAWPARSER_CHECKINCOMPLETEHBF") ? atoi(getenv("O2_DPL_RAWPARSER_CHECKINCOMPLETEHBF")) : 1;
+unsigned long RawParserHelper::sErrors = 0;
+unsigned long RawParserHelper::sErrorLimit = getenv("O2_DPL_RAWPARSER_ERRORLIMIT") ? atoi(getenv("O2_DPL_RAWPARSER_ERRORLIMIT")) : 5;
+unsigned long RawParserHelper::sErrorScale = 1;
+
+bool RawParserHelper::checkPrintError(size_t& localCounter)
+{
+  localCounter++;
+  sErrors++;
+  if (sErrorLimit == 0) {
+    return false;
+  }
+  if (sErrors > sErrorLimit * sErrorScale) {
+    sErrorScale *= 10;
+  }
+  return sErrors % sErrorScale == 0;
+}
+
 const char* RDHFormatter<V7>::sFormatString = "{:>5} {:>4} {:>4} {:>4} {:>4} {:>3} {:>3} {:>3}  {:>1} {:>2}";
 void RDHFormatter<V7>::apply(std::ostream& os, V7 const& header, FormatSpec choice, const char* delimiter)
 {

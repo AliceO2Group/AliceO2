@@ -30,7 +30,7 @@ using namespace o2::framework::expressions;
   }
 
 struct PdgTest {
-  Service<O2DatabasePDG> pdgNew;
+  Service<o2::framework::O2DatabasePDG> pdgNew;
   Service<TDatabasePDG> pdgOld;
   Service<o2::framework::ControlService> control;
 

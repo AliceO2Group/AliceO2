@@ -787,6 +787,25 @@ std::array<float, o2::tpc::GEMSTACKSPERSECTOR * o2::tpc::SECTORSPERSIDE> o2::tpc
   return median;
 }
 
+template <typename DataT>
+std::pair<int, int> o2::tpc::IDCCCDBHelper<DataT>::getNOutliers() const
+{
+  std::pair<int, int> nOutliers{};
+  if (!mPadFlagsMap) {
+    LOGP(info, "Status map not set returning");
+    return nOutliers;
+  }
+  for (CRU cru; !cru.looped(); ++cru) {
+    const auto& calArray = mPadFlagsMap->getCalArray(cru);
+    for (auto flag : calArray.getData()) {
+      if ((flag & PadFlags::flagSkip) == PadFlags::flagSkip) {
+        (cru.side() == Side::A) ? ++nOutliers.first : ++nOutliers.second;
+      }
+    }
+  }
+  return nOutliers;
+}
+
 template class o2::tpc::IDCCCDBHelper<float>;
 template class o2::tpc::IDCCCDBHelper<unsigned short>;
 template class o2::tpc::IDCCCDBHelper<unsigned char>;

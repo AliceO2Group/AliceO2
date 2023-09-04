@@ -45,12 +45,10 @@ std::vector<size_t>
 }
 } // namespace
 
-DataSender::DataSender(ServiceRegistryRef registry,
-                       SendingPolicy const& policy)
+DataSender::DataSender(ServiceRegistryRef registry)
   : mProxy{registry.get<FairMQDeviceProxy>()},
     mRegistry{registry},
     mSpec{registry.get<DeviceSpec const>()},
-    mPolicy{policy},
     mDistinctRoutesIndex{createDistinctOutputRouteIndex(mSpec.outputs)}
 {
   std::scoped_lock<LockableBase(std::recursive_mutex)> lock(mMutex);
@@ -96,7 +94,8 @@ DataSender::DataSender(ServiceRegistryRef registry,
 
 std::unique_ptr<fair::mq::Message> DataSender::create(RouteIndex routeIndex)
 {
-  return mProxy.getOutputTransport(routeIndex)->CreateMessage();
+  auto& proxy = mRegistry.get<FairMQDeviceProxy>();
+  return proxy.getOutputTransport(routeIndex)->CreateMessage();
 }
 
 void DataSender::send(fair::mq::Parts& parts, ChannelIndex channelIndex)
@@ -107,7 +106,8 @@ void DataSender::send(fair::mq::Parts& parts, ChannelIndex channelIndex)
   }
   auto& dataProcessorContext = mRegistry.get<DataProcessorContext>();
   dataProcessorContext.preSendingMessagesCallbacks(mRegistry, parts, channelIndex);
-  mPolicy.send(mProxy, parts, channelIndex, mRegistry);
+  auto& info = mProxy.getOutputChannelInfo(channelIndex);
+  info.policy->send(parts, channelIndex, mRegistry);
 }
 
 void DataSender::reset()

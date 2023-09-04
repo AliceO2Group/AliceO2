@@ -48,12 +48,13 @@ void o2::tpc::IDCDrawHelper::drawSector(const IDCDraw& idc, const unsigned int s
   can->SetTopMargin(0.04f);
   poly->Draw("colz");
 
+  const float sign = (Sector(sector).side() == Side::A) ? 1 : -1;
   for (unsigned int region = startRegion; region < endRegion; ++region) {
     for (unsigned int irow = 0; irow < Mapper::ROWSPERREGION[region]; ++irow) {
       for (unsigned int ipad = 0; ipad < Mapper::PADSPERROW[region][irow]; ++ipad) {
         const auto padNum = Mapper::getGlobalPadNumber(irow, ipad, region);
-        const auto coordinate = coords[padNum];
-        const float yPos = -static_cast<float>(coordinate.yVals[0] + coordinate.yVals[2]) / 2; // local coordinate system is mirrored
+        const auto coordinate = coords[padNum];                                                      // start from y=-13 to +13
+        const float yPos = sign * static_cast<float>(coordinate.yVals[0] + coordinate.yVals[2]) / 2; // local coordinate system is mirrored for C side
         const float xPos = static_cast<float>(coordinate.xVals[0] + coordinate.xVals[2]) / 2;
         poly->Fill(xPos, yPos, idc.getIDC(sector, region, irow, ipad));
       }
@@ -120,11 +121,11 @@ TH2Poly* o2::tpc::IDCDrawHelper::drawSide(const IDCDraw& idc, const o2::tpc::Sid
         for (unsigned int ipad = 0; ipad < Mapper::PADSPERROW[region][irow]; ++ipad) {
           const auto padNum = Mapper::getGlobalPadNumber(irow, ipad, region);
           const float angDeg = 10.f + sector * 20;
-          auto coordinate = coords[padNum];
-          coordinate.rotate(angDeg);
+          auto coordinate = coords[padNum]; // start from y=-13 to +13
+          coordinate.rotate(angDeg);        // start from y=1.2 to +28..
           const float yPos = static_cast<float>(coordinate.yVals[0] + coordinate.yVals[1] + coordinate.yVals[2] + coordinate.yVals[3]) / 4;
           const float xPos = static_cast<float>(coordinate.xVals[0] + coordinate.xVals[1] + coordinate.xVals[2] + coordinate.xVals[3]) / 4;
-          const auto padTmp = getPad(ipad, region, irow, side);
+          const auto padTmp = getPad(ipad, region, irow, side); // IDCs are in pad coordinates. pad0 A side: y=1.2, pad0 C side: y=28.1
           poly->Fill(xPos, yPos, idc.getIDC(sector, region, irow, padTmp));
         }
       }

@@ -30,15 +30,56 @@
 #include "DataFormatsTRD/NoiseCalibration.h"
 #include "Framework/Logger.h"
 #include "TRDCalibration/CalibratorNoise.h"
+#include "CCDB/CcdbApi.h"
+#include "CCDB/BasicCCDBManager.h"
 
 #include <vector>
 #include <string>
+#include <chrono>
 #endif
 
 using namespace o2::trd;
 using namespace o2::trd::constants;
 
 const float almostZero{0.001f};
+
+void printNoisyChannels(long ts = -1)
+{
+  auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
+  ccdbmgr.setURL("https://alice-ccdb.cern.ch"); // or http://ccdb-test.cern.ch:8080
+  if (ts < 0) {
+    ts = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+  }
+  ccdbmgr.setTimestamp(ts);
+  auto channelInfos = ccdbmgr.get<o2::trd::ChannelInfoContainer>("TRD/Calib/ChannelStatus");
+  unsigned int count = 0;
+  auto hist = new TH2F("hist", ";mean;RMS", 1024, 0, 1024, 100, 0, 100);
+  for (size_t idx = 0; idx < channelInfos->getData().size(); ++idx) {
+    auto ch = channelInfos->getChannel(idx);
+    if (ch.getEntries() == 0) {
+      continue;
+    }
+    hist->Fill(ch.getMean(), ch.getRMS());
+    if ((ch.getMean() > 20.f ||
+         // ch.getMean() < 5.f ||
+         ch.getRMS() > 20.f ||
+         (ch.getRMS() < 0.05f && ch.getRMS() > almostZero))) {
+      int det, rob, mcm, channel;
+      HelperMethods::getPositionFromGlobalChannelIndex(idx, det, rob, mcm, channel);
+      int sec = HelperMethods::getSector(det);
+      int stack = HelperMethods::getStack(det);
+      int layer = HelperMethods::getLayer(det);
+      int hcid = det * 2 + (rob % 2);
+      LOGP(info, "{}_{}_{}: HCID({}), ROB({}), MCM({}), channel{}; mean {}, rms {}, nEntries {}",
+           sec, stack, layer, hcid, rob, mcm, channel, ch.getMean(), ch.getRMS(), ch.getEntries());
+      // LOGP(info, "{}_{}_{}: ROB{}, MCM{}, channel{}",
+      // sec, stack, layer, rob, mcm, channel);
+      ++count;
+    }
+  }
+  LOGP(info, "Found in total {} noisy channels", count);
+  hist->Draw("colz");
+}
 
 void sortDigits()
 {
@@ -110,7 +151,7 @@ void plotChamberwise()
     histsFlags.push_back(new TH2F(Form("flags_det_%i", iDet), Form("%i_%i_%i;channel;row", HelperMethods::getSector(iDet), HelperMethods::getStack(iDet), HelperMethods::getLayer(iDet)), 168, -0.5, 167.5, nRows, -0.5, nRows - 0.5));
     histsFlags.back()->SetStats(0);
   }
-  for (int idx = 0; idx < ccdbObject->getData().size(); ++idx) {
+  for (unsigned int idx = 0; idx < ccdbObject->getData().size(); ++idx) {
     const auto& channelInfo = ccdbObject->getData()[idx];
     if (channelInfo.isDummy()) {
       continue;
@@ -154,7 +195,7 @@ void plotNoisyChannels()
   c->Divide(2, 1);
   auto hPH = new TH2F("ph", ";time bin;ADC", 30, -0.5, 29.5, 1024, -0.5, 1023.5);
   auto hADC = new TH1F("adc", ";ADC;counts", 1024, -0.5, 1023.5);
-  for (int idx = 0; idx < ccdbObject->getData().size(); ++idx) {
+  for (unsigned int idx = 0; idx < ccdbObject->getData().size(); ++idx) {
     const auto& channel = ccdbObject->getData()[idx];
     if (channel.isDummy()) {
       continue;

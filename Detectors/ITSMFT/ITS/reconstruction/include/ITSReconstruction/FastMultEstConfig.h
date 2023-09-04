@@ -27,11 +27,11 @@ namespace its
 struct FastMultEstConfig : public o2::conf::ConfigurableParamHelper<FastMultEstConfig> {
   static constexpr int NLayers = o2::itsmft::ChipMappingITS::NLayers;
 
-  /// acceptance correction per layer (relative to 1st one)
-  float accCorr[NLayers] = {1.f, 0.895, 0.825, 0.803, 0.720, 0.962, 0.911};
+  /// acceptance correction per layer (cluster / track)
+  float accCorr[NLayers] = {2.95, 2.46, 2.19, 2.26, 2.06, 3.1, 3.1};
   int firstLayer = 3;                            /// 1st layer to account
   int lastLayer = 6;                             /// last layer to account
-  float imposeNoisePerChip = 1.e-7 * 1024 * 512; // assumed noise, free parameter if<0
+  float imposeNoisePerChip = 1.e-9 * 1024 * 512; // assumed noise, free parameter if<0
 
   // cuts to reject to low or too high mult events
   float cutMultClusLow = 0;   /// reject ROF with estimated cluster mult. below this value (no cut if <0)

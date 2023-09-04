@@ -19,26 +19,35 @@
 #include <unordered_map>
 #include <boost/container_hash/hash.hpp>
 #include <DataFormatsFOCAL/PixelChip.h>
+#include <Rtypes.h>
 
 namespace o2::focal
 {
 
-class PixelMapping
+class PixelMapper
 {
  public:
+  enum class MappingType_t {
+    MAPPING_IB,
+    MAPPING_OB,
+    MAPPING_UNKNOWN
+  };
+
   struct ChipIdentifier {
+    unsigned int mFEEID;
     unsigned int mLaneID;
     unsigned int mChipID;
 
-    bool operator==(const ChipIdentifier& other) const { return mLaneID == other.mLaneID && mChipID == other.mChipID; }
+    bool operator==(const ChipIdentifier& other) const { return mFEEID == other.mFEEID && mLaneID == other.mLaneID && mChipID == other.mChipID; }
   };
   struct ChipPosition {
     unsigned int mColumn;
     unsigned int mRow;
+    unsigned int mLayer;
     bool mInvertColumn;
     bool mInvertRow;
 
-    bool operator==(const ChipPosition& other) const { return mColumn == other.mColumn && mRow == other.mRow; }
+    bool operator==(const ChipPosition& other) const { return mLayer == other.mLayer && mColumn == other.mColumn && mRow == other.mRow; }
   };
   struct ChipIdentifierHasher {
 
@@ -48,6 +57,7 @@ class PixelMapping
     size_t operator()(const ChipIdentifier& s) const
     {
       std::size_t seed = 0;
+      boost::hash_combine(seed, s.mFEEID);
       boost::hash_combine(seed, s.mChipID);
       boost::hash_combine(seed, s.mLaneID);
       return seed;
@@ -57,112 +67,79 @@ class PixelMapping
   class InvalidChipException : public std::exception
   {
    public:
-    InvalidChipException(unsigned int mappingVersion, PixelMapping::ChipIdentifier& identifier) : mMappingVersion(mappingVersion), mIdentifier(identifier), mMessage()
+    InvalidChipException(PixelMapper::ChipIdentifier& identifier) : mIdentifier(identifier), mMessage()
     {
-      mMessage = "Invalid chip identifier for mapping " + std::to_string(mMappingVersion) + ": lane " + std::to_string(mIdentifier.mLaneID) + ", chip " + std::to_string(mIdentifier.mChipID);
+      mMessage = "Invalid chip identifier: FEE " + std::to_string(mIdentifier.mFEEID) + ", lane " + std::to_string(mIdentifier.mLaneID) + ", chip " + std::to_string(mIdentifier.mChipID);
     }
     ~InvalidChipException() noexcept final = default;
 
     const char* what() const noexcept final { return mMessage.data(); }
-    const PixelMapping::ChipIdentifier& getIdentifier() const { return mIdentifier; }
+    const PixelMapper::ChipIdentifier& getIdentifier() const { return mIdentifier; }
     unsigned int getLane() const noexcept { return mIdentifier.mLaneID; }
     unsigned int getChipID() const noexcept { return mIdentifier.mChipID; }
-    int getMappingVersion() const noexcept { return mMappingVersion; }
+    unsigned int getFEEID() const noexcept { return mIdentifier.mFEEID; }
     void print(std::ostream& stream) const;
 
    private:
-    unsigned int mMappingVersion;
-    PixelMapping::ChipIdentifier mIdentifier;
+    PixelMapper::ChipIdentifier mIdentifier;
     std::string mMessage;
   };
 
-  class VersionException : public std::exception
+  class UninitException : public std::exception
   {
    public:
-    VersionException(unsigned int version) : mMappingVersion(version), mMessage() {}
-    ~VersionException() noexcept final = default;
+    UninitException() = default;
+    ~UninitException() noexcept final = default;
 
-    const char* what() const noexcept final { return mMessage.data(); }
-    int getMappingVersion() const noexcept { return mMappingVersion; }
+    const char* what() const noexcept final { return "Mapping is not initalized"; }
     void print(std::ostream& stream) const;
-
-   private:
-    unsigned int mMappingVersion;
-    std::string mMessage;
   };
 
-  PixelMapping() = default;
-  PixelMapping(unsigned int version);
-  virtual ~PixelMapping() = default;
-
-  ChipPosition getPosition(unsigned int laneID, unsigned int chipID) const;
-  ChipPosition getPosition(const PixelChip& chip) const
+  class MappingNotSetException : public std::exception
   {
-    return getPosition(chip.mLaneID, chip.mChipID);
+   public:
+    MappingNotSetException() = default;
+    ~MappingNotSetException() noexcept final = default;
+    const char* what() const noexcept final { return "Mapping file not set"; }
+    void print(std::ostream& stream) const;
   };
 
-  virtual unsigned int getNumberOfRows() const = 0;
-  virtual unsigned int getNumberOfColumns() const = 0;
-
- protected:
-  int mVersion = -1;
-  bool mUseLanes = false;
-  std::unordered_map<ChipIdentifier, ChipPosition, ChipIdentifierHasher> mMapping;
-};
-
-class PixelMappingOB : public PixelMapping
-{
- public:
-  PixelMappingOB() = default;
-  PixelMappingOB(unsigned int version);
-  ~PixelMappingOB() final = default;
-
-  void init(unsigned int version);
-  unsigned int getNumberOfRows() const final { return 6; }
-  unsigned int getNumberOfColumns() const final { return 7; }
-
- private:
-  void buildVersion0();
-  void buildVersion1();
-};
-
-class PixelMappingIB : public PixelMapping
-{
- public:
-  PixelMappingIB() = default;
-  PixelMappingIB(unsigned int version);
-  ~PixelMappingIB() final = default;
-
-  void init(unsigned int version);
-  unsigned int getNumberOfRows() const final { return 6; }
-  unsigned int getNumberOfColumns() const final { return 3; }
-
- private:
-  void buildVersion0();
-  void buildVersion1();
-};
-
-class PixelMapper
-{
- public:
-  enum class MappingType_t {
-    MAPPING_IB,
-    MAPPING_OB
-  };
   PixelMapper(MappingType_t mappingtype);
   ~PixelMapper() = default;
 
-  const PixelMapping& getMapping(unsigned int feeID) const;
+  ChipPosition getPosition(unsigned int feeID, unsigned int laneID, unsigned int chipID) const;
+  ChipPosition getPosition(unsigned int feeID, const PixelChip& chip) const
+  {
+    return getPosition(feeID, chip.mLaneID, chip.mChipID);
+  };
+
+  int getNumberOfColumns() const { return mNumberOfColumns; }
+  int getNumberOfRows() const { return mNumberOfRows; }
   MappingType_t getMappingType() const { return mMappingType; }
 
+  void setMappingFile(const std::string_view mappingfile, MappingType_t mappingtype)
+  {
+    mMappingFile = mappingfile;
+    mMappingType = mappingtype;
+    init();
+  }
+
  private:
-  MappingType_t mMappingType;
-  std::array<std::shared_ptr<PixelMapping>, 2> mMappings;
+  void checkInitialized() const;
+  void init();
+  std::unordered_map<ChipIdentifier, ChipPosition, ChipIdentifierHasher> mMapping;
+  std::string mMappingFile;
+  MappingType_t mMappingType = MappingType_t::MAPPING_UNKNOWN;
+  int mNumberOfColumns = 0;
+  int mNumberOfRows = 0;
+
+  ClassDefNV(PixelMapper, 1);
 };
 
-std::ostream& operator<<(std::ostream& stream, const PixelMapping::InvalidChipException& error);
-std::ostream& operator<<(std::ostream& stream, const PixelMapping::VersionException& error);
+std::ostream& operator<<(std::ostream& stream, const PixelMapper::InvalidChipException& error);
+std::ostream& operator<<(std::ostream& stream, const PixelMapper::UninitException& error);
+std::ostream& operator<<(std::ostream& stream, const PixelMapper::MappingNotSetException& error);
 
 } // namespace o2::focal
 
-#endif // ALICEO2_FOCAL_PIXELMAPPER_H
+#endif // ALICEO2_FOCAL_PixelMapper_H

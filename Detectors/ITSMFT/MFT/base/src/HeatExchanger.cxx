@@ -26,6 +26,7 @@
 #include "MFTBase/Constants.h"
 #include "MFTBase/HeatExchanger.h"
 #include "MFTBase/Geometry.h"
+#include "MFTBase/MFTBaseParam.h"
 
 using namespace o2::mft;
 
@@ -78,9 +79,17 @@ HeatExchanger::HeatExchanger()
     mAngle4fifth(),
     mRadius4fifth()
 {
+  auto& mftBaseParam = MFTBaseParam::Instance();
+
   mRWater = 0.1 / 2.; // water pipe diameter 1 mm
   mDRPipe = 0.0025;   // water pipe thickness 25 microns
-  mHeatExchangerThickness = 1.398;
+
+  // for the chips aligment --> decrease of the HE thickness then increase of the rohacell density
+  Double_t decreaseHE = 0.0;
+  if (mftBaseParam.buildAlignment) {
+    decreaseHE = 0.4;
+  }
+  mHeatExchangerThickness = 1.398 - decreaseHE;
   mCarbonThickness = (0.0290) / 2.; // half thickness of the carbon plate
   initParameters();
 }
@@ -229,8 +238,8 @@ void HeatExchanger::createManifold(Int_t disk)
   lengthTop1[0] = 5.91;
   lengthTop1[1] = 5.91;
   lengthTop1[2] = 5.91;
-  //lengthTop1[3] = 8.40;
-  //lengthTop1[4] = 8.40;
+  // lengthTop1[3] = 8.40;
+  // lengthTop1[4] = 8.40;
   lengthTop1[3] = 5.91;
   lengthTop1[4] = 5.91;
 
@@ -576,11 +585,11 @@ void HeatExchanger::createManifold(Int_t disk)
   tcoverBulge->RegisterYourself();
 
   Double_t holeRadius[5];
-  holeRadius[0] = 0.25; //0.207;    overlap issue of thread, increase up to 0.25, fm
-  holeRadius[1] = 0.25; //0.207;
-  holeRadius[2] = 0.25; //0.207;
-  holeRadius[3] = 0.25; //0.207;
-  holeRadius[4] = 0.25; //0.207;
+  holeRadius[0] = 0.25; // 0.207;    overlap issue of thread, increase up to 0.25, fm
+  holeRadius[1] = 0.25; // 0.207;
+  holeRadius[2] = 0.25; // 0.207;
+  holeRadius[3] = 0.25; // 0.207;
+  holeRadius[4] = 0.25; // 0.207;
   Double_t holeOffset[5];
   holeOffset[0] = 0.65;
   holeOffset[1] = 0.65;
@@ -613,33 +622,33 @@ void HeatExchanger::createManifold(Int_t disk)
   // Manifold3
   ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-  Double_t innerRadiusPlug1 = 0.4 / 2.; //fm 0.600 / 2; //0.5
-  Double_t outerRadiusPlug1 = 0.6 / 2.; //fm 0.99 / 2;  //0.8
+  Double_t innerRadiusPlug1 = 0.4 / 2.; // fm 0.600 / 2; //0.5
+  Double_t outerRadiusPlug1 = 0.6 / 2.; // fm 0.99 / 2;  //0.8
   Double_t thicknessPlug1 = 0.105;
 
   auto* plug1 = new TGeoTube(Form("plug1MF%d", disk), innerRadiusPlug1, outerRadiusPlug1, thicknessPlug1 / 2);
 
   Double_t innerRadiusPlug2 = innerRadiusPlug1;
-  Double_t outerMinRadiusPlug2 = 0.6 / 2.; //fm 0.94 / 2; // 0.85
+  Double_t outerMinRadiusPlug2 = 0.6 / 2.; // fm 0.94 / 2; // 0.85
   Double_t outerMaxRadiusPlug2 = outerRadiusPlug1;
   Double_t thicknessPlug2 = 0.025;
 
   auto* plug2 = new TGeoCone(Form("plug2MF%d", disk), thicknessPlug2 / 2, innerRadiusPlug2, outerMaxRadiusPlug2, innerRadiusPlug2, outerMinRadiusPlug2);
 
   Double_t innerRadiusPlug3 = innerRadiusPlug1;
-  Double_t outerRadiusPlug3 = 0.5 / 2; //fm 0.720 / 2;
+  Double_t outerRadiusPlug3 = 0.5 / 2; // fm 0.720 / 2;
   Double_t thicknessPlug3 = 0.086;
 
   auto* plug3 = new TGeoTube(Form("plug3MF%d", disk), innerRadiusPlug3, outerRadiusPlug3, thicknessPlug3 / 2);
 
   Double_t innerRadiusPlug4 = innerRadiusPlug1;
-  Double_t outerRadiusPlug4 = 0.7 / 2.; //fm 1.100 / 2; // 0.7
-  Double_t thicknessPlug4 = 0.1;        //fm 0.534;  // 0.05
+  Double_t outerRadiusPlug4 = 0.7 / 2.; // fm 1.100 / 2; // 0.7
+  Double_t thicknessPlug4 = 0.1;        // fm 0.534;  // 0.05
 
   auto* plug4 = new TGeoTube(Form("plug4MF%d", disk), innerRadiusPlug4, outerRadiusPlug4, thicknessPlug4 / 2);
 
   Double_t innerRadiusPlug5 = innerRadiusPlug1;
-  Double_t outerRadiusPlug5 = 0.9 / 2.; //fm 1.270 / 2; // 0.9
+  Double_t outerRadiusPlug5 = 0.9 / 2.; // fm 1.270 / 2; // 0.9
   Double_t thicknessPlug5 = 0.700;
 
   auto* plug5main = new TGeoTube(Form("plug5mainMF%d", disk), innerRadiusPlug5, outerRadiusPlug5, thicknessPlug5 / 2);
@@ -833,14 +842,14 @@ void HeatExchanger::createManifold(Int_t disk)
   TGeoRotation* rotation1 = new TGeoRotation(Form("rotation1MF%d", disk), 90, 90., 180.);
 
   transformation1 =
-    //new TGeoCombiTrans(mSupportXDimensions[disk][0] / 2 + mfZ / 2 + fShift, mfY / 2 + deltay, mZPlan[disk], rotation1);
+    // new TGeoCombiTrans(mSupportXDimensions[disk][0] / 2 + mfZ / 2 + fShift, mfY / 2 + deltay, mZPlan[disk], rotation1);
     new TGeoCombiTrans(mSupportXDimensions[disk][0] / 2 + 0.1 + thicknessTotMF / 2,
                        mHalfDiskGap + mSupportYDimensions[disk][0] / 2, mZPlan[disk], rotation1);
   mHalfDisk->AddNode(MF01, 1, transformation1);
 
   TGeoRotation* rotationplug1 = new TGeoRotation(Form("rotationplug1MF%d", disk), -90, 90., 90.);
   transformationplug1 =
-    //new TGeoCombiTrans(mSupportXDimensions[disk][0] / 2 + mfZ / 2 + fShift + thicknessTotMF/2 + refposPlug - (thicknessPlug8 + thicknessPlug9 + thicknessPlug10 + thicknessPlug11),mfY / 2 + deltay - ((lengthBody)/2 - holeOffset[3]), mZPlan[disk], rotationplug1);
+    // new TGeoCombiTrans(mSupportXDimensions[disk][0] / 2 + mfZ / 2 + fShift + thicknessTotMF/2 + refposPlug - (thicknessPlug8 + thicknessPlug9 + thicknessPlug10 + thicknessPlug11),mfY / 2 + deltay - ((lengthBody)/2 - holeOffset[3]), mZPlan[disk], rotationplug1);
     new TGeoCombiTrans(mSupportXDimensions[disk][0] / 2 + 0.1 + thicknessTotMF / 2 + thicknessTotMF / 2 + refposPlug - (thicknessPlug8 + thicknessPlug9 + thicknessPlug10 + thicknessPlug11),
                        mHalfDiskGap + mSupportYDimensions[disk][0] / 2 - ((lengthBody) / 2 - holeOffset[3]), mZPlan[disk], rotationplug1);
   mHalfDisk->AddNode(MFplug01, 1, transformationplug1);
@@ -3208,7 +3217,7 @@ void HeatExchanger::createHalfDisk4(Int_t half)
     TGeoVolume* waterTorus1 = gGeoManager->MakeTorus(Form("waterTorus1%d_D4_H%d", itube, half), mWater, mRadius4[itube], 0., mRWater, 0., mAngle4[itube]);
     rotation = new TGeoRotation("rotation", 180., -90., 0.);
     transformation = new TGeoCombiTrans(mRadius4[itube] + mXPosition4[itube] - mHalfDiskGap, 0., mSupportXDimensions[4][0] / 2. + mMoreLength - mLWater4[itube], rotation);
-    //cooling->AddNode(waterTorus1, ivolume++, transformation);
+    // cooling->AddNode(waterTorus1, ivolume++, transformation);
 
     TGeoVolume* waterTube2 = gGeoManager->MakeTube(Form("waterTube2%d_D4_H%d", itube, half), mWater, 0., mRWater, mLpartial4[itube] / 2.);
     rotation = new TGeoRotation("rotation", 90., 180 - mAngle4[itube], 0.);

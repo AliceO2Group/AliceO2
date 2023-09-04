@@ -37,6 +37,26 @@ void RawDecoderSpec::init(framework::InitContext& ctx)
     LOG(info) << "Display additional information in case of inconsistency between pixel links";
     mDisplayInconsistent = true;
   }
+  auto mappingfile = ctx.options().get<std::string>("pixelmapping");
+  PixelMapper::MappingType_t mappingtype = PixelMapper::MappingType_t::MAPPING_UNKNOWN;
+  auto chiptype = ctx.options().get<std::string>("pixeltype");
+  if (chiptype == "IB") {
+    LOG(info) << "Using mapping type: IB";
+    mappingtype = PixelMapper::MappingType_t::MAPPING_IB;
+  } else if (chiptype == "OB") {
+    LOG(info) << "Using mapping type: OB";
+    mappingtype = PixelMapper::MappingType_t::MAPPING_OB;
+  } else {
+    LOG(fatal) << "Unkown mapping type for pixels: " << chiptype;
+  }
+  if (mappingfile == "default") {
+    LOG(info) << "Using default pixel mapping for pixel type " << chiptype;
+    mPixelMapping = std::make_unique<PixelMapper>(mappingtype);
+  } else {
+    LOG(info) << "Using user-defined mapping: " << mappingfile;
+    mPixelMapping = std::make_unique<PixelMapper>(PixelMapper::MappingType_t::MAPPING_UNKNOWN);
+    mPixelMapping->setMappingFile(mappingfile, mappingtype);
+  }
 }
 
 void RawDecoderSpec::run(framework::ProcessingContext& ctx)
@@ -68,6 +88,24 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
         if (mDebugMode) {
           o2::raw::RDHUtils::printRDH(rdh);
         }
+
+        if (o2::raw::RDHUtils::getMemorySize(rdh) > o2::raw::RDHUtils::getHeaderSize(rdh)) {
+          // non-0 payload size:
+          auto payloadsize = o2::raw::RDHUtils::getMemorySize(rdh) - o2::raw::RDHUtils::getHeaderSize(rdh);
+          int endpoint = static_cast<int>(o2::raw::RDHUtils::getEndPointID(rdh));
+          auto fee = o2::raw::RDHUtils::getFEEID(rdh);
+          LOG(debug) << "Next RDH: ";
+          LOG(debug) << "Found fee                   0x" << std::hex << fee << std::dec << " (System " << (fee == 0xcafe ? "Pads" : "Pixels") << ")";
+          LOG(debug) << "Found trigger BC:           " << o2::raw::RDHUtils::getTriggerBC(rdh);
+          LOG(debug) << "Found trigger Oribt:        " << o2::raw::RDHUtils::getTriggerOrbit(rdh);
+          LOG(debug) << "Found payload size:         " << payloadsize;
+          LOG(debug) << "Found offset to next:       " << o2::raw::RDHUtils::getOffsetToNext(rdh);
+          LOG(debug) << "Stop bit:                   " << (o2::raw::RDHUtils::getStop(rdh) ? "yes" : "no");
+          LOG(debug) << "Number of GBT words:        " << (payloadsize * sizeof(char) / (fee == 0xcafe ? sizeof(o2::focal::PadGBTWord) : sizeof(o2::itsmft::GBTWord)));
+          auto page_payload = databuffer.subspan(currentpos + o2::raw::RDHUtils::getHeaderSize(rdh), payloadsize);
+          std::copy(page_payload.begin(), page_payload.end(), std::back_inserter(rawbuffer));
+        }
+
         auto trigger = o2::raw::RDHUtils::getTriggerType(rdh);
         if (trigger & o2::trigger::HB) {
           // HB trigger received
@@ -130,8 +168,8 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
             } else {
               LOG(debug) << "Payload size 0 - skip empty HBF";
             }
-          } else {
             rawbuffer.clear();
+          } else {
             // Get interaction record for HBF
             currentIR.bc = o2::raw::RDHUtils::getTriggerBC(rdh);
             currentIR.orbit = o2::raw::RDHUtils::getTriggerOrbit(rdh);
@@ -140,26 +178,6 @@ void RawDecoderSpec::run(framework::ProcessingContext& ctx)
           }
         }
 
-        if (o2::raw::RDHUtils::getMemorySize(rdh) == o2::raw::RDHUtils::getHeaderSize(rdh)) {
-          // Skip page if emtpy
-          currentpos += o2::raw::RDHUtils::getOffsetToNext(rdh);
-          continue;
-        }
-
-        // non-0 payload size:
-        auto payloadsize = o2::raw::RDHUtils::getMemorySize(rdh) - o2::raw::RDHUtils::getHeaderSize(rdh);
-        int endpoint = static_cast<int>(o2::raw::RDHUtils::getEndPointID(rdh));
-        auto fee = o2::raw::RDHUtils::getFEEID(rdh);
-        LOG(debug) << "Next RDH: ";
-        LOG(debug) << "Found fee                   0x" << std::hex << fee << std::dec << " (System " << (fee == 0xcafe ? "Pads" : "Pixels") << ")";
-        LOG(debug) << "Found trigger BC:           " << o2::raw::RDHUtils::getTriggerBC(rdh);
-        LOG(debug) << "Found trigger Oribt:        " << o2::raw::RDHUtils::getTriggerOrbit(rdh);
-        LOG(debug) << "Found payload size:         " << payloadsize;
-        LOG(debug) << "Found offset to next:       " << o2::raw::RDHUtils::getOffsetToNext(rdh);
-        LOG(debug) << "Stop bit:                   " << (o2::raw::RDHUtils::getStop(rdh) ? "yes" : "no");
-        LOG(debug) << "Number of GBT words:        " << (payloadsize * sizeof(char) / (fee == 0xcafe ? sizeof(o2::focal::PadGBTWord) : sizeof(o2::itsmft::GBTWord)));
-        auto page_payload = databuffer.subspan(currentpos + o2::raw::RDHUtils::getHeaderSize(rdh), payloadsize);
-        std::copy(page_payload.begin(), page_payload.end(), std::back_inserter(rawbuffer));
         currentpos += o2::raw::RDHUtils::getOffsetToNext(rdh);
       }
     } else {
@@ -301,9 +319,6 @@ void RawDecoderSpec::decodePadEvent(const gsl::span<const char> padWords, o2::In
 int RawDecoderSpec::decodePixelData(const gsl::span<const char> pixelWords, o2::InteractionRecord& hbIR, int feeID)
 {
   LOG(debug) << "Decoding pixel data for Orbit " << hbIR.orbit << ", BC " << hbIR.bc;
-  auto fee = feeID & 0x00FF,
-       branch = (feeID & 0x0F00) >> 8;
-  int layer = fee < 2 ? 0 : 1;
 
   gsl::span<const o2::itsmft::GBTWord> pixelpayload(reinterpret_cast<const o2::itsmft::GBTWord*>(pixelWords.data()), pixelWords.size() / sizeof(o2::itsmft::GBTWord));
   LOG(debug) << pixelWords.size() << " Bytes -> " << pixelpayload.size() << " GBT words";
@@ -344,7 +359,14 @@ int RawDecoderSpec::decodePixelData(const gsl::span<const char> pixelWords, o2::
     if (triggerfound != foundHBF->second.mPixelTriggers.end()) {
       //
       auto index = triggerfound - foundHBF->second.mPixelTriggers.begin();
-      fillChipsToLayer(foundHBF->second.mPixelEvent[index][layer], chipdata, fee);
+      for (const auto& chip : chipdata) {
+        try {
+          auto chipPosition = mPixelMapping->getPosition(feeID, chip);
+          fillChipToLayer(foundHBF->second.mPixelEvent[index][chipPosition.mLayer], chip, feeID);
+        } catch (PixelMapper::InvalidChipException& e) {
+          LOG(warning) << e;
+        }
+      }
       foundHBF->second.mFEEs[index].push_back(feeID);
     } else {
       // new trigger
@@ -352,7 +374,14 @@ int RawDecoderSpec::decodePixelData(const gsl::span<const char> pixelWords, o2::
       foundHBF->second.mPixelEvent.push_back(nextevent);
       foundHBF->second.mPixelTriggers.push_back(trigger);
       auto& current = foundHBF->second.mPixelEvent.back();
-      fillChipsToLayer(current[layer], chipdata, fee);
+      for (const auto& chip : chipdata) {
+        try {
+          auto chipPosition = mPixelMapping->getPosition(feeID, chip);
+          fillChipToLayer(current[chipPosition.mLayer], chip, feeID);
+        } catch (PixelMapper::InvalidChipException& e) {
+          LOG(warning) << e;
+        }
+      }
       foundHBF->second.mFEEs.push_back({feeID});
     }
     nevents++;
@@ -398,16 +427,14 @@ std::array<o2::focal::PadLayerEvent, o2::focal::constants::PADS_NLAYERS> RawDeco
   return result;
 }
 
-void RawDecoderSpec::fillChipsToLayer(o2::focal::PixelLayerEvent& pixellayer, const gsl::span<const o2::focal::PixelChip>& chipData, int feeID)
+void RawDecoderSpec::fillChipToLayer(o2::focal::PixelLayerEvent& pixellayer, const o2::focal::PixelChip& chipData, int feeID)
 {
   int nhitsBefore = 0;
   int nchipsBefore = pixellayer.getChips().size();
   for (auto& chip : pixellayer.getChips()) {
     nhitsBefore += chip.mHits.size();
   }
-  for (const auto& chip : chipData) {
-    pixellayer.addChip(feeID, chip.mLaneID, chip.mChipID, chip.mStatusCode, chip.mHits);
-  }
+  pixellayer.addChip(feeID, chipData.mLaneID, chipData.mChipID, chipData.mStatusCode, chipData.mHits);
   int nhitsAfter = 0;
   int nchipsAfter = pixellayer.getChips().size();
   for (auto& chip : pixellayer.getChips()) {
@@ -473,7 +500,7 @@ void RawDecoderSpec::buildEvents()
         }
         std::copy(eventHits.begin(), eventHits.end(), std::back_inserter(mOutputPixelHits));
         std::copy(eventPixels.begin(), eventPixels.end(), std::back_inserter(mOutputPixelChips));
-        mOutputTriggerRecords.emplace_back(hbf.mPixelTriggers[itrg], startPads, 0, startHits, eventPixels.size(), startHits, eventHits.size());
+        mOutputTriggerRecords.emplace_back(hbf.mPixelTriggers[itrg], startPads, 0, startChips, eventPixels.size(), startHits, eventHits.size());
       }
     } else if (mTimeframeHasPadData) {
       // only pad data available, set pad layers and use IR of the HBF
@@ -487,7 +514,7 @@ void RawDecoderSpec::buildEvents()
         for (std::size_t ilayer = 0; ilayer < constants::PADS_NLAYERS; ilayer++) {
           mOutputPadLayers.push_back(hbf.mPadEvents[itrg][ilayer]);
         }
-        mOutputTriggerRecords.emplace_back(hbir, startPads, constants::PADS_NLAYERS, startHits, 0, startHits, 0);
+        mOutputTriggerRecords.emplace_back(hbir, startPads, constants::PADS_NLAYERS, startChips, 0, startHits, 0);
       }
     }
   }
@@ -659,5 +686,7 @@ o2::framework::DataProcessorSpec o2::focal::reco_workflow::getRawDecoderSpec(boo
                                           o2::framework::adaptFromTask<o2::focal::reco_workflow::RawDecoderSpec>(outputSubspec, usePadData, usePixelData, debugMode),
                                           o2::framework::Options{
                                             {"filterIncomplete", o2::framework::VariantType::Bool, false, {"Filter incomplete pixel events"}},
-                                            {"displayInconsistent", o2::framework::VariantType::Bool, false, {"Display information about inconsistent timeframes"}}}};
+                                            {"displayInconsistent", o2::framework::VariantType::Bool, false, {"Display information about inconsistent timeframes"}},
+                                            {"pixeltype", o2::framework::VariantType::String, "OB", {"Pixel mapping type"}},
+                                            {"pixelmapping", o2::framework::VariantType::String, "default", {"File with pixel mapping"}}}};
 }

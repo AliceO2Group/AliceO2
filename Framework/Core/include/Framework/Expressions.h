@@ -14,12 +14,10 @@
 #include "Framework/BasicOps.h"
 #include "Framework/CompilerBuiltins.h"
 #include "Framework/Pack.h"
-#include "Framework/CheckTypes.h"
 #include "Framework/Configurable.h"
 #include "Framework/Variant.h"
 #include "Framework/InitContext.h"
 #include "Framework/ConfigParamRegistry.h"
-#include "Framework/RootConfigParamHelpers.h"
 #include "Framework/RuntimeError.h"
 #include <arrow/type_fwd.h>
 #include <gandiva/gandiva_aliases.h>
@@ -36,6 +34,7 @@ namespace gandiva
 {
 class SelectionVector;
 class Filter;
+class Projector;
 } // namespace gandiva
 #endif
 #include <variant>
@@ -338,72 +337,28 @@ inline Node npow(Node left, T right)
   }
 
 BINARY_FUNC_NODES(Atan2, natan2);
+#define ncheckbit(_node_, _bit_) ((_node_ & _bit_) == _bit_)
 
 /// unary functions on nodes
-inline Node nround(Node left)
-{
-  return Node{OpNode{BasicOp::Round}, std::move(left)};
-}
+#define UNARY_FUNC_NODES(_func_, _node_)                  \
+  inline Node _node_(Node arg)                            \
+  {                                                       \
+    return Node{OpNode{BasicOp::_func_}, std::move(arg)}; \
+  }
 
-inline Node nsqrt(Node left)
-{
-  return Node{OpNode{BasicOp::Sqrt}, std::move(left)};
-}
-
-inline Node nexp(Node left)
-{
-  return Node{OpNode{BasicOp::Exp}, std::move(left)};
-}
-
-inline Node nlog(Node left)
-{
-  return Node{OpNode{BasicOp::Log}, std::move(left)};
-}
-
-inline Node nlog10(Node left)
-{
-  return Node{OpNode{BasicOp::Log10}, std::move(left)};
-}
-
-inline Node nabs(Node left)
-{
-  return Node{OpNode{BasicOp::Abs}, std::move(left)};
-}
-
-inline Node nsin(Node left)
-{
-  return Node{OpNode{BasicOp::Sin}, std::move(left)};
-}
-
-inline Node ncos(Node left)
-{
-  return Node{OpNode{BasicOp::Cos}, std::move(left)};
-}
-
-inline Node ntan(Node left)
-{
-  return Node{OpNode{BasicOp::Tan}, std::move(left)};
-}
-
-inline Node nasin(Node left)
-{
-  return Node{OpNode{BasicOp::Asin}, std::move(left)};
-}
-
-inline Node nacos(Node left)
-{
-  return Node{OpNode{BasicOp::Acos}, std::move(left)};
-}
-
-inline Node natan(Node left)
-{
-  return Node{OpNode{BasicOp::Atan}, std::move(left)};
-}
-
-inline Node nbitwise_not(Node left)
-{
-  return Node{OpNode{BasicOp::BitwiseNot}, std::move(left)};
-}
+UNARY_FUNC_NODES(Round, nround);
+UNARY_FUNC_NODES(Sqrt, nsqrt);
+UNARY_FUNC_NODES(Exp, nexp);
+UNARY_FUNC_NODES(Log, nlog);
+UNARY_FUNC_NODES(Log10, nlog10);
+UNARY_FUNC_NODES(Abs, nabs);
+UNARY_FUNC_NODES(Sin, nsin);
+UNARY_FUNC_NODES(Cos, ncos);
+UNARY_FUNC_NODES(Tan, ntan);
+UNARY_FUNC_NODES(Asin, nasin);
+UNARY_FUNC_NODES(Acos, nacos);
+UNARY_FUNC_NODES(Atan, natan);
+UNARY_FUNC_NODES(BitwiseNot, nbitwise_not);
 
 /// conditionals
 template <typename C, typename T, typename E>
@@ -528,7 +483,7 @@ std::shared_ptr<gandiva::Projector> createProjectorHelper(size_t nColumns, expre
                                                           std::vector<std::shared_ptr<arrow::Field>> const& fields);
 
 template <typename... C>
-std::shared_ptr<gandiva::Projector> createProjectors(framework::pack<C...> columns, std::vector<std::shared_ptr<arrow::Field>> const& fields, gandiva::SchemaPtr schema)
+std::shared_ptr<gandiva::Projector> createProjectors(framework::pack<C...>, std::vector<std::shared_ptr<arrow::Field>> const& fields, gandiva::SchemaPtr schema)
 {
   std::array<expressions::Projector, sizeof...(C)> projectors{{std::move(C::Projector())...}};
 

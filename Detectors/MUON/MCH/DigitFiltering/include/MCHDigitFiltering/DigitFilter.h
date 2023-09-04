@@ -12,15 +12,19 @@
 #ifndef O2_MCH_DIGITFILTERING_DIGITFILTER_H_
 #define O2_MCH_DIGITFILTERING_DIGITFILTER_H_
 
-#include <functional>
 #include "DataFormatsMCH/Digit.h"
+#include "MCHStatus/StatusMap.h"
+#include <functional>
 
 namespace o2::mch
 {
-
 typedef std::function<bool(const Digit&)> DigitFilter;
 
-DigitFilter createDigitFilter(uint32_t minADC, bool rejectBackground, bool selectSignal);
+DigitFilter createDigitFilter(uint32_t minADC,
+                              bool rejectBackground,
+                              bool selectSignal,
+                              const StatusMap& statusMap = {},
+                              uint32_t statusMask = 0);
 
 } // namespace o2::mch
 

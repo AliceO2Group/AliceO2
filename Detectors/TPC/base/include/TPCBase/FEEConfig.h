@@ -20,6 +20,7 @@
 #include <string_view>
 #include <unordered_map>
 #include <vector>
+#include <cstdint>
 
 #include "Rtypes.h"
 
@@ -45,6 +46,19 @@ struct CRUConfig {
 };
 
 struct FEEConfig {
+  /// Tag definitions for TPC/Config/FEE
+  enum class Tags : uint8_t {
+    Unspecified = 0,    ///< Unspecified
+    TestWithZS = 1,     ///< Test configuration with ZS
+    Pedestals = 2,      ///< Configuration for Pedestal data taking
+    Pulser = 3,         ///< Configuration for Pulser data taking
+    Laser = 4,          ///< Configuration for Laser data taking
+    Cosmics = 5,        ///< Configuration for Cosmics data taking
+    Physics35sigma = 6, ///< Physics configuration with 3.5 sigma thresholds
+    Physics30sigma = 7, ///< Physics configuration with 3.0 sigma thresholds
+    Physics25sigma = 8, ///< Physics configuration with 2.5 sigma thresholds
+  };
+
   using CalPadMapType = std::unordered_map<std::string, CalPad>;
   FEEConfig() { cruConfig.resize(CRU::MaxCRU); }
   // FEEConfig& operator=(const FEEConfig& config)
@@ -55,6 +69,7 @@ struct FEEConfig {
 
   CalPadMapType padMaps;            ///< pad-wise configuration data
   std::vector<CRUConfig> cruConfig; ///< CRU configuration values
+  Tags tag = Tags::Unspecified;     ///< tag number
 
   void clear()
   {
@@ -67,7 +82,7 @@ struct FEEConfig {
     }
   }
 
-  ClassDefNV(FEEConfig, 1);
+  ClassDefNV(FEEConfig, 2);
 };
 
 } // namespace o2::tpc

@@ -29,7 +29,7 @@ unsigned int DefaultsHelpers::pipelineLength()
   // just some reasonable numers
   // The number should really be tuned at runtime for each processor.
   if (deploymentMode == DeploymentMode::OnlineDDS || deploymentMode == DeploymentMode::OnlineECS || deploymentMode == DeploymentMode::FST) {
-    return 256;
+    return 512;
   } else {
     return 64;
   }

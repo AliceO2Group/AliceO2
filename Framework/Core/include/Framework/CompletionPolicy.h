@@ -13,6 +13,7 @@
 
 #include "Framework/DataRef.h"
 #include "Framework/InputSpec.h"
+#include "Framework/ServiceRegistryRef.h"
 
 #include <functional>
 #include <string>
@@ -64,7 +65,7 @@ struct CompletionPolicy {
   using Matcher = std::function<bool(DeviceSpec const& device)>;
   using InputSetElement = DataRef;
   using Callback = std::function<CompletionOp(InputSpan const&)>;
-  using CallbackFull = std::function<CompletionOp(InputSpan const&, std::vector<InputSpec> const&)>;
+  using CallbackFull = std::function<CompletionOp(InputSpan const&, std::vector<InputSpec> const&, ServiceRegistryRef&)>;
   using CallbackConfigureRelayer = std::function<void(DataRelayer&)>;
 
   /// Constructor

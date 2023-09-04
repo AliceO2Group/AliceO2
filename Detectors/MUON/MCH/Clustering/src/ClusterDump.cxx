@@ -30,7 +30,7 @@
 // GG
 #include <iostream>
 
-#include <FairMQLogger.h>
+#include "Framework/Logger.h"
 
 #include "MCHClustering/ClusterDump.h"
 

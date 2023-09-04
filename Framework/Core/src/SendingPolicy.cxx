@@ -13,6 +13,7 @@
 #include "Framework/DeviceSpec.h"
 #include "Framework/DataRefUtils.h"
 #include "Framework/DataProcessingHeader.h"
+#include "Framework/DataRelayer.h"
 #include "Headers/DataHeaderHelpers.h"
 #include "Framework/Logger.h"
 #include "Headers/STFHeader.h"
@@ -28,8 +29,25 @@ std::vector<SendingPolicy> SendingPolicy::createDefaultPolicies()
 {
   return {SendingPolicy{
             .name = "dispatcher",
-            .matcher = [](DeviceSpec const& spec, ConfigContext const&) { return spec.name == "Dispatcher" || DeviceSpecHelpers::hasLabel(spec, "Dispatcher"); },
-            .send = [](FairMQDeviceProxy& proxy, fair::mq::Parts& parts, ChannelIndex channelIndex, ServiceRegistryRef registry) {
+            .matcher = [](DataProcessorSpec const& source, DataProcessorSpec const& dest, ConfigContext const&) { 
+                if (source.name == "Dispatcher") {
+                  return true;
+                }
+                // Check if any of the labels has "Dispatcher" as prefix
+                for (auto const& label : source.labels) {
+                  if (label.value.find("Dispatcher") == 0) {
+                    return true;
+                  }
+                }
+                // Check if any of the destination's labels is "expendable" or "non-critical"
+                for (auto const& label : dest.labels) {
+                  if (label.value == "expendable" || label.value == "non-critical") {
+                    return true;
+                  }
+                }
+                return false; },
+            .send = [](fair::mq::Parts& parts, ChannelIndex channelIndex, ServiceRegistryRef registry) {
+              auto &proxy = registry.get<FairMQDeviceProxy>();
               OutputChannelInfo const& info = proxy.getOutputChannelInfo(channelIndex);
               OutputChannelState& state = proxy.getOutputChannelState(channelIndex);
               // Default timeout is 10ms.
@@ -51,11 +69,13 @@ std::vector<SendingPolicy> SendingPolicy::createDefaultPolicies()
               } }},
           SendingPolicy{
             .name = "profiling",
-            .matcher = [](DeviceSpec const&, ConfigContext const&) { return getenv("DPL_DEBUG_MESSAGE_SIZE"); },
-            .send = [](FairMQDeviceProxy& proxy, fair::mq::Parts& parts, ChannelIndex channelIndex, ServiceRegistryRef registry) {
+            .matcher = [](DataProcessorSpec const&, DataProcessorSpec const&, ConfigContext const&) { return getenv("DPL_DEBUG_MESSAGE_SIZE"); },
+            .send = [](fair::mq::Parts& parts, ChannelIndex channelIndex, ServiceRegistryRef registry) {
+              auto &proxy = registry.get<FairMQDeviceProxy>();
               auto *channel = proxy.getOutputChannel(channelIndex);
               auto timeout = 1000;
               int count = 0;
+              auto& relayer = registry.get<DataRelayer>();
               for (auto& part : parts) {
                 auto* dh = o2::header::get<o2::header::DataHeader*>(part->GetData());
                 if (dh == nullptr) {
@@ -64,6 +84,15 @@ std::vector<SendingPolicy> SendingPolicy::createDefaultPolicies()
                 }
                 LOGP(info, "Sent {}/{}/{} for a total of {} bytes", dh->dataOrigin, dh->dataDescription, dh->subSpecification, dh->payloadSize);
                 count+= dh->payloadSize;
+                auto* dph = o2::header::get<o2::framework::DataProcessingHeader*>(part->GetData());
+                if (dph == nullptr) {
+                  // This is a payload.
+                  continue;
+                }
+                auto oldestPossibleOutput = relayer.getOldestPossibleOutput();
+                if ((size_t)dph->startTime < oldestPossibleOutput.timeslice.value) {
+                  LOGP(error, "Sent startTime {} while oldestPossibleOutput is {}. This should not be possible.", dph->startTime, oldestPossibleOutput.timeslice.value);
+                }
               }
               LOGP(info, "Sent {} parts for a total of {} bytes", parts.Size(), count);
               auto res = channel->Send(parts, timeout);
@@ -76,8 +105,9 @@ std::vector<SendingPolicy> SendingPolicy::createDefaultPolicies()
               } }},
           SendingPolicy{
             .name = "default",
-            .matcher = [](DeviceSpec const&, ConfigContext const&) { return true; },
-            .send = [](FairMQDeviceProxy& proxy, fair::mq::Parts& parts, ChannelIndex channelIndex, ServiceRegistryRef registry) {
+            .matcher = [](DataProcessorSpec const&, DataProcessorSpec const&, ConfigContext const&) { return true; },
+            .send = [](fair::mq::Parts& parts, ChannelIndex channelIndex, ServiceRegistryRef registry) {
+              auto &proxy = registry.get<FairMQDeviceProxy>();
               auto *channel = proxy.getOutputChannel(channelIndex);
               auto timeout = 1000;
               auto res = channel->Send(parts, timeout);

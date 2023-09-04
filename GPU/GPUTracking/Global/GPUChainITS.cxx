@@ -47,26 +47,24 @@ int GPUChainITS::Init() { return 0; }
 
 TrackerTraits* GPUChainITS::GetITSTrackerTraits()
 {
-#ifndef GPUCA_NO_ITS_TRAITS
   if (mITSTrackerTraits == nullptr) {
-    mRec->GetITSTraits(&mITSTrackerTraits, nullptr);
+    mRec->GetITSTraits(&mITSTrackerTraits, nullptr, nullptr);
     // mITSTrackerTraits->SetRecoChain(this, &GPUChainITS::PrepareAndRunITSTrackFit);
   }
-#endif
   return mITSTrackerTraits.get();
 }
 VertexerTraits* GPUChainITS::GetITSVertexerTraits()
 {
-#ifndef GPUCA_NO_ITS_TRAITS
   if (mITSVertexerTraits == nullptr) {
-    mRec->GetITSTraits(nullptr, &mITSVertexerTraits);
+    mRec->GetITSTraits(nullptr, &mITSVertexerTraits, nullptr);
   }
-#endif
   return mITSVertexerTraits.get();
 }
 TimeFrame* GPUChainITS::GetITSTimeframe()
 {
-  mRec->GetITSTimeframe(&mITSTimeFrame);
+  if (mITSTimeFrame == nullptr) {
+    mRec->GetITSTraits(nullptr, nullptr, &mITSTimeFrame);
+  }
   return mITSTimeFrame.get();
 }
 

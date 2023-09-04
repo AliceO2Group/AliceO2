@@ -23,7 +23,7 @@
 //#define _DBG_LOC_ // for local debugging only
 
 #endif // !GPUCA_ALIGPUCODE
-
+#undef NDEBUG
 using namespace o2::base;
 
 using flatObject = o2::gpu::FlatObject;
@@ -90,7 +90,15 @@ void MatLayerCylSet::populateFromTGeo(int ntrPerCell)
     get()->mLayers[i].print();
     get()->mLayers[i].populateFromTGeo(ntrPerCell);
   }
+  finalizeStructures();
+}
+
+//________________________________________________________________________________
+void MatLayerCylSet::finalizeStructures()
+{
   // build layer search structures
+  assert(mConstructionMask == InProgress);
+  int nlr = getNLayers();
   int nR2Int = 2 * (nlr + 1);
   o2::gpu::resizeArray(get()->mR2Intervals, 0, nR2Int);
   o2::gpu::resizeArray(get()->mInterval2LrID, 0, nR2Int);
@@ -525,3 +533,37 @@ void MatLayerCylSet::fixPointers(char* oldPtr, char* newPtr, bool newPtrValid)
   }
 }
 #endif // !GPUCA_GPUCODE
+
+#ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
+
+MatLayerCylSet* MatLayerCylSet::extractCopy(float rmin, float rmax, float tolerance) const
+{
+  Ray ray(std::max(getRMin(), rmin), 0., 0., std::min(getRMax(), rmax), 0., 0.);
+  short lmin, lmax;
+  if (!getLayersRange(ray, lmin, lmax)) {
+    LOGP(warn, "No layers found for {} < r < {}", rmin, rmax);
+    return nullptr;
+  }
+  LOGP(info, "Will extract layers {}:{} (out of {} layers) for {} < r < {}", lmin, lmax, getNLayers(), rmin, rmax);
+  MatLayerCylSet* copy = new MatLayerCylSet();
+  int lrCount = 0;
+  for (int il = lmin; il <= lmax; il++) {
+    const auto& lr = getLayer(il);
+    float drphi = lr.getDPhi() * (lr.getRMin() + lr.getRMax()) / 2. * 0.999;
+    copy->addLayer(lr.getRMin(), lr.getRMax(), lr.getZMax(), lr.getDZ(), drphi);
+    auto& lrNew = copy->getLayer(lrCount);
+    for (int iz = 0; iz < lrNew.getNZBins(); iz++) {
+      for (int ip = 0; ip < lrNew.getNPhiBins(); ip++) {
+        lrNew.getCellPhiBin(ip, iz).set(lr.getCellPhiBin(ip, iz));
+      }
+    }
+    lrCount++;
+  }
+
+  copy->finalizeStructures();
+  copy->optimizePhiSlices(tolerance);
+  copy->flatten();
+  return copy;
+}
+
+#endif

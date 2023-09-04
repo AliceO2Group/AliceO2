@@ -251,6 +251,8 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
     mTracksLabel.resize(mNrof);
     mLinesLabels.resize(mNrof);
     mCells.resize(trkParam.CellsPerRoad());
+    mCellSeeds.resize(trkParam.CellsPerRoad());
+    mCellSeedsChi2.resize(trkParam.CellsPerRoad());
     mCellsLookupTable.resize(trkParam.CellsPerRoad() - 1);
     mCellsNeighbours.resize(trkParam.CellsPerRoad() - 1);
     mCellLabels.resize(trkParam.CellsPerRoad());
@@ -383,6 +385,8 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
     mTrackletLabels[iLayer].clear();
     if (iLayer < (int)mCells.size()) {
       mCells[iLayer].clear();
+      mCellSeeds[iLayer].clear();
+      mCellSeedsChi2[iLayer].clear();
       mTrackletsLookupTable[iLayer].clear();
       mTrackletsLookupTable[iLayer].resize(mClusters[iLayer + 1].size(), 0);
       mCellLabels[iLayer].clear();

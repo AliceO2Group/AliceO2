@@ -12,6 +12,7 @@
 o2_add_library(DataFormatsFDD
   SOURCES src/RawEventData.cxx
           src/CTF.cxx
+          src/LookUpTable.cxx
   PUBLIC_LINK_LIBRARIES O2::FDDBase
                         O2::DataFormatsFIT
                         O2::SimulationDataFormat

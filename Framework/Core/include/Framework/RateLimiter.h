@@ -23,7 +23,7 @@ namespace o2::framework
 class RateLimiter
 {
  public:
-  void check(ProcessingContext& ctx, int maxInFlight, size_t minSHM);
+  int check(ProcessingContext& ctx, int maxInFlight, size_t minSHM);
 
  private:
   int64_t mConsumedTimeframes = 0;

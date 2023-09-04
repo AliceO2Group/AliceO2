@@ -479,6 +479,15 @@ input data (obligatory): comma-separated list of input data files and/or files w
 max TF ID to process (<= 0 : infinite)
 
 ```
+--select-tf-ids <id's of TFs to select>
+```
+This is a `tf-reader` device local option allowing selective reading of particular TFs. It is useful when dealing with TF files containing multiple TFs. The comma-separated list of increasing TFs indices must be provided in the format parsed by the `RangeTokenizer<int>`, e.g. `1,4-6,...`.
+Note that the index corresponds not to DataHeader.TFcounter of the TF but to the reader own counter incremented throught all input files (e.g. if 10 raw-TF files with 20 TFs each are provided for the input and the selection of TFs
+`0,2,22,66` is provided, the reader will inject to the DPL the TFs at entries 0 and 2 from the 1st raw-TF file, entry 5 of the second file, entry 6 of the 3d and will finish the job.
+
+
+
+```
 --loop arg (=0)
 ```
 loop N times (-1 = infinite) over input files (but max-tf has priority if positive)
@@ -545,6 +554,16 @@ To apply TF rate limiting (i.e. make sure that no more than N TFs are in process
 too all workflows (e.g. via ARGS_ALL).
 The IPCID is the NUMA domain ID (usually 0 on non-EPN workflow).
 Additionally, one may throttle on the free SHM by providing an option to the reader `--timeframes-shm-limit <shm-size>`.
+
+## Raw TF to raw files conversion
+
+The workflow `o2-raw-tf-dump-workflow` allows to convert rawTF files to raw files used by `o2-raw-file-reader-workflow` (or `readout.exe` replay), creating also `raw-file-reader` configuration files (one per detector). Example of usage:
+```
+ulimit -n 10000
+o2-raw-tf-reader-workflow --max-tf 4  --shm-segment-size 16000000000  --input-data pbpb/o2_rawtf_run00529397_tf00033857_epn151.tf --detOnly "ITS,TPC" | o2-raw-tf-dump-workflow --detOnly "ITS,TPC"  --shm-segment-size 16000000000 --fatal-on-deadbeef --output-directory  rawpb --run
+cat rawpb/{ITS,TPC}*raw.cfg > rawAll.cfg
+o2-raw-file-reader-workflow --input-conf rawAll.cfg --nocheck-packet-increment --nocheck-page-increment --nocheck-hbf-jump --configKeyValues "HBFUtils.nHBFPerTF=128"
+```
 
 ## Miscellaneous macros
 

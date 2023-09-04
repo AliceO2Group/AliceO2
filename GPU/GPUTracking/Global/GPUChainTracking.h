@@ -79,7 +79,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   int Finalize() override;
   int RunChain() override;
   void MemorySize(size_t& gpuMem, size_t& pageLockedHostMem) override;
-  int CheckErrorCodes(bool cpuOnly = false, bool forceShowErrors = false) override;
+  int CheckErrorCodes(bool cpuOnly = false, bool forceShowErrors = false, std::vector<std::array<unsigned int, 4>>* fillErrors = nullptr) override;
   bool SupportsDoublePipeline() override { return true; }
   int FinalizePipelinedProcessing() override;
   void ClearErrorCodes(bool cpuOnly = false);

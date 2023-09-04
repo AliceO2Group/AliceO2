@@ -32,13 +32,19 @@
 #pragma link C++ class o2::trd::KrClusterTriggerRecord + ;
 #pragma link C++ class o2::trd::NoiseStatusMCM + ;
 #pragma link C++ class o2::trd::AngularResidHistos + ;
+#pragma link C++ class o2::trd::GainCalibHistos + ;
+#pragma link C++ class o2::trd::T0FitHistos + ;
 #pragma link C++ class o2::trd::CalVdriftExB + ;
+#pragma link C++ class o2::trd::CalGain + ;
 #pragma link C++ class o2::trd::CalT0 + ;
 #pragma link C++ class o2::trd::CompressedDigit + ;
 #pragma link C++ class o2::trd::HelperMethods + ;
 #pragma link C++ class o2::trd::LinkToHCIDMapping + ;
 #pragma link C++ class o2::trd::ChannelInfo + ;
 #pragma link C++ class o2::trd::ChannelInfoContainer + ;
+#pragma link C++ struct o2::trd::PHData + ;
+#pragma link C++ class o2::trd::TRDDataCountersPerTimeFrame + ;
+#pragma link C++ class o2::trd::DataCountersPerTrigger + ;
 #pragma link C++ class std::vector < o2::trd::Tracklet64> + ;
 #pragma link C++ class std::vector < o2::trd::CalibratedTracklet> + ;
 #pragma link C++ class std::vector < o2::trd::TrackTriggerRecord> + ;
@@ -47,8 +53,12 @@
 #pragma link C++ class std::vector < o2::trd::Hit > +;
 #pragma link C++ class std::vector < o2::trd::Digit> + ;
 #pragma link C++ class std::vector < o2::trd::AngularResidHistos> + ;
+#pragma link C++ class std::vector < o2::trd::GainCalibHistos> + ;
+#pragma link C++ class std::vector < o2::trd::T0FitHistos> + ;
+#pragma link C++ class std::vector < o2::trd::PHData> + ;
 #pragma link C++ class std::vector < o2::trd::KrCluster> + ;
 #pragma link C++ class std::vector < o2::trd::KrClusterTriggerRecord> + ;
+#pragma link C++ class std::vector < o2::trd::DataCountersPerTrigger> + ;
 
 #pragma link C++ struct o2::trd::CTFHeader + ;
 #pragma link C++ struct o2::trd::CTF + ;

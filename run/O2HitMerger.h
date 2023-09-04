@@ -130,7 +130,7 @@ class O2HitMerger : public fair::mq::Device
 
     std::string outfilename("o2sim_merged_hits.root"); // default name
     // query the sim config ... which is used to extract the filenames
-    if (o2::devices::O2SimDevice::querySimConfig(fChannels.at("o2sim-primserv-info").at(0))) {
+    if (o2::devices::O2SimDevice::querySimConfig(GetChannels().at("o2sim-primserv-info").at(0))) {
       outfilename = o2::base::NameConf::getMCKinematicsFileName(o2::conf::SimConfig::Instance().getOutPrefix().c_str());
       mNExpectedEvents = o2::conf::SimConfig::Instance().getNEvents();
     }
@@ -235,6 +235,7 @@ class O2HitMerger : public fair::mq::Device
     mTrackRefBuffer.clear();
     mSubEventInfoBuffer.clear();
     mFlushableEvents.clear();
+    mNextFlushID = 1;
 
     return true;
   }
@@ -303,7 +304,7 @@ class O2HitMerger : public fair::mq::Device
 
   bool waitForControlInput()
   {
-    o2::simpubsub::publishMessage(fChannels["merger-notifications"].at(0), o2::simpubsub::simStatusString("MERGER", "STATUS", "AWAITING INPUT"));
+    o2::simpubsub::publishMessage(GetChannels()["merger-notifications"].at(0), o2::simpubsub::simStatusString("MERGER", "STATUS", "AWAITING INPUT"));
 
     auto factory = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
     auto channel = fair::mq::Channel{"o2sim-control", "sub", factory};
@@ -332,7 +333,7 @@ class O2HitMerger : public fair::mq::Device
 
   bool ConditionalRun() override
   {
-    auto& channel = fChannels.at("simdata").at(0);
+    auto& channel = GetChannels().at("simdata").at(0);
     fair::mq::Parts request;
     auto bytes = channel.Receive(request);
     if (bytes < 0) {
@@ -508,7 +509,7 @@ class O2HitMerger : public fair::mq::Device
     // forwarding the track data to other consumers (pub/sub)
     if (mForwardKine) {
       auto free_tmessage = [](void* data, void* hint) { delete static_cast<TMessage*>(hint); };
-      auto& channel = fChannels.at("kineforward").at(0);
+      auto& channel = GetChannels().at("kineforward").at(0);
       TMessage* tmsg = new TMessage(kMESS_OBJECT);
       tmsg->WriteObjectAny((void*)filladdr, TClass::GetClass("std::vector<o2::MCTrack>"));
       std::unique_ptr<fair::mq::Message> trackmessage(channel.NewMessage(tmsg->Buffer(), tmsg->BufferSize(), free_tmessage, tmsg));

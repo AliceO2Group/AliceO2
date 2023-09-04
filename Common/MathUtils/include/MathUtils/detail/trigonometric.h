@@ -196,7 +196,7 @@ GPUhdi() int angle2Sector(T phi)
   if (phi < 0.f) {
     sect += o2::constants::math::NSectors - 1;
   }
-  return sect;
+  return sect % o2::constants::math::NSectors;
 }
 
 template <typename T>

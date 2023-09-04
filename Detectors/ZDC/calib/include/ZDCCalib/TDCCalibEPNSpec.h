@@ -45,6 +45,8 @@ class TDCCalibEPNSpec : public o2::framework::Task
 
  private:
   int mVerbosity = DbgMinimal; // Verbosity level
+  int mProcessed = 0;          // Number of TF processed
+  int mModTF = 0;              // Number of TF to cumulate before transmitting data
   bool mInitialized = false;   // Connect once to CCDB during initialization
   TDCCalibEPN mWorker;         // TDC calibration object (was mTDCCalibEPN, modified after discussion with Pietro 20 June 2022)
   TStopwatch mTimer;

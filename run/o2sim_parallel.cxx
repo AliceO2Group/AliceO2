@@ -41,6 +41,8 @@
 #include <unordered_map>
 #include <filesystem>
 #include <atomic>
+#include "Framework/SourceInfoHeader.h"
+#include "Headers/Stack.h"
 
 #include "SimPublishChannelHelper.h"
 #include <CommonUtils/FileSystemUtils.h>
@@ -89,6 +91,28 @@ void remove_tmp_files()
 
 void cleanup()
 {
+  auto& conf = o2::conf::SimConfig::Instance();
+  if (conf.forwardKine()) {
+    auto factory = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
+    auto forwardchannel = fair::mq::Channel{"kineforward", "pair", factory};
+    auto address = std::string{"ipc:///tmp/o2sim-hitmerger-kineforward-"} + std::to_string(getpid());
+    forwardchannel.Bind(address.c_str());
+    forwardchannel.Validate();
+    fair::mq::Parts parts;
+    fair::mq::MessagePtr payload(forwardchannel.NewMessage());
+    o2::framework::SourceInfoHeader sih;
+    sih.state = o2::framework::InputChannelState::Completed;
+    auto channelAlloc = o2::pmr::getTransportAllocator(forwardchannel.Transport());
+    auto header = o2::pmr::getMessage(o2::header::Stack{channelAlloc, sih});
+    parts.AddPart(std::move(header));
+    parts.AddPart(std::move(payload));
+    int timeoutinMS = 1000; // block for 1s max (other side might have disconnected already)
+    if (forwardchannel.Send(parts, timeoutinMS) > 0) {
+      LOGP(info, "SENDING END-OF-STREAM TO PROXY AT {}", address.c_str());
+    } else {
+      LOGP(warn, "SENDING END-OF-STREAM TIMED OUT; PEER PROBABLY NO LONGER CONNECTED");
+    }
+  }
   remove_tmp_files();
   o2::utils::ShmManager::Instance().release();
 
@@ -157,6 +181,7 @@ std::vector<int> gDistributedEvents;
 // record finished events in a container
 std::vector<int> gFinishedEvents;
 int gAskedEvents;
+std::atomic<bool> gPrimServerIsInitialized = false;
 
 std::string getControlAddress()
 {
@@ -198,12 +223,14 @@ void launchControlThread()
   auto lambda = [controladdress, internalcontroladdress]() {
     auto factory = fair::mq::TransportFactory::CreateTransportFactory("zeromq");
 
-    auto internalchannel = fair::mq::Channel{"o2sim-control", "pub", factory};
+    // used for internal distribution of control commands
+    auto internalchannel = fair::mq::Channel{"o2sim-internal", "pub", factory};
     internalchannel.Bind(internalcontroladdress);
     internalchannel.Validate();
     std::unique_ptr<fair::mq::Message> message(internalchannel.NewMessage());
 
-    auto outsidechannel = fair::mq::Channel{"o2sim-outside-exchange", "rep", factory};
+    // the channel with which outside entities can control this simulator
+    auto outsidechannel = fair::mq::Channel{"o2sim-control", "rep", factory};
     outsidechannel.Bind(controladdress);
     outsidechannel.Validate();
     std::unique_ptr<fair::mq::Message> request(outsidechannel.NewMessage());
@@ -215,7 +242,7 @@ void launchControlThread()
       outsidechannel.Validate();
       if (outsidechannel.Receive(request) > 0) {
         std::string command(reinterpret_cast<char const*>(request->GetData()), request->GetSize());
-        LOG(info) << "Control message: " << command;
+        LOG(info) << "Control message: " << command << " received ";
         int code = -1;
         if (isBusy()) {
           code = 1; // code = 1 --> busy
@@ -280,11 +307,11 @@ void launchWorkerListenerThread()
 // gives possibility to exec a callback at these events
 void launchThreadMonitoringEvents(
   int pipefd, std::string text, std::vector<int>& eventcontainer,
-  std::function<void(std::vector<int> const&)> callback = [](std::vector<int> const&) {})
+  std::function<bool(std::vector<int> const&)> callback = [](std::vector<int> const&) { return true; })
 {
   static std::vector<std::thread> threads;
   auto lambda = [pipefd, text, callback, &eventcontainer]() {
-    int eventcounter;
+    int eventcounter; // event id or some other int message
     while (1) {
       ssize_t count = read(pipefd, &eventcounter, sizeof(eventcounter));
       if (count == -1) {
@@ -297,9 +324,10 @@ void launchThreadMonitoringEvents(
       } else if (count == 0) {
         break;
       } else {
-        LOG(info) << text.c_str() << eventcounter;
         eventcontainer.push_back(eventcounter);
-        callback(eventcontainer);
+        if (callback(eventcontainer)) {
+          LOG(info) << text.c_str() << eventcounter;
+        }
       }
     };
   };
@@ -388,7 +416,7 @@ std::vector<char*> checkArgs(int argc, char* argv[])
         modifiedArgs.push_back("--timestamp");
         modifiedArgs.push_back(std::to_string(timestamp));
       } else if (conf.getConfigData().mTimestampMode == o2::conf::TimeStampMode::kManual && (timestamp < soreor.first || timestamp > soreor.second)) {
-        LOG(fatal) << "The given timestamp is incompatible with the given run number";
+        LOG(fatal) << "The given timestamp " << timestamp << " is incompatible with the given run number " << conf.getRunNumber() << " starting at " << soreor.first << " and ending at " << soreor.second;
       }
     }
   }
@@ -527,9 +555,9 @@ int main(int argc, char* argv[])
 
     // copy all arguments into a common vector
 #ifdef SIM_RUN5
-    const int addNArgs = 10;
+    const int addNArgs = 12;
 #else
-    const int addNArgs = 9;
+    const int addNArgs = 11;
 #endif
     const int Nargs = finalArgs.size() + addNArgs;
     const char* arguments[Nargs];
@@ -542,8 +570,10 @@ int main(int argc, char* argv[])
     arguments[6] = config.c_str();
     arguments[7] = "--severity";
     arguments[8] = "debug";
+    arguments[9] = "--color";
+    arguments[10] = "false"; // switch off colored output
 #ifdef SIM_RUN5
-    arguments[9] = "--isRun5";
+    arguments[11] = "--isRun5";
 #endif
     for (int i = 1; i < finalArgs.size(); ++i) {
       arguments[addNArgs - 1 + i] = finalArgs[i];
@@ -571,10 +601,28 @@ int main(int argc, char* argv[])
     // A simple callback for distributed primary-chunk "events"
     auto distributionCallback = [&conf, &externalpublishchannel](std::vector<int> const& v) {
       std::stringstream str;
-      str << "EVENT " << v.back() << " DISTRIBUTED";
-      o2::simpubsub::publishMessage(externalpublishchannel, o2::simpubsub::simStatusString("O2SIM", "INFO", str.str()));
+      if (v.back() == -111) {
+        // message that server is initialized
+        gPrimServerIsInitialized = true;
+        return false; // silent
+      } else {
+        str << "EVENT " << v.back() << " DISTRIBUTED";
+        o2::simpubsub::publishMessage(externalpublishchannel, o2::simpubsub::simStatusString("O2SIM", "INFO", str.str()));
+        return true;
+      }
     };
     launchThreadMonitoringEvents(pipe_serverdriver_fd[0], "DISTRIBUTING EVENT : ", gDistributedEvents, distributionCallback);
+  }
+
+  // we wait until the particle server is initialized before constructing the worker
+  // since the worker needs an operating server to initialize
+  while (!gPrimServerIsInitialized) {
+    int status;
+    auto result = waitpid(gChildProcesses.back(), &status, WNOHANG);
+    if (result != 0) {
+      break; // exit this busy loop if the server process exited for some reason
+    }
+    sleep(1); // otherwise wait until server is initialized
   }
 
   auto internalfork = getenv("ALICE_SIMFORKINTERNAL");
@@ -601,6 +649,7 @@ int main(int argc, char* argv[])
 
       const std::string name("o2-sim-device-runner");
       const std::string path = installpath + "/" + name;
+
       execl(path.c_str(), name.c_str(), "--control", "static", "--id", workerss.str().c_str(), "--config-key",
             "worker", "--mq-config", localconfig.c_str(), "--severity", "info", (char*)nullptr);
       return 0;
@@ -631,7 +680,7 @@ int main(int argc, char* argv[])
     setenv("ALICE_O2SIMMERGERTODRIVER_PIPE", std::to_string(pipe_mergerdriver_fd[1]).c_str(), 1);
     const std::string name("o2-sim-hit-merger-runner");
     const std::string path = installpath + "/" + name;
-    execl(path.c_str(), name.c_str(), "--control", "static", "--catch-signals", "0", "--id", "hitmerger", "--mq-config", localconfig.c_str(),
+    execl(path.c_str(), name.c_str(), "--control", "static", "--catch-signals", "0", "--id", "hitmerger", "--mq-config", localconfig.c_str(), "--color", "false",
           (char*)nullptr);
     return 0;
   } else {
@@ -661,6 +710,7 @@ int main(int argc, char* argv[])
           LOG(info) << "SIMULATION DONE. STAYING AS DAEMON.";
         }
       }
+      return true;
     };
 
     launchThreadMonitoringEvents(pipe_mergerdriver_fd[0], "EVENT FINISHED : ", gFinishedEvents, finishCallback);
@@ -686,6 +736,7 @@ int main(int argc, char* argv[])
           killpg(p, SIGTERM); // <--- makes sure to shutdown "unknown" child pids via the group property
         }
         LOG(error) << "SHUTTING DOWN DUE TO SIGNALED EXIT IN COMPONENT " << cpid;
+        o2::simpubsub::publishMessage(externalpublishchannel, o2::simpubsub::simStatusString("O2SIM", "STATE", "FAILURE"));
         errored = true;
       }
     }

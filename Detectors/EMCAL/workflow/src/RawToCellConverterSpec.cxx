@@ -31,6 +31,7 @@
 #include "DetectorsRaw/RDHUtils.h"
 #include "EMCALBase/Geometry.h"
 #include "EMCALBase/Mapper.h"
+#include "EMCALCalib/FeeDCS.h"
 #include "EMCALReconstruction/CaloFitResults.h"
 #include "EMCALReconstruction/Bunch.h"
 #include "EMCALReconstruction/CaloRawFitterStandard.h"
@@ -93,8 +94,11 @@ void RawToCellConverterSpec::init(framework::InitContext& ctx)
 
   mMergeLGHG = !ctx.options().get<bool>("no-mergeHGLG");
   mDisablePedestalEvaluation = ctx.options().get<bool>("no-evalpedestal");
+  mActiveLinkCheck = !ctx.options().get<bool>("no-checkactivelinks");
 
   LOG(info) << "Running gain merging mode: " << (mMergeLGHG ? "yes" : "no");
+  LOG(info) << "Checking for active links: " << (mActiveLinkCheck ? "yes" : "no");
+  LOG(info) << "Calculate pedestals:       " << (mDisablePedestalEvaluation ? "no" : "yes");
   LOG(info) << "Using L0LM delay: " << o2::ctp::TriggerOffsetsParam::Instance().LM_L0 << " BCs";
 
   mRawFitter->setAmpCut(mNoiseThreshold);
@@ -106,6 +110,9 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   LOG(debug) << "[EMCALRawToCellConverter - run] called";
   mCalibHandler->checkUpdates(ctx);
   updateCalibrationObjects();
+
+  // container with BCid and feeID
+  std::unordered_map<int64_t, std::bitset<46>> bcFreq;
 
   double timeshift = RecoParam::Instance().getCellTimeShiftNanoSec(); // subtract offset in ns in order to center the time peak around the nominal delay
   constexpr auto originEMC = o2::header::gDataOriginEMC;
@@ -181,6 +188,9 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
           continue;
         }
       }
+
+      bcFreq[currentIR.toLong()].set(feeID, true);
+
       // Correct the cell time for the bc mod 4 (LHC: 40 MHz clock - ALTRO: 10 MHz clock)
       // Convention: All times shifted with respect to BC % 4 = 0 for trigger BC
       // Attention: Correction only works for the permutation (0 1 2 3) of the BC % 4, if the permutation is
@@ -315,6 +325,43 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
     }
   }
 
+  if (mActiveLinkCheck) {
+    // build expected active mask from DCS
+    FeeDCS* feedcs = mCalibHandler->getFEEDCS();
+    auto list0 = feedcs->getDDLlist0();
+    auto list1 = feedcs->getDDLlist1();
+    //  links 21 and 39 do not exist, but they are set active in DCS
+    list0.set(21, false);
+    list1.set(7, false);
+    // must be 0x307FFFDFFFFF if all links are active
+    std::bitset<46> bitSetActiveLinks((list1.to_ullong() << 32) + list0.to_ullong());
+
+    // Check if we have received pages from all active links
+    // If not we cannot trust the timeframe and must send
+    // empty containers
+    bool hasMissingLinks = false;
+    for (const auto& [globalBC, activelinks] : bcFreq) {
+      if (activelinks != bitSetActiveLinks) {
+        hasMissingLinks = true;
+        LOG(error) << "Not all EMC active links contributed in global BCid=" << globalBC << ": mask=" << (activelinks ^ bitSetActiveLinks);
+        if (mCreateRawDataErrors) {
+          for (std::size_t ilink = 0; ilink < bitSetActiveLinks.size(); ilink++) {
+            if (!bitSetActiveLinks.test(ilink)) {
+              continue;
+            }
+            if (!activelinks.test(ilink)) {
+              mOutputDecoderErrors.emplace_back(ilink, ErrorTypeFEE::ErrorSource_t::LINK_ERROR, 0, -1, -1);
+            }
+          }
+        }
+      }
+    }
+    if (hasMissingLinks) {
+      sendData(ctx, mOutputCells, mOutputTriggerRecords, mOutputDecoderErrors);
+      return;
+    }
+  }
+
   // Loop over BCs, sort cells with increasing tower ID and write to output containers
   RecoContainerReader eventIterator(mCellHandler);
   while (eventIterator.hasNext()) {
@@ -355,9 +402,9 @@ void RawToCellConverterSpec::updateCalibrationObjects()
     LOG(info) << "RecoParams updated";
     o2::emcal::RecoParam::Instance().printKeyValues(true, true);
   }
-  // if (mCalibHandler->hasUpdateFEEDCS()) {
-  //   LOG(info) << "DCS params updated";
-  // }
+  if (mCalibHandler->hasUpdateFEEDCS()) {
+    LOG(info) << "DCS params updated";
+  }
 }
 
 bool RawToCellConverterSpec::isLostTimeframe(framework::ProcessingContext& ctx) const
@@ -677,17 +724,19 @@ o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getRawToCellConverter
   // CCDB objects
   auto calibhandler = std::make_shared<o2::emcal::CalibLoader>();
   calibhandler->enableRecoParams(true);
-  // calibhandler->enableFEEDCS(true);
+  calibhandler->enableFEEDCS(true);
   calibhandler->defineInputSpecs(inputs);
 
-  return o2::framework::DataProcessorSpec{"EMCALRawToCellConverterSpec",
-                                          inputs,
-                                          outputs,
-                                          o2::framework::adaptFromTask<o2::emcal::reco_workflow::RawToCellConverterSpec>(subspecification, !disableDecodingErrors, calibhandler),
-                                          o2::framework::Options{
-                                            {"fitmethod", o2::framework::VariantType::String, "gamma2", {"Fit method (standard or gamma2)"}},
-                                            {"maxmessage", o2::framework::VariantType::Int, 100, {"Max. amout of error messages to be displayed"}},
-                                            {"printtrailer", o2::framework::VariantType::Bool, false, {"Print RCU trailer (for debugging)"}},
-                                            {"no-mergeHGLG", o2::framework::VariantType::Bool, false, {"Do not merge HG and LG channels for same tower"}},
-                                            {"no-evalpedestal", o2::framework::VariantType::Bool, false, {"Disable pedestal evaluation"}}}};
+  return o2::framework::DataProcessorSpec{
+    "EMCALRawToCellConverterSpec",
+    inputs,
+    outputs,
+    o2::framework::adaptFromTask<o2::emcal::reco_workflow::RawToCellConverterSpec>(subspecification, !disableDecodingErrors, calibhandler),
+    o2::framework::Options{
+      {"fitmethod", o2::framework::VariantType::String, "gamma2", {"Fit method (standard or gamma2)"}},
+      {"maxmessage", o2::framework::VariantType::Int, 100, {"Max. amout of error messages to be displayed"}},
+      {"printtrailer", o2::framework::VariantType::Bool, false, {"Print RCU trailer (for debugging)"}},
+      {"no-mergeHGLG", o2::framework::VariantType::Bool, false, {"Do not merge HG and LG channels for same tower"}},
+      {"no-checkactivelinks", o2::framework::VariantType::Bool, false, {"Do not check for active links per BC"}},
+      {"no-evalpedestal", o2::framework::VariantType::Bool, false, {"Disable pedestal evaluation"}}}};
 }

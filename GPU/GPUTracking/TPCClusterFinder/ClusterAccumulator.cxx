@@ -19,11 +19,19 @@
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace GPUCA_NAMESPACE::gpu::tpccf;
 
-GPUd() void ClusterAccumulator::toNative(const ChargePos& pos, Charge q, int minSplitNum, tpc::ClusterNative& cn, const GPUTPCGeometry& geo) const
+GPUd() bool ClusterAccumulator::toNative(const ChargePos& pos, Charge q, tpc::ClusterNative& cn, const GPUParam& param) const
 {
-  bool isEdgeCluster = CfUtils::isAtEdge(pos, geo.NPads(pos.row()));
-  bool wasSplitInTime = mSplitInTime >= minSplitNum;
-  bool wasSplitInPad = mSplitInPad >= minSplitNum;
+  cn.qTot = mQtot + 0.5; // Round to integer
+  if (cn.qTot <= param.rec.tpc.cfQTotCutoff) {
+    return false;
+  }
+  if (mTimeMean < param.rec.tpc.clustersShiftTimebinsClusterizer) {
+    return false;
+  }
+
+  bool isEdgeCluster = CfUtils::isAtEdge(pos, param.tpcGeometry.NPads(pos.row()));
+  bool wasSplitInTime = mSplitInTime >= param.rec.tpc.cfMinSplitNum;
+  bool wasSplitInPad = mSplitInPad >= param.rec.tpc.cfMinSplitNum;
   bool isSingleCluster = (mPadSigma == 0) || (mTimeSigma == 0);
 
   uchar flags = 0;
@@ -33,11 +41,12 @@ GPUd() void ClusterAccumulator::toNative(const ChargePos& pos, Charge q, int min
   flags |= (isSingleCluster) ? tpc::ClusterNative::flagSingle : 0;
 
   cn.qMax = q;
-  cn.qTot = mQtot;
-  cn.setTimeFlags(mTimeMean, flags);
+  cn.setTimeFlags(mTimeMean - param.rec.tpc.clustersShiftTimebinsClusterizer, flags);
   cn.setPad(mPadMean);
   cn.setSigmaTime(mTimeSigma);
   cn.setSigmaPad(mPadSigma);
+
+  return true;
 }
 
 GPUd() void ClusterAccumulator::update(Charge splitCharge, Delta2 d)

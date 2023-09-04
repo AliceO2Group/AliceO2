@@ -73,7 +73,7 @@ void ControlWebSocketHandler::endChunk()
   if (!didProcessMetric) {
     return;
   }
-  size_t timestamp = uv_now(mContext.loop);
+  size_t timestamp = (uv_hrtime() - mContext.driver->startTime) / 1000000 + mContext.driver->startTimeMsFromEpoch;
   assert(mContext.metrics);
   assert(mContext.infos);
   assert(mContext.states);
@@ -81,7 +81,7 @@ void ControlWebSocketHandler::endChunk()
   assert(mContext.driver);
 
   for (auto& callback : *mContext.metricProcessingCallbacks) {
-    callback(mContext.registry, ServiceMetricsInfo{*mContext.metrics, *mContext.specs, *mContext.infos, mContext.driver->metrics}, timestamp);
+    callback(mContext.registry, ServiceMetricsInfo{*mContext.metrics, *mContext.specs, *mContext.infos, mContext.driver->metrics, *mContext.driver}, timestamp);
   }
   for (auto& metricsInfo : *mContext.metrics) {
     std::fill(metricsInfo.changed.begin(), metricsInfo.changed.end(), false);

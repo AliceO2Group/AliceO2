@@ -13,7 +13,6 @@
 
 #include <SimulationDataFormat/O2DatabasePDG.h>
 #include <Generators/GeneratorFactory.h>
-#include "FairPrimaryGenerator.h"
 #include "FairGenerator.h"
 #include "FairBoxGenerator.h"
 #include <fairlogger/Logger.h>
@@ -29,10 +28,12 @@
 #endif
 #include <Generators/GeneratorTGenerator.h>
 #include <Generators/GeneratorExternalParam.h>
+#include "Generators/GeneratorFromO2KineParam.h"
 #ifdef GENERATORS_WITH_HEPMC3
 #include <Generators/GeneratorHepMC.h>
 #include <Generators/GeneratorHepMCParam.h>
 #endif
+#include <Generators/PrimaryGenerator.h>
 #include <Generators/BoxGunParam.h>
 #include <Generators/TriggerParticle.h>
 #include <Generators/TriggerExternalParam.h>
@@ -54,6 +55,8 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     LOG(warning) << "No primary generator instance; Cannot setup";
     return;
   }
+
+  auto primGenO2 = dynamic_cast<PrimaryGenerator*>(primGen);
 
   auto makeBoxGen = [](int pdgid, int mult, double etamin, double etamax, double pmin, double pmax, double phimin, double phimax, bool debug = false) {
     auto gen = new FairBoxGenerator(pdgid, mult);
@@ -146,6 +149,12 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     auto extGen = new o2::eventgen::GeneratorFromO2Kine(conf.getExtKinematicsFileName().c_str());
     extGen->SetStartEvent(conf.getStartEvent());
     primGen->AddGenerator(extGen);
+    if (GeneratorFromO2KineParam::Instance().continueMode) {
+      auto o2PrimGen = dynamic_cast<o2::eventgen::PrimaryGenerator*>(primGen);
+      if (o2PrimGen) {
+        o2PrimGen->setApplyVertex(false);
+      }
+    }
     LOG(info) << "using external O2 kinematics";
 #ifdef GENERATORS_WITH_HEPMC3
   } else if (genconfig.compare("hepmc") == 0) {

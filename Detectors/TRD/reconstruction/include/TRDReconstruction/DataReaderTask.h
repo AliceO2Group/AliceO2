@@ -51,6 +51,7 @@ class DataReaderTask : public Task
   bool mDataVerbose{false};      // verbose output of data unpacking
   bool mHeaderVerbose{false};    // verbose output of headers
   bool mCompressedData{false};   // are we dealing with the compressed data from the flp (send via option)
+  int mProcessEveryNthTF{1};     // to parse only every n-th TF and send empty output for the rest
   bool mInitOnceDone{false};     // flag for requesting new CCDB object upon global run number change
   std::bitset<16> mOptions;            // stores the incoming of the above bools, useful to be able to send this on instead of the individual ones above
                                        // the above bools make the code more readable hence still here.
@@ -64,6 +65,7 @@ class DataReaderTask : public Task
   uint64_t mWordsRejectedTotal{0};                                                        // accumulate the total number of words rejected
   uint64_t mDigitsTotal{0};                                                               // accumulate the total number of digits read
   uint64_t mTrackletsTotal{0};                                                            // accumulate the total number os tracklets read
+  size_t mNTFsProcessed{0};                                                               // keep track of the total number of TFs processed
 };
 
 } // namespace o2::trd

@@ -115,6 +115,18 @@ void DataProcessorContext::preExitCallbacks(std::vector<ServiceExitHandle> handl
   }
 }
 
+/// Invoke callback to be executed on exit, in reverse order.
+void DataProcessorContext::preLoopCallbacks(ServiceRegistryRef ref)
+{
+  // FIXME: we need to call the callback only once for the global services
+  /// I guess...
+  LOGP(debug, "Invoking preLoopCallbacks");
+  for (auto& handle : preLoopHandles) {
+    LOGP(debug, "Invoking preLoopCallback for service {}", handle.spec.name);
+    handle.callback(ref, handle.service);
+  }
+}
+
 void DataProcessorContext::domainInfoUpdatedCallback(ServiceRegistryRef ref, size_t oldestPossibleTimeslice, ChannelIndex channelIndex)
 {
   for (auto& handle : domainInfoHandles) {

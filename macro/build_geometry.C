@@ -112,6 +112,9 @@ void build_geometry(FairRunSim* run = nullptr)
   o2::passive::Cave* cave = new o2::passive::Cave("CAVE");
   // adjust size depending on content
   cave->includeZDC(isActivated("ZDC"));
+#ifdef ENABLE_UPGRADES
+  cave->includeRB24(!isActivated("TRK"));
+#endif
   // the experiment hall (cave)
   cave->SetGeometryFileName("cave.geo");
   run->AddModule(cave);
@@ -156,7 +159,7 @@ void build_geometry(FairRunSim* run = nullptr)
 #ifdef ENABLE_UPGRADES
   // upgraded beampipe at the interaction point (IP)
   if (isActivated("A3IP")) {
-    run->AddModule(new o2::passive::Alice3Pipe("A3IP", "Alice 3 beam pipe", !isActivated("TRK"), 0.48f, 0.015f, 1000.f, 3.7f, 0.05f, 1000.f));
+    run->AddModule(new o2::passive::Alice3Pipe("A3IP", "Alice 3 beam pipe", !isActivated("TRK"), 0.48f, 0.025f, 1000.f, 3.7f, 0.08f, 1000.f));
   }
 #endif
 

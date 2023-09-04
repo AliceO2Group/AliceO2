@@ -13,7 +13,6 @@
 
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/OutputSpec.h"
-#include "Framework/DataAllocator.h"
 #include <fairmq/FwdDecls.h>
 #include <vector>
 #include <functional>
@@ -42,6 +41,10 @@ std::string formatExternalChannelConfiguration(OutputChannelSpec const&);
 void sendOnChannel(fair::mq::Device& device, o2::header::Stack&& headerStack, fair::mq::MessagePtr&& payloadMessage, OutputSpec const& spec, ChannelRetriever& channelRetriever);
 
 void sendOnChannel(fair::mq::Device& device, fair::mq::Parts& messages, std::string const& channel, size_t timeSlice);
+
+/// append a header/payload part to multipart message for aggregate sending, a channel retriever
+/// callback is required to get the associated fair::mq::Channel
+void appendForSending(fair::mq::Device& device, o2::header::Stack&& headerStack, size_t timeSliceID, fair::mq::MessagePtr&& payloadMessage, OutputSpec const& spec, fair::mq::Parts& messageCache, ChannelRetriever& channelRetriever);
 
 /// Helper function which takes a set of inputs coming from a device,
 /// massages them so that they are valid DPL messages using @param spec as header
@@ -101,7 +104,8 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* label,
                                                    std::vector<OutputSpec> const& outputs,
                                                    const char* defaultChannelConfig,
                                                    InjectorFunction converter,
-                                                   uint64_t minSHM = 0);
+                                                   uint64_t minSHM = 0,
+                                                   bool sendTFcounter = false);
 
 DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* label,
                                                  Inputs const& inputSpecs,

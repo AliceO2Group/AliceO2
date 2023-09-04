@@ -52,6 +52,21 @@ o2_add_executable(flp-dpl-workflow
                   PUBLIC_LINK_LIBRARIES O2::FDDWorkflow O2::FDDRaw O2::FITWorkflow
                   TARGETVARNAME fddflpexe)
 
+o2_add_executable(integrate-cluster-workflow
+                  SOURCES src/cluster-integrator.cxx
+                  COMPONENT_NAME fdd
+                  PUBLIC_LINK_LIBRARIES O2::FDDWorkflow O2::FITWorkflow)
+
+o2_add_executable(integrate-cluster-reader-workflow
+                  SOURCES src/cluster-integrator-reader.cxx
+                  COMPONENT_NAME fdd
+                  PUBLIC_LINK_LIBRARIES O2::FDDWorkflow O2::FITWorkflow)
+
+o2_add_executable(merge-integrate-cluster-workflow
+                  SOURCES src/cluster-merge-integrator.cxx
+                  COMPONENT_NAME fdd
+                  PUBLIC_LINK_LIBRARIES O2::FDDWorkflow O2::FITWorkflow)
+
 if(NOT APPLE)
 
  set_property(TARGET ${fddrecoexe} PROPERTY LINK_WHAT_YOU_USE ON)

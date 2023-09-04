@@ -40,6 +40,8 @@ class InterCalibEPN
   static constexpr int HidZNC = 2;
   static constexpr int HidZPC = 3;
   static constexpr int HidZEM = 4;
+  static constexpr int HidZNI = 5;
+  static constexpr int HidZPI = 6;
   static constexpr int NH = InterCalibData::NH;
   static constexpr int NPAR = InterCalibData::NPAR;
   void clear(int ih = -1);

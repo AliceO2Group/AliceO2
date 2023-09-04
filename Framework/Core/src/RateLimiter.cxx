@@ -14,7 +14,10 @@
 #include "Framework/ServiceRegistry.h"
 #include "Framework/RunningWorkflowInfo.h"
 #include "Framework/DataTakingContext.h"
+#include "Framework/DeviceState.h"
+#include "Framework/DeviceContext.h"
 #include <fairmq/Device.h>
+#include <uv.h>
 #include <fairmq/shmem/Monitor.h>
 #include <fairmq/shmem/Common.h>
 #include <chrono>
@@ -22,18 +25,22 @@
 
 using namespace o2::framework;
 
-void RateLimiter::check(ProcessingContext& ctx, int maxInFlight, size_t minSHM)
+int RateLimiter::check(ProcessingContext& ctx, int maxInFlight, size_t minSHM)
 {
   if (!maxInFlight && !minSHM) {
-    return;
+    return 0;
   }
   auto device = ctx.services().get<RawDeviceService>().device();
-  if (maxInFlight && device->fChannels.count("metric-feedback")) {
+  auto& deviceState = ctx.services().get<DeviceState>();
+  if (maxInFlight && device->GetChannels().count("metric-feedback")) {
     int waitMessage = 0;
     int recvTimeot = 0;
     auto& dtc = ctx.services().get<DataTakingContext>();
+    const auto& device = ctx.services().get<RawDeviceService>().device();
+    const auto& deviceContext = ctx.services().get<DeviceContext>();
+    int timeout = deviceContext.exitTransitionTimeout;
     while ((mSentTimeframes - mConsumedTimeframes) >= maxInFlight) {
-      if (recvTimeot == -1 && waitMessage == 0) {
+      if (recvTimeot != 0 && waitMessage == 0) {
         if (dtc.deploymentMode == DeploymentMode::OnlineDDS || dtc.deploymentMode == DeploymentMode::OnlineECS || dtc.deploymentMode == DeploymentMode::FST) {
           LOG(alarm) << "Maximum number of TF in flight reached (" << maxInFlight << ": published " << mSentTimeframes << " - finished " << mConsumedTimeframes << "), waiting";
         } else {
@@ -42,10 +49,16 @@ void RateLimiter::check(ProcessingContext& ctx, int maxInFlight, size_t minSHM)
         waitMessage = 1;
       }
       auto msg = device->NewMessageFor("metric-feedback", 0, 0);
+      int64_t count = 0;
+      do {
+        count = device->Receive(msg, "metric-feedback", 0, recvTimeot);
+        if (timeout && count <= 0 && device->NewStatePending()) {
+          return 1;
+        }
+      } while (count <= 0 && recvTimeot > 0);
 
-      auto count = device->Receive(msg, "metric-feedback", 0, recvTimeot);
       if (count <= 0) {
-        recvTimeot = -1;
+        recvTimeot = timeout ? -1 : 1000;
         continue;
       }
       assert(msg->GetSize() == 8);
@@ -100,6 +113,7 @@ void RateLimiter::check(ProcessingContext& ctx, int maxInFlight, size_t minSHM)
         float elapsed = std::chrono::duration_cast<std::chrono::duration<float>>(curTime - mLastTime).count();
         if (elapsed < mSmothDelay) {
           LOG(debug) << "TF Throttling: Elapsed " << elapsed << " --> Waiting for " << mSmothDelay - elapsed;
+          uv_run(deviceState.loop, UV_RUN_NOWAIT);
           std::this_thread::sleep_for(std::chrono::microseconds((size_t)((mSmothDelay - elapsed) * 1.e6f)));
         }
       }
@@ -139,4 +153,5 @@ void RateLimiter::check(ProcessingContext& ctx, int maxInFlight, size_t minSHM)
     }
   }
   mSentTimeframes++;
+  return 0;
 }

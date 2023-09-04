@@ -10,4 +10,7 @@
 // or submit itself to any jurisdiction.
 
 #include "FDDRaw/DataBlockFDD.h"
-//using namespace o2::fdd;
+
+template class o2::fit::DataBlockPM<o2::fit::DataBlockConfig<false>, o2::fdd::RawHeaderPM, o2::fdd::RawDataPM>;
+template class o2::fit::DataBlockTCM<o2::fit::DataBlockConfig<false>, o2::fdd::RawHeaderTCM, o2::fdd::RawDataTCM>;
+template class o2::fit::DataBlockTCMext<o2::fit::DataBlockConfig<false>, o2::fdd::RawHeaderTCMext, o2::fdd::RawDataTCM, o2::fdd::RawDataTCMext>;

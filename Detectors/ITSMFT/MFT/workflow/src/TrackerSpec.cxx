@@ -263,24 +263,34 @@ void TrackerDPL::run(ProcessingContext& pc)
     }
 
   } else {
+    LOG(debug) << "Field is off! ";
     std::vector<std::vector<o2::mft::ROframe<TrackLTFL>>> roFrameVec(mNThreads); // One vector of ROFrames per thread
+    LOG(debug) << "Reserving ROFs ";
+
     for (auto& rof : roFrameVec) {
       rof.reserve(rofsPerWorker);
     }
+    LOG(debug) << "Loading data into ROFs.";
 
     mTimer[SWLoadData].Start(false);
     loadData(mTrackerLVec, roFrameVec);
     mTimer[SWLoadData].Stop();
 
+    LOG(debug) << "Running MFT Track finder.";
+
     mTimer[SWFindMFTTracks].Start(false);
     runMFTTrackFinder(mTrackerLVec, roFrameVec);
     mTimer[SWFindMFTTracks].Stop();
+
+    LOG(debug) << "Runnig track fitter.";
 
     mTimer[SWFitTracks].Start(false);
     runTrackFitter(mTrackerLVec, roFrameVec);
     mTimer[SWFitTracks].Stop();
 
     if (mUseMC) {
+      LOG(debug) << "Computing MC Labels.";
+
       mTimer[SWComputeLabels].Start(false);
       auto& tracker = mTrackerLVec[0];
 
@@ -301,7 +311,7 @@ void TrackerDPL::run(ProcessingContext& pc)
       for (auto& rofData : roFrameVec[i]) {
         int ntracksROF = 0, firstROFTrackEntry = allTracksMFT.size();
         tracksL.swap(rofData.getTracks());
-        ntracksROF = tracks.size();
+        ntracksROF = tracksL.size();
         copyTracks(tracksL, allTracksMFT, allClusIdx);
         rof->setFirstEntry(firstROFTrackEntry);
         rof->setNEntries(ntracksROF);
@@ -342,7 +352,7 @@ void TrackerDPL::updateTimeDependentParams(ProcessingContext& pc)
     if (mMFTTriggered) {
       setMFTROFrameLengthMUS(alpParams.roFrameLengthTrig / 1.e3); // MFT ROFrame duration in \mus
     } else {
-      setMFTROFrameLengthInBC(alpParams.roFrameLengthInBC); // MFT ROFrame duration in \mus
+      setMFTROFrameLengthInBC(alpParams.roFrameLengthInBC); // MFT ROFrame duration in BC
     }
 
     o2::mft::GeometryTGeo* geom = o2::mft::GeometryTGeo::Instance();

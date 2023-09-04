@@ -48,9 +48,10 @@ TEST_CASE("TestVerifyWorkflowSerialization")
                                     AlgorithmSpec{[](ProcessingContext& ctx) {}},                                                                                                               //
                                     {},                                                                                                                                                         //
                                     CommonServices::defaultServices(),                                                                                                                          //
-                                    {{"label a"}, {"label \"b\""}}}};
+                                    {{"label a"}, {"label \"b\""}},
+                                    {{"key1", "v\"al'1"}, {"", "val2"}, {"key3", ""}, {"", ""}}}};
 
-  std::vector<DataProcessorInfo> metadataOut{
+  std::vector<DataProcessorInfo> dataProcessorInfoOut{
     {"A", "test_Framework_test_SerializationWorkflow", {"foo"}, {ConfigParamSpec{"aBool", VariantType::Bool, true, {"A Bool"}}}},
     {"B", "test_Framework_test_SerializationWorkflow", {"b-bar", "bfoof", "fbdbfaso"}},
     {"C", "test_Framework_test_SerializationWorkflow", {}},
@@ -59,18 +60,18 @@ TEST_CASE("TestVerifyWorkflowSerialization")
 
   CommandInfo commandInfoOut{"o2-dpl-workflow -b --option 1 --option 2"};
 
-  std::vector<DataProcessorInfo> metadataIn{};
+  std::vector<DataProcessorInfo> dataProcessorInfoIn{};
   CommandInfo commandInfoIn;
 
   std::ostringstream firstDump;
-  WorkflowSerializationHelpers::dump(firstDump, w0, metadataOut, commandInfoOut);
+  WorkflowSerializationHelpers::dump(firstDump, w0, dataProcessorInfoOut, commandInfoOut);
   std::istringstream is;
   is.str(firstDump.str());
   WorkflowSpec w1;
-  WorkflowSerializationHelpers::import(is, w1, metadataIn, commandInfoIn);
+  WorkflowSerializationHelpers::import(is, w1, dataProcessorInfoIn, commandInfoIn);
 
   std::ostringstream secondDump;
-  WorkflowSerializationHelpers::dump(secondDump, w1, metadataIn, commandInfoIn);
+  WorkflowSerializationHelpers::dump(secondDump, w1, dataProcessorInfoIn, commandInfoIn);
 
   REQUIRE(w0.size() == 4);
   REQUIRE(w0.size() == w1.size());
@@ -92,24 +93,24 @@ TEST_CASE("TestVerifyWildcard")
       .inputs = {{"clbPayload", "CLP"}, {"clbWrapper", "CLW"}},
     }};
 
-  std::vector<DataProcessorInfo> metadataOut{
+  std::vector<DataProcessorInfo> dataProcessorInfoOut{
     {"A", "test_Framework_test_SerializationWorkflow", {}},
   };
 
   CommandInfo commandInfoOut{"o2-dpl-workflow -b --option 1 --option 2"};
 
-  std::vector<DataProcessorInfo> metadataIn{};
+  std::vector<DataProcessorInfo> dataProcessorInfoIn{};
   CommandInfo commandInfoIn;
 
   std::ostringstream firstDump;
-  WorkflowSerializationHelpers::dump(firstDump, w0, metadataOut, commandInfoOut);
+  WorkflowSerializationHelpers::dump(firstDump, w0, dataProcessorInfoOut, commandInfoOut);
   std::istringstream is;
   is.str(firstDump.str());
   WorkflowSpec w1;
-  WorkflowSerializationHelpers::import(is, w1, metadataIn, commandInfoIn);
+  WorkflowSerializationHelpers::import(is, w1, dataProcessorInfoIn, commandInfoIn);
 
   std::ostringstream secondDump;
-  WorkflowSerializationHelpers::dump(secondDump, w1, metadataIn, commandInfoIn);
+  WorkflowSerializationHelpers::dump(secondDump, w1, dataProcessorInfoIn, commandInfoIn);
 
   REQUIRE(w0.size() == 1);
   REQUIRE(w0.size() == w1.size());

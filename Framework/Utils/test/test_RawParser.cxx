@@ -33,7 +33,7 @@ void fillPages(Container& buffer)
     rdh->headerSize = sizeof(RDH);
     rdh->offsetToNext = PageSize;
     rdh->memorySize = PageSize;
-    rdh->pageCnt = NofPages;
+    rdh->pageCnt = pageNo;
     rdh->packetCounter = pageNo;
     rdh->stop = pageNo + 1 == NofPages;
     auto* data = reinterpret_cast<size_t*>(buffer.data() + pageNo * PageSize + rdh->headerSize);

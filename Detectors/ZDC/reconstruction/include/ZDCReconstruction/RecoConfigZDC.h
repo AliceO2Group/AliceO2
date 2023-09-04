@@ -30,6 +30,11 @@ struct RecoConfigZDC {
   int32_t tth[NTDCChannels] = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8};             // Trigger threshold
   std::array<bool, NTDCChannels> bitset = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}; // Set bits in coincidence
   void setBit(uint32_t ibit, bool val = true);
+  uint8_t triggerCondition = 0x3; /// Trigger condition: 0x1 single, 0x3 double and 0x7 triple
+  uint8_t getTriggerCondition() { return triggerCondition; }
+  void setTripleTrigger() { triggerCondition = 0x7; }
+  void setDoubleTrigger() { triggerCondition = 0x3; }
+  void setSingleTrigger() { triggerCondition = 0x1; }
 
   // Signal processing
   bool low_pass_filter = true;     // Low pass filtering
@@ -41,7 +46,8 @@ struct RecoConfigZDC {
   int tdc_search[NTDCChannels] = {250, 250, 250, 250, 250, 250, 250, 250, 250, 250}; // Search zone for a TDC signal ideally 2.5 ns (units of ~10 ps)
   void setSearch(uint32_t ich, int val);
   int getSearch(uint32_t ich) const;
-  bool extendedSearch = true;
+  bool extendedSearch = false; // Extend search at beginning of window (needs orbit pedestal info)
+  bool storeEvPileup = false;  // Store TDC hits with in-event pile-up
 
   // Charge integration
   // Beginning and end of integration range: signal
@@ -60,7 +66,7 @@ struct RecoConfigZDC {
 
   void print() const;
 
-  ClassDefNV(RecoConfigZDC, 2);
+  ClassDefNV(RecoConfigZDC, 4);
 };
 } // namespace zdc
 } // namespace o2

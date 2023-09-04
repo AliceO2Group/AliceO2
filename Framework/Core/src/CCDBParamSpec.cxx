@@ -26,9 +26,9 @@ ConfigParamSpec ccdbRunDependent(bool defaultValue)
   return ConfigParamSpec{"ccdb-run-dependent", VariantType::Bool, defaultValue, {"Give object for specific run number"}, ConfigParamKind::kGeneric};
 }
 
-ConfigParamSpec ccdbQueryRateSpec(int64_t r)
+ConfigParamSpec ccdbQueryRateSpec(int r)
 {
-  return ConfigParamSpec{"ccdb-query-rate", VariantType::Int64, r, {"Query after once every N TFs"}, ConfigParamKind::kGeneric};
+  return ConfigParamSpec{"ccdb-query-rate", VariantType::Int, r, {"Query after once every N TFs"}, ConfigParamKind::kGeneric};
 }
 
 ConfigParamSpec ccdbMetadataSpec(std::string const& key, std::string const& defaultValue)
@@ -40,12 +40,12 @@ ConfigParamSpec ccdbMetadataSpec(std::string const& key, std::string const& defa
                          ConfigParamKind::kGeneric};
 }
 
-std::vector<ConfigParamSpec> ccdbParamSpec(std::string const& path, std::vector<CCDBMetadata> metadata, int64_t qrate)
+std::vector<ConfigParamSpec> ccdbParamSpec(std::string const& path, std::vector<CCDBMetadata> metadata, int qrate)
 {
   return ccdbParamSpec(path, false, metadata, qrate);
 }
 
-std::vector<ConfigParamSpec> ccdbParamSpec(std::string const& path, bool runDependent, std::vector<CCDBMetadata> metadata, int64_t qrate)
+std::vector<ConfigParamSpec> ccdbParamSpec(std::string const& path, bool runDependent, std::vector<CCDBMetadata> metadata, int qrate)
 {
   // Add here CCDB objecs which should be considered run dependent
   std::vector<ConfigParamSpec> result{ccdbPathSpec(path)};
@@ -53,7 +53,7 @@ std::vector<ConfigParamSpec> ccdbParamSpec(std::string const& path, bool runDepe
     result.push_back(ccdbRunDependent(runDependent));
   }
   if (qrate != 0) {
-    result.push_back(ccdbQueryRateSpec(qrate < 0 ? int64_t(std::numeric_limits<int64_t>::max) : qrate));
+    result.push_back(ccdbQueryRateSpec(qrate < 0 ? std::numeric_limits<int>::max() : qrate));
   }
   for (auto& [key, value] : metadata) {
     result.push_back(ccdbMetadataSpec(key, value));

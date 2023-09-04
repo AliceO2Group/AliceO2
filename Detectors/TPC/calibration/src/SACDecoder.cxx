@@ -298,7 +298,7 @@ void Decoder::decode(int feid)
         aligned = false;
         syncLost = true;
       } else {
-        LOGP(error, "Skipping {} for FE {}, might lead to decosing problems", data[carry], feid);
+        LOGP(error, "Skipping {} for FE {}, might lead to decoding problems", data[carry], feid);
         ++carry;
       }
       decdata.reset();

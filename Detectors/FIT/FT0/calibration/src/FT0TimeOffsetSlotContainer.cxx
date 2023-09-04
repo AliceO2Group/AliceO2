@@ -25,7 +25,11 @@ FT0TimeOffsetSlotContainer::FT0TimeOffsetSlotContainer(std::size_t minEntries) {
 
 bool FT0TimeOffsetSlotContainer::hasEnoughEntries() const
 {
-  if (mIsReady) {
+  if (mTotalNevents == 0) {
+    // Dummy slot, should be ignored for protection
+    LOG(warning) << "RESULT: Empty slot, ignoring";
+    return false;
+  } else if (mIsReady) {
     // ready : bad+good == NChannels (i.e. no pending channel)
     LOG(info) << "RESULT: ready";
     print();
@@ -78,6 +82,7 @@ void FT0TimeOffsetSlotContainer::fill(const gsl::span<const float>& data)
       nEntries += en;
     }
     mArrEntries[iCh] = nEntries;
+    mTotalNevents += nEntries;
     if (nEntries >= CalibParam::Instance().mMaxEntriesThreshold) {
       mBitsetGoodChIDs.set(iCh);
     }

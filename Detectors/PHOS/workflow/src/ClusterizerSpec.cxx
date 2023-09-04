@@ -57,7 +57,7 @@ void ClusterizerSpec::run(framework::ProcessingContext& ctx)
     calibPtr = ctx.inputs().get<o2::phos::CalibParams*>("calib");
     mClusterizer.setCalibration(calibPtr.get());
 
-    if (!mSkipL1phase) {
+    if (!mSkipL1phase && !mPropagateMC) {
       auto vec = ctx.inputs().get<std::vector<int>*>("l1phase");
       mClusterizer.setL1phase((*vec)[0]);
     }

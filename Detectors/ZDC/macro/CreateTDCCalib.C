@@ -56,7 +56,7 @@ void CreateTDCCalib(long tmin = 0, long tmax = -1, std::string ccdbHost = "", fl
   std::string ccdb_host = o2::zdc::ccdbShortcuts(ccdbHost, conf.Class_Name(), o2::zdc::CCDBPathTDCCalib);
 
   if (o2::zdc::endsWith(ccdb_host, ".root")) {
-    TFile f(ccdb_host.data(), "recreate");
+    TFile f(TString::Format(ccdb_host.data(), tmin, tmax), "recreate");
     f.WriteObjectAny(&conf, conf.Class_Name(), "ccdb_object");
     f.Close();
     return;

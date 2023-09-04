@@ -246,7 +246,7 @@ struct ExpirationHandlerHelpers {
       }
 
       auto device = services.get<RawDeviceService>().device();
-      auto& channel = device->fChannels[channelName];
+      auto& channel = device->GetChannels()[channelName];
 
       // We assume there is always a ZeroMQ socket behind.
       int zmq_fd = 0;
@@ -477,7 +477,8 @@ void DeviceSpecHelpers::validate(std::vector<DataProcessorSpec> const& workflow)
   }
 }
 
-void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
+void DeviceSpecHelpers::processOutEdgeActions(ConfigContext const& configContext,
+                                              std::vector<DeviceSpec>& devices,
                                               std::vector<DeviceId>& deviceIndex,
                                               std::vector<DeviceConnectionId>& connections,
                                               ResourceManager& resourceManager,
@@ -486,6 +487,7 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
                                               const std::vector<EdgeAction>& actions, const WorkflowSpec& workflow,
                                               const std::vector<OutputSpec>& outputsMatchers,
                                               const std::vector<ChannelConfigurationPolicy>& channelPolicies,
+                                              const std::vector<SendingPolicy>& sendingPolicies,
                                               std::string const& channelPrefix,
                                               ComputingOffer const& defaultOffer,
                                               OverrideServiceSpecs const& overrideServices)
@@ -540,7 +542,8 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
       .inputTimesliceId = edge.producerTimeIndex,
       .maxInputTimeslices = processor.maxInputTimeslices,
       .resource = {acceptedOffer},
-      .labels = processor.labels});
+      .labels = processor.labels,
+      .metadata = processor.metadata});
     /// If any of the inputs or outputs are "Lifetime::OutOfBand"
     /// create the associated channels.
     //
@@ -647,7 +650,7 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
   // whether this is a real OutputRoute or if it's a forward from
   // a previous consumer device.
   // FIXME: where do I find the InputSpec for the forward?
-  auto appendOutputRouteToSourceDeviceChannel = [&outputsMatchers, &workflow, &devices, &logicalEdges](
+  auto appendOutputRouteToSourceDeviceChannel = [&outputsMatchers, &workflow, &devices, &logicalEdges, &sendingPolicies, &configContext](
                                                   size_t ei, size_t di, size_t ci) {
     assert(ei < logicalEdges.size());
     assert(di < devices.size());
@@ -656,15 +659,27 @@ void DeviceSpecHelpers::processOutEdgeActions(std::vector<DeviceSpec>& devices,
     auto& device = devices[di];
     assert(edge.consumer < workflow.size());
     auto& consumer = workflow[edge.consumer];
+    auto& producer = workflow[edge.producer];
     auto& channel = devices[di].outputChannels[ci];
     assert(edge.outputGlobalIndex < outputsMatchers.size());
+    // Iterate over all the policies and apply the first one that matches.
+    SendingPolicy const* policyPtr = nullptr;
+    for (auto& policy : sendingPolicies) {
+      if (policy.matcher(producer, consumer, configContext)) {
+        policyPtr = &policy;
+        break;
+      }
+    }
+    assert(policyPtr != nullptr);
 
     if (edge.isForward == false) {
       OutputRoute route{
         edge.timeIndex,
         consumer.maxInputTimeslices,
         outputsMatchers[edge.outputGlobalIndex],
-        channel.name};
+        channel.name,
+        policyPtr,
+      };
       device.outputs.emplace_back(route);
     } else {
       ForwardRoute route{
@@ -814,7 +829,8 @@ void DeviceSpecHelpers::processInEdgeActions(std::vector<DeviceSpec>& devices,
       .inputTimesliceId = edge.timeIndex,
       .maxInputTimeslices = processor.maxInputTimeslices,
       .resource = {acceptedOffer},
-      .labels = processor.labels};
+      .labels = processor.labels,
+      .metadata = processor.metadata};
 
     if (processor.maxInputTimeslices != 1) {
       device.id += "_t" + std::to_string(edge.timeIndex);
@@ -1088,8 +1104,8 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
   defaultOffer.cpu /= deviceCount + 1;
   defaultOffer.memory /= deviceCount + 1;
 
-  processOutEdgeActions(devices, deviceIndex, connections, resourceManager, outEdgeIndex, logicalEdges,
-                        outActions, workflow, outputs, channelPolicies, channelPrefix, defaultOffer, overrideServices);
+  processOutEdgeActions(configContext, devices, deviceIndex, connections, resourceManager, outEdgeIndex, logicalEdges,
+                        outActions, workflow, outputs, channelPolicies, sendingPolicies, channelPrefix, defaultOffer, overrideServices);
 
   // FIXME: is this not the case???
   std::sort(connections.begin(), connections.end());
@@ -1099,11 +1115,16 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
   // We apply the completion policies here since this is where we have all the
   // devices resolved.
   for (auto& device : devices) {
+    bool hasPolicy = false;
     for (auto& policy : completionPolicies) {
       if (policy.matcher(device) == true) {
         device.completionPolicy = policy;
+        hasPolicy = true;
         break;
       }
+    }
+    if (hasPolicy == false) {
+      throw runtime_error_f("Unable to find a completion policy for %s", device.id.c_str());
     }
     for (auto& policy : dispatchPolicies) {
       if (policy.deviceMatcher(device) == true) {
@@ -1117,13 +1138,7 @@ void DeviceSpecHelpers::dataProcessorSpecs2DeviceSpecs(const WorkflowSpec& workf
         break;
       }
     }
-    for (auto& policy : sendingPolicies) {
-      if (policy.matcher(device, configContext) == true) {
-        device.sendingPolicy = policy;
-        break;
-      }
-    }
-    bool hasPolicy = false;
+    hasPolicy = false;
     for (auto& policy : resourcePolicies) {
       if (policy.matcher(device) == true) {
         device.resourcePolicy = policy;

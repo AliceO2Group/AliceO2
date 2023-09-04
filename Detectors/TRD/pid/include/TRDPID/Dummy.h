@@ -34,13 +34,13 @@ class Dummy final : public PIDBase
   using PIDBase::PIDBase;
 
  public:
-  ~Dummy() final = default;
+  ~Dummy() = default;
 
   /// Do absolutely nothing.
   void init(o2::framework::ProcessingContext& pc) final{};
 
   /// Everything below 0.f indicates nothing available.
-  PIDValue process(const TrackTRD& trk, const o2::globaltracking::RecoContainer& input, bool isTPC) final
+  float process(const TrackTRD& trk, const o2::globaltracking::RecoContainer& input, bool isTPCTRD) const final
   {
     return -1.f;
   };

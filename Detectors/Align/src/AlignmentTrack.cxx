@@ -874,7 +874,7 @@ bool AlignmentTrack::iniFit()
     trackParam_t trcU = trc;
     if (!fitLeg(trcU, getNPoints() - 1, getInnerPointID() + 1, mNeedInv[1])) { //fit upper leg of cosmic track
       if (algConf.verbose > 2) {
-        LOG(warn) << "Failed fitLeg 0";
+        LOG(warn) << "Failed fitLeg 1";
         trc.print();
       }
       return false; // collision track or cosmic lower leg
@@ -1004,7 +1004,7 @@ bool AlignmentTrack::fitLeg(trackParam_t& trc, int pFrom, int pTo, bool& inv)
     inv = true;
     trc.invert();
   }
-  // Fit is done from outward to inward: normally against the track direction (hence e.loss is compensated) inless inversion is requested (cosmic upper leg)
+  // Fit is done from outward to inward: normally against the track direction (hence e.loss is compensated) unless inversion is requested (cosmic upper leg)
   if (!propagateParamToPoint(trc, p0, algConf.maxStep, algConf.maxSnp, MatCorrType(algConf.matCorType), -1)) {
     if (algConf.verbose > 2) {
       LOGF(warn, "Failed on PropagateParamOnlyTo to %f", p0->getXTracking());
@@ -1428,7 +1428,7 @@ void AlignmentTrack::sortPoints()
   // sort points in order against track direction: innermost point is last
   // for collision tracks.
   // For 2-leg cosmic tracks: 1st points of outgoing (lower) leg are added from large to
-  // small radii, then the points of incomint (upper) leg are added in increasing R direction
+  // small radii, then the points of incoming (upper) leg are added in increasing R direction
   //
   // The mInnerPointID will mark the id of the innermost point, i.e. the last one for collision-like
   // tracks and in case of cosmics - the point of lower leg with smallest R

@@ -18,8 +18,8 @@
 namespace o2::framework
 {
 
-// This is a utility class to reduce the amount of boilerplate when defining
-// an error callback.
+/// This is a utility class to reduce the amount of boilerplate when defining
+/// an error callback for an error which happens during the processing of a timeslice.
 class ErrorContext
 {
  public:
@@ -36,6 +36,26 @@ class ErrorContext
 
  private:
   InputRecord& mInputs;
+  ServiceRegistryRef mServices;
+  RuntimeErrorRef mExceptionRef;
+};
+
+/// This is a utility class to reduce the amount of boilerplate when defining
+/// an error callback for an error which happens during the initialization of
+/// a DataProcessor.
+class InitErrorContext
+{
+ public:
+  InitErrorContext(ServiceRegistryRef services, RuntimeErrorRef e)
+    : mServices{services},
+      mExceptionRef{e}
+  {
+  }
+
+  ServiceRegistryRef services() { return mServices; }
+  RuntimeErrorRef exception() { return mExceptionRef; }
+
+ private:
   ServiceRegistryRef mServices;
   RuntimeErrorRef mExceptionRef;
 };

@@ -35,3 +35,5 @@ o2_add_executable(rawreader-pad-rootify
         COMPONENT_NAME focal
         PUBLIC_LINK_LIBRARIES O2::DataFormatsFOCAL O2::FOCALReconstruction O2::DetectorsRaw ROOT::RIO ROOT::Tree
         SOURCES run/rawReaderPadRootify.cxx)
+
+o2_data_file(COPY files DESTINATION Detectors/FOC)

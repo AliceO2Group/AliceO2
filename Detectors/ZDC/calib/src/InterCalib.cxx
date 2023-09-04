@@ -47,23 +47,19 @@ int InterCalib::init()
 
   clear();
   auto* cfg = mInterCalibConfig;
-  int ih;
+
   // clang-format off
-  ih = 0; mHUnc[ih] =    new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  ih = 1; mHUnc[ih] =    new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  ih = 2; mHUnc[ih] =    new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  ih = 3; mHUnc[ih] =    new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  ih = 4; mHUnc[ih] =    new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  ih = 0; mHUnc[NH+ih] = new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  ih = 1; mHUnc[NH+ih] = new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  ih = 2; mHUnc[NH+ih] = new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  ih = 3; mHUnc[NH+ih] = new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  ih = 4; mHUnc[NH+ih] = new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
-  ih = 0; mCUnc[ih] =    new o2::dataformats::FlatHisto2D<float>(cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
-  ih = 1; mCUnc[ih] =    new o2::dataformats::FlatHisto2D<float>(cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
-  ih = 2; mCUnc[ih] =    new o2::dataformats::FlatHisto2D<float>(cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
-  ih = 3; mCUnc[ih] =    new o2::dataformats::FlatHisto2D<float>(cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
-  ih = 4; mCUnc[ih] =    new o2::dataformats::FlatHisto2D<float>(cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
+  for(int ih=0; ih<NH; ih++){
+    if(ih == HidZNI || ih == HidZPI){
+      // Avoid duplication
+      mHUnc[ih] = nullptr;
+      mHUnc[NH+ih] = nullptr;
+    }else{
+      mHUnc[ih] =    new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
+      mHUnc[NH+ih] = new o2::dataformats::FlatHisto1D<float>(cfg->nb1[ih],cfg->amin1[ih],cfg->amax1[ih]);
+    }
+    mCUnc[ih] =    new o2::dataformats::FlatHisto2D<float>(cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih],cfg->nb2[ih],cfg->amin2[ih],cfg->amax2[ih]);
+  }
   // clang-format on
   mInitDone = true;
   return 0;
@@ -77,7 +73,9 @@ int InterCalib::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
   if (!mInitDone) {
     init();
   }
-  LOG(info) << "o2::zdc::InterCalib processing " << RecBC.size() << " b.c.";
+  if (mVerbosity > DbgMinimal) {
+    LOG(info) << "o2::zdc::InterCalib processing " << RecBC.size() << " b.c.";
+  }
   o2::zdc::RecEventFlat ev;
   ev.init(RecBC, Energy, TDCData, Info);
   while (ev.next()) {
@@ -114,6 +112,12 @@ int InterCalib::process(const gsl::span<const o2::zdc::BCRecData>& RecBC,
     }
     if ((ev.ezdcDecoded & MaskZEM) == MaskZEM) {
       cumulate(HidZEM, ev.EZDC(IdZEM1), ev.EZDC(IdZEM2), 0., 0., 0., 1.);
+    }
+    if ((ev.ezdcDecoded & MaskZNA) == MaskZNA && (ev.ezdcDecoded & MaskZNC) == MaskZNC) {
+      cumulate(HidZNI, ev.EZDC(IdZNAC), ev.EZDC(IdZNCC), 0., 0., 0., 1.);
+    }
+    if ((ev.ezdcDecoded & MaskZPA) == MaskZPA && (ev.ezdcDecoded & MaskZPC) == MaskZPC) {
+      cumulate(HidZPI, ev.EZDC(IdZPAC), ev.EZDC(IdZPCC), 0., 0., 0., 1.);
     }
   }
   return 0;
@@ -182,6 +186,8 @@ void InterCalib::assign(int ih, bool ismod)
   int id_2[4] = {IdZNC1, IdZNC2, IdZNC3, IdZNC4};
   int id_3[4] = {IdZPC1, IdZPC2, IdZPC3, IdZPC4};
   int id_4[1] = {IdZEM2};
+  int id_5[1] = {IdZNCC};
+  int id_6[1] = {IdZPCC};
   int nid = 0;
   int* id = nullptr;
   if (ih == 0) {
@@ -199,6 +205,16 @@ void InterCalib::assign(int ih, bool ismod)
   } else if (ih == 4) {
     nid = 1;
     id = id_4;
+  } else if (ih == 5) {
+    nid = 1;
+    id = id_5;
+    LOG(warn) << "InterCalib::assign unimplemented coefficient ih = " << ih;
+    return;
+  } else if (ih == 6) {
+    nid = 1;
+    id = id_6;
+    LOG(warn) << "InterCalib::assign unimplemented coefficient ih = " << ih;
+    return;
   } else {
     LOG(fatal) << "InterCalib::assign accessing not existing ih = " << ih;
   }
@@ -254,6 +270,10 @@ int InterCalib::process(const char* hname, int ic)
     ih = HidZPC;
   } else if (hn.EqualTo("hZEM")) {
     ih = HidZEM;
+  } else if (hn.EqualTo("hZNI")) {
+    ih = HidZNI;
+  } else if (hn.EqualTo("hZPI")) {
+    ih = HidZPI;
   } else {
     LOGF(error, "Not recognized histogram name: %s\n", hname);
     return -1;
@@ -410,8 +430,13 @@ void InterCalib::cumulate(int ih, double tc, double t1, double t2, double t3, do
   }
   // mData.mSum[ih][5][5] contains the number of analyzed events
   double sumquad = val[1] + val[2] + val[3] + val[4];
-  mHUnc[ih]->fill(sumquad, w);
-  mHUnc[ih + NH]->fill(val[0]);
+  // Avoid filling duplicate histograms
+  if (mHUnc[ih]) {
+    mHUnc[ih]->fill(sumquad, w);
+  }
+  if (mHUnc[ih + NH]) {
+    mHUnc[ih + NH]->fill(val[0]);
+  }
   mCUnc[ih]->fill(val[0], sumquad, w);
 }
 
@@ -451,8 +476,9 @@ int InterCalib::mini(int ih)
   mMn[ih]->SetFCN(fcn);
   mMn[ih]->mnparm(0, "c0", 1., 0., 1., 1., ierflg);
   mMn[ih]->mnparm(1, "c1", start, step, l_bnd, u_bnd, ierflg);
-  if (ih == 4) {
-    // Only two ZEM calorimeters: equalize response
+  // Only two ZEM calorimeters: equalize response
+  // Equalize side A and C
+  if (ih == 4 || ih == 5 || ih == 6) {
     l_bnd = 0;
     u_bnd = 0;
     start = 0;
@@ -469,6 +495,35 @@ int InterCalib::mini(int ih)
   mMn[ih]->mnexcm("MIGRAD", arglist, 0, ierflg);
   for (Int_t i = 0; i < NPAR; i++) {
     mMn[ih]->GetParameter(i, mPar[ih][i], mErr[ih][i]);
+  }
+  // Fallback in case fit fails on proton calorimeters
+  if (ih == 1 || ih == 3) {
+    for (int iretry = 0; iretry < 2; iretry++) {
+      bool retry = false;
+      const char* parn[5] = {"c0fix", "c1fix", "c2fix", "c3fix", "c4fix"};
+      l_bnd = mInterCalibConfig->l_bnd[ih];
+      u_bnd = mInterCalibConfig->u_bnd[ih];
+      for (int i = 1; i <= 4; i++) {
+        if (TMath::Abs(mPar[ih][i] - l_bnd) < 1e-3 || TMath::Abs(mPar[ih][i] - u_bnd) < 1e-3) {
+          retry = true;
+          LOG(warn) << "ih=" << ih << " par " << i << " too close to boundaries";
+          if (ih == 1) {
+            mMn[ih]->mnparm(i, parn[i], mTowerParam->tower_calib[IdZPAC + i], 0, l_bnd, u_bnd, ierflg);
+          } else if (ih == 3) {
+            mMn[ih]->mnparm(i, parn[i], mTowerParam->tower_calib[IdZPCC + i], 0, l_bnd, u_bnd, ierflg);
+          } else {
+            LOG(fatal) << "ERROR on InterCalib minimization ih=" << ih;
+          }
+        }
+      }
+      if (retry) {
+        LOG(warn) << "Retry minimization on ih=" << ih;
+        mMn[ih]->mnexcm("MIGRAD", arglist, 0, ierflg);
+        for (Int_t i = 0; i < NPAR; i++) {
+          mMn[ih]->GetParameter(i, mPar[ih][i], mErr[ih][i]);
+        }
+      }
+    }
   }
   mMtx.unlock();
   return ierflg;
@@ -508,7 +563,7 @@ int InterCalib::saveDebugHistos(const std::string fn)
     }
   }
   // Minimization output
-  const char* mntit[NH] = {"mZNA", "mZPA", "mZNC", "mZPC", "mZEM"};
+  const char* mntit[NH] = {"mZNA", "mZPA", "mZNC", "mZPC", "mZEM", "mZNI", "mZPI"};
   for (int32_t ih = 0; ih < NH; ih++) {
     if (mMn[ih]) {
       mMn[ih]->Write(mntit[ih], TObject::kOverwrite);

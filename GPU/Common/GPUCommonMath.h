@@ -66,6 +66,7 @@ class GPUCommonMath
   GPUhdni() static void SinCos(float x, float& s, float& c);
   GPUhdni() static void SinCosd(double x, double& s, double& c);
   GPUd() static float Tan(float x);
+  GPUd() static float Pow(float x, float y);
   GPUhdni() static float Copysign(float x, float y);
   GPUd() static float TwoPi() { return 6.2831853f; }
   GPUd() static float Pi() { return 3.1415927f; }
@@ -248,6 +249,8 @@ GPUhdi() float GPUCommonMath::ATan2(float y, float x) { return CHOICE(atan2f(y, 
 GPUdi() float GPUCommonMath::Sin(float x) { return CHOICE(sinf(x), sinf(x), sin(x)); }
 
 GPUdi() float GPUCommonMath::Cos(float x) { return CHOICE(cosf(x), cosf(x), cos(x)); }
+
+GPUdi() float GPUCommonMath::Pow(float x, float y) { return CHOICE(powf(x, y), powf(x, y), pow(x, y)); }
 
 GPUhdi() void GPUCommonMath::SinCos(float x, float& s, float& c)
 {

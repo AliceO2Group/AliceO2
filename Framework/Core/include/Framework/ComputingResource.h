@@ -32,8 +32,7 @@ struct ComputingResource {
       memory(offer.memory),
       hostname(offer.hostname),
       startPort(offer.startPort),
-      lastPort(offer.startPort),
-      usedPorts(0)
+      lastPort(offer.startPort)
   {
   }
 

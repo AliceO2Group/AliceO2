@@ -135,7 +135,7 @@
             "name": "kineforward",
             "sockets": [
               {
-                "type": "pub",
+                "type": "pair",
                 "method": "bind",
                 "address": "ipc:///tmp/o2sim-hitmerger-kineforward-#PID#",
                 "sndBufSize": 1000,

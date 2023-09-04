@@ -41,9 +41,9 @@ DataProcessorSpec getStrangenessTrackingWriterSpec(bool useMC)
     LOG(info) << "StrangenessTracker writer pulled " << v.size() << " strange tracks";
   };
 
-  auto inpStTrkID = InputSpec{"strangetracks", "STK", "STRTRACKS", 0};
-  auto inpClusAtt = InputSpec{"clusupdates", "STK", "CLUSUPDATES", 0};
-  auto inpMCLab = InputSpec{"stkmclabels", "STK", "STRK_MC", 0};
+  auto inpStTrkID = InputSpec{"strangetracks", "GLO", "STRANGETRACKS", 0};
+  auto inpClusAtt = InputSpec{"clusupdates", "GLO", "CLUSUPDATES", 0};
+  auto inpMCLab = InputSpec{"stkmclabels", "GLO", "STRANGETRACKS_MC", 0};
 
   return MakeRootTreeWriterSpec("strangenesstracking-writer",
                                 "o2_strange_tracks.root",

@@ -48,7 +48,8 @@ enum struct OutputType { Digits,          ///< EMCAL digits
 /// \param propagateMC If true MC labels are propagated to the output files
 /// \param askDISTSTF If true the Raw->Cell converter subscribes to FLP/DISTSUBTIMEFRAME
 /// \param enableDigitsPrinter If true then the simple digits printer is added as dummy task
-/// \param subspecification Subspecification in case of running on different FLPs
+/// \param subspecificationIn Subspecification of input in case of running on different FLPs
+/// \param subspecificationOut Subspecification if output in case of running on different FLPs
 /// \param cfgInput Input objects processed in the workflow
 /// \param cfgOutput Output objects created in the workflow
 /// \param loadRecoParamsFromCCDB Load the reco params from the CCDB
@@ -57,7 +58,8 @@ enum struct OutputType { Digits,          ///< EMCAL digits
 framework::WorkflowSpec getWorkflow(bool propagateMC = true,
                                     bool askDISTSTF = true,
                                     bool enableDigitsPrinter = false,
-                                    int subspecification = 0,
+                                    int subspecificationIn = 0,
+                                    int subspecificationOut = 0,
                                     std::string const& cfgInput = "digits",
                                     std::string const& cfgOutput = "clusters",
                                     bool disableRootInput = false,

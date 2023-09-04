@@ -100,15 +100,14 @@ class Digitizer
              std::vector<o2::zdc::ChannelData>& digitsCh,
              o2::dataformats::MCTruthContainer<o2::zdc::MCLabel>& labels);
 
-  // no setters: initialization done via refreshCCDB
   const SimCondition* getSimCondition() const { return mSimCondition; }
   const ModuleConfig* getModuleConfig() const { return mModuleConfig; }
+  void setSimCondition(const SimCondition* cfg) { mSimCondition = cfg; }
+  void setModuleConfig(const ModuleConfig* cfg) { mModuleConfig = cfg; }
 
   void setContinuous(bool v = true) { mIsContinuous = v; }
   bool isContinuous() const { return mIsContinuous; }
   void updatePedestalReference(OrbitData& pdata);
-  void refreshCCDB();
-  void setCCDBServer(const std::string& s) { mCCDBServer = s; }
   void findEmptyBunches(const std::bitset<o2::constants::lhc::LHCMaxBunches>& bunchPattern);
   int getNEmptyBunches() const { return mNEmptyBCs; }
   void assignTriggerBits(uint32_t ibc, std::vector<BCData>& bcData);                  // Assign trigger bits for nearby bunch crossings
@@ -156,7 +155,6 @@ class Digitizer
   bool mMaskTriggerBits = true;                                  // Mask trigger bits with readout mask
   bool mSkipMCLabels = false;                                    // Skip MC labels in output
 
-  std::string mCCDBServer = "";
   const SimCondition* mSimCondition = nullptr;      ///< externally set SimCondition
   const ModuleConfig* mModuleConfig = nullptr;      ///< externally set ModuleConfig
   std::vector<TriggerChannelConfig> mTriggerConfig; ///< triggering channels

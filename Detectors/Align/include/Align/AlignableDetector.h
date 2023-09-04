@@ -115,7 +115,7 @@ class AlignableDetector : public DOFSet
   void Print(const Option_t* opt = "") const override;
 
   virtual void reset();
-  virtual int processPoints(GIndex gid, bool inv = false);
+  virtual int processPoints(GIndex gid, int npntCut = 0, bool inv = false);
   virtual bool prepareDetectorData() { return true; }
 
   virtual void updatePointByTrackInfo(AlignmentPoint* pnt, const trackParam_t* t) const;
@@ -209,8 +209,7 @@ class AlignableDetector : public DOFSet
   TObjArray mVolumes;  // all volumes of the detector
   //
   // this is transient info
-  int mNPoints = 0;         //! number of points from this detector
-  int mFirstPoint = 0;      //! entry of the 1st point
+  int mNPoints = 0; //! number of points from this detector
   //
   ClassDefOverride(AlignableDetector, 1); // base class for detector global alignment
 };

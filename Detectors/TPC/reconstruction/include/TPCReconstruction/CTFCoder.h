@@ -28,8 +28,7 @@
 #include "DataFormatsTPC/CompressedClusters.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsBase/CTFCoderBase.h"
-#include "rANS/rans.h"
-#include "rANS/utils.h"
+#include "rANS/iterator.h"
 
 class TTree;
 
@@ -70,7 +69,7 @@ class ShiftFunctor
 template <typename iterA_T, typename iterB_T, typename F>
 auto makeInputIterators(iterA_T iterA, iterB_T iterB, size_t nElements, F functor)
 {
-  using namespace o2::rans::utils;
+  using namespace o2::rans;
 
   auto advanceIter = [](auto iter, size_t nElements) {
     auto tmp = iter;
@@ -90,8 +89,9 @@ struct MergedColumnsDecoder {
   template <typename iterA_T, typename iterB_T, typename F>
   static void decode(iterA_T iterA, iterB_T iterB, CTF::Slots slot, F decodingFunctor)
   {
+    using namespace o2::rans;
     ShiftFunctor<combined_t, bits_B> f{};
-    auto iter = rans::utils::CombinedOutputIteratorFactory<combined_t>::makeIter(iterA, iterB, f);
+    auto iter = CombinedOutputIteratorFactory<combined_t>::makeIter(iterA, iterB, f);
 
     decodingFunctor(iter, slot);
   }
@@ -156,7 +156,7 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 template <typename source_T>
 void CTFCoder::buildCoder(ctf::CTFCoderBase::OpType coderType, const CTF::container_t& ctf, CTF::Slots slot)
 {
-  this->createCoder<source_T>(coderType, ctf.getFrequencyTable(slot), static_cast<int>(slot));
+  this->createCoder(coderType, std::get<rans::RenormedDenseHistogram<source_T>>(ctf.getDictionary<source_T>(slot, mANSVersion)), static_cast<int>(slot));
 }
 
 /// entropy-encode clusters to buffer with CTF
@@ -167,29 +167,29 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const CompressedClusters& ccl, co
   using namespace detail;
   // what to do which each field: see o2::ctf::Metadata explanation
   constexpr MD optField[CTF::getNBlocks()] = {
-    MD::EENCODE, // qTotA
-    MD::EENCODE, // qMaxA
-    MD::EENCODE, // flagsA
-    MD::EENCODE, // rowDiffA
-    MD::EENCODE, // sliceLegDiffA
-    MD::EENCODE, // padResA
-    MD::EENCODE, // timeResA
-    MD::EENCODE, // sigmaPadA
-    MD::EENCODE, // sigmaTimeA
-    MD::EENCODE, // qPtA
-    MD::EENCODE, // rowA
-    MD::EENCODE, // sliceA
-    MD::EENCODE, // timeA
-    MD::EENCODE, // padA
-    MD::EENCODE, // qTotU
-    MD::EENCODE, // qMaxU
-    MD::EENCODE, // flagsU
-    MD::EENCODE, // padDiffU
-    MD::EENCODE, // timeDiffU
-    MD::EENCODE, // sigmaPadU
-    MD::EENCODE, // sigmaTimeU
-    MD::EENCODE, // nTrackClusters
-    MD::EENCODE  // nSliceRowClusters
+    MD::EENCODE_OR_PACK, // qTotA
+    MD::EENCODE_OR_PACK, // qMaxA
+    MD::EENCODE_OR_PACK, // flagsA
+    MD::EENCODE_OR_PACK, // rowDiffA
+    MD::EENCODE_OR_PACK, // sliceLegDiffA
+    MD::EENCODE_OR_PACK, // padResA
+    MD::EENCODE_OR_PACK, // timeResA
+    MD::EENCODE_OR_PACK, // sigmaPadA
+    MD::EENCODE_OR_PACK, // sigmaTimeA
+    MD::EENCODE_OR_PACK, // qPtA
+    MD::EENCODE_OR_PACK, // rowA
+    MD::EENCODE_OR_PACK, // sliceA
+    MD::EENCODE_OR_PACK, // timeA
+    MD::EENCODE_OR_PACK, // padA
+    MD::EENCODE_OR_PACK, // qTotU
+    MD::EENCODE_OR_PACK, // qMaxU
+    MD::EENCODE_OR_PACK, // flagsU
+    MD::EENCODE_OR_PACK, // padDiffU
+    MD::EENCODE_OR_PACK, // timeDiffU
+    MD::EENCODE_OR_PACK, // sigmaPadU
+    MD::EENCODE_OR_PACK, // sigmaTimeU
+    MD::EENCODE_OR_PACK, // nTrackClusters
+    MD::EENCODE_OR_PACK  // nSliceRowClusters
   };
 
   // book output size with some margin
@@ -204,8 +204,7 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const CompressedClusters& ccl, co
   ec->setHeader(CTFHeader{o2::detectors::DetID::TPC, 0, 1, 0, // dummy timestamp, version 1.0
                           cclFiltered, flags});
   assignDictVersion(static_cast<o2::ctf::CTFDictHeader&>(ec->getHeader()));
-  ec->getANSHeader().majorVersion = 0;
-  ec->getANSHeader().minorVersion = 1;
+  ec->setANSHeader(mANSVersion);
 
   o2::ctf::CTFIOSize iosize;
   auto encodeTPC = [&buff, &optField, &coders = mCoders, mfc = this->getMemMarginFactor(), &iosize](auto begin, auto end, CTF::Slots slot, size_t probabilityBits, std::vector<bool>* reject = nullptr) {
@@ -219,9 +218,9 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const CompressedClusters& ccl, co
           tmp.emplace_back(*i);
         }
       }
-      iosize += CTF::get(buff.data())->encode(tmp.begin(), tmp.end(), slotVal, probabilityBits, optField[slotVal], &buff, coders[slotVal].get(), mfc);
+      iosize += CTF::get(buff.data())->encode(tmp.begin(), tmp.end(), slotVal, probabilityBits, optField[slotVal], &buff, coders[slotVal], mfc);
     } else {
-      iosize += CTF::get(buff.data())->encode(begin, end, slotVal, probabilityBits, optField[slotVal], &buff, coders[slotVal].get(), mfc);
+      iosize += CTF::get(buff.data())->encode(begin, end, slotVal, probabilityBits, optField[slotVal], &buff, coders[slotVal], mfc);
     }
   };
 
@@ -320,7 +319,7 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VEC& buffVec)
   o2::ctf::CTFIOSize iosize;
   auto decodeTPC = [&ec, &coders = mCoders, &iosize](auto begin, CTF::Slots slot) {
     const auto slotVal = static_cast<int>(slot);
-    iosize += ec.decode(begin, slotVal, coders[slotVal].get());
+    iosize += ec.decode(begin, slotVal, coders[slotVal]);
   };
 
   if (mCombineColumns) {

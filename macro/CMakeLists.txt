@@ -24,7 +24,6 @@ install(FILES CheckDigits_mft.C
               build_geometry.C
               checkTOFMatching.C
               compareTopologyDistributions.C
-              eventDisplay.C
               initSimGeomAndField.C
               loadExtDepLib.C
               load_all_libs.C
@@ -145,9 +144,6 @@ o2_add_test_root_macro(checkTOFMatching.C
 o2_add_test_root_macro(compareTopologyDistributions.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsITSMFT
                        LABELS its)
-
-# FIXME: what's the point of this one ?
-o2_add_test_root_macro(eventDisplay.C PUBLIC_LINK_LIBRARIES FairRoot::Base)
 
 o2_add_test_root_macro(initSimGeomAndField.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsParameters O2::Field O2::DetectorsBase)

@@ -24,9 +24,11 @@ namespace trd
 
 /// PID parameters.
 struct TRDPIDParams : public o2::conf::ConfigurableParamHelper<TRDPIDParams> {
+#ifdef TRDPID_WITH_ONNX
   unsigned int numOrtThreads = 1;           ///< ONNX Session threads
   unsigned int graphOptimizationLevel = 99; ///< ONNX GraphOptimization Level
                                             /// 0=Disable All, 1=Enable Basic, 2=Enable Extended, 99=Enable ALL
+#endif
 
   // boilerplate
   O2ParamDef(TRDPIDParams, "TRDPIDParams");
