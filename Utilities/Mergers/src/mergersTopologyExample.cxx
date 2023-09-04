@@ -19,6 +19,7 @@
 #include "Mergers/MergerBuilder.h"
 
 #include <Framework/CompletionPolicy.h>
+#include <Framework/CompletionPolicyHelpers.h>
 
 using namespace o2::framework;
 using namespace o2::mergers;
@@ -26,6 +27,7 @@ using namespace o2::mergers;
 void customize(std::vector<CompletionPolicy>& policies)
 {
   MergerBuilder::customizeInfrastructure(policies);
+  policies.emplace_back(CompletionPolicyHelpers::consumeWhenAny("printer-custom"));
 }
 
 #include "Framework/runDataProcessing.h"
@@ -151,12 +153,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     mergersBuilder.setInfrastructureName("custom");
     mergersBuilder.setInputSpecs(mergersInputs);
     mergersBuilder.setOutputSpec({{ "main" }, "TST", "CUSTOM", 0 });
+    mergersBuilder.setOutputSpecMovingWindow({{ "main" }, "TST", "CUSTOM_MW", 0 });
     MergerConfig config;
     config.inputObjectTimespan = { InputObjectsTimespan::LastDifference };
     std::vector<std::pair<size_t, size_t>> param = {{5, 1}};
     config.publicationDecision = {PublicationDecision::EachNSeconds, param};
     config.mergedObjectTimespan = { MergedObjectTimespan::FullHistory };
-    config.topologySize = { TopologySize::NumberOfLayers, 1 };
+    config.topologySize = { TopologySize::NumberOfLayers, 2 };
+    config.publishMovingWindow = { PublishMovingWindow::Yes };
     mergersBuilder.setConfig(config);
 
     mergersBuilder.generateInfrastructure(specs);
@@ -164,14 +168,21 @@ WorkflowSpec defineDataProcessing(ConfigContext const&)
     DataProcessorSpec printer{
       "printer-custom",
       Inputs{
-        { "custom", "TST", "CUSTOM", 0 }
+        { "custom", "TST", "CUSTOM", 0, Lifetime::Sporadic },
+        { "custom_mw", "TST", "CUSTOM_MW", 0, Lifetime::Sporadic },
       },
       Outputs{},
       AlgorithmSpec{
         (AlgorithmSpec::InitCallback) [](InitContext&) {
           return (AlgorithmSpec::ProcessCallback) [](ProcessingContext& processingContext) mutable {
-            auto obj = processingContext.inputs().get<CustomMergeableObject*>("custom");
-            LOG(info) << "SECRET:" << obj->getSecret();
+            if (processingContext.inputs().isValid("custom")) {
+              auto obj = processingContext.inputs().get<CustomMergeableObject*>("custom");
+              LOG(info) << "SECRET:" << obj->getSecret();
+            }
+            if (processingContext.inputs().isValid("custom_mw")) {
+              auto mw = processingContext.inputs().get<CustomMergeableObject*>("custom_mw");
+              LOG(info) << "SECRET MW:" << mw->getSecret();
+            }
           };
         }
       }

@@ -60,7 +60,7 @@ class CTFHelper
   class _Iter
   {
    public:
-    using difference_type = int64_t;
+    using difference_type = std::ptrdiff_t;
     using value_type = T;
     using pointer = const T*;
     using reference = const T&;
@@ -69,92 +69,86 @@ class CTFHelper
     _Iter(const gsl::span<const D>& data, bool end = false) : mData(data), mIndex(end ? M * data.size() : 0){};
     _Iter() = default;
 
-    const I& operator++()
+    inline I& operator++() noexcept
     {
       ++mIndex;
-      return (I&)(*this);
+      return static_cast<I&>(*this);
     }
 
-    const I& operator--()
+    inline I operator++(int)
     {
-      mIndex--;
-      return (I&)(*this);
-    }
-
-    const I operator++(int)
-    {
-      auto res = *this;
+      I res = *(static_cast<I*>(this));
       ++mIndex;
       return res;
     }
 
-    const I operator--(int)
+    inline I& operator--() noexcept
     {
-      auto res = *this;
+      mIndex--;
+      return static_cast<I&>(*this);
+    }
+
+    inline I operator--(int)
+    {
+      I res = *(static_cast<I*>(this));
       --mIndex;
       return res;
     }
 
-    const I& operator+=(difference_type i)
+    I& operator+=(difference_type i) noexcept
     {
       mIndex += i;
-      return (I&)(*this);
+      return static_cast<I&>(*this);
     }
 
-    const I operator+=(difference_type i) const
+    I operator+(difference_type i) const
     {
-      auto tmp = *const_cast<I*>(this);
-      return tmp += i;
+      I res = *(const_cast<I*>(static_cast<const I*>(this)));
+      return res += i;
     }
 
-    const I& operator-=(difference_type i)
+    I& operator-=(difference_type i) noexcept
     {
       mIndex -= i;
-      return (I&)(*this);
+      return static_cast<I&>(*this);
     }
 
-    const I operator-=(difference_type i) const
+    I operator-(difference_type i) const
     {
-      auto tmp = *const_cast<I*>(this);
-      return tmp -= i;
+      I res = *(const_cast<I*>(static_cast<const I*>(this)));
+      return res -= i;
     }
 
-    difference_type operator-(const I& other) const { return mIndex - other.mIndex; }
+    difference_type operator-(const I& other) const noexcept { return mIndex - other.mIndex; }
 
-    difference_type operator-(size_t idx) const { return mIndex - idx; }
+    inline friend I operator+(difference_type i, const I& iter) { return iter + i; };
 
-    const I& operator-(size_t idx)
-    {
-      mIndex -= idx;
-      return (I&)(*this);
-    }
-
-    bool operator!=(const I& other) const { return mIndex != other.mIndex; }
-    bool operator==(const I& other) const { return mIndex == other.mIndex; }
-    bool operator>(const I& other) const { return mIndex > other.mIndex; }
-    bool operator<(const I& other) const { return mIndex < other.mIndex; }
-    bool operator>=(const I& other) const { return mIndex >= other.mIndex; }
-    bool operator<=(const I& other) const { return mIndex <= other.mIndex; }
+    bool operator!=(const I& other) const noexcept { return mIndex != other.mIndex; }
+    bool operator==(const I& other) const noexcept { return mIndex == other.mIndex; }
+    bool operator>(const I& other) const noexcept { return mIndex > other.mIndex; }
+    bool operator<(const I& other) const noexcept { return mIndex < other.mIndex; }
+    bool operator>=(const I& other) const noexcept { return mIndex >= other.mIndex; }
+    bool operator<=(const I& other) const noexcept { return mIndex <= other.mIndex; }
 
    protected:
     gsl::span<const D> mData{};
-    size_t mIndex = 0;
+    difference_type mIndex = 0;
   };
 
   //_______________________________________________
   // BC difference wrt previous if in the same orbit, otherwise the abs.value.
   // For the very 1st entry return 0 (diff wrt 1st BC in the CTF header)
-  class Iter_bcIncTrig : public _Iter<Iter_bcIncTrig, BCData, uint16_t>
+  class Iter_bcIncTrig : public _Iter<Iter_bcIncTrig, BCData, int16_t>
   {
    public:
-    using _Iter<Iter_bcIncTrig, BCData, uint16_t>::_Iter;
+    using _Iter<Iter_bcIncTrig, BCData, int16_t>::_Iter;
     value_type operator*() const
     {
       if (mIndex) {
         if (mData[mIndex].ir.orbit == mData[mIndex - 1].ir.orbit) {
-          return mData[mIndex].ir.bc - mData[mIndex - 1].ir.bc;
+          return value_type(mData[mIndex].ir.bc - mData[mIndex - 1].ir.bc);
         } else {
-          return mData[mIndex].ir.bc;
+          return value_type(mData[mIndex].ir.bc);
         }
       }
       return 0;
@@ -164,9 +158,9 @@ class CTFHelper
       size_t id = mIndex + i;
       if (id) {
         if (mData[id].ir.orbit == mData[id - 1].ir.orbit) {
-          return mData[id].ir.bc - mData[id - 1].ir.bc;
+          return value_type(mData[id].ir.bc - mData[id - 1].ir.bc);
         } else {
-          return mData[id].ir.bc;
+          return value_type(mData[id].ir.bc);
         }
       }
       return 0;
@@ -176,15 +170,15 @@ class CTFHelper
   /////////////////////////////////// BCData iterators ////////////////////////////////////////
   //_______________________________________________
   // Orbit difference wrt previous. For the very 1st entry return 0 (diff wrt 1st BC in the CTF header)
-  class Iter_orbitIncTrig : public _Iter<Iter_orbitIncTrig, BCData, uint32_t>
+  class Iter_orbitIncTrig : public _Iter<Iter_orbitIncTrig, BCData, int32_t>
   {
    public:
-    using _Iter<Iter_orbitIncTrig, BCData, uint32_t>::_Iter;
-    value_type operator*() const { return mIndex ? mData[mIndex].ir.orbit - mData[mIndex - 1].ir.orbit : 0; }
+    using _Iter<Iter_orbitIncTrig, BCData, int32_t>::_Iter;
+    value_type operator*() const { return value_type(mIndex ? mData[mIndex].ir.orbit - mData[mIndex - 1].ir.orbit : 0); }
     value_type operator[](difference_type i) const
     {
       size_t id = mIndex + i;
-      return id ? mData[id].ir.orbit - mData[id - 1].ir.orbit : 0;
+      return value_type(id ? mData[id].ir.orbit - mData[id - 1].ir.orbit : 0);
     }
   };
 
@@ -278,15 +272,15 @@ class CTFHelper
 
   //_______________________________________________
   // Orbit difference wrt previous. For the very 1st entry return 0 (diff wrt 1st BC in the CTF header)
-  class Iter_orbitIncEOD : public _Iter<Iter_orbitIncEOD, OrbitData, uint32_t>
+  class Iter_orbitIncEOD : public _Iter<Iter_orbitIncEOD, OrbitData, int32_t>
   {
    public:
-    using _Iter<Iter_orbitIncEOD, OrbitData, uint32_t>::_Iter;
-    value_type operator*() const { return mIndex ? mData[mIndex].ir.orbit - mData[mIndex - 1].ir.orbit : 0; }
+    using _Iter<Iter_orbitIncEOD, OrbitData, int32_t>::_Iter;
+    value_type operator*() const { return value_type(mIndex ? mData[mIndex].ir.orbit - mData[mIndex - 1].ir.orbit : 0); }
     value_type operator[](difference_type i) const
     {
       size_t id = mIndex + i;
-      return id ? mData[id].ir.orbit - mData[id - 1].ir.orbit : 0;
+      return value_type(id ? mData[id].ir.orbit - mData[id - 1].ir.orbit : 0);
     }
   };
 
@@ -304,21 +298,21 @@ class CTFHelper
   };
 
   //_______________________________________________
-  class Iter_sclInc : public _Iter<Iter_sclInc, OrbitData, uint16_t, NChannels>
+  class Iter_sclInc : public _Iter<Iter_sclInc, OrbitData, int16_t, NChannels>
   {
    public:
-    using _Iter<Iter_sclInc, OrbitData, uint16_t, NChannels>::_Iter;
+    using _Iter<Iter_sclInc, OrbitData, int16_t, NChannels>::_Iter;
     value_type operator*() const
     {
       // define with respect to previous orbit
       int slot = mIndex / NChannels, chan = mIndex % NChannels;
-      return slot ? mData[slot].scaler[chan] - mData[slot - 1].scaler[chan] : 0;
+      return value_type(slot ? mData[slot].scaler[chan] - mData[slot - 1].scaler[chan] : 0);
     }
     value_type operator[](difference_type i) const
     {
       size_t id = mIndex + i;
       int slot = id / NChannels, chan = id % NChannels;
-      return slot ? mData[slot].scaler[chan] - mData[slot - 1].scaler[chan] : 0;
+      return value_type(slot ? mData[slot].scaler[chan] - mData[slot - 1].scaler[chan] : 0);
     }
   };
 

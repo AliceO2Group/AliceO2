@@ -55,7 +55,7 @@ void EventRecord::sortData(bool sortDigits)
   }
 }
 
-void EventRecordContainer::sendData(o2::framework::ProcessingContext& pc, bool generatestats, bool sortDigits)
+void EventRecordContainer::sendData(o2::framework::ProcessingContext& pc, bool generatestats, bool sortDigits, bool sendLinkStats)
 {
   //at this point we know the total number of tracklets and digits and triggers.
   auto dataReadStart = std::chrono::high_resolution_clock::now();
@@ -65,6 +65,7 @@ void EventRecordContainer::sendData(o2::framework::ProcessingContext& pc, bool g
   std::vector<Tracklet64> tracklets;
   std::vector<Digit> digits;
   std::vector<TriggerRecord> triggers;
+  std::vector<DataCountersPerTrigger> counters;
   for (auto& event : mEventRecords) {
     event.sortData(sortDigits);
     tracklets.insert(tracklets.end(), event.getTracklets().begin(), event.getTracklets().end());
@@ -72,6 +73,7 @@ void EventRecordContainer::sendData(o2::framework::ProcessingContext& pc, bool g
     triggers.emplace_back(event.getBCData(), digitcount, event.getDigits().size(), trackletcount, event.getTracklets().size());
     digitcount += event.getDigits().size();
     trackletcount += event.getTracklets().size();
+    counters.push_back(event.getCounters());
   }
 
   pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "DIGITS", 0, o2::framework::Lifetime::Timeframe}, digits);
@@ -80,6 +82,9 @@ void EventRecordContainer::sendData(o2::framework::ProcessingContext& pc, bool g
   if (generatestats) {
     accumulateStats();
     pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "RAWSTATS", 0, o2::framework::Lifetime::Timeframe}, mTFStats);
+  }
+  if (sendLinkStats) {
+    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "LINKSTATS", 0, o2::framework::Lifetime::Timeframe}, counters);
   }
 
   std::chrono::duration<double, std::micro> dataReadTime = std::chrono::high_resolution_clock::now() - dataReadStart;

@@ -111,12 +111,15 @@ TCanvas* helpers::prepareSimpleCanvas2Histograms(TH1F& h1, int color1, TString n
   TString direction = "";
   TString histoName1 = h1.GetName();
   TString histoName2 = h2.GetName();
-  if (histoName1.Contains("Xy"))
+  if (histoName1.Contains("Xy")) {
     direction = "XY";
-  if (histoName1.Contains("Z"))
+  }
+  if (histoName1.Contains("Z")) {
     direction = "Z";
-  if ((histoName1.Contains("Xy")) && (histoName2.Contains("Z")))
+  }
+  if ((histoName1.Contains("Xy")) && (histoName2.Contains("Z"))) {
     direction = "";
+  }
   helpers::setStyleHistogram1D(h1, color1, "", Form("Pointing Resolution %s (#mum)", direction.Data()), h1.GetXaxis()->GetName());
   helpers::setStyleHistogram1D(h2, color2, "", Form("Pointing Resolution %s (#mum)", direction.Data()), h2.GetXaxis()->GetName());
   TLegend* leg = new TLegend(0.6, 0.3, 0.8, 0.5);

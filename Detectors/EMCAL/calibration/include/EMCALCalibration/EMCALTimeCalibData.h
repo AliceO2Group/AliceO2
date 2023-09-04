@@ -54,8 +54,13 @@ class EMCALTimeCalibData
   EMCALTimeCalibData()
   {
 
-    mTimeHisto = boost::histogram::make_histogram(boost::histogram::axis::regular<>(EMCALCalibParams::Instance().nBinsTimeAxis_tc, EMCALCalibParams::Instance().minValueTimeAxis_tc, EMCALCalibParams::Instance().maxValueTimeAxis_tc), boost::histogram::axis::regular<>(NCELLS, -0.5, NCELLS - 0.5));
-
+    mNThreads = EMCALCalibParams::Instance().nThreads_tc;
+    mTimeHisto.resize(mNThreads);
+    mVecNEntriesInHisto.resize(mNThreads);
+    for (size_t i = 0; i < mNThreads; ++i) {
+      mTimeHisto[i] = boost::histogram::make_histogram(boost::histogram::axis::regular<>(EMCALCalibParams::Instance().nBinsTimeAxis_tc, EMCALCalibParams::Instance().minValueTimeAxis_tc, EMCALCalibParams::Instance().maxValueTimeAxis_tc), boost::histogram::axis::regular<>(NCELLS, -0.5, NCELLS - 0.5));
+      mVecNEntriesInHisto[i] = 0;
+    }
     LOG(debug) << "initialize time histogram with " << NCELLS << " cells";
   }
 
@@ -65,7 +70,7 @@ class EMCALTimeCalibData
   void fill(const gsl::span<const o2::emcal::Cell> data);
 
   /// \brief Merge the data of two slots.
-  void merge(const EMCALTimeCalibData* prev);
+  void merge(EMCALTimeCalibData* prev);
 
   /// \brief Check if enough data for calibration has been accumulated
   bool hasEnoughData() const;
@@ -84,11 +89,25 @@ class EMCALTimeCalibData
   long unsigned int getNEntriesInHisto() const { return mNEntriesInHisto; }
   /// \brief Set the number of entries in histogram
   void setNEntriesInHisto(long unsigned int n) { mNEntriesInHisto = n; }
+  /// \brief Add the number of entries in histogram
+  void addNEntriesInHisto(long unsigned int n) { mNEntriesInHisto += n; }
 
   /// \brief Get current histogram
-  boostHisto& getHisto() { return mTimeHisto; }
-  const boostHisto& getHisto() const { return mTimeHisto; }
+  const boostHisto& getHisto()
+  {
+    // set the summed histogram to one of the existing histograms
+    mHistoSummed = mTimeHisto[0];
+    // reset the histogram
+    mHistoSummed.reset();
+    // Sum up all entries
+    for (const auto& h : mTimeHisto) {
+      mHistoSummed += h;
+    }
+    return mHistoSummed;
+  }
 
+  /// \brief Set gain calibration factors applied to the cell energy before filling the histograms
+  /// \param calibFactors gain calibration object
   void setGainCalibFactors(o2::emcal::GainCalibrationFactors* calibFactors)
   {
     mGainCalibFactors = calibFactors;
@@ -96,17 +115,21 @@ class EMCALTimeCalibData
   }
 
   /// \brief Set new calibration histogram
-  void setHisto(boostHisto hist) { mTimeHisto = hist; }
+  void setHisto(boostHisto hist) { mTimeHisto[0] = hist; }
 
+  /// \brief print stream
   void PrintStream(std::ostream& stream) const;
 
   /// \brief Actual function where calibration is done. Has to be called in has enough data when enough data is there
   o2::emcal::TimeCalibrationParams process();
 
  private:
-  boostHisto mTimeHisto;                                ///< histogram with cell time vs. cell ID
+  unsigned int mNThreads = 1;
+  std::vector<boostHisto> mTimeHisto;                   ///< vector of histogram with cell time vs. cell ID (size = number of threads)
+  boostHisto mHistoSummed;                              ///< summed histogram (sum of all histograms in mTimeHisto)
   int mEvents = 0;                                      ///< current number of events
-  long unsigned int mNEntriesInHisto = 0;               ///< number of entries in histogram
+  long unsigned int mNEntriesInHisto = 0;               ///< Number of entries in the histogram
+  std::vector<long unsigned int> mVecNEntriesInHisto;   ///< Number of entries in the histogram for each thread per event
   bool mApplyGainCalib = false;                         ///< Switch if gain calibration is applied or not
   o2::emcal::GainCalibrationFactors* mGainCalibFactors; ///< Gain calibration factors applied to the data before filling the histograms
 

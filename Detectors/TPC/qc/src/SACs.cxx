@@ -9,10 +9,15 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <Framework/Logger.h>
 #include "TPCQC/SACs.h"
 #include "TPCCalibration/SACDrawHelper.h"
 #include "TH2Poly.h"
 #include "fmt/format.h"
+#include "TText.h"
+#include "TGraph.h"
+#include "TStyle.h"
+#include "TColor.h"
 
 ClassImp(o2::tpc::qc::SACs);
 using namespace o2::tpc::qc;
@@ -41,6 +46,11 @@ TCanvas* SACs::drawSACTypeSides(const SACType type, const unsigned int integrati
       return this->getSACDeltaVal(getStack(sector, stack), integrationInterval);
     };
     name = "SACDelta";
+  } else if (type == o2::tpc::SACType::IDCOutlier) {
+    SACFunc = [this](const unsigned int sector, const unsigned int stack) {
+      return this->getSACRejection(getStack(sector, stack));
+    };
+    name = "SACZero Outliers (Yellow)";
   }
 
   auto c = canv;
@@ -65,11 +75,17 @@ TCanvas* SACs::drawSACTypeSides(const SACType type, const unsigned int integrati
     hSideC->SetMaximum(maxZ);
   }
 
+  if (type == o2::tpc::SACType::IDCOutlier) {
+    Double_t levels[] = {-3., 0., 3.};
+    hSideA->SetContour(3, levels);
+    hSideC->SetContour(3, levels);
+  }
+
   c->Divide(1, 2);
   c->cd(1);
-  hSideA->Draw("colz");
+  hSideA->Draw("colz PFC");
   c->cd(2);
-  hSideC->Draw("colz");
+  hSideC->Draw("colz PFC");
 
   hSideA->SetBit(TObject::kCanDelete);
   hSideC->SetBit(TObject::kCanDelete);
@@ -149,4 +165,133 @@ TCanvas* SACs::drawFourierCoeffSAC(Side side, int nbins1D, float xMin1D, float x
   }
 
   return canv;
+}
+
+TCanvas* SACs::drawSACZeroScale(TCanvas* outputCanvas) const
+{
+  TCanvas* canv = nullptr;
+
+  if (outputCanvas) {
+    canv = outputCanvas;
+  } else {
+    canv = new TCanvas("c_sides_SACZero_ScaleFactor", "SACZero", 1000, 1000);
+  }
+  canv->cd();
+
+  double xsides[] = {0, 1};
+  double yTotSAC0[] = {mScaleSACZeroAside, mScaleSACZeroCside};
+  auto gSACZeroScale = new TGraph(2, xsides, yTotSAC0);
+
+  gSACZeroScale->SetName("g_SAC0ScaleFactor");
+  gSACZeroScale->SetTitle(Form("Scaling Factor (SACZero), Rejection Factor %.2f;Sides;SACZero Total (arb. unit)", mSACZeroMaxDeviation));
+  gSACZeroScale->SetMarkerColor(kBlue);
+  gSACZeroScale->SetMarkerStyle(21);
+  gSACZeroScale->SetMarkerSize(1);
+  gSACZeroScale->GetXaxis()->SetLabelColor(0);
+  gSACZeroScale->GetXaxis()->CenterTitle();
+
+  gSACZeroScale->Draw("ap");
+  // Draw labels on the x axis
+  TText* t = new TText();
+  t->SetTextSize(0.035);
+  const char* labels[2] = {"A-Side", "C-Side"};
+  for (Int_t iSide = 0; iSide < 2; iSide++) {
+    t->DrawText((double)iSide + 0.1, yTotSAC0[iSide], labels[iSide]);
+  }
+  gSACZeroScale->GetXaxis()->SetLimits(-0.5, 1.5);
+  canv->Update();
+  canv->Modified();
+  gSACZeroScale->SetBit(TObject::kCanDelete);
+  t->SetBit(TObject::kCanDelete);
+  return canv;
+}
+
+void SACs::scaleSAC0(const float factor, const Side side)
+{
+  unsigned int sectorStart = (side == Side::A) ? 0 : o2::tpc::SECTORSPERSIDE;
+  unsigned int sectorEnd = (side == Side::A) ? o2::tpc::SECTORSPERSIDE : (sectorStart * SIDES);
+  for (unsigned int sector = sectorStart; sector < sectorEnd; ++sector) {
+    for (unsigned int stack = 0; stack < GEMSTACKSPERSECTOR; ++stack) {
+      float SACZeroValue = getSACZeroVal(getStack(sector, stack));
+      if (factor != 0.) {
+        setSACZeroVal(SACZeroValue / factor, getStack(sector, stack));
+      }
+    }
+  }
+}
+
+void SACs::setSACZeroScale(const bool rejectOutlier)
+{
+  if (mSACZero) {
+    mScaleSACZeroAside = getMeanSACZero(Side::A, rejectOutlier);
+    scaleSAC0(abs(mScaleSACZeroAside), Side::A);
+
+    mScaleSACZeroCside = getMeanSACZero(Side::C, rejectOutlier);
+    scaleSAC0(abs(mScaleSACZeroCside), Side::C);
+  } else {
+    mScaleSACZeroAside = 0;
+    mScaleSACZeroCside = 0;
+  }
+
+  /// check if SACZero total is not zero, in that case no scaling
+  if (mScaleSACZeroAside == 0.0 || mScaleSACZeroCside == 0.0) {
+    LOGP(error, "Please check the SAC0 total A side {} and C side {}, is zero, therefore no scaling applied!", mScaleSACZeroAside, mScaleSACZeroCside);
+    mScaleSACZeroAside = 1.0;
+    mScaleSACZeroCside = 1.0;
+  }
+}
+
+float SACs::getMeanSACZero(const o2::tpc::Side side, bool rejectOutliers)
+{
+  float medianSACZero[GEMSTACKSPERSECTOR] = {0.};
+
+  if (rejectOutliers) {
+    // Calculate Median for each row for rejection of outliers
+    std::vector<float> SACZeroValues[GEMSTACKSPERSECTOR];
+
+    unsigned int sectorStart = (side == Side::A) ? 0 : o2::tpc::SECTORSPERSIDE;
+    unsigned int sectorEnd = (side == Side::A) ? o2::tpc::SECTORSPERSIDE : (sectorStart * SIDES);
+    for (unsigned int sector = sectorStart; sector < sectorEnd; ++sector) {
+      for (unsigned int stack = 0; stack < GEMSTACKSPERSECTOR; ++stack) {
+        SACZeroValues[stack].push_back(getSACZeroVal(getStack(sector, stack)));
+      }
+    }
+
+    for (unsigned int stack = 0; stack < GEMSTACKSPERSECTOR; stack++) {
+      size_t n = SACZeroValues[stack].size() / 2;
+      sort(SACZeroValues[stack].begin(), SACZeroValues[stack].end());
+      if (SACZeroValues[stack].size() % 2 != 0) {
+        medianSACZero[stack] = SACZeroValues[stack].at(n);
+      } else {
+        medianSACZero[stack] = (SACZeroValues[stack].at(n) + SACZeroValues[stack].at(n - 1)) / 2.;
+      }
+    }
+  }
+
+  // Calculate Mean
+  float meanSACZero = 0;
+  float SACZeroChannelCounter = 0.;
+
+  unsigned int sectorStart = (side == Side::A) ? 0 : o2::tpc::SECTORSPERSIDE;
+  unsigned int sectorEnd = (side == Side::A) ? o2::tpc::SECTORSPERSIDE : (sectorStart * SIDES);
+  for (unsigned int sector = sectorStart; sector < sectorEnd; ++sector) {
+    for (unsigned int stack = 0; stack < GEMSTACKSPERSECTOR; ++stack) {
+
+      float SACZeroVal = getSACZeroVal(getStack(sector, stack));
+
+      if (rejectOutliers) {
+        if (abs((SACZeroVal - medianSACZero[stack]) / medianSACZero[stack]) >= mSACZeroMaxDeviation) {
+          mIsSACZeroOutlier[getStack(sector, stack)] = 1;
+          continue;
+        }
+      }
+      mIsSACZeroOutlier[getStack(sector, stack)] = -1;
+      meanSACZero += SACZeroVal;
+      SACZeroChannelCounter += 1.;
+    }
+  }
+  if (SACZeroChannelCounter > 0.) {
+    meanSACZero /= SACZeroChannelCounter;
+  }
+  return meanSACZero;
 }

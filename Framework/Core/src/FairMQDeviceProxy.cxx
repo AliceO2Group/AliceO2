@@ -21,6 +21,8 @@
 #include <fairmq/Message.h>
 #include <fairmq/TransportFactory.h>
 
+#include <unordered_set>
+
 namespace o2::framework
 {
 
@@ -117,21 +119,37 @@ ChannelIndex FairMQDeviceProxy::getOutputChannelIndex(OutputSpec const& query, s
   return ChannelIndex{ChannelIndex::INVALID};
 }
 
-ChannelIndex FairMQDeviceProxy::getForwardChannelIndex(header::DataHeader const& dh, size_t timeslice) const
+void FairMQDeviceProxy::getMatchingForwardChannelIndexes(std::vector<ChannelIndex>& result, header::DataHeader const& dh, size_t timeslice) const
 {
   assert(mForwardRoutes.size() == mForwards.size());
   // Notice we need to match against a data header and not against
   // the InputMatcher, because an input might match something which
   // is then rerouted to two different output routes, depending on the content.
+  // Also notice that we need to match against all the routes, because we
+  // might have multiple outputs routes (e.g. in the output proxy) with the same matcher.
+  bool dplChannelMatched = false;
   for (size_t ri = 0; ri < mForwards.size(); ++ri) {
     auto& route = mForwards[ri];
 
     LOGP(debug, "matching: {} to route {}", dh, DataSpecUtils::describe(route.matcher));
     if (DataSpecUtils::match(route.matcher, dh.dataOrigin, dh.dataDescription, dh.subSpecification) && ((timeslice % route.maxTimeslices) == route.timeslice)) {
-      return mForwardRoutes[ri].channel;
+      auto channelInfoIndex = mForwardRoutes[ri].channel;
+      auto& info = mForwardChannelInfos[channelInfoIndex.value];
+      // We need to make sure that we forward the same payload only once per channel.
+      if (info.channelType == ChannelAccountingType::DPL) {
+        if (dplChannelMatched) {
+          continue;
+        }
+        dplChannelMatched = true;
+      }
+      result.emplace_back(channelInfoIndex);
     }
   }
-  return ChannelIndex{ChannelIndex::INVALID};
+  // Remove duplicates, keeping the order of the channels.
+  std::unordered_set<int> numSet;
+  auto iter = std::stable_partition(result.begin(), result.end(),
+                                    [&](ChannelIndex n) { bool ret = !numSet.count(n.value); numSet.insert(n.value); return ret; }); // returns true if the item has not been "seen"
+  result.erase(iter, result.end());
 }
 
 ChannelIndex FairMQDeviceProxy::getOutputChannelIndexByName(std::string const& name) const

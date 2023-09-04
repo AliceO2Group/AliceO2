@@ -30,6 +30,7 @@ struct RecoParamZDC : public o2::conf::ConfigurableParamHelper<RecoParamZDC> {
   int32_t tth[NTDCChannels] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1}; // Trigger threshold
   bool bitset[NTDCChannels] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};           // Set bits in coincidence
   void setBit(uint32_t ibit, bool val = true);
+  uint8_t triggerCondition = 0x0; // Trigger condition: 0x1 single, 0x3 double and 0x7 triple
 
   // Signal processing
   int low_pass_filter = -1;    // Low pass filtering

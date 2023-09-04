@@ -784,6 +784,10 @@ void clearMCKeepStore(std::vector<std::vector<std::unordered_map<int, int>*>>& s
 // helper function to add a particle/track to the MC keep store
 void keepMCParticle(std::vector<std::vector<std::unordered_map<int, int>*>>& store, int source, int event, int track, int value = 1)
 {
+  if (track < 0) {
+    LOG(warn) << "trackID is smaller than 0. Neglecting";
+    return;
+  }
   if (!store[source][event]) {
     store[source][event] = new std::unordered_map<int, int>;
   }
@@ -2554,6 +2558,9 @@ void AODProducerWorkflowDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* ob
 {
   // Note: strictly speaking, for Configurable params we don't need finaliseCCDB check, the singletons are updated at the CCDB fetcher level
   if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    if (matcher == ConcreteDataMatcher("GLO", "GRPMAGFIELD", 0)) {
+      o2::mch::TrackExtrap::setField();
+    }
     return;
   }
   if (matcher == ConcreteDataMatcher("ITS", "ALPIDEPARAM", 0)) {

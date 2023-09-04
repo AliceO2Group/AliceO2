@@ -9,7 +9,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define O2_FORCE_LOGGER_SIGNPOST 1
 #include "Framework/Signpost.h"
 #include <iostream>
 
@@ -17,6 +16,13 @@ int main(int argc, char** argv)
 {
   O2_DECLARE_LOG(test_Signpost, "my category");
   O2_DECLARE_DYNAMIC_LOG(test_SignpostDynamic);
+
+  std::cout << "Loggers: " << std::endl;
+  o2_walk_logs([](char const* name, void* log, void*) -> bool {
+    std::cout << "  - name: " << name << " " << log << std::endl;
+    return true;
+  },
+               nullptr);
 
   O2_LOG_DEBUG(test_Signpost, "%s %d", "test_Signpost", 1);
   O2_SIGNPOST_ID_GENERATE(id, test_Signpost);

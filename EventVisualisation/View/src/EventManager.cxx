@@ -28,7 +28,6 @@
 #include <TEveManager.h>
 #include <TEveTrack.h>
 #include <TEveTrackPropagator.h>
-#include <TEnv.h>
 #include <TEveElement.h>
 #include <TGListTree.h>
 #include <TEveCalo.h>
@@ -80,6 +79,7 @@ EventManager::EventManager() : TEveEventManager("Event", "")
 
 void EventManager::displayCurrentEvent()
 {
+  auto start = std::chrono::high_resolution_clock::now();
   const auto multiView = MultiView::getInstance();
   const auto dataSource = getDataSource();
   if (dataSource->getEventCount() > 0) {
@@ -96,7 +96,10 @@ void EventManager::displayCurrentEvent()
     }
 
     VisualisationEvent event; // collect calorimeters in one drawing step
-    auto displayList = dataSource->getVisualisationList(no, EventManagerFrame::getInstance().getMinTimeFrameSliderValue(), EventManagerFrame::getInstance().getMaxTimeFrameSliderValue(), EventManagerFrame::MaxRange);
+    auto displayList = dataSource->getVisualisationList(no,
+                                                        EventManagerFrame::getInstance().getMinTimeFrameSliderValue(),
+                                                        EventManagerFrame::getInstance().getMaxTimeFrameSliderValue(),
+                                                        EventManagerFrame::MaxRange);
 
     for (auto it = displayList.begin(); it != displayList.end(); ++it) {
       if (it->second == EVisualisationGroup::EMC || it->second == EVisualisationGroup::PHS) {
@@ -136,6 +139,9 @@ void EventManager::displayCurrentEvent()
     }
   }
   multiView->redraw3D();
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+  LOG(info) << "+++ displayCurrentEvent: " << duration.count();
 }
 
 void EventManager::GotoEvent(Int_t no)
@@ -282,8 +288,10 @@ void EventManager::displayVisualisationEvent(VisualisationEvent& event, const st
     }
   }
 
-  LOG(info) << "tracks: " << trackCount << " detector: " << detectorName << ":" << dataTypeLists[EVisualisationDataType::Tracks]->NumChildren();
-  LOG(info) << "clusters: " << clusterCount << " detector: " << detectorName << ":" << dataTypeLists[EVisualisationDataType::Clusters]->NumChildren();
+  LOG(info) << "tracks: " << trackCount << " detector: " << detectorName << ":"
+            << dataTypeLists[EVisualisationDataType::Tracks]->NumChildren();
+  LOG(info) << "clusters: " << clusterCount << " detector: " << detectorName << ":"
+            << dataTypeLists[EVisualisationDataType::Clusters]->NumChildren();
 }
 
 void EventManager::displayCalorimeters(VisualisationEvent& event, const std::string& detectorName)

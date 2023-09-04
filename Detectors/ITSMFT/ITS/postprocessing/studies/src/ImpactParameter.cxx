@@ -314,8 +314,9 @@ void ImpactParameterStudy::process(o2::globaltracking::RecoContainer& recoData)
     } else {
       mHistoContributorsPV->Fill(vecPvContributorTrackParCov.size());
       // Neglect vertices with small number of contributors (configurable)
-      if (vecPvContributorTrackParCov.size() < params.minNumberOfContributors)
+      if (vecPvContributorTrackParCov.size() < params.minNumberOfContributors) {
         continue;
+      }
       for (it = 0; it < vec_globID_contr.size(); it++) {
         // vector of booleans to keep track of the track to be skipped
         std::vector<bool> vec_useTrk_PVrefit(vec_globID_contr.size(), true);

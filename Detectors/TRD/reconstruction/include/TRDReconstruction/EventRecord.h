@@ -50,6 +50,8 @@ class EventRecord
   float getTotalTime() const { return mTimeTaken; }
   float getDigitTime() const { return mTimeTakenForDigits; }
   float getTrackletTime() const { return mTimeTakenForTracklets; }
+  DataCountersPerTrigger getCounters() const { return mCounters; }
+  DataCountersPerTrigger& getCounters() { return mCounters; }
 
   // needed, in order to check if a trigger already exist for this bunch crossing
   bool operator==(const EventRecord& o) const { return mBCData == o.mBCData; }
@@ -70,6 +72,7 @@ class EventRecord
   float mTimeTakenForDigits = 0.;       // time take to process tracklet data blocks [us].
   float mTimeTakenForTracklets = 0.;    // time take to process digit data blocks [us].
   bool mIsCalibTrigger = false;         // flag calibration trigger
+  DataCountersPerTrigger mCounters;     // optionally collect statistics per trigger
 };
 
 /// \class EventRecordContainer
@@ -81,7 +84,7 @@ class EventRecordContainer
   EventRecordContainer() = default;
   ~EventRecordContainer() = default;
 
-  void sendData(o2::framework::ProcessingContext& pc, bool generatestats, bool sortDigits);
+  void sendData(o2::framework::ProcessingContext& pc, bool generatestats, bool sortDigits, bool sendLinkStats);
 
   void setCurrentEventRecord(const InteractionRecord& ir);
   EventRecord& getCurrentEventRecord() { return mEventRecords.at(mCurrEventRecord); }

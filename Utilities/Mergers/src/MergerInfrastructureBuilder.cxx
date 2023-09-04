@@ -25,7 +25,9 @@ using namespace o2::framework;
 namespace o2::mergers
 {
 
-MergerInfrastructureBuilder::MergerInfrastructureBuilder() : mOutputSpec{header::gDataOriginInvalid, header::gDataDescriptionInvalid}
+MergerInfrastructureBuilder::MergerInfrastructureBuilder()
+  : mOutputSpecIntegral{header::gDataOriginInvalid, header::gDataDescriptionInvalid},
+    mOutputSpecMovingWindow{header::gDataOriginInvalid, header::gDataDescriptionInvalid}
 {
 }
 
@@ -41,7 +43,12 @@ void MergerInfrastructureBuilder::setInputSpecs(const framework::Inputs& inputs)
 
 void MergerInfrastructureBuilder::setOutputSpec(const framework::OutputSpec& outputSpec)
 {
-  mOutputSpec = outputSpec;
+  mOutputSpecIntegral = outputSpec;
+}
+
+void MergerInfrastructureBuilder::setOutputSpecMovingWindow(const framework::OutputSpec& outputSpec)
+{
+  mOutputSpecMovingWindow = outputSpec;
 }
 
 void MergerInfrastructureBuilder::setConfig(MergerConfig config)
@@ -59,7 +66,7 @@ std::string MergerInfrastructureBuilder::validateConfig()
   if (mInputs.empty()) {
     error += preamble + "no inputs specified\n";
   }
-  if (DataSpecUtils::validate(mOutputSpec) == false) {
+  if (DataSpecUtils::validate(mOutputSpecIntegral) == false) {
     error += preamble + "invalid output\n";
   }
 
@@ -94,9 +101,13 @@ std::string MergerInfrastructureBuilder::validateConfig()
     error += preamble + "MergedObjectTimespan::LastDifference does not apply to InputObjectsTimespan::FullHistory\n";
   }
 
+  if (mConfig.publishMovingWindow.value == PublishMovingWindow::Yes && mConfig.inputObjectTimespan.value == InputObjectsTimespan::FullHistory) {
+    error += preamble + "PublishMovingWindow::Yes is not supported with InputObjectsTimespan::FullHistory\n";
+  }
+
   for (const auto& input : mInputs) {
-    if (DataSpecUtils::match(input, mOutputSpec)) {
-      error += preamble + "output '" + DataSpecUtils::label(mOutputSpec) + "' matches input '" + DataSpecUtils::label(input) + "'. That will cause a circular dependency!";
+    if (DataSpecUtils::match(input, mOutputSpecIntegral)) {
+      error += preamble + "output '" + DataSpecUtils::label(mOutputSpecIntegral) + "' matches input '" + DataSpecUtils::label(input) + "'. That will cause a circular dependency!";
     }
   }
 
@@ -122,6 +133,7 @@ framework::WorkflowSpec MergerInfrastructureBuilder::generateInfrastructure()
   // topology generation
   MergerBuilder mergerBuilder;
   mergerBuilder.setName(mInfrastructureName);
+  mergerBuilder.setOutputSpecMovingWindow(mOutputSpecMovingWindow);
 
   for (size_t layer = 1; layer < mergersPerLayer.size(); layer++) {
 
@@ -135,6 +147,8 @@ framework::WorkflowSpec MergerInfrastructureBuilder::generateInfrastructure()
     if (layer < mergersPerLayer.size() - 1) {
       // in intermediate layers we should reset the results, so the same data is not added many times.
       layerConfig.mergedObjectTimespan = {MergedObjectTimespan::NCycles, 1};
+      // we also expect moving windows to be published only by the last layer
+      layerConfig.publishMovingWindow = {PublishMovingWindow::No};
     }
     mergerBuilder.setConfig(layerConfig);
 
@@ -152,7 +166,7 @@ framework::WorkflowSpec MergerInfrastructureBuilder::generateInfrastructure()
 
       if (layer == mergersPerLayer.size() - 1) {
         // the last layer => use the specified external OutputSpec
-        mergerBuilder.setOutputSpec(mOutputSpec);
+        mergerBuilder.setOutputSpec(mOutputSpecIntegral);
       }
 
       auto merger = mergerBuilder.buildSpec();
