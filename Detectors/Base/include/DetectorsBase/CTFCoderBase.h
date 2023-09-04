@@ -26,15 +26,11 @@
 #include "DetectorsCommonDataFormats/CTFHeader.h"
 #include "DetectorsCommonDataFormats/CTFIOSize.h"
 #include "DataFormatsCTP/TriggerOffsetsParam.h"
-#include "DetectorsCommonDataFormats/ANSHeader.h"
-#include "rANS/factory.h"
-#include "rANS/compat.h"
-#include "rANS/histogram.h"
+#include "rANS/rans.h"
 #include <filesystem>
 #include "Framework/InitContext.h"
 #include "Framework/ConcreteDataMatcher.h"
 #include "Framework/ConfigParamRegistry.h"
-#include <any>
 
 namespace o2
 {
@@ -81,30 +77,19 @@ class CTFCoderBase
   void createCodersFromFile(const std::string& dictPath, o2::ctf::CTFCoderBase::OpType op, bool mayFail = false);
 
   template <typename S>
-  void createCoder(OpType op, const o2::rans::RenormedDenseHistogram<S>& renormedHistogram, int slot)
+  void createCoder(OpType op, const o2::rans::RenormedFrequencyTable& renormedFrequencyTable, int slot)
   {
-    LOG_IF(warning, renormedHistogram.empty()) << fmt::format("Empty dictionary provided for slot {}, {} will assume literal symbols only", slot, (op == OpType::Encoder ? "encoding" : "decoding"));
+    if (renormedFrequencyTable.empty()) {
+      LOG(warning) << "Empty dictionary provided for slot " << slot << ", " << (op == OpType::Encoder ? "encoding" : "decoding") << " will assume literal symbols only";
+    }
 
-    if (mANSVersion == ANSVersionCompat) {
-      switch (op) {
-        case OpType::Encoder:
-          mCoders[slot] = std::make_any<rans::compat::encoder_type<S>>(rans::compat::makeEncoder::fromRenormed(renormedHistogram));
-          break;
-        case OpType::Decoder:
-          mCoders[slot] = std::make_any<rans::compat::decoder_type<S>>(rans::compat::makeDecoder::fromRenormed(renormedHistogram));
-          break;
-      }
-    } else if (mANSVersion == ANSVersion1) {
-      switch (op) {
-        case OpType::Encoder:
-          mCoders[slot] = std::make_any<rans::denseEncoder_type<S>>(rans::makeDenseEncoder<>::fromRenormed(renormedHistogram));
-          break;
-        case OpType::Decoder:
-          mCoders[slot] = std::make_any<rans::defaultDecoder_type<S>>(rans::makeDecoder<>::fromRenormed(renormedHistogram));
-          break;
-      }
-    } else {
-      throw std::runtime_error("unsupported ANS version");
+    switch (op) {
+      case OpType::Encoder:
+        mCoders[slot].reset(new o2::rans::LiteralEncoder64<S>(renormedFrequencyTable));
+        break;
+      case OpType::Decoder:
+        mCoders[slot].reset(new o2::rans::LiteralDecoder64<S>(renormedFrequencyTable));
+        break;
     }
   }
 
@@ -143,9 +128,6 @@ class CTFCoderBase
   size_t getIRFrameSelMarginFwd() const { return mIRFrameSelMarginFwd; }
   long getIRFrameSelShift() const { return mIRFrameSelShift; }
 
-  inline const ctf::ANSHeader& getANSVersion() const noexcept { return mANSVersion; };
-  inline ctf::ANSHeader& getANSVersion() { return const_cast<ctf::ANSHeader&>(const_cast<const CTFCoderBase&>(*this).getANSVersion()); };
-  inline void setANSVersion(const ctf::ANSHeader& ansVersion) noexcept { mANSVersion = ansVersion; };
   void setBCShift(int64_t n) { mBCShift = n; }
   void setFirstTFOrbit(uint32_t n) { mFirstTFOrbit = n; }
   auto getBCShift() const { return mBCShift; }
@@ -173,32 +155,19 @@ class CTFCoderBase
   }
   bool canApplyBCShift(const o2::InteractionRecord& ir) const { return canApplyBCShift(ir, mBCShift); }
 
-  template <typename source_IT>
-  [[nodiscard]] size_t estimateBufferSize(size_t slot, source_IT samplesBegin, source_IT samplesEnd);
-
-  template <typename source_T>
-  size_t estimateBufferSize(size_t slot, size_t nSamples);
-
-  template <typename source_T>
-  [[nodiscard]] size_t estimateBufferSize(size_t slot, const std::vector<source_T>& samples)
-  {
-    return estimateBufferSize(slot, samples.begin(), samples.end());
-  }
-
   template <typename CTF>
   std::vector<char> loadDictionaryFromTree(TTree* tree);
-  std::vector<std::any> mCoders; // encoders/decoders
+  std::vector<std::shared_ptr<void>> mCoders; // encoders/decoders
   DetID mDet;
   std::string mDictBinding{"ctfdict"};
   std::string mTrigOffsBinding{"trigoffset"};
-  CTFDictHeader mExtHeader;                    // external dictionary header
+  CTFDictHeader mExtHeader;      // external dictionary header
   o2::utils::IRFrameSelector mIRFrameSelector; // optional IR frames selector
-  float mMemMarginFactor = 1.0f;               // factor for memory allocation in EncodedBlocks
+  float mMemMarginFactor = 1.0f; // factor for memory allocation in EncodedBlocks
   bool mLoadDictFromCCDB{true};
   bool mSupportBCShifts{false};
-  OpType mOpType;                                    // Encoder or Decoder
-  ctf::ANSHeader mANSVersion{ctf::ANSVersionCompat}; // Version of the ANSEncoder/Decoder
-  int64_t mBCShift = 0;                              // shift to apply to decoded IR (i.e. CTP offset if was not corrected on raw data decoding level)
+  OpType mOpType; // Encoder or Decoder
+  int64_t mBCShift = 0; // shift to apply to decoded IR (i.e. CTP offset if was not corrected on raw data decoding level)
   uint32_t mFirstTFOrbit = 0;
   size_t mIRFrameSelMarginBwd = 0; // margin in BC to add to the IRFrame lower boundary when selection is requested
   size_t mIRFrameSelMarginFwd = 0; // margin in BC to add to the IRFrame upper boundary when selection is requested
@@ -313,18 +282,6 @@ void CTFCoderBase::init(o2::framework::InitContext& ic)
   if (ic.options().hasOption("irframe-shift")) {
     mIRFrameSelShift = (long)ic.options().get<int32_t>("irframe-shift");
   }
-  if (ic.options().hasOption("ans-version")) {
-    if (ic.options().isSet("ans-version")) {
-      const std::string ansVersionString = ic.options().get<std::string>("ans-version");
-      if (!ansVersionString.empty()) {
-        mANSVersion = ansVersionFromString(ansVersionString);
-        LOGP(info, "parsing ansVersionString {} into {}", ansVersionString, static_cast<std::string>(mANSVersion));
-        if (mANSVersion == ANSVersionUnspecified) {
-          throw std::invalid_argument(fmt::format("Invalid ANS Version {}", ansVersionString));
-        }
-      }
-    }
-  }
   auto dict = ic.options().get<std::string>("ctf-dict");
   if (dict.empty() || dict == "ccdb") { // load from CCDB
     mLoadDictFromCCDB = true;
@@ -385,39 +342,6 @@ bool CTFCoderBase::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, voi
   }
   return match;
 }
-
-template <typename IT>
-[[nodiscard]] inline size_t CTFCoderBase::estimateBufferSize(size_t slot, IT samplesBegin, IT samplesEnd)
-{
-  using source_type = typename std::iterator_traits<IT>::value_type;
-  const size_t nSamples = std::distance(samplesBegin, samplesEnd);
-  return estimateBufferSize<source_type>(slot, nSamples);
-};
-
-template <typename source_T>
-[[nodiscard]] inline size_t CTFCoderBase::estimateBufferSize(size_t slot, size_t nSamples)
-{
-
-  std::any& coder = mCoders[slot];
-  if (coder.has_value()) {
-    const size_t alphabetRangeBits = [this, &coder]() {
-      if (mANSVersion == ANSVersionCompat) {
-        const auto& encoder = std::any_cast<const rans::compat::encoder_type<source_T>&>(coder);
-        auto view = rans::trim(rans::makeHistogramView(encoder.getSymbolTable()));
-        return rans::utils::getRangeBits(view.getMin(), view.getMax());
-      } else if (mANSVersion == ANSVersion1) {
-        const auto& encoder = std::any_cast<const rans::denseEncoder_type<source_T>&>(coder);
-        auto view = rans::trim(rans::makeHistogramView(encoder.getSymbolTable()));
-        return rans::utils::getRangeBits(view.getMin(), view.getMax());
-      } else {
-        throw std::runtime_error("unsupported ANS version");
-      }
-    }();
-    return rans::compat::calculateMaxBufferSizeB(nSamples, alphabetRangeBits);
-  } else {
-    return nSamples * sizeof(source_T);
-  }
-};
 
 } // namespace ctf
 } // namespace o2

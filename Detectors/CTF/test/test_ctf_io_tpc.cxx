@@ -12,13 +12,7 @@
 #define BOOST_TEST_MODULE Test TPCCTFIO
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
-
-#undef NDEBUG
-#include <cassert>
-
 #include <boost/test/unit_test.hpp>
-#include <boost/test/data/test_case.hpp>
-#include <boost/test/data/dataset.hpp>
 #include "DataFormatsTPC/CompressedClusters.h"
 #include "DataFormatsTPC/CTF.h"
 #include "CommonUtils/NameConf.h"
@@ -30,12 +24,8 @@
 #include <cstring>
 
 using namespace o2::tpc;
-namespace boost_data = boost::unit_test::data;
 
-inline std::vector<o2::ctf::ANSHeader> ANSVersions{o2::ctf::ANSVersionCompat, o2::ctf::ANSVersion1};
-inline std::vector<bool> CombineColumns(true, false);
-
-BOOST_DATA_TEST_CASE(CTFTest, boost_data::make(ANSVersions) ^ boost_data::make(CombineColumns), ansVersion, combineColumns)
+BOOST_AUTO_TEST_CASE(CTFTest)
 {
   CompressedClusters c;
   c.nAttachedClusters = 99;
@@ -53,7 +43,7 @@ BOOST_DATA_TEST_CASE(CTFTest, boost_data::make(ANSVersions) ^ boost_data::make(C
   {
     CTFCoder coder(o2::ctf::CTFCoderBase::OpType::Encoder);
     coder.setCompClusAddresses(c, buff);
-    coder.setCombineColumns(combineColumns);
+    coder.setCombineColumns(true);
   }
   ccFlat->set(sz, c);
 
@@ -97,8 +87,7 @@ BOOST_DATA_TEST_CASE(CTFTest, boost_data::make(ANSVersions) ^ boost_data::make(C
   std::vector<o2::ctf::BufferType> vecIO;
   {
     CTFCoder coder(o2::ctf::CTFCoderBase::OpType::Decoder);
-    coder.setCombineColumns(combineColumns);
-    coder.setANSVersion(ansVersion);
+    coder.setCombineColumns(true);
     coder.encode(vecIO, c, c); // compress
   }
   sw.Stop();

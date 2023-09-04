@@ -23,6 +23,7 @@
 #include "DataFormatsTRD/CTF.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsBase/CTFCoderBase.h"
+#include "rANS/rans.h"
 #include "TRDReconstruction/CTFHelper.h"
 #include "CommonConstants/LHCConstants.h"
 
@@ -117,21 +118,21 @@ o2::ctf::CTFIOSize CTFCoder::encode_impl(VEC& buff, const gsl::span<const Trigge
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation
   constexpr MD optField[CTF::getNBlocks()] = {
-    MD::EENCODE_OR_PACK, // BLC_bcIncTrig
-    MD::EENCODE_OR_PACK, // BLC_orbitIncTrig
-    MD::EENCODE_OR_PACK, // BLC_entriesTrk
-    MD::EENCODE_OR_PACK, // BLC_entriesDig
-    MD::EENCODE_OR_PACK, // BLC_HCIDTrk
-    MD::EENCODE_OR_PACK, // BLC_padrowTrk
-    MD::EENCODE_OR_PACK, // BLC_colTrk
-    MD::EENCODE_OR_PACK, // BLC_posTrk
-    MD::EENCODE_OR_PACK, // BLC_slopeTrk
-    MD::EENCODE_OR_PACK, // BLC_pidTrk
-    MD::EENCODE_OR_PACK, // BLC_CIDDig
-    MD::EENCODE_OR_PACK, // BLC_ROBDig
-    MD::EENCODE_OR_PACK, // BLC_MCMDig
-    MD::EENCODE_OR_PACK, // BLC_chanDig
-    MD::EENCODE_OR_PACK, // BLC_ADCDig
+    MD::EENCODE, // BLC_bcIncTrig
+    MD::EENCODE, // BLC_orbitIncTrig
+    MD::EENCODE, // BLC_entriesTrk
+    MD::EENCODE, // BLC_entriesDig
+    MD::EENCODE, // BLC_HCIDTrk
+    MD::EENCODE, // BLC_padrowTrk
+    MD::EENCODE, // BLC_colTrk
+    MD::EENCODE, // BLC_posTrk
+    MD::EENCODE, // BLC_slopeTrk
+    MD::EENCODE, // BLC_pidTrk
+    MD::EENCODE, // BLC_CIDDig
+    MD::EENCODE, // BLC_ROBDig
+    MD::EENCODE, // BLC_MCMDig
+    MD::EENCODE, // BLC_chanDig
+    MD::EENCODE, // BLC_ADCDig
   };
 
   CTFHelper helper(trigData, trkData, digData);
@@ -144,10 +145,11 @@ o2::ctf::CTFIOSize CTFCoder::encode_impl(VEC& buff, const gsl::span<const Trigge
 
   ec->setHeader(helper.createHeader());
   assignDictVersion(static_cast<o2::ctf::CTFDictHeader&>(ec->getHeader()));
-  ec->setANSHeader(mANSVersion);
+  ec->getANSHeader().majorVersion = 0;
+  ec->getANSHeader().minorVersion = 1;
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
   o2::ctf::CTFIOSize iosize;
-#define ENCODETRD(beg, end, slot, bits) CTF::get(buff.data())->encode(beg, end, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)], getMemMarginFactor());
+#define ENCODETRD(beg, end, slot, bits) CTF::get(buff.data())->encode(beg, end, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get(), getMemMarginFactor());
   // clang-format off
   iosize += ENCODETRD(helper.begin_bcIncTrig(),    helper.end_bcIncTrig(),     CTF::BLC_bcIncTrig,    0);
   iosize += ENCODETRD(helper.begin_orbitIncTrig(), helper.end_orbitIncTrig(),  CTF::BLC_orbitIncTrig, 0);
@@ -188,7 +190,7 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VTRK& tr
   std::vector<uint8_t> padrowTrk, colTrk, slopeTrk, ROBDig, MCMDig, chanDig;
 
   o2::ctf::CTFIOSize iosize;
-#define DECODETRD(part, slot) ec.decode(part, int(slot), mCoders[int(slot)])
+#define DECODETRD(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
   // clang-format off
   iosize += DECODETRD(bcInc,       CTF::BLC_bcIncTrig);
   iosize += DECODETRD(orbitInc,    CTF::BLC_orbitIncTrig);
@@ -223,8 +225,8 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VTRK& tr
 
   for (uint32_t itrig = 0; itrig < header.nTriggers; itrig++) {
     // restore TrigRecord
-    if (orbitInc[itrig]) { // non-0 increment => new orbit
-      bc = bcInc[itrig];   // bcInc has absolute meaning
+    if (orbitInc[itrig]) {  // non-0 increment => new orbit
+      bc = bcInc[itrig];    // bcInc has absolute meaning
       orbit += orbitInc[itrig];
     } else {
       bc += bcInc[itrig];
@@ -246,8 +248,8 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VTRK& tr
     }
     orbitPrev = orbit;
     o2::InteractionRecord ir{bc, orbit};
-    if (triggerOK && (checkIROK || canApplyBCShift(ir))) { // correction will be ok
-      checkIROK = true;                                    // don't check anymore since the following checks will yield same
+    if (triggerOK && (checkIROK || canApplyBCShift(ir))) {                // correction will be ok
+      checkIROK = true;                                                   // don't check anymore since the following checks will yield same
       orbitPrevGood = orbit;
       uint32_t firstEntryTrk = trkVec.size();
       uint16_t hcid = 0;
