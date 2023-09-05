@@ -172,7 +172,8 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegi
     }
   };
 
-  this->SubscribeToStateChange("dpl", stateWatcher);
+  // 99 is to execute DPL callbacks last
+  this->SubscribeToStateChange("99-dpl", stateWatcher);
 
   // One task for now.
   mStreams.resize(1);
