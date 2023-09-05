@@ -183,7 +183,7 @@ o2_add_test(Serialize
             target_compile_options(${TEST_SERIALIZE} PRIVATE ${RANS_TEST_ARCH})
 
 if(${RANS_ENABLE_JSON})
-  if (TARGET benchmark::benchmark)
+  if (${ENABLE_RANS_BENCHMARK})
 
     o2_add_header_only_library(libransBenchmark
                   TARGETVARNAME LIB_RANS_BENCHMARK
