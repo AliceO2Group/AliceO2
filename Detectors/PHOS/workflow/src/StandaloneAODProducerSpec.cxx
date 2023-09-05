@@ -74,7 +74,7 @@ void StandaloneAODProducerSpec::run(ProcessingContext& pc)
   auto caloCellsCursor = caloCellsBuilder->cursor<o2::aod::Calos>();
   auto caloCellsTRGTableCursor = caloCellsTRGTableBuilder->cursor<o2::aod::CaloTriggers>();
 
-  uint64_t triggerMask = 1;
+  uint64_t triggerMask = 1, inputMask = 1;
   // loop over events
   int indexBC = -1;
   for (const auto& tr : ctr) {
@@ -112,7 +112,8 @@ void StandaloneAODProducerSpec::run(ProcessingContext& pc)
     bcCursor(0,
              runNumber,
              bcID,
-             triggerMask);
+             triggerMask,
+             inputMask);
 
     // fill collision cursor
     collisionsCursor(0,

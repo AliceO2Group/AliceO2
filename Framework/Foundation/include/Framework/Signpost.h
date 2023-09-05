@@ -11,16 +11,63 @@
 #ifndef O2_FRAMEWORK_SIGNPOST_H_
 #define O2_FRAMEWORK_SIGNPOST_H_
 
+#include <atomic>
+
+struct o2_log_handle_t {
+  char const* name = nullptr;
+  void* log = nullptr;
+  o2_log_handle_t* next = nullptr;
+};
+
+// Loggers registry is actually a feature available to all platforms
+// We use this to register the loggers and to walk over them.
+// So that also on mac we can have a list of all the registered loggers.
+std::atomic<o2_log_handle_t*>& o2_get_logs_tail();
+o2_log_handle_t* o2_walk_logs(bool (*callback)(char const* name, void* log, void* context), void* context = nullptr);
+
+#ifdef O2_SIGNPOST_IMPLEMENTATION
+// The first log of the list. We make it atomic,
+// so that we can add new logs from different threads.
+std::atomic<o2_log_handle_t*>& o2_get_logs_tail()
+{
+  static std::atomic<o2_log_handle_t*> first = nullptr;
+  return first;
+}
+
+/// Walk over the logs and call the callback for each log.
+/// If the callback returns false, the loop is broken and
+/// the current log is returned.
+/// Returns the last log otherwise.
+/// This way we can use this to iterate over the logs or
+/// to insert new logs if none matches.
+o2_log_handle_t* o2_walk_logs(bool (*callback)(char const* name, void* log, void* context), void* context)
+{
+  // This might skip newly inserted logs, but that is ok.
+  o2_log_handle_t* current = o2_get_logs_tail().load();
+  while (current) {
+    bool cont = callback(current->name, current->log, context);
+    // In case we should not continue, break out of the loop.
+    if (cont == false) {
+      return current;
+    }
+    current = current->next;
+  }
+  return current;
+}
+#endif
+
 #if !defined(O2_FORCE_LOGGER_SIGNPOST) && defined(__APPLE__) && (!defined(NDEBUG) || defined(O2_FORCE_SIGNPOSTS))
 #include <os/log.h>
 #include <os/signpost.h>
-#define O2_DECLARE_DYNAMIC_LOG(x) static os_log_t private_o2_log_##x = os_log_create("ch.cern.aliceo2." #x, OS_LOG_CATEGORY_DYNAMIC_TRACING)
-#define O2_DECLARE_DYNAMIC_STACKTRACE_LOG(x) static os_log_t private_o2_log_##x = os_log_create("ch.cern.aliceo2." #x, OS_LOG_CATEGORY_DYNAMIC_STACK_TRACING)
+#include <cstring>
+void* _o2_log_create(char const* name, char const* category);
+#define O2_DECLARE_DYNAMIC_LOG(x) static os_log_t private_o2_log_##x = (os_log_t)_o2_log_create("ch.cern.aliceo2." #x, OS_LOG_CATEGORY_DYNAMIC_TRACING)
+#define O2_DECLARE_DYNAMIC_STACKTRACE_LOG(x) static os_log_t private_o2_log_##x = (os_log_t)_o2_log_create("ch.cern.aliceo2." #x, OS_LOG_CATEGORY_DYNAMIC_STACK_TRACING)
 // This is a no-op on macOS using the os_signpost API because only external instruments can enable/disable dynamic signposts
 #define O2_LOG_ENABLE_DYNAMIC(log)
 // This is a no-op on macOS using the os_signpost API because only external instruments can enable/disable dynamic signposts
 #define O2_LOG_ENABLE_STACKTRACE(log)
-#define O2_DECLARE_LOG(x, category) static os_log_t private_o2_log_##x = os_log_create("ch.cern.aliceo2." #x, #category)
+#define O2_DECLARE_LOG(x, category) static os_log_t private_o2_log_##x = (os_log_t)_o2_log_create("ch.cern.aliceo2." #x, #category)
 #define O2_LOG_DEBUG(log, ...) os_log_debug(private_o2_log_##log, __VA_ARGS__)
 #define O2_SIGNPOST_ID_FROM_POINTER(name, log, pointer) os_signpost_id_t name = os_signpost_id_make_with_pointer(private_o2_log_##log, pointer)
 #define O2_SIGNPOST_ID_GENERATE(name, log) os_signpost_id_t name = os_signpost_id_generate(private_o2_log_##log)
@@ -28,6 +75,46 @@
 #define O2_SIGNPOST_START(log, id, name, ...) os_signpost_interval_begin(private_o2_log_##log, id, name, __VA_ARGS__)
 #define O2_SIGNPOST_END(log, id, name, ...) os_signpost_interval_end(private_o2_log_##log, id, name, __VA_ARGS__)
 #define O2_ENG_TYPE(x, what) "%{xcode:" #x "}" what
+
+#ifdef O2_SIGNPOST_IMPLEMENTATION
+/// We use a wrapper so that we can keep track of the logs.
+void* _o2_log_create(char const* name, char const* category)
+{
+  // iterate over the list of logs and check if we already have
+  // one with the same name.
+  auto findLogByName = [](char const* name, void* log, void* context) -> bool {
+    char const* currentName = (char const*)context;
+    if (strcmp(name, currentName) == 0) {
+      return false;
+    }
+    return true;
+  };
+
+  o2_log_handle_t* handle = o2_walk_logs(findLogByName, (void*)name);
+
+  // If we found one, return it.
+  if (handle) {
+    return handle->log;
+  }
+  // Otherwise, create a new one and add it to the end of the list.
+  os_log_t log = os_log_create(name, category);
+  o2_log_handle_t* newHandle = new o2_log_handle_t();
+  newHandle->log = log;
+  newHandle->name = strdup(name);
+  newHandle->next = o2_get_logs_tail().load();
+  // Until I manage to replace the log I have in next, keep trying.
+  // Notice this does not protect against two threads trying to insert
+  // a log with the same name. I should probably do a sorted insert for that.
+  while (!o2_get_logs_tail().compare_exchange_weak(newHandle->next, newHandle,
+                                                   std::memory_order_release,
+                                                   std::memory_order_relaxed)) {
+    newHandle->next = o2_get_logs_tail();
+  }
+
+  return log;
+}
+#endif
+
 #elif !defined(NDEBUG) || defined(O2_FORCE_LOGGER_SIGNPOST) || defined(O2_FORCE_SIGNPOSTS)
 
 #ifndef O2_LOG_MACRO
@@ -55,76 +142,15 @@
 // the signpost information to the log.
 #include <atomic>
 #include <array>
-#include <cstdio>
-#include "Framework/RuntimeError.h"
-
 #include <cassert>
-#include <atomic>
-#include <cstdarg>
 #include <cinttypes>
+#include <cstddef>
 
-namespace {
 struct _o2_lock_free_stack {
   static constexpr size_t N = 1024;
   std::atomic<size_t> top = 0;
   int stack[N];
 };
-
-// returns true if the push was successful, false if the stack was full
-// @param spin if true, will spin until the stack is not full
-bool _o2_lock_free_stack_push(_o2_lock_free_stack& stack, const int& value, bool spin = false)
-{
-  size_t currentTop = stack.top.load(std::memory_order_relaxed);
-  while (true) {
-    if (currentTop == _o2_lock_free_stack::N && spin == false) {
-      return false;
-    } else if (currentTop == _o2_lock_free_stack::N) {
-// Avoid consuming too much CPU time if we are spinning.
-#if defined(__x86_64__) || defined(__i386__)
-      __asm__ __volatile__("pause" ::
-                             : "memory");
-#elif defined(__aarch64__)
-      __asm__ __volatile__("yield" ::
-                             : "memory");
-#endif
-      continue;
-    }
-
-    if (stack.top.compare_exchange_weak(currentTop, currentTop + 1,
-                                        std::memory_order_release,
-                                        std::memory_order_relaxed)) {
-      stack.stack[currentTop] = value;
-      return true;
-    }
-  }
-}
-
-bool _o2_lock_free_stack_pop(_o2_lock_free_stack& stack, int& value, bool spin = false)
-{
-  size_t currentTop = stack.top.load(std::memory_order_relaxed);
-  while (true) {
-    if (currentTop == 0 && spin == false) {
-      return false;
-    } else if (currentTop == 0) {
-// Avoid consuming too much CPU time if we are spinning.
-#if defined(__x86_64__) || defined(__i386__)
-      __asm__ __volatile__("pause" ::
-                             : "memory");
-#elif defined(__aarch64__)
-      __asm__ __volatile__("yield" ::
-                             : "memory");
-#endif
-      continue;
-    }
-
-    if (stack.top.compare_exchange_weak(currentTop, currentTop - 1,
-                                        std::memory_order_acquire,
-                                        std::memory_order_relaxed)) {
-      value = stack.stack[currentTop - 1];
-      return true;
-    }
-  }
-}
 
 // A log is simply an inbox which keeps track of the available id, so that we can print out different signposts
 // with different indentation levels.
@@ -162,6 +188,17 @@ struct _o2_log_t {
   std::atomic<int> stacktrace = 1;
 };
 
+bool _o2_lock_free_stack_push(_o2_lock_free_stack& stack, const int& value, bool spin = false);
+bool _o2_lock_free_stack_pop(_o2_lock_free_stack& stack, int& value, bool spin = false);
+//_o2_signpost_id_t _o2_signpost_id_generate_local(_o2_log_t* log);
+//_o2_signpost_id_t _o2_signpost_id_make_with_pointer(_o2_log_t* log, void* pointer);
+_o2_signpost_index_t o2_signpost_id_make_with_pointer(_o2_log_t* log, void* pointer);
+void* _o2_log_create(char const* name, int stacktrace);
+void _o2_signpost_event_emit(_o2_log_t* log, _o2_signpost_id_t id, char const* name, char const* const format, ...);
+void _o2_signpost_interval_begin(_o2_log_t* log, _o2_signpost_id_t id, char const* name, char const* const format, ...);
+void _o2_signpost_interval_end(_o2_log_t* log, _o2_signpost_id_t id, char const* name, char const* const format, ...);
+void _o2_log_set_stacktrace(_o2_log_t* log, int stacktrace);
+
 // This generates a unique id for a signpost. Do not use this directly, use O2_SIGNPOST_ID_GENERATE instead.
 // Notice that this is only valid on a given computer.
 // This is guaranteed to be unique at 5 GHz for at least 63 years, if my math is correct.
@@ -191,8 +228,89 @@ inline _o2_signpost_index_t o2_signpost_id_make_with_pointer(_o2_log_t* log, voi
   return signpost_index;
 }
 
-_o2_log_t* _o2_log_create(char const* name, int stacktrace)
+// Implementation start here. Include this file with O2_SIGNPOST_IMPLEMENTATION defined in one file of your
+// project.
+#ifdef O2_SIGNPOST_IMPLEMENTATION
+#include <cstdarg>
+#include <cstdio>
+#include <cstring>
+#include "Framework/RuntimeError.h"
+void _o2_signpost_interval_end_v(_o2_log_t* log, _o2_signpost_id_t id, char const* name, char const* const format, va_list args);
+
+// returns true if the push was successful, false if the stack was full
+// @param spin if true, will spin until the stack is not full
+bool _o2_lock_free_stack_push(_o2_lock_free_stack& stack, const int& value, bool spin)
 {
+  size_t currentTop = stack.top.load(std::memory_order_relaxed);
+  while (true) {
+    if (currentTop == _o2_lock_free_stack::N && spin == false) {
+      return false;
+    } else if (currentTop == _o2_lock_free_stack::N) {
+// Avoid consuming too much CPU time if we are spinning.
+#if defined(__x86_64__) || defined(__i386__)
+      __asm__ __volatile__("pause" ::
+                             : "memory");
+#elif defined(__aarch64__)
+      __asm__ __volatile__("yield" ::
+                             : "memory");
+#endif
+      continue;
+    }
+
+    if (stack.top.compare_exchange_weak(currentTop, currentTop + 1,
+                                        std::memory_order_release,
+                                        std::memory_order_relaxed)) {
+      stack.stack[currentTop] = value;
+      return true;
+    }
+  }
+}
+
+bool _o2_lock_free_stack_pop(_o2_lock_free_stack& stack, int& value, bool spin)
+{
+  size_t currentTop = stack.top.load(std::memory_order_relaxed);
+  while (true) {
+    if (currentTop == 0 && spin == false) {
+      return false;
+    } else if (currentTop == 0) {
+// Avoid consuming too much CPU time if we are spinning.
+#if defined(__x86_64__) || defined(__i386__)
+      __asm__ __volatile__("pause" ::
+                             : "memory");
+#elif defined(__aarch64__)
+      __asm__ __volatile__("yield" ::
+                             : "memory");
+#endif
+      continue;
+    }
+
+    if (stack.top.compare_exchange_weak(currentTop, currentTop - 1,
+                                        std::memory_order_acquire,
+                                        std::memory_order_relaxed)) {
+      value = stack.stack[currentTop - 1];
+      return true;
+    }
+  }
+}
+
+void* _o2_log_create(char const* name, int stacktrace)
+{
+  // iterate over the list of logs and check if we already have
+  // one with the same name.
+  o2_log_handle_t* handle = o2_walk_logs([](char const* currentName, void* log, void* context) -> bool {
+    char const* name = (char const*)context;
+    if (strcmp(name, currentName) == 0) {
+      return false;
+    }
+    return true;
+  },
+                                         (void*)name);
+
+  // If we found one, return it.
+  if (handle) {
+    return handle->log;
+  }
+  // Otherwise, create a new one and add it to the end of the list.
   _o2_log_t* log = new _o2_log_t();
   // Write the initial 256 ids to the inbox, in reverse, so that the
   // linear search below is just for an handful of elements.
@@ -202,6 +320,19 @@ _o2_log_t* _o2_log_create(char const* name, int stacktrace)
     _o2_lock_free_stack_push(log->slots, signpost_index, true);
   }
   log->stacktrace = stacktrace;
+  o2_log_handle_t* newHandle = new o2_log_handle_t();
+  newHandle->log = log;
+  newHandle->name = strdup(name);
+  newHandle->next = o2_get_logs_tail().load();
+  // Until I manage to replace the log I have in next, keep trying.
+  // Notice this does not protect against two threads trying to insert
+  // a log with the same name. I should probably do a sorted insert for that.
+  while (!o2_get_logs_tail().compare_exchange_weak(newHandle->next, newHandle,
+                                                   std::memory_order_release,
+                                                   std::memory_order_relaxed)) {
+    newHandle->next = o2_get_logs_tail();
+  }
+
   return log;
 }
 
@@ -318,14 +449,14 @@ void _o2_log_set_stacktrace(_o2_log_t* log, int stacktrace)
 {
   log->stacktrace = stacktrace;
 }
-}
+#endif // O2_SIGNPOST_IMPLEMENTATION
 
 /// Dynamic logs need to be enabled via the O2_LOG_ENABLE_DYNAMIC macro. Notice this will only work
 /// for the logger based logging, since the Apple version needs instruments to enable them.
-#define O2_DECLARE_DYNAMIC_LOG(name) static _o2_log_t* private_o2_log_##name = _o2_log_create("ch.cern.aliceo2." #name, 0)
+#define O2_DECLARE_DYNAMIC_LOG(name) static _o2_log_t* private_o2_log_##name = (_o2_log_t*)_o2_log_create("ch.cern.aliceo2." #name, 0)
 /// For the moment we do not support logs with a stacktrace.
-#define O2_DECLARE_DYNAMIC_STACKTRACE_LOG(name) static _o2_log_t* private_o2_log_##name = _o2_log_create("ch.cern.aliceo2." #name, 0)
-#define O2_DECLARE_LOG(name, category) static _o2_log_t* private_o2_log_##name = _o2_log_create("ch.cern.aliceo2." #name, 1)
+#define O2_DECLARE_DYNAMIC_STACKTRACE_LOG(name) static _o2_log_t* private_o2_log_##name = (_o2_log_t*)_o2_log_create("ch.cern.aliceo2." #name, 0)
+#define O2_DECLARE_LOG(name, category) static _o2_log_t* private_o2_log_##name = (_o2_log_t*)_o2_log_create("ch.cern.aliceo2." #name, 1)
 #define O2_LOG_ENABLE_DYNAMIC(log) _o2_log_set_stacktrace(private_o2_log_##log, 1)
 // We print out only the first 64 frames.
 #define O2_LOG_ENABLE_STACKTRACE(log) _o2_log_set_stacktrace(private_o2_log_##log, 64)

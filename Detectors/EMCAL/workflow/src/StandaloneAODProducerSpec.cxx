@@ -78,7 +78,7 @@ void StandaloneAODProducerSpec::run(ProcessingContext& pc)
   mCaloEventHandler->reset();
   mCaloEventHandler->setCellData(cellsIn, triggersIn);
 
-  uint64_t triggerMask = 1;
+  uint64_t triggerMask = 1, inputMask = 1;
   // loop over events
   for (int iev = 0; iev < mCaloEventHandler->getNumberOfEvents(); iev++) {
     o2::emcal::EventData inputEvent = mCaloEventHandler->buildEvent(iev);
@@ -91,7 +91,8 @@ void StandaloneAODProducerSpec::run(ProcessingContext& pc)
     bcCursor(0,
              runNumber,
              bcID,
-             triggerMask);
+             triggerMask,
+             inputMask);
     auto indexBC = iev;
 
     for (auto& cell : cellsInEvent) {

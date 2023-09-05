@@ -182,7 +182,7 @@ void SimpleEventDisplayGUI::toggleFFT()
   }
 }
 
-void SimpleEventDisplayGUI::initOccupancyHists(void)
+void SimpleEventDisplayGUI::initOccupancyHists()
 {
   const int w = 400;
   const int h = 400;
@@ -242,7 +242,7 @@ void SimpleEventDisplayGUI::initOccupancyHists(void)
   fillHists(0, Occupancy);
 }
 
-void SimpleEventDisplayGUI::deleteOccupancyHists(void)
+void SimpleEventDisplayGUI::deleteOccupancyHists()
 {
   delete gROOT->GetListOfCanvases()->FindObject("OccupancyValsA");
   delete mHOccupancyA;

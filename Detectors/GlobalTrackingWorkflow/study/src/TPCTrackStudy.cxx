@@ -71,6 +71,7 @@ class TPCTrackStudySpec : public Task
   int mNMoves = 6;
   bool mUseR = false;
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
+  std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOutCl;
   float mITSROFrameLengthMUS = 0.;
   GTrackID::mask_t mTracksSrc{};
   o2::steer::MCKinematicsReader mcReader; // reader of MC information
@@ -95,6 +96,9 @@ void TPCTrackStudySpec::init(InitContext& ic)
   }
   mTPCCorrMapsLoader.init(ic);
   mDBGOut = std::make_unique<o2::utils::TreeStreamRedirector>("tpc-trackStudy.root", "recreate");
+  if (ic.options().get<bool>("dump-clusters")) {
+    mDBGOutCl = std::make_unique<o2::utils::TreeStreamRedirector>("tpc-trackStudy-cl.root", "recreate");
+  }
 }
 
 void TPCTrackStudySpec::run(ProcessingContext& pc)
@@ -161,6 +165,35 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
   float tpcTBBias = mTPCVDriftHelper.getVDriftObject().getTimeOffset() / (8 * o2::constants::lhc::LHCBunchSpacingMUS);
   std::vector<short> clSector, clRow;
   std::vector<float> clX, clY, clZ;
+
+  auto dumpClusters = [this] {
+    static int tf = 0;
+    const auto* corrMap = this->mTPCCorrMapsLoader.getCorrMap();
+    for (int sector = 0; sector < 36; sector++) {
+      float alp = ((sector % 18) * 20 + 10) * TMath::DegToRad();
+      float sn = TMath::Sin(alp), cs = TMath::Cos(alp);
+      for (int row = 0; row < 152; row++) {
+        for (int ic = 0; ic < this->mTPCClusterIdxStruct->nClusters[sector][row]; ic++) {
+          const auto cl = this->mTPCClusterIdxStruct->clusters[sector][row][ic];
+          float x, y, z, xG, yG;
+          corrMap->TransformIdeal(sector, row, cl.getPad(), cl.getTime(), x, y, z, 0);
+          o2::math_utils::detail::rotateZ(x, y, xG, yG, sn, cs);
+          LOGP(debug, "tf:{} s:{} r:{} p:{} t:{} qm:{} qt:{} f:{} x:{} y:{} z:{}", tf, sector, row, cl.getPad(), cl.getTime(), cl.getQmax(), cl.getQtot(), cl.getFlags(), x, y, z);
+          (*mDBGOutCl) << "tpccl"
+                       << "tf=" << tf << "sect=" << sector << "row=" << row << "pad=" << cl.getPad() << "time=" << cl.getTime() << "qmax=" << cl.getQmax() << "qtot=" << cl.getQtot()
+                       << "sigT=" << cl.getSigmaTime() << "sigP=" << cl.getSigmaPad()
+                       << "flags=" << cl.getFlags()
+                       << "x=" << x << "y=" << y << "z=" << z << "xg=" << xG << "yg=" << yG
+                       << "\n";
+        }
+      }
+    }
+    tf++;
+  };
+
+  if (mDBGOutCl) {
+    dumpClusters();
+  }
 
   for (size_t itr = 0; itr < mTPCTracksArray.size(); itr++) {
     auto tr = mTPCTracksArray[itr]; // create track copy
@@ -335,6 +368,7 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
 void TPCTrackStudySpec::endOfStream(EndOfStreamContext& ec)
 {
   mDBGOut.reset();
+  mDBGOutCl.reset();
 }
 
 void TPCTrackStudySpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
@@ -356,6 +390,7 @@ DataProcessorSpec getTPCTrackStudySpec(GTrackID::mask_t srcTracks, GTrackID::mas
   Options opts{
     {"target-x", VariantType::Float, 70.f, {"Try to propagate to this radius"}},
     {"n-moves", VariantType::Int, 6, {"Number of moves in allow range"}},
+    {"dump-clusters", VariantType::Bool, false, {"dump clusters"}},
     {"use-r-as-x", VariantType::Bool, false, {"Use radius instead of target sector X"}}};
   auto dataRequest = std::make_shared<DataRequest>();
 

@@ -41,10 +41,11 @@ void CTFCoder::createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBa
 {
   const auto ctf = CTF::getImage(bufVec.data());
   // just to get types
-  uint16_t bcInc = 0, entries = 0, cellTime = 0, energy = 0, tower = 0, trigger = 0;
-  uint32_t orbitInc = 0;
+  int16_t bcInc = 0;
+  int32_t orbitInc = 0;
+  uint16_t entries = 0, cellTime = 0, energy = 0, tower = 0, trigger = 0;
   uint8_t status = 0;
-#define MAKECODER(part, slot) createCoder<decltype(part)>(op, ctf.getFrequencyTable(slot), int(slot))
+#define MAKECODER(part, slot) createCoder(op, std::get<rans::RenormedDenseHistogram<decltype(part)>>(ctf.getDictionary<decltype(part)>(slot, mANSVersion)), int(slot))
   // clang-format off
   MAKECODER(bcInc,      CTF::BLC_bcIncTrig);
   MAKECODER(orbitInc,   CTF::BLC_orbitIncTrig);
@@ -56,4 +57,15 @@ void CTFCoder::createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBa
   // extra slot was added in the end
   MAKECODER(trigger,    CTF::BLC_trigger);
   // clang-format on
+}
+
+///___________________________________________________________________________________
+void CTFCoder::assignDictVersion(o2::ctf::CTFDictHeader& h) const
+{
+  if (mExtHeader.isValidDictTimeStamp()) {
+    h = mExtHeader;
+  } else {
+    h.majorVersion = 1;
+    h.minorVersion = 1;
+  }
 }

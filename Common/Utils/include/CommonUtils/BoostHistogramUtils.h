@@ -618,7 +618,7 @@ auto ProjectBoostHistoXFast(const boost::histogram::histogram<axes...>& hist2d, 
 /// \return result
 ///      1d boost histogram from projection of the input 2d boost histogram
 template <typename... axes>
-auto ReduceBoostHistoFastSlice(boost::histogram::histogram<axes...>& hist2d, int binXLow, int binXHigh, int binYLow, int binYHigh, bool includeOverflowUnderflow)
+auto ReduceBoostHistoFastSlice(const boost::histogram::histogram<axes...>& hist2d, int binXLow, int binXHigh, int binYLow, int binYHigh, bool includeOverflowUnderflow)
 {
   int nXbins = binXHigh - binXLow + 1;
   int nYbins = binYHigh - binYLow + 1;

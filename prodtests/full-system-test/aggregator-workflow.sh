@@ -224,6 +224,9 @@ if [[ $AGGREGATOR_TASKS == BARREL_TF ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
   if [[ $CALIB_TRD_GAIN == 1 ]]; then
     TRD_CALIB_CONFIG+=" --gain"
   fi
+  if [[ $CALIB_TRD_T0 == 1 ]]; then
+    TRD_CALIB_CONFIG+=" --t0"
+  fi
   if [[ ! -z ${TRD_CALIB_CONFIG} ]]; then
     add_W o2-calibration-trd-workflow "${TRD_CALIB_CONFIG}"
   fi
@@ -273,7 +276,7 @@ fi
 if [[ $AGGREGATOR_TASKS == CALO_TF || $AGGREGATOR_TASKS == ALL ]]; then
   # EMC
   EMCAL_CALIB_CTP_OPT=
-  if true || ! has_detector CTP; then # FIXME: Currently we cannot send CTP/DIGITS to both CALO and BARREL workflow.
+  if ! has_detector CTP; then
     EMCAL_CALIB_CTP_OPT="--no-rejectL0Trigger"
   fi
   if [[ $CALIB_EMC_BADCHANNELCALIB == 1 ]]; then

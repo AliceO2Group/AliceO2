@@ -68,15 +68,15 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const Digit>& dig
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation
   constexpr MD optField[CTF::getNBlocks()] = {
-    MD::EENCODE, // BLC_bcInc
-    MD::EENCODE, // BLC_orbitInc
-    MD::EENCODE, // BLC_nChan
-    MD::EENCODE, // BLC_idChan
-    MD::EENCODE, // BLC_cfdTime
-    MD::EENCODE, // BLC_qtcAmpl
+    MD::EENCODE_OR_PACK, // BLC_bcInc
+    MD::EENCODE_OR_PACK, // BLC_orbitInc
+    MD::EENCODE_OR_PACK, // BLC_nChan
+    MD::EENCODE_OR_PACK, // BLC_idChan
+    MD::EENCODE_OR_PACK, // BLC_cfdTime
+    MD::EENCODE_OR_PACK, // BLC_qtcAmpl
     // extra slot was added in the end
-    MD::EENCODE, // BLC_trigger
-    MD::EENCODE  // BLC_qtcChain
+    MD::EENCODE_OR_PACK, // BLC_trigger
+    MD::EENCODE_OR_PACK  // BLC_qtcChain
   };
   CompressedDigits cd;
   if (mExtHeader.isValidDictTimeStamp()) {
@@ -97,11 +97,10 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const Digit>& dig
 
   ec->setHeader(cd.header);
   assignDictVersion(static_cast<o2::ctf::CTFDictHeader&>(ec->getHeader()));
-  ec->getANSHeader().majorVersion = 0;
-  ec->getANSHeader().minorVersion = 1;
+  ec->setANSHeader(mANSVersion);
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
   o2::ctf::CTFIOSize iosize;
-#define ENCODEFV0(part, slot, bits) CTF::get(buff.data())->encode(part, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get(), getMemMarginFactor());
+#define ENCODEFV0(part, slot, bits) CTF::get(buff.data())->encode(part, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)], getMemMarginFactor());
   // clang-format off
   iosize += ENCODEFV0(cd.bcInc,     CTF::BLC_bcInc,    0);
   iosize += ENCODEFV0(cd.orbitInc,  CTF::BLC_orbitInc, 0);
@@ -129,7 +128,7 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VDIG& digitVec, VCHAN& 
   checkDictVersion(hd);
   ec.print(getPrefix(), mVerbosity);
   o2::ctf::CTFIOSize iosize;
-#define DECODEFV0(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
+#define DECODEFV0(part, slot) ec.decode(part, int(slot), mCoders[int(slot)])
   // clang-format off
   iosize += DECODEFV0(cd.bcInc,     CTF::BLC_bcInc);
   iosize += DECODEFV0(cd.orbitInc,  CTF::BLC_orbitInc);

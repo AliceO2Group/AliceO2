@@ -51,7 +51,7 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   mTimer.Start(false);
   o2::ctf::CTFIOSize iosize;
 
-  mCTFCoder.updateTimeDependentParams(pc);
+  mCTFCoder.updateTimeDependentParams(pc, true);
   auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf_FT0");
 
   auto& digits = pc.outputs().make<std::vector<o2::ft0::Digit>>(OutputRef{"digits"});
@@ -82,7 +82,7 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
 
   std::vector<InputSpec> inputs;
   inputs.emplace_back("ctf_FT0", "FT0", "CTFDATA", sspec, Lifetime::Timeframe);
-  inputs.emplace_back("ctfdict_FT0", "FT0", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("FT0/Calib/CTFDictionary"));
+  inputs.emplace_back("ctfdict_FT0", "FT0", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("FT0/Calib/CTFDictionaryTree"));
   inputs.emplace_back("trigoffset", "CTP", "Trig_Offset", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/TriggerOffsets"));
 
   return DataProcessorSpec{
@@ -90,7 +90,7 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
-    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}}}};
+    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}}, {"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
 }
 
 } // namespace ft0

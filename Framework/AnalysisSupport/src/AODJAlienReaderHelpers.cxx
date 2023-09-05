@@ -276,7 +276,6 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
             outputs.make<std::string>(o2) = currentFilename;
           }
         }
-
         first = false;
       }
       totalDFSent++;
@@ -287,6 +286,27 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
       // save file number and time frame
       *fileCounter = (fcnt - device.inputTimesliceId) / device.maxInputTimeslices;
       *numTF = ntf;
+
+      // Check if the next timeframe is available or
+      // if there are more files to be processed. If not, simply exit.
+      fcnt = (*fileCounter * device.maxInputTimeslices) + device.inputTimesliceId;
+      ntf = *numTF + 1;
+      auto& firstRoute = requestedTables.front();
+      auto concrete = DataSpecUtils::asConcreteDataMatcher(firstRoute.matcher);
+      auto dh = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
+      auto fileAndFolder = didir->getFileFolder(dh, fcnt, ntf);
+      if (!fileAndFolder.file) {
+        fcnt += 1;
+        ntf = 0;
+        if (didir->atEnd(fcnt)) {
+          LOGP(info, "No input files left to read for reader {}!", device.inputTimesliceId);
+          didir->closeInputFiles();
+          monitoring.flushBuffer();
+          control.endOfStream();
+          control.readyToQuit(QuitRequest::Me);
+          return;
+        }
+      } 
     });
   })};
 

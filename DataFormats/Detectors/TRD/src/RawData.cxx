@@ -112,23 +112,23 @@ void setHalfCRUHeaderLinkSizeAndFlags(HalfCRUHeader& cruhead, int link, int size
   cruhead.errorflags[link].errorflag = errors;
 }
 
-uint32_t getHalfCRULinkErrorFlag(const HalfCRUHeader& cruhead, const uint32_t link)
+uint8_t getHalfCRULinkErrorFlag(const HalfCRUHeader& cruhead, const uint32_t link)
 {
   // link is the link you are requesting information on, 0-14
-  uint32_t errorflag = 0;
+  uint8_t errorflag = 0;
   //dealing with word0-2
   errorflag = cruhead.errorflags[link].errorflag;
   return errorflag;
 }
 
-uint32_t getHalfCRULinkDataSize(const HalfCRUHeader& cruhead, const uint32_t link)
+uint16_t getHalfCRULinkDataSize(const HalfCRUHeader& cruhead, const uint32_t link)
 {
   // link is the link you are requesting information on, 0-14
   //return number 32 byte blocks for the link 3x64bit ints.
   return cruhead.datasizes[link].size;
 }
 
-void getHalfCRULinkErrorFlags(const HalfCRUHeader& cruheader, std::array<uint32_t, 15>& linkerrorflags)
+void getHalfCRULinkErrorFlags(const HalfCRUHeader& cruheader, std::array<uint8_t, 15>& linkerrorflags)
 {
   // retrieve all the link error flags for this half cru
   for (uint32_t link = 0; link < 15; link++) {
@@ -136,7 +136,7 @@ void getHalfCRULinkErrorFlags(const HalfCRUHeader& cruheader, std::array<uint32_
   }
 }
 
-void getHalfCRULinkDataSizes(const HalfCRUHeader& cruheader, std::array<uint32_t, 15>& linksizes)
+void getHalfCRULinkDataSizes(const HalfCRUHeader& cruheader, std::array<uint16_t, 15>& linksizes)
 {
   // retrieve all the link error flags for this half cru
   for (uint32_t link = 0; link < 15; link++) {
@@ -229,8 +229,8 @@ void printTrackletMCMHeader(const o2::trd::TrackletMCMHeader& mcmhead)
 
 void printHalfCRUHeader(const o2::trd::HalfCRUHeader& halfcru)
 {
-  std::array<uint32_t, 15> sizes;
-  std::array<uint32_t, 15> errorflags;
+  std::array<uint16_t, 15> sizes;
+  std::array<uint8_t, 15> errorflags;
   getHalfCRULinkDataSizes(halfcru, sizes);
   getHalfCRULinkErrorFlags(halfcru, errorflags);
   LOGF(info, "V:%d BC:%d SB:%d EType:%d", halfcru.HeaderVersion, halfcru.BunchCrossing,

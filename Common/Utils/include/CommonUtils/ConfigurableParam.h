@@ -221,6 +221,23 @@ class ConfigurableParam
     }
   }
 
+  static void setProvenance(std::string const& mainkey, std::string const& subkey, EParamProvenance p)
+  {
+    if (!sIsFullyInitialized) {
+      std::cerr << "setProvenance was called on non-initialized ConfigurableParam\n";
+      return;
+    }
+    try {
+      auto key = mainkey + "." + subkey;
+      auto keyProv = sValueProvenanceMap->find(key);
+      if (keyProv != sValueProvenanceMap->end()) {
+        keyProv->second = p;
+      }
+    } catch (std::exception const& e) {
+      std::cerr << "Error in setProvenance (T) " << e.what() << "\n";
+    }
+  }
+
   // specialized for std::string
   // which means that the type will be converted internally
   static void setValue(std::string const& key, std::string const& valuestring)

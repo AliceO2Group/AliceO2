@@ -515,6 +515,7 @@ uint8_t GBTLink::checkErrorsCableID(const GBTData* gbtD, uint8_t cableSW)
 void GBTLink::accountLinkRecovery(o2::InteractionRecord ir)
 {
   statistics.errorCounts[GBTLinkDecodingStat::ErrLinkRecovery]++;
+  gbtErrStatUpadated = true;
   if (needToPrintError(statistics.errorCounts[GBTLinkDecodingStat::ErrLinkRecovery])) {
     LOG(info) << describe() << ' ' << ir << ". " << statistics.ErrNames[GBTLinkDecodingStat::ErrLinkRecovery];
   }

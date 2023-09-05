@@ -441,10 +441,10 @@ struct OutputObj {
     return *object.get();
   }
 
-  OutputRef ref()
+  OutputRef ref(uint16_t index, uint16_t max)
   {
     return OutputRef{std::string{label}, 0,
-                     o2::header::Stack{OutputObjHeader{policy, sourceType, mTaskHash}}};
+                     o2::header::Stack{OutputObjHeader{policy, sourceType, mTaskHash, index, max}}};
   }
 
   std::shared_ptr<T> object;

@@ -20,6 +20,7 @@
 #include "Framework/Logger.h"
 #include "Framework/DeviceController.h"
 #include "Framework/DataProcessingStates.h"
+#include "Framework/Signpost.h"
 #include <DebugGUI/icons_font_awesome.h>
 
 #include "DebugGUI/imgui.h"

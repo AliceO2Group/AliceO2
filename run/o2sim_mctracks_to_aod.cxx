@@ -19,7 +19,7 @@
 
 using namespace o2::framework;
 
-struct McTracksToAOD {
+struct MctracksToAod {
   Produces<o2::aod::McCollisions> mcollisions;
   Produces<o2::aod::StoredMcParticles_001> mcparticles;
   Configurable<float> IR{"interaction-rate", 100.f, "Interaction rate to simulate"};
@@ -122,15 +122,11 @@ struct McTracksToAOD {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  WorkflowSpec specs;
-  std::vector<InputSpec> inputs;
-  inputs.emplace_back("mctracks", "MC", "MCTRACKS", 0., Lifetime::Timeframe);
-  inputs.emplace_back("mcheader", "MC", "MCHEADER", 0., Lifetime::Timeframe);
-  DataProcessorSpec dSpec = adaptAnalysisTask<McTracksToAOD>(cfgc, TaskName{"mctracks-to-aod"});
-  dSpec.inputs = inputs;
-  dSpec.outputs.emplace_back(OutputSpec{"TFF", "TFFilename"});
-  dSpec.outputs.emplace_back(OutputSpec{"TFN", "TFNumber"});
-  specs.emplace_back(dSpec);
+  auto dSpec = adaptAnalysisTask<MctracksToAod>(cfgc);
+  dSpec.inputs.emplace_back("mctracks", "MC", "MCTRACKS", 0., Lifetime::Timeframe);
+  dSpec.inputs.emplace_back("mcheader", "MC", "MCHEADER", 0., Lifetime::Timeframe);
+  dSpec.outputs.emplace_back("TFF", "TFFilename");
+  dSpec.outputs.emplace_back("TFN", "TFNumber");
 
-  return specs;
+  return {dSpec};
 }

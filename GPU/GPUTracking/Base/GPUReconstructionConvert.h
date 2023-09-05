@@ -60,16 +60,16 @@ class GPUReconstructionConvert
   static int GetMaxTimeBin(const o2::tpc::ClusterNativeAccess& native);
   static int GetMaxTimeBin(const GPUTrackingInOutDigits& digits);
   static int GetMaxTimeBin(const GPUTrackingInOutZS& zspages);
-  static std::function<void(std::vector<o2::tpc::Digit>&, const void*, unsigned int)> GetDecoder(int version, const GPUParam& param);
+  static std::function<void(std::vector<o2::tpc::Digit>&, const void*, unsigned int, unsigned int)> GetDecoder(int version, const GPUParam& param);
 };
 
 class GPUReconstructionZSDecoder
 {
  public:
-  void DecodePage(std::vector<o2::tpc::Digit>& outputBuffer, const void* page, unsigned int tfFirstOrbit, const GPUParam& param);
+  void DecodePage(std::vector<o2::tpc::Digit>& outputBuffer, const void* page, unsigned int tfFirstOrbit, const GPUParam& param, unsigned int triggerBC = 0);
 
  private:
-  std::vector<std::function<void(std::vector<o2::tpc::Digit>&, const void*, unsigned int)>> mDecoders;
+  std::vector<std::function<void(std::vector<o2::tpc::Digit>&, const void*, unsigned int, unsigned int)>> mDecoders;
 };
 
 } // namespace gpu

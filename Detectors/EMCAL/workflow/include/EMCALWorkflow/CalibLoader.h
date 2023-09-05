@@ -9,6 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#ifndef O2_EMCAL_CALIBLOADER
+#define O2_EMCAL_CALIBLOADER
+
 #include <bitset>
 #include <vector>
 #include <Framework/ProcessingContext.h>
@@ -248,3 +251,5 @@ class CalibLoader
 } // namespace emcal
 
 } // namespace o2
+
+#endif //  O2_EMCAL_CALIBLOADER

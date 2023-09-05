@@ -38,6 +38,7 @@
 
 // for time measurements
 #include <chrono>
+#include <random>
 #include <optional>
 
 using namespace o2::framework;
@@ -46,6 +47,31 @@ namespace o2
 {
 namespace calibration
 {
+
+class CalibInputDownsampler
+{
+ public:
+  CalibInputDownsampler() { initSeed(); }
+  ~CalibInputDownsampler() = default;
+
+  void setSamplingFraction(float samplingFraction) { mSamplingFraction = samplingFraction; }
+  bool acceptEvent()
+  {
+    auto rnr = mSampler(mRandomGenerator);
+    return rnr < mSamplingFraction;
+  }
+
+ private:
+  void initSeed()
+  {
+    auto now = std::chrono::system_clock::now().time_since_epoch().count();
+    std::seed_seq randomseed{uint32_t(now & 0xffffffff), uint32_t(now >> 32)};
+    mRandomGenerator.seed(randomseed);
+  }
+  std::mt19937_64 mRandomGenerator;
+  std::uniform_real_distribution<float> mSampler{0, 1};
+  float mSamplingFraction = 1;
+};
 
 class EMCALChannelCalibDevice : public o2::framework::Task
 {
@@ -186,6 +212,14 @@ class EMCALChannelCalibDevice : public o2::framework::Task
       pc.inputs().get<o2::emcal::GainCalibrationFactors*>(getGainCalibBinding());
     }
 
+    float samplingFraction = isBadChannelCalib ? EMCALCalibParams::Instance().fractionEvents_bc : EMCALCalibParams::Instance().fractionEvents_tc;
+    if (samplingFraction < 1) {
+      if (!mDownsampler) {
+        mDownsampler = std::make_unique<CalibInputDownsampler>();
+      }
+      mDownsampler->setSamplingFraction(samplingFraction);
+    }
+
     using ctpDigitsType = std::decay_t<decltype(pc.inputs().get<gsl::span<o2::ctp::CTPDigit>>(getCTPDigitsBinding()))>;
     std::optional<ctpDigitsType> ctpDigits;
     if (mRejectL0Triggers) {
@@ -199,6 +233,23 @@ class EMCALChannelCalibDevice : public o2::framework::Task
     } else if (mBadChannelCalibrator) {
       if (mBadChannelCalibrator->getSaveAtEOR())
         mBadChannelCalibrator->setSaveAtEOR(false);
+    }
+
+    // prepare CTP information to reject EMCal triggers
+    uint64_t classMaskCTP = 0;
+    std::unordered_set<int64_t> numBCAccepted;
+    if (mRejectL0Triggers) {
+      for (auto& ctpDigit : *ctpDigits) {
+        // obtain trigger mask that belongs to the selected bc
+        classMaskCTP = ctpDigit.CTPClassMask.to_ulong();
+        // now check if min bias trigger is not in mask
+        for (const uint64_t& selectedClassMask : mSelectedClassMasks) {
+          if ((classMaskCTP & selectedClassMask) != 0) {
+            LOG(debug) << "classmask " << selectedClassMask << " added for the bc " << ctpDigit.intRecord.toLong() + EMCALCalibParams::Instance().bcShiftCTP;
+            numBCAccepted.insert(ctpDigit.intRecord.toLong() + EMCALCalibParams::Instance().bcShiftCTP);
+          }
+        }
+      }
     }
 
     auto tfcounter = o2::header::get<o2::framework::DataProcessingHeader*>(pc.inputs().get(getCellBinding()).header)->startTime;
@@ -225,34 +276,16 @@ class EMCALChannelCalibDevice : public o2::framework::Task
       }
 
       // reject all triggers that are not included in the classMask (typically only EMC min. bias should be accepted)
-      uint64_t classMaskCTP = 0;
       if (mRejectL0Triggers) {
-        bool acceptEvent = false;
-        // Match the EMCal bc to the CTP bc
-        int64_t bcEMC = trg.getBCData().toLong();
-        for (auto& ctpDigit : *ctpDigits) {
-          int64_t bcCTP = ctpDigit.intRecord.toLong();
-          LOG(debug) << "bcEMC " << bcEMC << "   bcCTP " << bcCTP;
-          if (bcCTP == bcEMC) {
-            // obtain trigger mask that belongs to the selected bc
-            classMaskCTP = ctpDigit.CTPClassMask.to_ulong();
-            // now check if min bias trigger is not in mask
-            for (const uint64_t& selectedClassMask : mSelectedClassMasks) {
-              if ((classMaskCTP & selectedClassMask) != 0) {
-                LOG(debug) << "trigger " << selectedClassMask << " found! accepting event";
-                acceptEvent = true;
-                break;
-              }
-            }
-            break; // break as bc was matched
-          }
-        }
-        // if current event is not accepted (selected triggers not present), move on to next event
-        if (!acceptEvent) {
+        if (numBCAccepted.find(trg.getBCData().toLong()) == numBCAccepted.end()) {
+          LOG(debug) << "correct trigger not found, rejecting event";
           continue;
         }
       }
 
+      if (mDownsampler && !mDownsampler->acceptEvent()) {
+        continue;
+      }
       gsl::span<const o2::emcal::Cell> eventData(data.data() + trg.getFirstEntry(), trg.getNumberOfObjects());
 
       // fast calibration
@@ -335,6 +368,7 @@ class EMCALChannelCalibDevice : public o2::framework::Task
   bool mGainCalibFactorsInitialized = false;                                                                                           ///! Gain calibration init status
   std::array<double, 2> timeMeas;                                                                                                      ///! Used for time measurement and holds the start and end time in the run function
   std::vector<uint64_t> mSelectedClassMasks = {};                                                                                      ///! EMCal minimum bias trigger bit. Only this bit will be used for calibration
+  std::unique_ptr<CalibInputDownsampler> mDownsampler;
 
   //________________________________________________________________
   template <typename DataOutput>

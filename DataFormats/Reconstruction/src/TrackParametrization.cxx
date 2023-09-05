@@ -586,10 +586,14 @@ GPUd() bool TrackParametrization<value_T>::getXatLabR(value_t r, value_t& x, val
   const value_t kEps = 1.e-6;
   //
   auto crv = getCurvature(bz);
-  if (gpu::CAMath::Abs(crv) > constants::math::Almost0) { // helix
+  while (gpu::CAMath::Abs(crv) > constants::math::Almost0) { // helix ?
     // get center of the track circle
-    math_utils::CircleXY<value_t> circle;
+    math_utils::CircleXY<value_t> circle{};
     getCircleParamsLoc(bz, circle);
+    if (circle.rC == 0.) {
+      crv = 0.;
+      break;
+    }
     value_t r0 = gpu::CAMath::Sqrt(circle.getCenterD2());
     if (r0 <= constants::math::Almost0) {
       return false; // the track is concentric to circle
@@ -663,85 +667,86 @@ GPUd() bool TrackParametrization<value_T>::getXatLabR(value_t r, value_t& x, val
         return false;
       }
     }
-  } else {                                                  // this is a straight track
-    if (gpu::CAMath::Abs(sn) >= constants::math::Almost1) { // || to Y axis
-      value_t det = (r - mX) * (r + mX);
-      if (det < 0.f) {
-        return false; // does not reach raduis r
-      }
-      x = mX;
-      if (dir == DirAuto) {
-        return true;
-      }
-      det = gpu::CAMath::Sqrt(det);
-      if (dir == DirOutward) { // along the track direction
-        if (sn > 0.f) {
-          if (fy > det) {
-            return false; // track is along Y axis and above the circle
-          }
-        } else {
-          if (fy < -det) {
-            return false; // track is against Y axis amd belo the circle
-          }
-        }
-      } else if (dir == DirInward) { // against track direction
-        if (sn > 0.f) {
-          if (fy < -det) {
-            return false; // track is along Y axis
-          }
-        } else if (fy > det) {
-          return false; // track is against Y axis
-        }
-      }
-    } else if (gpu::CAMath::Abs(sn) <= constants::math::Almost0) { // || to X axis
-      value_t det = (r - fy) * (r + fy);
-      if (det < 0.f) {
-        return false; // does not reach raduis r
-      }
-      det = gpu::CAMath::Sqrt(det);
-      if (dir == DirAuto) {
-        x = mX > 0.f ? det : -det; // choose the solution requiring the smalest step
-        return true;
-      } else if (dir == DirOutward) { // along the track direction
-        if (mX > det) {
-          return false; // current point is in on the right from the circle
-        } else {
-          x = (mX < -det) ? -det : det; // on the left : within the circle
-        }
-      } else { // against the track direction
-        if (mX < -det) {
-          return false;
-        } else {
-          x = mX > det ? det : -det;
-        }
-      }
-    } else { // general case of straight line
-      value_t cs = gpu::CAMath::Sqrt((1.f - sn) * (1.f + sn));
-      value_t xsyc = mX * sn - fy * cs;
-      value_t det = (r - xsyc) * (r + xsyc);
-      if (det < 0.f) {
-        return false; // does not reach raduis r
-      }
-      det = gpu::CAMath::Sqrt(det);
-      value_t xcys = mX * cs + fy * sn;
-      value_t t = -xcys;
-      if (dir == DirAuto) {
-        t += t > 0.f ? -det : det; // chose the solution requiring the smalest step
-      } else if (dir > 0) {        // go in increasing mX direction. ( t+-det > 0)
-        if (t >= -det) {
-          t += det; // take minimal step giving t>0
-        } else {
-          return false; // both solutions have negative t
-        }
-      } else { // go in decreasing mX direction. (t+-det < 0)
-        if (t < det) {
-          t -= det; // take minimal step giving t<0
-        } else {
-          return false; // both solutions have positive t
-        }
-      }
-      x = mX + cs * t;
+    return x;
+  }
+  // this is a straight track
+  if (gpu::CAMath::Abs(sn) >= constants::math::Almost1) { // || to Y axis
+    value_t det = (r - mX) * (r + mX);
+    if (det < 0.f) {
+      return false; // does not reach raduis r
     }
+    x = mX;
+    if (dir == DirAuto) {
+      return true;
+    }
+    det = gpu::CAMath::Sqrt(det);
+    if (dir == DirOutward) { // along the track direction
+      if (sn > 0.f) {
+        if (fy > det) {
+          return false; // track is along Y axis and above the circle
+        }
+      } else {
+        if (fy < -det) {
+          return false; // track is against Y axis amd belo the circle
+        }
+      }
+    } else if (dir == DirInward) { // against track direction
+      if (sn > 0.f) {
+        if (fy < -det) {
+          return false; // track is along Y axis
+        }
+      } else if (fy > det) {
+        return false; // track is against Y axis
+      }
+    }
+  } else if (gpu::CAMath::Abs(sn) <= constants::math::Almost0) { // || to X axis
+    value_t det = (r - fy) * (r + fy);
+    if (det < 0.f) {
+      return false; // does not reach raduis r
+    }
+    det = gpu::CAMath::Sqrt(det);
+    if (dir == DirAuto) {
+      x = mX > 0.f ? det : -det; // choose the solution requiring the smalest step
+      return true;
+    } else if (dir == DirOutward) { // along the track direction
+      if (mX > det) {
+        return false; // current point is in on the right from the circle
+      } else {
+        x = (mX < -det) ? -det : det; // on the left : within the circle
+      }
+    } else { // against the track direction
+      if (mX < -det) {
+        return false;
+      } else {
+        x = mX > det ? det : -det;
+      }
+    }
+  } else { // general case of straight line
+    value_t cs = gpu::CAMath::Sqrt((1.f - sn) * (1.f + sn));
+    value_t xsyc = mX * sn - fy * cs;
+    value_t det = (r - xsyc) * (r + xsyc);
+    if (det < 0.f) {
+      return false; // does not reach raduis r
+    }
+    det = gpu::CAMath::Sqrt(det);
+    value_t xcys = mX * cs + fy * sn;
+    value_t t = -xcys;
+    if (dir == DirAuto) {
+      t += t > 0.f ? -det : det; // chose the solution requiring the smalest step
+    } else if (dir > 0) {        // go in increasing mX direction. ( t+-det > 0)
+      if (t >= -det) {
+        t += det; // take minimal step giving t>0
+      } else {
+        return false; // both solutions have negative t
+      }
+    } else { // go in decreasing mX direction. (t+-det < 0)
+      if (t < det) {
+        t -= det; // take minimal step giving t<0
+      } else {
+        return false; // both solutions have positive t
+      }
+    }
+    x = mX + cs * t;
   }
   //
   return true;

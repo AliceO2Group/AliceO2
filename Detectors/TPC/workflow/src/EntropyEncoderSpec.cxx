@@ -299,7 +299,8 @@ DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile, bool selIR)
             {"irframe-clusters-maxeta", VariantType::Float, 1.5f, {"Max eta for non-assigned clusters"}},
             {"irframe-clusters-maxz", VariantType::Float, 25.f, {"Max z for non assigned clusters (combined with maxeta)"}},
             {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}},
-            {"nThreads-tpc-encoder", VariantType::UInt32, 1u, {"number of threads to use for decoding"}}}};
+            {"nThreads-tpc-encoder", VariantType::UInt32, 1u, {"number of threads to use for decoding"}},
+            {"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
 }
 
 } // namespace tpc

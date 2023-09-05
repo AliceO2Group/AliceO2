@@ -48,6 +48,8 @@ struct EMCALCalibParams : public o2::conf::ConfigurableParamHelper<EMCALCalibPar
   float minNHitsForMeanEnergyCut = 100; ///< mean number of hits per cell that is needed to cut on the mean energy per hit. Needed for high energy intervals as outliers can distort the distribution
   float minNHitsForNHitCut = 1;         ///< mean number of hits per cell that is needed to cut on the mean number of hits. Needed for high energy intervals as outliers can distort the distribution
   float minCellEnergy_bc = 0.1;         ///< minimum cell energy considered for filling the histograms for bad channel calib. Should speedup the filling of the histogram to suppress noise
+  float fractionEvents_bc = 1.;         ///< fraction of events used in bad channel calibration
+  size_t nThreads_bc = 4;               ///< number of threads used for the bad channel calinration for filling the histograms
 
   // parameters for time calibration
   unsigned int minNEvents_tc = 1e7;      ///< minimum number of events to trigger the calibration
@@ -64,6 +66,8 @@ struct EMCALCalibParams : public o2::conf::ConfigurableParamHelper<EMCALCalibPar
   unsigned int slotLength_tc = 0;        ///< Lenght of the slot before calibration is triggered. If set to 0 calibration is triggered when hasEnoughData returns true
   bool UpdateAtEndOfRunOnly_tc = false;  ///< switch to enable trigger of calibration only at end of run
   float maxAllowedDeviationFromMax = 10; ///< maximum deviation allowed between the estimated maximum of the fit and the true maximum from the distribution. If deviation is larger then value, the fit likely failed. In this case, the true value is taken
+  float fractionEvents_tc = 1.;          ///< fraction of events used in time calibration
+  size_t nThreads_tc = 2;                ///< number of threads used for the time calinration for filling the histograms
 
   // common parameters
   std::string calibType = "time";                      ///< type of calibration to run
@@ -74,6 +78,7 @@ struct EMCALCalibParams : public o2::conf::ConfigurableParamHelper<EMCALCalibPar
   bool setSavedSlotAllowedSOR_EMC = true;              ///< if true, stored calibrations from last run can be loaded in the next run (if false, storing of the calib histograms is still active in contrast to setSavedSlotAllowed_EMC)
   long endTimeMargin = 2592000000;                     ///< set end TS to 30 days after slot ends (1000 * 60 * 60 * 24 * 30)
   std::string selectedClassMasks = "C0TVX-B-NOPF-EMC"; ///< name of EMCal min. bias trigger that is used for calibration
+  int bcShiftCTP = 0;                                  ///< bc shift of CTP digits to align them with EMC bc in case they are misaligned
 
   // old parameters. Keep them for a bit (can be deleted after september 5th) as otherwise ccdb and o2 version might not be in synch
   unsigned int minNEvents = 1e7;              ///< minimum number of events to trigger the calibration
