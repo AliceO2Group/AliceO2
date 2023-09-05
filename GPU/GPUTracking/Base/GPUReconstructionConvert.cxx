@@ -695,7 +695,11 @@ void zsEncoderImprovedLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputB
     if (!tbHdr->isLinkZS()) {
       throw std::runtime_error("ZS TB Hdr does not have linkZS magic word");
     }
-    int timeBin = (decHDR->timeOffset + tbHdr->bunchCrossing + (unsigned long)(o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) - firstOrbit) * o2::constants::lhc::LHCMaxBunches) / LHCBCPERTIMEBIN;
+    int timeBin = (int(decHDR->timeOffset) + int(tbHdr->bunchCrossing) + (int)(o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) - firstOrbit) * o2::constants::lhc::LHCMaxBunches - triggerBC) / LHCBCPERTIMEBIN;
+    if (timeBin < 0) {
+      LOGP(debug, "zsEncoderImprovedLinkBased::decodePage skipping digits hdr->tOff {} + hdr->bc {} + (orbit {} - firstOrbit {}) * maxBunch {} - triggerBC {} = {} < 0", decHDR->timeOffset, tbHdr->bunchCrossing, o2::raw::RDHUtils::getHeartBeatOrbit(*rdh), firstOrbit, o2::constants::lhc::LHCMaxBunches, triggerBC, timeBin);
+      continue;
+    }
     const unsigned char* adcData = (const unsigned char*)(decPagePtr + sizeof(*tbHdr));
     const auto& bitmask = tbHdr->getChannelBits();
     int nADC = bitmask.count();
@@ -953,10 +957,14 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
     int encodeBitsBlock = v2Flag ? v2nbits : encodeBits;
     decPagePtr += (nTotalSamples * encodeBitsBlock + 7) / 8;
 
-    if (linkBC < triggerBC || nTotalSamples == 0) {
+    // time bin might be smaller 0 due to triggerBC
+    int timeBin = (int(linkBC) + (int)(o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) - firstOrbit) * o2::constants::lhc::LHCMaxBunches - int(triggerBC)) / LHCBCPERTIMEBIN;
+    if (timeBin < 0 || nTotalSamples == 0) {
+      if (timeBin < 0 && nTotalSamples > 0) {
+        LOGP(debug, "zsEncoderDenseLinkBased::decodePage skipping digits (linkBC {} + orbit {} - firstOrbit {}) * maxBunch {} - triggerBC {} = {} < 0, nTotalSamples {}", linkBC, o2::raw::RDHUtils::getHeartBeatOrbit(*rdh), firstOrbit, o2::constants::lhc::LHCMaxBunches, triggerBC, timeBin, nTotalSamples);
+      }
       continue;
     }
-    int timeBin = (linkBC - triggerBC + (unsigned long)(o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) - firstOrbit) * o2::constants::lhc::LHCMaxBunches) / LHCBCPERTIMEBIN;
     if (timeBin > maxTimeBin) {
       maxTimeBin = timeBin;
     }
@@ -996,8 +1004,12 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
     }
   }
 
-  unsigned int hdrMinTimeBin = (decHDR->timeOffset + (o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) - firstOrbit) * o2::constants::lhc::LHCMaxBunches) / LHCBCPERTIMEBIN;
-  unsigned int hdrMaxTimeBin = hdrMinTimeBin + decHDR->nTimeBinSpan + ((decHDR->flags & TPCZSHDRV2::ZSFlags::nTimeBinSpanBit8) ? 256 : 0);
+  int hdrMinTimeBin = (int(decHDR->timeOffset) + int(o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) - firstOrbit) * o2::constants::lhc::LHCMaxBunches - triggerBC);
+  if (triggerBC > 0 && hdrMinTimeBin < 0) {
+    hdrMinTimeBin = 0;
+  }
+  hdrMinTimeBin /= LHCBCPERTIMEBIN;
+  int hdrMaxTimeBin = hdrMinTimeBin + decHDR->nTimeBinSpan + ((decHDR->flags & TPCZSHDRV2::ZSFlags::nTimeBinSpanBit8) ? 256 : 0);
 
   if (!extendFailure && nOutput != decHDR->nADCsamples) {
     std::ostringstream oss;
@@ -1008,7 +1020,7 @@ void zsEncoderDenseLinkBased::decodePage(std::vector<o2::tpc::Digit>& outputBuff
 
   if (decHDR->nADCsamples && (minTimeBin < hdrMinTimeBin || maxTimeBin > hdrMaxTimeBin)) {
     std::ostringstream oss;
-    oss << "Incorrect time bin range in MetaInfo, header reports " << hdrMinTimeBin << " - " << hdrMaxTimeBin << ", decoded data is " << minTimeBin << " - " << maxTimeBin;
+    oss << "Incorrect time bin range in MetaInfo, header reports " << hdrMinTimeBin << " - " << hdrMaxTimeBin << "(timeOffset: " << decHDR->timeOffset << " + (orbit: " << o2::raw::RDHUtils::getHeartBeatOrbit(*rdh) << " - firstOrbit " << firstOrbit << ") * LHCMaxBunches - triggerBC: " << triggerBC << ", decoded data is " << minTimeBin << " - " << maxTimeBin;
     amendPageErrorMessage(oss, rdh, decHDR, payloadEnd, decPagePtr, nOutput);
     throw std::runtime_error(oss.str());
   }
@@ -1458,7 +1470,7 @@ static inline auto GetDecoder_internal(const GPUParam& param, int version)
   enc->param = &param;
   enc->zsVersion = version;
   enc->init();
-  return [enc](std::vector<o2::tpc::Digit>& outBuffer, const void* page, unsigned int firstTfOrbit) {
+  return [enc](std::vector<o2::tpc::Digit>& outBuffer, const void* page, unsigned int firstTfOrbit, unsigned int triggerBC = 0) {
     const o2::header::RAWDataHeader& rdh = *(const o2::header::RAWDataHeader*)page;
     if (o2::raw::RDHUtils::getMemorySize(rdh) == sizeof(o2::header::RAWDataHeader)) {
       return;
@@ -1469,11 +1481,11 @@ static inline auto GetDecoder_internal(const GPUParam& param, int version)
     o2::tpc::CRU cru(o2::tpc::rdh_utils::getCRU(rdh));
     enc->iSector = cru.sector();
     int endpoint = cru.region() * 2 + o2::tpc::rdh_utils::getEndPoint(rdh);
-    enc->decodePage(outBuffer, (const zsPage*)page, endpoint, firstTfOrbit);
+    enc->decodePage(outBuffer, (const zsPage*)page, endpoint, firstTfOrbit, triggerBC);
   };
 }
 
-std::function<void(std::vector<o2::tpc::Digit>&, const void*, unsigned int)> GPUReconstructionConvert::GetDecoder(int version, const GPUParam& param)
+std::function<void(std::vector<o2::tpc::Digit>&, const void*, unsigned int, unsigned int)> GPUReconstructionConvert::GetDecoder(int version, const GPUParam& param)
 {
   if (version >= ZSVersion::ZSVersionRowBased10BitADC && version <= ZSVersion::ZSVersionRowBased12BitADC) {
     return GetDecoder_internal<zsEncoderRow>(param, version);
@@ -1486,7 +1498,7 @@ std::function<void(std::vector<o2::tpc::Digit>&, const void*, unsigned int)> GPU
   }
 }
 
-void GPUReconstructionZSDecoder::DecodePage(std::vector<o2::tpc::Digit>& outputBuffer, const void* page, unsigned int tfFirstOrbit, const GPUParam& param)
+void GPUReconstructionZSDecoder::DecodePage(std::vector<o2::tpc::Digit>& outputBuffer, const void* page, unsigned int tfFirstOrbit, const GPUParam& param, unsigned int triggerBC)
 {
   const o2::header::RAWDataHeader* rdh = (const o2::header::RAWDataHeader*)page;
   if (o2::raw::RDHUtils::getMemorySize(*rdh) == sizeof(o2::header::RAWDataHeader)) {
@@ -1500,6 +1512,6 @@ void GPUReconstructionZSDecoder::DecodePage(std::vector<o2::tpc::Digit>& outputB
   if (mDecoders[hdr->version] == nullptr) {
     mDecoders[hdr->version] = GPUReconstructionConvert::GetDecoder(hdr->version, param);
   }
-  mDecoders[hdr->version](outputBuffer, page, tfFirstOrbit);
+  mDecoders[hdr->version](outputBuffer, page, tfFirstOrbit, triggerBC);
 }
 #endif

@@ -9,6 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#ifndef O2_EMCAL_OFFLINECALIB_SPEC
+#define O2_EMCAL_OFFLINECALIB_SPEC
+
 #include <string>
 #include "Framework/DataProcessorSpec.h"
 #include "EMCALWorkflow/CalibLoader.h"
@@ -97,3 +100,5 @@ o2::framework::DataProcessorSpec getEmcalOfflineCalibSpec(bool makeCellIDTimeEne
 } // namespace emcal
 
 } // namespace o2
+
+#endif // O2_EMCAL_OFFLINECALIB_SPEC

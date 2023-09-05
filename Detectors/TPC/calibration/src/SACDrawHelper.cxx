@@ -130,5 +130,9 @@ std::string o2::tpc::SACDrawHelper::getZAxisTitle(const SACType type)
       return fmt::format("#Delta#it{{{}}}_{{1}}", stype);
       break;
     }
+    case SACType::IDCOutlier: {
+      return fmt::format("#it{{{}}} (Outliers: Yellow)", stype);
+      break;
+    }
   }
 }

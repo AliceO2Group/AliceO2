@@ -299,7 +299,7 @@ void ServiceRegistry::bindService(ServiceRegistry::Salt salt, ServiceSpec const&
 static std::map<std::thread::id, int> locks;
 
 #define LOCKING_DEBUG debug
-void ServiceRegistry::lock(Salt salt) const ACQUIRE(mMutex)
+void ServiceRegistry::lock(Salt salt) const O2_DPL_ACQUIRE(mMutex)
 {
   // Should probably use compare and exchange here.
   if (mMutex.try_lock()) {
@@ -315,7 +315,7 @@ void ServiceRegistry::lock(Salt salt) const ACQUIRE(mMutex)
   }
 }
 
-void ServiceRegistry::unlock(Salt salt) const RELEASE(mMutex)
+void ServiceRegistry::unlock(Salt salt) const O2_DPL_RELEASE(mMutex)
 {
   LOG(LOCKING_DEBUG) << "ServiceRegistry unlocked by salt stream " << salt.streamId << " dataprocessor " << salt.dataProcessorId << " (" << std::this_thread::get_id() << "). " << locks[std::this_thread::get_id()];
 

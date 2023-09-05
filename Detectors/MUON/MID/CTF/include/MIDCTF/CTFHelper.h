@@ -68,7 +68,7 @@ class CTFHelper
   class _Iter
   {
    public:
-    using difference_type = int64_t;
+    using difference_type = std::ptrdiff_t;
     using value_type = T;
     using pointer = const T*;
     using reference = const T&;
@@ -77,94 +77,89 @@ class CTFHelper
     _Iter(const std::vector<OrderRef>& ord, const std::array<gsl::span<const D>, NEvTypes>& data, bool end = false) : mOrder(ord), mData(&data), mIndex(end ? M * ord.size() : 0) {}
     _Iter() = default;
 
-    const I& operator++()
+    inline I& operator++() noexcept
     {
       ++mIndex;
-      return (I&)(*this);
+      return static_cast<I&>(*this);
     }
 
-    const I& operator--()
+    inline I operator++(int)
     {
-      mIndex--;
-      return (I&)(*this);
-    }
-    const I operator++(int)
-    {
-      auto res = *this;
+      I res = *(static_cast<I*>(this));
       ++mIndex;
       return res;
     }
 
-    const I operator--(int)
+    inline I& operator--() noexcept
     {
-      auto res = *this;
+      mIndex--;
+      return static_cast<I&>(*this);
+    }
+
+    inline I operator--(int)
+    {
+      I res = *(static_cast<I*>(this));
       --mIndex;
       return res;
     }
 
-    const I& operator+=(difference_type i)
+    I& operator+=(difference_type i) noexcept
     {
       mIndex += i;
-      return (I&)(*this);
+      return static_cast<I&>(*this);
     }
 
-    const I operator+=(difference_type i) const
+    I operator+(difference_type i) const
     {
-      auto tmp = *const_cast<I*>(this);
-      return tmp += i;
+      I res = *(const_cast<I*>(static_cast<const I*>(this)));
+      return res += i;
     }
 
-    const I& operator-=(difference_type i)
+    I& operator-=(difference_type i) noexcept
     {
       mIndex -= i;
-      return (I&)(*this);
+      return static_cast<I&>(*this);
     }
 
-    const I operator-=(difference_type i) const
+    I operator-(difference_type i) const
     {
-      auto tmp = *const_cast<I*>(this);
-      return tmp -= i;
+      I res = *(const_cast<I*>(static_cast<const I*>(this)));
+      return res -= i;
     }
 
-    difference_type operator-(const I& other) const { return mIndex - other.mIndex; }
+    difference_type operator-(const I& other) const noexcept { return mIndex - other.mIndex; }
 
-    difference_type operator-(size_t idx) const { return mIndex - idx; }
+    inline friend I operator+(difference_type i, const I& iter) { return iter + i; };
 
-    const I& operator-(size_t idx)
-    {
-      mIndex -= idx;
-      return (I&)(*this);
-    }
-
-    bool operator!=(const I& other) const { return mIndex != other.mIndex; }
-    bool operator==(const I& other) const { return mIndex == other.mIndex; }
-    bool operator>(const I& other) const { return mIndex > other.mIndex; }
-    bool operator<(const I& other) const { return mIndex < other.mIndex; }
-    bool operator>=(const I& other) const { return mIndex >= other.mIndex; }
-    bool operator<=(const I& other) const { return mIndex <= other.mIndex; }
+    bool operator!=(const I& other) const noexcept { return mIndex != other.mIndex; }
+    bool operator==(const I& other) const noexcept { return mIndex == other.mIndex; }
+    bool operator>(const I& other) const noexcept { return mIndex > other.mIndex; }
+    bool operator<(const I& other) const noexcept { return mIndex < other.mIndex; }
+    bool operator>=(const I& other) const noexcept { return mIndex >= other.mIndex; }
+    bool operator<=(const I& other) const noexcept { return mIndex <= other.mIndex; }
 
    protected:
     gsl::span<const OrderRef> mOrder{};
     const std::array<gsl::span<const D>, NEvTypes>* mData{};
-    size_t mIndex = 0;
+    difference_type mIndex = 0;
   };
 
   //_______________________________________________
   // BC difference wrt previous if in the same orbit, otherwise the abs.value.
   // For the very 1st entry return 0 (diff wrt 1st BC in the CTF header)
-  class Iter_bcIncROF : public _Iter<Iter_bcIncROF, ROFRecord, uint16_t>
+  class Iter_bcIncROF : public _Iter<Iter_bcIncROF, ROFRecord, int16_t>
   {
    public:
-    using _Iter<Iter_bcIncROF, ROFRecord, uint16_t>::_Iter;
+    using _Iter<Iter_bcIncROF, ROFRecord, int16_t>::_Iter;
     value_type operator*() const
     {
       const auto ir = (*mData)[mOrder[mIndex].getSource()][mOrder[mIndex].getIndex()].interactionRecord;
       if (mIndex) {
         const auto irP = (*mData)[mOrder[mIndex - 1].getSource()][mOrder[mIndex - 1].getIndex()].interactionRecord;
         if (ir.orbit == irP.orbit) {
-          return ir.bc - irP.bc;
+          return value_type(ir.bc - irP.bc);
         } else {
-          return ir.bc;
+          return value_type(ir.bc);
         }
       }
       return 0;
@@ -176,9 +171,9 @@ class CTFHelper
       if (id) {
         const auto irP = (*mData)[mOrder[id - 1].getSource()][mOrder[id - 1].getIndex()].interactionRecord;
         if (ir.orbit == irP.orbit) {
-          return ir.bc - irP.bc;
+          return value_type(ir.bc - irP.bc);
         } else {
-          return ir.bc;
+          return value_type(ir.bc);
         }
       }
       return 0;
@@ -187,16 +182,16 @@ class CTFHelper
 
   //_______________________________________________
   // Orbit difference wrt previous. For the very 1st entry return 0 (diff wrt 1st BC in the CTF header)
-  class Iter_orbitIncROF : public _Iter<Iter_orbitIncROF, ROFRecord, uint32_t>
+  class Iter_orbitIncROF : public _Iter<Iter_orbitIncROF, ROFRecord, int32_t>
   {
    public:
-    using _Iter<Iter_orbitIncROF, ROFRecord, uint32_t>::_Iter;
+    using _Iter<Iter_orbitIncROF, ROFRecord, int32_t>::_Iter;
     value_type operator*() const
     {
       if (mIndex) {
         const auto ir = (*mData)[mOrder[mIndex].getSource()][mOrder[mIndex].getIndex()].interactionRecord;
         const auto irP = (*mData)[mOrder[mIndex - 1].getSource()][mOrder[mIndex - 1].getIndex()].interactionRecord;
-        return ir.orbit - irP.orbit;
+        return value_type(ir.orbit - irP.orbit);
       }
       return 0;
     }
@@ -206,7 +201,7 @@ class CTFHelper
       if (id) {
         const auto ir = (*mData)[mOrder[id].getSource()][mOrder[id].getIndex()].interactionRecord;
         const auto irP = (*mData)[mOrder[id - 1].getSource()][mOrder[id - 1].getIndex()].interactionRecord;
-        return ir.orbit - irP.orbit;
+        return value_type(ir.orbit - irP.orbit);
       }
       return 0;
     }

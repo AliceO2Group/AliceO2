@@ -12,6 +12,8 @@
 #ifndef AliceO2_TPC_CRUCalibHelpers_H_
 #define AliceO2_TPC_CRUCalibHelpers_H_
 
+#include <unordered_map>
+#include <string>
 #include <array>
 #include <map>
 #include <cassert>
@@ -201,6 +203,8 @@ o2::tpc::CalDet<float> getCalPad(const std::string_view fileName, const std::str
   }
   return calPad;
 }
+
+std::unordered_map<std::string, CalPad> preparePedestalFiles(const CalPad& pedestals, const CalPad& noise, float sigmaNoise = 3, float minADC = 2, float pedestalOffset = 0, bool onlyFilled = false, bool maskBad = true, float noisyChannelThreshold = 1.5, float sigmaNoiseNoisyChannels = 4, float badChannelThreshold = 6, bool fixedSize = false);
 
 } // namespace o2::tpc::cru_calib_helpers
 

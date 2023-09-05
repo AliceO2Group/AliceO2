@@ -44,6 +44,12 @@ enum class MergedObjectTimespan {
   NCycles
 };
 
+enum class PublishMovingWindow {
+  // Publishes an object containing data points from the last cycle if it has one.
+  Yes,
+  No
+};
+
 enum class PublicationDecision {
   EachNSeconds, // Merged object is published each N seconds. This can evolve over time, thus we expect pairs specifying N:duration1, M:duration2...
 };
@@ -85,6 +91,7 @@ struct MergerConfig {
   ConfigEntry<MergedObjectTimespan, int> mergedObjectTimespan = {MergedObjectTimespan::FullHistory};
   ConfigEntry<PublicationDecision, PublicationDecisionParameter> publicationDecision = {PublicationDecision::EachNSeconds, {10}};
   ConfigEntry<TopologySize, std::variant<int, std::vector<size_t>>> topologySize = {TopologySize::NumberOfLayers, 1};
+  ConfigEntry<PublishMovingWindow> publishMovingWindow = {PublishMovingWindow::No};
   std::string monitoringUrl = "infologger:///debug?qc";
   std::string detectorName = "TST";
   ConfigEntry<ParallelismType> parallelismType = {ParallelismType::SplitInputs};

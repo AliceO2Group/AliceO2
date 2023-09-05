@@ -93,6 +93,16 @@ struct ImGUIDebugGUI : o2::framework::DebugGUI {
     registry->postRenderGUICallbacks();
     return result;
   }
+
+  bool supportsDeferredClose() override
+  {
+#if __has_include(<DebugGUI/DebugGUIAPIv3.h>)
+    return true;
+#else
+    return false;
+#endif
+  }
+
   void pollGUIPostRender(void* context, void* draw_data) override
   {
     o2::framework::pollGUIPostRender(context, draw_data);

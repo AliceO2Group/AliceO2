@@ -69,7 +69,7 @@ class MCTrackT
   Int_t GetPdgCode() const { return mPdgCode; }
   Int_t getMotherTrackId() const { return mMotherTrackId; }
   Int_t getSecondMotherTrackId() const { return mSecondMotherTrackId; }
-  bool isPrimary() const { return getProcess() == TMCProcess::kPPrimary; }
+  bool isPrimary() const { return (getProcess() == TMCProcess::kPPrimary) || (getMotherTrackId() < 0 && getSecondMotherTrackId() < 0); }
   bool isSecondary() const { return !isPrimary(); }
   Int_t getFirstDaughterTrackId() const { return mFirstDaughterTrackId; }
   Int_t getLastDaughterTrackId() const { return mLastDaughterTrackId; }
@@ -80,6 +80,11 @@ class MCTrackT
   Double_t GetStartVertexCoordinatesY() const { return mStartVertexCoordinatesY; }
   Double_t GetStartVertexCoordinatesZ() const { return mStartVertexCoordinatesZ; }
   Double_t GetStartVertexCoordinatesT() const { return mStartVertexCoordinatesT; }
+
+  /// production radius squared
+  Double_t R2() const { return Vx() * Vx() + Vy() * Vy(); }
+  /// production radius
+  Double_t R() const { return std::sqrt(R2()); }
 
   /// return mass from PDG Database if known (print message in case cannot look up)
   Double_t GetMass() const;

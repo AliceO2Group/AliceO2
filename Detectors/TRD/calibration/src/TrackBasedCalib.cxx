@@ -171,7 +171,7 @@ int TrackBasedCalib::filldEdx(gsl::span<const TrackTRD>& tracks, bool isTPCTRD)
         continue;
       }
       int chamberOffset = trkltDet * NBINSGAINCALIB;
-      mGainCalibHistos.push_back(chamberOffset + trkltDet + dEdx);
+      mGainCalibHistos.push_back(chamberOffset + dEdx);
     }
 
     // here we can count the number of successfully processed tracks

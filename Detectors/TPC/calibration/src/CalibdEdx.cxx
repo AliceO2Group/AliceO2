@@ -123,7 +123,7 @@ void CalibdEdx::merge(const CalibdEdx* other)
 
 template <typename Hist>
 void fitHist(const Hist& hist, CalibdEdxCorrection& corr, TLinearFitter& fitter,
-             const float dEdxCut, const int passes, const CalibdEdxCorrection* stackMean = nullptr)
+             const float dEdxCut, const float dEdxLowCutFactor, const int passes, const CalibdEdxCorrection* stackMean = nullptr)
 {
   using ax = CalibdEdx::Axis;
 
@@ -171,12 +171,13 @@ void fitHist(const Hist& hist, CalibdEdxCorrection& corr, TLinearFitter& fitter,
           // ignore tracks with dEdx above a threshold defined by previous fit
           if (fitPass > 0) {
             float oldCorr = corr.getCorrection(id, charge, inputs[0], inputs[1]);
-            float lowerCut = (1.f - 1.5 * dEdxCut) * oldCorr;
+            float lowerCut = (1.f - dEdxLowCutFactor * dEdxCut) * oldCorr;
             float upperCut = (1.f + dEdxCut) * oldCorr;
             if (dEdx < lowerCut || dEdx > upperCut) {
               outliers += counts;
               continue;
             }
+            // LOGP(info, "sector: {}, gemType: {}, bin: {}, fitPass: {}, oldCorr: {}, lowerCut: {}, upperCut: {}, dEdx: {}, counts: {}", id.sector, id.type, bin, fitPass, oldCorr, lowerCut, upperCut, dEdx, counts);
           }
 
           // scale fitted dEdx using the stacks mean
@@ -215,7 +216,7 @@ void fitHist(const Hist& hist, CalibdEdxCorrection& corr, TLinearFitter& fitter,
         corr.setChi2(id, charge, fitter.GetChisquare());
         corr.setEntries(id, charge, entries);
       }
-      LOGP(debug, "Fit pass {} with {} % outliers in {} entries. Fitter Points: {}", fitPass, (float)outliers / (float)entries * 100, entries, fitter.GetNpoints());
+      LOGP(debug, "Sector: {}, gemType: {}, charge: {}, Fit pass: {} with {} % outliers in {} entries. Fitter Points: {}, mean fit: {}", id.sector, int(id.type), charge, fitPass, (float)outliers / (float)entries * 100, entries, fitter.GetNpoints(), params[0]);
     }
   }
 }
@@ -241,7 +242,7 @@ void CalibdEdx::finalize()
 
   // if entries bellow minimum sector threshold, integrate all sectors
   if (mCalib.getDims() == 0 || entries >= mSectorThreshold) {
-    fitHist(mHist, mCalib, fitter, mFitCut, mFitPasses);
+    fitHist(mHist, mCalib, fitter, mFitCut, mFitLowCutFactor, mFitPasses);
   } else {
     LOGP(info, "Integrating GEM stacks sectors in dE/dx correction due to low statistics");
 
@@ -250,10 +251,10 @@ void CalibdEdx::finalize()
     meanCorr.setDims(0);
     TLinearFitter meanFitter(0);
     meanFitter.SetFormula("1");
-    fitHist(mHist, meanCorr, meanFitter, mFitCut, mFitPasses);
+    fitHist(mHist, meanCorr, meanFitter, mFitCut, mFitLowCutFactor, mFitPasses);
 
     // get higher dimension corrections with projected sectors
-    fitHist(mHist, mCalib, fitter, mFitCut, mFitPasses, &meanCorr);
+    fitHist(mHist, mCalib, fitter, mFitCut, mFitLowCutFactor, mFitPasses, &meanCorr);
   }
 }
 

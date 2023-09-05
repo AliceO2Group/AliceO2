@@ -48,7 +48,7 @@ class CalibLaserTracksDevice : public o2::framework::Task
         const auto nTFs = mCalib.getCalibData().processedTFs;
         const auto nMatchA = mCalib.getMatchedPairsA();
         const auto nMatchC = mCalib.getMatchedPairsC();
-        LOGP(error, "Calibration data was not published, laser track calibration might have enough statistics: {} ({}) matched tracks in {} TFs on the A (C) < {} min TFs * {} min matches per side per TF ", nMatchA, nMatchC, nTFs, mMinNumberTFs, CalibLaserTracks::MinTrackPerSidePerTF);
+        LOGP(error, "Calibration data was not published, laser track calibration might not have enough statistics: {} ({}) matched tracks in {} TFs on the A (C) < {} min TFs * {} min matches per side per TF? Or eos was not called by the framework.", nMatchA, nMatchC, nTFs, mMinNumberTFs, CalibLaserTracks::MinTrackPerSidePerTF);
       }
     };
     ic.services().get<CallbackService>().set<CallbackService::Id::Stop>(finishFunction);
@@ -136,7 +136,7 @@ class CalibLaserTracksDevice : public o2::framework::Task
 
     const auto now = std::chrono::system_clock::now();
     const long timeStart = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()).count();
-    //const auto timeStart = ltrCalib.firstTime; //TODO: use once it is a correct time not TFid
+    // const auto timeStart = ltrCalib.firstTime; //TODO: use once it is a correct time not TFid
     const long timeEnd = o2::ccdb::CcdbObjectInfo::INFINITE_TIMESTAMP;
 
     w.setPath("TPC/Calib/LaserTracks");

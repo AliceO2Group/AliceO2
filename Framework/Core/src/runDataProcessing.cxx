@@ -1061,28 +1061,60 @@ void gui_callback(uv_timer_s* ctx)
   if (gui->plugin == nullptr) {
     return;
   }
-  void* draw_data = nullptr;
 
-  uint64_t frameStart = uv_hrtime();
-  uint64_t frameLatency = frameStart - gui->frameLast;
+  // New version which allows deferred closure of windows
+  if (gui->plugin->supportsDeferredClose()) {
+    // For now, there is nothing for which we want to defer the close
+    // so if the flag is set, we simply exit
+    if (*(gui->guiQuitRequested)) {
+      return;
+    }
+    void* draw_data = nullptr;
+    uint64_t frameStart = uv_hrtime();
+    uint64_t frameLatency = frameStart - gui->frameLast;
 
-  // if less than 15ms have passed reuse old frame
-  if (frameLatency / 1000000 > 15) {
+    // if less than 15ms have passed reuse old frame
+    if (frameLatency / 1000000 <= 15) {
+      draw_data = gui->lastFrame;
+      return;
+    }
+    // The result of the pollGUIPreRender is used to determine if we
+    // should quit the GUI, however, the rendering is started in any
+    // case, so we should complete it.
     if (!gui->plugin->pollGUIPreRender(gui->window, (float)frameLatency / 1000000000.0f)) {
       *(gui->guiQuitRequested) = true;
-      return;
     }
     draw_data = gui->plugin->pollGUIRender(gui->callback);
     gui->plugin->pollGUIPostRender(gui->window, draw_data);
-  } else {
-    draw_data = gui->lastFrame;
-  }
 
-  if (frameLatency / 1000000 > 15) {
     uint64_t frameEnd = uv_hrtime();
     *(gui->frameCost) = (frameEnd - frameStart) / 1000000.f;
     *(gui->frameLatency) = frameLatency / 1000000.f;
     gui->frameLast = frameStart;
+  } else {
+    void* draw_data = nullptr;
+
+    uint64_t frameStart = uv_hrtime();
+    uint64_t frameLatency = frameStart - gui->frameLast;
+
+    // if less than 15ms have passed reuse old frame
+    if (frameLatency / 1000000 > 15) {
+      if (!gui->plugin->pollGUIPreRender(gui->window, (float)frameLatency / 1000000000.0f)) {
+        *(gui->guiQuitRequested) = true;
+        return;
+      }
+      draw_data = gui->plugin->pollGUIRender(gui->callback);
+      gui->plugin->pollGUIPostRender(gui->window, draw_data);
+    } else {
+      draw_data = gui->lastFrame;
+    }
+
+    if (frameLatency / 1000000 > 15) {
+      uint64_t frameEnd = uv_hrtime();
+      *(gui->frameCost) = (frameEnd - frameStart) / 1000000.f;
+      *(gui->frameLatency) = frameLatency / 1000000.f;
+      gui->frameLast = frameStart;
+    }
   }
 }
 

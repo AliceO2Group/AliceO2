@@ -9,6 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#ifndef O2_EMCAL_CLUSTERIZER_SPEC
+#define O2_EMCAL_CLUSTERIZER_SPEC
+
 #include <vector>
 
 #include "DataFormatsEMCAL/Cluster.h"
@@ -85,3 +88,5 @@ framework::DataProcessorSpec getClusterizerSpec(bool useDigits);
 } // namespace emcal
 
 } // namespace o2
+
+#endif // O2_EMCAL_CLUSTERIZER_SPEC

@@ -35,6 +35,7 @@
 #include "TGeoGlobalMagField.h"
 #include "Field/MagneticField.h"
 #include "DetectorsBase/GRPGeomHelper.h"
+#include "MCHTracking/TrackExtrap.h"
 
 using namespace o2::framework;
 using MCLabelsTr = gsl::span<const o2::MCCompLabel>;
@@ -116,6 +117,9 @@ void GlobalFwdMatchingDPL::endOfStream(EndOfStreamContext& ec)
 void GlobalFwdMatchingDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
   if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    if (matcher == ConcreteDataMatcher("GLO", "GRPMAGFIELD", 0)) {
+      o2::mch::TrackExtrap::setField();
+    }
     return;
   }
   if (matcher == ConcreteDataMatcher("MFT", "CLUSDICT", 0)) {

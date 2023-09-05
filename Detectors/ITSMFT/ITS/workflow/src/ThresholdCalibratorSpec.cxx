@@ -926,7 +926,7 @@ void ITSThresholdCalibrator::setRunType(const short int& runtype)
     this->N_RANGE = mMax - mMin + 1;
     this->mCheckExactRow = true;
 
-  } else if (runtype == DIGITAL_SCAN || runtype == DIGITAL_SCAN_100HZ) {
+  } else if (runtype == DIGITAL_SCAN || runtype == DIGITAL_SCAN_100HZ || runtype == DIGITAL_SCAN_NOMASK) {
     // Digital scan -- only storing one value per chip, no fit needed
     this->mScanType = 'D';
     this->initThresholdTree();
@@ -1858,7 +1858,6 @@ void ITSThresholdCalibrator::finalize()
       PixelType = "Ineff";
       this->addDatabaseEntry(it_ineff->first, name, std::vector<float>(), false);
       it_ineff = this->mIneffPixID.erase(it_ineff);
-      ++it_ineff;
     }
   } else if (this->mScanType == 'P' || this->mScanType == 'p' || this->mScanType == 'r' || mScanType == 'R') { // pulse length scan 1D and 2D, vresetd scan 1D & 2D
     name = "Pulse";

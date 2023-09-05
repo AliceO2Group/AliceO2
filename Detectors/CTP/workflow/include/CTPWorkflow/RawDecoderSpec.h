@@ -55,7 +55,7 @@ class RawDecoderSpec : public framework::Task
  private:
   // for digits
   bool mDoDigits = true;
-  std::vector<CTPDigit> mOutputDigits;
+  o2::pmr::vector<CTPDigit> mOutputDigits;
   // for lumi
   bool mDoLumi = true;
   //

@@ -59,8 +59,8 @@ class ControlService
  private:
   bool mOnce = false;
   ServiceRegistryRef mRegistry;
-  DeviceState& mDeviceState GUARDED_BY(mMutex);
-  DriverClient& mDriverClient GUARDED_BY(mMutex);
+  DeviceState& mDeviceState O2_DPL_GUARDED_BY(mMutex);
+  DriverClient& mDriverClient O2_DPL_GUARDED_BY(mMutex);
   std::mutex mMutex;
 };
 

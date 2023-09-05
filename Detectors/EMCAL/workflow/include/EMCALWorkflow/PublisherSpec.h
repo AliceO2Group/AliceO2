@@ -9,6 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#ifndef O2_EMCAL_PUBLISHER_SPEC
+#define O2_EMCAL_PUBLISHER_SPEC
+
 #include "DPLUtils/RootTreeReader.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataSpecUtils.h"
@@ -106,3 +109,5 @@ framework::DataProcessorSpec createPublisherSpec(PublisherConf const& config, ui
 
 } // namespace emcal
 } // end namespace o2
+
+#endif // O2_EMCAL_PUBLISHER_SPEC
