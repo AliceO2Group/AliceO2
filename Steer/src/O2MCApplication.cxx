@@ -265,9 +265,9 @@ void addSpecialParticles()
   TVirtualMC::GetMC()->DefineParticle(-1010020041, "AntiHyperhelium4*", kPTHadron, 3.9231, 2.0, 2.632e-10, "Ion", 0.0, 0, 1, 0, 0, 0, 0, 0, 4, kFALSE);
 
   // Lithium 4 ground state
-  TVirtualMC::GetMC()->DefineParticle(1000030040, "Lithium4", kPTHadron, 3.74976, 3.0, 9.1e-23, "Ion", 0.005, 0, 1, 0, 0, 0, 0, 0, 4, kFALSE);
+  TVirtualMC::GetMC()->DefineParticle(1000030040, "Lithium4", kPTHadron, 3.7513, 3.0, 9.1e-23, "Ion", 0.003, 0, 1, 0, 0, 0, 0, 0, 4, kFALSE);
   // Anti-Lithium 4 ground state
-  TVirtualMC::GetMC()->DefineParticle(-1000030040, "AntiLithium4", kPTHadron, 3.74976, 3.0, 9.1e-23, "Ion", 0.005, 0, 1, 0, 0, 0, 0, 0, 4, kFALSE);
+  TVirtualMC::GetMC()->DefineParticle(-1000030040, "AntiLithium4", kPTHadron, 3.7513, 3.0, 9.1e-23, "Ion", 0.003, 0, 1, 0, 0, 0, 0, 0, 4, kFALSE);
 
   //Hyper helium 5
   TVirtualMC::GetMC()->DefineParticle(1010020050, "Hyperhelium5", kPTHadron, 4.841, 2.0, 2.632e-10, "Ion", 0.0, 0, 1, 0, 0, 0, 0, 0, 5, kFALSE);
