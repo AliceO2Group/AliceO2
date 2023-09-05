@@ -744,6 +744,8 @@ GPUdi() void TPCFastTransform::InverseTransformYZtoX(int slice, int row, float y
         x = xr * scale + x;
       }
     }
+  } else {
+    x = mCorrection.getGeometry().getRowInfo(row).x; // corrections are disabled
   }
   GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamFastTransform)) {
     o2::utils::DebugStreamer::instance()->getStreamer("debug_fasttransform", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_InverseTransformYZtoX").data()
@@ -779,6 +781,9 @@ GPUdi() void TPCFastTransform::InverseTransformYZtoNominalYZ(int slice, int row,
         vn = vnr * scale + vn;
       }
     }
+  } else {
+    un = u;
+    vn = v;
   }
   getGeometry().convUVtoLocal(slice, un, vn, ny, nz);
 
