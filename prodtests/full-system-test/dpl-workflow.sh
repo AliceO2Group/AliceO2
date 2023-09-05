@@ -245,6 +245,10 @@ if [[ $HOSTMEMSIZE != "0" ]]; then
   GPU_CONFIG_KEY+="GPU_proc.forceHostMemoryPoolSize=$HOSTMEMSIZE;"
 fi
 
+if [[ $IS_TRIGGERED_DATA == 1 ]]; then
+  GPU_CONFIG_KEY+="GPU_global.tpcTriggeredMode=1;"
+fi
+
 GPU_CONFIG_SELF="--severity $SEVERITY_TPC"
 ASK_CTP_LUMI_GPU="--require-ctp-lumi"
 : ${TPC_CORR_SCALING_GPU:=""}
@@ -405,7 +409,11 @@ ROOT_OUTPUT_ASKED=`declare -p | cut -d' ' -f3 | cut -d'=' -f1 | grep ENABLE_ROOT
 if [[ $CTFINPUT == 0 && $DIGITINPUT == 0 ]]; then
   if has_detector TPC && [[ "${TPC_CONVERT_LINKZS_TO_RAW:-}" == "1" ]]; then
     GPU_INPUT=zsonthefly
-    add_W o2-tpc-raw-to-digits-workflow "--input-spec \"\" --remove-duplicates --pipeline $(get_N tpc-raw-to-digits-0 TPC RAW 1 TPCRAWDEC)"
+    RAWTODIGITOPTIONS=
+    if [[ $IS_TRIGGERED_DATA == 0 ]]; then
+      RAWTODIGITOPTIONS+=" --ignore-trigger"
+    fi
+    add_W o2-tpc-raw-to-digits-workflow "--input-spec \"\" --remove-duplicates $RAWTODIGITOPTIONS --pipeline $(get_N tpc-raw-to-digits-0 TPC RAW 1 TPCRAWDEC)"
     add_W o2-tpc-reco-workflow "--input-type digitizer --output-type zsraw,disable-writer --pipeline $(get_N tpc-zsEncoder TPC RAW 1 TPCRAWDEC)" "GPU_rec_tpc.zsThreshold=0"
   fi
   has_detector ITS && ! has_detector_from_global_reader ITS && add_W o2-itsmft-stf-decoder-workflow "--nthreads ${NITSDECTHREADS} --raw-data-dumps $ALPIDE_ERR_DUMPS --pipeline $(get_N its-stf-decoder ITS RAW 1 ITSRAWDEC)" "$ITSMFT_STROBES;VerbosityConfig.rawParserSeverity=warn;"
