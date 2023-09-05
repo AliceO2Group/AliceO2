@@ -20,7 +20,6 @@
 
 #include <TFile.h>
 #include <TGLViewer.h>
-#include <TEnv.h>
 #include <TEveGeoShapeExtract.h>
 #include <TEveManager.h>
 #include <TEveProjectionManager.h>
@@ -41,11 +40,9 @@ GeometryManager& GeometryManager::getInstance()
 
 TEveGeoShape* GeometryManager::getGeometryForDetector(string detectorName)
 {
-  TEnv settings;
-  ConfigurationManager::getInstance().getConfig(settings);
 
   // read geometry path from config file
-  string geomPath = settings.GetValue("simple.geom.R3.path", "");
+  string geomPath = ConfigurationManager::getSimpleGeomR3Path();
 
   // load ROOT file with geometry
   TFile* f = TFile::Open(Form("%s/simple_geom_%s.root", geomPath.c_str(), detectorName.c_str()));
@@ -53,7 +50,8 @@ TEveGeoShape* GeometryManager::getGeometryForDetector(string detectorName)
     LOG(error) << "GeometryManager::GetSimpleGeom -- no file with geometry found for: " << detectorName << "!";
     return nullptr;
   }
-  LOG(info) << "GeometryManager::GetSimpleGeom for: " << detectorName << " from " << Form("%s/simple_geom_%s.root", geomPath.c_str(), detectorName.c_str());
+  LOG(info) << "GeometryManager::GetSimpleGeom for: " << detectorName << " from "
+            << Form("%s/simple_geom_%s.root", geomPath.c_str(), detectorName.c_str());
 
   TEveGeoShapeExtract* geomShapreExtract = static_cast<TEveGeoShapeExtract*>(f->Get(detectorName.c_str()));
   TEveGeoShape* geomShape = TEveGeoShape::ImportShapeExtract(geomShapreExtract);
@@ -63,9 +61,9 @@ TEveGeoShape* GeometryManager::getGeometryForDetector(string detectorName)
 
   // prepare geometry to be drawn including all children
   drawDeep(geomShape,
-           settings.GetValue(Form("%s.color", detectorName.c_str()), -1),
-           settings.GetValue(Form("%s.trans", detectorName.c_str()), -1),
-           settings.GetValue(Form("%s.line.color", detectorName.c_str()), -1));
+           ConfigurationManager::getInstance().getSettings().GetValue(Form("%s.color", detectorName.c_str()), -1),
+           ConfigurationManager::getInstance().getSettings().GetValue(Form("%s.trans", detectorName.c_str()), -1),
+           ConfigurationManager::getInstance().getSettings().GetValue(Form("%s.line.color", detectorName.c_str()), -1));
 
   gEve->GetDefaultGLViewer()->UpdateScene();
 

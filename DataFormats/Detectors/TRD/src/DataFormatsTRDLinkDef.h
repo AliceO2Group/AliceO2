@@ -44,6 +44,7 @@
 #pragma link C++ class o2::trd::ChannelInfoContainer + ;
 #pragma link C++ struct o2::trd::PHData + ;
 #pragma link C++ class o2::trd::TRDDataCountersPerTimeFrame + ;
+#pragma link C++ class o2::trd::DataCountersPerTrigger + ;
 #pragma link C++ class std::vector < o2::trd::Tracklet64> + ;
 #pragma link C++ class std::vector < o2::trd::CalibratedTracklet> + ;
 #pragma link C++ class std::vector < o2::trd::TrackTriggerRecord> + ;
@@ -57,6 +58,7 @@
 #pragma link C++ class std::vector < o2::trd::PHData> + ;
 #pragma link C++ class std::vector < o2::trd::KrCluster> + ;
 #pragma link C++ class std::vector < o2::trd::KrClusterTriggerRecord> + ;
+#pragma link C++ class std::vector < o2::trd::DataCountersPerTrigger> + ;
 
 #pragma link C++ struct o2::trd::CTFHeader + ;
 #pragma link C++ struct o2::trd::CTF + ;

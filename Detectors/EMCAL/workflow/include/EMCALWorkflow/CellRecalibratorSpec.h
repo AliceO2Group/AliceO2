@@ -9,6 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#ifndef O2_EMCAL_CELLRECALIBRATOR_SPEC
+#define O2_EMCAL_CELLRECALIBRATOR_SPEC
+
 #include <bitset>
 #include <cstdint>
 #include <optional>
@@ -160,3 +163,5 @@ framework::DataProcessorSpec getCellRecalibratorSpec(uint32_t inputSubspec, uint
 } // namespace emcal
 
 } // namespace o2
+
+#endif // O2_EMCAL_CELLRECALIBRATOR_SPEC

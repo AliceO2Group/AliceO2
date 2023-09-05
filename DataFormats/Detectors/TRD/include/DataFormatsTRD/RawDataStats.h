@@ -118,8 +118,15 @@ enum OptionBits {
   TRDIgnore2StageTrigger,
   TRDGenerateStats,
   TRDOnlyCalibrationTriggerBit,
-  TRDSortDigits
+  TRDSortDigits,
+  TRDLinkStats
 }; // this is currently 16 options, the array is 16, if you add here you need to change the 16;
+
+struct DataCountersPerTrigger {
+  std::array<uint16_t, constants::MAXHALFCHAMBER> mLinkWords{};
+  std::array<uint8_t, constants::MAXHALFCHAMBER> mLinkErrorFlag{};
+  ClassDefNV(DataCountersPerTrigger, 1);
+};
 
 //Data to be stored on a timeframe basis to then be sent as a message to be ultimately picked up by qc.
 //Some countes include a average over the numbers stored on a per event basis, e.g. digits per event.
@@ -127,7 +134,7 @@ class TRDDataCountersPerTimeFrame
 {
  public:
   std::array<uint8_t, constants::MAXHALFCHAMBER> mLinkErrorFlag{};                                     // status of the error flags for this timeframe, 8bit values from cru halfchamber header.
-  std::array<uint16_t, constants::MAXHALFCHAMBER> mLinkNoData;                                         // Link had no data or was not present.
+  std::array<uint16_t, constants::MAXHALFCHAMBER> mLinkNoData{};                                       // Link had no data or was not present.
   std::array<uint16_t, constants::MAXHALFCHAMBER> mLinkWords{};                                        // units of 256bits, read from the cru half chamber header
   std::array<uint16_t, constants::MAXHALFCHAMBER> mLinkWordsRead{};                                    // units of 32 bits the data words read before dumping or finishing
   std::array<uint16_t, constants::MAXHALFCHAMBER> mLinkWordsRejected{};                                // units of 32 bits the data dumped due to some or other error

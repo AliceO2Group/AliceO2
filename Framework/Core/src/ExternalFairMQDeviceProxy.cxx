@@ -18,6 +18,7 @@
 #include "Framework/InitContext.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/RawDeviceService.h"
+#include "Framework/DeviceContext.h"
 #include "Framework/CallbackService.h"
 #include "Framework/ControlService.h"
 #include "Framework/SourceInfoHeader.h"
@@ -519,7 +520,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       ctx.services().get<CallbackService>().set<CallbackService::Id::DeviceStateChanged>(drainMessages);
     }
 
-    static auto countEoS = [](fair::mq::Parts& inputs, bool& newRun) -> int {
+    static auto countEoS = [](fair::mq::Parts& inputs) -> int {
       int count = 0;
       for (int msgidx = 0; msgidx < inputs.Size() / 2; ++msgidx) {
         // Skip when we have nullptr for the header.
@@ -531,14 +532,6 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
         if (sih != nullptr && sih->state == InputChannelState::Completed) {
           count++;
         }
-        static size_t currentRunNumber = -1;
-        const auto dh = o2::header::get<DataHeader*>(inputs.At(msgidx * 2)->GetData());
-        if (dh) {
-          if (currentRunNumber != -1 && dh->runNumber != currentRunNumber) {
-            newRun = true;
-          }
-          currentRunNumber = dh->runNumber;
-        }
       }
       return count;
     };
@@ -548,7 +541,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
                         control = &ctx.services().get<ControlService>(),
                         deviceState = &ctx.services().get<DeviceState>(),
                         timesliceIndex = &ctx.services().get<TimesliceIndex>(),
-                        outputChannels = std::move(outputChannels)](TimingInfo& timingInfo, fair::mq::Parts& inputs, int, size_t ci) {
+                        outputChannels = std::move(outputChannels)](TimingInfo& timingInfo, fair::mq::Parts& inputs, int, size_t ci, bool newRun) {
       // pass a copy of the outputRoutes
       auto channelRetriever = [&outputRoutes](OutputSpec const& query, DataProcessingHeader::StartTime timeslice) -> std::string {
         for (auto& route : outputRoutes) {
@@ -562,8 +555,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
 
       std::string const& channel = channels[ci];
       // we buffer the condition since the converter will forward messages by move
-      bool newRun = false;
-      int nEos = countEoS(inputs, newRun);
+      int nEos = countEoS(inputs);
       numberOfEoS[ci] += nEos;
       if (newRun) {
         std::fill(numberOfEoS.begin(), numberOfEoS.end(), 0);
@@ -597,8 +589,13 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
 
     auto runHandler = [dataHandler, minSHM, sendTFcounter](ProcessingContext& ctx) {
       static RateLimiter limiter;
+      static size_t currentRunNumber = -1;
+      static bool inStopTransition = false;
+      bool newRun = false;
       auto device = ctx.services().get<RawDeviceService>().device();
-      limiter.check(ctx, std::stoi(device->fConfig->GetValue<std::string>("timeframes-rate-limit")), minSHM);
+      if (limiter.check(ctx, std::stoi(device->fConfig->GetValue<std::string>("timeframes-rate-limit")), minSHM)) {
+        inStopTransition = true;
+      }
 
       for (size_t ci = 0; ci < channels.size(); ++ci) {
         std::string const& channel = channels[ci];
@@ -616,6 +613,11 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
             auto const dh = o2::header::get<DataHeader*>(parts.At(0)->GetData());
             auto& timingInfo = ctx.services().get<TimingInfo>();
             if (dh != nullptr) {
+              if (currentRunNumber != -1 && dh->runNumber != currentRunNumber) {
+                newRun = true;
+                inStopTransition = false;
+              }
+              currentRunNumber = dh->runNumber;
               timingInfo.runNumber = dh->runNumber;
               timingInfo.firstTForbit = dh->firstTForbit;
               timingInfo.tfCounter = dh->tfCounter;
@@ -625,7 +627,9 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
               timingInfo.timeslice = dph->startTime;
               timingInfo.creation = dph->creation;
             }
-            dataHandler(timingInfo, parts, 0, ci);
+            if (!inStopTransition) {
+              dataHandler(timingInfo, parts, 0, ci, newRun);
+            }
             if (sendTFcounter) {
               ctx.services().get<o2::monitoring::Monitoring>().send(o2::monitoring::Metric{(uint64_t)timingInfo.tfCounter, "df-sent"}.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL));
             }
@@ -688,12 +692,6 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
     callbacks.set<CallbackService::Id::Start>(channelConfigurationChecker);
     auto lastDataProcessingHeader = std::make_shared<DataProcessingHeader>(0, 0);
 
-    if (deviceSpec.forwards.size() > 0) {
-      // check that no internal forwards are existing, i.e. that proxy is at the end of the workflow
-      // in principle we can be less strict here if we check only for the defined input specs that there
-      // are no internal forwards
-      throw std::runtime_error("can not add forward targets outside DPL if internal forwards are existing, the proxy must be at the end of the workflow");
-    }
     auto& spec = const_cast<DeviceSpec&>(deviceSpec);
     for (auto const& inputSpec : inputSpecs) {
       // this is a prototype, in principle we want to have all spec objects const
@@ -775,12 +773,6 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
     // also we set forwards for all input specs and keep a list of all channels so we can send EOS on them
     auto channelNames = std::make_shared<std::vector<std::string>>();
     auto channelConfigurationInitializer = [&proxy, inputSpecs = std::move(inputSpecs), device, channelSelector, &deviceSpec, channelNames]() {
-      if (deviceSpec.forwards.size() > 0) {
-        // check that no internal forwards are existing, i.e. that proxy is at the end of the workflow
-        // in principle we can be less strict here if we check only for the defined input specs that there
-        // are no internal forwards
-        throw std::runtime_error("can not add forward targets outside DPL if internal forwards are existing, the proxy must be at the end of the workflow");
-      }
       channelNames->clear();
       auto& mutableDeviceSpec = const_cast<DeviceSpec&>(deviceSpec);
       for (auto const& spec : inputSpecs) {

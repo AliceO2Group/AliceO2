@@ -53,7 +53,7 @@ void CTFCoder::createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBa
 {
   const auto ctf = CTF::getImage(bufVec.data());
   CompressedDigits cd; // just to get member types
-#define MAKECODER(part, slot) createCoder<decltype(part)::value_type>(op, ctf.getFrequencyTable(slot), int(slot))
+#define MAKECODER(part, slot) createCoder(op, std::get<rans::RenormedDenseHistogram<typename decltype(part)::value_type>>(ctf.getDictionary<typename decltype(part)::value_type>(slot, mANSVersion)), int(slot))
   // clang-format off
   MAKECODER(cd.trigger,      CTF::BLC_trigger);
   MAKECODER(cd.bcInc,        CTF::BLC_bcInc);
@@ -71,20 +71,16 @@ void CTFCoder::createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBa
 size_t CTFCoder::estimateCompressedSize(const CompressedDigits& cd)
 {
   size_t sz = 0;
-  // clang-format off
   // RS FIXME this is very crude estimate, instead, an empirical values should be used
-#define VTP(vec) typename std::remove_reference<decltype(vec)>::type::value_type
-#define ESTSIZE(vec, slot) mCoders[int(slot)] ?                         \
-  rans::calculateMaxBufferSize(vec.size(), reinterpret_cast<const o2::rans::LiteralEncoder64<VTP(vec)>*>(mCoders[int(slot)].get())->getAlphabetRangeBits(), sizeof(VTP(vec)) ) : vec.size()*sizeof(VTP(vec))
-  sz += ESTSIZE(cd.trigger,      CTF::BLC_trigger);
-  sz += ESTSIZE(cd.bcInc,        CTF::BLC_bcInc);
-  sz += ESTSIZE(cd.orbitInc,     CTF::BLC_orbitInc);
-  sz += ESTSIZE(cd.nChan,        CTF::BLC_nChan);
-  sz += ESTSIZE(cd.eventStatus,  CTF::BLC_status);
-  sz += ESTSIZE(cd.idChan,       CTF::BLC_idChan);
-  sz += ESTSIZE(cd.qtcChain,     CTF::BLC_qtcChain);
-  sz += ESTSIZE(cd.cfdTime,      CTF::BLC_cfdTime);
-  sz += ESTSIZE(cd.qtcAmpl,      CTF::BLC_qtcAmpl);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLC_trigger), cd.trigger);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLC_bcInc), cd.bcInc);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLC_orbitInc), cd.orbitInc);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLC_nChan), cd.nChan);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLC_status), cd.eventStatus);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLC_idChan), cd.idChan);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLC_qtcChain), cd.qtcChain);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLC_cfdTime), cd.cfdTime);
+  sz += estimateBufferSize(static_cast<int>(CTF::BLC_qtcAmpl), cd.qtcAmpl);
   // clang-format on
 
   LOG(info) << "Estimated output size is " << sz << " bytes";

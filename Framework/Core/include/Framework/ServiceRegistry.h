@@ -43,9 +43,9 @@ struct NoLocking {
   void unlock() {}
 };
 
-struct CAPABILITY("mutex") MutexLock {
-  void lock() ACQUIRE() { mutex.lock(); }
-  void unlock() RELEASE() { mutex.unlock(); }
+struct O2_DPL_CAPABILITY("mutex") MutexLock {
+  void lock() O2_DPL_ACQUIRE() { mutex.lock(); }
+  void unlock() O2_DPL_RELEASE() { mutex.unlock(); }
   std::mutex& mutex;
 };
 
@@ -328,11 +328,11 @@ struct ServiceRegistry {
   void postRenderGUICallbacks(ServiceRegistryRef ref);
   /// Lock the service registry for a given salt. For
   /// the moment this is a global lock for anything but stream services.
-  void lock(Salt salt) const ACQUIRE(mMutex);
+  void lock(Salt salt) const O2_DPL_ACQUIRE(mMutex);
 
   /// Unlock the service registry for a given salt. For
   /// the moment this is a global unlock for anything but stream services.
-  void unlock(Salt salt) const RELEASE(mMutex);
+  void unlock(Salt salt) const O2_DPL_RELEASE(mMutex);
 };
 
 } // namespace o2::framework

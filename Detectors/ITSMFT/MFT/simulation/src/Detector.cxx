@@ -19,6 +19,7 @@
 
 #include "MFTBase/Geometry.h"
 #include "MFTBase/GeometryTGeo.h"
+#include "MFTBase/MFTBaseParam.h"
 
 #include "MFTSimulation/Detector.h"
 
@@ -204,6 +205,7 @@ Hit* Detector::addHit(Int_t trackID, Int_t detID, TVector3 startPos,
 //_____________________________________________________________________________
 void Detector::createMaterials()
 {
+  auto& mftBaseParam = MFTBaseParam::Instance();
 
   // data from PDG booklet 2002                 density [gr/cm^3]     rad len
   // [cm]           abs len [cm]
@@ -277,14 +279,21 @@ void Detector::createMaterials()
   Float_t wRohacell[nRohacell] = {0.0858, 0.5964, 0.3178};
   Float_t dRohacell;
   if (Geometry::sGrooves == 0) {
-    dRohacell =
-      0.032 /
-      (1 - 0.15); //  No grooves, water pipes outside rohacell ==> smaller
-                  //  thcikness, greater rohacell density by 15%
+    //  No grooves, water pipes outside rohacell ==>
+    //  smaller rohacell thickness, greater density by 15% (from 1.327cm to 1.117cm)
+    dRohacell = 0.032 / (1 - 0.158);
+    // to perform chips aligment
+    if (mftBaseParam.buildAlignment) {
+      dRohacell = dRohacell / (1 - 0.358); // decrase by 4mm of the rohacell thickness
+    }
   }
   if (Geometry::sGrooves == 1) {
-    dRohacell = 0.032; // With grooves, usual rohacell density: 0.032 g/cm3
-                       // rohacell 31, 0.075 g/cm3 rohacell 71;
+    // With grooves, usual rohacell density: 0.032 g/cm3 rohacell 31
+    dRohacell = 0.032;
+    // to perform chips aligment
+    if (mftBaseParam.buildAlignment) {
+      dRohacell = dRohacell / (1 - 0.301); // decrase by 4mm of the rohacell thickness
+    }
   }
 
   // Polyimide pipe mixture
