@@ -218,7 +218,7 @@ void Digitizer::storeBC(const BCCache& bc,
       nStored++;
     }
   }
-  //SET TRIGGERS
+  // SET TRIGGERS
   Bool_t is_A, is_C, isVertex, is_Central, is_SemiCentral = 0;
   is_A = n_hit_A > 0;
   is_C = n_hit_C > 0;
