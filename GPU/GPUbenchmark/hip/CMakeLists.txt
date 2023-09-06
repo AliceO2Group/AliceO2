@@ -23,12 +23,7 @@ foreach(file ${CUDA_SOURCES_FULL_PATH})
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../cuda/${CUDA_SOURCE}
   )
 endforeach()
-# set(CMAKE_CXX_COMPILER ${HIP_HIPCC_EXECUTABLE})
-# set(CMAKE_HIP_COMPILER ${HIP_HIPCC_EXECUTABLE})
-# set(CMAKE_CXX_LINKER   ${HIP_HIPCC_EXECUTABLE})
-# set(CMAKE_CXX_EXTENSIONS OFF)
-# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${O2_HIP_CMAKE_CXX_FLAGS} -fgpu-rdc")
-# message(FATAL_ERROR "=============== ${CMAKE_HIP_FLAGS}")
+
 o2_add_executable(gpu-memory-benchmark-hip
                   SOURCES benchmark.hip
                           Kernels.hip
@@ -36,6 +31,12 @@ o2_add_executable(gpu-memory-benchmark-hip
                                         Boost::program_options
                                         ROOT::Tree
                   TARGETVARNAME targetName)
+# >:-)
+include_directories(${Boost_INCLUDE_DIRS})
+add_executable(alternative-gpu-memory-benchmark-hip benchmark.hip Kernels.hip)
+target_link_libraries(alternative-gpu-memory-benchmark-hip Boost::program_options ROOT::Tree)
+install(TARGETS alternative-gpu-memory-benchmark-hip RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+
 if(O2_HIP_CMAKE_LINK_FLAGS)
   # Need to add gpu target also to link flags due to gpu-rdc option
   target_link_options(${targetName} PUBLIC ${O2_HIP_CMAKE_LINK_FLAGS})

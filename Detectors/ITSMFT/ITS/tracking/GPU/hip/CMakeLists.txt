@@ -27,10 +27,6 @@ if(HIP_ENABLED)
   install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${baseTargetName}
           DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
-  # set(CMAKE_CXX_COMPILER ${hip_HIPCC_EXECUTABLE})
-  # set(CMAKE_CXX_EXTENSIONS OFF)
-  # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${O2_HIP_CMAKE_CXX_FLAGS} -fgpu-rdc")
-  # message(FATAL_ERROR "> ${CMAKE_CXX_FLAGS} > ${O2_HIP_CMAKE_CXX_FLAGS}")
   set(CMAKE_HIP_FLAGS "${CMAKE_HIP_FLAGS} ${O2_HIP_CMAKE_CXX_FLAGS} -fgpu-rdc")
   message(STATUS "Building ITS HIP tracker")
   o2_add_library(ITStrackingHIP
@@ -56,4 +52,5 @@ if(HIP_ENABLED)
     # Need to add gpu target also to link flags due to gpu-rdc option
     target_link_options(${targetName} PUBLIC ${O2_HIP_CMAKE_LINK_FLAGS})
   endif()
+  set_target_hip_arch(${targetName})
 endif()
