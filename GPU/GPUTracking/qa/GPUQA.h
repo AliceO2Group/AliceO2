@@ -135,7 +135,8 @@ class GPUQA
     taskTrackStatistics = 16,
     taskClusterCounts = 32,
     taskDefault = 63,
-    taskDefaultPostprocess = 31
+    taskDefaultPostprocess = 31,
+    tasksNoQC = 56
   };
 
  private:
