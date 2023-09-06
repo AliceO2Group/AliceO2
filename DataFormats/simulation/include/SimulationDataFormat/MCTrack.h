@@ -51,7 +51,7 @@ class MCTrackT
 
   ///  Standard constructor
   MCTrackT(Int_t pdgCode, Int_t motherID, Int_t secondMotherID, Int_t firstDaughterID, Int_t lastDaughterID,
-           Double_t px, Double_t py, Double_t pz, Double_t x, Double_t y, Double_t z, Double_t t,
+           Double_t px, Double_t py, Double_t pz, Double_t energy, Double_t x, Double_t y, Double_t z, Double_t t,
            Int_t nPoints);
 
   ///  Copy constructor
@@ -93,7 +93,10 @@ class MCTrackT
   /// return particle weight
   _T getWeight() const { return mWeight; }
 
+  /// get known or calculated energy
   Double_t GetEnergy() const;
+  /// returns energy that is stored (could be -1)
+  Double_t GetEnergyVal() const { return mEnergy; }
 
   // Alternative accessors with TParticle like shorter names
   Double_t Px() const { return mStartVertexMomentumX; }
@@ -230,8 +233,8 @@ class MCTrackT
   const char* getProdProcessAsString() const;
 
  private:
-  /// Momentum components at start vertex [GeV]
-  _T mStartVertexMomentumX, mStartVertexMomentumY, mStartVertexMomentumZ;
+  /// 4-Momentum components at start vertex [GeV] (energy only kept if mass not known)
+  _T mStartVertexMomentumX, mStartVertexMomentumY, mStartVertexMomentumZ, mEnergy;
 
   /// Coordinates of start vertex [cm, ns]
   _T mStartVertexCoordinatesX, mStartVertexCoordinatesY, mStartVertexCoordinatesZ, mStartVertexCoordinatesT;
@@ -274,15 +277,36 @@ class MCTrackT
   // such as part of mProp (process) or mPDG
   Int_t mStatusCode = 0;
 
-  ClassDefNV(MCTrackT, 8);
+  /// updates the energy property based on whether PDG mass is available or not
+  void updateEnergy();
+
+  ClassDefNV(MCTrackT, 9);
 };
+
+template <typename T>
+inline void MCTrackT<T>::updateEnergy()
+{
+  bool success{false};
+  // if this query is too slow we can add an additional cache layer
+  auto mass = O2DatabasePDG::Mass(mPdgCode, success);
+  if (success == true) {
+    // mass available --> no need to keep energy
+    mEnergy = -1.;
+  }
+}
 
 template <typename T>
 inline Double_t MCTrackT<T>::GetEnergy() const
 {
-  const auto mass = GetMass();
-  return std::sqrt(mass * mass + mStartVertexMomentumX * mStartVertexMomentumX +
-                   mStartVertexMomentumY * mStartVertexMomentumY + mStartVertexMomentumZ * mStartVertexMomentumZ);
+  if (mEnergy < 0) {
+    // this means that the particle should have a well defined mass from
+    // which we calculate the energy
+    const auto mass = GetMass();
+    return std::sqrt(mass * mass + mStartVertexMomentumX * mStartVertexMomentumX +
+                     mStartVertexMomentumY * mStartVertexMomentumY + mStartVertexMomentumZ * mStartVertexMomentumZ);
+  }
+  // the case for primary particles
+  return mEnergy;
 }
 
 template <typename T>
@@ -318,13 +342,14 @@ inline MCTrackT<T>::MCTrackT()
     mStartVertexCoordinatesZ(0.),
     mStartVertexCoordinatesT(0.),
     mProp(0),
-    mWeight(0)
+    mWeight(0),
+    mEnergy(-1.)
 {
 }
 
 template <typename T>
 inline MCTrackT<T>::MCTrackT(Int_t pdgCode, Int_t motherId, Int_t secondMotherId, Int_t firstDaughterId, Int_t lastDaughterId,
-                             Double_t px, Double_t py, Double_t pz, Double_t x,
+                             Double_t px, Double_t py, Double_t pz, Double_t energy, Double_t x,
                              Double_t y, Double_t z, Double_t t, Int_t mask)
   : mPdgCode(pdgCode),
     mMotherTrackId(motherId),
@@ -339,8 +364,10 @@ inline MCTrackT<T>::MCTrackT(Int_t pdgCode, Int_t motherId, Int_t secondMotherId
     mStartVertexCoordinatesZ(z),
     mStartVertexCoordinatesT(t),
     mProp(mask),
-    mWeight(0)
+    mWeight(0),
+    mEnergy(energy)
 {
+  updateEnergy();
 }
 
 template <typename T>
@@ -357,6 +384,7 @@ inline MCTrackT<T>::MCTrackT(const TParticle& part)
     mStartVertexCoordinatesY(part.Vy()),
     mStartVertexCoordinatesZ(part.Vz()),
     mStartVertexCoordinatesT(part.T() * 1e09),
+    mEnergy(part.Energy()),
     mWeight(part.GetWeight()),
     mProp(0),
     mStatusCode(0)
@@ -374,6 +402,7 @@ inline MCTrackT<T>::MCTrackT(const TParticle& part)
   }
   // set MC generator status code only for primaries
   mStatusCode = part.TestBit(ParticleStatus::kPrimary) ? part.GetStatusCode() : -1;
+  updateEnergy();
 }
 
 template <typename T>

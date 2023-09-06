@@ -129,7 +129,7 @@ struct O2simHepmcPublisher {
           particle->pid(),
           has_parents ? parents.front()->id() : -1, has_parents ? parents.back()->id() : -1,
           has_children ? children.front()->id() : -1, has_children ? children.back()->id() : -1,
-          p.px(), p.py(), p.pz(),
+          p.px(), p.py(), p.pz(), p.e(),
           v->position().x(), v->position().y(), v->position().z(),
           v->position().t(), 0);
       }
