@@ -18,19 +18,20 @@ foreach(file ${CUDA_SOURCES_FULL_PATH})
   get_filename_component(CUDA_SOURCE ${file} NAME)
   string(REPLACE ".cu" "" CUDA_SOURCE_NAME ${CUDA_SOURCE})
   add_custom_command(
-    OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${CUDA_SOURCE_NAME}.hip.cxx
-    COMMAND ${HIPIFY_EXECUTABLE} --quiet-warnings ${CMAKE_CURRENT_SOURCE_DIR}/../cuda/${CUDA_SOURCE} | sed '1{/\#include \"hip\\/hip_runtime.h\"/d}' > ${CMAKE_CURRENT_SOURCE_DIR}/${CUDA_SOURCE_NAME}.hip.cxx
+    OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${CUDA_SOURCE_NAME}.hip
+    COMMAND ${HIPIFY_EXECUTABLE} --quiet-warnings ${CMAKE_CURRENT_SOURCE_DIR}/../cuda/${CUDA_SOURCE} | sed '1{/\#include \"hip\\/hip_runtime.h\"/d}' > ${CMAKE_CURRENT_SOURCE_DIR}/${CUDA_SOURCE_NAME}.hip
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../cuda/${CUDA_SOURCE}
   )
 endforeach()
-
-set(CMAKE_CXX_COMPILER ${HIP_HIPCC_EXECUTABLE})
-set(CMAKE_CXX_LINKER   ${HIP_HIPCC_EXECUTABLE})
-set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${O2_HIP_CMAKE_CXX_FLAGS} -fgpu-rdc")
+# set(CMAKE_CXX_COMPILER ${HIP_HIPCC_EXECUTABLE})
+# set(CMAKE_HIP_COMPILER ${HIP_HIPCC_EXECUTABLE})
+# set(CMAKE_CXX_LINKER   ${HIP_HIPCC_EXECUTABLE})
+# set(CMAKE_CXX_EXTENSIONS OFF)
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${O2_HIP_CMAKE_CXX_FLAGS} -fgpu-rdc")
+# message(FATAL_ERROR "=============== ${CMAKE_HIP_FLAGS}")
 o2_add_executable(gpu-memory-benchmark-hip
-                  SOURCES benchmark.hip.cxx
-                          Kernels.hip.cxx
+                  SOURCES benchmark.hip
+                          Kernels.hip
                   PUBLIC_LINK_LIBRARIES hip::host
                                         Boost::program_options
                                         ROOT::Tree

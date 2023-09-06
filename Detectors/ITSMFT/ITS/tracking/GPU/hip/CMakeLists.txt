@@ -18,8 +18,8 @@ if(HIP_ENABLED)
     get_filename_component(CUDA_SOURCE ${file} NAME)
     string(REPLACE ".cu" "" CUDA_SOURCE_NAME ${CUDA_SOURCE})
     add_custom_command(
-      OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${CUDA_SOURCE_NAME}.hip.cxx
-      COMMAND ${HIPIFY_EXECUTABLE} --quiet-warnings ${CMAKE_CURRENT_SOURCE_DIR}/../cuda/${CUDA_SOURCE} | sed '1{/\#include \"hip\\/hip_runtime.h\"/d}' > ${CMAKE_CURRENT_SOURCE_DIR}/${CUDA_SOURCE_NAME}.hip.cxx
+      OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${CUDA_SOURCE_NAME}.hip
+      COMMAND ${HIPIFY_EXECUTABLE} --quiet-warnings ${CMAKE_CURRENT_SOURCE_DIR}/../cuda/${CUDA_SOURCE} | sed '1{/\#include \"hip\\/hip_runtime.h\"/d}' > ${CMAKE_CURRENT_SOURCE_DIR}/${CUDA_SOURCE_NAME}.hip
       DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../cuda/${CUDA_SOURCE}
     )
   endforeach()
@@ -27,20 +27,21 @@ if(HIP_ENABLED)
   install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${baseTargetName}
           DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
-  set(CMAKE_CXX_COMPILER ${hip_HIPCC_EXECUTABLE})
-  set(CMAKE_CXX_EXTENSIONS OFF)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${O2_HIP_CMAKE_CXX_FLAGS} -fgpu-rdc")
-
+  # set(CMAKE_CXX_COMPILER ${hip_HIPCC_EXECUTABLE})
+  # set(CMAKE_CXX_EXTENSIONS OFF)
+  # set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${O2_HIP_CMAKE_CXX_FLAGS} -fgpu-rdc")
+  # message(FATAL_ERROR "> ${CMAKE_CXX_FLAGS} > ${O2_HIP_CMAKE_CXX_FLAGS}")
+  set(CMAKE_HIP_FLAGS "${CMAKE_HIP_FLAGS} ${O2_HIP_CMAKE_CXX_FLAGS} -fgpu-rdc")
   message(STATUS "Building ITS HIP tracker")
   o2_add_library(ITStrackingHIP
-                 SOURCES ClusterLinesGPU.hip.cxx
-                         Context.hip.cxx
-                         TimeFrameGPU.hip.cxx
-                         Stream.hip.cxx
-                         TrackerTraitsGPU.hip.cxx
-                         TracerGPU.hip.cxx
-                         VertexerTraitsGPU.hip.cxx
-                         Utils.hip.cxx
+                 SOURCES ClusterLinesGPU.hip
+                         Context.hip
+                         TimeFrameGPU.hip
+                         Stream.hip
+                         TrackerTraitsGPU.hip
+                         TracerGPU.hip
+                         VertexerTraitsGPU.hip
+                         Utils.hip
                  PUBLIC_INCLUDE_DIRECTORIES ../
                  PUBLIC_LINK_LIBRARIES O2::ITStracking
                                        hip::host
