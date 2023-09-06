@@ -28,7 +28,7 @@ class RawReaderCRU;
 namespace calib_processing_helper
 {
 
-uint64_t processRawData(o2::framework::InputRecord& inputs, std::unique_ptr<o2::tpc::rawreader::RawReaderCRU>& reader, bool useOldSubspec = false, const std::vector<int>& sectors = {}, size_t* nerrors = nullptr, uint32_t syncOffsetReference = 144, uint32_t decoderType = 1, bool useTrigger = true);
+uint64_t processRawData(o2::framework::InputRecord& inputs, std::unique_ptr<o2::tpc::rawreader::RawReaderCRU>& reader, bool useOldSubspec = false, const std::vector<int>& sectors = {}, size_t* nerrors = nullptr, uint32_t syncOffsetReference = 144, uint32_t decoderType = 1, bool useTrigger = true, bool returnOnNoTrigger = false);
 
 /// absolute BC relative to TF start (firstOrbit)
 std::vector<o2::framework::InputSpec> getFilter(o2::framework::InputRecord& inputs);

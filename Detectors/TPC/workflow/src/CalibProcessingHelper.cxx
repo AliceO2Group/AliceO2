@@ -73,7 +73,7 @@ std::vector<o2::framework::InputSpec> calib_processing_helper::getFilter(o2::fra
   return filter;
 }
 
-uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inputs, std::unique_ptr<rawreader::RawReaderCRU>& reader, bool useOldSubspec, const std::vector<int>& sectors, size_t* nerrors, uint32_t syncOffsetReference, uint32_t decoderType, bool useTrigger)
+uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inputs, std::unique_ptr<rawreader::RawReaderCRU>& reader, bool useOldSubspec, const std::vector<int>& sectors, size_t* nerrors, uint32_t syncOffsetReference, uint32_t decoderType, bool useTrigger, bool returnOnNoTrigger)
 {
   std::vector<InputSpec> filter = getFilter(inputs);
 
@@ -85,6 +85,9 @@ uint64_t calib_processing_helper::processRawData(o2::framework::InputRecord& inp
   bool readFirstZS = false;
 
   const auto triggerBC = ((decoderType == 1 && useTrigger)) ? getTriggerBCoffset(inputs, filter) : -1;
+  if (returnOnNoTrigger && (triggerBC < 0)) {
+    return 0;
+  }
 
   // for LinkZS data the maximum sync offset is needed to align the data properly.
   // getBCsyncOffsetReference only works, if the full TF is seen. Alternatively, this value could be set
@@ -435,13 +438,19 @@ int calib_processing_helper::getTriggerBCoffset(const char* data, size_t size, u
     return -1;
   }
   const auto triggerWord = (TriggerWordDLBZS*)(data + size - sizeof(TPCZSHDRV2) - sizeof(TriggerWordDLBZS));
-  // Check only first trigger word assuming we will only have laser triggers
-  const int iTrg = 0;
-  if (!triggerWord->isValid(iTrg)) {
-    return -1;
+  // Only process calibration (Laser) triggers
+  int iTrg;
+  for (iTrg = 0; iTrg < TriggerWordDLBZS::MaxTriggerEntries; ++iTrg) {
+    if (triggerWord->isValid(iTrg)) {
+      if (triggerWord->getTriggerType(iTrg) == TriggerWordDLBZS::Cal) {
+        break;
+      }
+    } else {
+      return -1;
+    }
   }
 
-  const auto triggerBC = triggerWord->getTriggerBC(0);
+  const auto triggerBC = triggerWord->getTriggerBC(iTrg);
   const auto orbit = RDHUtils::getHeartBeatOrbit(rdh);
   const int orbitBC = ((orbit - firstOrbit) * o2::constants::lhc::LHCMaxBunches) + triggerBC;
   LOGP(debug, "TriggerWordDLBZS {}: Type = {}, orbit = {}, firstOrbit = {}, BC = {}, oribitBC = {}", iTrg, triggerWord->getTriggerType(iTrg), orbit, firstOrbit, triggerWord->getTriggerBC(iTrg), orbitBC);
