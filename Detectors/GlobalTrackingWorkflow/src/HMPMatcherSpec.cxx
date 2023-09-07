@@ -62,6 +62,7 @@ class HMPMatcherSpec : public Task
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
   void endOfStream(framework::EndOfStreamContext& ec) final;
+  void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final;
 
  private:
   std::shared_ptr<DataRequest> mDataRequest;
@@ -79,9 +80,14 @@ void HMPMatcherSpec::init(InitContext& ic)
   mTimer.Stop();
   mTimer.Reset();
   //-------- init geometry and field --------//
-  o2::base::GeometryManager::loadGeometry();
-  o2::base::Propagator::initFieldFromGRP();
-  std::unique_ptr<o2::parameters::GRPObject> grp{o2::parameters::GRPObject::loadFrom()};
+  o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
+}
+
+void HMPMatcherSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
+{
+  if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    return;
+  }
 }
 
 void HMPMatcherSpec::run(ProcessingContext& pc)
@@ -90,6 +96,7 @@ void HMPMatcherSpec::run(ProcessingContext& pc)
 
   RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());
+  o2::base::GRPGeomHelper::instance().checkUpdates(pc);
 
   auto creationTime = DataRefUtils::getHeader<DataProcessingHeader*>(pc.inputs().getFirstValid(true))->creation;
 
