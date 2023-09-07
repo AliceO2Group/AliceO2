@@ -262,10 +262,10 @@ bool MatchGlobalFwd::prepareMFTData()
       }
       return false;
     }
-    float tMin = nBC * o2::constants::lhc::LHCBunchSpacingMUS;
-    float tMax = (nBC + mMFTROFrameLengthInBC) * o2::constants::lhc::LHCBunchSpacingMUS;
+    float tMin = (nBC + mMFTROFrameBiasInBC) * o2::constants::lhc::LHCBunchSpacingMUS;
+    float tMax = (nBC + mMFTROFrameLengthInBC + mMFTROFrameBiasInBC) * o2::constants::lhc::LHCBunchSpacingMUS;
     if (!mMFTTriggered) {
-      auto irofCont = nBC / mMFTROFrameLengthInBC;
+      auto irofCont = (nBC + mMFTROFrameBiasInBC) / mMFTROFrameLengthInBC;
       if (mMFTTrackROFContMapping.size() <= irofCont) { // there might be gaps in the non-empty rofs, this will map continuous ROFs index to non empty ones
         mMFTTrackROFContMapping.resize((1 + irofCont / 128) * 128, 0);
       }
@@ -649,6 +649,14 @@ void MatchGlobalFwd::setMFTROFrameLengthInBC(int nbc)
   mMFTROFrameLengthInBC = nbc;
   mMFTROFrameLengthMUS = nbc * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
   mMFTROFrameLengthMUSInv = 1. / mMFTROFrameLengthMUS;
+}
+
+//_________________________________________________________
+void MatchGlobalFwd::setMFTROFrameBiasInBC(int nbc)
+{
+  mMFTROFrameBiasInBC = nbc;
+  mMFTROFrameBiasMUS = nbc * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
+  mMFTROFrameBiasMUSInv = 1. / mMFTROFrameBiasMUS;
 }
 
 //_________________________________________________________
