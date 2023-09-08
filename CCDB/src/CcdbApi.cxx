@@ -1052,8 +1052,11 @@ void* CcdbApi::retrieveFromTFile(std::type_info const& tinfo, std::string const&
   string fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp); // todo check if function still works correctly in case mInSnapshotMode
   // if we are in snapshot mode we can simply open the file; extract the object and return
   if (mInSnapshotMode) {
-    return extractFromLocalFile(fullUrl, tinfo, headers);
-    logReading(path, timestamp, headers, "retrieve from snapshot");
+    auto res = extractFromLocalFile(fullUrl, tinfo, headers);
+    if (res) {
+      logReading(path, timestamp, headers, "retrieve from snapshot");
+    }
+    return res;
   }
 
   curl_slist* option_list = nullptr;

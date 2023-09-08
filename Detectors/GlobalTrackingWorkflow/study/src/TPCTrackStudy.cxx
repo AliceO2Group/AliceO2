@@ -23,6 +23,7 @@
 #include "CommonUtils/NameConf.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
+#include "Framework/ControlService.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "GlobalTrackingStudy/TPCTrackStudy.h"
@@ -67,8 +68,12 @@ class TPCTrackStudySpec : public Task
   o2::tpc::VDriftHelper mTPCVDriftHelper{};
   o2::tpc::CorrectionMapsLoader mTPCCorrMapsLoader{};
   bool mUseMC{false}; ///< MC flag
+  bool mUseGPUModel{false};
   float mXRef = 0.;
   int mNMoves = 6;
+  int mTFStart = 0;
+  int mTFEnd = 999999999;
+  int mTFCount = -1;
   bool mUseR = false;
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOutCl;
@@ -91,6 +96,9 @@ void TPCTrackStudySpec::init(InitContext& ic)
   mXRef = ic.options().get<float>("target-x");
   mNMoves = std::max(2, ic.options().get<int>("n-moves"));
   mUseR = ic.options().get<bool>("use-r-as-x");
+  mUseGPUModel = ic.options().get<bool>("use-gpu-fitter");
+  mTFStart = ic.options().get<int>("tf-start");
+  mTFEnd = ic.options().get<int>("tf-end");
   if (mXRef < 0.) {
     mXRef = 0.;
   }
@@ -103,10 +111,22 @@ void TPCTrackStudySpec::init(InitContext& ic)
 
 void TPCTrackStudySpec::run(ProcessingContext& pc)
 {
+  mTFCount++;
+  if (mTFCount < mTFStart || mTFCount > mTFEnd) {
+    LOGP(info, "Skipping TF {}", mTFCount);
+    return;
+  }
+
   o2::globaltracking::RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get()); // select tracks of needed type, with minimal cuts, the real selected will be done in the vertexer
   updateTimeDependentParams(pc);                 // Make sure this is called after recoData.collectData, which may load some conditions
   process(recoData);
+
+  if (mTFCount > mTFEnd) {
+    LOGP(info, "Stopping processing after TF {}", mTFCount);
+    pc.services().get<o2::framework::ControlService>().endOfStream();
+    return;
+  }
 }
 
 void TPCTrackStudySpec::updateTimeDependentParams(ProcessingContext& pc)
@@ -205,7 +225,7 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
     // create refitted copy
     auto trackRefit = [itr, this](o2::track::TrackParCov& trc, float t) -> bool {
       float chi2Out = 0;
-      int retVal = this->mTPCRefitter->RefitTrackAsTrackParCov(trc, this->mTPCTracksArray[itr].getClusterRef(), t, &chi2Out, false, true);
+      int retVal = mUseGPUModel ? this->mTPCRefitter->RefitTrackAsGPU(trc, this->mTPCTracksArray[itr].getClusterRef(), t, &chi2Out, false, true) : this->mTPCRefitter->RefitTrackAsTrackParCov(trc, this->mTPCTracksArray[itr].getClusterRef(), t, &chi2Out, false, true);
       if (retVal < 0) {
         LOGP(warn, "Refit failed ({}) with time={}: track#{}[{}]", retVal, t, counter, trc.asString());
         return false;
@@ -391,6 +411,9 @@ DataProcessorSpec getTPCTrackStudySpec(GTrackID::mask_t srcTracks, GTrackID::mas
     {"target-x", VariantType::Float, 70.f, {"Try to propagate to this radius"}},
     {"n-moves", VariantType::Int, 6, {"Number of moves in allow range"}},
     {"dump-clusters", VariantType::Bool, false, {"dump clusters"}},
+    {"tf-start", VariantType::Int, 0, {"1st TF to process"}},
+    {"tf-end", VariantType::Int, 999999999, {"last TF to process"}},
+    {"use-gpu-fitter", VariantType::Bool, false, {"use GPU track model for refit instead of TrackParCov"}},
     {"use-r-as-x", VariantType::Bool, false, {"Use radius instead of target sector X"}}};
   auto dataRequest = std::make_shared<DataRequest>();
 

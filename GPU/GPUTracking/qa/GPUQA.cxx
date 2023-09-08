@@ -570,6 +570,9 @@ int GPUQA::loadHistograms(std::vector<TH1F>& i1, std::vector<TH2F>& i2, std::vec
   mHist1Dd_pos.clear();
   mHistGraph_pos.clear();
   mHaveExternalHists = true;
+  if (mConfig.noMC) {
+    tasks &= tasksNoQC;
+  }
   mQATasks = tasks;
   if (InitQACreateHistograms()) {
     return 1;
@@ -751,6 +754,9 @@ int GPUQA::InitQA(int tasks)
   mHist2D = new std::vector<TH2F>;
   mHist1Dd = new std::vector<TH1D>;
   mHistGraph = new std::vector<TGraphAsymmErrors>;
+  if (mConfig.noMC) {
+    tasks &= tasksNoQC;
+  }
   mQATasks = tasks;
 
   if (mTracking->GetProcessingSettings().qcRunFraction != 100.f && mQATasks != taskClusterCounts) {
@@ -822,7 +828,7 @@ void GPUQA::RunQA(bool matchOnly, const std::vector<o2::tpc::TrackTPC>* tracksEx
     throw std::runtime_error("QA not initialized");
   }
   if (mTracking && mTracking->GetProcessingSettings().debugLevel >= 2) {
-    printf("Running QA\n");
+    GPUInfo("Running QA - Mask %d, Efficiency %d, Resolution %d, Pulls %d, Cluster Attachment %d, Track Statistics %d, Cluster Counts %d", mQATasks, (int)(mQATasks & taskTrackingEff), (int)(mQATasks & taskTrackingRes), (int)(mQATasks & taskTrackingResPull), (int)(mQATasks & taskClusterAttach), (int)(mQATasks & taskTrackStatistics), (int)(mQATasks & taskClusterCounts));
   }
   if (!clNative && mTracking) {
     clNative = mTracking->mIOPtrs.clustersNative;
@@ -2030,7 +2036,7 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
     }
   }
 
-  if (mConfig.enableLocalOutput && !mConfig.inputHistogramsOnly && (mQATasks & taskTrackingEff)) {
+  if (mConfig.enableLocalOutput && !mConfig.inputHistogramsOnly && (mQATasks & taskTrackingEff) && mcPresent()) {
     GPUInfo("QA Stats: Eff: Tracks Prim %d (Eta %d, Pt %d) %f%% (%f%%) Sec %d (Eta %d, Pt %d) %f%% (%f%%) -  Res: Tracks %d (Eta %d, Pt %d)", (int)mEff[3][1][0][0]->GetEntries(), (int)mEff[3][1][0][3]->GetEntries(), (int)mEff[3][1][0][4]->GetEntries(),
             mEff[0][0][0][0]->GetSumOfWeights() / std::max(1., mEff[3][0][0][0]->GetSumOfWeights()), mEff[0][1][0][0]->GetSumOfWeights() / std::max(1., mEff[3][1][0][0]->GetSumOfWeights()), (int)mEff[3][1][1][0]->GetEntries(), (int)mEff[3][1][1][3]->GetEntries(),
             (int)mEff[3][1][1][4]->GetEntries(), mEff[0][0][1][0]->GetSumOfWeights() / std::max(1., mEff[3][0][1][0]->GetSumOfWeights()), mEff[0][1][1][0]->GetSumOfWeights() / std::max(1., mEff[3][1][1][0]->GetSumOfWeights()), (int)mRes2[0][0]->GetEntries(),

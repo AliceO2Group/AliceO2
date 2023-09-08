@@ -24,7 +24,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"max-tgl-its", o2::framework::VariantType::Float, 2.f, {"max range for tgL of ITS tracks"}},
     {"nbins-dtgl", o2::framework::VariantType::Int, 50, {"number of bins in tgL_ITS - tgl_TPC"}},
     {"max-dtgl-itstpc", o2::framework::VariantType::Float, 0.15f, {"max range for tgL_ITS - tgl_TPC"}},
-    {"min-entries-per-slot", o2::framework::VariantType::Int, 1000, {"mininal number of entries per slot"}},
+    {"min-entries-per-slot", o2::framework::VariantType::Int, 10000, {"mininal number of entries per slot"}},
     {"time-slot-seconds", o2::framework::VariantType::Int, 600, {"time slot length in seconds"}},
     {"max-slots-delay", o2::framework::VariantType::Float, 0.1f, {"difference in slot units between the current TF and oldest slot (end TF) to account for the TF"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
