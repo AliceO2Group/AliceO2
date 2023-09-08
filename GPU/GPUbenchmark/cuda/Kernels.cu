@@ -428,13 +428,16 @@ float GPUbenchmark<chunk_t>::runSequential(void (*kernel)(chunk_t*, size_t, T...
 
   // Warm up
   (*kernel)<<<nBlocks, nThreads, 0, stream>>>(chunkPtr, getBufferCapacity<chunk_t>(chunk.second, mOptions.prime), args...);
-
+  cudaDeviceSynchronize();
+  GPUCHECK(cudaGetLastError());
   GPUCHECK(cudaEventCreate(&start));
   GPUCHECK(cudaEventCreate(&stop));
 
   GPUCHECK(cudaEventRecord(start));
   for (auto iLaunch{0}; iLaunch < nLaunches; ++iLaunch) {                                                                     // Schedule all the requested kernel launches
     (*kernel)<<<nBlocks, nThreads, 0, stream>>>(chunkPtr, getBufferCapacity<chunk_t>(chunk.second, mOptions.prime), args...); // NOLINT: clang-tidy false-positive
+    cudaDeviceSynchronize();
+    GPUCHECK(cudaGetLastError());
   }
   GPUCHECK(cudaEventRecord(stop));      // record checkpoint
   GPUCHECK(cudaEventSynchronize(stop)); // synchronize executions
@@ -653,7 +656,6 @@ void GPUbenchmark<chunk_t>::initTest(Test test)
 template <class chunk_t>
 void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
 {
-  mResultWriter.get()->addBenchmarkEntry(getTestName(mode, test, config), getType<chunk_t>(), mState.getMaxChunks());
   auto dimGrid{mState.nMultiprocessors};
   auto nBlocks{(config == KernelConfig::Single) ? 1 : (config == KernelConfig::Multi) ? dimGrid / mState.testChunks.size()
                                                     : (config == KernelConfig::All)   ? dimGrid
@@ -770,7 +772,7 @@ void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
         } else {
           std::cout << "" << measurement << "\t" << iChunk << "\t" << throughput << "\t" << chunkSize << "\t" << result << std::endl;
         }
-        mResultWriter.get()->storeBenchmarkEntry(test, iChunk, result, chunk.second, mState.getNKernelLaunches());
+    
       }
     } else if (mode == Mode::Concurrent) {
       if (!mOptions.raw) {
@@ -805,7 +807,7 @@ void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
         } else {
           std::cout << "" << measurement << "\t" << iChunk << "\t" << throughput << "\t" << chunkSize << "\t" << results[iChunk] << std::endl;
         }
-        mResultWriter.get()->storeBenchmarkEntry(test, iChunk, results[iChunk], chunk.second, mState.getNKernelLaunches());
+    
       }
       if (mState.testChunks.size() > 1) {
         if (!mOptions.raw) {
@@ -850,9 +852,9 @@ void GPUbenchmark<chunk_t>::runTest(Test test, Mode mode, KernelConfig config)
       } else {
         std::cout << "" << measurement << "\t" << 0 << "\t" << throughput << "\t" << tot << "\t" << result << std::endl;
       }
-      mResultWriter.get()->storeBenchmarkEntry(test, 0, result, tot, mState.getNKernelLaunches());
+  
     }
-    mResultWriter.get()->snapshotBenchmark();
+
   }
 }
 
