@@ -501,7 +501,7 @@ o2::framework::ServiceSpec ArrowSupport::arrowBackendSpec()
 
         // remove unmatched outputs
         auto o_end = std::remove_if(reader->outputs.begin(), reader->outputs.end(), [&](OutputSpec const& o) {
-          return !DataSpecUtils::partialMatch(o, o2::header::DataDescription{"TFNumber"}) && !DataSpecUtils::partialMatch(o, o2::header::DataDescription{"TFFilename"}) && std::none_of(requestedAODs.begin(), requestedAODs.end(), [&](InputSpec const& i) { return DataSpecUtils::match(i, o); });
+          return !DataSpecUtils::partialMatch(o, o2::header::DataDescription{"TFNumber"}) && !DataSpecUtils::partialMatch(o, o2::header::DataDescription{"TFFilename"}) && !DataSpecUtils::partialMatch(o, o2::header::DataOrigin{"AODM"}) && std::none_of(requestedAODs.begin(), requestedAODs.end(), [&](InputSpec const& i) { return DataSpecUtils::match(i, o); });
         });
         reader->outputs.erase(o_end, reader->outputs.end());
         if (reader->outputs.empty()) {

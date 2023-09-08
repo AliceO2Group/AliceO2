@@ -328,6 +328,12 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
 
   std::vector<InputSpec> requestedAODs;
   std::vector<OutputSpec> providedAODs;
+  // We treat metadata separately. In principle
+  // we could even use this to allow non table based
+  // objects (e.g. histograms) to be created based
+  // on table inputs and be passed around.
+  std::vector<InputSpec> requestedAODMs;
+  std::vector<OutputSpec> providedAODMs;
   std::vector<InputSpec> requestedDYNs;
   std::vector<OutputSpec> providedDYNs;
   std::vector<InputSpec> requestedIDXs;
@@ -427,6 +433,9 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       if (DataSpecUtils::partialMatch(input, header::DataOrigin{"AOD"})) {
         DataSpecUtils::updateInputList(requestedAODs, InputSpec{input});
       }
+      if (DataSpecUtils::partialMatch(input, header::DataOrigin{"AODM"})) {
+        DataSpecUtils::updateInputList(requestedAODMs, InputSpec{input});
+      }
       if (DataSpecUtils::partialMatch(input, header::DataOrigin{"DYN"})) {
         DataSpecUtils::updateInputList(requestedDYNs, InputSpec{input});
       }
@@ -440,6 +449,8 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
     for (auto& output : processor.outputs) {
       if (DataSpecUtils::partialMatch(output, header::DataOrigin{"AOD"})) {
         providedAODs.emplace_back(output);
+      } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"AODM"})) {
+        providedAODMs.emplace_back(output);
       } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"DYN"})) {
         providedDYNs.emplace_back(output);
       } else if (DataSpecUtils::partialMatch(output, header::DataOrigin{"ATSK"})) {
@@ -486,6 +497,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
   addMissingOutputsToSpawner({}, spawnerInputs, requestedAODs, aodSpawner);
 
   addMissingOutputsToReader(providedAODs, requestedAODs, aodReader);
+  addMissingOutputsToReader(providedAODMs, requestedAODMs, aodReader);
   addMissingOutputsToReader(providedCCDBs, requestedCCDBs, ccdbBackend);
 
   std::vector<DataProcessorSpec> extraSpecs;

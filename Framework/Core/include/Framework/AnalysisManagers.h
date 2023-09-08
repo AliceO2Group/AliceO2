@@ -31,6 +31,7 @@
 #include "Framework/Plugins.h"
 #include "Framework/RootMessageContext.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/Metadata.h"
 
 namespace o2::framework
 {
@@ -195,6 +196,51 @@ struct ConditionManager<Condition<OBJ>> {
   {
     what.instance = (OBJ*)inputs.get<OBJ*>(what.path).get();
     return true;
+  }
+};
+
+/// A manager which takes care of metadata queries
+template <typename T>
+struct MetadataManager {
+  template <typename ANY>
+  static bool hasMetadata(ANY& x)
+  {
+    // If we have a metadata group or a metadata object, we have metadata
+    // Otherwise, we don't
+    if constexpr (std::is_base_of_v<MetadataGroup, ANY>) {
+      return true;
+    } else if constexpr (std::is_same_v<ANY, Metadata>) {
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  template <typename ANY>
+  static bool newDataframe(InputRecord& record, ANY& x)
+  {
+    if constexpr (std::is_base_of_v<MetadataGroup, ANY>) {
+      homogeneous_apply_refs<true>([&record](auto&& y) { return MetadataManager<std::decay_t<decltype(y)>>::newDataframe(record, y); }, x);
+      return true;
+    } else if constexpr (std::is_same_v<ANY, Metadata>) {
+      auto metadata = record.get<std::string>("metadata");
+      // Split the metadata string into a map of key-value pairs
+      std::map<std::string, std::string> metadataMap;
+      std::string key, value;
+      std::istringstream iss(metadata);
+      while (std::getline(std::getline(iss, key, ':'), value, ';')) {
+        metadataMap[key] = value;
+      }
+      x.value = metadataMap[x.key];
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  static InputSpec metadataSpec()
+  {
+    return InputSpec{"metadata", "AODM", "METADATA", Lifetime::Timeframe};
   }
 };
 

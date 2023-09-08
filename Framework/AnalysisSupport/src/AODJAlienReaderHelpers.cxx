@@ -166,6 +166,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
     // create list of requested tables
     bool reportTFN = false;
     bool reportTFFileName = false;
+    bool reportMetadata = false;
     header::DataHeader TFNumberHeader;
     header::DataHeader TFFileNameHeader;
     std::vector<OutputRoute> requestedTables;
@@ -179,6 +180,8 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
         auto concrete = DataSpecUtils::asConcreteDataMatcher(route.matcher);
         TFFileNameHeader = header::DataHeader(concrete.description, concrete.origin, concrete.subSpec);
         reportTFFileName = true;
+      } else if (DataSpecUtils::partialMatch(route.matcher, header::DataOrigin("AODM"))) {
+        reportMetadata = true;
       } else {
         requestedTables.emplace_back(route);
       }
@@ -192,7 +195,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
                            fileCounter,
                            numTF,
                            watchdog,
-                           didir, reportTFN, reportTFFileName](Monitoring& monitoring, DataAllocator& outputs, ControlService& control, DeviceSpec const& device) {
+                           didir, reportTFN, reportTFFileName, reportMetadata](Monitoring& monitoring, DataAllocator& outputs, ControlService& control, DeviceSpec const& device) {
       // Each parallel reader device.inputTimesliceId reads the files fileCounter*device.maxInputTimeslices+device.inputTimesliceId
       // the TF to read is numTF
       assert(device.inputTimesliceId < device.maxInputTimeslices);
@@ -275,6 +278,9 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
             }
             outputs.make<std::string>(o2) = currentFilename;
           }
+          if (reportMetadata) {
+            didir->readMetadata(outputs, dh);
+          }
         }
         first = false;
       }
@@ -306,7 +312,7 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
           control.readyToQuit(QuitRequest::Me);
           return;
         }
-      } 
+      }
     });
   })};
 

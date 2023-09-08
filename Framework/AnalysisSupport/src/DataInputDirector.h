@@ -65,6 +65,7 @@ class DataInputDescriptor
   void addFileNameHolder(FileNameHolder* fn);
   int fillInputfiles();
   bool setFile(int counter);
+  [[nodiscard]] std::string_view const getMetadata() const { return mMetadata; }
 
   // getters
   std::string getInputfilesFilename();
@@ -96,6 +97,7 @@ class DataInputDescriptor
   std::vector<FileNameHolder*> mfilenames;
   std::vector<FileNameHolder*>* mdefaultFilenamesPtr = nullptr;
   TFile* mcurrentFile = nullptr;
+  std::string mMetadata;
   int mCurrentFileID = -1;
   bool mAlienSupport = false;
 
@@ -138,8 +140,10 @@ class DataInputDirector
   DataInputDescriptor* getDataInputDescriptor(header::DataHeader dh);
   int getNumberInputDescriptors() { return mdataInputDescriptors.size(); }
 
-  std::unique_ptr<TTreeReader> getTreeReader(header::DataHeader dh, int counter, int numTF, std::string treeName);
   bool readTree(DataAllocator& outputs, header::DataHeader dh, int counter, int numTF, size_t& totalSizeCompressed, size_t& totalSizeUncompressed);
+  // Send the metadata for the current file
+  void readMetadata(DataAllocator& outputs, header::DataHeader dh);
+
   uint64_t getTimeFrameNumber(header::DataHeader dh, int counter, int numTF);
   FileAndFolder getFileFolder(header::DataHeader dh, int counter, int numTF);
   int getTimeFramesInFile(header::DataHeader dh, int counter);

@@ -127,6 +127,28 @@ bool DataInputDescriptor::setFile(int counter)
   }
   mcurrentFile->SetReadaheadSize(50 * 1024 * 1024);
 
+  // Get the metadata, if any
+  auto m = (TMap*)mcurrentFile->Get("metaData");
+  auto it = m->MakeIterator();
+  mMetadata.clear();
+
+  // Serialise metadata into a ; separated string with : separating key and value
+  bool first = true;
+  while (auto obj = it->Next()) {
+    if (first) {
+      LOGP(info, "Metadata for file \"{}\":", filename);
+    } else {
+      mMetadata += ";";
+      first = false;
+    }
+    auto objString = (TObjString*)m->GetValue(obj);
+    mMetadata += obj->GetName();
+    mMetadata += ":";
+    mMetadata += objString->String();
+    mMetadata += ";";
+    LOGP(info, "- {}: {}", obj->GetName(), objString->String());
+  }
+
   // get the parent file map if exists
   mParentFileMap = (TMap*)mcurrentFile->Get("parentFiles"); // folder name (DF_XXX) --> parent file (absolute path)
   if (mParentFileMap && !mParentFileReplacement.empty()) {
@@ -710,27 +732,6 @@ DataInputDescriptor* DataInputDirector::getDataInputDescriptor(header::DataHeade
   return result;
 }
 
-std::unique_ptr<TTreeReader> DataInputDirector::getTreeReader(header::DataHeader dh, int counter, int numTF, std::string treename)
-{
-  std::unique_ptr<TTreeReader> reader = nullptr;
-  auto didesc = getDataInputDescriptor(dh);
-  // if NOT match then use defaultDataInputDescriptor
-  if (!didesc) {
-    didesc = mdefaultDataInputDescriptor;
-  }
-
-  auto fileAndFolder = didesc->getFileFolder(counter, numTF);
-  if (fileAndFolder.file) {
-    treename = fileAndFolder.folderName + "/" + treename;
-    reader = std::make_unique<TTreeReader>(treename.c_str(), fileAndFolder.file);
-    if (!reader) {
-      throw std::runtime_error(fmt::format(R"(Couldn't create TTreeReader for tree "{}" in file "{}")", treename, fileAndFolder.file->GetName()));
-    }
-  }
-
-  return reader;
-}
-
 FileAndFolder DataInputDirector::getFileFolder(header::DataHeader dh, int counter, int numTF)
 {
   auto didesc = getDataInputDescriptor(dh);
@@ -762,6 +763,19 @@ uint64_t DataInputDirector::getTimeFrameNumber(header::DataHeader dh, int counte
   }
 
   return didesc->getTimeFrameNumber(counter, numTF);
+}
+
+// read metadata from file. Notice we must have read at least one table to get the metadata
+void DataInputDirector::readMetadata(DataAllocator& outputs, header::DataHeader dh)
+{
+  auto didesc = getDataInputDescriptor(dh);
+  // if NOT match then use defaultDataInputDescriptor
+  if (!didesc) {
+    didesc = mdefaultDataInputDescriptor;
+  }
+
+  auto& m = outputs.make<std::string>(Output{"AODM", "METADATA", 0});
+  m = didesc->getMetadata();
 }
 
 bool DataInputDirector::readTree(DataAllocator& outputs, header::DataHeader dh, int counter, int numTF, size_t& totalSizeCompressed, size_t& totalSizeUncompressed)

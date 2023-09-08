@@ -594,6 +594,18 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
   homogeneous_apply_refs([&options, &hash](auto& x) { return OptionManager<std::decay_t<decltype(x)>>::appendOption(options, x); }, *task.get());
   /// extract conditions and append them as inputs
   homogeneous_apply_refs([&inputs](auto& x) { return ConditionManager<std::decay_t<decltype(x)>>::appendCondition(inputs, x); }, *task.get());
+  /// extract metadata requests and append the metadata object as input
+  bool hasMetadata = false;
+  auto checkForMetadata = [&inputs, &hasMetadata](auto& x) -> bool {
+    bool result = MetadataManager<std::decay_t<decltype(x)>>::hasMetadata(x);
+    hasMetadata |= result;
+    return result;
+  };
+  homogeneous_apply_refs(checkForMetadata, *task.get());
+  if (hasMetadata) {
+    // Append the input spec for metadata if at any point we encountered it.
+    inputs.emplace_back(MetadataManager<std::void_t<>>::metadataSpec());
+  }
 
   /// parse process functions defined by corresponding configurables
   if constexpr (has_process_v<T>) {
@@ -686,6 +698,8 @@ DataProcessorSpec adaptAnalysisTask(ConfigContext const& ctx, Args&&... args)
       homogeneous_apply_refs([&pc](auto&& x) { return ConditionManager<std::decay_t<decltype(x)>>::newDataframe(pc.inputs(), x); }, *task.get());
       // reset partitions once per dataframe
       homogeneous_apply_refs([](auto&& x) { return PartitionManager<std::decay_t<decltype(x)>>::newDataframe(x); }, *task.get());
+      // get the metadata for the dataframe
+      homogeneous_apply_refs([&pc](auto&& x) { return MetadataManager<std::decay_t<decltype(x)>>::newDataframe(pc.inputs(), x); }, *task.get());
       // reset selections for the next dataframe
       for (auto& info : expressionInfos) {
         info.resetSelection = true;

@@ -15,6 +15,7 @@
 
 #include "Framework/runDataProcessing.h"
 #include "Framework/AnalysisTask.h"
+#include "Framework/Metadata.h"
 #include <TH2F.h>
 #include <cmath>
 
@@ -35,11 +36,13 @@ DECLARE_SOA_TABLE(Points, "AOD", "POINTS",
 } // namespace o2::aod
 
 struct EtaAndClsHistograms {
+  Metadata currentRun{"Run"};
   OutputObj<TH3F> etaClsH{TH3F("eta_vs_cls_vs_sigmapT", "#eta vs N_{cls} vs sigma_{1/pT}", 102, -2.01, 2.01, 160, -0.5, 159.5, 100, 0, 10)};
   Produces<aod::Points> points;
 
   void process(soa::Join<aod::FullTracks, aod::TracksCov> const& tracks)
   {
+    LOGP(info, "Run is {}", currentRun.get());
     for (auto& track : tracks) {
       etaClsH->Fill(track.eta(), track.tpcNClsFindable(), track.sigma1Pt());
       points(1, 2, 3);
