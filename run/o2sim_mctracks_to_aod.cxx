@@ -65,7 +65,7 @@ struct MctracksToAod {
                   mcheader->GetB());
       bool valid;
       if (mcheader->hasInfo("Accepted")) {
-        auto ptHard =  mcheader->hasInfo("PtHard") ? mcheader->getInfo<float>("PtHard", valid) : 0.f;
+        auto ptHard = mcheader->hasInfo("PtHard") ? mcheader->getInfo<float>("PtHard", valid) : 0.f;
         auto nMPI = mcheader->hasInfo("MPI") ? mcheader->getInfo<int>("MPI", valid) : -1;
         auto processId = mcheader->hasInfo("ProcessId") ? mcheader->getInfo<int>("ProcessId", valid) : -1;
         hepmcxsections(
@@ -77,8 +77,7 @@ struct MctracksToAod {
           mcheader->getInfo<float>("XsectErr", valid),
           ptHard,
           nMPI,
-          processId
-          );
+          processId);
       }
       if (mcheader->hasInfo("Id1")) {
         hepmcpdfinfos(
@@ -92,8 +91,7 @@ struct MctracksToAod {
           mcheader->getInfo<float>("X2", valid),
           mcheader->getInfo<float>("scale", valid),
           mcheader->getInfo<float>("Pdf1", valid),
-          mcheader->getInfo<float>("Pdf2", valid)
-          );
+          mcheader->getInfo<float>("Pdf2", valid));
       }
       if (mcheader->hasInfo("NcollHard")) {
         hepmcheavyions(
@@ -112,10 +110,8 @@ struct MctracksToAod {
           mcheader->getInfo<float>("EventPlaneAngle", valid),
           mcheader->getInfo<float>("Eccentricity", valid),
           mcheader->getInfo<float>("SigmaInelNN", valid),
-          mcheader->getInfo<float>("Centrality", valid)
-          );
+          mcheader->getInfo<float>("Centrality", valid));
       }
-
 
       for (auto& mctrack : mctracks) {
         std::vector<int> mothers;
