@@ -1511,12 +1511,14 @@ DECLARE_SOA_COLUMN(Attempted, attempted, uint64_t);    //! The number of events 
 DECLARE_SOA_COLUMN(XsectGen, xsectGen, float);         //! Cross section in pb
 DECLARE_SOA_COLUMN(XsectErr, xsectErr, float);         //! Error associated with this cross section
 DECLARE_SOA_COLUMN(PtHard, ptHard, float);             //! PT-hard (event scale, for pp collisions)
+DECLARE_SOA_COLUMN(NMPI, nMPI, int);                   //! number of MPIs (for pp collisions)
+DECLARE_SOA_COLUMN(ProcessId, processId, int);         //! process id from MC generator
 } // namespace hepmcxsection
 
 DECLARE_SOA_TABLE(HepMCXSections, "AOD", "HEPMCXSECTION", //! HepMC table for cross sections
                   o2::soa::Index<>, hepmcxsection::McCollisionId, hepmcxsection::GeneratorsID,
                   hepmcxsection::Accepted, hepmcxsection::Attempted, hepmcxsection::XsectGen,
-                  hepmcxsection::XsectErr, hepmcxsection::PtHard);
+                  hepmcxsection::XsectErr, hepmcxsection::PtHard, hepmcxsection::NMPI, hepmcxsection::ProcessId);
 using HepMCXSection = HepMCXSections::iterator;
 
 namespace hepmcpdfinfo
