@@ -16,6 +16,8 @@
 #ifndef RANS_INTERNAL_COMMON_DEFINES_H_
 #define RANS_INTERNAL_COMMON_DEFINES_H_
 
+#include <version>
+
 #ifdef RANS_AVX2
 #error RANS_AVX2 cannot be directly set
 #endif
@@ -64,6 +66,10 @@
 
 #if defined(__FMA__)
 #define RANS_FMA
+#endif
+
+#if defined(RANS_ENABLE_PARALLEL_STL) && defined(__cpp_lib_execution)
+#define RANS_PARALLEL_STL
 #endif
 
 #endif /*RANS_INTERNAL_COMMON_DEFINES_H_*/
