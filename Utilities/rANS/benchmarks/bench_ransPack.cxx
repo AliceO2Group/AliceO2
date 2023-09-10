@@ -13,12 +13,13 @@
 /// @author Michael Lettrich
 /// @brief benchmarks packing algorithms and compares it to memcpy
 
+#include "rANS/internal/common/defines.h"
+
 #include <vector>
 #include <cstring>
 #include <random>
 #include <algorithm>
-#include <version>
-#ifdef __cpp_lib_execution
+#ifdef RANS_PARALLEL_STL
 #include <execution>
 #endif
 #include <iterator>
@@ -46,11 +47,11 @@ std::vector<source_T> makeRandomUniformVector(size_t nelems, source_T min = std:
   std::mt19937 mt(0); // same seed we want always the same distrubution of random numbers;
   std::uniform_int_distribution<source_T> dist(min, max);
 
-#ifdef __cpp_lib_execution
+#ifdef RANS_PARALLEL_STL
   std::generate(std::execution::par_unseq, result.begin(), result.end(), [&dist, &mt]() { return dist(mt); });
 #else
   std::generate(result.begin(), result.end(), [&dist, &mt]() { return dist(mt); });
-#endif
+#endif // RANS_PARALLEL_STL
 
   return result;
 };
