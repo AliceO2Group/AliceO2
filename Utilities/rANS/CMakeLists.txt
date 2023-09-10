@@ -10,6 +10,8 @@
 # or submit itself to any jurisdiction.
 
 option(RANS_ENABLE_JSON "compile librans with rapidjson" ON)
+option(RANS_LOG_PROCESSED_DATA "logs data processed by encoders/decoders as JSON array to log sink" OFF)
+
 set(RANS_ARCH "" CACHE STRING "Compile librans for a given CPU type,\
  see https://gcc.gnu.org/onlinedocs/gcc/x86-Options.html.")
  set(RANS_COMPILE_OPTIONS "" CACHE STRING "Compile librans with these compiler option")
@@ -36,6 +38,9 @@ o2_add_header_only_library(rANS
 if(${RANS_ENABLE_JSON})
   target_compile_definitions(${LIBRANS} INTERFACE RANS_ENABLE_JSON)
   target_link_libraries(${LIBRANS} INTERFACE RapidJSON::RapidJSON)
+endif()
+if(${RANS_LOG_PROCESSED_DATA})
+    target_compile_definitions(${LIBRANS} INTERFACE RANS_LOG_PROCESSED_DATA)
 endif()
 if (OpenMP_CXX_FOUND AND ( NOT APPLE ) )
     target_compile_definitions(${LIBRANS} INTERFACE RANS_OPENMP)
@@ -187,8 +192,12 @@ if(${RANS_ENABLE_JSON})
 
     o2_add_header_only_library(libransBenchmark
                   TARGETVARNAME LIB_RANS_BENCHMARK
-                  INTERFACE_LINK_LIBRARIES O2::rANS RapidJSON::RapidJSON benchmark::benchmark TBB::tbb)
+                  INTERFACE_LINK_LIBRARIES O2::rANS benchmark::benchmark)
     target_compile_options(${LIB_RANS_BENCHMARK} INTERFACE -O3 ${RANS_OPTIONS})
+    if(TARGET TBB::tbb)
+    target_compile_definitions(${LIB_RANS_BENCHMARK} INTERFACE RANS_ENABLE_PARALLEL_STL)
+    target_link_libraries(${LIB_RANS_BENCHMARK} INTERFACE TBB::tbb)
+    endif()
     if(${ENABLE_VTUNE_PROFILER})
       target_compile_definitions(${LIB_RANS_BENCHMARK} INTERFACE ENABLE_VTUNE_PROFILER)
       target_link_libraries(${LIB_RANS_BENCHMARK} INTERFACE PkgConfig::Vtune)
@@ -248,6 +257,7 @@ if(${RANS_ENABLE_JSON})
                       IS_BENCHMARK
                       PUBLIC_LINK_LIBRARIES O2::libransBenchmark)
 
+  if(${RANS_ENABLE_JSON})
     o2_add_executable(TPCEncodeDecode
                       SOURCES benchmarks/bench_ransTPC.cxx
                       COMPONENT_NAME rANS

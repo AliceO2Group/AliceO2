@@ -83,7 +83,7 @@ class DecoderConcept
       auto decode = [&, this](coder_type& decoder) {
         const auto cumul = decoder.get();
         const value_type symbol = lookupSymbol(cumul);
-#ifdef O2_RANS_PRINT_PROCESSED_DATA
+#ifdef RANS_LOG_PROCESSED_DATA
         arrayLogger << symbol.first;
 #endif
         return std::make_tuple(symbol.first, decoder.advanceSymbol(inputIter, symbol.second));
@@ -110,7 +110,7 @@ class DecoderConcept
         std::tie(*outputIter++, inputIter) = decode(decoders[i]);
       }
 
-#ifdef O2_RANS_PRINT_PROCESSED_DATA
+#ifdef RANS_LOG_PROCESSED_DATA
       LOG(info) << "decoderOutput:" << arrayLogger;
 #endif
     }
