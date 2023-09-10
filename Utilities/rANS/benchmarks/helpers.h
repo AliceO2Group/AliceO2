@@ -16,25 +16,28 @@
 #ifndef RANS_BENCHMARKS_HELPERS_H_
 #define RANS_BENCHMARKS_HELPERS_H_
 
+#include "rANS/internal/common/defines.h"
+
 #ifdef ENABLE_VTUNE_PROFILER
 #include <ittnotify.h>
 #endif
 
+#ifdef RANS_ENABLE_JSON
 #include <rapidjson/document.h>
 #include <rapidjson/writer.h>
 #include <rapidjson/istreamwrapper.h>
 #include <rapidjson/ostreamwrapper.h>
-
+#endif // RANS_ENABLE_JSON
 #include <fairlogger/Logger.h>
 #include <algorithm>
 
 #include "rANS/internal/common/exceptions.h"
 
-#include <version>
-#ifdef __cpp_lib_execution
+#ifdef RANS_PARALLEL_STL
 #include <execution>
 #endif
 
+#ifdef RANS_ENABLE_JSON
 struct TPCCompressedClusters {
 
   TPCCompressedClusters() = default;
@@ -276,6 +279,7 @@ TPCCompressedClusters readFile(const std::string& filename)
   }
   return compressedClusters;
 };
+#endif // RANS_ENABLE_JSON
 
 template <typename source_T, typename stream_T = uint32_t>
 struct EncodeBuffer {
@@ -303,11 +307,11 @@ struct DecodeBuffer {
   template <typename T>
   bool operator==(const T& correct)
   {
-#ifdef __cpp_lib_execution
+#ifdef RANS_PARALLEL_STL
     return std::equal(std::execution::par_unseq, buffer.begin(), buffer.end(), std::begin(correct), std::end(correct));
 #else
     return std::equal(buffer.begin(), buffer.end(), std::begin(correct), std::end(correct));
-#endif
+#endif // RANS_PARALLEL_STL
   }
 
   std::vector<source_T> buffer{};

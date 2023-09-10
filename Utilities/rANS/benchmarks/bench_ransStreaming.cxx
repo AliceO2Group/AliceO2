@@ -13,12 +13,13 @@
 /// @author Michael Lettrich
 /// @brief benchmarks streaming out data from rANS state to memory
 
+#include "rANS/internal/common/defines.h"
+
 #include <vector>
 #include <cstring>
 #include <random>
 #include <algorithm>
-#include <version>
-#ifdef __cpp_lib_execution
+#ifdef RANS_PARALLEL_STL
 #include <execution>
 #endif
 #include <iterator>
@@ -61,11 +62,11 @@ class RenormingData
     std::binomial_distribution<source_T> dist(draws, probability);
     const size_t sourceSize = messageSize / sizeof(source_T);
     mSourceMessage.resize(sourceSize);
-#ifdef __cpp_lib_execution
+#ifdef RANS_PARALLEL_STL
     std::generate(std::execution::par_unseq, mSourceMessage.begin(), mSourceMessage.end(), [&dist, &mt]() { return dist(mt); });
 #else
     std::generate(mSourceMessage.begin(), mSourceMessage.end(), [&dist, &mt]() { return dist(mt); });
-#endif
+#endif // RANS_PARALLEL_STL
 
     const auto histogram = makeDenseHistogram::fromSamples(gsl::span<const source_T>(mSourceMessage));
     Metrics<source_T> metrics{histogram};
