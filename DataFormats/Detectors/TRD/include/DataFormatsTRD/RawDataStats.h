@@ -163,6 +163,8 @@ class TRDDataCountersPerTimeFrame
     mTimeTakenForTracklets = 0;
     mDigitsFound = 0;
     mTrackletsFound = 0;
+    mNTriggersCalib = 0;
+    mNTriggersTotal = 0;
     mDataFormatRead.fill(0);
   };
   ClassDefNV(TRDDataCountersPerTimeFrame, 2); // primarily for serialisation so we can send this as a message in o2
