@@ -152,7 +152,7 @@ class TrackCheckStudy : public Task
   std::unique_ptr<TEfficiency> mEffFakePtSec;
   std::unique_ptr<TEfficiency> mEffEtaSec; // Eff vs Eta secondary
   std::unique_ptr<TEfficiency> mEffFakeEtaSec;
- 
+
   std::unique_ptr<TH1D> mPtResolution; // Pt resolution for both primary and secondary
   std::unique_ptr<TH2D> mPtResolution2D;
   std::unique_ptr<TH1D> mPtResolutionSec;
@@ -254,7 +254,7 @@ void TrackCheckStudy::init(InitContext& ic)
   mDenominatorEta = std::make_unique<TH1D>("denominatorEta", ";#eta;Number of tracks", 60, -3, 3);
   mDenominatorPtSec = std::make_unique<TH1D>("denominatorPtSec", ";#it{p}_{T} (GeV/#it{c});Den", pars.effHistBins, xbins.data());
   mDenominatorEtaSec = std::make_unique<TH1D>("denominatorEtaSec", ";#eta;Number of tracks", 60, -3, 3);
-  
+
   processvsZ = std::make_unique<TH2D>("Process", ";z_{SV} [cm]; production process", 100, -50, 50., 50, 0, 50);
   processvsRad = std::make_unique<TH2D>("ProcessR", ";decay radius [cm]; production process", 100, 0, 25., 50, 0, 50);
   processvsRadOther = std::make_unique<TH2D>("ProcessRO", ";decay radius [cm]; production process", 200, 0, 25., 50, 0, 50);
@@ -282,7 +282,6 @@ void TrackCheckStudy::init(InitContext& ic)
     mFakeEtas[i].resize(4);
     mTotEtas[i].resize(4);
   }
-  
   for (int ii = 0; ii < 4; ii++) {
 
     mGoodRad[ii] = std::make_unique<TH1D>(Form("goodRad_%s", particleToanalize[ii]), ";z_{SV} [cm];Number of tracks", 100, 0., 20.);
@@ -367,9 +366,9 @@ void TrackCheckStudy::init(InitContext& ic)
   legends2Fake.resize(4);
   legends3Fake.resize(4);
 
-  for (int iH{4}; iH < 8; ++iH) { 
-  // check distributions on layers of fake clusters for tracks of different lengths.
-  // Different histograms if the correct cluster exist or not
+  for (int iH{4}; iH < 8; ++iH) {
+    // check distributions on layers of fake clusters for tracks of different lengths.
+    // Different histograms if the correct cluster exist or not
     for (int jj = 0; jj < 3; jj++) {
       histLength[iH - 4][jj] = new TH1I(Form("trk_len_%d_%s", iH, name[jj]), Form("#exists cluster %s", name), 7, -.5, 6.5);
       histLength[iH - 4][jj]->SetFillColor(colorArr[jj] - 9);
@@ -653,7 +652,7 @@ void TrackCheckStudy::process()
               mFakeEtas[idxPart][nlayer]->Fill(part.eta);
             }
           }
-      
+
           if (pdgcode != 1010010030 && pdgcode != 3122 && pdgcode != 310 && pdgcode != -1010010030 && pdgcode != -310 && pdgcode != -3122) {
             idxPart = 3;
             processvsRadOther->Fill(rad, part.prodProcess);
@@ -719,7 +718,7 @@ void TrackCheckStudy::process()
                     const_cast<o2::MCCompLabel&>(lab).get(TrackID, EvID, SrcID, fakec);
                     double intHisto = 0;
                     for (int hg = 0; hg < 7; hg++) {
-                      if (mParticleInfo[SrcID][EvID][TrackID].pdg == PdgcodeClusterFake[hg] || mParticleInfo[SrcID][EvID][TrackID].pdg == -1*(PdgcodeClusterFake[hg]))
+                      if (mParticleInfo[SrcID][EvID][TrackID].pdg == PdgcodeClusterFake[hg] || mParticleInfo[SrcID][EvID][TrackID].pdg == -1 * (PdgcodeClusterFake[hg]))
                         intHisto = hg + 0.5;
                     }
                     if (idxPart < 3)
