@@ -562,6 +562,7 @@ size_t header_map_callback(char* buffer, size_t size, size_t nitems, void* userd
   if (index != std::string::npos) {
     const auto key = boost::algorithm::trim_copy(header.substr(0, index));
     const auto value = boost::algorithm::trim_copy(header.substr(index + 1));
+    LOGP(debug, "Adding #{} {} -> {}", headers->size(), key, value);
     headers->insert(std::make_pair(key, value));
   }
   return size * nitems;
@@ -1539,12 +1540,10 @@ void CcdbApi::loadFileToMemory(o2::pmr::vector<char>& dest, std::string const& p
 
     curl_slist* options_list = nullptr;
     initCurlHTTPHeaderOptionsForRetrieve(curl_handle, options_list, timestamp, headers, etag, createdNotAfter, createdNotBefore);
-
     navigateURLsAndLoadFileToMemory(dest, curl_handle, fullUrl, headers);
-
     for (size_t hostIndex = 1; hostIndex < hostsPool.size() && isMemoryFileInvalid(dest); hostIndex++) {
       fullUrl = getFullUrlForRetrieval(curl_handle, path, metadata, timestamp, hostIndex);
-      loadFileToMemory(dest, fullUrl, headers); // headers loaded from the file in case of the snapshot reading only
+      navigateURLsAndLoadFileToMemory(dest, curl_handle, fullUrl, headers); // headers loaded from the file in case of the snapshot reading only
     }
     curl_slist_free_all(options_list);
     curl_easy_cleanup(curl_handle);
@@ -1596,7 +1595,7 @@ void CcdbApi::navigateURLsAndLoadFileToMemory(o2::pmr::vector<char>& dest, CURL*
   }
   // otherwise make an HTTP/CURL request
   struct HeaderObjectPair_t {
-    std::map<std::string, std::string> header;
+    std::multimap<std::string, std::string> header;
     o2::pmr::vector<char>* object = nullptr;
     int counter = 0;
   } hoPair{{}, &dest, 0};
