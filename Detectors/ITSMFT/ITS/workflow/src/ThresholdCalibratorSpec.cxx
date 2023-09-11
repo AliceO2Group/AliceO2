@@ -751,7 +751,7 @@ void ITSThresholdCalibrator::extractThresholdRow(const short int& chipID, const 
         vNoise[col_i] = (unsigned char)(noise * 10.); // always factor 10 also for ITHR/VCASN to not have all zeros
         vSuccess[col_i] = success;
         vPoints[col_i] = spoints > 0 ? (unsigned char)(spoints) : 0;
-        LOG(info) << "Number of points: " << spoints;
+
         if (mScanType == 'r') {
           vMixData[col_i] = (scan_i * this->mStep) + mMin;
         }
