@@ -45,7 +45,6 @@ o2_add_library(Framework
                        src/DefaultsHelpers.cxx
                        src/DomainInfoHeader.cxx
                        src/ProcessingPoliciesHelpers.cxx
-                       src/ConfigParamDiscovery.cxx
                        src/ConfigParamStore.cxx
                        src/ConfigParamsHelper.cxx
                        src/ChannelParamSpec.cxx

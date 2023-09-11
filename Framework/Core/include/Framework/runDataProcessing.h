@@ -30,7 +30,6 @@
 #include "Framework/Logger.h"
 #include "Framework/CheckTypes.h"
 #include "Framework/StructToTuple.h"
-#include "Framework/ConfigParamDiscovery.h"
 
 #include <vector>
 #include <cstring>
@@ -204,8 +203,6 @@ int mainNoCatch(int argc, char** argv)
   workflowOptionsStore->preload();
   workflowOptionsStore->activate();
   ConfigParamRegistry workflowOptionsRegistry(std::move(workflowOptionsStore));
-  ConfigParamDiscovery::discover(workflowOptionsRegistry);
-
   ConfigContext configContext(workflowOptionsRegistry, argc, argv);
   o2::framework::WorkflowSpec specs = defineDataProcessing(configContext);
   overrideCloning(configContext, specs);
