@@ -49,14 +49,7 @@ struct EtaAndClsHistograms {
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  // For the sake of running without an option, we do not throw an exception
-  // in case the option is not present.
-  if (cfgc.options().hasOption("aod-metadata-Run") == false ||
-      cfgc.options().get<std::string>("aod-metadata-Run") == "2") {
-    return WorkflowSpec{
-      adaptAnalysisTask<EtaAndClsHistograms>(cfgc),
-    };
-  } else {
-    throw std::runtime_error("Unsupported run type");
-  }
+  return WorkflowSpec{
+    adaptAnalysisTask<EtaAndClsHistograms>(cfgc),
+  };
 }
