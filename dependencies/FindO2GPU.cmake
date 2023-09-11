@@ -240,7 +240,7 @@ if(ENABLE_HIP)
     message(STATUS "HIP Found (${hip_HIPCC_EXECUTABLE} version ${hip_VERSION})")
     set(O2_HIP_CMAKE_CXX_FLAGS "-fgpu-defer-diag -mllvm -amdgpu-enable-lower-module-lds=false -Wno-invalid-command-line-argument -Wno-unused-command-line-argument -Wno-invalid-constexpr -Wno-ignored-optimization-argument -Wno-unused-private-field -Wno-pass-failed")
     set(O2_HIP_CMAKE_LINK_FLAGS "-Wno-pass-failed")
-    string(REGEX REPLACE "(gfx1[0-9]+;?)" "" CMAKE_HIP_ARCHITECTURES "${CMAKE_HIP_ARCHITECTURES}") # sanitize found architectures stripping gfx1XXX format for CPU
+    # string(REGEX REPLACE "(gfx1[0-9]+;?)" "" CMAKE_HIP_ARCHITECTURES "${CMAKE_HIP_ARCHITECTURES}") # sanitize found architectures stripping gfx1XXX format for CPU
     if(HIP_AMDGPUTARGET)
       foreach(HIP_ARCH ${HIP_AMDGPUTARGET})
         set(O2_HIP_CMAKE_CXX_FLAGS "${O2_HIP_CMAKE_CXX_FLAGS} --offload-arch=${HIP_ARCH}")
@@ -254,6 +254,7 @@ if(ENABLE_HIP)
       string(REGEX REPLACE "(.*)bin/c\\+\\+\$" "\\1" HIP_GCC_TOOLCHAIN_PATH "${CMAKE_CXX_COMPILER}")
       set(O2_HIP_CMAKE_CXX_FLAGS "${O2_HIP_CMAKE_CXX_FLAGS} --gcc-toolchain=${HIP_GCC_TOOLCHAIN_PATH}") # -ffast-math disabled, since apparently it leads to miscompilation and crashes in FollowLooper kernel
     endif()
+    set(CMAKE_HIP_FLAGS "${CMAKE_HIP_FLAGS} ${O2_HIP_CMAKE_CXX_FLAGS}")
   else()
     set(HIP_ENABLED OFF)
   endif()

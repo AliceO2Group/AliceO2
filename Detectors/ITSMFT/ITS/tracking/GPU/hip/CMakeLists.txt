@@ -10,34 +10,35 @@
 # or submit itself to any jurisdiction.
 
 if(HIP_ENABLED)
-  # Hipify-perl to generate HIP sources
-  set(HIPIFY_EXECUTABLE "/opt/rocm/bin/hipify-perl")
-  file(GLOB CUDA_SOURCES_FULL_PATH "../cuda/*.cu")
-  foreach(file ${CUDA_SOURCES_FULL_PATH})
-    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${file})
-    get_filename_component(CUDA_SOURCE ${file} NAME)
-    string(REPLACE ".cu" "" CUDA_SOURCE_NAME ${CUDA_SOURCE})
-    add_custom_command(
-      OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${CUDA_SOURCE_NAME}.hip
-      COMMAND ${HIPIFY_EXECUTABLE} --quiet-warnings ${CMAKE_CURRENT_SOURCE_DIR}/../cuda/${CUDA_SOURCE} | sed '1{/\#include \"hip\\/hip_runtime.h\"/d}' > ${CMAKE_CURRENT_SOURCE_DIR}/${CUDA_SOURCE_NAME}.hip
-      DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../cuda/${CUDA_SOURCE}
-    )
-  endforeach()
+  # # Hipify-perl to generate HIP sources
+  # set(HIPIFY_EXECUTABLE "/opt/rocm/bin/hipify-perl")
+  # file(GLOB CUDA_SOURCES_FULL_PATH "../cuda/*.cu")
+  # foreach(file ${CUDA_SOURCES_FULL_PATH})
+  #   set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS ${file})
+  #   get_filename_component(CUDA_SOURCE ${file} NAME)
+  #   string(REPLACE ".cu" "" CUDA_SOURCE_NAME ${CUDA_SOURCE})
+  #   add_custom_command(
+  #     OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/${CUDA_SOURCE_NAME}.hip
+  #     COMMAND ${HIPIFY_EXECUTABLE} --quiet-warnings ${CMAKE_CURRENT_SOURCE_DIR}/../cuda/${CUDA_SOURCE} | sed '1{/\#include \"hip\\/hip_runtime.h\"/d}' > ${CMAKE_CURRENT_SOURCE_DIR}/${CUDA_SOURCE_NAME}.hip
+  #     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../cuda/${CUDA_SOURCE}
+  #   )
+  # endforeach()
 
-  install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${baseTargetName}
-          DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+  # install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${baseTargetName}
+  #         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
   set(CMAKE_HIP_FLAGS "${CMAKE_HIP_FLAGS} ${O2_HIP_CMAKE_CXX_FLAGS} -fgpu-rdc")
+  string(REGEX REPLACE "(gfx1[0-9]+;?)" "" CMAKE_HIP_ARCHITECTURES "${CMAKE_HIP_ARCHITECTURES}")
   message(STATUS "Building ITS HIP tracker")
-  o2_add_library(ITStrackingHIP
-                 SOURCES ClusterLinesGPU.hip
-                         Context.hip
-                         TimeFrameGPU.hip
-                         Stream.hip
-                         TrackerTraitsGPU.hip
-                         TracerGPU.hip
-                         VertexerTraitsGPU.hip
-                         Utils.hip
+  o2_add_hipified_library(ITStrackingHIP
+                 SOURCES ../cuda/ClusterLinesGPU.cu
+                         ../cuda/Context.cu
+                         ../cuda/TimeFrameGPU.cu
+                         ../cuda/Stream.cu
+                         ../cuda/TrackerTraitsGPU.cu
+                         ../cuda/TracerGPU.cu
+                         ../cuda/VertexerTraitsGPU.cu
+                         ../cuda/Utils.cu
                  PUBLIC_INCLUDE_DIRECTORIES ../
                  PUBLIC_LINK_LIBRARIES O2::ITStracking
                                        hip::host
@@ -45,8 +46,8 @@ if(HIP_ENABLED)
                                        hip::hipcub
                  TARGETVARNAME targetName)
 
-  target_compile_definitions(
-    ${targetName} PRIVATE $<TARGET_PROPERTY:O2::ITStracking,COMPILE_DEFINITIONS>)
+  # target_compile_definitions(
+  #   ${targetName} PRIVATE $<TARGET_PROPERTY:O2::ITStracking,COMPILE_DEFINITIONS>)
 
   if(O2_HIP_CMAKE_LINK_FLAGS)
     # Need to add gpu target also to link flags due to gpu-rdc option

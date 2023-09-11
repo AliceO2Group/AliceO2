@@ -11,6 +11,7 @@
 ///
 /// \author mconcas@cern.ch
 ///
+#include <unistd.h>
 
 #include "../Shared/Kernels.h"
 #define VERSION "version 0.3"
@@ -175,6 +176,7 @@ bool parseArgs(o2::benchmark::benchmarkOpts& conf, int argc, const char* argv[])
 
 int main(int argc, const char* argv[])
 {
+  std::cout << "Started benchmark with pid: " << getpid() << std::endl;
   o2::benchmark::benchmarkOpts opts;
 
   if (!parseArgs(opts, argc, argv)) {

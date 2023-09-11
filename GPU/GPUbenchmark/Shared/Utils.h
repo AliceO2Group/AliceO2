@@ -47,6 +47,11 @@
   exit(EXIT_FAILURE);
 #endif
 
+template <typename T>
+void discardResult(const T&)
+{
+}
+
 enum class Test {
   Read,
   Write,
