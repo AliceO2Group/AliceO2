@@ -40,7 +40,7 @@ Detector::Detector(bool active)
     mHits(o2::utils::createSimVector<o2::itsmft::Hit>())
 {
   auto& iotofPars = IOTOFBaseParam::Instance();
-  configLayers(iotofPars.enableInnerTOF, iotofPars.enableOuterTOF);
+  configLayers(iotofPars.enableInnerTOF, iotofPars.enableOuterTOF, iotofPars.enableForwardTOF);
 }
 
 Detector::~Detector()
@@ -56,13 +56,19 @@ void Detector::ConstructGeometry()
   createGeometry();
 }
 
-void Detector::configLayers(bool itof, bool otof)
+void Detector::configLayers(bool itof, bool otof, bool ftof, bool btof)
 {
   if (itof) {
-    mITOFLayer = ITOFLayer(std::string{GeometryTGeo::getITOFLayerPattern()}, 19.f, 124.f, 0.02f); // iTOF
+    mITOFLayer = ITOFLayer(std::string{GeometryTGeo::getITOFLayerPattern()}, 19.f, 0.f, 124.f, 0.f, 0.02f, true); // iTOF
   }
   if (otof) {
-    mOTOFLayer = OTOFLayer(std::string{GeometryTGeo::getOTOFLayerPattern()}, 85.f, 680.f, 0.02f); // oTOF
+    mOTOFLayer = OTOFLayer(std::string{GeometryTGeo::getOTOFLayerPattern()}, 85.f, 0.f, 680.f, 0.f, 0.02f, true); // oTOF
+  }
+  if (ftof) {
+    mFTOFLayer = FTOFLayer(std::string{GeometryTGeo::getFTOFLayerPattern()}, 15.f, 150.f, 0.f, 405.f, 0.02f, false); // fTOF
+  }
+  if (btof) {
+    mBTOFLayer = BTOFLayer(std::string{GeometryTGeo::getBTOFLayerPattern()}, 15.f, 150.f, 0.f, -405.f, 0.02f, false); // bTOF
   }
 }
 
@@ -122,6 +128,12 @@ void Detector::createGeometry()
   if (iotofPars.enableOuterTOF) {
     mOTOFLayer.createLayer(vIOTOF);
   }
+  if (iotofPars.enableForwardTOF) {
+    mFTOFLayer.createLayer(vIOTOF);
+  }
+  if (iotofPars.enableBackwardTOF) {
+    mBTOFLayer.createLayer(vIOTOF);
+  }
 }
 
 void Detector::InitializeO2Detector()
@@ -145,6 +157,16 @@ void Detector::defineSensitiveVolumes()
   }
   if (iotofPars.enableOuterTOF) {
     v = geoManager->GetVolume(GeometryTGeo::getOTOFSensorPattern());
+    LOGP(info, "Adding IOTOF Sensitive Volume {}", v->GetName());
+    AddSensitiveVolume(v);
+  }
+  if (iotofPars.enableForwardTOF) {
+    v = geoManager->GetVolume(GeometryTGeo::getFTOFSensorPattern());
+    LOGP(info, "Adding IOTOF Sensitive Volume {}", v->GetName());
+    AddSensitiveVolume(v);
+  }
+    if (iotofPars.enableBackwardTOF) {
+    v = geoManager->GetVolume(GeometryTGeo::getBTOFSensorPattern());
     LOGP(info, "Adding IOTOF Sensitive Volume {}", v->GetName());
     AddSensitiveVolume(v);
   }

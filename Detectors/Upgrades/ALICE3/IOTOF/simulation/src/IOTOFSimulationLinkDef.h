@@ -18,6 +18,7 @@
 #pragma link C++ class o2::iotof::Layer + ;
 #pragma link C++ class o2::iotof::ITOFLayer + ;
 #pragma link C++ class o2::iotof::OTOFLayer + ;
+#pragma link C++ class o2::iotof::FTOFLayer + ;
 #pragma link C++ class o2::iotof::Detector + ;
 #pragma link C++ class o2::base::DetImpl < o2::iotof::Detector> + ;
 

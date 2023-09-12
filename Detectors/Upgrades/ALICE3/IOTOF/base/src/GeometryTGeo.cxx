@@ -31,6 +31,16 @@ std::string GeometryTGeo::sOTOFLayerName = "OTOFLayer";
 std::string GeometryTGeo::sOTOFChipName = "OTOFChip";
 std::string GeometryTGeo::sOTOFSensorName = "OTOFSensor";
 
+// Forward TOF
+std::string GeometryTGeo::sFTOFLayerName = "FTOFLayer";
+std::string GeometryTGeo::sFTOFChipName = "FTOFChip";
+std::string GeometryTGeo::sFTOFSensorName = "FTOFSensor";
+
+// Backward TOF
+std::string GeometryTGeo::sBTOFLayerName = "BTOFLayer";
+std::string GeometryTGeo::sBTOFChipName = "BTOFChip";
+std::string GeometryTGeo::sBTOFSensorName = "BTOFSensor";
+
 GeometryTGeo::GeometryTGeo(bool build, int loadTrans) : DetMatrixCache()
 {
   if (sInstance) {
@@ -97,6 +107,38 @@ const char* GeometryTGeo::composeOTOFSymNameChip(int d, int lr)
 const char* GeometryTGeo::composeOTOFSymNameSensor(int d, int lr)
 {
   return Form("%s/%s%d", composeOTOFSymNameChip(d, lr), getOTOFSensorPattern(), lr);
+}
+
+// Forward TOF
+const char* GeometryTGeo::composeFTOFSymNameLayer(int d, int lr)
+{
+  return Form("%s/%s%d", composeSymNameIOTOF(d), getFTOFLayerPattern(), lr);
+}
+
+const char* GeometryTGeo::composeFTOFSymNameChip(int d, int lr)
+{
+  return Form("%s/%s%d", composeFTOFSymNameLayer(d, lr), getFTOFChipPattern(), lr);
+}
+
+const char* GeometryTGeo::composeFTOFSymNameSensor(int d, int lr)
+{
+  return Form("%s/%s%d", composeFTOFSymNameChip(d, lr), getFTOFSensorPattern(), lr);
+}
+
+// Backward TOF
+const char* GeometryTGeo::composeBTOFSymNameLayer(int d, int lr)
+{
+  return Form("%s/%s%d", composeSymNameIOTOF(d), getBTOFLayerPattern(), lr);
+}
+
+const char* GeometryTGeo::composeBTOFSymNameChip(int d, int lr)
+{
+  return Form("%s/%s%d", composeBTOFSymNameLayer(d, lr), getBTOFChipPattern(), lr);
+}
+
+const char* GeometryTGeo::composeBTOFSymNameSensor(int d, int lr)
+{
+  return Form("%s/%s%d", composeBTOFSymNameChip(d, lr), getBTOFSensorPattern(), lr);
 }
 
 } // namespace iotof

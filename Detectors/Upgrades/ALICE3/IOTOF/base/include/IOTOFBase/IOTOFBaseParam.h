@@ -23,6 +23,8 @@ namespace iotof
 struct IOTOFBaseParam : public o2::conf::ConfigurableParamHelper<IOTOFBaseParam> {
   bool enableInnerTOF = true;
   bool enableOuterTOF = true;
+  bool enableForwardTOF = true;
+  bool enableBackwardTOF = true;
 
   O2ParamDef(IOTOFBaseParam, "IOTOFBase");
 };

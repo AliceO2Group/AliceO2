@@ -10,7 +10,7 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(IOTOFSimulation
-               SOURCES src/IOTOFLayer.cxx
+               SOURCES src/Layer.cxx
                        src/Detector.cxx
                       #  src/IOTOFServices.cxx
                PUBLIC_LINK_LIBRARIES O2::IOTOFBase
@@ -18,6 +18,5 @@ o2_add_library(IOTOFSimulation
 
 o2_target_root_dictionary(IOTOFSimulation
                           HEADERS include/IOTOFSimulation/Detector.h
-                                  include/IOTOFSimulation/IOTOFLayer.h
-                                  # include/IOTOFSimulation/IOTOFServices.h
-)
+                                  include/IOTOFSimulation/Layer.h)
+                                  # include/IOTOFSimulation/IOTOFServices.h)

@@ -23,16 +23,17 @@ class Layer
 {
  public:
   Layer() = default;
-  Layer(std::string layerName, float rInn, float zLength, float layerX2X0);
-  // Layer(std::string layerName, float rInn, float zLength, float thickness);
+  Layer(std::string layerName, float rInn, float rOut, float zLength, float zOffset, float layerX2X0, bool isBarrel = true);
   ~Layer() = default;
 
   auto getInnerRadius() const { return mInnerRadius; }
-  auto getOuterRadius() const { return mInnerRadius + mChipThickness; }
-  auto getZ() const { return mZ; }
+  auto getOuterRadius() const { return mOuterRadius; }
+  auto getZLength() const { return mZLength; }
+  auto getZOffset() const { return mZOffset; }
   auto getx2X0() const { return mX2X0; }
   auto getChipThickness() const { return mChipThickness; }
   auto getName() const { return mLayerName; }
+  auto getIsBarrel() const { return mIsBarrel; }
 
   virtual void createLayer(TGeoVolume* motherVolume){};
 
@@ -40,9 +41,11 @@ class Layer
   std::string mLayerName;
   float mInnerRadius;
   float mOuterRadius;
-  float mZ;
+  float mZLength;
+  float mZOffset{0.f}; // Of use when fwd layers
   float mX2X0;
   float mChipThickness;
+  bool mIsBarrel{true};
 };
 
 class ITOFLayer : public Layer
@@ -53,6 +56,20 @@ class ITOFLayer : public Layer
 };
 
 class OTOFLayer : public Layer
+{
+ public:
+  using Layer::Layer;
+  virtual void createLayer(TGeoVolume* motherVolume) override;
+};
+
+class FTOFLayer : public Layer
+{
+ public:
+  using Layer::Layer;
+  virtual void createLayer(TGeoVolume* motherVolume) override;
+};
+
+class BTOFLayer : public Layer
 {
  public:
   using Layer::Layer;

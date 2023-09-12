@@ -15,7 +15,7 @@
 #include "DetectorsBase/Detector.h"
 #include "ITSMFTSimulation/Hit.h"
 
-#include "IOTOFSimulation/IOTOFLayer.h"
+#include "IOTOFSimulation/Layer.h"
 // #include "IOTOFSimulation/TRKServices.h"
 #include "IOTOFBase/GeometryTGeo.h"
 
@@ -60,7 +60,7 @@ class Detector : public o2::base::DetImpl<Detector>
     return nullptr;
   }
 
-  void configLayers(bool itof = true, bool otof = true);
+  void configLayers(bool itof = true, bool otof = true, bool ftof = true, bool btof = true);
 
   void configServices();
   void createMaterials();
@@ -80,6 +80,8 @@ class Detector : public o2::base::DetImpl<Detector>
   std::vector<o2::itsmft::Hit>* mHits; // ITSMFT ones for the moment
   ITOFLayer mITOFLayer;                //!
   OTOFLayer mOTOFLayer;                //!
+  FTOFLayer mFTOFLayer;                //!
+  BTOFLayer mBTOFLayer;                //!
 
   void defineSensitiveVolumes();
 

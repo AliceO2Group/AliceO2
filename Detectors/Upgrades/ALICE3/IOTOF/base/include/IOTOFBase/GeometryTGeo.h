@@ -40,6 +40,16 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static const char* getOTOFChipPattern() { return sOTOFChipName.c_str(); }
   static const char* getOTOFSensorPattern() { return sOTOFSensorName.c_str(); }
 
+  // Forward TOF
+  static const char* getFTOFLayerPattern() { return sFTOFLayerName.c_str(); }
+  static const char* getFTOFChipPattern() { return sFTOFChipName.c_str(); }
+  static const char* getFTOFSensorPattern() { return sFTOFSensorName.c_str(); }
+
+  // Backward TOF
+  static const char* getBTOFLayerPattern() { return sBTOFLayerName.c_str(); }
+  static const char* getBTOFChipPattern() { return sBTOFChipName.c_str(); }
+  static const char* getBTOFSensorPattern() { return sBTOFSensorName.c_str(); }
+
   static const char* composeSymNameIOTOF(int d)
   {
     return Form("%s_%d", o2::detectors::DetID(o2::detectors::DetID::TF3).getName(), d);
@@ -55,6 +65,16 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static const char* composeOTOFSymNameChip(int d, int lr);
   static const char* composeOTOFSymNameSensor(int d, int layer);
 
+  // Forward TOF
+  static const char* composeFTOFSymNameLayer(int d, int layer);
+  static const char* composeFTOFSymNameChip(int d, int lr);
+  static const char* composeFTOFSymNameSensor(int d, int layer);
+
+  // Backward TOF
+  static const char* composeBTOFSymNameLayer(int d, int layer);
+  static const char* composeBTOFSymNameChip(int d, int lr);
+  static const char* composeBTOFSymNameSensor(int d, int layer);
+
  protected:
   // i/oTOF mother volume
   static std::string sIOTOFVolumeName;
@@ -68,6 +88,16 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   static std::string sOTOFLayerName;
   static std::string sOTOFChipName;
   static std::string sOTOFSensorName;
+
+  // Forward TOF
+  static std::string sFTOFLayerName;
+  static std::string sFTOFChipName;
+  static std::string sFTOFSensorName;
+
+  // Backward TOF
+  static std::string sBTOFLayerName;
+  static std::string sBTOFChipName;
+  static std::string sBTOFSensorName;
 
  private:
   static std::unique_ptr<o2::iotof::GeometryTGeo> sInstance;
