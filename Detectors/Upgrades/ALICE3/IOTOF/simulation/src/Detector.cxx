@@ -165,7 +165,7 @@ void Detector::defineSensitiveVolumes()
     LOGP(info, "Adding IOTOF Sensitive Volume {}", v->GetName());
     AddSensitiveVolume(v);
   }
-    if (iotofPars.enableBackwardTOF) {
+  if (iotofPars.enableBackwardTOF) {
     v = geoManager->GetVolume(GeometryTGeo::getBTOFSensorPattern());
     LOGP(info, "Adding IOTOF Sensitive Volume {}", v->GetName());
     AddSensitiveVolume(v);
