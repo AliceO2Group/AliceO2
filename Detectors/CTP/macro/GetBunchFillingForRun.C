@@ -30,12 +30,12 @@ void GetBunchFillingForRun(bool test = 1)
   std::cout << "Timestamp:" << timeStamp << std::endl;
   std::string srun = std::to_string(runNumber);
   map<string, string> metadata; // can be empty
-  //metadata["runNumber"] = srun;
+  // metadata["runNumber"] = srun;
   metadata["fillNumber"] = fillNumber;
   auto lhcifdata = ccdbMgr.getSpecific<o2::parameters::GRPLHCIFData>("GLO/Config/GRPLHCIF", timeStamp, metadata);
-  auto bfilling = lhcifdata->getBunchFilling(); 
+  auto bfilling = lhcifdata->getBunchFilling();
   std::vector<int> bcs = bfilling.getFilledBCs();
-  for(auto const& bc: bcs) {
+  for (auto const& bc : bcs) {
     std::cout << bc << std::endl;
   }
 }
