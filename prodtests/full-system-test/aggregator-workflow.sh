@@ -254,13 +254,11 @@ nTFs=$((1000 * 128 / ${NHBPERTF}))
 nTFs_SAC=$((1000 * 128 / ${NHBPERTF}))
 nBuffer=$((100 * 128 / ${NHBPERTF}))
 IDC_DELTA="--disable-IDCDelta true" # off by default
-
 # deltas are on by default; you need to request explicitly to switch them off;
 if [[ "${DISABLE_IDC_DELTA:-}" == "1" ]]; then IDC_DELTA=""; fi
 if [[ "${ENABLE_IDC_DELTA_FILE:-}" == "1" ]]; then IDC_DELTA+=" --dump-IDCDelta-calib-data true --output-dir $CALIB_DIR --meta-output-dir $EPN2EOS_METAFILES_DIR "; fi
 
-TPC_WRITING_PAD_STATUS_MAP="--enableWritingPadStatusMap true"
-if [[ "${DISABLE_IDC_PAD_MAP_WRITING:-}" == 1 ]]; then TPC_WRITING_PAD_STATUS_MAP=""; fi
+if [[ "${DISABLE_IDC_PAD_MAP_WRITING:-}" == 1 ]]; then TPC_WRITING_PAD_STATUS_MAP=""; else TPC_WRITING_PAD_STATUS_MAP="--enableWritingPadStatusMap true"; fi
 
 if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
   if [[ $CALIB_TPC_IDC == 1 ]] && [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC || $AGGREGATOR_TASKS == ALL ]]; then
