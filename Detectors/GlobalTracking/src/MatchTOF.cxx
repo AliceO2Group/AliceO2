@@ -56,8 +56,10 @@ using timeEst = o2::dataformats::TimeStampWithError<float, float>;
 ClassImp(MatchTOF);
 
 //______________________________________________
-void MatchTOF::run(const o2::globaltracking::RecoContainer& inp)
+void MatchTOF::run(const o2::globaltracking::RecoContainer& inp, unsigned long firstTForbit)
 {
+  mFirstTForbit = firstTForbit;
+
   if (!mMatchParams) {
     mMatchParams = &o2::globaltracking::MatchTOFParams::Instance();
     mSigmaTimeCut = mMatchParams->nsigmaTimeCut;
@@ -1183,18 +1185,20 @@ void MatchTOF::doMatchingForTPC(int sec)
   return;
 }
 //______________________________________________
-int MatchTOF::findFITIndex(int bc, const gsl::span<const o2::ft0::RecPoints>& FITRecPoints)
+int MatchTOF::findFITIndex(int bc, const gsl::span<const o2::ft0::RecPoints>& FITRecPoints, unsigned long firstOrbit)
 {
+  bc -= o2::tof::Geo::LATENCYWINDOW_IN_BC;
+
   if (FITRecPoints.size() == 0) {
     return -1;
   }
 
   int index = -1;
-  int distMax = 5; // require bc distance below 5
+  int distMax = 7; // require bc distance below 5
 
   for (unsigned int i = 0; i < FITRecPoints.size(); i++) {
     const o2::InteractionRecord ir = FITRecPoints[i].getInteractionRecord();
-    int bct0 = ir.orbit * o2::constants::lhc::LHCMaxBunches + ir.bc;
+    int bct0 = (ir.orbit - firstOrbit) * o2::constants::lhc::LHCMaxBunches + ir.bc;
     int dist = bc - bct0;
 
     if (dist < 0 || dist > distMax) {
@@ -1254,14 +1258,15 @@ void MatchTOF::BestMatches(std::vector<o2::dataformats::MatchInfoTOFReco>& match
 
     const o2::track::TrackLTIntegral& intLT = matchingPair.getLTIntegralOut();
 
-    if (FITRecPoints.size() > 0) {
-      int index = findFITIndex(TOFClusWork[matchingPair.getTOFClIndex()].getBC(), FITRecPoints);
+    if (FITRecPoints.size() > 0 && mIsFIT) {
+      int index = findFITIndex(TOFClusWork[matchingPair.getTOFClIndex()].getBC() - o2::tof::Geo::LATENCYWINDOW_IN_BC, FITRecPoints, mFirstTForbit);
 
       if (index > -1) {
         o2::InteractionRecord ir = FITRecPoints[index].getInteractionRecord();
-        t0info = ir.bc2ns() * 1E3;
+        int bct0 = (ir.orbit - mFirstTForbit) * o2::constants::lhc::LHCMaxBunches + ir.bc;
+        t0info = bct0 * o2::tof::Geo::BC_TIME_INPS;
       }
-    } else { // move time to time in orbit to avoid loss of precision when truncating from double to float
+    } else if (!mIsFIT) { // move time to time in orbit to avoid loss of precision when truncating from double to float
       int bcStarOrbit = int((TOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() - intLT.getTOF(o2::track::PID::Pion)) * o2::tof::Geo::BC_TIME_INPS_INV);
       bcStarOrbit = (bcStarOrbit / o2::constants::lhc::LHCMaxBunches) * o2::constants::lhc::LHCMaxBunches; // truncation
       t0info = bcStarOrbit * o2::tof::Geo::BC_TIME_INPS;
@@ -1280,7 +1285,14 @@ void MatchTOF::BestMatches(std::vector<o2::dataformats::MatchInfoTOFReco>& match
     }
 
     int mask = 0;
-    float deltat = o2::tof::Utils::subtractInteractionBC(TOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() - t0info - intLT.getTOF(o2::track::PID::Pion), mask, true);
+    float deltat;
+
+    if (t0info > 0 && mIsFIT) {                                                                                                                                                       // FT0 BC found
+      deltat = TOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() - t0info - intLT.getTOF(o2::track::PID::Pion) - o2::tof::Geo::LATENCYWINDOW_IN_BC * o2::tof::Geo::BC_TIME_INPS; // latency subtracted
+      mask = 1 << 8;                                                                                                                                                                  // only FT0 BC allowed (-> BC=0 since t0info already subtracted and assumed to be aligned to the true IntBC)
+    } else if (!mIsFIT) {
+      deltat = o2::tof::Utils::subtractInteractionBC(TOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() - t0info - intLT.getTOF(o2::track::PID::Pion), mask, true);
+    }
 
     const o2::track::TrackParCov& trc = TracksWork[trkType][itrk].first;
     float pt = trc.getPt(); // from outer parameters!
@@ -1301,7 +1313,7 @@ void MatchTOF::BestMatches(std::vector<o2::dataformats::MatchInfoTOFReco>& match
       flags = flags | o2::dataformats::CalibInfoTOF::kMultiHit;
     }
 
-    if (matchingPair.getChi2() < calibMaxChi2) { // extra cut in ChiSquare for storing calib info
+    if (matchingPair.getChi2() < calibMaxChi2 && t0info > 0) { // extra cut in ChiSquare for storing calib info
       CalibInfoTOF.emplace_back(TOFClusWork[matchingPair.getTOFClIndex()].getMainContributingChannel(),
                                 Timestamp / 1000 + int(TOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() * 1E-12), // add time stamp
                                 deltat,
@@ -1394,12 +1406,13 @@ void MatchTOF::BestMatchesHP(std::vector<o2::dataformats::MatchInfoTOFReco>& mat
     // get fit info
     double t0info = 0;
 
-    if (FITRecPoints.size() > 0) {
-      int index = findFITIndex(TOFClusWork[matchingPair.getTOFClIndex()].getBC(), FITRecPoints);
+    if (FITRecPoints.size() > 0 && mIsFIT) {
+      int index = findFITIndex(TOFClusWork[matchingPair.getTOFClIndex()].getBC() - o2::tof::Geo::LATENCYWINDOW_IN_BC, FITRecPoints, mFirstTForbit);
 
       if (index > -1) {
         o2::InteractionRecord ir = FITRecPoints[index].getInteractionRecord();
-        t0info = ir.bc2ns() * 1E3;
+        int bct0 = (ir.orbit - mFirstTForbit) * o2::constants::lhc::LHCMaxBunches + ir.bc;
+        t0info = bct0 * o2::tof::Geo::BC_TIME_INPS;
       }
     } else { // move time to time in orbit to avoid loss of precision when truncating from double to float
       int bcStarOrbit = int((TOFClusWork[matchingPair.getTOFClIndex()].getTimeRaw() - intLT.getTOF(o2::track::PID::Pion)) * o2::tof::Geo::BC_TIME_INPS_INV);
