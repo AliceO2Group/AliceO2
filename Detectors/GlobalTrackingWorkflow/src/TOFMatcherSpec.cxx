@@ -165,7 +165,7 @@ void TOFMatcherSpec::run(ProcessingContext& pc)
 
   mMatcher.setTS(creationTime);
 
-  mMatcher.run(recoData);
+  mMatcher.run(recoData, pc.services().get<o2::framework::TimingInfo>().firstTForbit);
 
   if (isTPCused) {
     pc.outputs().snapshot(Output{o2::header::gDataOriginTOF, "MTC_TPC", ss, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector(o2::dataformats::MatchInfoTOFReco::TrackType::TPC));
@@ -248,7 +248,7 @@ DataProcessorSpec getTOFMatcherSpec(GID::mask_t src, bool useMC, bool useFIT, bo
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestClusters(GID::getSourceMask(GID::TOF), useMC);
   if (useFIT) {
-    dataRequest->requestClusters(GID::getSourceMask(GID::FT0), false);
+    dataRequest->requestFT0RecPoints(false);
   }
 
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                             // orbitResetTime
