@@ -96,6 +96,9 @@ class StatusMapCreatorTask
       LOGP(info, "Sending updated StatusMap of size {}", size(mStatusMap));
       pc.outputs().snapshot(OutputRef{"statusmap"}, mStatusMap);
       mStatusMapUpdated = false;
+    } else {
+      LOGP(info, "Sending unchanged StatusMap of size {}", size(mStatusMap));
+      pc.outputs().snapshot(OutputRef{"statusmap"}, mStatusMap);
     }
   }
 
@@ -122,7 +125,7 @@ framework::DataProcessorSpec getStatusMapCreatorSpec(std::string_view specName)
     input += "rejectlist:MCH/REJECTLIST/0?lifetime=condition&ccdb-path=MCH/Calib/RejectList";
   }
 
-  std::string output = "statusmap:MCH/STATUSMAP/0?lifetime=sporadic";
+  std::string output = "statusmap:MCH/STATUSMAP/0";
 
   std::vector<OutputSpec> outputs;
   auto matchers = select(output.c_str());
