@@ -31,7 +31,7 @@ endif()
 
 o2_add_header_only_library(rANS
                TARGETVARNAME LIBRANS
-               INTERFACE_LINK_LIBRARIES FairLogger::FairLogger Microsoft.GSL::GSL absl::flat_hash_map)
+               INTERFACE_LINK_LIBRARIES FairLogger::FairLogger Microsoft.GSL::GSL)
                target_compile_options(${LIBRANS} INTERFACE ${RANS_OPTIONS})
 if(${RANS_ENABLE_JSON})
   target_compile_definitions(${LIBRANS} INTERFACE RANS_ENABLE_JSON)
