@@ -249,7 +249,7 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
   short clusterState = 0, nextState;
   int nFitted = 0;
   for (int i = start; i != stop; i += cl ? 0 : direction) {
-    float x, y, z, charge = 0.f;
+    float x = 0, y = 0, z = 0, charge = 0; // FIXME: initialization unneeded, but GCC incorrectly produces uninitialized warnings otherwise
     int clusters = 0;
     while (true) {
       if (!cl) {
