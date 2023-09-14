@@ -130,23 +130,23 @@ int WaveformCalibChData::getLastValid() const
 //______________________________________________________________________________
 void WaveformCalibData::setN(int n)
 {
-  if (n >= 0 && n < NBT) {
+  if (n > 0 && n <= NBT) {
     mN = n;
     for (int is = 0; is < NChannels; is++) {
       mWave[is].setN(n);
     }
   } else {
-    LOG(fatal) << "WaveformCalibData " << __func__ << " wrong stored b.c. setting " << n << " not in range [0:" << NBT << "]";
+    LOG(warn) << "WaveformCalibData " << __func__ << " wrong stored b.c. setting " << n << " not in range [1:" << NBT << "]";
   }
 }
 
 void WaveformCalibChData::setN(int n)
 {
-  if (n >= 0 && n < NBT) {
+  if (n > 0 && n <= NBT) {
     mFirstValid = 0;
     mLastValid = n * NTimeBinsPerBC * TSN - 1;
   } else {
-    LOG(fatal) << "WaveformCalibChData " << __func__ << " wrong stored b.c. setting " << n << " not in range [0:" << NBT << "]";
+    LOG(warn) << "WaveformCalibChData " << __func__ << " wrong stored b.c. setting " << n << " not in range [1:" << NBT << "]";
   }
 }
 
@@ -172,6 +172,8 @@ int WaveformCalibData::saveDebugHistos(const std::string fn)
       }
       h.SetEntries(mWave[is].mEntries);
       h.Write("", TObject::kOverwrite);
+    }else{
+      LOG(warn) << "WaveformCalibData " << __func__ << " waveform for ch " << is << " has too few entries: " << mWave[is].mEntries;
     }
   }
   f->Close();
