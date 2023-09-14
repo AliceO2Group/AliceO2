@@ -163,7 +163,7 @@ void O2MCApplicationBase::InitGeometry()
 
 bool O2MCApplicationBase::MisalignGeometry()
 {
-  for (auto det : listActiveDetectors) {
+  for (auto det : listDetectors) {
     if (dynamic_cast<o2::base::Detector*>(det)) {
       ((o2::base::Detector*)det)->addAlignableVolumes();
     }
