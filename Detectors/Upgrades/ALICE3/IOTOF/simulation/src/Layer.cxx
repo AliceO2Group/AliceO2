@@ -29,9 +29,9 @@ Layer::Layer(std::string layerName, float rInn, float rOut, float zLength, float
   if (isBarrel) {
     mOuterRadius = mInnerRadius + mChipThickness;
   } else {
-    zLength = mChipThickness;
+    mZLength = mChipThickness;
   }
-  LOGP(info, "TOF: Creating {} layer: rInner: {} rOuter: {} zLength: {} x2X0: {}", isBarrel ? std::string("barrel") : std::string("forward"), mInnerRadius, mOuterRadius, mZLength, mX2X0);
+  LOGP(info, "TOF: Creating {} layer: rInner: {} (cm) rOuter: {} (cm) zLength: {} (cm) zOffset: {} x2X0: {}", isBarrel ? std::string("barrel") : std::string("forward"), mInnerRadius, mOuterRadius, mZLength, mZOffset, mX2X0);
 }
 
 void ITOFLayer::createLayer(TGeoVolume* motherVolume)
@@ -67,7 +67,7 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
 
 void OTOFLayer::createLayer(TGeoVolume* motherVolume)
 {
-  std::string chipName = o2::iotof::GeometryTGeo::getFTOFChipPattern(),
+  std::string chipName = o2::iotof::GeometryTGeo::getOTOFChipPattern(),
               sensName = o2::iotof::GeometryTGeo::getOTOFSensorPattern();
 
   TGeoTube* sensor = new TGeoTube(mInnerRadius, mOuterRadius, mZLength / 2);
@@ -114,13 +114,16 @@ void FTOFLayer::createLayer(TGeoVolume* motherVolume)
   layerVol->SetLineColor(kGreen + 2);
 
   LOGP(info, "Inserting {} in {} ", sensVol->GetName(), chipVol->GetName());
-  chipVol->AddNode(sensVol, 1, new TGeoTranslation(0, 0, mZOffset));
+  chipVol->AddNode(sensVol, 1, nullptr);
 
   LOGP(info, "Inserting {} in {} ", chipVol->GetName(), layerVol->GetName());
-  layerVol->AddNode(chipVol, 1, new TGeoTranslation(0, 0, mZOffset));
+  layerVol->AddNode(chipVol, 1, nullptr);
+
+  auto* fwdTOFRotation = new TGeoRotation("fwdTOFRotation", 0, 0, 180);
+  auto* fwdTOFCombiTrans = new TGeoCombiTrans(0, 0, mZOffset, fwdTOFRotation);
 
   LOGP(info, "Inserting {} in {} ", layerVol->GetName(), motherVolume->GetName());
-  motherVolume->AddNode(layerVol, 1, new TGeoTranslation(0, 0, mZOffset));
+  motherVolume->AddNode(layerVol, 1, fwdTOFCombiTrans);
 }
 
 void BTOFLayer::createLayer(TGeoVolume* motherVolume)
@@ -143,13 +146,16 @@ void BTOFLayer::createLayer(TGeoVolume* motherVolume)
   layerVol->SetLineColor(kGreen + 2);
 
   LOGP(info, "Inserting {} in {} ", sensVol->GetName(), chipVol->GetName());
-  chipVol->AddNode(sensVol, 1, new TGeoTranslation(0, 0, mZOffset));
+  chipVol->AddNode(sensVol, 1, nullptr);
 
   LOGP(info, "Inserting {} in {} ", chipVol->GetName(), layerVol->GetName());
-  layerVol->AddNode(chipVol, 1, new TGeoTranslation(0, 0, mZOffset));
+  layerVol->AddNode(chipVol, 1, nullptr);
+
+  auto* bwdTOFRotation = new TGeoRotation("bwdTOFRotation", 0, 0, 180);
+  auto* fwdTOFCombiTrans = new TGeoCombiTrans(0, 0, mZOffset, bwdTOFRotation);
 
   LOGP(info, "Inserting {} in {} ", layerVol->GetName(), motherVolume->GetName());
-  motherVolume->AddNode(layerVol, 1, new TGeoTranslation(0, 0, mZOffset));
+  motherVolume->AddNode(layerVol, 1, fwdTOFCombiTrans);
 }
 
 } // namespace iotof

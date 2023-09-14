@@ -77,69 +77,69 @@ GeometryTGeo* GeometryTGeo::Instance()
   return sInstance.get();
 }
 
-// Inner TOF
-const char* GeometryTGeo::composeITOFSymNameLayer(int d, int lr)
-{
-  return Form("%s/%s%d", composeSymNameIOTOF(d), getITOFLayerPattern(), lr);
-}
+// // Inner TOF
+// const char* GeometryTGeo::composeITOFSymNameLayer(int d, int lr)
+// {
+//   return Form("%s/%s%d", composeSymNameIOTOF(d), getITOFLayerPattern(), lr);
+// }
 
-const char* GeometryTGeo::composeITOFSymNameChip(int d, int lr)
-{
-  return Form("%s/%s%d", composeITOFSymNameLayer(d, lr), getITOFChipPattern(), lr);
-}
+// const char* GeometryTGeo::composeITOFSymNameChip(int d, int lr)
+// {
+//   return Form("%s/%s%d", composeITOFSymNameLayer(d, lr), getITOFChipPattern(), lr);
+// }
 
-const char* GeometryTGeo::composeITOFSymNameSensor(int d, int lr)
-{
-  return Form("%s/%s%d", composeITOFSymNameChip(d, lr), getITOFSensorPattern(), lr);
-}
+// const char* GeometryTGeo::composeITOFSymNameSensor(int d, int lr)
+// {
+//   return Form("%s/%s%d", composeITOFSymNameChip(d, lr), getITOFSensorPattern(), lr);
+// }
 
-// Outer TOF
-const char* GeometryTGeo::composeOTOFSymNameLayer(int d, int lr)
-{
-  return Form("%s/%s%d", composeSymNameIOTOF(d), getOTOFLayerPattern(), lr);
-}
+// // Outer TOF
+// const char* GeometryTGeo::composeOTOFSymNameLayer(int d, int lr)
+// {
+//   return Form("%s/%s%d", composeSymNameIOTOF(d), getOTOFLayerPattern(), lr);
+// }
 
-const char* GeometryTGeo::composeOTOFSymNameChip(int d, int lr)
-{
-  return Form("%s/%s%d", composeOTOFSymNameLayer(d, lr), getOTOFChipPattern(), lr);
-}
+// const char* GeometryTGeo::composeOTOFSymNameChip(int d, int lr)
+// {
+//   return Form("%s/%s%d", composeOTOFSymNameLayer(d, lr), getOTOFChipPattern(), lr);
+// }
 
-const char* GeometryTGeo::composeOTOFSymNameSensor(int d, int lr)
-{
-  return Form("%s/%s%d", composeOTOFSymNameChip(d, lr), getOTOFSensorPattern(), lr);
-}
+// const char* GeometryTGeo::composeOTOFSymNameSensor(int d, int lr)
+// {
+//   return Form("%s/%s%d", composeOTOFSymNameChip(d, lr), getOTOFSensorPattern(), lr);
+// }
 
-// Forward TOF
-const char* GeometryTGeo::composeFTOFSymNameLayer(int d, int lr)
-{
-  return Form("%s/%s%d", composeSymNameIOTOF(d), getFTOFLayerPattern(), lr);
-}
+// // Forward TOF
+// const char* GeometryTGeo::composeFTOFSymNameLayer(int d, int lr)
+// {
+//   return Form("%s/%s%d", composeSymNameIOTOF(d), getFTOFLayerPattern(), lr);
+// }
 
-const char* GeometryTGeo::composeFTOFSymNameChip(int d, int lr)
-{
-  return Form("%s/%s%d", composeFTOFSymNameLayer(d, lr), getFTOFChipPattern(), lr);
-}
+// const char* GeometryTGeo::composeFTOFSymNameChip(int d, int lr)
+// {
+//   return Form("%s/%s%d", composeFTOFSymNameLayer(d, lr), getFTOFChipPattern(), lr);
+// }
 
-const char* GeometryTGeo::composeFTOFSymNameSensor(int d, int lr)
-{
-  return Form("%s/%s%d", composeFTOFSymNameChip(d, lr), getFTOFSensorPattern(), lr);
-}
+// const char* GeometryTGeo::composeFTOFSymNameSensor(int d, int lr)
+// {
+//   return Form("%s/%s%d", composeFTOFSymNameChip(d, lr), getFTOFSensorPattern(), lr);
+// }
 
-// Backward TOF
-const char* GeometryTGeo::composeBTOFSymNameLayer(int d, int lr)
-{
-  return Form("%s/%s%d", composeSymNameIOTOF(d), getBTOFLayerPattern(), lr);
-}
+// // Backward TOF
+// const char* GeometryTGeo::composeBTOFSymNameLayer(int d, int lr)
+// {
+//   return Form("%s/%s%d", composeSymNameIOTOF(d), getBTOFLayerPattern(), lr);
+// }
 
-const char* GeometryTGeo::composeBTOFSymNameChip(int d, int lr)
-{
-  return Form("%s/%s%d", composeBTOFSymNameLayer(d, lr), getBTOFChipPattern(), lr);
-}
+// const char* GeometryTGeo::composeBTOFSymNameChip(int d, int lr)
+// {
+//   return Form("%s/%s%d", composeBTOFSymNameLayer(d, lr), getBTOFChipPattern(), lr);
+// }
 
-const char* GeometryTGeo::composeBTOFSymNameSensor(int d, int lr)
-{
-  return Form("%s/%s%d", composeBTOFSymNameChip(d, lr), getBTOFSensorPattern(), lr);
-}
+// const char* GeometryTGeo::composeBTOFSymNameSensor(int d, int lr)
+// {
+//   return Form("%s/%s%d", composeBTOFSymNameChip(d, lr), getBTOFSensorPattern(), lr);
+// }
 
 } // namespace iotof
 } // namespace o2

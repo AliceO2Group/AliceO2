@@ -27,7 +27,7 @@ class GeometryTGeo : public o2::detectors::DetMatrixCache
   void fillMatrixCache(int mask);
   static GeometryTGeo* Instance();
 
-  // Common i/oTOF
+  // Common i/o/f/bTOF
   static const char* getIOTOFVolPattern() { return sIOTOFVolumeName.c_str(); }
 
   // Inner TOF
