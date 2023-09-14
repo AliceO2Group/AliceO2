@@ -56,6 +56,7 @@ AddOptionRTC(tubeMaxSize2, float, 2.5f * 2.5f, "", 0, "Square of max tube size (
 AddOptionRTC(clustersShiftTimebins, float, 0, "", 0, "Shift of TPC clusters (applied during CTF cluster decoding)")
 AddOptionRTC(clustersShiftTimebinsClusterizer, float, 0, "", 0, "Shift of TPC clusters (applied during CTF clusterization)")
 AddOptionRTC(defaultZOffsetOverR, float, 0.5210953f, "", 0, "Shift of TPC clusters (applied during CTF cluster decoding)")
+AddOptionRTC(enablePID, char, 1, "", 0, "Enable PID response")
 AddOptionRTC(PID_EKrangeMin, float, 0.38, "", 0, "min P of electron/K BB bands crossing")
 AddOptionRTC(PID_EKrangeMax, float, 0.48, "", 0, "max P of electron/K BB bands crossing")
 AddOptionRTC(PID_EPrangeMin, float, 0.75, "", 0, "min P of electron/p BB bands crossing")
