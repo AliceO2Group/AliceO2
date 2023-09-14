@@ -14,6 +14,7 @@
 /// \author Tucker Hwang mhwang@cern.ch
 
 #include "ITSStudies/AvgClusSize.h"
+#include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "ITSStudies/ITSStudiesConfigParam.h"
 
 #include "Framework/Task.h"
@@ -102,14 +103,21 @@ class AvgClusSizeStudy : public Task
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   std::shared_ptr<DataRequest> mDataRequest;
   std::vector<int> mClusterSizes;
+  std::vector<ITSCluster> mClusters;
   gsl::span<const int> mInputITSidxs;
   std::vector<o2::MCTrack> mMCTracks;
   const o2::itsmft::TopologyDictionary* mDict = nullptr;
+  o2::itsmft::ChipMappingITS chipMapping;
 
   // Output plots
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
   std::unique_ptr<TNtuple> mOutputNtupleAll;
   std::unique_ptr<TNtuple> mOutputNtupleCut;
+
+  std::unique_ptr<TH2F> mClSizeVsZL0;
+  std::unique_ptr<TH2F> mClSizeVsChipIDL0;
+  std::unique_ptr<TH2F> mClSizeVsZL0Tracks;
+  std::unique_ptr<TH2F> mClSizeVsEtaL0Tracks;
 
   std::unique_ptr<THStack> mMCR{};
   std::unique_ptr<THStack> mMCCosPA{};
@@ -184,6 +192,12 @@ void AvgClusSizeStudy::prepareOutput()
   mOutputNtupleAll = std::make_unique<TNtuple>("v0_data", "v0 data", "dPosACS:dNegACS:cosPA:V0R:eta:dauDCA:dPospvDCA:dNegpvDCA:v0pvDCA:alpha:pT:K0mass:lambdaMass:antilambdaMass:v0PDGcode");
   mOutputNtupleCut = std::make_unique<TNtuple>("cut_v0_data", "v0 data (cut)", "dPosACS:dNegACS:cosPA:V0R:eta:dauDCA:dPospvDCA:dNegpvDCA:v0pvDCA:alpha:pT:K0mass:lambdaMass:antilambdaMass:v0PDGcode");
 
+  mClSizeVsZL0 = std::make_unique<TH2F>("clSizeVsZL0", "Cluster size vs Z, L0; Z (cm); Cluster size", 100, -12, 12, 1000, 0.5, 1000.5);
+  mClSizeVsChipIDL0 = std::make_unique<TH2F>("clSizeVsChipIDL0", "Cluster size vs ChipID, L0; ChipID; Cluster size", 9, -0.5, 8.5, 1000, 0.5, 1000.5);
+
+  mClSizeVsZL0Tracks = std::make_unique<TH2F>("clSizeVsZL0Tracks", "Cluster size vs Z Tracks, L0; Z (cm); Cluster size", 100, -12, 12, 100, 0.5, 100.5);
+  mClSizeVsEtaL0Tracks = std::make_unique<TH2F>("clSizeVsEtaL0Tracks", "Cluster size vs Eta Tracks, L0; #eta (ITS Track); Cluster size", 100, -1, 1, 100, 0.5, 100.5);
+
   mMCR = std::make_unique<THStack>("R", "V0 decay length R;R (cm?)");
   mMCCosPA = std::make_unique<THStack>("cosPA", "cos(#theta_{p})");
   mMCPosACS = std::make_unique<THStack>("acsPos", "Average cluster size per track;pixels / cluster / track");
@@ -222,6 +236,11 @@ void AvgClusSizeStudy::prepareOutput()
     mAvgClusSizeCEtaVec[i]->SetDirectory(nullptr);
     mAvgClusSizeCEta->Add(mAvgClusSizeCEtaVec[i].get());
   }
+
+  mClSizeVsZL0->SetDirectory(nullptr);
+  mClSizeVsChipIDL0->SetDirectory(nullptr);
+  mClSizeVsZL0Tracks->SetDirectory(nullptr);
+  mClSizeVsEtaL0Tracks->SetDirectory(nullptr);
 
   mMCRisTg->SetDirectory(nullptr);
   mMCRisBg->SetDirectory(nullptr);
@@ -315,12 +334,18 @@ void AvgClusSizeStudy::getClusterSizes(std::vector<int>& clusSizeVec, const gsl:
 
 void AvgClusSizeStudy::loadData(o2::globaltracking::RecoContainer& recoData)
 {
+  mClusterSizes.clear();
+  mClusters.clear();
   mInputITSidxs = recoData.getITSTracksClusterRefs();
   auto compClus = recoData.getITSClusters();
   auto clusPatt = recoData.getITSClustersPatterns();
   mClusterSizes.resize(compClus.size());
   auto pattIt = clusPatt.begin();
   getClusterSizes(mClusterSizes, compClus, pattIt, mDict);
+  auto pattIt2 = clusPatt.begin();
+  LOG(info) << "Clusters size loaded";
+  o2::its::ioutils::convertCompactClusters(compClus, pattIt2, mClusters, mDict);
+  LOG(info) << "Clusters Converted and loaded";
 }
 
 void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
@@ -357,6 +382,8 @@ void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
   int V0PdgCode, mPosTrkId, mNegTrkId;
 
   loadData(recoData);
+  auto itsTracks = recoData.getITSTracks();
+
   auto V0s = recoData.getV0s();
   auto V0sIdx = recoData.getV0sIdx();
   size_t nV0s = V0sIdx.size();
@@ -367,9 +394,47 @@ void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
   LOGP(info, "Found {} reconstructed V0s.", nV0s);
   LOGP(info, "Found {} ITS tracks.", recoData.getITSTracks().size());
   LOGP(info, "Found {} ROFs.", recoData.getITSTracksROFRecords().size());
+
   if (mUseMC) {
     mcLabels = recoData.getITSTracksMCLabels();
     LOGP(info, "Found {} labels.", mcLabels.size());
+  }
+
+  // loop over clusters
+  for (size_t icls = 0; icls < mClusterSizes.size(); icls++) {
+    auto& clusSize = mClusterSizes[icls];
+    auto& clus = mClusters[icls];
+
+    auto chipID = clus.getSensorID();
+    int layer, sta, ssta, mod, chipInMod;
+    chipMapping.expandChipInfoHW(chipID, layer, sta, ssta, mod, chipInMod);
+
+    if (layer != 0)
+      continue;
+
+    mClSizeVsZL0->Fill(clus.getZ(), clusSize);
+    mClSizeVsChipIDL0->Fill(chipInMod, clusSize);
+  }
+
+  // loop over tracks
+  for (size_t itrks = 0; itrks < itsTracks.size(); itrks++) {
+    auto& track = itsTracks[itrks];
+    int totalSize{0};
+    auto firstClus = track.getFirstClusterEntry();
+    auto ncl = track.getNumberOfClusters();
+    for (int icl = 0; icl < ncl; icl++) {
+      auto size = mClusterSizes[mInputITSidxs[firstClus + icl]];
+      auto& clus = mClusters[mInputITSidxs[firstClus + icl]];
+      o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
+      auto layer = geom->getLayer(clus.getSensorID());
+      if (layer != 0)
+        continue;
+
+      auto z = clus.getZ();
+      auto eta = track.getEta();
+      mClSizeVsZL0Tracks->Fill(z, size);
+      mClSizeVsEtaL0Tracks->Fill(eta, size);
+    }
   }
 
   for (size_t iv = 0; iv < nV0s; iv++) {
@@ -379,7 +444,7 @@ void AvgClusSizeStudy::process(o2::globaltracking::RecoContainer& recoData)
     dNegRecoTrk = recoData.getITSTrack(v0Idx.getProngID(1));
 
     pv = recoData.getPrimaryVertex(v0Idx.getVertexID()); // extract primary vertex
-    dPosRecoTrk.propagateToDCA(pv, params.b, &dPosDCA); // calculate and store DCA objects for both prongs
+    dPosRecoTrk.propagateToDCA(pv, params.b, &dPosDCA);  // calculate and store DCA objects for both prongs
     dNegRecoTrk.propagateToDCA(pv, params.b, &dNegDCA);
     v0.propagateToDCA(pv, params.b, &v0DCA);
 
@@ -556,6 +621,8 @@ void AvgClusSizeStudy::saveHistograms()
   mDBGOut.reset();
   TFile fout(mOutName.c_str(), "RECREATE");
 
+  LOG(info) << "Saving histograms to " << mOutName.c_str();
+
   fout.WriteTObject(mOutputNtupleAll.get());
   fout.WriteTObject(mOutputNtupleCut.get());
   fout.WriteTObject(mMCR.get());
@@ -570,6 +637,12 @@ void AvgClusSizeStudy::saveHistograms()
   fout.WriteTObject(mMCArmPodolisBg.get());
 
   fout.WriteTObject(mAvgClusSizeCEta.get());
+
+  fout.WriteTObject(mClSizeVsZL0.get());
+  fout.WriteTObject(mClSizeVsChipIDL0.get());
+  fout.WriteTObject(mClSizeVsZL0Tracks.get());
+  fout.WriteTObject(mClSizeVsEtaL0Tracks.get());
+
   fout.Close();
 
   LOGP(info, "Stored histograms into {}", mOutName.c_str());
