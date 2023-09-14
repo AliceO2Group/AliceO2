@@ -40,6 +40,7 @@
 #include "rANS/factory.h"
 #include "rANS/metrics.h"
 #include "rANS/utils.h"
+#endif
 
 namespace o2
 {
@@ -333,8 +334,10 @@ class EncodedBlocks
  public:
   typedef EncodedBlocks<H, N, W> base;
 
+#ifndef __CLING__
   template <typename source_T>
   using dictionaryType = std::variant<rans::RenormedSparseHistogram<source_T>, rans::RenormedDenseHistogram<source_T>>;
+#endif
 
   void setHeader(const H& h)
   {
@@ -360,6 +363,7 @@ class EncodedBlocks
     return mBlocks[i];
   }
 
+#ifndef __CLING__
   template <typename source_T>
   dictionaryType<source_T> getDictionary(int i, ANSHeader ansVersion = ANSVersionUnspecified) const
   {
@@ -416,6 +420,7 @@ class EncodedBlocks
       throw std::runtime_error(fmt::format("Failed to load serialized Dictionary. Unsupported ANS Version: {}", static_cast<std::string>(ansVersion)));
     }
   };
+#endif
 
   void setANSHeader(const ANSHeader& h)
   {
@@ -940,6 +945,7 @@ CTFIOSize EncodedBlocks<H, N, W>::decode(D_IT dest,                        // it
   }
 };
 
+#ifndef __CLING__
 template <typename H, int N, typename W>
 template <typename dst_IT>
 CTFIOSize EncodedBlocks<H, N, W>::decodeCompatImpl(dst_IT dstBegin, int slot, const std::any& decoderExt) const
@@ -1425,6 +1431,7 @@ CTFIOSize EncodedBlocks<H, N, W>::encodeRANSV1Inplace(const input_IT srcBegin, c
 
   return {0, thisMetadata->getUncompressedSize(), thisMetadata->getCompressedSize()};
 }; // namespace ctf
+#endif
 
 template <typename H, int N, typename W>
 template <typename input_IT, typename buffer_T>
