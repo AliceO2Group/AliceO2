@@ -75,7 +75,7 @@ template <typename source_IT>
 auto SparseHistogram<source_T>::addSamplesImpl(source_IT begin, source_IT end) -> SparseHistogram&
 {
 
-  std::unordered_map<source_type, value_type> map;
+  robin_hood::unordered_flat_map<source_type, value_type> map;
 
   // first build a hash map of existing samples
   std::for_each(this->mContainer.begin(), this->mContainer.end(), [this, &map](const auto& keyValuePair) {
@@ -105,7 +105,7 @@ auto SparseHistogram<source_T>::addFrequenciesImpl(freq_IT begin, freq_IT end, s
 {
   if (begin != end) {
     // first build a map of the current list items
-    std::unordered_map<source_type, value_type> map;
+    robin_hood::unordered_flat_map<source_type, value_type> map;
 
     auto container = std::move(this->mContainer).release();
     for (const auto& [key, value] : container) {

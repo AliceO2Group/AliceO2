@@ -24,7 +24,7 @@
 #include <cassert>
 
 #include <fairlogger/Logger.h>
-#include <unordered_map>
+#include "Framework/robin_hood.h"
 
 #include "rANS/internal/common/utils.h"
 
@@ -37,7 +37,7 @@ class HashTable
  public:
   using source_type = source_T;
   using value_type = value_T;
-  using container_type = std::unordered_map<source_type, value_type>;
+  using container_type = robin_hood::unordered_flat_map<source_type, value_type>;
   using size_type = size_t;
   using difference_type = std::ptrdiff_t;
   using reference = value_type&;
