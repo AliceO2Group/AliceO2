@@ -26,6 +26,7 @@ using namespace o2::gpu;
 #define AddOptionSet(name, type, value, optname, optnameshort, help, ...)
 #define AddOptionVec(name, type, optname, optnameshort, help, ...)
 #define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...)
+#define AddOptionArrayRTC(...) AddOptionArray(__VA_ARGS__)
 #define AddSubConfig(name, instance)
 #define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr, o2prefix) O2ParamImpl(GPUCA_M_CAT(GPUConfigurableParam, name))
 #define BeginHiddenConfig(...)
@@ -43,6 +44,7 @@ using namespace o2::gpu;
 #undef AddOptionSet
 #undef AddOptionVec
 #undef AddOptionArray
+#undef AddOptionArrayRTC
 #undef AddSubConfig
 #undef BeginSubConfig
 #undef BeginHiddenConfig
@@ -65,6 +67,7 @@ GPUSettingsO2 GPUO2InterfaceConfiguration::ReadConfigurableParam_internal()
   for (int i = 0; i < count; i++) {                                                  \
     dst.name[i] = src.name[i];                                                       \
   }
+#define AddOptionArrayRTC(...) AddOptionArray(__VA_ARGS__)
 #define AddSubConfig(name, instance) dst.instance = instance;
 #define BeginSubConfig(name, instance, parent, preoptname, preoptnameshort, descr, o2prefix) \
   name instance;                                                                             \
@@ -86,6 +89,7 @@ GPUSettingsO2 GPUO2InterfaceConfiguration::ReadConfigurableParam_internal()
 #undef AddOptionSet
 #undef AddOptionVec
 #undef AddOptionArray
+#undef AddOptionArrayRTC
 #undef AddSubConfig
 #undef BeginSubConfig
 #undef BeginHiddenConfig

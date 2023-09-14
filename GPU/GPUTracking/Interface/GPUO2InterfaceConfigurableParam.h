@@ -62,6 +62,7 @@
 #define AddHelp(...)
 #define AddShortcut(...)
 #define AddOptionRTC(...) AddOption(__VA_ARGS__)
+#define AddOptionArrayRTC(...) AddOptionArray(__VA_ARGS__)
 #include "GPUSettingsList.h"
 #undef BeginNamespace
 #undef EndNamespace
@@ -72,6 +73,7 @@
 #undef AddOptionSet
 #undef AddOptionVec
 #undef AddOptionArray
+#undef AddOptionArrayRTC
 #undef AddSubConfig
 #undef BeginSubConfig
 #undef BeginHiddenConfig
