@@ -150,6 +150,7 @@ class AlpideCoder
     uint32_t expectInp = ExpectChipHeader | ExpectChipEmpty; // data must always start with chip header or chip empty flag
 
     chipData.clear();
+    bool dataSeen = false;
     LOG(debug) << "NewEntry";
     while (buffer.next(dataC)) {
       //
@@ -179,6 +180,7 @@ class AlpideCoder
           return unexpectedEOF("CHIP_HEADER"); // abandon cable data
         }
         expectInp = ExpectRegion; // now expect region info
+        dataSeen = false;
         continue;
       }
 
@@ -205,7 +207,7 @@ class AlpideCoder
           }
         }
 
-        if (!chipData.getData().size() && !chipData.isErrorSet()) {
+        if (!dataSeen && !chipData.isErrorSet()) {
 #ifdef ALPIDE_DECODING_STAT
           chipData.setError(ChipStat::TrailerAfterHeader);
 #endif
@@ -216,6 +218,7 @@ class AlpideCoder
 
       // hit info ?
       if ((expectInp & ExpectData)) {
+        dataSeen = true;
         if (isData(dataC)) { // region header was seen, expect data
                              // note that here we are checking on the byte rather than the short, need complete to ushort
           dataS = dataC << 8;
