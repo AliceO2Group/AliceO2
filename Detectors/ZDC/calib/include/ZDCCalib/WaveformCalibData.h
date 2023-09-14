@@ -77,6 +77,7 @@ struct WaveformCalibData {
   int getLastValid(int is) const;
   void print() const;
   void clear();
+  void clearWaveforms();
   void setCreationTime(uint64_t ctime);
   void setN(int n);
   int saveDebugHistos(const std::string fn);

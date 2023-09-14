@@ -193,6 +193,16 @@ void WaveformCalibData::clear()
   }
 }
 
+//______________________________________________________________________________
+void WaveformCalibData::clearWaveforms()
+{
+  mCTimeBeg = 0;
+  mCTimeEnd = 0;
+  for (int32_t is = 0; is < NChannels; is++) {
+    mWave[is].clear();
+  }
+}
+
 void WaveformCalibChData::clear()
 {
   mEntries = 0;
