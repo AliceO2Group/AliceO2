@@ -86,6 +86,9 @@ class MCEventHeader : public FairMCEventHeader
 
   MCEventStats& getMCEventStats() { return mEventStats; }
 
+  void setDetId2HitBitLUT(std::vector<int> const& v) { mDetId2HitBitIndex = v; }
+  std::vector<int> const& getDetId2HitBitLUT() const { return mDetId2HitBitIndex; }
+
   /// create a standalone ROOT file/tree with only the MCHeader branch
   static void extractFileFromKinematics(std::string_view kinefilename, std::string_view targetfilename);
 
@@ -96,9 +99,10 @@ class MCEventHeader : public FairMCEventHeader
   // store a few global properties that this event
   // had in the current simulation (which can be used quick filtering/searching)
   MCEventStats mEventStats{};
+  std::vector<int> mDetId2HitBitIndex;
   o2::utils::RootSerializableKeyValueStore mEventInfo;
 
-  ClassDefOverride(MCEventHeader, 3);
+  ClassDefOverride(MCEventHeader, 4);
 
 }; /** class MCEventHeader **/
 
