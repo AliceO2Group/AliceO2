@@ -15,6 +15,10 @@ secondary_and_hits(const char *fname, std::string where = "barrel")
   tin->SetBranchAddress("MCTrack", &tracks);
   auto nev = tin->GetEntries();
 
+  // get the LUT for detector ID to bit index for hits
+  o2::dataformats::MCEventHeader *m = nullptr;
+  tin->SetBranchAddress("MCEventHeader.", &m);
+
   std::map<int, TH2F*> hZRGen, hZRHit;
 
   for (int iev = 0; iev < nev; ++iev) {
@@ -32,7 +36,9 @@ secondary_and_hits(const char *fname, std::string where = "barrel")
       auto R = std::hypot(t.GetStartVertexCoordinatesX(), t.GetStartVertexCoordinatesY());
       hZRGen[pdg]->Fill(z, R);
 
-      if (!leftTrace(t, tracks)) continue;
+      if (!leftTrace(t, tracks, m->getDetId2HitBitLUT())) {
+        continue;
+      }
 
       hZRHit[pdg]->Fill(z, R);
 

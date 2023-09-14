@@ -46,6 +46,8 @@ template <class _T>
 class MCTrackT
 {
  public:
+  static constexpr int NHITBITS = 22; // do not modify this
+
   ///  Default constructor
   MCTrackT();
 
@@ -159,24 +161,40 @@ class MCTrackT
   void SetSecondMotherTrackId(Int_t id) { mSecondMotherTrackId = id; }
   void SetFirstDaughterTrackId(Int_t id) { mFirstDaughterTrackId = id; }
   void SetLastDaughterTrackId(Int_t id) { mLastDaughterTrackId = id; }
+
   // set bit indicating that this track
-  // left a hit in detector with id iDet
-  void setHit(Int_t iDet)
+  // left a hit in detector that corresponds to bit iDetBit. This bit is found in
+  // a lookup table.
+  void setHit(Int_t iDetBit)
   {
-    assert(0 <= iDet && iDet < o2::detectors::DetID::nDetectors);
+    assert(0 <= iDetBit && iDetBit < o2::detectors::DetID::nDetectors);
     auto prop = ((PropEncoding)mProp);
-    prop.hitmask |= 1 << iDet;
+    prop.hitmask |= 1 << iDetBit;
     mProp = prop.i;
   }
 
-  // did detector iDet see this track?
-  bool leftTrace(Int_t iDet) const { return (((PropEncoding)mProp).hitmask & (1 << iDet)) > 0; }
+  bool leftTraceGivenBitField(int bit) const
+  {
+    return (((PropEncoding)mProp).hitmask & (1 << bit)) > 0;
+  }
+
+  /// Returns of detector with DetID iDet has seen this track.
+  /// Needs lookup table detIDToBit mapping detectorIDs to bitfields (which is persistified in MCEventHeaders).
+  bool leftTrace(Int_t iDet, std::vector<int> const& detIDtoBit) const
+  {
+    auto bit = detIDtoBit[iDet];
+    if (bit != -1) {
+      return leftTraceGivenBitField(bit);
+    }
+    return false;
+  }
+
   // determine how many detectors "saw" this track
   int getNumDet() const
   {
     int count = 0;
-    for (auto i = o2::detectors::DetID::First; i < o2::detectors::DetID::nDetectors; ++i) {
-      if (leftTrace(i)) {
+    for (auto i = 0; i < NHITBITS; ++i) {
+      if (leftTraceGivenBitField(i)) {
         count++;
       }
     }
@@ -261,7 +279,7 @@ class MCTrackT
     struct {
       int storage : 1;  // encoding whether to store this track to the output
       unsigned int process : 6; // encoding process that created this track (enough to store TMCProcess from ROOT)
-      int hitmask : 22;         // encoding hits per detector
+      int hitmask : NHITBITS;   // encoding hits per detector
       static_assert(o2::detectors::DetID::nDetectors <= 22); // ensure that all known detectors can be encoded here by a bit
       int reserved1 : 1;        // bit reserved for possible future purposes
       int inhibited : 1; // whether tracking of this was inhibited
