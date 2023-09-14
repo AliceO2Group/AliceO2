@@ -129,9 +129,6 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
       if (crossCE) {
         lastSlice = clusters[ihit].slice;
         noFollowCircle2 = true;
-        if (mC[2] < 0.5f) {
-          mC[2] = 0.5f;
-        }
       }
 
       if (storeOuter == 2 && clusters[ihit].leg == clusters[maxN - 1].leg - 1) {
@@ -240,6 +237,18 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
       // clang-format off
       CADEBUG(printf("\t%21sPropaga Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f)   ---   Res %8.3f %8.3f   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f   -   Err %d", "", prop.GetAlpha(), mX, mP[0], mP[1], mP[4], prop.GetQPt0(), mP[2], prop.GetSinPhi0(), mP[0] - yy, mP[1] - zz, sqrtf(mC[0]), sqrtf(mC[2]), sqrtf(mC[5]), sqrtf(mC[14]), mC[10], err));
       // clang-format on
+
+      if (crossCE) {
+        if (param.rec.tpc.addErrorsCECrossing) {
+          if (param.rec.tpc.addErrorsCECrossing >= 2) {
+            AddCovDiagErrorsWithCorrelations(param.rec.tpc.errorsCECrossing);
+          } else {
+            AddCovDiagErrors(param.rec.tpc.errorsCECrossing);
+          }
+        } else if (mC[2] < 0.5f) {
+          mC[2] = 0.5f;
+        }
+      }
 
       if (err == 0 && changeDirection) {
         const float mirrordY = prop.GetMirroredYTrack();
