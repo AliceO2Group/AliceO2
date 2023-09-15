@@ -59,9 +59,15 @@ WaveformCalibChData& WaveformCalibChData::operator+=(const WaveformCalibChData& 
 {
   if (other.mEntries > 0) {
     if (other.mFirstValid > mFirstValid) {
+#ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
+      printf("WaveformCalibChData::+= mFirstValid %5d -> %5d\n", mFirstValid, other.mFirstValid);
+#endif
       mFirstValid = other.mFirstValid;
     }
     if (other.mLastValid < mLastValid) {
+#ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
+      printf("WaveformCalibChData::+= mLastValid %5d -> %5d\n", mLastValid, other.mLastValid);
+#endif
       mLastValid = other.mLastValid;
     }
     mEntries = mEntries + other.mEntries;
@@ -172,7 +178,7 @@ int WaveformCalibData::saveDebugHistos(const std::string fn)
       }
       h.SetEntries(mWave[is].mEntries);
       h.Write("", TObject::kOverwrite);
-    }else{
+    } else {
       LOG(warn) << "WaveformCalibData " << __func__ << " waveform for ch " << is << " has too few entries: " << mWave[is].mEntries;
     }
   }

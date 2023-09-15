@@ -229,7 +229,9 @@ void DigitRecoSpec::run(ProcessingContext& pc)
           }
           // Limit the number of waveforms in output message
           if (mMaxWave > 0 && ntw >= mMaxWave) {
-            LOG(warning) << "Maximum number of output waveforms per TF reached: " << mMaxWave;
+            if (mVerbosity > DbgMinimal) {
+              LOG(warning) << "Maximum number of output waveforms per TF reached: " << mMaxWave;
+            }
             break;
           }
         }

@@ -88,6 +88,8 @@ void WaveformCalibEPNSpec::run(ProcessingContext& pc)
     mTimer.Stop();
     mTimer.Reset();
     mTimer.Start(false);
+  } else {
+    mWorker.clear();
   }
 
   auto creationTime = pc.services().get<o2::framework::TimingInfo>().creation; // approximate time in ms

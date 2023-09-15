@@ -98,9 +98,9 @@ uint32_t WaveformCalibQueue::append(RecEventFlat& ev)
     }
     return mask;
   } else {
-// #ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
-//     LOG(info) << "WaveformCalibQueue::" << __func__ << " IR size = " << mIR.size() << " != " << mN;
-// #endif
+    // #ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
+    //     LOG(info) << "WaveformCalibQueue::" << __func__ << " IR size = " << mIR.size() << " != " << mN;
+    // #endif
     return 0;
   }
 }
@@ -191,7 +191,7 @@ int WaveformCalibQueue::hasData(int isig, const gsl::span<const o2::zdc::ZDCWave
   } else {
     int ipos = NTimeBinsPerBC * TSN * ipkb + ipk;
 #ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
-    LOG(info) << "WaveformCalibConfig::" << __func__ << " isig = " << isig << " ipkb " << ipkb << " ipk " << ipk << " min " << min;
+    LOG(info) << "WaveformCalibQueue::" << __func__ << " isig = " << isig << " ipkb " << ipkb << " ipk " << ipk << " min " << min;
 #endif
     return ipos;
   }
@@ -208,9 +208,9 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
   bool hasInfos = false;
   for (int ib = 0; ib < mN; ib++) {
     bool ifound = false;
-// #ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
-//     LOG(info) << "mNW[" << ib << "/" << mN << "] = " << mNW[ib] << " mFirstW = " << mFirstW[ib];
-// #endif
+    // #ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
+    //     LOG(info) << "mNW[" << ib << "/" << mN << "] = " << mNW[ib] << " mFirstW = " << mFirstW[ib];
+    // #endif
     if (mHasInfos[isig][ib] || mHasInfos[TDCSignal[SignalTDC[isig]]][ib]) {
 #ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
       LOG(info) << "isig=" << isig << " ib=" << ib << " tdcid=" << SignalTDC[isig] << " tdc_sig=" << TDCSignal[SignalTDC[isig]] << " " << mHasInfos[isig][ib] << " " << mHasInfos[TDCSignal[SignalTDC[isig]]][ib];
@@ -247,7 +247,7 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
   }
   if (ipkb != mPk) {
 #ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
-    LOG(info) << "WaveformCalibConfig::" << __func__ << " isig = " << isig << " ipkb " << ipkb << " != mPk " << mPk << " SKIP";
+    LOG(info) << "WaveformCalibQueue::" << __func__ << " isig = " << isig << " ipkb " << ipkb << " != mPk " << mPk << " SKIP";
 #endif
     return -1;
   } else {
@@ -261,8 +261,10 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
         return -1;
       }
       if ((ppos - mPeak) < mTimeLow[itdc] || (ppos - mPeak) > mTimeHigh[itdc]) {
-        // Put a warning message for a signal out of time
-        LOGF(warning, "%d.%04d Signal %2d peak position %d-%d=%d is outside allowed range [%d:%d]", mIR[mPk].orbit, mIR[mPk].bc, isig, ppos, mPeak, ppos - mPeak, mTimeLow[isig], mTimeHigh[isig]);
+        if (mVerbosity > DbgMinimal) {
+          // Put a warning message for a signal out of time
+          LOGF(warning, "%d.%04d Signal %2d peak position %d-%d=%d is outside allowed range [%d:%d]", mIR[mPk].orbit, mIR[mPk].bc, isig, ppos, mPeak, ppos - mPeak, mTimeLow[isig], mTimeHigh[isig]);
+        }
         return -1;
       }
     }
@@ -289,7 +291,7 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
     // Restrict validity range because of signal jitter
     data.setLastValid(isig, ipos);
 #ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
-    LOG(info) << "WaveformCalibConfig::" << __func__ << " isig = " << isig << " ipkb " << ipkb << " ipk " << ipk << " min " << min << " range=[" << data.getFirstValid(isig) << ":" << ppos << ":" << data.getLastValid(isig) << "]";
+    LOG(info) << "WaveformCalibQueue::" << __func__ << " isig = " << isig << " ipkb " << ipkb << " ipk " << ipk << " min " << min << " range=[" << data.getFirstValid(isig) << ":" << ppos << ":" << data.getLastValid(isig) << "]";
 #endif
     return ipos;
   }
@@ -304,53 +306,53 @@ void WaveformCalibQueue::print()
     bool printed = false;
     for (int j = 0; j < NChannels; j++) {
       if (mHasInfos[j][i] != 0) {
-        if(!printed){
+        if (!printed) {
           printf("mHasInfos:");
-          printed=true;
+          printed = true;
         }
         printf(" %2d=%d", j, mHasInfos[j][i] != 0);
       }
     }
-    if(printed){
+    if (printed) {
       printf("\n");
-      printed=false;
+      printed = false;
     }
     for (int j = 0; j < NTDCChannels; j++) {
       if (mNTDC[j][i] > 0) {
-        if(!printed){
+        if (!printed) {
           printf("mNTDC:");
-          printed=true;
+          printed = true;
         }
         printf(" %2d=%6u", j, mNTDC[j][i]);
       }
     }
-    if(printed){
+    if (printed) {
       printf("\n");
-      printed=false;
+      printed = false;
     }
     for (int j = 0; j < NTDCChannels; j++) {
       if (mNTDC[j][i] > 0) {
-        if(!printed){
+        if (!printed) {
           printf("mTDCA:");
-          printed=true;
+          printed = true;
         }
         printf(" %2d=%6.1f", j, mTDCA[j][i]);
       }
     }
-    if(printed){
+    if (printed) {
       printf("\n");
-      printed=false;
+      printed = false;
     }
     for (int j = 0; j < NTDCChannels; j++) {
       if (mNTDC[j][i] > 0) {
-        if(!printed){
+        if (!printed) {
           printf("mTDCP:");
-          printed=true;
+          printed = true;
         }
         printf(" %2d=%6.1f", j, mTDCP[j][i]);
       }
     }
-    if(printed){
+    if (printed) {
       printf("\n");
     }
   }

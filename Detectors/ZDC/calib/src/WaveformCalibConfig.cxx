@@ -21,8 +21,8 @@ WaveformCalibConfig::WaveformCalibConfig()
     cutHigh[isig] = std::numeric_limits<float>::infinity();
   }
   for (int itdc = 0; itdc < NTDCChannels; itdc++) {
-    cutTimeLow[itdc] = -2.5;
-    cutTimeHigh[itdc] = 2.5;
+    cutTimeLow[itdc] = -1.25;
+    cutTimeHigh[itdc] = 1.25;
   }
 }
 
@@ -132,8 +132,8 @@ void WaveformCalibConfig::setCuts(double low, double high)
 
 void WaveformCalibConfig::setCuts(int isig, double low, double high)
 {
-  cutHigh[isig] = low;
-  cutLow[isig] = high;
+  cutLow[isig] = low;
+  cutHigh[isig] = high;
 }
 
 void WaveformCalibConfig::setTimeCuts(double low, double high)

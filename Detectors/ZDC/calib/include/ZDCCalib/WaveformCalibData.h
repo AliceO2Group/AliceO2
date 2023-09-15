@@ -59,12 +59,18 @@ struct WaveformCalibData {
   inline void setFirstValid(int isig, int ipos)
   {
     if (ipos > mWave[isig].mFirstValid) {
+#ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
+      printf("WaveformCalibChData::%s isig=%-2d mFirstValid %5d -> %5d\n", __func__, isig, mWave[isig].mFirstValid, ipos);
+#endif
       mWave[isig].mFirstValid = ipos;
     }
   }
   inline void setLastValid(int isig, int ipos)
   {
     if (ipos < mWave[isig].mLastValid) {
+#ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
+      printf("WaveformCalibChData::%s isig=%-2d mLastValid %5d -> %5d\n", __func__, isig, mWave[isig].mLastValid, ipos);
+#endif
       mWave[isig].mLastValid = ipos;
     }
   }
