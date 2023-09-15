@@ -437,9 +437,6 @@ struct VariantJSONHelpers {
       case VariantType::LabeledArrayDouble:
         writeVariant<VariantType::LabeledArrayDouble>(o, v);
         break;
-      case VariantType::LabeledArrayString:
-        writeVariant<VariantType::LabeledArrayString>(o, v);
-        break;
       case VariantType::Dict:
         writeVariant<VariantType::Dict>(o, v);
       default:
