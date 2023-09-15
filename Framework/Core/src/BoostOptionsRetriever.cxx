@@ -97,7 +97,6 @@ void BoostOptionsRetriever::update(std::vector<ConfigParamSpec> const& specs,
       case VariantType::LabeledArrayInt:
       case VariantType::LabeledArrayFloat:
       case VariantType::LabeledArrayDouble:
-      case VariantType::LabeledArrayString:
       case VariantType::Unknown:
       case VariantType::Empty:
         break;
