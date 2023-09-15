@@ -1800,9 +1800,6 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                   case VariantType::LabeledArrayDouble:
                     option.defaultValue = reg->get<LabeledArray<double>>(name);
                     break;
-                  case VariantType::LabeledArrayString:
-                    option.defaultValue = reg->get<LabeledArray<std::string>>(name);
-                    break;
                   default:
                     break;
                 }
