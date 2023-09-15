@@ -16,6 +16,10 @@
 #ifndef RANS_PACK_H_
 #define RANS_PACK_H_
 
+#ifdef __CLING__
+#error rANS should not be exposed to root
+#endif
+
 #include "rANS/internal/containers/BitPtr.h"
 #include "rANS/internal/metrics/Metrics.h"
 #include "rANS/internal/pack/pack.h"

@@ -16,6 +16,10 @@
 #ifndef RANS_DECODE_H_
 #define RANS_DECODE_H_
 
+#ifdef __CLING__
+#error rANS should not be exposed to root
+#endif
+
 #include "rANS/internal/containers/DenseSymbolTable.h"
 #include "rANS/internal/containers/Symbol.h"
 #include "rANS/internal/decode/Decoder.h"
