@@ -16,6 +16,10 @@
 #ifndef RANS_FACTORY_H_
 #define RANS_FACTORY_H_
 
+#ifdef __CLING__
+#error rANS should not be exposed to root
+#endif
+
 #include "rANS/internal/common/defaults.h"
 #include "rANS/internal/common/typetraits.h"
 #include "rANS/internal/common/codertraits.h"

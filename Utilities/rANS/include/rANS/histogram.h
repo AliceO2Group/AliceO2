@@ -16,6 +16,10 @@
 #ifndef RANS_HISTOGRAM_H_
 #define RANS_HISTOGRAM_H_
 
+#ifdef __CLING__
+#error rANS should not be exposed to root
+#endif
+
 #include "rANS/internal/containers/DenseHistogram.h"
 #include "rANS/internal/containers/AdaptiveHistogram.h"
 #include "rANS/internal/containers/SparseHistogram.h"
