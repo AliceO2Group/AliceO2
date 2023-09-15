@@ -16,6 +16,10 @@
 #ifndef RANS_UTILS_H_
 #define RANS_UTILS_H_
 
+#ifdef __CLING__
+#error rANS should not be exposed to root
+#endif
+
 #include <cstddef>
 #include <cmath>
 #include <chrono>
