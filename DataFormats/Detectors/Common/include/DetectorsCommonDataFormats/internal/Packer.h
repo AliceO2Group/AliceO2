@@ -16,8 +16,10 @@
 #ifndef ALICEO2_PACKER_H_
 #define ALICEO2_PACKER_H_
 
+#ifndef __CLING__
 #include "rANS/pack.h"
 #include "rANS/metrics.h"
+#endif
 
 namespace o2::ctf::internal
 {
@@ -29,9 +31,10 @@ class Packer
   using source_type = source_T;
 
   Packer() = default;
-
+#ifndef __CLING__
   explicit Packer(rans::Metrics<source_type>& metrics) : mOffset{metrics.getDatasetProperties().min},
                                                          mPackingWidth{metrics.getDatasetProperties().alphabetRangeBits} {};
+#endif
 
   template <typename source_IT>
   Packer(source_IT srcBegin, source_IT srcEnd);
@@ -58,6 +61,7 @@ template <typename source_T>
 template <typename source_IT>
 Packer<source_T>::Packer(source_IT srcBegin, source_IT srcEnd)
 {
+#ifndef __CLING__
   static_assert(rans::utils::isCompatibleIter_v<source_type, source_IT>);
   if (srcBegin != srcEnd) {
 
@@ -73,13 +77,18 @@ Packer<source_T>::Packer(source_IT srcBegin, source_IT srcEnd)
     mOffset = min;
     mPackingWidth = rans::utils::getRangeBits(min, max);
   }
+#endif
 };
 
 template <typename source_T>
 template <typename buffer_T>
 [[nodiscard]] inline size_t Packer<source_T>::getPackingBufferSize(size_t messageLength) const noexcept
 {
+#ifndef __CLING__
   return rans::computePackingBufferSize<buffer_T>(messageLength, mPackingWidth);
+#else
+  return 0;
+#endif
 };
 
 template <typename source_T>
@@ -99,12 +108,15 @@ template <typename source_IT, typename dst_T>
   if (extent == 0) {
     return dstBegin;
   }
-
+#ifndef __CLING__
   rans::BitPtr packEnd = rans::pack(srcBegin, extent, dstBegin, mPackingWidth, mOffset);
   auto* end = packEnd.toPtr<dst_T>();
   ++end; // one past end iterator;
   rans::utils::checkBounds(end, dstEnd);
   return end;
+#else
+  return nullptr;
+#endif
 };
 
 } // namespace o2::ctf::internal
