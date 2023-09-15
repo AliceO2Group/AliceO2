@@ -16,6 +16,10 @@
 #ifndef RANS_ITERATOR_H_
 #define RANS_ITERATOR_H_
 
+#ifdef __CLING__
+#error rANS should not be exposed to root
+#endif
+
 #include "rANS/internal/transform/iterator.h"
 
 #endif /* RANS_ITERATOR_H_ */

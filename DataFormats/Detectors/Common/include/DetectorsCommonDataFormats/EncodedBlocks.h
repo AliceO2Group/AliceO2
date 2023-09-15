@@ -38,7 +38,6 @@
 #include "rANS/serialize.h"
 #include "rANS/factory.h"
 #include "rANS/metrics.h"
-#include "rANS/serialize.h"
 #include "rANS/utils.h"
 
 namespace o2

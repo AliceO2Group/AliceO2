@@ -16,6 +16,10 @@
 #ifndef RANS_SERIALIZE_H_
 #define RANS_SERIALIZE_H_
 
+#ifdef __CLING__
+#error rANS should not be exposed to root
+#endif
+
 #include <type_traits>
 #include <cstdint>
 #include <stdexcept>
