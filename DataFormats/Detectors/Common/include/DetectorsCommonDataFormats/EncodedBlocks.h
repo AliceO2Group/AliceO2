@@ -29,10 +29,11 @@
 #include "DetectorsCommonDataFormats/CTFDictHeader.h"
 #include "DetectorsCommonDataFormats/CTFIOSize.h"
 #include "DetectorsCommonDataFormats/ANSHeader.h"
-#include "DetectorsCommonDataFormats/internal/ExternalEntropyCoder.h"
-#include "DetectorsCommonDataFormats/internal/InplaceEntropyCoder.h"
 #include "DetectorsCommonDataFormats/internal/Packer.h"
 #include "DetectorsCommonDataFormats/Metadata.h"
+#ifndef __CLING__
+#include "DetectorsCommonDataFormats/internal/ExternalEntropyCoder.h"
+#include "DetectorsCommonDataFormats/internal/InplaceEntropyCoder.h"
 #include "rANS/compat.h"
 #include "rANS/histogram.h"
 #include "rANS/serialize.h"
@@ -502,8 +503,10 @@ class EncodedBlocks
   template <typename D_IT, std::enable_if_t<detail::is_iterator_v<D_IT>, bool> = true>
   o2::ctf::CTFIOSize decode(D_IT dest, int slot, const std::any& decoderExt = {}) const;
 
+#ifndef __CLING__
   /// create a special EncodedBlocks containing only dictionaries made from provided vector of frequency tables
   static std::vector<char> createDictionaryBlocks(const std::vector<rans::DenseHistogram<int32_t>>& vfreq, const std::vector<Metadata>& prbits);
+#endif
 
   /// print itself
   void print(const std::string& prefix = "", int verbosity = 1) const;
@@ -589,6 +592,7 @@ class EncodedBlocks
   template <typename input_IT, typename buffer_T>
   o2::ctf::CTFIOSize encodeRANSV1Inplace(const input_IT srcBegin, const input_IT srcEnd, int slot, Metadata::OptStore opt, buffer_T* buffer = nullptr, double_t sizeEstimateSafetyFactor = 1);
 
+#ifndef __CLING__
   template <typename input_IT, typename buffer_T>
   o2::ctf::CTFIOSize pack(const input_IT srcBegin, const input_IT srcEnd, int slot, rans::Metrics<typename std::iterator_traits<input_IT>::value_type> metrics, buffer_T* buffer = nullptr);
 
@@ -609,6 +613,7 @@ class EncodedBlocks
 
     return pack(srcBegin, srcEnd, slot, metrics, buffer);
   }
+#endif
 
   template <typename input_IT, typename buffer_T>
   o2::ctf::CTFIOSize store(const input_IT srcBegin, const input_IT srcEnd, int slot, Metadata::OptStore opt, buffer_T* buffer = nullptr);
@@ -1499,6 +1504,7 @@ std::vector<char> EncodedBlocks<H, N, W>::createDictionaryBlocks(const std::vect
   }
   return vdict;
 }
+#endif
 
 template <typename H, int N, typename W>
 void EncodedBlocks<H, N, W>::dump(const std::string& prefix, int ncol) const
