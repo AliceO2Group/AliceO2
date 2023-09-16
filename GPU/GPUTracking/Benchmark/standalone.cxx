@@ -120,8 +120,8 @@ int ReadConfiguration(int argc, char** argv)
     configStandalone.proc.debugLevel = 0;
   }
 #ifndef _WIN32
-  setlocale(LC_ALL, "");
-  setlocale(LC_NUMERIC, "");
+  setlocale(LC_ALL, "en_US.utf-8");
+  setlocale(LC_NUMERIC, "en_US.utf-8");
   if (configStandalone.cpuAffinity != -1) {
     cpu_set_t mask;
     CPU_ZERO(&mask);
@@ -183,12 +183,6 @@ int ReadConfiguration(int argc, char** argv)
     return 1;
   }
 #endif
-  if (configStandalone.proc.runQA) {
-    if (getenv("LC_NUMERIC")) {
-      printf("Please unset the LC_NUMERIC env variable, otherwise ROOT will not be able to fit correctly\n"); // BUG: ROOT Problem
-      return 1;
-    }
-  }
   if (configStandalone.proc.doublePipeline && configStandalone.testSyncAsync) {
     printf("Cannot run asynchronous processing with double pipeline\n");
     return 1;
