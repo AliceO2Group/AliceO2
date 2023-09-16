@@ -192,6 +192,7 @@ void RawDump::run(ProcessingContext& pc)
           o2::raw::RDHUtils::setTriggerOrbit(lInfo.rdhSOX, mFirstIR.orbit);
           o2::raw::RDHUtils::setOffsetToNext(lInfo.rdhSOX, sizeof(o2::header::RDHAny));
           o2::raw::RDHUtils::setMemorySize(lInfo.rdhSOX, sizeof(o2::header::RDHAny));
+          o2::raw::RDHUtils::setPacketCounter(lInfo.rdhSOX, o2::raw::RDHUtils::getPacketCounter(lInfo.rdhSOX) - 1);
           trig = isRORC(lInfo.detID) ? o2::trigger::SOT : (o2::trigger::SOC | o2::trigger::ORBIT | o2::trigger::HB | o2::trigger::TF);
           o2::raw::RDHUtils::setTriggerType(lInfo.rdhSOX, trig);
           o2::raw::RDHUtils::setStop(lInfo.rdhSOX, 0x1);
