@@ -92,6 +92,7 @@ AddOptionRTC(retryRefit, char, 1, "", 0, "Retry refit when fit fails")
 AddOptionRTC(loopInterpolationInExtraPass, char, -1, "", 0, "Perform loop interpolation in an extra pass")
 AddOptionRTC(mergerReadFromTrackerDirectly, char, 1, "", 0, "Forward data directly from tracker to merger on GPU")
 AddOptionRTC(dropSecondaryLegsInOutput, char, 1, "", 0, "Do not store secondary legs of looping track in TrackTPC")
+AddOptionRTC(enablePID, char, 1, "", 0, "Enable PID response")
 AddHelp("help", 'h')
 EndConfig()
 
