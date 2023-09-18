@@ -12,7 +12,7 @@
 /// \file SVertexer.cxx
 /// \brief Secondary vertex finder
 /// \author ruben.shahoyan@cern.ch
-#include<iostream>
+#include <iostream>
 #include <fstream>
 #include "DetectorsVertexing/SVertexer.h"
 #include "DetectorsBase/Propagator.h"
@@ -34,16 +34,16 @@ using TrackTPC = o2::tpc::TrackTPC;
 using VBracket = o2::math_utils::Bracket<int>;
 
 std::ofstream log_file(
-        "log_file.txt", std::ios_base::out | std::ios_base::app );
+  "log_file.txt", std::ios_base::out | std::ios_base::app);
 std::ofstream log_pT4Hlambdalambda(
-        "log_pT4Hlambdalambda.txt", std::ios_base::out | std::ios_base::app );
+  "log_pT4Hlambdalambda.txt", std::ios_base::out | std::ios_base::app);
 std::ofstream log_pT4He3Lambda(
-        "log_pT4He3Lambda.txt", std::ios_base::out | std::ios_base::app );
+  "log_pT4He3Lambda.txt", std::ios_base::out | std::ios_base::app);
 std::ofstream log_pTpion(
-        "log_pTpion.txt", std::ios_base::out | std::ios_base::app );
+  "log_pTpion.txt", std::ios_base::out | std::ios_base::app);
 
 std::ofstream log_pT3body(
-        "log_pT3body.txt", std::ios_base::out | std::ios_base::app );
+  "log_pT3body.txt", std::ios_base::out | std::ios_base::app);
 
 //__________________________________________________________________
 void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // accessor to various reconstrucred data types
@@ -58,7 +58,7 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
 
   m3bodyTmp[0].clear();
   //  mCasc3bodyTmp[0].clear();
-  
+
   //  mHypHe4Tmp[0].clear();
 #ifdef WITH_OPENMP
   int dynGrp = std::min(4, std::max(1, mNThreads / 2));
@@ -92,26 +92,25 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
     int entry;
     int vtxID;
   };
-  size_t nv0 = 0, ncsc = 0, n3body = 0, nCasc3body =0, nHypHe4 =0, nDoubleHypeH4=0;
+  size_t nv0 = 0, ncsc = 0, n3body = 0, nCasc3body = 0, nHypHe4 = 0, nDoubleHypeH4 = 0;
   for (int i = 0; i < mNThreads; i++) {
     nv0 += mV0sTmp[0].size();
     ncsc += mCascadesTmp[i].size();
     n3body += m3bodyTmp[i].size();
     nCasc3body += mCasc3bodyTmp[i].size();
     nDoubleHypeH4 += mDoubleHypH4Tmp[i].size();
-    
+
     //   nHypHe4 += mHypHe4Tmp[i].size();
-    
   }
-  std::vector<vid> v0SortID, cascSortID, nbodySortID, nCascbodySortID, nHypHe4SortID,ndoubleHypH4SortID;
+  std::vector<vid> v0SortID, cascSortID, nbodySortID, nCascbodySortID, nHypHe4SortID, ndoubleHypH4SortID;
   v0SortID.reserve(nv0);
   cascSortID.reserve(ncsc);
   nbodySortID.reserve(n3body);
   ndoubleHypH4SortID.reserve(nDoubleHypeH4);
-  
+
   //  nCascbodySortID.reserve(nCasc3body);
   //  nHypHe4SortID.reserve(nHypHe4);
-  
+
   for (int i = 0; i < mNThreads; i++) {
     for (int j = 0; j < (int)mV0sTmp[i].size(); j++) {
       v0SortID.emplace_back(vid{i, j, mV0sTmp[i][j].getVertexID()});
@@ -122,7 +121,7 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
     for (int j = 0; j < (int)mDoubleHypH4Tmp[i].size(); j++) {
       ndoubleHypH4SortID.emplace_back(vid{i, j, mDoubleHypH4Tmp[i][j].getVertexID()});
     }
-    
+
     for (int j = 0; j < (int)m3bodyTmp[i].size(); j++) {
       nbodySortID.emplace_back(vid{i, j, m3bodyTmp[i][j].getVertexID()});
     }
@@ -138,11 +137,11 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
   std::sort(cascSortID.begin(), cascSortID.end(), [](const vid& a, const vid& b) { return a.vtxID > b.vtxID; });
   std::sort(nbodySortID.begin(), nbodySortID.end(), [](const vid& a, const vid& b) { return a.vtxID > b.vtxID; });
   std::sort(ndoubleHypH4SortID.begin(), ndoubleHypH4SortID.end(), [](const vid& a, const vid& b) { return a.vtxID > b.vtxID; });
-  
+
   //  std::sort(nHypHe4SortID.begin(), nHypHe4SortID.end(), [](const vid& a, const vid& b) { return a.vtxID > b.vtxID; });
-  
+
   //  std::sort(nCascbodySortID.begin(), nCascbodySortID.end(), [](const vid& a, const vid& b) { return a.vtxID > b.vtxID; });
-  
+
   // sorted V0s
   std::vector<V0> bufV0;
   bufV0.reserve(nv0);
@@ -164,11 +163,11 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
   for (const auto& id : cascSortID) {
     bufCasc.push_back(mCascadesTmp[id.thrID][id.entry]);
   }
-  
-  //I don't know but for the time being doing the same thing as for the cascade analysis
-  // I thing here we are using the 3body candidates so we need to rehuffled that thing ->let's try what will be happen 
-      	// since V0s were reshuffled, we need to correct the cascade -> V0 reference indices
-  for (int i = 0; i < mNThreads; i++) {  // merge results of all threads
+
+  // I don't know but for the time being doing the same thing as for the cascade analysis
+  //  I thing here we are using the 3body candidates so we need to rehuffled that thing ->let's try what will be happen
+  //  since V0s were reshuffled, we need to correct the cascade -> V0 reference indices
+  for (int i = 0; i < mNThreads; i++) {         // merge results of all threads
     for (auto& doubleH4 : mDoubleHypH4Tmp[i]) { // before merging fix cascades references on v0
       doubleH4.setV0ID(m3bodyTmp[i][doubleH4.getV0ID()].getVertexID());
     }
@@ -176,12 +175,10 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
   // sorted doubleHypeH4
   std::vector<Cascade> bufdoubleHypeH4;
   bufdoubleHypeH4.reserve(nDoubleHypeH4);
-  for (const auto& id : ndoubleHypH4SortID ) {
+  for (const auto& id : ndoubleHypH4SortID) {
     bufdoubleHypeH4.push_back(mDoubleHypH4Tmp[id.thrID][id.entry]);
   }
-  
 
-  
   // sorted 3 body decays
   std::vector<DecayNbody> buf3body;
   buf3body.reserve(n3body);
@@ -206,16 +203,16 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
     int pos = bufHypHe43body.size();
     bufHypHe43body.push_back(decayHypHe43body);
   }
-  
+
   //
-  mV0sTmp[0].swap(bufV0);               // the final result is fetched from here
-  mCascadesTmp[0].swap(bufCasc);        // the final result is fetched from here
-  mDoubleHypH4Tmp[0].swap(bufdoubleHypeH4);        // the final result is fetched from here
-  
-  m3bodyTmp[0].swap(buf3body);          // the final result is fetched from here
+  mV0sTmp[0].swap(bufV0);                   // the final result is fetched from here
+  mCascadesTmp[0].swap(bufCasc);            // the final result is fetched from here
+  mDoubleHypH4Tmp[0].swap(bufdoubleHypeH4); // the final result is fetched from here
+
+  m3bodyTmp[0].swap(buf3body); // the final result is fetched from here
   //  mCasc3bodyTmp[0].swap(bufCasc3body);          // the final result is fetched from here
   //  mHypHe4Tmp[0].swap(bufHypHe43body);          // the final result is fetched from here
-  
+
   for (int i = 1; i < mNThreads; i++) { // clean unneeded s.vertices
     mV0sTmp[i].clear();
     mCascadesTmp[i].clear();
@@ -223,9 +220,8 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData) // ac
     m3bodyTmp[i].clear();
     //   mCasc3bodyTmp[i].clear();
     //   mHypHe4Tmp[i].clear();
-    
   }
-  LOG(debug) << "DONE : " << mV0sTmp[0].size() << " " << mCascadesTmp[0].size() << " " << m3bodyTmp[0].size()<< mCasc3bodyTmp[0].size()<<""  <<mHypHe4Tmp[0].size()<< mDoubleHypH4Tmp[0].size() ;
+  LOG(debug) << "DONE : " << mV0sTmp[0].size() << " " << mCascadesTmp[0].size() << " " << m3bodyTmp[0].size() << mCasc3bodyTmp[0].size() << "" << mHypHe4Tmp[0].size() << mDoubleHypH4Tmp[0].size();
 }
 
 //__________________________________________________________________
@@ -270,10 +266,9 @@ void SVertexer::updateTimeDependentParams()
   mDoubleHyps[DoubleHyp3B::DoubleHyperhydrogen4].set(PID::DoubleHyperhydrogen4, PID::Hyperhelium4, PID::Pion, mSVParams->pidCutsXiMinus, bz);
   mDoubleHyps[DoubleHyp3B::DoubleAntiHyperhydrogen4].set(PID::DoubleHyperhydrogen4, PID::Hyperhelium4, PID::Pion, mSVParams->pidCutsXiMinus, bz);
 
-
   m3bodyHyps[Hyp3body::H3L3body].set(PID::HyperTriton, PID::Proton, PID::Pion, PID::Deuteron, mSVParams->pidCutsH3L3body, bz);
   m3bodyHyps[Hyp3body::AntiH3L3body].set(PID::HyperTriton, PID::Pion, PID::Proton, PID::Deuteron, mSVParams->pidCutsH3L3body, bz);
- m3bodyHyps[Hyp3body::He4L3body].set(PID::Hyperhelium4, PID::Proton, PID::Pion, PID::Deuteron, mSVParams->pidCutsHe4L3body, bz);
+  m3bodyHyps[Hyp3body::He4L3body].set(PID::Hyperhelium4, PID::Proton, PID::Pion, PID::Deuteron, mSVParams->pidCutsHe4L3body, bz);
   m3bodyHyps[Hyp3body::AntiHe4L3body].set(PID::Hyperhelium4, PID::Pion, PID::Proton, PID::Deuteron, mSVParams->pidCutsHe4L3body, bz);
   for (auto& ft : mFitterV0) {
     ft.setBz(bz);
@@ -290,7 +285,6 @@ void SVertexer::updateTimeDependentParams()
   for (auto& ft : mFitterdoubleHypH4) {
     ft.setBz(bz);
   }
-
 }
 
 //______________________________________________
@@ -409,7 +403,6 @@ void SVertexer::setupThreads()
     fitter.setMaxSnp(mSVParams->maxSnp);
     fitter.setMinXSeed(mSVParams->minXSeed);
   }
-
 }
 
 //__________________________________________________________________
@@ -448,11 +441,11 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
   // build track->vertices from vertices->tracks, rejecting vertex contributors if requested
   auto trackIndex = recoData.getPrimaryVertexMatchedTracks(); // Global ID's for associated tracks
   auto vtxRefs = recoData.getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
-  
+
   std::unordered_map<GIndex, std::pair<int, int>> tmap;
   std::unordered_map<GIndex, bool> rejmap;
   int nv = vtxRefs.size() - 1; // The last entry is for unassigned tracks, ignore them
-  for (int i = 0; i < 2; i++) {    
+  for (int i = 0; i < 2; i++) {
     mTracksPool[i].clear();
     mVtxFirstTrack[i].clear();
     mVtxFirstTrack[i].resize(nv, -1);
@@ -519,7 +512,7 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
 {
 
   auto& fitterV0 = mFitterV0[ithread];
-  int nCand = fitterV0.process(seedP, seedN);	//This needed to emplement in doubleHyperHydrogen4
+  int nCand = fitterV0.process(seedP, seedN); // This needed to emplement in doubleHyperHydrogen4
   if (nCand == 0) { // discard this pair
     return false;
   }
@@ -530,7 +523,7 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   if (r2v0 < mMinR2ToMeanVertex) {
     return false;
   }
-  float rv0 = std::sqrt(r2v0), drv0P = rv0 - seedP.minR, drv0N = rv0 - seedN.minR;	//I don't know why he done all these things
+  float rv0 = std::sqrt(r2v0), drv0P = rv0 - seedP.minR, drv0N = rv0 - seedN.minR; // I don't know why he done all these things
   if (drv0P > mSVParams->causalityRTolerance || drv0P < -mSVParams->maxV0ToProngsRDiff ||
       drv0N > mSVParams->causalityRTolerance || drv0N < -mSVParams->maxV0ToProngsRDiff) {
     LOG(debug) << "RejCausality " << drv0P << " " << drv0N;
@@ -564,10 +557,10 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   float p2V0 = pt2V0 + pV0[2] * pV0[2], ptV0 = std::sqrt(pt2V0);
   // apply mass selections
   float p2Pos = pP[0] * pP[0] + pP[1] * pP[1] + pP[2] * pP[2], p2Neg = pN[0] * pN[0] + pN[1] * pN[1] + pN[2] * pN[2];
-  
+
   //   LOG(info) <<"The momentum of 1st particle is "<< std::sqrt(p2Pos) << " and the momentum of second particle is "<<std::sqrt(p2Neg) ;
-  
-  //can you please tell me what is this v0 Hypothesis check ?
+
+  // can you please tell me what is this v0 Hypothesis check ?
   bool goodHyp = false;
   std::array<bool, NHypV0> hypCheckStatus{};
   for (int ipid = 0; ipid < NHypV0; ipid++) {
@@ -575,7 +568,7 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
       goodHyp = hypCheckStatus[ipid] = true;
     }
   }
-  
+
   // apply mass selections for 3-body decay
   bool good3bodyV0Hyp = false;
   for (int ipid = 2; ipid < 4; ipid++) {
@@ -585,30 +578,28 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
       break;
     }
   }
-  
+
   // we want to reconstruct the 3 body decay of hypernuclei starting from the V0 of a proton and a pion (e.g. H3L->d + (p + pi-), or He4L->He3 + (p + pi-)))
   bool checkFor3BodyDecays = mEnable3BodyDecays && (!mSVParams->checkV0Hypothesis || good3bodyV0Hyp) && (pt2V0 > 0.5);
   bool rejectAfter3BodyCheck = false; // To reject v0s which can be 3-body decay candidates but not cascade or v0
   bool checkForCascade = mEnableCascades && r2v0 < mMaxR2ToMeanVertexCascV0 && (!mSVParams->checkV0Hypothesis || (hypCheckStatus[HypV0::Lambda] || hypCheckStatus[HypV0::AntiLambda]));
   bool rejectIfNotCascade = false;
-  
+
   //  bool checkFordoubleHypH4 = mEnableCascades && r2v0 < mMaxR2ToMeanVertexCascV0 && (!mSVParams->checkV0Hypothesis || (hypCheckStatus[DoubleHyp3B::DoubleHyperhydrogen4] || hypCheckStatus[DoubleHyp3B::DoubleHyperhydrogen4]));
   //  bool rejectIfNotDoubeHypeH4 = false;
 
-  
-  
   if (!goodHyp && mSVParams->checkV0Hypothesis) {
     LOG(debug) << "RejHypo";
-    if (!checkFor3BodyDecays && !checkForCascade ) {
+    if (!checkFor3BodyDecays && !checkForCascade) {
       return false;
     } else {
       rejectAfter3BodyCheck = true;
     }
   }
-  
+
   float dcaX = dxv0 - pV0[0] * tDCAXY, dcaY = dyv0 - pV0[1] * tDCAXY, dca2 = dcaX * dcaX + dcaY * dcaY;
   float cosPAXY = prodXYv0 / std::sqrt(r2v0 * pt2V0);
-  
+
   if (checkForCascade) { // use looser cuts for cascade v0 candidates
     if (dca2 > mMaxDCAXY2ToMeanVertexV0Casc || cosPAXY < mSVParams->minCosPAXYMeanVertexCascV0) {
       LOG(debug) << "Rej for cascade DCAXY2: " << dca2 << " << cosPAXY: " << cosPAXY;
@@ -626,7 +617,7 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
       checkFor3BodyDecays = false;
     }
   }
-  
+
   if (dca2 > mMaxDCAXY2ToMeanVertex || cosPAXY < mSVParams->minCosPAXYMeanVertex) {
     if (checkForCascade) {
       rejectIfNotCascade = true;
@@ -636,7 +627,6 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
       return false;
     }
   }
-
 
   auto vlist = seedP.vBracket.getOverlap(seedN.vBracket); // indices of vertices shared by both seeds
   bool added = false;
@@ -683,7 +673,7 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
     mV0sTmp[ithread].pop_back();
     return false;
   }
-  
+
   // check cascades
   if (checkForCascade) {
     int nCascAdded = 0;
@@ -714,7 +704,7 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
 
   // check if a given PV has already been used in a cascade
   std::unordered_map<int, int> pvMap;
-  
+
   // start from the 1st bachelor track compatible with earliest vertex in the v0vlist
   int firstTr = mVtxFirstTrack[posneg][v0vlist.getMin()], nTr = tracks.size();
   if (firstTr < 0) {
@@ -739,7 +729,7 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
       cascVlist.setMin(v0.getVertexID());
       cascVlist.setMax(v0.getVertexID());
     }
-    
+
     int nCandC = fitterCasc.process(v0, bach);
     if (nCandC == 0) { // discard this pair
       continue;
@@ -757,7 +747,7 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
     if (!fitterCasc.isPropagateTracksToVertexDone() && !fitterCasc.propagateTracksToVertex()) {
       continue;
     }
-    
+
     auto& trNeut = fitterCasc.getTrack(0, candC);
     auto& trBach = fitterCasc.getTrack(1, candC);
     trNeut.setPID(o2::track::PID::Lambda);
@@ -820,8 +810,7 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
       continue;
     }
     auto& casc = mCascadesTmp[ithread].emplace_back(cascXYZ, pCasc, fitterCasc.calcPCACovMatrixFlat(candC), trNeut, trBach, v0Id, bach.gid);
-    //auto& doubleHyperHypdrogen4 = mDoubleHypH4Tmp[ithread].emplace_back(doubleHypH4XYZ, pdoubleHypH4, fitterdoubleHypH4.calcPCACovMatrixFlat(nCanddoubleH4), trHypHe4, trBach, body3Id,bach.gid);
-
+    // auto& doubleHyperHypdrogen4 = mDoubleHypH4Tmp[ithread].emplace_back(doubleHypH4XYZ, pdoubleHypH4, fitterdoubleHypH4.calcPCACovMatrixFlat(nCanddoubleH4), trHypHe4, trBach, body3Id,bach.gid);
 
     o2::track::TrackParCov trc = casc;
     o2::dataformats::DCA dca;
@@ -866,7 +855,7 @@ int SVertexer::checkCascades(float rv0, std::array<float, 3> pV0, float p2V0, in
 int SVertexer::checkdoubleHypH4(float r3body, std::array<float, 3> p3body, float p23body, int avoidTrackID, int posneg, VBracket decay3bodylist, int ithread)
 {
 
-	LOG(info) << "check for the doubleHyperHydrogen4 is started now ";
+  LOG(info) << "check for the doubleHyperHydrogen4 is started now ";
 
   auto& fitterdoubleHypH4 = mFitterdoubleHypH4[ithread];
 
@@ -886,15 +875,15 @@ int SVertexer::checkdoubleHypH4(float r3body, std::array<float, 3> p3body, float
     firstTr = nTr;
   }
   for (int it = firstTr; it < nTr; it++) {
-    if (it == avoidTrackID) { //from where you know to which trackID should be avoid becay in V0 this is simpke because we have only two tracks if positive or negative.      Need to work on it (but my problem is solved since in 3body reconstruction they use the proton and pions for the V0 candidates not the 3He or anything else).
-      continue; // skip the track used by 3bodyDecay
+    if (it == avoidTrackID) { // from where you know to which trackID should be avoid becay in V0 this is simpke because we have only two tracks if positive or negative.      Need to work on it (but my problem is solved since in 3body reconstruction they use the proton and pions for the V0 candidates not the 3He or anything else).
+      continue;               // skip the track used by 3bodyDecay
     }
     auto& bach = tracks[it];
     if (bach.vBracket.getMin() > decay3bodylist.getMax()) {
       LOG(debug) << "Skipping";
       break; // all other bachelor candidates will be also not compatible with this PV
     }
-    const auto& body3 = m3bodyTmp[ithread].back();      //from my side this is the 3body reconstructed track but why I am getting error in this case
+    const auto& body3 = m3bodyTmp[ithread].back(); // from my side this is the 3body reconstructed track but why I am getting error in this case
 
     //    const auto& body3 = m3bodyTmp[ithread][body3Id];      //from my side this is the 3body reconstructed track but why I am getting error in this case
     auto doubleHypH4Vlist = decay3bodylist.getOverlap(bach.vBracket); // indices of vertices shared by V0 and bachelor
@@ -913,8 +902,8 @@ int SVertexer::checkdoubleHypH4(float r3body, std::array<float, 3> p3body, float
     }
 
     int canddoubleH4 = 0;
-    const auto& doubleHypH4XYZ = fitterdoubleHypH4.getPCACandidatePos(canddoubleH4);	//need one this variable for emplace_back
-    
+    const auto& doubleHypH4XYZ = fitterdoubleHypH4.getPCACandidatePos(canddoubleH4); // need one this variable for emplace_back
+
     // make sure the doubleHypH4 radius is smaller than that of the mean vertex
     float dxc = doubleHypH4XYZ[0] - mMeanVertex.getX(), dyc = doubleHypH4XYZ[1] - mMeanVertex.getY(), r2doubleHypH4 = dxc * dxc + dyc * dyc;
     if (r3body * r3body - r2doubleHypH4 < mMinR2DiffV0Casc || r2doubleHypH4 < mMinR2ToMeanVertex) {
@@ -931,18 +920,16 @@ int SVertexer::checkdoubleHypH4(float r3body, std::array<float, 3> p3body, float
     trBach.setPID(o2::track::PID::Pion);
     std::array<float, 3> pHypHe4, pBach;
     trHypHe4.getPxPyPzGlo(pHypHe4);
-    trBach.getPxPyPzGlo(pBach);	
+    trBach.getPxPyPzGlo(pBach);
     std::array<float, 3> pdoubleHypH4 = {pHypHe4[0] + pBach[0], pHypHe4[1] + pBach[1], pHypHe4[2] + pBach[2]};
 
-
     float pt2doubleHypH4 = pdoubleHypH4[0] * pdoubleHypH4[0] + pdoubleHypH4[1] * pdoubleHypH4[1], p2doubleHypH4 = pt2doubleHypH4 + pdoubleHypH4[2] * pdoubleHypH4[2];
-    //Now I have the information of momentum of the two candidates can you please tell me how to calculate the mass from here:
-	float p2HyperHe4 = pHypHe4[0]*pHypHe4[0] + pHypHe4[1]* pHypHe4[1] + pHypHe4[2]*pHypHe4[2];
-	float p2Bach = pBach[0]*pBach[0] + pBach[1]*pBach[1] +pBach[2]*pBach[2];
+    // Now I have the information of momentum of the two candidates can you please tell me how to calculate the mass from here:
+    float p2HyperHe4 = pHypHe4[0] * pHypHe4[0] + pHypHe4[1] * pHypHe4[1] + pHypHe4[2] * pHypHe4[2];
+    float p2Bach = pBach[0] * pBach[0] + pBach[1] * pBach[1] + pBach[2] * pBach[2];
 
-	float pTHyperHe4 = std::sqrt(pHypHe4[0]*pHypHe4[0] + pHypHe4[1]* pHypHe4[1]);
-	float pTBach = std::sqrt(pBach[0]*pBach[0] + pBach[1]*pBach[1]);
-
+    float pTHyperHe4 = std::sqrt(pHypHe4[0] * pHypHe4[0] + pHypHe4[1] * pHypHe4[1]);
+    float pTBach = std::sqrt(pBach[0] * pBach[0] + pBach[1] * pBach[1]);
 
     if (pt2doubleHypH4 < mMinPt2Casc) { // pt cut
       LOG(debug) << "doubleHypH4 pt too low";
@@ -957,7 +944,7 @@ int SVertexer::checkdoubleHypH4(float r3body, std::array<float, 3> p3body, float
     auto bestCosPA1 = mSVParams->minCosPACasc;
     auto doubleHypeH4VtxID = -1;
 
-   for (int iv = doubleHypH4Vlist.getMin(); iv <= doubleHypH4Vlist.getMax(); iv++) {
+    for (int iv = doubleHypH4Vlist.getMin(); iv <= doubleHypH4Vlist.getMax(); iv++) {
       const auto& pv = mPVertices[iv];
       // check cos of pointing angle
       float dx = doubleHypH4XYZ[0] - pv.getX(), dy = doubleHypH4XYZ[1] - pv.getY(), dz = doubleHypH4XYZ[2] - pv.getZ(), prodXYZdoubleHyperH4 = dx * pdoubleHypH4[0] + dy * pdoubleHypH4[1] + dz * pdoubleHypH4[2];
@@ -974,7 +961,7 @@ int SVertexer::checkdoubleHypH4(float r3body, std::array<float, 3> p3body, float
       continue;
     }
 
-   const auto& doubleHyperH4Pv = mPVertices[doubleHypeH4VtxID];
+    const auto& doubleHyperH4Pv = mPVertices[doubleHypeH4VtxID];
     float dxdoubleHypeH4 = doubleHypH4XYZ[0] - doubleHyperH4Pv.getX(), dydoubleHyperH4 = doubleHypH4XYZ[1] - doubleHyperH4Pv.getY(), dzdoubleHyperH4 = doubleHypH4XYZ[2] - doubleHyperH4Pv.getZ();
     auto prodPPos = p3body[0] * dxdoubleHypeH4 + p3body[1] * dxdoubleHypeH4 + p3body[2] * dzdoubleHyperH4;
     if (prodPPos < 0.) { // causality cut
@@ -985,7 +972,7 @@ int SVertexer::checkdoubleHypH4(float r3body, std::array<float, 3> p3body, float
     auto bestCosPA = mSVParams->minCosPACasc;
     auto doubleHypH4VtxID = -1;
 
-    auto& doubleHyperHypdrogen4 = mDoubleHypH4Tmp[ithread].emplace_back(doubleHypH4XYZ, pdoubleHypH4, fitterdoubleHypH4.calcPCACovMatrixFlat(nCanddoubleH4), trHypHe4, trBach, body3Id,bach.gid);
+    auto& doubleHyperHypdrogen4 = mDoubleHypH4Tmp[ithread].emplace_back(doubleHypH4XYZ, pdoubleHypH4, fitterdoubleHypH4.calcPCACovMatrixFlat(nCanddoubleH4), trHypHe4, trBach, body3Id, bach.gid);
     // apply mass selections for 3-body decay
     //  bool good3bodyV0Hyp = false;
     //  for (int ipid = 0; ipid < 1; ipid++) {
@@ -1004,19 +991,17 @@ int SVertexer::checkdoubleHypH4(float r3body, std::array<float, 3> p3body, float
     //   log_pTpion<< pTBach <<std::endl;
     //  }
     //
-    
-    //Other cuts or checks also needed similar as for the cascades like
-    // a) cascade not compatible with any vertex
-    // b) cascade not casually compatible
-    // c) check for good hypothisis
-    
+
+    // Other cuts or checks also needed similar as for the cascades like
+    //  a) cascade not compatible with any vertex
+    //  b) cascade not casually compatible
+    //  c) check for good hypothisis
   }
-  
-  
+
   //    const auto& body3 = m3bodyTmp[ithread][body3Id];
   //    auto doubleHypH4list = decay3bodylist.getOverlap(bach.vBracket); // indices of vertices shared by V0 and bachelor
   //    if (mSVParams->selectBestV0) {
-  //	    //Now here is the catch how will you select the best candidate compatible with 3body parmeter ->Lets do something 
+  //	    //Now here is the catch how will you select the best candidate compatible with 3body parmeter ->Lets do something
   //      // select only the best V0 candidate among the compatible ones
   //      if (body3.getVertexID() < decay3bodylist.getMin() || body3.getVertexID() > decay3bodylist.getMax()) {
   //        continue;
@@ -1143,30 +1128,28 @@ int SVertexer::checkdoubleHypH4(float r3body, std::array<float, 3> p3body, float
   //  }
   //
   return mDoubleHypH4Tmp[ithread].size() - ndoubleHypH4Ini;
-  //return 1;
+  // return 1;
 }
-
-
 
 //__________________________________________________________________
 int SVertexer::check3bodyDecays(float rv0, std::array<float, 3> pV0, float p2V0, int avoidTrackID, int posneg, VBracket v0vlist, int ithread)
 {
-  
+
   // check last added V0 for belonging to cascade
   auto& fitter3body = mFitter3body[ithread];
-  const auto& v0 = mV0sTmp[ithread].back();	//to get the last added v0 candidate
+  const auto& v0 = mV0sTmp[ithread].back(); // to get the last added v0 candidate
   auto& tracks = mTracksPool[posneg];
   int n3BodyIni = m3bodyTmp[ithread].size();
-  
+
   // start from the 1st bachelor track compatible with earliest vertex in the v0vlist
   int firstTr = mVtxFirstTrack[posneg][v0vlist.getMin()], nTr = tracks.size();
   if (firstTr < 0) {
     firstTr = nTr;
   }
-  
+
   // If the V0 is a pair of proton and pion, we should pair it with all positive particles, and the positive particle in the V0 is a proton.
   // Otherwise, we should pair it with all negative particles, and the negative particle in the V0 is a antiproton.
-  
+
   // start from the 1st track compatible with V0's primary vertex
   for (int it = firstTr; it < nTr; it++) {
     if (it == avoidTrackID) {
@@ -1186,18 +1169,18 @@ int SVertexer::check3bodyDecays(float rv0, std::array<float, 3> pV0, float p2V0,
       decay3bodyVlist.setMin(v0.getVertexID());
       decay3bodyVlist.setMax(v0.getVertexID());
     }
-    
+
     if (bach.getPt() < 0.6) {
       continue;
     }
-    
+
     int n3bodyVtx = fitter3body.process(v0.getProng(0), v0.getProng(1), bach);
     if (n3bodyVtx == 0) { // discard this pair
       continue;
     }
     int cand3B = 0;
     const auto& vertexXYZ = fitter3body.getPCACandidatePos(cand3B);
-    
+
     // make sure the 3 body vertex radius is close to that of the mean vertex
     float dxc = vertexXYZ[0] - mMeanVertex.getX(), dyc = vertexXYZ[1] - mMeanVertex.getY(), dzc = vertexXYZ[2] - mMeanVertex.getZ(), r2vertex = dxc * dxc + dyc * dyc;
     if (std::abs(rv0 - std::sqrt(r2vertex)) > mSVParams->maxRDiffV03body || r2vertex < mMinR2ToMeanVertex) {
@@ -1207,12 +1190,12 @@ int SVertexer::check3bodyDecays(float rv0, std::array<float, 3> pV0, float p2V0,
     if (drvtxBach > mSVParams->causalityRTolerance || drvtxBach < -mSVParams->maxV0ToProngsRDiff) {
       LOG(debug) << "RejCausality " << drvtxBach;
     }
-    
+
     //
     if (!fitter3body.isPropagateTracksToVertexDone() && !fitter3body.propagateTracksToVertex()) {
       continue;
     }
-    
+
     auto& tr0 = fitter3body.getTrack(0, cand3B);
     auto& tr1 = fitter3body.getTrack(1, cand3B);
     auto& tr2 = fitter3body.getTrack(2, cand3B);
@@ -1221,10 +1204,8 @@ int SVertexer::check3bodyDecays(float rv0, std::array<float, 3> pV0, float p2V0,
     tr1.getPxPyPzGlo(p1);
     tr2.getPxPyPzGlo(p2);
     std::array<float, 3> p3B = {p0[0] + p1[0] + p2[0], p0[1] + p1[1] + p2[1], p0[2] + p1[2] + p2[2]};
-    
+
     float pt2candidate = p3B[0] * p3B[0] + p3B[1] * p3B[1], p2candidate = pt2candidate + p3B[2] * p3B[2];
-
-
 
     if (pt2candidate < mMinPt23Body) { // pt cut
       continue;
@@ -1232,13 +1213,13 @@ int SVertexer::check3bodyDecays(float rv0, std::array<float, 3> pV0, float p2V0,
     if (p3B[2] * p3B[2] / pt2candidate > mMaxTgl23Body) { // tgLambda cut
       continue;
     }
-    
+
     //        LOG(info)<< "The momentum of particle 1 again is " << std::sqrt(p0[0]*p0[0] + p0[1]*p0[1] + p0[2]*p0[2]) << " and the 2nd particle is "<<std::sqrt( p1[0]*p1[0]+p1[1]*p1[1]+p1[2]*p1[2]) << " and for the 3rd particle is " <<std::sqrt( p2[0]*p2[0] + p2[1]*p2[1] + p2[2]*p2[2])  << " and the total momentum of the 3 particle is  "<<std::sqrt( p2candidate);
-    
+
     // compute primary vertex and cosPA of the 3-body decay
     auto bestCosPA = mSVParams->minCosPA3body;
     auto decay3bodyVtxID = -1;
-    
+
     for (int iv = decay3bodyVlist.getMin(); iv <= decay3bodyVlist.getMax(); iv++) {
       const auto& pv = mPVertices[iv];
       // check cos of pointing angle
@@ -1259,7 +1240,7 @@ int SVertexer::check3bodyDecays(float rv0, std::array<float, 3> pV0, float p2V0,
     const auto& decay3bodyPv = mPVertices[decay3bodyVtxID];
     float sqP0 = p0[0] * p0[0] + p0[1] * p0[1] + p0[2] * p0[2], sqP1 = p1[0] * p1[0] + p1[1] * p1[1] + p1[2] * p1[2], sqP2 = p2[0] * p2[0] + p2[1] * p2[1] + p2[2] * p2[2];
     float pt3B = std::sqrt(pt2candidate);
-    
+
     bool goodHyp = false;
     for (int ipid = 2; ipid < 4; ipid++) { // TODO: expand this loop to cover all the 3body cases if (m3bodyHyps[ipid].check(sqP0, sqP1, sqP2, sqPtot, pt3B))
       if (m3bodyHyps[ipid].check(sqP0, sqP1, sqP2, p2candidate, pt3B)) {
@@ -1271,70 +1252,66 @@ int SVertexer::check3bodyDecays(float rv0, std::array<float, 3> pV0, float p2V0,
       continue;
     }
 
-    
-    //I just want to look at the ptdistribution of 3body befor doing anything
-	log_pT3body << pt3B <<std::endl;
-	
-	//consider Hypetrition 
-	//    auto& candidate3B = m3bodyTmp[ithread].emplace_back(PID::HyperTriton, vertexXYZ, p3B, fitter3body.calcPCACovMatrixFlat(cand3B), tr0, tr1, tr2, v0.getProngID(0), v0.getProngID(1), bach.gid);
-	auto& candidate3B = m3bodyTmp[ithread].emplace_back(PID::Hyperhelium4, vertexXYZ, p3B, fitter3body.calcPCACovMatrixFlat(cand3B), tr0, tr1, tr2, v0.getProngID(0), v0.getProngID(1), bach.gid);
-	
-	o2::track::TrackParCov trc = candidate3B;
-	o2::dataformats::DCA dca;
-	if (!trc.propagateToDCA(decay3bodyPv, fitter3body.getBz(), &dca, 5.) ||
-	    std::abs(dca.getY()) > mSVParams->maxDCAXY3Body || std::abs(dca.getZ()) > mSVParams->maxDCAZ3Body) {
-	  m3bodyTmp[ithread].pop_back();
-	  continue;
-	}
-	
-	candidate3B.setCosPA(bestCosPA);
-	candidate3B.setVertexID(decay3bodyVtxID);
-	candidate3B.setDCA(fitter3body.getChi2AtPCACandidate());
+    // I just want to look at the ptdistribution of 3body befor doing anything
+    log_pT3body << pt3B << std::endl;
 
-	// check doubleHypH4
-	//  bool goodHyp = false;
-	//  std::array<bool, NDoubleHyp3B> hypCheckStatus{};
-	//  for (int ipid = 0; ipid < NHypV0; ipid++) {
-	//    if (m3bodyHyps[ipid].check(p2Pos, p2Neg, p2V0, ptV0)) {
-	//      goodHyp = hypCheckStatus[ipid] = true;
-	//    }
-	//  }
-	//  if (!goodHyp && mSVParams->checkV0Hypothesis) {
-	//    LOG(debug) << "RejHypo";
-	//    return false;
-	//  }
-  
-	bool  checkFordoubleHypH4 = true;
-	bool rejectIfNotDoubleHypeH4 = false;
+    // consider Hypetrition
+    //     auto& candidate3B = m3bodyTmp[ithread].emplace_back(PID::HyperTriton, vertexXYZ, p3B, fitter3body.calcPCACovMatrixFlat(cand3B), tr0, tr1, tr2, v0.getProngID(0), v0.getProngID(1), bach.gid);
+    auto& candidate3B = m3bodyTmp[ithread].emplace_back(PID::Hyperhelium4, vertexXYZ, p3B, fitter3body.calcPCACovMatrixFlat(cand3B), tr0, tr1, tr2, v0.getProngID(0), v0.getProngID(1), bach.gid);
 
+    o2::track::TrackParCov trc = candidate3B;
+    o2::dataformats::DCA dca;
+    if (!trc.propagateToDCA(decay3bodyPv, fitter3body.getBz(), &dca, 5.) ||
+        std::abs(dca.getY()) > mSVParams->maxDCAXY3Body || std::abs(dca.getZ()) > mSVParams->maxDCAZ3Body) {
+      m3bodyTmp[ithread].pop_back();
+      continue;
+    }
 
-	if (checkFordoubleHypH4) {
-	  int ndoubleHypH4Added = 0;
-	  //    if (hypCheckStatus[DoubleHyp3B::DoubleHyperhydrogen4] || !mSVParams->checkCascadeHypothesis) {
-	  ndoubleHypH4Added += checkdoubleHypH4(r2vertex, p3B, p2candidate, it, NEG, decay3bodyVlist, ithread);
-	  //    }
-	  //    if (hypCheckStatus[DoubleHyp3B::DoubleAntiHyperhydrogen4] || !mSVParams->checkCascadeHypothesis) {
-	  //      ndoubleHypH4Added += checkdoubleHypH4(r2vertex, p3B, p2candidate, it, POS, decay3bodyVlist, ithread);
-	  //    }
-	  //    if (!ndoubleHypH4Added && rejectIfNotDoubleHypeH4) { // v0 would be accepted only if it creates a cascade
-	  //      m3bodyTmp[ithread].pop_back();
-	  //      return false;
-	  //    }
-	}
-	
-	
+    candidate3B.setCosPA(bestCosPA);
+    candidate3B.setVertexID(decay3bodyVtxID);
+    candidate3B.setDCA(fitter3body.getChi2AtPCACandidate());
 
-	//        // Consider Hyperhelium4
-	//    auto& candidateHyHe4 = m3bodyTmp[ithread].emplace_back(PID::Hyperhelium4, vertexXYZ, p3B, fitter3body.calcPCACovMatrixFlat(cand3B), tr0, tr1, tr2, v0.getProngID(0), v0.getProngID(1), bach.gid);
-	//    o2::track::TrackParCov trcHyHe4 = candidateHyHe4;
-	//    if (!trcHyHe4.propagateToDCA(decay3bodyPv, fitter3body.getBz(), &dca, 5.) ||
-	//        std::abs(dca.getY()) > mSVParams->maxDCAXY3Body || std::abs(dca.getZ()) > mSVParams->maxDCAZ3Body) {
-	//      m3bodyTmp[ithread].pop_back();
-	//      continue;
-	//    }
-	//    candidateHyHe4.setCosPA(bestCosPA);
-	//    candidateHyHe4.setVertexID(decay3bodyVtxID);
-	//    candidateHyHe4.setDCA(fitter3body.getChi2AtPCACandidate());
+    // check doubleHypH4
+    //  bool goodHyp = false;
+    //  std::array<bool, NDoubleHyp3B> hypCheckStatus{};
+    //  for (int ipid = 0; ipid < NHypV0; ipid++) {
+    //    if (m3bodyHyps[ipid].check(p2Pos, p2Neg, p2V0, ptV0)) {
+    //      goodHyp = hypCheckStatus[ipid] = true;
+    //    }
+    //  }
+    //  if (!goodHyp && mSVParams->checkV0Hypothesis) {
+    //    LOG(debug) << "RejHypo";
+    //    return false;
+    //  }
+
+    bool checkFordoubleHypH4 = true;
+    bool rejectIfNotDoubleHypeH4 = false;
+
+    if (checkFordoubleHypH4) {
+      int ndoubleHypH4Added = 0;
+      //    if (hypCheckStatus[DoubleHyp3B::DoubleHyperhydrogen4] || !mSVParams->checkCascadeHypothesis) {
+      ndoubleHypH4Added += checkdoubleHypH4(r2vertex, p3B, p2candidate, it, NEG, decay3bodyVlist, ithread);
+      //    }
+      //    if (hypCheckStatus[DoubleHyp3B::DoubleAntiHyperhydrogen4] || !mSVParams->checkCascadeHypothesis) {
+      //      ndoubleHypH4Added += checkdoubleHypH4(r2vertex, p3B, p2candidate, it, POS, decay3bodyVlist, ithread);
+      //    }
+      //    if (!ndoubleHypH4Added && rejectIfNotDoubleHypeH4) { // v0 would be accepted only if it creates a cascade
+      //      m3bodyTmp[ithread].pop_back();
+      //      return false;
+      //    }
+    }
+
+    //        // Consider Hyperhelium4
+    //    auto& candidateHyHe4 = m3bodyTmp[ithread].emplace_back(PID::Hyperhelium4, vertexXYZ, p3B, fitter3body.calcPCACovMatrixFlat(cand3B), tr0, tr1, tr2, v0.getProngID(0), v0.getProngID(1), bach.gid);
+    //    o2::track::TrackParCov trcHyHe4 = candidateHyHe4;
+    //    if (!trcHyHe4.propagateToDCA(decay3bodyPv, fitter3body.getBz(), &dca, 5.) ||
+    //        std::abs(dca.getY()) > mSVParams->maxDCAXY3Body || std::abs(dca.getZ()) > mSVParams->maxDCAZ3Body) {
+    //      m3bodyTmp[ithread].pop_back();
+    //      continue;
+    //    }
+    //    candidateHyHe4.setCosPA(bestCosPA);
+    //    candidateHyHe4.setVertexID(decay3bodyVtxID);
+    //    candidateHyHe4.setDCA(fitter3body.getChi2AtPCACandidate());
   }
   return m3bodyTmp[ithread].size() - n3BodyIni;
 }
@@ -1381,6 +1358,6 @@ float SVertexer::correctTPCTrack(o2::track::TrackParCov& trc, const o2::tpc::Tra
   // eventually should be refitted, at the moment we simply shift...
   trc.setZ(tTPC.getZ() + (tTPC.hasASideClustersOnly() ? dDrift : -dDrift));
   trc.setCov(trc.getSigmaZ2() + driftErr * driftErr, o2::track::kSigZ2);
-  
+
   return driftErr;
 }
