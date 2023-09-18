@@ -374,4 +374,33 @@ void GPURecoWorkflowSpec::cleanOldCalibsTPCPtrs()
   }
 }
 
+void GPURecoWorkflowSpec::doTrackTuneTPC(GPUTrackingInOutPointers& ptrs, char* buffout)
+{
+  using TrackTunePar = o2::globaltracking::TrackTuneParams;
+  const auto& trackTune = TrackTunePar::Instance();
+  if (ptrs.nOutputTracksTPCO2 && trackTune.sourceLevelTPC &&
+      (trackTune.useTPCInnerCorr || trackTune.useTPCOuterCorr ||
+       trackTune.tpcCovInnerType != TrackTunePar::AddCovType::Disable || trackTune.tpcCovOuterType != TrackTunePar::AddCovType::Disable)) {
+    if (((const void*)ptrs.outputTracksTPCO2) != ((const void*)buffout)) {
+      throw std::runtime_error("Buffer does not match span");
+    }
+    o2::tpc::TrackTPC* tpcTracks = reinterpret_cast<o2::tpc::TrackTPC*>(buffout);
+    for (unsigned int itr = 0; itr < ptrs.nOutputTracksTPCO2; itr++) {
+      auto& trc = tpcTracks[itr];
+      if (trackTune.useTPCInnerCorr) {
+        trc.updateParams(trackTune.tpcParInner);
+      }
+      if (trackTune.tpcCovInnerType != TrackTunePar::AddCovType::Disable) {
+        trc.updateCov(trackTune.tpcCovInner, trackTune.tpcCovInnerType == TrackTunePar::AddCovType::WithCorrelations);
+      }
+      if (trackTune.useTPCOuterCorr) {
+        trc.getParamOut().updateParams(trackTune.tpcParOuter);
+      }
+      if (trackTune.tpcCovOuterType != TrackTunePar::AddCovType::Disable) {
+        trc.getParamOut().updateCov(trackTune.tpcCovOuter, trackTune.tpcCovOuterType == TrackTunePar::AddCovType::WithCorrelations);
+      }
+    }
+  }
+}
+
 } // namespace o2::gpu
