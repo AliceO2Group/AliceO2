@@ -531,7 +531,7 @@ size_t GPUReconstruction::AllocateRegisteredMemoryHelper(GPUMemoryResource* res,
     return retVal;
   }
   if (memorypool == nullptr) {
-    GPUInfo("Memory pool uninitialized");
+    GPUError("Cannot allocate memory from uninitialized pool");
     throw std::bad_alloc();
   }
   size_t retVal;

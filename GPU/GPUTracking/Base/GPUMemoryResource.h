@@ -78,12 +78,10 @@ class GPUMemoryResource
                         ALLOCATION_INDIVIDUAL = 1,
                         ALLOCATION_GLOBAL = 2 };
 
-#ifndef GPUCA_GPUCODE
   GPUMemoryResource(GPUProcessor* proc, void* (GPUProcessor::*setPtr)(void*), MemoryType type, const char* name = "") : mProcessor(proc), mPtr(nullptr), mPtrDevice(nullptr), mSetPointers(setPtr), mName(name), mSize(0), mOverrideSize(0), mReuse(-1), mType(type)
   {
   }
   GPUMemoryResource(const GPUMemoryResource&) CON_DEFAULT;
-#endif
 
   void* SetPointers(void* ptr)
   {
