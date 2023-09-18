@@ -1290,7 +1290,8 @@ void SpaceCharge<DataT>::calcGlobalDistortions(const Fields& formulaStruct, cons
           }
           const DataT z0Tmp = z0 + dzDist + iter * stepSize; // starting z position
 
-          if (getSide(z0Tmp) != side) {
+          // do not do check for first iteration
+          if ((getSide(z0Tmp) != side) && iter) {
             LOGP(error, "Aborting calculation of distortions for iZ: {}, iR: {}, iPhi: {} due to change in the sides!", iZ, iR, iPhi);
             break;
           }
@@ -1562,6 +1563,18 @@ DataT SpaceCharge<DataT>::getPotentialCyl(const DataT z, const DataT r, const Da
 }
 
 template <typename DataT>
+std::vector<float> SpaceCharge<DataT>::getPotentialCyl(const std::vector<DataT>& z, const std::vector<DataT>& r, const std::vector<DataT>& phi, const Side side) const
+{
+  const auto nPoints = z.size();
+  std::vector<float> potential(nPoints);
+#pragma omp parallel for num_threads(sNThreads)
+  for (size_t i = 0; i < nPoints; ++i) {
+    potential[i] = getPotentialCyl(z[i], r[i], phi[i], side);
+  }
+  return potential;
+}
+
+template <typename DataT>
 void SpaceCharge<DataT>::getElectricFieldsCyl(const DataT z, const DataT r, const DataT phi, const Side side, DataT& eZ, DataT& eR, DataT& ePhi) const
 {
   eZ = mInterpolatorEField[side].evalFieldZ(z, r, phi);
@@ -1607,7 +1620,7 @@ void SpaceCharge<DataT>::getCorrectionsCyl(const std::vector<DataT>& z, const st
   corrRPhi.resize(nPoints);
 #pragma omp parallel for num_threads(sNThreads)
   for (size_t i = 0; i < nPoints; ++i) {
-    getLocalCorrectionsCyl(z[i], r[i], phi[i], side, corrZ[i], corrR[i], corrRPhi[i]);
+    getCorrectionsCyl(z[i], r[i], phi[i], side, corrZ[i], corrR[i], corrRPhi[i]);
   }
 }
 
@@ -3296,19 +3309,156 @@ void SpaceCharge<DataT>::initRodAlignmentVoltages(const MisalignmentType misalig
 }
 
 template <typename DataT>
-void SpaceCharge<DataT>::setIFCChargeUpLinear(const float deltaPot, const float zMaxDeltaPot, const bool cutOff, const Side side)
+void SpaceCharge<DataT>::addBoundaryPotential(const SpaceCharge<DataT>& other, const Side side, const float scaling)
 {
-  std::function<DataT(DataT)> chargeUpIFCLinear = [cutOff, zMax = getZMax(Side::A), deltaPot, zMaxDeltaPot](const DataT z) {
+  if (other.mPotential[side].getData().empty()) {
+    LOGP(info, "Other space-charge object is empty!");
+    return;
+  }
+
+  if ((mParamGrid.NRVertices != other.mParamGrid.NRVertices) || (mParamGrid.NZVertices != other.mParamGrid.NZVertices) || (mParamGrid.NPhiVertices != other.mParamGrid.NPhiVertices)) {
+    LOGP(info, "Different number of vertices found in input file. Initializing new space charge object with nR {} nZ {} nPhi {} vertices", other.mParamGrid.NRVertices, other.mParamGrid.NZVertices, other.mParamGrid.NPhiVertices);
+    SpaceCharge<DataT> scTmp(mBField.getBField(), other.mParamGrid.NZVertices, other.mParamGrid.NRVertices, other.mParamGrid.NPhiVertices, false);
+    scTmp.mC0 = mC0;
+    scTmp.mC1 = mC1;
+    scTmp.mC2 = mC2;
+    *this = std::move(scTmp);
+  }
+
+  initContainer(mPotential[side], true);
+
+  for (size_t iPhi = 0; iPhi < mParamGrid.NPhiVertices; ++iPhi) {
+    for (size_t iZ = 1; iZ < mParamGrid.NZVertices; ++iZ) {
+      const size_t iRFirst = 0;
+      mPotential[side](iZ, iRFirst, iPhi) += scaling * other.mPotential[side](iZ, iRFirst, iPhi);
+
+      const size_t iRLast = mParamGrid.NRVertices - 1;
+      mPotential[side](iZ, iRLast, iPhi) += scaling * other.mPotential[side](iZ, iRLast, iPhi);
+    }
+  }
+
+  for (size_t iPhi = 0; iPhi < mParamGrid.NPhiVertices; ++iPhi) {
+    for (size_t iR = 0; iR < mParamGrid.NRVertices; ++iR) {
+      const size_t iZFirst = 0;
+      mPotential[side](iZFirst, iR, iPhi) += scaling * other.mPotential[side](iZFirst, iR, iPhi);
+
+      const size_t iZLast = mParamGrid.NZVertices - 1;
+      mPotential[side](iZLast, iR, iPhi) += scaling * other.mPotential[side](iZLast, iR, iPhi);
+    }
+  }
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::resetBoundaryPotentialToZeroInRangeZ(float zMin, float zMax, const Side side)
+{
+  const float zMaxAbs = std::abs(zMax);
+  for (size_t iPhi = 0; iPhi < mParamGrid.NPhiVertices; ++iPhi) {
+    for (size_t iZ = 1; iZ < mParamGrid.NZVertices; ++iZ) {
+      const DataT z = std::abs(getZVertex(iZ, side));
+      if ((z < zMin) || (z > zMax)) {
+        const size_t iRFirst = 0;
+        mPotential[side](iZ, iRFirst, iPhi) = 0;
+
+        const size_t iRLast = mParamGrid.NRVertices - 1;
+        mPotential[side](iZ, iRLast, iPhi) = 0;
+      }
+    }
+  }
+
+  for (size_t iPhi = 0; iPhi < mParamGrid.NPhiVertices; ++iPhi) {
+    for (size_t iR = 0; iR < mParamGrid.NRVertices; ++iR) {
+      const size_t iZFirst = 0;
+      const float zFirst = std::abs(getZVertex(iZFirst, side));
+      if ((zFirst < zMin) || (zFirst > zMax)) {
+        mPotential[side](iZFirst, iR, iPhi) = 0;
+      }
+
+      const size_t iZLast = mParamGrid.NZVertices - 1;
+      const float zLast = std::abs(getZVertex(iZLast, side));
+      if ((zLast < zMin) || (zLast > zMax)) {
+        mPotential[side](iZLast, iR, iPhi) = 0;
+      }
+    }
+  }
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::setIFCChargeUpRisingPot(const float deltaPot, const float zMaxDeltaPot, const int type, const float zStart, const float offs, const Side side)
+{
+  std::function<DataT(DataT)> chargeUpIFCLinear = [zStart, type, offs, deltaPot, zMaxDeltaPot](const DataT z) {
     const float absZ = std::abs(z);
     const float absZMaxDeltaPot = std::abs(zMaxDeltaPot);
-    if (absZ <= absZMaxDeltaPot) {
-      return static_cast<DataT>(deltaPot / absZMaxDeltaPot * absZ);
-    } else {
-      if (cutOff) {
+    if ((absZ <= absZMaxDeltaPot) && (absZ >= zStart)) {
+      // 1/x
+      if (type == 1) {
+        const float offsZ = 1;
+        const float zMaxDeltaPotTmp = zMaxDeltaPot - zStart + offsZ;
+        const float p1 = deltaPot / (1 / offsZ - 1 / zMaxDeltaPotTmp);
+        const float p2 = -p1 / zMaxDeltaPotTmp;
+        const float absZShifted = zMaxDeltaPotTmp - (absZ - zStart);
+        DataT pot = p2 + p1 / absZShifted;
+        return pot;
+      } else if (type == 0 || type == 4) {
+        // linearly rising potential
+        return static_cast<DataT>(deltaPot / (absZMaxDeltaPot - zStart) * (absZ - zStart) + offs);
+      } else if (type == 2) {
+        // flat
+        return DataT(deltaPot);
+      } else if (type == 3) {
+        // linear falling
+        return static_cast<DataT>(-deltaPot / (absZMaxDeltaPot - zStart) * (absZ - zStart) + deltaPot);
+      } else {
         return DataT(0);
       }
-      const float zPos = absZ - zMax;
-      return static_cast<DataT>(deltaPot / (absZMaxDeltaPot - zMax) * zPos);
+    } else if (type == 4) {
+      // flat no z dependence
+      return DataT(offs);
+    } else {
+      return DataT(0);
+    }
+  };
+  setPotentialBoundaryInnerRadius(chargeUpIFCLinear, side);
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::setIFCChargeUpFallingPot(const float deltaPot, const float zMaxDeltaPot, const int type, const float zEnd, const float offs, const Side side)
+{
+  std::function<DataT(DataT)> chargeUpIFCLinear = [zEnd, type, offs, zMax = getZMax(Side::A), deltaPot, zMaxDeltaPot](const DataT z) {
+    const float absZ = std::abs(z);
+    const float absZMaxDeltaPot = std::abs(zMaxDeltaPot);
+
+    bool check = (absZ >= absZMaxDeltaPot);
+    if (type == 0 || type == 3) {
+      check = (absZ >= absZMaxDeltaPot);
+    }
+
+    if (check && (absZ <= zEnd)) {
+      // 1/x dependency
+      if (type == 1) {
+        const float p1 = (deltaPot - offs) / (1 / zMaxDeltaPot - 1 / zEnd);
+        const float p2 = offs - p1 / zEnd;
+        DataT pot = p2 + p1 / absZ;
+        return pot;
+      } else if (type == 2) {
+        // 1/x dependency steep fall off!
+        const float offsZ = 1;
+        const float zEndTmp = zEnd - zMaxDeltaPot + offsZ;
+        const float p1 = deltaPot / (1 / offsZ - 1 / zEndTmp);
+        const float p2 = -p1 / zEndTmp;
+        const float absZShifted = absZ - zMaxDeltaPot;
+        DataT pot = p2 + p1 / absZShifted;
+        return pot;
+      } else if (type == 0 || type == 3) {
+        // linearly falling potential
+        const float zPos = absZ - zEnd;
+        return static_cast<DataT>(deltaPot / (absZMaxDeltaPot - zEnd) * zPos + offs);
+      } else {
+        return DataT(0);
+      }
+    } else if (type == 3) {
+      return DataT(offs);
+    } else {
+      return DataT(0);
     }
   };
   setPotentialBoundaryInnerRadius(chargeUpIFCLinear, side);
@@ -3514,6 +3664,31 @@ void SpaceCharge<DataT>::scaleChargeDensitySector(const float scalingFactor, con
     for (unsigned int iZ = 0; iZ < mParamGrid.NZVertices; ++iZ) {
       for (unsigned int iPhi = iPhiFirst; iPhi < iPhiLast; ++iPhi) {
         mDensity[side](iZ, iR, iPhi) *= scalingFactor;
+      }
+    }
+  }
+}
+
+template <typename DataT>
+void SpaceCharge<DataT>::scaleChargeDensityStack(const float scalingFactor, const Sector sector, const GEMstack stack)
+{
+  const Side side = sector.side();
+  initContainer(mDensity[side], true);
+  const int verticesPerSector = mParamGrid.NPhiVertices / SECTORSPERSIDE;
+  const int sectorInSide = sector % SECTORSPERSIDE;
+  const int iPhiFirst = sectorInSide * verticesPerSector;
+  const int iPhiLast = iPhiFirst + verticesPerSector;
+  for (unsigned int iR = 0; iR < mParamGrid.NRVertices; ++iR) {
+    const DataT radius = getRVertex(iR, side);
+    for (unsigned int iPhi = iPhiFirst; iPhi < iPhiLast; ++iPhi) {
+      const DataT phi = getPhiVertex(iR, side);
+      const GlobalPosition3D pos(getXFromPolar(radius, phi), getYFromPolar(radius, phi), ((side == Side::A) ? 10 : -10));
+      const auto& mapper = o2::tpc::Mapper::instance();
+      const o2::tpc::DigitPos digiPadPos = mapper.findDigitPosFromGlobalPosition(pos);
+      if (digiPadPos.isValid() && digiPadPos.getCRU().gemStack() == stack) {
+        for (unsigned int iZ = 0; iZ < mParamGrid.NZVertices; ++iZ) {
+          mDensity[side](iZ, iR, iPhi) *= scalingFactor;
+        }
       }
     }
   }

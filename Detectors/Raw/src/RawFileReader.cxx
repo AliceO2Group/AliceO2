@@ -378,7 +378,7 @@ bool RawFileReader::LinkData::preprocessCRUPage(const RDHAny& rdh, bool newSPage
         reader->imposeFirstTF(irOfSOX.orbit);
       }
     }
-    auto newTFCalc = reader->getTFAutodetect() != FirstTFDetection::Pending && (blocks.empty() || HBU.getTF(blocks.back().ir) < HBU.getTF(ir));
+    auto newTFCalc = reader->getTFAutodetect() != FirstTFDetection::Pending && (blocks.empty() || HBU.getTF(blocks.back().ir) != HBU.getTF(ir)); // TF change
     if (cruDetector) {
       newTF = (triggerType & o2::trigger::TF);
       newHB = (triggerType & o2::trigger::HB);

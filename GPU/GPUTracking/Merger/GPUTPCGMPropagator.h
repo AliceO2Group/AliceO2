@@ -99,10 +99,10 @@ class GPUTPCGMPropagator
 
   GPUd() int PropagateToXAlphaBz(float posX, float posAlpha, bool inFlyDirection);
 
-  GPUd() int Update(float posY, float posZ, int iRow, const GPUParam& param, short clusterState, char rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, bool refit GPUCA_DEBUG_STREAMER_CHECK(, int iTrk = 0));
+  GPUd() int Update(float posY, float posZ, int iRow, const GPUParam& param, short clusterState, char rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, bool refit, bool sideC GPUCA_DEBUG_STREAMER_CHECK(, int iTrk = 0));
   GPUd() int Update(float posY, float posZ, short clusterState, bool rejectChi2, float err2Y, float err2Z, const GPUParam* param = nullptr);
   GPUd() int InterpolateReject(const GPUParam& param, float posY, float posZ, short clusterState, char rejectChi2, gputpcgmmergertypes::InterpolationErrorHit* inter, float err2Y, float err2Z);
-  GPUd() float PredictChi2(float posY, float posZ, int iRow, const GPUParam& param, short clusterState) const;
+  GPUd() float PredictChi2(float posY, float posZ, int iRow, const GPUParam& param, short clusterState, bool sideC) const;
   GPUd() float PredictChi2(float posY, float posZ, float err2Y, float err2Z) const;
   GPUd() int RejectCluster(float chiY, float chiZ, unsigned char clusterState)
   {
@@ -128,7 +128,7 @@ class GPUTPCGMPropagator
   /// Bx,By,Bz in local coordinates rotated to Alpha
   GPUd() void GetBxByBz(float Alpha, float X, float Y, float Z, float B[3]) const;
 
-  GPUd() void GetErr2(float& err2Y, float& err2Z, const GPUParam& param, float posZ, int iRow, short clusterState) const;
+  GPUd() void GetErr2(float& err2Y, float& err2Z, const GPUParam& param, float posZ, int iRow, short clusterState, bool sideC) const;
 
   GPUd() float GetAlpha() const { return mAlpha; }
   GPUd() void SetAlpha(float v) { mAlpha = v; }
@@ -168,22 +168,21 @@ class GPUTPCGMPropagator
   GPUd() float getGlobalY(float X, float Y) const;
 
   const GPUTPCGMPolynomialField* mField = nullptr;
-  FieldRegion mFieldRegion = TPC;
-
+  const o2::base::MatLayerCylSet* mMatLUT = nullptr;
   GPUTPCGMTrackParam* mT = nullptr;
   float mAlpha = 0.f;    // rotation angle of the track coordinate system
   float mCosAlpha = 1.f; // cos of the rotation angle
   float mSinAlpha = 0.f; // sin of the rotation angle
+  float mMaxSinPhi = GPUCA_MAX_SIN_PHI;
   GPUTPCGMPhysicalTrackModel mT0;
   MaterialCorrection mMaterial;
+  FieldRegion mFieldRegion = TPC;
   bool mSeedingErrors = 0;
   bool mFitInProjections = 1; // fit (Y,SinPhi,QPt) and (Z,DzDs) paramteres separatelly
   bool mPropagateBzOnly = 0;  // Use Bz only in propagation
   bool mToyMCEvents = 0;      // events are simulated with simple home-made simulation
-  float mMaxSinPhi = GPUCA_MAX_SIN_PHI;
 
   GPUTPCGMOfflineStatisticalErrors mStatErrors;
-  const o2::base::MatLayerCylSet* mMatLUT = nullptr;
 };
 
 GPUdi() void GPUTPCGMPropagator::GetBxByBz(float Alpha, float X, float Y, float Z, float B[3]) const

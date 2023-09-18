@@ -16,6 +16,10 @@
 #ifndef RANS_METRICS_H_
 #define RANS_METRICS_H_
 
+#ifdef __CLING__
+#error rANS should not be exposed to root
+#endif
+
 #include "rANS/internal/metrics/Metrics.h"
 #include "rANS/internal/metrics/properties.h"
 #include "rANS/internal/metrics/SizeEstimate.h"

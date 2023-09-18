@@ -203,6 +203,9 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int
         tracker.GetErrors2Seeding(iRow, tParam.GetZ(), sinPhi, tParam.GetDzDs(), err2Y, err2Z);
 
         if (r.mNHits >= 10) {
+          const float sErr2 = tracker.Param().GetSystematicClusterErrorIFC2(x, tParam.GetZ(), tracker.ISlice() > 18);
+          err2Y += sErr2;
+          err2Z += sErr2;
           const float kFactor = tracker.Param().rec.tpc.hitPickUpFactor * tracker.Param().rec.tpc.hitPickUpFactor * 3.5f * 3.5f;
           float sy2 = kFactor * (tParam.Err2Y() + err2Y);
           float sz2 = kFactor * (tParam.Err2Z() + err2Z);
@@ -215,7 +218,7 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int
           dy = y - tParam.Y();
           dz = z - tParam.Z();
           if (dy * dy > sy2 || dz * dz > sz2) {
-            if (++r.mNMissed >= GPUCA_TRACKLET_CONSTRUCTOR_MAX_ROW_GAP_SEED) {
+            if (++r.mNMissed >= tracker.Param().rec.tpc.trackFollowingMaxRowGapSeed) {
               r.mCurrIH = CALINK_INVAL;
             }
             rowHit = CALINK_INVAL;
@@ -253,7 +256,7 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int
       if (r.mStage == 2 && iRow > r.mEndRow) {
         break;
       }
-      if (r.mNMissed > GPUCA_TRACKLET_CONSTRUCTOR_MAX_ROW_GAP) {
+      if (r.mNMissed > tracker.Param().rec.tpc.trackFollowingMaxRowGap) {
         r.mGo = 0;
         break;
       }
@@ -298,6 +301,11 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int
 
       float err2Y, err2Z;
       tracker.GetErrors2Seeding(iRow, *((MEM_LG2(GPUTPCTrackParam)*)&tParam), err2Y, err2Z);
+      if (r.mNHits >= 10) {
+        const float sErr2 = tracker.Param().GetSystematicClusterErrorIFC2(x, tParam.GetZ(), tracker.ISlice() > 18);
+        err2Y += sErr2;
+        err2Z += sErr2;
+      }
       if (CAMath::Abs(yUncorrected) < x * MEM_GLOBAL(GPUTPCRow)::getTPCMaxY1X()) { // search for the closest hit
         const float kFactor = tracker.Param().rec.tpc.hitPickUpFactor * tracker.Param().rec.tpc.hitPickUpFactor * 7.0f * 7.0f;
         const float maxWindow2 = tracker.Param().rec.tpc.hitSearchArea2;
@@ -328,7 +336,7 @@ GPUdic(2, 1) void GPUTPCTrackletConstructor::UpdateTracklet(int /*nBlocks*/, int
             float dy = y - yUncorrected;
             float dz = z - zUncorrected;
             if (dy * dy < sy2 && dz * dz < sz2) {
-              float dds = GPUCA_Y_FACTOR * CAMath::Abs(dy) + CAMath::Abs(dz);
+              float dds = tracker.Param().rec.tpc.trackFollowingYFactor * CAMath::Abs(dy) + CAMath::Abs(dz);
               if (dds < ds) {
                 ds = dds;
                 best = ih;

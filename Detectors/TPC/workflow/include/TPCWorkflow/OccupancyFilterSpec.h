@@ -1,4 +1,4 @@
-// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -9,19 +9,21 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   encode.h
-/// @author michael.lettrich@cern.ch
-/// @brief  public interface for encoding.
+/// @file   OccupancyFilterSpec.h
+/// @author Jens Wiechula
+/// @since  2021-11-19
+/// @brief  Processor spec for filtering krypton raw data
 
-#ifndef RANS_ENCODE_H_
-#define RANS_ENCODE_H_
+#ifndef TPC_OccupancyFilterSpec_H_
+#define TPC_OccupancyFilterSpec_H_
 
-#ifdef __CLING__
-#error rANS should not be exposed to root
+#include "Framework/DataProcessorSpec.h"
+
+namespace o2::tpc
+{
+
+o2::framework::DataProcessorSpec getOccupancyFilterSpec();
+
+} // namespace o2::tpc
+
 #endif
-
-#include "rANS/internal/containers/DenseSymbolTable.h"
-#include "rANS/internal/containers/Symbol.h"
-#include "rANS/internal/encode/Encoder.h"
-
-#endif /* RANS_ENCODE_H_ */

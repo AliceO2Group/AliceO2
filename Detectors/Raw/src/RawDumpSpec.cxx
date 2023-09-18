@@ -17,6 +17,7 @@
 #include "DetectorsRaw/RDHUtils.h"
 #include "DPLUtils/DPLRawParser.h"
 #include "CommonUtils/StringUtils.h"
+#include "CommonConstants/Triggers.h"
 #include "Algorithm/RangeTokenizer.h"
 #include <cstdio>
 #include <unordered_map>
@@ -34,6 +35,14 @@ class RawDump : public Task
  public:
   static constexpr o2h::DataDescription DESCRaw{"RAWDATA"}, DESCCRaw{"CRAWDATA"};
 
+  struct LinkInfo {
+    FILE* fileHandler = nullptr;
+    o2::header::RDHAny rdhSOX;
+    o2::InteractionRecord firstIR{};
+    bool hasSOX{false};
+    DetID detID{};
+  };
+
   RawDump(bool TOFUncompressed = false);
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -41,7 +50,7 @@ class RawDump : public Task
   static std::string getReadoutType(DetID id);
 
  private:
-  FILE* getFile(o2h::DataOrigin detOr, const header::RDHAny* rdh);
+  LinkInfo& getLinkInfo(o2h::DataOrigin detOr, const header::RDHAny* rdh);
   std::string getFileName(DetID detID, const header::RDHAny* rdh);
   std::string getBaseFileNameITS(const header::RDHAny* rdh);
   std::string getBaseFileNameTPC(const header::RDHAny* rdh);
@@ -63,10 +72,13 @@ class RawDump : public Task
   bool mFatalOnDeadBeef{false};
   bool mSkipDump{false};
   bool mTOFUncompressed{false};
+  bool mImposeSOX{false};
   int mVerbosity{0};
+  int mTFCount{0};
   uint64_t mTPCLinkRej{0}; // pattern of TPC links to reject
+  o2::InteractionRecord mFirstIR{};
   std::string mOutDir{};
-  std::unordered_map<uint64_t, FILE*> mDetFEEID2File{};
+  std::unordered_map<uint64_t, LinkInfo> mLinksInfo{};
   std::unordered_map<std::string, FILE*> mName2File{};
   std::unordered_map<int, DetID> mOrigin2DetID{};
   std::array<std::string, o2::detectors::DetID::getNDetectors()> mConfigEntries{};
@@ -88,6 +100,7 @@ void RawDump::init(InitContext& ic)
   mVerbosity = ic.options().get<int>("dump-verbosity");
   mOutDir = ic.options().get<std::string>("output-directory");
   mSkipDump = ic.options().get<bool>("skip-dump");
+  mImposeSOX = !ic.options().get<bool>("skip-impose-sox");
   auto vrej = o2::RangeTokenizer::tokenize<int>(ic.options().get<std::string>("reject-tpc-links"));
   for (auto i : vrej) {
     if (i < 63) {
@@ -125,21 +138,85 @@ void RawDump::run(ProcessingContext& pc)
 {
 
   DPLRawParser parser(pc.inputs());
-  static DetID::mask_t repDeadBeef{};
 
-  for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
-    auto const* raw = it.raw();
-    auto const* dh = it.o2DataHeader();
+  auto procDEADBEEF = [this](const o2::header::DataHeader* dh) {
+    static DetID::mask_t repDeadBeef{};
     if (dh->subSpecification == 0xdeadbeef && dh->payloadSize == 0) {
-      if (mFatalOnDeadBeef) {
+      if (this->mFatalOnDeadBeef) {
         LOGP(fatal, "Found input [{}/{}/{:#x}] TF#{} 1st_orbit:{}", dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit);
       } else {
-        if (!repDeadBeef[DetID(dh->dataOrigin.str)] || mVerbosity > 0) {
+        if (!repDeadBeef[DetID(dh->dataOrigin.str)] || this->mVerbosity > 0) {
           LOGP(warn, "Skipping input [{}/{}/{:#x}] TF#{} 1st_orbit:{}", dh->dataOrigin.str, dh->dataDescription.str, dh->subSpecification, dh->tfCounter, dh->firstTForbit);
           repDeadBeef |= DetID::getMask(dh->dataOrigin.str);
         }
+        return false;
+      }
+    }
+    return true;
+  };
+
+  auto isRORC = [](DetID id) {
+    return id == DetID::PHS || id == DetID::EMC || id == DetID::HMP;
+  };
+
+  if (mTFCount == 0 && mImposeSOX) { // make sure all links payload starts with SOX
+    for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
+      auto const* dh = it.o2DataHeader();
+      if (!procDEADBEEF(dh)) {
         continue;
       }
+      const auto rdh = reinterpret_cast<const header::RDHAny*>(it.raw());
+      if (!RDHUtils::checkRDH(rdh, true)) {
+        o2::raw::RDHUtils::printRDH(rdh);
+        continue;
+      }
+      auto& lInfo = getLinkInfo(dh->dataOrigin, rdh);
+      if (!lInfo.firstIR.isDummy()) { // already processed
+        continue;
+      }
+      lInfo.firstIR = {0, o2::raw::RDHUtils::getTriggerOrbit(rdh)};
+      if (lInfo.firstIR < mFirstIR) {
+        mFirstIR = lInfo.firstIR;
+      }
+      auto trig = o2::raw::RDHUtils::getTriggerType(rdh);
+      lInfo.hasSOX = trig & (o2::trigger::SOT | o2::trigger::SOC);
+      lInfo.rdhSOX = *rdh;
+      lInfo.detID = mOrigin2DetID[dh->dataOrigin];
+    }
+    // now write RDH with SOX (if needed)
+    for (auto& lit : mLinksInfo) {
+      auto& lInfo = lit.second;
+      if (!lInfo.hasSOX && lInfo.fileHandler) {
+        auto trig = o2::raw::RDHUtils::getTriggerType(lInfo.rdhSOX);
+        if (o2::raw::RDHUtils::getTriggerIR(lInfo.rdhSOX) != mFirstIR) { // need to write cooked header
+          o2::raw::RDHUtils::setTriggerOrbit(lInfo.rdhSOX, mFirstIR.orbit);
+          o2::raw::RDHUtils::setOffsetToNext(lInfo.rdhSOX, sizeof(o2::header::RDHAny));
+          o2::raw::RDHUtils::setMemorySize(lInfo.rdhSOX, sizeof(o2::header::RDHAny));
+          o2::raw::RDHUtils::setPacketCounter(lInfo.rdhSOX, o2::raw::RDHUtils::getPacketCounter(lInfo.rdhSOX) - 1);
+          trig = isRORC(lInfo.detID) ? o2::trigger::SOT : (o2::trigger::SOC | o2::trigger::ORBIT | o2::trigger::HB | o2::trigger::TF);
+          o2::raw::RDHUtils::setTriggerType(lInfo.rdhSOX, trig);
+          o2::raw::RDHUtils::setStop(lInfo.rdhSOX, 0x1);
+          if (mVerbosity > 0) {
+            LOGP(info, "Writing cooked up RDH with SOX");
+            o2::raw::RDHUtils::printRDH(lInfo.rdhSOX);
+          }
+          auto ws = std::fwrite(&lInfo.rdhSOX, 1, sizeof(o2::header::RDHAny), lInfo.fileHandler);
+          if (ws != sizeof(o2::header::RDHAny)) {
+            LOGP(fatal, "Failed to write cooked up RDH with SOX");
+          }
+          lInfo.hasSOX = true; // flag that it is already written
+        }                      // otherwhise data has RDH with orbit matching to SOX, we will simply set a flag while writing the data
+      } else if (lInfo.fileHandler && o2::raw::RDHUtils::getTriggerOrbit(lInfo.rdhSOX) != mFirstIR.orbit) {
+        o2::raw::RDHUtils::printRDH(lInfo.rdhSOX);
+        LOGP(error, "Original data had SOX set but the orbit differs from the smallest seen {}, keep original one", mFirstIR.orbit);
+      }
+    }
+  }
+
+  for (auto it = parser.begin(), end = parser.end(); it != end; ++it) {
+    auto const* dh = it.o2DataHeader();
+    if (!procDEADBEEF(dh)) {
+      continue;
     }
     const auto rdh = reinterpret_cast<const header::RDHAny*>(it.raw());
     if (!RDHUtils::checkRDH(rdh, true)) {
@@ -150,14 +227,36 @@ void RawDump::run(ProcessingContext& pc)
       o2::raw::RDHUtils::printRDH(rdh);
     }
     FILE* fh = nullptr;
-    if (!mSkipDump && (fh = getFile(dh->dataOrigin, rdh))) {
+    auto& lInfo = getLinkInfo(dh->dataOrigin, rdh);
+    if (!mSkipDump && lInfo.fileHandler) {
       auto sz = o2::raw::RDHUtils::getOffsetToNext(rdh);
-      auto ws = std::fwrite(raw, 1, sz, fh);
+      auto raw = it.raw();
+      if (mTFCount == 0 && !lInfo.hasSOX && o2::raw::RDHUtils::getTriggerIR(rdh) == mFirstIR) { // need to add SOX bit to existing RDH
+        auto trig = o2::raw::RDHUtils::getTriggerType(rdh);
+        trig |= isRORC(lInfo.detID) ? o2::trigger::SOT : (o2::trigger::SOC | o2::trigger::ORBIT | o2::trigger::HB | o2::trigger::TF);
+        auto rdhC = *rdh;
+        o2::raw::RDHUtils::setTriggerType(rdhC, trig);
+        if (mVerbosity > 0) {
+          LOGP(info, "Write existing RDH with SOX added");
+          o2::raw::RDHUtils::printRDH(rdhC);
+        }
+        auto ws = std::fwrite(&rdhC, 1, sizeof(o2::header::RDHAny), lInfo.fileHandler);
+        if (ws != sizeof(o2::header::RDHAny)) {
+          LOGP(fatal, "Failed to write RDH with SOX added");
+        }
+        raw += sizeof(o2::header::RDHAny);
+        sz -= sizeof(o2::header::RDHAny);
+        if (o2::raw::RDHUtils::getStop(rdhC)) {
+          lInfo.hasSOX = true;
+        }
+      }
+      auto ws = std::fwrite(raw, 1, sz, lInfo.fileHandler);
       if (ws != sz) {
         LOGP(fatal, "Failed to write payload of {} bytes", sz);
       }
     }
   }
+  mTFCount++;
 }
 
 //____________________________________________________________
@@ -186,39 +285,38 @@ void RawDump::endOfStream(EndOfStreamContext& ec)
 }
 
 //_____________________________________________________________________
-FILE* RawDump::getFile(o2h::DataOrigin detOr, const header::RDHAny* rdh)
+RawDump::LinkInfo& RawDump::getLinkInfo(o2h::DataOrigin detOr, const header::RDHAny* rdh)
 {
   uint32_t feeid = RDHUtils::getFEEID(rdh);
   uint64_t id = (uint64_t(detOr) << 32) + feeid;
-  auto fhandler = mDetFEEID2File[id];
-  if (!fhandler) {
+  auto& linkInfo = mLinksInfo[id];
+  if (!linkInfo.fileHandler) {
     DetID detID = mOrigin2DetID[detOr];
     auto name = getFileName(detID, rdh);
     if (name.empty()) {
-      return nullptr; // reject data of this RDH
+      return linkInfo; // reject data of this RDH
     }
-    fhandler = mName2File[name];
-    if (!fhandler) {
-      fhandler = std::fopen(name.c_str(), "w");
-      if (!fhandler) {
+    linkInfo.fileHandler = mName2File[name];
+    if (!linkInfo.fileHandler) {
+      linkInfo.fileHandler = std::fopen(name.c_str(), "w");
+      if (!linkInfo.fileHandler) {
         LOGP(fatal, "Failed to create file {} for Det={} / FeeID=0x{:05x}", name, detOr.str, feeid);
       }
-      mName2File[name] = fhandler;
+      mName2File[name] = linkInfo.fileHandler;
       mConfigEntries[detID] += fmt::format(
         "[input-{}-{}]\n"
         "dataOrigin = {}\n"
         "dataDescription = {}\n"
         "readoutCard = {}\n"
         "filePath = {}\n\n",
-        detOr.str, mFilesPerDet[detID]++, detOr.str, (detID == DetID::TOF || mTOFUncompressed) ? DESCRaw.str : DESCCRaw.str, getReadoutType(detID), o2::utils::Str::getFullPath(name));
+        detOr.str, mFilesPerDet[detID]++, detOr.str, (detID != DetID::TOF || mTOFUncompressed) ? DESCRaw.str : DESCCRaw.str, getReadoutType(detID), o2::utils::Str::getFullPath(name));
     }
     if (mVerbosity > 0) {
       RDHUtils::printRDH(rdh);
       LOGP(info, "Write Det={}/0x{:05x} to {}", detOr.str, feeid, o2::utils::Str::getFullPath(name));
     }
-    mDetFEEID2File[id] = fhandler;
   }
-  return fhandler;
+  return linkInfo;
 }
 
 //_____________________________________________________________________
@@ -588,6 +686,7 @@ DataProcessorSpec getRawDumpSpec(DetID::mask_t detMask, bool TOFUncompressed)
      ConfigParamSpec{"skip-dump", VariantType::Bool, false, {"do not produce binary data"}},
      ConfigParamSpec{"dump-verbosity", VariantType::Int, 0, {"0:minimal, 1:report Det/FeeID->filename, 2: print RDH"}},
      ConfigParamSpec{"reject-tpc-links", VariantType::String, "", {"comma-separated list TPC links to reject"}},
+     ConfigParamSpec{"skip-impose-sox", VariantType::Bool, false, {"do not impose SOX for 1st TF"}},
      ConfigParamSpec{"output-directory", VariantType::String, "./", {"Output directory (create if needed)"}}}};
 }
 

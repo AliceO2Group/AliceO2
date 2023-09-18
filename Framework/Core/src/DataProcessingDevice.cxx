@@ -172,7 +172,8 @@ DataProcessingDevice::DataProcessingDevice(RunningDeviceRef running, ServiceRegi
     }
   };
 
-  this->SubscribeToStateChange("dpl", stateWatcher);
+  // 99 is to execute DPL callbacks last
+  this->SubscribeToStateChange("99-dpl", stateWatcher);
 
   // One task for now.
   mStreams.resize(1);
@@ -1499,6 +1500,10 @@ void DataProcessingDevice::doPrepare(ServiceRegistryRef ref)
       continue;
     }
     if (info.channel == nullptr) {
+      continue;
+    }
+    // Only poll DPL channels for now.
+    if (info.channelType != ChannelAccountingType::DPL) {
       continue;
     }
     auto& socket = info.channel->GetSocket();

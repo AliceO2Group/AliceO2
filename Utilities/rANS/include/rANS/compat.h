@@ -16,6 +16,10 @@
 #ifndef RANS_COMPAT_H_
 #define RANS_COMPAT_H_
 
+#ifdef __CLING__
+#error rANS should not be exposed to root
+#endif
+
 #include <numeric>
 
 #include "rANS/internal/common/typetraits.h"

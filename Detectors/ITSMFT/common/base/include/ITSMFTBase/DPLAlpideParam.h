@@ -59,7 +59,7 @@ struct DPLAlpideParam : public o2::conf::ConfigurableParamHelper<DPLAlpideParam<
   static constexpr int DEFROFBiasInBC()
   {
     // default ROF length bias in MC, see https://github.com/AliceO2Group/AliceO2/pull/11108 for ITS
-    return N == o2::detectors::DetID::ITS ? 64 : 0;
+    return N == o2::detectors::DetID::ITS ? 64 : 60;
   }
 
   static_assert(N == o2::detectors::DetID::ITS || N == o2::detectors::DetID::MFT, "only DetID::ITS orDetID:: MFT are allowed");

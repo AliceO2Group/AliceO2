@@ -2061,14 +2061,20 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
             if (k == 0 && mConfig.inputHistogramsOnly == 0 && ii != 5) {
               if (l == 0) {
                 // Divide eff, compute all for fake/clone
+                auto oldLevel = gErrorIgnoreLevel;
+                gErrorIgnoreLevel = kError;
                 mEffResult[0][j / 2][j % 2][i]->Divide(mEff[l][j / 2][j % 2][i], mEff[3][j / 2][j % 2][i], "cl=0.683 b(1,1) mode");
+                gErrorIgnoreLevel = oldLevel;
                 mEff[3][j / 2][j % 2][i]->Reset(); // Sum up rec + clone + fake for clone/fake rate
                 mEff[3][j / 2][j % 2][i]->Add(mEff[0][j / 2][j % 2][i]);
                 mEff[3][j / 2][j % 2][i]->Add(mEff[1][j / 2][j % 2][i]);
                 mEff[3][j / 2][j % 2][i]->Add(mEff[2][j / 2][j % 2][i]);
               } else {
                 // Divide fake/clone
+                auto oldLevel = gErrorIgnoreLevel;
+                gErrorIgnoreLevel = kError;
                 mEffResult[l][j / 2][j % 2][i]->Divide(mEff[l][j / 2][j % 2][i], mEff[3][j / 2][j % 2][i], "cl=0.683 b(1,1) mode");
+                gErrorIgnoreLevel = oldLevel;
               }
             }
 
@@ -2477,7 +2483,10 @@ int GPUQA::DrawQAHistograms(TObjArray* qcout)
       }
 
       for (int i = 0; i < N_CLS_HIST - 1; i++) {
+        auto oldLevel = gErrorIgnoreLevel;
+        gErrorIgnoreLevel = kError;
         mClusters[N_CLS_HIST + i]->Divide(mClusters[i], mClusters[N_CLS_HIST - 1], 1, 1, "B");
+        gErrorIgnoreLevel = oldLevel;
         mClusters[N_CLS_HIST + i]->SetMinimum(-0.02);
         mClusters[N_CLS_HIST + i]->SetMaximum(1.02);
       }

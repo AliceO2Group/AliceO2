@@ -22,6 +22,12 @@ using namespace o2::framework;
 struct MctracksToAod {
   Produces<o2::aod::McCollisions> mcollisions;
   Produces<o2::aod::StoredMcParticles_001> mcparticles;
+
+  // optional extra info from HepMC (if found in header)
+  Produces<o2::aod::HepMCXSections> hepmcxsections;
+  Produces<o2::aod::HepMCPdfInfos> hepmcpdfinfos;
+  Produces<o2::aod::HepMCHeavyIons> hepmcheavyions;
+
   Configurable<float> IR{"interaction-rate", 100.f, "Interaction rate to simulate"};
 
   uint64_t timeframe = 0;
@@ -57,6 +63,56 @@ struct MctracksToAod {
                   record.timeInBCNS * 1.e-3, // ns to ms
                   1.,                        // weight
                   mcheader->GetB());
+      bool valid;
+      if (mcheader->hasInfo("Accepted")) {
+        auto ptHard = mcheader->hasInfo("PtHard") ? mcheader->getInfo<float>("PtHard", valid) : 0.f;
+        auto nMPI = mcheader->hasInfo("MPI") ? mcheader->getInfo<int>("MPI", valid) : -1;
+        auto processId = mcheader->hasInfo("ProcessId") ? mcheader->getInfo<int>("ProcessId", valid) : -1;
+        hepmcxsections(
+          mcollisions.lastIndex(),
+          0,
+          mcheader->getInfo<uint64_t>("Accepted", valid),
+          mcheader->getInfo<uint64_t>("Attempted", valid),
+          mcheader->getInfo<float>("XsectGen", valid),
+          mcheader->getInfo<float>("XsectErr", valid),
+          ptHard,
+          nMPI,
+          processId);
+      }
+      if (mcheader->hasInfo("Id1")) {
+        hepmcpdfinfos(
+          mcollisions.lastIndex(),
+          0,
+          mcheader->getInfo<int>("Id1", valid),
+          mcheader->getInfo<int>("Id2", valid),
+          mcheader->getInfo<int>("PdfId1", valid),
+          mcheader->getInfo<int>("PdfId2", valid),
+          mcheader->getInfo<float>("X1", valid),
+          mcheader->getInfo<float>("X2", valid),
+          mcheader->getInfo<float>("scale", valid),
+          mcheader->getInfo<float>("Pdf1", valid),
+          mcheader->getInfo<float>("Pdf2", valid));
+      }
+      if (mcheader->hasInfo("NcollHard")) {
+        hepmcheavyions(
+          mcollisions.lastIndex(),
+          0,
+          mcheader->getInfo<int>("NcollHard", valid),
+          mcheader->getInfo<int>("NpartProj", valid),
+          mcheader->getInfo<int>("NpartTarg", valid),
+          mcheader->getInfo<int>("Ncoll", valid),
+          mcheader->getInfo<int>("NNwoundedCollisions", valid),
+          mcheader->getInfo<int>("NwoundedNCollisions", valid),
+          mcheader->getInfo<int>("NwoundedNwoundedCollisions", valid),
+          mcheader->getInfo<int>("SpectatorNeutrons", valid),
+          mcheader->getInfo<int>("SpectatorProtons", valid),
+          mcheader->getInfo<float>("ImpactParameter", valid),
+          mcheader->getInfo<float>("EventPlaneAngle", valid),
+          mcheader->getInfo<float>("Eccentricity", valid),
+          mcheader->getInfo<float>("SigmaInelNN", valid),
+          mcheader->getInfo<float>("Centrality", valid));
+      }
+
       for (auto& mctrack : mctracks) {
         std::vector<int> mothers;
         int daughters[2];

@@ -245,11 +245,12 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
   int start = outward ? count - 1 : begin;
   int stop = outward ? begin - 1 : count;
   const ClusterNative* cl = nullptr;
-  uint8_t sector, row = 0, currentSector = 0, currentRow = 0;
-  short clusterState = 0, nextState;
+  uint8_t sector = 255, row = 255;
+  int lastSector = -1, currentSector = -1, currentRow = -1;
+  short clusterState = 0, nextState = 0;
   int nFitted = 0;
   for (int i = start; i != stop; i += cl ? 0 : direction) {
-    float x, y, z, charge = 0.f;
+    float x = 0, y = 0, z = 0, charge = 0; // FIXME: initialization unneeded, but GCC incorrectly produces uninitialized warnings otherwise
     int clusters = 0;
     while (true) {
       if (!cl) {
@@ -324,11 +325,23 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
         IgnoreErrors(trk.GetSinPhi());
         return -2;
       }
+      if (lastSector != -1 && (lastSector < 18) != (sector < 18)) {
+        if (mPparam->rec.tpc.addErrorsCECrossing) {
+          if (mPparam->rec.tpc.addErrorsCECrossing >= 2) {
+            trk.AddCovDiagErrorsWithCorrelations(mPparam->rec.tpc.errorsCECrossing);
+          } else {
+            trk.AddCovDiagErrors(mPparam->rec.tpc.errorsCECrossing);
+          }
+        } else if (trk.Cov()[2] < 0.5f) {
+          trk.Cov()[2] = 0.5f;
+        }
+      }
       if (resetCov) {
         trk.ResetCovariance();
       }
       CADEBUG(printf("\t%21sPropaga Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f)   ---   Res %8.3f %8.3f   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f\n", "", prop.GetAlpha(), x, trk.Par()[0], trk.Par()[1], trk.Par()[4], prop.GetQPt0(), trk.Par()[2], prop.GetSinPhi0(), trk.Par()[0] - y, trk.Par()[1] - z, sqrtf(trk.Cov()[0]), sqrtf(trk.Cov()[2]), sqrtf(trk.Cov()[5]), sqrtf(trk.Cov()[14]), trk.Cov()[10]));
-      if (prop.Update(y, z, row, *mPparam, clusterState, 0, nullptr, true)) {
+      lastSector = sector;
+      if (prop.Update(y, z, row, *mPparam, clusterState, 0, nullptr, true, sector > 18)) {
         IgnoreErrors(trk.GetSinPhi());
         return -3;
       }
@@ -341,6 +354,13 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
       if (!prop->PropagateToXBxByBz(trk, x, GPUCA_MAX_SIN_PHI_LOW)) {
         IgnoreErrors(trk.getSnp());
         return -2;
+      }
+      if (lastSector != -1 && (lastSector < 18) != (sector < 18)) {
+        if (mPparam->rec.tpc.addErrorsCECrossing) {
+          trk.updateCov(mPparam->rec.tpc.errorsCECrossing, mPparam->rec.tpc.addErrorsCECrossing >= 2);
+        } else if (trk.getCov()[2] < 0.5f) {
+          trk.setCov(0.5f, 2);
+        }
       }
       if (resetCov) {
         trk.resetCovariance();

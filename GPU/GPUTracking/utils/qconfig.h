@@ -254,6 +254,17 @@ enum qConfigRetVal { qcrOK = 0,
     AddOption(name, type, default, optname, optnameshort, help);                                                                                                       \
   }
 #define AddOptionRTC(name, type, default, optname, optnameshort, help, ...) AddVariableRTC(name, type, default)
+#define AddOptionArrayRTC(name, type, count, default, optname, optnameshort, help, ...)                                                                                            \
+  if (useConstexpr) {                                                                                                                                                              \
+    out << "static constexpr " << qon_mxstr(type) << " " << qon_mxstr(name) << "[" << count << "] = {" << qConfig::print_type(std::get<const qConfigCurrentType*>(tSrc)->name[0]); \
+    for (int i = 1; i < count; i++) {                                                                                                                                              \
+      out << ", " << qConfig::print_type(std::get<const qConfigCurrentType*>(tSrc)->name[i]);                                                                                      \
+    }                                                                                                                                                                              \
+    out << "};\n";                                                                                                                                                                 \
+    out << qon_mxstr(type) << " " << qon_mxstr(qon_mxcat(_dummy_, name)) << ";\n";                                                                                                 \
+  } else {                                                                                                                                                                         \
+    AddOptionArray(name, type, count, default, optname, optnameshort, help);                                                                                                       \
+  }
 #define BeginConfig(name, instance)  \
   {                                  \
     using qConfigCurrentType = name; \
@@ -283,7 +294,8 @@ enum qConfigRetVal { qcrOK = 0,
 #if !defined(QCONFIG_GPU)
 #define AddOption(name, type, default, optname, optnameshort, help, ...) type name = default;
 #define AddVariable(name, type, default) type name = default;
-#define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...) type name[count] = {default};
+#define _AddOptionArray_INTERNAL_EXPAND(...) __VA_ARGS__
+#define AddOptionArray(name, type, count, default, optname, optnameshort, help, ...) type name[count] = {_AddOptionArray_INTERNAL_EXPAND default};
 #define AddOptionVec(name, type, optname, optnameshort, help, ...) std::vector<type> name;
 #else
 #define AddOption(name, type, default, optname, optnameshort, help, ...) type name;
@@ -296,6 +308,10 @@ enum qConfigRetVal { qcrOK = 0,
   static constexpr type name = default;     \
   type _dummy_##name = default;
 #define AddOptionRTC(name, type, default, optname, optnameshort, help, ...) AddVariableRTC(name, type, default)
+#define _AddOptionArray_INTERNAL_EXPAND(...) __VA_ARGS__
+#define AddOptionArrayRTC(name, type, count, default, optname, optnameshort, help, ...) \
+  static constexpr type name[count] = {_AddOptionArray_INTERNAL_EXPAND default};        \
+  type _dummy_##name[count] = {_AddOptionArray_INTERNAL_EXPAND default};
 #else
 #define AddCustomCPP(...) __VA_ARGS__
 #endif
@@ -344,6 +360,9 @@ enum qConfigRetVal { qcrOK = 0,
 #ifndef AddVariableRTC
 #define AddVariableRTC(...) AddVariable(__VA_ARGS__)
 #endif
+#ifndef AddOptionArrayRTC
+#define AddOptionArrayRTC(...) AddOptionArray(__VA_ARGS__)
+#endif
 #ifndef BeginHiddenConfig
 #define BeginHiddenConfig(name, instance) BeginSubConfig(name, instance, , , , )
 #endif
@@ -357,6 +376,7 @@ enum qConfigRetVal { qcrOK = 0,
 #undef AddOptionSet
 #undef AddOptionVec
 #undef AddOptionArray
+#undef AddOptionArrayRTC
 #undef AddArrayDefaults
 #undef AddSubConfig
 #undef BeginConfig

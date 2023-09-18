@@ -15,6 +15,7 @@
 /// @file   CalibLaserTracksSpec.h
 /// @brief  Device to run tpc laser track calibration
 
+#include "TFile.h"
 #include "TPCCalibration/CalibLaserTracks.h"
 #include "DetectorsCalibration/Utils.h"
 #include "CommonUtils/MemFileHelper.h"
@@ -39,7 +40,8 @@ class CalibLaserTracksDevice : public o2::framework::Task
  public:
   void init(o2::framework::InitContext& ic) final
   {
-    mCalib.setWriteDebugTree(ic.options().get<bool>("write-debug"));
+    mWriteDebug = ic.options().get<bool>("write-debug");
+    mCalib.setWriteDebugTree(mWriteDebug);
     mMinNumberTFs = ic.options().get<int>("min-tfs");
     mOnlyPublishOnEOS = ic.options().get<bool>("only-publish-on-eos");
     mNormalize = !ic.options().get<bool>("ignore-normalization");
@@ -62,6 +64,11 @@ class CalibLaserTracksDevice : public o2::framework::Task
       return;
     }
     mTPCVDriftHelper.extractCCDBInputs(pc);
+    if (mTPCVDriftHelper.isUpdated()) {
+      mTPCVDriftHelper.acknowledgeUpdate();
+      mCalib.setVDriftRef(mTPCVDriftHelper.getVDriftObject().getVDrift());
+      LOGP(info, "Updated reference drift velocity to: {}", mTPCVDriftHelper.getVDriftObject().getVDrift());
+    }
     const auto startTime = dph->startTime;
     const auto endTime = dph->startTime + dph->duration;
     mRunNumber = processing_helpers::getRunNumber(pc);
@@ -90,22 +97,19 @@ class CalibLaserTracksDevice : public o2::framework::Task
   void finaliseCCDB(ConcreteDataMatcher& matcher, void* obj) final
   {
     if (mTPCVDriftHelper.accountCCDBInputs(matcher, obj)) {
-      if (mTPCVDriftHelper.isUpdated()) {
-        mTPCVDriftHelper.acknowledgeUpdate();
-        mCalib.setVDriftRef(mTPCVDriftHelper.getVDriftObject().getVDrift());
-      }
       return;
     }
   }
 
  private:
-  CalibLaserTracks mCalib;       ///< laser track calibration component
+  CalibLaserTracks mCalib; ///< laser track calibration component
   o2::tpc::VDriftHelper mTPCVDriftHelper{};
   uint64_t mRunNumber{0};        ///< processed run number
   int mMinNumberTFs{100};        ///< minimum number of TFs required for good calibration
   bool mPublished{false};        ///< if calibration was already published
   bool mOnlyPublishOnEOS{false}; ///< if to only publish the calibration on EOS, not during running
   bool mNormalize{true};         ///< normalize reference to have mean correction = 1
+  bool mWriteDebug{false};       ///< Write debug output
 
   //________________________________________________________________
   void sendOutput(DataAllocator& output)
@@ -120,7 +124,7 @@ class CalibLaserTracksDevice : public o2::framework::Task
 
     if (mNormalize) {
       ltrCalib.normalize(0.);
-      LOGP(info, "After normalization: correction factors: {} / {} for A- / C-Side, reference: {}", ltrCalib.dvCorrectionA, ltrCalib.dvCorrectionC, ltrCalib.refVDrift);
+      LOGP(info, "After normalization: correction factors: {} / {} for A- / C-Side, reference: {}, vdrift correction: {}", ltrCalib.dvCorrectionA, ltrCalib.dvCorrectionC, ltrCalib.refVDrift, ltrCalib.getDriftVCorrection());
     }
     if (ltrCalib.getDriftVCorrection() == 0) {
       LOG(error) << "Extracted drift correction is 0, something is wrong, will not upload the object";
@@ -148,6 +152,11 @@ class CalibLaserTracksDevice : public o2::framework::Task
     output.snapshot(Output{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_CalibLtr", 0}, w);
 
     mPublished = true;
+
+    if (mWriteDebug) {
+      TFile f("LaserTracks.snapshot.root", "recreate");
+      f.WriteObject(&ltrCalib, "ccdb_object");
+    }
   }
 };
 

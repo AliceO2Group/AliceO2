@@ -42,6 +42,12 @@ void GPUParam::SetDefaults(float solenoidBz)
   new (&tpcGeometry) GPUTPCGeometry;
   new (&rec) GPUSettingsRec;
 
+#ifdef GPUCA_TPC_GEOMETRY_O2
+  const float kErrorsY[4] = {0.06, 0.24, 0.12, 0.1};
+  const float kErrorsZ[4] = {0.06, 0.24, 0.15, 0.1};
+
+  UpdateRun3ClusterErrors(kErrorsY, kErrorsZ);
+#else
   // clang-format off
   const float kParamS0Par[2][3][6] =
   {
@@ -80,6 +86,7 @@ void GPUParam::SetDefaults(float solenoidBz)
       }
     }
   }
+#endif
 
   par.dAlpha = 0.349066f;
   bzkG = solenoidBz;
@@ -142,6 +149,7 @@ void GPUParam::UpdateSettings(const GPUSettingsGRP* g, const GPUSettingsProcessi
   if (p) {
     par.debugLevel = p->debugLevel;
     par.resetTimers = p->resetTimers;
+    UpdateRun3ClusterErrors(p->param.tpcErrorParamY, p->param.tpcErrorParamZ);
   }
 }
 
@@ -159,6 +167,23 @@ void GPUParam::SetDefaults(const GPUSettingsGRP* g, const GPUSettingsRec* r, con
   }
   UpdateSettings(g, p);
 }
+
+void GPUParam::UpdateRun3ClusterErrors(const float* yErrorParam, const float* zErrorParam)
+{
+#ifdef GPUCA_TPC_GEOMETRY_O2
+  for (int yz = 0; yz < 2; yz++) {
+    const float* param = yz ? zErrorParam : yErrorParam;
+    for (int rowType = 0; rowType < 4; rowType++) {
+      constexpr int regionMap[4] = {0, 4, 6, 8};
+      ParamErrors[yz][rowType][0] = param[0] * param[0];
+      ParamErrors[yz][rowType][1] = param[1] * param[1] * tpcGeometry.PadHeightByRegion(regionMap[rowType]);
+      ParamErrors[yz][rowType][2] = param[2] * param[2] / tpcGeometry.TPCLength() / tpcGeometry.PadHeightByRegion(regionMap[rowType]);
+      ParamErrors[yz][rowType][3] = param[3] * param[3];
+    }
+  }
+#endif
+}
+
 #ifndef GPUCA_ALIROOT_LIB
 void GPUParam::LoadClusterErrors(bool Print)
 {
