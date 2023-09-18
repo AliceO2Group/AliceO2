@@ -249,6 +249,7 @@ void GPUChainTracking::PrintOutputStat()
 
 void GPUChainTracking::SanityCheck()
 {
+#ifdef GPUCA_HAVE_O2HEADERS
   size_t nErrors = 0;
 
   for (unsigned int i = 0; i < mIOPtrs.nOutputTracksTPCO2; i++) {
@@ -289,4 +290,5 @@ void GPUChainTracking::SanityCheck()
   } else {
     GPUError("Sanity check found %lu errors", nErrors);
   }
+#endif
 }
