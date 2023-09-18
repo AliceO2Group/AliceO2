@@ -153,6 +153,7 @@ set(HDRS_INSTALL
     DataTypes/GPUO2FakeClasses.h
     Definitions/GPUSettingsList.h
     DataTypes/GPUOutputControl.h
+    DataTypes/GPUTriggerOutputs.h
     DataTypes/GPUO2DataTypes.h
     DataTypes/GPUHostDataTypes.h
     DataTypes/GPUdEdxInfo.h

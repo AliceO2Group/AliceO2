@@ -64,6 +64,7 @@ class GPUTrackingInputProvider;
 struct GPUChainTrackingFinalContext;
 struct GPUTPCCFChainContext;
 struct GPUNewCalibValues;
+struct GPUTriggerOutputs;
 
 class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelegateBase
 {
@@ -266,6 +267,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   // Ptrs to internal buffers
   std::unique_ptr<o2::tpc::ClusterNativeAccess> mClusterNativeAccess;
   std::array<GPUOutputControl*, GPUTrackingOutputs::count()> mSubOutputControls = {nullptr};
+  std::unique_ptr<GPUTriggerOutputs> mTriggerBuffer;
 
   // (Ptrs to) configuration objects
   std::unique_ptr<GPUTPCCFChainContext> mCFContext;

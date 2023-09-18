@@ -50,7 +50,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
   std::vector<ConfigParamSpec> options{
     {"input-type", VariantType::String, "digits", {"digitizer, digits, zsraw, zsonthefly, clustersnative, compressed-clusters-root, compressed-clusters-ctf, trd-tracklets"}},
-    {"output-type", VariantType::String, "tracks", {"clustersnative, tracks, compressed-clusters-ctf, qa, no-shared-cluster-map, send-clusters-per-sector, trd-tracks, error-qa"}},
+    {"output-type", VariantType::String, "tracks", {"clustersnative, tracks, compressed-clusters-ctf, qa, no-shared-cluster-map, send-clusters-per-sector, trd-tracks, error-qa, tpc-triggers"}},
     {"require-ctp-lumi", VariantType::Bool, false, {"require CTP lumi for TPC correction scaling"}},
     {"disable-root-input", VariantType::Bool, true, {"disable root-files input reader"}},
     {"disable-mc", VariantType::Bool, false, {"disable sending of MC information"}},
@@ -100,7 +100,8 @@ enum struct ioType { Digits,
                      NoSharedMap,
                      SendClustersPerSector,
                      ITSClusters,
-                     ITSTracks };
+                     ITSTracks,
+                     TPCTriggers };
 
 static const std::unordered_map<std::string, ioType> InputMap{
   {"digits", ioType::Digits},
@@ -121,7 +122,8 @@ static const std::unordered_map<std::string, ioType> OutputMap{
   {"no-shared-cluster-map", ioType::NoSharedMap},
   {"send-clusters-per-sector", ioType::SendClustersPerSector},
   {"trd-tracks", ioType::TRDTracks},
-  {"its-tracks", ioType::ITSTracks}};
+  {"its-tracks", ioType::ITSTracks},
+  {"tpc-triggers", ioType::TPCTriggers}};
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
@@ -169,6 +171,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   cfg.askDISTSTF = !cfgc.options().get<bool>("ignore-dist-stf");
   cfg.readTRDtracklets = isEnabled(inputTypes, ioType::TRDTracklets);
   cfg.runTRDTracking = isEnabled(outputTypes, ioType::TRDTracks);
+  cfg.tpcTriggerHandling = isEnabled(outputTypes, ioType::TPCTriggers);
 
   Inputs ggInputs;
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false, true, false, true, true, o2::base::GRPGeomRequest::Aligned, ggInputs, true);

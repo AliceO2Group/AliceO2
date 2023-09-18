@@ -24,6 +24,7 @@
 #include "CommonDataFormat/InteractionRecord.h"
 #endif
 #ifdef GPUCA_HAVE_O2HEADERS
+#include "GPUTriggerOutputs.h"
 #include "GPUHostDataTypes.h"
 #include "GPUTPCCFChainContext.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
@@ -198,6 +199,15 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
         const TPCZSHDR* const hdr = (const TPCZSHDR*)(rdh_utils::getLink(o2::raw::RDHUtils::getFEEID(*rdh)) == rdh_utils::DLBZSLinkID ? (page + o2::raw::RDHUtils::getMemorySize(*rdh) - sizeof(TPCZSHDRV2)) : (page + sizeof(o2::header::RAWDataHeader)));
         if (mCFContext->zsVersion == -1) {
           mCFContext->zsVersion = hdr->version;
+          if (GetProcessingSettings().param.tpcTriggerHandling && mCFContext->zsVersion < ZSVersion::ZSVersionDenseLinkBased) {
+            GPUError("Trigger handling only possible with TPC Dense Link Based data, received version %d", mCFContext->zsVersion);
+            if (GetProcessingSettings().ignoreNonFatalGPUErrors) {
+              mCFContext->abandonTimeframe = true;
+              return {0, 0};
+            } else {
+              GPUFatal("Cannot process with invalid TPC ZS data, exiting");
+            }
+          }
         } else if (mCFContext->zsVersion != (int)hdr->version) {
           GPUError("Received TPC ZS 8kb page of mixed versions, expected %d, received %d (linkid %d, feeCRU %d, feeEndpoint %d, feelinkid %d)", mCFContext->zsVersion, (int)hdr->version, (int)o2::raw::RDHUtils::getLinkID(*rdh), (int)rdh_utils::getCRU(*rdh), (int)rdh_utils::getEndPoint(*rdh), (int)rdh_utils::getLink(*rdh));
           constexpr size_t bufferSize = 3 * std::max(sizeof(*rdh), sizeof(*hdr)) + 1;
@@ -217,6 +227,15 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
             return {0, 0};
           } else {
             GPUFatal("Cannot process with invalid TPC ZS data, exiting");
+          }
+        }
+        if (GetProcessingSettings().param.tpcTriggerHandling) {
+          const TPCZSHDRV2* const hdr2 = (const TPCZSHDRV2*)hdr;
+          if (hdr2->flags & TPCZSHDRV2::ZSFlags::TriggerWordPresent) {
+            const char* triggerWord = (const char*)hdr - TPCZSHDRV2::TRIGGER_WORD_SIZE;
+            std::array<unsigned long, TPCZSHDRV2::TRIGGER_WORD_SIZE / sizeof(unsigned long)> tmp;
+            memcpy((void*)tmp.data(), triggerWord, TPCZSHDRV2::TRIGGER_WORD_SIZE);
+            mTriggerBuffer->triggers.emplace(tmp);
           }
         }
         nDigits += hdr->nADCsamples;
@@ -459,6 +478,9 @@ int GPUChainTracking::RunTPCClusterizer_prepare(bool restorePointers)
   if (mIOPtrs.tpcZS) {
     unsigned int nDigitsFragmentMax[NSLICES];
     mCFContext->zsVersion = -1;
+    if (GetProcessingSettings().param.tpcTriggerHandling) {
+      mTriggerBuffer->triggers.clear();
+    }
     for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
       if (mIOPtrs.tpcZS->slice[iSlice].count[0]) {
         const void* rdh = mIOPtrs.tpcZS->slice[iSlice].zsPtr[0][0];
@@ -483,6 +505,15 @@ int GPUChainTracking::RunTPCClusterizer_prepare(bool restorePointers)
       nDigitsFragmentMax[iSlice] = x.first;
       processors()->tpcClusterer[iSlice].mPmemory->counters.nDigits = x.first;
       mRec->MemoryScalers()->nTPCdigits += x.first;
+    }
+    if (GetProcessingSettings().param.tpcTriggerHandling) {
+      GPUOutputControl* triggerOutput = mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::tpcTriggerWords)];
+      if (triggerOutput && triggerOutput->allocator) {
+        GPUInfo("Storing %lu trigger words", mTriggerBuffer->triggers.size());
+        auto* outputBuffer = (decltype(mTriggerBuffer->triggers)::value_type*)triggerOutput->allocator(mTriggerBuffer->triggers.size() * sizeof(decltype(mTriggerBuffer->triggers)::value_type));
+        std::copy(mTriggerBuffer->triggers.begin(), mTriggerBuffer->triggers.end(), outputBuffer);
+      }
+      mTriggerBuffer->triggers.clear();
     }
     for (unsigned int iSlice = 0; iSlice < NSLICES; iSlice++) {
       unsigned int nDigitsBase = nDigitsFragmentMax[iSlice];
