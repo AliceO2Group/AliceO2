@@ -84,6 +84,8 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   using CompletionPolicyData = std::vector<framework::InputSpec>;
 
   struct Config {
+    int itsTriggerType = 0;
+    int lumiScaleMode = 0;
     bool decompressTPC = false;
     bool decompressTPCFromROOT = false;
     bool caClusterer = false;
@@ -104,9 +106,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
     bool requireCTPLumi = false;
     bool outputErrorQA = false;
     bool runITSTracking = false;
-    int itsTriggerType = 0;
     bool itsOverrBeamEst = false;
-    int lumiScaleMode = 0;
   };
 
   GPURecoWorkflowSpec(CompletionPolicyData* policyData, Config const& specconfig, std::vector<int> const& tpcsectors, unsigned long tpcSectorMask, std::shared_ptr<o2::base::GRPGeomRequest>& ggr);
@@ -134,7 +134,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   bool fetchCalibsCCDBTPC(o2::framework::ProcessingContext& pc, T& newCalibObjects);
   bool fetchCalibsCCDBITS(o2::framework::ProcessingContext& pc);
   /// storing the new calib objects by overwritting the old calibs
-  void storeUpdatedCalibsTPCPtrs();
+  void cleanOldCalibsTPCPtrs();
 
   void doCalibUpdates(o2::framework::ProcessingContext& pc);
 
