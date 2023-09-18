@@ -230,6 +230,7 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
       mConfig->configProcessing.outputSharedClusterMap = true;
     }
     mConfig->configProcessing.createO2Output = mSpecConfig.outputTracks ? 2 : 0; // Disable O2 TPC track format output if no track output requested
+    mConfig->configProcessing.param.tpcTriggerHandling = mSpecConfig.tpcTriggerHandling;
 
     if (mConfParam->transformationFile.size() || mConfParam->transformationSCFile.size()) {
       LOG(fatal) << "Deprecated configurable param options GPU_global.transformationFile or transformationSCFile used\n"
@@ -639,6 +640,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   setOutputAllocator("TRACKS", mSpecConfig.outputTracks, outputRegions.tpcTracksO2, std::make_tuple(gDataOriginTPC, (DataDescription) "TRACKS", 0));
   setOutputAllocator("CLUSREFS", mSpecConfig.outputTracks, outputRegions.tpcTracksO2ClusRefs, std::make_tuple(gDataOriginTPC, (DataDescription) "CLUSREFS", 0));
   setOutputAllocator("TRACKSMCLBL", mSpecConfig.outputTracks && mSpecConfig.processMC, outputRegions.tpcTracksO2Labels, std::make_tuple(gDataOriginTPC, (DataDescription) "TRACKSMCLBL", 0));
+  setOutputAllocator("TRIGGERWORDS", mSpecConfig.zsDecoder && mConfig->configProcessing.param.tpcTriggerHandling, outputRegions.tpcTriggerWords, std::make_tuple(gDataOriginTPC, (DataDescription) "TRIGGERWORDS", 0));
   o2::tpc::ClusterNativeHelper::ConstMCLabelContainerViewWithBuffer clustersMCBuffer;
   if (mSpecConfig.processMC && mSpecConfig.caClusterer) {
     outputRegions.clusterLabels.allocator = [&clustersMCBuffer](size_t size) -> void* { return &clustersMCBuffer; };
@@ -1303,6 +1305,9 @@ Outputs GPURecoWorkflowSpec::outputs()
   }
   if (mSpecConfig.outputSharedClusterMap) {
     outputSpecs.emplace_back(gDataOriginTPC, "CLSHAREDMAP", 0, Lifetime::Timeframe);
+  }
+  if (mSpecConfig.tpcTriggerHandling) {
+    outputSpecs.emplace_back(gDataOriginTPC, "TRIGGERWORDS", 0, Lifetime::Timeframe);
   }
   if (mSpecConfig.outputQA) {
     outputSpecs.emplace_back(gDataOriginTPC, "TRACKINGQA", 0, Lifetime::Timeframe);

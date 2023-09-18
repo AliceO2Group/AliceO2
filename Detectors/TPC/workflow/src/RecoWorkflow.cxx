@@ -91,7 +91,8 @@ const std::unordered_map<std::string, OutputType> OutputMap{
   {"send-clusters-per-sector", OutputType::SendClustersPerSector},
   {"zsraw", OutputType::ZSRaw},
   {"qa", OutputType::QA},
-  {"no-shared-cluster-map", OutputType::NoSharedClusterMap}};
+  {"no-shared-cluster-map", OutputType::NoSharedClusterMap},
+  {"tpc-triggers", OutputType::TPCTriggers}};
 
 framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vector<int> const& tpcSectors, unsigned long tpcSectorMask, std::vector<int> const& laneConfiguration,
                                     bool propagateMC, unsigned nLanes, std::string const& cfgInput, std::string const& cfgOutput, bool disableRootInput,
@@ -445,6 +446,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
     cfg.processMC = propagateMC;
     cfg.sendClustersPerSector = isEnabled(OutputType::SendClustersPerSector);
     cfg.askDISTSTF = askDISTSTF;
+    cfg.tpcTriggerHandling = isEnabled(OutputType::TPCTriggers);
 
     Inputs ggInputs;
     auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false, true, false, true, true, o2::base::GRPGeomRequest::Aligned, ggInputs, true);

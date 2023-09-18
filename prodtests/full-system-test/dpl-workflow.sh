@@ -175,6 +175,7 @@ workflow_has_parameter CALIB && [[ $CALIB_TPC_VDRIFTTGL == 1 ]] && SEND_ITSTPC_D
 PVERTEXING_CONFIG_KEY+="${ITSMFT_STROBES};"
 
 has_processing_step ENTROPY_ENCODER && has_detector_ctf TPC && GPU_OUTPUT+=",compressed-clusters-ctf"
+[[ ${TPC_ENABLE_TRIGGER_HANDLING:-} == 1 ]] && GPU_OUTPUT+=",tpc-triggers"
 
 if [[ $SYNCMODE == 1 ]] && workflow_has_parameter QC && has_detector_qc TPC; then
   GPU_OUTPUT+=",qa,error-qa"
