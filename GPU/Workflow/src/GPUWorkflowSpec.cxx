@@ -337,47 +337,11 @@ void GPURecoWorkflowSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& match
   }
 }
 
-void GPURecoWorkflowSpec::run(ProcessingContext& pc)
+template <class A, class B, class C, class D, class E, class F, class G, class H, class I, class J, class K>
+void GPURecoWorkflowSpec::processInputs(ProcessingContext& pc, A& tpcZSmetaPointers, B& tpcZSmetaPointers2, C& tpcZSmetaSizes, D& tpcZSmetaSizes2, E& inputZS, F& tpcZS, G& tpcZSonTheFlySizes, bool& debugTFDump, H& compClustersDummy, I& compClustersFlatDummy, J& pCompClustersFlat, K& tmpEmptyCompClusters)
 {
   constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
   constexpr static size_t NEndpoints = o2::gpu::GPUTrackingInOutZS::NENDPOINTS;
-
-  auto cput = mTimer->CpuTime();
-  auto realt = mTimer->RealTime();
-  mTimer->Start(false);
-  mNTFs++;
-
-  GRPGeomHelper::instance().checkUpdates(pc);
-  if (GRPGeomHelper::instance().getGRPECS()->isDetReadOut(o2::detectors::DetID::TPC) && mConfParam->tpcTriggeredMode ^ !GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::TPC)) {
-    LOG(fatal) << "configKeyValue tpcTriggeredMode does not match GRP isDetContinuousReadOut(TPC) setting";
-  }
-
-  std::vector<gsl::span<const char>> inputs;
-
-  const o2::tpc::CompressedClustersFlat* pCompClustersFlat = nullptr;
-  size_t compClustersFlatDummyMemory[(sizeof(o2::tpc::CompressedClustersFlat) + sizeof(size_t) - 1) / sizeof(size_t)];
-  o2::tpc::CompressedClustersFlat& compClustersFlatDummy = reinterpret_cast<o2::tpc::CompressedClustersFlat&>(compClustersFlatDummyMemory);
-  o2::tpc::CompressedClusters compClustersDummy;
-  o2::gpu::GPUTrackingInOutZS tpcZS;
-  std::vector<const void*> tpcZSmetaPointers[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
-  std::vector<unsigned int> tpcZSmetaSizes[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
-  const void** tpcZSmetaPointers2[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
-  const unsigned int* tpcZSmetaSizes2[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
-  std::array<unsigned int, NEndpoints * NSectors> tpcZSonTheFlySizes;
-  gsl::span<const o2::tpc::ZeroSuppressedContainer8kb> inputZS;
-
-  bool getWorkflowTPCInput_clusters = false, getWorkflowTPCInput_mc = false, getWorkflowTPCInput_digits = false;
-  bool debugTFDump = false;
-
-  if (mSpecConfig.processMC) {
-    getWorkflowTPCInput_mc = true;
-  }
-  if (!mSpecConfig.decompressTPC && !mSpecConfig.caClusterer) {
-    getWorkflowTPCInput_clusters = true;
-  }
-  if (!mSpecConfig.decompressTPC && mSpecConfig.caClusterer && ((!mSpecConfig.zsOnTheFly || mSpecConfig.processMC) && !mSpecConfig.zsDecoder)) {
-    getWorkflowTPCInput_digits = true;
-  }
 
   if (mSpecConfig.zsOnTheFly || mSpecConfig.zsDecoder) {
     for (unsigned int i = 0; i < GPUTrackingInOutZS::NSLICES; i++) {
@@ -424,7 +388,6 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
       }
     }
   }
-  std::unique_ptr<char[]> tmpEmptyCompClusters;
   if (mSpecConfig.zsDecoder) {
     std::vector<InputSpec> filter = {{"check", ConcreteDataTypeMatcher{gDataOriginTPC, "RAWDATA"}, Lifetime::Timeframe}};
     auto isSameRdh = [](const char* left, const char* right) -> bool {
@@ -496,8 +459,53 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
       LOGF(info, "running tracking for sector(s) 0x%09x", mTPCSectorMask);
     }
   }
+}
 
-  const auto& inputsClustersDigits = o2::tpc::getWorkflowTPCInput(pc, mVerbosity, getWorkflowTPCInput_mc, getWorkflowTPCInput_clusters, mTPCSectorMask, getWorkflowTPCInput_digits);
+void GPURecoWorkflowSpec::run(ProcessingContext& pc)
+{
+  constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
+  constexpr static size_t NEndpoints = o2::gpu::GPUTrackingInOutZS::NENDPOINTS;
+
+  auto cput = mTimer->CpuTime();
+  auto realt = mTimer->RealTime();
+  mTimer->Start(false);
+  mNTFs++;
+
+  GRPGeomHelper::instance().checkUpdates(pc);
+  if (GRPGeomHelper::instance().getGRPECS()->isDetReadOut(o2::detectors::DetID::TPC) && mConfParam->tpcTriggeredMode ^ !GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::TPC)) {
+    LOG(fatal) << "configKeyValue tpcTriggeredMode does not match GRP isDetContinuousReadOut(TPC) setting";
+  }
+
+  std::vector<gsl::span<const char>> inputs;
+
+  const o2::tpc::CompressedClustersFlat* pCompClustersFlat = nullptr;
+  size_t compClustersFlatDummyMemory[(sizeof(o2::tpc::CompressedClustersFlat) + sizeof(size_t) - 1) / sizeof(size_t)];
+  o2::tpc::CompressedClustersFlat& compClustersFlatDummy = reinterpret_cast<o2::tpc::CompressedClustersFlat&>(compClustersFlatDummyMemory);
+  o2::tpc::CompressedClusters compClustersDummy;
+  o2::gpu::GPUTrackingInOutZS tpcZS;
+  std::vector<const void*> tpcZSmetaPointers[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
+  std::vector<unsigned int> tpcZSmetaSizes[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
+  const void** tpcZSmetaPointers2[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
+  const unsigned int* tpcZSmetaSizes2[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
+  std::array<unsigned int, NEndpoints * NSectors> tpcZSonTheFlySizes;
+  gsl::span<const o2::tpc::ZeroSuppressedContainer8kb> inputZS;
+  std::unique_ptr<char[]> tmpEmptyCompClusters;
+
+  bool getWorkflowTPCInput_clusters = false, getWorkflowTPCInput_mc = false, getWorkflowTPCInput_digits = false;
+  bool debugTFDump = false;
+
+  if (mSpecConfig.processMC) {
+    getWorkflowTPCInput_mc = true;
+  }
+  if (!mSpecConfig.decompressTPC && !mSpecConfig.caClusterer) {
+    getWorkflowTPCInput_clusters = true;
+  }
+  if (!mSpecConfig.decompressTPC && mSpecConfig.caClusterer && ((!mSpecConfig.zsOnTheFly || mSpecConfig.processMC) && !mSpecConfig.zsDecoder)) {
+    getWorkflowTPCInput_digits = true;
+  }
+
+  processInputs(pc, tpcZSmetaPointers, tpcZSmetaPointers2, tpcZSmetaSizes, tpcZSmetaSizes2, inputZS, tpcZS, tpcZSonTheFlySizes, debugTFDump, compClustersDummy, compClustersFlatDummy, pCompClustersFlat, tmpEmptyCompClusters); // Process non-digit / non-cluster inputs
+  const auto& inputsClustersDigits = o2::tpc::getWorkflowTPCInput(pc, mVerbosity, getWorkflowTPCInput_mc, getWorkflowTPCInput_clusters, mTPCSectorMask, getWorkflowTPCInput_digits);                                             // Process digit and cluster inputs
   GPUTrackingInOutPointers ptrs;
 
   o2::globaltracking::RecoContainer inputTracksTRD;
@@ -796,32 +804,10 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     downSizeBufferToSpan(outputRegions.tpcTracksO2Labels, spanOutputTracksMCTruth);
 
     // if requested, tune TPC tracks
-    using TrackTunePar = o2::globaltracking::TrackTuneParams;
-    const auto& trackTune = TrackTunePar::Instance();
-    if (ptrs.nOutputTracksTPCO2 && trackTune.sourceLevelTPC &&
-        (trackTune.useTPCInnerCorr || trackTune.useTPCOuterCorr ||
-         trackTune.tpcCovInnerType != TrackTunePar::AddCovType::Disable || trackTune.tpcCovOuterType != TrackTunePar::AddCovType::Disable)) {
-      auto buffout = outputBuffers[outputRegions.getIndex(outputRegions.tpcTracksO2)].first->get().data();
-      if (((const void*)ptrs.outputTracksTPCO2) != ((const void*)buffout)) {
-        throw std::runtime_error("Buffer does not match span");
-      }
-      o2::tpc::TrackTPC* tpcTracks = reinterpret_cast<o2::tpc::TrackTPC*>(buffout);
-      for (unsigned int itr = 0; itr < ptrs.nOutputTracksTPCO2; itr++) {
-        auto& trc = tpcTracks[itr];
-        if (trackTune.useTPCInnerCorr) {
-          trc.updateParams(trackTune.tpcParInner);
-        }
-        if (trackTune.tpcCovInnerType != TrackTunePar::AddCovType::Disable) {
-          trc.updateCov(trackTune.tpcCovInner, trackTune.tpcCovInnerType == TrackTunePar::AddCovType::WithCorrelations);
-        }
-        if (trackTune.useTPCOuterCorr) {
-          trc.getParamOut().updateParams(trackTune.tpcParOuter);
-        }
-        if (trackTune.tpcCovOuterType != TrackTunePar::AddCovType::Disable) {
-          trc.getParamOut().updateCov(trackTune.tpcCovOuter, trackTune.tpcCovOuterType == TrackTunePar::AddCovType::WithCorrelations);
-        }
-      }
+    if (ptrs.nOutputTracksTPCO2) {
+      doTrackTuneTPC(ptrs, outputBuffers[outputRegions.getIndex(outputRegions.tpcTracksO2)].first->get().data());
     }
+
     if (mClusterOutputIds.size() > 0 && (void*)ptrs.clustersNative->clustersLinear != (void*)(outputBuffers[outputRegions.getIndex(outputRegions.clustersNative)].second + sizeof(o2::tpc::ClusterCountIndex))) {
       throw std::runtime_error("cluster native output ptrs out of sync"); // sanity check
     }
