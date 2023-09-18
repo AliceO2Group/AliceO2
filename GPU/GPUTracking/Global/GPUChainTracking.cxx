@@ -42,6 +42,7 @@
 #include "GPUMemorySizeScalers.h"
 #include "GPUTrackingInputProvider.h"
 #include "GPUNewCalibValues.h"
+#include "GPUTriggerOutputs.h"
 
 #ifdef GPUCA_HAVE_O2HEADERS
 #include "GPUTPCClusterStatistics.h"
@@ -65,7 +66,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 using namespace o2::tpc;
 using namespace o2::trd;
 
-GPUChainTracking::GPUChainTracking(GPUReconstruction* rec, unsigned int maxTPCHits, unsigned int maxTRDTracklets) : GPUChain(rec), mIOPtrs(processors()->ioPtrs), mInputsHost(new GPUTrackingInputProvider), mInputsShadow(new GPUTrackingInputProvider), mClusterNativeAccess(new ClusterNativeAccess), mMaxTPCHits(maxTPCHits), mMaxTRDTracklets(maxTRDTracklets), mDebugFile(new std::ofstream)
+GPUChainTracking::GPUChainTracking(GPUReconstruction* rec, unsigned int maxTPCHits, unsigned int maxTRDTracklets) : GPUChain(rec), mIOPtrs(processors()->ioPtrs), mInputsHost(new GPUTrackingInputProvider), mInputsShadow(new GPUTrackingInputProvider), mClusterNativeAccess(new ClusterNativeAccess), mTriggerBuffer(new GPUTriggerOutputs), mMaxTPCHits(maxTPCHits), mMaxTRDTracklets(maxTRDTracklets), mDebugFile(new std::ofstream)
 {
   ClearIOPointers();
   mFlatObjectsShadow.mChainTracking = this;

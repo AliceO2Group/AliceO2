@@ -33,6 +33,7 @@
 #include "GPUMemorySizeScalers.h"
 #include "GPUTrackingInputProvider.h"
 #include "TPCZSLinkMapping.h"
+#include "GPUTriggerOutputs.h"
 
 #ifdef GPUCA_HAVE_O2HEADERS
 #include "SimulationDataFormat/MCCompLabel.h"
