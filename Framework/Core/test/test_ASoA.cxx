@@ -1129,25 +1129,26 @@ TEST_CASE("TestArrayColumns")
   }
 }
 
-namespace o2::aod {
-namespace table {
+namespace o2::aod
+{
+namespace table
+{
 DECLARE_SOA_COLUMN(One, one, int);
 DECLARE_SOA_COLUMN(Two, two, float);
 DECLARE_SOA_COLUMN(Three, three, double);
 DECLARE_SOA_COLUMN(Four, four, int[2]);
-DECLARE_SOA_DYNAMIC_COLUMN(Five, five, [](const int in[2]) -> float { return (float) in[0] / (float) in[1];});
-}
+DECLARE_SOA_DYNAMIC_COLUMN(Five, five, [](const int in[2]) -> float { return (float)in[0] / (float)in[1]; });
+} // namespace table
 DECLARE_SOA_TABLE(MixTest, "AOD", "MIXTST",
                   table::One, table::Two, table::Three, table::Four,
-                  table::Five<table::Four>
-                  );
-}
+                  table::Five<table::Four>);
+} // namespace o2::aod
 TEST_CASE("TestCombinedGetter")
 {
   TableBuilder b;
   auto writer = b.cursor<o2::aod::MixTest>();
   int f[2];
-  for (auto i=0; i < 20; ++i) {
+  for (auto i = 0; i < 20; ++i) {
     f[0] = i;
     f[1] = i + 1;
     writer(0, i, o2::constants::math::PI * i, o2::constants::math::Almost0 * i, f);
