@@ -31,7 +31,7 @@ fi
 : ${CTF_MAX_FREE_DISK_WAIT:="600"}    # if not enough disk space after this time throw error
 
 # entropy encoding/decoding mode, default "" is equivalent to '--ans-version compat' (compatible with < 09/2023 data),
-# use '--ans-version 1.0 --ccdb-dict none' for the new per-TF dictionary mode
+# use '--ans-version 1.0 --ctf-dict none' for the new per-TF dictionary mode
 : ${RANS_OPT:=""}
 
 workflow_has_parameter CTF && export SAVECTF=1
