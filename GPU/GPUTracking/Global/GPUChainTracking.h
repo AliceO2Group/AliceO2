@@ -211,7 +211,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
     short mMemoryResFlat = -1;
     void* SetPointersFlatObjects(void* mem);
   };
-  void UpdateGPUCalibObjects(int stream);
+  void UpdateGPUCalibObjects(int stream, const GPUCalibObjectsConst* ptrMask = nullptr);
   void UpdateGPUCalibObjectsPtrs(int stream);
 
   struct eventStruct // Must consist only of void* ptr that will hold the GPU event ptrs!
