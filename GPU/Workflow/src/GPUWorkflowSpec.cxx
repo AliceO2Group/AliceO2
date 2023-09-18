@@ -720,7 +720,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   o2::utils::DebugStreamer::instance()->flush();
 
   // setting TPC calibration objects
-  storeUpdatedCalibsTPCPtrs();
+  cleanOldCalibsTPCPtrs();
 
   mTracker->Clear(false);
 
@@ -1312,17 +1312,17 @@ Outputs GPURecoWorkflowSpec::outputs()
   }
 
   if (mSpecConfig.runITSTracking) {
-    outputSpecs.emplace_back("ITS", "TRACKS", 0, Lifetime::Timeframe);
-    outputSpecs.emplace_back("ITS", "TRACKCLSID", 0, Lifetime::Timeframe);
-    outputSpecs.emplace_back("ITS", "ITSTrackROF", 0, Lifetime::Timeframe);
-    outputSpecs.emplace_back("ITS", "VERTICES", 0, Lifetime::Timeframe);
-    outputSpecs.emplace_back("ITS", "VERTICESROF", 0, Lifetime::Timeframe);
-    outputSpecs.emplace_back("ITS", "IRFRAMES", 0, Lifetime::Timeframe);
+    outputSpecs.emplace_back(gDataOriginITS, "TRACKS", 0, Lifetime::Timeframe);
+    outputSpecs.emplace_back(gDataOriginITS, "TRACKCLSID", 0, Lifetime::Timeframe);
+    outputSpecs.emplace_back(gDataOriginITS, "ITSTrackROF", 0, Lifetime::Timeframe);
+    outputSpecs.emplace_back(gDataOriginITS, "VERTICES", 0, Lifetime::Timeframe);
+    outputSpecs.emplace_back(gDataOriginITS, "VERTICESROF", 0, Lifetime::Timeframe);
+    outputSpecs.emplace_back(gDataOriginITS, "IRFRAMES", 0, Lifetime::Timeframe);
 
     if (mSpecConfig.processMC) {
-      outputSpecs.emplace_back("ITS", "VERTICESMCTR", 0, Lifetime::Timeframe);
-      outputSpecs.emplace_back("ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
-      outputSpecs.emplace_back("ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe);
+      outputSpecs.emplace_back(gDataOriginITS, "VERTICESMCTR", 0, Lifetime::Timeframe);
+      outputSpecs.emplace_back(gDataOriginITS, "TRACKSMCTR", 0, Lifetime::Timeframe);
+      outputSpecs.emplace_back(gDataOriginITS, "ITSTrackMC2ROF", 0, Lifetime::Timeframe);
     }
   }
 
@@ -1681,16 +1681,14 @@ bool GPURecoWorkflowSpec::fetchCalibsCCDBTPC(ProcessingContext& pc, T& newCalibO
   return false;
 }
 
-void GPURecoWorkflowSpec::storeUpdatedCalibsTPCPtrs()
+void GPURecoWorkflowSpec::cleanOldCalibsTPCPtrs()
 {
   if (mdEdxCalibContainerBufferNew) {
     mdEdxCalibContainer = std::move(mdEdxCalibContainerBufferNew);
   }
-
   if (mTPCPadGainCalibBufferNew) {
     mTPCPadGainCalib = std::move(mTPCPadGainCalibBufferNew);
   }
-
   if (mFastTransformNew) {
     mFastTransform = std::move(mFastTransformNew);
   }
