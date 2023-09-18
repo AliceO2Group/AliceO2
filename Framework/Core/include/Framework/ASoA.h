@@ -533,7 +533,7 @@ template <typename T>
 using is_persistent_t = decltype(persistent_type_helper::test<T>(nullptr));
 
 template <typename T>
-using is_persistent_v = typename is_persistent_t<T>::value;
+constexpr auto is_persistent_v = is_persistent_t<T>::value;
 
 template <typename T>
 using is_external_index_t = typename std::conditional<is_index_column_v<T>, std::true_type, std::false_type>::type;
@@ -1261,6 +1261,21 @@ class Table
       return static_cast<decayed>(*this).template getDynamicValue<CDArgs...>();
     }
 
+    template <typename B, typename CC>
+    auto getValue() const
+    {
+      using COL = std::decay_t<CC>;
+      static_assert(is_dynamic_t<COL>() || is_persistent_v<COL>, "Should be persistent or dynamic column with no argument that has a return type convertable to float");
+      return static_cast<B>(static_cast<COL>(*this).get());
+    }
+
+    template <typename B, typename... CCs>
+    std::array<B, sizeof...(CCs)> getValues() const
+    {
+      static_assert(std::is_same_v<B, float> || std::is_same_v<B, double>, "The common return type should be float or double");
+      return {getValue<B, CCs>()...};
+    }
+
     using IP::size;
 
     using RowViewCore<IP, C...>::operator++;
@@ -1685,6 +1700,11 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
     decltype(auto) _Getter_() const                                                                                                                                               \
     {                                                                                                                                                                             \
       return *mColumnIterator;                                                                                                                                                    \
+    }                                                                                                                                                                             \
+                                                                                                                                                                                  \
+    decltype(auto) get() const                                                                                                                                                    \
+    {                                                                                                                                                                             \
+      return _Getter_();                                                                                                                                                          \
     }                                                                                                                                                                             \
   };                                                                                                                                                                              \
   static const o2::framework::expressions::BindingNode _Getter_ { _Label_, typeid(_Name_).hash_code(),                                                                            \
@@ -2313,6 +2333,11 @@ std::tuple<typename Cs::type...> getRowData(arrow::Table* table, T rowIterator, 
     type getDynamicValue(FreeArgs... freeArgs) const                                                                       \
     {                                                                                                                      \
       return boundGetter(std::make_index_sequence<std::tuple_size_v<decltype(boundIterators)>>{}, freeArgs...);            \
+    }                                                                                                                      \
+                                                                                                                           \
+    type get() const                                                                                                       \
+    {                                                                                                                      \
+      return _Getter_();                                                                                                   \
     }                                                                                                                      \
                                                                                                                            \
     template <size_t... Is, typename... FreeArgs>                                                                          \
