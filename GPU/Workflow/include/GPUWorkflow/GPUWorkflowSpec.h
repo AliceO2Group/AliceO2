@@ -77,6 +77,7 @@ struct TPCPadGainCalib;
 struct TPCZSLinkMapping;
 struct GPUSettingsO2;
 class GPUO2InterfaceQA;
+struct GPUTrackingInOutPointers;
 
 class GPURecoWorkflowSpec : public o2::framework::Task
 {
@@ -138,6 +139,11 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   void cleanOldCalibsTPCPtrs();
 
   void doCalibUpdates(o2::framework::ProcessingContext& pc);
+
+  void doTrackTuneTPC(GPUTrackingInOutPointers& ptrs, char* buffout);
+
+  template <class A, class B, class C, class D, class E, class F, class G, class H, class I, class J, class K>
+  void processInputs(o2::framework::ProcessingContext&, A&, B&, C&, D&, E&, F&, G&, bool&, H&, I&, J&, K&);
 
   int runITSTracking(o2::framework::ProcessingContext& pc);
 
