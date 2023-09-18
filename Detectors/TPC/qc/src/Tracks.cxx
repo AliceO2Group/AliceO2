@@ -16,15 +16,12 @@
 
 // root includes
 #include "TFile.h"
-#include "TMathBase.h"
 
 // o2 includes
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTPC/dEdxInfo.h"
 #include "GPUCommonArray.h"
 #include "DetectorsBase/Propagator.h"
-#include "DataFormatsParameters/GRPMagField.h"
-#include "TGeoManager.h"
 #include "TPCQC/Tracks.h"
 #include "TPCQC/Helpers.h"
 
@@ -86,8 +83,7 @@ void Tracks::initializeHistograms()
 
   // DCA Histograms
   for (const auto type : types) {
-  mMapHist[fmt::format("hDCAr_{}", type).data()] = std::make_unique<TH2F>(fmt::format("hDCAr_{}", type).data(), fmt::format("DCAr {};phi;DCAr (cm)", type).data(), 360, 0, o2::math_utils::twoPid(), 100, -3., 3.);
-  mMapHist[fmt::format("hDCAz_{}", type).data()] = std::make_unique<TH2F>(fmt::format("hDCAz_{}", type).data(), fmt::format("DCAz {};phi;DCAr (cm)", type).data(), 360, 0, o2::math_utils::twoPid(), 100, -3., 3.);
+    mMapHist[fmt::format("hDCAr_{}", type).data()] = std::make_unique<TH2F>(fmt::format("hDCAr_{}", type).data(), fmt::format("DCAr {};phi;DCAr (cm)", type).data(), 360, 0, o2::math_utils::twoPid(), 250, -10., 10.);
   }
 }
 //______________________________________________________________________________
@@ -111,7 +107,7 @@ bool Tracks::processTrack(const o2::tpc::TrackTPC& track)
   const auto hasASideOnly = track.hasASideClustersOnly();
   const auto hasCSideOnly = track.hasCSideClustersOnly();
 
-  double absEta = TMath::Abs(eta);
+  const auto absEta = std::abs(eta);
 
   // ===| histogram filling before cuts |===
   mMapHist["hNClustersBeforeCuts"]->Fill(nCls);
@@ -128,44 +124,30 @@ bool Tracks::processTrack(const o2::tpc::TrackTPC& track)
     mMapHist["hNClustersAfterCuts"]->Fill(nCls);
     mMapHist["hEta"]->Fill(eta);
 
-  auto& ccdbmgr = o2::ccdb::BasicCCDBManager::instance();
-  ccdbmgr.setURL("https://alice-ccdb.cern.ch");
-  auto runDuration = ccdbmgr.getRunDuration(runNumber);
-  auto tRun = runDuration.first + (runDuration.second - runDuration.first) / 2; // time stamp for the middle of the run duration
-  ccdbmgr.setTimestamp(tRun);
+    //---| propagate to 0,0,0 |---
+    //
+    // propagator instance must be configured before (LUT, MagField)
+    auto propagator = o2::base::Propagator::Instance(true);
+    const int type = (track.getQ2Pt() < 0) + 2 * track.hasCSideClustersOnly();
+    auto dcaHist = mMapHist[fmt::format("hDCAr_{}", types[type]).data()].get();
 
-  // CTP orbit reset time
-  auto orbitResetTimeNS = ccdbmgr.get<std::vector<int64_t>>("CTP/Calib/OrbitReset");
-  int64_t orbitResetTimeMS = (*orbitResetTimeNS)[0] * 1e-3;
-  LOGP(info, "Orbit reset time in MS is {}", orbitResetTimeMS);
-
-    auto geoAligned = ccdbmgr.get<TGeoManager>("GLO/Config/GeometryAligned");
-    auto magField = ccdbmgr.get<o2::parameters::GRPMagField>("GLO/Config/GRPMagField");
-    const o2::base::MatLayerCylSet* matLut = o2::base::MatLayerCylSet::rectifyPtrFromFile(ccdbmgr.get<o2::base::MatLayerCylSet>("GLO/Param/MatLUT"));
-    auto propagator = o2::base::Propagator::Instance();
-    propagator->setMatLUT(matLut);
-      //---| propagate to 0,0,0 |---
+    if (propagator->getMatLUT() && propagator->hasMagFieldSet()) {
+      // ---| fill DCA histos |---
       o2::gpu::gpustd::array<float, 2> dca;
       const o2::math_utils::Point3D<float> refPoint{0, 0, 0};
-      //auto propTrack = TrackTPC(track);
-      o2::track::TrackPar propTrack(track); // Should be cheaper than the one above
-      bool useThisTrack = true;
-      if (!propagator->propagateToDCABxByBz(refPoint, propTrack, 0.5, o2::base::Propagator::MatCorrType::USEMatCorrLUT, &dca)) {
-        useThisTrack = false;
+      o2::track::TrackPar propTrack(track);
+      if (propagator->propagateToDCABxByBz(refPoint, propTrack, 2.f, o2::base::Propagator::MatCorrType::USEMatCorrLUT, &dca)) {
+        const auto phi = o2::math_utils::to02PiGen(track.getPhi());
+        dcaHist->Fill(phi, dca[0]);
       }
-     ///fine grained propagation most probably not needed
-       if (!propagator->propagateToDCABxByBz(refPoint, propTrack, 0.005, o2::base::Propagator::MatCorrType::USEMatCorrLUT, &dca)) {
-        useThisTrack = false;
+    } else {
+      static bool reported = false;
+      if (!reported) {
+        LOGP(error, "o2::base::Propagator not properly initialized, MatLUT ({}) and / or Field ({}) missing, will not fill DCA histograms", (void*)propagator->getMatLUT(), (void*)propagator->hasMagFieldSet());
+        reported = true;
       }
-
-      if (useThisTrack)
-      {
-      // ---| fill histos |---
-      const int type = (track.getQ2Pt() < 0) + 2 * track.hasCSideClustersOnly();
-      const auto phi = o2::math_utils::to02PiGen(track.getPhi());
-      mMapHist[fmt::format("hDCAr_{}", types[type]).data()]->Fill(phi, dca[0]);
-      mMapHist[fmt::format("hDCAz_{}", types[type]).data()]->Fill(phi, dca[1]);
-      }
+      dcaHist->SetTitle(fmt::format("DCAr {} o2::base::Propagator not properly initialized", types[type]).data());
+    }
 
     if (hasASideOnly == 1) {
       mMapHist["hPhiAside"]->Fill(phi);
