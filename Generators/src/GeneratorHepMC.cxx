@@ -314,7 +314,7 @@ Bool_t GeneratorHepMC::Init()
   //
   //     -s \$RANDOM
   //
-  // to as part of the command line in `progCmd`. 
+  // to as part of the command line in `progCmd`.
   //
   // All of this can conviniently be achieved via a wrapper script
   // around the actual EG program.
