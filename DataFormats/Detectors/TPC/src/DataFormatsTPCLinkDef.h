@@ -70,5 +70,7 @@
 #pragma link C++ class o2::tpc::dcs::DataPointVector < o2::tpc::dcs::HV::StackState> + ;
 #pragma link C++ class o2::tpc::dcs::Gas + ;
 #pragma link C++ class o2::tpc::PIDResponse + ;
+#pragma link C++ class o2::tpc::TriggerInfoDLBZS + ;
+#pragma link C++ class std::vector < o2::tpc::TriggerInfoDLBZS> + ;
 
 #endif
