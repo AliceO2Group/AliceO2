@@ -316,19 +316,43 @@ std::vector<InputSpec> DataDescriptorQueryBuilder::parse(char const* config)
           if (*currentKey == "lifetime" && currentValue == "condition") {
             currentLifetime = Lifetime::Condition;
           }
-          attributes.push_back(ConfigParamSpec{*currentKey, VariantType::String, *currentValue, {}});
+          if (*currentKey == "ccdb-run-dependent" && (currentValue != "false" && currentValue != "0")) {
+            attributes.push_back(ConfigParamSpec{*currentKey, VariantType::Bool, true, {}});
+          } else if (*currentKey == "ccdb-run-dependent" && (currentValue == "false" || currentValue == "0")) {
+            attributes.push_back(ConfigParamSpec{*currentKey, VariantType::Bool, false, {}});
+          } else if (*currentKey == "ccdb-run-dependent") {
+            error("ccdb-run-dependent can only be true or false");
+          } else {
+            attributes.push_back(ConfigParamSpec{*currentKey, VariantType::String, *currentValue, {}});
+          }
         } else if (*next == ';') {
           assignLastStringMatch("value", 1000, currentValue, IN_END_ATTRIBUTES);
           if (*currentKey == "lifetime" && currentValue == "condition") {
             currentLifetime = Lifetime::Condition;
           }
-          attributes.push_back(ConfigParamSpec{*currentKey, VariantType::String, *currentValue, {}});
+          if (*currentKey == "ccdb-run-dependent" && (currentValue != "false" && currentValue != "0")) {
+            attributes.push_back(ConfigParamSpec{*currentKey, VariantType::Bool, true, {}});
+          } else if (*currentKey == "ccdb-run-dependent" && (currentValue == "false" || currentValue == "0")) {
+            attributes.push_back(ConfigParamSpec{*currentKey, VariantType::Bool, false, {}});
+          } else if (*currentKey == "ccdb-run-dependent") {
+            error("ccdb-run-dependent can only be true or false");
+          } else {
+            attributes.push_back(ConfigParamSpec{*currentKey, VariantType::String, *currentValue, {}});
+          }
         } else if (*next == '\0') {
           assignLastStringMatch("value", 1000, currentValue, IN_END_ATTRIBUTES);
           if (*currentKey == "lifetime" && currentValue == "condition") {
             currentLifetime = Lifetime::Condition;
           }
-          attributes.push_back(ConfigParamSpec{*currentKey, VariantType::String, *currentValue, {}});
+          if (*currentKey == "ccdb-run-dependent" && (currentValue != "false" && currentValue != "0")) {
+            attributes.push_back(ConfigParamSpec{*currentKey, VariantType::Bool, true, {}});
+          } else if (*currentKey == "ccdb-run-dependent" && (currentValue == "false" || currentValue == "0")) {
+            attributes.push_back(ConfigParamSpec{*currentKey, VariantType::Bool, false, {}});
+          } else if (*currentKey == "ccdb-run-dependent") {
+            error("ccdb-run-dependent can only be true or false");
+          } else {
+            attributes.push_back(ConfigParamSpec{*currentKey, VariantType::String, *currentValue, {}});
+          }
         } else {
           error("missing value for string value");
         }
