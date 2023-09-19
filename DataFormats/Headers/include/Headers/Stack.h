@@ -16,6 +16,7 @@
 
 namespace o2
 {
+
 namespace header
 {
 //__________________________________________________________________________________________________
@@ -103,7 +104,11 @@ struct Stack {
       bufferSize{calculateSize(std::forward<Headers>(headers)...)},
       buffer{static_cast<std::byte*>(allocator.resource()->allocate(bufferSize, alignof(std::max_align_t))), freeobj{allocator.resource()}}
   {
-    inject(buffer.get(), std::forward<Headers>(headers)...);
+    if constexpr (sizeof...(headers) > 1) {
+      injectAll(buffer.get(), std::forward<Headers>(headers)...);
+    } else if (sizeof...(headers) == 1) {
+      injectBool(buffer.get(), std::forward<Headers>(headers)..., false);
+    }
   }
 
   //______________________________________________________________________________________________
@@ -144,7 +149,7 @@ struct Stack {
 
   //______________________________________________________________________________________________
   template <typename T>
-  static std::byte* inject(std::byte* here, T&& h, bool more = false) noexcept
+  static std::byte* injectBool(std::byte* here, T&& h, bool more) noexcept
   {
     using headerType = typename std::remove_cv<typename std::remove_reference<T>::type>::type;
     if (here == nullptr) {
@@ -189,11 +194,15 @@ struct Stack {
 
   //______________________________________________________________________________________________
   template <typename T, typename... Args>
-  static std::byte* inject(std::byte* here, T&& h, Args&&... args) noexcept
+  static std::byte* injectAll(std::byte* here, T&& h, Args&&... args) noexcept
   {
     bool more = hasNonEmptyArg(args...);
-    auto alsohere = inject(here, h, more);
-    return inject(alsohere, args...);
+    auto alsohere = injectBool(here, h, more);
+    if constexpr (sizeof...(args) > 1) {
+      return injectAll(alsohere, args...);
+    } else {
+      return injectBool(alsohere, args..., false);
+    }
   }
 
   //______________________________________________________________________________________________
