@@ -28,7 +28,7 @@
 
 #if !defined(__CINT__) && !defined(__MAKECINT__) && !defined(__ROOTCLING__) && !defined(__CLING__)
 // this shared mem mode is meant for compiled stuff in o2-sim; not for ROOT sessions
-#define USESHM 1
+//#define USESHM 1
 #endif
 
 namespace o2
