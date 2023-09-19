@@ -151,72 +151,71 @@ Bool_t GeneratorHepMC::importParticles()
   return kTRUE;
 }
 
-  namespace 
-  {
-    void putAttributeInfo(o2::dataformats::MCEventHeader* eventHeader,
-			  const std::string& name,
-			  const std::shared_ptr<HepMC3::Attribute>& a)
-    {
-      if (auto* p = dynamic_cast<HepMC3::IntAttribute*>(a.get()))
-	eventHeader->putInfo<int>(name,p->value());
-      if (auto* p = dynamic_cast<HepMC3::LongAttribute*>(a.get()))
-	eventHeader->putInfo<int>(name,p->value());
-      if (auto* p = dynamic_cast<HepMC3::FloatAttribute*>(a.get()))
-	eventHeader->putInfo<float>(name,p->value());
-      if (auto* p = dynamic_cast<HepMC3::DoubleAttribute*>(a.get()))
-	eventHeader->putInfo<float>(name,p->value());
-      if (auto* p = dynamic_cast<HepMC3::StringAttribute*>(a.get()))
-	eventHeader->putInfo<std::string>(name,p->value());
-      if (auto* p = dynamic_cast<HepMC3::CharAttribute*>(a.get()))
-	eventHeader->putInfo<char>(name,p->value());
-      if (auto* p = dynamic_cast<HepMC3::LongLongAttribute*>(a.get()))
-	eventHeader->putInfo<int>(name,p->value());
-      if (auto* p = dynamic_cast<HepMC3::LongDoubleAttribute*>(a.get()))
-	eventHeader->putInfo<float>(name,p->value());
-      if (auto* p = dynamic_cast<HepMC3::UIntAttribute*>(a.get()))
-	eventHeader->putInfo<int>(name,p->value());
-      if (auto* p = dynamic_cast<HepMC3::ULongAttribute*>(a.get()))
-	eventHeader->putInfo<int>(name,p->value());
-      if (auto* p = dynamic_cast<HepMC3::ULongLongAttribute*>(a.get()))
-	eventHeader->putInfo<int>(name,p->value());
-      if (auto* p = dynamic_cast<HepMC3::BoolAttribute*>(a.get()))
-	eventHeader->putInfo<bool>(name,p->value());
-    }
-  }
-      
-      
+namespace
+{
+void putAttributeInfo(o2::dataformats::MCEventHeader* eventHeader,
+                      const std::string& name,
+                      const std::shared_ptr<HepMC3::Attribute>& a)
+{
+  if (auto* p = dynamic_cast<HepMC3::IntAttribute*>(a.get()))
+    eventHeader->putInfo<int>(name, p->value());
+  if (auto* p = dynamic_cast<HepMC3::LongAttribute*>(a.get()))
+    eventHeader->putInfo<int>(name, p->value());
+  if (auto* p = dynamic_cast<HepMC3::FloatAttribute*>(a.get()))
+    eventHeader->putInfo<float>(name, p->value());
+  if (auto* p = dynamic_cast<HepMC3::DoubleAttribute*>(a.get()))
+    eventHeader->putInfo<float>(name, p->value());
+  if (auto* p = dynamic_cast<HepMC3::StringAttribute*>(a.get()))
+    eventHeader->putInfo<std::string>(name, p->value());
+  if (auto* p = dynamic_cast<HepMC3::CharAttribute*>(a.get()))
+    eventHeader->putInfo<char>(name, p->value());
+  if (auto* p = dynamic_cast<HepMC3::LongLongAttribute*>(a.get()))
+    eventHeader->putInfo<int>(name, p->value());
+  if (auto* p = dynamic_cast<HepMC3::LongDoubleAttribute*>(a.get()))
+    eventHeader->putInfo<float>(name, p->value());
+  if (auto* p = dynamic_cast<HepMC3::UIntAttribute*>(a.get()))
+    eventHeader->putInfo<int>(name, p->value());
+  if (auto* p = dynamic_cast<HepMC3::ULongAttribute*>(a.get()))
+    eventHeader->putInfo<int>(name, p->value());
+  if (auto* p = dynamic_cast<HepMC3::ULongLongAttribute*>(a.get()))
+    eventHeader->putInfo<int>(name, p->value());
+  if (auto* p = dynamic_cast<HepMC3::BoolAttribute*>(a.get()))
+    eventHeader->putInfo<bool>(name, p->value());
+}
+} // namespace
+
 /*****************************************************************/
 
 void GeneratorHepMC::updateHeader(o2::dataformats::MCEventHeader* eventHeader)
 {
   /** update header **/
-  using Key=o2::dataformats::MCInfoKeys;
+  using Key = o2::dataformats::MCInfoKeys;
 
   eventHeader->putInfo<std::string>(Key::generator, "hepmc");
   eventHeader->putInfo<int>(Key::generatorVersion, HEPMC3_VERSION_CODE);
 
   auto xSection = mEvent->cross_section();
-  auto pdfInfo  = mEvent->pdf_info();
-  auto hiInfo   = mEvent->heavy_ion();
+  auto pdfInfo = mEvent->pdf_info();
+  auto hiInfo = mEvent->heavy_ion();
 
-  // Set default cross-section 
+  // Set default cross-section
   if (xSection) {
-    eventHeader->putInfo<float>(Key::xSection,      xSection->xsec());
+    eventHeader->putInfo<float>(Key::xSection, xSection->xsec());
     eventHeader->putInfo<float>(Key::xSectionError, xSection->xsec_err());
     eventHeader->putInfo<int>(Key::acceptedEvents,
-			      xSection->get_accepted_events());
+                              xSection->get_accepted_events());
     eventHeader->putInfo<int>(Key::attemptedEvents,
-			      xSection->get_attempted_events());
+                              xSection->get_attempted_events());
   }
 
-  // Set weights and cross sections 
+  // Set weights and cross sections
   size_t iw = 0;
   for (auto w : mEvent->weights()) {
-    std::string post = (iw > 0 ? "_"+std::to_string(iw) : "");
-    eventHeader->putInfo<float>(Key::weight+post, w);
+    std::string post = (iw > 0 ? "_" + std::to_string(iw) : "");
+    eventHeader->putInfo<float>(Key::weight + post, w);
     if (xSection) {
-      eventHeader->putInfo<float>(Key::xSection,     xSection->xsec(iw));
-      eventHeader->putInfo<float>(Key::xSectionError,xSection->xsec_err(iw));
+      eventHeader->putInfo<float>(Key::xSection, xSection->xsec(iw));
+      eventHeader->putInfo<float>(Key::xSectionError, xSection->xsec_err(iw));
     }
     iw++;
   }
@@ -225,59 +224,59 @@ void GeneratorHepMC::updateHeader(o2::dataformats::MCEventHeader* eventHeader)
   if (pdfInfo) {
     eventHeader->putInfo<int>(Key::pdfParton1Id, pdfInfo->parton_id[0]);
     eventHeader->putInfo<int>(Key::pdfParton2Id, pdfInfo->parton_id[1]);
-    eventHeader->putInfo<float>(Key::pdfX1,      pdfInfo->x[0]);
-    eventHeader->putInfo<float>(Key::pdfX2,      pdfInfo->x[1]);
-    eventHeader->putInfo<float>(Key::pdfScale,   pdfInfo->scale);
-    eventHeader->putInfo<float>(Key::pdfXF1,     pdfInfo->xf[0]);
-    eventHeader->putInfo<float>(Key::pdfXF2,     pdfInfo->xf[1]);
-    eventHeader->putInfo<float>(Key::pdfCode1,   pdfInfo->pdf_id[0]);
-    eventHeader->putInfo<float>(Key::pdfCode2,   pdfInfo->pdf_id[1]);
+    eventHeader->putInfo<float>(Key::pdfX1, pdfInfo->x[0]);
+    eventHeader->putInfo<float>(Key::pdfX2, pdfInfo->x[1]);
+    eventHeader->putInfo<float>(Key::pdfScale, pdfInfo->scale);
+    eventHeader->putInfo<float>(Key::pdfXF1, pdfInfo->xf[0]);
+    eventHeader->putInfo<float>(Key::pdfXF2, pdfInfo->xf[1]);
+    eventHeader->putInfo<float>(Key::pdfCode1, pdfInfo->pdf_id[0]);
+    eventHeader->putInfo<float>(Key::pdfCode2, pdfInfo->pdf_id[1]);
   }
 
   // Set heavy-ion information
   if (hiInfo) {
-    eventHeader->putInfo<int>(Key::impactParameter       ,
-			      hiInfo->impact_parameter);
-    eventHeader->putInfo<int>(Key::nPart                 ,
-			      hiInfo->Npart_proj+hiInfo->Npart_targ);
-    eventHeader->putInfo<int>(Key::nPartProjectile       ,hiInfo->Npart_proj); 
-    eventHeader->putInfo<int>(Key::nPartTarget           ,hiInfo->Npart_targ);
-    eventHeader->putInfo<int>(Key::nColl                 ,hiInfo->Ncoll);
-    eventHeader->putInfo<int>(Key::nCollHard             ,hiInfo->Ncoll_hard);
-    eventHeader->putInfo<int>(Key::nCollNNWounded        ,
-			      hiInfo->N_Nwounded_collisions);
-    eventHeader->putInfo<int>(Key::nCollNWoundedN        ,
-			      hiInfo->Nwounded_N_collisions);
-    eventHeader->putInfo<int>(Key::nCollNWoundedNwounded ,
-			      hiInfo->Nwounded_Nwounded_collisions);
-    eventHeader->putInfo<int>(Key::planeAngle            ,
-			      hiInfo->event_plane_angle);
-    eventHeader->putInfo<int>(Key::sigmaInelNN           ,
-			      hiInfo->sigma_inel_NN);
-    eventHeader->putInfo<int>(Key::centrality            ,hiInfo->centrality);
-    eventHeader->putInfo<int>(Key::nSpecProjectileProton ,hiInfo->Nspec_proj_p);
-    eventHeader->putInfo<int>(Key::nSpecProjectileNeutron,hiInfo->Nspec_proj_n);
-    eventHeader->putInfo<int>(Key::nSpecTargetProton     ,hiInfo->Nspec_targ_p);
-    eventHeader->putInfo<int>(Key::nSpecTargetNeutron    ,hiInfo->Nspec_targ_n);
+    eventHeader->putInfo<int>(Key::impactParameter,
+                              hiInfo->impact_parameter);
+    eventHeader->putInfo<int>(Key::nPart,
+                              hiInfo->Npart_proj + hiInfo->Npart_targ);
+    eventHeader->putInfo<int>(Key::nPartProjectile, hiInfo->Npart_proj);
+    eventHeader->putInfo<int>(Key::nPartTarget, hiInfo->Npart_targ);
+    eventHeader->putInfo<int>(Key::nColl, hiInfo->Ncoll);
+    eventHeader->putInfo<int>(Key::nCollHard, hiInfo->Ncoll_hard);
+    eventHeader->putInfo<int>(Key::nCollNNWounded,
+                              hiInfo->N_Nwounded_collisions);
+    eventHeader->putInfo<int>(Key::nCollNWoundedN,
+                              hiInfo->Nwounded_N_collisions);
+    eventHeader->putInfo<int>(Key::nCollNWoundedNwounded,
+                              hiInfo->Nwounded_Nwounded_collisions);
+    eventHeader->putInfo<int>(Key::planeAngle,
+                              hiInfo->event_plane_angle);
+    eventHeader->putInfo<int>(Key::sigmaInelNN,
+                              hiInfo->sigma_inel_NN);
+    eventHeader->putInfo<int>(Key::centrality, hiInfo->centrality);
+    eventHeader->putInfo<int>(Key::nSpecProjectileProton, hiInfo->Nspec_proj_p);
+    eventHeader->putInfo<int>(Key::nSpecProjectileNeutron, hiInfo->Nspec_proj_n);
+    eventHeader->putInfo<int>(Key::nSpecTargetProton, hiInfo->Nspec_targ_p);
+    eventHeader->putInfo<int>(Key::nSpecTargetNeutron, hiInfo->Nspec_targ_n);
   }
 
   for (auto na : mEvent->attributes()) {
     std::string name = na.first;
     if (name == "GenPdfInfo" ||
-	name == "GenCrossSection" ||
-	name == "GenHeavyIon") continue;
+        name == "GenCrossSection" ||
+        name == "GenHeavyIon")
+      continue;
 
     for (auto ia : na.second) {
-      int  no = ia.first;
+      int no = ia.first;
       auto at = ia.second;
       std::string post = (no == 0 ? "" : std::to_string(no));
-      
-      putAttributeInfo(eventHeader, name+post, at);
+
+      putAttributeInfo(eventHeader, name + post, at);
     }
   }
 }
-  
-  
+
 /*****************************************************************/
 
 Bool_t GeneratorHepMC::Init()
@@ -317,10 +316,10 @@ Bool_t GeneratorHepMC::Init()
     //   TString base("xxxxxx");
     //   auto fp = gSystem->TempFileName(base);
     //   fclose(fp);
-    // 
+    //
     filename = std::tmpnam(nullptr);
 
-    // Make a fifo 
+    // Make a fifo
     int ret = mkfifo(filename.c_str(), 0600);
     if (ret != 0) {
       LOG(fatal) << "Failed to make fifo \"" << filename << "\"";
@@ -328,7 +327,7 @@ Bool_t GeneratorHepMC::Init()
     }
 
     // Build command line, rediret stdout to our fifo and put
-    // in the background.  
+    // in the background.
     std::string cmd =
       mProgCmd +
       " -n " + std::to_string(mNEvents) +

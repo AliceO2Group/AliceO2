@@ -65,6 +65,7 @@ class GeneratorHepMC : public Generator
   void setProgCmd(std::string val) { mProgCmd = val; };
   void setEventsToSkip(uint64_t val) { mEventsToSkip = val; };
   void setNEvents(unsigned int val) { mNEvents = val; }
+
  protected:
   /** copy constructor **/
   GeneratorHepMC(const GeneratorHepMC&);
@@ -80,7 +81,7 @@ class GeneratorHepMC : public Generator
 
   /** methods that can be overridded **/
   void updateHeader(o2::dataformats::MCEventHeader* eventHeader) override;
-  
+
   /** HepMC interface **/
   std::ifstream mStream; //!
   std::string mFileName;

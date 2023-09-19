@@ -157,10 +157,11 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
       if (o2PrimGen) {
         o2PrimGen->setApplyVertex(false);
       }
-    }    LOG(info) << "using external O2 kinematics";
+    }
+    LOG(info) << "using external O2 kinematics";
   } else if (genconfig.compare("tparticle") == 0) {
     // External ROOT file(s) with tree of TParticle in clones array,
-    // or external program generating such a file 
+    // or external program generating such a file
     auto& param = GeneratorTParticleParam::Instance();
     LOG(info) << "Init 'GeneratorTParticle' with the following parameters";
     LOG(info) << param;
