@@ -32,11 +32,6 @@
 #include "GPUCommonDef.h"
 #include "GPUDataTypes.h"
 
-namespace std
-{
-class thread;
-} // namespace std
-
 namespace o2::tpc
 {
 struct ClusterNativeAccess;
@@ -62,6 +57,9 @@ struct GPUInterfaceOutputs;
 struct GPUTrackingOutputs;
 struct GPUConstantMem;
 struct GPUNewCalibValues;
+
+struct GPUO2Interface_processingContext;
+struct GPUO2Interface_Internals;
 
 class GPUO2Interface
 {
@@ -93,12 +91,6 @@ class GPUO2Interface
 
   const GPUO2InterfaceConfiguration& getConfig() const { return *mConfig; }
 
-  struct processingContext {
-    std::unique_ptr<GPUReconstruction> mRec;
-    GPUChainTracking* mChain = nullptr;
-    std::unique_ptr<GPUTrackingOutputs> mOutputRegions;
-  };
-
  private:
   GPUO2Interface(const GPUO2Interface&);
   GPUO2Interface& operator=(const GPUO2Interface&);
@@ -106,11 +98,11 @@ class GPUO2Interface
   bool mContinuous = false;
 
   unsigned int mNContexts = 0;
-  std::unique_ptr<processingContext[]> mCtx;
+  std::unique_ptr<GPUO2Interface_processingContext[]> mCtx;
 
   std::unique_ptr<GPUO2InterfaceConfiguration> mConfig;
   GPUChainITS* mChainITS = nullptr;
-  std::unique_ptr<std::thread> mPipelineThread;
+  std::unique_ptr<GPUO2Interface_Internals> mInternals;
 };
 } // namespace o2::gpu
 

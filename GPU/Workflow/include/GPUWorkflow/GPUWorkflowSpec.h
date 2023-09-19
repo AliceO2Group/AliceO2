@@ -139,7 +139,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   /// storing the new calib objects by overwritting the old calibs
   void cleanOldCalibsTPCPtrs();
 
-  void doCalibUpdates(o2::framework::ProcessingContext& pc, unsigned int threadIndex);
+  void doCalibUpdates(o2::framework::ProcessingContext& pc);
 
   void doTrackTuneTPC(GPUTrackingInOutPointers& ptrs, char* buffout);
 
@@ -184,6 +184,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   int mVerbosity = 0;
   unsigned int mNTFs = 0;
   unsigned int mNDebugDumps = 0;
+  unsigned int mNextThreadIndex = 0;
   bool mUpdateGainMapCCDB = true;
   std::unique_ptr<o2::gpu::GPUSettingsTF> mTFSettings;
   Config mSpecConfig;
