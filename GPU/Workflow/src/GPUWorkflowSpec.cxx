@@ -227,8 +227,11 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
                  << "Instead, link the corresponding file as <somedir>/TPC/Calib/CorrectionMap/snapshot.root and use it via\n"
                  << "--condition-remap file://<somdir>=TPC/Calib/CorrectionMap option";
     }
-    if (config.configProcessing.doublePipeline && ic.services().get<ThreadPool>().poolSize != 2) {
+    /* if (config.configProcessing.doublePipeline && ic.services().get<ThreadPool>().poolSize != 2) {
       throw std::runtime_error("double pipeline requires exactly 2 threads");
+    } */
+    if (config.configProcessing.doublePipeline && (mSpecConfig.readTRDtracklets || mSpecConfig.runITSTracking || !(mSpecConfig.zsOnTheFly || mSpecConfig.zsDecoder))) {
+      LOG(fatal) << "GPU two-threaded pipeline works only with TPC-only processing, and with ZS input";
     }
 
     // initialize TPC calib objects
@@ -506,8 +509,11 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   }
 
   auto lockDecodeInput = std::make_unique<std::lock_guard<std::mutex>>(mMutexDecodeInput);
-  // int threadIndex = pc.services().get<ThreadPool>().threadIndex;
-  int threadIndex = 0;
+  // unsigned int threadIndex = pc.services().get<ThreadPool>().threadIndex;
+  unsigned int threadIndex = mNextThreadIndex;
+  if (mConfig->configProcessing.doublePipeline) {
+    mNextThreadIndex = (mNextThreadIndex + 1) % 2;
+  }
 
   GRPGeomHelper::instance().checkUpdates(pc);
   if (GRPGeomHelper::instance().getGRPECS()->isDetReadOut(o2::detectors::DetID::TPC) && mConfParam->tpcTriggeredMode ^ !GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::TPC)) {
@@ -696,7 +702,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
 
   const auto& holdData = o2::tpc::TPCTrackingDigitsPreCheck::runPrecheck(&ptrs, mConfig.get());
 
-  doCalibUpdates(pc, threadIndex);
+  doCalibUpdates(pc);
 
   lockDecodeInput.reset();
 
@@ -898,7 +904,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   LOG(info) << "GPU Reoncstruction time for this TF " << mTimer->CpuTime() - cput << " s (cpu), " << mTimer->RealTime() - realt << " s (wall)";
 }
 
-void GPURecoWorkflowSpec::doCalibUpdates(o2::framework::ProcessingContext& pc, unsigned int threadIndex)
+void GPURecoWorkflowSpec::doCalibUpdates(o2::framework::ProcessingContext& pc)
 {
   GPUCalibObjectsConst newCalibObjects;
   GPUNewCalibValues newCalibValues;
@@ -956,7 +962,7 @@ void GPURecoWorkflowSpec::doCalibUpdates(o2::framework::ProcessingContext& pc, u
   }
   if (needCalibUpdate) {
     LOG(info) << "Updating GPUReconstruction calibration objects";
-    mTracker->UpdateCalibration(newCalibObjects, newCalibValues, threadIndex);
+    mTracker->UpdateCalibration(newCalibObjects, newCalibValues);
   }
 }
 
