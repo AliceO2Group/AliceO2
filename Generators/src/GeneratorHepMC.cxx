@@ -307,6 +307,15 @@ Bool_t GeneratorHepMC::Init()
   // line argument `-n NEVENTS` to set the number of events to
   // produce.
   //
+  // Perhaps we should consider a way to set a seed on the EG.  It
+  // could be another configuration parameter.  Of course, if the EG
+  // program accepts a seed option, say `-s SEED`, then one could
+  // simply pass
+  //
+  //     -s \$RANDOM
+  //
+  // to as part of the command line in `progCmd`. 
+  //
   // All of this can conviniently be achieved via a wrapper script
   // around the actual EG program.
   if (not mProgCmd.empty()) {
