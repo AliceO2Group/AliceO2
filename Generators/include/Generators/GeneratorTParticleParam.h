@@ -11,7 +11,7 @@
 // immunities granted to it by virtue of its status as an
 // Intergovernmental Organization or submit itself to any
 // jurisdiction.
-// 
+//
 // @author: Christian Holm Christensen <cholm@nbi.dk>
 #ifndef ALICEO2_EVENTGEN_GENERATORTPARTICLEPARAM_H_
 #define ALICEO2_EVENTGEN_GENERATORTPARTICLEPARAM_H_
@@ -22,22 +22,20 @@
 
 namespace o2
 {
-  namespace eventgen
-  {
+namespace eventgen
+{
 
-    /**
-       a parameter class/struct to keep the settings of the TGenerator
-       event generator and allow the user to modify them */
-    struct GeneratorTParticleParam :
-      public o2::conf::ConfigurableParamHelper<GeneratorTParticleParam>
-    {
-      std::string treeName = "T";
-      std::string branchName = "Particles";
-      std::string fileNames = "tparticle.root";
-      std::string progCmd  = "";
-      O2ParamDef(GeneratorTParticleParam, "TParticle");
-    };
-  } // end namespace eventgen
+/**
+   a parameter class/struct to keep the settings of the TGenerator
+   event generator and allow the user to modify them */
+struct GeneratorTParticleParam : public o2::conf::ConfigurableParamHelper<GeneratorTParticleParam> {
+  std::string treeName = "T";
+  std::string branchName = "Particles";
+  std::string fileNames = "tparticle.root";
+  std::string progCmd = "";
+  O2ParamDef(GeneratorTParticleParam, "TParticle");
+};
+} // end namespace eventgen
 } // end namespace o2
 
 #endif // ALICEO2_EVENTGEN_GENERATORHEPMCPARAM_H_

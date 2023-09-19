@@ -31,7 +31,7 @@ namespace eventgen
 
 struct GeneratorHepMCParam : public o2::conf::ConfigurableParamHelper<GeneratorHepMCParam> {
   std::string fileName = "";
-  std::string progCmd  = "";//Program command line to spawn, must write HepMC on stdout
+  std::string progCmd = ""; // Program command line to spawn, must write HepMC on stdout
   int version = 2;
   uint64_t eventsToSkip = 0;
   O2ParamDef(GeneratorHepMCParam, "HepMC");
