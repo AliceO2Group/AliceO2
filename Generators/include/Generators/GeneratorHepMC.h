@@ -62,8 +62,9 @@ class GeneratorHepMC : public Generator
   /** setters **/
   void setVersion(Int_t val) { mVersion = val; };
   void setFileName(std::string val) { mFileName = val; };
+  void setProgCmd(std::string val) { mProgCmd = val; };
   void setEventsToSkip(uint64_t val) { mEventsToSkip = val; };
-
+  void setNEvents(unsigned int val) { mNEvents = val; }
  protected:
   /** copy constructor **/
   GeneratorHepMC(const GeneratorHepMC&);
@@ -77,11 +78,16 @@ class GeneratorHepMC : public Generator
   const HepMC3::FourVector getBoostedVector(const HepMC3::FourVector& vector, Double_t boost);
 #endif
 
+  /** methods that can be overridded **/
+  void updateHeader(o2::dataformats::MCEventHeader* eventHeader) override;
+  
   /** HepMC interface **/
   std::ifstream mStream; //!
   std::string mFileName;
+  std::string mProgCmd;
   Int_t mVersion;
   uint64_t mEventsToSkip;
+  unsigned int mNEvents;
 #ifdef GENERATORS_WITH_HEPMC3_DEPRECATED
   HepMC::Reader* mReader;  //!
   HepMC::GenEvent* mEvent; //!
