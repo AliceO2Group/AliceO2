@@ -80,7 +80,8 @@ void uploadBadChannels(const std::string ccdbUrl,
             << dest << "\n";
 
   if (makeDefault) {
-    md["default"] = true;
+    md["default"] = "true";
+    md["Created"] = "1";
   }
   api.storeAsTFileAny(&bv, dest, md, startTimestamp, endTimestamp);
 }
