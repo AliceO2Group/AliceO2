@@ -276,9 +276,9 @@ void GeneratorPythia8::updateHeader(o2::dataformats::MCEventHeader* eventHeader)
     // --- HepMC3 conforming information ---
     // This is how the Pythia authors define Ncoll
     // eventHeader->putInfo<int>(Key::nColl,
-    // 			      hiinfo->nAbsProj() + hiinfo->nDiffProj() +
-    // 			      hiinfo->nAbsTarg() + hiinfo->nDiffTarg() -
-    // 			      hiiinfo->nCollND() - hiinfo->nCollDD());
+    //                           hiinfo->nAbsProj() + hiinfo->nDiffProj() +
+    //                           hiinfo->nAbsTarg() + hiinfo->nDiffTarg() -
+    //                           hiiinfo->nCollND() - hiinfo->nCollDD());
     eventHeader->putInfo<int>(Key::nPartProjectile,
                               hiinfo->nAbsProj() + hiinfo->nDiffProj());
     eventHeader->putInfo<int>(Key::nPartTarget,
