@@ -129,6 +129,7 @@ class TimeFrame
   const gsl::span<const MCCompLabel> getClusterLabels(int layerId, const Cluster& cl) const;
   const gsl::span<const MCCompLabel> getClusterLabels(int layerId, const int clId) const;
   int getClusterExternalIndex(int layerId, const int clId) const;
+  int getClusterSize(int clusterId);
 
   std::vector<MCCompLabel>& getTrackletsLabel(int layer) { return mTrackletLabels[layer]; }
   std::vector<MCCompLabel>& getCellsLabel(int layer) { return mCellLabels[layer]; }
@@ -244,6 +245,7 @@ class TimeFrame
   std::vector<float> mMSangles;
   std::vector<float> mPhiCuts;
   std::vector<float> mPositionResolution;
+  std::vector<int> mClusterSize;
   std::vector<bool> mMultiplicityCutMask;
   std::vector<std::array<float, 2>> mPValphaX; /// PV x and alpha for track propagation
   std::vector<std::vector<Cluster>> mUnsortedClusters;
@@ -422,6 +424,10 @@ inline const gsl::span<const MCCompLabel> TimeFrame::getClusterLabels(int layerI
 inline const gsl::span<const MCCompLabel> TimeFrame::getClusterLabels(int layerId, int clId) const
 {
   return mClusterLabels->getLabels(mClusterExternalIndices[layerId][clId]);
+}
+
+inline int TimeFrame::getClusterSize(int clusterId) {
+  return mClusterSize[clusterId];
 }
 
 inline int TimeFrame::getClusterExternalIndex(int layerId, const int clId) const

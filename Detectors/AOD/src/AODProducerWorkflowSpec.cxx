@@ -320,6 +320,7 @@ void AODProducerWorkflowDPL::addToTracksExtraTable(TracksExtraCursorType& tracks
   tracksExtraCursor(truncateFloatFraction(extraInfoHolder.tpcInnerParam, mTrack1Pt),
                     extraInfoHolder.flags,
                     extraInfoHolder.itsClusterMap,
+                    extraInfoHolder.itsClusterSizes,
                     extraInfoHolder.tpcNClsFindable,
                     extraInfoHolder.tpcNClsFindableMinusFound,
                     extraInfoHolder.tpcNClsFindableMinusCrossedRows,
@@ -2371,6 +2372,7 @@ AODProducerWorkflowDPL::TrackExtraInfo AODProducerWorkflowDPL::processBarrelTrac
     float chi2 = itsTrack.getChi2();
     extraInfoHolder.itsChi2NCl = nClusters != 0 ? chi2 / (float)nClusters : 0;
     extraInfoHolder.itsClusterMap = itsTrack.getPattern();
+    extraInfoHolder.itsClusterSizes = itsTrack.getClusterSizes();
     if (src == GIndex::ITS) { // standalone ITS track should set its time from the ROF
       const auto& rof = data.getITSTracksROFRecords()[mITSROFs[trackIndex.getIndex()]];
       double t = rof.getBCData().differenceInBC(mStartIR) * o2::constants::lhc::LHCBunchSpacingNS + mITSROFrameHalfLengthNS;
@@ -2728,6 +2730,9 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   if (enableStrangenessTracking) {
     dataRequest->requestStrangeTracks(useMC);
     LOGF(info, "requestStrangeTracks Finish");
+  }
+  if (src[GID::ITS]) {
+    dataRequest->requestClusters(GIndex::getSourcesMask("ITS"), false);
   }
   if (src[GID::TPC]) {
     dataRequest->requestClusters(GIndex::getSourcesMask("TPC"), false); // no need to ask for TOF clusters as they are requested with TOF tracks
