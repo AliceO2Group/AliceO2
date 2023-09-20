@@ -13,6 +13,7 @@ o2_add_library(TPCReaderWorkflow
                SOURCES src/ClusterReaderSpec.cxx
                        src/PublisherSpec.cxx
                        src/TrackReaderSpec.cxx
+                       src/TriggerReaderSpec.cxx
                TARGETVARNAME targetName
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DataFormatsTPC
