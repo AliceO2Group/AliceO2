@@ -102,6 +102,8 @@ struct TriggerWordDLBZS {
   uint16_t getTriggerBC(int entry = 0) const { return triggerEntries[entry] & 0xFFF; }
   uint16_t getTriggerType(int entry = 0) const { return (triggerEntries[entry] >> 12) & 0x7; }
   bool isValid(int entry = 0) const { return triggerEntries[entry] & 0x8000; }
+
+  ClassDefNV(TriggerWordDLBZS, 1);
 };
 
 /// Trigger info including the orbit
