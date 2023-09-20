@@ -446,7 +446,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
     cfg.processMC = propagateMC;
     cfg.sendClustersPerSector = isEnabled(OutputType::SendClustersPerSector);
     cfg.askDISTSTF = askDISTSTF;
-    cfg.tpcTriggerHandling = isEnabled(OutputType::TPCTriggers);
+    cfg.tpcTriggerHandling = isEnabled(OutputType::TPCTriggers) || cfg.caClusterer;
 
     Inputs ggInputs;
     auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false, true, false, true, true, o2::base::GRPGeomRequest::Aligned, ggInputs, true);
