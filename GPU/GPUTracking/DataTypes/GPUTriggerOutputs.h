@@ -30,19 +30,28 @@ namespace gpu
 struct GPUTriggerOutputs {
 #ifdef GPUCA_HAVE_O2HEADERS
   struct hasher {
-    size_t operator()(const std::array<unsigned long, o2::tpc::TPCZSHDRV2::TRIGGER_WORD_SIZE / sizeof(unsigned long)>& key) const
+    size_t operator()(const o2::tpc::TriggerInfoDLBZS& key) const
     {
-      std::hash<unsigned long> std_hasher;
+      std::array<unsigned int, sizeof(key) / sizeof(unsigned int)> tmp;
+      memcpy((void*)tmp.data(), (const void*)&key, sizeof(key));
+      std::hash<unsigned int> std_hasher;
       size_t result = 0;
-      for (size_t i = 0; i < key.size(); ++i) {
-        result ^= std_hasher(key[i]);
+      for (size_t i = 0; i < tmp.size(); ++i) {
+        result ^= std_hasher(tmp[i]);
       }
       return result;
     }
   };
 
-  std::unordered_set<std::array<unsigned long, o2::tpc::TPCZSHDRV2::TRIGGER_WORD_SIZE / sizeof(unsigned long)>, hasher> triggers;
-  static_assert(o2::tpc::TPCZSHDRV2::TRIGGER_WORD_SIZE % sizeof(unsigned long) == 0);
+  struct equal {
+    bool operator()(const o2::tpc::TriggerInfoDLBZS& lhs, const o2::tpc::TriggerInfoDLBZS& rhs) const
+    {
+      return memcmp((const void*)&lhs, (const void*)&rhs, sizeof(lhs)) == 0;
+    }
+  };
+
+  std::unordered_set<o2::tpc::TriggerInfoDLBZS, hasher, equal> triggers;
+  static_assert(sizeof(o2::tpc::TriggerInfoDLBZS) % sizeof(unsigned int) == 0);
 #endif
 };
 
