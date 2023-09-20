@@ -233,9 +233,12 @@ std::pair<unsigned int, unsigned int> GPUChainTracking::TPCClusterizerDecodeZSCo
           const TPCZSHDRV2* const hdr2 = (const TPCZSHDRV2*)hdr;
           if (hdr2->flags & TPCZSHDRV2::ZSFlags::TriggerWordPresent) {
             const char* triggerWord = (const char*)hdr - TPCZSHDRV2::TRIGGER_WORD_SIZE;
-            std::array<unsigned long, TPCZSHDRV2::TRIGGER_WORD_SIZE / sizeof(unsigned long)> tmp;
-            memcpy((void*)tmp.data(), triggerWord, TPCZSHDRV2::TRIGGER_WORD_SIZE);
-            mTriggerBuffer->triggers.emplace(tmp);
+            o2::tpc::TriggerInfoDLBZS tmp;
+            memcpy((void*)&tmp.triggerWord, triggerWord, TPCZSHDRV2::TRIGGER_WORD_SIZE);
+            tmp.orbit = o2::raw::RDHUtils::getHeartBeatOrbit(*rdh);
+            if (tmp.triggerWord.isValid(0)) {
+              mTriggerBuffer->triggers.emplace(tmp);
+            }
           }
         }
         nDigits += hdr->nADCsamples;
