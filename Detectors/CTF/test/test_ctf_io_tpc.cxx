@@ -107,7 +107,8 @@ BOOST_DATA_TEST_CASE(CTFTest, boost_data::make(ANSVersions) ^ boost_data::make(C
   std::vector<o2::ctf::BufferType> vecIO;
   {
     CTFCoder coder(o2::ctf::CTFCoderBase::OpType::Encoder);
-    coder.setCombineColumns(true);
+    coder.setCombineColumns(combineColumns);
+    coder.setANSVersion(ansVersion);
     // prepare trigger info
     o2::tpc::detail::TriggerInfo trigComp;
     for (const auto& trig : triggers) {
