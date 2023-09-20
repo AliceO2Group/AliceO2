@@ -882,6 +882,9 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     pc.outputs().snapshot({gDataOriginGPU, "ERRORQA", 0, Lifetime::Timeframe}, mErrorQA);
     mErrorQA.clear(); // FIXME: This is a race condition once we run multi-threaded!
   }
+  if (mSpecConfig.tpcTriggerHandling && !(mSpecConfig.zsOnTheFly || mSpecConfig.zsDecoder)) {
+    pc.outputs().make<DataAllocator::UninitializedVector<outputDataType>>(Output{gDataOriginTPC, "TRIGGERWORDS", 0, Lifetime::Timeframe}, 0u);
+  }
   mTimer->Stop();
   LOG(info) << "GPU Reoncstruction time for this TF " << mTimer->CpuTime() - cput << " s (cpu), " << mTimer->RealTime() - realt << " s (wall)";
 }
