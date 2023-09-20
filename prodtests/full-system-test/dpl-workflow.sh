@@ -31,7 +31,7 @@ fi
 : ${CTF_MAX_FREE_DISK_WAIT:="600"}    # if not enough disk space after this time throw error
 
 # entropy encoding/decoding mode, default "" is equivalent to '--ans-version compat' (compatible with < 09/2023 data),
-# use '--ans-version 1.0 --ccdb-dict none' for the new per-TF dictionary mode
+# use '--ans-version 1.0 --ctf-dict none' for the new per-TF dictionary mode
 : ${RANS_OPT:=""}
 
 workflow_has_parameter CTF && export SAVECTF=1
@@ -175,6 +175,7 @@ workflow_has_parameter CALIB && [[ $CALIB_TPC_VDRIFTTGL == 1 ]] && SEND_ITSTPC_D
 PVERTEXING_CONFIG_KEY+="${ITSMFT_STROBES};"
 
 has_processing_step ENTROPY_ENCODER && has_detector_ctf TPC && GPU_OUTPUT+=",compressed-clusters-ctf"
+[[ ${TPC_ENABLE_TRIGGER_HANDLING:-} == 1 ]] && GPU_OUTPUT+=",tpc-triggers"
 
 if [[ $SYNCMODE == 1 ]] && workflow_has_parameter QC && has_detector_qc TPC; then
   GPU_OUTPUT+=",qa,error-qa"

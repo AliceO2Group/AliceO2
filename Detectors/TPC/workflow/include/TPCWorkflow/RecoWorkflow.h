@@ -65,6 +65,7 @@ enum struct OutputType { Digits,
                          ZSRaw,
                          QA,
                          NoSharedClusterMap,
+                         TPCTriggers
 };
 
 using CompletionPolicyData = std::vector<framework::InputSpec>;

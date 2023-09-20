@@ -11,6 +11,8 @@
 
 o2_add_library(GPUWorkflow
                SOURCES src/GPUWorkflowSpec.cxx
+                       src/GPUWorkflowTPC.cxx
+                       src/GPUWorkflowITS.cxx
                TARGETVARNAME targetName
                PUBLIC_LINK_LIBRARIES O2::Framework
                                      O2::DataFormatsTPC
