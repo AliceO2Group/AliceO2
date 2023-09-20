@@ -38,6 +38,7 @@ o2_add_library(TPCWorkflow
                        src/TPCIntegrateClusterReaderSpec.cxx
                        src/TPCIntegrateClusterSpec.cxx
                        src/TPCIntegrateClusterWriterSpec.cxx
+                       src/TPCTriggerWriterSpec.cxx
                        src/TPCMergeIntegrateClusterSpec.cxx
                TARGETVARNAME targetName
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsTPC
