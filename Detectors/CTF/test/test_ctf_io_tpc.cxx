@@ -14,6 +14,7 @@
 #define BOOST_TEST_DYN_LINK
 #include <boost/test/unit_test.hpp>
 #include "DataFormatsTPC/CompressedClusters.h"
+#include "DataFormatsTPC/ZeroSuppression.h"
 #include "DataFormatsTPC/CTF.h"
 #include "CommonUtils/NameConf.h"
 #include "TPCReconstruction/CTFCoder.h"
@@ -27,11 +28,20 @@ using namespace o2::tpc;
 
 BOOST_AUTO_TEST_CASE(CTFTest)
 {
+  std::vector<o2::tpc::TriggerInfoDLBZS> triggers, triggersR;
   CompressedClusters c;
   c.nAttachedClusters = 99;
   c.nUnattachedClusters = 88;
   c.nAttachedClustersReduced = 77;
   c.nTracks = 66;
+
+  triggers.emplace_back();
+  triggers.back().orbit = 1234;
+  triggers.back().triggerWord.triggerEntries[0] = (10 & 0xFFF) | ((o2::tpc::TriggerWordDLBZS::TriggerType::PhT & 0x7) << 12) | 0x8000;
+  triggers.back().triggerWord.triggerEntries[1] = (30 & 0xFFF) | ((o2::tpc::TriggerWordDLBZS::TriggerType::PP & 0x7) << 12) | 0x8000;
+  triggers.emplace_back();
+  triggers.back().orbit = 1236;
+  triggers.back().triggerWord.triggerEntries[0] = (40 & 0xFFF) | ((o2::tpc::TriggerWordDLBZS::TriggerType::Cal & 0x7) << 12) | 0x8000;
 
   std::vector<char> bVec;
   CompressedClustersFlat* ccFlat = nullptr;
@@ -86,9 +96,42 @@ BOOST_AUTO_TEST_CASE(CTFTest)
   sw.Start();
   std::vector<o2::ctf::BufferType> vecIO;
   {
-    CTFCoder coder(o2::ctf::CTFCoderBase::OpType::Decoder);
+    CTFCoder coder(o2::ctf::CTFCoderBase::OpType::Encoder);
     coder.setCombineColumns(true);
-    coder.encode(vecIO, c, c); // compress
+    // prepare trigger info
+    o2::tpc::detail::TriggerInfo trigComp;
+    for (const auto& trig : triggers) {
+      for (int it = 0; it < o2::tpc::TriggerWordDLBZS::MaxTriggerEntries; it++) {
+        if (trig.triggerWord.isValid(it)) {
+          trigComp.deltaOrbit.push_back(trig.orbit);
+          trigComp.deltaBC.push_back(trig.triggerWord.getTriggerBC(it));
+          trigComp.triggerType.push_back(trig.triggerWord.getTriggerType(it));
+        } else {
+          break;
+        }
+      }
+    }
+    // transform trigger info to differential form
+    uint32_t prevOrbit = -1;
+    uint16_t prevBC = -1;
+    if (trigComp.triggerType.size()) {
+      prevOrbit = trigComp.firstOrbit = trigComp.deltaOrbit[0];
+      prevBC = trigComp.deltaBC[0];
+      trigComp.deltaOrbit[0] = 0;
+      for (size_t it = 1; it < trigComp.triggerType.size(); it++) {
+        if (trigComp.deltaOrbit[it] == prevOrbit) {
+          auto bc = trigComp.deltaBC[it];
+          trigComp.deltaBC[it] -= prevBC;
+          prevBC = bc;
+          trigComp.deltaOrbit[it] = 0;
+        } else {
+          auto orb = trigComp.deltaOrbit[it];
+          trigComp.deltaOrbit[it] -= prevOrbit;
+          prevOrbit = orb;
+        }
+      }
+    }
+    coder.encode(vecIO, c, c, trigComp); // compress
   }
   sw.Stop();
   LOG(info) << "Compressed in " << sw.CpuTime() << " s";
@@ -124,7 +167,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
   {
     CTFCoder coder(o2::ctf::CTFCoderBase::OpType::Decoder);
     coder.setCombineColumns(true);
-    coder.decode(ctfImage, vecIn); // decompress
+    coder.decode(ctfImage, vecIn, triggersR); // decompress
   }
   sw.Stop();
   LOG(info) << "Decompressed in " << sw.CpuTime() << " s";
@@ -142,4 +185,6 @@ BOOST_AUTO_TEST_CASE(CTFTest)
   BOOST_CHECK(countOrig->solenoidBz == countDeco->solenoidBz);
   BOOST_CHECK(countOrig->maxTimeBin == countDeco->maxTimeBin);
   BOOST_CHECK(memcmp(vecIn.data() + sizeof(o2::tpc::CompressedClustersCounters), bVec.data() + sizeof(o2::tpc::CompressedClustersCounters), bVec.size() - sizeof(o2::tpc::CompressedClustersCounters)) == 0);
+  BOOST_CHECK(triggers.size() == triggersR.size());
+  BOOST_CHECK(memcmp(triggers.data(), triggersR.data(), triggers.size() * sizeof(o2::tpc::TriggerInfoDLBZS)) == 0);
 }
