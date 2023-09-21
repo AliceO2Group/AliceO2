@@ -243,32 +243,43 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
   unmatchedDescriptions.clear();
   bool allFound = true;
   DataProcessingHeader const* dph = nullptr;
+
+  // Do not check anything which has DISTSUBTIMEFRAME in it.
+  for (size_t pi = 0; pi < present.size(); ++pi) {
+    auto& spec = routes[pi].matcher;
+    if (DataSpecUtils::asConcreteDataTypeMatcher(spec).description == header::DataDescription("DISTSUBTIMEFRAME")) {
+      present[pi] = true;
+      continue;
+    }
+  }
+
   for (int msgidx = 0; msgidx < parts.Size(); msgidx += 2) {
     const auto dh = o2::header::get<DataHeader*>(parts.At(msgidx)->GetData());
     auto const sih = o2::header::get<SourceInfoHeader*>(parts.At(msgidx)->GetData());
     if (sih != nullptr) {
       continue;
     }
+    if (parts.At(msgidx).get() == nullptr) {
+      LOG(error) << "unexpected nullptr found. Skipping message pair.";
+      continue;
+    }
+    // Copy the DataProcessingHeader from the first message.
+    if (dph == nullptr) {
+      dph = o2::header::get<DataProcessingHeader*>(parts.At(msgidx)->GetData());
+    }
+    if (!dh) {
+      LOG(error) << "data on input " << msgidx << " does not follow the O2 data model, DataHeader missing";
+      if (msgidx > 0) {
+        --msgidx;
+      }
+      continue;
+    }
     for (size_t pi = 0; pi < present.size(); ++pi) {
       if (present[pi]) {
         continue;
       }
+      allFound = false;
       auto& spec = routes[pi].matcher;
-      if (parts.At(msgidx).get() == nullptr) {
-        LOG(error) << "unexpected nullptr found. Skipping message pair.";
-        continue;
-      }
-      // Copy the DataProcessingHeader from the first message.
-      if (dph == nullptr) {
-        dph = o2::header::get<DataProcessingHeader*>(parts.At(msgidx)->GetData());
-      }
-      if (!dh) {
-        LOG(error) << "data on input " << msgidx << " does not follow the O2 data model, DataHeader missing";
-        if (msgidx > 0) {
-          --msgidx;
-        }
-        continue;
-      }
       OutputSpec query{dh->dataOrigin, dh->dataDescription, dh->subSpecification};
       if (DataSpecUtils::match(spec, query)) {
         present[pi] = true;
