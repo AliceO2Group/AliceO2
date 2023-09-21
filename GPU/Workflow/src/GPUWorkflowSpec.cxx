@@ -1021,7 +1021,7 @@ Inputs GPURecoWorkflowSpec::inputs()
   if (mSpecConfig.zsDecoder) {
     // All ZS raw data is published with subspec 0 by the o2-raw-file-reader-workflow and DataDistribution
     // creates subspec fom CRU and endpoint id, we create one single input route subscribing to all TPC/RAWDATA
-    inputs.emplace_back(InputSpec{"zsraw", ConcreteDataTypeMatcher{"TPC", "RAWDATA"}, Lifetime::Optional});
+    inputs.emplace_back(InputSpec{"zsraw", ConcreteDataTypeMatcher{"TPC", "RAWDATA"}, Lifetime::Timeframe});
     if (mSpecConfig.askDISTSTF) {
       inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
     }
