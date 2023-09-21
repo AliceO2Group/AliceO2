@@ -11,6 +11,7 @@
 
 #include <cstring>
 #include "SimSetup/SimSetup.h"
+#include "TVirtualMC.h"
 #include <fairlogger/Logger.h>
 #include "SetCuts.h"
 #include <dlfcn.h>
@@ -25,9 +26,8 @@ namespace o2
 
 typedef void (*setup_fnc)();
 
-void setupFromPlugin(const char* libname, const char* setupfuncname)
+void execFromPlugin(const char* libname, const char* funcname)
 {
-  LOG(info) << "Loading simulation plugin " << libname;
   auto libHandle = dlopen(libname, RTLD_NOW);
   // try to make the library loading a bit more portable:
   if (!libHandle) {
@@ -43,26 +43,43 @@ void setupFromPlugin(const char* libname, const char* setupfuncname)
     libHandle = dlopen(stream.str().c_str(), RTLD_NOW);
   }
   assert(libHandle);
-  auto setup = (setup_fnc)dlsym(libHandle, setupfuncname);
-  assert(setup);
-  setup();
+  auto func = (setup_fnc)dlsym(libHandle, funcname);
+  assert(func);
+  func();
+}
+
+void execSetupFromPlugin(const char* libname, const char* funcname)
+{
+  LOG(info) << "Seting up transport engine from library " << libname;
+  execFromPlugin(libname, funcname);
 }
 
 void SimSetup::setup(const char* engine)
 {
   if (strcmp(engine, "TGeant3") == 0) {
-    setupFromPlugin("libO2G3Setup", "_ZN2o28g3config8G3ConfigEv");
+    execSetupFromPlugin("libO2G3Setup", "_ZN2o28g3config8G3ConfigEv");
   } else if (strcmp(engine, "TGeant4") == 0) {
-    setupFromPlugin("libO2G4Setup", "_ZN2o28g4config8G4ConfigEv");
+    execSetupFromPlugin("libO2G4Setup", "_ZN2o28g4config8G4ConfigEv");
   } else if (strcmp(engine, "TFluka") == 0) {
-    setupFromPlugin("libO2FLUKASetup", "_ZN2o211flukaconfig11FlukaConfigEv");
+    execSetupFromPlugin("libO2FLUKASetup", "_ZN2o211flukaconfig11FlukaConfigEv");
   } else if (strcmp(engine, "MCReplay") == 0) {
-    setupFromPlugin("libO2MCReplaySetup", "_ZN2o214mcreplayconfig14MCReplayConfigEv");
+    execSetupFromPlugin("libO2MCReplaySetup", "_ZN2o214mcreplayconfig14MCReplayConfigEv");
   } else if (strcmp(engine, "O2TrivialMCEngine") == 0) {
-    setupFromPlugin("libO2O2TrivialMCEngineSetup", "_ZN2o223o2trivialmcengineconfig23O2TrivialMCEngineConfigEv");
+    execSetupFromPlugin("libO2O2TrivialMCEngineSetup", "_ZN2o223o2trivialmcengineconfig23O2TrivialMCEngineConfigEv");
   } else {
     LOG(fatal) << "Unsupported engine " << engine;
   }
   o2::SetCuts();
 }
+
+// function to shutdown the engines and do some necessary
+// finalisation work
+void SimSetup::shutdown()
+{
+  auto vmc = TVirtualMC::GetMC();
+  if (strcmp(vmc->GetName(), "TGeant4") == 0) {
+    execFromPlugin("libO2G4Setup", "_ZN2o28g4config11G4TerminateEv");
+  }
+}
+
 } // namespace o2
