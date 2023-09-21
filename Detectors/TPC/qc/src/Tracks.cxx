@@ -16,18 +16,20 @@
 
 // root includes
 #include "TFile.h"
-#include "TMathBase.h"
 
 // o2 includes
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTPC/dEdxInfo.h"
+#include "GPUCommonArray.h"
+#include "DetectorsBase/Propagator.h"
 #include "TPCQC/Tracks.h"
 #include "TPCQC/Helpers.h"
 
 ClassImp(o2::tpc::qc::Tracks);
 
 using namespace o2::tpc::qc;
-
+// DCA histograms
+const std::vector<std::string_view> types{"A_Pos", "A_Neg", "C_Pos", "C_Neg"};
 //______________________________________________________________________________
 void Tracks::initializeHistograms()
 {
@@ -78,6 +80,11 @@ void Tracks::initializeHistograms()
   mMapHist["hPhiAsideRatio"] = std::make_unique<TH1F>("hPhiAsideRatio", "Azimuthal angle, A side, ratio neg./pos. ;phi", 360, 0., 2 * M_PI);
   mMapHist["hPhiCsideRatio"] = std::make_unique<TH1F>("hPhiCsideRatio", "Azimuthal angle, C side, ratio neg./pos. ;phi", 360, 0., 2 * M_PI);
   mMapHist["hPtRatio"] = std::make_unique<TH1F>("hPtRatio", "Transverse momentum, ratio neg./pos. ;p_T", logPtBinning.size() - 1, logPtBinning.data());
+
+  // DCA Histograms
+  for (const auto type : types) {
+    mMapHist[fmt::format("hDCAr_{}", type).data()] = std::make_unique<TH2F>(fmt::format("hDCAr_{}", type).data(), fmt::format("DCAr {};phi;DCAr (cm)", type).data(), 360, 0, o2::math_utils::twoPid(), 250, -10., 10.);
+  }
 }
 //______________________________________________________________________________
 void Tracks::resetHistograms()
@@ -100,7 +107,7 @@ bool Tracks::processTrack(const o2::tpc::TrackTPC& track)
   const auto hasASideOnly = track.hasASideClustersOnly();
   const auto hasCSideOnly = track.hasCSideClustersOnly();
 
-  double absEta = TMath::Abs(eta);
+  const auto absEta = std::abs(eta);
 
   // ===| histogram filling before cuts |===
   mMapHist["hNClustersBeforeCuts"]->Fill(nCls);
@@ -116,6 +123,31 @@ bool Tracks::processTrack(const o2::tpc::TrackTPC& track)
     // ===| 1D histogram filling |===
     mMapHist["hNClustersAfterCuts"]->Fill(nCls);
     mMapHist["hEta"]->Fill(eta);
+
+    //---| propagate to 0,0,0 |---
+    //
+    // propagator instance must be configured before (LUT, MagField)
+    auto propagator = o2::base::Propagator::Instance(true);
+    const int type = (track.getQ2Pt() < 0) + 2 * track.hasCSideClustersOnly();
+    auto dcaHist = mMapHist[fmt::format("hDCAr_{}", types[type]).data()].get();
+
+    if (propagator->getMatLUT() && propagator->hasMagFieldSet()) {
+      // ---| fill DCA histos |---
+      o2::gpu::gpustd::array<float, 2> dca;
+      const o2::math_utils::Point3D<float> refPoint{0, 0, 0};
+      o2::track::TrackPar propTrack(track);
+      if (propagator->propagateToDCABxByBz(refPoint, propTrack, 2.f, o2::base::Propagator::MatCorrType::USEMatCorrLUT, &dca)) {
+        const auto phi = o2::math_utils::to02PiGen(track.getPhi());
+        dcaHist->Fill(phi, dca[0]);
+      }
+    } else {
+      static bool reported = false;
+      if (!reported) {
+        LOGP(error, "o2::base::Propagator not properly initialized, MatLUT ({}) and / or Field ({}) missing, will not fill DCA histograms", (void*)propagator->getMatLUT(), (void*)propagator->hasMagFieldSet());
+        reported = true;
+      }
+      dcaHist->SetTitle(fmt::format("DCAr {} o2::base::Propagator not properly initialized", types[type]).data());
+    }
 
     if (hasASideOnly == 1) {
       mMapHist["hPhiAside"]->Fill(phi);
