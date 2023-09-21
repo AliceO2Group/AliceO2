@@ -22,7 +22,7 @@ namespace trd
 void Tracklet64::print() const
 {
   LOGF(info, "%02i_%i_%i, ROB(%i), MCM(%i), row(%i), col(%i), position(%i), slope(%i), pid(%i), q0(%i), q1(%i), q2(%i). Format(%i)",
-       HelperMethods::getSector(getDetector()), HelperMethods::getStack(getDetector()), HelperMethods::getLayer(getDetector()), getROB(), getMCM(), getPadRow(), getColumn(), getPosition(), getSlope(), getPID(), getQ0(), getQ1(), getQ2(), getFormat());
+       HelperMethods::getSector(getDetector()), HelperMethods::getStack(getDetector()), HelperMethods::getLayer(getDetector()), getROB(), getMCM(), getPadRow(), getPadCol(), getPosition(), getSlope(), getPID(), getQ0(), getQ1(), getQ2(), getFormat());
 }
 
 #ifndef GPUCA_GPUCODE_DEVICE
