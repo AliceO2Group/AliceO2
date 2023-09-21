@@ -174,12 +174,13 @@ class DataAllocator
   template <typename T, typename... Args>
   decltype(auto) make(const Output& spec, Args... args)
   {
+    auto& timingInfo = mRegistry.get<TimingInfo>();
+    auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
+    auto& context = mRegistry.get<MessageContext>();
+
     if constexpr (is_specialization_v<T, UninitializedVector>) {
       // plain buffer as polymorphic spectator std::vector, which does not run constructors / destructors
       using ValueType = typename T::value_type;
-      auto& timingInfo = mRegistry.get<TimingInfo>();
-      auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
-      auto& context = mRegistry.get<MessageContext>();
 
       // Note: initial payload size is 0 and will be set by the context before sending
       fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodNone, 0);
@@ -190,9 +191,6 @@ class DataAllocator
       // this catches all std::vector objects with messageable value type before checking if is also
       // has a root dictionary, so non-serialized transmission is preferred
       using ValueType = typename T::value_type;
-      auto& timingInfo = mRegistry.get<TimingInfo>();
-      auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
-      auto& context = mRegistry.get<MessageContext>();
 
       // Note: initial payload size is 0 and will be set by the context before sending
       fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodNone, 0);
@@ -200,9 +198,6 @@ class DataAllocator
     } else if constexpr (has_root_dictionary<T>::value == true && is_messageable<T>::value == false) {
       // Extended support for types implementing the Root ClassDef interface, both TObject
       // derived types and others
-      auto& timingInfo = mRegistry.get<TimingInfo>();
-      auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
-      auto& context = mRegistry.get<MessageContext>();
       if constexpr (enable_root_serialization<T>::value) {
         fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodROOT, 0);
 
@@ -239,9 +234,6 @@ class DataAllocator
         if constexpr (is_messageable<T>::value == true) {
           auto [nElements] = std::make_tuple(args...);
           auto size = nElements * sizeof(T);
-          auto& timingInfo = mRegistry.get<TimingInfo>();
-          auto routeIndex = matchDataHeader(spec, timingInfo.timeslice);
-          auto& context = mRegistry.get<MessageContext>();
 
           fair::mq::MessagePtr headerMessage = headerMessageFromOutput(spec, routeIndex, o2::header::gSerializationMethodNone, size);
           return context.add<MessageContext::SpanObject<T>>(std::move(headerMessage), routeIndex, 0, nElements).get();
@@ -259,14 +251,6 @@ class DataAllocator
     } else {
       static_assert(always_static_assert_v<T>, ERROR_STRING);
     }
-  }
-
-  template <typename T>
-  T& make_boost(const Output& spec)
-  {
-    auto buff = new T{};
-    adopt_boost(spec, buff);
-    return *buff;
   }
 
   /// Adopt a string in the framework and serialize / send
