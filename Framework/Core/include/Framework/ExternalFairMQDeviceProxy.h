@@ -105,7 +105,9 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* label,
                                                    const char* defaultChannelConfig,
                                                    InjectorFunction converter,
                                                    uint64_t minSHM = 0,
-                                                   bool sendTFcounter = false);
+                                                   bool sendTFcounter = false,
+                                                   bool doInjectMissingData = false
+                                                   );
 
 DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* label,
                                                  Inputs const& inputSpecs,
