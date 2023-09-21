@@ -154,11 +154,13 @@ void PulseHeight::findDigitsForTracklet(const Tracklet64& trklt, const TriggerRe
     LOG(debug) << "Central digit: " << digit;
     LOG(debug) << "Left digit: " << *digitLeft;
     LOG(debug) << "Right digit: " << *digitRight;
-    if (digitLeft->isNeighbour(digit) && digitLeft->getPadCol() > digit.getPadCol()) {
+    int direction = 0;
+    if (digitLeft->isNeighbour(digit)) {
       ++nNeighbours;
       left = true;
+      direction = digit.getPadCol() - digitLeft->getPadCol();
     }
-    if (digitRight->isNeighbour(digit) && digitRight->getPadCol() < digit.getPadCol()) {
+    if (digitRight->isNeighbour(digit) && digit.getPadCol() - digitRight->getPadCol() != direction) {
       ++nNeighbours;
       right = true;
     }
