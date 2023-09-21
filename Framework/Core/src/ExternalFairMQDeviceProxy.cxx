@@ -290,7 +290,7 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
     // we increment by 2.
     msgidx = getFinalIndex(*dh, msgidx) - 2;
     if (allFound) {
-      break;
+      return;
     }
   }
   for (size_t pi = 0; pi < present.size(); ++pi) {
@@ -300,7 +300,6 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
   }
 
   if (unmatchedDescriptions.size() > 0) {
-    LOGP(info, "Found {}/{} data specs", present.size() - unmatchedDescriptions.size(), present.size());
     std::string missing = "";
     for (auto mi : unmatchedDescriptions) {
       if (dph == nullptr) {
@@ -310,13 +309,13 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
         continue;
       }
       auto& spec = routes[mi].matcher;
-      missing += "\n   " + DataSpecUtils::describe(spec);
+      missing += " " + DataSpecUtils::describe(spec);
       // If we have a ConcreteDataMatcher, we can create a message with the correct header.
       // If we have a ConcreteDataTypeMatcher, we use 0xdeadbeef as subSpecification.
       ConcreteDataTypeMatcher concrete = DataSpecUtils::asConcreteDataTypeMatcher(spec);
       auto subSpec = DataSpecUtils::getOptionalSubSpec(spec);
       if (subSpec == std::nullopt) {
-        *subSpec = 0xdeadbeef;
+        *subSpec = 0xDEADBEEF;
       }
       o2::header::DataHeader dh;
       dh.dataOrigin = concrete.origin;
@@ -333,7 +332,11 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
       // add empty payload message
       parts.AddPart(device.NewMessageFor(channelName, 0, 0));
     }
-    LOGP(error, "Missing data specs: {}", missing);
+    static int maxWarn = 10; // Correct would be o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef, but Framework does not depend on CommonUtils..., but not so critical since receives will send correct number of DEADBEEF messages
+    static int contDeadBeef = 0;
+    if (++contDeadBeef <= maxWarn) {
+      LOGP(error, "Found {}/{} data specs, missing data specs: {}, injecting 0xDEADBEEF", present.size() - unmatchedDescriptions.size(), present.size(), missing);
+    }
   }
 }
 
