@@ -75,9 +75,9 @@ void GPUReconstructionOCL::GPUFailedMsgA(const long int error, const char* file,
   }
 }
 
-void GPUReconstructionOCL::UpdateSettings()
+void GPUReconstructionOCL::UpdateAutomaticProcessingSettings()
 {
-  GPUCA_GPUReconstructionUpdateDefailts();
+  GPUCA_GPUReconstructionUpdateDefaults();
 }
 
 int GPUReconstructionOCL::InitDevice_Runtime()
