@@ -156,7 +156,7 @@ void GPUO2Interface::DumpSettings()
   if (mConfig->configProcessing.doublePipeline) {
     throw std::runtime_error("Cannot dump events in double pipeline mode");
   }
-  mCtx[0].mChain->DoQueuedCalibUpdates(-1);
+  mCtx[0].mChain->DoQueuedUpdates(-1);
   mCtx[0].mRec->DumpSettings();
 }
 

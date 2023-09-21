@@ -241,9 +241,9 @@ void GPUReconstructionHIPBackend::GetITSTraits(std::unique_ptr<o2::its::TrackerT
   }
 }
 
-void GPUReconstructionHIPBackend::UpdateSettings()
+void GPUReconstructionHIPBackend::UpdateAutomaticProcessingSettings()
 {
-  GPUCA_GPUReconstructionUpdateDefailts();
+  GPUCA_GPUReconstructionUpdateDefaults();
 }
 
 int GPUReconstructionHIPBackend::InitDevice_Runtime()
