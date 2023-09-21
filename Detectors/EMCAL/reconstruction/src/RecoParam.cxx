@@ -16,9 +16,9 @@ O2ParamImpl(o2::emcal::RecoParam);
 
 using namespace o2::emcal;
 
-std::ostream& o2::emcal::operator<<(std::ostream& stream, const o2::emcal::RecoParam& s)
+std::ostream& o2::emcal::operator<<(std::ostream& stream, const o2::emcal::RecoParam& par)
 {
-  s.PrintStream(stream);
+  par.PrintStream(stream);
   return stream;
 }
 
@@ -28,5 +28,6 @@ void RecoParam::PrintStream(std::ostream& stream) const
          << "\n============================================="
          << "\nTime offset (ns):                 " << mCellTimeShiftNanoSec
          << "\nNoise threshold HGLG suppression: " << mNoiseThresholdLGnoHG
-         << "\nPhase in BC mod 4 correction:     " << mPhaseBCmod4;
+         << "\nPhase in BC mod 4 correction:     " << mPhaseBCmod4
+         << "\nMax number of ALTRO samples:      " << mMaxBunchLength;
 }

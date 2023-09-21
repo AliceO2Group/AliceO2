@@ -114,7 +114,8 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   // container with BCid and feeID
   std::unordered_map<int64_t, std::bitset<46>> bcFreq;
 
-  double timeshift = RecoParam::Instance().getCellTimeShiftNanoSec(); // subtract offset in ns in order to center the time peak around the nominal delay
+  double timeshift = RecoParam::Instance().getCellTimeShiftNanoSec();       // subtract offset in ns in order to center the time peak around the nominal delay
+  auto maxBunchLengthRP = RecoParam::Instance().getMaxAllowedBunchLength(); // exclude bunches where either the start time or the bunch length is above the expected maximum
   constexpr auto originEMC = o2::header::gDataOriginEMC;
   constexpr auto descRaw = o2::header::gDataDescriptionRawData;
 
@@ -216,6 +217,10 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
 
       // use the altro decoder to decode the raw data, and extract the RCU trailer
       AltroDecoder decoder(rawreader);
+      if (maxBunchLengthRP) {
+        // apply user-defined max. bunch length
+        decoder.setMaxBunchLength(maxBunchLengthRP);
+      }
       // check the words of the payload exception in altrodecoder
       try {
         decoder.decode();
