@@ -133,3 +133,17 @@ void Config()
 
   std::cout << "g4Config.C finished" << std::endl;
 }
+
+void Terminate()
+{
+  static bool terminated = false;
+  if (!terminated) {
+    std::cout << "Executing G4 terminate\n";
+    TGeant4* geant4 = dynamic_cast<TGeant4*>(TVirtualMC::GetMC());
+    if (geant4) {
+      // we need to call finish run for Geant4 ... Since we use ProcessEvent() interface;
+      geant4->FinishRun();
+    }
+    terminated = true;
+  }
+}

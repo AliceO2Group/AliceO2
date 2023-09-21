@@ -29,16 +29,23 @@ using std::endl;
 // these are used in commonConfig.C
 using o2::eventgen::DecayerPythia8;
 
+#include "../g4Config.C"
+
 namespace o2
 {
 namespace g4config
 {
-#include "../g4Config.C"
 
 void G4Config()
 {
   LOG(info) << "Setting up G4 sim from library code";
   Config();
 }
+
+void G4Terminate()
+{
+  Terminate();
+}
+
 } // namespace g4config
 } // namespace o2

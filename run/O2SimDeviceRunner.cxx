@@ -12,6 +12,7 @@
 /// @author Sandro Wenzel
 
 #include "O2SimDevice.h"
+#include "SimSetup/SimSetup.h"
 #include <fairmq/DeviceRunner.h>
 #include <boost/program_options.hpp>
 #include <memory>
@@ -66,7 +67,7 @@ void sigaction_handler(int signal, siginfo_t* signal_info, void*)
         break;
       }
     }
-
+    o2::SimSetup::shutdown();
     _exit(0);
   }
 
@@ -177,6 +178,7 @@ int runSim(KernelSetup setup)
   while (setup.sim->Kernel(setup.workerID, *setup.primchannel, *setup.datachannel, setup.primstatuschannel)) {
   }
   doLogInfo(setup.workerID, "simulation is done");
+  o2::SimSetup::shutdown();
   return 0;
 }
 
