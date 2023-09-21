@@ -415,7 +415,9 @@ int SetupReconstruction()
 
   if (configStandalone.testSyncAsync || configStandalone.testSync) {
     // Set settings for synchronous
-    steps.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, 0);
+    if (configStandalone.rundEdx == -1) {
+      steps.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, 0);
+    }
     recSet.useMatLUT = false;
     if (configStandalone.testSyncAsync) {
       procSet.eventDisplay = nullptr;
