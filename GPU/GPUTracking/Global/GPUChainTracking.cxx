@@ -607,7 +607,7 @@ void GPUChainTracking::SetTRDGeometry(std::unique_ptr<o2::trd::GeometryFlat>&& g
   processors()->calibObjects.trdGeometry = mTRDGeometryU.get();
 }
 
-void GPUChainTracking::DoQueuedCalibUpdates(int stream)
+void GPUChainTracking::DoQueuedUpdates(int stream)
 {
   if (mUpdateNewCalibObjects) {
     void** pSrc = (void**)&mNewCalibObjects;
@@ -636,7 +636,7 @@ void GPUChainTracking::DoQueuedCalibUpdates(int stream)
       if (mNewCalibValues->newContinuousMaxTimeBin) {
         grp.continuousMaxTimeBin = mNewCalibValues->continuousMaxTimeBin;
       }
-      mRec->UpdateGRPSettings(&grp);
+      mRec->UpdateSettings(&grp);
     }
   }
   if ((mUpdateNewCalibObjects || mRec->slavesExist()) && mRec->IsGPU()) {
@@ -666,7 +666,7 @@ int GPUChainTracking::RunChain()
   if (GetProcessingSettings().debugLevel >= 6) {
     *mDebugFile << "\n\nProcessing event " << mRec->getNEventsProcessed() << std::endl;
   }
-  DoQueuedCalibUpdates(0);
+  DoQueuedUpdates(0);
 
   mRec->getGeneralStepTimer(GeneralStep::Prepare).Start();
   try {

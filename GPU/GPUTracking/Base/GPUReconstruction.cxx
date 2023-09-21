@@ -289,8 +289,8 @@ int GPUReconstruction::InitPhaseBeforeDevice()
     }
   }
 
-  UpdateSettings();
-  GPUCA_GPUReconstructionUpdateDefailts();
+  UpdateAutomaticProcessingSettings();
+  GPUCA_GPUReconstructionUpdateDefaults();
   if (!mProcessingSettings.trackletConstructorInPipeline) {
     mProcessingSettings.trackletSelectorInPipeline = false;
   }
@@ -1059,9 +1059,13 @@ void GPUReconstruction::DumpSettings(const char* dir)
   }
 }
 
-void GPUReconstruction::UpdateGRPSettings(const GPUSettingsGRP* g, const GPUSettingsProcessing* p)
+void GPUReconstruction::UpdateSettings(const GPUSettingsGRP* g, const GPUSettingsProcessing* p)
 {
   mGRPSettings = *g;
+  if (p) {
+    mProcessingSettings.debugLevel = p->debugLevel;
+    mProcessingSettings.resetTimers = p->resetTimers;
+  }
   param().UpdateSettings(g, p);
   if (mInitialized) {
     WriteConstantParams();

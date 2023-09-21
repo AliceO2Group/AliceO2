@@ -124,9 +124,9 @@ void GPUReconstructionCUDA::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>
   }
 }
 
-void GPUReconstructionCUDA::UpdateSettings()
+void GPUReconstructionCUDA::UpdateAutomaticProcessingSettings()
 {
-  GPUCA_GPUReconstructionUpdateDefailts();
+  GPUCA_GPUReconstructionUpdateDefaults();
 }
 
 int GPUReconstructionCUDA::InitDevice_Runtime()

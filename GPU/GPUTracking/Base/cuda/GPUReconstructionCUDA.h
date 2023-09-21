@@ -63,7 +63,7 @@ class GPUReconstructionCUDA : public GPUReconstructionKernels<GPUReconstructionC
  protected:
   int InitDevice_Runtime() override;
   int ExitDevice_Runtime() override;
-  void UpdateSettings() override;
+  void UpdateAutomaticProcessingSettings() override;
 
   std::unique_ptr<GPUThreadContext> GetThreadContext() override;
   bool CanQueryMaxMemory() override { return true; }
