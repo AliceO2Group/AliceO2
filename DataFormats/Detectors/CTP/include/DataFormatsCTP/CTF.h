@@ -34,8 +34,10 @@ struct CTFHeader : public o2::ctf::CTFDictHeader {
   uint32_t nTriggers = 0;  /// number of triggers
   uint32_t firstOrbit = 0; /// orbit of 1st trigger
   uint16_t firstBC = 0;    /// bc of 1st trigger
+  uint16_t inp1 = 0;       /// lumiCounts input ID
+  uint16_t inp2 = 0;       /// lumiCountsFV0 input ID
 
-  ClassDefNV(CTFHeader, 3);
+  ClassDefNV(CTFHeader, 4);
 };
 
 /// wrapper for the Entropy-encoded trigger inputs and classes of the TF
