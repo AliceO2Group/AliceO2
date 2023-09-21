@@ -213,6 +213,118 @@ InjectorFunction o2DataModelAdaptor(OutputSpec const& spec, uint64_t startTime, 
   };
 }
 
+auto getFinalIndex(DataHeader const& dh, size_t msgidx) -> size_t
+{
+  size_t finalBlockIndex = 0;
+  if (dh.splitPayloadParts > 0 && dh.splitPayloadParts == dh.splitPayloadIndex) {
+    // this is indicating a sequence of payloads following the header
+    // FIXME: we will probably also set the DataHeader version
+    // Current position + number of parts + 1 (for the header)
+    finalBlockIndex = msgidx + dh.splitPayloadParts + 1;
+  } else {
+    // We can consider the next splitPayloadParts as one block of messages pairs
+    // because we are guaranteed they are all the same.
+    // If splitPayloadParts = 0, we assume that means there is only one (header, payload)
+    // pair.
+    finalBlockIndex = msgidx + (dh.splitPayloadParts > 0 ? dh.splitPayloadParts : 1) * 2;
+  }
+  assert(finalBlockIndex >= msgidx + 2);
+  return finalBlockIndex;
+};
+
+void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::vector<OutputRoute> const& routes)
+{
+  // Check for missing data.
+  static std::vector<bool> present;
+  present.clear();
+  present.resize(routes.size(), false);
+  static std::vector<size_t> unmatchedDescriptions;
+  unmatchedDescriptions.clear();
+  bool allFound = true;
+  DataProcessingHeader const* dph = nullptr;
+  for (int msgidx = 0; msgidx < parts.Size(); msgidx += 2) {
+    const auto dh = o2::header::get<DataHeader*>(parts.At(msgidx)->GetData());
+    auto const sih = o2::header::get<SourceInfoHeader*>(parts.At(msgidx)->GetData());
+    if (sih != nullptr) {
+      continue;
+    }
+    for (size_t pi = 0; pi < present.size(); ++pi) {
+      if (present[pi]) {
+        continue;
+      }
+      auto& spec = routes[pi].matcher;
+      if (parts.At(msgidx).get() == nullptr) {
+        LOG(error) << "unexpected nullptr found. Skipping message pair.";
+        continue;
+      }
+      // Copy the DataProcessingHeader from the first message.
+      if (dph == nullptr) {
+        dph = o2::header::get<DataProcessingHeader*>(parts.At(msgidx)->GetData());
+      }
+      if (!dh) {
+        LOG(error) << "data on input " << msgidx << " does not follow the O2 data model, DataHeader missing";
+        if (msgidx > 0) {
+          --msgidx;
+        }
+        continue;
+      }
+      OutputSpec query{dh->dataOrigin, dh->dataDescription, dh->subSpecification};
+      if (DataSpecUtils::match(spec, query)) {
+        present[pi] = true;
+        break;
+      }
+    }
+    // Skip the rest of the block of messages. We subtract 2 because above
+    // we increment by 2.
+    msgidx = getFinalIndex(*dh, msgidx) - 2;
+    if (allFound) {
+      break;
+    }
+  }
+  for (size_t pi = 0; pi < present.size(); ++pi) {
+    if (!present[pi]) {
+      unmatchedDescriptions.push_back(pi);
+    }
+  }
+
+  if (unmatchedDescriptions.size() > 0) {
+    LOGP(info, "Found {}/{} data specs", present.size() - unmatchedDescriptions.size(), present.size());
+    std::string missing = "";
+    for (auto mi : unmatchedDescriptions) {
+      if (dph == nullptr) {
+        // This can happen for non DPL messages in input,
+        // like it happens for some tests.
+        LOG(debug) << "DataProcessingHeader not found. Skipping message pair.";
+        continue;
+      }
+      auto& spec = routes[mi].matcher;
+      missing += "\n   " + DataSpecUtils::describe(spec);
+      // If we have a ConcreteDataMatcher, we can create a message with the correct header.
+      // If we have a ConcreteDataTypeMatcher, we use 0xdeadbeef as subSpecification.
+      ConcreteDataTypeMatcher concrete = DataSpecUtils::asConcreteDataTypeMatcher(spec);
+      auto subSpec = DataSpecUtils::getOptionalSubSpec(spec);
+      if (subSpec == std::nullopt) {
+        *subSpec = 0xdeadbeef;
+      }
+      o2::header::DataHeader dh;
+      dh.dataOrigin = concrete.origin;
+      dh.dataDescription = concrete.description;
+      dh.subSpecification = *subSpec;
+      dh.payloadSize = 0;
+      dh.payloadSerializationMethod = header::gSerializationMethodNone;
+
+      auto& channelName = routes[mi].channel;
+      auto& channelInfo = device.GetChannel(channelName);
+      auto channelAlloc = o2::pmr::getTransportAllocator(channelInfo.Transport());
+      auto headerMessage = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, *dph});
+      parts.AddPart(std::move(headerMessage));
+      // add empty payload message
+      parts.AddPart(device.NewMessageFor(channelName, 0, 0));
+    }
+    LOGP(error, "Missing data specs: {}", missing);
+  }
+}
+
 InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPLModelAdapterConfig config)
 {
   bool throwOnUnmatchedInputs = config.throwOnUnmatchedInputs;
@@ -316,18 +428,7 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
           break;
         }
       }
-      if (dh->splitPayloadParts > 0 && dh->splitPayloadParts == dh->splitPayloadIndex) {
-        // this is indicating a sequence of payloads following the header
-        // FIXME: we will probably also set the DataHeader version
-        finalBlockIndex = msgidx + dh->splitPayloadParts + 1;
-      } else {
-        // We can consider the next splitPayloadParts as one block of messages pairs
-        // because we are guaranteed they are all the same.
-        // If splitPayloadParts = 0, we assume that means there is only one (header, payload)
-        // pair.
-        finalBlockIndex = msgidx + (dh->splitPayloadParts > 0 ? dh->splitPayloadParts : 1) * 2;
-      }
-      assert(finalBlockIndex >= msgidx + 2);
+      finalBlockIndex = getFinalIndex(*dh, msgidx);
       if (finalBlockIndex > parts.Size()) {
         // TODO error handling
         // LOGP(error, "DataHeader::splitPayloadParts invalid");
@@ -428,7 +529,8 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
                                                    char const* defaultChannelConfig,
                                                    InjectorFunction converter,
                                                    uint64_t minSHM,
-                                                   bool sendTFcounter)
+                                                   bool sendTFcounter,
+                                                   bool doInjectMissingData)
 {
   DataProcessorSpec spec;
   spec.name = strdup(name);
@@ -440,7 +542,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
   // The Init method will register a new "Out of band" channel and
   // attach an OnData to it which is responsible for converting incoming
   // messages into DPL messages.
-  spec.algorithm = AlgorithmSpec{[converter, minSHM, deviceName = spec.name, sendTFcounter](InitContext& ctx) {
+  spec.algorithm = AlgorithmSpec{[converter, minSHM, deviceName = spec.name, sendTFcounter, doInjectMissingData](InitContext& ctx) {
     auto* device = ctx.services().get<RawDeviceService>().device();
     // make a copy of the output routes and pass to the lambda by move
     auto outputRoutes = ctx.services().get<RawDeviceService>().spec().outputs;
@@ -536,7 +638,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       return count;
     };
 
-    auto dataHandler = [device, converter,
+    auto dataHandler = [device, converter, doInjectMissingData,
                         outputRoutes = std::move(outputRoutes),
                         control = &ctx.services().get<ControlService>(),
                         deviceState = &ctx.services().get<DeviceState>(),
@@ -566,6 +668,9 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       }
       // For reference, the oldest possible timeframe passed as newTimesliceId here comes from LifetimeHelpers::enumDrivenCreation()
       bool shouldstop = false;
+      if (doInjectMissingData) {
+        injectMissingData(*device, inputs, outputRoutes);
+      }
       converter(timingInfo, *device, inputs, channelRetriever, timesliceIndex->getOldestPossibleOutput().timeslice.value, shouldstop);
 
       // If we have enough EoS messages, we can stop the device
