@@ -1061,12 +1061,15 @@ void GPUReconstruction::DumpSettings(const char* dir)
 
 void GPUReconstruction::UpdateSettings(const GPUSettingsGRP* g, const GPUSettingsProcessing* p)
 {
-  mGRPSettings = *g;
+  if (g) {
+    mGRPSettings = *g;
+  }
   if (p) {
     mProcessingSettings.debugLevel = p->debugLevel;
     mProcessingSettings.resetTimers = p->resetTimers;
   }
-  param().UpdateSettings(g, p);
+  GPURecoStepConfiguration w = {mRecoSteps, mRecoStepsGPU, mRecoStepsInputs, mRecoStepsOutputs};
+  param().UpdateSettings(g, p, &w);
   if (mInitialized) {
     WriteConstantParams();
   }

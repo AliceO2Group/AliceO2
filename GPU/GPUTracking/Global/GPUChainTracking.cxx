@@ -609,6 +609,8 @@ void GPUChainTracking::SetTRDGeometry(std::unique_ptr<o2::trd::GeometryFlat>&& g
 
 void GPUChainTracking::DoQueuedUpdates(int stream)
 {
+  std::unique_ptr<GPUSettingsGRP> grp;
+  const GPUSettingsProcessing* p = nullptr;
   if (mUpdateNewCalibObjects) {
     void** pSrc = (void**)&mNewCalibObjects;
     void** pDst = (void**)&processors()->calibObjects;
@@ -629,16 +631,22 @@ void GPUChainTracking::DoQueuedUpdates(int stream)
       UpdateGPUCalibObjects(stream, ptrsChanged ? nullptr : &mNewCalibObjects);
     }
     if (mNewCalibValues->newSolenoidField || mNewCalibValues->newContinuousMaxTimeBin) {
-      GPUSettingsGRP grp = mRec->GetGRPSettings();
+      grp = std::make_unique<GPUSettingsGRP>(mRec->GetGRPSettings());
       if (mNewCalibValues->newSolenoidField) {
-        grp.solenoidBz = mNewCalibValues->solenoidField;
+        grp->solenoidBz = mNewCalibValues->solenoidField;
       }
       if (mNewCalibValues->newContinuousMaxTimeBin) {
-        grp.continuousMaxTimeBin = mNewCalibValues->continuousMaxTimeBin;
+        grp->continuousMaxTimeBin = mNewCalibValues->continuousMaxTimeBin;
       }
-      mRec->UpdateSettings(&grp);
     }
   }
+  if (GetProcessingSettings().tpcDownscaledEdx != 0) {
+    p = &GetProcessingSettings();
+  }
+  if (grp || p) {
+    mRec->UpdateSettings(grp.get(), p);
+  }
+
   if ((mUpdateNewCalibObjects || mRec->slavesExist()) && mRec->IsGPU()) {
     UpdateGPUCalibObjectsPtrs(stream); // Reinitialize
   }

@@ -22,24 +22,24 @@ namespace o2
 namespace tpc
 {
 struct dEdxInfo {
-  float dEdxTotIROC;
-  float dEdxTotOROC1;
-  float dEdxTotOROC2;
-  float dEdxTotOROC3;
-  float dEdxTotTPC;
-  float dEdxMaxIROC;
-  float dEdxMaxOROC1;
-  float dEdxMaxOROC2;
-  float dEdxMaxOROC3;
-  float dEdxMaxTPC;
-  unsigned char NHitsIROC;
-  unsigned char NHitsSubThresholdIROC;
-  unsigned char NHitsOROC1;
-  unsigned char NHitsSubThresholdOROC1;
-  unsigned char NHitsOROC2;
-  unsigned char NHitsSubThresholdOROC2;
-  unsigned char NHitsOROC3;
-  unsigned char NHitsSubThresholdOROC3;
+  float dEdxTotIROC = 0.f;
+  float dEdxTotOROC1 = 0.f;
+  float dEdxTotOROC2 = 0.f;
+  float dEdxTotOROC3 = 0.f;
+  float dEdxTotTPC = 0.f;
+  float dEdxMaxIROC = 0.f;
+  float dEdxMaxOROC1 = 0.f;
+  float dEdxMaxOROC2 = 0.f;
+  float dEdxMaxOROC3 = 0.f;
+  float dEdxMaxTPC = 0.f;
+  unsigned char NHitsIROC = 0;
+  unsigned char NHitsSubThresholdIROC = 0;
+  unsigned char NHitsOROC1 = 0;
+  unsigned char NHitsSubThresholdOROC1 = 0;
+  unsigned char NHitsOROC2 = 0;
+  unsigned char NHitsSubThresholdOROC2 = 0;
+  unsigned char NHitsOROC3 = 0;
+  unsigned char NHitsSubThresholdOROC3 = 0;
   ClassDefNV(dEdxInfo, 1);
 };
 } // namespace tpc
