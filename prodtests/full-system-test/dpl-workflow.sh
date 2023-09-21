@@ -68,7 +68,7 @@ fi
 # ---------------------------------------------------------------------------------------------------------------------
 # Set some individual workflow arguments depending on configuration
 GPU_INPUT=zsraw
-GPU_OUTPUT=tracks,clusters,tpc-triggers
+GPU_OUTPUT=tracks,clusters
 GPU_CONFIG=
 GPU_CONFIG_KEY=
 TOF_CONFIG=
@@ -96,7 +96,9 @@ CTP_CONFIG=
 if [[ -z ${ALPIDE_ERR_DUMPS:-} ]]; then
   [[ $EPNSYNCMODE == 1 ]] && ALPIDE_ERR_DUMPS="1" || ALPIDE_ERR_DUMPS="0"
 fi
-
+if [[ $CTFINPUT != 1 ]]; then
+  GPU_OUTPUT+=",tpc-triggers"
+fi
 if [[ $SYNCMODE == 1 ]]; then
   if [[ $BEAMTYPE == "PbPb" ]]; then
     ITS_CONFIG_KEY+="fastMultConfig.cutMultClusLow=${CUT_MULT_MIN_ITS:-100};fastMultConfig.cutMultClusHigh=${CUT_MULT_MAX_ITS:-200};fastMultConfig.cutMultVtxHigh=${CUT_MULT_VTX_ITS:-20};"
