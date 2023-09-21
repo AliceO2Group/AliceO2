@@ -387,7 +387,7 @@ if [[ ! -z $INPUT_DETECTOR_LIST ]]; then
       done
     done
     [[ ! -z ${TIMEFRAME_RATE_LIMIT:-} ]] && [[ $TIMEFRAME_RATE_LIMIT != 0 ]] && PROXY_CHANNEL+=";name=metric-feedback,type=pull,method=connect,address=ipc://${UDS_PREFIX}metric-feedback-${O2JOBID:-$NUMAID},transport=shmem,rateLogging=0"
-    add_W o2-dpl-raw-proxy "--dataspec \"$PROXY_INSPEC\" --readout-proxy \"--channel-config \\\"$PROXY_CHANNEL\\\"\" ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} ${TIMEFRAME_SHM_LIMIT:-}" "" 0
+    add_W o2-dpl-raw-proxy "--dataspec \"$PROXY_INSPEC\" --inject-missing-data --readout-proxy \"--channel-config \\\"$PROXY_CHANNEL\\\"\" ${TIMEFRAME_SHM_LIMIT+--timeframes-shm-limit} ${TIMEFRAME_SHM_LIMIT:-}" "" 0
   elif [[ $DIGITINPUT == 1 ]]; then
     [[ $NTIMEFRAMES != 1 ]] && { echo "Digit input works only with NTIMEFRAMES=1" 1>&2; exit 1; }
     DISABLE_DIGIT_ROOT_INPUT=
