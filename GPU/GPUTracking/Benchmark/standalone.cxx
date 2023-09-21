@@ -861,12 +861,12 @@ int main(int argc, char** argv)
           } else {
             grp.continuousMaxTimeBin = chainTracking->mIOPtrs.tpcZS ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcZS) : chainTracking->mIOPtrs.tpcPackedDigits ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcPackedDigits) : GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.clustersNative);
             printf("Max time bin set to %d\n", (int)grp.continuousMaxTimeBin);
-            rec->UpdateGRPSettings(&grp);
+            rec->UpdateSettings(&grp);
             if (recAsync) {
-              recAsync->UpdateGRPSettings(&grp);
+              recAsync->UpdateSettings(&grp);
             }
             if (recPipeline) {
-              recPipeline->UpdateGRPSettings(&grp);
+              recPipeline->UpdateSettings(&grp);
             }
           }
         }

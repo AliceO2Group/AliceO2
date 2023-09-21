@@ -240,7 +240,7 @@ class GPUReconstruction
   void SetResetTimers(bool reset) { mProcessingSettings.resetTimers = reset; } // May update also after Init()
   void SetDebugLevelTmp(int level) { mProcessingSettings.debugLevel = level; } // Temporarily, before calling SetSettings()
   GPUParam& GetNonConstParam() { return mHostConstantMem->param; }             // Kind of hack, but needed for manual updates after SetSettings(), if the default configKeyValues parsing for SetSettings() is used.
-  void UpdateGRPSettings(const GPUSettingsGRP* g, const GPUSettingsProcessing* p = nullptr);
+  void UpdateSettings(const GPUSettingsGRP* g, const GPUSettingsProcessing* p = nullptr);
   void SetOutputControl(const GPUOutputControl& v) { mOutputControl = v; }
   void SetOutputControl(void* ptr, size_t size);
   void SetInputControl(void* ptr, size_t size);
@@ -278,7 +278,7 @@ class GPUReconstruction
   void FreeRegisteredMemory(GPUMemoryResource* res);
   GPUReconstruction(const GPUSettingsDeviceBackend& cfg); // Constructor
   int InitPhaseBeforeDevice();
-  virtual void UpdateSettings() {}
+  virtual void UpdateAutomaticProcessingSettings() {}
   virtual int InitDevice() = 0;
   int InitPhasePermanentMemory();
   int InitPhaseAfterDevice();
