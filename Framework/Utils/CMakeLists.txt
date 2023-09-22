@@ -19,7 +19,7 @@ o2_add_library(DPLUtils
                        test/DPLBroadcasterMerger.cxx
                        test/DPLOutputTest.cxx
                        test/RawPageTestData.cxx
-                       PUBLIC_LINK_LIBRARIES O2::Framework ROOT::Tree ROOT::TreePlayer)
+               PUBLIC_LINK_LIBRARIES O2::Framework ROOT::Tree ROOT::TreePlayer O2::CommonUtils)
 
 o2_add_executable(raw-proxy
                   COMPONENT_NAME dpl
