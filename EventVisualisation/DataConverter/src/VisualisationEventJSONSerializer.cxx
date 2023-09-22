@@ -18,10 +18,8 @@
 #include <fairlogger/Logger.h>
 #include <iostream>
 #include <iomanip>
-#include <limits>
 
 #include "rapidjson/document.h"
-#include "rapidjson/writer.h"
 #include "rapidjson/prettywriter.h"
 #include "rapidjson/stringbuffer.h"
 
@@ -195,7 +193,7 @@ VisualisationCluster VisualisationEventJSONSerializer::clusterFromJSON(rapidjson
   XYZ[2] = jsonZ.GetDouble();
 
   VisualisationCluster cluster(XYZ, 0);
-  cluster.mSource = o2::dataformats::GlobalTrackID::TPC; // temporary
+  cluster.mSource = o2::dataformats::GlobalTrackID::HMP;
   return cluster;
 }
 

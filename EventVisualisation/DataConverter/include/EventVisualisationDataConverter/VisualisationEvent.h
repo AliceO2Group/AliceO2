@@ -89,6 +89,11 @@ class VisualisationEvent
     return mTracks.back().addCluster(pos);
   }
 
+  VisualisationCluster& addGlobalCluster(const TVector3& xyz)
+  {
+    return mClusters.emplace_back(xyz);
+  }
+
   VisualisationCalo* addCalo(VisualisationCalo::VisualisationCaloVO vo)
   {
     mCalo.emplace_back(vo);

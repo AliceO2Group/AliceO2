@@ -22,6 +22,7 @@
 #include "EventVisualisationView/MultiView.h"
 #include "EventVisualisationView/Options.h"
 #include "EventVisualisationDataConverter/VisualisationEvent.h"
+#include "EventVisualisationDataConverter/VisualisationEventJSONSerializer.h"
 #include <EventVisualisationBase/DataSourceOnline.h>
 #include "EventVisualisationBase/ConfigurationManager.h"
 #include "DataFormatsParameters/ECSDataAdapters.h"
@@ -428,7 +429,7 @@ void EventManager::saveVisualisationSettings()
 
       return arr;
     };
-
+    d.AddMember("version", rapidjson::Value().SetString(o2_eve_version.c_str(),o2_eve_version.length()), allocator);
     d.AddMember("trackVisibility", jsonArray(vizSettings.trackVisibility, allocator), allocator);
     d.AddMember("trackColor", jsonArray(vizSettings.trackColor, allocator), allocator);
     d.AddMember("trackStyle", jsonArray(vizSettings.trackStyle, allocator), allocator);
@@ -478,6 +479,11 @@ void EventManager::restoreVisualisationSettings()
     string json((istreambuf_iterator<char>(settings)), istreambuf_iterator<char>());
     Document d;
     d.Parse(json.c_str());
+
+    if(VisualisationEventJSONSerializer::getStringOrDefault(d, "version", "0.0") != o2_eve_version) {
+        LOG(info) << "visualisation settings has wrong version and was not restored";
+        return;
+    }
 
     auto updateArray = [](auto& array, const auto& document, const char* name, const auto& accessor) {
       for (size_t i = 0; i < elemof(array); ++i) {

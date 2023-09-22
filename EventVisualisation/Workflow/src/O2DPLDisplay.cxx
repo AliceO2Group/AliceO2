@@ -114,28 +114,23 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   o2::globaltracking::RecoContainer recoCont;
   recoCont.collectData(pc, *mDataRequest);
   updateTimeDependentParams(pc); // Make sure that this is called after the RecoContainer collect data, since some condition objects are fetched there
-
   EveWorkflowHelper::FilterSet enabledFilters;
 
   enabledFilters.set(EveWorkflowHelper::Filter::ITSROF, this->mFilterITSROF);
   enabledFilters.set(EveWorkflowHelper::Filter::TimeBracket, this->mFilterTime);
   enabledFilters.set(EveWorkflowHelper::Filter::EtaBracket, this->mRemoveTPCEta);
   enabledFilters.set(EveWorkflowHelper::Filter::TotalNTracks, this->mNumberOfTracks != -1);
-
   EveWorkflowHelper helper(enabledFilters, this->mNumberOfTracks, this->mTimeBracket, this->mEtaBracket, this->mPrimaryVertexMode);
   helper.setRecoContainer(&recoCont);
-
   helper.setITSROFs();
   helper.selectTracks(&(mData.mConfig.configCalib), mClMask, mTrkMask, mTrkMask);
   helper.selectTowers();
-
   helper.prepareITSClusters(mData.mITSDict);
   helper.prepareMFTClusters(mData.mMFTDict);
 
   const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
 
   std::size_t filesSaved = 0;
-
   auto processData = [&](const auto& dataMap) {
     for (const auto& keyVal : dataMap) {
       if (filesSaved >= mMaxPrimaryVertices) {
@@ -185,7 +180,6 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
       helper.clear();
     }
   };
-
   if (mPrimaryVertexTriggers) {
     processData(helper.mPrimaryVertexTriggerGIDs);
   } else {

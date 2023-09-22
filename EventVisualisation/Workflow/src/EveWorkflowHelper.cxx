@@ -256,8 +256,99 @@ void EveWorkflowHelper::selectTracks(const CalibObjectsConst* calib,
 
 void EveWorkflowHelper::selectTowers()
 {
+
+  /*
+    const auto& allHMPClusters = mRecoCont->getHMPClusters();
+    const auto& allTriggersPHOS = mRecoCont->getPHOSTriggers();
+    const auto& allTriggersEMCAL = mRecoCont->getEMCALTriggers();
+    const auto& allTriggersHMP = mRecoCont->getHMPClusterTriggers();
+
+    auto filterTrigger = [&](const auto& trig) {
+      const auto time = bcDiffToTFTimeMUS(trig.getBCData());
+
+      if (mEnabledFilters.test(Filter::TimeBracket) && !isInsideTimeBracket(time)) {
+        return false;
+      }
+
+      if (mEnabledFilters.test(Filter::ITSROF) && !isInsideITSROF(time)) {
+        return false;
+      }
+
+      return true;
+    };
+
+    if (mPrimaryVertexMode) {
+        LOG(INFO) << "+++++++++++++++++++++++++++++++++++++++++++++ towers primary" ;
+      const auto trackIndex = mRecoCont->getPrimaryVertexMatchedTracks(); // Global ID's for associated tracks
+      const auto vtxRefs = mRecoCont->getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
+      const auto totalPrimaryVertices = vtxRefs.size() - 1;               // The last entry is for unassigned tracks, ignore them
+
+      for (std::size_t iv = 0; iv < totalPrimaryVertices; iv++) {
+        const auto& vtref = vtxRefs[iv];
+
+        // LOG(INFO) << "HMP " << allTriggersHMP.size();
+        // to be improved to recognize PV
+        /*for (std::size_t i = 0; i < allTriggersHMP.size(); i++) {
+            LOG(INFO) << "+++++++++++++++++++++++++++++++++++++++++++++ towers HMP" << i << " " << iv;
+          mTotalDataTypes[GID::HMP]++;
+          const auto& trig = allTriggersHMP[i];
+          mPrimaryVertexTriggerGIDs[iv].emplace_back(GID{static_cast<unsigned int>(i), GID::HMP});
+        }
+
+        LOG(INFO) << "+++++++++++++++++++++++++++++++++++++++++++++ towers PHOS" ;
+        const auto triggersPHOS = gsl::span(trackIndex.data() + vtref.getFirstEntryOfSource(GID::PHS), vtref.getEntriesOfSource(GID::PHS));
+
+        for (const auto& tvid : triggersPHOS) {
+          mTotalDataTypes[GID::PHS]++;
+          const auto& trig = allTriggersPHOS[tvid.getIndex()];
+
+          if (filterTrigger(trig)) {
+            mPrimaryVertexTriggerGIDs[iv].emplace_back(tvid);
+          }
+        }
+
+        const auto triggersEMCAL = gsl::span(trackIndex.data() + vtref.getFirstEntryOfSource(GID::EMC), vtref.getEntriesOfSource(GID::EMC));
+          LOG(INFO) << "+++++++++++++++++++++++++++++++++++++++++++++ towers EMCAL" ;
+        for (const auto& tvid : triggersEMCAL) {
+          mTotalDataTypes[GID::EMC]++;
+          const auto& trig = allTriggersEMCAL[tvid.getIndex()];
+
+          if (filterTrigger(trig)) {
+            mPrimaryVertexTriggerGIDs[iv].emplace_back(tvid);
+          }
+        }
+      }
+        LOG(INFO) << "+++++++++++++++++++++++++++++++++++++++++++++ towers END" ;
+    } else {
+      for (std::size_t i = 0; i < allTriggersHMP.size(); i++) {
+        mTotalDataTypes[GID::HMP]++;
+        const auto& trig = allTriggersHMP[i];
+        mPrimaryVertexTriggerGIDs[0].emplace_back(GID{static_cast<unsigned int>(i), GID::HMP});
+      }
+
+      for (std::size_t i = 0; i < allTriggersPHOS.size(); i++) {
+        mTotalDataTypes[GID::PHS]++;
+        const auto& trig = allTriggersPHOS[i];
+
+        if (filterTrigger(trig)) {
+          mPrimaryVertexTriggerGIDs[0].emplace_back(GID{static_cast<unsigned int>(i), GID::PHS});
+        }
+      }
+
+      for (std::size_t i = 0; i < allTriggersEMCAL.size(); i++) {
+        mTotalDataTypes[GID::EMC]++;
+        const auto& trig = allTriggersEMCAL[i];
+
+        if (filterTrigger(trig)) {
+          mPrimaryVertexTriggerGIDs[0].emplace_back(GID{static_cast<unsigned int>(i), GID::EMC});
+        }
+      }
+    }
+  */
+
   const auto& allTriggersPHOS = mRecoCont->getPHOSTriggers();
   const auto& allTriggersEMCAL = mRecoCont->getEMCALTriggers();
+  const auto& allTriggersHMP = mRecoCont->getHMPClusterTriggers();
 
   auto filterTrigger = [&](const auto& trig) {
     const auto time = bcDiffToTFTimeMUS(trig.getBCData());
@@ -281,14 +372,22 @@ void EveWorkflowHelper::selectTowers()
     for (std::size_t iv = 0; iv < totalPrimaryVertices; iv++) {
       const auto& vtref = vtxRefs[iv];
 
+      // to be improved to recognize PV
+      for (std::size_t i = 0; i < allTriggersHMP.size(); i++) {
+        mTotalDataTypes[GID::HMP]++;
+        const auto& trig = allTriggersHMP[i];
+        mPrimaryVertexTriggerGIDs[iv].emplace_back(GID{static_cast<unsigned int>(i), GID::HMP});
+      }
+
       const auto triggersPHOS = gsl::span(trackIndex.data() + vtref.getFirstEntryOfSource(GID::PHS), vtref.getEntriesOfSource(GID::PHS));
 
       for (const auto& tvid : triggersPHOS) {
         mTotalDataTypes[GID::PHS]++;
-        const auto& trig = allTriggersPHOS[tvid.getIndex()];
-
-        if (filterTrigger(trig)) {
-          mPrimaryVertexTriggerGIDs[iv].emplace_back(tvid);
+        if (tvid.getIndex() < allTriggersPHOS.size()) {
+          const auto& trig = allTriggersPHOS[tvid.getIndex()];
+          if (filterTrigger(trig)) {
+            mPrimaryVertexTriggerGIDs[iv].emplace_back(tvid);
+          }
         }
       }
 
@@ -296,14 +395,23 @@ void EveWorkflowHelper::selectTowers()
 
       for (const auto& tvid : triggersEMCAL) {
         mTotalDataTypes[GID::EMC]++;
-        const auto& trig = allTriggersEMCAL[tvid.getIndex()];
+        if (tvid.getIndex() < allTriggersEMCAL.size()) {
+          const auto& trig = allTriggersEMCAL[tvid.getIndex()];
 
-        if (filterTrigger(trig)) {
-          mPrimaryVertexTriggerGIDs[iv].emplace_back(tvid);
+          if (filterTrigger(trig)) {
+            mPrimaryVertexTriggerGIDs[iv].emplace_back(tvid);
+          }
         }
       }
     }
   } else {
+
+    for (std::size_t i = 0; i < allTriggersHMP.size(); i++) {
+      mTotalDataTypes[GID::HMP]++;
+      const auto& trig = allTriggersHMP[i];
+      mPrimaryVertexTriggerGIDs[0].emplace_back(GID{static_cast<unsigned int>(i), GID::HMP});
+    }
+
     for (std::size_t i = 0; i < allTriggersPHOS.size(); i++) {
       mTotalDataTypes[GID::PHS]++;
       const auto& trig = allTriggersPHOS[i];
@@ -431,6 +539,9 @@ void EveWorkflowHelper::draw(std::size_t primaryVertexIdx, bool sortTracks)
           break;
         case GID::EMC:
           drawEMC(gid);
+          break;
+        case GID::HMP:
+          drawHMP(gid);
           break;
         default:
           LOGF(info, "Trigger type %s not handled", gid.getSourceName());
@@ -562,6 +673,27 @@ void EveWorkflowHelper::prepareMFTClusters(const o2::itsmft::TopologyDictionary*
     auto pattIt = patterns.begin();
     this->mMFTClustersArray.reserve(clusMFT.size());
     o2::mft::ioutils::convertCompactClusters(clusMFT, pattIt, this->mMFTClustersArray, dict);
+  }
+}
+
+void EveWorkflowHelper::drawHMP(GID gid)
+{
+  o2::hmpid::Param* pParam = o2::hmpid::Param::instance();
+  const auto& trig = mRecoCont->getHMPClusterTriggers()[gid.getIndex()];
+  const auto& clusters = mRecoCont->getHMPClusters();
+
+  auto bc = trig.getBc();
+  auto orbit = trig.getOrbit();
+  auto time = o2::InteractionTimeRecord::bc2ns(bc,orbit);  // in ns absolute time
+
+  for(int j = trig.getFirstEntry(); j <= trig.getLastEntry(); j++) {
+    auto cluster = clusters[j];
+    auto module = cluster.ch();
+    double x = cluster.x();
+    double y = cluster.y();
+
+    TVector3 vec3= pParam->lors2Mars(module, x,y);
+    drawGlobalPoint(vec3);
   }
 }
 
