@@ -44,7 +44,7 @@ void CorrectionMapsLoader::extractCCDBInputs(ProcessingContext& pc)
   pc.inputs().get<o2::gpu::TPCFastTransform*>("tpcCorrMapRef"); // not used at the moment
   if (getUseCTPLumi() && mInstLumiOverride <= 0.) {
     auto lumiObj = pc.inputs().get<o2::ctp::LumiInfo>("CTPLumi");
-    setInstLumi(lumiObj.getLumi());
+    setInstLumi(mInstLumiFactor * (mCTPLumiSource == 0 ? lumiObj.getLumi() : lumiObj.getLumiAlt()));
   }
 }
 
@@ -72,6 +72,8 @@ void CorrectionMapsLoader::addOptions(std::vector<ConfigParamSpec>& options)
   addOption(options, ConfigParamSpec{"corrmap-lumi-mean", VariantType::Float, 0.f, {"override TPC corr.map mean lumi (if > 0), disable corrections if < 0"}});
   addOption(options, ConfigParamSpec{"corrmap-lumi-inst", VariantType::Float, 0.f, {"override instantaneous CTP lumi (if > 0) for TPC corr.map scaling, disable corrections if < 0"}});
   addOption(options, ConfigParamSpec{"corrmap-lumi-mode", VariantType::Int, 0, {"scaling mode: (default) 0 = static + scale * full; 1 = full + scale * derivative"}});
+  addOption(options, ConfigParamSpec{"ctp-lumi-factor", VariantType::Float, 1.0f, {"scaling to apply to instantaneous lumi from CTP (but not corrmap-lumi-inst)"}});
+  addOption(options, ConfigParamSpec{"ctp-lumi-source", VariantType::Int, 0, {"CTP lumi source: 0 = LumiInfo.getLumi(), 1 = LumiInfo.getLumiAlt()"}});
 }
 
 //________________________________________________________
@@ -125,12 +127,15 @@ void CorrectionMapsLoader::init(o2::framework::InitContext& ic)
   mMeanLumiOverride = ic.options().get<float>("corrmap-lumi-mean");
   mInstLumiOverride = ic.options().get<float>("corrmap-lumi-inst");
   mLumiScaleMode = ic.options().get<int>("corrmap-lumi-mode");
+  mInstLumiFactor = ic.options().get<float>("ctp-lumi-factor");
+  mCTPLumiSource = ic.options().get<int>("ctp-lumi-source");
   if (mMeanLumiOverride != 0.) {
     setMeanLumi(mMeanLumiOverride);
   }
   if (mInstLumiOverride != 0.) {
     setInstLumi(mInstLumiOverride);
   }
-  LOGP(info, "CTP Lumi request for TPC corr.map scaling={}, override values: lumiMean={} lumiInst={} lumiScaleMode={}", getUseCTPLumi() ? "ON" : "OFF", mMeanLumiOverride, mInstLumiOverride, mLumiScaleMode);
+  LOGP(info, "CTP Lumi request for TPC corr.map scaling={}, override values: lumiMean={} lumiInst={} lumiScaleMode={}, LumiInst scale={}, CTP Lumi source={}",
+       getUseCTPLumi() ? "ON" : "OFF", mMeanLumiOverride, mInstLumiOverride, mLumiScaleMode, mInstLumiFactor, mCTPLumiSource);
 }
 #endif // #ifndef GPUCA_GPUCODE_DEVICE
