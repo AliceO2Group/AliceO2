@@ -70,7 +70,6 @@
 #include "TRDBase/Geometry.h"
 #include "TRDBase/GeometryFlat.h"
 #include "ITSBase/GeometryTGeo.h"
-#include "CommonUtils/VerbosityConfig.h"
 #include "CommonUtils/DebugStreamer.h"
 #include "GPUReconstructionConvert.h"
 #include "DetectorsRaw/RDHUtils.h"
@@ -413,14 +412,6 @@ void GPURecoWorkflowSpec::processInputs(ProcessingContext& pc, A& tpcZSmetaPoint
                                                          (feeLinkID == o2::tpc::rdh_utils::DLBZSLinkID && (rdhLink == o2::tpc::rdh_utils::UserLogicLinkID || rdhLink == o2::tpc::rdh_utils::DLBZSLinkID || rdhLink == 0)));
     };
     auto insertPages = [&tpcZSmetaPointers, &tpcZSmetaSizes, checkForZSData](const char* ptr, size_t count, uint32_t subSpec) -> void {
-      if (subSpec == 0xdeadbeef) {
-        auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
-        static int contDeadBeef = 0;
-        if (++contDeadBeef <= maxWarn) {
-          LOGP(alarm, "Found input [TPC/RAWDATA/0xdeadbeef] assuming no payload for all links in this TF{}", contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
-        }
-        return;
-      }
       if (checkForZSData(ptr, subSpec)) {
         int rawcru = o2::tpc::rdh_utils::getCRU(ptr);
         int rawendpoint = o2::tpc::rdh_utils::getEndPoint(ptr);
@@ -428,8 +419,6 @@ void GPURecoWorkflowSpec::processInputs(ProcessingContext& pc, A& tpcZSmetaPoint
         tpcZSmetaSizes[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(count);
       }
     };
-    // the sequencer processes all inputs matching the filter and finds sequences of consecutive
-    // raw pages based on the matcher predicate, and calls the inserter for each sequence
     if (DPLRawPageSequencer(pc.inputs(), filter)(isSameRdh, insertPages, checkForZSData)) {
       debugTFDump = true;
       static unsigned int nErrors = 0;
