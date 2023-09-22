@@ -77,6 +77,8 @@ int GPUO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
       mCtx.reset(nullptr);
       return 1;
     }
+  }
+  for (unsigned int i = 0; i < mNContexts; i++) {
     mCtx[i].mChain = mCtx[i].mRec->AddChain<GPUChainTracking>(mConfig->configInterface.maxTPCHits, mConfig->configInterface.maxTRDTracklets);
     mCtx[i].mChain->mConfigDisplay = &mConfig->configDisplay;
     mCtx[i].mChain->mConfigQA = &mConfig->configQA;
@@ -96,7 +98,8 @@ int GPUO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
       dummy.set([](size_t size) -> void* {throw std::runtime_error("invalid output memory request, no common output buffer set"); return nullptr; });
       mCtx[i].mRec->SetOutputControl(dummy);
     }
-
+  }
+  for (unsigned int i = 0; i < mNContexts; i++) {
     if (i == 0 && mCtx[i].mRec->Init()) {
       mNContexts = 0;
       mCtx.reset(nullptr);
