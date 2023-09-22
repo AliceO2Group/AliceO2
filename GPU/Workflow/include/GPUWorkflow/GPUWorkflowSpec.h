@@ -30,6 +30,10 @@
 #include <mutex>
 
 class TStopwatch;
+namespace fair::mq
+{
+struct RegionInfo;
+} // namespace fair::mq
 namespace o2
 {
 namespace base
@@ -79,6 +83,8 @@ struct TPCZSLinkMapping;
 struct GPUSettingsO2;
 class GPUO2InterfaceQA;
 struct GPUTrackingInOutPointers;
+struct GPUTrackingInOutZS;
+struct GPURecoWorkflowSpec_TPCZSBuffers;
 
 class GPURecoWorkflowSpec : public o2::framework::Task
 {
@@ -144,10 +150,12 @@ class GPURecoWorkflowSpec : public o2::framework::Task
 
   void doTrackTuneTPC(GPUTrackingInOutPointers& ptrs, char* buffout);
 
-  template <class A, class B, class C, class D, class E, class F, class G, class H, class I, class J, class K>
-  void processInputs(o2::framework::ProcessingContext&, A&, B&, C&, D&, E&, F&, G&, bool&, H&, I&, J&, K&);
+  template <class D, class E, class F, class G, class H, class I, class J, class K>
+  void processInputs(o2::framework::ProcessingContext&, D&, E&, F&, G&, bool&, H&, I&, J&, K&);
 
   int runITSTracking(o2::framework::ProcessingContext& pc);
+
+  int handlePipeline(o2::framework::ProcessingContext& pc, GPUTrackingInOutPointers& ptrs, GPURecoWorkflowSpec_TPCZSBuffers& tpcZSmeta, o2::gpu::GPUTrackingInOutZS& tpcZS);
 
   CompletionPolicyData* mPolicyData;
   std::unique_ptr<GPUO2Interface> mGPUReco;
@@ -178,6 +186,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   std::unique_ptr<o2::its::Vertexer> mITSVertexer;
   std::mutex mMutexDecodeInput;
   o2::its::TimeFrame* mITSTimeFrame = nullptr;
+  std::vector<fair::mq::RegionInfo> mRegionInfos;
   const o2::itsmft::TopologyDictionary* mITSDict = nullptr;
   const o2::dataformats::MeanVertexObject* mMeanVertex;
   unsigned long mTPCSectorMask = 0;
