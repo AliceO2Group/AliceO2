@@ -88,6 +88,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   struct Config {
     int itsTriggerType = 0;
     int lumiScaleMode = 0;
+    int enableDoublePipeline = 0;
     bool decompressTPC = false;
     bool decompressTPCFromROOT = false;
     bool caClusterer = false;
@@ -149,8 +150,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   int runITSTracking(o2::framework::ProcessingContext& pc);
 
   CompletionPolicyData* mPolicyData;
-  std::unique_ptr<o2::algorithm::ForwardParser<o2::tpc::ClusterGroupHeader>> mParser;
-  std::unique_ptr<GPUO2Interface> mTracker;
+  std::unique_ptr<GPUO2Interface> mGPUReco;
   std::unique_ptr<GPUDisplayFrontendInterface> mDisplayFrontend;
   std::unique_ptr<TPCFastTransform> mFastTransform;
   std::unique_ptr<TPCFastTransform> mFastTransformRef;

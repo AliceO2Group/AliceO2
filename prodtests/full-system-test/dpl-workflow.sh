@@ -277,6 +277,8 @@ if has_detector_calib PHS && workflow_has_parameter CALIB; then
   PHS_CONFIG+=" --fullclu-output"
 fi
 
+[[ ${O2_GPU_DOUBLE_PIPELINE:-0} == 1 ]] && GPU_CONFIG+=" --enableDoublePipeline"
+
 ( workflow_has_parameter AOD || [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-emcal-cell-writer-workflow ) && has_detector EMC && RAW_EMC_SUBSPEC=" --subspecification 1 "
 has_detector_reco MID && has_detector_matching MCHMID && MFTMCHConf="FwdMatching.useMIDMatch=true;" || MFTMCHConf="FwdMatching.useMIDMatch=false;"
 
@@ -438,7 +440,7 @@ fi
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Common reconstruction workflows
-(has_detector_reco TPC || has_detector_ctf TPC) && ! has_detector_from_global_reader TPC && add_W o2-gpu-reco-workflow "--gpu-reconstruction \"$GPU_CONFIG_SELF\" $ASK_CTP_LUMI_GPU --input-type=$GPU_INPUT $DISABLE_MC --output-type $GPU_OUTPUT --pipeline gpu-reconstruction:${N_TPCTRK:-1} $GPU_CONFIG" "GPU_global.deviceType=$GPUTYPE;GPU_proc.debugLevel=0;$GPU_CONFIG_KEY;$TRACKTUNETPCINNER"
+(has_detector_reco TPC || has_detector_ctf TPC) && ! has_detector_from_global_reader TPC && add_W o2-gpu-reco-workflow "--gpu-reconstruction \"$GPU_CONFIG_SELF\" $ASK_CTP_LUMI_GPU --input-type=$GPU_INPUT $DISABLE_MC --output-type $GPU_OUTPUT --pipeline gpu-reconstruction:${N_TPCTRK:-1},gpu-reconstruction-prepare:${N_TPCTRK:-1} $GPU_CONFIG" "GPU_global.deviceType=$GPUTYPE;GPU_proc.debugLevel=0;$GPU_CONFIG_KEY;$TRACKTUNETPCINNER"
 (has_detector_reco TOF || has_detector_ctf TOF) && ! has_detector_from_global_reader TOF && add_W o2-tof-reco-workflow "$TOF_CONFIG --input-type $TOF_INPUT --output-type $TOF_OUTPUT $DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N tof-compressed-decoder TOF RAW 1),$(get_N TOFClusterer TOF REST 1)"
 has_detector_reco ITS && ! has_detector_from_global_reader ITS && add_W o2-its-reco-workflow "--trackerCA $ITS_CONFIG $DISABLE_MC $DISABLE_DIGIT_CLUSTER_INPUT $DISABLE_ROOT_OUTPUT --pipeline $(get_N its-tracker ITS REST 1 ITSTRK)" "$ITS_CONFIG_KEY;$ITSMFT_STROBES;$ITSEXTRAERR"
 has_detector_reco FT0 && ! has_detector_from_global_reader FT0 && add_W o2-ft0-reco-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N ft0-reconstructor FT0 REST 1)"
