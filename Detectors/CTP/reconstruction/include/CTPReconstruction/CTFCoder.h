@@ -147,6 +147,8 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& data, LumiInfo& l
   lumi.nHBFCounted = header.lumiNHBFs;
   lumi.counts = header.lumiCounts;
   lumi.orbit = header.lumiOrbit;
+  lumi.inp1 = int(header.inp1);
+  lumi.inp2 = int(header.inp2);
   auto itInp = bytesInput.begin();
   auto itCls = bytesClass.begin();
   bool checkIROK = (mBCShift == 0); // need to check if CTP offset correction does not make the local time negative ?
