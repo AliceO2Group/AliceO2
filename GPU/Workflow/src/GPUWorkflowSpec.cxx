@@ -75,6 +75,7 @@
 #include "DetectorsRaw/RDHUtils.h"
 #include "ITStracking/Tracker.h"
 #include "ITStracking/Vertexer.h"
+#include "GPUWorkflowInternal.h"
 // #include "Framework/ThreadPool.h"
 
 #include <TStopwatch.h>
@@ -279,47 +280,53 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
     if (mSpecConfig.runITSTracking) {
       initFunctionITS(ic);
     }
-
-    auto& callbacks = ic.services().get<CallbackService>();
-    callbacks.set<CallbackService::Id::RegionInfoCallback>([this](fair::mq::RegionInfo const& info) {
-      if (info.size == 0) {
-        return;
-      }
-      if (mConfParam->registerSelectedSegmentIds != -1 && info.managed && info.id != (unsigned int)mConfParam->registerSelectedSegmentIds) {
-        return;
-      }
-      int fd = 0;
-      if (mConfParam->mutexMemReg) {
-        mode_t mask = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
-        fd = open("/tmp/o2_gpu_memlock_mutex.lock", O_RDWR | O_CREAT | O_CLOEXEC, mask);
-        if (fd == -1) {
-          throw std::runtime_error("Error opening lock file");
-        }
-        fchmod(fd, mask);
-        if (lockf(fd, F_LOCK, 0)) {
-          throw std::runtime_error("Error locking file");
-        }
-      }
-      std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
-      if (mConfParam->benchmarkMemoryRegistration) {
-        start = std::chrono::high_resolution_clock::now();
-      }
-      if (mGPUReco->registerMemoryForGPU(info.ptr, info.size)) {
-        throw std::runtime_error("Error registering memory for GPU");
-      }
-      if (mConfParam->benchmarkMemoryRegistration) {
-        end = std::chrono::high_resolution_clock::now();
-        std::chrono::duration<double> elapsed_seconds = end - start;
-        LOG(info) << "Memory registration time (0x" << info.ptr << ", " << info.size << " bytes): " << elapsed_seconds.count() << " s";
-      }
-      if (mConfParam->mutexMemReg) {
-        if (lockf(fd, F_ULOCK, 0)) {
-          throw std::runtime_error("Error unlocking file");
-        }
-        close(fd);
-      }
-    });
   }
+
+  auto& callbacks = ic.services().get<CallbackService>();
+  callbacks.set<CallbackService::Id::RegionInfoCallback>([this](fair::mq::RegionInfo const& info) {
+    if (info.size == 0) {
+      return;
+    }
+    if (mSpecConfig.enableDoublePipeline) {
+      mRegionInfos.emplace_back(info);
+    }
+    if (mSpecConfig.enableDoublePipeline == 2) {
+      return;
+    }
+    if (mConfParam->registerSelectedSegmentIds != -1 && info.managed && info.id != (unsigned int)mConfParam->registerSelectedSegmentIds) {
+      return;
+    }
+    int fd = 0;
+    if (mConfParam->mutexMemReg) {
+      mode_t mask = S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH;
+      fd = open("/tmp/o2_gpu_memlock_mutex.lock", O_RDWR | O_CREAT | O_CLOEXEC, mask);
+      if (fd == -1) {
+        throw std::runtime_error("Error opening lock file");
+      }
+      fchmod(fd, mask);
+      if (lockf(fd, F_LOCK, 0)) {
+        throw std::runtime_error("Error locking file");
+      }
+    }
+    std::chrono::time_point<std::chrono::high_resolution_clock> start, end;
+    if (mConfParam->benchmarkMemoryRegistration) {
+      start = std::chrono::high_resolution_clock::now();
+    }
+    if (mGPUReco->registerMemoryForGPU(info.ptr, info.size)) {
+      throw std::runtime_error("Error registering memory for GPU");
+    }
+    if (mConfParam->benchmarkMemoryRegistration) {
+      end = std::chrono::high_resolution_clock::now();
+      std::chrono::duration<double> elapsed_seconds = end - start;
+      LOG(info) << "Memory registration time (0x" << info.ptr << ", " << info.size << " bytes): " << elapsed_seconds.count() << " s";
+    }
+    if (mConfParam->mutexMemReg) {
+      if (lockf(fd, F_ULOCK, 0)) {
+        throw std::runtime_error("Error unlocking file");
+      }
+      close(fd);
+    }
+  });
 
   mTimer->Stop();
   mTimer->Reset();
@@ -348,17 +355,20 @@ void GPURecoWorkflowSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& match
   }
 }
 
-template <class A, class B, class C, class D, class E, class F, class G, class H, class I, class J, class K>
-void GPURecoWorkflowSpec::processInputs(ProcessingContext& pc, A& tpcZSmetaPointers, B& tpcZSmetaPointers2, C& tpcZSmetaSizes, D& tpcZSmetaSizes2, E& inputZS, F& tpcZS, G& tpcZSonTheFlySizes, bool& debugTFDump, H& compClustersDummy, I& compClustersFlatDummy, J& pCompClustersFlat, K& tmpEmptyCompClusters)
+template <class D, class E, class F, class G, class H, class I, class J, class K>
+void GPURecoWorkflowSpec::processInputs(ProcessingContext& pc, D& tpcZSmeta, E& inputZS, F& tpcZS, G& tpcZSonTheFlySizes, bool& debugTFDump, H& compClustersDummy, I& compClustersFlatDummy, J& pCompClustersFlat, K& tmpEmptyCompClusters)
 {
+  if (mSpecConfig.enableDoublePipeline == 1) {
+    return;
+  }
   constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
   constexpr static size_t NEndpoints = o2::gpu::GPUTrackingInOutZS::NENDPOINTS;
 
   if (mSpecConfig.zsOnTheFly || mSpecConfig.zsDecoder) {
     for (unsigned int i = 0; i < GPUTrackingInOutZS::NSLICES; i++) {
       for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
-        tpcZSmetaPointers[i][j].clear();
-        tpcZSmetaSizes[i][j].clear();
+        tpcZSmeta.Pointers[i][j].clear();
+        tpcZSmeta.Sizes[i][j].clear();
       }
     }
   }
@@ -414,12 +424,12 @@ void GPURecoWorkflowSpec::processInputs(ProcessingContext& pc, A& tpcZSmetaPoint
                                                          (feeLinkID == o2::tpc::rdh_utils::ILBZSLinkID && (rdhLink == o2::tpc::rdh_utils::UserLogicLinkID || rdhLink == o2::tpc::rdh_utils::ILBZSLinkID || rdhLink == 0)) ||
                                                          (feeLinkID == o2::tpc::rdh_utils::DLBZSLinkID && (rdhLink == o2::tpc::rdh_utils::UserLogicLinkID || rdhLink == o2::tpc::rdh_utils::DLBZSLinkID || rdhLink == 0)));
     };
-    auto insertPages = [&tpcZSmetaPointers, &tpcZSmetaSizes, checkForZSData](const char* ptr, size_t count, uint32_t subSpec) -> void {
+    auto insertPages = [&tpcZSmeta, checkForZSData](const char* ptr, size_t count, uint32_t subSpec) -> void {
       if (checkForZSData(ptr, subSpec)) {
         int rawcru = o2::tpc::rdh_utils::getCRU(ptr);
         int rawendpoint = o2::tpc::rdh_utils::getEndPoint(ptr);
-        tpcZSmetaPointers[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(ptr);
-        tpcZSmetaSizes[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(count);
+        tpcZSmeta.Pointers[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(ptr);
+        tpcZSmeta.Sizes[rawcru / 10][(rawcru % 10) * 2 + rawendpoint].emplace_back(count);
       }
     };
     if (DPLRawPageSequencer(pc.inputs(), filter)(isSameRdh, insertPages, checkForZSData)) {
@@ -434,12 +444,12 @@ void GPURecoWorkflowSpec::processInputs(ProcessingContext& pc, A& tpcZSmetaPoint
     int totalCount = 0;
     for (unsigned int i = 0; i < GPUTrackingInOutZS::NSLICES; i++) {
       for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
-        tpcZSmetaPointers2[i][j] = tpcZSmetaPointers[i][j].data();
-        tpcZSmetaSizes2[i][j] = tpcZSmetaSizes[i][j].data();
-        tpcZS.slice[i].zsPtr[j] = tpcZSmetaPointers2[i][j];
-        tpcZS.slice[i].nZSPtr[j] = tpcZSmetaSizes2[i][j];
-        tpcZS.slice[i].count[j] = tpcZSmetaPointers[i][j].size();
-        totalCount += tpcZSmetaPointers[i][j].size();
+        tpcZSmeta.Pointers2[i][j] = tpcZSmeta.Pointers[i][j].data();
+        tpcZSmeta.Sizes2[i][j] = tpcZSmeta.Sizes[i][j].data();
+        tpcZS.slice[i].zsPtr[j] = tpcZSmeta.Pointers2[i][j];
+        tpcZS.slice[i].nZSPtr[j] = tpcZSmeta.Sizes2[i][j];
+        tpcZS.slice[i].count[j] = tpcZSmeta.Pointers[i][j].size();
+        totalCount += tpcZSmeta.Pointers[i][j].size();
       }
     }
   } else if (mSpecConfig.decompressTPC) {
@@ -479,10 +489,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   o2::tpc::CompressedClustersFlat& compClustersFlatDummy = reinterpret_cast<o2::tpc::CompressedClustersFlat&>(compClustersFlatDummyMemory);
   o2::tpc::CompressedClusters compClustersDummy;
   o2::gpu::GPUTrackingInOutZS tpcZS;
-  std::vector<const void*> tpcZSmetaPointers[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
-  std::vector<unsigned int> tpcZSmetaSizes[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
-  const void** tpcZSmetaPointers2[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
-  const unsigned int* tpcZSmetaSizes2[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
+  GPURecoWorkflowSpec_TPCZSBuffers tpcZSmeta;
   std::array<unsigned int, NEndpoints * NSectors> tpcZSonTheFlySizes;
   gsl::span<const o2::tpc::ZeroSuppressedContainer8kb> inputZS;
   std::unique_ptr<char[]> tmpEmptyCompClusters;
@@ -515,8 +522,8 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   // ------------------------------ Handle inputs ------------------------------
 
   GPUTrackingInOutPointers ptrs;
-  processInputs(pc, tpcZSmetaPointers, tpcZSmetaPointers2, tpcZSmetaSizes, tpcZSmetaSizes2, inputZS, tpcZS, tpcZSonTheFlySizes, debugTFDump, compClustersDummy, compClustersFlatDummy, pCompClustersFlat, tmpEmptyCompClusters); // Process non-digit / non-cluster inputs
-  const auto& inputsClustersDigits = o2::tpc::getWorkflowTPCInput(pc, mVerbosity, getWorkflowTPCInput_mc, getWorkflowTPCInput_clusters, mTPCSectorMask, getWorkflowTPCInput_digits);                                             // Process digit and cluster inputs
+  processInputs(pc, tpcZSmeta, inputZS, tpcZS, tpcZSonTheFlySizes, debugTFDump, compClustersDummy, compClustersFlatDummy, pCompClustersFlat, tmpEmptyCompClusters);                  // Process non-digit / non-cluster inputs
+  const auto& inputsClustersDigits = o2::tpc::getWorkflowTPCInput(pc, mVerbosity, getWorkflowTPCInput_mc, getWorkflowTPCInput_clusters, mTPCSectorMask, getWorkflowTPCInput_digits); // Process digit and cluster inputs
 
   const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
   mTFSettings->tfStartOrbit = tinfo.firstTForbit;
@@ -613,12 +620,10 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
 
   // ------------------------------ Prepare stage for double-pipeline before normal output preparation ------------------------------
 
-  if (mSpecConfig.enableDoublePipeline == 2) {
-    size_t prepareBufferSize = sizeof(*ptrs.settingsTF);
-    auto prepareBuffer = pc.outputs().make<DataAllocator::UninitializedVector<char>>(Output{gDataOriginGPU, "PIPELINEPREPARE", 0, Lifetime::Timeframe}, prepareBufferSize);
-    char* prepareBufferPtr = prepareBuffer.data();
-    memcpy(prepareBufferPtr, ptrs.settingsTF, prepareBufferSize);
-    return;
+  if (mSpecConfig.enableDoublePipeline) {
+    if (handlePipeline(pc, ptrs, tpcZSmeta, tpcZS)) {
+      return;
+    }
   }
 
   // ------------------------------ Prepare outputs ------------------------------
@@ -978,6 +983,14 @@ void GPURecoWorkflowSpec::doCalibUpdates(o2::framework::ProcessingContext& pc)
 Options GPURecoWorkflowSpec::options()
 {
   Options opts;
+  if (mSpecConfig.enableDoublePipeline) {
+    bool send = mSpecConfig.enableDoublePipeline == 2;
+    char* o2jobid = getenv("O2JOBID");
+    char* numaid = getenv("NUMAID");
+    int chanid = o2jobid ? atoi(o2jobid) : (numaid ? atoi(numaid) : 0);
+    std::string chan = std::string("name=gpu-prepare-channel,type=") + (send ? "push" : "pull") + ",method=" + (send ? "connect" : "bind") + ",address=ipc://@gpu-prepare-channel-" + std::to_string(chanid) + ",transport=shmem,rateLogging=0";
+    opts.emplace_back(o2::framework::ConfigParamSpec{"channel-config", o2::framework::VariantType::String, chan, {"Out-of-band channel config"}});
+  }
   if (mSpecConfig.enableDoublePipeline == 2) {
     return opts;
   }
