@@ -27,6 +27,7 @@
 #include "Framework/Logger.h"
 #include "Framework/CallbackService.h"
 #include "Framework/CCDBParamSpec.h"
+#include "Framework/RawDeviceService.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/CompressedClusters.h"
@@ -101,6 +102,7 @@ using namespace o2::header;
 using namespace o2::gpu;
 using namespace o2::base;
 using namespace o2::dataformats;
+using namespace o2::gpu::gpurecoworkflow_internals;
 
 namespace o2::gpu
 {
@@ -115,6 +117,7 @@ GPURecoWorkflowSpec::GPURecoWorkflowSpec(GPURecoWorkflowSpec::CompletionPolicyDa
   mConfParam.reset(new GPUSettingsO2);
   mTFSettings.reset(new GPUSettingsTF);
   mTimer.reset(new TStopwatch);
+  mPipeline.reset(new GPURecoWorkflowSpec_PipelineInternals);
 }
 
 GPURecoWorkflowSpec::~GPURecoWorkflowSpec() = default;
@@ -282,6 +285,11 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
     }
   }
 
+  if (mSpecConfig.enableDoublePipeline == 1) {
+    mPipeline->fmqDevice = ic.services().get<RawDeviceService>().device();
+    mPipeline->receiveThread = std::thread([this]() { RunReceiveThread(); });
+  }
+
   auto& callbacks = ic.services().get<CallbackService>();
   callbacks.set<CallbackService::Id::RegionInfoCallback>([this](fair::mq::RegionInfo const& info) {
     if (info.size == 0) {
@@ -339,6 +347,7 @@ void GPURecoWorkflowSpec::stop()
 
 void GPURecoWorkflowSpec::endOfStream(EndOfStreamContext& ec)
 {
+  TerminateReceiveThread(); // TODO: Apparently breaks START / STOP / START
 }
 
 void GPURecoWorkflowSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
@@ -507,19 +516,14 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     getWorkflowTPCInput_digits = true;
   }
 
-  auto lockDecodeInput = std::make_unique<std::lock_guard<std::mutex>>(mMutexDecodeInput);
-  // unsigned int threadIndex = pc.services().get<ThreadPool>().threadIndex;
-  unsigned int threadIndex = mNextThreadIndex;
-  if (mConfig->configProcessing.doublePipeline) {
-    mNextThreadIndex = (mNextThreadIndex + 1) % 2;
-  }
+  // ------------------------------ Handle inputs ------------------------------
+
+  auto lockDecodeInput = std::make_unique<std::lock_guard<std::mutex>>(mPipeline->mutexDecodeInput);
 
   GRPGeomHelper::instance().checkUpdates(pc);
   if (GRPGeomHelper::instance().getGRPECS()->isDetReadOut(o2::detectors::DetID::TPC) && mConfParam->tpcTriggeredMode ^ !GRPGeomHelper::instance().getGRPECS()->isDetContinuousReadOut(o2::detectors::DetID::TPC)) {
     LOG(fatal) << "configKeyValue tpcTriggeredMode does not match GRP isDetContinuousReadOut(TPC) setting";
   }
-
-  // ------------------------------ Handle inputs ------------------------------
 
   GPUTrackingInOutPointers ptrs;
   processInputs(pc, tpcZSmeta, inputZS, tpcZS, tpcZSonTheFlySizes, debugTFDump, compClustersDummy, compClustersFlatDummy, pCompClustersFlat, tmpEmptyCompClusters);                  // Process non-digit / non-cluster inputs
@@ -619,6 +623,15 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   }
 
   // ------------------------------ Prepare stage for double-pipeline before normal output preparation ------------------------------
+
+  // unsigned int threadIndex = pc.services().get<ThreadPool>().threadIndex;
+  unsigned int threadIndex = mNextThreadIndex;
+  if (mConfig->configProcessing.doublePipeline) {
+    mNextThreadIndex = (mNextThreadIndex + 1) % 2;
+    std::lock_guard lk(mPipeline->threadMutex);
+    mPipeline->mayReceive = true;
+    mPipeline->notifyThread.notify_one();
+  }
 
   if (mSpecConfig.enableDoublePipeline) {
     if (handlePipeline(pc, ptrs, tpcZSmeta, tpcZS)) {
@@ -1170,6 +1183,7 @@ Outputs GPURecoWorkflowSpec::outputs()
 
 void GPURecoWorkflowSpec::deinitialize()
 {
+  TerminateReceiveThread();
   mQA.reset(nullptr);
   mDisplayFrontend.reset(nullptr);
   mGPUReco.reset(nullptr);

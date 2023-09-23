@@ -84,7 +84,11 @@ struct GPUSettingsO2;
 class GPUO2InterfaceQA;
 struct GPUTrackingInOutPointers;
 struct GPUTrackingInOutZS;
+namespace gpurecoworkflow_internals
+{
 struct GPURecoWorkflowSpec_TPCZSBuffers;
+struct GPURecoWorkflowSpec_PipelineInternals;
+} // namespace gpurecoworkflow_internals
 
 class GPURecoWorkflowSpec : public o2::framework::Task
 {
@@ -155,7 +159,9 @@ class GPURecoWorkflowSpec : public o2::framework::Task
 
   int runITSTracking(o2::framework::ProcessingContext& pc);
 
-  int handlePipeline(o2::framework::ProcessingContext& pc, GPUTrackingInOutPointers& ptrs, GPURecoWorkflowSpec_TPCZSBuffers& tpcZSmeta, o2::gpu::GPUTrackingInOutZS& tpcZS);
+  int handlePipeline(o2::framework::ProcessingContext& pc, GPUTrackingInOutPointers& ptrs, gpurecoworkflow_internals::GPURecoWorkflowSpec_TPCZSBuffers& tpcZSmeta, o2::gpu::GPUTrackingInOutZS& tpcZS);
+  void RunReceiveThread();
+  void TerminateReceiveThread();
 
   CompletionPolicyData* mPolicyData;
   std::unique_ptr<GPUO2Interface> mGPUReco;
@@ -184,7 +190,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   std::vector<int> mTPCSectors;
   std::unique_ptr<o2::its::Tracker> mITSTracker;
   std::unique_ptr<o2::its::Vertexer> mITSVertexer;
-  std::mutex mMutexDecodeInput;
+  std::unique_ptr<gpurecoworkflow_internals::GPURecoWorkflowSpec_PipelineInternals> mPipeline;
   o2::its::TimeFrame* mITSTimeFrame = nullptr;
   std::vector<fair::mq::RegionInfo> mRegionInfos;
   const o2::itsmft::TopologyDictionary* mITSDict = nullptr;

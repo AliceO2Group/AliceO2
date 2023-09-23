@@ -40,6 +40,7 @@ using namespace o2::header;
 using namespace o2::gpu;
 using namespace o2::base;
 using namespace o2::dataformats;
+using namespace o2::gpu::gpurecoworkflow_internals;
 
 namespace o2::gpu
 {
@@ -56,56 +57,21 @@ struct pipelinePrepareMessage {
 
 int GPURecoWorkflowSpec::handlePipeline(ProcessingContext& pc, GPUTrackingInOutPointers& ptrs, GPURecoWorkflowSpec_TPCZSBuffers& tpcZSmeta, o2::gpu::GPUTrackingInOutZS& tpcZS)
 {
-  auto device = pc.services().get<RawDeviceService>().device();
+  auto* device = pc.services().get<RawDeviceService>().device();
   const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
   if (mSpecConfig.enableDoublePipeline == 1) {
-    auto msg = device->NewMessageFor("gpu-prepare-channel", 0, 0);
-    bool received = false;
-    int recvTimeot = 1000;
-    do {
-      LOG(info) << "Waiting for out of band message";
-      received = device->Receive(msg, "gpu-prepare-channel", 0, recvTimeot);
-    } while (!received && !device->NewStatePending());
-    if (!received) {
-      return 1;
-    }
-    if (msg->GetSize() < sizeof(pipelinePrepareMessage)) {
-      LOG(fatal) << "Received prepare message of invalid size";
-    }
-    const pipelinePrepareMessage* m = (const pipelinePrepareMessage*)msg->GetData();
-    if (m->magicWord != m->MAGIC_WORD) {
-      LOG(fatal) << "Prepare message corrupted, invalid magic word";
-    }
-    if (m->timeSliceId != tinfo.timeslice) {
+    std::unique_lock lk(mPipeline->queueMutex);
+    mPipeline->queueNotify.wait(lk, [this] { return !mPipeline->pipelineQueue.empty(); });
+    auto o = std::move(mPipeline->pipelineQueue.front());
+    mPipeline->pipelineQueue.pop();
+    lk.unlock();
+
+    if (o->timeSliceId != tinfo.timeslice) {
       LOG(fatal) << "Prepare message for incorrect time frame received, time frames seem out of sync";
     }
-    size_t regionOffset = 0;
-    if (m->pointersTotal) {
-      bool regionFound = false;
-      for (unsigned int i = 0; i < mRegionInfos.size(); i++) {
-        if (mRegionInfos[i].managed == m->regionInfo.managed && mRegionInfos[i].id == m->regionInfo.id) {
-          regionFound = true;
-          regionOffset = (size_t)mRegionInfos[i].ptr;
-          break;
-        }
-      }
-    }
-    size_t ptrsCopied = 0;
-    size_t* ptrBuffer = (size_t*)msg->GetData() + sizeof(pipelinePrepareMessage) / sizeof(size_t);
-    tpcZSmeta.Pointers[0][0].resize(m->pointersTotal);
-    tpcZSmeta.Sizes[0][0].resize(m->pointersTotal);
-    for (unsigned int i = 0; i < GPUTrackingInOutZS::NSLICES; i++) {
-      for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
-        tpcZS.slice[i].count[j] = m->pointerCounts[i][j];
-        for (unsigned int k = 0; k < tpcZS.slice[i].count[j]; k++) {
-          tpcZSmeta.Pointers[0][0][ptrsCopied + k] = (void*)(ptrBuffer[ptrsCopied + k] + regionOffset);
-          tpcZSmeta.Sizes[0][0][ptrsCopied + k] = ptrBuffer[m->pointersTotal + ptrsCopied + k];
-        }
-        tpcZS.slice[i].zsPtr[j] = tpcZSmeta.Pointers[0][0].data() + ptrsCopied;
-        tpcZS.slice[i].nZSPtr[j] = tpcZSmeta.Sizes[0][0].data() + ptrsCopied;
-        ptrsCopied += tpcZS.slice[i].count[j];
-      }
-    }
+
+    tpcZSmeta = std::move(o->tpcZSmeta);
+    tpcZS = o->tpcZS;
     ptrs.tpcZS = &tpcZS;
   }
   if (mSpecConfig.enableDoublePipeline == 2) {
@@ -159,11 +125,92 @@ int GPURecoWorkflowSpec::handlePipeline(ProcessingContext& pc, GPUTrackingInOutP
 
     auto channel = device->GetChannels().find("gpu-prepare-channel");
     fair::mq::MessagePtr payload(device->NewMessage());
+    LOG(info) << "Sending gpu-reco-workflow prepare message of size " << prepareBufferSize;
     payload->Rebuild(messageBuffer.data(), prepareBufferSize, nullptr, nullptr);
     channel->second[0].Send(payload);
     return 2;
   }
   return 0;
+}
+
+void GPURecoWorkflowSpec::RunReceiveThread()
+{
+  std::unique_lock lk(mPipeline->threadMutex);
+  mPipeline->notifyThread.wait(lk, [this]() { return mPipeline->shouldTerminate || mPipeline->mayReceive; });
+  lk.unlock();
+  while (!mPipeline->shouldTerminate) {
+    auto* device = mPipeline->fmqDevice;
+    bool received = false;
+    int recvTimeot = 1000;
+    fair::mq::MessagePtr msg;
+    LOG(info) << "Waiting for out of band message";
+    do {
+      try {
+        msg = device->NewMessageFor("gpu-prepare-channel", 0, 0);
+        do {
+          received = device->Receive(msg, "gpu-prepare-channel", 0, recvTimeot) > 0;
+        } while (!received && !mPipeline->shouldTerminate);
+      } catch (...) {
+        usleep(1000000);
+      }
+    } while (!received && !mPipeline->shouldTerminate);
+    if (mPipeline->shouldTerminate) {
+      break;
+    }
+    if (msg->GetSize() < sizeof(pipelinePrepareMessage)) {
+      LOG(fatal) << "Received prepare message of invalid size " << msg->GetSize() << " < " << sizeof(pipelinePrepareMessage);
+    }
+    const pipelinePrepareMessage* m = (const pipelinePrepareMessage*)msg->GetData();
+    if (m->magicWord != m->MAGIC_WORD) {
+      LOG(fatal) << "Prepare message corrupted, invalid magic word";
+    }
+
+    auto o = std::make_unique<GPURecoWorkflow_QueueObject>();
+    o->timeSliceId = m->timeSliceId;
+    o->tfSettings = m->tfSettings;
+
+    size_t regionOffset = 0;
+    if (m->pointersTotal) {
+      bool regionFound = false;
+      for (unsigned int i = 0; i < mRegionInfos.size(); i++) {
+        if (mRegionInfos[i].managed == m->regionInfo.managed && mRegionInfos[i].id == m->regionInfo.id) {
+          regionFound = true;
+          regionOffset = (size_t)mRegionInfos[i].ptr;
+          break;
+        }
+      }
+    }
+    size_t ptrsCopied = 0;
+    size_t* ptrBuffer = (size_t*)msg->GetData() + sizeof(pipelinePrepareMessage) / sizeof(size_t);
+    o->tpcZSmeta.Pointers[0][0].resize(m->pointersTotal);
+    o->tpcZSmeta.Sizes[0][0].resize(m->pointersTotal);
+    for (unsigned int i = 0; i < GPUTrackingInOutZS::NSLICES; i++) {
+      for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
+        o->tpcZS.slice[i].count[j] = m->pointerCounts[i][j];
+        for (unsigned int k = 0; k < o->tpcZS.slice[i].count[j]; k++) {
+          o->tpcZSmeta.Pointers[0][0][ptrsCopied + k] = (void*)(ptrBuffer[ptrsCopied + k] + regionOffset);
+          o->tpcZSmeta.Sizes[0][0][ptrsCopied + k] = ptrBuffer[m->pointersTotal + ptrsCopied + k];
+        }
+        o->tpcZS.slice[i].zsPtr[j] = o->tpcZSmeta.Pointers[0][0].data() + ptrsCopied;
+        o->tpcZS.slice[i].nZSPtr[j] = o->tpcZSmeta.Sizes[0][0].data() + ptrsCopied;
+        ptrsCopied += o->tpcZS.slice[i].count[j];
+      }
+    }
+    o->ptrs.tpcZS = &o->tpcZS;
+    {
+      std::lock_guard lk(mPipeline->queueMutex);
+      mPipeline->pipelineQueue.emplace(std::move(o));
+    }
+    mPipeline->queueNotify.notify_one();
+  }
+}
+
+void GPURecoWorkflowSpec::TerminateReceiveThread()
+{
+  if (mPipeline->receiveThread.joinable()) {
+    mPipeline->shouldTerminate = true;
+    mPipeline->receiveThread.join();
+  }
 }
 
 } // namespace o2::gpu
