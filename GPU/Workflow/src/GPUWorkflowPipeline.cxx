@@ -53,6 +53,7 @@ struct pipelinePrepareMessage {
   fair::mq::RegionInfo regionInfo;
   size_t pointerCounts[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
   size_t pointersTotal;
+  bool flagEndOfStream;
 };
 
 int GPURecoWorkflowSpec::handlePipeline(ProcessingContext& pc, GPUTrackingInOutPointers& ptrs, GPURecoWorkflowSpec_TPCZSBuffers& tpcZSmeta, o2::gpu::GPUTrackingInOutZS& tpcZS)
@@ -94,6 +95,7 @@ int GPURecoWorkflowSpec::handlePipeline(ProcessingContext& pc, GPUTrackingInOutP
     preMessage.magicWord = preMessage.MAGIC_WORD;
     preMessage.timeSliceId = tinfo.timeslice;
     preMessage.pointersTotal = ptrsTotal;
+    preMessage.flagEndOfStream = false;
     memcpy((void*)&preMessage.tfSettings, (const void*)ptrs.settingsTF, sizeof(preMessage.tfSettings));
 
     if (ptrsTotal) {
@@ -133,13 +135,30 @@ int GPURecoWorkflowSpec::handlePipeline(ProcessingContext& pc, GPUTrackingInOutP
   return 0;
 }
 
+void GPURecoWorkflowSpec::handlePipelineEndOfStream(EndOfStreamContext& ec)
+{
+  if (mSpecConfig.enableDoublePipeline == 1) {
+    TerminateReceiveThread(); // TODO: Apparently breaks START / STOP / START
+  }
+  if (mSpecConfig.enableDoublePipeline == 2) {
+    auto* device = ec.services().get<RawDeviceService>().device();
+    pipelinePrepareMessage preMessage;
+    preMessage.flagEndOfStream = true;
+    auto channel = device->GetChannels().find("gpu-prepare-channel");
+    fair::mq::MessagePtr payload(device->NewMessage());
+    LOG(info) << "Sending end-of-stream message over out-of-bands channel";
+    payload->Rebuild(&preMessage, sizeof(preMessage), nullptr, nullptr);
+    channel->second[0].Send(payload);
+  }
+}
+
 void GPURecoWorkflowSpec::RunReceiveThread()
 {
-  std::unique_lock lk(mPipeline->threadMutex);
-  mPipeline->notifyThread.wait(lk, [this]() { return mPipeline->shouldTerminate || mPipeline->mayReceive; });
-  lk.unlock();
+  auto* device = mPipeline->fmqDevice;
+  while (device->GetCurrentState() != fair::mq::State::Running) {
+    usleep(300000);
+  }
   while (!mPipeline->shouldTerminate) {
-    auto* device = mPipeline->fmqDevice;
     bool received = false;
     int recvTimeot = 1000;
     fair::mq::MessagePtr msg;
@@ -163,6 +182,10 @@ void GPURecoWorkflowSpec::RunReceiveThread()
     const pipelinePrepareMessage* m = (const pipelinePrepareMessage*)msg->GetData();
     if (m->magicWord != m->MAGIC_WORD) {
       LOG(fatal) << "Prepare message corrupted, invalid magic word";
+    }
+    if (m->flagEndOfStream) {
+      LOG(info) << "Received end-of-stream from out-of-band channel";
+      continue;
     }
 
     auto o = std::make_unique<GPURecoWorkflow_QueueObject>();
