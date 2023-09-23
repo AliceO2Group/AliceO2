@@ -347,7 +347,7 @@ void GPURecoWorkflowSpec::stop()
 
 void GPURecoWorkflowSpec::endOfStream(EndOfStreamContext& ec)
 {
-  TerminateReceiveThread(); // TODO: Apparently breaks START / STOP / START
+  handlePipelineEndOfStream(ec);
 }
 
 void GPURecoWorkflowSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
@@ -628,9 +628,6 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   unsigned int threadIndex = mNextThreadIndex;
   if (mConfig->configProcessing.doublePipeline) {
     mNextThreadIndex = (mNextThreadIndex + 1) % 2;
-    std::lock_guard lk(mPipeline->threadMutex);
-    mPipeline->mayReceive = true;
-    mPipeline->notifyThread.notify_one();
   }
 
   if (mSpecConfig.enableDoublePipeline) {

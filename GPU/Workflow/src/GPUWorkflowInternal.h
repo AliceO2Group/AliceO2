@@ -49,7 +49,6 @@ struct GPURecoWorkflowSpec_PipelineInternals {
   std::thread receiveThread;
   std::condition_variable notifyThread;
   std::mutex threadMutex;
-  volatile bool mayReceive = false;
   volatile bool shouldTerminate = false;
 
   std::queue<std::unique_ptr<GPURecoWorkflow_QueueObject>> pipelineQueue;
