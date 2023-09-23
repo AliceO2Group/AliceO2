@@ -27,6 +27,7 @@
 #include <array>
 #include <vector>
 #include <mutex>
+#include <functional>
 
 class TStopwatch;
 namespace fair::mq
@@ -122,7 +123,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
     bool tpcTriggerHandling = false;
   };
 
-  GPURecoWorkflowSpec(CompletionPolicyData* policyData, Config const& specconfig, std::vector<int> const& tpcsectors, unsigned long tpcSectorMask, std::shared_ptr<o2::base::GRPGeomRequest>& ggr);
+  GPURecoWorkflowSpec(CompletionPolicyData* policyData, Config const& specconfig, std::vector<int> const& tpcsectors, unsigned long tpcSectorMask, std::shared_ptr<o2::base::GRPGeomRequest>& ggr, std::function<bool(o2::framework::DataProcessingHeader::StartTime)>** gPolicyOrder = nullptr);
   ~GPURecoWorkflowSpec() override;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
@@ -162,8 +163,10 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   void RunReceiveThread();
   void TerminateReceiveThread();
   void handlePipelineEndOfStream(o2::framework::EndOfStreamContext& ec);
+  void initPipeline(o2::framework::InitContext& ic);
 
   CompletionPolicyData* mPolicyData;
+  std::function<bool(o2::framework::DataProcessingHeader::StartTime)> mPolicyOrder;
   std::unique_ptr<GPUO2Interface> mGPUReco;
   std::unique_ptr<GPUDisplayFrontendInterface> mDisplayFrontend;
   std::unique_ptr<TPCFastTransform> mFastTransform;
