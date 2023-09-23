@@ -16,8 +16,14 @@
 #define O2_GPU_GPUWORKFLOWINTERNAL_H
 
 #include "GPUDataTypes.h"
+#include <mutex>
+#include <thread>
+#include <condition_variable>
+#include <queue>
 
 namespace o2::gpu
+{
+namespace gpurecoworkflow_internals
 {
 
 struct GPURecoWorkflowSpec_TPCZSBuffers {
@@ -27,6 +33,31 @@ struct GPURecoWorkflowSpec_TPCZSBuffers {
   const unsigned int* Sizes2[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
 };
 
+struct GPURecoWorkflow_QueueObject {
+  GPURecoWorkflowSpec_TPCZSBuffers tpcZSmeta;
+  GPUTrackingInOutZS tpcZS;
+  GPUSettingsTF tfSettings;
+  GPUTrackingInOutPointers ptrs;
+  o2::framework::DataProcessingHeader::StartTime timeSliceId;
+};
+
+struct GPURecoWorkflowSpec_PipelineInternals {
+  std::mutex mutexDecodeInput;
+
+  fair::mq::Device* fmqDevice;
+
+  std::thread receiveThread;
+  std::condition_variable notifyThread;
+  std::mutex threadMutex;
+  volatile bool mayReceive = false;
+  volatile bool shouldTerminate = false;
+
+  std::queue<std::unique_ptr<GPURecoWorkflow_QueueObject>> pipelineQueue;
+  std::mutex queueMutex;
+  std::condition_variable queueNotify;
+};
+
+} // namespace gpurecoworkflow_internals
 } // namespace o2::gpu
 
 #endif
