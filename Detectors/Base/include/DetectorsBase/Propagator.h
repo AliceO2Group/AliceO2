@@ -34,7 +34,7 @@ namespace parameters
 {
 class GRPObject;
 class GRPMagField;
-}
+} // namespace parameters
 
 namespace dataformats
 {
@@ -45,7 +45,7 @@ namespace field
 {
 class MagFieldFast;
 class MagneticField;
-}
+} // namespace field
 
 namespace gpu
 {
@@ -134,6 +134,7 @@ class PropagatorImpl
   GPUd() void setGPUField(const o2::gpu::GPUTPCGMPolynomialField* field) { mGPUField = field; }
   GPUd() const o2::gpu::GPUTPCGMPolynomialField* getGPUField() const { return mGPUField; }
   GPUd() void setBz(value_type bz) { mBz = bz; }
+  GPUd() bool hasMagFieldSet() const { return mField != nullptr; }
 
   GPUd() void estimateLTFast(o2::track::TrackLTIntegral& lt, const o2::track::TrackParametrization<value_type>& trc) const;
 

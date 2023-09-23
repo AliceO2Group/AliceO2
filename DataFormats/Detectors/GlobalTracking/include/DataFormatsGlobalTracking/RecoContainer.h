@@ -37,6 +37,7 @@ namespace o2::tpc
 class TrackTPC;
 using TPCClRefElem = uint32_t;
 struct ClusterNativeAccess;
+struct TriggerInfoDLBZS;
 namespace internal
 {
 struct getWorkflowTPCInput_ret;
@@ -224,6 +225,7 @@ struct DataRequest {
   void requestITSClusters(bool mc);
   void requestMFTClusters(bool mc);
   void requestTPCClusters(bool mc);
+  void requestTPCTriggers();
   void requestTOFClusters(bool mc);
   void requestTRDTracklets(bool mc);
   void requestMCHClusters(bool mc);
@@ -370,6 +372,7 @@ struct RecoContainer {
   void addITSClusters(o2::framework::ProcessingContext& pc, bool mc);
   void addMFTClusters(o2::framework::ProcessingContext& pc, bool mc);
   void addTPCClusters(o2::framework::ProcessingContext& pc, bool mc, bool shmap);
+  void addTPCTriggers(o2::framework::ProcessingContext& pc);
   void addTOFClusters(o2::framework::ProcessingContext& pc, bool mc);
   void addHMPClusters(o2::framework::ProcessingContext& pc, bool mc);
   void addTRDTracklets(o2::framework::ProcessingContext& pc, bool mc);
@@ -535,6 +538,7 @@ struct RecoContainer {
   auto getTPCTrackMCLabel(GTrackID id) const { return getObject<o2::MCCompLabel>(id, MCLABELS); }
   const o2::tpc::ClusterNativeAccess& getTPCClusters() const;
   const o2::dataformats::ConstMCTruthContainerView<o2::MCCompLabel>* getTPCClustersMCLabels() const;
+  auto getTPCTriggers() const { return getSpan<o2::tpc::TriggerInfoDLBZS>(GTrackID::TPC, MATCHES); }
 
   // ITS-TPC
   const o2::dataformats::TrackTPCITS& getTPCITSTrack(GTrackID gid) const { return getTrack<o2::dataformats::TrackTPCITS>(gid); }

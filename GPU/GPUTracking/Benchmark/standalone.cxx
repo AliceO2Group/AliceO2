@@ -415,7 +415,9 @@ int SetupReconstruction()
 
   if (configStandalone.testSyncAsync || configStandalone.testSync) {
     // Set settings for synchronous
-    steps.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, 0);
+    if (configStandalone.rundEdx == -1) {
+      steps.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, 0);
+    }
     recSet.useMatLUT = false;
     if (configStandalone.testSyncAsync) {
       procSet.eventDisplay = nullptr;
@@ -861,12 +863,12 @@ int main(int argc, char** argv)
           } else {
             grp.continuousMaxTimeBin = chainTracking->mIOPtrs.tpcZS ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcZS) : chainTracking->mIOPtrs.tpcPackedDigits ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcPackedDigits) : GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.clustersNative);
             printf("Max time bin set to %d\n", (int)grp.continuousMaxTimeBin);
-            rec->UpdateGRPSettings(&grp);
+            rec->UpdateSettings(&grp);
             if (recAsync) {
-              recAsync->UpdateGRPSettings(&grp);
+              recAsync->UpdateSettings(&grp);
             }
             if (recPipeline) {
-              recPipeline->UpdateGRPSettings(&grp);
+              recPipeline->UpdateSettings(&grp);
             }
           }
         }

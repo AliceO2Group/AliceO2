@@ -39,7 +39,7 @@ class CTFHelper
   {
     CTFHeader h{o2::detectors::DetID::CTP, 0, 1, 0, // dummy timestamp, version 1.0
                 lumi.counts, lumi.countsFV0, lumi.nHBFCounted, lumi.orbit,
-                uint32_t(mData.size()), 0, 0};
+                uint32_t(mData.size()), 0, 0, uint16_t(lumi.inp1), uint16_t(lumi.inp2)};
     if (mData.size()) {
       h.firstOrbit = mData[0].intRecord.orbit;
       h.firstBC = mData[0].intRecord.bc;

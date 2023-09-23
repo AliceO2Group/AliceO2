@@ -27,8 +27,13 @@
 #include <string>
 #include <array>
 #include <vector>
+#include <mutex>
 
 class TStopwatch;
+namespace fair::mq
+{
+struct RegionInfo;
+} // namespace fair::mq
 namespace o2
 {
 namespace base
@@ -78,6 +83,12 @@ struct TPCZSLinkMapping;
 struct GPUSettingsO2;
 class GPUO2InterfaceQA;
 struct GPUTrackingInOutPointers;
+struct GPUTrackingInOutZS;
+namespace gpurecoworkflow_internals
+{
+struct GPURecoWorkflowSpec_TPCZSBuffers;
+struct GPURecoWorkflowSpec_PipelineInternals;
+} // namespace gpurecoworkflow_internals
 
 class GPURecoWorkflowSpec : public o2::framework::Task
 {
@@ -87,6 +98,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   struct Config {
     int itsTriggerType = 0;
     int lumiScaleMode = 0;
+    int enableDoublePipeline = 0;
     bool decompressTPC = false;
     bool decompressTPCFromROOT = false;
     bool caClusterer = false;
@@ -142,14 +154,17 @@ class GPURecoWorkflowSpec : public o2::framework::Task
 
   void doTrackTuneTPC(GPUTrackingInOutPointers& ptrs, char* buffout);
 
-  template <class A, class B, class C, class D, class E, class F, class G, class H, class I, class J, class K>
-  void processInputs(o2::framework::ProcessingContext&, A&, B&, C&, D&, E&, F&, G&, bool&, H&, I&, J&, K&);
+  template <class D, class E, class F, class G, class H, class I, class J, class K>
+  void processInputs(o2::framework::ProcessingContext&, D&, E&, F&, G&, bool&, H&, I&, J&, K&);
 
   int runITSTracking(o2::framework::ProcessingContext& pc);
 
+  int handlePipeline(o2::framework::ProcessingContext& pc, GPUTrackingInOutPointers& ptrs, gpurecoworkflow_internals::GPURecoWorkflowSpec_TPCZSBuffers& tpcZSmeta, o2::gpu::GPUTrackingInOutZS& tpcZS);
+  void RunReceiveThread();
+  void TerminateReceiveThread();
+
   CompletionPolicyData* mPolicyData;
-  std::unique_ptr<o2::algorithm::ForwardParser<o2::tpc::ClusterGroupHeader>> mParser;
-  std::unique_ptr<GPUO2Interface> mTracker;
+  std::unique_ptr<GPUO2Interface> mGPUReco;
   std::unique_ptr<GPUDisplayFrontendInterface> mDisplayFrontend;
   std::unique_ptr<TPCFastTransform> mFastTransform;
   std::unique_ptr<TPCFastTransform> mFastTransformRef;
@@ -175,13 +190,16 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   std::vector<int> mTPCSectors;
   std::unique_ptr<o2::its::Tracker> mITSTracker;
   std::unique_ptr<o2::its::Vertexer> mITSVertexer;
+  std::unique_ptr<gpurecoworkflow_internals::GPURecoWorkflowSpec_PipelineInternals> mPipeline;
   o2::its::TimeFrame* mITSTimeFrame = nullptr;
+  std::vector<fair::mq::RegionInfo> mRegionInfos;
   const o2::itsmft::TopologyDictionary* mITSDict = nullptr;
   const o2::dataformats::MeanVertexObject* mMeanVertex;
   unsigned long mTPCSectorMask = 0;
   int mVerbosity = 0;
   unsigned int mNTFs = 0;
   unsigned int mNDebugDumps = 0;
+  unsigned int mNextThreadIndex = 0;
   bool mUpdateGainMapCCDB = true;
   std::unique_ptr<o2::gpu::GPUSettingsTF> mTFSettings;
   Config mSpecConfig;

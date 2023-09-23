@@ -39,7 +39,7 @@
 #define RANDOM_ERROR
 //#define RANDOM_ERROR || rand() % 500 == 1
 
-#define GPUCA_GPUReconstructionUpdateDefailts()                                           \
+#define GPUCA_GPUReconstructionUpdateDefaults()                                           \
   if (mProcessingSettings.trackletConstructorInPipeline < 0) {                            \
     mProcessingSettings.trackletConstructorInPipeline = GPUCA_CONSTRUCTOR_IN_PIPELINE;    \
   }                                                                                       \

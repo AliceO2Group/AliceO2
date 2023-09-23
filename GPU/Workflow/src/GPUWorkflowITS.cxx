@@ -37,8 +37,6 @@
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
 #include "DataFormatsTPC/Digit.h"
 #include "TPCFastTransform.h"
-#include "DPLUtils/DPLRawParser.h"
-#include "DPLUtils/DPLRawPageSequencer.h"
 #include "DetectorsBase/MatLayerCylSet.h"
 #include "DetectorsBase/Propagator.h"
 #include "DetectorsBase/GeometryManager.h"
@@ -310,7 +308,7 @@ void GPURecoWorkflowSpec::initFunctionITS(InitContext& ic)
   std::transform(mITSMode.begin(), mITSMode.end(), mITSMode.begin(), [](unsigned char c) { return std::tolower(c); });
   o2::its::VertexerTraits* vtxTraits = nullptr;
   o2::its::TrackerTraits* trkTraits = nullptr;
-  mTracker->GetITSTraits(trkTraits, vtxTraits, mITSTimeFrame);
+  mGPUReco->GetITSTraits(trkTraits, vtxTraits, mITSTimeFrame);
   mITSVertexer = std::make_unique<o2::its::Vertexer>(vtxTraits);
   mITSTracker = std::make_unique<o2::its::Tracker>(trkTraits);
   mITSVertexer->adoptTimeFrame(*mITSTimeFrame);

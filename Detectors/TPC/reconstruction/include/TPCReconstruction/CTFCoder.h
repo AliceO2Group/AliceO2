@@ -40,6 +40,26 @@ namespace tpc
 namespace detail
 {
 
+struct TriggerInfo {
+  uint32_t firstOrbit = -1;
+  std::vector<int32_t> deltaOrbit;
+  std::vector<int16_t> deltaBC;
+  std::vector<uint8_t> triggerType;
+  void clear()
+  {
+    firstOrbit = -1;
+    deltaOrbit.clear();
+    deltaBC.clear();
+    triggerType.clear();
+  }
+  void resize(size_t s)
+  {
+    deltaOrbit.resize(s);
+    deltaBC.resize(s);
+    triggerType.resize(s);
+  }
+};
+
 template <int A, int B>
 struct combinedType {
   using type = std::conditional_t<(A + B > 16), uint32_t, std::conditional_t<(A + B > 8), uint16_t, uint8_t>>;
@@ -107,10 +127,10 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
   /// entropy-encode compressed clusters to flat buffer
   template <typename VEC>
-  o2::ctf::CTFIOSize encode(VEC& buff, const CompressedClusters& ccl, const CompressedClusters& cclFiltered, std::vector<bool>* rejectHits = nullptr, std::vector<bool>* rejectTracks = nullptr, std::vector<bool>* rejectTrackHits = nullptr, std::vector<bool>* rejectTrackHitsReduced = nullptr);
+  o2::ctf::CTFIOSize encode(VEC& buff, const CompressedClusters& ccl, const CompressedClusters& cclFiltered, const detail::TriggerInfo& trigComp, std::vector<bool>* rejectHits = nullptr, std::vector<bool>* rejectTracks = nullptr, std::vector<bool>* rejectTrackHits = nullptr, std::vector<bool>* rejectTrackHitsReduced = nullptr);
 
-  template <typename VEC>
-  o2::ctf::CTFIOSize decode(const CTF::base& ec, VEC& buff);
+  template <typename VEC, typename TRIGVEC>
+  o2::ctf::CTFIOSize decode(const CTF::base& ec, VEC& buff, TRIGVEC& buffTrig);
 
   void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
 
@@ -161,7 +181,7 @@ void CTFCoder::buildCoder(ctf::CTFCoderBase::OpType coderType, const CTF::contai
 
 /// entropy-encode clusters to buffer with CTF
 template <typename VEC>
-o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const CompressedClusters& ccl, const CompressedClusters& cclFiltered, std::vector<bool>* rejectHits, std::vector<bool>* rejectTracks, std::vector<bool>* rejectTrackHits, std::vector<bool>* rejectTrackHitsReduced)
+o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const CompressedClusters& ccl, const CompressedClusters& cclFiltered, const detail::TriggerInfo& trigComp, std::vector<bool>* rejectHits, std::vector<bool>* rejectTracks, std::vector<bool>* rejectTrackHits, std::vector<bool>* rejectTrackHitsReduced)
 {
   using MD = o2::ctf::Metadata::OptStore;
   using namespace detail;
@@ -189,7 +209,10 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const CompressedClusters& ccl, co
     MD::EENCODE_OR_PACK, // sigmaPadU
     MD::EENCODE_OR_PACK, // sigmaTimeU
     MD::EENCODE_OR_PACK, // nTrackClusters
-    MD::EENCODE_OR_PACK  // nSliceRowClusters
+    MD::EENCODE_OR_PACK, // nSliceRowClusters
+    MD::EENCODE_OR_PACK, // TrigBCInc
+    MD::EENCODE_OR_PACK, // TrigOrbitInc
+    MD::EENCODE_OR_PACK  // TrigType
   };
 
   // book output size with some margin
@@ -202,7 +225,7 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const CompressedClusters& ccl, co
     flags |= CTFHeader::CombinedColumns;
   }
   ec->setHeader(CTFHeader{o2::detectors::DetID::TPC, 0, 1, 0, // dummy timestamp, version 1.0
-                          cclFiltered, flags});
+                          cclFiltered, flags, trigComp.firstOrbit, (uint16_t)trigComp.triggerType.size()});
   assignDictVersion(static_cast<o2::ctf::CTFDictHeader&>(ec->getHeader()));
   ec->setANSHeader(mANSVersion);
 
@@ -286,6 +309,11 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const CompressedClusters& ccl, co
 
   encodeTPC(ccl.nTrackClusters, ccl.nTrackClusters + ccl.nTracks, CTF::BLCnTrackClusters, 0, rejectTracks);
   encodeTPC(ccl.nSliceRowClusters, ccl.nSliceRowClusters + ccl.nSliceRows, CTF::BLCnSliceRowClusters, 0);
+
+  encodeTPC(trigComp.deltaOrbit.begin(), trigComp.deltaOrbit.end(), CTF::BLCTrigOrbitInc, 0);
+  encodeTPC(trigComp.deltaBC.begin(), trigComp.deltaBC.end(), CTF::BLCTrigBCInc, 0);
+  encodeTPC(trigComp.triggerType.begin(), trigComp.triggerType.end(), CTF::BLCTrigType, 0);
+
   CTF::get(buff.data())->print(getPrefix(), mVerbosity);
   finaliseCTFOutput<CTF>(buff);
   iosize.rawIn = iosize.ctfIn;
@@ -293,8 +321,8 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const CompressedClusters& ccl, co
 }
 
 /// decode entropy-encoded bloks to TPC CompressedClusters into the externally provided vector (e.g. PMR vector from DPL)
-template <typename VEC>
-o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VEC& buffVec)
+template <typename VEC, typename TRIGVEC>
+o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VEC& buffVec, TRIGVEC& buffTrig)
 {
   using namespace detail;
   CompressedClusters cc;
@@ -374,6 +402,29 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VEC& buffVec)
 
   decodeTPC(cc.nTrackClusters, CTF::BLCnTrackClusters);
   decodeTPC(cc.nSliceRowClusters, CTF::BLCnSliceRowClusters);
+
+  static TriggerInfo trigInfo;
+  trigInfo.resize(header.nTriggers);
+  decodeTPC(trigInfo.deltaOrbit.data(), CTF::BLCTrigOrbitInc);
+  decodeTPC(trigInfo.deltaBC.data(), CTF::BLCTrigBCInc);
+  decodeTPC(trigInfo.triggerType.data(), CTF::BLCTrigType);
+  // convert trigger info to output format
+  uint32_t prevOrbit = header.firstOrbitTrig;
+  uint16_t prevBC = 0;
+  int freeSlot = 0;
+  for (uint16_t it = 0; it < header.nTriggers; it++) {
+    if (trigInfo.deltaOrbit[it] || !it) { // start new HBF, deltaBC has absolute BC meaning
+      freeSlot = 0;
+      auto& t = buffTrig.emplace_back();
+      t.orbit = prevOrbit + trigInfo.deltaOrbit[it];
+      t.triggerWord.triggerEntries[freeSlot++] = (trigInfo.deltaBC[it] & 0xFFF) | ((trigInfo.triggerType[it] & 0x7) << 12) | 0x8000;
+      prevBC = trigInfo.deltaBC[it];
+      prevOrbit = t.orbit;
+    } else { // continue existing HBF
+      prevBC += trigInfo.deltaBC[it];
+      buffTrig.back().triggerWord.triggerEntries[freeSlot++] = (prevBC & 0xFFF) | ((trigInfo.triggerType[it] & 0x7) << 12) | 0x8000;
+    }
+  }
   iosize.rawIn = iosize.ctfIn;
   return iosize;
 }

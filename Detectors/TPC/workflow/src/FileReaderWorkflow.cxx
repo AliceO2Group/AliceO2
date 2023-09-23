@@ -12,6 +12,7 @@
 /// @file   FileReaderWorkflow.cxx
 
 #include "TPCReaderWorkflow/ClusterReaderSpec.h"
+#include "TPCReaderWorkflow/TriggerReaderSpec.h"
 #include "TPCReaderWorkflow/TrackReaderSpec.h"
 
 #include "Algorithm/RangeTokenizer.h"
@@ -67,6 +68,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 
   if (isEnabled(Input::Clusters)) {
     specs.emplace_back(o2::tpc::getClusterReaderSpec(doMC));
+    if (!getenv("DPL_DISABLE_TPC_TRIGGER_READER") || atoi(getenv("DPL_DISABLE_TPC_TRIGGER_READER")) != 1) {
+      specs.emplace_back(o2::tpc::getTPCTriggerReaderSpec());
+    }
   }
 
   if (isEnabled(Input::Tracks)) {

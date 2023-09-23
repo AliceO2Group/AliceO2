@@ -124,9 +124,9 @@ void GPUReconstructionCUDA::GetITSTraits(std::unique_ptr<o2::its::TrackerTraits>
   }
 }
 
-void GPUReconstructionCUDA::UpdateSettings()
+void GPUReconstructionCUDA::UpdateAutomaticProcessingSettings()
 {
-  GPUCA_GPUReconstructionUpdateDefailts();
+  GPUCA_GPUReconstructionUpdateDefaults();
 }
 
 int GPUReconstructionCUDA::InitDevice_Runtime()
@@ -335,8 +335,6 @@ int GPUReconstructionCUDA::InitDevice_Runtime()
     }
 
     dummyInitKernel<<<mBlockCount, 256>>>(mDeviceMemoryBase);
-    GPUInfo("CUDA Initialisation successfull (Device %d: %s (Frequency %d, Cores %d), %lld / %lld bytes host / global memory, Stack frame %d, Constant memory %lld)", mDeviceId, cudaDeviceProp.name, cudaDeviceProp.clockRate, cudaDeviceProp.multiProcessorCount, (long long int)mHostMemorySize,
-            (long long int)mDeviceMemorySize, (int)GPUCA_GPU_STACK_SIZE, (long long int)gGPUConstantMemBufferSize);
 
 #ifndef GPUCA_ALIROOT_LIB
     if (mProcessingSettings.rtc.enable) {
@@ -363,6 +361,8 @@ int GPUReconstructionCUDA::InitDevice_Runtime()
     }
 #endif
     mDeviceConstantMem = (GPUConstantMem*)devPtrConstantMem;
+
+    GPUInfo("CUDA Initialisation successfull (Device %d: %s (Frequency %d, Cores %d), %lld / %lld bytes host / global memory, Stack frame %d, Constant memory %lld)", mDeviceId, cudaDeviceProp.name, cudaDeviceProp.clockRate, cudaDeviceProp.multiProcessorCount, (long long int)mHostMemorySize, (long long int)mDeviceMemorySize, (int)GPUCA_GPU_STACK_SIZE, (long long int)gGPUConstantMemBufferSize);
   } else {
     GPUReconstructionCUDA* master = dynamic_cast<GPUReconstructionCUDA*>(mMaster);
     mDeviceId = master->mDeviceId;
@@ -375,6 +375,8 @@ int GPUReconstructionCUDA::InitDevice_Runtime()
     std::copy(master->mDeviceConstantMemRTC.begin(), master->mDeviceConstantMemRTC.end(), mDeviceConstantMemRTC.begin());
     mInternals = master->mInternals;
     GPUFailedMsg(cudaSetDevice(mDeviceId));
+
+    GPUInfo("CUDA Initialized from master");
   }
 
   for (unsigned int i = 0; i < mEvents.size(); i++) {

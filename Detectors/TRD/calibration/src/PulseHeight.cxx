@@ -92,16 +92,19 @@ void PulseHeight::process()
         const auto& trigTrack = (*trackTriggers)[iTrigTrack];
         if (trigTrack.getBCData().differenceInBC(trig.getBCData()) > 0) {
           // aborting, since track trigger is later than digit trigger";
+          LOGP(debug, "Aborting, track trigger is too late");
           break;
         }
         if (trigTrack.getBCData() != trig.getBCData()) {
           // skipping, since track trigger earlier than digit trigger";
+          LOGP(debug, "Skipping, track trigger is too late");
           ++lastTrkTrig[iTrackType];
           continue;
         }
         if ((*tracks)[trigTrack.getFirstTrack()].hasPileUpInfo() && (*tracks)[trigTrack.getFirstTrack()].getPileUpTimeShiftMUS() < mParams.pileupCut) {
           // rejecting triggers which are close to other collisions (avoid pile-up)
           ++lastTrkTrig[iTrackType];
+          LOGP(debug, "Rececting trigger due to pileup of {}", (*tracks)[trigTrack.getFirstTrack()].getPileUpTimeShiftMUS());
           break;
         }
         for (int iTrk = trigTrack.getFirstTrack(); iTrk < trigTrack.getFirstTrack() + trigTrack.getNumberOfTracks(); iTrk++) {
@@ -125,8 +128,13 @@ void PulseHeight::process()
 void PulseHeight::findDigitsForTracklet(const Tracklet64& trklt, const TriggerRecord& trig, int type)
 {
   auto trkltDet = trklt.getDetector();
-  for (int iDigit = trig.getFirstDigit() + 1; iDigit < trig.getFirstDigit() + trig.getNumberOfDigits() - 1; ++iDigit) {
+  int iDigitFirst = trig.getFirstDigit();
+  int iDigitLast = trig.getFirstDigit() + trig.getNumberOfDigits();
+  for (int iDigit = iDigitFirst + 1; iDigit < iDigitLast - 1; ++iDigit) {
     const auto& digit = (*mDigits)[iDigit];
+    if (digit.isSharedDigit()) {
+      continue; // avoid double-counting of the same digit
+    }
     if (digit.getDetector() != trkltDet || digit.getPadRow() != trklt.getPadRow() || digit.getPadCol() != trklt.getPadCol()) {
       // for now we loose charge information from padrow-crossing tracklets (~15% of all tracklets)
       continue;
@@ -134,38 +142,47 @@ void PulseHeight::findDigitsForTracklet(const Tracklet64& trklt, const TriggerRe
     int nNeighbours = 0;
     bool left = false;
     bool right = false;
-    const auto& digitLeft = (*mDigits)[iDigit - 1];
-    const auto& digitRight = (*mDigits)[iDigit + 1];
+    const auto* digitLeft = &(*mDigits)[iDigit + 1];
+    const auto* digitRight = &(*mDigits)[iDigit - 1];
+    // due to shared digits the neighbouring element might still be in the same pad column
+    if (digitLeft->getPadCol() == digit.getPadCol() && iDigit < iDigitLast - 2) {
+      digitLeft = &(*mDigits)[iDigit + 2];
+    }
+    if (digitRight->getPadCol() == digit.getPadCol() && iDigit > iDigitFirst + 2) {
+      digitRight = &(*mDigits)[iDigit - 2];
+    }
     LOG(debug) << "Central digit: " << digit;
-    LOG(debug) << "Left digit: " << digitLeft;
-    LOG(debug) << "Right digit: " << digitRight;
-    if (digitLeft.isNeighbour(digit) && digitLeft.getChannel() < digit.getChannel()) {
+    LOG(debug) << "Left digit: " << *digitLeft;
+    LOG(debug) << "Right digit: " << *digitRight;
+    int direction = 0;
+    if (digitLeft->isNeighbour(digit)) {
       ++nNeighbours;
       left = true;
+      direction = digit.getPadCol() - digitLeft->getPadCol();
     }
-    if (digitRight.isNeighbour(digit) && digitRight.getChannel() > digit.getChannel()) {
+    if (digitRight->isNeighbour(digit) && digit.getPadCol() - digitRight->getPadCol() != direction) {
       ++nNeighbours;
       right = true;
     }
     if (nNeighbours > 0) {
       int digitTrackletDistance = 0;
       auto adcSumMax = digit.getADCsum();
-      if (left && digitLeft.getADCsum() > adcSumMax) {
-        adcSumMax = digitLeft.getADCsum();
+      if (left && digitLeft->getADCsum() > adcSumMax) {
+        adcSumMax = digitLeft->getADCsum();
         digitTrackletDistance = 1;
       }
-      if (right && digitRight.getADCsum() > adcSumMax) {
-        adcSumMax = digitRight.getADCsum();
+      if (right && digitRight->getADCsum() > adcSumMax) {
+        adcSumMax = digitRight->getADCsum();
         digitTrackletDistance = -1;
       }
       mDistances.push_back(digitTrackletDistance);
       for (int iTb = 0; iTb < TIMEBINS; ++iTb) {
         uint16_t phVal = digit.getADC()[iTb];
         if (left) {
-          phVal += digitLeft.getADC()[iTb];
+          phVal += digitLeft->getADC()[iTb];
         }
         if (right) {
-          phVal += digitRight.getADC()[iTb];
+          phVal += digitRight->getADC()[iTb];
         }
         mPHValues.emplace_back(phVal, trkltDet, iTb, nNeighbours, type);
       }
