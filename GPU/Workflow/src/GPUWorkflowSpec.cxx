@@ -107,7 +107,7 @@ using namespace o2::gpu::gpurecoworkflow_internals;
 namespace o2::gpu
 {
 
-GPURecoWorkflowSpec::GPURecoWorkflowSpec(GPURecoWorkflowSpec::CompletionPolicyData* policyData, Config const& specconfig, std::vector<int> const& tpcsectors, unsigned long tpcSectorMask, std::shared_ptr<o2::base::GRPGeomRequest>& ggr) : o2::framework::Task(), mPolicyData(policyData), mTPCSectorMask(tpcSectorMask), mTPCSectors(tpcsectors), mSpecConfig(specconfig), mGGR(ggr)
+GPURecoWorkflowSpec::GPURecoWorkflowSpec(GPURecoWorkflowSpec::CompletionPolicyData* policyData, Config const& specconfig, std::vector<int> const& tpcsectors, unsigned long tpcSectorMask, std::shared_ptr<o2::base::GRPGeomRequest>& ggr, std::function<bool(o2::framework::DataProcessingHeader::StartTime)>** gPolicyOrder) : o2::framework::Task(), mPolicyData(policyData), mTPCSectorMask(tpcSectorMask), mTPCSectors(tpcsectors), mSpecConfig(specconfig), mGGR(ggr)
 {
   if (mSpecConfig.outputCAClusters && !mSpecConfig.caClusterer && !mSpecConfig.decompressTPC) {
     throw std::runtime_error("inconsistent configuration: cluster output is only possible if CA clusterer is activated");
@@ -118,6 +118,10 @@ GPURecoWorkflowSpec::GPURecoWorkflowSpec(GPURecoWorkflowSpec::CompletionPolicyDa
   mTFSettings.reset(new GPUSettingsTF);
   mTimer.reset(new TStopwatch);
   mPipeline.reset(new GPURecoWorkflowSpec_PipelineInternals);
+
+  if (mSpecConfig.enableDoublePipeline == 1 && gPolicyOrder) {
+    *gPolicyOrder = &mPolicyOrder;
+  }
 }
 
 GPURecoWorkflowSpec::~GPURecoWorkflowSpec() = default;
@@ -285,9 +289,8 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
     }
   }
 
-  if (mSpecConfig.enableDoublePipeline == 1) {
-    mPipeline->fmqDevice = ic.services().get<RawDeviceService>().device();
-    mPipeline->receiveThread = std::thread([this]() { RunReceiveThread(); });
+  if (mSpecConfig.enableDoublePipeline) {
+    initPipeline(ic);
   }
 
   auto& callbacks = ic.services().get<CallbackService>();
