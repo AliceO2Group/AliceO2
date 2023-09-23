@@ -21,7 +21,6 @@
 #include "Framework/Task.h"
 #include "Framework/ConcreteDataMatcher.h"
 #include "Framework/InitContext.h"
-#include "Framework/ProcessingContext.h"
 #include "Framework/CompletionPolicy.h"
 #include "Algorithm/Parser.h"
 #include <string>
@@ -162,6 +161,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   int handlePipeline(o2::framework::ProcessingContext& pc, GPUTrackingInOutPointers& ptrs, gpurecoworkflow_internals::GPURecoWorkflowSpec_TPCZSBuffers& tpcZSmeta, o2::gpu::GPUTrackingInOutZS& tpcZS);
   void RunReceiveThread();
   void TerminateReceiveThread();
+  void handlePipelineEndOfStream(o2::framework::EndOfStreamContext& ec);
 
   CompletionPolicyData* mPolicyData;
   std::unique_ptr<GPUO2Interface> mGPUReco;
