@@ -56,6 +56,23 @@ struct pipelinePrepareMessage {
   bool flagEndOfStream;
 };
 
+void GPURecoWorkflowSpec::initPipeline(o2::framework::InitContext& ic)
+{
+  if (mSpecConfig.enableDoublePipeline == 1) {
+    mPipeline->fmqDevice = ic.services().get<RawDeviceService>().device();
+    mPolicyOrder = [this](o2::framework::DataProcessingHeader::StartTime timeslice) {
+      std::unique_lock lk(mPipeline->completionPolicyMutex);
+      mPipeline->completionPolicyNotify.wait(lk, [pipeline = mPipeline.get()] { return pipeline->pipelineSenderTerminating || !pipeline->completionPolicyQueue.empty(); });
+      if (mPipeline->completionPolicyQueue.front() == timeslice) {
+        mPipeline->completionPolicyQueue.pop();
+        return true;
+      }
+      return false;
+    };
+    mPipeline->receiveThread = std::thread([this]() { RunReceiveThread(); });
+  }
+}
+
 int GPURecoWorkflowSpec::handlePipeline(ProcessingContext& pc, GPUTrackingInOutPointers& ptrs, GPURecoWorkflowSpec_TPCZSBuffers& tpcZSmeta, o2::gpu::GPUTrackingInOutZS& tpcZS)
 {
   auto* device = pc.services().get<RawDeviceService>().device();
@@ -184,8 +201,8 @@ void GPURecoWorkflowSpec::RunReceiveThread()
       LOG(fatal) << "Prepare message corrupted, invalid magic word";
     }
     if (m->flagEndOfStream) {
-      LOG(info) << "Received end-of-stream from out-of-band channel";
-      continue;
+      LOG(info) << "Received end-of-stream from out-of-band channel, terminating receive thread"; // TODO: Breaks START / STOP / START
+      break;
     }
 
     auto o = std::make_unique<GPURecoWorkflow_QueueObject>();
@@ -221,11 +238,21 @@ void GPURecoWorkflowSpec::RunReceiveThread()
     }
     o->ptrs.tpcZS = &o->tpcZS;
     {
+      std::lock_guard lk(mPipeline->completionPolicyMutex);
+      mPipeline->completionPolicyQueue.emplace(m->timeSliceId);
+    }
+    mPipeline->completionPolicyNotify.notify_one();
+    {
       std::lock_guard lk(mPipeline->queueMutex);
       mPipeline->pipelineQueue.emplace(std::move(o));
     }
     mPipeline->queueNotify.notify_one();
   }
+  {
+    std::lock_guard lk(mPipeline->completionPolicyMutex);
+    mPipeline->pipelineSenderTerminating = true;
+  }
+  mPipeline->completionPolicyNotify.notify_one();
 }
 
 void GPURecoWorkflowSpec::TerminateReceiveThread()

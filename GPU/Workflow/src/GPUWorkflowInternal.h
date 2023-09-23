@@ -47,13 +47,17 @@ struct GPURecoWorkflowSpec_PipelineInternals {
   fair::mq::Device* fmqDevice;
 
   std::thread receiveThread;
-  std::condition_variable notifyThread;
   std::mutex threadMutex;
   volatile bool shouldTerminate = false;
 
   std::queue<std::unique_ptr<GPURecoWorkflow_QueueObject>> pipelineQueue;
   std::mutex queueMutex;
   std::condition_variable queueNotify;
+
+  std::queue<o2::framework::DataProcessingHeader::StartTime> completionPolicyQueue;
+  bool pipelineSenderTerminating = false;
+  std::mutex completionPolicyMutex;
+  std::condition_variable completionPolicyNotify;
 };
 
 } // namespace gpurecoworkflow_internals
