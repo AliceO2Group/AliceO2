@@ -19,6 +19,7 @@
 #include "GPUReconstructionHelpers.h"
 #include "GPUDataTypes.h"
 #include <atomic>
+#include <mutex>
 #include <array>
 #include <vector>
 #include <utility>
@@ -272,7 +273,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   // (Ptrs to) configuration objects
   std::unique_ptr<GPUTPCCFChainContext> mCFContext;
   bool mTPCSliceScratchOnStack = false;
-  GPUCalibObjectsConst mNewCalibObjects;
+  std::unique_ptr<GPUCalibObjectsConst> mNewCalibObjects;
   bool mUpdateNewCalibObjects = false;
   std::unique_ptr<GPUNewCalibValues> mNewCalibValues;
 
@@ -305,7 +306,8 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void RunTPCTrackingMerger_MergeBorderTracks(char withinSlice, char mergeMode, GPUReconstruction::krnlDeviceType deviceType);
   void RunTPCTrackingMerger_Resolve(char useOrigTrackParam, char mergeAll, GPUReconstruction::krnlDeviceType deviceType);
 
-  std::atomic_flag mLockAtomic = ATOMIC_FLAG_INIT;
+  std::atomic_flag mLockAtomicOutputBuffer = ATOMIC_FLAG_INIT;
+  std::mutex mMutexUpdateCalib;
   std::unique_ptr<GPUChainTrackingFinalContext> mPipelineFinalizationCtx;
   GPUChainTrackingFinalContext* mPipelineNotifyCtx = nullptr;
 
