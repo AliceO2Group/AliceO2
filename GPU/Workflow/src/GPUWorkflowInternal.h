@@ -41,13 +41,19 @@ struct GPURecoWorkflow_QueueObject {
   GPUTrackingInOutPointers ptrs;
   o2::framework::DataProcessingHeader::StartTime timeSliceId;
 
+  unsigned long mTFId;
+
   bool jobSubmitted = false;
   bool jobFinished = false;
   int jobReturnValue = 0;
   std::mutex jobFinishedMutex;
   std::condition_variable jobFinishedNotify;
-  GPUTrackingInOutPointers* jobPtrs;
-  GPUInterfaceOutputs* jobOutputRegions;
+  bool jobInputFinal = false;
+  std::mutex jobInputFinalMutex;
+  std::condition_variable jobInputFinalNotify;
+  GPUTrackingInOutPointers* jobPtrs = nullptr;
+  GPUInterfaceOutputs* jobOutputRegions = nullptr;
+  std::unique_ptr<GPUInterfaceInputUpdate> jobInputUpdateCallback = nullptr;
 };
 
 struct GPURecoWorkflowSpec_PipelineInternals {
@@ -75,6 +81,13 @@ struct GPURecoWorkflowSpec_PipelineInternals {
   bool pipelineSenderTerminating = false;
   std::mutex completionPolicyMutex;
   std::condition_variable completionPolicyNotify;
+
+  unsigned long mNTFReceived = 0;
+
+  bool mayInject = true;
+  unsigned long mayInjectTFId = 0;
+  std::mutex mayInjectMutex;
+  std::condition_variable mayInjectCondition;
 };
 
 } // namespace gpurecoworkflow_internals
