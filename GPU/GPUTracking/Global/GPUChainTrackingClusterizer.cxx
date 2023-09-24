@@ -632,6 +632,9 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeBuffer);
   }
   if (buildNativeHost && !(buildNativeGPU && GetProcessingSettings().delayedOutput)) {
+    if (mWaitForFinalInputs) {
+      GPUFatal("Cannot use waitForFinalInput callback without delayed output");
+    }
     AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeOutput, mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clustersNative)]);
   }
 
@@ -925,6 +928,10 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     if (transferRunning[i]) {
       ReleaseEvent(&mEvents->stream[i], doGPU);
     }
+  }
+
+  if (mWaitForFinalInputs) {
+    mWaitForFinalInputs();
   }
 
   if (GetProcessingSettings().param.tpcTriggerHandling) {
