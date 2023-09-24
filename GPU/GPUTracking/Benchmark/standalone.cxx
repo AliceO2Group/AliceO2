@@ -188,7 +188,7 @@ int ReadConfiguration(int argc, char** argv)
     return 1;
   }
   if (configStandalone.proc.doublePipeline && (configStandalone.runs < 4 || !configStandalone.outputcontrolmem)) {
-    printf("Double pipeline mode needs at least 3 runs per event and external output\n");
+    printf("Double pipeline mode needs at least 3 runs per event and external output. To cycle though multiple events, use --preloadEvents and --runs n for n iterations round-robin\n");
     return 1;
   }
   if (configStandalone.TF.bunchSim && configStandalone.TF.nMerge) {
