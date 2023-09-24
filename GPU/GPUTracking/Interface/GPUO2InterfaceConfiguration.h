@@ -66,6 +66,11 @@ struct GPUInterfaceOutputs : public GPUTrackingOutputs {
   GPUInterfaceQAOutputs qa;
 };
 
+struct GPUInterfaceInputUpdate {
+  std::function<void(GPUTrackingInOutPointers*& data, GPUInterfaceOutputs*& outputs)> callback; // Callback which provides final data ptrs / outputRegions after Clusterization stage
+  std::function<void()> notifyCallback;                                                         // Callback called to notify that Clusterization state has finished without update
+};
+
 // Full configuration structure with all available settings of GPU...
 struct GPUO2InterfaceConfiguration {
   GPUO2InterfaceConfiguration() = default;
