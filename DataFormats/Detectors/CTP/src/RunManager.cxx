@@ -139,9 +139,9 @@ int CTPRunManager::addScalers(uint32_t irun, std::time_t time)
   int NINPS = 48;
   int offset = 599;
   for (uint32_t i = 0; i < NINPS; i++) {
-    uint32_t inpcount = mCounters[offset+i];
+    uint32_t inpcount = mCounters[offset + i];
     scalrec.scalersInps.push_back(inpcount);
-    //LOG(info) << "Scaler for input:" << CTPRunScalers::scalerNames[offset+i] << ":" << inpcount;
+    // LOG(info) << "Scaler for input:" << CTPRunScalers::scalerNames[offset+i] << ":" << inpcount;
   }
   //
   if (mNew == 0) {
