@@ -972,8 +972,10 @@ void GPUReconstruction::RunPipelineWorker()
     } else {
       q->retVal = q->chain->RunChain();
     }
-    std::lock_guard<std::mutex> lk(q->m);
-    q->done = true;
+    {
+      std::lock_guard<std::mutex> lk(q->m);
+      q->done = true;
+    }
     q->c.notify_one();
   }
   if (mProcessingSettings.debugLevel >= 3) {
