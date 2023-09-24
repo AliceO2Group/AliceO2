@@ -147,6 +147,9 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
       throw std::runtime_error("GPU Event Display frontend could not be created!");
     }
   }
+  if (mSpecConfig.enableDoublePipeline) {
+    mConfig->configProcessing.doublePipeline = 1;
+  }
 
   mAutoSolenoidBz = mConfParam->solenoidBz == -1e6f;
   mAutoContinuousMaxTimeBin = mConfig->configGRP.continuousMaxTimeBin == -1;
@@ -487,11 +490,11 @@ void GPURecoWorkflowSpec::processInputs(ProcessingContext& pc, D& tpcZSmeta, E& 
   }
 }
 
-int GPURecoWorkflowSpec::runMain(o2::framework::ProcessingContext* pc, GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, int threadIndex)
+int GPURecoWorkflowSpec::runMain(o2::framework::ProcessingContext* pc, GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, int threadIndex, GPUInterfaceInputUpdate* inputUpdateCallback)
 {
   int retVal = 0;
   if (mConfParam->dump < 2) {
-    retVal = mGPUReco->RunTracking(ptrs, outputRegions, threadIndex);
+    retVal = mGPUReco->RunTracking(ptrs, outputRegions, threadIndex, inputUpdateCallback);
 
     if (retVal == 0 && mSpecConfig.runITSTracking) {
       retVal = runITSTracking(*pc);
@@ -499,8 +502,10 @@ int GPURecoWorkflowSpec::runMain(o2::framework::ProcessingContext* pc, GPUTracki
   }
 
   cleanOldCalibsTPCPtrs(); // setting TPC calibration objects
-  // if (!mTrackingCAO2Interface->getConfig().configInterface.outputToExternalBuffers) // TODO: Why was this needed for double-pipeline?
-  mGPUReco->Clear(false, threadIndex); // clean non-output memory used by GPU Reconstruction
+
+  if (!mSpecConfig.enableDoublePipeline) { // TODO: Why is this needed for double-pipeline?
+    mGPUReco->Clear(false, threadIndex);   // clean non-output memory used by GPU Reconstruction
+  }
   return retVal;
 }
 
@@ -760,7 +765,9 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   int retVal = 0;
   if (mSpecConfig.enableDoublePipeline) {
     if (!pipelineContext->jobSubmitted) {
-      enqueuePipelinedJob(&ptrs, &outputRegions, pipelineContext.get());
+      enqueuePipelinedJob(&ptrs, &outputRegions, pipelineContext.get(), true);
+    } else {
+      finalizeInputPipelinedJob(&ptrs, &outputRegions, pipelineContext.get());
     }
     std::unique_lock lk(pipelineContext->jobFinishedMutex);
     pipelineContext->jobFinishedNotify.wait(lk, [context = pipelineContext.get()]() { return context->jobFinished; });

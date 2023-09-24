@@ -91,7 +91,7 @@ void GPURecoWorkflowSpec::RunWorkerThread(int id)
       context = workerContext.inputQueue.front();
       workerContext.inputQueue.pop();
     }
-    context->jobReturnValue = runMain(nullptr, context->jobPtrs, context->jobOutputRegions, id);
+    context->jobReturnValue = runMain(nullptr, context->jobPtrs, context->jobOutputRegions, id, context->jobInputUpdateCallback.get());
     {
       std::lock_guard lk(context->jobFinishedMutex);
       context->jobFinished = true;
@@ -100,11 +100,37 @@ void GPURecoWorkflowSpec::RunWorkerThread(int id)
   }
 }
 
-void GPURecoWorkflowSpec::enqueuePipelinedJob(GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, GPURecoWorkflow_QueueObject* context)
+void GPURecoWorkflowSpec::enqueuePipelinedJob(GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, GPURecoWorkflow_QueueObject* context, bool inputFinal)
 {
+  {
+    std::unique_lock lk(mPipeline->mayInjectMutex);
+    mPipeline->mayInjectCondition.wait(lk, [this, context]() { return mPipeline->mayInject && mPipeline->mayInjectTFId == context->mTFId; });
+    mPipeline->mayInjectTFId++;
+    mPipeline->mayInject = false;
+  }
   context->jobSubmitted = true;
+  context->jobInputFinal = inputFinal;
   context->jobPtrs = ptrs;
   context->jobOutputRegions = outputRegions;
+
+  context->jobInputUpdateCallback = std::make_unique<GPUInterfaceInputUpdate>();
+
+  if (!inputFinal) {
+    context->jobInputUpdateCallback->callback = [context](GPUTrackingInOutPointers*& data, GPUInterfaceOutputs*& outputs) {
+      std::unique_lock lk(context->jobInputFinalMutex);
+      context->jobInputFinalNotify.wait(lk, [context]() { return context->jobInputFinal; });
+      data = context->jobPtrs;
+      outputs = context->jobOutputRegions;
+    };
+  }
+  context->jobInputUpdateCallback->notifyCallback = [this]() {
+    {
+      std::lock_guard lk(mPipeline->mayInjectMutex);
+      mPipeline->mayInject = true;
+    }
+    mPipeline->mayInjectCondition.notify_one();
+  };
+
   mNextThreadIndex = (mNextThreadIndex + 1) % 2;
 
   {
@@ -112,6 +138,17 @@ void GPURecoWorkflowSpec::enqueuePipelinedJob(GPUTrackingInOutPointers* ptrs, GP
     mPipeline->workers[mNextThreadIndex].inputQueue.emplace(context);
   }
   mPipeline->workers[mNextThreadIndex].inputQueueNotify.notify_one();
+}
+
+void GPURecoWorkflowSpec::finalizeInputPipelinedJob(GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, GPURecoWorkflow_QueueObject* context)
+{
+  {
+    std::lock_guard lk(context->jobInputFinalMutex);
+    context->jobPtrs = ptrs;
+    context->jobOutputRegions = outputRegions;
+    context->jobInputFinal = true;
+  }
+  context->jobInputFinalNotify.notify_one();
 }
 
 int GPURecoWorkflowSpec::handlePipeline(ProcessingContext& pc, GPUTrackingInOutPointers& ptrs, GPURecoWorkflowSpec_TPCZSBuffers& tpcZSmeta, o2::gpu::GPUTrackingInOutZS& tpcZS, std::unique_ptr<GPURecoWorkflow_QueueObject>& context)
@@ -246,9 +283,9 @@ void GPURecoWorkflowSpec::RunReceiveThread()
       break;
     }
 
-    auto o = std::make_unique<GPURecoWorkflow_QueueObject>();
-    o->timeSliceId = m->timeSliceId;
-    o->tfSettings = m->tfSettings;
+    auto context = std::make_unique<GPURecoWorkflow_QueueObject>();
+    context->timeSliceId = m->timeSliceId;
+    context->tfSettings = m->tfSettings;
 
     size_t regionOffset = 0;
     if (m->pointersTotal) {
@@ -263,21 +300,26 @@ void GPURecoWorkflowSpec::RunReceiveThread()
     }
     size_t ptrsCopied = 0;
     size_t* ptrBuffer = (size_t*)msg->GetData() + sizeof(pipelinePrepareMessage) / sizeof(size_t);
-    o->tpcZSmeta.Pointers[0][0].resize(m->pointersTotal);
-    o->tpcZSmeta.Sizes[0][0].resize(m->pointersTotal);
+    context->tpcZSmeta.Pointers[0][0].resize(m->pointersTotal);
+    context->tpcZSmeta.Sizes[0][0].resize(m->pointersTotal);
     for (unsigned int i = 0; i < GPUTrackingInOutZS::NSLICES; i++) {
       for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
-        o->tpcZS.slice[i].count[j] = m->pointerCounts[i][j];
-        for (unsigned int k = 0; k < o->tpcZS.slice[i].count[j]; k++) {
-          o->tpcZSmeta.Pointers[0][0][ptrsCopied + k] = (void*)(ptrBuffer[ptrsCopied + k] + regionOffset);
-          o->tpcZSmeta.Sizes[0][0][ptrsCopied + k] = ptrBuffer[m->pointersTotal + ptrsCopied + k];
+        context->tpcZS.slice[i].count[j] = m->pointerCounts[i][j];
+        for (unsigned int k = 0; k < context->tpcZS.slice[i].count[j]; k++) {
+          context->tpcZSmeta.Pointers[0][0][ptrsCopied + k] = (void*)(ptrBuffer[ptrsCopied + k] + regionOffset);
+          context->tpcZSmeta.Sizes[0][0][ptrsCopied + k] = ptrBuffer[m->pointersTotal + ptrsCopied + k];
         }
-        o->tpcZS.slice[i].zsPtr[j] = o->tpcZSmeta.Pointers[0][0].data() + ptrsCopied;
-        o->tpcZS.slice[i].nZSPtr[j] = o->tpcZSmeta.Sizes[0][0].data() + ptrsCopied;
-        ptrsCopied += o->tpcZS.slice[i].count[j];
+        context->tpcZS.slice[i].zsPtr[j] = context->tpcZSmeta.Pointers[0][0].data() + ptrsCopied;
+        context->tpcZS.slice[i].nZSPtr[j] = context->tpcZSmeta.Sizes[0][0].data() + ptrsCopied;
+        ptrsCopied += context->tpcZS.slice[i].count[j];
       }
     }
-    o->ptrs.tpcZS = &o->tpcZS;
+    context->ptrs.tpcZS = &context->tpcZS;
+    context->ptrs.settingsTF = &context->tfSettings;
+    context->mTFId = mPipeline->mNTFReceived;
+    if (mPipeline->mNTFReceived++ >= mPipeline->workers.size()) { // Do not inject the first 2 TF, since we need a first round of calib updates from DPL before starting
+      enqueuePipelinedJob(&context->ptrs, nullptr, context.get(), false);
+    }
     {
       std::lock_guard lk(mPipeline->completionPolicyMutex);
       mPipeline->completionPolicyQueue.emplace(m->timeSliceId);
@@ -285,7 +327,7 @@ void GPURecoWorkflowSpec::RunReceiveThread()
     mPipeline->completionPolicyNotify.notify_one();
     {
       std::lock_guard lk(mPipeline->queueMutex);
-      mPipeline->pipelineQueue.emplace(std::move(o));
+      mPipeline->pipelineQueue.emplace(std::move(context));
     }
     mPipeline->queueNotify.notify_one();
   }
