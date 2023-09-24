@@ -135,9 +135,6 @@ void GPUO2Interface::Deinitialize()
 
 void GPUO2Interface::DumpEvent(int nEvent, GPUTrackingInOutPointers* data)
 {
-  if (mConfig->configProcessing.doublePipeline) {
-    throw std::runtime_error("Cannot dump events in double pipeline mode");
-  }
   mCtx[0].mChain->ClearIOPointers();
   mCtx[0].mChain->mIOPtrs = *data;
   char fname[1024];
@@ -156,9 +153,6 @@ void GPUO2Interface::DumpEvent(int nEvent, GPUTrackingInOutPointers* data)
 
 void GPUO2Interface::DumpSettings()
 {
-  if (mConfig->configProcessing.doublePipeline) {
-    throw std::runtime_error("Cannot dump events in double pipeline mode");
-  }
   mCtx[0].mChain->DoQueuedUpdates(-1);
   mCtx[0].mRec->DumpSettings();
 }
