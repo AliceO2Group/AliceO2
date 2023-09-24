@@ -20,6 +20,7 @@
 #include <thread>
 #include <condition_variable>
 #include <queue>
+#include <array>
 
 namespace o2::gpu
 {
@@ -39,6 +40,14 @@ struct GPURecoWorkflow_QueueObject {
   GPUSettingsTF tfSettings;
   GPUTrackingInOutPointers ptrs;
   o2::framework::DataProcessingHeader::StartTime timeSliceId;
+
+  bool jobSubmitted = false;
+  bool jobFinished = false;
+  int jobReturnValue = 0;
+  std::mutex jobFinishedMutex;
+  std::condition_variable jobFinishedNotify;
+  GPUTrackingInOutPointers* jobPtrs;
+  GPUInterfaceOutputs* jobOutputRegions;
 };
 
 struct GPURecoWorkflowSpec_PipelineInternals {
@@ -49,6 +58,14 @@ struct GPURecoWorkflowSpec_PipelineInternals {
   std::thread receiveThread;
   std::mutex threadMutex;
   volatile bool shouldTerminate = false;
+
+  struct pipelineWorkerStruct {
+    std::thread thread;
+    std::queue<GPURecoWorkflow_QueueObject*> inputQueue;
+    std::mutex inputQueueMutex;
+    std::condition_variable inputQueueNotify;
+  };
+  std::array<pipelineWorkerStruct, 2> workers;
 
   std::queue<std::unique_ptr<GPURecoWorkflow_QueueObject>> pipelineQueue;
   std::mutex queueMutex;

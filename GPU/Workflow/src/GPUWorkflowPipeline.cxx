@@ -70,26 +70,67 @@ void GPURecoWorkflowSpec::initPipeline(o2::framework::InitContext& ic)
       return false;
     };
     mPipeline->receiveThread = std::thread([this]() { RunReceiveThread(); });
+    for (unsigned int i = 0; i < mPipeline->workers.size(); i++) {
+      mPipeline->workers[i].thread = std::thread([this, i]() { RunWorkerThread(i); });
+    }
   }
 }
 
-int GPURecoWorkflowSpec::handlePipeline(ProcessingContext& pc, GPUTrackingInOutPointers& ptrs, GPURecoWorkflowSpec_TPCZSBuffers& tpcZSmeta, o2::gpu::GPUTrackingInOutZS& tpcZS)
+void GPURecoWorkflowSpec::RunWorkerThread(int id)
+{
+  LOG(info) << "Running pipeline worker " << id;
+  auto& workerContext = mPipeline->workers[id];
+  while (!mPipeline->shouldTerminate) {
+    GPURecoWorkflow_QueueObject* context;
+    {
+      std::unique_lock lk(workerContext.inputQueueMutex);
+      workerContext.inputQueueNotify.wait(lk, [this, &workerContext]() { return mPipeline->shouldTerminate || !workerContext.inputQueue.empty(); });
+      if (workerContext.inputQueue.empty()) {
+        break;
+      }
+      context = workerContext.inputQueue.front();
+      workerContext.inputQueue.pop();
+    }
+    context->jobReturnValue = runMain(nullptr, context->jobPtrs, context->jobOutputRegions, id);
+    {
+      std::lock_guard lk(context->jobFinishedMutex);
+      context->jobFinished = true;
+    }
+    context->jobFinishedNotify.notify_one();
+  }
+}
+
+void GPURecoWorkflowSpec::enqueuePipelinedJob(GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, GPURecoWorkflow_QueueObject* context)
+{
+  context->jobSubmitted = true;
+  context->jobPtrs = ptrs;
+  context->jobOutputRegions = outputRegions;
+  mNextThreadIndex = (mNextThreadIndex + 1) % 2;
+
+  {
+    std::lock_guard lk(mPipeline->workers[mNextThreadIndex].inputQueueMutex);
+    mPipeline->workers[mNextThreadIndex].inputQueue.emplace(context);
+  }
+  mPipeline->workers[mNextThreadIndex].inputQueueNotify.notify_one();
+}
+
+int GPURecoWorkflowSpec::handlePipeline(ProcessingContext& pc, GPUTrackingInOutPointers& ptrs, GPURecoWorkflowSpec_TPCZSBuffers& tpcZSmeta, o2::gpu::GPUTrackingInOutZS& tpcZS, std::unique_ptr<GPURecoWorkflow_QueueObject>& context)
 {
   auto* device = pc.services().get<RawDeviceService>().device();
   const auto& tinfo = pc.services().get<o2::framework::TimingInfo>();
   if (mSpecConfig.enableDoublePipeline == 1) {
     std::unique_lock lk(mPipeline->queueMutex);
     mPipeline->queueNotify.wait(lk, [this] { return !mPipeline->pipelineQueue.empty(); });
-    auto o = std::move(mPipeline->pipelineQueue.front());
+    context = std::move(mPipeline->pipelineQueue.front());
     mPipeline->pipelineQueue.pop();
     lk.unlock();
 
-    if (o->timeSliceId != tinfo.timeslice) {
+    if (context->timeSliceId != tinfo.timeslice) {
       LOG(fatal) << "Prepare message for incorrect time frame received, time frames seem out of sync";
     }
 
-    tpcZSmeta = std::move(o->tpcZSmeta);
-    tpcZS = o->tpcZS;
+    tpcZSmeta = std::move(context->tpcZSmeta);
+    tpcZS = context->tpcZS;
     ptrs.tpcZS = &tpcZS;
   }
   if (mSpecConfig.enableDoublePipeline == 2) {
@@ -155,7 +196,7 @@ int GPURecoWorkflowSpec::handlePipeline(ProcessingContext& pc, GPUTrackingInOutP
 void GPURecoWorkflowSpec::handlePipelineEndOfStream(EndOfStreamContext& ec)
 {
   if (mSpecConfig.enableDoublePipeline == 1) {
-    TerminateReceiveThread(); // TODO: Apparently breaks START / STOP / START
+    TerminateThreads(); // TODO: Apparently breaks START / STOP / START
   }
   if (mSpecConfig.enableDoublePipeline == 2) {
     auto* device = ec.services().get<RawDeviceService>().device();
@@ -255,11 +296,19 @@ void GPURecoWorkflowSpec::RunReceiveThread()
   mPipeline->completionPolicyNotify.notify_one();
 }
 
-void GPURecoWorkflowSpec::TerminateReceiveThread()
+void GPURecoWorkflowSpec::TerminateThreads()
 {
+  mPipeline->shouldTerminate = true;
+  for (unsigned int i = 0; i < mPipeline->workers.size(); i++) {
+    mPipeline->workers[i].inputQueueNotify.notify_one();
+  }
   if (mPipeline->receiveThread.joinable()) {
-    mPipeline->shouldTerminate = true;
     mPipeline->receiveThread.join();
+  }
+  for (unsigned int i = 0; i < mPipeline->workers.size(); i++) {
+    if (mPipeline->workers[i].thread.joinable()) {
+      mPipeline->workers[i].thread.join();
+    }
   }
 }
 

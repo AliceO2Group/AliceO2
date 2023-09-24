@@ -291,6 +291,9 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
 
   if (mSpecConfig.enableDoublePipeline) {
     initPipeline(ic);
+    if (mConfParam->dump >= 2) {
+      LOG(fatal) << "Cannot use dump-only mode with multi-threaded pipeline";
+    }
   }
 
   auto& callbacks = ic.services().get<CallbackService>();
@@ -484,6 +487,23 @@ void GPURecoWorkflowSpec::processInputs(ProcessingContext& pc, D& tpcZSmeta, E& 
   }
 }
 
+int GPURecoWorkflowSpec::runMain(o2::framework::ProcessingContext* pc, GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, int threadIndex)
+{
+  int retVal = 0;
+  if (mConfParam->dump < 2) {
+    retVal = mGPUReco->RunTracking(ptrs, outputRegions, threadIndex);
+
+    if (retVal == 0 && mSpecConfig.runITSTracking) {
+      retVal = runITSTracking(*pc);
+    }
+  }
+
+  cleanOldCalibsTPCPtrs(); // setting TPC calibration objects
+  // if (!mTrackingCAO2Interface->getConfig().configInterface.outputToExternalBuffers) // TODO: Why was this needed for double-pipeline?
+  mGPUReco->Clear(false, threadIndex); // clean non-output memory used by GPU Reconstruction
+  return retVal;
+}
+
 void GPURecoWorkflowSpec::run(ProcessingContext& pc)
 {
   constexpr static size_t NSectors = o2::tpc::Sector::MAXSECTOR;
@@ -627,14 +647,9 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
 
   // ------------------------------ Prepare stage for double-pipeline before normal output preparation ------------------------------
 
-  // unsigned int threadIndex = pc.services().get<ThreadPool>().threadIndex;
-  unsigned int threadIndex = mNextThreadIndex;
-  if (mConfig->configProcessing.doublePipeline) {
-    mNextThreadIndex = (mNextThreadIndex + 1) % 2;
-  }
-
+  std::unique_ptr<GPURecoWorkflow_QueueObject> pipelineContext;
   if (mSpecConfig.enableDoublePipeline) {
-    if (handlePipeline(pc, ptrs, tpcZSmeta, tpcZS)) {
+    if (handlePipeline(pc, ptrs, tpcZSmeta, tpcZS, pipelineContext)) {
       return;
     }
   }
@@ -743,21 +758,27 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   }
 
   int retVal = 0;
-  if (mConfParam->dump < 2) {
-    retVal = mGPUReco->RunTracking(&ptrs, &outputRegions, threadIndex);
-    if (retVal != 0) {
-      debugTFDump = true;
+  if (mSpecConfig.enableDoublePipeline) {
+    if (!pipelineContext->jobSubmitted) {
+      enqueuePipelinedJob(&ptrs, &outputRegions, pipelineContext.get());
+    }
+    std::unique_lock lk(pipelineContext->jobFinishedMutex);
+    pipelineContext->jobFinishedNotify.wait(lk, [context = pipelineContext.get()]() { return context->jobFinished; });
+    retVal = pipelineContext->jobReturnValue;
+  } else {
+    // unsigned int threadIndex = pc.services().get<ThreadPool>().threadIndex;
+    unsigned int threadIndex = mNextThreadIndex;
+    if (mConfig->configProcessing.doublePipeline) {
+      mNextThreadIndex = (mNextThreadIndex + 1) % 2;
     }
 
-    if (retVal == 0 && mSpecConfig.runITSTracking) {
-      retVal = runITSTracking(pc);
-    }
+    retVal = runMain(&pc, &ptrs, &outputRegions, threadIndex);
+  }
+  if (retVal != 0) {
+    debugTFDump = true;
   }
 
   o2::utils::DebugStreamer::instance()->flush(); // flushing debug output to file
-  cleanOldCalibsTPCPtrs();                       // setting TPC calibration objects
-  // if (!mTrackingCAO2Interface->getConfig().configInterface.outputToExternalBuffers) // TODO: Why was this needed for double-pipeline?
-  mGPUReco->Clear(false, threadIndex); // clean non-output memory used by GPU Reconstruction
 
   if (debugTFDump && mNDebugDumps < mConfParam->dumpBadTFs) {
     mNDebugDumps++;
@@ -1183,7 +1204,7 @@ Outputs GPURecoWorkflowSpec::outputs()
 
 void GPURecoWorkflowSpec::deinitialize()
 {
-  TerminateReceiveThread();
+  TerminateThreads();
   mQA.reset(nullptr);
   mDisplayFrontend.reset(nullptr);
   mGPUReco.reset(nullptr);
