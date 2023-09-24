@@ -67,7 +67,8 @@ struct CTPScalerRecordRaw {
   o2::InteractionRecord intRecord;
   double_t epochTime;
   std::vector<CTPScalerRaw> scalers;
-  std::vector<uint32_t> scalersDets;
+  //std::vector<uint32_t> scalersDets;
+  std::vector<uint32_t> scalersInps;
   void printStream(std::ostream& stream) const;
   ClassDefNV(CTPScalerRecordRaw, 3);
 };
@@ -76,7 +77,8 @@ struct CTPScalerRecordO2 {
   o2::InteractionRecord intRecord;
   double_t epochTime;
   std::vector<CTPScalerO2> scalers;
-  std::vector<uint64_t> scalersDets;
+  //std::vector<uint64_t> scalersDets;
+  std::vector<uint64_t> scalersInps;
   void printStream(std::ostream& stream) const;
   void printFromZero(std::ostream& stream, CTPScalerRecordO2& record0) const;
   ClassDefNV(CTPScalerRecordO2, 3);

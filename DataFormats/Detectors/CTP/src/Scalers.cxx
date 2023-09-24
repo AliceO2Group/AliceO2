@@ -65,7 +65,7 @@ void CTPScalerRecordRaw::printStream(std::ostream& stream) const
   for (auto const& cnts : scalers) {
     cnts.printStream(stream);
   }
-  for (auto const& dets : scalersDets) {
+  for (auto const& dets : scalersInps) {
     stream << dets << " ";
   }
   stream << std::endl;
@@ -77,7 +77,7 @@ void CTPScalerRecordO2::printStream(std::ostream& stream) const
   for (auto const& cnts : scalers) {
     cnts.printStream(stream);
   }
-  for (auto const& dets : scalersDets) {
+  for (auto const& dets : scalersInps) {
     stream << dets << " ";
   }
   stream << std::endl;
