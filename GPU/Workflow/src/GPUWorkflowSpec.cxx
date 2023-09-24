@@ -1022,7 +1022,7 @@ Options GPURecoWorkflowSpec::options()
     char* o2jobid = getenv("O2JOBID");
     char* numaid = getenv("NUMAID");
     int chanid = o2jobid ? atoi(o2jobid) : (numaid ? atoi(numaid) : 0);
-    std::string chan = std::string("name=gpu-prepare-channel,type=") + (send ? "push" : "pull") + ",method=" + (send ? "connect" : "bind") + ",address=ipc://@gpu-prepare-channel-" + std::to_string(chanid) + ",transport=shmem,rateLogging=0";
+    std::string chan = std::string("name=gpu-prepare-channel,type=") + (send ? "push" : "pull") + ",method=" + (send ? "connect" : "bind") + ",address=ipc://@gpu-prepare-channel-" + std::to_string(chanid) + "-{timeslice0},transport=shmem,rateLogging=0";
     opts.emplace_back(o2::framework::ConfigParamSpec{"channel-config", o2::framework::VariantType::String, chan, {"Out-of-band channel config"}});
   }
   if (mSpecConfig.enableDoublePipeline == 2) {
