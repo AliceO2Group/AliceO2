@@ -84,10 +84,12 @@ struct GPUSettingsO2;
 class GPUO2InterfaceQA;
 struct GPUTrackingInOutPointers;
 struct GPUTrackingInOutZS;
+struct GPUInterfaceOutputs;
 namespace gpurecoworkflow_internals
 {
 struct GPURecoWorkflowSpec_TPCZSBuffers;
 struct GPURecoWorkflowSpec_PipelineInternals;
+struct GPURecoWorkflow_QueueObject;
 } // namespace gpurecoworkflow_internals
 
 class GPURecoWorkflowSpec : public o2::framework::Task
@@ -159,11 +161,14 @@ class GPURecoWorkflowSpec : public o2::framework::Task
 
   int runITSTracking(o2::framework::ProcessingContext& pc);
 
-  int handlePipeline(o2::framework::ProcessingContext& pc, GPUTrackingInOutPointers& ptrs, gpurecoworkflow_internals::GPURecoWorkflowSpec_TPCZSBuffers& tpcZSmeta, o2::gpu::GPUTrackingInOutZS& tpcZS);
+  int handlePipeline(o2::framework::ProcessingContext& pc, GPUTrackingInOutPointers& ptrs, gpurecoworkflow_internals::GPURecoWorkflowSpec_TPCZSBuffers& tpcZSmeta, o2::gpu::GPUTrackingInOutZS& tpcZS, std::unique_ptr<gpurecoworkflow_internals::GPURecoWorkflow_QueueObject>& context);
   void RunReceiveThread();
-  void TerminateReceiveThread();
+  void RunWorkerThread(int id);
+  void TerminateThreads();
   void handlePipelineEndOfStream(o2::framework::EndOfStreamContext& ec);
   void initPipeline(o2::framework::InitContext& ic);
+  void enqueuePipelinedJob(GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, gpurecoworkflow_internals::GPURecoWorkflow_QueueObject* context);
+  int runMain(o2::framework::ProcessingContext* pc, GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, int threadIndex);
 
   CompletionPolicyData* mPolicyData;
   std::function<bool(o2::framework::DataProcessingHeader::StartTime)> mPolicyOrder;
