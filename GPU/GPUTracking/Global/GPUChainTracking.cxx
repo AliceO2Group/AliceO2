@@ -613,7 +613,7 @@ void GPUChainTracking::DoQueuedUpdates(int stream)
   const GPUSettingsProcessing* p = nullptr;
   std::lock_guard lk(mMutexUpdateCalib);
   if (mUpdateNewCalibObjects) {
-    void** pSrc = (void**)mNewCalibObjects.get();
+    void* const* pSrc = (void* const*)mNewCalibObjects.get();
     void** pDst = (void**)&processors()->calibObjects;
     for (unsigned int i = 0; i < sizeof(processors()->calibObjects) / sizeof(void*); i++) {
       if (pSrc[i]) {
@@ -968,7 +968,21 @@ void GPUChainTracking::SetDefaultInternalO2Propagator(bool useGPUField)
 void GPUChainTracking::SetUpdateCalibObjects(const GPUCalibObjectsConst& obj, const GPUNewCalibValues& vals)
 {
   std::lock_guard lk(mMutexUpdateCalib);
-  mNewCalibObjects.reset(new GPUCalibObjectsConst(obj));
-  mNewCalibValues.reset(new GPUNewCalibValues(vals));
+  if (mNewCalibObjects) {
+    void* const* pSrc = (void* const*)&vals;
+    void** pDst = (void**)mNewCalibObjects.get();
+    for (unsigned int i = 0; i < sizeof(*mNewCalibObjects) / sizeof(void*); i++) {
+      if (pSrc[i]) {
+        pDst[i] = pSrc[i];
+      }
+    }
+  } else {
+    mNewCalibObjects.reset(new GPUCalibObjectsConst(obj));
+  }
+  if (mNewCalibValues) {
+    mNewCalibValues->updateFrom(&vals);
+  } else {
+    mNewCalibValues.reset(new GPUNewCalibValues(vals));
+  }
   mUpdateNewCalibObjects = true;
 }

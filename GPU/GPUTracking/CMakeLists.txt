@@ -89,6 +89,7 @@ set(HDRS_CINT_O2_ADDITIONAL DataTypes/GPUSettings.h Definitions/GPUSettingsList.
 
 set(SRCS_NO_CINT
     DataTypes/GPUMemorySizeScalers.cxx
+    DataTypes/GPUNewCalibValues.cxx
     Base/GPUReconstruction.cxx
     Base/GPUReconstructionCPU.cxx
     Base/GPUProcessor.cxx
@@ -157,7 +158,6 @@ set(HDRS_INSTALL
     DataTypes/GPUO2DataTypes.h
     DataTypes/GPUHostDataTypes.h
     DataTypes/GPUdEdxInfo.h
-    DataTypes/GPUNewCalibValues.h
     DataTypes/GPUTRDInterfaceO2Track.h
     Base/GPUParam.inc
     DataCompression/TPCClusterDecompressor.inc
