@@ -54,6 +54,7 @@ class GPUChainTracking;
 class GPUChainITS;
 struct GPUO2InterfaceConfiguration;
 struct GPUInterfaceOutputs;
+struct GPUInterfaceInputUpdate;
 struct GPUTrackingOutputs;
 struct GPUConstantMem;
 struct GPUNewCalibValues;
@@ -70,7 +71,7 @@ class GPUO2Interface
   int Initialize(const GPUO2InterfaceConfiguration& config);
   void Deinitialize();
 
-  int RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutputs* outputs = nullptr, unsigned int iThread = 0);
+  int RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutputs* outputs = nullptr, unsigned int iThread = 0, GPUInterfaceInputUpdate* inputUpdateCallback = nullptr);
   void Clear(bool clearOutputs, unsigned int iThread = 0);
   void DumpEvent(int nEvent, GPUTrackingInOutPointers* data);
   void DumpSettings();
