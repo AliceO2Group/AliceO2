@@ -85,6 +85,7 @@ class GPUO2InterfaceQA;
 struct GPUTrackingInOutPointers;
 struct GPUTrackingInOutZS;
 struct GPUInterfaceOutputs;
+struct GPUInterfaceInputUpdate;
 namespace gpurecoworkflow_internals
 {
 struct GPURecoWorkflowSpec_TPCZSBuffers;
@@ -167,8 +168,9 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   void TerminateThreads();
   void handlePipelineEndOfStream(o2::framework::EndOfStreamContext& ec);
   void initPipeline(o2::framework::InitContext& ic);
-  void enqueuePipelinedJob(GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, gpurecoworkflow_internals::GPURecoWorkflow_QueueObject* context);
-  int runMain(o2::framework::ProcessingContext* pc, GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, int threadIndex);
+  void enqueuePipelinedJob(GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, gpurecoworkflow_internals::GPURecoWorkflow_QueueObject* context, bool inputFinal);
+  void finalizeInputPipelinedJob(GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, gpurecoworkflow_internals::GPURecoWorkflow_QueueObject* context);
+  int runMain(o2::framework::ProcessingContext* pc, GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, int threadIndex = 0, GPUInterfaceInputUpdate* inputUpdateCallback = nullptr);
 
   CompletionPolicyData* mPolicyData;
   std::function<bool(o2::framework::DataProcessingHeader::StartTime)> mPolicyOrder;
