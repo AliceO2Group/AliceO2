@@ -930,6 +930,15 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     }
   }
 
+  if (mPipelineNotifyCtx) {
+    SynchronizeStream(mRec->NStreams() - 2); // Must finish before updating ioPtrs in (global) constant memory
+    {
+      std::lock_guard<std::mutex> lock(mPipelineNotifyCtx->mutex);
+      mPipelineNotifyCtx->ready = true;
+    }
+    mPipelineNotifyCtx->cond.notify_one();
+  }
+
   if (mWaitForFinalInputs) {
     mWaitForFinalInputs();
   }
@@ -984,13 +993,6 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     tmpNative->clustersMCTruth = mcLabelsConstView;
     tmpNative->setOffsetPtrs();
     mIOPtrs.clustersNative = tmpNative;
-  }
-
-  if (mPipelineNotifyCtx) {
-    SynchronizeStream(mRec->NStreams() - 2); // Must finish before updating ioPtrs in (global) constant memory
-    std::lock_guard<std::mutex> lock(mPipelineNotifyCtx->mutex);
-    mPipelineNotifyCtx->ready = true;
-    mPipelineNotifyCtx->cond.notify_one();
   }
 
   if (buildNativeGPU) {
