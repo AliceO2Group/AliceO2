@@ -142,10 +142,17 @@ struct TrackLocTPC : public o2::track::TrackParCov {
 ///< ITS track outward parameters propagated to reference X, with time bracket and index of
 ///< original track in the currently loaded ITS reco output
 struct TrackLocITS : public o2::track::TrackParCov {
+  enum : uint16_t { CloneBefore = 0x1,
+                    CloneAfter = 0x2 };
   o2::math_utils::Bracketf_t tBracket; ///< bracketing time in \mus
   int sourceID = 0;       ///< track origin id
   int roFrame = MinusOne; ///< ITS readout frame assigned to this track
   int matchID = MinusOne; ///< entry (non if MinusOne) of its matchCand struct in the mMatchesITS
+  bool hasCloneBefore() const { return getUserField() & CloneBefore; }
+  bool hasCloneAfter() const { return getUserField() & CloneAfter; }
+  int getCloneShift() const { return hasCloneBefore() ? -1 : (hasCloneAfter() ? 1 : 0); }
+  void setCloneBefore() { setUserField(getUserField() | CloneBefore); }
+  void setCloneAfter() { setUserField(getUserField() | CloneAfter); }
 
   ClassDefNV(TrackLocITS, 1);
 };

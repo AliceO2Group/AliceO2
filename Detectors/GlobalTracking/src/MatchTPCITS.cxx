@@ -264,7 +264,6 @@ void MatchTPCITS::selectBestMatches()
   ///< loop over match records and select the ones with best chi2
   mTimer[SWSelectBest].Start(false);
   int nValidated = 0, iter = 0, nValidatedTotal = 0;
-
   do {
     nValidated = 0;
     int ntpc = mTPCWork.size(), nremaining = 0;
@@ -295,12 +294,6 @@ bool MatchTPCITS::validateTPCMatch(int iTPC)
 {
   const auto& tTPC = mTPCWork[iTPC];
   auto& rcTPC = mMatchRecordsTPC[tTPC.matchID]; // best TPC->ITS match
-  /* // should never happen
-  if (rcTPC.nextRecID == Validated) {
-    LOG(warning) << "TPC->ITS was already validated";
-    return false; // RS do we need this
-  }
-  */
   // check if it is consistent with corresponding ITS->TPC match
   auto& tITS = mITSWork[rcTPC.partnerID];       //  partner ITS track
   auto& rcITS = mMatchRecordsITS[tITS.matchID]; // best ITS->TPC match record
@@ -308,6 +301,26 @@ bool MatchTPCITS::validateTPCMatch(int iTPC)
     return false;
   }
   if (rcITS.partnerID == iTPC) { // is best matching TPC track for this ITS track actually iTPC?
+    int cloneID = tITS.getCloneShift(); // check if there is a clone of tITS
+    while (cloneID) {
+      cloneID += rcTPC.partnerID;
+      auto& tITSClone = mITSWork[cloneID];
+      if (isDisabledITS(tITSClone)) { // ignore clone
+        break;
+      }
+      int nextITSCloneMatchID = tITSClone.matchID;
+      if (rcITS.isBetter(mMatchRecordsITS[nextITSCloneMatchID])) { // best ITS->TPC match record for the clone is worse than the rcITS
+        LOGP(debug, "Suppressing clone cloneID={} of winner clone {} of source ITS {}", cloneID, rcTPC.partnerID, tITS.sourceID);
+        while (nextITSCloneMatchID > MinusOne) {
+          auto& rcITSClone = mMatchRecordsITS[nextITSCloneMatchID];
+          removeITSfromTPC(cloneID, rcITSClone.partnerID);
+          nextITSCloneMatchID = rcITSClone.nextRecID;
+        }
+        tITSClone.matchID = MinusTen; // disable
+        break;
+      }
+      return false; // ignore match at this iteration
+    }
     // unlink winner TPC track from all ITS candidates except winning one
     int nextTPC = rcTPC.nextRecID;
     while (nextTPC > MinusOne) {
@@ -1148,6 +1161,9 @@ void MatchTPCITS::addLastTrackCloneForNeighbourSector(int sector)
       o2::base::Propagator::Instance()->PropagateToXBxByBz(trc, mParams->XMatchingRef, MaxSnp, 2., MatCorrType::USEMatCorrNONE)) {
     // TODO: use faster prop here, no 3d field, materials
     mITSSectIndexCache[sector].push_back(mITSWork.size() - 1); // register track CLONE
+    // flag clone
+    mITSWork.back().setCloneBefore();
+    mITSWork[mITSWork.size() - 2].setCloneAfter();
     if (mMCTruthON) {
       mITSLblWork.emplace_back(mITSTrkLabels[trc.sourceID]);
     }
@@ -1265,6 +1281,7 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
 
   mMatchedTracks.emplace_back(tTPC, tITS); // create a copy of TPC track at xRef
   auto& trfit = mMatchedTracks.back();
+  trfit.getParamOut().setUserField(0); // reset eventual clones flag
   // in continuos mode the Z of TPC track is meaningless, unless it is CE crossing
   // track (currently absent, TODO)
   if (!mCompareTracksDZ) {
