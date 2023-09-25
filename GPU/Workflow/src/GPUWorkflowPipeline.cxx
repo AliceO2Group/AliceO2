@@ -78,7 +78,7 @@ void GPURecoWorkflowSpec::initPipeline(o2::framework::InitContext& ic)
 
 void GPURecoWorkflowSpec::RunWorkerThread(int id)
 {
-  LOG(info) << "Running pipeline worker " << id;
+  LOG(debug) << "Running pipeline worker " << id;
   auto& workerContext = mPipeline->workers[id];
   while (!mPipeline->shouldTerminate) {
     GPURecoWorkflow_QueueObject* context;
@@ -257,7 +257,7 @@ void GPURecoWorkflowSpec::RunReceiveThread()
     bool received = false;
     int recvTimeot = 1000;
     fair::mq::MessagePtr msg;
-    LOG(info) << "Waiting for out of band message";
+    LOG(debug) << "Waiting for out of band message";
     do {
       try {
         msg = device->NewMessageFor("gpu-prepare-channel", 0, 0);
