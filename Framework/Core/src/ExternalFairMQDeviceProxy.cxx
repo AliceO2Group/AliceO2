@@ -243,6 +243,7 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
   unmatchedDescriptions.clear();
   bool allFound = true;
   DataProcessingHeader const* dph = nullptr;
+  DataHeader const* firstDH = nullptr;
 
   // Do not check anything which has DISTSUBTIMEFRAME in it.
   for (size_t pi = 0; pi < present.size(); ++pi) {
@@ -274,6 +275,9 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
       }
       continue;
     }
+    if (firstDH == nullptr) {
+      firstDH = dh;
+    }
     for (size_t pi = 0; pi < present.size(); ++pi) {
       if (present[pi]) {
         continue;
@@ -300,14 +304,16 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
   }
 
   if (unmatchedDescriptions.size() > 0) {
+    if (firstDH == nullptr) {
+      LOG(error) << "Input proxy received incomplete data without any data header. This should not happen! Cannot inject missing data as requsted.";
+      return;
+    }
+    if (dph == nullptr) {
+      LOG(error) << "Input proxy received incomplete data without any data processing header. This should happen! Cannot inject missing data as requsted.";
+      return;
+    }
     std::string missing = "";
     for (auto mi : unmatchedDescriptions) {
-      if (dph == nullptr) {
-        // This can happen for non DPL messages in input,
-        // like it happens for some tests.
-        LOG(debug) << "DataProcessingHeader not found. Skipping message pair.";
-        continue;
-      }
       auto& spec = routes[mi].matcher;
       missing += " " + DataSpecUtils::describe(spec);
       // If we have a ConcreteDataMatcher, we can create a message with the correct header.
@@ -317,11 +323,13 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
       if (subSpec == std::nullopt) {
         *subSpec = 0xDEADBEEF;
       }
-      o2::header::DataHeader dh;
+      o2::header::DataHeader dh{*firstDH};
       dh.dataOrigin = concrete.origin;
       dh.dataDescription = concrete.description;
       dh.subSpecification = *subSpec;
       dh.payloadSize = 0;
+      dh.splitPayloadParts = 0;
+      dh.splitPayloadIndex = 0;
       dh.payloadSerializationMethod = header::gSerializationMethodNone;
 
       auto& channelName = routes[mi].channel;
