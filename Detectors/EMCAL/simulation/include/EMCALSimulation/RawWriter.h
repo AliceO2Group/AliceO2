@@ -191,6 +191,18 @@ class RawWriter
   /// The input data is converted to 10 but ALTRO words and put on the stream.
   std::vector<int> encodeBunchData(const std::vector<int>& data);
 
+  /// \brief Extracting branch index from the hardware address
+  /// \param hwaddress Hardware address of the channel
+  int getBranchIndexFromHwAddress(int hwaddress) { return ((hwaddress >> 11) & 0x1); }
+
+  /// \brief Extracting FEC index in branch from the hardware address
+  /// \param hwaddress Hardware address of the channel
+  int getFecIndexFromHwAddress(int hwaddress) { return ((hwaddress >> 7) & 0xF); }
+
+  /// \brief Extracting Channel index in FEC from the hardware address
+  /// \param hwaddress Hardware address of the channel
+  int getChannelIndexFromHwAddress(int hwaddress) { return (hwaddress & 0xF); }
+
  private:
   int mNADCSamples = 15;                                      ///< Number of time samples
   int mPedestal = 1;                                          ///< Pedestal
