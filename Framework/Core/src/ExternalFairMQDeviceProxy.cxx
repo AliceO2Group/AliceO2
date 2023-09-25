@@ -243,6 +243,7 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
   unmatchedDescriptions.clear();
   bool allFound = true;
   DataProcessingHeader const* dph = nullptr;
+  DataHeader const* firstDH = nullptr;
 
   // Do not check anything which has DISTSUBTIMEFRAME in it.
   for (size_t pi = 0; pi < present.size(); ++pi) {
@@ -274,6 +275,9 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
       }
       continue;
     }
+    if (firstDH == nullptr) {
+      firstDH = dh;
+    }
     for (size_t pi = 0; pi < present.size(); ++pi) {
       if (present[pi]) {
         continue;
@@ -302,6 +306,10 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
   if (unmatchedDescriptions.size() > 0) {
     std::string missing = "";
     for (auto mi : unmatchedDescriptions) {
+      if (firstDH == nullptr) {
+        LOG(error) << "No data header found. Not injecting missing data.";
+        break;
+      }
       if (dph == nullptr) {
         // This can happen for non DPL messages in input,
         // like it happens for some tests.
@@ -317,11 +325,13 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
       if (subSpec == std::nullopt) {
         *subSpec = 0xDEADBEEF;
       }
-      o2::header::DataHeader dh;
+      o2::header::DataHeader dh{*firstDH};
       dh.dataOrigin = concrete.origin;
       dh.dataDescription = concrete.description;
       dh.subSpecification = *subSpec;
       dh.payloadSize = 0;
+      dh.splitPayloadParts = 0;
+      dh.splitPayloadIndex = 0;
       dh.payloadSerializationMethod = header::gSerializationMethodNone;
 
       auto& channelName = routes[mi].channel;
