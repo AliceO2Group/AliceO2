@@ -21,6 +21,7 @@
 #include <condition_variable>
 #include <queue>
 #include <array>
+#include <fairmq/States.h>
 
 namespace o2::gpu
 {
@@ -59,7 +60,12 @@ struct GPURecoWorkflow_QueueObject {
 struct GPURecoWorkflowSpec_PipelineInternals {
   std::mutex mutexDecodeInput;
 
-  fair::mq::Device* fmqDevice;
+  fair::mq::Device* fmqDevice = nullptr;
+
+  fair::mq::State fmqState = fair::mq::State::Undefined;
+  bool endOfStreamReceived = false;
+  std::mutex fmqStateMutex;
+  std::condition_variable fmqStateCheckNotify;
 
   std::thread receiveThread;
   std::mutex threadMutex;
