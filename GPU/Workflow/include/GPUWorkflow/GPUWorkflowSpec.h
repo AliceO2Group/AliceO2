@@ -33,6 +33,7 @@ class TStopwatch;
 namespace fair::mq
 {
 struct RegionInfo;
+enum class State : int;
 } // namespace fair::mq
 namespace o2
 {
@@ -160,17 +161,18 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   template <class D, class E, class F, class G, class H, class I, class J, class K>
   void processInputs(o2::framework::ProcessingContext&, D&, E&, F&, G&, bool&, H&, I&, J&, K&);
 
+  int runMain(o2::framework::ProcessingContext* pc, GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, int threadIndex = 0, GPUInterfaceInputUpdate* inputUpdateCallback = nullptr);
   int runITSTracking(o2::framework::ProcessingContext& pc);
 
   int handlePipeline(o2::framework::ProcessingContext& pc, GPUTrackingInOutPointers& ptrs, gpurecoworkflow_internals::GPURecoWorkflowSpec_TPCZSBuffers& tpcZSmeta, o2::gpu::GPUTrackingInOutZS& tpcZS, std::unique_ptr<gpurecoworkflow_internals::GPURecoWorkflow_QueueObject>& context);
   void RunReceiveThread();
   void RunWorkerThread(int id);
-  void TerminateThreads();
+  void ExitPipeline();
   void handlePipelineEndOfStream(o2::framework::EndOfStreamContext& ec);
   void initPipeline(o2::framework::InitContext& ic);
   void enqueuePipelinedJob(GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, gpurecoworkflow_internals::GPURecoWorkflow_QueueObject* context, bool inputFinal);
   void finalizeInputPipelinedJob(GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, gpurecoworkflow_internals::GPURecoWorkflow_QueueObject* context);
-  int runMain(o2::framework::ProcessingContext* pc, GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, int threadIndex = 0, GPUInterfaceInputUpdate* inputUpdateCallback = nullptr);
+  void receiveFMQStateCallback(fair::mq::State);
 
   CompletionPolicyData* mPolicyData;
   std::function<bool(o2::framework::DataProcessingHeader::StartTime)> mPolicyOrder;
