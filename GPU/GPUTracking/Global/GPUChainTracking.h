@@ -156,9 +156,10 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   const GPUTPCGMMerger& GetTPCMerger() const { return processors()->tpcMerger; }
   GPUTPCGMMerger& GetTPCMerger() { return processors()->tpcMerger; }
   GPUDisplayInterface* GetEventDisplay() { return mEventDisplay.get(); }
-  const GPUQA* GetQA() const { return mQA.get(); }
-  GPUQA* GetQA() { return mQA.get(); }
+  const GPUQA* GetQA() const { return mQAFromForeignChain ? mQAFromForeignChain->mQA.get() : mQA.get(); }
+  GPUQA* GetQA() { return mQAFromForeignChain ? mQAFromForeignChain->mQA.get() : mQA.get(); }
   int ForceInitQA();
+  void SetQAFromForeignChain(GPUChainTracking* chain) { mQAFromForeignChain = chain; }
 
   // Processing functions
   int RunTPCClusterizer(bool synchronizeOutput = true);
@@ -254,6 +255,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   // Display / QA
   bool mDisplayRunning = false;
   std::unique_ptr<GPUDisplayInterface> mEventDisplay;
+  GPUChainTracking* mQAFromForeignChain = nullptr;
   std::unique_ptr<GPUQA> mQA;
   std::unique_ptr<GPUTPCClusterStatistics> mCompressionStatistics;
 
