@@ -648,6 +648,17 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   char transferRunning[NSLICES] = {0};
   unsigned int outputQueueStart = mOutputQueue.size();
 
+  auto notifyForeignChainFinished = [this]() {
+    if (mPipelineNotifyCtx) {
+      SynchronizeStream(mRec->NStreams() - 2); // Must finish before updating ioPtrs in (global) constant memory
+      {
+        std::lock_guard<std::mutex> lock(mPipelineNotifyCtx->mutex);
+        mPipelineNotifyCtx->ready = true;
+      }
+      mPipelineNotifyCtx->cond.notify_one();
+    }
+  };
+
   for (unsigned int iSliceBase = 0; iSliceBase < NSLICES; iSliceBase += GetProcessingSettings().nTPCClustererLanes) {
     std::vector<bool> laneHasData(GetProcessingSettings().nTPCClustererLanes, false);
     static_assert(NSLICES <= GPUCA_MAX_STREAMS, "Stream events must be able to hold all slices");
@@ -923,20 +934,15 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
         GPUMemCpy(RecoStep::TPCClusterFinding, (void*)&mInputsHost->mPclusterNativeOutput[nClsFirst], (void*)&mInputsShadow->mPclusterNativeBuffer[nClsFirst], (nClsTotal - nClsFirst) * sizeof(mInputsHost->mPclusterNativeOutput[nClsFirst]), mRec->NStreams() - 1, false);
       }
     }
+
+    if (mWaitForFinalInputs && iSliceBase >= 24 && iSliceBase < 24 + GetProcessingSettings().nTPCClustererLanes) {
+      notifyForeignChainFinished();
+    }
   }
   for (int i = 0; i < GetProcessingSettings().nTPCClustererLanes; i++) {
     if (transferRunning[i]) {
       ReleaseEvent(&mEvents->stream[i], doGPU);
     }
-  }
-
-  if (mPipelineNotifyCtx) {
-    SynchronizeStream(mRec->NStreams() - 2); // Must finish before updating ioPtrs in (global) constant memory
-    {
-      std::lock_guard<std::mutex> lock(mPipelineNotifyCtx->mutex);
-      mPipelineNotifyCtx->ready = true;
-    }
-    mPipelineNotifyCtx->cond.notify_one();
   }
 
   if (mWaitForFinalInputs) {
@@ -993,6 +999,10 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     tmpNative->clustersMCTruth = mcLabelsConstView;
     tmpNative->setOffsetPtrs();
     mIOPtrs.clustersNative = tmpNative;
+  }
+
+  if (!mWaitForFinalInputs) {
+    notifyForeignChainFinished();
   }
 
   if (buildNativeGPU) {
