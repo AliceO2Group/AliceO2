@@ -80,6 +80,9 @@ int GPUO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
   }
   for (unsigned int i = 0; i < mNContexts; i++) {
     mCtx[i].mChain = mCtx[i].mRec->AddChain<GPUChainTracking>(mConfig->configInterface.maxTPCHits, mConfig->configInterface.maxTRDTracklets);
+    if (i) {
+      mCtx[i].mChain->SetQAFromForeignChain(mCtx[0].mChain);
+    }
     mCtx[i].mChain->mConfigDisplay = &mConfig->configDisplay;
     mCtx[i].mChain->mConfigQA = &mConfig->configQA;
     mCtx[i].mRec->SetSettings(&mConfig->configGRP, &mConfig->configReconstruction, &mConfig->configProcessing, &mConfig->configWorkflow);
@@ -145,6 +148,7 @@ void GPUO2Interface::DumpEvent(int nEvent, GPUTrackingInOutPointers* data)
     if (mConfig->configProcessing.runMC) {
       mCtx[0].mChain->ForceInitQA();
       snprintf(fname, 1024, "mc.%d.dump", nEvent);
+      mCtx[0].mChain->GetQA()->UpdateChain(mCtx[0].mChain);
       mCtx[0].mChain->GetQA()->DumpO2MCData(fname);
     }
 #endif
