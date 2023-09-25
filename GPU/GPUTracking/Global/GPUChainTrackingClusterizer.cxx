@@ -658,6 +658,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
       mPipelineNotifyCtx->cond.notify_one();
     }
   };
+  bool synchronizeCalibUpdate = false;
 
   for (unsigned int iSliceBase = 0; iSliceBase < NSLICES; iSliceBase += GetProcessingSettings().nTPCClustererLanes) {
     std::vector<bool> laneHasData(GetProcessingSettings().nTPCClustererLanes, false);
@@ -935,18 +936,18 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
       }
     }
 
-    if (mWaitForFinalInputs && iSliceBase >= 24 && iSliceBase < 24 + GetProcessingSettings().nTPCClustererLanes) {
+    if (mWaitForFinalInputs && iSliceBase >= 21 && iSliceBase < 21 + GetProcessingSettings().nTPCClustererLanes) {
       notifyForeignChainFinished();
+    }
+    if (mWaitForFinalInputs && iSliceBase >= 30 && iSliceBase < 30 + GetProcessingSettings().nTPCClustererLanes) {
+      mWaitForFinalInputs();
+      synchronizeCalibUpdate = DoQueuedUpdates(0, false);
     }
   }
   for (int i = 0; i < GetProcessingSettings().nTPCClustererLanes; i++) {
     if (transferRunning[i]) {
       ReleaseEvent(&mEvents->stream[i], doGPU);
     }
-  }
-
-  if (mWaitForFinalInputs) {
-    mWaitForFinalInputs();
   }
 
   if (GetProcessingSettings().param.tpcTriggerHandling) {
@@ -1015,6 +1016,9 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   }
   if (synchronizeOutput) {
     SynchronizeStream(mRec->NStreams() - 1);
+  }
+  if (synchronizeCalibUpdate) {
+    SynchronizeStream(0);
   }
   if (buildNativeHost && GetProcessingSettings().debugLevel >= 4) {
     for (unsigned int i = 0; i < NSLICES; i++) {
