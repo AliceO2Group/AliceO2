@@ -50,7 +50,6 @@ struct pipelinePrepareMessage {
   size_t magicWord = MAGIC_WORD;
   DataProcessingHeader::StartTime timeSliceId;
   GPUSettingsTF tfSettings;
-  fair::mq::RegionInfo regionInfo;
   size_t pointerCounts[GPUTrackingInOutZS::NSLICES][GPUTrackingInOutZS::NENDPOINTS];
   size_t pointersTotal;
   bool flagEndOfStream;
@@ -184,7 +183,7 @@ int GPURecoWorkflowSpec::handlePipeline(ProcessingContext& pc, GPUTrackingInOutP
       }
     }
 
-    size_t prepareBufferSize = sizeof(pipelinePrepareMessage) + ptrsTotal * sizeof(size_t) * 2;
+    size_t prepareBufferSize = sizeof(pipelinePrepareMessage) + ptrsTotal * sizeof(size_t) * 4;
     std::vector<size_t> messageBuffer(prepareBufferSize / sizeof(size_t));
     pipelinePrepareMessage& preMessage = *(pipelinePrepareMessage*)messageBuffer.data();
     preMessage.magicWord = preMessage.MAGIC_WORD;
@@ -193,28 +192,31 @@ int GPURecoWorkflowSpec::handlePipeline(ProcessingContext& pc, GPUTrackingInOutP
     preMessage.flagEndOfStream = false;
     memcpy((void*)&preMessage.tfSettings, (const void*)ptrs.settingsTF, sizeof(preMessage.tfSettings));
 
-    if (ptrsTotal) {
-      bool regionFound = false;
-      for (unsigned int i = 0; i < mRegionInfos.size(); i++) {
-        if ((size_t)firstPtr >= (size_t)mRegionInfos[i].ptr && (size_t)firstPtr < (size_t)mRegionInfos[i].ptr + mRegionInfos[i].size) {
-          preMessage.regionInfo = mRegionInfos[i];
-          regionFound = true;
-          break;
-        }
-      }
-      if (!regionFound) {
-        LOG(fatal) << "Found a TPC ZS pointer outside of shared memory";
-      }
-    }
-
     size_t* ptrBuffer = messageBuffer.data() + sizeof(preMessage) / sizeof(size_t);
     size_t ptrsCopied = 0;
+    int lastRegion = -1;
     for (unsigned int i = 0; i < GPUTrackingInOutZS::NSLICES; i++) {
       for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
         preMessage.pointerCounts[i][j] = ptrs.tpcZS->slice[i].count[j];
         for (unsigned int k = 0; k < ptrs.tpcZS->slice[i].count[j]; k++) {
-          ptrBuffer[ptrsCopied + k] = (size_t)ptrs.tpcZS->slice[i].zsPtr[j][k] - (size_t)preMessage.regionInfo.ptr;
+          const void* curPtr = ptrs.tpcZS->slice[i].zsPtr[j][k];
+          bool regionFound = lastRegion != -1 && (size_t)curPtr >= (size_t)mRegionInfos[lastRegion].ptr && (size_t)curPtr < (size_t)mRegionInfos[lastRegion].ptr + mRegionInfos[lastRegion].size;
+          if (!regionFound) {
+            for (unsigned int l = 0; l < mRegionInfos.size(); l++) {
+              if ((size_t)curPtr >= (size_t)mRegionInfos[l].ptr && (size_t)curPtr < (size_t)mRegionInfos[l].ptr + mRegionInfos[l].size) {
+                lastRegion = l;
+                regionFound = true;
+                break;
+              }
+            }
+          }
+          if (!regionFound) {
+            LOG(fatal) << "Found a TPC ZS pointer outside of shared memory";
+          }
+          ptrBuffer[ptrsCopied + k] = (size_t)curPtr - (size_t)mRegionInfos[lastRegion].ptr;
           ptrBuffer[ptrsTotal + ptrsCopied + k] = ptrs.tpcZS->slice[i].nZSPtr[j][k];
+          ptrBuffer[2 * ptrsTotal + ptrsCopied + k] = mRegionInfos[lastRegion].managed;
+          ptrBuffer[3 * ptrsTotal + ptrsCopied + k] = mRegionInfos[lastRegion].id;
         }
         ptrsCopied += ptrs.tpcZS->slice[i].count[j];
       }
@@ -287,26 +289,31 @@ void GPURecoWorkflowSpec::RunReceiveThread()
     context->timeSliceId = m->timeSliceId;
     context->tfSettings = m->tfSettings;
 
-    size_t regionOffset = 0;
-    if (m->pointersTotal) {
-      bool regionFound = false;
-      for (unsigned int i = 0; i < mRegionInfos.size(); i++) {
-        if (mRegionInfos[i].managed == m->regionInfo.managed && mRegionInfos[i].id == m->regionInfo.id) {
-          regionFound = true;
-          regionOffset = (size_t)mRegionInfos[i].ptr;
-          break;
-        }
-      }
-    }
     size_t ptrsCopied = 0;
     size_t* ptrBuffer = (size_t*)msg->GetData() + sizeof(pipelinePrepareMessage) / sizeof(size_t);
     context->tpcZSmeta.Pointers[0][0].resize(m->pointersTotal);
     context->tpcZSmeta.Sizes[0][0].resize(m->pointersTotal);
+    int lastRegion = -1;
     for (unsigned int i = 0; i < GPUTrackingInOutZS::NSLICES; i++) {
       for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
         context->tpcZS.slice[i].count[j] = m->pointerCounts[i][j];
         for (unsigned int k = 0; k < context->tpcZS.slice[i].count[j]; k++) {
-          context->tpcZSmeta.Pointers[0][0][ptrsCopied + k] = (void*)(ptrBuffer[ptrsCopied + k] + regionOffset);
+          bool regionManaged = ptrBuffer[2 * m->pointersTotal + ptrsCopied + k];
+          size_t regionId = ptrBuffer[3 * m->pointersTotal + ptrsCopied + k];
+          bool regionFound = lastRegion != -1 && mRegionInfos[lastRegion].managed == regionManaged && mRegionInfos[lastRegion].id == regionId;
+          if (!regionFound) {
+            for (unsigned int l = 0; l < mRegionInfos.size(); l++) {
+              if (mRegionInfos[l].managed == regionManaged && mRegionInfos[l].id == regionId) {
+                lastRegion = l;
+                regionFound = true;
+                break;
+              }
+            }
+          }
+          if (!regionFound) {
+            LOG(fatal) << "Received ZS Ptr for SHM region (managed " << (int)regionManaged << ", id " << regionId << "), which was not registered for us";
+          }
+          context->tpcZSmeta.Pointers[0][0][ptrsCopied + k] = (void*)(ptrBuffer[ptrsCopied + k] + (size_t)mRegionInfos[lastRegion].ptr);
           context->tpcZSmeta.Sizes[0][0][ptrsCopied + k] = ptrBuffer[m->pointersTotal + ptrsCopied + k];
         }
         context->tpcZS.slice[i].zsPtr[j] = context->tpcZSmeta.Pointers[0][0].data() + ptrsCopied;
