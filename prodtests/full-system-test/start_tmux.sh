@@ -108,6 +108,7 @@ else
   FST_SLEEP1=0
   FST_SLEEP2=30
 fi
+[[ ! -z $FST_TMUX_DD_WAIT ]] && FST_SLEEP2=$FST_TMUX_DD_WAIT
 
 if [[ ! -z $FST_TMUX_SINGLENUMA ]]; then
   eval "FST_SLEEP$((FST_TMUX_SINGLENUMA ^ 1))=\"0; echo SKIPPED; sleep 1000; exit\""
