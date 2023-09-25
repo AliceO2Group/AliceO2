@@ -304,18 +304,16 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
   }
 
   if (unmatchedDescriptions.size() > 0) {
+    if (firstDH == nullptr) {
+      LOG(error) << "Input proxy received incomplete data without any data header. This should not happen! Cannot inject missing data as requsted.";
+      return;
+    }
+    if (dph == nullptr) {
+      LOG(error) << "Input proxy received incomplete data without any data processing header. This should happen! Cannot inject missing data as requsted.";
+      return;
+    }
     std::string missing = "";
     for (auto mi : unmatchedDescriptions) {
-      if (firstDH == nullptr) {
-        LOG(error) << "No data header found. Not injecting missing data.";
-        break;
-      }
-      if (dph == nullptr) {
-        // This can happen for non DPL messages in input,
-        // like it happens for some tests.
-        LOG(debug) << "DataProcessingHeader not found. Skipping message pair.";
-        continue;
-      }
       auto& spec = routes[mi].matcher;
       missing += " " + DataSpecUtils::describe(spec);
       // If we have a ConcreteDataMatcher, we can create a message with the correct header.
