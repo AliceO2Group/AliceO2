@@ -607,8 +607,9 @@ void GPUChainTracking::SetTRDGeometry(std::unique_ptr<o2::trd::GeometryFlat>&& g
   processors()->calibObjects.trdGeometry = mTRDGeometryU.get();
 }
 
-void GPUChainTracking::DoQueuedUpdates(int stream)
+int GPUChainTracking::DoQueuedUpdates(int stream, bool updateSlave)
 {
+  int retVal = 0;
   std::unique_ptr<GPUSettingsGRP> grp;
   const GPUSettingsProcessing* p = nullptr;
   std::lock_guard lk(mMutexUpdateCalib);
@@ -646,14 +647,17 @@ void GPUChainTracking::DoQueuedUpdates(int stream)
   }
   if (grp || p) {
     mRec->UpdateSettings(grp.get(), p);
+    retVal = 1;
   }
 
-  if ((mUpdateNewCalibObjects || mRec->slavesExist()) && mRec->IsGPU()) {
+  if ((mUpdateNewCalibObjects || (mRec->slavesExist() && updateSlave)) && mRec->IsGPU()) {
     UpdateGPUCalibObjectsPtrs(stream); // Reinitialize
+    retVal = 1;
   }
   mNewCalibObjects.reset(nullptr);
   mNewCalibValues.reset(nullptr);
   mUpdateNewCalibObjects = false;
+  return retVal;
 }
 
 int GPUChainTracking::RunChain()
