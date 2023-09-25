@@ -133,6 +133,11 @@ void DumpRaw::init()
       TString htit = TString::Format("Signal mod. %d ch. %d AUTOT; Sample; ADC", imod, ich);
       mSignalT[i] = std::make_unique<TH2F>(hname, htit, nbx, xmin, xmax, ADCRange, ADCMin - 0.5, ADCMax + 0.5);
     }
+    if (mSignalTH[i] == nullptr) {
+      TString hname = TString::Format("hsth%d%d", imod, ich);
+      TString htit = TString::Format("Signal mod. %d ch. %d AUTOT & Hit; Sample; ADC", imod, ich);
+      mSignalTH[i] = std::make_unique<TH2F>(hname, htit, NTimeBinsPerBC, -0.5, NTimeBinsPerBC - 0.5, ADCRange, ADCMin - 0.5, ADCMax + 0.5);
+    }
     if (mBunchA[i] == nullptr) {
       TString hname = TString::Format("hba%d%d", imod, ich);
       TString htit = TString::Format("Bunch mod. %d ch. %d ALICET; Sample; ADC", imod, ich);
@@ -202,6 +207,10 @@ void DumpRaw::write()
     if (mSignalT[i] && mSignalT[i]->GetEntries() > 0) {
       setStat(mSignalT[i].get());
       mSignalT[i]->Write();
+    }
+    if (mSignalTH[i] && mSignalTH[i]->GetEntries() > 0) {
+      setStat(mSignalTH[i].get());
+      mSignalTH[i]->Write();
     }
   }
   mTransmitted->Write();
@@ -386,6 +395,9 @@ int DumpRaw::process(const EventChData& ch)
     mBits->Fill(ih, 2);
     if (f.Hit) {
       mBitsH->Fill(ih, 2);
+      for (int32_t i = 0; i < 12; i++) {
+        mSignalTH[ih]->Fill(i + 0., double(s[i]));
+      }
     }
     for (int32_t i = 0; i < 12; i++) {
       mSignalT[ih]->Fill(i + 0., double(s[i]));
