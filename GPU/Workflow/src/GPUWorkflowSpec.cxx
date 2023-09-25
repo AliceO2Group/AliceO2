@@ -107,7 +107,7 @@ using namespace o2::gpu::gpurecoworkflow_internals;
 namespace o2::gpu
 {
 
-GPURecoWorkflowSpec::GPURecoWorkflowSpec(GPURecoWorkflowSpec::CompletionPolicyData* policyData, Config const& specconfig, std::vector<int> const& tpcsectors, unsigned long tpcSectorMask, std::shared_ptr<o2::base::GRPGeomRequest>& ggr) : o2::framework::Task(), mPolicyData(policyData), mTPCSectorMask(tpcSectorMask), mTPCSectors(tpcsectors), mSpecConfig(specconfig), mGGR(ggr)
+GPURecoWorkflowSpec::GPURecoWorkflowSpec(GPURecoWorkflowSpec::CompletionPolicyData* policyData, Config const& specconfig, std::vector<int> const& tpcsectors, unsigned long tpcSectorMask, std::shared_ptr<o2::base::GRPGeomRequest>& ggr, std::function<bool(o2::framework::DataProcessingHeader::StartTime)>** gPolicyOrder) : o2::framework::Task(), mPolicyData(policyData), mTPCSectorMask(tpcSectorMask), mTPCSectors(tpcsectors), mSpecConfig(specconfig), mGGR(ggr)
 {
   if (mSpecConfig.outputCAClusters && !mSpecConfig.caClusterer && !mSpecConfig.decompressTPC) {
     throw std::runtime_error("inconsistent configuration: cluster output is only possible if CA clusterer is activated");
@@ -118,6 +118,10 @@ GPURecoWorkflowSpec::GPURecoWorkflowSpec(GPURecoWorkflowSpec::CompletionPolicyDa
   mTFSettings.reset(new GPUSettingsTF);
   mTimer.reset(new TStopwatch);
   mPipeline.reset(new GPURecoWorkflowSpec_PipelineInternals);
+
+  if (mSpecConfig.enableDoublePipeline == 1 && gPolicyOrder) {
+    *gPolicyOrder = &mPolicyOrder;
+  }
 }
 
 GPURecoWorkflowSpec::~GPURecoWorkflowSpec() = default;
@@ -142,6 +146,9 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
     } else {
       throw std::runtime_error("GPU Event Display frontend could not be created!");
     }
+  }
+  if (mSpecConfig.enableDoublePipeline) {
+    mConfig->configProcessing.doublePipeline = 1;
   }
 
   mAutoSolenoidBz = mConfParam->solenoidBz == -1e6f;
@@ -285,9 +292,11 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
     }
   }
 
-  if (mSpecConfig.enableDoublePipeline == 1) {
-    mPipeline->fmqDevice = ic.services().get<RawDeviceService>().device();
-    mPipeline->receiveThread = std::thread([this]() { RunReceiveThread(); });
+  if (mSpecConfig.enableDoublePipeline) {
+    initPipeline(ic);
+    if (mConfParam->dump >= 2) {
+      LOG(fatal) << "Cannot use dump-only mode with multi-threaded pipeline";
+    }
   }
 
   auto& callbacks = ic.services().get<CallbackService>();
@@ -347,7 +356,7 @@ void GPURecoWorkflowSpec::stop()
 
 void GPURecoWorkflowSpec::endOfStream(EndOfStreamContext& ec)
 {
-  TerminateReceiveThread(); // TODO: Apparently breaks START / STOP / START
+  handlePipelineEndOfStream(ec);
 }
 
 void GPURecoWorkflowSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
@@ -479,6 +488,25 @@ void GPURecoWorkflowSpec::processInputs(ProcessingContext& pc, D& tpcZSmeta, E& 
       LOGF(info, "running tracking for sector(s) 0x%09x", mTPCSectorMask);
     }
   }
+}
+
+int GPURecoWorkflowSpec::runMain(o2::framework::ProcessingContext* pc, GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, int threadIndex, GPUInterfaceInputUpdate* inputUpdateCallback)
+{
+  int retVal = 0;
+  if (mConfParam->dump < 2) {
+    retVal = mGPUReco->RunTracking(ptrs, outputRegions, threadIndex, inputUpdateCallback);
+
+    if (retVal == 0 && mSpecConfig.runITSTracking) {
+      retVal = runITSTracking(*pc);
+    }
+  }
+
+  cleanOldCalibsTPCPtrs(); // setting TPC calibration objects
+
+  if (!mSpecConfig.enableDoublePipeline) { // TODO: Why is this needed for double-pipeline?
+    mGPUReco->Clear(false, threadIndex);   // clean non-output memory used by GPU Reconstruction
+  }
+  return retVal;
 }
 
 void GPURecoWorkflowSpec::run(ProcessingContext& pc)
@@ -624,17 +652,9 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
 
   // ------------------------------ Prepare stage for double-pipeline before normal output preparation ------------------------------
 
-  // unsigned int threadIndex = pc.services().get<ThreadPool>().threadIndex;
-  unsigned int threadIndex = mNextThreadIndex;
-  if (mConfig->configProcessing.doublePipeline) {
-    mNextThreadIndex = (mNextThreadIndex + 1) % 2;
-    std::lock_guard lk(mPipeline->threadMutex);
-    mPipeline->mayReceive = true;
-    mPipeline->notifyThread.notify_one();
-  }
-
+  std::unique_ptr<GPURecoWorkflow_QueueObject> pipelineContext;
   if (mSpecConfig.enableDoublePipeline) {
-    if (handlePipeline(pc, ptrs, tpcZSmeta, tpcZS)) {
+    if (handlePipeline(pc, ptrs, tpcZSmeta, tpcZS, pipelineContext)) {
       return;
     }
   }
@@ -743,21 +763,29 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   }
 
   int retVal = 0;
-  if (mConfParam->dump < 2) {
-    retVal = mGPUReco->RunTracking(&ptrs, &outputRegions, threadIndex);
-    if (retVal != 0) {
-      debugTFDump = true;
+  if (mSpecConfig.enableDoublePipeline) {
+    if (!pipelineContext->jobSubmitted) {
+      enqueuePipelinedJob(&ptrs, &outputRegions, pipelineContext.get(), true);
+    } else {
+      finalizeInputPipelinedJob(&ptrs, &outputRegions, pipelineContext.get());
+    }
+    std::unique_lock lk(pipelineContext->jobFinishedMutex);
+    pipelineContext->jobFinishedNotify.wait(lk, [context = pipelineContext.get()]() { return context->jobFinished; });
+    retVal = pipelineContext->jobReturnValue;
+  } else {
+    // unsigned int threadIndex = pc.services().get<ThreadPool>().threadIndex;
+    unsigned int threadIndex = mNextThreadIndex;
+    if (mConfig->configProcessing.doublePipeline) {
+      mNextThreadIndex = (mNextThreadIndex + 1) % 2;
     }
 
-    if (retVal == 0 && mSpecConfig.runITSTracking) {
-      retVal = runITSTracking(pc);
-    }
+    retVal = runMain(&pc, &ptrs, &outputRegions, threadIndex);
+  }
+  if (retVal != 0) {
+    debugTFDump = true;
   }
 
   o2::utils::DebugStreamer::instance()->flush(); // flushing debug output to file
-  cleanOldCalibsTPCPtrs();                       // setting TPC calibration objects
-  // if (!mTrackingCAO2Interface->getConfig().configInterface.outputToExternalBuffers) // TODO: Why was this needed for double-pipeline?
-  mGPUReco->Clear(false, threadIndex); // clean non-output memory used by GPU Reconstruction
 
   if (debugTFDump && mNDebugDumps < mConfParam->dumpBadTFs) {
     mNDebugDumps++;
@@ -1001,7 +1029,7 @@ Options GPURecoWorkflowSpec::options()
     char* o2jobid = getenv("O2JOBID");
     char* numaid = getenv("NUMAID");
     int chanid = o2jobid ? atoi(o2jobid) : (numaid ? atoi(numaid) : 0);
-    std::string chan = std::string("name=gpu-prepare-channel,type=") + (send ? "push" : "pull") + ",method=" + (send ? "connect" : "bind") + ",address=ipc://@gpu-prepare-channel-" + std::to_string(chanid) + ",transport=shmem,rateLogging=0";
+    std::string chan = std::string("name=gpu-prepare-channel,type=") + (send ? "push" : "pull") + ",method=" + (send ? "connect" : "bind") + ",address=ipc://@gpu-prepare-channel-" + std::to_string(chanid) + "-{timeslice0},transport=shmem,rateLogging=0";
     opts.emplace_back(o2::framework::ConfigParamSpec{"channel-config", o2::framework::VariantType::String, chan, {"Out-of-band channel config"}});
   }
   if (mSpecConfig.enableDoublePipeline == 2) {
@@ -1183,7 +1211,7 @@ Outputs GPURecoWorkflowSpec::outputs()
 
 void GPURecoWorkflowSpec::deinitialize()
 {
-  TerminateReceiveThread();
+  TerminateThreads();
   mQA.reset(nullptr);
   mDisplayFrontend.reset(nullptr);
   mGPUReco.reset(nullptr);

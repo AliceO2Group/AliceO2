@@ -530,15 +530,7 @@ int GPUChainTracking::RunTPCClusterizer_prepare(bool restorePointers)
       processors()->tpcClusterer[iSlice].SetNMaxDigits(nDigits, mCFContext->nPagesFragmentMax, nDigits, 0);
     }
   }
-  if (GetProcessingSettings().param.tpcTriggerHandling) {
-    GPUOutputControl* triggerOutput = mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::tpcTriggerWords)];
-    if (triggerOutput && triggerOutput->allocator) {
-      GPUInfo("Storing %lu trigger words", mTriggerBuffer->triggers.size());
-      auto* outputBuffer = (decltype(mTriggerBuffer->triggers)::value_type*)triggerOutput->allocator(mTriggerBuffer->triggers.size() * sizeof(decltype(mTriggerBuffer->triggers)::value_type));
-      std::copy(mTriggerBuffer->triggers.begin(), mTriggerBuffer->triggers.end(), outputBuffer);
-    }
-    mTriggerBuffer->triggers.clear();
-  }
+
   if (mIOPtrs.tpcZS) {
     GPUInfo("Event has %u 8kb TPC ZS pages (version %d), %lld digits", mCFContext->nPagesTotal, mCFContext->zsVersion, (long long int)mRec->MemoryScalers()->nTPCdigits);
   } else {
@@ -640,6 +632,9 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeBuffer);
   }
   if (buildNativeHost && !(buildNativeGPU && GetProcessingSettings().delayedOutput)) {
+    if (mWaitForFinalInputs) {
+      GPUFatal("Cannot use waitForFinalInput callback without delayed output");
+    }
     AllocateRegisteredMemory(mInputsHost->mResourceClusterNativeOutput, mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::clustersNative)]);
   }
 
@@ -935,6 +930,29 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     }
   }
 
+  if (mPipelineNotifyCtx) {
+    SynchronizeStream(mRec->NStreams() - 2); // Must finish before updating ioPtrs in (global) constant memory
+    {
+      std::lock_guard<std::mutex> lock(mPipelineNotifyCtx->mutex);
+      mPipelineNotifyCtx->ready = true;
+    }
+    mPipelineNotifyCtx->cond.notify_one();
+  }
+
+  if (mWaitForFinalInputs) {
+    mWaitForFinalInputs();
+  }
+
+  if (GetProcessingSettings().param.tpcTriggerHandling) {
+    GPUOutputControl* triggerOutput = mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::tpcTriggerWords)];
+    if (triggerOutput && triggerOutput->allocator) {
+      GPUInfo("Storing %lu trigger words", mTriggerBuffer->triggers.size());
+      auto* outputBuffer = (decltype(mTriggerBuffer->triggers)::value_type*)triggerOutput->allocator(mTriggerBuffer->triggers.size() * sizeof(decltype(mTriggerBuffer->triggers)::value_type));
+      std::copy(mTriggerBuffer->triggers.begin(), mTriggerBuffer->triggers.end(), outputBuffer);
+    }
+    mTriggerBuffer->triggers.clear();
+  }
+
   ClusterNativeAccess::ConstMCLabelContainerView* mcLabelsConstView = nullptr;
   if (propagateMCLabels) {
     // TODO: write to buffer directly
@@ -975,13 +993,6 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
     tmpNative->clustersMCTruth = mcLabelsConstView;
     tmpNative->setOffsetPtrs();
     mIOPtrs.clustersNative = tmpNative;
-  }
-
-  if (mPipelineNotifyCtx) {
-    SynchronizeStream(mRec->NStreams() - 2); // Must finish before updating ioPtrs in (global) constant memory
-    std::lock_guard<std::mutex> lock(mPipelineNotifyCtx->mutex);
-    mPipelineNotifyCtx->ready = true;
-    mPipelineNotifyCtx->cond.notify_one();
   }
 
   if (buildNativeGPU) {

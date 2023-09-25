@@ -38,6 +38,7 @@ using namespace o2::gpu;
 using CompletionPolicyData = std::vector<InputSpec>;
 static CompletionPolicyData gPolicyData;
 static constexpr unsigned long gTpcSectorMask = 0xFFFFFFFFF;
+static std::function<bool(o2::framework::DataProcessingHeader::StartTime)>* gPolicyOrderCheck;
 static std::shared_ptr<GPURecoWorkflowSpec> gTask;
 
 void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
@@ -71,7 +72,7 @@ void customize(std::vector<DispatchPolicy>& policies)
 
 void customize(std::vector<CompletionPolicy>& policies)
 {
-  policies.push_back(o2::tpc::TPCSectorCompletionPolicy("gpu-reconstruction.*", o2::tpc::TPCSectorCompletionPolicy::Config::RequireAll, &gPolicyData, &gTpcSectorMask)());
+  policies.push_back(o2::tpc::TPCSectorCompletionPolicy("gpu-reconstruction.*", o2::tpc::TPCSectorCompletionPolicy::Config::RequireAll, &gPolicyData, &gTpcSectorMask, &gPolicyOrderCheck)());
 }
 
 void customize(o2::framework::OnWorkflowTerminationHook& hook)

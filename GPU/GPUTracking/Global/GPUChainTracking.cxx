@@ -611,10 +611,11 @@ void GPUChainTracking::DoQueuedUpdates(int stream)
 {
   std::unique_ptr<GPUSettingsGRP> grp;
   const GPUSettingsProcessing* p = nullptr;
+  std::lock_guard lk(mMutexUpdateCalib);
   if (mUpdateNewCalibObjects) {
-    void** pSrc = (void**)&mNewCalibObjects;
+    void* const* pSrc = (void* const*)mNewCalibObjects.get();
     void** pDst = (void**)&processors()->calibObjects;
-    for (unsigned int i = 0; i < sizeof(mNewCalibObjects) / sizeof(void*); i++) {
+    for (unsigned int i = 0; i < sizeof(processors()->calibObjects) / sizeof(void*); i++) {
       if (pSrc[i]) {
         pDst[i] = pSrc[i];
       }
@@ -628,7 +629,7 @@ void GPUChainTracking::DoQueuedUpdates(int stream)
       if (ptrsChanged) {
         GPUInfo("Updating all calib objects since pointers changed");
       }
-      UpdateGPUCalibObjects(stream, ptrsChanged ? nullptr : &mNewCalibObjects);
+      UpdateGPUCalibObjects(stream, ptrsChanged ? nullptr : mNewCalibObjects.get());
     }
     if (mNewCalibValues->newSolenoidField || mNewCalibValues->newContinuousMaxTimeBin) {
       grp = std::make_unique<GPUSettingsGRP>(mRec->GetGRPSettings());
@@ -650,6 +651,8 @@ void GPUChainTracking::DoQueuedUpdates(int stream)
   if ((mUpdateNewCalibObjects || mRec->slavesExist()) && mRec->IsGPU()) {
     UpdateGPUCalibObjectsPtrs(stream); // Reinitialize
   }
+  mNewCalibObjects.reset(nullptr);
+  mNewCalibValues.reset(nullptr);
   mUpdateNewCalibObjects = false;
 }
 
@@ -964,7 +967,22 @@ void GPUChainTracking::SetDefaultInternalO2Propagator(bool useGPUField)
 
 void GPUChainTracking::SetUpdateCalibObjects(const GPUCalibObjectsConst& obj, const GPUNewCalibValues& vals)
 {
-  mNewCalibObjects = obj;
-  mNewCalibValues.reset(new GPUNewCalibValues(vals));
+  std::lock_guard lk(mMutexUpdateCalib);
+  if (mNewCalibObjects) {
+    void* const* pSrc = (void* const*)&vals;
+    void** pDst = (void**)mNewCalibObjects.get();
+    for (unsigned int i = 0; i < sizeof(*mNewCalibObjects) / sizeof(void*); i++) {
+      if (pSrc[i]) {
+        pDst[i] = pSrc[i];
+      }
+    }
+  } else {
+    mNewCalibObjects.reset(new GPUCalibObjectsConst(obj));
+  }
+  if (mNewCalibValues) {
+    mNewCalibValues->updateFrom(&vals);
+  } else {
+    mNewCalibValues.reset(new GPUNewCalibValues(vals));
+  }
   mUpdateNewCalibObjects = true;
 }

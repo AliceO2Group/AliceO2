@@ -21,13 +21,13 @@
 #include "Framework/Task.h"
 #include "Framework/ConcreteDataMatcher.h"
 #include "Framework/InitContext.h"
-#include "Framework/ProcessingContext.h"
 #include "Framework/CompletionPolicy.h"
 #include "Algorithm/Parser.h"
 #include <string>
 #include <array>
 #include <vector>
 #include <mutex>
+#include <functional>
 
 class TStopwatch;
 namespace fair::mq
@@ -84,10 +84,13 @@ struct GPUSettingsO2;
 class GPUO2InterfaceQA;
 struct GPUTrackingInOutPointers;
 struct GPUTrackingInOutZS;
+struct GPUInterfaceOutputs;
+struct GPUInterfaceInputUpdate;
 namespace gpurecoworkflow_internals
 {
 struct GPURecoWorkflowSpec_TPCZSBuffers;
 struct GPURecoWorkflowSpec_PipelineInternals;
+struct GPURecoWorkflow_QueueObject;
 } // namespace gpurecoworkflow_internals
 
 class GPURecoWorkflowSpec : public o2::framework::Task
@@ -123,7 +126,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
     bool tpcTriggerHandling = false;
   };
 
-  GPURecoWorkflowSpec(CompletionPolicyData* policyData, Config const& specconfig, std::vector<int> const& tpcsectors, unsigned long tpcSectorMask, std::shared_ptr<o2::base::GRPGeomRequest>& ggr);
+  GPURecoWorkflowSpec(CompletionPolicyData* policyData, Config const& specconfig, std::vector<int> const& tpcsectors, unsigned long tpcSectorMask, std::shared_ptr<o2::base::GRPGeomRequest>& ggr, std::function<bool(o2::framework::DataProcessingHeader::StartTime)>** gPolicyOrder = nullptr);
   ~GPURecoWorkflowSpec() override;
   void init(o2::framework::InitContext& ic) final;
   void run(o2::framework::ProcessingContext& pc) final;
@@ -159,11 +162,18 @@ class GPURecoWorkflowSpec : public o2::framework::Task
 
   int runITSTracking(o2::framework::ProcessingContext& pc);
 
-  int handlePipeline(o2::framework::ProcessingContext& pc, GPUTrackingInOutPointers& ptrs, gpurecoworkflow_internals::GPURecoWorkflowSpec_TPCZSBuffers& tpcZSmeta, o2::gpu::GPUTrackingInOutZS& tpcZS);
+  int handlePipeline(o2::framework::ProcessingContext& pc, GPUTrackingInOutPointers& ptrs, gpurecoworkflow_internals::GPURecoWorkflowSpec_TPCZSBuffers& tpcZSmeta, o2::gpu::GPUTrackingInOutZS& tpcZS, std::unique_ptr<gpurecoworkflow_internals::GPURecoWorkflow_QueueObject>& context);
   void RunReceiveThread();
-  void TerminateReceiveThread();
+  void RunWorkerThread(int id);
+  void TerminateThreads();
+  void handlePipelineEndOfStream(o2::framework::EndOfStreamContext& ec);
+  void initPipeline(o2::framework::InitContext& ic);
+  void enqueuePipelinedJob(GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, gpurecoworkflow_internals::GPURecoWorkflow_QueueObject* context, bool inputFinal);
+  void finalizeInputPipelinedJob(GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, gpurecoworkflow_internals::GPURecoWorkflow_QueueObject* context);
+  int runMain(o2::framework::ProcessingContext* pc, GPUTrackingInOutPointers* ptrs, GPUInterfaceOutputs* outputRegions, int threadIndex = 0, GPUInterfaceInputUpdate* inputUpdateCallback = nullptr);
 
   CompletionPolicyData* mPolicyData;
+  std::function<bool(o2::framework::DataProcessingHeader::StartTime)> mPolicyOrder;
   std::unique_ptr<GPUO2Interface> mGPUReco;
   std::unique_ptr<GPUDisplayFrontendInterface> mDisplayFrontend;
   std::unique_ptr<TPCFastTransform> mFastTransform;

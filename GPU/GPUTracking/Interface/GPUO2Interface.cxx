@@ -135,9 +135,6 @@ void GPUO2Interface::Deinitialize()
 
 void GPUO2Interface::DumpEvent(int nEvent, GPUTrackingInOutPointers* data)
 {
-  if (mConfig->configProcessing.doublePipeline) {
-    throw std::runtime_error("Cannot dump events in double pipeline mode");
-  }
   mCtx[0].mChain->ClearIOPointers();
   mCtx[0].mChain->mIOPtrs = *data;
   char fname[1024];
@@ -156,30 +153,54 @@ void GPUO2Interface::DumpEvent(int nEvent, GPUTrackingInOutPointers* data)
 
 void GPUO2Interface::DumpSettings()
 {
-  if (mConfig->configProcessing.doublePipeline) {
-    throw std::runtime_error("Cannot dump events in double pipeline mode");
-  }
   mCtx[0].mChain->DoQueuedUpdates(-1);
   mCtx[0].mRec->DumpSettings();
 }
 
-int GPUO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutputs* outputs, unsigned int iThread)
+int GPUO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutputs* outputs, unsigned int iThread, GPUInterfaceInputUpdate* inputUpdateCallback)
 {
   if (mNContexts <= iThread) {
     return (1);
   }
 
   mCtx[iThread].mChain->mIOPtrs = *data;
-  if (mConfig->configInterface.outputToExternalBuffers) {
-    for (unsigned int i = 0; i < mCtx[iThread].mOutputRegions->count(); i++) {
-      if (outputs->asArray()[i].allocator) {
-        mCtx[iThread].mOutputRegions->asArray()[i].set(outputs->asArray()[i].allocator);
-      } else if (outputs->asArray()[i].ptrBase) {
-        mCtx[iThread].mOutputRegions->asArray()[i].set(outputs->asArray()[i].ptrBase, outputs->asArray()[i].size);
-      } else {
-        mCtx[iThread].mOutputRegions->asArray()[i].reset();
+
+  auto setOutputs = [this, iThread](GPUInterfaceOutputs* outputs) {
+    if (mConfig->configInterface.outputToExternalBuffers) {
+      for (unsigned int i = 0; i < mCtx[iThread].mOutputRegions->count(); i++) {
+        if (outputs->asArray()[i].allocator) {
+          mCtx[iThread].mOutputRegions->asArray()[i].set(outputs->asArray()[i].allocator);
+        } else if (outputs->asArray()[i].ptrBase) {
+          mCtx[iThread].mOutputRegions->asArray()[i].set(outputs->asArray()[i].ptrBase, outputs->asArray()[i].size);
+        } else {
+          mCtx[iThread].mOutputRegions->asArray()[i].reset();
+        }
       }
     }
+  };
+
+  auto inputWaitCallback = [this, iThread, inputUpdateCallback, &data, &outputs, &setOutputs]() {
+    GPUTrackingInOutPointers* updatedData;
+    GPUInterfaceOutputs* updatedOutputs;
+    if (inputUpdateCallback->callback) {
+      inputUpdateCallback->callback(updatedData, updatedOutputs);
+      mCtx[iThread].mChain->mIOPtrs = *updatedData;
+      outputs = updatedOutputs;
+      data = updatedData;
+      setOutputs(outputs);
+    }
+    if (inputUpdateCallback->notifyCallback) {
+      inputUpdateCallback->notifyCallback();
+    }
+  };
+
+  if (inputUpdateCallback) {
+    mCtx[iThread].mChain->SetFinalInputCallback(inputWaitCallback);
+  } else {
+    mCtx[iThread].mChain->SetFinalInputCallback(nullptr);
+  }
+  if (!inputUpdateCallback || !inputUpdateCallback->callback) {
+    setOutputs(outputs);
   }
 
   int retVal = mCtx[iThread].mRec->RunChains();
