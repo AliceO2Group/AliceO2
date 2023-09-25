@@ -946,7 +946,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   if (GetProcessingSettings().param.tpcTriggerHandling) {
     GPUOutputControl* triggerOutput = mSubOutputControls[GPUTrackingOutputs::getIndex(&GPUTrackingOutputs::tpcTriggerWords)];
     if (triggerOutput && triggerOutput->allocator) {
-      GPUInfo("Storing %lu trigger words", mTriggerBuffer->triggers.size());
+      // GPUInfo("Storing %lu trigger words", mTriggerBuffer->triggers.size());
       auto* outputBuffer = (decltype(mTriggerBuffer->triggers)::value_type*)triggerOutput->allocator(mTriggerBuffer->triggers.size() * sizeof(decltype(mTriggerBuffer->triggers)::value_type));
       std::copy(mTriggerBuffer->triggers.begin(), mTriggerBuffer->triggers.end(), outputBuffer);
     }
