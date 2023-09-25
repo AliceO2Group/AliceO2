@@ -334,7 +334,7 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
     static int maxWarn = 10; // Correct would be o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef, but Framework does not depend on CommonUtils..., but not so critical since receives will send correct number of DEADBEEF messages
     static int contDeadBeef = 0;
     if (++contDeadBeef <= maxWarn) {
-      LOGP(error, "Found {}/{} data specs, missing data specs: {}, injecting 0xDEADBEEF", present.size() - unmatchedDescriptions.size(), present.size(), missing);
+      LOGP(alarm, "Found {}/{} data specs, missing data specs: {}, injecting 0xDEADBEEF", present.size() - unmatchedDescriptions.size(), present.size(), missing);
     }
   }
 }
