@@ -231,7 +231,7 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   float nStepsInv = mParams.getNSimStepsInv();
   int nSteps = mParams.getNSimSteps();
   short detID{hit.GetDetectorID()};
-  const auto& matrix = mGeometry->getMatrixL2G(detID); // <<<< ?????
+  const auto& matrix = mGeometry->getMatrixL2G(detID);
   bool innerBarrel{detID < mSuperSegmentations.size()};
   math_utils::Vector3D<float> xyzLocS, xyzLocE;
   xyzLocS = matrix ^ (hit.GetPosStart());
@@ -331,12 +331,8 @@ void Digitizer::processHit(const o2::itsmft::Hit& hit, uint32_t& maxFr, int evID
   // take into account that the AlpideSimResponse depth defintion has different min/max boundaries
   // although the max should coincide with the surface of the epitaxial layer, which in the chip
   // local coordinates has Y = +SensorLayerThickness/2
-  float thickness = innerBarrel ? mSuperSegmentations[detID].mDetectorLayerThickness : Segmentation::SensorLayerThickness;
-  if (!innerBarrel) {
-    xyzLocS.SetY(xyzLocS.Y() + resp->getDepthMax() - Segmentation::SensorLayerThickness / 2.);
-  } else {
-    xyzLocS.SetY(xyzLocS.Y() * (mSuperSegmentations[detID].mSensorLayerThicknessEff / 2. / mSuperSegmentations[detID].mDetectorLayerThickness)); // to avoid holes in clusters // FIXME
-  }
+  float thickness = innerBarrel ? mSuperSegmentations[detID].mSensorLayerThicknessEff : Segmentation::SensorLayerThickness;
+  xyzLocS.SetY(xyzLocS.Y() + resp->getDepthMax() - thickness / 2.);
 
   // collect charge in evey pixel which might be affected by the hit
   for (int iStep = nSteps; iStep--;) {
@@ -413,7 +409,7 @@ void Digitizer::registerDigits(o2::itsmft::ChipDigitsContainer& chip, uint32_t r
   // multiple ROFrame. The signal starts at time tInROF wrt the start of provided roFrame
   // In every ROFrame we check the collected signal during strobe
 
-  float tStrobe = mParams.getStrobeDelay() - tInROF; // strobe start wrt signal start
+  float tStrobe = mParams.getStrobeDelay() - tInROF; // strobe start wrt signal start 
   for (int i = 0; i < nROF; i++) {
     uint32_t roFr = roFrame + i;
     int nEleROF = mParams.getSignalShape().getCollectedCharge(nEle, tStrobe, tStrobe + mParams.getStrobeLength());
