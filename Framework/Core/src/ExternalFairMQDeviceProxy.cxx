@@ -257,8 +257,12 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
   for (int msgidx = 0; msgidx < parts.Size(); msgidx += 2) {
     const auto dh = o2::header::get<DataHeader*>(parts.At(msgidx)->GetData());
     auto const sih = o2::header::get<SourceInfoHeader*>(parts.At(msgidx)->GetData());
-    if (sih != nullptr) {
-      continue;
+    if (firstDH != nullptr && sih != nullptr) {
+      LOG(error) << "Received a SourceInfoHeader after a DataHeader.";
+    } else if (sih != nullptr) {
+      LOG(detail) << "This is an End Of Stream message. Not injecting anything.";
+      // Nothing to do, this is an end of stream
+      return;
     }
     if (parts.At(msgidx).get() == nullptr) {
       LOG(error) << "unexpected nullptr found. Skipping message pair.";
