@@ -409,7 +409,7 @@ void Digitizer::registerDigits(o2::itsmft::ChipDigitsContainer& chip, uint32_t r
   // multiple ROFrame. The signal starts at time tInROF wrt the start of provided roFrame
   // In every ROFrame we check the collected signal during strobe
 
-  float tStrobe = mParams.getStrobeDelay() - tInROF; // strobe start wrt signal start 
+  float tStrobe = mParams.getStrobeDelay() - tInROF; // strobe start wrt signal start
   for (int i = 0; i < nROF; i++) {
     uint32_t roFr = roFrame + i;
     int nEleROF = mParams.getSignalShape().getCollectedCharge(nEle, tStrobe, tStrobe + mParams.getStrobeLength());

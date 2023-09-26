@@ -56,10 +56,10 @@ class SegmentationSuperAlpide
   const float mActiveMatrixSizeRows{mPitchRow * mNRows};                                                                                                                                                                 ///< Active size along rows
 
   // effective thickness of sensitive layer, accounting for charge collection non-uniformity, https://alice.its.cern.ch/jira/browse/AOC-46
-  static constexpr float mSensorLayerThicknessEff = 28.e-4;                                    ///< effective thickness of sensitive part
-  static constexpr float mSensorLayerThickness = 30.e-4;                                       ///< physical thickness of sensitive part
-  const float mSensorSizeCols{mActiveMatrixSizeCols + mPassiveEdgeSide + mPassiveEdgeSide};    ///< SensorSize along columns
-  const float mSensorSizeRows{mActiveMatrixSizeRows + mPassiveEdgeTop + mPassiveEdgeReadOut};  ///< SensorSize along rows
+  static constexpr float mSensorLayerThicknessEff = 28.e-4;                                   ///< effective thickness of sensitive part
+  static constexpr float mSensorLayerThickness = 30.e-4;                                      ///< physical thickness of sensitive part
+  const float mSensorSizeCols{mActiveMatrixSizeCols + mPassiveEdgeSide + mPassiveEdgeSide};   ///< SensorSize along columns
+  const float mSensorSizeRows{mActiveMatrixSizeRows + mPassiveEdgeTop + mPassiveEdgeReadOut}; ///< SensorSize along rows
 
   ~SegmentationSuperAlpide() = default;
 
@@ -156,7 +156,7 @@ inline void SegmentationSuperAlpide::localToDetectorUnchecked(float xRow, float 
 {
   // convert to row/col w/o over/underflow check
   xRow = 0.5 * (mActiveMatrixSizeRows - mPassiveEdgeTop + mPassiveEdgeReadOut) - xRow; // coordinate wrt top edge of Active matrix
-  zCol += 0.5 * mActiveMatrixSizeCols;                                                  // coordinate wrt left edge of Active matrix
+  zCol += 0.5 * mActiveMatrixSizeCols;                                                 // coordinate wrt left edge of Active matrix
   iRow = std::floor(xRow / mPitchRow);
   iCol = std::floor(zCol / mPitchCol);
   if (xRow < 0) {
@@ -171,7 +171,7 @@ inline bool SegmentationSuperAlpide::localToDetector(float xRow, float zCol, int
 {
   // convert to row/col
   xRow = 0.5 * (mActiveMatrixSizeRows - mPassiveEdgeTop + mPassiveEdgeReadOut) - xRow; // coordinate wrt left edge of Active matrix
-  zCol += 0.5 * mActiveMatrixSizeCols;                                                  // coordinate wrt bottom edge of Active matrix
+  zCol += 0.5 * mActiveMatrixSizeCols;                                                 // coordinate wrt bottom edge of Active matrix
   if (xRow < 0 || xRow >= mActiveMatrixSizeRows || zCol < 0 || zCol >= mActiveMatrixSizeCols) {
     iRow = iCol = -1;
     return false;
