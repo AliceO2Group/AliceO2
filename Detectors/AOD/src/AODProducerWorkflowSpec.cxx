@@ -2135,6 +2135,8 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
       } else {
         masks = {0, 0};
       }
+    } else {
+      masks = {0, 0};
     }
     bcCursor(runNumber,
              bc,
