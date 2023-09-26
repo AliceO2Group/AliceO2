@@ -1008,7 +1008,6 @@ void DataProcessingDevice::InitTask()
     // Handle callbacks if any
     {
       std::lock_guard<std::mutex> lock(mRegionInfoMutex);
-      // If there is no pending event, we can break the loop.
       handleRegionCallbacks(mServiceRegistry, mPendingRegionInfos);
     }
   }
