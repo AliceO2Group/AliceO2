@@ -39,10 +39,19 @@ void DCSConfigReader::clear()
   mDCSConfig.clear();
 }
 
+void DCSConfigReader::clearDeadmap()
+{
+  for (int iChip = 0; iChip < 936; ++iChip) {
+    mNoiseMap.resetChip(iChip);
+  }
+}
+
 //_______________________________________________________________
 
 void DCSConfigReader::parseConfig()
 {
+  clearDeadmap();
+
   char delimiter_newline = '\n';
   char delimiter = ',';
 

@@ -38,6 +38,7 @@ class DCSConfigReader
   void init(bool);
   void loadConfig(gsl::span<const char> configBuf); // load MFT config
   void clear();
+  void clearDeadmap();
 
   const std::vector<o2::mft::DCSConfigInfo>& getConfigInfo() const { return mDCSConfig; }
   const o2::itsmft::NoiseMap& getNoiseMap() const { return mNoiseMap; }
