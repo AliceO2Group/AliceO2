@@ -243,6 +243,7 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
   bool allFound = true;
   DataProcessingHeader const* dph = nullptr;
   DataHeader const* firstDH = nullptr;
+  bool hassih = false;
 
   // Do not check anything which has DISTSUBTIMEFRAME in it.
   for (size_t pi = 0; pi < present.size(); ++pi) {
@@ -257,6 +258,7 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
     const auto dh = o2::header::get<DataHeader*>(parts.At(msgidx)->GetData());
     auto const sih = o2::header::get<SourceInfoHeader*>(parts.At(msgidx)->GetData());
     if (sih != nullptr) {
+      hassih = true;
       continue;
     }
     if (parts.At(msgidx).get() == nullptr) {
@@ -303,6 +305,13 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
   }
 
   if (unmatchedDescriptions.size() > 0) {
+    if (hassih) {
+      if (firstDH) {
+        LOG(error) << "Received an EndOfStream message together with data. This should not happen.";
+      }
+      LOG(detail) << "This is an End Of Stream message. Not injecting anything.";
+      return;
+    }
     if (firstDH == nullptr) {
       LOG(error) << "Input proxy received incomplete data without any data header. This should not happen! Cannot inject missing data as requsted.";
       return;
