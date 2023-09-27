@@ -119,8 +119,8 @@ bool ShmManager::createGlobalSegment(int nsegments)
     return false;
   }
 
-  LOG(info) << "CREATING SIM SHARED MEM SEGMENT FOR " << nsegments << " WORKERS";
 #ifdef USESHM
+  LOG(info) << "CREATING SIM SHARED MEM SEGMENT FOR " << nsegments << " WORKERS";
   // LOG(info) << "SIZEOF ShmMetaInfo " << sizeof(ShmMetaInfo);
   const auto totalsize = sizeof(ShmMetaInfo) + SHMPOOLSIZE * nsegments;
   if ((mShmID = shmget(IPC_PRIVATE, totalsize, IPC_CREAT | 0666)) == -1) {
