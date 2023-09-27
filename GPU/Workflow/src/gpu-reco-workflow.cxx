@@ -179,7 +179,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   Inputs ggInputs;
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false, true, false, true, true, o2::base::GRPGeomRequest::Aligned, ggInputs, true);
 
-  auto task = std::make_shared<GPURecoWorkflowSpec>(&gPolicyData, cfg, tpcSectors, gTpcSectorMask, ggRequest);
+  auto task = std::make_shared<GPURecoWorkflowSpec>(&gPolicyData, cfg, tpcSectors, gTpcSectorMask, ggRequest, &gPolicyOrderCheck);
   Inputs taskInputs = task->inputs();
   std::move(ggInputs.begin(), ggInputs.end(), std::back_inserter(taskInputs));
   gTask = task;
