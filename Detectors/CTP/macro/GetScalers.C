@@ -44,10 +44,10 @@ void GetScalers(std::string srun, long time, std::string ccdbHost = "http://ccdb
   if (ok == 1) {
     scl.printStream(std::cout);
     scl.convertRawToO2();
-    //scl.printO2(std::cout);
-    //scl.printFromZero(std::cout);
-    //scl.printIntegrals();
-    //scl.printRates();
+    // scl.printO2(std::cout);
+    // scl.printFromZero(std::cout);
+    // scl.printIntegrals();
+    // scl.printRates();
     std::cout << "TVX,TSC,TCE,ZNC:" << std::endl;
     scl.printInputRateAndIntegral(3);
     scl.printInputRateAndIntegral(4);

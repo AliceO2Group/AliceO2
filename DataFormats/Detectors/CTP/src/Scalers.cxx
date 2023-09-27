@@ -276,7 +276,7 @@ int CTPRunScalers::convertRawToO2()
     }
   }
   // Input overflows
-  std::array<uint32_t, 48> overflowsInputs = {48*0};
+  std::array<uint32_t, 48> overflowsInputs = {48 * 0};
   errorCounters eCnts;
   // 1st o2 rec is just copy
   CTPScalerRecordO2 o2rec;
@@ -318,7 +318,7 @@ int CTPRunScalers::copyRawToO2ScalerRecord(const CTPScalerRecordRaw& rawrec, CTP
     o2scal.createCTPScalerO2FromRaw(rawscal, classesoverflows[k]);
     o2rec.scalers.push_back(o2scal);
   }
-  for(int i = 0; i < rawrec.scalersInps.size(); i ++) {
+  for (int i = 0; i < rawrec.scalersInps.size(); i++) {
     uint64_t inpo2 = (uint64_t)(rawrec.scalersInps[i]) + 0xffffffffull * (uint64_t)(overflows[i]);
     o2rec.scalersInps.push_back(inpo2);
   }
@@ -465,16 +465,16 @@ int CTPRunScalers::updateOverflows(const CTPScalerRaw& scal0, const CTPScalerRaw
 int CTPRunScalers::updateOverflowsInps(const CTPScalerRecordRaw& rec0, const CTPScalerRecordRaw& rec1, std::array<uint32_t, 48>& overflow) const
 {
   int NINPS = 48;
-  if(rec0.scalersInps.size() < NINPS) {
+  if (rec0.scalersInps.size() < NINPS) {
     LOG(error) << "updateOverflowsInps.size < 48:" << rec0.scalersInps.size();
     return 1;
   }
-  if(rec1.scalersInps.size() < NINPS) {
+  if (rec1.scalersInps.size() < NINPS) {
     LOG(error) << "updateOverflowsInps.size < 48:" << rec1.scalersInps.size();
     return 2;
   }
-  for(int i = 0; i < NINPS; i ++) {
-    if(rec0.scalersInps[i] > rec1.scalersInps[i]) {
+  for (int i = 0; i < NINPS; i++) {
+    if (rec0.scalersInps[i] > rec1.scalersInps[i]) {
       overflow[i] += 1;
     }
   }
@@ -546,9 +546,9 @@ int CTPRunScalers::printInputRateAndIntegral(int inp)
   }
   double_t time0 = mScalerRecordO2[0].epochTime;
   double_t timeL = mScalerRecordO2[mScalerRecordO2.size() - 1].epochTime;
-  int integral = mScalerRecordO2[mScalerRecordO2.size() - 1].scalersInps[inp-1] - mScalerRecordO2[0].scalersInps[inp-1];
+  int integral = mScalerRecordO2[mScalerRecordO2.size() - 1].scalersInps[inp - 1] - mScalerRecordO2[0].scalersInps[inp - 1];
   std::cout << "Scaler Integrals for run:" << mRunNumber << " duration:" << timeL - time0;
-  std::cout << " Input " << inp << " integral:" << integral << " rate:" << integral/(timeL-time0) << std::endl;
+  std::cout << " Input " << inp << " integral:" << integral << " rate:" << integral / (timeL - time0) << std::endl;
   return 0;
 }
 // Prints class before counters for lumi
@@ -561,13 +561,13 @@ int CTPRunScalers::printClassBRateAndIntegral(int icls)
   }
   double_t time0 = mScalerRecordO2[0].epochTime;
   double_t timeL = mScalerRecordO2[mScalerRecordO2.size() - 1].epochTime;
-  if(mScalerRecordO2[0].scalers.size() < icls) {
+  if (mScalerRecordO2[0].scalers.size() < icls) {
     LOG(error) << "class number bigger than expected for this run:" << icls << "expexted smaller than:" << mScalerRecordO2[0].scalers.size();
     return 1;
   } else {
-    int integral = mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[icls-1].lmBefore - mScalerRecordO2[0].scalers[icls-1].lmBefore;
+    int integral = mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[icls - 1].lmBefore - mScalerRecordO2[0].scalers[icls - 1].lmBefore;
     std::cout << "Scaler Integrals for run:" << mRunNumber << " duration:" << timeL - time0;
-    std::cout << " Class " << icls << " integral:" << integral << " rate:" << integral/(timeL-time0) << std::endl;
+    std::cout << " Class " << icls << " integral:" << integral << " rate:" << integral / (timeL - time0) << std::endl;
   }
   return 0;
 }
