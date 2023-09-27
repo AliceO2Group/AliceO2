@@ -283,7 +283,7 @@ void GPURecoWorkflowSpec::RunReceiveThread()
     do {
       {
         std::unique_lock lk(mPipeline->stateMutex);
-        mPipeline->stateNotify.wait(lk, [this]() { return (mPipeline->runStarted && mPipeline->fmqState == fair::mq::State::Running && !mPipeline->endOfStreamReceived) || mPipeline->shouldTerminate; }); // Do not check mPipeline->fmqDevice->NewStatePending() since we wait for EndOfStream!
+        mPipeline->stateNotify.wait(lk, [this]() { return (mPipeline->fmqState == fair::mq::State::Running && !mPipeline->endOfStreamReceived) || mPipeline->shouldTerminate; }); // Do not check mPipeline->fmqDevice->NewStatePending() since we wait for EndOfStream!
       }
       if (mPipeline->shouldTerminate) {
         break;
@@ -314,6 +314,20 @@ void GPURecoWorkflowSpec::RunReceiveThread()
       mPipeline->mNTFReceived = 0;
       mPipeline->runStarted = false;
       continue;
+    }
+
+    {
+      std::lock_guard lk(mPipeline->completionPolicyMutex);
+      mPipeline->completionPolicyQueue.emplace(m->timeSliceId);
+    }
+    mPipeline->completionPolicyNotify.notify_one();
+
+    {
+      std::unique_lock lk(mPipeline->stateMutex);
+      mPipeline->stateNotify.wait(lk, [this]() { return (mPipeline->runStarted && !mPipeline->endOfStreamReceived) || mPipeline->shouldTerminate; });
+      if (!mPipeline->runStarted) {
+        continue;
+      }
     }
 
     auto context = std::make_unique<GPURecoWorkflow_QueueObject>();
@@ -359,20 +373,12 @@ void GPURecoWorkflowSpec::RunReceiveThread()
       enqueuePipelinedJob(&context->ptrs, nullptr, context.get(), false);
     }
     {
-      std::lock_guard lk(mPipeline->completionPolicyMutex);
-      mPipeline->completionPolicyQueue.emplace(m->timeSliceId);
-    }
-    mPipeline->completionPolicyNotify.notify_one();
-    {
       std::lock_guard lk(mPipeline->queueMutex);
       mPipeline->pipelineQueue.emplace(std::move(context));
     }
     mPipeline->queueNotify.notify_one();
   }
-  {
-    std::lock_guard lk(mPipeline->completionPolicyMutex);
-    mPipeline->pipelineSenderTerminating = true;
-  }
+  mPipeline->pipelineSenderTerminating = true;
   mPipeline->completionPolicyNotify.notify_one();
 }
 
