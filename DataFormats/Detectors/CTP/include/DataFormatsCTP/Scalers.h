@@ -105,6 +105,8 @@ class CTPRunScalers
   uint32_t getRunNUmber() { return mRunNumber; };
   int printRates();
   int printIntegrals();
+  int printInputRateAndIntegral(int inp);
+  int printClassBRateAndIntegral(int icls);
   //
   // static constexpr uint32_t NCOUNTERS = 1052;
   // v1
@@ -146,10 +148,10 @@ class CTPRunScalers
   std::vector<CTPScalerRecordRaw> mScalerRecordRaw;
   std::vector<CTPScalerRecordO2> mScalerRecordO2;
   int processScalerLine(const std::string& line, int& level, int& nclasses);
-  int copyRawToO2ScalerRecord(const CTPScalerRecordRaw& rawrec, CTPScalerRecordO2& o2rec, overflows_t& classesoverflows);
+  int copyRawToO2ScalerRecord(const CTPScalerRecordRaw& rawrec, CTPScalerRecordO2& o2rec, overflows_t& classesoverflows, std::array<uint32_t, 48>& overflows);
   int updateOverflows(const CTPScalerRecordRaw& rec0, const CTPScalerRecordRaw& rec1, overflows_t& classesoverflows) const;
   int updateOverflows(const CTPScalerRaw& scal0, const CTPScalerRaw& scal1, std::array<uint32_t, 6>& overflow) const;
-
+  int updateOverflowsInps(const CTPScalerRecordRaw& rec0, const CTPScalerRecordRaw& rec1, std::array<uint32_t, 48>& overflow) const;
   ClassDefNV(CTPRunScalers, 2);
 };
 } // namespace ctp
