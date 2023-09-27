@@ -81,11 +81,11 @@ fi
 : ${INTEGRATEDCURR_TF_PER_SLOT:=150000} # setting for FT0, FV0, FDD and TOF
 
 if [[ $BEAMTYPE == "PbPb" ]]; then
-  : ${LHCPHASE_TF_PER_SLOT:=264}
-  : ${TOF_CHANNELOFFSETS_UPDATE:=3000}
-  : ${TOF_CHANNELOFFSETS_DELTA_UPDATE:=500}
+  : ${LHCPHASE_TF_PER_SLOT:=100000}
+  : ${TOF_CHANNELOFFSETS_UPDATE:=300000}
+  : ${TOF_CHANNELOFFSETS_DELTA_UPDATE:=50000}
 else
-  : ${LHCPHASE_TF_PER_SLOT:=26400}
+  : ${LHCPHASE_TF_PER_SLOT:=100000}
   : ${TOF_CHANNELOFFSETS_UPDATE:=300000}
   : ${TOF_CHANNELOFFSETS_DELTA_UPDATE:=50000}
 fi
@@ -206,7 +206,7 @@ if [[ $AGGREGATOR_TASKS == BARREL_TF ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
     fi
   fi
   if [[ $CALIB_TOF_DIAGNOSTICS == 1 ]]; then
-    add_W o2-calibration-tof-diagnostic-workflow "--tf-per-slot 26400 --max-delay 1" "" 0
+    add_W o2-calibration-tof-diagnostic-workflow "--tf-per-slot $LHCPHASE_TF_PER_SLOT --max-delay 1" "" 0
   fi
   # TPC
   if [[ $CALIB_TPC_SCDCALIB == 1 ]]; then
