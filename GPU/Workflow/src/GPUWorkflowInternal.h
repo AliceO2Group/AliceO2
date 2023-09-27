@@ -84,7 +84,7 @@ struct GPURecoWorkflowSpec_PipelineInternals {
   std::condition_variable queueNotify;
 
   std::queue<o2::framework::DataProcessingHeader::StartTime> completionPolicyQueue;
-  bool pipelineSenderTerminating = false;
+  volatile bool pipelineSenderTerminating = false;
   std::mutex completionPolicyMutex;
   std::condition_variable completionPolicyNotify;
 
