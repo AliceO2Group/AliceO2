@@ -10,10 +10,8 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/ASoA.h"
-#include "Framework/ASoAHelpers.h"
 #include "Framework/Expressions.h"
 #include "Framework/AnalysisHelpers.h"
-#include "Framework/ExpressionHelpers.h"
 #include "gandiva/tree_expr_builder.h"
 #include "arrow/status.h"
 #include "gandiva/filter.h"
@@ -1128,5 +1126,55 @@ TEST_CASE("TestArrayColumns")
       REQUIRE(iir[i] == i);
       REQUIRE(row.boolArray_bit(i) == (i % 2 == 0));
     }
+  }
+}
+
+namespace o2::aod
+{
+namespace table
+{
+DECLARE_SOA_COLUMN(One, one, int);
+DECLARE_SOA_COLUMN(Two, two, float);
+DECLARE_SOA_COLUMN(Three, three, double);
+DECLARE_SOA_COLUMN(Four, four, int[2]);
+DECLARE_SOA_DYNAMIC_COLUMN(Five, five, [](const int in[2]) -> float { return (float)in[0] / (float)in[1]; });
+} // namespace table
+DECLARE_SOA_TABLE(MixTest, "AOD", "MIXTST",
+                  table::One, table::Two, table::Three, table::Four,
+                  table::Five<table::Four>);
+} // namespace o2::aod
+TEST_CASE("TestCombinedGetter")
+{
+  TableBuilder b;
+  auto writer = b.cursor<o2::aod::MixTest>();
+  int f[2];
+  for (auto i = 0; i < 20; ++i) {
+    f[0] = i;
+    f[1] = i + 1;
+    writer(0, i, o2::constants::math::PI * i, o2::constants::math::Almost0 * i, f);
+  }
+  auto t = b.finalize();
+  o2::aod::MixTest mt{t};
+  auto count = 0;
+  for (auto const& row : mt) {
+    auto features1 = row.getValues<float, o2::aod::table::One, o2::aod::table::Three>();
+    auto features2 = row.getValues<double, o2::aod::table::One, o2::aod::table::Two, o2::aod::table::Three>();
+    auto features3 = row.getValues<float, o2::aod::table::Two, o2::aod::table::Five<o2::aod::table::Four>>();
+    auto b1 = std::is_same_v<std::array<float, 2>, decltype(features1)>;
+    REQUIRE(b1);
+    auto b2 = std::is_same_v<std::array<double, 3>, decltype(features2)>;
+    REQUIRE(b2);
+    auto b3 = std::is_same_v<std::array<float, 2>, decltype(features3)>;
+    REQUIRE(b3);
+    REQUIRE(features1[0] == (float)count);
+    REQUIRE(features1[1] == (float)(o2::constants::math::Almost0 * count));
+
+    REQUIRE(features2[0] == (double)count);
+    REQUIRE(features2[1] == (double)(o2::constants::math::PI * count));
+    REQUIRE(features2[2] == (double)(o2::constants::math::Almost0 * count));
+
+    REQUIRE(features3[0] == (float)(o2::constants::math::PI * count));
+    REQUIRE(features3[1] == (float)((float)count / (float)(count + 1)));
+    ++count;
   }
 }
