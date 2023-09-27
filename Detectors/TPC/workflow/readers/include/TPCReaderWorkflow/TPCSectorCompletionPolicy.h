@@ -200,7 +200,7 @@ class TPCSectorCompletionPolicy
             continue;
           }
           if (!(**orderCheck)(dph->startTime)) {
-            retVal = framework::CompletionPolicy::CompletionOp::Wait;
+            retVal = framework::CompletionPolicy::CompletionOp::Retry;
           }
           break;
         }
