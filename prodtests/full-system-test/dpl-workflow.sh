@@ -90,6 +90,8 @@ CTP_CONFIG=
 : ${ITSEXTRAERR:=}
 : ${TRACKTUNETPCINNER:=}
 : ${ITSTPC_CONFIG_KEY:=}
+: ${AOD_INPUT:=$TRACK_SOURCES}
+: ${AODPROD_OPT:=}
 
 [[ "0$DISABLE_ROOT_OUTPUT" == "00" ]] && DISABLE_ROOT_OUTPUT=
 
@@ -143,12 +145,17 @@ fi
 
 if [[ $BEAMTYPE == "PbPb" ]]; then
   PVERTEXING_CONFIG_KEY+="pvertexer.maxChi2TZDebris=2000;"
+  : ${STRTRACKING:=" --disable-strangeness-tracker "}
+  AODPROD_OPT+=" --disable-strangeness-tracking "
 elif [[ $BEAMTYPE == "pp" ]]; then
   PVERTEXING_CONFIG_KEY+="pvertexer.maxChi2TZDebris=10;"
+  : ${STRTRACKING:=" "}
 fi
 
 if [[ $BEAMTYPE == "cosmic" ]]; then
   [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode cosmics"
+  : ${STRTRACKING:=" --disable-strangeness-tracker "}
+  AODPROD_OPT+=" --disable-strangeness-tracking "
 elif [[ $SYNCMODE == 1 ]]; then
   [[ -z ${ITS_CONFIG+x} ]] && ITS_CONFIG=" --tracking-mode sync"
 else
@@ -496,10 +503,11 @@ has_detector_reco MCH && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output 
 ( [[ $BEAMTYPE == "cosmic" ]] || ! has_detector_reco ITS) && PVERTEX_CONFIG+=" --skip"
 has_detector_matching PRIMVTX && [[ ! -z "$VERTEXING_SOURCES" ]] && add_W o2-primary-vertexing-workflow "$DISABLE_MC $DISABLE_ROOT_INPUT $DISABLE_ROOT_OUTPUT $PVERTEX_CONFIG --pipeline $(get_N primary-vertexing MATCH REST 1 PRIMVTX),$(get_N pvertex-track-matching MATCH REST 1 PRIMVTXMATCH)" "${PVERTEXING_CONFIG_KEY}"
 
-if [[ $BEAMTYPE != "cosmic" ]]; then
-  : ${STRTRACKING:="--disable-strangeness-tracker"}
-  has_detectors_reco ITS && has_detector_matching SECVTX && has_detector_matching && STRTRACKING=""
-  has_detectors_reco ITS && has_detector_matching SECVTX && [[ ! -z "$SVERTEXING_SOURCES" ]] && add_W o2-secondary-vertexing-workflow "$DISABLE_MC $STRTRACKING $DISABLE_ROOT_INPUT $DISABLE_ROOT_OUTPUT $TPC_CORR_SCALING --vertexing-sources $SVERTEXING_SOURCES --threads $SVERTEX_THREADS --pipeline $(get_N secondary-vertexing MATCH REST $SVERTEX_THREADS SECVTX)"
+if [[ $BEAMTYPE != "cosmic" ]] && has_detectors_reco ITS && has_detector_matching SECVTX && [[ ! -z "$SVERTEXING_SOURCES" ]]; then
+  add_W o2-secondary-vertexing-workflow "$DISABLE_MC $STRTRACKING $DISABLE_ROOT_INPUT $DISABLE_ROOT_OUTPUT $TPC_CORR_SCALING --vertexing-sources $SVERTEXING_SOURCES --threads $SVERTEX_THREADS --pipeline $(get_N secondary-vertexing MATCH REST $SVERTEX_THREADS SECVTX)"
+  SECTVTX_ON="1"
+else
+  SECTVTX_ON="0"
 fi
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -557,11 +565,7 @@ workflow_has_parameter GPU_DISPLAY && [[ $NUMAID == 0 ]] && add_W o2-gpu-display
 
 # ---------------------------------------------------------------------------------------------------------------------
 # AOD
-: ${AOD_INPUT:=$TRACK_SOURCES}
-: ${AODPROD_OPT:=}
-( ! has_detector_matching SECVTX || ! has_detectors_reco ITS || [[ $BEAMTYPE == "cosmic" ]]) && AODPROD_OPT+=" --disable-secondary-vertices"
-( ! has_detector_matching STRK || ! has_detector_matching SECVTX || ! has_detectors_reco ITS || [[ $BEAMTYPE == "cosmic" ]]) && AODPROD_OPT+=" --disable-strangeness-tracking"
-
+[[ ${SECTVTX_ON:-} != "1" ]] && AODPROD_OPT+=" --disable-secondary-vertices "
 workflow_has_parameter AOD && [[ ! -z "$AOD_INPUT" ]] && add_W o2-aod-producer-workflow "$AODPROD_OPT --info-sources $AOD_INPUT $DISABLE_ROOT_INPUT --aod-writer-keep dangling --aod-writer-resfile \"AO2D\" --aod-writer-resmode UPDATE $DISABLE_MC --pipeline $(get_N aod-producer-workflow AOD REST 1 AODPROD)"
 
 # ---------------------------------------------------------------------------------------------------------------------
