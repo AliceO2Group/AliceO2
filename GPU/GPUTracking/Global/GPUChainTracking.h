@@ -19,8 +19,6 @@
 #include "GPUReconstructionHelpers.h"
 #include "GPUDataTypes.h"
 #include <atomic>
-#include <mutex>
-#include <functional>
 #include <array>
 #include <vector>
 #include <utility>
@@ -86,7 +84,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   bool SupportsDoublePipeline() override { return true; }
   int FinalizePipelinedProcessing() override;
   void ClearErrorCodes(bool cpuOnly = false);
-  int DoQueuedUpdates(int stream, bool updateSlave = true); // Forces doing queue calib updates, don't call when you are not sure you are allowed to do so!
+  void DoQueuedUpdates(int stream); // Forces doing queue calib updates, don't call when you are not sure you are allowed to do so!
   bool QARanForTF() const { return mFractionalQAEnabled; }
 
   // Structures for input and output data
@@ -156,10 +154,9 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   const GPUTPCGMMerger& GetTPCMerger() const { return processors()->tpcMerger; }
   GPUTPCGMMerger& GetTPCMerger() { return processors()->tpcMerger; }
   GPUDisplayInterface* GetEventDisplay() { return mEventDisplay.get(); }
-  const GPUQA* GetQA() const { return mQAFromForeignChain ? mQAFromForeignChain->mQA.get() : mQA.get(); }
-  GPUQA* GetQA() { return mQAFromForeignChain ? mQAFromForeignChain->mQA.get() : mQA.get(); }
+  const GPUQA* GetQA() const { return mQA.get(); }
+  GPUQA* GetQA() { return mQA.get(); }
   int ForceInitQA();
-  void SetQAFromForeignChain(GPUChainTracking* chain) { mQAFromForeignChain = chain; }
 
   // Processing functions
   int RunTPCClusterizer(bool synchronizeOutput = true);
@@ -194,7 +191,6 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void SetDefaultInternalO2Propagator(bool useGPUField);
   void LoadClusterErrors();
   void SetSubOutputControl(int i, GPUOutputControl* v) { mSubOutputControls[i] = v; }
-  void SetFinalInputCallback(std::function<void()> v) { mWaitForFinalInputs = v; }
 
   const GPUSettingsDisplay* mConfigDisplay = nullptr; // Abstract pointer to Standalone Display Configuration Structure
   const GPUSettingsQA* mConfigQA = nullptr;           // Abstract pointer to Standalone QA Configuration Structure
@@ -255,7 +251,6 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   // Display / QA
   bool mDisplayRunning = false;
   std::unique_ptr<GPUDisplayInterface> mEventDisplay;
-  GPUChainTracking* mQAFromForeignChain = nullptr;
   std::unique_ptr<GPUQA> mQA;
   std::unique_ptr<GPUTPCClusterStatistics> mCompressionStatistics;
 
@@ -277,7 +272,7 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   // (Ptrs to) configuration objects
   std::unique_ptr<GPUTPCCFChainContext> mCFContext;
   bool mTPCSliceScratchOnStack = false;
-  std::unique_ptr<GPUCalibObjectsConst> mNewCalibObjects;
+  GPUCalibObjectsConst mNewCalibObjects;
   bool mUpdateNewCalibObjects = false;
   std::unique_ptr<GPUNewCalibValues> mNewCalibValues;
 
@@ -310,11 +305,9 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
   void RunTPCTrackingMerger_MergeBorderTracks(char withinSlice, char mergeMode, GPUReconstruction::krnlDeviceType deviceType);
   void RunTPCTrackingMerger_Resolve(char useOrigTrackParam, char mergeAll, GPUReconstruction::krnlDeviceType deviceType);
 
-  std::atomic_flag mLockAtomicOutputBuffer = ATOMIC_FLAG_INIT;
-  std::mutex mMutexUpdateCalib;
+  std::atomic_flag mLockAtomic = ATOMIC_FLAG_INIT;
   std::unique_ptr<GPUChainTrackingFinalContext> mPipelineFinalizationCtx;
   GPUChainTrackingFinalContext* mPipelineNotifyCtx = nullptr;
-  std::function<void()> mWaitForFinalInputs;
 
   int HelperReadEvent(int iSlice, int threadId, GPUReconstructionHelpers::helperParam* par);
   int HelperOutput(int iSlice, int threadId, GPUReconstructionHelpers::helperParam* par);

@@ -681,7 +681,7 @@ void spawnDevice(uv_loop_t* loop,
       }
     }
     for (auto& env : execution.environ) {
-      putenv(strdup(DeviceSpecHelpers::reworkTimeslicePlaceholder(env, spec).data()));
+      putenv(strdup(DeviceSpecHelpers::reworkEnv(env, spec).data()));
     }
     execvp(execution.args[0], execution.args.data());
   }

@@ -373,14 +373,11 @@ int GPUChainTracking::Init()
   }
 
   if (GPUQA::QAAvailable() && (GetProcessingSettings().runQA || GetProcessingSettings().eventDisplay)) {
-    auto& qa = mQAFromForeignChain ? mQAFromForeignChain->mQA : mQA;
-    if (!qa) {
-      qa.reset(new GPUQA(this));
-    }
+    mQA.reset(new GPUQA(this));
   }
   if (GetProcessingSettings().eventDisplay) {
 #ifndef GPUCA_ALIROOT_LIB
-    mEventDisplay.reset(GPUDisplayInterface::getDisplay(GetProcessingSettings().eventDisplay, this, GetQA()));
+    mEventDisplay.reset(GPUDisplayInterface::getDisplay(GetProcessingSettings().eventDisplay, this, mQA.get()));
 #endif
     if (mEventDisplay == nullptr) {
       throw std::runtime_error("Error loading event display");
@@ -482,21 +479,19 @@ int GPUChainTracking::PrepareEvent()
 
 int GPUChainTracking::ForceInitQA()
 {
-  auto& qa = mQAFromForeignChain ? mQAFromForeignChain->mQA : mQA;
-  if (!qa) {
-    qa.reset(new GPUQA(this));
+  if (!mQA) {
+    mQA.reset(new GPUQA(this));
   }
-  if (!GetQA()->IsInitialized()) {
-    return GetQA()->InitQA();
+  if (!mQA->IsInitialized()) {
+    return mQA->InitQA();
   }
   return 0;
 }
 
 int GPUChainTracking::Finalize()
 {
-  if (GetProcessingSettings().runQA && GetQA()->IsInitialized() && !(mConfigQA && mConfigQA->shipToQC) && !mQAFromForeignChain) {
-    GetQA()->UpdateChain(this);
-    GetQA()->DrawQAHistograms();
+  if (GetProcessingSettings().runQA && mQA->IsInitialized() && !(mConfigQA && mConfigQA->shipToQC)) {
+    mQA->DrawQAHistograms();
   }
   if (GetProcessingSettings().debugLevel >= 6) {
     mDebugFile->close();
@@ -612,16 +607,14 @@ void GPUChainTracking::SetTRDGeometry(std::unique_ptr<o2::trd::GeometryFlat>&& g
   processors()->calibObjects.trdGeometry = mTRDGeometryU.get();
 }
 
-int GPUChainTracking::DoQueuedUpdates(int stream, bool updateSlave)
+void GPUChainTracking::DoQueuedUpdates(int stream)
 {
-  int retVal = 0;
   std::unique_ptr<GPUSettingsGRP> grp;
   const GPUSettingsProcessing* p = nullptr;
-  std::lock_guard lk(mMutexUpdateCalib);
   if (mUpdateNewCalibObjects) {
-    void* const* pSrc = (void* const*)mNewCalibObjects.get();
+    void** pSrc = (void**)&mNewCalibObjects;
     void** pDst = (void**)&processors()->calibObjects;
-    for (unsigned int i = 0; i < sizeof(processors()->calibObjects) / sizeof(void*); i++) {
+    for (unsigned int i = 0; i < sizeof(mNewCalibObjects) / sizeof(void*); i++) {
       if (pSrc[i]) {
         pDst[i] = pSrc[i];
       }
@@ -635,7 +628,7 @@ int GPUChainTracking::DoQueuedUpdates(int stream, bool updateSlave)
       if (ptrsChanged) {
         GPUInfo("Updating all calib objects since pointers changed");
       }
-      UpdateGPUCalibObjects(stream, ptrsChanged ? nullptr : mNewCalibObjects.get());
+      UpdateGPUCalibObjects(stream, ptrsChanged ? nullptr : &mNewCalibObjects);
     }
     if (mNewCalibValues->newSolenoidField || mNewCalibValues->newContinuousMaxTimeBin) {
       grp = std::make_unique<GPUSettingsGRP>(mRec->GetGRPSettings());
@@ -652,17 +645,12 @@ int GPUChainTracking::DoQueuedUpdates(int stream, bool updateSlave)
   }
   if (grp || p) {
     mRec->UpdateSettings(grp.get(), p);
-    retVal = 1;
   }
 
-  if ((mUpdateNewCalibObjects || (mRec->slavesExist() && updateSlave)) && mRec->IsGPU()) {
+  if ((mUpdateNewCalibObjects || mRec->slavesExist()) && mRec->IsGPU()) {
     UpdateGPUCalibObjectsPtrs(stream); // Reinitialize
-    retVal = 1;
   }
-  mNewCalibObjects.reset(nullptr);
-  mNewCalibValues.reset(nullptr);
   mUpdateNewCalibObjects = false;
-  return retVal;
 }
 
 int GPUChainTracking::RunChain()
@@ -675,8 +663,8 @@ int GPUChainTracking::RunChain()
     mCompressionStatistics.reset(new GPUTPCClusterStatistics);
   }
   const bool needQA = GPUQA::QAAvailable() && (GetProcessingSettings().runQA || (GetProcessingSettings().eventDisplay && (mIOPtrs.nMCInfosTPC || GetProcessingSettings().runMC)));
-  if (needQA && GetQA()->IsInitialized() == false) {
-    if (GetQA()->InitQA(GetProcessingSettings().runQA ? -GetProcessingSettings().runQA : -1)) {
+  if (needQA && mQA->IsInitialized() == false) {
+    if (mQA->InitQA(GetProcessingSettings().runQA ? -GetProcessingSettings().runQA : -1)) {
       return 1;
     }
   }
@@ -801,8 +789,7 @@ int GPUChainTracking::RunChainFinalize()
   const bool needQA = GPUQA::QAAvailable() && (GetProcessingSettings().runQA || (GetProcessingSettings().eventDisplay && mIOPtrs.nMCInfosTPC));
   if (needQA && mFractionalQAEnabled) {
     mRec->getGeneralStepTimer(GeneralStep::QA).Start();
-    GetQA()->UpdateChain(this);
-    GetQA()->RunQA(!GetProcessingSettings().runQA);
+    mQA->RunQA(!GetProcessingSettings().runQA);
     mRec->getGeneralStepTimer(GeneralStep::QA).Stop();
     if (GetProcessingSettings().debugLevel == 0) {
       GPUInfo("Total QA runtime: %d us", (int)(mRec->getGeneralStepTimer(GeneralStep::QA).GetElapsedTime() * 1000000));
@@ -977,22 +964,7 @@ void GPUChainTracking::SetDefaultInternalO2Propagator(bool useGPUField)
 
 void GPUChainTracking::SetUpdateCalibObjects(const GPUCalibObjectsConst& obj, const GPUNewCalibValues& vals)
 {
-  std::lock_guard lk(mMutexUpdateCalib);
-  if (mNewCalibObjects) {
-    void* const* pSrc = (void* const*)&vals;
-    void** pDst = (void**)mNewCalibObjects.get();
-    for (unsigned int i = 0; i < sizeof(*mNewCalibObjects) / sizeof(void*); i++) {
-      if (pSrc[i]) {
-        pDst[i] = pSrc[i];
-      }
-    }
-  } else {
-    mNewCalibObjects.reset(new GPUCalibObjectsConst(obj));
-  }
-  if (mNewCalibValues) {
-    mNewCalibValues->updateFrom(&vals);
-  } else {
-    mNewCalibValues.reset(new GPUNewCalibValues(vals));
-  }
+  mNewCalibObjects = obj;
+  mNewCalibValues.reset(new GPUNewCalibValues(vals));
   mUpdateNewCalibObjects = true;
 }
