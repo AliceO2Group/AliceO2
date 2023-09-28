@@ -103,6 +103,11 @@ constexpr int MAX_RANGE_ADC = 0x3FF;           ///< Dynamic range of the ADCs (1
 constexpr double EMCAL_TRU_ADCENERGY = 0.0786; ///< resolution of the TRU digitizer, @TODO check exact value
 } // namespace constants
 
+namespace triggerbits
+{
+constexpr uint32_t Inc = 0x1 << 20; ///< trigger bit marking incomplete event
+}
+
 enum FitAlgorithm {
   Standard = 0,  ///< Standard raw fitter
   Gamma2 = 1,    ///< Gamma2 raw fitter
