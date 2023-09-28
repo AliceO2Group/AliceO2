@@ -142,6 +142,9 @@ class ITSDCSParser : public Task
 
   // ITS Map
   o2::itsmft::ChipMappingITS mp;
+
+  // CCDB url for RCT headers
+  std::string mCcdbUrlRct = "http://alice-ccdb.cern.ch";
 };
 
 // Create a processor spec
