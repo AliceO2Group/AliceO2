@@ -13,6 +13,7 @@
 #include <iostream>
 #include "DataFormatsEMCAL/TriggerRecord.h"
 #include "CommonConstants/Triggers.h"
+#include "DataFormatsEMCAL/Constants.h"
 
 namespace o2
 {
@@ -29,6 +30,9 @@ uint16_t TriggerRecord::getTriggerBitsCompressed() const
   if (mTriggerBits & o2::trigger::Cal) {
     result |= 1 << TriggerBitsCoded_t::CALIBTRIGGER;
   }
+  if (mTriggerBits & o2::emcal::triggerbits::Inc) {
+    result |= 1 << TriggerBitsCoded_t::REJECTINCOMPLETE;
+  }
   return result;
 }
 
@@ -40,6 +44,9 @@ void TriggerRecord::setTriggerBitsCompressed(uint16_t triggerbits)
   }
   if (triggerbits & (1 << TriggerBitsCoded_t::CALIBTRIGGER)) {
     mTriggerBits |= o2::trigger::Cal;
+  }
+  if (triggerbits & (1 << TriggerBitsCoded_t::REJECTINCOMPLETE)) {
+    mTriggerBits |= o2::emcal::triggerbits::Inc;
   }
 }
 

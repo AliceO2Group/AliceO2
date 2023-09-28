@@ -338,6 +338,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
     }
   }
 
+  std::bitset<46> bitSetActiveLinks;
   if (mActiveLinkCheck) {
     // build expected active mask from DCS
     FeeDCS* feedcs = mCalibHandler->getFEEDCS();
@@ -347,32 +348,7 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
     list0.set(21, false);
     list1.set(7, false);
     // must be 0x307FFFDFFFFF if all links are active
-    std::bitset<46> bitSetActiveLinks((list1.to_ullong() << 32) + list0.to_ullong());
-
-    // Check if we have received pages from all active links
-    // If not we cannot trust the timeframe and must send
-    // empty containers
-    bool hasMissingLinks = false;
-    for (const auto& [globalBC, activelinks] : bcFreq) {
-      if (activelinks != bitSetActiveLinks) {
-        hasMissingLinks = true;
-        LOG(error) << "Not all EMC active links contributed in global BCid=" << globalBC << ": mask=" << (activelinks ^ bitSetActiveLinks);
-        if (mCreateRawDataErrors) {
-          for (std::size_t ilink = 0; ilink < bitSetActiveLinks.size(); ilink++) {
-            if (!bitSetActiveLinks.test(ilink)) {
-              continue;
-            }
-            if (!activelinks.test(ilink)) {
-              mOutputDecoderErrors.emplace_back(ilink, ErrorTypeFEE::ErrorSource_t::LINK_ERROR, 0, -1, -1);
-            }
-          }
-        }
-      }
-    }
-    if (hasMissingLinks) {
-      sendData(ctx, mOutputCells, mOutputTriggerRecords, mOutputDecoderErrors);
-      return;
-    }
+    bitSetActiveLinks = std::bitset<46>((list1.to_ullong() << 32) + list0.to_ullong());
   }
 
   // Loop over BCs, sort cells with increasing tower ID and write to output containers
@@ -381,6 +357,32 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
     int ncellsEvent = 0, nLEDMONsEvent = 0;
     int eventstart = mOutputCells.size();
     auto& currentevent = eventIterator.nextEvent();
+    const auto interaction = currentevent.getInteractionRecord();
+    if (mActiveLinkCheck) {
+      // check for current event if all links are present
+      // discard event if not all links are present
+      auto bcfreqFound = bcFreq.find(interaction.toLong());
+      if (bcfreqFound != bcFreq.end()) {
+        const auto& activelinks = bcfreqFound->second;
+        if (activelinks != bitSetActiveLinks) {
+          LOG(error) << "Not all EMC active links contributed in global BCid=" << interaction.toLong() << ": mask=" << (activelinks ^ bitSetActiveLinks);
+          if (mCreateRawDataErrors) {
+            for (std::size_t ilink = 0; ilink < bitSetActiveLinks.size(); ilink++) {
+              if (!bitSetActiveLinks.test(ilink)) {
+                continue;
+              }
+              if (!activelinks.test(ilink)) {
+                mOutputDecoderErrors.emplace_back(ilink, ErrorTypeFEE::ErrorSource_t::LINK_ERROR, 0, -1, -1);
+              }
+            }
+          }
+          // discard event
+          // create empty trigger record with dedicated trigger bit marking as rejected
+          mOutputTriggerRecords.emplace_back(interaction, currentevent.getTriggerBits() | o2::emcal::triggerbits::Inc, eventstart, 0);
+          continue;
+        }
+      }
+    }
     // Add cells
     if (currentevent.getNumberOfCells()) {
       LOG(debug) << "Event has " << currentevent.getNumberOfCells() << " cells";
@@ -393,7 +395,6 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       currentevent.sortCells(true);
       nLEDMONsEvent = bookEventCells(currentevent.getLEDMons(), true);
     }
-    const auto interaction = currentevent.getInteractionRecord();
     LOG(debug) << "Next event [Orbit " << interaction.orbit << ", BC (" << interaction.bc << "]: Accepted " << ncellsEvent << " cells and " << nLEDMONsEvent << " LEDMONS";
     mOutputTriggerRecords.emplace_back(interaction, currentevent.getTriggerBits(), eventstart, ncellsEvent + nLEDMONsEvent);
   }
