@@ -42,7 +42,6 @@ void AltroDecoder::readRCUTrailer()
     gsl::span<const uint32_t> payloadwords(payloadwordsOrig.data(), payloadwordsOrig.size());
     mRCUTrailer.constructFromRawPayload(payloadwords);
   } catch (RCUTrailer::Error& e) {
-    LOG(error) << "Error while decoding RCU trailer: " << e.what();
     throw AltroDecoderError(AltroDecoderError::ErrorType_t::RCU_TRAILER_ERROR, fmt::format("{} {}", AltroDecoderError::getErrorTypeDescription(AltroDecoderError::ErrorType_t::RCU_TRAILER_ERROR), e.what()));
   }
 }
