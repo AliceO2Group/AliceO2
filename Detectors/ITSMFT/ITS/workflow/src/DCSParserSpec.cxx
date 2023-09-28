@@ -665,7 +665,7 @@ DataProcessorSpec getITSDCSParserSpec()
     Options{
       {"verbose", VariantType::Bool, false, {"Use verbose output mode"}},
       {"ccdb-url", VariantType::String, "", {"CCDB url, default is empty (i.e. send output to CCDB populator workflow)"}},
-      {"ccdb-url-rct", VariantType::String, "", {"CCDB url from where to get RCT object for headers, default is alice-ccdb. Use http://o2-ccdb.internal at P2"}}}};
+      {"ccdb-url-rct", VariantType::String, "", {"CCDB url from where to get RCT object for headers, default is o2-ccdb.internal. Use http://alice-ccdb.cern.ch for local tests"}}}};
 }
 } // namespace its
 } // namespace o2
