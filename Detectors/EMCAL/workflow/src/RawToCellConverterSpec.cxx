@@ -147,7 +147,6 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
   std::vector<framework::InputSpec> filter{{"filter", framework::ConcreteDataTypeMatcher(originEMC, descRaw)}};
   int firstEntry = 0;
   for (const auto& rawData : framework::InputRecordWalker(ctx.inputs(), filter)) {
-
     // Skip SOX headers
     auto rdhblock = reinterpret_cast<const o2::header::RDHAny*>(rawData.payload);
     if (o2::raw::RDHUtils::getHeaderSize(rdhblock) == static_cast<int>(o2::framework::DataRefUtils::getPayloadSize(rawData))) {
@@ -163,6 +162,11 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
         rawreader.next();
       } catch (RawDecodingError& e) {
         handlePageError(e);
+        if (e.getErrorType() == RawDecodingError::ErrorType_t::HEADER_DECODING || e.getErrorType() == RawDecodingError::ErrorType_t::HEADER_INVALID) {
+          // We must break in case of header decoding as the offset to the next payload is lost
+          // consequently the parser does not know where to continue leading to an infinity loop
+          break;
+        }
         // We must skip the page as payload is not consistent
         // otherwise the next functions will rethrow the exceptions as
         // the page format does not follow the expected format
