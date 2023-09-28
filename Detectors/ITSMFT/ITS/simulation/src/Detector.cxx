@@ -662,12 +662,12 @@ void Detector::createMaterials()
 
   // ERG Duocel
   o2::base::Detector::Material(39, "ERGDUOCEL$", 12.0107, 6, 0.06, 999, 999);
-  o2::base::Detector::Medium(39, "ERGDUOCEL$", 33, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Medium(39, "ERGDUOCEL$", 39, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
 
   // Impregnated carbon fleece
   // (as educated guess we assume 50% carbon fleece 50% Araldite glue)
   o2::base::Detector::Material(40, "IMPREG_FLEECE$", 12.0107, 6, 0.5 * (dAraldite + 0.4), 999, 999);
-  o2::base::Detector::Medium(40, "IMPREG_FLEECE$", 34, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
+  o2::base::Detector::Medium(40, "IMPREG_FLEECE$", 40, 0, ifield, fieldm, tmaxfdSi, stemaxSi, deemaxSi, epsilSi, stminSi);
 }
 
 void Detector::EndOfEvent() { Reset(); }

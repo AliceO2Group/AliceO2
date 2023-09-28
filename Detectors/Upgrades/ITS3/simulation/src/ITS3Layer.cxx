@@ -68,7 +68,7 @@ void ITS3Layer::createLayer(TGeoVolume* motherVolume, double radiusBetweenLayer)
   TGeoVolume* volHalfLayer[nElements - 1];
   for (int iEl{0}; iEl < nElements - 1; ++iEl) {
     TGeoMedium* med = (iEl <= 2) ? medSi : medAir;
-    if (iEl == 4) {
+    if (iEl == 3) {
       halfLayer[iEl] = new TGeoTubeSeg(rmin, rmax + radiusBetweenLayer, mZLen / 2, phiGap, piDeg - phiGap);
       volHalfLayer[iEl] = new TGeoVolume(names[iEl].data(), halfLayer[iEl], med);
       createCarbonFoamStructure(volHalfLayer[iEl], radiusBetweenLayer);
@@ -180,7 +180,7 @@ void ITS3Layer::createLayerWithDeadZones(TGeoVolume* motherVolume, double radius
     } else {
       volHalfLayer[iEl] = new TGeoVolume(names[iEl].data(), halfLayer[iEl][0], med);
       volHalfLayer[iEl]->SetUniqueID(mChipTypeID);
-      if (iEl == 4) {
+      if (iEl == 3) {
         createCarbonFoamStructure(volHalfLayer[iEl], radiusBetweenLayer);
         volHalfLayer[iEl]->SetVisibility(true);
         volHalfLayer[iEl]->SetLineColor(kGray + 2);
