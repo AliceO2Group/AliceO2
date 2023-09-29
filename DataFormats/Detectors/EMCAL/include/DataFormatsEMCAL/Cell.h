@@ -60,7 +60,8 @@ class Cell
  public:
   enum class EncoderVersion {
     EncodingV0,
-    EncodingV1
+    EncodingV1,
+    EncodingV2
   };
   /// \brief Default constructor
   Cell() = default;
@@ -202,7 +203,7 @@ class Cell
   /// the limits is provided the energy is
   /// set to the limits (0 in case of negative
   /// energy, 250. in case of energies > 250 GeV)
-  uint16_t getEnergyEncoded(EncoderVersion version = EncoderVersion::EncodingV1) const;
+  uint16_t getEnergyEncoded(EncoderVersion version = EncoderVersion::EncodingV2) const;
 
   /// \brief Get encoded bit representation of cell type (for CTF)
   /// \return Encoded bit representation
@@ -218,10 +219,14 @@ class Cell
   static uint16_t encodeTime(float timestamp);
   static uint16_t encodeEnergyV0(float energy);
   static uint16_t encodeEnergyV1(float energy, ChannelType_t celltype);
+  static uint16_t encodeEnergyV2(float energy, ChannelType_t celltype);
   static uint16_t V0toV1(uint16_t energybits, ChannelType_t celltype);
+  static uint16_t V0toV2(uint16_t energybits, ChannelType_t celltype);
+  static uint16_t V1toV2(uint16_t energybits, ChannelType_t celltype);
   static float decodeTime(uint16_t timestampBits);
   static float decodeEnergyV0(uint16_t energybits);
   static float decodeEnergyV1(uint16_t energybits, ChannelType_t celltype);
+  static float decodeEnergyV2(uint16_t energybits, ChannelType_t celltype);
 
  private:
   /// \brief Set cell energy from encoded bit representation (from CTF)
