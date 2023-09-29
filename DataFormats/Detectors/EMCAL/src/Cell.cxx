@@ -44,6 +44,21 @@ const float
   ENERGY_RESOLUTION_TRU = ENERGY_TRUNCATION / ENERGY_BITS,
   ENERGY_RESOLUTION_LEDMON = ENERGY_TRUNCATION / ENERGY_BITS;
 }
+
+namespace v2
+{
+const float
+  ENERGY_BITS = static_cast<float>(0x3FFF),
+  SAFETYMARGIN = 0.2,
+  HGLGTRANSITION = o2::emcal::constants::OVERFLOWCUT * o2::emcal::constants::EMCAL_ADCENERGY,
+  OFFSET_LG = HGLGTRANSITION - SAFETYMARGIN,
+  ENERGY_TRUNCATION = 250.,
+  ENERGY_RESOLUTION_LG = (ENERGY_TRUNCATION - OFFSET_LG) / ENERGY_BITS,
+  ENERGY_RESOLUTION_HG = HGLGTRANSITION / ENERGY_BITS,
+  ENERGY_RESOLUTION_TRU = ENERGY_TRUNCATION / ENERGY_BITS,
+  ENERGY_RESOLUTION_LEDMON = ENERGY_TRUNCATION / ENERGY_BITS;
+
+}
 } // namespace EnergyEncoding
 
 namespace DecodingV0
@@ -87,6 +102,10 @@ uint16_t Cell::getEnergyEncoded(EncoderVersion version) const
     case EncoderVersion::EncodingV1:
       energyBits = encodeEnergyV1(mEnergy, mChannelType);
       break;
+
+    case EncoderVersion::EncodingV2:
+      energyBits = encodeEnergyV2(mEnergy, mChannelType);
+      break;
   }
   return energyBits;
 }
@@ -104,6 +123,9 @@ void Cell::setEnergyEncoded(uint16_t energyBits, uint16_t channelTypeBits, Encod
       break;
     case EncoderVersion::EncodingV1:
       mEnergy = decodeEnergyV1(energyBits, static_cast<ChannelType_t>(channelTypeBits));
+      break;
+    case EncoderVersion::EncodingV2:
+      mEnergy = decodeEnergyV2(energyBits, static_cast<ChannelType_t>(channelTypeBits));
       break;
   }
 }
@@ -214,10 +236,53 @@ uint16_t Cell::encodeEnergyV1(float energy, ChannelType_t celltype)
   return static_cast<uint16_t>(std::round((truncatedEnergy - energyOffset) / resolutionApplied));
 };
 
+uint16_t Cell::encodeEnergyV2(float energy, ChannelType_t celltype)
+{
+  double truncatedEnergy = energy;
+  if (truncatedEnergy < 0.) {
+    truncatedEnergy = 0.;
+  } else if (truncatedEnergy > EnergyEncoding::v2::ENERGY_TRUNCATION) {
+    truncatedEnergy = EnergyEncoding::v2::ENERGY_TRUNCATION;
+  }
+  float resolutionApplied = 0., energyOffset = 0.;
+  switch (celltype) {
+    case ChannelType_t::HIGH_GAIN: {
+      resolutionApplied = EnergyEncoding::v2::ENERGY_RESOLUTION_HG;
+      break;
+    }
+    case ChannelType_t::LOW_GAIN: {
+      resolutionApplied = EnergyEncoding::v2::ENERGY_RESOLUTION_LG;
+      energyOffset = EnergyEncoding::v2::OFFSET_LG;
+      break;
+    }
+    case ChannelType_t::TRU: {
+      resolutionApplied = EnergyEncoding::v2::ENERGY_RESOLUTION_TRU;
+      break;
+    }
+    case ChannelType_t::LEDMON: {
+      resolutionApplied = EnergyEncoding::v2::ENERGY_RESOLUTION_LEDMON;
+      break;
+    }
+  }
+  return static_cast<uint16_t>(std::round((truncatedEnergy - energyOffset) / resolutionApplied));
+};
+
 uint16_t Cell::V0toV1(uint16_t energyBits, ChannelType_t celltype)
 {
   auto decodedEnergy = decodeEnergyV0(energyBits);
   return encodeEnergyV1(decodedEnergy, celltype);
+}
+
+uint16_t Cell::V0toV2(uint16_t energyBits, ChannelType_t celltype)
+{
+  auto decodedEnergy = decodeEnergyV0(energyBits);
+  return encodeEnergyV2(decodedEnergy, celltype);
+}
+
+uint16_t Cell::V1toV2(uint16_t energyBits, ChannelType_t celltype)
+{
+  auto decodedEnergy = decodeEnergyV1(energyBits, celltype);
+  return encodeEnergyV2(decodedEnergy, celltype);
 }
 
 float Cell::decodeTime(uint16_t timestampBits)
@@ -250,6 +315,32 @@ float Cell::decodeEnergyV1(uint16_t energyBits, ChannelType_t celltype)
     }
     case ChannelType_t::LEDMON: {
       resolutionApplied = EnergyEncoding::v1::ENERGY_RESOLUTION_LEDMON;
+      break;
+    }
+  }
+  return (static_cast<float>(energyBits) * resolutionApplied) + energyOffset;
+}
+
+float Cell::decodeEnergyV2(uint16_t energyBits, ChannelType_t celltype)
+{
+  float resolutionApplied = 0.,
+        energyOffset = 0.;
+  switch (celltype) {
+    case ChannelType_t::HIGH_GAIN: {
+      resolutionApplied = EnergyEncoding::v2::ENERGY_RESOLUTION_HG;
+      break;
+    }
+    case ChannelType_t::LOW_GAIN: {
+      resolutionApplied = EnergyEncoding::v2::ENERGY_RESOLUTION_LG;
+      energyOffset = EnergyEncoding::v2::OFFSET_LG;
+      break;
+    }
+    case ChannelType_t::TRU: {
+      resolutionApplied = EnergyEncoding::v2::ENERGY_RESOLUTION_TRU;
+      break;
+    }
+    case ChannelType_t::LEDMON: {
+      resolutionApplied = EnergyEncoding::v2::ENERGY_RESOLUTION_LEDMON;
       break;
     }
   }
