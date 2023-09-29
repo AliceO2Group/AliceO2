@@ -169,6 +169,8 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCELL& c
   Cell::EncoderVersion encodingversion = o2::emcal::Cell::EncoderVersion::EncodingV0;
   if (header.majorVersion == 1 && header.minorVersion == 1) {
     encodingversion = o2::emcal::Cell::EncoderVersion::EncodingV1;
+  } else if (header.majorVersion == 1 && header.minorVersion == 2) {
+    encodingversion = o2::emcal::Cell::EncoderVersion::EncodingV2;
   }
 
   uint32_t firstEntry = 0, cellCount = 0;
