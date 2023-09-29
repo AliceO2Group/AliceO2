@@ -195,10 +195,6 @@ void CTFReaderSpec::run(ProcessingContext& pc)
     mInput.tfRateLimit = std::stoi(pc.services().get<RawDeviceService>().device()->fConfig->GetValue<std::string>("timeframes-rate-limit"));
   }
   std::string tfFileName;
-  if (mCTFCounter >= mInput.maxTFs || (!mInput.ctfIDs.empty() && mSelIDEntry >= mInput.ctfIDs.size())) { // done
-    LOG(info) << "All CTFs from selected range were injected, stopping";
-    mRunning = false;
-  }
 
   while (mRunning) {
     if (mCTFTree) { // there is a tree open with multiple CTF
@@ -228,6 +224,14 @@ void CTFReaderSpec::run(ProcessingContext& pc)
     LOG(info) << "Reading CTF input " << ' ' << tfFileName;
     openCTFFile(tfFileName);
   }
+
+  if (mCTFCounter >= mInput.maxTFs || (!mInput.ctfIDs.empty() && mSelIDEntry >= mInput.ctfIDs.size())) { // done
+    LOG(info) << "All CTFs from selected range were injected, stopping";
+    mRunning = false;
+  } else if (mRunning && !mCTFTree && mFileFetcher->getNextFileInQueue().empty()) { // previous tree was done, can we read more?
+    mRunning = false;
+  }
+
   if (!mRunning) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
