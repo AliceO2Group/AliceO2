@@ -1187,8 +1187,6 @@ void MatchTOF::doMatchingForTPC(int sec)
 //______________________________________________
 int MatchTOF::findFITIndex(int bc, const gsl::span<const o2::ft0::RecPoints>& FITRecPoints, unsigned long firstOrbit)
 {
-  bc -= o2::tof::Geo::LATENCYWINDOW_IN_BC;
-
   if (FITRecPoints.size() == 0) {
     return -1;
   }
