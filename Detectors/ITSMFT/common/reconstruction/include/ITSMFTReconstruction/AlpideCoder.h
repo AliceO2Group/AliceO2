@@ -137,7 +137,7 @@ class AlpideCoder
         chipData.setError(ChipStat::Fatal);
       } else if (roErr == MaskErrFlushedIncomplete) {
         chipData.setError(ChipStat::FlushedIncomplete);
-      } else if (roErr == MaskErrStrobeExtended ) {
+      } else if (roErr == MaskErrStrobeExtended) {
         chipData.setError(ChipStat::StrobeExtended);
       }
 #endif
