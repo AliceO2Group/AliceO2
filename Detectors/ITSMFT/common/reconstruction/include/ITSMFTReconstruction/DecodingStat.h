@@ -65,6 +65,8 @@ struct ChipStat {
     InterleavedChipData,          // Chip data interleaved on the cable
     TruncatedBuffer,              // truncated buffer, 0 padding
     TrailerAfterHeader,           // trailer seen after header w/o FE of FD set
+    FlushedIncomplete,            // ALPIDE MEB was flushed by the busy handling
+    StrobeExtended,               // ALPIDE received a second trigger while the strobe was still open
     NErrorsDefined
   };
 
@@ -99,7 +101,9 @@ struct ChipStat {
     "DColumns non-increasing",                      // DColumns non increasing
     "Chip data interleaved on the cable",           // Chip data interleaved on the cable
     "TruncatedBuffer",                              // truncated buffer, 0 padding
-    "TrailerAfterHeader"                            // trailer seen after header w/o FE of FD set
+    "TrailerAfterHeader",                           // trailer seen after header w/o FE of FD set
+    "FlushedIncomplete",                            // ALPIDE MEB was flushed by the busy handling
+    "StrobeExtended"                                // ALPIDE received a second trigger while the strobe was still open
   };
 
   static constexpr std::array<uint32_t, NErrorsDefined> ErrActions = {
@@ -133,7 +137,9 @@ struct ChipStat {
     ErrActPropagate | ErrActDump, // DColumns non increasing
     ErrActPropagate | ErrActDump, // Chip data interleaved on the cable
     ErrActPropagate | ErrActDump, // Truncated buffer while something was expected
-    ErrActPropagate | ErrActDump  // trailer seen after header w/o FE of FD set
+    ErrActPropagate | ErrActDump, // trailer seen after header w/o FE of FD set
+    ErrActPropagate | ErrActDump, // ALPIDE MEB was flushed by the busy handling
+    ErrActPropagate | ErrActDump  // ALPIDE received a second trigger while the strobe was still open
   };
   uint16_t feeID = -1;
   size_t nHits = 0;
