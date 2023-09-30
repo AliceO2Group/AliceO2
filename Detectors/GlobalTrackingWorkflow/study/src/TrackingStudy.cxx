@@ -129,21 +129,25 @@ void TrackingStudySpec::process(o2::globaltracking::RecoContainer& recoData)
     static_cast<o2::dataformats::PrimaryVertex&>(pve) = pv;
 
     float bestTimeDiff = 1000, bestTime = -999, bestAmp = -1;
-    for (int ift0 = vtref.getFirstEntryOfSource(GTrackID::FT0); ift0 < vtref.getFirstEntryOfSource(GTrackID::FT0) + vtref.getEntriesOfSource(GTrackID::FT0); ift0++) {
-      const auto& ft0 = FITInfo[trackIndex[ift0]];
-      if (ft0.isValidTime(o2::ft0::RecPoints::TimeMean) && ft0.getTrigger().getAmplA() + ft0.getTrigger().getAmplC() > 20) {
-        auto fitTime = ft0.getInteractionRecord().differenceInBCMUS(recoData.startIR);
-        if (std::abs(fitTime - pv.getTimeStamp().getTimeStamp()) < bestTimeDiff) {
-          bestTimeDiff = fitTime - pv.getTimeStamp().getTimeStamp();
-          bestTime = fitTime;
-          bestAmp = ft0.getTrigger().getAmplA() + ft0.getTrigger().getAmplC();
+    if (mTracksSrc[GTrackID::FT0]) {
+      for (int ift0 = vtref.getFirstEntryOfSource(GTrackID::FT0); ift0 < vtref.getFirstEntryOfSource(GTrackID::FT0) + vtref.getEntriesOfSource(GTrackID::FT0); ift0++) {
+        const auto& ft0 = FITInfo[trackIndex[ift0]];
+        if (ft0.isValidTime(o2::ft0::RecPoints::TimeMean) && ft0.getTrigger().getAmplA() + ft0.getTrigger().getAmplC() > 20) {
+          auto fitTime = ft0.getInteractionRecord().differenceInBCMUS(recoData.startIR);
+          if (std::abs(fitTime - pv.getTimeStamp().getTimeStamp()) < bestTimeDiff) {
+            bestTimeDiff = fitTime - pv.getTimeStamp().getTimeStamp();
+            bestTime = fitTime;
+            bestAmp = ft0.getTrigger().getAmplA() + ft0.getTrigger().getAmplC();
+          }
         }
       }
+    } else {
+      LOGP(warn, "FT0 is not requested, cannot set complete vertex info");
     }
     pve.FT0Amp = bestAmp;
     pve.FT0Time = bestTime;
     for (int is = 0; is < GTrackID::NSources; is++) {
-      if (!GTrackID::getSourceDetectorsMask(is)[GTrackID::ITS]) {
+      if (!GTrackID::getSourceDetectorsMask(is)[GTrackID::ITS] || !mTracksSrc[is] || !recoData.isTrackSourceLoaded(is)) {
         continue;
       }
       int idMin = vtref.getFirstEntryOfSource(is), idMax = idMin + vtref.getEntriesOfSource(is);
