@@ -979,7 +979,7 @@ void GPUChainTracking::SetUpdateCalibObjects(const GPUCalibObjectsConst& obj, co
 {
   std::lock_guard lk(mMutexUpdateCalib);
   if (mNewCalibObjects) {
-    void* const* pSrc = (void* const*)&vals;
+    void* const* pSrc = (void* const*)&obj;
     void** pDst = (void**)mNewCalibObjects.get();
     for (unsigned int i = 0; i < sizeof(*mNewCalibObjects) / sizeof(void*); i++) {
       if (pSrc[i]) {
