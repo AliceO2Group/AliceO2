@@ -28,6 +28,7 @@
 #include <vector>
 #include <mutex>
 #include <functional>
+#include <queue>
 
 class TStopwatch;
 namespace fair::mq
@@ -141,6 +142,14 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   void deinitialize();
 
  private:
+  struct calibObjectStruct {
+    std::unique_ptr<TPCFastTransform> mFastTransform;
+    std::unique_ptr<TPCFastTransform> mFastTransformRef;
+    std::unique_ptr<o2::tpc::CorrectionMapsLoader> mFastTransformHelper;
+    std::unique_ptr<TPCPadGainCalib> mTPCPadGainCalib;
+    std::unique_ptr<o2::tpc::CalibdEdxContainer> mdEdxCalibContainer;
+  };
+
   /// initialize TPC options from command line
   void initFunctionTPCCalib(o2::framework::InitContext& ic);
   void initFunctionITS(o2::framework::InitContext& ic);
@@ -149,12 +158,12 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   void finaliseCCDBITS(o2::framework::ConcreteDataMatcher& matcher, void* obj);
   /// asking for newer calib objects
   template <class T>
-  bool fetchCalibsCCDBTPC(o2::framework::ProcessingContext& pc, T& newCalibObjects);
+  bool fetchCalibsCCDBTPC(o2::framework::ProcessingContext& pc, T& newCalibObjects, calibObjectStruct& oldCalibObjects);
   bool fetchCalibsCCDBITS(o2::framework::ProcessingContext& pc);
-  /// storing the new calib objects by overwritting the old calibs
-  void cleanOldCalibsTPCPtrs();
+  /// delete old calib objects no longer needed
+  void cleanOldCalibsTPCPtrs(calibObjectStruct& oldCalibObjects);
 
-  void doCalibUpdates(o2::framework::ProcessingContext& pc);
+  void doCalibUpdates(o2::framework::ProcessingContext& pc, calibObjectStruct& oldCalibObjects);
 
   void doTrackTuneTPC(GPUTrackingInOutPointers& ptrs, char* buffout);
 
@@ -178,18 +187,12 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   std::function<bool(o2::framework::DataProcessingHeader::StartTime)> mPolicyOrder;
   std::unique_ptr<GPUO2Interface> mGPUReco;
   std::unique_ptr<GPUDisplayFrontendInterface> mDisplayFrontend;
-  std::unique_ptr<TPCFastTransform> mFastTransform;
-  std::unique_ptr<TPCFastTransform> mFastTransformRef;
-  std::unique_ptr<TPCFastTransform> mFastTransformNew;
-  std::unique_ptr<TPCFastTransform> mFastTransformRefNew;
-  std::unique_ptr<o2::tpc::CorrectionMapsLoader> mFastTransformHelper;
-  std::unique_ptr<o2::tpc::CorrectionMapsLoader> mFastTransformHelperNew;
 
-  std::unique_ptr<TPCPadGainCalib> mTPCPadGainCalib;
-  std::unique_ptr<TPCPadGainCalib> mTPCPadGainCalibBufferNew;
-  std::unique_ptr<TPCZSLinkMapping> mTPCZSLinkMapping;
-  std::unique_ptr<o2::tpc::CalibdEdxContainer> mdEdxCalibContainer;
+  calibObjectStruct mCalibObjects;
   std::unique_ptr<o2::tpc::CalibdEdxContainer> mdEdxCalibContainerBufferNew;
+  std::unique_ptr<TPCPadGainCalib> mTPCPadGainCalibBufferNew;
+  std::queue<calibObjectStruct> mOldCalibObjects;
+  std::unique_ptr<TPCZSLinkMapping> mTPCZSLinkMapping;
   std::unique_ptr<o2::tpc::VDriftHelper> mTPCVDriftHelper;
   std::unique_ptr<o2::trd::GeometryFlat> mTRDGeometry;
   std::unique_ptr<GPUO2InterfaceConfiguration> mConfig;
@@ -223,7 +226,6 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   bool mITSGeometryCreated = false;
   bool mTRDGeometryCreated = false;
   bool mPropagatorInstanceCreated = false;
-  bool mMustUpdateFastTransform = false;
   bool mITSRunVertexer = false;
   bool mITSCosmicsProcessing = false;
   std::string mITSMode = "sync";
