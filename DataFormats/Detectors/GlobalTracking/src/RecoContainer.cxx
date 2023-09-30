@@ -1122,7 +1122,9 @@ void RecoContainer::addMIDClusters(ProcessingContext& pc, bool mc)
 void RecoContainer::addCTPDigits(ProcessingContext& pc, bool mc)
 {
   commonPool[GTrackID::CTP].registerContainer(pc.inputs().get<gsl::span<o2::ctp::CTPDigit>>("CTPDigits"), CLUSTERS);
-  mCTPLumi = pc.inputs().get<o2::ctp::LumiInfo>("CTPLumi");
+  if (pc.inputs().get<gsl::span<char>>("CTPLumi").size() == sizeof(o2::ctp::LumiInfo)) {
+    mCTPLumi = pc.inputs().get<o2::ctp::LumiInfo>("CTPLumi");
+  }
   if (mc) {
     //  pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("CTPDigitsMC");
   }
