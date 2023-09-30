@@ -42,8 +42,19 @@ void CorrectionMapsLoader::extractCCDBInputs(ProcessingContext& pc)
 {
   pc.inputs().get<o2::gpu::TPCFastTransform*>("tpcCorrMap");
   pc.inputs().get<o2::gpu::TPCFastTransform*>("tpcCorrMapRef"); // not used at the moment
+  const int maxDumRep = 5;
+  int dumRep = 0;
+  o2::ctp::LumiInfo lumiObj;
+  static o2::ctp::LumiInfo lumiPrev;
   if (getUseCTPLumi() && mInstLumiOverride <= 0.) {
-    auto lumiObj = pc.inputs().get<o2::ctp::LumiInfo>("CTPLumi");
+    if (pc.inputs().get<gsl::span<char>>("CTPLumi").size() == sizeof(o2::ctp::LumiInfo)) {
+      lumiPrev = lumiObj = pc.inputs().get<o2::ctp::LumiInfo>("CTPLumi");
+    } else {
+      if (dumRep < maxDumRep && lumiPrev.nHBFCounted == 0 && lumiPrev.nHBFCountedFV0 == 0) {
+        LOGP(alarm, "Previous TF lumi used to substitute dummy input is empty, warning {} of {}", ++dumRep, maxDumRep);
+      }
+      lumiObj = lumiPrev;
+    }
     setInstLumi(mInstLumiFactor * (mCTPLumiSource == 0 ? lumiObj.getLumi() : lumiObj.getLumiAlt()));
   }
 }
