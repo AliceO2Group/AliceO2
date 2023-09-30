@@ -89,6 +89,8 @@ class AlpideCoder
   static constexpr uint8_t MaskErrBusyViolation = 0x1 << 3;
   static constexpr uint8_t MaskErrDataOverrun = 0x3 << 2;
   static constexpr uint8_t MaskErrFatal = 0x7 << 1;
+  static constexpr uint8_t MaskErrFlushedIncomplete = 0x1 << 2;
+  static constexpr uint8_t MaskErrStrobeExtended = 0x1 << 1;
   static constexpr uint32_t MaskTimeStamp = 0xff;                 // Time stamps as BUNCH_COUNTER[10:3] bits
   static constexpr uint32_t MaskReserved = 0xff;                  // mask for reserved byte
   static constexpr uint32_t MaskHitMap = 0x7f;                    // mask for hit map: at most 7 hits in bits (0:6)
@@ -133,6 +135,10 @@ class AlpideCoder
         chipData.setError(ChipStat::DataOverrun);
       } else if (roErr == MaskErrFatal) {
         chipData.setError(ChipStat::Fatal);
+      } else if (roErr == MaskErrFlushedIncomplete) {
+        chipData.setError(ChipStat::FlushedIncomplete);
+      } else if (roErr == MaskErrStrobeExtended) {
+        chipData.setError(ChipStat::StrobeExtended);
       }
 #endif
     };
