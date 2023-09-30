@@ -50,9 +50,19 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   mTimer.Start(false);
   mCTFCoder.updateTimeDependentParams(pc, true);
   auto digits = pc.inputs().get<gsl::span<CTPDigit>>("digits");
+  static LumiInfo lumiPrev;
+  const int maxDumRep = 5;
+  int dumRep = 0;
   LumiInfo lumi{};
   if (!mNoLumi) {
-    lumi = pc.inputs().get<LumiInfo>("CTPLumi");
+    if (pc.inputs().get<gsl::span<char>>("CTPLumi").size() == sizeof(LumiInfo)) {
+      lumiPrev = lumi = pc.inputs().get<LumiInfo>("CTPLumi");
+    } else {
+      if (dumRep < maxDumRep && lumiPrev.nHBFCounted == 0 && lumiPrev.nHBFCountedFV0 == 0) {
+        LOGP(alarm, "Previous TF lumi used to substitute dummy input is empty, warning {} of {}", ++dumRep, maxDumRep);
+      }
+      lumi = lumiPrev;
+    }
   }
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"CTP", "CTFDATA", 0, Lifetime::Timeframe});
   auto iosize = mCTFCoder.encode(buffer, digits, lumi);
