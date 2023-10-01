@@ -202,7 +202,7 @@ void DDSConfigHelpers::dumpDeviceSpec2DDS(std::ostream& out,
         << R"(<exe reachable="true">)";
     out << fmt::format("cat ${{DDS_LOCATION}}/dpl_json{}.asset | ", workflowSuffix);
     for (auto ei : execution.environ) {
-      out << DeviceSpecHelpers::reworkEnv(ei, spec) << " ";
+      out << DeviceSpecHelpers::reworkTimeslicePlaceholder(ei, spec) << " ";
     }
     std::string accumulatedChannelPrefix;
     char* s = strdup(execution.args[0]);
