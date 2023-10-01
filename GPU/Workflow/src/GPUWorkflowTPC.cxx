@@ -98,45 +98,45 @@ namespace o2::gpu
 
 void GPURecoWorkflowSpec::initFunctionTPCCalib(InitContext& ic)
 {
-  mCalibObjects.mdEdxCalibContainer.reset(new o2::tpc::CalibdEdxContainer());
+  mdEdxCalibContainer.reset(new o2::tpc::CalibdEdxContainer());
   mTPCVDriftHelper.reset(new o2::tpc::VDriftHelper());
-  mCalibObjects.mFastTransformHelper.reset(new o2::tpc::CorrectionMapsLoader());
-  mCalibObjects.mFastTransform = std::move(o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
-  mCalibObjects.mFastTransformRef = std::move(o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
-  mCalibObjects.mFastTransformHelper->setCorrMap(mCalibObjects.mFastTransform.get()); // just to reserve the space
-  mCalibObjects.mFastTransformHelper->setCorrMapRef(mCalibObjects.mFastTransformRef.get());
-  mCalibObjects.mFastTransformHelper->setLumiScaleMode(mSpecConfig.lumiScaleMode);
+  mFastTransformHelper.reset(new o2::tpc::CorrectionMapsLoader());
+  mFastTransform = std::move(o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
+  mFastTransformRef = std::move(o2::tpc::TPCFastTransformHelperO2::instance()->create(0));
+  mFastTransformHelper->setCorrMap(mFastTransform.get()); // just to reserve the space
+  mFastTransformHelper->setCorrMapRef(mFastTransformRef.get());
+  mFastTransformHelper->setLumiScaleMode(mSpecConfig.lumiScaleMode);
   if (mSpecConfig.outputTracks) {
-    mCalibObjects.mFastTransformHelper->init(ic);
+    mFastTransformHelper->init(ic);
   }
   if (mConfParam->dEdxDisableTopologyPol) {
     LOGP(info, "Disabling loading of track topology correction using polynomials from CCDB");
-    mCalibObjects.mdEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalTopologyPol);
+    mdEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalTopologyPol);
   }
 
   if (mConfParam->dEdxDisableThresholdMap) {
     LOGP(info, "Disabling loading of threshold map from CCDB");
-    mCalibObjects.mdEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalThresholdMap);
+    mdEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalThresholdMap);
   }
 
   if (mConfParam->dEdxDisableGainMap) {
     LOGP(info, "Disabling loading of gain map from CCDB");
-    mCalibObjects.mdEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalGainMap);
+    mdEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalGainMap);
   }
 
   if (mConfParam->dEdxDisableResidualGainMap) {
     LOGP(info, "Disabling loading of residual gain map from CCDB");
-    mCalibObjects.mdEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalResidualGainMap);
+    mdEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalResidualGainMap);
   }
 
   if (mConfParam->dEdxDisableResidualGain) {
     LOGP(info, "Disabling loading of residual gain calibration from CCDB");
-    mCalibObjects.mdEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalTimeGain);
+    mdEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalTimeGain);
   }
 
   if (mConfParam->dEdxUseFullGainMap) {
     LOGP(info, "Using the full gain map for correcting the cluster charge during calculation of the dE/dx");
-    mCalibObjects.mdEdxCalibContainer->setUsageOfFullGainMap(true);
+    mdEdxCalibContainer->setUsageOfFullGainMap(true);
   }
 
   if (mConfParam->gainCalibDisableCCDB) {
@@ -148,54 +148,54 @@ void GPURecoWorkflowSpec::initFunctionTPCCalib(InitContext& ic)
   if (!mConfParam->dEdxPolTopologyCorrFile.empty() || !mConfParam->dEdxCorrFile.empty() || !mConfParam->dEdxSplineTopologyCorrFile.empty()) {
     if (!mConfParam->dEdxPolTopologyCorrFile.empty()) {
       LOGP(info, "Loading dE/dx polynomial track topology correction from file: {}", mConfParam->dEdxPolTopologyCorrFile);
-      mCalibObjects.mdEdxCalibContainer->loadPolTopologyCorrectionFromFile(mConfParam->dEdxPolTopologyCorrFile);
+      mdEdxCalibContainer->loadPolTopologyCorrectionFromFile(mConfParam->dEdxPolTopologyCorrFile);
 
       LOGP(info, "Disabling loading of track topology correction using polynomials from CCDB as it was already loaded from input file");
-      mCalibObjects.mdEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalTopologyPol);
+      mdEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalTopologyPol);
 
       if (std::filesystem::exists(mConfParam->thresholdCalibFile)) {
         LOG(info) << "Loading tpc zero supression map from file " << mConfParam->thresholdCalibFile;
         const auto* thresholdMap = o2::tpc::utils::readCalPads(mConfParam->thresholdCalibFile, "ThresholdMap")[0];
-        mCalibObjects.mdEdxCalibContainer->setZeroSupresssionThreshold(*thresholdMap);
+        mdEdxCalibContainer->setZeroSupresssionThreshold(*thresholdMap);
 
         LOGP(info, "Disabling loading of threshold map from CCDB as it was already loaded from input file");
-        mCalibObjects.mdEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalThresholdMap);
+        mdEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalThresholdMap);
       } else {
         if (not mConfParam->thresholdCalibFile.empty()) {
           LOG(warn) << "Couldn't find tpc zero supression file " << mConfParam->thresholdCalibFile << ". Not setting any zero supression.";
         }
         LOG(info) << "Setting default zero supression map";
-        mCalibObjects.mdEdxCalibContainer->setDefaultZeroSupresssionThreshold();
+        mdEdxCalibContainer->setDefaultZeroSupresssionThreshold();
       }
     } else if (!mConfParam->dEdxSplineTopologyCorrFile.empty()) {
       LOGP(info, "Loading dE/dx spline track topology correction from file: {}", mConfParam->dEdxSplineTopologyCorrFile);
-      mCalibObjects.mdEdxCalibContainer->loadSplineTopologyCorrectionFromFile(mConfParam->dEdxSplineTopologyCorrFile);
+      mdEdxCalibContainer->loadSplineTopologyCorrectionFromFile(mConfParam->dEdxSplineTopologyCorrFile);
 
       LOGP(info, "Disabling loading of track topology correction using polynomials from CCDB as splines were loaded from input file");
-      mCalibObjects.mdEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalTopologyPol);
+      mdEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalTopologyPol);
     }
     if (!mConfParam->dEdxCorrFile.empty()) {
       LOGP(info, "Loading dEdx correction from file: {}", mConfParam->dEdxCorrFile);
-      mCalibObjects.mdEdxCalibContainer->loadResidualCorrectionFromFile(mConfParam->dEdxCorrFile);
+      mdEdxCalibContainer->loadResidualCorrectionFromFile(mConfParam->dEdxCorrFile);
 
       LOGP(info, "Disabling loading of residual gain calibration from CCDB as it was already loaded from input file");
-      mCalibObjects.mdEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalTimeGain);
+      mdEdxCalibContainer->disableCorrectionCCDB(o2::tpc::CalibsdEdx::CalTimeGain);
     }
   }
 
   if (mConfParam->dEdxPolTopologyCorrFile.empty() && mConfParam->dEdxSplineTopologyCorrFile.empty()) {
     // setting default topology correction to allocate enough memory
     LOG(info) << "Setting default dE/dx polynomial track topology correction to allocate enough memory";
-    mCalibObjects.mdEdxCalibContainer->setDefaultPolTopologyCorrection();
+    mdEdxCalibContainer->setDefaultPolTopologyCorrection();
   }
 
   GPUO2InterfaceConfiguration& config = *mConfig.get();
-  mConfig->configCalib.dEdxCalibContainer = mCalibObjects.mdEdxCalibContainer.get();
+  mConfig->configCalib.dEdxCalibContainer = mdEdxCalibContainer.get();
 
   if (std::filesystem::exists(mConfParam->gainCalibFile)) {
     LOG(info) << "Loading tpc gain correction from file " << mConfParam->gainCalibFile;
     const auto* gainMap = o2::tpc::utils::readCalPads(mConfParam->gainCalibFile, "GainMap")[0];
-    mCalibObjects.mTPCPadGainCalib = GPUO2Interface::getPadGainCalib(*gainMap);
+    mTPCPadGainCalib = GPUO2Interface::getPadGainCalib(*gainMap);
 
     LOGP(info, "Disabling loading the TPC gain correction map from the CCDB as it was already loaded from input file");
     mUpdateGainMapCCDB = false;
@@ -203,10 +203,10 @@ void GPURecoWorkflowSpec::initFunctionTPCCalib(InitContext& ic)
     if (not mConfParam->gainCalibFile.empty()) {
       LOG(warn) << "Couldn't find tpc gain correction file " << mConfParam->gainCalibFile << ". Not applying any gain correction.";
     }
-    mCalibObjects.mTPCPadGainCalib = GPUO2Interface::getPadGainCalibDefault();
-    mCalibObjects.mTPCPadGainCalib->getGainCorrection(30, 5, 5);
+    mTPCPadGainCalib = GPUO2Interface::getPadGainCalibDefault();
+    mTPCPadGainCalib->getGainCorrection(30, 5, 5);
   }
-  mConfig->configCalib.tpcPadGain = mCalibObjects.mTPCPadGainCalib.get();
+  mConfig->configCalib.tpcPadGain = mTPCPadGainCalib.get();
 
   mTPCZSLinkMapping.reset(new TPCZSLinkMapping{tpc::Mapper::instance()});
   mConfig->configCalib.tpcZSLinkMapping = mTPCZSLinkMapping.get();
@@ -214,7 +214,7 @@ void GPURecoWorkflowSpec::initFunctionTPCCalib(InitContext& ic)
 
 void GPURecoWorkflowSpec::finaliseCCDBTPC(ConcreteDataMatcher& matcher, void* obj)
 {
-  const o2::tpc::CalibdEdxContainer* dEdxCalibContainer = mCalibObjects.mdEdxCalibContainer.get();
+  const o2::tpc::CalibdEdxContainer* dEdxCalibContainer = mdEdxCalibContainer.get();
 
   auto copyCalibsToBuffer = [this, dEdxCalibContainer]() {
     if (!(mdEdxCalibContainerBufferNew)) {
@@ -263,17 +263,17 @@ void GPURecoWorkflowSpec::finaliseCCDBTPC(ConcreteDataMatcher& matcher, void* ob
     const auto* residualCorr = static_cast<o2::tpc::CalibdEdxCorrection*>(obj);
     mdEdxCalibContainerBufferNew->setResidualCorrection(*residualCorr);
   } else if (mTPCVDriftHelper->accountCCDBInputs(matcher, obj)) {
-  } else if (mCalibObjects.mFastTransformHelper->accountCCDBInputs(matcher, obj)) {
+  } else if (mFastTransformHelper->accountCCDBInputs(matcher, obj)) {
   }
 }
 
 template <>
-bool GPURecoWorkflowSpec::fetchCalibsCCDBTPC<GPUCalibObjectsConst>(ProcessingContext& pc, GPUCalibObjectsConst& newCalibObjects, calibObjectStruct& oldCalibObjects)
+bool GPURecoWorkflowSpec::fetchCalibsCCDBTPC<GPUCalibObjectsConst>(ProcessingContext& pc, GPUCalibObjectsConst& newCalibObjects)
 {
   // update calibrations for clustering and tracking
-  bool mustUpdate = false;
+  mMustUpdateFastTransform = false;
   if ((mSpecConfig.outputTracks || mSpecConfig.caClusterer) && !mConfParam->disableCalibUpdates) {
-    const o2::tpc::CalibdEdxContainer* dEdxCalibContainer = mCalibObjects.mdEdxCalibContainer.get();
+    const o2::tpc::CalibdEdxContainer* dEdxCalibContainer = mdEdxCalibContainer.get();
 
     // this calibration is defined for clustering and tracking
     if (dEdxCalibContainer->isCorrectionCCDB(o2::tpc::CalibsdEdx::CalGainMap) || mUpdateGainMapCCDB) {
@@ -301,66 +301,75 @@ bool GPURecoWorkflowSpec::fetchCalibsCCDBTPC<GPUCalibObjectsConst>(ProcessingCon
 
       if (mSpecConfig.outputTracks) {
         mTPCVDriftHelper->extractCCDBInputs(pc);
-        mCalibObjects.mFastTransformHelper->extractCCDBInputs(pc);
+        mFastTransformHelper->extractCCDBInputs(pc);
       }
-      if (mTPCVDriftHelper->isUpdated() || mCalibObjects.mFastTransformHelper->isUpdated()) {
+      if (mTPCVDriftHelper->isUpdated() || mFastTransformHelper->isUpdated()) {
         const auto& vd = mTPCVDriftHelper->getVDriftObject();
         LOGP(info, "Updating{}TPC fast transform map and/or VDrift factor of {} wrt reference {} and TDrift offset {} wrt reference {} from source {}",
-             mCalibObjects.mFastTransformHelper->isUpdated() ? " new " : " old ",
+             mFastTransformHelper->isUpdated() ? " new " : " old ",
              vd.corrFact, vd.refVDrift, vd.timeOffsetCorr, vd.refTimeOffset, mTPCVDriftHelper->getSourceName());
 
-        bool mustUpdateHelper = false;
-        if (mTPCVDriftHelper->isUpdated() || mCalibObjects.mFastTransformHelper->isUpdatedMap()) {
-          oldCalibObjects.mFastTransform = std::move(mCalibObjects.mFastTransform);
-          mCalibObjects.mFastTransform.reset(new TPCFastTransform);
-          mCalibObjects.mFastTransform->cloneFromObject(*mCalibObjects.mFastTransformHelper->getCorrMap(), nullptr);
-          o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mCalibObjects.mFastTransform, 0, vd.corrFact, vd.refVDrift, vd.getTimeOffset());
-          newCalibObjects.fastTransform = mCalibObjects.mFastTransform.get();
-          mustUpdateHelper = true;
+        if (mTPCVDriftHelper->isUpdated() || mFastTransformHelper->isUpdatedMap()) {
+          mFastTransformNew.reset(new TPCFastTransform);
+          mFastTransformNew->cloneFromObject(*mFastTransformHelper->getCorrMap(), nullptr);
+          o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mFastTransformNew, 0, vd.corrFact, vd.refVDrift, vd.getTimeOffset());
+          newCalibObjects.fastTransform = mFastTransformNew.get();
         }
-        if (mTPCVDriftHelper->isUpdated() || mCalibObjects.mFastTransformHelper->isUpdatedMapRef()) {
-          oldCalibObjects.mFastTransformRef = std::move(mCalibObjects.mFastTransformRef);
-          mCalibObjects.mFastTransformRef.reset(new TPCFastTransform);
-          mCalibObjects.mFastTransformRef->cloneFromObject(*mCalibObjects.mFastTransformHelper->getCorrMapRef(), nullptr);
-          o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mCalibObjects.mFastTransformRef, 0, vd.corrFact, vd.refVDrift, vd.getTimeOffset());
-          newCalibObjects.fastTransformRef = mCalibObjects.mFastTransformRef.get();
-          mustUpdateHelper = true;
+        if (mTPCVDriftHelper->isUpdated() || mFastTransformHelper->isUpdatedMapRef()) {
+          mFastTransformRefNew.reset(new TPCFastTransform);
+          mFastTransformRefNew->cloneFromObject(*mFastTransformHelper->getCorrMapRef(), nullptr);
+          o2::tpc::TPCFastTransformHelperO2::instance()->updateCalibration(*mFastTransformRefNew, 0, vd.corrFact, vd.refVDrift, vd.getTimeOffset());
+          newCalibObjects.fastTransformRef = mFastTransformRefNew.get();
         }
-        if (mustUpdateHelper || mCalibObjects.mFastTransformHelper->isUpdatedLumi()) {
-          oldCalibObjects.mFastTransformHelper = std::move(mCalibObjects.mFastTransformHelper);
-          mCalibObjects.mFastTransformHelper.reset(new o2::tpc::CorrectionMapsLoader);
-          mCalibObjects.mFastTransformHelper->setInstLumi(oldCalibObjects.mFastTransformHelper->getInstLumi(), false);
-          mCalibObjects.mFastTransformHelper->setMeanLumi(oldCalibObjects.mFastTransformHelper->getMeanLumi(), false);
-          mCalibObjects.mFastTransformHelper->setUseCTPLumi(oldCalibObjects.mFastTransformHelper->getUseCTPLumi());
-          mCalibObjects.mFastTransformHelper->setMeanLumiOverride(oldCalibObjects.mFastTransformHelper->getMeanLumiOverride());
-          mCalibObjects.mFastTransformHelper->setInstLumiOverride(oldCalibObjects.mFastTransformHelper->getInstLumiOverride());
-          mCalibObjects.mFastTransformHelper->setLumiScaleMode(oldCalibObjects.mFastTransformHelper->getLumiScaleMode());
-          mCalibObjects.mFastTransformHelper->setCorrMap(mCalibObjects.mFastTransform.get());
-          mCalibObjects.mFastTransformHelper->setCorrMapRef(mCalibObjects.mFastTransformRef.get());
-          mCalibObjects.mFastTransformHelper->acknowledgeUpdate();
-          newCalibObjects.fastTransformHelper = mCalibObjects.mFastTransformHelper.get();
+        if (mFastTransformNew || mFastTransformRefNew || mFastTransformHelper->isUpdatedLumi()) {
+          mFastTransformHelperNew.reset(new o2::tpc::CorrectionMapsLoader);
+          mFastTransformHelperNew->setInstLumi(mFastTransformHelper->getInstLumi(), false);
+          mFastTransformHelperNew->setMeanLumi(mFastTransformHelper->getMeanLumi(), false);
+          mFastTransformHelperNew->setUseCTPLumi(mFastTransformHelper->getUseCTPLumi());
+          mFastTransformHelperNew->setMeanLumiOverride(mFastTransformHelper->getMeanLumiOverride());
+          mFastTransformHelperNew->setInstLumiOverride(mFastTransformHelper->getInstLumiOverride());
+          mFastTransformHelperNew->setLumiScaleMode(mFastTransformHelper->getLumiScaleMode());
+          mFastTransformHelperNew->setCorrMap(mFastTransformNew ? mFastTransformNew.get() : mFastTransform.get());
+          mFastTransformHelperNew->setCorrMapRef(mFastTransformRefNew ? mFastTransformRefNew.get() : mFastTransformRef.get());
+          mFastTransformHelperNew->acknowledgeUpdate();
+          newCalibObjects.fastTransformHelper = mFastTransformHelperNew.get();
         }
-        mustUpdate = true;
+        mMustUpdateFastTransform = true;
         mTPCVDriftHelper->acknowledgeUpdate();
-        mCalibObjects.mFastTransformHelper->acknowledgeUpdate();
+        mFastTransformHelper->acknowledgeUpdate();
       }
     }
 
     if (mdEdxCalibContainerBufferNew) {
-      oldCalibObjects.mdEdxCalibContainer = std::move(mCalibObjects.mdEdxCalibContainer);
-      mCalibObjects.mdEdxCalibContainer = std::move(mdEdxCalibContainerBufferNew);
-      newCalibObjects.dEdxCalibContainer = mCalibObjects.mdEdxCalibContainer.get();
-      mustUpdate = true;
+      newCalibObjects.dEdxCalibContainer = mdEdxCalibContainerBufferNew.get();
     }
 
     if (mTPCPadGainCalibBufferNew) {
-      oldCalibObjects.mTPCPadGainCalib = std::move(mCalibObjects.mTPCPadGainCalib);
-      mCalibObjects.mTPCPadGainCalib = std::move(mTPCPadGainCalibBufferNew);
-      newCalibObjects.tpcPadGain = mCalibObjects.mTPCPadGainCalib.get();
-      mustUpdate = true;
+      newCalibObjects.tpcPadGain = mTPCPadGainCalibBufferNew.get();
     }
+
+    return mdEdxCalibContainerBufferNew || mTPCPadGainCalibBufferNew || mMustUpdateFastTransform;
   }
-  return mustUpdate;
+  return false;
+}
+
+void GPURecoWorkflowSpec::cleanOldCalibsTPCPtrs()
+{
+  if (mdEdxCalibContainerBufferNew) {
+    mdEdxCalibContainer = std::move(mdEdxCalibContainerBufferNew);
+  }
+  if (mTPCPadGainCalibBufferNew) {
+    mTPCPadGainCalib = std::move(mTPCPadGainCalibBufferNew);
+  }
+  if (mFastTransformNew) {
+    mFastTransform = std::move(mFastTransformNew);
+  }
+  if (mFastTransformRefNew) {
+    mFastTransformRef = std::move(mFastTransformRefNew);
+  }
+  if (mFastTransformHelperNew) {
+    mFastTransformHelper = std::move(mFastTransformHelperNew);
+  }
 }
 
 void GPURecoWorkflowSpec::doTrackTuneTPC(GPUTrackingInOutPointers& ptrs, char* buffout)

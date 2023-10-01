@@ -247,9 +247,9 @@ void GPURecoWorkflowSpec::init(InitContext& ic)
     // initialize TPC calib objects
     initFunctionTPCCalib(ic);
 
-    mConfig->configCalib.fastTransform = mCalibObjects.mFastTransformHelper->getCorrMap();
-    mConfig->configCalib.fastTransformRef = mCalibObjects.mFastTransformHelper->getCorrMapRef();
-    mConfig->configCalib.fastTransformHelper = mCalibObjects.mFastTransformHelper.get();
+    mConfig->configCalib.fastTransform = mFastTransformHelper->getCorrMap();
+    mConfig->configCalib.fastTransformRef = mFastTransformHelper->getCorrMapRef();
+    mConfig->configCalib.fastTransformHelper = mFastTransformHelper.get();
     if (mConfig->configCalib.fastTransform == nullptr) {
       throw std::invalid_argument("GPU workflow: initialization of the TPC transformation failed");
     }
@@ -501,18 +501,12 @@ int GPURecoWorkflowSpec::runMain(o2::framework::ProcessingContext* pc, GPUTracki
     }
   }
 
+  cleanOldCalibsTPCPtrs(); // setting TPC calibration objects
+
   if (!mSpecConfig.enableDoublePipeline) { // TODO: Why is this needed for double-pipeline?
     mGPUReco->Clear(false, threadIndex);   // clean non-output memory used by GPU Reconstruction
   }
   return retVal;
-}
-
-void GPURecoWorkflowSpec::cleanOldCalibsTPCPtrs(calibObjectStruct& oldCalibObjects)
-{
-  if (mOldCalibObjects.size() > 0) {
-    mOldCalibObjects.pop();
-  }
-  mOldCalibObjects.emplace(std::move(oldCalibObjects));
 }
 
 void GPURecoWorkflowSpec::run(ProcessingContext& pc)
@@ -752,8 +746,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
 
   const auto& holdData = o2::tpc::TPCTrackingDigitsPreCheck::runPrecheck(&ptrs, mConfig.get());
 
-  calibObjectStruct oldCalibObjects;
-  doCalibUpdates(pc, oldCalibObjects);
+  doCalibUpdates(pc);
 
   lockDecodeInput.reset();
 
@@ -791,7 +784,6 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   if (retVal != 0) {
     debugTFDump = true;
   }
-  cleanOldCalibsTPCPtrs(oldCalibObjects);
 
   o2::utils::DebugStreamer::instance()->flush(); // flushing debug output to file
 
@@ -967,7 +959,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
   LOG(info) << "GPU Reoncstruction time for this TF " << mTimer->CpuTime() - cput << " s (cpu), " << mTimer->RealTime() - realt << " s (wall)";
 }
 
-void GPURecoWorkflowSpec::doCalibUpdates(o2::framework::ProcessingContext& pc, calibObjectStruct& oldCalibObjects)
+void GPURecoWorkflowSpec::doCalibUpdates(o2::framework::ProcessingContext& pc)
 {
   GPUCalibObjectsConst newCalibObjects;
   GPUNewCalibValues newCalibValues;
@@ -1019,7 +1011,7 @@ void GPURecoWorkflowSpec::doCalibUpdates(o2::framework::ProcessingContext& pc, c
       mTRDGeometryCreated = true;
     }
   }
-  needCalibUpdate = fetchCalibsCCDBTPC(pc, newCalibObjects, oldCalibObjects) || needCalibUpdate;
+  needCalibUpdate = fetchCalibsCCDBTPC(pc, newCalibObjects) || needCalibUpdate;
   if (mSpecConfig.runITSTracking) {
     needCalibUpdate = fetchCalibsCCDBITS(pc) || needCalibUpdate;
   }
@@ -1077,7 +1069,7 @@ Inputs GPURecoWorkflowSpec::inputs()
     inputs.emplace_back("tpcthreshold", gDataOriginTPC, "PADTHRESHOLD", 0, Lifetime::Condition, ccdbParamSpec("TPC/Config/FEEPad"));
     o2::tpc::VDriftHelper::requestCCDBInputs(inputs);
     Options optsDummy;
-    mCalibObjects.mFastTransformHelper->requestCCDBInputs(inputs, optsDummy, mSpecConfig.requireCTPLumi, mSpecConfig.lumiScaleMode); // option filled here is lost
+    mFastTransformHelper->requestCCDBInputs(inputs, optsDummy, mSpecConfig.requireCTPLumi, mSpecConfig.lumiScaleMode); // option filled here is lost
   }
   if (mSpecConfig.decompressTPC) {
     inputs.emplace_back(InputSpec{"input", ConcreteDataTypeMatcher{gDataOriginTPC, mSpecConfig.decompressTPCFromROOT ? o2::header::DataDescription("COMPCLUSTERS") : o2::header::DataDescription("COMPCLUSTERSFLAT")}, Lifetime::Timeframe});
