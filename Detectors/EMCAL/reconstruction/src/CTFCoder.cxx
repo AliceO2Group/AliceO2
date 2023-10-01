@@ -65,6 +65,6 @@ void CTFCoder::assignDictVersion(o2::ctf::CTFDictHeader& h) const
     h = mExtHeader;
   } else {
     h.majorVersion = 1;
-    h.minorVersion = 2;
+    h.minorVersion = 1;
   }
 }
