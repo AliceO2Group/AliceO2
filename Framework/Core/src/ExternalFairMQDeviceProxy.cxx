@@ -233,8 +233,17 @@ auto getFinalIndex(DataHeader const& dh, size_t msgidx) -> size_t
   return finalBlockIndex;
 };
 
+bool printAllRoutes(std::vector<OutputRoute> const& routes)
+{
+  for (auto const& route : routes) {
+    LOG(info) << "Route: " << DataSpecUtils::describe(route.matcher) << " -> " << route.channel;
+  }
+  return true;
+}
+
 void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::vector<OutputRoute> const& routes)
 {
+  [[maybe_unused]] static bool printRoutes = printAllRoutes(routes);
   // Check for missing data.
   static std::vector<bool> present;
   present.clear();
