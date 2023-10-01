@@ -113,6 +113,7 @@ class GPUQA
   int ReadO2MCData(const char* filename);
   static bool QAAvailable() { return true; }
   bool IsInitialized() { return mQAInitialized; }
+  void UpdateChain(GPUChainTracking* chain) { mTracking = chain; }
 
   const std::vector<TH1F>& getHistograms1D() const { return *mHist1D; }
   const std::vector<TH2F>& getHistograms2D() const { return *mHist2D; }

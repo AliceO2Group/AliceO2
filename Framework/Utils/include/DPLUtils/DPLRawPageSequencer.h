@@ -98,10 +98,16 @@ class DPLRawPageSequencer
     int retVal = 0;
     for (auto const& ref : mInput) {
       auto size = DataRefUtils::getPayloadSize(ref);
-      if (size == 0) {
+      const auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+      if (dh == nullptr) {
         continue;
       }
-      const auto dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
+      if (size == 0) {
+        if (dh->subSpecification == 0xDEADBEEF) {
+          raw_parser::RawParserHelper::warnDeadBeef(dh);
+        }
+        continue;
+      }
       auto const pageSize = rawparser_type::max_size;
       auto nPages = size / pageSize + (size % pageSize ? 1 : 0);
       if (!preCheck(ref.payload, dh->subSpecification)) {

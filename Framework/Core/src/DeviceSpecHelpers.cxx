@@ -1482,8 +1482,8 @@ void DeviceSpecHelpers::prepareArguments(bool defaultQuiet, bool defaultStopped,
       haveSessionArg = haveSessionArg || varmap.count("session") != 0;
       useDefaultWS = useDefaultWS && ((varmap.count("driver-client-backend") == 0) || varmap["driver-client-backend"].as<std::string>() == "ws://");
 
-      auto processRawChannelConfig = [&tmpArgs](const std::string& conf) {
-        std::stringstream ss(conf);
+      auto processRawChannelConfig = [&tmpArgs, &spec](const std::string& conf) {
+        std::stringstream ss(reworkTimeslicePlaceholder(conf, spec));
         std::string token;
         while (std::getline(ss, token, ';')) { // split to tokens, trim spaces and add each non-empty one with channel-config options
           token.erase(token.begin(), std::find_if(token.begin(), token.end(), [](int ch) { return !std::isspace(ch); }));
@@ -1667,7 +1667,7 @@ bool DeviceSpecHelpers::hasLabel(DeviceSpec const& spec, char const* label)
   return std::find_if(spec.labels.begin(), spec.labels.end(), sameLabel) != spec.labels.end();
 }
 
-std::string DeviceSpecHelpers::reworkEnv(std::string const& str, DeviceSpec const& spec)
+std::string DeviceSpecHelpers::reworkTimeslicePlaceholder(std::string const& str, DeviceSpec const& spec)
 {
   // find all the possible timeslice variables, extract N and replace
   // the variable with the value of spec.inputTimesliceId + N.

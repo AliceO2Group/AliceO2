@@ -9,29 +9,19 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \file GPUNewCalibValues.h
+/// \file GPUNewCalibValues.cxx
 /// \author David Rohr
 
-#ifndef GPUNEWCALIBVALUES_H
-#define GPUNEWCALIBVALUES_H
+#include "GPUNewCalibValues.h"
 
-#include "GPUCommonDef.h"
+using namespace GPUCA_NAMESPACE::gpu;
 
-namespace GPUCA_NAMESPACE
+void GPUNewCalibValues::updateFrom(const GPUNewCalibValues* from)
 {
-namespace gpu
-{
-
-struct GPUNewCalibValues {
-  bool newSolenoidField = false;
-  bool newContinuousMaxTimeBin = false;
-  float solenoidField = 0.f;
-  unsigned int continuousMaxTimeBin = 0;
-
-  void updateFrom(const GPUNewCalibValues* from);
-};
-
-} // namespace gpu
-} // namespace GPUCA_NAMESPACE
-
-#endif
+  if (from->newSolenoidField) {
+    solenoidField = from->newSolenoidField;
+  }
+  if (from->newContinuousMaxTimeBin) {
+    continuousMaxTimeBin = from->continuousMaxTimeBin;
+  }
+}

@@ -251,7 +251,7 @@ int GPUChainTracking::RunTPCTrackingMerger(bool synchronizeOutput)
     } else if (GetProcessingSettings().keepDisplayMemory || GetProcessingSettings().createO2Output <= 1 || mFractionalQAEnabled) {
       if (!(GetProcessingSettings().keepDisplayMemory || GetProcessingSettings().createO2Output <= 1)) {
         size_t size = mRec->Res(Merger.MemoryResOutput()).Size() + GPUCA_MEMALIGN;
-        void* buffer = mQA->AllocateScratchBuffer(size);
+        void* buffer = GetQA()->AllocateScratchBuffer(size);
         void* bufferEnd = Merger.SetPointersOutput(buffer);
         if ((size_t)((char*)bufferEnd - (char*)buffer) > size) {
           throw std::runtime_error("QA Scratch buffer exceeded");

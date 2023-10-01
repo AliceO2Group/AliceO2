@@ -25,6 +25,10 @@
 #include <stdexcept>
 #include <string>
 #include <type_traits>
+namespace o2::header
+{
+struct DataHeader;
+} // namespace o2::header
 
 // FIXME: probably moved somewhere else
 namespace o2::framework
@@ -87,6 +91,7 @@ struct RawParserHelper {
   static unsigned long sErrorScale; // Exponentionally downscale verbosity.
 
   static bool checkPrintError(size_t& localCounter);
+  static void warnDeadBeef(const o2::header::DataHeader* dh);
 };
 
 /// @class ConcreteRawParser

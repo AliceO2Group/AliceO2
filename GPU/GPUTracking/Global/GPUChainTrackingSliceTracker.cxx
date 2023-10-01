@@ -482,13 +482,12 @@ void GPUChainTracking::WriteOutput(int iSlice, int threadId)
     GPUInfo("Running WriteOutput for slice %d on thread %d\n", iSlice, threadId);
   }
   if (GetProcessingSettings().nDeviceHelperThreads) {
-    while (mLockAtomic.test_and_set(std::memory_order_acquire)) {
-      ;
+    while (mLockAtomicOutputBuffer.test_and_set(std::memory_order_acquire)) {
     }
   }
   processors()->tpcTrackers[iSlice].WriteOutputPrepare();
   if (GetProcessingSettings().nDeviceHelperThreads) {
-    mLockAtomic.clear();
+    mLockAtomicOutputBuffer.clear();
   }
   processors()->tpcTrackers[iSlice].WriteOutput();
   if (GetProcessingSettings().debugLevel >= 5) {
