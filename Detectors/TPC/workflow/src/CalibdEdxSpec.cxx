@@ -55,6 +55,7 @@ class CalibdEdxDevice : public Task
     const auto maxdEdx = ic.options().get<float>("max-dedx");
     const auto angularBins = ic.options().get<int>("angularbins");
     const auto fitSnp = ic.options().get<bool>("fit-snp");
+    auto materialType = static_cast<o2::base::Propagator::MatCorrType>(ic.options().get<int>("material-type"));
 
     mDumpToFile = ic.options().get<int>("file-dump");
 
@@ -64,6 +65,7 @@ class CalibdEdxDevice : public Task
     mCalib->set1DFitThreshold(minEntries1D);
     mCalib->set2DFitThreshold(minEntries2D);
     mCalib->setElectronCut(fitThreshold, fitPasses, fitThresholdLowFactor);
+    mCalib->setMaterialType(materialType);
   }
 
   void finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj) final
@@ -131,7 +133,7 @@ DataProcessorSpec getCalibdEdxSpec()
                                                                 false,                          // GRPECS=true
                                                                 false,                          // GRPLHCIF
                                                                 true,                           // GRPMagField
-                                                                false,                          // askMatLUT
+                                                                true,                           // askMatLUT
                                                                 o2::base::GRPGeomRequest::None, // geometry
                                                                 inputs,
                                                                 true,
@@ -156,7 +158,8 @@ DataProcessorSpec getCalibdEdxSpec()
       {"angularbins", VariantType::Int, 36, {"number of angular bins: Tgl and Snp"}},
       {"fit-snp", VariantType::Bool, false, {"enable Snp correction"}},
 
-      {"file-dump", VariantType::Int, 0, {"directly dump calibration to file"}}}};
+      {"file-dump", VariantType::Int, 0, {"directly dump calibration to file"}},
+      {"material-type", VariantType::Int, 2, {"Type for the material buget during track propagation: 0=None, 1=Geo, 2=LUT"}}}};
 }
 
 } // namespace o2::tpc
