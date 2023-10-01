@@ -356,19 +356,19 @@ TEST_CASE("CheckReworkingEnv")
 {
   DeviceSpec spec{.inputTimesliceId = 1};
   std::string env = "FOO={timeslice0}";
-  REQUIRE(DeviceSpecHelpers::reworkTimeslicePlaceholder(env, spec) == "FOO=1");
+  REQUIRE(DeviceSpecHelpers::reworkEnv(env, spec) == "FOO=1");
   env = "FOO={timeslice0} BAR={timeslice4}";
-  REQUIRE(DeviceSpecHelpers::reworkTimeslicePlaceholder(env, spec) == "FOO=1 BAR=5");
+  REQUIRE(DeviceSpecHelpers::reworkEnv(env, spec) == "FOO=1 BAR=5");
   env = "FOO={timeslice0} BAR={timeslice4} BAZ={timeslice5}";
-  REQUIRE(DeviceSpecHelpers::reworkTimeslicePlaceholder(env, spec) == "FOO=1 BAR=5 BAZ=6");
+  REQUIRE(DeviceSpecHelpers::reworkEnv(env, spec) == "FOO=1 BAR=5 BAZ=6");
   env = "";
-  REQUIRE(DeviceSpecHelpers::reworkTimeslicePlaceholder(env, spec) == "");
+  REQUIRE(DeviceSpecHelpers::reworkEnv(env, spec) == "");
   env = "Plottigat";
-  REQUIRE(DeviceSpecHelpers::reworkTimeslicePlaceholder(env, spec) == "Plottigat");
+  REQUIRE(DeviceSpecHelpers::reworkEnv(env, spec) == "Plottigat");
   env = "{timeslice}";
-  REQUIRE(DeviceSpecHelpers::reworkTimeslicePlaceholder(env, spec) == "{timeslice}");
+  REQUIRE(DeviceSpecHelpers::reworkEnv(env, spec) == "{timeslice}");
   env = "{timeslicepluto";
-  REQUIRE(DeviceSpecHelpers::reworkTimeslicePlaceholder(env, spec) == "{timeslicepluto");
+  REQUIRE(DeviceSpecHelpers::reworkEnv(env, spec) == "{timeslicepluto");
 }
 
 } // namespace o2::framework

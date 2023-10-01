@@ -188,7 +188,7 @@ int ReadConfiguration(int argc, char** argv)
     return 1;
   }
   if (configStandalone.proc.doublePipeline && (configStandalone.runs < 4 || !configStandalone.outputcontrolmem)) {
-    printf("Double pipeline mode needs at least 3 runs per event and external output. To cycle though multiple events, use --preloadEvents and --runs n for n iterations round-robin\n");
+    printf("Double pipeline mode needs at least 3 runs per event and external output\n");
     return 1;
   }
   if (configStandalone.TF.bunchSim && configStandalone.TF.nMerge) {
@@ -501,7 +501,6 @@ int ReadEvent(int n)
   if ((configStandalone.proc.runQA || configStandalone.eventDisplay) && !configStandalone.QA.noMC) {
     chainTracking->ForceInitQA();
     snprintf(filename, 256, "events/%s/mc.%d.dump", configStandalone.eventsDir, n);
-    chainTracking->GetQA()->UpdateChain(chainTracking);
     if (chainTracking->GetQA()->ReadO2MCData(filename)) {
       snprintf(filename, 256, "events/%s/mc.%d.dump", configStandalone.eventsDir, 0);
       if (chainTracking->GetQA()->ReadO2MCData(filename) && configStandalone.proc.runQA) {
@@ -735,14 +734,12 @@ int main(int argc, char** argv)
       recAsync->SetDebugLevelTmp(configStandalone.proc.debugLevel);
     }
     chainTrackingAsync = recAsync->AddChain<GPUChainTracking>();
-    chainTrackingAsync->SetQAFromForeignChain(chainTracking);
   }
   if (configStandalone.proc.doublePipeline) {
     if (configStandalone.proc.debugLevel >= 3) {
       recPipeline->SetDebugLevelTmp(configStandalone.proc.debugLevel);
     }
     chainTrackingPipeline = recPipeline->AddChain<GPUChainTracking>();
-    chainTrackingPipeline->SetQAFromForeignChain(chainTracking);
   }
 #ifdef GPUCA_HAVE_O2HEADERS
   if (!configStandalone.proc.doublePipeline) {

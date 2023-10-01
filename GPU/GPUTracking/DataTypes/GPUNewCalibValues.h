@@ -27,8 +27,6 @@ struct GPUNewCalibValues {
   bool newContinuousMaxTimeBin = false;
   float solenoidField = 0.f;
   unsigned int continuousMaxTimeBin = 0;
-
-  void updateFrom(const GPUNewCalibValues* from);
 };
 
 } // namespace gpu

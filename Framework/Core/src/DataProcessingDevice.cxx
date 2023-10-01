@@ -956,12 +956,9 @@ void DataProcessingDevice::InitTask()
       LOG(detail) << "ptr: " << info.ptr;
       LOG(detail) << "size: " << info.size;
       LOG(detail) << "flags: " << info.flags;
-      // Now we check for pending events with the mutex,
-      // so the lines below are atomic.
-      pendingRegionInfos.push_back(info);
       context.expectedRegionCallbacks -= 1;
-      // We always want to handle these on the main loop,
-      // so we awake it.
+      pendingRegionInfos.push_back(info);
+      // We always want to handle these on the main loop
       ServiceRegistryRef ref{registry};
       uv_async_send(ref.get<DeviceState>().awakeMainThread);
     });
@@ -993,17 +990,11 @@ void DataProcessingDevice::InitTask()
   // We will get there.
   this->fillContext(mServiceRegistry.get<DataProcessorContext>(ServiceRegistry::globalDeviceSalt()), deviceContext);
 
-  auto hasPendingEvents = [&mutex = mRegionInfoMutex, &pendingRegionInfos = mPendingRegionInfos](DeviceContext& deviceContext) {
-    std::lock_guard<std::mutex> lock(mutex);
-    return (pendingRegionInfos.empty() == false) || deviceContext.expectedRegionCallbacks > 0;
-  };
   /// We now run an event loop also in InitTask. This is needed to:
   /// * Make sure region registration callbacks are invoked
   /// on the main thread.
   /// * Wait for enough callbacks to be delivered before moving to START
-  while (hasPendingEvents(deviceContext)) {
-    // Wait for the callback to signal its done, so that we do not busy wait.
-    uv_run(state.loop, UV_RUN_ONCE);
+  while (deviceContext.expectedRegionCallbacks > 0 && uv_run(state.loop, UV_RUN_ONCE)) {
     // Handle callbacks if any
     {
       std::lock_guard<std::mutex> lock(mRegionInfoMutex);

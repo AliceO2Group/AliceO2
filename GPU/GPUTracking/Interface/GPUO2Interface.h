@@ -31,7 +31,6 @@
 #include <vector>
 #include "GPUCommonDef.h"
 #include "GPUDataTypes.h"
-
 namespace o2::tpc
 {
 struct ClusterNativeAccess;
@@ -54,13 +53,9 @@ class GPUChainTracking;
 class GPUChainITS;
 struct GPUO2InterfaceConfiguration;
 struct GPUInterfaceOutputs;
-struct GPUInterfaceInputUpdate;
 struct GPUTrackingOutputs;
 struct GPUConstantMem;
 struct GPUNewCalibValues;
-
-struct GPUO2Interface_processingContext;
-struct GPUO2Interface_Internals;
 
 class GPUO2Interface
 {
@@ -71,15 +66,18 @@ class GPUO2Interface
   int Initialize(const GPUO2InterfaceConfiguration& config);
   void Deinitialize();
 
-  int RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutputs* outputs = nullptr, unsigned int iThread = 0, GPUInterfaceInputUpdate* inputUpdateCallback = nullptr);
-  void Clear(bool clearOutputs, unsigned int iThread = 0);
+  int RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutputs* outputs = nullptr);
+  void Clear(bool clearOutputs);
   void DumpEvent(int nEvent, GPUTrackingInOutPointers* data);
   void DumpSettings();
 
   void GetITSTraits(o2::its::TrackerTraits*& trackerTraits, o2::its::VertexerTraits*& vertexerTraits, o2::its::TimeFrame*& timeFrame);
 
   // Updates all calibration objects that are != nullptr in newCalib
-  int UpdateCalibration(const GPUCalibObjectsConst& newCalib, const GPUNewCalibValues& newVals, unsigned int iThread = 0);
+  int UpdateCalibration(const GPUCalibObjectsConst& newCalib, const GPUNewCalibValues& newVals);
+
+  bool GetParamContinuous() { return (mContinuous); }
+  void GetClusterErrors2(int row, float z, float sinPhi, float DzDs, short clusterState, float& ErrY2, float& ErrZ2) const;
 
   static std::unique_ptr<TPCPadGainCalib> getPadGainCalibDefault();
   static std::unique_ptr<TPCPadGainCalib> getPadGainCalib(const o2::tpc::CalDet<float>& in);
@@ -96,14 +94,14 @@ class GPUO2Interface
   GPUO2Interface(const GPUO2Interface&);
   GPUO2Interface& operator=(const GPUO2Interface&);
 
+  bool mInitialized = false;
   bool mContinuous = false;
 
-  unsigned int mNContexts = 0;
-  std::unique_ptr<GPUO2Interface_processingContext[]> mCtx;
-
-  std::unique_ptr<GPUO2InterfaceConfiguration> mConfig;
-  GPUChainITS* mChainITS = nullptr;
-  std::unique_ptr<GPUO2Interface_Internals> mInternals;
+  std::unique_ptr<GPUReconstruction> mRec;              //!
+  GPUChainTracking* mChain = nullptr;                   //!
+  GPUChainITS* mChainITS = nullptr;                     //!
+  std::unique_ptr<GPUO2InterfaceConfiguration> mConfig; //!
+  std::unique_ptr<GPUTrackingOutputs> mOutputRegions;   //!
 };
 } // namespace o2::gpu
 

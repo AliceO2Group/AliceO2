@@ -26,130 +26,88 @@
 #include "CalibdEdxContainer.h"
 #include <iostream>
 #include <fstream>
-#include <thread>
-#include <optional>
-#include <mutex>
 
 using namespace o2::gpu;
 
 #include "DataFormatsTPC/ClusterNative.h"
 
-namespace o2::gpu
-{
-struct GPUO2Interface_processingContext {
-  std::unique_ptr<GPUReconstruction> mRec;
-  GPUChainTracking* mChain = nullptr;
-  std::unique_ptr<GPUTrackingOutputs> mOutputRegions;
-};
-
-struct GPUO2Interface_Internals {
-  std::unique_ptr<std::thread> pipelineThread;
-};
-} // namespace o2::gpu
-
-GPUO2Interface::GPUO2Interface() : mInternals(new GPUO2Interface_Internals){};
+GPUO2Interface::GPUO2Interface() = default;
 
 GPUO2Interface::~GPUO2Interface() { Deinitialize(); }
 
 int GPUO2Interface::Initialize(const GPUO2InterfaceConfiguration& config)
 {
-  if (mNContexts) {
+  if (mInitialized) {
     return (1);
   }
   mConfig.reset(new GPUO2InterfaceConfiguration(config));
-  mNContexts = mConfig->configProcessing.doublePipeline ? 2 : 1;
-  mCtx.reset(new GPUO2Interface_processingContext[mNContexts]);
+  mContinuous = mConfig->configGRP.continuousMaxTimeBin != 0;
+  mRec.reset(GPUReconstruction::CreateInstance(mConfig->configDeviceBackend));
+  if (mRec == nullptr) {
+    GPUError("Error obtaining instance of GPUReconstruction");
+    return 1;
+  }
+  mChain = mRec->AddChain<GPUChainTracking>(mConfig->configInterface.maxTPCHits, mConfig->configInterface.maxTRDTracklets);
+  mChain->mConfigDisplay = &mConfig->configDisplay;
+  mChain->mConfigQA = &mConfig->configQA;
   if (mConfig->configWorkflow.inputs.isSet(GPUDataTypes::InOutType::TPCRaw)) {
     mConfig->configGRP.needsClusterer = 1;
   }
   if (mConfig->configWorkflow.inputs.isSet(GPUDataTypes::InOutType::TPCCompressedClusters)) {
     mConfig->configGRP.doCompClusterDecode = 1;
   }
-  for (unsigned int i = 0; i < mNContexts; i++) {
-    if (i) {
-      mConfig->configDeviceBackend.master = mCtx[0].mRec.get();
-    }
-    mCtx[i].mRec.reset(GPUReconstruction::CreateInstance(mConfig->configDeviceBackend));
-    mConfig->configDeviceBackend.master = nullptr;
-    if (mCtx[i].mRec == nullptr) {
-      GPUError("Error obtaining instance of GPUReconstruction");
-      mNContexts = 0;
-      mCtx.reset(nullptr);
-      return 1;
-    }
-  }
-  for (unsigned int i = 0; i < mNContexts; i++) {
-    mCtx[i].mChain = mCtx[i].mRec->AddChain<GPUChainTracking>(mConfig->configInterface.maxTPCHits, mConfig->configInterface.maxTRDTracklets);
-    if (i) {
-      mCtx[i].mChain->SetQAFromForeignChain(mCtx[0].mChain);
-    }
-    mCtx[i].mChain->mConfigDisplay = &mConfig->configDisplay;
-    mCtx[i].mChain->mConfigQA = &mConfig->configQA;
-    mCtx[i].mRec->SetSettings(&mConfig->configGRP, &mConfig->configReconstruction, &mConfig->configProcessing, &mConfig->configWorkflow);
-    mCtx[i].mChain->SetCalibObjects(mConfig->configCalib);
+  mRec->SetSettings(&mConfig->configGRP, &mConfig->configReconstruction, &mConfig->configProcessing, &mConfig->configWorkflow);
+  mChain->SetCalibObjects(mConfig->configCalib);
 
-    if (i == 0 && mConfig->configWorkflow.steps.isSet(GPUDataTypes::RecoStep::ITSTracking)) {
-      mChainITS = mCtx[i].mRec->AddChain<GPUChainITS>();
-    }
+  if (mConfig->configWorkflow.steps.isSet(GPUDataTypes::RecoStep::ITSTracking)) {
+    mChainITS = mRec->AddChain<GPUChainITS>();
+  }
 
-    mCtx[i].mOutputRegions.reset(new GPUTrackingOutputs);
-    if (mConfig->configInterface.outputToExternalBuffers) {
-      for (unsigned int j = 0; j < mCtx[i].mOutputRegions->count(); j++) {
-        mCtx[i].mChain->SetSubOutputControl(j, &mCtx[i].mOutputRegions->asArray()[j]);
-      }
-      GPUOutputControl dummy;
-      dummy.set([](size_t size) -> void* {throw std::runtime_error("invalid output memory request, no common output buffer set"); return nullptr; });
-      mCtx[i].mRec->SetOutputControl(dummy);
+  mOutputRegions.reset(new GPUTrackingOutputs);
+  if (mConfig->configInterface.outputToExternalBuffers) {
+    for (unsigned int i = 0; i < mOutputRegions->count(); i++) {
+      mChain->SetSubOutputControl(i, &mOutputRegions->asArray()[i]);
     }
+    GPUOutputControl dummy;
+    dummy.set([](size_t size) -> void* {throw std::runtime_error("invalid output memory request, no common output buffer set"); return nullptr; });
+    mRec->SetOutputControl(dummy);
   }
-  for (unsigned int i = 0; i < mNContexts; i++) {
-    if (i == 0 && mCtx[i].mRec->Init()) {
-      mNContexts = 0;
-      mCtx.reset(nullptr);
-      return (1);
-    }
-    if (!mCtx[i].mRec->IsGPU() && mCtx[i].mRec->GetProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
-      mCtx[i].mRec->MemoryScalers()->factor *= 2;
-    }
+
+  if (mRec->Init()) {
+    return (1);
   }
-  if (mConfig->configProcessing.doublePipeline) {
-    mInternals->pipelineThread.reset(new std::thread([this]() { mCtx[0].mRec->RunPipelineWorker(); }));
+  if (!mRec->IsGPU() && mRec->GetProcessingSettings().memoryAllocationStrategy == GPUMemoryResource::ALLOCATION_INDIVIDUAL) {
+    mRec->MemoryScalers()->factor *= 2;
   }
+  mInitialized = true;
   return (0);
 }
 
 void GPUO2Interface::Deinitialize()
 {
-  if (mNContexts) {
-    if (mConfig->configProcessing.doublePipeline) {
-      mCtx[0].mRec->TerminatePipelineWorker();
-      mInternals->pipelineThread->join();
-    }
-    for (unsigned int i = 0; i < mNContexts; i++) {
-      mCtx[i].mRec->Finalize();
-    }
-    mCtx[0].mRec->Exit();
-    for (int i = mNContexts - 1; i >= 0; i--) {
-      mCtx[i].mRec.reset();
-    }
+  if (mInitialized) {
+    mRec->Finalize();
+    mRec.reset();
   }
-  mNContexts = 0;
+  mInitialized = false;
 }
 
 void GPUO2Interface::DumpEvent(int nEvent, GPUTrackingInOutPointers* data)
 {
-  mCtx[0].mChain->ClearIOPointers();
-  mCtx[0].mChain->mIOPtrs = *data;
+  if (mConfig->configProcessing.doublePipeline) {
+    throw std::runtime_error("Cannot dump events in double pipeline mode");
+  }
+  mChain->ClearIOPointers();
+  mChain->mIOPtrs = *data;
   char fname[1024];
   snprintf(fname, 1024, "event.%d.dump", nEvent);
-  mCtx[0].mChain->DumpData(fname);
+  mChain->DumpData(fname);
   if (nEvent == 0) {
 #ifdef GPUCA_BUILD_QA
     if (mConfig->configProcessing.runMC) {
-      mCtx[0].mChain->ForceInitQA();
+      mChain->ForceInitQA();
       snprintf(fname, 1024, "mc.%d.dump", nEvent);
-      mCtx[0].mChain->GetQA()->UpdateChain(mCtx[0].mChain);
-      mCtx[0].mChain->GetQA()->DumpO2MCData(fname);
+      mChain->GetQA()->DumpO2MCData(fname);
     }
 #endif
   }
@@ -157,82 +115,63 @@ void GPUO2Interface::DumpEvent(int nEvent, GPUTrackingInOutPointers* data)
 
 void GPUO2Interface::DumpSettings()
 {
-  mCtx[0].mChain->DoQueuedUpdates(-1);
-  mCtx[0].mRec->DumpSettings();
+  if (mConfig->configProcessing.doublePipeline) {
+    throw std::runtime_error("Cannot dump events in double pipeline mode");
+  }
+  mChain->DoQueuedUpdates(-1);
 }
 
-int GPUO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutputs* outputs, unsigned int iThread, GPUInterfaceInputUpdate* inputUpdateCallback)
+int GPUO2Interface::RunTracking(GPUTrackingInOutPointers* data, GPUInterfaceOutputs* outputs)
 {
-  if (mNContexts <= iThread) {
+  if (!mInitialized) {
     return (1);
   }
 
-  mCtx[iThread].mChain->mIOPtrs = *data;
-
-  auto setOutputs = [this, iThread](GPUInterfaceOutputs* outputs) {
-    if (mConfig->configInterface.outputToExternalBuffers) {
-      for (unsigned int i = 0; i < mCtx[iThread].mOutputRegions->count(); i++) {
-        if (outputs->asArray()[i].allocator) {
-          mCtx[iThread].mOutputRegions->asArray()[i].set(outputs->asArray()[i].allocator);
-        } else if (outputs->asArray()[i].ptrBase) {
-          mCtx[iThread].mOutputRegions->asArray()[i].set(outputs->asArray()[i].ptrBase, outputs->asArray()[i].size);
-        } else {
-          mCtx[iThread].mOutputRegions->asArray()[i].reset();
-        }
+  mChain->mIOPtrs = *data;
+  if (mConfig->configInterface.outputToExternalBuffers) {
+    for (unsigned int i = 0; i < mOutputRegions->count(); i++) {
+      if (outputs->asArray()[i].allocator) {
+        mOutputRegions->asArray()[i].set(outputs->asArray()[i].allocator);
+      } else if (outputs->asArray()[i].ptrBase) {
+        mOutputRegions->asArray()[i].set(outputs->asArray()[i].ptrBase, outputs->asArray()[i].size);
+      } else {
+        mOutputRegions->asArray()[i].reset();
       }
     }
-  };
-
-  auto inputWaitCallback = [this, iThread, inputUpdateCallback, &data, &outputs, &setOutputs]() {
-    GPUTrackingInOutPointers* updatedData;
-    GPUInterfaceOutputs* updatedOutputs;
-    if (inputUpdateCallback->callback) {
-      inputUpdateCallback->callback(updatedData, updatedOutputs);
-      mCtx[iThread].mChain->mIOPtrs = *updatedData;
-      outputs = updatedOutputs;
-      data = updatedData;
-      setOutputs(outputs);
-    }
-    if (inputUpdateCallback->notifyCallback) {
-      inputUpdateCallback->notifyCallback();
-    }
-  };
-
-  if (inputUpdateCallback) {
-    mCtx[iThread].mChain->SetFinalInputCallback(inputWaitCallback);
-  } else {
-    mCtx[iThread].mChain->SetFinalInputCallback(nullptr);
-  }
-  if (!inputUpdateCallback || !inputUpdateCallback->callback) {
-    setOutputs(outputs);
   }
 
-  int retVal = mCtx[iThread].mRec->RunChains();
+  int retVal = mRec->RunChains();
   if (retVal == 2) {
     retVal = 0; // 2 signals end of event display, ignore
   }
-  if (mConfig->configQA.shipToQC && mCtx[iThread].mChain->QARanForTF()) {
-    outputs->qa.hist1 = &mCtx[iThread].mChain->GetQA()->getHistograms1D();
-    outputs->qa.hist2 = &mCtx[iThread].mChain->GetQA()->getHistograms2D();
-    outputs->qa.hist3 = &mCtx[iThread].mChain->GetQA()->getHistograms1Dd();
-    outputs->qa.hist4 = &mCtx[iThread].mChain->GetQA()->getGraphs();
+  if (mConfig->configQA.shipToQC && mChain->QARanForTF()) {
+    outputs->qa.hist1 = &mChain->GetQA()->getHistograms1D();
+    outputs->qa.hist2 = &mChain->GetQA()->getHistograms2D();
+    outputs->qa.hist3 = &mChain->GetQA()->getHistograms1Dd();
+    outputs->qa.hist4 = &mChain->GetQA()->getGraphs();
     outputs->qa.newQAHistsCreated = true;
   }
-  *data = mCtx[iThread].mChain->mIOPtrs;
+  *data = mChain->mIOPtrs;
 
   return retVal;
 }
 
-void GPUO2Interface::Clear(bool clearOutputs, unsigned int iThread) { mCtx[iThread].mRec->ClearAllocatedMemory(clearOutputs); }
+void GPUO2Interface::Clear(bool clearOutputs) { mRec->ClearAllocatedMemory(clearOutputs); }
+
+void GPUO2Interface::GetClusterErrors2(int row, float z, float sinPhi, float DzDs, short clusterState, float& ErrY2, float& ErrZ2) const
+{
+  mRec->GetParam().GetClusterErrors2(row, z, sinPhi, DzDs, ErrY2, ErrZ2);
+  mRec->GetParam().UpdateClusterError2ByState(clusterState, ErrY2, ErrZ2);
+}
 
 int GPUO2Interface::registerMemoryForGPU(const void* ptr, size_t size)
 {
-  return mCtx[0].mRec->registerMemoryForGPU(ptr, size);
+  return mRec->registerMemoryForGPU(ptr, size);
 }
 
 int GPUO2Interface::unregisterMemoryForGPU(const void* ptr)
 {
-  return mCtx[0].mRec->unregisterMemoryForGPU(ptr);
+  return mRec->unregisterMemoryForGPU(ptr);
 }
 
 std::unique_ptr<TPCPadGainCalib> GPUO2Interface::getPadGainCalibDefault()
@@ -250,19 +189,15 @@ std::unique_ptr<o2::tpc::CalibdEdxContainer> GPUO2Interface::getCalibdEdxContain
   return std::make_unique<o2::tpc::CalibdEdxContainer>();
 }
 
-int GPUO2Interface::UpdateCalibration(const GPUCalibObjectsConst& newCalib, const GPUNewCalibValues& newVals, unsigned int iThread)
+int GPUO2Interface::UpdateCalibration(const GPUCalibObjectsConst& newCalib, const GPUNewCalibValues& newVals)
 {
-  for (unsigned int i = 0; i < mNContexts; i++) {
-    mCtx[i].mChain->SetUpdateCalibObjects(newCalib, newVals);
-  }
+  mChain->SetUpdateCalibObjects(newCalib, newVals);
   return 0;
 }
 
 void GPUO2Interface::setErrorCodeOutput(std::vector<std::array<unsigned int, 4>>* v)
 {
-  for (unsigned int i = 0; i < mNContexts; i++) {
-    mCtx[i].mRec->setErrorCodeOutput(v);
-  }
+  mRec->setErrorCodeOutput(v);
 }
 
 void GPUO2Interface::GetITSTraits(o2::its::TrackerTraits*& trackerTraits, o2::its::VertexerTraits*& vertexerTraits, o2::its::TimeFrame*& timeFrame)
