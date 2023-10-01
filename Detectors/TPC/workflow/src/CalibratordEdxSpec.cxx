@@ -32,6 +32,7 @@
 #include "TPCWorkflow/ProcessingHelpers.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "TPCBase/CDBInterface.h"
+#include "DetectorsBase/Propagator.h"
 
 using namespace o2::framework;
 
@@ -63,6 +64,7 @@ class CalibratordEdxDevice : public Task
     const auto fitSnp = ic.options().get<bool>("fit-snp");
 
     const auto dumpData = ic.options().get<bool>("file-dump");
+    auto materialType = static_cast<o2::base::Propagator::MatCorrType>(ic.options().get<int>("material-type"));
 
     mCalibrator = std::make_unique<tpc::CalibratordEdx>();
     mCalibrator->setHistParams(dEdxBins, mindEdx, maxdEdx, angularBins, fitSnp);
@@ -72,6 +74,7 @@ class CalibratordEdxDevice : public Task
     mCalibrator->setSlotLength(slotLength);
     mCalibrator->setMaxSlotsDelay(maxDelay);
     mCalibrator->setElectronCut({fitThreshold, fitPasses, fitThresholdLowFactor});
+    mCalibrator->setMaterialType(materialType);
 
     if (dumpData) {
       mCalibrator->enableDebugOutput("calibratordEdx.root");
@@ -141,7 +144,7 @@ DataProcessorSpec getCalibratordEdxSpec()
                                                                 true,                           // GRPECS=true
                                                                 false,                          // GRPLHCIF
                                                                 true,                           // GRPMagField
-                                                                false,                          // askMatLUT
+                                                                true,                           // askMatLUT
                                                                 o2::base::GRPGeomRequest::None, // geometry
                                                                 inputs,
                                                                 true,
@@ -169,7 +172,8 @@ DataProcessorSpec getCalibratordEdxSpec()
       {"angularbins", VariantType::Int, 36, {"number of angular bins: Tgl and Snp"}},
       {"fit-snp", VariantType::Bool, false, {"enable Snp correction"}},
 
-      {"file-dump", VariantType::Bool, false, {"directly dump calibration to file"}}}};
+      {"file-dump", VariantType::Bool, false, {"directly dump calibration to file"}},
+      {"material-type", VariantType::Int, 2, {"Type for the material buget during track propagation: 0=None, 1=Geo, 2=LUT"}}}};
 }
 
 } // namespace o2::tpc
