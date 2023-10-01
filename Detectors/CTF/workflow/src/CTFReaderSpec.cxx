@@ -228,7 +228,7 @@ void CTFReaderSpec::run(ProcessingContext& pc)
   if (mCTFCounter >= mInput.maxTFs || (!mInput.ctfIDs.empty() && mSelIDEntry >= mInput.ctfIDs.size())) { // done
     LOG(info) << "All CTFs from selected range were injected, stopping";
     mRunning = false;
-  } else if (mRunning && !mCTFTree && mFileFetcher->getNextFileInQueue().empty()) { // previous tree was done, can we read more?
+  } else if (mRunning && !mCTFTree && mFileFetcher->getNextFileInQueue().empty() && !mFileFetcher->isRunning()) { // previous tree was done, can we read more?
     mRunning = false;
   }
 
