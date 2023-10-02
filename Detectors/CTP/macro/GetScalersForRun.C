@@ -63,7 +63,7 @@ void GetScalersForRun(int runNumber = 0,int fillN = 0, bool test = 1)
     }
     if(cls.name.find("CMTVXTCE-B-NOPF-CRU") != std::string::npos) {
       tce = cls.getIndex();
-      std::cout << cls.name << ":" << tsc << std::endl;
+      std::cout << cls.name << ":" << tce << std::endl;
     }
   }
   std::cout << "ZNC:";
@@ -90,4 +90,5 @@ void GetScalersForRun(int runNumber = 0,int fillN = 0, bool test = 1)
   ctpscalers->printClassBRateAndIntegral(tsc+1);
   std::cout << "TCE:";
   ctpscalers->printClassBRateAndIntegral(tce+1);
+  std::cout << "TCE input:" << ctpscalers->printInputRateAndIntegral(5) << std::endl;;
 }
