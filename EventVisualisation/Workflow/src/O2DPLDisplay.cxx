@@ -254,7 +254,7 @@ void O2DPLDisplaySpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  LOGF(info, "------------------------    defineDataProcessing ", o2_eve_version,  "    ------------------------------------");
+  LOGF(info, "------------------------    defineDataProcessing ", o2_eve_version, "    ------------------------------------");
 
   WorkflowSpec specs;
 

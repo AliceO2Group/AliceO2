@@ -33,7 +33,7 @@ using namespace o2::event_visualisation;
 
 int main(int argc, char** argv)
 {
-  LOGF(info, "Welcome in O2 event visualisation tool (",  o2_eve_version, ")");
+  LOGF(info, "Welcome in O2 event visualisation tool (", o2_eve_version, ")");
 
   if (!Options::Instance()->processCommandLine(argc, argv)) {
     exit(-1);

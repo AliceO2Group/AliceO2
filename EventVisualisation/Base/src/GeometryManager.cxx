@@ -51,7 +51,7 @@ TEveGeoShape* GeometryManager::getGeometryForDetector(string detectorName)
     return nullptr;
   }
   LOGF(info, "GeometryManager::GetSimpleGeom for: ", detectorName, " from ",
-            Form("%s/simple_geom_%s.root", geomPath.c_str(), detectorName.c_str()));
+       Form("%s/simple_geom_%s.root", geomPath.c_str(), detectorName.c_str()));
 
   auto geomShapreExtract = dynamic_cast<TEveGeoShapeExtract*>(f->Get(detectorName.c_str()));
   TEveGeoShape* geomShape = TEveGeoShape::ImportShapeExtract(geomShapreExtract);

@@ -46,12 +46,12 @@ int main(int argc, char** argv)
   srcSerializer->fromFile(vEvent, src);
   endTime = std::chrono::high_resolution_clock::now();
   LOGF(info, "read took ",
-            std::chrono::duration_cast<std::chrono::microseconds>(endTime - currentTime).count() * 1e-6);
+       std::chrono::duration_cast<std::chrono::microseconds>(endTime - currentTime).count() * 1e-6);
 
   currentTime = std::chrono::high_resolution_clock::now();
   dstSerializer->toFile(vEvent, dst);
   endTime = std::chrono::high_resolution_clock::now();
   LOGF(info, "write took ",
-            std::chrono::duration_cast<std::chrono::microseconds>(endTime - currentTime).count() * 1e-6);
+       std::chrono::duration_cast<std::chrono::microseconds>(endTime - currentTime).count() * 1e-6);
   return 0;
 }

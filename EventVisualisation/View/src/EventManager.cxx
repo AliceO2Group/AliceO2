@@ -287,9 +287,9 @@ void EventManager::displayVisualisationEvent(VisualisationEvent& event, const st
   }
 
   LOGF(info, "tracks: ", trackCount, " detector: ", detectorName, ":",
-            dataTypeLists[EVisualisationDataType::Tracks]->NumChildren());
+       dataTypeLists[EVisualisationDataType::Tracks]->NumChildren());
   LOGF(info, "clusters: ", clusterCount, " detector: ", detectorName, ":",
-            dataTypeLists[EVisualisationDataType::Clusters]->NumChildren());
+       dataTypeLists[EVisualisationDataType::Clusters]->NumChildren());
 }
 
 void EventManager::displayCalorimeters(VisualisationEvent& event, const std::string& detectorName)

@@ -144,7 +144,7 @@ bool FileWatcher::refresh()
 {
   string previous = this->currentItem();
   LOGF(info, "previous:", previous);
-  LOGF(info, "currentFile:",  this->mCurrentFile);
+  LOGF(info, "currentFile:", this->mCurrentFile);
 
   this->mFiles = DirectoryLoader::load(this->mDataFolders, "_", this->mExt); // already sorted according part staring with marker
   if (this->mCurrentFile != mEndGuard) {
