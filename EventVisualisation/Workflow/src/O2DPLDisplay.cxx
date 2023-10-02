@@ -90,7 +90,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 #include "Framework/runDataProcessing.h" // main method must be included here (otherwise customize not used)
 void O2DPLDisplaySpec::init(InitContext& ic)
 {
-  LOG(info) << "------------------------    O2DPLDisplay::init version " << o2_eve_version << "    ------------------------------------";
+  LOGF(info, "------------------------    O2DPLDisplay::init version ", o2_eve_version, "    ------------------------------------");
   mData.mConfig.configProcessing.runMC = mUseMC;
   o2::base::GRPGeomHelper::instance().setRequest(mGGCCDBRequest);
 }
@@ -103,7 +103,7 @@ void O2DPLDisplaySpec::run(ProcessingContext& pc)
   if (this->mOnlyNthEvent && this->mEventCounter++ % this->mOnlyNthEvent != 0) {
     return;
   }
-  LOG(info) << "------------------------    O2DPLDisplay::run version " << o2_eve_version << "    ------------------------------------";
+  LOGF(info, "------------------------    O2DPLDisplay::run version ", o2_eve_version, "    ------------------------------------");
   // filtering out any run which occur before reaching next time interval
   auto currentTime = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = currentTime - this->mTimeStamp;
@@ -241,12 +241,12 @@ void O2DPLDisplaySpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
     return;
   }
   if (matcher == ConcreteDataMatcher("ITS", "CLUSDICT", 0)) {
-    LOG(info) << "ITS cluster dictionary updated";
+    LOGF(info, "ITS cluster dictionary updated");
     mData.setITSDict((const o2::itsmft::TopologyDictionary*)obj);
     return;
   }
   if (matcher == ConcreteDataMatcher("MFT", "CLUSDICT", 0)) {
-    LOG(info) << "MFT cluster dictionary updated";
+    LOGF(info, "MFT cluster dictionary updated");
     mData.setMFTDict((const o2::itsmft::TopologyDictionary*)obj);
     return;
   }
@@ -254,17 +254,17 @@ void O2DPLDisplaySpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 
 WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 {
-  LOG(info) << "------------------------    defineDataProcessing " << o2_eve_version << "    ------------------------------------";
+  LOGF(info, "------------------------    defineDataProcessing ", o2_eve_version,  "    ------------------------------------");
 
   WorkflowSpec specs;
 
-  std::string jsonFolder = cfgc.options().get<std::string>("jsons-folder");
+  auto jsonFolder = cfgc.options().get<std::string>("jsons-folder");
   std::string ext = ".root"; // root files are default format
   auto useJsonFormat = cfgc.options().get<bool>("use-json-format");
   if (useJsonFormat) {
     ext = ".json";
   }
-  std::string eveHostName = cfgc.options().get<std::string>("eve-hostname");
+  auto eveHostName = cfgc.options().get<std::string>("eve-hostname");
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
   bool useMC = !cfgc.options().get<bool>("disable-mc");
   bool disableWrite = cfgc.options().get<bool>("disable-write");
@@ -278,9 +278,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     char* colIdx = getenv("DDS_COLLECTION_INDEX");
     int myIdx = colIdx ? atoi(colIdx) : -1;
     if (myIdx == eveDDSColIdx) {
-      LOG(important) << "Restricting DPL Display to collection index, my index " << myIdx << ", enabled " << int(myIdx == eveDDSColIdx);
+      LOGF(important, "Restricting DPL Display to collection index, my index ", myIdx, ", enabled ", int(myIdx == eveDDSColIdx));
     } else {
-      LOG(info) << "Restricting DPL Display to collection index, my index " << myIdx << ", enabled " << int(myIdx == eveDDSColIdx);
+      LOGF(info, "Restricting DPL Display to collection index, my index ", myIdx, ", enabled ", int(myIdx == eveDDSColIdx));
     }
     eveHostNameMatch &= myIdx == eveDDSColIdx;
   }
@@ -304,7 +304,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 
   if (!srcTrk.any() && !srcCl.any()) {
     if (cfgc.options().get<bool>("skipOnEmptyInput")) {
-      LOG(info) << "No valid inputs for event display, disabling event display";
+      LOGF(info, "No valid inputs for event display, disabling event display");
       return std::move(specs);
     }
     throw std::runtime_error("No input configured");

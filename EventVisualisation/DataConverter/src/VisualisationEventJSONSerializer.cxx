@@ -38,7 +38,7 @@ void VisualisationEventJSONSerializer::toFile(const VisualisationEvent& event, s
 
 bool VisualisationEventJSONSerializer::fromFile(VisualisationEvent& event, std::string fileName)
 {
-  LOG(info) << "VisualisationEventJSONSerializer <- " << fileName;
+  LOGF(info, "VisualisationEventJSONSerializer <- ", fileName);
   if (FILE* file = fopen(fileName.c_str(), "r")) {
     fclose(file); // file exists
   } else {

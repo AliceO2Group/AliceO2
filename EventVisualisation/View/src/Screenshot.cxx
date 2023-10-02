@@ -252,7 +252,6 @@ std::string
 
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  LOG(info) << "++++++ Screenshot::perform: " << duration.count();
   return fileName; // saved screenshod file name
 }
 
