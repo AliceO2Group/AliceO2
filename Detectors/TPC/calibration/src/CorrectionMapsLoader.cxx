@@ -149,4 +149,18 @@ void CorrectionMapsLoader::init(o2::framework::InitContext& ic)
   LOGP(info, "CTP Lumi request for TPC corr.map scaling={}, override values: lumiMean={} lumiInst={} lumiScaleMode={}, LumiInst scale={}, CTP Lumi source={}",
        getUseCTPLumi() ? "ON" : "OFF", mMeanLumiOverride, mInstLumiOverride, mLumiScaleMode, mInstLumiFactor, mCTPLumiSource);
 }
+
+//________________________________________________________
+void CorrectionMapsLoader::copySettings(const CorrectionMapsLoader& src)
+{
+  setInstLumi(src.getInstLumi(), false);
+  setMeanLumi(src.getMeanLumi(), false);
+  setUseCTPLumi(src.getUseCTPLumi());
+  setMeanLumiOverride(src.getMeanLumiOverride());
+  setInstLumiOverride(src.getInstLumiOverride());
+  setLumiScaleMode(src.getLumiScaleMode());
+  mInstLumiFactor = src.mInstLumiFactor;
+  mCTPLumiSource = src.mCTPLumiSource;
+}
+
 #endif // #ifndef GPUCA_GPUCODE_DEVICE

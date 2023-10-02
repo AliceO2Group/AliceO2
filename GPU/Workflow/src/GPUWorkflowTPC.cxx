@@ -329,12 +329,7 @@ bool GPURecoWorkflowSpec::fetchCalibsCCDBTPC<GPUCalibObjectsConst>(ProcessingCon
         if (mustUpdateHelper || mCalibObjects.mFastTransformHelper->isUpdatedLumi()) {
           oldCalibObjects.mFastTransformHelper = std::move(mCalibObjects.mFastTransformHelper);
           mCalibObjects.mFastTransformHelper.reset(new o2::tpc::CorrectionMapsLoader);
-          mCalibObjects.mFastTransformHelper->setInstLumi(oldCalibObjects.mFastTransformHelper->getInstLumi(), false);
-          mCalibObjects.mFastTransformHelper->setMeanLumi(oldCalibObjects.mFastTransformHelper->getMeanLumi(), false);
-          mCalibObjects.mFastTransformHelper->setUseCTPLumi(oldCalibObjects.mFastTransformHelper->getUseCTPLumi());
-          mCalibObjects.mFastTransformHelper->setMeanLumiOverride(oldCalibObjects.mFastTransformHelper->getMeanLumiOverride());
-          mCalibObjects.mFastTransformHelper->setInstLumiOverride(oldCalibObjects.mFastTransformHelper->getInstLumiOverride());
-          mCalibObjects.mFastTransformHelper->setLumiScaleMode(oldCalibObjects.mFastTransformHelper->getLumiScaleMode());
+          mCalibObjects.mFastTransformHelper->copySettings(*oldCalibObjects.mFastTransformHelper);
           mCalibObjects.mFastTransformHelper->setCorrMap(mCalibObjects.mFastTransform.get());
           mCalibObjects.mFastTransformHelper->setCorrMapRef(mCalibObjects.mFastTransformRef.get());
           mCalibObjects.mFastTransformHelper->acknowledgeUpdate();
