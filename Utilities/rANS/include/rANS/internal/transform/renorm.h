@@ -143,7 +143,7 @@ decltype(auto) renorm(histogram_T histogram, Metrics<typename histogram_T::sourc
     return nSymbols;
   }();
 
-  if (nSorted < correctableIndices.size()) {
+  if ((nSorted < correctableIndices.size()) && (renormingPolicy != RenormingPolicy::ForceIncompressible)) {
     std::partial_sort(correctableIndices.begin(), correctableIndices.begin() + nSorted, correctableIndices.end(), [](const auto& a, const auto& b) { return a.second < b.second; });
   } else {
     std::stable_sort(correctableIndices.begin(), correctableIndices.end(), [](const auto& a, const auto& b) { return a.second < b.second; });
