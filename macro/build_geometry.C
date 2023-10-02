@@ -54,6 +54,7 @@
 #include <FT3Simulation/Detector.h>
 #include <FCTSimulation/Detector.h>
 #include <Alice3DetectorsPassive/Pipe.h>
+#include <Alice3DetectorsPassive/Absorber.h>
 #endif
 
 void finalize_geometry(FairRunSim* run);
@@ -161,6 +162,12 @@ void build_geometry(FairRunSim* run = nullptr)
   if (isActivated("A3IP")) {
     run->AddModule(new o2::passive::Alice3Pipe("A3IP", "Alice 3 beam pipe", !isActivated("TRK"), 0.48f, 0.025f, 1000.f, 3.7f, 0.08f, 1000.f));
   }
+
+  // the absorber
+  if (isActivated("A3ABSO")) {
+    run->AddModule(new o2::passive::Alice3Absorber("A3ABSO", "ALICE3 Absorber"));
+  }
+
 #endif
 
   // the absorber
