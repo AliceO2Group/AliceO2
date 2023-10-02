@@ -46,8 +46,8 @@ class VisualisationCalo
     std::string gid = "";
     o2::dataformats::GlobalTrackID::Source source;
   };
-  
-// Constructor with properties initialisation
+
+  // Constructor with properties initialisation
   explicit VisualisationCalo(const VisualisationCaloVO& vo);
 
   VisualisationCalo(const VisualisationCalo& src);

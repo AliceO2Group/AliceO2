@@ -43,7 +43,8 @@ class VisualisationCluster
  public:
   // Default constructor
   VisualisationCluster(float XYZ[], float time);
-  VisualisationCluster(TVector3 xyz){
+  VisualisationCluster(TVector3 xyz)
+  {
     mTime = 0;
     mCoordinates[0] = xyz[0];
     mCoordinates[1] = xyz[1];

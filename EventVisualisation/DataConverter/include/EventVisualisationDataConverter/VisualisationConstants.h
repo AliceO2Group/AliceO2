@@ -51,8 +51,7 @@ const std::string gVisualisationGroupName[NvisualisationGroups] = {
   "EMC",
   "PHS",
   "CPV",
-  "HMP"
-};
+  "HMP"};
 
 const bool R3Visualisation[NvisualisationGroups] = {
   true, //"ITS",
@@ -65,7 +64,7 @@ const bool R3Visualisation[NvisualisationGroups] = {
   true, //"EMC",
   true, //"PHS",
   true, //"CPV"
-  true,//"HMP"
+  true, //"HMP"
 };
 
 enum EVisualisationDataType {

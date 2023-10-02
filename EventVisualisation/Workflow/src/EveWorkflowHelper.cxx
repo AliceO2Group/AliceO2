@@ -684,15 +684,15 @@ void EveWorkflowHelper::drawHMP(GID gid)
 
   auto bc = trig.getBc();
   auto orbit = trig.getOrbit();
-  auto time = o2::InteractionTimeRecord::bc2ns(bc,orbit);  // in ns absolute time
+  auto time = o2::InteractionTimeRecord::bc2ns(bc, orbit); // in ns absolute time
 
-  for(int j = trig.getFirstEntry(); j <= trig.getLastEntry(); j++) {
+  for (int j = trig.getFirstEntry(); j <= trig.getLastEntry(); j++) {
     auto cluster = clusters[j];
     auto module = cluster.ch();
     double x = cluster.x();
     double y = cluster.y();
 
-    TVector3 vec3= pParam->lors2Mars(module, x,y);
+    TVector3 vec3 = pParam->lors2Mars(module, x, y);
     drawGlobalPoint(vec3);
   }
 }
