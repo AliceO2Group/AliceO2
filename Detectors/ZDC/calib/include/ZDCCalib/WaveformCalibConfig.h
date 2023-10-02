@@ -12,7 +12,7 @@
 #ifndef O2_ZDC_WAVEFORMCALIBCONFIG_H
 #define O2_ZDC_WAVEFORMCALIBCONFIG_H
 
-#define O2_ZDC_WAVEFORMCALIB_DEBUG
+//#define O2_ZDC_WAVEFORMCALIB_DEBUG
 
 #include "ZDCBase/Constants.h"
 #include <Rtypes.h>
