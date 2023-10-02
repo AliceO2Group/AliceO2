@@ -2124,10 +2124,10 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   }
 
   // filling BC table
-  std::pair<uint64_t, uint64_t> masks{0, 0};
   bcCursor.reserve(bcsMap.size());
   for (auto& item : bcsMap) {
     uint64_t bc = item.first;
+    std::pair<uint64_t, uint64_t> masks{0, 0};
     if (mInputSources[GID::CTP]) {
       auto bcClassPair = bcToClassMask.find(bc);
       if (bcClassPair != bcToClassMask.end()) {
