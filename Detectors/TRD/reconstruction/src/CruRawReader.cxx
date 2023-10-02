@@ -303,7 +303,7 @@ bool CruRawReader::parseDigitHCHeaders(int hcid)
         mPreTriggerPhase = header1.ptrigphase;
 
         headersfound.set(0);
-        if ((header1.numtimebins > TIMEBINS) || (header1.numtimebins < 3)) {
+        if ((header1.numtimebins > TIMEBINS) || (header1.numtimebins < 3) || mTimeBinsFixed && header1.numtimebins != mTimeBins) {
           if (mOptions[TRDVerboseErrorsBit]) {
             LOGF(warn, "According to Digit HC Header 1 there are %i time bins configured", (int)header1.numtimebins);
             printDigitHCHeader(mDigitHCHeader, headers.data());
@@ -760,10 +760,10 @@ int CruRawReader::parseDigitLinkData(int maxWords32, int hcid, int& wordsRejecte
     }
 
     else if (state == StateDigitMCMData) {
-      std::array<uint16_t, TIMEBINS> adcValues;
       bool exitChannelLoop = false;
       state = StateDigitMCMHeader; // after we are done reading the ADC data, by default we expect another MCM header
       for (int iChannel = 0; iChannel < NADCMCM; ++iChannel) {
+        std::array<uint16_t, TIMEBINS> adcValues{};
         if (!(mDigitHCHeader.major & 0x20) || adcMask.adcmask & (1UL << iChannel)) {
           // either ZS is OFF, or the adcMask has iChannel flagged as active
           DigitMCMData data;
@@ -887,7 +887,10 @@ int CruRawReader::parseTrackletLinkData(int linkSize32, int& hcid, int& wordsRej
         mcmHeader.word = currWord;
         if (!sanityCheckTrackletMCMHeader(mcmHeader)) {
           incrementErrors(TrackletMCMHeaderSanityCheckFailure, hcid, fmt::format("Invalid word {:#010x} for the expected TrackletMCMHeader", currWord));
-          state = StateMoveToEndMarker; // invalid MCM header, no chance to interpret the following MCM data
+          // invalid MCM header, but we can try to find another valid MCM header before the end markers.
+          // If there are no end markers we can anyhow not parse digits if they were there.
+          // Other invalid MCM headers can be caught by the check on their ordering (row/column)
+          // state = StateMoveToEndMarker;
           ++wordsRead;
           ++wordsRejected;
           continue;
@@ -896,8 +899,14 @@ int CruRawReader::parseTrackletLinkData(int linkSize32, int& hcid, int& wordsRej
         if (previousColumn >= 0) {
           if (mcmHeader.padrow < previousRow || (mcmHeader.padrow == previousRow && mcmHeader.col < previousColumn)) {
             incrementErrors(TrackletDataWrongOrdering, hcid, fmt::format("Current padrow/column = {}/{}, previous padrow/column = {}/{}", (int)mcmHeader.padrow, (int)mcmHeader.col, previousRow, previousColumn));
+            ++wordsRead;
+            ++wordsRejected;
+            continue;
           } else if (mcmHeader.padrow == previousRow && mcmHeader.col == previousColumn) {
             incrementErrors(TrackletDataDuplicateMCM, hcid, fmt::format("Second MCM header {:#010x} for padrow/column = {}/{}", currWord, previousRow, previousColumn));
+            ++wordsRead;
+            ++wordsRejected;
+            continue;
           }
         } else {
           previousColumn = mcmHeader.col;
