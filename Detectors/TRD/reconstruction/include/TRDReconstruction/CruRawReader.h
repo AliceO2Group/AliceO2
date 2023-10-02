@@ -63,6 +63,14 @@ class CruRawReader
   // configure the raw reader, done once at the init() stage
   void configure(int tracklethcheader, int halfchamberwords, int halfchambermajor, std::bitset<16> options);
 
+  // set number of time bins to fixed value instead of reading from DigitHCHeader
+  // (but still complain if DigitHCHeader is not consistent)
+  void setNumberOfTimeBins(int tb)
+  {
+    mTimeBins = tb;
+    mTimeBinsFixed = true;
+  }
+
   // settings in order to avoid InfoLogger flooding
   void setMaxErrWarnPrinted(int nerr, int nwar)
   {
@@ -165,6 +173,7 @@ class CruRawReader
   bool mPreviousHalfCRUHeaderSet;       // flag, whether we can use mPreviousHalfCRUHeader for additional sanity checks
   DigitHCHeader mDigitHCHeader;         // Digit HalfChamber header we are currently on.
   uint16_t mTimeBins{constants::TIMEBINS}; // the number of time bins to be read out (default 30, can be overwritten from digit HC header)
+  bool mTimeBinsFixed{false};              // flag, whether number of time bins different from default was configured
   bool mHaveSeenDigitHCHeader3{false};     // flag, whether we can compare an incoming DigitHCHeader3 with a header we have seen before
   uint32_t mPreviousDigitHCHeadersvnver;  // svn ver in the digithalfchamber header, used for validity checks
   uint32_t mPreviousDigitHCHeadersvnrver; // svn release ver also used for validity checks
