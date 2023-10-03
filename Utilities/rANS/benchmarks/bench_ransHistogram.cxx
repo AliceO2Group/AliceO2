@@ -137,7 +137,7 @@ void ransMakeHistogramBenchmark(benchmark::State& st, Args&&... args)
   histogram_type hist{};
   hist.addSamples(gsl::span<const source_type>(inputData));
 
-  for (std::ptrdiff_t symbol = histogram.getOffset(); symbol != histogram.getOffset() + histogram.size(); ++symbol) {
+  for (std::ptrdiff_t symbol = histogram.getOffset(); symbol != histogram.getOffset() + static_cast<std::ptrdiff_t>(histogram.size()); ++symbol) {
     if (histogram[symbol] > 0) {
       LOG_IF(info, histogram[symbol] != hist[symbol]) << fmt::format("[{}]: {} != {}", symbol, hist[symbol], histogram[symbol]);
       isSame = isSame && (histogram[symbol] == hist[symbol]);
@@ -190,7 +190,7 @@ void ransAccessHistogramBenchmark(benchmark::State& st, Args&&... args)
 #endif
 
   bool isSame = true;
-  for (std::ptrdiff_t symbol = histogram.getOffset(); symbol != histogram.getOffset() + histogram.size(); ++symbol) {
+  for (std::ptrdiff_t symbol = histogram.getOffset(); symbol != histogram.getOffset() + static_cast<std::ptrdiff_t>(histogram.size()); ++symbol) {
     if (histogram[symbol] > 0) {
       LOG_IF(info, histogram[symbol] != hist[symbol]) << fmt::format("[{}]: {} != {}", symbol, hist[symbol], histogram[symbol]);
       isSame = isSame && (histogram[symbol] == hist[symbol]);

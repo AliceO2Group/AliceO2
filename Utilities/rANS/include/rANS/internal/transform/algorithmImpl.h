@@ -161,7 +161,7 @@ inline void forEachIndexValue(container_T&& container, IT begin, IT end, F funct
   using container_type = removeCVRef_t<container_T>;
 
   typename container_type::source_type index = container.getOffset() + std::distance(container.begin(), begin);
-  for (size_t i = 0; i < std::distance(begin, end); ++i) {
+  for (std::ptrdiff_t i = 0; i < std::distance(begin, end); ++i) {
     functor(index++, begin[i]);
   }
 }
