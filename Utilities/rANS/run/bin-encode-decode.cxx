@@ -109,7 +109,7 @@ int main(int argc, char* argv[])
 
   if (renormedHistogram.hasIncompressibleSymbol()) {
     LOG(info) << "With incompressible symbols";
-    auto [encoderEnd, incompressibleEnd] = encoder.process(tokens.begin(), tokens.end(), std::back_inserter(encoderBuffer), std::back_inserter(incompressibleSymbols));
+    [[maybe_unused]] auto res = encoder.process(tokens.begin(), tokens.end(), std::back_inserter(encoderBuffer), std::back_inserter(incompressibleSymbols));
     LOGP(info, "nIncompressible {}", incompressibleSymbols.size());
     decoder.process(encoderBuffer.end(), decodeBuffer.begin(), tokens.size(), NSTREAMS, incompressibleSymbols.end());
   } else {
