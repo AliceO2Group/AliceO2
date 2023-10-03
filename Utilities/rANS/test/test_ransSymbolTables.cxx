@@ -123,7 +123,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_symbolTable, histogram_T, histogram_t)
 
   BOOST_CHECK_EQUAL(symbolTable.getPrecision(), scaleBits);
 
-  for (source_type index = 0; index < rescaledFrequencies.size(); ++index) {
+  for (source_type index = 0; index < static_cast<source_type>(rescaledFrequencies.size()); ++index) {
     auto symbol = symbolTable[index + 6];
     BOOST_CHECK_EQUAL(symbol.getFrequency(), rescaledFrequencies[index]);
     BOOST_CHECK_EQUAL(symbol.getCumulative(), cumulativeFrequencies[index]);

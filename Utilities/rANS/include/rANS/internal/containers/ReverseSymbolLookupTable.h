@@ -71,8 +71,8 @@ class ReverseSymbolLookupTable
     return mLut[cumul];
   };
 
-  inline const iterator_type begin() const noexcept { return mLut.data(); };
-  inline const iterator_type end() const noexcept { return mLut.data() + size(); };
+  inline iterator_type begin() const noexcept { return mLut.data(); };
+  inline iterator_type end() const noexcept { return mLut.data() + size(); };
 
   container_type mLut{};
 };
