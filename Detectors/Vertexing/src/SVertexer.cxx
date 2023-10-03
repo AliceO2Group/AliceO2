@@ -200,9 +200,38 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData, o2::f
         }
       }
     }
-    if (mStrTracker->getMCTruthOn()) {
-      auto& strTrMCLableOut = pc.outputs().make<std::vector<o2::MCCompLabel>>(o2f::Output{"GLO", "STRANGETRACKS_MC", 0, o2f::Lifetime::Timeframe});
-      strTrMCLableOut.swap(mcLabsOut);
+
+    // if mNTreads > 1, we need to sort tracks, clus and MCLabs by their mDecayRef
+    if (mNThreads > 1 && mNStrangeTracks > 1) {
+      std::vector<int> sortIdx(strTracksOut.size());
+      std::iota(sortIdx.begin(), sortIdx.end(), 0);
+      std::sort(sortIdx.begin(), sortIdx.end(), [&strTracksOut](int i1, int i2) { return strTracksOut[i1].mDecayRef < strTracksOut[i2].mDecayRef; });
+      o2::pmr::vector<o2::dataformats::StrangeTrack> strTracksTmp(strTracksOut.size());
+      o2::pmr::vector<o2::strangeness_tracking::ClusAttachments> strClusTmp(strClustOut.size());
+      o2::pmr::vector<o2::MCCompLabel> mcLabTmp;
+      if (mStrTracker->getMCTruthOn()) {
+        mcLabTmp.resize(mcLabsOut.size());
+      }
+
+      for (int i = 0; i < (int)sortIdx.size(); i++) {
+        strTracksTmp[i] = strTracksOut[sortIdx[i]];
+        strClusTmp[i] = strClustOut[sortIdx[i]];
+        if (mStrTracker->getMCTruthOn()) {
+          mcLabTmp[i] = mcLabsOut[sortIdx[i]];
+        }
+      }
+
+      strTracksOut = strTracksTmp;
+      strClustOut = strClusTmp;
+      if (mStrTracker->getMCTruthOn()) {
+        mcLabsOut = mcLabTmp;
+      }
+
+    } else {
+      if (mStrTracker->getMCTruthOn()) {
+        auto& strTrMCLableOut = pc.outputs().make<std::vector<o2::MCCompLabel>>(o2f::Output{"GLO", "STRANGETRACKS_MC", 0, o2f::Lifetime::Timeframe});
+        strTrMCLableOut.swap(mcLabsOut);
+      }
     }
   }
   //
