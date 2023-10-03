@@ -247,14 +247,19 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
   bool hassih = false;
 
   // Do not check anything which has DISTSUBTIMEFRAME in it.
+  size_t expectedDataSpecs = 0;
   for (size_t pi = 0; pi < present.size(); ++pi) {
     auto& spec = routes[pi].matcher;
     if (DataSpecUtils::asConcreteDataTypeMatcher(spec).description == header::DataDescription("DISTSUBTIMEFRAME")) {
       present[pi] = true;
       continue;
     }
+    if (routes[pi].timeslice == 0) {
+      ++expectedDataSpecs;
+    }
   }
 
+  size_t foundDataSpecs = 0;
   for (int msgidx = 0; msgidx < parts.Size(); msgidx += 2) {
     const auto dh = o2::header::get<DataHeader*>(parts.At(msgidx)->GetData());
     auto const sih = o2::header::get<SourceInfoHeader*>(parts.At(msgidx)->GetData());
@@ -293,6 +298,7 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
       OutputSpec query{dh->dataOrigin, dh->dataDescription, dh->subSpecification};
       if (DataSpecUtils::match(spec, query)) {
         present[pi] = true;
+        ++foundDataSpecs;
         break;
       }
     }
@@ -356,7 +362,7 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
     static int maxWarn = 10; // Correct would be o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef, but Framework does not depend on CommonUtils..., but not so critical since receives will send correct number of DEADBEEF messages
     static int contDeadBeef = 0;
     if (++contDeadBeef <= maxWarn) {
-      LOGP(alarm, "Found {}/{} data specs, missing data specs: {}, injecting 0xDEADBEEF", present.size() - unmatchedDescriptions.size(), present.size(), missing);
+      LOGP(alarm, "Found {}/{} data specs, missing data specs: {}, injecting 0xDEADBEEF", foundDataSpecs, expectedDataSpecs, missing);
     }
   }
 }
