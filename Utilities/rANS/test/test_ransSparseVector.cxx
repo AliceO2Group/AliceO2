@@ -47,8 +47,6 @@ BOOST_AUTO_TEST_CASE(test_write)
 {
   sparseVector_type vec{};
 
-  const size_t fixedSizeOffset = std::numeric_limits<source_type>::min();
-
   std::vector<source_type> samples{-5, -2, 1, 3, 5, 8, -5, 5, 1, 1, 1, 14, 8, 8, 8, 8, 8, 8, 8, 8, utils::pow2(18) + 1};
 
   std::unordered_map<source_type, uint32_t> results{{-5, 2}, {-2, 1}, {-1, 0}, {0, 0}, {1, 4}, {2, 0}, {3, 1}, {4, 0}, {5, 2}, {8, 9}, {14, 1}, {utils::pow2(18) + 1, 1}};
