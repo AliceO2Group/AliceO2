@@ -254,8 +254,6 @@ class EncoderSymbolMapper<symbolTable_T,
   {
     using namespace internal::simd;
 
-    const size_type nStreams = coder_type::getNstreams();
-
     difference_type currentStream = nActiveStreams;
 
     epi32_t<SIMDWidth::SSE, 2> frequencies;
@@ -329,8 +327,6 @@ class EncoderSymbolMapper<symbolTable_T,
   [[nodiscard]] inline source_IT unpackSymbols(source_IT sourceIter, coderSymbol_type& unpacked, size_type nActiveStreams)
   {
     using namespace internal::simd;
-
-    const size_type nStreams = coder_type::getNstreams();
 
     difference_type currentStream = nActiveStreams;
 

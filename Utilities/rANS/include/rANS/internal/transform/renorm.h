@@ -74,7 +74,6 @@ decltype(auto) renorm(histogram_T histogram, Metrics<typename histogram_T::sourc
   using container_type = typename histogram_type::container_type;
   using iterator_type = typename container_type::iterator;
 
-  const source_type offset = histogram.getOffset();
   const double_t nSamples = histogram.getNumSamples();
   const size_t renormingPrecisionBits = *metrics.getCoderProperties().renormingPrecisionBits;
   const size_t nUsedAlphabetSymbols = metrics.getDatasetProperties().nUsedAlphabetSymbols;

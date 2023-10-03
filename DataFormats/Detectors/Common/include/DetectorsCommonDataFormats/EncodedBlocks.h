@@ -829,7 +829,7 @@ auto EncodedBlocks<H, N, W>::getImage(const void* newHead)
   // we don't modify newHead, but still need to remove constness for relocation interface
   relocate(image.mRegistry.head, const_cast<char*>(reinterpret_cast<const char*>(newHead)), reinterpret_cast<char*>(&image));
 
-  return std::move(image);
+  return image;
 }
 
 ///_____________________________________________________________________________
@@ -938,7 +938,6 @@ CTFIOSize EncodedBlocks<H, N, W>::decodeCompatImpl(dst_IT dstBegin, int slot, co
 {
 
   // get references to the right data
-  const auto& ansVersion = getANSHeader();
   const auto& block = mBlocks[slot];
   const auto& md = mMetadata[slot];
 
@@ -977,7 +976,6 @@ CTFIOSize EncodedBlocks<H, N, W>::decodeRansV1Impl(dst_IT dstBegin, int slot, co
 {
 
   // get references to the right data
-  const auto& ansVersion = getANSHeader();
   const auto& block = mBlocks[slot];
   const auto& md = mMetadata[slot];
 
