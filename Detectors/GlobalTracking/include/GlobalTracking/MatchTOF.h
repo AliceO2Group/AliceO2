@@ -223,6 +223,9 @@ class MatchTOF
 
   void updateTimeDependentParams();
 
+  static bool mHasFillScheme;
+  static bool mFillScheme[o2::constants::lhc::LHCMaxBunches];
+
   //================================================================
 
   // Data members
