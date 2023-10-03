@@ -19,7 +19,6 @@
 
 #include "GPUCommonLogger.h"
 #include <TFile.h>
-#include "CommonUtils/TreeStreamRedirector.h"
 //#define _DBG_LOC_ // for local debugging only
 
 #endif // !GPUCA_ALIGPUCODE
@@ -177,6 +176,42 @@ void MatLayerCylSet::writeToFile(const std::string& outFName)
   outf.Close();
 }
 
+GPUd() int MatLayerCylSet::searchLayerFast(float r2, int low, int high) const
+{
+  // we can avoid the sqrt .. at the cost of more memory in the lookup
+  const auto index = int(std::sqrt(r2) * InvVoxelRDelta);
+  if (index >= mLayerVoxelLU.size()) {
+    return -1;
+  }
+  auto layers = mLayerVoxelLU[index];
+  if (layers.first != layers.second) {
+    // this means the voxel is undecided and we revert to search
+    return searchSegment(r2, layers.first, layers.second + 1);
+  }
+  return layers.first;
+}
+
+void MatLayerCylSet::initLayerVoxelLU()
+{
+  if (mLayerVoxelLUInitialized) {
+    LOG(info) << "Layer voxel already initialized; Aborting";
+    return;
+  }
+  LOG(info) << "Initializing voxel layer lookup";
+  const int numVoxels = int(LayerRMax / VoxelRDelta);
+  mLayerVoxelLU.clear();
+  mLayerVoxelLU.reserve(numVoxels);
+  for (int voxel = 0; voxel < numVoxels; ++voxel) {
+    // check the 2 extremes of this voxel "covering"
+    const auto lowerR = voxel * VoxelRDelta;
+    const auto upperR = lowerR + VoxelRDelta;
+    const auto lowerSegment = searchSegment(lowerR * lowerR);
+    const auto upperSegment = searchSegment(upperR * upperR);
+    mLayerVoxelLU.push_back(std::pair<uint16_t, u_int16_t>(lowerSegment, upperSegment));
+  }
+  mLayerVoxelLUInitialized = true;
+}
+
 //________________________________________________________________________________
 MatLayerCylSet* MatLayerCylSet::loadFromFile(const std::string& inpFName)
 {
@@ -190,7 +225,8 @@ MatLayerCylSet* MatLayerCylSet::loadFromFile(const std::string& inpFName)
     LOG(error) << "Failed to load mat.LUT from " << inpFName;
     return nullptr;
   }
-  return rectifyPtrFromFile(mb);
+  auto rptr = rectifyPtrFromFile(mb);
+  return rptr;
 }
 
 //________________________________________________________________________________
@@ -267,10 +303,11 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
   while (lrID >= lmin) { // go from outside to inside
     const auto& lr = getLayer(lrID);
     int nphiSlices = lr.getNPhiSlices();
-    int nc = ray.crossLayer(lr);
+    int nc = ray.crossLayer(lr); // determines how many crossings this ray has with this tubular layer
     for (int ic = nc; ic--;) {
       float cross1, cross2;
       ray.getCrossParams(ic, cross1, cross2); // tmax,tmin of crossing the layer
+
       auto phi0 = ray.getPhi(cross1), phi1 = ray.getPhi(cross2), dPhi = phi0 - phi1;
       auto phiID = lr.getPhiSliceID(phi0), phiIDLast = lr.getPhiSliceID(phi1);
       // account for eventual wrapping around 0
@@ -283,6 +320,7 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
           phiID += nphiSlices;
         }
       }
+
       int stepPhiID = phiID > phiIDLast ? -1 : 1;
       bool checkMorePhi = true;
       auto tStartPhi = cross1, tEndPhi = 0.f;
@@ -390,17 +428,23 @@ GPUd() bool MatLayerCylSet::getLayersRange(const Ray& ray, short& lmin, short& l
     return false;
   }
   int lmxInt, lmnInt;
-  lmxInt = rmax2 < getRMax2() ? searchSegment(rmax2, 0) : get()->mNRIntervals - 2;
-  lmnInt = rmin2 >= getRMin2() ? searchSegment(rmin2, 0, lmxInt + 1) : 0;
+  if (!mLayerVoxelLUInitialized) {
+    lmxInt = rmax2 < getRMax2() ? searchSegment(rmax2, 0) : get()->mNRIntervals - 2;
+    lmnInt = rmin2 >= getRMin2() ? searchSegment(rmin2, 0, lmxInt + 1) : 0;
+  } else {
+    lmxInt = rmax2 < getRMax2() ? searchLayerFast(rmax2, 0) : get()->mNRIntervals - 2;
+    lmnInt = rmin2 >= getRMin2() ? searchLayerFast(rmin2, 0, lmxInt + 1) : 0;
+  }
+
   const auto* interval2LrID = get()->mInterval2LrID;
   lmax = interval2LrID[lmxInt];
   lmin = interval2LrID[lmnInt];
   // make sure lmnInt and/or lmxInt are not in the gap
   if (lmax < 0) {
-    lmax = interval2LrID[--lmxInt]; // rmax2 is in the gap, take highest layer below rmax2
+    lmax = interval2LrID[lmxInt - 1]; // rmax2 is in the gap, take highest layer below rmax2
   }
   if (lmin < 0) {
-    lmin = interval2LrID[++lmnInt]; // rmin2 is in the gap, take lowest layer above rmin2
+    lmin = interval2LrID[lmnInt + 1]; // rmin2 is in the gap, take lowest layer above rmin2
   }
   return lmin <= lmax; // valid if both are not in the same gap
 }
@@ -424,6 +468,7 @@ GPUd() int MatLayerCylSet::searchSegment(float val, int low, int high) const
     }
     mid = (low + high) >> 1;
   }
+
   return mid;
 }
 
