@@ -359,8 +359,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_addFrequenciesSignChange, histogram_T, histog
     {static_cast<source_type>(5), 5},
   };
 
-  const size_t fixedSizeOffset = std::numeric_limits<source_type>::min();
-
   histogram_T histogram{};
   histogram.addFrequencies(frequencies.begin(), frequencies.end(), 0);
 
@@ -389,7 +387,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_addFrequenciesSignChange, histogram_T, histog
     const std::ptrdiff_t offset = utils::pow2(utils::toBits<source_type>() - 1);
 
     if constexpr (std::is_same_v<histogram_T, DenseHistogram<int32_t>>) {
-      const std::ptrdiff_t largeOffset = utils::toBits<source_type>() - 1;
       BOOST_CHECK_THROW(histogram.addFrequencies(frequencies2.begin(), frequencies2.end(), offset), HistogramError);
       BOOST_CHECK_THROW(histogram2.addFrequencies(gsl::make_span(frequencies2), offset), HistogramError);
     } else {
