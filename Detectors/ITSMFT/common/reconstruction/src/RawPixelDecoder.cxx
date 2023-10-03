@@ -375,10 +375,10 @@ ChipPixelData* RawPixelDecoder<Mapping>::getNextChipData(std::vector<ChipPixelDa
       //      assert(mLastReadChipID < chipData.getChipID());
       if (mLastReadChipID >= chipData.getChipID()) {
         if (!mROFRampUpStage) {
-          const int MaxErrLog = 5;
+          const int MaxErrLog = 2;
           static int errLocCount = 0;
           if (errLocCount < MaxErrLog) {
-            LOGP(error, "Wrong order/duplication: encountered chip {} after processing chip {}, skippin. Inform PDP (message {} of max {} allowed)",
+            LOGP(warn, "Wrong order/duplication: encountered chip {} after processing chip {}, skipping.",
                  chipData.getChipID(), mLastReadChipID, ++errLocCount, MaxErrLog);
           }
         }
