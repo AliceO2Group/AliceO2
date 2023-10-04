@@ -56,6 +56,7 @@ using source_types = boost::mp11::mp_list<uint8_t, uint16_t, uint32_t, uint64_t>
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(test_computePackingBufferSize, buffer_T, buffer_types)
 {
+  size_t nElems{};
   size_t packingWidth = utils::toBits<packing_type>() - 3;
 
   BOOST_CHECK_EQUAL(0, (computePackingBufferSize<buffer_T>(0, packingWidth)));
@@ -131,7 +132,7 @@ BOOST_AUTO_TEST_CASE(test_packUnpackStream)
 
     source_type min = *std::min_element(source.begin(), source.end());
 
-    [[maybe_unused]] auto packingBufferEnd = pack(source.data(), source.size(), packingBuffer.data(), packingWidth, min);
+    auto packingBufferEnd = pack(source.data(), source.size(), packingBuffer.data(), packingWidth, min);
 
     std::vector<source_type> unpackBuffer(source.size(), 0);
     unpack(packingBuffer.data(), source.size(), unpackBuffer.data(), packingWidth, min);
