@@ -19,7 +19,6 @@
 
 #include <vector>
 #include <string_view>
-#include <string>
 #include <unordered_map>
 #include <memory>
 
@@ -27,6 +26,9 @@
 #include "TH1.h"
 #include "TH1F.h"
 #include "TH2F.h"
+
+// o2 includes
+#include "DataFormatsTPC/Defs.h"
 
 namespace o2
 {
@@ -75,7 +77,6 @@ class Tracks
     mCutMinnCls = nClusterCut;
     mCutMindEdxTot = dEdxTot;
   }
-
   // Just for backward compatibility with crrent QC, temporary, will be removed in the next PR
   /// get 1D histograms
   std::vector<TH1F>& getHistograms1D() { return mHist1D; }
@@ -92,14 +93,14 @@ class Tracks
   const std::vector<TH1F>& getHistogramRatios1D() const { return mHistRatio1D; }
 
   /// get ratios of 1D histograms
-  std::unordered_map<std::string, std::unique_ptr<TH1>>& getMapHist() { return mMapHist; }
-  const std::unordered_map<std::string, std::unique_ptr<TH1>>& getMapHist() const { return mMapHist; }
+  std::unordered_map<std::string_view, std::unique_ptr<TH1>>& getMapHist() { return mMapHist; }
+  const std::unordered_map<std::string_view, std::unique_ptr<TH1>>& getMapHist() const { return mMapHist; }
 
  private:
   float mCutAbsEta = 1.f;      // Eta cut
   int mCutMinnCls = 60;        // minimum N clusters
   float mCutMindEdxTot = 20.f; // dEdxTot min value
-  std::unordered_map<std::string, std::unique_ptr<TH1>> mMapHist;
+  std::unordered_map<std::string_view, std::unique_ptr<TH1>> mMapHist;
   std::vector<TH1F> mHist1D{};      ///< Initialize vector of 1D histograms
   std::vector<TH2F> mHist2D{};      ///< Initialize vector of 2D histograms
   std::vector<TH1F> mHistRatio1D{}; ///< Initialize vector of ratios of 1D histograms

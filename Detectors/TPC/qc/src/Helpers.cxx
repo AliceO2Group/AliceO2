@@ -99,25 +99,6 @@ void helpers::setStyleHistogramsInMap(std::unordered_map<std::string_view, std::
     helpers::setStyleHistogram(*(keyValue.second));
   }
 }
-
-//______________________________________________________________________________
-void helpers::setStyleHistogramsInMap(std::unordered_map<std::string, std::vector<std::unique_ptr<TH1>>>& mapOfvectors)
-{
-  for (const auto& keyValue : mapOfvectors) {
-    for (auto& hist : keyValue.second) {
-      helpers::setStyleHistogram(*hist);
-    }
-  }
-}
-
-//______________________________________________________________________________
-void helpers::setStyleHistogramsInMap(std::unordered_map<std::string, std::unique_ptr<TH1>>& mapOfHisto)
-{
-  for (const auto& keyValue : mapOfHisto) {
-    helpers::setStyleHistogram(*(keyValue.second));
-  }
-}
-
 //______________________________________________________________________________
 bool helpers::newZSCalib(const o2::tpc::CalDet<float>& refPedestal, const o2::tpc::CalDet<float>& refNoise, const o2::tpc::CalDet<float>& pedestal)
 {
