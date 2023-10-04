@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include "DecongestionService.h"
 #include "Framework/DataProcessingHeader.h"
 #include "Framework/InputSpec.h"
 #include "Framework/LifetimeHelpers.h"
@@ -58,36 +59,42 @@ size_t getCurrentTime()
 
 ExpirationHandler::Creator LifetimeHelpers::dataDrivenCreation()
 {
-  return [](ChannelIndex, TimesliceIndex&) -> TimesliceSlot {
+  return [](ServiceRegistryRef, ChannelIndex) -> TimesliceSlot {
     return {TimesliceSlot::ANY};
   };
 }
 
 ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, size_t end, size_t step, size_t inputTimeslice, size_t maxInputTimeslices, size_t maxRepetitions)
 {
-  auto last = std::make_shared<size_t>(start + inputTimeslice * step);
+  size_t firstTimeslice = start + inputTimeslice * step;
   auto repetition = std::make_shared<size_t>(0);
 
-  return [end, step, last, maxInputTimeslices, maxRepetitions, repetition](ChannelIndex channelIndex, TimesliceIndex& index) -> TimesliceSlot {
+  return [end, step, firstTimeslice, maxInputTimeslices, maxRepetitions, repetition](ServiceRegistryRef services, ChannelIndex channelIndex) -> TimesliceSlot {
+    auto& index = services.get<TimesliceIndex>();
+    auto& decongestion = services.get<DecongestionService>();
+    if (decongestion.nextEnumerationTimeslice == 0) {
+      decongestion.nextEnumerationTimeslice = firstTimeslice;
+    }
+
     for (size_t si = 0; si < index.size(); si++) {
-      if (*last > end) {
+      if (decongestion.nextEnumerationTimeslice > end) {
         LOGP(debug, "Last greater than end");
         return TimesliceSlot{TimesliceSlot::INVALID};
       }
       auto slot = TimesliceSlot{si};
       if (index.isValid(slot) == false) {
-        TimesliceId timestamp{*last};
+        TimesliceId timestamp{decongestion.nextEnumerationTimeslice};
         *repetition += 1;
         if (*repetition % maxRepetitions == 0) {
-          *last += step * maxInputTimeslices;
+          decongestion.nextEnumerationTimeslice += step * maxInputTimeslices;
         }
         LOGP(debug, "Associating timestamp {} to slot {}", timestamp.value, slot.index);
         index.associate(timestamp, slot);
         // We know that next association will bring in last
         // so we can state this will be the latest possible input for the channel
         // associated with this.
-        LOG(debug) << "Oldest possible input is " << *last;
-        auto newOldest = index.setOldestPossibleInput({*last}, channelIndex);
+        LOG(debug) << "Oldest possible input is " << decongestion.nextEnumerationTimeslice;
+        [[maybe_unused]] auto newOldest = index.setOldestPossibleInput({decongestion.nextEnumerationTimeslice}, channelIndex);
         index.updateOldestPossibleOutput();
         return slot;
       }
@@ -100,10 +107,9 @@ ExpirationHandler::Creator LifetimeHelpers::enumDrivenCreation(size_t start, siz
 
 ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::vector<std::chrono::microseconds> periods, std::vector<std::chrono::seconds> intervals, std::function<bool(void)> hasTimerFired, std::function<void(uint64_t, uint64_t)> updateTimerPeriod)
 {
-  std::shared_ptr<size_t> last = std::make_shared<size_t>(0);
   std::shared_ptr<bool> stablePeriods = std::make_shared<bool>(false);
   // FIXME: should create timeslices when period expires....
-  return [last, stablePeriods, periods, intervals, hasTimerFired, updateTimerPeriod](ChannelIndex channelIndex, TimesliceIndex& index) mutable -> TimesliceSlot {
+  return [stablePeriods, periods, intervals, hasTimerFired, updateTimerPeriod](ServiceRegistryRef services, ChannelIndex channelIndex) mutable -> TimesliceSlot {
     // We start with a random offset to avoid all the devices
     // send their first message at the same time, bring down
     // the QC machine.
@@ -113,13 +119,16 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::vector<std::
     // We do it here because if we do it in configure, long delays
     // between configure and run will cause this to behave
     // incorrectly.
+    auto& index = services.get<TimesliceIndex>();
+    auto& decongestion = services.get<DecongestionService>();
+
     bool timerHasFired = hasTimerFired();
-    if (*last == 0ULL || (index.didReceiveData() == false && timerHasFired)) {
+    if (decongestion.nextEnumerationTimeslice == 0ULL || (index.didReceiveData() == false && timerHasFired)) {
       std::random_device r;
       std::default_random_engine e1(r());
       std::uniform_int_distribution<uint64_t> dist(0, periods.front().count() * 0.9);
       auto randomizedPeriodUs = static_cast<int64_t>(dist(e1) + periods.front().count() * 0.1);
-      *last = getCurrentTime() - randomizedPeriodUs;
+      decongestion.nextEnumerationTimeslice = getCurrentTime() - randomizedPeriodUs;
       updateTimerPeriod(randomizedPeriodUs / 1000, randomizedPeriodUs / 1000);
       *stablePeriods = false;
       LOG(debug) << "Timer updated to a randomized period of " << randomizedPeriodUs << "us";
@@ -130,7 +139,7 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::vector<std::
     }
     // Nothing to do if the time has not expired yet.
     if (timerHasFired == false) {
-      auto newOldest = index.setOldestPossibleInput({*last}, channelIndex);
+      [[maybe_unused]] auto newOldest = index.setOldestPossibleInput({decongestion.nextEnumerationTimeslice}, channelIndex);
       index.updateOldestPossibleOutput();
       return TimesliceSlot{TimesliceSlot::INVALID};
     }
@@ -155,13 +164,13 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::vector<std::
       }
       auto& variables = index.getVariablesForSlot(slot);
       if (VariableContextHelpers::getTimeslice(variables).value == current) {
-        auto newOldest = index.setOldestPossibleInput({*last}, channelIndex);
+        [[maybe_unused]] auto newOldest = index.setOldestPossibleInput({decongestion.nextEnumerationTimeslice}, channelIndex);
         index.updateOldestPossibleOutput();
         return TimesliceSlot{TimesliceSlot::INVALID};
       }
     }
 
-    *last = current;
+    decongestion.nextEnumerationTimeslice = current;
     // If we are here the timer has expired and a new slice needs
     // to be created.
     data_matcher::VariableContext newContext;
@@ -179,7 +188,7 @@ ExpirationHandler::Creator LifetimeHelpers::timeDrivenCreation(std::vector<std::
         break;
     }
 
-    auto newOldest = index.setOldestPossibleInput({*last}, channelIndex);
+    auto newOldest = index.setOldestPossibleInput({decongestion.nextEnumerationTimeslice}, channelIndex);
     index.updateOldestPossibleOutput();
     return slot;
   };
@@ -241,8 +250,9 @@ ExpirationHandler::Checker LifetimeHelpers::expireIfPresent(std::vector<InputRou
 
 ExpirationHandler::Creator LifetimeHelpers::uvDrivenCreation(int requestedLoopReason, DeviceState& state)
 {
-  return [requestedLoopReason, &state](ChannelIndex, TimesliceIndex& index) -> TimesliceSlot {
+  return [requestedLoopReason, &state](ServiceRegistryRef services, ChannelIndex) -> TimesliceSlot {
     /// Not the expected loop reason, return an invalid slot.
+    auto& index = services.get<TimesliceIndex>();
     if ((state.loopReason & requestedLoopReason) == 0) {
       LOGP(debug, "No expiration due to a loop event. Requested: {:b}, reported: {:b}, matching: {:b}",
            requestedLoopReason,

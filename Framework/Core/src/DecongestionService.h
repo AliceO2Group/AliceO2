@@ -18,6 +18,9 @@ namespace o2::framework
 struct DecongestionService {
   /// Wether we are a source in the processing chain
   bool isFirstInTopology = true;
+  /// The last timeslice which the ExpirationHandler::Creator callback
+  /// created. This can be used to skip dummy iterations.
+  size_t nextEnumerationTimeslice = 0;
   /// Last timeslice we communicated. Notice this should never go backwards.
   int64_t lastTimeslice = 0;
   /// The next timeslice we should consume, when running in order,
