@@ -586,16 +586,7 @@ auto DenseHistogram<source_T, std::enable_if_t<sizeof(source_T) <= 2>>::addFrequ
   addedHistogramView = trim(addedHistogramView);
 
   if constexpr (std::is_unsigned_v<source_T>) {
-    LOG_IF(warning, addedHistogramView.getMin() < 0) << fmt::format("trying to add frequencies of a signed symbol type to a DenseHistogram of an unsiged type.");
-  }
-  if constexpr (std::is_signed_v<source_T>) {
-    const std::ptrdiff_t sourceTypeMax = std::numeric_limits<source_T>::max();
-    const bool isMinOutOfRange = addedHistogramView.getMin() > sourceTypeMax;
-    const bool isMaxOutOfRange = addedHistogramView.getMax() > sourceTypeMax;
-
-    if (isMaxOutOfRange || isMinOutOfRange) {
-      LOGP(warning, "trying to add frequencies of an unsigned symbol type to a DenseHistogram of a signed type");
-    }
+    LOG_IF(warning, addedHistogramView.getMin() < 0) << fmt::format("trying to add frequencies for a signed symbol to a DenseHistogram of an unsiged type.");
   }
 
   const auto thisHistogramView = makeHistogramView(this->mContainer);
