@@ -339,10 +339,7 @@ class EncodedBlocks
   using dictionaryType = std::variant<rans::RenormedSparseHistogram<source_T>, rans::RenormedDenseHistogram<source_T>>;
 #endif
 
-  void setHeader(const H& h)
-  {
-    mHeader = h;
-  }
+  void setHeader(const H& h) { mHeader = h; }
   const H& getHeader() const { return mHeader; }
   H& getHeader() { return mHeader; }
   std::shared_ptr<H> cloneHeader() const { return std::shared_ptr<H>(new H(mHeader)); } // for dictionary creation
@@ -373,19 +370,6 @@ class EncodedBlocks
 
     assert(static_cast<int64_t>(std::numeric_limits<source_T>::min()) <= static_cast<int64_t>(metadata.max));
     assert(static_cast<int64_t>(std::numeric_limits<source_T>::max()) >= static_cast<int64_t>(metadata.min));
-
-    // check consistency of metadata and type
-    [&]() {
-      const int64_t sourceMin = std::numeric_limits<source_T>::min();
-      const int64_t sourceMax = std::numeric_limits<source_T>::max();
-
-      const int64_t mdMin = metadata.min;
-      const int64_t mdMax = metadata.max;
-
-      if ((mdMin < sourceMin) || (mdMax > sourceMax)) {
-        throw std::runtime_error(fmt::format("value range of dictionary and target datatype are incompatible: target type [{},{}] vs dictionary [{},{}]", sourceMin, sourceMax, mdMin, mdMax));
-      }
-    }();
 
     if (ansVersion == ANSVersionCompat) {
       rans::DenseHistogram<source_T> histogram{block.getDict(), block.getDict() + block.getNDict(), metadata.min};
