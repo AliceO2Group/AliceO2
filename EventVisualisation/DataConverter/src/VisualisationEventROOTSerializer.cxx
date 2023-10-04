@@ -188,7 +188,7 @@ void VisualisationEventROOTSerializer::toFile(const VisualisationEvent& event, s
 
 bool VisualisationEventROOTSerializer::fromFile(VisualisationEvent& event, std::string fileName)
 {
-  LOG(info) << "VisualisationEventROOTSerializer <- " << fileName;
+  LOGF(info, "VisualisationEventROOTSerializer <- ", fileName);
   event.mTracks.clear();
   event.mClusters.clear();
   event.mCalo.clear();

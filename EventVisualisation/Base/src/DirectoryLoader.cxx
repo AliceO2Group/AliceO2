@@ -104,10 +104,10 @@ std::string DirectoryLoader::getLatestFile(std::string& path, std::vector<std::s
   return oldest_file_name;
 }
 
-void DirectoryLoader::removeOldestFiles(std::string& path, std::vector<std::string>& ext, int remaining)
+void DirectoryLoader::removeOldestFiles(std::string& path, std::vector<std::string>& ext, const int remaining)
 {
   while (getNumberOfFiles(path, ext) > remaining) {
-    LOG(info) << "removing oldest file in folder: " << path << " : " << getLatestFile(path, ext);
+    LOGF(info, "removing oldest file in folder: ", path, " : ", getLatestFile(path, ext));
     filesystem::remove(path + "/" + getLatestFile(path, ext));
   }
 }
