@@ -1203,6 +1203,7 @@ int MatchTOF::findFITIndex(int bc, const gsl::span<const o2::ft0::RecPoints>& FI
 
   int index = -1;
   int distMax = 0;
+  bool bestQuality = false; // prioritize FT0 BC with good quality (FT0-AC + vertex) to remove umbiguity in Pb-Pb (not a strict cut because inefficient in pp)
   const int distThr = 8;
 
   for (unsigned int i = 0; i < FITRecPoints.size(); i++) {
@@ -1210,13 +1211,19 @@ int MatchTOF::findFITIndex(int bc, const gsl::span<const o2::ft0::RecPoints>& FI
     if (mHasFillScheme && !mFillScheme[ir.bc]) {
       continue;
     }
+    bool quality = (fabs(FITRecPoints[i].getCollisionTime(0)) < 1000 && fabs(FITRecPoints[i].getVertex()) < 1000);
+    if (bestQuality && !quality) { // if current has no good quality and the one previoulsy selected has -> discard the current one
+      continue;
+    }
     int bct0 = (ir.orbit - firstOrbit) * o2::constants::lhc::LHCMaxBunches + ir.bc;
     int dist = bc - bct0;
 
-    if (dist < 0 || dist > distThr || dist < distMax) {
+    bool worseDistance = dist < 0 || dist > distThr || dist < distMax;
+    if (worseDistance && (!quality || bestQuality)) { // discard if BC is later than the one selected, but is has a better quality
       continue;
     }
 
+    bestQuality = quality;
     distMax = dist;
     index = i;
   }
