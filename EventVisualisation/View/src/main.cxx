@@ -33,7 +33,7 @@ using namespace o2::event_visualisation;
 
 int main(int argc, char** argv)
 {
-  LOG(info) << "Welcome in O2 event visualisation tool (" << o2_eve_version << ")";
+  LOGF(info, "Welcome in O2 event visualisation tool (", o2_eve_version, ")");
 
   if (!Options::Instance()->processCommandLine(argc, argv)) {
     exit(-1);
@@ -54,17 +54,15 @@ int main(int argc, char** argv)
   }
 
   // create ROOT application environment
-  TApplication* app = new TApplication("o2eve", &argc, argv);
+  auto app = new TApplication("o2eve", &argc, argv);
   gApplication = app;
   //app->Connect("TEveBrowser", "CloseWindow()", "TApplication", app, "Terminate()");
 
-  LOG(info) << "Initializing TEveManager";
+  LOGF(info, "Initializing TEveManager");
   if (!TEveManager::Create(kTRUE, "FI")) {
-    LOG(fatal) << "Could not create TEveManager!!";
+    LOGF(fatal, "Could not create TEveManager!!");
     exit(0);
   }
-
-  //gEve->SpawnNewViewer("3D View", "");  exit(0);
 
   // Initialize o2 Event Visualisation
   Initializer::setup();
@@ -76,6 +74,6 @@ int main(int argc, char** argv)
   TEveManager::Terminate();
   app->Terminate(0);
 
-  LOG(info) << "O2 event visualisation tool terminated properly";
+  LOGF(info, "O2 event visualisation tool terminated properly");
   return 0;
 }
