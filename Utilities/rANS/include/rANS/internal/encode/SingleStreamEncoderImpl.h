@@ -145,6 +145,8 @@ class SingleStreamEncoderImpl : public SingleStreamEncoderImplBase<lowerBound_V,
   {
     assert(symbol->getFrequency() != 0);
 
+    const state_type old = this->mState;
+
     const auto [newState, streamPosition] = this->renorm(this->mState, outputIter, symbol->getFrequency());
     // coding function
     state_type quotient = static_cast<state_type>((static_cast<uint128_t>(newState) * symbol->getReciprocalFrequency()) >> 64);

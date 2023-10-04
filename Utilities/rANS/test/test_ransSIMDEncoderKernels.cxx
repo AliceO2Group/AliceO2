@@ -120,9 +120,7 @@ struct AosToSoaFixture {
     uint32_t counter = 0;
 
     for (size_t i = 0; i < nElems; ++i) {
-      const auto freq = counter++;
-      const auto cumul = counter++;
-      Symbol symbol{freq, cumul, 0};
+      Symbol symbol{counter++, counter++, 0};
       mFrequencies(i) = symbol.getFrequency();
       mCumulative(i) = symbol.getCumulative();
 
@@ -230,10 +228,10 @@ struct SSERenormFixture {
     statesVec[0] = load(states[0]);
     statesVec[1] = load(states[1]);
 
-    [[maybe_unused]] stream_iterator newstreamOutIter = ransRenorm<stream_iterator, LowerBound, StreamBits>(statesVec,
-                                                                                                            frequenciesVec,
-                                                                                                            SymbolTablePrecisionBits,
-                                                                                                            streamOutBuffer.begin(), newStatesVec);
+    stream_iterator newstreamOutIter = ransRenorm<stream_iterator, LowerBound, StreamBits>(statesVec,
+                                                                                           frequenciesVec,
+                                                                                           SymbolTablePrecisionBits,
+                                                                                           streamOutBuffer.begin(), newStatesVec);
 
     epi64_t<SIMDWidth::SSE, 2> newStates(0);
     store(newStatesVec[0], newStates[0]);
