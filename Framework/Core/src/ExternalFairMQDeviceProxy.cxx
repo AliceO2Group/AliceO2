@@ -280,11 +280,12 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
       firstDH = dh;
     }
     for (size_t pi = 0; pi < present.size(); ++pi) {
-      // Consider uninvolved pipelines as present.
-      if (routes[pi].timeslice == (dph->startTime % routes[pi].maxTimeslices)) {
-        present[pi] = true;
-      }
       if (present[pi]) {
+        continue;
+      }
+      // Consider uninvolved pipelines as present.
+      if (routes[pi].timeslice != (dph->startTime % routes[pi].maxTimeslices)) {
+        present[pi] = true;
         continue;
       }
       allFound = false;
