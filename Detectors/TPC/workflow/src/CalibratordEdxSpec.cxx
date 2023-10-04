@@ -32,7 +32,6 @@
 #include "TPCWorkflow/ProcessingHelpers.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "TPCBase/CDBInterface.h"
-#include "DetectorsBase/Propagator.h"
 
 using namespace o2::framework;
 
@@ -42,7 +41,7 @@ namespace o2::tpc
 class CalibratordEdxDevice : public Task
 {
  public:
-  CalibratordEdxDevice(std::shared_ptr<o2::base::GRPGeomRequest> req) : mCCDBRequest(req) {}
+  CalibratordEdxDevice(std::shared_ptr<o2::base::GRPGeomRequest> req, const o2::base::Propagator::MatCorrType matType) : mCCDBRequest(req), mMatType(matType) {}
   void init(framework::InitContext& ic) final
   {
     o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
@@ -64,7 +63,6 @@ class CalibratordEdxDevice : public Task
     const auto fitSnp = ic.options().get<bool>("fit-snp");
 
     const auto dumpData = ic.options().get<bool>("file-dump");
-    auto materialType = static_cast<o2::base::Propagator::MatCorrType>(ic.options().get<int>("material-type"));
 
     mCalibrator = std::make_unique<tpc::CalibratordEdx>();
     mCalibrator->setHistParams(dEdxBins, mindEdx, maxdEdx, angularBins, fitSnp);
@@ -74,7 +72,7 @@ class CalibratordEdxDevice : public Task
     mCalibrator->setSlotLength(slotLength);
     mCalibrator->setMaxSlotsDelay(maxDelay);
     mCalibrator->setElectronCut({fitThreshold, fitPasses, fitThresholdLowFactor});
-    mCalibrator->setMaterialType(materialType);
+    mCalibrator->setMaterialType(mMatType);
 
     if (dumpData) {
       mCalibrator->enableDebugOutput("calibratordEdx.root");
@@ -130,12 +128,14 @@ class CalibratordEdxDevice : public Task
   }
 
   std::unique_ptr<CalibratordEdx> mCalibrator;
+  const o2::base::Propagator::MatCorrType mMatType{};
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;
   uint64_t mRunNumber{0}; ///< processed run number
 };
 
-DataProcessorSpec getCalibratordEdxSpec()
+DataProcessorSpec getCalibratordEdxSpec(const o2::base::Propagator::MatCorrType matType)
 {
+  const bool enableAskMatLUT = matType == o2::base::Propagator::MatCorrType::USEMatCorrLUT;
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_CalibdEdx"}, Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_CalibdEdx"}, Lifetime::Sporadic);
@@ -144,7 +144,7 @@ DataProcessorSpec getCalibratordEdxSpec()
                                                                 true,                           // GRPECS=true
                                                                 false,                          // GRPLHCIF
                                                                 true,                           // GRPMagField
-                                                                true,                           // askMatLUT
+                                                                enableAskMatLUT,                // askMatLUT
                                                                 o2::base::GRPGeomRequest::None, // geometry
                                                                 inputs,
                                                                 true,
@@ -153,7 +153,7 @@ DataProcessorSpec getCalibratordEdxSpec()
     "tpc-calibrator-dEdx",
     inputs,
     outputs,
-    adaptFromTask<CalibratordEdxDevice>(ccdbRequest),
+    adaptFromTask<CalibratordEdxDevice>(ccdbRequest, matType),
     Options{
       {"tf-per-slot", VariantType::UInt32, 6000u, {"number of TFs per calibration time slot"}},
       {"max-delay", VariantType::UInt32, 10u, {"number of slots in past to consider"}},
@@ -172,8 +172,7 @@ DataProcessorSpec getCalibratordEdxSpec()
       {"angularbins", VariantType::Int, 36, {"number of angular bins: Tgl and Snp"}},
       {"fit-snp", VariantType::Bool, false, {"enable Snp correction"}},
 
-      {"file-dump", VariantType::Bool, false, {"directly dump calibration to file"}},
-      {"material-type", VariantType::Int, 2, {"Type for the material buget during track propagation: 0=None, 1=Geo, 2=LUT"}}}};
+      {"file-dump", VariantType::Bool, false, {"directly dump calibration to file"}}}};
 }
 
 } // namespace o2::tpc
