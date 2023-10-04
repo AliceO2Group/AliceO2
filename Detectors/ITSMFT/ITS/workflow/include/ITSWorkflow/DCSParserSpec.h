@@ -142,6 +142,9 @@ class ITSDCSParser : public Task
 
   // ITS Map
   o2::itsmft::ChipMappingITS mp;
+
+  // CCDB url for RCT headers
+  std::string mCcdbUrlRct = "http://o2-ccdb.internal";
 };
 
 // Create a processor spec
