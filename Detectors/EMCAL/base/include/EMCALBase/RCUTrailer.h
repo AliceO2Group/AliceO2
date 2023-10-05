@@ -388,6 +388,11 @@ class RCUTrailer
   /// are assigned based on the trailer word marker.
   static RCUTrailer constructFromPayloadWords(const gsl::span<const uint32_t> payloadwords);
 
+  /// \brief Check whether the word is a valid last trailer word
+  /// \param trailerword Word to be checked
+  /// \return True if the word is a valid last trailer word, false if there are inconsistencies
+  static bool checkLastTrailerWord(uint32_t trailerword);
+
  private:
   /// \struct AltroConfig
   /// \brief Bit field configuration of the ALTRO config registers

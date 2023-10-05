@@ -23,10 +23,11 @@ namespace emcal
 
 BOOST_AUTO_TEST_CASE(MinorAltroDecodingError_test)
 {
-  BOOST_CHECK_EQUAL(MinorAltroDecodingError::getNumberOfErrorTypes(), 7);
-  std::array<std::string, 7> errornames = {{"ChannelEndPayloadUnexpected",
+  BOOST_CHECK_EQUAL(MinorAltroDecodingError::getNumberOfErrorTypes(), 8);
+  std::array<std::string, 8> errornames = {{"ChannelEndPayloadUnexpected",
                                             "ChannelPayloadExceed",
                                             "ChannelOrderError",
+                                            "ChannelHeader",
                                             "BunchHeaderNull",
                                             "BunchLengthExceed",
                                             "BunchLengthAllowExceed",
@@ -34,6 +35,7 @@ BOOST_AUTO_TEST_CASE(MinorAltroDecodingError_test)
                              errortitles = {{"Channel end unexpected",
                                              "Channel exceed",
                                              "FEC order",
+                                             "Channel header invalid",
                                              "Bunch header null",
                                              "Bunch length exceed",
                                              "Bunch length impossible",
@@ -41,13 +43,15 @@ BOOST_AUTO_TEST_CASE(MinorAltroDecodingError_test)
                              errordescriptions = {{"Unexpected end of payload in altro channel payload!",
                                                    "Trying to access out-of-bound payload!",
                                                    "Invalid FEC order",
+                                                   "Invalid channel header",
                                                    "Bunch header 0 or not configured!",
                                                    "Bunch length exceeding channel payload size!",
                                                    "Bunch length exceeding max. possible bunch size!",
                                                    "Bunch start time outside range!"}};
-  std::array<MinorAltroDecodingError::ErrorType_t, 7> errortypes = {{MinorAltroDecodingError::ErrorType_t::CHANNEL_END_PAYLOAD_UNEXPECT,
+  std::array<MinorAltroDecodingError::ErrorType_t, 8> errortypes = {{MinorAltroDecodingError::ErrorType_t::CHANNEL_END_PAYLOAD_UNEXPECT,
                                                                      MinorAltroDecodingError::ErrorType_t::CHANNEL_PAYLOAD_EXCEED,
                                                                      MinorAltroDecodingError::ErrorType_t::CHANNEL_ORDER,
+                                                                     MinorAltroDecodingError::ErrorType_t::CHANNEL_HEADER,
                                                                      MinorAltroDecodingError::ErrorType_t::BUNCH_HEADER_NULL,
                                                                      MinorAltroDecodingError::ErrorType_t::BUNCH_LENGTH_EXCEED,
                                                                      MinorAltroDecodingError::ErrorType_t::BUNCH_LENGTH_ALLOW_EXCEED,
