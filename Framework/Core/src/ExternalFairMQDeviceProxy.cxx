@@ -278,10 +278,6 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
       LOG(error) << "unexpected nullptr found. Skipping message pair.";
       continue;
     }
-    // Copy the DataProcessingHeader from the first message.
-    if (dph == nullptr) {
-      dph = o2::header::get<DataProcessingHeader*>(parts.At(msgidx)->GetData());
-    }
     if (!dh) {
       LOG(error) << "data on input " << msgidx << " does not follow the O2 data model, DataHeader missing";
       if (msgidx > 0) {
@@ -293,6 +289,15 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
       firstDH = dh;
       if (doPrintSizes && firstDH->tfCounter % doPrintSizes != 0) {
         doPrintSizes = 0;
+      }
+    }
+    // Copy the DataProcessingHeader from the first message.
+    if (dph == nullptr) {
+      dph = o2::header::get<DataProcessingHeader*>(parts.At(msgidx)->GetData());
+      for (size_t pi = 0; pi < present.size(); ++pi) {
+        if (routes[pi].timeslice != (dph->startTime % routes[pi].maxTimeslices)) {
+          present[pi] = true;
+        }
       }
     }
     for (size_t pi = 0; pi < present.size(); ++pi) {
