@@ -173,7 +173,7 @@ void RawReaderMemory::nextPage(bool doResetPayload)
       // The trailer is only decoded if the DDL is in the range of SRU DDLs. STU pages are propagated
       // 1-1 without trailer parsing
       auto lastword = *(mRawBuffer.getDataWords().rbegin());
-      if (lastword >> 30 == 3) {
+      if (RCUTrailer::checkLastTrailerWord(lastword)) {
         // lastword is a trailer word
         // decode trailer and chop
         try {
