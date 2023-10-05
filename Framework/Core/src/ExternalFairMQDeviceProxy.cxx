@@ -233,12 +233,19 @@ auto getFinalIndex(DataHeader const& dh, size_t msgidx) -> size_t
   return finalBlockIndex;
 };
 
-void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::vector<OutputRoute> const& routes)
+void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::vector<OutputRoute> const& routes, bool doInjectMissingData, unsigned int doPrintSizes)
 {
   // Check for missing data.
   static std::vector<bool> present;
+  static std::vector<size_t> dataSizes;
+  static std::vector<bool> showSize;
   present.clear();
   present.resize(routes.size(), false);
+  dataSizes.clear();
+  dataSizes.resize(routes.size(), 0);
+  showSize.clear();
+  showSize.resize(routes.size(), false);
+
   static std::vector<size_t> unmatchedDescriptions;
   unmatchedDescriptions.clear();
   DataProcessingHeader const* dph = nullptr;
@@ -261,6 +268,7 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
   size_t foundDataSpecs = 0;
   for (int msgidx = 0; msgidx < parts.Size(); msgidx += 2) {
     bool allFound = true;
+    int addToSize = -1;
     const auto dh = o2::header::get<DataHeader*>(parts.At(msgidx)->GetData());
     auto const sih = o2::header::get<SourceInfoHeader*>(parts.At(msgidx)->GetData());
     if (sih != nullptr) {
@@ -284,9 +292,12 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
     }
     if (firstDH == nullptr) {
       firstDH = dh;
+      if (doPrintSizes && firstDH->tfCounter % doPrintSizes != 0) {
+        doPrintSizes = 0;
+      }
     }
     for (size_t pi = 0; pi < present.size(); ++pi) {
-      if (present[pi]) {
+      if (present[pi] && !doPrintSizes) {
         continue;
       }
       // Consider uninvolved pipelines as present.
@@ -298,22 +309,51 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
       auto& spec = routes[pi].matcher;
       OutputSpec query{dh->dataOrigin, dh->dataDescription, dh->subSpecification};
       if (DataSpecUtils::match(spec, query)) {
-        present[pi] = true;
-        ++foundDataSpecs;
+        if (!present[pi]) {
+          ++foundDataSpecs;
+          present[pi] = true;
+          showSize[pi] = true;
+        }
+        addToSize = pi;
         break;
       }
     }
-    // Skip the rest of the block of messages. We subtract 2 because above
-    // we increment by 2.
-    msgidx = getFinalIndex(*dh, msgidx) - 2;
-    if (allFound) {
+    int msgidxLast = getFinalIndex(*dh, msgidx);
+    if (addToSize >= 0) {
+      int increment = (dh->splitPayloadParts > 0 && dh->splitPayloadParts == dh->splitPayloadIndex) ? 1 : 2;
+      for (int msgidx2 = msgidx + 1; msgidx2 < msgidxLast; msgidx2 += increment) {
+        dataSizes[addToSize] += parts.At(msgidx2)->GetSize();
+      }
+    }
+    // Skip the rest of the block of messages. We subtract 2 because above we increment by 2.
+    msgidx = msgidxLast - 2;
+    if (allFound && !doPrintSizes) {
       return;
     }
   }
+
   for (size_t pi = 0; pi < present.size(); ++pi) {
     if (!present[pi]) {
+      showSize[pi] = true;
       unmatchedDescriptions.push_back(pi);
     }
+  }
+
+  if (firstDH && doPrintSizes) {
+    std::string sizes = "";
+    size_t totalSize = 0;
+    for (size_t pi = 0; pi < present.size(); ++pi) {
+      if (showSize[pi]) {
+        totalSize += dataSizes[pi];
+        auto& spec = routes[pi].matcher;
+        sizes += DataSpecUtils::describe(spec) + fmt::format(":{} ", fmt::group_digits(dataSizes[pi]));
+      }
+    }
+    LOGP(important, "RAW {} size report:{}- Total:{}", firstDH->tfCounter, sizes, fmt::group_digits(totalSize));
+  }
+
+  if (!doInjectMissingData) {
+    return;
   }
 
   if (unmatchedDescriptions.size() > 0) {
@@ -363,7 +403,7 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
     static int maxWarn = 10; // Correct would be o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef, but Framework does not depend on CommonUtils..., but not so critical since receives will send correct number of DEADBEEF messages
     static int contDeadBeef = 0;
     if (++contDeadBeef <= maxWarn) {
-      LOGP(alarm, "Found {}/{} data specs, missing data specs: {}, injecting 0xDEADBEEF", foundDataSpecs, expectedDataSpecs, missing);
+      LOGP(alarm, "Found {}/{} data specs, missing data specs: {}, injecting 0xDEADBEEF{}", foundDataSpecs, expectedDataSpecs, missing, contDeadBeef == maxWarn ? " - disabling alarm now to stop flooding the log" : "");
     }
   }
 }
@@ -573,7 +613,8 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
                                                    InjectorFunction converter,
                                                    uint64_t minSHM,
                                                    bool sendTFcounter,
-                                                   bool doInjectMissingData)
+                                                   bool doInjectMissingData,
+                                                   unsigned int doPrintSizes)
 {
   DataProcessorSpec spec;
   spec.name = strdup(name);
@@ -585,7 +626,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
   // The Init method will register a new "Out of band" channel and
   // attach an OnData to it which is responsible for converting incoming
   // messages into DPL messages.
-  spec.algorithm = AlgorithmSpec{[converter, minSHM, deviceName = spec.name, sendTFcounter, doInjectMissingData](InitContext& ctx) {
+  spec.algorithm = AlgorithmSpec{[converter, minSHM, deviceName = spec.name, sendTFcounter, doInjectMissingData, doPrintSizes](InitContext& ctx) {
     auto* device = ctx.services().get<RawDeviceService>().device();
     // make a copy of the output routes and pass to the lambda by move
     auto outputRoutes = ctx.services().get<RawDeviceService>().spec().outputs;
@@ -709,7 +750,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       return count;
     };
 
-    auto dataHandler = [device, converter, doInjectMissingData,
+    auto dataHandler = [device, converter, doInjectMissingData, doPrintSizes,
                         outputRoutes = std::move(outputRoutes),
                         control = &ctx.services().get<ControlService>(),
                         deviceState = &ctx.services().get<DeviceState>(),
@@ -740,7 +781,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       // For reference, the oldest possible timeframe passed as newTimesliceId here comes from LifetimeHelpers::enumDrivenCreation()
       bool shouldstop = false;
       if (doInjectMissingData) {
-        injectMissingData(*device, inputs, outputRoutes);
+        injectMissingData(*device, inputs, outputRoutes, doInjectMissingData, doPrintSizes);
       }
       converter(timingInfo, *device, inputs, channelRetriever, timesliceIndex->getOldestPossibleOutput().timeslice.value, shouldstop);
 
