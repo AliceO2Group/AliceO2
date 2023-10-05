@@ -156,6 +156,7 @@ class MinorAltroDecodingError
   /// \brief Error codes connected with the ALTRO decoding
   enum class ErrorType_t {
     BUNCH_HEADER_NULL,            ///< Bunch header is 0
+    CHANNEL_HEADER,               ///< Channel header corruption
     CHANNEL_END_PAYLOAD_UNEXPECT, ///< Unexpected end of payload (channel or trailer word in bunch words)
     CHANNEL_PAYLOAD_EXCEED,       ///< Exceeding channel payload block
     CHANNEL_ORDER,                ///< Channels not in increasing order
@@ -210,7 +211,7 @@ class MinorAltroDecodingError
 
   /// \brief Get the number of error types handled by the AltroDecoderError
   /// \return Number of error types
-  static constexpr int getNumberOfErrorTypes() noexcept { return 7; }
+  static constexpr int getNumberOfErrorTypes() noexcept { return 8; }
 
   /// \brief Get the name connected to the error type
   ///
@@ -351,6 +352,11 @@ class AltroDecoder
   /// Performing various consistency checks on the RCU trailer
   /// In case of failure an exception is thrown.
   void checkRCUTrailer();
+
+  /// \brief Check hardware address in channel header for consistency
+  /// \param hwaddress Hardware address to check
+  /// \return True if the channel is consistent (branch, FEC and Altro in expected range) - false otherwise
+  bool checkChannelHWAddress(int hwaddress);
 
   RawReaderMemory& mRawReader;                               ///< underlying raw reader
   RCUTrailer mRCUTrailer;                                    ///< RCU trailer
