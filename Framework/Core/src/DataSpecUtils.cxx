@@ -795,4 +795,20 @@ void DataSpecUtils::updateInputList(std::vector<InputSpec>& list, InputSpec&& in
   }
 }
 
+void DataSpecUtils::updateOutputList(std::vector<OutputSpec>& list, OutputSpec&& spec)
+{
+  auto locate = std::find(list.begin(), list.end(), spec);
+  if (locate != list.end()) {
+    // amend entry
+    auto& entryMetadata = locate->metadata;
+    entryMetadata.insert(entryMetadata.end(), spec.metadata.begin(), spec.metadata.end());
+    std::sort(entryMetadata.begin(), entryMetadata.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name < b.name; });
+    auto new_end = std::unique(entryMetadata.begin(), entryMetadata.end(), [](ConfigParamSpec const& a, ConfigParamSpec const& b) { return a.name == b.name; });
+    entryMetadata.erase(new_end, entryMetadata.end());
+  } else {
+    // add entry
+    list.emplace_back(std::move(spec));
+  }
+}
+
 } // namespace o2::framework
