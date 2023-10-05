@@ -12,6 +12,8 @@
 /// @file  SecondaryVertexingSpec.cxx
 
 #include <vector>
+#include "DataFormatsCalibration/MeanVertexObject.h"
+#include "Framework/CCDBParamSpec.h"
 #include "ReconstructionDataFormats/Decay3Body.h"
 #include "DataFormatsGlobalTracking/RecoContainer.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
@@ -135,6 +137,11 @@ void SecondaryVertexingSpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* ob
     mStrTracker.setClusterDictionary((const o2::itsmft::TopologyDictionary*)obj);
     return;
   }
+  if (matcher == ConcreteDataMatcher("GLO", "MEANVERTEX", 0)) {
+    LOG(info) << "Imposing new MeanVertex: " << ((const o2::dataformats::MeanVertexObject*)obj)->asString();
+    mVertexer.setMeanVertex((const o2::dataformats::MeanVertexObject*)obj);
+    return;
+  }
 }
 
 void SecondaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
@@ -179,6 +186,8 @@ void SecondaryVertexingSpec::updateTimeDependentParams(ProcessingContext& pc)
       mStrTracker.setupFitters();
     }
   }
+
+  pc.inputs().get<o2::dataformats::MeanVertexObject*>("meanvtx");
 }
 
 DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCasc, bool enable3body, bool enableStrangenesTracking, bool useMC)
@@ -195,6 +204,7 @@ DataProcessorSpec getSecondaryVertexingSpec(GTrackID::mask_t src, bool enableCas
   }
   dataRequest->requestTracks(src, useMC);
   dataRequest->requestPrimaryVertertices(useMC);
+  dataRequest->inputs.emplace_back("meanvtx", "GLO", "MEANVERTEX", 0, Lifetime::Condition, ccdbParamSpec("GLO/Calib/MeanVertex", {}, 1));
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                                                                                         // orbitResetTime
                                                               true,                                                                                          // GRPECS=true
                                                               false,                                                                                         // GRPLHCIF
