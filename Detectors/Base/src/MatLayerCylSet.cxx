@@ -16,9 +16,9 @@
 #include "CommonConstants/MathConstants.h"
 
 #ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
-
 #include "GPUCommonLogger.h"
 #include <TFile.h>
+#include "CommonUtils/TreeStreamRedirector.h"
 //#define _DBG_LOC_ // for local debugging only
 
 #endif // !GPUCA_ALIGPUCODE
@@ -179,37 +179,37 @@ void MatLayerCylSet::writeToFile(const std::string& outFName)
 GPUd() int MatLayerCylSet::searchLayerFast(float r2, int low, int high) const
 {
   // we can avoid the sqrt .. at the cost of more memory in the lookup
-  const auto index = int(std::sqrt(r2) * InvVoxelRDelta);
-  if (index >= mLayerVoxelLU.size()) {
-    return -1;
-  }
-  auto layers = mLayerVoxelLU[index];
-  if (layers.first != layers.second) {
+  const auto index = 2 * int(o2::gpu::CAMath::Sqrt(r2) * InvVoxelRDelta);
+  const auto layersfirst = mLayerVoxelLU[index];
+  const auto layerslast = mLayerVoxelLU[index + 1];
+  if (layersfirst != layerslast) {
     // this means the voxel is undecided and we revert to search
-    return searchSegment(r2, layers.first, layers.second + 1);
+    return searchSegment(r2, layersfirst, layerslast + 1);
   }
-  return layers.first;
+  return layersfirst;
 }
 
 void MatLayerCylSet::initLayerVoxelLU()
 {
-  if (mLayerVoxelLUInitialized) {
+  if (mInitializedLayerVoxelLU) {
     LOG(info) << "Layer voxel already initialized; Aborting";
     return;
   }
   LOG(info) << "Initializing voxel layer lookup";
-  const int numVoxels = int(LayerRMax / VoxelRDelta);
-  mLayerVoxelLU.clear();
-  mLayerVoxelLU.reserve(numVoxels);
-  for (int voxel = 0; voxel < numVoxels; ++voxel) {
+  // do some check if voxels are dimensioned correctly
+  if (LayerRMax < get()->mRMax) {
+    LOG(fatal) << "Cannot initialized layer voxel lookup due to dimension problem (fix constants in MatLayerCylSet.h)";
+  }
+  for (int voxel = 0; voxel < NumVoxels; ++voxel) {
     // check the 2 extremes of this voxel "covering"
     const auto lowerR = voxel * VoxelRDelta;
     const auto upperR = lowerR + VoxelRDelta;
     const auto lowerSegment = searchSegment(lowerR * lowerR);
     const auto upperSegment = searchSegment(upperR * upperR);
-    mLayerVoxelLU.push_back(std::pair<uint16_t, u_int16_t>(lowerSegment, upperSegment));
+    mLayerVoxelLU[2 * voxel] = lowerSegment;
+    mLayerVoxelLU[2 * voxel + 1] = upperSegment;
   }
-  mLayerVoxelLUInitialized = true;
+  mInitializedLayerVoxelLU = true;
 }
 
 //________________________________________________________________________________
@@ -236,6 +236,7 @@ MatLayerCylSet* MatLayerCylSet::rectifyPtrFromFile(MatLayerCylSet* ptr)
   if (ptr && !ptr->get()) {
     ptr->fixPointers();
   }
+  ptr->initLayerVoxelLU();
   return ptr;
 }
 
@@ -428,7 +429,7 @@ GPUd() bool MatLayerCylSet::getLayersRange(const Ray& ray, short& lmin, short& l
     return false;
   }
   int lmxInt, lmnInt;
-  if (!mLayerVoxelLUInitialized) {
+  if (!mLayerVoxelLU) {
     lmxInt = rmax2 < getRMax2() ? searchSegment(rmax2, 0) : get()->mNRIntervals - 2;
     lmnInt = rmin2 >= getRMin2() ? searchSegment(rmin2, 0, lmxInt + 1) : 0;
   } else {

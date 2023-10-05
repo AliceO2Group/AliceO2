@@ -19,12 +19,9 @@
 #include "DetectorsBase/MatLayerCyl.h"
 #include "DetectorsBase/Ray.h"
 #include "FlatObject.h"
-#include <vector>
-#include <utility>
 
 #ifndef GPUCA_ALIGPUCODE // this part is unvisible on GPU version
 #include "MathUtils/Cartesian.h"
-#include "CommonUtils/TreeStreamRedirector.h"
 #endif // !GPUCA_ALIGPUCODE
 
 /**********************************************************************
@@ -130,9 +127,10 @@ class MatLayerCylSet : public o2::gpu::FlatObject
   static constexpr float LayerRMax = 500;    // maximum value of R lookup (corresponds to last layer of MatLUT)
   static constexpr float VoxelRDelta = 0.05; // voxel spacing for layer lookup; seems a natural choice - corresponding ~ to smallest spacing
   static constexpr float InvVoxelRDelta = 1.f / VoxelRDelta;
+  static constexpr int NumVoxels = int(LayerRMax / VoxelRDelta);
 
-  std::vector<std::pair<uint16_t, uint16_t>> mLayerVoxelLU{}; //! helper structure to lookup a layer based on radius
-  bool mLayerVoxelLUInitialized = false;                      //! if layer helper structure is initialized
+  uint16_t mLayerVoxelLU[2 * NumVoxels]; //! helper structure to lookup a layer based on known radius (static dimension for easy copy to GPU)
+  bool mInitializedLayerVoxelLU = false; //! if the voxels have been initialized
 
   ClassDefNV(MatLayerCylSet, 1);
 };

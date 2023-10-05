@@ -131,10 +131,6 @@ bool GRPGeomHelper::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   if (mRequest->askMatLUT && matcher == ConcreteDataMatcher("GLO", "MATLUT", 0)) {
     LOG(info) << "material LUT updated";
     mMatLUT = o2::base::MatLayerCylSet::rectifyPtrFromFile((o2::base::MatLayerCylSet*)obj);
-    if (getenv("ALICEO2_MATBUT_VOXEL")) {
-      // the object is already const here ... so need to const_cast to finish initialization
-      const_cast<o2::base::MatLayerCylSet*>(mMatLUT)->initLayerVoxelLU();
-    }
     o2::base::Propagator::Instance(false)->setMatLUT(mMatLUT);
     if (mRequest->needPropagatorD) {
       o2::base::PropagatorD::Instance(false)->setMatLUT(mMatLUT);
