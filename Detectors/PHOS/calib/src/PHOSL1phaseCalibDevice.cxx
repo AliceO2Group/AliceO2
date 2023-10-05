@@ -48,6 +48,10 @@ void PHOSL1phaseCalibDevice::endOfStream(o2::framework::EndOfStreamContext& ec)
   mCalibrator->checkSlotsToFinalize(o2::calibration::INFINITE_TF);
   mCalibrator->endOfStream();
 
+  if (mRunStartTime == 0 || mCalibrator->getCalibration() == 0) { // run not started || calibration was not produced
+    return;                                                       // do not create CCDB object
+  }
+
   std::vector<int> l1phase{mCalibrator->getCalibration()};
   LOG(info) << "End of stream reached, sending output to CCDB";
   // prepare all info to be sent to CCDB
