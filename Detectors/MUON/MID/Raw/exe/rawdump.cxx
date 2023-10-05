@@ -104,9 +104,7 @@ int main(int argc, char* argv[])
         o2::framework::RawParser parser(rawFileReader.getData().data(), rawFileReader.getData().size());
         auto it = parser.begin(); // We only have 1 HB
         auto const* rdhPtr = reinterpret_cast<const o2::header::RDHAny*>(it.raw());
-        if (!runDecoder) {
-          o2::raw::RDHUtils::printRDH(rdhPtr);
-        }
+        o2::raw::RDHUtils::printRDH(rdhPtr);
         if (it.size() > 0) {
           gsl::span<const uint8_t> payload(it.data(), it.size());
           if (runDecoder) {
