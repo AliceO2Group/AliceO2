@@ -240,7 +240,6 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
   present.resize(routes.size(), false);
   static std::vector<size_t> unmatchedDescriptions;
   unmatchedDescriptions.clear();
-  bool allFound = true;
   DataProcessingHeader const* dph = nullptr;
   DataHeader const* firstDH = nullptr;
   bool hassih = false;
@@ -260,6 +259,7 @@ void injectMissingData(fair::mq::Device& device, fair::mq::Parts& parts, std::ve
 
   size_t foundDataSpecs = 0;
   for (int msgidx = 0; msgidx < parts.Size(); msgidx += 2) {
+    bool allFound = true;
     const auto dh = o2::header::get<DataHeader*>(parts.At(msgidx)->GetData());
     auto const sih = o2::header::get<SourceInfoHeader*>(parts.At(msgidx)->GetData());
     if (sih != nullptr) {
