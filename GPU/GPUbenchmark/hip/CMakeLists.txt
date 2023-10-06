@@ -18,3 +18,8 @@ o2_add_hipified_executable(gpu-memory-benchmark-hip
                            PUBLIC_LINK_LIBRARIES hip::host
                                                  Boost::program_options
                            TARGETVARNAME targetName)
+
+# if(O2_HIP_CMAKE_LINK_FLAGS)
+#   # Need to add gpu target also to link flags due to gpu-rdc option
+#   target_link_options(${targetName} PUBLIC ${O2_HIP_CMAKE_LINK_FLAGS})
+# endif()
