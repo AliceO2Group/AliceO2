@@ -125,6 +125,9 @@ class DCAFitterN
   ///< check if propagation of tracks to candidate vertex was done
   bool isPropagateTracksToVertexDone(int cand = 0) const { return mTrPropDone[mOrder[cand]]; }
 
+  ///< check if propagation of tracks to candidate vertex was done
+  bool isPropagationFailure(int cand = 0) const { return mPropFailed[mOrder[cand]]; }
+
   ///< track param propagated to V0 candidate (no check for the candidate validity)
   ///  propagateTracksToVertex must be called in advance
   Track& getTrack(int i, int cand = 0)
@@ -150,7 +153,7 @@ class DCAFitterN
   o2::track::TrackPar createParentTrackPar(int cand = 0, bool sectorAlpha = true) const;
 
   ///< calculate on the fly track param (no cov mat) at candidate, check isValid to make sure propagation was successful
-  o2::track::TrackPar getTrackParamAtPCA(int i, int cand = 0) const;
+  o2::track::TrackPar getTrackParamAtPCA(int i, int cand = 0);
 
   ///< recalculate PCA as a cov-matrix weighted mean, even if absDCA method was used
   bool recalculatePCAWithErrors(int cand = 0);
@@ -232,8 +235,8 @@ class DCAFitterN
   bool minimizeChi2NoErr();
   bool roughDZCut() const;
   bool closerToAlternative() const;
-  bool propagateToX(o2::track::TrackParCov& t, float x) const;
-  bool propagateParamToX(o2::track::TrackPar& t, float x) const;
+  bool propagateToX(o2::track::TrackParCov& t, float x);
+  bool propagateParamToX(o2::track::TrackPar& t, float x);
 
   static double getAbsMax(const VecND& v);
   ///< track param positions at V0 candidate (no check for the candidate validity)
@@ -308,7 +311,8 @@ class DCAFitterN
   std::array<Vec3D, MAXHYP> mPCA;            // PCA for each vertex candidate
   std::array<float, MAXHYP> mChi2 = {0};     // Chi2 at PCA candidate
   std::array<int, MAXHYP> mNIters;           // number of iterations for each seed
-  std::array<bool, MAXHYP> mTrPropDone;      // Flag that the tracks are fully propagated to PCA
+  std::array<bool, MAXHYP> mTrPropDone{};    // Flag that the tracks are fully propagated to PCA
+  std::array<bool, MAXHYP> mPropFailed{};    // Flag that some propagation failed for this PCA candidate
   MatSym3D mWeightInv;                       // inverse weight of single track, [sum{M^T E M}]^-1 in EQ.T
   std::array<int, MAXHYP> mOrder{0};
   int mCurHyp = 0;
@@ -353,6 +357,9 @@ int DCAFitterN<N, Args...>::process(const Tr&... args)
   }
   if (!mCrossings.set(mTrAux[0], *mOrigTrPtr[0], mTrAux[1], *mOrigTrPtr[1], mMaxDXYIni)) { // even for N>2 it should be enough to test just 1 loop
     return 0;                                                                              // no crossing
+  }
+  for (int ih = 0; ih < MAXHYP; ih++) {
+    mPropFailed[ih] = false;
   }
   if (mUseAbsDCA) {
     calcRMatrices(); // needed for fast residuals derivatives calculation in case of abs. distance minimization
@@ -825,7 +832,7 @@ bool DCAFitterN<N, Args...>::propagateTracksToVertex(int icand)
 
 //___________________________________________________________________
 template <int N, typename... Args>
-inline o2::track::TrackPar DCAFitterN<N, Args...>::getTrackParamAtPCA(int i, int icand) const
+inline o2::track::TrackPar DCAFitterN<N, Args...>::getTrackParamAtPCA(int i, int icand)
 {
   // propagate tracks param only to current vertex (if not already done)
   int ord = mOrder[icand];
@@ -1058,24 +1065,34 @@ o2::track::TrackPar DCAFitterN<N, Args...>::createParentTrackPar(int cand, bool 
 
 //___________________________________________________________________
 template <int N, typename... Args>
-inline bool DCAFitterN<N, Args...>::propagateParamToX(o2::track::TrackPar& t, float x) const
+inline bool DCAFitterN<N, Args...>::propagateParamToX(o2::track::TrackPar& t, float x)
 {
+  bool res = true;
   if (mUsePropagator || mMatCorr != o2::base::Propagator::MatCorrType::USEMatCorrNONE) {
-    return o2::base::Propagator::Instance()->PropagateToXBxByBz(t, x, mMaxSnp, mMaxStep, mMatCorr);
+    res = o2::base::Propagator::Instance()->PropagateToXBxByBz(t, x, mMaxSnp, mMaxStep, mMatCorr);
   } else {
-    return t.propagateParamTo(x, mBz);
+    res = t.propagateParamTo(x, mBz);
   }
+  if (!res) {
+    mPropFailed[mCurHyp] = true;
+  }
+  return res;
 }
 
 //___________________________________________________________________
 template <int N, typename... Args>
-inline bool DCAFitterN<N, Args...>::propagateToX(o2::track::TrackParCov& t, float x) const
+inline bool DCAFitterN<N, Args...>::propagateToX(o2::track::TrackParCov& t, float x)
 {
+  bool res = true;
   if (mUsePropagator || mMatCorr != o2::base::Propagator::MatCorrType::USEMatCorrNONE) {
-    return o2::base::Propagator::Instance()->PropagateToXBxByBz(t, x, mMaxSnp, mMaxStep, mMatCorr);
+    res = o2::base::Propagator::Instance()->PropagateToXBxByBz(t, x, mMaxSnp, mMaxStep, mMatCorr);
   } else {
-    return t.propagateTo(x, mBz);
+    res = t.propagateTo(x, mBz);
   }
+  if (!res) {
+    mPropFailed[mCurHyp] = true;
+  }
+  return res;
 }
 
 using DCAFitter2 = DCAFitterN<2, o2::track::TrackParCov>;
