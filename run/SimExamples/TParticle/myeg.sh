@@ -18,5 +18,5 @@ while test $# -gt 0 ; do
     shift
 done
 
-root -q -l MyEG.cc${opt} -- $nev \"$out\" $seed
+root -q -l MyEG.macro${opt} -- $nev \"$out\" $seed
 
