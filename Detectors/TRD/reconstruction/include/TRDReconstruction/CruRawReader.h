@@ -119,8 +119,10 @@ class CruRawReader
   // given the total link size and the hcid from the RDH
   // parse the tracklet data. Overwrite hcid from TrackletHCHeader if mismatch is detected
   // trackletWordsRejected:  count the number of words which were skipped (subset of words read)
-  // returns total number of words read (no matter if parsed successfully or not)
-  int parseTrackletLinkData(int linkSize32, int& hcid, int& trackletWordsRejected);
+  // trackletWordsReadOK: count the number of words which could be read consecutively w/o errors
+  // numberOfTrackletsFound: count the number of tracklets found
+  // returns total number of words read (no matter if parsed successfully or not) or -1 in case of failure
+  int parseTrackletLinkData(int linkSize32, int& hcid, int& trackletWordsRejected, int& trackletWordsReadOK, int& numberOfTrackletsFound);
 
   // the parsing begins after the DigitHCHeaders have been parsed already
   // maxWords32 is the remaining number of words for the given link

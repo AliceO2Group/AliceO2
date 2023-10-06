@@ -500,7 +500,9 @@ bool CruRawReader::processHalfCRU(int iteration)
     mEventRecords.incLinkWords(halfChamberId, mCurrentHalfCRULinkLengths[currentlinkindex]);
     uint32_t currentlinksize32 = mCurrentHalfCRULinkLengths[currentlinkindex] * 8; // x8 to go from 256 bits to 32 bit;
     uint32_t endOfCurrentLink = mHBFoffset32 + currentlinksize32;
-
+    if (mOptions[TRDVerboseBit] && currentlinksize32 > 0) {
+      LOGP(info, "Reading {} (link ID {}, HCID {}) with {} 32-bit words", HelperMethods::getSectorStackLayerSide(halfChamberId), linkIdxGlobal, halfChamberId, currentlinksize32);
+    }
     linksizeAccum32 += currentlinksize32;
     if (currentlinksize32 == 0) {
       mEventRecords.incLinkNoData(halfChamberId);
@@ -521,8 +523,13 @@ bool CruRawReader::processHalfCRU(int iteration)
         LOGF(info, "Tracklet parser starting at offset %u and processing up to %u words", mHBFoffset32, currentlinksize32);
       }
       int trackletWordsRejected = 0;
-      int trackletWordsRead = parseTrackletLinkData(currentlinksize32, halfChamberId, trackletWordsRejected);
+      int trackletWordsReadOK = 0;
+      int numberOfTrackletsFound = 0; // count the number of found tracklets for this link
+      int trackletWordsRead = parseTrackletLinkData(currentlinksize32, halfChamberId, trackletWordsRejected, trackletWordsReadOK, numberOfTrackletsFound);
       std::chrono::duration<float, std::micro> trackletparsingtime = std::chrono::high_resolution_clock::now() - trackletparsingstart;
+      if (mOptions[TRDVerboseBit]) {
+        LOGP(info, "Could read {} 32-bit words w/o errors, found {} tracklets, rejected {} 32-bit words for {}. Parsing OK? {}", trackletWordsReadOK, numberOfTrackletsFound, trackletWordsRejected, HelperMethods::getSectorStackLayerSide(halfChamberId), (trackletWordsRead != -1 && trackletWordsRejected == 0));
+      }
       if (trackletWordsRead == -1) {
         // something went wrong bailout of here.
         mHBFoffset32 = hbfOffsetTmp + linksizeAccum32;
@@ -544,7 +551,7 @@ bool CruRawReader::processHalfCRU(int iteration)
       }
       mEventRecords.getCurrentEventRecord().incTrackletTime(trackletparsingtime.count());
       if (mOptions[TRDVerboseBit]) {
-        LOGF(info, "Read %i tracklet words and rejected %i words", trackletWordsRead, trackletWordsRejected);
+        LOGF(debug, "Read %i tracklet words and rejected %i words", trackletWordsRead, trackletWordsRejected);
       }
       mTrackletWordsRejected += trackletWordsRejected;
       mTrackletWordsRead += trackletWordsRead;
@@ -836,10 +843,9 @@ int CruRawReader::parseDigitLinkData(int maxWords32, int hcid, int& wordsRejecte
 }
 
 // Returns number of words read (>=0) or error state (<0)
-int CruRawReader::parseTrackletLinkData(int linkSize32, int& hcid, int& wordsRejected)
+int CruRawReader::parseTrackletLinkData(int linkSize32, int& hcid, int& wordsRejected, int& wordsReadOK, int& trackletsFound)
 {
   int wordsRead = 0;                 // count the number of words which were parsed (both successful and not successful)
-  int numberOfTrackletsFound = 0;    // count the number of found tracklets for this link
   int state = StateTrackletHCHeader; // we expect to always see a TrackletHCHeader at the beginning of the link
   // tracklet data for one link is expected to arrive ordered
   // first MCM in row=0, column=0, then row=0, column=1, ... row=1, column=0, ...
@@ -865,6 +871,7 @@ int CruRawReader::parseTrackletLinkData(int linkSize32, int& hcid, int& wordsRej
           // either the TrackletHCHeader is corrupt or we have only digits on this link
           return 0;
         }
+        ++wordsReadOK;
         state = StateTrackletMCMHeader; // we do expect tracklets following
       } else {
         // we always expect a TrackletHCHeader as first word for a link (default)
@@ -876,12 +883,14 @@ int CruRawReader::parseTrackletLinkData(int linkSize32, int& hcid, int& wordsRej
           ++wordsRejected;
           continue;
         }
+        ++wordsReadOK;
         state = StateTrackletMCMHeader; // we might have tracklets following or tracklet end markers
       }
     } // StateTrackletHCHeader
 
     else if (state == StateTrackletMCMHeader) {
       if (currWord == TRACKLETENDMARKER) {
+        ++wordsReadOK;
         state = StateSecondEndmarker; // we expect a second tracklet end marker to follow
       } else {
         mcmHeader.word = currWord;
@@ -912,6 +921,7 @@ int CruRawReader::parseTrackletLinkData(int linkSize32, int& hcid, int& wordsRej
           previousColumn = mcmHeader.col;
           previousRow = mcmHeader.padrow;
         }
+        ++wordsReadOK;
         state = StateTrackletMCMData; // tracklet words must be following, unless the HC header format indicates sending of empty MCM headers
       }
       ++wordsRead;
@@ -935,20 +945,23 @@ int CruRawReader::parseTrackletLinkData(int linkSize32, int& hcid, int& wordsRej
           break;
         }
         if ((currWord & 0x1) == 0x1) {
-          // the reserved bit of the trackler MCM data is set
+          // the reserved bit of the tracklet MCM data is set, we don't create a tracklet from this word
           incrementErrors(TrackletMCMDataFailure, hcid, fmt::format("Invalid word {:#010x} for the expected TrackletMCMData", currWord));
           ++wordsRejected;
+          ++wordsRead;
+          continue;
         }
         TrackletMCMData mcmData;
         mcmData.word = currWord;
         mEventRecords.getCurrentEventRecord().addTracklet(assembleTracklet64(hcHeader.format, mcmHeader, mcmData, iCpu, hcid));
-        ++numberOfTrackletsFound;
+        ++trackletsFound;
         ++mTrackletsFound;
         addedTracklet = true;
         ++wordsRead;
+        ++wordsReadOK;
         if (wordsRead == linkSize32) {
           incrementErrors(TrackletNoTrackletEndMarker, hcid, fmt::format("After reading the word {:#010x} we are at the end of the link data", currWord));
-          return wordsRead;
+          return -1;
         }
         currWord = mHBFPayload[mHBFoffset32 + wordsRead];
       }
@@ -978,9 +991,10 @@ int CruRawReader::parseTrackletLinkData(int linkSize32, int& hcid, int& wordsRej
     else if (state == StateSecondEndmarker) {
       ++wordsRead;
       if (currWord != TRACKLETENDMARKER) {
-        incrementErrors(TrackletNoSecondEndMarker, hcid, fmt::format("Expected second tracklet end marker, but found {:#010x} instead", currWord));
+        incrementErrors(TrackletNoSecondEndMarker, hcid, fmt::format("Invalid word {:#010x} for the expected second end marker", currWord));
         return -1;
       }
+      ++wordsReadOK;
       state = StateFinished;
     } // StateSecondEndmarker
 
@@ -1001,7 +1015,7 @@ int CruRawReader::parseTrackletLinkData(int linkSize32, int& hcid, int& wordsRej
 
   } // end of state machine
 
-  if (mTrackletHCHeaderState == 1 && numberOfTrackletsFound == 0) {
+  if (mTrackletHCHeaderState == 1 && trackletsFound == 0) {
     if (mMaxErrsPrinted > 0) {
       LOG(error) << "We found a TrackletHCHeader in mode 1, but did not add any tracklets";
       checkNoErr();
