@@ -131,7 +131,7 @@ and a steering class
 	  }
 	};
 	
-Then we could make the script [`MyEG.cc` (complete code)](MyEG.cc) like
+Then we could make the script [`MyEG.macro` (complete code)](MyEG.macro) like
 
     void MyEG(Int_t nev,const TString& out,Int_t every=1)
     {
@@ -143,7 +143,7 @@ Then we could make the script [`MyEG.cc` (complete code)](MyEG.cc) like
     }
 	
 and a simple shell-script [`myeg.sh`](myeg.sh) to pass arguments to
-the `MyEG.cc` script
+the `MyEG.macro` script
 
     #!/bin/sh
     
@@ -159,7 +159,7 @@ the `MyEG.cc` script
         shift
     done
     
-    root -l MyEG.cc -- $nev \"$out\"
+    root -l MyEG.macro -- $nev \"$out\"
 
 We can then do 
 
