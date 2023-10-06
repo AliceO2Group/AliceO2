@@ -30,7 +30,7 @@ struct GeneratorTParticleParam : public o2::conf::ConfigurableParamHelper<Genera
   std::string branchName = "Particles";
   std::string fileNames = "tparticle.root";
   std::string progCmd = "";
-  O2ParamDef(GeneratorTParticleParam, "TParticle");
+  O2ParamDef(GeneratorTParticleParam, "GeneratorTParticle");
 };
 } // end namespace eventgen
 } // end namespace o2
