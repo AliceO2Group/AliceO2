@@ -22,8 +22,9 @@ Please refer to the documentation of these for more on how to make
 event files in the HepMC format.
 
 To make a simulation reading from the file `events.hepmc`, do
+
     o2-sim -g hepmc --configKeyValues "HepMC.fileName=events.hepmc" ...
-    
+
 See also [`read.sh`](read.sh).
 
 ## Reading HepMC events from child process
@@ -35,7 +36,7 @@ EG by
 
     o2-sim -g hepmc --configKeyValues "HepMC.progCmd=eg"
 
-See also [`child.sh`](child.sh). 
+See also [`child.sh`](child.sh).
 
 There are some requirements on the program `eg`:
 
@@ -52,7 +53,7 @@ We can filter that out via a shell script ([`crmc.sh`](crmc.sh)) like
 
     #!/bin/sh
     crmc $@ -o hepmc3 -f /dev/stdout | sed -n 's/^\(HepMC::\|[EAUWVP] \)/\1/p'
-    
+
 The `sed` command selects lines that begin with `HepMC::`, or one
 of single characters `E` (event), `A` (attribute), `U` (units), `W`
 (weight), `V` (vertex), or `P` (particle) followed by a space.  This
@@ -65,8 +66,8 @@ the CRMC suite.  For example, if we want to simulate p-Pb collisions
 using DpmJET, we can do
 
     o2-sim -g hepmc --configKeyValues "HepMC.progCmd=crmc.sh -m 12 -i2212 -I 1002080820"
-    
-    
+
+
 ### Implementation details
 
 Internally `GeneratorHepMC`
