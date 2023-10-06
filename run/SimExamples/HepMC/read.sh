@@ -46,4 +46,3 @@ out=`echo "$out" | tr ' ' '_'`
 export VMCWORKDIR=${O2_ROOT}/share
 o2-sim -g hepmc --configKeyValues "HepMC.fileName=$inp" \
        --outPrefix "$out" --seed $seed --nEvents $nev $@
-      
