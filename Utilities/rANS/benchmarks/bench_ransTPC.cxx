@@ -378,15 +378,7 @@ int main(int argc, char* argv[])
     LOG(info) << "######################################################";
   });
   writer.EndObject();
-  // Not implemented in all version of rapidjson 1.1.0 Seems like
-  // rapidjson developers does not update version number when making
-  // API changes - sigh.
-  // 
-  // writer.Flush();
-  //
-  // We call flush on the output stream instead
-  //
-  stream.Flush();
+  writer.Flush();
   of.close();
 
   // writerFrequencies.EndObject();
