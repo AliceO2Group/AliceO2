@@ -28,7 +28,6 @@ if(HIP_ENABLED)
   #         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
   set(CMAKE_HIP_FLAGS "${CMAKE_HIP_FLAGS} ${O2_HIP_CMAKE_CXX_FLAGS} -fgpu-rdc")
-  string(REGEX REPLACE "(gfx1[0-9]+;?)" "" CMAKE_HIP_ARCHITECTURES "${CMAKE_HIP_ARCHITECTURES}")
   message(STATUS "Building ITS HIP tracker")
   o2_add_hipified_library(ITStrackingHIP
                  SOURCES ../cuda/ClusterLinesGPU.cu
