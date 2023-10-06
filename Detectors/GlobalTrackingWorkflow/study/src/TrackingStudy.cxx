@@ -175,7 +175,10 @@ void TrackingStudySpec::process(o2::globaltracking::RecoContainer& recoData)
         if (!prop->propagateToDCA(pv, trc, prop->getNominalBz(), 2., o2::base::PropagatorF::MatCorrType::USEMatCorrLUT, &dca)) {
           continue;
         }
+        float ttime = 0, ttimeE = 0;
+        recoData.getTrackTime(vid, ttime, ttimeE);
         (*mDBGOut) << "dca"
+                   << "tfID=" << TFCount << "ttime=" << ttime << "ttimeE=" << ttimeE
                    << "gid=" << vid << "pv=" << pv << "trc=" << trc << "pvCont=" << pvCont << "ambig=" << ambig << "dca=" << dca << "xmin=" << xmin << "\n";
       }
     }
