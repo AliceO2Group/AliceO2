@@ -33,9 +33,6 @@ class SimParam : public o2::conf::ConfigurableParamHelper<SimParam>
   Int_t getDigitThreshold() const { return mDigitThreshold; }
   Float_t getPinNoise() const { return mPinNoise; }
   Float_t getPinNoiseLG() const { return mPinNoiseLG; }
-  Float_t getTimeNoise() const { return mTimeNoise; }
-  Float_t getTimeDelay() const { return mTimeDelay; }
-  Bool_t isTimeDelayFromOCDB() const { return mTimeDelayFromOCDB; }
   Float_t getTimeResolutionPar0() const { return mTimeResolutionPar0; }
   Float_t getTimeResolutionPar1() const { return mTimeResolutionPar1; }
   Double_t getTimeResolution(Double_t energy) const;
@@ -74,9 +71,6 @@ class SimParam : public o2::conf::ConfigurableParamHelper<SimParam>
   Float_t mGainFluctuations{15.};        ///< correct fMeanPhotonElectron by the gain fluctuations
   Float_t mPinNoise{0.012};              ///< Electronics noise in EMC, APD
   Float_t mPinNoiseLG{0.1};              ///< Electronics noise in EMC, APD, Low Gain
-  Float_t mTimeNoise{1.28e-5};           ///< Electronics noise in EMC, time
-  Float_t mTimeDelay{600e-9};            ///< Simple time delay to mimick roughly delay in data
-  Bool_t mTimeDelayFromOCDB{false};      ///< Get time delay from OCDB
   Float_t mTimeResolutionPar0{0.26666};  ///< Time resolution of FEE electronics
   Float_t mTimeResolutionPar1{1.4586};   ///< Time resolution of FEE electronics
   Int_t mNADCEC{0x10000};                ///< number of channels in EC section ADC
