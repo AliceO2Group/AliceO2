@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/bash
 
 inp=events.hepmc
 seed=$RANDOM
