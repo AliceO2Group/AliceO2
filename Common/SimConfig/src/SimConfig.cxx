@@ -93,11 +93,12 @@ void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs
 #ifdef ENABLE_UPGRADES
     if (mIsRun5) {
       for (int d = DetID::First; d <= DetID::Last; ++d) {
-        if (d == DetID::IT3 || d == DetID::TRK || d == DetID::FT3 || d == DetID::FCT) {
+        if (d == DetID::TRK || d == DetID::FT3 || d == DetID::FCT) {
           activeModules.emplace_back(DetID::getName(d));
         }
       }
       activeModules.emplace_back("A3IP");
+      activeModules.emplace_back("A3ABSO");
     } else {
 #endif
       // add passive components manually (make a PassiveDetID for them!)

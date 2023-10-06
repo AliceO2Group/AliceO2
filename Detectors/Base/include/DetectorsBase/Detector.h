@@ -216,6 +216,10 @@ class Detector : public FairDetector
   // which is required for media creation
   static void initFieldTrackingParams(int& mode, float& maxfield);
 
+  /// set the DetID to HitBitIndex mapping. Succeeds if not already set.
+  static void setDetId2HitBitIndex(std::vector<int> const& v) { Detector::sDetId2HitBitIndex = v; }
+  static std::vector<int> const& getDetId2HitBitIndex() { return Detector::sDetId2HitBitIndex; }
+
  protected:
   Detector(const Detector& origin);
 
@@ -233,6 +237,7 @@ class Detector : public FairDetector
 
   static Float_t mDensityFactor; //! factor that is multiplied to all material densities (ONLY for
   // systematic studies)
+  static std::vector<int> sDetId2HitBitIndex; //! global lookup table keeping mapping of DetID to index in hit bit field (used in MCTrack)
 
   ClassDefOverride(Detector, 1); // Base class for ALICE Modules
 };
@@ -738,6 +743,7 @@ class DetImpl : public o2::base::Detector
   int mInitialized = false;
 
   char* mHitCollectorBufferPtr = nullptr; //! pointer to hit (collector) buffer location (strictly internal)
+
   ClassDefOverride(DetImpl, 0);
 };
 } // namespace base

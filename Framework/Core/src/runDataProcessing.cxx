@@ -681,7 +681,7 @@ void spawnDevice(uv_loop_t* loop,
       }
     }
     for (auto& env : execution.environ) {
-      putenv(strdup(DeviceSpecHelpers::reworkEnv(env, spec).data()));
+      putenv(strdup(DeviceSpecHelpers::reworkTimeslicePlaceholder(env, spec).data()));
     }
     execvp(execution.args[0], execution.args.data());
   }
@@ -1799,6 +1799,9 @@ int runStateMachine(DataProcessorSpecs const& workflow,
                     break;
                   case VariantType::LabeledArrayDouble:
                     option.defaultValue = reg->get<LabeledArray<double>>(name);
+                    break;
+                  case VariantType::LabeledArrayString:
+                    option.defaultValue = reg->get<LabeledArray<std::string>>(name);
                     break;
                   default:
                     break;

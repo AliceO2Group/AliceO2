@@ -15,6 +15,8 @@
 /// @brief  Generic parser for consecutive raw pages
 
 #include "DPLUtils/RawParser.h"
+#include "CommonUtils/VerbosityConfig.h"
+#include "Headers/DataHeader.h"
 #include "fmt/format.h"
 #include <iostream>
 
@@ -38,6 +40,15 @@ bool RawParserHelper::checkPrintError(size_t& localCounter)
     sErrorScale *= 10;
   }
   return sErrors % sErrorScale == 0;
+}
+
+void RawParserHelper::warnDeadBeef(const o2::header::DataHeader* dh)
+{
+  static auto maxWarn = o2::conf::VerbosityConfig::Instance().maxWarnDeadBeef;
+  static int contDeadBeef = 0;
+  if (++contDeadBeef <= maxWarn) {
+    LOGP(alarm, "Found input [{}/{}/0xDEADBEEF] assuming no payload for all links in this TF{}", dh->dataOrigin.as<std::string>(), dh->dataDescription.as<std::string>(), contDeadBeef == maxWarn ? fmt::format(". {} such inputs in row received, stopping reporting", contDeadBeef) : "");
+  }
 }
 
 const char* RDHFormatter<V7>::sFormatString = "{:>5} {:>4} {:>4} {:>4} {:>4} {:>3} {:>3} {:>3}  {:>1} {:>2}";

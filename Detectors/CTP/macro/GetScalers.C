@@ -42,15 +42,22 @@ void GetScalers(std::string srun, long time, std::string ccdbHost = "http://ccdb
   // return;
   scl = mng.getScalersFromCCDB(time, srun, ok);
   if (ok == 1) {
+    scl.printStream(std::cout);
     scl.convertRawToO2();
-    scl.printO2(std::cout);
-    scl.printFromZero(std::cout);
-    scl.printIntegrals();
-    scl.printRates();
-    //  std::vector<int> clsses;
-    //  clsses = ctpcfg.getTriggerClassList();
-    //  std::cout << clsses.size() << std::endl;
-    //  for(auto const& i : clsses) std::cout << i << std::endl;
+    // scl.printO2(std::cout);
+    // scl.printFromZero(std::cout);
+    // scl.printIntegrals();
+    // scl.printRates();
+    std::cout << "TVX,TSC,TCE,ZNC:" << std::endl;
+    scl.printInputRateAndIntegral(3);
+    scl.printInputRateAndIntegral(4);
+    scl.printInputRateAndIntegral(5);
+    scl.printInputRateAndIntegral(26);
+    std::cout << " TVX,TVX&TCE,TVX&TSC,TVX&VCH:" << std::endl;
+    scl.printClassBRateAndIntegral(3);
+    scl.printClassBRateAndIntegral(4);
+    scl.printClassBRateAndIntegral(5);
+    scl.printClassBRateAndIntegral(6);
   } else {
     std::cout << "Can not find run, please, check parameters" << std::endl;
   }

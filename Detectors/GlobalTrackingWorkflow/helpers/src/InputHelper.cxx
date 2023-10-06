@@ -18,6 +18,7 @@
 #include "MFTWorkflow/TrackReaderSpec.h"
 #include "TPCReaderWorkflow/TrackReaderSpec.h"
 #include "TPCReaderWorkflow/ClusterReaderSpec.h"
+#include "TPCReaderWorkflow/TriggerReaderSpec.h"
 #include "TPCWorkflow/ClusterSharingMapSpec.h"
 #include "HMPIDWorkflow/ClustersReaderSpec.h"
 #include "HMPIDWorkflow/HMPMatchedReaderSpec.h"
@@ -97,6 +98,9 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
   }
   if (maskClusters[GID::TPC]) {
     specs.emplace_back(o2::tpc::getClusterReaderSpec(maskClustersMC[GID::TPC]));
+    if (!getenv("DPL_DISABLE_TPC_TRIGGER_READER") || atoi(getenv("DPL_DISABLE_TPC_TRIGGER_READER")) != 1) {
+      specs.emplace_back(o2::tpc::getTPCTriggerReaderSpec());
+    }
   }
   if (maskTracks[GID::TPC] && maskClusters[GID::TPC]) {
     specs.emplace_back(o2::tpc::getClusterSharingMapSpec());

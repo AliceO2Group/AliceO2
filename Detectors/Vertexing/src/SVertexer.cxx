@@ -170,14 +170,16 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData, o2::f
     for (int ith = 0; ith < mNThreads; ith++) {
       mNStrangeTracks += mStrTracker->getNTracks(ith);
     }
-    auto& strTracksOut = pc.outputs().make<std::vector<o2::dataformats::StrangeTrack>>(o2f::Output{"GLO", "STRANGETRACKS", 0, o2f::Lifetime::Timeframe});
-    auto& strClustOut = pc.outputs().make<std::vector<o2::strangeness_tracking::ClusAttachments>>(o2f::Output{"GLO", "CLUSUPDATES", 0, o2f::Lifetime::Timeframe});
-    o2::pmr::vector<o2::MCCompLabel> mcLabsOut;
-    strTracksOut.reserve(mNStrangeTracks);
-    strClustOut.reserve(mNStrangeTracks);
+
+    std::vector<o2::dataformats::StrangeTrack> strTracksTmp;
+    std::vector<o2::strangeness_tracking::ClusAttachments> strClusTmp;
+    std::vector<o2::MCCompLabel> mcLabTmp;
+    strTracksTmp.reserve(mNStrangeTracks);
+    strClusTmp.reserve(mNStrangeTracks);
     if (mStrTracker->getMCTruthOn()) {
-      mcLabsOut.reserve(mNStrangeTracks);
+      mcLabTmp.reserve(mNStrangeTracks);
     }
+
     for (int ith = 0; ith < mNThreads; ith++) { // merge results of all threads
       auto& strTracks = mStrTracker->getStrangeTrackVec(ith);
       auto& strClust = mStrTracker->getClusAttachments(ith);
@@ -193,13 +195,39 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData, o2::f
         } else {
           LOGP(fatal, "Unknown strange track decay reference type {} for index {}", int(t.mPartType), t.mDecayRef);
         }
-        strTracksOut.push_back(t);
-        strClustOut.push_back(strClust[i]);
+
+        strTracksTmp.push_back(t);
+        strClusTmp.push_back(strClust[i]);
         if (mStrTracker->getMCTruthOn()) {
-          mcLabsOut.push_back(stcTrMCLab[i]);
+          mcLabTmp.push_back(stcTrMCLab[i]);
         }
       }
     }
+
+    auto& strTracksOut = pc.outputs().make<std::vector<o2::dataformats::StrangeTrack>>(o2f::Output{"GLO", "STRANGETRACKS", 0, o2f::Lifetime::Timeframe});
+    auto& strClustOut = pc.outputs().make<std::vector<o2::strangeness_tracking::ClusAttachments>>(o2f::Output{"GLO", "CLUSUPDATES", 0, o2f::Lifetime::Timeframe});
+    o2::pmr::vector<o2::MCCompLabel> mcLabsOut;
+    strTracksOut.resize(mNStrangeTracks);
+    strClustOut.resize(mNStrangeTracks);
+    if (mStrTracker->getMCTruthOn()) {
+      mcLabsOut.resize(mNStrangeTracks);
+    }
+
+    std::vector<int> sortIdx(strTracksTmp.size());
+    std::iota(sortIdx.begin(), sortIdx.end(), 0);
+    // if mNTreads > 1 we need to sort tracks, clus and MCLabs by their mDecayRef
+    if (mNThreads > 1 && mNStrangeTracks > 1) {
+      std::sort(sortIdx.begin(), sortIdx.end(), [&strTracksTmp](int i1, int i2) { return strTracksTmp[i1].mDecayRef < strTracksTmp[i2].mDecayRef; });
+    }
+
+    for (int i = 0; i < (int)sortIdx.size(); i++) {
+      strTracksOut[i] = strTracksTmp[sortIdx[i]];
+      strClustOut[i] = strClusTmp[sortIdx[i]];
+      if (mStrTracker->getMCTruthOn()) {
+        mcLabsOut[i] = mcLabTmp[sortIdx[i]];
+      }
+    }
+
     if (mStrTracker->getMCTruthOn()) {
       auto& strTrMCLableOut = pc.outputs().make<std::vector<o2::MCCompLabel>>(o2f::Output{"GLO", "STRANGETRACKS_MC", 0, o2f::Lifetime::Timeframe});
       strTrMCLableOut.swap(mcLabsOut);
@@ -1089,7 +1117,7 @@ bool SVertexer::processTPCTrack(const o2::tpc::TrackTPC& trTPC, GIndex gid, int 
   const auto& vtx = mPVertices[vtxid];
   auto twe = vtx.getTimeStamp();
   int posneg = trTPC.getSign() < 0 ? 1 : 0;
-  auto trLoc = mTracksPool[posneg].emplace_back(TrackCand{trTPC, gid, {vtxid, vtxid}, 0.});
+  auto& trLoc = mTracksPool[posneg].emplace_back(TrackCand{trTPC, gid, {vtxid, vtxid}, 0.});
   auto err = correctTPCTrack(trLoc, trTPC, twe.getTimeStamp(), twe.getTimeStampError());
   if (err < 0) {
     mTracksPool[posneg].pop_back(); // discard

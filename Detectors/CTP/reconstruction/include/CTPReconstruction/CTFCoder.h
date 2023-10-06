@@ -145,8 +145,12 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& data, LumiInfo& l
   std::map<o2::InteractionRecord, CTPDigit> digitsMap;
   o2::InteractionRecord ir(header.firstBC, header.firstOrbit);
   lumi.nHBFCounted = header.lumiNHBFs;
+  lumi.nHBFCountedFV0 = header.lumiNHBFsFV0 ? header.lumiNHBFsFV0 : header.lumiNHBFs;
   lumi.counts = header.lumiCounts;
+  lumi.countsFV0 = header.lumiCountsFV0;
   lumi.orbit = header.lumiOrbit;
+  lumi.inp1 = int(header.inp1);
+  lumi.inp2 = int(header.inp2);
   auto itInp = bytesInput.begin();
   auto itCls = bytesClass.begin();
   bool checkIROK = (mBCShift == 0); // need to check if CTP offset correction does not make the local time negative ?

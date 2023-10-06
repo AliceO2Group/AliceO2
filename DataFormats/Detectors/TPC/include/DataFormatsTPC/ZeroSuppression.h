@@ -19,6 +19,7 @@
 #include <cstddef> // for size_t
 #endif
 #include "GPUCommonDef.h"
+#include "GPUCommonRtypes.h"
 
 namespace o2
 {
@@ -101,6 +102,16 @@ struct TriggerWordDLBZS {
   uint16_t getTriggerBC(int entry = 0) const { return triggerEntries[entry] & 0xFFF; }
   uint16_t getTriggerType(int entry = 0) const { return (triggerEntries[entry] >> 12) & 0x7; }
   bool isValid(int entry = 0) const { return triggerEntries[entry] & 0x8000; }
+
+  ClassDefNV(TriggerWordDLBZS, 1);
+};
+
+/// Trigger info including the orbit
+struct TriggerInfoDLBZS {
+  TriggerWordDLBZS triggerWord{}; ///< trigger Word information
+  uint32_t orbit{};               ///< orbit of the trigger word
+
+  ClassDefNV(TriggerInfoDLBZS, 1);
 };
 
 } // namespace tpc

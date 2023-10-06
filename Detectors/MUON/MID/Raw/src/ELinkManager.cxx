@@ -78,7 +78,8 @@ void ELinkManager::onDone(const ELinkDecoder& decoder, uint8_t crateId, uint8_t 
     // To avoid flooding the logs, we warn only the first time we see it.
     auto& err = mErrors[uniqueId];
     ++err;
-    if (err == 1) {
+    static unsigned int nTotalErr = 0;
+    if (err == 1 && nTotalErr++ < 3) {
       // This is the first time we see this faulty board, so we report it.
       ROBoard board{decoder.getStatusWord(), decoder.getTriggerWord(), raw::makeUniqueLocID(crateId, locId), decoder.getInputs()};
       for (int ich = 0; ich < 4; ++ich) {

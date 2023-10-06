@@ -28,6 +28,7 @@
 #include "Framework/InputRecordWalker.h"
 
 #include "DataFormatsTRD/Constants.h"
+#include "DetectorsBase/TFIDInfoHelper.h"
 
 #include <cassert>
 #include <array>
@@ -81,6 +82,7 @@ void EventRecordContainer::sendData(o2::framework::ProcessingContext& pc, bool g
   pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "TRKTRGRD", 0, o2::framework::Lifetime::Timeframe}, triggers);
   if (generatestats) {
     accumulateStats();
+    o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mTFStats.mTFIDInfo);
     pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "RAWSTATS", 0, o2::framework::Lifetime::Timeframe}, mTFStats);
   }
   if (sendLinkStats) {

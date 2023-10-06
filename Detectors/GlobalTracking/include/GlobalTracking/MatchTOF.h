@@ -90,7 +90,7 @@ class MatchTOF
 
  public:
   ///< perform matching for provided input
-  void run(const o2::globaltracking::RecoContainer& inp);
+  void run(const o2::globaltracking::RecoContainer& inp, unsigned long firstTForbit = 0);
 
   void setCosmics()
   {
@@ -173,7 +173,7 @@ class MatchTOF
   }
 
   void setFIT(bool value = true) { mIsFIT = value; }
-  static int findFITIndex(int bc, const gsl::span<const o2::ft0::RecPoints>& FITRecPoints);
+  static int findFITIndex(int bc, const gsl::span<const o2::ft0::RecPoints>& FITRecPoints, unsigned long firstOrbit);
 
   void checkRefitter();
   bool makeConstrainedTPCTrack(int matchedID, o2::dataformats::TrackTPCTOF& trConstr);
@@ -216,12 +216,15 @@ class MatchTOF
   void doMatching(int sec);
   void doMatchingForTPC(int sec);
   void selectBestMatches();
-  static void BestMatches(std::vector<o2::dataformats::MatchInfoTOFReco>& matchedTracksPairs, std::vector<o2::dataformats::MatchInfoTOF>* matchedTracks, std::vector<int>* matchedTracksIndex, int* matchedClustersIndex, const gsl::span<const o2::ft0::RecPoints>& FITRecPoints, const std::vector<Cluster>& TOFClusWork, const std::vector<matchTrack>* TracksWork, std::vector<o2::dataformats::CalibInfoTOF>& CalibInfoTOF, unsigned long Timestamp, bool MCTruthON, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* TOFClusLabels, const std::vector<o2::MCCompLabel>* TracksLblWork, std::vector<o2::MCCompLabel>* OutTOFLabels, float calibMaxChi2);
-  static void BestMatchesHP(std::vector<o2::dataformats::MatchInfoTOFReco>& matchedTracksPairs, std::vector<o2::dataformats::MatchInfoTOF>* matchedTracks, std::vector<int>* matchedTracksIndex, int* matchedClustersIndex, const gsl::span<const o2::ft0::RecPoints>& FITRecPoints, const std::vector<Cluster>& TOFClusWork, std::vector<o2::dataformats::CalibInfoTOF>& CalibInfoTOF, unsigned long Timestamp, bool MCTruthON, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* TOFClusLabels, const std::vector<o2::MCCompLabel>* TracksLblWork, std::vector<o2::MCCompLabel>* OutTOFLabels);
+  void BestMatches(std::vector<o2::dataformats::MatchInfoTOFReco>& matchedTracksPairs, std::vector<o2::dataformats::MatchInfoTOF>* matchedTracks, std::vector<int>* matchedTracksIndex, int* matchedClustersIndex, const gsl::span<const o2::ft0::RecPoints>& FITRecPoints, const std::vector<Cluster>& TOFClusWork, const std::vector<matchTrack>* TracksWork, std::vector<o2::dataformats::CalibInfoTOF>& CalibInfoTOF, unsigned long Timestamp, bool MCTruthON, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* TOFClusLabels, const std::vector<o2::MCCompLabel>* TracksLblWork, std::vector<o2::MCCompLabel>* OutTOFLabels, float calibMaxChi2);
+  void BestMatchesHP(std::vector<o2::dataformats::MatchInfoTOFReco>& matchedTracksPairs, std::vector<o2::dataformats::MatchInfoTOF>* matchedTracks, std::vector<int>* matchedTracksIndex, int* matchedClustersIndex, const gsl::span<const o2::ft0::RecPoints>& FITRecPoints, const std::vector<Cluster>& TOFClusWork, std::vector<o2::dataformats::CalibInfoTOF>& CalibInfoTOF, unsigned long Timestamp, bool MCTruthON, const o2::dataformats::MCTruthContainer<o2::MCCompLabel>* TOFClusLabels, const std::vector<o2::MCCompLabel>* TracksLblWork, std::vector<o2::MCCompLabel>* OutTOFLabels);
   bool propagateToRefX(o2::track::TrackParCov& trc, float xRef /*in cm*/, float stepInCm /*in cm*/, o2::track::TrackLTIntegral& intLT);
   bool propagateToRefXWithoutCov(o2::track::TrackParCov& trc, float xRef /*in cm*/, float stepInCm /*in cm*/, float bz);
 
   void updateTimeDependentParams();
+
+  static bool mHasFillScheme;
+  static bool mFillScheme[o2::constants::lhc::LHCMaxBunches];
 
   //================================================================
 
@@ -268,6 +271,8 @@ class MatchTOF
   bool mStoreMatchable = false;
 
   unsigned long mTimestamp = 0; ///< in ms
+
+  unsigned long mFirstTForbit = 0; ///< First orbit in TF (needed to align FT0 recpoints)
 
   // from ruben
   gsl::span<const o2::tpc::TrackTPC> mTPCTracksArray; ///< input TPC tracks span

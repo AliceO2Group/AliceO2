@@ -61,8 +61,9 @@ class TriggerRecord
   /// \enum TriggerBitsCoded_t
   /// \brief Position of trigger classes in compressed format
   enum TriggerBitsCoded_t {
-    PHYSTRIGGER, ///< Physics trigger
-    CALIBTRIGGER ///< Calib trigger
+    PHYSTRIGGER,     ///< Physics trigger
+    CALIBTRIGGER,    ///< Calib trigger
+    REJECTINCOMPLETE ///< Rejected as incomplete
   };
   BCData mBCData;            /// Bunch crossing data of the trigger
   DataRange mDataRange;      /// Index of the triggering event (event index and first entry in the container)

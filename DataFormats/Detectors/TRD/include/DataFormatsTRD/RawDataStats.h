@@ -22,6 +22,7 @@
 #include <array>
 #include <unordered_map>
 #include "DataFormatsTRD/Constants.h"
+#include "CommonDataFormat/TFIDInfo.h"
 
 namespace o2::trd
 {
@@ -149,6 +150,7 @@ class TRDDataCountersPerTimeFrame
   uint16_t mNTriggersCalib;                                                                            // number of triggers with digit readout
   uint16_t mNTriggersTotal;                                                                            // total number of triggers
   std::array<int, 256> mDataFormatRead{};                                                              // We just keep the major version number
+  o2::dataformats::TFIDInfo mTFIDInfo;                                                                 // keep track of TF ID
   void clear()
   {
     mLinkNoData.fill(0);
@@ -167,7 +169,7 @@ class TRDDataCountersPerTimeFrame
     mNTriggersTotal = 0;
     mDataFormatRead.fill(0);
   };
-  ClassDefNV(TRDDataCountersPerTimeFrame, 2); // primarily for serialisation so we can send this as a message in o2
+  ClassDefNV(TRDDataCountersPerTimeFrame, 3); // primarily for serialisation so we can send this as a message in o2
 };
 
 } // namespace o2::trd

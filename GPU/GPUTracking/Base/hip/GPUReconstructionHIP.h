@@ -41,7 +41,7 @@ class GPUReconstructionHIPBackend : public GPUReconstructionDeviceBase
 
   int InitDevice_Runtime() override;
   int ExitDevice_Runtime() override;
-  void UpdateSettings() override;
+  void UpdateAutomaticProcessingSettings() override;
 
   std::unique_ptr<GPUThreadContext> GetThreadContext() override;
   void SynchronizeGPU() override;

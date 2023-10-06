@@ -54,7 +54,7 @@ void Initializer::setup()
                                             false); // hide left and bottom tabs
   const string ocdbStorage = settings.GetValue("OCDB.default.path",
                                                o2::base::NameConf::getCCDBServer().c_str()); // default path to OCDB
-  LOG(info) << "Initializer -- OCDB path:" << ocdbStorage;
+  LOGF(info, "Initializer -- OCDB path:", ocdbStorage);
 
   auto& eventManager = EventManager::getInstance();
   eventManager.setCdbPath(ocdbStorage);
@@ -132,7 +132,7 @@ void Initializer::setupGeometry()
     }
     EVisualisationGroup det = static_cast<EVisualisationGroup>(iDet);
     string detName = gVisualisationGroupName[det];
-    LOG(info) << detName;
+    LOGF(info, detName);
 
     if (detName == "TPC" || detName == "MCH" || detName == "MID" ||
         detName == "MFT") { // don't load MUON+MFT and AD and standard TPC to R-Phi view

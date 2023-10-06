@@ -128,7 +128,7 @@ void GPUParam::SetDefaults(float solenoidBz)
   GPUTPCGMPolynomialFieldManager::GetPolynomialField(bzkG, polynomialField);
 }
 
-void GPUParam::UpdateSettings(const GPUSettingsGRP* g, const GPUSettingsProcessing* p)
+void GPUParam::UpdateSettings(const GPUSettingsGRP* g, const GPUSettingsProcessing* p, const GPURecoStepConfiguration* w)
 {
   if (g) {
     bzkG = g->solenoidBz;
@@ -151,21 +151,24 @@ void GPUParam::UpdateSettings(const GPUSettingsGRP* g, const GPUSettingsProcessi
     par.resetTimers = p->resetTimers;
     UpdateRun3ClusterErrors(p->param.tpcErrorParamY, p->param.tpcErrorParamZ);
   }
+  if (w) {
+    par.dodEdx = w->steps.isSet(GPUDataTypes::RecoStep::TPCdEdx);
+    if (par.dodEdx && p && p->tpcDownscaledEdx != 0) {
+      par.dodEdx = (rand() % 100) < p->tpcDownscaledEdx;
+    }
+  }
 }
 
 void GPUParam::SetDefaults(const GPUSettingsGRP* g, const GPUSettingsRec* r, const GPUSettingsProcessing* p, const GPURecoStepConfiguration* w)
 {
   SetDefaults(g->solenoidBz);
-  if (w) {
-    par.dodEdx = w->steps.isSet(GPUDataTypes::RecoStep::TPCdEdx);
-  }
   if (r) {
     rec = *r;
     if (rec.fitPropagateBzOnly == -1) {
       rec.fitPropagateBzOnly = rec.tpc.nWays - 1;
     }
   }
-  UpdateSettings(g, p);
+  UpdateSettings(g, p, w);
 }
 
 void GPUParam::UpdateRun3ClusterErrors(const float* yErrorParam, const float* zErrorParam)

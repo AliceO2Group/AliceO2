@@ -19,6 +19,7 @@
 
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "rapidjson/document.h"
+#include <TVector3.h>
 
 #include <vector>
 #include <ctime>
@@ -42,6 +43,14 @@ class VisualisationCluster
  public:
   // Default constructor
   VisualisationCluster(float XYZ[], float time);
+  VisualisationCluster(TVector3 xyz)
+  {
+    mTime = 0;
+    mCoordinates[0] = xyz[0];
+    mCoordinates[1] = xyz[1];
+    mCoordinates[2] = xyz[2];
+    mSource = o2::dataformats::GlobalTrackID::HMP;
+  }
 
   float X() const { return mCoordinates[0]; }
   float Y() const { return mCoordinates[1]; }

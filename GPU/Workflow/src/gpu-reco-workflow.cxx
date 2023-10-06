@@ -38,6 +38,7 @@ using namespace o2::gpu;
 using CompletionPolicyData = std::vector<InputSpec>;
 static CompletionPolicyData gPolicyData;
 static constexpr unsigned long gTpcSectorMask = 0xFFFFFFFFF;
+static std::function<bool(o2::framework::DataProcessingHeader::StartTime)>* gPolicyOrderCheck;
 static std::shared_ptr<GPURecoWorkflowSpec> gTask;
 
 void customize(std::vector<o2::framework::CallbacksPolicy>& policies)
@@ -56,7 +57,8 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-mc", VariantType::Bool, false, {"disable sending of MC information"}},
     {"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g.: 'TPCHwClusterer.peakChargeThreshold=4;...')"}},
-    {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}}};
+    {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}},
+    {"enableDoublePipeline", VariantType::Bool, false, {"enable GPU double pipeline mode"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -70,7 +72,7 @@ void customize(std::vector<DispatchPolicy>& policies)
 
 void customize(std::vector<CompletionPolicy>& policies)
 {
-  policies.push_back(o2::tpc::TPCSectorCompletionPolicy("gpu-reconstruction.*", o2::tpc::TPCSectorCompletionPolicy::Config::RequireAll, &gPolicyData, &gTpcSectorMask)());
+  policies.push_back(o2::tpc::TPCSectorCompletionPolicy("gpu-reconstruction.*", o2::tpc::TPCSectorCompletionPolicy::Config::RequireAll, &gPolicyData, &gTpcSectorMask, &gPolicyOrderCheck)());
 }
 
 void customize(o2::framework::OnWorkflowTerminationHook& hook)
@@ -171,14 +173,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   cfg.askDISTSTF = !cfgc.options().get<bool>("ignore-dist-stf");
   cfg.readTRDtracklets = isEnabled(inputTypes, ioType::TRDTracklets);
   cfg.runTRDTracking = isEnabled(outputTypes, ioType::TRDTracks);
-  cfg.tpcTriggerHandling = isEnabled(outputTypes, ioType::TPCTriggers);
+  cfg.tpcTriggerHandling = isEnabled(outputTypes, ioType::TPCTriggers) || cfg.caClusterer;
+  cfg.enableDoublePipeline = cfgc.options().get<bool>("enableDoublePipeline");
 
   Inputs ggInputs;
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false, true, false, true, true, o2::base::GRPGeomRequest::Aligned, ggInputs, true);
 
-  auto task = std::make_shared<GPURecoWorkflowSpec>(&gPolicyData, cfg, tpcSectors, gTpcSectorMask, ggRequest);
+  auto task = std::make_shared<GPURecoWorkflowSpec>(&gPolicyData, cfg, tpcSectors, gTpcSectorMask, ggRequest, &gPolicyOrderCheck);
   Inputs taskInputs = task->inputs();
-  Options taskOptions = task->options();
   std::move(ggInputs.begin(), ggInputs.end(), std::back_inserter(taskInputs));
   gTask = task;
 
@@ -187,7 +189,22 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
     taskInputs,
     task->outputs(),
     AlgorithmSpec{adoptTask<GPURecoWorkflowSpec>(task)},
-    taskOptions});
+    task->options()});
+
+  if (cfg.enableDoublePipeline) {
+    cfg.enableDoublePipeline = 2;
+    Inputs ggInputsPrepare;
+    auto ggRequestPrepare = std::make_shared<o2::base::GRPGeomRequest>(false, true, false, false, false, o2::base::GRPGeomRequest::None, ggInputsPrepare, true);
+    auto taskPrepare = std::make_shared<GPURecoWorkflowSpec>(&gPolicyData, cfg, tpcSectors, gTpcSectorMask, ggRequestPrepare);
+    Inputs taskInputsPrepare = taskPrepare->inputs();
+    std::move(ggInputsPrepare.begin(), ggInputsPrepare.end(), std::back_inserter(taskInputsPrepare));
+    specs.emplace_back(DataProcessorSpec{
+      "gpu-reconstruction-prepare",
+      taskInputsPrepare,
+      taskPrepare->outputs(),
+      AlgorithmSpec{adoptTask<GPURecoWorkflowSpec>(taskPrepare)},
+      taskPrepare->options()});
+  }
 
   if (!cfgc.options().get<bool>("ignore-dist-stf")) {
     GlobalTrackID::mask_t srcTrk = GlobalTrackID::getSourcesMask("none");

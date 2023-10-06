@@ -29,13 +29,16 @@ namespace ctp
 struct CTFHeader : public o2::ctf::CTFDictHeader {
   uint64_t lumiCounts = 0;    /// FT0 Luminosity counts moving average over lumiNHBFs orbits
   uint64_t lumiCountsFV0 = 0; /// FV0 Luminosity counts moving average over lumiNHBFs orbits
-  uint32_t lumiNHBFs = 0;  /// Number of HBFs over which lumi is integrated
-  uint32_t lumiOrbit = 0;  /// 1st orbit of TF where lumi was updated, can be compared with firstOrbit
-  uint32_t nTriggers = 0;  /// number of triggers
-  uint32_t firstOrbit = 0; /// orbit of 1st trigger
-  uint16_t firstBC = 0;    /// bc of 1st trigger
+  uint32_t lumiNHBFs = 0;     /// Number of HBFs over which lumi is integrated
+  uint32_t lumiNHBFsFV0 = 0;  /// Number of FV0 HBFs over which lumi is integrated
+  uint32_t lumiOrbit = 0;     /// 1st orbit of TF where lumi was updated, can be compared with firstOrbit
+  uint32_t nTriggers = 0;     /// number of triggers
+  uint32_t firstOrbit = 0;    /// orbit of 1st trigger
+  uint16_t firstBC = 0;       /// bc of 1st trigger
+  uint16_t inp1 = 0;          /// lumiCounts input ID
+  uint16_t inp2 = 0;          /// lumiCountsFV0 input ID
 
-  ClassDefNV(CTFHeader, 3);
+  ClassDefNV(CTFHeader, 5);
 };
 
 /// wrapper for the Entropy-encoded trigger inputs and classes of the TF

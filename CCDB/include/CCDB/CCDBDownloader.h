@@ -29,8 +29,6 @@ typedef struct uv_signal_s uv_signal_t;
 typedef struct uv_async_s uv_async_t;
 typedef struct uv_handle_s uv_handle_t;
 
-using namespace std;
-
 namespace o2::ccdb
 {
 

@@ -109,7 +109,6 @@ o2_add_library(Framework
                        src/ProcessingContext.cxx
                        src/Plugins.cxx
                        src/RateLimiter.cxx
-                       src/ReadoutAdapter.cxx
                        src/ResourcesMonitoringHelper.cxx
                        src/ResourcePolicy.cxx
                        src/ResourcePolicyHelpers.cxx

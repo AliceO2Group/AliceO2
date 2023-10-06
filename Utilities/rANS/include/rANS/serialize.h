@@ -23,6 +23,7 @@
 #include <type_traits>
 #include <cstdint>
 #include <stdexcept>
+#include <optional>
 
 #ifdef RANS_ENABLE_JSON
 #include <rapidjson/writer.h>

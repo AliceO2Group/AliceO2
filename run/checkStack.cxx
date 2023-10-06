@@ -89,6 +89,9 @@ int main(int argc, char** argv)
     std::vector<int> trackidsinTPC;
     std::vector<int> trackidsinITS;
 
+    // fetch the encoding of DetIDs to bits for the hit properties (can be fetched from any MCEventHeader)
+    auto& mcEventHeader = mcreader.getMCEventHeader(0, 0);
+
     int primaries = 0;
     int physicalprimaries = 0;
     int secondaries = 0;
@@ -103,12 +106,14 @@ int main(int argc, char** argv)
         // for primaries, this may be different (for instance with Pythia8)
         assert(ti > t.getMotherTrackId());
       }
-      if (t.leftTrace(o2::detectors::DetID::TPC)) {
+
+      if (t.leftTrace(o2::detectors::DetID::TPC, mcEventHeader.getDetId2HitBitLUT())) {
         trackidsinTPC.emplace_back(ti);
       }
-      if (t.leftTrace(o2::detectors::DetID::ITS)) {
+      if (t.leftTrace(o2::detectors::DetID::ITS, mcEventHeader.getDetId2HitBitLUT())) {
         trackidsinITS.emplace_back(ti);
       }
+
       bool physicalPrim = o2::mcutils::MCTrackNavigator::isPhysicalPrimary(t, *mctracks);
       LOG(debug) << " track " << ti << "\t" << t.getMotherTrackId() << " hits " << t.hasHits() << " isPhysicalPrimary " << physicalPrim;
       if (t.isPrimary()) {

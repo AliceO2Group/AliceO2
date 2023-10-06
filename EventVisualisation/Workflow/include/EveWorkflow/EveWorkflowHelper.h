@@ -160,6 +160,7 @@ class EveWorkflowHelper
   void drawMCHMID(GID gid, float trackTime);
   void drawPHS(GID gid);
   void drawEMC(GID gid);
+  void drawHMP(GID gid);
 
   void drawAODBarrel(AODBarrelTrack const& track, float trackTime);
   void drawAODMFT(AODMFTTrack const& track, float trackTime);
@@ -175,6 +176,7 @@ class EveWorkflowHelper
   void drawTRDClusters(const o2::trd::TrackTRD& trc, float trackTime);
   void drawTOFClusters(GID gid, float trackTime);
   void drawPoint(float x, float y, float z, float trackTime) { mEvent.addCluster(x, y, z, trackTime); }
+  void drawGlobalPoint(const TVector3& xyx) { mEvent.addGlobalCluster(xyx); }
   void prepareITSClusters(const o2::itsmft::TopologyDictionary* dict); // fills mITSClustersArray
   void prepareMFTClusters(const o2::itsmft::TopologyDictionary* dict); // fills mMFTClustersArray
   void clear() { mEvent.clear(); }
