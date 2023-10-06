@@ -29,8 +29,8 @@ o2_add_library(Generators
                        src/GeneratorExternalParam.cxx
                        src/GeneratorFromFile.cxx
                        src/GeneratorFromO2KineParam.cxx
-		       src/GeneratorFileOrCmd.cxx
-		       src/GeneratorFileOrCmdParam.cxx
+                       src/GeneratorFileOrCmd.cxx
+                       src/GeneratorFileOrCmdParam.cxx
                        src/PrimaryGenerator.cxx
                        src/PrimaryGeneratorParam.cxx
                        src/TriggerExternalParam.cxx
