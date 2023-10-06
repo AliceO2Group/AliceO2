@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/usr/bin/env bash
 
 cmd="./crmc.sh"
 seed=$RANDOM
