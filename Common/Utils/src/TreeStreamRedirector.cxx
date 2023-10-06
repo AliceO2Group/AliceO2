@@ -111,7 +111,9 @@ TreeStream& TreeStreamRedirector::operator<<(const char* name)
 void TreeStreamRedirector::Close()
 {
   // flush and close
-
+  if (!mDirectory) {
+    return;
+  }
   TDirectory* backup = gDirectory;
   mDirectory->cd();
   for (auto& layout : mDataLayouts) {
