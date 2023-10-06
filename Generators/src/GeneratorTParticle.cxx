@@ -13,23 +13,24 @@
 #include <Generators/GeneratorTParticle.h>
 #include <Generators/GeneratorTParticleParam.h>
 #include <SimulationDataFormat/MCGenProperties.h>
+#include <SimConfig/SimConfig.h>
 #include <fairlogger/Logger.h>
 #include <TFile.h>
 #include <TChain.h>
 #include <TClonesArray.h>
 #include <TParticle.h>
-#include <filesystem>
-#include <thread>
-#include <sstream>
-#include <cstdlib>
-#include <sys/types.h> // POSIX only
-#include <sys/stat.h>  // POISX only
-#include <cstdio>
 
 namespace o2
 {
 namespace eventgen
 {
+/*****************************************************************/
+GeneratorTParticle::GeneratorTParticle()
+{
+  setOutputSwitch("-o");
+}
+
+/*****************************************************************/
 GeneratorTParticle::~GeneratorTParticle()
 {
   if (mChain) {
@@ -38,110 +39,69 @@ GeneratorTParticle::~GeneratorTParticle()
       mChain->RecursiveRemove(file);
     delete mChain;
   }
-  if (mProgCmd.empty())
+  if (mCmd.empty())
     return;
 
-  // Get the file we're reading from
-  std::filesystem::path p(mFileNames.front());
-
-  // Wait until child process creates the file
-  if (not std::filesystem::exists(p))
-    return;
-
-  // Remove temporary file
-  std::error_code ec;
-  std::filesystem::remove(p, ec);
+  removeTemp();
 }
-
-void GeneratorTParticle::setFileNames(const std::string& val)
-{
-  std::stringstream s;
-  std::string f;
-  while (std::getline(s, f, ','))
-    mFileNames.push_back(f);
-}
-
+/*****************************************************************/
 Bool_t GeneratorTParticle::Init()
 {
   mChain = new TChain(mTreeName.c_str());
   mTParticles = new TClonesArray("TParticle");
   mChain->SetBranchAddress(mBranchName.c_str(), &mTParticles);
 
-  if (not mProgCmd.empty()) {
+  if (not mCmd.empty()) {
     // Set filename to be a temporary name
-    // Should perhaps use
-    //
-    //   TString base("xxxxxx");
-    //   auto fp = gSystem->TempFileName(base);
-    //   fclose(fp);
-    //
-    std::string filename = std::tmpnam(nullptr);
+    if (not makeTemp())
+      return false;
 
     // Build command line, Assumes command line parameter
-    //
-    //  -n NUMBER   of events to produce
-    //  -o FILENAME of output file
-    //
-    // A script can be wrapped around existing EGs to ensure these
-    // options are observed.
-    std::string cmd =
-      mProgCmd +
-      " -n " + std::to_string(mNEvents) +
-      " -o " + filename + " &";
+    std::string cmd = makeCmdLine();
     LOG(info) << "EG command line is \"" << cmd << "\"";
 
-    int ret = std::system(cmd.c_str());
-    if (ret != 0) {
+    // Execute the background command
+    if (not executeCmdLine(cmd)) {
       LOG(fatal) << "Failed to spawn \"" << cmd << "\"";
       return false;
     }
-
-    mFileNames.clear();
-    mFileNames.push_back(filename);
   }
   for (auto filename : mFileNames)
     mChain->AddFile(filename.c_str());
 
+  // Clear the array of file names
+  mFileNames.clear();
+
   return true;
 }
 
-void GeneratorTParticle::waitForData()
+/*****************************************************************/
+void GeneratorTParticle::setup(const GeneratorFileOrCmdParam& param0,
+                               const GeneratorTParticleParam& param,
+                               const conf::SimConfig& config)
 {
-  if (mProgCmd.empty())
-    return; // Not from child process
-
-  using namespace std::chrono_literals;
-
-  // Get the file we're reading from
-  std::filesystem::path p(mFileNames.front());
-
-  LOG(info) << "Waiting for data on " << p;
-
-  // Wait until child process creates the file
-  while (not std::filesystem::exists(p))
-    std::this_thread::sleep_for(500ms);
-
-  // Wait until we have more data in the file than just the file
-  // header
-  while (std::filesystem::file_size(p) <= 256)
-    std::this_thread::sleep_for(500ms);
-
-  // Give the child process 1 second to post the data to the file
-  LOG(info) << "Got data in " << p << ", sleeping for a while";
-  std::this_thread::sleep_for(1s);
+  GeneratorFileOrCmd::setup(param0, config);
+  setTreeName(param.treeName);
+  setBranchName(param.branchName);
 }
 
+/*****************************************************************/
 Bool_t GeneratorTParticle::generateEvent()
 {
-  if (mEntry == 0)
-    waitForData();
+  // If this is the first entry, and we're executing a command, then
+  // wait until the input file exists and actually contain some data.
+  if (mEntry == 0 and not mCmd.empty())
+    waitForData(mTemporary);
 
+  // Read in the next entry in the chain
   int read = mChain->GetEntry(mEntry);
   mEntry++;
 
+  // If we got an error while reading, then give error message
   if (read < 0)
     LOG(error) << "Failed to read entry " << mEntry << " of chain";
 
+  // If we had an error or nothing was read back, then return false
   if (read <= 0)
     return false;
 

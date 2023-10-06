@@ -15,20 +15,14 @@
 #include "Generators/GeneratorHepMC.h"
 #include "Generators/GeneratorHepMCParam.h"
 #include "SimulationDataFormat/MCEventHeader.h"
-#include "HepMC3/ReaderAscii.h"
-#include "HepMC3/ReaderAsciiHepMC2.h"
+#include "SimConfig/SimConfig.h"
+#include "HepMC3/ReaderFactory.h"
 #include "HepMC3/GenEvent.h"
 #include "HepMC3/GenParticle.h"
 #include "HepMC3/GenVertex.h"
 #include "HepMC3/FourVector.h"
 #include "HepMC3/Version.h"
 #include "TParticle.h"
-#include "TSystem.h"
-
-#include <cstdlib>
-#include <sys/types.h> // POSIX only
-#include <sys/stat.h>  // POISX only
-#include <cstdio>
 
 #include <fairlogger/Logger.h>
 #include "FairPrimaryGenerator.h"
@@ -43,19 +37,14 @@ namespace eventgen
 /*****************************************************************/
 
 GeneratorHepMC::GeneratorHepMC()
-  : Generator("ALICEo2", "ALICEo2 HepMC Generator"), mStream(), mFileName(), mVersion(3), mReader(nullptr), mEvent(nullptr)
+  : GeneratorHepMC("ALICEo2", "ALICEo2 HepMC Generator")
 {
-  /** default constructor **/
-
-  mEvent = new HepMC3::GenEvent();
-  mInterface = reinterpret_cast<void*>(mEvent);
-  mInterfaceName = "hepmc";
 }
 
 /*****************************************************************/
 
 GeneratorHepMC::GeneratorHepMC(const Char_t* name, const Char_t* title)
-  : Generator(name, title), mStream(), mFileName(), mVersion(3), mReader(nullptr), mEvent(nullptr)
+  : Generator(name, title)
 {
   /** constructor **/
 
@@ -69,37 +58,48 @@ GeneratorHepMC::GeneratorHepMC(const Char_t* name, const Char_t* title)
 GeneratorHepMC::~GeneratorHepMC()
 {
   /** default destructor **/
-
-  if (mStream.is_open()) {
-    mStream.close();
-  }
-  if (mReader) {
+  LOG(info) << "Destructing GeneratorHepMC";
+  if (mReader)
     mReader->close();
-    delete mReader;
-  }
-  if (mEvent) {
+  if (mEvent)
     delete mEvent;
-  }
+  removeTemp();
+}
+
+/*****************************************************************/
+void GeneratorHepMC::setup(const GeneratorFileOrCmdParam& param0,
+                           const GeneratorHepMCParam& param,
+                           const conf::SimConfig& config)
+{
+  GeneratorFileOrCmd::setup(param0, config);
+  setEventsToSkip(param.eventsToSkip);
 }
 
 /*****************************************************************/
 
 Bool_t GeneratorHepMC::generateEvent()
 {
+  LOG(debug) << "Generating an event";
   /** generate event **/
+  int tries = 0;
+  do {
+    LOG(debug) << " try # " << ++tries;
+    if (not mReader and not makeReader())
+      return false;
 
-  /** clear and read event **/
-  mEvent->clear();
-  mReader->read_event(*mEvent);
-  if (mReader->failed()) {
-    LOG(error) << "Failed to read one event from input";
-    return kFALSE;
-  }
-  /** set units to desired output **/
-  mEvent->set_units(HepMC3::Units::GEV, HepMC3::Units::MM);
+    /** clear and read event **/
+    mEvent->clear();
+    mReader->read_event(*mEvent);
+    if (not mReader->failed()) {
+      /** set units to desired output **/
+      mEvent->set_units(HepMC3::Units::GEV, HepMC3::Units::MM);
+      LOG(debug) << "Read one event " << mEvent->event_number();
+      return true;
+    }
+  } while (true);
 
-  /** success **/
-  return kTRUE;
+  /** failure **/
+  return false;
 }
 
 /*****************************************************************/
@@ -229,8 +229,8 @@ void GeneratorHepMC::updateHeader(o2::dataformats::MCEventHeader* eventHeader)
     eventHeader->putInfo<float>(Key::pdfScale, pdfInfo->scale);
     eventHeader->putInfo<float>(Key::pdfXF1, pdfInfo->xf[0]);
     eventHeader->putInfo<float>(Key::pdfXF2, pdfInfo->xf[1]);
-    eventHeader->putInfo<float>(Key::pdfCode1, pdfInfo->pdf_id[0]);
-    eventHeader->putInfo<float>(Key::pdfCode2, pdfInfo->pdf_id[1]);
+    eventHeader->putInfo<int>(Key::pdfCode1, pdfInfo->pdf_id[0]);
+    eventHeader->putInfo<int>(Key::pdfCode2, pdfInfo->pdf_id[1]);
   }
 
   // Set heavy-ion information
@@ -279,14 +279,50 @@ void GeneratorHepMC::updateHeader(o2::dataformats::MCEventHeader* eventHeader)
 
 /*****************************************************************/
 
+bool GeneratorHepMC::makeReader()
+{
+  // Reset the reader smart pointer
+  LOG(debug) << "Reseting the reader";
+  mReader.reset();
+
+  // Check that we have any file names left
+  if (mFileNames.size() < 1) {
+    LOG(debug) << "No more files to read, return false";
+    return false;
+  }
+
+  // If we have file names left, pop the top of the list (LIFO)
+  auto filename = mFileNames.front();
+  mFileNames.pop_front();
+
+  LOG(debug) << "Next file to read: \"" << filename << "\" "
+             << mFileNames.size() << " left";
+
+  if (not mCmd.empty()) {
+    // For FIFO reading, we assume straight ASCII output always.
+    // Unfortunately, the HepMC3::deduce_reader `stat`s the filename
+    // which isn't supported on a FIFO, so we have to use the reader
+    // directly.
+    LOG(info) << "Creating ASCII reader of " << filename;
+    mReader.reset(new HepMC3::ReaderAscii(filename));
+  } else {
+    LOG(info) << "Deduce a reader of " << filename;
+    mReader = HepMC3::deduce_reader(filename);
+  }
+
+  bool ret = bool(mReader) and not mReader->failed();
+  LOG(info) << "Reader is " << mReader.get() << " " << ret;
+  return ret;
+}
+
+/*****************************************************************/
+
 Bool_t GeneratorHepMC::Init()
 {
   /** init **/
 
   /** init base class **/
   Generator::Init();
-
-  std::string filename = gSystem->ExpandPathName(mFileName.c_str());
 
   // If a EG command line is given, then we make a fifo on a temporary
   // file, and directs the EG to write to that fifo.  We will then set
@@ -303,87 +339,63 @@ Bool_t GeneratorHepMC::Init()
   //    crmc -n 3 -o hepmc3 -c /optsw/inst/etc/crmc.param -f /dev/stdout \
   //      | sed -n 's/^\(HepMC::\|[EAUWVP] \)/\1/p'
   //
-  // What's more, the event generator program must accept the command
-  // line argument `-n NEVENTS` to set the number of events to
-  // produce.
+  // What's more, the event generator program _must_ accept the
+  // following command line argument
   //
-  // Perhaps we should consider a way to set a seed on the EG.  It
-  // could be another configuration parameter.  Of course, if the EG
-  // program accepts a seed option, say `-s SEED`, then one could
-  // simply pass
+  //    `-n NEVENTS` to set the number of events to produce.
   //
-  //     -s \$RANDOM
+  // Optionally, the command line should also accept
   //
-  // to as part of the command line in `progCmd`.
+  //    `-s SEED`   to set the random number seed
+  //    `-b FM`     to set the maximum impact parameter to sample
+  //    `-o OUTPUT` to set the output file name
   //
   // All of this can conviniently be achieved via a wrapper script
   // around the actual EG program.
-  if (not mProgCmd.empty()) {
+  if (not mCmd.empty()) {
     // Set filename to be a temporary name
-    // Should perhaps use
-    //
-    //   TString base("xxxxxx");
-    //   auto fp = gSystem->TempFileName(base);
-    //   fclose(fp);
-    //
-    filename = std::tmpnam(nullptr);
+    if (not makeTemp())
+      return false;
 
     // Make a fifo
-    int ret = mkfifo(filename.c_str(), 0600);
-    if (ret != 0) {
-      LOG(fatal) << "Failed to make fifo \"" << filename << "\"";
+    if (not makeFifo())
       return false;
-    }
 
     // Build command line, rediret stdout to our fifo and put
-    // in the background.
-    std::string cmd =
-      mProgCmd +
-      " -n " + std::to_string(mNEvents) +
-      " > " + filename + " &";
-    LOG(info) << "EG command line is \"" << cmd << "\"";
+    std::string cmd = makeCmdLine();
+    LOG(debug) << "EG command line is \"" << cmd << "\"";
 
-    ret = std::system(cmd.c_str());
-    if (ret != 0) {
+    // Execute the command line
+    if (not executeCmdLine(cmd)) {
       LOG(fatal) << "Failed to spawn \"" << cmd << "\"";
       return false;
     }
-  }
-  /** open file **/
-  mStream.open(filename);
-  if (!mStream.is_open()) {
-    LOG(fatal) << "Cannot open input file: " << filename << std::endl;
-    return kFALSE;
-  }
-
-  LOG(info) << "Set up reader to read from \"" << filename << "\"" << std::endl;
-  /** create reader according to HepMC version **/
-  switch (mVersion) {
-    case 2:
-      mStream.close();
-      mReader = new HepMC3::ReaderAsciiHepMC2(filename);
-      break;
-    case 3:
-      mReader = new HepMC3::ReaderAscii(mStream);
-      break;
-    default:
-      LOG(fatal) << "Unsupported HepMC version: " << mVersion << std::endl;
-      return kFALSE;
-  }
-
-  // skip events at the beginning
-  if (!mReader->failed()) {
-    LOGF(info, "%i events to skip.", mEventsToSkip);
-    for (auto ind = 0; ind < mEventsToSkip; ind++) {
-      if (!generateEvent()) {
-        LOGF(error, "The file %s only contains %i events!", mFileName, ind);
-        break;
-      }
-    }
+  } else {
+    // If no command line was given, ensure that all files are present
+    // on the system.  Note, in principle, HepMC3 can read from remote
+    // files
+    //
+    //    root://           XRootD served
+    //    http[s]://        Web served
+    //    gsidcap://        DCap served
+    //
+    // These will all be handled in HepMC3 via ROOT's TFile protocol
+    // and the files are assumed to contain a TTree named
+    // `hepmc3_tree` and that tree has the branches
+    //
+    //    `hepmc3_event`  with object of type `HepMC3::GenEventData`
+    //    `GenRunInfo`    with object of type `HepMC3::GenRunInfoData`
+    //
+    // where the last branch is optional.
+    //
+    // However, here we will assume system local files.  If _any_ of
+    // the listed files do not exist, then we fail.
+    if (not ensureFiles())
+      return false;
   }
 
-  /** success **/
-  return !mReader->failed();
+  // Create reader for current (first) file
+  return true;
 }
 
 /*****************************************************************/

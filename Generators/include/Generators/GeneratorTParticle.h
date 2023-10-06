@@ -14,7 +14,8 @@
 #define ALICEO2_GENERATORTPARTICLE_H_
 #include <FairGenerator.h>
 #include <Generators/Generator.h>
-#include <list>
+#include <Generators/GeneratorFileOrCmd.h>
+#include <Generators/GeneratorTParticleParam.h>
 
 // Forward decls
 class TChain;
@@ -23,6 +24,10 @@ class TClonesArray;
 
 namespace o2
 {
+namespace conf
+{
+class SimConfig;
+}
 namespace eventgen
 {
 /// A class that reads in particles of class @c TParticle from a
@@ -48,11 +53,11 @@ namespace eventgen
 ///
 ///   --configKeyValues "TParticle.fileNames=foo.root,bar.root"
 ///
-class GeneratorTParticle : public Generator
+class GeneratorTParticle : public Generator, public GeneratorFileOrCmd
 {
  public:
   /** CTOR */
-  GeneratorTParticle() = default;
+  GeneratorTParticle();
   /** CTOR */
   GeneratorTParticle(const std::string& name)
     : Generator(name.c_str(), "ALICEo2 TParticle Generator")
@@ -62,44 +67,44 @@ class GeneratorTParticle : public Generator
   virtual ~GeneratorTParticle();
 
   /** Initialize this generator.  This will set up the chain.
-Optionally, if a command line was specified by @c
-TParticle.progCmd then that command line is executed in the
-background and events are read from the output file of that
-program */
+   * Optionally, if a command line was specified by @c
+   * TParticle.progCmd then that command line is executed in the
+   * background and events are read from the output file of that
+   * program */
   Bool_t Init() override;
 
-  /** Read in the next entry from the chain.  Returns false in
-case of errors or no more entries to read. */
+  /**
+   * Configure the generator from parameters and the general
+   * simulation configuration.  This is implemented as a member
+   * function so as to better facilitate changes. */
+  void setup(const GeneratorFileOrCmdParam& param0,
+             const GeneratorTParticleParam& param,
+             const conf::SimConfig& config);
+  /** Read in the next entry from the chain.  Returns false in case of
+   * errors or no more entries to read. */
   Bool_t generateEvent() override;
 
-  /** Import the read-in particles into the steer particle
-stack */
+  /** Import the read-in particles into the steer particle stack */
   Bool_t importParticles() override;
 
-  /** Set the names of files to read, separated by commas */
-  void setFileNames(const std::string& val);
-  /** Set the name of the tree in the files.  The tree _must_
-reside in the top-level directory of the files. */
+  /** Set the name of the tree in the files.  The tree _must_ reside
+   * in the top-level directory of the files. */
   void setTreeName(const std::string& val) { mTreeName = val; }
-  /** Set the branch name of the branch that holds a @c
-TClonesArray of @c TParticle objects */
+  /** Set the branch name of the branch that holds a @c TClonesArray
+   *  of @c TParticle objects */
   void setBranchName(const std::string& val) { mBranchName = val; }
-  /** Set child program command line to (optionally) execute */
-  void setProgCmd(const std::string& val) { mProgCmd = val; }
-  /** Set the number of events to generate. */
-  void setNEvents(unsigned int nev) { mNEvents = nev; }
 
  protected:
+  /** Name of the tree to read */
   std::string mTreeName = "T";
+  /** Name of branch containing a TClonesArray of TParticle */
   std::string mBranchName = "Particles";
-  std::string mProgCmd = "";
-  std::list<std::string> mFileNames;
-  unsigned int mNEvents = 0;
+  /** Current entry */
   unsigned int mEntry = 0;
-  TChain* mChain;
+  /** Chain of files */
+  TChain* mChain = 0;
+  /** Array to read particles into */
   TClonesArray* mTParticles;
-
-  void waitForData();
 
   ClassDefOverride(GeneratorTParticle, 1);
 };

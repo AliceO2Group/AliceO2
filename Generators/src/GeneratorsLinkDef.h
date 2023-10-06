@@ -70,5 +70,7 @@
 #pragma link C++ class o2::eventgen::GeneratorTParticle + ;
 #pragma link C++ class o2::eventgen::GeneratorTParticleParam + ;
 #pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::GeneratorTParticleParam> + ;
+#pragma link C++ class o2::eventgen::GeneratorFileOrCmdParam + ;
+#pragma link C++ class o2::conf::ConfigurableParamHelper < o2::eventgen::GeneratorFileOrCmdParam> + ;
 
 #endif

@@ -162,29 +162,25 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
   } else if (genconfig.compare("tparticle") == 0) {
     // External ROOT file(s) with tree of TParticle in clones array,
     // or external program generating such a file
+    auto& param0 = GeneratorFileOrCmdParam::Instance();
     auto& param = GeneratorTParticleParam::Instance();
     LOG(info) << "Init 'GeneratorTParticle' with the following parameters";
+    LOG(info) << param0;
     LOG(info) << param;
     auto tgen = new o2::eventgen::GeneratorTParticle();
-    tgen->setFileNames(param.fileNames);
-    tgen->setProgCmd(param.progCmd);
-    tgen->setTreeName(param.treeName);
-    tgen->setBranchName(param.branchName);
-    tgen->setNEvents(conf.getNEvents());
+    tgen->setup(param0, param, conf);
     primGen->AddGenerator(tgen);
 #ifdef GENERATORS_WITH_HEPMC3
   } else if (genconfig.compare("hepmc") == 0) {
     // external HepMC file, or external program writing HepMC event
     // records to standard output.
+    auto& param0 = GeneratorFileOrCmdParam::Instance();
     auto& param = GeneratorHepMCParam::Instance();
     LOG(info) << "Init \'GeneratorHepMC\' with following parameters";
+    LOG(info) << param0;
     LOG(info) << param;
     auto hepmcGen = new o2::eventgen::GeneratorHepMC();
-    hepmcGen->setFileName(param.fileName);
-    hepmcGen->setProgCmd(param.progCmd);
-    hepmcGen->setVersion(param.version);
-    hepmcGen->setEventsToSkip(param.eventsToSkip);
-    hepmcGen->setNEvents(conf.getNEvents());
+    hepmcGen->setup(param0, param, conf);
     primGen->AddGenerator(hepmcGen);
 #endif
 #ifdef GENERATORS_WITH_PYTHIA6

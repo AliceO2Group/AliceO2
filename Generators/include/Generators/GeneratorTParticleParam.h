@@ -16,21 +16,19 @@
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
 #include <string>
-
 namespace o2
 {
 namespace eventgen
 {
 
 /**
-   a parameter class/struct to keep the settings of the TGenerator
-   event generator and allow the user to modify them */
+ * a parameter class/struct to keep the settings of the TGenerator
+ * event generator and allow the user to modify them
+ */
 struct GeneratorTParticleParam : public o2::conf::ConfigurableParamHelper<GeneratorTParticleParam> {
   std::string treeName = "T";
   std::string branchName = "Particles";
-  std::string fileNames = "tparticle.root";
-  std::string progCmd = "";
-  O2ParamDef(GeneratorTParticleParam, "TParticle");
+  O2ParamDef(GeneratorTParticleParam, "GeneratorTParticle");
 };
 } // end namespace eventgen
 } // end namespace o2
