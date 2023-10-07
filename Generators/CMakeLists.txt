@@ -50,6 +50,7 @@ o2_add_library(Generators
                        $<$<BOOL:${pythia_FOUND}>:src/DecayerPythia8Param.cxx>
                        $<$<BOOL:${HepMC3_FOUND}>:src/GeneratorHepMC.cxx>
                        $<$<BOOL:${HepMC3_FOUND}>:src/GeneratorHepMCParam.cxx>
+                       $<$<BOOL:${HepMC3_FOUND}>:src/AODToHepMC.cxx>
                PUBLIC_LINK_LIBRARIES FairRoot::Base O2::SimConfig O2::CommonUtils O2::DetectorsBase O2::ZDCBase
                                      O2::SimulationDataFormat ${pythia6Target} ${pythiaTarget} ${hepmcTarget}
                                      FairRoot::Gen
@@ -106,6 +107,7 @@ endif()
 if(HepMC3_FOUND)
   list(APPEND headers include/Generators/GeneratorHepMC.h)
   list(APPEND headers include/Generators/GeneratorHepMCParam.h)
+  list(APPEND headers include/Generators/AODToHepMC.h)
 endif()
 
 o2_target_root_dictionary(Generators HEADERS ${headers})
