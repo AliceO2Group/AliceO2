@@ -41,7 +41,7 @@ int CheckAOD2CTPDigits(bool files = 1)
   ULong64_t fTriggerMask;
   ULong64_t fInputMask;
   std::unique_ptr<TFile> file(TFile::Open("AO2D.root"));
-  if(file == nullptr) {
+  if (file == nullptr) {
     std::cout << "Can not open file AO2D.root" << std::endl;
     return 1;
   }
@@ -54,11 +54,11 @@ int CheckAOD2CTPDigits(bool files = 1)
   // Find aod trigger info
   int i = 0;
   while ((key = (TKey*)keyList())) {
-    std::cout << "loop:" << i << " "  << key->GetName() << std::endl;
+    std::cout << "loop:" << i << " " << key->GetName() << std::endl;
     i++;
     std::string name = key->GetName();
-    if(name.find("metaData") != std::string::npos) {
-      std::cout << "Skipping:" << name << std::endl;	    
+    if (name.find("metaData") != std::string::npos) {
+      std::cout << "Skipping:" << name << std::endl;
       continue;
     }
     tree = (TTree*)file->Get(Form("%s/O2bc_001", key->GetName()));
@@ -75,28 +75,28 @@ int CheckAOD2CTPDigits(bool files = 1)
         tree->GetEvent(n);
         if (fTriggerMask) {
           bc2classmask[fGlobalBC] = fTriggerMask;
-          //std::cout << std::dec <<  n << " Run:" << fRunNumber << " GBC:" << std::hex << fGlobalBC << " TM:0x" << std::hex << fTriggerMask << " count:" << bc2classmask.count(fGlobalBC) << std::endl;
+          // std::cout << std::dec <<  n << " Run:" << fRunNumber << " GBC:" << std::hex << fGlobalBC << " TM:0x" << std::hex << fTriggerMask << " count:" << bc2classmask.count(fGlobalBC) << std::endl;
         }
-	if(fInputMask) {
+        if (fInputMask) {
           bc2inputmask[fGlobalBC] = fInputMask;
-	}
-	if(1) {
-	if(fInputMask || fTriggerMask) {
-          auto ir = o2::InteractionRecord::long2IR(fGlobalBC);
-          //auto bcc = ir.orbit; 	
-	  //if(fTriggerMask) std::cout << "===>";  
-	  //std::cout << std::hex << ir.orbit << " " << ir.bc << " " << fInputMask << " " << fTriggerMask << std::dec << " (" << ir.orbit << " " << ir.bc << ")"  << std::endl;
-	}
-	}
+        }
+        if (1) {
+          if (fInputMask || fTriggerMask) {
+            auto ir = o2::InteractionRecord::long2IR(fGlobalBC);
+            // auto bcc = ir.orbit;
+            // if(fTriggerMask) std::cout << "===>";
+            // std::cout << std::hex << ir.orbit << " " << ir.bc << " " << fInputMask << " " << fTriggerMask << std::dec << " (" << ir.orbit << " " << ir.bc << ")"  << std::endl;
+          }
+        }
       }
     } else {
-      std::cout << "return 1" << std::endl;	    
+      std::cout << "return 1" << std::endl;
       return 1;
     }
   }
-  //return 0;
-  // Read CTP digits and check if every class mask in digits is in AOD
-  // CTP digits
+  // return 0;
+  //  Read CTP digits and check if every class mask in digits is in AOD
+  //  CTP digits
   TFile* fileDigits = TFile::Open("ctpdigitsWOD.root");
   //
   fileDigits->ls();
@@ -123,61 +123,61 @@ int CheckAOD2CTPDigits(bool files = 1)
       return 1;
     }
     // std::cout << "size:" << std::dec << ctpdigs.GetSize() << std::endl;
-    //std::cout << "size:" << std::dec << ctpdigs->size() << std::endl;
+    // std::cout << "size:" << std::dec << ctpdigs->size() << std::endl;
     for (auto const& dig : *ctpdigs) {
       ULong64_t gbc = dig.intRecord.toLong();
       if (dig.CTPClassMask.count()) {
-	 bc2classmaskD[gbc] = dig.CTPClassMask.to_ullong();     
+        bc2classmaskD[gbc] = dig.CTPClassMask.to_ullong();
         // int del = 280+17;
-	//auto it = bc2classmask.find (gbc);
-        //if(it != bc2classmask.end()) {	
+        // auto it = bc2classmask.find (gbc);
+        // if(it != bc2classmask.end()) {
         if (bc2classmask.count(gbc)) {
-	  //bc2classmask.erase(gbc);
-	  nok++;
-          //std::cout << std::hex << gbc << " tc aod clsmask:" << bc2classmask[gbc] << " " << dig.CTPClassMask.to_ullong()  << std::endl;
-          // dig.printStream(std::cout);
+          // bc2classmask.erase(gbc);
+          nok++;
+          // std::cout << std::hex << gbc << " tc aod clsmask:" << bc2classmask[gbc] << " " << dig.CTPClassMask.to_ullong()  << std::endl;
+          //  dig.printStream(std::cout);
         } else {
           std::cout << std::dec << dig.intRecord.orbit << " " << dig.intRecord.bc << " " << std::hex << dig.intRecord.toLong() << " not found " << bc2classmask.count(gbc) << std::endl;
-	  nnotf++;
+          nnotf++;
         }
       }
-    if (dig.CTPInputMask.count()) {
-      bc2inputmaskD[gbc] = dig.CTPInputMask.to_ullong();	    
-      //auto it = bc2inputmask.find (gbc);
-      //if(it != bc2inputmask.end()) {	
-      if(bc2inputmask.count(gbc)){
-	//bc2inputmask.erase(gbc);      
-        nokinp++;
-        //std::cout << std::hex << gbc << " ir aod inpmask:" << bc2inputmask[gbc] << " " << dig.CTPInputMask.to_ullong() << std::endl;
-      } else {
-        std::cout << std::dec << dig.intRecord.orbit << " " << dig.intRecord.bc << " " << std::hex << dig.intRecord.toLong() << " not found " << bc2inputmask.count(gbc) << std::endl;
-        nnotfinp++;
+      if (dig.CTPInputMask.count()) {
+        bc2inputmaskD[gbc] = dig.CTPInputMask.to_ullong();
+        // auto it = bc2inputmask.find (gbc);
+        // if(it != bc2inputmask.end()) {
+        if (bc2inputmask.count(gbc)) {
+          // bc2inputmask.erase(gbc);
+          nokinp++;
+          // std::cout << std::hex << gbc << " ir aod inpmask:" << bc2inputmask[gbc] << " " << dig.CTPInputMask.to_ullong() << std::endl;
+        } else {
+          std::cout << std::dec << dig.intRecord.orbit << " " << dig.intRecord.bc << " " << std::hex << dig.intRecord.toLong() << " not found " << bc2inputmask.count(gbc) << std::endl;
+          nnotfinp++;
+        }
       }
     }
-    }
   }
-  std::cout << "TClasses ===> nok:" << nok << " NOT found in digits:" << nnotf << " left:" << bc2classmask.size() << std::endl; 
-  std::cout << "Inputs   ===> nok:" << nokinp << " NOT found in digits:" << nnotfinp << " left:" << bc2inputmask.size() << std::endl; 
+  std::cout << "TClasses ===> nok:" << nok << " NOT found in digits:" << nnotf << " left:" << bc2classmask.size() << std::endl;
+  std::cout << "Inputs   ===> nok:" << nokinp << " NOT found in digits:" << nnotfinp << " left:" << bc2inputmask.size() << std::endl;
   nok = 0;
   nokinp = 0;
   nnotf = 0;
   nnotfinp = 0;
-  for(auto const& tm: bc2classmask) {
-    if(bc2classmaskD.count(tm.first)) {
+  for (auto const& tm : bc2classmask) {
+    if (bc2classmaskD.count(tm.first)) {
       nok++;
     } else {
-      nnotf++;	    
+      nnotf++;
     }
   }
-  for(auto const& tm: bc2inputmask) {
-    if(bc2inputmaskD.count(tm.first)) {
+  for (auto const& tm : bc2inputmask) {
+    if (bc2inputmaskD.count(tm.first)) {
       nokinp++;
     } else {
-      nnotfinp++;	    
+      nnotfinp++;
     }
   }
 
-  std::cout << "TClasses ===> nok:" << nok << " NOT found in aod:" << nnotf << " left:" << bc2classmaskD.size() << std::endl; 
-  std::cout << "Inputs   ===> nok:" << nokinp << " NOT found in aod:" << nnotfinp << " left:" << bc2inputmaskD.size() << std::endl; 
+  std::cout << "TClasses ===> nok:" << nok << " NOT found in aod:" << nnotf << " left:" << bc2classmaskD.size() << std::endl;
+  std::cout << "Inputs   ===> nok:" << nokinp << " NOT found in aod:" << nnotfinp << " left:" << bc2inputmaskD.size() << std::endl;
   return 0;
 }

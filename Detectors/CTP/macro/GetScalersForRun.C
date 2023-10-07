@@ -15,24 +15,24 @@
 #endif
 using namespace o2::ctp;
 
-void GetScalersForRun(int runNumber = 0,int fillN = 0, bool test = 1)
+void GetScalersForRun(int runNumber = 0, int fillN = 0, bool test = 1)
 {
   if (test == 0) {
     return;
   }
   std::string mCCDBPathCTPScalers = "CTP/Calib/Scalers";
   std::string mCCDBPathCTPConfig = "CTP/Config/Config";
-  //o2::ccdb::CcdbApi api;
-  //api.init("http://alice-ccdb.cern.ch"); // alice-ccdb.cern.ch
-  //api.init("http://ccdb-test.cern.ch:8080");
+  // o2::ccdb::CcdbApi api;
+  // api.init("http://alice-ccdb.cern.ch"); // alice-ccdb.cern.ch
+  // api.init("http://ccdb-test.cern.ch:8080");
   auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
-  //ccdbMgr.setURL("http://ccdb-test.cern.ch:8080");
+  // ccdbMgr.setURL("http://ccdb-test.cern.ch:8080");
   auto soreor = ccdbMgr.getRunDuration(runNumber);
-  uint64_t timeStamp = (soreor.second - soreor.first) /2 + soreor.first;
+  uint64_t timeStamp = (soreor.second - soreor.first) / 2 + soreor.first;
   std::cout << "Timestamp:" << timeStamp << std::endl;
   //
   std::string sfill = std::to_string(fillN);
-  std::map<string,string> metadata;
+  std::map<string, string> metadata;
   metadata["fillNumber"] = sfill;
   auto lhcifdata = ccdbMgr.getSpecific<o2::parameters::GRPLHCIFData>("GLO/Config/GRPLHCIF", timeStamp, metadata);
   auto bfilling = lhcifdata->getBunchFilling();
@@ -57,21 +57,21 @@ void GetScalersForRun(int runNumber = 0,int fillN = 0, bool test = 1)
   int tsc = 255;
   int tce = 255;
   int vch = 255;
-  for(auto const& cls: ctpcls) {
-    if(cls.name.find("CMTVXTSC-B-NOPF-CRU") != std::string::npos) {
+  for (auto const& cls : ctpcls) {
+    if (cls.name.find("CMTVXTSC-B-NOPF-CRU") != std::string::npos) {
       tsc = cls.getIndex();
       std::cout << cls.name << ":" << tsc << std::endl;
     }
-    if(cls.name.find("CMTVXTCE-B-NOPF-CRU") != std::string::npos) {
+    if (cls.name.find("CMTVXTCE-B-NOPF-CRU") != std::string::npos) {
       tce = cls.getIndex();
       std::cout << cls.name << ":" << tce << std::endl;
     }
-    if(cls.name.find("CMTVXVCH-B-NOPF-CRU") != std::string::npos) {
+    if (cls.name.find("CMTVXVCH-B-NOPF-CRU") != std::string::npos) {
       vch = cls.getIndex();
       std::cout << cls.name << ":" << vch << std::endl;
     }
   }
-  if(vch == 255) {
+  if (vch == 255) {
     std::cout << "VCH not found" << std::endl;
     return;
   }
@@ -83,23 +83,23 @@ void GetScalersForRun(int runNumber = 0,int fillN = 0, bool test = 1)
   std::vector<CTPScalerRecordO2> recs = ctpscalers->getScalerRecordO2();
   double_t time0 = recs[0].epochTime;
   double_t timeL = recs[recs.size() - 1].epochTime;
-  double_t Trun = timeL-time0;
+  double_t Trun = timeL - time0;
   double_t integral = recs[recs.size() - 1].scalersInps[inp - 1] - recs[0].scalersInps[inp - 1];
-  double_t rate = integral/Trun;
-  double_t rat =  integral/Trun/nbc/frev;
-  double_t mu = -TMath::Log(1-rat);
-  double_t pp = 1 - mu/(TMath::Exp(mu)-1);
-  double_t ratepp = mu*nbc*frev;
-  double_t integralpp = ratepp*Trun;
-  std::cout << "Rate:"<<rate/sigmaratio << " Integral:" << integral << " mu:" << mu << " Pileup prob:" << pp;
-  std::cout << " Integralpp:" << integralpp << " Ratepp:"<< ratepp/sigmaratio <<std::endl;
-  //ctpscalers->printInputRateAndIntegral(26);
+  double_t rate = integral / Trun;
+  double_t rat = integral / Trun / nbc / frev;
+  double_t mu = -TMath::Log(1 - rat);
+  double_t pp = 1 - mu / (TMath::Exp(mu) - 1);
+  double_t ratepp = mu * nbc * frev;
+  double_t integralpp = ratepp * Trun;
+  std::cout << "Rate:" << rate / sigmaratio << " Integral:" << integral << " mu:" << mu << " Pileup prob:" << pp;
+  std::cout << " Integralpp:" << integralpp << " Ratepp:" << ratepp / sigmaratio << std::endl;
+  // ctpscalers->printInputRateAndIntegral(26);
   //
   std::cout << "TSC:";
-  ctpscalers->printClassBRateAndIntegral(tsc+1);
+  ctpscalers->printClassBRateAndIntegral(tsc + 1);
   std::cout << "TCE:";
-  ctpscalers->printClassBRateAndIntegral(tce+1);
-  //std::cout << "TCE input:" << ctpscalers->printInputRateAndIntegral(5) << std::endl;;
+  ctpscalers->printClassBRateAndIntegral(tce + 1);
+  // std::cout << "TCE input:" << ctpscalers->printInputRateAndIntegral(5) << std::endl;;
   std::cout << "VCH:";
-  ctpscalers->printClassBRateAndIntegral(vch+1);
+  ctpscalers->printClassBRateAndIntegral(vch + 1);
 }

@@ -35,11 +35,11 @@ void PlotPbLumiII(int runNumber, int fillN, std::string ccdbHost = "http://ccdb-
   auto& ccdbMgr = o2::ccdb::BasicCCDBManager::instance();
   // Timestamp
   auto soreor = ccdbMgr.getRunDuration(runNumber);
-  uint64_t timeStamp = (soreor.second - soreor.first) /2 + soreor.first;
+  uint64_t timeStamp = (soreor.second - soreor.first) / 2 + soreor.first;
   std::cout << "Timestamp:" << timeStamp << std::endl;
   // Filling
   std::string sfill = std::to_string(fillN);
-  std::map<string,string> metadata;
+  std::map<string, string> metadata;
   metadata["fillNumber"] = sfill;
   auto lhcifdata = ccdbMgr.getSpecific<o2::parameters::GRPLHCIFData>("GLO/Config/GRPLHCIF", timeStamp, metadata);
   auto bfilling = lhcifdata->getBunchFilling();
@@ -59,7 +59,7 @@ void PlotPbLumiII(int runNumber, int fillN, std::string ccdbHost = "http://ccdb-
   scl->convertRawToO2();
   std::vector<CTPScalerRecordO2> recs = scl->getScalerRecordO2();
   //
-  //CTPConfiguration ctpcfg;
+  // CTPConfiguration ctpcfg;
   auto ctpcfg = ccdbMgr.getSpecific<CTPConfiguration>(mCCDBPathCTPConfig, timeStamp, metadata);
   if (ctpcfg == nullptr) {
     LOG(info) << "CTPRunConfig not in database, timestamp:" << timeStamp;
@@ -69,21 +69,21 @@ void PlotPbLumiII(int runNumber, int fillN, std::string ccdbHost = "http://ccdb-
   int tsc = 255;
   int tce = 255;
   int vch = 255;
-  for(auto const& cls: ctpcls) {
-    if(cls.name.find("CMTVXTSC-B-NOPF-CRU") != std::string::npos) {
+  for (auto const& cls : ctpcls) {
+    if (cls.name.find("CMTVXTSC-B-NOPF-CRU") != std::string::npos) {
       tsc = cls.getIndex();
       std::cout << cls.name << ":" << tsc << std::endl;
     }
-    if(cls.name.find("CMTVXTCE-B-NOPF-CRU") != std::string::npos) {
+    if (cls.name.find("CMTVXTCE-B-NOPF-CRU") != std::string::npos) {
       tce = cls.getIndex();
       std::cout << cls.name << ":" << tce << std::endl;
     }
-    if(cls.name.find("CMTVXVCH-B-NOPF-CRU") != std::string::npos) {
+    if (cls.name.find("CMTVXVCH-B-NOPF-CRU") != std::string::npos) {
       vch = cls.getIndex();
       std::cout << cls.name << ":" << vch << std::endl;
     }
   }
-  if(tsc == 255 || tce == 255 || vch == 255) {
+  if (tsc == 255 || tce == 255 || vch == 255) {
     std::cout << " One of dcalers not available, check config to find alternative)" << std::endl;
     return;
   }
@@ -94,44 +94,44 @@ void PlotPbLumiII(int runNumber, int fillN, std::string ccdbHost = "http://ccdb-
   double_t frev = 11245;
   double_t time0 = recs[0].epochTime;
   double_t timeL = recs[recs.size() - 1].epochTime;
-  double_t Trun = timeL-time0;
+  double_t Trun = timeL - time0;
   double_t orbit0 = recs[0].intRecord.orbit;
-  int n = recs.size()-1;
-  std::cout << " Run duration:" << Trun << " Scalers size:" << n+1 << std::endl;
-  Double_t x[n],znc[n],zncpp[n];
-  Double_t tcetsctoznc[n],tcetoznc[n],vchtoznc[n];
-  for(int i = 0; i < n; i++) {
-    x[i] = (double_t)(recs[i+1].intRecord.orbit + recs[i].intRecord.orbit)/2.-orbit0;
+  int n = recs.size() - 1;
+  std::cout << " Run duration:" << Trun << " Scalers size:" << n + 1 << std::endl;
+  Double_t x[n], znc[n], zncpp[n];
+  Double_t tcetsctoznc[n], tcetoznc[n], vchtoznc[n];
+  for (int i = 0; i < n; i++) {
+    x[i] = (double_t)(recs[i + 1].intRecord.orbit + recs[i].intRecord.orbit) / 2. - orbit0;
     x[i] *= 88e-6;
-    //x[i] = (double_t)(recs[i+1].epochTime + recs[i].epochTime)/2.;
-    double_t tt = (double_t)(recs[i+1].intRecord.orbit - recs[i].intRecord.orbit );
-    tt = tt*88e-6;
+    // x[i] = (double_t)(recs[i+1].epochTime + recs[i].epochTime)/2.;
+    double_t tt = (double_t)(recs[i + 1].intRecord.orbit - recs[i].intRecord.orbit);
+    tt = tt * 88e-6;
     //
-    //std::cout << recs[i+1].scalersInps[25] << std::endl;
-    double_t znci = (double_t)(recs[i+1].scalersInps[25] - recs[i].scalersInps[25]);
-    double_t mu = -TMath::Log(1.-znci/tt/nbc/frev);
-    double_t zncipp = mu*nbc*frev;
-    zncpp[i] = zncipp/28.;
-    znc[i] = znci/28./tt;
+    // std::cout << recs[i+1].scalersInps[25] << std::endl;
+    double_t znci = (double_t)(recs[i + 1].scalersInps[25] - recs[i].scalersInps[25]);
+    double_t mu = -TMath::Log(1. - znci / tt / nbc / frev);
+    double_t zncipp = mu * nbc * frev;
+    zncpp[i] = zncipp / 28.;
+    znc[i] = znci / 28. / tt;
     //
-    auto had = recs[i+1].scalers[tce].lmBefore - recs[i].scalers[tce].lmBefore;
-    //std::cout << recs[i+1].scalers[tce].lmBefore << std::endl;
-    had += recs[i+1].scalers[tsc].lmBefore - recs[i].scalers[tsc].lmBefore;
-    //rat = (double_t)(had)/double_t(recs[i+1].scalersInps[25] - recs[i].scalersInps[25])*28;
-    tcetsctoznc[i] = (double_t)(had)/zncpp[i]/tt;
-    had = recs[i+1].scalers[tce].lmBefore - recs[i].scalers[tce].lmBefore;
-    //rat = (double_t)(had)/double_t(recs[i+1].scalersInps[25] - recs[i].scalersInps[25])*28;
-    tcetoznc[i]= (double_t)(had)/zncpp[i]/tt;
-    had = recs[i+1].scalers[vch].lmBefore - recs[i].scalers[vch].lmBefore;
-    //rat = (double_t)(had)/double_t(recs[i+1].scalersInps[25] - recs[i].scalersInps[25])*28;
-    vchtoznc[i] = (double_t)(had)/zncpp[i]/tt;
+    auto had = recs[i + 1].scalers[tce].lmBefore - recs[i].scalers[tce].lmBefore;
+    // std::cout << recs[i+1].scalers[tce].lmBefore << std::endl;
+    had += recs[i + 1].scalers[tsc].lmBefore - recs[i].scalers[tsc].lmBefore;
+    // rat = (double_t)(had)/double_t(recs[i+1].scalersInps[25] - recs[i].scalersInps[25])*28;
+    tcetsctoznc[i] = (double_t)(had) / zncpp[i] / tt;
+    had = recs[i + 1].scalers[tce].lmBefore - recs[i].scalers[tce].lmBefore;
+    // rat = (double_t)(had)/double_t(recs[i+1].scalersInps[25] - recs[i].scalersInps[25])*28;
+    tcetoznc[i] = (double_t)(had) / zncpp[i] / tt;
+    had = recs[i + 1].scalers[vch].lmBefore - recs[i].scalers[vch].lmBefore;
+    // rat = (double_t)(had)/double_t(recs[i+1].scalersInps[25] - recs[i].scalersInps[25])*28;
+    vchtoznc[i] = (double_t)(had) / zncpp[i] / tt;
   }
   //
   gStyle->SetMarkerSize(0.75);
-  TGraph *gr1 = new TGraph(n,x,znc);
-  TGraph *gr2 = new TGraph(n,x,tcetsctoznc);
-  TGraph *gr3 = new TGraph(n,x,tcetoznc);
-  TGraph *gr4 = new TGraph(n,x,vchtoznc);
+  TGraph* gr1 = new TGraph(n, x, znc);
+  TGraph* gr2 = new TGraph(n, x, tcetsctoznc);
+  TGraph* gr3 = new TGraph(n, x, tcetoznc);
+  TGraph* gr4 = new TGraph(n, x, vchtoznc);
   gr1->SetMarkerStyle(20);
   gr2->SetMarkerStyle(21);
   gr3->SetMarkerStyle(22);
@@ -146,8 +146,8 @@ void PlotPbLumiII(int runNumber, int fillN, std::string ccdbHost = "http://ccdb-
   gr4->SetTitle("R=(VCH)*TVTX*B*28/ZNC; time[sec]; R");
   gr4->GetHistogram()->SetMaximum(0.6);
   gr4->GetHistogram()->SetMinimum(0.4);
-  TCanvas *c1 = new TCanvas("c1",srun.c_str(),200,10,800,500);
-  c1->Divide(2,2);
+  TCanvas* c1 = new TCanvas("c1", srun.c_str(), 200, 10, 800, 500);
+  c1->Divide(2, 2);
   c1->cd(1);
   gr1->Draw("AP");
   c1->cd(2);
