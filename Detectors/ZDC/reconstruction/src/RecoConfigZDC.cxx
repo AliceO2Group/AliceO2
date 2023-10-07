@@ -14,7 +14,8 @@
 
 using namespace o2::zdc;
 
-void RecoConfigZDC::setBit(uint32_t ibit, bool val){
+void RecoConfigZDC::setBit(uint32_t ibit, bool val)
+{
   if (ibit >= 0 && ibit < NTDCChannels) {
     bitset[ibit] = val;
   } else {
