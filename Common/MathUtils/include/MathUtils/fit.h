@@ -712,6 +712,82 @@ bool LTMUnbinnedSig(const std::vector<T>& data, std::vector<size_t>& index, std:
   params[4] = params[3] / std::sqrt(2.0);       // error on RMS
   return true;
 }
+
+//___________________________________________________________________
+template <typename T>
+T selKthMin(int k, int np, T* arr)
+{
+  // Returns the k th smallest value in the array. The input array will be rearranged
+  // to have this value in location arr[k] , with all smaller elements moved before it
+  // (in arbitrary order) and all larger elements after (also in arbitrary order).
+  // From Numerical Recipes in C++
+
+  int i, j, mid, ir = np - 1, l = 0;
+  T a;
+  for (;;) {
+    if (ir <= l + 1) {
+      if (ir == l + 1 && arr[ir] < arr[l]) {
+        std::swap(arr[l], arr[ir]);
+      }
+      return arr[k];
+    } else {
+      int mid = (l + ir) >> 1, i = l + 1;
+      std::swap(arr[mid], arr[i]);
+      if (arr[i] > arr[ir]) {
+        std::swap(arr[i], arr[ir]);
+      }
+      if (arr[l] > arr[ir]) {
+        std::swap(arr[l], arr[ir]);
+      }
+      if (arr[i] > arr[l]) {
+        std::swap(arr[i], arr[l]);
+      }
+      j = ir;
+      a = arr[l];
+      for (;;) {
+        do {
+          i++;
+        } while (arr[i] < a);
+        do {
+          j--;
+        } while (arr[j] > a);
+        if (j < i) {
+          break;
+        }
+        std::swap(arr[i], arr[j]);
+      }
+      arr[l] = arr[j];
+      arr[j] = a;
+      if (j >= k) {
+        ir = j - 1;
+      }
+      if (j <= k) {
+        l = i;
+      }
+    }
+  }
+}
+
+//___________________________________________________________________
+template <typename T>
+T MAD2Sigma(int np, T* y)
+{
+  // Sigma calculated from median absolute deviations, https://en.wikipedia.org/wiki/Median_absolute_deviation
+  // the input array is modified
+  if (np < 2) {
+    return 0;
+  }
+  int nph = np >> 1;
+  float median = (np & 0x1) ? selKthMin(nph, np, y) : 0.5 * (selKthMin(nph - 1, np, y) + selKthMin(nph, np, y));
+  // build abs differences to median
+  for (int i = np; i--;) {
+    y[i] = std::abs(y[i] - median);
+  }
+  // now get median of abs deviations
+  median = (np & 0x1) ? selKthMin(nph, np, y) : 0.5 * (selKthMin(nph - 1, np, y) + selKthMin(nph, np, y));
+  return median * 1.4826; // convert to Gaussian sigma
+}
+
 } // namespace math_utils
 } // namespace o2
 #endif
