@@ -66,7 +66,7 @@ struct RecoConfigZDC {
 
   void print() const;
 
-  ClassDefNV(RecoConfigZDC, 5);
+  ClassDefNV(RecoConfigZDC, 4);
 };
 } // namespace zdc
 } // namespace o2

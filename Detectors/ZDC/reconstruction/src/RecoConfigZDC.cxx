@@ -14,6 +14,14 @@
 
 using namespace o2::zdc;
 
+void RecoConfigZDC::setBit(uint32_t ibit, bool val){
+  if (ibit >= 0 && ibit < NTDCChannels) {
+    bitset[ibit] = val;
+  } else {
+    LOG(fatal) << __func__ << " channel " << ibit << " not in allowed range";
+  }
+}
+
 void RecoConfigZDC::setSearch(uint32_t ich, int val)
 {
   if (ich >= 0 && ich < NTDCChannels) {
