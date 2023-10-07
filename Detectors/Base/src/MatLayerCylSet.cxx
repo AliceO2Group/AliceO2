@@ -8,7 +8,6 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-
 /// \file MatLayerCylSet.cxx
 /// \brief Implementation of the wrapper for the set of cylindrical material layers
 
@@ -174,19 +173,6 @@ void MatLayerCylSet::writeToFile(const std::string& outFName)
   }
   outf.WriteObjectAny(this, Class(), "ccdb_object");
   outf.Close();
-}
-
-GPUd() int MatLayerCylSet::searchLayerFast(float r2, int low, int high) const
-{
-  // we can avoid the sqrt .. at the cost of more memory in the lookup
-  const auto index = 2 * int(o2::gpu::CAMath::Sqrt(r2) * InvVoxelRDelta);
-  const auto layersfirst = mLayerVoxelLU[index];
-  const auto layerslast = mLayerVoxelLU[index + 1];
-  if (layersfirst != layerslast) {
-    // this means the voxel is undecided and we revert to search
-    return searchSegment(r2, layersfirst, layerslast + 1);
-  }
-  return layersfirst;
 }
 
 void MatLayerCylSet::initLayerVoxelLU()
@@ -429,7 +415,7 @@ GPUd() bool MatLayerCylSet::getLayersRange(const Ray& ray, short& lmin, short& l
     return false;
   }
   int lmxInt, lmnInt;
-  if (!mLayerVoxelLU) {
+  if (!mInitializedLayerVoxelLU) {
     lmxInt = rmax2 < getRMax2() ? searchSegment(rmax2, 0) : get()->mNRIntervals - 2;
     lmnInt = rmin2 >= getRMin2() ? searchSegment(rmin2, 0, lmxInt + 1) : 0;
   } else {
@@ -448,6 +434,19 @@ GPUd() bool MatLayerCylSet::getLayersRange(const Ray& ray, short& lmin, short& l
     lmin = interval2LrID[lmnInt + 1]; // rmin2 is in the gap, take lowest layer above rmin2
   }
   return lmin <= lmax; // valid if both are not in the same gap
+}
+
+GPUd() int MatLayerCylSet::searchLayerFast(float r2, int low, int high) const
+{
+  // we can avoid the sqrt .. at the cost of more memory in the lookup
+  const auto index = 2 * int(o2::gpu::CAMath::Sqrt(r2) * InvVoxelRDelta);
+  const auto layersfirst = mLayerVoxelLU[index];
+  const auto layerslast = mLayerVoxelLU[index + 1];
+  if (layersfirst != layerslast) {
+    // this means the voxel is undecided and we revert to search
+    return searchSegment(r2, layersfirst, layerslast + 1);
+  }
+  return layersfirst;
 }
 
 GPUd() int MatLayerCylSet::searchSegment(float val, int low, int high) const
