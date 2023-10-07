@@ -1,6 +1,4 @@
-// -*- mode: C++ -*-
-//
-// Copyright 2023 CERN and copyright holders of ALICE O2.
+// Copyright 2023-2099 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -10,8 +8,9 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-//
-// #include <Framework/AnalysisTask.h>
+
+/** @author Christian Holm Christensen <cholm@nbi.dk> */
+
 #include <Framework/runDataProcessing.h>
 #include <Framework/AnalysisHelpers.h>
 #include <Framework/AnalysisTask.h>
