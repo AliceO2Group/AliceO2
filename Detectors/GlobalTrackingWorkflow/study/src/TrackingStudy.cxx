@@ -37,6 +37,7 @@
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "ReconstructionDataFormats/DCA.h"
 #include "Steer/MCKinematicsReader.h"
+#include "MathUtils/fit.h"
 
 namespace o2::trackstudy
 {
@@ -74,7 +75,7 @@ class TrackingStudySpec : public Task
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOutVtx;
   float mITSROFrameLengthMUS = 0.;
   int mMaxNeighbours = 3;
-  float mMaxVTTimeDiff = 25.; // \mus
+  float mMaxVTTimeDiff = 80.; // \mus
   GTrackID::mask_t mTracksSrc{};
   o2::steer::MCKinematicsReader mcReader; // reader of MC information
 };
@@ -125,14 +126,19 @@ void TrackingStudySpec::process(o2::globaltracking::RecoContainer& recoData)
   int nv = vtxRefs.size() - 1;
   o2::dataformats::PrimaryVertexExt pveDummy;
   std::vector<o2::dataformats::PrimaryVertexExt> pveVec;
+  float tBiasITS = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance().roFrameBiasInBC * o2::constants::lhc::LHCBunchSpacingMUS;
+  std::vector<float> dtvec, dzvec;
 
   for (int iv = 0; iv < nv; iv++) {
     LOGP(debug, "processing PV {} of {}", iv, nv);
-
     const auto& vtref = vtxRefs[iv];
     auto pv = pvvec[iv];
     auto& pve = pveVec.emplace_back();
     static_cast<o2::dataformats::PrimaryVertex&>(pve) = pv;
+    dtvec.clear();
+    dzvec.clear();
+    dtvec.reserve(pv.getNContributors());
+    dzvec.reserve(pv.getNContributors());
 
     float bestTimeDiff = 1000, bestTime = -999;
     int bestFTID = -1;
@@ -152,10 +158,15 @@ void TrackingStudySpec::process(o2::globaltracking::RecoContainer& recoData)
     }
     if (bestFTID >= 0) {
       pve.FT0A = FITInfo[bestFTID].getTrigger().getAmplA();
-      pve.FT0Amp = pve.FT0A + FITInfo[bestFTID].getTrigger().getAmplC();
+      pve.FT0C = FITInfo[bestFTID].getTrigger().getAmplC();
       pve.FT0Time = FITInfo[bestFTID].getInteractionRecord().differenceInBCMUS(recoData.startIR);
     }
     pve.VtxID = iv;
+    float meanT = 0, meanZ = 0, rmsT = 0, rmsZ = 0;
+    float meanTW = 0, meanZW = 0, rmsTW = 0, rmsZW = 0, WT = 0, WZ = 0;
+    float meanT0 = 0, rmsT0 = 0;
+    float meanTW0 = 0, rmsTW0 = 0, WT0 = 0;
+    int nContAdd = 0, nContAdd0 = 0, ntITS = 0;
     for (int is = 0; is < GTrackID::NSources; is++) {
       bool skipTracks = (!GTrackID::getSourceDetectorsMask(is)[GTrackID::ITS] || !mTracksSrc[is] || !recoData.isTrackSourceLoaded(is));
       int idMin = vtref.getFirstEntryOfSource(is), idMax = idMin + vtref.getEntriesOfSource(is);
@@ -177,13 +188,97 @@ void TrackingStudySpec::process(o2::globaltracking::RecoContainer& recoData)
         }
         float ttime = 0, ttimeE = 0;
         recoData.getTrackTime(vid, ttime, ttimeE);
+        bool acceptForPV0 = pvCont;
+        if (vid.getSource() == GTrackID::ITS) {
+          ttimeE *= mITSROFrameLengthMUS;
+          ttime += ttimeE + tBiasITS;
+          ttimeE *= 1. / sqrt(3);
+          if (++ntITS > 0) { // do not allow ITS in the MAD
+            acceptForPV0 = false;
+          }
+        } else if (vid.getSource() == GTrackID::TPC) {
+          ttimeE *= o2::constants::lhc::LHCBunchSpacingMUS * 8;
+        }
+        if (pvCont) {
+          float dt = ttime - pve.getTimeStamp().getTimeStamp();
+          float tW = 1. / (ttimeE * ttimeE), zW = 1. / trc.getSigmaZ2();
+          dzvec.push_back(dca.getZ());
+          WT += tW;
+          WZ += zW;
+          meanT += dt;
+          meanTW += dt * tW;
+          meanZ += dca.getZ();
+          meanZW += dca.getZ() * zW;
+
+          rmsT += dt * dt;
+          rmsTW += dt * dt * tW;
+          rmsZ += dca.getZ() * dca.getZ();
+          rmsZW += dca.getZ() * dca.getZ() * zW;
+          nContAdd++;
+          if (acceptForPV0) {
+            dtvec.push_back(dt);
+            WT0 += tW;
+            meanT0 += dt;
+            meanTW0 += dt * tW;
+            rmsT0 += dt * dt;
+            rmsTW0 += dt * dt * tW;
+            nContAdd0++;
+          }
+          LOGP(debug, "dt={} dz={}, tW={}, zW={} t={} tE={} {}", dt, dca.getZ(), tW, zW, ttime, ttimeE, vid.asString());
+        }
         (*mDBGOut) << "dca"
                    << "tfID=" << TFCount << "ttime=" << ttime << "ttimeE=" << ttimeE
                    << "gid=" << vid << "pv=" << pv << "trc=" << trc << "pvCont=" << pvCont << "ambig=" << ambig << "dca=" << dca << "xmin=" << xmin << "\n";
       }
     }
+
+    if (nContAdd) {
+      rmsT /= nContAdd;
+      rmsZ /= nContAdd;
+      meanT /= nContAdd;
+      meanZ /= nContAdd;
+      pve.rmsT = (rmsT - meanT * meanT);
+      pve.rmsT = pve.rmsT > 0 ? std::sqrt(pve.rmsT) : 0;
+      pve.rmsZ = rmsZ - meanZ * meanZ;
+      pve.rmsZ = pve.rmsZ > 0 ? std::sqrt(pve.rmsZ) : 0;
+    }
+    if (nContAdd0) {
+      rmsT0 /= nContAdd0;
+      meanT0 /= nContAdd0;
+      pve.rmsT0 = (rmsT0 - meanT0 * meanT0);
+      pve.rmsT0 = pve.rmsT0 > 0 ? std::sqrt(pve.rmsT0) : 0;
+    }
+    if (WT0 > 0) {
+      rmsTW0 /= WT0;
+      meanTW0 /= WT0;
+      pve.rmsTW0 = (rmsTW0 - meanTW0 * meanTW0);
+      pve.rmsTW0 = pve.rmsTW0 > 0 ? std::sqrt(pve.rmsTW0) : 0;
+    }
+    //
+    if (WT > 0 && WZ > 0) {
+      rmsTW /= WT;
+      meanTW /= WT;
+      pve.rmsTW = (rmsTW - meanTW * meanTW);
+      pve.rmsTW = pve.rmsTW > 0 ? std::sqrt(pve.rmsTW) : 0;
+      rmsZW /= WZ;
+      meanZW /= WZ;
+      pve.rmsZW = rmsZW - meanZW * meanZW;
+      pve.rmsZW = pve.rmsZ > 0 ? std::sqrt(pve.rmsZ) : 0;
+    }
+    pve.tMAD = o2::math_utils::MAD2Sigma(dtvec.size(), dtvec.data());
+    pve.zMAD = o2::math_utils::MAD2Sigma(dzvec.size(), dzvec.data());
   }
   int nvtot = mMaxNeighbours < 0 ? -1 : (int)pveVec.size();
+
+  auto insSlot = [maxSlots = mMaxNeighbours](std::vector<float>& vc, float v, int slot, std::vector<int>& vid, int id) {
+    for (int i = maxSlots - 1; i > slot; i--) {
+      std::swap(vc[i], vc[i - 1]);
+      std::swap(vid[i], vid[i - 1]);
+    }
+    vc[slot] = v;
+    vid[slot] = id;
+  };
+
   for (int cnt = 0; cnt < nvtot; cnt++) {
     const auto& pve = pveVec[cnt];
     float tv = pve.getTimeStamp().getTimeStamp();
@@ -205,16 +300,14 @@ void TrackingStudySpec::process(o2::globaltracking::RecoContainer& recoData)
       }
       for (int i = 0; i < mMaxNeighbours; i++) {
         if (dT[i] > dtime) {
-          dT[i] = dtime;
-          idT[i] = cntM;
+          insSlot(dT, dtime, i, idT, cntM);
           break;
         }
       }
       auto dz = std::abs(pve.getZ() - vt.getZ());
       for (int i = 0; i < mMaxNeighbours; i++) {
         if (dZ[i] > dz) {
-          dZ[i] = dz;
-          idZ[i] = cntM;
+          insSlot(dZ, dz, i, idZ, cntM);
           break;
         }
       }
@@ -227,16 +320,14 @@ void TrackingStudySpec::process(o2::globaltracking::RecoContainer& recoData)
       }
       for (int i = 0; i < mMaxNeighbours; i++) {
         if (dT[i] > dtime) {
-          dT[i] = dtime;
-          idT[i] = cntP;
+          insSlot(dT, dtime, i, idT, cntP);
           break;
         }
       }
       auto dz = std::abs(pve.getZ() - vt.getZ());
       for (int i = 0; i < mMaxNeighbours; i++) {
         if (dZ[i] > dz) {
-          dZ[i] = dz;
-          idZ[i] = cntP;
+          insSlot(dZ, dz, i, idZ, cntP);
           break;
         }
       }
@@ -302,8 +393,8 @@ DataProcessorSpec getTrackingStudySpec(GTrackID::mask_t srcTracks, GTrackID::mas
     outputs,
     AlgorithmSpec{adaptFromTask<TrackingStudySpec>(dataRequest, ggRequest, srcTracks, useMC)},
     Options{
-      {"max-vtx-neighbours", VariantType::Int, 2, {"Max PV neighbours fill, no PV study if < 0"}},
-      {"max-vtx-timediff", VariantType::Float, 25.f, {"Max PV time difference to consider"}},
+      {"max-vtx-neighbours", VariantType::Int, 3, {"Max PV neighbours fill, no PV study if < 0"}},
+      {"max-vtx-timediff", VariantType::Float, 90.f, {"Max PV time difference to consider"}},
     }};
 }
 
