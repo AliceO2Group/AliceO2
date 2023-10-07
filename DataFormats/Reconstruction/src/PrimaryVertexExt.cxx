@@ -24,7 +24,7 @@ using GTrackID = o2::dataformats::GlobalTrackID;
 
 std::string PrimaryVertexExt::asString() const
 {
-  auto str = o2::utils::Str::concat_string(PrimaryVertex::asString(), fmt::format("VtxID={} FT0A/C={}/{} FT0T={}", VtxID, FT0A, FT0Amp - FT0A, FT0Time));
+  auto str = o2::utils::Str::concat_string(PrimaryVertex::asString(), fmt::format("VtxID={} FT0A/C={}/{} FT0T={}", VtxID, FT0A, FT0C, FT0Time));
   for (int i = 0; i < GTrackID::Source::NSources; i++) {
     if (getNSrc(i) > 0) {
       str += fmt::format(" {}={}", GTrackID::getSourceName(i), getNSrc(i));
