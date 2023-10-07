@@ -25,7 +25,7 @@
 #include <iostream>
 #endif
 using namespace o2::ctp;
-void PlotPbLumi(int runNumber, int fillN, int what =1, std::string ccdbHost = "http://ccdb-test.cern.ch:8080")
+void PlotPbLumiII(int runNumber, int fillN, std::string ccdbHost = "http://ccdb-test.cern.ch:8080")
 { //
   // what = 1: znc rate
   // what = 2: (TCE+TSC)/ZNC
@@ -83,6 +83,10 @@ void PlotPbLumi(int runNumber, int fillN, int what =1, std::string ccdbHost = "h
       std::cout << cls.name << ":" << vch << std::endl;
     }
   }
+  if(tsc == 255 || tce == 255 || vch == 255) {
+    std::cout << " One of dcalers not available, check config to find alternative)" << std::endl;
+    return;
+  }
   //
   // Anal
   //
@@ -95,6 +99,7 @@ void PlotPbLumi(int runNumber, int fillN, int what =1, std::string ccdbHost = "h
   int n = recs.size()-1;
   std::cout << " Run duration:" << Trun << " Scalers size:" << n+1 << std::endl;
   Double_t x[n],znc[n],zncpp[n];
+  Double_t tcetsctoznc[n],tcetoznc[n],vchtoznc[n];
   for(int i = 0; i < n; i++) {
     x[i] = (double_t)(recs[i+1].intRecord.orbit + recs[i].intRecord.orbit)/2.-orbit0;
     x[i] *= 88e-6;
@@ -107,47 +112,48 @@ void PlotPbLumi(int runNumber, int fillN, int what =1, std::string ccdbHost = "h
     double_t mu = -TMath::Log(1.-znci/tt/nbc/frev);
     double_t zncipp = mu*nbc*frev;
     zncpp[i] = zncipp/28.;
+    znc[i] = znci/28./tt;
     //
-    double_t rat = 0;
-    if(what == 1) {
-      rat = znci/28./tt;
-    } else if(what == 2) {
-      auto had = recs[i+1].scalers[tce].lmBefore - recs[i].scalers[tce].lmBefore;
-      //std::cout << recs[i+1].scalers[tce].lmBefore << std::endl;
-      had += recs[i+1].scalers[tsc].lmBefore - recs[i].scalers[tsc].lmBefore;
-      //rat = (double_t)(had)/double_t(recs[i+1].scalersInps[25] - recs[i].scalersInps[25])*28;
-      rat = (double_t)(had)/zncpp[i]/tt;
-    } else if(what == 3) {
-      auto had = recs[i+1].scalers[tce].lmBefore - recs[i].scalers[tce].lmBefore;
-      //rat = (double_t)(had)/double_t(recs[i+1].scalersInps[25] - recs[i].scalersInps[25])*28;
-      rat = (double_t)(had)/zncpp[i]/tt;
-    } else if(what ==4) {
-      auto had = recs[i+1].scalers[vch].lmBefore - recs[i].scalers[vch].lmBefore;
-      //rat = (double_t)(had)/double_t(recs[i+1].scalersInps[25] - recs[i].scalersInps[25])*28;
-      rat = (double_t)(had)/zncpp[i]/tt;
-    }
-    znc[i] = rat;
+    auto had = recs[i+1].scalers[tce].lmBefore - recs[i].scalers[tce].lmBefore;
+    //std::cout << recs[i+1].scalers[tce].lmBefore << std::endl;
+    had += recs[i+1].scalers[tsc].lmBefore - recs[i].scalers[tsc].lmBefore;
+    //rat = (double_t)(had)/double_t(recs[i+1].scalersInps[25] - recs[i].scalersInps[25])*28;
+    tcetsctoznc[i] = (double_t)(had)/zncpp[i]/tt;
+    had = recs[i+1].scalers[tce].lmBefore - recs[i].scalers[tce].lmBefore;
+    //rat = (double_t)(had)/double_t(recs[i+1].scalersInps[25] - recs[i].scalersInps[25])*28;
+    tcetoznc[i]= (double_t)(had)/zncpp[i]/tt;
+    had = recs[i+1].scalers[vch].lmBefore - recs[i].scalers[vch].lmBefore;
+    //rat = (double_t)(had)/double_t(recs[i+1].scalersInps[25] - recs[i].scalersInps[25])*28;
+    vchtoznc[i] = (double_t)(had)/zncpp[i]/tt;
   }
+  //
+  gStyle->SetMarkerSize(0.75);
   TGraph *gr1 = new TGraph(n,x,znc);
-  //TGraph *gr2 = new TGraph(n,x,zncpp);
-  gr1->SetMarkerStyle(22);
-  //gr2->SetMarkerStyle(21);
-  if ( what == 1) {
-    gr1->SetTitle("R=ZNC/28 rate [Hz]; time[sec]; R");
-  } else if(what == 2) {
-    gr1->SetTitle("R=(TSC+TCE)*TVTX*B*28/ZNC; time[sec]; R");
-    //gr1->GetHistogram()->SetMaximum(1.2);
-    //gr1->GetHistogram()->SetMinimum(0.8);
-  } else if(what == 3){
-    gr1->SetTitle("R=(TCE)*TVTX*B*28/ZNC; time[sec]; R");
-    gr1->GetHistogram()->SetMaximum(0.6);
-    gr1->GetHistogram()->SetMinimum(0.5);
-  } else {
-    gr1->SetTitle("R=(VCH)*TVTX*B*28/ZNC; time[sec]; R");
-    gr1->GetHistogram()->SetMaximum(0.6);
-    gr1->GetHistogram()->SetMinimum(0.5);
-  }
+  TGraph *gr2 = new TGraph(n,x,tcetsctoznc);
+  TGraph *gr3 = new TGraph(n,x,tcetoznc);
+  TGraph *gr4 = new TGraph(n,x,vchtoznc);
+  gr1->SetMarkerStyle(20);
+  gr2->SetMarkerStyle(21);
+  gr3->SetMarkerStyle(22);
+  gr4->SetMarkerStyle(23);
+  gr1->SetTitle("R=ZNC/28 rate [Hz]; time[sec]; R");
+  gr2->SetTitle("R=(TSC+TCE)*TVTX*B*28/ZNC; time[sec]; R");
+  gr2->GetHistogram()->SetMaximum(1.5);
+  gr2->GetHistogram()->SetMinimum(0.9);
+  gr3->SetTitle("R=(TCE)*TVTX*B*28/ZNC; time[sec]; R");
+  gr3->GetHistogram()->SetMaximum(0.6);
+  gr3->GetHistogram()->SetMinimum(0.4);
+  gr4->SetTitle("R=(VCH)*TVTX*B*28/ZNC; time[sec]; R");
+  gr4->GetHistogram()->SetMaximum(0.6);
+  gr4->GetHistogram()->SetMinimum(0.4);
   TCanvas *c1 = new TCanvas("c1",srun.c_str(),200,10,800,500);
+  c1->Divide(2,2);
+  c1->cd(1);
   gr1->Draw("AP");
-  //gr2->Draw("P");
+  c1->cd(2);
+  gr2->Draw("AP");
+  c1->cd(3);
+  gr3->Draw("AP");
+  c1->cd(4);
+  gr4->Draw("AP");
 }

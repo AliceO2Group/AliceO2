@@ -56,6 +56,7 @@ void GetScalersForRun(int runNumber = 0,int fillN = 0, bool test = 1)
   std::vector<CTPClass> ctpcls = ctpcfg->getCTPClasses();
   int tsc = 255;
   int tce = 255;
+  int vch = 255;
   for(auto const& cls: ctpcls) {
     if(cls.name.find("CMTVXTSC-B-NOPF-CRU") != std::string::npos) {
       tsc = cls.getIndex();
@@ -65,6 +66,14 @@ void GetScalersForRun(int runNumber = 0,int fillN = 0, bool test = 1)
       tce = cls.getIndex();
       std::cout << cls.name << ":" << tce << std::endl;
     }
+    if(cls.name.find("CMTVXVCH-B-NOPF-CRU") != std::string::npos) {
+      vch = cls.getIndex();
+      std::cout << cls.name << ":" << vch << std::endl;
+    }
+  }
+  if(vch == 255) {
+    std::cout << "VCH not found" << std::endl;
+    return;
   }
   std::cout << "ZNC:";
   int inp = 26;
@@ -90,5 +99,7 @@ void GetScalersForRun(int runNumber = 0,int fillN = 0, bool test = 1)
   ctpscalers->printClassBRateAndIntegral(tsc+1);
   std::cout << "TCE:";
   ctpscalers->printClassBRateAndIntegral(tce+1);
-  std::cout << "TCE input:" << ctpscalers->printInputRateAndIntegral(5) << std::endl;;
+  //std::cout << "TCE input:" << ctpscalers->printInputRateAndIntegral(5) << std::endl;;
+  std::cout << "VCH:";
+  ctpscalers->printClassBRateAndIntegral(vch+1);
 }
