@@ -511,6 +511,23 @@ uint8_t GBTLink::checkErrorsCableID(const GBTData* gbtD, uint8_t cableSW)
 }
 
 ///_________________________________________________________________
+/// Check that the IR was extracted from the trigger
+uint8_t GBTLink::checkErrorsIRNotExtracted()
+{
+  uint8_t err = uint8_t(NoError);
+  if (ir.isDummy()) {
+    statistics.errorCounts[GBTLinkDecodingStat::ErrMissingGBTTrigger]++;
+    gbtErrStatUpadated = true;
+    if (needToPrintError(statistics.errorCounts[GBTLinkDecodingStat::ErrMissingGBTTrigger])) {
+      LOG(info) << describe() << " IR_RDH " << irHBF << " IR_ROF " << ir << ". " << statistics.ErrNames[GBTLinkDecodingStat::ErrMissingGBTTrigger];
+    }
+    errorBits |= 0x1 << int(GBTLinkDecodingStat::ErrMissingGBTTrigger);
+    err |= uint8_t(Abort);
+  }
+  return err;
+}
+
+///_________________________________________________________________
 /// Account link recovery RDH flag
 void GBTLink::accountLinkRecovery(o2::InteractionRecord ir)
 {
