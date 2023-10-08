@@ -274,7 +274,7 @@ void tpc::TimeSeriesITSTPC::dumpToTree(const char* outFileName, const int nHBFPe
 void tpc::TimeSeries::dumpToTree(const char* outFileName, TTree& tree, const tpc::TimeSeries& idc, const char* prefix, const int nHBFPerTF)
 {
   const auto nValues = idc.mDCAr_A_Median.size();
-  const int nPointsPerTF = idc.mNBinsPhi + idc.mNBinsTgl + 1;
+  const int nPointsPerTF = idc.getNBins();
   const int nTotPoints = nValues / nPointsPerTF;
 
   const int nBinTypes = 4;

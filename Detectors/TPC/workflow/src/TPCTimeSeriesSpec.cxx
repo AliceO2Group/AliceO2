@@ -692,6 +692,9 @@ class TPCTimeSeries : public Task
     if (!mDisableWriter) {
       o2::dataformats::TFIDInfo tfinfo;
       o2::base::TFIDInfoHelper::fillTFIDInfo(pc, tfinfo);
+      const long timeMS = o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS() + processing_helpers::getFirstTForbit(pc) * o2::constants::lhc::LHCOrbitMUS / 1000;
+      mBufferDCA.mTSTPC.setStartTime(timeMS);
+      mBufferDCA.mTSITSTPC.setStartTime(timeMS);
       pc.outputs().snapshot(Output{header::gDataOriginTPC, getDataDescriptionTPCTimeSeriesTFId()}, tfinfo);
     }
   }
@@ -823,7 +826,7 @@ o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, 
   inputs.emplace_back("pvtx_trmtc", "GLO", "PVTX_TRMTC", 0, Lifetime::Timeframe);    // global ids of associated tracks
   inputs.emplace_back("pvtx_tref", "GLO", "PVTX_TRMTCREFS", 0, Lifetime::Timeframe); // vertex - trackID refs
 
-  auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime
+  auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(!disableWriter,                 // orbitResetTime
                                                                 false,                          // GRPECS=true for nHBF per TF
                                                                 false,                          // GRPLHCIF
                                                                 true,                           // GRPMagField
