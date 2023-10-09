@@ -17,6 +17,7 @@
 #define O2_TPC_TPCCALIBDEDXSPEC_H_
 
 #include "Framework/DataProcessorSpec.h"
+#include "DetectorsBase/Propagator.h"
 
 using namespace o2::framework;
 
@@ -24,7 +25,7 @@ namespace o2::tpc
 {
 
 /// create a processor spec
-o2::framework::DataProcessorSpec getCalibdEdxSpec();
+o2::framework::DataProcessorSpec getCalibdEdxSpec(const o2::base::Propagator::MatCorrType matType);
 
 } // namespace o2::tpc
 

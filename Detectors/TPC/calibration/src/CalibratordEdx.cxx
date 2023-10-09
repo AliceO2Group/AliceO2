@@ -76,6 +76,7 @@ CalibratordEdx::Slot& CalibratordEdx::emplaceNewSlot(bool front, TFType tstart, 
   container->set2DFitThreshold(mFitThreshold[2]);
   const auto [cut, iterations, cutLowFactor] = mElectronCut;
   container->setElectronCut(cut, iterations, cutLowFactor);
+  container->setMaterialType(mMatType);
 
   slot.setContainer(std::move(container));
   return slot;

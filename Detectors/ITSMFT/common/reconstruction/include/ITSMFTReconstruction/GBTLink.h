@@ -39,7 +39,7 @@
   }                                                                           \
   if ((errRes)&uint8_t(Abort)) {                                              \
     discardData();                                                            \
-    return AbortedOnError;                                                    \
+    return (status = AbortedOnError);                                         \
   }
 
 namespace o2
@@ -187,6 +187,8 @@ struct GBTLink {
   uint8_t checkErrorsDiagnosticWord(const GBTDiagnostic* gbtD) const { return NoError; }
   uint8_t checkErrorsCalibrationWord(const GBTCalibration* gbtCal) const { return NoError; }
   uint8_t checkErrorsCableID(const GBTData* gbtD, uint8_t cableSW) const { return NoError; }
+  uint8_t checkErrorsIRNotExtracted() const { return NoError; }
+
 #else
   uint8_t checkErrorsAlignmentPadding();
   uint8_t checkErrorsRDH(const RDH& rdh);
@@ -203,6 +205,8 @@ struct GBTLink {
   uint8_t checkErrorsDiagnosticWord(const GBTDiagnostic* gbtD);
   uint8_t checkErrorsCalibrationWord(const GBTCalibration* gbtCal);
   uint8_t checkErrorsCableID(const GBTData* gbtD, uint8_t cableSW);
+  uint8_t checkErrorsIRNotExtracted();
+
 #endif
   uint8_t checkErrorsGBTDataID(const GBTData* dbtD);
 
@@ -339,7 +343,10 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
         }
         continue;
       }
+      // trigger is supposed to be seen
+      GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsIRNotExtracted());
     }
+
     auto gbtD = reinterpret_cast<const o2::itsmft::GBTData*>(&currRawPiece->data[dataOffset]);
     expectPacketDone = true;
 

@@ -126,7 +126,7 @@ void encodeInplace(source_IT begin, source_IT end)
   std::vector<buffer_type> dictBuffer(sizeEstimate.getCompressedDictionarySize<buffer_type>(), 0);
 
   auto encoderEnd = entropyCoder.encode(begin, end, encodeBuffer.data(), encodeBuffer.data() + encodeBuffer.size());
-  auto literalsEnd = entropyCoder.writeIncompressible(literalSymbolsBuffer.data(), literalSymbolsBuffer.data() + literalSymbolsBuffer.size());
+  [[maybe_unused]] auto literalsEnd = entropyCoder.writeIncompressible(literalSymbolsBuffer.data(), literalSymbolsBuffer.data() + literalSymbolsBuffer.size());
   auto dictEnd = entropyCoder.writeDictionary(dictBuffer.data(), dictBuffer.data() + dictBuffer.size());
   // decode
   const auto& coderProperties = metrics.getCoderProperties();
@@ -303,7 +303,7 @@ void encodeExternal(source_IT begin, source_IT end)
   auto encoderEnd = entropyCoder.encode(begin, end, encodeBuffer.data(), encodeBuffer.data() + encodeBuffer.size());
 
   std::vector<buffer_type> literalSymbolsBuffer(entropyCoder.template computePackedIncompressibleSize<buffer_type>(), 0);
-  auto literalsEnd = entropyCoder.writeIncompressible(literalSymbolsBuffer.data(), literalSymbolsBuffer.data() + literalSymbolsBuffer.size());
+  [[maybe_unused]] auto literalsEnd = entropyCoder.writeIncompressible(literalSymbolsBuffer.data(), literalSymbolsBuffer.data() + literalSymbolsBuffer.size());
 
   // decode
   auto decoder = ExternalEncoders.getDecoder<source_type>();
