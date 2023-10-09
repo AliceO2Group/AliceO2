@@ -594,7 +594,7 @@ class MatchTPCITS
   gsl::span<const o2::its::TrackITS> mITSTracksArray;      ///< input ITS tracks span
   gsl::span<const int> mITSTrackClusIdx;                   ///< input ITS track cluster indices span
   std::vector<ITSCluster> mITSClustersArray;               ///< ITS clusters created in loadInput
-  std::vector<unsigned int> mITSClusterSizes;                      ///< ITS cluster sizes created in loadInput
+  std::vector<unsigned int> mITSClusterSizes;              ///< ITS cluster sizes created in loadInput
 
   gsl::span<const o2::itsmft::ROFRecord> mITSClusterROFRec; ///< input ITS clusters ROFRecord span
   gsl::span<const o2::ft0::RecPoints> mFITInfo;             ///< optional input FIT info span
