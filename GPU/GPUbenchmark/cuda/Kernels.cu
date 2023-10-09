@@ -12,7 +12,6 @@
 /// \file Kernels.{cu, hip.cxx}
 /// \author: mconcas@cern.ch
 
-
 #include "../Shared/Kernels.h"
 #include <chrono>
 #include <cstdio>

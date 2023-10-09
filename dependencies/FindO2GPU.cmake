@@ -245,8 +245,8 @@ if(ENABLE_HIP)
       foreach(HIP_ARCH ${HIP_AMDGPUTARGET})
         set(O2_HIP_CMAKE_CXX_FLAGS "${O2_HIP_CMAKE_CXX_FLAGS} --offload-arch=${HIP_ARCH}")
         set(O2_HIP_CMAKE_LINK_FLAGS "${O2_HIP_CMAKE_LINK_FLAGS} --offload-arch=${HIP_ARCH}")
-        set(CMAKE_HIP_FLAGS "${CMAKE_HIP_FLAGS} --offload-arch=${HIP_ARCH}")
       endforeach()
+      set(CMAKE_HIP_ARCHITECTURES "${HIP_AMDGPUTARGET}") # If GPU build is enforced we override autodetection
     endif()
     if(NOT DEFINED GPUCA_NO_FAST_MATH OR NOT ${GPUCA_NO_FAST_MATH})
       set(O2_HIP_CMAKE_CXX_FLAGS "${O2_HIP_CMAKE_CXX_FLAGS} -fgpu-flush-denormals-to-zero") # -ffast-math disabled, since apparently it leads to miscompilation and crashes in FollowLooper kernel

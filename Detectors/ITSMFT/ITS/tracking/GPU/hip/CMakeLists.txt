@@ -30,7 +30,6 @@ if(HIP_ENABLED)
 
   if(O2_HIP_CMAKE_LINK_FLAGS)
     # Need to add gpu target also to link flags due to gpu-rdc option
-    target_link_options(${targetName} PUBLIC ${O2_HIP_CMAKE_LINK_FLAGS})
+    target_link_options(${targetName} PRIVATE ${O2_HIP_CMAKE_LINK_FLAGS})
   endif()
-  set_target_hip_arch(${targetName})
 endif()
