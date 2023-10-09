@@ -426,7 +426,8 @@ inline const gsl::span<const MCCompLabel> TimeFrame::getClusterLabels(int layerI
   return mClusterLabels->getLabels(mClusterExternalIndices[layerId][clId]);
 }
 
-inline int TimeFrame::getClusterSize(int clusterId) {
+inline int TimeFrame::getClusterSize(int clusterId)
+{
   return mClusterSize[clusterId];
 }
 

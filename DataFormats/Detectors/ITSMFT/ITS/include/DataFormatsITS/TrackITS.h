@@ -122,19 +122,25 @@ class TrackITS : public o2::track::TrackParCov
   void setNextROFbit(bool toggle = true) { setUserField((getUserField() & ~kNextROF) | (-toggle & kNextROF)); }
   bool hasHitInNextROF() const { return getUserField() & kNextROF; }
 
-  void setClusterSize(int l, int size) {
-    if (l >= 8) return;
-    if (size > 15) size = 15;
+  void setClusterSize(int l, int size)
+  {
+    if (l >= 8)
+      return;
+    if (size > 15)
+      size = 15;
     mClusterSizes &= ~(0xf << (l * 4));
     mClusterSizes |= (size << (l * 4));
   }
 
-  int getClusterSize(int l) {
-    if (l >= 8) return 0;
+  int getClusterSize(int l)
+  {
+    if (l >= 8)
+      return 0;
     return (mClusterSizes >> (l * 4)) & 0xf;
   }
 
-  int getClusterSizes() const {
+  int getClusterSizes() const
+  {
     return mClusterSizes;
   }
 
