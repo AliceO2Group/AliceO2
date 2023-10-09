@@ -10,7 +10,7 @@ set -x
 
 # PART a)
 env -i HOME="$HOME" USER="$USER" PATH="/bin:/usr/bin:/usr/local/bin" \
-    ALIBUILD_WORK_DIR="$ALIBUILD_WORK_DIR" ./run-starlight.sh 
+    ALIBUILD_WORK_DIR="$ALIBUILD_WORK_DIR" ./run-starlight.sh
 
 # PART b)
 NEV=1000
