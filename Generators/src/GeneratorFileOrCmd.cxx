@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+/// @author Christian Holm Christensen <cholm@nbi.dk>
 
 #include "SimulationDataFormat/MCUtils.h"
 #include "Generators/GeneratorFileOrCmd.h"
@@ -30,8 +31,9 @@ namespace
 std::string ltrim(const std::string& s, const std::string& what = "\" ' ")
 {
   auto start = s.find_first_not_of(what);
-  if (start == std::string::npos)
+  if (start == std::string::npos) {
     return "";
+  }
 
   return s.substr(start);
 }
@@ -72,8 +74,9 @@ void GeneratorFileOrCmd::setFileNames(const std::string& filenames)
 {
   std::stringstream s(filenames);
   std::string f;
-  while (std::getline(s, f, ','))
+  while (std::getline(s, f, ',')) {
     mFileNames.push_back(f);
+  }
 }
 // -----------------------------------------------------------------
 std::string GeneratorFileOrCmd::makeCmdLine() const
@@ -81,12 +84,15 @@ std::string GeneratorFileOrCmd::makeCmdLine() const
   std::string fileName = mFileNames.front();
   std::stringstream s;
   s << mCmd << " ";
-  if (not mSeedSwitch.empty() and mSeedSwitch != "none")
+  if (not mSeedSwitch.empty() and mSeedSwitch != "none") {
     s << mSeedSwitch << " " << mSeed << " ";
-  if (not mNEventsSwitch.empty() and mNEventsSwitch != "none")
+  }
+  if (not mNEventsSwitch.empty() and mNEventsSwitch != "none") {
     s << mNEventsSwitch << " " << mNEvents << " ";
-  if (not mBmaxSwitch.empty() and mBmax >= 0 and mBmaxSwitch != "none")
+  }
+  if (not mBmaxSwitch.empty() and mBmax >= 0 and mBmaxSwitch != "none") {
     s << mBmaxSwitch.c_str() << " " << mBmax << " ";
+  }
 
   s << mOutputSwitch << " " << fileName << " "
     << mBackgroundSwitch;
@@ -189,13 +195,15 @@ void GeneratorFileOrCmd::waitForData(const std::string& filename) const
   LOG(debug) << "Waiting for data on " << p;
 
   // Wait until child process creates the file
-  while (not std::filesystem::exists(p))
+  while (not std::filesystem::exists(p)) {
     std::this_thread::sleep_for(mWait * 1ms);
+  }
 
   // Wait until we have more data in the file than just the file
   // header
-  while (std::filesystem::file_size(p) <= 256)
+  while (std::filesystem::file_size(p) <= 256) {
     std::this_thread::sleep_for(mWait * 1ms);
+  }
 
   // Give the child process 1 second to post the data to the file
   LOG(debug) << "Got data in " << p << ", sleeping for a while";
