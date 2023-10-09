@@ -178,31 +178,55 @@ void putAttributeInfo(o2::dataformats::MCEventHeader* eventHeader,
                       const std::string& name,
                       const std::shared_ptr<HepMC3::Attribute>& a)
 {
-  using IntAttribute=HepMC3::IntAttribute;
-  using LongAttribute=HepMC3::LongAttribute;
-  using FloatAttribute=HepMC3::FloatAttribute;
-  using DoubleAttribute=HepMC3::DoubleAttribute;
-  using StringAttribute=HepMC3::StringAttribute;
-  using CharAttribute=HepMC3::CharAttribute;
-  using LongLongAttribute=HepMC3::LongLongAttribute;
-  using LongDoubleAttribute=HepMC3::LongDoubleAttribute;
-  using UIntAttribute=HepMC3::UIntAttribute;
-  using ULongAttribute=HepMC3::ULongAttribute;
-  using ULongLongAttribute=HepMC3::ULongLongAttribute;
-  using BoolAttribute=HepMC3::BoolAttribute;
+  using IntAttribute = HepMC3::IntAttribute;
+  using LongAttribute = HepMC3::LongAttribute;
+  using FloatAttribute = HepMC3::FloatAttribute;
+  using DoubleAttribute = HepMC3::DoubleAttribute;
+  using StringAttribute = HepMC3::StringAttribute;
+  using CharAttribute = HepMC3::CharAttribute;
+  using LongLongAttribute = HepMC3::LongLongAttribute;
+  using LongDoubleAttribute = HepMC3::LongDoubleAttribute;
+  using UIntAttribute = HepMC3::UIntAttribute;
+  using ULongAttribute = HepMC3::ULongAttribute;
+  using ULongLongAttribute = HepMC3::ULongLongAttribute;
+  using BoolAttribute = HepMC3::BoolAttribute;
 
-  if (putAttributeInfoImpl<IntAttribute, int>(eventHeader, name, a)) return;
-  if (putAttributeInfoImpl<LongAttribute, int>(eventHeader, name, a)) return;
-  if (putAttributeInfoImpl<FloatAttribute, float>(eventHeader, name, a)) return;
-  if (putAttributeInfoImpl<DoubleAttribute, float>(eventHeader, name, a)) return;
-  if (putAttributeInfoImpl<StringAttribute, std::string>(eventHeader, name, a)) return;
-  if (putAttributeInfoImpl<CharAttribute, char>(eventHeader, name, a)) return;
-  if (putAttributeInfoImpl<LongLongAttribute, int>(eventHeader, name, a)) return;
-  if (putAttributeInfoImpl<LongDoubleAttribute, float>(eventHeader, name, a)) return;
-  if (putAttributeInfoImpl<UIntAttribute, int>(eventHeader, name, a)) return;
-  if (putAttributeInfoImpl<ULongAttribute, int>(eventHeader, name, a)) return;
-  if (putAttributeInfoImpl<ULongLongAttribute, int>(eventHeader, name, a)) return;
-  if (putAttributeInfoImpl<BoolAttribute, bool>(eventHeader, name, a)) return;
+  if (putAttributeInfoImpl<IntAttribute, int>(eventHeader, name, a)) {
+    return;
+  }
+  if (putAttributeInfoImpl<LongAttribute, int>(eventHeader, name, a)) {
+    return;
+  }
+  if (putAttributeInfoImpl<FloatAttribute, float>(eventHeader, name, a)) {
+    return;
+  }
+  if (putAttributeInfoImpl<DoubleAttribute, float>(eventHeader, name, a)) {
+    return;
+  }
+  if (putAttributeInfoImpl<StringAttribute, std::string>(eventHeader, name, a)) {
+    return;
+  }
+  if (putAttributeInfoImpl<CharAttribute, char>(eventHeader, name, a)) {
+    return;
+  }
+  if (putAttributeInfoImpl<LongLongAttribute, int>(eventHeader, name, a)) {
+    return;
+  }
+  if (putAttributeInfoImpl<LongDoubleAttribute, float>(eventHeader, name, a)) {
+    return;
+  }
+  if (putAttributeInfoImpl<UIntAttribute, int>(eventHeader, name, a)) {
+    return;
+  }
+  if (putAttributeInfoImpl<ULongAttribute, int>(eventHeader, name, a)) {
+    return;
+  }
+  if (putAttributeInfoImpl<ULongLongAttribute, int>(eventHeader, name, a)) {
+    return;
+  }
+  if (putAttributeInfoImpl<BoolAttribute, bool>(eventHeader, name, a)) {
+    return;
+  }
 }
 } // namespace
 
