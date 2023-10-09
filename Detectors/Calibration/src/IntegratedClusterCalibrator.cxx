@@ -209,17 +209,24 @@ void tpc::TimeSeriesITSTPC::dumpToTree(const char* outFileName, const int nHBFPe
 {
   TFile f(outFileName, "RECREATE");
   TTree tree("timeSeries", "timeSeries");
-  TimeSeries::dumpToTree(outFileName, tree, mTSTPC, "TPC_", nHBFPerTF);
-  TimeSeries::dumpToTree(outFileName, tree, mTSITSTPC, "ITSTPC_", nHBFPerTF);
+  mTSTPC.dumpToTree(tree, "TPC_", nHBFPerTF);
+  mTSITSTPC.dumpToTree(tree, "ITSTPC_", nHBFPerTF);
+  mITSTPCAll.dumpToTree(tree, "ITSTPC_", nHBFPerTF, mTSTPC);
+  mITSTPCStandalone.dumpToTree(tree, "ITS_SA_", nHBFPerTF, mTSTPC);
+  mITSTPCAfterburner.dumpToTree(tree, "ITS_AB_", nHBFPerTF, mTSTPC);
+  f.WriteObject(&tree, "timeSeries");
+}
 
+void tpc::ITSTPC_Matching::dumpToTree(TTree& tree, const char* prefix, const int nHBFPerTF, const TimeSeries& timeSeriesRef) const
+{
   // adding matching efficiency
-  const auto nValues = mTSTPC.mDCAr_A_Median.size();
-  const int nPointsPerTF = mTSTPC.getNBins();
+  const auto nValues = timeSeriesRef.mDCAr_A_Median.size();
+  const int nPointsPerTF = timeSeriesRef.getNBins();
   const int nTotPoints = nValues / nPointsPerTF;
 
   const int nBinTypes = 4;
   for (int type = 0; type < nBinTypes; ++type) {
-    std::array<int, nBinTypes> nBinsAllTypes{mTSTPC.mNBinsPhi, mTSTPC.mNBinsTgl, mTSTPC.mNBinsqPt, 1};
+    std::array<int, nBinTypes> nBinsAllTypes{timeSeriesRef.mNBinsPhi, timeSeriesRef.mNBinsTgl, timeSeriesRef.mNBinsqPt, 1};
     std::array<std::string, nBinTypes> nBinsAllTypesNames{"phi", "tgl", "qPt", "int"};
     int nBins = nBinsAllTypes[type];
 
@@ -232,10 +239,10 @@ void tpc::TimeSeriesITSTPC::dumpToTree(const char* outFileName, const int nHBFPe
     listBranches.reserve(4 * nBins);
     for (int i = 0; i < nBins; ++i) {
       const std::string brSuf = (type == nBinTypes - 1) ? nBinsAllTypesNames[type] : fmt::format("{}_{}", nBinsAllTypesNames[type], i);
-      listBranches.emplace_back(tree.Branch(fmt::format("mITSTPC_A_MatchEff_{}", brSuf).data(), &matching_eff_A[i]));
-      listBranches.emplace_back(tree.Branch(fmt::format("mITSTPC_C_MatchEff_{}", brSuf).data(), &matching_eff_C[i]));
-      listBranches.emplace_back(tree.Branch(fmt::format("mITSTPC_A_Chi2Match_{}", brSuf).data(), &chi2Match_A[i]));
-      listBranches.emplace_back(tree.Branch(fmt::format("mITSTPC_C_Chi2Match_{}", brSuf).data(), &chi2Match_C[i]));
+      listBranches.emplace_back(tree.Branch(fmt::format("{}mITSTPC_A_MatchEff_{}", prefix, brSuf).data(), &matching_eff_A[i]));
+      listBranches.emplace_back(tree.Branch(fmt::format("{}mITSTPC_C_MatchEff_{}", prefix, brSuf).data(), &matching_eff_C[i]));
+      listBranches.emplace_back(tree.Branch(fmt::format("{}mITSTPC_A_Chi2Match_{}", prefix, brSuf).data(), &chi2Match_A[i]));
+      listBranches.emplace_back(tree.Branch(fmt::format("{}mITSTPC_C_Chi2Match_{}", prefix, brSuf).data(), &chi2Match_C[i]));
     }
 
     // alloc memory
@@ -248,13 +255,13 @@ void tpc::TimeSeriesITSTPC::dumpToTree(const char* outFileName, const int nHBFPe
 
     for (int j = 0; j < nTotPoints; ++j) {
       for (int i = 0; i < nBins; ++i) {
-        int idx = mTSTPC.getIndexPhi(i, j); // phi bins
+        int idx = timeSeriesRef.getIndexPhi(i, j); // phi bins
         if (type == 1) {
-          idx = mTSTPC.getIndexTgl(i, j); // j * nPointsPerTF + i + mTSTPC.mNBinsPhi; // tgl bins
+          idx = timeSeriesRef.getIndexTgl(i, j); // tgl bins
         } else if (type == 2) {
-          idx = mTSTPC.getIndexqPt(i, j); // j * nPointsPerTF + mTSTPC.mNBinsPhi + mTSTPC.mNBinsTgl; // qPt
+          idx = timeSeriesRef.getIndexqPt(i, j); // qPt
         } else if (type == 3) {
-          idx = mTSTPC.getIndexInt(j);
+          idx = timeSeriesRef.getIndexInt(j);
         }
         matching_eff_A[i][j] = mITSTPC_A_MatchEff[idx];
         matching_eff_C[i][j] = mITSTPC_C_MatchEff[idx];
@@ -268,18 +275,17 @@ void tpc::TimeSeriesITSTPC::dumpToTree(const char* outFileName, const int nHBFPe
     }
   }
   tree.SetEntries(1);
-  f.WriteObject(&tree, "timeSeries");
 }
 
-void tpc::TimeSeries::dumpToTree(const char* outFileName, TTree& tree, const tpc::TimeSeries& idc, const char* prefix, const int nHBFPerTF)
+void tpc::TimeSeries::dumpToTree(TTree& tree, const char* prefix, const int nHBFPerTF) const
 {
-  const auto nValues = idc.mDCAr_A_Median.size();
-  const int nPointsPerTF = idc.getNBins();
+  const auto nValues = mDCAr_A_Median.size();
+  const int nPointsPerTF = getNBins();
   const int nTotPoints = nValues / nPointsPerTF;
 
   const int nBinTypes = 4;
   for (int type = 0; type < nBinTypes; ++type) {
-    std::array<int, nBinTypes> nBinsAllTypes{idc.mNBinsPhi, idc.mNBinsTgl, idc.mNBinsqPt, 1};
+    std::array<int, nBinTypes> nBinsAllTypes{mNBinsPhi, mNBinsTgl, mNBinsqPt, 1};
     std::array<std::string, nBinTypes> nBinsAllTypesNames{"phi", "tgl", "qPt", "int"};
     int nBins = nBinsAllTypes[type];
 
@@ -299,12 +305,12 @@ void tpc::TimeSeries::dumpToTree(const char* outFileName, TTree& tree, const tpc
     std::vector<std::vector<float>> nTracksDCAr_C(nBins);
     std::vector<std::vector<float>> nTracksDCAz_A(nBins);
     std::vector<std::vector<float>> nTracksDCAz_C(nBins);
-    std::vector<std::vector<float>> mMIPdEdxRatioA(nBins);
-    std::vector<std::vector<float>> mMIPdEdxRatioC(nBins);
-    std::vector<std::vector<float>> mTPCChi2A(nBins);
-    std::vector<std::vector<float>> mTPCChi2C(nBins);
-    std::vector<std::vector<float>> mTPCNClA(nBins);
-    std::vector<std::vector<float>> mTPCNClC(nBins);
+    std::vector<std::vector<float>> mipdEdxRatioA(nBins);
+    std::vector<std::vector<float>> mipdEdxRatioC(nBins);
+    std::vector<std::vector<float>> tpcChi2A(nBins);
+    std::vector<std::vector<float>> tpcChi2C(nBins);
+    std::vector<std::vector<float>> tpcNClA(nBins);
+    std::vector<std::vector<float>> tpcNClC(nBins);
 
     std::vector<TBranch*> listBranches;
     listBranches.reserve(22 * nBins);
@@ -326,12 +332,12 @@ void tpc::TimeSeries::dumpToTree(const char* outFileName, TTree& tree, const tpc
       listBranches.emplace_back(tree.Branch(fmt::format("{}mDCAr_C_NTracks_{}", prefix, brSuf).data(), &nTracksDCAr_C[i]));
       listBranches.emplace_back(tree.Branch(fmt::format("{}mDCAz_A_NTracks_{}", prefix, brSuf).data(), &nTracksDCAz_A[i]));
       listBranches.emplace_back(tree.Branch(fmt::format("{}mDCAz_C_NTracks_{}", prefix, brSuf).data(), &nTracksDCAz_C[i]));
-      listBranches.emplace_back(tree.Branch(fmt::format("{}mMIPdEdxRatioA_{}", prefix, brSuf).data(), &mMIPdEdxRatioA[i]));
-      listBranches.emplace_back(tree.Branch(fmt::format("{}mMIPdEdxRatioC_{}", prefix, brSuf).data(), &mMIPdEdxRatioC[i]));
-      listBranches.emplace_back(tree.Branch(fmt::format("{}mTPCChi2A_{}", prefix, brSuf).data(), &mTPCChi2A[i]));
-      listBranches.emplace_back(tree.Branch(fmt::format("{}mTPCChi2C_{}", prefix, brSuf).data(), &mTPCChi2C[i]));
-      listBranches.emplace_back(tree.Branch(fmt::format("{}mTPCNClA_{}", prefix, brSuf).data(), &mTPCNClA[i]));
-      listBranches.emplace_back(tree.Branch(fmt::format("{}mTPCNClC_{}", prefix, brSuf).data(), &mTPCNClC[i]));
+      listBranches.emplace_back(tree.Branch(fmt::format("{}mMIPdEdxRatioA_{}", prefix, brSuf).data(), &mipdEdxRatioA[i]));
+      listBranches.emplace_back(tree.Branch(fmt::format("{}mMIPdEdxRatioC_{}", prefix, brSuf).data(), &mipdEdxRatioC[i]));
+      listBranches.emplace_back(tree.Branch(fmt::format("{}mTPCChi2A_{}", prefix, brSuf).data(), &tpcChi2A[i]));
+      listBranches.emplace_back(tree.Branch(fmt::format("{}mTPCChi2C_{}", prefix, brSuf).data(), &tpcChi2C[i]));
+      listBranches.emplace_back(tree.Branch(fmt::format("{}mTPCNClA_{}", prefix, brSuf).data(), &tpcNClA[i]));
+      listBranches.emplace_back(tree.Branch(fmt::format("{}mTPCNClC_{}", prefix, brSuf).data(), &tpcNClC[i]));
     }
 
     // alloc memory
@@ -352,12 +358,12 @@ void tpc::TimeSeries::dumpToTree(const char* outFileName, TTree& tree, const tpc
       nTracksDCAr_C[i].resize(nTotPoints);
       nTracksDCAz_A[i].resize(nTotPoints);
       nTracksDCAz_C[i].resize(nTotPoints);
-      mMIPdEdxRatioA[i].resize(nTotPoints);
-      mMIPdEdxRatioC[i].resize(nTotPoints);
-      mTPCChi2A[i].resize(nTotPoints);
-      mTPCChi2C[i].resize(nTotPoints);
-      mTPCNClA[i].resize(nTotPoints);
-      mTPCNClC[i].resize(nTotPoints);
+      mipdEdxRatioA[i].resize(nTotPoints);
+      mipdEdxRatioC[i].resize(nTotPoints);
+      tpcChi2A[i].resize(nTotPoints);
+      tpcChi2C[i].resize(nTotPoints);
+      tpcNClA[i].resize(nTotPoints);
+      tpcNClC[i].resize(nTotPoints);
     }
 
     std::vector<double> time(nTotPoints);
@@ -367,40 +373,40 @@ void tpc::TimeSeries::dumpToTree(const char* outFileName, TTree& tree, const tpc
 
     for (int j = 0; j < nTotPoints; ++j) {
       for (int i = 0; i < nBins; ++i) {
-        int idx = idc.getIndexPhi(i, j);
+        int idx = getIndexPhi(i, j);
         if (type == 1) {
-          idx = idc.getIndexTgl(i, j);
+          idx = getIndexTgl(i, j);
         } else if (type == 2) {
-          idx = idc.getIndexqPt(i, j);
+          idx = getIndexqPt(i, j);
         } else if (type == 3) {
-          idx = idc.getIndexInt(j);
+          idx = getIndexInt(j);
         }
-        dcar_A_Median[i][j] = idc.mDCAr_A_Median[idx];
-        dcar_C_Median[i][j] = idc.mDCAr_C_Median[idx];
-        dcar_A_WeightedMean[i][j] = idc.mDCAr_A_WeightedMean[idx];
-        dcar_C_WeightedMean[i][j] = idc.mDCAr_C_WeightedMean[idx];
-        dcar_A_RMS[i][j] = idc.mDCAr_A_RMS[idx];
-        dcar_C_RMS[i][j] = idc.mDCAr_C_RMS[idx];
-        dcaz_A_Median[i][j] = idc.mDCAz_A_Median[idx];
-        dcaz_C_Median[i][j] = idc.mDCAz_C_Median[idx];
-        dcaz_A_WeightedMean[i][j] = idc.mDCAz_A_WeightedMean[idx];
-        dcaz_C_WeightedMean[i][j] = idc.mDCAz_C_WeightedMean[idx];
-        dcaz_A_RMS[i][j] = idc.mDCAz_A_RMS[idx];
-        dcaz_C_RMS[i][j] = idc.mDCAz_C_RMS[idx];
-        nTracksDCAr_A[i][j] = idc.mDCAr_A_NTracks[idx];
-        nTracksDCAr_C[i][j] = idc.mDCAr_C_NTracks[idx];
-        nTracksDCAz_A[i][j] = idc.mDCAz_A_NTracks[idx];
-        nTracksDCAz_C[i][j] = idc.mDCAz_C_NTracks[idx];
-        mMIPdEdxRatioA[i][j] = idc.mMIPdEdxRatioA[idx];
-        mMIPdEdxRatioC[i][j] = idc.mMIPdEdxRatioC[idx];
-        mTPCChi2A[i][j] = idc.mTPCChi2A[idx];
-        mTPCChi2C[i][j] = idc.mTPCChi2C[idx];
-        mTPCNClA[i][j] = idc.mTPCNClA[idx];
-        mTPCNClC[i][j] = idc.mTPCNClC[idx];
+        dcar_A_Median[i][j] = mDCAr_A_Median[idx];
+        dcar_C_Median[i][j] = mDCAr_C_Median[idx];
+        dcar_A_WeightedMean[i][j] = mDCAr_A_WeightedMean[idx];
+        dcar_C_WeightedMean[i][j] = mDCAr_C_WeightedMean[idx];
+        dcar_A_RMS[i][j] = mDCAr_A_RMS[idx];
+        dcar_C_RMS[i][j] = mDCAr_C_RMS[idx];
+        dcaz_A_Median[i][j] = mDCAz_A_Median[idx];
+        dcaz_C_Median[i][j] = mDCAz_C_Median[idx];
+        dcaz_A_WeightedMean[i][j] = mDCAz_A_WeightedMean[idx];
+        dcaz_C_WeightedMean[i][j] = mDCAz_C_WeightedMean[idx];
+        dcaz_A_RMS[i][j] = mDCAz_A_RMS[idx];
+        dcaz_C_RMS[i][j] = mDCAz_C_RMS[idx];
+        nTracksDCAr_A[i][j] = mDCAr_A_NTracks[idx];
+        nTracksDCAr_C[i][j] = mDCAr_C_NTracks[idx];
+        nTracksDCAz_A[i][j] = mDCAz_A_NTracks[idx];
+        nTracksDCAz_C[i][j] = mDCAz_C_NTracks[idx];
+        mipdEdxRatioA[i][j] = mMIPdEdxRatioA[idx];
+        mipdEdxRatioC[i][j] = mMIPdEdxRatioC[idx];
+        tpcChi2A[i][j] = mTPCChi2A[idx];
+        tpcChi2C[i][j] = mTPCChi2C[idx];
+        tpcNClA[i][j] = mTPCNClA[idx];
+        tpcNClC[i][j] = mTPCNClC[idx];
       }
       // add time only once
       if (type == 0) {
-        time[j] = idc.mTimeMS + j * nHBFPerTF * o2::constants::lhc::LHCOrbitMUS / 1000;
+        time[j] = mTimeMS + j * nHBFPerTF * o2::constants::lhc::LHCOrbitMUS / 1000;
       }
     }
     // fill branches

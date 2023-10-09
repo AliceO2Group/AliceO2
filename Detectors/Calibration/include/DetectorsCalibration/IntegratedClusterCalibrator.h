@@ -205,7 +205,7 @@ struct TimeSeries {
   /// dump object to tree
   /// \param outFileName name of the output file
   /// \param nHBFPerTF number of orbits per TF
-  static void dumpToTree(const char* outFileName, TTree& tree, const tpc::TimeSeries& idc, const char* prefix = "", const int nHBFPerTF = 32);
+  void dumpToTree(TTree& tree, const char* prefix = "", const int nHBFPerTF = 32) const;
   void setStartTime(long timeMS) { mTimeMS = timeMS; }
   bool areSameSize() const { return sameSize(mDCAr_A_WeightedMean, mDCAr_C_WeightedMean, mDCAz_A_WeightedMean, mDCAz_C_WeightedMean, mDCAr_A_Median, mDCAr_C_Median, mDCAr_A_RMS, mDCAr_C_RMS, mDCAz_A_Median, mDCAz_C_Median, mDCAz_A_RMS, mDCAz_C_RMS, mDCAz_C_NTracks, mDCAr_A_NTracks, mDCAz_A_NTracks, mDCAz_C_NTracks); } ///< check if stored currents have same number of entries
   bool isEmpty() const { return mDCAr_A_Median.empty(); }                                                                                                                                                                                                                                                                       ///< check if values are empty
@@ -320,13 +320,53 @@ struct TimeSeries {
   ClassDefNV(TimeSeries, 1);
 };
 
-struct TimeSeriesITSTPC {
-  TimeSeries mTSTPC;                      ///< TPC standalone DCAs
-  TimeSeries mTSITSTPC;                   ///< ITS-TPC standalone DCAs
+struct ITSTPC_Matching {
   std::vector<float> mITSTPC_A_MatchEff;  ///< matching efficiency of ITS-TPC tracks A-side
   std::vector<float> mITSTPC_C_MatchEff;  ///< matching efficiency of ITS-TPC tracks C-side
   std::vector<float> mITSTPC_A_Chi2Match; ///< ITS-TPC chi2 A-side
   std::vector<float> mITSTPC_C_Chi2Match; ///< ITS-TPC chi2 C-side
+
+  void dumpToTree(TTree& tree, const char* prefix, const int nHBFPerTF, const TimeSeries& timeSeriesRef) const;
+
+  /// acummulate integrated currents at given index
+  /// \param posIndex index where data will be copied to
+  /// \param data integrated currents which will be copied
+  void fill(const unsigned int posIndex, const ITSTPC_Matching& data)
+  {
+    std::copy(data.mITSTPC_A_MatchEff.begin(), data.mITSTPC_A_MatchEff.end(), mITSTPC_A_MatchEff.begin() + posIndex);
+    std::copy(data.mITSTPC_C_MatchEff.begin(), data.mITSTPC_C_MatchEff.end(), mITSTPC_C_MatchEff.begin() + posIndex);
+    std::copy(data.mITSTPC_A_Chi2Match.begin(), data.mITSTPC_A_Chi2Match.end(), mITSTPC_A_Chi2Match.begin() + posIndex);
+    std::copy(data.mITSTPC_C_Chi2Match.begin(), data.mITSTPC_C_Chi2Match.end(), mITSTPC_C_Chi2Match.begin() + posIndex);
+  }
+
+  /// \param nDummyValues number of empty values which are inserted at the beginning of the accumulated integrated currents
+  void insert(const unsigned int nDummyValues)
+  {
+    std::vector<float> vecTmp(nDummyValues, 0);
+    mITSTPC_A_MatchEff.insert(mITSTPC_A_MatchEff.begin(), vecTmp.begin(), vecTmp.end());
+    mITSTPC_C_MatchEff.insert(mITSTPC_C_MatchEff.begin(), vecTmp.begin(), vecTmp.end());
+    mITSTPC_A_Chi2Match.insert(mITSTPC_A_Chi2Match.begin(), vecTmp.begin(), vecTmp.end());
+    mITSTPC_C_Chi2Match.insert(mITSTPC_C_Chi2Match.begin(), vecTmp.begin(), vecTmp.end());
+  }
+
+  /// resize buffer for accumulated currents
+  void resize(const unsigned int nTotal)
+  {
+    mITSTPC_A_MatchEff.resize(nTotal);
+    mITSTPC_C_MatchEff.resize(nTotal);
+    mITSTPC_A_Chi2Match.resize(nTotal);
+    mITSTPC_C_Chi2Match.resize(nTotal);
+  }
+
+  ClassDefNV(ITSTPC_Matching, 1);
+};
+
+struct TimeSeriesITSTPC {
+  TimeSeries mTSTPC;                  ///< TPC standalone DCAs
+  TimeSeries mTSITSTPC;               ///< ITS-TPC standalone DCAs
+  ITSTPC_Matching mITSTPCAll;         ///< ITS-TPC matching efficiency for ITS standalone + afterburner
+  ITSTPC_Matching mITSTPCStandalone;  ///< ITS-TPC matching efficiency for ITS standalone
+  ITSTPC_Matching mITSTPCAfterburner; ///< ITS-TPC matchin efficiency  fir ITS afterburner
 
   // dump this object to a tree
   void dumpToTree(const char* outFileName, const int nHBFPerTF = 32);
@@ -358,10 +398,9 @@ struct TimeSeriesITSTPC {
   {
     mTSTPC.fill(posIndex, data.mTSTPC);
     mTSITSTPC.fill(posIndex, data.mTSITSTPC);
-    std::copy(data.mITSTPC_A_MatchEff.begin(), data.mITSTPC_A_MatchEff.end(), mITSTPC_A_MatchEff.begin() + posIndex);
-    std::copy(data.mITSTPC_C_MatchEff.begin(), data.mITSTPC_C_MatchEff.end(), mITSTPC_C_MatchEff.begin() + posIndex);
-    std::copy(data.mITSTPC_A_Chi2Match.begin(), data.mITSTPC_A_Chi2Match.end(), mITSTPC_A_Chi2Match.begin() + posIndex);
-    std::copy(data.mITSTPC_C_Chi2Match.begin(), data.mITSTPC_C_Chi2Match.end(), mITSTPC_C_Chi2Match.begin() + posIndex);
+    mITSTPCAll.fill(posIndex, data.mITSTPCAll);
+    mITSTPCStandalone.fill(posIndex, data.mITSTPCStandalone);
+    mITSTPCAfterburner.fill(posIndex, data.mITSTPCAfterburner);
   }
 
   /// \param nDummyValues number of empty values which are inserted at the beginning of the accumulated integrated currents
@@ -369,11 +408,9 @@ struct TimeSeriesITSTPC {
   {
     mTSTPC.insert(nDummyValues);
     mTSITSTPC.insert(nDummyValues);
-    std::vector<float> vecTmp(nDummyValues, 0);
-    mITSTPC_A_MatchEff.insert(mITSTPC_A_MatchEff.begin(), vecTmp.begin(), vecTmp.end());
-    mITSTPC_C_MatchEff.insert(mITSTPC_C_MatchEff.begin(), vecTmp.begin(), vecTmp.end());
-    mITSTPC_A_Chi2Match.insert(mITSTPC_A_Chi2Match.begin(), vecTmp.begin(), vecTmp.end());
-    mITSTPC_C_Chi2Match.insert(mITSTPC_C_Chi2Match.begin(), vecTmp.begin(), vecTmp.end());
+    mITSTPCAll.insert(nDummyValues);
+    mITSTPCStandalone.insert(nDummyValues);
+    mITSTPCAfterburner.insert(nDummyValues);
   }
 
   /// resize buffer for accumulated currents
@@ -381,10 +418,9 @@ struct TimeSeriesITSTPC {
   {
     mTSTPC.resize(nTotal);
     mTSITSTPC.resize(nTotal);
-    mITSTPC_A_MatchEff.resize(nTotal);
-    mITSTPC_C_MatchEff.resize(nTotal);
-    mITSTPC_A_Chi2Match.resize(nTotal);
-    mITSTPC_C_Chi2Match.resize(nTotal);
+    mITSTPCAll.resize(nTotal);
+    mITSTPCStandalone.resize(nTotal);
+    mITSTPCAfterburner.resize(nTotal);
   }
 
   ClassDefNV(TimeSeriesITSTPC, 1);

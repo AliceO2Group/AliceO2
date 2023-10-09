@@ -174,10 +174,12 @@ class TPCTimeSeries : public Task
         mTPCNClA[i][type].clear();
         mTPCNClC[i][type].clear();
       }
-      mAvgMeffA[i].clear();
-      mAvgMeffC[i].clear();
-      mAvgChi2MatchA[i].clear();
-      mAvgChi2MatchC[i].clear();
+      for (int j = 0; j < mAvgMeffA[i].size(); ++j) {
+        mAvgMeffA[i][j].clear();
+        mAvgMeffC[i][j].clear();
+        mAvgChi2MatchA[i][j].clear();
+        mAvgChi2MatchC[i][j].clear();
+      }
     }
 
     for (int i = 0; i < mNThreads; ++i) {
@@ -203,10 +205,12 @@ class TPCTimeSeries : public Task
         mTPCNClA[i][type].reserve(loopEnd);
         mTPCNClC[i][type].reserve(loopEnd);
       }
-      mAvgMeffA[i].reserve(loopEnd);
-      mAvgMeffC[i].reserve(loopEnd);
-      mAvgChi2MatchA[i].reserve(loopEnd);
-      mAvgChi2MatchC[i].reserve(loopEnd);
+      for (int j = 0; j < mAvgMeffA[i].size(); ++j) {
+        mAvgMeffA[i][j].reserve(loopEnd);
+        mAvgMeffC[i][j].reserve(loopEnd);
+        mAvgChi2MatchA[i][j].reserve(loopEnd);
+        mAvgChi2MatchC[i][j].reserve(loopEnd);
+      }
     }
     for (int iThread = 0; iThread < mNThreads; ++iThread) {
       mBufferVals[iThread].front().reserve(loopEnd);
@@ -343,23 +347,41 @@ class TPCTimeSeries : public Task
         const auto nClTPC = val.nClTPC[i];
         const int binInt = nBins - 1;
         const Side side = val.side[i];
-        const auto& bufferDCARMSR = (side == Side::C) ? mBufferDCA.mTSTPC.mDCAr_C_RMS : mBufferDCA.mTSTPC.mDCAr_A_RMS;
-        const auto& bufferDCARMSZ = (side == Side::C) ? mBufferDCA.mTSTPC.mDCAz_C_RMS : mBufferDCA.mTSTPC.mDCAz_A_RMS;
-        const auto& bufferDCAMedR = (side == Side::C) ? mBufferDCA.mTSTPC.mDCAr_C_Median : mBufferDCA.mTSTPC.mDCAr_A_Median;
-        const auto& bufferDCAMedZ = (side == Side::C) ? mBufferDCA.mTSTPC.mDCAz_C_Median : mBufferDCA.mTSTPC.mDCAz_A_Median;
-        auto& mAvgEff = (side == Side::C) ? mAvgMeffC : mAvgMeffA;
-        auto& mAvgChi2Match = (side == Side::C) ? mAvgChi2MatchC : mAvgChi2MatchA;
-        auto& mAvgmMIPdEdxRatio = (side == Side::C) ? mMIPdEdxRatioC : mMIPdEdxRatioA;
-        auto& mAvgmTPCChi2 = (side == Side::C) ? mTPCChi2C : mTPCChi2A;
-        auto& mAvgmTPCNCl = (side == Side::C) ? mTPCNClC : mTPCNClA;
+        const bool isCSide = (side == Side::C);
+        const auto& bufferDCARMSR = isCSide ? mBufferDCA.mTSTPC.mDCAr_C_RMS : mBufferDCA.mTSTPC.mDCAr_A_RMS;
+        const auto& bufferDCARMSZ = isCSide ? mBufferDCA.mTSTPC.mDCAz_C_RMS : mBufferDCA.mTSTPC.mDCAz_A_RMS;
+        const auto& bufferDCAMedR = isCSide ? mBufferDCA.mTSTPC.mDCAr_C_Median : mBufferDCA.mTSTPC.mDCAr_A_Median;
+        const auto& bufferDCAMedZ = isCSide ? mBufferDCA.mTSTPC.mDCAz_C_Median : mBufferDCA.mTSTPC.mDCAz_A_Median;
+        auto& mAvgEff = isCSide ? mAvgMeffC : mAvgMeffA;
+        auto& mAvgChi2Match = isCSide ? mAvgChi2MatchC : mAvgChi2MatchA;
+        auto& mAvgmMIPdEdxRatio = isCSide ? mMIPdEdxRatioC : mMIPdEdxRatioA;
+        auto& mAvgmTPCChi2 = isCSide ? mTPCChi2C : mTPCChi2A;
+        auto& mAvgmTPCNCl = isCSide ? mTPCNClC : mTPCNClA;
 
         const std::array<int, 4> bins{tglBin, phiBin, qPtBin, binInt};
         // fill bins
         for (auto bin : bins) {
           if ((std::abs(dcar - bufferDCAMedR[bin]) < (bufferDCARMSR[bin] * mCutRMS)) && (std::abs(dcaz - bufferDCAMedZ[bin]) < (bufferDCARMSZ[bin] * mCutRMS))) {
-            mAvgEff[bin].addValue(hasITS);
+            const auto gID = val.gID[i];
+            mAvgEff[bin][0].addValue(hasITS);
+            // count tpc only tracks not matched
+            if (!hasITS) {
+              mAvgEff[bin][1].addValue(hasITS);
+              mAvgEff[bin][2].addValue(hasITS);
+            }
+            // count tracks from ITS standalone and afterburner
+            if (gID == o2::dataformats::GlobalTrackID::Source::ITS) {
+              mAvgEff[bin][1].addValue(hasITS);
+            } else if (gID == o2::dataformats::GlobalTrackID::Source::ITSAB) {
+              mAvgEff[bin][2].addValue(hasITS);
+            }
             if (chi2Match > 0) {
-              mAvgChi2Match[bin].addValue(chi2Match);
+              mAvgChi2Match[bin][0].addValue(chi2Match);
+              if (gID == o2::dataformats::GlobalTrackID::Source::ITS) {
+                mAvgChi2Match[bin][1].addValue(chi2Match);
+              } else if (gID == o2::dataformats::GlobalTrackID::Source::ITSAB) {
+                mAvgChi2Match[bin][2].addValue(chi2Match);
+              }
             }
             if (dedxRatio > 0) {
               mAvgmMIPdEdxRatio[bin][0].addValue(dedxRatio);
@@ -380,10 +402,13 @@ class TPCTimeSeries : public Task
 
     // store matching eff
     for (int slice = 0; slice < nBins; ++slice) {
-      mBufferDCA.mITSTPC_A_MatchEff[slice] = mAvgMeffA[slice].getMean();
-      mBufferDCA.mITSTPC_C_MatchEff[slice] = mAvgMeffC[slice].getMean();
-      mBufferDCA.mITSTPC_A_Chi2Match[slice] = mAvgChi2MatchA[slice].getMean();
-      mBufferDCA.mITSTPC_C_Chi2Match[slice] = mAvgChi2MatchC[slice].getMean();
+      for (int i = 0; i < mAvgMeffA[slice].size(); ++i) {
+        auto& itsBuf = (i == 0) ? mBufferDCA.mITSTPCAll : ((i == 1) ? mBufferDCA.mITSTPCStandalone : mBufferDCA.mITSTPCAfterburner);
+        itsBuf.mITSTPC_A_MatchEff[slice] = mAvgMeffA[slice][i].getMean();
+        itsBuf.mITSTPC_C_MatchEff[slice] = mAvgMeffC[slice][i].getMean();
+        itsBuf.mITSTPC_A_Chi2Match[slice] = mAvgChi2MatchA[slice][i].getMean();
+        itsBuf.mITSTPC_C_Chi2Match[slice] = mAvgChi2MatchC[slice][i].getMean();
+      }
 
       for (int i = 0; i < mMIPdEdxRatioC[slice].size(); ++i) {
         auto& buff = (i == 0) ? mBufferDCA.mTSTPC : mBufferDCA.mTSITSTPC;
@@ -433,6 +458,7 @@ class TPCTimeSeries : public Task
       dedxRatio.reserve(n);
       sqrtChi2TPC.reserve(n);
       nClTPC.reserve(n);
+      gID.reserve(n);
     }
 
     void clear()
@@ -449,9 +475,10 @@ class TPCTimeSeries : public Task
       dedxRatio.clear();
       sqrtChi2TPC.clear();
       nClTPC.clear();
+      gID.clear();
     }
 
-    void emplace_back(Side sideTmp, int tglBinTmp, int phiBinTmp, int qPtBinTmp, float dcarTmp, float dcazTmp, float dcarWTmp, float dedxRatioTmp, float sqrtChi2TPCTmp, float nClTPCTmp, float chi2MatchTmp = -2, int hasITSTmp = -1)
+    void emplace_back(Side sideTmp, int tglBinTmp, int phiBinTmp, int qPtBinTmp, float dcarTmp, float dcazTmp, float dcarWTmp, float dedxRatioTmp, float sqrtChi2TPCTmp, float nClTPCTmp, o2::dataformats::GlobalTrackID::Source gIDTmp = o2::dataformats::GlobalTrackID::Source::NSources, float chi2MatchTmp = -2, int hasITSTmp = -1)
     {
       side.emplace_back(sideTmp);
       tglBin.emplace_back(tglBinTmp);
@@ -465,9 +492,8 @@ class TPCTimeSeries : public Task
       nClTPC.emplace_back(nClTPCTmp);
       if (chi2MatchTmp != -2) {
         chi2Match.emplace_back(chi2MatchTmp);
-      }
-      if (hasITSTmp != -1) {
         hasITS.emplace_back(hasITSTmp);
+        gID.emplace_back(gIDTmp);
       }
     }
 
@@ -483,6 +509,7 @@ class TPCTimeSeries : public Task
     std::vector<float> dedxRatio;
     std::vector<float> sqrtChi2TPC;
     std::vector<float> nClTPC;
+    std::vector<o2::dataformats::GlobalTrackID::Source> gID;
   };
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;   ///< info for CCDB request
   const bool mDisableWriter{false};                         ///< flag if no ROOT output will be written
@@ -501,10 +528,10 @@ class TPCTimeSeries : public Task
   std::vector<std::array<RobustAverage, 2>> mTPCChi2C;      ///< for averaging chi2 TPC C
   std::vector<std::array<RobustAverage, 2>> mTPCNClA;       ///< for averaging number of cluster A
   std::vector<std::array<RobustAverage, 2>> mTPCNClC;       ///< for averaging number of cluster C
-  std::vector<RobustAverage> mAvgMeffA;                     ///< for matching efficiency
-  std::vector<RobustAverage> mAvgMeffC;                     ///< for matching efficiency
-  std::vector<RobustAverage> mAvgChi2MatchA;                ///< for matching efficiency
-  std::vector<RobustAverage> mAvgChi2MatchC;                ///< for matching efficiency
+  std::vector<std::array<RobustAverage, 3>> mAvgMeffA;      ///< for matching efficiency ITS-TPC standalone + afterburner, standalone, afterburner
+  std::vector<std::array<RobustAverage, 3>> mAvgMeffC;      ///< for matching efficiency ITS-TPC standalone + afterburner, standalone, afterburner
+  std::vector<std::array<RobustAverage, 3>> mAvgChi2MatchA; ///< for matching efficiency ITS-TPC standalone + afterburner, standalone, afterburner
+  std::vector<std::array<RobustAverage, 3>> mAvgChi2MatchC; ///< for matching efficiency ITS-TPC standalone + afterburner, standalone, afterburner
   int mNMaxTracks{-1};                                      ///< maximum number of tracks to process
   float mMinMom{1};                                         ///< minimum accepted momentum
   int mMinNCl{80};                                          ///< minimum accepted number of clusters per track
@@ -600,6 +627,17 @@ class TPCTimeSeries : public Task
 
       // get ratio of chi2 in case ITS-TPC track has been found
       const float chi2 = hasITSTPC ? tracksITSTPC[idxITSTPC.front()].getChi2Match() : -1;
+      auto gID = o2::dataformats::GlobalTrackID::Source::TPC; // source
+      // check for source in case of ITS-TPC
+      if (hasITSTPC) {
+        const auto src = tracksITSTPC[idxITSTPC.front()].getRefITS().getSource();
+        if (src == o2::dataformats::GlobalTrackID::ITS) {
+          gID = o2::dataformats::GlobalTrackID::Source::ITS;
+        } else if (src == o2::dataformats::GlobalTrackID::ITSAB) {
+          gID = o2::dataformats::GlobalTrackID::Source::ITSAB;
+        }
+      }
+
       const float chi2Match = (chi2 > 0) ? std::sqrt(chi2) : -1;
       const float dedx = mUseQMax ? track.getdEdx().dEdxMaxTPC : track.getdEdx().dEdxTotTPC;
       const float dedxRatio = (dedx > 0) ? (mMIPdEdx / dedx) : -1;
@@ -607,9 +645,9 @@ class TPCTimeSeries : public Task
       const float nClTPC = track.getNClusters();
 
       if (track.hasCSideClustersOnly()) {
-        mBufferVals[iThread].front().emplace_back(Side::C, tglBin, phiBin, qPtBin, dca[0], dcaZFromDeltaTime, dcarW, dedxRatio, sqrtChi2TPC, nClTPC, chi2Match, hasITSTPC);
+        mBufferVals[iThread].front().emplace_back(Side::C, tglBin, phiBin, qPtBin, dca[0], dcaZFromDeltaTime, dcarW, dedxRatio, sqrtChi2TPC, nClTPC, gID, chi2Match, hasITSTPC);
       } else if (track.hasASideClustersOnly()) {
-        mBufferVals[iThread].front().emplace_back(Side::A, tglBin, phiBin, qPtBin, dca[0], dcaZFromDeltaTime, dcarW, dedxRatio, sqrtChi2TPC, nClTPC, chi2Match, hasITSTPC);
+        mBufferVals[iThread].front().emplace_back(Side::A, tglBin, phiBin, qPtBin, dca[0], dcaZFromDeltaTime, dcarW, dedxRatio, sqrtChi2TPC, nClTPC, gID, chi2Match, hasITSTPC);
       }
 
       // check if the track was assigned to ITS track
