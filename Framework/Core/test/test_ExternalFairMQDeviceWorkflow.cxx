@@ -349,7 +349,8 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
   // reads the messages from the output proxy via the out-of-band channel
 
   // converter callback for the external FairMQ device proxy ProcessorSpec generator
-  auto converter = [](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& inputs, ChannelRetriever channelRetriever, size_t newTimesliceId, bool&) {
+  auto converter = [](TimingInfo&, ServiceRegistryRef const& services, fair::mq::Parts& inputs, ChannelRetriever channelRetriever, size_t newTimesliceId, bool&) {
+    auto* device = services.get<RawDeviceService>().device();
     ASSERT_ERROR(inputs.Size() >= 2);
     if (inputs.Size() < 2) {
       return;
@@ -389,7 +390,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
              dh->splitPayloadParts,
              dh->splitPayloadIndex);
         // make a copy of the header message, get the data header and change origin
-        auto outHeaderMessage = device.NewMessageFor(channelName, 0, inputs.At(msgidx)->GetSize());
+        auto outHeaderMessage = device->NewMessageFor(channelName, 0, inputs.At(msgidx)->GetSize());
         memcpy(outHeaderMessage->GetData(), inputs.At(msgidx)->GetData(), inputs.At(msgidx)->GetSize());
         // this we obviously need to fix in the get API, const'ness of the returned header pointer
         // should depend on const'ness of the buffer
@@ -400,7 +401,7 @@ std::vector<DataProcessorSpec> defineDataProcessing(ConfigContext const& config)
         output.AddPart(std::move(inputs.At(msgidx)));
       }
     }
-    o2::framework::sendOnChannel(device, output, channelName, (size_t)-1);
+    o2::framework::sendOnChannel(*device, output, channelName, (size_t)-1);
     return;
   };
 
