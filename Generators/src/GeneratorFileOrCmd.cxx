@@ -9,7 +9,6 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \author R+Preghenella - August 2017
 
 #include "SimulationDataFormat/MCUtils.h"
 #include "Generators/GeneratorFileOrCmd.h"
