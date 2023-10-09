@@ -59,10 +59,12 @@ GeneratorHepMC::~GeneratorHepMC()
 {
   /** default destructor **/
   LOG(info) << "Destructing GeneratorHepMC";
-  if (mReader)
+  if (mReader) {
     mReader->close();
-  if (mEvent)
+  }
+  if (mEvent) {
     delete mEvent;
+  }
   removeTemp();
 }
 
@@ -71,12 +73,18 @@ void GeneratorHepMC::setup(const GeneratorFileOrCmdParam& param0,
                            const GeneratorHepMCParam& param,
                            const conf::SimConfig& config)
 {
+  if (not param.fileName.empty()) {
+    LOG(fatal) << "The use of the key \"HepMC.fileName\" is "
+               << "no longer supported, use \"FileOrCmd.fileNames\" instead";
+  }
+  if (param.version != 0)
+    LOG(warn) << "The key \"HepMC.version\" is no longer used. The "
+              << "version of the input files are automatically deduced.";
   GeneratorFileOrCmd::setup(param0, config);
   setEventsToSkip(param.eventsToSkip);
 }
 
 /*****************************************************************/
-
 Bool_t GeneratorHepMC::generateEvent()
 {
   LOG(debug) << "Generating an event";
@@ -84,8 +92,9 @@ Bool_t GeneratorHepMC::generateEvent()
   int tries = 0;
   do {
     LOG(debug) << " try # " << ++tries;
-    if (not mReader and not makeReader())
+    if (not mReader and not makeReader()) {
       return false;
+    }
 
     /** clear and read event **/
     mEvent->clear();
@@ -153,34 +162,71 @@ Bool_t GeneratorHepMC::importParticles()
 
 namespace
 {
+template <typename AttributeType, typename TargetType>
+bool putAttributeInfoImpl(o2::dataformats::MCEventHeader* eventHeader,
+                          const std::string& name,
+                          const std::shared_ptr<HepMC3::Attribute>& a)
+{
+  if (auto* p = dynamic_cast<AttributeType*>(a.get())) {
+    eventHeader->putInfo<TargetType>(name, p->value());
+    return true;
+  }
+  return false;
+}
+
 void putAttributeInfo(o2::dataformats::MCEventHeader* eventHeader,
                       const std::string& name,
                       const std::shared_ptr<HepMC3::Attribute>& a)
 {
-  if (auto* p = dynamic_cast<HepMC3::IntAttribute*>(a.get()))
-    eventHeader->putInfo<int>(name, p->value());
-  if (auto* p = dynamic_cast<HepMC3::LongAttribute*>(a.get()))
-    eventHeader->putInfo<int>(name, p->value());
-  if (auto* p = dynamic_cast<HepMC3::FloatAttribute*>(a.get()))
-    eventHeader->putInfo<float>(name, p->value());
-  if (auto* p = dynamic_cast<HepMC3::DoubleAttribute*>(a.get()))
-    eventHeader->putInfo<float>(name, p->value());
-  if (auto* p = dynamic_cast<HepMC3::StringAttribute*>(a.get()))
-    eventHeader->putInfo<std::string>(name, p->value());
-  if (auto* p = dynamic_cast<HepMC3::CharAttribute*>(a.get()))
-    eventHeader->putInfo<char>(name, p->value());
-  if (auto* p = dynamic_cast<HepMC3::LongLongAttribute*>(a.get()))
-    eventHeader->putInfo<int>(name, p->value());
-  if (auto* p = dynamic_cast<HepMC3::LongDoubleAttribute*>(a.get()))
-    eventHeader->putInfo<float>(name, p->value());
-  if (auto* p = dynamic_cast<HepMC3::UIntAttribute*>(a.get()))
-    eventHeader->putInfo<int>(name, p->value());
-  if (auto* p = dynamic_cast<HepMC3::ULongAttribute*>(a.get()))
-    eventHeader->putInfo<int>(name, p->value());
-  if (auto* p = dynamic_cast<HepMC3::ULongLongAttribute*>(a.get()))
-    eventHeader->putInfo<int>(name, p->value());
-  if (auto* p = dynamic_cast<HepMC3::BoolAttribute*>(a.get()))
-    eventHeader->putInfo<bool>(name, p->value());
+  using IntAttribute = HepMC3::IntAttribute;
+  using LongAttribute = HepMC3::LongAttribute;
+  using FloatAttribute = HepMC3::FloatAttribute;
+  using DoubleAttribute = HepMC3::DoubleAttribute;
+  using StringAttribute = HepMC3::StringAttribute;
+  using CharAttribute = HepMC3::CharAttribute;
+  using LongLongAttribute = HepMC3::LongLongAttribute;
+  using LongDoubleAttribute = HepMC3::LongDoubleAttribute;
+  using UIntAttribute = HepMC3::UIntAttribute;
+  using ULongAttribute = HepMC3::ULongAttribute;
+  using ULongLongAttribute = HepMC3::ULongLongAttribute;
+  using BoolAttribute = HepMC3::BoolAttribute;
+
+  if (putAttributeInfoImpl<IntAttribute, int>(eventHeader, name, a)) {
+    return;
+  }
+  if (putAttributeInfoImpl<LongAttribute, int>(eventHeader, name, a)) {
+    return;
+  }
+  if (putAttributeInfoImpl<FloatAttribute, float>(eventHeader, name, a)) {
+    return;
+  }
+  if (putAttributeInfoImpl<DoubleAttribute, float>(eventHeader, name, a)) {
+    return;
+  }
+  if (putAttributeInfoImpl<StringAttribute, std::string>(eventHeader, name, a)) {
+    return;
+  }
+  if (putAttributeInfoImpl<CharAttribute, char>(eventHeader, name, a)) {
+    return;
+  }
+  if (putAttributeInfoImpl<LongLongAttribute, int>(eventHeader, name, a)) {
+    return;
+  }
+  if (putAttributeInfoImpl<LongDoubleAttribute, float>(eventHeader, name, a)) {
+    return;
+  }
+  if (putAttributeInfoImpl<UIntAttribute, int>(eventHeader, name, a)) {
+    return;
+  }
+  if (putAttributeInfoImpl<ULongAttribute, int>(eventHeader, name, a)) {
+    return;
+  }
+  if (putAttributeInfoImpl<ULongLongAttribute, int>(eventHeader, name, a)) {
+    return;
+  }
+  if (putAttributeInfoImpl<BoolAttribute, bool>(eventHeader, name, a)) {
+    return;
+  }
 }
 } // namespace
 
@@ -264,8 +310,9 @@ void GeneratorHepMC::updateHeader(o2::dataformats::MCEventHeader* eventHeader)
     std::string name = na.first;
     if (name == "GenPdfInfo" ||
         name == "GenCrossSection" ||
-        name == "GenHeavyIon")
+        name == "GenHeavyIon") {
       continue;
+    }
 
     for (auto ia : na.second) {
       int no = ia.first;
@@ -354,12 +401,14 @@ Bool_t GeneratorHepMC::Init()
   // around the actual EG program.
   if (not mCmd.empty()) {
     // Set filename to be a temporary name
-    if (not makeTemp())
+    if (not makeTemp()) {
       return false;
+    }
 
     // Make a fifo
-    if (not makeFifo())
+    if (not makeFifo()) {
       return false;
+    }
 
     // Build command line, rediret stdout to our fifo and put
     std::string cmd = makeCmdLine();
@@ -390,8 +439,9 @@ Bool_t GeneratorHepMC::Init()
     //
     // However, here we will assume system local files.  If _any_ of
     // the listed files do not exist, then we fail.
-    if (not ensureFiles())
+    if (not ensureFiles()) {
       return false;
+    }
   }
 
   // Create reader for current (first) file

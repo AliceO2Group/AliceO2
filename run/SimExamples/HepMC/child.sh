@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/usr/bin/env bash
 
 cmd="./crmc.sh"
 seed=$RANDOM
@@ -47,5 +47,5 @@ fi
 out=`echo "$out" | tr ' ' '_'`
 
 export VMCWORKDIR=${O2_ROOT}/share
-o2-sim -g hepmc --configKeyValues "HepMC.progCmd=$cmd" \
+o2-sim -g hepmc --configKeyValues "FileOrCmd.cmd=$cmd" \
        --outPrefix "$out" --seed $seed --nEvents $nev $@

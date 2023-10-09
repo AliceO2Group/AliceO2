@@ -1,4 +1,4 @@
-#!/usr/bin/bash
+#!/usr/bin/env bash
 
 cmd="./myeg.sh"
 seed=$RANDOM
@@ -49,10 +49,9 @@ if test "x$out" = "x" ; then
 fi
 out=`echo "$out" | tr ' ' '_'`
 
-keys="Generator.progCmd=$cmd $opt"
-# keys="FileOrCmd.cmd=$cmd $opt;FileOrCmd.outputSwitch=-o"
 set -x
 export VMCWORKDIR=${O2_ROOT}/share
-o2-sim -g tparticle --configKeyValues "$keys" \
+o2-sim -g tparticle \
+       --configKeyValues "FileOrCmd.cmd=$cmd $opt;FileOrCmd.outputSwitch=-o" \
        --outPrefix "$out" --seed $seed --nEvents $nev $@
 

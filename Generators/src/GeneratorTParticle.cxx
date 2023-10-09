@@ -35,12 +35,14 @@ GeneratorTParticle::~GeneratorTParticle()
 {
   if (mChain) {
     TFile* file = mChain->GetCurrentFile();
-    if (file)
+    if (file) {
       mChain->RecursiveRemove(file);
+    }
     delete mChain;
   }
-  if (mCmd.empty())
+  if (mCmd.empty()) {
     return;
+  }
 
   removeTemp();
 }
@@ -53,8 +55,9 @@ Bool_t GeneratorTParticle::Init()
 
   if (not mCmd.empty()) {
     // Set filename to be a temporary name
-    if (not makeTemp())
+    if (not makeTemp()) {
       return false;
+    }
 
     // Build command line, Assumes command line parameter
     std::string cmd = makeCmdLine();
@@ -66,8 +69,9 @@ Bool_t GeneratorTParticle::Init()
       return false;
     }
   }
-  for (auto filename : mFileNames)
+  for (auto filename : mFileNames) {
     mChain->AddFile(filename.c_str());
+  }
 
   // Clear the array of file names
   mFileNames.clear();
@@ -90,20 +94,23 @@ Bool_t GeneratorTParticle::generateEvent()
 {
   // If this is the first entry, and we're executing a command, then
   // wait until the input file exists and actually contain some data.
-  if (mEntry == 0 and not mCmd.empty())
+  if (mEntry == 0 and not mCmd.empty()) {
     waitForData(mTemporary);
+  }
 
   // Read in the next entry in the chain
   int read = mChain->GetEntry(mEntry);
   mEntry++;
 
   // If we got an error while reading, then give error message
-  if (read < 0)
+  if (read < 0) {
     LOG(error) << "Failed to read entry " << mEntry << " of chain";
+  }
 
   // If we had an error or nothing was read back, then return false
-  if (read <= 0)
+  if (read <= 0) {
     return false;
+  }
 
   return true;
 }
@@ -113,9 +120,10 @@ Bool_t GeneratorTParticle::importParticles()
   for (auto* object : *mTParticles) {
     TParticle* particle = static_cast<TParticle*>(object);
     auto statusCode = particle->GetStatusCode();
-    if (!mcgenstatus::isEncoded(statusCode))
+    if (!mcgenstatus::isEncoded(statusCode)) {
       statusCode = mcgenstatus::MCGenStatusEncoding(statusCode, 0)
                      .fullEncoding;
+    }
 
     mParticles.emplace_back(particle->GetPdgCode(),
                             statusCode,

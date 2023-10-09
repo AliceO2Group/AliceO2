@@ -14,7 +14,7 @@ generator program (EG).
 
 To make a simulation reading from the file `particles.root`, do
 
-    o2-sim -g tparticle --configKeyValues "GeneratorTParticle.fileName=particles.root"  ...
+    o2-sim -g tparticle --configKeyValues "FileOrCmd.fileNames=particles.root"  ...
 
 See also [`read.sh`](read.sh).  Do
 
@@ -38,7 +38,7 @@ for a list of options.
 
 For example
 
-    o2-sim -g tparticle --configKeyValues "GeneratorTParticle.fileName=particles.root;GeneratorTParticle.treeName=Events;GeneratorTParticle.branchName=Tracks"  ...
+    o2-sim -g tparticle --configKeyValues "FileOrCmd.fileNames=particles.root;GeneratorTParticle.treeName=Events;GeneratorTParticle.branchName=Tracks"  ...
 
 ## Reading TParticle events from child process
 
@@ -48,7 +48,7 @@ named `eg` which is some EG that writes `TParticle` event records to a
 file .  Then we can execute a simulation using this external
 EG by
 
-    o2-sim -g tgenerator --configKeyValues "GeneratorTParticle.progCmd=eg"
+    o2-sim -g tgenerator --configKeyValues "FileOrCmd.cmd=eg"
 
 See also [`child.sh`](child.sh).  Do
 
@@ -58,10 +58,25 @@ for a list of options.
 
 There are some requirements on the program `eg`:
 
-- It _must_ accept the option `-n n-events` to set the number of
-  events to produce to `n-events`.
-
-- It _must_ accept the option `-o output` to set the output file name.
+- The EG program _must_ be able to write the HepMC event structures to
+  a specified file.  The option passed to the program is specified via
+  the key `FileOrCmd.outputSwitch`.  This defaults to `-o`.
+- It _must_ accept an option to set the number of events to generate.
+  This is controlled by the configuration key
+  `FileOrCmd.nEventsSwitch` and defaults to `-n`.  Thus, the EG
+  application should accept `-n 10` to mean that it should generate
+  `10` events, for example.
+- The EG application should accept a command line switch to set the
+  random number generator seed.   This option is specified via the
+  configuration key `FileOrCmd.seedSwitch` and defaults to `-s`.
+  Thus, the EG application must accept `-s 123456` to mean to set the
+  random number seed to `123456` for example.
+- The EG application should accept a command line switch to set the
+  maximum impact parameter (in Fermi-metre) sampled.  This is set via
+  the configuration key `FileOrCmd.bMaxSwithc` and defaults to `-b`.
+  Thus, the EG application should take the command line argument `-b
+  10` to mean that it should only generate events with an impact
+  parameter between 0fm and 10fm.
 
 If a program does not adhere to these requirements, it will often be
 simple enough to make a small wrapper script that enforce this.
@@ -163,7 +178,7 @@ the `MyEG.macro` script
 
 We can then do
 
-    o2-sim -g tgenerator --configKeyValues "GeneratorTParticle.progCmd=./myeg.sh"
+    o2-sim -g tgenerator --configKeyValues "FileOrCmd.cmd=./myeg.sh"
 
 to produce events with our generator `MyGenerator`.
 
@@ -181,55 +196,46 @@ Internally `GeneratorTParticle`
 
 ## The future
 
-The `GeneratorTParticle` (and sister generator `GeneratorHepMC`) will
-in the not so distant future be upgraded with new functionality to
-more easily customise reading files and executing a child process.  In
-particular
+The `GeneratorTParticle` (and sister generator `GeneratorHepMC`) is
+configured through configuration keys set via `--configKeyValues`
 
-- New options that can be specified in `--configKeyValues`
+- `GeneratorTParticle.treeName=name` the name of the `TTree` in the
+  input files.
 
-  - `GeneratorTParticle.treeName=name` the name of the `TTree` in the
-    input files.
+- `GeneratorTParticle.branchName=name` the name of the `TBranch` in
+  the `TTree` that holds the `TClonesArray` of `TParticle` objects.
 
-  - `GeneratorTParticle.branchName=name` the name of the `TBranch` in
-    the `TTree` that holds the `TClonesArray` of `TParticle` objects.
+- `FileOrCmd.fileNames=list` a comma separated list of HepMC files to
+  read
 
-  - `FileOrCmd.fileNames=list` a comma separated list of HepMC files
-    to read
+- `FileOrCmd.cmd=command line` a command line to execute as a
+  background child process.  If this is set (not the empty string),
+  then `FileOrCmd.fileNames` is ignored.
 
-  - `FileOrCmd.cmd=command line` a command line to execute as a
-    background child process.  If this is set (not the empty string),
-    then `FileOrCmd.fileNames` is ignored.
+- A number of keys that specifies the command line option switch that
+  the child program accepts for certain things.  If any of these are
+  set to the empty string or special value `none`, then that switch
+  and corresponding option value is not passed to the child program.
 
-  - A number of keys that specifies the command line option switch
-    that the child program accepts for certain things.  If any of
-    these are set to the empty string, then that switch and
-    corresponding option value is not passed to the child program.
+  - `FileOrCmd.outputSwitch=switch` (default `>`) to specify output
+    file.  The default of `>` assumes that the program write events,
+    and _only_ those, to standard output.
 
-    - `FileOrCmd.outputSwitch=switch` (default `>`) to specify output
-      file.  The default of `>` assumes that the program write HepMC
-      events, and _only_ those, to standard output.
+  - `FileOrCmd.seedSwitch=switch` (default `-s`) to specify the
+    random number generator seed. The value passed is selected by
+    the `o2-sim` option `--seed`.
 
-    - `FileOrCmd.seedSwitch=switch` (default `-s`) to specify the
-      random number generator seed. The value passed is selected by
-      the `o2-sim` option `--seed`
+  - `FileOrCmd.bMaxSwitch=switch` (default `-b`) to specify the
+     upper limit on the impact parameters sampled.  The value passed
+     is selected by the `o2-sim` option `--bMax`.
 
-    - `FileOrCmd.bMaxSwitch=switch` (default `-b`) to specify the
-       upper limit on the impact parameters sampled.  The value passed
-       is selected by the `o2-sim` option `--bMax`
+  - `FileOrCmd.nEventsSwitch=switch` (default `-n`) to specify the
+     number of events to generate.  The value passed is selected by
+     the `o2-sim` option `--nEvents` or (`-n`).
 
-    - `FileOrCmd.nEventsSwitch=switch` (default `-n`) to specify the
-       number of events to generate.  The value passed is selected by
-       the `o2-sim` option `--nEvents` or (`-n`)
-
-    - `FileOrCmd.backgroundSwitch=switch` (default `&`) to specify how
-      the program is put in the background.  Typically this should be
-      `&`, but a program may itself fork to the background.
-
-- Some options are no longer available
-
-  - `GeneratorTParticle.fileName` - use `FileOrCmd.fileNames`
-  - `GeneratorTParticle.progCmd` - use `FileOrCmd.cmd`
+  - `FileOrCmd.backgroundSwitch=switch` (default `&`) to specify how
+    the program is put in the background.  Typically this should be
+    `&`, but a program may itself fork to the background.
 
 The command line build will now be
 
@@ -244,13 +250,15 @@ example, if _bMaxSwitch_ is empty, then the build command line will be
 > _outputSwitch_ _output_ _backgroundSwitch_
 
 
+## TODO
+
 ### Header information
 
 The class `GeneratorTParticle` will take a key parameter, say
 `headerName` which will indicate a branch that contains header
 information.  Under that branch, the class will then search for leaves
 (`TLeaf`) that correspond to standard header information keys (see
-o2::dataformats::MCInfoKeys).  If any of those leaves are present,
+`o2::dataformats::MCInfoKeys`).  If any of those leaves are present,
 then the corresponding keys will be set on the generated event header.
 
 Thus, as long as the generator observes the convention used, we can
