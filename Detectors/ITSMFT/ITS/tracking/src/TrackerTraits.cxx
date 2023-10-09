@@ -486,11 +486,9 @@ void TrackerTraits::findRoads(const int iteration)
 
 void TrackerTraits::findTracks()
 {
-  std::vector<std::vector<TrackITSExt>> tracks(mNThreads);
-  for (auto& tracksV : tracks) {
-    tracksV.reserve(mTimeFrame->getRoads().size() / mNThreads);
-  }
+  std::vector<TrackITSExt> tracks(mTimeFrame->getRoads().size());
 
+  std::atomic<size_t> trackIndex{0};
 #pragma omp parallel for num_threads(mNThreads)
   for (size_t ri = 0; ri < mTimeFrame->getRoads().size(); ++ri) {
     auto& road = mTimeFrame->getRoads()[ri];
@@ -555,12 +553,6 @@ void TrackerTraits::findTracks()
       }
     }
 
-    /// Track seed preparation. Clusters are numbered progressively from the innermost going outward.
-    const auto& cluster1_glo = mTimeFrame->getUnsortedClusters()[lastCellLevel].at(clusters[lastCellLevel]);
-    const auto& cluster2_glo = mTimeFrame->getUnsortedClusters()[lastCellLevel + 1].at(clusters[lastCellLevel + 1]);
-    const auto& cluster3_glo = mTimeFrame->getUnsortedClusters()[lastCellLevel + 2].at(clusters[lastCellLevel + 2]);
-    const auto& cluster3_tf = mTimeFrame->getTrackingFrameInfoOnLayer(lastCellLevel + 2).at(clusters[lastCellLevel + 2]);
-
     TrackITSExt temporaryTrack{mTimeFrame->getCellSeeds()[lastCellLevel][lastCellIndex]};
     temporaryTrack.setChi2(mTimeFrame->getCellSeedsChi2()[lastCellLevel][lastCellIndex]);
     for (size_t iC = 0; iC < clusters.size(); ++iC) {
@@ -586,25 +578,18 @@ void TrackerTraits::findTracks()
       continue;
     }
     // temporaryTrack.setROFrame(rof);
-#ifdef WITH_OPENMP
-    int iThread = omp_get_thread_num();
-#else
-    int iThread = 0;
-#endif
-    tracks[iThread].emplace_back(temporaryTrack);
+    tracks[trackIndex++] = temporaryTrack;
   }
 
-  for (int iV{1}; iV < mNThreads; ++iV) {
-    tracks[0].insert(tracks[0].end(), tracks[iV].begin(), tracks[iV].end());
-  }
+  tracks.resize(trackIndex);
 
   if (mApplySmoothing) {
     // Smoothing tracks
   }
-  std::sort(tracks[0].begin(), tracks[0].end(),
+  std::sort(tracks.begin(), tracks.end(),
             [](TrackITSExt& track1, TrackITSExt& track2) { return track1.isBetter(track2, 1.e6f); });
 
-  for (auto& track : tracks[0]) {
+  for (auto& track : tracks) {
     int nShared = 0;
     for (int iLayer{0}; iLayer < mTrkParams[0].NLayers; ++iLayer) {
       if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
