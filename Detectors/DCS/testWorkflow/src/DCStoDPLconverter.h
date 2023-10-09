@@ -14,6 +14,7 @@
 
 #include "Framework/DataSpecUtils.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
+#include "Framework/RawDeviceService.h"
 #include <fairmq/Parts.h>
 #include <fairmq/Device.h>
 #include "DetectorsDCS/DataPointIdentifier.h"
@@ -40,9 +41,7 @@ struct hash<o2h::DataDescription> {
 };
 } // namespace std
 
-namespace o2
-{
-namespace dcs
+namespace o2::dcs
 {
 using DPID = o2::dcs::DataPointIdentifier;
 using DPVAL = o2::dcs::DataPointValue;
@@ -54,7 +53,8 @@ using DPCOM = o2::dcs::DataPointCompositeObject;
 o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dpid2group, bool fbiFirst, bool verbose = false, int FBIPerInterval = 1)
 {
 
-  return [dpid2group, fbiFirst, verbose, FBIPerInterval](o2::framework::TimingInfo& tinfo, fair::mq::Device& device, fair::mq::Parts& parts, o2f::ChannelRetriever channelRetriever, size_t newTimesliceId, bool& stop) {
+  return [dpid2group, fbiFirst, verbose, FBIPerInterval](o2::framework::TimingInfo& tinfo, framework::ServiceRegistryRef const& services, fair::mq::Parts& parts, o2f::ChannelRetriever channelRetriever, size_t newTimesliceId, bool& stop) {
+    auto *device = services.get<framework::RawDeviceService>().device();
     static std::unordered_map<DPID, DPCOM> cache; // will keep only the latest measurement in the 1-second wide window for each DPID
     static std::unordered_map<std::string, int> sentToChannel;
     static auto timer = std::chrono::high_resolution_clock::now();
@@ -158,7 +158,7 @@ o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dp
         hdr.payloadSize = it.second.size() * sizeof(DPCOM);
         hdr.firstTForbit = 0; // this should be irrelevant for DCS
         o2h::Stack headerStack{hdr, o2::framework::DataProcessingHeader{tinfo.timeslice, 1, creation}};
-        auto fmqFactory = device.GetChannel(channel).Transport();
+        auto fmqFactory = device->GetChannel(channel).Transport();
         auto hdMessage = fmqFactory->CreateMessage(headerStack.size(), fair::mq::Alignment{64});
         auto plMessage = fmqFactory->CreateMessage(hdr.payloadSize, fair::mq::Alignment{64});
         memcpy(hdMessage->GetData(), headerStack.data(), headerStack.size());
@@ -181,7 +181,7 @@ o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dp
         if (verbose) {
           LOG(info) << "Sending " << msgIt.second->Size() / 2 << " parts to channel " << msgIt.first;
         }
-        o2f::sendOnChannel(device, *msgIt.second.get(), msgIt.first, tinfo.timeslice);
+        o2f::sendOnChannel(*device, *msgIt.second.get(), msgIt.first, tinfo.timeslice);
         sentToChannel[msgIt.first]++;
       }
       timer = timerNow;
@@ -203,7 +203,6 @@ o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dp
   };
 }
 
-} // namespace dcs
 } // namespace o2
 
 #endif /* O2_DCS_TO_DPL_CONVERTER_H */

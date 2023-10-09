@@ -29,6 +29,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataSpecUtils.h"
+#include "Framework/RawDeviceService.h"
 #include "Framework/ControlService.h"
 #include "Framework/Logger.h"
 #include "Framework/Lifetime.h"
@@ -51,7 +52,7 @@ InjectorFunction dcs2dpl(std::string& ccdbhost)
   auto runMgr = std::make_shared<o2::ctp::CTPRunManager>();
   runMgr->setCCDBHost(ccdbhost);
   runMgr->init();
-  return [runMgr](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId, bool& stop) {
+  return [runMgr](TimingInfo&, ServiceRegistryRef const& services, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId, bool& stop) {
     // FIXME: Why isn't this function using the timeslice index?
     // make sure just 2 messages received
     // if (parts.Size() != 2) {
