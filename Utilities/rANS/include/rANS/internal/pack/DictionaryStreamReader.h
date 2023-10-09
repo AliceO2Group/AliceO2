@@ -84,7 +84,7 @@ class DictionaryStreamParser
 
 template <typename source_T>
 template <typename buffer_IT>
-DictionaryStreamParser<source_T>::DictionaryStreamParser(buffer_IT begin, buffer_IT end, source_type max) : mEnd{begin}, mPos{end}, mIndex(max)
+DictionaryStreamParser<source_T>::DictionaryStreamParser(buffer_IT begin, buffer_IT end, source_type max) : mPos{end}, mEnd{begin}, mIndex(max)
 {
   static_assert(std::is_pointer_v<buffer_IT>, "can only deserialize from raw pointers");
 

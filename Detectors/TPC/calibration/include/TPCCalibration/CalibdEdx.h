@@ -26,6 +26,7 @@
 #include "DataFormatsTPC/TrackCuts.h"
 #include "DataFormatsTPC/Defs.h"
 #include "DataFormatsTPC/CalibdEdxCorrection.h"
+#include "DetectorsBase/Propagator.h"
 
 // boost includes
 #include <boost/histogram.hpp>
@@ -97,6 +98,9 @@ class CalibdEdx
     mFitLowCutFactor = lowCutFactor;
   }
 
+  /// setting the material type for track propagation
+  void setMaterialType(o2::base::Propagator::MatCorrType materialType) { mMatType = materialType; }
+
   /// Fill histograms using tracks data.
   void fill(const TrackTPC& tracks);
   void fill(const gsl::span<const TrackTPC>);
@@ -152,7 +156,9 @@ class CalibdEdx
   Hist mHist;                   ///< dEdx multidimensional histogram
   CalibdEdxCorrection mCalib{}; ///< Calibration output
 
-  ClassDefNV(CalibdEdx, 2);
+  o2::base::Propagator::MatCorrType mMatType{}; ///< material type for track propagation
+
+  ClassDefNV(CalibdEdx, 3);
 };
 
 } // namespace o2::tpc

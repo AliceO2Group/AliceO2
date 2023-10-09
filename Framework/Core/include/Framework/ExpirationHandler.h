@@ -30,7 +30,7 @@ struct TimesliceSlot;
 struct InputRecord;
 
 struct ExpirationHandler {
-  using Creator = std::function<TimesliceSlot(ChannelIndex, TimesliceIndex&)>;
+  using Creator = std::function<TimesliceSlot(ServiceRegistryRef, ChannelIndex)>;
   /// Callback type to check if the record must be expired
   using Checker = std::function<bool(ServiceRegistryRef, uint64_t timestamp, InputSpan const& record)>;
   /// Callback type to actually materialise a given record

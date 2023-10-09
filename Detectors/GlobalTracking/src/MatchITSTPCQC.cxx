@@ -423,9 +423,6 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
     if (trk.getRefTPC().getIndex() >= mTPCTracks.size()) {
       LOG(fatal) << "******************** ATTENTION! for TPC track associated to matched track: idx = " << trk.getRefTPC().getIndex() << ", size of container = " << mTPCTracks.size() << " in TF " << evCount;
     }
-    if (trk.getRefITS().getIndex() >= mITSTracks.size()) {
-      LOG(fatal) << "******************** ATTENTION! for ITS track associated to matched track: idx = " << trk.getRefITS().getIndex() << ", size of container = " << mITSTracks.size() << " in TF " << evCount;
-    }
     std::array<std::string, 2> title{"TPC", "ITS"};
     for (int i = 0; i < matchType::SIZE; ++i) {
       o2::track::TrackParCov trkRef;
@@ -440,14 +437,17 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
           ++mNITSTPCSelectedTracks[i];
         }
       } else {
-        trkRef = mITSTracks[trk.getRefITS()];
         idxTrkRef = trk.getRefITS().getIndex();
-        LOG(debug) << "Checking track (ITS) with id " << idxTrkRef << " for ITSTPC track " << iITSTPC << " and pt = " << trkRef.getPt();
         if (trk.getRefITS().getSource() == GID::ITSAB) {
           // do not use afterburner tracks
           LOG(debug) << "Track (ITS) with id " << idxTrkRef << " for ITSTPC track " << iITSTPC << " is from afterburner";
           continue;
         }
+        if (idxTrkRef >= mITSTracks.size()) {
+          LOG(fatal) << "******************** ATTENTION! for ITS track associated to matched track (NOT from AB): idx = " << trk.getRefITS().getIndex() << ", size of container = " << mITSTracks.size() << " in TF " << evCount;
+        }
+        trkRef = mITSTracks[trk.getRefITS()];
+        LOG(debug) << "Checking track (ITS) with id " << idxTrkRef << " for ITSTPC track " << iITSTPC << " and pt = " << trkRef.getPt();
         if (isITSTrackSelectedEntry[idxTrkRef] == true) {
           LOG(debug) << "Track was selected (ITS), with id " << idxTrkRef << " for ITSTPC track " << iITSTPC << " , we keep it in the numerator, pt = " << trkRef.getPt();
           fillHisto = true;

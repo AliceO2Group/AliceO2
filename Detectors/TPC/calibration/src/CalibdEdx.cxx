@@ -29,7 +29,6 @@
 #include "DataFormatsTPC/TrackCuts.h"
 #include "Framework/Logger.h"
 #include "TPCBase/ParameterGas.h"
-#include "DetectorsBase/Propagator.h"
 
 // root includes
 #include "TFile.h"
@@ -82,7 +81,7 @@ void CalibdEdx::fill(const TrackTPC& track)
     constexpr std::array<float, 4> xks{108.475f, 151.7f, 188.8f, 227.65f};
 
     // propagate track
-    const bool okProp = o2::base::Propagator::Instance()->PropagateToXBxByBz(cpTrack, xks[roc], 0.9f, 2., o2::base::Propagator::MatCorrType::USEMatCorrNONE);
+    const bool okProp = o2::base::Propagator::Instance()->PropagateToXBxByBz(cpTrack, xks[roc], 0.9f, 2., mMatType);
     if (!okProp) {
       continue;
     }
