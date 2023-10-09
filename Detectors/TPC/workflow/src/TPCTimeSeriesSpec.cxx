@@ -74,6 +74,8 @@ class TPCTimeSeries : public Task
     mTimeWindowMUS = ic.options().get<float>("time-window-mult-mus");
     mMIPdEdx = ic.options().get<float>("MIP-dedx");
     mUseQMax = ic.options().get<bool>("use-qMax");
+    mMaxSnp = ic.options().get<float>("max-snp");
+    mXCoarse = ic.options().get<float>("mX-coarse");
     mBufferVals.resize(mNThreads);
     mBufferDCA.setBinning(mPhiBins, mTglBins, mQPtBins);
   }
@@ -555,6 +557,8 @@ class TPCTimeSeries : public Task
   o2::tpc::VDriftHelper mTPCVDriftHelper{};                 ///< helper for v-drift
   float mVDrift{2.64};                                      ///< v drift in mus
   bool mUseQMax{false};                                     ///< use dedx qmax for MIP/dEdx monitoring
+  float mMaxSnp{0.85};                                      ///< max sinus phi for propagation
+  float mXCoarse{40};                                       ///< perform propagation with coarse steps up to this mx
 
   /// check if track passes coarse cuts
   bool acceptTrack(const TrackTPC& track) const
@@ -575,29 +579,34 @@ class TPCTimeSeries : public Task
     // propagate track to DCA
     o2::gpu::gpustd::array<float, 2> dca;
     const o2::math_utils::Point3D<float> refPoint{0, 0, 0};
-    if (!propagator->propagateToDCABxByBz(refPoint, track, mCoarseStep, mMatType, &dca)) {
+
+    // coarse propagation
+    if (!propagator->PropagateToXBxByBz(track, mXCoarse, mMaxSnp, mCoarseStep, mMatType)) {
       return;
     }
 
-    if (!propagator->propagateToDCABxByBz(refPoint, track, mFineStep, mMatType, &dca)) {
+    // fine propagation with Bz only
+    if (!propagator->propagateToDCA(refPoint, track, propagator->getNominalBz(), mFineStep, mMatType, &dca)) {
       return;
     }
 
-    // propagate to centre of IROC for proper sector position
-    if (!propagator->PropagateToXBxByBz(track, mRefXSec, 0.9f, mCoarseStep, mMatType)) {
+    TrackTPC trackTmp = tracksTPC[iTrk];
+
+    // coarse propagation to centre of IROC for phi bin
+    if (!propagator->propagateTo(trackTmp, mRefXSec, false, mMaxSnp, mCoarseStep, mMatType)) {
       return;
     }
 
-    const int tglBin = mTglBins * std::abs(track.getTgl()) / mMaxTgl + mPhiBins;
-    const int phiBin = mPhiBins * track.getPhi() / o2::constants::math::TwoPI;
-    const int qPtBin = mPhiBins + mTglBins + mQPtBins * (track.getQ2Pt() + mMaxQPtBin) / (2 * mMaxQPtBin);
+    const int tglBin = mTglBins * std::abs(trackTmp.getTgl()) / mMaxTgl + mPhiBins;
+    const int phiBin = mPhiBins * trackTmp.getPhi() / o2::constants::math::TwoPI;
+    const int qPtBin = mPhiBins + mTglBins + mQPtBins * (trackTmp.getQ2Pt() + mMaxQPtBin) / (2 * mMaxQPtBin);
     const int nBins = getNBins();
 
     if ((tglBin < 0) || (phiBin < 0) || (tglBin >= (nBins - 1 - mQPtBins)) || (qPtBin > (nBins - 1))) {
       return;
     }
 
-    const int sector = o2::math_utils::angle2Sector(track.getPhiPos());
+    const int sector = o2::math_utils::angle2Sector(trackTmp.getPhiPos());
     if (sector < SECTORSPERSIDE) {
       // find possible ITS-TPC track and vertex index
       auto it = indicesITSTPC.find(iTrk);
@@ -655,7 +664,8 @@ class TPCTimeSeries : public Task
       if (hasITSTPC) {
         // propagate ITS-TPC track to (0,0)
         auto trackITSTPCTmp = tracksITSTPC[idxITSTPC.front()];
-        if (propagator->propagateToDCABxByBz(refPoint, trackITSTPCTmp, mFineStep, mMatType, &dcaITSTPC)) {
+        // fine propagation with Bz only
+        if (propagator->PropagateToXBxByBz(trackITSTPCTmp, mXCoarse, mMaxSnp, mCoarseStep, mMatType) && propagator->propagateToDCA(refPoint, trackITSTPCTmp, propagator->getNominalBz(), mFineStep, mMatType, &dcaITSTPC)) {
           // make cut on abs(DCA)
           if ((std::abs(dcaITSTPC[0]) < maxITSTPCDCAr) && (std::abs(dcaITSTPC[1]) < maxITSTPCDCAz)) {
             // store TPC only DCAs
@@ -890,8 +900,10 @@ o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, 
             {"min-cluster", VariantType::Int, 80, {"Minimum number of clusters of the tracks"}},
             {"max-tgl", VariantType::Float, 1.1f, {"Maximum accepted tgl of the tracks"}},
             {"max-qPt-bin", VariantType::Float, 5.f, {"Maximum abs(qPt) bin"}},
-            {"coarse-step", VariantType::Float, 1.f, {"Coarse step during track propagation"}},
-            {"fine-step", VariantType::Float, 0.005f, {"Fine step during track propagation"}},
+            {"max-snp", VariantType::Float, 0.85f, {"Maximum sinus(phi) for propagation"}},
+            {"coarse-step", VariantType::Float, 5.f, {"Coarse step during track propagation"}},
+            {"fine-step", VariantType::Float, 2.f, {"Fine step during track propagation"}},
+            {"mX-coarse", VariantType::Float, 40.f, {"Perform coarse propagation up to this mx"}},
             {"max-tracks", VariantType::Int, -1, {"Number of maximum tracks to process"}},
             {"cut-DCA-median", VariantType::Float, 3.f, {"Cut on the DCA: abs(DCA-medianDCA)<cut-DCA-median"}},
             {"cut-DCA-RMS", VariantType::Float, 3.f, {"Sigma cut on the DCA"}},
