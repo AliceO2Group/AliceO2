@@ -86,7 +86,7 @@ namespace tpc
 {
 class TrackTPC;
 class VDriftCorrFact;
-}
+} // namespace tpc
 
 namespace gpu
 {
@@ -124,7 +124,7 @@ struct TrackLocTPC : public o2::track::TrackParCov {
   float timeErr = 0.f;                  ///< time sigma (makes sense for constrained tracks only)
   int sourceID = 0;                     ///< TPC track origin in
   o2::dataformats::GlobalTrackID gid{}; // global track source ID (TPC track may be part of it)
-  int matchID = MinusOne;              ///< entry (non if MinusOne) of its matchTPC struct in the mMatchesTPC
+  int matchID = MinusOne;               ///< entry (non if MinusOne) of its matchTPC struct in the mMatchesTPC
   Constraint_t constraint{Constrained};
 
   float getCorrectedTime(float dt) const // return time0 corrected for extra drift (to match certain Z)
@@ -145,9 +145,9 @@ struct TrackLocITS : public o2::track::TrackParCov {
   enum : uint16_t { CloneBefore = 0x1,
                     CloneAfter = 0x2 };
   o2::math_utils::Bracketf_t tBracket; ///< bracketing time in \mus
-  int sourceID = 0;       ///< track origin id
-  int roFrame = MinusOne; ///< ITS readout frame assigned to this track
-  int matchID = MinusOne; ///< entry (non if MinusOne) of its matchCand struct in the mMatchesITS
+  int sourceID = 0;                    ///< track origin id
+  int roFrame = MinusOne;              ///< ITS readout frame assigned to this track
+  int matchID = MinusOne;              ///< entry (non if MinusOne) of its matchCand struct in the mMatchesITS
   bool hasCloneBefore() const { return getUserField() & CloneBefore; }
   bool hasCloneAfter() const { return getUserField() & CloneAfter; }
   int getCloneShift() const { return hasCloneBefore() ? -1 : (hasCloneAfter() ? 1 : 0); }
@@ -523,13 +523,13 @@ class MatchTPCITS
   float correctTPCTrack(o2::track::TrackParCov& trc, const TrackLocTPC& tTPC, const InteractionCandidate& cand) const; // RS FIXME will be needed for refit
   //================================================================
 
-  bool mInitDone = false;  ///< flag init already done
-  bool mFieldON = true;    ///< flag for field ON/OFF
-  bool mCosmics = false;   ///< flag cosmics mode
-  bool mMCTruthON = false; ///< flag availability of MC truth
-  float mBz = 0;           ///< nominal Bz
-  int mTFCount = 0;        ///< internal TF counter for debugger
-  int mNThreads = 1;       ///< number of OMP threads
+  bool mInitDone = false;               ///< flag init already done
+  bool mFieldON = true;                 ///< flag for field ON/OFF
+  bool mCosmics = false;                ///< flag cosmics mode
+  bool mMCTruthON = false;              ///< flag availability of MC truth
+  float mBz = 0;                        ///< nominal Bz
+  int mTFCount = 0;                     ///< internal TF counter for debugger
+  int mNThreads = 1;                    ///< number of OMP threads
   o2::InteractionRecord mStartIR{0, 0}; ///< IR corresponding to the start of the TF
 
   ///========== Parameters to be set externally, e.g. from CCDB ====================
@@ -553,27 +553,27 @@ class MatchTPCITS
   ///< assigned time0 and its track Z position (converted from mTPCTimeEdgeZSafeMargin)
   float mTPCTimeEdgeTSafeMargin = 0.f;
   float mTPCExtConstrainedNSigmaInv = 0.f; // inverse for NSigmas for TPC time-interval from external constraint time sigma
-  int mITSROFrameLengthInBC = 0;    ///< ITS RO frame in BC (for ITS cont. mode only)
-  float mITSROFrameLengthMUS = -1.; ///< ITS RO frame in \mus
-  float mITSTimeResMUS = -1.;       ///< nominal ITS time resolution derived from ROF
-  float mITSROFrameLengthMUSInv = -1.; ///< ITS RO frame in \mus inverse
-  int mITSTimeBiasInBC = 0;            ///< ITS RO frame shift in BCs, i.e. t_i = (I_ROF*mITSROFrameLengthInBC + mITSTimeBiasInBC)*BCLength_MUS
-  float mITSTimeBiasMUS = 0.;          ///< ITS RO frame shift in \mus, i.e. t_i = (I_ROF*mITSROFrameLengthInBC)*BCLength_MUS + mITSTimeBiasMUS
-  float mTPCVDrift = -1.;              ///< TPC drift speed in cm/microseconds
-  float mTPCVDriftInv = -1.;           ///< inverse TPC nominal drift speed in cm/microseconds
-  float mTPCDriftTimeOffset = 0;       ///< drift time offset in mus
-  float mTPCTBinMUS = 0.;           ///< TPC time bin duration in microseconds
-  float mTPCTBinNS = 0.;            ///< TPC time bin duration in ns
-  float mTPCTBinMUSInv = 0.;        ///< inverse TPC time bin duration in microseconds
-  float mZ2TPCBin = 0.;             ///< conversion coeff from Z to TPC time-bin
-  float mTPCBin2Z = 0.;             ///< conversion coeff from TPC time-bin to Z
-  float mNTPCBinsFullDrift = 0.;    ///< max time bin for full drift
-  float mTPCZMax = 0.;              ///< max drift length
-  float mTPCmeanX0Inv = 1. / 31850.; ///< TPC gas 1/X0
+  int mITSROFrameLengthInBC = 0;           ///< ITS RO frame in BC (for ITS cont. mode only)
+  float mITSROFrameLengthMUS = -1.;        ///< ITS RO frame in \mus
+  float mITSTimeResMUS = -1.;              ///< nominal ITS time resolution derived from ROF
+  float mITSROFrameLengthMUSInv = -1.;     ///< ITS RO frame in \mus inverse
+  int mITSTimeBiasInBC = 0;                ///< ITS RO frame shift in BCs, i.e. t_i = (I_ROF*mITSROFrameLengthInBC + mITSTimeBiasInBC)*BCLength_MUS
+  float mITSTimeBiasMUS = 0.;              ///< ITS RO frame shift in \mus, i.e. t_i = (I_ROF*mITSROFrameLengthInBC)*BCLength_MUS + mITSTimeBiasMUS
+  float mTPCVDrift = -1.;                  ///< TPC drift speed in cm/microseconds
+  float mTPCVDriftInv = -1.;               ///< inverse TPC nominal drift speed in cm/microseconds
+  float mTPCDriftTimeOffset = 0;           ///< drift time offset in mus
+  float mTPCTBinMUS = 0.;                  ///< TPC time bin duration in microseconds
+  float mTPCTBinNS = 0.;                   ///< TPC time bin duration in ns
+  float mTPCTBinMUSInv = 0.;               ///< inverse TPC time bin duration in microseconds
+  float mZ2TPCBin = 0.;                    ///< conversion coeff from Z to TPC time-bin
+  float mTPCBin2Z = 0.;                    ///< conversion coeff from TPC time-bin to Z
+  float mNTPCBinsFullDrift = 0.;           ///< max time bin for full drift
+  float mTPCZMax = 0.;                     ///< max drift length
+  float mTPCmeanX0Inv = 1. / 31850.;       ///< TPC gas 1/X0
 
   float mMinTPCTrackPtInv = 999.; ///< cutoff on TPC track inverse pT
   float mMinITSTrackPtInv = 999.; ///< cutoff on ITS track inverse pT
-  bool mVDriftCalibOn = false;                                ///< flag to produce VDrift calibration data
+  bool mVDriftCalibOn = false;    ///< flag to produce VDrift calibration data
   o2::tpc::VDriftCorrFact mTPCDrift{};
   o2::gpu::CorrectionMapsHelper* mTPCCorrMapsHelper = nullptr;
 
@@ -588,12 +588,14 @@ class MatchTPCITS
   const o2::globaltracking::RecoContainer* mRecoCont = nullptr;
   ///>>>------ these are input arrays which should not be modified by the matching code
   //           since this info is provided by external device
-  gsl::span<const o2::tpc::TrackTPC> mTPCTracksArray;       ///< input TPC tracks span
-  gsl::span<const o2::tpc::TPCClRefElem> mTPCTrackClusIdx;  ///< input TPC track cluster indices span
-  gsl::span<const o2::itsmft::ROFRecord> mITSTrackROFRec;   ///< input ITS tracks ROFRecord span
-  gsl::span<const o2::its::TrackITS> mITSTracksArray;       ///< input ITS tracks span
-  gsl::span<const int> mITSTrackClusIdx;                    ///< input ITS track cluster indices span
-  std::vector<ITSCluster> mITSClustersArray;                ///< ITS clusters created in loadInput
+  gsl::span<const o2::tpc::TrackTPC> mTPCTracksArray;      ///< input TPC tracks span
+  gsl::span<const o2::tpc::TPCClRefElem> mTPCTrackClusIdx; ///< input TPC track cluster indices span
+  gsl::span<const o2::itsmft::ROFRecord> mITSTrackROFRec;  ///< input ITS tracks ROFRecord span
+  gsl::span<const o2::its::TrackITS> mITSTracksArray;      ///< input ITS tracks span
+  gsl::span<const int> mITSTrackClusIdx;                   ///< input ITS track cluster indices span
+  std::vector<ITSCluster> mITSClustersArray;               ///< ITS clusters created in loadInput
+  std::vector<unsigned int> mITSClusterSizes;                      ///< ITS cluster sizes created in loadInput
+
   gsl::span<const o2::itsmft::ROFRecord> mITSClusterROFRec; ///< input ITS clusters ROFRecord span
   gsl::span<const o2::ft0::RecPoints> mFITInfo;             ///< optional input FIT info span
 
@@ -609,8 +611,8 @@ class MatchTPCITS
   /// <<<-----
 
   size_t mNMatchesControl = 0;
-  std::vector<InteractionCandidate> mInteractions;                     ///< possible interaction times
-  std::vector<int> mInteractionMUSLUT;                                 ///< LUT for interactions in 1MUS bins
+  std::vector<InteractionCandidate> mInteractions; ///< possible interaction times
+  std::vector<int> mInteractionMUSLUT;             ///< LUT for interactions in 1MUS bins
 
   ///< container for record the match of TPC track to single ITS track
   std::vector<MatchRecord> mMatchRecordsTPC;
@@ -632,7 +634,7 @@ class MatchTPCITS
   std::vector<int> mABWinnersIDs;
   std::vector<int> mABTrackletClusterIDs;              ///< IDs of ITS clusters for AfterBurner winners
   std::vector<o2::itsmft::TrkClusRef> mABTrackletRefs; ///< references on AfterBurner winners clusters
-  std::vector<int> mABClusterLinkIndex;            ///< index of 1st ABClusterLink for every cluster used by AfterBurner, -1: unused, -10: used by external ITS tracks
+  std::vector<int> mABClusterLinkIndex;                ///< index of 1st ABClusterLink for every cluster used by AfterBurner, -1: unused, -10: used by external ITS tracks
   MCLabContTr mABTrackletLabels;
   // ------------------------------
 
@@ -687,7 +689,6 @@ class MatchTPCITS
   static constexpr std::string_view TimerName[] = {"Total", "PrepareITS", "PrepareTPC", "DoMatching", "SelectBest", "Refit",
                                                    "ABSeeds", "ABMatching", "ABWinners", "ABRefit", "IO", "Debug"};
   TStopwatch mTimer[NStopWatches];
-
 };
 
 //______________________________________________
@@ -707,7 +708,6 @@ inline bool MatchTPCITS::isDisabledITS(const TrackLocITS& t) const { return t.ma
 
 //______________________________________________
 inline bool MatchTPCITS::isDisabledTPC(const TrackLocTPC& t) const { return t.matchID < 0; }
-
 
 } // namespace globaltracking
 } // namespace o2

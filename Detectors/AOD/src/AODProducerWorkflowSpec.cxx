@@ -2380,6 +2380,7 @@ AODProducerWorkflowDPL::TrackExtraInfo AODProducerWorkflowDPL::processBarrelTrac
     }
   } else if (contributorsGID[GIndex::Source::ITSAB].isIndexSet()) { // this is an ITS-TPC afterburner contributor
     extraInfoHolder.itsClusterMap = data.getITSABRefs()[contributorsGID[GIndex::Source::ITSAB].getIndex()].pattern;
+    extraInfoHolder.itsClusterSizes = data.getITSABRefs()[contributorsGID[GIndex::Source::ITSAB].getIndex()].clsizes;
   }
   if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
     const auto& tpcOrig = data.getTPCTrack(contributorsGID[GIndex::TPC]);

@@ -146,6 +146,7 @@ void MatchTPCITS::clear()
   mITSROFTimes.clear();
   mITSTrackROFContMapping.clear();
   mITSClustersArray.clear();
+  mITSClusterSizes.clear();
   mTPCABSeeds.clear();
   mTPCABIndexCache.clear();
   mABWinnersIDs.clear();
@@ -300,7 +301,7 @@ bool MatchTPCITS::validateTPCMatch(int iTPC)
   if (rcITS.nextRecID == Validated) {
     return false;
   }
-  if (rcITS.partnerID == iTPC) { // is best matching TPC track for this ITS track actually iTPC?
+  if (rcITS.partnerID == iTPC) {        // is best matching TPC track for this ITS track actually iTPC?
     int cloneID = tITS.getCloneShift(); // check if there is a clone of tITS
     while (cloneID) {
       cloneID += rcTPC.partnerID;
@@ -570,6 +571,23 @@ bool MatchTPCITS::prepareITSData()
   auto pattIt = patterns.begin();
   mITSClustersArray.reserve(clusITS.size());
   o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray, mITSDict);
+
+  // ITS clusters sizes
+  mITSClusterSizes.reserve(clusITS.size());
+  auto pattIt2 = patterns.begin();
+  for (auto& clus : clusITS) {
+    auto pattID = clus.getPatternID();
+    int npix;
+    if (pattID == o2::itsmft::CompCluster::InvalidPatternID || mITSDict->isGroup(pattID)) {
+      o2::itsmft::ClusterPattern patt;
+      patt.acquirePattern(pattIt);
+      npix = patt.getNPixels();
+    } else {
+      npix = mITSDict->getNpixels(pattID);
+    }
+    mITSClusterSizes.push_back(npix);
+  }
+
   if (mMCTruthON) {
     mITSClsLabels = inp.mcITSClusters.get();
   }
@@ -1287,15 +1305,15 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
   if (!mCompareTracksDZ) {
     trfit.setZ(tITS.getZ()); // fix the seed Z
   }
-  float deltaT = (trfit.getZ() - tTPC.getZ()) * mTPCVDriftInv;                                                                                    // time correction in \mus
-  float timeErr = tTPC.constraint == TrackLocTPC::Constrained ? tTPC.timeErr : std::sqrt(tITS.getSigmaZ2() + tTPC.getSigmaZ2()) * mTPCVDriftInv;  // estimate the error on time
+  float deltaT = (trfit.getZ() - tTPC.getZ()) * mTPCVDriftInv;                                                                                   // time correction in \mus
+  float timeErr = tTPC.constraint == TrackLocTPC::Constrained ? tTPC.timeErr : std::sqrt(tITS.getSigmaZ2() + tTPC.getSigmaZ2()) * mTPCVDriftInv; // estimate the error on time
   if (timeErr > mITSTimeResMUS && tTPC.constraint != TrackLocTPC::Constrained) {
     timeErr = mITSTimeResMUS; // chose smallest error
     deltaT = tTPC.constraint == TrackLocTPC::ASide ? tITS.tBracket.mean() - tTPC.time0 : tTPC.time0 - tITS.tBracket.mean();
   }
   timeErr += mParams->globalTimeExtraErrorMUS;
-  float timeC = tTPC.getCorrectedTime(deltaT) + mParams->globalTimeBiasMUS;                                                                       /// precise time estimate, optionally corrected for bias
-  if (timeC < 0) {                                                                                                                                // RS TODO similar check is needed for other edge of TF
+  float timeC = tTPC.getCorrectedTime(deltaT) + mParams->globalTimeBiasMUS; /// precise time estimate, optionally corrected for bias
+  if (timeC < 0) {                                                          // RS TODO similar check is needed for other edge of TF
     if (timeC + std::min(timeErr, mParams->tfEdgeTimeToleranceMUS * mTPCTBinMUSInv) < 0) {
       mMatchedTracks.pop_back(); // destroy failed track
       return false;
@@ -1818,6 +1836,7 @@ void MatchTPCITS::refitABWinners()
         mABTrackletClusterIDs.push_back(winL.clID);
         ncl++;
         clref.pattern |= 0x1 << winL.layerID;
+        clref.setClusterSize(winL.layerID, mITSClusterSizes[winL.clID]);
         if (mMCTruthON) {
           accountClusterLabel(winL.clID);
         }

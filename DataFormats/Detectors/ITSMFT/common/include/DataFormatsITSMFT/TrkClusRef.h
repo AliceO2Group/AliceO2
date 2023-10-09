@@ -26,11 +26,31 @@ namespace itsmft
 struct TrkClusRef : public o2::dataformats::RangeRefComp<4> {
   using o2::dataformats::RangeRefComp<4>::RangeRefComp;
   uint16_t pattern = 0; ///< layers pattern
+  uint32_t clsizes = 0; ///< cluster sizes for each layer
 
   GPUd() int getNClusters() const { return getEntries(); }
   bool hasHitOnLayer(int i) { return pattern & (0x1 << i); }
 
-  ClassDefNV(TrkClusRef, 1);
+
+  void setClusterSize(int l, int size) {
+    if (l >= 8) return;
+    if (size > 15) size = 15;
+    clsizes &= ~(0xf << (l * 4));
+    clsizes |= (size << (l * 4));
+  }
+
+  int getClusterSize(int l) {
+    if (l >= 8) return 0;
+    return (clsizes >> (l * 4)) & 0xf;
+  }
+
+  int getClusterSizes() const {
+    return clsizes;
+  }
+
+
+
+  ClassDefNV(TrkClusRef, 2);
 };
 
 } // namespace itsmft
