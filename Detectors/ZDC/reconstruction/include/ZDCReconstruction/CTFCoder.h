@@ -23,7 +23,6 @@
 #include "DataFormatsZDC/CTF.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsBase/CTFCoderBase.h"
-#include "rANS/rans.h"
 #include "ZDCReconstruction/CTFHelper.h"
 
 class TTree;
@@ -99,20 +98,20 @@ o2::ctf::CTFIOSize CTFCoder::encode_impl(VEC& buff, const gsl::span<const BCData
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation
   constexpr MD optField[CTF::getNBlocks()] = {
-    MD::EENCODE, // _bcIncTrig
-    MD::EENCODE, // _orbitIncTrig,
-    MD::EENCODE, // _moduleTrig,
-    MD::EENCODE, // _channelsHL,
-    MD::EENCODE, // _triggersHL,
-    MD::EENCODE, // _extTriggers,
-    MD::EENCODE, // _nchanTrig,
+    MD::EENCODE_OR_PACK, // _bcIncTrig
+    MD::EENCODE_OR_PACK, // _orbitIncTrig,
+    MD::EENCODE_OR_PACK, // _moduleTrig,
+    MD::EENCODE_OR_PACK, // _channelsHL,
+    MD::EENCODE_OR_PACK, // _triggersHL,
+    MD::EENCODE_OR_PACK, // _extTriggers,
+    MD::EENCODE_OR_PACK, // _nchanTrig,
     //
-    MD::EENCODE, // _chanID,
-    MD::EENCODE, // _chanData,
+    MD::EENCODE_OR_PACK, // _chanID,
+    MD::EENCODE_OR_PACK, // _chanData,
     //
-    MD::EENCODE, // _orbitIncEOD,
-    MD::EENCODE, // _pedData
-    MD::EENCODE, // _sclInc
+    MD::EENCODE_OR_PACK, // _orbitIncEOD,
+    MD::EENCODE_OR_PACK, // _pedData
+    MD::EENCODE_OR_PACK, // _sclInc
   };
 
   CTFHelper helper(trigData, chanData, pedData);
@@ -126,11 +125,10 @@ o2::ctf::CTFIOSize CTFCoder::encode_impl(VEC& buff, const gsl::span<const BCData
 
   ec->setHeader(helper.createHeader());
   assignDictVersion(static_cast<o2::ctf::CTFDictHeader&>(ec->getHeader()));
-  ec->getANSHeader().majorVersion = 0;
-  ec->getANSHeader().minorVersion = 1;
+  ec->setANSHeader(mANSVersion);
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
   o2::ctf::CTFIOSize iosize;
-#define ENCODEZDC(beg, end, slot, bits) CTF::get(buff.data())->encode(beg, end, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get(), getMemMarginFactor());
+#define ENCODEZDC(beg, end, slot, bits) CTF::get(buff.data())->encode(beg, end, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)], getMemMarginFactor());
   // clang-format off
   iosize += ENCODEZDC(helper.begin_bcIncTrig(),    helper.end_bcIncTrig(),     CTF::BLC_bcIncTrig,    0);
   iosize += ENCODEZDC(helper.begin_orbitIncTrig(), helper.end_orbitIncTrig(),  CTF::BLC_orbitIncTrig, 0);
@@ -161,12 +159,13 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& trigVec, VCHAN& c
   auto header = ec.getHeader();
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
   ec.print(getPrefix(), mVerbosity);
-  std::vector<uint16_t> bcIncTrig, moduleTrig, nchanTrig, chanData, pedData, scalerInc, triggersHL, channelsHL;
-  std::vector<uint32_t> orbitIncTrig, orbitIncEOD;
+  std::vector<int16_t> bcIncTrig, scalerInc;
+  std::vector<int32_t> orbitIncTrig, orbitIncEOD;
+  std::vector<uint16_t> moduleTrig, nchanTrig, chanData, pedData, triggersHL, channelsHL;
   std::vector<uint8_t> extTriggers, chanID;
 
   o2::ctf::CTFIOSize iosize;
-#define DECODEZDC(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
+#define DECODEZDC(part, slot) ec.decode(part, int(slot), mCoders[int(slot)])
   // clang-format off
   iosize += DECODEZDC(bcIncTrig,      CTF::BLC_bcIncTrig);
   iosize += DECODEZDC(orbitIncTrig,   CTF::BLC_orbitIncTrig);

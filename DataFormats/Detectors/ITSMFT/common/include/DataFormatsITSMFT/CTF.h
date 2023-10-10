@@ -46,12 +46,12 @@ struct CompressedClusters {
 
   // ROF header data
   std::vector<uint16_t> firstChipROF; /// 1st chip ID in the ROF
-  std::vector<uint16_t> bcIncROF;     /// increment of ROF BC wrt BC of previous ROF
-  std::vector<uint32_t> orbitIncROF;  /// increment of ROF orbit wrt orbit of previous ROF
+  std::vector<int16_t> bcIncROF;      /// increment of ROF BC wrt BC of previous ROF
+  std::vector<int32_t> orbitIncROF;   /// increment of ROF orbit wrt orbit of previous ROF
   std::vector<uint32_t> nclusROF;     /// number of clusters in ROF
 
   // Chip data
-  std::vector<uint16_t> chipInc; /// increment of chipID wrt that of prev. chip
+  std::vector<int16_t> chipInc;  /// increment of chipID wrt that of prev. chip
   std::vector<uint16_t> chipMul; /// clusters in chip
   std::vector<uint16_t> row;     /// row of fired pixel
   std::vector<int16_t> colInc;   /// increment of pixel column wrt that of prev. pixel (sometimes can be slightly negative)

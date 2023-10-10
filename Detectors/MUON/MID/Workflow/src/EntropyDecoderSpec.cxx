@@ -53,8 +53,9 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   mTimer.Start(false);
   o2::ctf::CTFIOSize iosize;
 
-  mCTFCoder.updateTimeDependentParams(pc);
+  mCTFCoder.updateTimeDependentParams(pc, true);
   auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf_MID");
+
   std::array<std::vector<o2::mid::ROFRecord>, NEvTypes> rofs{};
   std::array<std::vector<o2::mid::ColumnData>, NEvTypes> cols{};
   // since the buff is const, we cannot use EncodedBlocks::relocate directly, instead we wrap its data to another flat object
@@ -93,7 +94,7 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
   outputs.emplace_back(OutputSpec{{"ctfrep"}, "MID", "CTFDECREP", 0, Lifetime::Timeframe});
   std::vector<InputSpec> inputs;
   inputs.emplace_back("ctf_MID", "MID", "CTFDATA", sspec, Lifetime::Timeframe);
-  inputs.emplace_back("ctfdict_MID", "MID", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("MID/Calib/CTFDictionary"));
+  inputs.emplace_back("ctfdict_MID", "MID", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("MID/Calib/CTFDictionaryTree"));
   inputs.emplace_back("trigoffset", "CTP", "Trig_Offset", 0, Lifetime::Condition, ccdbParamSpec("CTP/Config/TriggerOffsets"));
 
   return DataProcessorSpec{
@@ -101,7 +102,8 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
     inputs,
     outputs,
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
-    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}}}};
+    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
+            {"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
 }
 
 } // namespace mid

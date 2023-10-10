@@ -21,7 +21,6 @@
 #include <string>
 #include "DataFormatsTOF/CTF.h"
 #include "DetectorsCommonDataFormats/DetID.h"
-#include "rANS/rans.h"
 #include "DetectorsBase/CTFCoderBase.h"
 #include "TOFBase/Digit.h"
 
@@ -68,17 +67,17 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const ReadoutWind
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation
   constexpr MD optField[CTF::getNBlocks()] = {
-    MD::EENCODE, //BLCbcIncROF
-    MD::EENCODE, //BLCorbitIncROF
-    MD::EENCODE, //BLCndigROF
-    MD::EENCODE, //BLCndiaROF
-    MD::EENCODE, //BLCndiaCrate
-    MD::EENCODE, //BLCtimeFrameInc
-    MD::EENCODE, //BLCtimeTDCInc
-    MD::EENCODE, //BLCstripID
-    MD::EENCODE, //BLCchanInStrip
-    MD::EENCODE, //BLCtot
-    MD::EENCODE, //BLCpattMap
+    MD::EENCODE_OR_PACK, // BLCbcIncROF
+    MD::EENCODE_OR_PACK, // BLCorbitIncROF
+    MD::EENCODE_OR_PACK, // BLCndigROF
+    MD::EENCODE_OR_PACK, // BLCndiaROF
+    MD::EENCODE_OR_PACK, // BLCndiaCrate
+    MD::EENCODE_OR_PACK, // BLCtimeFrameInc
+    MD::EENCODE_OR_PACK, // BLCtimeTDCInc
+    MD::EENCODE_OR_PACK, // BLCstripID
+    MD::EENCODE_OR_PACK, // BLCchanInStrip
+    MD::EENCODE_OR_PACK, // BLCtot
+    MD::EENCODE_OR_PACK, // BLCpattMap
   };
   CompressedInfos cc;
   compress(cc, rofRecVec, cdigVec, pattVec);
@@ -91,11 +90,10 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const ReadoutWind
 
   ec->setHeader(cc.header);
   assignDictVersion(static_cast<o2::ctf::CTFDictHeader&>(ec->getHeader()));
-  ec->getANSHeader().majorVersion = 0;
-  ec->getANSHeader().minorVersion = 1;
+  ec->setANSHeader(mANSVersion);
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
   o2::ctf::CTFIOSize iosize;
-#define ENCODETOF(part, slot, bits) CTF::get(buff.data())->encode(part, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get(), getMemMarginFactor());
+#define ENCODETOF(part, slot, bits) CTF::get(buff.data())->encode(part, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)], getMemMarginFactor());
   // clang-format off
   iosize += ENCODETOF(cc.bcIncROF,     CTF::BLCbcIncROF,     0);
   iosize += ENCODETOF(cc.orbitIncROF,  CTF::BLCorbitIncROF,  0);
@@ -125,7 +123,7 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VROF& rofRecVec, VDIG& 
   cc.header = ec.getHeader();
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(cc.header));
   o2::ctf::CTFIOSize iosize;
-#define DECODETOF(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
+#define DECODETOF(part, slot) ec.decode(part, int(slot), mCoders[int(slot)])
   // clang-format off
   iosize += DECODETOF(cc.bcIncROF,     CTF::BLCbcIncROF);
   iosize += DECODETOF(cc.orbitIncROF,  CTF::BLCorbitIncROF);

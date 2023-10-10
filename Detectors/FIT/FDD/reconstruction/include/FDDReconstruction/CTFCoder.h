@@ -25,7 +25,6 @@
 #include "DataFormatsFDD/ChannelData.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsBase/CTFCoderBase.h"
-#include "rANS/rans.h"
 
 class TTree;
 
@@ -72,15 +71,15 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const Digit>& dig
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation
   constexpr MD optField[CTF::getNBlocks()] = {
-    MD::EENCODE, // BLC_trigger
-    MD::EENCODE, // BLC_bcInc
-    MD::EENCODE, // BLC_orbitInc
-    MD::EENCODE, // BLC_nChan
+    MD::EENCODE_OR_PACK, // BLC_trigger
+    MD::EENCODE_OR_PACK, // BLC_bcInc
+    MD::EENCODE_OR_PACK, // BLC_orbitInc
+    MD::EENCODE_OR_PACK, // BLC_nChan
 
-    MD::EENCODE, // BLC_idChan
-    MD::EENCODE, // BLC_time
-    MD::EENCODE, // BLC_charge
-    MD::EENCODE  // BLC_feeBits
+    MD::EENCODE_OR_PACK, // BLC_idChan
+    MD::EENCODE_OR_PACK, // BLC_time
+    MD::EENCODE_OR_PACK, // BLC_charge
+    MD::EENCODE_OR_PACK  // BLC_feeBits
   };
   CompressedDigits cd;
   if (mExtHeader.isValidDictTimeStamp()) {
@@ -101,11 +100,11 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const gsl::span<const Digit>& dig
 
   ec->setHeader(cd.header);
   assignDictVersion(static_cast<o2::ctf::CTFDictHeader&>(ec->getHeader()));
-  ec->getANSHeader().majorVersion = 0;
-  ec->getANSHeader().minorVersion = 1;
+
+  ec->setANSHeader(mANSVersion);
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
   o2::ctf::CTFIOSize iosize;
-#define ENCODEFDD(part, slot, bits) CTF::get(buff.data())->encode(part, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get(), getMemMarginFactor());
+#define ENCODEFDD(part, slot, bits) CTF::get(buff.data())->encode(part, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)], getMemMarginFactor());
   // clang-format off
   iosize += ENCODEFDD(cd.trigger,   CTF::BLC_trigger,  0);
   iosize += ENCODEFDD(cd.bcInc,     CTF::BLC_bcInc,    0);
@@ -133,7 +132,7 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VDIG& digitVec, VCHAN& 
   checkDictVersion(hd);
   ec.print(getPrefix(), mVerbosity);
   o2::ctf::CTFIOSize iosize;
-#define DECODEFDD(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
+#define DECODEFDD(part, slot) ec.decode(part, int(slot), mCoders[int(slot)])
   // clang-format off
   iosize += DECODEFDD(cd.trigger,   CTF::BLC_trigger);
   iosize += DECODEFDD(cd.bcInc,     CTF::BLC_bcInc);
