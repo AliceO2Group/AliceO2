@@ -466,6 +466,11 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
       timesliceIndex.updateOldestPossibleOutput();
       auto& proxy = ctx.services().get<FairMQDeviceProxy>();
       auto oldestPossibleOutput = relayer.getOldestPossibleOutput();
+      if (decongestion->nextEnumerationTimesliceRewinded && decongestion->nextEnumerationTimeslice < oldestPossibleOutput.timeslice.value) {
+        LOGP(detail, "Not sending oldestPossible if nextEnumerationTimeslice was rewinded");
+        return;
+      }
+
       if (decongestion->lastTimeslice && oldestPossibleOutput.timeslice.value == decongestion->lastTimeslice) {
         LOGP(debug, "Not sending already sent value");
         return;
