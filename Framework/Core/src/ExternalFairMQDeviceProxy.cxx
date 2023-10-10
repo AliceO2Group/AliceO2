@@ -813,7 +813,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
             auto const dh = o2::header::get<DataHeader*>(parts.At(0)->GetData());
             auto& timingInfo = ctx.services().get<TimingInfo>();
             if (dh != nullptr) {
-              if (currentRunNumber != -1 && dh->runNumber != currentRunNumber) {
+              if (currentRunNumber != -1 && dh->runNumber != 0 && dh->runNumber != currentRunNumber) {
                 newRun = true;
                 inStopTransition = false;
               }
