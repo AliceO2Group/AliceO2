@@ -386,7 +386,11 @@ class EncodedBlocks
       assert(dictMax <= metadata.max);
 
       if ((dictMin < sourceMin) || (dictMax > sourceMax)) {
-        throw std::runtime_error(fmt::format("value range of dictionary and target datatype are incompatible: target type [{},{}] vs dictionary [{},{}]", sourceMin, sourceMax, dictMin, dictMax));
+        if (ansVersion == ANSVersionCompat && mHeader.majorVersion == 1 && mHeader.minorVersion == 0 && mHeader.dictTimeStamp < 1653192000000) {
+          LOGP(warn, "value range of dictionary and target datatype are incompatible: target type [{},{}] vs dictionary [{},{}], tolerate in compat mode for old dictionaries", sourceMin, sourceMax, dictMin, dictMax);
+        } else {
+          throw std::runtime_error(fmt::format("value range of dictionary and target datatype are incompatible: target type [{},{}] vs dictionary [{},{}]", sourceMin, sourceMax, dictMin, dictMax));
+        }
       }
     }();
 
