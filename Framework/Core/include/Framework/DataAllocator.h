@@ -58,13 +58,12 @@ namespace o2::framework
 {
 struct ServiceRegistry;
 
-#define ERROR_STRING                                          \
-  "data type T not supported by API, "                        \
-  "\n specializations available for"                          \
-  "\n - trivially copyable, non-polymorphic structures"       \
-  "\n - arrays of those"                                      \
-  "\n - TObject with additional constructor arguments"        \
-  "\n - Classes and structs with boost serialization support" \
+#define ERROR_STRING                                    \
+  "data type T not supported by API, "                  \
+  "\n specializations available for"                    \
+  "\n - trivially copyable, non-polymorphic structures" \
+  "\n - arrays of those"                                \
+  "\n - TObject with additional constructor arguments"  \
   "\n - std containers of those"
 
 /// Helper to allow framework managed objecs to have a callback
@@ -339,6 +338,21 @@ class DataAllocator
                       "\n - pointers to those"
                       "\n - types with ROOT dictionary and implementing ROOT ClassDef interface");
       }
+    } else if constexpr (is_container<T>::value == true && has_messageable_value_type<T>::value == true) {
+      // Serialize a snapshot of a std::container of trivially copyable, non-polymorphic elements
+      // Note: in most cases it is better to use the `make` function und work with the provided
+      // reference object
+      constexpr auto elementSizeInBytes = sizeof(typename T::value_type);
+      auto sizeInBytes = elementSizeInBytes * object.size();
+      payloadMessage = proxy.createOutputMessage(routeIndex, sizeInBytes);
+
+      // serialize vector of pointers to elements
+      auto target = reinterpret_cast<unsigned char*>(payloadMessage->GetData());
+      for (auto const& entry : object) {
+        memcpy(target, (void*)&entry, elementSizeInBytes);
+        target += elementSizeInBytes;
+      }
+      serializationType = o2::header::gSerializationMethodNone;
     } else if constexpr (has_root_dictionary<T>::value == true || is_specialization_v<T, ROOTSerialized> == true) {
       // Serialize a snapshot of an object with root dictionary
       payloadMessage = proxy.createOutputMessage(routeIndex);
