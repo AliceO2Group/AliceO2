@@ -240,7 +240,18 @@ DECLARE_SOA_COLUMN(TrackEtaEMCAL, trackEtaEmcal, float);                        
 DECLARE_SOA_COLUMN(TrackPhiEMCAL, trackPhiEmcal, float);                                      //!
 DECLARE_SOA_COLUMN(TrackTime, trackTime, float);                                              //! Estimated time of the track in ns wrt collision().bc() or ambiguoustrack.bcSlice()[0]
 DECLARE_SOA_COLUMN(TrackTimeRes, trackTimeRes, float);                                        //! Resolution of the track time in ns (see TrackFlags::TrackTimeResIsRange)
-DECLARE_SOA_EXPRESSION_COLUMN(DetectorMap, detectorMap, uint8_t,                              //! Detector map: see enum DetectorMapEnum
+
+// expression columns changing between versions have to be declared in different namespaces
+namespace v000
+{
+DECLARE_SOA_EXPRESSION_COLUMN(DetectorMap, detectorMap, uint8_t, //! Detector map: see enum DetectorMapEnum
+                              ifnode(aod::track::itsClusterMap > (uint8_t)0, static_cast<uint8_t>(o2::aod::track::ITS), (uint8_t)0x0) |
+                                ifnode(aod::track::tpcNClsFindable > (uint8_t)0, static_cast<uint8_t>(o2::aod::track::TPC), (uint8_t)0x0) |
+                                ifnode(aod::track::trdPattern > (uint8_t)0, static_cast<uint8_t>(o2::aod::track::TRD), (uint8_t)0x0) |
+                                ifnode((aod::track::tofChi2 >= 0.f) && (aod::track::tofExpMom > 0.f), static_cast<uint8_t>(o2::aod::track::TOF), (uint8_t)0x0));
+} // namespace v000
+
+DECLARE_SOA_EXPRESSION_COLUMN(DetectorMap, detectorMap, uint8_t, //! Detector map version 1
                               ifnode(aod::track::itsClusterSizes > (uint32_t)0, static_cast<uint8_t>(o2::aod::track::ITS), (uint8_t)0x0) |
                                 ifnode(aod::track::tpcNClsFindable > (uint8_t)0, static_cast<uint8_t>(o2::aod::track::TPC), (uint8_t)0x0) |
                                 ifnode(aod::track::trdPattern > (uint8_t)0, static_cast<uint8_t>(o2::aod::track::TRD), (uint8_t)0x0) |
@@ -428,8 +439,8 @@ DECLARE_SOA_TABLE_FULL(StoredTracksExtra_000, "TracksExtra", "AOD", "TRACKEXTRA"
                        track::TPCSignal, track::TRDSignal, track::Length, track::TOFExpMom,
                        track::PIDForTracking<track::Flags>,
                        track::IsPVContributor<track::Flags>,
-                       track::HasITS<track::DetectorMap>, track::HasTPC<track::DetectorMap>,
-                       track::HasTRD<track::DetectorMap>, track::HasTOF<track::DetectorMap>,
+                       track::HasITS<track::v000::DetectorMap>, track::HasTPC<track::v000::DetectorMap>,
+                       track::HasTRD<track::v000::DetectorMap>, track::HasTOF<track::v000::DetectorMap>,
                        track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                        track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                        track::ITSNCls<track::ITSClusterMap>, track::ITSNClsInnerBarrel<track::ITSClusterMap>,
@@ -457,8 +468,7 @@ DECLARE_SOA_TABLE_FULL_VERSIONED(StoredTracksExtra_001, "TracksExtra", "AOD", "T
                                  track::TrackEtaEMCAL, track::TrackPhiEMCAL, track::TrackTime, track::TrackTimeRes);
 
 DECLARE_SOA_EXTENDED_TABLE(TracksExtra_000, StoredTracksExtra_000, "TRACKEXTRA", //! Additional track information (clusters, PID, etc.)
-                           track::DetectorMap);
-
+                           track::v000::DetectorMap);
 DECLARE_SOA_EXTENDED_TABLE(TracksExtra_001, StoredTracksExtra_001, "TRACKEXTRA", //! Additional track information (clusters, PID, etc.)
                            track::DetectorMap);
 

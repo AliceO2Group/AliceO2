@@ -580,7 +580,7 @@ bool MatchTPCITS::prepareITSData()
     int npix;
     if (pattID == o2::itsmft::CompCluster::InvalidPatternID || mITSDict->isGroup(pattID)) {
       o2::itsmft::ClusterPattern patt;
-      patt.acquirePattern(pattIt);
+      patt.acquirePattern(pattIt2);
       npix = patt.getNPixels();
     } else {
       npix = mITSDict->getNpixels(pattID);
