@@ -365,7 +365,10 @@ void RawToCellConverterSpec::run(framework::ProcessingContext& ctx)
       if (bcfreqFound != bcFreq.end()) {
         const auto& activelinks = bcfreqFound->second;
         if (activelinks != bitSetActiveLinks) {
-          LOG(error) << "Not all EMC active links contributed in global BCid=" << interaction.toLong() << ": mask=" << (activelinks ^ bitSetActiveLinks);
+          static int nErrors = 0;
+          if (nErrors++ < 3) {
+            LOG(error) << "Not all EMC active links contributed in global BCid=" << interaction.toLong() << ": mask=" << (activelinks ^ bitSetActiveLinks) << (nErrors == 3 ? " (not reporting further errors to avoid spamming)" : "");
+          }
           if (mCreateRawDataErrors) {
             for (std::size_t ilink = 0; ilink < bitSetActiveLinks.size(); ilink++) {
               if (!bitSetActiveLinks.test(ilink)) {
