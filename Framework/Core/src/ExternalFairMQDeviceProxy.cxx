@@ -29,6 +29,8 @@
 #include "Framework/TimingInfo.h"
 #include "Framework/DeviceState.h"
 #include "Framework/Monitoring.h"
+#include "Framework/DefaultsHelpers.h"
+#include "Framework/DataTakingContext.h"
 #include "Headers/DataHeader.h"
 #include "Headers/Stack.h"
 #include "CommonConstants/LHCConstants.h"
@@ -50,6 +52,8 @@
 
 namespace o2::framework
 {
+static bool gAllowEoSdefault = !(DefaultsHelpers::deploymentMode() == DeploymentMode::OnlineDDS || DefaultsHelpers::deploymentMode() == DeploymentMode::OnlineECS);
+static bool gAllowEoS = gAllowEoSdefault;
 
 using DataHeader = o2::header::DataHeader;
 
@@ -750,6 +754,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       if (newRun) {
         std::fill(numberOfEoS.begin(), numberOfEoS.end(), 0);
         std::fill(eosPeersCount.begin(), eosPeersCount.end(), 0);
+        gAllowEoS = gAllowEoSdefault;
       }
       if (numberOfEoS[ci]) {
         eosPeersCount[ci] = std::max<int>(eosPeersCount[ci], device->GetNumberOfConnectedPeers(channel));
@@ -770,6 +775,8 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       bool everyEoS = shouldstop || (numberOfEoS[ci] >= eosPeersCount[ci] && nEos);
 
       if (everyEoS) {
+        LOG(info) << "Received " << numberOfEoS[ci] << " end-of-stream from " << eosPeersCount[ci] << " peers, forwarding end-of-stream (shouldstop " << (int)shouldstop << ", nEos " << nEos << ", newRun " << (int)newRun << ")";
+        gAllowEoS = true;
         // Mark all input channels as closed
         for (auto& info : deviceState->inputChannelInfos) {
           info.state = InputChannelState::Completed;
@@ -897,6 +904,9 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
       // DPL implements an internal end of stream signal, which is propagated through
       // all downstream channels if a source is dry, make it available to other external
       // devices via a message of type {DPL/EOS/0}
+      if (!gAllowEoS) {
+        return;
+      }
       for (auto& channelInfo : device->GetChannels()) {
         auto& channelName = channelInfo.first;
         if (channelName != outputChannelName) {
