@@ -566,8 +566,9 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
     }
     // In case we did not send any part at all, we need to rewind by one
     // to avoid creating extra timeslices at the end of the run.
+    auto& decongestion = services.get<DecongestionService>();
+    decongestion.nextEnumerationTimesliceRewinded = !didSendParts;
     if (didSendParts == false) {
-      auto& decongestion = services.get<DecongestionService>();
       decongestion.nextEnumerationTimeslice -= 1;
     }
     if (not unmatchedDescriptions.empty()) {
