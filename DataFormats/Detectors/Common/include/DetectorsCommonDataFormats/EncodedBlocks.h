@@ -1431,7 +1431,6 @@ CTFIOSize EncodedBlocks<H, N, W>::encodeRANSV1Inplace(const input_IT srcBegin, c
 
   return {0, thisMetadata->getUncompressedSize(), thisMetadata->getCompressedSize()};
 }; // namespace ctf
-#endif
 
 template <typename H, int N, typename W>
 template <typename input_IT, typename buffer_T>
