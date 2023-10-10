@@ -368,12 +368,42 @@ class MatchTPCITS
   void printCandidatesTPC() const;
   void printCandidatesITS() const;
 
-  const std::vector<o2::dataformats::TrackTPCITS>& getMatchedTracks() const { return mMatchedTracks; }
-  const MCLabContTr& getMatchLabels() const { return mOutLabels; }
-  const MCLabContTr& getABTrackletLabels() const { return mABTrackletLabels; }
-  const std::vector<int>& getABTrackletClusterIDs() const { return mABTrackletClusterIDs; }
-  const std::vector<o2::itsmft::TrkClusRef>& getABTrackletRefs() const { return mABTrackletRefs; }
-  const std::vector<VDTriplet>& getTglITSTPC() const { return mTglITSTPC; }
+  [[nodiscard]] const std::vector<o2::dataformats::TrackTPCITS>& getMatchedTracks() const { return mMatchedTracks; }
+  void resetMatchedTracks()
+  {
+    mMatchedTracks.clear();
+    mMatchedTracks.shrink_to_fit();
+  }
+  [[nodiscard]] const MCLabContTr& getMatchLabels() const { return mOutLabels; }
+  void resetMatchLabels()
+  {
+    mOutLabels.clear();
+    mOutLabels.shrink_to_fit();
+  }
+  [[nodiscard]] const MCLabContTr& getABTrackletLabels() const { return mABTrackletLabels; }
+  void resetABTrackletLabels()
+  {
+    mABTrackletLabels.clear();
+    mABTrackletLabels.shrink_to_fit();
+  }
+  [[nodiscard]] const std::vector<int>& getABTrackletClusterIDs() const { return mABTrackletClusterIDs; }
+  void resetABTrackletClusterIDs()
+  {
+    mABTrackletClusterIDs.clear();
+    mABTrackletClusterIDs.shrink_to_fit();
+  }
+  [[nodiscard]] const std::vector<o2::itsmft::TrkClusRef>& getABTrackletRefs() const { return mABTrackletRefs; }
+  void resetABTrackletRefs()
+  {
+    mABTrackletRefs.clear();
+    mABTrackletRefs.shrink_to_fit();
+  }
+  [[nodiscard]] const std::vector<VDTriplet>& getTglITSTPC() const { return mTglITSTPC; }
+  void resetTglITSTPC()
+  {
+    mTglITSTPC.clear();
+    mTglITSTPC.shrink_to_fit();
+  }
 
   //>>> ====================== options =============================>>>
   void setUseMatCorrFlag(MatCorrType f) { mUseMatCorrFlag = f; }

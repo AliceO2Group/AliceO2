@@ -103,15 +103,21 @@ void TPCITSMatchingDPL::run(ProcessingContext& pc)
   mMatching.run(recoData);
 
   pc.outputs().snapshot(Output{"GLO", "TPCITS", 0, Lifetime::Timeframe}, mMatching.getMatchedTracks());
+  mMatching.resetMatchedTracks();
   pc.outputs().snapshot(Output{"GLO", "TPCITSAB_REFS", 0, Lifetime::Timeframe}, mMatching.getABTrackletRefs());
+  mMatching.resetABTrackletRefs();
   pc.outputs().snapshot(Output{"GLO", "TPCITSAB_CLID", 0, Lifetime::Timeframe}, mMatching.getABTrackletClusterIDs());
+  mMatching.resetABTrackletClusterIDs();
   if (mUseMC) {
     pc.outputs().snapshot(Output{"GLO", "TPCITS_MC", 0, Lifetime::Timeframe}, mMatching.getMatchLabels());
+    mMatching.resetMatchLabels();
     pc.outputs().snapshot(Output{"GLO", "TPCITSAB_MC", 0, Lifetime::Timeframe}, mMatching.getABTrackletLabels());
+    mMatching.resetABTrackletLabels();
   }
 
   if (mCalibMode) {
     pc.outputs().snapshot(Output{"GLO", "TPCITS_VDTGL", 0, Lifetime::Timeframe}, mMatching.getTglITSTPC());
+    mMatching.resetTglITSTPC();
   }
   mTimer.Stop();
 }
