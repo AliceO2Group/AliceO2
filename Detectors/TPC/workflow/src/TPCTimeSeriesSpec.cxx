@@ -602,7 +602,7 @@ class TPCTimeSeries : public Task
     const int qPtBin = mPhiBins + mTglBins + mQPtBins * (trackTmp.getQ2Pt() + mMaxQPtBin) / (2 * mMaxQPtBin);
     const int nBins = getNBins();
 
-    if ((tglBin < 0) || (phiBin < 0) || (tglBin >= (nBins - 1 - mQPtBins)) || (qPtBin > (nBins - 1))) {
+    if ((phiBin < 0) || (phiBin > mPhiBins) || (tglBin < mPhiBins) || (tglBin > (mPhiBins + mTglBins)) || (qPtBin < (mPhiBins + mTglBins)) || (qPtBin > (mPhiBins + mTglBins + mQPtBins))) {
       return;
     }
 
