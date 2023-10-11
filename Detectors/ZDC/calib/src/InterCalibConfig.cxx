@@ -106,8 +106,8 @@ void InterCalibConfig::setCuts(double low, double high)
 
 void InterCalibConfig::setCuts(int ih, double low, double high)
 {
-  cutHigh[ih] = low;
-  cutLow[ih] = high;
+  cutLow[ih] = low;
+  cutHigh[ih] = high;
 }
 
 void InterCalibConfig::setBinning1D(int nb, double amin, double amax)
