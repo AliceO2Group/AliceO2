@@ -55,6 +55,9 @@
 #include "DataFormatsITSMFT/TrkClusRef.h"
 #include "ITSMFTReconstruction/ChipMappingITS.h"
 #include "CorrectionMapsHelper.h"
+#if !defined(__CINT__) && !defined(__MAKECINT__) && !defined(__ROOTCLING__) && !defined(__CLING__)
+#include "MemoryResources/MemoryResources.h"
+#endif
 
 class TTree;
 
@@ -228,6 +231,7 @@ struct TPCABSeed {
     winLinkID = lID;
     status = Validated;
   }
+  int8_t getNLayers() const { return o2::its::RecoGeomHelper::getNLayers() - lowestLayer; }
   bool needAlteranative() const { return status == NeedAlternative; }
   void setNeedAlternative() { status = NeedAlternative; }
   ABTrackLink& getLink(int i) { return trackLinks[i]; }
@@ -287,6 +291,8 @@ struct ITSChipClustersRefs {
   }
 };
 
+#if !defined(__CINT__) && !defined(__MAKECINT__) && !defined(__ROOTCLING__) && !defined(__CLING__)
+
 class MatchTPCITS
 {
  public:
@@ -310,7 +316,15 @@ class MatchTPCITS
   static constexpr int MaxSeedsPerLayer = 50;                  // TODO
   static constexpr int NITSLayers = o2::its::RecoGeomHelper::getNLayers();
   ///< perform matching for provided input
-  void run(const o2::globaltracking::RecoContainer& inp);
+  void run(const o2::globaltracking::RecoContainer& inp,
+           pmr::vector<o2::dataformats::TrackTPCITS>& matchedTracks,
+           pmr::vector<o2::itsmft::TrkClusRef>& ABTrackletRefs,
+           pmr::vector<int>& ABTrackletClusterIDs,
+           pmr::vector<o2::MCCompLabel>& matchLabels,
+           pmr::vector<o2::MCCompLabel>& ABTrackletLabels,
+           pmr::vector<o2::dataformats::Triplet<float, float, float>>& calib);
+  void refitWinners(pmr::vector<o2::dataformats::TrackTPCITS>& matchedTracks, pmr::vector<o2::MCCompLabel>& matchLabels, pmr::vector<o2::dataformats::Triplet<float, float, float>>& calib);
+  bool refitTrackTPCITS(int iTPC, int& iITS, pmr::vector<o2::dataformats::TrackTPCITS>& matchedTracks, pmr::vector<o2::MCCompLabel>& matchLabels, pmr::vector<o2::dataformats::Triplet<float, float, float>>& calib);
 
   void setSkipTPCOnly(bool v) { mSkipTPCOnly = v; }
   void setCosmics(bool v) { mCosmics = v; }
@@ -367,13 +381,6 @@ class MatchTPCITS
   void print() const;
   void printCandidatesTPC() const;
   void printCandidatesITS() const;
-
-  const std::vector<o2::dataformats::TrackTPCITS>& getMatchedTracks() const { return mMatchedTracks; }
-  const MCLabContTr& getMatchLabels() const { return mOutLabels; }
-  const MCLabContTr& getABTrackletLabels() const { return mABTrackletLabels; }
-  const std::vector<int>& getABTrackletClusterIDs() const { return mABTrackletClusterIDs; }
-  const std::vector<o2::itsmft::TrkClusRef>& getABTrackletRefs() const { return mABTrackletRefs; }
-  const std::vector<VDTriplet>& getTglITSTPC() const { return mTglITSTPC; }
 
   //>>> ====================== options =============================>>>
   void setUseMatCorrFlag(MatCorrType f) { mUseMatCorrFlag = f; }
@@ -433,8 +440,6 @@ class MatchTPCITS
 
   void doMatching(int sec);
 
-  void refitWinners();
-  bool refitTrackTPCITS(int iTPC, int& iITS);
   bool refitTPCInward(o2::track::TrackParCov& trcIn, float& chi2, float xTgt, int trcID, float timeTB) const;
 
   void selectBestMatches();
@@ -511,14 +516,14 @@ class MatchTPCITS
   }
 
   // ========================= AFTERBURNER =========================
-  void runAfterBurner();
+  void runAfterBurner(pmr::vector<o2::dataformats::TrackTPCITS>& matchedTracks, pmr::vector<o2::MCCompLabel>& matchLabels, pmr::vector<o2::MCCompLabel>& ABTrackletLabels, pmr::vector<int>& ABTrackletClusterIDs, pmr::vector<o2::itsmft::TrkClusRef>& ABTrackletRefs);
   int prepareABSeeds();
   void processABSeed(int sid, const ITSChipClustersRefs& itsChipClRefs);
   int followABSeed(const o2::track::TrackParCov& seed, const ITSChipClustersRefs& itsChipClRefs, int seedID, int lrID, TPCABSeed& ABSeed);
   int registerABTrackLink(TPCABSeed& ABSeed, const o2::track::TrackParCov& trc, int clID, int parentID, int lr, int laddID, float chi2Cl);
   bool isBetter(float chi2A, float chi2B) { return chi2A < chi2B; } // RS FIMXE TODO
-  void refitABWinners();
-  bool refitABTrack(int iITSAB, const TPCABSeed& seed);
+  void refitABWinners(pmr::vector<o2::dataformats::TrackTPCITS>& matchedTracks, pmr::vector<o2::MCCompLabel>& matchLabels, pmr::vector<o2::MCCompLabel>& ABTrackletLabels, pmr::vector<int>& ABTrackletClusterIDs, pmr::vector<o2::itsmft::TrkClusRef>& ABTrackletRefs);
+  bool refitABTrack(int iITSAB, const TPCABSeed& seed, pmr::vector<o2::dataformats::TrackTPCITS>& matchedTracks, pmr::vector<int>& ABTrackletClusterIDs, pmr::vector<o2::itsmft::TrkClusRef>& ABTrackletRefs);
   void accountForOverlapsAB(int lrSeed);
   float correctTPCTrack(o2::track::TrackParCov& trc, const TrackLocTPC& tTPC, const InteractionCandidate& cand) const; // RS FIXME will be needed for refit
   //================================================================
@@ -608,7 +613,11 @@ class MatchTPCITS
   MCLabSpan mTPCTrkLabels;                    ///< input TPC Track MC labels
   /// <<<-----
 
+  size_t mNMatches = 0;
+  size_t mNCalibPrelim = 0;
   size_t mNMatchesControl = 0;
+  size_t mNABRefsClus = 0;
+  float mAB2MatchGuess = 0.2;                                          // heuristic guess about fraction of AB matches in total matches
   std::vector<InteractionCandidate> mInteractions;                     ///< possible interaction times
   std::vector<int> mInteractionMUSLUT;                                 ///< LUT for interactions in 1MUS bins
 
@@ -630,11 +639,7 @@ class MatchTPCITS
   ///< indices of selected track entries in mTPCWork (for tracks selected by AfterBurner)
   std::vector<int> mTPCABIndexCache;
   std::vector<int> mABWinnersIDs;
-  std::vector<int> mABTrackletClusterIDs;              ///< IDs of ITS clusters for AfterBurner winners
-  std::vector<o2::itsmft::TrkClusRef> mABTrackletRefs; ///< references on AfterBurner winners clusters
-  std::vector<int> mABClusterLinkIndex;            ///< index of 1st ABClusterLink for every cluster used by AfterBurner, -1: unused, -10: used by external ITS tracks
-  MCLabContTr mABTrackletLabels;
-  // ------------------------------
+  std::vector<int> mABClusterLinkIndex; ///< index of 1st ABClusterLink for every cluster used by AfterBurner, -1: unused, -10: used by external ITS tracks
 
   ///< per sector indices of TPC track entry in mTPCWork
   std::array<std::vector<int>, o2::constants::math::NSectors> mTPCSectIndexCache;
@@ -648,13 +653,6 @@ class MatchTPCITS
 
   /// mapping for tracks' continuos ROF cycle to actual continuous readout ROFs with eventual gaps
   std::vector<int> mITSTrackROFContMapping;
-
-  ///< outputs tracks container
-  std::vector<o2::dataformats::TrackTPCITS> mMatchedTracks;
-  MCLabContTr mOutLabels; ///< Labels: = TPC labels with flag isFake set in case of fake matching
-
-  ///< container for <tglITS, tglTPC, dT> for vdrift calibration
-  std::vector<VDTriplet> mTglITSTPC;
 
   o2::its::RecoGeomHelper mRGHelper; ///< helper for cluster and geometry access
 
@@ -712,4 +710,5 @@ inline bool MatchTPCITS::isDisabledTPC(const TrackLocTPC& t) const { return t.ma
 } // namespace globaltracking
 } // namespace o2
 
+#endif // cling
 #endif

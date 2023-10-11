@@ -37,7 +37,6 @@
 #include "DetectorsBase/GeometryManager.h"
 
 #include "DataFormatsHMP/Cluster.h"
-#include "GlobalTracking/MatchTPCITS.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTRD/TrackTRD.h"
 #include "ReconstructionDataFormats/PID.h"
