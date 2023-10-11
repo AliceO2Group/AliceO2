@@ -107,12 +107,16 @@ void MatchTPCITS::run(const o2::globaltracking::RecoContainer& inp,
 
     selectBestMatches();
 
-    refitWinners(matchedTracks, matchLabels, calib);
-
+    bool fullMatchRefitDone = false;
     if (mUseFT0 && Params::Instance().runAfterBurner) {
-      runAfterBurner(matchedTracks, matchLabels, ABTrackletLabels, ABTrackletClusterIDs, ABTrackletRefs);
+      fullMatchRefitDone = runAfterBurner(matchedTracks, matchLabels, ABTrackletLabels, ABTrackletClusterIDs, ABTrackletRefs, calib);
     }
-
+    if (!fullMatchRefitDone) {
+      refitWinners(matchedTracks, matchLabels, calib); // it afterburner is active, full matches refit will be done by it
+    }
+    if (mParams->verbosity > 0) {
+      reportSizes(matchedTracks, ABTrackletRefs, ABTrackletClusterIDs, matchLabels, ABTrackletLabels, calib);
+    }
 #ifdef _ALLOW_DEBUG_TREES_
     if (mDBGOut && isDebugFlag(WinnerMatchesTree)) {
       dumpWinnerMatches();
@@ -165,8 +169,8 @@ void MatchTPCITS::clear()
   }
 
   if (mMCTruthON) {
-    mITSROFTimes.clear();
     mTPCLblWork.clear();
+    mITSLblWork.clear();
   }
 }
 
@@ -197,7 +201,6 @@ void MatchTPCITS::init()
     mTimer[i].Reset();
   }
   mParams = &Params::Instance();
-  mAB2MatchGuess = mParams->AB2MatchGuess;
   YMaxAtXMatchingRef = mParams->XMatchingRef * 0.17632698; ///< max Y in the sector at reference X
   mParams->printKeyValues();
   mFT0Params = &o2::ft0::InteractionTag::Instance();
@@ -298,7 +301,7 @@ void MatchTPCITS::selectBestMatches()
 //______________________________________________
 bool MatchTPCITS::validateTPCMatch(int iTPC)
 {
-  const auto& tTPC = mTPCWork[iTPC];
+  auto& tTPC = mTPCWork[iTPC];
   auto& rcTPC = mMatchRecordsTPC[tTPC.matchID]; // best TPC->ITS match
   // check if it is consistent with corresponding ITS->TPC match
   auto& tITS = mITSWork[rcTPC.partnerID];       //  partner ITS track
@@ -345,6 +348,7 @@ bool MatchTPCITS::validateTPCMatch(int iTPC)
       nextITS = rcITSrem.nextRecID;
     }
     rcITS.nextRecID = Validated;
+    tTPC.gid.setBit(0); // Flag full match
     return true;
   }
   return false;
@@ -448,14 +452,14 @@ bool MatchTPCITS::prepareTPCData()
     mTPCTrkLabels = inp.getTPCTracksMCLabels();
   }
 
-  int ntr = mTPCTracksArray.size();
-  mMatchRecordsTPC.reserve(mParams->maxMatchCandidates * ntr); // number of records might be actually more than N tracks!
-  mTPCWork.reserve(ntr);
+  int ntr = mTPCTracksArray.size(), ntrW = 0.7 * ntr;
+  mMatchRecordsTPC.reserve(mParams->maxMatchCandidates * ntrW); // number of records might be actually more than N tracks!
+  mTPCWork.reserve(ntrW);
   if (mMCTruthON) {
-    mTPCLblWork.reserve(ntr);
+    mTPCLblWork.reserve(ntrW);
   }
   for (int sec = o2::constants::math::NSectors; sec--;) {
-    mTPCSectIndexCache[sec].reserve(100 + 1.2 * ntr / o2::constants::math::NSectors);
+    mTPCSectIndexCache[sec].reserve(100 + 1.2 * ntrW / o2::constants::math::NSectors);
   }
 
   auto creator = [this](auto& trk, GTrackID gid, float time0, float terr) {
@@ -1257,27 +1261,20 @@ void MatchTPCITS::refitWinners(pmr::vector<o2::dataformats::TrackTPCITS>& matche
 {
   ///< refit winning tracks
   mTimer[SWRefit].Start(false);
+  matchedTracks.reserve(mNMatches + mABWinnersIDs.size());
   if (mMCTruthON) {
-    matchLabels.reserve(mNMatches);
+    matchLabels.reserve(mNMatches + mABWinnersIDs.size());
   }
   if (mVDriftCalibOn) {
     calib.reserve(mNCalibPrelim * 1.2 + 1);
   }
-  auto nmEst = mNMatches;
-  if (mUseFT0 && Params::Instance().runAfterBurner) {
-    nmEst += mNMatches + mNMatches * mAB2MatchGuess;
-    if (nmEst < 1) {
-      nmEst = mTPCWork.size() / 2;
-      LOGP(warn, "No track-to-track matches were found, preliminary estimate of AB yield set {}", nmEst);
-    }
-  }
-  matchedTracks.reserve(nmEst);
 
   LOG(debug) << "Refitting winner matches";
   mWinnerChi2Refit.resize(mITSWork.size(), -1.f);
   int iITS;
   for (int iTPC = 0; iTPC < (int)mTPCWork.size(); iTPC++) {
-    if (isDisabledTPC(mTPCWork[iTPC]) || !refitTrackTPCITS(iTPC, iITS, matchedTracks, matchLabels, calib)) {
+    const auto& tTPC = mTPCWork[iTPC];
+    if (isDisabledTPC(tTPC) || !tTPC.gid.testBit(0) || !refitTrackTPCITS(iTPC, iITS, matchedTracks, matchLabels, calib)) {
       continue;
     }
     mWinnerChi2Refit[iITS] = matchedTracks.back().getChi2Refit();
@@ -1716,7 +1713,8 @@ int MatchTPCITS::prepareInteractionTimes()
 }
 
 //______________________________________________
-void MatchTPCITS::runAfterBurner(pmr::vector<o2::dataformats::TrackTPCITS>& matchedTracks, pmr::vector<o2::MCCompLabel>& matchLabels, pmr::vector<o2::MCCompLabel>& ABTrackletLabels, pmr::vector<int>& ABTrackletClusterIDs, pmr::vector<o2::itsmft::TrkClusRef>& ABTrackletRefs)
+bool MatchTPCITS::runAfterBurner(pmr::vector<o2::dataformats::TrackTPCITS>& matchedTracks, pmr::vector<o2::MCCompLabel>& matchLabels, pmr::vector<o2::MCCompLabel>& ABTrackletLabels,
+                                 pmr::vector<int>& ABTrackletClusterIDs, pmr::vector<o2::itsmft::TrkClusRef>& ABTrackletRefs, pmr::vector<o2::dataformats::Triplet<float, float, float>>& calib)
 {
   mTimer[SWABSeeds].Start(false);
   mNABRefsClus = 0;
@@ -1725,7 +1723,7 @@ void MatchTPCITS::runAfterBurner(pmr::vector<o2::dataformats::TrackTPCITS>& matc
   LOGP(info, "AfterBurner will check {} seeds from {} TPC tracks and {} interaction candidates with {} threads", nABSeeds, mTPCABIndexCache.size(), nIntCand, mNThreads); // TMP
   mTimer[SWABSeeds].Stop();
   if (!nIntCand || !mTPCABSeeds.size()) {
-    return;
+    return false;
   }
   mTimer[SWABMatch].Start(false);
   std::vector<ITSChipClustersRefs> itsChipClRefsBuff(mNThreads);
@@ -1804,15 +1802,19 @@ void MatchTPCITS::runAfterBurner(pmr::vector<o2::dataformats::TrackTPCITS>& matc
   }
   mTimer[SWABWinners].Stop();
   mTimer[SWABRefit].Start(false);
-  refitABWinners(matchedTracks, matchLabels, ABTrackletLabels, ABTrackletClusterIDs, ABTrackletRefs);
+  refitABWinners(matchedTracks, matchLabels, ABTrackletLabels, ABTrackletClusterIDs, ABTrackletRefs, calib);
   mTimer[SWABRefit].Stop();
+  return true;
 }
 
 //______________________________________________
 void MatchTPCITS::refitABWinners(pmr::vector<o2::dataformats::TrackTPCITS>& matchedTracks, pmr::vector<o2::MCCompLabel>& matchLabels, pmr::vector<o2::MCCompLabel>& ABTrackletLabels,
-                                 pmr::vector<int>& ABTrackletClusterIDs, pmr::vector<o2::itsmft::TrkClusRef>& ABTrackletRefs)
+                                 pmr::vector<int>& ABTrackletClusterIDs, pmr::vector<o2::itsmft::TrkClusRef>& ABTrackletRefs, pmr::vector<o2::dataformats::Triplet<float, float, float>>& calib)
 {
-  ABTrackletClusterIDs.reserve(mABWinnersIDs.size() * mNABRefsClus);
+  // refit normal matches
+  refitWinners(matchedTracks, matchLabels, calib);
+
+  ABTrackletClusterIDs.reserve(mNABRefsClus);
   ABTrackletRefs.reserve(mABWinnersIDs.size());
   if (mMCTruthON) {
     ABTrackletLabels.reserve(mABWinnersIDs.size());
@@ -1820,11 +1822,6 @@ void MatchTPCITS::refitABWinners(pmr::vector<o2::dataformats::TrackTPCITS>& matc
   if (matchedTracks.capacity() < mABWinnersIDs.size() + matchedTracks.size()) {
     LOGP(warn, "need to expand matched tracks container from {} to {}", matchedTracks.capacity(), mABWinnersIDs.size() + matchedTracks.size());
     matchedTracks.reserve(mABWinnersIDs.size() + matchedTracks.size());
-  }
-  float frac = matchedTracks.size() ? float(mABWinnersIDs.size()) / matchedTracks.size() : 0.;
-  if (frac > mAB2MatchGuess) {
-    LOGP(warn, "increasing guessed ratio of AB to full matches from {} to {}", mAB2MatchGuess, frac * 1.1);
-    mAB2MatchGuess = frac * 1.1;
   }
 
   std::map<o2::MCCompLabel, int> labelOccurence;
@@ -2425,6 +2422,168 @@ int MatchTPCITS::preselectChipClusters(std::vector<int>& clVecOut, const ClusRan
 }
 
 //__________________________________________________________
+void MatchTPCITS::reportSizes(pmr::vector<o2::dataformats::TrackTPCITS>& matchedTracks,
+                              pmr::vector<o2::itsmft::TrkClusRef>& ABTrackletRefs,
+                              pmr::vector<int>& ABTrackletClusterIDs,
+                              pmr::vector<o2::MCCompLabel>& matchLabels,
+                              pmr::vector<o2::MCCompLabel>& ABTrackletLabels,
+                              pmr::vector<o2::dataformats::Triplet<float, float, float>>& calib)
+{
+  size_t sizTotShm = 0, capTotShm = 0, sizTot = 0, capTot = 0, siz = 0, cap = 0, cnt = 0, cntCap = 0;
+  {
+    siz = matchedTracks.size() * sizeof(o2::dataformats::TrackTPCITS);
+    cap = matchedTracks.capacity() * sizeof(o2::dataformats::TrackTPCITS);
+    sizTotShm += siz;
+    capTotShm += cap;
+    LOGP(info, "Size SHM, matchedTracks         : size {:9} cap {:9}", siz, cap);
+    //
+    siz = ABTrackletRefs.size() * sizeof(o2::itsmft::TrkClusRef);
+    cap = ABTrackletRefs.capacity() * sizeof(o2::itsmft::TrkClusRef);
+    sizTotShm += siz;
+    capTotShm += cap;
+    LOGP(info, "Size SHM, ABTrackletRefs        : size {:9} cap {:9}", siz, cap);
+    //
+    siz = ABTrackletClusterIDs.size() * sizeof(int);
+    cap = ABTrackletClusterIDs.capacity() * sizeof(int);
+    sizTotShm += siz;
+    capTotShm += cap;
+    LOGP(info, "Size SHM, ABTrackletClusterIDs  : size {:9} cap {:9}", siz, cap);
+    //
+    siz = matchLabels.size() * sizeof(o2::MCCompLabel);
+    cap = matchLabels.capacity() * sizeof(o2::MCCompLabel);
+    sizTotShm += siz;
+    capTotShm += cap;
+    LOGP(info, "Size SHM, matchLabels           : size {:9} cap {:9}", siz, cap);
+    //
+    siz = ABTrackletLabels.size() * sizeof(o2::MCCompLabel);
+    cap = ABTrackletLabels.capacity() * sizeof(o2::MCCompLabel);
+    sizTotShm += siz;
+    capTotShm += cap;
+    LOGP(info, "Size SHM, ABTrackletLabels      : size {:9} cap {:9}", siz, cap);
+    //
+    siz = calib.size() * sizeof(o2::dataformats::Triplet<float, float, float>);
+    cap = calib.capacity() * sizeof(o2::dataformats::Triplet<float, float, float>);
+    sizTotShm += siz;
+    capTotShm += cap;
+    LOGP(info, "Size SHM, calib                 : size {:9} cap {:9}", siz, cap);
+  }
+  {
+    siz = mITSClustersArray.size() * sizeof(ITSCluster);
+    cap = mITSClustersArray.capacity() * sizeof(ITSCluster);
+    sizTot += siz;
+    capTot += cap;
+    LOGP(info, "Size RSS, mITSClustersArray     : size {:9} cap {:9}", siz, cap);
+    //
+    siz = mMatchRecordsTPC.size() * sizeof(MatchRecord);
+    cap = mMatchRecordsTPC.capacity() * sizeof(MatchRecord);
+    sizTot += siz;
+    capTot += cap;
+    LOGP(info, "Size RSS, mMatchRecordsTPC      : size {:9} cap {:9}", siz, cap);
+    //
+    siz = mMatchRecordsITS.size() * sizeof(MatchRecord);
+    cap = mMatchRecordsITS.capacity() * sizeof(MatchRecord);
+    sizTot += siz;
+    capTot += cap;
+    LOGP(info, "Size RSS, mMatchRecordsITS      : size {:9} cap {:9}", siz, cap);
+    //
+    siz = mITSROFTimes.size() * sizeof(BracketF);
+    cap = mITSROFTimes.capacity() * sizeof(BracketF);
+    sizTot += siz;
+    capTot += cap;
+    LOGP(info, "Size RSS, mITSROFTimes          : size {:9} cap {:9}", siz, cap);
+    //
+    siz = mTPCWork.size() * sizeof(TrackLocTPC);
+    cap = mTPCWork.capacity() * sizeof(TrackLocTPC);
+    sizTot += siz;
+    capTot += cap;
+    LOGP(info, "Size RSS, mTPCWork              : size {:9} cap {:9}", siz, cap);
+    //
+    siz = mITSWork.size() * sizeof(TrackLocITS);
+    cap = mITSWork.capacity() * sizeof(TrackLocITS);
+    sizTot += siz;
+    capTot += cap;
+    LOGP(info, "Size RSS, mITSWork              : size {:9} cap {:9}", siz, cap);
+    //
+    siz = mWinnerChi2Refit.size() * sizeof(float);
+    cap = mWinnerChi2Refit.capacity() * sizeof(float);
+    sizTot += siz;
+    capTot += cap;
+    LOGP(info, "Size RSS, mWinnerChi2Refit      : size {:9} cap {:9}", siz, cap);
+    //
+    siz = mTPCABSeeds.size() * sizeof(float);
+    cap = mTPCABSeeds.capacity() * sizeof(float);
+    cnt = 0;
+    cntCap = 0;
+    for (const auto& a : mTPCABSeeds) {
+      siz += a.sizeInternal();
+      cap += a.capInternal();
+      cnt += a.trackLinks.size();
+      cntCap += a.trackLinks.capacity();
+    }
+    sizTot += siz;
+    capTot += cap;
+    LOGP(info, "Size RSS, mTPCABSeeds           : size {:9} cap {:9} | internals size:{}/capacity:{} for {} elements", siz, cap, cnt, cntCap, mTPCABSeeds.size());
+    //
+    siz = mTPCABIndexCache.size() * sizeof(int);
+    cap = mTPCABIndexCache.capacity() * sizeof(int);
+    sizTot += siz;
+    capTot += cap;
+    LOGP(info, "Size RSS, mTPCABIndexCache      : size {:9} cap {:9}", siz, cap);
+    //
+    siz = mABWinnersIDs.size() * sizeof(int);
+    cap = mABWinnersIDs.capacity() * sizeof(int);
+    sizTot += siz;
+    capTot += cap;
+    LOGP(info, "Size RSS, mABWinnersIDs         : size {:9} cap {:9}", siz, cap);
+    //
+    siz = mABClusterLinkIndex.size() * sizeof(int);
+    cap = mABClusterLinkIndex.capacity() * sizeof(int);
+    sizTot += siz;
+    capTot += cap;
+    LOGP(info, "Size RSS, mABClusterLinkIndex   : size {:9} cap {:9}", siz, cap);
+    //
+    for (int is = 0; is < o2::constants::math::NSectors; is++) {
+      siz += mTPCSectIndexCache[is].size() * sizeof(int);
+      cap += mTPCSectIndexCache[is].capacity() * sizeof(int);
+    }
+    sizTot += siz;
+    capTot += cap;
+    LOGP(info, "Size RSS, mTPCSectIndexCache    : size {:9} cap {:9}", siz, cap);
+    //
+    for (int is = 0; is < o2::constants::math::NSectors; is++) {
+      siz += mITSSectIndexCache[is].size() * sizeof(int);
+      cap += mITSSectIndexCache[is].capacity() * sizeof(int);
+    }
+    sizTot += siz;
+    capTot += cap;
+    LOGP(info, "Size RSS, mITSSectIndexCache    : size {:9} cap {:9}", siz, cap);
+    //
+    for (int is = 0; is < o2::constants::math::NSectors; is++) {
+      siz += mTPCTimeStart[is].size() * sizeof(int);
+      cap += mTPCTimeStart[is].capacity() * sizeof(int);
+    }
+    sizTot += siz;
+    capTot += cap;
+    LOGP(info, "Size RSS, mTPCTimeStart         : size {:9} cap {:9}", siz, cap);
+    //
+    for (int is = 0; is < o2::constants::math::NSectors; is++) {
+      siz += mITSTimeStart[is].size() * sizeof(int);
+      cap += mITSTimeStart[is].capacity() * sizeof(int);
+    }
+    sizTot += siz;
+    capTot += cap;
+    LOGP(info, "Size RSS, mITSTimeStart         : size {:9} cap {:9}", siz, cap);
+    //
+    siz = mITSTrackROFContMapping.size() * sizeof(int);
+    cap = mITSTrackROFContMapping.capacity() * sizeof(int);
+    sizTot += siz;
+    capTot += cap;
+    LOGP(info, "Size RSS, ITSTrackROFContMapping: size {:9} cap {:9}", siz, cap);
+  }
+  LOGP(info, "TotalSizes/Capacities: SHM: {}/{}  Heap: {}/{}", sizTotShm, capTotShm, sizTot, capTot);
+}
+
+//__________________________________________________________
 void MatchTPCITS::setNThreads(int n)
 {
 #ifdef WITH_OPENMP
@@ -2461,14 +2620,11 @@ void MatchTPCITS::fillTPCITSmatchTree(int itsID, int tpcID, int rejFlag, float c
   if (chi2 < 0.) { // need to recalculate
     chi2 = getPredictedChi2NoZ(trackITS, trackTPC);
   }
-  o2::MCCompLabel lblITS, lblTPC;
   (*mDBGOut) << "match"
              << "tf=" << mTFCount << "chi2Match=" << chi2 << "its=" << trackITS << "tpc=" << trackTPC << "tcorr=" << tCorr;
   if (mMCTruthON) {
-    lblITS = mITSLblWork[itsID];
-    lblTPC = mTPCLblWork[tpcID];
     (*mDBGOut) << "match"
-               << "itsLbl=" << lblITS << "tpcLbl=" << lblTPC;
+               << "itsLbl=" << mITSLblWork[itsID] << "tpcLbl=" << mTPCLblWork[tpcID];
   }
   (*mDBGOut) << "match"
              << "rejFlag=" << rejFlag << "\n";
@@ -2496,12 +2652,9 @@ void MatchTPCITS::dumpWinnerMatches()
     (*mDBGOut) << "matchWin"
                << "tf=" << mTFCount << "chi2Match=" << itsMatchRec.chi2 << "chi2Refit=" << mWinnerChi2Refit[iits] << "its=" << tITS << "tpc=" << tTPC;
 
-    o2::MCCompLabel lblITS, lblTPC;
     if (mMCTruthON) {
-      lblITS = mITSLblWork[iits];
-      lblTPC = mTPCLblWork[itpc];
       (*mDBGOut) << "matchWin"
-                 << "itsLbl=" << lblITS << "tpcLbl=" << lblTPC;
+                 << "itsLbl=" << mITSLblWork[iits] << "tpcLbl=" << mTPCLblWork[itpc];
     }
     (*mDBGOut) << "matchWin"
                << "\n";

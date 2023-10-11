@@ -71,7 +71,6 @@ struct MatchTPCITSParams : public o2::conf::ConfigurableParamHelper<MatchTPCITSP
   int minContributingLayersAB = 2; ///< AB tracks must have at least this amount on contributing layers
   int maxABLinksOnLayer = 10;      ///< max prolongations for single seed from one to next layer
   int maxABFinalHyp = 20;          ///< max final hypotheses per TPC seed
-  float AB2MatchGuess = 0.9;       ///< initial guess about AB-matches to normal matches ratio
   float cutABTrack2ClChi2 = 30.f;  ///< cut on AfterBurner track-cluster chi2
   float nABSigmaY = 4.;            ///< nSigma cut on afterburner track-cluster Y distance
   float nABSigmaZ = 4.;            ///< nSigma cut on afterburner track-cluster Z distance
