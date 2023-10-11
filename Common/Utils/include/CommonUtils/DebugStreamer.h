@@ -39,7 +39,8 @@ enum StreamFlags {
   streamUpdateTrack = 1 << 6,       ///< stream update track informations
   streamRejectCluster = 1 << 7,     ///< stream cluster rejection informations
   streamMergeBorderTracks = 1 << 8, ///< stream MergeBorderTracks
-  streamFlagsCount = 9              ///< total number of streamers
+  streamTimeSeries = 1 << 9,        ///< stream tpc DCA debug tree
+  streamFlagsCount = 10             ///< total number of streamers
 };
 
 enum SamplingTypes {
