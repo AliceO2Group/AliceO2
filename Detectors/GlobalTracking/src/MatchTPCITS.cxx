@@ -65,7 +65,13 @@ MatchTPCITS::MatchTPCITS() = default;
 MatchTPCITS::~MatchTPCITS() = default;
 
 //______________________________________________
-void MatchTPCITS::run(const o2::globaltracking::RecoContainer& inp)
+void MatchTPCITS::run(const o2::globaltracking::RecoContainer& inp,
+                      pmr::vector<o2::dataformats::TrackTPCITS>& matchedTracks,
+                      pmr::vector<o2::itsmft::TrkClusRef>& ABTrackletRefs,
+                      pmr::vector<int>& ABTrackletClusterIDs,
+                      pmr::vector<o2::MCCompLabel>& matchLabels,
+                      pmr::vector<o2::MCCompLabel>& ABTrackletLabels,
+                      pmr::vector<o2::dataformats::Triplet<float, float, float>>& calib)
 {
   ///< perform matching for provided input
   if (!mInitDone) {
@@ -83,8 +89,8 @@ void MatchTPCITS::run(const o2::globaltracking::RecoContainer& inp)
       break;
     }
     if (mVDriftCalibOn) { // in the beginning of the output vector we send the full and reference VDrift used for this TF
-      mTglITSTPC.emplace_back(mTPCVDrift, mTPCDrift.refVDrift, -999.);
-      mTglITSTPC.emplace_back(mTPCDriftTimeOffset, mTPCDrift.refTimeOffset, -999.);
+      calib.emplace_back(mTPCVDrift, mTPCDrift.refVDrift, -999.);
+      calib.emplace_back(mTPCDriftTimeOffset, mTPCDrift.refTimeOffset, -999.);
     }
 
     mTimer[SWDoMatching].Start(false);
@@ -101,10 +107,10 @@ void MatchTPCITS::run(const o2::globaltracking::RecoContainer& inp)
 
     selectBestMatches();
 
-    refitWinners();
+    refitWinners(matchedTracks, matchLabels, calib);
 
     if (mUseFT0 && Params::Instance().runAfterBurner) {
-      runAfterBurner();
+      runAfterBurner(matchedTracks, matchLabels, ABTrackletLabels, ABTrackletClusterIDs, ABTrackletRefs);
     }
 
 #ifdef _ALLOW_DEBUG_TREES_
@@ -139,7 +145,6 @@ void MatchTPCITS::clear()
   mMatchRecordsTPC.clear();
   mMatchRecordsITS.clear();
   mWinnerChi2Refit.clear();
-  mMatchedTracks.clear();
   mITSWork.clear();
   mTPCWork.clear();
   mInteractions.clear();
@@ -150,10 +155,6 @@ void MatchTPCITS::clear()
   mTPCABIndexCache.clear();
   mABWinnersIDs.clear();
   mABClusterLinkIndex.clear();
-  mABTrackletRefs.clear();
-  mABTrackletClusterIDs.clear();
-  mABTrackletLabels.clear();
-  mTglITSTPC.clear();
   mNMatchesControl = 0;
 
   for (int sec = o2::constants::math::NSectors; sec--;) {
@@ -164,7 +165,6 @@ void MatchTPCITS::clear()
   }
 
   if (mMCTruthON) {
-    mOutLabels.clear();
     mITSROFTimes.clear();
     mTPCLblWork.clear();
   }
@@ -197,6 +197,7 @@ void MatchTPCITS::init()
     mTimer[i].Reset();
   }
   mParams = &Params::Instance();
+  mAB2MatchGuess = mParams->AB2MatchGuess;
   YMaxAtXMatchingRef = mParams->XMatchingRef * 0.17632698; ///< max Y in the sector at reference X
   mParams->printKeyValues();
   mFT0Params = &o2::ft0::InteractionTag::Instance();
@@ -263,7 +264,9 @@ void MatchTPCITS::selectBestMatches()
 {
   ///< loop over match records and select the ones with best chi2
   mTimer[SWSelectBest].Start(false);
-  int nValidated = 0, iter = 0, nValidatedTotal = 0;
+  int nValidated = 0, iter = 0;
+  mNMatches = 0;
+  mNCalibPrelim = 0;
   do {
     nValidated = 0;
     int ntpc = mTPCWork.size(), nremaining = 0;
@@ -275,6 +278,9 @@ void MatchTPCITS::selectBestMatches()
       nremaining++;
       if (validateTPCMatch(it)) {
         nValidated++;
+        if (mVDriftCalibOn && (!mFieldON || std::abs(tTPC.getQ2Pt()) < mParams->maxVDriftTrackQ2Pt)) {
+          mNCalibPrelim++;
+        }
         continue;
       }
     }
@@ -282,11 +288,11 @@ void MatchTPCITS::selectBestMatches()
       LOGP(info, "iter {}: Validated {} of {} remaining matches", iter, nValidated, nremaining);
     }
     iter++;
-    nValidatedTotal += nValidated;
+    mNMatches += nValidated;
   } while (nValidated);
 
   mTimer[SWSelectBest].Stop();
-  LOGP(info, "Validated {} matches out of {} for {} TPC and {} ITS tracks in {} iterations", nValidatedTotal, mNMatchesControl, mTPCWork.size(), mITSWork.size(), iter);
+  LOGP(info, "Validated {} matches out of {} for {} TPC and {} ITS tracks in {} iterations", mNMatches, mNMatchesControl, mTPCWork.size(), mITSWork.size(), iter);
 }
 
 //______________________________________________
@@ -1247,40 +1253,51 @@ void MatchTPCITS::print() const
 }
 
 //______________________________________________
-void MatchTPCITS::refitWinners()
+void MatchTPCITS::refitWinners(pmr::vector<o2::dataformats::TrackTPCITS>& matchedTracks, pmr::vector<o2::MCCompLabel>& matchLabels, pmr::vector<o2::dataformats::Triplet<float, float, float>>& calib)
 {
   ///< refit winning tracks
-
   mTimer[SWRefit].Start(false);
+  if (mMCTruthON) {
+    matchLabels.reserve(mNMatches);
+  }
+  if (mVDriftCalibOn) {
+    calib.reserve(mNCalibPrelim * 1.2 + 1);
+  }
+  auto nmEst = mNMatches;
+  if (mUseFT0 && Params::Instance().runAfterBurner) {
+    nmEst += mNMatches + mNMatches * mAB2MatchGuess;
+    if (nmEst < 1) {
+      nmEst = mTPCWork.size() / 2;
+      LOGP(warn, "No track-to-track matches were found, preliminary estimate of AB yield set {}", nmEst);
+    }
+  }
+  matchedTracks.reserve(nmEst);
+
   LOG(debug) << "Refitting winner matches";
   mWinnerChi2Refit.resize(mITSWork.size(), -1.f);
   int iITS;
   for (int iTPC = 0; iTPC < (int)mTPCWork.size(); iTPC++) {
-    if (!refitTrackTPCITS(iTPC, iITS)) {
+    if (isDisabledTPC(mTPCWork[iTPC]) || !refitTrackTPCITS(iTPC, iITS, matchedTracks, matchLabels, calib)) {
       continue;
     }
-    mWinnerChi2Refit[iITS] = mMatchedTracks.back().getChi2Refit();
+    mWinnerChi2Refit[iITS] = matchedTracks.back().getChi2Refit();
   }
   mTimer[SWRefit].Stop();
 }
 
 //______________________________________________
-bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
+bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS, pmr::vector<o2::dataformats::TrackTPCITS>& matchedTracks, pmr::vector<o2::MCCompLabel>& matchLabels, pmr::vector<o2::dataformats::Triplet<float, float, float>>& calib)
 {
   ///< refit in inward direction the pair of TPC and ITS tracks
 
   const float maxStep = 2.f; // max propagation step (TODO: tune)
   const auto& tTPC = mTPCWork[iTPC];
-  if (isDisabledTPC(tTPC)) {
-    return false; // no match
-  }
   const auto& tpcMatchRec = mMatchRecordsTPC[tTPC.matchID];
   iITS = tpcMatchRec.partnerID;
   const auto& tITS = mITSWork[iITS];
   const auto& itsTrOrig = mITSTracksArray[tITS.sourceID];
 
-  mMatchedTracks.emplace_back(tTPC, tITS); // create a copy of TPC track at xRef
-  auto& trfit = mMatchedTracks.back();
+  auto& trfit = matchedTracks.emplace_back(tTPC, tITS); // create a copy of TPC track at xRef
   trfit.getParamOut().setUserField(0); // reset eventual clones flag
   // in continuos mode the Z of TPC track is meaningless, unless it is CE crossing
   // track (currently absent, TODO)
@@ -1297,7 +1314,7 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
   float timeC = tTPC.getCorrectedTime(deltaT) + mParams->globalTimeBiasMUS;                                                                       /// precise time estimate, optionally corrected for bias
   if (timeC < 0) {                                                                                                                                // RS TODO similar check is needed for other edge of TF
     if (timeC + std::min(timeErr, mParams->tfEdgeTimeToleranceMUS * mTPCTBinMUSInv) < 0) {
-      mMatchedTracks.pop_back(); // destroy failed track
+      matchedTracks.pop_back(); // destroy failed track
       return false;
     }
     timeC = 0.;
@@ -1338,7 +1355,7 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
   if (nclRefit != ncl) {
     LOGP(debug, "Refit in ITS failed after ncl={}, match between TPC track #{} and ITS track #{}", nclRefit, tTPC.sourceID, tITS.sourceID);
     LOGP(debug, "{:s}", trfit.asString());
-    mMatchedTracks.pop_back(); // destroy failed track
+    matchedTracks.pop_back(); // destroy failed track
     return false;
   }
 
@@ -1360,7 +1377,7 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
     if (!tracOut.getXatLabR(o2::constants::geom::XTPCInnerRef, xtogo, mBz, o2::track::DirOutward) ||
         !propagator->PropagateToXBxByBz(tracOut, xtogo, MaxSnp, 10., mUseMatCorrFlag, &tofL)) {
       LOG(debug) << "Propagation to inner TPC boundary X=" << xtogo << " failed, Xtr=" << tracOut.getX() << " snp=" << tracOut.getSnp();
-      mMatchedTracks.pop_back(); // destroy failed track
+      matchedTracks.pop_back(); // destroy failed track
       return false;
     }
     if (mVDriftCalibOn) {
@@ -1373,13 +1390,13 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
       LOGP(alarm, "Impossible imposed timebin {} for TPC track time0:{}, dBwd:{} dFwd:{} TB | ZShift:{}, TShift:{}", tImposed, mTPCTracksArray[tTPC.sourceID].getTime0(),
            mTPCTracksArray[tTPC.sourceID].getDeltaTBwd(), mTPCTracksArray[tTPC.sourceID].getDeltaTFwd(), trfit.getZ() - tTPC.getZ(), deltaT);
       LOGP(info, "Trc: {}", mTPCTracksArray[tTPC.sourceID].asString());
-      mMatchedTracks.pop_back(); // destroy failed track
+      matchedTracks.pop_back(); // destroy failed track
       return false;
     }
     int retVal = mTPCRefitter->RefitTrackAsTrackParCov(tracOut, mTPCTracksArray[tTPC.sourceID].getClusterRef(), tImposed, &chi2Out, true, false); // outward refit
     if (retVal < 0) {
       LOG(debug) << "Refit failed";
-      mMatchedTracks.pop_back(); // destroy failed track
+      matchedTracks.pop_back(); // destroy failed track
       return false;
     }
     auto posEnd = tracOut.getXYZGlo();
@@ -1413,7 +1430,7 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
   trfit.setRefITS({unsigned(tITS.sourceID), o2::dataformats::GlobalTrackID::ITS});
 
   if (mMCTruthON) { // store MC info: we assign TPC track label and declare the match fake if the ITS and TPC labels are different (their fake flag is ignored)
-    auto& lbl = mOutLabels.emplace_back(mTPCLblWork[iTPC]);
+    auto& lbl = matchLabels.emplace_back(mTPCLblWork[iTPC]);
     lbl.setFakeFlag(mITSLblWork[iITS] != mTPCLblWork[iTPC]);
   }
 
@@ -1445,7 +1462,7 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
     }
   }
   if (fillVDCalib) {
-    mTglITSTPC.emplace_back(tITS.getTgl(), tTPC.getTgl(), minDiffFT0);
+    calib.emplace_back(tITS.getTgl(), tTPC.getTgl(), minDiffFT0);
   }
 #ifdef _ALLOW_DEBUG_TREES_
   if (mDBGOut) {
@@ -1466,14 +1483,14 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS)
 }
 
 //______________________________________________
-bool MatchTPCITS::refitABTrack(int iITSAB, const TPCABSeed& seed)
+bool MatchTPCITS::refitABTrack(int iITSAB, const TPCABSeed& seed, pmr::vector<o2::dataformats::TrackTPCITS>& matchedTracks, pmr::vector<int>& ABTrackletClusterIDs, pmr::vector<o2::itsmft::TrkClusRef>& ABTrackletRefs)
 {
   ///< refit AfterBurner track
 
   const float maxStep = 2.f; // max propagation step (TODO: tune)
   const auto& tTPC = mTPCWork[seed.tpcWID];
   const auto& winLink = seed.getLink(seed.winLinkID);
-  auto& newtr = mMatchedTracks.emplace_back(winLink, winLink); // create a copy of winner param at innermost ITS cluster
+  auto& newtr = matchedTracks.emplace_back(winLink, winLink); // create a copy of winner param at innermost ITS cluster
   auto& tracOut = newtr.getParamOut();
   auto& tofL = newtr.getLTIntegralOut();
   auto geom = o2::its::GeometryTGeo::Instance();
@@ -1482,13 +1499,13 @@ bool MatchTPCITS::refitABTrack(int iITSAB, const TPCABSeed& seed)
   propagator->estimateLTFast(tofL, winLink); // guess about initial value for the track integral from the origin
 
   // refit track outward in the ITS
-  const auto& itsClRefs = mABTrackletRefs[iITSAB];
+  const auto& itsClRefs = ABTrackletRefs[iITSAB];
   int nclRefit = 0, ncl = itsClRefs.getNClusters();
 
   float chi2 = 0.f;
   // NOTE: the ITS cluster absolute indices are stored from inner to outer layers
   for (int icl = itsClRefs.getFirstEntry(); icl < itsClRefs.getEntriesBound(); icl++) {
-    const auto& clus = mITSClustersArray[mABTrackletClusterIDs[icl]];
+    const auto& clus = mITSClustersArray[ABTrackletClusterIDs[icl]];
     float alpha = geom->getSensorRefAlpha(clus.getSensorID()), x = clus.getX();
     if (!tracOut.rotate(alpha) ||
         // note: here we also calculate the L,T integral
@@ -1506,7 +1523,7 @@ bool MatchTPCITS::refitABTrack(int iITSAB, const TPCABSeed& seed)
   if (nclRefit != ncl) {
     LOGP(debug, "AfterBurner refit in ITS failed after ncl={}, match between TPC track #{} and ITS tracklet #{}", nclRefit, tTPC.sourceID, iITSAB);
     LOGP(debug, "{:s}", tracOut.asString());
-    mMatchedTracks.pop_back(); // destroy failed track
+    matchedTracks.pop_back(); // destroy failed track
     return false;
   }
   // perform TPC refit with interaction time constraint
@@ -1517,7 +1534,7 @@ bool MatchTPCITS::refitABTrack(int iITSAB, const TPCABSeed& seed)
     if (!tracOut.getXatLabR(o2::constants::geom::XTPCInnerRef, xtogo, mBz, o2::track::DirOutward) ||
         !propagator->PropagateToXBxByBz(tracOut, xtogo, MaxSnp, 10., mUseMatCorrFlag, &tofL)) {
       LOG(debug) << "Propagation to inner TPC boundary X=" << xtogo << " failed, Xtr=" << tracOut.getX() << " snp=" << tracOut.getSnp();
-      mMatchedTracks.pop_back(); // destroy failed track
+      matchedTracks.pop_back(); // destroy failed track
       return false;
     }
     float chi2Out = 0;
@@ -1525,7 +1542,7 @@ bool MatchTPCITS::refitABTrack(int iITSAB, const TPCABSeed& seed)
     int retVal = mTPCRefitter->RefitTrackAsTrackParCov(tracOut, mTPCTracksArray[tTPC.sourceID].getClusterRef(), timeC * mTPCTBinMUSInv, &chi2Out, true, false); // outward refit
     if (retVal < 0) {
       LOG(debug) << "Refit failed";
-      mMatchedTracks.pop_back(); // destroy failed track
+      matchedTracks.pop_back(); // destroy failed track
       return false;
     }
     auto posEnd = tracOut.getXYZGlo();
@@ -1699,9 +1716,10 @@ int MatchTPCITS::prepareInteractionTimes()
 }
 
 //______________________________________________
-void MatchTPCITS::runAfterBurner()
+void MatchTPCITS::runAfterBurner(pmr::vector<o2::dataformats::TrackTPCITS>& matchedTracks, pmr::vector<o2::MCCompLabel>& matchLabels, pmr::vector<o2::MCCompLabel>& ABTrackletLabels, pmr::vector<int>& ABTrackletClusterIDs, pmr::vector<o2::itsmft::TrkClusRef>& ABTrackletRefs)
 {
   mTimer[SWABSeeds].Start(false);
+  mNABRefsClus = 0;
   prepareABSeeds();
   int nIntCand = mInteractions.size(), nABSeeds = mTPCABSeeds.size();
   LOGP(info, "AfterBurner will check {} seeds from {} TPC tracks and {} interaction candidates with {} threads", nABSeeds, mTPCABIndexCache.size(), nIntCand, mNThreads); // TMP
@@ -1780,23 +1798,35 @@ void MatchTPCITS::runAfterBurner()
     ABSeed.validate(bestID);
     ABSeed.flagLinkUsedClusters(bestID, mABClusterLinkIndex);
     mABWinnersIDs.push_back(tTPC.matchID = candAB[i].seedID);
+    mNABRefsClus += ABSeed.getNLayers();
     nwin++;
     // RSTMP      LOG(info) << "Iter: " << iter << " validated seed " << i << "[" << candAB[i].seedID << "/" << candAB[i].chi2 << "] for TPC track " << ABSeed.tpcWID << " last lr: " << int(ABSeed.lowestLayer) << " Ncont: " << int(link.nContLayers);
   }
   mTimer[SWABWinners].Stop();
   mTimer[SWABRefit].Start(false);
-  refitABWinners();
+  refitABWinners(matchedTracks, matchLabels, ABTrackletLabels, ABTrackletClusterIDs, ABTrackletRefs);
   mTimer[SWABRefit].Stop();
 }
 
 //______________________________________________
-void MatchTPCITS::refitABWinners()
+void MatchTPCITS::refitABWinners(pmr::vector<o2::dataformats::TrackTPCITS>& matchedTracks, pmr::vector<o2::MCCompLabel>& matchLabels, pmr::vector<o2::MCCompLabel>& ABTrackletLabels,
+                                 pmr::vector<int>& ABTrackletClusterIDs, pmr::vector<o2::itsmft::TrkClusRef>& ABTrackletRefs)
 {
-  mABTrackletClusterIDs.reserve(mABWinnersIDs.size() * (o2::its::RecoGeomHelper::getNLayers() - mParams->lowestLayerAB));
-  mABTrackletRefs.reserve(mABWinnersIDs.size());
+  ABTrackletClusterIDs.reserve(mABWinnersIDs.size() * mNABRefsClus);
+  ABTrackletRefs.reserve(mABWinnersIDs.size());
   if (mMCTruthON) {
-    mABTrackletLabels.reserve(mABWinnersIDs.size());
+    ABTrackletLabels.reserve(mABWinnersIDs.size());
   }
+  if (matchedTracks.capacity() < mABWinnersIDs.size() + matchedTracks.size()) {
+    LOGP(warn, "need to expand matched tracks container from {} to {}", matchedTracks.capacity(), mABWinnersIDs.size() + matchedTracks.size());
+    matchedTracks.reserve(mABWinnersIDs.size() + matchedTracks.size());
+  }
+  float frac = matchedTracks.size() ? float(mABWinnersIDs.size()) / matchedTracks.size() : 0.;
+  if (frac > mAB2MatchGuess) {
+    LOGP(warn, "increasing guessed ratio of AB to full matches from {} to {}", mAB2MatchGuess, frac * 1.1);
+    mAB2MatchGuess = frac * 1.1;
+  }
+
   std::map<o2::MCCompLabel, int> labelOccurence;
   auto accountClusterLabel = [&labelOccurence, itsClLabs = mITSClsLabels](int clID) {
     auto labels = itsClLabs->getLabels(clID);
@@ -1809,13 +1839,13 @@ void MatchTPCITS::refitABWinners()
 
   for (auto wid : mABWinnersIDs) {
     const auto& ABSeed = mTPCABSeeds[wid];
-    int start = mABTrackletClusterIDs.size();
+    int start = ABTrackletClusterIDs.size();
     int lID = ABSeed.winLinkID, ncl = 0;
-    auto& clref = mABTrackletRefs.emplace_back(start, ncl);
+    auto& clref = ABTrackletRefs.emplace_back(start, ncl);
     while (lID > MinusOne) {
       const auto& winL = ABSeed.getLink(lID);
       if (winL.clID > MinusOne) {
-        mABTrackletClusterIDs.push_back(winL.clID);
+        ABTrackletClusterIDs.push_back(winL.clID);
         ncl++;
         clref.pattern |= 0x1 << winL.layerID;
         if (mMCTruthON) {
@@ -1824,9 +1854,9 @@ void MatchTPCITS::refitABWinners()
       }
       lID = winL.parentID;
     }
-    if (!refitABTrack(mABTrackletRefs.size() - 1, ABSeed)) { // on failure, destroy added tracklet reference
-      mABTrackletRefs.pop_back();
-      mABTrackletClusterIDs.resize(start);
+    if (!refitABTrack(ABTrackletRefs.size() - 1, ABSeed, matchedTracks, ABTrackletClusterIDs, ABTrackletRefs)) { // on failure, destroy added tracklet reference
+      ABTrackletRefs.pop_back();
+      ABTrackletClusterIDs.resize(start); // RSS
       if (mMCTruthON) {
         labelOccurence.clear();
       }
@@ -1846,14 +1876,14 @@ void MatchTPCITS::refitABWinners()
         lab.setFakeFlag();
       }
       labelOccurence.clear();
-      mABTrackletLabels.push_back(lab); // ITSAB tracklet label
-      auto& lblGlo = mOutLabels.emplace_back(mTPCLblWork[ABSeed.tpcWID]);
+      ABTrackletLabels.push_back(lab); // ITSAB tracklet label
+      auto& lblGlo = matchLabels.emplace_back(mTPCLblWork[ABSeed.tpcWID]);
       lblGlo.setFakeFlag(lab != lblGlo);
       LOG(debug) << "ABWinner ncl=" << ncl << " mcLBAB " << lab << " mcLBGlo " << lblGlo << " chi2=" << ABSeed.getLink(ABSeed.winLinkID).chi2Norm() << " pT = " << ABSeed.track.getPt();
     }
     // build MC label
   }
-  LOG(info) << "AfterBurner validated " << mABTrackletRefs.size() << " tracks";
+  LOG(info) << "AfterBurner validated " << ABTrackletRefs.size() << " tracks";
 }
 
 //______________________________________________
