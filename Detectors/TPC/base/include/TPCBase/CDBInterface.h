@@ -86,6 +86,8 @@ enum class CDBType {
   CalCorrMapRef,       ///< Cluster correction reference map (static distortions)
                        ///
   CalCorrDerivMap,     ///< Cluster correction map (derivative map)
+                       ///
+  CalTimeSeries,       ///< integrated DCAs for longer time interval
 };
 
 /// Upload intervention type
@@ -145,6 +147,8 @@ const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   {CDBType::CalCorrMapRef, "TPC/Calib/CorrectionMapRefV2"},
   // derivative map correction
   {CDBType::CalCorrDerivMap, "TPC/Calib/CorrectionMapDerivativeV2"},
+  // time series
+  {CDBType::CalTimeSeries, "TPC/Calib/TimeSeries"},
 };
 
 /// Poor enum reflection ...

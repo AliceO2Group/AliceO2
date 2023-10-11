@@ -41,6 +41,10 @@ o2_add_library(TPCWorkflow
                        src/TPCIntegrateClusterWriterSpec.cxx
                        src/TPCTriggerWriterSpec.cxx
                        src/TPCMergeIntegrateClusterSpec.cxx
+                       src/TPCTimeSeriesSpec.cxx
+                       src/TPCTimeSeriesWriterSpec.cxx
+                       src/TPCTimeSeriesReaderSpec.cxx
+                       src/TPCMergeTimeSeriesSpec.cxx
                TARGETVARNAME targetName
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsTPC
                                      O2::DPLUtils O2::TPCReconstruction
@@ -224,6 +228,21 @@ o2_add_executable(integrate-cluster-reader-workflow
 
 o2_add_executable(merge-integrate-cluster-workflow
                   SOURCES src/cluster-merge-integrator.cxx
+                  COMPONENT_NAME tpc
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(time-series-workflow
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-time-series.cxx
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(time-series-reader-workflow
+                  SOURCES src/time-series-reader.cxx
+                  COMPONENT_NAME tpc
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(merge-time-series-workflow
+                  SOURCES src/time-series-merge-integrator.cxx
                   COMPONENT_NAME tpc
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 

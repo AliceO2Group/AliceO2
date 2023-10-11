@@ -53,4 +53,12 @@
 #pragma link C++ class o2::calibration::TimeSlot < o2::calibration::IntegratedClusters < o2::fit::IFDDC>> + ;
 #pragma link C++ class o2::calibration::TimeSlotCalibration < o2::calibration::IntegratedClusters < o2::fit::IFDDC>> + ;
 
+#pragma link C++ struct o2::tpc::TimeSeries + ;
+#pragma link C++ struct o2::tpc::ITSTPC_Matching + ;
+#pragma link C++ struct o2::tpc::TimeSeriesITSTPC + ;
+#pragma link C++ class o2::calibration::IntegratedClusters < o2::tpc::TimeSeriesITSTPC> + ;
+#pragma link C++ class o2::calibration::IntegratedClusterCalibrator < o2::tpc::TimeSeriesITSTPC> + ;
+#pragma link C++ class o2::calibration::TimeSlot < o2::calibration::IntegratedClusters < o2::tpc::TimeSeriesITSTPC>> + ;
+#pragma link C++ class o2::calibration::TimeSlotCalibration < o2::calibration::IntegratedClusters < o2::tpc::TimeSeriesITSTPC>> + ;
+
 #endif

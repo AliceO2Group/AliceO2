@@ -13,6 +13,12 @@
 #include "Framework/Logger.h"
 #include <numeric>
 
+void o2::tpc::RobustAverage::reserve(const unsigned int maxValues)
+{
+  mValues.reserve(maxValues);
+  mWeights.reserve(maxValues);
+}
+
 std::pair<float, float> o2::tpc::RobustAverage::getFilteredAverage(const float sigma, const float interQuartileRange)
 {
   if (mValues.empty()) {
@@ -28,7 +34,7 @@ std::pair<float, float> o2::tpc::RobustAverage::getFilteredAverage(const float s
   */
 
   // 1.  Sort the values
-  std::sort(mValues.begin(), mValues.end());
+  sort();
 
   // 2. Use only the values in the Interquartile Range (inner n%)
   const auto upper = mValues.begin() + mValues.size() * interQuartileRange;
@@ -46,6 +52,81 @@ std::pair<float, float> o2::tpc::RobustAverage::getFilteredAverage(const float s
 
   // 5. Get mean of the selected points which are in the range of the std dev
   return std::pair<float, float>(getFilteredMean(median, stdev, sigma), stdev);
+}
+
+std::tuple<float, float, float, unsigned int> o2::tpc::RobustAverage::filterPointsMedian(const float maxAbsMedian, const float sigma)
+{
+  if (mValues.empty()) {
+    return {0, 0, 0, 0};
+  }
+
+  // 1.  Sort the values
+  sort();
+
+  // 2. median
+  const float median = mValues[mValues.size() / 2];
+
+  // 3. select points larger and smaller than specified max value
+  const auto upperV0 = std::upper_bound(mValues.begin(), mValues.end(), median + maxAbsMedian);
+  const auto lowerV0 = std::lower_bound(mValues.begin(), mValues.end(), median - maxAbsMedian);
+
+  if (upperV0 == lowerV0) {
+    return {0, 0, 0, 0};
+  }
+
+  // 4. get RMS of selected values
+  const float stdev = getStdDev(median, lowerV0, upperV0);
+
+  // 5. define RMS cut
+  const float sigmastddev = sigma * stdev;
+  const float minVal = median - sigmastddev;
+  const float maxVal = median + sigmastddev;
+  const auto upper = std::upper_bound(mValues.begin(), mValues.end(), maxVal);
+  const auto lower = std::lower_bound(mValues.begin(), mValues.end(), minVal);
+
+  if (upper == lower) {
+    return {0, 0, 0, 0};
+  }
+
+  const int indexUp = upper - mValues.begin();
+  const int indexLow = lower - mValues.begin();
+
+  // 7. get filtered median
+  const float medianFilterd = mValues[(indexUp - indexLow) / 2 + indexLow];
+
+  // 8. weighted mean
+  const auto upperW = mWeights.begin() + indexUp;
+  const auto lowerW = mWeights.begin() + indexLow;
+  const float wMean = getWeightedMean(lower, upper, lowerW, upperW);
+
+  // 9. number of points passing the cuts
+  const int nEntries = indexUp - indexLow;
+
+  return {medianFilterd, wMean, stdev, nEntries};
+}
+
+void o2::tpc::RobustAverage::sort()
+{
+  const size_t nVals = mValues.size();
+  if (mValues.size() != mWeights.size()) {
+    LOGP(warning, "values and errors haave different size");
+    return;
+  }
+  std::vector<std::size_t> tmpIdx(nVals);
+  std::iota(tmpIdx.begin(), tmpIdx.end(), 0);
+  std::sort(tmpIdx.begin(), tmpIdx.end(), [&](std::size_t i, std::size_t j) { return (mValues[i] < mValues[j]); });
+
+  std::vector<float> mValues_tmp;
+  std::vector<float> mWeights_tmp;
+  mValues_tmp.reserve(nVals);
+  mWeights_tmp.reserve(nVals);
+  for (int i = 0; i < nVals; ++i) {
+    const int idx = tmpIdx[i];
+    mValues_tmp.emplace_back(mValues[idx]);
+    mWeights_tmp.emplace_back(mWeights[idx]);
+  }
+  mValues.swap(mValues_tmp);
+  mWeights.swap(mWeights_tmp);
 }
 
 float o2::tpc::RobustAverage::getStdDev(const float mean, std::vector<float>::const_iterator begin, std::vector<float>::const_iterator end)
@@ -109,9 +190,4 @@ void o2::tpc::RobustAverage::addValue(const float value, const float weight)
 {
   mValues.emplace_back(value);
   mWeights.emplace_back(weight);
-}
-
-void o2::tpc::RobustAverage::addValue(const float value)
-{
-  mValues.emplace_back(value);
 }
