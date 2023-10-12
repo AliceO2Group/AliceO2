@@ -32,6 +32,7 @@
 #include "TColor.h"
 #include "TROOT.h"
 #include "TStyle.h"
+#include <sys/stat.h>
 #include "DetectorsBase/GeometryManager.h"
 #include "MCHContour/Polygon.h"
 
@@ -381,23 +382,18 @@ uint16_t getDsIndexFromDsIdAndDeId(uint16_t dsId, uint16_t deId)
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Getting ClustersPerDualSampa (TH1F Histogram stored in root file)
-TH1F* getrootHistogramLeft()
+TH1F* getrootHistogramLeft(const std::string& rootfile)
 {
-
-  TFile* file = TFile::Open("/Users/valencia/test/ClustersMCH_LHC22t.root");
+  TFile* file = TFile::Open(rootfile.c_str());
   TH1F* ClustersperDualSampa = (TH1F*)file->Get("ClustersPerDualSampa");
   return ClustersperDualSampa;
 }
 
-TH1F* getrootHistogramRight()
+TH1F* getrootHistogramRight(const std::string& rootfile)
 {
-  TFile* file = TFile::Open("/Users/valencia/Desktop/lx-plus/Simu_5/Simulation/badchannel2.root");
+  TFile* file = TFile::Open(rootfile.c_str());
   TH1F* ClustersperDualSampa = (TH1F*)file->Get("ClustersPerDualSampa");
   return ClustersperDualSampa;
-
-  // TFile *file = TFile::Open("/Users/valencia/Desktop/Simulations/Clusters_Bending.root");
-  // TH1F *ClustersperDualSampa = (TH1F *)file->Get("Clusters");
-  // return ClustersperDualSampa;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -739,11 +735,13 @@ int main(int argc, char* argv[])
   // Generating various command arguments
   bool norm = false;
   bool green = false;
+  std::string rootfileleft = "DATA_QC.root";
+  std::string rootfileright = "MC_QC.root";
 
   po::variables_map vm;
   po::options_description generic("Generic options");
 
-  generic.add_options()("help", "produce help message")("normperarea", "normalize per unit area")("green", "green color for 0 clusters");
+  generic.add_options()("help", "produce help message")("normperarea", "normalize per unit area")("green", "green color for 0 clusters")("rootfileleft", po::value<std::string>(&rootfileleft), "select root file for the left chamber")("rootfileright", po::value<std::string>(&rootfileright), "select root file for the right chamber");
 
   po::options_description cmdline;
   cmdline.add(generic);
@@ -780,26 +778,31 @@ int main(int argc, char* argv[])
     {-450, -450, 450, 450},
     {-450, -450, 450, 450}};
 
-  // Load  the aligned geometry from file.root
+  // Load  the aligned geometry from root file
   std::string alignedgeom = "o2sim_geometry-aligned.root";
+
+  // Creating directory to save all output files
+  std::string directory = "output/";
+  mkdir(directory.c_str(), 0777); // 0777 sets permissions;
 
   // Generate two sets (left and right) of 10 bending and non-bending chambers using SVGWriter
   for (auto isBendingPlane : {true, false}) {
 
     for (int i = 0; i < 10; i++) {
 
-      // output file
-      std::ofstream outv("CHAMBERS-" + std::to_string(i + 1) + "-" + (isBendingPlane ? "B" : "NB") + ".html");
+      // output directory with files
+      std::string filename = "CHAMBERS-" + std::to_string(i + 1) + "-" + (isBendingPlane ? "B" : "NB") + ".html";
+      std::ofstream outv(directory + filename);
 
       // Creating bboxes
       o2::mch::contour::SVGWriter wSegLeft(bboxes[i]);
       o2::mch::contour::SVGWriter wSegRight(bboxes[i]);
 
       // Creating Left and Right Chambers
-      double maxRatioLeft = calculateNmax(i + 1, isBendingPlane, getrootHistogramLeft(), loadGeometry(alignedgeom), norm);
-      double maxRatioRight = calculateNmax(i + 1, isBendingPlane, getrootHistogramRight(), loadGeometry(alignedgeom), norm);
-      svgChamber(wSegLeft, i + 1, isBendingPlane, getrootHistogramLeft(), loadGeometry(alignedgeom), maxRatioLeft, norm, green);
-      svgChamber(wSegRight, i + 1, isBendingPlane, getrootHistogramRight(), loadGeometry(alignedgeom), maxRatioRight, norm, green);
+      double maxRatioLeft = calculateNmax(i + 1, isBendingPlane, getrootHistogramLeft(rootfileleft), loadGeometry(alignedgeom), norm);
+      double maxRatioRight = calculateNmax(i + 1, isBendingPlane, getrootHistogramRight(rootfileright), loadGeometry(alignedgeom), norm);
+      svgChamber(wSegLeft, i + 1, isBendingPlane, getrootHistogramLeft(rootfileleft), loadGeometry(alignedgeom), maxRatioLeft, norm, green);
+      svgChamber(wSegRight, i + 1, isBendingPlane, getrootHistogramRight(rootfileright), loadGeometry(alignedgeom), maxRatioRight, norm, green);
 
       // Write in HTML left and right chambers (using <div> tag)
       outv << "<div style='display:flex;justify-content:center'>" << std::endl;
