@@ -323,6 +323,9 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
       auto idxTrkTpc = trk.getRefTPC().getIndex();
       if (isTPCTrackSelectedEntry[idxTrkTpc] == true) {
         auto lbl = mRecoCont.getTrackMCLabel({(unsigned int)(itrk), GID::Source::ITSTPC});
+        if (!lbl.isValid()) {
+          continue;
+        }
         if (mMapLabels[matchType::TPC].find(lbl) == mMapLabels[matchType::TPC].end()) {
           int source = lbl.getSourceID();
           int event = lbl.getEventID();
@@ -343,6 +346,9 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
       auto idxTrkIts = trk.getRefITS().getIndex();
       if (isITSTrackSelectedEntry[idxTrkIts] == true) {
         auto lbl = mRecoCont.getTrackMCLabel({(unsigned int)(itrk), GID::Source::ITSTPC});
+        if (!lbl.isValid()) {
+          continue;
+        }
         if (mMapLabels[matchType::ITS].find(lbl) == mMapLabels[matchType::ITS].end()) {
           int source = lbl.getSourceID();
           int event = lbl.getEventID();
@@ -508,6 +514,9 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
       auto const& trk = mTPCTracks[itrk];
       if (isTPCTrackSelectedEntry[itrk] == true) {
         auto lbl = mRecoCont.getTrackMCLabel({(unsigned int)(itrk), GID::Source::TPC});
+        if (!lbl.isValid()) {
+          continue;
+        }
         if (mMapLabels[matchType::TPC].find(lbl) != mMapLabels[matchType::TPC].end()) {
           // the track was already added to the denominator
           continue;
@@ -537,6 +546,9 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
       auto const& trk = mITSTracks[itrk];
       if (isITSTrackSelectedEntry[itrk] == true) {
         auto lbl = mRecoCont.getTrackMCLabel({(unsigned int)(itrk), GID::Source::ITS});
+        if (!lbl.isValid()) {
+          continue;
+        }
         if (mMapLabels[matchType::ITS].find(lbl) != mMapLabels[matchType::ITS].end()) {
           // the track was already added to the denominator
           continue;
