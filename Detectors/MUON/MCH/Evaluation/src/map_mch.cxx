@@ -320,7 +320,7 @@ std::vector<int> getDualSampasBorNB(int deId, bool isBending)
     seg.forEachPad([&foundDualSampa, isBending, dualSampaId, &seg](int dePadIndex) {
             if (seg.isBendingPad(dePadIndex) == isBending && seg.padDualSampaId(dePadIndex) == dualSampaId) {
                 foundDualSampa = true;
-                return;  
+                return;
             } });
 
     if (foundDualSampa) {
