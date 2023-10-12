@@ -204,6 +204,10 @@ CompletionPolicy CompletionPolicyHelpers::consumeWhenAny(const char* name, Compl
       if (input.header != nullptr) {
         return CompletionPolicy::CompletionOp::Consume;
       }
+      if (input.payload != nullptr) {
+        LOGP(warning, "Input has payload, but no header. This should not happen.");
+        return CompletionPolicy::CompletionOp::Discard;
+      }
     }
     return CompletionPolicy::CompletionOp::Wait;
   };
