@@ -1,4 +1,4 @@
-// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -11,7 +11,7 @@
 
 /// @file   test_ransHistogramView.cxx
 /// @author Michael Lettrich
-/// @brief  test helper class that unifies handling of different types of histograms
+/// @brief
 
 #define BOOST_TEST_MODULE Utility test
 #define BOOST_TEST_MAIN
@@ -23,9 +23,7 @@
 #include <boost/test/unit_test.hpp>
 #include <boost/mpl/vector.hpp>
 
-#include "rANS/internal/containers/HistogramView.h"
-
-using namespace o2::rans;
+#include "rANS/utils/HistogramView.h"
 
 struct ReferenceState {
   ReferenceState(std::vector<int32_t> v) : mV{std::move(v)} {};
@@ -43,7 +41,7 @@ struct ReferenceState {
 BOOST_AUTO_TEST_CASE(test_emptyHistogramView)
 {
   std::vector<int32_t> a{};
-  const auto v = makeHistogramView(a, 0);
+  o2::rans::utils::HistogramView v{a.begin(), a.end()};
 
   BOOST_CHECK_EQUAL(v.size(), 0);
   BOOST_CHECK_EQUAL(v.getOffset(), 0);
@@ -57,22 +55,22 @@ BOOST_AUTO_TEST_CASE(test_emptyHistogramView)
 
 struct HistogramViewFixture_one {
   ReferenceState expected{{-2}};
-  HistogramView<decltype(expected.begin())> view{expected.begin(), expected.end(), -2};
+  o2::rans::utils::HistogramView<decltype(expected.begin())> view{expected.begin(), expected.end(), -2};
 };
 
 struct HistogramViewFixture_plus {
   ReferenceState expected{{2, 3, 4, 5}};
-  HistogramView<decltype(expected.begin())> view{expected.begin(), expected.end(), 2};
+  o2::rans::utils::HistogramView<decltype(expected.begin())> view{expected.begin(), expected.end(), 2};
 };
 
 struct HistogramViewFixture_minus {
   ReferenceState expected{{-3, -2}};
-  HistogramView<decltype(expected.begin())> view{expected.begin(), expected.end(), -3};
+  o2::rans::utils::HistogramView<decltype(expected.begin())> view{expected.begin(), expected.end(), -3};
 };
 
 struct HistogramViewFixture_plusminus {
   ReferenceState expected{{-3, -2, -1, 0, 1, 2, 3, 4, 5}};
-  HistogramView<decltype(expected.begin())> view{expected.begin(), expected.end(), -3};
+  o2::rans::utils::HistogramView<decltype(expected.begin())> view{expected.begin(), expected.end(), -3};
 };
 
 using histogramViewFixtures_t = boost::mpl::vector<HistogramViewFixture_one,
@@ -100,7 +98,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_histogramView, fixture, histogramViewFixtures
 BOOST_AUTO_TEST_CASE(test_trimEmpty)
 {
   std::vector<int32_t> a{};
-  const auto v = trim(makeHistogramView(a, 0));
+  o2::rans::utils::HistogramView v{a.begin(), a.end()};
+  v = o2::rans::utils::trim(v);
 
   BOOST_CHECK_EQUAL(v.size(), 0);
   BOOST_CHECK_EQUAL(v.getOffset(), 0);
@@ -115,7 +114,8 @@ BOOST_AUTO_TEST_CASE(test_trimEmpty)
 BOOST_AUTO_TEST_CASE(test_trimFull)
 {
   std::vector<int32_t> a{0, 0, 0, 0, 0};
-  const auto v = trim(makeHistogramView(a, 0));
+  o2::rans::utils::HistogramView v{a.begin(), a.end()};
+  v = o2::rans::utils::trim(v);
 
   BOOST_CHECK_EQUAL(v.size(), 0);
   BOOST_CHECK_EQUAL(v.getOffset(), 0);
@@ -132,7 +132,7 @@ struct trimFixture_left {
   ReferenceState expected{{-3, -2, -1, 0, 1, 2, 3, 4, 5}};
   decltype(initial.begin()) begin = ++initial.begin();
   decltype(initial.end()) end = initial.end();
-  HistogramView<decltype(initial.begin())> view{initial.begin(), initial.end(), -4};
+  o2::rans::utils::HistogramView<decltype(initial.begin())> view{initial.begin(), initial.end(), -4};
 };
 
 struct trimFixture_right {
@@ -140,7 +140,7 @@ struct trimFixture_right {
   ReferenceState expected{{-3, -2, -1, 0, 1, 2, 3, 4, 5}};
   decltype(initial.begin()) begin = initial.begin();
   decltype(initial.end()) end = --initial.end();
-  HistogramView<decltype(initial.begin())> view{initial.begin(), initial.end(), -3};
+  o2::rans::utils::HistogramView<decltype(initial.begin())> view{initial.begin(), initial.end(), -3};
 };
 
 struct trimFixture_both {
@@ -148,14 +148,14 @@ struct trimFixture_both {
   ReferenceState expected{{-3, -2, -1, 0, 1, 2, 3, 4, 5}};
   decltype(initial.begin()) begin = ++initial.begin();
   decltype(initial.end()) end = --initial.end();
-  HistogramView<decltype(initial.begin())> view{initial.begin(), initial.end(), -4};
+  o2::rans::utils::HistogramView<decltype(initial.begin())> view{initial.begin(), initial.end(), -4};
 };
 
 struct trimFixture_none {
   ReferenceState expected{{-3, -2, -1, 0, 1, 2, 3, 4, 5}};
   decltype(expected.begin()) begin = expected.begin();
   decltype(expected.end()) end = expected.end();
-  HistogramView<decltype(expected.begin())> view{expected.begin(), expected.end(), -3};
+  o2::rans::utils::HistogramView<decltype(expected.begin())> view{expected.begin(), expected.end(), -3};
 };
 
 using trimFixture_t = boost::mpl::vector<trimFixture_left,
@@ -168,7 +168,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(test_trim, fixture, trimFixture_t)
   fixture f;
 
   ReferenceState& expected = f.expected;
-  f.view = trim(f.view);
+  f.view = o2::rans::utils::trim(f.view);
   auto& view = f.view;
 
   BOOST_CHECK_EQUAL(view.size(), expected.size());
@@ -185,10 +185,10 @@ BOOST_AUTO_TEST_CASE(intersection_disjointLeft)
 {
   std::vector<int32_t> a{-3, -2, -1, 0, 1, 2, 3, 4, 5};
   std::vector<int32_t> b{-10, -9};
-  auto av = makeHistogramView(a, -3);
-  const auto bv = makeHistogramView(b, -10);
+  o2::rans::utils::HistogramView av{a.begin(), a.end(), -3};
+  o2::rans::utils::HistogramView bv{b.begin(), b.end(), -10};
 
-  av = getIntersection(av, bv);
+  av = o2::rans::utils::intersection(av, bv);
 
   BOOST_CHECK_EQUAL(av.size(), 0);
   BOOST_CHECK_EQUAL(av.getOffset(), 0);
@@ -204,10 +204,10 @@ BOOST_AUTO_TEST_CASE(intersection_disjointRight)
 {
   std::vector<int32_t> a{-3, -2, -1, 0, 1, 2, 3, 4, 5};
   std::vector<int32_t> b{9, 10};
-  auto av = makeHistogramView(a, -3);
-  const auto bv = makeHistogramView(b, 9);
+  o2::rans::utils::HistogramView av{a.begin(), a.end(), -3};
+  o2::rans::utils::HistogramView bv{b.begin(), b.end(), 9};
 
-  av = getIntersection(av, bv);
+  av = o2::rans::utils::intersection(av, bv);
 
   BOOST_CHECK_EQUAL(av.size(), 0);
   BOOST_CHECK_EQUAL(av.getOffset(), 0);
@@ -223,10 +223,10 @@ BOOST_AUTO_TEST_CASE(intersection_leftOverlap)
 {
   std::vector<int32_t> a{-3, -2, -1, 0, 1, 2, 3, 4, 5};
   std::vector<int32_t> b{-5, -4, -3, -2, -1};
-  auto av = makeHistogramView(a, -3);
-  const auto bv = makeHistogramView(b, -5);
+  o2::rans::utils::HistogramView av{a.begin(), a.end(), -3};
+  o2::rans::utils::HistogramView bv{b.begin(), b.end(), -5};
 
-  av = getIntersection(av, bv);
+  av = o2::rans::utils::intersection(av, bv);
 
   BOOST_CHECK_EQUAL(av.size(), 3);
   BOOST_CHECK_EQUAL(av.getOffset(), -3);
@@ -242,10 +242,10 @@ BOOST_AUTO_TEST_CASE(intersection_rightOverlap)
 {
   std::vector<int32_t> a{-3, -2, -1, 0, 1, 2, 3, 4, 5};
   std::vector<int32_t> b{4, 5, 6, 7, 8};
-  auto av = makeHistogramView(a, -3);
-  const auto bv = makeHistogramView(b, 4);
+  o2::rans::utils::HistogramView av{a.begin(), a.end(), -3};
+  o2::rans::utils::HistogramView bv{b.begin(), b.end(), 4};
 
-  av = getIntersection(av, bv);
+  av = o2::rans::utils::intersection(av, bv);
 
   BOOST_CHECK_EQUAL(av.size(), 2);
   BOOST_CHECK_EQUAL(av.getOffset(), 4);
@@ -261,10 +261,10 @@ BOOST_AUTO_TEST_CASE(intersection_fullOverlap)
 {
   std::vector<int32_t> a{-3, -2, -1, 0, 1, 2, 3, 4, 5};
   std::vector<int32_t> b{-1, 0, 1, 2};
-  auto av = makeHistogramView(a, -3);
-  const auto bv = makeHistogramView(b, -1);
+  o2::rans::utils::HistogramView av{a.begin(), a.end(), -3};
+  o2::rans::utils::HistogramView bv{b.begin(), b.end(), -1};
 
-  av = getIntersection(av, bv);
+  av = o2::rans::utils::intersection(av, bv);
 
   BOOST_CHECK_EQUAL(av.size(), 4);
   BOOST_CHECK_EQUAL(av.getOffset(), -1);
@@ -280,10 +280,10 @@ BOOST_AUTO_TEST_CASE(intersection_emptyB)
 {
   std::vector<int32_t> a{-3, -2, -1, 0, 1, 2, 3, 4, 5};
   std::vector<int32_t> b{};
-  auto av = makeHistogramView(a, -3);
-  const auto bv = makeHistogramView(b, 0);
+  o2::rans::utils::HistogramView av{a.begin(), a.end(), -3};
+  o2::rans::utils::HistogramView bv{b.begin(), b.end(), 0};
 
-  av = getIntersection(av, bv);
+  av = o2::rans::utils::intersection(av, bv);
 
   BOOST_CHECK_EQUAL(av.size(), 0);
   BOOST_CHECK_EQUAL(av.getOffset(), 0);
@@ -299,10 +299,10 @@ BOOST_AUTO_TEST_CASE(intersection_emptyA)
 {
   std::vector<int32_t> a{};
   std::vector<int32_t> b{-10, -9};
-  auto av = makeHistogramView(a, 0);
-  const auto bv = makeHistogramView(b, -10);
+  o2::rans::utils::HistogramView av{a.begin(), a.end(), 0};
+  o2::rans::utils::HistogramView bv{b.begin(), b.end(), -10};
 
-  av = getIntersection(av, bv);
+  av = o2::rans::utils::intersection(av, bv);
 
   BOOST_CHECK_EQUAL(av.size(), 0);
   BOOST_CHECK_EQUAL(av.getOffset(), 0);
@@ -318,10 +318,10 @@ BOOST_AUTO_TEST_CASE(intersection_empty)
 {
   std::vector<int32_t> a{};
   std::vector<int32_t> b{};
-  auto av = makeHistogramView(a, 0);
-  const auto bv = makeHistogramView(b, 0);
+  o2::rans::utils::HistogramView av{a.begin(), a.end(), 0};
+  o2::rans::utils::HistogramView bv{b.begin(), b.end(), 0};
 
-  av = getIntersection(av, bv);
+  av = o2::rans::utils::intersection(av, bv);
 
   BOOST_CHECK_EQUAL(av.size(), 0);
   BOOST_CHECK_EQUAL(av.getOffset(), 0);
@@ -337,10 +337,11 @@ BOOST_AUTO_TEST_CASE(tails_empty)
 {
   std::vector<int32_t> a{};
   std::vector<int32_t> b{};
-  const auto av = makeHistogramView(a, 0);
-  const auto bv = makeHistogramView(b, 0);
 
-  auto v = getLeftTail(av, bv);
+  o2::rans::utils::HistogramView av{a.begin(), a.end()};
+  o2::rans::utils::HistogramView bv{b.begin(), b.end()};
+
+  auto v = o2::rans::utils::leftTail(av, bv);
   BOOST_CHECK_EQUAL(v.size(), 0);
   BOOST_CHECK_EQUAL(v.getOffset(), 0);
   BOOST_CHECK_EQUAL(v.getMin(), 0);
@@ -350,7 +351,7 @@ BOOST_AUTO_TEST_CASE(tails_empty)
   BOOST_CHECK((v.rbegin().base() == a.end()));
   BOOST_CHECK((v.rend().base() == a.end()));
 
-  v = getRightTail(av, bv);
+  v = o2::rans::utils::rightTail(av, bv);
   BOOST_CHECK_EQUAL(v.size(), 0);
   BOOST_CHECK_EQUAL(v.getOffset(), 0);
   BOOST_CHECK_EQUAL(v.getMin(), 0);
@@ -365,10 +366,11 @@ BOOST_AUTO_TEST_CASE(tails_emptyA)
 {
   std::vector<int32_t> a{};
   std::vector<int32_t> b{-10, -9};
-  const auto av = makeHistogramView(a, 0);
-  const auto bv = makeHistogramView(b, -10);
 
-  auto v = getLeftTail(av, bv);
+  o2::rans::utils::HistogramView av{a.begin(), a.end()};
+  o2::rans::utils::HistogramView bv{b.begin(), b.end(), -10};
+
+  auto v = o2::rans::utils::leftTail(av, bv);
   BOOST_CHECK_EQUAL(v.size(), av.size());
   BOOST_CHECK_EQUAL(v.getOffset(), av.getOffset());
   BOOST_CHECK_EQUAL(v.getMin(), av.getMin());
@@ -378,7 +380,7 @@ BOOST_AUTO_TEST_CASE(tails_emptyA)
   BOOST_CHECK((v.rbegin().base() == av.rend().base()));
   BOOST_CHECK((v.rend().base() == av.rend().base()));
 
-  v = getRightTail(av, bv);
+  v = o2::rans::utils::rightTail(av, bv);
   BOOST_CHECK_EQUAL(v.size(), av.size());
   BOOST_CHECK_EQUAL(v.getOffset(), av.getOffset());
   BOOST_CHECK_EQUAL(v.getMin(), av.getMin());
@@ -393,10 +395,11 @@ BOOST_AUTO_TEST_CASE(tails_emptyB)
 {
   std::vector<int32_t> a{-3, -2, -1, 0, 1, 2, 3, 4, 5};
   std::vector<int32_t> b{};
-  const auto av = makeHistogramView(a, -3);
-  const auto bv = makeHistogramView(b, 0);
 
-  auto v = getLeftTail(av, bv);
+  o2::rans::utils::HistogramView av{a.begin(), a.end(), -3};
+  o2::rans::utils::HistogramView bv{b.begin(), b.end()};
+
+  auto v = o2::rans::utils::leftTail(av, bv);
   BOOST_CHECK_EQUAL(v.size(), av.size());
   BOOST_CHECK_EQUAL(v.getOffset(), av.getOffset());
   BOOST_CHECK_EQUAL(v.getMin(), av.getMin());
@@ -406,7 +409,7 @@ BOOST_AUTO_TEST_CASE(tails_emptyB)
   BOOST_CHECK((v.rbegin().base() == av.rbegin().base()));
   BOOST_CHECK((v.rend().base() == av.rend().base()));
 
-  v = getRightTail(av, bv);
+  v = o2::rans::utils::rightTail(av, bv);
   BOOST_CHECK_EQUAL(v.size(), av.size());
   BOOST_CHECK_EQUAL(v.getOffset(), av.getOffset());
   BOOST_CHECK_EQUAL(v.getMin(), av.getMin());
@@ -421,10 +424,10 @@ BOOST_AUTO_TEST_CASE(tails_leftTail)
 {
   std::vector<int32_t> a{-3, -2, -1, 0, 1, 2, 3, 4, 5};
   std::vector<int32_t> b{4, 5, 6, 7, 8};
-  const auto av = makeHistogramView(a, -3);
-  const auto bv = makeHistogramView(b, 4);
+  o2::rans::utils::HistogramView av{a.begin(), a.end(), -3};
+  o2::rans::utils::HistogramView bv{b.begin(), b.end(), 4};
 
-  auto v = getLeftTail(av, bv);
+  auto v = o2::rans::utils::leftTail(av, bv);
   BOOST_CHECK_EQUAL(v.size(), 7);
   BOOST_CHECK_EQUAL(v.getOffset(), -3);
   BOOST_CHECK_EQUAL(v.getMin(), -3);
@@ -434,7 +437,7 @@ BOOST_AUTO_TEST_CASE(tails_leftTail)
   BOOST_CHECK((v.rbegin().base() == a.begin() + 7));
   BOOST_CHECK((v.rend().base() == a.begin()));
 
-  v = getRightTail(av, bv);
+  v = o2::rans::utils::rightTail(av, bv);
   BOOST_CHECK_EQUAL(v.size(), 0);
   BOOST_CHECK_EQUAL(v.getOffset(), 0);
   BOOST_CHECK_EQUAL(v.getMin(), 0);
@@ -449,10 +452,10 @@ BOOST_AUTO_TEST_CASE(tails_rightTail)
 {
   std::vector<int32_t> a{-3, -2, -1, 0, 1, 2, 3, 4, 5};
   std::vector<int32_t> b{-4, -3, -2, -1, 0};
-  const auto av = makeHistogramView(a, -3);
-  const auto bv = makeHistogramView(b, -4);
+  o2::rans::utils::HistogramView av{a.begin(), a.end(), -3};
+  o2::rans::utils::HistogramView bv{b.begin(), b.end(), -4};
 
-  auto v = getLeftTail(av, bv);
+  auto v = o2::rans::utils::leftTail(av, bv);
   BOOST_CHECK_EQUAL(v.size(), 0);
   BOOST_CHECK_EQUAL(v.getOffset(), 0);
   BOOST_CHECK_EQUAL(v.getMin(), 0);
@@ -462,7 +465,7 @@ BOOST_AUTO_TEST_CASE(tails_rightTail)
   BOOST_CHECK((v.rbegin().base() == a.end()));
   BOOST_CHECK((v.rend().base() == a.end()));
 
-  v = getRightTail(av, bv);
+  v = o2::rans::utils::rightTail(av, bv);
   BOOST_CHECK_EQUAL(v.size(), 5);
   BOOST_CHECK_EQUAL(v.getOffset(), 1);
   BOOST_CHECK_EQUAL(v.getMin(), 1);
@@ -477,10 +480,10 @@ BOOST_AUTO_TEST_CASE(tails_bothTail)
 {
   std::vector<int32_t> a{-3, -2, -1, 0, 1, 2, 3, 4, 5};
   std::vector<int32_t> b{-1, 0, 1, 2};
-  const auto av = makeHistogramView(a, -3);
-  const auto bv = makeHistogramView(b, -1);
+  o2::rans::utils::HistogramView av{a.begin(), a.end(), -3};
+  o2::rans::utils::HistogramView bv{b.begin(), b.end(), -1};
 
-  auto v = getLeftTail(av, bv);
+  auto v = o2::rans::utils::leftTail(av, bv);
   BOOST_CHECK_EQUAL(v.size(), 2);
   BOOST_CHECK_EQUAL(v.getOffset(), -3);
   BOOST_CHECK_EQUAL(v.getMin(), -3);
@@ -490,7 +493,7 @@ BOOST_AUTO_TEST_CASE(tails_bothTail)
   BOOST_CHECK((v.rbegin().base() == a.begin() + 2));
   BOOST_CHECK((v.rend().base() == a.begin()));
 
-  v = getRightTail(av, bv);
+  v = o2::rans::utils::rightTail(av, bv);
   BOOST_CHECK_EQUAL(v.size(), 3);
   BOOST_CHECK_EQUAL(v.getOffset(), 3);
   BOOST_CHECK_EQUAL(v.getMin(), 3);
