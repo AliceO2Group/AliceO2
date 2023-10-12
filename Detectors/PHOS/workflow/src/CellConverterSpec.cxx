@@ -37,10 +37,12 @@ void CellConverterSpec::init(framework::InitContext& ctx)
 
 void CellConverterSpec::run(framework::ProcessingContext& ctx)
 {
-  LOG(debug) << "[PHOSCellConverter - run] called";
-  auto dataref = ctx.inputs().get("digits");
-  auto const* phosheader = o2::framework::DataRefUtils::getHeader<o2::phos::PHOSBlockHeader*>(dataref);
-  if (!phosheader->mHasPayload) {
+  // LOG(debug) << "[PHOSCellConverter - run] called";
+  // auto dataref = ctx.inputs().get("digits");
+  // auto const* phosheader = o2::framework::DataRefUtils::getHeader<o2::phos::PHOSBlockHeader*>(dataref);
+  // if (!phosheader->mHasPayload) {
+  auto digitsTR = ctx.inputs().get<std::vector<o2::phos::TriggerRecord>>("digitTriggerRecords");
+  if (!digitsTR.size()) { // nothing to process
     mOutputCells.clear();
     ctx.outputs().snapshot(o2::framework::Output{"PHS", "CELLS", 0, o2::framework::Lifetime::Timeframe}, mOutputCells);
     mOutputCellTrigRecs.clear();
@@ -61,7 +63,6 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
   mOutputCellTrigRecs.clear();
 
   auto digits = ctx.inputs().get<std::vector<o2::phos::Digit>>("digits");
-  auto digitsTR = ctx.inputs().get<std::vector<o2::phos::TriggerRecord>>("digitTriggerRecords");
   std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::phos::MCLabel>> truthcont(nullptr);
   if (mPropagateMC) {
     truthcont = ctx.inputs().get<o2::dataformats::MCTruthContainer<o2::phos::MCLabel>*>("digitsmctr");
