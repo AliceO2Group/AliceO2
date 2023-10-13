@@ -106,8 +106,8 @@ void TDCCalibConfig::setCuts(double low, double high)
 
 void TDCCalibConfig::setCuts(int ih, double low, double high)
 {
-  cutHigh[ih] = low;
-  cutLow[ih] = high;
+  cutLow[ih] = low;
+  cutHigh[ih] = high;
 }
 
 void TDCCalibConfig::setBinning1D(int nb, double amin, double amax)

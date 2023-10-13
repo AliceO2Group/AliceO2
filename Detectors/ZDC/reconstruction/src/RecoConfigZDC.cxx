@@ -14,6 +14,15 @@
 
 using namespace o2::zdc;
 
+void RecoConfigZDC::setBit(uint32_t ibit, bool val)
+{
+  if (ibit >= 0 && ibit < NTDCChannels) {
+    bitset[ibit] = val;
+  } else {
+    LOG(fatal) << __func__ << " channel " << ibit << " not in allowed range";
+  }
+}
+
 void RecoConfigZDC::setSearch(uint32_t ich, int val)
 {
   if (ich >= 0 && ich < NTDCChannels) {
@@ -95,7 +104,7 @@ void RecoConfigZDC::print() const
        (storeEvPileup ? " StoreEvPileup(EvE)" : " DontStoreEvPileup(EvE)"),
        (triggerCondition == 0x1 ? " SINGLEtrigger" : (triggerCondition == 0x3 ? " DOUBLEtrigger" : (triggerCondition == 0x7 ? "TRIPLEtrigger" : "WRONGtrigger"))));
   for (int itdc = 0; itdc < NTDCChannels; itdc++) {
-    LOG(info) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " search= " << tdc_search[itdc] << " = " << tdc_search[itdc] * FTDCVal << " ns";
+    LOG(info) << itdc << " " << ChannelNames[TDCSignal[itdc]] << " search= " << tdc_search[itdc] << " = " << tdc_search[itdc] * FTDCVal << " ns" << (bitset[itdc] ? " BITSET" : "");
   }
   for (Int_t ich = 0; ich < NChannels; ich++) {
     LOG(info) << ChannelNames[ich] << " integration: signal=[" << beg_int[ich] << ":" << end_int[ich] << "] pedestal=[" << beg_ped_int[ich] << ":" << end_ped_int[ich]
