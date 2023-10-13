@@ -29,3 +29,7 @@ o2_add_test_root_macro(dumpCTF.C
 o2_add_test_root_macro(CTFdict2CCDBfiles.C
                        PUBLIC_LINK_LIBRARIES O2::CTFWorkflow fmt::fmt
                        LABELS ctf COMPILE_ONLY)
+
+o2_add_test_root_macro(convCTFDict.C
+                       PUBLIC_LINK_LIBRARIES O2::CTFWorkflow fmt::fmt
+                       LABELS ctf COMPILE_ONLY)

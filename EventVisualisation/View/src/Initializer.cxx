@@ -37,6 +37,7 @@
 #include <TSystem.h>
 #include <TApplication.h>
 #include <TEveWindowManager.h>
+
 using namespace std;
 
 namespace o2
@@ -49,22 +50,27 @@ void Initializer::setup()
   TEnv settings;
   ConfigurationManager::getInstance().getConfig(settings);
 
-  const bool fullscreen = settings.GetValue("fullscreen.mode", false);                                            // hide left and bottom tabs
-  const string ocdbStorage = settings.GetValue("OCDB.default.path", o2::base::NameConf::getCCDBServer().c_str()); // default path to OCDB
-  LOG(info) << "Initializer -- OCDB path:" << ocdbStorage;
+  const bool fullscreen = settings.GetValue("fullscreen.mode",
+                                            false); // hide left and bottom tabs
+  const string ocdbStorage = settings.GetValue("OCDB.default.path",
+                                               o2::base::NameConf::getCCDBServer().c_str()); // default path to OCDB
+  LOGF(info, "Initializer -- OCDB path:", ocdbStorage);
 
   auto& eventManager = EventManager::getInstance();
   eventManager.setCdbPath(ocdbStorage);
 
   auto const options = Options::Instance();
 
-  EventManagerFrame::RunMode runMode = EventManagerFrame::decipherRunMode(settings.GetValue("data.default", "SYNTHETIC"));
+  EventManagerFrame::RunMode runMode = EventManagerFrame::decipherRunMode(ConfigurationManager::getDataDefault());
 
   if (options->json()) {
     runMode = EventManagerFrame::decipherRunMode(options->dataFolder(), runMode);
-    eventManager.setDataSource(new DataSourceOnline(EventManagerFrame::getSourceDirectory(runMode, EventManagerFrame::OnlineMode)));
+    eventManager.setDataSource(
+      new DataSourceOnline(EventManagerFrame::getSourceDirectory(runMode, EventManagerFrame::OnlineMode)));
   } else {
-    eventManager.setDataSource(new DataSourceOffline(options->AODConverterPath(), options->dataFolder(), options->fileName(), options->hideDplGUI()));
+    eventManager.setDataSource(
+      new DataSourceOffline(options->AODConverterPath(), options->dataFolder(), options->fileName(),
+                            options->hideDplGUI()));
   }
 
   eventManager.getDataSource()->registerReader(new DataReaderJSON());
@@ -106,7 +112,8 @@ void Initializer::setup()
     eventManager.getDataSource()->refresh();
     frame->DoFirstEvent();
   }
-  gApplication->Connect("TEveBrowser", "CloseWindow()", "o2::event_visualisation::EventManagerFrame", frame, "DoTerminate()");
+  gApplication->Connect("TEveBrowser", "CloseWindow()", "o2::event_visualisation::EventManagerFrame", frame,
+                        "DoTerminate()");
 }
 
 void Initializer::setupGeometry()
@@ -125,9 +132,10 @@ void Initializer::setupGeometry()
     }
     EVisualisationGroup det = static_cast<EVisualisationGroup>(iDet);
     string detName = gVisualisationGroupName[det];
-    LOG(info) << detName;
+    LOGF(info, detName);
 
-    if (detName == "TPC" || detName == "MCH" || detName == "MID" || detName == "MFT") { // don't load MUON+MFT and AD and standard TPC to R-Phi view
+    if (detName == "TPC" || detName == "MCH" || detName == "MID" ||
+        detName == "MFT") { // don't load MUON+MFT and AD and standard TPC to R-Phi view
       multiView->drawGeometryForDetector(detName, true, false);
     } else if (detName == "RPH") { // special TPC geom from R-Phi view
       multiView->drawGeometryForDetector(detName, false, true, false);
@@ -147,17 +155,13 @@ void Initializer::setupGeometry()
 void Initializer::setupCamera()
 {
   // move and rotate sub-views
-  TEnv settings;
-  ConfigurationManager::getInstance().getConfig(settings);
-
-  // read settings from config file
-  const double angleHorizontal = settings.GetValue("camera.3D.rotation.horizontal", -0.4);
-  const double angleVertical = settings.GetValue("camera.3D.rotation.vertical", 1.0);
+  const double angleHorizontal = ConfigurationManager::getCamera3DRotationHorizontal();
+  const double angleVertical = ConfigurationManager::getCamera3DRotationVertical();
 
   double zoom[MultiView::NumberOfViews];
-  zoom[MultiView::View3d] = settings.GetValue("camera.3D.zoom", 1.0);
-  zoom[MultiView::ViewRphi] = settings.GetValue("camera.R-Phi.zoom", 1.0);
-  zoom[MultiView::ViewZY] = settings.GetValue("camera.Z-Y.zoom", 1.0);
+  zoom[MultiView::View3d] = ConfigurationManager::getCamera3DZoom();
+  zoom[MultiView::ViewRphi] = ConfigurationManager::getCameraRPhiZoom();
+  zoom[MultiView::ViewZY] = ConfigurationManager::getCameraZYZoom();
 
   // get necessary elements of the multiview and set camera position
   auto multiView = MultiView::getInstance();

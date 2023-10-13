@@ -24,10 +24,17 @@ using namespace o2;
 BOOST_AUTO_TEST_CASE(MCTrack_test)
 {
   MCTrack track;
+
+  // auxiliary lookup table needed to fetch and set hit properties
+  std::vector<int> hitLUT(o2::detectors::DetID::nDetectors, -1);
+  // in this test we have a single fictional detector 1, which we map to
+  // the first bit
+  hitLUT[1] = 0;
+
   // check properties on default constructed object
   BOOST_CHECK(track.getStore() == false);
   for (auto i = o2::detectors::DetID::First; i < o2::detectors::DetID::nDetectors; ++i) {
-    BOOST_CHECK(track.leftTrace(i) == false);
+    BOOST_CHECK(track.leftTrace(i, hitLUT) == false);
   }
   BOOST_CHECK(track.getNumDet() == 0);
   BOOST_CHECK(track.hasHits() == false);
@@ -41,10 +48,10 @@ BOOST_AUTO_TEST_CASE(MCTrack_test)
   BOOST_CHECK(track.getStore() == true);
 
   // set hit for first detector
-  BOOST_CHECK(track.leftTrace(1) == false);
-  track.setHit(1);
+  BOOST_CHECK(track.leftTrace(1, hitLUT) == false);
+  track.setHit(hitLUT[1]);
   BOOST_CHECK(track.hasHits() == true);
-  BOOST_CHECK(track.leftTrace(1) == true);
+  BOOST_CHECK(track.leftTrace(1, hitLUT) == true);
   BOOST_CHECK(track.getNumDet() == 1);
 
   // check process encoding

@@ -52,6 +52,9 @@ uint32_t WaveformCalibQueue::append(RecEventFlat& ev)
   auto& last = mIR.back();
   // If BC are not consecutive, clear queue
   if (toadd.differenceInBC(last) > 1) {
+#ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
+    LOG(info) << "WaveformCalibQueue::" << __func__ << " gap detected. Clearing " << mIR.size() << " bc";
+#endif
     clear();
   }
   // If queue is not empty and is too long remove first element
@@ -61,6 +64,9 @@ uint32_t WaveformCalibQueue::append(RecEventFlat& ev)
   // If BC are consecutive or cleared queue append element
   appendEv(ev);
   if (mIR.size() == mN) {
+#ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
+    LOG(info) << "WaveformCalibQueue::" << __func__ << " processing " << mIR.size() << " bcs";
+#endif
     uint32_t mask = 0;
     for (int32_t itdc = 0; itdc < NTDCChannels; itdc++) {
       // Check which channels satisfy the condition on TDC
@@ -92,6 +98,9 @@ uint32_t WaveformCalibQueue::append(RecEventFlat& ev)
     }
     return mask;
   } else {
+    // #ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
+    //     LOG(info) << "WaveformCalibQueue::" << __func__ << " IR size = " << mIR.size() << " != " << mN;
+    // #endif
     return 0;
   }
 }
@@ -182,7 +191,7 @@ int WaveformCalibQueue::hasData(int isig, const gsl::span<const o2::zdc::ZDCWave
   } else {
     int ipos = NTimeBinsPerBC * TSN * ipkb + ipk;
 #ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
-    LOG(info) << "WaveformCalibConfig::" << __func__ << " isig = " << isig << " ipkb " << ipkb << " ipk " << ipk << " min " << min;
+    LOG(info) << "WaveformCalibQueue::" << __func__ << " isig = " << isig << " ipkb " << ipkb << " ipk " << ipk << " min " << min;
 #endif
     return ipos;
   }
@@ -199,9 +208,9 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
   bool hasInfos = false;
   for (int ib = 0; ib < mN; ib++) {
     bool ifound = false;
-#ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
-    LOG(info) << "mNW[" << ib << "] = " << mNW[ib] << " mFirstW = " << mFirstW[ib];
-#endif
+    // #ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
+    //     LOG(info) << "mNW[" << ib << "/" << mN << "] = " << mNW[ib] << " mFirstW = " << mFirstW[ib];
+    // #endif
     if (mHasInfos[isig][ib] || mHasInfos[TDCSignal[SignalTDC[isig]]][ib]) {
 #ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
       LOG(info) << "isig=" << isig << " ib=" << ib << " tdcid=" << SignalTDC[isig] << " tdc_sig=" << TDCSignal[SignalTDC[isig]] << " " << mHasInfos[isig][ib] << " " << mHasInfos[TDCSignal[SignalTDC[isig]]][ib];
@@ -237,6 +246,9 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
     }
   }
   if (ipkb != mPk) {
+#ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
+    LOG(info) << "WaveformCalibQueue::" << __func__ << " isig = " << isig << " ipkb " << ipkb << " != mPk " << mPk << " SKIP";
+#endif
     return -1;
   } else {
     int ppos = NIS * ipkb + ipk;
@@ -249,8 +261,10 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
         return -1;
       }
       if ((ppos - mPeak) < mTimeLow[itdc] || (ppos - mPeak) > mTimeHigh[itdc]) {
-        // Put a warning message for a signal out of time
-        LOGF(warning, "%d.%04d Signal %2d peak position %d-%d=%d is outside allowed range [%d:%d]", mIR[mPk].orbit, mIR[mPk].bc, isig, ppos, mPeak, ppos - mPeak, mTimeLow[isig], mTimeHigh[isig]);
+        if (mVerbosity > DbgMinimal) {
+          // Put a warning message for a signal out of time
+          LOGF(warning, "%d.%04d Signal %2d peak position %d-%d=%d is outside allowed range [%d:%d]", mIR[mPk].orbit, mIR[mPk].bc, isig, ppos, mPeak, ppos - mPeak, mTimeLow[isig], mTimeHigh[isig]);
+        }
         return -1;
       }
     }
@@ -277,7 +291,7 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
     // Restrict validity range because of signal jitter
     data.setLastValid(isig, ipos);
 #ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
-    LOG(info) << "WaveformCalibConfig::" << __func__ << " isig = " << isig << " ipkb " << ipkb << " ipk " << ipk << " min " << min << " range=[" << data.getFirstValid(isig) << ":" << ppos << ":" << data.getLastValid(isig) << "]";
+    LOG(info) << "WaveformCalibQueue::" << __func__ << " isig = " << isig << " ipkb " << ipkb << " ipk " << ipk << " min " << min << " range=[" << data.getFirstValid(isig) << ":" << ppos << ":" << data.getLastValid(isig) << "]";
 #endif
     return ipos;
   }
@@ -286,36 +300,61 @@ int WaveformCalibQueue::addData(int isig, const gsl::span<const o2::zdc::ZDCWave
 void WaveformCalibQueue::print()
 {
   int n = mIR.size();
+  printf("WaveformCalibQueue::print() %d consecutive bunches\n", n);
   for (int i = 0; i < n; i++) {
-    printf("%d.%04d mEntry=%d mFirstW=%d mNW=%d\n", mIR[i].orbit, mIR[i].bc, mEntry[i], mFirstW[i], mNW[i]);
-    printf("mHasInfos:");
+    printf("%d.%04d mEntry=%d mFirstW=%d mNW=%d waveforms\n", mIR[i].orbit, mIR[i].bc, mEntry[i], mFirstW[i], mNW[i]);
+    bool printed = false;
     for (int j = 0; j < NChannels; j++) {
       if (mHasInfos[j][i] != 0) {
+        if (!printed) {
+          printf("mHasInfos:");
+          printed = true;
+        }
         printf(" %2d=%d", j, mHasInfos[j][i] != 0);
       }
     }
-    printf("\n");
-    printf("mNTDC:");
+    if (printed) {
+      printf("\n");
+      printed = false;
+    }
     for (int j = 0; j < NTDCChannels; j++) {
       if (mNTDC[j][i] > 0) {
+        if (!printed) {
+          printf("mNTDC:");
+          printed = true;
+        }
         printf(" %2d=%6u", j, mNTDC[j][i]);
       }
     }
-    printf("\n");
-    printf("mTDCA:");
+    if (printed) {
+      printf("\n");
+      printed = false;
+    }
     for (int j = 0; j < NTDCChannels; j++) {
       if (mNTDC[j][i] > 0) {
+        if (!printed) {
+          printf("mTDCA:");
+          printed = true;
+        }
         printf(" %2d=%6.1f", j, mTDCA[j][i]);
       }
     }
-    printf("\n");
-    printf("mTDCP:");
+    if (printed) {
+      printf("\n");
+      printed = false;
+    }
     for (int j = 0; j < NTDCChannels; j++) {
       if (mNTDC[j][i] > 0) {
+        if (!printed) {
+          printf("mTDCP:");
+          printed = true;
+        }
         printf(" %2d=%6.1f", j, mTDCP[j][i]);
       }
     }
-    printf("\n");
+    if (printed) {
+      printf("\n");
+    }
   }
 }
 

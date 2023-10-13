@@ -54,6 +54,7 @@
 #include <FT3Simulation/Detector.h>
 #include <FCTSimulation/Detector.h>
 #include <Alice3DetectorsPassive/Pipe.h>
+#include <Alice3DetectorsPassive/Absorber.h>
 #endif
 
 void finalize_geometry(FairRunSim* run);
@@ -161,6 +162,12 @@ void build_geometry(FairRunSim* run = nullptr)
   if (isActivated("A3IP")) {
     run->AddModule(new o2::passive::Alice3Pipe("A3IP", "Alice 3 beam pipe", !isActivated("TRK"), 0.48f, 0.025f, 1000.f, 3.7f, 0.08f, 1000.f));
   }
+
+  // the absorber
+  if (isActivated("A3ABSO")) {
+    run->AddModule(new o2::passive::Alice3Absorber("A3ABSO", "ALICE3 Absorber"));
+  }
+
 #endif
 
   // the absorber
@@ -179,103 +186,120 @@ void build_geometry(FairRunSim* run = nullptr)
     run->AddModule(new o2::passive::FrameStructure("FRAME", "Frame"));
   }
 
+  std::vector<int> detId2RunningId = std::vector<int>(o2::detectors::DetID::nDetectors, -1); // a mapping of detectorId to a dense runtime index
+  // used for instance to set bits in the hit structure of MCTracks; -1 means that there is no bit associated
+
+  auto addReadoutDetector = [&detId2RunningId, &run](o2::base::Detector* detector) {
+    static int runningid = 0; // this is static for constant lambda interfaces --> use fixed type and not auto in the lambda!
+    run->AddModule(detector);
+    if (detector->IsActive()) {
+      auto detID = detector->GetDetId();
+      detId2RunningId[detID] = runningid;
+      LOG(info) << " DETID " << detID << " vs " << detector->GetDetId() << " mapped to hit bit index " << runningid;
+      runningid++;
+    }
+  };
+
   if (isActivated("TOF")) {
     // TOF
-    run->AddModule(new o2::tof::Detector(isReadout("TOF")));
+    addReadoutDetector(new o2::tof::Detector(isReadout("TOF")));
   }
 
   if (isActivated("TRD")) {
     // TRD
-    run->AddModule(new o2::trd::Detector(isReadout("TRD")));
+    addReadoutDetector(new o2::trd::Detector(isReadout("TRD")));
   }
 
   if (isActivated("TPC")) {
     // tpc
-    run->AddModule(new o2::tpc::Detector(isReadout("TPC")));
+    addReadoutDetector(new o2::tpc::Detector(isReadout("TPC")));
   }
 #ifdef ENABLE_UPGRADES
   if (isActivated("IT3")) {
     // IT3
-    run->AddModule(new o2::its::Detector(isReadout("IT3"), "IT3"));
+    addReadoutDetector(new o2::its::Detector(isReadout("IT3"), "IT3"));
   }
 
   if (isActivated("TRK")) {
     // ALICE 3 TRK
-    run->AddModule(new o2::trk::Detector(isReadout("TRK")));
+    addReadoutDetector(new o2::trk::Detector(isReadout("TRK")));
   }
 
   if (isActivated("FT3")) {
     // ALICE 3 FT3
-    run->AddModule(new o2::ft3::Detector(isReadout("FT3")));
+    addReadoutDetector(new o2::ft3::Detector(isReadout("FT3")));
   }
 
   if (isActivated("FCT")) {
     // ALICE 3 FCT
-    run->AddModule(new o2::fct::Detector(isReadout("FCT")));
+    addReadoutDetector(new o2::fct::Detector(isReadout("FCT")));
   }
 #endif
 
   if (isActivated("ITS")) {
     // its
-    run->AddModule(new o2::its::Detector(isReadout("ITS")));
+    addReadoutDetector(new o2::its::Detector(isReadout("ITS")));
   }
 
   if (isActivated("MFT")) {
     // mft
-    run->AddModule(new o2::mft::Detector(isReadout("MFT")));
+    addReadoutDetector(new o2::mft::Detector(isReadout("MFT")));
   }
 
   if (isActivated("MCH")) {
     // mch
-    run->AddModule(new o2::mch::Detector(isReadout("MCH")));
+    addReadoutDetector(new o2::mch::Detector(isReadout("MCH")));
   }
 
   if (isActivated("MID")) {
     // mid
-    run->AddModule(new o2::mid::Detector(isReadout("MID")));
+    addReadoutDetector(new o2::mid::Detector(isReadout("MID")));
   }
 
   if (isActivated("EMC")) {
     // emcal
-    run->AddModule(new o2::emcal::Detector(isReadout("EMC")));
+    addReadoutDetector(new o2::emcal::Detector(isReadout("EMC")));
   }
 
   if (isActivated("PHS")) {
     // phos
-    run->AddModule(new o2::phos::Detector(isReadout("PHS")));
+    addReadoutDetector(new o2::phos::Detector(isReadout("PHS")));
   }
 
   if (isActivated("CPV")) {
     // cpv
-    run->AddModule(new o2::cpv::Detector(isReadout("CPV")));
+    addReadoutDetector(new o2::cpv::Detector(isReadout("CPV")));
   }
 
   if (isActivated("FT0")) {
     // FIT-T0
-    run->AddModule(new o2::ft0::Detector(isReadout("FT0")));
+    addReadoutDetector(new o2::ft0::Detector(isReadout("FT0")));
   }
 
   if (isActivated("FV0")) {
     // FIT-V0
-    run->AddModule(new o2::fv0::Detector(isReadout("FV0")));
+    addReadoutDetector(new o2::fv0::Detector(isReadout("FV0")));
   }
 
   if (isActivated("FDD")) {
     // FIT-FDD
-    run->AddModule(new o2::fdd::Detector(isReadout("FDD")));
+    addReadoutDetector(new o2::fdd::Detector(isReadout("FDD")));
   }
 
   if (isActivated("HMP")) {
     // HMP
-    run->AddModule(new o2::hmpid::Detector(isReadout("HMP")));
+    addReadoutDetector(new o2::hmpid::Detector(isReadout("HMP")));
   }
 
   if (isActivated("ZDC")) {
     // ZDC
-    run->AddModule(new o2::zdc::Detector(isReadout("ZDC")));
+    addReadoutDetector(new o2::zdc::Detector(isReadout("ZDC")));
   }
 
   if (geomonly) {
     run->Init();
   }
+
+  // register the DetId2HitIndex lookup with the detector class by copying the vector
+  o2::base::Detector::setDetId2HitBitIndex(detId2RunningId);
 }

@@ -14,6 +14,7 @@
 
 #include <ReconstructionDataFormats/GlobalTrackID.h>
 #include <Framework/DataProcessorSpec.h>
+#include "ITSStudies/ITSStudiesConfigParam.h"
 
 namespace o2
 {

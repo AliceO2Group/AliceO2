@@ -33,16 +33,20 @@ void CreateRecoConfigZDC(long tmin = 0, long tmax = -1, std::string ccdbHost = "
 
   // Offline trigger
   // Set trigger bitsincoincidence to ignore dead channels
-  // conf.setBit(IdZNAC);
-  // conf.setBit(IdZNASum);
-  // conf.setBit(IdZPAC);
-  // conf.setBit(IdZPASum);
-  // conf.setBit(IdZEM1);
-  // conf.setBit(IdZEM2);
-  // conf.setBit(IdZNCC);
-  // conf.setBit(IdZNCSum);
-  // conf.setBit(IdZPCC);
-  // conf.setBit(IdZPCSum);
+  // conf.setBit(TDCZNAC);
+  // conf.setBit(TDCZNAS);
+  // conf.setBit(TDCZPAC);
+  // conf.setBit(TDCZPAS);
+  // conf.setBit(TDCZEM1);
+  // conf.setBit(TDCZEM2);
+  // conf.setBit(TDCZNCC);
+  // conf.setBit(TDCZNCS);
+  // conf.setBit(TDCZPCC);
+  // conf.setBit(TDCZPCS);
+
+  // conf.setTripleTrigger();
+  conf.setDoubleTrigger();
+  // conf.setSingleTrigger();
 
   // TDC
   int def_search = 250; // Unit of ~10 ps

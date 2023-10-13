@@ -9,6 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#ifndef O2_EMCAL_CELLCONVERTER_SPEC
+#define O2_EMCAL_CELLCONVERTER_SPEC
+
 #include <vector>
 
 #include "DataFormatsEMCAL/Cell.h"
@@ -114,3 +117,5 @@ framework::DataProcessorSpec getCellConverterSpec(bool propagateMC, bool useccdb
 } // namespace emcal
 
 } // namespace o2
+
+#endif // O2_EMCAL_CELLCONVERTER_SPEC

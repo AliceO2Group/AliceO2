@@ -39,6 +39,9 @@ class MergeInterface
   /// \brief Lets the child perform any routines after the object was deserialized (e.g. setting the correct ownership)
   virtual void postDeserialization(){};
 
+  /// \brief Should return an object subset which is supposed to take part in generating moving windows.
+  virtual MergeInterface* cloneMovingWindow() const { return nullptr; }
+
   ClassDef(MergeInterface, 1);
 };
 

@@ -193,7 +193,6 @@ framework::DataProcessorSpec
   bool useStatusMap = DigitFilterParam::Instance().statusMask != 0;
 
   if (useStatusMap) {
-    // input += ";statusmap:MCH/STATUSMAP/0?lifetime=sporadic";
     input += ";statusmap:MCH/STATUSMAP/0";
   }
 

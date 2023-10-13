@@ -192,25 +192,51 @@ void Digitizer::storeBC(const BCCache& bc,
                         o2::dataformats::MCTruthContainer<o2::fdd::MCLabel>& labels)
 {
   // LOG(info) << "Storing BC " << bc;
-
   int first = digitsCh.size(), nStored = 0;
+  float totalChargeA = 0, totalChargeC = 0;
+  int n_hit_A = 0, n_hit_C = 0, total_time_A = 0, total_time_C = 0;
+  bool nChCside = 8;
   for (int ic = 0; ic < Nchannels; ic++) {
     float chargeADC = integrateCharge(bc.pulse[ic]);
+    int cfdTime = int(simulateTimeCFD(bc.pulse[ic]));
+
     if (chargeADC != 0) {
+      if (ic < nChCside) {
+        totalChargeC += chargeADC;
+        total_time_C += cfdTime;
+        n_hit_C++;
+      } else {
+        totalChargeA += chargeADC;
+        total_time_A += cfdTime;
+        n_hit_A++;
+      }
       uint8_t channelBits = parameters.defaultFEEbits;
       if (std::rand() % 2) {
         ChannelData::setFlag(ChannelData::kNumberADC, channelBits);
       }
-      digitsCh.emplace_back(ic, int(simulateTimeCFD(bc.pulse[ic])), int(chargeADC), channelBits);
+      digitsCh.emplace_back(ic, cfdTime, int(chargeADC), channelBits);
       nStored++;
     }
   }
-  // bc.print();
+  // SET TRIGGERS
+  Bool_t is_A, is_C, isVertex, is_Central, is_SemiCentral = 0;
+  is_A = n_hit_A > 0;
+  is_C = n_hit_C > 0;
+  uint32_t amplA = is_A ? totalChargeA * 0.125 : -5000; // sum amplitude A side / 8 (hardware)
+  uint32_t amplC = is_C ? totalChargeC * 0.125 : -5000; // sum amplitude C side / 8 (hardware)
+  int timeA = is_A ? total_time_A / n_hit_A : -5000;    // average time A side
+  int timeC = is_C ? total_time_C / n_hit_C : -5000;    // average time C side
+  isVertex = is_A && is_C;
 
+  bool isLaser = false;
+  bool isOutputsAreBlocked = false;
+  bool isDataValid = true;
+  mTriggers.setTriggers(is_A, is_C, isVertex, is_Central, is_SemiCentral, int8_t(n_hit_A), int8_t(n_hit_C),
+                        amplA, amplC, timeA, timeC, isLaser, isOutputsAreBlocked, isDataValid);
   if (nStored != 0) {
     int nBC = digitsBC.size();
     digitsBC.emplace_back(first, nStored, bc, mTriggers);
-    digitsTrig.emplace_back(bc, 0, 0, 0, 0, 0);
+    digitsTrig.emplace_back(bc, is_A, is_C, isVertex, is_Central, is_SemiCentral);
 
     for (const auto& lbl : bc.labels) {
       labels.addElement(nBC, lbl);

@@ -18,10 +18,8 @@
 #include <fairlogger/Logger.h>
 #include <iostream>
 #include <iomanip>
-#include <limits>
 
 #include "rapidjson/document.h"
-#include "rapidjson/writer.h"
 #include "rapidjson/prettywriter.h"
 #include "rapidjson/stringbuffer.h"
 
@@ -40,7 +38,7 @@ void VisualisationEventJSONSerializer::toFile(const VisualisationEvent& event, s
 
 bool VisualisationEventJSONSerializer::fromFile(VisualisationEvent& event, std::string fileName)
 {
-  LOG(info) << "VisualisationEventJSONSerializer <- " << fileName;
+  LOGF(info, "VisualisationEventJSONSerializer <- ", fileName);
   if (FILE* file = fopen(fileName.c_str(), "r")) {
     fclose(file); // file exists
   } else {
@@ -195,7 +193,7 @@ VisualisationCluster VisualisationEventJSONSerializer::clusterFromJSON(rapidjson
   XYZ[2] = jsonZ.GetDouble();
 
   VisualisationCluster cluster(XYZ, 0);
-  cluster.mSource = o2::dataformats::GlobalTrackID::TPC; // temporary
+  cluster.mSource = o2::dataformats::GlobalTrackID::HMP;
   return cluster;
 }
 

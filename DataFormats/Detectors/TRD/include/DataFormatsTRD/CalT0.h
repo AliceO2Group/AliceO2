@@ -63,7 +63,7 @@ class CalT0
   std::array<float, constants::MAXCHAMBER> mT0{}; ///< calibrated T0 per TRD chamber
   float mT0av{-1};                                ///< average T0 obtained from fitting the PH data from all chambers combined
 
-  ClassDefNV(CalT0, 1);
+  ClassDefNV(CalT0, 2);
 };
 
 } // namespace trd

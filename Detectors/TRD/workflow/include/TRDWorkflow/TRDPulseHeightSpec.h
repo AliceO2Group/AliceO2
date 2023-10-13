@@ -22,6 +22,7 @@
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "TRDCalibration/PulseHeight.h"
+#include "DataFormatsTRD/PHData.h"
 
 using namespace o2::framework;
 using GID = o2::dataformats::GlobalTrackID;
@@ -50,6 +51,8 @@ class PuseHeightDevice : public o2::framework::Task
       mRunStopRequested = false;
     }
     if (mRunStopRequested) {
+      std::vector<PHData> mPHValues{}; // the calibration expects data at every TF, so inject dummy
+      pc.outputs().snapshot(Output{"TRD", "PULSEHEIGHT", 0, Lifetime::Timeframe}, mPHValues);
       return;
     }
     RecoContainer recoData;

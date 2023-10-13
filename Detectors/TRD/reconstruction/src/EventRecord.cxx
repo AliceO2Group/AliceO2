@@ -28,6 +28,7 @@
 #include "Framework/InputRecordWalker.h"
 
 #include "DataFormatsTRD/Constants.h"
+#include "DetectorsBase/TFIDInfoHelper.h"
 
 #include <cassert>
 #include <array>
@@ -55,7 +56,7 @@ void EventRecord::sortData(bool sortDigits)
   }
 }
 
-void EventRecordContainer::sendData(o2::framework::ProcessingContext& pc, bool generatestats, bool sortDigits)
+void EventRecordContainer::sendData(o2::framework::ProcessingContext& pc, bool generatestats, bool sortDigits, bool sendLinkStats)
 {
   //at this point we know the total number of tracklets and digits and triggers.
   auto dataReadStart = std::chrono::high_resolution_clock::now();
@@ -65,6 +66,7 @@ void EventRecordContainer::sendData(o2::framework::ProcessingContext& pc, bool g
   std::vector<Tracklet64> tracklets;
   std::vector<Digit> digits;
   std::vector<TriggerRecord> triggers;
+  std::vector<DataCountersPerTrigger> counters;
   for (auto& event : mEventRecords) {
     event.sortData(sortDigits);
     tracklets.insert(tracklets.end(), event.getTracklets().begin(), event.getTracklets().end());
@@ -72,6 +74,7 @@ void EventRecordContainer::sendData(o2::framework::ProcessingContext& pc, bool g
     triggers.emplace_back(event.getBCData(), digitcount, event.getDigits().size(), trackletcount, event.getTracklets().size());
     digitcount += event.getDigits().size();
     trackletcount += event.getTracklets().size();
+    counters.push_back(event.getCounters());
   }
 
   pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "DIGITS", 0, o2::framework::Lifetime::Timeframe}, digits);
@@ -79,7 +82,11 @@ void EventRecordContainer::sendData(o2::framework::ProcessingContext& pc, bool g
   pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "TRKTRGRD", 0, o2::framework::Lifetime::Timeframe}, triggers);
   if (generatestats) {
     accumulateStats();
+    o2::base::TFIDInfoHelper::fillTFIDInfo(pc, mTFStats.mTFIDInfo);
     pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "RAWSTATS", 0, o2::framework::Lifetime::Timeframe}, mTFStats);
+  }
+  if (sendLinkStats) {
+    pc.outputs().snapshot(o2::framework::Output{o2::header::gDataOriginTRD, "LINKSTATS", 0, o2::framework::Lifetime::Timeframe}, counters);
   }
 
   std::chrono::duration<double, std::micro> dataReadTime = std::chrono::high_resolution_clock::now() - dataReadStart;
@@ -88,27 +95,16 @@ void EventRecordContainer::sendData(o2::framework::ProcessingContext& pc, bool g
 
 void EventRecordContainer::accumulateStats()
 {
-  int eventcount = mEventRecords.size();
-  int sumtracklets = 0;
-  int sumdigits = 0;
-  double sumdigittime = 0;
-  double sumtracklettime = 0;
-  double sumtime = 0;
-  uint64_t sumwordsrejected = 0;
-  uint64_t sumwordsread = 0;
-  for (auto event : mEventRecords) {
-    sumtracklets += event.getEventStats().mTrackletsFound;
-    sumdigits += event.getEventStats().mDigitsFound;
-    sumtracklettime += event.getEventStats().mTimeTakenForTracklets;
-    sumdigittime += event.getEventStats().mTimeTakenForDigits;
-    sumtime += event.getEventStats().mTimeTaken;
-  }
-  if (eventcount != 0) {
-    mTFStats.mTrackletsPerEvent = sumtracklets / eventcount;
-    mTFStats.mDigitsPerEvent = sumdigits / eventcount;
-    mTFStats.mTimeTakenForTracklets = sumtracklettime;
-    mTFStats.mTimeTakenForDigits = sumdigittime;
-    mTFStats.mTimeTaken = sumtime;
+  mTFStats.mNTriggersTotal = mEventRecords.size();
+  for (const auto& event : mEventRecords) {
+    mTFStats.mTrackletsFound += event.getTracklets().size();
+    mTFStats.mDigitsFound += event.getDigits().size();
+    mTFStats.mTimeTakenForTracklets += event.getTrackletTime();
+    mTFStats.mTimeTakenForDigits += event.getDigitTime();
+    mTFStats.mTimeTaken += event.getTotalTime();
+    if (event.getIsCalibTrigger()) {
+      ++mTFStats.mNTriggersCalib;
+    }
   }
 }
 

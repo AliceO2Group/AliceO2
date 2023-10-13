@@ -48,12 +48,17 @@ class CorrectionMapsLoader : public o2::gpu::CorrectionMapsHelper
   void extractCCDBInputs(o2::framework::ProcessingContext& pc);
   void updateVDrift(float vdriftCorr, float vdrifRef, float driftTimeOffset = 0);
   void init(o2::framework::InitContext& ic);
+  void copySettings(const CorrectionMapsLoader& src);
+
   static void requestCCDBInputs(std::vector<o2::framework::InputSpec>& inputs, std::vector<o2::framework::ConfigParamSpec>& options, bool requestCTPLumi = false, int lumiScaleMode = 0);
   static void addOptions(std::vector<o2::framework::ConfigParamSpec>& options);
 
  protected:
   static void addOption(std::vector<o2::framework::ConfigParamSpec>& options, o2::framework::ConfigParamSpec&& osp);
   static void addInput(std::vector<o2::framework::InputSpec>& inputs, o2::framework::InputSpec&& isp);
+
+  float mInstLumiFactor = 1.0; // multiplicative factor for inst. lumi
+  int mCTPLumiSource = 0;      // 0: main, 1: alternative CTP lumi source
 #endif
 };
 

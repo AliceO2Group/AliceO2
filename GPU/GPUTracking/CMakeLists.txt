@@ -82,13 +82,14 @@ set(SRCS_O2_DATATYPE_HEADERS
 set(SRCS_O2_DATATYPES
     ${SRCS_DATATYPES}
     Interface/GPUO2InterfaceConfigurableParam.cxx)
-set(HDRS_CINT_O2 Merger/GPUTPCGMMergedTrack.h)
+set(HDRS_CINT_O2 Merger/GPUTPCGMMergedTrack.h Merger/GPUTPCGMSliceTrack.h Merger/GPUTPCGMBorderTrack.h)
 set(HDRS_CINT_O2_DATATYPES DataTypes/GPUDataTypes.h DataTypes/GPUTPCGMMergedTrackHit.h)
 set(HDRS_CIND_O2_CONFIGURABLEPARAM Interface/GPUO2InterfaceConfigurableParam.h)
 set(HDRS_CINT_O2_ADDITIONAL DataTypes/GPUSettings.h Definitions/GPUSettingsList.h DataTypes/GPUDataTypes.h DataTypes/GPUTRDTrack.h DataTypes/CalibdEdxTrackTopologyPol.h DataTypes/CalibdEdxTrackTopologySpline.h) # Manual dependencies for ROOT dictionary generation
 
 set(SRCS_NO_CINT
     DataTypes/GPUMemorySizeScalers.cxx
+    DataTypes/GPUNewCalibValues.cxx
     Base/GPUReconstruction.cxx
     Base/GPUReconstructionCPU.cxx
     Base/GPUProcessor.cxx
@@ -153,10 +154,10 @@ set(HDRS_INSTALL
     DataTypes/GPUO2FakeClasses.h
     Definitions/GPUSettingsList.h
     DataTypes/GPUOutputControl.h
+    DataTypes/GPUTriggerOutputs.h
     DataTypes/GPUO2DataTypes.h
     DataTypes/GPUHostDataTypes.h
     DataTypes/GPUdEdxInfo.h
-    DataTypes/GPUNewCalibValues.h
     DataTypes/GPUTRDInterfaceO2Track.h
     Base/GPUParam.inc
     DataCompression/TPCClusterDecompressor.inc

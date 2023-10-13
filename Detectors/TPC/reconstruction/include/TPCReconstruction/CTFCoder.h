@@ -28,8 +28,7 @@
 #include "DataFormatsTPC/CompressedClusters.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsBase/CTFCoderBase.h"
-#include "rANS/rans.h"
-#include "rANS/utils.h"
+#include "rANS/iterator.h"
 
 class TTree;
 
@@ -40,6 +39,26 @@ namespace tpc
 
 namespace detail
 {
+
+struct TriggerInfo {
+  uint32_t firstOrbit = -1;
+  std::vector<int32_t> deltaOrbit;
+  std::vector<int16_t> deltaBC;
+  std::vector<uint8_t> triggerType;
+  void clear()
+  {
+    firstOrbit = -1;
+    deltaOrbit.clear();
+    deltaBC.clear();
+    triggerType.clear();
+  }
+  void resize(size_t s)
+  {
+    deltaOrbit.resize(s);
+    deltaBC.resize(s);
+    triggerType.resize(s);
+  }
+};
 
 template <int A, int B>
 struct combinedType {
@@ -70,7 +89,7 @@ class ShiftFunctor
 template <typename iterA_T, typename iterB_T, typename F>
 auto makeInputIterators(iterA_T iterA, iterB_T iterB, size_t nElements, F functor)
 {
-  using namespace o2::rans::utils;
+  using namespace o2::rans;
 
   auto advanceIter = [](auto iter, size_t nElements) {
     auto tmp = iter;
@@ -90,8 +109,9 @@ struct MergedColumnsDecoder {
   template <typename iterA_T, typename iterB_T, typename F>
   static void decode(iterA_T iterA, iterB_T iterB, CTF::Slots slot, F decodingFunctor)
   {
+    using namespace o2::rans;
     ShiftFunctor<combined_t, bits_B> f{};
-    auto iter = rans::utils::CombinedOutputIteratorFactory<combined_t>::makeIter(iterA, iterB, f);
+    auto iter = CombinedOutputIteratorFactory<combined_t>::makeIter(iterA, iterB, f);
 
     decodingFunctor(iter, slot);
   }
@@ -107,10 +127,10 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 
   /// entropy-encode compressed clusters to flat buffer
   template <typename VEC>
-  o2::ctf::CTFIOSize encode(VEC& buff, const CompressedClusters& ccl, const CompressedClusters& cclFiltered, std::vector<bool>* rejectHits = nullptr, std::vector<bool>* rejectTracks = nullptr, std::vector<bool>* rejectTrackHits = nullptr, std::vector<bool>* rejectTrackHitsReduced = nullptr);
+  o2::ctf::CTFIOSize encode(VEC& buff, const CompressedClusters& ccl, const CompressedClusters& cclFiltered, const detail::TriggerInfo& trigComp, std::vector<bool>* rejectHits = nullptr, std::vector<bool>* rejectTracks = nullptr, std::vector<bool>* rejectTrackHits = nullptr, std::vector<bool>* rejectTrackHitsReduced = nullptr);
 
-  template <typename VEC>
-  o2::ctf::CTFIOSize decode(const CTF::base& ec, VEC& buff);
+  template <typename VEC, typename TRIGVEC>
+  o2::ctf::CTFIOSize decode(const CTF::base& ec, VEC& buff, TRIGVEC& buffTrig);
 
   void createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBase::OpType op) final;
 
@@ -156,40 +176,43 @@ class CTFCoder : public o2::ctf::CTFCoderBase
 template <typename source_T>
 void CTFCoder::buildCoder(ctf::CTFCoderBase::OpType coderType, const CTF::container_t& ctf, CTF::Slots slot)
 {
-  this->createCoder<source_T>(coderType, ctf.getFrequencyTable(slot), static_cast<int>(slot));
+  this->createCoder(coderType, std::get<rans::RenormedDenseHistogram<source_T>>(ctf.getDictionary<source_T>(slot, mANSVersion)), static_cast<int>(slot));
 }
 
 /// entropy-encode clusters to buffer with CTF
 template <typename VEC>
-o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const CompressedClusters& ccl, const CompressedClusters& cclFiltered, std::vector<bool>* rejectHits, std::vector<bool>* rejectTracks, std::vector<bool>* rejectTrackHits, std::vector<bool>* rejectTrackHitsReduced)
+o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const CompressedClusters& ccl, const CompressedClusters& cclFiltered, const detail::TriggerInfo& trigComp, std::vector<bool>* rejectHits, std::vector<bool>* rejectTracks, std::vector<bool>* rejectTrackHits, std::vector<bool>* rejectTrackHitsReduced)
 {
   using MD = o2::ctf::Metadata::OptStore;
   using namespace detail;
   // what to do which each field: see o2::ctf::Metadata explanation
   constexpr MD optField[CTF::getNBlocks()] = {
-    MD::EENCODE, // qTotA
-    MD::EENCODE, // qMaxA
-    MD::EENCODE, // flagsA
-    MD::EENCODE, // rowDiffA
-    MD::EENCODE, // sliceLegDiffA
-    MD::EENCODE, // padResA
-    MD::EENCODE, // timeResA
-    MD::EENCODE, // sigmaPadA
-    MD::EENCODE, // sigmaTimeA
-    MD::EENCODE, // qPtA
-    MD::EENCODE, // rowA
-    MD::EENCODE, // sliceA
-    MD::EENCODE, // timeA
-    MD::EENCODE, // padA
-    MD::EENCODE, // qTotU
-    MD::EENCODE, // qMaxU
-    MD::EENCODE, // flagsU
-    MD::EENCODE, // padDiffU
-    MD::EENCODE, // timeDiffU
-    MD::EENCODE, // sigmaPadU
-    MD::EENCODE, // sigmaTimeU
-    MD::EENCODE, // nTrackClusters
-    MD::EENCODE  // nSliceRowClusters
+    MD::EENCODE_OR_PACK, // qTotA
+    MD::EENCODE_OR_PACK, // qMaxA
+    MD::EENCODE_OR_PACK, // flagsA
+    MD::EENCODE_OR_PACK, // rowDiffA
+    MD::EENCODE_OR_PACK, // sliceLegDiffA
+    MD::EENCODE_OR_PACK, // padResA
+    MD::EENCODE_OR_PACK, // timeResA
+    MD::EENCODE_OR_PACK, // sigmaPadA
+    MD::EENCODE_OR_PACK, // sigmaTimeA
+    MD::EENCODE_OR_PACK, // qPtA
+    MD::EENCODE_OR_PACK, // rowA
+    MD::EENCODE_OR_PACK, // sliceA
+    MD::EENCODE_OR_PACK, // timeA
+    MD::EENCODE_OR_PACK, // padA
+    MD::EENCODE_OR_PACK, // qTotU
+    MD::EENCODE_OR_PACK, // qMaxU
+    MD::EENCODE_OR_PACK, // flagsU
+    MD::EENCODE_OR_PACK, // padDiffU
+    MD::EENCODE_OR_PACK, // timeDiffU
+    MD::EENCODE_OR_PACK, // sigmaPadU
+    MD::EENCODE_OR_PACK, // sigmaTimeU
+    MD::EENCODE_OR_PACK, // nTrackClusters
+    MD::EENCODE_OR_PACK, // nSliceRowClusters
+    MD::EENCODE_OR_PACK, // TrigBCInc
+    MD::EENCODE_OR_PACK, // TrigOrbitInc
+    MD::EENCODE_OR_PACK  // TrigType
   };
 
   // book output size with some margin
@@ -202,10 +225,9 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const CompressedClusters& ccl, co
     flags |= CTFHeader::CombinedColumns;
   }
   ec->setHeader(CTFHeader{o2::detectors::DetID::TPC, 0, 1, 0, // dummy timestamp, version 1.0
-                          cclFiltered, flags});
+                          cclFiltered, flags, trigComp.firstOrbit, (uint16_t)trigComp.triggerType.size()});
   assignDictVersion(static_cast<o2::ctf::CTFDictHeader&>(ec->getHeader()));
-  ec->getANSHeader().majorVersion = 0;
-  ec->getANSHeader().minorVersion = 1;
+  ec->setANSHeader(mANSVersion);
 
   o2::ctf::CTFIOSize iosize;
   auto encodeTPC = [&buff, &optField, &coders = mCoders, mfc = this->getMemMarginFactor(), &iosize](auto begin, auto end, CTF::Slots slot, size_t probabilityBits, std::vector<bool>* reject = nullptr) {
@@ -219,9 +241,9 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const CompressedClusters& ccl, co
           tmp.emplace_back(*i);
         }
       }
-      iosize += CTF::get(buff.data())->encode(tmp.begin(), tmp.end(), slotVal, probabilityBits, optField[slotVal], &buff, coders[slotVal].get(), mfc);
+      iosize += CTF::get(buff.data())->encode(tmp.begin(), tmp.end(), slotVal, probabilityBits, optField[slotVal], &buff, coders[slotVal], mfc);
     } else {
-      iosize += CTF::get(buff.data())->encode(begin, end, slotVal, probabilityBits, optField[slotVal], &buff, coders[slotVal].get(), mfc);
+      iosize += CTF::get(buff.data())->encode(begin, end, slotVal, probabilityBits, optField[slotVal], &buff, coders[slotVal], mfc);
     }
   };
 
@@ -287,6 +309,11 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const CompressedClusters& ccl, co
 
   encodeTPC(ccl.nTrackClusters, ccl.nTrackClusters + ccl.nTracks, CTF::BLCnTrackClusters, 0, rejectTracks);
   encodeTPC(ccl.nSliceRowClusters, ccl.nSliceRowClusters + ccl.nSliceRows, CTF::BLCnSliceRowClusters, 0);
+
+  encodeTPC(trigComp.deltaOrbit.begin(), trigComp.deltaOrbit.end(), CTF::BLCTrigOrbitInc, 0);
+  encodeTPC(trigComp.deltaBC.begin(), trigComp.deltaBC.end(), CTF::BLCTrigBCInc, 0);
+  encodeTPC(trigComp.triggerType.begin(), trigComp.triggerType.end(), CTF::BLCTrigType, 0);
+
   CTF::get(buff.data())->print(getPrefix(), mVerbosity);
   finaliseCTFOutput<CTF>(buff);
   iosize.rawIn = iosize.ctfIn;
@@ -294,8 +321,8 @@ o2::ctf::CTFIOSize CTFCoder::encode(VEC& buff, const CompressedClusters& ccl, co
 }
 
 /// decode entropy-encoded bloks to TPC CompressedClusters into the externally provided vector (e.g. PMR vector from DPL)
-template <typename VEC>
-o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VEC& buffVec)
+template <typename VEC, typename TRIGVEC>
+o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VEC& buffVec, TRIGVEC& buffTrig)
 {
   using namespace detail;
   CompressedClusters cc;
@@ -320,7 +347,7 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VEC& buffVec)
   o2::ctf::CTFIOSize iosize;
   auto decodeTPC = [&ec, &coders = mCoders, &iosize](auto begin, CTF::Slots slot) {
     const auto slotVal = static_cast<int>(slot);
-    iosize += ec.decode(begin, slotVal, coders[slotVal].get());
+    iosize += ec.decode(begin, slotVal, coders[slotVal]);
   };
 
   if (mCombineColumns) {
@@ -375,6 +402,29 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VEC& buffVec)
 
   decodeTPC(cc.nTrackClusters, CTF::BLCnTrackClusters);
   decodeTPC(cc.nSliceRowClusters, CTF::BLCnSliceRowClusters);
+
+  static TriggerInfo trigInfo;
+  trigInfo.resize(header.nTriggers);
+  decodeTPC(trigInfo.deltaOrbit.data(), CTF::BLCTrigOrbitInc);
+  decodeTPC(trigInfo.deltaBC.data(), CTF::BLCTrigBCInc);
+  decodeTPC(trigInfo.triggerType.data(), CTF::BLCTrigType);
+  // convert trigger info to output format
+  uint32_t prevOrbit = header.firstOrbitTrig;
+  uint16_t prevBC = 0;
+  int freeSlot = 0;
+  for (uint16_t it = 0; it < header.nTriggers; it++) {
+    if (trigInfo.deltaOrbit[it] || !it) { // start new HBF, deltaBC has absolute BC meaning
+      freeSlot = 0;
+      auto& t = buffTrig.emplace_back();
+      t.orbit = prevOrbit + trigInfo.deltaOrbit[it];
+      t.triggerWord.triggerEntries[freeSlot++] = (trigInfo.deltaBC[it] & 0xFFF) | ((trigInfo.triggerType[it] & 0x7) << 12) | 0x8000;
+      prevBC = trigInfo.deltaBC[it];
+      prevOrbit = t.orbit;
+    } else { // continue existing HBF
+      prevBC += trigInfo.deltaBC[it];
+      buffTrig.back().triggerWord.triggerEntries[freeSlot++] = (prevBC & 0xFFF) | ((trigInfo.triggerType[it] & 0x7) << 12) | 0x8000;
+    }
+  }
   iosize.rawIn = iosize.ctfIn;
   return iosize;
 }

@@ -44,7 +44,10 @@
 #include "DataFormatsCPV/CTF.h"
 #include "DataFormatsZDC/CTF.h"
 #include "DataFormatsCTP/CTF.h"
-#include "rANS/rans.h"
+
+#include "rANS/histogram.h"
+#include "rANS/compat.h"
+
 #include <vector>
 #include <stdexcept>
 #include <array>
@@ -88,7 +91,7 @@ size_t appendToTree(TTree& tree, const std::string brname, T& ptr)
 }
 
 using DetID = o2::detectors::DetID;
-using FTrans = o2::rans::FrequencyTable;
+using FTrans = o2::rans::DenseHistogram<int32_t>;
 
 class CTFWriterSpec : public o2::framework::Task
 {
@@ -131,22 +134,22 @@ class CTFWriterSpec : public o2::framework::Task
   int mSaveDictAfter = 0;          // if positive and mWriteCTF==true, save dictionary after each mSaveDictAfter TFs processed
   uint32_t mPrevDictTimeStamp = 0; // timestamp of the previously stored dictionary
   uint32_t mDictTimeStamp = 0;     // timestamp of the currently stored dictionary
-  size_t mMinSize = 0;               // if > 0, accumulate CTFs in the same tree until the total size exceeds this minimum
-  size_t mMaxSize = 0;               // if > MinSize, and accumulated size will exceed this value, stop accumulation (even if mMinSize is not reached)
-  size_t mChkSize = 0;               // if > 0 and fallback storage provided, reserve this size per CTF file in production on primary storage
-  size_t mAccCTFSize = 0;            // so far accumulated size (if any)
-  size_t mCurrCTFSize = 0;           // size of currently processed CTF
-  size_t mNCTF = 0;                  // total number of CTFs written
-  size_t mNCTFPrevDict = 0;          // total number of CTFs used for previous dictionary version
-  size_t mNAccCTF = 0;               // total number of CTFs accumulated in the current file
-  int mWaitDiskFull = 0;             // if mCheckDiskFull triggers, pause for this amount of ms before new attempt
-  int mWaitDiskFullMax = -1;         // produce fatal mCheckDiskFull block the workflow for more than this time (in ms)
-  float mCheckDiskFull = 0.;         // wait for if available abs. disk space is < mCheckDiskFull (if >0) or if its fraction is < -mCheckDiskFull (if <0)
-  long mCTFAutoSave = 0;             // if > 0, autosave after so many TFs
-  size_t mNCTFFiles = 0;             // total number of CTF files written
-  int mMaxCTFPerFile = 0;            // max CTFs per files to store
-  int mRejRate = 0;                  // CTF rejection rule (>0: percentage to reject randomly, <0: reject if timeslice%|value|!=0)
-  int mCTFFileCompression = 0;       // CTF file compression level (if >= 0)
+  size_t mMinSize = 0;             // if > 0, accumulate CTFs in the same tree until the total size exceeds this minimum
+  size_t mMaxSize = 0;             // if > MinSize, and accumulated size will exceed this value, stop accumulation (even if mMinSize is not reached)
+  size_t mChkSize = 0;             // if > 0 and fallback storage provided, reserve this size per CTF file in production on primary storage
+  size_t mAccCTFSize = 0;          // so far accumulated size (if any)
+  size_t mCurrCTFSize = 0;         // size of currently processed CTF
+  size_t mNCTF = 0;                // total number of CTFs written
+  size_t mNCTFPrevDict = 0;        // total number of CTFs used for previous dictionary version
+  size_t mNAccCTF = 0;             // total number of CTFs accumulated in the current file
+  int mWaitDiskFull = 0;           // if mCheckDiskFull triggers, pause for this amount of ms before new attempt
+  int mWaitDiskFullMax = -1;       // produce fatal mCheckDiskFull block the workflow for more than this time (in ms)
+  float mCheckDiskFull = 0.;       // wait for if available abs. disk space is < mCheckDiskFull (if >0) or if its fraction is < -mCheckDiskFull (if <0)
+  long mCTFAutoSave = 0;           // if > 0, autosave after so many TFs
+  size_t mNCTFFiles = 0;           // total number of CTF files written
+  int mMaxCTFPerFile = 0;          // max CTFs per files to store
+  int mRejRate = 0;                // CTF rejection rule (>0: percentage to reject randomly, <0: reject if timeslice%|value|!=0)
+  int mCTFFileCompression = 0;     // CTF file compression level (if >= 0)
   bool mFillMD5 = false;
   std::vector<uint32_t> mTFOrbits{}; // 1st orbits of TF accumulated in current file
   o2::framework::DataTakingContext mDataTakingContext{};
@@ -316,7 +319,7 @@ size_t CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det
       sz = ctfBuffer.size();
     }
     if (mCreateDict) {
-      if (!mFreqsAccumulation[det].size()) {
+      if (mFreqsAccumulation[det].empty()) {
         mFreqsAccumulation[det].resize(C::getNBlocks());
         mFreqsMetaData[det].resize(C::getNBlocks());
       }
@@ -342,8 +345,13 @@ size_t CTFWriterSpec::processDet(o2::framework::ProcessingContext& pc, DetID det
                   }
                   return true;
                 }()) {
-              auto newProbBits = static_cast<uint8_t>(o2::rans::computeRenormingPrecision(freq));
-              mdSave = o2::ctf::Metadata{0, 0, md.messageWordSize, md.coderType, md.streamSize, newProbBits, md.opt, freq.getMinSymbol(), freq.getMaxSymbol(), static_cast<int32_t>(freq.size()), 0, 0};
+              auto newProbBits = static_cast<uint8_t>(o2::rans::compat::computeRenormingPrecision(countNUsedAlphabetSymbols(freq)));
+              auto histogramView = o2::rans::trim(o2::rans::makeHistogramView(freq));
+              mdSave = ctf::detail::makeMetadataRansDict(newProbBits,
+                                                         static_cast<int32_t>(histogramView.getMin()),
+                                                         static_cast<int32_t>(histogramView.getMax()),
+                                                         static_cast<int32_t>(histogramView.size()),
+                                                         md.opt);
               mFreqsAccumulation[det][ib] = std::move(freq);
             }
           }
@@ -486,7 +494,7 @@ void CTFWriterSpec::run(ProcessingContext& pc)
   szCTF += processDet<o2::fdd::CTF>(pc, DetID::FDD, header, mCTFTreeOut.get());
   szCTF += processDet<o2::ctp::CTF>(pc, DetID::CTP, header, mCTFTreeOut.get());
   if (mReportInterval > 0 && (mTimingInfo.tfCounter % mReportInterval) == 0) {
-    LOGP(important, "CTF {} size report:{}", mTimingInfo.tfCounter, mSizeReport);
+    LOGP(important, "CTF {} size report:{} - Total:{}", mTimingInfo.tfCounter, mSizeReport, fmt::group_digits(szCTF));
   }
 
   mTimer.Stop();

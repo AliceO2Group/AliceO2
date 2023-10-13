@@ -18,6 +18,7 @@
 #include <TGButtonGroup.h>
 #include <TGNumberEntry.h>
 #include <TGLabel.h>
+#include <TText.h>
 #include <TTimer.h>
 #include <TGDoubleSlider.h>
 #include <EventVisualisationBase/DataSourceOnline.h>
@@ -45,6 +46,7 @@ namespace event_visualisation
 {
 
 EventManagerFrame* EventManagerFrame::mInstance = nullptr;
+
 EventManagerFrame& EventManagerFrame::getInstance()
 {
   assert(mInstance != nullptr);
@@ -62,7 +64,7 @@ EventManagerFrame::EventManagerFrame(o2::event_visualisation::EventManager& even
   mInstance = this;
   mEventManager = &eventManager;
   this->mTimer = new TTimer(); // Auto-load time in seconds
-  this->mTime = 2;
+  this->mTime = (float)ConfigurationManager::getRefreshRateInSeconds();
   this->mTimer->Connect("Timeout()", "o2::event_visualisation::EventManagerFrame", this, "DoTimeTick()");
 
   const TString cls("o2::event_visualisation::EventManagerFrame");
@@ -95,17 +97,48 @@ EventManagerFrame::EventManagerFrame(o2::event_visualisation::EventManager& even
     b->Connect("Clicked()", cls, this, "DoLastEvent()");
     b = EventManagerFrame::makeButton(f, "Screenshot", 2 * width, "Make a screenshot of current event");
     b->Connect("Clicked()", cls, this, "DoScreenshot()");
+
     b = EventManagerFrame::makeButton(f, "Save", 2 * width, "Save current event");
     b->Connect("Clicked()", cls, this, "DoSave()");
 
     TGHButtonGroup* g = new TGHButtonGroup(f);
-    this->mOnlineModeBtn = b = EventManagerFrame::makeRadioButton(g, "Online", 2 * width, "Change data source to online events", Options::Instance()->online());
+    this->mOnlineModeBtn = b = EventManagerFrame::makeRadioButton(g, "Online", 2 * width,
+                                                                  "Change data source to online events",
+                                                                  Options::Instance()->online());
     b->Connect("Clicked()", cls, this, "DoOnlineMode()");
-    this->mSavedModeBtn = b = EventManagerFrame::makeRadioButton(g, "Saved", 2 * width, "Change data source to saved events", !Options::Instance()->online());
+    this->mSavedModeBtn = b = EventManagerFrame::makeRadioButton(g, "Saved", 2 * width,
+                                                                 "Change data source to saved events",
+                                                                 !Options::Instance()->online());
     b->Connect("Clicked()", cls, this, "DoSavedMode()");
-    this->mSequentialModeBtn = b = EventManagerFrame::makeRadioButton(g, "Sequential", 2 * width, "Sequentially display saved events", !Options::Instance()->online());
+    this->mSequentialModeBtn = b = EventManagerFrame::makeRadioButton(g, "Sequential", 2 * width,
+                                                                      "Sequentially display saved events",
+                                                                      !Options::Instance()->online());
     b->Connect("Clicked()", cls, this, "DoSequentialMode()");
     f->AddFrame(g, new TGLayoutHints(kLHintsNormal, 0, 0, 0, 0));
+
+    //    TGHButtonGroup*
+    g = new TGHButtonGroup(f);
+    mNewestRunBtn = r = EventManagerFrame::makeRadioButton(g, "Newest", 2 * width,
+                                                           "Change source directory to newest data",
+                                                           false);
+    r->Connect("Clicked()", cls, this, "DoNewestData()");
+    mSyntheticRunBtn = r = EventManagerFrame::makeRadioButton(g, "Synthetic", 2 * width,
+                                                              "Change source directory to synthetic run",
+                                                              false);
+    r->Connect("Clicked()", cls, this, "DoSyntheticData()");
+    mCosmicsRunBtn = r = EventManagerFrame::makeRadioButton(g, "Cosmics", 2 * width,
+                                                            "Change source directory to cosmics run",
+                                                            false);
+    r->Connect("Clicked()", cls, this, "DoCosmicsData()");
+    mPhysicsRunBtn = r = EventManagerFrame::makeRadioButton(g, "Physics", 2 * width,
+                                                            "Change source directory to physics run",
+                                                            false);
+    r->Connect("Clicked()", cls, this, "DoPhysicsData()");
+    f->AddFrame(g, new TGLayoutHints(kLHintsNormal, 0, 0, 0, 0));
+
+    this->mSavedScreenshotFileName = new TGLabel(f, std::string(128, ' ').c_str());
+    // this->mSavedScreenshotFileName->SetWrapLength(100);
+    f->AddFrame(this->mSavedScreenshotFileName, new TGLayoutHints(kLHintsNormal, 5, 10, 4, 0));
   }
 
   f = new TGHorizontalFrame(this);
@@ -121,17 +154,6 @@ EventManagerFrame::EventManagerFrame(o2::event_visualisation::EventManager& even
     makeSliderRangeEntries(f, 30, this->mTimeFrameSliderMin, "Display the minimum value of the time",
                            this->mTimeFrameSliderMax, "Display the maximum value of the time");
     this->mTimeFrameSlider->Connect("PositionChanged()", cls, this, "DoTimeFrameSliderChanged()");
-
-    TGHButtonGroup* g = new TGHButtonGroup(f);
-    mNewestRunBtn = r = EventManagerFrame::makeRadioButton(g, "Newest", 2 * width, "Change source directory to newest data", Options::Instance()->online());
-    r->Connect("Clicked()", cls, this, "DoNewestData()");
-    mSyntheticRunBtn = r = EventManagerFrame::makeRadioButton(g, "Synthetic", 2 * width, "Change source directory to synthetic run", Options::Instance()->online());
-    r->Connect("Clicked()", cls, this, "DoSyntheticData()");
-    mCosmicsRunBtn = r = EventManagerFrame::makeRadioButton(g, "Cosmics", 2 * width, "Change source directory to cosmics run", !Options::Instance()->online());
-    r->Connect("Clicked()", cls, this, "DoCosmicsData()");
-    mPhysicsRunBtn = r = EventManagerFrame::makeRadioButton(g, "Physics", 2 * width, "Change source directory to physics run", !Options::Instance()->online());
-    r->Connect("Clicked()", cls, this, "DoPhysicsData()");
-    f->AddFrame(g, new TGLayoutHints(kLHintsNormal, 0, 0, 0, 0));
   }
 
   this->setRunMode(mRunMode);
@@ -161,7 +183,8 @@ TGTextButton* EventManagerFrame::makeButton(TGCompositeFrame* p, const char* txt
 }
 
 TGRadioButton* EventManagerFrame::makeRadioButton(TGButtonGroup* g, const char* txt,
-                                                  Int_t width, const char* txttooltip, bool checked, Int_t lo, Int_t ro, Int_t to, Int_t bo)
+                                                  Int_t width, const char* txttooltip, bool checked, Int_t lo, Int_t ro,
+                                                  Int_t to, Int_t bo)
 {
   TGRadioButton* b = new TGRadioButton(g, txt);
 
@@ -313,24 +336,36 @@ void EventManagerFrame::DoScreenshot()
     return;
   }
 
+  std::string outDirectory = ConfigurationManager::getScreenshotPath("screenshot");
+
   std::time_t time = std::time(nullptr);
   char time_str[100];
   std::strftime(time_str, sizeof(time_str), "%Y_%m_%d_%H_%M_%S", std::localtime(&time));
-  TEnv settings;
-  ConfigurationManager::getInstance().getConfig(settings);
-  std::string outDirectory = settings.GetValue("screenshot.path", "Screenshots");
-  std::ostringstream filepath;
-  filepath << outDirectory << "/Screenshot_" << time_str << "_" << getRunTypeString(mRunMode) << ".png";
-  if (!std::filesystem::is_directory(outDirectory)) {
+
+  bool monthDirectory = ConfigurationManager::getScreenshotMonthly();
+
+  if (monthDirectory) {
+    char dir_str[32];
+    std::strftime(dir_str, sizeof(dir_str), "%Y-%m", std::localtime(&time));
+    outDirectory = outDirectory + "/" + dir_str;
     std::filesystem::create_directory(outDirectory);
   }
-  std::filesystem::path fileName = Screenshot::perform(filepath.str(), this->mEventManager->getDataSource()->getDetectorsMask(),
+
+  std::ostringstream filepath;
+  filepath << outDirectory << "/Screenshot_" << time_str << ".png";
+
+  std::string path = filepath.str();
+
+  std::filesystem::path fileName = Screenshot::perform("screenshot", path,
+                                                       this->mEventManager->getDataSource()->getDetectorsMask(),
                                                        this->mEventManager->getDataSource()->getRunNumber(),
                                                        this->mEventManager->getDataSource()->getFirstTForbit(),
                                                        this->mEventManager->getDataSource()->getCollisionTime());
-  fileName.replace_extension(std::filesystem::path(mEventManager->getDataSource()->getEventAbsoluteFilePath()).extension());
+  fileName.replace_extension(
+    std::filesystem::path(mEventManager->getDataSource()->getEventAbsoluteFilePath()).extension());
   std::error_code ec;
   std::filesystem::copy_file(mEventManager->getDataSource()->getEventAbsoluteFilePath(), fileName, ec);
+  this->mSavedScreenshotFileName->ChangeText(path.c_str());
   clearInTick();
 }
 
@@ -347,10 +382,9 @@ void EventManagerFrame::checkMemory()
       if (success == 1) {       // properly readed
         size = 4 * size / 1024; // in MB
         this->memoryUsedInfo = size;
-        LOG(info) << "Memory used: " << size << " memory allowed: " << memoryLimit;
+        LOGF(info, "Memory used: ", size, " memory allowed: ", memoryLimit);
         if (size > memoryLimit) {
-          LOG(error) << "Memory used: " << size << " exceeds memory allowed: "
-                     << memoryLimit;
+          LOGF(error, "Memory used: ", size, " exceeds memory allowed: ", memoryLimit);
           exit(-1);
         }
       }
@@ -360,36 +394,44 @@ void EventManagerFrame::checkMemory()
 
 void EventManagerFrame::createOutreachScreenshot()
 {
-  if (!Options::Instance()->imageFolder().empty()) {
-    string fileName = mEventManager->getInstance().getDataSource()->getEventName();
+  static int skipCounter = 0;
+  if (skipCounter > 0) {
+    skipCounter--;
+  } else {
+    string fileName = this->mEventManager->getInstance().getDataSource()->getEventName();
     if (fileName.size() < 5) {
       return;
     }
-    string imageFolder = Options::Instance()->imageFolder();
+
+    string imageFolder = ConfigurationManager::getScreenshotPath("outreach");
     if (!std::filesystem::is_directory(imageFolder)) {
       std::filesystem::create_directory(imageFolder);
     }
     fileName = imageFolder + "/" + fileName.substr(0, fileName.find_last_of('.')) + ".png";
     if (!std::filesystem::is_regular_file(fileName)) {
       std::vector<std::string> ext = {".png"};
-      TEnv settings;
-      ConfigurationManager::getInstance().getConfig(settings);
-      UInt_t outreachFilesMax = settings.GetValue("outreach.files.max", 10);
-      DirectoryLoader::removeOldestFiles(imageFolder, ext, outreachFilesMax);
-      LOG(info) << "Outreach screenshot: " << fileName;
-      Screenshot::perform(fileName, this->mEventManager->getDataSource()->getDetectorsMask(),
+      DirectoryLoader::removeOldestFiles(imageFolder, ext, (int)ConfigurationManager::getOutreachFilesMax());
+      LOGF(info, "Outreach screenshot: ", fileName);
+
+      Screenshot::perform("outreach", fileName, this->mEventManager->getDataSource()->getDetectorsMask(),
                           this->mEventManager->getDataSource()->getRunNumber(),
                           this->mEventManager->getDataSource()->getFirstTForbit(),
                           this->mEventManager->getDataSource()->getCollisionTime());
     }
-    // LOG(info) << mEventManager->getInstance().getDataSource()->getEventName();
+    skipCounter = (int)ConfigurationManager::getOutreachFrequencyInRefreshRates();
   }
 }
 
 void EventManagerFrame::DoTimeTick()
 {
+  static bool firstRefresh = true;
   if (not setInTick()) {
     return;
+  }
+  if (firstRefresh) {
+    firstRefresh = false;
+    mEventManager->GotoEvent(-1); /// -1 means last available
+    this->updateGUI();
   }
   if (this->mUpdateGui) {
     this->updateGUI();
@@ -416,6 +458,7 @@ void EventManagerFrame::StopTimer()
     this->mTimer->TurnOff();
   }
 }
+
 void EventManagerFrame::StartTimer()
 {
   if (this->mTimer != nullptr) {
@@ -496,9 +539,6 @@ void EventManagerFrame::changeRunMode(RunMode runMode)
       return;
     }
 
-    TEnv settings;
-    ConfigurationManager::getInstance().getConfig(settings);
-
     this->setRunMode(runMode);
     mEventManager->getDataSource()->refresh();
     mEventManager->displayCurrentEvent();
@@ -574,11 +614,10 @@ void EventManagerFrame::setRunMode(EventManagerFrame::RunMode runMode)
   this->mEventManager->getDataSource()->changeDataFolder(getSourceDirectory(this->mRunMode, this->mDisplayMode));
 }
 
-std::vector<std::string> EventManagerFrame::getSourceDirectory(EventManagerFrame::RunMode runMode, EventManagerFrame::DisplayMode displayMode)
+std::vector<std::string>
+  EventManagerFrame::getSourceDirectory(EventManagerFrame::RunMode runMode, EventManagerFrame::DisplayMode displayMode)
 {
   std::vector<std::string> res;
-  TEnv settings;
-  ConfigurationManager::getInstance().getConfig(settings);
   auto const options = Options::Instance();
 
   if (displayMode == EventManagerFrame::SavedMode || displayMode == EventManagerFrame::SequentialMode) {
@@ -586,21 +625,21 @@ std::vector<std::string> EventManagerFrame::getSourceDirectory(EventManagerFrame
   } else {
     switch (runMode) {
       case EventManagerFrame::NewestRun:
-        res.push_back(settings.GetValue("data.synthetic.run.dir", "jsons/synthetic"));
-        res.push_back(settings.GetValue("data.cosmics.run.dir", "jsons/cosmics"));
-        res.push_back(settings.GetValue("data.physics.run.dir", "jsons/physics"));
+        res.push_back(ConfigurationManager::getDataSyntheticRunDir());
+        res.push_back(ConfigurationManager::getDataCosmicRunDir());
+        res.push_back(ConfigurationManager::getDataPhysicsRunDir());
         break;
       case EventManagerFrame::SyntheticRun:
-        res.push_back(settings.GetValue("data.synthetic.run.dir", "jsons/synthetic"));
+        res.push_back(ConfigurationManager::getDataSyntheticRunDir());
         break;
       case EventManagerFrame::CosmicsRun:
-        res.push_back(settings.GetValue("data.cosmics.run.dir", "jsons/cosmics"));
+        res.push_back(ConfigurationManager::getDataCosmicRunDir());
         break;
       case EventManagerFrame::PhysicsRun:
-        res.push_back(settings.GetValue("data.physics.run.dir", "jsons/physics"));
+        res.push_back(ConfigurationManager::getDataPhysicsRunDir());
         break;
       default:
-        res.push_back(settings.GetValue("data.synthetic.run.dir", "jsons/synthetic"));
+        res.push_back(ConfigurationManager::getDataSyntheticRunDir());
         break;
     }
   }
@@ -619,20 +658,6 @@ EventManagerFrame::RunMode EventManagerFrame::decipherRunMode(TString name, RunM
     return PhysicsRun;
   } else {
     return defaultRun;
-  }
-}
-
-TString EventManagerFrame::getRunTypeString(EventManagerFrame::RunMode runMode)
-{
-  switch (runMode) {
-    case EventManagerFrame::SyntheticRun:
-      return "synthetic";
-    case EventManagerFrame::CosmicsRun:
-      return "cosmics";
-    case EventManagerFrame::PhysicsRun:
-      return "physics";
-    default:
-      return "";
   }
 }
 

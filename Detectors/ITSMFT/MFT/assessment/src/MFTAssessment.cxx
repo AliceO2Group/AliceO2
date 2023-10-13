@@ -46,6 +46,7 @@ void MFTAssessment::reset()
   mPositiveTrackPhi->Reset();
   mNegativeTrackPhi->Reset();
   mTrackEta->Reset();
+  mTrackChi2pT->Reset();
 
   mMFTClsZ->Reset();
   mMFTClsOfTracksZ->Reset();
@@ -150,6 +151,8 @@ void MFTAssessment::createHistos()
   mNegativeTrackPhi = std::make_unique<TH1F>("mMFTNegativeTrackPhi", "Negative Track #phi; #phi; # entries", 100, -3.2, 3.2);
 
   mTrackEta = std::make_unique<TH1F>("mMFTTrackEta", "Track #eta; #eta; # entries", 50, -4, -2);
+
+  mTrackChi2pT = std::make_unique<TH2F>("mMFTTrackChi2pT", "Track #chi^{2}/NDF vs p_{T}; #it{p}_{T} (GeV/c); #chi^{2}/NDF", 210, -0.5, 20.5, 210, -0.5, 20.5);
 
   //----------------------------------------------------------------------------
 
@@ -368,6 +371,7 @@ void MFTAssessment::runASyncQC(o2::framework::ProcessingContext& ctx)
     mTrackPhi->Fill(oneTrack.getPhi());
     mTrackEta->Fill(oneTrack.getEta());
     mTrackCotl->Fill(1. / oneTrack.getTanl());
+    mTrackChi2pT->Fill(oneTrack.getPt(), oneTrack.getChi2OverNDF());
 
     for (auto idisk = 0; idisk < 5; idisk++) {
       clsEntriesForRedundancy[idisk] = {-1, -1};
@@ -676,6 +680,7 @@ void MFTAssessment::getHistos(TObjArray& objar)
   objar.Add(mPositiveTrackPhi.get());
   objar.Add(mNegativeTrackPhi.get());
   objar.Add(mTrackEta.get());
+  objar.Add(mTrackChi2pT.get());
 
   //------
   objar.Add(mMFTClsZ.get());
@@ -869,6 +874,8 @@ bool MFTAssessment::loadHistos()
   mNegativeTrackPhi = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTNegativeTrackPhi"));
 
   mTrackEta = std::unique_ptr<TH1F>((TH1F*)f->Get("mMFTTrackEta"));
+
+  mTrackChi2pT = std::unique_ptr<TH2F>((TH2F*)f->Get("mMFTTrackChi2pT"));
 
   //---------------------------------------------------------------------------
 

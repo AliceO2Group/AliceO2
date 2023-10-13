@@ -65,7 +65,8 @@ void CTPScalerRecordRaw::printStream(std::ostream& stream) const
   for (auto const& cnts : scalers) {
     cnts.printStream(stream);
   }
-  for (auto const& dets : scalersDets) {
+  std::cout << "Inputs:" << scalersInps.size() << std::endl;
+  for (auto const& dets : scalersInps) {
     stream << dets << " ";
   }
   stream << std::endl;
@@ -77,7 +78,8 @@ void CTPScalerRecordO2::printStream(std::ostream& stream) const
   for (auto const& cnts : scalers) {
     cnts.printStream(stream);
   }
-  for (auto const& dets : scalersDets) {
+  std::cout << "Inputs:" << scalersInps.size() << std::endl;
+  for (auto const& dets : scalersInps) {
     stream << dets << " ";
   }
   stream << std::endl;
@@ -273,10 +275,12 @@ int CTPRunScalers::convertRawToO2()
       overflows[i] = {0, 0, 0, 0, 0, 0};
     }
   }
+  // Input overflows
+  std::array<uint32_t, 48> overflowsInputs = {48 * 0};
   errorCounters eCnts;
   // 1st o2 rec is just copy
   CTPScalerRecordO2 o2rec;
-  copyRawToO2ScalerRecord(mScalerRecordRaw[0], o2rec, overflows);
+  copyRawToO2ScalerRecord(mScalerRecordRaw[0], o2rec, overflows, overflowsInputs);
   mScalerRecordO2.push_back(o2rec);
   int j = 1;
   for (uint32_t i = 1; i < mScalerRecordRaw.size(); i++) {
@@ -285,7 +289,8 @@ int CTPRunScalers::convertRawToO2()
     //
     if (ret == 0) {
       CTPScalerRecordO2 o2rec;
-      copyRawToO2ScalerRecord(mScalerRecordRaw[i], o2rec, overflows);
+      ret = updateOverflowsInps(mScalerRecordRaw[i - 1], mScalerRecordRaw[i], overflowsInputs);
+      copyRawToO2ScalerRecord(mScalerRecordRaw[i], o2rec, overflows, overflowsInputs);
       mScalerRecordO2.push_back(o2rec);
       // Check consistency
       checkConsistency(mScalerRecordO2[j - 1], mScalerRecordO2[j], eCnts);
@@ -295,7 +300,7 @@ int CTPRunScalers::convertRawToO2()
   eCnts.printStream(std::cout);
   return 0;
 }
-int CTPRunScalers::copyRawToO2ScalerRecord(const CTPScalerRecordRaw& rawrec, CTPScalerRecordO2& o2rec, overflows_t& classesoverflows)
+int CTPRunScalers::copyRawToO2ScalerRecord(const CTPScalerRecordRaw& rawrec, CTPScalerRecordO2& o2rec, overflows_t& classesoverflows, std::array<uint32_t, 48>& overflows)
 {
   if (rawrec.scalers.size() != (mClassMask.count())) {
     LOG(error) << "Inconsistent scaler record size:" << rawrec.scalers.size() << " Expected:" << mClassMask.count();
@@ -312,6 +317,10 @@ int CTPRunScalers::copyRawToO2ScalerRecord(const CTPScalerRecordRaw& rawrec, CTP
     int k = (getClassIndexes())[i];
     o2scal.createCTPScalerO2FromRaw(rawscal, classesoverflows[k]);
     o2rec.scalers.push_back(o2scal);
+  }
+  for (int i = 0; i < rawrec.scalersInps.size(); i++) {
+    uint64_t inpo2 = (uint64_t)(rawrec.scalersInps[i]) + 0xffffffffull * (uint64_t)(overflows[i]);
+    o2rec.scalersInps.push_back(inpo2);
   }
   return 0;
 }
@@ -452,6 +461,26 @@ int CTPRunScalers::updateOverflows(const CTPScalerRaw& scal0, const CTPScalerRaw
   //std::cout << std::endl;
   return 0;
 }
+//
+int CTPRunScalers::updateOverflowsInps(const CTPScalerRecordRaw& rec0, const CTPScalerRecordRaw& rec1, std::array<uint32_t, 48>& overflow) const
+{
+  int NINPS = 48;
+  if (rec0.scalersInps.size() < NINPS) {
+    LOG(error) << "updateOverflowsInps.size < 48:" << rec0.scalersInps.size();
+    return 1;
+  }
+  if (rec1.scalersInps.size() < NINPS) {
+    LOG(error) << "updateOverflowsInps.size < 48:" << rec1.scalersInps.size();
+    return 2;
+  }
+  for (int i = 0; i < NINPS; i++) {
+    if (rec0.scalersInps[i] > rec1.scalersInps[i]) {
+      overflow[i] += 1;
+    }
+  }
+  return 0;
+}
+//
 int CTPRunScalers::printRates()
 {
   if (mScalerRecordO2.size() == 0) {
@@ -507,7 +536,42 @@ int CTPRunScalers::printIntegrals()
   }
   return 0;
 }
-
+//
+// Input counting 1..48
+int CTPRunScalers::printInputRateAndIntegral(int inp)
+{
+  if (mScalerRecordO2.size() == 0) {
+    LOG(info) << "ScalerRecord is empty, doing nothing";
+    return 1;
+  }
+  double_t time0 = mScalerRecordO2[0].epochTime;
+  double_t timeL = mScalerRecordO2[mScalerRecordO2.size() - 1].epochTime;
+  int integral = mScalerRecordO2[mScalerRecordO2.size() - 1].scalersInps[inp - 1] - mScalerRecordO2[0].scalersInps[inp - 1];
+  std::cout << "Scaler Integrals for run:" << mRunNumber << " duration:" << timeL - time0;
+  std::cout << " Input " << inp << " integral:" << integral << " rate:" << integral / (timeL - time0) << std::endl;
+  return 0;
+}
+// Prints class before counters for lumi
+// Class counting 1..64
+int CTPRunScalers::printClassBRateAndIntegral(int icls)
+{
+  if (mScalerRecordO2.size() == 0) {
+    LOG(info) << "ScalerRecord is empty, doing nothing";
+    return 1;
+  }
+  double_t time0 = mScalerRecordO2[0].epochTime;
+  double_t timeL = mScalerRecordO2[mScalerRecordO2.size() - 1].epochTime;
+  if (mScalerRecordO2[0].scalers.size() < icls) {
+    LOG(error) << "class number bigger than expected for this run:" << icls << "expexted smaller than:" << mScalerRecordO2[0].scalers.size();
+    return 1;
+  } else {
+    int integral = mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[icls - 1].lmBefore - mScalerRecordO2[0].scalers[icls - 1].lmBefore;
+    std::cout << "Scaler Integrals for run:" << mRunNumber << " duration:" << timeL - time0;
+    std::cout << " Class " << icls << " integral:" << integral << " rate:" << integral / (timeL - time0) << std::endl;
+  }
+  return 0;
+}
+//
 void CTPRunScalers::printLMBRateVsT() const
 {
   for (int i = 1; i < mScalerRecordO2.size(); i++) { // loop over time

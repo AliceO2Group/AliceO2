@@ -20,6 +20,7 @@
 #include "Framework/InputSpec.h"
 #include "Framework/InputSpan.h"
 #include "Framework/DeviceSpec.h"
+#include "Framework/DataProcessingHeader.h"
 #include "DataFormatsTPC/TPCSectorHeader.h"
 #include "Headers/DataHeaderHelpers.h"
 #include "TPCBase/Sector.h"
@@ -29,6 +30,7 @@
 #include <stdexcept>
 #include <sstream>
 #include <regex>
+#include <functional>
 
 namespace o2
 {
@@ -89,7 +91,7 @@ class TPCSectorCompletionPolicy
       return std::regex_match(device.name.begin(), device.name.end(), std::regex(expression.c_str()));
     };
 
-    auto callback = [bRequireAll = mRequireAll, inputMatchers = mInputMatchers, externalInputMatchers = mExternalInputMatchers, pTpcSectorMask = mTpcSectorMask](framework::InputSpan const& inputs) -> framework::CompletionPolicy::CompletionOp {
+    auto callback = [bRequireAll = mRequireAll, inputMatchers = mInputMatchers, externalInputMatchers = mExternalInputMatchers, pTpcSectorMask = mTpcSectorMask, orderCheck = mOrderCheck](framework::InputSpan const& inputs) -> framework::CompletionPolicy::CompletionOp {
       unsigned long tpcSectorMask = pTpcSectorMask ? *pTpcSectorMask : 0xFFFFFFFFF;
       std::bitset<NSectors> validSectors = 0;
       bool haveMatchedInput = false;
@@ -165,6 +167,7 @@ class TPCSectorCompletionPolicy
         }
       }
 
+      o2::framework::CompletionPolicy::CompletionOp retVal = framework::CompletionPolicy::CompletionOp::Wait;
       // If the flag Config::RequireAll is set in the constructor arguments we require
       // data from all inputs in addition to the sector matching condition
       // To be fully correct we would need to require data from all inputs not going
@@ -175,7 +178,7 @@ class TPCSectorCompletionPolicy
           (!bRequireAll || nActiveInputRoutes == inputs.size())) {
         // we can process if there is input for all sectors, the required sectors are
         // transported as part of the sector header
-        return framework::CompletionPolicy::CompletionOp::Consume;
+        retVal = framework::CompletionPolicy::CompletionOp::Consume;
       } else if (activeSectors == 0 && nActiveInputRoutes == inputs.size()) {
         // no sector header is transmitted, this is the case for e.g. the ZS raw data
         // we simply require input on all routes, this is also the default of DPL DataRelayer
@@ -184,13 +187,25 @@ class TPCSectorCompletionPolicy
         // Currently, the workflow has multiple O2 messages per input route, but they all come in
         // a single multipart message. So it works fine, and we disable the warning below, but there
         // is a potential problem. Need to fix this on the level of the workflow.
-        //if (nMaxPartsPerRoute > 1) {
+        // if (nMaxPartsPerRoute ) {
         //  LOG(warning) << "No sector information is provided with the data, data set is complete with data on all input routes. But there are multiple parts on at least one route and this policy might not be complete, no check possible if other parts on some routes are still missing. It is adviced to add a custom policy.";
         //}
-        return framework::CompletionPolicy::CompletionOp::Consume;
+        retVal = framework::CompletionPolicy::CompletionOp::Consume;
       }
 
-      return framework::CompletionPolicy::CompletionOp::Wait;
+      if (retVal != framework::CompletionPolicy::CompletionOp::Wait && orderCheck && *orderCheck && **orderCheck) {
+        for (auto& input : inputs) {
+          auto* dph = framework::DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(input);
+          if (!dph) {
+            continue;
+          }
+          if (!(**orderCheck)(dph->startTime)) {
+            retVal = framework::CompletionPolicy::CompletionOp::Retry;
+          }
+          break;
+        }
+      }
+      return retVal;
     };
     return framework::CompletionPolicy{"TPCSectorCompletionPolicy", matcher, callback};
   }
@@ -211,6 +226,8 @@ class TPCSectorCompletionPolicy
       }
     } else if constexpr (std::is_same_v<Type, std::vector<o2::framework::InputSpec>*>) {
       mExternalInputMatchers = arg;
+    } else if constexpr (std::is_same_v<Type, std::function<bool(o2::framework::DataProcessingHeader::StartTime)>**>) {
+      mOrderCheck = arg;
     } else if constexpr (std::is_same_v<Type, unsigned long*> || std::is_same_v<Type, const unsigned long*>) {
       mTpcSectorMask = arg;
     } else {
@@ -223,6 +240,7 @@ class TPCSectorCompletionPolicy
 
   std::string mProcessorName;
   std::vector<framework::InputSpec> mInputMatchers;
+  std::function<bool(o2::framework::DataProcessingHeader::StartTime)>** mOrderCheck = nullptr;
   // The external input matchers behave as the internal ones with the following differences:
   // - They are controlled externally and the external entity can modify them, e.g. after parsing command line arguments.
   // - They are all matched independently, it is not sufficient that one of them is present for all sectors

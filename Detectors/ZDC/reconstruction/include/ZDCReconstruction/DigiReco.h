@@ -157,6 +157,7 @@ class DigiReco
   bool mLowPassFilterSet = false;                           /// Low pass filtering set via function call
   bool mFullInterpolation = false;                          /// Full waveform interpolation
   bool mFullInterpolationSet = false;                       /// Full waveform interpolation set via function call
+  int mFullInterpolationMinLength = 2;                      /// Minimum length to perform full interpolation
   int mInterpolationStep = 25;                              /// Coarse interpolation step
   bool mCorrSignal = true;                                  /// Enable TDC signal correction
   bool mCorrSignalSet = false;                              /// TDC signal correction set via function call
@@ -175,7 +176,7 @@ class DigiReco
   void findSignals(int ibeg, int iend);                                       /// Find signals around main-main that satisfy condition on TDC
   const RecoParamZDC* mRopt = nullptr;
   bool mIsContinuous = true;                     /// continuous (self-triggered) or externally-triggered readout
-  uint8_t mTriggerCondition = 0x7;               /// Trigger condition: 0x1 single, 0x3 double and 0x7 triple
+  uint8_t mTriggerCondition = 0x3;               /// Trigger condition: 0x1 single, 0x3 double and 0x7 triple
   int mNBCAHead = 0;                             /// when storing triggered BC, store also mNBCAHead BCs
   const ZDCTDCParam* mTDCParam = nullptr;        /// TDC calibration object
   const ZDCTDCCorr* mTDCCorr = nullptr;          /// TDC correction coefficients

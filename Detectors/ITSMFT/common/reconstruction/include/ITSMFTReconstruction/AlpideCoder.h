@@ -89,6 +89,8 @@ class AlpideCoder
   static constexpr uint8_t MaskErrBusyViolation = 0x1 << 3;
   static constexpr uint8_t MaskErrDataOverrun = 0x3 << 2;
   static constexpr uint8_t MaskErrFatal = 0x7 << 1;
+  static constexpr uint8_t MaskErrFlushedIncomplete = 0x1 << 2;
+  static constexpr uint8_t MaskErrStrobeExtended = 0x1 << 1;
   static constexpr uint32_t MaskTimeStamp = 0xff;                 // Time stamps as BUNCH_COUNTER[10:3] bits
   static constexpr uint32_t MaskReserved = 0xff;                  // mask for reserved byte
   static constexpr uint32_t MaskHitMap = 0x7f;                    // mask for hit map: at most 7 hits in bits (0:6)
@@ -133,6 +135,10 @@ class AlpideCoder
         chipData.setError(ChipStat::DataOverrun);
       } else if (roErr == MaskErrFatal) {
         chipData.setError(ChipStat::Fatal);
+      } else if (roErr == MaskErrFlushedIncomplete) {
+        chipData.setError(ChipStat::FlushedIncomplete);
+      } else if (roErr == MaskErrStrobeExtended) {
+        chipData.setError(ChipStat::StrobeExtended);
       }
 #endif
     };
@@ -150,6 +156,7 @@ class AlpideCoder
     uint32_t expectInp = ExpectChipHeader | ExpectChipEmpty; // data must always start with chip header or chip empty flag
 
     chipData.clear();
+    bool dataSeen = false;
     LOG(debug) << "NewEntry";
     while (buffer.next(dataC)) {
       //
@@ -179,6 +186,7 @@ class AlpideCoder
           return unexpectedEOF("CHIP_HEADER"); // abandon cable data
         }
         expectInp = ExpectRegion; // now expect region info
+        dataSeen = false;
         continue;
       }
 
@@ -205,7 +213,7 @@ class AlpideCoder
           }
         }
 
-        if (!chipData.getData().size() && !chipData.isErrorSet()) {
+        if (!dataSeen && !chipData.isErrorSet()) {
 #ifdef ALPIDE_DECODING_STAT
           chipData.setError(ChipStat::TrailerAfterHeader);
 #endif
@@ -216,6 +224,7 @@ class AlpideCoder
 
       // hit info ?
       if ((expectInp & ExpectData)) {
+        dataSeen = true;
         if (isData(dataC)) { // region header was seen, expect data
                              // note that here we are checking on the byte rather than the short, need complete to ushort
           dataS = dataC << 8;

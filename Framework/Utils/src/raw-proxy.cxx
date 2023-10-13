@@ -33,6 +33,14 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 
   workflowOptions.push_back(
     ConfigParamSpec{
+      "inject-missing-data", VariantType::Bool, false, {"inject missing data according to dataspec if not found in the input"}});
+
+  workflowOptions.push_back(
+    ConfigParamSpec{
+      "print-input-sizes", VariantType::Int, 0, {"print statistics about sizes per input spec every n TFs"}});
+
+  workflowOptions.push_back(
+    ConfigParamSpec{
       "throwOnUnmatched", VariantType::Bool, false, {"throw if unmatched input data is found"}});
 
   workflowOptions.push_back(
@@ -46,6 +54,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
 {
   std::string processorName = config.options().get<std::string>("proxy-name");
   std::string outputconfig = config.options().get<std::string>("dataspec");
+  bool injectMissingData = config.options().get<bool>("inject-missing-data");
+  unsigned int printSizes = config.options().get<unsigned int>("print-input-sizes");
   bool throwOnUnmatched = config.options().get<bool>("throwOnUnmatched");
   uint64_t minSHM = std::stoul(config.options().get<std::string>("timeframes-shm-limit"));
   std::vector<InputSpec> matchers = select(outputconfig.c_str());
@@ -60,7 +70,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& config)
     processorName.c_str(),
     std::move(readoutProxyOutput),
     "type=pair,method=connect,address=ipc:///tmp/readout-pipe-0,rateLogging=1,transport=shmem",
-    dplModelAdaptor(filterSpecs, throwOnUnmatched), minSHM);
+    dplModelAdaptor(filterSpecs, throwOnUnmatched), minSHM, false, injectMissingData, printSizes);
 
   WorkflowSpec workflow;
   workflow.emplace_back(readoutProxy);

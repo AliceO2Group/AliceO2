@@ -26,6 +26,7 @@
 #include "DataFormatsTPC/TrackCuts.h"
 #include "DataFormatsTPC/Defs.h"
 #include "DataFormatsTPC/CalibdEdxCorrection.h"
+#include "DetectorsBase/Propagator.h"
 
 // boost includes
 #include <boost/histogram.hpp>
@@ -87,13 +88,18 @@ class CalibdEdx
 
   /// \brief Params used to remove electron points from the fit.
   /// The fit to find the MIP peak will be performed \p passes times, from the second time
-  /// and afterwords any points with dEdx values above the previous fit * (1 + \p cut) will be cut out.
+  /// and afterwords any points with dEdx values above the previous fit * (1 + \p cut) and blow
+  /// previous fit * (1 - \p lowCutFactor * \p cut) will be cut out.
   /// \note you can set \p passes = 0 to disable this functionality
-  void setElectronCut(float cut, int passes = 3)
+  void setElectronCut(float cut, int passes = 3, float lowCutFactor = 1.5)
   {
     mFitCut = cut;
     mFitPasses = passes;
+    mFitLowCutFactor = lowCutFactor;
   }
+
+  /// setting the material type for track propagation
+  void setMaterialType(o2::base::Propagator::MatCorrType materialType) { mMatType = materialType; }
 
   /// Fill histograms using tracks data.
   void fill(const TrackTPC& tracks);
@@ -144,12 +150,15 @@ class CalibdEdx
   int m1DThreshold = 500;        ///< Minimum entries per stack to perform a Tgl fit
   int m2DThreshold = 5000;       ///< Minimum entries per stack to perform a Snp fit
   float mFitCut = 0.2;           ///< dEdx cut value used to remove electron tracks
+  float mFitLowCutFactor = 1.5;  ///< dEdx cut multiplier for the lower dE/dx range
   int mFitPasses = 3;            ///< number of fit passes used to remove electron tracks
 
   Hist mHist;                   ///< dEdx multidimensional histogram
   CalibdEdxCorrection mCalib{}; ///< Calibration output
 
-  ClassDefNV(CalibdEdx, 1);
+  o2::base::Propagator::MatCorrType mMatType{}; ///< material type for track propagation
+
+  ClassDefNV(CalibdEdx, 3);
 };
 
 } // namespace o2::tpc

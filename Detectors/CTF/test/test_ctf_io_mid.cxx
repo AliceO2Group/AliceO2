@@ -12,7 +12,13 @@
 #define BOOST_TEST_MODULE Test MIDCTFIO
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
+
+#undef NDEBUG
+#include <cassert>
+
 #include <boost/test/unit_test.hpp>
+#include <boost/test/data/test_case.hpp>
+#include <boost/test/data/dataset.hpp>
 #include "CommonUtils/NameConf.h"
 #include "CommonUtils/IRFrameSelector.h"
 #include "MIDCTF/CTFCoder.h"
@@ -25,8 +31,11 @@
 #include <cstring>
 
 using namespace o2::mid;
+namespace boost_data = boost::unit_test::data;
 
-BOOST_AUTO_TEST_CASE(CTFTest)
+inline std::vector<o2::ctf::ANSHeader> ANSVersions{o2::ctf::ANSVersionCompat, o2::ctf::ANSVersion1};
+
+BOOST_DATA_TEST_CASE(CTFTest, boost_data::make(ANSVersions), ansVersion)
 {
   std::array<std::vector<ColumnData>, NEvTypes> colData{};
   std::array<std::vector<ROFRecord>, NEvTypes> rofData{};
@@ -73,6 +82,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
   std::vector<o2::ctf::BufferType> vec;
   {
     CTFCoder coder(o2::ctf::CTFCoderBase::OpType::Encoder);
+    coder.setANSVersion(ansVersion);
     coder.encode(vec, tfData); // compress
   }
   sw.Stop();

@@ -16,7 +16,7 @@ if [[ -z "${WORKFLOW_PARAMETERS+x}" ]]; then
   else
     export WORKFLOW_PARAMETERS="${WORKFLOW_PARAMETERS},CALIB_PROXIES"
   fi
-  [[ -z $ARGS_EXTRA_PROCESS_o2_eve_export_workflow ]] && ARGS_EXTRA_PROCESS_o2_eve_export_workflow="--disable-write"
+  [[ -z $ARGS_EXTRA_PROCESS_o2_eve_export_workflow ]] && export ARGS_EXTRA_PROCESS_o2_eve_export_workflow="--disable-write"
   if [[ -z "${GEN_TOPO_WORKDIR}" ]]; then
     mkdir -p gen_topo_tmp
     export GEN_TOPO_WORKDIR=`pwd`/gen_topo_tmp
@@ -36,6 +36,7 @@ if [[ "0$FST_TMUX_NO_EPN" != "01" ]]; then
   [[ -z $GPUMEMSIZE ]] && export GPUMEMSIZE=$(( 24 << 30 ))
   [[ -z $NUMAGPUIDS ]] && export NUMAGPUIDS=1
   [[ -z $EPNPIPELINES ]] && export EPNPIPELINES=1
+  [[ -z $O2_GPU_DOUBLE_PIPELINE ]] && export O2_GPU_DOUBLE_PIPELINE=1
   [[ -z $DPL_CONDITION_BACKEND ]] && export DPL_CONDITION_BACKEND="http://localhost:8084"
   export ALL_EXTRA_CONFIG="$ALL_EXTRA_CONFIG;NameConf.mCCDBServer=${DPL_CONDITION_BACKEND};"
   export GEN_TOPO_QC_OVERRIDE_CCDB_SERVER="${DPL_CONDITION_BACKEND}"
@@ -52,6 +53,7 @@ export SYNCMODE=1
 export SHMTHROW=0
 export IS_SIMULATED_DATA=1
 export DATADIST_NEW_DPL_CHAN=1
+export RANS_OPT="--ans-version 1.0 --ctf-dict none" # Use new RANS coding scheme without dictionary
 
 [[ -z $GEN_TOPO_MYDIR ]] && GEN_TOPO_MYDIR="$(dirname $(realpath $0))"
 source $GEN_TOPO_MYDIR/setenv.sh || { echo "setenv.sh failed" 1>&2 && exit 1; }
@@ -108,6 +110,7 @@ else
   FST_SLEEP1=0
   FST_SLEEP2=30
 fi
+[[ ! -z $FST_TMUX_DD_WAIT ]] && FST_SLEEP2=$FST_TMUX_DD_WAIT
 
 if [[ ! -z $FST_TMUX_SINGLENUMA ]]; then
   eval "FST_SLEEP$((FST_TMUX_SINGLENUMA ^ 1))=\"0; echo SKIPPED; sleep 1000; exit\""

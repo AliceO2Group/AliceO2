@@ -30,6 +30,7 @@ using namespace o2::base;
 using namespace o2::detectors;
 
 Float_t Detector::mDensityFactor = 1.0;
+std::vector<int> o2::base::Detector::sDetId2HitBitIndex{}; // initialize empty vector
 
 Detector::Detector() : FairDetector(), mMapMaterial(), mMapMedium() {}
 Detector::Detector(const char* name, Bool_t Active)

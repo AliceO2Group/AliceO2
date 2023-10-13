@@ -16,6 +16,7 @@
 
 #include "TPCWorkflow/EntropyEncoderSpec.h"
 #include "DataFormatsTPC/CompressedClusters.h"
+#include "DataFormatsTPC/ZeroSuppression.h"
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
 #include "Headers/DataHeader.h"
@@ -112,6 +113,7 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
   mCTFCoder.updateTimeDependentParams(pc, true);
 
   CompressedClusters clusters;
+  static o2::tpc::detail::TriggerInfo trigComp;
 
   if (mFromFile) {
     auto tmp = pc.inputs().get<CompressedClustersROOT*>("input");
@@ -128,12 +130,28 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
     }
     clusters = *tmp;
   }
+  auto triggers = pc.inputs().get<gsl::span<o2::tpc::TriggerInfoDLBZS>>("trigger");
   auto cput = mTimer.CpuTime();
   mTimer.Start(false);
   auto& buffer = pc.outputs().make<std::vector<o2::ctf::BufferType>>(Output{"TPC", "CTFDATA", 0, Lifetime::Timeframe});
   std::vector<bool> rejectHits, rejectTracks, rejectTrackHits, rejectTrackHitsReduced;
   CompressedClusters clustersFiltered = clusters;
   std::vector<std::pair<std::vector<unsigned int>, std::vector<unsigned short>>> tmpBuffer(std::max<int>(mNThreads, 1));
+
+  // prepare trigger info
+  trigComp.clear();
+  for (const auto& trig : triggers) {
+    for (int it = 0; it < o2::tpc::TriggerWordDLBZS::MaxTriggerEntries; it++) {
+      if (trig.triggerWord.isValid(it)) {
+        trigComp.deltaOrbit.push_back(trig.orbit);
+        trigComp.deltaBC.push_back(trig.triggerWord.getTriggerBC(it));
+        trigComp.triggerType.push_back(trig.triggerWord.getTriggerType(it));
+      } else {
+        break;
+      }
+    }
+  }
+
   if (mSelIR) {
     if (clusters.nTracks && clusters.solenoidBz != -1e6f && clusters.solenoidBz != mParam->bzkG) {
       throw std::runtime_error("Configured solenoid Bz does not match value used for track model encoding");
@@ -258,7 +276,29 @@ void EntropyEncoderSpec::run(ProcessingContext& pc)
     clustersFiltered.timeDiffU = tmpBuffer[0].first.data();
     clustersFiltered.padDiffU = tmpBuffer[0].second.data();
   }
-  auto iosize = mCTFCoder.encode(buffer, clusters, clustersFiltered, mSelIR ? &rejectHits : nullptr, mSelIR ? &rejectTracks : nullptr, mSelIR ? &rejectTrackHits : nullptr, mSelIR ? &rejectTrackHitsReduced : nullptr);
+
+  // transform trigger info to differential form
+  uint32_t prevOrbit = -1;
+  uint16_t prevBC = -1;
+  if (trigComp.triggerType.size()) {
+    prevOrbit = trigComp.firstOrbit = trigComp.deltaOrbit[0];
+    prevBC = trigComp.deltaBC[0];
+    trigComp.deltaOrbit[0] = 0;
+    for (size_t it = 1; it < trigComp.triggerType.size(); it++) {
+      if (trigComp.deltaOrbit[it] == prevOrbit) {
+        auto bc = trigComp.deltaBC[it];
+        trigComp.deltaBC[it] -= prevBC;
+        prevBC = bc;
+        trigComp.deltaOrbit[it] = 0;
+      } else {
+        auto orb = trigComp.deltaOrbit[it];
+        trigComp.deltaOrbit[it] -= prevOrbit;
+        prevOrbit = orb;
+      }
+    }
+  }
+
+  auto iosize = mCTFCoder.encode(buffer, clusters, clustersFiltered, trigComp, mSelIR ? &rejectHits : nullptr, mSelIR ? &rejectTracks : nullptr, mSelIR ? &rejectTrackHits : nullptr, mSelIR ? &rejectTrackHitsReduced : nullptr);
   pc.outputs().snapshot({"ctfrep", 0}, iosize);
   mTimer.Stop();
   if (mSelIR) {
@@ -278,6 +318,7 @@ DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile, bool selIR)
   std::vector<InputSpec> inputs;
   header::DataDescription inputType = inputFromFile ? header::DataDescription("COMPCLUSTERS") : header::DataDescription("COMPCLUSTERSFLAT");
   inputs.emplace_back("input", "TPC", inputType, 0, Lifetime::Timeframe);
+  inputs.emplace_back("trigger", "TPC", "TRIGGERWORDS", 0, Lifetime::Timeframe);
   inputs.emplace_back("ctfdict", "TPC", "CTFDICT", 0, Lifetime::Condition, ccdbParamSpec("TPC/Calib/CTFDictionaryTree"));
 
   std::shared_ptr<o2::base::GRPGeomRequest> ggreq;
@@ -299,7 +340,8 @@ DataProcessorSpec getEntropyEncoderSpec(bool inputFromFile, bool selIR)
             {"irframe-clusters-maxeta", VariantType::Float, 1.5f, {"Max eta for non-assigned clusters"}},
             {"irframe-clusters-maxz", VariantType::Float, 25.f, {"Max z for non assigned clusters (combined with maxeta)"}},
             {"mem-factor", VariantType::Float, 1.f, {"Memory allocation margin factor"}},
-            {"nThreads-tpc-encoder", VariantType::UInt32, 1u, {"number of threads to use for decoding"}}}};
+            {"nThreads-tpc-encoder", VariantType::UInt32, 1u, {"number of threads to use for decoding"}},
+            {"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
 }
 
 } // namespace tpc

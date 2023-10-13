@@ -18,6 +18,7 @@
 #include <array>
 #include <map>
 #include <string>
+#include <cstdint>
 
 namespace o2
 {

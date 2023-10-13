@@ -17,7 +17,7 @@ add_subdirectory(Core)
 
 add_subdirectory(Utils)
 
-add_subdirectory(AnalysisSupport) 
+add_subdirectory(AnalysisSupport)
 add_subdirectory(CCDBSupport)
 add_subdirectory(PhysicsSupport)
 add_subdirectory(DataTakingSupport)
@@ -31,3 +31,5 @@ add_subdirectory(GUISupport)
 endif()
 
 add_subdirectory(TestWorkflows)
+
+add_subdirectory(AODMerger)

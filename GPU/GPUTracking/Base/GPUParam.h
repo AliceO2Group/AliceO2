@@ -63,8 +63,12 @@ struct GPUParam_t {
   GPUParamSlice SliceParam[GPUCA_NSLICES];
 
  protected:
+#ifdef GPUCA_TPC_GEOMETRY_O2
+  float ParamErrors[2][4][4];
+#else
   float ParamErrorsSeeding0[2][3][4]; // cluster shape parameterization coeficients
   float ParamS0Par[2][3][6]; // cluster error parameterization coeficients
+#endif
 };
 } // namespace internal
 
@@ -75,9 +79,10 @@ struct GPUParam : public internal::GPUParam_t<GPUSettingsRec, GPUSettingsParam> 
 #ifndef GPUCA_GPUCODE
   void SetDefaults(float solenoidBz);
   void SetDefaults(const GPUSettingsGRP* g, const GPUSettingsRec* r = nullptr, const GPUSettingsProcessing* p = nullptr, const GPURecoStepConfiguration* w = nullptr);
-  void UpdateSettings(const GPUSettingsGRP* g, const GPUSettingsProcessing* p = nullptr);
+  void UpdateSettings(const GPUSettingsGRP* g, const GPUSettingsProcessing* p = nullptr, const GPURecoStepConfiguration* w = nullptr);
   void LoadClusterErrors(bool Print = 0);
   o2::base::Propagator* GetDefaultO2Propagator(bool useGPUField = false) const;
+  void UpdateRun3ClusterErrors(const float* yErrorParam, const float* zErrorParam);
 #endif
 
   GPUd() float Alpha(int iSlice) const
@@ -92,6 +97,7 @@ struct GPUParam : public internal::GPUParam_t<GPUSettingsRec, GPUSettingsParam> 
   }
   GPUd() float GetClusterErrorSeeding(int yz, int type, float z, float angle2) const;
   GPUd() void GetClusterErrorsSeeding2(int row, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const;
+  GPUd() float GetSystematicClusterErrorIFC2(float x, float z, bool sideC) const;
 
   GPUd() float GetClusterError2(int yz, int type, float z, float angle2) const;
   GPUd() void GetClusterErrors2(int row, float z, float sinPhi, float DzDs, float& ErrY2, float& ErrZ2) const;

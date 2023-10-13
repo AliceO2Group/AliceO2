@@ -9,6 +9,9 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#ifndef O2_EMCAL_RAWTOCELLCONVERTER_SPEC
+#define O2_EMCAL_RAWTOCELLCONVERTER_SPEC
+
 #include <chrono>
 #include <exception>
 #include <vector>
@@ -22,6 +25,7 @@
 #include "EMCALBase/Geometry.h"
 #include "EMCALBase/Mapper.h"
 #include "EMCALReconstruction/CaloRawFitter.h"
+#include "EMCALReconstruction/RawReaderMemory.h"
 #include "EMCALReconstruction/RecoContainer.h"
 #include "EMCALReconstruction/ReconstructionErrors.h"
 #include "EMCALWorkflow/CalibLoader.h"
@@ -233,6 +237,8 @@ class RawToCellConverterSpec : public framework::Task
 
   void handlePageError(const RawDecodingError& e);
 
+  void handleMinorPageError(const RawReaderMemory::MinorError& e);
+
   header::DataHeader::SubSpecificationType mSubspecification = 0;    ///< Subspecification for output channels
   int mNoiseThreshold = 0;                                           ///< Noise threshold in raw fit
   int mNumErrorMessages = 0;                                         ///< Current number of error messages
@@ -267,3 +273,5 @@ framework::DataProcessorSpec getRawToCellConverterSpec(bool askDISTSTF, bool dis
 } // namespace emcal
 
 } // namespace o2
+
+#endif // O2_EMCAL_RAWTOCELLCONVERTER_SPEC

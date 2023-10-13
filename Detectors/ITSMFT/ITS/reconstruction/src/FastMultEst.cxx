@@ -105,45 +105,23 @@ float FastMultEst::processNoiseImposed(const std::array<int, NLayers> ncl)
   // we assume that on the used layers the observed number of clusters is defined by the
   // the noise ~ nu * Nchips and contribution from the signal tracks Ntr*conf.accCorr
   //
-  // minimize the form sum_lr (noise_i - mu nchips_i)^2 / (mu nchips_i) + lambda_i * (noise_i + mult*acc_i - ncl_i)
-  // whith noise_i being estimate of the noise clusters in nchips_i of layer i, mu is the mean noise per chip,
-  // mult is the number of signal clusters on the ref. (1st) layer and the acc_i is the acceptance of layer i wrt 1st.
-  // The lambda_i is hust a Lagrange multiplier.
-
   const auto& conf = FastMultEstConfig::Instance();
-  float w2sum = 0., wnsum = 0., wsum = 0.;
+  float accSum = 0., accWSum = 0., noiseSum = 0.;
   nLayersUsed = 0;
   for (int il = conf.firstLayer; il <= conf.lastLayer; il++) {
     if (ncl[il] > 0) {
-      float nchInv = 1. / o2::itsmft::ChipMappingITS::getNChipsPerLr(il);
-      w2sum += conf.accCorr[il] * conf.accCorr[il] * nchInv;
-      wnsum += ncl[il] * nchInv * conf.accCorr[il];
-      wsum += conf.accCorr[il];
+      float err = 1. / ncl[il];
+      accSum += conf.accCorr[il];
+      accWSum += conf.accCorr[il] * conf.accCorr[il] * err;
+      noiseSum += o2::itsmft::ChipMappingITS::getNChipsPerLr(il) * conf.accCorr[il] * err;
       nLayersUsed++;
     }
   }
   mult = 0;
-  chi2 = -1;
-  noisePerChip = conf.imposeNoisePerChip;
-  if (nLayersUsed < 1) {
-    return -1;
+  if (nLayersUsed) {
+    mult = (accSum - noisePerChip * noiseSum) / accWSum;
   }
-  auto w2sumI = 1. / w2sum;
-  mult = (wnsum - noisePerChip * wsum) * w2sumI;
-  cov[0] = wnsum * w2sumI;
-  cov[2] = 0.;
-  cov[1] = 0.;
-
-  chi2 = 0.;
-  for (int il = conf.firstLayer; il <= conf.lastLayer; il++) {
-    if (ncl[il] > 0) {
-      float noise = ncl[il] - mult * conf.accCorr[il], estNoise = o2::itsmft::ChipMappingITS::getNChipsPerLr(il) * noisePerChip;
-      float diff = noise - estNoise;
-      chi2 += diff * diff / estNoise;
-    }
-  }
-  chi2 = nLayersUsed > 2 ? chi2 / (nLayersUsed - 2) : 0.;
-  return mult > 0 ? mult : 0;
+  return mult;
 }
 
 int FastMultEst::selectROFs(const gsl::span<const o2::itsmft::ROFRecord> rofs, const gsl::span<const o2::itsmft::CompClusterExt> clus,

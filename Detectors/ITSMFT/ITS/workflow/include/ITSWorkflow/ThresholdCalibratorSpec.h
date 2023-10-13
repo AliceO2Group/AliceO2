@@ -83,6 +83,7 @@ enum RunTypes {
   ITHR130 = 26,
   DIGITAL_SCAN = 13,
   DIGITAL_SCAN_100HZ = 31,
+  DIGITAL_SCAN_NOMASK = 37,
   ANALOGUE_SCAN = 14,
   PULSELENGTH_SCAN = 32,
   TOT_CALIBRATION = 36,
@@ -164,6 +165,7 @@ class ITSThresholdCalibrator : public Task
   short int vThreshold[N_COL];
   bool vSuccess[N_COL];
   unsigned char vNoise[N_COL];
+  unsigned char vPoints[N_COL];
   short int vMixData[N_COL];
   unsigned char vCharge[N_COL];
   float vSlope[N_COL];
@@ -186,9 +188,9 @@ class ITSThresholdCalibrator : public Task
   // Helper functions related to threshold extraction
   void initThresholdTree(bool recreate = true);
   bool findUpperLower(std::vector<std::vector<unsigned short int>>, const short int&, short int&, short int&, bool, int);
-  bool findThreshold(const short int&, std::vector<std::vector<unsigned short int>>, const float*, short int&, float&, float&, int);
-  bool findThresholdFit(const short int&, std::vector<std::vector<unsigned short int>>, const float*, const short int&, float&, float&, int);
-  bool findThresholdDerivative(std::vector<std::vector<unsigned short int>>, const float*, const short int&, float&, float&, int);
+  bool findThreshold(const short int&, std::vector<std::vector<unsigned short int>>, const float*, short int&, float&, float&, int&, int);
+  bool findThresholdFit(const short int&, std::vector<std::vector<unsigned short int>>, const float*, const short int&, float&, float&, int&, int);
+  bool findThresholdDerivative(std::vector<std::vector<unsigned short int>>, const float*, const short int&, float&, float&, int&, int);
   bool findThresholdHitcounting(std::vector<std::vector<unsigned short int>>, const float*, const short int&, float&, int);
   bool isScanFinished(const short int&, const short int&, const short int&);
   void findAverage(const std::array<long int, 6>&, float&, float&, float&, float&);

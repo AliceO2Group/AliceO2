@@ -16,6 +16,7 @@ o2_add_library(CommonDataFormat
                        src/FlatHisto2D.cxx
                        src/AbstractRefAccessor.cxx
                        src/TFIDInfo.cxx
+                       src/TimeStamp.cxx
                PUBLIC_LINK_LIBRARIES O2::CommonConstants O2::GPUCommon
                                      ROOT::Core O2::MathUtils Microsoft.GSL::GSL)
 

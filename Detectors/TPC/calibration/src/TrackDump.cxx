@@ -107,7 +107,7 @@ void TrackDump::filter(const gsl::span<const TrackTPC> tracks, ClusterNativeAcce
       }
     }
     if (writeGlobal) {
-      tree << "cls" << clustersGlobalEvent;
+      tree << "clsGlo=" << clustersGlobalEvent;
     }
     if (writeMC) {
       tree << "TPCTracksMCTruth=" << tpcTracksMCTruth;
@@ -128,7 +128,7 @@ void TrackDump::filter(const gsl::span<const TrackTPC> tracks, ClusterNativeAcce
     std::vector<ClusterNativeAdd> clustersUn;
     fillClNativeAdd(clusterIndex, clustersUn, &excludes);
     auto& cltree = (*treeDumpUn) << "clsn";
-    cltree << "cls=" << clusters
+    cltree << "cls=" << clustersUn
            << "\n";
   }
 }

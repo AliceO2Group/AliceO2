@@ -42,7 +42,7 @@ class PHData
 
   void set(int adc, int det, int tb, int nb, int type)
   {
-    mData = (type << 30) | (nb << 27) | (tb << 22) | (det << 12) | adc;
+    mData = ((type & 0x3) << 30) | ((nb & 0x7) << 27) | ((tb & 0x1f) << 22) | ((det & 0x3ff) << 12) | (adc & 0xfff);
   }
 
   // the ADC sum for given time bin for up to three neighbours

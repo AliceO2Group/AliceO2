@@ -33,7 +33,7 @@ template <typename RDH, bool verbose, bool paranoid>
 class CompressorTaskOld : public Task
 {
  public:
-  CompressorTaskOld() = default;
+  CompressorTaskOld(long payloadLim = -1) : mPayloadLimit(payloadLim) {}
   ~CompressorTaskOld() override = default;
   void init(InitContext& ic) final;
   void run(ProcessingContext& pc) final;
@@ -41,6 +41,7 @@ class CompressorTaskOld : public Task
  private:
   Compressor<RDH, verbose, paranoid> mCompressor;
   int mOutputBufferSize;
+  long mPayloadLimit = -1;
 };
 
 } // namespace tof

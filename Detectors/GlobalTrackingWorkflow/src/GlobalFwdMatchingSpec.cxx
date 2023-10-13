@@ -35,6 +35,7 @@
 #include "TGeoGlobalMagField.h"
 #include "Field/MagneticField.h"
 #include "DetectorsBase/GRPGeomHelper.h"
+#include "MCHTracking/TrackExtrap.h"
 
 using namespace o2::framework;
 using MCLabelsTr = gsl::span<const o2::MCCompLabel>;
@@ -116,6 +117,9 @@ void GlobalFwdMatchingDPL::endOfStream(EndOfStreamContext& ec)
 void GlobalFwdMatchingDPL::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
 {
   if (o2::base::GRPGeomHelper::instance().finaliseCCDB(matcher, obj)) {
+    if (matcher == ConcreteDataMatcher("GLO", "GRPMAGFIELD", 0)) {
+      o2::mch::TrackExtrap::setField();
+    }
     return;
   }
   if (matcher == ConcreteDataMatcher("MFT", "CLUSDICT", 0)) {
@@ -152,6 +156,10 @@ void GlobalFwdMatchingDPL::updateTimeDependentParams(ProcessingContext& pc)
       mMatching.setMFTROFrameLengthMUS(alpParams.roFrameLengthTrig / 1.e3); // MFT ROFrame duration in \mus
     } else {
       mMatching.setMFTROFrameLengthInBC(alpParams.roFrameLengthInBC); // MFT ROFrame duration in \mus
+    }
+    if (alpParams.roFrameBiasInBC != 0) {
+      mMatching.setMFTROFrameBiasInBC(alpParams.roFrameBiasInBC); // MFT ROFrame bias in BCs wrt orbit start
+      LOG(info) << "Setting MFT ROF bias to " << alpParams.roFrameBiasInBC << " BCs";
     }
 
     mMatching.init();

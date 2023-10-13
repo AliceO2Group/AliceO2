@@ -81,6 +81,8 @@ class GPUCommonMath
   GPUhdni() static float Hypot(float x, float y, float z, float w);
 
   GPUd() static float Log(float x);
+  GPUd() static float Exp(float x);
+
   template <class T>
   GPUdi() static T AtomicExch(GPUglobalref() GPUgeneric() GPUAtomic(T) * addr, T val)
   {
@@ -412,6 +414,7 @@ GPUdi() float GPUCommonMath::ASin(float x) { return CHOICE(asinf(x), asinf(x), a
 GPUdi() float GPUCommonMath::ACos(float x) { return CHOICE(acosf(x), acosf(x), acos(x)); }
 
 GPUdi() float GPUCommonMath::Log(float x) { return CHOICE(logf(x), logf(x), log(x)); }
+GPUdi() float GPUCommonMath::Exp(float x) { return CHOICE(expf(x), expf(x), exp(x)); }
 
 GPUhdi() float GPUCommonMath::Copysign(float x, float y)
 {

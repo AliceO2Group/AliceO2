@@ -55,7 +55,7 @@ class FairMQDeviceProxy
   /// Retrieve the channel index from a given OutputSpec and the associated timeslice
   [[nodiscard]] ChannelIndex getOutputChannelIndex(OutputSpec const& spec, size_t timeslice) const;
   /// Retrieve the channel index from a given OutputSpec and the associated timeslice
-  [[nodiscard]] ChannelIndex getForwardChannelIndex(header::DataHeader const& header, size_t timeslice) const;
+  void getMatchingForwardChannelIndexes(std::vector<ChannelIndex>& result, header::DataHeader const& header, size_t timeslice) const;
   /// ChannelIndex from a RouteIndex
   [[nodiscard]] ChannelIndex getOutputChannelIndex(RouteIndex routeIndex) const;
   [[nodiscard]] ChannelIndex getInputChannelIndex(RouteIndex routeIndex) const;

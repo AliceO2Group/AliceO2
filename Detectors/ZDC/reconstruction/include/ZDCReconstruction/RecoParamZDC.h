@@ -30,12 +30,14 @@ struct RecoParamZDC : public o2::conf::ConfigurableParamHelper<RecoParamZDC> {
   int32_t tth[NTDCChannels] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1}; // Trigger threshold
   bool bitset[NTDCChannels] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};           // Set bits in coincidence
   void setBit(uint32_t ibit, bool val = true);
+  uint8_t triggerCondition = 0x0; // Trigger condition: 0x1 single, 0x3 double and 0x7 triple
 
   // Signal processing
-  int low_pass_filter = -1;    // Low pass filtering
-  int full_interpolation = -1; // Full interpolation of waveform
-  int corr_signal = -1;        // TDC signal correction
-  int corr_background = -1;    // TDC pile-up correction
+  int low_pass_filter = -1;               // Low pass filtering
+  int full_interpolation = -1;            // Full interpolation of waveform
+  int full_interpolation_min_length = -1; // Minimum length to perform full interpolation
+  int corr_signal = -1;                   // TDC signal correction
+  int corr_background = -1;               // TDC pile-up correction
 
   int debug_output = -1; // Debug output
 

@@ -101,8 +101,22 @@ void DigiReco::init()
     }
     mFullInterpolation = ropt.full_interpolation > 0 ? true : false;
   }
+  if (ropt.full_interpolation_min_length >= 2) {
+    // Minimum is 2 consecutive bunch crossings
+    mFullInterpolationMinLength = ropt.full_interpolation_min_length;
+  }
   if (mVerbosity > DbgZero) {
-    LOG(info) << "Full waveform interpolation is " << (mFullInterpolation ? "enabled" : "disabled");
+    LOG(info) << "Full waveform interpolation is " << (mFullInterpolation ? "enabled" : "disabled") << " min length is " << mFullInterpolationMinLength;
+  }
+
+  if (ropt.triggerCondition == 0) {
+    if (!mRecoConfigZDC) {
+      LOG(fatal) << "Trigger condition: missing configuration object and no manual override";
+    } else {
+      mTriggerCondition = mRecoConfigZDC->triggerCondition;
+    }
+  } else {
+    mTriggerCondition = ropt.triggerCondition;
   }
 
   if (mTriggerCondition == 0x1) {
@@ -818,8 +832,8 @@ int DigiReco::reconstructTDC(int ibeg, int iend)
           istop = ibun;
         } else { // No data from channel
           // A gap is detected
-          if (istart >= 0 && (istop - istart) > 0) {
-            // Need data for at least two consecutive bunch crossings
+          if (istart >= 0 && (istop - istart + 1) >= mFullInterpolationMinLength) {
+            // Need data for at least mFullInterpolationMinLength (two) consecutive bunch crossings
             int rval = fullInterpolation(isig, istart, istop);
             if (rval) {
               return rval;
@@ -829,8 +843,8 @@ int DigiReco::reconstructTDC(int ibeg, int iend)
           istop = -1;
         }
       }
-      // Check if there are consecutive bunch crossings at the end of group
-      if (istart >= 0 && (istop - istart) > 0) {
+      // Check if there are mFullInterpolationMinLength consecutive bunch crossings at the end of group
+      if (istart >= 0 && (istop - istart + 1) >= mFullInterpolationMinLength) {
         int rval = fullInterpolation(isig, istart, istop);
         if (rval) {
           return rval;

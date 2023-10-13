@@ -20,6 +20,7 @@
 #include "HepMC3/GenParticle.h"
 #include "HepMC3/GenVertex.h"
 #include "HepMC3/ReaderAscii.h"
+#include "HepMC3/ReaderAsciiHepMC2.h"
 
 #include "Framework/runDataProcessing.h"
 
@@ -29,16 +30,21 @@ struct O2simHepmcPublisher {
   Configurable<std::string> hepmcFileName{"hepmc", "input.hepmc", "name of the input file with HepMC events"};
   Configurable<int> aggregate{"aggregate-timeframe", 300, "Number of events to put in a timeframe"};
   Configurable<int> maxEvents{"nevents", -1, "Maximum number of events to convert"};
+  Configurable<bool> hepmcv2{"v2", false, "If the input is HepMCv2"};
 
   int eventCounter = 0;
   int tfCounter = 0;
-  std::shared_ptr<HepMC3::ReaderAscii> hepMCReader;
+  std::shared_ptr<HepMC3::Reader> hepMCReader;
   bool eos = false;
   std::vector<o2::MCTrack> mcTracks;
 
   void init(o2::framework::InitContext& /*ic*/)
   {
-    hepMCReader = std::make_shared<HepMC3::ReaderAscii>((std::string)hepmcFileName);
+    if (hepmcv2) {
+      hepMCReader = std::make_shared<HepMC3::ReaderAsciiHepMC2>((std::string)hepmcFileName);
+    } else {
+      hepMCReader = std::make_shared<HepMC3::ReaderAscii>((std::string)hepmcFileName);
+    }
     if (hepMCReader->failed()) {
       LOGP(fatal, "Cannot open HEPMC kine file {}", (std::string)hepmcFileName);
     }
@@ -50,17 +56,67 @@ struct O2simHepmcPublisher {
   {
     HepMC3::GenEvent event;
     for (auto i = 0; i < (int)aggregate; ++i) {
+      // read next entry
+      hepMCReader->read_event(event);
       if (hepMCReader->failed()) {
         LOGP(warn, "Failed to read from HEPMC input file");
         eos = true;
         break;
       }
-      hepMCReader->read_event(event);
-      // create O2 MCHeader and MCtracks vector out of HEPMC event
 
+      // create O2 MCHeader and MCtracks vector out of HEPMC event
       o2::dataformats::MCEventHeader mcHeader;
       mcHeader.SetEventID(event.event_number());
       mcHeader.SetVertex(event.event_pos().px(), event.event_pos().py(), event.event_pos().pz());
+      auto xsecInfo = event.cross_section();
+      if (xsecInfo != nullptr) {
+        mcHeader.putInfo("Accepted", (uint64_t)xsecInfo->get_accepted_events());
+        mcHeader.putInfo("Attempted", (uint64_t)xsecInfo->get_attempted_events());
+        mcHeader.putInfo("XsectGen", (float)xsecInfo->xsec());
+        mcHeader.putInfo("XsectErr", (float)xsecInfo->xsec_err());
+      }
+      auto scale = event.attribute<HepMC3::DoubleAttribute>("event_scale");
+      if (scale != nullptr) {
+        mcHeader.putInfo("PtHard", (float)scale->value());
+      }
+      auto nMPI = event.attribute<HepMC3::IntAttribute>("mpi");
+      if (nMPI != nullptr) {
+        mcHeader.putInfo("MPI", nMPI->value());
+      }
+      auto sid = event.attribute<HepMC3::IntAttribute>("signal_process_id");
+      if (sid != nullptr) {
+        mcHeader.putInfo("ProcessId", sid->value());
+      }
+      auto pdfInfo = event.pdf_info();
+      if (pdfInfo != nullptr) {
+        mcHeader.putInfo("Id1", pdfInfo->parton_id[0]);
+        mcHeader.putInfo("Id2", pdfInfo->parton_id[1]);
+        mcHeader.putInfo("PdfId1", pdfInfo->pdf_id[0]);
+        mcHeader.putInfo("PdfId2", pdfInfo->pdf_id[1]);
+        mcHeader.putInfo("X1", (float)pdfInfo->x[0]);
+        mcHeader.putInfo("X2", (float)pdfInfo->x[1]);
+        mcHeader.putInfo("scale", (float)pdfInfo->scale);
+        mcHeader.putInfo("Pdf1", (float)pdfInfo->xf[0]);
+        mcHeader.putInfo("Pdf2", (float)pdfInfo->xf[1]);
+      }
+      auto heavyIon = event.heavy_ion();
+      if (heavyIon != nullptr) {
+        mcHeader.putInfo("NcollHard", heavyIon->Ncoll_hard);
+        mcHeader.putInfo("NpartProj", heavyIon->Npart_proj);
+        mcHeader.putInfo("NpartTarg", heavyIon->Npart_targ);
+        mcHeader.putInfo("Ncoll", heavyIon->Ncoll);
+        mcHeader.putInfo("NNwoundedCollisions", heavyIon->N_Nwounded_collisions);
+        mcHeader.putInfo("NwoundedNCollisions", heavyIon->Nwounded_N_collisions);
+        mcHeader.putInfo("NwoundedNwoundedCollisions", heavyIon->Nwounded_Nwounded_collisions);
+        mcHeader.putInfo("SpectatorNeutrons", heavyIon->spectator_neutrons);
+        mcHeader.putInfo("SpectatorProtons", heavyIon->spectator_protons);
+        mcHeader.putInfo("ImpactParameter", (float)heavyIon->impact_parameter);
+        mcHeader.putInfo("EventPlaneAngle", (float)heavyIon->event_plane_angle);
+        mcHeader.putInfo("Eccentricity", (float)heavyIon->eccentricity);
+        mcHeader.putInfo("SigmaInelNN", (float)heavyIon->sigma_inel_NN);
+        mcHeader.putInfo("Centrality", (float)heavyIon->centrality);
+      }
+
       auto particles = event.particles();
       for (auto const& particle : particles) {
         auto parents = particle->parents();

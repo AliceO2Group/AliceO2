@@ -11,6 +11,7 @@
 #ifndef ALICEO2_EMCAL_ALTRODECODER_H
 #define ALICEO2_EMCAL_ALTRODECODER_H
 
+#include <climits>
 #include <exception>
 #include <iosfwd>
 #include <gsl/span>
@@ -155,9 +156,13 @@ class MinorAltroDecodingError
   /// \brief Error codes connected with the ALTRO decoding
   enum class ErrorType_t {
     BUNCH_HEADER_NULL,            ///< Bunch header is 0
+    CHANNEL_HEADER,               ///< Channel header corruption
     CHANNEL_END_PAYLOAD_UNEXPECT, ///< Unexpected end of payload (channel or trailer word in bunch words)
     CHANNEL_PAYLOAD_EXCEED,       ///< Exceeding channel payload block
-    BUNCH_LENGTH_EXCEED           ///< Bunch length exceeding channel payload size
+    CHANNEL_ORDER,                ///< Channels not in increasing order
+    BUNCH_LENGTH_EXCEED,          ///< Bunch length exceeding channel payload size
+    BUNCH_LENGTH_ALLOW_EXCEED,    ///< Exceeds maximum allowed bunch length
+    BUNCH_STARTTIME               ///< Bunch start time exceeding
   };
 
   /// \brief Dummy constructor
@@ -206,7 +211,7 @@ class MinorAltroDecodingError
 
   /// \brief Get the number of error types handled by the AltroDecoderError
   /// \return Number of error types
-  static constexpr int getNumberOfErrorTypes() noexcept { return 4; }
+  static constexpr int getNumberOfErrorTypes() noexcept { return 8; }
 
   /// \brief Get the name connected to the error type
   ///
@@ -302,6 +307,13 @@ class AltroDecoder
   /// \brief Destructor
   ~AltroDecoder() = default;
 
+  /// \brief Set the max. allowed bunch length
+  /// \param maxBunchLength Max. allowed bunch lengths
+  ///
+  /// Rejects bunches in case the decoded bunch length or the
+  /// decoded start time exceeds the maximum allowed bunch length.
+  void setMaxBunchLength(int maxBunchLength) { mMaxBunchLength = maxBunchLength; }
+
   /// \brief Decode the ALTRO stream
   /// \throw AltroDecoderError if the RCUTrailer or ALTRO payload cannot be decoded
   ///
@@ -341,11 +353,17 @@ class AltroDecoder
   /// In case of failure an exception is thrown.
   void checkRCUTrailer();
 
+  /// \brief Check hardware address in channel header for consistency
+  /// \param hwaddress Hardware address to check
+  /// \return True if the channel is consistent (branch, FEC and Altro in expected range) - false otherwise
+  bool checkChannelHWAddress(int hwaddress);
+
   RawReaderMemory& mRawReader;                               ///< underlying raw reader
   RCUTrailer mRCUTrailer;                                    ///< RCU trailer
   std::vector<Channel> mChannels;                            ///< vector of channels in the raw stream
   std::vector<MinorAltroDecodingError> mMinorDecodingErrors; ///< Container for minor (non-crashing) errors
   bool mChannelsInitialized = false;                         ///< check whether the channels are initialized
+  unsigned int mMaxBunchLength = UINT_MAX;                   ///< Max bunch length
 
   ClassDefNV(AltroDecoder, 1);
 };

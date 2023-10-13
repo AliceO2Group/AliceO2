@@ -125,7 +125,7 @@ DataRelayer::ActivityStats DataRelayer::processDanglingInputs(std::vector<Expira
     for (auto& handler : expirationHandlers) {
       LOGP(debug, "handler.creator for {}", handler.name);
       auto channelIndex = deviceProxy.getInputChannelIndex(handler.routeIndex);
-      slotsCreatedByHandlers.push_back(handler.creator(channelIndex, mTimesliceIndex));
+      slotsCreatedByHandlers.push_back(handler.creator(services, channelIndex));
     }
   }
   // Count how many slots are not invalid

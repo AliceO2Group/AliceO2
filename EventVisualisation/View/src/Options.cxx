@@ -84,8 +84,7 @@ bool Options::processCommandLine(int argc, char* argv[])
   }
 
   if (varmap.count("help")) {
-    LOG(info) << eveOptions << std::endl
-              << "  default values are always taken from o2eve.json in current folder if present" << std::endl;
+    LOGF(info, printOptions());
     return false;
   }
 

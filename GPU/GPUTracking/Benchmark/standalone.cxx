@@ -120,8 +120,8 @@ int ReadConfiguration(int argc, char** argv)
     configStandalone.proc.debugLevel = 0;
   }
 #ifndef _WIN32
-  setlocale(LC_ALL, "");
-  setlocale(LC_NUMERIC, "");
+  setlocale(LC_ALL, "en_US.utf-8");
+  setlocale(LC_NUMERIC, "en_US.utf-8");
   if (configStandalone.cpuAffinity != -1) {
     cpu_set_t mask;
     CPU_ZERO(&mask);
@@ -183,18 +183,12 @@ int ReadConfiguration(int argc, char** argv)
     return 1;
   }
 #endif
-  if (configStandalone.proc.runQA) {
-    if (getenv("LC_NUMERIC")) {
-      printf("Please unset the LC_NUMERIC env variable, otherwise ROOT will not be able to fit correctly\n"); // BUG: ROOT Problem
-      return 1;
-    }
-  }
   if (configStandalone.proc.doublePipeline && configStandalone.testSyncAsync) {
     printf("Cannot run asynchronous processing with double pipeline\n");
     return 1;
   }
   if (configStandalone.proc.doublePipeline && (configStandalone.runs < 4 || !configStandalone.outputcontrolmem)) {
-    printf("Double pipeline mode needs at least 3 runs per event and external output\n");
+    printf("Double pipeline mode needs at least 3 runs per event and external output. To cycle though multiple events, use --preloadEvents and --runs n for n iterations round-robin\n");
     return 1;
   }
   if (configStandalone.TF.bunchSim && configStandalone.TF.nMerge) {
@@ -421,7 +415,9 @@ int SetupReconstruction()
 
   if (configStandalone.testSyncAsync || configStandalone.testSync) {
     // Set settings for synchronous
-    steps.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, 0);
+    if (configStandalone.rundEdx == -1) {
+      steps.steps.setBits(GPUDataTypes::RecoStep::TPCdEdx, 0);
+    }
     recSet.useMatLUT = false;
     if (configStandalone.testSyncAsync) {
       procSet.eventDisplay = nullptr;
@@ -505,6 +501,7 @@ int ReadEvent(int n)
   if ((configStandalone.proc.runQA || configStandalone.eventDisplay) && !configStandalone.QA.noMC) {
     chainTracking->ForceInitQA();
     snprintf(filename, 256, "events/%s/mc.%d.dump", configStandalone.eventsDir, n);
+    chainTracking->GetQA()->UpdateChain(chainTracking);
     if (chainTracking->GetQA()->ReadO2MCData(filename)) {
       snprintf(filename, 256, "events/%s/mc.%d.dump", configStandalone.eventsDir, 0);
       if (chainTracking->GetQA()->ReadO2MCData(filename) && configStandalone.proc.runQA) {
@@ -738,12 +735,14 @@ int main(int argc, char** argv)
       recAsync->SetDebugLevelTmp(configStandalone.proc.debugLevel);
     }
     chainTrackingAsync = recAsync->AddChain<GPUChainTracking>();
+    chainTrackingAsync->SetQAFromForeignChain(chainTracking);
   }
   if (configStandalone.proc.doublePipeline) {
     if (configStandalone.proc.debugLevel >= 3) {
       recPipeline->SetDebugLevelTmp(configStandalone.proc.debugLevel);
     }
     chainTrackingPipeline = recPipeline->AddChain<GPUChainTracking>();
+    chainTrackingPipeline->SetQAFromForeignChain(chainTracking);
   }
 #ifdef GPUCA_HAVE_O2HEADERS
   if (!configStandalone.proc.doublePipeline) {
@@ -867,12 +866,12 @@ int main(int argc, char** argv)
           } else {
             grp.continuousMaxTimeBin = chainTracking->mIOPtrs.tpcZS ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcZS) : chainTracking->mIOPtrs.tpcPackedDigits ? GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.tpcPackedDigits) : GPUReconstructionConvert::GetMaxTimeBin(*chainTracking->mIOPtrs.clustersNative);
             printf("Max time bin set to %d\n", (int)grp.continuousMaxTimeBin);
-            rec->UpdateGRPSettings(&grp);
+            rec->UpdateSettings(&grp);
             if (recAsync) {
-              recAsync->UpdateGRPSettings(&grp);
+              recAsync->UpdateSettings(&grp);
             }
             if (recPipeline) {
-              recPipeline->UpdateGRPSettings(&grp);
+              recPipeline->UpdateSettings(&grp);
             }
           }
         }

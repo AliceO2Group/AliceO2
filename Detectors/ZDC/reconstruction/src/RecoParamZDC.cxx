@@ -49,6 +49,13 @@ void o2::zdc::RecoParamZDC::print()
     printed = true;
     LOG(info) << "RecoParamZDC::print()";
   }
+  if (triggerCondition == 0x1) {
+    LOG(info) << "SINGLE trigger condition in RecoParamZDC";
+  } else if (triggerCondition == 0x3) {
+    LOG(info) << "DOUBLE trigger condition in RecoParamZDC";
+  } else if (triggerCondition == 0x7) {
+    LOG(info) << "TRIPLE trigger condition in RecoParamZDC";
+  }
   /*
     Int_t tsh[NTDCChannels] = {4, 4, 4, 4, 4, 4, 4, 4, 4, 4};   // Trigger shift
     Int_t tth[NTDCChannels] = {8, 8, 8, 8, 8, 8, 8, 8, 8, 8};   // Trigger threshold

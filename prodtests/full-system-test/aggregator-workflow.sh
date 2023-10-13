@@ -81,11 +81,11 @@ fi
 : ${INTEGRATEDCURR_TF_PER_SLOT:=150000} # setting for FT0, FV0, FDD and TOF
 
 if [[ $BEAMTYPE == "PbPb" ]]; then
-  : ${LHCPHASE_TF_PER_SLOT:=264}
-  : ${TOF_CHANNELOFFSETS_UPDATE:=3000}
-  : ${TOF_CHANNELOFFSETS_DELTA_UPDATE:=500}
+  : ${LHCPHASE_TF_PER_SLOT:=100000}
+  : ${TOF_CHANNELOFFSETS_UPDATE:=300000}
+  : ${TOF_CHANNELOFFSETS_DELTA_UPDATE:=50000}
 else
-  : ${LHCPHASE_TF_PER_SLOT:=26400}
+  : ${LHCPHASE_TF_PER_SLOT:=100000}
   : ${TOF_CHANNELOFFSETS_UPDATE:=300000}
   : ${TOF_CHANNELOFFSETS_DELTA_UPDATE:=50000}
 fi
@@ -206,7 +206,7 @@ if [[ $AGGREGATOR_TASKS == BARREL_TF ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
     fi
   fi
   if [[ $CALIB_TOF_DIAGNOSTICS == 1 ]]; then
-    add_W o2-calibration-tof-diagnostic-workflow "--tf-per-slot 26400 --max-delay 1" "" 0
+    add_W o2-calibration-tof-diagnostic-workflow "--tf-per-slot $LHCPHASE_TF_PER_SLOT --max-delay 1" "" 0
   fi
   # TPC
   if [[ $CALIB_TPC_SCDCALIB == 1 ]]; then
@@ -223,6 +223,9 @@ if [[ $AGGREGATOR_TASKS == BARREL_TF ]] || [[ $AGGREGATOR_TASKS == ALL ]]; then
   fi
   if [[ $CALIB_TRD_GAIN == 1 ]]; then
     TRD_CALIB_CONFIG+=" --gain"
+  fi
+  if [[ $CALIB_TRD_T0 == 1 ]]; then
+    TRD_CALIB_CONFIG+=" --t0"
   fi
   if [[ ! -z ${TRD_CALIB_CONFIG} ]]; then
     add_W o2-calibration-trd-workflow "${TRD_CALIB_CONFIG}"
@@ -255,10 +258,12 @@ IDC_DELTA="--disable-IDCDelta true" # off by default
 if [[ "${DISABLE_IDC_DELTA:-}" == "1" ]]; then IDC_DELTA=""; fi
 if [[ "${ENABLE_IDC_DELTA_FILE:-}" == "1" ]]; then IDC_DELTA+=" --dump-IDCDelta-calib-data true --output-dir $CALIB_DIR --meta-output-dir $EPN2EOS_METAFILES_DIR "; fi
 
+if [[ "${DISABLE_IDC_PAD_MAP_WRITING:-}" == 1 ]]; then TPC_WRITING_PAD_STATUS_MAP=""; else TPC_WRITING_PAD_STATUS_MAP="--enableWritingPadStatusMap true"; fi
+
 if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
   if [[ $CALIB_TPC_IDC == 1 ]] && [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC || $AGGREGATOR_TASKS == ALL ]]; then
     add_W o2-tpc-idc-distribute "--crus ${crus} --timeframes ${nTFs} --output-lanes ${lanesFactorize} --send-precise-timestamp true --condition-tf-per-query ${nTFs} --n-TFs-buffer ${nBuffer}"
-    add_W o2-tpc-idc-factorize "--n-TFs-buffer ${nBuffer} --input-lanes ${lanesFactorize} --crus ${crus} --timeframes ${nTFs} --nthreads-grouping 8 --nthreads-IDC-factorization 8 --sendOutputFFT true --enable-CCDB-output true --enablePadStatusMap true --use-precise-timestamp true $IDC_DELTA" "TPCIDCGroupParam.groupPadsSectorEdges=32211"
+    add_W o2-tpc-idc-factorize "--n-TFs-buffer ${nBuffer} --input-lanes ${lanesFactorize} --crus ${crus} --timeframes ${nTFs} --nthreads-grouping 8 --nthreads-IDC-factorization 8 --sendOutputFFT true --enable-CCDB-output true --enablePadStatusMap true ${TPC_WRITING_PAD_STATUS_MAP} --use-precise-timestamp true $IDC_DELTA" "TPCIDCGroupParam.groupPadsSectorEdges=32211"
     add_W o2-tpc-idc-ft-aggregator "--rangeIDC 200 --inputLanes ${lanesFactorize} --nFourierCoeff 40 --nthreads 8"
   fi
   if [[ $CALIB_TPC_SAC == 1 ]] && [[ $AGGREGATOR_TASKS == TPC_IDCBOTH_SAC || $AGGREGATOR_TASKS == ALL ]]; then
@@ -273,7 +278,7 @@ fi
 if [[ $AGGREGATOR_TASKS == CALO_TF || $AGGREGATOR_TASKS == ALL ]]; then
   # EMC
   EMCAL_CALIB_CTP_OPT=
-  if true || ! has_detector CTP; then # FIXME: Currently we cannot send CTP/DIGITS to both CALO and BARREL workflow.
+  if ! has_detector CTP; then
     EMCAL_CALIB_CTP_OPT="--no-rejectL0Trigger"
   fi
   if [[ $CALIB_EMC_BADCHANNELCALIB == 1 ]]; then

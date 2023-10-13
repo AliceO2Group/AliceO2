@@ -52,3 +52,14 @@ o2_add_test(DetID
             PUBLIC_LINK_LIBRARIES O2::DetectorsCommonDataFormats
             COMPONENT_NAME DetectorsCommonDataFormats
             LABELS dataformats)
+
+o2_add_test(CTFEntropyCoder
+            NAME CTFEntropyCoder
+            SOURCES test/testCTFEntropyCoder.cxx
+            PUBLIC_LINK_LIBRARIES O2::DetectorsCommonDataFormats O2::rANS
+            COMPONENT_NAME DetectorsCommonDataFormats
+            TARGETVARNAME TEST_CTF_ENTROPY_CODER
+            LABELS detectorsbase)
+if(CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "x86_64")
+        target_compile_options(${TEST_CTF_ENTROPY_CODER} PRIVATE -march=native)
+endif()

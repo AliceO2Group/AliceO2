@@ -147,7 +147,7 @@ AlgorithmSpec AODReaderHelpers::indexBuilderCallback(std::vector<InputSpec>& req
 
 AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec>& requested)
 {
-  return AlgorithmSpec::InitCallback{[requested](InitContext& ic) {
+  return AlgorithmSpec::InitCallback{[requested](InitContext& /*ic*/) {
     return [requested](ProcessingContext& pc) {
       auto outputs = pc.outputs();
       // spawn tables
@@ -184,9 +184,11 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec>& reque
         } else if (description == header::DataDescription{"FWDTRACKCOV"}) {
           outputs.adopt(Output{origin, description, version}, maker(o2::aod::FwdTracksCovExtensionMetadata{}));
         } else if (description == header::DataDescription{"MCPARTICLE"}) {
-          outputs.adopt(Output{origin, description, version}, maker(o2::aod::McParticles_000ExtensionMetadata{}));
-        } else if (description == header::DataDescription{"MCPARTICLE_001"}) {
-          outputs.adopt(Output{origin, description, version}, maker(o2::aod::McParticles_001ExtensionMetadata{}));
+          if (version == 0U) {
+            outputs.adopt(Output{origin, description, version}, maker(o2::aod::McParticles_000ExtensionMetadata{}));
+          } else if (version == 1U) {
+            outputs.adopt(Output{origin, description, version}, maker(o2::aod::McParticles_001ExtensionMetadata{}));
+          }
         } else {
           throw runtime_error("Not an extended table");
         }

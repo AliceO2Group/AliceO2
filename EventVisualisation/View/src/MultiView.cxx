@@ -21,7 +21,6 @@
 #include "EventVisualisationDataConverter/VisualisationConstants.h"
 
 #include <TBrowser.h>
-#include <TEnv.h>
 #include <TEveBrowser.h>
 #include <TEveManager.h>
 #include <TEveProjectionAxes.h>
@@ -81,9 +80,7 @@ MultiView::MultiView()
   gEve->GetScenes()->FindListTreeItem(gEve->GetListTree())->SetOpen(true);
 
   // add axes
-  TEnv settings;
-  ConfigurationManager::getInstance().getConfig(settings);
-  const bool showAxes = settings.GetValue("axes.show", false);
+  const bool showAxes = ConfigurationManager::getAxesShow();
 
   if (showAxes) {
     for (int i = 0; i < NumberOfProjections; ++i) {
@@ -189,7 +186,7 @@ void MultiView::drawGeometryForDetector(string detectorName, bool threeD, bool r
 void MultiView::registerGeometry(TEveGeoShape* geom, bool threeD, bool rPhi, bool zy)
 {
   if (!geom) {
-    LOG(error) << "MultiView::registerGeometry -- geometry is NULL!";
+    LOGF(error, "MultiView::registerGeometry -- geometry is NULL!");
     exit(-1);
   }
   TEveProjectionManager* projection;

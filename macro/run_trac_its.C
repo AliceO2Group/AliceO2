@@ -1,3 +1,14 @@
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 #if !defined(__CLING__) || defined(__ROOTCLING__)
 #include <memory>
 #include <string>
@@ -30,7 +41,6 @@
 #include "CCDB/BasicCCDBManager.h"
 #include "CCDB/CCDBTimeStampUtils.h"
 #include "DataFormatsITSMFT/TopologyDictionary.h"
-#endif
 
 #include "ReconstructionDataFormats/PrimaryVertex.h" // hack to silence JIT compiler
 #include "ITStracking/ROframe.h"
@@ -208,3 +218,5 @@ void run_trac_its(std::string path = "./", std::string outputfile = "o2trac_its.
   timer.Stop();
   timer.Print();
 }
+
+#endif

@@ -17,6 +17,7 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "Framework/CCDBParamSpec.h"
 #include "DataFormatsTPC/CompressedClusters.h"
+#include "DataFormatsTPC/ZeroSuppression.h"
 #include "TPCWorkflow/EntropyDecoderSpec.h"
 
 using namespace o2::framework;
@@ -48,9 +49,10 @@ void EntropyDecoderSpec::run(ProcessingContext& pc)
   auto buff = pc.inputs().get<gsl::span<o2::ctf::BufferType>>("ctf_TPC");
 
   auto& compclusters = pc.outputs().make<std::vector<char>>(OutputRef{"output"});
+  auto& triggers = pc.outputs().make<std::vector<o2::tpc::TriggerInfoDLBZS>>(OutputRef{"trigger"});
   if (buff.size()) {
     const auto ctfImage = o2::tpc::CTF::getImage(buff.data());
-    iosize = mCTFCoder.decode(ctfImage, compclusters);
+    iosize = mCTFCoder.decode(ctfImage, compclusters, triggers);
   }
   pc.outputs().snapshot({"ctfrep", 0}, iosize);
   mTimer.Stop();
@@ -75,9 +77,11 @@ DataProcessorSpec getEntropyDecoderSpec(int verbosity, unsigned int sspec)
     "tpc-entropy-decoder",
     inputs,
     Outputs{OutputSpec{{"output"}, "TPC", "COMPCLUSTERSFLAT", 0, Lifetime::Timeframe},
+            OutputSpec{{"trigger"}, "TPC", "TRIGGERWORDS", 0, Lifetime::Timeframe},
             OutputSpec{{"ctfrep"}, "TPC", "CTFDECREP", 0, Lifetime::Timeframe}},
     AlgorithmSpec{adaptFromTask<EntropyDecoderSpec>(verbosity)},
-    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}}}};
+    Options{{"ctf-dict", VariantType::String, "ccdb", {"CTF dictionary: empty or ccdb=CCDB, none=no external dictionary otherwise: local filename"}},
+            {"ans-version", VariantType::String, {"version of ans entropy coder implementation to use"}}}};
 }
 
 } // namespace tpc

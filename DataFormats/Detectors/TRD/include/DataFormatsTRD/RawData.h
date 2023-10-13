@@ -447,10 +447,10 @@ void setHalfCRUHeaderLinkSizeAndFlags(HalfCRUHeader& cruhead, int link, int size
 DigitMCMADCMask constructBlankADCMask();
 
 uint32_t getHalfCRULinkInfo(const HalfCRUHeader& cruhead, const uint32_t link, const bool data);
-uint32_t getHalfCRULinkErrorFlag(const HalfCRUHeader& cruhead, const uint32_t link);
-uint32_t getHalfCRULinkDataSize(const HalfCRUHeader& cruhead, const uint32_t link);
-void getHalfCRULinkErrorFlags(const HalfCRUHeader& cruheader, std::array<uint32_t, 15>& linkerrorflags);
-void getHalfCRULinkDataSizes(const HalfCRUHeader& cruheader, std::array<uint32_t, 15>& linksizes);
+uint8_t getHalfCRULinkErrorFlag(const HalfCRUHeader& cruhead, const uint32_t link);
+uint16_t getHalfCRULinkDataSize(const HalfCRUHeader& cruhead, const uint32_t link);
+void getHalfCRULinkErrorFlags(const HalfCRUHeader& cruheader, std::array<uint8_t, 15>& linkerrorflags);
+void getHalfCRULinkDataSizes(const HalfCRUHeader& cruheader, std::array<uint16_t, 15>& linksizes);
 std::ostream& operator<<(std::ostream& stream, const TrackletHCHeader& halfchamberheader);
 std::ostream& operator<<(std::ostream& stream, const TrackletMCMHeader& tracklmcmhead);
 std::ostream& operator<<(std::ostream& stream, const TrackletMCMData& trackletmcmdata);

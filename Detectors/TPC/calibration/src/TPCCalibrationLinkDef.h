@@ -110,4 +110,5 @@
 
 #pragma link C++ class o2::tpc::TPCFastSpaceChargeCorrectionHelper + ;
 
+#pragma link C++ class o2::tpc::CalculatedEdx + ;
 #endif

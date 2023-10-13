@@ -250,6 +250,9 @@ void DataRequest::requestMFTClusters(bool mc)
 void DataRequest::requestTPCClusters(bool mc)
 {
   addInput({"clusTPC", ConcreteDataTypeMatcher{"TPC", "CLUSTERNATIVE"}, Lifetime::Timeframe});
+  if (!getenv("DPL_DISABLE_TPC_TRIGGER_READER") || atoi(getenv("DPL_DISABLE_TPC_TRIGGER_READER")) != 1) {
+    requestTPCTriggers();
+  }
   if (requestMap.find("trackTPC") != requestMap.end()) {
     addInput({"clusTPCshmap", "TPC", "CLSHAREDMAP", 0, Lifetime::Timeframe});
   }
@@ -257,6 +260,12 @@ void DataRequest::requestTPCClusters(bool mc)
     addInput({"clusTPCMC", ConcreteDataTypeMatcher{"TPC", "CLNATIVEMCLBL"}, Lifetime::Timeframe});
   }
   requestMap["clusTPC"] = mc;
+}
+
+void DataRequest::requestTPCTriggers()
+{
+  addInput({"trigTPC", "TPC", "TRIGGERWORDS", 0, Lifetime::Timeframe});
+  requestMap["trigTPC"] = false;
 }
 
 void DataRequest::requestTOFClusters(bool mc)
@@ -672,6 +681,11 @@ void RecoContainer::collectData(ProcessingContext& pc, const DataRequest& reques
     addTPCClusters(pc, req->second, reqMap.find("trackTPC") != reqMap.end());
   }
 
+  req = reqMap.find("trigTPC");
+  if (req != reqMap.end()) {
+    addTPCTriggers(pc);
+  }
+
   req = reqMap.find("clusTOF");
   if (req != reqMap.end()) {
     addTOFClusters(pc, req->second);
@@ -1055,6 +1069,12 @@ void RecoContainer::addTPCClusters(ProcessingContext& pc, bool mc, bool shmap)
 }
 
 //__________________________________________________________
+void RecoContainer::addTPCTriggers(ProcessingContext& pc)
+{
+  commonPool[GTrackID::TPC].registerContainer(pc.inputs().get<gsl::span<o2::tpc::TriggerInfoDLBZS>>("trigTPC"), MATCHES);
+}
+
+//__________________________________________________________
 void RecoContainer::addTRDTracklets(ProcessingContext& pc, bool mc)
 {
   inputsTRD = o2::trd::getRecoInputContainer(pc, nullptr, this, mc);
@@ -1102,7 +1122,9 @@ void RecoContainer::addMIDClusters(ProcessingContext& pc, bool mc)
 void RecoContainer::addCTPDigits(ProcessingContext& pc, bool mc)
 {
   commonPool[GTrackID::CTP].registerContainer(pc.inputs().get<gsl::span<o2::ctp::CTPDigit>>("CTPDigits"), CLUSTERS);
-  mCTPLumi = pc.inputs().get<o2::ctp::LumiInfo>("CTPLumi");
+  if (pc.inputs().get<gsl::span<char>>("CTPLumi").size() == sizeof(o2::ctp::LumiInfo)) {
+    mCTPLumi = pc.inputs().get<o2::ctp::LumiInfo>("CTPLumi");
+  }
   if (mc) {
     //  pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("CTPDigitsMC");
   }

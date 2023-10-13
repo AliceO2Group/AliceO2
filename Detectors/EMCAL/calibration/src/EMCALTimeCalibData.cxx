@@ -36,7 +36,7 @@ using boost::histogram::indexed;
 //_____________________________________________
 void EMCALTimeCalibData::PrintStream(std::ostream& stream) const
 {
-  stream << "EMCAL Cell ID:  " << mTimeHisto << "\n";
+  stream << "EMCAL Cell ID:  " << mTimeHisto[0] << "\n";
 }
 //_____________________________________________
 void EMCALTimeCalibData::print()
@@ -50,11 +50,11 @@ std::ostream& operator<<(std::ostream& stream, const EMCALTimeCalibData& emcdata
   return stream;
 }
 //_____________________________________________
-void EMCALTimeCalibData::merge(const EMCALTimeCalibData* prev)
+void EMCALTimeCalibData::merge(EMCALTimeCalibData* prev)
 {
   mEvents += prev->getNEvents();
   mNEntriesInHisto += prev->getNEntriesInHisto();
-  mTimeHisto += prev->getHisto();
+  mTimeHisto[0] += prev->getHisto();
 }
 //_____________________________________________
 bool EMCALTimeCalibData::hasEnoughData() const
@@ -73,24 +73,64 @@ bool EMCALTimeCalibData::hasEnoughData() const
 
   return enough;
 }
+
 //_____________________________________________
 void EMCALTimeCalibData::fill(const gsl::span<const o2::emcal::Cell> data)
 {
   // the fill function is called once per event
   mEvents++;
 
-  for (auto cell : data) {
-    double cellEnergy = cell.getEnergy();
-    double cellTime = cell.getTimeStamp();
-    int id = cell.getTower();
-    if (mApplyGainCalib) {
-      LOG(debug) << " gain calib factor for cell " << id << " = " << mGainCalibFactors->getGainCalibFactors(id);
-      cellEnergy *= mGainCalibFactors->getGainCalibFactors(id);
+  if (data.size() == 0) {
+    return;
+  }
+  auto fillfunction = [this](int thread, const gsl::span<const o2::emcal::Cell> data, double minCellEnergy) {
+    LOG(debug) << "filling in thread " << thread << " ncells = " << data.size();
+    auto& mCurrentHist = mTimeHisto[thread];
+    unsigned int nEntries = 0;
+    for (auto cell : data) {
+      double cellEnergy = cell.getEnergy();
+      double cellTime = cell.getTimeStamp();
+      int id = cell.getTower();
+      if (mApplyGainCalib) {
+        LOG(debug) << " gain calib factor for cell " << id << " = " << mGainCalibFactors->getGainCalibFactors(id);
+        cellEnergy *= mGainCalibFactors->getGainCalibFactors(id);
+      }
+      if (cellEnergy > minCellEnergy) {
+        LOG(debug) << "inserting in cell ID " << id << ": cellTime = " << cellTime;
+        mCurrentHist(cellTime, id);
+        nEntries++;
+      }
     }
-    if (cellEnergy > EMCALCalibParams::Instance().minCellEnergy_tc) {
-      LOG(debug) << "inserting in cell ID " << id << ": cellTime = " << cellTime;
-      mTimeHisto(cellTime, id);
-      mNEntriesInHisto++;
+    mVecNEntriesInHisto[thread] += nEntries;
+  };
+
+  std::vector<gsl::span<const o2::emcal::Cell>> ranges(mNThreads);
+  auto size_per_thread = static_cast<unsigned int>(std::ceil((static_cast<float>(data.size()) / mNThreads)));
+  unsigned int currentfirst = 0;
+  for (int ithread = 0; ithread < mNThreads; ithread++) {
+    unsigned int nelements = std::min(size_per_thread, static_cast<unsigned int>(data.size() - 1 - currentfirst));
+    ranges[ithread] = data.subspan(currentfirst, nelements);
+    currentfirst += nelements;
+    LOG(debug) << "currentfirst " << currentfirst << "  nelements " << nelements;
+  }
+
+  double minCellEnergy = EMCALCalibParams::Instance().minCellEnergy_tc;
+
+#if (defined(WITH_OPENMP) && !defined(__CLING__))
+  LOG(debug) << "Number of threads that will be used = " << mNThreads;
+#pragma omp parallel for num_threads(mNThreads)
+#else
+  LOG(debug) << "OPEN MP will not be used for the bad channel calibration";
+#endif
+  for (int ithread = 0; ithread < mNThreads; ithread++) {
+    fillfunction(ithread, ranges[ithread], minCellEnergy);
+  }
+
+  // only sum up entries if needed
+  if (!o2::emcal::EMCALCalibParams::Instance().useNEventsForCalib_tc) {
+    for (auto& nEntr : mVecNEntriesInHisto) {
+      mNEntriesInHisto += nEntr;
+      nEntr = 0;
     }
   }
 }

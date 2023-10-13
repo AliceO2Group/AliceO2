@@ -153,6 +153,10 @@ class RCUTrailer
   /// \return Size of the payload as number of 32 bit workds
   uint32_t getPayloadSize() const { return mPayloadSize; }
 
+  /// \brief Get number of corrupted trailer words (undefined trailer word code)
+  /// \return Number of trailer word corruptions
+  uint32_t getTrailerWordCorruptions() const { return mWordCorruptions; }
+
   /// \brief Get the firmware version
   /// \return Firmware version
   uint8_t getFirmwareVersion() const { return mFirmwareVersion; }
@@ -384,6 +388,11 @@ class RCUTrailer
   /// are assigned based on the trailer word marker.
   static RCUTrailer constructFromPayloadWords(const gsl::span<const uint32_t> payloadwords);
 
+  /// \brief Check whether the word is a valid last trailer word
+  /// \param trailerword Word to be checked
+  /// \return True if the word is a valid last trailer word, false if there are inconsistencies
+  static bool checkLastTrailerWord(uint32_t trailerword);
+
  private:
   /// \struct AltroConfig
   /// \brief Bit field configuration of the ALTRO config registers
@@ -438,6 +447,7 @@ class RCUTrailer
   uint8_t mFirmwareVersion = 0;         ///< RCU firmware version
   uint32_t mTrailerSize = 0;            ///< Size of the trailer (in number of 32 bit words)
   uint32_t mPayloadSize = 0;            ///< Size of the payload (in nunber of 32 bit words)
+  uint32_t mWordCorruptions = 0;        ///< Number of trailer word corruptions (decoding only)
   uint32_t mFECERRA = 0;                ///< contains errors related to ALTROBUS transactions
   uint32_t mFECERRB = 0;                ///< contains errors related to ALTROBUS transactions
   ErrorCounters mErrorCounter = {0, 0}; ///< Error counter registers
