@@ -135,7 +135,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
       outputs,
       algoSpec,
       Options{
-        {"tof-compressor-output-buffer-size", VariantType::Int, 0, {"Encoder output buffer size (in bytes). Zero = automatic (careful)."}},
+        {"tof-compressor-output-buffer-size", VariantType::Int, 1048576, {"Encoder output buffer size (in bytes). Zero = automatic (careful)."}},
         {"tof-compressor-conet-mode", VariantType::Bool, false, {"Decoder CONET flag"}},
         {"tof-compressor-decoder-verbose", VariantType::Bool, false, {"Decoder verbose flag"}},
         {"tof-compressor-encoder-verbose", VariantType::Bool, false, {"Encoder verbose flag"}},
