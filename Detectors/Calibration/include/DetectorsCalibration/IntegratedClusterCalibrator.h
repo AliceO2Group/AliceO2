@@ -641,7 +641,7 @@ class IntegratedClusters
   void merge(const IntegratedClusters* prev);
 
   /// \return always return true. To specify the number of time slot intervals to wait for one should use the --max-delay option
-  bool hasEnoughData() const { return true; }
+  bool hasEnoughData() const { return (mRemainingData != -1); }
 
   /// \return returns accumulated currents
   const auto& getCurrents() const& { return mCurrents; }
@@ -665,12 +665,12 @@ class IntegratedClusters
   void setStartTime(long timeMS) { mCurrents.setStartTime(timeMS); }
 
  private:
-  DataT mCurrents;                          ///< buffer for integrated currents
-  o2::calibration::TFType mTFFirst{};       ///< first TF of currents
-  o2::calibration::TFType mTFLast{};        ///< last TF of currents
-  o2::calibration::TFType mRemainingData{}; ///< counter for received data
-  unsigned int mNValuesPerTF{};             ///< number of expected currents per TF (estimated from first received data)
-  bool mInitialize{true};                   ///< flag if this object will be initialized when fill method is called
+  DataT mCurrents;                             ///< buffer for integrated currents
+  o2::calibration::TFType mTFFirst{};          ///< first TF of currents
+  o2::calibration::TFType mTFLast{};           ///< last TF of currents
+  o2::calibration::TFType mRemainingData = -1; ///< counter for received data
+  unsigned int mNValuesPerTF{};                ///< number of expected currents per TF (estimated from first received data)
+  bool mInitialize{true};                      ///< flag if this object will be initialized when fill method is called
 
   /// init member when first data is received
   /// \param valuesPerTF number of expected values per TF
