@@ -1521,7 +1521,6 @@ void RecoContainer::getTrackTimeITSTPCTRD(GTrackID gid, float& t, float& tErr) c
       tErr = 5.e-3;
       const auto& trc = getITSTPCTRDTracks<o2::trd::TrackTRD>()[gid];
       if (trc.hasPileUpInfo()) { // distance to farthest collision within the pileup integration time
-        t += trc.getPileUpTimeShiftMUS();
         tErr += trc.getPileUpTimeErrorMUS();
       }
     }
@@ -1539,7 +1538,6 @@ void RecoContainer::getTrackTimeTPCTRD(GTrackID gid, float& t, float& tErr) cons
       tErr = 5.e-3;
       const auto& trc = getTPCTRDTracks<o2::trd::TrackTRD>()[gid];
       if (trc.hasPileUpInfo()) { // distance to farthest collision within the pileup integration time
-        t += trc.getPileUpTimeShiftMUS();
         tErr += trc.getPileUpTimeErrorMUS();
       }
     }
