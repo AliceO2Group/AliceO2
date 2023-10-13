@@ -373,7 +373,7 @@ void TrackCheckStudy::init(InitContext& ic)
       histLength[iH - 4][jj] = new TH1I(Form("trk_len_%d_%s", iH, name[jj]), Form("#exists cluster %s", name[jj]), 7, -.5, 6.5);
       histLength[iH - 4][jj]->SetFillColor(colorArr[jj] - 9);
       histLength[iH - 4][jj]->SetLineColor(colorArr[jj] - 9);
-      histLengthNoCl[iH - 4][jj] = new TH1I(Form("trk_len_%d_nocl_%s", iH, name[jj]), Form("#slash{#exists} cluster %s", name), 7, -.5, 6.5);
+      histLengthNoCl[iH - 4][jj] = new TH1I(Form("trk_len_%d_nocl_%s", iH, name[jj]), Form("#slash{#exists} cluster %s", name[jj]), 7, -.5, 6.5);
       histLengthNoCl[iH - 4][jj]->SetFillColor(colorArr[jj] + 1);
       histLengthNoCl[iH - 4][jj]->SetLineColor(colorArr[jj] + 1);
       if (jj == 0)
