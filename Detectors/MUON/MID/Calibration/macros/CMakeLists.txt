@@ -9,14 +9,7 @@
 # granted to it by virtue of its status as an Intergovernmental Organization
 # or submit itself to any jurisdiction.
 
-o2_add_library(
-  MIDCalibration
-  SOURCES src/ChannelCalibrator.cxx src/ChannelCalibratorFinalizer.cxx src/ChannelCalibratorParam.cxx
-  PUBLIC_LINK_LIBRARIES O2::DataFormatsMID O2::MIDFiltering
-                        O2::DetectorsCalibration O2::CCDB Microsoft.GSL::GSL)
-
-o2_target_root_dictionary(MIDCalibration
-                          HEADERS include/MIDCalibration/ChannelCalibrator.h include/MIDCalibration/ChannelCalibratorParam.h)
-
-add_subdirectory(exe)
-add_subdirectory(macros)
+o2_add_test_root_macro(
+  ccdbUtils.C
+  PUBLIC_LINK_LIBRARIES O2::MIDCalibration O2::MathUtils
+  LABELS muon mid)
