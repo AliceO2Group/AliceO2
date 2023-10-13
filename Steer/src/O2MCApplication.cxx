@@ -61,42 +61,12 @@ void O2MCApplicationBase::Stepping()
   // check the max time of flight condition
   const auto tof = fMC->TrackTime();
   auto& params = o2::GlobalProcessCutSimParam::Instance();
-  if (tof > params.TOFMAX) {
+  if (tof > params.TOFMAX || !mKeepStepFcn(fMC)) {
     fMC->StopTrack();
     return;
   }
 
   mLongestTrackTime = std::max((double)mLongestTrackTime, tof);
-
-  if (mCutParams.stepFiltering) {
-    // we can kill tracks here based on our
-    // custom detector specificities
-
-    // Note that this is done in addition to the generic
-    // R + Z-cut mechanism at VMC level.
-
-    float x, y, z;
-    fMC->TrackPosition(x, y, z);
-
-    // this function is implementing a basic z-dependent R cut
-    // can be generalized later on
-    auto outOfR = [x, y, this](float z) {
-      // for the moment for cases when we have ZDC enabled
-      if (std::abs(z) > mCutParams.tunnelZ) {
-        if ((x * x + y * y) > mCutParams.maxRTrackingZDC * mCutParams.maxRTrackingZDC) {
-          return true;
-        }
-      }
-      return false;
-    };
-
-    if (z > mCutParams.ZmaxA ||
-        -z > mCutParams.ZmaxC ||
-        outOfR(z)) {
-      fMC->StopTrack();
-      return;
-    }
-  }
 
   if (mCutParams.stepTrackRefHook) {
     mTrackRefFcn(fMC);
@@ -137,6 +107,35 @@ void O2MCApplicationBase::ConstructGeometry()
     auto vol = static_cast<TGeoVolume*>(vollist->At(i));
     auto iter = fModVolMap.find(vol->GetNumber());
     voltomodulefile << vol->GetName() << ":" << mModIdToName[iter->second] << "\n";
+  }
+
+  // decide on geometry cuts
+  if (!mCutParams.stepFiltering) {
+    // keep steps under any circumstances
+    mKeepStepFcn = [](TVirtualMC const*) { return true; };
+  } else if (mCutParams.stepFilteringMacro.empty()) {
+    // keep step based on min/max z cut and ZDC cylinder
+    mKeepStepFcn = [this](TVirtualMC const* mc) { float x, y, z;
+                                            mc->TrackPosition(x, y, z);
+                                            return !(z > mCutParams.ZmaxA || -z > mCutParams.ZmaxC || (std::abs(z) > mCutParams.tunnelZ && (x * x + y * y) > (mCutParams.maxRTrackingZDC * mCutParams.maxRTrackingZDC)));
+                                          };
+  } else {
+    // load custom function from macro
+    auto stepFilteringMacro = o2::utils::expandShellVarsInFileName(mCutParams.stepFilteringMacro);
+    LOG(info) << "Initializing step filtering from macro " << stepFilteringMacro;
+    if (std::filesystem::exists(stepFilteringMacro)) {
+      // if this file exists we will compile function on the fly
+      mKeepStepFcn = o2::conf::GetFromMacro<KeepStepFcn>(stepFilteringMacro, "keepStep()", "o2::steer::O2MCApplicationBase::KeepStepFcn", "o2mc_stepping_keep_step");
+      if (!mKeepStepFcn) {
+        LOG(error) << "Issue while setting up function keepStep() from " << stepFilteringMacro << " ; Will not execute hook";
+        mTrackRefFcn = [](TVirtualMC const*) { return true; }; // do nothing
+      } else {
+        LOG(info) << "Step filtering initialized from macro " << stepFilteringMacro;
+      }
+    } else {
+      LOG(error) << "Macro for step filtering does not exist at " << stepFilteringMacro << " ; Will not execute hook";
+      mTrackRefFcn = [](TVirtualMC const*) { return true; }; // do nothing
+    }
   }
 }
 

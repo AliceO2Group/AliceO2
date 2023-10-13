@@ -74,6 +74,10 @@ std::string expandShellVarsInFileName(std::string const& input)
   std::sregex_iterator iter;
   auto words_end = std::sregex_iterator(); // the end iterator (default)
   auto words_begin = std::sregex_iterator(input.begin(), input.end(), e);
+  if (words_begin == words_end) {
+    // no match found, return original string
+    return input;
+  }
   std::string tail;
   for (auto i = words_begin; i != words_end; ++i) {
     std::smatch match = *i;

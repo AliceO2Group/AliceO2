@@ -1,0 +1,25 @@
+// An implementation to check if steps are inside cylinders aligned along the z-axis
+
+o2::steer::O2MCApplicationBase::KeepStepFcn keepStep()
+{
+  auto& modules = o2::conf::SimConfig::Instance().getActiveModules();
+
+  float zdcTubeR{50};
+
+  if (std::find(modules.begin(), modules.end(), "ZDC") == modules.end()) {
+    zdcTubeR = 0;
+  }
+
+  float rSq[] = {zdcTubeR*zdcTubeR, 130*130, 500*500, 600*600, 100*100, 80*80, zdcTubeR*zdcTubeR};
+  float edges[] = {-3001, -1881, -1789, -715, 600, 714, 1229, 2999};
+  return [rSq, edges](TVirtualMC const* mc) {
+    float x, y, z;
+    mc->TrackPosition(x, y, z);
+    for (auto i = 0U; i < 7; ++i) {
+      if (edges[i+1] > z && z >= edges[i]) {
+        return (x * x + y * y) < rSq[i];
+      }
+    }
+    return true;
+  };
+}

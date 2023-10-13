@@ -22,6 +22,7 @@
 #include <FairMCApplication.h>
 #include "Rtypes.h" // for Int_t, Bool_t, Double_t, etc
 #include <TVirtualMC.h>
+#include "VecGeom/base/FlatVoxelHashMap.h"
 #include "SimConfig/SimParams.h"
 
 namespace o2
@@ -57,6 +58,7 @@ class O2MCApplicationBase : public FairMCApplication
   double TrackingZmax() const override { return mCutParams.maxAbsZTracking; }
 
   typedef std::function<void(TVirtualMC const*)> TrackRefFcn;
+  typedef std::function<bool(TVirtualMC const*)> KeepStepFcn;
 
  protected:
   o2::conf::SimCutParams const& mCutParams; // reference to parameter system
@@ -70,6 +72,8 @@ class O2MCApplicationBase : public FairMCApplication
   void finishEventCommon();
   TrackRefFcn mTrackRefFcn; // a function hook that gets (optionally) called during Stepping
   void initTrackRefHook();
+  KeepStepFcn mKeepStepFcn;
+
 
   ClassDefOverride(O2MCApplicationBase, 1);
 };

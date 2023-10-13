@@ -174,6 +174,9 @@ set_package_properties(FFTW3f PROPERTIES TYPE REQUIRED)
 find_package(absl CONFIG)
 set_package_properties(absl PROPERTIES TYPE REQUIRED)
 
+find_package(VecGeom)
+set_package_properties(VecGeom PROPERTIES TYPE REQUIRED)
+
 find_package(Vtune)
 set_package_properties(Vtune PROPERTIES TYPE OPTIONAL)
 
