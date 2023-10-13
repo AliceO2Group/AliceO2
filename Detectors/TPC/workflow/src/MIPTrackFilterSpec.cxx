@@ -92,6 +92,8 @@ void MIPTrackFilterDevice::run(ProcessingContext& pc)
   const auto currentTF = processing_helpers::getCurrentTF(pc);
   if ((mTFCounter++ % mProcessEveryNthTF) && (currentTF >= mProcessNFirstTFs)) {
     LOGP(info, "Skipping TF {}", currentTF);
+    mMIPTracks.clear();
+    sendOutput(pc.outputs());
     return;
   }
 
@@ -110,6 +112,8 @@ void MIPTrackFilterDevice::run(ProcessingContext& pc)
 
     // in case no good tracks have been found
     if (indices.empty()) {
+      mMIPTracks.clear();
+      sendOutput(pc.outputs());
       return;
     }
 
@@ -127,9 +131,11 @@ void MIPTrackFilterDevice::run(ProcessingContext& pc)
   }
 
   LOGP(info, "Filtered {} MIP tracks out of {} total tpc tracks", mMIPTracks.size(), tracks.size());
-  pc.outputs().snapshot(Output{header::gDataOriginTPC, "MIPS", 0, Lifetime::Timeframe}, mMIPTracks);
+  sendOutput(pc.outputs());
   mMIPTracks.clear();
 }
+
+void MIPTrackFilterDevice::sendOutput(DataAllocator& output) { output.snapshot(Output{header::gDataOriginTPC, "MIPS", 0, Lifetime::Timeframe}, mMIPTracks); }
 
 void MIPTrackFilterDevice::endOfStream(EndOfStreamContext& eos)
 {
