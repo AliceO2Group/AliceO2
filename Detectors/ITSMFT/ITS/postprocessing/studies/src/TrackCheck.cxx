@@ -542,7 +542,7 @@ void TrackCheckStudy::process()
     trackID = 0;
     for (auto& part : evInfo) {
 
-      if (ProcessName[part.prodProcess] == " ")
+      if (strcmp(ProcessName[part.prodProcess], " "))
         ProcessName[part.prodProcess] = part.prodProcessName;
       if ((part.clusters & 0x7f) == mMask) {
         // part.clusters != 0x3f && part.clusters != 0x3f << 1 &&
