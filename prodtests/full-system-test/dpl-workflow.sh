@@ -339,7 +339,7 @@ if [[ ! -z ${WORKFLOW_DETECTORS_USE_GLOBAL_READER} ]]; then
   has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-digits-reader-workflow "$DISABLE_MC --hbfutils-config o2_tfidinfo.root --infile mchdigits.root"
   has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-clusters-reader-workflow "--hbfutils-config o2_tfidinfo.root" "" 0
   has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-preclusters-reader-workflow "--hbfutils-config o2_tfidinfo.root" "" 0
-  has_detector TRD && has_detector_from_global_reader TRD && add_W o2-trd-digit-reader-workflow "--hbfutils-config o2_tfidinfo.root"
+  has_detector TRD && has_detector_from_global_reader TRD && add_W o2-trd-digit-reader-workflow "$DISABLE_MC --digit-subspec 0 --disable-trigrec --hbfutils-config o2_tfidinfo.root"
   has_detector TOF && has_detector_from_global_reader TOF && add_W o2-tof-reco-workflow "$DISABLE_MC --input-type digits --output-type NONE --hbfutils-config o2_tfidinfo.root"
 fi
 
@@ -463,7 +463,7 @@ fi
 (has_detector_reco TOF || has_detector_ctf TOF) && ! has_detector_from_global_reader TOF && add_W o2-tof-reco-workflow "$TOF_CONFIG --input-type $TOF_INPUT --output-type $TOF_OUTPUT $DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N tof-compressed-decoder TOF RAW 1),$(get_N TOFClusterer TOF REST 1)"
 has_detector_reco ITS && ! has_detector_from_global_reader ITS && add_W o2-its-reco-workflow "--trackerCA $ITS_CONFIG $DISABLE_MC $DISABLE_DIGIT_CLUSTER_INPUT $DISABLE_ROOT_OUTPUT --pipeline $(get_N its-tracker ITS REST 1 ITSTRK)" "$ITS_CONFIG_KEY;$ITSMFT_STROBES;$ITSEXTRAERR"
 has_detector_reco FT0 && ! has_detector_from_global_reader FT0 && add_W o2-ft0-reco-workflow "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC --pipeline $(get_N ft0-reconstructor FT0 REST 1)"
-has_detector_reco TRD && ! has_detector_from_global_reader TRD && add_W o2-trd-tracklet-transformer "$DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_FILTER_CONFIG --pipeline $(get_N TRDTRACKLETTRANSFORMER TRD REST 1 TRDTRKTRANS)"
+has_detector_reco TRD && (has_detector_matching ITSTPCTRD || has_detector_matching TPCTRD) && ! has_detector_from_global_reader TRD && add_W o2-trd-tracklet-transformer "--disable-irframe-reader $DISABLE_DIGIT_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_FILTER_CONFIG --pipeline $(get_N TRDTRACKLETTRANSFORMER TRD REST 1 TRDTRKTRANS)"
 has_detectors_reco ITS TPC && has_detector_matching ITSTPC && add_W o2-tpcits-match-workflow "$DISABLE_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC $SEND_ITSTPC_DTGL  $TPC_CORR_SCALING --nthreads $ITSTPC_THREADS --pipeline $(get_N itstpc-track-matcher MATCH REST $ITSTPC_THREADS TPCITS)" "$ITSTPC_CONFIG_KEY;$INTERACTION_TAG_CONFIG_KEY;$ITSMFT_STROBES;$ITSEXTRAERR"
 has_detector_reco TRD && [[ ! -z "$TRD_SOURCES" ]] && add_W o2-trd-global-tracking "$DISABLE_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC $TRD_CONFIG $TRD_FILTER_CONFIG $TPC_CORR_SCALING --track-sources $TRD_SOURCES --pipeline $(get_N trd-globaltracking_TPC_ITS-TPC_ TRD REST 1 TRDTRK),$(get_N trd-globaltracking_TPC_FT0_ITS-TPC_ TRD REST 1 TRDTRK),$(get_N trd-globaltracking_TPC_FT0_ITS-TPC_CTP_ TRD REST 1 TRDTRK)" "$TRD_CONFIG_KEY;$INTERACTION_TAG_CONFIG_KEY;$ITSMFT_STROBES;$ITSEXTRAERR"
 has_detector_reco TOF && [[ ! -z "$TOF_SOURCES" ]] && add_W o2-tof-matcher-workflow "$DISABLE_ROOT_INPUT $DISABLE_ROOT_OUTPUT $DISABLE_MC $TPC_CORR_SCALING --track-sources $TOF_SOURCES --pipeline $(get_N tof-matcher TOF REST 1 TOFMATCH)" "$ITSMFT_STROBES;$ITSEXTRAERR"
@@ -492,7 +492,7 @@ has_detectors_reco MFT MCH && has_detector_matching MFTMCH && add_W o2-globalfwd
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Writers for detectors whose reco workflow cannot write the output
-has_detector_reco TRD && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-trd-digittracklet-writer ) && ! has_detector_from_global_reader TRD && add_W o2-trd-digittracklet-writer
+[[ $CTFINPUT == 1 ]] || [[ $DIGITINPUT == 1 ]] && has_detector_reco TRD && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-trd-digittracklet-writer ) && ! has_detector_from_global_reader TRD && add_W o2-trd-digittracklet-writer
 has_detector_reco TPC && [[ "0${TPC_CONVERT_LINKZS_TO_RAW:-}" == "01" ]] && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-gpu-reco-workflow ) && ! has_detector_from_global_reader TPC && add_W o2-tpc-reco-workflow "--input-type digitizer --output-type digits $DISABLE_MC"
 has_detector_reco CPV && ( [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-cpv-cluster-writer-workflow ) && ! has_detector_from_global_reader CPV && add_W o2-cpv-cluster-writer-workflow "$DISABLE_MC"
 ( workflow_has_parameter AOD || [[ -z "$DISABLE_ROOT_OUTPUT" ]] || needs_root_output o2-emcal-cell-writer-workflow ) && ! has_detector_from_global_reader EMC && has_detector EMC && add_W o2-emcal-cell-writer-workflow "$DISABLE_MC --subspec 10 --cell-writer-name emcal-led-cells-writer --emcal-led-cells-writer \"--outfile emcledcells.root\""
