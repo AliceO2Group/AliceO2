@@ -370,7 +370,7 @@ void TrackCheckStudy::init(InitContext& ic)
     // check distributions on layers of fake clusters for tracks of different lengths.
     // Different histograms if the correct cluster exist or not
     for (int jj = 0; jj < 3; jj++) {
-      histLength[iH - 4][jj] = new TH1I(Form("trk_len_%d_%s", iH, name[jj]), Form("#exists cluster %s", name), 7, -.5, 6.5);
+      histLength[iH - 4][jj] = new TH1I(Form("trk_len_%d_%s", iH, name[jj]), Form("#exists cluster %s", name[jj]), 7, -.5, 6.5);
       histLength[iH - 4][jj]->SetFillColor(colorArr[jj] - 9);
       histLength[iH - 4][jj]->SetLineColor(colorArr[jj] - 9);
       histLengthNoCl[iH - 4][jj] = new TH1I(Form("trk_len_%d_nocl_%s", iH, name[jj]), Form("#slash{#exists} cluster %s", name), 7, -.5, 6.5);
