@@ -910,7 +910,7 @@ void TrackCheckStudy::endOfStream(EndOfStreamContext& ec)
     for (int bb = 0; bb < 4; bb++) {
       setEfficiencyGraph(mEffGoodPts[aa][bb], Form("EffPtGood_%sl%d", particleToanalize[aa], bb), Form("Good Sec Tracks_%s, L%d"
                                                                                                        ";#it{p}_{T} (GeV/#it{c});efficiency secondary particle ",
-                                                                                                       bb, particleToanalize[aa]),
+                                                                                                       particleToanalize[aa], bb),
                          colorArr[aa]);
       setEfficiencyGraph(mEffFakePts[aa][bb], Form("EffPtFake_%sl%d", particleToanalize[aa], bb), Form("Fake Sec Tracks_%s, L%d"
                                                                                                        ";#it{p}_{T} (GeV/#it{c});efficiency secondary particle ",
