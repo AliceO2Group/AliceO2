@@ -133,6 +133,11 @@ void DumpRaw::init()
       TString htit = TString::Format("Signal mod. %d ch. %d AUTOT; Sample; ADC", imod, ich);
       mSignalT[i] = std::make_unique<TH2F>(hname, htit, nbx, xmin, xmax, ADCRange, ADCMin - 0.5, ADCMax + 0.5);
     }
+    if (mSignalTH[i] == nullptr) {
+      TString hname = TString::Format("hsth%d%d", imod, ich);
+      TString htit = TString::Format("Signal mod. %d ch. %d AUTOT & Hit; Sample; ADC", imod, ich);
+      mSignalTH[i] = std::make_unique<TH2F>(hname, htit, 2 * NTimeBinsPerBC, -0.5 - NTimeBinsPerBC, NTimeBinsPerBC - 0.5, ADCRange, ADCMin - 0.5, ADCMax + 0.5);
+    }
     if (mBunchA[i] == nullptr) {
       TString hname = TString::Format("hba%d%d", imod, ich);
       TString htit = TString::Format("Bunch mod. %d ch. %d ALICET; Sample; ADC", imod, ich);
@@ -202,6 +207,10 @@ void DumpRaw::write()
     if (mSignalT[i] && mSignalT[i]->GetEntries() > 0) {
       setStat(mSignalT[i].get());
       mSignalT[i]->Write();
+    }
+    if (mSignalTH[i] && mSignalTH[i]->GetEntries() > 0) {
+      setStat(mSignalTH[i].get());
+      mSignalTH[i]->Write();
     }
   }
   mTransmitted->Write();
@@ -279,11 +288,11 @@ int DumpRaw::process(const EventChData& ch)
   // Not empty event
   auto f = ch.f;
   int ih = getHPos(f.board, f.ch);
-  if (ih < 0) {
+  if (ih < 0 || ih >= NDigiChannels) {
     return -1;
   }
 
-  if (mVerbosity > 0) {
+  if (mVerbosity > 1) {
     for (int32_t iw = 0; iw < NWPerBc; iw++) {
       Digits2Raw::print_gbt_word(ch.w[iw]);
     }
@@ -293,6 +302,10 @@ int DumpRaw::process(const EventChData& ch)
   if (f.Hit) {
     mFired->Fill(f.board, f.ch);
   }
+
+  static int16_t prev_s[NDigiChannels][NTimeBinsPerBC] = {0};
+  static uint32_t prev_orbit[NDigiChannels] = {0};
+  static uint16_t prev_bc[NDigiChannels] = {0};
 
   uint16_t us[12];
   int16_t s[12];
@@ -386,6 +399,12 @@ int DumpRaw::process(const EventChData& ch)
     mBits->Fill(ih, 2);
     if (f.Hit) {
       mBitsH->Fill(ih, 2);
+      if ((prev_orbit[ih] == f.orbit && (f.bc - prev_bc[ih]) == 1) || ((f.orbit - prev_orbit[ih]) == 1 && prev_bc[ih] == 3563 && f.bc == 0)) {
+        for (int32_t i = 0; i < 12; i++) {
+          mSignalTH[ih]->Fill(i + 0., double(s[i]));
+          mSignalTH[ih]->Fill(i - NTimeBinsPerBC + 0., double(prev_s[ih][i]));
+        }
+      }
     }
     for (int32_t i = 0; i < 12; i++) {
       mSignalT[ih]->Fill(i + 0., double(s[i]));
@@ -428,6 +447,12 @@ int DumpRaw::process(const EventChData& ch)
     if (f.error) {
       mError->Fill(ih);
     }
+  }
+  // Save information to process next bunch crossing
+  prev_orbit[ih] = f.orbit;
+  prev_bc[ih] = f.bc;
+  for (int32_t i = 0; i < 12; i++) {
+    prev_s[ih][i] = s[i];
   }
   return 0;
 }

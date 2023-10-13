@@ -47,6 +47,7 @@ struct WaveformCalibQueue {
   int mNP = 0;              // Number of interpolated points in waveform
   int mTimeLow[NChannels];  /// Cut on position difference low
   int mTimeHigh[NChannels]; /// Cut on position difference high
+  int mVerbosity = 0;
 
   const WaveformCalibConfig* mCfg = nullptr;
 
