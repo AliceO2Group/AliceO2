@@ -40,6 +40,7 @@ class Compressor
   inline bool run()
   {
     rewind();
+    mEncoderPointerMax = reinterpret_cast<uint32_t*>(mEncoderBuffer + mEncoderBufferSize);
     if (mDecoderCONET) {
       mDecoderPointerMax = reinterpret_cast<const uint32_t*>(mDecoderBuffer + mDecoderBufferSize);
       while (mDecoderPointer < mDecoderPointerMax) {

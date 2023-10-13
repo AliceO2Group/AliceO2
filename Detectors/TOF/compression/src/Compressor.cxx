@@ -209,6 +209,12 @@ bool Compressor<RDH, verbose, paranoid>::processHBF()
   }
 
   /** copy RDH open to encoder buffer **/
+
+  if (mEncoderPointer + mDecoderRDH->headerSize >= mEncoderPointerMax) {
+    LOG(error) << "link = " << rdh->feeId << ": beyond the buffer size mEncoderPointer+mDecoderRDH->headerSize = " << mEncoderPointer + mDecoderRDH->headerSize << " >= "
+               << "mEncoderPointerMax = " << mEncoderPointerMax;
+    return true;
+  }
   std::memcpy(mEncoderPointer, mDecoderRDH, mDecoderRDH->headerSize);
   mEncoderPointer = reinterpret_cast<uint32_t*>(reinterpret_cast<char*>(mEncoderPointer) + rdh->headerSize);
 
@@ -246,6 +252,11 @@ bool Compressor<RDH, verbose, paranoid>::processHBF()
 
   /** copy RDH close to encoder buffer **/
   /** CAREFUL WITH THE PAGE COUNTER **/
+  if (mEncoderPointer + rdh->headerSize >= mEncoderPointerMax) {
+    LOG(error) << "link = " << rdh->feeId << ": beyond the buffer size mEncoderPointer+rdh->headerSize = " << mEncoderPointer + rdh->headerSize << " >= "
+               << "mEncoderPointerMax = " << mEncoderPointerMax;
+    return true;
+  }
   mEncoderRDH = reinterpret_cast<RDH*>(mEncoderPointer);
   std::memcpy(mEncoderRDH, rdh, rdh->headerSize);
   mEncoderRDH->memorySize = rdh->headerSize;
