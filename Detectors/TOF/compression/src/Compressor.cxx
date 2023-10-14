@@ -413,7 +413,8 @@ bool Compressor<RDH, verbose, paranoid>::processDRM()
   /** encode Crate Header **/
   *mEncoderPointer = 0x80000000;
   *mEncoderPointer |= GET_DRMHEADW1_PARTSLOTMASK(*mDecoderSummary.drmHeadW1) << 12;
-  *mEncoderPointer |= GET_DRMDATAHEADER_DRMID(*mDecoderSummary.drmDataHeader) << 24;
+  // R+OLD  *mEncoderPointer |= GET_DRMDATAHEADER_DRMID(*mDecoderSummary.drmDataHeader) << 24;
+  *mEncoderPointer |= (mDecoderRDH->feeId & 0xFF) << 24;
   *mEncoderPointer |= GET_DRMHEADW3_GBTBUNCHCNT(*mDecoderSummary.drmHeadW3);
   if (verbose && mEncoderVerbose) {
     auto crateHeader = reinterpret_cast<compressed::CrateHeader_t*>(mEncoderPointer);
