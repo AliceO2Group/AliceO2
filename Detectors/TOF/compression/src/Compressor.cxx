@@ -222,7 +222,7 @@ bool Compressor<RDH, verbose, paranoid>::processHBF()
       LOG(debug) << "processHBF: nsteps in while loop = " << nsteps << ", infity loop?";
     }
     mEventCounter++;
-    if (processDRM()) {  // if this breaks, we did not run the checker and the summary is not reset!
+    if (processDRM()) {            // if this breaks, we did not run the checker and the summary is not reset!
       mDecoderSummary = {nullptr}; // reset it like this, perhaps a better way can be found
       break;
     }
