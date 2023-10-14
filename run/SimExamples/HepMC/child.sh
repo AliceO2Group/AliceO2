@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 cmd="./crmc.sh"
+more="GeneratorFileOrCmd.bMaxSwitch=none"
 seed=$RANDOM
 nev=1
 out=
@@ -13,6 +14,7 @@ Usage: $0 [OPTIONS]
 Options:
 
   -c,--cmdline COMMAND     Command line
+  -m,--more    CONFIG      More configurations ($more)
   -s,--seed    SEED        Random number seed ($seed)
   -n,--nevents EVENTS      Number of events ($nev)
   -o,--output  OUTPUT      Output prefix ($out)
@@ -47,5 +49,5 @@ fi
 out=`echo "$out" | tr ' ' '_'`
 
 export VMCWORKDIR=${O2_ROOT}/share
-o2-sim -g hepmc --configKeyValues "FileOrCmd.cmd=$cmd" \
+o2-sim -g hepmc --configKeyValues "GeneratorFileOrCmd.cmd=$cmd;${more}" \
        --outPrefix "$out" --seed $seed --nEvents $nev $@

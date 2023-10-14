@@ -103,6 +103,7 @@ class GeneratorHepMC : public Generator, public GeneratorFileOrCmd
 
   /** HepMC interface **/
   uint64_t mEventsToSkip = 0;
+  int mVersion = 0;
   std::shared_ptr<HepMC3::Reader> mReader;
   /** Event structure */
   HepMC3::GenEvent* mEvent = nullptr;

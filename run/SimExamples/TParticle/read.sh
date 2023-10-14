@@ -49,6 +49,6 @@ out=`echo "$out" | tr ' ' '_'`
 
 set -e
 export VMCWORKDIR=${O2_ROOT}/share
-o2-sim -g tparticle --configKeyValues "FileOrCmd.fileNames=${inp}" \
+o2-sim -g tparticle --configKeyValues "GeneratorFileOrCmd.fileNames=${inp}" \
   --outPrefix "$out" --seed $seed --nEvents $nev $@
 

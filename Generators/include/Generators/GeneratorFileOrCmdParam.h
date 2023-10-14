@@ -36,7 +36,7 @@ struct GeneratorFileOrCmdParam : public o2::conf::ConfigurableParamHelper<Genera
   std::string bMaxSwitch = "-b";
   std::string nEventsSwitch = "-n";
   std::string backgroundSwitch = "&";
-  O2ParamDef(GeneratorFileOrCmdParam, "FileOrCmd");
+  O2ParamDef(GeneratorFileOrCmdParam, "GeneratorFileOrCmd");
 };
 
 } // end namespace eventgen

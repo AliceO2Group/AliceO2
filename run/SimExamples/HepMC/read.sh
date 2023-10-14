@@ -44,5 +44,5 @@ fi
 out=`echo "$out" | tr ' ' '_'`
 
 export VMCWORKDIR=${O2_ROOT}/share
-o2-sim -g hepmc --configKeyValues "FileOrCmd.fileNames=$inp" \
+o2-sim -g hepmc --configKeyValues "GeneratorFileOrCmd.fileNames=$inp" \
        --outPrefix "$out" --seed $seed --nEvents $nev $@
