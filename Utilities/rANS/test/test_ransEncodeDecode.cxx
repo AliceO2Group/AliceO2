@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -9,31 +9,32 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// @file   DecoderSymbol.h
+/// @file   test_ransEncodeDecode.h
 /// @author Michael Lettrich
-/// @since  2020-04-15
 /// @brief  Test rANS encoder/ decoder
 
 #define BOOST_TEST_MODULE Utility test
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
 
+#undef NDEBUG
+#include <cassert>
+
 #include <vector>
 #include <cstring>
 
 #include <boost/test/unit_test.hpp>
-#include <boost/mpl/vector.hpp>
+#include <boost/mp11.hpp>
 
-#include "rANS/rans.h"
+#include <gsl/span>
 
-struct EmptyTestString {
-  std::string data{};
-};
+#include "rANS/factory.h"
+#include "rANS/histogram.h"
+#include "rANS/encode.h"
 
-struct FullTestString : public EmptyTestString {
-  FullTestString()
-  {
-    data = R"(Sed ut perspiciatis, unde omnis iste natus error sit voluptatem accusantium
+using namespace o2::rans;
+
+inline const std::string str = R"(Sed ut perspiciatis, unde omnis iste natus error sit voluptatem accusantium
 doloremque laudantium, totam rem aperiam eaque ipsa, quae ab illo inventore veritatis
 et quasi architecto beatae vitae dicta sunt, explicabo. nemo enim ipsam voluptatem,
 quia voluptas sit, aspernatur aut odit aut fugit, sed quia consequuntur magni dolores
@@ -44,145 +45,120 @@ quis nostrum exercitationem ullam corporis suscipit laboriosam, nisi ut aliquid 
 commodi consequatur? quis autem vel eum iure reprehenderit, qui in ea voluptate velit
 esse, quam nihil molestiae consequatur, vel illum, qui dolorem eum fugiat,
 quo voluptas nulla pariatur?)";
-  }
+
+template <typename T>
+struct Empty {
+  inline static std::vector<T> Data{};
+
+  using source_type = T;
+  using iterator_type = decltype(Data.begin());
 };
 
-template <typename coder_T>
-struct Params {
-};
+template <typename T>
+struct Full {
 
-template <>
-struct Params<uint32_t> {
-  using coder_t = uint32_t;
-  using stream_t = uint8_t;
-  using source_t = char;
-  static constexpr size_t symbolTablePrecision = 16;
-};
-
-template <>
-struct Params<uint64_t> {
-  using coder_t = uint64_t;
-  using stream_t = uint32_t;
-  using source_t = char;
-  static constexpr size_t symbolTablePrecision = 16;
-};
-
-template <
-  template <typename, typename, typename> class encoder_T,
-  template <typename, typename, typename> class decoder_T,
-  typename coder_T, class dictString_T, class testString_T>
-struct EncodeDecodeBase {
  public:
-  using params_t = Params<coder_T>;
+  inline static std::vector<T> Data{str.begin(), str.end()};
 
-  EncodeDecodeBase()
-  {
-    dictString_T source;
-    std::string& s = source.data;
-    o2::rans::RenormedFrequencyTable frequencyTable = o2::rans::renorm(o2::rans::makeFrequencyTableFromSamples(std::begin(s), std::end(s)), params_t::symbolTablePrecision);
-
-    encoder = decltype(encoder)(frequencyTable);
-    decoder = decltype(decoder)(frequencyTable);
-
-    const auto [min, max] = [&s]() {
-      const auto [minIter, maxIter] = std::minmax_element(s.begin(), s.end());
-      const char min = minIter == s.end() ? 0 : *minIter;
-      const char max = maxIter == s.end() ? 0 : *maxIter + 1;
-      return std::make_tuple(min, max);
-    }();
-
-    const size_t alphabetRangeBits = o2::rans::internal::numBitsForNSymbols(max - min + 1 + 1);
-
-    BOOST_CHECK_EQUAL(encoder.getSymbolTablePrecision(), params_t::symbolTablePrecision);
-    BOOST_CHECK_EQUAL(encoder.getAlphabetRangeBits(), alphabetRangeBits);
-    BOOST_CHECK_EQUAL(encoder.getMinSymbol(), min);
-    BOOST_CHECK_EQUAL(encoder.getMaxSymbol(), max);
-
-    BOOST_CHECK_EQUAL(decoder.getSymbolTablePrecision(), params_t::symbolTablePrecision);
-    BOOST_CHECK_EQUAL(decoder.getAlphabetRangeBits(), alphabetRangeBits);
-    BOOST_CHECK_EQUAL(decoder.getMinSymbol(), min);
-    BOOST_CHECK_EQUAL(decoder.getMaxSymbol(), max);
-  }
-
-  virtual void encode() = 0;
-  virtual void decode() = 0;
-
-  void check()
-  {
-    testString_T testString;
-    BOOST_CHECK_EQUAL_COLLECTIONS(testString.data.begin(), testString.data.end(), decodeBuffer.begin(), decodeBuffer.end());
-  }
-
-  testString_T source;
-  encoder_T<typename params_t::coder_t, typename params_t::stream_t, typename params_t::source_t> encoder{};
-  decoder_T<typename params_t::coder_t, typename params_t::stream_t, typename params_t::source_t> decoder{};
-  std::vector<typename Params<coder_T>::stream_t> encodeBuffer{};
-  std::vector<typename Params<coder_T>::source_t> decodeBuffer{};
+  using source_type = T;
+  using iterator_type = decltype(Data.begin());
 };
 
-template <typename coder_T, class dictString_T, class testString_T>
-struct EncodeDecode : public EncodeDecodeBase<o2::rans::Encoder, o2::rans::Decoder, coder_T, dictString_T, testString_T> {
-  void encode() override
-  {
-    BOOST_CHECK_NO_THROW(this->encoder.process(std::begin(this->source.data), std::end(this->source.data), std::back_inserter(this->encodeBuffer)));
-  };
-  void decode() override
-  {
-    BOOST_CHECK_NO_THROW(this->decoder.process(this->encodeBuffer.end(), std::back_inserter(this->decodeBuffer), this->source.data.size()));
-  };
+template <typename L>
+struct hasSameTemplateParam : std::is_same<typename boost::mp11::mp_at_c<L, 0>::source_type, typename boost::mp11::mp_at_c<L, 1>::source_type> {
 };
 
-template <typename coder_T, class dictString_T, class testString_T>
-struct EncodeDecodeLiteral : public EncodeDecodeBase<o2::rans::LiteralEncoder, o2::rans::LiteralDecoder, coder_T, dictString_T, testString_T> {
-  void encode() override
-  {
-    BOOST_CHECK_NO_THROW(this->encoder.process(std::begin(this->source.data), std::end(this->source.data), std::back_inserter(this->encodeBuffer), literals));
-  };
-  void decode() override
-  {
-    BOOST_CHECK_NO_THROW(this->decoder.process(this->encodeBuffer.end(), std::back_inserter(this->decodeBuffer), this->source.data.size(), literals));
-    BOOST_CHECK(literals.empty());
-  };
+using source_types = boost::mp11::mp_list<int8_t, int16_t, int32_t>;
 
-  std::vector<typename Params<coder_T>::source_t> literals;
-};
+using testInput_templates = boost::mp11::mp_list<boost::mp11::mp_quote<Empty>, boost::mp11::mp_quote<Full>>;
 
-template <typename coder_T, class dictString_T, class testString_T>
-struct EncodeDecodeDedup : public EncodeDecodeBase<o2::rans::DedupEncoder, o2::rans::DedupDecoder, coder_T, dictString_T, testString_T> {
-  void encode() override
-  {
-    BOOST_CHECK_NO_THROW(this->encoder.process(std::begin(this->source.data), std::end(this->source.data), std::back_inserter(this->encodeBuffer), duplicates));
-  };
-  void decode() override
-  {
-    BOOST_CHECK_NO_THROW(this->decoder.process(this->encodeBuffer.end(), std::back_inserter(this->decodeBuffer), this->source.data.size(), duplicates));
-  };
+using testInputAll_types = boost::mp11::mp_product<boost::mp11::mp_invoke_q, testInput_templates, source_types>;
+using testInputProduct_types = boost::mp11::mp_product<boost::mp11::mp_list, testInputAll_types, testInputAll_types>;
+using testInput_types = boost::mp11::mp_copy_if<testInputProduct_types, hasSameTemplateParam>;
 
-  using params_t = Params<coder_T>;
-  typename o2::rans::DedupEncoder<typename params_t::coder_t,
-                                  typename params_t::stream_t,
-                                  typename params_t::source_t>::duplicatesMap_t duplicates;
-};
+using coder_types = boost::mp11::mp_list<std::integral_constant<CoderTag, CoderTag::Compat>
+#ifdef RANS_SINGLE_STREAM
+                                         ,
+                                         std::integral_constant<CoderTag, CoderTag::SingleStream>
+#endif /* RANS_SINGLE_STREAM */
+#ifdef RANS_SEE
+                                         ,
+                                         std::integral_constant<CoderTag, CoderTag::SSE>
+#endif /*RANS_SSE */
+#ifdef RANS_AVX2
+                                         ,
+                                         std::integral_constant<CoderTag, CoderTag::AVX2>
+#endif /* RANS_AVX2 */
+                                         >;
 
-using testCase_t = boost::mpl::vector<EncodeDecode<uint32_t, EmptyTestString, EmptyTestString>,
-                                      EncodeDecode<uint64_t, EmptyTestString, EmptyTestString>,
-                                      EncodeDecode<uint32_t, FullTestString, FullTestString>,
-                                      EncodeDecode<uint64_t, FullTestString, FullTestString>,
-                                      EncodeDecodeLiteral<uint32_t, EmptyTestString, EmptyTestString>,
-                                      EncodeDecodeLiteral<uint64_t, EmptyTestString, EmptyTestString>,
-                                      EncodeDecodeLiteral<uint32_t, FullTestString, FullTestString>,
-                                      EncodeDecodeLiteral<uint64_t, FullTestString, FullTestString>,
-                                      EncodeDecodeLiteral<uint32_t, EmptyTestString, FullTestString>,
-                                      EncodeDecodeLiteral<uint64_t, EmptyTestString, FullTestString>,
-                                      EncodeDecodeDedup<uint32_t, EmptyTestString, EmptyTestString>,
-                                      EncodeDecodeDedup<uint64_t, EmptyTestString, EmptyTestString>,
-                                      EncodeDecodeDedup<uint32_t, FullTestString, FullTestString>,
-                                      EncodeDecodeDedup<uint64_t, FullTestString, FullTestString>>;
+using testCase_types = boost::mp11::mp_product<boost::mp11::mp_list, coder_types, testInput_types>;
 
-BOOST_AUTO_TEST_CASE_TEMPLATE(test_encodeDecode, testCase_T, testCase_t)
+inline constexpr size_t RansRenormingPrecision = 16;
+
+BOOST_AUTO_TEST_CASE_TEMPLATE(test_encodeDecode, test_types, testCase_types)
 {
-  testCase_T testCase;
-  testCase.encode();
-  testCase.decode();
-  testCase.check();
+  using coder_type = boost::mp11::mp_at_c<test_types, 0>;
+  using testCase_types = boost::mp11::mp_at_c<test_types, 1>;
+  using dictString_type = boost::mp11::mp_at_c<testCase_types, 0>;
+  using encodeString_type = boost::mp11::mp_at_c<testCase_types, 1>;
+  using stream_type = uint32_t;
+  using source_type = typename dictString_type::source_type;
+
+  constexpr CoderTag coderTag = coder_type::value;
+  const auto& dictString = dictString_type::Data;
+  const auto& encodeString = encodeString_type::Data;
+
+  // TODO(milettri): renorming is not satisfactory.
+  size_t precision = dictString.size() == 0 ? 0 : RansRenormingPrecision;
+  auto renormed = renorm(makeDenseHistogram::fromSamples(dictString.begin(), dictString.end()), precision);
+  auto encoder = makeDenseEncoder<coderTag>::fromRenormed(renormed);
+  auto decoder = makeDecoder<>::fromRenormed(renormed);
+
+  if (dictString == encodeString) {
+    std::vector<stream_type> encodeBuffer(encodeString.size());
+    auto encodeBufferEnd = encoder.process(encodeString.begin(), encodeString.end(), encodeBuffer.begin());
+    std::vector<stream_type> encodeBuffer2(encodeString.size());
+    auto encodeBuffer2End = encoder.process(gsl::span<const source_type>(encodeString), gsl::make_span(encodeBuffer2));
+
+    BOOST_CHECK_EQUAL_COLLECTIONS(encodeBuffer.begin(), encodeBufferEnd, encodeBuffer2.data(), encodeBuffer2End);
+
+    std::vector<source_type> decodeBuffer(encodeString.size());
+    decoder.process(encodeBufferEnd, decodeBuffer.begin(), encodeString.size(), encoder.getNStreams());
+
+    BOOST_CHECK_EQUAL_COLLECTIONS(decodeBuffer.begin(), decodeBuffer.end(), encodeString.begin(), encodeString.end());
+  }
+
+  std::vector<source_type> literals(encodeString.size());
+  std::vector<stream_type> encodeBuffer(encodeString.size());
+  auto [encodeBufferEnd, literalBufferEnd] = encoder.process(encodeString.begin(), encodeString.end(), encodeBuffer.begin(), literals.begin());
+  std::vector<stream_type> encodeBuffer2(encodeString.size());
+  std::vector<source_type> literals2(encodeString.size());
+  auto [encodeBuffer2End, literalBuffer2End] = encoder.process(gsl::span<const source_type>(encodeString), gsl::make_span(encodeBuffer2), literals2.begin());
+
+  BOOST_CHECK_EQUAL_COLLECTIONS(encodeBuffer.begin(), encodeBufferEnd, encodeBuffer2.data(), encodeBuffer2End);
+  BOOST_CHECK_EQUAL_COLLECTIONS(literals.begin(), literalBufferEnd, literals2.begin(), literalBuffer2End);
+
+  std::vector<source_type> decodeBuffer(encodeString.size());
+  decoder.process(encodeBufferEnd, decodeBuffer.begin(), encodeString.size(), encoder.getNStreams(), literalBufferEnd);
+
+  BOOST_CHECK_EQUAL_COLLECTIONS(decodeBuffer.begin(), decodeBuffer.end(), encodeString.begin(), encodeString.end());
 };
+
+#ifndef RANS_SINGLE_STREAM
+BOOST_AUTO_TEST_CASE(test_NoSingleStream)
+{
+  BOOST_TEST_WARN(" Tests were not Compiled for a uint128_t capable CPU, cannot run all tests");
+}
+#endif /* RANS_SINGLE_STREAM */
+#ifndef RANS_SSE
+BOOST_AUTO_TEST_CASE(test_NoSSE)
+{
+  BOOST_TEST_WARN("Tests were not Compiled for a SSE 4.2 capable CPU, cannot run all tests");
+}
+#endif /* RANS_SSE */
+#ifndef RANS_AVX2
+BOOST_AUTO_TEST_CASE(test_NoAVX2)
+{
+  BOOST_TEST_WARN("Tests were not Compiled for a AVX2 capable CPU, cannot run all tests");
+}
+#endif /* RANS_AVX2 */

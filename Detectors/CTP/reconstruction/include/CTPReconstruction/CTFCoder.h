@@ -23,7 +23,6 @@
 #include "DataFormatsCTP/CTF.h"
 #include "DetectorsCommonDataFormats/DetID.h"
 #include "DetectorsBase/CTFCoderBase.h"
-#include "rANS/rans.h"
 #include "CTPReconstruction/CTFHelper.h"
 #include "CTPReconstruction/RawDataDecoder.h"
 
@@ -89,10 +88,10 @@ o2::ctf::CTFIOSize CTFCoder::encode_impl(VEC& buff, const gsl::span<const CTPDig
   using MD = o2::ctf::Metadata::OptStore;
   // what to do which each field: see o2::ctd::Metadata explanation
   constexpr MD optField[CTF::getNBlocks()] = {
-    MD::EENCODE, // BLC_bcIncTrig
-    MD::EENCODE, // BLC_orbitIncTrig
-    MD::EENCODE, // BLC_bytesInput
-    MD::EENCODE, // BLC_bytesClass
+    MD::EENCODE_OR_PACK, // BLC_bcIncTrig
+    MD::EENCODE_OR_PACK, // BLC_orbitIncTrig
+    MD::EENCODE_OR_PACK, // BLC_bytesInput
+    MD::EENCODE_OR_PACK, // BLC_bytesClass
   };
 
   CTFHelper helper(data);
@@ -106,11 +105,10 @@ o2::ctf::CTFIOSize CTFCoder::encode_impl(VEC& buff, const gsl::span<const CTPDig
 
   ec->setHeader(helper.createHeader(lumi));
   assignDictVersion(static_cast<o2::ctf::CTFDictHeader&>(ec->getHeader()));
-  ec->getANSHeader().majorVersion = 0;
-  ec->getANSHeader().minorVersion = 1;
+  ec->setANSHeader(mANSVersion);
   // at every encoding the buffer might be autoexpanded, so we don't work with fixed pointer ec
   o2::ctf::CTFIOSize iosize;
-#define ENCODECTP(beg, end, slot, bits) CTF::get(buff.data())->encode(beg, end, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)].get(), getMemMarginFactor());
+#define ENCODECTP(beg, end, slot, bits) CTF::get(buff.data())->encode(beg, end, int(slot), bits, optField[int(slot)], &buff, mCoders[int(slot)], getMemMarginFactor());
   // clang-format off
   iosize += ENCODECTP(helper.begin_bcIncTrig(),    helper.end_bcIncTrig(),     CTF::BLC_bcIncTrig,    0);
   iosize += ENCODECTP(helper.begin_orbitIncTrig(), helper.end_orbitIncTrig(),  CTF::BLC_orbitIncTrig, 0);
@@ -130,12 +128,12 @@ o2::ctf::CTFIOSize CTFCoder::decode(const CTF::base& ec, VTRG& data, LumiInfo& l
   auto header = ec.getHeader();
   checkDictVersion(static_cast<const o2::ctf::CTFDictHeader&>(header));
   ec.print(getPrefix(), mVerbosity);
-  std::vector<uint16_t> bcInc;
-  std::vector<uint32_t> orbitInc;
+  std::vector<int16_t> bcInc;
+  std::vector<int32_t> orbitInc;
   std::vector<uint8_t> bytesInput, bytesClass;
 
   o2::ctf::CTFIOSize iosize;
-#define DECODECTP(part, slot) ec.decode(part, int(slot), mCoders[int(slot)].get())
+#define DECODECTP(part, slot) ec.decode(part, int(slot), mCoders[int(slot)])
   // clang-format off
   iosize += DECODECTP(bcInc,       CTF::BLC_bcIncTrig);
   iosize += DECODECTP(orbitInc,    CTF::BLC_orbitIncTrig);

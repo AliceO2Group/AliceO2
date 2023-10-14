@@ -12,7 +12,13 @@
 #define BOOST_TEST_MODULE Test TPCCTFIO
 #define BOOST_TEST_MAIN
 #define BOOST_TEST_DYN_LINK
+
+#undef NDEBUG
+#include <cassert>
+
 #include <boost/test/unit_test.hpp>
+#include <boost/test/data/test_case.hpp>
+#include <boost/test/data/dataset.hpp>
 #include "DataFormatsTPC/CompressedClusters.h"
 #include "DataFormatsTPC/ZeroSuppression.h"
 #include "DataFormatsTPC/CTF.h"
@@ -25,8 +31,12 @@
 #include <cstring>
 
 using namespace o2::tpc;
+namespace boost_data = boost::unit_test::data;
 
-BOOST_AUTO_TEST_CASE(CTFTest)
+inline std::vector<o2::ctf::ANSHeader> ANSVersions{o2::ctf::ANSVersionCompat, o2::ctf::ANSVersion1};
+inline std::vector<bool> CombineColumns(true, false);
+
+BOOST_DATA_TEST_CASE(CTFTest, boost_data::make(ANSVersions) ^ boost_data::make(CombineColumns), ansVersion, combineColumns)
 {
   std::vector<o2::tpc::TriggerInfoDLBZS> triggers, triggersR;
   CompressedClusters c;
@@ -53,7 +63,7 @@ BOOST_AUTO_TEST_CASE(CTFTest)
   {
     CTFCoder coder(o2::ctf::CTFCoderBase::OpType::Encoder);
     coder.setCompClusAddresses(c, buff);
-    coder.setCombineColumns(true);
+    coder.setCombineColumns(combineColumns);
   }
   ccFlat->set(sz, c);
 
@@ -97,7 +107,8 @@ BOOST_AUTO_TEST_CASE(CTFTest)
   std::vector<o2::ctf::BufferType> vecIO;
   {
     CTFCoder coder(o2::ctf::CTFCoderBase::OpType::Encoder);
-    coder.setCombineColumns(true);
+    coder.setCombineColumns(combineColumns);
+    coder.setANSVersion(ansVersion);
     // prepare trigger info
     o2::tpc::detail::TriggerInfo trigComp;
     for (const auto& trig : triggers) {

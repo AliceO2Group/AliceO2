@@ -100,6 +100,8 @@ class CTFReaderSpec : public o2::framework::Task
   int mNFailedFiles = 0;
   int mFilesRead = 0;
   int mTFLength = 128;
+  int mNWaits = 0;
+  long mTotalWaitTime = 0;
   long mLastSendTime = 0L;
   long mCurrTreeEntry = 0L;
   long mImposeRunStartMS = 0L;
@@ -127,8 +129,8 @@ void CTFReaderSpec::stopReader()
     return;
   }
   LOGP(info, "CTFReader stops processing, {} files read, {} files failed", mFilesRead - mNFailedFiles, mNFailedFiles);
-  LOGP(info, "CTF reading total timing: Cpu: {:.3f} Real: {:.3f} s for {} TFs in {} loops",
-       mTimer.CpuTime(), mTimer.RealTime(), mCTFCounter, mFileFetcher->getNLoops());
+  LOGP(info, "CTF reading total timing: Cpu: {:.3f} Real: {:.3f} s for {} TFs in {} loops, spent {:.2} s in {} data waiting states",
+       mTimer.CpuTime(), mTimer.RealTime(), mCTFCounter, mFileFetcher->getNLoops(), 1e-6 * mTotalWaitTime, mNWaits);
   mRunning = false;
   mFileFetcher->stop();
   mFileFetcher.reset();
@@ -195,10 +197,8 @@ void CTFReaderSpec::run(ProcessingContext& pc)
     mInput.tfRateLimit = std::stoi(pc.services().get<RawDeviceService>().device()->fConfig->GetValue<std::string>("timeframes-rate-limit"));
   }
   std::string tfFileName;
-  if (mCTFCounter >= mInput.maxTFs || (!mInput.ctfIDs.empty() && mSelIDEntry >= mInput.ctfIDs.size())) { // done
-    LOG(info) << "All CTFs from selected range were injected, stopping";
-    mRunning = false;
-  }
+  bool waitAcknowledged = false;
+  long startWait = 0;
 
   while (mRunning) {
     if (mCTFTree) { // there is a tree open with multiple CTF
@@ -222,12 +222,32 @@ void CTFReaderSpec::run(ProcessingContext& pc)
         mRunning = false;
         break;
       }
+      if (!waitAcknowledged) {
+        startWait = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+        waitAcknowledged = true;
+      }
       pc.services().get<RawDeviceService>().waitFor(5);
       continue;
+    }
+    if (waitAcknowledged) {
+      long waitTime = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count() - startWait;
+      mTotalWaitTime += waitTime;
+      if (++mNWaits > 1) {
+        LOGP(warn, "Resuming reading after waiting for data {:.2} s (accumulated {:.2} s delay in {} waits)", 1e-6 * waitTime, 1e-6 * mTotalWaitTime, mNWaits);
+      }
+      waitAcknowledged = false;
     }
     LOG(info) << "Reading CTF input " << ' ' << tfFileName;
     openCTFFile(tfFileName);
   }
+
+  if (mCTFCounter >= mInput.maxTFs || (!mInput.ctfIDs.empty() && mSelIDEntry >= mInput.ctfIDs.size())) { // done
+    LOGP(info, "All CTFs from selected range were injected, stopping");
+    mRunning = false;
+  } else if (mRunning && !mCTFTree && mFileFetcher->getNextFileInQueue().empty() && !mFileFetcher->isRunning()) { // previous tree was done, can we read more?
+    mRunning = false;
+  }
+
   if (!mRunning) {
     pc.services().get<ControlService>().endOfStream();
     pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
