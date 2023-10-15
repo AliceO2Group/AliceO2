@@ -793,12 +793,12 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       std::string const& channel = channels[ci];
       // we buffer the condition since the converter will forward messages by move
       int nEos = countEoS(inputs);
-      numberOfEoS[ci] += nEos;
       if (newRun) {
         std::fill(numberOfEoS.begin(), numberOfEoS.end(), 0);
         std::fill(eosPeersCount.begin(), eosPeersCount.end(), 0);
         gAllowEoS = gAllowEoSdefault;
       }
+      numberOfEoS[ci] += nEos;
       if (numberOfEoS[ci]) {
         eosPeersCount[ci] = std::max<int>(eosPeersCount[ci], device->GetNumberOfConnectedPeers(channel));
       }
