@@ -32,6 +32,7 @@ fi
 
 # entropy encoding/decoding mode, default "" is equivalent to '--ans-version compat' (compatible with < 09/2023 data),
 # use '--ans-version 1.0 --ctf-dict none' for the new per-TF dictionary mode
+[[ $EPNSYNCMODE == 1 && -z ${RANS_OPT:-} ]] && RANS_OPT="--ans-version 1.0 --ctf-dict none"
 : ${RANS_OPT:=""}
 
 workflow_has_parameter CTF && export SAVECTF=1
