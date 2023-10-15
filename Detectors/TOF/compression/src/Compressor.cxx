@@ -213,6 +213,7 @@ bool Compressor<RDH, verbose, paranoid>::processHBF()
   if (mEncoderPointer + mDecoderRDH->headerSize >= mEncoderPointerMax) {
     LOG(error) << "link = " << rdh->feeId << ": beyond the buffer size mEncoderPointer+mDecoderRDH->headerSize = " << mEncoderPointer + mDecoderRDH->headerSize << " >= "
                << "mEncoderPointerMax = " << mEncoderPointerMax;
+    encoderRewind();
     return true;
   }
   std::memcpy(mEncoderPointer, mDecoderRDH, mDecoderRDH->headerSize);
@@ -423,7 +424,10 @@ bool Compressor<RDH, verbose, paranoid>::processDRM()
     auto slotPartMask = crateHeader->slotPartMask;
     printf("%s %08x Crate header          (drmID=%d, bunchID=%d, slotPartMask=0x%x) %s \n", colorGreen, *mEncoderPointer, drmID, bunchID, slotPartMask, colorReset);
   }
-  encoderNext();
+  if (encoderNext()) {
+    encoderRewind();
+    return true;
+  }
 
   /** encode Crate Orbit **/
   *mEncoderPointer = *mDecoderSummary.tofOrbit;
@@ -432,7 +436,10 @@ bool Compressor<RDH, verbose, paranoid>::processDRM()
     auto orbitID = crateOrbit->orbitID;
     printf("%s %08x Crate orbit           (orbitID=%u) %s \n", colorGreen, *mEncoderPointer, orbitID, colorReset);
   }
-  encoderNext();
+  if (encoderNext()) {
+    encoderRewind();
+    return true;
+  }
 
   /** loop over DRM payload **/
   int nsteps = 0;
@@ -493,7 +500,10 @@ bool Compressor<RDH, verbose, paranoid>::processDRM()
         auto NumberOfErrors = CrateTrailer->numberOfErrors;
         printf("%s %08x Crate trailer         (EventCounter=%d, NumberOfDiagnostics=%d, NumberOfErrors=%d) %s \n", colorGreen, *mEncoderPointer, EventCounter, NumberOfDiagnostics, NumberOfErrors, colorReset);
       }
-      encoderNext();
+      if (encoderNext()) {
+        encoderRewind();
+        return true;
+      }
 
       /** encode Diagnostic Words **/
       for (int iword = 0; iword < mCheckerSummary.nDiagnosticWords; ++iword) {
@@ -505,7 +515,10 @@ bool Compressor<RDH, verbose, paranoid>::processDRM()
           auto faultBits = Diagnostic->faultBits;
           printf("%s %08x Diagnostic            (slotId=%d, faultBits=0x%x) %s \n", colorGreen, *mEncoderPointer, slotId, faultBits, colorReset);
         }
-        encoderNext();
+        if (encoderNext()) {
+          encoderRewind();
+          return true;
+        }
       }
 
       /** encode TDC errors **/
@@ -525,7 +538,10 @@ bool Compressor<RDH, verbose, paranoid>::processDRM()
               auto tdcID = Error->tdcID;
               printf("%s %08x Error                 (slotId=%d, chain=%d, tdcId=%d, errorFlags=0x%x) %s \n", colorGreen, *mEncoderPointer, slotID, chain, tdcID, errorFlags, colorReset);
             }
-            encoderNext();
+            if (encoderNext()) {
+              encoderRewind();
+              return true;
+            }
           }
 #endif
           mDecoderSummary.trmErrors[itrm][ichain] = 0;
@@ -692,7 +708,10 @@ bool Compressor<RDH, verbose, paranoid>::processTRM()
 
       /** encoder Spider **/
       if (mDecoderSummary.hasHits[itrm][0] || mDecoderSummary.hasHits[itrm][1]) {
-        encoderSpider(itrm);
+        if (encoderSpider(itrm)) {
+          encoderRewind();
+          return true;
+        }
       }
 
       /** success **/
@@ -833,7 +852,7 @@ bool Compressor<RDH, verbose, paranoid>::decoderParanoid()
 }
 
 template <typename RDH, bool verbose, bool paranoid>
-void Compressor<RDH, verbose, paranoid>::encoderSpider(int itrm)
+int Compressor<RDH, verbose, paranoid>::encoderSpider(int itrm)
 {
   /** encoder spider **/
 
@@ -924,7 +943,10 @@ void Compressor<RDH, verbose, paranoid>::encoderSpider(int itrm)
       auto TRMID = FrameHeader->trmID;
       printf("%s %08x Frame header          (TRMID=%d, FrameID=%d, NumberOfHits=%d) %s \n", colorGreen, *mEncoderPointer, TRMID, FrameID, NumberOfHits, colorReset);
     }
-    encoderNext();
+    if (encoderNext()) {
+      encoderRewind();
+      return true;
+    }
 
     // packed hits
     for (int ihit = 0; ihit < mSpiderSummary.nFramePackedHits[iframe]; ++ihit) {
@@ -938,11 +960,15 @@ void Compressor<RDH, verbose, paranoid>::encoderSpider(int itrm)
         auto TOT = PackedHit->tot;
         printf("%s %08x Packed hit            (Chain=%d, TDCID=%d, Channel=%d, Time=%d, TOT=%d) %s \n", colorGreen, *mEncoderPointer, Chain, TDCID, Channel, Time, TOT, colorReset);
       }
-      encoderNext();
+      if (encoderNext()) {
+        encoderRewind();
+        return true;
+      }
     }
 
     mSpiderSummary.nFramePackedHits[iframe] = 0;
   }
+  return 0;
 }
 
 template <typename RDH, bool verbose, bool paranoid>
