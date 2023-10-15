@@ -39,6 +39,7 @@
 #include "SimulationDataFormat/MCTruthContainer.h"
 
 #include "ReconstructionDataFormats/Vertex.h"
+#include "Framework/SmallVector.hpp"
 
 namespace o2
 {
@@ -157,7 +158,7 @@ class TimeFrame
   std::vector<std::vector<int>>& getCellsLookupTable();
   std::vector<std::vector<std::vector<int>>>& getCellsNeighbours();
   std::vector<Road<5>>& getRoads();
-  std::vector<TrackITSExt>& getTracks(int rof) { return mTracks[rof]; }
+  llvm::SmallVector<TrackITSExt, 512>& getTracks(int rof) { return mTracks[rof]; }
   std::vector<MCCompLabel>& getTracksLabel(const int rof) { return mTracksLabel[rof]; }
   std::vector<MCCompLabel>& getLinesLabel(const int rof) { return mLinesLabels[rof]; }
   std::vector<std::vector<MCCompLabel>>& getVerticesLabels() { return mVerticesLabels; }
@@ -256,7 +257,7 @@ class TimeFrame
   std::vector<std::vector<std::vector<int>>> mCellsNeighbours;
   std::vector<Road<5>> mRoads;
   std::vector<std::vector<MCCompLabel>> mTracksLabel;
-  std::vector<std::vector<TrackITSExt>> mTracks;
+  std::vector<llvm::SmallVector<TrackITSExt, 512>> mTracks;
   std::vector<int> mBogusClusters; /// keep track of clusters with wild coordinates
 
   std::vector<std::vector<Tracklet>> mTracklets;

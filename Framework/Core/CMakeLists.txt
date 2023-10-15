@@ -117,6 +117,7 @@ o2_add_library(Framework
                        src/ServiceSpec.cxx
                        src/SimpleResourceManager.cxx
                        src/SimpleRawDeviceService.cxx
+                       src/SmallVector.cxx
                        src/StreamOperators.cxx
                        src/StreamContext.cxx
                        src/TMessageSerializer.cxx

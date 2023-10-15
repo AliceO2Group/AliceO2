@@ -804,7 +804,7 @@ bool TrackerTraits::fitTrack(TrackITSExt& track, int start, int end, int step, f
   return std::abs(track.getQ2Pt()) < maxQoverPt && track.getChi2() < chi2ndfcut * (nCl * 2 - 5);
 }
 
-void TrackerTraits::refitTracks(const int iteration, const std::vector<std::vector<TrackingFrameInfo>>& tf, std::vector<TrackITSExt>& tracks)
+void TrackerTraits::refitTracks(const int iteration, const std::vector<llvm::SmallVector<TrackingFrameInfo, 4>>& tf, std::vector<TrackITSExt>& tracks)
 {
   std::vector<const Cell*> cells;
   for (int iLayer = 0; iLayer < mTrkParams[iteration].CellsPerRoad(); iLayer++) {

@@ -33,6 +33,7 @@
 #include "ITStracking/MathUtils.h"
 #include "ITStracking/TimeFrame.h"
 #include "ITStracking/Road.h"
+#include "Framework/SmallVector.hpp"
 
 // #define OPTIMISATION_OUTPUT
 
@@ -46,7 +47,7 @@ namespace its
 {
 
 class TrackITSExt;
-typedef std::function<int(o2::gpu::GPUChainITS&, std::vector<Road<5>>& roads, std::vector<const Cluster*>&, std::vector<const Cell*>&, const std::vector<std::vector<TrackingFrameInfo>>&, std::vector<TrackITSExt>&)> FuncRunITSTrackFit_t;
+using FuncRunITSTrackFit_t = std::function<int(o2::gpu::GPUChainITS&, std::vector<Road<5>>&, std::vector<const Cluster*>&, std::vector<const Cell*>&, const std::vector<llvm::SmallVector<TrackingFrameInfo, 4>>&, std::vector<TrackITSExt>&)>;
 
 class TrackerTraits
 {
@@ -61,7 +62,7 @@ class TrackerTraits
   virtual void findTracks();
   virtual void extendTracks(const int iteration);
   virtual void findShortPrimaries();
-  virtual void refitTracks(const int iteration, const std::vector<std::vector<TrackingFrameInfo>>&, std::vector<TrackITSExt>&);
+  virtual void refitTracks(const int iteration, const std::vector<llvm::SmallVector<TrackingFrameInfo, 4>>&, std::vector<TrackITSExt>&);
   virtual void setBz(float bz);
   virtual bool trackFollowing(TrackITSExt* track, int rof, bool outward, const int iteration);
 
