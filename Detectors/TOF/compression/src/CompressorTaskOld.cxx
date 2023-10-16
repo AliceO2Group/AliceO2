@@ -36,7 +36,11 @@ namespace tof
 template <typename RDH, bool verbose, bool paranoid>
 void CompressorTaskOld<RDH, verbose, paranoid>::init(InitContext& ic)
 {
-  LOG(info) << "Compressor init";
+  if (mPayloadLimit < 0) {
+    LOG(info) << "Compressor init";
+  } else {
+    LOG(info) << "Compressor init with Payload limit at " << mPayloadLimit;
+  }
 
   auto decoderCONET = ic.options().get<bool>("tof-compressor-conet-mode");
   auto decoderVerbose = ic.options().get<bool>("tof-compressor-decoder-verbose");
@@ -165,6 +169,11 @@ void CompressorTaskOld<RDH, verbose, paranoid>::run(ProcessingContext& pc)
       auto dataProcessingHeaderIn = DataRefUtils::getHeader<o2::framework::DataProcessingHeader*>(ref);
       auto payloadIn = ref.payload;
       auto payloadInSize = DataRefUtils::getPayloadSize(ref);
+
+      if (mPayloadLimit > -1 && payloadInSize > mPayloadLimit) {
+        LOG(error) << "Payload larger than limit (" << mPayloadLimit << "), payload = " << payloadInSize;
+        continue;
+      }
 
       /** prepare compressor **/
       mCompressor.setDecoderBuffer(payloadIn);

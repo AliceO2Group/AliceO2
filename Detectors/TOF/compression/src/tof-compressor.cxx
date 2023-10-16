@@ -36,6 +36,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   auto verbose = ConfigParamSpec{"tof-compressor-verbose", VariantType::Bool, false, {"Enable verbose compressor"}};
   auto paranoid = ConfigParamSpec{"tof-compressor-paranoid", VariantType::Bool, false, {"Enable paranoid compressor"}};
   auto ignoreStf = ConfigParamSpec{"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}};
+  auto payloadlim = ConfigParamSpec{"payload-limit", VariantType::Int64, -1ll, {"Payload limit in Byte (-1 -> no limits)"}};
 
   workflowOptions.push_back(config);
   workflowOptions.push_back(outputDesc);
@@ -43,6 +44,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
   workflowOptions.push_back(verbose);
   workflowOptions.push_back(paranoid);
   workflowOptions.push_back(ignoreStf);
+  workflowOptions.push_back(payloadlim);
   workflowOptions.emplace_back(ConfigParamSpec{"old", VariantType::Bool, false, {"use the non-DPL version of the compressor"}});
   workflowOptions.push_back(ConfigParamSpec{"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}});
 }
@@ -60,6 +62,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   auto paranoid = cfgc.options().get<bool>("tof-compressor-paranoid");
   auto ignoreStf = cfgc.options().get<bool>("ignore-dist-stf");
   auto old = cfgc.options().get<bool>("old");
+  auto payloadLim = cfgc.options().get<long>("payload-limit");
 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(OutputSpec(ConcreteDataTypeMatcher{"TOF", "CRAWDATA"}));
@@ -68,30 +71,30 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   if (rdhVersion == o2::raw::RDHUtils::getVersion<o2::header::RAWDataHeader>()) {
     if (!verbose && !paranoid) {
       if (old) {
-        algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTaskOld<o2::header::RAWDataHeader, false, false>>()};
+        algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTaskOld<o2::header::RAWDataHeader, false, false>>(payloadLim)};
       } else {
-        algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeader, false, false>>()};
+        algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeader, false, false>>(payloadLim)};
       }
     }
     if (!verbose && paranoid) {
       if (old) {
-        algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTaskOld<o2::header::RAWDataHeader, false, true>>()};
+        algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTaskOld<o2::header::RAWDataHeader, false, true>>(payloadLim)};
       } else {
-        algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeader, false, true>>()};
+        algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeader, false, true>>(payloadLim)};
       }
     }
     if (verbose && !paranoid) {
       if (old) {
-        algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTaskOld<o2::header::RAWDataHeader, true, false>>()};
+        algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTaskOld<o2::header::RAWDataHeader, true, false>>(payloadLim)};
       } else {
-        algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeader, true, false>>()};
+        algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeader, true, false>>(payloadLim)};
       }
     }
     if (verbose && paranoid) {
       if (old) {
-        algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTaskOld<o2::header::RAWDataHeader, true, true>>()};
+        algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTaskOld<o2::header::RAWDataHeader, true, true>>(payloadLim)};
       } else {
-        algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeader, true, true>>()};
+        algoSpec = AlgorithmSpec{adaptFromTask<o2::tof::CompressorTask<o2::header::RAWDataHeader, true, true>>(payloadLim)};
       }
     }
   }
@@ -132,7 +135,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
       outputs,
       algoSpec,
       Options{
-        {"tof-compressor-output-buffer-size", VariantType::Int, 0, {"Encoder output buffer size (in bytes). Zero = automatic (careful)."}},
+        {"tof-compressor-output-buffer-size", VariantType::Int, 1048576, {"Encoder output buffer size (in bytes). Zero = automatic (careful)."}},
         {"tof-compressor-conet-mode", VariantType::Bool, false, {"Decoder CONET flag"}},
         {"tof-compressor-decoder-verbose", VariantType::Bool, false, {"Decoder verbose flag"}},
         {"tof-compressor-encoder-verbose", VariantType::Bool, false, {"Encoder verbose flag"}},

@@ -35,6 +35,29 @@ void RCUTrailer::reset()
   mIsInitialized = false;
 }
 
+bool RCUTrailer::checkLastTrailerWord(uint32_t trailerword)
+{
+  const int MIN_FWVERSION = 2;
+  const int MAX_FWVERSION = 2;
+  if ((trailerword >> 30) != 3) {
+    return false;
+  }
+  auto firmwarevesion = (trailerword >> 16) & 0xFF;
+  auto trailerSize = (trailerword & 0x7F);
+  if (firmwarevesion < MIN_FWVERSION || firmwarevesion > MAX_FWVERSION) {
+    return false;
+  }
+  if (trailerSize < 2) {
+    return false;
+  }
+  if (firmwarevesion == 2) {
+    if (trailerSize < 9) {
+      return false;
+    }
+  }
+  return true;
+}
+
 void RCUTrailer::constructFromRawPayload(const gsl::span<const uint32_t> payloadwords)
 {
   reset();

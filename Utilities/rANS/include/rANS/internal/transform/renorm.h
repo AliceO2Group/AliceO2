@@ -74,7 +74,6 @@ decltype(auto) renorm(histogram_T histogram, Metrics<typename histogram_T::sourc
   using container_type = typename histogram_type::container_type;
   using iterator_type = typename container_type::iterator;
 
-  const source_type offset = histogram.getOffset();
   const double_t nSamples = histogram.getNumSamples();
   const size_t renormingPrecisionBits = *metrics.getCoderProperties().renormingPrecisionBits;
   const size_t nUsedAlphabetSymbols = metrics.getDatasetProperties().nUsedAlphabetSymbols;
@@ -143,7 +142,7 @@ decltype(auto) renorm(histogram_T histogram, Metrics<typename histogram_T::sourc
     return nSymbols;
   }();
 
-  if (nSorted < correctableIndices.size()) {
+  if ((nSorted < correctableIndices.size()) && (renormingPolicy != RenormingPolicy::ForceIncompressible)) {
     std::partial_sort(correctableIndices.begin(), correctableIndices.begin() + nSorted, correctableIndices.end(), [](const auto& a, const auto& b) { return a.second < b.second; });
   } else {
     std::stable_sort(correctableIndices.begin(), correctableIndices.end(), [](const auto& a, const auto& b) { return a.second < b.second; });

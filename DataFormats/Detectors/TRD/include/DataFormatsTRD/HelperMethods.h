@@ -14,6 +14,8 @@
 
 #include "DataFormatsTRD/Constants.h"
 #include <iostream>
+#include <string>
+#include <fmt/format.h>
 
 namespace o2
 {
@@ -54,12 +56,17 @@ struct HelperMethods {
     printf("%02i_%i_%i\n", det / constants::NCHAMBERPERSEC, (det % constants::NCHAMBERPERSEC) / constants::NLAYER, det % constants::NLAYER);
   }
 
+  static std::string getSectorStackLayerSide(int hcid)
+  {
+    int det = hcid / 2;
+    std::string side = (hcid % 2 == 0) ? "A" : "B";
+    return fmt::format("{}_{}_{}{}", getSector(det), getStack(det), getLayer(det), side);
+  }
+
   static void printSectorStackLayerSide(int hcid)
   {
     // for a given half-chamber number prints SECTOR_STACK_LAYER_side
-    int det = hcid / 2;
-    std::string side = (hcid % 2 == 0) ? "A" : "B";
-    printf("%02i_%i_%i%s\n", det / constants::NCHAMBERPERSEC, (det % constants::NCHAMBERPERSEC) / constants::NLAYER, det % constants::NLAYER, side.c_str());
+    printf("%s\n", getSectorStackLayerSide(hcid).c_str());
   }
 
   static int getPadColFromADC(int irob, int imcm, int iadc)

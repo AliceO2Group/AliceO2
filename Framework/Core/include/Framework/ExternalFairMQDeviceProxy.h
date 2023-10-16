@@ -23,7 +23,7 @@ namespace o2::framework
 /// A callback function to retrieve the fair::mq::Channel name to be used for sending
 /// messages of the specified OutputSpec
 using ChannelRetriever = std::function<std::string(OutputSpec const&, DataProcessingHeader::StartTime)>;
-using InjectorFunction = std::function<void(TimingInfo&, fair::mq::Device& device, fair::mq::Parts& inputs, ChannelRetriever, size_t newTimesliceId, bool& stop)>;
+using InjectorFunction = std::function<void(TimingInfo&, ServiceRegistryRef const& services, fair::mq::Parts& inputs, ChannelRetriever, size_t newTimesliceId, bool& stop)>;
 using ChannelSelector = std::function<std::string(InputSpec const& input, const std::unordered_map<std::string, std::vector<fair::mq::Channel>>& channels)>;
 
 struct InputChannelSpec;
@@ -106,8 +106,8 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* label,
                                                    InjectorFunction converter,
                                                    uint64_t minSHM = 0,
                                                    bool sendTFcounter = false,
-                                                   bool doInjectMissingData = false
-                                                   );
+                                                   bool doInjectMissingData = false,
+                                                   unsigned int doPrintSizes = 0);
 
 DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* label,
                                                  Inputs const& inputSpecs,

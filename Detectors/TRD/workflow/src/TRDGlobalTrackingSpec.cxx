@@ -35,6 +35,7 @@
 #include "DataFormatsFT0/RecPoints.h"
 #include "ITSReconstruction/RecoGeomHelper.h"
 #include "ITSMFTReconstruction/ClustererParam.h"
+#include "FT0Reconstruction/InteractionTag.h"
 #include "DataFormatsGlobalTracking/TrackTuneParams.h"
 
 // GPU header
@@ -402,7 +403,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
       uint8_t fwd = 0, bwd = 0;
       for (size_t ft0id = curFT0; ft0id < ft0recPoints.size(); ft0id++) {
         const auto& f0rec = ft0recPoints[ft0id];
-        if (f0rec.getTrigger().getVertex()) {
+        if (o2::ft0::InteractionTag::Instance().isSelected(f0rec)) {
           auto bcdiff = trig.getBCData().toLong() - f0rec.getInteractionRecord().toLong();
           if (bcdiff > maxDiffBwd) {
             curFT0 = ft0id + 1;

@@ -323,6 +323,9 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
       auto idxTrkTpc = trk.getRefTPC().getIndex();
       if (isTPCTrackSelectedEntry[idxTrkTpc] == true) {
         auto lbl = mRecoCont.getTrackMCLabel({(unsigned int)(itrk), GID::Source::ITSTPC});
+        if (!lbl.isValid()) {
+          continue;
+        }
         if (mMapLabels[matchType::TPC].find(lbl) == mMapLabels[matchType::TPC].end()) {
           int source = lbl.getSourceID();
           int event = lbl.getEventID();
@@ -343,6 +346,9 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
       auto idxTrkIts = trk.getRefITS().getIndex();
       if (isITSTrackSelectedEntry[idxTrkIts] == true) {
         auto lbl = mRecoCont.getTrackMCLabel({(unsigned int)(itrk), GID::Source::ITSTPC});
+        if (!lbl.isValid()) {
+          continue;
+        }
         if (mMapLabels[matchType::ITS].find(lbl) == mMapLabels[matchType::ITS].end()) {
           int source = lbl.getSourceID();
           int event = lbl.getEventID();
@@ -423,9 +429,6 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
     if (trk.getRefTPC().getIndex() >= mTPCTracks.size()) {
       LOG(fatal) << "******************** ATTENTION! for TPC track associated to matched track: idx = " << trk.getRefTPC().getIndex() << ", size of container = " << mTPCTracks.size() << " in TF " << evCount;
     }
-    if (trk.getRefITS().getIndex() >= mITSTracks.size()) {
-      LOG(fatal) << "******************** ATTENTION! for ITS track associated to matched track: idx = " << trk.getRefITS().getIndex() << ", size of container = " << mITSTracks.size() << " in TF " << evCount;
-    }
     std::array<std::string, 2> title{"TPC", "ITS"};
     for (int i = 0; i < matchType::SIZE; ++i) {
       o2::track::TrackParCov trkRef;
@@ -440,14 +443,17 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
           ++mNITSTPCSelectedTracks[i];
         }
       } else {
-        trkRef = mITSTracks[trk.getRefITS()];
         idxTrkRef = trk.getRefITS().getIndex();
-        LOG(debug) << "Checking track (ITS) with id " << idxTrkRef << " for ITSTPC track " << iITSTPC << " and pt = " << trkRef.getPt();
         if (trk.getRefITS().getSource() == GID::ITSAB) {
           // do not use afterburner tracks
           LOG(debug) << "Track (ITS) with id " << idxTrkRef << " for ITSTPC track " << iITSTPC << " is from afterburner";
           continue;
         }
+        if (idxTrkRef >= mITSTracks.size()) {
+          LOG(fatal) << "******************** ATTENTION! for ITS track associated to matched track (NOT from AB): idx = " << trk.getRefITS().getIndex() << ", size of container = " << mITSTracks.size() << " in TF " << evCount;
+        }
+        trkRef = mITSTracks[trk.getRefITS()];
+        LOG(debug) << "Checking track (ITS) with id " << idxTrkRef << " for ITSTPC track " << iITSTPC << " and pt = " << trkRef.getPt();
         if (isITSTrackSelectedEntry[idxTrkRef] == true) {
           LOG(debug) << "Track was selected (ITS), with id " << idxTrkRef << " for ITSTPC track " << iITSTPC << " , we keep it in the numerator, pt = " << trkRef.getPt();
           fillHisto = true;
@@ -508,6 +514,9 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
       auto const& trk = mTPCTracks[itrk];
       if (isTPCTrackSelectedEntry[itrk] == true) {
         auto lbl = mRecoCont.getTrackMCLabel({(unsigned int)(itrk), GID::Source::TPC});
+        if (!lbl.isValid()) {
+          continue;
+        }
         if (mMapLabels[matchType::TPC].find(lbl) != mMapLabels[matchType::TPC].end()) {
           // the track was already added to the denominator
           continue;
@@ -537,6 +546,9 @@ void MatchITSTPCQC::run(o2::framework::ProcessingContext& ctx)
       auto const& trk = mITSTracks[itrk];
       if (isITSTrackSelectedEntry[itrk] == true) {
         auto lbl = mRecoCont.getTrackMCLabel({(unsigned int)(itrk), GID::Source::ITS});
+        if (!lbl.isValid()) {
+          continue;
+        }
         if (mMapLabels[matchType::ITS].find(lbl) != mMapLabels[matchType::ITS].end()) {
           // the track was already added to the denominator
           continue;

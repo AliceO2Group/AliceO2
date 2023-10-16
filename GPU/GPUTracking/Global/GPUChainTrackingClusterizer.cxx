@@ -936,10 +936,10 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
       }
     }
 
-    if (mWaitForFinalInputs && iSliceBase >= 21 && iSliceBase < 21 + GetProcessingSettings().nTPCClustererLanes) {
+    if (mWaitForFinalInputs && iSliceBase >= 21 && (int)iSliceBase < 21 + GetProcessingSettings().nTPCClustererLanes) {
       notifyForeignChainFinished();
     }
-    if (mWaitForFinalInputs && iSliceBase >= 30 && iSliceBase < 30 + GetProcessingSettings().nTPCClustererLanes) {
+    if (mWaitForFinalInputs && iSliceBase >= 30 && (int)iSliceBase < 30 + GetProcessingSettings().nTPCClustererLanes) {
       mWaitForFinalInputs();
       synchronizeCalibUpdate = DoQueuedUpdates(0, false);
     }

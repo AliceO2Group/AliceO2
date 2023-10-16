@@ -143,7 +143,11 @@ decltype(auto) Encoder<encoder_T, symbolTable_T, nStreams_V>::process(source_IT 
   EncoderSymbolMapper<symbolTable_type, coder_type, literals_IT> symbolMapper{this->mSymbolTable, literalsBegin};
   typename coder_type::symbol_type encoderSymbols[2]{};
 
+  // one past the end. Will not be dereferenced, thus safe.
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Warray-bounds"
   coder_type* codersREnd = advanceIter(coders.data(), -1);
+#pragma GCC diagnostic pop
   coder_type* activeCoder = codersREnd + nPartialCoderIterations;
 
   // we are encoding backwards!
