@@ -1047,6 +1047,9 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
 
     auto lastDataProcessingHeader = std::make_shared<DataProcessingHeader>(0, 0);
     auto forwardEos = [device, lastDataProcessingHeader, channelNames](EndOfStreamContext&) {
+      if (!gAllowEoS) {
+        return;
+      }
       // DPL implements an internal end of stream signal, which is propagated through
       // all downstream channels if a source is dry, make it available to other external
       // devices via a message of type {DPL/EOS/0}
