@@ -1,4 +1,4 @@
-// Copyright 2019-2023 CERN and copyright holders of ALICE O2.
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -11,15 +11,14 @@
 
 /// @file   bench_ransCombinedIterator.cxx
 /// @author Michael Lettrich
-/// @brief  compares performance of on-the-fly merging of data vs copy and merge.
+/// @since  Nov 18, 2020
+/// @brief
 
 #include <vector>
 
 #include <benchmark/benchmark.h>
 
-#include "rANS/iterator.h"
-
-using namespace o2::rans;
+#include "rANS/utils.h"
 
 static void BM_Array_Read_Copy(benchmark::State& state)
 {
@@ -52,8 +51,8 @@ static void BM_Array_Read_Iterator(benchmark::State& state)
       return *iterB + (*iterA << 16);
     };
 
-    const CombinedInputIterator begin(a.begin(), b.begin(), readOP);
-    const CombinedInputIterator end(a.end(), b.end(), readOP);
+    const o2::rans::utils::CombinedInputIterator begin(a.begin(), b.begin(), readOP);
+    const o2::rans::utils::CombinedInputIterator end(a.end(), b.end(), readOP);
 
     auto cIter = c.begin();
 
@@ -101,7 +100,7 @@ static void BM_Array_Write_Iterator(benchmark::State& state)
       *iterB = value & ((1 << shift) - 1);
     };
 
-    auto out = CombinedOutputIteratorFactory<uint32_t>::makeIter(a.begin(), b.begin(), writeOP);
+    auto out = o2::rans::utils::CombinedOutputIteratorFactory<uint32_t>::makeIter(a.begin(), b.begin(), writeOP);
 
     for (auto iter = c.begin(); iter != c.end(); ++iter) {
       *out = *iter + 1;

@@ -41,13 +41,11 @@ void CTFCoder::createCoders(const std::vector<char>& bufVec, o2::ctf::CTFCoderBa
 {
   const auto ctf = CTF::getImage(bufVec.data());
   // just to get types
-  int16_t bcInc;
-  int32_t orbitInc;
-  uint16_t HCIDTrk, posTrk, CIDDig, ADCDig;
-  uint32_t entriesTrk, entriesDig, pidTrk;
+  uint16_t bcInc, HCIDTrk, posTrk, CIDDig, ADCDig;
+  uint32_t orbitInc, entriesTrk, entriesDig, pidTrk;
   uint8_t padrowTrk, colTrk, slopeTrk, ROBDig, MCMDig, chanDig;
 
-#define MAKECODER(part, slot) createCoder(op, std::get<rans::RenormedDenseHistogram<decltype(part)>>(ctf.getDictionary<decltype(part)>(slot, mANSVersion)), int(slot))
+#define MAKECODER(part, slot) createCoder<decltype(part)>(op, ctf.getFrequencyTable(slot), int(slot))
   // clang-format off
   MAKECODER(bcInc,      CTF::BLC_bcIncTrig);
   MAKECODER(orbitInc,   CTF::BLC_orbitIncTrig);
