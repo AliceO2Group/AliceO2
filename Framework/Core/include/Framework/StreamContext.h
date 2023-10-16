@@ -38,6 +38,9 @@ struct StreamContext {
   void preStartStreamCallbacks(ServiceRegistryRef);
 
   void preProcessingCallbacks(ProcessingContext& pcx);
+  /// Invoke callbacks to be executed after the outputs have been created
+  /// by the processing, but before the post processing callbacks.
+  void finaliseOutputsCallbacks(ProcessingContext&);
   void postProcessingCallbacks(ProcessingContext& pcx);
 
   /// Invoke callbacks to be executed before every EOS user callback invokation
@@ -47,6 +50,7 @@ struct StreamContext {
 
   /// Callbacks for services to be executed before every process method invokation
   std::vector<ServiceProcessingHandle> preProcessingHandles;
+  std::vector<ServiceProcessingHandle> finaliseOutputsHandles;
   /// Callbacks for services to be executed after every process method invokation
   std::vector<ServiceProcessingHandle> postProcessingHandles;
 
