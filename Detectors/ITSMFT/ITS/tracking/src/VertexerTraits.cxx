@@ -19,6 +19,7 @@
 #include "ITStracking/VertexerTraits.h"
 #include "ITStracking/ClusterLines.h"
 #include "ITStracking/Tracklet.h"
+#include "Framework/SmallVector.hpp"
 
 #ifdef VTX_DEBUG
 #include "TTree.h"
@@ -50,7 +51,7 @@ void trackleterKernelHost(
   const gsl::span<const Cluster>& clustersCurrentLayer, // 1 1
   int* indexTableNext,
   const float phiCut,
-  std::vector<Tracklet>& tracklets,
+  llvm::SmallVector<Tracklet, 1024>& tracklets,
   gsl::span<int> foundTracklets,
   const IndexTableUtils& utils,
   const int rof,

@@ -145,7 +145,7 @@ class TimeFrame
   bool isClusterUsed(int layer, int clusterId) const;
   void markUsedCluster(int layer, int clusterId);
 
-  std::vector<std::vector<Tracklet>>& getTracklets();
+  std::vector<llvm::SmallVector<Tracklet, 1024>>& getTracklets();
   std::vector<std::vector<int>>& getTrackletsLookupTable();
 
   std::vector<std::vector<Cluster>>& getClusters();
@@ -260,7 +260,8 @@ class TimeFrame
   std::vector<llvm::SmallVector<TrackITSExt, 512>> mTracks;
   std::vector<int> mBogusClusters; /// keep track of clusters with wild coordinates
 
-  std::vector<std::vector<Tracklet>> mTracklets;
+  // Sacrifice a bit of VSIZE to avoid a lot of memory allocations
+  std::vector<llvm::SmallVector<Tracklet, 1024>> mTracklets;
 
   std::vector<std::pair<unsigned long long, bool>> mRoadLabels;
   int mCutClusterMult;
@@ -478,7 +479,7 @@ inline bool TimeFrame::isClusterUsed(int layer, int clusterId) const
 
 inline void TimeFrame::markUsedCluster(int layer, int clusterId) { mUsedClusters[layer][clusterId] = true; }
 
-inline std::vector<std::vector<Tracklet>>& TimeFrame::getTracklets()
+inline std::vector<llvm::SmallVector<Tracklet, 1024>>& TimeFrame::getTracklets()
 {
   return mTracklets;
 }

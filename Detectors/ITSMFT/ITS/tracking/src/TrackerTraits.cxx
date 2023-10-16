@@ -193,7 +193,7 @@ void TrackerTraits::computeLayerTracklets(const int iteration)
     /// Remove duplicates
     auto& lut{tf->getTrackletsLookupTable()[iLayer]};
     int id0{-1}, id1{-1};
-    std::vector<Tracklet> newTrk;
+    llvm::SmallVector<Tracklet, 1024> newTrk;
     newTrk.reserve(trkl.size());
     for (auto& trk : trkl) {
       if (trk.firstClusterIndex == id0 && trk.secondClusterIndex == id1) {
@@ -215,7 +215,7 @@ void TrackerTraits::computeLayerTracklets(const int iteration)
     return a.firstClusterIndex < b.firstClusterIndex || (a.firstClusterIndex == b.firstClusterIndex && a.secondClusterIndex < b.secondClusterIndex);
   });
   int id0{-1}, id1{-1};
-  std::vector<Tracklet> newTrk;
+  llvm::SmallVector<Tracklet, 1024> newTrk;
   newTrk.reserve(tf->getTracklets()[0].size());
   for (auto& trk : tf->getTracklets()[0]) {
     if (trk.firstClusterIndex != id0 || trk.secondClusterIndex != id1) {
