@@ -399,7 +399,7 @@ o2::framework::ServiceSpec CommonServices::ccdbSupportSpec()
       return ServiceHandle{.hash = TypeIdHelpers::uniqueId<CCDBSupport>(), .instance = nullptr, .kind = ServiceKind::Serial};
     },
     .configure = noConfiguration(),
-    .postProcessing = [](ProcessingContext& pc, void* service) {
+    .finaliseOutputs = [](ProcessingContext& pc, void* service) {
       if (!service) {
         return;
       }
