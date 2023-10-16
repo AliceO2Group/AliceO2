@@ -53,6 +53,7 @@
 
 namespace o2::framework
 {
+// We do not allow to send EoS in online runs, until we receive (which is checked below) them upstream (to prevent premature shutdown of calibration)
 static bool gAllowEoSdefault = !(DefaultsHelpers::deploymentMode() == DeploymentMode::OnlineDDS || DefaultsHelpers::deploymentMode() == DeploymentMode::OnlineECS);
 static bool gAllowEoS = gAllowEoSdefault;
 
@@ -786,7 +787,16 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       // * If a connection sends two EoS.
       // * If a connection sends an end of stream closes and another one opens.
       // Finally, if we didn't receive an EoS this time, out counting of the connected peers is off, so the best thing we can do is delay the EoS reporting
-      bool everyEoS = shouldstop || (numberOfEoS[ci] >= eosPeersCount[ci] && nEos);
+      bool everyEoS = shouldstop;
+      if (!shouldstop && nEos) {
+        everyEoS = true;
+        for (unsigned int i = 0; i < numberOfEoS.size(); i++) {
+          if (numberOfEoS[i] < eosPeersCount[i]) {
+            everyEoS = false;
+            break;
+          }
+        }
+      }
 
       if (everyEoS) {
         LOG(info) << "Received " << numberOfEoS[ci] << " end-of-stream from " << eosPeersCount[ci] << " peers, forwarding end-of-stream (shouldstop " << (int)shouldstop << ", nEos " << nEos << ", newRun " << (int)newRun << ")";
