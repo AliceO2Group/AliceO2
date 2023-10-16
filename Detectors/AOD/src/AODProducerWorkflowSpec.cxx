@@ -2370,7 +2370,6 @@ AODProducerWorkflowDPL::TrackExtraInfo AODProducerWorkflowDPL::processBarrelTrac
     int nClusters = itsTrack.getNClusters();
     float chi2 = itsTrack.getChi2();
     extraInfoHolder.itsChi2NCl = nClusters != 0 ? chi2 / (float)nClusters : 0;
-    // extraInfoHolder.itsClusterSizes = itsTrack.getClusterSizes();
     extraInfoHolder.itsClusterMap = itsTrack.getPattern();
     if (src == GIndex::ITS) { // standalone ITS track should set its time from the ROF
       const auto& rof = data.getITSTracksROFRecords()[mITSROFs[trackIndex.getIndex()]];
@@ -2378,7 +2377,6 @@ AODProducerWorkflowDPL::TrackExtraInfo AODProducerWorkflowDPL::processBarrelTrac
       setTrackTime(t, mITSROFrameHalfLengthNS, false);
     }
   } else if (contributorsGID[GIndex::Source::ITSAB].isIndexSet()) { // this is an ITS-TPC afterburner contributor
-    // extraInfoHolder.itsClusterSizes = data.getITSABRefs()[contributorsGID[GIndex::Source::ITSAB].getIndex()].clsizes;
     extraInfoHolder.itsClusterMap = data.getITSABRefs()[contributorsGID[GIndex::Source::ITSAB].getIndex()].pattern;
   }
   if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
