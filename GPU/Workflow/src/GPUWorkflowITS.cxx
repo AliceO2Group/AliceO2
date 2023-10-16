@@ -140,6 +140,7 @@ int GPURecoWorkflowSpec::runITSTracking(o2::framework::ProcessingContext& pc)
   auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "ITSTrackROF", 0, Lifetime::Timeframe}, rofsinput.begin(), rofsinput.end());
 
   auto& irFrames = pc.outputs().make<std::vector<o2::dataformats::IRFrame>>(Output{"ITS", "IRFRAMES", 0, Lifetime::Timeframe});
+  irFrames.reserve(rofs.size());
 
   const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance(); // RS: this should come from CCDB
   int nBCPerTF = alpParams.roFrameLengthInBC;
@@ -196,6 +197,7 @@ int GPURecoWorkflowSpec::runITSTracking(o2::framework::ProcessingContext& pc)
   float vertexerElapsedTime{0.f};
   if (mITSRunVertexer) {
     // Run seeding vertexer
+    vertROFvec.reserve(rofs.size());
     vertexerElapsedTime = mITSVertexer->clustersToVertices(logger);
   } else { // cosmics
     mITSTimeFrame->resetRofPV();
@@ -254,6 +256,10 @@ int GPURecoWorkflowSpec::runITSTracking(o2::framework::ProcessingContext& pc)
     mITSTimeFrame->setMultiplicityCutMask(processingMask);
     // Run CA tracker
     mITSTracker->clustersToTracks(logger, errorLogger);
+    size_t totTracks{mITSTimeFrame->getNumberOfTracks()}, totClusIDs{mITSTimeFrame->getNumberOfUsedClusters()};
+    allTracks.reserve(totTracks);
+    allClusIdx.reserve(totClusIDs);
+
     if (mITSTimeFrame->hasBogusClusters()) {
       LOG(warning) << fmt::format(" - The processed timeframe had {} clusters with wild z coordinates, check the dictionaries", mITSTimeFrame->hasBogusClusters());
     }

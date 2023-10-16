@@ -155,7 +155,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "ITSTrackROF", 0, Lifetime::Timeframe}, rofsinput.begin(), rofsinput.end());
 
   auto& irFrames = pc.outputs().make<std::vector<o2::dataformats::IRFrame>>(Output{"ITS", "IRFRAMES", 0, Lifetime::Timeframe});
-
+  irFrames.reserve(rofs.size());
   const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance(); // RS: this should come from CCDB
   int nBCPerTF = alpParams.roFrameLengthInBC;
 
@@ -210,6 +210,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   mTimeFrame->setMultiplicityCutMask(processingMask);
   float vertexerElapsedTime{0.f};
   if (mRunVertexer) {
+    vertROFvec.reserve(rofs.size());
     // Run seeding vertexer
     vertexerElapsedTime = mVertexer->clustersToVertices(logger);
   } else { // cosmics
@@ -269,6 +270,10 @@ void TrackerDPL::run(ProcessingContext& pc)
     mTimeFrame->setMultiplicityCutMask(processingMask);
     // Run CA tracker
     mTracker->clustersToTracks(logger, errorLogger);
+    size_t totTracks{mTimeFrame->getNumberOfTracks()}, totClusIDs{mTimeFrame->getNumberOfUsedClusters()};
+    allTracks.reserve(totTracks);
+    allClusIdx.reserve(totClusIDs);
+
     if (mTimeFrame->hasBogusClusters()) {
       LOG(warning) << fmt::format(" - The processed timeframe had {} clusters with wild z coordinates, check the dictionaries", mTimeFrame->hasBogusClusters());
     }
