@@ -65,8 +65,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   GID::mask_t srcCls = allowedSourcesClus & GID::getSourcesMask(configcontext.options().get<std::string>("cluster-sources"));
 
   o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcCls, srcTrc, srcTrc, useMC, srcCls, srcTrc);
-  o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC);
-  o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, specs);
+  // o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC);
+  // o2::globaltracking::InputHelper::addInputSpecsSVertex(configcontext, specs);
 
   std::shared_ptr<o2::steer::MCKinematicsReader> mcKinematicsReader;
   if (useMC) {
