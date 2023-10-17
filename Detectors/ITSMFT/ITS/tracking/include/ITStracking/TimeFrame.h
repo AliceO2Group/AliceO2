@@ -245,7 +245,7 @@ class TimeFrame
   std::vector<float> mMSangles;
   std::vector<float> mPhiCuts;
   std::vector<float> mPositionResolution;
-  std::vector<int> mClusterSize;
+  std::vector<unsigned short> mClusterSize;
   std::vector<bool> mMultiplicityCutMask;
   std::vector<std::array<float, 2>> mPValphaX; /// PV x and alpha for track propagation
   std::vector<std::vector<Cluster>> mUnsortedClusters;
