@@ -255,6 +255,7 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
     mCellSeedsChi2.resize(trkParam.CellsPerRoad());
     mCellsLookupTable.resize(trkParam.CellsPerRoad() - 1);
     mCellsNeighbours.resize(trkParam.CellsPerRoad() - 1);
+    mCellsNeighboursLUT.resize(trkParam.CellsPerRoad() - 1);
     mCellLabels.resize(trkParam.CellsPerRoad());
     mTracklets.resize(std::min(trkParam.TrackletsPerRoad(), maxLayers - 1));
     mTrackletLabels.resize(trkParam.TrackletsPerRoad());
@@ -395,6 +396,7 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
     if (iLayer < (int)mCells.size() - 1) {
       mCellsLookupTable[iLayer].clear();
       mCellsNeighbours[iLayer].clear();
+      mCellsNeighboursLUT[iLayer].clear();
     }
   }
 }
@@ -409,9 +411,7 @@ unsigned long TimeFrame::getArtefactsMemory()
     size += sizeof(Cell) * cells.size();
   }
   for (auto& cellsN : mCellsNeighbours) {
-    for (auto& vec : cellsN) {
-      size += sizeof(int) * vec.size();
-    }
+    size += sizeof(int) * cellsN.size();
   }
   return size + sizeof(Road<5>) * mRoads.size();
 }
