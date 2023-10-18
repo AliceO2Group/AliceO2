@@ -37,11 +37,7 @@
 #include <THStack.h>
 #include <TString.h>
 
-namespace o2
-{
-namespace its
-{
-namespace study
+namespace o2::its::study
 {
 using namespace o2::framework;
 using namespace o2::globaltracking;
@@ -64,7 +60,7 @@ class TrackCheckStudy : public Task
     int unsigned short clusters = 0u;
     unsigned char isReco = 0u;
     unsigned char isFake = 0u;
-    bool isPrimary = 0u;
+    bool isPrimary = false;
     unsigned char storedStatus = 2; /// not stored = 2, fake = 1, good = 0
     const char* prodProcessName;
     int prodProcess;
@@ -376,8 +372,9 @@ void TrackCheckStudy::init(InitContext& ic)
       histLengthNoCl[iH - 4][jj] = new TH1I(Form("trk_len_%d_nocl_%s", iH, name[jj]), Form("#slash{#exists} cluster %s", name[jj]), 7, -.5, 6.5);
       histLengthNoCl[iH - 4][jj]->SetFillColor(colorArr[jj] + 1);
       histLengthNoCl[iH - 4][jj]->SetLineColor(colorArr[jj] + 1);
-      if (jj == 0)
+      if (jj == 0) {
         stackLength[iH - 4] = new THStack(Form("stack_trk_len_%d", iH), Form("trk_len=%d", iH));
+      }
       stackLength[iH - 4]->Add(histLength[iH - 4][jj]);
       stackLength[iH - 4]->Add(histLengthNoCl[iH - 4][jj]);
 
@@ -387,8 +384,9 @@ void TrackCheckStudy::init(InitContext& ic)
       histLength1FakeNoCl[iH - 4][jj] = new TH1I(Form("trk_len_%d_1f_nocl_%s", iH, name[jj]), Form("#slash{#exists} cluster %s", name[jj]), 7, -.5, 6.5);
       histLength1FakeNoCl[iH - 4][jj]->SetFillColor(colorArr[jj] + 1);
       histLength1FakeNoCl[iH - 4][jj]->SetLineColor(colorArr[jj] + 1);
-      if (jj == 0)
+      if (jj == 0) {
         stackLength1Fake[iH - 4] = new THStack(Form("stack_trk_len_%d_1f", iH), Form("trk_len=%d, 1 Fake", iH));
+      }
       stackLength1Fake[iH - 4]->Add(histLength1Fake[iH - 4][jj]);
       stackLength1Fake[iH - 4]->Add(histLength1FakeNoCl[iH - 4][jj]);
 
@@ -398,8 +396,9 @@ void TrackCheckStudy::init(InitContext& ic)
       histLength2FakeNoCl[iH - 4][jj] = new TH1I(Form("trk_len_%d_2f_nocl_%s", iH, name[jj]), Form("#slash{#exists} cluster %s", name[jj]), 7, -.5, 6.5);
       histLength2FakeNoCl[iH - 4][jj]->SetFillColor(colorArr[jj] + 1);
       histLength2FakeNoCl[iH - 4][jj]->SetLineColor(colorArr[jj] + 1);
-      if (jj == 0)
+      if (jj == 0) {
         stackLength2Fake[iH - 4] = new THStack(Form("stack_trk_len_%d_2f", iH), Form("trk_len=%d, 2 Fake", iH));
+      }
       stackLength2Fake[iH - 4]->Add(histLength2Fake[iH - 4][jj]);
       stackLength2Fake[iH - 4]->Add(histLength2FakeNoCl[iH - 4][jj]);
 
@@ -410,8 +409,9 @@ void TrackCheckStudy::init(InitContext& ic)
       histLength3FakeNoCl[iH - 4][jj] = new TH1I(Form("trk_len_%d_3f_nocl_%s", iH, name[jj]), Form("#slash{#exists} cluster %s", name[jj]), 7, -.5, 6.5);
       histLength3FakeNoCl[iH - 4][jj]->SetFillColor(colorArr[jj] + 1);
       histLength3FakeNoCl[iH - 4][jj]->SetLineColor(colorArr[jj] + 1);
-      if (jj == 0)
+      if (jj == 0) {
         stackLength3Fake[iH - 4] = new THStack(Form("stack_trk_len_%d_3f", iH), Form("trk_len=%d, 3 Fake", iH));
+      }
       stackLength3Fake[iH - 4]->Add(histLength3Fake[iH - 4][jj]);
       stackLength3Fake[iH - 4]->Add(histLength3FakeNoCl[iH - 4][jj]);
     }
@@ -485,7 +485,7 @@ void TrackCheckStudy::process()
     }
   }
   LOGP(info, "** Analysing tracks ... ");
-  int unaccounted{0}, good{0}, fakes{0}, total{0};
+  int unaccounted{0}, good{0}, fakes{0};
   // ***secondary tracks***
   int nPartForSpec[4][4];       // total number [particle 0=IperT, 1=Lambda, 2=k, 3=Other][n layer]
   int nPartGoodorFake[4][4][2]; // number of good or fake [particle 0=IperT, 1=Lambda, 2=k, 3=Other][n layer][good=1 fake=0]
@@ -511,7 +511,6 @@ void TrackCheckStudy::process()
     int trackID, evID, srcID;
     bool fake;
     const_cast<o2::MCCompLabel&>(lab).get(trackID, evID, srcID, fake);
-    bool pass{true};
 
     if (srcID == 99) { // skip QED
       unaccounted++;
@@ -542,8 +541,9 @@ void TrackCheckStudy::process()
     trackID = 0;
     for (auto& part : evInfo) {
 
-      if (strcmp(ProcessName[part.prodProcess], " "))
+      if (strcmp(ProcessName[part.prodProcess], " ")) {
         ProcessName[part.prodProcess] = part.prodProcessName;
+      }
       if ((part.clusters & 0x7f) == mMask) {
         // part.clusters != 0x3f && part.clusters != 0x3f << 1 &&
         // part.clusters != 0x1f && part.clusters != 0x1f << 1 && part.clusters != 0x1f << 2 &&
@@ -588,14 +588,18 @@ void TrackCheckStudy::process()
         float rad = sqrt(pow(part.vx, 2) + pow(part.vy, 2));
         totsec++;
 
-        if ((rad < rLayer0) && (part.clusters == 0x7f || part.clusters == 0x3f || part.clusters == 0x1f || part.clusters == 0x0f)) // layer 0
+        if ((rad < rLayer0) && (part.clusters == 0x7f || part.clusters == 0x3f || part.clusters == 0x1f || part.clusters == 0x0f)) { // layer 0
           nlayer = 0;
-        if (rad < rLayer1 && rad > rLayer0 && (part.clusters == 0x1e || part.clusters == 0x3e || part.clusters == 0x7e)) // layer 1
+        }
+        if (rad < rLayer1 && rad > rLayer0 && (part.clusters == 0x1e || part.clusters == 0x3e || part.clusters == 0x7e)) { // layer 1
           nlayer = 1;
-        if (rad < rLayer2 && rad > rLayer1 && (part.clusters == 0x7c || part.clusters == 0x3c)) // layer 2
+        }
+        if (rad < rLayer2 && rad > rLayer1 && (part.clusters == 0x7c || part.clusters == 0x3c)) { // layer 2
           nlayer = 2;
-        if (rad < rLayer3 && rad > rLayer2 && part.clusters == 0x78) // layer 3
+        }
+        if (rad < rLayer3 && rad > rLayer2 && part.clusters == 0x78) { // layer 3
           nlayer = 3;
+        }
         if (nlayer == 0 || nlayer == 1 || nlayer == 2 || nlayer == 3) { // check if track is trackeable
 
           totsecCont++;
@@ -609,12 +613,15 @@ void TrackCheckStudy::process()
           mTotEtas[nlayer][3]->Fill(part.eta);
           mTotPts[nlayer][3]->Fill(part.pt);
           mTotEtas[nlayer][3]->Fill(part.eta);
-          if (pdgcode == PDG[0] || pdgcode == -1 * PDG[0])
+          if (pdgcode == PDG[0] || pdgcode == -1 * PDG[0]) {
             idxPart = 0; // IperT
-          if (pdgcode == PDG[1] || pdgcode == -1 * PDG[1])
+          }
+          if (pdgcode == PDG[1] || pdgcode == -1 * PDG[1]) {
             idxPart = 1; // Lambda
-          if (pdgcode == PDG[2] || pdgcode == -1 * PDG[2])
+          }
+          if (pdgcode == PDG[2] || pdgcode == -1 * PDG[2]) {
             idxPart = 2; // K0s
+          }
           if (part.isReco) {
             ngoodfake = 1;
             mGoodPts[3][nlayer]->Fill(part.pt);
@@ -662,8 +669,9 @@ void TrackCheckStudy::process()
             processvsEtaNotTracked->Fill(part.eta, part.prodProcess);
             processvsRadNotTracked->Fill(rad, part.prodProcess);
           }
-          if (ngoodfake == 1 || ngoodfake == 0)
+          if (ngoodfake == 1 || ngoodfake == 0) {
             nPartGoodorFake[idxPart][nlayer][ngoodfake]++;
+          }
           nPartForSpec[idxPart][nlayer]++;
 
           // Analysing fake clusters
@@ -718,11 +726,13 @@ void TrackCheckStudy::process()
                     const_cast<o2::MCCompLabel&>(lab).get(TrackID, EvID, SrcID, fakec);
                     double intHisto = 0;
                     for (int hg = 0; hg < 7; hg++) {
-                      if (mParticleInfo[SrcID][EvID][TrackID].pdg == PdgcodeClusterFake[hg] || mParticleInfo[SrcID][EvID][TrackID].pdg == -1 * (PdgcodeClusterFake[hg]))
+                      if (mParticleInfo[SrcID][EvID][TrackID].pdg == PdgcodeClusterFake[hg] || mParticleInfo[SrcID][EvID][TrackID].pdg == -1 * (PdgcodeClusterFake[hg])) {
                         intHisto = hg + 0.5;
+                      }
                     }
-                    if (idxPart < 3)
+                    if (idxPart < 3) {
                       mClusterFake[idxPart]->Fill(intHisto, mParticleInfo[SrcID][EvID][TrackID].prodProcess);
+                    }
                   }
                 }
               }
@@ -741,14 +751,18 @@ void TrackCheckStudy::process()
     for (int yy = 0; yy < 4; yy++) {
       totgood = totgood + nPartGoodorFake[xx][yy][1];
       totfake = totfake + nPartGoodorFake[xx][yy][0];
-      if (xx == 0)
+      if (xx == 0) {
         totI = totI + nPartForSpec[0][yy];
-      if (xx == 1)
+      }
+      if (xx == 1) {
         totL = totL + nPartForSpec[1][yy];
-      if (xx == 2)
+      }
+      if (xx == 2) {
         totK = totK + nPartForSpec[2][yy];
-      if (xx == 3)
+      }
+      if (xx == 3) {
         totO = totO + nPartForSpec[3][yy];
+      }
     }
   }
   LOGP(info, "number of primary tracks: {}, good:{}, fake:{}", totP, goodP, fakeP);
@@ -800,18 +814,20 @@ void TrackCheckStudy::process()
   LOGP(info, "** Analysing pT resolution...");
   for (auto iTrack{0}; iTrack < mTracks.size(); ++iTrack) {
     auto& lab = mTracksMCLabels[iTrack];
-    if (!lab.isSet() || lab.isNoise())
+    if (!lab.isSet() || lab.isNoise()) {
       continue;
+    }
     int trackID, evID, srcID;
     bool fake;
     const_cast<o2::MCCompLabel&>(lab).get(trackID, evID, srcID, fake);
-    bool pass{true};
-    if (srcID == 99)
+    if (srcID == 99) {
       continue; // skip QED
+    }
     mPtResolution->Fill((mParticleInfo[srcID][evID][trackID].pt - mTracks[iTrack].getPt()) / mParticleInfo[srcID][evID][trackID].pt);
     mPtResolution2D->Fill(mParticleInfo[srcID][evID][trackID].pt, (mParticleInfo[srcID][evID][trackID].pt - mTracks[iTrack].getPt()) / mParticleInfo[srcID][evID][trackID].pt);
-    if (!mParticleInfo[srcID][evID][trackID].isPrimary)
+    if (!mParticleInfo[srcID][evID][trackID].isPrimary) {
       mPtResolutionSec->Fill((mParticleInfo[srcID][evID][trackID].pt - mTracks[iTrack].getPt()) / mParticleInfo[srcID][evID][trackID].pt);
+    }
     mPtResolutionPrim->Fill((mParticleInfo[srcID][evID][trackID].pt - mTracks[iTrack].getPt()) / mParticleInfo[srcID][evID][trackID].pt);
   }
 
@@ -1069,9 +1085,9 @@ void TrackCheckStudy::endOfStream(EndOfStreamContext& ec)
   mLegendRadD = std::make_unique<TLegend>(0.8, 0.64, 0.95, 0.8);
   mLegendRadD->SetHeader(Form("%zu events PP ", mKineReader->getNEvents(0)), "C");
   for (int i = 0; i < 3; i++) {
-    if (i == 0)
+    if (i == 0) {
       mEffGoodRad[i]->Draw("pz");
-    else {
+    } else {
       mEffGoodRad[i]->Draw("pz same");
       mEffFakeRad[i]->Draw("pz same");
       mLegendRadD->AddEntry(Form("Good_Rad%s", particleToanalize[i]), Form("%s_good", name[i]), "lep");
@@ -1088,9 +1104,9 @@ void TrackCheckStudy::endOfStream(EndOfStreamContext& ec)
   mLegendZD = std::make_unique<TLegend>(0.8, 0.64, 0.95, 0.8);
   mLegendZD->SetHeader(Form("%zu events PP ", mKineReader->getNEvents(0)), "C");
   for (int i = 0; i < 3; i++) {
-    if (i == 0)
+    if (i == 0) {
       mEffGoodZ[i]->Draw("pz");
-    else {
+    } else {
       mEffGoodZ[i]->Draw("pz same");
       mEffFakeZ[i]->Draw("pz same");
       mLegendZD->AddEntry(Form("Good_Z%s", particleToanalize[i]), Form("%s_good", name[i]), "lep");
@@ -1131,7 +1147,7 @@ void TrackCheckStudy::endOfStream(EndOfStreamContext& ec)
   mCanvasPtRes3 = std::make_unique<TCanvas>("cPtr3", "cPtr3", 1600, 1200);
   mCanvasPtRes3->cd();
 
-  TGraphErrors* g1 = new TGraphErrors(100, meanPt, sigma, aa, sigmaerr);
+  auto* g1 = new TGraphErrors(100, meanPt, sigma, aa, sigmaerr);
   g1->SetMarkerStyle(8);
   g1->SetMarkerColor(kGreen);
   g1->GetXaxis()->SetTitle(" #it{p}_{T} [GeV]");
@@ -1197,12 +1213,14 @@ void TrackCheckStudy::endOfStream(EndOfStreamContext& ec)
   for (int iH{0}; iH < 4; ++iH) {
     canvasPtfake->cd(iH + 1);
     for (int v = 0; v < 4; v++) {
-      if (v == 0)
+      if (v == 0) {
         canvasPtfake->cd(iH + 1);
-      if (v == 0)
+      }
+      if (v == 0) {
         mEffFakePts[v][iH]->Draw();
-      else
+      } else {
         mEffFakePts[v][iH]->Draw("same");
+      }
     }
     gPad->BuildLegend();
     gPad->SetGrid();
@@ -1217,12 +1235,14 @@ void TrackCheckStudy::endOfStream(EndOfStreamContext& ec)
   for (int iH{0}; iH < 4; ++iH) {
     canvasPtGood->cd(iH + 1);
     for (int v = 0; v < 4; v++) {
-      if (v == 0)
+      if (v == 0) {
         canvasPtGood->cd(iH + 1);
-      if (v == 0)
+      }
+      if (v == 0) {
         mEffGoodPts[v][iH]->Draw();
-      else
+      } else {
         mEffGoodPts[v][iH]->Draw("same");
+      }
     }
     gPad->BuildLegend();
     gPad->SetGrid();
@@ -1236,12 +1256,14 @@ void TrackCheckStudy::endOfStream(EndOfStreamContext& ec)
   for (int iH{0}; iH < 4; ++iH) {
     canvasEtafake->cd(iH + 1);
     for (int v = 0; v < 4; v++) {
-      if (v == 0)
+      if (v == 0) {
         canvasEtafake->cd(iH + 1);
-      if (v == 0)
+      }
+      if (v == 0) {
         mEffFakeEtas[v][iH]->Draw();
-      else
+      } else {
         mEffFakeEtas[v][iH]->Draw("same");
+      }
     }
     gPad->BuildLegend();
     gPad->SetGrid();
@@ -1254,12 +1276,14 @@ void TrackCheckStudy::endOfStream(EndOfStreamContext& ec)
   for (int iH{0}; iH < 4; ++iH) {
     canvasEtaGood->cd(iH + 1);
     for (int v = 0; v < 4; v++) {
-      if (v == 0)
+      if (v == 0) {
         canvasEtaGood->cd(iH + 1);
-      if (v == 0)
+      }
+      if (v == 0) {
         mEffGoodEtas[v][iH]->Draw();
-      else
+      } else {
         mEffGoodEtas[v][iH]->Draw("same");
+      }
     }
     gPad->BuildLegend();
     gPad->SetGrid();
@@ -1353,6 +1377,4 @@ DataProcessorSpec getTrackCheckStudy(mask_t srcTracksMask, mask_t srcClustersMas
     Options{}};
 }
 
-} // namespace study
-} // namespace its
-} // namespace o2
+} // namespace o2::its::study
