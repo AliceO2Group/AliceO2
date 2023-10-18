@@ -88,6 +88,15 @@ void FileFetcher::processInput(const std::vector<std::string>& input)
     if (fs::is_directory(inp)) {
       processDirectory(inp);
     } else if (mSelRegex && !std::regex_match(inp, *mSelRegex.get())) { // provided selector does not match, treat as a txt file with list
+      // Avoid reading a multigiB data file as a list of inputs
+      // bringing down the system.
+      std::filesystem::path p(inp);
+
+      if (std::filesystem::file_size(p) > 10000000) {
+        LOGP(error, "file list {} larger than 10MB. Is this a data file?", inp);
+        continue;
+      }
+
       std::ifstream listFile(inp);
       if (!listFile.good()) {
         LOGP(error, "file {} pretends to be a list of inputs but does not exist", inp);
