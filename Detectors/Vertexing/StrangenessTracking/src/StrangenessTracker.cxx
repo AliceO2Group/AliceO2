@@ -207,8 +207,8 @@ void StrangenessTracker::processCascade(int iCasc, const Cascade& casc, const Ca
         std::array<float, 3> momV0, mombach;
         mFitter3Body[iThread].getTrack(0).getPxPyPzGlo(momV0);                             // V0 momentum at decay vertex
         mFitter3Body[iThread].getTrack(1).getPxPyPzGlo(mombach);                           // bachelor momentum at decay vertex
-        mStrangeTrack.mMasses[0] = calcMotherMass(momV0, mombach, PID::Lambda, PID::Pion); // Xi invariant mass at decay vertex
-        mStrangeTrack.mMasses[1] = calcMotherMass(momV0, mombach, PID::Lambda, PID::Kaon); // Omega invariant mass at decay vertex
+        strangeTrack.mMasses[0] = calcMotherMass(momV0, mombach, PID::Lambda, PID::Pion);  // Xi invariant mass at decay vertex
+        strangeTrack.mMasses[1] = calcMotherMass(momV0, mombach, PID::Lambda, PID::Kaon);  // Omega invariant mass at decay vertex
 
         LOG(debug) << "ITS Track matched with a Cascade decay topology ....";
         LOG(debug) << "Number of ITS track clusters attached: " << itsTrack.getNumberOfClusters();
