@@ -564,7 +564,9 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
     // to avoid creating extra timeslices at the end of the run.
     auto& decongestion = services.get<DecongestionService>();
     decongestion.nextEnumerationTimesliceRewinded = !didSendParts;
-    if (didSendParts == false) {
+    if (didSendParts) {
+      services.get<MessageContext>().fakeDispatch();
+    } else {
       decongestion.nextEnumerationTimeslice -= 1;
     }
     if (not unmatchedDescriptions.empty()) {
@@ -767,12 +769,12 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       return count;
     };
 
-    auto dataHandler = [ref = ctx.services(), converter, doInjectMissingData, doPrintSizes,
+    auto dataHandler = [converter, doInjectMissingData, doPrintSizes,
                         outputRoutes = std::move(outputRoutes),
                         control = &ctx.services().get<ControlService>(),
                         deviceState = &ctx.services().get<DeviceState>(),
                         timesliceIndex = &ctx.services().get<TimesliceIndex>(),
-                        outputChannels = std::move(outputChannels)](TimingInfo& timingInfo, fair::mq::Parts& inputs, int, size_t ci, bool newRun) {
+                        outputChannels = std::move(outputChannels)](ServiceRegistryRef ref, TimingInfo& timingInfo, fair::mq::Parts& inputs, int, size_t ci, bool newRun) {
       auto* device = ref.get<RawDeviceService>().device();
       // pass a copy of the outputRoutes
       auto channelRetriever = [&outputRoutes](OutputSpec const& query, DataProcessingHeader::StartTime timeslice) -> std::string {
@@ -873,7 +875,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
               timingInfo.creation = dph->creation;
             }
             if (!inStopTransition) {
-              dataHandler(timingInfo, parts, 0, ci, newRun);
+              dataHandler(ctx.services(), timingInfo, parts, 0, ci, newRun);
             }
             if (sendTFcounter) {
               ctx.services().get<o2::monitoring::Monitoring>().send(o2::monitoring::Metric{(uint64_t)timingInfo.tfCounter, "df-sent"}.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL));
