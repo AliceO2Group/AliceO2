@@ -222,7 +222,7 @@ Bool_t
 
 void Generator::addSubGenerator(int subGeneratorId, std::string const& subGeneratorDescription)
 {
-  if (mSubGeneratorId < 0) {
+  if (subGeneratorId < 0) {
     LOG(fatal) << "Sub-generator IDs must be >= 0, instead, passed value is " << subGeneratorId;
   }
   mSubGeneratorsIdToDesc.insert({subGeneratorId, subGeneratorDescription});
