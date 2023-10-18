@@ -65,22 +65,39 @@ void PlotPbLumiII(int runNumber, int fillN, std::string ccdbHost = "http://ccdb-
     LOG(info) << "CTPRunConfig not in database, timestamp:" << timeStamp;
     return;
   }
+  std::vector<int> clslist = ctpcfg->getTriggerClassList();
+  //std::vector<uint32_t> clslist = scl->getClassIndexes();
+  std::map<int,int> clsIndexToScaler;
+  std::cout << "Classes:";
+  int i = 0;
+  for(auto const& cls: clslist) {
+    std::cout << cls << " ";
+    clsIndexToScaler[cls]=i;
+    i++;
+  }
+  std::cout << std::endl;
   std::vector<CTPClass> ctpcls = ctpcfg->getCTPClasses();
   int tsc = 255;
   int tce = 255;
   int vch = 255;
   for (auto const& cls : ctpcls) {
-    if (cls.name.find("CMTVXTSC-B-NOPF-CRU") != std::string::npos) {
-      tsc = cls.getIndex();
-      std::cout << cls.name << ":" << tsc << std::endl;
+    if (cls.name.find("CMTVXTSC-B-NOPF") != std::string::npos && tsc == 255) {
+      int itsc = cls.getIndex();
+      tsc = clsIndexToScaler[itsc];
+      //tsc = scl->getScalerIndexForClass(itsc);
+      std::cout << cls.name << ":" << tsc << ":" << itsc << std::endl;
     }
     if (cls.name.find("CMTVXTCE-B-NOPF-CRU") != std::string::npos) {
-      tce = cls.getIndex();
-      std::cout << cls.name << ":" << tce << std::endl;
+      int itce = cls.getIndex();
+      tce = clsIndexToScaler[itce];
+      //tce = scl->getScalerIndexForClass(itce);
+      std::cout << cls.name << ":" << tce << ":" << itce << std::endl;
     }
     if (cls.name.find("CMTVXVCH-B-NOPF-CRU") != std::string::npos) {
-      vch = cls.getIndex();
-      std::cout << cls.name << ":" << vch << std::endl;
+      int ivch = cls.getIndex();
+      vch = clsIndexToScaler[ivch];
+      //vch = scl->getScalerIndexForClass(ivch);
+      std::cout << cls.name << ":" << vch << ":" << ivch << std::endl;
     }
   }
   if (tsc == 255 || tce == 255 || vch == 255) {
@@ -127,25 +144,25 @@ void PlotPbLumiII(int runNumber, int fillN, std::string ccdbHost = "http://ccdb-
     vchtoznc[i] = (double_t)(had) / zncpp[i] / tt;
   }
   //
-  gStyle->SetMarkerSize(0.75);
+  gStyle->SetMarkerSize(0.5);
   TGraph* gr1 = new TGraph(n, x, znc);
   TGraph* gr2 = new TGraph(n, x, tcetsctoznc);
   TGraph* gr3 = new TGraph(n, x, tcetoznc);
   TGraph* gr4 = new TGraph(n, x, vchtoznc);
   gr1->SetMarkerStyle(20);
   gr2->SetMarkerStyle(21);
-  gr3->SetMarkerStyle(22);
+  gr3->SetMarkerStyle(23);
   gr4->SetMarkerStyle(23);
   gr1->SetTitle("R=ZNC/28 rate [Hz]; time[sec]; R");
   gr2->SetTitle("R=(TSC+TCE)*TVTX*B*28/ZNC; time[sec]; R");
-  gr2->GetHistogram()->SetMaximum(1.5);
-  gr2->GetHistogram()->SetMinimum(0.9);
+  //gr2->GetHistogram()->SetMaximum(1.1);
+  //gr2->GetHistogram()->SetMinimum(0.9);
   gr3->SetTitle("R=(TCE)*TVTX*B*28/ZNC; time[sec]; R");
-  gr3->GetHistogram()->SetMaximum(0.6);
-  gr3->GetHistogram()->SetMinimum(0.4);
+  //gr3->GetHistogram()->SetMaximum(0.6);
+  //gr3->GetHistogram()->SetMinimum(0.4);
   gr4->SetTitle("R=(VCH)*TVTX*B*28/ZNC; time[sec]; R");
-  gr4->GetHistogram()->SetMaximum(0.6);
-  gr4->GetHistogram()->SetMinimum(0.4);
+  //gr4->GetHistogram()->SetMaximum(0.6);
+  //gr4->GetHistogram()->SetMinimum(0.4);
   TCanvas* c1 = new TCanvas("c1", srun.c_str(), 200, 10, 800, 500);
   c1->Divide(2, 2);
   c1->cd(1);
