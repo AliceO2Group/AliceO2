@@ -587,7 +587,7 @@ bool MatchTPCITS::prepareITSData()
   auto pattIt2 = patterns.begin();
   for (auto& clus : clusITS) {
     auto pattID = clus.getPatternID();
-    int npix;
+    unsigned int npix;
     if (pattID == o2::itsmft::CompCluster::InvalidPatternID || mITSDict->isGroup(pattID)) {
       o2::itsmft::ClusterPattern patt;
       patt.acquirePattern(pattIt2);
@@ -595,7 +595,11 @@ bool MatchTPCITS::prepareITSData()
     } else {
       npix = mITSDict->getNpixels(pattID);
     }
-    mITSClusterSizes.push_back(npix);
+    if (npix < 255) {
+      mITSClusterSizes.push_back(npix);
+    } else {
+      mITSClusterSizes.push_back(255);
+    }
   }
 
   if (mMCTruthON) {
@@ -1313,7 +1317,7 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS, pmr::vector<o2::dataform
   const auto& itsTrOrig = mITSTracksArray[tITS.sourceID];
 
   auto& trfit = matchedTracks.emplace_back(tTPC, tITS); // create a copy of TPC track at xRef
-  trfit.getParamOut().setUserField(0); // reset eventual clones flag
+  trfit.getParamOut().setUserField(0);                  // reset eventual clones flag
   // in continuos mode the Z of TPC track is meaningless, unless it is CE crossing
   // track (currently absent, TODO)
   if (!mCompareTracksDZ) {

@@ -186,7 +186,7 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
       auto pattID = c.getPatternID();
       o2::math_utils::Point3D<float> locXYZ;
       float sigmaY2 = DefClusError2Row, sigmaZ2 = DefClusError2Col, sigmaYZ = 0; // Dummy COG errors (about half pixel size)
-      unsigned short clusterSize{0};
+      unsigned int clusterSize{0};
       if (pattID != itsmft::CompCluster::InvalidPatternID) {
         sigmaY2 = dict->getErr2X(pattID);
         sigmaZ2 = dict->getErr2Z(pattID);
@@ -203,7 +203,11 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
         locXYZ = dict->getClusterCoordinates(c, patt, false);
         clusterSize = patt.getNPixels();
       }
-      mClusterSize.push_back(clusterSize);
+      if (clusterSize < 255) {
+        mClusterSize.push_back(clusterSize);
+      } else {
+        mClusterSize.push_back(255);
+      }
       auto sensorID = c.getSensorID();
       // Inverse transformation to the local --> tracking
       auto trkXYZ = geom->getMatrixT2L(sensorID) ^ locXYZ;
