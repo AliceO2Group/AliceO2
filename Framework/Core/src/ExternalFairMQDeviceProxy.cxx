@@ -561,13 +561,6 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
       didSendParts = true;
       sendOnChannel(*device, channelParts, channelName, newTimesliceId);
     }
-    // In case we did not send any part at all, we need to rewind by one
-    // to avoid creating extra timeslices at the end of the run.
-    auto& decongestion = services.get<DecongestionService>();
-    decongestion.nextEnumerationTimesliceRewinded = !didSendParts;
-    if (didSendParts == false) {
-      decongestion.nextEnumerationTimeslice -= 1;
-    }
     if (not unmatchedDescriptions.empty()) {
       if (throwOnUnmatchedInputs) {
         std::string descriptions;
@@ -769,12 +762,13 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       return count;
     };
 
-    auto dataHandler = [ref = ctx.services(), converter, doInjectMissingData, doPrintSizes,
+    // Data handler for incoming data. Must return true if it sent any data.
+    auto dataHandler = [converter, doInjectMissingData, doPrintSizes,
                         outputRoutes = std::move(outputRoutes),
                         control = &ctx.services().get<ControlService>(),
                         deviceState = &ctx.services().get<DeviceState>(),
                         timesliceIndex = &ctx.services().get<TimesliceIndex>(),
-                        outputChannels = std::move(outputChannels)](TimingInfo& timingInfo, fair::mq::Parts& inputs, int, size_t ci, bool newRun) {
+                        outputChannels = std::move(outputChannels)](ServiceRegistryRef ref, TimingInfo& timingInfo, fair::mq::Parts& inputs, int, size_t ci, bool newRun) -> bool {
       auto* device = ref.get<RawDeviceService>().device();
       // pass a copy of the outputRoutes
       auto channelRetriever = [&outputRoutes](OutputSpec const& query, DataProcessingHeader::StartTime timeslice) -> std::string {
@@ -803,7 +797,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       if (doInjectMissingData) {
         injectMissingData(*device, inputs, outputRoutes, doInjectMissingData, doPrintSizes);
       }
-      converter(timingInfo, ref, inputs, channelRetriever, timesliceIndex->getOldestPossibleOutput().timeslice.value, shouldstop);
+      bool didSendParts = converter(timingInfo, ref, inputs, channelRetriever, timesliceIndex->getOldestPossibleOutput().timeslice.value, shouldstop);
 
       // If we have enough EoS messages, we can stop the device
       // Notice that this has a number of failure modes:
@@ -832,6 +826,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
         std::fill(eosPeersCount.begin(), eosPeersCount.end(), 0);
         control->endOfStream();
       }
+      return didSendParts;
     };
 
     auto runHandler = [dataHandler, minSHM, sendTFcounter](ProcessingContext& ctx) {
@@ -844,6 +839,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
         inStopTransition = true;
       }
 
+      bool didSendParts = false;
       for (size_t ci = 0; ci < channels.size(); ++ci) {
         std::string const& channel = channels[ci];
         int waitTime = channels.size() == 1 ? -1 : 1;
@@ -877,7 +873,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
               timingInfo.creation = dph->creation;
             }
             if (!inStopTransition) {
-              dataHandler(timingInfo, parts, 0, ci, newRun);
+              didSendParts |= dataHandler(ctx.services(), timingInfo, parts, 0, ci, newRun);
             }
             if (sendTFcounter) {
               ctx.services().get<o2::monitoring::Monitoring>().send(o2::monitoring::Metric{(uint64_t)timingInfo.tfCounter, "df-sent"}.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL));
@@ -888,6 +884,15 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
           }
           waitTime = 0;
         }
+      }
+      // In case we did not send any part at all, we need to rewind by one
+      // to avoid creating extra timeslices.
+      auto& decongestion = ctx.services().get<DecongestionService>();
+      decongestion.nextEnumerationTimesliceRewinded = !didSendParts;
+      if (didSendParts) {
+        ctx.services().get<MessageContext>().fakeDispatch();
+      } else {
+        decongestion.nextEnumerationTimeslice -= 1;
       }
     };
 
