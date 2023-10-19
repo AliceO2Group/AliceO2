@@ -407,9 +407,7 @@ o2::framework::ServiceSpec CommonServices::ccdbSupportSpec()
         LOGP(debug, "We are w/o outputs, do not automatically add DISTSUBTIMEFRAME to outgoing messages");
         return;
       }
-      const auto ref = pc.inputs().getFirstValid(true);
-      const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-      const auto* dph = DataRefUtils::getHeader<DataProcessingHeader*>(ref);
+      auto& timingInfo = pc.services().get<TimingInfo>();
 
       // For any output that is a FLP/DISTSUBTIMEFRAME with subspec != 0,
       // we create a new message.
@@ -424,9 +422,9 @@ o2::framework::ServiceSpec CommonServices::ccdbSupportSpec()
             continue;
           }
           auto& stfDist = pc.outputs().make<o2::header::STFHeader>(Output{concrete.origin, concrete.description, concrete.subSpec, output.matcher.lifetime});
-          stfDist.id = dph->startTime;
-          stfDist.firstOrbit = dh->firstTForbit;
-          stfDist.runNumber = dh->runNumber;
+          stfDist.id = timingInfo.timeslice;
+          stfDist.firstOrbit = timingInfo.firstTForbit;
+          stfDist.runNumber = timingInfo.runNumber;
         }
       } },
     .kind = ServiceKind::Global};
