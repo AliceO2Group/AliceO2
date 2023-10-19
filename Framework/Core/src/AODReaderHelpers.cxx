@@ -176,7 +176,11 @@ AlgorithmSpec AODReaderHelpers::aodSpawnerCallback(std::vector<InputSpec>& reque
         } else if (description == header::DataDescription{"TRACKCOV_IU"}) {
           outputs.adopt(Output{origin, description, version}, maker(o2::aod::TracksCovIUExtensionMetadata{}));
         } else if (description == header::DataDescription{"TRACKEXTRA"}) {
-          outputs.adopt(Output{origin, description, version}, maker(o2::aod::TracksExtraExtensionMetadata{}));
+          if (version == 0U) {
+            outputs.adopt(Output{origin, description, version}, maker(o2::aod::TracksExtra_000ExtensionMetadata{}));
+          } else if (version == 1U) {
+            outputs.adopt(Output{origin, description, version}, maker(o2::aod::TracksExtra_001ExtensionMetadata{}));
+          }
         } else if (description == header::DataDescription{"MFTTRACK"}) {
           outputs.adopt(Output{origin, description, version}, maker(o2::aod::MFTTracksExtensionMetadata{}));
         } else if (description == header::DataDescription{"FWDTRACK"}) {
