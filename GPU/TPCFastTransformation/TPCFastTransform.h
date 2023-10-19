@@ -281,6 +281,14 @@ class TPCFastTransform : public FlatObject
   /// Print method
   void print() const;
 
+  void setExludeComp(bool x, bool y, bool z, float t)
+  {
+    mTimeExclude = t;
+    mExcludeComp[0] = x;
+    mExcludeComp[1] = y;
+    mExcludeComp[2] = z;
+  }
+
  private:
   /// Enumeration of possible initialization states
   enum ConstructionExtraState : unsigned int {
@@ -330,13 +338,15 @@ class TPCFastTransform : public FlatObject
   float mLumiError;       ///< error on luminosity
   float mLumiScaleFactor; ///< user correction factor for lumi (e.g. normalization, efficiency correction etc.)
 
+  float mTimeExclude = 0;                       //!
+  bool mExcludeComp[3] = {false, false, false}; //!
   /// Correction of (x,u,v) with tricubic interpolator on a regular grid
   TPCSlowSpaceChargeCorrection* mCorrectionSlow{nullptr}; ///< reference space charge corrections
 
   GPUd() void TransformInternal(int slice, int row, float& u, float& v, float& x, const TPCFastTransform* ref, float scale, int scaleMode) const;
 
 #ifndef GPUCA_ALIROOT_LIB
-  ClassDefNV(TPCFastTransform, 3);
+  ClassDefNV(TPCFastTransform, 4);
 #endif
 };
 
@@ -561,10 +571,31 @@ GPUdi() void TPCFastTransform::Transform(int slice, int row, float pad, float ti
   x = rowInfo.x;
   float u = 0, v = 0;
   convPadTimeToUV(slice, row, pad, time, u, v, vertexTime);
-
+  float vsav = v;
   TransformInternal(slice, row, u, v, x, ref, scale, scaleMode);
 
   getGeometry().convUVtoLocal(slice, u, v, y, z);
+
+  if (mExcludeComp[0] || mExcludeComp[1] || mExcludeComp[2]) {
+    float u1 = 0, v1 = 0;
+    float x1, y1, z1;
+    x1 = rowInfo.x;
+    convPadTimeToUV(slice, row, pad, time, u1, v1, mTimeExclude);
+    float v1sav = v1;
+    TransformInternal(slice, row, u1, v1, x1, ref, scale, scaleMode);
+    getGeometry().convUVtoLocal(slice, u1, v1, y1, z1);
+    float dzTOF = 0;
+    if (mExcludeComp[0]) {
+      x = x1;
+    }
+    if (mExcludeComp[1]) {
+      y = y1;
+    }
+    if (mExcludeComp[2]) {
+      float corrz = (v - vsav) - (v1 - v1sav);
+      z += slice < getGeometry().getNumberOfSlicesA() ? corrz : -corrz;
+    }
+  }
 
   float dzTOF = 0;
   getTOFcorrection(slice, row, x, y, z, dzTOF);
