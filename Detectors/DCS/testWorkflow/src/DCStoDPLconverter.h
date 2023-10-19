@@ -53,7 +53,7 @@ using DPCOM = o2::dcs::DataPointCompositeObject;
 o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dpid2group, bool fbiFirst, bool verbose = false, int FBIPerInterval = 1)
 {
 
-  return [dpid2group, fbiFirst, verbose, FBIPerInterval](o2::framework::TimingInfo& tinfo, framework::ServiceRegistryRef const& services, fair::mq::Parts& parts, o2f::ChannelRetriever channelRetriever, size_t newTimesliceId, bool& stop) {
+  return [dpid2group, fbiFirst, verbose, FBIPerInterval](o2::framework::TimingInfo& tinfo, framework::ServiceRegistryRef const& services, fair::mq::Parts& parts, o2f::ChannelRetriever channelRetriever, size_t newTimesliceId, bool& stop) -> bool {
     auto *device = services.get<framework::RawDeviceService>().device();
     static std::unordered_map<DPID, DPCOM> cache; // will keep only the latest measurement in the 1-second wide window for each DPID
     static std::unordered_map<std::string, int> sentToChannel;
@@ -69,7 +69,7 @@ o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dp
     // check if we got FBI (Master) or delta (MasterDelta)
     if (!parts.Size()) {
       LOGP(warn, "Empty input recieved at timeslice {}", tinfo.timeslice);
-      return;
+      return false;
     }
     std::string firstName = std::string((char*)&(reinterpret_cast<const DPCOM*>(parts.At(0)->GetData()))->id);
 
@@ -124,6 +124,7 @@ o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dp
     }
 
     std::chrono::duration<double, std::ratio<1>> duration = timerNow - timer;
+    bool didSendMessages = false;
     if (duration.count() > 1 && (seenFBI || !fbiFirst)) { // did we accumulate for 1 sec and have we seen FBI if it was requested?
       std::unordered_map<o2h::DataDescription, pmr::vector<DPCOM>, std::hash<o2h::DataDescription>> outputs;
       // in the cache we have the final values of the DPs that we should put in the output
@@ -183,6 +184,7 @@ o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dp
         }
         o2f::sendOnChannel(*device, *msgIt.second.get(), msgIt.first, tinfo.timeslice);
         sentToChannel[msgIt.first]++;
+        didSendMessages |= msgIt.second->Size() > 0;
       }
       timer = timerNow;
       cache.clear();
@@ -200,6 +202,7 @@ o2f::InjectorFunction dcs2dpl(std::unordered_map<DPID, o2h::DataDescription>& dp
       }
       LOGP(info, "{} inputs ({} bytes) of which {} FBI ({} bytes) seen in {:.3f} s | {}", nInp, fmt::group_digits(szInp), nInpFBI, fmt::group_digits(szInpFBI), runtime, sent);
     }
+    return didSendMessages;
   };
 }
 
