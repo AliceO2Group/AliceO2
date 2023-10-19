@@ -380,9 +380,10 @@ void GeneratorPythia8::getNpart(const Pythia8::Info& info, int& nPart)
 #else
   auto hiinfo = info.hiInfo;
 #endif
-  if (hiinfo)
+  if (hiinfo) {
     nPart = (hiinfo->nAbsProj() + hiinfo->nDiffProj() +
              hiinfo->nAbsTarg() + hiinfo->nDiffTarg());
+  }
 
   int nProtonProj, nNeutronProj, nProtonTarg, nNeutronTarg;
   getNpart(info, nProtonProj, nNeutronProj, nProtonTarg, nNeutronTarg);
