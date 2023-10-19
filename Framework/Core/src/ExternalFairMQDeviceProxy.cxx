@@ -561,15 +561,6 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
       didSendParts = true;
       sendOnChannel(*device, channelParts, channelName, newTimesliceId);
     }
-    // In case we did not send any part at all, we need to rewind by one
-    // to avoid creating extra timeslices at the end of the run.
-    auto& decongestion = services.get<DecongestionService>();
-    decongestion.nextEnumerationTimesliceRewinded = !didSendParts;
-    if (didSendParts) {
-      services.get<MessageContext>().fakeDispatch();
-    } else {
-      decongestion.nextEnumerationTimeslice -= 1;
-    }
     if (not unmatchedDescriptions.empty()) {
       if (throwOnUnmatchedInputs) {
         std::string descriptions;
@@ -805,7 +796,16 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       if (doInjectMissingData) {
         injectMissingData(*device, inputs, outputRoutes, doInjectMissingData, doPrintSizes);
       }
-      converter(timingInfo, ref, inputs, channelRetriever, timesliceIndex->getOldestPossibleOutput().timeslice.value, shouldstop);
+      bool didSendParts = converter(timingInfo, ref, inputs, channelRetriever, timesliceIndex->getOldestPossibleOutput().timeslice.value, shouldstop);
+      // In case we did not send any part at all, we need to rewind by one
+      // to avoid creating extra timeslices at the end of the run.
+      auto& decongestion = ref.get<DecongestionService>();
+      decongestion.nextEnumerationTimesliceRewinded = !didSendParts;
+      if (didSendParts) {
+        ref.get<MessageContext>().fakeDispatch();
+      } else {
+        decongestion.nextEnumerationTimeslice -= 1;
+      }
 
       // If we have enough EoS messages, we can stop the device
       // Notice that this has a number of failure modes:
