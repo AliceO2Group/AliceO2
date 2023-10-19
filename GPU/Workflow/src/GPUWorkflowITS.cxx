@@ -194,7 +194,7 @@ int GPURecoWorkflowSpec::runITSTracking(o2::framework::ProcessingContext& pc)
   if (mITSRunVertexer) {
     // Run seeding vertexer
     vertROFvec.reserve(rofs.size());
-    vertexerElapsedTime = mITSVertexer->clustersToVertices(logger);
+    vertexerElapsedTime = mITSVertexer->clustersToVerticesHybrid(logger);
   } else { // cosmics
     mITSTimeFrame->resetRofPV();
   }
@@ -252,7 +252,7 @@ int GPURecoWorkflowSpec::runITSTracking(o2::framework::ProcessingContext& pc)
 
     mITSTimeFrame->setMultiplicityCutMask(processingMask);
     // Run CA tracker
-    mITSTracker->clustersToTracks(logger, errorLogger);
+    mITSTracker->clustersToTracksHybrid(logger, errorLogger);
     size_t totTracks{mITSTimeFrame->getNumberOfTracks()}, totClusIDs{mITSTimeFrame->getNumberOfUsedClusters()};
     allTracks.reserve(totTracks);
     allClusIdx.reserve(totClusIDs);
