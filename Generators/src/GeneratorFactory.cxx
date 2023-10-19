@@ -216,6 +216,11 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
     auto py8config = std::string(std::getenv("O2_ROOT")) + "/share/Generators/egconfig/pythia8_hi.cfg";
     auto py8 = makePythia8Gen(py8config);
     primGen->AddGenerator(py8);
+  } else if (genconfig.compare("pythia8powheg") == 0) {
+    // pythia8 with powheg
+    auto py8config = std::string(std::getenv("O2_ROOT")) + "/share/Generators/egconfig/pythia8_powheg.cfg";
+    auto py8 = makePythia8Gen(py8config);
+    primGen->AddGenerator(py8);
 #endif
   } else if (genconfig.compare("external") == 0 || genconfig.compare("extgen") == 0) {
     // external generator via configuration macro
