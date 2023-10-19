@@ -22,6 +22,7 @@
 #include "SimulationDataFormat/MCGenProperties.h"
 #include "SimulationDataFormat/ParticleStatus.h"
 #include "Pythia8/HIUserHooks.h"
+#include "Pythia8Plugins/PowhegHooks.h"
 #include "TSystem.h"
 #include "ZDCBase/FragmentParam.h"
 
@@ -107,7 +108,28 @@ Bool_t GeneratorPythia8::Init()
   /** inhibit hadron decays **/
   mPythia.readString("HadronLevel:Decay off");
 #endif
-
+  if (mPythia.settings.mode("Beams:frameType") == 4) {
+    // Hook for POWHEG
+    // Read in key POWHEG merging settings
+    int vetoMode = mPythia.settings.mode("POWHEG:veto");
+    int MPIvetoMode = mPythia.settings.mode("POWHEG:MPIveto");
+    bool loadHooks = (vetoMode > 0 || MPIvetoMode > 0);
+    // Add in user hooks for shower vetoing
+    std::shared_ptr<Pythia8::PowhegHooks> powhegHooks;
+    if (loadHooks) {
+      // Set ISR and FSR to start at the kinematical limit
+      if (vetoMode > 0) {
+        mPythia.readString("SpaceShower:pTmaxMatch = 2");
+        mPythia.readString("TimeShower:pTmaxMatch = 2");
+      }
+      // Set MPI to start at the kinematical limit
+      if (MPIvetoMode > 0) {
+        mPythia.readString("MultipartonInteractions:pTmaxMatch = 2");
+      }
+      powhegHooks = std::make_shared<Pythia8::PowhegHooks>();
+      mPythia.setUserHooksPtr((Pythia8::UserHooksPtr)powhegHooks);
+    }
+  }
   /** initialise **/
   if (!mPythia.init()) {
     LOG(fatal) << "Failed to init \'Pythia8\': init returned with error";
@@ -123,8 +145,6 @@ Bool_t GeneratorPythia8::Init()
 Bool_t
   GeneratorPythia8::generateEvent()
 {
-  /** generate event **/
-
   /** generate event **/
   if (!mPythia.next()) {
     return false;
