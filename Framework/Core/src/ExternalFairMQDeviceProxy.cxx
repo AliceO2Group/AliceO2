@@ -203,7 +203,7 @@ void appendForSending(fair::mq::Device& device, o2::header::Stack&& headerStack,
 
 InjectorFunction o2DataModelAdaptor(OutputSpec const& spec, uint64_t startTime, uint64_t /*step*/)
 {
-  return [spec](TimingInfo&, ServiceRegistryRef const& ref, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId, bool& stop) {
+  return [spec](TimingInfo&, ServiceRegistryRef const& ref, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId, bool& stop) -> bool {
     auto* device = ref.get<RawDeviceService>().device();
     for (int i = 0; i < parts.Size() / 2; ++i) {
       auto dh = o2::header::get<DataHeader*>(parts.At(i * 2)->GetData());
@@ -212,6 +212,7 @@ InjectorFunction o2DataModelAdaptor(OutputSpec const& spec, uint64_t startTime, 
       o2::header::Stack headerStack{*dh, dph};
       sendOnChannel(*device, std::move(headerStack), std::move(parts.At(i * 2 + 1)), spec, channelRetriever);
     }
+    return parts.Size() > 0;
   };
 }
 
@@ -591,7 +592,7 @@ InjectorFunction dplModelAdaptor(std::vector<OutputSpec> const& filterSpecs, DPL
         }
       }
     }
-    return;
+    return didSendParts;
   };
 }
 
@@ -623,6 +624,7 @@ InjectorFunction incrementalConverter(OutputSpec const& spec, o2::header::Serial
 
       sendOnChannel(*device, std::move(headerStack), std::move(parts.At(i)), spec, channelRetriever);
     }
+    return parts.Size();
   };
 }
 
