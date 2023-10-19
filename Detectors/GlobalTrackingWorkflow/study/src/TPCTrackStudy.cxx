@@ -50,6 +50,12 @@ using timeEst = o2::dataformats::TimeStampWithError<float, float>;
 class TPCTrackStudySpec : public Task
 {
  public:
+  enum CorrLevel { FULL,
+                   ZSHIFT,
+                   YONLY,
+                   ZONLY,
+                   YZONLY,
+                   NCorrLevels };
   TPCTrackStudySpec(std::shared_ptr<DataRequest> dr, std::shared_ptr<o2::base::GRPGeomRequest> gr, GTrackID::mask_t src, bool useMC)
     : mDataRequest(dr), mGGCCDBRequest(gr), mTracksSrc(src), mUseMC(useMC)
   {
@@ -74,6 +80,8 @@ class TPCTrackStudySpec : public Task
   int mTFStart = 0;
   int mTFEnd = 999999999;
   int mTFCount = -1;
+  int mExtraTreeBits = 0;
+  int mExtraClusBits = 0;
   bool mUseR = false;
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOut;
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDBGOutCl;
@@ -88,6 +96,15 @@ class TPCTrackStudySpec : public Task
   const o2::tpc::ClusterNativeAccess* mTPCClusterIdxStruct = nullptr; ///< struct holding the TPC cluster indices
   gsl::span<const o2::MCCompLabel> mTPCTrkLabels;                     ///< input TPC Track MC labels
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mTPCRefitter;         ///< TPC refitter used for TPC tracks refit during the reconstruction
+  const bool mSkipCorr[NCorrLevels][3] = {
+    // true means that the correction IS SUPPRESSED
+    {false, false, false}, // FULL : full correction
+    {true, true, true},    // ZHIFT : no corrections, z shift only
+    {true, false, true},   // YONLY, y corr only
+    {true, true, false},   // ZONLY, z corr only
+    {true, false, false}   // YZONLY, y and z corr only
+  };
+  const std::string mTreeNames[NCorrLevels] = {{"tpcMov"}, {"tpcMovZShift"}, {"tpcMovYcorr"}, {"tpcMovZcorr"}, {"tpcMovYZcorr"}};
 };
 
 void TPCTrackStudySpec::init(InitContext& ic)
@@ -107,6 +124,8 @@ void TPCTrackStudySpec::init(InitContext& ic)
   if (ic.options().get<bool>("dump-clusters")) {
     mDBGOutCl = std::make_unique<o2::utils::TreeStreamRedirector>("tpc-trackStudy-cl.root", "recreate");
   }
+  mExtraTreeBits = (ic.options().get<int>("extra-trees-mask") << 1) | 0x1;
+  mExtraClusBits = mExtraTreeBits & ((ic.options().get<int>("extra-clusters-mask") << 1) | 0x1);
 }
 
 void TPCTrackStudySpec::run(ProcessingContext& pc)
@@ -354,12 +373,32 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
     // refit and store the same track for a few compatible times
     float tmin = tr.getTime0() - tr.getDeltaTBwd();
     float tmax = tr.getTime0() + tr.getDeltaTFwd();
+    o2::track::TrackParCov trfm[5];
+    std::array<std::vector<float>, NCorrLevels> aclX, aclY, aclZ;
+    auto* corrMapM = const_cast<o2::gpu::TPCFastTransform*>(this->mTPCCorrMapsLoader.getCorrMap());
     for (int it = 0; it < mNMoves; it++) {
       float tb = tmin + it * (tmax - tmin) / (mNMoves - 1);
-      auto trfm = tr.getOuterParam(); // we refit inward
-      // impose time in TPC timebin and refit inward after resetted covariance
-      if (!trackRefit(trfm, tb) || !trfm.rotate(tr.getAlpha()) || !prop->PropagateToXBxByBz(trfm, tr.getX())) {
-        LOGP(warn, "Failed to propagate time={} refitted track#{} [{}] to X/alpha of original track [{}]", tb, counter, trfm.asString(), tr.asString());
+      bool hasFailure = false;
+      for (int idT = 0; idT < NCorrLevels; idT++) {
+        if (mExtraTreeBits & (0x1 << idT)) {
+          trfm[idT] = tr.getOuterParam(); // we refit inward
+          corrMapM->setExludeComp(mSkipCorr[idT][0], mSkipCorr[idT][1], mSkipCorr[idT][2], tr.getTime0());
+          if (!trackRefit(trfm[idT], tb) || !trfm[idT].rotate(tr.getAlpha()) || !prop->PropagateToXBxByBz(trfm[idT], tr.getX())) { // impose time in TPC timebin and refit inward after resetted covariance
+            LOGP(warn, "Failed to propagate time={} corrLevel {} refitted track#{} [{}] to X/alpha of original track [{}]", tb, idT, counter, trfm[idT].asString(), tr.asString());
+            hasFailure = true;
+            break;
+          }
+          if (mExtraClusBits & (0x1 << idT)) {
+            prepClus(tb);
+            aclX[idT].swap(clX);
+            aclY[idT].swap(clY);
+            aclZ[idT].swap(clZ);
+          }
+        }
+      }
+      //
+      if (hasFailure) {
+        LOGP(warn, "Move {} from t={} to t={} will be skipped due to the failure in the refit", it, tr.getTime0(), tb);
         continue;
       }
       // estimate Z shift in case of no-distortions
@@ -369,18 +408,24 @@ void TPCTrackStudySpec::process(o2::globaltracking::RecoContainer& recoData)
       }
       //
       int mnm = mNMoves - 1;
-      prepClus(tb); // clusters for MC time
-      (*mDBGOut) << "tpcMov"
-                 << "counter=" << counter
-                 << "copy=" << it
-                 << "maxCopy=" << mnm
-                 << "movTrackRef=" << trfm
-                 << "imposedTB=" << tb
-                 << "dz=" << dz
-                 << "clX=" << clX
-                 << "clY=" << clY
-                 << "clZ=" << clZ
-                 << "\n";
+      for (int idT = 0; idT < NCorrLevels; idT++) {
+        if (mExtraTreeBits & (0x1 << idT)) {
+          (*mDBGOut) << mTreeNames[idT].c_str()
+                     << "counter=" << counter
+                     << "copy=" << it
+                     << "maxCopy=" << mnm
+                     << "movTrackRef=" << trfm[idT]
+                     << "imposedTB=" << tb
+                     << "dz=" << dz;
+          if (mExtraClusBits & (0x1 << idT)) {
+            (*mDBGOut) << mTreeNames[idT].c_str()
+                       << "clX=" << aclX[idT]
+                       << "clY=" << aclY[idT]
+                       << "clZ=" << aclZ[idT];
+          }
+          (*mDBGOut) << mTreeNames[idT].c_str() << "\n";
+        }
+      }
     }
   }
 }
@@ -414,7 +459,9 @@ DataProcessorSpec getTPCTrackStudySpec(GTrackID::mask_t srcTracks, GTrackID::mas
     {"tf-start", VariantType::Int, 0, {"1st TF to process"}},
     {"tf-end", VariantType::Int, 999999999, {"last TF to process"}},
     {"use-gpu-fitter", VariantType::Bool, false, {"use GPU track model for refit instead of TrackParCov"}},
-    {"use-r-as-x", VariantType::Bool, false, {"Use radius instead of target sector X"}}};
+    {"use-r-as-x", VariantType::Bool, false, {"Use radius instead of target sector X"}},
+    {"extra-trees-mask", VariantType::Int, 0, {"Add extra tree according to bits set, 0: time shift only, 1: corr.Y only, 2: corr.Z only, 3: corr.Y and Z only"}},
+    {"extra-clusters-mask", VariantType::Int, 0, {"Store relevant clusters to extra trees, 0: time shift only, 1: corr.Y only, 2: corr.Z only, 3: corr.Y and Z only"}}};
   auto dataRequest = std::make_shared<DataRequest>();
 
   dataRequest->requestTracks(srcTracks, useMC);
