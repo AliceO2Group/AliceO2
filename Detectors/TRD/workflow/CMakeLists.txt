@@ -21,7 +21,7 @@ o2_add_library(TRDWorkflow
                        src/EntropyDecoderSpec.cxx
                        src/EntropyEncoderSpec.cxx
                        src/TrackBasedCalibSpec.cxx
-                       src/KrClustererSpec.cxx
+                       include/TRDWorkflow/KrClustererSpec.h
                        include/TRDWorkflow/VdAndExBCalibSpec.h
                        include/TRDWorkflow/GainCalibSpec.h
                        include/TRDWorkflow/TRDPulseHeightSpec.h
