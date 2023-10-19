@@ -356,6 +356,7 @@ class AODProducerWorkflowDPL : public Task
   struct TrackExtraInfo {
     float tpcInnerParam = 0.f;
     uint32_t flags = 0;
+    uint32_t itsClusterSizes = 0u;
     uint8_t itsClusterMap = 0;
     uint8_t tpcNClsFindable = 0;
     int8_t tpcNClsFindableMinusFound = 0;
