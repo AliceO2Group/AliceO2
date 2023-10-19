@@ -862,7 +862,9 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
                 newRun = true;
                 inStopTransition = false;
               }
-              currentRunNumber = dh->runNumber;
+              if (currentRunNumber == -1 || dh->runNumber != 0) {
+                currentRunNumber = dh->runNumber;
+              }
               timingInfo.runNumber = dh->runNumber;
               timingInfo.firstTForbit = dh->firstTForbit;
               timingInfo.tfCounter = dh->tfCounter;
