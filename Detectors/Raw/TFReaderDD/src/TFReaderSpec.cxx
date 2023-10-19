@@ -465,28 +465,28 @@ o2f::DataProcessorSpec o2::rawdd::getTFReaderSpec(o2::rawdd::TFReaderInp& rinp)
           rinp.hdVec.emplace_back(o2h::DataHeader{"CELLS", DetID::getDataOrigin(id), 0, 0});       // in abcence of real data this will be sent
           rinp.hdVec.emplace_back(o2h::DataHeader{"CELLTRIGREC", DetID::getDataOrigin(id), 0, 0}); // in abcence of real data this will be sent
         } else if (id == DetID::CPV) {
-          spec.outputs.emplace_back(o2f::OutputSpec{DetID::getDataOrigin(id), "DIGITS", 0});
-          spec.outputs.emplace_back(o2f::OutputSpec{DetID::getDataOrigin(id), "DIGITTRIGREC", 0});
-          spec.outputs.emplace_back(o2f::OutputSpec{DetID::getDataOrigin(id), "RAWHWERRORS", 0});
-          rinp.hdVec.emplace_back(o2h::DataHeader{"DIGITS", DetID::getDataOrigin(id), 0, 0});       // in abcence of real data this will be sent
-          rinp.hdVec.emplace_back(o2h::DataHeader{"DIGITTRIGREC", DetID::getDataOrigin(id), 0, 0}); // in abcence of real data this will be sent
-          rinp.hdVec.emplace_back(o2h::DataHeader{"RAWHWERRORS", DetID::getDataOrigin(id), 0, 0});  // in abcence of real data this will be sent
+          spec.outputs.emplace_back(DetID::getDataOrigin(id), "DIGITS", 0);
+          spec.outputs.emplace_back(DetID::getDataOrigin(id), "DIGITTRIGREC", 0);
+          spec.outputs.emplace_back(DetID::getDataOrigin(id), "RAWHWERRORS", 0);
+          rinp.hdVec.emplace_back("DIGITS", DetID::getDataOrigin(id), 0, 0);       // in abcence of real data this will be sent
+          rinp.hdVec.emplace_back("DIGITTRIGREC", DetID::getDataOrigin(id), 0, 0); // in abcence of real data this will be sent
+          rinp.hdVec.emplace_back("RAWHWERRORS", DetID::getDataOrigin(id), 0, 0);  // in abcence of real data this will be sent
         } else if (id == DetID::EMC) {
           spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(id), "CELLS"}});
           spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(id), "CELLSTRGR"}});
           spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(id), "DECODERERR"}});
-          rinp.hdVec.emplace_back(o2h::DataHeader{"CELLS", DetID::getDataOrigin(id), 0, 0});      // in abcence of real data this will be sent
-          rinp.hdVec.emplace_back(o2h::DataHeader{"CELLSTRGR", DetID::getDataOrigin(id), 0, 0});  // in abcence of real data this will be sent
-          rinp.hdVec.emplace_back(o2h::DataHeader{"DECODERERR", DetID::getDataOrigin(id), 0, 0}); // in abcence of real data this will be sent
+          rinp.hdVec.emplace_back("CELLS", DetID::getDataOrigin(id), 0, 0);      // in abcence of real data this will be sent
+          rinp.hdVec.emplace_back("CELLSTRGR", DetID::getDataOrigin(id), 0, 0);  // in abcence of real data this will be sent
+          rinp.hdVec.emplace_back("DECODERERR", DetID::getDataOrigin(id), 0, 0); // in abcence of real data this will be sent
         } else if (id == DetID::FOC) {
           spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(id), "PADLAYERS"}});
           spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(id), "PIXELHITS"}});
           spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(id), "PIXELCHIPS"}});
           spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(id), "TRIGGERS"}});
-          rinp.hdVec.emplace_back(o2h::DataHeader{"PADLAYERS", DetID::getDataOrigin(id), 0, 0});  // in abcence of real data this will be sent
-          rinp.hdVec.emplace_back(o2h::DataHeader{"PIXELHITS", DetID::getDataOrigin(id), 0, 0});  // in abcence of real data this will be sent
-          rinp.hdVec.emplace_back(o2h::DataHeader{"PIXELCHIPS", DetID::getDataOrigin(id), 0, 0}); // in abcence of real data this will be sent
-          rinp.hdVec.emplace_back(o2h::DataHeader{"TRIGGERS", DetID::getDataOrigin(id), 0, 0});   // in abcence of real data this will be sent
+          rinp.hdVec.emplace_back("PADLAYERS", DetID::getDataOrigin(id), 0, 0);  // in abcence of real data this will be sent
+          rinp.hdVec.emplace_back("PIXELHITS", DetID::getDataOrigin(id), 0, 0);  // in abcence of real data this will be sent
+          rinp.hdVec.emplace_back("PIXELCHIPS", DetID::getDataOrigin(id), 0, 0); // in abcence of real data this will be sent
+          rinp.hdVec.emplace_back("TRIGGERS", DetID::getDataOrigin(id), 0, 0);   // in abcence of real data this will be sent
         }
       }
     }
