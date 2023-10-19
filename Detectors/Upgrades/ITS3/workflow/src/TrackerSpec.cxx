@@ -280,7 +280,7 @@ void TrackerDPL::run(ProcessingContext& pc)
 
     for (unsigned int iROF{0}; iROF < rofs.size(); ++iROF) {
       auto& rof{rofs[iROF]};
-      auto &tracks = timeFrame->getTracks(iROF);
+      auto& tracks = timeFrame->getTracks(iROF);
       trackLabels = timeFrame->getTracksLabel(iROF);
       auto number{tracks.size()};
       auto first{allTracks.size()};
