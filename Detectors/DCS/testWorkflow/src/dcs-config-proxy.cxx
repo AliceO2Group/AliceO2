@@ -67,17 +67,17 @@ auto getDataOriginFromFilename(const std::string& filename)
 
 InjectorFunction dcs2dpl(const std::string& acknowledge)
 {
-  return [acknowledge](TimingInfo&, ServiceRegistryRef const& services, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId, bool&) {
+  return [acknowledge](TimingInfo&, ServiceRegistryRef const& services, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId, bool&) -> bool {
     auto *device = services.get<RawDeviceService>().device();
     if (parts.Size() == 0) { // received at ^c, ignore
       LOG(info) << "ignoring empty message";
-      return;
+      return false;
     }
     // make sure just 2 messages received
     if (parts.Size() != 2) {
       LOG(error) << "received " << parts.Size() << " instead of 2 expected";
       sendAnswer("error0: wrong number of messages", acknowledge, *device);
-      return;
+      return false;
     }
     std::string filename{static_cast<const char*>(parts.At(0)->GetData()), parts.At(0)->GetSize()};
     size_t filesize = parts.At(1)->GetSize();
@@ -86,7 +86,7 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
     if (dataOrigin == o2::header::gDataOriginInvalid) {
       LOG(error) << "unknown detector for " << filename;
       sendAnswer(fmt::format("{}:error1: unrecognized filename", filename), acknowledge, *device);
-      return;
+      return false;
     }
 
     o2::header::DataHeader hdrF("DCS_CONFIG_FILE", dataOrigin, 0);
@@ -96,7 +96,7 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
     if (channel.empty()) {
       LOG(error) << "No output channel found for OutputSpec " << outsp;
       sendAnswer(fmt::format("{}:error2: no channel to send", filename), acknowledge, *device);
-      return;
+      return false;
     }
 
     hdrF.tfCounter = newTimesliceId;
@@ -140,6 +140,7 @@ InjectorFunction dcs2dpl(const std::string& acknowledge)
 
     sendAnswer(fmt::format("{}:ok", filename), acknowledge, *device);
     LOG(info) << "Sent DPL message and acknowledgment for file " << filename;
+    return true;
   };
 }
 

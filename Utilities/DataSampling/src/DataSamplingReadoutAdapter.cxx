@@ -41,6 +41,7 @@ InjectorFunction dataSamplingReadoutAdapter(OutputSpec const& spec)
       o2::header::Stack headerStack{dh, dph};
       sendOnChannel(*device, std::move(headerStack), std::move(parts.At(i)), spec, channelRetriever);
     }
+    return parts.Size() != 0;
   };
 }
 
