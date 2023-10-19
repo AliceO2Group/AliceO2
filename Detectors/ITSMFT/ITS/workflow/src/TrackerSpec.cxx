@@ -297,6 +297,7 @@ void TrackerDPL::run(ProcessingContext& pc)
         for (int ic = TrackITSExt::MaxClusters; ic--;) { // track internally keeps in->out cluster indices, but we want to store the references as out->in!!!
           auto clid = trc.getClusterIndex(ic);
           if (clid >= 0) {
+            trc.setClusterSize(ic, mTimeFrame->getClusterSize(clid));
             allClusIdx.push_back(clid);
             nclf++;
           }

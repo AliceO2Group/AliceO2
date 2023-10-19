@@ -2729,6 +2729,9 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
     dataRequest->requestStrangeTracks(useMC);
     LOGF(info, "requestStrangeTracks Finish");
   }
+  if (src[GID::ITS]) {
+    dataRequest->requestClusters(GIndex::getSourcesMask("ITS"), false);
+  }
   if (src[GID::TPC]) {
     dataRequest->requestClusters(GIndex::getSourcesMask("TPC"), false); // no need to ask for TOF clusters as they are requested with TOF tracks
   }
