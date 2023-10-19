@@ -679,56 +679,73 @@ class TPCTimeSeries : public Task
       }
 
       GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamTimeSeries)) {
-        auto clusterMask = makeClusterBitMask(track);
-        const auto& trkOrig = tracksTPC[iTrk];
-        const bool isNearestVtx = (idxITSTPC.back() == -1); // is nearest vertex in case no vertex was found
-        const float mx_ITS = hasITSTPC ? tracksITSTPC[idxITSTPC.front()].getX() : -1;
-        int typeSide = 2; // A- and C-Side cluster
-        if (track.hasASideClustersOnly()) {
-          typeSide = 0;
-        } else if (track.hasCSideClustersOnly()) {
-          typeSide = 1;
-        }
+        const float sqrts = 13600; // o2::base::GRPGeomHelper::instance().getGRPLHCIF()->getSqrtS();
+        // LOGP(info, "sqrts: {}", sqrts);
 
-        o2::utils::DebugStreamer::instance()->getStreamer("time_series", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("treeTimeSeries").data()
-                                                                                   // DCAs
-                                                                                   << "dcar_tpc=" << dca[0]
-                                                                                   << "dcaz_tpc=" << dca[1]
-                                                                                   << "dcar_itstpc=" << dcaITSTPC[0]
-                                                                                   << "dcaz_itstpc=" << dcaITSTPC[1]
-                                                                                   << "dcarW=" << dcarW
-                                                                                   << "dcaZFromDeltaTime=" << dcaZFromDeltaTime
-                                                                                   << "hasITSTPC=" << hasITSTPC
-                                                                                   // vertex
-                                                                                   << "vertex_x=" << vertex.getX()
-                                                                                   << "vertex_y=" << vertex.getY()
-                                                                                   << "vertex_z=" << vertex.getZ()
-                                                                                   << "vertex_time=" << vertex.getTimeStamp().getTimeStamp()
-                                                                                   << "vertex_nContributors=" << vertex.getNContributors()
-                                                                                   << "isNearestVertex=" << isNearestVtx
-                                                                                   // tpc track properties
-                                                                                   << "pt=" << trkOrig.getPt()
-                                                                                   << "tpc_timebin=" << trkOrig.getTime0()
-                                                                                   << "qpt=" << trkOrig.getParam(4)
-                                                                                   << "ncl=" << trkOrig.getNClusters()
-                                                                                   << "tgl=" << trkOrig.getTgl()
-                                                                                   << "side_type=" << typeSide
-                                                                                   << "phi=" << trkOrig.getPhi()
-                                                                                   << "clusterMask=" << clusterMask
-                                                                                   << "dedxTotTPC=" << trkOrig.getdEdx().dEdxTotTPC
-                                                                                   << "dedxTotIROC=" << trkOrig.getdEdx().dEdxTotIROC
-                                                                                   << "dedxTotOROC1=" << trkOrig.getdEdx().dEdxTotOROC1
-                                                                                   << "dedxTotOROC2=" << trkOrig.getdEdx().dEdxTotOROC2
-                                                                                   << "dedxTotOROC3=" << trkOrig.getdEdx().dEdxTotOROC3
-                                                                                   << "chi2=" << trkOrig.getChi2()
-                                                                                   << "mX=" << trkOrig.getX()
-                                                                                   << "mX_ITS=" << mx_ITS
-                                                                                   // meta
-                                                                                   << "mult=" << mNTracksWindow[iTrk]
-                                                                                   << "time_window_mult=" << mTimeWindowMUS
-                                                                                   << "firstTFOrbit=" << mFirstTFOrbit
-                                                                                   << "mVDrift=" << mVDrift
-                                                                                   << "\n";
+        const auto sampling = o2::utils::DebugStreamer::getSamplingTypeFrequency(o2::utils::StreamFlags::streamTimeSeries);
+        const float factorPt = sampling.second;
+        bool writeData = true;
+        float weight = 0;
+        if (sampling.first == o2::utils::SamplingTypes::sampleTsalis) {
+          static thread_local std::mt19937 generator(std::random_device{}());
+          std::uniform_real_distribution<> distr(0, 1);
+          const float rnd = distr(generator);
+          writeData = o2::utils::DebugStreamer::downsampleTsalisCharged(tracksTPC[iTrk].getPt(), factorPt, sqrts, weight, rnd);
+        }
+        if (writeData) {
+          auto clusterMask = makeClusterBitMask(track);
+          const auto& trkOrig = tracksTPC[iTrk];
+          const bool isNearestVtx = (idxITSTPC.back() == -1); // is nearest vertex in case no vertex was found
+          const float mx_ITS = hasITSTPC ? tracksITSTPC[idxITSTPC.front()].getX() : -1;
+          int typeSide = 2; // A- and C-Side cluster
+          if (track.hasASideClustersOnly()) {
+            typeSide = 0;
+          } else if (track.hasCSideClustersOnly()) {
+            typeSide = 1;
+          }
+
+          o2::utils::DebugStreamer::instance()->getStreamer("time_series", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("treeTimeSeries").data()
+                                                                                     // DCAs
+                                                                                     << "factorPt=" << factorPt
+                                                                                     << "weight=" << weight
+                                                                                     << "dcar_tpc=" << dca[0]
+                                                                                     << "dcaz_tpc=" << dca[1]
+                                                                                     << "dcar_itstpc=" << dcaITSTPC[0]
+                                                                                     << "dcaz_itstpc=" << dcaITSTPC[1]
+                                                                                     << "dcarW=" << dcarW
+                                                                                     << "dcaZFromDeltaTime=" << dcaZFromDeltaTime
+                                                                                     << "hasITSTPC=" << hasITSTPC
+                                                                                     // vertex
+                                                                                     << "vertex_x=" << vertex.getX()
+                                                                                     << "vertex_y=" << vertex.getY()
+                                                                                     << "vertex_z=" << vertex.getZ()
+                                                                                     << "vertex_time=" << vertex.getTimeStamp().getTimeStamp()
+                                                                                     << "vertex_nContributors=" << vertex.getNContributors()
+                                                                                     << "isNearestVertex=" << isNearestVtx
+                                                                                     // tpc track properties
+                                                                                     << "pt=" << trkOrig.getPt()
+                                                                                     << "tpc_timebin=" << trkOrig.getTime0()
+                                                                                     << "qpt=" << trkOrig.getParam(4)
+                                                                                     << "ncl=" << trkOrig.getNClusters()
+                                                                                     << "tgl=" << trkOrig.getTgl()
+                                                                                     << "side_type=" << typeSide
+                                                                                     << "phi=" << trkOrig.getPhi()
+                                                                                     << "clusterMask=" << clusterMask
+                                                                                     << "dedxTotTPC=" << trkOrig.getdEdx().dEdxTotTPC
+                                                                                     << "dedxTotIROC=" << trkOrig.getdEdx().dEdxTotIROC
+                                                                                     << "dedxTotOROC1=" << trkOrig.getdEdx().dEdxTotOROC1
+                                                                                     << "dedxTotOROC2=" << trkOrig.getdEdx().dEdxTotOROC2
+                                                                                     << "dedxTotOROC3=" << trkOrig.getdEdx().dEdxTotOROC3
+                                                                                     << "chi2=" << trkOrig.getChi2()
+                                                                                     << "mX=" << trkOrig.getX()
+                                                                                     << "mX_ITS=" << mx_ITS
+                                                                                     // meta
+                                                                                     << "mult=" << mNTracksWindow[iTrk]
+                                                                                     << "time_window_mult=" << mTimeWindowMUS
+                                                                                     << "firstTFOrbit=" << mFirstTFOrbit
+                                                                                     << "mVDrift=" << mVDrift
+                                                                                     << "\n";
+        }
       })
     }
   }
@@ -866,9 +883,11 @@ o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, 
   std::vector<InputSpec> inputs;
   inputs.emplace_back("tracksITSTPC", "GLO", "TPCITS", 0, Lifetime::Timeframe);
   inputs.emplace_back("tracksTPC", header::gDataOriginTPC, "TRACKS", 0, Lifetime::Timeframe);
+  bool getGRPLHCIF = false;
   GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamTimeSeries)) {
     // request tpc clusters only in case the debug streamer is used for the cluster bit mask
     inputs.emplace_back("trackTPCClRefs", header::gDataOriginTPC, "CLUSREFS", 0, Lifetime::Timeframe);
+    getGRPLHCIF = true;
   })
   inputs.emplace_back("pvtx", "GLO", "PVTX", 0, Lifetime::Timeframe);
   inputs.emplace_back("pvtx_trmtc", "GLO", "PVTX_TRMTC", 0, Lifetime::Timeframe);    // global ids of associated tracks
@@ -876,7 +895,7 @@ o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, 
 
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(!disableWriter,                 // orbitResetTime
                                                                 false,                          // GRPECS=true for nHBF per TF
-                                                                false,                          // GRPLHCIF
+                                                                getGRPLHCIF,                    // GRPLHCIF
                                                                 true,                           // GRPMagField
                                                                 enableAskMatLUT,                // askMatLUT
                                                                 o2::base::GRPGeomRequest::None, // geometry

@@ -112,6 +112,29 @@ bool o2::utils::DebugStreamer::checkStream(const StreamFlags streamFlag, const s
   return true;
 }
 
+float o2::utils::DebugStreamer::tsalisCharged(float pt, float mass, float sqrts)
+{
+  const float a = 6.81;
+  const float b = 59.24;
+  const float c = 0.082;
+  const float d = 0.151;
+  const float mt = std::sqrt(mass * mass + pt * pt);
+  const float n = a + b / sqrts;
+  const float T = c + d / sqrts;
+  const float p0 = n * T;
+  const float result = std::pow((1. + mt / p0), -n) * pt;
+  return result;
+}
+
+bool o2::utils::DebugStreamer::downsampleTsalisCharged(float pt, float factorPt, float sqrts, float& weight, float rnd, float mass)
+{
+  const float prob = tsalisCharged(pt, mass, sqrts);
+  const float probNorm = tsalisCharged(1., mass, sqrts);
+  weight = prob / probNorm;
+  const bool isSampled = (rnd * (weight * pt * pt)) < factorPt;
+  return isSampled;
+}
+
 int o2::utils::DebugStreamer::getIndex(const StreamFlags streamFlag)
 {
   // see: https://stackoverflow.com/a/71539401
