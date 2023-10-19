@@ -46,7 +46,7 @@ using DetID = o2::detectors::DetID;
 InjectorFunction dcs2dpl()
 // InjectorFunction dcs2dpl()
 {
-  return [](TimingInfo&, ServiceRegistryRef const& services, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId, bool&) {
+  return [](TimingInfo&, ServiceRegistryRef const& services, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId, bool&) -> bool {
     auto *device = services.get<RawDeviceService>().device();
     std::string messageHeader{static_cast<const char*>(parts.At(0)->GetData()), parts.At(0)->GetSize()};
     size_t dataSize = parts.At(1)->GetSize();
@@ -57,7 +57,7 @@ InjectorFunction dcs2dpl()
     auto channel = channelRetriever(outsp, newTimesliceId);
     if (channel.empty()) {
       LOG(error) << "No output channel found for OutputSpec " << outsp;
-      return;
+      return false;
     }
     hdrF.tfCounter = newTimesliceId; // this also
     hdrF.payloadSerializationMethod = o2::header::gSerializationMethodNone;
@@ -91,6 +91,7 @@ InjectorFunction dcs2dpl()
     outParts.AddPart(std::move(plMessageF));
     sendOnChannel(*device, outParts, channel, newTimesliceId);
     LOG(info) << "Sent CTP counters DPL message" << std::flush;
+    return true;
   };
 }
 
