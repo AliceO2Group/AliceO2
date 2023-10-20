@@ -222,12 +222,39 @@ Bool_t
 void GeneratorPythia8::updateHeader(o2::dataformats::MCEventHeader* eventHeader)
 {
   /** update header **/
+  using Key = o2::dataformats::MCInfoKeys;
 
-  eventHeader->putInfo<std::string>("generator", "pythia8");
-  eventHeader->putInfo<int>("version", PYTHIA_VERSION_INTEGER);
-  eventHeader->putInfo<std::string>("processName", mPythia.info.name());
-  eventHeader->putInfo<int>("processCode", mPythia.info.code());
-  eventHeader->putInfo<float>("weight", mPythia.info.weight());
+  eventHeader->putInfo<std::string>(Key::generator, "pythia8");
+  eventHeader->putInfo<int>(Key::generatorVersion, PYTHIA_VERSION_INTEGER);
+  eventHeader->putInfo<std::string>(Key::processName, mPythia.info.name());
+  eventHeader->putInfo<int>(Key::processCode, mPythia.info.code());
+  eventHeader->putInfo<float>(Key::weight, mPythia.info.weight());
+
+  auto& info = mPythia.info;
+
+  // Set PDF information
+  eventHeader->putInfo<int>(Key::pdfParton1Id, info.id1pdf());
+  eventHeader->putInfo<int>(Key::pdfParton2Id, info.id2pdf());
+  eventHeader->putInfo<float>(Key::pdfX1, info.x1pdf());
+  eventHeader->putInfo<float>(Key::pdfX2, info.x2pdf());
+  eventHeader->putInfo<float>(Key::pdfScale, info.QFac());
+  eventHeader->putInfo<float>(Key::pdfXF1, info.pdf1());
+  eventHeader->putInfo<float>(Key::pdfXF2, info.pdf2());
+
+  // Set cross section
+  eventHeader->putInfo<float>(Key::xSection, info.sigmaGen() * 1e9);
+  eventHeader->putInfo<float>(Key::xSectionError, info.sigmaErr() * 1e9);
+
+  // Set weights (overrides cross-section for each weight)
+  size_t iw = 0;
+  auto xsecErr = info.weightContainerPtr->getTotalXsecErr();
+  for (auto w : info.weightContainerPtr->getTotalXsec()) {
+    std::string post = (iw == 0 ? "" : "_" + std::to_string(iw));
+    eventHeader->putInfo<float>(Key::weight + post, info.weightValueByIndex(iw));
+    eventHeader->putInfo<float>(Key::xSection + post, w * 1e9);
+    eventHeader->putInfo<float>(Key::xSectionError + post, xsecErr[iw] * 1e9);
+    iw++;
+  }
 
 #if PYTHIA_VERSION_INTEGER < 8300
   auto hiinfo = mPythia.info.hiinfo;
@@ -238,7 +265,7 @@ void GeneratorPythia8::updateHeader(o2::dataformats::MCEventHeader* eventHeader)
   if (hiinfo) {
     /** set impact parameter **/
     eventHeader->SetB(hiinfo->b());
-    eventHeader->putInfo<double>("Bimpact", hiinfo->b());
+    eventHeader->putInfo<double>(Key::impactParameter, hiinfo->b());
     auto bImp = hiinfo->b();
     /** set Ncoll, Npart and Nremn **/
     int nColl, nPart;
@@ -250,7 +277,8 @@ void GeneratorPythia8::updateHeader(o2::dataformats::MCEventHeader* eventHeader)
     getNpart(nPartProtonProj, nPartNeutronProj, nPartProtonTarg, nPartNeutronTarg);
     getNremn(nRemnProtonProj, nRemnNeutronProj, nRemnProtonTarg, nRemnNeutronTarg);
     getNfreeSpec(nFreeNeutronProj, nFreeProtonProj, nFreeNeutronTarg, nFreeProtonTarg);
-    eventHeader->putInfo<int>("Ncoll", nColl);
+    eventHeader->putInfo<int>(Key::nColl, nColl);
+    // These are all non-HepMC3 fields - of limited use
     eventHeader->putInfo<int>("Npart", nPart);
     eventHeader->putInfo<int>("Npart_proj_p", nPartProtonProj);
     eventHeader->putInfo<int>("Npart_proj_n", nPartNeutronProj);
@@ -264,6 +292,18 @@ void GeneratorPythia8::updateHeader(o2::dataformats::MCEventHeader* eventHeader)
     eventHeader->putInfo<int>("Nfree_proj_p", nFreeProtonProj);
     eventHeader->putInfo<int>("Nfree_targ_n", nFreeNeutronTarg);
     eventHeader->putInfo<int>("Nfree_targ_p", nFreeProtonTarg);
+
+    // --- HepMC3 conforming information ---
+    // This is how the Pythia authors define Ncoll
+    // eventHeader->putInfo<int>(Key::nColl,
+    //                           hiinfo->nAbsProj() + hiinfo->nDiffProj() +
+    //                           hiinfo->nAbsTarg() + hiinfo->nDiffTarg() -
+    //                           hiiinfo->nCollND() - hiinfo->nCollDD());
+    eventHeader->putInfo<int>(Key::nPartProjectile,
+                              hiinfo->nAbsProj() + hiinfo->nDiffProj());
+    eventHeader->putInfo<int>(Key::nPartTarget,
+                              hiinfo->nAbsTarg() + hiinfo->nDiffTarg());
+    eventHeader->putInfo<int>(Key::nCollHard, hiinfo->nCollNDTot());
   }
 }
 
@@ -322,6 +362,10 @@ void GeneratorPythia8::getNcoll(const Pythia8::Info& info, int& nColl)
   auto hiinfo = info.hiInfo;
 #endif
 
+  // This is how the Pythia authors define Ncoll
+  nColl = (hiinfo->nAbsProj() + hiinfo->nDiffProj() +
+           hiinfo->nAbsTarg() + hiinfo->nDiffTarg() -
+           hiinfo->nCollND() - hiinfo->nCollDD());
   nColl = 0;
 
   if (!hiinfo) {
@@ -349,6 +393,17 @@ void GeneratorPythia8::getNpart(const Pythia8::Info& info, int& nPart)
 {
 
   /** compute number of participants as the sum of all participants nucleons **/
+
+  // This is how the Pythia authors calculate Npart
+#if PYTHIA_VERSION_INTEGER < 8300
+  auto hiinfo = info.hiinfo;
+#else
+  auto hiinfo = info.hiInfo;
+#endif
+  if (hiinfo) {
+    nPart = (hiinfo->nAbsProj() + hiinfo->nDiffProj() +
+             hiinfo->nAbsTarg() + hiinfo->nDiffTarg());
+  }
 
   int nProtonProj, nNeutronProj, nProtonTarg, nNeutronTarg;
   getNpart(info, nProtonProj, nNeutronProj, nProtonTarg, nNeutronTarg);
