@@ -41,6 +41,7 @@ class GRPLHCIFData
 
   std::pair<long, int32_t> getBeamEnergyPerZWithTime() const { return mBeamEnergyPerZ; }
   int32_t getBeamEnergyPerZ() const { return mBeamEnergyPerZ.second; }
+  float getBeamEnergyPerZinGeV() const { return mBeamEnergyPerZ.second * 0.12; }
   long getBeamEnergyPerZTime() const { return mBeamEnergyPerZ.first; }
   void setBeamEnergyPerZWithTime(std::pair<long, int32_t> p) { mBeamEnergyPerZ = p; }
   void setBeamEnergyPerZWithTime(long t, int32_t v) { mBeamEnergyPerZ = std::make_pair(t, v); }
@@ -84,12 +85,18 @@ class GRPLHCIFData
   /// getters/setters for given beam A and Z info, encoded as A<<16+Z
   int getBeamZ(beamDirection beam) const { return mBeamAZ[static_cast<int>(beam)] & 0xffff; }
   int getBeamA(beamDirection beam) const { return mBeamAZ[static_cast<int>(beam)] >> 16; }
+  int getBeamZ(int beam) const { return mBeamAZ[beam] & 0xffff; }
+  int getBeamA(int beam) const { return mBeamAZ[beam] >> 16; }
   float getBeamZoverA(beamDirection beam) const;
+  float getBeamZoverA(int beam) const;
   void setBeamAZ(int a, int z, beamDirection beam) { mBeamAZ[static_cast<int>(beam)] = (a << 16) + z; }
   void setBeamAZ(beamDirection beam);
   void setBeamAZ();
   /// getters/setters for beam energy per charge and per nucleon
   float getBeamEnergyPerNucleon(beamDirection beam) const { return mBeamEnergyPerZ.second * getBeamZoverA(beam); }
+  float getBeamEnergyPerNucleon(int beam) const { return mBeamEnergyPerZ.second * getBeamZoverA(beam); }
+  float getBeamEnergyPerNucleonInGeV(beamDirection beam) const { return getBeamEnergyPerZinGeV() * getBeamZoverA(beam); }
+  float getBeamEnergyPerNucleonInGeV(int beam) const { return getBeamEnergyPerZinGeV() * getBeamZoverA(beam); }
   /// calculate center of mass energy per nucleon collision
   float getSqrtS() const;
   /// helper function for BunchFilling
@@ -113,6 +120,14 @@ class GRPLHCIFData
 
 //______________________________________________
 inline float GRPLHCIFData::getBeamZoverA(beamDirection b) const
+{
+  // Z/A of beam 0 or 1
+  int a = getBeamA(b);
+  return a ? getBeamZ(b) / static_cast<float>(a) : 0.f;
+}
+
+//______________________________________________
+inline float GRPLHCIFData::getBeamZoverA(int b) const
 {
   // Z/A of beam 0 or 1
   int a = getBeamA(b);
