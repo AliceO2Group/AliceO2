@@ -762,8 +762,8 @@ class TPCTimeSeries : public Task
 
             // make cut around DCA to vertex due to gammas
             if ((std::abs(dcaITSTPCTmp[0]) < maxITSTPCDCAr_comb) && (std::abs(dcaITSTPCTmp[1]) < maxITSTPCDCAz_comb)) {
-              dcaITSTPCTmp[0] == -1;
-              dcaITSTPCTmp[1] == -1;
+              dcaITSTPCTmp[0] = -1;
+              dcaITSTPCTmp[1] = -1;
             }
 
             if (track.hasCSideClustersOnly()) {
