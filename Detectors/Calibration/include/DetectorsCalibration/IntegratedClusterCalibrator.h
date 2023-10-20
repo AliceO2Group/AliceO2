@@ -362,11 +362,28 @@ struct ITSTPC_Matching {
 };
 
 struct TimeSeriesITSTPC {
-  TimeSeries mTSTPC;                  ///< TPC standalone DCAs
-  TimeSeries mTSITSTPC;               ///< ITS-TPC standalone DCAs
-  ITSTPC_Matching mITSTPCAll;         ///< ITS-TPC matching efficiency for ITS standalone + afterburner
-  ITSTPC_Matching mITSTPCStandalone;  ///< ITS-TPC matching efficiency for ITS standalone
-  ITSTPC_Matching mITSTPCAfterburner; ///< ITS-TPC matchin efficiency  fir ITS afterburner
+  TimeSeries mTSTPC;                             ///< TPC standalone DCAs
+  TimeSeries mTSITSTPC;                          ///< ITS-TPC standalone DCAs
+  ITSTPC_Matching mITSTPCAll;                    ///< ITS-TPC matching efficiency for ITS standalone + afterburner
+  ITSTPC_Matching mITSTPCStandalone;             ///< ITS-TPC matching efficiency for ITS standalone
+  ITSTPC_Matching mITSTPCAfterburner;            ///< ITS-TPC matchin efficiency  fir ITS afterburner
+  std::vector<float> nPrimVertices;              ///< number of primary vertices
+  std::vector<float> nVertexContributors_Median; ///< number of primary vertices
+  std::vector<float> nVertexContributors_RMS;    ///< number of primary vertices
+  std::vector<float> vertexX_Median;             ///< vertex x position
+  std::vector<float> vertexY_Median;             ///< vertex y position
+  std::vector<float> vertexZ_Median;             ///< vertex z position
+  std::vector<float> vertexX_RMS;                ///< vertex x RMS
+  std::vector<float> vertexY_RMS;                ///< vertex y RMS
+  std::vector<float> vertexZ_RMS;                ///< vertex z RMS
+  std::vector<float> mDCAr_comb_A_Median;        ///< DCAr for ITS-TPC track - A-side
+  std::vector<float> mDCAz_comb_A_Median;        ///< DCAz for ITS-TPC track - A-side
+  std::vector<float> mDCAr_comb_A_RMS;           ///< DCAr RMS for ITS-TPC track - A-side
+  std::vector<float> mDCAz_comb_A_RMS;           ///< DCAz RMS for ITS-TPC track - A-side
+  std::vector<float> mDCAr_comb_C_Median;        ///< DCAr for ITS-TPC track - C-side
+  std::vector<float> mDCAz_comb_C_Median;        ///< DCAz for ITS-TPC track - C-side
+  std::vector<float> mDCAr_comb_C_RMS;           ///< DCAr RMS for ITS-TPC track - C-side
+  std::vector<float> mDCAz_comb_C_RMS;           ///< DCAz RMS for ITS-TPC track - C-side
 
   // dump this object to a tree
   void dumpToTree(const char* outFileName, const int nHBFPerTF = 32);
@@ -390,6 +407,8 @@ struct TimeSeriesITSTPC {
   bool areSameSize() const { return (mTSTPC.areSameSize() && mTSITSTPC.areSameSize()); } ///< check if stored currents have same number of entries
   bool isEmpty() const { return mTSTPC.isEmpty(); }                                      ///< check if values are empty
   size_t getEntries() const { return mTSTPC.getEntries(); }                              ///< \return returns number of values stored
+  void fill(const std::vector<float>& vecFrom, std::vector<float>& vecTo, const unsigned int posIndex) { std::copy(vecFrom.begin(), vecFrom.end(), vecTo.begin() + posIndex); }
+  void insert(std::vector<float>& vec, const std::vector<float>& vecTmp) { vec.insert(vec.begin(), vecTmp.begin(), vecTmp.end()); }
 
   /// acummulate integrated currents at given index
   /// \param posIndex index where data will be copied to
@@ -401,6 +420,25 @@ struct TimeSeriesITSTPC {
     mITSTPCAll.fill(posIndex, data.mITSTPCAll);
     mITSTPCStandalone.fill(posIndex, data.mITSTPCStandalone);
     mITSTPCAfterburner.fill(posIndex, data.mITSTPCAfterburner);
+    fill(data.mDCAr_comb_A_Median, mDCAr_comb_A_Median, posIndex);
+    fill(data.mDCAz_comb_A_Median, mDCAz_comb_A_Median, posIndex);
+    fill(data.mDCAr_comb_A_RMS, mDCAr_comb_A_RMS, posIndex);
+    fill(data.mDCAz_comb_A_RMS, mDCAz_comb_A_RMS, posIndex);
+    fill(data.mDCAr_comb_C_Median, mDCAr_comb_C_Median, posIndex);
+    fill(data.mDCAz_comb_C_Median, mDCAz_comb_C_Median, posIndex);
+    fill(data.mDCAr_comb_C_RMS, mDCAr_comb_C_RMS, posIndex);
+    fill(data.mDCAz_comb_C_RMS, mDCAz_comb_C_RMS, posIndex);
+
+    const int iTF = posIndex / mTSTPC.getNBins();
+    nPrimVertices[iTF] = data.nPrimVertices.front();
+    nVertexContributors_Median[iTF] = data.nVertexContributors_Median.front();
+    nVertexContributors_RMS[iTF] = data.nVertexContributors_RMS.front();
+    vertexX_Median[iTF] = data.vertexX_Median.front();
+    vertexY_Median[iTF] = data.vertexY_Median.front();
+    vertexZ_Median[iTF] = data.vertexZ_Median.front();
+    vertexX_RMS[iTF] = data.vertexX_RMS.front();
+    vertexY_RMS[iTF] = data.vertexY_RMS.front();
+    vertexZ_RMS[iTF] = data.vertexZ_RMS.front();
   }
 
   /// \param nDummyValues number of empty values which are inserted at the beginning of the accumulated integrated currents
@@ -411,6 +449,27 @@ struct TimeSeriesITSTPC {
     mITSTPCAll.insert(nDummyValues);
     mITSTPCStandalone.insert(nDummyValues);
     mITSTPCAfterburner.insert(nDummyValues);
+    std::vector<float> vecTmp(nDummyValues, 0);
+    insert(mDCAr_comb_A_Median, vecTmp);
+    insert(mDCAz_comb_A_Median, vecTmp);
+    insert(mDCAr_comb_A_RMS, vecTmp);
+    insert(mDCAz_comb_A_RMS, vecTmp);
+    insert(mDCAr_comb_C_Median, vecTmp);
+    insert(mDCAz_comb_C_Median, vecTmp);
+    insert(mDCAr_comb_C_RMS, vecTmp);
+    insert(mDCAz_comb_C_RMS, vecTmp);
+
+    const int nDummyValuesVtx = nDummyValues / mTSTPC.getNBins();
+    std::vector<float> vecTmpVtx(nDummyValuesVtx, 0);
+    insert(nPrimVertices, vecTmp);
+    insert(nVertexContributors_Median, vecTmp);
+    insert(nVertexContributors_RMS, vecTmp);
+    insert(vertexX_Median, vecTmp);
+    insert(vertexY_Median, vecTmp);
+    insert(vertexZ_Median, vecTmp);
+    insert(vertexX_RMS, vecTmp);
+    insert(vertexY_RMS, vecTmp);
+    insert(vertexZ_RMS, vecTmp);
   }
 
   /// resize buffer for accumulated currents
@@ -421,9 +480,28 @@ struct TimeSeriesITSTPC {
     mITSTPCAll.resize(nTotal);
     mITSTPCStandalone.resize(nTotal);
     mITSTPCAfterburner.resize(nTotal);
+    mDCAr_comb_A_Median.resize(nTotal);
+    mDCAz_comb_A_Median.resize(nTotal);
+    mDCAr_comb_A_RMS.resize(nTotal);
+    mDCAz_comb_A_RMS.resize(nTotal);
+    mDCAr_comb_C_Median.resize(nTotal);
+    mDCAz_comb_C_Median.resize(nTotal);
+    mDCAr_comb_C_RMS.resize(nTotal);
+    mDCAz_comb_C_RMS.resize(nTotal);
+
+    const int nTotalVtx = nTotal / mTSTPC.getNBins();
+    nPrimVertices.resize(nTotalVtx);
+    nVertexContributors_Median.resize(nTotalVtx);
+    nVertexContributors_RMS.resize(nTotalVtx);
+    vertexX_Median.resize(nTotalVtx);
+    vertexY_Median.resize(nTotalVtx);
+    vertexZ_Median.resize(nTotalVtx);
+    vertexX_RMS.resize(nTotalVtx);
+    vertexY_RMS.resize(nTotalVtx);
+    vertexZ_RMS.resize(nTotalVtx);
   }
 
-  ClassDefNV(TimeSeriesITSTPC, 1);
+  ClassDefNV(TimeSeriesITSTPC, 2);
 };
 
 } // end namespace tpc
