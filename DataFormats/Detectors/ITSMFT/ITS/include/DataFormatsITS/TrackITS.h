@@ -94,8 +94,8 @@ class TrackITS : public o2::track::TrackParCov
   o2::track::TrackParCov& getParamIn() { return *this; }
   const o2::track::TrackParCov& getParamIn() const { return *this; }
 
-  o2::track::TrackParCov& getParamOut() { return mParamOut; }
-  const o2::track::TrackParCov& getParamOut() const { return mParamOut; }
+  GPUhdi() o2::track::TrackParCov& getParamOut() { return mParamOut; }
+  GPUhdi() const o2::track::TrackParCov& getParamOut() const { return mParamOut; }
 
   GPUhdi() void setPattern(uint32_t p) { mPattern = p; }
   GPUhdi() uint32_t getPattern() const { return mPattern; }
