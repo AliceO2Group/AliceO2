@@ -165,7 +165,8 @@ class TimeFrame
   int getNumberOfClusters() const;
   int getNumberOfCells() const;
   int getNumberOfTracklets() const;
-  int getNumberOfTracks() const;
+  size_t getNumberOfTracks() const;
+  size_t getNumberOfUsedClusters() const;
 
   bool checkMemory(unsigned long max) { return getArtefactsMemory() < max; }
   unsigned long getArtefactsMemory();
@@ -603,13 +604,22 @@ inline int TimeFrame::getNumberOfTracklets() const
   return nTracklets;
 }
 
-inline int TimeFrame::getNumberOfTracks() const
+inline size_t TimeFrame::getNumberOfTracks() const
 {
   int nTracks = 0;
   for (auto& t : mTracks) {
     nTracks += t.size();
   }
   return nTracks;
+}
+
+inline size_t TimeFrame::getNumberOfUsedClusters() const
+{
+  size_t nClusters = 0;
+  for (auto& layer : mUsedClusters) {
+    nClusters += std::count(layer.begin(), layer.end(), true);
+  }
+  return nClusters;
 }
 
 } // namespace its
