@@ -18,6 +18,8 @@
 #include <fairlogger/Logger.h>
 #include <SimConfig/SimConfig.h>
 #include <Generators/GeneratorFromFile.h>
+#include <Generators/GeneratorTParticle.h>
+#include <Generators/GeneratorTParticleParam.h>
 #ifdef GENERATORS_WITH_PYTHIA6
 #include <Generators/GeneratorPythia6.h>
 #include <Generators/GeneratorPythia6Param.h>
@@ -86,6 +88,7 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
 
   o2::O2DatabasePDG::addALICEParticles(TDatabasePDG::Instance());
   auto genconfig = conf.getGenerator();
+  LOG(info) << "** Generator to use: '" << genconfig << "'";
   if (genconfig.compare("boxgen") == 0) {
     // a simple "box" generator configurable via BoxGunparam
     auto& boxparam = BoxGunParam::Instance();
@@ -156,16 +159,28 @@ void GeneratorFactory::setPrimaryGenerator(o2::conf::SimConfig const& conf, Fair
       }
     }
     LOG(info) << "using external O2 kinematics";
+  } else if (genconfig.compare("tparticle") == 0) {
+    // External ROOT file(s) with tree of TParticle in clones array,
+    // or external program generating such a file
+    auto& param0 = GeneratorFileOrCmdParam::Instance();
+    auto& param = GeneratorTParticleParam::Instance();
+    LOG(info) << "Init 'GeneratorTParticle' with the following parameters";
+    LOG(info) << param0;
+    LOG(info) << param;
+    auto tgen = new o2::eventgen::GeneratorTParticle();
+    tgen->setup(param0, param, conf);
+    primGen->AddGenerator(tgen);
 #ifdef GENERATORS_WITH_HEPMC3
   } else if (genconfig.compare("hepmc") == 0) {
-    // external HepMC file
+    // external HepMC file, or external program writing HepMC event
+    // records to standard output.
+    auto& param0 = GeneratorFileOrCmdParam::Instance();
     auto& param = GeneratorHepMCParam::Instance();
     LOG(info) << "Init \'GeneratorHepMC\' with following parameters";
+    LOG(info) << param0;
     LOG(info) << param;
     auto hepmcGen = new o2::eventgen::GeneratorHepMC();
-    hepmcGen->setFileName(param.fileName);
-    hepmcGen->setVersion(param.version);
-    hepmcGen->setEventsToSkip(param.eventsToSkip);
+    hepmcGen->setup(param0, param, conf);
     primGen->AddGenerator(hepmcGen);
 #endif
 #ifdef GENERATORS_WITH_PYTHIA6

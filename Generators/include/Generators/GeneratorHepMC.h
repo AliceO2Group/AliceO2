@@ -15,7 +15,8 @@
 #define ALICEO2_EVENTGEN_GENERATORHEPMC_H_
 
 #include "Generators/Generator.h"
-#include <fstream>
+#include "Generators/GeneratorFileOrCmd.h"
+#include "Generators/GeneratorHepMCParam.h"
 
 #ifdef GENERATORS_WITH_HEPMC3_DEPRECATED
 namespace HepMC
@@ -35,33 +36,51 @@ class FourVector;
 
 namespace o2
 {
+namespace conf
+{
+class SimConfig;
+}
 namespace eventgen
 {
 
 /*****************************************************************/
 /*****************************************************************/
 
-class GeneratorHepMC : public Generator
+class GeneratorHepMC : public Generator, public GeneratorFileOrCmd
 {
 
  public:
   /** default constructor **/
   GeneratorHepMC();
   /** constructor **/
-  GeneratorHepMC(const Char_t* name, const Char_t* title = "ALICEo2 HepMC Generator");
+  GeneratorHepMC(const Char_t* name,
+                 const Char_t* title = "ALICEo2 HepMC Generator");
   /** destructor **/
   ~GeneratorHepMC() override;
 
-  /** Initialize the generator if needed **/
+  /** Initialize the generator. **/
   Bool_t Init() override;
 
-  /** methods to override **/
+  /**
+   * Configure the generator from parameters and the general
+   * simulation configuration.  This is implemented as a member
+   * function so as to better facilitate changes. */
+  void setup(const GeneratorFileOrCmdParam& param0,
+             const GeneratorHepMCParam& param,
+             const conf::SimConfig& config);
+  /**
+   * Generate a single event.  The event is read in from the current
+   * input file.  Returns false if a new event could not be read.
+   **/
   Bool_t generateEvent() override;
+  /**
+   * Import particles from the last read event into a vector
+   * TParticle.  Returns false if no particles could be exported to
+   * the vector.
+   */
   Bool_t importParticles() override;
 
   /** setters **/
-  void setVersion(Int_t val) { mVersion = val; };
-  void setFileName(std::string val) { mFileName = val; };
   void setEventsToSkip(uint64_t val) { mEventsToSkip = val; };
 
  protected:
@@ -77,18 +96,17 @@ class GeneratorHepMC : public Generator
   const HepMC3::FourVector getBoostedVector(const HepMC3::FourVector& vector, Double_t boost);
 #endif
 
+  /** methods that can be overridded **/
+  void updateHeader(o2::dataformats::MCEventHeader* eventHeader) override;
+  /** Make our reader */
+  bool makeReader();
+
   /** HepMC interface **/
-  std::ifstream mStream; //!
-  std::string mFileName;
-  Int_t mVersion;
-  uint64_t mEventsToSkip;
-#ifdef GENERATORS_WITH_HEPMC3_DEPRECATED
-  HepMC::Reader* mReader;  //!
-  HepMC::GenEvent* mEvent; //!
-#else
-  HepMC3::Reader* mReader;  //!
-  HepMC3::GenEvent* mEvent; //!
-#endif
+  uint64_t mEventsToSkip = 0;
+  int mVersion = 0;
+  std::shared_ptr<HepMC3::Reader> mReader;
+  /** Event structure */
+  HepMC3::GenEvent* mEvent = nullptr;
 
   ClassDefOverride(GeneratorHepMC, 1);
 

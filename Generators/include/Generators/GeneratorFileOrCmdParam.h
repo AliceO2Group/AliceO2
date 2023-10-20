@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2023-2099 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -9,10 +9,10 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \author R+Preghenella - January 2020
+/// @author Christian Holm Christensen <cholm@nbi.dk>
 
-#ifndef ALICEO2_EVENTGEN_GENERATORHEPMCPARAM_H_
-#define ALICEO2_EVENTGEN_GENERATORHEPMCPARAM_H_
+#ifndef ALICEO2_EVENTGEN_GENERATORFILEORCMDPARAM_H_
+#define ALICEO2_EVENTGEN_GENERATORFILEORCMDPARAM_H_
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
@@ -25,18 +25,21 @@ namespace eventgen
 
 /**
  ** a parameter class/struct to keep the settings of
- ** the HepMC event generator and
+ ** the Fileorcmd event generator and
  ** allow the user to modify them
  **/
-
-struct GeneratorHepMCParam : public o2::conf::ConfigurableParamHelper<GeneratorHepMCParam> {
-  int version = 0;
-  uint64_t eventsToSkip = 0;
-  std::string fileName = "";
-  O2ParamDef(GeneratorHepMCParam, "HepMC");
+struct GeneratorFileOrCmdParam : public o2::conf::ConfigurableParamHelper<GeneratorFileOrCmdParam> {
+  std::string fileNames = "";
+  std::string cmd = ""; // Program command line to spawn
+  std::string outputSwitch = ">";
+  std::string seedSwitch = "-s";
+  std::string bMaxSwitch = "-b";
+  std::string nEventsSwitch = "-n";
+  std::string backgroundSwitch = "&";
+  O2ParamDef(GeneratorFileOrCmdParam, "GeneratorFileOrCmd");
 };
 
 } // end namespace eventgen
 } // end namespace o2
 
-#endif // ALICEO2_EVENTGEN_GENERATORHEPMCPARAM_H_
+#endif // ALICEO2_EVENTGEN_GENERATORFILEORCMDPARAM_H_

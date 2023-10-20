@@ -29,6 +29,8 @@ o2_add_library(Generators
                        src/GeneratorExternalParam.cxx
                        src/GeneratorFromFile.cxx
                        src/GeneratorFromO2KineParam.cxx
+                       src/GeneratorFileOrCmd.cxx
+                       src/GeneratorFileOrCmdParam.cxx
                        src/PrimaryGenerator.cxx
                        src/PrimaryGeneratorParam.cxx
                        src/TriggerExternalParam.cxx
@@ -38,6 +40,8 @@ o2_add_library(Generators
                        src/GenCosmicsParam.cxx
                        src/GeneratorFactory.cxx
                        src/GeneratorGeantinos.cxx
+                       src/GeneratorTParticle.cxx
+                       src/GeneratorTParticleParam.cxx
                        $<$<BOOL:${pythia6_FOUND}>:src/GeneratorPythia6.cxx>
                        $<$<BOOL:${pythia6_FOUND}>:src/GeneratorPythia6Param.cxx>
                        $<$<BOOL:${pythia_FOUND}>:src/GeneratorPythia8.cxx>
@@ -71,6 +75,8 @@ set(headers
     include/Generators/GeneratorExternalParam.h
     include/Generators/GeneratorFromFile.h
     include/Generators/GeneratorFromO2KineParam.h
+    include/Generators/GeneratorFileOrCmd.h
+    include/Generators/GeneratorFileOrCmdParam.h
     include/Generators/PrimaryGenerator.h
     include/Generators/PrimaryGeneratorParam.h
     include/Generators/TriggerExternalParam.h
@@ -79,6 +85,8 @@ set(headers
     include/Generators/QEDGenParam.h
     include/Generators/GenCosmicsParam.h
     include/Generators/GeneratorGeantinos.h
+    include/Generators/GeneratorTParticle.h
+    include/Generators/GeneratorTParticleParam.h
     )
 
 if (pythia6_FOUND)

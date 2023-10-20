@@ -1,4 +1,4 @@
-// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// Copyright 2023-2099 CERN and copyright holders of ALICE O2.
 // See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
 // All rights not expressly granted are reserved.
 //
@@ -9,34 +9,31 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-/// \author R+Preghenella - January 2020
-
-#ifndef ALICEO2_EVENTGEN_GENERATORHEPMCPARAM_H_
-#define ALICEO2_EVENTGEN_GENERATORHEPMCPARAM_H_
+// @author: Christian Holm Christensen <cholm@nbi.dk>
+#ifndef ALICEO2_EVENTGEN_GENERATORTPARTICLEPARAM_H_
+#define ALICEO2_EVENTGEN_GENERATORTPARTICLEPARAM_H_
 
 #include "CommonUtils/ConfigurableParam.h"
 #include "CommonUtils/ConfigurableParamHelper.h"
 #include <string>
-
 namespace o2
 {
 namespace eventgen
 {
 
 /**
- ** a parameter class/struct to keep the settings of
- ** the HepMC event generator and
- ** allow the user to modify them
- **/
-
-struct GeneratorHepMCParam : public o2::conf::ConfigurableParamHelper<GeneratorHepMCParam> {
-  int version = 0;
-  uint64_t eventsToSkip = 0;
-  std::string fileName = "";
-  O2ParamDef(GeneratorHepMCParam, "HepMC");
+ * a parameter class/struct to keep the settings of the TGenerator
+ * event generator and allow the user to modify them
+ */
+struct GeneratorTParticleParam : public o2::conf::ConfigurableParamHelper<GeneratorTParticleParam> {
+  std::string treeName = "T";
+  std::string branchName = "Particles";
+  O2ParamDef(GeneratorTParticleParam, "GeneratorTParticle");
 };
-
 } // end namespace eventgen
 } // end namespace o2
 
 #endif // ALICEO2_EVENTGEN_GENERATORHEPMCPARAM_H_
+// Local Variables:
+//  mode: C++
+// End:
