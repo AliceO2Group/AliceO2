@@ -46,7 +46,7 @@ class Ray
   static constexpr float InvalidT = -1e9;
   static constexpr float Tiny = 1e-9;
 
-  GPUd() Ray() : mP{0.f}, mD{0.f}, mDistXY2(0.f), mDistXY2i(0.f), mDistXYZ(0.f), mXDxPlusYDy(0.f), mXDxPlusYDyRed(0.f), mXDxPlusYDy2(0.f), mR02(0.f), mR12(0.f)
+  GPUd() Ray() : mP{0.f}, mD{0.f}, mDistXY2(0.f), mDistXY2i(0.f), mDistXYZ(0.f), mXDxPlusYDy(0.f), mXDxPlusYDyRed(0.f), mXDxPlusYDy2(0.f), mR02(0.f), mR12(0.f), mInvDz(Tiny)
   {
   }
   GPUdDefault() ~Ray() CON_DEFAULT;
@@ -61,6 +61,7 @@ class Ray
   GPUd() float crossRadial(const MatLayerCyl& lr, int sliceID) const;
   GPUd() float crossRadial(float cs, float sn) const;
   GPUd() float crossZ(float z) const;
+  GPUd() float crossZ_fast(float z) const; // without check
 
   GPUd() void getCrossParams(int i, float& par1, float& par2) const
   {
@@ -84,6 +85,49 @@ class Ray
     return p;
   }
 
+  // fast, approximate arctan calculation - sufficient for phi sector determination in material budget layers
+  // source of inspirations:
+  // - https://mazzo.li/posts/vectorized-atan2.html
+  // - https://www.coranac.com/documents/arctangent/
+  GPUd() float atan_approx_5terms(float x) const
+  {
+    // fast atan implementation
+    // function has a max error of ~1.16825e-05f
+    float a1 = 0.9998660f;
+    float a3 = -0.3302995f;
+    float a5 = 0.1801410f;
+    float a7 = -0.0851330f;
+    float a9 = 0.0208351f;
+
+    float x_sq = x * x;
+    // todo: force fuse-multiply add
+    return x * (a1 + x_sq * (a3 + x_sq * (a5 + x_sq * (a7 + x_sq * a9))));
+  }
+
+  GPUd() float atan2_approx(float y, float x) const
+  {
+    const bool swap = fabs(x) < fabs(y);
+    const float atan_input = (swap ? x : y) / (swap ? y : x);
+    const float pi2 = M_PI_2;
+    const float pi = M_PI;
+    float res = atan_approx_5terms(atan_input);
+
+    // if swapped, adjust atan output
+    res = swap ? (atan_input >= 0.0f ? pi2 : -pi2) - res : res;
+    // adjust quadrants
+    if (x < 0.0f) {
+      res = ((y < 0.0f) ? -pi : pi) + res;
+    }
+    return res;
+  }
+
+  GPUd() float getPhi_approx(float t) const
+  {
+    float p = atan2_approx(mP[1] + t * mD[1], mP[0] + t * mD[0]);
+    o2::math_utils::bringTo02Pi(p);
+    return p;
+  }
+
   GPUd() float getZ(float t) const { return mP[2] + t * mD[2]; }
 
   GPUd() bool validateZRange(float& cpar1, float& cpar2, const MatLayerCyl& lr) const;
@@ -101,6 +145,7 @@ class Ray
   float mR12;             ///< radius^2 of mP1
   float mCrossParams1[2]; ///< parameters of crossing the layer (first parameter)
   float mCrossParams2[2]; ///< parameters of crossing the layer (second parameter)
+  float mInvDz;
 
   ClassDefNV(Ray, 1);
 };
@@ -119,6 +164,7 @@ inline Ray::Ray(const math_utils::Point3D<float> point0, const math_utils::Point
   mXDxPlusYDy2 = mXDxPlusYDy * mXDxPlusYDy;
   mR02 = point0.Perp2();
   mR12 = point1.Perp2();
+  mInvDz = 1.f / mD[2];
 }
 #endif // !GPUCA_ALIGPUCODE
 
@@ -134,6 +180,7 @@ GPUdi() Ray::Ray(float x0, float y0, float z0, float x1, float y1, float z1)
   mXDxPlusYDy2 = mXDxPlusYDy * mXDxPlusYDy;
   mR02 = x0 * x0 + y0 * y0;
   mR12 = x1 * x1 + y1 * y1;
+  mInvDz = 1.f / mD[2];
 }
 
 //______________________________________________________
@@ -173,6 +220,13 @@ GPUdi() float Ray::crossZ(float z) const
 {
   // calculate t of crossing XY plane at Z
   return mD[2] != 0. ? (z - mP[2]) / mD[2] : InvalidT;
+}
+
+//______________________________________________________
+GPUdi() float Ray::crossZ_fast(float z) const
+{
+  // calculate t of crossing XY plane at Z
+  return (z - mP[2]) * mInvDz;
 }
 
 //______________________________________________________
