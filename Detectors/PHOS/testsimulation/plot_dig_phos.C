@@ -1,3 +1,14 @@
+// Copyright 2019-2020 CERN and copyright holders of ALICE O2.
+// See https://alice-o2.web.cern.ch/copyright for details of the copyright holders.
+// All rights not expressly granted are reserved.
+//
+// This software is distributed under the terms of the GNU General Public
+// License v3 (GPL Version 3), copied verbatim in the file "COPYING".
+//
+// In applying this license CERN does not waive the privileges and immunities
+// granted to it by virtue of its status as an Intergovernmental Organization
+// or submit itself to any jurisdiction.
+
 /// \file plot_dig_phos.C
 /// \brief Simple macro to plot PHOS digits per event
 
@@ -24,11 +35,11 @@ void plot_dig_phos(int ievent = 0, TString inputfile = "o2dig.root")
   TTree* digTree = (TTree*)gFile->Get("o2sim");
   std::vector<o2::phos::Digit>* mDigitsArray = nullptr;
   o2::dataformats::MCTruthContainer<o2::phos::MCLabel>* labels = nullptr;
-  digTree->SetBranchAddress("PHSDigit", &mDigitsArray);
-  digTree->SetBranchAddress("PHSDigitMCTruth", &labels);
+  digTree->SetBranchAddress("PHOSDigit", &mDigitsArray);
+  digTree->SetBranchAddress("PHOSDigitMCTruth", &labels);
 
   if (!mDigitsArray) {
-    cout << "PHOS digits not in tree. Exiting ..." << endl;
+    cout << "PHOS digits not in tree. Exiting..." << endl;
     return;
   }
   digTree->GetEvent(ievent);
