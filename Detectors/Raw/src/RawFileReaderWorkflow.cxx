@@ -348,10 +348,16 @@ void RawReaderSpecs::run(o2f::ProcessingContext& ctx)
   if (mTFCounter) { // delay sending
     std::this_thread::sleep_for(std::chrono::microseconds((size_t)mDelayUSec));
   }
+  bool sentSomething = false;
   for (auto& msgIt : messagesPerRoute) {
     LOG(info) << "Sending " << msgIt.second->Size() / 2 << " parts to channel " << msgIt.first;
     device->Send(*msgIt.second.get(), msgIt.first);
+    sentSomething = msgIt.second->Size() > 0;
   }
+  if (sentSomething) {
+    ctx.services().get<o2f::MessageContext>().fakeDispatch();
+  }
+
   mTimer.Stop();
 
   LOGP(info, "Sent payload of {} bytes in {} parts in {} messages for TF#{} firstTForbit={} timeStamp={} | Timing: {}", tfSize, tfNParts,
