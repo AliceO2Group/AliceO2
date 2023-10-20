@@ -55,7 +55,7 @@ void o2::utils::DebugStreamer::flush()
   }
 }
 
-bool o2::utils::DebugStreamer::checkStream(const StreamFlags streamFlag, const size_t samplingID)
+bool o2::utils::DebugStreamer::checkStream(const StreamFlags streamFlag, const size_t samplingID, const float weight)
 {
   const bool isStreamerSet = ((getStreamFlags() & streamFlag) == streamFlag);
   if (!isStreamerSet) {
@@ -104,6 +104,9 @@ bool o2::utils::DebugStreamer::checkStream(const StreamFlags streamFlag, const s
         refIDs[index][samplingID] = storeTrk;
         return storeTrk;
       }
+    } else if (sampling.first == SamplingTypes::sampleWeights) {
+      // sample with weight
+      return (weight * distr(generator) < sampling.second);
     }
   }
   return true;

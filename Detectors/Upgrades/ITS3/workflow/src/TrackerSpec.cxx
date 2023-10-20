@@ -189,7 +189,6 @@ void TrackerDPL::run(ProcessingContext& pc)
     LOG(info) << labels->getIndexedSize() << " MC label objects , in " << mc2rofs.size() << " MC events";
   }
 
-  std::vector<TrackITSExt> tracks;
   auto& allClusIdx = pc.outputs().make<std::vector<int>>(Output{"IT3", "TRACKCLSID", 0, Lifetime::Timeframe});
   std::vector<o2::MCCompLabel> trackLabels;
   std::vector<MCCompLabel> verticesLabels;
@@ -281,7 +280,7 @@ void TrackerDPL::run(ProcessingContext& pc)
 
     for (unsigned int iROF{0}; iROF < rofs.size(); ++iROF) {
       auto& rof{rofs[iROF]};
-      tracks = timeFrame->getTracks(iROF);
+      auto& tracks = timeFrame->getTracks(iROF);
       trackLabels = timeFrame->getTracksLabel(iROF);
       auto number{tracks.size()};
       auto first{allTracks.size()};

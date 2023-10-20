@@ -494,7 +494,7 @@ void CTFWriterSpec::run(ProcessingContext& pc)
   szCTF += processDet<o2::fdd::CTF>(pc, DetID::FDD, header, mCTFTreeOut.get());
   szCTF += processDet<o2::ctp::CTF>(pc, DetID::CTP, header, mCTFTreeOut.get());
   if (mReportInterval > 0 && (mTimingInfo.tfCounter % mReportInterval) == 0) {
-    LOGP(important, "CTF {} size report:{}", mTimingInfo.tfCounter, mSizeReport);
+    LOGP(important, "CTF {} size report:{} - Total:{}", mTimingInfo.tfCounter, mSizeReport, fmt::group_digits(szCTF));
   }
 
   mTimer.Stop();

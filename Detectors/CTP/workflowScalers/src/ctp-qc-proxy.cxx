@@ -28,6 +28,7 @@
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/DataSpecUtils.h"
 #include "Framework/ControlService.h"
+#include "Framework/RawDeviceService.h"
 #include "Framework/Logger.h"
 #include "Framework/Lifetime.h"
 #include "Framework/ConfigParamSpec.h"
@@ -45,7 +46,8 @@ using DetID = o2::detectors::DetID;
 InjectorFunction dcs2dpl()
 // InjectorFunction dcs2dpl()
 {
-  return [](TimingInfo&, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId, bool&) {
+  return [](TimingInfo&, ServiceRegistryRef const& services, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId, bool&) -> bool {
+    auto *device = services.get<RawDeviceService>().device();
     std::string messageHeader{static_cast<const char*>(parts.At(0)->GetData()), parts.At(0)->GetSize()};
     size_t dataSize = parts.At(1)->GetSize();
     std::string messageData{static_cast<const char*>(parts.At(1)->GetData()), parts.At(1)->GetSize()};
@@ -55,7 +57,7 @@ InjectorFunction dcs2dpl()
     auto channel = channelRetriever(outsp, newTimesliceId);
     if (channel.empty()) {
       LOG(error) << "No output channel found for OutputSpec " << outsp;
-      return;
+      return false;
     }
     hdrF.tfCounter = newTimesliceId; // this also
     hdrF.payloadSerializationMethod = o2::header::gSerializationMethodNone;
@@ -64,7 +66,7 @@ InjectorFunction dcs2dpl()
     hdrF.payloadSize = parts.At(0)->GetSize() + parts.At(1)->GetSize() + 1;
     hdrF.firstTForbit = 0; // this should be irrelevant for Counters ? Orbit is in payload
 
-    auto fmqFactory = device.GetChannel(channel).Transport();
+    auto fmqFactory = device->GetChannel(channel).Transport();
 
     o2::header::Stack headerStackF{hdrF, DataProcessingHeader{newTimesliceId, 1}};
     auto hdMessageF = fmqFactory->CreateMessage(headerStackF.size(), fair::mq::Alignment{64});
@@ -87,8 +89,9 @@ InjectorFunction dcs2dpl()
     fair::mq::Parts outParts;
     outParts.AddPart(std::move(hdMessageF));
     outParts.AddPart(std::move(plMessageF));
-    sendOnChannel(device, outParts, channel, newTimesliceId);
+    sendOnChannel(*device, outParts, channel, newTimesliceId);
     LOG(info) << "Sent CTP counters DPL message" << std::flush;
+    return true;
   };
 }
 

@@ -57,22 +57,22 @@ class RobustAverage
 
   /// reserve memory for member
   /// \param maxValues maximum number of values which will be averaged. Copy of values will be done.
-  void reserve(const unsigned int maxValues) { mValues.reserve(maxValues); }
+  void reserve(const unsigned int maxValues);
 
   /// clear the stored values
   void clear();
 
   /// \param value value which will be added to the list of stored values for averaging
   /// \param weight weight of the value
-  void addValue(const float value, const float weight);
-
-  /// \param value value which will be added to the list of stored values for averaging
-  void addValue(const float value);
+  void addValue(const float value, const float weight = 1);
 
   /// returns the filtered average value
   /// \param sigma maximum accepted standard deviation: sigma*stdev
   ///\param interQuartileRange number of points in inner quartile to consider
   std::pair<float, float> getFilteredAverage(const float sigma = 3, const float interQuartileRange = 0.9);
+
+  /// remove all the point which are abs(val - val_median)>maxAbsMedian
+  std::tuple<float, float, float, unsigned int> filterPointsMedian(const float maxAbsMedian, const float sigma = 5);
 
   /// \return returns mean of stored values
   float getMean() const { return mValues.empty() ? 0 : getMean(mValues.begin(), mValues.end()); }
@@ -89,8 +89,14 @@ class RobustAverage
   /// \return returns stored values
   const auto& getValues() { return mValues; }
 
+  /// \return returns stored values
+  const auto& getWeigths() { return mWeights; }
+
   /// values which will be averaged and filtered
   void print() const;
+
+  // sorting values and weights
+  void sort();
 
  private:
   std::vector<float> mValues{};    ///< values which will be averaged and filtered

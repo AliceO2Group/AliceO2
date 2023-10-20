@@ -30,16 +30,18 @@ namespace o2::utils
 
 /// struct defining the flags which can be used to check if a certain debug streamer is used
 enum StreamFlags {
-  streamdEdx = 1 << 0,              ///< stream corrections and cluster properties used for the dE/dx
-  streamDigitFolding = 1 << 1,      ///< stream ion tail and saturatio information
-  streamDigits = 1 << 2,            ///< stream digit information
-  streamFastTransform = 1 << 3,     ///< stream tpc fast transform
-  streamITCorr = 1 << 4,            ///< stream ion tail correction information
-  streamDistortionsSC = 1 << 5,     ///< stream distortions applied in the TPC space-charge class (used for example in the tpc digitizer)
-  streamUpdateTrack = 1 << 6,       ///< stream update track informations
-  streamRejectCluster = 1 << 7,     ///< stream cluster rejection informations
-  streamMergeBorderTracks = 1 << 8, ///< stream MergeBorderTracks
-  streamFlagsCount = 9              ///< total number of streamers
+  streamdEdx = 1 << 0,                  ///< stream corrections and cluster properties used for the dE/dx
+  streamDigitFolding = 1 << 1,          ///< stream ion tail and saturatio information
+  streamDigits = 1 << 2,                ///< stream digit information
+  streamFastTransform = 1 << 3,         ///< stream tpc fast transform
+  streamITCorr = 1 << 4,                ///< stream ion tail correction information
+  streamDistortionsSC = 1 << 5,         ///< stream distortions applied in the TPC space-charge class (used for example in the tpc digitizer)
+  streamUpdateTrack = 1 << 6,           ///< stream update track informations
+  streamRejectCluster = 1 << 7,         ///< stream cluster rejection informations
+  streamMergeBorderTracksBest = 1 << 8, ///< stream MergeBorderTracks best track
+  streamTimeSeries = 1 << 9,            ///< stream tpc DCA debug tree
+  streamMergeBorderTracksAll = 1 << 10, ///< stream MergeBorderTracks all tracks
+  streamFlagsCount = 11                 ///< total number of streamers
 };
 
 enum SamplingTypes {
@@ -47,6 +49,7 @@ enum SamplingTypes {
   sampleRandom = 1,   ///< sample randomly every n points
   sampleID = 2,       ///< sample every n IDs (per example track)
   sampleIDGlobal = 3, ///< in case different streamers have access to the same IDs use this gloabl ID
+  sampleWeights = 4,  ///< perform sampling on weights, defined where the streamer is called
 };
 
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
@@ -122,6 +125,9 @@ class DebugStreamer
   /// \return returns sampling type and sampling frequency for given streamer
   static std::pair<SamplingTypes, float> getSamplingTypeFrequency(const StreamFlags streamFlag);
 
+  /// \return returns sampling type and sampling frequency for given streamer
+  static float getSamplingFrequency(const StreamFlags streamFlag) { return getSamplingTypeFrequency(streamFlag).second; }
+
   ///< return returns unique ID for each CPU thread to give each thread an own output file
   static size_t getCPUID();
 
@@ -145,7 +151,8 @@ class DebugStreamer
 
   /// check if streamer for specific flag is enabled
   /// \param samplingID optional index of the data which is streamed in to perform sampling on this index
-  static bool checkStream(const StreamFlags streamFlag, const size_t samplingID = -1);
+  /// \param weight weight which can be used to perform some weightes sampling
+  static bool checkStream(const StreamFlags streamFlag, const size_t samplingID = -1, const float weight = 1);
 
   /// merge trees with the same content structure, but different naming
   /// \param inpFile input file containing several trees with the same content

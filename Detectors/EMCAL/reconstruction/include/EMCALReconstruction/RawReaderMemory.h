@@ -148,11 +148,10 @@ class RawReaderMemory
   /// Rewind stream to the first entry
   void init();
 
-  /// \brief Check whether the current page is accepted
-  /// \param page Raw page to check
-  /// \return True if the page is accepted, false otherwise
-  bool acceptPage(const char* page) const;
-
+  /// \brief Decode raw header words
+  /// \param headerwords Headerwords
+  /// \return Decoded RDH
+  /// \throw RawDecodingError with code HEADER_DECODING if the payload does not correspond to an expected header
   o2::header::RDHAny decodeRawHeader(const void* headerwords);
 
  private:

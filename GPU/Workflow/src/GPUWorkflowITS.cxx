@@ -132,14 +132,11 @@ int GPURecoWorkflowSpec::runITSTracking(o2::framework::ProcessingContext& pc)
     physTriggers = pc.inputs().get<gsl::span<o2::itsmft::PhysTrigger>>("phystrig");
   }
 
-  // code further down does assignment to the rofs and the altered object is used for output
-  // we therefore need a copy of the vector rather than an object created directly on the input data,
-  // the output vector however is created directly inside the message memory thus avoiding copy by
-  // snapshot
   auto rofsinput = pc.inputs().get<gsl::span<o2::itsmft::ROFRecord>>("ROframes");
-  auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "ITSTrackROF", 0, Lifetime::Timeframe}, rofsinput.begin(), rofsinput.end());
 
+  auto& rofs = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "ITSTrackROF", 0, Lifetime::Timeframe}, rofsinput.begin(), rofsinput.end());
   auto& irFrames = pc.outputs().make<std::vector<o2::dataformats::IRFrame>>(Output{"ITS", "IRFRAMES", 0, Lifetime::Timeframe});
+  irFrames.reserve(rofs.size());
 
   const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance(); // RS: this should come from CCDB
   int nBCPerTF = alpParams.roFrameLengthInBC;
@@ -150,21 +147,20 @@ int GPURecoWorkflowSpec::runITSTracking(o2::framework::ProcessingContext& pc)
   gsl::span<itsmft::MC2ROFRecord const> mc2rofs;
   if (mSpecConfig.processMC) {
     labels = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("itsmclabels").release();
-    // get the array as read-only span, a snapshot is send forward
-    mc2rofs = pc.inputs().get<gsl::span<itsmft::MC2ROFRecord>>("ITSMC2ROframes");
+    // get the array as read-only span, a snapshot is sent forward
+    pc.outputs().snapshot(Output{"ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe}, pc.inputs().get<gsl::span<itsmft::MC2ROFRecord>>("ITSMC2ROframes"));
     LOG(info) << labels->getIndexedSize() << " MC label objects , in " << mc2rofs.size() << " MC events";
   }
 
-  std::vector<o2::its::TrackITSExt> tracks;
   auto& allClusIdx = pc.outputs().make<std::vector<int>>(Output{"ITS", "TRACKCLSID", 0, Lifetime::Timeframe});
-  std::vector<o2::MCCompLabel> trackLabels;
-  std::vector<MCCompLabel> verticesLabels;
   auto& allTracks = pc.outputs().make<std::vector<o2::its::TrackITS>>(Output{"ITS", "TRACKS", 0, Lifetime::Timeframe});
-  std::vector<o2::MCCompLabel> allTrackLabels;
-  std::vector<o2::MCCompLabel> allVerticesLabels;
-
   auto& vertROFvec = pc.outputs().make<std::vector<o2::itsmft::ROFRecord>>(Output{"ITS", "VERTICESROF", 0, Lifetime::Timeframe});
   auto& vertices = pc.outputs().make<std::vector<Vertex>>(Output{"ITS", "VERTICES", 0, Lifetime::Timeframe});
+
+  // MC
+  static pmr::vector<o2::MCCompLabel> dummyMCLabTracks, dummyMCLabVerts;
+  auto& allTrackLabels = mSpecConfig.processMC ? pc.outputs().make<std::vector<o2::MCCompLabel>>(Output{"ITS", "TRACKSMCTR", 0, Lifetime::Timeframe}) : dummyMCLabTracks;
+  auto& allVerticesLabels = mSpecConfig.processMC ? pc.outputs().make<std::vector<o2::MCCompLabel>>(Output{"ITS", "VERTICESMCTR", 0, Lifetime::Timeframe}) : dummyMCLabVerts;
 
   std::uint32_t roFrame = 0;
 
@@ -197,6 +193,7 @@ int GPURecoWorkflowSpec::runITSTracking(o2::framework::ProcessingContext& pc)
   float vertexerElapsedTime{0.f};
   if (mITSRunVertexer) {
     // Run seeding vertexer
+    vertROFvec.reserve(rofs.size());
     vertexerElapsedTime = mITSVertexer->clustersToVertices(logger);
   } else { // cosmics
     mITSTimeFrame->resetRofPV();
@@ -219,6 +216,7 @@ int GPURecoWorkflowSpec::runITSTracking(o2::framework::ProcessingContext& pc)
         vertices.push_back(v);
         if (mSpecConfig.processMC) {
           auto vLabels = mITSTimeFrame->getPrimaryVerticesLabels(iRof)[iV];
+          allVerticesLabels.reserve(allVerticesLabels.size() + vLabels.size());
           std::copy(vLabels.begin(), vLabels.end(), std::back_inserter(allVerticesLabels));
         }
       }
@@ -255,14 +253,17 @@ int GPURecoWorkflowSpec::runITSTracking(o2::framework::ProcessingContext& pc)
     mITSTimeFrame->setMultiplicityCutMask(processingMask);
     // Run CA tracker
     mITSTracker->clustersToTracks(logger, errorLogger);
+    size_t totTracks{mITSTimeFrame->getNumberOfTracks()}, totClusIDs{mITSTimeFrame->getNumberOfUsedClusters()};
+    allTracks.reserve(totTracks);
+    allClusIdx.reserve(totClusIDs);
+
     if (mITSTimeFrame->hasBogusClusters()) {
       LOG(warning) << fmt::format(" - The processed timeframe had {} clusters with wild z coordinates, check the dictionaries", mITSTimeFrame->hasBogusClusters());
     }
 
     for (unsigned int iROF{0}; iROF < rofs.size(); ++iROF) {
       auto& rof{rofs[iROF]};
-      tracks = mITSTimeFrame->getTracks(iROF);
-      trackLabels = mITSTimeFrame->getTracksLabel(iROF);
+      auto& tracks = mITSTimeFrame->getTracks(iROF);
       auto number{tracks.size()};
       auto first{allTracks.size()};
       int offset = -rof.getFirstEntry(); // cluster entry!!!
@@ -273,7 +274,8 @@ int GPURecoWorkflowSpec::runITSTracking(o2::framework::ProcessingContext& pc)
         irFrames.emplace_back(rof.getBCData(), rof.getBCData() + nBCPerTF - 1).info = tracks.size();
       }
 
-      std::copy(trackLabels.begin(), trackLabels.end(), std::back_inserter(allTrackLabels));
+      allTrackLabels.reserve(mITSTimeFrame->getTracksLabel(iROF).size()); // should be 0 if not MC
+      std::copy(mITSTimeFrame->getTracksLabel(iROF).begin(), mITSTimeFrame->getTracksLabel(iROF).end(), std::back_inserter(allTrackLabels));
       // Some conversions that needs to be moved in the tracker internals
       for (unsigned int iTrk{0}; iTrk < tracks.size(); ++iTrk) {
         auto& trc{tracks[iTrk]};
@@ -294,10 +296,6 @@ int GPURecoWorkflowSpec::runITSTracking(o2::framework::ProcessingContext& pc)
     if (mSpecConfig.processMC) {
       LOGP(info, "ITSTracker pushed {} track labels", allTrackLabels.size());
       LOGP(info, "ITSTracker pushed {} vertex labels", allVerticesLabels.size());
-
-      pc.outputs().snapshot(Output{"ITS", "TRACKSMCTR", 0, Lifetime::Timeframe}, allTrackLabels);
-      pc.outputs().snapshot(Output{"ITS", "VERTICESMCTR", 0, Lifetime::Timeframe}, allVerticesLabels);
-      pc.outputs().snapshot(Output{"ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe}, mc2rofs);
     }
   }
   return 0;

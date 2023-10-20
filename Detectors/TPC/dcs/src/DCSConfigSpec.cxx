@@ -33,6 +33,8 @@
 #include "Framework/ConfigParamRegistry.h"
 #include "DetectorsCalibration/Utils.h"
 #include "CommonUtils/StringUtils.h"
+#include "CCDB/CCDBTimeStampUtils.h"
+#include "CCDB/CcdbObjectInfo.h"
 #include "CCDB/CcdbApi.h"
 #include "CommonUtils/NameConf.h"
 
@@ -197,7 +199,11 @@ void DCSConfigDevice::updateRunInfo(gsl::span<const char> configBuff)
   const long startValRCT = std::stol(data[1]);
   const long endValRCT = startValRCT + 48l * 60l * 60l * 1000l;
   if (!mDontWriteRunInfo) {
+    o2::ccdb::CcdbObjectInfo w(CDBTypeMap.at(CDBType::ConfigRunInfo), "", "", md, startValRCT, endValRCT);
     mCCDBApi.storeAsBinaryFile(&tempChar, sizeof(tempChar), "tmp.dat", "char", CDBTypeMap.at(CDBType::ConfigRunInfo), md, startValRCT, endValRCT);
+    if (!mCCDBApi.isSnapshotMode()) {
+      o2::ccdb::adjustOverriddenEOV(mCCDBApi, w);
+    }
   }
 
   std::string mdInfo = "[";

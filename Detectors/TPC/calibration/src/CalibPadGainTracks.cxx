@@ -25,6 +25,7 @@
 #include "GPUO2Interface.h"
 #include "DataFormatsTPC/ClusterNative.h"
 #include "DataFormatsTPC/VDriftCorrFact.h"
+#include "DetectorsBase/Propagator.h"
 
 // root includes
 #include "TFile.h"
@@ -92,8 +93,10 @@ void CalibPadGainTracks::processTrack(o2::tpc::TrackTPC track, o2::gpu::GPUO2Int
     const float xPosition = Mapper::instance().getPadCentre(PadPos(rowIndex, 0)).X();
     if (!mPropagateTrack) {
       refit->setTrackReferenceX(xPosition);
+    } else {
+      track.rotate(o2::math_utils::detail::sector2Angle<float>(sectorIndex));
     }
-    const bool check = mPropagateTrack ? track.propagateTo(xPosition, mField) : ((refit->RefitTrackAsGPU(track, false, true) < 0) ? false : true); // propagate this track to the plane X=xk (cm) in the field "b" (kG)
+    const bool check = mPropagateTrack ? o2::base::Propagator::Instance()->PropagateToXBxByBz(track, xPosition, 0.9f, 2., o2::base::Propagator::MatCorrType::USEMatCorrLUT) : ((refit->RefitTrackAsGPU(track, false, true) < 0) ? false : true); // propagate this track to the plane X=xk (cm) in the field "b" (kG)
 
     if (!check || std::isnan(track.getParam(1))) {
       continue;

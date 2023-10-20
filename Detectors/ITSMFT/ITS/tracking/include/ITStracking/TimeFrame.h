@@ -129,6 +129,7 @@ class TimeFrame
   const gsl::span<const MCCompLabel> getClusterLabels(int layerId, const Cluster& cl) const;
   const gsl::span<const MCCompLabel> getClusterLabels(int layerId, const int clId) const;
   int getClusterExternalIndex(int layerId, const int clId) const;
+  int getClusterSize(int clusterId);
 
   std::vector<MCCompLabel>& getTrackletsLabel(int layer) { return mTrackletLabels[layer]; }
   std::vector<MCCompLabel>& getCellsLabel(int layer) { return mCellLabels[layer]; }
@@ -165,7 +166,8 @@ class TimeFrame
   int getNumberOfClusters() const;
   int getNumberOfCells() const;
   int getNumberOfTracklets() const;
-  int getNumberOfTracks() const;
+  size_t getNumberOfTracks() const;
+  size_t getNumberOfUsedClusters() const;
 
   bool checkMemory(unsigned long max) { return getArtefactsMemory() < max; }
   unsigned long getArtefactsMemory();
@@ -244,6 +246,7 @@ class TimeFrame
   std::vector<float> mMSangles;
   std::vector<float> mPhiCuts;
   std::vector<float> mPositionResolution;
+  std::vector<uint8_t> mClusterSize;
   std::vector<bool> mMultiplicityCutMask;
   std::vector<std::array<float, 2>> mPValphaX; /// PV x and alpha for track propagation
   std::vector<std::vector<Cluster>> mUnsortedClusters;
@@ -422,6 +425,11 @@ inline const gsl::span<const MCCompLabel> TimeFrame::getClusterLabels(int layerI
 inline const gsl::span<const MCCompLabel> TimeFrame::getClusterLabels(int layerId, int clId) const
 {
   return mClusterLabels->getLabels(mClusterExternalIndices[layerId][clId]);
+}
+
+inline int TimeFrame::getClusterSize(int clusterId)
+{
+  return mClusterSize[clusterId];
 }
 
 inline int TimeFrame::getClusterExternalIndex(int layerId, const int clId) const
@@ -603,13 +611,22 @@ inline int TimeFrame::getNumberOfTracklets() const
   return nTracklets;
 }
 
-inline int TimeFrame::getNumberOfTracks() const
+inline size_t TimeFrame::getNumberOfTracks() const
 {
   int nTracks = 0;
   for (auto& t : mTracks) {
     nTracks += t.size();
   }
   return nTracks;
+}
+
+inline size_t TimeFrame::getNumberOfUsedClusters() const
+{
+  size_t nClusters = 0;
+  for (auto& layer : mUsedClusters) {
+    nClusters += std::count(layer.begin(), layer.end(), true);
+  }
+  return nClusters;
 }
 
 } // namespace its

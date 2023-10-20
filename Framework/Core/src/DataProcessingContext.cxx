@@ -22,6 +22,14 @@ void DataProcessorContext::preProcessingCallbacks(ProcessingContext& ctx)
   }
 }
 
+void DataProcessorContext::finaliseOutputsCallbacks(ProcessingContext& ctx)
+{
+  for (auto& handle : finaliseOutputsHandles) {
+    LOGP(debug, "Invoking postProcessingCallback for service {}", handle.spec.name);
+    handle.callback(ctx, handle.service);
+  }
+}
+
 /// Invoke callbacks to be executed before every dangling check
 void DataProcessorContext::postProcessingCallbacks(ProcessingContext& ctx)
 {

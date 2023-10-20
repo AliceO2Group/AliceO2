@@ -36,6 +36,17 @@ void StreamContext::preProcessingCallbacks(ProcessingContext& pcx)
 }
 
 /// Invoke callbacks to be executed after every process method invokation
+void StreamContext::finaliseOutputsCallbacks(ProcessingContext& pcx)
+{
+  for (auto& handle : finaliseOutputsHandles) {
+    LOG(debug) << "Invoking finaliseOutputsCallbacks for " << handle.service;
+    assert(handle.service);
+    assert(handle.callback);
+    handle.callback(pcx, handle.service);
+  }
+}
+
+/// Invoke callbacks to be executed after every process method invokation
 void StreamContext::postProcessingCallbacks(ProcessingContext& pcx)
 {
   for (auto& handle : postProcessingHandles) {

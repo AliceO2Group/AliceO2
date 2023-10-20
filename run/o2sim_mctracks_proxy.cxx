@@ -15,6 +15,7 @@
 #include "Framework/WorkflowSpec.h"
 #include "Framework/ConfigParamSpec.h"
 #include "Framework/ExternalFairMQDeviceProxy.h"
+#include "Framework/RawDeviceService.h"
 #include "Framework/Task.h"
 #include "Framework/DataRef.h"
 #include "Framework/InputRecordWalker.h"
@@ -92,7 +93,9 @@ InjectorFunction o2simKinematicsConverter(std::vector<OutputSpec> const& specs, 
   auto MCTracksMessageCache = std::make_shared<fair::mq::Parts>();
   auto Nparts = std::make_shared<int>(nPerTF);
 
-  return [timesliceId, specs, step, nevents, nPerTF, totalEventCounter, eventCounter, TFcounter, Nparts, MCHeadersMessageCache = MCHeadersMessageCache, MCTracksMessageCache = MCTracksMessageCache](TimingInfo& ti, fair::mq::Device& device, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId, bool& stop) mutable {
+  return [timesliceId, specs, step, nevents, nPerTF, totalEventCounter, eventCounter, TFcounter, Nparts, MCHeadersMessageCache = MCHeadersMessageCache, MCTracksMessageCache = MCTracksMessageCache](TimingInfo& ti, ServiceRegistryRef const& services, fair::mq::Parts& parts, ChannelRetriever channelRetriever, size_t newTimesliceId, bool& stop) mutable -> bool {
+    auto*device = services.get<RawDeviceService>().device();
+    bool didSendData = false;
     if (nPerTF < 0) {
       // if no aggregation requested, forward each message with the DPL header
       if (*timesliceId != newTimesliceId) {
@@ -105,7 +108,8 @@ InjectorFunction o2simKinematicsConverter(std::vector<OutputSpec> const& specs, 
         DataProcessingHeader dph{newTimesliceId, 0};
         // we have to move the incoming data
         o2::header::Stack headerStack{dh, dph};
-        sendOnChannel(device, std::move(headerStack), std::move(parts.At(i)), specs[i], channelRetriever);
+        sendOnChannel(*device, std::move(headerStack), std::move(parts.At(i)), specs[i], channelRetriever);
+        didSendData |= parts.At(i)->GetSize() > 0;
       }
       *timesliceId += step;
     } else {
@@ -127,8 +131,8 @@ InjectorFunction o2simKinematicsConverter(std::vector<OutputSpec> const& specs, 
       DataHeader tracksDH = headerFromSpec(specs[1], tracksSize, gSerializationMethodROOT, *Nparts, *eventCounter);
       o2::header::Stack ths{tracksDH, tdph};
 
-      appendForSending(device, std::move(hhs), *TFcounter, std::move(parts.At(0)), specs[0], *MCHeadersMessageCache.get(), channelRetriever);
-      appendForSending(device, std::move(ths), *TFcounter, std::move(parts.At(1)), specs[1], *MCTracksMessageCache.get(), channelRetriever);
+      appendForSending(*device, std::move(hhs), *TFcounter, std::move(parts.At(0)), specs[0], *MCHeadersMessageCache.get(), channelRetriever);
+      appendForSending(*device, std::move(ths), *TFcounter, std::move(parts.At(1)), specs[1], *MCTracksMessageCache.get(), channelRetriever);
       ++(*eventCounter);
     }
 
@@ -137,8 +141,10 @@ InjectorFunction o2simKinematicsConverter(std::vector<OutputSpec> const& specs, 
       // send the events when the timeframe is accumulated
       LOGP(info, ">> Events: {}; TF counter: {}", *eventCounter, *TFcounter);
       *eventCounter = 0;
-      sendOnChannel(device, *MCHeadersMessageCache.get(), channelRetriever(specs[0], *TFcounter), *TFcounter);
-      sendOnChannel(device, *MCTracksMessageCache.get(), channelRetriever(specs[1], *TFcounter), *TFcounter);
+      sendOnChannel(*device, *MCHeadersMessageCache.get(), channelRetriever(specs[0], *TFcounter), *TFcounter);
+      sendOnChannel(*device, *MCTracksMessageCache.get(), channelRetriever(specs[1], *TFcounter), *TFcounter);
+      didSendData |= MCHeadersMessageCache->Size() > 0;
+      didSendData |= MCTracksMessageCache->Size() > 0;
       ++(*TFcounter);
       MCHeadersMessageCache->Clear();
       MCTracksMessageCache->Clear();
@@ -148,7 +154,7 @@ InjectorFunction o2simKinematicsConverter(std::vector<OutputSpec> const& specs, 
       // I am done (I don't expect more events to convert); so tell the proxy device to shut-down
       stop = true;
     }
-    return;
+    return didSendData;
   };
 }
 

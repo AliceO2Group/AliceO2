@@ -460,3 +460,33 @@ TEST_CASE("optionalConcreteDataMatcherFrom")
   REQUIRE(DataSpecUtils::asOptionalConcreteDataMatcher(ConcreteDataMatcher{"ITS", "RAWDATA", 0}) == ConcreteDataMatcher{"ITS", "RAWDATA", 0});
   REQUIRE(DataSpecUtils::asOptionalConcreteDataMatcher(ConcreteDataTypeMatcher{"ITS", "RAWDATA"}) == std::nullopt);
 }
+
+// Testcase for DataSpecUtils::updateOutputList
+TEST_CASE("UpdateOutputList")
+{
+  // Empty vector of output specs should simply add the new spec
+  std::vector<OutputSpec> outputSpecs;
+  DataSpecUtils::updateOutputList(outputSpecs, {"TST", "DATA1", 0});
+  CHECK(outputSpecs.size() == 1);
+
+  // Adding the same spec again should not change the size
+  DataSpecUtils::updateOutputList(outputSpecs, {"TST", "DATA1", 0});
+  CHECK(outputSpecs.size() == 1);
+
+  // Adding a different spec should increase the size
+  DataSpecUtils::updateOutputList(outputSpecs, {"TST", "DATA2", 0});
+  CHECK(outputSpecs.size() == 2);
+
+  // Adding again the same spec again should not change the size
+  DataSpecUtils::updateOutputList(outputSpecs, {"TST", "DATA1", 0});
+  CHECK(outputSpecs.size() == 2);
+  // Check with something real..
+  ConcreteDataMatcher dstf{"FLP", "DISTSUBTIMEFRAME", 0xccdb};
+  DataSpecUtils::updateOutputList(outputSpecs, OutputSpec{{"ccdb-diststf"}, dstf, Lifetime::Timeframe});
+  CHECK(outputSpecs.size() == 3);
+  DataSpecUtils::updateOutputList(outputSpecs, OutputSpec{{"ccdb-diststf"}, dstf, Lifetime::Timeframe});
+  CHECK(outputSpecs.size() == 3);
+  // Label does not matter
+  DataSpecUtils::updateOutputList(outputSpecs, OutputSpec{{"ccdb2-diststf"}, dstf, Lifetime::Timeframe});
+  CHECK(outputSpecs.size() == 3);
+}

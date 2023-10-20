@@ -59,9 +59,15 @@ WaveformCalibChData& WaveformCalibChData::operator+=(const WaveformCalibChData& 
 {
   if (other.mEntries > 0) {
     if (other.mFirstValid > mFirstValid) {
+#ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
+      printf("WaveformCalibChData::+= mFirstValid %5d -> %5d\n", mFirstValid, other.mFirstValid);
+#endif
       mFirstValid = other.mFirstValid;
     }
     if (other.mLastValid < mLastValid) {
+#ifdef O2_ZDC_WAVEFORMCALIB_DEBUG
+      printf("WaveformCalibChData::+= mLastValid %5d -> %5d\n", mLastValid, other.mLastValid);
+#endif
       mLastValid = other.mLastValid;
     }
     mEntries = mEntries + other.mEntries;
@@ -130,23 +136,23 @@ int WaveformCalibChData::getLastValid() const
 //______________________________________________________________________________
 void WaveformCalibData::setN(int n)
 {
-  if (n >= 0 && n < NBT) {
+  if (n > 0 && n <= NBT) {
     mN = n;
     for (int is = 0; is < NChannels; is++) {
       mWave[is].setN(n);
     }
   } else {
-    LOG(fatal) << "WaveformCalibData " << __func__ << " wrong stored b.c. setting " << n << " not in range [0:" << NBT << "]";
+    LOG(warn) << "WaveformCalibData " << __func__ << " wrong stored b.c. setting " << n << " not in range [1:" << NBT << "]";
   }
 }
 
 void WaveformCalibChData::setN(int n)
 {
-  if (n >= 0 && n < NBT) {
+  if (n > 0 && n <= NBT) {
     mFirstValid = 0;
     mLastValid = n * NTimeBinsPerBC * TSN - 1;
   } else {
-    LOG(fatal) << "WaveformCalibChData " << __func__ << " wrong stored b.c. setting " << n << " not in range [0:" << NBT << "]";
+    LOG(warn) << "WaveformCalibChData " << __func__ << " wrong stored b.c. setting " << n << " not in range [1:" << NBT << "]";
   }
 }
 
@@ -172,6 +178,8 @@ int WaveformCalibData::saveDebugHistos(const std::string fn)
       }
       h.SetEntries(mWave[is].mEntries);
       h.Write("", TObject::kOverwrite);
+    } else {
+      LOG(warn) << "WaveformCalibData " << __func__ << " waveform for ch " << is << " has too few entries: " << mWave[is].mEntries;
     }
   }
   f->Close();
@@ -186,6 +194,16 @@ void WaveformCalibData::clear()
   mCTimeEnd = 0;
   mN = 0;
   mPeak = 0;
+  for (int32_t is = 0; is < NChannels; is++) {
+    mWave[is].clear();
+  }
+}
+
+//______________________________________________________________________________
+void WaveformCalibData::clearWaveforms()
+{
+  mCTimeBeg = 0;
+  mCTimeEnd = 0;
   for (int32_t is = 0; is < NChannels; is++) {
     mWave[is].clear();
   }

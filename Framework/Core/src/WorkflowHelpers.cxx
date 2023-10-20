@@ -588,7 +588,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       }
       if (enumCandidate != -1) {
         auto& dp = workflow[enumCandidate];
-        dp.outputs.push_back(OutputSpec{{"ccdb-diststf"}, dstf, Lifetime::Timeframe});
+        DataSpecUtils::updateOutputList(dp.outputs, OutputSpec{{"ccdb-diststf"}, dstf, Lifetime::Timeframe});
         ccdbBackend.inputs.push_back(InputSpec{"tfn", dstf, Lifetime::Timeframe});
       } else if (timerCandidate != -1) {
         auto& dp = workflow[timerCandidate];
@@ -635,7 +635,7 @@ void WorkflowHelpers::injectServiceDevices(WorkflowSpec& workflow, ConfigContext
       }
       if (enumCandidate != -1) {
         auto& dp = workflow[enumCandidate];
-        dp.outputs.push_back(OutputSpec{{"ccdb-diststf"}, dstf, Lifetime::Timeframe});
+        DataSpecUtils::updateOutputList(dp.outputs, OutputSpec{{"ccdb-diststf"}, dstf, Lifetime::Timeframe});
         ccdbBackend.inputs.push_back(InputSpec{"tfn", dstf, Lifetime::Timeframe});
       } else if (timerCandidate != -1) {
         auto& dp = workflow[timerCandidate];

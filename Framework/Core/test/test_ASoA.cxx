@@ -869,22 +869,23 @@ TEST_CASE("TestAdvancedIndices")
   int references[] = {19, 2, 0, 13, 4, 6, 5, 5, 11, 9, 3, 8, 16, 14, 1, 18, 12, 18, 2, 7};
   int slice[2] = {-1, -1};
   std::vector<int> pset;
-  std::array<int, 3> withSlices = {3, 13, 19};
+  std::array<int, 4> withSlices = {3, 6, 13, 19};
+  std::array<std::pair<int, int>, 4> bounds = {std::pair{1, 5}, std::pair{3, 3}, std::pair{11, 11}, std::pair{10, 18}};
   std::array<int, 4> withSets = {0, 1, 13, 14};
-  int sizes[] = {3, 1, 5, 4};
-  int c1 = 0;
-  int c2 = 0;
+  unsigned int sizes[] = {3, 1, 5, 4};
+  unsigned int c1 = 0;
+  unsigned int c2 = 0;
   for (auto i = 0; i < 20; ++i) {
     pset.clear();
     slice[0] = -1;
     slice[1] = -1;
     if (c1 < withSlices.size() && i == withSlices[c1]) {
-      slice[0] = i - 2;
-      slice[1] = i - 1;
+      slice[0] = bounds[c1].first;
+      slice[1] = bounds[c1].second;
       ++c1;
     }
     if (c2 < withSets.size() && i == withSets[c2]) {
-      for (auto z = 0; z < sizes[c2]; ++z) {
+      for (auto z = 0U; z < sizes[c2]; ++z) {
         pset.push_back(i + 1 + z);
       }
       ++c2;
@@ -906,10 +907,12 @@ TEST_CASE("TestAdvancedIndices")
     auto ops = p.pointSeq_as<o2::aod::PointsSelfIndex>();
     if (i == withSlices[c1]) {
       auto it = ops.begin();
-      REQUIRE(ops.size() == 2);
-      REQUIRE(it.globalIndex() == i - 2);
-      ++it;
-      REQUIRE(it.globalIndex() == i - 1);
+      REQUIRE(ops.size() == bounds[c1].second - bounds[c1].first + 1);
+      REQUIRE(it.globalIndex() == bounds[c1].first);
+      for (auto j = 1; j < ops.size(); ++j) {
+        ++it;
+      }
+      REQUIRE(it.globalIndex() == bounds[c1].second);
       ++c1;
     } else {
       REQUIRE(ops.size() == 0);

@@ -78,6 +78,8 @@ class TFReaderSpec : public o2f::Task
   std::unordered_map<o2h::DataIdentifier, SubSpecCount> mSeenOutputMap;
   int mTFCounter = 0;
   int mTFBuilderCounter = 0;
+  int mNWaits = 0;
+  long mTotalWaitTime = 0;
   size_t mSelIDEntry = 0; // next TFID to select from the mInput.tfIDs (if non-empty)
   bool mRunning = false;
   TFReaderInp mInput; // command line inputs
@@ -230,10 +232,6 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
   };
 
   while (1) {
-    if (mTFCounter >= mInput.maxTFs) { // done
-      stopProcessing(ctx);
-      break;
-    }
     if (mTFQueue.size()) {
       static o2f::RateLimiter limiter;
       limiter.check(ctx, mInput.tfRateLimit, mInput.minSHM);
@@ -266,6 +264,10 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
         nparts += msgIt.second->Size() / 2;
         device->Send(*msgIt.second.get(), msgIt.first);
       }
+      // FIXME: this is to pretend we did send some messages via DPL.
+      //        we should really migrate everything to use FairMQDeviceProxy,
+      //        however this is a small enough hack for now.
+      ctx.services().get<o2f::MessageContext>().fakeDispatch();
       tNow = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
       deltaSending = mTFCounter ? tNow - tLastTF : 0;
       LOGP(info, "Sent TF {} of size {} with {} parts, {:.4f} s elapsed from previous TF.", mTFCounter, dataSize, nparts, double(deltaSending) * 1e-6);
@@ -282,6 +284,9 @@ void TFReaderSpec::run(o2f::ProcessingContext& ctx)
       break;
     }
     usleep(5000); // wait 5ms for new TF to be built
+  }
+  if (mTFCounter >= mInput.maxTFs) { // done
+    stopProcessing(ctx);
   }
 }
 
@@ -300,7 +305,7 @@ void TFReaderSpec::endOfStream(o2f::EndOfStreamContext& ec)
 //___________________________________________________________
 void TFReaderSpec::stopProcessing(o2f::ProcessingContext& ctx)
 {
-  LOG(info) << mTFCounter << " TFs in " << mFileFetcher->getNLoops() << " loops were sent";
+  LOGP(info, "{} TFs in {}  loops were sent, spent {:.2} s in {} data waiting states", mTFCounter, mFileFetcher->getNLoops(), 1e-6 * mTotalWaitTime, mNWaits);
   mRunning = false;
   mFileFetcher->stop();
   mFileFetcher.reset();
@@ -333,6 +338,8 @@ void TFReaderSpec::TFBuilder()
   // build TFs and add to the queue
   std::string tfFileName;
   auto sleepTime = std::chrono::microseconds(mInput.delay_us > 10000 ? mInput.delay_us : 10000);
+  bool waitAcknowledged = false;
+  long startWait = 0;
   while (mRunning && mDevice) {
     if (mTFQueue.size() >= size_t(mInput.maxTFCache)) {
       std::this_thread::sleep_for(sleepTime);
@@ -352,9 +359,23 @@ void TFReaderSpec::TFBuilder()
       break;
     }
     if (tfFileName.empty()) {
-      std::this_thread::sleep_for(10ms); // fait for the files cache to be filled
+      if (!waitAcknowledged) {
+        startWait = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count();
+        waitAcknowledged = true;
+      }
+      std::this_thread::sleep_for(10ms); // wait for the files cache to be filled
       continue;
     }
+    if (waitAcknowledged) {
+      long waitTime = std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()).time_since_epoch().count() - startWait;
+      mTotalWaitTime += waitTime;
+      if (++mNWaits > 1) {
+        LOGP(warn, "Resuming reading after waiting for data {:.2} s (accumulated {:.2} s delay in {} waits)", 1e-6 * waitTime, 1e-6 * mTotalWaitTime, mNWaits);
+      }
+      waitAcknowledged = false;
+      startWait = 0;
+    }
+
     LOG(info) << "Processing file " << tfFileName;
     SubTimeFrameFileReader reader(tfFileName, mInput.detMask);
     size_t locID = 0;
@@ -426,6 +447,10 @@ o2f::DataProcessorSpec o2::rawdd::getTFReaderSpec(o2::rawdd::TFReaderInp& rinp)
           continue;
         }
         // in case detectors were processed on FLP
+        if (id == DetID::CTP) {
+          spec.outputs.emplace_back(o2f::OutputSpec{o2f::OutputSpec{DetID::getDataOrigin(DetID::CTP), "LUMI", 0}});
+          rinp.hdVec.emplace_back(o2h::DataHeader{"LUMI", DetID::getDataOrigin(DetID::CTP), 0, 0}); // in abcence of real data this will be sent
+        }
         if (id == DetID::TOF) {
           spec.outputs.emplace_back(o2f::OutputSpec{o2f::ConcreteDataTypeMatcher{DetID::getDataOrigin(DetID::TOF), "CRAWDATA"}});
           rinp.hdVec.emplace_back(o2h::DataHeader{"CRAWDATA", DetID::getDataOrigin(DetID::TOF), 0xDEADBEEF, 0}); // in abcence of real data this will be sent
@@ -465,9 +490,9 @@ o2f::DataProcessorSpec o2::rawdd::getTFReaderSpec(o2::rawdd::TFReaderInp& rinp)
         }
       }
     }
-    spec.outputs.emplace_back(o2f::OutputSpec{{"stfDist"}, o2h::gDataOriginFLP, o2h::gDataDescriptionDISTSTF, 0});
+    o2f::DataSpecUtils::updateOutputList(spec.outputs, o2f::OutputSpec{{"stfDist"}, o2h::gDataOriginFLP, o2h::gDataDescriptionDISTSTF, 0});
     if (!rinp.sup0xccdb) {
-      spec.outputs.emplace_back(o2f::OutputSpec{{"stfDistCCDB"}, o2h::gDataOriginFLP, o2h::gDataDescriptionDISTSTF, 0xccdb});
+      o2f::DataSpecUtils::updateOutputList(spec.outputs, o2f::OutputSpec{{"stfDistCCDB"}, o2h::gDataOriginFLP, o2h::gDataDescriptionDISTSTF, 0xccdb});
     }
     if (!rinp.metricChannel.empty()) {
       spec.options.emplace_back(o2f::ConfigParamSpec{"channel-config", o2f::VariantType::String, rinp.metricChannel, {"Out-of-band channel config for TF throttling"}});

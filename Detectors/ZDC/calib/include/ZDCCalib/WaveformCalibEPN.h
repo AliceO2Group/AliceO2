@@ -29,7 +29,7 @@ class WaveformCalibEPN
  public:
   WaveformCalibEPN() = default;
   int init();
-  void clear(int ih = -1);
+  void clear();
   int process(const gsl::span<const o2::zdc::BCRecData>& bcrec,
               const gsl::span<const o2::zdc::ZDCEnergy>& energy,
               const gsl::span<const o2::zdc::ZDCTDCData>& tdc,
@@ -54,7 +54,7 @@ class WaveformCalibEPN
 
   int mFirst = 0;
   int mLast = 0;
-  int mN = 1;
+  int mN = 10;
 
   void configure(int ifirst, int ilast)
   {
@@ -64,6 +64,7 @@ class WaveformCalibEPN
     mFirst = ifirst;
     mLast = ilast;
     mN = ilast - ifirst + 1;
+    LOG(info) << "WaveformCalibEPN::" << __func__ << " mN=" << mN << "[" << mFirst << ":" << mLast << "]";
   }
 
   WaveformCalibQueue mQueue;
