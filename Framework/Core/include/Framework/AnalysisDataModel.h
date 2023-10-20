@@ -494,6 +494,21 @@ namespace aod
 using FullTracks = soa::Join<Tracks, TracksExtra>;
 using FullTrack = FullTracks::iterator;
 
+namespace trackqa
+{
+// TRACKQA TABLE COLUMNS
+DECLARE_SOA_INDEX_COLUMN(Track, track); //! track to which this QA information belongs
+DECLARE_SOA_COLUMN(DCAR, dcaR, uint16_t); //!
+DECLARE_SOA_COLUMN(DCAZ, dcaZ, uint16_t); //!
+DECLARE_SOA_COLUMN(ClusterByteMask, clusterByteMask, uint8_t); //!
+DECLARE_SOA_COLUMN(TPCSignalPerRegion, tpcSignalPerRegion, uint8_t); //!
+} // namespace trackqa
+
+DECLARE_SOA_TABLE(TracksQA, "AOD", "TRACKQA", //! Run 2 cascade table
+o2::soa::Index<>, trackqa::TrackId, trackqa::DCAR, trackqa::DCAZ, trackqa::ClusterByteMask, trackqa::TPCSignalPerRegion);
+
+using TrackQA = TracksQA::iterator;
+
 namespace fwdtrack
 {
 // FwdTracks and MFTTracks Columns definitions
