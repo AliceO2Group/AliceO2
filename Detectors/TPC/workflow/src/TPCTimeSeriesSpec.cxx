@@ -754,13 +754,10 @@ class TPCTimeSeries : public Task
             // store TPC only DCAs
             // propagate to vertex in case the track belongs to vertex
             const bool contributeToVertex = (idxITSTPC.back() != -1);
-            o2::gpu::gpustd::array<float, 2> dcaITSTPCTmp{0, 0};
+            o2::gpu::gpustd::array<float, 2> dcaITSTPCTmp{-1, -1};
 
             if (contributeToVertex) {
               propagator->propagateToDCA(vertex.getXYZ(), trackITSTPCTmp, propagator->getNominalBz(), mFineStep, mMatType, &dcaITSTPCTmp);
-            } else {
-              dcaITSTPCTmp[0] == -1;
-              dcaITSTPCTmp[1] == -1;
             }
 
             // make cut around DCA to vertex due to gammas

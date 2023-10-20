@@ -501,7 +501,7 @@ struct TimeSeriesITSTPC {
     vertexZ_RMS.resize(nTotalVtx);
   }
 
-  ClassDefNV(TimeSeriesITSTPC, 1);
+  ClassDefNV(TimeSeriesITSTPC, 2);
 };
 
 } // end namespace tpc
