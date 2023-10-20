@@ -10,7 +10,9 @@
 # or submit itself to any jurisdiction.
 
 o2_add_library(PHOSWorkflow
-               SOURCES src/RecoWorkflow.cxx
+               SOURCES src/CellReaderSpec.cxx
+                       src/DigitReaderSpec.cxx
+                       src/RecoWorkflow.cxx
                        src/ReaderSpec.cxx
                        src/CellConverterSpec.cxx
                        src/RawToCellConverterSpec.cxx

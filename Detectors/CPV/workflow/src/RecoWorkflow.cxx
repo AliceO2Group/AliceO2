@@ -24,6 +24,7 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "DataFormatsCPV/TriggerRecord.h"
 #include "CPVWorkflow/RecoWorkflow.h"
+#include "CPVWorkflow/DigitReaderSpec.h"
 #include "CPVWorkflow/ClusterizerSpec.h"
 #include "CPVWorkflow/ReaderSpec.h"
 #include "CPVWorkflow/WriterSpec.h"
@@ -107,7 +108,8 @@ o2::framework::WorkflowSpec getWorkflow(bool disableRootInp,
   // Digits to ....
   if (inputType == InputType::Digits) {
     if (!disableRootInp) {
-      specs.emplace_back(o2::cpv::getDigitsReaderSpec(propagateMC));
+      specs.emplace_back(o2::cpv::getCPVDigitReaderSpec(propagateMC));
+      // specs.emplace_back(o2::cpv::getDigitsReaderSpec(propagateMC));
     }
 
     if (isEnabled(OutputType::Clusters)) {
