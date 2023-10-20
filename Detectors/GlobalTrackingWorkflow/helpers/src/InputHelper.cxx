@@ -43,8 +43,8 @@
 #include "MCHIO/TrackReaderSpec.h"
 #include "MCHIO/ClusterReaderSpec.h"
 #include "MIDWorkflow/TrackReaderSpec.h"
-#include "PHOSWorkflow/ReaderSpec.h"
-#include "CPVWorkflow/ReaderSpec.h"
+#include "PHOSWorkflow/CellReaderSpec.h"
+#include "CPVWorkflow/ClusterReaderSpec.h"
 #include "EMCALWorkflow/PublisherSpec.h"
 // #include "StrangenessTrackingWorkflow/StrangenessTrackingReaderSpec.h"
 
@@ -164,11 +164,11 @@ int InputHelper::addInputSpecs(const ConfigContext& configcontext, WorkflowSpec&
   }
 
   if (maskTracks[GID::PHS] || maskClusters[GID::PHS]) {
-    specs.emplace_back(o2::phos::getCellReaderSpec(maskTracksMC[GID::PHS] || maskClustersMC[GID::PHS]));
+    specs.emplace_back(o2::phos::getPHOSCellReaderSpec(maskTracksMC[GID::PHS] || maskClustersMC[GID::PHS]));
   }
 
   if (maskTracks[GID::CPV] || maskClusters[GID::CPV]) {
-    specs.emplace_back(o2::cpv::getClustersReaderSpec(maskTracksMC[GID::CPV] || maskClustersMC[GID::CPV]));
+    specs.emplace_back(o2::cpv::getCPVClusterReaderSpec(maskTracksMC[GID::CPV] || maskClustersMC[GID::CPV]));
   }
 
   if (maskTracks[GID::EMC] || maskClusters[GID::EMC]) {
