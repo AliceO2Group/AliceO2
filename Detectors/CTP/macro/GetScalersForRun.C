@@ -55,7 +55,7 @@ void GetScalersForRun(int runNumber = 0, int fillN = 0, bool test = 1)
   ctpscalers->convertRawToO2();
   std::vector<CTPClass> ctpcls = ctpcfg->getCTPClasses();
   //std::vector<int> clslist = ctpcfg->getTriggerClassList();
-  std::vector<int> clslist = ctpscalers->getClassIndexes();
+  std::vector<uint32_t> clslist = ctpscalers->getClassIndexes();
   std::map<int,int> clsIndexToScaler;
   std::cout << "Classes:";
   int i = 0;
