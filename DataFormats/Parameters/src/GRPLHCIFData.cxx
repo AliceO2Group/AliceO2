@@ -60,8 +60,8 @@ void GRPLHCIFData::setBeamAZ()
 float GRPLHCIFData::getSqrtS() const
 {
   // get center of mass energy
-  double e0 = getBeamEnergyPerNucleon(BeamC);
-  double e1 = getBeamEnergyPerNucleon(BeamA);
+  double e0 = getBeamEnergyPerNucleonInGeV(BeamC);
+  double e1 = getBeamEnergyPerNucleonInGeV(BeamA);
   if (e0 <= MassProton || e1 <= MassProton) {
     return 0.f;
   }
