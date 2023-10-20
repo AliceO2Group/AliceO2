@@ -174,6 +174,9 @@ class DebugStreamer
   /// \param mass particles mass (use pion if not known)
   static bool downsampleTsalisCharged(float pt, float factorPt, float sqrts, float& weight, float rnd, float mass = 0.13957);
 
+  /// get random value between min and max
+  static float getRandom(float min = 0, float max = 1);
+
  private:
   using StreamersPerFlag = tbb::concurrent_unordered_map<size_t, std::unique_ptr<o2::utils::TreeStreamRedirector>>;
   StreamersPerFlag mTreeStreamer; ///< streamer which is used for the debugging

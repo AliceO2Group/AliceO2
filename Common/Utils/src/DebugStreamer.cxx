@@ -65,27 +65,22 @@ bool o2::utils::DebugStreamer::checkStream(const StreamFlags streamFlag, const s
   // check sampling frequency
   const auto sampling = getSamplingTypeFrequency(streamFlag);
   if (sampling.first != SamplingTypes::sampleAll) {
-    // init random number generator for each thread
-    static thread_local std::mt19937 generator(std::random_device{}());
-    std::uniform_real_distribution<> distr(0, 1);
-
     auto sampleTrack = [&]() {
       if (samplingID == -1) {
         LOGP(fatal, "Sampling type sampleID not supported for stream flag {}", streamFlag);
       }
-      std::uniform_real_distribution<> distr(0, 1);
       // sample on samplingID (e.g. track level)
       static thread_local std::unordered_map<StreamFlags, std::pair<size_t, bool>> idMap;
       // in case of first call samplingID in idMap is 0 and always false and first ID rejected
       if (idMap[streamFlag].first != samplingID) {
-        idMap[streamFlag] = std::pair<size_t, bool>{samplingID, (distr(generator) < sampling.second)};
+        idMap[streamFlag] = std::pair<size_t, bool>{samplingID, (getRandom() < sampling.second)};
       }
       return idMap[streamFlag].second;
     };
 
     if (sampling.first == SamplingTypes::sampleRandom) {
       // just sample randomly
-      return (distr(generator) < sampling.second);
+      return (getRandom() < sampling.second);
     } else if (sampling.first == SamplingTypes::sampleID) {
       return sampleTrack();
     } else if (sampling.first == SamplingTypes::sampleIDGlobal) {
@@ -106,7 +101,7 @@ bool o2::utils::DebugStreamer::checkStream(const StreamFlags streamFlag, const s
       }
     } else if (sampling.first == SamplingTypes::sampleWeights) {
       // sample with weight
-      return (weight * distr(generator) < sampling.second);
+      return (weight * getRandom() < sampling.second);
     }
   }
   return true;
@@ -133,6 +128,15 @@ bool o2::utils::DebugStreamer::downsampleTsalisCharged(float pt, float factorPt,
   weight = prob / probNorm;
   const bool isSampled = (rnd * (weight * pt * pt)) < factorPt;
   return isSampled;
+}
+
+float o2::utils::DebugStreamer::getRandom(float min, float max)
+{
+  // init random number generator for each thread
+  static thread_local std::mt19937 generator(std::random_device{}());
+  std::uniform_real_distribution<> distr(min, max);
+  const float rnd = distr(generator);
+  return rnd;
 }
 
 int o2::utils::DebugStreamer::getIndex(const StreamFlags streamFlag)
