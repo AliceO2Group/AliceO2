@@ -29,6 +29,7 @@
 #include <unordered_map>
 #include <vector>
 #include <array>
+#include <set>
 
 namespace o2
 {
@@ -123,18 +124,29 @@ class MatchITSTPCQC
   void setBz(float bz) { mBz = bz; }
 
   // track selection
-  bool selectTrack(o2::tpc::TrackTPC const& track);
-  void setPtCut(float v) { mPtCut = v; }
-  void setEtaCut(float v) { mEtaCut = v; }
+  bool selectTrack(o2::tpc::TrackTPC const& track); // still present but not used
+  // ITS track
+  void setMinPtITSCut(float v) { mPtITSCut = v; };
+  void setEtaITSCut(float v) { mEtaITSCut = v; }; // TODO: define 2 different values for min and max (**)
+  void setMinNClustersITS(float v) { mMinNClustersITS = v; }
+  void setMaxChi2PerClusterITS(float v) { mMaxChi2PerClusterITS = v; }
+  // TO DO: define an agreed way to implement the setter for ITS matching (min. # layers, which layers)
+  // [...] --> exploit the method TrackCuts::setRequireHitsInITSLayers(...)
+  // TPC track
+  void setMinPtTPCCut(float v) { mPtTPCCut = v; };
+  void setEtaTPCCut(float v) { mEtaTPCCut = v; }; // TODO: define 2 different values for min and max (***)
   void setMinNTPCClustersCut(float v) { mNTPCClustersCut = v; }
   void setMinDCAtoBeamPipeCut(std::array<float, 2> v)
   {
     setMinDCAtoBeamPipeDistanceCut(v[0]);
     setMinDCAtoBeamPipeYCut(v[1]);
   }
-  void setMinDCAtoBeamPipeDistanceCut(float v) { mDCACut = v; }
-  void setMinDCAtoBeamPipeYCut(float v) { mDCACutY = v; }
-
+  void setMinDCAtoBeamPipeDistanceCut(float v) { mDCATPCCut = v; }
+  void setMinDCAtoBeamPipeYCut(float v) { mDCATPCCutY = v; }
+  // ITS-TPC kinematics
+  void setPtCut(float v) { mPtCut = v; }
+  void setMaxPtCut(float v) { mPtMaxCut = v; }
+  void setEtaCut(float v) { mEtaCut = v; } // TODO: define 2 different values for min and max (*)
   // to remove after merging QC PR
   TH1D* getHistoPt() const { return nullptr; }                               // old
   TH1D* getHistoPtTPC() const { return nullptr; }                            // old
@@ -172,14 +184,14 @@ class MatchITSTPCQC
   // ITS-TPC
   gsl::span<const o2::dataformats::TrackTPCITS> mITSTPCTracks;
   bool mUseMC = false;
-  float mBz = 0;                                              ///< nominal Bz
+  float mBz = 0;                                                                           ///< nominal Bz
   std::array<std::unordered_map<o2::MCCompLabel, LblInfo>, matchType::SIZE> mMapLabels;    // map with labels that have been found for the matched ITSTPC tracks; key is the label,
                                                                                            // value is the LbLinfo with the id of the track with the highest pT found with that label so far,
                                                                                            // and the flag to say if it is a physical primary or not
   std::array<std::unordered_map<o2::MCCompLabel, LblInfo>, matchType::SIZE> mMapRefLabels; // map with labels that have been found for the unmatched TPC tracks; key is the label,
                                                                                            // value is the LblInfo with the id of the track with the highest number of TPC clusters found
                                                                                            // with that label so far, and the flag to say if it is a physical primary or not
-  o2::steer::MCKinematicsReader mcReader;                     // reader of MC information
+  o2::steer::MCKinematicsReader mcReader;                                                  // reader of MC information
 
   // Pt
   TH1D* mPtNum[matchType::SIZE] = {};
@@ -235,13 +247,25 @@ class MatchITSTPCQC
   int mNITSTPCSelectedTracks[matchType::SIZE] = {0, 0};
 
   // cut values
+  // ITS track
+  float mPtITSCut = 0.f;                                                // min pT for ITS track
+  float mEtaITSCut = 1e10f;                                             // eta window for ITS track --> TODO: define 2 different values for min and max (**)
+  int mMinNClustersITS = 0;                                             // min number of ITS clusters
+  float mMaxChi2PerClusterITS{1e10f};                                   // max its fit chi2 per ITS cluster
+  std::vector<std::pair<int8_t, std::set<uint8_t>>> mRequiredITSHits{}; // vector of ITS requirements (minNRequiredHits in specific requiredLayers)
+  // TPC track
+  float mPtTPCCut = 0.1f;        // min pT for TPC track
+  float mEtaTPCCut = 1.4f;       // eta window for TPC track --> TODO: define 2 different values for min and max (***)
+  int32_t mNTPCClustersCut = 60; // minimum number of TPC clusters for TPC track
+  float mDCATPCCut = 100.f;      // max DCA 3D to PV for TPC track
+  float mDCATPCCutY = 10.f;      // max DCA xy to PV for TPC track
+  // ITS-TPC kinematics
   float mPtCut = 0.1f;
-  float mEtaCut = 1.4f;
-  int32_t mNTPCClustersCut = 60;
-  float mDCACut = 100.f;
-  float mDCACutY = 10.f;
+  float mPtMaxCut = 1e10f;
+  float mEtaCut = 1e10f; // 1e10f as defaults of Detectors/GlobalTracking/include/GlobalTracking/TrackCuts.h
+                         // TODO: define 2 different values for min and max (*)
 
-  ClassDefNV(MatchITSTPCQC, 1);
+  ClassDefNV(MatchITSTPCQC, 2);
 };
 } // namespace globaltracking
 } // namespace o2
