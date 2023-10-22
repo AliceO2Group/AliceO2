@@ -384,8 +384,8 @@ int RawDataDecoder::shiftInputs(std::map<o2::InteractionRecord, CTPDigit>& digit
     } else if (lut == 2) { // L0
       shiftNew(dig.first, TFOrbit, inpmask, L0shift, 0, digitsMapShifted);
       if (dig.second.CTPClassMask.count()) {
-        //LOG(error) << "Adding class mask without input ?";
-        // This is not needed as it can happen; Full checj done below - see next LOG(error)
+        // LOG(error) << "Adding class mask without input ?";
+        //  This is not needed as it can happen; Full checj done below - see next LOG(error)
         CTPDigit digi = {dig.first, 0, dig.second.CTPClassMask};
         digitsMapShifted[dig.first] = digi;
       }
