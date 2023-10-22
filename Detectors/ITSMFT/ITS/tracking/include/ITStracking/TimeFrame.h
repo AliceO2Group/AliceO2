@@ -156,7 +156,8 @@ class TimeFrame
   std::vector<std::vector<float>>& getCellSeedsChi2() { return mCellSeedsChi2; }
 
   std::vector<std::vector<int>>& getCellsLookupTable();
-  std::vector<std::vector<std::vector<int>>>& getCellsNeighbours();
+  std::vector<std::vector<int>>& getCellsNeighbours();
+  std::vector<std::vector<int>>& getCellsNeighboursLUT();
   std::vector<Road<5>>& getRoads();
   std::vector<TrackITSExt>& getTracks(int rof) { return mTracks[rof]; }
   std::vector<MCCompLabel>& getTracksLabel(const int rof) { return mTracksLabel[rof]; }
@@ -256,7 +257,8 @@ class TimeFrame
   std::vector<std::vector<o2::track::TrackParCovF>> mCellSeeds;
   std::vector<std::vector<float>> mCellSeedsChi2;
   std::vector<std::vector<int>> mCellsLookupTable;
-  std::vector<std::vector<std::vector<int>>> mCellsNeighbours;
+  std::vector<std::vector<int>> mCellsNeighbours;
+  std::vector<std::vector<int>> mCellsNeighboursLUT;
   std::vector<Road<5>> mRoads;
   std::vector<std::vector<MCCompLabel>> mTracksLabel;
   std::vector<std::vector<TrackITSExt>> mTracks;
@@ -550,10 +552,8 @@ inline std::vector<std::vector<int>>& TimeFrame::getCellsLookupTable()
   return mCellsLookupTable;
 }
 
-inline std::vector<std::vector<std::vector<int>>>& TimeFrame::getCellsNeighbours()
-{
-  return mCellsNeighbours;
-}
+inline std::vector<std::vector<int>>& TimeFrame::getCellsNeighbours() { return mCellsNeighbours; }
+inline std::vector<std::vector<int>>& TimeFrame::getCellsNeighboursLUT() { return mCellsNeighboursLUT; }
 
 inline std::vector<Road<5>>& TimeFrame::getRoads() { return mRoads; }
 
