@@ -164,7 +164,7 @@ inline Ray::Ray(const math_utils::Point3D<float> point0, const math_utils::Point
   mXDxPlusYDy2 = mXDxPlusYDy * mXDxPlusYDy;
   mR02 = point0.Perp2();
   mR12 = point1.Perp2();
-  mInvDz = 1.f / mD[2];
+  mInvDz = std::abs(mD[2]) > Tiny ? (1.f / mD[2]) : (mD[2] > 0 ? 1.f / Tiny : -1.f / Tiny);
 }
 #endif // !GPUCA_ALIGPUCODE
 
@@ -180,7 +180,7 @@ GPUdi() Ray::Ray(float x0, float y0, float z0, float x1, float y1, float z1)
   mXDxPlusYDy2 = mXDxPlusYDy * mXDxPlusYDy;
   mR02 = x0 * x0 + y0 * y0;
   mR12 = x1 * x1 + y1 * y1;
-  mInvDz = 1.f / mD[2];
+  mInvDz = std::abs(mD[2]) > Tiny ? (1.f / mD[2]) : (mD[2] > 0 ? 1.f / Tiny : -1.f / Tiny);
 }
 
 //______________________________________________________
