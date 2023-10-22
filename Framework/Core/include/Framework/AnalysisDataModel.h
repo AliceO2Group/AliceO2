@@ -221,8 +221,8 @@ DECLARE_SOA_EXPRESSION_COLUMN(C1Pt21Pt2, c1Pt21Pt2, float, //!
 // TRACKEXTRA TABLE definition
 DECLARE_SOA_COLUMN(TPCInnerParam, tpcInnerParam, float);                                      //! Momentum at inner wall of the TPC
 DECLARE_SOA_COLUMN(Flags, flags, uint32_t);                                                   //! Track flags. Run 2: see TrackFlagsRun2Enum | Run 3: see TrackFlags
+DECLARE_SOA_COLUMN(ITSClusterMap, itsClusterMap, uint8_t);                                    //! Old cluster ITS cluster map, kept for version 0 compatibility. Not in v000 namespace, as many O2Physics tables rely on this column
 DECLARE_SOA_COLUMN(ITSClusterSizes, itsClusterSizes, uint32_t);                               //! Clusters sizes, four bits per a layer, starting from the innermost
-DECLARE_SOA_COLUMN(ITSClusterMap, itsClusterMap, uint8_t);                                    //! Old cluster ITS cluster map, kept for version 0 compatibility
 DECLARE_SOA_COLUMN(TPCNClsFindable, tpcNClsFindable, uint8_t);                                //! Findable TPC clusters for this track geometry
 DECLARE_SOA_COLUMN(TPCNClsFindableMinusFound, tpcNClsFindableMinusFound, int8_t);             //! TPC Clusters: Findable - Found
 DECLARE_SOA_COLUMN(TPCNClsFindableMinusCrossedRows, tpcNClsFindableMinusCrossedRows, int8_t); //! TPC Clusters: Findable - crossed rows
@@ -241,22 +241,45 @@ DECLARE_SOA_COLUMN(TrackPhiEMCAL, trackPhiEmcal, float);                        
 DECLARE_SOA_COLUMN(TrackTime, trackTime, float);                                              //! Estimated time of the track in ns wrt collision().bc() or ambiguoustrack.bcSlice()[0]
 DECLARE_SOA_COLUMN(TrackTimeRes, trackTimeRes, float);                                        //! Resolution of the track time in ns (see TrackFlags::TrackTimeResIsRange)
 
-// expression columns changing between versions have to be declared in different namespaces
-
+// expression columns changing between versions needs to be declared in different namespaces
+namespace v000
+{
 DECLARE_SOA_EXPRESSION_COLUMN(DetectorMap, detectorMap, uint8_t, //! Detector map: see enum DetectorMapEnum
                               ifnode(aod::track::itsClusterMap > (uint8_t)0, static_cast<uint8_t>(o2::aod::track::ITS), (uint8_t)0x0) |
                                 ifnode(aod::track::tpcNClsFindable > (uint8_t)0, static_cast<uint8_t>(o2::aod::track::TPC), (uint8_t)0x0) |
                                 ifnode(aod::track::trdPattern > (uint8_t)0, static_cast<uint8_t>(o2::aod::track::TRD), (uint8_t)0x0) |
                                 ifnode((aod::track::tofChi2 >= 0.f) && (aod::track::tofExpMom > 0.f), static_cast<uint8_t>(o2::aod::track::TOF), (uint8_t)0x0));
+} // namespace v000
 
-namespace v001
-{
+DECLARE_SOA_DYNAMIC_COLUMN(ITSNCls, itsNCls, //! Number of ITS clusters
+                           [](uint8_t itsClusterMap) -> uint8_t {
+                             uint8_t itsNcls = 0;
+                             constexpr uint8_t bit = 1;
+                             for (int layer = 0; layer < 7; layer++) {
+                               if (itsClusterMap & (bit << layer))
+                                 itsNcls++;
+                             }
+                             return itsNcls;
+                           });
+
+DECLARE_SOA_DYNAMIC_COLUMN(ITSNClsInnerBarrel, itsNClsInnerBarrel, //! Number of ITS clusters in the Inner Barrel
+                           [](uint8_t itsClusterMap) -> uint8_t {
+                             uint8_t itsNclsInnerBarrel = 0;
+                             constexpr uint8_t bit = 1;
+                             for (int layer = 0; layer < 3; layer++) {
+                               if (itsClusterMap & (bit << layer))
+                                 itsNclsInnerBarrel++;
+                             }
+                             return itsNclsInnerBarrel;
+                           });
+
 DECLARE_SOA_EXPRESSION_COLUMN(DetectorMap, detectorMap, uint8_t, //! Detector map version 1, see enum DetectorMapEnum
                               ifnode(aod::track::itsClusterSizes > (uint32_t)0, static_cast<uint8_t>(o2::aod::track::ITS), (uint8_t)0x0) |
                                 ifnode(aod::track::tpcNClsFindable > (uint8_t)0, static_cast<uint8_t>(o2::aod::track::TPC), (uint8_t)0x0) |
                                 ifnode(aod::track::trdPattern > (uint8_t)0, static_cast<uint8_t>(o2::aod::track::TRD), (uint8_t)0x0) |
                                 ifnode((aod::track::tofChi2 >= 0.f) && (aod::track::tofExpMom > 0.f), static_cast<uint8_t>(o2::aod::track::TOF), (uint8_t)0x0));
-DECLARE_SOA_DYNAMIC_COLUMN(ITSClusterMap, itsClusterMap, //! ITS cluster map, one bit per a layer, starting from the innermost
+
+DECLARE_SOA_DYNAMIC_COLUMN(ITSClusterMap001, itsClusterMap, //! Dynamic ITS cluster map, one bit per a layer, starting from the innermost
                            [](uint32_t itsClusterSizes) -> uint8_t {
                              uint8_t clmap = 0;
                              for (unsigned int layer = 0; layer < 7; layer++) {
@@ -266,7 +289,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(ITSClusterMap, itsClusterMap, //! ITS cluster map, on
                              }
                              return clmap;
                            });
-DECLARE_SOA_DYNAMIC_COLUMN(ITSNCls, itsNCls, //! Number of ITS clusters
+DECLARE_SOA_DYNAMIC_COLUMN(ITSNCls001, itsNCls, //! Number of ITS clusters
                            [](uint8_t itsClusterSizes) -> uint8_t {
                              uint8_t itsNcls = 0;
                              for (int layer = 0; layer < 7; layer++) {
@@ -275,7 +298,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(ITSNCls, itsNCls, //! Number of ITS clusters
                              }
                              return itsNcls;
                            });
-DECLARE_SOA_DYNAMIC_COLUMN(ITSNClsInnerBarrel, itsNClsInnerBarrel, //! Number of ITS clusters in the Inner Barrel
+DECLARE_SOA_DYNAMIC_COLUMN(ITSNClsInnerBarrel001, itsNClsInnerBarrel, //! Number of ITS clusters in the Inner Barrel
                            [](uint8_t itsClusterSizes) -> uint8_t {
                              uint8_t itsNclsInnerBarrel = 0;
                              for (int layer = 0; layer < 3; layer++) {
@@ -284,8 +307,6 @@ DECLARE_SOA_DYNAMIC_COLUMN(ITSNClsInnerBarrel, itsNClsInnerBarrel, //! Number of
                              }
                              return itsNclsInnerBarrel;
                            });
-
-} // namespace v001
 
 DECLARE_SOA_DYNAMIC_COLUMN(HasITS, hasITS, //! Flag to check if track has a ITS match
                            [](uint8_t detectorMap) -> bool { return detectorMap & o2::aod::track::ITS; });
@@ -303,26 +324,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsFound, tpcNClsFound, //! Number of found TPC c
                            [](uint8_t tpcNClsFindable, int8_t tpcNClsFindableMinusFound) -> int16_t { return (int16_t)tpcNClsFindable - tpcNClsFindableMinusFound; });
 DECLARE_SOA_DYNAMIC_COLUMN(TPCNClsCrossedRows, tpcNClsCrossedRows, //! Number of crossed TPC Rows
                            [](uint8_t tpcNClsFindable, int8_t TPCNClsFindableMinusCrossedRows) -> int16_t { return (int16_t)tpcNClsFindable - TPCNClsFindableMinusCrossedRows; });
-DECLARE_SOA_DYNAMIC_COLUMN(ITSNCls, itsNCls, //! Number of ITS clusters
-                           [](uint8_t itsClusterMap) -> uint8_t {
-                             uint8_t itsNcls = 0;
-                             constexpr uint8_t bit = 1;
-                             for (int layer = 0; layer < 7; layer++) {
-                               if (itsClusterMap & (bit << layer))
-                                 itsNcls++;
-                             }
-                             return itsNcls;
-                           });
-DECLARE_SOA_DYNAMIC_COLUMN(ITSNClsInnerBarrel, itsNClsInnerBarrel, //! Number of ITS clusters in the Inner Barrel
-                           [](uint8_t itsClusterMap) -> uint8_t {
-                             uint8_t itsNclsInnerBarrel = 0;
-                             constexpr uint8_t bit = 1;
-                             for (int layer = 0; layer < 3; layer++) {
-                               if (itsClusterMap & (bit << layer))
-                                 itsNclsInnerBarrel++;
-                             }
-                             return itsNclsInnerBarrel;
-                           });
+
 DECLARE_SOA_DYNAMIC_COLUMN(TPCFoundOverFindableCls, tpcFoundOverFindableCls, //! Ratio of found over findable clusters
                            [](uint8_t tpcNClsFindable, int8_t tpcNClsFindableMinusFound) -> float {
                              int16_t tpcNClsFound = (int16_t)tpcNClsFindable - tpcNClsFindableMinusFound;
@@ -440,8 +442,8 @@ DECLARE_SOA_TABLE_FULL(StoredTracksExtra_000, "TracksExtra", "AOD", "TRACKEXTRA"
                        track::TPCSignal, track::TRDSignal, track::Length, track::TOFExpMom,
                        track::PIDForTracking<track::Flags>,
                        track::IsPVContributor<track::Flags>,
-                       track::HasITS<track::DetectorMap>, track::HasTPC<track::DetectorMap>,
-                       track::HasTRD<track::DetectorMap>, track::HasTOF<track::DetectorMap>,
+                       track::HasITS<track::v000::DetectorMap>, track::HasTPC<track::v000::DetectorMap>,
+                       track::HasTRD<track::v000::DetectorMap>, track::HasTOF<track::v000::DetectorMap>,
                        track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                        track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                        track::ITSNCls<track::ITSClusterMap>, track::ITSNClsInnerBarrel<track::ITSClusterMap>,
@@ -458,23 +460,23 @@ DECLARE_SOA_TABLE_FULL_VERSIONED(StoredTracksExtra_001, "TracksExtra", "AOD", "T
                                  track::TPCSignal, track::TRDSignal, track::Length, track::TOFExpMom,
                                  track::PIDForTracking<track::Flags>,
                                  track::IsPVContributor<track::Flags>,
-                                 track::HasITS<track::v001::DetectorMap>, track::HasTPC<track::v001::DetectorMap>,
-                                 track::HasTRD<track::v001::DetectorMap>, track::HasTOF<track::v001::DetectorMap>,
+                                 track::HasITS<track::DetectorMap>, track::HasTPC<track::DetectorMap>,
+                                 track::HasTRD<track::DetectorMap>, track::HasTOF<track::DetectorMap>,
                                  track::TPCNClsFound<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                                  track::TPCNClsCrossedRows<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
-                                 track::v001::ITSClusterMap<track::ITSClusterSizes>, track::v001::ITSNCls<track::ITSClusterSizes>, track::v001::ITSNClsInnerBarrel<track::ITSClusterSizes>,
+                                 track::ITSClusterMap001<track::ITSClusterSizes>, track::ITSNCls001<track::ITSClusterSizes>, track::ITSNClsInnerBarrel001<track::ITSClusterSizes>,
                                  track::TPCCrossedRowsOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusCrossedRows>,
                                  track::TPCFoundOverFindableCls<track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                                  track::TPCFractionSharedCls<track::TPCNClsShared, track::TPCNClsFindable, track::TPCNClsFindableMinusFound>,
                                  track::TrackEtaEMCAL, track::TrackPhiEMCAL, track::TrackTime, track::TrackTimeRes);
 
 DECLARE_SOA_EXTENDED_TABLE(TracksExtra_000, StoredTracksExtra_000, "TRACKEXTRA", //! Additional track information (clusters, PID, etc.)
-                           track::DetectorMap);
+                           track::v000::DetectorMap);
 DECLARE_SOA_EXTENDED_TABLE(TracksExtra_001, StoredTracksExtra_001, "TRACKEXTRA", //! Additional track information (clusters, PID, etc.)
-                           track::v001::DetectorMap);
+                           track::DetectorMap);
 
-using StoredTracksExtra = StoredTracksExtra_000;
-using TracksExtra = TracksExtra_000;
+using StoredTracksExtra = StoredTracksExtra_001;
+using TracksExtra = TracksExtra_001;
 
 using Track = Tracks::iterator;
 using TrackIU = TracksIU::iterator;
