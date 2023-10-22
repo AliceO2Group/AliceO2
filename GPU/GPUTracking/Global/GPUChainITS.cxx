@@ -82,13 +82,15 @@ o2::its::TimeFrame* GPUChainITS::GetITSTimeframe()
   if (mITSTimeFrame == nullptr) {
     mRec->GetITSTraits(nullptr, nullptr, &mITSTimeFrame);
   }
-  auto doFWExtAlloc = [this](size_t size) -> void* { return rec()->AllocateUnmanagedMemory(size, GPUMemoryResource::MEMORY_GPU); };
+  if (mITSTimeFrame->mIsGPU) {
+    auto doFWExtAlloc = [this](size_t size) -> void* { return rec()->AllocateUnmanagedMemory(size, GPUMemoryResource::MEMORY_GPU); };
 
-  mFrameworkAllocator.reset(new o2::its::GPUFrameworkExternalAllocator);
-  mFrameworkAllocator->setReconstructionFramework(rec());
-  mITSTimeFrame->setExternalAllocator(mFrameworkAllocator.get());
-  LOGP(info, "GPUChainITS is giving me ps: {} prop: {}", (void*)processorsShadow(), (void*)processorsShadow()->calibObjects.o2Propagator);
-  mITSTimeFrame->setDevicePropagator(processorsShadow()->calibObjects.o2Propagator);
+    mFrameworkAllocator.reset(new o2::its::GPUFrameworkExternalAllocator);
+    mFrameworkAllocator->setReconstructionFramework(rec());
+    mITSTimeFrame->setExternalAllocator(mFrameworkAllocator.get());
+    LOGP(debug, "GPUChainITS is giving me ps: {} prop: {}", (void*)processorsShadow(), (void*)processorsShadow()->calibObjects.o2Propagator);
+    mITSTimeFrame->setDevicePropagator(processorsShadow()->calibObjects.o2Propagator);
+  }
   return mITSTimeFrame.get();
 }
 

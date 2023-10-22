@@ -104,7 +104,7 @@ class TimeFrame
 
   int getTotalClusters() const;
   bool empty() const;
-
+  bool isGPU() const { return mIsGPU; }
   int getSortedIndex(int rof, int layer, int i) const;
   int getSortedStartIndex(const int, const int) const;
   int getNrof() const;

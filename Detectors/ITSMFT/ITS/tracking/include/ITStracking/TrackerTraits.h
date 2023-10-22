@@ -56,12 +56,12 @@ class TrackerTraits
   virtual void computeLayerCells(const int iteration);
   virtual void findCellsNeighbours(const int iteration);
   virtual void findRoads(const int iteration);
-  virtual void initialiseTimeFrameHybrid(const int iteration) { LOGP(info, "Something is wrong, this method should never be called"); }
-  virtual void computeTrackletsHybrid(const int iteration) { LOGP(info, "Something is wrong, this method should never be called"); }
-  virtual void computeCellsHybrid(const int iteration) { LOGP(info, "Something is wrong, this method should never be called"); }
-  virtual void findCellsNeighboursHybrid(const int iteration) { LOGP(info, "Something is wrong, this method should never be called"); }
-  virtual void findRoadsHybrid(const int iteration) { LOGP(info, "Something is wrong, this method should never be called"); }
-  virtual void findTracksHybrid(const int iteration) { LOGP(info, "Something is wrong, this method should never be called"); }
+  virtual void initialiseTimeFrameHybrid(const int iteration) { LOGP(error, "initialiseTimeFrameHybrid: this method should never be called with CPU traits"); }
+  virtual void computeTrackletsHybrid(const int iteration) { LOGP(error, "computeTrackletsHybrid: this method should never be called with CPU traits"); }
+  virtual void computeCellsHybrid(const int iteration) { LOGP(error, "computeCellsHybrid: this method should never be called with CPU traits"); }
+  virtual void findCellsNeighboursHybrid(const int iteration) { LOGP(error, "findCellsNeighboursHybrid: this method should never be called with CPU traits"); }
+  virtual void findRoadsHybrid(const int iteration) { LOGP(error, "findRoadsHybrid: this method should never be called with CPU traits"); }
+  virtual void findTracksHybrid(const int iteration) { LOGP(error, "findTracksHybrid: this method should never be called with CPU traits"); }
   virtual void findTracks();
   virtual void extendTracks(const int iteration);
   virtual void findShortPrimaries();
