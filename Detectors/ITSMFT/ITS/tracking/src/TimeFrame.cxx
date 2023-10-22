@@ -201,6 +201,8 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
       } else {
         o2::itsmft::ClusterPattern patt(pattIt);
         locXYZ = dict->getClusterCoordinates(c, patt, false);
+        sigmaY2 = o2::itsmft::SegmentationAlpide::PitchRow * o2::itsmft::SegmentationAlpide::PitchRow / 12. / patt.getRowSpan();
+        sigmaZ2 = o2::itsmft::SegmentationAlpide::PitchCol * o2::itsmft::SegmentationAlpide::PitchCol / 12. / patt.getColumnSpan();
         clusterSize = patt.getNPixels();
       }
       if (clusterSize < 255) {
