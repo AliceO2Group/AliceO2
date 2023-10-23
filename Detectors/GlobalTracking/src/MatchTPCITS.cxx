@@ -45,7 +45,6 @@
 #include "ITStracking/IOUtils.h"
 
 #include "GPUO2Interface.h" // Needed for propper settings in GPUParam.h
-
 #ifdef WITH_OPENMP
 #include <omp.h>
 #endif
@@ -57,6 +56,8 @@ using MatrixD4 = ROOT::Math::SMatrix<double, 4, 4, ROOT::Math::MatRepStd<double,
 using NAMES = o2::base::NameConf;
 using GTrackID = o2::dataformats::GlobalTrackID;
 constexpr float MatchTPCITS::Tan70, MatchTPCITS::Cos70I2, MatchTPCITS::MaxSnp, MatchTPCITS::MaxTgp;
+
+LinksPoolMT* TPCABSeed::gLinksPool = nullptr;
 
 //______________________________________________
 MatchTPCITS::MatchTPCITS() = default;
@@ -172,6 +173,9 @@ void MatchTPCITS::clear()
   if (mMCTruthON) {
     mTPCLblWork.clear();
     mITSLblWork.clear();
+  }
+  for (int i = 0; i < mNThreads; i++) {
+    mABLinksPool.threadPool[i].clear();
   }
 }
 
@@ -1759,13 +1763,13 @@ bool MatchTPCITS::runAfterBurner(pmr::vector<o2::dataformats::TrackTPCITS>& matc
       continue;
     }
 #ifdef WITH_OPENMP
-    int tid = omp_get_thread_num();
+    uint8_t tid = (uint8_t)omp_get_thread_num();
 #else
-    int tid = 0;
+    uint8_t tid = 0;
 #endif
     fillClustersForAfterBurner(intCand.rofITS, 1, itsChipClRefsBuff[tid]);                           // RS FIXME account for possibility of filling 2 ROFs
     for (int is = intCand.seedsRef.getFirstEntry(); is < intCand.seedsRef.getEntriesBound(); is++) { // loop over all seeds of this interaction candidate
-      processABSeed(is, itsChipClRefsBuff[tid]);
+      processABSeed(is, itsChipClRefsBuff[tid], tid);
     }
   }
   mTimer[SWABMatch].Stop();
@@ -1785,16 +1789,7 @@ bool MatchTPCITS::runAfterBurner(pmr::vector<o2::dataformats::TrackTPCITS>& matc
     if (ABSeed.isDisabled()) {
       continue;
     }
-    if (ABSeed.lowestLayer > mParams->requireToReachLayerAB) {
-      ABSeed.disable();
-      continue;
-    }
-    auto candID = ABSeed.getBestLinkID();
-    if (candID < 0 || ABSeed.getLink(candID).nContLayers < mParams->minContributingLayersAB) {
-      ABSeed.disable();
-      continue;
-    }
-    candAB.emplace_back(SID{i, ABSeed.getLink(candID).chi2Norm()});
+    candAB.emplace_back(SID{i, ABSeed.getLink(ABSeed.getBestLinkID()).chi2Norm()});
   }
   std::sort(candAB.begin(), candAB.end(), [](SID a, SID b) { return a.chi2 < b.chi2; });
   for (int i = 0; i < (int)candAB.size(); i++) {
@@ -1907,10 +1902,12 @@ void MatchTPCITS::refitABWinners(pmr::vector<o2::dataformats::TrackTPCITS>& matc
 }
 
 //______________________________________________
-void MatchTPCITS::processABSeed(int sid, const ITSChipClustersRefs& itsChipClRefs)
+void MatchTPCITS::processABSeed(int sid, const ITSChipClustersRefs& itsChipClRefs, uint8_t tID)
 {
   // prepare matching hypothesis tree for given seed
   auto& ABSeed = mTPCABSeeds[sid];
+  ABSeed.threadID = tID;
+  ABSeed.linksEntry = mABLinksPool.threadPool[tID].size();
   followABSeed(ABSeed.track, itsChipClRefs, MinusTen, NITSLayers - 1, ABSeed); // check matches on outermost layer
   for (int ilr = NITSLayers - 1; ilr > mParams->lowestLayerAB; ilr--) {
     int nextLinkID = ABSeed.firstInLr[ilr];
@@ -1928,6 +1925,16 @@ void MatchTPCITS::processABSeed(int sid, const ITSChipClustersRefs& itsChipClRef
       nextLinkID = next2nextLinkID;
     }
   }
+  // is this seed has chance to be validated?
+  auto candID = ABSeed.getBestLinkID();
+  if (ABSeed.isDisabled() ||
+      ABSeed.lowestLayer > mParams->requireToReachLayerAB ||
+      candID < 0 ||
+      ABSeed.getLink(candID).nContLayers < mParams->minContributingLayersAB) { // free unused links
+    ABSeed.disable();
+    mABLinksPool.threadPool[tID].resize(size_t(ABSeed.linksEntry));
+  }
+
   /* // RS FIXME remove on final clean-up
   auto bestLinkID = ABSeed.getBestLinkID();
   if (bestLinkID>MinusOne) {
@@ -2132,13 +2139,13 @@ int MatchTPCITS::registerABTrackLink(TPCABSeed& ABSeed, const o2::track::TrackPa
 {
   // registers new ABLink on the layer, assigning provided kinematics. The link will be registered in a
   // way preserving the quality ordering of the links on the layer
-  int lnkID = ABSeed.trackLinks.size(), nextID = ABSeed.firstInLr[lr], nc = 1 + (parentID > MinusOne ? ABSeed.getLink(parentID).nContLayers : 0);
+  int lnkID = ABSeed.getNLinks(), nextID = ABSeed.firstInLr[lr], nc = 1 + (parentID > MinusOne ? ABSeed.getLink(parentID).nContLayers : 0);
   float chi2 = chi2Cl + (parentID > MinusOne ? ABSeed.getLink(parentID).chi2 : 0.);
   // LOG(info) << "Reg on lr "  << lr << " nc = " << nc << " chi2cl=" << chi2Cl << " -> " << chi2; // RSTMP
 
   if (ABSeed.firstInLr[lr] == MinusOne) { // no links on this layer yet
     ABSeed.firstInLr[lr] = lnkID;
-    ABSeed.trackLinks.emplace_back(trc, clID, parentID, MinusOne, lr, nc, laddID, chi2);
+    ABSeed.addLink(trc, clID, parentID, MinusOne, lr, nc, laddID, chi2);
     return lnkID;
   }
   // add new link sorting links of this layer in quality
@@ -2150,7 +2157,7 @@ int MatchTPCITS::registerABTrackLink(TPCABSeed& ABSeed, const o2::track::TrackPa
     bool newIsBetter = parentID <= MinusOne ? isBetter(chi2, nextLink.chi2) : isBetter(ABSeed.getLink(parentID).chi2NormPredict(chi2Cl), nextLink.chi2Norm());
     if (newIsBetter) {                          // need to insert new link before nextLink
       if (count < mParams->maxABLinksOnLayer) { // will insert in front of nextID
-        ABSeed.trackLinks.emplace_back(trc, clID, parentID, nextID, lr, nc, laddID, chi2);
+        ABSeed.addLink(trc, clID, parentID, nextID, lr, nc, laddID, chi2);
         if (topID == MinusOne) {        // are we comparing new link with best link on the layer?
           ABSeed.firstInLr[lr] = lnkID; // flag as best on the layer
         } else {
@@ -2167,7 +2174,7 @@ int MatchTPCITS::registerABTrackLink(TPCABSeed& ABSeed, const o2::track::TrackPa
   } while (nextID > MinusOne);
   // new link is worse than all others, add it only if there is a room to expand
   if (count < mParams->maxABLinksOnLayer) {
-    ABSeed.trackLinks.emplace_back(trc, clID, parentID, MinusOne, lr, nc, laddID, chi2);
+    ABSeed.addLink(trc, clID, parentID, MinusOne, lr, nc, laddID, chi2);
     if (topID > MinusOne) {
       ABSeed.getLink(topID).nextOnLr = lnkID; // point from previous one
     }
@@ -2540,8 +2547,8 @@ void MatchTPCITS::reportSizes(pmr::vector<o2::dataformats::TrackTPCITS>& matched
     for (const auto& a : mTPCABSeeds) {
       siz += a.sizeInternal();
       cap += a.capInternal();
-      cnt += a.trackLinks.size();
-      cntCap += a.trackLinks.capacity();
+      cnt += a.getNLinks();
+      cntCap += a.getNLinks();
     }
     sizTot += siz;
     capTot += cap;
@@ -2615,6 +2622,8 @@ void MatchTPCITS::setNThreads(int n)
   LOG(warning) << "Multithreading is not supported, imposing single thread";
   mNThreads = 1;
 #endif
+  mABLinksPool.threadPool.resize(mNThreads);
+  TPCABSeed::gLinksPool = &mABLinksPool;
 }
 
 //<<============================= AfterBurner for TPC-track / ITS cluster matching ===================<<
