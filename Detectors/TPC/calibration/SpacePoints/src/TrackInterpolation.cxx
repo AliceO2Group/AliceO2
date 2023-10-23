@@ -23,10 +23,13 @@
 #include "DataFormatsTPC/Defs.h"
 #include "DataFormatsTRD/Constants.h"
 #include "DetectorsCommonDataFormats/DetID.h"
+#include "ReconstructionDataFormats/PrimaryVertex.h"
+#include "ReconstructionDataFormats/VtxTrackRef.h"
+#include "MathUtils/Tsallis.h"
 #include "TRDBase/PadPlane.h"
 #include "TMath.h"
 #include "DataFormatsTPC/VDriftCorrFact.h"
-#include <fairlogger/Logger.h>
+#include "Framework/Logger.h"
 #include <set>
 #include <algorithm>
 #include <random>
@@ -35,7 +38,7 @@ using namespace o2::tpc;
 using GTrackID = o2::dataformats::GlobalTrackID;
 using DetID = o2::detectors::DetID;
 
-void TrackInterpolation::init()
+void TrackInterpolation::init(o2::dataformats::GlobalTrackID::mask_t src)
 {
   // perform initialization
   LOG(info) << "Start initializing TrackInterpolation";
@@ -54,28 +57,165 @@ void TrackInterpolation::init()
   mGeoTRD = o2::trd::Geometry::instance();
   mParams = &SpacePointsCalibConfParam::Instance();
 
+  mSourcesConfigured = src;
+  mTrackTypes.insert({GTrackID::ITSTPC, 0});
+  mTrackTypes.insert({GTrackID::ITSTPCTRD, 1});
+  mTrackTypes.insert({GTrackID::ITSTPCTOF, 2});
+  mTrackTypes.insert({GTrackID::ITSTPCTRDTOF, 3});
+
   mInitDone = true;
-  LOG(info) << "Done initializing TrackInterpolation";
+  LOGP(info, "Done initializing TrackInterpolation. Configured track input: {}", GTrackID::getSourcesNames(mSourcesConfigured));
 }
 
-void TrackInterpolation::process(const o2::globaltracking::RecoContainer& inp, const std::vector<GTrackID>& gids, const std::vector<o2::globaltracking::RecoContainer::GlobalIDSet>& gidTables, std::vector<o2::track::TrackParCov>& seeds, const std::vector<float>& trkTimes, const std::unordered_map<int, int>& trkCounters)
+bool TrackInterpolation::isInputTrackAccepted(const GTrackID& gid, const o2::globaltracking::RecoContainer::GlobalIDSet& gidTable, const o2::dataformats::PrimaryVertex& pv) const
+{
+  LOGP(debug, "Check if input track {} is accepted", gid.asString());
+  bool hasOuterPoint = gidTable[GTrackID::TRD].isIndexSet() || gidTable[GTrackID::TOF].isIndexSet();
+  if (!hasOuterPoint && !mProcessITSTPConly) {
+    return false; // don't do ITS-only extrapolation through TPC
+  }
+  const auto itsTrk = mRecoCont->getITSTrack(gidTable[GTrackID::ITS]);
+  const auto tpcTrk = mRecoCont->getTPCTrack(gidTable[GTrackID::TPC]);
+
+  if (gidTable[GTrackID::TRD].isIndexSet()) {
+    // TRD specific cuts
+    const auto& trdTrk = mRecoCont->getITSTPCTRDTrack<o2::trd::TrackTRD>(gidTable[GTrackID::ITSTPCTRD]);
+    if (trdTrk.getNtracklets() < mParams->minTRDNTrklts) {
+      return false;
+    }
+  }
+  // reduced chi2 cut is the same for all track types
+  if (itsTrk.getChi2() / itsTrk.getNumberOfClusters() > mParams->maxITSChi2 || tpcTrk.getChi2() / tpcTrk.getNClusterReferences() > mParams->maxTPCChi2) {
+    return false;
+  }
+  if (!hasOuterPoint) {
+    // ITS-TPC track (does not have outer points in TRD or TOF)
+    if (itsTrk.getNumberOfClusters() < mParams->minITSNClsNoOuterPoint || tpcTrk.getNClusterReferences() < mParams->minTPCNClsNoOuterPoint) {
+      return false;
+    }
+    if (itsTrk.getPt() < mParams->minPtNoOuterPoint) {
+      return false;
+    }
+  } else {
+    if (itsTrk.getNumberOfClusters() < mParams->minITSNCls || tpcTrk.getNClusterReferences() < mParams->minTPCNCls) {
+      return false;
+    }
+  }
+
+  auto trc = mRecoCont->getTrackParam(gid);
+  o2::dataformats::DCA dca;
+  auto prop = o2::base::Propagator::Instance();
+  if (!prop->propagateToDCA(pv, trc, prop->getNominalBz(), 2., o2::base::PropagatorF::MatCorrType::USEMatCorrLUT, &dca)) {
+    return false;
+  }
+  if (dca.getR2() > mParams->maxDCA * mParams->maxDCA) {
+    return false;
+  }
+  return true;
+}
+
+GTrackID::Source TrackInterpolation::findValidSource(GTrackID::Source src) const
+{
+  LOGP(debug, "Trying to find valid source for {}", GTrackID::getSourcesNames(src));
+  if (src == GTrackID::ITSTPCTRDTOF) {
+    if (mSourcesConfigured[GTrackID::ITSTPCTRD]) {
+      return GTrackID::ITSTPCTRD;
+    } else if (mSourcesConfigured[GTrackID::ITSTPC]) {
+      return GTrackID::ITSTPC;
+    } else {
+      return GTrackID::NSources;
+    }
+  } else if (src == GTrackID::ITSTPCTRD || src == GTrackID::ITSTPCTOF) {
+    if (mSourcesConfigured[GTrackID::ITSTPC]) {
+      return GTrackID::ITSTPC;
+    } else {
+      return GTrackID::NSources;
+    }
+  } else {
+    return GTrackID::NSources;
+  }
+}
+
+void TrackInterpolation::prepareInputTrackSample(const o2::globaltracking::RecoContainer& inp)
+{
+  mRecoCont = &inp;
+  uint32_t nTrackSeeds = 0;
+  uint32_t countSeedCandidates[4] = {0};
+  auto pvvec = mRecoCont->getPrimaryVertices();
+  auto trackIndex = mRecoCont->getPrimaryVertexMatchedTracks(); // Global ID's for associated tracks
+  auto vtxRefs = mRecoCont->getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
+  int nv = vtxRefs.size() - 1;
+  GTrackID::mask_t allowedSources = GTrackID::getSourcesMask("ITS-TPC,ITS-TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
+
+  for (int iv = 0; iv < nv; iv++) {
+    LOGP(debug, "processing PV {} of {}", iv, nv);
+
+    const auto& vtref = vtxRefs[iv];
+    auto pv = pvvec[iv];
+    for (int is = GTrackID::NSources; is >= 0; is--) {
+      if (!allowedSources[is]) {
+        continue;
+      }
+      LOGP(debug, "Checking source {}", is);
+      int idMin = vtref.getFirstEntryOfSource(is), idMax = idMin + vtref.getEntriesOfSource(is);
+      for (int i = idMin; i < idMax; i++) {
+        auto vid = trackIndex[i];
+        if (mParams->ignoreNonPVContrib && !vid.isPVContributor()) {
+          continue;
+        }
+        if (vid.isAmbiguous()) {
+          continue;
+        }
+        auto gidTable = mRecoCont->getSingleDetectorRefs(vid);
+        if (!mSourcesConfigured[is]) {
+          auto src = findValidSource(static_cast<GTrackID::Source>(vid.getSource()));
+          if (src == GTrackID::ITSTPCTRD || src == GTrackID::ITSTPC) {
+            LOGP(debug, "Found valid source {}", GTrackID::getSourcesNames(src));
+            vid = gidTable[src];
+            gidTable = mRecoCont->getSingleDetectorRefs(vid);
+          } else {
+            break; // no valid source for this vertex track source exists
+          }
+        }
+        ++countSeedCandidates[mTrackTypes[vid.getSource()]];
+        LOGP(debug, "Checking vid {}", vid.asString());
+        if (!isInputTrackAccepted(vid, gidTable, pv)) {
+          continue;
+        }
+        mSeeds.push_back(mRecoCont->getITSTrack(gidTable[GTrackID::ITS]).getParamOut());
+        mGIDs.push_back(vid);
+        mGIDtables.push_back(gidTable);
+        mTrackTimes.push_back(pv.getTimeStamp().getTimeStamp());
+        mTrackIndices[mTrackTypes[vid.getSource()]].push_back(nTrackSeeds++);
+      }
+    }
+  }
+
+  LOGP(info, "Created {} seeds. {} out of {} ITS-TPC-TRD-TOF, {} out of {} ITS-TPC-TRD, {} out of {} ITS-TPC-TOF, {} out of {} ITS-TPC",
+       nTrackSeeds,
+       mTrackIndices[mTrackTypes[GTrackID::ITSTPCTRDTOF]].size(), countSeedCandidates[mTrackTypes[GTrackID::ITSTPCTRDTOF]],
+       mTrackIndices[mTrackTypes[GTrackID::ITSTPCTRD]].size(), countSeedCandidates[mTrackTypes[GTrackID::ITSTPCTRD]],
+       mTrackIndices[mTrackTypes[GTrackID::ITSTPCTOF]].size(), countSeedCandidates[mTrackTypes[GTrackID::ITSTPCTOF]],
+       mTrackIndices[mTrackTypes[GTrackID::ITSTPC]].size(), countSeedCandidates[mTrackTypes[GTrackID::ITSTPC]]);
+}
+
+bool TrackInterpolation::isTrackSelected(const o2::track::TrackParCov& trk) const
+{
+  std::random_device rd;
+  std::mt19937 g(rd());
+  std::uniform_real_distribution<> distr(0., 1.);
+  float weight = 0;
+  return o2::math_utils::Tsallis::downsampleTsallisCharged(trk.getPt(), mParams->tsalisThreshold, mSqrtS, weight, distr(g), o2::constants::physics::MassPionCharged);
+}
+
+void TrackInterpolation::process()
 {
   // main processing function
-
   if (!mInitDone) {
     LOG(error) << "Initialization not yet done. Aborting...";
     return;
   }
-
-  // reset output vectors
-  reset();
-
   // set the input containers
-  mRecoCont = &inp;
-  mGIDs = &gids;
-  mGIDtables = &gidTables;
-  mSeeds = &seeds;
-  mTrackTimes = &trkTimes;
   mTPCTracksClusIdx = mRecoCont->getTPCTracksClusterRefs();
   mTPCClusterIdxStruct = &mRecoCont->getTPCClusters();
   if (mDumpTrackPoints) {
@@ -93,96 +233,78 @@ void TrackInterpolation::process(const o2::globaltracking::RecoContainer& inp, c
     o2::its::ioutils::convertCompactClusters(clusITS, pattIt, mITSClustersArray, mITSDict);
   }
 
-  int nSeeds = mSeeds->size();
-  mTrackData.reserve(nSeeds);
-  mClRes.reserve(nSeeds * param::NPadRows);
-
-  // to obtain ITS-TPC-TRD-TOF track from ITS-TPC-TRD track we fill the trkMap
-  std::unordered_map<GTrackID, int> trkMap;
-  for (int iTrk = 0; iTrk < trkCounters.at(GTrackID::Source::ITSTPCTRDTOF); ++iTrk) {
-    const auto& gidTable = (*mGIDtables)[iTrk];
-    trkMap.emplace(std::make_pair(gidTable[GTrackID::ITSTPCTRD], iTrk));
-  }
-
   // In case we have more input tracks available than are required per TF
   // we want to sample them. But we still prefer global ITS-TPC-TRD-TOF tracks
   // over ITS-TPC-TRD tracks and so on. So we have to shuffle the indices
   // in blocks.
-  // The input GIDs are sorted. ITS-TPC-TRD-TOF are first followed by ITS-TPC-TRD,
-  // ITS-TPC-TOF and ITS-TPC
   std::random_device rd;
   std::mt19937 g(rd());
-  std::vector<int> trackIndices(nSeeds);
-  std::iota(trackIndices.begin(), trackIndices.end(), 0);
+  std::vector<GTrackID> trackIndices; // here we keep the GIDs for all track types in a single vector to use in loop
+  std::shuffle(mTrackIndices[mTrackTypes[GTrackID::ITSTPCTRDTOF]].begin(), mTrackIndices[mTrackTypes[GTrackID::ITSTPCTRDTOF]].end(), g);
+  std::shuffle(mTrackIndices[mTrackTypes[GTrackID::ITSTPCTRD]].begin(), mTrackIndices[mTrackTypes[GTrackID::ITSTPCTRD]].end(), g);
+  std::shuffle(mTrackIndices[mTrackTypes[GTrackID::ITSTPCTOF]].begin(), mTrackIndices[mTrackTypes[GTrackID::ITSTPCTOF]].end(), g);
+  std::shuffle(mTrackIndices[mTrackTypes[GTrackID::ITSTPC]].begin(), mTrackIndices[mTrackTypes[GTrackID::ITSTPC]].end(), g);
+  trackIndices.insert(trackIndices.end(), mTrackIndices[mTrackTypes[GTrackID::ITSTPCTRDTOF]].begin(), mTrackIndices[mTrackTypes[GTrackID::ITSTPCTRDTOF]].end());
+  trackIndices.insert(trackIndices.end(), mTrackIndices[mTrackTypes[GTrackID::ITSTPCTRD]].begin(), mTrackIndices[mTrackTypes[GTrackID::ITSTPCTRD]].end());
+  trackIndices.insert(trackIndices.end(), mTrackIndices[mTrackTypes[GTrackID::ITSTPCTOF]].begin(), mTrackIndices[mTrackTypes[GTrackID::ITSTPCTOF]].end());
+  trackIndices.insert(trackIndices.end(), mTrackIndices[mTrackTypes[GTrackID::ITSTPC]].begin(), mTrackIndices[mTrackTypes[GTrackID::ITSTPC]].end());
 
-  std::shuffle(trackIndices.begin(), trackIndices.begin() + trkCounters.at(GTrackID::Source::ITSTPCTRDTOF), g);
-  int nTracks = trkCounters.at(GTrackID::Source::ITSTPCTRDTOF);
-  std::shuffle(trackIndices.begin() + nTracks, trackIndices.begin() + nTracks + trkCounters.at(GTrackID::Source::ITSTPCTRD), g);
-  nTracks += trkCounters.at(GTrackID::Source::ITSTPCTRD);
-  std::shuffle(trackIndices.begin() + nTracks, trackIndices.begin() + nTracks + trkCounters.at(GTrackID::Source::ITSTPCTOF), g);
-  nTracks += trkCounters.at(GTrackID::Source::ITSTPCTOF);
-  std::shuffle(trackIndices.begin() + nTracks, trackIndices.begin() + nTracks + trkCounters.at(GTrackID::Source::ITSTPC), g);
-
-  std::vector<int> globalTracksToCheck;
+  int nSeeds = mSeeds.size();
+  int maxOutputTracks = (mMaxTracksPerTF >= 0) ? mMaxTracksPerTF + mAddTracksITSTPC : nSeeds;
+  mTrackData.reserve(maxOutputTracks);
+  mClRes.reserve(maxOutputTracks * param::NPadRows);
   bool maxTracksReached = false;
-  for (int iSeed = trkCounters.at(GTrackID::Source::ITSTPCTRDTOF); iSeed < nSeeds; ++iSeed) {
-    if (!maxTracksReached && mMaxTracksPerTF >= 0 && mTrackDataCompact.size() >= mMaxTracksPerTF) {
-      maxTracksReached = true;
-      // if mAddTracksITSTPC > 0 we will still process up to mAddTracksITSTPC tracks,
-      // otherwise the following if statement is also true and we break
-      if (trkCounters.at(GTrackID::Source::ITSTPC) > 0) {
-        iSeed = nSeeds - trkCounters.at(GTrackID::Source::ITSTPC);
-      } else {
-        // no ITS-TPC tracks available which could be processed
-        break;
-      }
-    }
+  for (int iSeed = 0; iSeed < nSeeds; ++iSeed) {
     if (mMaxTracksPerTF >= 0 && mTrackDataCompact.size() >= mMaxTracksPerTF + mAddTracksITSTPC) {
       LOG(info) << "Maximum number of tracks per TF reached. Skipping the remaining " << nSeeds - iSeed << " tracks.";
       break;
     }
-    if (auto search = trkMap.find((*mGIDs)[iSeed]); search != trkMap.end()) {
-      // for this ITS-TPC-TRD track we also have a match in TOF
-      if (mParams->debugTRDTOF) {
-        // process the ITS-TPC-TRD-TOF track later, in addition to the ITS-TPC-TRD track
-        globalTracksToCheck.push_back(search->second);
-      } else {
-        // process the ITS-TPC-TRD-TOF track and skip its ITS-TPC-TRD track seed
-        interpolateTrack(search->second);
-        continue;
+    int seedIndex = trackIndices[iSeed];
+    if (mParams->enableTrackDownsampling && !isTrackSelected(mSeeds[seedIndex])) {
+      continue;
+    }
+    if (mGIDs[seedIndex].includesDet(DetID::TRD) || mGIDs[seedIndex].includesDet(DetID::TOF)) {
+      interpolateTrack(seedIndex);
+      if (mProcessSeeds) {
+        if (mGIDs[seedIndex].includesDet(DetID::TRD) && mGIDs[seedIndex].includesDet(DetID::TOF)) {
+          mGIDs.push_back(mGIDtables[seedIndex][GTrackID::ITSTPCTRD]);
+          mGIDtables.push_back(mRecoCont->getSingleDetectorRefs(mGIDs.back()));
+          mTrackTimes.push_back(mTrackTimes[seedIndex]);
+          mSeeds.push_back(mSeeds[seedIndex]);
+        }
+        mGIDs.push_back(mGIDtables[seedIndex][GTrackID::ITSTPC]);
+        mGIDtables.push_back(mRecoCont->getSingleDetectorRefs(mGIDs.back()));
+        mTrackTimes.push_back(mTrackTimes[seedIndex]);
+        mSeeds.push_back(mSeeds[seedIndex]);
       }
-    }
-    if (gids[trackIndices[iSeed]].includesDet(DetID::TRD) || gids[trackIndices[iSeed]].includesDet(DetID::TOF)) {
-      interpolateTrack(trackIndices[iSeed]);
     } else {
-      extrapolateTrack(trackIndices[iSeed]);
+      extrapolateTrack(seedIndex);
     }
   }
-  // irrespective of the number of tracks already processed, interpolate the ITS-TPC-TRD-TOF tracks
-  // which belong to the ITS-TPC-TRD tracks that were already processed, to allow their analysis
-  // offline
-  // the globalTracksToCheck vector is only filled in case mParams->debugTRDTOF == true
-  LOGP(info, "Processing {} ITS-TPC-TRD-TOF tracks for which the ITS-TPC-TRD track was already done", globalTracksToCheck.size());
-  for (auto iTrk : globalTracksToCheck) {
-    interpolateTrack(iTrk);
+  for (int iSeed = nSeeds; iSeed < (int)mSeeds.size(); ++iSeed) {
+    // this loop will only be entered in case mProcessSeeds is set
+    if (mGIDs[iSeed].includesDet(DetID::TRD) || mGIDs[iSeed].includesDet(DetID::TOF)) {
+      interpolateTrack(iSeed);
+    } else {
+      extrapolateTrack(iSeed);
+    }
   }
-
   LOG(info) << "Could process " << mTrackData.size() << " tracks successfully";
 }
 
 void TrackInterpolation::interpolateTrack(int iSeed)
 {
-  LOGP(debug, "Starting track interpolation for seed {}", iSeed);
+  LOGP(debug, "Starting track interpolation for GID {}", mGIDs[iSeed].asString());
   TrackData trackData;
   std::unique_ptr<TrackDataExtended> trackDataExtended;
   std::vector<TPCClusterResiduals> clusterResiduals;
   auto propagator = o2::base::Propagator::Instance();
-  const auto& gidTable = (*mGIDtables)[iSeed];
+  const auto& gidTable = mGIDtables[iSeed];
   const auto& trkTPC = mRecoCont->getTPCTrack(gidTable[GTrackID::TPC]);
   const auto& trkITS = mRecoCont->getITSTrack(gidTable[GTrackID::ITS]);
   if (mDumpTrackPoints) {
     trackDataExtended = std::make_unique<TrackDataExtended>();
-    (*trackDataExtended).gid = (*mGIDs)[iSeed];
+    (*trackDataExtended).gid = mGIDs[iSeed];
     (*trackDataExtended).clIdx.setFirstEntry(mClRes.size());
     (*trackDataExtended).trkITS = trkITS;
     (*trackDataExtended).trkTPC = trkTPC;
@@ -193,15 +315,15 @@ void TrackInterpolation::interpolateTrack(int iSeed)
       (*trackDataExtended).clsITS.push_back(clsITS);
     }
   }
-  trackData.gid = (*mGIDs)[iSeed];
-  trackData.par = (*mSeeds)[iSeed];
-  auto& trkWork = (*mSeeds)[iSeed];
+  trackData.gid = mGIDs[iSeed];
+  trackData.par = mSeeds[iSeed];
+  auto& trkWork = mSeeds[iSeed];
   // reset the cache array (sufficient to set cluster available to zero)
   for (auto& elem : mCache) {
     elem.clAvailable = 0;
   }
   trackData.clIdx.setFirstEntry(mClRes.size()); // reference the first cluster residual belonging to this track
-  float clusterTimeBinOffset = (*mTrackTimes)[iSeed] / mTPCTimeBinMUS;
+  float clusterTimeBinOffset = mTrackTimes[iSeed] / mTPCTimeBinMUS;
 
   // store the TPC cluster positions in the cache
   for (int iCl = trkTPC.getNClusterReferences(); iCl--;) {
@@ -246,7 +368,7 @@ void TrackInterpolation::interpolateTrack(int iSeed)
     const auto& clTOF = mRecoCont->getTOFClusters()[gidTable[GTrackID::TOF]];
     if (mDumpTrackPoints) {
       (*trackDataExtended).clsTOF = clTOF;
-      (*trackDataExtended).matchTOF = mRecoCont->getTOFMatch((*mGIDs)[iSeed]);
+      (*trackDataExtended).matchTOF = mRecoCont->getTOFMatch(mGIDs[iSeed]);
     }
     const int clTOFSec = clTOF.getCount();
     const float clTOFAlpha = o2::math_utils::sector2Angle(clTOFSec);
@@ -409,8 +531,8 @@ void TrackInterpolation::interpolateTrack(int iSeed)
       (*trackDataExtended).clIdx.setEntries(nClValidated);
       mTrackDataExtended.push_back(std::move(*trackDataExtended));
     }
-    mGIDsSuccess.push_back((*mGIDs)[iSeed]);
-    mTrackDataCompact.emplace_back(mClRes.size() - nClValidated, nClValidated, (*mGIDs)[iSeed].getSource());
+    mGIDsSuccess.push_back(mGIDs[iSeed]);
+    mTrackDataCompact.emplace_back(mClRes.size() - nClValidated, nClValidated, mGIDs[iSeed].getSource());
   }
   if (mParams->writeUnfiltered) {
     TrackData trkDataTmp = trackData;
@@ -424,17 +546,18 @@ void TrackInterpolation::interpolateTrack(int iSeed)
 void TrackInterpolation::extrapolateTrack(int iSeed)
 {
   // extrapolate ITS-only track through TPC and store residuals to TPC clusters in the output vectors
-  const auto& gidTable = (*mGIDtables)[iSeed];
+  LOGP(debug, "Starting track extrapolation for GID {}", mGIDs[iSeed].asString());
+  const auto& gidTable = mGIDtables[iSeed];
   TrackData trackData;
   std::vector<TPCClusterResiduals> clusterResiduals;
   trackData.clIdx.setFirstEntry(mClRes.size());
   const auto& trkITS = mRecoCont->getITSTrack(gidTable[GTrackID::ITS]);
   const auto& trkTPC = mRecoCont->getTPCTrack(gidTable[GTrackID::TPC]);
-  trackData.gid = (*mGIDs)[iSeed];
-  trackData.par = (*mSeeds)[iSeed];
+  trackData.gid = mGIDs[iSeed];
+  trackData.par = mSeeds[iSeed];
 
-  auto& trkWork = (*mSeeds)[iSeed];
-  float clusterTimeBinOffset = (*mTrackTimes)[iSeed] / mTPCTimeBinMUS;
+  auto& trkWork = mSeeds[iSeed];
+  float clusterTimeBinOffset = mTrackTimes[iSeed] / mTPCTimeBinMUS;
   auto propagator = o2::base::Propagator::Instance();
   unsigned short rowPrev = 0; // used to calculate dRow of two consecutive cluster residuals
   unsigned short nMeasurements = 0;
@@ -494,8 +617,8 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
     }
     trackData.clIdx.setEntries(nClValidated);
     mTrackData.push_back(std::move(trackData));
-    mGIDsSuccess.push_back((*mGIDs)[iSeed]);
-    mTrackDataCompact.emplace_back(mClRes.size() - nClValidated, nClValidated, (*mGIDs)[iSeed].getSource());
+    mGIDsSuccess.push_back(mGIDs[iSeed]);
+    mTrackDataCompact.emplace_back(mClRes.size() - nClValidated, nClValidated, mGIDs[iSeed].getSource());
   }
   if (mParams->writeUnfiltered) {
     TrackData trkDataTmp = trackData;
@@ -881,6 +1004,13 @@ void TrackInterpolation::reset()
   mTrackDataUnfiltered.clear();
   mClResUnfiltered.clear();
   mGIDsSuccess.clear();
+  for (auto& vec : mTrackIndices) {
+    vec.clear();
+  }
+  mGIDs.clear();
+  mGIDtables.clear();
+  mTrackTimes.clear();
+  mSeeds.clear();
 }
 
 //______________________________________________

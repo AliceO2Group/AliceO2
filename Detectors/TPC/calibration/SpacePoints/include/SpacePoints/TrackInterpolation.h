@@ -99,6 +99,9 @@ struct TrackDataCompact {
   ClassDefNV(TrackDataCompact, 1);
 };
 
+// TODO add to UnbinnedResid::sec flag if cluster was used or not
+// TODO add to TrackDataCompact::sourceId flag if track was used or not (if possible)
+
 /// Heavy structure with track parameterizations + track points for debugging
 struct TrackDataExtended {
   o2::dataformats::GlobalTrackID gid{};              ///< GID of the most global barrel track
@@ -185,11 +188,23 @@ class TrackInterpolation
 
   // -------------------------------------- processing functions --------------------------------------------------
 
-  /// Initialize everything
-  void init();
+  /// Initialize everything, set the requested track sources
+  void init(o2::dataformats::GlobalTrackID::mask_t src);
+
+  /// Check if input track passes configured cuts
+  bool isInputTrackAccepted(const o2::dataformats::GlobalTrackID& gid, const o2::globaltracking::RecoContainer::GlobalIDSet& gidTable, const o2::dataformats::PrimaryVertex& pv) const;
+
+  /// For given vertex track source which is not in mSourcesConfigured find the seeding source which is enabled
+  o2::dataformats::GlobalTrackID::Source findValidSource(o2::dataformats::GlobalTrackID::Source src) const;
+
+  /// Prepare input track sample (not relying on CreateTracksVariadic functionality)
+  void prepareInputTrackSample(const o2::globaltracking::RecoContainer& inp);
+
+  /// Given the defined downsampling factor tsalisThreshold check if track is selected
+  bool isTrackSelected(const o2::track::TrackParCov& trk) const;
 
   /// Main processing function
-  void process(const o2::globaltracking::RecoContainer& inp, const std::vector<o2::dataformats::GlobalTrackID>& gids, const std::vector<o2::globaltracking::RecoContainer::GlobalIDSet>& gidTables, std::vector<o2::track::TrackParCov>& seeds, const std::vector<float>& trkTimes, const std::unordered_map<int, int>& trkCounters);
+  void process();
 
   /// Extrapolate ITS-only track through TPC and store residuals to TPC clusters along the way
   /// \param seed index
@@ -249,6 +264,12 @@ class TrackInterpolation
   /// Enable processing of seeds
   void setProcessSeeds() { mProcessSeeds = true; }
 
+  /// Enable ITS-TPC only processing
+  void setProcessITSTPConly() { mProcessITSTPConly = true; }
+
+  /// Set the centre of mass energy required for pT downsampling Tsalis function
+  void setSqrtS(float s) { mSqrtS = s; }
+
   // --------------------------------- output ---------------------------------------------
   std::vector<UnbinnedResid>& getClusterResiduals() { return mClRes; }
   std::vector<TrackDataCompact>& getTrackDataCompact() { return mTrackDataCompact; }
@@ -266,18 +287,23 @@ class TrackInterpolation
   float mTPCVDrift = -1.;       ///< TPC drift speed in cm/microseconds
   float mTPCDriftTimeOffset = 0.;                    ///< TPC drift time bias in cm/mus
   float mTPCDriftTimeOffsetRef = 0.;                 ///< TPC nominal (e.g. at the start of run) drift time bias in cm/mus
+  float mSqrtS{13600.f};                             ///< centre of mass energy set from LHC IF
   MatCorrType mMatCorr{MatCorrType::USEMatCorrNONE}; ///< if material correction should be done
   int mMaxTracksPerTF{-1};                           ///< max number of tracks to be processed per TF (-1 means there is no limit)
   int mAddTracksITSTPC{0};                           ///< number of ITS-TPC tracks which can be processed in addition to mMaxTracksPerTF
   bool mDumpTrackPoints{false};                      ///< dump also track points in ITS, TRD and TOF
   bool mProcessSeeds{false};                         ///< in case for global tracks also their shorter parts are processed separately
+  bool mProcessITSTPConly{false};                    ///< flag, whether or not to extrapolate ITS-only through TPC
+  o2::dataformats::GlobalTrackID::mask_t mSourcesConfigured; ///< keep only the matches here, not the individual detector contributors
 
   // input
   const o2::globaltracking::RecoContainer* mRecoCont = nullptr;                            ///< input reco container
-  const std::vector<o2::dataformats::GlobalTrackID>* mGIDs = nullptr;                      ///< GIDs of input tracks
-  const std::vector<o2::globaltracking::RecoContainer::GlobalIDSet>* mGIDtables = nullptr; ///< GIDs of contributors from single detectors for each seed
-  const std::vector<float>* mTrackTimes = nullptr;                                         ///< time estimates for all input tracks in micro seconds
-  std::vector<o2::track::TrackParCov>* mSeeds = nullptr;                                   ///< seeding track parameters (ITS tracks)
+  std::vector<o2::dataformats::GlobalTrackID> mGIDs{};                                     ///< GIDs of input tracks
+  std::vector<o2::globaltracking::RecoContainer::GlobalIDSet> mGIDtables{};                ///< GIDs of contributors from single detectors for each seed
+  std::vector<float> mTrackTimes{};                                                        ///< time estimates for all input tracks in micro seconds
+  std::vector<o2::track::TrackParCov> mSeeds{};                                            ///< seeding track parameters (ITS tracks)
+  std::map<int, int> mTrackTypes;                                                          ///< mapping of track source to array index in mTrackIndices
+  std::array<std::vector<o2::dataformats::GlobalTrackID>, 4> mTrackIndices;                ///< keep GIDs of input tracks separately for each track type
   gsl::span<const TPCClRefElem> mTPCTracksClusIdx;                                         ///< input TPC cluster indices from span
   const ClusterNativeAccess* mTPCClusterIdxStruct = nullptr; ///< struct holding the TPC cluster indices
   // ITS specific input only needed for debugging
