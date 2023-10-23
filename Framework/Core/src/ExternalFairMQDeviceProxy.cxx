@@ -165,7 +165,8 @@ void sendOnChannel(fair::mq::Device& device, fair::mq::MessagePtr&& headerMessag
 {
   //  const auto* dph = o2::header::get<DataProcessingHeader*>( *reinterpret_cast<o2::header::Stack*>(headerMessage->GetData()) );
   const auto* dph = o2::header::get<DataProcessingHeader*>(headerMessage->GetData());
-  if (!dph) {
+  const auto* sih = o2::header::get<SourceInfoHeader*>(headerMessage->GetData());
+  if (!dph && !sih) {
     LOG(error) << "Header does not follow the O2 data model, DataProcessingHeader missing";
     return;
   }
@@ -963,19 +964,11 @@ DataProcessorSpec specifyFairMQDeviceOutputProxy(char const* name,
         if (channelName != outputChannelName) {
           continue;
         }
-        DataHeader dh;
-        dh.dataOrigin = "DPL";
-        dh.dataDescription = "EOS";
-        dh.subSpecification = 0;
-        dh.payloadSize = 0;
-        dh.payloadSerializationMethod = o2::header::gSerializationMethodNone;
-        dh.tfCounter = 0;
-        dh.firstTForbit = 0;
         SourceInfoHeader sih;
         sih.state = InputChannelState::Completed;
         // allocate the header message using the underlying transport of the channel
         auto channelAlloc = o2::pmr::getTransportAllocator(channelInfo.second[0].Transport());
-        auto headerMessage = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, *lastDataProcessingHeader, sih});
+        auto headerMessage = o2::pmr::getMessage(o2::header::Stack{channelAlloc, sih});
         fair::mq::Parts out;
         out.AddPart(std::move(headerMessage));
         // add empty payload message
@@ -1071,19 +1064,11 @@ DataProcessorSpec specifyFairMQDeviceMultiOutputProxy(char const* name,
         if (!checkChannel(channelName)) {
           continue;
         }
-        DataHeader dh;
-        dh.dataOrigin = "DPL";
-        dh.dataDescription = "EOS";
-        dh.subSpecification = 0;
-        dh.payloadSize = 0;
-        dh.payloadSerializationMethod = o2::header::gSerializationMethodNone;
-        dh.tfCounter = 0;
-        dh.firstTForbit = 0;
         SourceInfoHeader sih;
         sih.state = InputChannelState::Completed;
         // allocate the header message using the underlying transport of the channel
         auto channelAlloc = o2::pmr::getTransportAllocator(channelInfo.second[0].Transport());
-        auto headerMessage = o2::pmr::getMessage(o2::header::Stack{channelAlloc, dh, *lastDataProcessingHeader, sih});
+        auto headerMessage = o2::pmr::getMessage(o2::header::Stack{channelAlloc, sih});
         fair::mq::Parts out;
         out.AddPart(std::move(headerMessage));
         // add empty payload message
