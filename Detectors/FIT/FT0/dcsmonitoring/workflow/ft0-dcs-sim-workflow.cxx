@@ -43,6 +43,7 @@ o2::framework::WorkflowSpec defineDataProcessing(o2::framework::ConfigContext co
   dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"FT0/Trigger5_OrA/CNT_RATE", 0, 5000000});
   dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"FT0/Background/[0..9]/CNT_RATE", 0, 50000});
   dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"FT0/Background/[A,B,C,D,E,F,G,H]/CNT_RATE", 0, 50000});
+  dphints.emplace_back(o2::dcs::test::DataPointHint<double>{"FT0/SecondaryCounter/CEplusSC/CNT_RATE", 0, 5000000});
 
   o2::framework::WorkflowSpec specs;
   specs.emplace_back(o2::dcs::test::getDCSRandomDataGeneratorSpec(dphints, "FT0"));
