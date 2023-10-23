@@ -37,8 +37,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-root-input", VariantType::Bool, false, {"disable root-files input readers"}},
     {"disable-root-output", VariantType::Bool, false, {"disable root-files output writers"}},
     {"disable-mc", VariantType::Bool, false, {"disable MC propagation even if available"}},
-    {"enable-itsonly", VariantType::Bool, false, {"process tracks without outer point (ITS-TPC only)"}},
-    {"tracking-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use for tracking"}},
+    {"vtx-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources used for the vertex finding"}},
+    {"tracking-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use for track inter-/extrapolation"}},
     {"send-track-data", VariantType::Bool, false, {"Send also the track information to the aggregator"}},
     {"debug-output", VariantType::Bool, false, {"Dump extended tracking information for debugging"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
@@ -66,25 +66,41 @@ void customize(std::vector<o2::framework::CompletionPolicy>& policies)
 WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 {
   WorkflowSpec specs;
-  GID::mask_t allowedSources = GID::getSourcesMask("ITS,TPC,TRD,TOF,ITS-TPC,ITS-TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
+  GID::mask_t allowedSources = GID::getSourcesMask("ITS-TPC,ITS-TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
+  GID::mask_t srcVtx = allowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("vtx-sources"));
+  GID::mask_t srcTracks = allowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("tracking-sources"));
+  if (srcTracks.count() > srcVtx.count()) {
+    LOGP(error, "More sources configured for inter-/extrapolation: {} than for vertexing: {}. Additional sources will be ignored", GID::getSourcesNames(srcTracks), GID::getSourcesNames(srcVtx));
+    srcTracks &= srcVtx;
+  }
+  LOG(debug) << "Data sources for inter-/extrapolation: " << GID::getSourcesNames(srcTracks);
+  // check first if ITS-TPC tracks were specifically requested from command line
+  bool processITSTPConly = srcTracks[GID::ITSTPC];
+  srcTracks |= GID::getSourcesMask("ITS,TPC,ITS-TPC"); // now add them in any case
+  srcVtx |= srcTracks;
+  GID::mask_t srcClusters = srcTracks;
+  if (srcTracks[GID::ITSTPCTRD] || srcTracks[GID::ITSTPCTRDTOF]) {
+    srcClusters |= GID::getSourcesMask("TRD");
+  }
+  if (srcTracks[GID::ITSTPCTOF] || srcTracks[GID::ITSTPCTRDTOF]) {
+    srcClusters |= GID::getSourcesMask("TOF");
+  }
   // Update the (declared) parameters if changed from the command line
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   // write the configuration used for the workflow
   o2::conf::ConfigurableParam::writeINI("o2tpcinterpolation-workflow_configuration.ini");
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   useMC = false; // force disabling MC as long as it is not implemented
-  auto processITSTPConly = configcontext.options().get<bool>("enable-itsonly");
   auto sendTrackData = configcontext.options().get<bool>("send-track-data");
   auto debugOutput = configcontext.options().get<bool>("debug-output");
-  GID::mask_t src = allowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("tracking-sources"));
-  LOG(info) << "Data sources: " << GID::getSourcesNames(src);
 
-  specs.emplace_back(o2::tpc::getTPCInterpolationSpec(src, useMC, processITSTPConly, sendTrackData, debugOutput));
+  specs.emplace_back(o2::tpc::getTPCInterpolationSpec(srcClusters, srcVtx, srcTracks, useMC, processITSTPConly, sendTrackData, debugOutput));
   if (!configcontext.options().get<bool>("disable-root-output")) {
     specs.emplace_back(o2::tpc::getTPCResidualWriterSpec(sendTrackData, debugOutput));
   }
 
-  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, src, src, src, useMC);
+  o2::globaltracking::InputHelper::addInputSpecs(configcontext, specs, srcClusters, srcVtx, srcVtx, useMC);
+  o2::globaltracking::InputHelper::addInputSpecsPVertex(configcontext, specs, useMC); // P-vertex is always needed
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(configcontext, specs);
