@@ -29,9 +29,14 @@ struct MatchTPCITSParams : public o2::conf::ConfigurableParamHelper<MatchTPCITSP
   enum ValidateMatchByFIT { Disable,
                             Prefer,
                             Require }; // flags for usage of FT0 in match validation
-
+  enum TimeOutliersPolicy {            // policy for matching timestamps outside of respective ITS ROF bracket
+    Tolerate,                          // accept as is
+    Adjust,                            // adjust to closest ITS bracket boundary
+    Reject                             // reject match
+  };
   bool runAfterBurner = true;                     ///< run afterburner for TPCtrack-ITScluster matching
   ValidateMatchByFIT validateMatchByFIT = Prefer; ///< when comparing ITS-TPC matches, prefer those which have time of Interaction Candidate
+  TimeOutliersPolicy ITSTimeOutliersPolicy = Adjust;
   float crudeAbsDiffCut[o2::track::kNParams] = {2.f, 2.f, 0.2f, 0.2f, 4.f};
   float crudeNSigma2Cut[o2::track::kNParams] = {49.f, 49.f, 49.f, 49.f, 49.f};
 
