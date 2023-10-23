@@ -85,8 +85,8 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
     mPadGainTracks.setdEdxMax(maxdEdx);
     mPadGainTracks.doNotNomalize(donotnormalize);
 
-    const auto propagateTrack = ic.options().get<bool>("propagateTrack");
-    mPadGainTracks.setPropagateTrack(propagateTrack);
+    const auto propagateTrack = ic.options().get<bool>("do-not-propagateTrack");
+    mPadGainTracks.setPropagateTrack(!propagateTrack);
 
     const auto dedxRegionType = ic.options().get<int>("dedxRegionType");
     mPadGainTracks.setdEdxRegion(static_cast<CalibPadGainTracks::DEdxRegion>(dedxRegionType));
@@ -271,14 +271,14 @@ DataProcessorSpec getTPCCalibPadGainTracksSpec(const uint32_t publishAfterTFs, c
     {"etaMax", VariantType::Float, 1.f, {"maximum eta of the tracks which are used for the pad-by-pad gain map"}},
     {"disable-log-transform", VariantType::Bool, false, {"Disable the transformation of q/dedx -> log(1 + q/dedx)"}},
     {"do-not-normalize", VariantType::Bool, false, {"Do not normalize the cluster charge to the dE/dx"}},
-    {"mindEdx", VariantType::Float, 0.f, {"Minimum accepted dE/dx value"}},
-    {"maxdEdx", VariantType::Float, -1.f, {"Maximum accepted dE/dx value (-1=accept all dE/dx)"}},
+    {"mindEdx", VariantType::Float, 10.f, {"Minimum accepted dE/dx value"}},
+    {"maxdEdx", VariantType::Float, 500.f, {"Maximum accepted dE/dx value (-1=accept all dE/dx)"}},
     {"minClusters", VariantType::Int, 50, {"minimum number of clusters of tracks which are used for the pad-by-pad gain map"}},
     {"gainMapFile", VariantType::String, "", {"file to reference gain map, which will be used for correcting the cluster charge"}},
     {"dedxRegionType", VariantType::Int, 2, {"using the dE/dx per chamber (0), stack (1) or per sector (2)"}},
     {"dedxType", VariantType::Int, 0, {"recalculating the dE/dx (0), using it from tracking (1)"}},
     {"chargeType", VariantType::Int, 0, {"Using qMax (0) or qTot (1) for the dE/dx and the pad-by-pad histograms"}},
-    {"propagateTrack", VariantType::Bool, false, {"Propagating the track instead of performing a refit for obtaining track parameters."}},
+    {"do-not-propagateTrack", VariantType::Bool, false, {"Performing a refit for obtaining track parameters instead of propagating."}},
     {"useEveryNthTF", VariantType::Int, 10, {"Using only a fraction of the data: 1: Use every TF, 10: Use only every tenth TF."}},
     {"maxTracksPerTF", VariantType::Int, 10000, {"Maximum number of processed tracks per TF (-1 for processing all tracks)"}},
   };
@@ -288,7 +288,7 @@ DataProcessorSpec getTPCCalibPadGainTracksSpec(const uint32_t publishAfterTFs, c
                                                                 false,                          // GRPECS=true
                                                                 false,                          // GRPLHCIF
                                                                 true,                           // GRPMagField
-                                                                false,                          // askMatLUT
+                                                                true,                           // askMatLUT
                                                                 o2::base::GRPGeomRequest::None, // geometry
                                                                 inputs);
 

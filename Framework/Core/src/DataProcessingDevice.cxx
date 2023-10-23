@@ -2304,6 +2304,15 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
           allocator.make<int>(OutputRef{"dpl-summary", compile_time_hash(spec.name.c_str())}, 1);
         }
 
+        // Extra callback which allows a service to add extra outputs.
+        // This is needed e.g. to ensure that injected CCDB outputs are added
+        // before an end of stream.
+        {
+          ref.get<CallbackService>().call<CallbackService::Id::FinaliseOutputs>(o2::framework::ServiceRegistryRef{ref}, (int)action.op);
+          dpContext.finaliseOutputsCallbacks(processContext);
+          streamContext.finaliseOutputsCallbacks(processContext);
+        }
+
         {
           ZoneScopedN("service post processing");
           ref.get<CallbackService>().call<CallbackService::Id::PostProcessing>(o2::framework::ServiceRegistryRef{ref}, (int)action.op);

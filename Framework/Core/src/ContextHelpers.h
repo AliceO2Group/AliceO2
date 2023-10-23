@@ -41,6 +41,9 @@ void ContextHelpers::bindStreamService(DataProcessorContext& dpContext, StreamCo
   if (spec.preProcessing) {
     context.preProcessingHandles.push_back(ServiceProcessingHandle{spec, spec.preProcessing, service});
   }
+  if (spec.finaliseOutputs) {
+    context.finaliseOutputsHandles.push_back(ServiceProcessingHandle{spec, spec.finaliseOutputs, service});
+  }
   if (spec.postProcessing) {
     context.postProcessingHandles.push_back(ServiceProcessingHandle{spec, spec.postProcessing, service});
   }
@@ -58,6 +61,9 @@ void ContextHelpers::bindProcessorService(DataProcessorContext& dataProcessorCon
 {
   if (spec.preProcessing) {
     dataProcessorContext.preProcessingHandlers.push_back(ServiceProcessingHandle{spec, spec.preProcessing, service});
+  }
+  if (spec.finaliseOutputs) {
+    dataProcessorContext.finaliseOutputsHandles.push_back(ServiceProcessingHandle{spec, spec.finaliseOutputs, service});
   }
   if (spec.postProcessing) {
     dataProcessorContext.postProcessingHandlers.push_back(ServiceProcessingHandle{spec, spec.postProcessing, service});

@@ -164,7 +164,7 @@ TEST_CASE("AdaptorCompilation")
   REQUIRE(task2.inputs.size() == 10);
   REQUIRE(task2.inputs[1].binding == "TracksExtension");
   REQUIRE(task2.inputs[2].binding == "Tracks");
-  REQUIRE(task2.inputs[3].binding == "TracksExtraExtension");
+  REQUIRE(task2.inputs[3].binding == "TracksExtra_000Extension");
   REQUIRE(task2.inputs[4].binding == "TracksExtra");
   REQUIRE(task2.inputs[5].binding == "TracksCovExtension");
   REQUIRE(task2.inputs[6].binding == "TracksCov");

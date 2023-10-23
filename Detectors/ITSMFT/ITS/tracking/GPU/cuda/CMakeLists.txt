@@ -12,7 +12,6 @@
 # CUDA
 if(CUDA_ENABLED)
 find_package(CUDAToolkit)
-
 message(STATUS "Building ITS CUDA tracker")
 
 o2_add_library(ITStrackingCUDA
@@ -33,5 +32,4 @@ o2_add_library(ITStrackingCUDA
 
 set_property(TARGET ${targetName} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
 target_compile_definitions(${targetName} PRIVATE GPUCA_O2_LIB $<TARGET_PROPERTY:O2::ITStracking,COMPILE_DEFINITIONS>)
-
 endif()

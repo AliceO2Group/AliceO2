@@ -30,16 +30,18 @@ namespace o2::utils
 
 /// struct defining the flags which can be used to check if a certain debug streamer is used
 enum StreamFlags {
-  streamdEdx = 1 << 0,              ///< stream corrections and cluster properties used for the dE/dx
-  streamDigitFolding = 1 << 1,      ///< stream ion tail and saturatio information
-  streamDigits = 1 << 2,            ///< stream digit information
-  streamFastTransform = 1 << 3,     ///< stream tpc fast transform
-  streamITCorr = 1 << 4,            ///< stream ion tail correction information
-  streamDistortionsSC = 1 << 5,     ///< stream distortions applied in the TPC space-charge class (used for example in the tpc digitizer)
-  streamUpdateTrack = 1 << 6,       ///< stream update track informations
-  streamRejectCluster = 1 << 7,     ///< stream cluster rejection informations
-  streamMergeBorderTracks = 1 << 8, ///< stream MergeBorderTracks
-  streamFlagsCount = 9              ///< total number of streamers
+  streamdEdx = 1 << 0,                  ///< stream corrections and cluster properties used for the dE/dx
+  streamDigitFolding = 1 << 1,          ///< stream ion tail and saturatio information
+  streamDigits = 1 << 2,                ///< stream digit information
+  streamFastTransform = 1 << 3,         ///< stream tpc fast transform
+  streamITCorr = 1 << 4,                ///< stream ion tail correction information
+  streamDistortionsSC = 1 << 5,         ///< stream distortions applied in the TPC space-charge class (used for example in the tpc digitizer)
+  streamUpdateTrack = 1 << 6,           ///< stream update track informations
+  streamRejectCluster = 1 << 7,         ///< stream cluster rejection informations
+  streamMergeBorderTracksBest = 1 << 8, ///< stream MergeBorderTracks best track
+  streamTimeSeries = 1 << 9,            ///< stream tpc DCA debug tree
+  streamMergeBorderTracksAll = 1 << 10, ///< stream MergeBorderTracks all tracks
+  streamFlagsCount = 11                 ///< total number of streamers
 };
 
 enum SamplingTypes {
@@ -47,6 +49,8 @@ enum SamplingTypes {
   sampleRandom = 1,   ///< sample randomly every n points
   sampleID = 2,       ///< sample every n IDs (per example track)
   sampleIDGlobal = 3, ///< in case different streamers have access to the same IDs use this gloabl ID
+  sampleWeights = 4,  ///< perform sampling on weights, defined where the streamer is called
+  sampleTsalis = 5,   ///< perform sampling on tsalis pdf
 };
 
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE)
@@ -122,6 +126,9 @@ class DebugStreamer
   /// \return returns sampling type and sampling frequency for given streamer
   static std::pair<SamplingTypes, float> getSamplingTypeFrequency(const StreamFlags streamFlag);
 
+  /// \return returns sampling type and sampling frequency for given streamer
+  static float getSamplingFrequency(const StreamFlags streamFlag) { return getSamplingTypeFrequency(streamFlag).second; }
+
   ///< return returns unique ID for each CPU thread to give each thread an own output file
   static size_t getCPUID();
 
@@ -145,7 +152,8 @@ class DebugStreamer
 
   /// check if streamer for specific flag is enabled
   /// \param samplingID optional index of the data which is streamed in to perform sampling on this index
-  static bool checkStream(const StreamFlags streamFlag, const size_t samplingID = -1);
+  /// \param weight weight which can be used to perform some weightes sampling
+  static bool checkStream(const StreamFlags streamFlag, const size_t samplingID = -1, const float weight = 1);
 
   /// merge trees with the same content structure, but different naming
   /// \param inpFile input file containing several trees with the same content
@@ -156,10 +164,34 @@ class DebugStreamer
   /// \return returns integer index for given streamer flag
   static int getIndex(const StreamFlags streamFlag);
 
+  /// Random downsampling trigger function using Tsalis/Hagedorn spectra fit (sqrt(s) = 62.4 GeV to 13 TeV) as in https://iopscience.iop.org/article/10.1088/2399-6528/aab00f/pdf
+  /// \return flat q/pt trigger
+  /// \param pt pat of particle
+  /// \param factorPt defines the sampling
+  /// \param sqrts centre of mass energy
+  /// \param weight weight which is internally calculated
+  /// \param rnd random value between (0->1) used to check for sampling
+  /// \param mass particles mass (use pion if not known)
+  static bool downsampleTsalisCharged(float pt, float factorPt, float sqrts, float& weight, float rnd, float mass = 0.13957);
+
+  /// get random value between min and max
+  static float getRandom(float min = 0, float max = 1);
+
  private:
   using StreamersPerFlag = tbb::concurrent_unordered_map<size_t, std::unique_ptr<o2::utils::TreeStreamRedirector>>;
   StreamersPerFlag mTreeStreamer; ///< streamer which is used for the debugging
 
+  /// Tsalis/Hagedorn function describing charged pt spectra (m s = 62.4 GeV to 13 TeV) as in https://iopscience.iop.org/article/10.1088/2399-6528/aab00f/pdf
+  /// https://github.com/alisw/AliPhysics/blob/523f2dc8b45d913e9b7fda9b27e746819cbe5b09/PWGPP/AliAnalysisTaskFilteredTree.h#L145
+  /// \param pt     - transverse momentum
+  /// \param mass   - mass of particle
+  /// \param sqrts  - centre of mass energy
+  /// \return       - invariant yields of the charged particle *pt
+  ///    n(sqrts)= a + b/sqrt(s)                             - formula 6
+  ///    T(sqrts)= c + d/sqrt(s)                             - formula 7
+  ///    a = 6.81 ± 0.06       and b = 59.24 ± 3.53 GeV      - for charged particles page 3
+  ///    c = 0.082 ± 0.002 GeV and d = 0.151 ± 0.048 (GeV)   - for charged particles page 4
+  static float tsalisCharged(float pt, float mass, float sqrts);
 #else
 
   // empty implementation of the class for GPU or when the debug streamer is not build for CPU

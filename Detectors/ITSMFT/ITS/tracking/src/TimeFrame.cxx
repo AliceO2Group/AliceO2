@@ -175,6 +175,8 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
   geom->fillMatrixCache(o2::math_utils::bit2Mask(o2::math_utils::TransformType::T2L, o2::math_utils::TransformType::L2G));
 
   mNrof = 0;
+  mClusterSize.clear();
+  mClusterSize.reserve(clusters.size());
   for (auto& rof : rofs) {
     for (int clusterId{rof.getFirstEntry()}; clusterId < rof.getFirstEntry() + rof.getNEntries(); ++clusterId) {
       auto& c = clusters[clusterId];
@@ -184,18 +186,27 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
       auto pattID = c.getPatternID();
       o2::math_utils::Point3D<float> locXYZ;
       float sigmaY2 = DefClusError2Row, sigmaZ2 = DefClusError2Col, sigmaYZ = 0; // Dummy COG errors (about half pixel size)
+      unsigned int clusterSize{0};
       if (pattID != itsmft::CompCluster::InvalidPatternID) {
         sigmaY2 = dict->getErr2X(pattID);
         sigmaZ2 = dict->getErr2Z(pattID);
         if (!dict->isGroup(pattID)) {
           locXYZ = dict->getClusterCoordinates(c);
+          clusterSize = dict->getNpixels(pattID);
         } else {
           o2::itsmft::ClusterPattern patt(pattIt);
           locXYZ = dict->getClusterCoordinates(c, patt);
+          clusterSize = patt.getNPixels();
         }
       } else {
         o2::itsmft::ClusterPattern patt(pattIt);
         locXYZ = dict->getClusterCoordinates(c, patt, false);
+        clusterSize = patt.getNPixels();
+      }
+      if (clusterSize < 255) {
+        mClusterSize.push_back(clusterSize);
+      } else {
+        mClusterSize.push_back(255);
       }
       auto sensorID = c.getSensorID();
       // Inverse transformation to the local --> tracking
@@ -255,6 +266,7 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
     mCellSeedsChi2.resize(trkParam.CellsPerRoad());
     mCellsLookupTable.resize(trkParam.CellsPerRoad() - 1);
     mCellsNeighbours.resize(trkParam.CellsPerRoad() - 1);
+    mCellsNeighboursLUT.resize(trkParam.CellsPerRoad() - 1);
     mCellLabels.resize(trkParam.CellsPerRoad());
     mTracklets.resize(std::min(trkParam.TrackletsPerRoad(), maxLayers - 1));
     mTrackletLabels.resize(trkParam.TrackletsPerRoad());
@@ -395,6 +407,7 @@ void TimeFrame::initialise(const int iteration, const TrackingParameters& trkPar
     if (iLayer < (int)mCells.size() - 1) {
       mCellsLookupTable[iLayer].clear();
       mCellsNeighbours[iLayer].clear();
+      mCellsNeighboursLUT[iLayer].clear();
     }
   }
 }
@@ -409,9 +422,7 @@ unsigned long TimeFrame::getArtefactsMemory()
     size += sizeof(Cell) * cells.size();
   }
   for (auto& cellsN : mCellsNeighbours) {
-    for (auto& vec : cellsN) {
-      size += sizeof(int) * vec.size();
-    }
+    size += sizeof(int) * cellsN.size();
   }
   return size + sizeof(Road<5>) * mRoads.size();
 }

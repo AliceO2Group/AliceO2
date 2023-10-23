@@ -40,6 +40,7 @@ class Compressor
   inline bool run()
   {
     rewind();
+    mEncoderPointerMax = reinterpret_cast<uint32_t*>(mEncoderBuffer + mEncoderBufferSizeInt);
     if (mDecoderCONET) {
       mDecoderPointerMax = reinterpret_cast<const uint32_t*>(mDecoderBuffer + mDecoderBufferSize);
       while (mDecoderPointer < mDecoderPointerMax) {
@@ -89,10 +90,20 @@ class Compressor
   void setDecoderBuffer(const char* val) { mDecoderBuffer = val; };
   void setEncoderBuffer(char* val) { mEncoderBuffer = val; };
   void setDecoderBufferSize(long val) { mDecoderBufferSize = val; };
-  void setEncoderBufferSize(long val) { mEncoderBufferSize = val; };
+  void setEncoderBufferSize(long val)
+  {
+    mEncoderBufferSize = val;
+    mEncoderBufferSizeInt = mEncoderBufferSize / 4;
+  };
 
   inline uint32_t getDecoderByteCounter() const { return reinterpret_cast<const char*>(mDecoderPointer) - mDecoderBuffer; };
-  inline uint32_t getEncoderByteCounter() const { return reinterpret_cast<char*>(mEncoderPointer) - mEncoderBuffer; };
+  inline uint32_t getEncoderByteCounter() const
+  {
+    if (reinterpret_cast<char*>(mEncoderPointer) < mEncoderBuffer) {
+      return 0;
+    }
+    return reinterpret_cast<char*>(mEncoderPointer) - mEncoderBuffer;
+  };
 
   // benchmarks
   double mIntegratedBytes = 0.;
@@ -139,13 +150,21 @@ class Compressor
 
   /** encoder private functions and data members **/
 
-  void encoderSpider(int itrm);
+  int encoderSpider(int itrm);
   inline void encoderRewind() { mEncoderPointer = reinterpret_cast<uint32_t*>(mEncoderBuffer); };
-  inline void encoderNext() { mEncoderPointer++; };
+  inline int encoderNext()
+  {
+    if (mEncoderPointer + 1 >= mEncoderPointerMax) {
+      return 1;
+    };
+    mEncoderPointer++;
+    return 0;
+  };
 
   std::ofstream mEncoderFile;
   char* mEncoderBuffer = nullptr;
   long mEncoderBufferSize;
+  long mEncoderBufferSizeInt;
   uint32_t* mEncoderPointer = nullptr;
   uint32_t* mEncoderPointerMax = nullptr;
   uint32_t* mEncoderPointerStart = nullptr;

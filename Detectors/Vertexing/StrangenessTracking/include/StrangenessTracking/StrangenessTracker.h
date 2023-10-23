@@ -290,7 +290,6 @@ class StrangenessTracker
   o2::base::PropagatorImpl<float>::MatCorrType mCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE; // use mat correction
 
   std::vector<std::vector<o2::track::TrackParCovF>> mDaughterTracks; // vector of daughter tracks (per thread)
-  StrangeTrack mStrangeTrack;                                        // structure containing updated mother and daughter track refs
   ClusAttachments mStructClus;                                       // # of attached tracks, 1 for mother, 2 for daughter
 
   ClassDefNV(StrangenessTracker, 1);

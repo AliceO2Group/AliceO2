@@ -20,6 +20,7 @@
 #include "DataFormatsCTP/Scalers.h"
 #include "DataFormatsCTP/Configuration.h"
 #include "DataFormatsParameters/GRPMagField.h"
+#include "DataFormatsParameters/GRPECSObject.h"
 #include "CommonTypes/Units.h"
 #include <boost/program_options.hpp>
 
@@ -61,6 +62,17 @@ void writeBFieldToFile(float b)
     return;
   }
   fprintf(fptr, "%.2f", b);
+  fclose(fptr);
+}
+
+void writeDetListToFile(std::string detList)
+{
+  FILE* fptr = fopen("DetList.txt", "w");
+  if (fptr == nullptr) {
+    LOGP(fatal, "ERROR: Could not open file to write detector list!");
+    return;
+  }
+  fprintf(fptr, "%s", detList.c_str());
   fclose(fptr);
 }
 
@@ -106,7 +118,7 @@ int main(int argc, char* argv[])
   long duration = 0;
   // duration as O2end - O2start:
   auto& ccdb_inst = o2::ccdb::BasicCCDBManager::instance();
-  ccdb_inst.setURL("https://alice-ccdb.cern.ch");
+  ccdb_inst.setURL("http://alice-ccdb.cern.ch");
   std::pair<uint64_t, uint64_t> run_times = ccdb_inst.getRunDuration(run);
   long run_O2duration = long(run_times.second - run_times.first);
   // access SOR and EOR timestamps
@@ -122,6 +134,20 @@ int main(int argc, char* argv[])
   o2::units::Current_t magFieldL3Curr = magField->getL3Current();
   LOGP(info, "run {}: B field = {}", run, magFieldL3Curr);
   writeBFieldToFile((float)magFieldL3Curr);
+
+  // getting the detector list
+  LOGP(info, "Getting detector participating in the run");
+  std::map<std::string, std::string> metadataRun;
+  metadataRun["runNumber"] = std::to_string(run);
+  o2::parameters::GRPECSObject* ecsObj = ccdb_inst.getSpecific<o2::parameters::GRPECSObject>("GLO/Config/GRPECS", tsSOR, metadataRun);
+  std::string dets = "";
+  for (int i = o2::detectors::DetID::First; i < o2::detectors::DetID::nDetectors; ++i) {
+    if (ecsObj->isDetReadOut(i)) {
+      dets = dets + o2::detectors::DetID::getName(i) + " ";
+    }
+  }
+  LOGP(info, "run {}: detectors in readout = {}", run, dets);
+  writeDetListToFile(dets);
 
   LOGP(info, "Checking IR and duration");
   if (run < 519041) {

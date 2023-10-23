@@ -15,6 +15,7 @@
 
 #include "ITStracking/TrackerTraits.h"
 
+#include <algorithm>
 #include <cassert>
 #include <iostream>
 
@@ -394,8 +395,13 @@ void TrackerTraits::findCellsNeighbours(const int iteration)
 
     int layerCellsNum{static_cast<int>(mTimeFrame->getCells()[iLayer].size())};
     const int nextLayerCellsNum{static_cast<int>(mTimeFrame->getCells()[iLayer + 1].size())};
-    mTimeFrame->getCellsNeighbours()[iLayer].resize(nextLayerCellsNum);
 
+    mTimeFrame->getCellsNeighboursLUT()[iLayer].clear();
+    mTimeFrame->getCellsNeighboursLUT()[iLayer].resize(nextLayerCellsNum, 0);
+    std::vector<std::pair<int, int>> cellsNeighbours;
+    cellsNeighbours.reserve(nextLayerCellsNum);
+
+    std::vector<std::vector<int>> easyWay(nextLayerCellsNum);
     for (int iCell{0}; iCell < layerCellsNum; ++iCell) {
 
       const Cell& currentCell{mTimeFrame->getCells()[iLayer][iCell]};
@@ -426,8 +432,9 @@ void TrackerTraits::findCellsNeighbours(const int iteration)
           continue;
         }
 
-        mTimeFrame->getCellsNeighbours()[iLayer][iNextCell].push_back(iCell);
-
+        mTimeFrame->getCellsNeighboursLUT()[iLayer][iNextCell]++;
+        cellsNeighbours.push_back(std::make_pair(iCell, iNextCell));
+        easyWay[iNextCell].push_back(iCell);
         const int currentCellLevel{currentCell.getLevel()};
 
         if (currentCellLevel >= nextCell.getLevel()) {
@@ -435,6 +442,15 @@ void TrackerTraits::findCellsNeighbours(const int iteration)
         }
       }
     }
+    std::sort(cellsNeighbours.begin(), cellsNeighbours.end(), [](const std::pair<int, int>& a, const std::pair<int, int>& b) {
+      return a.second < b.second;
+    });
+    mTimeFrame->getCellsNeighbours()[iLayer].clear();
+    mTimeFrame->getCellsNeighbours()[iLayer].reserve(cellsNeighbours.size());
+    for (auto& cellNeighboursIndex : cellsNeighbours) {
+      mTimeFrame->getCellsNeighbours()[iLayer].push_back(cellNeighboursIndex.first);
+    }
+    std::inclusive_scan(mTimeFrame->getCellsNeighboursLUT()[iLayer].begin(), mTimeFrame->getCellsNeighboursLUT()[iLayer].end(), mTimeFrame->getCellsNeighboursLUT()[iLayer].begin());
   }
 }
 
@@ -457,11 +473,11 @@ void TrackerTraits::findRoads(const int iteration)
         if (iLevel == 1) {
           continue;
         }
-        const int cellNeighboursNum{static_cast<int>(
-          mTimeFrame->getCellsNeighbours()[iLayer - 1][iCell].size())};
+        const int startNeighbourId{iCell ? mTimeFrame->getCellsNeighboursLUT()[iLayer - 1][iCell - 1] : 0};
+        const int endNeighbourId{mTimeFrame->getCellsNeighboursLUT()[iLayer - 1][iCell]};
         bool isFirstValidNeighbour = true;
-        for (int iNeighbourCell{0}; iNeighbourCell < cellNeighboursNum; ++iNeighbourCell) {
-          const int neighbourCellId = mTimeFrame->getCellsNeighbours()[iLayer - 1][iCell][iNeighbourCell];
+        for (int iNeighbourCell{startNeighbourId}; iNeighbourCell < endNeighbourId; ++iNeighbourCell) {
+          const int neighbourCellId = mTimeFrame->getCellsNeighbours()[iLayer - 1][iNeighbourCell];
           const Cell& neighbourCell = mTimeFrame->getCells()[iLayer - 1][neighbourCellId];
           if (iLevel - 1 != neighbourCell.getLevel()) {
             continue;
@@ -486,11 +502,9 @@ void TrackerTraits::findRoads(const int iteration)
 
 void TrackerTraits::findTracks()
 {
-  std::vector<std::vector<TrackITSExt>> tracks(mNThreads);
-  for (auto& tracksV : tracks) {
-    tracksV.reserve(mTimeFrame->getRoads().size() / mNThreads);
-  }
+  std::vector<TrackITSExt> tracks(mTimeFrame->getRoads().size());
 
+  std::atomic<size_t> trackIndex{0};
 #pragma omp parallel for num_threads(mNThreads)
   for (size_t ri = 0; ri < mTimeFrame->getRoads().size(); ++ri) {
     auto& road = mTimeFrame->getRoads()[ri];
@@ -555,12 +569,6 @@ void TrackerTraits::findTracks()
       }
     }
 
-    /// Track seed preparation. Clusters are numbered progressively from the innermost going outward.
-    const auto& cluster1_glo = mTimeFrame->getUnsortedClusters()[lastCellLevel].at(clusters[lastCellLevel]);
-    const auto& cluster2_glo = mTimeFrame->getUnsortedClusters()[lastCellLevel + 1].at(clusters[lastCellLevel + 1]);
-    const auto& cluster3_glo = mTimeFrame->getUnsortedClusters()[lastCellLevel + 2].at(clusters[lastCellLevel + 2]);
-    const auto& cluster3_tf = mTimeFrame->getTrackingFrameInfoOnLayer(lastCellLevel + 2).at(clusters[lastCellLevel + 2]);
-
     TrackITSExt temporaryTrack{mTimeFrame->getCellSeeds()[lastCellLevel][lastCellIndex]};
     temporaryTrack.setChi2(mTimeFrame->getCellSeedsChi2()[lastCellLevel][lastCellIndex]);
     for (size_t iC = 0; iC < clusters.size(); ++iC) {
@@ -586,25 +594,18 @@ void TrackerTraits::findTracks()
       continue;
     }
     // temporaryTrack.setROFrame(rof);
-#ifdef WITH_OPENMP
-    int iThread = omp_get_thread_num();
-#else
-    int iThread = 0;
-#endif
-    tracks[iThread].emplace_back(temporaryTrack);
+    tracks[trackIndex++] = temporaryTrack;
   }
 
-  for (int iV{1}; iV < mNThreads; ++iV) {
-    tracks[0].insert(tracks[0].end(), tracks[iV].begin(), tracks[iV].end());
-  }
+  tracks.resize(trackIndex);
 
   if (mApplySmoothing) {
     // Smoothing tracks
   }
-  std::sort(tracks[0].begin(), tracks[0].end(),
+  std::sort(tracks.begin(), tracks.end(),
             [](TrackITSExt& track1, TrackITSExt& track2) { return track1.isBetter(track2, 1.e6f); });
 
-  for (auto& track : tracks[0]) {
+  for (auto& track : tracks) {
     int nShared = 0;
     for (int iLayer{0}; iLayer < mTrkParams[0].NLayers; ++iLayer) {
       if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
@@ -988,14 +989,11 @@ void TrackerTraits::traverseCellsTree(const int currentCellId, const int current
   mTimeFrame->getRoads().back().addCell(currentLayerId, currentCellId);
 
   if (currentLayerId > 0 && currentCellLevel > 1) {
-    const int cellNeighboursNum{static_cast<int>(
-      mTimeFrame->getCellsNeighbours()[currentLayerId - 1][currentCellId].size())};
     bool isFirstValidNeighbour = true;
-
-    for (int iNeighbourCell{0}; iNeighbourCell < cellNeighboursNum; ++iNeighbourCell) {
-
-      const int neighbourCellId =
-        mTimeFrame->getCellsNeighbours()[currentLayerId - 1][currentCellId][iNeighbourCell];
+    const int startNeighbourId = currentCellId ? mTimeFrame->getCellsNeighboursLUT()[currentLayerId - 1][currentCellId - 1] : 0;
+    const int endNeighbourId = mTimeFrame->getCellsNeighboursLUT()[currentLayerId - 1][currentCellId];
+    for (int iNeighbourCell{startNeighbourId}; iNeighbourCell < endNeighbourId; ++iNeighbourCell) {
+      const int neighbourCellId = mTimeFrame->getCellsNeighbours()[currentLayerId - 1][iNeighbourCell];
       const Cell& neighbourCell = mTimeFrame->getCells()[currentLayerId - 1][neighbourCellId];
 
       if (currentCellLevel - 1 != neighbourCell.getLevel()) {

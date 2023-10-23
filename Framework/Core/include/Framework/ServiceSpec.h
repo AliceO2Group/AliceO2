@@ -146,6 +146,9 @@ struct ServiceSpec {
   ServiceConfigureCallback configure = nullptr;
   /// Callback executed before actual processing happens.
   ServiceProcessingCallback preProcessing = nullptr;
+  /// Callback executed after the processing callback is completed
+  /// and the user provided outputs have been created.
+  ServiceProcessingCallback finaliseOutputs = nullptr;
   /// Callback executed once actual processing happened.
   ServiceProcessingCallback postProcessing = nullptr;
   /// Callback executed before the dangling inputs loop
@@ -170,7 +173,7 @@ struct ServiceSpec {
   ServicePreSchedule preSchedule = nullptr;
   ServicePostSchedule postSchedule = nullptr;
 
-  ///Callback executed after each metric is received by the driver.
+  /// Callback executed after each metric is received by the driver.
   ServiceMetricHandling metricHandling = nullptr;
 
   /// Callback executed after a given input record has been successfully

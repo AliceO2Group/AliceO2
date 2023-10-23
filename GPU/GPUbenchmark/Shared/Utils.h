@@ -27,8 +27,6 @@
 #include <vector>
 #include <string>
 #include <cmath>
-#include <TTree.h>
-#include <TFile.h>
 
 #define KNRM "\x1B[0m"
 #define KRED "\x1B[31m"
@@ -48,6 +46,11 @@
   printf("error: TEST FAILED\n%s", KNRM); \
   exit(EXIT_FAILURE);
 #endif
+
+template <typename T>
+void discardResult(const T&)
+{
+}
 
 enum class Test {
   Read,
@@ -257,67 +260,6 @@ struct gpuState {
   size_t nMultiprocessors;
   size_t nMaxThreadsPerBlock;
 };
-
-// Interface class to stream results to root file
-class ResultWriter
-{
- public:
-  explicit ResultWriter(const std::string resultsTreeFilename = "benchmark_results.root");
-  ~ResultWriter() = default;
-  void storeBenchmarkEntry(Test test, int chunk, float entry, float chunkSizeGB, int nLaunches);
-  void addBenchmarkEntry(const std::string bName, const std::string type, const int nChunks);
-  void snapshotBenchmark();
-  void saveToFile();
-
- private:
-  std::vector<float> mTimeResults;
-  std::vector<TTree*> mTimeTrees;
-  std::vector<float> mThroughputResults;
-  std::vector<TTree*> mThroughputTrees;
-  TFile* mOutfile;
-};
-
-inline ResultWriter::ResultWriter(const std::string resultsTreeFilename)
-{
-  mOutfile = TFile::Open(resultsTreeFilename.data(), "recreate");
-}
-
-inline void ResultWriter::addBenchmarkEntry(const std::string bName, const std::string type, const int nChunks)
-{
-  mTimeTrees.emplace_back(new TTree((bName + "_" + type).data(), (bName + "_" + type).data()));
-  mTimeResults.clear();
-  mTimeResults.resize(nChunks);
-  mTimeTrees.back()->Branch("elapsed", &mTimeResults);
-
-  mThroughputTrees.emplace_back(new TTree((bName + "_" + type + "_TP").data(), (bName + "_" + type + "_TP").data()));
-  mThroughputResults.clear();
-  mThroughputResults.resize(nChunks);
-  mThroughputTrees.back()->Branch("throughput", &mThroughputResults);
-}
-
-inline void ResultWriter::storeBenchmarkEntry(Test test, int chunk, float entry, float chunkSizeGB, int nLaunches)
-{
-  mTimeResults[chunk] = entry;
-  mThroughputResults[chunk] = computeThroughput(test, entry, chunkSizeGB, nLaunches);
-}
-
-inline void ResultWriter::snapshotBenchmark()
-{
-  mTimeTrees.back()->Fill();
-  mThroughputTrees.back()->Fill();
-}
-
-inline void ResultWriter::saveToFile()
-{
-  mOutfile->cd();
-  for (auto t : mTimeTrees) {
-    t->Write();
-  }
-  for (auto t : mThroughputTrees) {
-    t->Write();
-  }
-  mOutfile->Close();
-}
 
 } // namespace benchmark
 } // namespace o2

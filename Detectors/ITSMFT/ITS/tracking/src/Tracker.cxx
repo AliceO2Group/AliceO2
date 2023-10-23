@@ -54,24 +54,24 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::f
     total += evaluateTask(&Tracker::computeTracklets, "Tracklet finding", logger, iteration);
     logger(fmt::format("\t- Number of tracklets: {}", mTraits->getTFNumberOfTracklets()));
     if (!mTimeFrame->checkMemory(mTrkParams[iteration].MaxMemory)) {
-      error("Too much memory used during trackleting, check the detector status and/or the selections.");
+      error(fmt::format("Too much memory used during trackleting in iteration {}, check the detector status and/or the selections.", iteration));
       break;
     }
     float trackletsPerCluster = mTraits->getTFNumberOfClusters() > 0 ? float(mTraits->getTFNumberOfTracklets()) / mTraits->getTFNumberOfClusters() : 0.f;
     if (trackletsPerCluster > mTrkParams[iteration].TrackletsPerClusterLimit) {
-      error(fmt::format("Too many tracklets per cluster ({}), check the detector status and/or the selections.", trackletsPerCluster));
+      error(fmt::format("Too many tracklets per cluster ({}) in iteration {}, check the detector status and/or the selections.", trackletsPerCluster, iteration));
       break;
     }
 
     total += evaluateTask(&Tracker::computeCells, "Cell finding", logger, iteration);
     logger(fmt::format("\t- Number of Cells: {}", mTraits->getTFNumberOfCells()));
     if (!mTimeFrame->checkMemory(mTrkParams[iteration].MaxMemory)) {
-      error("Too much memory used during cell finding, check the detector status and/or the selections.");
+      error(fmt::format("Too much memory used during cell finding in iteration {}, check the detector status and/or the selections.", iteration));
       break;
     }
     float cellsPerCluster = mTraits->getTFNumberOfClusters() > 0 ? float(mTraits->getTFNumberOfCells()) / mTraits->getTFNumberOfClusters() : 0.f;
     if (cellsPerCluster > mTrkParams[iteration].CellsPerClusterLimit) {
-      error(fmt::format("Too many cells per cluster ({}), check the detector status and/or the selections.", cellsPerCluster));
+      error(fmt::format("Too many cells per cluster ({}) in iteration {}, check the detector status and/or the selections.", cellsPerCluster, iteration));
       break;
     }
 

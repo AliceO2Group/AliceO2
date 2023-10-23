@@ -399,19 +399,15 @@ o2::framework::ServiceSpec CommonServices::ccdbSupportSpec()
       return ServiceHandle{.hash = TypeIdHelpers::uniqueId<CCDBSupport>(), .instance = nullptr, .kind = ServiceKind::Serial};
     },
     .configure = noConfiguration(),
-    .postProcessing = [](ProcessingContext& pc, void* service) {
+    .finaliseOutputs = [](ProcessingContext& pc, void* service) {
       if (!service) {
         return;
       }
-      if (pc.services().get<DeviceState>().streaming == StreamingState::EndOfStreaming) {
-        if (pc.outputs().countDeviceOutputs(true) == 0) {
-          LOGP(debug, "We are in EoS w/o outputs, do not automatically add DISTSUBTIMEFRAME to outgoing messages");
-          return;
-        }
+      if (pc.outputs().countDeviceOutputs(true) == 0) {
+        LOGP(debug, "We are w/o outputs, do not automatically add DISTSUBTIMEFRAME to outgoing messages");
+        return;
       }
-      const auto ref = pc.inputs().getFirstValid(true);
-      const auto* dh = DataRefUtils::getHeader<o2::header::DataHeader*>(ref);
-      const auto* dph = DataRefUtils::getHeader<DataProcessingHeader*>(ref);
+      auto& timingInfo = pc.services().get<TimingInfo>();
 
       // For any output that is a FLP/DISTSUBTIMEFRAME with subspec != 0,
       // we create a new message.
@@ -426,9 +422,9 @@ o2::framework::ServiceSpec CommonServices::ccdbSupportSpec()
             continue;
           }
           auto& stfDist = pc.outputs().make<o2::header::STFHeader>(Output{concrete.origin, concrete.description, concrete.subSpec, output.matcher.lifetime});
-          stfDist.id = dph->startTime;
-          stfDist.firstOrbit = dh->firstTForbit;
-          stfDist.runNumber = dh->runNumber;
+          stfDist.id = timingInfo.timeslice;
+          stfDist.firstOrbit = timingInfo.firstTForbit;
+          stfDist.runNumber = timingInfo.runNumber;
         }
       } },
     .kind = ServiceKind::Global};
@@ -466,6 +462,11 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
       timesliceIndex.updateOldestPossibleOutput();
       auto& proxy = ctx.services().get<FairMQDeviceProxy>();
       auto oldestPossibleOutput = relayer.getOldestPossibleOutput();
+      if (decongestion->nextEnumerationTimesliceRewinded && decongestion->nextEnumerationTimeslice < oldestPossibleOutput.timeslice.value) {
+        LOGP(detail, "Not sending oldestPossible if nextEnumerationTimeslice was rewinded");
+        return;
+      }
+
       if (decongestion->lastTimeslice && oldestPossibleOutput.timeslice.value == decongestion->lastTimeslice) {
         LOGP(debug, "Not sending already sent value");
         return;
