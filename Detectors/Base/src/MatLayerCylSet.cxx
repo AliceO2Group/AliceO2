@@ -294,8 +294,8 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
     for (int ic = nc; ic--;) {
       float cross1, cross2;
       ray.getCrossParams(ic, cross1, cross2); // tmax,tmin of crossing the layer
-      auto phi0 = ray.getPhi_approx(cross1), phi1 = ray.getPhi_approx(cross2), dPhi = phi0 - phi1;
-      // auto phi0 = ray.getPhi(cross1), phi1 = ray.getPhi(cross2), dPhi = phi0 - phi1;
+
+      auto phi0 = ray.getPhi(cross1), phi1 = ray.getPhi(cross2), dPhi = phi0 - phi1;
       auto phiID = lr.getPhiSliceID(phi0), phiIDLast = lr.getPhiSliceID(phi1);
       // account for eventual wrapping around 0
       if (dPhi > 0.f) {
@@ -339,7 +339,10 @@ GPUd() MatBudget MatLayerCylSet::getMatBudget(float x0, float y0, float z0, floa
               tEndZ = tEndPhi;
               checkMoreZ = false;
             } else {
-              tEndZ = ray.crossZ_fast(lr.getZBinMin(stepZID > 0 ? zID + 1 : zID));
+              tEndZ = ray.crossZ(lr.getZBinMin(stepZID > 0 ? zID + 1 : zID));
+              if (tEndZ == Ray::InvalidT) { // track normal to Z axis, abandon Zbin change test
+                break;
+              }
             }
             // account materials of this step
             float step = tEndZ > tStartZ ? tEndZ - tStartZ : tStartZ - tEndZ; // the real step is ray.getDist(tEnd-tStart), will rescale all later
