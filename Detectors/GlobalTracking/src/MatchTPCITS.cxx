@@ -822,12 +822,22 @@ void MatchTPCITS::doMatching(int sec)
       }
       o2::math_utils::Bracketf_t trange(timeCorr - timeCorrErr, timeCorr + timeCorrErr);
       LOG(debug) << "TPC range: " << trange.asString() << " ITS bracket: " << trefITS.tBracket.asString() << " DZ: " << (trefITS.getZ() - trefTPC.getZ()) << " DT: " << timeCorr;
-      if (trefITS.tBracket.isOutside(trange)) {
-        continue;
-      }
-      if (timeCorr < 0) { // RS TODO: similar check will be needed to other TF edge
-        if (timeCorr + mParams->tfEdgeTimeToleranceMUS < 0) {
-          // continue;
+      // check if the assigned time is strictly within the ITS bracket
+      auto cmpITSBracket = trefITS.tBracket.isOutside(timeCorr);
+      if (cmpITSBracket) { // no, check if brackets are overlapping at all
+        if (trefITS.tBracket.isOutside(trange)) {
+          continue;
+        }
+        if (mParams->ITSTimeOutliersPolicy == MatchTPCITSParams::TimeOutliersPolicy::Adjust) {
+          if (cmpITSBracket == o2::math_utils::Bracketf_t::Below) {
+            timeCorr = trefITS.tBracket.getMin();
+            trange.setMin(timeCorr);
+          } else {
+            timeCorr = trefITS.tBracket.getMax();
+            trange.setMax(timeCorr);
+          }
+        } else if (mParams->ITSTimeOutliersPolicy == MatchTPCITSParams::TimeOutliersPolicy::Reject) {
+          continue;
         }
       }
 
@@ -1335,7 +1345,16 @@ bool MatchTPCITS::refitTrackTPCITS(int iTPC, int& iITS, pmr::vector<o2::dataform
   }
   timeErr += mParams->globalTimeExtraErrorMUS;
   float timeC = tTPC.getCorrectedTime(deltaT) + mParams->globalTimeBiasMUS; /// precise time estimate, optionally corrected for bias
-  if (timeC < 0) {                                                          // RS TODO similar check is needed for other edge of TF
+  o2::math_utils::Bracketf_t::Relation relITS;
+  if (mParams->ITSTimeOutliersPolicy != MatchTPCITSParams::TimeOutliersPolicy::Tolerate && (relITS = tITS.tBracket.isOutside(timeC))) { /// track time is outside of the nominal ITS time
+    if (mParams->ITSTimeOutliersPolicy == MatchTPCITSParams::TimeOutliersPolicy::Adjust) {
+      timeC = relITS == o2::math_utils::Bracketf_t::Below ? tITS.tBracket.getMin() : tITS.tBracket.getMax(); /// assing ITS boundary
+    } else {                                                                                                 // == MatchTPCITSParams::TimeOutliersPolicy::Reject
+      matchedTracks.pop_back();                                                                              // destroy failed track
+      return false;
+    }
+  }
+  if (timeC < 0) { // RS TODO similar check is needed for other edge of TF
     if (timeC + std::min(timeErr, mParams->tfEdgeTimeToleranceMUS * mTPCTBinMUSInv) < 0) {
       matchedTracks.pop_back(); // destroy failed track
       return false;
