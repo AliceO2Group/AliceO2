@@ -242,7 +242,7 @@ int GPURecoWorkflowSpec::handlePipeline(ProcessingContext& pc, GPUTrackingInOutP
 void GPURecoWorkflowSpec::handlePipelineEndOfStream(EndOfStreamContext& ec)
 {
   if (mSpecConfig.enableDoublePipeline == 1) {
-    mPipeline->endOfStreamReceived = true;
+    mPipeline->endOfStreamDplReceived = true;
     mPipeline->stateNotify.notify_all();
   }
   if (mSpecConfig.enableDoublePipeline == 2) {
@@ -262,7 +262,8 @@ void GPURecoWorkflowSpec::receiveFMQStateCallback(fair::mq::State newState)
   {
     std::lock_guard lk(mPipeline->stateMutex);
     if (mPipeline->fmqState != fair::mq::State::Running && newState == fair::mq::State::Running) {
-      mPipeline->endOfStreamReceived = false;
+      mPipeline->endOfStreamAsyncReceived = false;
+      mPipeline->endOfStreamDplReceived = false;
     }
     mPipeline->fmqState = newState;
     if (newState == fair::mq::State::Exiting) {
@@ -283,7 +284,7 @@ void GPURecoWorkflowSpec::RunReceiveThread()
     do {
       {
         std::unique_lock lk(mPipeline->stateMutex);
-        mPipeline->stateNotify.wait(lk, [this]() { return (mPipeline->fmqState == fair::mq::State::Running && !mPipeline->endOfStreamReceived) || mPipeline->shouldTerminate; }); // Do not check mPipeline->fmqDevice->NewStatePending() since we wait for EndOfStream!
+        mPipeline->stateNotify.wait(lk, [this]() { return (mPipeline->fmqState == fair::mq::State::Running && !mPipeline->endOfStreamAsyncReceived) || mPipeline->shouldTerminate; }); // Do not check mPipeline->fmqDevice->NewStatePending() since we wait for EndOfStream!
       }
       if (mPipeline->shouldTerminate) {
         break;
@@ -310,7 +311,7 @@ void GPURecoWorkflowSpec::RunReceiveThread()
     if (m->flagEndOfStream) {
       LOG(info) << "Received end-of-stream from out-of-band channel";
       std::lock_guard lk(mPipeline->stateMutex);
-      mPipeline->endOfStreamReceived = true;
+      mPipeline->endOfStreamAsyncReceived = true;
       mPipeline->mNTFReceived = 0;
       mPipeline->runStarted = false;
       continue;
@@ -324,7 +325,7 @@ void GPURecoWorkflowSpec::RunReceiveThread()
 
     {
       std::unique_lock lk(mPipeline->stateMutex);
-      mPipeline->stateNotify.wait(lk, [this]() { return (mPipeline->runStarted && !mPipeline->endOfStreamReceived) || mPipeline->shouldTerminate; });
+      mPipeline->stateNotify.wait(lk, [this]() { return (mPipeline->runStarted && !mPipeline->endOfStreamAsyncReceived) || mPipeline->shouldTerminate; });
       if (!mPipeline->runStarted) {
         continue;
       }
