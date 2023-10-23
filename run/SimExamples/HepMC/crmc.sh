@@ -3,5 +3,5 @@
 # event record.
 
 crmcParam=$(dirname $(dirname `which crmc`))/etc/crmc.param
-exec crmc -c $crmcParam $@ -o hepmc3 -f /dev/stdout | \
+exec crmc -c $crmcParam $@ -o hepmc -f /dev/stdout | \
     sed -n 's/^\(HepMC::\|[EAUWVP] \)/\1/p'

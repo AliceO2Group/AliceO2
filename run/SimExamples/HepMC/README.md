@@ -28,18 +28,19 @@ event files in the HepMC format.
 
 To make a simulation reading from the file `events.hepmc`, do
 
-    o2-sim -g hepmc --configKeyValues "FileOrCmd.fileNames=events.hepmc" ...
+    o2-sim -g hepmc --configKeyValues "GeneratorFileOrCmd.fileNames=events.hepmc" ...
 
 See also [`read.sh`](read.sh).
 
 ## Reading HepMC events from child process
+
 `GeneratorHepMC` can not only read HepMC events from a file, but can
 also spawn an child EG to produce events.  Suppose we have a program
 named `eg` which is some EG that writes HepMC event records to the
 standard output.  Then we can execute a simulation using this external
 EG by
 
-    o2-sim -g hepmc --configKeyValues "FileOrCmd.cmd=eg"
+    o2-sim -g hepmc --configKeyValues "GeneratorFileOrCmd.cmd=eg"
 
 See also [`child.sh`](child.sh).
 
@@ -47,26 +48,26 @@ There are some requirements on the program `eg`:
 
 - The EG program _must_ be able to write the HepMC event structures to
   a specified file.  The option passed to the program is specified via
-  the key `FileOrCmd.outputSwitch`.  This defaults to `>` which means
-  the EG program is assumed to write the HepMC event structures to
-  standard output, _and_ that nothing else is printed on standard
-  output.
+  the key `GeneratorFileOrCmd.outputSwitch`.  This defaults to `>`
+  which means the EG program is assumed to write the HepMC event
+  structures to standard output, _and_ that nothing else is printed on
+  standard output.
 - It _must_ accept an option to set the number of events to generate.
   This is controlled by the configuration key
-  `FileOrCmd.nEventsSwitch` and defaults to `-n`.  Thus, the EG
-  application should accept `-n 10` to mean that it should generate
+  `GeneratorFileOrCmd.nEventsSwitch` and defaults to `-n`.  Thus, the
+  EG application should accept `-n 10` to mean that it should generate
   `10` events, for example.
 - The EG application should accept a command line switch to set the
-  random number generator seed.   This option is specified via the
-  configuration key `FileOrCmd.seedSwitch` and defaults to `-s`.
-  Thus, the EG application must accept `-s 123456` to mean to set the
-  random number seed to `123456` for example.
+  random number generator seed.  This option is specified via the
+  configuration key `GeneratorFileOrCmd.seedSwitch` and defaults to
+  `-s`.  Thus, the EG application must accept `-s 123456` to mean to
+  set the random number seed to `123456` for example.
 - The EG application should accept a command line switch to set the
   maximum impact parameter (in Fermi-metre) sampled.  This is set via
-  the configuration key `FileOrCmd.bMaxSwithc` and defaults to `-b`.
-  Thus, the EG application should take the command line argument `-b
-  10` to mean that it should only generate events with an impact
-  parameter between 0fm and 10fm.
+  the configuration key `GeneratorFileOrCmd.bMaxSwithc` and defaults
+  to `-b`.  Thus, the EG application should take the command line
+  argument `-b 10` to mean that it should only generate events with an
+  impact parameter between 0fm and 10fm.
 
 If a program does not adhere to these requirements, it will often be
 simple enough to make a small wrapper script that enforce this.  For
@@ -76,8 +77,8 @@ We can filter that out via a shell script ([`crmc.sh`](crmc.sh)) like
     #!/bin/sh
     crmc $@ -o hepmc3 -f /dev/stdout | sed -n 's/^\(HepMC::\|[EAUWVP] \)/\1/p'
 
-The `sed` command selects lines that begin with `HepMC::`, or one
-of single characters `E` (event), `A` (attribute), `U` (units), `W`
+The `sed` command selects lines that begin with `HepMC::`, or one of
+single characters `E` (event), `A` (attribute), `U` (units), `W`
 (weight), `V` (vertex), or `P` (particle) followed by a space.  This
 should in most cases be enough to filter out extra stuff written on
 standard output.
@@ -87,7 +88,7 @@ The script above also passes any additional command line options on to
 the CRMC suite.  For example, if we want to simulate p-Pb collisions
 using DpmJET, we can do
 
-    o2-sim -g hepmc --configKeyValues "FileOrCmd.cmd=crmc.sh -m 12 -i2212 -I 1002080820"
+    o2-sim -g hepmc --configKeyValues "GeneratorFileOrCmd.cmd=crmc.sh -m 12 -i2212 -I 1002080820"
 
 
 ### Implementation details
@@ -109,46 +110,50 @@ The `GeneratorHepMC` (and sister generator `GeneratorTParticle`)
 allows customisation of the execution via configuration keys passed
 via `--configKeyValues`
 
-- `HepMC.eventsToSkip=number` a number events to skip at the
-  beginning of each file read.
+- `HepMC.eventsToSkip=number` a number events to skip at the beginning
+  of each file read.
 
-- `FileOrCmd.fileNames=list` a comma separated list of HepMC files
-  to read.
+- `HepMC.version` - when reading the events from files, this option is
+   no longer needed.  The code itself figures out which format version
+   the input file is in. If executing a child process through
+   `GeneratorFileOrCmd.cmd` and the EG writes out HepMC2 format, then
+   this _must_ be set to `2`. Otherwise, HepMC3 is assumed.
 
-- `FileOrCmd.cmd=command line` a command line to execute as a
+- `GeneratorFileOrCmd.fileNames=list` a comma separated list of HepMC
+  files to read.
+
+- `GeneratorFileOrCmd.cmd=command line` a command line to execute as a
   background child process.  If this is set (not the empty string),
-  then `FileOrCmd.fileNames` is ignored.
+  then `GeneratorFileOrCmd.fileNames` is ignored.
 
-- A number of keys that specifies the command line option switch
-  that the child program accepts for certain things.  If any of
-  these are set to the empty string, then that switch and
-  corresponding option value is not passed to the child program.
+- A number of keys that specifies the command line option switch that
+  the child program accepts for certain things.  If any of these are
+  set to the empty string, then that switch and corresponding option
+  value is not passed to the child program.
 
-  - `FileOrCmd.outputSwitch=switch` (default `>`) to specify output
-    file.  The default of `>` assumes that the program write HepMC
-    events, and _only_ those, to standard output.
+  - `GeneratorFileOrCmd.outputSwitch=switch` (default `>`) to specify
+    output file.  The default of `>` assumes that the program write
+    HepMC events, and _only_ those, to standard output.
 
-  - `FileOrCmd.seedSwitch=switch` (default `-s`) to specify the
-    random number generator seed. The value passed is selected by
+  - `GeneratorFileOrCmd.seedSwitch=switch` (default `-s`) to specify
+    the random number generator seed. The value passed is selected by
     the `o2-sim` option `--seed`
 
-  - `FileOrCmd.bMaxSwitch=switch` (default `-b`) to specify the
-     upper limit on the impact parameters sampled.  The value passed
-     is selected by the `o2-sim` option `--bMax`
+  - `GeneratorFileOrCmd.bMaxSwitch=switch` (default `-b`) to specify
+     the upper limit on the impact parameters sampled.  The value
+     passed is selected by the `o2-sim` option `--bMax`
 
-  - `FileOrCmd.nEventsSwitch=switch` (default `-n`) to specify the
-     number of events to generate.  The value passed is selected by
-     the `o2-sim` option `--nEvents` or (`-n`)
+  - `GeneratorFileOrCmd.nEventsSwitch=switch` (default `-n`) to
+     specify the number of events to generate.  The value passed is
+     selected by the `o2-sim` option `--nEvents` or (`-n`)
 
-  - `FileOrCmd.backgroundSwitch=switch` (default `&`) to specify how
-    the program is put in the background.  Typically this should be
-    `&`, but a program may itself fork to the background.
+  - `GeneratorFileOrCmd.backgroundSwitch=switch` (default `&`) to
+    specify how the program is put in the background.  Typically this
+    should be `&`, but a program may itself fork to the background.
 
-- Some options are no longer available
+- Some options are deprecated
 
-  - `HepMC.fileName` - use `FileOrCmd.fileNames`
-  - `HepMC.version` - now the code itself figures out which format
-    version the input file is in.
+  - `HepMC.fileName` - use `GeneratorFileOrCmd.fileNames`
 
 The command line build will now be
 

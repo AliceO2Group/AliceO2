@@ -279,7 +279,7 @@ o2_add_test_command(NAME o2sim_hepmc
                                       -g
                                    hepmc
                        --configKeyValues
-"FileOrCmd.fileNames=${CMAKE_SOURCE_DIR}/Generators/share/data/pythia.hepmc;HepMC.version=2;align-geom.mDetectors=none"
+"GeneratorFileOrCmd.fileNames=${CMAKE_SOURCE_DIR}/Generators/share/data/pythia.hepmc;HepMC.version=2;align-geom.mDetectors=none"
                                       -o
                               o2simhepmc
                     LABELS long sim hepmc3

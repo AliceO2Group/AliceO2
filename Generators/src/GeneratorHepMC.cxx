@@ -74,14 +74,23 @@ void GeneratorHepMC::setup(const GeneratorFileOrCmdParam& param0,
                            const conf::SimConfig& config)
 {
   if (not param.fileName.empty()) {
-    LOG(fatal) << "The use of the key \"HepMC.fileName\" is "
-               << "no longer supported, use \"FileOrCmd.fileNames\" instead";
+    LOG(warn) << "The use of the key \"HepMC.fileName\" is "
+              << "deprecated, use \"GeneratorFileOrCmd.fileNames\" instead";
   }
-  if (param.version != 0)
-    LOG(warn) << "The key \"HepMC.version\" is no longer used. The "
-              << "version of the input files are automatically deduced.";
+
   GeneratorFileOrCmd::setup(param0, config);
+  if (not param.fileName.empty()) {
+    setFileNames(param.fileName);
+  }
+
+  mVersion = param.version;
   setEventsToSkip(param.eventsToSkip);
+
+  if (param.version != 0 and mCmd.empty()) {
+    LOG(warn) << "The key \"HepMC.version\" is no longer used when "
+              << "reading from files. The format version of the input files "
+              << "are automatically deduced.";
+  }
 }
 
 /*****************************************************************/
@@ -349,9 +358,14 @@ bool GeneratorHepMC::makeReader()
     // For FIFO reading, we assume straight ASCII output always.
     // Unfortunately, the HepMC3::deduce_reader `stat`s the filename
     // which isn't supported on a FIFO, so we have to use the reader
-    // directly.
+    // directly.  Here, we allow for version 2 formats if the user
+    // specifies that
     LOG(info) << "Creating ASCII reader of " << filename;
-    mReader.reset(new HepMC3::ReaderAscii(filename));
+    if (mVersion == 2) {
+      mReader.reset(new HepMC3::ReaderAsciiHepMC2(filename));
+    } else {
+      mReader.reset(new HepMC3::ReaderAscii(filename));
+    }
   } else {
     LOG(info) << "Deduce a reader of " << filename;
     mReader = HepMC3::deduce_reader(filename);
