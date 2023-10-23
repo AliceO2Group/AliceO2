@@ -712,6 +712,7 @@ GPUd() void TrackParametrizationWithError<value_T>::resetCovariance(value_t s2)
 
 //______________________________________________
 template <typename value_T>
+template <bool printWarning>
 GPUd() auto TrackParametrizationWithError<value_T>::getPredictedChi2(const value_t* p, const value_t* cov) const -> value_t
 {
   // Estimate the chi2 of the space point "p" with the cov. matrix "cov"
@@ -727,11 +728,13 @@ GPUd() auto TrackParametrizationWithError<value_T>::getPredictedChi2(const value
   value_t d = this->getY() - p[0];
   value_t z = this->getZ() - p[1];
   auto chi2 = (d * (szz * d - sdz * z) + z * (sdd * z - d * sdz)) / det;
-  if (chi2 < 0.) {
-    LOGP(warning, "Negative chi2={}, Cluster: {} {} {} Dy:{} Dz:{} | sdd:{} sdz:{} szz:{} det:{}", chi2, cov[0], cov[1], cov[2], d, z, sdd, sdz, szz, det);
+  if constexpr (printWarning) {
+    if (chi2 < 0.) {
+      LOGP(warning, "Negative chi2={}, Cluster: {} {} {} Dy:{} Dz:{} | sdd:{} sdz:{} szz:{} det:{}", chi2, cov[0], cov[1], cov[2], d, z, sdd, sdz, szz, det);
 #ifndef GPUCA_ALIGPUCODE
-    LOGP(warning, "Track: {}", asString());
+      LOGP(warning, "Track: {}", asString());
 #endif
+    }
   }
   return chi2;
 }

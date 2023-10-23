@@ -90,8 +90,9 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
   GPUd() bool propagateTo(value_t xk, const dim3_t& b);
   GPUd() bool propagateToDCA(const o2::dataformats::VertexBase& vtx, value_t b, o2::dataformats::DCA* dca = nullptr, value_t maxD = 999.f);
   GPUd() void invert();
-
+  template <bool printWarning = true>
   GPUd() value_t getPredictedChi2(const dim2_t& p, const dim3_t& cov) const;
+  template <bool printWarning = true>
   GPUd() value_t getPredictedChi2(const value_t* p, const value_t* cov) const;
 
   template <typename T>
@@ -140,7 +141,9 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
 
 //__________________________________________________________________________
 template <typename value_T>
-GPUdi() TrackParametrizationWithError<value_T>::TrackParametrizationWithError() : TrackParametrization<value_T>{}
+GPUdi() TrackParametrizationWithError<value_T>::TrackParametrizationWithError() : TrackParametrization<value_T>
+{
+}
 {
 }
 
@@ -148,7 +151,10 @@ GPUdi() TrackParametrizationWithError<value_T>::TrackParametrizationWithError() 
 template <typename value_T>
 GPUdi() TrackParametrizationWithError<value_T>::TrackParametrizationWithError(value_t x, value_t alpha, const params_t& par,
                                                                               const covMat_t& cov, int charge, const PID pid)
-  : TrackParametrization<value_T>{x, alpha, par, charge, pid}
+  : TrackParametrization<value_T>
+{
+  x, alpha, par, charge, pid
+}
 {
   // explicit constructor
   for (int i = 0; i < kCovMatSize; i++) {
@@ -311,9 +317,10 @@ GPUdi() auto TrackParametrizationWithError<value_T>::getPredictedChi2(const Base
 
 //______________________________________________
 template <typename value_T>
+template <bool printWarning>
 GPUdi() auto TrackParametrizationWithError<value_T>::getPredictedChi2(const dim2_t& p, const dim3_t& cov) const -> value_t
 {
-  return getPredictedChi2(p.data(), cov.data());
+  return getPredictedChi2<printWarning>(p.data(), cov.data());
 }
 
 //______________________________________________

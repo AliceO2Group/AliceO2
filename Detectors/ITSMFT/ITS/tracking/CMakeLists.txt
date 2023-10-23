@@ -32,15 +32,19 @@ o2_add_library(ITStracking
                        src/Vertexer.cxx
                        src/VertexerTraits.cxx
                        src/Smoother.cxx
-               PUBLIC_LINK_LIBRARIES O2::GPUCommon
-                                     Microsoft.GSL::GSL
-                                     O2::CommonConstants
-                                     O2::DataFormatsITSMFT
-                                     O2::SimulationDataFormat
-                                     O2::ITSBase
-                                     O2::ITSReconstruction
-                                     O2::ITSMFTReconstruction
-                                     O2::DataFormatsITS)
+               PRIVATE_INCLUDE_DIRECTORIES 
+                       ${CMAKE_SOURCE_DIR}/DataFormats/Reconstruction/src
+               PUBLIC_LINK_LIBRARIES
+                       O2::GPUCommon
+                       Microsoft.GSL::GSL
+                       O2::CommonConstants
+                       O2::DataFormatsITSMFT
+                       O2::SimulationDataFormat
+                       O2::ITSBase
+                       O2::ITSReconstruction
+                       O2::ITSMFTReconstruction
+                       O2::DataFormatsITS
+               )
 
 if (OpenMP_CXX_FOUND)
         target_compile_definitions(${targetName} PRIVATE WITH_OPENMP)

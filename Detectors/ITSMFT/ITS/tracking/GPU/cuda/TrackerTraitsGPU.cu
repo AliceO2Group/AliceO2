@@ -189,7 +189,7 @@ GPUd() bool fitTrack(TrackITSExt& track,
       //   return false;
       // }
     }
-    track.setChi2(track.getChi2() + track.getPredictedChi2(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame));
+    track.setChi2(track.getChi2() + track.getPredictedChi2<false>(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame));
     if (!track.TrackParCov::update(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)) {
       return false;
     }
@@ -209,7 +209,7 @@ GPUd() bool fitTrack(TrackITSExt& track,
     //     // continue;
     //     // }
     //   }
-    auto predChi2{track.getPredictedChi2(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)};
+    auto predChi2{track.getPredictedChi2<false>(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)};
     if ((nCl >= 3 && predChi2 > chi2clcut) || predChi2 < 0.f) {
       return false;
     }
