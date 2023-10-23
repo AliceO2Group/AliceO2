@@ -198,6 +198,8 @@ struct ABTrackLink : public o2::track::TrackParCov {
   uint8_t ladderID = 0xff; ///< ladder ID in the layer (used for seeds with 2 hits in the layer)
   float chi2 = 0.f;        ///< chi2 after update
 
+  ABTrackLink() = default;
+  ~ABTrackLink() = default;
   ABTrackLink(const o2::track::TrackParCov& tr, int cl, int parID, int nextID, int lr, int nc, int ld, float _chi2)
     : o2::track::TrackParCov(tr), clID(cl), parentID(parID), nextOnLr(nextID), layerID(int8_t(lr)), nContLayers(int8_t(nc)), ladderID(uint8_t(ld)), chi2(_chi2) {}
 
@@ -208,17 +210,25 @@ struct ABTrackLink : public o2::track::TrackParCov {
   float chi2NormPredict(float chi2cl) const { return (chi2 + chi2cl) / (1 + o2::its::RecoGeomHelper::getNLayers() - layerID); }
 };
 
+struct LinksPoolMT {
+  std::vector<std::deque<ABTrackLink>> threadPool;
+};
+
 // AB primary seed: TPC track propagated to outermost ITS layer under specific InteractionCandidate hypothesis
 struct TPCABSeed {
   static constexpr int8_t NeedAlternative = -3;
   int tpcWID = MinusOne;                                            ///< TPC track ID
   int ICCanID = MinusOne;                                           ///< interaction candidate ID (they are sorted in increasing time)
   int winLinkID = MinusOne;                                         ///< ID of the validated link
+  uint32_t linksEntry = 0;                                          ///< 1st entry of the link
+  int nLinks = 0;                                                   ///< number of links
   int8_t lowestLayer = o2::its::RecoGeomHelper::getNLayers();       ///< lowest layer reached
   int8_t status = MinusOne;                                         ///< status (RS TODO)
+  uint8_t threadID = 0;                                             ///< thread ID
   o2::track::TrackParCov track{};                                   ///< Seed propagated to the outer layer under certain time constraint
   std::array<int, o2::its::RecoGeomHelper::getNLayers()> firstInLr; ///< entry of 1st (best) hypothesis on each layer
-  std::vector<ABTrackLink> trackLinks{};                            ///< links
+  static LinksPoolMT* gLinksPool;                                   ///< pool of links per thread
+
   TPCABSeed(int id, int ic, const o2::track::TrackParCov& trc) : tpcWID(id), ICCanID(ic), track(trc)
   {
     firstInLr.fill(MinusOne);
@@ -234,8 +244,14 @@ struct TPCABSeed {
   int8_t getNLayers() const { return o2::its::RecoGeomHelper::getNLayers() - lowestLayer; }
   bool needAlteranative() const { return status == NeedAlternative; }
   void setNeedAlternative() { status = NeedAlternative; }
-  ABTrackLink& getLink(int i) { return trackLinks[i]; }
-  const ABTrackLink& getLink(int i) const { return trackLinks[i]; }
+  ABTrackLink& getLink(int i) { return gLinksPool->threadPool[threadID][i + linksEntry]; }
+  const ABTrackLink& getLink(int i) const { return gLinksPool->threadPool[threadID][i + linksEntry]; }
+  void addLink(const o2::track::TrackParCov& trc, int clID, int parentID, int nextID, int lr, int nc, int laddID, float chi2)
+  {
+    gLinksPool->threadPool[threadID].push_back({trc, clID, parentID, nextID, lr, nc, laddID, chi2});
+    nLinks++;
+  }
+  int getNLinks() const { return nLinks; }
   auto getBestLinkID() const
   {
     return lowestLayer < o2::its::RecoGeomHelper::getNLayers() ? firstInLr[lowestLayer] : -1;
@@ -244,7 +260,7 @@ struct TPCABSeed {
   {
     // check if some clusters used by the link or its parents are forbidden (already used by validatet track)
     while (linkID > MinusOne) {
-      const auto& link = trackLinks[linkID];
+      const auto& link = getLink(linkID);
       if (link.clID > MinusOne && clStatus[link.clID] != MinusOne) {
         return true;
       }
@@ -256,15 +272,15 @@ struct TPCABSeed {
   {
     // check if some clusters used by the link or its parents are forbidden (already used by validated track)
     while (linkID > MinusOne) {
-      const auto& link = trackLinks[linkID];
+      const auto& link = getLink(linkID);
       if (link.clID > MinusOne) {
         clStatus[link.clID] = MinusTen;
       }
       linkID = link.parentID;
     }
   }
-  size_t sizeInternal() const { return sizeof(ABTrackLink) * trackLinks.size(); }
-  size_t capInternal() const { return sizeof(ABTrackLink) * trackLinks.capacity(); }
+  size_t sizeInternal() const { return sizeof(ABTrackLink) * getNLinks(); }
+  size_t capInternal() const { return sizeof(ABTrackLink) * getNLinks(); }
 };
 
 struct InteractionCandidate : public o2::InteractionRecord {
@@ -528,7 +544,7 @@ class MatchTPCITS
 
   // ========================= AFTERBURNER =========================
   int prepareABSeeds();
-  void processABSeed(int sid, const ITSChipClustersRefs& itsChipClRefs);
+  void processABSeed(int sid, const ITSChipClustersRefs& itsChipClRefs, uint8_t tID);
   int followABSeed(const o2::track::TrackParCov& seed, const ITSChipClustersRefs& itsChipClRefs, int seedID, int lrID, TPCABSeed& ABSeed);
   int registerABTrackLink(TPCABSeed& ABSeed, const o2::track::TrackParCov& trc, int clID, int parentID, int lr, int laddID, float chi2Cl);
   bool isBetter(float chi2A, float chi2B) { return chi2A < chi2B; } // RS FIMXE TODO
@@ -651,6 +667,7 @@ class MatchTPCITS
   std::vector<int> mTPCABIndexCache;
   std::vector<int> mABWinnersIDs;
   std::vector<int> mABClusterLinkIndex; ///< index of 1st ABClusterLink for every cluster used by AfterBurner, -1: unused, -10: used by external ITS tracks
+  LinksPoolMT mABLinksPool;
 
   ///< per sector indices of TPC track entry in mTPCWork
   std::array<std::vector<int>, o2::constants::math::NSectors> mTPCSectIndexCache;
