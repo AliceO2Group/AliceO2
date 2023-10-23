@@ -64,9 +64,6 @@ void AODToHepMC::process(Header const& collision,
 void AODToHepMC::makeEvent(Header const& collision,
                            Tracks const& tracks)
 {
-  std::stringstream sb;
-  for (auto b : mBeams)
-    sb << b->id() << ",";
   LOG(debug) << "Event # " << mEvent.event_number() << " "
              << "(# " << mEventNo << " processed)"
              << "\n"
@@ -74,8 +71,7 @@ void AODToHepMC::makeEvent(Header const& collision,
              << "(" << tracks.size() << " input tracks)"
              << "\n"
              << "# of orphans   " << mOrphans.size() << "\n"
-             << "# of beams     " << mBeams.size() << " ["
-             << sb.str() << "]\n"
+             << "# of beams     " << mBeams.size() << "\n"
              << "# of vertexes  " << mVertices.size();
   if (mUseTree) {
     mEvent.reserve(mParticles.size() + mBeams.size(), mVertices.size());
@@ -105,16 +101,21 @@ void AODToHepMC::makeEvent(Header const& collision,
         makeBeams(collision, ip);
     }
   }
+  // Flesh out the tracks based on daughter information.
   fleshOut(tracks);
-  if (mWriter)
+  if (mWriter) {
+    // If we have a writer, then dump event to output file
     mWriter->write_event(mEvent);
+  }
 }
 // -------------------------------------------------------------------
 void AODToHepMC::makeHeader(Header const& header)
 {
   int eventNo = header.bcId();
-  if (eventNo == mLastBC)
+  if (eventNo == mLastBC) {
     eventNo = mEventNo;
+  }
+
   // Set the event number
   mEvent.set_event_number(eventNo);
   mEvent.weights().push_back(header.weight());
@@ -131,13 +132,18 @@ void AODToHepMC::makeHeader(Header const& header)
 // -------------------------------------------------------------------
 void AODToHepMC::makeXSection(XSections const& xsections)
 {
-  if (not mCrossSec)
+  if (not mCrossSec) {
+    // If we do not have a cross-sections object, create it
     mCrossSec = std::make_shared<HepMC3::GenCrossSection>();
+  }
+
   mEvent.set_cross_section(mCrossSec);
   mCrossSec->set_cross_section(0.f, 0.f, 0, 0);
 
-  if (xsections.size() <= 0)
+  if (xsections.size() <= 0) {
+    // If we have no info, skip the rest
     return;
+  }
 
   XSection xsection = xsections.iteratorAt(0);
   mCrossSec->set_cross_section(xsection.xsectGen(),
@@ -148,13 +154,18 @@ void AODToHepMC::makeXSection(XSections const& xsections)
 // -------------------------------------------------------------------
 void AODToHepMC::makePdfInfo(PdfInfos const& pdfs)
 {
-  if (not mPdf)
+  if (not mPdf) {
+    // If we do not have a Parton Distribution Function object, create it
     mPdf = std::make_shared<HepMC3::GenPdfInfo>();
+  }
+
   mEvent.set_pdf_info(mPdf);
   mPdf->set(0, 0, 0.f, 0.f, 0.f, 0.f, 0.f, 0, 0);
 
-  if (pdfs.size() <= 0)
+  if (pdfs.size() <= 0) {
+    // If we have no PDF info, skip the rest
     return;
+  }
 
   PdfInfo pdf = pdfs.iteratorAt(0);
   mPdf->set(pdf.id1(),
@@ -171,9 +182,11 @@ void AODToHepMC::makePdfInfo(PdfInfos const& pdfs)
 void AODToHepMC::makeHeavyIon(HeavyIons const& heavyions,
                               Header const& header)
 {
-  // Generate heavy ion element if it doesn't exist
-  if (not mIon)
+  if (not mIon) {
+    // Generate heavy ion element if it doesn't exist
     mIon = std::make_shared<HepMC3::GenHeavyIon>();
+  }
+
   mEvent.set_heavy_ion(mIon);
   mIon->impact_parameter = header.impactParameter();
   mIon->event_plane_angle = 0.f;
@@ -191,26 +204,35 @@ void AODToHepMC::makeHeavyIon(HeavyIons const& heavyions,
   mIon->sigma_inel_NN = 0.f;
   mIon->centrality = 0.f;
 #ifndef HEPMC3_NO_DEPRECATED
+  // Deprecated interface with a single eccentricity
   mIon->eccentricity = 0.f;
 #else
+  // Newer interface that stores multiple orders of eccentricities.
   mIon->eccentricities[1] = 0.f;
 #endif
 
-  if (heavyions.size() <= 0)
+  if (heavyions.size() <= 0) {
+    // If we have no heavy-ion information, skip the rest
     return;
+  }
 
   HeavyIon heavyion = heavyions.iteratorAt(0);
   float r = 1;
+  // We need to calculate the ratio projectile to target participants
+  // so that we may break up the number of spectators and so on. This
+  // is because the AOD HepMC3HeavyIons table does not store the
+  // relevant information directly.
   if (heavyion.npartProj() < heavyion.npartTarg() and
-      heavyion.npartTarg() > 0)
+      heavyion.npartTarg() > 0) {
     r = heavyion.npartProj() / heavyion.npartTarg();
-  else if (heavyion.npartTarg() < heavyion.npartProj() and
-           heavyion.npartProj() > 0) {
+  } else if (heavyion.npartTarg() < heavyion.npartProj() and
+             heavyion.npartProj() > 0) {
     r = heavyion.npartTarg() / heavyion.npartProj();
     r = (1 - r);
   }
 
-  // Heavy ion parameters
+  // Heavy ion parameters.  Note that number of projectile/target
+  // proton/neutrons are set by the ratio calculated above.
   mIon->impact_parameter = heavyion.impactParameter();
   mIon->event_plane_angle = heavyion.eventPlaneAngle();
   mIon->Ncoll_hard = heavyion.ncollHard();
@@ -235,15 +257,17 @@ void AODToHepMC::makeHeavyIon(HeavyIons const& heavyions,
 // -------------------------------------------------------------------
 void AODToHepMC::makeParticles(Tracks const& tracks)
 {
-  for (auto track : tracks)
+  for (auto track : tracks) {
     makeParticleRecursive(track, tracks);
+  }
 }
 // -------------------------------------------------------------------
 AODToHepMC::ParticlePtr AODToHepMC::getParticle(Track const& ref) const
 {
   auto iter = mParticles.find(ref.globalIndex());
-  if (iter == mParticles.end())
+  if (iter == mParticles.end()) {
     return 0;
+  }
 
   return iter->second;
 }
@@ -266,14 +290,16 @@ AODToHepMC::ParticlePtr AODToHepMC::makeParticleRecursive(Track const& track,
   ParticlePtr particle = getParticle(track);
 
   // Check if we already have the particle, and if so, return it
-  if (particle)
+  if (particle) {
     return particle;
+  }
 
   // Make this particle and store it
   int motherStatus = 0;
   particle = makeParticle(track, motherStatus, force);
-  if (not particle)
+  if (not particle) {
     return 0;
+  }
 
   // Store mapping from index to particle
   mParticles[track.globalIndex()] = particle;
@@ -284,16 +310,20 @@ AODToHepMC::ParticlePtr AODToHepMC::makeParticleRecursive(Track const& track,
   for (auto mtrack : track.mothers_as<Tracks>()) {
     auto mother = makeParticleRecursive(mtrack, tracks, true);
     // If mother not found, continue
-    if (not mother)
+    if (not mother) {
       continue;
+    }
+
     // Overrride mother status based on production mechanism of daughter
-    if (motherStatus != 0)
+    if (motherStatus != 0) {
       mother->set_status(motherStatus);
+    }
 
     mothers.push_back(mother);
     // Update the production vertex if not set already
-    if (not vout)
+    if (not vout) {
       vout = mother->end_vertex();
+    }
   }
 
   // If we have no out vertex, and the particle isn't a beam
@@ -307,23 +337,27 @@ AODToHepMC::ParticlePtr AODToHepMC::makeParticleRecursive(Track const& track,
 
     // If mothers do not have any end-vertex, add them to the found
     // vertex.
-    for (auto mother : mothers)
-      if (not mother->end_vertex())
+    for (auto mother : mothers) {
+      if (not mother->end_vertex()) {
         vout->add_particle_in(mother);
+      }
+    }
   }
 
   // If we got a out-going vertex, add this particle to that
-  if (vout)
+  if (vout) {
     vout->add_particle_out(particle);
+  }
 
   // If this is a beam particle, add to them
-  if (particle->status() == 4)
+  if (particle->status() == 4) {
     mBeams.push_back(particle);
+  }
   // if if there no mothers, and this is not beam, then make
   // this an orphan.
-  else if (mothers.size() <= 0)
+  else if (mothers.size() <= 0) {
     mOrphans.push_back(particle);
-
+  }
   // return the particle
   return particle;
 }
@@ -367,16 +401,18 @@ AODToHepMC::ParticlePtr AODToHepMC::makeParticle(const Track& track,
 // -------------------------------------------------------------------
 void AODToHepMC::fleshOut(Tracks const& tracks)
 {
-  for (auto track : tracks)
+  for (auto track : tracks) {
     fleshOutParticle(track, tracks);
+  }
 }
 // -------------------------------------------------------------------
 void AODToHepMC::fleshOutParticle(Track const& track, Tracks const& tracks)
 {
   // If we are only propagating generated tracks, then we need
   // not process transported tracks
-  if (isIgnored(track))
+  if (isIgnored(track)) {
     return;
+  }
 
   // Check that we can find the track in our map
   auto particle = getParticle(track);
@@ -403,8 +439,9 @@ void AODToHepMC::fleshOutParticle(Track const& track, Tracks const& tracks)
     // Check that the daughther is generated by EG.  If not, and we
     // only store generated tracks, then go on to the next daughter
     // (or return?).
-    if (isIgnored(dtrack))
+    if (isIgnored(dtrack)) {
       continue;
+    }
 
     auto daughter = getParticle(dtrack);
     if (not daughter) {
@@ -434,8 +471,9 @@ void AODToHepMC::fleshOutParticle(Track const& track, Tracks const& tracks)
     // such daughters.
     //
     // This check may not be needed
-    if (endVtx and endVtx->id() != prodVtx->id())
+    if (endVtx and endVtx->id() != prodVtx->id()) {
       continue;
+    }
 
     // If we have a current candidate end vertex, but it doesn't match
     // the production vertex of the daughter, then we give a warning.
@@ -456,13 +494,14 @@ void AODToHepMC::fleshOutParticle(Track const& track, Tracks const& tracks)
     // end vertex
     if (not candidate and
         (particle->status() == 4 or
-         particle->status() == 2))
+         particle->status() == 2)) {
       // Only warn for beam and decayed particles
       LOG(warning) << "Particle " << track.globalIndex()
                    << " (" << particle->id() << ")"
                    << " w/status " << particle->status()
                    << " does not have an end-vertex, "
                    << "nor was any found from its daughters";
+    }
 
     // If we have a candidate, set the end vertex
     if (candidate) {
@@ -471,18 +510,23 @@ void AODToHepMC::fleshOutParticle(Track const& track, Tracks const& tracks)
     }
   }
 
+  // If we have head-less daughters, add them here
   if (endVtx and headLess.size() > 0) {
-    for (auto daughter : headLess)
+    for (auto daughter : headLess) {
       endVtx->add_particle_out(daughter);
+    }
   }
 }
 // -------------------------------------------------------------------
 void AODToHepMC::enableDump(const std::string& dump)
 {
-  if (not dump.empty() and mWriter)
+  if (not dump.empty() and mWriter) {
     return;
-  if (dump.empty() and not mWriter)
+  }
+
+  if (dump.empty() and not mWriter) {
     return;
+  }
 
   if (not dump.empty()) {
     LOG(debug) << "o2::rivet::Converter: Open output HepMC file " << dump;
@@ -495,8 +539,10 @@ void AODToHepMC::enableDump(const std::string& dump)
                << "Closing output HepMC file\n"
                << "*********************************";
     mWriter.reset();
-    if (mOutput)
+    if (mOutput) {
       mOutput->close();
+    }
+
     delete mOutput;
     mOutput = nullptr;
   }
@@ -509,8 +555,9 @@ AODToHepMC::VertexPtr AODToHepMC::makeVertex(const Track& track)
                track.vz(),
                track.vt());
   auto vtx = std::make_shared<HepMC3::GenVertex>(v);
-  if (not mUseTree)
+  if (not mUseTree) {
     mEvent.add_vertex(vtx);
+  }
   return vtx;
 }
 // -------------------------------------------------------------------
