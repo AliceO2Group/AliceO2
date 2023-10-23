@@ -94,11 +94,13 @@ void AODToHepMC::makeEvent(Header const& collision,
                    collision.t());
       auto ip = std::make_shared<HepMC3::GenVertex>(v);
       mEvent.add_vertex(ip);
-      for (auto p : mOrphans)
+      for (auto p : mOrphans) {
         ip->add_particle_out(p);
-
-      if (mBeams.size() == 0)
+      }
+      
+      if (mBeams.size() == 0) {
         makeBeams(collision, ip);
+      }
     }
   }
   // Flesh out the tracks based on daughter information.
@@ -266,7 +268,7 @@ AODToHepMC::ParticlePtr AODToHepMC::getParticle(Track const& ref) const
 {
   auto iter = mParticles.find(ref.globalIndex());
   if (iter == mParticles.end()) {
-    return 0;
+    return nullptr;
   }
 
   return iter->second;
@@ -298,7 +300,7 @@ AODToHepMC::ParticlePtr AODToHepMC::makeParticleRecursive(Track const& track,
   int motherStatus = 0;
   particle = makeParticle(track, motherStatus, force);
   if (not particle) {
-    return 0;
+    return nullptr;
   }
 
   // Store mapping from index to particle
@@ -375,8 +377,9 @@ AODToHepMC::ParticlePtr AODToHepMC::makeParticle(const Track& track,
   // Do not generate particle if it is not from generator and we are
   // asked not to make other particles.  Note, if a particle has this
   // as one of it's mothers, we will make it despite the flag.
-  if (not force and mOnlyGen and !fromEG)
-    return 0;
+  if (not force and mOnlyGen and !fromEG) {
+    return nullptr;
+  }
 
   FourVector p(track.px(),
                track.py(),
