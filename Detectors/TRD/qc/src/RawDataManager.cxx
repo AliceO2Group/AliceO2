@@ -15,8 +15,6 @@
 #include <TSystem.h>
 #include <TFile.h>
 #include <TTree.h>
-#include <TTreeReader.h>
-#include <TTreeReaderArray.h>
 #include <boost/range/distance.hpp>
 #include <boost/range/iterator_range_core.hpp>
 #include <iterator>
@@ -31,21 +29,26 @@ using namespace o2::trd;
 /// comparison function to order digits by det / row / MCM / -channel
 bool comp_digit(const o2::trd::Digit& a, const o2::trd::Digit& b)
 {
-  if (a.getDetector() != b.getDetector())
+  if (a.getDetector() != b.getDetector()) {
     return a.getDetector() < b.getDetector();
+  }
 
-  if (a.getPadRow() != b.getPadRow())
+  if (a.getPadRow() != b.getPadRow()) {
     return a.getPadRow() < b.getPadRow();
+  }
 
-  if (a.getROB() != b.getROB())
+  if (a.getROB() != b.getROB()) {
     return a.getROB() < b.getROB();
+  }
 
-  if (a.getMCM() != b.getMCM())
+  if (a.getMCM() != b.getMCM()) {
     return a.getMCM() < b.getMCM();
+  }
 
   // sort channels in descending order, to ensure ordering of pad columns
-  if (a.getChannel() != b.getChannel())
+  if (a.getChannel() != b.getChannel()) {
     return a.getChannel() > b.getChannel();
+  }
 
   return true;
 }
@@ -62,8 +65,9 @@ bool comp_tracklet(const o2::trd::Tracklet64& a, const o2::trd::Tracklet64& b)
   auto a_det_row = a.getTrackletWord() & det_row_mask;
   auto b_det_row = b.getTrackletWord() & det_row_mask;
 
-  if (a_det_row != b_det_row)
+  if (a_det_row != b_det_row) {
     return a_det_row < b_det_row;
+  }
 
   auto a_col_pos = a.getTrackletWord() & col_pos_mask;
   auto b_col_pos = b.getTrackletWord() & col_pos_mask;
@@ -73,14 +77,17 @@ bool comp_tracklet(const o2::trd::Tracklet64& a, const o2::trd::Tracklet64& b)
 
 bool comp_spacepoint(const ChamberSpacePoint& a, const ChamberSpacePoint& b)
 {
-  if (a.getDetector() != b.getDetector())
+  if (a.getDetector() != b.getDetector()) {
     return a.getDetector() < b.getDetector();
+  }
 
-  if (a.getPadRow() != b.getPadRow())
+  if (a.getPadRow() != b.getPadRow()) {
     return a.getPadRow() < b.getPadRow();
+  }
 
-  if (a.getPadCol() != b.getPadCol())
+  if (a.getPadCol() != b.getPadCol()) {
     return a.getPadCol() < b.getPadCol();
+  }
 
   return true;
 }
@@ -94,7 +101,6 @@ void RawDataSpan::sort()
 
 template <typename keyfunc>
 std::vector<RawDataSpan> RawDataSpan::iterateBy()
-// std::vector<RawDataSpan> RawDataSpan::IterateBy()
 {
   // an map for keeping track which ranges correspond to which key
   std::map<uint32_t, RawDataSpan> spanmap;
@@ -301,20 +307,19 @@ RawDataManager::RawDataManager(std::filesystem::path dir)
 
   mMainFile = new TFile((dir / "trdtracklets.root").c_str());
   mMainFile->GetObject("o2sim", mDataTree);
-  mDataReader = new TTreeReader(mDataTree);
 
   // set up the branches we want to read
-  mTracklets = new TTreeReaderArray<o2::trd::Tracklet64>(*mDataReader, "Tracklet");
-  mTrgRecords = new TTreeReaderArray<o2::trd::TriggerRecord>(*mDataReader, "TrackTrg");
+  mDataTree->SetBranchAddress("Tracklet", &mTracklets);
+  mDataTree->SetBranchAddress("TrackTrg", &mTrgRecords);
 
   if (std::filesystem::exists(dir / "trddigits.root")) {
     mDataTree->AddFriend("o2sim", (dir / "trddigits.root").c_str());
-    mDigits = new TTreeReaderArray<o2::trd::Digit>(*mDataReader, "TRDDigit");
+    mDataTree->SetBranchAddress("TRDDigit", &mDigits);
   }
 
   if (std::filesystem::exists(dir / "o2match_itstpc.root")) {
     mDataTree->AddFriend("matchTPCITS", (dir / "o2match_itstpc.root").c_str());
-    mDigits = new TTreeReaderArray<o2::trd::Digit>(*mDataReader, "TPCITS");
+    mDataTree->SetBranchAddress("TPCITS", &mTracks);
   }
 
   // For data, we need info about time frames to match ITS and TPC tracks to trigger records.
@@ -334,21 +339,20 @@ RawDataManager::RawDataManager(std::filesystem::path dir)
   if (std::filesystem::exists(dir / "o2sim_Kine.root")) {
     mMCFile = new TFile((dir / "o2sim_Kine.root").c_str());
     mMCFile->GetObject("o2sim", mMCTree);
-    mMCReader = new TTreeReader(mMCTree);
-    mMCEventHeader = new TTreeReaderValue<o2::dataformats::MCEventHeader>(*mMCReader, "MCEventHeader.");
-    mMCTracks = new TTreeReaderArray<o2::MCTrackT<Float_t>>(*mMCReader, "MCTrack");
+    mMCTree->SetBranchAddress("MCEventHeader.", &mMCEventHeader);
+    mMCTree->SetBranchAddress("MCTrack", &mMCTracks);
   }
 
   // We then add the TRD hits to the MC tree
   if (mMCFile && std::filesystem::exists(dir / "o2sim_HitsTRD.root")) {
     mMCTree->AddFriend("o2sim", (dir / "o2sim_HitsTRD.root").c_str());
-    mHits = new TTreeReaderArray<o2::trd::Hit>(*mMCReader, "TRDHit");
+    mMCTree->SetBranchAddress("TRDHit", &mHits);
   }
 }
 
 bool RawDataManager::nextTimeFrame()
 {
-  if (!mDataReader->Next()) {
+  if (!mDataTree->GetEntry(mTimeFrameNo)) {
     // loading time frame will fail at end of file
     return false;
   }
@@ -357,7 +361,7 @@ bool RawDataManager::nextTimeFrame()
   mTimeFrameNo++;
 
   O2INFO("Loaded data for time frame #%d with %d TRD trigger records, %d digits and %d tracklets",
-         mTimeFrameNo, mTrgRecords->GetSize(), mDigits->GetSize(), mTracklets->GetSize());
+         mTimeFrameNo, mTrgRecords->size(), mDigits->size(), mTracklets->size());
 
   return true;
 }
@@ -365,11 +369,10 @@ bool RawDataManager::nextTimeFrame()
 bool RawDataManager::nextEvent()
 {
   // get the next trigger record
-  if (mEventNo >= mTrgRecords->GetSize()) {
+  if (mEventNo >= mTrgRecords->size()) {
     return false;
   }
-
-  mTriggerRecord = mTrgRecords->At(mEventNo);
+  mTriggerRecord = mTrgRecords->at(mEventNo);
   O2INFO("Processing event: orbit %d bc %04d with %d digits and %d tracklets",
          mTriggerRecord.getBCData().orbit, mTriggerRecord.getBCData().bc,
          mTriggerRecord.getNumberOfDigits(), mTriggerRecord.getNumberOfTracklets());
@@ -382,12 +385,12 @@ bool RawDataManager::nextEvent()
     for (int i = 0; i < mCollisionContext->getNCollisions(); ++i) {
       auto evrec = mCollisionContext->getEventRecords()[i];
       if (abs(mTriggerRecord.getBCData().differenceInBCNS(evrec)) <= 3000) {
-        if (mMCReader) {
-          mMCReader->SetEntry(i);
-        }
+        // if (mMCReader) {
+        mMCTree->GetEntry(i);
+        // }
 
         O2INFO("Loaded matching MC event #%d with time offset %f ns and %d hits",
-               i, mTriggerRecord.getBCData().differenceInBCNS(evrec), mHits->GetSize());
+               i, mTriggerRecord.getBCData().differenceInBCNS(evrec), mHits->size());
 
         // convert hits to spacepoints
         auto ctrans = o2::trd::CoordinateTransformer::instance();
@@ -504,7 +507,7 @@ std::string RawDataManager::describeEvent()
 {
   std::ostringstream out;
   out << "## TF:Event " << mTimeFrameNo << ":" << mEventNo << ":  "
-      //  << hits->GetSize() << " hits   "
+      //  << hits->getsize() << " hits   "
       << mTriggerRecord.getNumberOfDigits() << " digits and "
       << mTriggerRecord.getNumberOfTracklets() << " tracklets";
   return out.str();

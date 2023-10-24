@@ -30,7 +30,7 @@
 #include "SimulationDataFormat/MCEventHeader.h"
 #include "SimulationDataFormat/MCTrack.h"
 
-#include <TTreeReaderArray.h>
+// #include <TTreeReaderArray.h>
 
 #include <boost/range/iterator_range_core.hpp>
 #include <vector>
@@ -38,7 +38,7 @@
 #include <boost/range.hpp>
 
 class TFile;
-class TTreeReader;
+class TTree;
 
 namespace o2::trd
 {
@@ -50,8 +50,8 @@ namespace o2::trd
 /// The main data members are public, and can be accessed without setters/getters.
 struct RawDataSpan {
  public:
-  boost::iterator_range<TTreeReaderArray<o2::trd::Digit>::iterator> digits;
-  boost::iterator_range<TTreeReaderArray<o2::trd::Tracklet64>::iterator> tracklets;
+  boost::iterator_range<std::vector<o2::trd::Digit>::iterator> digits;
+  boost::iterator_range<std::vector<o2::trd::Tracklet64>::iterator> tracklets;
   boost::iterator_range<std::vector<HitPoint>::iterator> hits;
 
   /// Sort digits, tracklets and space points by detector, pad row, column
@@ -126,7 +126,7 @@ class RawDataManager
   o2::dataformats::TFIDInfo getTimeFrameInfo();
 
   // TTreeReaderArray<o2::tpc::TrackTPC> *GetTimeFrameTPCTracks() {return mTpcTracks; }
-  TTreeReaderArray<o2::dataformats::TrackTPCITS>* getTimeFrameTracks() { return mTracks; }
+  std::vector<o2::dataformats::TrackTPCITS>* getTimeFrameTracks() { return mTracks; }
 
   // access event info
   RawDataSpan getEvent();
@@ -145,23 +145,23 @@ class RawDataManager
   // access to TRD digits and tracklets
   TFile* mMainFile{0}; // the main trdtracklets.root file
   TTree* mDataTree{0}; // tree and friends from digits, tracklets files
-  TTreeReader* mDataReader{0};
+                       //  TTreeReader* mDataReader{0};
 
-  TTreeReaderArray<o2::trd::Digit>* mDigits{0};
-  TTreeReaderArray<o2::trd::Tracklet64>* mTracklets{0};
-  TTreeReaderArray<o2::trd::TriggerRecord>* mTrgRecords{0};
+  std::vector<o2::trd::Digit>* mDigits{0};
+  std::vector<o2::trd::Tracklet64>* mTracklets{0};
+  std::vector<o2::trd::TriggerRecord>* mTrgRecords{0};
 
   // access tracks
-  TTreeReaderArray<o2::dataformats::TrackTPCITS>* mTracks{0};
+  std::vector<o2::dataformats::TrackTPCITS>* mTracks{0};
   // TTreeReaderArray<o2::tpc::TrackTPC> *mTpcTracks{0};
 
   // access to Monte-Carlo events, tracks, hits
   TFile* mMCFile{0};
   TTree* mMCTree{0};
-  TTreeReader* mMCReader{0};
-  TTreeReaderValue<o2::dataformats::MCEventHeader>* mMCEventHeader{0};
-  TTreeReaderArray<o2::MCTrackT<Float_t>>* mMCTracks{0};
-  TTreeReaderArray<o2::trd::Hit>* mHits{0};
+  // TTreeReader* mMCReader{0};
+  std::vector<o2::dataformats::MCEventHeader>* mMCEventHeader{0};
+  std::vector<o2::MCTrackT<Float_t>>* mMCTracks{0};
+  std::vector<o2::trd::Hit>* mHits{0};
 
   // MC hits, converted to chamber coordinates
   std::vector<o2::trd::HitPoint> mHitPoints;
