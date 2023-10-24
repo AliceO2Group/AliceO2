@@ -150,6 +150,7 @@ int RateLimiter::check(ProcessingContext& ctx, int maxInFlight, size_t minSHM)
         LOG(alarm) << "Free SHM memory too low: " << freeSHM << " < " << minSHM << ", waiting";
         waitMessage = 1;
       }
+      usleep(30000);
     }
   }
   mSentTimeframes++;
