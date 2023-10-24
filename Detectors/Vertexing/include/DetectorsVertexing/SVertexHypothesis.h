@@ -33,9 +33,12 @@ class SVertexHypothesis
   enum PIDParams { SigmaM,  // sigma of mass res at 0 pt
                    NSigmaM, // number of sigmas of mass res
                    MarginM, // additive safety margin in mass cut
-                   CPt };   // pT dependence of mass resolution parameterized as mSigma*(1+mC1*pt);
+                   CPt,   // pT dependence of mass resolution parameterized as mSigma*(1+mC1*pt);
+                   CPt1,
+                   CPt2,
+                   CPt3 };   // pT dependence of mass resolution of Cascade parameterized as CPt+CPt1*pt +CPt2*TMath::Exp(-CPt3*pt);
 
-  static constexpr int NPIDParams = 4;
+  static constexpr int NPIDParams = 7;
 
   void set(PID v0, PID ppos, PID pneg, float sig, float nSig, float margin, float cpt, float bz = 0.f);
   void set(PID v0, PID ppos, PID pneg, const float pars[NPIDParams], float bz = 0.f);
@@ -63,8 +66,16 @@ class SVertexHypothesis
     return std::abs(mass - getMassV0Hyp()) < getMargin(pt);
   }
 
+  float getSigmaCascade(float pt) const { return mPars[CPt]+mPars[CPt1]*pt +mPars[CPt2]*std::exp(-mPars[CPt3]*pt); }
   float getSigma(float pt) const { return mPars[SigmaM] * (1.f + mPars[CPt] * pt); }
-  float getMargin(float pt) const { return mPars[NSigmaM] * getSigma(pt) + mPars[MarginM]; }
+  float getMargin(float pt) const
+  {
+    if( mPIDV0 == PID::XiMinus || mPIDV0 == PID::OmegaMinus) {
+      if( mPars[NSigmaM] * getSigmaCascade(pt) + mPars[MarginM] > 0.006 ) return mPars[NSigmaM] * 0.006;
+      return mPars[NSigmaM] * getSigmaCascade(pt) + mPars[MarginM];
+    }else if( mPIDV0 == PID::K0 || mPIDV0 == PID::Lambda ) return mPars[NSigmaM] * getSigmaCascade(pt) + mPars[MarginM];
+    else return mPars[NSigmaM] * getSigma(pt) + mPars[MarginM];
+  }
 
  private:
   float getMass2PosProng() const { return PID::getMass2(mPIDPosProng); }
@@ -77,7 +88,7 @@ class SVertexHypothesis
  public: // to be deleted
   std::array<float, NPIDParams> mPars{};
 
-  ClassDefNV(SVertexHypothesis, 1);
+  ClassDefNV(SVertexHypothesis, 2);
 };
 
 class SVertex3Hypothesis
