@@ -198,6 +198,8 @@ class TimeFrameGPU : public TimeFrame
   void loadTrackSeedsDevice();
   void loadTrackSeedsChi2Device();
   void loadRoadsDevice();
+  void createTrackITSExtDevice();
+  void downloadTrackITSExtDevice();
   void initDeviceChunks(const int, const int);
   template <Task task>
   size_t loadChunkData(const size_t, const size_t, const size_t);
@@ -212,6 +214,7 @@ class TimeFrameGPU : public TimeFrame
   int* getDeviceROframesClusters(const int layer) { return mROframesClustersDevice[layer]; }
   std::vector<std::vector<Vertex>>& getVerticesInChunks() { return mVerticesInChunks; }
   std::vector<std::vector<int>>& getNVerticesInChunks() { return mNVerticesInChunks; }
+  std::vector<o2::its::TrackITSExt>& getTrackITSExt() { return mTrackITSExt; }
   std::vector<std::vector<o2::MCCompLabel>>& getLabelsInChunks() { return mLabelsInChunks; }
   int getNAllocatedROFs() const { return mNrof; } // Allocated means maximum nROF for each chunk while populated is the number of loaded ones.
   StaticTrackingParameters<nLayers>* getDeviceTrackingParameters() { return mTrackingParamsDevice; }
@@ -222,6 +225,7 @@ class TimeFrameGPU : public TimeFrame
 
   // Hybrid
   Road<nLayers - 2>* getDeviceRoads() { return mRoadsDevice; }
+  TrackITSExt* getDeviceTrackITSExt() { return mTrackITSExtDevice; }
   TrackingFrameInfo* getDeviceTrackingFrameInfo(const int);
   TrackingFrameInfo** getDeviceArrayTrackingFrameInfo() { return mTrackingFrameInfoDeviceArray; }
   Cluster** getDeviceArrayClusters() const { return mClustersDeviceArray; }
@@ -283,6 +287,9 @@ class TimeFrameGPU : public TimeFrame
   // Host memory used only in GPU tracking
   std::vector<int> mHostNTracklets;
   std::vector<int> mHostNCells;
+
+  // Temporary buffer for storing output tracks from GPU tracking
+  std::vector<TrackITSExt> mTrackITSExt;
 };
 
 template <int nLayers>

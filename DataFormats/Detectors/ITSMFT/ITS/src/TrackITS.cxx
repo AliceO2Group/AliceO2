@@ -93,8 +93,8 @@ bool TrackITS::update(const Cluster& c, float chi2)
 
 bool TrackITS::isBetter(const TrackITS& best, float maxChi2) const
 {
-  Int_t ncl = getNumberOfClusters();
-  Int_t nclb = best.getNumberOfClusters();
+  int ncl = getNumberOfClusters();
+  int nclb = best.getNumberOfClusters();
 
   if (ncl >= nclb) {
     float chi2 = getChi2();

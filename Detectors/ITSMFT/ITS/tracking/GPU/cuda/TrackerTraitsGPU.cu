@@ -189,7 +189,7 @@ GPUd() bool fitTrack(TrackITSExt& track,
       //   return false;
       // }
     }
-    track.setChi2(track.getChi2() + track.getPredictedChi2<false>(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame));
+    track.setChi2(track.getChi2() + track.getPredictedChi2Unchecked(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame));
     if (!track.TrackParCov::update(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)) {
       return false;
     }
@@ -201,15 +201,7 @@ GPUd() bool fitTrack(TrackITSExt& track,
       return false;
     }
 
-    //   // To be implemented
-
-    //     // float radl = 9.36f; // Radiation length of Si [cm]
-    //     // float rho = 2.33f;  // Density of Si [g/cm^3]
-    //     // if (!track.correctForMaterial(mTrkParams[0].LayerxX0[iLayer], mTrkParams[0].LayerxX0[iLayer] * radl * rho, true)) {
-    //     // continue;
-    //     // }
-    //   }
-    auto predChi2{track.getPredictedChi2<false>(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)};
+    auto predChi2{track.getPredictedChi2Unchecked(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)};
     if ((nCl >= 3 && predChi2 > chi2clcut) || predChi2 < 0.f) {
       return false;
     }
@@ -220,7 +212,6 @@ GPUd() bool fitTrack(TrackITSExt& track,
     nCl++;
   }
   return o2::gpu::GPUCommonMath::Abs(track.getQ2Pt()) < maxQoverPt && track.getChi2() < chi2ndfcut * (nCl * 2 - 5);
-  // return true;
 }
 
 // Functors to sort tracklets
@@ -691,6 +682,7 @@ GPUg() void fitTracksKernel(
   o2::track::TrackParCovF** trackSeeds,
   float** trackSeedsChi2,
   const Road<nLayers - 2>* roads,
+  o2::its::TrackITSExt* tracks,
   const size_t nRoads,
   const float Bz,
   float maxChi2ClusterAttachment,
@@ -769,6 +761,7 @@ GPUg() void fitTracksKernel(
                                o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE, // o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT
                                iCurrentRoadIndex < 5);                                       // Debug print
     if (!fitSuccess) {
+      // printf("===> track %d died at %d iteration!\n", iCurrentRoadIndex, 1);
       continue;
     }
     temporaryTrack.resetCovariance();
@@ -788,6 +781,7 @@ GPUg() void fitTracksKernel(
                           iCurrentRoadIndex < 5);                                       // Debug print
 
     if (!fitSuccess) {
+      // printf("===> track %d died at %d iteration!\n", iCurrentRoadIndex, 2);
       continue;
     }
     temporaryTrack.getParamOut() = temporaryTrack;
@@ -807,8 +801,11 @@ GPUg() void fitTracksKernel(
                           o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE, // o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT
                           iCurrentRoadIndex < 5);                                       // Debug print
     if (!fitSuccess) {
+      // printf("===> track %d died at %d iteration!\n", iCurrentRoadIndex, 3);
       continue;
     }
+    tracks[iCurrentRoadIndex] = temporaryTrack;
+    // printf("===> track %d survived: ncl: %d -> ncl: %d\n", iCurrentRoadIndex, temporaryTrack.getNumberOfClusters(), tracks[iCurrentRoadIndex].getNumberOfClusters());
   }
 }
 
@@ -1134,19 +1131,66 @@ template <int nLayers>
 void TrackerTraitsGPU<nLayers>::findTracksHybrid(const int iteration)
 {
   // LOGP(info, "propagator device pointer: {}", (void*)mTimeFrameGPU->getDevicePropagator());
-  gpu::fitTracksKernel<<<1, 1>>>(mTimeFrameGPU->getDeviceArrayClusters(),          // Cluster** foundClusters,
-                                 mTimeFrameGPU->getDeviceArrayUnsortedClusters(),  // Cluster** foundUnsortedClusters,
-                                 mTimeFrameGPU->getDeviceArrayTrackingFrameInfo(), // TrackingFrameInfo** foundTrackingFrameInfo,
-                                 mTimeFrameGPU->getDeviceArrayTracklets(),         // Tracklet** foundTracklets,
-                                 mTimeFrameGPU->getDeviceArrayCells(),             // Cell** foundCells,
-                                 mTimeFrameGPU->getDeviceArrayTrackSeeds(),        // o2::track::TrackParCovF** trackSeeds,
-                                 mTimeFrameGPU->getDeviceArrayTrackSeedsChi2(),    // float** trackSeedsChi2,
-                                 mTimeFrameGPU->getDeviceRoads(),                  // const Road<nLayers - 2>* roads,
-                                 mTimeFrameGPU->getRoads().size(),                 // const size_t nRoads,
-                                 mBz,                                              // const float Bz,
-                                 mTrkParams[0].MaxChi2ClusterAttachment,           // float maxChi2ClusterAttachment,
-                                 mTrkParams[0].MaxChi2NDF,                         // float maxChi2NDF,
-                                 mTimeFrameGPU->getDevicePropagator());            // const o2::base::Propagator* propagator
+  mTimeFrameGPU->createTrackITSExtDevice();
+  gpu::fitTracksKernel<<<20, 512>>>(mTimeFrameGPU->getDeviceArrayClusters(),          // Cluster** foundClusters,
+                                    mTimeFrameGPU->getDeviceArrayUnsortedClusters(),  // Cluster** foundUnsortedClusters,
+                                    mTimeFrameGPU->getDeviceArrayTrackingFrameInfo(), // TrackingFrameInfo** foundTrackingFrameInfo,
+                                    mTimeFrameGPU->getDeviceArrayTracklets(),         // Tracklet** foundTracklets,
+                                    mTimeFrameGPU->getDeviceArrayCells(),             // Cell** foundCells,
+                                    mTimeFrameGPU->getDeviceArrayTrackSeeds(),        // o2::track::TrackParCovF** trackSeeds,
+                                    mTimeFrameGPU->getDeviceArrayTrackSeedsChi2(),    // float** trackSeedsChi2,
+                                    mTimeFrameGPU->getDeviceRoads(),                  // const Road<nLayers - 2>* roads,
+                                    mTimeFrameGPU->getDeviceTrackITSExt(),            // o2::its::TrackITSExt* tracks,
+                                    mTimeFrameGPU->getRoads().size(),                 // const size_t nRoads,
+                                    mBz,                                              // const float Bz,
+                                    mTrkParams[0].MaxChi2ClusterAttachment,           // float maxChi2ClusterAttachment,
+                                    mTrkParams[0].MaxChi2NDF,                         // float maxChi2NDF,
+                                    mTimeFrameGPU->getDevicePropagator());            // const o2::base::Propagator* propagator
+  mTimeFrameGPU->downloadTrackITSExtDevice();
+  discardResult(cudaDeviceSynchronize());
+  auto& tracks = mTimeFrameGPU->getTrackITSExt();
+  std::sort(tracks.begin(), tracks.end(),
+            [](TrackITSExt& track1, TrackITSExt& track2) { return track1.isBetter(track2, 1.e6f); });
+  for (auto& track : tracks) {
+    if (!track.getNumberOfClusters()) {
+      continue;
+    }
+    int nShared = 0;
+    for (int iLayer{0}; iLayer < mTrkParams[0].NLayers; ++iLayer) {
+      if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
+        continue;
+      }
+      nShared += int(mTimeFrame->isClusterUsed(iLayer, track.getClusterIndex(iLayer)));
+    }
+
+    if (nShared > mTrkParams[0].ClusterSharing) {
+      continue;
+    }
+
+    std::array<int, 3> rofs{INT_MAX, INT_MAX, INT_MAX};
+    for (int iLayer{0}; iLayer < mTrkParams[0].NLayers; ++iLayer) {
+      if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
+        continue;
+      }
+      mTimeFrame->markUsedCluster(iLayer, track.getClusterIndex(iLayer));
+      int currentROF = mTimeFrame->getClusterROF(iLayer, track.getClusterIndex(iLayer));
+      for (int iR{0}; iR < 3; ++iR) {
+        if (rofs[iR] == INT_MAX) {
+          rofs[iR] = currentROF;
+        }
+        if (rofs[iR] == currentROF) {
+          break;
+        }
+      }
+    }
+    if (rofs[2] != INT_MAX) {
+      continue;
+    }
+    if (rofs[1] != INT_MAX) {
+      track.setNextROFbit();
+    }
+    mTimeFrame->getTracks(std::min(rofs[0], rofs[1])).emplace_back(track);
+  }
 }
 
 template class TrackerTraitsGPU<7>;

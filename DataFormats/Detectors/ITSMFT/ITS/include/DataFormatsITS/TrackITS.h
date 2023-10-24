@@ -45,13 +45,14 @@ class TrackITS : public o2::track::TrackParCov
   using o2::track::TrackParCov::TrackParCov; // inherit base constructors
   static constexpr int MaxClusters = 16;
 
-  GPUdDefault() TrackITS() = default;
+  GPUhdDefault() TrackITS() = default;
   GPUdDefault() TrackITS(const TrackITS& t) = default;
   GPUhd() TrackITS(const o2::track::TrackParCov& parcov) : o2::track::TrackParCov{parcov} {}
   GPUhd() TrackITS(const o2::track::TrackParCov& parCov, float chi2, const o2::track::TrackParCov& outer)
     : o2::track::TrackParCov{parCov}, mParamOut{outer}, mChi2{chi2} {}
-  GPUdDefault() TrackITS& operator=(const TrackITS& tr) = default;
-  GPUdDefault() ~TrackITS() = default;
+  GPUhdDefault() TrackITS& operator=(const TrackITS& tr) = default;
+  GPUhdDefault() TrackITS& operator=(TrackITS&& tr) = default;
+  GPUhdDefault() ~TrackITS() = default;
 
   // These functions must be provided
   bool propagate(float alpha, float x, float bz);
@@ -200,7 +201,7 @@ class TrackITSExt : public TrackITS
     mIndex[layer] = idx;
   }
 
-  GPUh() o2::gpu::gpustd::array<int, MaxClusters> getClusterIndexes()
+  GPUh() o2::gpu::gpustd::array<int, MaxClusters>& getClusterIndexes()
   {
     return mIndex;
   }
