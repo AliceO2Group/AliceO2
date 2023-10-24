@@ -41,5 +41,6 @@
 #pragma link C++ class o2::math_utils::IntervalXYd_t + ;
 #pragma link C++ class o2::math_utils::Bracketf_t + ;
 #pragma link C++ class o2::math_utils::Bracketd_t + ;
+#pragma link C++ class o2::math_utils::Tsallis + ;
 
 #endif
