@@ -97,7 +97,7 @@ void AODToHepMC::makeEvent(Header const& collision,
       for (auto p : mOrphans) {
         ip->add_particle_out(p);
       }
-      // If we have no beam particles, try to make them 
+      // If we have no beam particles, try to make them
       if (mBeams.size() == 0) {
         makeBeams(collision, ip);
       }
