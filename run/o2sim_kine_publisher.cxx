@@ -41,14 +41,12 @@ struct O2simKinePublisher {
 
   void run(o2::framework::ProcessingContext& pc)
   {
-    for (auto i = 0; i < (int)aggregate; ++i) {
+    for (auto i = 0; i < std::min((int)aggregate, nEvents - eventCounter); ++i) {
       auto mcevent = mcKinReader->getMCEventHeader(0, eventCounter);
       auto mctracks = mcKinReader->getTracks(0, eventCounter);
       pc.outputs().snapshot(Output{"MC", "MCHEADER", 0, Lifetime::Timeframe}, mcevent);
       pc.outputs().snapshot(Output{"MC", "MCTRACKS", 0, Lifetime::Timeframe}, mctracks);
       ++eventCounter;
-      if (eventCounter >= nEvents)
-        break;
     }
     // report number of TFs injected for the rate limiter to work
     pc.services().get<o2::monitoring::Monitoring>().send(o2::monitoring::Metric{(uint64_t)tfCounter, "df-sent"}.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL));
