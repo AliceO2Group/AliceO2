@@ -561,10 +561,13 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   float p2Pos = pP[0] * pP[0] + pP[1] * pP[1] + pP[2] * pP[2], p2Neg = pN[0] * pN[0] + pN[1] * pN[1] + pN[2] * pN[2];
 
   bool goodHyp = false;
-  std::array<bool, NHypV0> hypCheckStatus{};
+  std::array<bool, NHypV0> hypCheckStatus{}, hypCheckTightStatus{};
   for (int ipid = 0; ipid < NHypV0; ipid++) {
     if (mV0Hyps[ipid].check(p2Pos, p2Neg, p2V0, ptV0)) {
       goodHyp = hypCheckStatus[ipid] = true;
+    }
+    if (mV0Hyps[ipid].checkTight(p2Pos, p2Neg, p2V0, ptV0)) {
+      hypCheckTightStatus[ipid] = true;
     }
   }
 
@@ -581,7 +584,7 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   // we want to reconstruct the 3 body decay of hypernuclei starting from the V0 of a proton and a pion (e.g. H3L->d + (p + pi-), or He4L->He3 + (p + pi-)))
   bool checkFor3BodyDecays = mEnable3BodyDecays && (!mSVParams->checkV0Hypothesis || good3bodyV0Hyp) && (pt2V0 > 0.5);
   bool rejectAfter3BodyCheck = false; // To reject v0s which can be 3-body decay candidates but not cascade or v0
-  bool checkForCascade = mEnableCascades && r2v0 < mMaxR2ToMeanVertexCascV0 && (!mSVParams->checkV0Hypothesis || (hypCheckStatus[HypV0::Lambda] || hypCheckStatus[HypV0::AntiLambda]));
+  bool checkForCascade = mEnableCascades && r2v0 < mMaxR2ToMeanVertexCascV0 && (!mSVParams->checkV0Hypothesis || (hypCheckTightStatus[HypV0::Lambda] || hypCheckTightStatus[HypV0::AntiLambda]));
   bool rejectIfNotCascade = false;
 
   if (!goodHyp && mSVParams->checkV0Hypothesis) {
@@ -673,10 +676,10 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   // check cascades
   int nCascIni = mCascadesIdxTmp[ithread].size(), nV0Used = 0; // number of times this particular v0 (with assigned PV) was used (not counting using its clones with other PV)
   if (checkForCascade) {
-    if (hypCheckStatus[HypV0::Lambda] || !mSVParams->checkCascadeHypothesis) {
+    if (hypCheckTightStatus[HypV0::Lambda] || !mSVParams->checkCascadeHypothesis) {
       nV0Used += checkCascades(v0Idxnew, v0new, rv0, pV0, p2V0, iN, NEG, vlist, ithread);
     }
-    if (hypCheckStatus[HypV0::AntiLambda] || !mSVParams->checkCascadeHypothesis) {
+    if (hypCheckTightStatus[HypV0::AntiLambda] || !mSVParams->checkCascadeHypothesis) {
       nV0Used += checkCascades(v0Idxnew, v0new, rv0, pV0, p2V0, iP, POS, vlist, ithread);
     }
   }
