@@ -118,9 +118,12 @@ int GPUReconstructionOCL::InitDevice_Runtime()
         if (mProcessingSettings.debugLevel >= 2) {
           GPUInfo("Available Platform %d: (%s %s) %s %s", i_platform, platform_profile, platform_version, platform_vendor, platform_name);
         }
-        if (CheckPlatform(i_platform)) {
+        if (!found && CheckPlatform(i_platform)) {
           found = true;
           mInternals->platform = mInternals->platforms[i_platform];
+          if (mProcessingSettings.debugLevel >= 2) {
+            GPUInfo("    Using this platform");
+          }
         }
       }
     }

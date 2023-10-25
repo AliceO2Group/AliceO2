@@ -62,13 +62,17 @@ int GPUReconstructionOCL2Backend::GetOCLPrograms()
 
   cl_int ocl_error;
 
+  const char* ocl_flags = GPUCA_M_STR(OCL_FLAGS);
+
 #ifdef OPENCL2_ENABLED_SPIRV // clang-format off
   if (ver >= 2.2) {
+    GPUInfo("Reading OpenCL program from SPIR-V IL");
     mInternals->program = clCreateProgramWithIL(mInternals->context, _binary_GPUReconstructionOCL2Code_spirv_start, _binary_GPUReconstructionOCL2Code_spirv_len, &ocl_error);
+    ocl_flags = "";
   } else
 #endif // clang-format on
-
   {
+    GPUInfo("Compiling OpenCL program from sources");
     size_t program_sizes[1] = {_binary_GPUReconstructionOCL2Code_src_len};
     char* programs_sources[1] = {_binary_GPUReconstructionOCL2Code_src_start};
     mInternals->program = clCreateProgramWithSource(mInternals->context, (cl_uint)1, (const char**)&programs_sources, program_sizes, &ocl_error);
@@ -79,7 +83,7 @@ int GPUReconstructionOCL2Backend::GetOCLPrograms()
     return 1;
   }
 
-  if (GPUFailedMsgI(clBuildProgram(mInternals->program, 1, &mInternals->device, GPUCA_M_STR(OCL_FLAGS), nullptr, nullptr))) {
+  if (GPUFailedMsgI(clBuildProgram(mInternals->program, 1, &mInternals->device, ocl_flags, nullptr, nullptr))) {
     cl_build_status status;
     if (GPUFailedMsgI(clGetProgramBuildInfo(mInternals->program, mInternals->device, CL_PROGRAM_BUILD_STATUS, sizeof(status), &status, nullptr)) == 0 && status == CL_BUILD_ERROR) {
       size_t log_size;
