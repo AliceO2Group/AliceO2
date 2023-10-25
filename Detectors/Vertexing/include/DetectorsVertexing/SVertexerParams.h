@@ -99,8 +99,8 @@ struct SVertexerParams : public o2::conf::ConfigurableParamHelper<SVertexerParam
   float pidCutsPhoton[SVertexHypothesis::NPIDParams] = {0.001, 20, 0.60, 20, 0.60, 0.0, 0.0, 0.0, 0.0};                        // Photon
   float pidCutsK0[SVertexHypothesis::NPIDParams] = {0., 20, 0., 4.0, 0.0, 2.84798e-03, 9.84206e-04, 3.31951e-03, 2.39438};     // K0
   float pidCutsLambda[SVertexHypothesis::NPIDParams] = {0., 20, 0., 4.0, 0.0, 1.09004e-03, 2.62291e-04, 8.93179e-03, 2.83121}; // Lambda
-  float pidCutsHTriton[SVertexHypothesis::NPIDParams] = {0.0025, 14, 0.07, 14, 0.0, 0.5, 0.0, 0.0, 0.0};                      // HyperTriton
-  float pidCutsHhydrog4[SVertexHypothesis::NPIDParams] = {0.0025, 14, 0.07, 14, 0.0, 0.5, 0.0, 0.0, 0.0};                     // Hyperhydrog4 - Need to update
+  float pidCutsHTriton[SVertexHypothesis::NPIDParams] = {0.0025, 14, 0.07, 14, 0.0, 0.5, 0.0, 0.0, 0.0};                       // HyperTriton
+  float pidCutsHhydrog4[SVertexHypothesis::NPIDParams] = {0.0025, 14, 0.07, 14, 0.0, 0.5, 0.0, 0.0, 0.0};                      // Hyperhydrog4 - Need to update
   //
   // cuts on different Cascade PID params
   bool checkCascadeHypothesis = true;

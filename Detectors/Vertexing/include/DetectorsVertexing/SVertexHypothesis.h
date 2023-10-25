@@ -30,12 +30,12 @@ class SVertexHypothesis
 
  public:
   using PID = o2::track::PID;
-  enum PIDParams { SigmaM,  // sigma of mass res at 0 pt
-                   NSigmaM, // number of sigmas of mass res
-                   MarginM, // additive safety margin in mass cut
+  enum PIDParams { SigmaM,       // sigma of mass res at 0 pt
+                   NSigmaM,      // number of sigmas of mass res
+                   MarginM,      // additive safety margin in mass cut
                    NSigmaTightM, // number of sigmas of mass res when doing tight cut around mass (V0s used in cascades)
                    MarginTightM, // additive safety margin in mass cut when doing tight cut around mass (V0s used in cascades)
-                   CPt,     // pT dependence of mass resolution parameterized as mSigma*(1+mC1*pt);
+                   CPt,          // pT dependence of mass resolution parameterized as mSigma*(1+mC1*pt);
                    CPt1,
                    CPt2,
                    CPt3 }; // pT dependence of mass resolution of Cascade parameterized as CPt+CPt1*pt +CPt2*TMath::Exp(-CPt3*pt);
@@ -82,9 +82,9 @@ class SVertexHypothesis
   {
     int idxNsigma = NSigmaM;
     int idxMargin = MarginM;
-    if(tight){ // move to indices for tight variables in case asked to do so (tighter peak cuts for decay chains)
+    if (tight) { // move to indices for tight variables in case asked to do so (tighter peak cuts for decay chains)
       idxNsigma = NSigmaTightM;
-      idxMargin = MarginTightM;  
+      idxMargin = MarginTightM;
     }
     if (mPIDV0 == PID::XiMinus || mPIDV0 == PID::OmegaMinus) { // case for cascades, antiparticles included
       if (getSigmaV0Cascade(pt) > maxSigma) {                  // insuring that at low pt one gets reasonable width as the parametrisation function may explode to unphysical values
