@@ -37,6 +37,7 @@
 #include "DetectorsBase/GeometryManager.h"
 
 #include "DataFormatsHMP/Cluster.h"
+#include "GlobalTracking/MatchTPCITS.h"
 #include "DataFormatsTPC/TrackTPC.h"
 #include "DataFormatsTRD/TrackTRD.h"
 #include "ReconstructionDataFormats/PID.h"
@@ -142,13 +143,13 @@ class MatchHMP
   float mMaxInvPt = 999.; ///< derived from nominal Bz
 
   // to be done later
-  float mTPCTBinMUS = 0.;               ///< TPC time bin duration in microseconds
-  float mTPCTBinMUSInv = 0.;            ///< inverse TPC time bin duration in microseconds
-  float mTPCBin2Z = 0.;                 ///< conversion coeff from TPC time-bin to Z
-  float mTimeTolerance = 1e3;           ///< tolerance in ns for track-TOF time bracket matching
+  float mTPCTBinMUS = 0.;    ///< TPC time bin duration in microseconds
+  float mTPCTBinMUSInv = 0.; ///< inverse TPC time bin duration in microseconds
+  float mTPCBin2Z = 0.;      ///< conversion coeff from TPC time-bin to Z
+                             // float mTimeTolerance = 1e3;           ///< tolerance in ns for track-TOF time bracket matching
   float mExtraTimeToleranceTRD = 500E3; ///< extra tolerance in ns for track-TOF time bracket matching
   float mExtraTimeToleranceTOF = 500E3; ///< extra tolerance in ns for track-TOF time bracket matching
-  float mSigmaTimeCut = 1.;             ///< number of sigmas to cut on time when matching the track to the TOF cluster
+  float mSigmaTimeCut = 1.;  ///< number of sigmas to cut on time when matching the track to the TOF cluster
 
   static constexpr Double_t BC_TIME = o2::constants::lhc::LHCBunchSpacingNS; // bunch crossing in ns
   static constexpr Double_t BC_TIME_INV = 1. / BC_TIME;                      // inv bunch crossing in ns
