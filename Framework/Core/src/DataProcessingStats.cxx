@@ -242,8 +242,10 @@ void DataProcessingStats::flushChangedMetrics(std::function<void(DataProcessingS
   }
   static int64_t startTime = uv_hrtime();
   int64_t now = uv_hrtime();
-  double averageInvocations = (publishingInvokedTotal * 1000000000) / (now - startTime);
-  double averagePublishing = (publishedMetricsLapse * 1000000000) / (now - startTime);
+
+  auto timeDelta = std::max(int64_t(1), now - startTime); // min 1 unit of time to exclude division by 0
+  double averageInvocations = (publishingInvokedTotal * 1000000000) / timeDelta;
+  double averagePublishing = (publishedMetricsLapse * 1000000000) / timeDelta;
 
   LOGP(debug, "Publishing invoked {} times / s, {} metrics published / s", (int)averageInvocations, (int)averagePublishing);
 }

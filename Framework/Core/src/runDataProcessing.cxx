@@ -129,6 +129,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <execinfo.h>
+#include <cfenv>
 // This is to allow C++20 aggregate initialisation
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
@@ -593,7 +594,13 @@ void handle_crash(int sig)
     } else if (sig == SIGILL) {
       msg = "ILLEGAL INSTRUCTION\n";
     } else if (sig == SIGFPE) {
-      msg = "FLOATING POINT EXCEPTION\n";
+      if (std::fetestexcept(FE_DIVBYZERO)) {
+        msg = "FLOATING POINT EXCEPTION (DIVISION BY ZERO)\n";
+      } else if (std::fetestexcept(FE_INVALID)) {
+        msg = "FLOATING POINT EXCEPTION (INVALID RESULT)\n";
+      } else {
+        msg = "FLOATING POINT EXCEPTION (UNKNOWN REASON)\n";
+      }
     }
     retVal = write(STDERR_FILENO, msg, strlen(msg));
     (void)retVal;
