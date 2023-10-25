@@ -489,6 +489,16 @@ bool TimeSlotCalibration<Container>::saveLastSlot()
   if (!updateSaveMetaData()) {
     return false;
   }
+
+  if (!mSaveDirectory.empty() && !std::filesystem::exists(mSaveDirectory)) {
+    std::filesystem::create_directories(mSaveDirectory);
+    if (!std::filesystem::exists(mSaveDirectory)) {
+      LOGP(fatal, "could not create output directory {}", mSaveDirectory);
+    } else {
+      LOGP(info, "created calibration directory {}", mSaveDirectory);
+    }
+  }
+
   auto pth = getSaveFilePath();
   auto pthTmp = pth + ".part";
   TFile flout(pthTmp.c_str(), "recreate");
