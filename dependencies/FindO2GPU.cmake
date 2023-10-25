@@ -75,9 +75,9 @@ if(ENABLE_CUDA)
     set(CMAKE_CUDA_FLAGS "-allow-unsupported-compiler")
   endif()
   if(CMAKE_CUDA_COMPILER)
-    if(CUDA_GCCBIN)
-      message(STATUS "Using as CUDA GCC version: ${CUDA_GCCBIN}")
-      set(CMAKE_CUDA_HOST_COMPILER "${CUDA_GCCBIN}")
+    if(GPUCA_CUDA_GCCBIN)
+      message(STATUS "Using as CUDA GCC version: ${GPUCA_CUDA_GCCBIN}")
+      set(CMAKE_CUDA_HOST_COMPILER "${GPUCA_CUDA_GCCBIN}")
     endif()
     if(CUDA_COMPUTETARGET)
       set(CMAKE_CUDA_ARCHITECTURES ${CUDA_COMPUTETARGET} CACHE STRING "" FORCE)
@@ -171,9 +171,14 @@ if(ENABLE_OPENCL2)
   endif()
   find_program(ROCM_AGENT_ENUMERATOR rocm_agent_enumerator PATHS "${ROCM_ROOT}/bin")
   find_program(LLVM_SPIRV llvm-spirv HINTS "${Clang_DIR}/../../../bin-safe")
-  find_program(LLVM_CLANG clang HINTS "${Clang_DIR}/../../../bin-safe")
+  if (GPUCA_OPENCL_CLANGBIN)
+    set(LLVM_CLANG ${GPUCA_OPENCL_CLANGBIN})
+  else()
+    find_program(LLVM_CLANG clang HINTS "${Clang_DIR}/../../../bin-safe")
+  endif()
   if(Clang_FOUND
      AND LLVM_FOUND
+     AND NOT LLVM_CLANG STREQUAL "LLVM_CLANG-NOTFOUND"
      AND LLVM_PACKAGE_VERSION VERSION_GREATER_EQUAL 13.0)
     set(OPENCL2_COMPATIBLE_CLANG_FOUND ON)
   endif()
@@ -181,15 +186,13 @@ if(ENABLE_OPENCL2)
      AND NOT LLVM_SPIRV STREQUAL "LLVM_SPIRV-NOTFOUND"
      AND OPENCL2_COMPATIBLE_CLANG_FOUND)
     set(OPENCL2_ENABLED_SPIRV ON)
+    message(STATUS "Using CLANG ${LLVM_CLANG} and ${LLVM_SPIRV} for SPIR-V compilation")
   endif ()
   if(OPENCL2_COMPATIBLE_CLANG_FOUND AND
      (OpenCL_VERSION_STRING VERSION_GREATER_EQUAL 2.2
      OR OPENCL2_ENABLED_SPIRV))
     set(OPENCL2_ENABLED ON)
-    message(
-      STATUS
-        "Found OpenCL 2 (${OpenCL_VERSION_STRING} SPIR-V ${OPENCL2_ENABLED_SPIRV} with CLANG ${LLVM_PACKAGE_VERSION})"
-      )
+    message(STATUS "Found OpenCL 2 (${OpenCL_VERSION_STRING} SPIR-V ${OPENCL2_ENABLED_SPIRV} with CLANG ${LLVM_PACKAGE_VERSION})")
   elseif(NOT ENABLE_OPENCL2 STREQUAL "AUTO")
     message(FATAL_ERROR "OpenCL 2.x not available")
   else()
