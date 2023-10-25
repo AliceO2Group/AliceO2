@@ -41,20 +41,20 @@ struct O2simKinePublisher {
 
   void run(o2::framework::ProcessingContext& pc)
   {
-    for (auto i = 0; i < std::min((int)aggregate, nEvents); ++i) {
-      auto mcevent = mcKinReader->getMCEventHeader(0, i);
-      auto mctracks = mcKinReader->getTracks(0, i);
-      pc.outputs().snapshot(Output{"MC", "MCHEADER", 0, Lifetime::Timeframe}, mcevent);
-      pc.outputs().snapshot(Output{"MC", "MCTRACKS", 0, Lifetime::Timeframe}, mctracks);
-      ++eventCounter;
+    while (eventCounter < nEvents) {
+      for (auto i = 0; i < std::min((int)aggregate, nEvents - eventCounter); ++i) {
+        auto mcevent = mcKinReader->getMCEventHeader(0, i);
+        auto mctracks = mcKinReader->getTracks(0, i);
+        pc.outputs().snapshot(Output{"MC", "MCHEADER", 0, Lifetime::Timeframe}, mcevent);
+        pc.outputs().snapshot(Output{"MC", "MCTRACKS", 0, Lifetime::Timeframe}, mctracks);
+        ++eventCounter;
+      }
+      // report number of TFs injected for the rate limiter to work
+      pc.services().get<o2::monitoring::Monitoring>().send(o2::monitoring::Metric{(uint64_t)tfCounter, "df-sent"}.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL));
+      ++tfCounter;
     }
-    // report number of TFs injected for the rate limiter to work
-    pc.services().get<o2::monitoring::Monitoring>().send(o2::monitoring::Metric{(uint64_t)tfCounter, "df-sent"}.addTag(o2::monitoring::tags::Key::Subsystem, o2::monitoring::tags::Value::DPL));
-    ++tfCounter;
-    if (eventCounter >= nEvents) {
-      pc.services().get<ControlService>().endOfStream();
-      pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
-    }
+    pc.services().get<ControlService>().endOfStream();
+    pc.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }
 };
 
