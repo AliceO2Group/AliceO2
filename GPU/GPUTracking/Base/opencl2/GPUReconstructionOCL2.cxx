@@ -54,9 +54,8 @@ S& GPUReconstructionOCL2Backend::getKernelObject()
 
 int GPUReconstructionOCL2Backend::GetOCLPrograms()
 {
-  char platform_version[64] = {}, platform_vendor[64] = {};
-  clGetPlatformInfo(mInternals->platform, CL_PLATFORM_VERSION, sizeof(platform_version), platform_version, nullptr);
-  clGetPlatformInfo(mInternals->platform, CL_PLATFORM_VENDOR, sizeof(platform_vendor), platform_vendor, nullptr);
+  char platform_version[256] = {};
+  GPUFailedMsg(clGetPlatformInfo(mInternals->platform, CL_PLATFORM_VERSION, sizeof(platform_version), platform_version, nullptr));
   float ver = 0;
   sscanf(platform_version, "OpenCL %f", &ver);
 
@@ -66,13 +65,13 @@ int GPUReconstructionOCL2Backend::GetOCLPrograms()
 
 #ifdef OPENCL2_ENABLED_SPIRV // clang-format off
   if (ver >= 2.2) {
-    GPUInfo("Reading OpenCL program from SPIR-V IL");
+    GPUInfo("Reading OpenCL program from SPIR-V IL (Platform version %f)", ver);
     mInternals->program = clCreateProgramWithIL(mInternals->context, _binary_GPUReconstructionOCL2Code_spirv_start, _binary_GPUReconstructionOCL2Code_spirv_len, &ocl_error);
     ocl_flags = "";
   } else
 #endif // clang-format on
   {
-    GPUInfo("Compiling OpenCL program from sources");
+    GPUInfo("Compiling OpenCL program from sources (Platform version %f, %s)", ver);
     size_t program_sizes[1] = {_binary_GPUReconstructionOCL2Code_src_len};
     char* programs_sources[1] = {_binary_GPUReconstructionOCL2Code_src_start};
     mInternals->program = clCreateProgramWithSource(mInternals->context, (cl_uint)1, (const char**)&programs_sources, program_sizes, &ocl_error);
