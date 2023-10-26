@@ -52,7 +52,9 @@ enum struct OutputType { Digits,          ///< EMCAL digits
 /// \param subspecificationOut Subspecification if output in case of running on different FLPs
 /// \param cfgInput Input objects processed in the workflow
 /// \param cfgOutput Output objects created in the workflow
-/// \param loadRecoParamsFromCCDB Load the reco params from the CCDB
+/// \param disableRootInput Disable reading from ROOT file (raw mode)
+/// \param disableRootOutput Disable writing ROOT files (sync reco)
+/// \param disableDecodingErrors Diable streaming raw decoding errors (async reco)
 /// \return EMCAL reconstruction workflow for the configuration provided
 /// \ingroup EMCALwokflow
 framework::WorkflowSpec getWorkflow(bool propagateMC = true,
@@ -64,8 +66,7 @@ framework::WorkflowSpec getWorkflow(bool propagateMC = true,
                                     std::string const& cfgOutput = "clusters",
                                     bool disableRootInput = false,
                                     bool disableRootOutput = false,
-                                    bool disableDecodingErrors = false,
-                                    bool useccdb = false);
+                                    bool disableDecodingErrors = false);
 } // namespace reco_workflow
 
 } // namespace emcal
