@@ -49,6 +49,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   auto inputsubspec = cfgc.options().get<uint32_t>("input-subspec");
 
   o2::conf::ConfigurableParam::updateFromString(cfgc.options().get<std::string>("configKeyValues"));
-  wf.emplace_back(o2::emcal::getEmcalOfflineCalibSpec(makeCellIDTimeEnergy, rejectCalibTrigg, inputsubspec, doApplyGainCalib, doRejectL0Trigger, ctpcfgperrun));
+  wf.emplace_back(o2::emcal::getEmcalOfflineCalibSpec(makeCellIDTimeEnergy, rejectCalibTrigg, doRejectL0Trigger, inputsubspec, doApplyGainCalib, ctpcfgperrun));
   return wf;
 }
