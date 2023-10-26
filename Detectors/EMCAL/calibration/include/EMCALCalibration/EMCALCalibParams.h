@@ -79,7 +79,7 @@ struct EMCALCalibParams : public o2::conf::ConfigurableParamHelper<EMCALCalibPar
   long endTimeMargin = 2592000000;                                       ///< set end TS to 30 days after slot ends (1000 * 60 * 60 * 24 * 30)
   std::string selectedClassMasks = "C0TVX-B-NOPF-EMC";                   ///< name of EMCal min. bias trigger that is used for calibration
   int bcShiftCTP = 0;                                                    ///< bc shift of CTP digits to align them with EMC bc in case they are misaligned
-  std::string filePathSave = "/scratch/services/detector_tmp/emc_calib"; ///< path where calibration histograms are stored at EOR to save them for the next run
+  std::string filePathSave = "./emc_calib";                              ///< path where calibration histograms are stored at EOR to save them for the next run
 
   // old parameters. Keep them for a bit (can be deleted after september 5th) as otherwise ccdb and o2 version might not be in synch
   unsigned int minNEvents = 1e7;              ///< minimum number of events to trigger the calibration
