@@ -121,6 +121,7 @@ class TRDKrClsWriterTask : public o2::framework::Task
       LOG(info) << "Run stop requested, closing output file";
       mRunStopRequested = true;
       closeOutputFile();
+      return;
     }
     auto cluster = pc.inputs().get<gsl::span<KrCluster>>("krcluster");
     auto triggerRecords = pc.inputs().get<gsl::span<KrClusterTriggerRecord>>("krtrigrec");
