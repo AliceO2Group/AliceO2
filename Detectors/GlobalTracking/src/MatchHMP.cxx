@@ -532,7 +532,9 @@ void MatchHMP::doMatching()
           continue;
         }
 
-        matching->setHmpMom(hmpTrkConstrained->getP());
+        float hmpMom = hmpTrkConstrained->getP() * hmpTrkConstrained->getSign();
+
+        matching->setHmpMom(hmpMom);
 
         // 5. Propagation in the last 10 cm with the fast method
 
