@@ -401,7 +401,6 @@ void TrackerTraits::findCellsNeighbours(const int iteration)
     std::vector<std::pair<int, int>> cellsNeighbours;
     cellsNeighbours.reserve(nextLayerCellsNum);
 
-    std::vector<std::vector<int>> easyWay(nextLayerCellsNum);
     for (int iCell{0}; iCell < layerCellsNum; ++iCell) {
 
       const Cell& currentCell{mTimeFrame->getCells()[iLayer][iCell]};
@@ -421,7 +420,7 @@ void TrackerTraits::findCellsNeighbours(const int iteration)
             !nextCellSeed.propagateTo(currentCellSeed.getX(), getBz())) {
           continue;
         }
-        float chi2 = currentCellSeed.getPredictedChi2(nextCellSeed);
+        float chi2 = currentCellSeed.getPredictedChi2(nextCellSeed); /// TODO: switch to the chi2 wrt cluster to avoid correlation
 
 #ifdef OPTIMISATION_OUTPUT
         bool good{mTimeFrame->getCellsLabel(iLayer)[iCell] == mTimeFrame->getCellsLabel(iLayer + 1)[iNextCell]};
@@ -434,7 +433,6 @@ void TrackerTraits::findCellsNeighbours(const int iteration)
 
         mTimeFrame->getCellsNeighboursLUT()[iLayer][iNextCell]++;
         cellsNeighbours.push_back(std::make_pair(iCell, iNextCell));
-        easyWay[iNextCell].push_back(iCell);
         const int currentCellLevel{currentCell.getLevel()};
 
         if (currentCellLevel >= nextCell.getLevel()) {

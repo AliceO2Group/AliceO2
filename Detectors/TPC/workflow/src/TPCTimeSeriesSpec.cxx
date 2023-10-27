@@ -29,6 +29,7 @@
 #include "TPCCalibration/RobustAverage.h"
 #include "DetectorsCalibration/IntegratedClusterCalibrator.h"
 #include "CommonUtils/DebugStreamer.h"
+#include "MathUtils/Tsallis.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "CommonDataFormat/AbstractRefAccessor.h"
 #include "ReconstructionDataFormats/PrimaryVertex.h"
@@ -780,8 +781,8 @@ class TPCTimeSeries : public Task
         const float factorPt = sampling.second;
         bool writeData = true;
         float weight = 0;
-        if (sampling.first == o2::utils::SamplingTypes::sampleTsalis) {
-          writeData = o2::utils::DebugStreamer::downsampleTsalisCharged(tracksTPC[iTrk].getPt(), factorPt, mSqrt, weight, o2::utils::DebugStreamer::getRandom());
+        if (sampling.first == o2::utils::SamplingTypes::sampleTsallis) {
+          writeData = o2::math_utils::Tsallis::downsampleTsallisCharged(tracksTPC[iTrk].getPt(), factorPt, mSqrt, weight, o2::utils::DebugStreamer::getRandom());
         }
         if (writeData) {
           auto clusterMask = makeClusterBitMask(track);

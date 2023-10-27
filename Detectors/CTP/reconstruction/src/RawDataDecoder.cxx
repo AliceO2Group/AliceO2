@@ -384,19 +384,28 @@ int RawDataDecoder::shiftInputs(std::map<o2::InteractionRecord, CTPDigit>& digit
     } else if (lut == 2) { // L0
       shiftNew(dig.first, TFOrbit, inpmask, L0shift, 0, digitsMapShifted);
       if (dig.second.CTPClassMask.count()) {
-        LOG(error) << "Adding class mask without input ?";
+        // LOG(error) << "Adding class mask without input ?";
+        //  This is not needed as it can happen; Full checj done below - see next LOG(error)
         CTPDigit digi = {dig.first, 0, dig.second.CTPClassMask};
         digitsMapShifted[dig.first] = digi;
       }
     } else if (lut == 4) { // L1
       shiftNew(dig.first, TFOrbit, inpmask, L1shift, 1, digitsMapShifted);
+      if (dig.second.CTPClassMask.count()) {
+        CTPDigit digi = {dig.first, 0, dig.second.CTPClassMask};
+        digitsMapShifted[dig.first] = digi;
+      }
     } else if (lut == 6) { // L0 and L1
       shiftNew(dig.first, TFOrbit, inpmask, L0shift, 0, digitsMapShifted);
       shiftNew(dig.first, TFOrbit, inpmask, L1shift, 1, digitsMapShifted);
+      if (dig.second.CTPClassMask.count()) {
+        CTPDigit digi = {dig.first, 0, dig.second.CTPClassMask};
+        digitsMapShifted[dig.first] = digi;
+      }
     } else if (lut == 3) { // LM and L0
       shiftNew(dig.first, TFOrbit, inpmask, L0shift, 0, digitsMapShifted);
       CTPDigit digi = {dig.first, inpmask & (~L0MASKInputs), dig.second.CTPClassMask};
-      // LOG(info) << "LM-L0 present";
+      // if LM level do not need to add class as LM is not shifted;
       digitsMapShifted[dig.first] = digi;
     } else if (lut == 5) { // LM and L1
       shiftNew(dig.first, TFOrbit, inpmask, L1shift, 1, digitsMapShifted);
@@ -432,7 +441,7 @@ int RawDataDecoder::shiftInputs(std::map<o2::InteractionRecord, CTPDigit>& digit
     digits.push_back(dig.second);
   }
   if (nTwoI) { // Trigger class wo Input
-    LOG(error) << "LM:" << nLM << " L0:" << nL0 << " L1:" << nL1 << " TwI:" << nTwI << " Trigger cals wo inputTwoI:" << nTwoI;
+    LOG(error) << "LM:" << nLM << " L0:" << nL0 << " L1:" << nL1 << " TwI:" << nTwI << " Trigger classes wo input:" << nTwoI;
   }
   return 0;
 }

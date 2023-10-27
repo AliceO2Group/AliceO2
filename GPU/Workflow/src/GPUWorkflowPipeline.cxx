@@ -242,7 +242,7 @@ int GPURecoWorkflowSpec::handlePipeline(ProcessingContext& pc, GPUTrackingInOutP
 void GPURecoWorkflowSpec::handlePipelineEndOfStream(EndOfStreamContext& ec)
 {
   if (mSpecConfig.enableDoublePipeline == 1) {
-    mPipeline->endOfStreamReceived = true;
+    mPipeline->endOfStreamDplReceived = true;
     mPipeline->stateNotify.notify_all();
   }
   if (mSpecConfig.enableDoublePipeline == 2) {
@@ -262,8 +262,10 @@ void GPURecoWorkflowSpec::receiveFMQStateCallback(fair::mq::State newState)
   {
     std::lock_guard lk(mPipeline->stateMutex);
     if (mPipeline->fmqState != fair::mq::State::Running && newState == fair::mq::State::Running) {
-      mPipeline->endOfStreamReceived = false;
+      mPipeline->endOfStreamAsyncReceived = false;
+      mPipeline->endOfStreamDplReceived = false;
     }
+    mPipeline->fmqPreviousState = mPipeline->fmqState;
     mPipeline->fmqState = newState;
     if (newState == fair::mq::State::Exiting) {
       mPipeline->fmqDevice->UnsubscribeFromStateChange(GPURecoWorkflowSpec_FMQCallbackKey);
@@ -280,17 +282,22 @@ void GPURecoWorkflowSpec::RunReceiveThread()
     int recvTimeot = 1000;
     fair::mq::MessagePtr msg;
     LOG(debug) << "Waiting for out of band message";
+    auto shouldReceive = [this]() { return ((mPipeline->fmqState == fair::mq::State::Running || (mPipeline->fmqState == fair::mq::State::Ready && mPipeline->fmqPreviousState == fair::mq::State::Running)) && !mPipeline->endOfStreamAsyncReceived); };
     do {
       {
         std::unique_lock lk(mPipeline->stateMutex);
-        mPipeline->stateNotify.wait(lk, [this]() { return (mPipeline->fmqState == fair::mq::State::Running && !mPipeline->endOfStreamReceived) || mPipeline->shouldTerminate; }); // Do not check mPipeline->fmqDevice->NewStatePending() since we wait for EndOfStream!
+        mPipeline->stateNotify.wait(lk, [this, shouldReceive]() { return shouldReceive() || mPipeline->shouldTerminate; }); // Do not check mPipeline->fmqDevice->NewStatePending() since we wait for EndOfStream!
       }
       if (mPipeline->shouldTerminate) {
         break;
       }
       try {
-        msg = device->NewMessageFor("gpu-prepare-channel", 0, 0);
         do {
+          std::unique_lock lk(mPipeline->stateMutex);
+          if (!shouldReceive()) {
+            break;
+          }
+          msg = device->NewMessageFor("gpu-prepare-channel", 0, 0);
           received = device->Receive(msg, "gpu-prepare-channel", 0, recvTimeot) > 0;
         } while (!received && !mPipeline->shouldTerminate);
       } catch (...) {
@@ -310,7 +317,7 @@ void GPURecoWorkflowSpec::RunReceiveThread()
     if (m->flagEndOfStream) {
       LOG(info) << "Received end-of-stream from out-of-band channel";
       std::lock_guard lk(mPipeline->stateMutex);
-      mPipeline->endOfStreamReceived = true;
+      mPipeline->endOfStreamAsyncReceived = true;
       mPipeline->mNTFReceived = 0;
       mPipeline->runStarted = false;
       continue;
@@ -324,7 +331,7 @@ void GPURecoWorkflowSpec::RunReceiveThread()
 
     {
       std::unique_lock lk(mPipeline->stateMutex);
-      mPipeline->stateNotify.wait(lk, [this]() { return (mPipeline->runStarted && !mPipeline->endOfStreamReceived) || mPipeline->shouldTerminate; });
+      mPipeline->stateNotify.wait(lk, [this]() { return (mPipeline->runStarted && !mPipeline->endOfStreamAsyncReceived) || mPipeline->shouldTerminate; });
       if (!mPipeline->runStarted) {
         continue;
       }

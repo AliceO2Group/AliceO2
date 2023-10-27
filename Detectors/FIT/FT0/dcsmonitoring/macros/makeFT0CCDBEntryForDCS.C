@@ -54,7 +54,8 @@ int makeFT0CCDBEntryForDCS(const std::string ccdbUrl = "http://localhost:8080",
                                            "FT0/Trigger4_OrC/CNT_RATE",
                                            "FT0/Trigger5_OrA/CNT_RATE",
                                            "FT0/Background/[0..9]/CNT_RATE",
-                                           "FT0/Background/[A,B,C,D,E,F,G,H]/CNT_RATE"};
+                                           "FT0/Background/[A,B,C,D,E,F,G,H]/CNT_RATE",
+                                           "FT0/SecondaryCounter/CEplusSC/CNT_RATE"};
 
   std::vector<std::string> expAliasesHV = o2::dcs::expandAliases(aliasesHV);
   std::vector<std::string> expAliasesADC = o2::dcs::expandAlias(aliasesADC);
