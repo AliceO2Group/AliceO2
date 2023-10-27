@@ -86,6 +86,16 @@ class MatchHMP
   void print() const;
   void printCandidatesHMP() const;
 
+  ///< set extra time tolerance
+  void setExtraTimeToleranceTRD(float val) { mExtraTimeToleranceTRD = val; }
+  ///< get extra tolerance
+  float getExtraTimeToleranceTRD() const { return mExtraTimeToleranceTRD; }
+
+  ///< set extra time tolerance
+  void setExtraTimeToleranceTOF(float val) { mExtraTimeToleranceTOF = val; }
+  ///< get extra tolerance
+  float getExtraTimeToleranceTOF() const { return mExtraTimeToleranceTOF; }
+
   enum DebugFlagTypes : UInt_t {
     MatchTreeAll = 0x1 << 1, //  ///< produce matching candidates tree for all candidates
   };

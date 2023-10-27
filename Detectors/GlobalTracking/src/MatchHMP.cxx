@@ -259,7 +259,19 @@ void MatchHMP::addConstrainedSeed(o2::track::TrackParCov& trc, o2::dataformats::
     mTracksLblWork[o2::globaltracking::MatchHMP::trackType::CONSTR].emplace_back(mRecoCont->getTPCITSTrackMCLabel(srcGID));
   }
 
-  if (trc.getP() > 0.450 &&
+  auto prop = o2::base::Propagator::Instance();
+  float bxyz[3];
+  prop->getFieldXYZ(trc.getXYZGlo(), bxyz);
+  double bz = -bxyz[2];
+
+  float pCut = 0.;
+
+  if (TMath::Abs(bz - 5.0) < 0.5)
+    pCut = 0.450;
+  if (TMath::Abs(bz - 2.0) < 0.5)
+    pCut = 0.200;
+
+  if (trc.getP() > pCut &&
       TMath::Abs(trc.getEta()) < 0.52 &&
       (TMath::RadToDeg() * trc.getPhi() < 90. || TMath::RadToDeg() * trc.getPhi() > 270.)) {
 
@@ -386,7 +398,7 @@ void MatchHMP::doMatching()
       auto& trefTrk = trackWork.first;
 
       prop->getFieldXYZ(trefTrk.getXYZGlo(), bxyz);
-      Double_t bz = -bxyz[2];
+      double bz = -bxyz[2];
 
       double timeUncert = trackWork.second.getTimeStampError();
 
