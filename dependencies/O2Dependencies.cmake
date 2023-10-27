@@ -131,8 +131,6 @@ message(STATUS "Output BUILD_SIMULATION=${BUILD_SIMULATION}")
 
 # Optional packages
 
-find_package(DDS CONFIG)
-set_package_properties(DDS PROPERTIES TYPE RECOMMENDED)
 find_package(benchmark CONFIG NAMES benchmark googlebenchmark)
 set_package_properties(benchmark PROPERTIES TYPE OPTIONAL)
 find_package(OpenMP)
