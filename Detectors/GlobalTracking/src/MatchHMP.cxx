@@ -374,7 +374,8 @@ void MatchHMP::doMatching()
   for (int ievt = 0; ievt < cacheTriggerHMP.size(); ievt++) { // events loop
 
     auto& event = mHMPTriggersWork[cacheTriggerHMP[ievt]];
-    auto evtTime = o2::InteractionRecord::bc2ns(event.getBc(), event.getOrbit()); // event(trigger) time in ns
+    auto evtTime = event.getIr().differenceInBCMUS(mStartIR);
+    // auto evtTime = o2::InteractionRecord::bc2ns(event.getBc(), event.getOrbit()); // event(trigger) time in ns
 
     int evtTracks = 0;
 
@@ -387,12 +388,18 @@ void MatchHMP::doMatching()
       prop->getFieldXYZ(trefTrk.getXYZGlo(), bxyz);
       Double_t bz = -bxyz[2];
 
-      double timeUncert = 500.; // trackWork.second.getTimeStampError();
+      double timeUncert = trackWork.second.getTimeStampError();
 
-      float minTrkTime = (trackWork.second.getTimeStamp() - mSigmaTimeCut * timeUncert) * 1.E3; // minimum track time in ns
-      float maxTrkTime = (trackWork.second.getTimeStamp() + mSigmaTimeCut * timeUncert) * 1.E3; // maximum track time in ns
+      // float minTrkTime = (trackWork.second.getTimeStamp() - mSigmaTimeCut * timeUncert) * 1.E3; // minimum track time in ns
+      // float maxTrkTime = (trackWork.second.getTimeStamp() + mSigmaTimeCut * timeUncert) * 1.E3; // maximum track time in ns
 
-      if (evtTime < (maxTrkTime + timeFromTF) && evtTime > (minTrkTime + timeFromTF)) {
+      float minTrkTime = (trackWork.second.getTimeStamp() - mSigmaTimeCut * timeUncert);
+      float maxTrkTime = (trackWork.second.getTimeStamp() + mSigmaTimeCut * timeUncert);
+
+      float deltaTime = evtTime - trackWork.second.getTimeStamp();
+
+      // if (evtTime < (maxTrkTime + timeFromTF) && evtTime > (minTrkTime + timeFromTF)) {
+      if (evtTime < maxTrkTime && evtTime > minTrkTime) {
 
         evtTracks++;
 
@@ -443,7 +450,7 @@ void MatchHMP::doMatching()
           oneEventClusters.push_back(cluster);
           double qthre = pParam->qCut();
 
-          if (cluster.q() < 150.) {
+          if (cluster.q() < 150. || cluster.size() > 10) {
             continue;
           }
 
@@ -593,8 +600,7 @@ void MatchHMP::doMatching()
 
       } // if matching in time
     }   // tracks loop
-
-  } // events loop
+  }     // events loop
 
   delete recon;
   recon = nullptr;
