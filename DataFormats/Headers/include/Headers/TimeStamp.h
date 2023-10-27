@@ -23,9 +23,7 @@
 #include <cassert>
 #include <type_traits> // for std::integral_constant
 
-namespace o2
-{
-namespace header
+namespace o2::header
 {
 
 // https://lhc-machine-outreach.web.cern.ch/lhc-machine-outreach/collisions.htm
@@ -159,7 +157,7 @@ class TimeStamp
   }
 
   // TODO: implement transformation from one unit to the other
-  //void transform(const TimeUnitID& unit) {
+  // void transform(const TimeUnitID& unit) {
   //  if (mUnit == unit) return;
   //  ...
   //}
@@ -182,7 +180,6 @@ class TimeStamp
     };
   };
 };
-} //namespace header
-} //namespace o2
+} // namespace o2::header
 
 #endif
