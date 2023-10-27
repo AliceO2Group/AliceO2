@@ -43,6 +43,7 @@ struct GuiCallbackContext {
   DebugGUI* plugin = nullptr;
   void* window = nullptr;
   bool* guiQuitRequested = nullptr;
+  bool* allChildrenGone = nullptr;
   std::function<void(void)> callback;
   std::set<GuiRenderer*> renderers;
 };
