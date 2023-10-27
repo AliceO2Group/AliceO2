@@ -236,7 +236,7 @@ void Tracker::computeRoadsMClabels()
         }
       }
 
-      const Cell& currentCell{mTimeFrame->getCells()[iCell][currentCellIndex]};
+      const CellSeed& currentCell{mTimeFrame->getCells()[iCell][currentCellIndex]};
 
       if (isFirstRoadCell) {
 
