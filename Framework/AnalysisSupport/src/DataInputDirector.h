@@ -8,8 +8,8 @@
 // In applying this license CERN does not waive the privileges and immunities
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
-#ifndef o2_framework_DataInputDirector_H_INCLUDED
-#define o2_framework_DataInputDirector_H_INCLUDED
+#ifndef O2_FRAMEWORK_DATAINPUTDIRECTOR_H_
+#define O2_FRAMEWORK_DATAINPUTDIRECTOR_H_
 
 #include "TFile.h"
 
@@ -167,4 +167,4 @@ class DataInputDirector
 
 } // namespace o2::framework
 
-#endif // o2_framework_DataInputDirector_H_INCLUDED
+#endif // O2_FRAMEWORK_DATAINPUTDIRECTOR_H_
