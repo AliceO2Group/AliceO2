@@ -91,6 +91,7 @@ InjectorFunction dcs2dpl()
     outParts.AddPart(std::move(plMessageF));
     sendOnChannel(*device, outParts, channel, newTimesliceId);
     LOG(info) << "Sent CTP counters DPL message" << std::flush;
+    services.get<MessageContext>().fakeDispatch();
     return true;
   };
 }
