@@ -43,9 +43,10 @@ set(HDRS GPUReconstructionOCL2.h GPUReconstructionOCL2Internals.h)
 if(OPENCL2_ENABLED_SPIRV) # BUILD OpenCL2 intermediate code for SPIR-V target
   # executes clang to create llvm IL code
   # Add -fintegrated-objemitter once we switch to clang >= 17
+  cmake_path(GET LLVM_SPIRV PARENT_PATH TMP_LLVM_SPIRV_PATH)
   add_custom_command(
       OUTPUT ${CL_BIN}.spirv
-      COMMAND ${LLVM_CLANG}
+      COMMAND PATH+=:${TMP_LLVM_SPIRV_PATH} ${LLVM_CLANG}
               -O0
               --target=spirv64
               ${OCL_FLAGS}
