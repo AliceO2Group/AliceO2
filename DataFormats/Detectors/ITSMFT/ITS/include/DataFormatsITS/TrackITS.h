@@ -46,7 +46,7 @@ class TrackITS : public o2::track::TrackParCov
   static constexpr int MaxClusters = 16;
 
   GPUhdDefault() TrackITS() = default;
-  GPUdDefault() TrackITS(const TrackITS& t) = default;
+  GPUhdDefault() TrackITS(const TrackITS& t) = default;
   GPUhd() TrackITS(const o2::track::TrackParCov& parcov) : o2::track::TrackParCov{parcov} {}
   GPUhd() TrackITS(const o2::track::TrackParCov& parCov, float chi2, const o2::track::TrackParCov& outer)
     : o2::track::TrackParCov{parCov}, mParamOut{outer}, mChi2{chi2} {}
@@ -179,7 +179,7 @@ class TrackITSExt : public TrackITS
     setNumberOfClusters(ncl);
   }
 
-  GPUdDefault() TrackITSExt(const TrackITSExt& t) = default;
+  GPUhdDefault() TrackITSExt(const TrackITSExt& t) = default;
 
   void setClusterIndex(int l, int i)
   {
@@ -188,7 +188,7 @@ class TrackITSExt : public TrackITS
     getClusterRefs().setEntries(ncl);
   }
 
-  GPUhdi() int getClusterIndex(int lr) const { return mIndex[lr]; }
+  GPUhdi() const int& getClusterIndex(int lr) const { return mIndex[lr]; }
 
   GPUhdi() void setExternalClusterIndex(int layer, int idx, bool newCluster = false)
   {

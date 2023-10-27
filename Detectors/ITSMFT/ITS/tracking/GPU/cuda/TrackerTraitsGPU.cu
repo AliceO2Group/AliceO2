@@ -42,27 +42,27 @@
 
 #ifndef __HIPCC__
 #define THRUST_NAMESPACE thrust::cuda
-#include "GPUReconstructionCUDADef.h"
+// #include "GPUReconstructionCUDADef.h"
 #else
 #define THRUST_NAMESPACE thrust::hip
 // clang-format off
-#ifndef GPUCA_NO_CONSTANT_MEMORY
-  #ifdef GPUCA_CONSTANT_AS_ARGUMENT
-    #define GPUCA_CONSMEM_PTR const GPUConstantMemCopyable gGPUConstantMemBufferByValue,
-    #define GPUCA_CONSMEM_CALL gGPUConstantMemBufferHost,
-    #define GPUCA_CONSMEM (const_cast<GPUConstantMem&>(gGPUConstantMemBufferByValue.v))
-  #else
-    #define GPUCA_CONSMEM_PTR
-    #define GPUCA_CONSMEM_CALL
-    #define GPUCA_CONSMEM (gGPUConstantMemBuffer.v)
-  #endif
-#else
-  #define GPUCA_CONSMEM_PTR const GPUConstantMem *gGPUConstantMemBuffer,
-  #define GPUCA_CONSMEM_CALL me->mDeviceConstantMem,
-  #define GPUCA_CONSMEM const_cast<GPUConstantMem&>(*gGPUConstantMemBuffer)
-#endif
-#define GPUCA_KRNL_BACKEND_CLASS GPUReconstructionHIPBackend
-// clang-format on
+// #ifndef GPUCA_NO_CONSTANT_MEMORY
+//   #ifdef GPUCA_CONSTANT_AS_ARGUMENT
+//     #define GPUCA_CONSMEM_PTR const GPUConstantMemCopyable gGPUConstantMemBufferByValue,
+//     #define GPUCA_CONSMEM_CALL gGPUConstantMemBufferHost,
+//     #define GPUCA_CONSMEM (const_cast<GPUConstantMem&>(gGPUConstantMemBufferByValue.v))
+//   #else
+//     #define GPUCA_CONSMEM_PTR
+//     #define GPUCA_CONSMEM_CALL
+//     #define GPUCA_CONSMEM (gGPUConstantMemBuffer.v)
+//   #endif
+// #else
+//   #define GPUCA_CONSMEM_PTR const GPUConstantMem *gGPUConstantMemBuffer,
+//   #define GPUCA_CONSMEM_CALL me->mDeviceConstantMem,
+//   #define GPUCA_CONSMEM const_cast<GPUConstantMem&>(*gGPUConstantMemBuffer)
+// #endif
+// #define GPUCA_KRNL_BACKEND_CLASS GPUReconstructionHIPBackend
+// // clang-format on
 #endif
 // #include "GPUConstantMem.h"
 
@@ -1160,7 +1160,7 @@ void TrackerTraitsGPU<nLayers>::findTracksHybrid(const int iteration)
       if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
         continue;
       }
-      nShared += int(mTimeFrame->isClusterUsed(iLayer, track.getClusterIndex(iLayer)));
+      nShared += int(mTimeFrameGPU->isClusterUsed(iLayer, track.getClusterIndex(iLayer)));
     }
 
     if (nShared > mTrkParams[0].ClusterSharing) {
@@ -1172,8 +1172,8 @@ void TrackerTraitsGPU<nLayers>::findTracksHybrid(const int iteration)
       if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
         continue;
       }
-      mTimeFrame->markUsedCluster(iLayer, track.getClusterIndex(iLayer));
-      int currentROF = mTimeFrame->getClusterROF(iLayer, track.getClusterIndex(iLayer));
+      mTimeFrameGPU->markUsedCluster(iLayer, track.getClusterIndex(iLayer));
+      int currentROF = mTimeFrameGPU->getClusterROF(iLayer, track.getClusterIndex(iLayer));
       for (int iR{0}; iR < 3; ++iR) {
         if (rofs[iR] == INT_MAX) {
           rofs[iR] = currentROF;
@@ -1189,7 +1189,7 @@ void TrackerTraitsGPU<nLayers>::findTracksHybrid(const int iteration)
     if (rofs[1] != INT_MAX) {
       track.setNextROFbit();
     }
-    mTimeFrame->getTracks(std::min(rofs[0], rofs[1])).emplace_back(track);
+    mTimeFrameGPU->getTracks(std::min(rofs[0], rofs[1])).emplace_back(track);
   }
 }
 

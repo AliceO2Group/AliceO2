@@ -610,15 +610,16 @@ void TimeFrameGPU<nLayers>::createTrackITSExtDevice()
 {
   mTrackITSExt.clear();
   mTrackITSExt.resize(mRoads.size());
-  LOGP(info, "gpu-allocation: reserving {} tracks, for {} MB.", mRoads.size(), mRoads.size() * sizeof(o2::its::TrackITSExt) / MB);
+  LOGP(debug, "gpu-allocation: reserving {} tracks, for {} MB.", mRoads.size(), mRoads.size() * sizeof(o2::its::TrackITSExt) / MB);
   allocMemAsync(reinterpret_cast<void**>(&mTrackITSExtDevice), mRoads.size() * sizeof(o2::its::TrackITSExt), &(mGpuStreams[0]), false);
+  checkGPUError(cudaMemsetAsync(mTrackITSExtDevice, 0, mRoads.size() * sizeof(o2::its::TrackITSExt), mGpuStreams[0].get()));
   checkGPUError(cudaHostRegister(mTrackITSExt.data(), mRoads.size() * sizeof(o2::its::TrackITSExt), cudaHostRegisterPortable));
 }
 
 template <int nLayers>
 void TimeFrameGPU<nLayers>::downloadTrackITSExtDevice()
 {
-  LOGP(info, "gpu-transfer: downloading {} tracks, for {} MB.", mRoads.size(), mRoads.size() * sizeof(o2::its::TrackITSExt) / MB);
+  LOGP(debug, "gpu-transfer: downloading {} tracks, for {} MB.", mRoads.size(), mRoads.size() * sizeof(o2::its::TrackITSExt) / MB);
   checkGPUError(cudaMemcpyAsync(mTrackITSExt.data(), mTrackITSExtDevice, mRoads.size() * sizeof(o2::its::TrackITSExt), cudaMemcpyDeviceToHost, mGpuStreams[0].get()));
 }
 
