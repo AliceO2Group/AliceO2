@@ -473,8 +473,8 @@ DECLARE_SOA_EXTENDED_TABLE(TracksExtra_000, StoredTracksExtra_000, "TRACKEXTRA",
 DECLARE_SOA_EXTENDED_TABLE(TracksExtra_001, StoredTracksExtra_001, "TRACKEXTRA", //! Additional track information (clusters, PID, etc.)
                            track::v001::DetectorMap);
 
-using StoredTracksExtra = StoredTracksExtra_000;
-using TracksExtra = TracksExtra_000;
+using StoredTracksExtra = StoredTracksExtra_001;
+using TracksExtra = TracksExtra_001;
 
 using Track = Tracks::iterator;
 using TrackIU = TracksIU::iterator;
