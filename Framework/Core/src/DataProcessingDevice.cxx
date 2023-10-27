@@ -2179,9 +2179,13 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
     buffer[record.size()] = 0;
     states.updateState({.id = short((int)ProcessingStateId::DATA_RELAYER_BASE + action.slot.index), (int)(record.size() + buffer - relayerSlotState), relayerSlotState});
     uint64_t tEnd = uv_hrtime();
-    stats.updateStats({(int)ProcessingStatsId::LAST_ELAPSED_TIME_MS, DataProcessingStats::Op::Set, (int64_t)(tEnd - tStart)});
+    // tEnd and tStart are in nanoseconds according to https://docs.libuv.org/en/v1.x/misc.html#c.uv_hrtime
+    int64_t wallTimeMs = (tEnd - tStart) / 1000000;
+    stats.updateStats({(int)ProcessingStatsId::LAST_ELAPSED_TIME_MS, DataProcessingStats::Op::Set, wallTimeMs});
+    // Sum up the total wall time, in milliseconds.
+    stats.updateStats({(int)ProcessingStatsId::TOTAL_WALL_TIME_MS, DataProcessingStats::Op::Add, wallTimeMs});
     // The time interval is in seconds while tEnd - tStart is in nanoseconds, so we divide by 1000000 to get the fraction in ms/s.
-    stats.updateStats({(short)ProcessingStatsId::CPU_USAGE_FRACTION, DataProcessingStats::Op::CumulativeRate, (int64_t)(tEnd - tStart) / 1000000});
+    stats.updateStats({(short)ProcessingStatsId::CPU_USAGE_FRACTION, DataProcessingStats::Op::CumulativeRate, wallTimeMs});
     stats.updateStats({(int)ProcessingStatsId::LAST_PROCESSED_SIZE, DataProcessingStats::Op::Set, calculateTotalInputRecordSize(record)});
     stats.updateStats({(int)ProcessingStatsId::TOTAL_PROCESSED_SIZE, DataProcessingStats::Op::Add, calculateTotalInputRecordSize(record)});
     auto latency = calculateInputRecordLatency(record, tStartMilli);
