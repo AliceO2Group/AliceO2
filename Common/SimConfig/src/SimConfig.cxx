@@ -99,6 +99,7 @@ void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs
       }
       activeModules.emplace_back("A3IP");
       activeModules.emplace_back("A3ABSO");
+      activeModules.emplace_back("A3MAG");
     } else {
 #endif
       // add passive components manually (make a PassiveDetID for them!)
