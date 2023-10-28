@@ -28,8 +28,9 @@ namespace its
 namespace reco_workflow
 {
 
-framework::WorkflowSpec getWorkflow(bool useMC, bool useCAtracker, const std::string& trmode, const bool overrideBeamPosition = false, o2::gpu::GPUDataTypes::DeviceType dType = o2::gpu::GPUDataTypes::DeviceType::CPU,
-                                    bool upstreamDigits = false, bool upstreamClusters = false, bool disableRootOutput = false, int useTrig = 0);
+framework::WorkflowSpec getWorkflow(bool useMC, bool useCAtracker, const std::string& trmode, const bool overrideBeamPosition = false,
+                                    bool upstreamDigits = false, bool upstreamClusters = false, bool disableRootOutput = false, int useTrig = 0,
+                                    bool useGPUWF = false, o2::gpu::GPUDataTypes::DeviceType dType = o2::gpu::GPUDataTypes::DeviceType::CPU);
 }
 
 } // namespace its

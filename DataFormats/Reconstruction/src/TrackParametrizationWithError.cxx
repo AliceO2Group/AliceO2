@@ -155,6 +155,13 @@ GPUd() bool TrackParametrizationWithError<value_T>::propagateTo(value_t xk, valu
 
 //______________________________________________________________
 template <typename value_T>
+GPUd() bool TrackParametrizationWithError<value_T>::testRotate(value_t) const
+{
+  // no ops
+  return true;
+}
+//______________________________________________________________
+template <typename value_T>
 GPUd() bool TrackParametrizationWithError<value_T>::rotate(value_t alpha)
 {
   // rotate to alpha frame
@@ -729,6 +736,26 @@ GPUd() auto TrackParametrizationWithError<value_T>::getPredictedChi2(const value
   return chi2;
 }
 
+//______________________________________________
+template <typename value_T>
+GPUd() auto TrackParametrizationWithError<value_T>::getPredictedChi2Unchecked(const value_t* p, const value_t* cov) const -> value_t
+{
+  // Estimate the chi2 of the space point "p" with the cov. matrix "cov"
+  auto sdd = static_cast<double>(getSigmaY2()) + static_cast<double>(cov[0]);
+  auto sdz = static_cast<double>(getSigmaZY()) + static_cast<double>(cov[1]);
+  auto szz = static_cast<double>(getSigmaZ2()) + static_cast<double>(cov[2]);
+  auto det = sdd * szz - sdz * sdz;
+
+  if (gpu::CAMath::Abs(det) < constants::math::Almost0) {
+    return constants::math::VeryBig;
+  }
+
+  value_t d = this->getY() - p[0];
+  value_t z = this->getZ() - p[1];
+
+  return (d * (szz * d - sdz * z) + z * (sdd * z - d * sdz)) / det;
+}
+
 #if !defined(GPUCA_GPUCODE) && !defined(GPUCA_STANDALONE) // Disable function relying on ROOT SMatrix on GPU
 
 //______________________________________________
@@ -755,7 +782,7 @@ void TrackParametrizationWithError<value_T>::buildCombinedCovMatrix(const TrackP
 
 //______________________________________________
 template <typename value_T>
-auto TrackParametrizationWithError<value_T>::getPredictedChi2(const TrackParametrizationWithError<value_T>& rhs) const -> value_t
+GPUd() auto TrackParametrizationWithError<value_T>::getPredictedChi2(const TrackParametrizationWithError<value_T>& rhs) const -> value_t
 {
   MatrixDSym5 cov; // perform matrix operations in double!
   return getPredictedChi2(rhs, cov);
@@ -763,7 +790,7 @@ auto TrackParametrizationWithError<value_T>::getPredictedChi2(const TrackParamet
 
 //______________________________________________
 template <typename value_T>
-auto TrackParametrizationWithError<value_T>::getPredictedChi2(const TrackParametrizationWithError<value_T>& rhs, MatrixDSym5& covToSet) const -> value_t
+GPUd() auto TrackParametrizationWithError<value_T>::getPredictedChi2(const TrackParametrizationWithError<value_T>& rhs, MatrixDSym5& covToSet) const -> value_t
 {
   // get chi2 wrt other track, which must be defined at the same parameters X,alpha
   // Supplied non-initialized covToSet matrix is filled by inverse combined matrix for further use
@@ -796,7 +823,7 @@ auto TrackParametrizationWithError<value_T>::getPredictedChi2(const TrackParamet
 
 //______________________________________________
 template <typename value_T>
-bool TrackParametrizationWithError<value_T>::update(const TrackParametrizationWithError<value_T>& rhs, const MatrixDSym5& covInv)
+GPUd() bool TrackParametrizationWithError<value_T>::update(const TrackParametrizationWithError<value_T>& rhs, const MatrixDSym5& covInv)
 {
   // update track with other track, the inverted combined cov matrix should be supplied
 
@@ -864,7 +891,7 @@ bool TrackParametrizationWithError<value_T>::update(const TrackParametrizationWi
 
 //______________________________________________
 template <typename value_T>
-bool TrackParametrizationWithError<value_T>::update(const TrackParametrizationWithError<value_T>& rhs)
+GPUd() bool TrackParametrizationWithError<value_T>::update(const TrackParametrizationWithError<value_T>& rhs)
 {
   // update track with other track
   MatrixDSym5 covI; // perform matrix operations in double!

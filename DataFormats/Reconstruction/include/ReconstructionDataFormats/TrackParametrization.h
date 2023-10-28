@@ -140,8 +140,8 @@ class TrackParametrization
   GPUd() TrackParametrization(const dim3_t& xyz, const dim3_t& pxpypz, int charge, bool sectorAlpha = true, const PID pid = PID::Pion);
   GPUdDefault() TrackParametrization(const TrackParametrization&) = default;
   GPUdDefault() TrackParametrization(TrackParametrization&&) = default;
-  GPUdDefault() TrackParametrization& operator=(const TrackParametrization& src) = default;
-  GPUdDefault() TrackParametrization& operator=(TrackParametrization&& src) = default;
+  GPUhdDefault() TrackParametrization& operator=(const TrackParametrization& src) = default;
+  GPUhdDefault() TrackParametrization& operator=(TrackParametrization&& src) = default;
   GPUdDefault() ~TrackParametrization() = default;
 
   GPUd() void set(value_t x, value_t alpha, const params_t& par, int charge = 1, const PID pid = PID::Pion);

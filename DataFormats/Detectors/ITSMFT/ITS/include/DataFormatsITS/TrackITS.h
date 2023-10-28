@@ -45,22 +45,23 @@ class TrackITS : public o2::track::TrackParCov
   using o2::track::TrackParCov::TrackParCov; // inherit base constructors
   static constexpr int MaxClusters = 16;
 
-  GPUdDefault() TrackITS() = default;
-  GPUdDefault() TrackITS(const TrackITS& t) = default;
-  GPUd() TrackITS(const o2::track::TrackParCov& parcov) : o2::track::TrackParCov{parcov} {}
-  GPUd() TrackITS(const o2::track::TrackParCov& parCov, float chi2, const o2::track::TrackParCov& outer)
+  GPUhdDefault() TrackITS() = default;
+  GPUhdDefault() TrackITS(const TrackITS& t) = default;
+  GPUhd() TrackITS(const o2::track::TrackParCov& parcov) : o2::track::TrackParCov{parcov} {}
+  GPUhd() TrackITS(const o2::track::TrackParCov& parCov, float chi2, const o2::track::TrackParCov& outer)
     : o2::track::TrackParCov{parCov}, mParamOut{outer}, mChi2{chi2} {}
-  GPUdDefault() TrackITS& operator=(const TrackITS& tr) = default;
-  GPUdDefault() ~TrackITS() = default;
+  GPUhdDefault() TrackITS& operator=(const TrackITS& tr) = default;
+  GPUhdDefault() TrackITS& operator=(TrackITS&& tr) = default;
+  GPUhdDefault() ~TrackITS() = default;
 
   // These functions must be provided
   bool propagate(float alpha, float x, float bz);
   bool update(const Cluster& c, float chi2);
 
   // Other functions
-  float getChi2() const { return mChi2; }
-  int getNClusters() const { return mClusRef.getEntries(); }
-  int getNumberOfClusters() const { return getNClusters(); }
+  GPUhdi() float getChi2() const { return mChi2; }
+  GPUhdi() int getNClusters() const { return mClusRef.getEntries(); }
+  GPUhdi() int getNumberOfClusters() const { return getNClusters(); }
   int getFirstClusterEntry() const { return mClusRef.getFirstEntry(); }
   int getClusterEntry(int i) const { return getFirstClusterEntry() + i; }
   void shiftFirstClusterEntry(int bias)
@@ -85,20 +86,20 @@ class TrackITS : public o2::track::TrackParCov
   }
 
   const ClusRefs& getClusterRefs() const { return mClusRef; }
-  ClusRefs& getClusterRefs() { return mClusRef; }
+  GPUhdi() ClusRefs& getClusterRefs() { return mClusRef; }
 
-  void setChi2(float chi2) { mChi2 = chi2; }
+  GPUhdi() void setChi2(float chi2) { mChi2 = chi2; }
 
   bool isBetter(const TrackITS& best, float maxChi2) const;
 
   o2::track::TrackParCov& getParamIn() { return *this; }
   const o2::track::TrackParCov& getParamIn() const { return *this; }
 
-  o2::track::TrackParCov& getParamOut() { return mParamOut; }
-  const o2::track::TrackParCov& getParamOut() const { return mParamOut; }
+  GPUhdi() o2::track::TrackParCov& getParamOut() { return mParamOut; }
+  GPUhdi() const o2::track::TrackParCov& getParamOut() const { return mParamOut; }
 
-  void setPattern(uint32_t p) { mPattern = p; }
-  uint32_t getPattern() const { return mPattern; }
+  GPUhdi() void setPattern(uint32_t p) { mPattern = p; }
+  GPUhdi() uint32_t getPattern() const { return mPattern; }
   bool hasHitOnLayer(int i) const { return mPattern & (0x1 << i); }
   bool isFakeOnLayer(int i) const { return !(mPattern & (0x1 << (16 + i))); }
   uint32_t getLastClusterLayer() const
@@ -164,21 +165,21 @@ class TrackITSExt : public TrackITS
   static constexpr int MaxClusters = 16; /// Prepare for overlaps and new detector configurations
   using TrackITS::TrackITS;              // inherit base constructors
 
-  GPUd() TrackITSExt(o2::track::TrackParCov&& parCov, short ncl, float chi2,
-                     o2::track::TrackParCov&& outer, std::array<int, MaxClusters> cls)
+  GPUh() TrackITSExt(o2::track::TrackParCov&& parCov, short ncl, float chi2,
+                     o2::track::TrackParCov&& outer, o2::gpu::gpustd::array<int, MaxClusters> cls)
     : TrackITS(parCov, chi2, outer), mIndex{cls}
   {
     setNumberOfClusters(ncl);
   }
 
-  GPUd() TrackITSExt(o2::track::TrackParCov& parCov, short ncl, float chi2, std::uint32_t rof,
-                     o2::track::TrackParCov& outer, std::array<int, MaxClusters> cls)
+  GPUh() TrackITSExt(o2::track::TrackParCov& parCov, short ncl, float chi2, std::uint32_t rof,
+                     o2::track::TrackParCov& outer, o2::gpu::gpustd::array<int, MaxClusters> cls)
     : TrackITS(parCov, chi2, outer), mIndex{cls}
   {
     setNumberOfClusters(ncl);
   }
 
-  GPUdDefault() TrackITSExt(const TrackITSExt& t) = default;
+  GPUhdDefault() TrackITSExt(const TrackITSExt& t) = default;
 
   void setClusterIndex(int l, int i)
   {
@@ -187,9 +188,9 @@ class TrackITSExt : public TrackITS
     getClusterRefs().setEntries(ncl);
   }
 
-  int getClusterIndex(int lr) const { return mIndex[lr]; }
+  GPUhdi() const int& getClusterIndex(int lr) const { return mIndex[lr]; }
 
-  void setExternalClusterIndex(int layer, int idx, bool newCluster = false)
+  GPUhdi() void setExternalClusterIndex(int layer, int idx, bool newCluster = false)
   {
     if (newCluster) {
       getClusterRefs().setEntries(getNumberOfClusters() + 1);
@@ -200,13 +201,13 @@ class TrackITSExt : public TrackITS
     mIndex[layer] = idx;
   }
 
-  std::array<int, MaxClusters>& getClusterIndexes()
+  GPUh() o2::gpu::gpustd::array<int, MaxClusters>& getClusterIndexes()
   {
     return mIndex;
   }
 
  private:
-  std::array<int, MaxClusters> mIndex = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}; ///< Indices of associated clusters
+  o2::gpu::gpustd::array<int, MaxClusters> mIndex = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1}; ///< Indices of associated clusters
   ClassDefNV(TrackITSExt, 2);
 };
 } // namespace its

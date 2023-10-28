@@ -22,7 +22,30 @@ if(HIP_ENABLED)
                          ../cuda/VertexerTraitsGPU.cu
                          ../cuda/Utils.cu
                  PUBLIC_INCLUDE_DIRECTORIES ../
+                 PRIVATE_INCLUDE_DIRECTORIES
+                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking
+                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base
+                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Base/hip
+                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/DataTypes
+                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Global               # "GPUErrors.h"
+                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/SliceTracker
+                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/TRDTracking          # GPUTRDTracker.h
+                       ${CMAKE_SOURCE_DIR}/DataFormats/Reconstruction/src
+                       ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/TPC/include    # "DataFormatsTPC/dEdxInfo.h"
+                       ${CMAKE_SOURCE_DIR}/DataFormats/Detectors/TRD/include    # "DataFormatsTRD/Constants.h"
+                       ${CMAKE_SOURCE_DIR}/Detectors/Base/src
+                       ${CMAKE_SOURCE_DIR}/Detectors/TRD/base/include           # "TRDBase/GeometryFlat.h"
+                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Definitions
+                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Merger
+                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/TPCConvert
+                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/DataCompression
+                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/ITS
+                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/TPCClusterFinder
+                       ${CMAKE_SOURCE_DIR}/GPU/GPUTracking/Refit
                  PUBLIC_LINK_LIBRARIES O2::ITStracking
+                                       O2::GPUTracking
+                                       O2::SimulationDataFormat
+                                       O2::ReconstructionDataFormats
                                        hip::host
                                        hip::device
                                        hip::hipcub

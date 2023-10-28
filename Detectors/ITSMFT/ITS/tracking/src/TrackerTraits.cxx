@@ -311,9 +311,9 @@ void TrackerTraits::computeLayerCells(const int iteration)
             mTimeFrame->getClusters()[iLayer + 2][nextTracklet.secondClusterIndex].clusterId};
           const auto& cluster1_glo = mTimeFrame->getUnsortedClusters()[iLayer].at(clusId[0]);
           const auto& cluster2_glo = mTimeFrame->getUnsortedClusters()[iLayer + 1].at(clusId[1]);
-          const auto& cluster3_glo = mTimeFrame->getUnsortedClusters()[iLayer + 2].at(clusId[2]);
+          // const auto& cluster3_glo = mTimeFrame->getUnsortedClusters()[iLayer + 2].at(clusId[2]);
           const auto& cluster3_tf = mTimeFrame->getTrackingFrameInfoOnLayer(iLayer + 2).at(clusId[2]);
-          auto track{buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_glo, cluster3_tf)};
+          auto track{buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_tf)};
 
           float chi2{0.f};
           bool good{false};
@@ -568,6 +568,9 @@ void TrackerTraits::findTracks()
     }
 
     TrackITSExt temporaryTrack{mTimeFrame->getCellSeeds()[lastCellLevel][lastCellIndex]};
+    // if (ri < 5) {
+    //   temporaryTrack.print();
+    // }
     temporaryTrack.setChi2(mTimeFrame->getCellSeedsChi2()[lastCellLevel][lastCellIndex]);
     for (size_t iC = 0; iC < clusters.size(); ++iC) {
       temporaryTrack.setExternalClusterIndex(iC, clusters[iC], clusters[iC] != constants::its::UnusedIndex);
@@ -723,7 +726,7 @@ void TrackerTraits::findShortPrimaries()
     auto pvsXAlpha{mTimeFrame->getPrimaryVerticesXAlpha(rof)};
 
     const auto& cluster3_tf = mTimeFrame->getTrackingFrameInfoOnLayer(2).at(cluster3_glo.clusterId);
-    TrackITSExt temporaryTrack{buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_glo, cluster3_tf)};
+    TrackITSExt temporaryTrack{buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_tf)};
     temporaryTrack.setExternalClusterIndex(0, cluster1_glo.clusterId, true);
     temporaryTrack.setExternalClusterIndex(1, cluster2_glo.clusterId, true);
     temporaryTrack.setExternalClusterIndex(2, cluster3_glo.clusterId, true);
@@ -816,19 +819,6 @@ bool TrackerTraits::fitTrack(TrackITSExt& track, int start, int end, int step, f
     nCl++;
   }
   return std::abs(track.getQ2Pt()) < maxQoverPt && track.getChi2() < chi2ndfcut * (nCl * 2 - 5);
-}
-
-void TrackerTraits::refitTracks(const int iteration, const std::vector<std::vector<TrackingFrameInfo>>& tf, std::vector<TrackITSExt>& tracks)
-{
-  std::vector<const Cell*> cells;
-  for (int iLayer = 0; iLayer < mTrkParams[iteration].CellsPerRoad(); iLayer++) {
-    cells.push_back(mTimeFrame->getCells()[iLayer].data());
-  }
-  std::vector<const Cluster*> clusters;
-  for (int iLayer = 0; iLayer < mTrkParams[iteration].NLayers; iLayer++) {
-    clusters.push_back(mTimeFrame->getClusters()[iLayer].data());
-  }
-  mChainRunITSTrackFit(*mChain, mTimeFrame->getRoads(), clusters, cells, tf, tracks);
 }
 
 bool TrackerTraits::trackFollowing(TrackITSExt* track, int rof, bool outward, const int iteration)
@@ -948,7 +938,7 @@ bool TrackerTraits::trackFollowing(TrackITSExt* track, int rof, bool outward, co
 
 /// Clusters are given from inside outward (cluster3 is the outermost). The outermost cluster is given in the tracking
 /// frame coordinates whereas the others are referred to the global frame.
-track::TrackParCov TrackerTraits::buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster3, const TrackingFrameInfo& tf3)
+track::TrackParCov TrackerTraits::buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const TrackingFrameInfo& tf3)
 {
   const float ca = std::cos(tf3.alphaTrackingFrame), sa = std::sin(tf3.alphaTrackingFrame);
   const float x1 = cluster1.xCoordinate * ca + cluster1.yCoordinate * sa;
