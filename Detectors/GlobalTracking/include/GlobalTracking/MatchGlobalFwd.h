@@ -148,7 +148,6 @@ class MatchGlobalFwd
   /// Converts FwdTrack parameters to MCH coordinate system
   o2::mch::TrackParam FwdtoMCH(const o2::dataformats::GlobalFwdTrack& fwdtrack);
 
-
  private:
   void updateTimeDependentParams();
   void fillBuiltinFunctions();
