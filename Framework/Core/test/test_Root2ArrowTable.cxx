@@ -9,11 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
-#define BOOST_TEST_MODULE Test Framework TableBuilder
-#define BOOST_TEST_MAIN
-#define BOOST_TEST_DYN_LINK
-
-#include <boost/test/unit_test.hpp>
+#include <catch_amalgamated.hpp>
 
 #include "Framework/TableBuilder.h"
 #include "Framework/RootTableBuilderHelpers.h"
@@ -32,7 +28,7 @@
 
 using namespace o2::framework;
 
-BOOST_AUTO_TEST_CASE(RootTree2Table)
+TEST_CASE("RootTree2Table")
 {
   using namespace o2::framework;
   /// Create a simple TTree
@@ -78,43 +74,43 @@ BOOST_AUTO_TEST_CASE(RootTree2Table)
 
   RootTableBuilderHelpers::convertTTree(builder, reader, std::move(xyzReader), std::move(ijkReader), std::move(pxReader), std::move(pyReader), std::move(pzReader), std::move(randomReader), std::move(evReader));
   auto table = builder.finalize();
-  BOOST_REQUIRE_EQUAL(table->num_rows(), 1000);
-  BOOST_REQUIRE_EQUAL(table->num_columns(), 7);
-  BOOST_REQUIRE_EQUAL(table->schema()->field(0)->type()->id(), arrow::fixed_size_list(arrow::float32(), 3)->id());
-  BOOST_REQUIRE_EQUAL(table->schema()->field(1)->type()->id(), arrow::fixed_size_list(arrow::int32(), 2)->id());
-  BOOST_REQUIRE_EQUAL(table->schema()->field(2)->type()->id(), arrow::float32()->id());
-  BOOST_REQUIRE_EQUAL(table->schema()->field(3)->type()->id(), arrow::float32()->id());
-  BOOST_REQUIRE_EQUAL(table->schema()->field(4)->type()->id(), arrow::float32()->id());
-  BOOST_REQUIRE_EQUAL(table->schema()->field(5)->type()->id(), arrow::float64()->id());
-  BOOST_REQUIRE_EQUAL(table->schema()->field(6)->type()->id(), arrow::int32()->id());
+  REQUIRE(table->num_rows() == 1000);
+  REQUIRE(table->num_columns() == 7);
+  REQUIRE(table->schema()->field(0)->type()->id() == arrow::fixed_size_list(arrow::float32(), 3)->id());
+  REQUIRE(table->schema()->field(1)->type()->id() == arrow::fixed_size_list(arrow::int32(), 2)->id());
+  REQUIRE(table->schema()->field(2)->type()->id() == arrow::float32()->id());
+  REQUIRE(table->schema()->field(3)->type()->id() == arrow::float32()->id());
+  REQUIRE(table->schema()->field(4)->type()->id() == arrow::float32()->id());
+  REQUIRE(table->schema()->field(5)->type()->id() == arrow::float64()->id());
+  REQUIRE(table->schema()->field(6)->type()->id() == arrow::int32()->id());
 
   {
     auto chunkToUse = table->column(0)->chunk(0);
     chunkToUse = std::dynamic_pointer_cast<arrow::FixedSizeListArray>(chunkToUse)->values();
     auto array = std::static_pointer_cast<arrow::FloatArray>(chunkToUse);
     // array of 3 floats, time 1000.
-    BOOST_REQUIRE_EQUAL(array->length(), 3000);
+    REQUIRE(array->length() == 3000);
     const float* c = reinterpret_cast<float const*>(array->values()->data());
 
     //auto array = std::static_pointer_cast<arrow::FixedSizeBinaryArray>(table->column(0)->chunk(0));
-    //BOOST_CHECK_EQUAL(array->byte_width(), sizeof(float[3]));
+    //CHECK_EQUAL(array->byte_width(), sizeof(float[3]));
     //const float* c = reinterpret_cast<float const*>(array->Value(0));
 
-    BOOST_CHECK_EQUAL(c[0], 1);
-    BOOST_CHECK_EQUAL(c[1], 2);
-    BOOST_CHECK_EQUAL(c[2], 1);
+    CHECK(c[0] == 1);
+    CHECK(c[1] == 2);
+    CHECK(c[2] == 1);
   }
   {
     //auto values = std::static_pointer_cast<arrow::FixedSizeBinaryArray>(table->column(1)->chunk(0));
     auto chunkToUse = table->column(1)->chunk(0);
     chunkToUse = std::dynamic_pointer_cast<arrow::FixedSizeListArray>(chunkToUse)->values();
     auto array = std::static_pointer_cast<arrow::Int32Array>(chunkToUse);
-    BOOST_REQUIRE_EQUAL(array->length(), 2000);
+    REQUIRE(array->length() == 2000);
 
     const int* ptr = reinterpret_cast<int const*>(array->values()->data());
     for (size_t i = 0; i < 1000; i++) {
-      BOOST_CHECK_EQUAL(ptr[2 * i + 0], i);
-      BOOST_CHECK_EQUAL(ptr[2 * i + 1], i + 1);
+      CHECK(ptr[2 * i + 0] == i);
+      CHECK(ptr[2 * i + 1] == i + 1);
     }
   }
 }
@@ -138,7 +134,7 @@ DECLARE_SOA_TABLE(Test, "AOD", "ETAPHI",
                   test::Random, test::Ev);
 } // namespace o2::aod
 
-BOOST_AUTO_TEST_CASE(RootTree2TableViaASoA)
+TEST_CASE("RootTree2TableViaASoA")
 {
   using namespace o2::framework;
   /// Create a simple TTree
@@ -171,23 +167,23 @@ BOOST_AUTO_TEST_CASE(RootTree2TableViaASoA)
   // Create an arrow table from this.
   TableBuilder builder;
   TTreeReader reader(&t2);
-  BOOST_REQUIRE_EQUAL(t2.GetEntries(), 1000);
+  REQUIRE(t2.GetEntries() == 1000);
 
   RootTableBuilderHelpers::convertASoA<o2::aod::Test>(builder, reader);
   auto table = builder.finalize();
-  BOOST_REQUIRE_EQUAL(table->num_rows(), 1000);
-  BOOST_REQUIRE_EQUAL(table->num_columns(), 7);
-  BOOST_REQUIRE_EQUAL(table->column(0)->type()->id(), arrow::float32()->id());
-  BOOST_REQUIRE_EQUAL(table->column(1)->type()->id(), arrow::float32()->id());
-  BOOST_REQUIRE_EQUAL(table->column(2)->type()->id(), arrow::float32()->id());
-  BOOST_REQUIRE_EQUAL(table->column(3)->type()->id(), arrow::fixed_size_list(arrow::float32(), 3)->id());
-  BOOST_REQUIRE_EQUAL(table->column(4)->type()->id(), arrow::fixed_size_list(arrow::int32(), 2)->id());
-  BOOST_REQUIRE_EQUAL(table->column(5)->type()->id(), arrow::float64()->id());
-  BOOST_REQUIRE_EQUAL(table->column(6)->type()->id(), arrow::int32()->id());
+  REQUIRE(table->num_rows() == 1000);
+  REQUIRE(table->num_columns() == 7);
+  REQUIRE(table->column(0)->type()->id() == arrow::float32()->id());
+  REQUIRE(table->column(1)->type()->id() == arrow::float32()->id());
+  REQUIRE(table->column(2)->type()->id() == arrow::float32()->id());
+  REQUIRE(table->column(3)->type()->id() == arrow::fixed_size_list(arrow::float32(), 3)->id());
+  REQUIRE(table->column(4)->type()->id() == arrow::fixed_size_list(arrow::int32(), 2)->id());
+  REQUIRE(table->column(5)->type()->id() == arrow::float64()->id());
+  REQUIRE(table->column(6)->type()->id() == arrow::int32()->id());
 
   o2::aod::Test testTable{table};
   for (auto& row : testTable) {
-    BOOST_REQUIRE_EQUAL(row.ij()[0], row.ij()[1] - 1);
-    BOOST_REQUIRE_EQUAL(row.ij()[1], row.ev());
+    REQUIRE(row.ij()[0] == row.ij()[1] - 1);
+    REQUIRE(row.ij()[1] == row.ev());
   }
 }
