@@ -16,6 +16,8 @@
 #include "Headers/DataHeader.h"
 #include "Framework/TableTreeHelpers.h"
 #include "Monitoring/Tags.h"
+#include "Monitoring/Metric.h"
+#include "Monitoring/Monitoring.h"
 
 #include "rapidjson/document.h"
 #include "rapidjson/prettywriter.h"

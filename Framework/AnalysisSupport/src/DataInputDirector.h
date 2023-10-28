@@ -15,10 +15,14 @@
 
 #include "Framework/DataDescriptorMatcher.h"
 #include "Framework/DataAllocator.h"
-#include "Monitoring/Monitoring.h"
 
 #include <regex>
 #include "rapidjson/fwd.h"
+
+namespace o2::monitoring
+{
+class Monitoring;
+}
 
 namespace o2::framework
 {
