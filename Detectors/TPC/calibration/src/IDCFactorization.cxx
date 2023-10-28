@@ -191,6 +191,10 @@ void o2::tpc::IDCFactorization::dumpIDCOneToFile(const Side side, const char* ou
 
 void o2::tpc::IDCFactorization::dumpToTree(const Side side, const char* outFileName)
 {
+  if (mIDCZero[mSideIndex[side]].mIDCZero.empty() || mIDCOne[mSideIndex[side]].mIDCOne.empty()) {
+    LOGP(info, "IDC0, IDC1 is empty! Returning");
+    return;
+  }
   o2::tpc::IDCCCDBHelper<float> helper;
   if (!mPadFlagsMap) {
     createStatusMap();
@@ -415,6 +419,10 @@ void o2::tpc::IDCFactorization::calcIDCOne(const DataVec& idcsData, const int id
       }
     }
 
+    if (idcOneTmp.size() <= integrationInterval) {
+      LOGP(error, "integrationInterval {} is larger than maximum: {}", integrationInterval, idcOneTmp.size());
+      break;
+    }
     idcOneTmp[integrationInterval] += (idcZeroVal == 0) ? idcsData[idcs] : idcsData[idcs] / idcZeroVal;
     ++weights[integrationInterval];
   }
@@ -843,6 +851,9 @@ void o2::tpc::IDCFactorization::factorizeIDCs(const bool norm, const bool calcDe
   using timer = std::chrono::high_resolution_clock;
 
   LOGP(info, "Using {} threads for factorization of IDCs", sNThreads);
+  LOGP(info, "Checking received IDCs for consistency");
+  checkReceivedIDCs();
+
   LOGP(info, "Calculating IDC0");
 
   auto start = timer::now();
@@ -1182,6 +1193,54 @@ std::array<float, o2::tpc::GEMSTACKS> o2::tpc::IDCFactorization::getStackMedian(
     std::copy(tmpMedian.begin(), tmpMedian.end(), median.begin() + offs);
   }
   return median;
+}
+
+bool o2::tpc::IDCFactorization::checkReceivedIDCs()
+{
+  bool idcsGood = true;
+  for (unsigned int timeframe = 0; timeframe < mTimeFrames; ++timeframe) {
+    // check number of received slices for each CRU - this should be the same value or if no data has been received empty -
+    std::unordered_map<int, std::vector<int>> receivedIDCsSize; // number of received slices, CRUs
+    for (unsigned int cruInd = 0; cruInd < mCRUs.size(); ++cruInd) {
+      const unsigned int cru = mCRUs[cruInd];
+      const o2::tpc::CRU cruTmp(cru);
+      const unsigned int region = cruTmp.region();
+      const int nSlices = mIDCs[cru][timeframe].size() / mNIDCsPerCRU[region];
+      if (nSlices > 0) {
+        if (receivedIDCsSize[nSlices].empty()) {
+          receivedIDCsSize[nSlices].reserve(mCRUs.size());
+        }
+        receivedIDCsSize[nSlices].emplace_back(cru);
+      }
+    }
+    // if more than one slice has been found use the IDCs from CRUs which have the most equal slices
+    if (receivedIDCsSize.size() > 1) {
+      LOGP(warning, "Received inconsistent IDCs!");
+      idcsGood = false;
+      // check which slice has the most CRUs - reset all other -
+      std::pair<int, int> nSlicesMostCRUs = {-1, -1}; // nSlices, nCRUs
+      for (auto nSlices : receivedIDCsSize) {
+        const int nCRUs = nSlices.second.size();
+        // store number of slices with most CRUs
+        if (nCRUs > nSlicesMostCRUs.second) {
+          nSlicesMostCRUs = {nSlices.first, nCRUs};
+        }
+        for (auto cru : nSlices.second) {
+          LOGP(info, "Received {} slices for CRU {}", nSlices.first, cru);
+        }
+      }
+      LOGP(info, "Setting {} slices for {} valid CRUs", nSlicesMostCRUs.first, nSlicesMostCRUs.second);
+      for (auto nSlices : receivedIDCsSize) {
+        if (nSlices.first != nSlicesMostCRUs.first) {
+          for (auto cru : nSlices.second) {
+            LOGP(info, "Clearing IDCs for CRU {}", cru);
+            mIDCs[cru][timeframe].clear();
+          }
+        }
+      }
+    }
+  }
+  return idcsGood;
 }
 
 template void o2::tpc::IDCFactorization::calcIDCOne(const o2::pmr::vector<float>&, const int, const int, const unsigned int, const CRU, std::vector<float>&, std::vector<unsigned int>&, const IDCZero*, const CalDet<PadFlags>*, const bool);
