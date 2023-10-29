@@ -24,7 +24,7 @@ namespace o2::its
 class GPUFrameworkExternalAllocator : public o2::its::ExternalAllocator
 {
  public:
-  void* allocate(size_t size)
+  void* allocate(size_t size) override
   {
     return mFWReco->AllocateUnmanagedMemory(size, GPUMemoryResource::MEMORY_GPU);
   }
