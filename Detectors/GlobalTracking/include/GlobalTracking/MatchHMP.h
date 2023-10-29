@@ -109,9 +109,9 @@ class MatchHMP
                             ITSTPCTRD,
                             SIZEALL };
 
-  std::vector<o2::dataformats::MatchInfoHMP> getMatchedTrackVector(o2::globaltracking::MatchHMP::trackType index) { return mMatchedTracks[index]; }
+  std::vector<o2::dataformats::MatchInfoHMP>& getMatchedTrackVector(o2::globaltracking::MatchHMP::trackType index) { return mMatchedTracks[index]; }
 
-  std::vector<o2::MCCompLabel> getMatchedHMPLabelsVector(o2::globaltracking::MatchHMP::trackType index) { return mOutHMPLabels[index]; } ///< get vector of HMP label of matched tracks
+  std::vector<o2::MCCompLabel>& getMatchedHMPLabelsVector(o2::globaltracking::MatchHMP::trackType index) { return mOutHMPLabels[index]; } ///< get vector of HMP label of matched tracks
 
   void setTS(unsigned long creationTime)
   {

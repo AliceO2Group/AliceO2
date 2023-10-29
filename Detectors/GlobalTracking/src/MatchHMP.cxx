@@ -275,9 +275,9 @@ void MatchHMP::addConstrainedSeed(o2::track::TrackParCov& trc, o2::dataformats::
     if (mMCTruthON) {
       mTracksLblWork[o2::globaltracking::MatchHMP::trackType::CONSTR].emplace_back(mRecoCont->getTPCITSTrackMCLabel(srcGID));
     }
-  }
 
-  mTracksIndexCache[o2::globaltracking::MatchHMP::trackType::CONSTR].push_back(it);
+    mTracksIndexCache[o2::globaltracking::MatchHMP::trackType::CONSTR].push_back(it);
+  }
 }
 //______________________________________________
 void MatchHMP::addTPCSeed(const o2::tpc::TrackTPC& _tr, o2::dataformats::GlobalTrackID srcGID, float time0, float terr)
@@ -410,7 +410,7 @@ void MatchHMP::doMatching()
 
         evtTracks++;
 
-        MatchInfo matching = MatchInfo(999999, mTrackGid[type][cacheTrk[itrk]]);
+        MatchInfo matching(999999, mTrackGid[type][cacheTrk[itrk]]);
 
         matching.setHMPIDtrk(0, 0, 0, 0);            // no intersection found
         matching.setHMPIDmip(0, 0, 0, 0);            // store mip info in any case
@@ -418,7 +418,7 @@ void MatchHMP::doMatching()
         matching.setHMPsignal(Recon::kNotPerformed); // ring reconstruction not yet performed
         matching.setIdxTrack(trackGid);
 
-        TrackHMP hmpTrk = TrackHMP(trefTrk); // create a hmpid track to be used for propagation and matching
+        TrackHMP hmpTrk(trefTrk); // create a hmpid track to be used for propagation and matching
 
         hmpTrk.set(trefTrk.getX(), trefTrk.getAlpha(), trefTrk.getParams(), trefTrk.getCharge(), trefTrk.getPID());
 
@@ -509,7 +509,7 @@ void MatchHMP::doMatching()
 
         // 4. Propagate back the constrained track to the radiator radius
 
-        TrackHMP hmpTrkConstrained = TrackHMP(trackC);
+        TrackHMP hmpTrkConstrained(trackC);
         hmpTrkConstrained.set(trackC.getX(), trackC.getAlpha(), trackC.getParams(), trackC.getCharge(), trackC.getPID());
         if (!prop->PropagateToXBxByBz(hmpTrkConstrained, radiusH - kdRadiator, o2::base::Propagator::MAX_SIN_PHI, o2::base::Propagator::MAX_STEP, matCorr)) {
           oneEventClusters.clear();
