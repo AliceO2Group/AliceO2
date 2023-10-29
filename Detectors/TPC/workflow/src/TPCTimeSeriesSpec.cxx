@@ -1259,10 +1259,10 @@ class TPCTimeSeries : public Task
 
     // nPrimVertices_Quantiles
     int sizeQ = mBufferDCA.nVertexContributors_Quantiles.size();
-    if (sizeQ >= 12) {
-      for (int q = 1; q <= 9; ++q) {
-        const float quantile = q * 0.1;
-        const int iq = q - 1;
+    const int nBinsQ = 20;
+    if (sizeQ >= (nBinsQ + 3)) {
+      for (int iq = 0; iq < nBinsQ; ++iq) {
+        const float quantile = (iq + 1) / static_cast<float>(nBinsQ);
         const float val = avg.getQuantile(quantile, 1);
         mBufferDCA.nVertexContributors_Quantiles[iq] = val * val;
       }
@@ -1273,6 +1273,7 @@ class TPCTimeSeries : public Task
       mBufferDCA.nVertexContributors_Quantiles[sizeQ - 2] = tr1 * tr1;
       mBufferDCA.nVertexContributors_Quantiles[sizeQ - 1] = tr2 * tr2;
     }
+    mBufferDCA.nPrimVertices.front() = vertices.size();
 
     return indicesITSTPC_vtx;
   }

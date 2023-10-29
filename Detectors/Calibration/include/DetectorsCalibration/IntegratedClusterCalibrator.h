@@ -379,6 +379,7 @@ struct TimeSeriesITSTPC {
   ITSTPC_Matching mITSTPCStandalone;  ///< ITS-TPC matching efficiency for ITS standalone
   ITSTPC_Matching mITSTPCAfterburner; ///< ITS-TPC matchin efficiency  fir ITS afterburner
 
+  std::vector<float> nPrimVertices;                  ///< number of primary vertices
   std::vector<float> nPrimVertices_ITS;              ///< number of primary vertices selected with ITS cut 0.2<nContributorsITS/nContributors<0.8
   std::vector<float> nVertexContributors_ITS_Median; ///< number of primary vertices selected with ITS cut 0.2<nContributorsITS/nContributors<0.8
   std::vector<float> nVertexContributors_ITS_RMS;    ///< number of primary vertices selected with ITS cut 0.2<nContributorsITS/nContributors<0.8
@@ -399,7 +400,7 @@ struct TimeSeriesITSTPC {
   std::vector<float> vertexY_ITSTPC_RMS;                ///< vertex y RMS with ITS-TPC cut (nContributorsITS + nContributorsITSTPC)<0.95
   std::vector<float> vertexZ_ITSTPC_RMS;                ///< vertex z RMS with ITS-TPC cut (nContributorsITS + nContributorsITSTPC)<0.95
 
-  int quantileValues = 12;                          ///<! number of values in quantiles + truncated mean (hardcoded for the moment)
+  int quantileValues = 23;                          ///<! number of values in quantiles + truncated mean (hardcoded for the moment)
   std::vector<float> nVertexContributors_Quantiles; ///< number of primary vertices for quantiles 0.1, 0.2, ... 0.9 and truncated mean values 0.05->0.95, 0.1->0.9, 0.2->0.8
 
   std::vector<float> mDCAr_comb_A_Median;       ///< DCAr for ITS-TPC track - A-side
@@ -520,6 +521,7 @@ struct TimeSeriesITSTPC {
     fill(data.mSqrtITSChi2_Ncl_C_RMS, mSqrtITSChi2_Ncl_C_RMS, posIndex);
 
     const int iTF = posIndex / mTSTPC.getNBins();
+    nPrimVertices[iTF] = data.nPrimVertices.front();
     nPrimVertices_ITS[iTF] = data.nPrimVertices_ITS.front();
     nVertexContributors_ITS_Median[iTF] = data.nVertexContributors_ITS_Median.front();
     nVertexContributors_ITS_RMS[iTF] = data.nVertexContributors_ITS_RMS.front();
@@ -591,6 +593,7 @@ struct TimeSeriesITSTPC {
 
     const int nDummyValuesVtx = nDummyValues / mTSTPC.getNBins();
     std::vector<float> vecTmpVtx(nDummyValuesVtx, 0);
+    insert(nPrimVertices, vecTmpVtx);
     insert(nPrimVertices_ITS, vecTmpVtx);
     insert(nVertexContributors_ITS_Median, vecTmpVtx);
     insert(nVertexContributors_ITS_RMS, vecTmpVtx);
@@ -661,6 +664,7 @@ struct TimeSeriesITSTPC {
     mSqrtITSChi2_Ncl_C_RMS.resize(nTotal);
 
     const int nTotalVtx = nTotal / mTSTPC.getNBins();
+    nPrimVertices.resize(nTotalVtx);
     nPrimVertices_ITS.resize(nTotalVtx);
     nVertexContributors_ITS_Median.resize(nTotalVtx);
     nVertexContributors_ITS_RMS.resize(nTotalVtx);
