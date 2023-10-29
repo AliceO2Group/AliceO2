@@ -96,10 +96,10 @@ class MatchHMP
   ///< get extra tolerance
   float getExtraTimeToleranceTOF() const { return mExtraTimeToleranceTOF; }
 
-  enum DebugFlagTypes : UInt_t {
-    MatchTreeAll = 0x1 << 1, //  ///< produce matching candidates tree for all candidates
-  };
-
+  /*  enum DebugFlagTypes : UInt_t {
+      MatchTreeAll = 0x1 << 1, //  ///< produce matching candidates tree for all candidates
+    };
+  */
   enum trackType : int8_t { UNCONS = 0,
                             CONSTR,
                             SIZE,
@@ -109,9 +109,9 @@ class MatchHMP
                             ITSTPCTRD,
                             SIZEALL };
 
-  std::vector<o2::dataformats::MatchInfoHMP>& getMatchedTrackVector(o2::globaltracking::MatchHMP::trackType index) { return mMatchedTracks[index]; }
+  std::vector<o2::dataformats::MatchInfoHMP> getMatchedTrackVector(o2::globaltracking::MatchHMP::trackType index) { return mMatchedTracks[index]; }
 
-  std::vector<o2::MCCompLabel>& getMatchedHMPLabelsVector(o2::globaltracking::MatchHMP::trackType index) { return mOutHMPLabels[index]; } ///< get vector of HMP label of matched tracks
+  std::vector<o2::MCCompLabel> getMatchedHMPLabelsVector(o2::globaltracking::MatchHMP::trackType index) { return mOutHMPLabels[index]; } ///< get vector of HMP label of matched tracks
 
   void setTS(unsigned long creationTime)
   {
