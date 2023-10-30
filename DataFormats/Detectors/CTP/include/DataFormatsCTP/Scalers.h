@@ -107,7 +107,9 @@ class CTPRunScalers
   int printRates();
   int printIntegrals();
   int printInputRateAndIntegral(int inp);
-  int printClassBRateAndIntegral(int icls);
+  int printClassBRateAndIntegralII(int icls);
+  int printClassBRateAndIntegral(int iclsinscalers);
+
   //
   // static constexpr uint32_t NCOUNTERS = 1052;
   // v1
