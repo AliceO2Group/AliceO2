@@ -78,7 +78,6 @@ class TPCTimeSeries : public Task
     maxITSTPCDCAz_comb = ic.options().get<float>("max-ITS-TPC-DCAz_comb");
     mTimeWindowMUS = ic.options().get<float>("time-window-mult-mus");
     mMIPdEdx = ic.options().get<float>("MIP-dedx");
-    mUseQMax = ic.options().get<bool>("use-qMax");
     mMaxSnp = ic.options().get<float>("max-snp");
     mXCoarse = ic.options().get<float>("mX-coarse");
     mSqrt = ic.options().get<float>("sqrts");
@@ -114,14 +113,18 @@ class TPCTimeSeries : public Task
       mAvgMeffC.resize(nBins);
       mAvgChi2MatchA.resize(nBins);
       mAvgChi2MatchC.resize(nBins);
-      mMIPdEdxRatioA.resize(nBins);
-      mMIPdEdxRatioC.resize(nBins);
+      mMIPdEdxRatioQMaxA.resize(nBins);
+      mMIPdEdxRatioQMaxC.resize(nBins);
+      mMIPdEdxRatioQTotA.resize(nBins);
+      mMIPdEdxRatioQTotC.resize(nBins);
       mTPCChi2A.resize(nBins);
       mTPCChi2C.resize(nBins);
       mTPCNClA.resize(nBins);
       mTPCNClC.resize(nBins);
-      mLogdEdxA.resize(nBins);
-      mLogdEdxC.resize(nBins);
+      mLogdEdxQTotA.resize(nBins);
+      mLogdEdxQTotC.resize(nBins);
+      mLogdEdxQMaxA.resize(nBins);
+      mLogdEdxQMaxC.resize(nBins);
       mITSPropertiesA.resize(nBins);
       mITSPropertiesC.resize(nBins);
     }
@@ -172,25 +175,33 @@ class TPCTimeSeries : public Task
         mAvgADCAz[i][type].clear();
         mAvgCDCAz[i][type].clear();
       }
-      for (int type = 0; type < mMIPdEdxRatioA[i].size(); ++type) {
-        mMIPdEdxRatioA[i][type].clear();
-        mMIPdEdxRatioC[i][type].clear();
+      for (int type = 0; type < mMIPdEdxRatioQMaxA[i].size(); ++type) {
+        mMIPdEdxRatioQMaxA[i][type].clear();
+        mMIPdEdxRatioQMaxC[i][type].clear();
+        mMIPdEdxRatioQTotA[i][type].clear();
+        mMIPdEdxRatioQTotC[i][type].clear();
         mTPCChi2A[i][type].clear();
         mTPCChi2C[i][type].clear();
         mTPCNClA[i][type].clear();
         mTPCNClC[i][type].clear();
-        mMIPdEdxRatioA[i][type].setUseWeights(false);
-        mMIPdEdxRatioC[i][type].setUseWeights(false);
+        mMIPdEdxRatioQMaxA[i][type].setUseWeights(false);
+        mMIPdEdxRatioQMaxC[i][type].setUseWeights(false);
+        mMIPdEdxRatioQTotA[i][type].setUseWeights(false);
+        mMIPdEdxRatioQTotC[i][type].setUseWeights(false);
         mTPCChi2A[i][type].setUseWeights(false);
         mTPCChi2C[i][type].setUseWeights(false);
         mTPCNClA[i][type].setUseWeights(false);
         mTPCNClC[i][type].setUseWeights(false);
       }
-      for (int type = 0; type < mLogdEdxA[i].size(); ++type) {
-        mLogdEdxA[i][type].clear();
-        mLogdEdxC[i][type].clear();
-        mLogdEdxA[i][type].setUseWeights(false);
-        mLogdEdxC[i][type].setUseWeights(false);
+      for (int type = 0; type < mLogdEdxQTotA[i].size(); ++type) {
+        mLogdEdxQTotA[i][type].clear();
+        mLogdEdxQTotC[i][type].clear();
+        mLogdEdxQMaxA[i][type].clear();
+        mLogdEdxQMaxC[i][type].clear();
+        mLogdEdxQTotA[i][type].setUseWeights(false);
+        mLogdEdxQTotC[i][type].setUseWeights(false);
+        mLogdEdxQMaxA[i][type].setUseWeights(false);
+        mLogdEdxQMaxC[i][type].setUseWeights(false);
       }
       for (int j = 0; j < mITSPropertiesA[i].size(); ++j) {
         mITSPropertiesA[i][j].clear();
@@ -246,9 +257,11 @@ class TPCTimeSeries : public Task
         mAvgADCAz[i][type].reserve(resMem);
         mAvgCDCAz[i][type].reserve(resMem);
       }
-      for (int type = 0; type < mMIPdEdxRatioA[i].size(); ++type) {
-        mMIPdEdxRatioA[i][type].reserve(resMem);
-        mMIPdEdxRatioC[i][type].reserve(resMem);
+      for (int type = 0; type < mMIPdEdxRatioQMaxA[i].size(); ++type) {
+        mMIPdEdxRatioQMaxA[i][type].reserve(resMem);
+        mMIPdEdxRatioQMaxC[i][type].reserve(resMem);
+        mMIPdEdxRatioQTotA[i][type].reserve(resMem);
+        mMIPdEdxRatioQTotC[i][type].reserve(resMem);
         mTPCChi2A[i][type].reserve(resMem);
         mTPCChi2C[i][type].reserve(resMem);
         mTPCNClA[i][type].reserve(resMem);
@@ -265,8 +278,10 @@ class TPCTimeSeries : public Task
         mITSPropertiesC[i][j].reserve(resMem);
       }
       for (int j = 0; j < mAvgMeffA[i].size(); ++j) {
-        mLogdEdxA[i][j].reserve(resMem);
-        mLogdEdxC[i][j].reserve(resMem);
+        mLogdEdxQTotA[i][j].reserve(resMem);
+        mLogdEdxQTotC[i][j].reserve(resMem);
+        mLogdEdxQMaxA[i][j].reserve(resMem);
+        mLogdEdxQMaxC[i][j].reserve(resMem);
       }
     }
     for (int iThread = 0; iThread < mNThreads; ++iThread) {
@@ -429,7 +444,8 @@ class TPCTimeSeries : public Task
         const auto dcaz = val.dcaz[i];
         const auto hasITS = val.hasITS[i];
         const auto chi2Match = val.chi2Match[i];
-        const auto dedxRatio = val.dedxRatio[i];
+        const auto dedxRatioqMax = val.dedxRatioqMax[i];
+        const auto dedxRatioqTot = val.dedxRatioqTot[i];
         const auto sqrtChi2TPC = val.sqrtChi2TPC[i];
         const auto nClTPC = val.nClTPC[i];
         const int binInt = nBins - 1;
@@ -441,10 +457,12 @@ class TPCTimeSeries : public Task
         const auto& bufferDCAMedZ = isCSide ? mBufferDCA.mTSTPC.mDCAz_C_Median : mBufferDCA.mTSTPC.mDCAz_A_Median;
         auto& mAvgEff = isCSide ? mAvgMeffC : mAvgMeffA;
         auto& mAvgChi2Match = isCSide ? mAvgChi2MatchC : mAvgChi2MatchA;
-        auto& mAvgmMIPdEdxRatio = isCSide ? mMIPdEdxRatioC : mMIPdEdxRatioA;
+        auto& mAvgmMIPdEdxRatioqMax = isCSide ? mMIPdEdxRatioQMaxC : mMIPdEdxRatioQMaxA;
+        auto& mAvgmMIPdEdxRatioqTot = isCSide ? mMIPdEdxRatioQTotC : mMIPdEdxRatioQTotA;
         auto& mAvgmTPCChi2 = isCSide ? mTPCChi2C : mTPCChi2A;
         auto& mAvgmTPCNCl = isCSide ? mTPCNClC : mTPCNClA;
-        auto& mAvgmdEdxRatio = isCSide ? mLogdEdxC : mLogdEdxA;
+        auto& mAvgmdEdxRatioQMax = isCSide ? mLogdEdxQMaxC : mLogdEdxQMaxA;
+        auto& mAvgmdEdxRatioQTot = isCSide ? mLogdEdxQTotC : mLogdEdxQTotA;
         auto& mITSProperties = isCSide ? mITSPropertiesC : mITSPropertiesA;
 
         const std::array<int, 5> bins{tglBin, phiBin, qPtBin, multBin, binInt};
@@ -473,39 +491,75 @@ class TPCTimeSeries : public Task
                 mAvgChi2Match[bin][2].addValue(chi2Match);
               }
             }
-            if (dedxRatio > 0) {
-              mAvgmMIPdEdxRatio[bin][0].addValue(dedxRatio);
+            if (dedxRatioqMax > 0) {
+              mAvgmMIPdEdxRatioqMax[bin][0].addValue(dedxRatioqMax);
+            }
+            if (dedxRatioqTot > 0) {
+              mAvgmMIPdEdxRatioqTot[bin][0].addValue(dedxRatioqTot);
             }
             mAvgmTPCChi2[bin][0].addValue(sqrtChi2TPC);
             mAvgmTPCNCl[bin][0].addValue(nClTPC);
             if (hasITS) {
-              if (dedxRatio > 0) {
-                mAvgmMIPdEdxRatio[bin][1].addValue(dedxRatio);
+              if (dedxRatioqMax > 0) {
+                mAvgmMIPdEdxRatioqMax[bin][1].addValue(dedxRatioqMax);
+              }
+              if (dedxRatioqTot > 0) {
+                mAvgmMIPdEdxRatioqTot[bin][1].addValue(dedxRatioqTot);
               }
               mAvgmTPCChi2[bin][1].addValue(sqrtChi2TPC);
               mAvgmTPCNCl[bin][1].addValue(nClTPC);
             }
-            float dedxNorm = val.dedxNorm[i];
-            if (dedxNorm > 0) {
-              mAvgmdEdxRatio[bin][0].addValue(dedxNorm);
+
+            float dedxNormQMax = val.dedxValsqMax[i].dedxNorm;
+            if (dedxNormQMax > 0) {
+              mAvgmdEdxRatioQMax[bin][0].addValue(dedxNormQMax);
             }
 
-            float dedxIROC = val.dedxIROC[i];
-            if (dedxIROC > 0) {
-              mAvgmdEdxRatio[bin][1].addValue(dedxIROC);
+            float dedxNormQTot = val.dedxValsqTot[i].dedxNorm;
+            if (dedxNormQTot > 0) {
+              mAvgmdEdxRatioQTot[bin][0].addValue(dedxNormQTot);
             }
-            float dedxOROC1 = val.dedxOROC1[i];
-            if (dedxOROC1 > 0) {
-              mAvgmdEdxRatio[bin][2].addValue(dedxOROC1);
+
+            float dedxIROCQMax = val.dedxValsqMax[i].dedxIROC;
+            if (dedxIROCQMax > 0) {
+              mAvgmdEdxRatioQMax[bin][1].addValue(dedxIROCQMax);
             }
-            float dedxOROC2 = val.dedxOROC2[i];
-            if (dedxOROC2 > 0) {
-              mAvgmdEdxRatio[bin][3].addValue(dedxOROC2);
+
+            float dedxIROCQTot = val.dedxValsqTot[i].dedxIROC;
+            if (dedxIROCQTot > 0) {
+              mAvgmdEdxRatioQTot[bin][1].addValue(dedxIROCQTot);
             }
-            float dedxOROC3 = val.dedxOROC3[i];
-            if (dedxOROC3 > 0) {
-              mAvgmdEdxRatio[bin][4].addValue(dedxOROC3);
+
+            float dedxOROC1QMax = val.dedxValsqMax[i].dedxOROC1;
+            if (dedxOROC1QMax > 0) {
+              mAvgmdEdxRatioQMax[bin][2].addValue(dedxOROC1QMax);
             }
+
+            float dedxOROC1QTot = val.dedxValsqTot[i].dedxOROC1;
+            if (dedxOROC1QTot > 0) {
+              mAvgmdEdxRatioQTot[bin][2].addValue(dedxOROC1QTot);
+            }
+
+            float dedxOROC2QMax = val.dedxValsqMax[i].dedxOROC2;
+            if (dedxOROC2QMax > 0) {
+              mAvgmdEdxRatioQMax[bin][3].addValue(dedxOROC2QMax);
+            }
+
+            float dedxOROC2QTot = val.dedxValsqTot[i].dedxOROC2;
+            if (dedxOROC2QTot > 0) {
+              mAvgmdEdxRatioQTot[bin][3].addValue(dedxOROC2QTot);
+            }
+
+            float dedxOROC3QMax = val.dedxValsqMax[i].dedxOROC3;
+            if (dedxOROC3QMax > 0) {
+              mAvgmdEdxRatioQMax[bin][4].addValue(dedxOROC3QMax);
+            }
+
+            float dedxOROC3QTot = val.dedxValsqTot[i].dedxOROC3;
+            if (dedxOROC3QTot > 0) {
+              mAvgmdEdxRatioQTot[bin][4].addValue(dedxOROC3QTot);
+            }
+
             float nClITS = val.nClITS[i];
             if (nClITS > 0) {
               mITSProperties[bin][0].addValue(nClITS);
@@ -530,38 +584,46 @@ class TPCTimeSeries : public Task
       }
 
       // loop over TPC and ITS-TPC tracks
-      for (int i = 0; i < mMIPdEdxRatioC[slice].size(); ++i) {
+      for (int i = 0; i < mMIPdEdxRatioQMaxC[slice].size(); ++i) {
         auto& buff = (i == 0) ? mBufferDCA.mTSTPC : mBufferDCA.mTSITSTPC;
-        buff.mMIPdEdxRatioC[slice] = mMIPdEdxRatioC[slice][i].getMean();
-        buff.mMIPdEdxRatioA[slice] = mMIPdEdxRatioA[slice][i].getMean();
+        buff.mMIPdEdxRatioQMaxA[slice] = mMIPdEdxRatioQMaxA[slice][i].getMean();
+        buff.mMIPdEdxRatioQMaxC[slice] = mMIPdEdxRatioQMaxC[slice][i].getMean();
+        buff.mMIPdEdxRatioQTotA[slice] = mMIPdEdxRatioQTotA[slice][i].getMean();
+        buff.mMIPdEdxRatioQTotC[slice] = mMIPdEdxRatioQTotC[slice][i].getMean();
         buff.mTPCChi2C[slice] = mTPCChi2C[slice][i].getMean();
         buff.mTPCChi2A[slice] = mTPCChi2A[slice][i].getMean();
         buff.mTPCNClC[slice] = mTPCNClC[slice][i].getMean();
         buff.mTPCNClA[slice] = mTPCNClA[slice][i].getMean();
       }
-      // dEdx ratio
-      // fill A-side
-      mBufferDCA.mLogdEdx_A_Median[slice] = mLogdEdxA[slice][0].getMedian();
-      mBufferDCA.mLogdEdx_A_RMS[slice] = mLogdEdxA[slice][0].getStdDev();
-      mBufferDCA.mLogdEdx_A_IROC_Median[slice] = mLogdEdxA[slice][1].getMedian();
-      mBufferDCA.mLogdEdx_A_IROC_RMS[slice] = mLogdEdxA[slice][1].getStdDev();
-      mBufferDCA.mLogdEdx_A_OROC1_Median[slice] = mLogdEdxA[slice][2].getMedian();
-      mBufferDCA.mLogdEdx_A_OROC1_RMS[slice] = mLogdEdxA[slice][2].getStdDev();
-      mBufferDCA.mLogdEdx_A_OROC2_Median[slice] = mLogdEdxA[slice][3].getMedian();
-      mBufferDCA.mLogdEdx_A_OROC2_RMS[slice] = mLogdEdxA[slice][3].getStdDev();
-      mBufferDCA.mLogdEdx_A_OROC3_Median[slice] = mLogdEdxA[slice][4].getMedian();
-      mBufferDCA.mLogdEdx_A_OROC3_RMS[slice] = mLogdEdxA[slice][4].getStdDev();
-      // fill C-side
-      mBufferDCA.mLogdEdx_C_Median[slice] = mLogdEdxC[slice][0].getMedian();
-      mBufferDCA.mLogdEdx_C_RMS[slice] = mLogdEdxC[slice][0].getStdDev();
-      mBufferDCA.mLogdEdx_C_IROC_Median[slice] = mLogdEdxC[slice][1].getMedian();
-      mBufferDCA.mLogdEdx_C_IROC_RMS[slice] = mLogdEdxC[slice][1].getStdDev();
-      mBufferDCA.mLogdEdx_C_OROC1_Median[slice] = mLogdEdxC[slice][2].getMedian();
-      mBufferDCA.mLogdEdx_C_OROC1_RMS[slice] = mLogdEdxC[slice][2].getStdDev();
-      mBufferDCA.mLogdEdx_C_OROC2_Median[slice] = mLogdEdxC[slice][3].getMedian();
-      mBufferDCA.mLogdEdx_C_OROC2_RMS[slice] = mLogdEdxC[slice][3].getStdDev();
-      mBufferDCA.mLogdEdx_C_OROC3_Median[slice] = mLogdEdxC[slice][4].getMedian();
-      mBufferDCA.mLogdEdx_C_OROC3_RMS[slice] = mLogdEdxC[slice][4].getStdDev();
+
+      // loop over qMax and qTot
+      for (int type = 0; type < 2; ++type) {
+        auto& logdEdxA = (type == 0) ? mLogdEdxQMaxA : mLogdEdxQTotA;
+        auto& buffer = (type == 0) ? mBufferDCA.mdEdxQMax : mBufferDCA.mdEdxQTot;
+        // fill A-side
+        buffer.mLogdEdx_A_Median[slice] = logdEdxA[slice][0].getMedian();
+        buffer.mLogdEdx_A_RMS[slice] = logdEdxA[slice][0].getStdDev();
+        buffer.mLogdEdx_A_IROC_Median[slice] = logdEdxA[slice][1].getMedian();
+        buffer.mLogdEdx_A_IROC_RMS[slice] = logdEdxA[slice][1].getStdDev();
+        buffer.mLogdEdx_A_OROC1_Median[slice] = logdEdxA[slice][2].getMedian();
+        buffer.mLogdEdx_A_OROC1_RMS[slice] = logdEdxA[slice][2].getStdDev();
+        buffer.mLogdEdx_A_OROC2_Median[slice] = logdEdxA[slice][3].getMedian();
+        buffer.mLogdEdx_A_OROC2_RMS[slice] = logdEdxA[slice][3].getStdDev();
+        buffer.mLogdEdx_A_OROC3_Median[slice] = logdEdxA[slice][4].getMedian();
+        buffer.mLogdEdx_A_OROC3_RMS[slice] = logdEdxA[slice][4].getStdDev();
+        // fill C-side
+        auto& logdEdxC = (type == 0) ? mLogdEdxQMaxC : mLogdEdxQTotC;
+        buffer.mLogdEdx_C_Median[slice] = logdEdxC[slice][0].getMedian();
+        buffer.mLogdEdx_C_RMS[slice] = logdEdxC[slice][0].getStdDev();
+        buffer.mLogdEdx_C_IROC_Median[slice] = logdEdxC[slice][1].getMedian();
+        buffer.mLogdEdx_C_IROC_RMS[slice] = logdEdxC[slice][1].getStdDev();
+        buffer.mLogdEdx_C_OROC1_Median[slice] = logdEdxC[slice][2].getMedian();
+        buffer.mLogdEdx_C_OROC1_RMS[slice] = logdEdxC[slice][2].getStdDev();
+        buffer.mLogdEdx_C_OROC2_Median[slice] = logdEdxC[slice][3].getMedian();
+        buffer.mLogdEdx_C_OROC2_RMS[slice] = logdEdxC[slice][3].getStdDev();
+        buffer.mLogdEdx_C_OROC3_Median[slice] = logdEdxC[slice][4].getMedian();
+        buffer.mLogdEdx_C_OROC3_RMS[slice] = logdEdxC[slice][4].getStdDev();
+      }
 
       // ITS properties
       // A-side
@@ -598,6 +660,14 @@ class TPCTimeSeries : public Task
 
  private:
   /// buffer struct for multithreading
+  struct ValsdEdx {
+    float dedxNorm = 0;
+    float dedxIROC = 0;
+    float dedxOROC1 = 0;
+    float dedxOROC2 = 0;
+    float dedxOROC3 = 0;
+  };
+
   struct FillVals {
     void reserve(int n, int type)
     {
@@ -609,18 +679,16 @@ class TPCTimeSeries : public Task
       dcar.reserve(n);
       dcaz.reserve(n);
       dcarW.reserve(n);
-      dedxRatio.reserve(n);
+      dedxRatioqTot.reserve(n);
+      dedxRatioqMax.reserve(n);
       sqrtChi2TPC.reserve(n);
       nClTPC.reserve(n);
       if (type == 1) {
         hasITS.reserve(n);
         chi2Match.reserve(n);
         gID.reserve(n);
-        dedxNorm.reserve(n);
-        dedxIROC.reserve(n);
-        dedxOROC1.reserve(n);
-        dedxOROC2.reserve(n);
-        dedxOROC3.reserve(n);
+        dedxValsqTot.reserve(n);
+        dedxValsqMax.reserve(n);
         nClITS.reserve(n);
         chi2ITS.reserve(n);
       } else if (type == 0) {
@@ -641,22 +709,20 @@ class TPCTimeSeries : public Task
       dcarW.clear();
       hasITS.clear();
       chi2Match.clear();
-      dedxRatio.clear();
+      dedxRatioqTot.clear();
+      dedxRatioqMax.clear();
       sqrtChi2TPC.clear();
       nClTPC.clear();
       gID.clear();
       dcarcomb.clear();
       dcazcomb.clear();
-      dedxNorm.clear();
-      dedxIROC.clear();
-      dedxOROC1.clear();
-      dedxOROC2.clear();
-      dedxOROC3.clear();
       nClITS.clear();
       chi2ITS.clear();
+      dedxValsqTot.clear();
+      dedxValsqMax.clear();
     }
 
-    void emplace_back(Side sideTmp, int tglBinTmp, int phiBinTmp, int qPtBinTmp, int multBinTmp, float dcarTmp, float dcazTmp, float dcarWTmp, float dedxRatioTmp, float sqrtChi2TPCTmp, float nClTPCTmp, o2::dataformats::GlobalTrackID::Source gIDTmp, float chi2MatchTmp, int hasITSTmp, float dedxNormTmp, float dedxIROCTmp, float dedxOROC1Tmp, float dedxOROC2Tmp, float dedxOROC3Tmp, int nClITSTmp, float chi2ITSTmp)
+    void emplace_back(Side sideTmp, int tglBinTmp, int phiBinTmp, int qPtBinTmp, int multBinTmp, float dcarTmp, float dcazTmp, float dcarWTmp, float dedxRatioqTotTmp, float dedxRatioqMaxTmp, float sqrtChi2TPCTmp, float nClTPCTmp, o2::dataformats::GlobalTrackID::Source gIDTmp, float chi2MatchTmp, int hasITSTmp, int nClITSTmp, float chi2ITSTmp, const ValsdEdx& dedxValsqTotTmp, const ValsdEdx& dedxValsqMaxTmp)
     {
       side.emplace_back(sideTmp);
       tglBin.emplace_back(tglBinTmp);
@@ -666,22 +732,20 @@ class TPCTimeSeries : public Task
       dcar.emplace_back(dcarTmp);
       dcaz.emplace_back(dcazTmp);
       dcarW.emplace_back(dcarWTmp);
-      dedxRatio.emplace_back(dedxRatioTmp);
+      dedxRatioqTot.emplace_back(dedxRatioqTotTmp);
+      dedxRatioqMax.emplace_back(dedxRatioqMaxTmp);
       sqrtChi2TPC.emplace_back(sqrtChi2TPCTmp);
       nClTPC.emplace_back(nClTPCTmp);
       chi2Match.emplace_back(chi2MatchTmp);
       hasITS.emplace_back(hasITSTmp);
       gID.emplace_back(gIDTmp);
-      dedxNorm.emplace_back(dedxNormTmp);
-      dedxIROC.emplace_back(dedxIROCTmp);
-      dedxOROC1.emplace_back(dedxOROC1Tmp);
-      dedxOROC2.emplace_back(dedxOROC2Tmp);
-      dedxOROC3.emplace_back(dedxOROC3Tmp);
+      dedxValsqMax.emplace_back(dedxValsqMaxTmp);
+      dedxValsqTot.emplace_back(dedxValsqTotTmp);
       nClITS.emplace_back(nClITSTmp);
       chi2ITS.emplace_back(chi2ITSTmp);
     }
 
-    void emplace_back_ITSTPC(Side sideTmp, int tglBinTmp, int phiBinTmp, int qPtBinTmp, int multBinTmp, float dcarTmp, float dcazTmp, float dcarWTmp, float dedxRatioTmp, float sqrtChi2TPCTmp, float nClTPCTmp, float dcarCombTmp, float dcazCombTmp)
+    void emplace_back_ITSTPC(Side sideTmp, int tglBinTmp, int phiBinTmp, int qPtBinTmp, int multBinTmp, float dcarTmp, float dcazTmp, float dcarWTmp, float dedxRatioqTotTmp, float dedxRatioqMaxTmp, float sqrtChi2TPCTmp, float nClTPCTmp, float dcarCombTmp, float dcazCombTmp)
     {
       side.emplace_back(sideTmp);
       tglBin.emplace_back(tglBinTmp);
@@ -691,7 +755,8 @@ class TPCTimeSeries : public Task
       dcar.emplace_back(dcarTmp);
       dcaz.emplace_back(dcazTmp);
       dcarW.emplace_back(dcarWTmp);
-      dedxRatio.emplace_back(dedxRatioTmp);
+      dedxRatioqTot.emplace_back(dedxRatioqTotTmp);
+      dedxRatioqMax.emplace_back(dedxRatioqMaxTmp);
       sqrtChi2TPC.emplace_back(sqrtChi2TPCTmp);
       nClTPC.emplace_back(nClTPCTmp);
       dcarcomb.emplace_back(dcarCombTmp);
@@ -708,79 +773,80 @@ class TPCTimeSeries : public Task
     std::vector<float> dcarW;
     std::vector<bool> hasITS;
     std::vector<float> chi2Match;
-    std::vector<float> dedxRatio;
+    std::vector<float> dedxRatioqTot;
+    std::vector<float> dedxRatioqMax;
     std::vector<float> sqrtChi2TPC;
     std::vector<float> nClTPC;
     std::vector<float> dcarcomb;
     std::vector<float> dcazcomb;
-    std::vector<float> dedxNorm;
-    std::vector<float> dedxIROC;
-    std::vector<float> dedxOROC1;
-    std::vector<float> dedxOROC2;
-    std::vector<float> dedxOROC3;
+    std::vector<ValsdEdx> dedxValsqTot;
+    std::vector<ValsdEdx> dedxValsqMax;
     std::vector<int> nClITS;
     std::vector<float> chi2ITS;
     std::vector<o2::dataformats::GlobalTrackID::Source> gID;
   };
-  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;    ///< info for CCDB request
-  const bool mDisableWriter{false};                          ///< flag if no ROOT output will be written
-  o2::base::Propagator::MatCorrType mMatType;                ///< material for propagation
-  int mPhiBins = SECTORSPERSIDE;                             ///< number of phi bins
-  int mTglBins{3};                                           ///< number of tgl bins
-  int mQPtBins{20};                                          ///< number of qPt bins
-  TimeSeriesITSTPC mBufferDCA;                               ///< buffer for integrate DCAs
-  std::vector<std::array<RobustAverage, 3>> mAvgADCAr;       ///< for averaging the DCAr for TPC and ITS-TPC tracks for A-side
-  std::vector<std::array<RobustAverage, 3>> mAvgCDCAr;       ///< for averaging the DCAr for TPC and ITS-TPC tracks for C-side
-  std::vector<std::array<RobustAverage, 3>> mAvgADCAz;       ///< for averaging the DCAz for TPC and ITS-TPC tracks for A-side
-  std::vector<std::array<RobustAverage, 3>> mAvgCDCAz;       ///< for averaging the DCAz for TPC and ITS-TPC tracks for C-side
-  std::vector<std::array<RobustAverage, 2>> mMIPdEdxRatioA;  ///< for averaging MIP/dEdx
-  std::vector<std::array<RobustAverage, 2>> mMIPdEdxRatioC;  ///< for averaging MIP/dEdx
-  std::vector<std::array<RobustAverage, 2>> mTPCChi2A;       ///< for averaging chi2 TPC A
-  std::vector<std::array<RobustAverage, 2>> mTPCChi2C;       ///< for averaging chi2 TPC C
-  std::vector<std::array<RobustAverage, 2>> mTPCNClA;        ///< for averaging number of cluster A
-  std::vector<std::array<RobustAverage, 2>> mTPCNClC;        ///< for averaging number of cluster C
-  std::vector<std::array<RobustAverage, 3>> mAvgMeffA;       ///< for matching efficiency ITS-TPC standalone + afterburner, standalone, afterburner
-  std::vector<std::array<RobustAverage, 3>> mAvgMeffC;       ///< for matching efficiency ITS-TPC standalone + afterburner, standalone, afterburner
-  std::vector<std::array<RobustAverage, 3>> mAvgChi2MatchA;  ///< for matching efficiency ITS-TPC standalone + afterburner, standalone, afterburner
-  std::vector<std::array<RobustAverage, 3>> mAvgChi2MatchC;  ///< for matching efficiency ITS-TPC standalone + afterburner, standalone, afterburner
-  std::vector<std::array<RobustAverage, 10>> mLogdEdxA;      ///< for log dedx A side
-  std::vector<std::array<RobustAverage, 10>> mLogdEdxC;      ///< for log dedx C side
-  std::vector<std::array<RobustAverage, 2>> mITSPropertiesA; ///< mITS_NCl, mSqrtITSChi2_Ncl, mSqrtMatchChi2
-  std::vector<std::array<RobustAverage, 2>> mITSPropertiesC; ///< mITS_NCl, mSqrtITSChi2_Ncl, mSqrtMatchChi2
-  int mNMaxTracks{-1};                                       ///< maximum number of tracks to process
-  float mMinMom{1};                                          ///< minimum accepted momentum
-  int mMinNCl{80};                                           ///< minimum accepted number of clusters per track
-  float mMaxTgl{1};                                          ///< maximum eta
-  float mMaxQPt{5};                                          ///< max qPt bin
-  float mCoarseStep{1};                                      ///< coarse step during track propagation
-  float mFineStep{0.005};                                    ///< fine step during track propagation
-  float mCutDCA{5};                                          ///< cut on the abs(DCA-median)
-  float mCutRMS{5};                                          ///< sigma cut for mean,median calculation
-  float mRefXSec{108.475};                                   ///< reference lx position for sector information (default centre of IROC)
-  int mNThreads{1};                                          ///< number of parallel threads
-  float maxITSTPCDCAr{0.2};                                  ///< maximum abs DCAr value for ITS-TPC tracks
-  float maxITSTPCDCAz{10};                                   ///< maximum abs DCAz value for ITS-TPC tracks
-  float maxITSTPCDCAr_comb{0.2};                             ///< max abs DCA for ITS-TPC DCA to vertex
-  float maxITSTPCDCAz_comb{0.2};                             ///< max abs DCA for ITS-TPC DCA to vertex
-  gsl::span<const TPCClRefElem> mTPCTrackClIdx{};            ///< cluster refs for debugging
-  std::vector<std::array<FillVals, 2>> mBufferVals;          ///< buffer for multithreading
-  uint32_t mFirstTFOrbit{0};                                 ///< first TF orbit
-  float mTimeWindowMUS{50};                                  ///< time window in mus for local mult estimate
-  float mMIPdEdx{50};                                        ///< MIP dEdx position for MIP/dEdx monitoring
-  std::vector<int> mNTracksWindow;                           ///< number of tracks in time window
-  std::vector<int> mNearestVtxTPC;                           ///< nearest vertex for tpc tracks
-  o2::tpc::VDriftHelper mTPCVDriftHelper{};                  ///< helper for v-drift
-  float mVDrift{2.64};                                       ///< v drift in mus
-  bool mUseQMax{false};                                      ///< use dedx qmax for MIP/dEdx monitoring
-  float mMaxSnp{0.85};                                       ///< max sinus phi for propagation
-  float mXCoarse{40};                                        ///< perform propagation with coarse steps up to this mx
-  float mSqrt{13600};                                        ///< centre of mass energy
-  int mMultBins{20};                                         ///< multiplicity bins
-  int mMultMax{80000};                                       ///< maximum multiplicity
-  PIDResponse mPID;                                          ///< PID response
-  int mMinTracksPerVertex{5};                                ///< minimum number of tracks per vertex
-  float mMaxdEdxRatio{0.3};                                  ///< maximum abs dedx ratio: log(dedx_exp(pion)/dedx)
-  float mMaxdEdxRegionRatio{0.5};                            ///< maximum abs dedx region ratio: log(dedx_region/dedx)
+  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;       ///< info for CCDB request
+  const bool mDisableWriter{false};                             ///< flag if no ROOT output will be written
+  o2::base::Propagator::MatCorrType mMatType;                   ///< material for propagation
+  int mPhiBins = SECTORSPERSIDE;                                ///< number of phi bins
+  int mTglBins{3};                                              ///< number of tgl bins
+  int mQPtBins{20};                                             ///< number of qPt bins
+  TimeSeriesITSTPC mBufferDCA;                                  ///< buffer for integrate DCAs
+  std::vector<std::array<RobustAverage, 3>> mAvgADCAr;          ///< for averaging the DCAr for TPC and ITS-TPC tracks for A-side
+  std::vector<std::array<RobustAverage, 3>> mAvgCDCAr;          ///< for averaging the DCAr for TPC and ITS-TPC tracks for C-side
+  std::vector<std::array<RobustAverage, 3>> mAvgADCAz;          ///< for averaging the DCAz for TPC and ITS-TPC tracks for A-side
+  std::vector<std::array<RobustAverage, 3>> mAvgCDCAz;          ///< for averaging the DCAz for TPC and ITS-TPC tracks for C-side
+  std::vector<std::array<RobustAverage, 2>> mMIPdEdxRatioQMaxA; ///< for averaging MIP/dEdx - qMax -
+  std::vector<std::array<RobustAverage, 2>> mMIPdEdxRatioQMaxC; ///< for averaging MIP/dEdx - qMax -
+  std::vector<std::array<RobustAverage, 2>> mMIPdEdxRatioQTotA; ///< for averaging MIP/dEdx - qTot -
+  std::vector<std::array<RobustAverage, 2>> mMIPdEdxRatioQTotC; ///< for averaging MIP/dEdx - qTot -
+  std::vector<std::array<RobustAverage, 2>> mTPCChi2A;          ///< for averaging chi2 TPC A
+  std::vector<std::array<RobustAverage, 2>> mTPCChi2C;          ///< for averaging chi2 TPC C
+  std::vector<std::array<RobustAverage, 2>> mTPCNClA;           ///< for averaging number of cluster A
+  std::vector<std::array<RobustAverage, 2>> mTPCNClC;           ///< for averaging number of cluster C
+  std::vector<std::array<RobustAverage, 3>> mAvgMeffA;          ///< for matching efficiency ITS-TPC standalone + afterburner, standalone, afterburner
+  std::vector<std::array<RobustAverage, 3>> mAvgMeffC;          ///< for matching efficiency ITS-TPC standalone + afterburner, standalone, afterburner
+  std::vector<std::array<RobustAverage, 3>> mAvgChi2MatchA;     ///< for matching efficiency ITS-TPC standalone + afterburner, standalone, afterburner
+  std::vector<std::array<RobustAverage, 3>> mAvgChi2MatchC;     ///< for matching efficiency ITS-TPC standalone + afterburner, standalone, afterburner
+  std::vector<std::array<RobustAverage, 10>> mLogdEdxQTotA;     ///< for log dedx A side - qTot
+  std::vector<std::array<RobustAverage, 10>> mLogdEdxQTotC;     ///< for log dedx C side - qTot
+  std::vector<std::array<RobustAverage, 10>> mLogdEdxQMaxA;     ///< for log dedx A side - qMax
+  std::vector<std::array<RobustAverage, 10>> mLogdEdxQMaxC;     ///< for log dedx C side - qMax
+  std::vector<std::array<RobustAverage, 2>> mITSPropertiesA;    ///< mITS_NCl, mSqrtITSChi2_Ncl, mSqrtMatchChi2
+  std::vector<std::array<RobustAverage, 2>> mITSPropertiesC;    ///< mITS_NCl, mSqrtITSChi2_Ncl, mSqrtMatchChi2
+  int mNMaxTracks{-1};                                          ///< maximum number of tracks to process
+  float mMinMom{1};                                             ///< minimum accepted momentum
+  int mMinNCl{80};                                              ///< minimum accepted number of clusters per track
+  float mMaxTgl{1};                                             ///< maximum eta
+  float mMaxQPt{5};                                             ///< max qPt bin
+  float mCoarseStep{1};                                         ///< coarse step during track propagation
+  float mFineStep{0.005};                                       ///< fine step during track propagation
+  float mCutDCA{5};                                             ///< cut on the abs(DCA-median)
+  float mCutRMS{5};                                             ///< sigma cut for mean,median calculation
+  float mRefXSec{108.475};                                      ///< reference lx position for sector information (default centre of IROC)
+  int mNThreads{1};                                             ///< number of parallel threads
+  float maxITSTPCDCAr{0.2};                                     ///< maximum abs DCAr value for ITS-TPC tracks
+  float maxITSTPCDCAz{10};                                      ///< maximum abs DCAz value for ITS-TPC tracks
+  float maxITSTPCDCAr_comb{0.2};                                ///< max abs DCA for ITS-TPC DCA to vertex
+  float maxITSTPCDCAz_comb{0.2};                                ///< max abs DCA for ITS-TPC DCA to vertex
+  gsl::span<const TPCClRefElem> mTPCTrackClIdx{};               ///< cluster refs for debugging
+  std::vector<std::array<FillVals, 2>> mBufferVals;             ///< buffer for multithreading
+  uint32_t mFirstTFOrbit{0};                                    ///< first TF orbit
+  float mTimeWindowMUS{50};                                     ///< time window in mus for local mult estimate
+  float mMIPdEdx{50};                                           ///< MIP dEdx position for MIP/dEdx monitoring
+  std::vector<int> mNTracksWindow;                              ///< number of tracks in time window
+  std::vector<int> mNearestVtxTPC;                              ///< nearest vertex for tpc tracks
+  o2::tpc::VDriftHelper mTPCVDriftHelper{};                     ///< helper for v-drift
+  float mVDrift{2.64};                                          ///< v drift in mus
+  float mMaxSnp{0.85};                                          ///< max sinus phi for propagation
+  float mXCoarse{40};                                           ///< perform propagation with coarse steps up to this mx
+  float mSqrt{13600};                                           ///< centre of mass energy
+  int mMultBins{20};                                            ///< multiplicity bins
+  int mMultMax{80000};                                          ///< maximum multiplicity
+  PIDResponse mPID;                                             ///< PID response
+  int mMinTracksPerVertex{5};                                   ///< minimum number of tracks per vertex
+  float mMaxdEdxRatio{0.3};                                     ///< maximum abs dedx ratio: log(dedx_exp(pion)/dedx)
+  float mMaxdEdxRegionRatio{0.5};                               ///< maximum abs dedx region ratio: log(dedx_region/dedx)
 
   /// check if track passes coarse cuts
   bool acceptTrack(const TrackTPC& track) const
@@ -876,50 +942,15 @@ class TPCTimeSeries : public Task
       }
 
       const float chi2Match = (chi2 > 0) ? std::sqrt(chi2) : -1;
-      const float dedx = mUseQMax ? track.getdEdx().dEdxMaxTPC : track.getdEdx().dEdxTotTPC;
-      const float dedxRatio = (dedx > 0) ? (mMIPdEdx / dedx) : -1;
       const float sqrtChi2TPC = (track.getChi2() > 0) ? std::sqrt(track.getChi2()) : 0;
       const float nClTPC = track.getNClusters();
-      const float dedxRatioNorm = mPID.getExpectedSignal(track, o2::track::PID::ID(o2::track::PID::Pion)) / dedx;
-      float dedxNorm = (dedxRatioNorm > 0) ? std::log(mPID.getExpectedSignal(track, o2::track::PID::ID(o2::track::PID::Pion)) / dedx) : -1;
-      // restrict to specified range
-      if (std::abs(dedxNorm > mMaxdEdxRatio)) {
-        dedxNorm = -1;
-      }
 
-      // get log(dedxRegion / dedx)
-      float dedxIROC = -1;
-      float dedxOROC1 = -1;
-      float dedxOROC2 = -1;
-      float dedxOROC3 = -1;
-      if (dedx > 0) {
-        dedxIROC = mUseQMax ? track.getdEdx().dEdxMaxIROC : track.getdEdx().dEdxTotIROC;
-        dedxOROC1 = mUseQMax ? track.getdEdx().dEdxMaxOROC1 : track.getdEdx().dEdxTotOROC1;
-        dedxOROC2 = mUseQMax ? track.getdEdx().dEdxMaxOROC2 : track.getdEdx().dEdxTotOROC2;
-        dedxOROC3 = mUseQMax ? track.getdEdx().dEdxMaxOROC3 : track.getdEdx().dEdxTotOROC3;
-        dedxIROC /= dedx;
-        dedxOROC1 /= dedx;
-        dedxOROC2 /= dedx;
-        dedxOROC3 /= dedx;
-        dedxIROC = (dedxIROC > 0) ? std::log(dedxIROC) : -1;
-        dedxOROC1 = (dedxOROC1 > 0) ? std::log(dedxOROC1) : -1;
-        dedxOROC2 = (dedxOROC2 > 0) ? std::log(dedxOROC2) : -1;
-        dedxOROC3 = (dedxOROC3 > 0) ? std::log(dedxOROC3) : -1;
+      // const float dedx = mUseQMax ? track.getdEdx().dEdxMaxTPC : track.getdEdx().dEdxTotTPC;
+      const float dedxRatioqTot = (track.getdEdx().dEdxTotTPC > 0) ? (mMIPdEdx / track.getdEdx().dEdxTotTPC) : -1;
+      const float dedxRatioqMax = (track.getdEdx().dEdxMaxTPC > 0) ? (mMIPdEdx / track.getdEdx().dEdxMaxTPC) : -1;
 
-        // restrict to specified range
-        if (std::abs(dedxIROC > mMaxdEdxRegionRatio)) {
-          dedxIROC = -1;
-        }
-        if (std::abs(dedxOROC1 > mMaxdEdxRegionRatio)) {
-          dedxOROC1 = -1;
-        }
-        if (std::abs(dedxOROC2 > mMaxdEdxRegionRatio)) {
-          dedxOROC2 = -1;
-        }
-        if (std::abs(dedxOROC3 > mMaxdEdxRegionRatio)) {
-          dedxOROC3 = -1;
-        }
-      }
+      const auto dedxQTotVars = getdEdxVars(0, track);
+      const auto dedxQMaxVars = getdEdxVars(1, track);
 
       const int nClITS = hasITSTPC ? tracksITS[tracksITSTPC[idxITSTPC.front()].getRefITS().getIndex()].getNClusters() : -1;
       float chi2ITS = hasITSTPC ? tracksITS[tracksITSTPC[idxITSTPC.front()].getRefITS().getIndex()].getChi2() : -1;
@@ -928,9 +959,9 @@ class TPCTimeSeries : public Task
       }
 
       if (track.hasCSideClustersOnly()) {
-        mBufferVals[iThread].front().emplace_back(Side::C, tglBin, phiBin, qPtBin, multBin, dca[0], dcaZFromDeltaTime, dcarW, dedxRatio, sqrtChi2TPC, nClTPC, gID, chi2Match, hasITSTPC, dedxNorm, dedxIROC, dedxOROC1, dedxOROC2, dedxOROC3, nClITS, chi2ITS);
+        mBufferVals[iThread].front().emplace_back(Side::C, tglBin, phiBin, qPtBin, multBin, dca[0], dcaZFromDeltaTime, dcarW, dedxRatioqTot, dedxRatioqMax, sqrtChi2TPC, nClTPC, gID, chi2Match, hasITSTPC, nClITS, chi2ITS, dedxQTotVars, dedxQMaxVars);
       } else if (track.hasASideClustersOnly()) {
-        mBufferVals[iThread].front().emplace_back(Side::A, tglBin, phiBin, qPtBin, multBin, dca[0], dcaZFromDeltaTime, dcarW, dedxRatio, sqrtChi2TPC, nClTPC, gID, chi2Match, hasITSTPC, dedxNorm, dedxIROC, dedxOROC1, dedxOROC2, dedxOROC3, nClITS, chi2ITS);
+        mBufferVals[iThread].front().emplace_back(Side::A, tglBin, phiBin, qPtBin, multBin, dca[0], dcaZFromDeltaTime, dcarW, dedxRatioqTot, dedxRatioqMax, sqrtChi2TPC, nClTPC, gID, chi2Match, hasITSTPC, nClITS, chi2ITS, dedxQTotVars, dedxQMaxVars);
       }
 
       // make propagation for ITS-TPC Track
@@ -959,9 +990,9 @@ class TPCTimeSeries : public Task
             }
 
             if (track.hasCSideClustersOnly()) {
-              mBufferVals[iThread].back().emplace_back_ITSTPC(Side::C, tglBin, phiBin, qPtBin, multBin, dca[0], dcaZFromDeltaTime, dcarW, dedxRatio, sqrtChi2TPC, nClTPC, dcaITSTPCTmp[0], dcaITSTPCTmp[1]);
+              mBufferVals[iThread].back().emplace_back_ITSTPC(Side::C, tglBin, phiBin, qPtBin, multBin, dca[0], dcaZFromDeltaTime, dcarW, dedxRatioqTot, dedxRatioqMax, sqrtChi2TPC, nClTPC, dcaITSTPCTmp[0], dcaITSTPCTmp[1]);
             } else if (track.hasASideClustersOnly()) {
-              mBufferVals[iThread].back().emplace_back_ITSTPC(Side::A, tglBin, phiBin, qPtBin, multBin, dca[0], dcaZFromDeltaTime, dcarW, dedxRatio, sqrtChi2TPC, nClTPC, dcaITSTPCTmp[0], dcaITSTPCTmp[1]);
+              mBufferVals[iThread].back().emplace_back_ITSTPC(Side::A, tglBin, phiBin, qPtBin, multBin, dca[0], dcaZFromDeltaTime, dcarW, dedxRatioqTot, dedxRatioqMax, sqrtChi2TPC, nClTPC, dcaITSTPCTmp[0], dcaITSTPCTmp[1]);
             }
           }
         }
@@ -1280,6 +1311,52 @@ class TPCTimeSeries : public Task
 
   /// \return returns total number of stored values per TF
   int getNBins() const { return mBufferDCA.mTSTPC.getNBins(); }
+
+  ValsdEdx getdEdxVars(bool useQMax, const TrackTPC& track) const
+  {
+    const float dedx = useQMax ? track.getdEdx().dEdxMaxTPC : track.getdEdx().dEdxTotTPC;
+    const float dedxRatioNorm = mPID.getExpectedSignal(track, o2::track::PID::ID(o2::track::PID::Pion)) / dedx;
+    float dedxNorm = (dedxRatioNorm > 0) ? std::log(mPID.getExpectedSignal(track, o2::track::PID::ID(o2::track::PID::Pion)) / dedx) : -1;
+    // restrict to specified range
+    if (std::abs(dedxNorm > mMaxdEdxRatio)) {
+      dedxNorm = -1;
+    }
+
+    // get log(dedxRegion / dedx)
+    float dedxIROC = -1;
+    float dedxOROC1 = -1;
+    float dedxOROC2 = -1;
+    float dedxOROC3 = -1;
+    if (dedx > 0) {
+      dedxIROC = useQMax ? track.getdEdx().dEdxMaxIROC : track.getdEdx().dEdxTotIROC;
+      dedxOROC1 = useQMax ? track.getdEdx().dEdxMaxOROC1 : track.getdEdx().dEdxTotOROC1;
+      dedxOROC2 = useQMax ? track.getdEdx().dEdxMaxOROC2 : track.getdEdx().dEdxTotOROC2;
+      dedxOROC3 = useQMax ? track.getdEdx().dEdxMaxOROC3 : track.getdEdx().dEdxTotOROC3;
+      dedxIROC /= dedx;
+      dedxOROC1 /= dedx;
+      dedxOROC2 /= dedx;
+      dedxOROC3 /= dedx;
+      dedxIROC = (dedxIROC > 0) ? std::log(dedxIROC) : -1;
+      dedxOROC1 = (dedxOROC1 > 0) ? std::log(dedxOROC1) : -1;
+      dedxOROC2 = (dedxOROC2 > 0) ? std::log(dedxOROC2) : -1;
+      dedxOROC3 = (dedxOROC3 > 0) ? std::log(dedxOROC3) : -1;
+
+      // restrict to specified range
+      if (std::abs(dedxIROC > mMaxdEdxRegionRatio)) {
+        dedxIROC = -1;
+      }
+      if (std::abs(dedxOROC1 > mMaxdEdxRegionRatio)) {
+        dedxOROC1 = -1;
+      }
+      if (std::abs(dedxOROC2 > mMaxdEdxRegionRatio)) {
+        dedxOROC2 = -1;
+      }
+      if (std::abs(dedxOROC3 > mMaxdEdxRegionRatio)) {
+        dedxOROC3 = -1;
+      }
+    }
+    return ValsdEdx{dedxNorm, dedxIROC, dedxOROC1, dedxOROC2, dedxOROC3};
+  }
 };
 
 o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, const o2::base::Propagator::MatCorrType matType)
@@ -1344,7 +1421,6 @@ o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, 
       {"max-ITS-TPC-DCAz_comb", VariantType::Float, 0.2f, {"Maximum absolut DCAr value for ITS-TPC tracks to vertex for combined DCA"}},
       {"MIP-dedx", VariantType::Float, 50.f, {"MIP dEdx for MIP/dEdx monitoring"}},
       {"time-window-mult-mus", VariantType::Float, 50.f, {"Time window in micro s for multiplicity estimate"}},
-      {"use-qMax", VariantType::Bool, false, {"Using qMax for MIP/dedx monitoring"}},
       {"sqrts", VariantType::Float, 13600.f, {"Centre of mass energy used for downsampling"}},
       {"min-tracks-per-vertex", VariantType::Int, 6, {"Minimum number of tracks per vertex required"}},
       {"max-dedx-ratio", VariantType::Float, 0.3f, {"Maximum absolute log(dedx(pion)/dedx) ratio"}},

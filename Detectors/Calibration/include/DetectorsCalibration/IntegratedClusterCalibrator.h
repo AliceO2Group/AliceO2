@@ -190,8 +190,10 @@ struct TimeSeries {
   std::vector<float> mDCAz_C_RMS;          ///< integrated 1D DCAz for C-side RMS in phi/tgl slices
   std::vector<float> mDCAz_A_NTracks;      ///< number of tracks used to calculate the DCAs
   std::vector<float> mDCAz_C_NTracks;      ///< number of tracks used to calculate the DCAs
-  std::vector<float> mMIPdEdxRatioA;       ///< ratio of MIP/dEdx
-  std::vector<float> mMIPdEdxRatioC;       ///< ratio of MIP/dEdx
+  std::vector<float> mMIPdEdxRatioQMaxA;   ///< ratio of MIP/dEdx - qMax -
+  std::vector<float> mMIPdEdxRatioQMaxC;   ///< ratio of MIP/dEdx - qMax -
+  std::vector<float> mMIPdEdxRatioQTotA;   ///< ratio of MIP/dEdx - qTot -
+  std::vector<float> mMIPdEdxRatioQTotC;   ///< ratio of MIP/dEdx - qTot -
   std::vector<float> mTPCChi2A;            ///< Chi2 of TPC tracks
   std::vector<float> mTPCChi2C;            ///< Chi2 of TPC tracks
   std::vector<float> mTPCNClA;             ///< number of TPC cluster
@@ -261,8 +263,10 @@ struct TimeSeries {
     fill(data.mDCAr_C_WeightedMean, mDCAr_C_WeightedMean, posIndex);
     fill(data.mDCAz_A_WeightedMean, mDCAz_A_WeightedMean, posIndex);
     fill(data.mDCAz_C_WeightedMean, mDCAz_C_WeightedMean, posIndex);
-    fill(data.mMIPdEdxRatioA, mMIPdEdxRatioA, posIndex);
-    fill(data.mMIPdEdxRatioC, mMIPdEdxRatioC, posIndex);
+    fill(data.mMIPdEdxRatioQMaxA, mMIPdEdxRatioQMaxA, posIndex);
+    fill(data.mMIPdEdxRatioQMaxC, mMIPdEdxRatioQMaxC, posIndex);
+    fill(data.mMIPdEdxRatioQTotA, mMIPdEdxRatioQTotA, posIndex);
+    fill(data.mMIPdEdxRatioQTotC, mMIPdEdxRatioQTotC, posIndex);
     fill(data.mTPCChi2A, mTPCChi2A, posIndex);
     fill(data.mTPCChi2C, mTPCChi2C, posIndex);
     fill(data.mTPCNClA, mTPCNClA, posIndex);
@@ -291,8 +295,10 @@ struct TimeSeries {
     insert(mDCAr_C_WeightedMean, vecTmp);
     insert(mDCAz_A_WeightedMean, vecTmp);
     insert(mDCAz_C_WeightedMean, vecTmp);
-    insert(mMIPdEdxRatioA, vecTmp);
-    insert(mMIPdEdxRatioC, vecTmp);
+    insert(mMIPdEdxRatioQMaxA, vecTmp);
+    insert(mMIPdEdxRatioQMaxC, vecTmp);
+    insert(mMIPdEdxRatioQTotA, vecTmp);
+    insert(mMIPdEdxRatioQTotC, vecTmp);
     insert(mTPCChi2A, vecTmp);
     insert(mTPCChi2C, vecTmp);
     insert(mTPCNClA, vecTmp);
@@ -320,8 +326,10 @@ struct TimeSeries {
     mDCAr_C_WeightedMean.resize(nTotal);
     mDCAz_A_WeightedMean.resize(nTotal);
     mDCAz_C_WeightedMean.resize(nTotal);
-    mMIPdEdxRatioA.resize(nTotal);
-    mMIPdEdxRatioC.resize(nTotal);
+    mMIPdEdxRatioQMaxA.resize(nTotal);
+    mMIPdEdxRatioQMaxC.resize(nTotal);
+    mMIPdEdxRatioQTotA.resize(nTotal);
+    mMIPdEdxRatioQTotC.resize(nTotal);
     mTPCChi2A.resize(nTotal);
     mTPCChi2C.resize(nTotal);
     mTPCNClA.resize(nTotal);
@@ -369,7 +377,106 @@ struct ITSTPC_Matching {
     mITSTPC_C_Chi2Match.resize(nTotal);
   }
 
-  ClassDefNV(ITSTPC_Matching, 1);
+  ClassDefNV(ITSTPC_Matching, 2);
+};
+
+struct TimeSeriesdEdx {
+  std::vector<float> mLogdEdx_A_Median;       ///< log(dEdx_exp(pion)/dEdx) - A-side
+  std::vector<float> mLogdEdx_A_RMS;          ///< log(dEdx_exp(pion)/dEdx) - A-side
+  std::vector<float> mLogdEdx_A_IROC_Median;  ///< log(dedxIROC / dEdx) - A-side
+  std::vector<float> mLogdEdx_A_IROC_RMS;     ///< log(dedxIROC / dEdx) - A-side
+  std::vector<float> mLogdEdx_A_OROC1_Median; ///< log(dedxOROC1 / dEdx) - A-side
+  std::vector<float> mLogdEdx_A_OROC1_RMS;    ///< log(dedxOROC1 / dEdx) - A-side
+  std::vector<float> mLogdEdx_A_OROC2_Median; ///< log(dedxOROC2 / dEdx) - A-side
+  std::vector<float> mLogdEdx_A_OROC2_RMS;    ///< log(dedxOROC2 / dEdx) - A-side
+  std::vector<float> mLogdEdx_A_OROC3_Median; ///< log(dedxOROC3 / dEdx) - A-side
+  std::vector<float> mLogdEdx_A_OROC3_RMS;    ///< log(dedxOROC3 / dEdx) - A-side
+  std::vector<float> mLogdEdx_C_Median;       ///< log(dEdx_exp(pion)/dEdx) - C-side
+  std::vector<float> mLogdEdx_C_RMS;          ///< log(dEdx_exp(pion)/dEdx) - C-side
+  std::vector<float> mLogdEdx_C_IROC_Median;  ///< log(dedxIROC / dEdx) - C-side
+  std::vector<float> mLogdEdx_C_IROC_RMS;     ///< log(dedxIROC / dEdx) - C-side
+  std::vector<float> mLogdEdx_C_OROC1_Median; ///< log(dedxOROC1 / dEdx) - C-side
+  std::vector<float> mLogdEdx_C_OROC1_RMS;    ///< log(dedxOROC1 / dEdx) - C-side
+  std::vector<float> mLogdEdx_C_OROC2_Median; ///< log(dedxOROC2 / dEdx) - C-side
+  std::vector<float> mLogdEdx_C_OROC2_RMS;    ///< log(dedxOROC2 / dEdx) - C-side
+  std::vector<float> mLogdEdx_C_OROC3_Median; ///< log(dedxOROC3 / dEdx) - C-side
+  std::vector<float> mLogdEdx_C_OROC3_RMS;    ///< log(dedxOROC3 / dEdx) - C-side
+  void fill(const unsigned int posIndex, const TimeSeriesdEdx& data)
+  {
+    fill(data.mLogdEdx_A_Median, mLogdEdx_A_Median, posIndex);
+    fill(data.mLogdEdx_A_RMS, mLogdEdx_A_RMS, posIndex);
+    fill(data.mLogdEdx_A_IROC_Median, mLogdEdx_A_IROC_Median, posIndex);
+    fill(data.mLogdEdx_A_IROC_RMS, mLogdEdx_A_IROC_RMS, posIndex);
+    fill(data.mLogdEdx_A_OROC1_Median, mLogdEdx_A_OROC1_Median, posIndex);
+    fill(data.mLogdEdx_A_OROC1_RMS, mLogdEdx_A_OROC1_RMS, posIndex);
+    fill(data.mLogdEdx_A_OROC2_Median, mLogdEdx_A_OROC2_Median, posIndex);
+    fill(data.mLogdEdx_A_OROC2_RMS, mLogdEdx_A_OROC2_RMS, posIndex);
+    fill(data.mLogdEdx_A_OROC3_Median, mLogdEdx_A_OROC3_Median, posIndex);
+    fill(data.mLogdEdx_A_OROC3_RMS, mLogdEdx_A_OROC3_RMS, posIndex);
+    fill(data.mLogdEdx_C_Median, mLogdEdx_C_Median, posIndex);
+    fill(data.mLogdEdx_C_RMS, mLogdEdx_C_RMS, posIndex);
+    fill(data.mLogdEdx_C_IROC_Median, mLogdEdx_C_IROC_Median, posIndex);
+    fill(data.mLogdEdx_C_IROC_RMS, mLogdEdx_C_IROC_RMS, posIndex);
+    fill(data.mLogdEdx_C_OROC1_Median, mLogdEdx_C_OROC1_Median, posIndex);
+    fill(data.mLogdEdx_C_OROC1_RMS, mLogdEdx_C_OROC1_RMS, posIndex);
+    fill(data.mLogdEdx_C_OROC2_Median, mLogdEdx_C_OROC2_Median, posIndex);
+    fill(data.mLogdEdx_C_OROC2_RMS, mLogdEdx_C_OROC2_RMS, posIndex);
+    fill(data.mLogdEdx_C_OROC3_Median, mLogdEdx_C_OROC3_Median, posIndex);
+    fill(data.mLogdEdx_C_OROC3_RMS, mLogdEdx_C_OROC3_RMS, posIndex);
+  }
+
+  void fill(const std::vector<float>& vecFrom, std::vector<float>& vecTo, const unsigned int posIndex) { std::copy(vecFrom.begin(), vecFrom.end(), vecTo.begin() + posIndex); }
+  void insert(std::vector<float>& vec, const std::vector<float>& vecTmp) { vec.insert(vec.begin(), vecTmp.begin(), vecTmp.end()); }
+  void insert(const unsigned int nDummyValues)
+  {
+    std::vector<float> vecTmp(nDummyValues, 0);
+    insert(mLogdEdx_A_Median, vecTmp);
+    insert(mLogdEdx_A_RMS, vecTmp);
+    insert(mLogdEdx_A_IROC_Median, vecTmp);
+    insert(mLogdEdx_A_IROC_RMS, vecTmp);
+    insert(mLogdEdx_A_OROC1_Median, vecTmp);
+    insert(mLogdEdx_A_OROC1_RMS, vecTmp);
+    insert(mLogdEdx_A_OROC2_Median, vecTmp);
+    insert(mLogdEdx_A_OROC2_RMS, vecTmp);
+    insert(mLogdEdx_A_OROC3_Median, vecTmp);
+    insert(mLogdEdx_A_OROC3_RMS, vecTmp);
+    insert(mLogdEdx_C_Median, vecTmp);
+    insert(mLogdEdx_C_RMS, vecTmp);
+    insert(mLogdEdx_C_IROC_Median, vecTmp);
+    insert(mLogdEdx_C_IROC_RMS, vecTmp);
+    insert(mLogdEdx_C_OROC1_Median, vecTmp);
+    insert(mLogdEdx_C_OROC1_RMS, vecTmp);
+    insert(mLogdEdx_C_OROC2_Median, vecTmp);
+    insert(mLogdEdx_C_OROC2_RMS, vecTmp);
+    insert(mLogdEdx_C_OROC3_Median, vecTmp);
+    insert(mLogdEdx_C_OROC3_RMS, vecTmp);
+  }
+
+  void resize(const unsigned int nTotal)
+  {
+    mLogdEdx_A_Median.resize(nTotal);
+    mLogdEdx_A_RMS.resize(nTotal);
+    mLogdEdx_A_IROC_Median.resize(nTotal);
+    mLogdEdx_A_IROC_RMS.resize(nTotal);
+    mLogdEdx_A_OROC1_Median.resize(nTotal);
+    mLogdEdx_A_OROC1_RMS.resize(nTotal);
+    mLogdEdx_A_OROC2_Median.resize(nTotal);
+    mLogdEdx_A_OROC2_RMS.resize(nTotal);
+    mLogdEdx_A_OROC3_Median.resize(nTotal);
+    mLogdEdx_A_OROC3_RMS.resize(nTotal);
+    mLogdEdx_C_Median.resize(nTotal);
+    mLogdEdx_C_RMS.resize(nTotal);
+    mLogdEdx_C_IROC_Median.resize(nTotal);
+    mLogdEdx_C_IROC_RMS.resize(nTotal);
+    mLogdEdx_C_OROC1_Median.resize(nTotal);
+    mLogdEdx_C_OROC1_RMS.resize(nTotal);
+    mLogdEdx_C_OROC2_Median.resize(nTotal);
+    mLogdEdx_C_OROC2_RMS.resize(nTotal);
+    mLogdEdx_C_OROC3_Median.resize(nTotal);
+    mLogdEdx_C_OROC3_RMS.resize(nTotal);
+  }
+
+  ClassDefNV(TimeSeriesdEdx, 1);
 };
 
 struct TimeSeriesITSTPC {
@@ -378,6 +485,8 @@ struct TimeSeriesITSTPC {
   ITSTPC_Matching mITSTPCAll;         ///< ITS-TPC matching efficiency for ITS standalone + afterburner
   ITSTPC_Matching mITSTPCStandalone;  ///< ITS-TPC matching efficiency for ITS standalone
   ITSTPC_Matching mITSTPCAfterburner; ///< ITS-TPC matchin efficiency  fir ITS afterburner
+  TimeSeriesdEdx mdEdxQTot;           ///< time series for dE/dx qTot monitoring
+  TimeSeriesdEdx mdEdxQMax;           ///< time series for dE/dx qMax monitoring
 
   std::vector<float> nPrimVertices;                  ///< number of primary vertices
   std::vector<float> nPrimVertices_ITS;              ///< number of primary vertices selected with ITS cut 0.2<nContributorsITS/nContributors<0.8
@@ -411,26 +520,6 @@ struct TimeSeriesITSTPC {
   std::vector<float> mDCAz_comb_C_Median;       ///< DCAz for ITS-TPC track - C-side
   std::vector<float> mDCAr_comb_C_RMS;          ///< DCAr RMS for ITS-TPC track - C-side
   std::vector<float> mDCAz_comb_C_RMS;          ///< DCAz RMS for ITS-TPC track - C-side
-  std::vector<float> mLogdEdx_A_Median;         ///< log(dEdx_exp(pion)/dEdx) - A-side
-  std::vector<float> mLogdEdx_A_RMS;            ///< log(dEdx_exp(pion)/dEdx) - A-side
-  std::vector<float> mLogdEdx_A_IROC_Median;    ///< log(dedxIROC / dEdx) - A-side
-  std::vector<float> mLogdEdx_A_IROC_RMS;       ///< log(dedxIROC / dEdx) - A-side
-  std::vector<float> mLogdEdx_A_OROC1_Median;   ///< log(dedxOROC1 / dEdx) - A-side
-  std::vector<float> mLogdEdx_A_OROC1_RMS;      ///< log(dedxOROC1 / dEdx) - A-side
-  std::vector<float> mLogdEdx_A_OROC2_Median;   ///< log(dedxOROC2 / dEdx) - A-side
-  std::vector<float> mLogdEdx_A_OROC2_RMS;      ///< log(dedxOROC2 / dEdx) - A-side
-  std::vector<float> mLogdEdx_A_OROC3_Median;   ///< log(dedxOROC3 / dEdx) - A-side
-  std::vector<float> mLogdEdx_A_OROC3_RMS;      ///< log(dedxOROC3 / dEdx) - A-side
-  std::vector<float> mLogdEdx_C_Median;         ///< log(dEdx_exp(pion)/dEdx) - C-side
-  std::vector<float> mLogdEdx_C_RMS;            ///< log(dEdx_exp(pion)/dEdx) - C-side
-  std::vector<float> mLogdEdx_C_IROC_Median;    ///< log(dedxIROC / dEdx) - C-side
-  std::vector<float> mLogdEdx_C_IROC_RMS;       ///< log(dedxIROC / dEdx) - C-side
-  std::vector<float> mLogdEdx_C_OROC1_Median;   ///< log(dedxOROC1 / dEdx) - C-side
-  std::vector<float> mLogdEdx_C_OROC1_RMS;      ///< log(dedxOROC1 / dEdx) - C-side
-  std::vector<float> mLogdEdx_C_OROC2_Median;   ///< log(dedxOROC2 / dEdx) - C-side
-  std::vector<float> mLogdEdx_C_OROC2_RMS;      ///< log(dedxOROC2 / dEdx) - C-side
-  std::vector<float> mLogdEdx_C_OROC3_Median;   ///< log(dedxOROC3 / dEdx) - C-side
-  std::vector<float> mLogdEdx_C_OROC3_RMS;      ///< log(dedxOROC3 / dEdx) - C-side
   std::vector<float> mITS_A_NCl_Median;         ///< its number of clusters
   std::vector<float> mITS_A_NCl_RMS;            ///< its number of clusters
   std::vector<float> mITS_C_NCl_Median;         ///< its number of clusters
@@ -483,6 +572,8 @@ struct TimeSeriesITSTPC {
     mITSTPCAll.fill(posIndex, data.mITSTPCAll);
     mITSTPCStandalone.fill(posIndex, data.mITSTPCStandalone);
     mITSTPCAfterburner.fill(posIndex, data.mITSTPCAfterburner);
+    mdEdxQTot.fill(posIndex, data.mdEdxQTot);
+    mdEdxQMax.fill(posIndex, data.mdEdxQMax);
     fill(data.mDCAr_comb_A_Median, mDCAr_comb_A_Median, posIndex);
     fill(data.mDCAz_comb_A_Median, mDCAz_comb_A_Median, posIndex);
     fill(data.mDCAr_comb_A_RMS, mDCAr_comb_A_RMS, posIndex);
@@ -491,26 +582,6 @@ struct TimeSeriesITSTPC {
     fill(data.mDCAz_comb_C_Median, mDCAz_comb_C_Median, posIndex);
     fill(data.mDCAr_comb_C_RMS, mDCAr_comb_C_RMS, posIndex);
     fill(data.mDCAz_comb_C_RMS, mDCAz_comb_C_RMS, posIndex);
-    fill(data.mLogdEdx_A_Median, mLogdEdx_A_Median, posIndex);
-    fill(data.mLogdEdx_A_RMS, mLogdEdx_A_RMS, posIndex);
-    fill(data.mLogdEdx_A_IROC_Median, mLogdEdx_A_IROC_Median, posIndex);
-    fill(data.mLogdEdx_A_IROC_RMS, mLogdEdx_A_IROC_RMS, posIndex);
-    fill(data.mLogdEdx_A_OROC1_Median, mLogdEdx_A_OROC1_Median, posIndex);
-    fill(data.mLogdEdx_A_OROC1_RMS, mLogdEdx_A_OROC1_RMS, posIndex);
-    fill(data.mLogdEdx_A_OROC2_Median, mLogdEdx_A_OROC2_Median, posIndex);
-    fill(data.mLogdEdx_A_OROC2_RMS, mLogdEdx_A_OROC2_RMS, posIndex);
-    fill(data.mLogdEdx_A_OROC3_Median, mLogdEdx_A_OROC3_Median, posIndex);
-    fill(data.mLogdEdx_A_OROC3_RMS, mLogdEdx_A_OROC3_RMS, posIndex);
-    fill(data.mLogdEdx_C_Median, mLogdEdx_C_Median, posIndex);
-    fill(data.mLogdEdx_C_RMS, mLogdEdx_C_RMS, posIndex);
-    fill(data.mLogdEdx_C_IROC_Median, mLogdEdx_C_IROC_Median, posIndex);
-    fill(data.mLogdEdx_C_IROC_RMS, mLogdEdx_C_IROC_RMS, posIndex);
-    fill(data.mLogdEdx_C_OROC1_Median, mLogdEdx_C_OROC1_Median, posIndex);
-    fill(data.mLogdEdx_C_OROC1_RMS, mLogdEdx_C_OROC1_RMS, posIndex);
-    fill(data.mLogdEdx_C_OROC2_Median, mLogdEdx_C_OROC2_Median, posIndex);
-    fill(data.mLogdEdx_C_OROC2_RMS, mLogdEdx_C_OROC2_RMS, posIndex);
-    fill(data.mLogdEdx_C_OROC3_Median, mLogdEdx_C_OROC3_Median, posIndex);
-    fill(data.mLogdEdx_C_OROC3_RMS, mLogdEdx_C_OROC3_RMS, posIndex);
     fill(data.mITS_A_NCl_Median, mITS_A_NCl_Median, posIndex);
     fill(data.mITS_A_NCl_RMS, mITS_A_NCl_RMS, posIndex);
     fill(data.mITS_C_NCl_Median, mITS_C_NCl_Median, posIndex);
@@ -553,6 +624,8 @@ struct TimeSeriesITSTPC {
     mITSTPCAll.insert(nDummyValues);
     mITSTPCStandalone.insert(nDummyValues);
     mITSTPCAfterburner.insert(nDummyValues);
+    mdEdxQTot.insert(nDummyValues);
+    mdEdxQMax.insert(nDummyValues);
     std::vector<float> vecTmp(nDummyValues, 0);
     insert(mDCAr_comb_A_Median, vecTmp);
     insert(mDCAz_comb_A_Median, vecTmp);
@@ -562,26 +635,6 @@ struct TimeSeriesITSTPC {
     insert(mDCAz_comb_C_Median, vecTmp);
     insert(mDCAr_comb_C_RMS, vecTmp);
     insert(mDCAz_comb_C_RMS, vecTmp);
-    insert(mLogdEdx_A_Median, vecTmp);
-    insert(mLogdEdx_A_RMS, vecTmp);
-    insert(mLogdEdx_A_IROC_Median, vecTmp);
-    insert(mLogdEdx_A_IROC_RMS, vecTmp);
-    insert(mLogdEdx_A_OROC1_Median, vecTmp);
-    insert(mLogdEdx_A_OROC1_RMS, vecTmp);
-    insert(mLogdEdx_A_OROC2_Median, vecTmp);
-    insert(mLogdEdx_A_OROC2_RMS, vecTmp);
-    insert(mLogdEdx_A_OROC3_Median, vecTmp);
-    insert(mLogdEdx_A_OROC3_RMS, vecTmp);
-    insert(mLogdEdx_C_Median, vecTmp);
-    insert(mLogdEdx_C_RMS, vecTmp);
-    insert(mLogdEdx_C_IROC_Median, vecTmp);
-    insert(mLogdEdx_C_IROC_RMS, vecTmp);
-    insert(mLogdEdx_C_OROC1_Median, vecTmp);
-    insert(mLogdEdx_C_OROC1_RMS, vecTmp);
-    insert(mLogdEdx_C_OROC2_Median, vecTmp);
-    insert(mLogdEdx_C_OROC2_RMS, vecTmp);
-    insert(mLogdEdx_C_OROC3_Median, vecTmp);
-    insert(mLogdEdx_C_OROC3_RMS, vecTmp);
     insert(mITS_A_NCl_Median, vecTmp);
     insert(mITS_A_NCl_RMS, vecTmp);
     insert(mITS_C_NCl_Median, vecTmp);
@@ -626,6 +679,8 @@ struct TimeSeriesITSTPC {
     mITSTPCAll.resize(nTotal);
     mITSTPCStandalone.resize(nTotal);
     mITSTPCAfterburner.resize(nTotal);
+    mdEdxQTot.resize(nTotal);
+    mdEdxQMax.resize(nTotal);
     mDCAr_comb_A_Median.resize(nTotal);
     mDCAz_comb_A_Median.resize(nTotal);
     mDCAr_comb_A_RMS.resize(nTotal);
@@ -634,26 +689,6 @@ struct TimeSeriesITSTPC {
     mDCAz_comb_C_Median.resize(nTotal);
     mDCAr_comb_C_RMS.resize(nTotal);
     mDCAz_comb_C_RMS.resize(nTotal);
-    mLogdEdx_A_Median.resize(nTotal);
-    mLogdEdx_A_RMS.resize(nTotal);
-    mLogdEdx_A_IROC_Median.resize(nTotal);
-    mLogdEdx_A_IROC_RMS.resize(nTotal);
-    mLogdEdx_A_OROC1_Median.resize(nTotal);
-    mLogdEdx_A_OROC1_RMS.resize(nTotal);
-    mLogdEdx_A_OROC2_Median.resize(nTotal);
-    mLogdEdx_A_OROC2_RMS.resize(nTotal);
-    mLogdEdx_A_OROC3_Median.resize(nTotal);
-    mLogdEdx_A_OROC3_RMS.resize(nTotal);
-    mLogdEdx_C_Median.resize(nTotal);
-    mLogdEdx_C_RMS.resize(nTotal);
-    mLogdEdx_C_IROC_Median.resize(nTotal);
-    mLogdEdx_C_IROC_RMS.resize(nTotal);
-    mLogdEdx_C_OROC1_Median.resize(nTotal);
-    mLogdEdx_C_OROC1_RMS.resize(nTotal);
-    mLogdEdx_C_OROC2_Median.resize(nTotal);
-    mLogdEdx_C_OROC2_RMS.resize(nTotal);
-    mLogdEdx_C_OROC3_Median.resize(nTotal);
-    mLogdEdx_C_OROC3_RMS.resize(nTotal);
     mITS_A_NCl_Median.resize(nTotal);
     mITS_A_NCl_RMS.resize(nTotal);
     mITS_C_NCl_Median.resize(nTotal);
