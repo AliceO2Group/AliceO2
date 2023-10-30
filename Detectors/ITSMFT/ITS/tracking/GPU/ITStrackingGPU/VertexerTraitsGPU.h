@@ -47,6 +47,14 @@ class VertexerTraitsGPU : public VertexerTraits
   void computeTracklets() override;
   void computeTrackletMatching() override;
   void computeVertices() override;
+
+  // Hybrid
+  void initialiseHybrid(const TrackingParameters& pars) override { VertexerTraits::initialise(pars); }
+  void adoptTimeFrameHybrid(TimeFrame* tf) override { VertexerTraits::adoptTimeFrame(tf); }
+  void computeTrackletsHybrid() override { VertexerTraits::computeTracklets(); }
+  void computeTrackletMatchingHybrid() override { VertexerTraits::computeTrackletMatching(); }
+  void computeVerticesHybrid() override { VertexerTraits::computeVertices(); }
+
   void updateVertexingParameters(const VertexingParameters&, const TimeFrameGPUParameters&) override;
 
   void computeVerticesHist();
@@ -57,7 +65,11 @@ class VertexerTraitsGPU : public VertexerTraits
   TimeFrameGPUParameters mTfGPUParams;
 };
 
-inline void VertexerTraitsGPU::adoptTimeFrame(TimeFrame* tf) { mTimeFrameGPU = static_cast<gpu::TimeFrameGPU<7>*>(tf); }
+inline void VertexerTraitsGPU::adoptTimeFrame(TimeFrame* tf)
+{
+  mTimeFrameGPU = static_cast<gpu::TimeFrameGPU<7>*>(tf);
+  mTimeFrame = static_cast<TimeFrame*>(tf);
+}
 
 } // namespace its
 } // namespace o2

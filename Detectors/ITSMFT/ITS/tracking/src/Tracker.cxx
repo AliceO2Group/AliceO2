@@ -76,6 +76,7 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::f
     }
 
     total += evaluateTask(&Tracker::findCellsNeighbours, "Neighbour finding", logger, iteration);
+    logger(fmt::format("\t- Number of neighbours: {}", mTimeFrame->getNumberOfNeighbours()));
     total += evaluateTask(&Tracker::findRoads, "Road finding", logger, iteration);
     logger(fmt::format("\t- Number of Roads: {}", mTimeFrame->getRoads().size()));
     total += evaluateTask(&Tracker::findTracks, "Track finding", logger);
@@ -98,6 +99,43 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::f
   }
   rectifyClusterIndices();
   mNumberOfRuns++;
+}
+
+void Tracker::clustersToTracksHybrid(std::function<void(std::string s)> logger, std::function<void(std::string s)> error)
+{
+  double total{0.};
+  mTraits->UpdateTrackingParameters(mTrkParams);
+  for (int iteration = 0; iteration < (int)mTrkParams.size(); ++iteration) {
+    total += evaluateTask(&Tracker::initialiseTimeFrameHybrid, "Hybrid Timeframe initialisation", logger, iteration);
+    total += evaluateTask(&Tracker::computeTrackletsHybrid, "Hybrid Tracklet finding", logger, iteration);
+    logger(fmt::format("\t- Number of tracklets: {}", mTraits->getTFNumberOfTracklets()));
+    if (!mTimeFrame->checkMemory(mTrkParams[iteration].MaxMemory)) {
+      error("Too much memory used during trackleting, check the detector status and/or the selections.");
+      break;
+    }
+    float trackletsPerCluster = mTraits->getTFNumberOfClusters() > 0 ? float(mTraits->getTFNumberOfTracklets()) / mTraits->getTFNumberOfClusters() : 0.f;
+    if (trackletsPerCluster > mTrkParams[iteration].TrackletsPerClusterLimit) {
+      error(fmt::format("Too many tracklets per cluster ({}), check the detector status and/or the selections.", trackletsPerCluster));
+      break;
+    }
+
+    total += evaluateTask(&Tracker::computeCellsHybrid, "Hybrid Cell finding", logger, iteration);
+    logger(fmt::format("\t- Number of Cells: {}", mTraits->getTFNumberOfCells()));
+    if (!mTimeFrame->checkMemory(mTrkParams[iteration].MaxMemory)) {
+      error("Too much memory used during cell finding, check the detector status and/or the selections.");
+      break;
+    }
+    float cellsPerCluster = mTraits->getTFNumberOfClusters() > 0 ? float(mTraits->getTFNumberOfCells()) / mTraits->getTFNumberOfClusters() : 0.f;
+    if (cellsPerCluster > mTrkParams[iteration].CellsPerClusterLimit) {
+      error(fmt::format("Too many cells per cluster ({}), check the detector status and/or the selections.", cellsPerCluster));
+      break;
+    }
+    total += evaluateTask(&Tracker::findCellsNeighboursHybrid, "Hybrid Neighbour finding", logger, iteration);
+    logger(fmt::format("\t- Number of Neighbours: {}", mTimeFrame->getNumberOfNeighbours()));
+    total += evaluateTask(&Tracker::findRoadsHybrid, "Hybrid Road finding", logger, iteration);
+    logger(fmt::format("\t- Number of Roads: {}", mTimeFrame->getRoads().size()));
+    total += evaluateTask(&Tracker::findTracksHybrid, "Hybrid Track fitting", logger, iteration);
+  }
 }
 
 void Tracker::initialiseTimeFrame(int& iteration)
@@ -123,6 +161,36 @@ void Tracker::findCellsNeighbours(int& iteration)
 void Tracker::findRoads(int& iteration)
 {
   mTraits->findRoads(iteration);
+}
+
+void Tracker::initialiseTimeFrameHybrid(int& iteration)
+{
+  mTraits->initialiseTimeFrameHybrid(iteration);
+}
+
+void Tracker::computeTrackletsHybrid(int& iteration)
+{
+  mTraits->computeTrackletsHybrid(iteration);
+}
+
+void Tracker::computeCellsHybrid(int& iteration)
+{
+  mTraits->computeCellsHybrid(iteration);
+}
+
+void Tracker::findCellsNeighboursHybrid(int& iteration)
+{
+  mTraits->findCellsNeighboursHybrid(iteration);
+}
+
+void Tracker::findRoadsHybrid(int& iteration)
+{
+  mTraits->findRoadsHybrid(iteration);
+}
+
+void Tracker::findTracksHybrid(int& iteration)
+{
+  mTraits->findTracksHybrid(iteration);
 }
 
 void Tracker::findTracks()
@@ -169,7 +237,7 @@ void Tracker::computeRoadsMClabels()
         }
       }
 
-      const Cell& currentCell{mTimeFrame->getCells()[iCell][currentCellIndex]};
+      const CellSeed& currentCell{mTimeFrame->getCells()[iCell][currentCellIndex]};
 
       if (isFirstRoadCell) {
 

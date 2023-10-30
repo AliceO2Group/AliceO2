@@ -139,7 +139,7 @@ DataProcessorSpec getCalibratordEdxSpec(const o2::base::Propagator::MatCorrType 
   std::vector<OutputSpec> outputs;
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBPayload, "TPC_CalibdEdx"}, Lifetime::Sporadic);
   outputs.emplace_back(ConcreteDataTypeMatcher{o2::calibration::Utils::gDataOriginCDBWrapper, "TPC_CalibdEdx"}, Lifetime::Sporadic);
-  std::vector<InputSpec> inputs{{"tracks", "TPC", "MIPS"}};
+  std::vector<InputSpec> inputs{{"tracks", "TPC", "MIPS", Lifetime::Sporadic}};
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
                                                                 true,                           // GRPECS=true
                                                                 false,                          // GRPLHCIF

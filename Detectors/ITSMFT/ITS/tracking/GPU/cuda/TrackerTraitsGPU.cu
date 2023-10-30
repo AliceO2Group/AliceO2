@@ -28,6 +28,11 @@
 #include "ITStracking/Configuration.h"
 #include "ITStracking/IndexTableUtils.h"
 #include "ITStracking/MathUtils.h"
+#include "DetectorsBase/Propagator.h"
+#include "DataFormatsITS/TrackITS.h"
+
+#define GPUCA_TPC_GEOMETRY_O2 // To set working switch in GPUTPCGeometry whose else statement is bugged
+#define GPUCA_O2_INTERFACE    // To suppress errors related to the weird dependency between itsgputracking and GPUTracking
 
 #include "ITStrackingGPU/TrackerTraitsGPU.h"
 #include "ITStrackingGPU/TracerGPU.h"
@@ -37,9 +42,39 @@
 
 #ifndef __HIPCC__
 #define THRUST_NAMESPACE thrust::cuda
+// #include "GPUReconstructionCUDADef.h"
 #else
 #define THRUST_NAMESPACE thrust::hip
+// clang-format off
+// #ifndef GPUCA_NO_CONSTANT_MEMORY
+//   #ifdef GPUCA_CONSTANT_AS_ARGUMENT
+//     #define GPUCA_CONSMEM_PTR const GPUConstantMemCopyable gGPUConstantMemBufferByValue,
+//     #define GPUCA_CONSMEM_CALL gGPUConstantMemBufferHost,
+//     #define GPUCA_CONSMEM (const_cast<GPUConstantMem&>(gGPUConstantMemBufferByValue.v))
+//   #else
+//     #define GPUCA_CONSMEM_PTR
+//     #define GPUCA_CONSMEM_CALL
+//     #define GPUCA_CONSMEM (gGPUConstantMemBuffer.v)
+//   #endif
+// #else
+//   #define GPUCA_CONSMEM_PTR const GPUConstantMem *gGPUConstantMemBuffer,
+//   #define GPUCA_CONSMEM_CALL me->mDeviceConstantMem,
+//   #define GPUCA_CONSMEM const_cast<GPUConstantMem&>(*gGPUConstantMemBuffer)
+// #endif
+// #define GPUCA_KRNL_BACKEND_CLASS GPUReconstructionHIPBackend
+// // clang-format on
 #endif
+// #include "GPUConstantMem.h"
+
+// Files for propagation with material
+#include "Ray.cxx"
+#include "MatLayerCylSet.cxx"
+#include "MatLayerCyl.cxx"
+
+// O2 track model
+#include "TrackParametrization.cxx"
+#include "TrackParametrizationWithError.cxx"
+// #include "Propagator.cxx"
 
 namespace o2
 {
@@ -50,7 +85,6 @@ using namespace constants::its2;
 
 namespace gpu
 {
-
 GPUd() const int4 getBinsRect(const Cluster& currentCluster, const int layerIndex,
                               const o2::its::IndexTableUtils& utils,
                               const float z1, const float z2, float maxdeltaz, float maxdeltaphi)
@@ -79,12 +113,12 @@ GPUd() const int4 getBinsRect(const Cluster& currentCluster, const int layerInde
 //   const int startingCellId, // used to compile LUT
 //   int& nRoadsStartingCell,
 //   int* roadsLookUpTable,
-//   Cell** cells,
+//   CellSeed** cells,
 //   int** cellNeighbours,
 //   int** cellNeighboursLUT,
 //   Road<nLayers - 2>* roads)
 // {
-//   Cell& currentCell{cells[currentLayerId][currentCellId]};
+//   CellSeed& currentCell{cells[currentLayerId][currentCellId]};
 //   const int currentCellLevel = currentCell.getLevel();
 //   if constexpr (dryRun) {
 //     ++nRoadsStartingCell; // in dry run I just want to count the total number of roads
@@ -97,7 +131,7 @@ GPUd() const int4 getBinsRect(const Cluster& currentCluster, const int layerInde
 
 //     for (int iNeighbourCell{0}; iNeighbourCell < cellNeighboursNum; ++iNeighbourCell) {
 //       const int neighbourCellId =cellNeighbours[currentLayerId - 1][currentCellId][iNeighbourCell];
-//         const Cell& neighbourCell = mTimeFrame->getCells()[currentLayerId - 1][neighbourCellId];
+//         const CellSeed& neighbourCell = mTimeFrame->getCells()[currentLayerId - 1][neighbourCellId];
 
 //       if (currentCellLevel - 1 != neighbourCell.getLevel()) {
 //         continue;
@@ -117,6 +151,67 @@ GPUd() const int4 getBinsRect(const Cluster& currentCluster, const int layerInde
 GPUhd() float Sq(float q)
 {
   return q * q;
+}
+
+GPUd() bool fitTrack(TrackITSExt& track,
+                     int start,
+                     int end,
+                     int step,
+                     float chi2clcut,
+                     float chi2ndfcut,
+                     float maxQoverPt,
+                     int nCl,
+                     float Bz,
+                     TrackingFrameInfo** tfInfos,
+                     const o2::base::Propagator* prop,
+                     o2::base::PropagatorF::MatCorrType matCorrType = o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE,
+                     bool debugPrint = false)
+{
+  for (int iLayer{start}; iLayer != end; iLayer += step) {
+    if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
+      continue;
+    }
+    const TrackingFrameInfo& trackingHit = tfInfos[iLayer][track.getClusterIndex(iLayer)];
+    if (!track.o2::track::TrackParCovF::rotate(trackingHit.alphaTrackingFrame)) {
+      return false;
+    }
+    if (matCorrType == o2::base::PropagatorF::MatCorrType::USEMatCorrNONE) {
+      if (!track.propagateTo(trackingHit.xTrackingFrame, Bz)) {
+        return false;
+      }
+    } else {
+      // FIXME
+      // if (!prop->propagateToX(track, trackingHit.xTrackingFrame,
+      //                         prop->getNominalBz(),
+      //                         o2::base::PropagatorImpl<float>::MAX_SIN_PHI,
+      //                         o2::base::PropagatorImpl<float>::MAX_STEP,
+      //                         matCorrType)) {
+      //   return false;
+      // }
+    }
+    track.setChi2(track.getChi2() + track.getPredictedChi2Unchecked(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame));
+    if (!track.TrackParCov::update(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)) {
+      return false;
+    }
+
+    const float xx0 = (iLayer > 2) ? 0.008f : 0.003f; // Rough layer thickness
+    constexpr float radiationLength = 9.36f;          // Radiation length of Si [cm]
+    constexpr float density = 2.33f;                  // Density of Si [g/cm^3]
+    if (!track.correctForMaterial(xx0, xx0 * radiationLength * density, true)) {
+      return false;
+    }
+
+    auto predChi2{track.getPredictedChi2Unchecked(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)};
+    if ((nCl >= 3 && predChi2 > chi2clcut) || predChi2 < 0.f) {
+      return false;
+    }
+    track.setChi2(track.getChi2() + predChi2);
+    if (!track.o2::track::TrackParCov::update(trackingHit.positionTrackingFrame, trackingHit.covarianceTrackingFrame)) {
+      return false;
+    }
+    nCl++;
+  }
+  return o2::gpu::GPUCommonMath::Abs(track.getQ2Pt()) < maxQoverPt && track.getChi2() < chi2ndfcut * (nCl * 2 - 5);
 }
 
 // Functors to sort tracklets
@@ -452,7 +547,7 @@ GPUg() void computeLayerCellsKernel(
   const Tracklet* trackletsNextLayer,
   const int* trackletsCurrentLayerLUT,
   const int nTrackletsCurrent,
-  Cell* cells,
+  CellSeed* cells,
   int* cellsLUT,
   const StaticTrackingParameters<nLayers>* trkPars)
 {
@@ -490,8 +585,8 @@ GPUg() void computeLayerCellsKernel(
 }
 
 template <bool initRun, int nLayers = 7>
-GPUg() void computeLayerCellNeighboursKernel(Cell* cellsCurrentLayer,
-                                             Cell* cellsNextLayer,
+GPUg() void computeLayerCellNeighboursKernel(CellSeed* cellsCurrentLayer,
+                                             CellSeed* cellsNextLayer,
                                              const int layerIndex,
                                              const int* cellsNextLayerLUT,
                                              int* neighboursLUT,
@@ -500,13 +595,13 @@ GPUg() void computeLayerCellNeighboursKernel(Cell* cellsCurrentLayer,
                                              const int maxCellNeighbours = 1e2)
 {
   for (int iCurrentCellIndex = blockIdx.x * blockDim.x + threadIdx.x; iCurrentCellIndex < nCells[layerIndex]; iCurrentCellIndex += blockDim.x * gridDim.x) {
-    const Cell& currentCell = cellsCurrentLayer[iCurrentCellIndex];
+    const CellSeed& currentCell = cellsCurrentLayer[iCurrentCellIndex];
     const int nextLayerTrackletIndex{currentCell.getSecondTrackletIndex()};
     const int nextLayerFirstCellIndex{cellsNextLayerLUT[nextLayerTrackletIndex]};
     const int nextLayerLastCellIndex{cellsNextLayerLUT[nextLayerTrackletIndex + 1]};
     int foundNeighbours{0};
     for (int iNextCell{nextLayerFirstCellIndex}; iNextCell < nextLayerLastCellIndex; ++iNextCell) {
-      Cell& nextCell = cellsNextLayer[iNextCell];
+      CellSeed& nextCell = cellsNextLayer[iNextCell];
       if (nextCell.getFirstTrackletIndex() != nextLayerTrackletIndex) { // Check if cells share the same tracklet
         break;
       }
@@ -532,7 +627,7 @@ template <bool dryRun, int nLayers = 7>
 GPUg() void computeLayerRoadsKernel(
   const int level,
   const int layerIndex,
-  Cell** cells,
+  CellSeed** cells,
   const int* nCells,
   int** neighbours,
   int** neighboursLUT,
@@ -559,7 +654,7 @@ GPUg() void computeLayerRoadsKernel(
     bool isFirstValidNeighbour{true};
     for (int iNeighbourCell{0}; iNeighbourCell < cellNeighboursNum; ++iNeighbourCell) {
       const int neighbourCellId = neighbours[layerIndex - 1][currentCellNeighOffset + iNeighbourCell];
-      const Cell& neighbourCell = cells[layerIndex - 1][neighbourCellId];
+      const CellSeed& neighbourCell = cells[layerIndex - 1][neighbourCellId];
       if (level - 1 != neighbourCell.getLevel()) {
         continue;
       }
@@ -577,12 +672,152 @@ GPUg() void computeLayerRoadsKernel(
   }
 }
 
+template <int nLayers = 7>
+GPUg() void fitTracksKernel(
+  Cluster** foundClusters,
+  Cluster** foundUnsortedClusters,
+  TrackingFrameInfo** foundTrackingFrameInfo,
+  Tracklet** foundTracklets,
+  CellSeed** foundCellsSeeds,
+  o2::track::TrackParCovF** trackSeeds,
+  float** trackSeedsChi2,
+  const Road<nLayers - 2>* roads,
+  o2::its::TrackITSExt* tracks,
+  const size_t nRoads,
+  const float Bz,
+  float maxChi2ClusterAttachment,
+  float maxChi2NDF,
+  const o2::base::Propagator* propagator)
+{
+  o2::track::TrackParCovF track;
+  for (int iCurrentRoadIndex = blockIdx.x * blockDim.x + threadIdx.x; iCurrentRoadIndex < nRoads; iCurrentRoadIndex += blockDim.x * gridDim.x) {
+    auto& currentRoad{roads[iCurrentRoadIndex]};
+    int clusters[nLayers];
+    int tracklets[nLayers - 1];
+    memset(clusters, constants::its::UnusedIndex, sizeof(clusters));
+    memset(tracklets, constants::its::UnusedIndex, sizeof(tracklets));
+    int lastCellLevel{constants::its::UnusedIndex}, firstTracklet{constants::its::UnusedIndex}, lastCellIndex{constants::its::UnusedIndex};
+
+    for (int iCell{0}; iCell < nLayers - 2; ++iCell) {
+      const int cellIndex = currentRoad[iCell];
+      if (cellIndex == constants::its::UnusedIndex) {
+        continue;
+      } else {
+        if (firstTracklet == constants::its::UnusedIndex) {
+          firstTracklet = iCell;
+        }
+        tracklets[iCell] = foundCellsSeeds[iCell][cellIndex].getFirstTrackletIndex();
+        tracklets[iCell + 1] = foundCellsSeeds[iCell][cellIndex].getSecondTrackletIndex();
+        clusters[iCell] = foundCellsSeeds[iCell][cellIndex].getFirstClusterIndex();
+        clusters[iCell + 1] = foundCellsSeeds[iCell][cellIndex].getSecondClusterIndex();
+        clusters[iCell + 2] = foundCellsSeeds[iCell][cellIndex].getThirdClusterIndex();
+        lastCellLevel = iCell;
+        lastCellIndex = cellIndex;
+      }
+    }
+
+    int count{1};
+    unsigned short rof{foundTracklets[firstTracklet][tracklets[firstTracklet]].rof[0]};
+
+    for (int iT = firstTracklet; iT < nLayers - 1; ++iT) {
+      if (tracklets[iT] == constants::its::UnusedIndex) {
+        continue;
+      }
+      if (rof == foundTracklets[iT][tracklets[iT]].rof[1]) {
+        count++;
+      } else {
+        if (count == 1) {
+          rof = foundTracklets[iT][tracklets[iT]].rof[1];
+        } else {
+          count--;
+        }
+      }
+    }
+    if (lastCellLevel == constants::its::UnusedIndex) {
+      continue;
+    }
+    for (size_t iC{0}; iC < nLayers; iC++) {
+      if (clusters[iC] != constants::its::UnusedIndex) {
+        clusters[iC] = foundClusters[iC][clusters[iC]].clusterId;
+      }
+    }
+
+    TrackITSExt temporaryTrack{foundCellsSeeds[lastCellLevel][lastCellIndex]};
+    temporaryTrack.setChi2(foundCellsSeeds[lastCellLevel][lastCellIndex].getChi2());
+    for (size_t iC = 0; iC < nLayers; ++iC) {
+      temporaryTrack.setExternalClusterIndex(iC, clusters[iC], clusters[iC] != constants::its::UnusedIndex);
+    }
+    bool fitSuccess = fitTrack(temporaryTrack,                                               // TrackITSExt& track,
+                               lastCellLevel - 1,                                            // int start,
+                               -1,                                                           // int end,
+                               -1,                                                           // int step,
+                               maxChi2ClusterAttachment,                                     // float maxChi2ClusterAttachment,
+                               maxChi2NDF,                                                   // float maxChi2NDF,
+                               1.e3,                                                         // float maxQoverPt,
+                               3,                                                            // int nCl,
+                               Bz,                                                           // float Bz,
+                               foundTrackingFrameInfo,                                       // TrackingFrameInfo** trackingFrameInfo,
+                               propagator,                                                   // const o2::base::Propagator* propagator,
+                               o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE, // o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT
+                               iCurrentRoadIndex < 5);                                       // Debug print
+    if (!fitSuccess) {
+      // printf("===> track %d died at %d iteration!\n", iCurrentRoadIndex, 1);
+      continue;
+    }
+    temporaryTrack.resetCovariance();
+    temporaryTrack.setChi2(0);
+    fitSuccess = fitTrack(temporaryTrack,                                               // TrackITSExt& track,
+                          0,                                                            // int lastLayer,
+                          7,                                                            // int firstLayer,
+                          1,                                                            // int firstCluster,
+                          maxChi2ClusterAttachment,                                     // float maxChi2ClusterAttachment,
+                          maxChi2NDF,                                                   // float maxChi2NDF,
+                          o2::constants::math::VeryBig,                                 // float maxQoverPt,
+                          0,                                                            // nCl,
+                          Bz,                                                           // float Bz,
+                          foundTrackingFrameInfo,                                       // TrackingFrameInfo** trackingFrameInfo,
+                          propagator,                                                   // const o2::base::Propagator* propagator,
+                          o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE, // o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT
+                          iCurrentRoadIndex < 5);                                       // Debug print
+
+    if (!fitSuccess) {
+      // printf("===> track %d died at %d iteration!\n", iCurrentRoadIndex, 2);
+      continue;
+    }
+    temporaryTrack.getParamOut() = temporaryTrack;
+    temporaryTrack.resetCovariance();
+    temporaryTrack.setChi2(0);
+    fitSuccess = fitTrack(temporaryTrack,                                               // TrackITSExt& track,
+                          6 /* NL - 1 */,                                               // int lastLayer,
+                          -1,                                                           // int firstLayer,
+                          -1,                                                           // int firstCluster,
+                          maxChi2ClusterAttachment,                                     // float maxChi2ClusterAttachment,
+                          maxChi2NDF,                                                   // float maxChi2NDF,
+                          50.,                                                          // float maxQoverPt,
+                          0,                                                            // nCl,
+                          Bz,                                                           // float Bz,
+                          foundTrackingFrameInfo,                                       // TrackingFrameInfo** trackingFrameInfo,
+                          propagator,                                                   // const o2::base::Propagator* propagator,
+                          o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrNONE, // o2::base::PropagatorImpl<float>::MatCorrType::USEMatCorrLUT
+                          iCurrentRoadIndex < 5);                                       // Debug print
+    if (!fitSuccess) {
+      // printf("===> track %d died at %d iteration!\n", iCurrentRoadIndex, 3);
+      continue;
+    }
+    tracks[iCurrentRoadIndex] = temporaryTrack;
+    // printf("===> track %d survived: ncl: %d -> ncl: %d\n", iCurrentRoadIndex, temporaryTrack.getNumberOfClusters(), tracks[iCurrentRoadIndex].getNumberOfClusters());
+  }
+}
+
 } // namespace gpu
 
 template <int nLayers>
 void TrackerTraitsGPU<nLayers>::initialiseTimeFrame(const int iteration)
 {
-  mTimeFrameGPU->initialise(iteration, mTrkParams[iteration], nLayers);
+  mTimeFrameGPU->initialiseHybrid(iteration, mTrkParams[iteration], nLayers);
+  mTimeFrameGPU->loadClustersDevice();
+  mTimeFrameGPU->loadUnsortedClustersDevice();
+  mTimeFrameGPU->loadTrackingFrameInfoDevice();
 }
 
 template <int nLayers>
@@ -797,7 +1032,7 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration)
           for (int iLayer{nLayers - 3}; iLayer >= minimumLevel; --iLayer) {
             // gpu::computeLayerRoadsKernel<true><<<1, 1, 0, mTimeFrameGPU->getStream(chunkId).get()>>>(iLevel,                                                               // const int level,
             //  iLayer,                                                               // const int layerIndex,
-            //  mTimeFrameGPU->getChunk(chunkId).getDeviceArrayCells(),               // const Cell** cells,
+            //  mTimeFrameGPU->getChunk(chunkId).getDeviceArrayCells(),               // const CellSeed** cells,
             //  mTimeFrameGPU->getChunk(chunkId).getDeviceNFoundCells(),              // const int* nCells,
             //  mTimeFrameGPU->getChunk(chunkId).getDeviceArrayNeighboursCell(),      // const int** neighbours,
             //  mTimeFrameGPU->getChunk(chunkId).getDeviceArrayNeighboursCellLUT(),   // const int** neighboursLUT,
@@ -859,6 +1094,101 @@ template <int nLayers>
 int TrackerTraitsGPU<nLayers>::getTFNumberOfCells() const
 {
   return mTimeFrameGPU->getNumberOfCells();
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Hybrid tracking
+template <int nLayers>
+void TrackerTraitsGPU<nLayers>::computeTrackletsHybrid(const int iteration)
+{
+  TrackerTraits::computeLayerTracklets(iteration);
+  mTimeFrameGPU->loadTrackletsDevice();
+}
+
+template <int nLayers>
+void TrackerTraitsGPU<nLayers>::computeCellsHybrid(const int iteration)
+{
+  TrackerTraits::computeLayerCells(iteration);
+  mTimeFrameGPU->loadCellsDevice();
+};
+
+template <int nLayers>
+void TrackerTraitsGPU<nLayers>::findCellsNeighboursHybrid(const int iteration)
+{
+  TrackerTraits::findCellsNeighbours(iteration);
+};
+
+template <int nLayers>
+void TrackerTraitsGPU<nLayers>::findRoadsHybrid(const int iteration)
+{
+  TrackerTraits::findRoads(iteration);
+  mTimeFrameGPU->loadRoadsDevice();
+};
+
+template <int nLayers>
+void TrackerTraitsGPU<nLayers>::findTracksHybrid(const int iteration)
+{
+  // LOGP(info, "propagator device pointer: {}", (void*)mTimeFrameGPU->getDevicePropagator());
+  mTimeFrameGPU->createTrackITSExtDevice();
+  gpu::fitTracksKernel<<<20, 512>>>(mTimeFrameGPU->getDeviceArrayClusters(),          // Cluster** foundClusters,
+                                    mTimeFrameGPU->getDeviceArrayUnsortedClusters(),  // Cluster** foundUnsortedClusters,
+                                    mTimeFrameGPU->getDeviceArrayTrackingFrameInfo(), // TrackingFrameInfo** foundTrackingFrameInfo,
+                                    mTimeFrameGPU->getDeviceArrayTracklets(),         // Tracklet** foundTracklets,
+                                    mTimeFrameGPU->getDeviceArrayCells(),             // CellSeed** foundCells,
+                                    mTimeFrameGPU->getDeviceArrayTrackSeeds(),        // o2::track::TrackParCovF** trackSeeds,
+                                    mTimeFrameGPU->getDeviceArrayTrackSeedsChi2(),    // float** trackSeedsChi2,
+                                    mTimeFrameGPU->getDeviceRoads(),                  // const Road<nLayers - 2>* roads,
+                                    mTimeFrameGPU->getDeviceTrackITSExt(),            // o2::its::TrackITSExt* tracks,
+                                    mTimeFrameGPU->getRoads().size(),                 // const size_t nRoads,
+                                    mBz,                                              // const float Bz,
+                                    mTrkParams[0].MaxChi2ClusterAttachment,           // float maxChi2ClusterAttachment,
+                                    mTrkParams[0].MaxChi2NDF,                         // float maxChi2NDF,
+                                    mTimeFrameGPU->getDevicePropagator());            // const o2::base::Propagator* propagator
+  mTimeFrameGPU->downloadTrackITSExtDevice();
+  discardResult(cudaDeviceSynchronize());
+  auto& tracks = mTimeFrameGPU->getTrackITSExt();
+  std::sort(tracks.begin(), tracks.end(),
+            [](TrackITSExt& track1, TrackITSExt& track2) { return track1.isBetter(track2, 1.e6f); });
+  for (auto& track : tracks) {
+    if (!track.getNumberOfClusters()) {
+      continue;
+    }
+    int nShared = 0;
+    for (int iLayer{0}; iLayer < mTrkParams[0].NLayers; ++iLayer) {
+      if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
+        continue;
+      }
+      nShared += int(mTimeFrameGPU->isClusterUsed(iLayer, track.getClusterIndex(iLayer)));
+    }
+
+    if (nShared > mTrkParams[0].ClusterSharing) {
+      continue;
+    }
+
+    std::array<int, 3> rofs{INT_MAX, INT_MAX, INT_MAX};
+    for (int iLayer{0}; iLayer < mTrkParams[0].NLayers; ++iLayer) {
+      if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
+        continue;
+      }
+      mTimeFrameGPU->markUsedCluster(iLayer, track.getClusterIndex(iLayer));
+      int currentROF = mTimeFrameGPU->getClusterROF(iLayer, track.getClusterIndex(iLayer));
+      for (int iR{0}; iR < 3; ++iR) {
+        if (rofs[iR] == INT_MAX) {
+          rofs[iR] = currentROF;
+        }
+        if (rofs[iR] == currentROF) {
+          break;
+        }
+      }
+    }
+    if (rofs[2] != INT_MAX) {
+      continue;
+    }
+    if (rofs[1] != INT_MAX) {
+      track.setNextROFbit();
+    }
+    mTimeFrameGPU->getTracks(std::min(rofs[0], rofs[1])).emplace_back(track);
+  }
 }
 
 template class TrackerTraitsGPU<7>;

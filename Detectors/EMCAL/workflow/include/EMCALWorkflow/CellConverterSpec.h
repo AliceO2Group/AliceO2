@@ -22,6 +22,7 @@
 #include "EMCALBase/Geometry.h"
 #include "EMCALReconstruction/CaloRawFitter.h"
 #include "EMCALReconstruction/AltroHelper.h"
+#include "EMCALWorkflow/CalibLoader.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
 namespace o2
@@ -52,7 +53,7 @@ class CellConverterSpec : public framework::Task
   /// \param useccdb If true the TecoParams
   /// \param inputSubsepc Subsepc of input objects
   /// \param outputSubspec Subspec of output objects
-  CellConverterSpec(bool propagateMC, bool useccdb, int inputSubsepc, int outputSubspec) : framework::Task(), mPropagateMC(propagateMC), mLoadRecoParamFromCCDB(useccdb), mSubspecificationIn(inputSubsepc), mSubspecificationOut(outputSubspec){};
+  CellConverterSpec(bool propagateMC, int inputSubsepc, int outputSubspec, std::shared_ptr<o2::emcal::CalibLoader> calibhandler) : framework::Task(), mPropagateMC(propagateMC), mSubspecificationIn(inputSubsepc), mSubspecificationOut(outputSubspec), mCalibHandler(calibhandler){};
 
   /// \brief Destructor
   ~CellConverterSpec() override = default;
@@ -90,13 +91,16 @@ class CellConverterSpec : public framework::Task
 
   int selectMaximumBunch(const gsl::span<const Bunch>& bunchvector);
 
+  /// \brief Update calibration objects
+  void updateCalibrationObjects();
+
  private:
   bool mPropagateMC = false;                                           ///< Switch whether to process MC true labels
-  bool mLoadRecoParamFromCCDB = false;                                 ///< Flag to load the the SimParams from CCDB
   unsigned int mSubspecificationIn = 0;                                ///< Input subspecification
   unsigned int mSubspecificationOut = 0;                               ///< Output subspecification
-  o2::emcal::Geometry* mGeometry = nullptr;                            ///!<! Geometry pointer
-  std::unique_ptr<o2::emcal::CaloRawFitter> mRawFitter;                ///!<! Raw fitter
+  o2::emcal::Geometry* mGeometry = nullptr;                            //!<! Geometry pointer
+  std::shared_ptr<o2::emcal::CalibLoader> mCalibHandler;               //!<! Calibration handler
+  std::unique_ptr<o2::emcal::CaloRawFitter> mRawFitter;                //!<! Raw fitter
   std::vector<o2::emcal::Cell> mOutputCells;                           ///< Container with output cells
   std::vector<o2::emcal::TriggerRecord> mOutputTriggers;               ///< Container with output trigger records
   o2::dataformats::MCTruthContainer<o2::emcal::MCLabel> mOutputLabels; ///< Container with output MC labels
@@ -110,7 +114,7 @@ class CellConverterSpec : public framework::Task
 /// \param outputSubspec Subspec of output objects
 ///
 /// Refer to CellConverterSpec::run for input and output specs
-framework::DataProcessorSpec getCellConverterSpec(bool propagateMC, bool useccdb = false, int inputSubsepc = 0, int outputSubspec = 0);
+framework::DataProcessorSpec getCellConverterSpec(bool propagateMC, int inputSubsepc = 0, int outputSubspec = 0);
 
 } // namespace reco_workflow
 

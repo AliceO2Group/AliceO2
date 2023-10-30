@@ -21,6 +21,7 @@
 #endif
 
 #include "GPUCommonRtypes.h"
+#include "GPUCommonArray.h"
 #include "ITStracking/Definitions.h"
 #include "ITStracking/MathUtils.h"
 
@@ -58,15 +59,22 @@ GPUhdi() void Cluster::print() const
 
 struct TrackingFrameInfo {
   TrackingFrameInfo() = default;
-  TrackingFrameInfo(float x, float y, float z, float xTF, float alpha, GPUArray<float, 2>&& posTF, GPUArray<float, 3>&& covTF);
+  TrackingFrameInfo(float x, float y, float z, float xTF, float alpha, o2::gpu::gpustd::array<float, 2>&& posTF, o2::gpu::gpustd::array<float, 3>&& covTF);
 
   float xCoordinate;
   float yCoordinate;
   float zCoordinate;
   float xTrackingFrame;
   float alphaTrackingFrame;
-  GPUArray<float, 2> positionTrackingFrame = {-1., -1.};
-  GPUArray<float, 3> covarianceTrackingFrame = {999., 999., 999.};
+  o2::gpu::gpustd::array<float, 2> positionTrackingFrame = {-1., -1.};
+  o2::gpu::gpustd::array<float, 3> covarianceTrackingFrame = {999., 999., 999.};
+  GPUdi() void print() const
+  {
+    printf("x: %f y: %f z: %f xTF: %f alphaTF: %f posTF: %f %f covTF: %f %f %f\n",
+           xCoordinate, yCoordinate, zCoordinate, xTrackingFrame, alphaTrackingFrame,
+           positionTrackingFrame[0], positionTrackingFrame[1],
+           covarianceTrackingFrame[0], covarianceTrackingFrame[1], covarianceTrackingFrame[2]);
+  }
 
   ClassDefNV(TrackingFrameInfo, 1);
 };

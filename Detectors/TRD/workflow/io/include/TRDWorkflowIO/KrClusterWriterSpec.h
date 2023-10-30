@@ -22,6 +22,7 @@
 #include <TFile.h>
 #include <TTree.h>
 #include <filesystem>
+#include <mutex>
 #include <fmt/format.h>
 
 namespace o2
@@ -77,9 +78,10 @@ class TRDKrClsWriterTask : public o2::framework::Task
 
   void closeOutputFile()
   {
-    if (!mOutputFileCreated) {
+    if (!mOutputFileCreated || mOutputFileClosed) {
       return;
     }
+    std::lock_guard<std::mutex> guard(mMutex);
     writeToFile();
     mTreeOut.reset();
     mFileOut->Close();
@@ -103,6 +105,7 @@ class TRDKrClsWriterTask : public o2::framework::Task
         LOG(error) << "Failed to store meta data file " << metaFileName << ", reason: " << e.what();
       }
     }
+    mOutputFileClosed = true;
   }
 
   void run(o2::framework::ProcessingContext& pc) final
@@ -111,12 +114,13 @@ class TRDKrClsWriterTask : public o2::framework::Task
       auto tInfo = pc.services().get<o2::framework::TimingInfo>();
       createOutputFile(tInfo.runNumber, pc);
     }
+    if (mRunStopRequested) {
+      return;
+    }
     if (pc.transitionState() == TransitionHandlingState::Requested) {
       LOG(info) << "Run stop requested, closing output file";
       mRunStopRequested = true;
       closeOutputFile();
-    }
-    if (mRunStopRequested) {
       return;
     }
     auto cluster = pc.inputs().get<gsl::span<KrCluster>>("krcluster");
@@ -148,8 +152,10 @@ class TRDKrClsWriterTask : public o2::framework::Task
   bool mRunStopRequested{false};
   bool mStoreMetaFile{false};
   bool mOutputFileCreated{false};
+  bool mOutputFileClosed{false};
   int mAutoSave{0};
   uint64_t mTFCounter{0};
+  std::mutex mMutex;
   std::string mOutputDir{"none"};
   std::string mMetaFileDir{"/dev/null"};
   std::string mHostName{};

@@ -38,6 +38,9 @@ struct SpacePointsCalibConfParam : public o2::conf::ConfigurableParamHelper<Spac
   float maxITSChi2 = 20.f;         ///< cut on ITS reduced chi2
   float maxTRDChi2 = 10.f;         ///< cut on TRD reduced chi2
   float minPtNoOuterPoint = 0.8f;  ///< minimum pt for ITS-TPC tracks to be considered for extrapolation
+  bool ignoreNonPVContrib = true;  ///< flag if tracks which did not contribute to the PV should be ignored or not
+  bool enableTrackDownsampling = false; ///< flag if track sampling shall be enabled or not
+  float tsalisThreshold = 1.f;          ///< in case the sampling functions returns a value smaller than this the track is discarded (1. means no downsampling)
 
   // other settings for track interpolation
   float sigYZ2TOF{.75f}; ///< for now assume cluster error for TOF equal for all clusters in both Y and Z

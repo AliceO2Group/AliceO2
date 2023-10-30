@@ -53,6 +53,7 @@ class MIPTrackFilterDevice : public Task
   int mMaxTracksPerTF{-1};            ///< max number of MIP tracks processed per TF
   uint32_t mTFCounter{0};             ///< counter to keep track of the TFs
   int mProcessNFirstTFs{0};           ///< number of first TFs which are not sampled
+  bool mSendDummy{false};             ///< send empty data in case TF is skipped
 };
 
 void MIPTrackFilterDevice::init(framework::InitContext& ic)
@@ -62,6 +63,7 @@ void MIPTrackFilterDevice::init(framework::InitContext& ic)
   const double mindEdx = ic.options().get<double>("min-dedx");
   const double maxdEdx = ic.options().get<double>("max-dedx");
   const int minClusters = std::max(10, ic.options().get<int>("min-clusters"));
+  const double mSendDummy = ic.options().get<bool>("send-dummy-data");
   mMaxTracksPerTF = ic.options().get<int>("maxTracksPerTF");
   if (mMaxTracksPerTF > 0) {
     mMIPTracks.reserve(mMaxTracksPerTF);
@@ -92,6 +94,10 @@ void MIPTrackFilterDevice::run(ProcessingContext& pc)
   const auto currentTF = processing_helpers::getCurrentTF(pc);
   if ((mTFCounter++ % mProcessEveryNthTF) && (currentTF >= mProcessNFirstTFs)) {
     LOGP(info, "Skipping TF {}", currentTF);
+    mMIPTracks.clear();
+    if (mSendDummy) {
+      sendOutput(pc.outputs());
+    }
     return;
   }
 
@@ -110,6 +116,10 @@ void MIPTrackFilterDevice::run(ProcessingContext& pc)
 
     // in case no good tracks have been found
     if (indices.empty()) {
+      mMIPTracks.clear();
+      if (mSendDummy) {
+        sendOutput(pc.outputs());
+      }
       return;
     }
 
@@ -127,9 +137,11 @@ void MIPTrackFilterDevice::run(ProcessingContext& pc)
   }
 
   LOGP(info, "Filtered {} MIP tracks out of {} total tpc tracks", mMIPTracks.size(), tracks.size());
-  pc.outputs().snapshot(Output{header::gDataOriginTPC, "MIPS", 0, Lifetime::Timeframe}, mMIPTracks);
+  sendOutput(pc.outputs());
   mMIPTracks.clear();
 }
+
+void MIPTrackFilterDevice::sendOutput(DataAllocator& output) { output.snapshot(Output{header::gDataOriginTPC, "MIPS", 0, Lifetime::Timeframe}, mMIPTracks); }
 
 void MIPTrackFilterDevice::endOfStream(EndOfStreamContext& eos)
 {
@@ -156,7 +168,8 @@ DataProcessorSpec getMIPTrackFilterSpec()
       {"min-clusters", VariantType::Int, 60, {"minimum number of clusters in a track"}},
       {"processEveryNthTF", VariantType::Int, 1, {"Using only a fraction of the data: 1: Use every TF, 10: Process only every tenth TF."}},
       {"maxTracksPerTF", VariantType::Int, -1, {"Maximum number of processed tracks per TF (-1 for processing all tracks)"}},
-      {"process-first-n-TFs", VariantType::Int, 1, {"Number of first TFs which are not sampled"}}}};
+      {"process-first-n-TFs", VariantType::Int, 1, {"Number of first TFs which are not sampled"}},
+      {"send-dummy-data", VariantType::Bool, false, {"Send empty data in case TF is skipped"}}}};
 }
 
 } // namespace o2::tpc

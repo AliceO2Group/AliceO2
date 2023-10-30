@@ -68,6 +68,12 @@ class VertexerTraits
   virtual void computeVertices();
   virtual void adoptTimeFrame(TimeFrame* tf);
   virtual void updateVertexingParameters(const VertexingParameters& vrtPar, const TimeFrameGPUParameters& gpuTfPar);
+  // Hybrid
+  virtual void initialiseHybrid(const TrackingParameters& trackingParams) { initialise(trackingParams); };
+  virtual void computeTrackletsHybrid() { computeTracklets(); };
+  virtual void computeTrackletMatchingHybrid() { computeTrackletMatching(); };
+  virtual void computeVerticesHybrid() { computeVertices(); };
+  virtual void adoptTimeFrameHybrid(TimeFrame* tf) { adoptTimeFrame(tf); };
 
   void computeVerticesInRof(int,
                             gsl::span<const o2::its::Line>&,

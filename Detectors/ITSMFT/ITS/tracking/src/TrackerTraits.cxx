@@ -311,9 +311,9 @@ void TrackerTraits::computeLayerCells(const int iteration)
             mTimeFrame->getClusters()[iLayer + 2][nextTracklet.secondClusterIndex].clusterId};
           const auto& cluster1_glo = mTimeFrame->getUnsortedClusters()[iLayer].at(clusId[0]);
           const auto& cluster2_glo = mTimeFrame->getUnsortedClusters()[iLayer + 1].at(clusId[1]);
-          const auto& cluster3_glo = mTimeFrame->getUnsortedClusters()[iLayer + 2].at(clusId[2]);
+          // const auto& cluster3_glo = mTimeFrame->getUnsortedClusters()[iLayer + 2].at(clusId[2]);
           const auto& cluster3_tf = mTimeFrame->getTrackingFrameInfoOnLayer(iLayer + 2).at(clusId[2]);
-          auto track{buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_glo, cluster3_tf)};
+          auto track{buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_tf)};
 
           float chi2{0.f};
           bool good{false};
@@ -347,11 +347,8 @@ void TrackerTraits::computeLayerCells(const int iteration)
           if (!good) {
             continue;
           }
-          tf->getCells()[iLayer].emplace_back(
-            currentTracklet.firstClusterIndex, nextTracklet.firstClusterIndex, nextTracklet.secondClusterIndex,
-            iTracklet, iNextTracklet);
-          tf->getCellSeeds()[iLayer].emplace_back(track);
-          tf->getCellSeedsChi2()[iLayer].emplace_back(chi2);
+          tf->getCells()[iLayer].emplace_back(iLayer, currentTracklet.firstClusterIndex, nextTracklet.firstClusterIndex, nextTracklet.secondClusterIndex,
+                                              iTracklet, iNextTracklet, track, chi2);
         }
       }
     }
@@ -401,19 +398,16 @@ void TrackerTraits::findCellsNeighbours(const int iteration)
     std::vector<std::pair<int, int>> cellsNeighbours;
     cellsNeighbours.reserve(nextLayerCellsNum);
 
-    std::vector<std::vector<int>> easyWay(nextLayerCellsNum);
     for (int iCell{0}; iCell < layerCellsNum; ++iCell) {
 
-      const Cell& currentCell{mTimeFrame->getCells()[iLayer][iCell]};
-      const auto& currentCellSeed{mTimeFrame->getCellSeeds()[iLayer][iCell]};
-      const int nextLayerTrackletIndex{currentCell.getSecondTrackletIndex()};
+      const auto& currentCellSeed{mTimeFrame->getCells()[iLayer][iCell]};
+      const int nextLayerTrackletIndex{currentCellSeed.getSecondTrackletIndex()};
       const int nextLayerFirstCellIndex{mTimeFrame->getCellsLookupTable()[iLayer][nextLayerTrackletIndex]};
       const int nextLayerLastCellIndex{mTimeFrame->getCellsLookupTable()[iLayer][nextLayerTrackletIndex + 1]};
       for (int iNextCell{nextLayerFirstCellIndex}; iNextCell < nextLayerLastCellIndex; ++iNextCell) {
 
-        Cell& nextCell{mTimeFrame->getCells()[iLayer + 1][iNextCell]};
-        auto nextCellSeed{mTimeFrame->getCellSeeds()[iLayer + 1][iNextCell]}; /// copy
-        if (nextCell.getFirstTrackletIndex() != nextLayerTrackletIndex) {
+        auto nextCellSeed{mTimeFrame->getCells()[iLayer + 1][iNextCell]}; /// copy
+        if (nextCellSeed.getFirstTrackletIndex() != nextLayerTrackletIndex) {
           break;
         }
 
@@ -421,7 +415,7 @@ void TrackerTraits::findCellsNeighbours(const int iteration)
             !nextCellSeed.propagateTo(currentCellSeed.getX(), getBz())) {
           continue;
         }
-        float chi2 = currentCellSeed.getPredictedChi2(nextCellSeed);
+        float chi2 = currentCellSeed.getPredictedChi2(nextCellSeed); /// TODO: switch to the chi2 wrt cluster to avoid correlation
 
 #ifdef OPTIMISATION_OUTPUT
         bool good{mTimeFrame->getCellsLabel(iLayer)[iCell] == mTimeFrame->getCellsLabel(iLayer + 1)[iNextCell]};
@@ -434,11 +428,10 @@ void TrackerTraits::findCellsNeighbours(const int iteration)
 
         mTimeFrame->getCellsNeighboursLUT()[iLayer][iNextCell]++;
         cellsNeighbours.push_back(std::make_pair(iCell, iNextCell));
-        easyWay[iNextCell].push_back(iCell);
-        const int currentCellLevel{currentCell.getLevel()};
+        const int currentCellLevel{currentCellSeed.getLevel()};
 
-        if (currentCellLevel >= nextCell.getLevel()) {
-          nextCell.setLevel(currentCellLevel + 1);
+        if (currentCellLevel >= nextCellSeed.getLevel()) {
+          mTimeFrame->getCells()[iLayer + 1][iNextCell].setLevel(currentCellLevel + 1);
         }
       }
     }
@@ -462,7 +455,7 @@ void TrackerTraits::findRoads(const int iteration)
     for (int iLayer{mTrkParams[iteration].CellsPerRoad() - 1}; iLayer >= minimumLevel; --iLayer) {
       const int levelCellsNum{static_cast<int>(mTimeFrame->getCells()[iLayer].size())};
       for (int iCell{0}; iCell < levelCellsNum; ++iCell) {
-        Cell& currentCell{mTimeFrame->getCells()[iLayer][iCell]};
+        CellSeed& currentCell{mTimeFrame->getCells()[iLayer][iCell]};
         if (currentCell.getLevel() != iLevel) {
           continue;
         }
@@ -478,7 +471,7 @@ void TrackerTraits::findRoads(const int iteration)
         bool isFirstValidNeighbour = true;
         for (int iNeighbourCell{startNeighbourId}; iNeighbourCell < endNeighbourId; ++iNeighbourCell) {
           const int neighbourCellId = mTimeFrame->getCellsNeighbours()[iLayer - 1][iNeighbourCell];
-          const Cell& neighbourCell = mTimeFrame->getCells()[iLayer - 1][neighbourCellId];
+          const CellSeed& neighbourCell = mTimeFrame->getCells()[iLayer - 1][neighbourCellId];
           if (iLevel - 1 != neighbourCell.getLevel()) {
             continue;
           }
@@ -569,8 +562,8 @@ void TrackerTraits::findTracks()
       }
     }
 
-    TrackITSExt temporaryTrack{mTimeFrame->getCellSeeds()[lastCellLevel][lastCellIndex]};
-    temporaryTrack.setChi2(mTimeFrame->getCellSeedsChi2()[lastCellLevel][lastCellIndex]);
+    TrackITSExt temporaryTrack{mTimeFrame->getCells()[lastCellLevel][lastCellIndex]};
+    temporaryTrack.setChi2(mTimeFrame->getCells()[lastCellLevel][lastCellIndex].getChi2());
     for (size_t iC = 0; iC < clusters.size(); ++iC) {
       temporaryTrack.setExternalClusterIndex(iC, clusters[iC], clusters[iC] != constants::its::UnusedIndex);
     }
@@ -725,7 +718,7 @@ void TrackerTraits::findShortPrimaries()
     auto pvsXAlpha{mTimeFrame->getPrimaryVerticesXAlpha(rof)};
 
     const auto& cluster3_tf = mTimeFrame->getTrackingFrameInfoOnLayer(2).at(cluster3_glo.clusterId);
-    TrackITSExt temporaryTrack{buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_glo, cluster3_tf)};
+    TrackITSExt temporaryTrack{buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_tf)};
     temporaryTrack.setExternalClusterIndex(0, cluster1_glo.clusterId, true);
     temporaryTrack.setExternalClusterIndex(1, cluster2_glo.clusterId, true);
     temporaryTrack.setExternalClusterIndex(2, cluster3_glo.clusterId, true);
@@ -818,19 +811,6 @@ bool TrackerTraits::fitTrack(TrackITSExt& track, int start, int end, int step, f
     nCl++;
   }
   return std::abs(track.getQ2Pt()) < maxQoverPt && track.getChi2() < chi2ndfcut * (nCl * 2 - 5);
-}
-
-void TrackerTraits::refitTracks(const int iteration, const std::vector<std::vector<TrackingFrameInfo>>& tf, std::vector<TrackITSExt>& tracks)
-{
-  std::vector<const Cell*> cells;
-  for (int iLayer = 0; iLayer < mTrkParams[iteration].CellsPerRoad(); iLayer++) {
-    cells.push_back(mTimeFrame->getCells()[iLayer].data());
-  }
-  std::vector<const Cluster*> clusters;
-  for (int iLayer = 0; iLayer < mTrkParams[iteration].NLayers; iLayer++) {
-    clusters.push_back(mTimeFrame->getClusters()[iLayer].data());
-  }
-  mChainRunITSTrackFit(*mChain, mTimeFrame->getRoads(), clusters, cells, tf, tracks);
 }
 
 bool TrackerTraits::trackFollowing(TrackITSExt* track, int rof, bool outward, const int iteration)
@@ -950,7 +930,7 @@ bool TrackerTraits::trackFollowing(TrackITSExt* track, int rof, bool outward, co
 
 /// Clusters are given from inside outward (cluster3 is the outermost). The outermost cluster is given in the tracking
 /// frame coordinates whereas the others are referred to the global frame.
-track::TrackParCov TrackerTraits::buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const Cluster& cluster3, const TrackingFrameInfo& tf3)
+track::TrackParCov TrackerTraits::buildTrackSeed(const Cluster& cluster1, const Cluster& cluster2, const TrackingFrameInfo& tf3)
 {
   const float ca = std::cos(tf3.alphaTrackingFrame), sa = std::sin(tf3.alphaTrackingFrame);
   const float x1 = cluster1.xCoordinate * ca + cluster1.yCoordinate * sa;
@@ -983,7 +963,7 @@ track::TrackParCov TrackerTraits::buildTrackSeed(const Cluster& cluster1, const 
 
 void TrackerTraits::traverseCellsTree(const int currentCellId, const int currentLayerId)
 {
-  Cell& currentCell{mTimeFrame->getCells()[currentLayerId][currentCellId]};
+  CellSeed& currentCell{mTimeFrame->getCells()[currentLayerId][currentCellId]};
   const int currentCellLevel = currentCell.getLevel();
 
   mTimeFrame->getRoads().back().addCell(currentLayerId, currentCellId);
@@ -994,7 +974,7 @@ void TrackerTraits::traverseCellsTree(const int currentCellId, const int current
     const int endNeighbourId = mTimeFrame->getCellsNeighboursLUT()[currentLayerId - 1][currentCellId];
     for (int iNeighbourCell{startNeighbourId}; iNeighbourCell < endNeighbourId; ++iNeighbourCell) {
       const int neighbourCellId = mTimeFrame->getCellsNeighbours()[currentLayerId - 1][iNeighbourCell];
-      const Cell& neighbourCell = mTimeFrame->getCells()[currentLayerId - 1][neighbourCellId];
+      const CellSeed& neighbourCell = mTimeFrame->getCells()[currentLayerId - 1][neighbourCellId];
 
       if (currentCellLevel - 1 != neighbourCell.getLevel()) {
         continue;

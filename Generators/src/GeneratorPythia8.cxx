@@ -27,6 +27,7 @@
 #include "ZDCBase/FragmentParam.h"
 
 #include <iostream>
+#include <unordered_map>
 
 namespace o2
 {
@@ -186,15 +187,159 @@ Bool_t
 /*****************************************************************/
 
 Bool_t
-  GeneratorPythia8::importParticles(Pythia8::Event& event)
+  GeneratorPythia8::importParticles(Pythia8::Event const& event)
 {
   /** import particles **/
 
+  // the right moment to filter out unwanted stuff (like parton-level event information)
+
+  std::unique_ptr<Pythia8::Event> hadronLevelEvent;
+  auto eventToRead = &event;
+
+  // The right moment to filter out unwanted stuff (like parton-level event information)
+  // Here, we aim to filter out everything before hadronization with the motivation to reduce the
+  // size of the MC event record in the AOD.
+  if (!GeneratorPythia8Param::Instance().includePartonEvent) {
+
+    // lambda performing the actual filtering
+    auto getHadronLevelEvent = [](Pythia8::Event const& event, Pythia8::Event& hadronLevelEvent) {
+      std::unordered_map<int, int> old_to_new;
+      std::vector<Pythia8::Particle> filtered;
+      // push the system particle
+      filtered.push_back(event[0]);
+
+      // Iterate over all particles and keep those that appear in hadronization phase
+      // (should be mostly those with HepMC statuses 1 and 2)
+      // we go from 1 since 0 is system as whole
+      for (int i = 1; i < event.size(); ++i) {
+        auto& p = event[i];
+        if (p.statusHepMC() == 1 || p.statusHepMC() == 2) {
+          filtered.push_back(p);
+          old_to_new[i] = filtered.size() - 1;
+        }
+      }
+
+      // helper lambda to lookup new index in filtered event - returns new id or -1 if not succesfull
+      auto lookupNew = [&old_to_new](int oldid) {
+        auto iter = old_to_new.find(oldid);
+        if (iter == old_to_new.end()) {
+          return -1;
+        }
+        return iter->second;
+      };
+
+      std::vector<int> childbuffer;
+
+      // a lambda to check/assert size on children
+      auto checkChildrenSize = [&childbuffer](int expected) {
+        if (expected != childbuffer.size()) {
+          LOG(error) << "Transcribed children list does not have expected size " << expected << " but " << childbuffer.size();
+        }
+      };
+
+      // second pass to fix parent / children mappings
+      for (int i = 1; i < filtered.size(); ++i) {
+        auto& p = filtered[i];
+        // get old daughters --> lookup their new position and fix
+        auto originaldaughterids = p.daughterList();
+
+        // this checks if all children have been copied over to filtered
+        childbuffer.clear();
+        for (auto& oldid : originaldaughterids) {
+          auto newid = lookupNew(oldid);
+          if (newid == -1) {
+            LOG(error) << "Pythia8 remapping error - original index not known " << oldid;
+          } else {
+            childbuffer.push_back(newid);
+          }
+        }
+
+        // fix children
+        // analyse the cases (see Pythia8 documentation)
+        auto d1 = p.daughter1();
+        auto d2 = p.daughter2();
+        if (d1 == 0 && d2 == 0) {
+          // there is no offsprint --> nothing to do
+          checkChildrenSize(0);
+        } else if (d1 == d2 && d1 != 0) {
+          // carbon copy ... should not happend here
+          checkChildrenSize(1);
+          p.daughters(childbuffer[0], childbuffer[0]);
+        } else if (d1 > 0 && d2 == 0) {
+          checkChildrenSize(1);
+          p.daughters(childbuffer[0], 0);
+        } else if (d2 != 0 && d2 > d1) {
+          // multiple decay products ... adjacent in the event
+          checkChildrenSize(d2 - d1 + 1);
+          p.daughters(lookupNew(d1), lookupNew(d2));
+        } else if (d2 != 0 && d2 < d1) {
+          // 2 distinct products ... not adjacent to each other
+          checkChildrenSize(2);
+          p.daughters(lookupNew(d1), lookupNew(d2));
+        }
+
+        // fix mothers
+        auto m1 = p.mother1();
+        auto m2 = p.mother2();
+        if (m1 == 0 && m2 == 0) {
+          // nothing to be done
+        } else if (m1 > 0 && m2 == m1) {
+          // carbon copy
+          auto tmp = lookupNew(m1);
+          if (tmp != -1) {
+            p.mothers(tmp, tmp);
+          } else {
+            // delete mother link since no longer available
+            p.mothers(0, 0);
+          }
+        } else if (m1 > 0 && m2 == 0) {
+          // the "normal" mother case, where it is meaningful to speak of one single mother to several products, in a shower or decay;
+          auto tmp = lookupNew(m1);
+          if (tmp != -1) {
+            p.mothers(tmp, tmp);
+          } else {
+            // delete mother link since no longer available
+            p.mothers(0, 0);
+          }
+        } else if (m1 < m2 && m1 > 0) {
+          // mother1 < mother2, both > 0,
+          // case for abs(status) = 81 - 86: primary hadrons produced from
+          // the fragmentation of a string spanning the range from mother1 to mother2,
+          // so that all partons in this range should be considered mothers;
+          // and analogously for abs(status) = 101 - 106, the formation of R-hadrons;
+
+          // here we simply delete the mothers
+          p.mothers(0, 0);
+          // verify that these shouldn't be in the list anyway
+          if (lookupNew(m1) != -1 || lookupNew(m2) != -1) {
+            LOG(warn) << "Indexing looks weird for primary hadron cases";
+          }
+        } else {
+          LOG(warn) << "Unsupported / unexpected mother reindexing. Code needs more treatment";
+        }
+        // append this to the Pythia event
+        hadronLevelEvent.append(p);
+      }
+    };
+
+    hadronLevelEvent.reset(new Pythia8::Event);
+    hadronLevelEvent->init("Hadron Level event record", &mPythia.particleData);
+
+    hadronLevelEvent->reset();
+
+    getHadronLevelEvent(event, *hadronLevelEvent);
+
+    hadronLevelEvent->list();
+    eventToRead = hadronLevelEvent.get();
+    LOG(info) << "The pythia event has been reduced from size " << event.size()
+              << " to " << hadronLevelEvent->size() << " by pre-hadronization pruning";
+  }
+
   /* loop over particles */
   //  auto weight = mPythia.info.weight(); // TBD: use weights
-  auto nParticles = event.size();
+  auto nParticles = eventToRead->size();
   for (Int_t iparticle = 1; iparticle < nParticles; iparticle++) { // first particle is system
-    auto particle = event[iparticle];
+    auto particle = (*eventToRead)[iparticle];
     auto pdg = particle.id();
     auto st = o2::mcgenstatus::MCGenStatusEncoding(particle.statusHepMC(), particle.status()).fullEncoding;
     auto px = particle.px();

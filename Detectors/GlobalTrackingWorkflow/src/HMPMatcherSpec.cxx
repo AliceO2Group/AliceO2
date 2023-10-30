@@ -144,7 +144,7 @@ void HMPMatcherSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getHMPMatcherSpec(GID::mask_t src, bool useMC)
+DataProcessorSpec getHMPMatcherSpec(GID::mask_t src, bool useMC, float extratolerancetrd, float extratolerancetof)
 {
   // uint32_t ss = o2::globaltracking::getSubSpec(strict ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
   auto dataRequest = std::make_shared<DataRequest>();
