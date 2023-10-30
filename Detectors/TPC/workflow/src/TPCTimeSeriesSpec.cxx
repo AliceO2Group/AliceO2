@@ -1318,7 +1318,7 @@ class TPCTimeSeries : public Task
     const float dedxRatioNorm = mPID.getExpectedSignal(track, o2::track::PID::ID(o2::track::PID::Pion)) / dedx;
     float dedxNorm = (dedxRatioNorm > 0) ? std::log(mPID.getExpectedSignal(track, o2::track::PID::ID(o2::track::PID::Pion)) / dedx) : -1;
     // restrict to specified range
-    if (std::abs(dedxNorm > mMaxdEdxRatio)) {
+    if (std::abs(dedxNorm) > mMaxdEdxRatio) {
       dedxNorm = -1;
     }
 
@@ -1342,16 +1342,16 @@ class TPCTimeSeries : public Task
       dedxOROC3 = (dedxOROC3 > 0) ? std::log(dedxOROC3) : -1;
 
       // restrict to specified range
-      if (std::abs(dedxIROC > mMaxdEdxRegionRatio)) {
+      if (std::abs(dedxIROC) > mMaxdEdxRegionRatio) {
         dedxIROC = -1;
       }
-      if (std::abs(dedxOROC1 > mMaxdEdxRegionRatio)) {
+      if (std::abs(dedxOROC1) > mMaxdEdxRegionRatio) {
         dedxOROC1 = -1;
       }
-      if (std::abs(dedxOROC2 > mMaxdEdxRegionRatio)) {
+      if (std::abs(dedxOROC2) > mMaxdEdxRegionRatio) {
         dedxOROC2 = -1;
       }
-      if (std::abs(dedxOROC3 > mMaxdEdxRegionRatio)) {
+      if (std::abs(dedxOROC3) > mMaxdEdxRegionRatio) {
         dedxOROC3 = -1;
       }
     }
