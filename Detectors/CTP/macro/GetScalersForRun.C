@@ -54,14 +54,14 @@ void GetScalersForRun(int runNumber = 0, int fillN = 0, bool test = 1)
   std::cout << "all good" << std::endl;
   ctpscalers->convertRawToO2();
   std::vector<CTPClass> ctpcls = ctpcfg->getCTPClasses();
-  //std::vector<int> clslist = ctpcfg->getTriggerClassList();
+  // std::vector<int> clslist = ctpcfg->getTriggerClassList();
   std::vector<uint32_t> clslist = ctpscalers->getClassIndexes();
-  std::map<int,int> clsIndexToScaler;
+  std::map<int, int> clsIndexToScaler;
   std::cout << "Classes:";
   int i = 0;
-  for(auto const& cls: clslist) {
+  for (auto const& cls : clslist) {
     std::cout << cls << " ";
-    clsIndexToScaler[cls]=i;
+    clsIndexToScaler[cls] = i;
     i++;
   }
   std::cout << std::endl;
@@ -107,23 +107,22 @@ void GetScalersForRun(int runNumber = 0, int fillN = 0, bool test = 1)
   std::cout << " Integralpp:" << integralpp << " Ratepp:" << ratepp / sigmaratio << std::endl;
   // ctpscalers->printInputRateAndIntegral(26);
   //
-  if( tsc != 255) {
+  if (tsc != 255) {
     std::cout << "TSC:";
     ctpscalers->printClassBRateAndIntegral(clsIndexToScaler[tsc] + 1);
   }
-  if( tce != 255 ) {
+  if (tce != 255) {
     std::cout << "TCE:";
     ctpscalers->printClassBRateAndIntegral(clsIndexToScaler[tce] + 1);
   }
   // std::cout << "TCE input:" << ctpscalers->printInputRateAndIntegral(5) << std::endl;;
-  if( vch != 255) {
+  if (vch != 255) {
     std::cout << "VCH:";
     ctpscalers->printClassBRateAndIntegral(clsIndexToScaler[vch] + 1);
   }
-  if( iznc != 255) {
+  if (iznc != 255) {
     std::cout << "ZNC class:";
     int integral = recs[recs.size() - 1].scalers[iznc].l1After - recs[0].scalers[iznc].l1After;
     std::cout << integral << std::endl;
-
   }
 }
