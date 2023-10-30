@@ -382,7 +382,7 @@ auto homogeneous_apply_refs(L l, T&& object)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY_LOW (3)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY_LOW (2)
   else if DPL_HOMOGENEOUS_APPLY_ENTRY_LOW (1)
-  else { return false; }
+  else { return std::array<bool,0>(); }
   // clang-format on
 }
 
