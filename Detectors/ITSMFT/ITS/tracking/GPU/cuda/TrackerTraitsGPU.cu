@@ -113,12 +113,12 @@ GPUd() const int4 getBinsRect(const Cluster& currentCluster, const int layerInde
 //   const int startingCellId, // used to compile LUT
 //   int& nRoadsStartingCell,
 //   int* roadsLookUpTable,
-//   Cell** cells,
+//   CellSeed** cells,
 //   int** cellNeighbours,
 //   int** cellNeighboursLUT,
 //   Road<nLayers - 2>* roads)
 // {
-//   Cell& currentCell{cells[currentLayerId][currentCellId]};
+//   CellSeed& currentCell{cells[currentLayerId][currentCellId]};
 //   const int currentCellLevel = currentCell.getLevel();
 //   if constexpr (dryRun) {
 //     ++nRoadsStartingCell; // in dry run I just want to count the total number of roads
@@ -131,7 +131,7 @@ GPUd() const int4 getBinsRect(const Cluster& currentCluster, const int layerInde
 
 //     for (int iNeighbourCell{0}; iNeighbourCell < cellNeighboursNum; ++iNeighbourCell) {
 //       const int neighbourCellId =cellNeighbours[currentLayerId - 1][currentCellId][iNeighbourCell];
-//         const Cell& neighbourCell = mTimeFrame->getCells()[currentLayerId - 1][neighbourCellId];
+//         const CellSeed& neighbourCell = mTimeFrame->getCells()[currentLayerId - 1][neighbourCellId];
 
 //       if (currentCellLevel - 1 != neighbourCell.getLevel()) {
 //         continue;
@@ -547,7 +547,7 @@ GPUg() void computeLayerCellsKernel(
   const Tracklet* trackletsNextLayer,
   const int* trackletsCurrentLayerLUT,
   const int nTrackletsCurrent,
-  Cell* cells,
+  CellSeed* cells,
   int* cellsLUT,
   const StaticTrackingParameters<nLayers>* trkPars)
 {
@@ -585,8 +585,8 @@ GPUg() void computeLayerCellsKernel(
 }
 
 template <bool initRun, int nLayers = 7>
-GPUg() void computeLayerCellNeighboursKernel(Cell* cellsCurrentLayer,
-                                             Cell* cellsNextLayer,
+GPUg() void computeLayerCellNeighboursKernel(CellSeed* cellsCurrentLayer,
+                                             CellSeed* cellsNextLayer,
                                              const int layerIndex,
                                              const int* cellsNextLayerLUT,
                                              int* neighboursLUT,
@@ -595,13 +595,13 @@ GPUg() void computeLayerCellNeighboursKernel(Cell* cellsCurrentLayer,
                                              const int maxCellNeighbours = 1e2)
 {
   for (int iCurrentCellIndex = blockIdx.x * blockDim.x + threadIdx.x; iCurrentCellIndex < nCells[layerIndex]; iCurrentCellIndex += blockDim.x * gridDim.x) {
-    const Cell& currentCell = cellsCurrentLayer[iCurrentCellIndex];
+    const CellSeed& currentCell = cellsCurrentLayer[iCurrentCellIndex];
     const int nextLayerTrackletIndex{currentCell.getSecondTrackletIndex()};
     const int nextLayerFirstCellIndex{cellsNextLayerLUT[nextLayerTrackletIndex]};
     const int nextLayerLastCellIndex{cellsNextLayerLUT[nextLayerTrackletIndex + 1]};
     int foundNeighbours{0};
     for (int iNextCell{nextLayerFirstCellIndex}; iNextCell < nextLayerLastCellIndex; ++iNextCell) {
-      Cell& nextCell = cellsNextLayer[iNextCell];
+      CellSeed& nextCell = cellsNextLayer[iNextCell];
       if (nextCell.getFirstTrackletIndex() != nextLayerTrackletIndex) { // Check if cells share the same tracklet
         break;
       }
@@ -627,7 +627,7 @@ template <bool dryRun, int nLayers = 7>
 GPUg() void computeLayerRoadsKernel(
   const int level,
   const int layerIndex,
-  Cell** cells,
+  CellSeed** cells,
   const int* nCells,
   int** neighbours,
   int** neighboursLUT,
@@ -654,7 +654,7 @@ GPUg() void computeLayerRoadsKernel(
     bool isFirstValidNeighbour{true};
     for (int iNeighbourCell{0}; iNeighbourCell < cellNeighboursNum; ++iNeighbourCell) {
       const int neighbourCellId = neighbours[layerIndex - 1][currentCellNeighOffset + iNeighbourCell];
-      const Cell& neighbourCell = cells[layerIndex - 1][neighbourCellId];
+      const CellSeed& neighbourCell = cells[layerIndex - 1][neighbourCellId];
       if (level - 1 != neighbourCell.getLevel()) {
         continue;
       }
@@ -678,7 +678,7 @@ GPUg() void fitTracksKernel(
   Cluster** foundUnsortedClusters,
   TrackingFrameInfo** foundTrackingFrameInfo,
   Tracklet** foundTracklets,
-  Cell** foundCells,
+  CellSeed** foundCellsSeeds,
   o2::track::TrackParCovF** trackSeeds,
   float** trackSeedsChi2,
   const Road<nLayers - 2>* roads,
@@ -706,11 +706,11 @@ GPUg() void fitTracksKernel(
         if (firstTracklet == constants::its::UnusedIndex) {
           firstTracklet = iCell;
         }
-        tracklets[iCell] = foundCells[iCell][cellIndex].getFirstTrackletIndex();
-        tracklets[iCell + 1] = foundCells[iCell][cellIndex].getSecondTrackletIndex();
-        clusters[iCell] = foundCells[iCell][cellIndex].getFirstClusterIndex();
-        clusters[iCell + 1] = foundCells[iCell][cellIndex].getSecondClusterIndex();
-        clusters[iCell + 2] = foundCells[iCell][cellIndex].getThirdClusterIndex();
+        tracklets[iCell] = foundCellsSeeds[iCell][cellIndex].getFirstTrackletIndex();
+        tracklets[iCell + 1] = foundCellsSeeds[iCell][cellIndex].getSecondTrackletIndex();
+        clusters[iCell] = foundCellsSeeds[iCell][cellIndex].getFirstClusterIndex();
+        clusters[iCell + 1] = foundCellsSeeds[iCell][cellIndex].getSecondClusterIndex();
+        clusters[iCell + 2] = foundCellsSeeds[iCell][cellIndex].getThirdClusterIndex();
         lastCellLevel = iCell;
         lastCellIndex = cellIndex;
       }
@@ -742,8 +742,8 @@ GPUg() void fitTracksKernel(
       }
     }
 
-    TrackITSExt temporaryTrack{trackSeeds[lastCellLevel][lastCellIndex]};
-    temporaryTrack.setChi2(trackSeedsChi2[lastCellLevel][lastCellIndex]);
+    TrackITSExt temporaryTrack{foundCellsSeeds[lastCellLevel][lastCellIndex]};
+    temporaryTrack.setChi2(foundCellsSeeds[lastCellLevel][lastCellIndex].getChi2());
     for (size_t iC = 0; iC < nLayers; ++iC) {
       temporaryTrack.setExternalClusterIndex(iC, clusters[iC], clusters[iC] != constants::its::UnusedIndex);
     }
@@ -1032,7 +1032,7 @@ void TrackerTraitsGPU<nLayers>::computeLayerTracklets(const int iteration)
           for (int iLayer{nLayers - 3}; iLayer >= minimumLevel; --iLayer) {
             // gpu::computeLayerRoadsKernel<true><<<1, 1, 0, mTimeFrameGPU->getStream(chunkId).get()>>>(iLevel,                                                               // const int level,
             //  iLayer,                                                               // const int layerIndex,
-            //  mTimeFrameGPU->getChunk(chunkId).getDeviceArrayCells(),               // const Cell** cells,
+            //  mTimeFrameGPU->getChunk(chunkId).getDeviceArrayCells(),               // const CellSeed** cells,
             //  mTimeFrameGPU->getChunk(chunkId).getDeviceNFoundCells(),              // const int* nCells,
             //  mTimeFrameGPU->getChunk(chunkId).getDeviceArrayNeighboursCell(),      // const int** neighbours,
             //  mTimeFrameGPU->getChunk(chunkId).getDeviceArrayNeighboursCellLUT(),   // const int** neighboursLUT,
@@ -1123,8 +1123,6 @@ void TrackerTraitsGPU<nLayers>::findRoadsHybrid(const int iteration)
 {
   TrackerTraits::findRoads(iteration);
   mTimeFrameGPU->loadRoadsDevice();
-  mTimeFrameGPU->loadTrackSeedsDevice();
-  mTimeFrameGPU->loadTrackSeedsChi2Device();
 };
 
 template <int nLayers>
@@ -1136,7 +1134,7 @@ void TrackerTraitsGPU<nLayers>::findTracksHybrid(const int iteration)
                                     mTimeFrameGPU->getDeviceArrayUnsortedClusters(),  // Cluster** foundUnsortedClusters,
                                     mTimeFrameGPU->getDeviceArrayTrackingFrameInfo(), // TrackingFrameInfo** foundTrackingFrameInfo,
                                     mTimeFrameGPU->getDeviceArrayTracklets(),         // Tracklet** foundTracklets,
-                                    mTimeFrameGPU->getDeviceArrayCells(),             // Cell** foundCells,
+                                    mTimeFrameGPU->getDeviceArrayCells(),             // CellSeed** foundCells,
                                     mTimeFrameGPU->getDeviceArrayTrackSeeds(),        // o2::track::TrackParCovF** trackSeeds,
                                     mTimeFrameGPU->getDeviceArrayTrackSeedsChi2(),    // float** trackSeedsChi2,
                                     mTimeFrameGPU->getDeviceRoads(),                  // const Road<nLayers - 2>* roads,
