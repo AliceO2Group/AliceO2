@@ -347,11 +347,8 @@ void TrackerTraits::computeLayerCells(const int iteration)
           if (!good) {
             continue;
           }
-          tf->getCells()[iLayer].emplace_back(
-            currentTracklet.firstClusterIndex, nextTracklet.firstClusterIndex, nextTracklet.secondClusterIndex,
-            iTracklet, iNextTracklet);
-          tf->getCellSeeds()[iLayer].emplace_back(track);
-          tf->getCellSeedsChi2()[iLayer].emplace_back(chi2);
+          tf->getCells()[iLayer].emplace_back(iLayer, currentTracklet.firstClusterIndex, nextTracklet.firstClusterIndex, nextTracklet.secondClusterIndex,
+                                              iTracklet, iNextTracklet, track, chi2);
         }
       }
     }
@@ -403,16 +400,14 @@ void TrackerTraits::findCellsNeighbours(const int iteration)
 
     for (int iCell{0}; iCell < layerCellsNum; ++iCell) {
 
-      const Cell& currentCell{mTimeFrame->getCells()[iLayer][iCell]};
-      const auto& currentCellSeed{mTimeFrame->getCellSeeds()[iLayer][iCell]};
-      const int nextLayerTrackletIndex{currentCell.getSecondTrackletIndex()};
+      const auto& currentCellSeed{mTimeFrame->getCells()[iLayer][iCell]};
+      const int nextLayerTrackletIndex{currentCellSeed.getSecondTrackletIndex()};
       const int nextLayerFirstCellIndex{mTimeFrame->getCellsLookupTable()[iLayer][nextLayerTrackletIndex]};
       const int nextLayerLastCellIndex{mTimeFrame->getCellsLookupTable()[iLayer][nextLayerTrackletIndex + 1]};
       for (int iNextCell{nextLayerFirstCellIndex}; iNextCell < nextLayerLastCellIndex; ++iNextCell) {
 
-        Cell& nextCell{mTimeFrame->getCells()[iLayer + 1][iNextCell]};
-        auto nextCellSeed{mTimeFrame->getCellSeeds()[iLayer + 1][iNextCell]}; /// copy
-        if (nextCell.getFirstTrackletIndex() != nextLayerTrackletIndex) {
+        auto nextCellSeed{mTimeFrame->getCells()[iLayer + 1][iNextCell]}; /// copy
+        if (nextCellSeed.getFirstTrackletIndex() != nextLayerTrackletIndex) {
           break;
         }
 
@@ -433,10 +428,10 @@ void TrackerTraits::findCellsNeighbours(const int iteration)
 
         mTimeFrame->getCellsNeighboursLUT()[iLayer][iNextCell]++;
         cellsNeighbours.push_back(std::make_pair(iCell, iNextCell));
-        const int currentCellLevel{currentCell.getLevel()};
+        const int currentCellLevel{currentCellSeed.getLevel()};
 
-        if (currentCellLevel >= nextCell.getLevel()) {
-          nextCell.setLevel(currentCellLevel + 1);
+        if (currentCellLevel >= nextCellSeed.getLevel()) {
+          mTimeFrame->getCells()[iLayer + 1][iNextCell].setLevel(currentCellLevel + 1);
         }
       }
     }
@@ -460,7 +455,7 @@ void TrackerTraits::findRoads(const int iteration)
     for (int iLayer{mTrkParams[iteration].CellsPerRoad() - 1}; iLayer >= minimumLevel; --iLayer) {
       const int levelCellsNum{static_cast<int>(mTimeFrame->getCells()[iLayer].size())};
       for (int iCell{0}; iCell < levelCellsNum; ++iCell) {
-        Cell& currentCell{mTimeFrame->getCells()[iLayer][iCell]};
+        CellSeed& currentCell{mTimeFrame->getCells()[iLayer][iCell]};
         if (currentCell.getLevel() != iLevel) {
           continue;
         }
@@ -476,7 +471,7 @@ void TrackerTraits::findRoads(const int iteration)
         bool isFirstValidNeighbour = true;
         for (int iNeighbourCell{startNeighbourId}; iNeighbourCell < endNeighbourId; ++iNeighbourCell) {
           const int neighbourCellId = mTimeFrame->getCellsNeighbours()[iLayer - 1][iNeighbourCell];
-          const Cell& neighbourCell = mTimeFrame->getCells()[iLayer - 1][neighbourCellId];
+          const CellSeed& neighbourCell = mTimeFrame->getCells()[iLayer - 1][neighbourCellId];
           if (iLevel - 1 != neighbourCell.getLevel()) {
             continue;
           }
@@ -567,11 +562,8 @@ void TrackerTraits::findTracks()
       }
     }
 
-    TrackITSExt temporaryTrack{mTimeFrame->getCellSeeds()[lastCellLevel][lastCellIndex]};
-    // if (ri < 5) {
-    //   temporaryTrack.print();
-    // }
-    temporaryTrack.setChi2(mTimeFrame->getCellSeedsChi2()[lastCellLevel][lastCellIndex]);
+    TrackITSExt temporaryTrack{mTimeFrame->getCells()[lastCellLevel][lastCellIndex]};
+    temporaryTrack.setChi2(mTimeFrame->getCells()[lastCellLevel][lastCellIndex].getChi2());
     for (size_t iC = 0; iC < clusters.size(); ++iC) {
       temporaryTrack.setExternalClusterIndex(iC, clusters[iC], clusters[iC] != constants::its::UnusedIndex);
     }
@@ -971,7 +963,7 @@ track::TrackParCov TrackerTraits::buildTrackSeed(const Cluster& cluster1, const 
 
 void TrackerTraits::traverseCellsTree(const int currentCellId, const int currentLayerId)
 {
-  Cell& currentCell{mTimeFrame->getCells()[currentLayerId][currentCellId]};
+  CellSeed& currentCell{mTimeFrame->getCells()[currentLayerId][currentCellId]};
   const int currentCellLevel = currentCell.getLevel();
 
   mTimeFrame->getRoads().back().addCell(currentLayerId, currentCellId);
@@ -982,7 +974,7 @@ void TrackerTraits::traverseCellsTree(const int currentCellId, const int current
     const int endNeighbourId = mTimeFrame->getCellsNeighboursLUT()[currentLayerId - 1][currentCellId];
     for (int iNeighbourCell{startNeighbourId}; iNeighbourCell < endNeighbourId; ++iNeighbourCell) {
       const int neighbourCellId = mTimeFrame->getCellsNeighbours()[currentLayerId - 1][iNeighbourCell];
-      const Cell& neighbourCell = mTimeFrame->getCells()[currentLayerId - 1][neighbourCellId];
+      const CellSeed& neighbourCell = mTimeFrame->getCells()[currentLayerId - 1][neighbourCellId];
 
       if (currentCellLevel - 1 != neighbourCell.getLevel()) {
         continue;
