@@ -34,6 +34,7 @@
 #include "ITStracking/Road.h"
 #include "ITStracking/Tracklet.h"
 #include "ITStracking/IndexTableUtils.h"
+#include "ITStracking/ExternalAllocator.h"
 
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
@@ -69,12 +70,6 @@ struct lightVertex {
   float mAvgDistance2;
   int mContributors;
   int mTimeStamp;
-};
-
-class ExternalAllocator
-{
- public:
-  virtual void* allocate(size_t) = 0;
 };
 
 class TimeFrame
