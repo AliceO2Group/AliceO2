@@ -45,6 +45,7 @@
 #include <boost/interprocess/sync/named_semaphore.hpp>
 #include <regex>
 #include <cstdio>
+#include <string>
 
 namespace o2::ccdb
 {
@@ -434,8 +435,8 @@ string CcdbApi::getFullUrlForRetrieval(CURL* curl, const string& path, const map
 }
 
 /**
-  * Struct to store the data we will receive from the CCDB with CURL.
-  */
+ * Struct to store the data we will receive from the CCDB with CURL.
+ */
 struct MemoryStruct {
   char* memory;
   unsigned int size;
@@ -1084,7 +1085,7 @@ size_t CurlWrite_CallbackFunc_StdString2(void* contents, size_t size, size_t nme
   return size * nmemb;
 }
 
-std::string CcdbApi::list(std::string const& path, bool latestOnly, std::string const& returnFormat) const
+std::string CcdbApi::list(std::string const& path, bool latestOnly, std::string const& returnFormat, long createdNotAfter, long createdNotBefore) const
 {
   CURL* curl;
   CURLcode res = CURL_LAST;
@@ -1099,6 +1100,12 @@ std::string CcdbApi::list(std::string const& path, bool latestOnly, std::string 
     struct curl_slist* headers = nullptr;
     headers = curl_slist_append(headers, (string("Accept: ") + returnFormat).c_str());
     headers = curl_slist_append(headers, (string("Content-Type: ") + returnFormat).c_str());
+    if (createdNotAfter >= 0) {
+      headers = curl_slist_append(headers, ("If-Not-After: " + std::to_string(createdNotAfter)).c_str());
+    }
+    if (createdNotBefore >= 0) {
+      headers = curl_slist_append(headers, ("If-Not-Before: " + std::to_string(createdNotBefore)).c_str());
+    }
     curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 
     curlSetSSLOptions(curl);
@@ -1823,4 +1830,4 @@ CURLcode CcdbApi::CURL_perform(CURL* handle) const
   return result;
 }
 
-} // namespace o2
+} // namespace o2::ccdb

@@ -121,34 +121,34 @@ class CcdbApi //: public DatabaseInterface
   static std::unique_ptr<std::vector<char>> createObjectImage(const void* obj, std::type_info const& tinfo, CcdbObjectInfo* info = nullptr);
 
   /**
-     * Store into the CCDB a TFile containing the ROOT object.
-     *
-     * @param rootObject Raw pointer to the object to store.
-     * @param path The path where the object is going to be stored.
-     * @param metadata Key-values representing the metadata for this object.
-     * @param startValidityTimestamp Start of validity. If omitted, current timestamp is used.
-     * @param endValidityTimestamp End of validity. If omitted, current timestamp + 1 day is used.
-     * @return 0 -> ok,
-     *         positive number -> curl error (https://curl.se/libcurl/c/libcurl-errors.html),
-     *         -1 : object bigger than maxSize,
-     *         -2 : curl initialization error
-     */
+   * Store into the CCDB a TFile containing the ROOT object.
+   *
+   * @param rootObject Raw pointer to the object to store.
+   * @param path The path where the object is going to be stored.
+   * @param metadata Key-values representing the metadata for this object.
+   * @param startValidityTimestamp Start of validity. If omitted, current timestamp is used.
+   * @param endValidityTimestamp End of validity. If omitted, current timestamp + 1 day is used.
+   * @return 0 -> ok,
+   *         positive number -> curl error (https://curl.se/libcurl/c/libcurl-errors.html),
+   *         -1 : object bigger than maxSize,
+   *         -2 : curl initialization error
+   */
   int storeAsTFile(const TObject* rootObject, std::string const& path, std::map<std::string, std::string> const& metadata,
                    long startValidityTimestamp = -1, long endValidityTimestamp = -1, std::vector<char>::size_type maxSize = 0 /*bytes*/) const;
 
   /**
-     * Store into the CCDB a TFile containing an object of type T (which needs to have a ROOT dictionary)
-     *
-     * @param obj Raw pointer to the object to store.
-     * @param path The path where the object is going to be stored.
-     * @param metadata Key-values representing the metadata for this object.
-     * @param startValidityTimestamp Start of validity. If omitted, current timestamp is used.
-     * @param endValidityTimestamp End of validity. If omitted, current timestamp + 1 day is used.
-     * @return 0 -> ok,
-     *         positive number -> curl error (https://curl.se/libcurl/c/libcurl-errors.html),
-     *         -1 : object bigger than maxSize,
-     *         -2 : curl initialization error
-     */
+   * Store into the CCDB a TFile containing an object of type T (which needs to have a ROOT dictionary)
+   *
+   * @param obj Raw pointer to the object to store.
+   * @param path The path where the object is going to be stored.
+   * @param metadata Key-values representing the metadata for this object.
+   * @param startValidityTimestamp Start of validity. If omitted, current timestamp is used.
+   * @param endValidityTimestamp End of validity. If omitted, current timestamp + 1 day is used.
+   * @return 0 -> ok,
+   *         positive number -> curl error (https://curl.se/libcurl/c/libcurl-errors.html),
+   *         -1 : object bigger than maxSize,
+   *         -2 : curl initialization error
+   */
   template <typename T>
   int storeAsTFileAny(const T* obj, std::string const& path, std::map<std::string, std::string> const& metadata,
                       long startValidityTimestamp = -1, long endValidityTimestamp = -1, std::vector<char>::size_type maxSize = 0 /*bytes*/) const
@@ -235,7 +235,7 @@ class CcdbApi //: public DatabaseInterface
    * @param returnFormat The format of the returned string -> one of "text/plain (default)", "application/json", "text/xml"
    * @return The listing of folder and/or objects in the format requested
    */
-  std::string list(std::string const& path = "", bool latestOnly = false, std::string const& returnFormat = "text/plain") const;
+  std::string list(std::string const& path = "", bool latestOnly = false, std::string const& returnFormat = "text/plain", long createdNotAfter = -1, long createdNotBefore = -1) const;
 
   /**
    * Make a local snapshot of all valid objects, given a timestamp, of the CCDB under a given local path.
@@ -251,12 +251,12 @@ class CcdbApi //: public DatabaseInterface
   bool isHostReachable() const;
 
   /**
-  * Helper function to extract the list of sub-folders from a list reply into a vector container.
-  * Can be used to achieve full recursive traversal/listing of the CCDB.
-  *
-  * @param reply The reply that we got from a GET/browse sort of request.
-  * @return The vector of sub-folders.
-  */
+   * Helper function to extract the list of sub-folders from a list reply into a vector container.
+   * Can be used to achieve full recursive traversal/listing of the CCDB.
+   *
+   * @param reply The reply that we got from a GET/browse sort of request.
+   * @return The vector of sub-folders.
+   */
   std::vector<std::string> parseSubFolders(std::string const& reply) const;
 
   /**
@@ -581,9 +581,9 @@ class CcdbApi //: public DatabaseInterface
                      const std::string& createdNotAfter, const std::string& createdNotBefore, bool followRedirect, CurlWriteCallback writeCallback) const;
 
   /**
-  * Initialize hostsPool
-  * @param hosts string with hosts separated by "," or ";"
-  */
+   * Initialize hostsPool
+   * @param hosts string with hosts separated by "," or ";"
+   */
   void initHostsPool(std::string hosts);
 
   std::string getHostUrl(int hostIndex) const;
@@ -650,4 +650,4 @@ typename std::enable_if<std::is_base_of<o2::conf::ConfigurableParam, T>::value, 
 } // namespace ccdb
 } // namespace o2
 
-#endif //PROJECT_CCDBAPI_H
+#endif // PROJECT_CCDBAPI_H
