@@ -179,6 +179,7 @@ class TimeFrame
   int getNumberOfClusters() const;
   int getNumberOfCells() const;
   int getNumberOfTracklets() const;
+  int getNumberOfNeighbours() const;
   size_t getNumberOfTracks() const;
   size_t getNumberOfUsedClusters() const;
 
@@ -642,6 +643,14 @@ inline int TimeFrame::getNumberOfTracklets() const
     nTracklets += layer.size();
   }
   return nTracklets;
+}
+
+inline int TimeFrame::getNumberOfNeighbours() const {
+  int n{0};
+  for (auto & l : mCellsNeighbours) {
+    n += l.size();
+  }
+  return n;
 }
 
 inline size_t TimeFrame::getNumberOfTracks() const
