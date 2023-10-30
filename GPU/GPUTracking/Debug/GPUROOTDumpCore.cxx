@@ -59,6 +59,7 @@ GPUROOTDumpBase::GPUROOTDumpBase()
   }
   p->mBranches.emplace_back(this);
   if (!p->mFile) {
+    std::remove("gpudebug.root");
     p->mFile.reset(new TFile("gpudebug.root", "recreate"));
   }
   p->mFile->cd();
