@@ -87,7 +87,9 @@ void Recon::ckovAngle(o2::dataformats::MatchInfoHMP* match, const std::vector<o2
     }
 
     chId = cluster.ch();
-    // continue;
+    if (cluster.q() > 2 * fParam->qCut() || cluster.size() > 4) {
+      continue;
+    }
     double thetaCer, phiCer;
     if (findPhotCkov(cluster.x(), cluster.y(), thetaCer, phiCer)) { // find ckov angle for this  photon candidate
       fPhotCkov[fPhotCnt] = thetaCer;                               // actual theta Cerenkov (in TRS)
