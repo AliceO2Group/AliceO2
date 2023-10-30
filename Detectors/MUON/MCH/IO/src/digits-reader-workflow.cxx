@@ -46,10 +46,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cc)
 {
   bool useMC = !cc.options().get<bool>("disable-mc");
 
+  auto name = fmt::format("mch-digit-reader-{}-{}",
+                          cc.options().get<std::string>("mch-output-digits-data-description"),
+                          cc.options().get<std::string>("mch-output-digitrofs-data-description"));
+
   WorkflowSpec specs;
   specs.emplace_back(o2::mch::getDigitReaderSpec(
     useMC,
-    "mch-digit-reader",
+    name,
     cc.options().get<std::string>("mch-output-digits-data-description"),
     cc.options().get<std::string>("mch-output-digitrofs-data-description")));
 

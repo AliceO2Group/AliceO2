@@ -53,6 +53,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"enable-qc", VariantType::Bool, false, {"enable tracking QC"}},
     {"enable-pid", VariantType::Bool, false, {"Enable PID"}},
     {"enable-ph", VariantType::Bool, false, {"Enable creation of PH plots"}},
+    {"trd-digits-spec", VariantType::Int, 0, {"Input digits subspec, ignored if disable-root-input is false"}},
     {"track-sources", VariantType::String, std::string{GTrackID::ALL}, {"comma-separated list of sources to use for tracking"}},
     {"filter-trigrec", VariantType::Bool, false, {"ignore interaction records without ITS data"}},
     {"strict-matching", VariantType::Bool, false, {"High purity preliminary matching"}},
@@ -83,6 +84,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto vdexb = configcontext.options().get<bool>("enable-vdexb-calib");
   auto gain = configcontext.options().get<bool>("enable-gain-calib");
   auto pulseHeight = configcontext.options().get<bool>("enable-ph");
+  auto digitsSpec = configcontext.options().get<int>("trd-digits-spec");
   bool rootInput = !configcontext.options().get<bool>("disable-root-input");
   GTrackID::mask_t srcTRD = allowedSources & GTrackID::getSourcesMask(configcontext.options().get<std::string>("track-sources"));
   if (strict && (srcTRD & ~GTrackID::getSourcesMask("TPC")).any()) {
@@ -120,7 +122,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     if (rootInput) {
       specs.emplace_back(o2::trd::getTRDDigitReaderSpec(useMC));
     }
-    specs.emplace_back(o2::framework::getTRDPulseHeightSpec(srcTRD, rootInput));
+    specs.emplace_back(o2::framework::getTRDPulseHeightSpec(srcTRD, rootInput ? 1 : digitsSpec));
   }
 
   // output devices
