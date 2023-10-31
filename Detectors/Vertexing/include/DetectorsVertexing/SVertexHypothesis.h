@@ -87,10 +87,11 @@ class SVertexHypothesis
       idxMargin = MarginTightM;
     }
     if (mPIDV0 == PID::XiMinus || mPIDV0 == PID::OmegaMinus) { // case for cascades, antiparticles included
-      if (getSigmaV0Cascade(pt) > maxSigma) {                  // insuring that at low pt one gets reasonable width as the parametrisation function may explode to unphysical values
+      float sigmaV0Cascade = getSigmaV0Cascade(pt);
+      if (sigmaV0Cascade > maxSigma) {                  // insuring that at low pt one gets reasonable width as the parametrisation function may explode to unphysical values
         return mPars[idxNsigma] * maxSigma + mPars[idxMargin];
       } else {
-        return mPars[idxNsigma] * getSigmaV0Cascade(pt) + mPars[idxMargin];
+        return mPars[idxNsigma] * sigmaV0Cascade + mPars[idxMargin];
       }
     } else if (mPIDV0 == PID::K0 || mPIDV0 == PID::Lambda) { // case for V0s, AntiLambda is included in PID::Lambda
       return mPars[idxNsigma] * getSigmaV0Cascade(pt) + mPars[idxMargin];
