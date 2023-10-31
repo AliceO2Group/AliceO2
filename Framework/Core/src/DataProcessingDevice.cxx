@@ -2177,7 +2177,9 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
       buffer[ai] = record.isValid(ai) ? '3' : '0';
     }
     buffer[record.size()] = 0;
-    states.updateState({.id = short((int)ProcessingStateId::DATA_RELAYER_BASE + action.slot.index), (int)(record.size() + buffer - relayerSlotState), relayerSlotState});
+    states.updateState({.id = short((int)ProcessingStateId::DATA_RELAYER_BASE + action.slot.index),
+                        .size = (int)(record.size() + buffer - relayerSlotState),
+                        .data = relayerSlotState});
     uint64_t tEnd = uv_hrtime();
     // tEnd and tStart are in nanoseconds according to https://docs.libuv.org/en/v1.x/misc.html#c.uv_hrtime
     int64_t wallTimeMs = (tEnd - tStart) / 1000000;
