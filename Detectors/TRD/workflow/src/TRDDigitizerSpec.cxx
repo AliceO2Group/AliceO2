@@ -209,7 +209,7 @@ o2::framework::DataProcessorSpec getTRDDigitizerSpec(int channel, bool mctruth)
   //  algorithmic description (here a lambda getting called once to setup the actual processing function)
   //  options that can be used for this processor (here: input file names where to take the hits)
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("TRD", "DIGITS", 1, Lifetime::Timeframe);
+  outputs.emplace_back("TRD", "DIGITS", 0, Lifetime::Timeframe);
   outputs.emplace_back("TRD", "TRKTRGRD", 1, Lifetime::Timeframe);
   if (mctruth) {
     outputs.emplace_back("TRD", "LABELS", 0, Lifetime::Timeframe);

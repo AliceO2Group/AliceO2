@@ -74,7 +74,7 @@ o2::framework::DataProcessorSpec getTRDDigitWriterSpec(bool mctruth, bool inpFro
                                 "o2sim",
                                 // setting a custom callback for closing the writer
                                 MakeRootTreeWriterSpec::CustomClose(finishWriting),
-                                BranchDefinition<std::vector<o2::trd::Digit>>{InputSpec{"input", "TRD", "DIGITS", (inpFromDigitizer ? 1u : 0u)}, "TRDDigit"},
+                                BranchDefinition<std::vector<o2::trd::Digit>>{InputSpec{"input", "TRD", "DIGITS"}, "TRDDigit"},
                                 BranchDefinition<std::vector<o2::trd::TriggerRecord>>{InputSpec{"trinput", "TRD", "TRKTRGRD", (inpFromDigitizer ? 1u : 0u)}, "TriggerRecord"},
                                 std::move(labelsdef))();
 }

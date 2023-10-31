@@ -343,7 +343,7 @@ o2::framework::DataProcessorSpec getTRDTrapSimulatorSpec(bool useMC, int digitDo
   std::vector<InputSpec> inputs;
   std::vector<OutputSpec> outputs;
 
-  inputs.emplace_back("digitinput", "TRD", "DIGITS", 1);
+  inputs.emplace_back("digitinput", "TRD", "DIGITS", 0);
   inputs.emplace_back("triggerrecords", "TRD", "TRKTRGRD", 1);
 
   outputs.emplace_back("TRD", "DIGITS", 0, Lifetime::Timeframe);

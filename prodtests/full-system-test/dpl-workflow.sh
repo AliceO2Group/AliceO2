@@ -339,7 +339,7 @@ if [[ ! -z ${WORKFLOW_DETECTORS_USE_GLOBAL_READER} ]]; then
   has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-digits-reader-workflow "$DISABLE_MC --hbfutils-config o2_tfidinfo.root --infile mchdigits.root"
   has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-clusters-reader-workflow "--hbfutils-config o2_tfidinfo.root" "" 0
   has_detector MCH && has_detector_from_global_reader MCH && add_W o2-mch-preclusters-reader-workflow "--hbfutils-config o2_tfidinfo.root" "" 0
-  has_detector TRD && has_detector_from_global_reader TRD && add_W o2-trd-digit-reader-workflow "$DISABLE_MC --digit-subspec 0 --disable-trigrec --hbfutils-config o2_tfidinfo.root"
+  has_detector TRD && has_detector_from_global_reader TRD && add_W o2-trd-digit-reader-workflow "$DISABLE_MC --disable-trigrec --hbfutils-config o2_tfidinfo.root"
   has_detector TOF && has_detector_from_global_reader TOF && add_W o2-tof-reco-workflow "$DISABLE_MC --input-type digits --output-type NONE --hbfutils-config o2_tfidinfo.root"
 fi
 

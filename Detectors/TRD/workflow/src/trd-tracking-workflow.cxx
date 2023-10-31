@@ -118,9 +118,9 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
   if (pulseHeight) {
     if (rootInput) {
-      specs.emplace_back(o2::trd::getTRDDigitReaderSpec(useMC));
+      specs.emplace_back(o2::trd::getTRDDigitReaderSpec(useMC, false));
     }
-    specs.emplace_back(o2::framework::getTRDPulseHeightSpec(srcTRD, rootInput));
+    specs.emplace_back(o2::framework::getTRDPulseHeightSpec(srcTRD));
   }
 
   // output devices

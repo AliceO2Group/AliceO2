@@ -76,7 +76,7 @@ void TRDDigitReaderSpec::run(ProcessingContext& pc)
 DataProcessorSpec getTRDDigitReaderSpec(bool useMC, bool trigRec, int dataSubspec)
 {
   std::vector<OutputSpec> outputs;
-  outputs.emplace_back("TRD", "DIGITS", dataSubspec, Lifetime::Timeframe);
+  outputs.emplace_back("TRD", "DIGITS", 0, Lifetime::Timeframe);
   if (trigRec) {
     outputs.emplace_back("TRD", "TRKTRGRD", dataSubspec, Lifetime::Timeframe);
   }

@@ -91,7 +91,7 @@ class PuseHeightDevice : public o2::framework::Task
 namespace framework
 {
 
-DataProcessorSpec getTRDPulseHeightSpec(GID::mask_t src, bool digitsFromReader)
+DataProcessorSpec getTRDPulseHeightSpec(GID::mask_t src)
 {
 
   std::vector<OutputSpec> outputs;
@@ -112,7 +112,7 @@ DataProcessorSpec getTRDPulseHeightSpec(GID::mask_t src, bool digitsFromReader)
   auto dataRequest = std::make_shared<DataRequest>();
   dataRequest->requestTracks(src, false);
   dataRequest->requestClusters(srcClu, false);
-  dataRequest->inputs.emplace_back("digits", "TRD", "DIGITS", digitsFromReader ? 1 : 0);
+  dataRequest->inputs.emplace_back("digits", "TRD", "DIGITS", 0);
 
   return DataProcessorSpec{
     "trd-pulseheight",
