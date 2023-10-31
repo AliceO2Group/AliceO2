@@ -305,8 +305,6 @@ void tpc::TimeSeries::dumpToTree(TTree& tree, const char* prefix, const int nHBF
     std::vector<std::vector<float>> nTracksDCAr_C(nBins);
     std::vector<std::vector<float>> nTracksDCAz_A(nBins);
     std::vector<std::vector<float>> nTracksDCAz_C(nBins);
-    std::vector<std::vector<float>> mipdEdxRatioA(nBins);
-    std::vector<std::vector<float>> mipdEdxRatioC(nBins);
     std::vector<std::vector<float>> tpcChi2A(nBins);
     std::vector<std::vector<float>> tpcChi2C(nBins);
     std::vector<std::vector<float>> tpcNClA(nBins);
@@ -332,8 +330,6 @@ void tpc::TimeSeries::dumpToTree(TTree& tree, const char* prefix, const int nHBF
       listBranches.emplace_back(tree.Branch(fmt::format("{}mDCAr_C_NTracks_{}", prefix, brSuf).data(), &nTracksDCAr_C[i]));
       listBranches.emplace_back(tree.Branch(fmt::format("{}mDCAz_A_NTracks_{}", prefix, brSuf).data(), &nTracksDCAz_A[i]));
       listBranches.emplace_back(tree.Branch(fmt::format("{}mDCAz_C_NTracks_{}", prefix, brSuf).data(), &nTracksDCAz_C[i]));
-      listBranches.emplace_back(tree.Branch(fmt::format("{}mMIPdEdxRatioA_{}", prefix, brSuf).data(), &mipdEdxRatioA[i]));
-      listBranches.emplace_back(tree.Branch(fmt::format("{}mMIPdEdxRatioC_{}", prefix, brSuf).data(), &mipdEdxRatioC[i]));
       listBranches.emplace_back(tree.Branch(fmt::format("{}mTPCChi2A_{}", prefix, brSuf).data(), &tpcChi2A[i]));
       listBranches.emplace_back(tree.Branch(fmt::format("{}mTPCChi2C_{}", prefix, brSuf).data(), &tpcChi2C[i]));
       listBranches.emplace_back(tree.Branch(fmt::format("{}mTPCNClA_{}", prefix, brSuf).data(), &tpcNClA[i]));
@@ -358,8 +354,6 @@ void tpc::TimeSeries::dumpToTree(TTree& tree, const char* prefix, const int nHBF
       nTracksDCAr_C[i].resize(nTotPoints);
       nTracksDCAz_A[i].resize(nTotPoints);
       nTracksDCAz_C[i].resize(nTotPoints);
-      mipdEdxRatioA[i].resize(nTotPoints);
-      mipdEdxRatioC[i].resize(nTotPoints);
       tpcChi2A[i].resize(nTotPoints);
       tpcChi2C[i].resize(nTotPoints);
       tpcNClA[i].resize(nTotPoints);
@@ -397,8 +391,6 @@ void tpc::TimeSeries::dumpToTree(TTree& tree, const char* prefix, const int nHBF
         nTracksDCAr_C[i][j] = mDCAr_C_NTracks[idx];
         nTracksDCAz_A[i][j] = mDCAz_A_NTracks[idx];
         nTracksDCAz_C[i][j] = mDCAz_C_NTracks[idx];
-        mipdEdxRatioA[i][j] = mMIPdEdxRatioA[idx];
-        mipdEdxRatioC[i][j] = mMIPdEdxRatioC[idx];
         tpcChi2A[i][j] = mTPCChi2A[idx];
         tpcChi2C[i][j] = mTPCChi2C[idx];
         tpcNClA[i][j] = mTPCNClA[idx];
