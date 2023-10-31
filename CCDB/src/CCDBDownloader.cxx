@@ -371,9 +371,8 @@ void CCDBDownloader::getLocalContent(PerformData* performData, std::string& newU
 void CCDBDownloader::httpRedirect(PerformData* performData, std::string& newUrl, std::string& newLocation, CURL* easy_handle)
 {
   auto requestData = performData->requestData;
-  newUrl = requestData->hosts.at(performData->hostInd) + newLocation;
-  LOG(debug) << "Trying content location " << newUrl;
-  curl_easy_setopt(easy_handle, CURLOPT_URL, newUrl.c_str());
+  LOG(debug) << "Trying content location " << newLocation;
+  curl_easy_setopt(easy_handle, CURLOPT_URL, newLocation.c_str());
   mHandlesToBeAdded.push_back(easy_handle);
 }
 
