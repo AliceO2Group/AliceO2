@@ -40,6 +40,9 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
   void initDigitizerTask(framework::InitContext& ic) override
   {
     mDigitizer.init();
+    int emcsim = ic.options().get<int>("emcsim-option");
+    mDigitizer.setEMCsim(emcsim);
+    LOG(info) << "emcsim:" << emcsim;
   }
   void run(framework::ProcessingContext& pc)
   {
@@ -87,6 +90,9 @@ o2::framework::DataProcessorSpec getCTPDigitizerSpec(int channel, std::vector<o2
   if (std::find(detList.begin(), detList.end(), o2::detectors::DetID::FV0) != detList.end()) {
     inputs.emplace_back("fv0", "FV0", "TRIGGERINPUT", 0, Lifetime::Timeframe);
   }
+  if (std::find(detList.begin(), detList.end(), o2::detectors::DetID::EMC) != detList.end()) {
+    inputs.emplace_back("emc", "EMC", "TRIGGERINPUT", 0, Lifetime::Timeframe);
+  }
   output.emplace_back("CTP", "DIGITS", 0, Lifetime::Timeframe);
   output.emplace_back("CTP", "ROMode", 0, Lifetime::Timeframe);
   return DataProcessorSpec{
@@ -95,7 +101,8 @@ o2::framework::DataProcessorSpec getCTPDigitizerSpec(int channel, std::vector<o2
     output,
     AlgorithmSpec{adaptFromTask<CTPDPLDigitizerTask>()},
     Options{{"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}},
-            {"disable-qed", o2::framework::VariantType::Bool, false, {"disable QED handling"}}}};
+            {"disable-qed", o2::framework::VariantType::Bool, false, {"disable QED handling"}},
+            {"emcsim-option", VariantType::Int, 0, {"0 - MinBias from EMC, TVX ignored, 1 - MinBias from TVX"}}}};
 }
 } // namespace ctp
 } // namespace o2
