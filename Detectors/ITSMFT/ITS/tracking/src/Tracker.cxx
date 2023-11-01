@@ -78,9 +78,9 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::f
     total += evaluateTask(&Tracker::findCellsNeighbours, "Neighbour finding", logger, iteration);
     logger(fmt::format("\t- Number of neighbours: {}", mTimeFrame->getNumberOfNeighbours()));
     total += evaluateTask(&Tracker::findRoads, "Road finding", logger, iteration);
-    logger(fmt::format("\t- Number of Roads: {}", mTimeFrame->getRoads().size()));
-    total += evaluateTask(&Tracker::findTracks, "Track finding", logger);
     logger(fmt::format("\t- Number of Tracks: {}", mTimeFrame->getNumberOfTracks()));
+    // total += evaluateTask(&Tracker::findTracks, "Track finding", logger);
+    // logger(fmt::format("\t- Number of Tracks: {}", mTimeFrame->getNumberOfTracks()));
     total += evaluateTask(&Tracker::extendTracks, "Extending tracks", logger, iteration);
   }
 
