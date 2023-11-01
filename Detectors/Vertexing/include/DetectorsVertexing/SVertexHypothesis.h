@@ -88,7 +88,7 @@ class SVertexHypothesis
     }
     if (mPIDV0 == PID::XiMinus || mPIDV0 == PID::OmegaMinus) { // case for cascades, antiparticles included
       float sigmaV0Cascade = getSigmaV0Cascade(pt);
-      if (sigmaV0Cascade > maxSigma) {                  // insuring that at low pt one gets reasonable width as the parametrisation function may explode to unphysical values
+      if (sigmaV0Cascade > maxSigma) { // insuring that at low pt one gets reasonable width as the parametrisation function may explode to unphysical values
         return mPars[idxNsigma] * maxSigma + mPars[idxMargin];
       } else {
         return mPars[idxNsigma] * sigmaV0Cascade + mPars[idxMargin];
