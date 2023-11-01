@@ -391,6 +391,7 @@ class AODProducerWorkflowDPL : public Task
     float chi2 = 0.f;
     float pdca = 0.f;
     int nClusters = -1;
+    uint64_t mftClusterSizes = 0u;
     float chi2matchmchmid = -1.0;
     float chi2matchmchmft = -1.0;
     float matchscoremchmft = -1.0;

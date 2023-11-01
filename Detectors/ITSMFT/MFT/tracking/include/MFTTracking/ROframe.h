@@ -54,6 +54,8 @@ class ROframe
 
   std::vector<Cluster>& getClustersInLayer(Int_t layerId) { return mClusters[layerId]; }
 
+  std::vector<Int_t>& getClusterSizes() { return mClusterSizes; }
+
   const MCCompLabel& getClusterLabels(Int_t layerId, const Int_t clusterId) const { return mClusterLabels[layerId][clusterId]; }
 
   const Int_t getClusterExternalIndex(Int_t layerId, const Int_t clusterId) const { return mClusterExternalIndices[layerId][clusterId]; }
@@ -70,6 +72,7 @@ class ROframe
   }
   void addClusterLabelToLayer(Int_t layer, const MCCompLabel label) { mClusterLabels[layer].emplace_back(label); }
   void addClusterExternalIndexToLayer(Int_t layer, const Int_t idx) { mClusterExternalIndices[layer].push_back(idx); }
+  void addClusterSizeToLayer(const Int_t clusterSize) { mClusterSizes.push_back(clusterSize); }
 
   void addTrack(bool isCA = false)
   {
@@ -90,6 +93,7 @@ class ROframe
     }
     mTracks.clear();
     mRoads.clear();
+    mClusterSizes.clear();
   }
 
   const Int_t getNClustersInLayer(Int_t layerId) const { return mClusters[layerId].size(); }
@@ -100,6 +104,7 @@ class ROframe
   std::array<std::vector<Int_t>, constants::mft::LayersNumber> mClusterExternalIndices;
   std::vector<T> mTracks;
   std::vector<Road> mRoads;
+  std::vector<Int_t> mClusterSizes;
 };
 
 } // namespace mft

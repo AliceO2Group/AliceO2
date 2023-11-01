@@ -47,6 +47,7 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe<T>& event
   auto first = rof.getFirstEntry();
   auto clusters_in_frame = rof.getROFData(clusters);
   auto nClusters = clusters_in_frame.size();
+  int clusterSize = -999;
 
   bool skip_ROF = true;
   auto& trackingParam = MFTTrackingParam::Instance();
@@ -69,14 +70,18 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe<T>& event
       sigmaY2 = dict->getErr2Z(pattID); // ALPIDE local Z coordinate => MFT global Y coordinate (ALPIDE columns)
       if (!dict->isGroup(pattID)) {
         locXYZ = dict->getClusterCoordinates(c);
+        clusterSize = dict->getNpixels(pattID);
       } else {
         o2::itsmft::ClusterPattern patt(pattIt);
         locXYZ = dict->getClusterCoordinates(c, patt);
+        clusterSize = patt.getNPixels();
       }
     } else {
       o2::itsmft::ClusterPattern patt(pattIt);
       locXYZ = dict->getClusterCoordinates(c, patt, false);
+      clusterSize = patt.getNPixels();
     }
+    //std::cout << "----------------------> Cluster Size = " << clusterSize << std::endl;
     if (skip_ROF) { // Skip filtered-out ROFs after processing pattIt
       clusterId++;
       continue;
@@ -92,6 +97,7 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe<T>& event
     int phiBinIndex = tracker->getPhiBinIndex(phiCoord);
     int binIndex = tracker->getBinIndex(rBinIndex, phiBinIndex);
     event.addClusterToLayer(layer, gloXYZ.x(), gloXYZ.y(), gloXYZ.z(), phiCoord, rCoord, event.getClustersInLayer(layer).size(), binIndex, sigmaX2, sigmaY2, sensorID);
+    event.addClusterSizeToLayer(clusterSize);
     if (mcLabels) {
       event.addClusterLabelToLayer(layer, *(mcLabels->getLabels(first + clusterId).begin()));
     }

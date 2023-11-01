@@ -191,14 +191,21 @@ void TrackerDPL::run(ProcessingContext& pc)
   };
 
   // snippet to convert found tracks to final output tracks with separate cluster indices
-  auto copyTracks = [](auto& new_tracks, auto& allTracks, auto& allClusIdx) {
+  auto copyTracks = [](auto& new_tracks, auto& allTracks, auto& allClusIdx, auto& allClusterSizes) {
     for (auto& trc : new_tracks) {
       trc.setExternalClusterIndexOffset(allClusIdx.size());
       int ncl = trc.getNumberOfPoints();
       for (int ic = 0; ic < ncl; ic++) {
         auto externalClusterID = trc.getExternalClusterIndex(ic);
+        trc.setClusterSize(ic, allClusterSizes[ic]);
         allClusIdx.push_back(externalClusterID);
       }
+      std::cout << "Writing the cluster size per track = ";
+      for (int ic = 0; ic < ncl; ic++) {
+        std::cout << allClusterSizes[ic] << " , ";
+      }
+      std::cout << std::endl;
+      std::cout << "----------------------------" << std::endl;
       allTracks.emplace_back(trc);
     }
   };
@@ -252,8 +259,9 @@ void TrackerDPL::run(ProcessingContext& pc)
       for (auto& rofData : roFrameVec[i]) {
         int ntracksROF = 0, firstROFTrackEntry = allTracksMFT.size();
         tracks.swap(rofData.getTracks());
+        auto clusterSizes = rofData.getClusterSizes();
         ntracksROF = tracks.size();
-        copyTracks(tracks, allTracksMFT, allClusIdx);
+        copyTracks(tracks, allTracksMFT, allClusIdx, clusterSizes);
 
         rof->setFirstEntry(firstROFTrackEntry);
         rof->setNEntries(ntracksROF);
@@ -312,7 +320,8 @@ void TrackerDPL::run(ProcessingContext& pc)
         int ntracksROF = 0, firstROFTrackEntry = allTracksMFT.size();
         tracksL.swap(rofData.getTracks());
         ntracksROF = tracksL.size();
-        copyTracks(tracksL, allTracksMFT, allClusIdx);
+        auto clusterSizes = rofData.getClusterSizes();
+        copyTracks(tracksL, allTracksMFT, allClusIdx, clusterSizes);
         rof->setFirstEntry(firstROFTrackEntry);
         rof->setNEntries(ntracksROF);
         *rof++;

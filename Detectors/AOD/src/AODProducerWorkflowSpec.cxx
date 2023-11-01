@@ -360,6 +360,14 @@ void AODProducerWorkflowDPL::addToMFTTracksTable(mftTracksCursorType& mftTracksC
   }
   trackTime -= bcOfTimeRef * o2::constants::lhc::LHCBunchSpacingNS;
 
+  std::cout << "Final track cluster sizes : " << track.getClusterSizes() << std::endl;
+  std::cout << "Unpacked cluster size = ";
+  auto clSizeTest = track.getClusterSizes();
+  for (int i = 0; i < 10; ++i) {
+    int size = (clSizeTest >> (i * 6)) & 0x3f;
+    std::cout << size << " , ";
+  }
+  std::cout << "VALIDATION = " << track.getClusterSizes() << std::endl;
   mftTracksCursor(collisionID,
                   track.getX(),
                   track.getY(),
@@ -368,6 +376,7 @@ void AODProducerWorkflowDPL::addToMFTTracksTable(mftTracksCursorType& mftTracksC
                   truncateFloatFraction(track.getTanl(), mTrackTgl),
                   truncateFloatFraction(track.getInvQPt(), mTrack1Pt),
                   track.getNumberOfPoints(),
+                  track.getClusterSizes(),
                   truncateFloatFraction(track.getTrackChi2(), mTrackChi2),
                   truncateFloatFraction(trackTime, mTrackTime),
                   truncateFloatFraction(trackTimeRes, mTrackTimeError));
