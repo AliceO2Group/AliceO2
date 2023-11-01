@@ -71,7 +71,7 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
         case o2::detectors::DetID::EMC: {
           if (mEMCsim == 0) {
             if (inp->inputsMask.to_ullong() & detInputName2Mask["MBA"]) {
-              inpmaskcoll != std::bitset<CTP_NINPUTS>(CTP_NINPUTS - 1);
+              inpmaskcoll |= std::bitset<CTP_NINPUTS>(CTP_NINPUTS - 1);
             }
           } else {
             for (auto const& ctpinp : det2ctpinp[o2::detectors::DetID::EMC]) {
