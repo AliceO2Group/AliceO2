@@ -93,6 +93,7 @@ class CTPRunScalers
   void printFromZero(std::ostream& stream) const;
   void printClasses(std::ostream& stream) const;
   std::vector<uint32_t> getClassIndexes() const;
+  int getScalerIndexForClass(int cls) const;
   std::vector<CTPScalerRecordO2>& getScalerRecordO2() { return mScalerRecordO2; };
   int readScalers(const std::string& rawscalers);
   int convertRawToO2();
@@ -106,7 +107,9 @@ class CTPRunScalers
   int printRates();
   int printIntegrals();
   int printInputRateAndIntegral(int inp);
-  int printClassBRateAndIntegral(int icls);
+  int printClassBRateAndIntegralII(int icls);
+  int printClassBRateAndIntegral(int iclsinscalers);
+
   //
   // static constexpr uint32_t NCOUNTERS = 1052;
   // v1

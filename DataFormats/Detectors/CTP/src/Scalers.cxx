@@ -147,6 +147,24 @@ std::vector<uint32_t> CTPRunScalers::getClassIndexes() const
   }
   return indexes;
 }
+// cls counted from 0
+int CTPRunScalers::getScalerIndexForClass(int cls) const
+{
+  if (cls < 0 || cls >= 64) {
+    LOG(error) << "Class index out of range:" << cls;
+    return 255;
+  }
+  std::vector<uint32_t> clslist = getClassIndexes();
+  int i = 0;
+  for (auto const& clsl : clslist) {
+    if (cls == clsl) {
+      return i;
+    }
+    i++;
+  }
+  LOG(error) << " Class not found:" << cls;
+  return 255;
+}
 int CTPRunScalers::readScalers(const std::string& rawscalers)
 {
   LOG(info) << "Loading CTP scalers.";
@@ -553,7 +571,7 @@ int CTPRunScalers::printInputRateAndIntegral(int inp)
 }
 // Prints class before counters for lumi
 // Class counting 1..64
-int CTPRunScalers::printClassBRateAndIntegral(int icls)
+int CTPRunScalers::printClassBRateAndIntegralII(int iclsindex)
 {
   if (mScalerRecordO2.size() == 0) {
     LOG(info) << "ScalerRecord is empty, doing nothing";
@@ -561,13 +579,30 @@ int CTPRunScalers::printClassBRateAndIntegral(int icls)
   }
   double_t time0 = mScalerRecordO2[0].epochTime;
   double_t timeL = mScalerRecordO2[mScalerRecordO2.size() - 1].epochTime;
-  if (mScalerRecordO2[0].scalers.size() < icls) {
-    LOG(error) << "class number bigger than expected for this run:" << icls << "expexted smaller than:" << mScalerRecordO2[0].scalers.size();
-    return 1;
-  } else {
-    int integral = mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[icls - 1].lmBefore - mScalerRecordO2[0].scalers[icls - 1].lmBefore;
+  int iscalerindex = getScalerIndexForClass(iclsindex);
+  if (iscalerindex != 255) {
+    int integral = mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[iscalerindex].lmBefore - mScalerRecordO2[0].scalers[iscalerindex].lmBefore;
     std::cout << "Scaler Integrals for run:" << mRunNumber << " duration:" << timeL - time0;
-    std::cout << " Class " << icls << " integral:" << integral << " rate:" << integral / (timeL - time0) << std::endl;
+    std::cout << " Class index" << iclsindex << " integral:" << integral << " rate:" << integral / (timeL - time0) << std::endl;
+    return 0;
+  }
+  return 1;
+}
+// Prints class before counters for lumi
+// Scaler Index Class counting 1..64
+// getScalerIndexForClass(int cls) shpild be called before to convert class index to scaler class index
+int CTPRunScalers::printClassBRateAndIntegral(int iclsscalerindex)
+{
+  if (mScalerRecordO2.size() == 0) {
+    LOG(info) << "ScalerRecord is empty, doing nothing";
+    return 1;
+  }
+  double_t time0 = mScalerRecordO2[0].epochTime;
+  double_t timeL = mScalerRecordO2[mScalerRecordO2.size() - 1].epochTime;
+  {
+    int integral = mScalerRecordO2[mScalerRecordO2.size() - 1].scalers[iclsscalerindex - 1].lmBefore - mScalerRecordO2[0].scalers[iclsscalerindex - 1].lmBefore;
+    std::cout << "Scaler Integrals for run:" << mRunNumber << " duration:" << timeL - time0;
+    std::cout << " Class scaler index:" << iclsscalerindex << " integral:" << integral << " rate:" << integral / (timeL - time0) << std::endl;
   }
   return 0;
 }
