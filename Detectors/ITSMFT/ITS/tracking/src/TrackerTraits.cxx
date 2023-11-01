@@ -347,7 +347,7 @@ void TrackerTraits::computeLayerCells(const int iteration)
           if (!good) {
             continue;
           }
-          tf->getCells()[iLayer].emplace_back(iLayer, currentTracklet.firstClusterIndex, nextTracklet.firstClusterIndex, nextTracklet.secondClusterIndex,
+          tf->getCells()[iLayer].emplace_back(iLayer, clusId[0], clusId[1], clusId[2],
                                               iTracklet, iNextTracklet, track, chi2);
         }
       }
@@ -447,49 +447,195 @@ void TrackerTraits::findCellsNeighbours(const int iteration)
   }
 }
 
+void TrackerTraits::processNeighbours(int iLayer, int iLevel, const std::vector<CellSeed>& currentCellSeed, const std::vector<int>& currentCellId, std::vector<CellSeed>& updatedCellSeeds, std::vector<int>& updatedCellsIds)
+{
+  if (iLevel < 2 || iLayer < 1) {
+    std::cout << "Error: layer " << iLayer << " or level " << iLevel << " cannot be processed by processNeighbours" << std::endl;
+    exit(1);
+  }
+  CA_DEBUGGER(std::cout << "Processing neighbours layer " << iLayer << " level " << iLevel << ", size of the cell seeds: " << currentCellSeed.size() << std::endl);
+  updatedCellSeeds.reserve(mTimeFrame->getCellsNeighboursLUT()[iLayer - 1].size()); /// This is not the correct value, we could do a loop to count the number of neighbours
+  updatedCellsIds.reserve(updatedCellSeeds.size());
+  auto propagator = o2::base::Propagator::Instance();
+#ifdef CA_DEBUG
+  int failed[5]{0, 0, 0, 0, 0}, attempts{0}, failedByMismatch{0};
+#endif
+  for (unsigned int iCell{0}; iCell < currentCellSeed.size(); ++iCell) {
+    const CellSeed& currentCell{currentCellSeed[iCell]};
+    if (currentCell.getLevel() != iLevel) {
+      continue;
+    }
+    if (currentCellId.empty() && (mTimeFrame->isClusterUsed(iLayer, currentCell.getFirstClusterIndex()) ||
+                                  mTimeFrame->isClusterUsed(iLayer + 1, currentCell.getSecondClusterIndex()) ||
+                                  mTimeFrame->isClusterUsed(iLayer + 2, currentCell.getThirdClusterIndex()))) {
+      continue; /// this we do only on the first iteration, hence the check on currentCellId
+    }
+    const int cellId = currentCellId.empty() ? iCell : currentCellId[iCell];
+    const int startNeighbourId{cellId ? mTimeFrame->getCellsNeighboursLUT()[iLayer - 1][cellId - 1] : 0};
+    const int endNeighbourId{mTimeFrame->getCellsNeighboursLUT()[iLayer - 1][cellId]};
+
+    for (int iNeighbourCell{startNeighbourId}; iNeighbourCell < endNeighbourId; ++iNeighbourCell) {
+      CA_DEBUGGER(attempts++);
+      const int neighbourCellId = mTimeFrame->getCellsNeighbours()[iLayer - 1][iNeighbourCell];
+      const CellSeed& neighbourCell = mTimeFrame->getCells()[iLayer - 1][neighbourCellId];
+      if (neighbourCell.getSecondTrackletIndex() != currentCell.getFirstTrackletIndex()) {
+        CA_DEBUGGER(failedByMismatch++);
+        continue;
+      }
+      if (mTimeFrame->isClusterUsed(iLayer - 1, neighbourCell.getFirstClusterIndex())) {
+        continue;
+      }
+      if (currentCell.getLevel() - 1 != neighbourCell.getLevel()) {
+        CA_DEBUGGER(failed[0]++);
+        continue;
+      }
+      /// Let's start the fitting procedure
+      CellSeed seed{currentCell};
+      auto& trHit = mTimeFrame->getTrackingFrameInfoOnLayer(iLayer - 1).at(neighbourCell.getFirstClusterIndex());
+
+      if (!seed.rotate(trHit.alphaTrackingFrame)) {
+        CA_DEBUGGER(failed[1]++);
+        continue;
+      }
+
+      if (!propagator->propagateToX(seed, trHit.xTrackingFrame, getBz(), o2::base::PropagatorImpl<float>::MAX_SIN_PHI, o2::base::PropagatorImpl<float>::MAX_STEP, mCorrType)) {
+        CA_DEBUGGER(failed[2]++);
+        continue;
+      }
+
+      if (mCorrType == o2::base::PropagatorF::MatCorrType::USEMatCorrNONE) {
+        float radl = 9.36f; // Radiation length of Si [cm]
+        float rho = 2.33f;  // Density of Si [g/cm^3]
+        if (!seed.correctForMaterial(mTrkParams[0].LayerxX0[iLayer - 1], mTrkParams[0].LayerxX0[iLayer - 1] * radl * rho, true)) {
+          continue;
+        }
+      }
+
+      auto predChi2{seed.getPredictedChi2(trHit.positionTrackingFrame, trHit.covarianceTrackingFrame)};
+      if ((predChi2 > mTrkParams[0].MaxChi2ClusterAttachment) || predChi2 < 0.f) {
+        CA_DEBUGGER(failed[3]++);
+        continue;
+      }
+      seed.setChi2(seed.getChi2() + predChi2);
+      if (!seed.o2::track::TrackParCov::update(trHit.positionTrackingFrame, trHit.covarianceTrackingFrame)) {
+        CA_DEBUGGER(failed[4]++);
+        continue;
+      }
+      seed.getClusters()[iLayer - 1] = neighbourCell.getFirstClusterIndex();
+      seed.setLevel(neighbourCell.getLevel());
+      seed.setFirstTrackletIndex(neighbourCell.getFirstTrackletIndex());
+      seed.setSecondTrackletIndex(neighbourCell.getSecondTrackletIndex());
+      updatedCellsIds.push_back(neighbourCellId);
+      updatedCellSeeds.push_back(seed);
+    }
+  }
+#ifdef CA_DEBUG
+  std::cout << "\t\t- Found " << updatedCellSeeds.size() << " cell seeds out of " << attempts << " attempts" << std::endl;
+  std::cout << "\t\t\t> " << failed[0] << " failed because of level" << std::endl;
+  std::cout << "\t\t\t> " << failed[1] << " failed because of rotation" << std::endl;
+  std::cout << "\t\t\t> " << failed[2] << " failed because of propagation" << std::endl;
+  std::cout << "\t\t\t> " << failed[3] << " failed because of chi2 cut" << std::endl;
+  std::cout << "\t\t\t> " << failed[4] << " failed because of update" << std::endl;
+  std::cout << "\t\t\t> " << failedByMismatch << " failed because of mismatch" << std::endl;
+#endif
+}
+
 void TrackerTraits::findRoads(const int iteration)
 {
-  for (int iLevel{mTrkParams[iteration].CellsPerRoad()}; iLevel >= mTrkParams[iteration].CellMinimumLevel(); --iLevel) {
-    CA_DEBUGGER(int nRoads = -mTimeFrame->getRoads().size());
-    const int minimumLevel{iLevel - 1};
-    for (int iLayer{mTrkParams[iteration].CellsPerRoad() - 1}; iLayer >= minimumLevel; --iLayer) {
-      const int levelCellsNum{static_cast<int>(mTimeFrame->getCells()[iLayer].size())};
-      for (int iCell{0}; iCell < levelCellsNum; ++iCell) {
-        CellSeed& currentCell{mTimeFrame->getCells()[iLayer][iCell]};
-        if (currentCell.getLevel() != iLevel) {
-          continue;
-        }
-        mTimeFrame->getRoads().emplace_back(iLayer, iCell);
+  CA_DEBUGGER(std::cout << "Finding roads, iteration " << iteration << std::endl);
+  for (int startLevel{mTrkParams[iteration].CellsPerRoad()}; startLevel >= mTrkParams[iteration].CellMinimumLevel(); --startLevel) {
+    CA_DEBUGGER(std::cout << "\t > Processing level " << startLevel << std::endl);
+    const int minimumLayer{startLevel - 1};
+    std::vector<CellSeed> trackSeeds;
+    for (int startLayer{mTrkParams[iteration].CellsPerRoad() - 1}; startLayer >= minimumLayer; --startLayer) {
+      CA_DEBUGGER(std::cout << "\t\t > Starting processing layer " << startLayer << std::endl);
+      std::vector<int> lastCellId, updatedCellId;
+      std::vector<CellSeed> lastCellSeed, updatedCellSeed;
 
-        /// For 3 clusters roads (useful for cascades and hypertriton) we just store the single cell
-        /// and we do not do the candidate tree traversal
-        if (iLevel == 1) {
+      processNeighbours(startLayer, startLevel, mTimeFrame->getCells()[startLayer], lastCellId, updatedCellSeed, updatedCellId);
+
+      int level = startLevel;
+      for (int iLayer{startLayer - 1}; iLayer > 0 && level > 2; --iLayer) {
+        lastCellSeed.swap(updatedCellSeed);
+        lastCellId.swap(updatedCellId);
+        updatedCellSeed.clear();
+        updatedCellId.clear();
+        processNeighbours(iLayer, --level, lastCellSeed, lastCellId, updatedCellSeed, updatedCellId);
+      }
+      trackSeeds.insert(trackSeeds.end(), updatedCellSeed.begin(), updatedCellSeed.end());
+    }
+
+    std::vector<TrackITSExt> tracks;
+    tracks.reserve(trackSeeds.size());
+    for (auto& seed : trackSeeds) {
+      if (seed.getQ2Pt() > 1.e3 || seed.getChi2() > mTrkParams[0].MaxChi2NDF * ((startLevel + 2) * 2 - 5)) {
+        continue;
+      }
+      TrackITSExt temporaryTrack{seed};
+      temporaryTrack.resetCovariance();
+      temporaryTrack.setChi2(0);
+      int* clusters = seed.getClusters();
+      for (int iL{0}; iL < 7; ++iL) {
+        temporaryTrack.setExternalClusterIndex(iL, clusters[iL], clusters[iL] != constants::its::UnusedIndex);
+      }
+
+      bool fitSuccess = fitTrack(temporaryTrack, 0, mTrkParams[0].NLayers, 1, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF);
+      if (!fitSuccess) {
+        continue;
+      }
+      temporaryTrack.getParamOut() = temporaryTrack.getParamIn();
+      temporaryTrack.resetCovariance();
+      temporaryTrack.setChi2(0);
+      fitSuccess = fitTrack(temporaryTrack, mTrkParams[0].NLayers - 1, -1, -1, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF, 50.f);
+      if (!fitSuccess) {
+        continue;
+      }
+      tracks.push_back(temporaryTrack);
+    }
+
+    std::sort(tracks.begin(), tracks.end(), [](const TrackITSExt& a, const TrackITSExt& b) {
+      return a.getChi2() < b.getChi2();
+    });
+
+    for (auto& track : tracks) {
+      int nShared = 0;
+      bool isFirstShared{false};
+      for (int iLayer{0}; iLayer < mTrkParams[0].NLayers; ++iLayer) {
+        if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
           continue;
         }
-        const int startNeighbourId{iCell ? mTimeFrame->getCellsNeighboursLUT()[iLayer - 1][iCell - 1] : 0};
-        const int endNeighbourId{mTimeFrame->getCellsNeighboursLUT()[iLayer - 1][iCell]};
-        bool isFirstValidNeighbour = true;
-        for (int iNeighbourCell{startNeighbourId}; iNeighbourCell < endNeighbourId; ++iNeighbourCell) {
-          const int neighbourCellId = mTimeFrame->getCellsNeighbours()[iLayer - 1][iNeighbourCell];
-          const CellSeed& neighbourCell = mTimeFrame->getCells()[iLayer - 1][neighbourCellId];
-          if (iLevel - 1 != neighbourCell.getLevel()) {
-            continue;
-          }
-          if (isFirstValidNeighbour) {
-            isFirstValidNeighbour = false;
-          } else {
-            mTimeFrame->getRoads().emplace_back(iLayer, iCell);
-          }
-          traverseCellsTree(neighbourCellId, iLayer - 1);
-        }
-        // TODO: crosscheck for short track iterations
-        // currentCell.setLevel(0);
+        nShared += int(mTimeFrame->isClusterUsed(iLayer, track.getClusterIndex(iLayer)));
+        isFirstShared |= !iLayer && mTimeFrame->isClusterUsed(iLayer, track.getClusterIndex(iLayer));
       }
+
+      if (nShared > mTrkParams[0].ClusterSharing) {
+        continue;
+      }
+
+      std::array<int, 3> rofs{INT_MAX, INT_MAX, INT_MAX};
+      for (int iLayer{0}; iLayer < mTrkParams[0].NLayers; ++iLayer) {
+        if (track.getClusterIndex(iLayer) == constants::its::UnusedIndex) {
+          continue;
+        }
+        mTimeFrame->markUsedCluster(iLayer, track.getClusterIndex(iLayer));
+        int currentROF = mTimeFrame->getClusterROF(iLayer, track.getClusterIndex(iLayer));
+        for (int iR{0}; iR < 3; ++iR) {
+          if (rofs[iR] == INT_MAX) {
+            rofs[iR] = currentROF;
+          }
+          if (rofs[iR] == currentROF) {
+            break;
+          }
+        }
+      }
+      if (rofs[2] != INT_MAX) {
+        continue;
+      }
+      if (rofs[1] != INT_MAX) {
+        track.setNextROFbit();
+      }
+      mTimeFrame->getTracks(std::min(rofs[0], rofs[1])).emplace_back(track);
     }
-#ifdef CA_DEBUG
-    nRoads += mTimeFrame->getRoads().size();
-    std::cout << "+++ Roads with " << iLevel + 2 << " clusters: " << nRoads << " / " << mTimeFrame->getRoads().size() << std::endl;
-#endif
   }
 }
 

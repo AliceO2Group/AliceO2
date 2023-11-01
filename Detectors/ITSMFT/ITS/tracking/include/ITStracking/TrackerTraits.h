@@ -67,6 +67,7 @@ class TrackerTraits
   virtual void findShortPrimaries();
   virtual void setBz(float bz);
   virtual bool trackFollowing(TrackITSExt* track, int rof, bool outward, const int iteration);
+  virtual void processNeighbours(int iLayer, int iLevel, const std::vector<CellSeed>& currentCellSeed, const std::vector<int>& currentCellId, std::vector<CellSeed>& updatedCellSeed, std::vector<int>& updatedCellId);
 
   void UpdateTrackingParameters(const std::vector<TrackingParameters>& trkPars);
   TimeFrame* getTimeFrame() { return mTimeFrame; }
