@@ -97,6 +97,7 @@ class AlpideCoder
   //
   // flags for data records
   static constexpr uint32_t REGION = 0xc0;      // flag for region
+  static constexpr uint32_t REGION_MASK = 0xe0; // mask for detecting the region
   static constexpr uint32_t CHIPHEADER = 0xa0;  // flag for chip header
   static constexpr uint32_t CHIPTRAILER = 0xb0; // flag for chip trailer
   static constexpr uint32_t CHIPEMPTY = 0xe0;   // flag for empty chip
@@ -161,6 +162,21 @@ class AlpideCoder
     while (buffer.next(dataC)) {
       //
       LOGP(debug, "dataC: {:#x} expect {:#b}", int(dataC), int(expectInp));
+
+      // Busy ON / OFF can appear at any point of the data stream, checking it with priority
+      if (dataC == BUSYON) {
+#ifdef ALPIDE_DECODING_STAT
+        chipData.setError(ChipStat::BusyOn);
+#endif
+        continue;
+      }
+      if (dataC == BUSYOFF) {
+#ifdef ALPIDE_DECODING_STAT
+        chipData.setError(ChipStat::BusyOff);
+#endif
+        continue;
+      }
+
       // ---------- chip info ?
       uint8_t dataCM = dataC & (~MaskChipID);
       //
@@ -191,7 +207,7 @@ class AlpideCoder
       }
 
       // region info ?
-      if ((expectInp & ExpectRegion) && (dataC & REGION) == REGION) { // chip header was seen, or hit data read
+      if ((expectInp & ExpectRegion) && (dataC & REGION_MASK) == REGION) { // chip header was seen, or hit data read
         region = dataC & MaskRegion;
         expectInp = ExpectData;
         continue;
@@ -342,19 +358,6 @@ class AlpideCoder
         }
         expectInp = ExpectChipTrailer | ExpectData | ExpectRegion;
         continue; // end of DATA(SHORT or LONG) processing
-      }
-
-      if (dataC == BUSYON) {
-#ifdef ALPIDE_DECODING_STAT
-        chipData.setError(ChipStat::BusyOn);
-#endif
-        continue;
-      }
-      if (dataC == BUSYOFF) {
-#ifdef ALPIDE_DECODING_STAT
-        chipData.setError(ChipStat::BusyOff);
-#endif
-        continue;
       }
 
       if (!dataC) {
