@@ -129,7 +129,7 @@ void Alice3Pipe::ConstructGeometry()
     }
 
     // Escavate vacuum for hosting cold plate
-    TGeoTube* coldPlate = new TGeoTube("TRK_COLDPLATEsh", 2.6f, 2.6f + 150.e-3, 50.f);
+    TGeoTube* coldPlate = new TGeoTube("TRK_COLDPLATEsh", 2.6f, 2.6f + 150.e-3, 50.f / 2);
     subtractorsFormula += "+TRK_COLDPLATEsh";
 
     LOG(info) << "Subtractors formula before : " << subtractorsFormula;
