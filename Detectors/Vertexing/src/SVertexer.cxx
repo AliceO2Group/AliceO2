@@ -569,10 +569,12 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   }
   // check tight lambda mass only
   bool goodLamForCascade = false, goodALamForCascade = false;
-  if (mV0Hyps[Lambda].checkTight(p2Pos, p2Neg, p2V0, ptV0))
+  if (mV0Hyps[Lambda].checkTight(p2Pos, p2Neg, p2V0, ptV0)) {
     goodLamForCascade = true;
-  if (mV0Hyps[AntiLambda].checkTight(p2Pos, p2Neg, p2V0, ptV0))
+  }
+  if (mV0Hyps[AntiLambda].checkTight(p2Pos, p2Neg, p2V0, ptV0)) {
     goodALamForCascade = true;
+  }
 
   // apply mass selections for 3-body decay
   bool good3bodyV0Hyp = false;
