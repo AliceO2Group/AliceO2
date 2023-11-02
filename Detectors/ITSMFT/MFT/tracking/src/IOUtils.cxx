@@ -81,7 +81,7 @@ int ioutils::loadROFrameData(const o2::itsmft::ROFRecord& rof, ROframe<T>& event
       locXYZ = dict->getClusterCoordinates(c, patt, false);
       clusterSize = patt.getNPixels();
     }
-    //std::cout << "----------------------> Cluster Size = " << clusterSize << std::endl;
+    // std::cout << "----------------------> Cluster Size = " << clusterSize << std::endl;
     if (skip_ROF) { // Skip filtered-out ROFs after processing pattIt
       clusterId++;
       continue;
