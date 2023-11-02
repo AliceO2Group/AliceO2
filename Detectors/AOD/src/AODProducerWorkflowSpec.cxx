@@ -1128,14 +1128,17 @@ void AODProducerWorkflowDPL::fillMCTrackLabelsTable(MCTrackLabelCursorType& mcTr
 
   // filling the tables with the strangeness tracking labels
   auto sTrackLabels = data.getStrangeTracksMCLabels();
-  mcTrackLabelCursor.reserve(mVertexStrLUT[vertexId + 1] + mcTrackLabelCursor.lastIndex());
-  for (int iS{mVertexStrLUT[vertexId]}; iS < mVertexStrLUT[vertexId + 1]; ++iS) {
-    auto& collStrTrk = mCollisionStrTrk[iS];
-    auto& label = sTrackLabels[collStrTrk.second];
-    MCLabels labelHolder;
-    labelHolder.labelID = label.isValid() ? (*mToStore[label.getSourceID()][label.getEventID()])[label.getTrackID()] : -1;
-    labelHolder.labelMask = (label.isFake() << 15) | (label.isNoise() << 14);
-    mcTrackLabelCursor(labelHolder.labelID, labelHolder.labelMask);
+  // check if vertexId and vertexId + 1 maps into mVertexStrLUT
+  if (!(vertexId < 0 || vertexId >= mVertexStrLUT.size() - 1)) {
+    mcTrackLabelCursor.reserve(mVertexStrLUT[vertexId + 1] + mcTrackLabelCursor.lastIndex());
+    for (int iS{mVertexStrLUT[vertexId]}; iS < mVertexStrLUT[vertexId + 1]; ++iS) {
+      auto& collStrTrk = mCollisionStrTrk[iS];
+      auto& label = sTrackLabels[collStrTrk.second];
+      MCLabels labelHolder;
+      labelHolder.labelID = label.isValid() ? (*mToStore[label.getSourceID()][label.getEventID()])[label.getTrackID()] : -1;
+      labelHolder.labelMask = (label.isFake() << 15) | (label.isNoise() << 14);
+      mcTrackLabelCursor(labelHolder.labelID, labelHolder.labelMask);
+    }
   }
 }
 
