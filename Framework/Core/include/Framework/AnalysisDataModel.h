@@ -267,7 +267,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(ITSClusterMap, itsClusterMap, //! ITS cluster map, on
                              return clmap;
                            });
 DECLARE_SOA_DYNAMIC_COLUMN(ITSNCls, itsNCls, //! Number of ITS clusters
-                           [](uint8_t itsClusterSizes) -> uint8_t {
+                           [](uint32_t itsClusterSizes) -> uint8_t {
                              uint8_t itsNcls = 0;
                              for (int layer = 0; layer < 7; layer++) {
                                if ((itsClusterSizes >> (layer * 4)) & 0xf)
@@ -276,7 +276,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(ITSNCls, itsNCls, //! Number of ITS clusters
                              return itsNcls;
                            });
 DECLARE_SOA_DYNAMIC_COLUMN(ITSNClsInnerBarrel, itsNClsInnerBarrel, //! Number of ITS clusters in the Inner Barrel
-                           [](uint8_t itsClusterSizes) -> uint8_t {
+                           [](uint32_t itsClusterSizes) -> uint8_t {
                              uint8_t itsNclsInnerBarrel = 0;
                              for (int layer = 0; layer < 3; layer++) {
                                if ((itsClusterSizes >> (layer * 4)) & 0xf)
@@ -473,8 +473,8 @@ DECLARE_SOA_EXTENDED_TABLE(TracksExtra_000, StoredTracksExtra_000, "TRACKEXTRA",
 DECLARE_SOA_EXTENDED_TABLE(TracksExtra_001, StoredTracksExtra_001, "TRACKEXTRA", //! Additional track information (clusters, PID, etc.)
                            track::v001::DetectorMap);
 
-using StoredTracksExtra = StoredTracksExtra_000;
-using TracksExtra = TracksExtra_000;
+using StoredTracksExtra = StoredTracksExtra_001;
+using TracksExtra = TracksExtra_001;
 
 using Track = Tracks::iterator;
 using TrackIU = TracksIU::iterator;

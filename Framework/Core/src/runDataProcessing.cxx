@@ -129,6 +129,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <execinfo.h>
+#include <cfenv>
 // This is to allow C++20 aggregate initialisation
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wpedantic"
@@ -593,7 +594,13 @@ void handle_crash(int sig)
     } else if (sig == SIGILL) {
       msg = "ILLEGAL INSTRUCTION\n";
     } else if (sig == SIGFPE) {
-      msg = "FLOATING POINT EXCEPTION\n";
+      if (std::fetestexcept(FE_DIVBYZERO)) {
+        msg = "FLOATING POINT EXCEPTION (DIVISION BY ZERO)\n";
+      } else if (std::fetestexcept(FE_INVALID)) {
+        msg = "FLOATING POINT EXCEPTION (INVALID RESULT)\n";
+      } else {
+        msg = "FLOATING POINT EXCEPTION (UNKNOWN REASON)\n";
+      }
     }
     retVal = write(STDERR_FILENO, msg, strlen(msg));
     (void)retVal;
@@ -1145,6 +1152,7 @@ std::vector<std::regex> getDumpableMetrics()
   dumpableMetrics.emplace_back("^table-bytes-.*");
   dumpableMetrics.emplace_back("^total-timeframes.*");
   dumpableMetrics.emplace_back("^device_state.*");
+  dumpableMetrics.emplace_back("^total_wall_time_ms$");
   return dumpableMetrics;
 }
 
@@ -1417,6 +1425,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
 
   uv_timer_t metricDumpTimer;
   metricDumpTimer.data = &serverContext;
+  bool allChildrenGone = false;
+  guiContext.allChildrenGone = &allChildrenGone;
 
   while (true) {
     // If control forced some transition on us, we push it to the queue.
@@ -2086,7 +2096,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         driverInfo.sigchldRequested = false;
         processChildrenOutput(driverInfo, infos, runningWorkflow.devices, controls);
         hasError = processSigChild(infos, runningWorkflow.devices);
-        bool allChildrenGone = areAllChildrenGone(infos);
+        allChildrenGone = areAllChildrenGone(infos);
         bool canExit = checkIfCanExit(infos);
         bool supposedToQuit = (guiQuitRequested || canExit || graceful_exit);
 

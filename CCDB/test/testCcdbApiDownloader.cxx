@@ -27,6 +27,9 @@
 #include <boost/asio/ip/host_name.hpp>
 #include <uv.h>
 
+#include <boost/algorithm/string.hpp>
+#include "MemoryResources/MemoryResources.h"
+
 using namespace std;
 
 namespace o2
@@ -69,6 +72,110 @@ CURL* createTestHandle(std::string* dst)
   auto userAgent = uniqueAgentID();
   curl_easy_setopt(handle, CURLOPT_USERAGENT, userAgent.c_str());
   return handle;
+}
+
+namespace
+{
+template <typename MapType = std::map<std::string, std::string>>
+size_t header_map_callback(char* buffer, size_t size, size_t nitems, void* userdata)
+{
+  auto* headers = static_cast<MapType*>(userdata);
+  auto header = std::string(buffer, size * nitems);
+  std::string::size_type index = header.find(':', 0);
+  if (index != std::string::npos) {
+    const auto key = boost::algorithm::trim_copy(header.substr(0, index));
+    const auto value = boost::algorithm::trim_copy(header.substr(index + 1));
+    headers->insert(std::make_pair(key, value));
+  }
+  return size * nitems;
+}
+} // namespace
+
+size_t writeCallbackNoLambda(void* contents, size_t size, size_t nmemb, void* chunkptr)
+{
+  auto& ho = *static_cast<HeaderObjectPair_t*>(chunkptr);
+  auto& chunk = *ho.object;
+  size_t realsize = size * nmemb, sz = 0;
+  ho.counter++;
+  try {
+    if (chunk.capacity() < chunk.size() + realsize) {
+      auto cl = ho.header.find("Content-Length");
+      if (cl != ho.header.end()) {
+        sz = std::max(chunk.size() + realsize, (size_t)std::stol(cl->second));
+      } else {
+        sz = chunk.size() + realsize;
+        // LOGP(debug, "SIZE IS NOT IN HEADER, allocate {}", sz);
+      }
+      chunk.reserve(sz);
+    }
+    char* contC = (char*)contents;
+    chunk.insert(chunk.end(), contC, contC + realsize);
+  } catch (std::exception e) {
+    // LOGP(alarm, "failed to reserve {} bytes in CURL write callback (realsize = {}): {}", sz, realsize, e.what());
+    realsize = 0;
+  }
+  return realsize;
+}
+
+std::vector<CURL*> prepareAsyncHandles(size_t num, std::vector<o2::pmr::vector<char>*>& dests)
+{
+  std::vector<CURL*> handles;
+
+  for (int i = 0; i < num; i++) {
+    auto dest = new o2::pmr::vector<char>();
+    dests.push_back(dest);
+    CURL* curl_handle = curl_easy_init();
+    handles.push_back(curl_handle);
+
+    auto data = new DownloaderRequestData();
+    data->hoPair.object = dest;
+    data->hosts.push_back("http://ccdb-test.cern.ch:8080");
+    data->path = "Analysis/ALICE3/Centrality";
+    data->timestamp = 1646729604010;
+    data->localContentCallback = nullptr;
+
+    curl_easy_setopt(curl_handle, CURLOPT_URL, "http://ccdb-test.cern.ch:8080/Analysis/ALICE3/Centrality/1646729604010");
+    curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, writeCallbackNoLambda);
+    curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void*)&(data->hoPair));
+
+    curl_easy_setopt(curl_handle, CURLOPT_HEADERFUNCTION, header_map_callback<decltype(data->hoPair.header)>);
+    curl_easy_setopt(curl_handle, CURLOPT_HEADERDATA, (void*)&(data->hoPair.header));
+    curl_easy_setopt(curl_handle, CURLOPT_PRIVATE, (void*)data);
+  }
+  return handles;
+}
+
+BOOST_AUTO_TEST_CASE(asynch_schedule_test)
+{
+  int TRANSFERS = 5;
+
+  if (curl_global_init(CURL_GLOBAL_ALL)) {
+    fprintf(stderr, "Could not init curl\n");
+    return;
+  }
+
+  CCDBDownloader downloader;
+  std::vector<o2::pmr::vector<char>*> dests;
+  auto handles = prepareAsyncHandles(TRANSFERS, dests);
+  size_t transfersLeft = 0;
+
+  for (auto handle : handles) {
+    downloader.asynchSchedule(handle, &transfersLeft);
+  }
+
+  while (transfersLeft > 0) {
+    downloader.runLoop(0);
+  }
+
+  for (int i = 0; i < TRANSFERS; i++) {
+    long httpCode;
+    curl_easy_getinfo(handles[i], CURLINFO_HTTP_CODE, &httpCode);
+    BOOST_CHECK(httpCode == 200);
+    BOOST_CHECK(dests[i]->size() != 0);
+    curl_easy_cleanup(handles[i]);
+    delete dests[i];
+  }
+  curl_global_cleanup();
 }
 
 BOOST_AUTO_TEST_CASE(perform_test)

@@ -97,7 +97,7 @@ std::tuple<float, float, float, unsigned int> o2::tpc::RobustAverage::filterPoin
   // 8. weighted mean
   const auto upperW = mWeights.begin() + indexUp;
   const auto lowerW = mWeights.begin() + indexLow;
-  const float wMean = getWeightedMean(lower, upper, lowerW, upperW);
+  const float wMean = mUseWeights ? getWeightedMean(lower, upper, lowerW, upperW) : getMean(lower, upper);
 
   // 9. number of points passing the cuts
   const int nEntries = indexUp - indexLow;
@@ -107,26 +107,30 @@ std::tuple<float, float, float, unsigned int> o2::tpc::RobustAverage::filterPoin
 
 void o2::tpc::RobustAverage::sort()
 {
-  const size_t nVals = mValues.size();
-  if (mValues.size() != mWeights.size()) {
-    LOGP(warning, "values and errors haave different size");
-    return;
-  }
-  std::vector<std::size_t> tmpIdx(nVals);
-  std::iota(tmpIdx.begin(), tmpIdx.end(), 0);
-  std::sort(tmpIdx.begin(), tmpIdx.end(), [&](std::size_t i, std::size_t j) { return (mValues[i] < mValues[j]); });
+  if (mUseWeights) {
+    const size_t nVals = mValues.size();
+    if (mValues.size() != mWeights.size()) {
+      LOGP(warning, "values and errors haave different size");
+      return;
+    }
+    std::vector<std::size_t> tmpIdx(nVals);
+    std::iota(tmpIdx.begin(), tmpIdx.end(), 0);
+    std::sort(tmpIdx.begin(), tmpIdx.end(), [&](std::size_t i, std::size_t j) { return (mValues[i] < mValues[j]); });
 
-  std::vector<float> mValues_tmp;
-  std::vector<float> mWeights_tmp;
-  mValues_tmp.reserve(nVals);
-  mWeights_tmp.reserve(nVals);
-  for (int i = 0; i < nVals; ++i) {
-    const int idx = tmpIdx[i];
-    mValues_tmp.emplace_back(mValues[idx]);
-    mWeights_tmp.emplace_back(mWeights[idx]);
+    std::vector<float> mValues_tmp;
+    std::vector<float> mWeights_tmp;
+    mValues_tmp.reserve(nVals);
+    mWeights_tmp.reserve(nVals);
+    for (int i = 0; i < nVals; ++i) {
+      const int idx = tmpIdx[i];
+      mValues_tmp.emplace_back(mValues[idx]);
+      mWeights_tmp.emplace_back(mWeights[idx]);
+    }
+    mValues.swap(mValues_tmp);
+    mWeights.swap(mWeights_tmp);
+  } else {
+    std::sort(mValues.begin(), mValues.end());
   }
-  mValues.swap(mValues_tmp);
-  mWeights.swap(mWeights_tmp);
 }
 
 float o2::tpc::RobustAverage::getStdDev(const float mean, std::vector<float>::const_iterator begin, std::vector<float>::const_iterator end)
@@ -189,5 +193,47 @@ void o2::tpc::RobustAverage::clear()
 void o2::tpc::RobustAverage::addValue(const float value, const float weight)
 {
   mValues.emplace_back(value);
-  mWeights.emplace_back(weight);
+  if (mUseWeights) {
+    mWeights.emplace_back(weight);
+  }
+}
+
+float o2::tpc::RobustAverage::getTrunctedMean(float low, float high)
+{
+  if (low >= high) {
+    LOGP(warning, "low {} should be higher than high {}", low, high);
+    return 0;
+  }
+
+  sort();
+  const int startInd = static_cast<int>(low * mValues.size());
+  const int endInd = static_cast<int>(high * mValues.size());
+  if (endInd <= startInd) {
+    return 0;
+  }
+  return getMean(mValues.begin() + startInd, mValues.begin() + endInd);
+}
+
+float o2::tpc::RobustAverage::getQuantile(float quantile, int type)
+{
+  // see: https://numpy.org/doc/stable/reference/generated/numpy.quantile.html
+  if (mValues.empty() || (quantile > 1) || (quantile < 0)) {
+    return -1;
+  }
+  sort();
+  // calculate index
+  const int n = mValues.size();
+  const float vIdx = type ? (quantile * (n + 1 / 3.) - 2 / 3.) : (quantile * (n - 1));
+  const int idxL = vIdx;
+  const float frac = vIdx - idxL;
+  // no interpolation required in case index is matched or left index equals to last entry in values
+  if ((frac == 0) || (idxL >= mValues.size() - 1)) {
+    return mValues[idxL];
+  }
+  // right index
+  const int idxR = idxL + 1;
+
+  // linear interpolation between left and right index
+  const float val = mValues[idxL] + (mValues[idxR] - mValues[idxL]) * frac;
+  return val;
 }

@@ -158,7 +158,6 @@ o2_add_library(Framework
                                      O2::Headers
                                      O2::MemoryResources
                                      O2::PCG
-                                     ROOT::Tree
                                      RapidJSON::RapidJSON
                                      Arrow::arrow_shared
                                      Microsoft.GSL::GSL
@@ -275,11 +274,15 @@ o2_add_test(O2DatabasePDG NAME test_Framework_test_O2DatabasePDG
             LABELS framework
             PUBLIC_LINK_LIBRARIES O2::Framework O2::FrameworkPhysicsSupport)
 
-o2_add_test(Root2ArrowTable NAME test_Framework_test_Root2ArrowTable
-            SOURCES test/test_Root2ArrowTable.cxx
-            COMPONENT_NAME Framework
-            LABELS framework
-            PUBLIC_LINK_LIBRARIES O2::Framework ROOT::ROOTDataFrame)
+# All the tests which require ROOT to work
+add_executable(o2-test-framework-root
+               test/test_Root2ArrowTable.cxx
+               )
+target_link_libraries(o2-test-framework-root PRIVATE O2::Framework)
+target_link_libraries(o2-test-framework-root PRIVATE O2::Catch2)
+target_link_libraries(o2-test-framework-root PRIVATE ROOT::ROOTDataFrame)
+set_property(TARGET o2-test-framework-root PROPERTY RUNTIME_OUTPUT_DIRECTORY ${outdir})
+add_test(NAME framework:root COMMAND o2-test-framework-root --skip-benchmarks)
 
 o2_add_test(InfoLogger NAME test_Framework_test_InfoLogger
             SOURCES test/test_InfoLogger.cxx

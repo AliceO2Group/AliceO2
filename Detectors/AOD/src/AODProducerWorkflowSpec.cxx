@@ -319,7 +319,7 @@ void AODProducerWorkflowDPL::addToTracksExtraTable(TracksExtraCursorType& tracks
   // extra
   tracksExtraCursor(truncateFloatFraction(extraInfoHolder.tpcInnerParam, mTrack1Pt),
                     extraInfoHolder.flags,
-                    extraInfoHolder.itsClusterMap,
+                    extraInfoHolder.itsClusterSizes,
                     extraInfoHolder.tpcNClsFindable,
                     extraInfoHolder.tpcNClsFindableMinusFound,
                     extraInfoHolder.tpcNClsFindableMinusCrossedRows,
@@ -2370,14 +2370,14 @@ AODProducerWorkflowDPL::TrackExtraInfo AODProducerWorkflowDPL::processBarrelTrac
     int nClusters = itsTrack.getNClusters();
     float chi2 = itsTrack.getChi2();
     extraInfoHolder.itsChi2NCl = nClusters != 0 ? chi2 / (float)nClusters : 0;
-    extraInfoHolder.itsClusterMap = itsTrack.getPattern();
+    extraInfoHolder.itsClusterSizes = itsTrack.getClusterSizes();
     if (src == GIndex::ITS) { // standalone ITS track should set its time from the ROF
       const auto& rof = data.getITSTracksROFRecords()[mITSROFs[trackIndex.getIndex()]];
       double t = rof.getBCData().differenceInBC(mStartIR) * o2::constants::lhc::LHCBunchSpacingNS + mITSROFrameHalfLengthNS;
       setTrackTime(t, mITSROFrameHalfLengthNS, false);
     }
   } else if (contributorsGID[GIndex::Source::ITSAB].isIndexSet()) { // this is an ITS-TPC afterburner contributor
-    extraInfoHolder.itsClusterMap = data.getITSABRefs()[contributorsGID[GIndex::Source::ITSAB].getIndex()].pattern;
+    extraInfoHolder.itsClusterSizes = data.getITSABRefs()[contributorsGID[GIndex::Source::ITSAB].getIndex()].getClusterSizes();
   }
   if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
     const auto& tpcOrig = data.getTPCTrack(contributorsGID[GIndex::TPC]);

@@ -927,9 +927,7 @@ TH3F painter::convertCalDetToTH3(const std::vector<CalDet<DataT>>& calDet, const
           const int binRBottomStart = std::clamp(histConvSum.GetYaxis()->FindBin(radiusPadCoord[0]) - 1, 1, nRBins);
           const int binRTopEnd = std::clamp(histConvSum.GetYaxis()->FindBin(radiusPadCoord[1]) + 1, 1, nRBins);
           int binPhiStart = std::min(histConvSum.GetXaxis()->FindBin(phiPadCoord[0]), histConvSum.GetXaxis()->FindBin(phiPadCoord[1]));
-          std::clamp(binPhiStart - 1, 1, nPhiBins);
           int binPhiEnd = std::max(histConvSum.GetXaxis()->FindBin(phiPadCoord[2]), histConvSum.GetXaxis()->FindBin(phiPadCoord[3]));
-          std::clamp(binPhiEnd + 1, 1, nPhiBins);
 
           // define boost geoemtry object
           polygon geoPad;

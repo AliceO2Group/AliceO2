@@ -30,18 +30,12 @@ void Tracking::init()
 
 void Tracking::setInput(const o2::globaltracking::RecoContainer& input)
 {
-  // mRecoCont = &input;
   mTracksTPC = input.getTPCTracks();
   mTracksITSTPC = input.getTPCITSTracks();
   mTracksITSTPCTRD = input.getITSTPCTRDTracks<TrackTRD>();
   mTracksTPCTRD = input.getTPCTRDTracks<TrackTRD>();
   mTrackletsRaw = input.getTRDTracklets();
   mTrackletsCalib = input.getTRDCalibratedTracklets();
-  if (mTracksTPC.size() > 0) {
-    LOG(info) << "Checking first TPC track";
-    auto trk = mTracksTPC[0];
-    LOG(info) << "Track has X of " << trk.getX();
-  }
 }
 
 void Tracking::run()

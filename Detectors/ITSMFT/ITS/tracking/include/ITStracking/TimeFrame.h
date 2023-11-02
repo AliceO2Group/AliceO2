@@ -34,14 +34,20 @@
 #include "ITStracking/Road.h"
 #include "ITStracking/Tracklet.h"
 #include "ITStracking/IndexTableUtils.h"
+#include "ITStracking/ExternalAllocator.h"
 
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 
 #include "ReconstructionDataFormats/Vertex.h"
+#include "DetectorsBase/Propagator.h"
 
 namespace o2
 {
+namespace gpu
+{
+class GPUChainITS;
+}
 
 namespace itsmft
 {
@@ -69,6 +75,7 @@ struct lightVertex {
 class TimeFrame
 {
  public:
+  friend class TimeFrameGPU;
   TimeFrame(int nLayers = 7);
   const Vertex& getPrimaryVertex(const int) const;
   gsl::span<const Vertex> getPrimaryVertices(int tf) const;
@@ -92,7 +99,7 @@ class TimeFrame
 
   int getTotalClusters() const;
   bool empty() const;
-
+  bool isGPU() const { return mIsGPU; }
   int getSortedIndex(int rof, int layer, int i) const;
   int getSortedStartIndex(const int, const int) const;
   int getNrof() const;
@@ -151,9 +158,7 @@ class TimeFrame
   std::vector<std::vector<Cluster>>& getClusters();
   std::vector<std::vector<Cluster>>& getUnsortedClusters();
   int getClusterROF(int iLayer, int iCluster);
-  std::vector<std::vector<Cell>>& getCells();
-  std::vector<std::vector<o2::track::TrackParCovF>>& getCellSeeds();
-  std::vector<std::vector<float>>& getCellSeedsChi2() { return mCellSeedsChi2; }
+  std::vector<std::vector<CellSeed>>& getCells();
 
   std::vector<std::vector<int>>& getCellsLookupTable();
   std::vector<std::vector<int>>& getCellsNeighbours();
@@ -167,6 +172,7 @@ class TimeFrame
   int getNumberOfClusters() const;
   int getNumberOfCells() const;
   int getNumberOfTracklets() const;
+  int getNumberOfNeighbours() const;
   size_t getNumberOfTracks() const;
   size_t getNumberOfUsedClusters() const;
 
@@ -202,6 +208,20 @@ class TimeFrame
   void setBz(float bz) { mBz = bz; }
   float getBz() const { return mBz; }
 
+  void setExternalAllocator(ExternalAllocator* allocator)
+  {
+    if (mIsGPU) {
+      LOGP(debug, "Setting timeFrame allocator to external");
+      mAllocator = allocator;
+      mExtAllocator = true; // to be removed
+    } else {
+      LOGP(debug, "External allocator is currently only supported for GPU");
+    }
+  }
+
+  virtual void setDevicePropagator(const o2::base::PropagatorImpl<float>*){};
+  const o2::base::PropagatorImpl<float>* getDevicePropagator() const { return mPropagatorDevice; }
+
   template <typename... T>
   void addClusterToLayer(int layer, T&&... args);
   template <typename... T>
@@ -223,6 +243,9 @@ class TimeFrame
   IndexTableUtils mIndexTableUtils;
 
   bool mIsGPU = false;
+  // void setChain(o2::gpu::GPUChainITS*);
+  void setExtAllocator(bool ext) { mExtAllocator = ext; }
+  bool getExtAllocator() const { return mExtAllocator; }
   std::vector<std::vector<Cluster>> mClusters;
   std::vector<std::vector<TrackingFrameInfo>> mTrackingFrameInfo;
   std::vector<std::vector<int>> mClusterExternalIndices;
@@ -237,6 +260,18 @@ class TimeFrame
   std::vector<int> mROframesPV = {0};
   std::vector<Vertex> mPrimaryVertices;
 
+  // State if memory will be externally managed.
+  bool mExtAllocator = false;
+  ExternalAllocator* mAllocator = nullptr;
+  std::vector<std::vector<Cluster>> mUnsortedClusters;
+  std::vector<std::vector<Tracklet>> mTracklets;
+  std::vector<std::vector<CellSeed>> mCells;
+  std::vector<std::vector<o2::track::TrackParCovF>> mCellSeeds;
+  std::vector<std::vector<float>> mCellSeedsChi2;
+  std::vector<Road<5>> mRoads;
+  std::vector<std::vector<TrackITSExt>> mTracks;
+
+  const o2::base::PropagatorImpl<float>* mPropagatorDevice = nullptr; // Needed only for GPU
  private:
   float mBz = 5.;
   int mBeamPosWeight = 0;
@@ -250,21 +285,13 @@ class TimeFrame
   std::vector<uint8_t> mClusterSize;
   std::vector<bool> mMultiplicityCutMask;
   std::vector<std::array<float, 2>> mPValphaX; /// PV x and alpha for track propagation
-  std::vector<std::vector<Cluster>> mUnsortedClusters;
   std::vector<std::vector<MCCompLabel>> mTrackletLabels;
   std::vector<std::vector<MCCompLabel>> mCellLabels;
-  std::vector<std::vector<Cell>> mCells;
-  std::vector<std::vector<o2::track::TrackParCovF>> mCellSeeds;
-  std::vector<std::vector<float>> mCellSeedsChi2;
   std::vector<std::vector<int>> mCellsLookupTable;
   std::vector<std::vector<int>> mCellsNeighbours;
   std::vector<std::vector<int>> mCellsNeighboursLUT;
-  std::vector<Road<5>> mRoads;
   std::vector<std::vector<MCCompLabel>> mTracksLabel;
-  std::vector<std::vector<TrackITSExt>> mTracks;
   std::vector<int> mBogusClusters; /// keep track of clusters with wild coordinates
-
-  std::vector<std::vector<Tracklet>> mTracklets;
 
   std::vector<std::pair<unsigned long long, bool>> mRoadLabels;
   int mCutClusterMult;
@@ -543,9 +570,7 @@ inline std::vector<std::vector<Cluster>>& TimeFrame::getUnsortedClusters()
   return mUnsortedClusters;
 }
 
-inline std::vector<std::vector<Cell>>& TimeFrame::getCells() { return mCells; }
-
-inline std::vector<std::vector<o2::track::TrackParCovF>>& TimeFrame::getCellSeeds() { return mCellSeeds; }
+inline std::vector<std::vector<CellSeed>>& TimeFrame::getCells() { return mCells; }
 
 inline std::vector<std::vector<int>>& TimeFrame::getCellsLookupTable()
 {
@@ -609,6 +634,15 @@ inline int TimeFrame::getNumberOfTracklets() const
     nTracklets += layer.size();
   }
   return nTracklets;
+}
+
+inline int TimeFrame::getNumberOfNeighbours() const
+{
+  int n{0};
+  for (auto& l : mCellsNeighbours) {
+    n += l.size();
+  }
+  return n;
 }
 
 inline size_t TimeFrame::getNumberOfTracks() const

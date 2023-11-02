@@ -53,9 +53,10 @@
 #include <TRKSimulation/Detector.h>
 #include <FT3Simulation/Detector.h>
 #include <FCTSimulation/Detector.h>
+#include <IOTOFSimulation/Detector.h>
 #include <Alice3DetectorsPassive/Pipe.h>
 #include <Alice3DetectorsPassive/Absorber.h>
-#include <IOTOFSimulation/Detector.h>
+#include <Alice3DetectorsPassive/Magnet.h>
 #endif
 
 void finalize_geometry(FairRunSim* run);
@@ -169,6 +170,10 @@ void build_geometry(FairRunSim* run = nullptr)
     run->AddModule(new o2::passive::Alice3Absorber("A3ABSO", "ALICE3 Absorber"));
   }
 
+  // the magnet
+  if (isActivated("A3MAG")) {
+    run->AddModule(new o2::passive::Alice3Magnet("A3MAG", "ALICE3 Magnet"));
+  }
 #endif
 
   // the absorber

@@ -11,6 +11,10 @@
 #ifndef O2_CCDBDOWNLOADER_H_
 #define O2_CCDBDOWNLOADER_H_
 
+#if !defined(__CINT__) && !defined(__MAKECINT__) && !defined(__ROOTCLING__) && !defined(__CLING__)
+#include "MemoryResources/MemoryResources.h"
+#endif
+
 #include <cstdio>
 #include <cstdlib>
 #include <curl/curl.h>
@@ -21,6 +25,8 @@
 #include <mutex>
 #include <condition_variable>
 #include <unordered_map>
+#include <map>
+#include <functional>
 
 typedef struct uv_loop_s uv_loop_t;
 typedef struct uv_timer_s uv_timer_t;
@@ -31,6 +37,25 @@ typedef struct uv_handle_s uv_handle_t;
 
 namespace o2::ccdb
 {
+
+#if !defined(__CINT__) && !defined(__MAKECINT__) && !defined(__ROOTCLING__) && !defined(__CLING__)
+struct HeaderObjectPair_t {
+  std::multimap<std::string, std::string> header;
+  o2::pmr::vector<char>* object = nullptr;
+  int counter = 0;
+};
+
+typedef struct DownloaderRequestData {
+  std::vector<std::string> hosts;
+  std::string path;
+  long timestamp;
+  HeaderObjectPair_t hoPair;
+  std::map<std::string, std::string>* headers;
+
+  std::function<bool(std::string)> localContentCallback;
+  bool errorflag = false;
+} DownloaderRequestData;
+#endif
 
 /*
  Some functions below aren't member functions of CCDBDownloader because both curl and libuv require callback functions which have to be either static or non-member.
@@ -134,6 +159,14 @@ class CCDBDownloader
   std::vector<CURLcode> batchBlockingPerform(std::vector<CURL*> const& handleVector);
 
   /**
+   * Schedules an asynchronous transfer but doesn't perform it.
+   *
+   * @param handle Handle to be performed on.
+   * @param requestCounter Counter shared by a batch of CURL handles.
+   */
+  void asynchSchedule(CURL* handle, size_t* requestCounter);
+
+  /**
    * Limits the number of parallel connections. Should be used only if no transfers are happening.
    */
   void setMaxParallelConnections(int limit);
@@ -176,6 +209,14 @@ class CCDBDownloader
   void runLoop(bool noWait);
 
  private:
+  /**
+   * Returns a vector of possible content locations based on the redirect headers.
+   *
+   * @param baseUrl Content path.
+   * @param headerMap Map containing response headers.
+   */
+  std::vector<std::string> getLocations(std::string baseUrl, std::multimap<std::string, std::string>* headerMap) const;
+
   std::string mUserAgentId = "CCDBDownloader";
   /**
    * Sets up internal UV loop.
@@ -207,8 +248,7 @@ class CCDBDownloader
    */
   enum RequestType {
     BLOCKING,
-    ASYNCHRONOUS,
-    ASYNCHRONOUS_WITH_CALLBACK
+    ASYNCHRONOUS
   };
 
   /**
@@ -230,20 +270,19 @@ class CCDBDownloader
 
   DataForSocket mSocketData;
 
+#if !defined(__CINT__) && !defined(__MAKECINT__) && !defined(__ROOTCLING__) && !defined(__CLING__)
   /**
    * Structure which is stored in a easy_handle. It carries information about the request which the easy_handle is part of.
-   * All easy handles coming from one request have an identical PerformData structure.
    */
   typedef struct PerformData {
-    std::condition_variable* cv;
-    bool* completionFlag;
     CURLcode* codeDestination;
-    void (*cbFun)(void*);
-    std::thread* cbThread;
-    void* cbData;
     size_t* requestsLeft;
     RequestType type;
+    int hostInd;
+    int locInd;
+    DownloaderRequestData* requestData;
   } PerformData;
+#endif
 
   /**
    * Called by CURL in order to close a socket. It will be called by CURL even if a timeout timer closed the socket beforehand.
@@ -252,6 +291,20 @@ class CCDBDownloader
    * @param item File descriptor of the socket.
    */
   static void closesocketCallback(void* clientp, curl_socket_t item);
+
+#if !defined(__CINT__) && !defined(__MAKECINT__) && !defined(__ROOTCLING__) && !defined(__CLING__)
+  // Reschedules the transfer to be performed with a different host.
+  void tryNewHost(PerformData* performData, CURL* easy_handle);
+
+  // Retrieves content from either alien, cvmfs or local storage using a callback to CCDBApi.
+  void getLocalContent(PerformData* performData, std::string& newUrl, std::string& newLocation, bool& contentRetrieved, std::vector<std::string>& locations);
+
+  // Continues a transfer via a http redirect.
+  void httpRedirect(PerformData* performData, std::string& newUrl, std::string& newLocation, CURL* easy_handle);
+
+  // Continues a transfer via a redirect. The redirect can point to a local file, alien file or a http address.
+  void followRedirect(PerformData* performData, CURL* easy_handle, std::vector<std::string>& locations, bool& rescheduled, bool& contentRetrieved);
+#endif
 
   /**
    *  Is used to react to polling file descriptors in poll_handle.
@@ -322,10 +375,12 @@ class CCDBDownloader
    */
   void checkMultiInfo();
 
+#if !defined(__CINT__) && !defined(__MAKECINT__) && !defined(__ROOTCLING__) && !defined(__CLING__)
   /**
    * Set openSocketCallback and closeSocketCallback with appropriate arguments. Stores data inside the CURL handle.
    */
   void setHandleOptions(CURL* handle, PerformData* data);
+#endif
 
   /**
    * Create structure holding information about a socket including a poll handle assigned to it

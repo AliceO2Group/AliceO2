@@ -120,7 +120,7 @@ void Alice3Absorber::ConstructGeometry()
   TGeoVolume* top = gGeoManager->GetVolume("cave");
   TGeoVolume* barrel = gGeoManager->GetVolume("barrel");
   if (!barrel) {
-    LOG(fatal) << "Could not find the top volume";
+    LOG(fatal) << "Could not find the barrel volume while constructing absorber geometry";
   }
 
   TGeoPcon* absorings = new TGeoPcon(0., 360., 18);

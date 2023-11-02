@@ -47,7 +47,8 @@ std::vector<o2::dcs::DataPointIdentifier> o2::ft0::FT0DCSDataProcessor::getHardC
                                            "FT0/Trigger4_OrC/CNT_RATE",
                                            "FT0/Trigger5_OrA/CNT_RATE",
                                            "FT0/Background/[0..9]/CNT_RATE",
-                                           "FT0/Background/[A,B,C,D,E,F,G,H]/CNT_RATE"};
+                                           "FT0/Background/[A,B,C,D,E,F,G,H]/CNT_RATE",
+                                           "FT0/SecondaryCounter/CEplusSC/CNT_RATE"};
   std::vector<std::string> expAliasesHV = o2::dcs::expandAliases(aliasesHV);
   std::vector<std::string> expAliasesADC = o2::dcs::expandAlias(aliasesADC);
   std::vector<std::string> expAliasesRates = o2::dcs::expandAliases(aliasesRates);
