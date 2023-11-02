@@ -107,12 +107,14 @@ void DataProcessor::doSend(DataSender& sender, ArrowContext& context, ServiceReg
 
     auto origin = std::regex_replace(dh->dataOrigin.as<std::string>(), invalid_metric, "_");
     auto description = std::regex_replace(dh->dataDescription.as<std::string>(), invalid_metric, "_");
+    uint64_t version = dh->subSpecification;
     monitoring.send(Metric{(uint64_t)payload->GetSize(),
-                           fmt::format("table-bytes-{}-{}-created",
+                           fmt::format("table-bytes-{}-{}-{}-created",
                                        origin,
-                                       description)}
+                                       description,
+                                       version)}
                       .addTag(Key::Subsystem, Value::DPL));
-    LOGP(detail, "Creating {}MB for table {}/{}.", payload->GetSize() / 1000000., dh->dataOrigin, dh->dataDescription);
+    LOGP(detail, "Creating {}MB for table {}/{}/{}.", payload->GetSize() / 1000000., dh->dataOrigin, dh->dataDescription, version);
     context.updateBytesSent(payload->GetSize());
     context.updateMessagesSent(1);
     parts.AddPart(std::move(messageRef.header));
