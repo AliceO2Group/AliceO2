@@ -33,8 +33,9 @@ void SVertexHypothesis::set(PID v0, PID ppos, PID pneg, float sig, float nSig, f
   mPars[CPt3] = cpt3;
   maxSigma = maxSigmaInput;
   float absBz{std::abs(bz)};
-  if (cpt3 < 1)
+  if (cpt3 < 1) {
     mPars[CPt] = absBz > 1e-3 ? cpt * 5.0066791 / absBz : 0.; // assume that pT dependent sigma is linear with B; case for HyperTriton and Hyperhydrog4
+  }
 }
 
 void SVertexHypothesis::set(PID v0, PID ppos, PID pneg, const float pars[NPIDParams], float bz, float maxSigmaInput)
