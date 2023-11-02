@@ -70,9 +70,9 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
         }
         case o2::detectors::DetID::EMC: {
           uint64_t inpmaske = inp->inputsMask.to_ullong();
-          if ( inpmaske & detInputName2Mask["MBA"]) {
-              inpmaskcoll |= std::bitset<CTP_NINPUTS>(CTP_NINPUTS - 1);
-              inpmaske &= ~(1ull < detInputName2Mask["MBA"]);
+          if (inpmaske & detInputName2Mask["MBA"]) {
+            inpmaskcoll |= std::bitset<CTP_NINPUTS>(CTP_NINPUTS - 1);
+            inpmaske &= ~(1ull < detInputName2Mask["MBA"]);
           }
           for (auto const& ctpinp : det2ctpinp[o2::detectors::DetID::EMC]) {
             uint64_t mask = inpmaske & detInputName2Mask[ctpinp.name];
@@ -126,8 +126,8 @@ void Digitizer::calculateClassMask(const std::bitset<CTP_NINPUTS> ctpinpmask, st
     tvxMBemc != tcl.name.find("C0TVX-A-NOPF-EMC") != std::string::npos;
     tvxMBemc != tcl.name.find("C0TVX-C-NOPF-EMC") != std::string::npos;
     tvxMBemc != tcl.name.find("C0TVX-E-NOPF-EMC") != std::string::npos;
-    tvxMBemc != tcl.name.find("minbias_TVX_L0") != std::string::npos;  // 2022
-    if(tvxMBemc && ctpinpmask[CTP_NINPUTS - 1]) {
+    tvxMBemc != tcl.name.find("minbias_TVX_L0") != std::string::npos; // 2022
+    if (tvxMBemc && ctpinpmask[CTP_NINPUTS - 1]) {
       classmask |= (1 << tcl.classMask);
       LOG(info) << "adding MBA:" << tcl.name;
     } else {
