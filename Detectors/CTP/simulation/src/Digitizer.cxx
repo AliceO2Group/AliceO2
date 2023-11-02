@@ -69,16 +69,15 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
           break;
         }
         case o2::detectors::DetID::EMC: {
-          if (mEMCsim == 0) {
-            if (inp->inputsMask.to_ullong() & detInputName2Mask["MBA"]) {
+          uint64_t inpmaske = inp->inputsMask.to_ullong();
+          if ( inpmaske & detInputName2Mask["MBA"]) {
               inpmaskcoll |= std::bitset<CTP_NINPUTS>(CTP_NINPUTS - 1);
-            }
-          } else {
-            for (auto const& ctpinp : det2ctpinp[o2::detectors::DetID::EMC]) {
-              uint64_t mask = (inp->inputsMask).to_ullong() & detInputName2Mask[ctpinp.name];
-              if (mask) {
-                inpmaskcoll |= std::bitset<CTP_NINPUTS>(ctpinp.inputMask);
-              }
+              inpmaske &= ~(1ull < detInputName2Mask["MBA"]);
+          }
+          for (auto const& ctpinp : det2ctpinp[o2::detectors::DetID::EMC]) {
+            uint64_t mask = inpmaske & detInputName2Mask[ctpinp.name];
+            if (mask) {
+              inpmaskcoll |= std::bitset<CTP_NINPUTS>(ctpinp.inputMask);
             }
           }
           break;
@@ -122,24 +121,18 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
 void Digitizer::calculateClassMask(const std::bitset<CTP_NINPUTS> ctpinpmask, std::bitset<CTP_NCLASSES>& classmask)
 {
   classmask = 0;
-  if (mEMCsim != 0) {
-    for (auto const& tcl : mCTPConfiguration->getCTPClasses()) {
+  for (auto const& tcl : mCTPConfiguration->getCTPClasses()) {
+    bool tvxMBemc = tcl.name.find("C0TVX-B-NOPF-EMC") != std::string::npos;
+    tvxMBemc != tcl.name.find("C0TVX-A-NOPF-EMC") != std::string::npos;
+    tvxMBemc != tcl.name.find("C0TVX-C-NOPF-EMC") != std::string::npos;
+    tvxMBemc != tcl.name.find("C0TVX-E-NOPF-EMC") != std::string::npos;
+    tvxMBemc != tcl.name.find("minbias_TVX_L0") != std::string::npos;  // 2022
+    if(tvxMBemc && ctpinpmask[CTP_NINPUTS - 1]) {
+      classmask |= (1 << tcl.classMask);
+      LOG(info) << "adding MBA:" << tcl.name;
+    } else {
       if (tcl.descriptor->getInputsMask() & ctpinpmask.to_ullong()) {
         classmask |= (1 << tcl.classMask);
-      }
-    }
-  } else {
-    for (auto const& tcl : mCTPConfiguration->getCTPClasses()) {
-      if (tcl.name.find("EMC") == std::string::npos) {
-        if (tcl.descriptor->getInputsMask() & ctpinpmask.to_ullong()) {
-          classmask |= (1 << tcl.classMask);
-          LOG(info) << "adding NOT MBA:" << tcl.name;
-        }
-      } else {
-        if ((tcl.name.find("CTVXEMC-B-NOPF-EMC") != std::string::npos) && ctpinpmask[CTP_NINPUTS - 1]) {
-          classmask |= (1 << tcl.classMask);
-          LOG(info) << "adding MBA:" << tcl.name;
-        }
       }
     }
   }
