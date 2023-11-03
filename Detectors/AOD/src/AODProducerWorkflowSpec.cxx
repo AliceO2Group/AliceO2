@@ -1264,11 +1264,14 @@ void AODProducerWorkflowDPL::fillHMPID(const o2::globaltracking::RecoContainer& 
     float photChargeVec2[10]; // = {0.,0.,0.,0.,0.,0.,0.,0.,0.,0.};
 
     for (Int_t i = 0; i < 10; i++) {
-
       photChargeVec2[i] = photChargeVec[i];
     }
-
-    hmpCursor(match.getTrackIndex(), match.getHMPsignal(), xTrk, yTrk, xMip, yMip, nph, charge, match.getMipClusSize(), match.getHmpMom(), photChargeVec2);
+    auto tref = mGIDToTableID.find(match.getTrackRef());
+    if (tref != mGIDToTableID.end()) {
+      hmpCursor(tref->second, match.getHMPsignal(), xTrk, yTrk, xMip, yMip, nph, charge, match.getMipClusSize(), match.getHmpMom(), photChargeVec2);
+    } else {
+      LOG(error) << "Could not find AOD track table entry for HMP-matched track " << match.getTrackRef().asString();
+    }
   }
 }
 
