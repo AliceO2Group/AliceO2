@@ -382,10 +382,9 @@ void EventManagerFrame::checkMemory()
       if (success == 1) {       // properly readed
         size = 4 * size / 1024; // in MB
         this->memoryUsedInfo = size;
-        LOG(info) << "Memory used: " << size << " memory allowed: " << memoryLimit;
+        LOGF(info, "Memory used: ", size, " memory allowed: ", memoryLimit);
         if (size > memoryLimit) {
-          LOG(error) << "Memory used: " << size << " exceeds memory allowed: "
-                     << memoryLimit;
+          LOGF(error, "Memory used: ", size, " exceeds memory allowed: ", memoryLimit);
           exit(-1);
         }
       }
@@ -412,7 +411,7 @@ void EventManagerFrame::createOutreachScreenshot()
     if (!std::filesystem::is_regular_file(fileName)) {
       std::vector<std::string> ext = {".png"};
       DirectoryLoader::removeOldestFiles(imageFolder, ext, (int)ConfigurationManager::getOutreachFilesMax());
-      LOG(info) << "Outreach screenshot: " << fileName;
+      LOGF(info, "Outreach screenshot: ", fileName);
 
       Screenshot::perform("outreach", fileName, this->mEventManager->getDataSource()->getDetectorsMask(),
                           this->mEventManager->getDataSource()->getRunNumber(),

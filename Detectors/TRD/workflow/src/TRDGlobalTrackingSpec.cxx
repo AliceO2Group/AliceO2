@@ -35,6 +35,7 @@
 #include "DataFormatsFT0/RecPoints.h"
 #include "ITSReconstruction/RecoGeomHelper.h"
 #include "ITSMFTReconstruction/ClustererParam.h"
+#include "FT0Reconstruction/InteractionTag.h"
 #include "DataFormatsGlobalTracking/TrackTuneParams.h"
 
 // GPU header
@@ -402,7 +403,7 @@ void TRDGlobalTracking::run(ProcessingContext& pc)
       uint8_t fwd = 0, bwd = 0;
       for (size_t ft0id = curFT0; ft0id < ft0recPoints.size(); ft0id++) {
         const auto& f0rec = ft0recPoints[ft0id];
-        if (f0rec.getTrigger().getVertex()) {
+        if (o2::ft0::InteractionTag::Instance().isSelected(f0rec)) {
           auto bcdiff = trig.getBCData().toLong() - f0rec.getInteractionRecord().toLong();
           if (bcdiff > maxDiffBwd) {
             curFT0 = ft0id + 1;
@@ -524,9 +525,6 @@ bool TRDGlobalTracking::refitITSTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::gl
   int nCl = -1, clEntry = -1, nClRefit = 0, clRefs[14];
   float chi2Out = 0, timeZErr = 0.;
   bool pileUpOn = trk.hasPileUpInfo(); // distance to farthest collision within the pileup integration time is set
-  if (pileUpOn) {
-    timeTRD += trk.getPileUpTimeShiftMUS(); // shift to average pileup position
-  }
   auto geom = o2::its::GeometryTGeo::Instance();
   auto matCorr = o2::base::Propagator::MatCorrType(mRec->GetParam().rec.trd.matCorrType);
   if (detRefs[GTrackID::ITS].isIndexSet()) { // this is ITS track
@@ -655,10 +653,7 @@ bool TRDGlobalTracking::refitTPCTRDTrack(TrackTRD& trk, float timeTRD, o2::globa
   auto detRefs = recoCont->getSingleDetectorRefs(trk.getRefGlobalTrackId());
   outerParam = trk;
   float chi2Out = 0, timeZErr = 0.;
-  bool pileUpOn = trk.hasPileUpInfo(); // distance to farthest collision within the pileup integration time is set
-  if (pileUpOn) {
-    timeTRD += trk.getPileUpTimeShiftMUS(); // shift to average pileup position
-  }
+  bool pileUpOn = trk.hasPileUpInfo();                                                                                                                                                           // distance to farthest collision within the pileup integration time is set
   int retVal = mTPCRefitter->RefitTrackAsTrackParCov(outerParam, mTPCTracksArray[detRefs[GTrackID::TPC]].getClusterRef(), (timeTRD + mTPCTDriftOffset) * mTPCTBinMUSInv, &chi2Out, true, false); // outward refit
   if (retVal < 0) {
     LOG(debug) << "TPC refit outwards failed";

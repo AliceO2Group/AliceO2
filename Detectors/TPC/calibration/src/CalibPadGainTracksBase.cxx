@@ -212,7 +212,7 @@ void CalibPadGainTracksBase::finalize(const int minEntries, const float minRelga
       const auto& histo = mPadHistosDet->getCalArray(roc).getData()[pad];
       unsigned int entries = histo.getEntries();
       const auto stat = histo.getStatisticsData(low, high);
-      const auto cog = std::clamp(static_cast<float>(stat.mCOG), minRelgain, maxRelgain);
+      const auto cog = static_cast<float>(stat.mCOG);
 
       // subtract underflow and overflow entries to check if only the valid entries are > 0
       if (histo.isUnderflowSet()) {
@@ -235,6 +235,14 @@ void CalibPadGainTracksBase::finalize(const int minEntries, const float minRelga
     }
   }
   normalizeGain(*mGainMap.get());
+
+  // clamp to min/max
+  for (int roc = 0; roc < ROC::MaxROC; ++roc) {
+    const auto padsInRoc = ROC(roc).isIROC() ? Mapper::getPadsInIROC() : Mapper::getPadsInOROC();
+    for (int pad = 0; pad < padsInRoc; ++pad) {
+      mGainMap->getCalArray(roc).getData()[pad] = std::clamp(mGainMap->getCalArray(roc).getData()[pad], minRelgain, maxRelgain);
+    }
+  }
 }
 
 void CalibPadGainTracksBase::normalizeGain(CalPad& calPad)
@@ -265,7 +273,7 @@ void CalibPadGainTracksBase::normalize(std::vector<float>& data, const std::vect
   int padStart = 0;
   for (const auto pads : nPads) {
     auto median = TMath::Median(pads, data.data() + padStart);
-    std::for_each(data.data() + padStart, data.data() + padStart + pads, [median](auto& val) { val /= (val > 0) ? median : 1; });
+    std::for_each(data.data() + padStart, data.data() + padStart + pads, [median](auto& val) { val /= ((val > 0) && (val != 1)) ? median : 1; });
     padStart += pads;
   }
 }

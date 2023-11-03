@@ -157,6 +157,10 @@ void GlobalFwdMatchingDPL::updateTimeDependentParams(ProcessingContext& pc)
     } else {
       mMatching.setMFTROFrameLengthInBC(alpParams.roFrameLengthInBC); // MFT ROFrame duration in \mus
     }
+    if (alpParams.roFrameBiasInBC != 0) {
+      mMatching.setMFTROFrameBiasInBC(alpParams.roFrameBiasInBC); // MFT ROFrame bias in BCs wrt orbit start
+      LOG(info) << "Setting MFT ROF bias to " << alpParams.roFrameBiasInBC << " BCs";
+    }
 
     mMatching.init();
   }

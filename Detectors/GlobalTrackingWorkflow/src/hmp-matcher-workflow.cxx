@@ -59,6 +59,8 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"track-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use: allowed TPC,ITS-TPC,TPC-TRD,ITS-TPC-TRD (all)"}},
+    {"trd-extra-tolerance", o2::framework::VariantType::Float, 0.0f, {"Extra time tolerance for TRD tracks in microsec"}},
+    {"tof-extra-tolerance", o2::framework::VariantType::Float, 0.0f, {"Extra time tolerance for TRD tracks in microsec"}},
     {"combine-devices", o2::framework::VariantType::Bool, false, {"merge DPL source/writer devices"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -77,6 +79,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // write the configuration used for the workflow
 
   auto useMC = !configcontext.options().get<bool>("disable-mc");
+  auto extratolerancetrd = configcontext.options().get<float>("trd-extra-tolerance");
+  auto extratolerancetof = configcontext.options().get<float>("tof-extra-tolerance");
   auto disableRootIn = configcontext.options().get<bool>("disable-root-input");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
 
@@ -114,7 +118,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     }
   }
 
-  specs.emplace_back(o2::globaltracking::getHMPMatcherSpec(src, useMC));
+  specs.emplace_back(o2::globaltracking::getHMPMatcherSpec(src, useMC, extratolerancetrd, extratolerancetof));
 
   if (!disableRootOut) {
     std::vector<DataProcessorSpec> writers;

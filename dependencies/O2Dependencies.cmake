@@ -88,7 +88,7 @@ set_package_properties(Microsoft.GSL
                        TYPE REQUIRED
                        PURPOSE "Mainly for its span")
 
-find_package(FairMQ 1.4.41 CONFIG)
+find_package(FairMQ CONFIG)
 set_package_properties(FairMQ PROPERTIES TYPE REQUIRED)
 
 # find_package(protobuf CONFIG)
@@ -131,8 +131,6 @@ message(STATUS "Output BUILD_SIMULATION=${BUILD_SIMULATION}")
 
 # Optional packages
 
-find_package(DDS CONFIG)
-set_package_properties(DDS PROPERTIES TYPE RECOMMENDED)
 find_package(benchmark CONFIG NAMES benchmark googlebenchmark)
 set_package_properties(benchmark PROPERTIES TYPE OPTIONAL)
 find_package(OpenMP)

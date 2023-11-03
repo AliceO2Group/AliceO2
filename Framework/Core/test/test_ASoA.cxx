@@ -10,10 +10,8 @@
 // or submit itself to any jurisdiction.
 
 #include "Framework/ASoA.h"
-#include "Framework/ASoAHelpers.h"
 #include "Framework/Expressions.h"
 #include "Framework/AnalysisHelpers.h"
-#include "Framework/ExpressionHelpers.h"
 #include "gandiva/tree_expr_builder.h"
 #include "arrow/status.h"
 #include "gandiva/filter.h"
@@ -871,22 +869,23 @@ TEST_CASE("TestAdvancedIndices")
   int references[] = {19, 2, 0, 13, 4, 6, 5, 5, 11, 9, 3, 8, 16, 14, 1, 18, 12, 18, 2, 7};
   int slice[2] = {-1, -1};
   std::vector<int> pset;
-  std::array<int, 3> withSlices = {3, 13, 19};
+  std::array<int, 4> withSlices = {3, 6, 13, 19};
+  std::array<std::pair<int, int>, 4> bounds = {std::pair{1, 5}, std::pair{3, 3}, std::pair{11, 11}, std::pair{10, 18}};
   std::array<int, 4> withSets = {0, 1, 13, 14};
-  int sizes[] = {3, 1, 5, 4};
-  int c1 = 0;
-  int c2 = 0;
+  unsigned int sizes[] = {3, 1, 5, 4};
+  unsigned int c1 = 0;
+  unsigned int c2 = 0;
   for (auto i = 0; i < 20; ++i) {
     pset.clear();
     slice[0] = -1;
     slice[1] = -1;
     if (c1 < withSlices.size() && i == withSlices[c1]) {
-      slice[0] = i - 2;
-      slice[1] = i - 1;
+      slice[0] = bounds[c1].first;
+      slice[1] = bounds[c1].second;
       ++c1;
     }
     if (c2 < withSets.size() && i == withSets[c2]) {
-      for (auto z = 0; z < sizes[c2]; ++z) {
+      for (auto z = 0U; z < sizes[c2]; ++z) {
         pset.push_back(i + 1 + z);
       }
       ++c2;
@@ -908,10 +907,12 @@ TEST_CASE("TestAdvancedIndices")
     auto ops = p.pointSeq_as<o2::aod::PointsSelfIndex>();
     if (i == withSlices[c1]) {
       auto it = ops.begin();
-      REQUIRE(ops.size() == 2);
-      REQUIRE(it.globalIndex() == i - 2);
-      ++it;
-      REQUIRE(it.globalIndex() == i - 1);
+      REQUIRE(ops.size() == bounds[c1].second - bounds[c1].first + 1);
+      REQUIRE(it.globalIndex() == bounds[c1].first);
+      for (auto j = 1; j < ops.size(); ++j) {
+        ++it;
+      }
+      REQUIRE(it.globalIndex() == bounds[c1].second);
       ++c1;
     } else {
       REQUIRE(ops.size() == 0);
@@ -1128,5 +1129,55 @@ TEST_CASE("TestArrayColumns")
       REQUIRE(iir[i] == i);
       REQUIRE(row.boolArray_bit(i) == (i % 2 == 0));
     }
+  }
+}
+
+namespace o2::aod
+{
+namespace table
+{
+DECLARE_SOA_COLUMN(One, one, int);
+DECLARE_SOA_COLUMN(Two, two, float);
+DECLARE_SOA_COLUMN(Three, three, double);
+DECLARE_SOA_COLUMN(Four, four, int[2]);
+DECLARE_SOA_DYNAMIC_COLUMN(Five, five, [](const int in[2]) -> float { return (float)in[0] / (float)in[1]; });
+} // namespace table
+DECLARE_SOA_TABLE(MixTest, "AOD", "MIXTST",
+                  table::One, table::Two, table::Three, table::Four,
+                  table::Five<table::Four>);
+} // namespace o2::aod
+TEST_CASE("TestCombinedGetter")
+{
+  TableBuilder b;
+  auto writer = b.cursor<o2::aod::MixTest>();
+  int f[2];
+  for (auto i = 0; i < 20; ++i) {
+    f[0] = i;
+    f[1] = i + 1;
+    writer(0, i, o2::constants::math::PI * i, o2::constants::math::Almost0 * i, f);
+  }
+  auto t = b.finalize();
+  o2::aod::MixTest mt{t};
+  auto count = 0;
+  for (auto const& row : mt) {
+    auto features1 = row.getValues<float, o2::aod::table::One, o2::aod::table::Three>();
+    auto features2 = row.getValues<double, o2::aod::table::One, o2::aod::table::Two, o2::aod::table::Three>();
+    auto features3 = row.getValues<float, o2::aod::table::Two, o2::aod::table::Five<o2::aod::table::Four>>();
+    auto b1 = std::is_same_v<std::array<float, 2>, decltype(features1)>;
+    REQUIRE(b1);
+    auto b2 = std::is_same_v<std::array<double, 3>, decltype(features2)>;
+    REQUIRE(b2);
+    auto b3 = std::is_same_v<std::array<float, 2>, decltype(features3)>;
+    REQUIRE(b3);
+    REQUIRE(features1[0] == (float)count);
+    REQUIRE(features1[1] == (float)(o2::constants::math::Almost0 * count));
+
+    REQUIRE(features2[0] == (double)count);
+    REQUIRE(features2[1] == (double)(o2::constants::math::PI * count));
+    REQUIRE(features2[2] == (double)(o2::constants::math::Almost0 * count));
+
+    REQUIRE(features3[0] == (float)(o2::constants::math::PI * count));
+    REQUIRE(features3[1] == (float)((float)count / (float)(count + 1)));
+    ++count;
   }
 }

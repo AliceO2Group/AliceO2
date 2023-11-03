@@ -231,6 +231,9 @@ void PrimaryGenerator::AddTrack(Int_t pdgid, Double_t px, Double_t py,
 
 void PrimaryGenerator::setInteractionVertex(const MCEventHeader* event)
 {
+  if (!mApplyVertex) {
+    return;
+  }
   /** set interaction vertex **/
 
   Double_t xyz[3] = {event->GetX(), event->GetY(), event->GetZ()};
@@ -245,6 +248,9 @@ void PrimaryGenerator::setInteractionVertex(const MCEventHeader* event)
 /*****************************************************************/
 void PrimaryGenerator::setExternalVertexForNextEvent(double x, double y, double z)
 {
+  if (!mApplyVertex) {
+    return;
+  }
   mExternalVertexX = x;
   mExternalVertexY = y;
   mExternalVertexZ = z;
@@ -270,6 +276,12 @@ void PrimaryGenerator::setVertexMode(o2::conf::VertexMode const& mode, o2::dataf
 
 void PrimaryGenerator::fixInteractionVertex()
 {
+  if (!mApplyVertex) {
+    SetBeam(0., 0., 0., 0.);
+    SetTarget(0., 0.);
+    return;
+  }
+
   // if someone gave vertex from outside; we will take it
   if (mHaveExternalVertex) {
     SetBeam(mExternalVertexX, mExternalVertexY, 0., 0.);

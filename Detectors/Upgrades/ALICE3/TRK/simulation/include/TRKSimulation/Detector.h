@@ -12,15 +12,15 @@
 #ifndef ALICEO2_TRK_DETECTOR_H
 #define ALICEO2_TRK_DETECTOR_H
 
+#include "DetectorsBase/Detector.h"
+#include "ITSMFTSimulation/Hit.h"
+
+#include "TRKSimulation/TRKLayer.h"
+#include "TRKSimulation/TRKServices.h"
+#include "TRKBase/GeometryTGeo.h"
+
+#include <TLorentzVector.h>
 #include <TString.h>
-#include <DetectorsBase/Detector.h>
-#include <ITSMFTSimulation/Hit.h>
-
-#include <TRKSimulation/TRKLayer.h>
-#include <TRKSimulation/TRKServices.h>
-#include <TRKBase/GeometryTGeo.h>
-
-#include "TLorentzVector.h"
 
 namespace o2
 {

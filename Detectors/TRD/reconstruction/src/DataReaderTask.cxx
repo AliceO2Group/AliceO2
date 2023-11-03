@@ -32,6 +32,11 @@ namespace o2::trd
 void DataReaderTask::init(InitContext& ic)
 {
   mReader.setMaxErrWarnPrinted(ic.options().get<int>("log-max-errors"), ic.options().get<int>("log-max-warnings"));
+  int nTimeBins = ic.options().get<int>("number-of-TBs");
+  if (nTimeBins >= 0) {
+    LOGP(info, "Number of time bins set to {} externally", nTimeBins);
+    mReader.setNumberOfTimeBins(nTimeBins);
+  }
   mReader.configure(mTrackletHCHeaderState, mHalfChamberWords, mHalfChamberMajor, mOptions);
   mProcessEveryNthTF = ic.options().get<int>("every-nth-tf");
 }

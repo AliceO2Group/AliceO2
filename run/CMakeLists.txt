@@ -42,6 +42,7 @@ target_link_libraries(allsim
                                 $<$<BOOL:${ENABLE_UPGRADES}>:O2::TRKSimulation>
                                 $<$<BOOL:${ENABLE_UPGRADES}>:O2::FT3Simulation>
                                 $<$<BOOL:${ENABLE_UPGRADES}>:O2::FCTSimulation>
+                                $<$<BOOL:${ENABLE_UPGRADES}>:O2::IOTOFSimulation>
                                 O2::Generators)
 
 add_library(internal::allsim ALIAS allsim)
@@ -271,7 +272,7 @@ o2_add_test_command(NAME o2sim_hepmc
                                       -g
                                    hepmc
                        --configKeyValues
-"HepMC.fileName=${CMAKE_SOURCE_DIR}/Generators/share/data/pythia.hepmc;HepMC.version=2;align-geom.mDetectors=none"
+"GeneratorFileOrCmd.fileNames=${CMAKE_SOURCE_DIR}/Generators/share/data/pythia.hepmc;HepMC.version=2;align-geom.mDetectors=none"
                                       -o
                               o2simhepmc
                     LABELS long sim hepmc3

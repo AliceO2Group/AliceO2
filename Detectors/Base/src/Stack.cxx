@@ -638,14 +638,17 @@ void Stack::Print(Option_t* option) const
 
 void Stack::addHit(int iDet)
 {
+  // translate detector ID to bit id
+  const auto bitID = o2::base::Detector::getDetId2HitBitIndex()[iDet];
+
   if (mIndexOfCurrentTrack < mNumberOfPrimaryParticles) {
     auto& part = mTracks->at(mIndexOfCurrentTrack);
-    part.setHit(iDet);
+    part.setHit(bitID);
 
   } else {
     Int_t iTrack = mTrackIDtoParticlesEntry[mIndexOfCurrentTrack];
     auto& part = mParticles[iTrack];
-    part.setHit(iDet);
+    part.setHit(bitID);
   }
   mCurrentParticle.SetBit(ParticleStatus::kHasHits, 1);
   mHitCounter++;
@@ -654,7 +657,9 @@ void Stack::addHit(int iDet, Int_t iTrack)
 {
   mHitCounter++;
   auto& part = mParticles[iTrack];
-  part.setHit(iDet);
+  // fetch the bit encoding for hits
+  const auto bitID = o2::base::Detector::getDetId2HitBitIndex()[iDet];
+  part.setHit(bitID);
   mCurrentParticle.SetBit(ParticleStatus::kHasHits, 1);
 }
 

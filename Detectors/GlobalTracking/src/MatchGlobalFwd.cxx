@@ -262,10 +262,10 @@ bool MatchGlobalFwd::prepareMFTData()
       }
       return false;
     }
-    float tMin = nBC * o2::constants::lhc::LHCBunchSpacingMUS;
-    float tMax = (nBC + mMFTROFrameLengthInBC) * o2::constants::lhc::LHCBunchSpacingMUS;
+    float tMin = (nBC + mMFTROFrameBiasInBC) * o2::constants::lhc::LHCBunchSpacingMUS;
+    float tMax = (nBC + mMFTROFrameLengthInBC + mMFTROFrameBiasInBC) * o2::constants::lhc::LHCBunchSpacingMUS;
     if (!mMFTTriggered) {
-      auto irofCont = nBC / mMFTROFrameLengthInBC;
+      auto irofCont = (nBC + mMFTROFrameBiasInBC) / mMFTROFrameLengthInBC;
       if (mMFTTrackROFContMapping.size() <= irofCont) { // there might be gaps in the non-empty rofs, this will map continuous ROFs index to non empty ones
         mMFTTrackROFContMapping.resize((1 + irofCont / 128) * 128, 0);
       }
@@ -652,6 +652,14 @@ void MatchGlobalFwd::setMFTROFrameLengthInBC(int nbc)
 }
 
 //_________________________________________________________
+void MatchGlobalFwd::setMFTROFrameBiasInBC(int nbc)
+{
+  mMFTROFrameBiasInBC = nbc;
+  mMFTROFrameBiasMUS = nbc * o2::constants::lhc::LHCBunchSpacingNS * 1e-3;
+  mMFTROFrameBiasMUSInv = 1. / mMFTROFrameBiasMUS;
+}
+
+//_________________________________________________________
 void MatchGlobalFwd::setBunchFilling(const o2::BunchFilling& bf)
 {
   mBunchFilling = bf;
@@ -760,6 +768,76 @@ o2::dataformats::GlobalFwdTrack MatchGlobalFwd::MCHtoFwd(const o2::mch::TrackPar
   convertedTrack.setCovariances(covariances);
 
   return convertedTrack;
+}
+
+//_________________________________________________________________________________________________
+o2::mch::TrackParam MatchGlobalFwd::FwdtoMCH(const o2::dataformats::GlobalFwdTrack& fwdtrack)
+{
+  // Convert Forward Track parameters and covariances matrix to the
+  // MCH track format.
+
+  // Parameter conversion
+  double alpha1, alpha3, alpha4, x2, x3, x4;
+
+  x2 = fwdtrack.getPhi();
+  x3 = fwdtrack.getTanl();
+  x4 = fwdtrack.getInvQPt();
+
+  auto sinx2 = TMath::Sin(x2);
+  auto cosx2 = TMath::Cos(x2);
+
+  alpha1 = cosx2 / x3;
+  alpha3 = sinx2 / x3;
+  alpha4 = x4 / TMath::Sqrt(x3 * x3 + sinx2 * sinx2);
+
+  auto K = TMath::Sqrt(x3 * x3 + sinx2 * sinx2);
+  auto K3 = K * K * K;
+
+  // Covariances matrix conversion
+  SMatrix55Std jacobian;
+  SMatrix55Sym covariances;
+
+  covariances(0, 0) = fwdtrack.getCovariances()(0, 0);
+  covariances(0, 1) = fwdtrack.getCovariances()(0, 1);
+  covariances(0, 2) = fwdtrack.getCovariances()(0, 2);
+  covariances(0, 3) = fwdtrack.getCovariances()(0, 3);
+  covariances(0, 4) = fwdtrack.getCovariances()(0, 4);
+
+  covariances(1, 1) = fwdtrack.getCovariances()(1, 1);
+  covariances(1, 2) = fwdtrack.getCovariances()(1, 2);
+  covariances(1, 3) = fwdtrack.getCovariances()(1, 3);
+  covariances(1, 4) = fwdtrack.getCovariances()(1, 4);
+
+  covariances(2, 2) = fwdtrack.getCovariances()(2, 2);
+  covariances(2, 3) = fwdtrack.getCovariances()(2, 3);
+  covariances(2, 4) = fwdtrack.getCovariances()(2, 4);
+
+  covariances(3, 3) = fwdtrack.getCovariances()(3, 3);
+  covariances(3, 4) = fwdtrack.getCovariances()(3, 4);
+
+  covariances(4, 4) = fwdtrack.getCovariances()(4, 4);
+
+  jacobian(0, 0) = 1;
+
+  jacobian(1, 2) = -sinx2 / x3;
+  jacobian(1, 3) = -cosx2 / (x3 * x3);
+
+  jacobian(2, 1) = 1;
+
+  jacobian(3, 2) = cosx2 / x3;
+  jacobian(3, 3) = -sinx2 / (x3 * x3);
+
+  jacobian(4, 2) = -x4 * sinx2 * cosx2 / K3;
+  jacobian(4, 3) = -x3 * x4 / K3;
+  jacobian(4, 4) = 1 / K;
+  // jacobian*covariances*jacobian^T
+  covariances = ROOT::Math::Similarity(jacobian, covariances);
+
+  double cov[] = {covariances(0, 0), covariances(1, 0), covariances(1, 1), covariances(2, 0), covariances(2, 1), covariances(2, 2), covariances(3, 0), covariances(3, 1), covariances(3, 2), covariances(3, 3), covariances(4, 0), covariances(4, 1), covariances(4, 2), covariances(4, 3), covariances(4, 4)};
+  double param[] = {fwdtrack.getX(), alpha1, fwdtrack.getY(), alpha3, alpha4};
+
+  o2::mch::TrackParam convertedTrack(fwdtrack.getZ(), param, cov);
+  return o2::mch::TrackParam(convertedTrack);
 }
 
 //_________________________________________________________________________________________________

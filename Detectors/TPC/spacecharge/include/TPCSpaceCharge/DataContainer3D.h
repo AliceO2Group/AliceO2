@@ -189,6 +189,7 @@ struct DataContainer3D {
   /// operator overload
   DataContainer3D<DataT>& operator*=(const DataT value);
   DataContainer3D<DataT>& operator+=(const DataContainer3D<DataT>& other);
+  DataContainer3D<DataT>& operator*=(const DataContainer3D<DataT>& other);
   DataContainer3D<DataT>& operator-=(const DataContainer3D<DataT>& other);
 
  private:

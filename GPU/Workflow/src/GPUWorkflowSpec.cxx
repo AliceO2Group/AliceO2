@@ -588,21 +588,6 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     lastTFCounter = tinfo.tfCounter;
   }
 
-  if (mTPCSectorMask != 0xFFFFFFFFF) {
-    // Clean out the unused sectors, such that if they were present by chance, they are not processed, and if the values are uninitialized, we should not crash
-    for (unsigned int i = 0; i < NSectors; i++) {
-      if (!(mTPCSectorMask & (1ul << i))) {
-        if (ptrs.tpcZS) {
-          for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
-            tpcZS.slice[i].zsPtr[j] = nullptr;
-            tpcZS.slice[i].nZSPtr[j] = nullptr;
-            tpcZS.slice[i].count[j] = 0;
-          }
-        }
-      }
-    }
-  }
-
   o2::globaltracking::RecoContainer inputTracksTRD;
   decltype(o2::trd::getRecoInputContainer(pc, &ptrs, &inputTracksTRD)) trdInputContainer;
   if (mSpecConfig.readTRDtracklets) {
@@ -631,6 +616,21 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     doInputDigitsMC = mSpecConfig.processMC;
   } else {
     ptrs.clustersNative = &inputsClustersDigits->clusterIndex;
+  }
+
+  if (mTPCSectorMask != 0xFFFFFFFFF) {
+    // Clean out the unused sectors, such that if they were present by chance, they are not processed, and if the values are uninitialized, we should not crash
+    for (unsigned int i = 0; i < NSectors; i++) {
+      if (!(mTPCSectorMask & (1ul << i))) {
+        if (ptrs.tpcZS) {
+          for (unsigned int j = 0; j < GPUTrackingInOutZS::NENDPOINTS; j++) {
+            tpcZS.slice[i].zsPtr[j] = nullptr;
+            tpcZS.slice[i].nZSPtr[j] = nullptr;
+            tpcZS.slice[i].count[j] = 0;
+          }
+        }
+      }
+    }
   }
 
   GPUTrackingInOutDigits tpcDigitsMap;
@@ -964,7 +964,7 @@ void GPURecoWorkflowSpec::run(ProcessingContext& pc)
     pc.outputs().make<DataAllocator::UninitializedVector<outputDataType>>(Output{gDataOriginTPC, "TRIGGERWORDS", 0, Lifetime::Timeframe}, 0u);
   }
   mTimer->Stop();
-  LOG(info) << "GPU Reoncstruction time for this TF " << mTimer->CpuTime() - cput << " s (cpu), " << mTimer->RealTime() - realt << " s (wall)";
+  LOG(info) << "GPU Reconstruction time for this TF " << mTimer->CpuTime() - cput << " s (cpu), " << mTimer->RealTime() - realt << " s (wall)";
 }
 
 void GPURecoWorkflowSpec::doCalibUpdates(o2::framework::ProcessingContext& pc, calibObjectStruct& oldCalibObjects)

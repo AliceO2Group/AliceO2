@@ -63,6 +63,7 @@ namespace its
 {
 
 int nInj = 50;
+int nInjScaled = 50; // different from nInj only if mMeb > 0, in this case it is nInj/3.
 
 // List of the possible run types for reference
 enum RunTypes {
@@ -72,6 +73,7 @@ enum RunTypes {
   THR_SCAN_SHORT_2_10HZ = 18,
   THR_SCAN_SHORT_100HZ = 19,
   THR_SCAN_SHORT_200HZ = 20,
+  THR_SCAN_SHORT_150INJ = 55,
   VCASN150 = 23,
   VCASN100 = 10,
   VCASN100_100HZ = 21,
@@ -164,7 +166,8 @@ class ITSThresholdCalibrator : public Task
   short int vRow[N_COL];
   short int vThreshold[N_COL];
   bool vSuccess[N_COL];
-  unsigned char vNoise[N_COL];
+  float vNoise[N_COL];
+  unsigned char vPoints[N_COL];
   short int vMixData[N_COL];
   unsigned char vCharge[N_COL];
   float vSlope[N_COL];
@@ -187,9 +190,9 @@ class ITSThresholdCalibrator : public Task
   // Helper functions related to threshold extraction
   void initThresholdTree(bool recreate = true);
   bool findUpperLower(std::vector<std::vector<unsigned short int>>, const short int&, short int&, short int&, bool, int);
-  bool findThreshold(const short int&, std::vector<std::vector<unsigned short int>>, const float*, short int&, float&, float&, int);
-  bool findThresholdFit(const short int&, std::vector<std::vector<unsigned short int>>, const float*, const short int&, float&, float&, int);
-  bool findThresholdDerivative(std::vector<std::vector<unsigned short int>>, const float*, const short int&, float&, float&, int);
+  bool findThreshold(const short int&, std::vector<std::vector<unsigned short int>>, const float*, short int&, float&, float&, int&, int);
+  bool findThresholdFit(const short int&, std::vector<std::vector<unsigned short int>>, const float*, const short int&, float&, float&, int&, int);
+  bool findThresholdDerivative(std::vector<std::vector<unsigned short int>>, const float*, const short int&, float&, float&, int&, int);
   bool findThresholdHitcounting(std::vector<std::vector<unsigned short int>>, const float*, const short int&, float&, int);
   bool isScanFinished(const short int&, const short int&, const short int&);
   void findAverage(const std::array<long int, 6>&, float&, float&, float&, float&);
@@ -287,6 +290,7 @@ class ITSThresholdCalibrator : public Task
   // parameters for manual mode: if run type is not among the listed one
   bool isManualMode = false;
   bool saveTree;
+  bool scaleNinj = false;
   short int manualMin, manualMin2 = 0;
   short int manualMax, manualMax2 = 0;
   short int manualStep = 1, manualStep2 = 1;
@@ -305,6 +309,7 @@ class ITSThresholdCalibrator : public Task
   int maxDumpS = -1;                   // maximum number of s-curves to be dumped, default -1 = dump all
   std::string chipDumpS = "";          // list of comma-separated O2 chipIDs to be dumped, default is empty = dump all
   int dumpCounterS[24120] = {0};       // count dumps for every chip
+  int countCdw[24120] = {0};           // count how many CDWs have been processed with the maximum charge injected: usefull for s-curve dump when hits do not arrive in order
   TFile* fileDumpS;                    // file where to store the s-curves on disk
   std::vector<short int> chipDumpList; // vector of chips to dump
 
@@ -316,6 +321,9 @@ class ITSThresholdCalibrator : public Task
   bool mCalculate2DParams = true;
   int chargeA = 0;
   int chargeB = 0;
+
+  // Variable to select from which MEB to consider the hits.
+  int mMeb = -1;
 };
 
 // Create a processor spec

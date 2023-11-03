@@ -83,7 +83,7 @@ std::vector<std::pair<VisualisationEvent, EVisualisationGroup>>
   }
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-  LOG(info) << "getVisualisationList: " << duration.count();
+  LOGF(info, "getVisualisationList: ", duration.count());
   return res;
 }
 

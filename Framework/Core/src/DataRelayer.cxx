@@ -271,7 +271,9 @@ void sendVariableContextMetrics(VariableContext& context, TimesliceSlot slot, Da
       }
       state += ";";
     }
-    states.updateState({.id = short((int)ProcessingStateId::CONTEXT_VARIABLES_BASE + slot.index), (int)state.size(), state.data()});
+    states.updateState({.id = short((int)ProcessingStateId::CONTEXT_VARIABLES_BASE + slot.index),
+                        .size = (int)state.size(),
+                        .data = state.data()});
   },
                   &states, slot);
 }
@@ -516,7 +518,7 @@ DataRelayer::RelayChoice
     index.publishSlot(slot);
     index.markAsDirty(slot, true);
     stats.updateStats({static_cast<short>(ProcessingStatsId::RELAYED_MESSAGES), DataProcessingStats::Op::Add, (int)1});
-    return RelayChoice{RelayChoice::Type::WillRelay, timeslice};
+    return RelayChoice{.type = RelayChoice::Type::WillRelay, .timeslice = timeslice};
   }
 
   /// If not, we find which timeslice we really were looking at
@@ -543,7 +545,7 @@ DataRelayer::RelayChoice
     for (size_t pi = 0; pi < nMessages; ++pi) {
       messages[pi].reset(nullptr);
     }
-    return RelayChoice{.type = RelayChoice::Type::Invalid, timeslice};
+    return RelayChoice{.type = RelayChoice::Type::Invalid, .timeslice = timeslice};
   }
 
   if (TimesliceId::isValid(timeslice) == false) {
@@ -553,7 +555,7 @@ DataRelayer::RelayChoice
     for (size_t pi = 0; pi < nMessages; ++pi) {
       messages[pi].reset(nullptr);
     }
-    return RelayChoice{.type = RelayChoice::Type::Invalid, timeslice};
+    return RelayChoice{.type = RelayChoice::Type::Invalid, .timeslice = timeslice};
   }
 
   TimesliceIndex::ActionTaken action;
@@ -563,7 +565,7 @@ DataRelayer::RelayChoice
 
   switch (action) {
     case TimesliceIndex::ActionTaken::Wait:
-      return RelayChoice{.type = RelayChoice::Type::Backpressured, timeslice};
+      return RelayChoice{.type = RelayChoice::Type::Backpressured, .timeslice = timeslice};
     case TimesliceIndex::ActionTaken::DropObsolete:
       static std::atomic<size_t> obsoleteCount = 0;
       static std::atomic<size_t> mult = 1;
@@ -573,7 +575,7 @@ DataRelayer::RelayChoice
           mult = mult * 10;
         }
       }
-      return RelayChoice{.type = RelayChoice::Type::Dropped, timeslice};
+      return RelayChoice{.type = RelayChoice::Type::Dropped, .timeslice = timeslice};
     case TimesliceIndex::ActionTaken::DropInvalid:
       LOG(warning) << "Incoming data is invalid, not relaying.";
       stats.updateStats({static_cast<short>(ProcessingStatsId::MALFORMED_INPUTS), DataProcessingStats::Op::Add, (int)1});
@@ -581,7 +583,7 @@ DataRelayer::RelayChoice
       for (size_t pi = 0; pi < nMessages; ++pi) {
         messages[pi].reset(nullptr);
       }
-      return RelayChoice{.type = RelayChoice::Type::Invalid, timeslice};
+      return RelayChoice{.type = RelayChoice::Type::Invalid, .timeslice = timeslice};
     case TimesliceIndex::ActionTaken::ReplaceUnused:
     case TimesliceIndex::ActionTaken::ReplaceObsolete:
       // At this point the variables match the new input but the

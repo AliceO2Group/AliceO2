@@ -319,7 +319,7 @@ void AODProducerWorkflowDPL::addToTracksExtraTable(TracksExtraCursorType& tracks
   // extra
   tracksExtraCursor(truncateFloatFraction(extraInfoHolder.tpcInnerParam, mTrack1Pt),
                     extraInfoHolder.flags,
-                    extraInfoHolder.itsClusterMap,
+                    extraInfoHolder.itsClusterSizes,
                     extraInfoHolder.tpcNClsFindable,
                     extraInfoHolder.tpcNClsFindableMinusFound,
                     extraInfoHolder.tpcNClsFindableMinusCrossedRows,
@@ -1128,14 +1128,17 @@ void AODProducerWorkflowDPL::fillMCTrackLabelsTable(MCTrackLabelCursorType& mcTr
 
   // filling the tables with the strangeness tracking labels
   auto sTrackLabels = data.getStrangeTracksMCLabels();
-  mcTrackLabelCursor.reserve(mVertexStrLUT[vertexId + 1] + mcTrackLabelCursor.lastIndex());
-  for (int iS{mVertexStrLUT[vertexId]}; iS < mVertexStrLUT[vertexId + 1]; ++iS) {
-    auto& collStrTrk = mCollisionStrTrk[iS];
-    auto& label = sTrackLabels[collStrTrk.second];
-    MCLabels labelHolder;
-    labelHolder.labelID = label.isValid() ? (*mToStore[label.getSourceID()][label.getEventID()])[label.getTrackID()] : -1;
-    labelHolder.labelMask = (label.isFake() << 15) | (label.isNoise() << 14);
-    mcTrackLabelCursor(labelHolder.labelID, labelHolder.labelMask);
+  // check if vertexId and vertexId + 1 maps into mVertexStrLUT
+  if (!(vertexId < 0 || vertexId >= mVertexStrLUT.size() - 1)) {
+    mcTrackLabelCursor.reserve(mVertexStrLUT[vertexId + 1] + mcTrackLabelCursor.lastIndex());
+    for (int iS{mVertexStrLUT[vertexId]}; iS < mVertexStrLUT[vertexId + 1]; ++iS) {
+      auto& collStrTrk = mCollisionStrTrk[iS];
+      auto& label = sTrackLabels[collStrTrk.second];
+      MCLabels labelHolder;
+      labelHolder.labelID = label.isValid() ? (*mToStore[label.getSourceID()][label.getEventID()])[label.getTrackID()] : -1;
+      labelHolder.labelMask = (label.isFake() << 15) | (label.isNoise() << 14);
+      mcTrackLabelCursor(labelHolder.labelID, labelHolder.labelMask);
+    }
   }
 }
 
@@ -2111,33 +2114,33 @@ void AODProducerWorkflowDPL::run(ProcessingContext& pc)
   fillStrangenessTrackingTables(recoData, trackedV0Cursor, trackedCascadeCursor, tracked3BodyCurs);
 
   // helper map for fast search of a corresponding class mask for a bc
-  std::unordered_map<uint64_t, uint64_t> bcToClassMask;
+  std::unordered_map<uint64_t, std::pair<uint64_t, uint64_t>> bcToClassMask;
   if (mInputSources[GID::CTP]) {
     LOG(debug) << "CTP input available";
     for (auto& ctpDigit : ctpDigits) {
       uint64_t bc = ctpDigit.intRecord.toLong();
       uint64_t classMask = ctpDigit.CTPClassMask.to_ulong();
-      bcToClassMask[bc] = classMask;
+      uint64_t inputMask = ctpDigit.CTPInputMask.to_ulong();
+      bcToClassMask[bc] = {classMask, inputMask};
       // LOG(debug) << Form("classmask:0x%llx", classMask);
     }
   }
 
   // filling BC table
-  uint64_t triggerMask = 0;
   bcCursor.reserve(bcsMap.size());
   for (auto& item : bcsMap) {
     uint64_t bc = item.first;
+    std::pair<uint64_t, uint64_t> masks{0, 0};
     if (mInputSources[GID::CTP]) {
       auto bcClassPair = bcToClassMask.find(bc);
       if (bcClassPair != bcToClassMask.end()) {
-        triggerMask = bcClassPair->second;
-      } else {
-        triggerMask = 0;
+        masks = bcClassPair->second;
       }
     }
     bcCursor(runNumber,
              bc,
-             triggerMask);
+             masks.first,
+             masks.second);
   }
 
   bcToClassMask.clear();
@@ -2370,14 +2373,14 @@ AODProducerWorkflowDPL::TrackExtraInfo AODProducerWorkflowDPL::processBarrelTrac
     int nClusters = itsTrack.getNClusters();
     float chi2 = itsTrack.getChi2();
     extraInfoHolder.itsChi2NCl = nClusters != 0 ? chi2 / (float)nClusters : 0;
-    extraInfoHolder.itsClusterMap = itsTrack.getPattern();
+    extraInfoHolder.itsClusterSizes = itsTrack.getClusterSizes();
     if (src == GIndex::ITS) { // standalone ITS track should set its time from the ROF
       const auto& rof = data.getITSTracksROFRecords()[mITSROFs[trackIndex.getIndex()]];
       double t = rof.getBCData().differenceInBC(mStartIR) * o2::constants::lhc::LHCBunchSpacingNS + mITSROFrameHalfLengthNS;
       setTrackTime(t, mITSROFrameHalfLengthNS, false);
     }
   } else if (contributorsGID[GIndex::Source::ITSAB].isIndexSet()) { // this is an ITS-TPC afterburner contributor
-    extraInfoHolder.itsClusterMap = data.getITSABRefs()[contributorsGID[GIndex::Source::ITSAB].getIndex()].pattern;
+    extraInfoHolder.itsClusterSizes = data.getITSABRefs()[contributorsGID[GIndex::Source::ITSAB].getIndex()].getClusterSizes();
   }
   if (contributorsGID[GIndex::Source::TPC].isIndexSet()) {
     const auto& tpcOrig = data.getTPCTrack(contributorsGID[GIndex::TPC]);
@@ -2728,6 +2731,9 @@ DataProcessorSpec getAODProducerWorkflowSpec(GID::mask_t src, bool enableSV, boo
   if (enableStrangenessTracking) {
     dataRequest->requestStrangeTracks(useMC);
     LOGF(info, "requestStrangeTracks Finish");
+  }
+  if (src[GID::ITS]) {
+    dataRequest->requestClusters(GIndex::getSourcesMask("ITS"), false);
   }
   if (src[GID::TPC]) {
     dataRequest->requestClusters(GIndex::getSourcesMask("TPC"), false); // no need to ask for TOF clusters as they are requested with TOF tracks

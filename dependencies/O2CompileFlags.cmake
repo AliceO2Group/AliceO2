@@ -80,6 +80,18 @@ MARK_AS_ADVANCED(
     CMAKE_Fortran_FLAGS_COVERAGE
     CMAKE_LINK_FLAGS_COVERAGE)
 
+# Options to enable the thread sanitizer
+set(CMAKE_CXX_FLAGS_THREADSANITIZER "-g -O2 -fsanitize=thread -fPIC")
+set(CMAKE_C_FLAGS_THREADSANITIZER "${CMAKE_CXX_FLAGS_THREADSANITIZER}")
+set(CMAKE_Fortran_FLAGS_THREADSANITIZER "-g -O2 -fsanitize=thread -fPIC")
+set(CMAKE_LINK_FLAGS_THREADSANITIZER "-fsanitize=thread -fPIC")
+
+MARK_AS_ADVANCED(
+    CMAKE_CXX_FLAGS_THREADSANITIZER
+    CMAKE_C_FLAGS_THREADSANITIZER
+    CMAKE_Fortran_FLAGS_THREADSANITIZER
+    CMAKE_LINK_FLAGS_THREADSANITIZER)
+
 #Check the compiler and set the compile and link flags
 IF (NOT CMAKE_BUILD_TYPE)
   Message(STATUS "Set BuildType to DEBUG")
@@ -114,7 +126,6 @@ set(CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE} "${CMAKE_CXX_FLAGS_${CMAKE_BUILD_TYPE}} 
 set(CMAKE_C_FLAGS_${CMAKE_BUILD_TYPE} "${CMAKE_C_FLAGS_${CMAKE_BUILD_TYPE}} ${CMAKE_C_WARNINGS}")
 
 if(APPLE)
-  set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,-undefined,error") # avoid undefined in our libs
 elseif(UNIX)
   set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,--no-undefined") # avoid undefined in our libs
 endif()

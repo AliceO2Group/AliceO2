@@ -27,7 +27,7 @@ struct IndexTableUtils {
   int getPhiBin(float phi);
   int getBinIndex(float eta, float phi);
   std::vector<int> getBinRect(float eta, float phi, float deltaEta, float deltaPhi);
-  int mEtaBins = 64, mPhiBins = 64;
+  int mEtaBins = 128, mPhiBins = 128;
   float minEta = -1.5, maxEta = 1.5;
   float minPhi = 0., maxPhi = 2 * TMath::Pi();
 };

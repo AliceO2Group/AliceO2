@@ -230,6 +230,9 @@ struct DataSpecUtils {
 
   /// Updates list of InputSpecs by merging metadata
   static void updateInputList(std::vector<InputSpec>& list, InputSpec&& input);
+
+  /// Updates list of OutputSpecs by merging metadata (or adding output).
+  static void updateOutputList(std::vector<OutputSpec>& list, OutputSpec&& input);
 };
 
 } // namespace framework

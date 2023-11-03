@@ -53,10 +53,8 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
 {
   LOG(debug) << "[EMCALCellConverter - run] called";
 
-  if (mLoadRecoParamFromCCDB) {
-    // for reading the reco params from the ccdb
-    ctx.inputs().get<o2::emcal::RecoParam*>("EMC_RecoParam");
-  }
+  mCalibHandler->checkUpdates(ctx);
+  updateCalibrationObjects();
 
   double timeshift = RecoParam::Instance().getCellTimeShiftNanoSec(); // subtract offset in ns in order to center the time peak around the nominal delay
   timeshift = int(timeshift / 100) * 100;                             // This is a cheat to make the time multiple of 100, since the digitizer takes the delay only as mutiple of 100
@@ -167,6 +165,21 @@ void CellConverterSpec::run(framework::ProcessingContext& ctx)
   ctx.outputs().snapshot(o2::framework::Output{"EMC", "CELLSTRGR", mSubspecificationOut, o2::framework::Lifetime::Timeframe}, mOutputTriggers);
   if (mPropagateMC) {
     ctx.outputs().snapshot(o2::framework::Output{"EMC", "CELLSMCTR", mSubspecificationOut, o2::framework::Lifetime::Timeframe}, mOutputLabels);
+  }
+}
+
+void CellConverterSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
+{
+  if (mCalibHandler->finalizeCCDB(matcher, obj)) {
+    return;
+  }
+}
+
+void CellConverterSpec::updateCalibrationObjects()
+{
+  if (mCalibHandler->hasUpdateRecoParam()) {
+    LOG(info) << "RecoParams updated";
+    o2::emcal::RecoParam::Instance().printKeyValues(true, true);
   }
 }
 
@@ -441,22 +454,11 @@ int CellConverterSpec::selectMaximumBunch(const gsl::span<const Bunch>& bunchvec
   return bunchindex;
 }
 
-void CellConverterSpec::finaliseCCDB(o2::framework::ConcreteDataMatcher& matcher, void* obj)
-{
-  if (matcher == o2::framework::ConcreteDataMatcher("EMC", "RecoParam", 0)) {
-    LOG(info) << "EMCal RecoParam updated";
-    return;
-  }
-}
-
-o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getCellConverterSpec(bool propagateMC, bool useccdb, int inputSubspec, int outputSubspec)
+o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getCellConverterSpec(bool propagateMC, int inputSubspec, int outputSubspec)
 {
   std::vector<o2::framework::InputSpec> inputs;
   std::vector<o2::framework::OutputSpec> outputs;
   inputs.emplace_back("digits", o2::header::gDataOriginEMC, "DIGITS", inputSubspec, o2::framework::Lifetime::Timeframe);
-  if (useccdb) {
-    inputs.emplace_back("EMC_RecoParam", o2::header::gDataOriginEMC, "RECOPARAM", 0, o2::framework::Lifetime::Condition, o2::framework::ccdbParamSpec("EMC/Config/RecoParam"));
-  }
   inputs.emplace_back("triggers", "EMC", "DIGITSTRGR", inputSubspec, o2::framework::Lifetime::Timeframe);
   outputs.emplace_back("EMC", "CELLS", outputSubspec, o2::framework::Lifetime::Timeframe);
   outputs.emplace_back("EMC", "CELLSTRGR", outputSubspec, o2::framework::Lifetime::Timeframe);
@@ -464,10 +466,13 @@ o2::framework::DataProcessorSpec o2::emcal::reco_workflow::getCellConverterSpec(
     inputs.emplace_back("digitsmctr", "EMC", "DIGITSMCTR", inputSubspec, o2::framework::Lifetime::Timeframe);
     outputs.emplace_back("EMC", "CELLSMCTR", outputSubspec, o2::framework::Lifetime::Timeframe);
   }
+  auto calibhandler = std::make_shared<o2::emcal::CalibLoader>();
+  calibhandler->enableRecoParams(true);
+  calibhandler->defineInputSpecs(inputs);
   return o2::framework::DataProcessorSpec{"EMCALCellConverterSpec",
                                           inputs,
                                           outputs,
-                                          o2::framework::adaptFromTask<o2::emcal::reco_workflow::CellConverterSpec>(propagateMC, useccdb, inputSubspec, outputSubspec),
+                                          o2::framework::adaptFromTask<o2::emcal::reco_workflow::CellConverterSpec>(propagateMC, inputSubspec, outputSubspec, calibhandler),
                                           o2::framework::Options{
                                             {"fitmethod", o2::framework::VariantType::String, "gamma2", {"Fit method (standard or gamma2)"}}}};
 }

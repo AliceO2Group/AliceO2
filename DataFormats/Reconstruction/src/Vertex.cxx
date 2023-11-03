@@ -56,5 +56,8 @@ bool VertexBase::operator==(const VertexBase& other) const
 
 #endif
 
+template class o2::dataformats::Vertex<o2::dataformats::TimeStamp<int>>;
+template class o2::dataformats::Vertex<o2::dataformats::TimeStampWithError<float, float>>;
+
 } // namespace dataformats
 } // namespace o2

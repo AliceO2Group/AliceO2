@@ -33,6 +33,7 @@
 /mcPhysics/emModel/setEmModel  PAI
 /mcPhysics/emModel/setRegions  TRD_Gas-mix
 /mcPhysics/emModel/setParticles  all
+/mcPrimaryGenerator/skipUnknownParticles true # don't crash when seeing unknown ion etc. (issue warning)
 
 #
 # Precise Msc for EMCAL

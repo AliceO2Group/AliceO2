@@ -33,12 +33,19 @@
 
 namespace o2
 {
-
-namespace its
-{
-
 namespace gpu
 {
+class GPUChainITS;
+}
+namespace its
+{
+namespace gpu
+{
+
+class DefaultGPUAllocator : public ExternalAllocator
+{
+  void* allocate(size_t size) override;
+};
 
 template <int nLayers>
 struct StaticTrackingParameters {
@@ -96,14 +103,12 @@ class GpuTimeFrameChunk
 
   /// Interface
   Cluster* getDeviceClusters(const int);
-  TrackingFrameInfo* getDeviceTrackingFrameInfo(const int);
   int* getDeviceClusterExternalIndices(const int);
   int* getDeviceIndexTables(const int);
   Tracklet* getDeviceTracklets(const int);
   int* getDeviceTrackletsLookupTables(const int);
-  Cell* getDeviceCells(const int);
+  CellSeed* getDeviceCells(const int);
   int* getDeviceCellsLookupTables(const int);
-  Road<nLayers - 2>* getDeviceRoads() { return mRoadsDevice; }
   int* getDeviceRoadsLookupTables(const int);
   TimeFrameGPUParameters* getTimeFrameGPUParameters() const { return mTFGPUParams; }
 
@@ -112,7 +117,7 @@ class GpuTimeFrameChunk
   int* getDeviceNFoundCells() { return mNFoundCellsDevice; }
   int* getDeviceCellNeigboursLookupTables(const int);
   int* getDeviceCellNeighbours(const int);
-  Cell** getDeviceArrayCells() const { return mCellsDeviceArray; }
+  CellSeed** getDeviceArrayCells() const { return mCellsDeviceArray; }
   int** getDeviceArrayNeighboursCell() const { return mNeighboursCellDeviceArray; }
   int** getDeviceArrayNeighboursCellLUT() const { return mNeighboursCellLookupTablesDeviceArray; }
 
@@ -132,20 +137,19 @@ class GpuTimeFrameChunk
 
   /// Device
   std::array<Cluster*, nLayers> mClustersDevice;
-  std::array<TrackingFrameInfo*, nLayers> mTrackingFrameInfoDevice;
   std::array<int*, nLayers> mClusterExternalIndicesDevice;
   std::array<int*, nLayers> mIndexTablesDevice;
   std::array<Tracklet*, nLayers - 1> mTrackletsDevice;
   std::array<int*, nLayers - 1> mTrackletsLookupTablesDevice;
-  std::array<Cell*, nLayers - 2> mCellsDevice;
-  Road<nLayers - 2>* mRoadsDevice;
+  std::array<CellSeed*, nLayers - 2> mCellsDevice;
+  // Road<nLayers - 2>* mRoadsDevice;
   std::array<int*, nLayers - 2> mCellsLookupTablesDevice;
   std::array<int*, nLayers - 3> mNeighboursCellDevice;
   std::array<int*, nLayers - 3> mNeighboursCellLookupTablesDevice;
   std::array<int*, nLayers - 2> mRoadsLookupTablesDevice;
 
   // These are to make them accessible using layer index
-  Cell** mCellsDeviceArray;
+  CellSeed** mCellsDeviceArray;
   int** mNeighboursCellDeviceArray;
   int** mNeighboursCellLookupTablesDeviceArray;
 
@@ -174,6 +178,8 @@ template <int nLayers = 7>
 class TimeFrameGPU : public TimeFrame
 {
  public:
+  friend class GpuTimeFrameChunk<nLayers>;
+
   TimeFrameGPU();
   ~TimeFrameGPU();
 
@@ -181,7 +187,19 @@ class TimeFrameGPU : public TimeFrame
   void registerHostMemory(const int);
   void unregisterHostMemory(const int);
   void initialise(const int, const TrackingParameters&, const int, IndexTableUtils* utils = nullptr, const TimeFrameGPUParameters* pars = nullptr);
+  void initialiseHybrid(const int, const TrackingParameters&, const int, IndexTableUtils* utils = nullptr, const TimeFrameGPUParameters* pars = nullptr);
   void initDevice(const int, IndexTableUtils*, const TrackingParameters& trkParam, const TimeFrameGPUParameters&, const int, const int);
+  void initDeviceSAFitting();
+  void loadTrackingFrameInfoDevice();
+  void loadUnsortedClustersDevice();
+  void loadClustersDevice();
+  void loadTrackletsDevice();
+  void loadCellsDevice();
+  void loadTrackSeedsDevice();
+  void loadTrackSeedsChi2Device();
+  void loadRoadsDevice();
+  void createTrackITSExtDevice();
+  void downloadTrackITSExtDevice();
   void initDeviceChunks(const int, const int);
   template <Task task>
   size_t loadChunkData(const size_t, const size_t, const size_t);
@@ -196,18 +214,34 @@ class TimeFrameGPU : public TimeFrame
   int* getDeviceROframesClusters(const int layer) { return mROframesClustersDevice[layer]; }
   std::vector<std::vector<Vertex>>& getVerticesInChunks() { return mVerticesInChunks; }
   std::vector<std::vector<int>>& getNVerticesInChunks() { return mNVerticesInChunks; }
+  std::vector<o2::its::TrackITSExt>& getTrackITSExt() { return mTrackITSExt; }
   std::vector<std::vector<o2::MCCompLabel>>& getLabelsInChunks() { return mLabelsInChunks; }
   int getNAllocatedROFs() const { return mNrof; } // Allocated means maximum nROF for each chunk while populated is the number of loaded ones.
   StaticTrackingParameters<nLayers>* getDeviceTrackingParameters() { return mTrackingParamsDevice; }
   Vertex* getDeviceVertices() { return mVerticesDevice; }
   int* getDeviceROframesPV() { return mROframesPVDevice; }
   unsigned char* getDeviceUsedClusters(const int);
+  const o2::base::Propagator* getChainPropagator();
+
+  // Hybrid
+  Road<nLayers - 2>* getDeviceRoads() { return mRoadsDevice; }
+  TrackITSExt* getDeviceTrackITSExt() { return mTrackITSExtDevice; }
+  TrackingFrameInfo* getDeviceTrackingFrameInfo(const int);
+  TrackingFrameInfo** getDeviceArrayTrackingFrameInfo() { return mTrackingFrameInfoDeviceArray; }
+  Cluster** getDeviceArrayClusters() const { return mClustersDeviceArray; }
+  Cluster** getDeviceArrayUnsortedClusters() const { return mUnsortedClustersDeviceArray; }
+  Tracklet** getDeviceArrayTracklets() const { return mTrackletsDeviceArray; }
+  CellSeed** getDeviceArrayCells() const { return mCellsDeviceArray; }
+  o2::track::TrackParCovF** getDeviceArrayTrackSeeds() { return mCellSeedsDeviceArray; }
+  float** getDeviceArrayTrackSeedsChi2() { return mCellSeedsChi2DeviceArray; }
+  void setDevicePropagator(const o2::base::PropagatorImpl<float>*) override;
 
   // Host-specific getters
   gsl::span<int> getHostNTracklets(const int chunkId);
   gsl::span<int> getHostNCells(const int chunkId);
 
  private:
+  void allocMemAsync(void**, size_t, Stream*, bool); // Abstract owned and unowned memory allocations
   bool mHostRegistered = false;
   std::vector<GpuTimeFrameChunk<nLayers>> mMemChunks;
   TimeFrameGPUParameters mGpuParams;
@@ -221,6 +255,25 @@ class TimeFrameGPU : public TimeFrame
   Vertex* mVerticesDevice;
   int* mROframesPVDevice;
 
+  // Hybrid pref
+  std::array<Cluster*, nLayers> mClustersDevice;
+  std::array<Cluster*, nLayers> mUnsortedClustersDevice;
+  Cluster** mClustersDeviceArray;
+  Cluster** mUnsortedClustersDeviceArray;
+  std::array<Tracklet*, nLayers - 1> mTrackletsDevice;
+  Tracklet** mTrackletsDeviceArray;
+  std::array<CellSeed*, nLayers - 2> mCellsDevice;
+  CellSeed** mCellsDeviceArray;
+  std::array<o2::track::TrackParCovF*, nLayers - 2> mCellSeedsDevice;
+  o2::track::TrackParCovF** mCellSeedsDeviceArray;
+  std::array<float*, nLayers - 2> mCellSeedsChi2Device;
+  float** mCellSeedsChi2DeviceArray;
+
+  Road<nLayers - 2>* mRoadsDevice;
+  TrackITSExt* mTrackITSExtDevice;
+  std::array<TrackingFrameInfo*, nLayers> mTrackingFrameInfoDevice;
+  TrackingFrameInfo** mTrackingFrameInfoDeviceArray;
+
   // State
   std::vector<Stream> mGpuStreams;
   size_t mAvailMemGB;
@@ -231,9 +284,12 @@ class TimeFrameGPU : public TimeFrame
   std::vector<std::vector<int>> mNVerticesInChunks;
   std::vector<std::vector<o2::MCCompLabel>> mLabelsInChunks;
 
-  // Host memeory used only in GPU tracking
+  // Host memory used only in GPU tracking
   std::vector<int> mHostNTracklets;
   std::vector<int> mHostNCells;
+
+  // Temporary buffer for storing output tracks from GPU tracking
+  std::vector<TrackITSExt> mTrackITSExt;
 };
 
 template <int nLayers>

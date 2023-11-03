@@ -159,7 +159,7 @@ o2::framework::DataProcessorSpec getTOFMergeIntegrateClusterSpec()
   inputs.emplace_back("itofcq", o2::header::gDataOriginTOF, "ITOFCQ", 0, Lifetime::Sporadic);
 
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(true,                           // orbitResetTime
-                                                                false,                          // GRPECS=true for nHBF per TF
+                                                                true,                           // GRPECS=true for nHBF per TF
                                                                 false,                          // GRPLHCIF
                                                                 false,                          // GRPMagField
                                                                 false,                          // askMatLUT

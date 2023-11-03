@@ -83,6 +83,6 @@ void BaselineCalibConfig::setCuts(int low, int high)
 
 void BaselineCalibConfig::setCuts(int isig, int low, int high)
 {
-  cutHigh[isig] = low;
-  cutLow[isig] = high;
+  cutLow[isig] = low;
+  cutHigh[isig] = high;
 }

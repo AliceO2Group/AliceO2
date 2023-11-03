@@ -170,14 +170,16 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData, o2::f
     for (int ith = 0; ith < mNThreads; ith++) {
       mNStrangeTracks += mStrTracker->getNTracks(ith);
     }
-    auto& strTracksOut = pc.outputs().make<std::vector<o2::dataformats::StrangeTrack>>(o2f::Output{"GLO", "STRANGETRACKS", 0, o2f::Lifetime::Timeframe});
-    auto& strClustOut = pc.outputs().make<std::vector<o2::strangeness_tracking::ClusAttachments>>(o2f::Output{"GLO", "CLUSUPDATES", 0, o2f::Lifetime::Timeframe});
-    o2::pmr::vector<o2::MCCompLabel> mcLabsOut;
-    strTracksOut.reserve(mNStrangeTracks);
-    strClustOut.reserve(mNStrangeTracks);
+
+    std::vector<o2::dataformats::StrangeTrack> strTracksTmp;
+    std::vector<o2::strangeness_tracking::ClusAttachments> strClusTmp;
+    std::vector<o2::MCCompLabel> mcLabTmp;
+    strTracksTmp.reserve(mNStrangeTracks);
+    strClusTmp.reserve(mNStrangeTracks);
     if (mStrTracker->getMCTruthOn()) {
-      mcLabsOut.reserve(mNStrangeTracks);
+      mcLabTmp.reserve(mNStrangeTracks);
     }
+
     for (int ith = 0; ith < mNThreads; ith++) { // merge results of all threads
       auto& strTracks = mStrTracker->getStrangeTrackVec(ith);
       auto& strClust = mStrTracker->getClusAttachments(ith);
@@ -193,13 +195,39 @@ void SVertexer::process(const o2::globaltracking::RecoContainer& recoData, o2::f
         } else {
           LOGP(fatal, "Unknown strange track decay reference type {} for index {}", int(t.mPartType), t.mDecayRef);
         }
-        strTracksOut.push_back(t);
-        strClustOut.push_back(strClust[i]);
+
+        strTracksTmp.push_back(t);
+        strClusTmp.push_back(strClust[i]);
         if (mStrTracker->getMCTruthOn()) {
-          mcLabsOut.push_back(stcTrMCLab[i]);
+          mcLabTmp.push_back(stcTrMCLab[i]);
         }
       }
     }
+
+    auto& strTracksOut = pc.outputs().make<std::vector<o2::dataformats::StrangeTrack>>(o2f::Output{"GLO", "STRANGETRACKS", 0, o2f::Lifetime::Timeframe});
+    auto& strClustOut = pc.outputs().make<std::vector<o2::strangeness_tracking::ClusAttachments>>(o2f::Output{"GLO", "CLUSUPDATES", 0, o2f::Lifetime::Timeframe});
+    o2::pmr::vector<o2::MCCompLabel> mcLabsOut;
+    strTracksOut.resize(mNStrangeTracks);
+    strClustOut.resize(mNStrangeTracks);
+    if (mStrTracker->getMCTruthOn()) {
+      mcLabsOut.resize(mNStrangeTracks);
+    }
+
+    std::vector<int> sortIdx(strTracksTmp.size());
+    std::iota(sortIdx.begin(), sortIdx.end(), 0);
+    // if mNTreads > 1 we need to sort tracks, clus and MCLabs by their mDecayRef
+    if (mNThreads > 1 && mNStrangeTracks > 1) {
+      std::sort(sortIdx.begin(), sortIdx.end(), [&strTracksTmp](int i1, int i2) { return strTracksTmp[i1].mDecayRef < strTracksTmp[i2].mDecayRef; });
+    }
+
+    for (int i = 0; i < (int)sortIdx.size(); i++) {
+      strTracksOut[i] = strTracksTmp[sortIdx[i]];
+      strClustOut[i] = strClusTmp[sortIdx[i]];
+      if (mStrTracker->getMCTruthOn()) {
+        mcLabsOut[i] = mcLabTmp[sortIdx[i]];
+      }
+    }
+
     if (mStrTracker->getMCTruthOn()) {
       auto& strTrMCLableOut = pc.outputs().make<std::vector<o2::MCCompLabel>>(o2f::Output{"GLO", "STRANGETRACKS_MC", 0, o2f::Lifetime::Timeframe});
       strTrMCLableOut.swap(mcLabsOut);
@@ -255,8 +283,8 @@ void SVertexer::updateTimeDependentParams()
   mV0Hyps[HypV0::AntiHyperTriton].set(PID::HyperTriton, PID::Pion, PID::Helium3, mSVParams->pidCutsHTriton, bz);
   mV0Hyps[HypV0::Hyperhydrog4].set(PID::Hyperhydrog4, PID::Alpha, PID::Pion, mSVParams->pidCutsHhydrog4, bz);
   mV0Hyps[HypV0::AntiHyperhydrog4].set(PID::Hyperhydrog4, PID::Pion, PID::Alpha, mSVParams->pidCutsHhydrog4, bz);
-  mCascHyps[HypCascade::XiMinus].set(PID::XiMinus, PID::Lambda, PID::Pion, mSVParams->pidCutsXiMinus, bz);
-  mCascHyps[HypCascade::OmegaMinus].set(PID::OmegaMinus, PID::Lambda, PID::Kaon, mSVParams->pidCutsOmegaMinus, bz);
+  mCascHyps[HypCascade::XiMinus].set(PID::XiMinus, PID::Lambda, PID::Pion, mSVParams->pidCutsXiMinus, bz, mSVParams->maximalCascadeWidth);
+  mCascHyps[HypCascade::OmegaMinus].set(PID::OmegaMinus, PID::Lambda, PID::Kaon, mSVParams->pidCutsOmegaMinus, bz, mSVParams->maximalCascadeWidth);
 
   m3bodyHyps[Hyp3body::H3L3body].set(PID::HyperTriton, PID::Proton, PID::Pion, PID::Deuteron, mSVParams->pidCutsH3L3body, bz);
   m3bodyHyps[Hyp3body::AntiH3L3body].set(PID::HyperTriton, PID::Pion, PID::Proton, PID::Deuteron, mSVParams->pidCutsH3L3body, bz);
@@ -539,6 +567,14 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
       goodHyp = hypCheckStatus[ipid] = true;
     }
   }
+  // check tight lambda mass only
+  bool goodLamForCascade = false, goodALamForCascade = false;
+  if (mV0Hyps[Lambda].checkTight(p2Pos, p2Neg, p2V0, ptV0)) {
+    goodLamForCascade = true;
+  }
+  if (mV0Hyps[AntiLambda].checkTight(p2Pos, p2Neg, p2V0, ptV0)) {
+    goodALamForCascade = true;
+  }
 
   // apply mass selections for 3-body decay
   bool good3bodyV0Hyp = false;
@@ -553,7 +589,7 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   // we want to reconstruct the 3 body decay of hypernuclei starting from the V0 of a proton and a pion (e.g. H3L->d + (p + pi-), or He4L->He3 + (p + pi-)))
   bool checkFor3BodyDecays = mEnable3BodyDecays && (!mSVParams->checkV0Hypothesis || good3bodyV0Hyp) && (pt2V0 > 0.5);
   bool rejectAfter3BodyCheck = false; // To reject v0s which can be 3-body decay candidates but not cascade or v0
-  bool checkForCascade = mEnableCascades && r2v0 < mMaxR2ToMeanVertexCascV0 && (!mSVParams->checkV0Hypothesis || (hypCheckStatus[HypV0::Lambda] || hypCheckStatus[HypV0::AntiLambda]));
+  bool checkForCascade = mEnableCascades && r2v0 < mMaxR2ToMeanVertexCascV0 && (!mSVParams->checkV0Hypothesis || (goodLamForCascade || goodALamForCascade));
   bool rejectIfNotCascade = false;
 
   if (!goodHyp && mSVParams->checkV0Hypothesis) {
@@ -645,10 +681,10 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   // check cascades
   int nCascIni = mCascadesIdxTmp[ithread].size(), nV0Used = 0; // number of times this particular v0 (with assigned PV) was used (not counting using its clones with other PV)
   if (checkForCascade) {
-    if (hypCheckStatus[HypV0::Lambda] || !mSVParams->checkCascadeHypothesis) {
+    if (goodLamForCascade || !mSVParams->checkCascadeHypothesis) {
       nV0Used += checkCascades(v0Idxnew, v0new, rv0, pV0, p2V0, iN, NEG, vlist, ithread);
     }
-    if (hypCheckStatus[HypV0::AntiLambda] || !mSVParams->checkCascadeHypothesis) {
+    if (goodALamForCascade || !mSVParams->checkCascadeHypothesis) {
       nV0Used += checkCascades(v0Idxnew, v0new, rv0, pV0, p2V0, iP, POS, vlist, ithread);
     }
   }
@@ -1089,7 +1125,7 @@ bool SVertexer::processTPCTrack(const o2::tpc::TrackTPC& trTPC, GIndex gid, int 
   const auto& vtx = mPVertices[vtxid];
   auto twe = vtx.getTimeStamp();
   int posneg = trTPC.getSign() < 0 ? 1 : 0;
-  auto trLoc = mTracksPool[posneg].emplace_back(TrackCand{trTPC, gid, {vtxid, vtxid}, 0.});
+  auto& trLoc = mTracksPool[posneg].emplace_back(TrackCand{trTPC, gid, {vtxid, vtxid}, 0.});
   auto err = correctTPCTrack(trLoc, trTPC, twe.getTimeStamp(), twe.getTimeStampError());
   if (err < 0) {
     mTracksPool[posneg].pop_back(); // discard

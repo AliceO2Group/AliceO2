@@ -134,11 +134,19 @@ class MatchGlobalFwd
   void setMFTROFrameLengthMUS(float fums);
   ///< set MFT ROFrame duration in BC (continuous mode only)
   void setMFTROFrameLengthInBC(int nbc);
+  ///< set MFT ROFrame bias in BC (continuous mode only) or time shift applied already as MFTAlpideParam.roFrameBiasInBC
+  void setMFTROFrameBiasInBC(int nbc);
+
   const std::vector<o2::dataformats::GlobalFwdTrack>& getMatchedFwdTracks() const { return mMatchedTracks; }
   const std::vector<o2::mft::TrackMFT>& getMFTMatchingPlaneParams() const { return mMFTMatchPlaneParams; }
   const std::vector<o2::track::TrackParCovFwd>& getMCHMatchingPlaneParams() const { return mMCHMatchPlaneParams; }
   const std::vector<o2::dataformats::MatchInfoFwd>& getMFTMCHMatchInfo() const { return mMatchingInfo; }
   const std::vector<o2::MCCompLabel>& getMatchLabels() const { return mMatchLabels; }
+
+  /// Converts mchTrack parameters to Forward coordinate system
+  o2::dataformats::GlobalFwdTrack MCHtoFwd(const o2::mch::TrackParam& mchTrack);
+  /// Converts FwdTrack parameters to MCH coordinate system
+  o2::mch::TrackParam FwdtoMCH(const o2::dataformats::GlobalFwdTrack& fwdtrack);
 
  private:
   void updateTimeDependentParams();
@@ -277,9 +285,6 @@ class MatchGlobalFwd
     return true;
   }
 
-  /// Converts mchTrack parameters to Forward coordinate system
-  o2::dataformats::GlobalFwdTrack MCHtoFwd(const o2::mch::TrackParam& mchTrack);
-
   float mBz = -5.f;                       ///< nominal Bz in kGauss
   float mMatchingPlaneZ = sLastMFTPlaneZ; ///< MCH-MFT matching plane Z position
   Float_t mMFTDiskThicknessInX0 = 0.042 / 5; ///< MFT disk thickness in radiation length
@@ -288,6 +293,9 @@ class MatchGlobalFwd
   int mMFTROFrameLengthInBC = 0;        ///< MFT RO frame in BC (for MFT cont. mode only)
   float mMFTROFrameLengthMUS = -1.;     ///< MFT RO frame in \mus
   float mMFTROFrameLengthMUSInv = -1.;  ///< MFT RO frame in \mus inverse
+  int mMFTROFrameBiasInBC = 0;          ///< MFT ROF bias in BC wrt to orbit start
+  float mMFTROFrameBiasMUS = -1.;       ///< MFT ROF bias in \mus
+  float mMFTROFrameBiasMUSInv = -1.;    ///< MFT ROF bias in \mus inverse
 
   std::map<std::string, MatchingFunc_t> mMatchingFunctionMap; ///< MFT-MCH Matching function
   std::map<std::string, CutFunc_t> mCutFunctionMap;           ///< MFT-MCH Candidate cut function

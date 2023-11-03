@@ -35,6 +35,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
 {
   std::vector<o2::framework::ConfigParamSpec> options{
     {"disable-mc", o2::framework::VariantType::Bool, false, {"Disable MC labels"}},
+    {"disable-irframe-reader", o2::framework::VariantType::Bool, false, {"Don't read ITS IR frames from file"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"filter-trigrec", o2::framework::VariantType::Bool, false, {"ignore interaction records without ITS data"}},
@@ -61,7 +62,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   }
 
   auto trigRecFilterActive = configcontext.options().get<bool>("filter-trigrec");
-  if (trigRecFilterActive) {
+  if (trigRecFilterActive && !configcontext.options().get<bool>("disable-irframe-reader")) {
     o2::globaltracking::InputHelper::addInputSpecsIRFramesITS(configcontext, spec);
   }
 

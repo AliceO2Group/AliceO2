@@ -22,8 +22,6 @@
 
 #include <cmath>
 
-using std::vector;
-
 class TTree;
 class TH3;
 

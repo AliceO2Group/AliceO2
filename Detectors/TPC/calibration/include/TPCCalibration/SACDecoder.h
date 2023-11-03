@@ -31,7 +31,6 @@
 #include "DataFormatsTPC/SAC.h"
 
 using o2::constants::lhc::LHCBunchSpacingMUS;
-using std::size_t;
 
 namespace o2::tpc::sac
 {

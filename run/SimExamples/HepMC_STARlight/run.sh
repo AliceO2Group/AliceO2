@@ -10,9 +10,9 @@ set -x
 
 # PART a)
 env -i HOME="$HOME" USER="$USER" PATH="/bin:/usr/bin:/usr/local/bin" \
-    ALIBUILD_WORK_DIR="$ALIBUILD_WORK_DIR" ./run-starlight.sh 
+    ALIBUILD_WORK_DIR="$ALIBUILD_WORK_DIR" ./run-starlight.sh
 
 # PART b)
 NEV=1000
 o2-sim -j 20 -n ${NEV} -g hepmc -m PIPE ITS -o sim \
-       --configKeyValues "HepMC.fileName=starlight.hepmc;HepMC.version=2;Diamond.position[2]=0.1;Diamond.width[2]=0.05"
+       --configKeyValues "GeneratorFileOrCmd.fileNames=starlight.hepmc;Diamond.position[2]=0.1;Diamond.width[2]=0.05"

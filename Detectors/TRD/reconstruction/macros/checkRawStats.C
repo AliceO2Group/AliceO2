@@ -24,9 +24,10 @@
 #include "DataFormatsTRD/RawDataStats.h"
 #include "DataFormatsTRD/Constants.h"
 #include "DataFormatsTRD/HelperMethods.h"
-
+#include <fairlogger/Logger.h>
 #include <fmt/format.h>
 #include <chrono>
+#include <numeric>
 #include <thread>
 #endif
 
@@ -81,12 +82,23 @@ void checkRawStats()
   c->Divide(2, 2);
   gStyle->SetOptStat("");
 
+  std::vector<size_t> tfIndices(chain.GetEntries());
+  std::iota(tfIndices.begin(), tfIndices.end(), static_cast<size_t>(0));
+  std::vector<uint32_t> tfCounters;
+
   for (int iEntry = 0; iEntry < chain.GetEntries(); ++iEntry) {
     chain.GetEntry(iEntry); // for each TimeFrame there is one tree entry
+    tfCounters.push_back(rawstats.mTFIDInfo.tfCounter);
+  }
+  std::sort(tfIndices.begin(), tfIndices.end(), [&](size_t a, size_t b) { return tfCounters[a] < tfCounters[b]; });
+  LOGP(info, "Got {} TFs in total from {} tree entries", tfCounters.size(), chain.GetEntries());
+
+  for (int iEntry = 0; iEntry < chain.GetEntries(); ++iEntry) {
+    chain.GetEntry(tfIndices[iEntry]);
     int triggerCounter = 0;
     for (const auto& stats : linkstats) {
       c->Update();
-      c->SetTitle(TString::Format("TF %i, Trigger %i", iEntry, triggerCounter));
+      c->SetTitle(TString::Format("Run %i: TF %u, Trigger %i", rawstats.mTFIDInfo.runNumber, rawstats.mTFIDInfo.tfCounter, triggerCounter));
       for (int hcid = 0; hcid < MAXHALFCHAMBER; ++hcid) {
         int stackLayer = HelperMethods::getStack(hcid / 2) * NLAYER + HelperMethods::getLayer(hcid / 2);
         int sectorSide = (hcid / NHCPERSEC) * 2 + (hcid % 2);

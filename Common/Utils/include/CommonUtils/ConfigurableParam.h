@@ -15,6 +15,7 @@
 #define COMMON_SIMCONFIG_INCLUDE_SIMCONFIG_CONFIGURABLEPARAM_H_
 
 #include <vector>
+#include <cassert>
 #include <map>
 #include <unordered_map>
 #include <boost/property_tree/ptree.hpp>

@@ -30,9 +30,9 @@ namespace eventgen
  **/
 
 struct GeneratorHepMCParam : public o2::conf::ConfigurableParamHelper<GeneratorHepMCParam> {
-  std::string fileName = "";
-  int version = 2;
+  int version = 0;
   uint64_t eventsToSkip = 0;
+  std::string fileName = "";
   O2ParamDef(GeneratorHepMCParam, "HepMC");
 };
 

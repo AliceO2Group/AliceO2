@@ -277,15 +277,17 @@ fi
 # calibrations for AGGREGATOR_TASKS == CALO_TF
 if [[ $AGGREGATOR_TASKS == CALO_TF || $AGGREGATOR_TASKS == ALL ]]; then
   # EMC
-  EMCAL_CALIB_CTP_OPT=
+  EMCAL_CALIB_OPT=
+  EMCAL_CALIB_CONFIG=
   if ! has_detector CTP; then
-    EMCAL_CALIB_CTP_OPT="--no-rejectL0Trigger"
+    EMCAL_CALIB_OPT+=" --no-rejectL0Trigger"
   fi
+  [[ $EPNSYNCMODE == 1 ]] && EMCAL_CALIB_CONFIG+="EMCALCalibParams.filePathSave=/scratch/services/detector_tmp/emc_calib;"
   if [[ $CALIB_EMC_BADCHANNELCALIB == 1 ]]; then
-    add_W o2-calibration-emcal-channel-calib-workflow "${EMCAL_CALIB_CTP_OPT} --calibType \"badchannels\""
+    add_W o2-calibration-emcal-channel-calib-workflow "${EMCAL_CALIB_OPT} --calibType \"badchannels\"" "${EMCAL_CALIB_CONFIG}"
   fi
   if [[ $CALIB_EMC_TIMECALIB == 1 ]]; then
-    add_W o2-calibration-emcal-channel-calib-workflow "${EMCAL_CALIB_CTP_OPT} --calibType \"time\""
+    add_W o2-calibration-emcal-channel-calib-workflow "${EMCAL_CALIB_OPT} --calibType \"time\"" "${EMCAL_CALIB_CONFIG}"
   fi
 
   # PHS
@@ -355,7 +357,7 @@ if [[ "${GEN_TOPO_VERBOSE:-}" == "1" ]]; then
   fi
 fi
 
-if [[ $CCDB_POPULATOR_UPLOAD_PATH != "none" ]] && [[ ! -z $WORKFLOW ]]; then add_W o2-calibration-ccdb-populator-workflow "--ccdb-path $CCDB_POPULATOR_UPLOAD_PATH --environment \"DPL_DONT_DROP_OLD_TIMESLICE=1 DPL_MAX_CHANNEL_AHEAD=1000000000\""; fi
+if [[ $CCDB_POPULATOR_UPLOAD_PATH != "none" ]] && [[ ! -z $WORKFLOW ]]; then add_W o2-calibration-ccdb-populator-workflow "--ccdb-path $CCDB_POPULATOR_UPLOAD_PATH --environment \"DPL_DONT_DROP_OLD_TIMESLICE=1\""; fi
 
 if ! workflow_has_parameter CALIB_LOCAL_INTEGRATED_AGGREGATOR; then
   WORKFLOW+="o2-dpl-run $ARGS_ALL $GLOBALDPLOPT"

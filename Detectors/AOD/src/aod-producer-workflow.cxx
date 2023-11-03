@@ -36,7 +36,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation"}},
     {"disable-secondary-vertices", o2::framework::VariantType::Bool, false, {"disable filling secondary vertices"}},
-    {"disable-strangeness-tracking", o2::framework::VariantType::Bool, false, {"disable filling strangeness tracking"}},
+    {"disable-strangeness-tracker", o2::framework::VariantType::Bool, false, {"disable filling strangeness tracking"}},
     {"info-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}},
     {"combine-source-devices", o2::framework::VariantType::Bool, false, {"merge DPL source devices"}},
@@ -52,7 +52,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   o2::conf::ConfigurableParam::updateFromString(configcontext.options().get<std::string>("configKeyValues"));
   auto useMC = !configcontext.options().get<bool>("disable-mc");
   bool enableSV = !configcontext.options().get<bool>("disable-secondary-vertices");
-  bool enableST = !configcontext.options().get<bool>("disable-strangeness-tracking");
+  bool enableST = !configcontext.options().get<bool>("disable-strangeness-tracker");
   bool ctpcfgperrun = !configcontext.options().get<bool>("ctpconfig-run-independent");
 
   GID::mask_t allowedSrc = GID::getSourcesMask("ITS,MFT,MCH,MID,MCH-MID,TPC,TRD,ITS-TPC,TPC-TOF,TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD,TPC-TRD-TOF,ITS-TPC-TRD-TOF,MFT-MCH,FT0,FV0,FDD,ZDC,EMC,CTP,PHS,CPV,HMP");

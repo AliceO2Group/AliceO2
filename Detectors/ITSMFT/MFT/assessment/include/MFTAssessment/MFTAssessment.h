@@ -138,6 +138,7 @@ class MFTAssessment
   std::unique_ptr<TH1F> mPositiveTrackPhi = nullptr;
   std::unique_ptr<TH1F> mNegativeTrackPhi = nullptr;
   std::unique_ptr<TH1F> mTrackEta = nullptr;
+  std::unique_ptr<TH2F> mTrackChi2pT = nullptr;
 
   std::unique_ptr<TH1F> mMFTClsZ = nullptr;
   std::unique_ptr<TH1F> mMFTClsOfTracksZ = nullptr;

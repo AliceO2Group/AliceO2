@@ -23,10 +23,12 @@
 #include <cstddef>
 #include <atomic>
 
+#if !defined(__CINT__) && !defined(__MAKECINT__) && !defined(__ROOTCLING__) && !defined(__CLING__)
 #include <boost/interprocess/managed_external_buffer.hpp>
 #include <boost/interprocess/allocators/allocator.hpp>
+#endif
 
-#if !defined(__CINT__) && !defined(__MAKECINT__) && !defined(__ROOTCLING__) && !defined(__CLING__)
+#if !defined(__CINT__) && !defined(__MAKECINT__) && !defined(__ROOTCLING__) && !defined(__CLING__) && !defined(__APPLE__)
 // this shared mem mode is meant for compiled stuff in o2-sim; not for ROOT sessions
 #define USESHM 1
 #endif
@@ -116,8 +118,10 @@ class ShmManager
   void* tryAttach(bool& success);
   size_t getPointerOffset(void* ptr) const { return (size_t)((char*)ptr - (char*)mBufferPtr); }
 
+#if !defined(__CINT__) && !defined(__MAKECINT__) && !defined(__ROOTCLING__) && !defined(__CLING__)
   boost::interprocess::wmanaged_external_buffer* boostmanagedbuffer;
   boost::interprocess::allocator<char, boost::interprocess::wmanaged_external_buffer::segment_manager>* boostallocator;
+#endif
 };
 
 } // namespace utils

@@ -44,6 +44,7 @@ o2_add_library(TRDWorkflow
                                      O2::GlobalTrackingWorkflowReaders
                                      O2::GPUWorkflowHelper
                                      O2::ReconstructionDataFormats
+                                     O2::FT0Reconstruction
                                      O2::ITSWorkflow
                                      O2::TPCWorkflow
                                      O2::TRDWorkflowIO

@@ -180,6 +180,14 @@ class SpaceCharge
   /// \param formulaStruct struct containing a method to evaluate the potential
   void setPotentialBoundaryFromFormula(const AnalyticalFields<DataT>& formulaStruct);
 
+  /// adding the boundary potential from other sc object which same number of vertices!
+  /// \param other other SC object which boundary potential witll be added
+  /// \param scaling sclaing factor which used to scale the others boundary potential
+  void addBoundaryPotential(const SpaceCharge<DataT>& other, const Side side, const float scaling = 1);
+
+  /// setting the boundary potential to 0 for z<zMin and z>zMax
+  void resetBoundaryPotentialToZeroInRangeZ(float zMin, float zMax, const Side side);
+
   /// step 0: this function fills the potential using an analytical formula
   /// \param formulaStruct struct containing a method to evaluate the potential
   void setPotentialFromFormula(const AnalyticalFields<DataT>& formulaStruct);
@@ -292,6 +300,9 @@ class SpaceCharge
   /// \param scalingFactor scaling factor for the space-charge density
   void scaleChargeDensitySector(const float scalingFactor, const Sector sector);
 
+  /// scaling the space-charge density for given stack
+  void scaleChargeDensityStack(const float scalingFactor, const Sector sector, const GEMstack stack);
+
   /// add space charge density from other object (this.mDensity = this.mDensity + other.mDensity)
   /// \param otherSC other space-charge object, which charge will be added to current object
   void addChargeDensity(const SpaceCharge<DataT>& otherSC);
@@ -319,6 +330,9 @@ class SpaceCharge
   /// \param type how to treat the corrections at regions where the corrected value is out of the TPC volume: type=0: use last valid correction value, type=1 do linear extrapolation, type=2 do parabolic extrapolation, type=3 do NOT abort when reaching the CE or the IFC to get a smooth estimate of the corrections
   template <typename Fields = AnalyticalFields<DataT>>
   void calcGlobalCorrections(const Fields& formulaStruct, const int type = 3);
+
+  /// calculate the global corrections using the electric fields (interface for python)
+  void calcGlobalCorrectionsEField(const Side side, const int type = 3) { calcGlobalCorrections(getElectricFieldsInterpolator(side), type); }
 
   /// step 5: calculate global distortions by using the electric field or the local distortions (SLOW)
   /// \param formulaStruct struct containing a method to evaluate the electric field Er, Ez, Ephi or the local distortions
@@ -371,6 +385,9 @@ class SpaceCharge
   /// \param r global r coordinate
   /// \param phi global phi coordinate
   DataT getPotentialCyl(const DataT z, const DataT r, const DataT phi, const Side side) const;
+
+  /// get the potential for list of given coordinate
+  std::vector<float> getPotentialCyl(const std::vector<DataT>& z, const std::vector<DataT>& r, const std::vector<DataT>& phi, const Side side) const;
 
   /// get the electric field for given coordinate
   /// \param z global z coordinate
@@ -1112,11 +1129,19 @@ class SpaceCharge
   /// \param deltaPot delta potential which will be set at the copper rod
   void setDeltaVoltageRotatedClipOFC(const float deltaPot, const Side side, const int sector) { initRodAlignmentVoltages(MisalignmentType::RotatedClip, FCType::OFC, sector, side, deltaPot); }
 
+  /// IFC charge up: set a linear rising delta potential from the CE to given z
+  /// \param deltaPot maximum value of the delta potential in V
+  /// \param zMaxDeltaPot z position where the maximum delta potential of deltaPot will be set
+  /// \param type functional form of the delta potential: 0=linear, 1= 1/x, 2=flat, 3=linear falling, 4=flat no z dependence
+  /// \param zStart usually at 0 to start the rising of the potential at the IFC
+  void setIFCChargeUpRisingPot(const float deltaPot, const float zMaxDeltaPot, const int type, const float zStart, const float offs, const Side side);
+
   /// IFC charge up: set a linear rising delta potential from the CE to given z position which falls linear down to 0 at the readout
   /// \param deltaPot maximum value of the delta potential in V
-  /// \param cutOff set the delta potential to 0 for z>zMaxDeltaPot
   /// \param zMaxDeltaPot z position where the maximum delta potential of deltaPot will be set
-  void setIFCChargeUpLinear(const float deltaPot, const float zMaxDeltaPot, const bool cutOff, const Side side);
+  /// \param type function which is used to set falling potential: 0=linear falling off, 1=1/x falling off, 2=1/x steeply falling, 3=linear with offset
+  /// \param offs if offs != 0 the potential doesnt fall to 0. E.g. deltaPot=400V and offs=-10V -> Potential falls from 400V at zMaxDeltaPot to -10V at z=250cm
+  void setIFCChargeUpFallingPot(const float deltaPot, const float zMaxDeltaPot, const int type, const float zEnd, const float offs, const Side side);
 
   /// setting the global corrections directly from input function provided in global coordinates
   /// \param gCorr function returning global corrections for given global coordinate
