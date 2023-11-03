@@ -105,6 +105,8 @@ struct TrackVF {
   enum { kUsed,
          kNoVtx = -1,
          kDiscarded = kNoVtx - 1 };
+  enum { kITSTPCAdjust = 0x1,
+         kDummyHBin = 0xffff };
   float x;      ///< reference X
   float y;      ///< Y at X
   float z;      ///< Z at X
@@ -119,11 +121,14 @@ struct TrackVF {
   TimeEst timeEst;
   float wgh = 0.; ///< track weight wrt current vertex seed
   float wghHisto = 0.; // weight based on track errors, used for histogramming
-  int entry;      ///< track entry in the input vector
-  int32_t bin = -1; // seeds histo bin
-  GTrackID gid{};
+  int entry;           ///< track entry in the input vector
   int vtxID = kNoVtx; ///< assigned vertex
+  GTrackID gid{};
+  uint16_t bin = kDummyHBin; // seeds histo bin
+  uint16_t flags = 0;
   //
+  void setITSTPCAdjusted() { flags &= kITSTPCAdjust; }
+  bool isITSTPCAdjusted() const { return flags & kITSTPCAdjust; }
   bool canAssign() const { return wgh > 0. && vtxID == kNoVtx; }
   bool canUse() const { return vtxID == kNoVtx; }
   bool canUse(float zmin, float zmax) const
@@ -215,7 +220,7 @@ struct TrackVF {
 struct SeedHistoTZ : public o2::dataformats::FlatHisto2D_f {
   using o2::dataformats::FlatHisto2D<float>::FlatHisto2D;
 
-  int fillAndFlagBin(float x, float y, float w)
+  uint16_t fillAndFlagBin(float x, float y, float w)
   {
     uint32_t bin = getBin(x, y);
     if (isValidBin(bin)) {
@@ -224,9 +229,9 @@ struct SeedHistoTZ : public o2::dataformats::FlatHisto2D_f {
       }
       fillBin(bin, w);
       nEntries++;
-      return bin;
+      return uint16_t(bin);
     }
-    return -1;
+    return 0xffff;
   }
 
   void clear()
@@ -266,6 +271,13 @@ struct TrackVFDump {
   float wh = 0.;
   TrackVFDump() = default;
   ClassDefNV(TrackVFDump, 1);
+};
+
+struct InteractionCandidate : public o2::InteractionRecord {
+  float time = 0;
+  float amplitude = 0;
+  uint32_t flag = 0; // origin, etc.
+  InteractionCandidate() = default;
 };
 
 } // namespace vertexing

@@ -37,6 +37,11 @@ class PrimaryVertex : public Vertex<TimeStampWithError<float, float>>
   void setIR(const InteractionRecord& ir) { mIRMin = mIRMax = ir; }
   bool hasUniqueIR() const { return !mIRMin.isDummy() && (mIRMin == mIRMax); }
 
+  float getTMAD() const { return mTMAD; }
+  void setTMAD(float v) { mTMAD = v; }
+  float getZMAD() const { return mZMAD; }
+  void setZMAD(float v) { mZMAD = v; }
+
 #ifndef GPUCA_ALIGPUCODE
   void print() const;
   std::string asString() const;
@@ -45,8 +50,10 @@ class PrimaryVertex : public Vertex<TimeStampWithError<float, float>>
  protected:
   InteractionRecord mIRMin{}; ///< by default not assigned!
   InteractionRecord mIRMax{}; ///< by default not assigned!
+  float mTMAD = -1;           ///< MAD estimator for Tsigma
+  float mZMAD = -1;           ///< MAD estimator for Zsigma
 
-  ClassDefNV(PrimaryVertex, 1);
+  ClassDefNV(PrimaryVertex, 2);
 };
 
 #ifndef GPUCA_ALIGPUCODE
