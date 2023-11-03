@@ -31,7 +31,7 @@ struct InteractionTag : public o2::conf::ConfigurableParamHelper<InteractionTag>
   int minAmplitudeC = 1;
   bool isSelected(const RecPoints& rp) const
   {
-    return rp.getTrigger().getVertex() && rp.getTrigger().getAmplA() >= minAmplitudeA && rp.getTrigger().getAmplC() >= minAmplitudeC && (rp.getTrigger().getAmplA() + rp.getTrigger().getAmplC()) > minAmplitudeAC;
+    return rp.getTrigger().getVertex() && rp.getTrigger().getAmplA() >= minAmplitudeA && rp.getTrigger().getAmplC() >= minAmplitudeC && (rp.getTrigger().getAmplA() + rp.getTrigger().getAmplC()) >= minAmplitudeAC;
   }
 
   O2ParamDef(InteractionTag, "ft0tag");
