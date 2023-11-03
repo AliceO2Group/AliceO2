@@ -757,7 +757,7 @@ DECLARE_SOA_COLUMN(HMPIDYMip, hmpidYMip, float);                   //! Matched M
 DECLARE_SOA_COLUMN(HMPIDNPhotons, hmpidNPhotons, int);             //! Number of detected photons in HMPID
 DECLARE_SOA_COLUMN(HMPIDQMip, hmpidQMip, float);                   //! Matched MIP cluster charge
 DECLARE_SOA_COLUMN(HMPIDClusSize, hmpidClusSize, int);             //! Matched MIP cluster size
-DECLARE_SOA_COLUMN(HMPIDMom, hmpidMom, float);                     //! Matched MIP cluster size
+DECLARE_SOA_COLUMN(HMPIDMom, hmpidMom, float);                     //! Track momentum at the HMPID
 DECLARE_SOA_COLUMN(HMPIDPhotsCharge, hmpidPhotsCharge, float[10]); //! Photon cluster charge
 } // namespace hmpid
 
