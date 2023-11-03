@@ -198,7 +198,9 @@ class TimeFrameGPU : public TimeFrame
   void loadTrackSeedsDevice();
   void loadTrackSeedsChi2Device();
   void loadRoadsDevice();
-  void createTrackITSExtDevice();
+  void loadTrackSeedsDevice(std::vector<CellSeed>&);
+  void createTrackITSExtDevice(const std::vector<CellSeed>& seeds);
+  void createTrackITSExtDevice(); // deprecated
   void downloadTrackITSExtDevice();
   void initDeviceChunks(const int, const int);
   template <Task task>
@@ -232,6 +234,7 @@ class TimeFrameGPU : public TimeFrame
   Cluster** getDeviceArrayUnsortedClusters() const { return mUnsortedClustersDeviceArray; }
   Tracklet** getDeviceArrayTracklets() const { return mTrackletsDeviceArray; }
   CellSeed** getDeviceArrayCells() const { return mCellsDeviceArray; }
+  CellSeed* getDeviceTrackSeeds() { return mTrackSeedsDevice; }
   o2::track::TrackParCovF** getDeviceArrayTrackSeeds() { return mCellSeedsDeviceArray; }
   float** getDeviceArrayTrackSeedsChi2() { return mCellSeedsChi2DeviceArray; }
   void setDevicePropagator(const o2::base::PropagatorImpl<float>*) override;
@@ -263,6 +266,7 @@ class TimeFrameGPU : public TimeFrame
   std::array<Tracklet*, nLayers - 1> mTrackletsDevice;
   Tracklet** mTrackletsDeviceArray;
   std::array<CellSeed*, nLayers - 2> mCellsDevice;
+  CellSeed* mTrackSeedsDevice;
   CellSeed** mCellsDeviceArray;
   std::array<o2::track::TrackParCovF*, nLayers - 2> mCellSeedsDevice;
   o2::track::TrackParCovF** mCellSeedsDeviceArray;
