@@ -31,6 +31,7 @@
 #include "DetectorsVertexing/PVertexerParams.h"
 #include "ReconstructionDataFormats/GlobalTrackID.h"
 #include "DataFormatsCalibration/MeanVertexObject.h"
+#include "ITSMFTBase/DPLAlpideParam.h"
 #include "gsl/span"
 #include <numeric>
 #include <TTree.h>
@@ -59,7 +60,11 @@ class PVertexer
   void init();
   void end();
   template <typename TR>
-  int process(const TR& tracks, const gsl::span<o2d::GlobalTrackID> gids, const gsl::span<o2::InteractionRecord> bcData,
+  int process(const TR& tracks, const gsl::span<o2d::GlobalTrackID> gids, const gsl::span<InteractionCandidate> intCand,
+              std::vector<PVertex>& vertices, std::vector<o2d::VtxTrackIndex>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs,
+              const gsl::span<const o2::MCCompLabel> lblTracks, std::vector<o2::MCEventLabel>& lblVtx);
+  template <typename TR>
+  int process(const TR& tracks, const gsl::span<o2d::GlobalTrackID> gids, const gsl::span<o2::InteractionRecord> intRec,
               std::vector<PVertex>& vertices, std::vector<o2d::VtxTrackIndex>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs,
               const gsl::span<const o2::MCCompLabel> lblTracks, std::vector<o2::MCEventLabel>& lblVtx);
 
@@ -82,6 +87,7 @@ class PVertexer
   void setBz(float bz) { mBz = bz; }
   void setValidateWithIR(bool v) { mValidateWithIR = v; }
   bool getValidateWithIR() const { return mValidateWithIR; }
+  void setTrackSources(GTrackID::mask_t s);
 
   auto& getTracksPool() const { return mTracksPool; }
   auto& getTimeZClusters() const { return mTimeZClusters; }
@@ -117,6 +123,7 @@ class PVertexer
   TStopwatch& getTimeDBScan() { return mTimeDBScan; }
   TStopwatch& getTimeVertexing() { return mTimeVertexing; }
   TStopwatch& getTimeDebris() { return mTimeDebris; }
+  TStopwatch& getTimeMADSel() { return mTimeMADSel; }
   TStopwatch& getTimeReAttach() { return mTimeReAttach; }
 
   void setPoolDumpDirectory(const std::string& d) { mPoolDumpDirectory = d; }
@@ -127,7 +134,7 @@ class PVertexer
   static constexpr int DBS_UNDEF = -2, DBS_NOISE = -1, DBS_INCHECK = -10;
 
   SeedHistoTZ buildHistoTZ(const VertexingInput& input);
-  int runVertexing(gsl::span<o2d::GlobalTrackID> gids, const gsl::span<o2::InteractionRecord> bcData,
+  int runVertexing(gsl::span<o2d::GlobalTrackID> gids, const gsl::span<InteractionCandidate> intCand,
                    std::vector<PVertex>& vertices, std::vector<o2d::VtxTrackIndex>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs,
                    gsl::span<const o2::MCCompLabel> lblTracks, std::vector<o2::MCEventLabel>& lblVtx);
   void createMCLabels(gsl::span<const o2::MCCompLabel> lblTracks, const std::vector<uint32_t>& trackIDs, const std::vector<V2TRef>& v2tRefs, std::vector<o2::MCEventLabel>& lblVtx);
@@ -144,6 +151,9 @@ class PVertexer
   bool upscaleSigma(VertexSeed& vtxSeed) const;
   bool relateTrackToMeanVertex(o2::track::TrackParCov& trc, float vtxErr2);
   bool relateTrackToVertex(o2::track::TrackParCov& trc, const o2d::VertexBase& vtxSeed) const;
+  void applyMADSelection(std::vector<PVertex>& vertices, std::vector<int>& timeSort, const std::vector<V2TRef>& v2tRefs, const std::vector<uint32_t>& trackIDs);
+  void applITSOnlyFractionCut(std::vector<PVertex>& vertices, std::vector<int>& timeSort, const std::vector<V2TRef>& v2tRefs, const std::vector<uint32_t>& trackIDs);
+  void applInteractionValidation(std::vector<PVertex>& vertices, std::vector<int>& timeSort, const gsl::span<InteractionCandidate> intCand, int minContrib);
 
   template <typename TR>
   void createTracksPool(const TR& tracks, gsl::span<const o2d::GlobalTrackID> gids);
@@ -151,7 +161,7 @@ class PVertexer
   int findVertices(const VertexingInput& input, std::vector<PVertex>& vertices, std::vector<uint32_t>& trackIDs, std::vector<V2TRef>& v2tRefs);
   void reAttach(std::vector<PVertex>& vertices, std::vector<int>& timeSort, std::vector<uint32_t>& trackIDs, std::vector<V2TRef>& v2tRefs);
 
-  std::pair<int, int> getBestIR(const PVertex& vtx, const gsl::span<o2::InteractionRecord> bcData, int& currEntry) const;
+  std::pair<int, int> getBestIR(const PVertex& vtx, const gsl::span<InteractionCandidate> intCand, int& currEntry) const;
 
   int dbscan_RangeQuery(int idxs, std::vector<int>& cand, std::vector<int>& status);
   void dbscan_clusterize();
@@ -173,7 +183,7 @@ class PVertexer
   float mBz = 0.;                           ///< mag.field at beam line
   float mDBScanDeltaT = 0.;                 ///< deltaT cut for DBScan check
   float mDBSMaxZ2InvCorePoint = 0;          ///< inverse of max sigZ^2 of the track which can be core point in the DBScan
-  bool mValidateWithIR = false;             ///< require vertex validation with InteractionRecords (if available)
+  bool mValidateWithIR = false;             ///< require vertex validation with InteractionCandidates (if available)
 
   o2::InteractionRecord mStartIR{0, 0}; ///< IR corresponding to the start of the TF
 
@@ -183,6 +193,8 @@ class PVertexer
   //
 
   ///========== Parameters to be set externally, e.g. from CCDB ====================
+  GTrackID::mask_t mTrackSrc{};
+  std::vector<int> mSrcVec{};
   const PVertexerParams* mPVParams = nullptr;
   float mTukey2I = 0;                        ///< 1./[Tukey parameter]^2
   static constexpr float kDefTukey = 5.0f;   ///< def.value for tukey constant
@@ -192,12 +204,18 @@ class PVertexer
   size_t mNTZClustersIni = 0;
   size_t mTotTrials = 0;
   size_t mMaxTrialPerCluster = 0;
+  float mMaxTDiffDebris = 0;      ///< when reducing debris, don't consider vertices separated by time > this value in \mus
+  float mMaxTDiffDebrisExtra = 0; ///< when reducing debris, don't consider vertices separated by time > this value in \mus (optional additional cut
+  float mMaxTDiffDebrisFiducial = 0;
+  float mMaxZDiffDebrisFiducial = 0;
+  float mMaxMultRatDebrisFiducial = 0;
   long mLongestClusterTimeMS = 0;
   int mLongestClusterMult = 0;
   bool mPoolDumpProduced = false;
   TStopwatch mTimeDBScan;
   TStopwatch mTimeVertexing;
   TStopwatch mTimeDebris;
+  TStopwatch mTimeMADSel;
   TStopwatch mTimeReAttach;
   std::string mPoolDumpDirectory{};
 #ifdef _PV_DEBUG_TREE_
@@ -263,6 +281,7 @@ void PVertexer::createTracksPool(const TR& tracks, gsl::span<const o2d::GlobalTr
 
   // check all containers
   float vtxErr2 = 0.5 * (mMeanVertex.getSigmaX2() + mMeanVertex.getSigmaY2()) + mPVParams->meanVertexExtraErrSelection * mPVParams->meanVertexExtraErrSelection;
+  const auto& alpParams = o2::itsmft::DPLAlpideParam<o2::detectors::DetID::ITS>::Instance();
 
   for (uint32_t i = 0; i < ntGlo; i++) {
     int id = sortedTrackID[i];
@@ -275,6 +294,18 @@ void PVertexer::createTracksPool(const TR& tracks, gsl::span<const o2d::GlobalTr
     auto& tvf = mTracksPool.emplace_back(trc, tracks[id].getTimeMUS(), id, gids[id], mPVParams->addTimeSigma2, mPVParams->addZSigma2);
     if (tvf.wghHisto < 0) {
       mTracksPool.pop_back(); // discard bad track
+      continue;
+    }
+    if (gids[id].getSource() == GTrackID::ITSTPC) { // if the track was adjusted to ITS ROF boundary, flag it
+      float bcf = tvf.timeEst.getTimeStamp() / o2::constants::lhc::LHCBunchSpacingMUS + o2::constants::lhc::LHCMaxBunches;
+      int bcWrtROF = int(bcf - alpParams.roFrameBiasInBC) % alpParams.roFrameLengthInBC;
+      if (bcWrtROF == 0) {
+        float dbc = bcf - (int(bcf / alpParams.roFrameBiasInBC)) * alpParams.roFrameBiasInBC;
+        if (std::abs(dbc) < 1e-6) {
+          tvf.setITSTPCAdjusted();
+          LOGP(debug, "Adjusted t={} -> bcf={} dbc = {}", tvf.timeEst.getTimeStamp(), bcf, dbc);
+        }
+      }
     }
   }
 
@@ -288,12 +319,28 @@ void PVertexer::createTracksPool(const TR& tracks, gsl::span<const o2d::GlobalTr
 
 //___________________________________________________________________
 template <typename TR>
-int PVertexer::process(const TR& tracks, const gsl::span<o2d::GlobalTrackID> gids, const gsl::span<o2::InteractionRecord> bcData,
+int PVertexer::process(const TR& tracks, const gsl::span<o2d::GlobalTrackID> gids, const gsl::span<InteractionCandidate> intCand,
                        std::vector<PVertex>& vertices, std::vector<o2d::VtxTrackIndex>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs,
                        const gsl::span<const o2::MCCompLabel> lblTracks, std::vector<o2::MCEventLabel>& lblVtx)
 {
   createTracksPool(tracks, gids);
-  return runVertexing(gids, bcData, vertices, vertexTrackIDs, v2tRefs, lblTracks, lblVtx);
+  return runVertexing(gids, intCand, vertices, vertexTrackIDs, v2tRefs, lblTracks, lblVtx);
+}
+
+//___________________________________________________________________
+template <typename TR>
+int PVertexer::process(const TR& tracks, const gsl::span<o2d::GlobalTrackID> gids, const gsl::span<o2::InteractionRecord> intRec,
+                       std::vector<PVertex>& vertices, std::vector<o2d::VtxTrackIndex>& vertexTrackIDs, std::vector<V2TRef>& v2tRefs,
+                       const gsl::span<const o2::MCCompLabel> lblTracks, std::vector<o2::MCEventLabel>& lblVtx)
+{
+  createTracksPool(tracks, gids);
+  static std::vector<InteractionCandidate> intCand;
+  intCand.clear();
+  intCand.reserve(intRec.size());
+  for (const auto& ir : intRec) {
+    intCand.emplace_back(InteractionCandidate{ir, float(ir.differenceInBC(mStartIR) * o2::constants::lhc::LHCBunchSpacingMUS), 0, 0});
+  }
+  return runVertexing(gids, intCand, vertices, vertexTrackIDs, v2tRefs, lblTracks, lblVtx);
 }
 
 //___________________________________________________________________
