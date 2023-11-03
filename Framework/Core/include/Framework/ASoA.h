@@ -2752,7 +2752,7 @@ class FilteredBase : public T
       this->copyIndexBindings(fresult);
       return fresult;
     }
-    auto start = offset;
+    auto start = static_cast<uint64_t>(offset);
     auto end = start + slice->num_rows();
     auto start_iterator = std::lower_bound(mSelectedRows.begin(), mSelectedRows.end(), start);
     auto stop_iterator = std::lower_bound(start_iterator, mSelectedRows.end(), end);
