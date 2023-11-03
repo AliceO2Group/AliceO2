@@ -17,46 +17,30 @@
 
 #include "DetectorsBase/Stack.h"
 #include "ITSMFTSimulation/Hit.h"
-#include "TRKSimulation/Detector.h"
-#include "TRKBase/TRKBaseParam.h"
+#include "IOTOFSimulation/Detector.h"
+#include "IOTOFBase/IOTOFBaseParam.h"
 
 using o2::itsmft::Hit;
 
 namespace o2
 {
-namespace trk
+namespace iotof
 {
-float getDetLengthFromEta(const float eta, const float radius)
-{
-  return 2. * (10. + radius * std::cos(2 * std::atan(std::exp(-eta))));
-}
 
 Detector::Detector()
-  : o2::base::DetImpl<Detector>("TRK", true),
+  : o2::base::DetImpl<Detector>("TF3", true),
     mTrackData(),
     mHits(o2::utils::createSimVector<o2::itsmft::Hit>())
 {
 }
 
 Detector::Detector(bool active)
-  : o2::base::DetImpl<Detector>("TRK", true),
+  : o2::base::DetImpl<Detector>("TF3", true),
     mTrackData(),
     mHits(o2::utils::createSimVector<o2::itsmft::Hit>())
 {
-  auto& trkPars = TRKBaseParam::Instance();
-
-  if (trkPars.configFile != "") {
-    configFromFile(trkPars.configFile);
-  } else {
-    configDefault();
-    configToFile();
-    configServices();
-  }
-
-  LOGP(info, "Summary of TRK configuration:");
-  for (auto& layer : mLayers) {
-    LOGP(info, "Layer: {} name: {} r: {} cm | z: {} cm | thickness: {} cm", layer.getNumber(), layer.getName(), layer.getInnerRadius(), layer.getZ(), layer.getChipThickness());
-  }
+  auto& iotofPars = IOTOFBaseParam::Instance();
+  configLayers(iotofPars.enableInnerTOF, iotofPars.enableOuterTOF, iotofPars.enableForwardTOF);
 }
 
 Detector::~Detector()
@@ -72,68 +56,24 @@ void Detector::ConstructGeometry()
   createGeometry();
 }
 
-void Detector::configDefault()
+void Detector::configLayers(bool itof, bool otof, bool ftof, bool btof)
 {
-  mLayers.clear();
-
-  LOGP(warning, "Loading default configuration for ALICE3 TRK");
-  mLayers.emplace_back(0, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(0)}, 0.55f, 50.f, 100.e-4); // Adjusted rmin not to overlap with inner BP
-  mLayers.emplace_back(1, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(1)}, 1.2f, 50.f, 100.e-4);
-  mLayers.emplace_back(2, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(2)}, 2.5f, 50.f, 100.e-4);
-  mLayers.emplace_back(3, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(3)}, 3.78f, 124.f, 100.e-3); // Adjusted rmin not to overlap with outer BP
-  mLayers.emplace_back(4, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(4)}, 7.f, 124.f, 100.e-3);
-  mLayers.emplace_back(5, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(5)}, 12.f, 124.f, 100.e-3);
-  mLayers.emplace_back(6, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(6)}, 20.f, 124.f, 100.e-3);
-  mLayers.emplace_back(7, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(7)}, 30.f, 124.f, 100.e-3);
-  mLayers.emplace_back(8, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(8)}, 45.f, 264.f, 100.e-3);
-  mLayers.emplace_back(9, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(9)}, 60.f, 264.f, 100.e-3);
-  mLayers.emplace_back(10, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(10)}, 80.f, 264.f, 100.e-3);
-}
-
-void Detector::configFromFile(std::string fileName)
-{
-  // Override the default geometry if config file provided
-  std::ifstream confFile(fileName);
-  if (!confFile.good()) {
-    LOGP(fatal, "File {} not found, aborting.", fileName);
+  if (itof) {
+    mITOFLayer = ITOFLayer(std::string{GeometryTGeo::getITOFLayerPattern()}, 19.f, 0.f, 124.f, 0.f, 0.02f, true); // iTOF
   }
-
-  mLayers.clear();
-
-  LOGP(info, "Overriding geometry of ALICE3 TRK using {} file.", fileName);
-
-  std::string line;
-  std::vector<float> tmpBuff;
-  int layerCount{0};
-  while (std::getline(confFile, line)) {
-    if (line[0] == '/') {
-      continue;
-    }
-    tmpBuff.clear();
-    std::stringstream ss(line);
-    float val;
-    std::string substr;
-    while (getline(ss, substr, '\t')) {
-      tmpBuff.push_back(std::stof(substr));
-    }
-    mLayers.emplace_back(layerCount, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(layerCount)}, tmpBuff[0], tmpBuff[1], tmpBuff[2]);
-    ++layerCount;
+  if (otof) {
+    mOTOFLayer = OTOFLayer(std::string{GeometryTGeo::getOTOFLayerPattern()}, 85.f, 0.f, 680.f, 0.f, 0.02f, true); // oTOF
   }
-}
-
-void Detector::configToFile(std::string fileName)
-{
-  LOGP(info, "Exporting TRK Detector layout to {}", fileName);
-  std::ofstream conFile(fileName.c_str(), std::ios::out);
-  conFile << "/// TRK configuration file: inn_radius  z_length  lay_thickness" << std::endl;
-  for (auto layer : mLayers) {
-    conFile << layer.getInnerRadius() << "\t" << layer.getZ() << "\t" << layer.getChipThickness() << std::endl;
+  if (ftof) {
+    mFTOFLayer = FTOFLayer(std::string{GeometryTGeo::getFTOFLayerPattern()}, 15.f, 150.f, 0.f, 405.f, 0.02f, false); // fTOF
+  }
+  if (btof) {
+    mBTOFLayer = BTOFLayer(std::string{GeometryTGeo::getBTOFLayerPattern()}, 15.f, 150.f, 0.f, -405.f, 0.02f, false); // bTOF
   }
 }
 
 void Detector::configServices()
 {
-  mServices = TRKServices{2.6f, 50.f, 150.e-3};
 }
 
 void Detector::createMaterials()
@@ -154,21 +94,11 @@ void Detector::createMaterials()
   float epsilAir = 1.0E-4;      // .10000E+01;
   float stminAir = 0.0;         // cm "Default value used"
 
-  float tmaxfdCer = 0.1;        // .10000E+01; // Degree
-  float stemaxCer = .10000E+01; // cm
-  float deemaxCer = 0.1;        // 0.30000E-02; // Fraction of particle's energy 0<deemax<=1
-  float epsilCer = 1.0E-4;      // .10000E+01;
-  float stminCer = 0.0;         // cm "Default value used"
-
   // AIR
   float aAir[4] = {12.0107, 14.0067, 15.9994, 39.948};
   float zAir[4] = {6., 7., 8., 18.};
   float wAir[4] = {0.000124, 0.755267, 0.231781, 0.012827};
   float dAir = 1.20479E-3;
-
-  // Carbon fiber
-  float aCf[2] = {12.0107, 1.00794};
-  float zCf[2] = {6., 1.};
 
   o2::base::Detector::Mixture(1, "AIR$", aAir, zAir, dAir, 4, wAir);
   o2::base::Detector::Medium(1, "AIR$", 1, 0, ifield, fieldm, tmaxfdAir, stemaxAir, deemaxAir, epsilAir, stminAir);
@@ -182,26 +112,33 @@ void Detector::createGeometry()
   TGeoManager* geoManager = gGeoManager;
   TGeoVolume* vALIC = geoManager->GetVolume("barrel");
   if (!vALIC) {
-    LOGP(fatal, "Could not find barrel volume while constructing TRK geometry");
+    LOGP(fatal, "Could not find barrel volume while constructing IOTOF geometry");
   }
-  new TGeoVolumeAssembly(GeometryTGeo::getTRKVolPattern());
-  TGeoVolume* vTRK = geoManager->GetVolume(GeometryTGeo::getTRKVolPattern());
-  vALIC->AddNode(vTRK, 2, new TGeoTranslation(0, 30., 0));
+  new TGeoVolumeAssembly(GeometryTGeo::getIOTOFVolPattern());
+  TGeoVolume* vIOTOF = geoManager->GetVolume(GeometryTGeo::getIOTOFVolPattern());
+  vALIC->AddNode(vIOTOF, 2, new TGeoTranslation(0, 30., 0));
 
-  char vstrng[100] = "TRKVol";
-  vTRK->SetTitle(vstrng);
+  char vstrng[100] = "IOTOFVol";
+  vIOTOF->SetTitle(vstrng);
 
-  for (auto& layer : mLayers) {
-    layer.createLayer(vTRK);
+  auto& iotofPars = IOTOFBaseParam::Instance();
+  if (iotofPars.enableInnerTOF) {
+    mITOFLayer.createLayer(vIOTOF);
   }
-
-  // Add service for inner tracker
-  mServices.createServices(vTRK);
+  if (iotofPars.enableOuterTOF) {
+    mOTOFLayer.createLayer(vIOTOF);
+  }
+  if (iotofPars.enableForwardTOF) {
+    mFTOFLayer.createLayer(vIOTOF);
+  }
+  if (iotofPars.enableBackwardTOF) {
+    mBTOFLayer.createLayer(vIOTOF);
+  }
 }
 
 void Detector::InitializeO2Detector()
 {
-  LOG(info) << "Initialize TRK O2Detector";
+  LOG(info) << "Initialize IOTOF O2Detector";
   mGeometryTGeo = GeometryTGeo::Instance();
   defineSensitiveVolumes();
 }
@@ -211,15 +148,26 @@ void Detector::defineSensitiveVolumes()
   TGeoManager* geoManager = gGeoManager;
   TGeoVolume* v;
 
-  TString volumeName;
-  LOGP(info, "Adding TRK Sensitive Volumes");
-
-  // The names of the TRK sensitive volumes have the format: TRKLayer(0...mLayers.size()-1)
-  for (int j{0}; j < mLayers.size(); j++) {
-    volumeName = GeometryTGeo::getTRKSensorPattern() + TString::Itoa(j, 10);
-    LOGP(info, "Trying {}", volumeName.Data());
-    v = geoManager->GetVolume(volumeName.Data());
-    LOGP(info, "Adding TRK Sensitive Volume {}", v->GetName());
+  // The names of the IOTOF sensitive volumes have the format: IOTOFLayer(0...mLayers.size()-1)
+  auto& iotofPars = IOTOFBaseParam::Instance();
+  if (iotofPars.enableInnerTOF) {
+    v = geoManager->GetVolume(GeometryTGeo::getITOFSensorPattern());
+    LOGP(info, "Adding IOTOF Sensitive Volume {}", v->GetName());
+    AddSensitiveVolume(v);
+  }
+  if (iotofPars.enableOuterTOF) {
+    v = geoManager->GetVolume(GeometryTGeo::getOTOFSensorPattern());
+    LOGP(info, "Adding IOTOF Sensitive Volume {}", v->GetName());
+    AddSensitiveVolume(v);
+  }
+  if (iotofPars.enableForwardTOF) {
+    v = geoManager->GetVolume(GeometryTGeo::getFTOFSensorPattern());
+    LOGP(info, "Adding IOTOF Sensitive Volume {}", v->GetName());
+    AddSensitiveVolume(v);
+  }
+  if (iotofPars.enableBackwardTOF) {
+    v = geoManager->GetVolume(GeometryTGeo::getBTOFSensorPattern());
+    LOGP(info, "Adding IOTOF Sensitive Volume {}", v->GetName());
     AddSensitiveVolume(v);
   }
 }
@@ -229,7 +177,7 @@ void Detector::EndOfEvent() { Reset(); }
 void Detector::Register()
 {
   // This will create a branch in the output tree called Hit, setting the last
-  // parameter to kFALSE means that this collection will not be written to the file,
+  // parameter to false means that this collection will not be written to the file,
   // it will exist only during the simulation
 
   if (FairRootManager::Instance()) {
@@ -256,7 +204,7 @@ bool Detector::ProcessHits(FairVolume* vol)
 
   // Is it needed to keep a track reference when the outer ITS volume is encountered?
   auto stack = (o2::data::Stack*)fMC->GetStack();
-  if (fMC->IsTrackExiting() && (lay == 0 || lay == mLayers.size() - 1)) {
+  if (fMC->IsTrackExiting() /*&& (lay == 0 || lay == mLayers.size() - 1)*/) {
     // Keep the track refs for the innermost and outermost layers only
     o2::TrackReference tr(*fMC, GetDetId());
     tr.setTrackID(stack->GetCurrentTrackNumber());
@@ -319,7 +267,6 @@ bool Detector::ProcessHits(FairVolume* vol)
     Hit* p = addHit(stack->GetCurrentTrackNumber(), lay, mTrackData.mPositionStart.Vect(), positionStop.Vect(),
                     mTrackData.mMomentumStart.Vect(), mTrackData.mMomentumStart.E(), positionStop.T(),
                     mTrackData.mEnergyLoss, mTrackData.mTrkStatusStart, status);
-    // p->SetTotalEnergy(vmc->Etot());
 
     // RS: not sure this is needed
     // Increment number of Detector det points in TParticle
@@ -336,7 +283,7 @@ o2::itsmft::Hit* Detector::addHit(int trackID, int detID, const TVector3& startP
   mHits->emplace_back(trackID, detID, startPos, endPos, startMom, startE, endTime, eLoss, startStatus, endStatus);
   return &(mHits->back());
 }
-} // namespace trk
+} // namespace iotof
 } // namespace o2
 
-ClassImp(o2::trk::Detector);
+ClassImp(o2::iotof::Detector);
