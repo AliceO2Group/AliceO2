@@ -102,6 +102,7 @@ class CellSeed final : public o2::track::TrackParCovF
   GPUhd() void setLevel(int level) { mLevel = level; };
   GPUhd() int* getLevelPtr() { return &mLevel; }
   GPUhd() int* getClusters() { return mClusters; }
+  GPUhd() int getCluster(int i) const { return mClusters[i]; }
 
  private:
   int mClusters[7] = {-1, -1, -1, -1, -1, -1, -1};
