@@ -66,7 +66,8 @@ void TrackerTraits::computeLayerTracklets(const int iteration)
     gsl::span<const Vertex> primaryVertices = mTrkParams[iteration].UseDiamond ? diamondSpan : tf->getPrimaryVertices(rof0);
     int minRof = (rof0 >= mTrkParams[iteration].DeltaROF) ? rof0 - mTrkParams[iteration].DeltaROF : 0;
     int maxRof = (rof0 == tf->getNrof() - mTrkParams[iteration].DeltaROF) ? rof0 : rof0 + mTrkParams[iteration].DeltaROF;
-    for (int iLayer{0}; iLayer < mTrkParams[iteration].TrackletsPerRoad(); ++iLayer) {
+#pragma omp parallel for num_threads(mNThreads)
+    for (int iLayer = 0; iLayer < mTrkParams[iteration].TrackletsPerRoad(); ++iLayer) {
       gsl::span<const Cluster> layer0 = tf->getClustersOnLayer(rof0, iLayer);
       if (layer0.empty()) {
         continue;
@@ -179,13 +180,14 @@ void TrackerTraits::computeLayerTracklets(const int iteration)
           }
         }
       }
-      if (!tf->checkMemory(mTrkParams[iteration].MaxMemory)) {
-        return;
-      }
     }
   }
+  if (!tf->checkMemory(mTrkParams[iteration].MaxMemory)) {
+    return;
+  }
 
-  for (int iLayer{0}; iLayer < mTrkParams[iteration].CellsPerRoad(); ++iLayer) {
+#pragma omp parallel for num_threads(mNThreads)
+  for (int iLayer = 0; iLayer < mTrkParams[iteration].CellsPerRoad(); ++iLayer) {
     /// Sort tracklets
     auto& trkl{tf->getTracklets()[iLayer + 1]};
     std::sort(trkl.begin(), trkl.end(), [](const Tracklet& a, const Tracklet& b) {
@@ -259,7 +261,8 @@ void TrackerTraits::computeLayerCells(const int iteration)
 #endif
 
   TimeFrame* tf = mTimeFrame;
-  for (int iLayer{0}; iLayer < mTrkParams[iteration].CellsPerRoad(); ++iLayer) {
+#pragma omp parallel for num_threads(mNThreads)
+  for (int iLayer = 0; iLayer < mTrkParams[iteration].CellsPerRoad(); ++iLayer) {
 
     if (tf->getTracklets()[iLayer + 1].empty() ||
         tf->getTracklets()[iLayer].empty()) {
@@ -355,9 +358,9 @@ void TrackerTraits::computeLayerCells(const int iteration)
     if (iLayer > 0) {
       tf->getCellsLookupTable()[iLayer - 1].resize(currentLayerTrackletsNum + 1, tf->getCells()[iLayer].size());
     }
-    if (!tf->checkMemory(mTrkParams[iteration].MaxMemory)) {
-      return;
-    }
+  }
+  if (!tf->checkMemory(mTrkParams[iteration].MaxMemory)) {
+    return;
   }
 
   /// Create cells labels
@@ -422,7 +425,7 @@ void TrackerTraits::findCellsNeighbours(const int iteration)
         off << fmt::format("{}\t{:d}\t{}", iLayer, good, chi2) << std::endl;
 #endif
 
-        if (chi2 > mTrkParams[iteration].MaxChi2ClusterAttachment) {
+        if (chi2 > mTrkParams[0].MaxChi2ClusterAttachment) {
           continue;
         }
 
@@ -460,7 +463,9 @@ void TrackerTraits::processNeighbours(int iLayer, int iLevel, const std::vector<
 #ifdef CA_DEBUG
   int failed[5]{0, 0, 0, 0, 0}, attempts{0}, failedByMismatch{0};
 #endif
-  for (unsigned int iCell{0}; iCell < currentCellSeed.size(); ++iCell) {
+
+#pragma omp parallel for num_threads(mNThreads)
+  for (unsigned int iCell = 0; iCell < currentCellSeed.size(); ++iCell) {
     const CellSeed& currentCell{currentCellSeed[iCell]};
     if (currentCell.getLevel() != iLevel) {
       continue;
@@ -525,8 +530,11 @@ void TrackerTraits::processNeighbours(int iLayer, int iLevel, const std::vector<
       seed.setLevel(neighbourCell.getLevel());
       seed.setFirstTrackletIndex(neighbourCell.getFirstTrackletIndex());
       seed.setSecondTrackletIndex(neighbourCell.getSecondTrackletIndex());
-      updatedCellsIds.push_back(neighbourCellId);
-      updatedCellSeeds.push_back(seed);
+#pragma omp critical
+      {
+        updatedCellsIds.push_back(neighbourCellId);
+        updatedCellSeeds.push_back(seed);
+      }
     }
   }
 #ifdef CA_DEBUG
@@ -565,18 +573,19 @@ void TrackerTraits::findRoads(const int iteration)
       trackSeeds.insert(trackSeeds.end(), updatedCellSeed.begin(), updatedCellSeed.end());
     }
 
-    std::vector<TrackITSExt> tracks;
-    tracks.reserve(trackSeeds.size());
-    for (auto& seed : trackSeeds) {
+    std::vector<TrackITSExt> tracks(trackSeeds.size());
+    std::atomic<size_t> trackIndex{0};
+#pragma omp parallel for num_threads(mNThreads)
+    for (size_t seedId = 0; seedId < trackSeeds.size(); ++seedId) {
+      const CellSeed& seed{trackSeeds[seedId]};
       if (seed.getQ2Pt() > 1.e3 || seed.getChi2() > mTrkParams[0].MaxChi2NDF * ((startLevel + 2) * 2 - 5)) {
         continue;
       }
       TrackITSExt temporaryTrack{seed};
       temporaryTrack.resetCovariance();
       temporaryTrack.setChi2(0);
-      int* clusters = seed.getClusters();
       for (int iL{0}; iL < 7; ++iL) {
-        temporaryTrack.setExternalClusterIndex(iL, clusters[iL], clusters[iL] != constants::its::UnusedIndex);
+        temporaryTrack.setExternalClusterIndex(iL, seed.getCluster(iL), seed.getCluster(iL) != constants::its::UnusedIndex);
       }
 
       bool fitSuccess = fitTrack(temporaryTrack, 0, mTrkParams[0].NLayers, 1, mTrkParams[0].MaxChi2ClusterAttachment, mTrkParams[0].MaxChi2NDF);
@@ -590,9 +599,10 @@ void TrackerTraits::findRoads(const int iteration)
       if (!fitSuccess) {
         continue;
       }
-      tracks.push_back(temporaryTrack);
+      tracks[trackIndex++] = temporaryTrack;
     }
 
+    tracks.resize(trackIndex);
     std::sort(tracks.begin(), tracks.end(), [](const TrackITSExt& a, const TrackITSExt& b) {
       return a.getChi2() < b.getChi2();
     });
