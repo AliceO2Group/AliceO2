@@ -240,7 +240,7 @@ class TPCCalibPadGainTracksDevice : public o2::framework::Task
   }
 };
 
-DataProcessorSpec getTPCCalibPadGainTracksSpec(const uint32_t publishAfterTFs, const bool debug, const bool useLastExtractedMapAsReference, const std::string polynomialsFile, bool disablePolynomialsCCDB, bool requestCTPLumi)
+DataProcessorSpec getTPCCalibPadGainTracksSpec(const uint32_t publishAfterTFs, const bool debug, const bool useLastExtractedMapAsReference, const std::string polynomialsFile, bool disablePolynomialsCCDB, int lumiType)
 {
   std::vector<InputSpec> inputs;
   inputs.emplace_back("trackTPC", gDataOriginTPC, "TRACKS", 0, Lifetime::Timeframe);
@@ -282,7 +282,7 @@ DataProcessorSpec getTPCCalibPadGainTracksSpec(const uint32_t publishAfterTFs, c
     {"useEveryNthTF", VariantType::Int, 10, {"Using only a fraction of the data: 1: Use every TF, 10: Use only every tenth TF."}},
     {"maxTracksPerTF", VariantType::Int, 10000, {"Maximum number of processed tracks per TF (-1 for processing all tracks)"}},
   };
-  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(inputs, opts, requestCTPLumi);
+  o2::tpc::CorrectionMapsLoader::requestCCDBInputs(inputs, opts, lumiType);
 
   auto ccdbRequest = std::make_shared<o2::base::GRPGeomRequest>(false,                          // orbitResetTime
                                                                 false,                          // GRPECS=true

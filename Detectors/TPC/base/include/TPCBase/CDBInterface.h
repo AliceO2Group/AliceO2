@@ -88,6 +88,7 @@ enum class CDBType {
   CalCorrDerivMap,     ///< Cluster correction map (derivative map)
                        ///
   CalTimeSeries,       ///< integrated DCAs for longer time interval
+  CalScaler,           ///< Scaler from IDCs or combined estimator
 };
 
 /// Upload intervention type
@@ -149,6 +150,7 @@ const std::unordered_map<CDBType, const std::string> CDBTypeMap{
   {CDBType::CalCorrDerivMap, "TPC/Calib/CorrectionMapDerivativeV2"},
   // time series
   {CDBType::CalTimeSeries, "TPC/Calib/TimeSeries"},
+  {CDBType::CalScaler, "TPC/Calib/Scaler"},
 };
 
 /// Poor enum reflection ...
