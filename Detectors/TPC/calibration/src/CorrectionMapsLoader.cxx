@@ -58,6 +58,7 @@ void CorrectionMapsLoader::extractCCDBInputs(ProcessingContext& pc)
     setInstLumi(mInstLumiFactor * (mCTPLumiSource == 0 ? lumiObj.getLumi() : lumiObj.getLumiAlt()));
   } else if (getLumiScaleType() == 2 && mInstLumiOverride <= 0.) {
     float tpcScaler = pc.inputs().get<float>("tpcscaler");
+    setInstLumi(tpcScaler);
   }
 }
 
