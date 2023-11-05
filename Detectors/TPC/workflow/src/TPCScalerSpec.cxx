@@ -18,6 +18,7 @@
 #include "Framework/Logger.h"
 #include "Framework/DataProcessorSpec.h"
 #include "Framework/CCDBParamSpec.h"
+#include "Framework/ConfigParamRegistry.h"
 #include "TPCBase/CDBInterface.h"
 #include "DetectorsBase/GRPGeomHelper.h"
 #include "TPCCalibration/TPCScaler.h"
@@ -38,6 +39,7 @@ class TPCScalerSpec : public Task
   void init(framework::InitContext& ic) final
   {
     o2::base::GRPGeomHelper::instance().setRequest(mCCDBRequest);
+    mIonDriftTimeMS = ic.options().get<float>("ion-drift-time");
   }
 
   void run(ProcessingContext& pc) final
@@ -45,6 +47,10 @@ class TPCScalerSpec : public Task
     o2::base::GRPGeomHelper::instance().checkUpdates(pc);
     if (pc.inputs().isValid("tpcscaler")) {
       pc.inputs().get<TTree*>("tpcscaler");
+    }
+
+    if (pc.services().get<o2::framework::TimingInfo>().runNumber != mTPCScaler.getRun()) {
+      LOGP(error, "Run number {} of processed data and run number {} of loaded TPC scaler doesnt match!", pc.services().get<o2::framework::TimingInfo>().runNumber, mTPCScaler.getRun());
     }
 
     const auto orbitResetTimeMS = o2::base::GRPGeomHelper::instance().getOrbitResetTimeMS();
@@ -63,11 +69,16 @@ class TPCScalerSpec : public Task
     if (matcher == ConcreteDataMatcher(o2::header::gDataOriginTPC, "TPCSCALERCCDB", 0)) {
       LOGP(info, "Updating TPC scaler");
       mTPCScaler.setFromTree(*((TTree*)obj));
+      if (mIonDriftTimeMS > 0) {
+        LOGP(info, "Setting ion drift time to: {}", mIonDriftTimeMS);
+        mTPCScaler.setIonDriftTimeMS(mIonDriftTimeMS);
+      }
     }
   }
 
  private:
   std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest; ///< info for CCDB request
+  float mIonDriftTimeMS{-1};                              ///< ion drift time
   TPCScaler mTPCScaler;                                   ///< tpc scaler
 };
 
@@ -91,7 +102,9 @@ o2::framework::DataProcessorSpec getTPCScalerSpec()
     "tpc-scaler",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCScalerSpec>(ccdbRequest)}};
+    AlgorithmSpec{adaptFromTask<TPCScalerSpec>(ccdbRequest)},
+    Options{
+      {"ion-drift-time", VariantType::Float, -1.f, {"Overwrite ion drift time if a value >0 is provided"}}}};
 }
 
 } // namespace tpc
