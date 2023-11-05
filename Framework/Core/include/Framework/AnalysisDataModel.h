@@ -1364,7 +1364,7 @@ using Run2BCInfo = Run2BCInfos::iterator;
 namespace mccollision
 {
 DECLARE_SOA_INDEX_COLUMN(BC, bc);                            //! BC index
-DECLARE_SOA_COLUMN(GeneratorsID, generatorsID, short);       //! disentangled generator IDs should be accessed from dynamic columns using getGenId, getCocktailId and getSourceId
+DECLARE_SOA_COLUMN(GeneratorsID, generatorsID, short);       //! disentangled generator IDs should be accessed using getGeneratorId, getSubGeneratorId and getSourceId
 DECLARE_SOA_COLUMN(PosX, posX, float);                       //! X vertex position in cm
 DECLARE_SOA_COLUMN(PosY, posY, float);                       //! Y vertex position in cm
 DECLARE_SOA_COLUMN(PosZ, posZ, float);                       //! Z vertex position in cm
@@ -1385,7 +1385,11 @@ DECLARE_SOA_TABLE(McCollisions, "AOD", "MCCOLLISION", //! MC collision table
                   mccollision::GeneratorsID,
                   mccollision::PosX, mccollision::PosY, mccollision::PosZ,
                   mccollision::T, mccollision::Weight,
-                  mccollision::ImpactParameter);
+                  mccollision::ImpactParameter,
+                  mccollision::GetGeneratorId<mccollision::GeneratorsID>,
+                  mccollision::GetSubGeneratorId<mccollision::GeneratorsID>,
+                  mccollision::GetSourceId<mccollision::GeneratorsID>);
+
 using McCollision = McCollisions::iterator;
 
 namespace mcparticle
