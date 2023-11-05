@@ -806,7 +806,7 @@ void PVertexer::init()
   setTukey(mPVParams->tukey);
   auto* prop = o2::base::Propagator::Instance();
   setBz(prop->getNominalBz());
-  mDBScanDeltaT = mPVParams->dbscanDeltaT > 0.f ? mPVParams->dbscanDeltaT : mITSROFrameLengthMUS - mPVParams->dbscanDeltaT;
+  mDBScanDeltaT = mPVParams->dbscanDeltaT > 0.f ? mPVParams->dbscanDeltaT : mITSROFrameLengthMUS * (-mPVParams->dbscanDeltaT);
   mDBSMaxZ2InvCorePoint = mPVParams->dbscanMaxSigZCorPoint > 0 ? 1. / (mPVParams->dbscanMaxSigZCorPoint * mPVParams->dbscanMaxSigZCorPoint) : 1e6;
 
   mMaxTDiffDebris = mPVParams->maxTDiffDebris < 0 ? mITSROFrameLengthMUS * (-mPVParams->maxTDiffDebris) : mPVParams->maxTDiffDebris;
