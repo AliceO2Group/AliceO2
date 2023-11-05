@@ -31,7 +31,7 @@ struct PVertexerParams : public o2::conf::ConfigurableParamHelper<PVertexerParam
 
   // DBSCAN clustering settings
   float dbscanMaxDist2 = 9.;   ///< distance^2 cut (eps^2).
-  float dbscanDeltaT = -0.1;   ///< abs. time difference cut, should be >= ITS ROF duration if ITS SA tracks used, if < 0 then the value calculated as mITSROFrameLengthMUS - dbscanDeltaT
+  float dbscanDeltaT = -0.9;   ///< abs. time difference cut, should be ~ 0.5 ITS ROF duration if ITS SA tracks used, if < 0 then the value calculated as mITSROFrameLengthMUS*(-dbscanDeltaT)
   float dbscanAdaptCoef = 0.1; ///< adapt dbscan minPts for each cluster as minPts=max(minPts, currentSize*dbscanAdaptCoef).
   float dbscanMaxSigZCorPoint = 0.1; ///< max sigZ of the track which can be core points in the DBScan
 
@@ -79,11 +79,11 @@ struct PVertexerParams : public o2::conf::ConfigurableParamHelper<PVertexerParam
 
   // extra debris reduction cut, ignored if maxTDiffDebrisExtra == 0. The maxTDiffDebrisExtra must not exceed maxTDiffDebris
   float maxTDiffDebrisExtra = 0;                ///< when reducing debris, don't consider vertices separated by time > this value in \mus if >0, if <0: mult factor to ITS ROF
-  float maxZDiffDebrisExtra = 1.0;              ///< don't consider vertices separated by Z > this value in cm
-  float maxMultRatDebrisExtra = 0.05;           ///< don't consider vertices with multiplicity ratio above this
-  float maxChi2TZDebrisExtra = 2000.;           ///< don't consider vertices with mutual chi2 exceeding this (for pp should be ~10)
-  float addTimeSigma2DebrisExtra = 0.05 * 0.05; ///< increment time error^2 by this amount when calculating vertex-to-vertex chi2
-  float addZSigma2DebrisExtra = 0.005 * 0.005;  ///< increment z error^2 by this amount when calculating vertex-to-vertex chi2
+  float maxZDiffDebrisExtra = 0.05;             ///< don't consider vertices separated by Z > this value in cm
+  float maxMultRatDebrisExtra = 1.0;            ///< don't consider vertices with multiplicity ratio above this
+  float maxChi2TZDebrisExtra = 100.;            ///< don't consider vertices with mutual chi2 exceeding this (for pp should be ~10)
+  float addTimeSigma2DebrisExtra = 225.;        ///< increment time error^2 by this amount when calculating vertex-to-vertex chi2
+  float addZSigma2DebrisExtra = 1.e-3;          ///< increment z error^2 by this amount when calculating vertex-to-vertex chi2
 
   float maxITSOnlyFraction = 1.0; ///< max ITS-only tracks fraction to accept, recommended value for PbPb = 0.85
   float minITSOnlyFraction = 0.0; ///< min ITS-only tracks fraction to accept
@@ -96,7 +96,7 @@ struct PVertexerParams : public o2::conf::ConfigurableParamHelper<PVertexerParam
 
   // validation with externally provided InteractionRecords (e.g. from FT0)
   int minNContributorsForIRcutIni = -1; ///< min multiplicity to reject before cleanup if no matching interaction found (if >= 0)
-  int minNContributorsForIRcut = 4;     ///< do not apply IR cut to vertices below IR tagging efficiency threshold
+  int minNContributorsForIRcut = 10;    ///< do not apply IR cut to vertices below IR tagging efficiency threshold
   float maxTError = 0.2;                ///< use min of vertex time error or this for nsigma evaluation
   float minTError = 0.003;              ///< don't use error smaller than that (~BC/2/minNContributorsForFT0cut)
   float nSigmaTimeCut = 4.;             ///< eliminate vertex if there is no FT0 or BC signal within this cut
