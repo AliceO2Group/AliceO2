@@ -401,10 +401,10 @@ void CCDBDownloader::followRedirect(PerformData* performData, CURL* easy_handle,
 
 std::string CCDBDownloader::trimHostUrl(std::string full_host_url) const
 {
-  CURLU *host_url = curl_url();
+  CURLU* host_url = curl_url();
   curl_url_set(host_url, CURLUPART_URL, full_host_url.c_str(), 0);
   // Get host part
-  char *host;
+  char* host;
   CURLUcode host_result = curl_url_get(host_url, CURLUPART_HOST, &host, 0);
   std::string host_name;
   if (host_result == CURLUE_OK) {
@@ -417,7 +417,7 @@ std::string CCDBDownloader::trimHostUrl(std::string full_host_url) const
     return "";
   }
   // Get scheme (protocol) part
-  char *scheme;
+  char* scheme;
   CURLUcode scheme_result = curl_url_get(host_url, CURLUPART_SCHEME, &scheme, 0);
   curl_url_cleanup(host_url);
   if (scheme_result == CURLUE_OK) {
@@ -436,9 +436,9 @@ std::string CCDBDownloader::prepareRedirectedURL(std::string address, std::strin
     return address;
   }
   // Check if URL contains a scheme (protocol)
-  CURLU *redirected_url = curl_url();
+  CURLU* redirected_url = curl_url();
   curl_url_set(redirected_url, CURLUPART_URL, address.c_str(), 0);
-  char *scheme;
+  char* scheme;
   CURLUcode scheme_result = curl_url_get(redirected_url, CURLUPART_SCHEME, &scheme, 0);
   curl_free(scheme);
   curl_url_cleanup(redirected_url);

@@ -294,7 +294,6 @@ class CCDBDownloader
   } PerformData;
 #endif
 
-
   /**
    * Called by CURL in order to close a socket. It will be called by CURL even if a timeout timer closed the socket beforehand.
    *
