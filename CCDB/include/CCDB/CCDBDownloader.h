@@ -210,12 +210,22 @@ class CCDBDownloader
 
  private:
   /**
+   * Leaves only the protocol and host part of the url, discrading path and metadata.
+   */
+  std::string trimHostUrl(std::string full_host_url) const;
+
+  /**
+   * Recognizes whether the address is a full url, or a partial one (like for example "/Task/Detector/1") and combines it with potentialHost if needed.
+   */
+  std::string prepareRedirectedURL(std::string address, std::string potentialHost) const;
+
+  /**
    * Returns a vector of possible content locations based on the redirect headers.
    *
    * @param baseUrl Content path.
    * @param headerMap Map containing response headers.
    */
-  std::vector<std::string> getLocations(std::string baseUrl, std::multimap<std::string, std::string>* headerMap) const;
+  std::vector<std::string> getLocations(std::multimap<std::string, std::string>* headerMap) const;
 
   std::string mUserAgentId = "CCDBDownloader";
   /**
@@ -293,14 +303,17 @@ class CCDBDownloader
   static void closesocketCallback(void* clientp, curl_socket_t item);
 
 #if !defined(__CINT__) && !defined(__MAKECINT__) && !defined(__ROOTCLING__) && !defined(__CLING__)
+  // Returns a new location string or an empty string if all locations under current host have been accessedd
+  std::string getNewLocation(PerformData* performData, std::vector<std::string>& locations) const;
+
   // Reschedules the transfer to be performed with a different host.
   void tryNewHost(PerformData* performData, CURL* easy_handle);
 
   // Retrieves content from either alien, cvmfs or local storage using a callback to CCDBApi.
-  void getLocalContent(PerformData* performData, std::string& newUrl, std::string& newLocation, bool& contentRetrieved, std::vector<std::string>& locations);
+  void getLocalContent(PerformData* performData, std::string& newLocation, bool& contentRetrieved, std::vector<std::string>& locations);
 
   // Continues a transfer via a http redirect.
-  void httpRedirect(PerformData* performData, std::string& newUrl, std::string& newLocation, CURL* easy_handle);
+  void httpRedirect(PerformData* performData, std::string& newLocation, CURL* easy_handle);
 
   // Continues a transfer via a redirect. The redirect can point to a local file, alien file or a http address.
   void followRedirect(PerformData* performData, CURL* easy_handle, std::vector<std::string>& locations, bool& rescheduled, bool& contentRetrieved);
