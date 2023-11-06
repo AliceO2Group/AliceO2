@@ -58,7 +58,9 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings (e.g.: 'TPCHwClusterer.peakChargeThreshold=4;...')"}},
     {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}},
-    {"enableDoublePipeline", VariantType::Bool, false, {"enable GPU double pipeline mode"}}};
+    {"enableDoublePipeline", VariantType::Bool, false, {"enable GPU double pipeline mode"}},
+    {"tpc-deadMap-sources", VariantType::Int, -1, {"Sources to consider for TPC dead channel map creation; -1=all, 0=deactivated"}},
+  };
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -175,6 +177,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   cfg.runTRDTracking = isEnabled(outputTypes, ioType::TRDTracks);
   cfg.tpcTriggerHandling = isEnabled(outputTypes, ioType::TPCTriggers) || cfg.caClusterer;
   cfg.enableDoublePipeline = cfgc.options().get<bool>("enableDoublePipeline");
+  cfg.tpcDeadMapSources = cfgc.options().get<int>("tpc-deadMap-sources");
 
   Inputs ggInputs;
   auto ggRequest = std::make_shared<o2::base::GRPGeomRequest>(false, true, false, true, true, o2::base::GRPGeomRequest::Aligned, ggInputs, true);

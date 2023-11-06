@@ -32,6 +32,7 @@ void CalibdEdxContainer::cloneFromObject(const CalibdEdxContainer& obj, char* ne
   mThresholdMap = obj.mThresholdMap;
   mGainMap = obj.mGainMap;
   mGainMapResidual = obj.mGainMapResidual;
+  mDeadChannelMap = obj.mDeadChannelMap;
   mApplyFullGainMap = obj.mApplyFullGainMap;
   mCalibsLoad = obj.mCalibsLoad;
   if (obj.mCalibTrackTopologyPol) {
@@ -240,6 +241,11 @@ CalDet<float> CalibdEdxContainer::processThresholdMap(const CalDet<float>& thres
     }
   }
   return thresholdMapProcessed;
+}
+
+void CalibdEdxContainer::setDeadChannelMap(const CalDet<bool>& deadMap)
+{
+  mDeadChannelMap.setFromMap(deadMap);
 }
 
 void CalibdEdxContainer::setGainMap(const CalDet<float>& gainMap, const float minGain, const float maxGain)

@@ -48,6 +48,7 @@ class CalibdEdxContainer;
 struct ClusterGroupHeader;
 class VDriftHelper;
 class CorrectionMapsLoader;
+class DeadChannelMapCreator;
 } // namespace tpc
 
 namespace trd
@@ -104,6 +105,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
     int itsTriggerType = 0;
     int lumiScaleMode = 0;
     int enableDoublePipeline = 0;
+    int tpcDeadMapSources = -1;
     bool decompressTPC = false;
     bool decompressTPCFromROOT = false;
     bool caClusterer = false;
@@ -189,6 +191,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   std::unique_ptr<GPUDisplayFrontendInterface> mDisplayFrontend;
 
   calibObjectStruct mCalibObjects;
+  std::unique_ptr<o2::tpc::DeadChannelMapCreator> mTPCDeadChannelMapCreator;
   std::unique_ptr<o2::tpc::CalibdEdxContainer> mdEdxCalibContainerBufferNew;
   std::unique_ptr<TPCPadGainCalib> mTPCPadGainCalibBufferNew;
   std::queue<calibObjectStruct> mOldCalibObjects;
@@ -211,6 +214,7 @@ class GPURecoWorkflowSpec : public o2::framework::Task
   const o2::itsmft::TopologyDictionary* mITSDict = nullptr;
   const o2::dataformats::MeanVertexObject* mMeanVertex;
   unsigned long mTPCSectorMask = 0;
+  long mCreationForCalib = -1; ///< creation time for calib manipulation
   int mVerbosity = 0;
   unsigned int mNTFs = 0;
   unsigned int mNDebugDumps = 0;

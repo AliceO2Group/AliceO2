@@ -460,6 +460,8 @@ class CDBStorage
 
   const auto& getMetaData() const { return mMetaData; }
 
+  std::string getMetaDataString() const;
+
   void setSimulate(bool sim = true) { mSimulate = sim; }
 
   bool getSimulate() const { return mSimulate; }

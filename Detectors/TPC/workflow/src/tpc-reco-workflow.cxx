@@ -69,7 +69,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"configFile", VariantType::String, "", {"configuration file for configurable parameters"}},
     {"filtered-input", VariantType::Bool, false, {"Filtered tracks, clusters input, prefix dataDescriptors with F"}},
     {"require-ctp-lumi", o2::framework::VariantType::Bool, false, {"require CTP lumi for TPC correction scaling"}},
-    {"select-ir-frames", VariantType::Bool, false, {"Subscribe and filter according to external IR Frames"}}};
+    {"select-ir-frames", VariantType::Bool, false, {"Subscribe and filter according to external IR Frames"}},
+    {"tpc-deadMap-sources", VariantType::Int, -1, {"Sources to consider for TPC dead channel map creation; -1=all, 0=deactivated"}},
+  };
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
 }
@@ -179,7 +181,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
                                                 !cfgc.options().get<bool>("ignore-dist-stf"),      //
                                                 cfgc.options().get<bool>("select-ir-frames"),
                                                 cfgc.options().get<bool>("filtered-input"),
-                                                requireCTPLumi);
+                                                requireCTPLumi,
+                                                cfgc.options().get<int>("tpc-deadMap-sources"));
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, wf);
