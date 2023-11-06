@@ -107,16 +107,26 @@ void utils::addFECInfo()
     return;
   }
   const int channel = mapper.getPadNumberInROC(PadROCPos(roc, row, pad));
+  const int padOffset = (roc > 35) * Mapper::getPadsInIROC();
 
   const auto& fecInfo = mapper.getFECInfo(PadROCPos(roc, row, pad));
+  const int cruNumber = mapper.getCRU(ROC(roc).getSector(), channel + padOffset);
+  const CRU cru(cruNumber);
+  const PartitionInfo& partInfo = mapper.getMapPartitionInfo()[cru.partition()];
+  const int nFECs = partInfo.getNumberOfFECs();
+  const int fecOffset = (nFECs + 1) / 2;
+  const int fecInPartition = fecInfo.getIndex() - partInfo.getSectorFECOffset();
+  const int dataWrapperID = fecInPartition >= fecOffset;
+  const int globalLinkID = (fecInPartition % fecOffset) + dataWrapperID * 12;
 
   const std::string title = fmt::format(
     "#splitline{{#lower[.1]{{#scale[.5]{{"
     "{}{:02d} ({:02d}) row: {:02d}, pad: {:03d}, globalpad: {:05d} (in roc)"
     "}}}}}}{{#scale[.5]{{FEC: "
-    "{:02d}, Chip: {:02d}, Chn: {:02d}, Value: {:.3f}"
+    "{:02d}, Chip: {:02d}, Chn: {:02d}, CRU: {:d}, Link: {:02d} ({}{:02d}), Value: {:.3f}"
     "}}}}",
-    (roc / 18 % 2 == 0) ? "A" : "C", roc % 18, roc, row, pad, channel, fecInfo.getIndex(), fecInfo.getSampaChip(), fecInfo.getSampaChannel(), binValue);
+    (roc / 18 % 2 == 0) ? "A" : "C", roc % 18, roc, row, pad, channel, fecInfo.getIndex(), fecInfo.getSampaChip(),
+    fecInfo.getSampaChannel(), cruNumber % CRU::CRUperSector, globalLinkID, dataWrapperID ? "B" : "A", globalLinkID % 12, binValue);
 
   h->SetTitle(title.data());
 }

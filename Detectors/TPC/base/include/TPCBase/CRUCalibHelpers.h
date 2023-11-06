@@ -19,6 +19,7 @@
 #include <cassert>
 #include <gsl/span>
 #include <filesystem>
+#include <type_traits>
 namespace fs = std::filesystem;
 
 #include "Rtypes.h"
@@ -112,6 +113,47 @@ void writeValues(const std::string_view fileName, const DataMap& map, bool onlyF
     str << linkInfo.cru << " "
         << linkInfo.globalLinkID << " "
         << values << "\n";
+  }
+}
+
+template <class T>
+struct is_map {
+  static constexpr bool value = false;
+};
+
+template <class Key, class Value>
+struct is_map<std::map<Key, Value>> {
+  static constexpr bool value = true;
+};
+/// fill cal pad object from HV data map
+/// TODO: Function to be tested
+template <typename DataMap, uint32_t SignificantBitsT = 0>
+typename std::enable_if_t<is_map<DataMap>::value, void>
+  fillCalPad(CalDet<float>& calPad, const DataMap& map)
+{
+  using namespace o2::tpc;
+  const auto& mapper = Mapper::instance();
+
+  for (const auto& [linkInfo, data] : map) {
+    const CRU cru(linkInfo.cru);
+    const PartitionInfo& partInfo = mapper.getMapPartitionInfo()[cru.partition()];
+    const int nFECs = partInfo.getNumberOfFECs();
+    const int fecOffset = (nFECs + 1) / 2;
+    const int fecInPartition = (linkInfo.globalLinkID < fecOffset) ? linkInfo.globalLinkID : fecOffset + linkInfo.globalLinkID % 12;
+
+    int hwChannel{0};
+    for (const auto& val : data) {
+      const auto& [sampaOnFEC, channelOnSAMPA] = getSampaInfo(hwChannel, cru);
+      const PadROCPos padROCPos = mapper.padROCPos(cru, fecInPartition, sampaOnFEC, channelOnSAMPA);
+      if constexpr (SignificantBitsT == 0) {
+        const float set = std::stof(val);
+        calPad.getCalArray(padROCPos.getROC()).setValue(padROCPos.getRow(), padROCPos.getPad(), set);
+      } else {
+        const float set = fixedSizeToFloat<SignificantBitsT>(uint32_t(std::stoi(val)));
+        calPad.getCalArray(padROCPos.getROC()).setValue(padROCPos.getRow(), padROCPos.getPad(), set);
+      }
+      ++hwChannel;
+    }
   }
 }
 

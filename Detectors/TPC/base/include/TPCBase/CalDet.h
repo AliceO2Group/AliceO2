@@ -13,6 +13,7 @@
 #define ALICEO2_TPC_CALDET_H_
 
 #include <memory>
+#include <numeric>
 #include <vector>
 #include <string>
 #include <cassert>
@@ -114,11 +115,27 @@ class CalDet
     U sum = 0;
     for (const auto& data : mData) {
       const auto& vals = data.getData();
-      sum += std::accumulate(vals.begin(), vals.end(), 0.f);
+      sum += std::accumulate(vals.begin(), vals.end(), U{0});
       nVal += static_cast<U>(vals.size());
     }
 
     return (nVal > 0) ? sum / nVal : U{0};
+  }
+
+  template <typename U = T>
+  U getSum() const
+  {
+    if (mData.size() == 0) {
+      return U{};
+    }
+
+    U sum{};
+    for (const auto& data : mData) {
+      const auto& vals = data.getData();
+      sum += data.template getSum<U>();
+    }
+
+    return sum;
   }
 
  private:
