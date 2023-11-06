@@ -62,7 +62,7 @@ static void BM_TableToTree(benchmark::State& state)
 
     // benchmark TableToTree
     TableToTree ta2tr(table, &fout, "table2tree");
-    ta2tr.addAllBranches();
+    ta2tr.addAllColumns();
     ta2tr.process();
 
     // clean up

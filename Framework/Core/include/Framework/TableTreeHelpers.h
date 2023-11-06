@@ -105,18 +105,34 @@ class ColumnToBranch
   int mFieldSize = 0;
 };
 
-class TableToTree
+class TableToRoot
+{
+ public:
+  TableToRoot(std::shared_ptr<arrow::Table> const& table, TFile* file, const char* name);
+  virtual ~TableToRoot() = default;
+
+  virtual void addColumn(std::shared_ptr<arrow::ChunkedArray> const& column, std::shared_ptr<arrow::Field> const& field) = 0;
+  virtual void process() = 0;
+  // Helper function which marks all columns in the table for writing
+  void addAllColumns();
+
+ protected:
+  arrow::Table* mTable;
+  TFile* mFile;
+  std::string mName;
+  int64_t mRows = 0;
+};
+
+class TableToTree : public TableToRoot
 {
  public:
   TableToTree(std::shared_ptr<arrow::Table> const& table, TFile* file, const char* treename);
 
-  std::shared_ptr<TTree> process();
-  void addBranch(std::shared_ptr<arrow::ChunkedArray> const& column, std::shared_ptr<arrow::Field> const& field);
-  void addAllBranches();
+  void process() final;
+  void addColumn(std::shared_ptr<arrow::ChunkedArray> const& column, std::shared_ptr<arrow::Field> const& field) final;
+  std::shared_ptr<TTree> tree() { return mTree; }
 
  private:
-  arrow::Table* mTable;
-  int64_t mRows = 0;
   std::shared_ptr<TTree> mTree;
   std::vector<std::unique_ptr<ColumnToBranch>> mColumnReaders;
 };

@@ -95,7 +95,7 @@ void fillMCollisionTable(o2::steer::MCKinematicsReader const& mcreader)
   TFile outfile("aod.root", "UPDATE");
   {
     TableToTree t2t(mccoltable, &outfile, aod::MetadataTrait<o2::aod::McCollisions>::metadata::tableLabel());
-    t2t.addAllBranches();
+    t2t.addAllColumns();
     t2t.process();
   }
 }
@@ -201,12 +201,12 @@ void fillCollisionAndTrackTable()
       TFile outfile("aod.root", "RECREATE");
       {
         TableToTree t2t(colltable, &outfile, aod::MetadataTrait<o2::aod::Collisions>::metadata::tableLabel());
-        t2t.addAllBranches();
+        t2t.addAllColumns();
         t2t.process();
       }
       {
         TableToTree t2t(tracktable, &outfile, "Tracks" /* aod::MetadataTrait<o2::aod::Tracks>::metadata::tableLabel() */);
-        t2t.addAllBranches();
+        t2t.addAllColumns();
         t2t.process();
       }
     }

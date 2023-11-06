@@ -417,9 +417,7 @@ DataProcessorSpec
         for (auto d : ds) {
           auto fileAndFolder = dod->getFileFolder(d, tfNumber, aodInputFile);
           auto treename = fileAndFolder.folderName + "/" + d->treename;
-          TableToTree ta2tr(table,
-                            fileAndFolder.file,
-                            treename.c_str());
+          std::unique_ptr<TableToRoot> ta2r = std::make_unique<TableToTree>(table, fileAndFolder.file, treename.c_str());
 
           // update metadata
           if (fileAndFolder.file->FindObjectAny("metaData")) {
@@ -438,13 +436,13 @@ DataProcessorSpec
               auto col = table->column(idx);
               auto field = table->schema()->field(idx);
               if (idx != -1) {
-                ta2tr.addBranch(col, field);
+                ta2r->addColumn(col, field);
               }
             }
           } else {
-            ta2tr.addAllBranches();
+            ta2r->addAllColumns();
           }
-          ta2tr.process();
+          ta2r->process();
         }
       }
     };

@@ -143,9 +143,10 @@ TEST_CASE("TreeToTableConversion")
   // save table as tree
   TFile* f2 = TFile::Open("table2tree.root", "RECREATE");
   TableToTree ta2tr(table, f2, "mytree");
-  ta2tr.addAllBranches();
+  ta2tr.addAllColumns();
 
-  auto t2 = ta2tr.process();
+  ta2tr.process();
+  auto t2 = ta2tr.tree();
   auto br = (TBranch*)t2->GetBranch("ok");
   REQUIRE(t2->GetEntries() == ndp);
   REQUIRE(br->GetEntries() == ndp);
@@ -201,8 +202,8 @@ TEST_CASE("VariableLists")
 
   auto* f = TFile::Open("variable_lists.root", "RECREATE");
   TableToTree ta2tr(table, f, "lists");
-  ta2tr.addAllBranches();
-  auto tree = ta2tr.process();
+  ta2tr.addAllColumns();
+  ta2tr.process();
   f->Close();
 
   auto* f2 = TFile::Open("variable_lists.root", "READ");

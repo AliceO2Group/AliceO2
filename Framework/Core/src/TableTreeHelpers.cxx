@@ -407,14 +407,32 @@ void ColumnToBranch::nextChunk()
   accessChunk();
 }
 
-TableToTree::TableToTree(std::shared_ptr<arrow::Table> const& table, TFile* file, const char* treename)
+TableToRoot::TableToRoot(std::shared_ptr<arrow::Table> const& table, TFile* file, const char* name)
+  : mTable{table.get()},
+    mFile{file},
+    mName{name}
 {
-  mTable = table.get();
-  mTree.reset(static_cast<TTree*>(file->Get(treename)));
+}
+
+void TableToRoot::addAllColumns()
+{
+  mRows = mTable->num_rows();
+  auto columns = mTable->columns();
+  auto fields = mTable->schema()->fields();
+  assert(columns.size() == fields.size());
+  for (auto i = 0u; i < columns.size(); ++i) {
+    addColumn(columns[i], fields[i]);
+  }
+}
+
+TableToTree::TableToTree(std::shared_ptr<arrow::Table> const& table, TFile* file, const char* name)
+  : TableToRoot{table, file, name}
+{
+  mTree.reset(static_cast<TTree*>(mFile->Get(mName.c_str())));
   if (mTree) {
     return;
   }
-  std::string treeName(treename);
+  std::string treeName(mName);
   auto pos = treeName.find_first_of('/');
   if (pos != std::string::npos) {
     file->cd(treeName.substr(0, pos).c_str());
@@ -423,18 +441,7 @@ TableToTree::TableToTree(std::shared_ptr<arrow::Table> const& table, TFile* file
   mTree = std::make_shared<TTree>(treeName.c_str(), treeName.c_str());
 }
 
-void TableToTree::addAllBranches()
-{
-  mRows = mTable->num_rows();
-  auto columns = mTable->columns();
-  auto fields = mTable->schema()->fields();
-  assert(columns.size() == fields.size());
-  for (auto i = 0u; i < columns.size(); ++i) {
-    addBranch(columns[i], fields[i]);
-  }
-}
-
-void TableToTree::addBranch(std::shared_ptr<arrow::ChunkedArray> const& column, std::shared_ptr<arrow::Field> const& field)
+void TableToTree::addColumn(std::shared_ptr<arrow::ChunkedArray> const& column, std::shared_ptr<arrow::Field> const& field)
 {
   if (mRows == 0) {
     mRows = column->length();
@@ -444,13 +451,13 @@ void TableToTree::addBranch(std::shared_ptr<arrow::ChunkedArray> const& column, 
   mColumnReaders.emplace_back(new ColumnToBranch{mTree.get(), column, field});
 }
 
-std::shared_ptr<TTree> TableToTree::process()
+void TableToTree::process()
 {
   int64_t row = 0;
   if (mTree->GetNbranches() == 0 || mRows == 0) {
     mTree->Write("", TObject::kOverwrite);
     mTree->SetDirectory(nullptr);
-    return mTree;
+    return;
   }
 
   for (auto& reader : mColumnReaders) {
@@ -468,7 +475,6 @@ std::shared_ptr<TTree> TableToTree::process()
   }
   mTree->Write("", TObject::kOverwrite);
   mTree->SetDirectory(nullptr);
-  return mTree;
 }
 
 TreeToTable::TreeToTable(arrow::MemoryPool* pool)
