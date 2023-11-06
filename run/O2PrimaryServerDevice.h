@@ -172,18 +172,33 @@ class O2PrimaryServerDevice final : public fair::mq::Device
     TStopwatch timer;
     timer.Start();
     try {
-      mStack->Reset();
-      // see if we the vertex comes from the collision context
-      if (mCollissionContext) {
-        const auto& vertices = mCollissionContext->getInteractionVertices();
-        if (vertices.size() > 0) {
-          auto collisionindex = mEventID_to_CollID.at(mEventCounter);
-          auto& vertex = vertices.at(collisionindex);
-          LOG(info) << "Setting vertex " << vertex << " for event " << mEventCounter << " for prefix " << mSimConfig.getOutPrefix();
-          mPrimGen->setExternalVertexForNextEvent(vertex.X(), vertex.Y(), vertex.Z());
+      bool valid = false;
+      int retry_counter = 0;
+      const int MAX_RETRY = 100;
+      do {
+        mStack->Reset();
+        // see if we the vertex comes from the collision context
+        if (mCollissionContext) {
+          const auto& vertices = mCollissionContext->getInteractionVertices();
+          if (vertices.size() > 0) {
+            auto collisionindex = mEventID_to_CollID.at(mEventCounter);
+            auto& vertex = vertices.at(collisionindex);
+            LOG(info) << "Setting vertex " << vertex << " for event " << mEventCounter << " for prefix " << mSimConfig.getOutPrefix();
+            mPrimGen->setExternalVertexForNextEvent(vertex.X(), vertex.Y(), vertex.Z());
+          }
         }
-      }
-      mPrimGen->GenerateEvent(mStack);
+        mPrimGen->GenerateEvent(mStack);
+        if (mStack->getPrimaries().size() > 0) {
+          valid = true;
+        } else {
+          retry_counter++;
+          if (retry_counter > MAX_RETRY) {
+            LOG(warn) << "Not able to generate a non-empty event in " << MAX_RETRY << " trials";
+            //  empty event is sent out
+            valid = true;
+          }
+        }
+      } while (!valid);
     } catch (std::exception const& e) {
       LOG(error) << " Exception occurred during event gen " << e.what();
     }
