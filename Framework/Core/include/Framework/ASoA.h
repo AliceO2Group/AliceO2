@@ -28,6 +28,7 @@
 #include <fmt/format.h>
 #include <typeinfo>
 #include <gsl/span>
+#include <functional>
 
 #define DECLARE_SOA_METADATA()       \
   template <typename T>              \
