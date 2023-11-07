@@ -118,7 +118,6 @@ class Clusterer
     uint32_t firstPatt = 0;
     uint32_t nClus = 0;
     uint32_t nPatt = 0;
-    ThreadStat() = default;
   };
 
   struct ClustererThread {

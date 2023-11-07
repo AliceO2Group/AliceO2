@@ -534,6 +534,7 @@ void DeviceSpecHelpers::processOutEdgeActions(ConfigContext const& configContext
       .name = processor.name,
       .id = processor.maxInputTimeslices == 1 ? processor.name : processor.name + "_t" + std::to_string(edge.producerTimeIndex),
       .channelPrefix = channelPrefix,
+      .inputChannels = {},
       .options = processor.options,
       .services = ServiceSpecHelpers::filterDisabled(processor.requiredServices, overrideServices),
       .algorithm = processor.algorithm,
