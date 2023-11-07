@@ -930,8 +930,7 @@ o2::framework::ServiceSpec CommonServices::dataProcessingStats()
     .configure = noConfiguration(),
     .preProcessing = [](ProcessingContext& context, void* service) {
       auto* stats = (DataProcessingStats*)service;
-      flushMetrics(context.services(), *stats);
-    },
+      flushMetrics(context.services(), *stats); },
     .postProcessing = [](ProcessingContext& context, void* service) {
       auto* stats = (DataProcessingStats*)service;
       stats->updateStats({(short)ProcessingStatsId::PERFORMED_COMPUTATIONS, DataProcessingStats::Op::Add, 1});
