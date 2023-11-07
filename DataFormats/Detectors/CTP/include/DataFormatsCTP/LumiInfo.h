@@ -22,7 +22,6 @@ namespace o2
 namespace ctp
 {
 struct LumiInfo {
-  LumiInfo() = default;
   uint32_t orbit = 0;       // orbit of TF when was updated
   uint32_t nHBFCounted = 0; // length of interval in HB
   uint32_t nHBFCountedFV0 = 0;
