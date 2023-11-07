@@ -27,8 +27,6 @@ namespace o2
 namespace mch
 {
 
-class PadOriginal;
-
 /// cluster for internal use
 class ClusterOriginal
 {
