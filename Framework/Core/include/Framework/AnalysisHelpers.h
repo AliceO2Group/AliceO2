@@ -23,6 +23,7 @@
 #include "Framework/Output.h"
 #include "Framework/IndexBuilderHelpers.h"
 #include "Framework/Plugins.h"
+#include "Framework/ExpressionHelpers.h"
 
 #include <string>
 namespace o2::framework
