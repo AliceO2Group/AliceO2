@@ -50,7 +50,7 @@ struct ClusterData {
   {
   }
 
-  bool operator==(const ClusterData& rhs)
+  bool operator==(const ClusterData& rhs) const
   {
     return clusterid == rhs.clusterid && x == rhs.x && y == rhs.y && z == rhs.z && e == rhs.e;
   }
