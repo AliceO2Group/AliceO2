@@ -1610,7 +1610,7 @@ std::array<std::shared_ptr<arrow::Array>, sizeof...(Cs)> getChunks(arrow::Table*
 template <typename T, typename C>
 typename C::type getSingleRowPersistentData(arrow::Table* table, T& rowIterator, uint64_t ci = -1, uint64_t ai = -1)
 {
-  if (ci == static_cast<uint64_t>(-1) || ai == static_cast<uint64_t>(-1)) {
+  if (ci == -1 || ai == -1) {
     auto colIterator = static_cast<C>(rowIterator).getIterator();
     ci = colIterator.mCurrentChunk;
     ai = *(colIterator.mCurrentPos) - colIterator.mFirstIndex;
