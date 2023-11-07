@@ -40,9 +40,6 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
   void initDigitizerTask(framework::InitContext& ic) override
   {
     mDigitizer.init();
-    int emcsim = ic.options().get<int>("emcsim-option");
-    mDigitizer.setEMCsim(emcsim);
-    LOG(info) << "emcsim:" << emcsim;
   }
   void run(framework::ProcessingContext& pc)
   {
@@ -101,8 +98,7 @@ o2::framework::DataProcessorSpec getCTPDigitizerSpec(int channel, std::vector<o2
     output,
     AlgorithmSpec{adaptFromTask<CTPDPLDigitizerTask>()},
     Options{{"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}},
-            {"disable-qed", o2::framework::VariantType::Bool, false, {"disable QED handling"}},
-            {"emcsim-option", VariantType::Int, 0, {"0 - MinBias from EMC, TVX ignored, 1 - MinBias from TVX"}}}};
+            {"disable-qed", o2::framework::VariantType::Bool, false, {"disable QED handling"}}}};
 }
 } // namespace ctp
 } // namespace o2

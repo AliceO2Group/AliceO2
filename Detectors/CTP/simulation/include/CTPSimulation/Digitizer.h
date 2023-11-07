@@ -32,7 +32,6 @@ class Digitizer
   Digitizer() = default;
   ~Digitizer() = default;
   void setCCDBServer(const std::string& server) { mCCDBServer = server; }
-  void setEMCsim(int emcsim) { mEMCsim = emcsim; }
   std::vector<CTPDigit> process(const gsl::span<o2::ctp::CTPInputDigit> detinputs);
   void calculateClassMask(const std::bitset<CTP_NINPUTS> ctpinpmask, std::bitset<CTP_NCLASSES>& classmask);
   void init();
@@ -40,7 +39,6 @@ class Digitizer
   // CTP configuration
   std::string mCCDBServer = o2::base::NameConf::getCCDBServer();
   CTPConfiguration* mCTPConfiguration = nullptr;
-  int mEMCsim = 0;
   ClassDefNV(Digitizer, 2);
 };
 } // namespace ctp

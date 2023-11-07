@@ -27,7 +27,7 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
   std::map<o2::detectors::DetID::ID, std::vector<CTPInput>> det2ctpinp = mCTPConfiguration->getDet2InputMap();
   // To be taken from config database ?
   std::map<std::string, uint64_t> detInputName2Mask =
-    {{"MVBA", 1}, {"MVOR", 2}, {"MVNC", 4}, {"MVCH", 8}, {"MVIR", 0x10}, {"MT0A", 1}, {"MT0C", 2}, {"MTSC", 4}, {"MTCE", 8}, {"MTVX", 0x10}, {"0U0A", 1}, {"0U0C", 2}, {"0USC", 4}, {"0UCE", 8}, {"0UVX", 0x10}, {"MBA", 0x1}, {"0EMC", 0x2}, {"0DMC", 0x4}};
+    {{"MVBA", 1}, {"MVOR", 2}, {"MVNC", 4}, {"MVCH", 8}, {"MVIR", 0x10}, {"MT0A", 1}, {"MT0C", 2}, {"MTSC", 4}, {"MTCE", 8}, {"MTVX", 0x10}, {"0U0A", 1}, {"0U0C", 2}, {"0USC", 4}, {"0UCE", 8}, {"0UVX", 0x10}, {"EMBA", 0x1}, {"0EMC", 0x2}, {"0DMC", 0x4}};
 
   // pre-sorting detector inputs per interaction record
   std::map<o2::InteractionRecord, std::vector<const CTPInputDigit*>> predigits;
@@ -69,13 +69,8 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
           break;
         }
         case o2::detectors::DetID::EMC: {
-          uint64_t inpmaske = inp->inputsMask.to_ullong();
-          if (inpmaske & detInputName2Mask["MBA"]) {
-            inpmaskcoll |= std::bitset<CTP_NINPUTS>(CTP_NINPUTS - 1);
-            inpmaske &= ~(1ull < detInputName2Mask["MBA"]);
-          }
           for (auto const& ctpinp : det2ctpinp[o2::detectors::DetID::EMC]) {
-            uint64_t mask = inpmaske & detInputName2Mask[ctpinp.name];
+            uint64_t mask = (inpmask->iputsMask).to_ullong() & detInputName2Mask[ctpinp.name];
             if (mask) {
               inpmaskcoll |= std::bitset<CTP_NINPUTS>(ctpinp.inputMask);
             }
