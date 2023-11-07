@@ -17,6 +17,7 @@
 #ifndef O2_MCH_CLUSTERORIGINAL_H_
 #define O2_MCH_CLUSTERORIGINAL_H_
 
+#include "PadOriginal.h"
 #include <utility>
 #include <vector>
 
