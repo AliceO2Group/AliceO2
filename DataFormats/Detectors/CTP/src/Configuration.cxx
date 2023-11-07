@@ -1060,7 +1060,7 @@ const std::vector<CTPInput> CTPInputsConfiguration::CTPInputsDefault =
     CTPInput("0DMC", "EMC", 14), CTPInput("0DJ1", "EMC", 41), CTPInput("0DG1", "EMC", 42), CTPInput("0DJ2", "EMC", 43), CTPInput("0DG2", "EMC", 44),
     CTPInput("0EMC", "EMC", 21), CTPInput("0EJ1", "EMC", 37), CTPInput("0EG1", "EMC", 38), CTPInput("0EJ2", "EMC", 39), CTPInput("0EG2", "EMC", 40),
     CTPInput("0PH0", "PHS", 22), CTPInput("1PHL", "PHS", 27), CTPInput("1PHH", "PHS", 28), CTPInput("1PHL", "PHM", 29),
-    CTPInput("1ZED", "ZDC", 25), CTPInput("1ZNC", "ZDC", 26), CTPInput("EMBA","EMC",48)};
+    CTPInput("1ZED", "ZDC", 25), CTPInput("1ZNC", "ZDC", 26), CTPInput("EMBA", "EMC", 48)};
 void CTPInputsConfiguration::initDefaultInputConfig()
 {
   defaultInputConfig.CTPInputs = CTPInputsConfiguration::CTPInputsDefault;

@@ -70,15 +70,15 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
         }
         case o2::detectors::DetID::EMC: {
           uint64_t inpmaskdebug = 1;
-          //uint64_t inpmaskdebug = (inp->inputsMask).to_ullong();
+          // uint64_t inpmaskdebug = (inp->inputsMask).to_ullong();
           for (auto const& ctpinp : det2ctpinp[o2::detectors::DetID::EMC]) {
             uint64_t mask = inpmaskdebug & detInputName2Mask[ctpinp.name];
-            //uint64_t mask = (inp->inputsMask).to_ullong() & detInputName2Mask[ctpinp.name];
+            // uint64_t mask = (inp->inputsMask).to_ullong() & detInputName2Mask[ctpinp.name];
             if (mask) {
               inpmaskcoll |= std::bitset<CTP_NINPUTS>(ctpinp.inputMask);
             }
           }
-          LOG(info) << "EMC input mask:" <<  inpmaskcoll;
+          LOG(info) << "EMC input mask:" << inpmaskcoll;
           break;
         }
         case o2::detectors::DetID::PHS: {
@@ -104,8 +104,8 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
           LOG(error) << "CTP Digitizer: unknown detector:" << inp->detector;
           break;
       }
-      //inpmaskcoll.reset();  // debug
-      //inpmaskcoll[47] = 1;  // debug
+      // inpmaskcoll.reset();  // debug
+      // inpmaskcoll[47] = 1;  // debug
     } // end loop over trigger input for this interaction
     if (inpmaskcoll.to_ullong()) {
       // we put the trigger only when non-trivial
@@ -128,7 +128,7 @@ void Digitizer::calculateClassMask(const std::bitset<CTP_NINPUTS> ctpinpmask, st
     tvxMBemc |= tcl.name.find("C0TVX-A-NOPF-EMC") != std::string::npos;
     tvxMBemc |= tcl.name.find("C0TVX-C-NOPF-EMC") != std::string::npos;
     tvxMBemc |= tcl.name.find("C0TVX-E-NOPF-EMC") != std::string::npos;
-    if(tcl.cluster->name == "emc") {
+    if (tcl.cluster->name == "emc") {
       tvxMBemc |= tcl.name.find("minbias_TVX_L0") != std::string::npos; // 2022
     }
     if (tvxMBemc && ctpinpmask[CTP_NINPUTS - 1]) {
