@@ -70,7 +70,7 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
         }
         case o2::detectors::DetID::EMC: {
           for (auto const& ctpinp : det2ctpinp[o2::detectors::DetID::EMC]) {
-            uint64_t mask = (inp->iputsMask).to_ullong() & detInputName2Mask[ctpinp.name];
+            uint64_t mask = (inp->inputsMask).to_ullong() & detInputName2Mask[ctpinp.name];
             if (mask) {
               inpmaskcoll |= std::bitset<CTP_NINPUTS>(ctpinp.inputMask);
             }
