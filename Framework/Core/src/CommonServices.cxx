@@ -503,6 +503,17 @@ o2::framework::ServiceSpec CommonServices::decongestionSpec()
         }
       }
       decongestion->lastTimeslice = oldestPossibleOutput.timeslice.value; },
+    .stop = [](ServiceRegistryRef services, void* service) {
+      auto* decongestion = (DecongestionService*)service;
+      decongestion->nextEnumerationTimeslice = 0;
+      decongestion->nextEnumerationTimesliceRewinded = false;
+      decongestion->lastTimeslice = 0;
+      decongestion->nextTimeslice = 0;
+      decongestion->oldestPossibleTimesliceTask = {0};
+      auto &state = services.get<DeviceState>();
+      for (auto &channel : state.inputChannelInfos) {
+        channel.oldestForChannel = {0};
+      } },
     .domainInfoUpdated = [](ServiceRegistryRef services, size_t oldestPossibleTimeslice, ChannelIndex channel) {
       auto& decongestion = services.get<DecongestionService>();
       auto& relayer = services.get<DataRelayer>();
