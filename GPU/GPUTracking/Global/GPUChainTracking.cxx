@@ -754,7 +754,7 @@ int GPUChainTracking::RunChain()
   }
 
   if (!GetProcessingSettings().doublePipeline) { // Synchronize with output copies running asynchronously
-    SynchronizeStream(mRec->NStreams() - 2);
+    SynchronizeStream(OutputStream());
   }
 
   if (GetProcessingSettings().ompAutoNThreads && !mRec->IsGPU()) {

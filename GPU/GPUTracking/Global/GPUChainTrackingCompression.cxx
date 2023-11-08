@@ -81,8 +81,8 @@ int GPUChainTracking::RunTPCCompression()
   HighResTimer* gatherTimer = nullptr;
   int outputStream = 0;
   if (ProcessingSettings().doublePipeline) {
-    SynchronizeStream(mRec->NStreams() - 2); // Synchronize output copies running in parallel from memory that might be released, only the following async copy from stacked memory is safe after the chain finishes.
-    outputStream = mRec->NStreams() - 2;
+    SynchronizeStream(OutputStream()); // Synchronize output copies running in parallel from memory that might be released, only the following async copy from stacked memory is safe after the chain finishes.
+    outputStream = OutputStream();
   }
 
   if (ProcessingSettings().tpcCompressionGatherMode >= 2) {

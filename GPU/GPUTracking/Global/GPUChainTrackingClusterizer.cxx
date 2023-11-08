@@ -931,7 +931,7 @@ int GPUChainTracking::RunTPCClusterizer(bool synchronizeOutput)
   }
 
   if (mPipelineNotifyCtx) {
-    SynchronizeStream(mRec->NStreams() - 2); // Must finish before updating ioPtrs in (global) constant memory
+    SynchronizeStream(OutputStream()); // Must finish before updating ioPtrs in (global) constant memory
     {
       std::lock_guard<std::mutex> lock(mPipelineNotifyCtx->mutex);
       mPipelineNotifyCtx->ready = true;
