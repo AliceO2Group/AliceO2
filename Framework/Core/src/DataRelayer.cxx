@@ -570,7 +570,7 @@ DataRelayer::RelayChoice
       static std::atomic<size_t> obsoleteCount = 0;
       static std::atomic<size_t> mult = 1;
       if ((obsoleteCount++ % (1 * mult)) == 0) {
-        LOGP(warning, "Over {} incoming messages are already obsolete, not relaying.", obsoleteCount);
+        LOGP(warning, "Over {} incoming messages are already obsolete, not relaying.", obsoleteCount.load());
         if (obsoleteCount > mult * 10) {
           mult = mult * 10;
         }
