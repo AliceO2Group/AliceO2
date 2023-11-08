@@ -507,7 +507,7 @@ GPUd() int GPUTPCGMMerger::RefitSliceTrack(GPUTPCGMSliceTrack& sliceTrack, const
         return way == 0;
       }
       trk.ConstrainSinPhi();
-      if (prop.Update(y, z, row, Param(), flags & GPUTPCGMMergedTrackHit::clustererAndSharedFlags, 0, nullptr, false, slice > 18)) {
+      if (prop.Update(y, z, row, Param(), flags & GPUTPCGMMergedTrackHit::clustererAndSharedFlags, 0, nullptr, false, slice >= 18)) {
         return way == 0;
       }
       trk.ConstrainSinPhi();
