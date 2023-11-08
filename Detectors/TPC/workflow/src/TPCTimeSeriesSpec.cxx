@@ -28,7 +28,7 @@
 #include "DetectorsBase/Propagator.h"
 #include "TPCCalibration/RobustAverage.h"
 #include "DetectorsCalibration/IntegratedClusterCalibrator.h"
-#include "CommonUtils/DebugStreamer.h"
+#include "CommonUtils/TreeStreamRedirector.h"
 #include "MathUtils/Tsallis.h"
 #include "ReconstructionDataFormats/TrackTPCITS.h"
 #include "CommonDataFormat/AbstractRefAccessor.h"
@@ -41,6 +41,7 @@
 #include <chrono>
 #include "DataFormatsTPC/PIDResponse.h"
 #include "DataFormatsITS/TrackITS.h"
+#include "TROOT.h"
 
 using namespace o2::framework;
 
@@ -53,7 +54,7 @@ class TPCTimeSeries : public Task
 {
  public:
   /// \constructor
-  TPCTimeSeries(std::shared_ptr<o2::base::GRPGeomRequest> req, const bool disableWriter, const o2::base::Propagator::MatCorrType matType) : mCCDBRequest(req), mDisableWriter(disableWriter), mMatType(matType){};
+  TPCTimeSeries(std::shared_ptr<o2::base::GRPGeomRequest> req, const bool disableWriter, const o2::base::Propagator::MatCorrType matType, const bool enableUnbinnedWriter) : mCCDBRequest(req), mDisableWriter(disableWriter), mMatType(matType), mUnbinnedWriter(enableUnbinnedWriter){};
 
   void init(framework::InitContext& ic) final
   {
@@ -86,8 +87,26 @@ class TPCTimeSeries : public Task
     mMinTracksPerVertex = ic.options().get<int>("min-tracks-per-vertex");
     mMaxdEdxRatio = ic.options().get<float>("max-dedx-ratio");
     mMaxdEdxRegionRatio = ic.options().get<float>("max-dedx-region-ratio");
+    mSamplingFactor = ic.options().get<float>("sampling-factor");
+    mSampleTsallis = ic.options().get<bool>("sample-unbinned-tsallis");
+    if (mSampleTsallis) {
+      mGenerator = std::mt19937(std::random_device{}());
+    }
     mBufferVals.resize(mNThreads);
     mBufferDCA.setBinning(mPhiBins, mTglBins, mQPtBins, mMultBins, mMaxTgl, mMaxQPt, mMultMax);
+    if (mUnbinnedWriter) {
+      std::string outfile = ic.options().get<std::string>("out-file-unbinned");
+      if (mNThreads > 1) {
+        ROOT::EnableThreadSafety();
+      }
+      mStreamer.resize(mNThreads);
+      for (int iThread = 0; iThread < mNThreads; ++iThread) {
+        std::string outfileThr = outfile;
+        outfileThr.replace(outfileThr.length() - 5, outfileThr.length(), fmt::format("_{}.root", iThread));
+        LOGP(info, "Writing unbinned data to: {}", outfileThr);
+        mStreamer[iThread] = std::make_unique<o2::utils::TreeStreamRedirector>(outfileThr.data(), "recreate");
+      }
+    }
   }
 
   void run(ProcessingContext& pc) final
@@ -139,7 +158,7 @@ class TPCTimeSeries : public Task
     const auto primMatchedTracks = pc.inputs().get<gsl::span<o2::dataformats::VtxTrackIndex>>("pvtx_trmtc");
     const auto primMatchedTracksRef = pc.inputs().get<gsl::span<o2::dataformats::VtxTrackRef>>("pvtx_tref");
 
-    LOGP(info, "Processing {} vertices, {} primary matched vertices, {} TPC tracks, {} ITS-TPC tracks", vertices.size(), primMatchedTracks.size(), tracksTPC.size(), tracksITSTPC.size());
+    LOGP(info, "Processing {} vertices, {} primary matched vertices, {} TPC tracks, {} ITS tracks, {} ITS-TPC tracks", vertices.size(), primMatchedTracks.size(), tracksTPC.size(), tracksITS.size(), tracksITSTPC.size());
 
     // calculate mean vertex, RMS and count vertices
     auto indicesITSTPC_vtx = processVertices(vertices, primMatchedTracks, primMatchedTracksRef);
@@ -159,10 +178,10 @@ class TPCTimeSeries : public Task
     findNearesVertex(tracksTPC, vertices);
 
     // getting cluster references for cluster bitmask
-    GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamTimeSeries)) {
+    if (mUnbinnedWriter) {
       mTPCTrackClIdx = pc.inputs().get<gsl::span<o2::tpc::TPCClRefElem>>("trackTPCClRefs");
       mFirstTFOrbit = processing_helpers::getFirstTForbit(pc);
-    })
+    }
 
     // get local multiplicity - count neighbouring tracks
     findNNeighbourTracks(tracksTPC);
@@ -648,7 +667,9 @@ class TPCTimeSeries : public Task
 
   void endOfStream(EndOfStreamContext& eos) final
   {
-    o2::utils::DebugStreamer::instance()->flush();
+    for (auto& streamer : mStreamer) {
+      streamer->Close();
+    }
     eos.services().get<ControlService>().readyToQuit(QuitRequest::Me);
   }
 
@@ -785,68 +806,73 @@ class TPCTimeSeries : public Task
     std::vector<float> chi2ITS;
     std::vector<o2::dataformats::GlobalTrackID::Source> gID;
   };
-  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;       ///< info for CCDB request
-  const bool mDisableWriter{false};                             ///< flag if no ROOT output will be written
-  o2::base::Propagator::MatCorrType mMatType;                   ///< material for propagation
-  int mPhiBins = SECTORSPERSIDE;                                ///< number of phi bins
-  int mTglBins{3};                                              ///< number of tgl bins
-  int mQPtBins{20};                                             ///< number of qPt bins
-  TimeSeriesITSTPC mBufferDCA;                                  ///< buffer for integrate DCAs
-  std::vector<std::array<RobustAverage, 3>> mAvgADCAr;          ///< for averaging the DCAr for TPC and ITS-TPC tracks for A-side
-  std::vector<std::array<RobustAverage, 3>> mAvgCDCAr;          ///< for averaging the DCAr for TPC and ITS-TPC tracks for C-side
-  std::vector<std::array<RobustAverage, 3>> mAvgADCAz;          ///< for averaging the DCAz for TPC and ITS-TPC tracks for A-side
-  std::vector<std::array<RobustAverage, 3>> mAvgCDCAz;          ///< for averaging the DCAz for TPC and ITS-TPC tracks for C-side
-  std::vector<std::array<RobustAverage, 2>> mMIPdEdxRatioQMaxA; ///< for averaging MIP/dEdx - qMax -
-  std::vector<std::array<RobustAverage, 2>> mMIPdEdxRatioQMaxC; ///< for averaging MIP/dEdx - qMax -
-  std::vector<std::array<RobustAverage, 2>> mMIPdEdxRatioQTotA; ///< for averaging MIP/dEdx - qTot -
-  std::vector<std::array<RobustAverage, 2>> mMIPdEdxRatioQTotC; ///< for averaging MIP/dEdx - qTot -
-  std::vector<std::array<RobustAverage, 2>> mTPCChi2A;          ///< for averaging chi2 TPC A
-  std::vector<std::array<RobustAverage, 2>> mTPCChi2C;          ///< for averaging chi2 TPC C
-  std::vector<std::array<RobustAverage, 2>> mTPCNClA;           ///< for averaging number of cluster A
-  std::vector<std::array<RobustAverage, 2>> mTPCNClC;           ///< for averaging number of cluster C
-  std::vector<std::array<RobustAverage, 3>> mAvgMeffA;          ///< for matching efficiency ITS-TPC standalone + afterburner, standalone, afterburner
-  std::vector<std::array<RobustAverage, 3>> mAvgMeffC;          ///< for matching efficiency ITS-TPC standalone + afterburner, standalone, afterburner
-  std::vector<std::array<RobustAverage, 3>> mAvgChi2MatchA;     ///< for matching efficiency ITS-TPC standalone + afterburner, standalone, afterburner
-  std::vector<std::array<RobustAverage, 3>> mAvgChi2MatchC;     ///< for matching efficiency ITS-TPC standalone + afterburner, standalone, afterburner
-  std::vector<std::array<RobustAverage, 10>> mLogdEdxQTotA;     ///< for log dedx A side - qTot
-  std::vector<std::array<RobustAverage, 10>> mLogdEdxQTotC;     ///< for log dedx C side - qTot
-  std::vector<std::array<RobustAverage, 10>> mLogdEdxQMaxA;     ///< for log dedx A side - qMax
-  std::vector<std::array<RobustAverage, 10>> mLogdEdxQMaxC;     ///< for log dedx C side - qMax
-  std::vector<std::array<RobustAverage, 2>> mITSPropertiesA;    ///< mITS_NCl, mSqrtITSChi2_Ncl, mSqrtMatchChi2
-  std::vector<std::array<RobustAverage, 2>> mITSPropertiesC;    ///< mITS_NCl, mSqrtITSChi2_Ncl, mSqrtMatchChi2
-  int mNMaxTracks{-1};                                          ///< maximum number of tracks to process
-  float mMinMom{1};                                             ///< minimum accepted momentum
-  int mMinNCl{80};                                              ///< minimum accepted number of clusters per track
-  float mMaxTgl{1};                                             ///< maximum eta
-  float mMaxQPt{5};                                             ///< max qPt bin
-  float mCoarseStep{1};                                         ///< coarse step during track propagation
-  float mFineStep{0.005};                                       ///< fine step during track propagation
-  float mCutDCA{5};                                             ///< cut on the abs(DCA-median)
-  float mCutRMS{5};                                             ///< sigma cut for mean,median calculation
-  float mRefXSec{108.475};                                      ///< reference lx position for sector information (default centre of IROC)
-  int mNThreads{1};                                             ///< number of parallel threads
-  float maxITSTPCDCAr{0.2};                                     ///< maximum abs DCAr value for ITS-TPC tracks
-  float maxITSTPCDCAz{10};                                      ///< maximum abs DCAz value for ITS-TPC tracks
-  float maxITSTPCDCAr_comb{0.2};                                ///< max abs DCA for ITS-TPC DCA to vertex
-  float maxITSTPCDCAz_comb{0.2};                                ///< max abs DCA for ITS-TPC DCA to vertex
-  gsl::span<const TPCClRefElem> mTPCTrackClIdx{};               ///< cluster refs for debugging
-  std::vector<std::array<FillVals, 2>> mBufferVals;             ///< buffer for multithreading
-  uint32_t mFirstTFOrbit{0};                                    ///< first TF orbit
-  float mTimeWindowMUS{50};                                     ///< time window in mus for local mult estimate
-  float mMIPdEdx{50};                                           ///< MIP dEdx position for MIP/dEdx monitoring
-  std::vector<int> mNTracksWindow;                              ///< number of tracks in time window
-  std::vector<int> mNearestVtxTPC;                              ///< nearest vertex for tpc tracks
-  o2::tpc::VDriftHelper mTPCVDriftHelper{};                     ///< helper for v-drift
-  float mVDrift{2.64};                                          ///< v drift in mus
-  float mMaxSnp{0.85};                                          ///< max sinus phi for propagation
-  float mXCoarse{40};                                           ///< perform propagation with coarse steps up to this mx
-  float mSqrt{13600};                                           ///< centre of mass energy
-  int mMultBins{20};                                            ///< multiplicity bins
-  int mMultMax{80000};                                          ///< maximum multiplicity
-  PIDResponse mPID;                                             ///< PID response
-  int mMinTracksPerVertex{5};                                   ///< minimum number of tracks per vertex
-  float mMaxdEdxRatio{0.3};                                     ///< maximum abs dedx ratio: log(dedx_exp(pion)/dedx)
-  float mMaxdEdxRegionRatio{0.5};                               ///< maximum abs dedx region ratio: log(dedx_region/dedx)
+  std::shared_ptr<o2::base::GRPGeomRequest> mCCDBRequest;                  ///< info for CCDB request
+  const bool mDisableWriter{false};                                        ///< flag if no ROOT output will be written
+  o2::base::Propagator::MatCorrType mMatType;                              ///< material for propagation
+  const bool mUnbinnedWriter{false};                                       /// write out additional unbinned data
+  int mPhiBins = SECTORSPERSIDE;                                           ///< number of phi bins
+  int mTglBins{3};                                                         ///< number of tgl bins
+  int mQPtBins{20};                                                        ///< number of qPt bins
+  TimeSeriesITSTPC mBufferDCA;                                             ///< buffer for integrate DCAs
+  std::vector<std::array<RobustAverage, 3>> mAvgADCAr;                     ///< for averaging the DCAr for TPC and ITS-TPC tracks for A-side
+  std::vector<std::array<RobustAverage, 3>> mAvgCDCAr;                     ///< for averaging the DCAr for TPC and ITS-TPC tracks for C-side
+  std::vector<std::array<RobustAverage, 3>> mAvgADCAz;                     ///< for averaging the DCAz for TPC and ITS-TPC tracks for A-side
+  std::vector<std::array<RobustAverage, 3>> mAvgCDCAz;                     ///< for averaging the DCAz for TPC and ITS-TPC tracks for C-side
+  std::vector<std::array<RobustAverage, 2>> mMIPdEdxRatioQMaxA;            ///< for averaging MIP/dEdx - qMax -
+  std::vector<std::array<RobustAverage, 2>> mMIPdEdxRatioQMaxC;            ///< for averaging MIP/dEdx - qMax -
+  std::vector<std::array<RobustAverage, 2>> mMIPdEdxRatioQTotA;            ///< for averaging MIP/dEdx - qTot -
+  std::vector<std::array<RobustAverage, 2>> mMIPdEdxRatioQTotC;            ///< for averaging MIP/dEdx - qTot -
+  std::vector<std::array<RobustAverage, 2>> mTPCChi2A;                     ///< for averaging chi2 TPC A
+  std::vector<std::array<RobustAverage, 2>> mTPCChi2C;                     ///< for averaging chi2 TPC C
+  std::vector<std::array<RobustAverage, 2>> mTPCNClA;                      ///< for averaging number of cluster A
+  std::vector<std::array<RobustAverage, 2>> mTPCNClC;                      ///< for averaging number of cluster C
+  std::vector<std::array<RobustAverage, 3>> mAvgMeffA;                     ///< for matching efficiency ITS-TPC standalone + afterburner, standalone, afterburner
+  std::vector<std::array<RobustAverage, 3>> mAvgMeffC;                     ///< for matching efficiency ITS-TPC standalone + afterburner, standalone, afterburner
+  std::vector<std::array<RobustAverage, 3>> mAvgChi2MatchA;                ///< for matching efficiency ITS-TPC standalone + afterburner, standalone, afterburner
+  std::vector<std::array<RobustAverage, 3>> mAvgChi2MatchC;                ///< for matching efficiency ITS-TPC standalone + afterburner, standalone, afterburner
+  std::vector<std::array<RobustAverage, 10>> mLogdEdxQTotA;                ///< for log dedx A side - qTot
+  std::vector<std::array<RobustAverage, 10>> mLogdEdxQTotC;                ///< for log dedx C side - qTot
+  std::vector<std::array<RobustAverage, 10>> mLogdEdxQMaxA;                ///< for log dedx A side - qMax
+  std::vector<std::array<RobustAverage, 10>> mLogdEdxQMaxC;                ///< for log dedx C side - qMax
+  std::vector<std::array<RobustAverage, 2>> mITSPropertiesA;               ///< mITS_NCl, mSqrtITSChi2_Ncl, mSqrtMatchChi2
+  std::vector<std::array<RobustAverage, 2>> mITSPropertiesC;               ///< mITS_NCl, mSqrtITSChi2_Ncl, mSqrtMatchChi2
+  int mNMaxTracks{-1};                                                     ///< maximum number of tracks to process
+  float mMinMom{1};                                                        ///< minimum accepted momentum
+  int mMinNCl{80};                                                         ///< minimum accepted number of clusters per track
+  float mMaxTgl{1};                                                        ///< maximum eta
+  float mMaxQPt{5};                                                        ///< max qPt bin
+  float mCoarseStep{1};                                                    ///< coarse step during track propagation
+  float mFineStep{0.005};                                                  ///< fine step during track propagation
+  float mCutDCA{5};                                                        ///< cut on the abs(DCA-median)
+  float mCutRMS{5};                                                        ///< sigma cut for mean,median calculation
+  float mRefXSec{108.475};                                                 ///< reference lx position for sector information (default centre of IROC)
+  int mNThreads{1};                                                        ///< number of parallel threads
+  float maxITSTPCDCAr{0.2};                                                ///< maximum abs DCAr value for ITS-TPC tracks
+  float maxITSTPCDCAz{10};                                                 ///< maximum abs DCAz value for ITS-TPC tracks
+  float maxITSTPCDCAr_comb{0.2};                                           ///< max abs DCA for ITS-TPC DCA to vertex
+  float maxITSTPCDCAz_comb{0.2};                                           ///< max abs DCA for ITS-TPC DCA to vertex
+  gsl::span<const TPCClRefElem> mTPCTrackClIdx{};                          ///< cluster refs for debugging
+  std::vector<std::array<FillVals, 2>> mBufferVals;                        ///< buffer for multithreading
+  uint32_t mFirstTFOrbit{0};                                               ///< first TF orbit
+  float mTimeWindowMUS{50};                                                ///< time window in mus for local mult estimate
+  float mMIPdEdx{50};                                                      ///< MIP dEdx position for MIP/dEdx monitoring
+  std::vector<int> mNTracksWindow;                                         ///< number of tracks in time window
+  std::vector<int> mNearestVtxTPC;                                         ///< nearest vertex for tpc tracks
+  o2::tpc::VDriftHelper mTPCVDriftHelper{};                                ///< helper for v-drift
+  float mVDrift{2.64};                                                     ///< v drift in mus
+  float mMaxSnp{0.85};                                                     ///< max sinus phi for propagation
+  float mXCoarse{40};                                                      ///< perform propagation with coarse steps up to this mx
+  float mSqrt{13600};                                                      ///< centre of mass energy
+  int mMultBins{20};                                                       ///< multiplicity bins
+  int mMultMax{80000};                                                     ///< maximum multiplicity
+  PIDResponse mPID;                                                        ///< PID response
+  int mMinTracksPerVertex{5};                                              ///< minimum number of tracks per vertex
+  float mMaxdEdxRatio{0.3};                                                ///< maximum abs dedx ratio: log(dedx_exp(pion)/dedx)
+  float mMaxdEdxRegionRatio{0.5};                                          ///< maximum abs dedx region ratio: log(dedx_region/dedx)
+  float mSamplingFactor{0.1};                                              ///< sampling factor in case sampling is used for unbinned data
+  bool mSampleTsallis{false};                                              ///< perform sampling of unbinned data
+  std::mt19937 mGenerator;                                                 ///< random generator for debug tree sampling
+  std::vector<std::unique_ptr<o2::utils::TreeStreamRedirector>> mStreamer; ///< streamer for unbinned data
 
   /// check if track passes coarse cuts
   bool acceptTrack(const TrackTPC& track) const
@@ -952,12 +978,15 @@ class TPCTimeSeries : public Task
       const auto dedxQTotVars = getdEdxVars(0, track);
       const auto dedxQMaxVars = getdEdxVars(1, track);
 
-      const int nClITS = hasITSTPC ? tracksITS[tracksITSTPC[idxITSTPC.front()].getRefITS().getIndex()].getNClusters() : -1;
-      float chi2ITS = hasITSTPC ? tracksITS[tracksITSTPC[idxITSTPC.front()].getRefITS().getIndex()].getChi2() : -1;
+      // make check to avoid crash in case no or less ITS tracks have been found!
+      const int idxITSTrack = hasITSTPC ? tracksITSTPC[idxITSTPC.front()].getRefITS().getIndex() : -1;
+      const bool idxITSCheck = (idxITSTrack < tracksITS.size()) && hasITSTPC;
+
+      const int nClITS = idxITSCheck ? tracksITS[idxITSTrack].getNClusters() : -1;
+      float chi2ITS = idxITSCheck ? tracksITS[idxITSTrack].getChi2() : -1;
       if ((chi2ITS > 0) && (nClITS > 0)) {
         chi2ITS = std::sqrt(chi2ITS / nClITS);
       }
-
       if (track.hasCSideClustersOnly()) {
         mBufferVals[iThread].front().emplace_back(Side::C, tglBin, phiBin, qPtBin, multBin, dca[0], dcaZFromDeltaTime, dcarW, dedxRatioqTot, dedxRatioqMax, sqrtChi2TPC, nClTPC, gID, chi2Match, hasITSTPC, nClITS, chi2ITS, dedxQTotVars, dedxQMaxVars);
       } else if (track.hasASideClustersOnly()) {
@@ -998,21 +1027,21 @@ class TPCTimeSeries : public Task
         }
       }
 
-      GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamTimeSeries)) {
-        const auto sampling = o2::utils::DebugStreamer::getSamplingTypeFrequency(o2::utils::StreamFlags::streamTimeSeries);
-        const float factorPt = sampling.second;
+      if (mUnbinnedWriter && mStreamer[iThread]) {
+        const float factorPt = mSamplingFactor;
         bool writeData = true;
         float weight = 0;
-        if (sampling.first == o2::utils::SamplingTypes::sampleTsallis) {
-          writeData = o2::math_utils::Tsallis::downsampleTsallisCharged(tracksTPC[iTrk].getPt(), factorPt, mSqrt, weight, o2::utils::DebugStreamer::getRandom());
+        if (mSampleTsallis) {
+          std::uniform_real_distribution<> distr(0., 1.);
+          writeData = o2::math_utils::Tsallis::downsampleTsallisCharged(tracksTPC[iTrk].getPt(), factorPt, mSqrt, weight, distr(mGenerator));
         }
         if (writeData) {
           auto clusterMask = makeClusterBitMask(track);
           const auto& trkOrig = tracksTPC[iTrk];
           const bool isNearestVtx = (idxITSTPC.back() == -1); // is nearest vertex in case no vertex was found
           const float mx_ITS = hasITSTPC ? tracksITSTPC[idxITSTPC.front()].getX() : -1;
-          const int nClITS = hasITSTPC ? tracksITS[tracksITSTPC[idxITSTPC.front()].getRefITS().getIndex()].getNClusters() : -1;
-          const int chi2ITS = hasITSTPC ? tracksITS[tracksITSTPC[idxITSTPC.front()].getRefITS().getIndex()].getChi2() : -1;
+          const int nClITS = idxITSCheck ? tracksITS[idxITSTrack].getNClusters() : -1;
+          const int chi2ITS = idxITSCheck ? tracksITS[idxITSTrack].getChi2() : -1;
           int typeSide = 2; // A- and C-Side cluster
           if (track.hasASideClustersOnly()) {
             typeSide = 0;
@@ -1020,53 +1049,53 @@ class TPCTimeSeries : public Task
             typeSide = 1;
           }
 
-          o2::utils::DebugStreamer::instance()->getStreamer("time_series", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("treeTimeSeries").data()
-                                                                                     // DCAs
-                                                                                     << "factorPt=" << factorPt
-                                                                                     << "weight=" << weight
-                                                                                     << "dcar_tpc=" << dca[0]
-                                                                                     << "dcaz_tpc=" << dca[1]
-                                                                                     << "dcar_itstpc=" << dcaITSTPC[0]
-                                                                                     << "dcaz_itstpc=" << dcaITSTPC[1]
-                                                                                     << "dcarW=" << dcarW
-                                                                                     << "dcaZFromDeltaTime=" << dcaZFromDeltaTime
-                                                                                     << "hasITSTPC=" << hasITSTPC
-                                                                                     // vertex
-                                                                                     << "vertex_x=" << vertex.getX()
-                                                                                     << "vertex_y=" << vertex.getY()
-                                                                                     << "vertex_z=" << vertex.getZ()
-                                                                                     << "vertex_time=" << vertex.getTimeStamp().getTimeStamp()
-                                                                                     << "vertex_nContributors=" << vertex.getNContributors()
-                                                                                     << "isNearestVertex=" << isNearestVtx
-                                                                                     // tpc track properties
-                                                                                     << "pt=" << trkOrig.getPt()
-                                                                                     << "tpc_timebin=" << trkOrig.getTime0()
-                                                                                     << "qpt=" << trkOrig.getParam(4)
-                                                                                     << "ncl=" << trkOrig.getNClusters()
-                                                                                     << "tgl=" << trkOrig.getTgl()
-                                                                                     << "side_type=" << typeSide
-                                                                                     << "phi=" << trkOrig.getPhi()
-                                                                                     << "clusterMask=" << clusterMask
-                                                                                     << "dedxTotTPC=" << trkOrig.getdEdx().dEdxTotTPC
-                                                                                     << "dedxTotIROC=" << trkOrig.getdEdx().dEdxTotIROC
-                                                                                     << "dedxTotOROC1=" << trkOrig.getdEdx().dEdxTotOROC1
-                                                                                     << "dedxTotOROC2=" << trkOrig.getdEdx().dEdxTotOROC2
-                                                                                     << "dedxTotOROC3=" << trkOrig.getdEdx().dEdxTotOROC3
-                                                                                     << "chi2=" << trkOrig.getChi2()
-                                                                                     << "mX=" << trkOrig.getX()
-                                                                                     << "mX_ITS=" << mx_ITS
-                                                                                     << "nClITS=" << nClITS
-                                                                                     << "chi2ITS=" << chi2ITS
-                                                                                     // meta
-                                                                                     << "mult=" << mNTracksWindow[iTrk]
-                                                                                     << "time_window_mult=" << mTimeWindowMUS
-                                                                                     << "firstTFOrbit=" << mFirstTFOrbit
-                                                                                     << "mVDrift=" << mVDrift
-                                                                                     << "its_flag=" << int(gID)
-                                                                                     << "sqrtChi2Match=" << chi2Match
-                                                                                     << "\n";
+          *mStreamer[iThread] << "treeTimeSeries"
+                              // DCAs
+                              << "factorPt=" << factorPt
+                              << "weight=" << weight
+                              << "dcar_tpc=" << dca[0]
+                              << "dcaz_tpc=" << dca[1]
+                              << "dcar_itstpc=" << dcaITSTPC[0]
+                              << "dcaz_itstpc=" << dcaITSTPC[1]
+                              << "dcarW=" << dcarW
+                              << "dcaZFromDeltaTime=" << dcaZFromDeltaTime
+                              << "hasITSTPC=" << hasITSTPC
+                              // vertex
+                              << "vertex_x=" << vertex.getX()
+                              << "vertex_y=" << vertex.getY()
+                              << "vertex_z=" << vertex.getZ()
+                              << "vertex_time=" << vertex.getTimeStamp().getTimeStamp()
+                              << "vertex_nContributors=" << vertex.getNContributors()
+                              << "isNearestVertex=" << isNearestVtx
+                              // tpc track properties
+                              << "pt=" << trkOrig.getPt()
+                              << "tpc_timebin=" << trkOrig.getTime0()
+                              << "qpt=" << trkOrig.getParam(4)
+                              << "ncl=" << trkOrig.getNClusters()
+                              << "tgl=" << trkOrig.getTgl()
+                              << "side_type=" << typeSide
+                              << "phi=" << trkOrig.getPhi()
+                              << "clusterMask=" << clusterMask
+                              << "dedxTotTPC=" << trkOrig.getdEdx().dEdxTotTPC
+                              << "dedxTotIROC=" << trkOrig.getdEdx().dEdxTotIROC
+                              << "dedxTotOROC1=" << trkOrig.getdEdx().dEdxTotOROC1
+                              << "dedxTotOROC2=" << trkOrig.getdEdx().dEdxTotOROC2
+                              << "dedxTotOROC3=" << trkOrig.getdEdx().dEdxTotOROC3
+                              << "chi2=" << trkOrig.getChi2()
+                              << "mX=" << trkOrig.getX()
+                              << "mX_ITS=" << mx_ITS
+                              << "nClITS=" << nClITS
+                              << "chi2ITS=" << chi2ITS
+                              // meta
+                              << "mult=" << mNTracksWindow[iTrk]
+                              << "time_window_mult=" << mTimeWindowMUS
+                              << "firstTFOrbit=" << mFirstTFOrbit
+                              << "mVDrift=" << mVDrift
+                              << "its_flag=" << int(gID)
+                              << "sqrtChi2Match=" << chi2Match
+                              << "\n";
         }
-      })
+      }
     }
   }
 
@@ -1359,17 +1388,17 @@ class TPCTimeSeries : public Task
   }
 };
 
-o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, const o2::base::Propagator::MatCorrType matType)
+o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, const o2::base::Propagator::MatCorrType matType, const bool enableUnbinnedWriter)
 {
   const bool enableAskMatLUT = matType == o2::base::Propagator::MatCorrType::USEMatCorrLUT;
   std::vector<InputSpec> inputs;
   inputs.emplace_back("tracksITSTPC", "GLO", "TPCITS", 0, Lifetime::Timeframe);
   inputs.emplace_back("tracksTPC", header::gDataOriginTPC, "TRACKS", 0, Lifetime::Timeframe);
   inputs.emplace_back("tracksITS", header::gDataOriginITS, "TRACKS", 0, Lifetime::Timeframe);
-  GPUCA_DEBUG_STREAMER_CHECK(if (o2::utils::DebugStreamer::checkStream(o2::utils::StreamFlags::streamTimeSeries)) {
+  if (enableUnbinnedWriter) {
     // request tpc clusters only in case the debug streamer is used for the cluster bit mask
     inputs.emplace_back("trackTPCClRefs", header::gDataOriginTPC, "CLUSREFS", 0, Lifetime::Timeframe);
-  })
+  }
   inputs.emplace_back("pvtx", "GLO", "PVTX", 0, Lifetime::Timeframe);
   inputs.emplace_back("pvtx_trmtc", "GLO", "PVTX_TRMTC", 0, Lifetime::Timeframe);    // global ids of associated tracks
   inputs.emplace_back("pvtx_tref", "GLO", "PVTX_TRMTCREFS", 0, Lifetime::Timeframe); // vertex - trackID refs
@@ -1395,7 +1424,7 @@ o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, 
     "tpc-time-series",
     inputs,
     outputs,
-    AlgorithmSpec{adaptFromTask<TPCTimeSeries>(ccdbRequest, disableWriter, matType)},
+    AlgorithmSpec{adaptFromTask<TPCTimeSeries>(ccdbRequest, disableWriter, matType, enableUnbinnedWriter)},
     Options{
       {"min-momentum", VariantType::Float, 0.2f, {"Minimum momentum of the tracks"}},
       {"min-cluster", VariantType::Int, 80, {"Minimum number of clusters of the tracks"}},
@@ -1425,7 +1454,9 @@ o2::framework::DataProcessorSpec getTPCTimeSeriesSpec(const bool disableWriter, 
       {"min-tracks-per-vertex", VariantType::Int, 6, {"Minimum number of tracks per vertex required"}},
       {"max-dedx-ratio", VariantType::Float, 0.3f, {"Maximum absolute log(dedx(pion)/dedx) ratio"}},
       {"max-dedx-region-ratio", VariantType::Float, 0.5f, {"Maximum absolute log(dedx(region)/dedx) ratio"}},
-    }};
+      {"sample-unbinned-tsallis", VariantType::Bool, false, {"Perform sampling of unbinned data based on Tsallis function"}},
+      {"sampling-factor", VariantType::Float, 0.1f, {"Sampling factor in case sample-unbinned-tsallis is used"}},
+      {"out-file-unbinned", VariantType::String, "time_series_tracks.root", {"name of the output file for the unbinned data"}}}};
 }
 
 } // namespace tpc
