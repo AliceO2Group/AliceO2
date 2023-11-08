@@ -136,11 +136,10 @@ class CalibdEdx
   /// Save the histograms to a TTree.
   void writeTTree(std::string_view fileName) const;
 
-  constexpr static float MipScale = 1.0 / 50.0;                         ///< Inverse of target dE/dx value for MIPs
-  constexpr static std::array<float, 4> TglScale{1.9, 1.5, 1.22, 1.02}; ///< Max Tgl values for each ROC type
+  constexpr static float MipScale = 1.0 / 50.0; ///< Inverse of target dE/dx value for MIPs
 
-  constexpr static float scaleTgl(float tgl, GEMstack roc) { return tgl / CalibdEdx::TglScale[roc]; }
-  constexpr static float recoverTgl(float scaledTgl, GEMstack roc) { return scaledTgl * CalibdEdx::TglScale[roc]; }
+  constexpr static float scaleTgl(float tgl, GEMstack rocType) { return tgl / conf_dedx_corr::TglScale[rocType]; }
+  constexpr static float recoverTgl(float scaledTgl, GEMstack rocType) { return scaledTgl * conf_dedx_corr::TglScale[rocType]; }
 
  private:
   bool mFitSnp{};
