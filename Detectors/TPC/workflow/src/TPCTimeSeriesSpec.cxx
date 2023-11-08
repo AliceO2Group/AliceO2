@@ -979,8 +979,8 @@ class TPCTimeSeries : public Task
       const auto dedxQMaxVars = getdEdxVars(1, track);
 
       // make check to avoid crash in case no or less ITS tracks have been found!
-      const int idxITSTrack = hasITSTPC ? tracksITSTPC[idxITSTPC.front()].getRefITS().getIndex() : -1;
-      const bool idxITSCheck = (idxITSTrack < tracksITS.size()) && hasITSTPC;
+      const int idxITSTrack = (hasITSTPC && (gID == o2::dataformats::GlobalTrackID::Source::ITS)) ? tracksITSTPC[idxITSTPC.front()].getRefITS().getIndex() : -1;
+      const bool idxITSCheck = (idxITSTrack != -1);
 
       const int nClITS = idxITSCheck ? tracksITS[idxITSTrack].getNClusters() : -1;
       float chi2ITS = idxITSCheck ? tracksITS[idxITSTrack].getChi2() : -1;
