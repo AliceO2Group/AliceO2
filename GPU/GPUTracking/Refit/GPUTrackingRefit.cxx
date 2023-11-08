@@ -374,8 +374,7 @@ GPUd() int GPUTrackingRefit::RefitTrack(T& trkX, bool outward, bool resetCov)
       CADEBUG(printf("\t%21sPropaga Alpha %8.3f    , X %8.3f - Y %8.3f, Z %8.3f   -   QPt %7.2f (%7.2f), SP %5.2f (%5.2f)   ---   Res %8.3f %8.3f   ---   Cov sY %8.3f sZ %8.3f sSP %8.3f sPt %8.3f   -   YPt %8.3f\n", "", trk.getAlpha(), x, trk.getParams()[0], trk.getParams()[1], trk.getParams()[4], trk.getParams()[4], trk.getParams()[2], trk.getParams()[2], trk.getParams()[0] - y, trk.getParams()[1] - z, sqrtf(trk.getCov()[0]), sqrtf(trk.getCov()[2]), sqrtf(trk.getCov()[5]), sqrtf(trk.getCov()[14]), trk.getCov()[10]));
       gpu::gpustd::array<float, 2> p = {y, z};
       gpu::gpustd::array<float, 3> c = {0, 0, 0};
-      mPparam->GetClusterErrors2(currentRow, z, getPar(trk)[2], getPar(trk)[3], c[0], c[2]);
-      mPparam->UpdateClusterError2ByState(clusterState, c[0], c[2]);
+      GPUTPCGMPropagator::GetErr2(c[0], c[2], *mPparam, getPar(trk)[2], getPar(trk)[3], z, x, currentRow, clusterState, sector >= 18);
       TrackParCovChi2 += trk.getPredictedChi2(p, c);
       if (!trk.update(p, c)) {
         IgnoreErrors(trk.getSnp());
