@@ -21,9 +21,7 @@
 #include "CommonUtils/ConfigurableParamHelper.h"
 #include "CommonConstants/LHCConstants.h"
 
-namespace o2
-{
-namespace tpc
+namespace o2::tpc
 {
 
 enum class DigitzationMode : char {
@@ -32,7 +30,8 @@ enum class DigitzationMode : char {
   ZeroSuppressionCMCorr = 2, ///< Apply noise, pedestal and saturation and then from that subtract the pedestal and apply zero suppression
   SubtractPedestal = 3,      ///< Apply noise, pedestal and saturation and then from that subtract the pedestal
   NoSaturation = 4,          ///< Apply only noise and pedestal
-  PropagateADC = 5           ///< Just propagate the bare ADC value
+  PropagateADC = 5,          ///< Just propagate the bare ADC value
+  Auto = 6,                  ///< Automatically decide based on DCS settings in CCDB
 };
 
 struct ParameterElectronics : public o2::conf::ConfigurableParamHelper<ParameterElectronics> {
@@ -49,11 +48,12 @@ struct ParameterElectronics : public o2::conf::ConfigurableParamHelper<Parameter
   float adcToT = 1.f / 1024.f;                                                  ///< relation between time over threshold and ADC value
   bool doIonTail = false;                                                       ///< add ion tail in simulation
   bool doIonTailPerPad = false;                                                 ///< add ion tail in simulation using pad-by-pad values
-  bool doCommonModePerPad = false;                                              ///< add common mode in simulation using pad-by-pad values
+  bool doCommonModePerPad = true;                                               ///< add common mode in simulation using pad-by-pad values
   bool doSaturationTail = false;                                                ///< add saturation tail in simulation
   bool doNoiseEmptyPads = false;                                                ///< add noise in pads without signal in simulation
+  bool applyDeadMap = true;                                                     ///< apply dead channel map
   float commonModeCoupling = 0.5f;                                              ///< average coupling of common mode signal
-  DigitzationMode DigiMode = DigitzationMode::ZeroSuppression;                  ///< Digitization mode [full / ... ]
+  DigitzationMode DigiMode = DigitzationMode::Auto;                             ///< Digitization mode [full / ... ]
 
   /// Average time from the start of the signal shaping to the COG of the sampled distribution
   ///
@@ -64,7 +64,6 @@ struct ParameterElectronics : public o2::conf::ConfigurableParamHelper<Parameter
 
   O2ParamDef(ParameterElectronics, "TPCEleParam");
 };
-} // namespace tpc
-} // namespace o2
+} // namespace o2::tpc
 
 #endif // ALICEO2_TPC_ParameterElectronics_H_

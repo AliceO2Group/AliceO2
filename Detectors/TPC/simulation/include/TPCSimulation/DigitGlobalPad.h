@@ -97,7 +97,7 @@ class DigitGlobalPad
                            const CRU& cru, TimeBin timeBin,
                            GlobalPadNumber globalPad,
                            o2::dataformats::LabelContainer<std::pair<MCCompLabel, int>, false>& labelContainer,
-                           float commonMode = 0.f, const PrevDigitInfo& prevDigit = PrevDigitInfo(), Streamer* debugStream = nullptr);
+                           float commonMode = 0.f, const PrevDigitInfo& prevDigit = PrevDigitInfo(), Streamer* debugStream = nullptr, const CalDet<bool>* deadMap = nullptr);
 
  private:
   /// Compare two MC labels regarding trackID, eventID and sourceID
@@ -210,7 +210,7 @@ inline void DigitGlobalPad::fillOutputContainer(std::vector<Digit>& output,
                                                 const CRU& cru, TimeBin timeBin,
                                                 GlobalPadNumber globalPad,
                                                 o2::dataformats::LabelContainer<std::pair<MCCompLabel, int>, false>& labels,
-                                                float commonMode, const PrevDigitInfo& prevDigit, Streamer* debugStream)
+                                                float commonMode, const PrevDigitInfo& prevDigit, Streamer* debugStream, const CalDet<bool>* deadMap)
 {
   const Mapper& mapper = Mapper::instance();
   SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
@@ -222,6 +222,7 @@ inline void DigitGlobalPad::fillOutputContainer(std::vector<Digit>& output,
 
   float noise, pedestal;
   const float mADC = sampaProcessing.makeSignal<MODE>(mChargePad, cru.sector(), globalPad, commonMode, pedestal, noise, prevDigit.tot);
+  const bool isDead = (deadMap == nullptr) ? false : deadMap->getValue(cru.sector(), globalPad);
 
   if (debugStream && Streamer::checkStream(o2::utils::StreamFlags::streamDigits)) {
     int sector = cru.sector();
@@ -236,11 +237,12 @@ inline void DigitGlobalPad::fillOutputContainer(std::vector<Digit>& output,
                                << "adc=" << adc
                                << "prevDig=" << prevDigitTmp
                                << "cm=" << commonMode
+                               << "isDead=" << isDead
                                << "\n";
   }
 
   /// only write out the data if there is actually charge on that pad
-  if (mADC > 0) {
+  if (!isDead && (mADC > 0)) {
 
     /// Write out the Digit
     const auto digiPos = output.size();
