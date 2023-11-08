@@ -318,6 +318,8 @@ class GPUChainTracking : public GPUChain, GPUReconstructionHelpers::helperDelega
 
   int HelperReadEvent(int iSlice, int threadId, GPUReconstructionHelpers::helperParam* par);
   int HelperOutput(int iSlice, int threadId, GPUReconstructionHelpers::helperParam* par);
+
+  int OutputStream() const { return mRec->NStreams() - 2; }
 };
 } // namespace gpu
 } // namespace GPUCA_NAMESPACE
