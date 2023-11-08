@@ -129,6 +129,7 @@ class GPUTPCGMPropagator
   GPUd() void GetBxByBz(float Alpha, float X, float Y, float Z, float B[3]) const;
 
   GPUd() void GetErr2(float& err2Y, float& err2Z, const GPUParam& param, float posZ, int iRow, short clusterState, bool sideC) const;
+  GPUd() static void GetErr2(float& err2Y, float& err2Z, const GPUParam& param, float snp, float tgl, float posZ, float x, int iRow, short clusterState, bool sideC);
 
   GPUd() float GetAlpha() const { return mAlpha; }
   GPUd() void SetAlpha(float v) { mAlpha = v; }
