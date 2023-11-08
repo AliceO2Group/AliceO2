@@ -86,6 +86,8 @@ class DigitContainer
   std::deque<DigitTime*> mTimeBins;                           ///< Time bin Container for the ADC value
   std::unique_ptr<DigitTime::PrevDigitInfoArray> mPrevDigArr; ///< Keep track of ToT and ion tail cumul from last time bin
   o2::utils::DebugStreamer mStreamer;                         ///< Debug streamer
+
+  void reportSettings();
 };
 
 inline DigitContainer::DigitContainer()

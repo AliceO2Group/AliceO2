@@ -9,6 +9,7 @@
 // granted to it by virtue of its status as an Intergovernmental Organization
 // or submit itself to any jurisdiction.
 
+#include <map>
 #include <string>
 #include <type_traits>
 #include "CommonUtils/NameConf.h"
@@ -18,9 +19,9 @@
 
 using namespace o2::tpc;
 
-void DeadChannelMapCreator::init()
+void DeadChannelMapCreator::init(std::string_view url)
 {
-  mCCDBApi.init(o2::base::NameConf::getCCDBServer());
+  mCCDBApi.init(url.empty() ? o2::base::NameConf::getCCDBServer() : url.data());
 }
 
 //______________________________________________________________________________

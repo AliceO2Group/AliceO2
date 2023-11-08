@@ -78,7 +78,7 @@ size_t FEEConfig::getNumberActiveLinks() const
 bool FEEConfig::isCMCEnabled() const
 {
   const auto nEnabled = std::accumulate(cruConfig.begin(), cruConfig.end(), size_t(0), [](size_t b, const auto& c) { return b + (c.cmcEnabled > 0); });
-  if (nEnabled != cruConfig.size()) {
+  if ((nEnabled > 0) && (nEnabled != cruConfig.size())) {
     LOGP(warning, "CMC not enabled for all CRUs: {} < {}", nEnabled, cruConfig.size());
   }
 
@@ -88,7 +88,7 @@ bool FEEConfig::isCMCEnabled() const
 bool FEEConfig::isITFEnabled() const
 {
   const auto nEnabled = std::accumulate(cruConfig.begin(), cruConfig.end(), size_t(0), [](size_t b, const auto& c) { return b + (c.itfEnabled); });
-  if (nEnabled != cruConfig.size()) {
+  if ((nEnabled > 0) && (nEnabled != cruConfig.size())) {
     LOGP(warning, "ITF not enabled for all CRUs: {} < {}", nEnabled, cruConfig.size());
   }
 
@@ -98,7 +98,7 @@ bool FEEConfig::isITFEnabled() const
 bool FEEConfig::isZSEnabled() const
 {
   const auto nEnabled = std::accumulate(cruConfig.begin(), cruConfig.end(), size_t(0), [](size_t b, const auto& c) { return b + (c.zsEnabled); });
-  if (nEnabled != cruConfig.size()) {
+  if ((nEnabled > 0) && (nEnabled != cruConfig.size())) {
     LOGP(warning, "ZS not enabled for all CRUs: {} < {}", nEnabled, cruConfig.size());
   }
 
@@ -108,12 +108,32 @@ bool FEEConfig::isZSEnabled() const
 bool FEEConfig::isResyncEnabled() const
 {
   const auto nEnabled = std::accumulate(cruConfig.begin(), cruConfig.end(), size_t(0), [](size_t b, const auto& c) { return b + (c.resyncEnabled); });
-  if (nEnabled != cruConfig.size()) {
+  if ((nEnabled > 0) && (nEnabled != cruConfig.size())) {
     LOGP(warning, "Resync not enabled for all CRUs: {} < {}", nEnabled, cruConfig.size());
   }
 
   return nEnabled > (cruConfig.size() / 2);
 }
+
+void FEEConfig::setAllLinksOn()
+{
+  const auto& mapper = Mapper::instance();
+
+  // ===| Check active link map |===
+  for (int iCRU = 0; iCRU < cruConfig.size(); ++iCRU) {
+    const CRU cru(iCRU);
+    const PartitionInfo& partInfo = mapper.getMapPartitionInfo()[cru.partition()];
+    const int nFECs = partInfo.getNumberOfFECs();
+    const int fecOffset = (nFECs + 1) / 2;
+    cruConfig.at(iCRU).linkOn = 0;
+    for (int iFEC = 0; iFEC < nFECs; ++iFEC) {
+      const int fecTest = (iFEC < fecOffset) ? iFEC : 10 + (iFEC - fecOffset);
+      const int fecBIT = 1 << fecTest;
+      cruConfig.at(iCRU).linkOn |= fecBIT;
+    }
+  }
+}
+
 void FEEConfig::print() const
 {
   fmt::print("\n");
@@ -155,6 +175,12 @@ void FEEConfig::print() const
   for ([[maybe_unused]] auto& [key, val] : padMaps) {
     fmt::print("{}\n", key);
   }
+}
+
+void FEEConfig::printShort() const
+{
+  LOGP(info, "FEEConfig: tag: {}, #active links: {}, CMC enabled: {}, ITF enabled: {}, ZS enabled: {}, resync enabled: {}",
+       (int)tag, getNumberActiveLinks(), isCMCEnabled(), isITFEnabled(), isZSEnabled(), isResyncEnabled());
 }
 
 CalDet<bool> FEEConfig::getDeadChannelMap() const

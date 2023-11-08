@@ -69,7 +69,8 @@ o2_target_root_dictionary(TPCBase
                                   include/TPCBase/CRUCalibHelpers.h
                                   include/TPCBase/IonTailSettings.h
                                   include/TPCBase/FEEConfig.h
-                                  include/TPCBase/DeadChannelMapCreator.h)
+                                  include/TPCBase/DeadChannelMapCreator.h
+                                  include/TPCBase/CDBTypes.h)
 o2_add_test(Base
             COMPONENT_NAME tpc
             PUBLIC_LINK_LIBRARIES O2::TPCBase

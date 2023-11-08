@@ -71,7 +71,7 @@ BOOST_AUTO_TEST_CASE(ParameterElectronics_test1)
   BOOST_CHECK_CLOSE(ParameterElectronics::Instance().ADCsaturation, 1024, 1e-3);
   BOOST_CHECK_CLOSE(ParameterElectronics::Instance().ZbinWidth, NominalTimeBin, 1e-3);
   BOOST_CHECK_CLOSE(ParameterElectronics::Instance().ElectronCharge, 1.602e-19, 1e-3);
-  BOOST_CHECK(ParameterElectronics::Instance().DigiMode == DigitzationMode::ZeroSuppression);
+  BOOST_CHECK(ParameterElectronics::Instance().DigiMode == DigitzationMode::Auto);
 
   BOOST_CHECK(o2::conf::ConfigurableParam::getValueAs<int>("TPCEleParam.NShapedPoints") == 8);
   BOOST_CHECK_CLOSE(o2::conf::ConfigurableParam::getValueAs<float>("TPCEleParam.PeakingTime"), 160e-3, 1e-3);

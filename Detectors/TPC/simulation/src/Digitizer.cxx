@@ -210,6 +210,6 @@ void Digitizer::setUseSCDistortions(std::string_view finp)
 void Digitizer::setStartTime(double time)
 {
   SAMPAProcessing& sampaProcessing = SAMPAProcessing::instance();
-  sampaProcessing.updateParameters();
+  sampaProcessing.updateParameters(mVDrift);
   mDigitContainer.setStartTime(sampaProcessing.getTimeBinFromTime(time - mOutputDigitTimeOffset));
 }
