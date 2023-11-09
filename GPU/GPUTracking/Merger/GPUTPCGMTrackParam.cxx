@@ -1152,6 +1152,7 @@ GPUd() void GPUTPCGMTrackParam::RefitTrack(GPUTPCGMMergedTrack& GPUrestrict() tr
     track.SetLastX(xx * cosA - yy * sinA);
     track.SetLastY(xx * sinA + yy * cosA);
     track.SetLastZ(zz);
+    // merger->DebugRefitMergedTrack(track);
   }
 }
 
