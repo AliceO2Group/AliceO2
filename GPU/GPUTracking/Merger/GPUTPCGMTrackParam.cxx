@@ -1168,7 +1168,7 @@ GPUd() void GPUTPCGMTrackParam::Rotate(float alpha)
   float j2 = cosPhi / cosPhi0;
   mX = x0 * cA + mP[0] * sA;
   mP[0] = -x0 * sA + mP[0] * cA;
-  mP[2] = sinPhi + j2;
+  mP[2] = sinPhi;
   mC[0] *= j0 * j0;
   mC[1] *= j0;
   mC[3] *= j0;
