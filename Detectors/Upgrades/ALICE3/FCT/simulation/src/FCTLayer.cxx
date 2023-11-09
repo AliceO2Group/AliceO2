@@ -105,8 +105,7 @@ void FCTLayer::createDiskLayer(TGeoVolume* motherVolume)
   TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
   layerVol->SetLineColor(kGreen + 3);
 
-  LOG(info)
-    << "Inserting " << sensVol->GetName() << " inside " << chipVol->GetName();
+  LOG(info) << "Inserting " << sensVol->GetName() << " inside " << chipVol->GetName();
   chipVol->AddNode(sensVol, 1, nullptr);
 
   LOG(info) << "Inserting " << chipVol->GetName() << " inside " << layerVol->GetName();
