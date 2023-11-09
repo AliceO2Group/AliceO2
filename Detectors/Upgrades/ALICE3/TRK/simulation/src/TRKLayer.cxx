@@ -51,8 +51,11 @@ void TRKLayer::createLayer(TGeoVolume* motherVolume)
   TGeoMedium* medAir = gGeoManager->GetMedium("TRK_AIR$");
 
   TGeoVolume* sensVol = new TGeoVolume(sensName.c_str(), sensor, medSi);
+  sensVol->SetLineColor(kBlue - 4);
   TGeoVolume* chipVol = new TGeoVolume(chipName.c_str(), chip, medSi);
+  chipVol->SetLineColor(kBlue - 4);
   TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
+  layerVol->SetLineColor(kBlue - 4);
 
   LOGP(info, "Inserting {} in {} ", sensVol->GetName(), chipVol->GetName());
   chipVol->AddNode(sensVol, 1, nullptr);

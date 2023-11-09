@@ -51,9 +51,9 @@ void ITOFLayer::createLayer(TGeoVolume* motherVolume)
   TGeoVolume* sensVol = new TGeoVolume(sensName.c_str(), sensor, medSi);
   TGeoVolume* chipVol = new TGeoVolume(chipName.c_str(), chip, medSi);
   TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
-  sensVol->SetLineColor(kAzure + 4);
-  chipVol->SetLineColor(kAzure + 4);
-  layerVol->SetLineColor(kAzure + 4);
+  sensVol->SetLineColor(kMagenta - 7);
+  chipVol->SetLineColor(kMagenta - 7);
+  layerVol->SetLineColor(kMagenta - 7);
 
   LOGP(info, "Inserting {} in {} ", sensVol->GetName(), chipVol->GetName());
   chipVol->AddNode(sensVol, 1, nullptr);
@@ -80,9 +80,9 @@ void OTOFLayer::createLayer(TGeoVolume* motherVolume)
   TGeoVolume* sensVol = new TGeoVolume(sensName.c_str(), sensor, medSi);
   TGeoVolume* chipVol = new TGeoVolume(chipName.c_str(), chip, medSi);
   TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
-  sensVol->SetLineColor(kRed + 1);
-  chipVol->SetLineColor(kRed + 1);
-  layerVol->SetLineColor(kRed + 1);
+  sensVol->SetLineColor(kMagenta - 7);
+  chipVol->SetLineColor(kMagenta - 7);
+  layerVol->SetLineColor(kMagenta - 7);
 
   LOGP(info, "Inserting {} in {} ", sensVol->GetName(), chipVol->GetName());
   chipVol->AddNode(sensVol, 1, nullptr);
@@ -109,9 +109,9 @@ void FTOFLayer::createLayer(TGeoVolume* motherVolume)
   TGeoVolume* sensVol = new TGeoVolume(sensName.c_str(), sensor, medSi);
   TGeoVolume* chipVol = new TGeoVolume(chipName.c_str(), chip, medSi);
   TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
-  sensVol->SetLineColor(kGreen + 2);
-  chipVol->SetLineColor(kGreen + 2);
-  layerVol->SetLineColor(kGreen + 2);
+  sensVol->SetLineColor(kMagenta - 7);
+  chipVol->SetLineColor(kMagenta - 7);
+  layerVol->SetLineColor(kMagenta - 7);
 
   LOGP(info, "Inserting {} in {} ", sensVol->GetName(), chipVol->GetName());
   chipVol->AddNode(sensVol, 1, nullptr);
@@ -141,9 +141,9 @@ void BTOFLayer::createLayer(TGeoVolume* motherVolume)
   TGeoVolume* sensVol = new TGeoVolume(sensName.c_str(), sensor, medSi);
   TGeoVolume* chipVol = new TGeoVolume(chipName.c_str(), chip, medSi);
   TGeoVolume* layerVol = new TGeoVolume(mLayerName.c_str(), layer, medAir);
-  sensVol->SetLineColor(kGreen + 2);
-  chipVol->SetLineColor(kGreen + 2);
-  layerVol->SetLineColor(kGreen + 2);
+  sensVol->SetLineColor(kMagenta - 7);
+  chipVol->SetLineColor(kMagenta - 7);
+  layerVol->SetLineColor(kMagenta - 7);
 
   LOGP(info, "Inserting {} in {} ", sensVol->GetName(), chipVol->GetName());
   chipVol->AddNode(sensVol, 1, nullptr);
