@@ -230,6 +230,8 @@ class TimeFrame
 
   void resizeVectors(int nLayers);
 
+  void setExtAllocator(bool ext) { mExtAllocator = ext; }
+  bool getExtAllocator() const { return mExtAllocator; }
   /// Debug and printing
   void checkTrackletLUTs();
   void printROFoffsets();
@@ -243,9 +245,7 @@ class TimeFrame
   IndexTableUtils mIndexTableUtils;
 
   bool mIsGPU = false;
-  // void setChain(o2::gpu::GPUChainITS*);
-  void setExtAllocator(bool ext) { mExtAllocator = ext; }
-  bool getExtAllocator() const { return mExtAllocator; }
+
   std::vector<std::vector<Cluster>> mClusters;
   std::vector<std::vector<TrackingFrameInfo>> mTrackingFrameInfo;
   std::vector<std::vector<int>> mClusterExternalIndices;

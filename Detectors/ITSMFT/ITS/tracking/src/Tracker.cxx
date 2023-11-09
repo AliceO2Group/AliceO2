@@ -59,7 +59,7 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::f
     }
     float trackletsPerCluster = mTraits->getTFNumberOfClusters() > 0 ? float(mTraits->getTFNumberOfTracklets()) / mTraits->getTFNumberOfClusters() : 0.f;
     if (trackletsPerCluster > mTrkParams[iteration].TrackletsPerClusterLimit) {
-      error(fmt::format("Too many tracklets per cluster ({}) in iteration {}, check the detector status and/or the selections.", trackletsPerCluster, iteration));
+      error(fmt::format("Too many tracklets per cluster ({}) in iteration {}, check the detector status and/or the selections. Current limit is {}", trackletsPerCluster, iteration, mTrkParams[iteration].TrackletsPerClusterLimit));
       break;
     }
 
@@ -71,7 +71,7 @@ void Tracker::clustersToTracks(std::function<void(std::string s)> logger, std::f
     }
     float cellsPerCluster = mTraits->getTFNumberOfClusters() > 0 ? float(mTraits->getTFNumberOfCells()) / mTraits->getTFNumberOfClusters() : 0.f;
     if (cellsPerCluster > mTrkParams[iteration].CellsPerClusterLimit) {
-      error(fmt::format("Too many cells per cluster ({}) in iteration {}, check the detector status and/or the selections.", cellsPerCluster, iteration));
+      error(fmt::format("Too many cells per cluster ({}) in iteration {}, check the detector status and/or the selections. Current limit is {}", cellsPerCluster, iteration, mTrkParams[iteration].CellsPerClusterLimit));
       break;
     }
 
@@ -402,6 +402,7 @@ void Tracker::getGlobalConfiguration()
         params.SystErrorZ2[i] = tc.sysErrZ2[i] > 0 ? tc.sysErrZ2[i] : params.SystErrorZ2[i];
       }
     }
+    params.DeltaROF = tc.deltaRof;
     params.MaxChi2ClusterAttachment = tc.maxChi2ClusterAttachment > 0 ? tc.maxChi2ClusterAttachment : params.MaxChi2ClusterAttachment;
     params.MaxChi2NDF = tc.maxChi2NDF > 0 ? tc.maxChi2NDF : params.MaxChi2NDF;
     params.PhiBins = tc.LUTbinsPhi > 0 ? tc.LUTbinsPhi : params.PhiBins;
