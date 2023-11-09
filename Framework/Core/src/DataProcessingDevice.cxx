@@ -982,6 +982,10 @@ void DataProcessingDevice::InitTask()
     uv_signal_init(state.loop, deviceContext.sigusr1Handle);
     uv_signal_start(deviceContext.sigusr1Handle, on_signal_callback, SIGUSR1);
   }
+  // If there is any signal, we want to make sure they are active
+  for (auto& handle : state.activeSignals) {
+    handle->data = &state;
+  }
   // When we start, we must make sure that we do listen to the signal
   deviceContext.sigusr1Handle->data = &mServiceRegistry;
 
@@ -1690,6 +1694,11 @@ void DataProcessingDevice::ResetTask()
   // which might not be there anymore.
   if (deviceContext.sigusr1Handle) {
     deviceContext.sigusr1Handle->data = nullptr;
+  }
+  // Makes sure we do not have a working context on
+  // shutdown.
+  for (auto& handle : ref.get<DeviceState>().activeSignals) {
+    handle->data = nullptr;
   }
 }
 
