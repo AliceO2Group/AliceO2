@@ -16,7 +16,6 @@
 #define GPUTPCGMPROPAGATOR_H
 
 #include "GPUCommonDef.h"
-#include "GPUTPCGMOfflineStatisticalErrors.h"
 #include "GPUTPCGMPhysicalTrackModel.h"
 #include "GPUTPCGMPolynomialField.h"
 #include "GPUCommonMath.h"
@@ -149,7 +148,6 @@ class GPUTPCGMPropagator
     return mT0;
   }
   GPUd() void CalculateMaterialCorrection();
-  GPUd() void SetStatErrorCurCluster(GPUTPCGMMergedTrackHit* c) { mStatErrors.SetCurCluster(c); }
 
  private:
   GPUd() static float ApproximateBetheBloch(float beta2);
@@ -182,8 +180,6 @@ class GPUTPCGMPropagator
   bool mFitInProjections = 1; // fit (Y,SinPhi,QPt) and (Z,DzDs) paramteres separatelly
   bool mPropagateBzOnly = 0;  // Use Bz only in propagation
   bool mToyMCEvents = 0;      // events are simulated with simple home-made simulation
-
-  GPUTPCGMOfflineStatisticalErrors mStatErrors;
 };
 
 GPUdi() void GPUTPCGMPropagator::GetBxByBz(float Alpha, float X, float Y, float Z, float B[3]) const

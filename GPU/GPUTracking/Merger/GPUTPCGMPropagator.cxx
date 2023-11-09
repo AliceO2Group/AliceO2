@@ -600,7 +600,6 @@ GPUd() int GPUTPCGMPropagator::GetPropagatedYZ(float x, float& GPUrestrict() pro
 GPUd() void GPUTPCGMPropagator::GetErr2(float& GPUrestrict() err2Y, float& GPUrestrict() err2Z, const GPUParam& GPUrestrict() param, float posZ, int iRow, short clusterState, bool sideC) const
 {
   GetErr2(err2Y, err2Z, param, mT0.GetSinPhi(), mT0.DzDs(), posZ, mT->GetX(), iRow, clusterState, sideC);
-  mStatErrors.GetOfflineStatisticalErrors(err2Y, err2Z, mT0.GetSinPhi(), mT0.DzDs(), clusterState);
 }
 
 GPUd() void GPUTPCGMPropagator::GetErr2(float& GPUrestrict() err2Y, float& GPUrestrict() err2Z, const GPUParam& GPUrestrict() param, float snp, float tgl, float posZ, float x, int iRow, short clusterState, bool sideC)

@@ -128,7 +128,6 @@ set(HDRS_INSTALL
     SliceTracker/GPUTPCSliceOutCluster.h
     SliceTracker/GPUTPCTrackLinearisation.h
     Merger/GPUTPCGMBorderTrack.h
-    Merger/GPUTPCGMOfflineStatisticalErrors.h
     Merger/GPUTPCGMMergedTrack.h
     DataTypes/GPUTPCGMMergedTrackHit.h
     DataTypes/GPUTRDDef.h
