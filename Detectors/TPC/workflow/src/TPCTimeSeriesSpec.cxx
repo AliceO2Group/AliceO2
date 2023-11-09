@@ -1040,6 +1040,7 @@ class TPCTimeSeries : public Task
           const auto& trkOrig = tracksTPC[iTrk];
           const bool isNearestVtx = (idxITSTPC.back() == -1); // is nearest vertex in case no vertex was found
           const float mx_ITS = hasITSTPC ? tracksITSTPC[idxITSTPC.front()].getX() : -1;
+          const float pt_ITS = hasITSTPC ? tracksITSTPC[idxITSTPC.front()].getPt() : -1;
           const int nClITS = idxITSCheck ? tracksITS[idxITSTrack].getNClusters() : -1;
           const int chi2ITS = idxITSCheck ? tracksITS[idxITSTrack].getChi2() : -1;
           int typeSide = 2; // A- and C-Side cluster
@@ -1069,6 +1070,7 @@ class TPCTimeSeries : public Task
                               << "isNearestVertex=" << isNearestVtx
                               // tpc track properties
                               << "pt=" << trkOrig.getPt()
+                              << "pt_ITS=" << pt_ITS
                               << "tpc_timebin=" << trkOrig.getTime0()
                               << "qpt=" << trkOrig.getParam(4)
                               << "ncl=" << trkOrig.getNClusters()
