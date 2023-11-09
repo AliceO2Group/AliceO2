@@ -152,7 +152,6 @@ GPUd() bool GPUTPCGMTrackParam::Fit(GPUTPCGMMerger* GPUrestrict() merger, int iT
 
       const bool allowModification = refit && (iWay == 0 || (((nWays - iWay) & 1) ? (ihit >= CAMath::Min(maxN / 2, 30)) : (ihit <= CAMath::Max(maxN / 2, maxN - 30))));
       int ihitMergeFirst = ihit;
-      prop.SetStatErrorCurCluster(&clusters[ihit]);
 
       float xx, yy, zz;
       if (merger->Param().par.earlyTpcTransform) {
