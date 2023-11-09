@@ -90,6 +90,9 @@ void signal_callback(uv_signal_t* handle, int)
 {
   // We simply wake up the event loop. Nothing to be done here.
   auto* state = (DeviceState*)handle->data;
+  if (!state) {
+    return;
+  }
   state->loopReason |= DeviceState::SIGNAL_ARRIVED;
   state->loopReason |= DeviceState::DATA_INCOMING;
 }
