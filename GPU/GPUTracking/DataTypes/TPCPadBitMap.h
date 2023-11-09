@@ -79,7 +79,7 @@ struct TPCPadBitMap {
       const auto word = globalPad / (sizeof(T) * 8);
       const auto pos = globalPad % (sizeof(T) * 8);
       const auto mask = T(1) << pos;
-      mDeadChannelMap[word] = mDeadChannelMap[word] & ~mask | (T(c) << pos);
+      mDeadChannelMap[word] = (mDeadChannelMap[word] & ~mask) | (T(c) << pos);
     }
 
     GPUdi() bool get(unsigned short globalPad) const
