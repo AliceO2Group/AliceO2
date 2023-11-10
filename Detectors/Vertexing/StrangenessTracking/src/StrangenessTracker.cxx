@@ -260,6 +260,7 @@ void StrangenessTracker::process3Body(int i3Body, const Decay3Body& dec3body, co
         }
         decayVtxTrackClone.getPxPyPzGlo(strangeTrack.mDecayMom);
         std::array<float, 3> momPro, momPi, momDe;
+        mFitter3Body[iThread].propagateTracksToVertex();
         mFitter3Body[iThread].getTrack(kV0DauPos).getPxPyPzGlo(momPro);
         mFitter3Body[iThread].getTrack(kV0DauNeg).getPxPyPzGlo(momPi);
         mFitter3Body[iThread].getTrack(kBach).getPxPyPzGlo(momDe);
