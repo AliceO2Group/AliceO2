@@ -170,10 +170,17 @@ taskwrapper() {
   # the command might be a complex block: For the timing measurement below
   # it is better to execute this as a script
   SCRIPTNAME="${logfile}_tmp.sh"
-  echo "#!/usr/bin/env bash" > ${SCRIPTNAME}
-  echo "export LIBC_FATAL_STDERR_=1" >> ${SCRIPTNAME}        # <--- needed ... otherwise the LIBC fatal messages appear on a different tty
-  echo "${command};" >> ${SCRIPTNAME}
-  echo 'RC=$?; echo "TASK-EXIT-CODE: ${RC}"; exit ${RC}' >> ${SCRIPTNAME}
+  cat > "$SCRIPTNAME" <<EOF
+#!/usr/bin/env bash
+# <--- needed ... otherwise the LIBC fatal messages appear on a different tty
+export LIBC_FATAL_STDERR_=1
+${command}
+EOF
+  cat >> "${SCRIPTNAME}" <<'EOF'
+RC=$?
+echo "TASK-EXIT-CODE: ${RC}"
+exit ${RC}
+EOF
   chmod +x ${SCRIPTNAME}
 
   # this gives some possibility to customize the wrapper
@@ -329,9 +336,11 @@ taskwrapper() {
   if [ "${RC}" -eq "0" ]; then
     if [ ! "${JOBUTILS_JOB_SKIPCREATEDONE}" ]; then
       # if return code 0 we mark this task as done
-      echo "Command \"${command}\" successfully finished." > "${logfile}"_done
-      echo "The presence of this file can be used to skip this command in future runs" >> "${logfile}"_done
-      echo "of the pipeline by setting the JOBUTILS_SKIPDONE environment variable." >> "${logfile}"_done
+      S="""Command \"${command}\" successfully finished.
+The presence of this file can be used to skip this command in future runs.
+of the pipeline by setting the JOBUTILS_SKIPDONE environment variable."""
+
+      echo "$S" > "${logfile}"_done
     fi
   else
     echo "command ${command} had nonzero exit code ${RC}"
