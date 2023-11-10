@@ -3139,8 +3139,8 @@ class Filtered<Filtered<T>> : public FilteredBase<typename T::table_t>
   {
     auto localCache = cache.ptr->getCacheFor({o2::soa::getLabelFromTypeForKey<std::decay_t<decltype(*this)>>(node.name), node.name});
     auto [offset, count] = localCache.getSliceFor(value);
-    auto slice = this->asArrowTable()->Slice(static_cast<uint64_t>(offset), count);
-    auto start = offset;
+    auto start = static_cast<uint64_t>(offset);
+    auto slice = this->asArrowTable()->Slice(start, count);
     auto end = start + slice->num_rows();
     auto start_iterator = std::lower_bound(this->getSelectedRows().begin(), this->getSelectedRows().end(), start);
     auto stop_iterator = std::lower_bound(start_iterator, this->getSelectedRows().end(), end);
