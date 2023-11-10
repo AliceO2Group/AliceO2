@@ -51,9 +51,9 @@ void RawParserHelper::warnDeadBeef(const o2::header::DataHeader* dh)
   }
 }
 
-const char* RDHFormatter<V7>::sFormatString = "{:>5} {:>4} {:>4} {:>4} {:>4} {:>3} {:>3} {:>3}  {:>1} {:>2}";
 void RDHFormatter<V7>::apply(std::ostream& os, V7 const& header, FormatSpec choice, const char* delimiter)
 {
+  static constexpr const char* sFormatString = "{:>5} {:>4} {:>4} {:>4} {:>4} {:>3} {:>3} {:>3}  {:>1} {:>2}";
   if (choice == FormatSpec::Info) {
     os << "RDH v7";
   } else if (choice == FormatSpec::TableHeader) {
@@ -73,9 +73,9 @@ void RDHFormatter<V7>::apply(std::ostream& os, V7 const& header, FormatSpec choi
   }
   os << delimiter;
 }
-const char* RDHFormatter<V6>::sFormatString = "{:>5} {:>4} {:>4} {:>4} {:>4} {:>3} {:>3} {:>3}  {:>1}";
 void RDHFormatter<V6>::apply(std::ostream& os, V6 const& header, FormatSpec choice, const char* delimiter)
 {
+  static constexpr const char* sFormatString = "{:>5} {:>4} {:>4} {:>4} {:>4} {:>3} {:>3} {:>3}  {:>1}";
   if (choice == FormatSpec::Info) {
     os << "RDH v6";
   } else if (choice == FormatSpec::TableHeader) {
@@ -95,9 +95,9 @@ void RDHFormatter<V6>::apply(std::ostream& os, V6 const& header, FormatSpec choi
   os << delimiter;
 }
 
-const char* RDHFormatter<V5>::sFormatString = "{:>5} {:>4} {:>4} {:>4} {:>3} {:>3} {:>3}  {:>1}";
 void RDHFormatter<V5>::apply(std::ostream& os, V5 const& header, FormatSpec choice, const char* delimiter)
 {
+  static constexpr const char* sFormatString = "{:>5} {:>4} {:>4} {:>4} {:>3} {:>3} {:>3}  {:>1}";
   if (choice == FormatSpec::Info) {
     os << "RDH v5";
   } else if (choice == FormatSpec::TableHeader) {
@@ -116,9 +116,9 @@ void RDHFormatter<V5>::apply(std::ostream& os, V5 const& header, FormatSpec choi
   os << delimiter;
 }
 
-const char* RDHFormatter<V4>::sFormatString = "{:>5} {:>4} {:>4} {:>4} {:>3} {:>3} {:>3} {:>10} {:>5}  {:>1}";
 void RDHFormatter<V4>::apply(std::ostream& os, V4 const& header, FormatSpec choice, const char* delimiter)
 {
+  static constexpr const char* sFormatString = "{:>5} {:>4} {:>4} {:>4} {:>3} {:>3} {:>3} {:>10} {:>5}  {:>1}";
   if (choice == FormatSpec::Info) {
     os << "RDH v4";
   } else if (choice == FormatSpec::TableHeader) {
