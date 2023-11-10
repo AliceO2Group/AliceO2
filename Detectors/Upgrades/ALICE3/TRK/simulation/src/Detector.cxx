@@ -15,10 +15,10 @@
 #include <TVirtualMCStack.h>
 #include <TGeoVolume.h>
 
-#include <DetectorsBase/Stack.h>
-#include <ITSMFTSimulation/Hit.h>
-#include <TRKSimulation/Detector.h>
-#include <TRKBase/TRKBaseParam.h>
+#include "DetectorsBase/Stack.h"
+#include "ITSMFTSimulation/Hit.h"
+#include "TRKSimulation/Detector.h"
+#include "TRKBase/TRKBaseParam.h"
 
 using o2::itsmft::Hit;
 
@@ -80,7 +80,7 @@ void Detector::configDefault()
   mLayers.emplace_back(0, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(0)}, 0.55f, 50.f, 100.e-4); // Adjusted rmin not to overlap with inner BP
   mLayers.emplace_back(1, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(1)}, 1.2f, 50.f, 100.e-4);
   mLayers.emplace_back(2, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(2)}, 2.5f, 50.f, 100.e-4);
-  mLayers.emplace_back(3, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(3)}, 3.78f, 124.f, 100.e-4); // Adjusted rmin not to overlap with outer BP
+  mLayers.emplace_back(3, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(3)}, 3.78f, 124.f, 100.e-3); // Adjusted rmin not to overlap with outer BP
   mLayers.emplace_back(4, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(4)}, 7.f, 124.f, 100.e-3);
   mLayers.emplace_back(5, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(5)}, 12.f, 124.f, 100.e-3);
   mLayers.emplace_back(6, std::string{GeometryTGeo::getTRKLayerPattern() + std::to_string(6)}, 20.f, 124.f, 100.e-3);

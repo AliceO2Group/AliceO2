@@ -60,20 +60,29 @@ class Vertexer
   VertexerTraits* getTraits() const { return mTraits; };
 
   float clustersToVertices(std::function<void(std::string s)> = [](std::string s) { std::cout << s << std::endl; });
+  float clustersToVerticesHybrid(std::function<void(std::string s)> = [](std::string s) { std::cout << s << std::endl; });
   void filterMCTracklets();
   void validateTracklets();
+  void validateTrackletsHybrid();
 
   template <typename... T>
   void findTracklets(T&&... args);
+  template <typename... T>
+  void findTrackletsHybrid(T&&... args);
 
   void findTrivialMCTracklets();
   void findVertices();
+  void findVerticesHybrid();
   void findHistVertices();
 
   template <typename... T>
   void initialiseVertexer(T&&... args);
   template <typename... T>
   void initialiseTimeFrame(T&&... args);
+  template <typename... T>
+  void initialiseVertexerHybrid(T&&... args);
+  template <typename... T>
+  void initialiseTimeFrameHybrid(T&&... args);
 
   // Utils
   void dumpTraits();
@@ -113,6 +122,33 @@ inline void Vertexer::dumpTraits()
 inline void Vertexer::validateTracklets()
 {
   mTraits->computeTrackletMatching();
+}
+
+inline void Vertexer::findVertices()
+{
+  mTraits->computeVertices();
+}
+
+template <typename... T>
+void Vertexer::initialiseVertexerHybrid(T&&... args)
+{
+  mTraits->initialiseHybrid(std::forward<T>(args)...);
+}
+
+template <typename... T>
+void Vertexer::findTrackletsHybrid(T&&... args)
+{
+  mTraits->computeTrackletsHybrid(std::forward<T>(args)...);
+}
+
+inline void Vertexer::validateTrackletsHybrid()
+{
+  mTraits->computeTrackletMatchingHybrid();
+}
+
+inline void Vertexer::findVerticesHybrid()
+{
+  mTraits->computeVerticesHybrid();
 }
 
 template <typename... T>

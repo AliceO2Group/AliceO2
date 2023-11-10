@@ -283,8 +283,8 @@ void SVertexer::updateTimeDependentParams()
   mV0Hyps[HypV0::AntiHyperTriton].set(PID::HyperTriton, PID::Pion, PID::Helium3, mSVParams->pidCutsHTriton, bz);
   mV0Hyps[HypV0::Hyperhydrog4].set(PID::Hyperhydrog4, PID::Alpha, PID::Pion, mSVParams->pidCutsHhydrog4, bz);
   mV0Hyps[HypV0::AntiHyperhydrog4].set(PID::Hyperhydrog4, PID::Pion, PID::Alpha, mSVParams->pidCutsHhydrog4, bz);
-  mCascHyps[HypCascade::XiMinus].set(PID::XiMinus, PID::Lambda, PID::Pion, mSVParams->pidCutsXiMinus, bz);
-  mCascHyps[HypCascade::OmegaMinus].set(PID::OmegaMinus, PID::Lambda, PID::Kaon, mSVParams->pidCutsOmegaMinus, bz);
+  mCascHyps[HypCascade::XiMinus].set(PID::XiMinus, PID::Lambda, PID::Pion, mSVParams->pidCutsXiMinus, bz, mSVParams->maximalCascadeWidth);
+  mCascHyps[HypCascade::OmegaMinus].set(PID::OmegaMinus, PID::Lambda, PID::Kaon, mSVParams->pidCutsOmegaMinus, bz, mSVParams->maximalCascadeWidth);
 
   m3bodyHyps[Hyp3body::H3L3body].set(PID::HyperTriton, PID::Proton, PID::Pion, PID::Deuteron, mSVParams->pidCutsH3L3body, bz);
   m3bodyHyps[Hyp3body::AntiH3L3body].set(PID::HyperTriton, PID::Pion, PID::Proton, PID::Deuteron, mSVParams->pidCutsH3L3body, bz);
@@ -567,6 +567,14 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
       goodHyp = hypCheckStatus[ipid] = true;
     }
   }
+  // check tight lambda mass only
+  bool goodLamForCascade = false, goodALamForCascade = false;
+  if (mV0Hyps[Lambda].checkTight(p2Pos, p2Neg, p2V0, ptV0)) {
+    goodLamForCascade = true;
+  }
+  if (mV0Hyps[AntiLambda].checkTight(p2Pos, p2Neg, p2V0, ptV0)) {
+    goodALamForCascade = true;
+  }
 
   // apply mass selections for 3-body decay
   bool good3bodyV0Hyp = false;
@@ -581,7 +589,7 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   // we want to reconstruct the 3 body decay of hypernuclei starting from the V0 of a proton and a pion (e.g. H3L->d + (p + pi-), or He4L->He3 + (p + pi-)))
   bool checkFor3BodyDecays = mEnable3BodyDecays && (!mSVParams->checkV0Hypothesis || good3bodyV0Hyp) && (pt2V0 > 0.5);
   bool rejectAfter3BodyCheck = false; // To reject v0s which can be 3-body decay candidates but not cascade or v0
-  bool checkForCascade = mEnableCascades && r2v0 < mMaxR2ToMeanVertexCascV0 && (!mSVParams->checkV0Hypothesis || (hypCheckStatus[HypV0::Lambda] || hypCheckStatus[HypV0::AntiLambda]));
+  bool checkForCascade = mEnableCascades && r2v0 < mMaxR2ToMeanVertexCascV0 && (!mSVParams->checkV0Hypothesis || (goodLamForCascade || goodALamForCascade));
   bool rejectIfNotCascade = false;
 
   if (!goodHyp && mSVParams->checkV0Hypothesis) {
@@ -673,10 +681,10 @@ bool SVertexer::checkV0(const TrackCand& seedP, const TrackCand& seedN, int iP, 
   // check cascades
   int nCascIni = mCascadesIdxTmp[ithread].size(), nV0Used = 0; // number of times this particular v0 (with assigned PV) was used (not counting using its clones with other PV)
   if (checkForCascade) {
-    if (hypCheckStatus[HypV0::Lambda] || !mSVParams->checkCascadeHypothesis) {
+    if (goodLamForCascade || !mSVParams->checkCascadeHypothesis) {
       nV0Used += checkCascades(v0Idxnew, v0new, rv0, pV0, p2V0, iN, NEG, vlist, ithread);
     }
-    if (hypCheckStatus[HypV0::AntiLambda] || !mSVParams->checkCascadeHypothesis) {
+    if (goodALamForCascade || !mSVParams->checkCascadeHypothesis) {
       nV0Used += checkCascades(v0Idxnew, v0new, rv0, pV0, p2V0, iP, POS, vlist, ithread);
     }
   }
@@ -1141,4 +1149,16 @@ float SVertexer::correctTPCTrack(o2::track::TrackParCov& trc, const o2::tpc::Tra
   trc.setCov(trc.getSigmaZ2() + driftErr * driftErr, o2::track::kSigZ2);
 
   return driftErr;
+}
+
+//______________________________________________
+std::array<size_t, 3> SVertexer::getNFitterCalls() const
+{
+  std::array<size_t, 3> calls{};
+  for (int i = 0; i < mNThreads; i++) {
+    calls[0] += mFitterV0[i].getCallID();
+    calls[1] += mFitterCasc[i].getCallID();
+    calls[2] += mFitter3body[i].getCallID();
+  }
+  return calls;
 }

@@ -128,7 +128,6 @@ set(HDRS_INSTALL
     SliceTracker/GPUTPCSliceOutCluster.h
     SliceTracker/GPUTPCTrackLinearisation.h
     Merger/GPUTPCGMBorderTrack.h
-    Merger/GPUTPCGMOfflineStatisticalErrors.h
     Merger/GPUTPCGMMergedTrack.h
     DataTypes/GPUTPCGMMergedTrackHit.h
     DataTypes/GPUTRDDef.h
@@ -210,6 +209,7 @@ if(ALIGPU_BUILD_TYPE STREQUAL "O2" OR CONFIG_O2_EXTENSIONS)
         TPCClusterFinder/GPUTPCCFDecodeZS.cxx
         TPCClusterFinder/GPUTPCCFGather.cxx
         DataTypes/TPCPadGainCalib.cxx
+        DataTypes/TPCPadBitMap.cxx
         DataTypes/TPCZSLinkMapping.cxx
         DataTypes/CalibdEdxContainer.cxx
         DataTypes/CalibdEdxTrackTopologyPol.cxx

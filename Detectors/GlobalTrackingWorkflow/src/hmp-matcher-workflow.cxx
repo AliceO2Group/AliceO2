@@ -58,7 +58,9 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"disable-mc", o2::framework::VariantType::Bool, false, {"disable MC propagation even if available"}},
     {"disable-root-input", o2::framework::VariantType::Bool, false, {"disable root-files input reader"}},
     {"disable-root-output", o2::framework::VariantType::Bool, false, {"disable root-files output writer"}},
-    {"track-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use: allowed TPC,ITS-TPC,TPC-TRD,ITS-TPC-TRD (all)"}},
+    {"track-sources", VariantType::String, std::string{GID::ALL}, {"comma-separated list of sources to use: allowed ITS-TPC,TPC-TRD,TPC-TOF,TPC-TRD-TOF,ITS-TPC-TRD,ITS-TPC-TRD-TOF (all)"}},
+    {"trd-extra-tolerance", o2::framework::VariantType::Float, 0.0f, {"Extra time tolerance for TRD tracks in microsec"}},
+    {"tof-extra-tolerance", o2::framework::VariantType::Float, 0.0f, {"Extra time tolerance for TRD tracks in microsec"}},
     {"combine-devices", o2::framework::VariantType::Bool, false, {"merge DPL source/writer devices"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -77,6 +79,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   // write the configuration used for the workflow
 
   auto useMC = !configcontext.options().get<bool>("disable-mc");
+  auto extratolerancetrd = configcontext.options().get<float>("trd-extra-tolerance");
+  auto extratolerancetof = configcontext.options().get<float>("tof-extra-tolerance");
   auto disableRootIn = configcontext.options().get<bool>("disable-root-input");
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
 
@@ -88,7 +92,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   LOG(debug) << "HMP disable-root-input = " << disableRootIn;
   LOG(debug) << "HMP disable-root-output = " << disableRootOut;
 
-  GID::mask_t alowedSources = GID::getSourcesMask("ITS-TPC,TPC-TRD,TPC-TOF,ITS-TPC-TRD,ITS-TPC-TOF,ITS-TPC-TRD-TOF");
+  GID::mask_t alowedSources = GID::getSourcesMask("ITS-TPC,TPC-TRD,TPC-TOF,ITS-TPC-TRD,ITS-TPC-TOF,TPC-TRD-TOF,ITS-TPC-TRD-TOF");
 
   GID::mask_t src = alowedSources;
 
@@ -114,14 +118,11 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     }
   }
 
-  specs.emplace_back(o2::globaltracking::getHMPMatcherSpec(src, useMC));
+  specs.emplace_back(o2::globaltracking::getHMPMatcherSpec(src, useMC, extratolerancetrd, extratolerancetof));
 
   if (!disableRootOut) {
     std::vector<DataProcessorSpec> writers;
-
-    if (GID::includesSource(GID::ITSTPC, src) || GID::includesSource(GID::TPCTRD, src) || GID::includesSource(GID::TPCTOF, src) || GID::includesSource(GID::ITSTPCTRD, src) || GID::includesSource(GID::ITSTPCTOF, src) || GID::includesSource(GID::ITSTPCTRDTOF, src)) {
-      writers.emplace_back(o2::hmpid::getHMPMatchedWriterSpec(useMC, "o2match_hmp.root")); //, false, (int)o2::globaltracking::MatchHMP::trackType::CONSTR, false));
-    }
+    writers.emplace_back(o2::hmpid::getHMPMatchedWriterSpec(useMC, "o2match_hmp.root")); //, false, (int)o2::globaltracking::MatchHMP::trackType::CONSTR, false));
 
     if (configcontext.options().get<bool>("combine-devices")) {
       std::vector<DataProcessorSpec> unmerged;

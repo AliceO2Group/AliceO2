@@ -24,6 +24,7 @@
 #include "CalibdEdxTrackTopologySpline.h"
 #include "FlatObject.h"
 #include "TPCPadGainCalib.h"
+#include "TPCPadBitMap.h"
 
 #ifndef GPUCA_ALIGPUCODE
 #include <string_view>
@@ -121,6 +122,11 @@ class CalibdEdxContainer : public o2::gpu::FlatObject
   /// \param row global pad row
   GPUd() float getResidualGain(const int sector, const gpu::tpccf::Row row, const gpu::tpccf::Pad pad) const { return mGainMapResidual.getGainCorrection(sector, row, pad); }
 
+  /// \return returns if channel is tagged by the dead map
+  /// \param sector tpc sector
+  /// \param row global pad row
+  GPUd() bool isDead(const int sector, const gpu::tpccf::Row row, const gpu::tpccf::Pad pad) const { return mDeadChannelMap.isSet(sector, row, pad); }
+
   /// \return returns the residual dE/dx correction for the cluster charge
   /// \param stack ID of the GEM stack
   /// \param charge type of the charge (qMax or qTot)
@@ -192,6 +198,9 @@ class CalibdEdxContainer : public o2::gpu::FlatObject
   void setZeroSupresssionThreshold(const CalDet<float>& thresholdMap, const float minCorrectionFactor, const float maxCorrectionFactor);
 
   /// setting the gain map map from a CalDet
+  void setDeadChannelMap(const CalDet<bool>& deadMap);
+
+  /// setting the gain map map from a CalDet
   void setGainMap(const CalDet<float>& gainMap, const float minGain, const float maxGain);
 
   /// setting the gain map map from a CalDet
@@ -224,14 +233,17 @@ class CalibdEdxContainer : public o2::gpu::FlatObject
 #endif // !GPUCA_GPUCODE
 
  private:
-  CalibdEdxTrackTopologySpline* mCalibTrackTopologySpline{nullptr};                                                                                                     ///< calibration for the track topology correction (splines)
-  CalibdEdxTrackTopologyPol* mCalibTrackTopologyPol{nullptr};                                                                                                           ///< calibration for the track topology correction (polynomial)
-  o2::gpu::TPCPadGainCalib mThresholdMap{};                                                                                                                             ///< calibration object containing the zero supression threshold map
-  o2::gpu::TPCPadGainCalib mGainMap{};                                                                                                                                  ///< calibration object containing the gain map
-  o2::gpu::TPCPadGainCalib mGainMapResidual{};                                                                                                                          ///< calibration object containing the residual gain map
-  CalibdEdxCorrection mCalibResidualdEdx{};                                                                                                                             ///< calibration for the residual dE/dx correction
-  bool mApplyFullGainMap{false};                                                                                                                                        ///< if set to true the cluster charge will be corrected with the full gain map (when the gain map was not applied during the clusterizer)
-  CalibsdEdx mCalibsLoad{CalibsdEdx::CalTopologyPol | CalibsdEdx::CalThresholdMap | CalibsdEdx::CalGainMap | CalibsdEdx::CalResidualGainMap | CalibsdEdx::CalTimeGain}; ///< flags to set which corrections will be loaded from the CCDB and used during calculation of the dE/dx
+  CalibdEdxTrackTopologySpline* mCalibTrackTopologySpline{nullptr}; ///< calibration for the track topology correction (splines)
+  CalibdEdxTrackTopologyPol* mCalibTrackTopologyPol{nullptr};       ///< calibration for the track topology correction (polynomial)
+  o2::gpu::TPCPadGainCalib mThresholdMap{};                         ///< calibration object containing the zero supression threshold map
+  o2::gpu::TPCPadGainCalib mGainMap{};                              ///< calibration object containing the gain map
+  o2::gpu::TPCPadGainCalib mGainMapResidual{};                      ///< calibration object containing the residual gain map
+  o2::gpu::TPCPadBitMap mDeadChannelMap{};                          ///< calibration object containing the residual gain map
+  CalibdEdxCorrection mCalibResidualdEdx{};                         ///< calibration for the residual dE/dx correction
+  bool mApplyFullGainMap{false};                                    ///< if set to true the cluster charge will be corrected with the full gain map (when the gain map was not applied during the clusterizer)
+
+  CalibsdEdx mCalibsLoad{CalibsdEdx::CalTopologyPol | CalibsdEdx::CalThresholdMap | CalibsdEdx::CalGainMap |
+                         CalibsdEdx::CalResidualGainMap | CalibsdEdx::CalTimeGain}; ///< flags to set which corrections will be loaded from the CCDB and used during calculation of the dE/dx
 
 #if !defined(GPUCA_GPUCODE)
   template <class Type>
@@ -267,7 +279,7 @@ class CalibdEdxContainer : public o2::gpu::FlatObject
 #endif
 
 #ifndef GPUCA_ALIROOT_LIB
-  ClassDefNV(CalibdEdxContainer, 1);
+  ClassDefNV(CalibdEdxContainer, 2);
 #endif
 };
 

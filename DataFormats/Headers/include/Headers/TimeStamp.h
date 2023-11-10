@@ -23,9 +23,7 @@
 #include <cassert>
 #include <type_traits> // for std::integral_constant
 
-namespace o2
-{
-namespace header
+namespace o2::header
 {
 
 // https://lhc-machine-outreach.web.cern.ch/lhc-machine-outreach/collisions.htm
@@ -140,12 +138,14 @@ class TimeStamp
     static_assert(std::is_same<typename T::rep, Rep>::value && std::is_same<typename T::period, Period>::value,
                   "only clock and duration types defining the rep and period member types are allowed");
     using duration = std::chrono::duration<Rep, Period>;
-    if (mUnit == sClockLHC) {
+    static_assert(sizeof(mUnit) == sizeof(sClockLHC), "size mismatch of mUnit and sClockLHC");
+    if (memcmp(&mUnit, &sClockLHC, sizeof(sClockLHC)) == 0) {
       // cast each part individually, if the precision of the return type
       // is smaller the values are simply truncated
       return std::chrono::duration_cast<duration>(LHCOrbitClock::duration(mPeriod) + LHCBunchClock::duration(mBCNumber));
     }
-    if (mUnit == sMicroSeconds) {
+    static_assert(sizeof(mUnit) == sizeof(sMicroSeconds), "size mismatch of mUnit and sMicroSeconds");
+    if (memcmp(&mUnit, &sMicroSeconds, sizeof(sMicroSeconds)) == 0) {
       // TODO: is there a better way to mark the subticks invalid for the
       // micro seconds representation? First step is probably to remove/rename the
       // variable
@@ -159,7 +159,7 @@ class TimeStamp
   }
 
   // TODO: implement transformation from one unit to the other
-  //void transform(const TimeUnitID& unit) {
+  // void transform(const TimeUnitID& unit) {
   //  if (mUnit == unit) return;
   //  ...
   //}
@@ -182,7 +182,6 @@ class TimeStamp
     };
   };
 };
-} //namespace header
-} //namespace o2
+} // namespace o2::header
 
 #endif

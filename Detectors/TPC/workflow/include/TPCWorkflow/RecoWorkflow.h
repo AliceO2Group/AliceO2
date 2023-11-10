@@ -84,7 +84,8 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData,           
                                     bool askDISTSTF = true,
                                     bool selIR = false,
                                     bool filteredInp = false,
-                                    bool requireCTPLumi = false);
+                                    bool requireCTPLumi = false,
+                                    int deadMapSources = -1);
 
 void cleanupCallback();
 

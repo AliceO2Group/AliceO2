@@ -189,12 +189,12 @@ void DCSConfigDevice::updateRunInfo(gsl::span<const char> configBuff)
     LOGP(error, "{} has wrong format: {}, expected: {}, not writing RunInformation to CCDB", RunInfoFileName, line, runInfoConf);
     return;
   }
-  char tempChar{};
   std::map<std::string, std::string> md;
   md[o2::base::NameConf::CCDBRunTag.data()] = data[0];
   md["Tag"] = data[2];
   md["RunType"] = data[3];
   md[o2::ccdb::CcdbObjectInfo::AdjustableEOV] = "true";
+  char tempChar{static_cast<char>(std::stoi(md["Tag"]))};
 
   const long startValRCT = std::stol(data[1]);
   const long endValRCT = startValRCT + 48l * 60l * 60l * 1000l;
@@ -289,7 +289,7 @@ void DCSConfigDevice::fillCRUConfig(gsl::span<const char> configBuff, bool updat
   }
 
   if (!update && (nLines != CRU::MaxCRU)) {
-    LOGP(error, "Full FEEConfig expected, but only {} / {} lines read for CRUConfig", nLines, CRU::MaxCRU);
+    LOGP(error, "Full FEEConfig expected, but only {} / {} lines read for CRUConfig", nLines, (int)CRU::MaxCRU);
   } else {
     LOGP(info, "updating CRUConfig for {} crus", nLines);
   }

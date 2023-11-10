@@ -696,7 +696,7 @@ void spawnDevice(uv_loop_t* loop,
   close(childFds[ref.index].childstdout[1]);
   if (varmap.count("post-fork-command")) {
     auto templateCmd = varmap["post-fork-command"];
-    auto cmd = fmt::format(templateCmd.as<std::string>(),
+    auto cmd = fmt::format(fmt::runtime(templateCmd.as<std::string>()),
                            fmt::arg("pid", id),
                            fmt::arg("id", spec.id),
                            fmt::arg("cpu", parentCPU),
@@ -1152,6 +1152,7 @@ std::vector<std::regex> getDumpableMetrics()
   dumpableMetrics.emplace_back("^table-bytes-.*");
   dumpableMetrics.emplace_back("^total-timeframes.*");
   dumpableMetrics.emplace_back("^device_state.*");
+  dumpableMetrics.emplace_back("^total_wall_time_ms$");
   return dumpableMetrics;
 }
 
@@ -1424,6 +1425,8 @@ int runStateMachine(DataProcessorSpecs const& workflow,
 
   uv_timer_t metricDumpTimer;
   metricDumpTimer.data = &serverContext;
+  bool allChildrenGone = false;
+  guiContext.allChildrenGone = &allChildrenGone;
 
   while (true) {
     // If control forced some transition on us, we push it to the queue.
@@ -2093,7 +2096,7 @@ int runStateMachine(DataProcessorSpecs const& workflow,
         driverInfo.sigchldRequested = false;
         processChildrenOutput(driverInfo, infos, runningWorkflow.devices, controls);
         hasError = processSigChild(infos, runningWorkflow.devices);
-        bool allChildrenGone = areAllChildrenGone(infos);
+        allChildrenGone = areAllChildrenGone(infos);
         bool canExit = checkIfCanExit(infos);
         bool supposedToQuit = (guiQuitRequested || canExit || graceful_exit);
 

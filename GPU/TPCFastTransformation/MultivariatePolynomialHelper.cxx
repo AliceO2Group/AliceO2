@@ -26,7 +26,7 @@ using namespace GPUCA_NAMESPACE::gpu;
 void MultivariatePolynomialHelper<0, 0, false>::print() const
 {
 #ifndef GPUCA_NO_FMT
-  LOGP(info, getFormula().c_str());
+  LOGP(info, fmt::runtime(getFormula().c_str()));
 #endif
 }
 

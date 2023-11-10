@@ -301,7 +301,7 @@ class AODProducerWorkflowDPL : public Task
   // Mapping of eventID, sourceID, trackID to some integer.
   // The first two indices are not sparse whereas the trackID index is sparse which explains
   // the combination of vector and map
-  std::vector<std::vector<std::unordered_map<int, int>*>> mToStore;
+  std::vector<std::vector<std::unordered_map<int, int>>> mToStore;
   o2::steer::MCKinematicsReader* mMCKineReader = nullptr; //!
 
   // production metadata

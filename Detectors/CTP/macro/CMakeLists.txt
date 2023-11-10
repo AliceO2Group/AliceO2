@@ -33,6 +33,10 @@ o2_add_test_root_macro(CheckAOD2CTPDigits.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsCTP
                                              O2::CCDB
                        LABELS ctp)
+o2_add_test_root_macro(CheckAOD2CTPDigitsII.C
+                       PUBLIC_LINK_LIBRARIES O2::DataFormatsCTP
+                                             O2::CCDB
+                       LABELS ctp)
 o2_add_test_root_macro(TestConfig.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsCTP
                                              O2::CCDB
@@ -46,6 +50,14 @@ o2_add_test_root_macro(GetAndSave.C
                                              O2::CCDB
                        LABELS ctp)
 o2_add_test_root_macro(ReadCTPRunScalersFromFile.C
+                       PUBLIC_LINK_LIBRARIES O2::DataFormatsCTP
+                                             O2::CCDB
+                       LABELS ctp)
+o2_add_test_root_macro(GetScalersForRun.C
+                       PUBLIC_LINK_LIBRARIES O2::DataFormatsCTP
+                                             O2::CCDB
+                       LABELS ctp)
+o2_add_test_root_macro(PlotPbLumi.C
                        PUBLIC_LINK_LIBRARIES O2::DataFormatsCTP
                                              O2::CCDB
                        LABELS ctp)

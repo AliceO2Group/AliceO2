@@ -178,7 +178,7 @@ void MultivariatePolynomial<Dim, Degree, InteractionOnly>::loadFromFile(TFile& i
     delete polTmp;
   } else {
 #ifndef GPUCA_ALIROOT_LIB
-    LOGP(info, fmt::format("couldnt load object {} from input file", name));
+    LOGP(info, "couldnt load object {} from input file", name);
 #endif
   }
 }
@@ -189,19 +189,19 @@ void MultivariatePolynomial<Dim, Degree, InteractionOnly>::setFromContainer(cons
   if constexpr (Dim > 0 && Degree > 0) {
     if (this->getDim() != container.mDim) {
 #ifndef GPUCA_ALIROOT_LIB
-      LOGP(info, fmt::format("wrong number of dimensions! this {} container {}", this->getDim(), container.mDim));
+      LOGP(info, "wrong number of dimensions! this {} container {}", this->getDim(), container.mDim);
 #endif
       return;
     }
     if (this->getDegree() != container.mDegree) {
 #ifndef GPUCA_ALIROOT_LIB
-      LOGP(info, fmt::format("wrong number of degrees! this {} container {}", this->getDegree(), container.mDegree));
+      LOGP(info, "wrong number of degrees! this {} container {}", this->getDegree(), container.mDegree);
 #endif
       return;
     }
     if (this->isInteractionOnly() != container.mInteractionOnly) {
 #ifndef GPUCA_ALIROOT_LIB
-      LOGP(info, fmt::format("InteractionOnly is set for this object to {}, but stored as {} in the container", this->isInteractionOnly(), container.mInteractionOnly));
+      LOGP(info, "InteractionOnly is set for this object to {}, but stored as {} in the container", this->isInteractionOnly(), container.mInteractionOnly);
 #endif
       return;
     }

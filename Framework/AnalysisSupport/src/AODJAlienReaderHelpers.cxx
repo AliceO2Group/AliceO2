@@ -246,11 +246,11 @@ AlgorithmSpec AODJAlienReaderHelpers::rootFileReaderCallback()
             // get first folder of next file
             ntf = 0;
             if (!didir->readTree(outputs, dh, fcnt, ntf, totalSizeCompressed, totalSizeUncompressed)) {
-              LOGP(fatal, "Can not retrieve tree for table {}: fileCounter {}, timeFrame {}", concrete.origin, fcnt, ntf);
+              LOGP(fatal, "Can not retrieve tree for table {}: fileCounter {}, timeFrame {}", concrete.origin.as<std::string>(), fcnt, ntf);
               throw std::runtime_error("Processing is stopped!");
             }
           } else {
-            LOGP(fatal, "Can not retrieve tree for table {}: fileCounter {}, timeFrame {}", concrete.origin, fcnt, ntf);
+            LOGP(fatal, "Can not retrieve tree for table {}: fileCounter {}, timeFrame {}", concrete.origin.as<std::string>(), fcnt, ntf);
             throw std::runtime_error("Processing is stopped!");
           }
         }

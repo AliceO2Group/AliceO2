@@ -128,11 +128,9 @@ void HMPMatcherSpec::run(ProcessingContext& pc)
 
   mMatcher.run(recoData);
 
-  if (isITSTPCused || isTPCTRDused || isTPCTOFused || isITSTPCTRDused || isTPCTRDTOFused || isITSTPCTOFused || isITSTPCTRDTOFused) {
-    pc.outputs().snapshot(Output{o2::header::gDataOriginHMP, "MATCHES", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector(o2::globaltracking::MatchHMP::trackType::CONSTR));
-    if (mUseMC) {
-      pc.outputs().snapshot(Output{o2::header::gDataOriginHMP, "MCLABELS", 0, Lifetime::Timeframe}, mMatcher.getMatchedHMPLabelsVector(o2::globaltracking::MatchHMP::trackType::CONSTR));
-    }
+  pc.outputs().snapshot(Output{o2::header::gDataOriginHMP, "MATCHES", 0, Lifetime::Timeframe}, mMatcher.getMatchedTrackVector(o2::globaltracking::MatchHMP::trackType::CONSTR));
+  if (mUseMC) {
+    pc.outputs().snapshot(Output{o2::header::gDataOriginHMP, "MCLABELS", 0, Lifetime::Timeframe}, mMatcher.getMatchedHMPLabelsVector(o2::globaltracking::MatchHMP::trackType::CONSTR));
   }
 
   mTimer.Stop();
@@ -144,7 +142,7 @@ void HMPMatcherSpec::endOfStream(EndOfStreamContext& ec)
        mTimer.CpuTime(), mTimer.RealTime(), mTimer.Counter() - 1);
 }
 
-DataProcessorSpec getHMPMatcherSpec(GID::mask_t src, bool useMC)
+DataProcessorSpec getHMPMatcherSpec(GID::mask_t src, bool useMC, float extratolerancetrd, float extratolerancetof)
 {
   // uint32_t ss = o2::globaltracking::getSubSpec(strict ? o2::globaltracking::MatchingType::Strict : o2::globaltracking::MatchingType::Standard);
   auto dataRequest = std::make_shared<DataRequest>();
@@ -166,11 +164,9 @@ DataProcessorSpec getHMPMatcherSpec(GID::mask_t src, bool useMC)
 
   std::vector<OutputSpec> outputs;
 
-  if (GID::includesSource(GID::ITSTPC, src) || GID::includesSource(GID::TPCTRD, src) || GID::includesSource(GID::TPCTOF, src) || GID::includesSource(GID::ITSTPCTRD, src) || GID::includesSource(GID::ITSTPCTOF, src) || GID::includesSource(GID::TPCTRDTOF, src) || GID::includesSource(GID::ITSTPCTRDTOF, src)) {
-    outputs.emplace_back(o2::header::gDataOriginHMP, "MATCHES", 0, Lifetime::Timeframe);
-    if (useMC) {
-      outputs.emplace_back(o2::header::gDataOriginHMP, "MCLABELS", 0, Lifetime::Timeframe);
-    }
+  outputs.emplace_back(o2::header::gDataOriginHMP, "MATCHES", 0, Lifetime::Timeframe);
+  if (useMC) {
+    outputs.emplace_back(o2::header::gDataOriginHMP, "MCLABELS", 0, Lifetime::Timeframe);
   }
 
   return DataProcessorSpec{

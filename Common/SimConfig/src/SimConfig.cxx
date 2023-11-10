@@ -74,14 +74,14 @@ void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs
   if (activeModules[0] != "all") {
     if (mIsRun5) {
       for (int i = 0; i < activeModules.size(); ++i) {
-        if (activeModules[i] != "IT3" && activeModules[i] != "TRK" && activeModules[i] != "FT3" && activeModules[i] != "FCT" && activeModules[i] != "A3IP") {
+        if (activeModules[i] != "IT3" && activeModules[i] != "TRK" && activeModules[i] != "FT3" && activeModules[i] != "FCT" && activeModules[i] != "A3IP" && activeModules[i] != "TF3") {
           LOGP(fatal, "List of active modules contains {}, which is not a run 5 module", activeModules[i]);
         }
       }
     }
     if (!mIsRun5) {
       for (int i = 0; i < activeModules.size(); ++i) {
-        if (activeModules[i] == "TRK" || activeModules[i] == "FT3" || activeModules[i] == "FCT" || activeModules[i] == "A3IP") {
+        if (activeModules[i] == "TRK" || activeModules[i] == "FT3" || activeModules[i] == "FCT" || activeModules[i] == "A3IP" && activeModules[i] == "TF3") {
           LOGP(fatal, "List of active modules contains {}, which is not a run 3 module", activeModules[i]);
         }
       }
@@ -93,12 +93,13 @@ void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs
 #ifdef ENABLE_UPGRADES
     if (mIsRun5) {
       for (int d = DetID::First; d <= DetID::Last; ++d) {
-        if (d == DetID::TRK || d == DetID::FT3 || d == DetID::FCT) {
+        if (d == DetID::TRK || d == DetID::FT3 || d == DetID::FCT || d == DetID::TF3) {
           activeModules.emplace_back(DetID::getName(d));
         }
       }
       activeModules.emplace_back("A3IP");
       activeModules.emplace_back("A3ABSO");
+      activeModules.emplace_back("A3MAG");
     } else {
 #endif
       // add passive components manually (make a PassiveDetID for them!)
@@ -111,7 +112,7 @@ void SimConfig::determineActiveModules(std::vector<std::string> const& inputargs
       activeModules.emplace_back("SHIL");
       for (int d = DetID::First; d <= DetID::Last; ++d) {
 #ifdef ENABLE_UPGRADES
-        if (d != DetID::IT3 && d != DetID::TRK && d != DetID::FT3 && d != DetID::FCT) {
+        if (d != DetID::IT3 && d != DetID::TRK && d != DetID::FT3 && d != DetID::FCT && d != DetID::TF3) {
           activeModules.emplace_back(DetID::getName(d));
         }
       }

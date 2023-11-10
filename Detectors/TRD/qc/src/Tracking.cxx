@@ -30,18 +30,12 @@ void Tracking::init()
 
 void Tracking::setInput(const o2::globaltracking::RecoContainer& input)
 {
-  // mRecoCont = &input;
   mTracksTPC = input.getTPCTracks();
   mTracksITSTPC = input.getTPCITSTracks();
   mTracksITSTPCTRD = input.getITSTPCTRDTracks<TrackTRD>();
   mTracksTPCTRD = input.getTPCTRDTracks<TrackTRD>();
   mTrackletsRaw = input.getTRDTracklets();
   mTrackletsCalib = input.getTRDCalibratedTracklets();
-  if (mTracksTPC.size() > 0) {
-    LOG(info) << "Checking first TPC track";
-    auto trk = mTracksTPC[0];
-    LOG(info) << "Track has X of " << trk.getX();
-  }
 }
 
 void Tracking::run()
@@ -63,7 +57,7 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
   qcStruct.refGlobalTrackId = id;
   qcStruct.trackTRD = trkTrd;
 
-  LOGF(debug, "Got track with %i tracklets and ID %i", trkTrd.getNtracklets(), id);
+  LOGF(debug, "Got track with %i tracklets and ID %i", trkTrd.getNtracklets(), (int)id);
   o2::track::TrackParCov trk = isTPCTRD ? mTracksTPC[id].getParamOut() : mTracksITSTPC[id].getParamOut();
   qcStruct.trackSeed = trk;
   if (mPID) {

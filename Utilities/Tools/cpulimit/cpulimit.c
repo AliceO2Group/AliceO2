@@ -33,7 +33,6 @@
 #include <getopt.h>
 #include <time.h>
 #include <signal.h>
-#include <string.h>
 #include <errno.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -54,10 +53,6 @@
 
 #ifdef HAVE_SYS_SYSINFO_H
 #include <sys/sysinfo.h>
-#endif
-
-#ifdef __APPLE__
-#include "memrchr.c"
 #endif
 
 //some useful macro
@@ -329,7 +324,7 @@ int main(int argc, char **argv) {
 	int include_children = 0;
 
 	//get program name
-	char *p = (char*)memrchr(argv[0], (unsigned int)'/', strlen(argv[0]));
+	char *p = (char*)strrchr(argv[0], '/');
 	program_name = p==NULL ? argv[0] : (p+1);
 	//get current pid
 	cpulimit_pid = getpid();

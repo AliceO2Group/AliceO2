@@ -58,7 +58,7 @@ class PIDResponse
   GPUd() float getExpectedSignal(const TrackTPC& track, const o2::track::PID::ID id) const;
 
   /// get most probable PID of the track
-  GPUd() o2::track::PID::ID getMostProbablePID(const TrackTPC& track, float PID_EKrangeMin, float PID_EKrangeMax, float PID_EPrangeMin, float PID_EPrangeMax) const;
+  GPUd() o2::track::PID::ID getMostProbablePID(const TrackTPC& track, float PID_EKrangeMin, float PID_EKrangeMax, float PID_EPrangeMin, float PID_EPrangeMax, float PID_EDrangeMin, float PID_EDrangeMax, float PID_ETrangeMin, float PID_ETrangeMax) const;
 
  private:
   float mBetheBlochParams[5] = {0.19310481, 4.26696118, 0.00522579, 2.38124907, 0.98055396}; // BBAleph average fit parameters
@@ -88,7 +88,7 @@ GPUd() float PIDResponse::getExpectedSignal(const TrackTPC& track, const o2::tra
 }
 
 // get most probable PID
-GPUd() o2::track::PID::ID PIDResponse::getMostProbablePID(const TrackTPC& track, float PID_EKrangeMin, float PID_EKrangeMax, float PID_EPrangeMin, float PID_EPrangeMax) const
+GPUd() o2::track::PID::ID PIDResponse::getMostProbablePID(const TrackTPC& track, float PID_EKrangeMin, float PID_EKrangeMax, float PID_EPrangeMin, float PID_EPrangeMax, float PID_EDrangeMin, float PID_EDrangeMax, float PID_ETrangeMin, float PID_ETrangeMax) const
 {
   const float dEdx = track.getdEdx().dEdxTotTPC;
 
@@ -116,6 +116,10 @@ GPUd() o2::track::PID::ID PIDResponse::getMostProbablePID(const TrackTPC& track,
       id = o2::track::PID::Kaon;
     } else if ((p > PID_EPrangeMin) && (p < PID_EPrangeMax)) {
       id = o2::track::PID::Proton;
+    } else if ((p > PID_EDrangeMin) && (p < PID_EDrangeMax)) {
+      id = o2::track::PID::Deuteron;
+    } else if ((p > PID_ETrangeMin) && (p < PID_ETrangeMax)) {
+      id = o2::track::PID::Triton;
     }
   }
 

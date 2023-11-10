@@ -267,7 +267,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(ITSClusterMap, itsClusterMap, //! ITS cluster map, on
                              return clmap;
                            });
 DECLARE_SOA_DYNAMIC_COLUMN(ITSNCls, itsNCls, //! Number of ITS clusters
-                           [](uint8_t itsClusterSizes) -> uint8_t {
+                           [](uint32_t itsClusterSizes) -> uint8_t {
                              uint8_t itsNcls = 0;
                              for (int layer = 0; layer < 7; layer++) {
                                if ((itsClusterSizes >> (layer * 4)) & 0xf)
@@ -276,7 +276,7 @@ DECLARE_SOA_DYNAMIC_COLUMN(ITSNCls, itsNCls, //! Number of ITS clusters
                              return itsNcls;
                            });
 DECLARE_SOA_DYNAMIC_COLUMN(ITSNClsInnerBarrel, itsNClsInnerBarrel, //! Number of ITS clusters in the Inner Barrel
-                           [](uint8_t itsClusterSizes) -> uint8_t {
+                           [](uint32_t itsClusterSizes) -> uint8_t {
                              uint8_t itsNclsInnerBarrel = 0;
                              for (int layer = 0; layer < 3; layer++) {
                                if ((itsClusterSizes >> (layer * 4)) & 0xf)
@@ -1364,7 +1364,7 @@ using Run2BCInfo = Run2BCInfos::iterator;
 namespace mccollision
 {
 DECLARE_SOA_INDEX_COLUMN(BC, bc);                            //! BC index
-DECLARE_SOA_COLUMN(GeneratorsID, generatorsID, short);       //! disentangled generator IDs should be accessed from dynamic columns using getGenId, getCocktailId and getSourceId
+DECLARE_SOA_COLUMN(GeneratorsID, generatorsID, short);       //! disentangled generator IDs should be accessed using getGeneratorId, getSubGeneratorId and getSourceId
 DECLARE_SOA_COLUMN(PosX, posX, float);                       //! X vertex position in cm
 DECLARE_SOA_COLUMN(PosY, posY, float);                       //! Y vertex position in cm
 DECLARE_SOA_COLUMN(PosZ, posZ, float);                       //! Z vertex position in cm
@@ -1385,7 +1385,11 @@ DECLARE_SOA_TABLE(McCollisions, "AOD", "MCCOLLISION", //! MC collision table
                   mccollision::GeneratorsID,
                   mccollision::PosX, mccollision::PosY, mccollision::PosZ,
                   mccollision::T, mccollision::Weight,
-                  mccollision::ImpactParameter);
+                  mccollision::ImpactParameter,
+                  mccollision::GetGeneratorId<mccollision::GeneratorsID>,
+                  mccollision::GetSubGeneratorId<mccollision::GeneratorsID>,
+                  mccollision::GetSourceId<mccollision::GeneratorsID>);
+
 using McCollision = McCollisions::iterator;
 
 namespace mcparticle

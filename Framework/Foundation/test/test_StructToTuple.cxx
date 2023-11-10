@@ -135,4 +135,6 @@ TEST_CASE("TestStructToTuple")
     }
   },
                                                   nestedFoo);
+  REQUIRE(t6.size() == 3);
+  REQUIRE(t6[0] == true);
 }

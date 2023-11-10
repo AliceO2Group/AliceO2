@@ -92,7 +92,7 @@ class GeneratorPythia8 : public Generator
   void updateHeader(o2::dataformats::MCEventHeader* eventHeader) override;
 
   /** internal methods **/
-  Bool_t importParticles(Pythia8::Event& event);
+  Bool_t importParticles(Pythia8::Event const& event);
 
   /** utilities **/
   void selectFromAncestor(int ancestor, Pythia8::Event& inputEvent, Pythia8::Event& outputEvent);

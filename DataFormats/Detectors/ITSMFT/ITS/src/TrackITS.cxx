@@ -29,31 +29,31 @@ bool TrackITS::operator<(const TrackITS& o) const
   //-----------------------------------------------------------------
   // This function compares tracks according to the their curvature
   //-----------------------------------------------------------------
-  Float_t co = TMath::Abs(o.getPt());
-  Float_t c = TMath::Abs(getPt());
-  // Float_t co=o.GetSigmaY2()*o.GetSigmaZ2();
-  // Float_t c =GetSigmaY2()*GetSigmaZ2();
+  float co = TMath::Abs(o.getPt());
+  float c = TMath::Abs(getPt());
+  // float co=o.GetSigmaY2()*o.GetSigmaZ2();
+  // float c =GetSigmaY2()*GetSigmaZ2();
 
   return (c > co);
 }
 
-void TrackITS::getImpactParams(Float_t x, Float_t y, Float_t z, Float_t bz, Float_t ip[2]) const
+void TrackITS::getImpactParams(float x, float y, float z, float bz, float ip[2]) const
 {
   //------------------------------------------------------------------
   // This function calculates the transverse and longitudinal impact parameters
   // with respect to a point with global coordinates (x,y,0)
   // in the magnetic field "bz" (kG)
   //------------------------------------------------------------------
-  Float_t f1 = getSnp(), r1 = TMath::Sqrt((1. - f1) * (1. + f1));
-  Float_t xt = getX(), yt = getY();
-  Float_t sn = TMath::Sin(getAlpha()), cs = TMath::Cos(getAlpha());
-  Float_t a = x * cs + y * sn;
+  float f1 = getSnp(), r1 = TMath::Sqrt((1. - f1) * (1. + f1));
+  float xt = getX(), yt = getY();
+  float sn = TMath::Sin(getAlpha()), cs = TMath::Cos(getAlpha());
+  float a = x * cs + y * sn;
   y = -x * sn + y * cs;
   x = a;
   xt -= x;
   yt -= y;
 
-  Float_t rp4 = getCurvature(bz);
+  float rp4 = getCurvature(bz);
   if ((TMath::Abs(bz) < Almost0) || (TMath::Abs(rp4) < Almost0)) {
     ip[0] = -(xt * f1 - yt * r1);
     ip[1] = getZ() + (ip[0] * f1 - xt) / r1 * getTgl() - z;
@@ -63,48 +63,48 @@ void TrackITS::getImpactParams(Float_t x, Float_t y, Float_t z, Float_t bz, Floa
   sn = rp4 * xt - f1;
   cs = rp4 * yt + r1;
   a = 2 * (xt * f1 - yt * r1) - rp4 * (xt * xt + yt * yt);
-  Float_t rr = TMath::Sqrt(sn * sn + cs * cs);
+  float rr = TMath::Sqrt(sn * sn + cs * cs);
   ip[0] = -a / (1 + rr);
-  Float_t f2 = -sn / rr, r2 = TMath::Sqrt((1. - f2) * (1. + f2));
+  float f2 = -sn / rr, r2 = TMath::Sqrt((1. - f2) * (1. + f2));
   ip[1] = getZ() + getTgl() / rp4 * TMath::ASin(f2 * r1 - f1 * r2) - z;
 }
 
-Bool_t TrackITS::propagate(Float_t alpha, Float_t x, Float_t bz)
+bool TrackITS::propagate(float alpha, float x, float bz)
 {
   if (rotate(alpha)) {
     if (propagateTo(x, bz)) {
-      return kTRUE;
+      return true;
     }
   }
-  return kFALSE;
+  return false;
 }
 
-Bool_t TrackITS::update(const Cluster& c, Float_t chi2)
+bool TrackITS::update(const Cluster& c, float chi2)
 {
   //--------------------------------------------------------------------
   // Update track params
   //--------------------------------------------------------------------
   if (!o2::track::TrackParCov::update(static_cast<const o2::BaseCluster<float>&>(c))) {
-    return kFALSE;
+    return false;
   }
   mChi2 += chi2;
-  return kTRUE;
+  return true;
 }
 
-Bool_t TrackITS::isBetter(const TrackITS& best, Float_t maxChi2) const
+bool TrackITS::isBetter(const TrackITS& best, float maxChi2) const
 {
-  Int_t ncl = getNumberOfClusters();
-  Int_t nclb = best.getNumberOfClusters();
+  int ncl = getNumberOfClusters();
+  int nclb = best.getNumberOfClusters();
 
   if (ncl >= nclb) {
-    Float_t chi2 = getChi2();
+    float chi2 = getChi2();
     if (chi2 < maxChi2) {
       if (ncl > nclb || chi2 < best.getChi2()) {
-        return kTRUE;
+        return true;
       }
     }
   }
-  return kFALSE;
+  return false;
 }
 
 int TrackITS::getNFakeClusters()

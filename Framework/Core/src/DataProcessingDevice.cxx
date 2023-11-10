@@ -493,6 +493,10 @@ void on_signal_callback(uv_signal_t* handle, int signum)
   ZoneScopedN("Signal callaback");
   LOG(debug) << "Signal " << signum << " received.";
   auto* registry = (ServiceRegistry*)handle->data;
+  if (!registry) {
+    LOG(debug) << "No registry active. Ignoring signal";
+    return;
+  }
   ServiceRegistryRef ref{*registry};
   auto& state = ref.get<DeviceState>();
   auto& quotaEvaluator = ref.get<ComputingQuotaEvaluator>();
@@ -972,10 +976,14 @@ void DataProcessingDevice::InitTask()
   // an event from the outside, making sure that the event loop can
   // be unblocked (e.g. by a quitting DPL driver) even when there
   // is no data pending to be processed.
-  auto* sigusr1Handle = (uv_signal_t*)malloc(sizeof(uv_signal_t));
-  uv_signal_init(state.loop, sigusr1Handle);
-  sigusr1Handle->data = &mServiceRegistry;
-  uv_signal_start(sigusr1Handle, on_signal_callback, SIGUSR1);
+  if (deviceContext.sigusr1Handle == nullptr) {
+    deviceContext.sigusr1Handle = (uv_signal_t*)malloc(sizeof(uv_signal_t));
+    deviceContext.sigusr1Handle->data = &mServiceRegistry;
+    uv_signal_init(state.loop, deviceContext.sigusr1Handle);
+    uv_signal_start(deviceContext.sigusr1Handle, on_signal_callback, SIGUSR1);
+  }
+  // When we start, we must make sure that we do listen to the signal
+  deviceContext.sigusr1Handle->data = &mServiceRegistry;
 
   /// Initialise the pollers
   DataProcessingDevice::initPollers();
@@ -1675,6 +1683,14 @@ void DataProcessingDevice::ResetTask()
 {
   ServiceRegistryRef ref{mServiceRegistry};
   ref.get<DataRelayer>().clear();
+  auto& deviceContext = ref.get<DeviceContext>();
+  // If the signal handler is there, we should
+  // hide the registry from it, so that we do not
+  // end up calling the signal handler on something
+  // which might not be there anymore.
+  if (deviceContext.sigusr1Handle) {
+    deviceContext.sigusr1Handle->data = nullptr;
+  }
 }
 
 struct WaitBackpressurePolicy {
@@ -2177,11 +2193,17 @@ bool DataProcessingDevice::tryDispatchComputation(ServiceRegistryRef ref, std::v
       buffer[ai] = record.isValid(ai) ? '3' : '0';
     }
     buffer[record.size()] = 0;
-    states.updateState({.id = short((int)ProcessingStateId::DATA_RELAYER_BASE + action.slot.index), (int)(record.size() + buffer - relayerSlotState), relayerSlotState});
+    states.updateState({.id = short((int)ProcessingStateId::DATA_RELAYER_BASE + action.slot.index),
+                        .size = (int)(record.size() + buffer - relayerSlotState),
+                        .data = relayerSlotState});
     uint64_t tEnd = uv_hrtime();
-    stats.updateStats({(int)ProcessingStatsId::LAST_ELAPSED_TIME_MS, DataProcessingStats::Op::Set, (int64_t)(tEnd - tStart)});
+    // tEnd and tStart are in nanoseconds according to https://docs.libuv.org/en/v1.x/misc.html#c.uv_hrtime
+    int64_t wallTimeMs = (tEnd - tStart) / 1000000;
+    stats.updateStats({(int)ProcessingStatsId::LAST_ELAPSED_TIME_MS, DataProcessingStats::Op::Set, wallTimeMs});
+    // Sum up the total wall time, in milliseconds.
+    stats.updateStats({(int)ProcessingStatsId::TOTAL_WALL_TIME_MS, DataProcessingStats::Op::Add, wallTimeMs});
     // The time interval is in seconds while tEnd - tStart is in nanoseconds, so we divide by 1000000 to get the fraction in ms/s.
-    stats.updateStats({(short)ProcessingStatsId::CPU_USAGE_FRACTION, DataProcessingStats::Op::CumulativeRate, (int64_t)(tEnd - tStart) / 1000000});
+    stats.updateStats({(short)ProcessingStatsId::CPU_USAGE_FRACTION, DataProcessingStats::Op::CumulativeRate, wallTimeMs});
     stats.updateStats({(int)ProcessingStatsId::LAST_PROCESSED_SIZE, DataProcessingStats::Op::Set, calculateTotalInputRecordSize(record)});
     stats.updateStats({(int)ProcessingStatsId::TOTAL_PROCESSED_SIZE, DataProcessingStats::Op::Add, calculateTotalInputRecordSize(record)});
     auto latency = calculateInputRecordLatency(record, tStartMilli);

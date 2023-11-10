@@ -55,6 +55,7 @@ struct TrackerParamConfig : public o2::conf::ConfigurableParamHelper<TrackerPara
   // Use TGeo for mat. budget
   bool useMatCorrTGeo = false;
   bool useFastMaterial = false;
+  int deltaRof = 0;
   float sysErrY2[7] = {0}; // systematic error^2 in Y per layer
   float sysErrZ2[7] = {0}; // systematic error^2 in Z per layer
   float maxChi2ClusterAttachment = -1.f;

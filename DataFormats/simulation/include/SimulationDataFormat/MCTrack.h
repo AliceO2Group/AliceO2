@@ -280,7 +280,6 @@ class MCTrackT
       int storage : 1;  // encoding whether to store this track to the output
       unsigned int process : 6; // encoding process that created this track (enough to store TMCProcess from ROOT)
       int hitmask : NHITBITS;   // encoding hits per detector
-      static_assert(o2::detectors::DetID::nDetectors <= 22); // ensure that all known detectors can be encoded here by a bit
       int reserved1 : 1;        // bit reserved for possible future purposes
       int inhibited : 1; // whether tracking of this was inhibited
       int toBeDone : 1; // whether this (still) needs tracking --> we might more complete information to cover full ParticleStatus space
