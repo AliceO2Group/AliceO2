@@ -687,53 +687,25 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       if (fair::mq::State{state} != fair::mq::State::Ready) {
         return;
       }
-      // We keep track of whether or not all channels have seen a new state.
-      std::vector<bool> lastNewStatePending(deviceState.inputChannelInfos.size(), false);
       uv_update_time(deviceState.loop);
-      auto start = uv_now(deviceState.loop);
+      bool doDrain = true;
+      // Cleanup count is set by the cleanup property of the device.
+      // It is incremented every time the device is cleaned up.
+      // We use it to detect when the device is cleaned up.
+      int64_t cleanupCount = deviceState.cleanupCount.load();
 
-      // Continue iterating until all channels have seen a new state.
-      while (std::all_of(lastNewStatePending.begin(), lastNewStatePending.end(), [](bool b) { return b; }) != true) {
-        if (uv_now(deviceState.loop) - start > 5000) {
-          LOGP(info, "Timeout while draining messages, going to next state anyway.");
-          break;
-        }
+      // Continue iterating we saw the cleanup property being reset or
+      // the device state changing.
+      while (doDrain) {
+        doDrain = device->NewStatePending() || deviceState.cleanupCount == cleanupCount;
         fair::mq::Parts parts;
         for (size_t ci = 0; ci < deviceState.inputChannelInfos.size(); ++ci) {
           auto& info = deviceState.inputChannelInfos[ci];
           // We only care about rawfmq channels.
           if (info.channelType != ChannelAccountingType::RAWFMQ) {
-            lastNewStatePending[ci] = true;
-            continue;
-          }
-          // This means we have not set things up yet. I.e. the first iteration from
-          // ready to run has not happened yet.
-          if (info.channel == nullptr) {
-            lastNewStatePending[ci] = true;
             continue;
           }
           info.channel->Receive(parts, 10);
-          // Handle both cases of state changes:
-          //
-          // - The state has been changed from the outside and FairMQ knows about it.
-          // - The state has been changed from the GUI, and deviceState.nextFairMQState knows about it.
-          //
-          // This latter case is probably better handled from DPL itself, after all it's fair to
-          // assume we need to switch state as soon as the GUI notifies us.
-          // For now we keep it here to avoid side effects.
-          lastNewStatePending[ci] = device->NewStatePending() || (deviceState.nextFairMQState.empty() == false);
-          if (parts.Size() == 0) {
-            continue;
-          }
-          if (!lastNewStatePending[ci]) {
-            LOGP(warn, "Unexpected {} message on channel {} while in Ready state. Dropping.", parts.Size(), info.channel->GetName());
-          } else if (lastNewStatePending[ci]) {
-            LOGP(detail, "Some {} parts were received on channel {} while switching away from Ready. Keeping.", parts.Size(), info.channel->GetName());
-            for (int pi = 0; pi < parts.Size(); ++pi) {
-              info.parts.fParts.emplace_back(std::move(parts.At(pi)));
-            }
-            info.readPolled = true;
-          }
         }
         // Keep state transitions going also when running with the standalone GUI.
         uv_run(deviceState.loop, UV_RUN_NOWAIT);
