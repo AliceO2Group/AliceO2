@@ -54,23 +54,26 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     o2::globaltracking::RecoContainer recoData;
     recoData.collectData(pc, *mDataRequest.get());
     std::vector<o2::ctp::CTPInputDigit> finputs;
+    TStopwatch timer;
+    timer.Start();
+    LOG(info) << "CALLING CTP DIGITIZATION";
+    // Input order: T0, V0, ... but O need also position of inputs DETInputs
+    // fv0
     auto ft0inputs = pc.inputs().get<gsl::span<o2::ft0::DetTrigInput>>("ft0");
+    for (const auto& inp : ft0inputs) {
+      finputs.emplace_back(CTPInputDigit{inp.mIntRecord, inp.mInputs, o2::detectors::DetID::FT0});
+    }
+    // fv0
     auto fv0inputs = pc.inputs().get<gsl::span<o2::fv0::DetTrigInput>>("fv0");
+    for (const auto& inp : fv0inputs) {
+      finputs.emplace_back(CTPInputDigit{inp.mIntRecord, inp.mInputs, o2::detectors::DetID::FV0});
+    }
+    // emc
     if (mDataRequest->isRequested("emc")) {
       auto emcinputs = pc.inputs().get<gsl::span<o2::fv0::DetTrigInput>>("emc");
       for (const auto& inp : emcinputs) {
         finputs.emplace_back(CTPInputDigit{inp.mIntRecord, inp.mInputs, o2::detectors::DetID::EMC});
       }
-    }
-    TStopwatch timer;
-    timer.Start();
-    LOG(info) << "CALLING CTP DIGITIZATION";
-    // Input order: T0, V0, ... but O need also position of inputs DETInputs
-    for (const auto& inp : ft0inputs) {
-      finputs.emplace_back(CTPInputDigit{inp.mIntRecord, inp.mInputs, o2::detectors::DetID::FT0});
-    }
-    for (const auto& inp : fv0inputs) {
-      finputs.emplace_back(CTPInputDigit{inp.mIntRecord, inp.mInputs, o2::detectors::DetID::FV0});
     }
     gsl::span<CTPInputDigit> ginputs(finputs);
     auto digits = mDigitizer.process(ginputs);
