@@ -109,9 +109,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   while (getline(ssconfig, iconfig, ',')) {
     std::vector<InputSpec> inputs = select(iconfig.c_str());
     if (!ignoreStf) {
-      for (auto& val : inputs) {
-        val.lifetime = Lifetime::Optional;
-      }
       inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
     }
     workflow.emplace_back(DataProcessorSpec{

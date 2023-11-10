@@ -154,19 +154,19 @@ template <typename... Args>
 class GPUROOTDump
 {
  public:
-  template <typename... Args>
+  template <typename... Names>
   GPUd() void Fill(Args... args) const
   {
   }
-  template <typename... Args>
-  GPUd() static GPUROOTDump<T>& get(Args... args)
+  template <typename... Names>
+  GPUd() static GPUROOTDump<Args...>& get(Args... args)
   {
-    return *(GPUROOTDump<T>*)(size_t)(1024); // Will never be used, return just some reference, which must not be nullptr by specification
+    return *(GPUROOTDump<Args...>*)(size_t)(1024); // Will never be used, return just some reference, which must not be nullptr by specification
   }
-  template <typename... Args>
-  GPUd() static GPUROOTDump<T>& getNew(Args... args)
+  template <typename... Names>
+  GPUd() static GPUROOTDump<Args...>& getNew(Args... args)
   {
-    return *(GPUROOTDump<T>*)(size_t)(1024); // Will never be used, return just some reference, which must not be nullptr by specification
+    return *(GPUROOTDump<Args...>*)(size_t)(1024); // Will never be used, return just some reference, which must not be nullptr by specification
   }
 };
 #endif

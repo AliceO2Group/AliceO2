@@ -520,6 +520,13 @@ bool CDBStorage::checkMetaData(MetaData_t metaData) const
 }
 
 //______________________________________________________________________________
+std::string CDBStorage::getMetaDataString() const
+{
+  std::string metaDataString;
+  return metaDataString;
+}
+
+//______________________________________________________________________________
 void CDBStorage::uploadNoiseAndPedestal(std::string_view fileName, long first, long last)
 {
   std::unique_ptr<TFile> file(TFile::Open(fileName.data()));
@@ -626,5 +633,5 @@ void CDBStorage::printObjectSummary(std::string_view name, CDBType const type, M
     message += fmt::format("{:>20} = {}\n", key, value);
   }
 
-  LOGP(info, message);
+  LOGP(info, "{}", message);
 }

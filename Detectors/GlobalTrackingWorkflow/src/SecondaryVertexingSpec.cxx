@@ -103,6 +103,7 @@ void SecondaryVertexingSpec::run(ProcessingContext& pc)
 {
   double timeCPU0 = mTimer.CpuTime(), timeReal0 = mTimer.RealTime();
   mTimer.Start(false);
+  static std::array<size_t, 3> fitCalls{};
 
   o2::globaltracking::RecoContainer recoData;
   recoData.collectData(pc, *mDataRequest.get());
@@ -111,8 +112,11 @@ void SecondaryVertexingSpec::run(ProcessingContext& pc)
   mVertexer.process(recoData, pc);
 
   mTimer.Stop();
-  LOG(info) << "Found " << mVertexer.getNV0s() << " V0s, " << mVertexer.getNCascades() << " cascades, " << mVertexer.getN3Bodies() << " 3-body decays, "
-            << mVertexer.getNStrangeTracks() << " strange tracks. Timing: CPU: " << mTimer.CpuTime() - timeCPU0 << " Real: " << mTimer.RealTime() - timeReal0 << " s";
+  auto calls = mVertexer.getNFitterCalls();
+  LOGP(info, "Found {} V0s ({} fits), {} cascades ({} fits), {} 3-body decays ({} fits), {} strange tracks. Timing: CPU: {:.2f} Real: {:.2f} s",
+       mVertexer.getNV0s(), calls[0] - fitCalls[0], mVertexer.getNCascades(), calls[1] - fitCalls[1], mVertexer.getN3Bodies(), calls[2] - fitCalls[2], mVertexer.getNStrangeTracks(),
+       mTimer.CpuTime() - timeCPU0, mTimer.RealTime() - timeReal0);
+  fitCalls = calls;
 }
 
 void SecondaryVertexingSpec::endOfStream(EndOfStreamContext& ec)

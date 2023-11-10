@@ -33,6 +33,7 @@
 #include "GPUTPCGMBorderTrack.h"
 #include "GPUReconstruction.h"
 #include "GPUDebugStreamer.h"
+#include "GPUTrackingRefit.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 using namespace gputpcgmmergertypes;
@@ -232,4 +233,34 @@ const GPUTPCGMBorderTrack& GPUTPCGMMerger::MergedTrackStreamerFindBorderTrack(co
     }
   }
   throw std::runtime_error("didn't find border track");
+}
+
+void GPUTPCGMMerger::DebugRefitMergedTrack(const GPUTPCGMMergedTrack& track)
+{
+  GPUTPCGMMergedTrack trk = track;
+  GPUTrackingRefit refit;
+  ((GPUConstantMem*)GetConstantMem())->ioPtrs.mergedTrackHitStates = ClusterStateExt();
+  ((GPUConstantMem*)GetConstantMem())->ioPtrs.mergedTrackHits = Clusters();
+  refit.SetPtrsFromGPUConstantMem(GetConstantMem());
+  int retval = refit.RefitTrackAsGPU(trk, false, true);
+  if (retval > 0) {
+    GPUTPCGMPropagator prop;
+    prop.SetMaterialTPC();
+    prop.SetPolynomialField(&Param().polynomialField);
+    prop.SetMaxSinPhi(GPUCA_MAX_SIN_PHI);
+    prop.SetPropagateBzOnly(false);
+    prop.SetMatLUT(Param().rec.useMatLUT ? GetConstantMem()->calibObjects.matLUT : nullptr);
+    prop.SetTrack(&trk.Param(), trk.GetAlpha());
+    int err = prop.PropagateToXAlpha(track.GetParam().GetX(), track.GetAlpha(), false);
+    if (err == 0) {
+      printf("REFIT RESULT %d, SnpDiff %f\n", retval, trk.GetParam().GetSinPhi() - track.GetParam().GetSinPhi());
+      if (retval > 20 && fabsf(trk.GetParam().GetSinPhi() - track.GetParam().GetSinPhi()) > 0.01) {
+        printf("LARGE DIFF\n");
+      }
+    } else {
+      printf("PROPAGATE ERROR\n");
+    }
+  } else {
+    printf("REFIT ERROR\n");
+  }
 }

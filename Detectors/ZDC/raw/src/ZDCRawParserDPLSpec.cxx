@@ -158,7 +158,7 @@ framework::DataProcessorSpec getZDCRawParserDPLSpec()
 {
   using device = o2::zdc::ZDCRawParserDPLSpec;
   std::vector<InputSpec> inputs;
-  inputs.emplace_back("raw", o2::framework::ConcreteDataTypeMatcher{"ZDC", "RAWDATA"}, Lifetime::Optional);
+  inputs.emplace_back("raw", o2::framework::ConcreteDataTypeMatcher{"ZDC", "RAWDATA"}, Lifetime::Timeframe);
 
   std::vector<OutputSpec> outputs;
   return DataProcessorSpec{

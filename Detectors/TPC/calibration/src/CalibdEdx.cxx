@@ -215,7 +215,8 @@ void fitHist(const Hist& hist, CalibdEdxCorrection& corr, TLinearFitter& fitter,
         corr.setChi2(id, charge, fitter.GetChisquare());
         corr.setEntries(id, charge, entries);
       }
-      LOGP(debug, "Sector: {}, gemType: {}, charge: {}, Fit pass: {} with {} % outliers in {} entries. Fitter Points: {}, mean fit: {}", id.sector, int(id.type), charge, fitPass, (float)outliers / (float)entries * 100, entries, fitter.GetNpoints(), params[0]);
+      LOGP(debug, "Sector: {}, gemType: {}, charge: {}, Fit pass: {} with {} % outliers in {} entries. Fitter Points: {}, mean fit: {}",
+           id.sector, int(id.type), int(charge), fitPass, (float)outliers / (float)entries * 100, entries, fitter.GetNpoints(), params[0]);
     }
   }
 }

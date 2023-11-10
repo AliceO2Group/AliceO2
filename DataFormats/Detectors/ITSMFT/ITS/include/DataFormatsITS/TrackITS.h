@@ -92,8 +92,8 @@ class TrackITS : public o2::track::TrackParCov
 
   bool isBetter(const TrackITS& best, float maxChi2) const;
 
-  o2::track::TrackParCov& getParamIn() { return *this; }
-  const o2::track::TrackParCov& getParamIn() const { return *this; }
+  GPUhdi() o2::track::TrackParCov& getParamIn() { return *this; }
+  GPUhdi() const o2::track::TrackParCov& getParamIn() const { return *this; }
 
   GPUhdi() o2::track::TrackParCov& getParamOut() { return mParamOut; }
   GPUhdi() const o2::track::TrackParCov& getParamOut() const { return mParamOut; }

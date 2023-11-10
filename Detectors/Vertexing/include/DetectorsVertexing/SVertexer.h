@@ -135,6 +135,8 @@ class SVertexer
   void setStrangenessTracker(o2::strangeness_tracking::StrangenessTracker* tracker) { mStrTracker = tracker; }
   o2::strangeness_tracking::StrangenessTracker* getStrangenessTracker() { return mStrTracker; }
 
+  std::array<size_t, 3> getNFitterCalls() const;
+
  private:
   template <class TVI, class TCI, class T3I, class TR>
   void extractPVReferences(const TVI& v0s, TR& vtx2V0Refs, const TCI& cascades, TR& vtx2CascRefs, const T3I& vtxs3, TR& vtx2body3Refs);
@@ -172,7 +174,6 @@ class SVertexer
   std::array<SVertexHypothesis, NHypV0> mV0Hyps;
   std::array<SVertexHypothesis, NHypCascade> mCascHyps;
   std::array<SVertex3Hypothesis, NHyp3body> m3bodyHyps;
-
   std::vector<DCAFitterN<2>> mFitterV0;
   std::vector<DCAFitterN<2>> mFitterCasc;
   std::vector<DCAFitterN<3>> mFitter3body;

@@ -1150,3 +1150,15 @@ float SVertexer::correctTPCTrack(o2::track::TrackParCov& trc, const o2::tpc::Tra
 
   return driftErr;
 }
+
+//______________________________________________
+std::array<size_t, 3> SVertexer::getNFitterCalls() const
+{
+  std::array<size_t, 3> calls{};
+  for (int i = 0; i < mNThreads; i++) {
+    calls[0] += mFitterV0[i].getCallID();
+    calls[1] += mFitterCasc[i].getCallID();
+    calls[2] += mFitter3body[i].getCallID();
+  }
+  return calls;
+}

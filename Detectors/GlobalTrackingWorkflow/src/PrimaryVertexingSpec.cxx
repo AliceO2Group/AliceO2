@@ -81,6 +81,7 @@ void PrimaryVertexingSpec::init(InitContext& ic)
     throw std::runtime_error(fmt::format("directory {} for raw data dumps does not exist", dumpDir));
   }
   mVertexer.setPoolDumpDirectory(dumpDir);
+  mVertexer.setTrackSources(mTrackSrc);
 }
 
 void PrimaryVertexingSpec::run(ProcessingContext& pc)
@@ -102,13 +103,18 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
     std::vector<o2d::GlobalTrackID> gids;
     auto maxTrackTimeError = PVertexerParams::Instance().maxTimeErrorMUS;
     auto trackMaxX = PVertexerParams::Instance().trackMaxX;
+    auto minIBHits = PVertexerParams::Instance().minIBHits;
     auto halfROFITS = 0.5 * mITSROFrameLengthMUS + mITSROFBiasMUS;
     auto hw2ErrITS = 2.f / std::sqrt(12.f) * mITSROFrameLengthMUS; // conversion from half-width to error for ITS
 
-    auto creator = [maxTrackTimeError, hw2ErrITS, halfROFITS, trackMaxX, &tracks, &gids](auto& _tr, GTrackID _origID, float t0, float terr) {
+    auto creator = [maxTrackTimeError, hw2ErrITS, halfROFITS, trackMaxX, minIBHits, &tracks, &gids, &recoData](auto& _tr, GTrackID _origID, float t0, float terr) {
       if constexpr (isBarrelTrack<decltype(_tr)>()) {
         if (!_origID.includesDet(DetID::ITS) || _tr.getX() > trackMaxX) {
           return true; // just in case this selection was not done on RecoContainer filling level
+        }
+        auto itsID = recoData.getITSContributorGID(_origID);
+        if (!itsID.isSourceSet() || o2::math_utils::numberOfBitsSet(recoData.getITSTrack(itsID).getPattern() & 7) < minIBHits) {
+          return true;
         }
         if constexpr (isITSTrack<decltype(_tr)>()) {
           t0 += halfROFITS;  // ITS time is supplied in \mus as beginning of ROF
@@ -129,13 +135,17 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
       recoData.fillTrackMCLabels(gids, tracksMCInfo);
     }
     mVertexer.setStartIR(recoData.startIR);
-    std::vector<o2::InteractionRecord> ft0Data;
+    static std::vector<InteractionCandidate> ft0Data;
     if (mValidateWithIR) { // select BCs for validation
+      ft0Data.clear();
       const o2::ft0::InteractionTag& ft0Params = o2::ft0::InteractionTag::Instance();
       auto ft0all = recoData.getFT0RecPoints();
       for (const auto& ftRP : ft0all) {
         if (ft0Params.isSelected(ftRP)) {
-          ft0Data.push_back(ftRP.getInteractionRecord());
+          ft0Data.emplace_back(InteractionCandidate{ftRP.getInteractionRecord(),
+                                                    float(ftRP.getInteractionRecord().differenceInBC(recoData.startIR) * o2::constants::lhc::LHCBunchSpacingMUS),
+                                                    float(ftRP.getTrigger().getAmplA() + ftRP.getTrigger().getAmplC()),
+                                                    GTrackID::FT0});
         }
       }
     }
@@ -151,9 +161,9 @@ void PrimaryVertexingSpec::run(ProcessingContext& pc)
   }
 
   mTimer.Stop();
-  LOGP(info, "Found {} PVs, Time CPU/Real:{:.3f}/{:.3f} (DBScan: {:.4f}, Finder:{:.4f}, Rej.Debris:{:.4f}, Reattach:{:.4f}) | {} trials for {} TZ-clusters, max.trials: {}, Slowest TZ-cluster: {} ms of mult {}",
+  LOGP(info, "Found {} PVs, Time CPU/Real:{:.3f}/{:.3f} (DBScan: {:.4f}, Finder:{:.4f}, MADSel:{:.4f}, Rej.Debris:{:.4f}, Reattach:{:.4f}) | {} trials for {} TZ-clusters, max.trials: {}, Slowest TZ-cluster: {} ms of mult {}",
        vertices.size(), mTimer.CpuTime() - timeCPU0, mTimer.RealTime() - timeReal0,
-       mVertexer.getTimeDBScan().CpuTime(), mVertexer.getTimeVertexing().CpuTime(), mVertexer.getTimeDebris().CpuTime(), mVertexer.getTimeReAttach().CpuTime(),
+       mVertexer.getTimeDBScan().CpuTime(), mVertexer.getTimeVertexing().CpuTime(), mVertexer.getTimeMADSel().CpuTime(), mVertexer.getTimeDebris().CpuTime(), mVertexer.getTimeReAttach().CpuTime(),
        mVertexer.getTotTrials(), mVertexer.getNTZClusters(), mVertexer.getMaxTrialsPerCluster(),
        mVertexer.getLongestClusterTimeMS(), mVertexer.getLongestClusterMult());
 }

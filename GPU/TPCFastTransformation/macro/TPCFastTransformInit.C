@@ -94,7 +94,7 @@ void TPCFastTransformInit(const char* fileName = "debugVoxRes.root",
   std::cout << "... create fast transformation completed " << std::endl;
 
   if (*outFileName) {
-    fastTransform->writeToFile(outFileName);
+    fastTransform->writeToFile(outFileName, "ccdb_object");
   }
 
   std::cout << "verify the results ..." << std::endl;

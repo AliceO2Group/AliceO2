@@ -369,7 +369,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(SyncInTheMiddleChargeSumModeTwoChannels, V, testTy
     5);
   std::string r2 = "S361-J6-DS2-ch-63-ts-345-q-123456-cs-789\n";
   r2 += "S361-J6-DS2-ch-63-ts-346-q-789012-cs-345\n";
-  r2 += fmt::format("S361-J6-DS2-chip-5-error-{}\n", ErrorUnexpectedSyncPacket);
+  r2 += fmt::format("S361-J6-DS2-chip-5-error-{}\n", (int)ErrorUnexpectedSyncPacket);
   BOOST_CHECK_EQUAL(r, r2);
 }
 
@@ -387,7 +387,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(TestCruPageBadClusterSize, V, testTypes)
   gsl::span<const uint64_t> page = CruPageBadClusterSize;
   std::string r = testPayloadDecodeCruPages<V::value>(page);
   BOOST_CHECK_EQUAL(r,
-                    fmt::format("S81-J0-DS0-chip-1-error-{}\nS81-J0-DS0-ch-42-ts-0-q-1\n", ErrorBadClusterSize));
+                    fmt::format("S81-J0-DS0-chip-1-error-{}\nS81-J0-DS0-ch-42-ts-0-q-1\n", (int)ErrorBadClusterSize));
 }
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(TestCruPageBadN10bitWords, V, testTypes)
@@ -396,7 +396,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(TestCruPageBadN10bitWords, V, testTypes)
   std::string r = testPayloadDecodeCruPages<V::value>(page);
   std::string expected =
     fmt::format("S81-J0-DS0-ch-42-ts-87-q-2-1-0-0-1-0-0-0\nS81-J0-DS0-chip-1-error-{}\nS81-J0-DS0-ch-42-ts-0-q-1\n",
-                ErrorBadIncompleteWord);
+                (int)ErrorBadIncompleteWord);
   BOOST_CHECK_EQUAL(r, expected);
 }
 

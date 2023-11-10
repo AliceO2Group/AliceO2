@@ -147,10 +147,10 @@ TEST_CASE("TestTableIteration")
 
   b = tests2.begin();
   REQUIRE(b != e);
-  REQUIRE((b + 1) == (b + 1));
-  REQUIRE((b + 7) != b);
-  REQUIRE((b + 7) != e);
-  REQUIRE((b + 8) == e);
+  REQUIRE(((b + 1) == (b + 1)));
+  REQUIRE(((b + 7) != b));
+  REQUIRE(((b + 7) != e));
+  REQUIRE(((b + 8) == e));
 
   for (auto& t : tests2) {
     REQUIRE(t.x() == value / 4);

@@ -44,6 +44,7 @@ class TimeStampWithError : public TimeStamp<T>
   GPUdDefault() TimeStampWithError() = default;
   GPUd() TimeStampWithError(T t, E te) : TimeStamp<T>(t), mTimeStampError(te) {}
   GPUdi() E getTimeStampError() const { return mTimeStampError; }
+  GPUdi() E getTimeStampError2() const { return mTimeStampError * mTimeStampError; }
   GPUdi() void setTimeStampError(E te) { mTimeStampError = te; }
 
  private:

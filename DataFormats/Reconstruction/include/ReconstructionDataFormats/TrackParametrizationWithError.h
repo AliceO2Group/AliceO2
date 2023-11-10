@@ -46,7 +46,7 @@ class TrackParametrizationWithError : public TrackParametrization<value_T>
   GPUd() TrackParametrizationWithError(const dim3_t& xyz, const dim3_t& pxpypz,
                                        const gpu::gpustd::array<value_t, kLabCovMatSize>& cv, int sign, bool sectorAlpha = true, const PID pid = PID::Pion);
 
-  GPUdDefault() TrackParametrizationWithError(const TrackParametrizationWithError& src) = default;
+  GPUhdDefault() TrackParametrizationWithError(const TrackParametrizationWithError& src) = default;
   GPUdDefault() TrackParametrizationWithError(TrackParametrizationWithError&& src) = default;
   GPUhdDefault() TrackParametrizationWithError& operator=(const TrackParametrizationWithError& src) = default;
   GPUhdDefault() TrackParametrizationWithError& operator=(TrackParametrizationWithError&& src) = default;

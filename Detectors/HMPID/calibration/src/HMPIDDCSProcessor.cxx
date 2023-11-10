@@ -395,7 +395,7 @@ double HMPIDDCSProcessor::calculatePhotonEnergy(int i)
   if (dp.id.get_type() == DeliveryType::DPVAL_DOUBLE) {
     lambda = o2::dcs::getValue<double>(dp);
   } else {
-    LOGP(warn, "DP type is {}", dp.id.get_type());
+    LOGP(warn, "DP type is {}", (int)dp.id.get_type());
     LOGP(warn, "Not correct datatype for HMP_TRANPLANT_MEASURE_{}_WAVELENGTH --> Default wavelength used for iteration procTrans{}", i, i);
     lambda = arrWaveLenDefault[i];
   }

@@ -576,6 +576,26 @@ void TimeFrameGPU<nLayers>::loadRoadsDevice()
 }
 
 template <int nLayers>
+void TimeFrameGPU<nLayers>::loadTrackSeedsDevice(std::vector<CellSeed>& seeds)
+{
+  LOGP(debug, "gpu-transfer: loading {} track seeds, for {} MB.", seeds.size(), seeds.size() * sizeof(CellSeed) / MB);
+  allocMemAsync(reinterpret_cast<void**>(&mTrackSeedsDevice), seeds.size() * sizeof(CellSeed), &(mGpuStreams[0]), false);
+  checkGPUError(cudaHostRegister(seeds.data(), seeds.size() * sizeof(CellSeed), cudaHostRegisterPortable));
+  checkGPUError(cudaMemcpyAsync(mTrackSeedsDevice, seeds.data(), seeds.size() * sizeof(CellSeed), cudaMemcpyHostToDevice, mGpuStreams[0].get()));
+}
+
+template <int nLayers>
+void TimeFrameGPU<nLayers>::createTrackITSExtDevice(const std::vector<CellSeed>& seeds)
+{
+  mTrackITSExt.clear();
+  mTrackITSExt.resize(seeds.size());
+  LOGP(debug, "gpu-allocation: reserving {} tracks, for {} MB.", seeds.size(), seeds.size() * sizeof(o2::its::TrackITSExt) / MB);
+  allocMemAsync(reinterpret_cast<void**>(&mTrackITSExtDevice), seeds.size() * sizeof(o2::its::TrackITSExt), &(mGpuStreams[0]), false);
+  checkGPUError(cudaMemsetAsync(mTrackITSExtDevice, 0, seeds.size() * sizeof(o2::its::TrackITSExt), mGpuStreams[0].get()));
+  checkGPUError(cudaHostRegister(mTrackITSExt.data(), seeds.size() * sizeof(o2::its::TrackITSExt), cudaHostRegisterPortable));
+}
+
+template <int nLayers>
 void TimeFrameGPU<nLayers>::createTrackITSExtDevice()
 {
   mTrackITSExt.clear();
@@ -589,8 +609,10 @@ void TimeFrameGPU<nLayers>::createTrackITSExtDevice()
 template <int nLayers>
 void TimeFrameGPU<nLayers>::downloadTrackITSExtDevice()
 {
-  LOGP(debug, "gpu-transfer: downloading {} tracks, for {} MB.", mRoads.size(), mRoads.size() * sizeof(o2::its::TrackITSExt) / MB);
-  checkGPUError(cudaMemcpyAsync(mTrackITSExt.data(), mTrackITSExtDevice, mRoads.size() * sizeof(o2::its::TrackITSExt), cudaMemcpyDeviceToHost, mGpuStreams[0].get()));
+  LOGP(debug, "gpu-transfer: downloading {} tracks, for {} MB.", mTrackITSExt.size(), mTrackITSExt.size() * sizeof(o2::its::TrackITSExt) / MB);
+  checkGPUError(cudaMemcpyAsync(mTrackITSExt.data(), mTrackITSExtDevice, mTrackITSExt.size() * sizeof(o2::its::TrackITSExt), cudaMemcpyDeviceToHost, mGpuStreams[0].get()));
+  checkGPUError(cudaHostUnregister(mTrackITSExt.data()));
+  discardResult(cudaDeviceSynchronize());
 }
 
 template <int nLayers>

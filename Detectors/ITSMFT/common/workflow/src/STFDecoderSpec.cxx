@@ -356,9 +356,6 @@ DataProcessorSpec getSTFDecoderSpec(const STFDecoderInp& inp)
   outputs.emplace_back(inp.origin, "ChipErrors", 0, Lifetime::Timeframe);
 
   if (inp.askSTFDist) {
-    for (auto& ins : inputs) { // mark input as optional in order not to block the workflow if our raw data happen to be missing in some TFs
-      ins.lifetime = Lifetime::Optional;
-    }
     // request the input FLP/DISTSUBTIMEFRAME/0 that is _guaranteed_ to be present, even if none of our raw data is present.
     inputs.emplace_back("stfDist", "FLP", "DISTSUBTIMEFRAME", 0, o2::framework::Lifetime::Timeframe);
   }

@@ -27,6 +27,7 @@
 #pragma link C++ class o2::tpc::CalDet < unsigned> + ;
 #pragma link C++ class o2::tpc::CalDet < short> + ;
 #pragma link C++ class o2::tpc::CalDet < bool> + ;
+#pragma link C++ class o2::tpc::CalDet < o2::tpc::PadFlags> + ;
 #pragma link C++ class std::vector < o2::tpc::CalDet < float>> + ;
 #pragma link C++ class std::vector < o2::tpc::CalDet < float>*> + ;
 #pragma link C++ class std::unordered_map < std::string, o2::tpc::CalDet < float>> + ;
@@ -84,4 +85,5 @@
 #pragma link C++ function o2::tpc::cru_calib_helpers::getCalPad < 2>(const std::string_view, const std::string_view, std::string_view)
 #pragma link C++ function o2::tpc::cru_calib_helpers::getCalPad < 6>(const std::string_view, const std::string_view, std::string_view)
 
+#pragma link C++ class o2::tpc::DeadChannelMapCreator + ;
 #endif

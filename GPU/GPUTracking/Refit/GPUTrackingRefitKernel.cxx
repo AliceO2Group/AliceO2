@@ -14,6 +14,7 @@
 
 #include "GPUTrackingRefitKernel.h"
 #include "GPUTrackingRefit.h"
+#include "GPUROOTDump.h"
 
 using namespace GPUCA_NAMESPACE::gpu;
 
@@ -30,6 +31,11 @@ GPUdii() void GPUTrackingRefitKernel::Thread(int nBlocks, int nThreads, int iBlo
       } else if constexpr (I == mode1asTrackParCov) {
         retval = refit.RefitTrackAsTrackParCov(trk, false, true);
       }
+      /*#pragma omp critical
+      if (retval > 0) {
+        static auto cldump = GPUROOTDump<GPUTPCGMMergedTrack, GPUTPCGMMergedTrack>::getNew("org", "refit", "debugTree");
+        cldump.Fill(refit.mPTracks[i], trk);
+      }*/
       if (retval > 0) {
         refit.mPTracks[i] = trk;
       } else {
