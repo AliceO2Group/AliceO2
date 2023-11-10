@@ -46,9 +46,9 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
   void run(framework::ProcessingContext& pc)
   {
     // read collision context from input
-    //auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
-    //const bool withQED = context->isQEDProvided();
-    //auto& timesview = context->getEventRecords(withQED);
+    // auto context = pc.inputs().get<o2::steer::DigitizationContext*>("collisioncontext");
+    // const bool withQED = context->isQEDProvided();
+    // auto& timesview = context->getEventRecords(withQED);
     // read ctp inputs from input
 
     o2::globaltracking::RecoContainer recoData;
@@ -56,7 +56,7 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     std::vector<o2::ctp::CTPInputDigit> finputs;
     auto ft0inputs = pc.inputs().get<gsl::span<o2::ft0::DetTrigInput>>("ft0");
     auto fv0inputs = pc.inputs().get<gsl::span<o2::fv0::DetTrigInput>>("fv0");
-    if( mDataRequest->isRequested("emc")) {
+    if (mDataRequest->isRequested("emc")) {
       auto emcinputs = pc.inputs().get<gsl::span<o2::fv0::DetTrigInput>>("emc");
       for (const auto& inp : emcinputs) {
         finputs.emplace_back(CTPInputDigit{inp.mIntRecord, inp.mInputs, o2::detectors::DetID::EMC});
