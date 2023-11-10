@@ -288,7 +288,6 @@ struct InteractionCandidate : public o2::InteractionRecord {
   int rofITS;                                         // corresponding ITS ROF entry (in the ROFRecord vectors)
   uint32_t flag;                                      // origin, etc.
   o2::dataformats::RangeReference<int, int> seedsRef; // references to AB seeds
-  InteractionCandidate() = default;
   InteractionCandidate(const o2::InteractionRecord& ir, float t, float dt, int rof, uint32_t f = 0) : o2::InteractionRecord(ir), tBracket(t - dt, t + dt), rofITS(rof), flag(f) {}
 };
 
