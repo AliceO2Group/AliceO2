@@ -402,7 +402,8 @@ class EncodedBlocks
       if (getANSHeader() == ANSVersionUnspecified) {
         rans::DenseHistogram<source_T> histogram{block.getDict(), block.getDict() + block.getNDict(), metadata.min};
         size_t renormingBits = rans::utils::sanitizeRenormingBitRange(metadata.probabilityBits);
-        LOG_IF(debug, renormingBits != metadata.probabilityBits) << fmt::format("While reading metadata from external dictionary, rANSV1 is rounding renorming precision from {} to {}");
+        LOG_IF(debug, renormingBits != metadata.probabilityBits)
+          << fmt::format("While reading metadata from external dictionary, rANSV1 is rounding renorming precision from {} to {}", metadata.probabilityBits, renormingBits);
         return rans::renorm(std::move(histogram), renormingBits, rans::RenormingPolicy::ForceIncompressible);
       } else {
         // dictionary is elias-delta coded inside the block

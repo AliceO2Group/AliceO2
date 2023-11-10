@@ -289,7 +289,7 @@ void DCSConfigDevice::fillCRUConfig(gsl::span<const char> configBuff, bool updat
   }
 
   if (!update && (nLines != CRU::MaxCRU)) {
-    LOGP(error, "Full FEEConfig expected, but only {} / {} lines read for CRUConfig", nLines, CRU::MaxCRU);
+    LOGP(error, "Full FEEConfig expected, but only {} / {} lines read for CRUConfig", nLines, (int)CRU::MaxCRU);
   } else {
     LOGP(info, "updating CRUConfig for {} crus", nLines);
   }

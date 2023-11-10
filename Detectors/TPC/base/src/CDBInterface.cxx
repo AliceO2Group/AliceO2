@@ -633,5 +633,5 @@ void CDBStorage::printObjectSummary(std::string_view name, CDBType const type, M
     message += fmt::format("{:>20} = {}\n", key, value);
   }
 
-  LOGP(info, message);
+  LOGP(info, "{}", message);
 }

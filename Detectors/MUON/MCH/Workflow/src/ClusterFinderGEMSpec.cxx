@@ -173,7 +173,7 @@ class ClusterFinderGEMTask
         mGEMDump = nullptr;
       }
       mErrorMap.forEach([](Error error) {
-        LOGP(warning, error.asString());
+        LOGP(warning, "{}", error.asString());
       });
     });
     auto stop = [this]() {

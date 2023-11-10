@@ -463,7 +463,7 @@ void CalDet<T>::initData()
     if (!hasData) {
       mData.push_back(CalType(mPadSubset, i));
     }
-    mData[i].setName(fmt::format(frmt, mName, i));
+    mData[i].setName(fmt::format(fmt::runtime(frmt), mName, i));
   }
 }
 

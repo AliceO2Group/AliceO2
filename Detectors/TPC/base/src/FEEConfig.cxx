@@ -133,7 +133,7 @@ void FEEConfig::print() const
   fmt::print("{0:=^{1}}\n", message, boxWidth);
 
   if (cruConfig.size() != CRU::MaxCRU) {
-    LOGP(error, "Unexpected size of cru config:{} != {}", cruConfig.size(), CRU::MaxCRU);
+    LOGP(error, "Unexpected size of cru config:{} != {}", cruConfig.size(), (int)CRU::MaxCRU);
   } else {
     for (int iCRU = 0; iCRU < cruConfig.size(); ++iCRU) {
       const auto& c = cruConfig.at(iCRU);

@@ -57,7 +57,7 @@ void Tracking::checkTrack(const TrackTRD& trkTrd, bool isTPCTRD)
   qcStruct.refGlobalTrackId = id;
   qcStruct.trackTRD = trkTrd;
 
-  LOGF(debug, "Got track with %i tracklets and ID %i", trkTrd.getNtracklets(), id);
+  LOGF(debug, "Got track with %i tracklets and ID %i", trkTrd.getNtracklets(), (int)id);
   o2::track::TrackParCov trk = isTPCTRD ? mTracksTPC[id].getParamOut() : mTracksITSTPC[id].getParamOut();
   qcStruct.trackSeed = trk;
   if (mPID) {

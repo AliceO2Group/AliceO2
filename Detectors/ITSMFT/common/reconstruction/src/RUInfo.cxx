@@ -35,5 +35,5 @@ std::string ChipInfo::asString() const
 
 void ChipInfo::print() const
 {
-  LOGP(info, asString());
+  LOGP(info, fmt::runtime(asString()));
 }

@@ -82,7 +82,7 @@ std::vector<std::string> extractRange(std::string range)
   std::vector<std::string> result;
 
   for (auto i = a; i <= b; i++) {
-    auto substituted = fmt::format(intFormat, i);
+    auto substituted = fmt::format(fmt::runtime(intFormat), i);
     result.push_back(substituted);
   }
   return result;
@@ -124,7 +124,7 @@ std::vector<std::string> expandAlias(const std::string& pattern)
   std::vector<std::string> result;
 
   for (auto r : range) {
-    auto substituted = fmt::format(newPattern, r);
+    auto substituted = fmt::format(fmt::runtime(newPattern), r);
     result.emplace_back(substituted);
   }
 

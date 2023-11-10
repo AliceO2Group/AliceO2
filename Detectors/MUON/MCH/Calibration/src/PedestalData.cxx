@@ -120,7 +120,7 @@ void PedestalData::merge(const PedestalData* prev)
 void PedestalData::print() const
 {
   for (const auto& p : const_cast<PedestalData&>(*this)) {
-    LOGP(info, p.asString());
+    LOGP(info, fmt::runtime(p.asString()));
   }
 }
 

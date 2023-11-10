@@ -104,7 +104,7 @@ std::vector<std::byte> paginate(gsl::span<const std::byte> buffer, const std::st
   return pages;
 }
 
-const char* sampaClusterFormat = "{}-CH{}-{}";
+constexpr const char* sampaClusterFormat = "{}-CH{}-{}";
 
 // Create a vector of SampaCluster from a string d
 // where d is of the form ts-#-bc-#-cs-#-q-# or
