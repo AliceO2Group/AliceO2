@@ -106,11 +106,6 @@ class DumpPagesTask
 o2::framework::DataProcessorSpec getDumpPagesSpec(const char* specName)
 {
   auto inputs = o2::framework::select("TF:MCH/RAWDATA");
-  for (auto& inp : inputs) {
-    // mark input as optional in order not to block the workflow
-    // if our raw data happen to be missing in some TFs
-    inp.lifetime = Lifetime::Optional;
-  }
   //o2::mch::raw::DumpPagesTask task("TF:MCH/RAWDATA");
   return DataProcessorSpec{
     specName,

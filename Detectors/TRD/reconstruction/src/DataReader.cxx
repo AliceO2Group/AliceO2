@@ -89,10 +89,6 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   WorkflowSpec workflow;
 
   auto inputs = o2::framework::select(std::string("x:TRD/RAWDATA").c_str());
-  for (auto& inp : inputs) {
-    // take care of case where our data is not in the time frame
-    inp.lifetime = Lifetime::Optional;
-  }
   if (askSTFDist) {
     inputs.emplace_back("stdDist", "FLP", "DISTSUBTIMEFRAME", 0, Lifetime::Timeframe);
   }
