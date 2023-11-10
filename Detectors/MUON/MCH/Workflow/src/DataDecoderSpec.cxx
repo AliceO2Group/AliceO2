@@ -351,11 +351,6 @@ o2::framework::DataProcessorSpec getDecodingSpec(const char* specName, std::stri
                                                  bool askSTFDist)
 {
   auto inputs = o2::framework::select(inputSpec.c_str());
-  for (auto& inp : inputs) {
-    // mark input as optional in order not to block the workflow
-    // if our raw data happen to be missing in some TFs
-    inp.lifetime = Lifetime::Optional;
-  }
   if (askSTFDist) {
     // request the input FLP/DISTSUBTIMEFRAME/0 that is _guaranteed_
     // to be present, even if none of our raw data is present.

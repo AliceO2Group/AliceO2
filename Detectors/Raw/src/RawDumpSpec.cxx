@@ -674,7 +674,7 @@ DataProcessorSpec getRawDumpSpec(DetID::mask_t detMask, bool TOFUncompressed)
   o2h::DataOrigin orig;
   for (DetID::ID id = DetID::First; id <= DetID::Last; id++) {
     if (detMask[id] && (orig = DetID::getDataOrigin(id)) != o2h::gDataOriginInvalid) {
-      inputs.emplace_back(DetID::getName(id), ConcreteDataTypeMatcher{orig, (id != DetID::TOF || TOFUncompressed) ? RawDump::DESCRaw : RawDump::DESCCRaw}, Lifetime::Optional);
+      inputs.emplace_back(DetID::getName(id), ConcreteDataTypeMatcher{orig, (id != DetID::TOF || TOFUncompressed) ? RawDump::DESCRaw : RawDump::DESCCRaw}, Lifetime::Timeframe);
     }
   }
   return DataProcessorSpec{
