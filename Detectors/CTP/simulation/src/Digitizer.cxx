@@ -69,8 +69,8 @@ std::vector<CTPDigit> Digitizer::process(const gsl::span<o2::ctp::CTPInputDigit>
           break;
         }
         case o2::detectors::DetID::EMC: {
-          uint64_t inpmaskdebug = 1;
-          // uint64_t inpmaskdebug = (inp->inputsMask).to_ullong();
+          // uint64_t inpmaskdebug = 1;
+          uint64_t inpmaskdebug = (inp->inputsMask).to_ullong();
           for (auto const& ctpinp : det2ctpinp[o2::detectors::DetID::EMC]) {
             uint64_t mask = inpmaskdebug & detInputName2Mask[ctpinp.name];
             // uint64_t mask = (inp->inputsMask).to_ullong() & detInputName2Mask[ctpinp.name];
