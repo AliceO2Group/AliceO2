@@ -223,7 +223,7 @@ int TimeFrame::loadROFrameData(gsl::span<o2::itsmft::ROFRecord> rofs,
       addClusterExternalIndexToLayer(layer, clusterId);
     }
     for (unsigned int iL{0}; iL < mUnsortedClusters.size(); ++iL) {
-      mNClustersPerROF[iL].push_back(mUnsortedClusters[iL].size() - mROframesClusters[iL].back());
+      // mNClustersPerROF[iL].push_back(mUnsortedClusters[iL].size() - mROframesClusters[iL].back());
       mROframesClusters[iL].push_back(mUnsortedClusters[iL].size());
     }
     mNrof++;
@@ -415,7 +415,7 @@ unsigned long TimeFrame::getArtefactsMemory()
     size += sizeof(Tracklet) * trkl.size();
   }
   for (auto& cells : mCells) {
-    size += sizeof(Cell) * cells.size();
+    size += sizeof(CellSeed) * cells.size();
   }
   for (auto& cellsN : mCellsNeighbours) {
     size += sizeof(int) * cellsN.size();
