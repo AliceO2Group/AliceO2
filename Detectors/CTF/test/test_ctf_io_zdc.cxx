@@ -81,7 +81,7 @@ BOOST_DATA_TEST_CASE(CTFTest, boost_data::make(ANSVersions), ansVersion)
     pedsdata[i].ir = irPed;
     for (int ic = 0; ic < NChannels; ic++) {
       pedsdata[i].data[ic] = gRandom->Integer(0xffff);
-      pedsdata[i].scaler[ic] = (i > 0 ? pedsdata[i].scaler[ic - 1] : 0) + gRandom->Integer(20);
+      pedsdata[i].scaler[ic] = (ic > 0 ? pedsdata[i].scaler[ic - 1] : 0) + gRandom->Integer(20);
     }
     irPed.orbit++;
   }
