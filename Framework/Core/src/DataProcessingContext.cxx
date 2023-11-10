@@ -52,7 +52,7 @@ void DataProcessorContext::preDanglingCallbacks(DanglingContext& danglingContext
 void DataProcessorContext::postDanglingCallbacks(DanglingContext& danglingContext)
 {
   for (auto& handle : postDanglingHandles) {
-    LOGP(debug, "Invoking postDanglingCallback for service {} {}", handle.spec.name);
+    LOGP(debug, "Invoking postDanglingCallback for service {}", handle.spec.name);
     handle.callback(danglingContext, handle.service);
   }
 }

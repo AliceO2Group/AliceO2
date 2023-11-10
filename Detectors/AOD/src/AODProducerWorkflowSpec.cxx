@@ -1221,7 +1221,7 @@ void AODProducerWorkflowDPL::fillSecondaryVertices(const o2::globaltracking::Rec
       if (item != mGIDToTableID.end()) {
         tableIdx[i] = item->second;
       } else {
-        LOG(warn) << fmt::format("Could not find a track index for prong ID {}", trIDs[i]);
+        LOG(warn) << fmt::format("Could not find a track index for prong ID {}", (int)trIDs[i]);
         missing = true;
       }
     }
