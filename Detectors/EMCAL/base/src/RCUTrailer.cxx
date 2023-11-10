@@ -172,7 +172,7 @@ void RCUTrailer::setTimeSamplePhaseNS(uint64_t triggertime, uint64_t timesample)
       sample = 2;
       break;
     default:
-      throw Error(Error::ErrorType_t::SAMPLINGFREQ_INVALID, fmt::format("invalid time sample: {:f}", timesample).data());
+      throw Error(Error::ErrorType_t::SAMPLINGFREQ_INVALID, fmt::format(fmt::runtime("invalid time sample: {:f}"), timesample).data());
   };
   mAltroConfig.mSampleTime = sample;
   // calculate L1 phase

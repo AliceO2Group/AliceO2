@@ -124,7 +124,7 @@ class IDCToVectorDevice : public o2::framework::Task
 
     // open files if necessary
     if ((mWriteDebug || mWriteDebugOnError) && !mDebugStream) {
-      const auto debugFileName = fmt::format(mDebugStreamFileName, fmt::arg("run", runNumber));
+      const auto debugFileName = fmt::format(fmt::runtime(mDebugStreamFileName), fmt::arg("run", runNumber));
       LOGP(info, "creating debug stream {}", debugFileName);
       mDebugStream = std::make_unique<o2::utils::TreeStreamRedirector>(debugFileName.data(), "recreate");
     }
@@ -134,7 +134,7 @@ class IDCToVectorDevice : public o2::framework::Task
       if (mRawDataType == 4) {
         rawType = "idc.raw";
       }
-      const auto rawFileName = fmt::format(mRawOutputFileName, fmt::arg("run", runNumber), fmt::arg("raw_type", rawType));
+      const auto rawFileName = fmt::format(fmt::runtime(mRawOutputFileName), fmt::arg("run", runNumber), fmt::arg("raw_type", rawType));
       LOGP(info, "creating raw debug file {}", rawFileName);
       mRawOutputFile.open(rawFileName, std::ios::binary);
     }

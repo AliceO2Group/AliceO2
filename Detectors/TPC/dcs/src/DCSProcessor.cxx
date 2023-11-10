@@ -69,7 +69,7 @@ float DCSProcessor::getValueF(const DPCOM& dp) const
   } else if (dp.id.get_type() == DeliveryType::DPVAL_DOUBLE) {
     return static_cast<float>(o2::dcs::getValue<double>(dp));
   } else {
-    LOGP(warning, "Unexpected delivery type for {}: {}", dp.id.get_alias(), dp.id.get_type());
+    LOGP(warning, "Unexpected delivery type for {}: {}", dp.id.get_alias(), (int)dp.id.get_type());
   }
 
   return 0.f;
@@ -94,7 +94,7 @@ void DCSProcessor::fillHV(const DPCOM& dp)
     // TODO: Remove once type is clear
     static bool statTypePrinted = false;
     if (!statTypePrinted) {
-      LOGP(info, "Delivery type for STATUS ({}): {}", alias, type);
+      LOGP(info, "Delivery type for STATUS ({}): {}", alias, (int)type);
       statTypePrinted = true;
     }
     if (type == DeliveryType::DPVAL_UINT) {
@@ -109,7 +109,7 @@ void DCSProcessor::fillHV(const DPCOM& dp)
     // TODO: Remove once type is clear
     static bool uiTypePrinted = false;
     if (!uiTypePrinted) {
-      LOGP(info, "Delivery type for current, voltage ({}): {}", alias, type);
+      LOGP(info, "Delivery type for current, voltage ({}): {}", alias, (int)type);
       uiTypePrinted = true;
     }
     const auto value = getValueF(dp);

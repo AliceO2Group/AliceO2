@@ -205,7 +205,7 @@ bool publish(std::string const& filename, std::string const& path, std::string C
   try {
     o2::utils::createDirectoriesIfAbsent(targetdir);
   } catch (std::exception e) {
-    LOGP(error, fmt::format("Could not create local snapshot cache directory {}, reason: {}", targetdir, e.what()));
+    LOGP(error, "Could not create local snapshot cache directory {}, reason: {}", targetdir, e.what());
     return false;
   }
 

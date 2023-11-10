@@ -973,7 +973,7 @@ void RawReaderCRU::writeGBTDataPerLink(std::string_view outputDirectory, int max
 
       const int ep = iLink >= 12;
       const int link = iLink - (ep)*12;
-      auto outputFileName = fmt::format("{}/CRU_{:02}_EP_{}_Link_{:02}", outputDirectory.data(), mCRU, ep, link);
+      auto outputFileName = fmt::format("{}/CRU_{:02}_EP_{}_Link_{:02}", outputDirectory.data(), (int)mCRU, ep, link);
       std::ofstream outputFile(outputFileName, std::ios_base::binary | std::ios_base::app);
 
       for (auto packetNumber : linkInfo.PacketPositions) {

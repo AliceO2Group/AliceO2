@@ -134,7 +134,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   int rateLimitingIPCID = std::stoi(configcontext.options().get<std::string>("timeframes-rate-limit-ipcid"));
   std::string chanFmt = configcontext.options().get<std::string>("metric-feedback-channel-format");
   if (rateLimitingIPCID > -1 && !chanFmt.empty()) {
-    ctfInput.metricChannel = fmt::format(chanFmt, o2::framework::ChannelSpecHelpers::defaultIPCFolder(), rateLimitingIPCID);
+    ctfInput.metricChannel = fmt::format(fmt::runtime(chanFmt), o2::framework::ChannelSpecHelpers::defaultIPCFolder(), rateLimitingIPCID);
   }
 
   specs.push_back(o2::ctf::getCTFReaderSpec(ctfInput));

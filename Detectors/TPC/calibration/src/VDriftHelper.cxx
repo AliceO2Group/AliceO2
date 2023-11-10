@@ -43,7 +43,8 @@ VDriftHelper::VDriftHelper()
   if (o2::conf::ConfigurableParam::getProvenance("TPCDetParam.DriftTimeOffset") == o2::conf::ConfigurableParam::EParamProvenance::kRT) { // we stick to this value
     mVD.creationTime = std::numeric_limits<long>::max();
     mForceParamOffset = true;
-    LOGP(info, "TPC dridt time offset was set from command line to {} mus ({} TB}, will neglect update from CCDB", mVD.refTimeOffset, detpar.DriftTimeOffset);
+    LOGP(info, "TPC dridt time offset was set from command line to {} mus ({} TB), will neglect update from CCDB",
+         mVD.refTimeOffset, detpar.DriftTimeOffset);
   }
 
   mUpdated = true;
