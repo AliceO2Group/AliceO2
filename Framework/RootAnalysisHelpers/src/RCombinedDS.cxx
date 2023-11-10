@@ -220,12 +220,12 @@ std::vector<void*> RCombinedDS::GetColumnReadersImpl(std::string_view colName, c
   O2_BUILTIN_UNREACHABLE();
 }
 
-void RCombinedDS::Initialise()
+void RCombinedDS::Initialize()
 {
   fEntryRanges = fIndex->BuildIndex(fLeftDF, fRightDF);
 
-  fLeft->Initialise();
-  fRight->Initialise();
+  fLeft->Initialize();
+  fRight->Initialize();
 }
 
 /// Creates a RDataFrame using an arrow::Table as input.
