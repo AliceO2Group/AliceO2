@@ -317,7 +317,7 @@ void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::loadFromFile(TFile& i
     delete gridTmp;
   } else {
 #ifndef GPUCA_ALIROOT_LIB
-    LOGP(info, fmt::format("couldnt load object {} from input file", name));
+    LOGP(info, "couldnt load object {} from input file", name);
 #endif
   }
 }
@@ -326,19 +326,19 @@ void NDPiecewisePolynomials<Dim, Degree, InteractionOnly>::setFromContainer(cons
 {
   if (Dim != container.mDim) {
 #ifndef GPUCA_ALIROOT_LIB
-    LOGP(info, fmt::format("wrong number of dimensions! this {} container {}", Dim, container.mDim));
+    LOGP(info, "wrong number of dimensions! this {} container {}", Dim, container.mDim);
 #endif
     return;
   }
   if (Degree != container.mDegree) {
 #ifndef GPUCA_ALIROOT_LIB
-    LOGP(info, fmt::format("wrong number of degrees! this {} container {}", Degree, container.mDegree));
+    LOGP(info, "wrong number of degrees! this {} container {}", Degree, container.mDegree);
 #endif
     return;
   }
   if (InteractionOnly != container.mInteractionOnly) {
 #ifndef GPUCA_ALIROOT_LIB
-    LOGP(info, fmt::format("InteractionOnly is set for this object to {}, but stored as {} in the container", InteractionOnly, container.mInteractionOnly));
+    LOGP(info, "InteractionOnly is set for this object to {}, but stored as {} in the container", InteractionOnly, container.mInteractionOnly);
 #endif
     return;
   }

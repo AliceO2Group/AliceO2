@@ -1215,7 +1215,7 @@ bool GPUReconstruction::CheckInstanceAvailable(DeviceType type)
   } else if (type == DeviceType::OCL2) {
     return sLibOCL2->LoadLibrary() == 0;
   } else {
-    GPUError("Error: Invalid device type %u", type);
+    GPUError("Error: Invalid device type %u", (unsigned)type);
     return false;
   }
 }
