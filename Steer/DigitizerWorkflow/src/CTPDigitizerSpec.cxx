@@ -21,12 +21,10 @@
 #include "CTPSimulation/Digitizer.h"
 #include "DataFormatsFT0/Digit.h"
 #include "DataFormatsFV0/Digit.h"
-#include "DataFormatsGlobalTracking/RecoContainer.h"
 
 #include <TStopwatch.h>
 #include <gsl/span>
 
-using DataRequest = o2::globaltracking::DataRequest;
 using namespace o2::framework;
 namespace o2
 {
@@ -37,7 +35,7 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
   using GRP = o2::parameters::GRPObject;
 
  public:
-  CTPDPLDigitizerTask(std::shared_ptr<DataRequest> dr) : o2::base::BaseDPLDigitizer(), mDigitizer(), mDataRequest(dr) {}
+  CTPDPLDigitizerTask(const std::vector<o2::detectors::DetID>& detList) : o2::base::BaseDPLDigitizer(), mDigitizer(), mDetList(detList) {}
   ~CTPDPLDigitizerTask() override = default;
   void initDigitizerTask(framework::InitContext& ic) override
   {
@@ -51,25 +49,27 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
     // auto& timesview = context->getEventRecords(withQED);
     // read ctp inputs from input
 
-    o2::globaltracking::RecoContainer recoData;
-    recoData.collectData(pc, *mDataRequest.get());
     std::vector<o2::ctp::CTPInputDigit> finputs;
     TStopwatch timer;
     timer.Start();
     LOG(info) << "CALLING CTP DIGITIZATION";
     // Input order: T0, V0, ... but O need also position of inputs DETInputs
     // fv0
-    auto ft0inputs = pc.inputs().get<gsl::span<o2::ft0::DetTrigInput>>("ft0");
-    for (const auto& inp : ft0inputs) {
-      finputs.emplace_back(CTPInputDigit{inp.mIntRecord, inp.mInputs, o2::detectors::DetID::FT0});
+    if (std::find(mDetList.begin(), mDetList.end(), o2::detectors::DetID::FT0) != mDetList.end()) {
+      auto ft0inputs = pc.inputs().get<gsl::span<o2::ft0::DetTrigInput>>("ft0");
+      for (const auto& inp : ft0inputs) {
+        finputs.emplace_back(CTPInputDigit{inp.mIntRecord, inp.mInputs, o2::detectors::DetID::FT0});
+      }
     }
     // fv0
-    auto fv0inputs = pc.inputs().get<gsl::span<o2::fv0::DetTrigInput>>("fv0");
-    for (const auto& inp : fv0inputs) {
-      finputs.emplace_back(CTPInputDigit{inp.mIntRecord, inp.mInputs, o2::detectors::DetID::FV0});
+    if (std::find(mDetList.begin(), mDetList.end(), o2::detectors::DetID::FV0) != mDetList.end()) {
+      auto fv0inputs = pc.inputs().get<gsl::span<o2::fv0::DetTrigInput>>("fv0");
+      for (const auto& inp : fv0inputs) {
+        finputs.emplace_back(CTPInputDigit{inp.mIntRecord, inp.mInputs, o2::detectors::DetID::FV0});
+      }
     }
     // emc
-    if (mDataRequest->isRequested("emc")) {
+    if (std::find(mDetList.begin(), mDetList.end(), o2::detectors::DetID::EMC) != mDetList.end()) {
       auto emcinputs = pc.inputs().get<gsl::span<o2::fv0::DetTrigInput>>("emc");
       for (const auto& inp : emcinputs) {
         finputs.emplace_back(CTPInputDigit{inp.mIntRecord, inp.mInputs, o2::detectors::DetID::EMC});
@@ -89,30 +89,29 @@ class CTPDPLDigitizerTask : public o2::base::BaseDPLDigitizer
  protected:
   o2::parameters::GRPObject::ROMode mROMode = o2::parameters::GRPObject::PRESENT;
   o2::ctp::Digitizer mDigitizer; ///< Digitizer
-  std::shared_ptr<DataRequest> mDataRequest;
+  std::vector<o2::detectors::DetID> mDetList;
 };
 o2::framework::DataProcessorSpec getCTPDigitizerSpec(int channel, std::vector<o2::detectors::DetID>& detList, bool mctruth)
 {
   std::vector<InputSpec> inputs;
   std::vector<OutputSpec> output;
-  auto dataRequest = std::make_shared<DataRequest>();
 
   if (std::find(detList.begin(), detList.end(), o2::detectors::DetID::FT0) != detList.end()) {
-    dataRequest->inputs.emplace_back("ft0", "FT0", "TRIGGERINPUT", 0, Lifetime::Timeframe);
+    inputs.emplace_back("ft0", "FT0", "TRIGGERINPUT", 0, Lifetime::Timeframe);
   }
   if (std::find(detList.begin(), detList.end(), o2::detectors::DetID::FV0) != detList.end()) {
-    dataRequest->inputs.emplace_back("fv0", "FV0", "TRIGGERINPUT", 0, Lifetime::Timeframe);
+    inputs.emplace_back("fv0", "FV0", "TRIGGERINPUT", 0, Lifetime::Timeframe);
   }
   if (std::find(detList.begin(), detList.end(), o2::detectors::DetID::EMC) != detList.end()) {
-    dataRequest->inputs.emplace_back("emc", "EMC", "TRIGGERINPUT", 0, Lifetime::Timeframe);
+    inputs.emplace_back("emc", "EMC", "TRIGGERINPUT", 0, Lifetime::Timeframe);
   }
   output.emplace_back("CTP", "DIGITS", 0, Lifetime::Timeframe);
   output.emplace_back("CTP", "ROMode", 0, Lifetime::Timeframe);
   return DataProcessorSpec{
     "CTPDigitizer",
-    dataRequest->inputs,
+    inputs,
     output,
-    AlgorithmSpec{adaptFromTask<CTPDPLDigitizerTask>(dataRequest)},
+    AlgorithmSpec{adaptFromTask<CTPDPLDigitizerTask>(detList)},
     Options{{"pileup", VariantType::Int, 1, {"whether to run in continuous time mode"}},
             {"disable-qed", o2::framework::VariantType::Bool, false, {"disable QED handling"}}}};
 }
