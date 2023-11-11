@@ -39,16 +39,15 @@ void TPCScaler::loadFromFile(const char* inpf, const char* name)
 
 void TPCScaler::setFromTree(TTree& tpcScalerTree)
 {
-  TPCScaler* scalerTmp = new TPCScaler;
+  TPCScaler* scalerTmp = this;
   tpcScalerTree.SetBranchAddress("TPCScaler", &scalerTmp);
   const int entries = tpcScalerTree.GetEntries();
   if (entries > 0) {
     tpcScalerTree.GetEntry(0);
-    *this = std::move(*scalerTmp);
-    delete scalerTmp;
   } else {
     LOGP(error, "TPCScaler not found in input file");
   }
+  tpcScalerTree.SetBranchAddress("TPCScaler", nullptr);
 }
 
 float TPCScaler::getMeanScaler(double timestamp, o2::tpc::Side side) const
