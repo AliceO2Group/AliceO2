@@ -633,9 +633,9 @@ bool MatchTPCITS::prepareITSData()
   for (int irof = 0; irof < nROFs; irof++) {
     const auto& rofRec = mITSTrackROFRec[irof];
     long nBC = rofRec.getBCData().differenceInBC(mStartIR);
-    if (nBC > maxBCs) {
+    if (nBC > maxBCs || nBC < 0) {
       if (++errCount < MaxErrors2Report) {
-        LOGP(alarm, "ITS ROF#{} start is not compatible with TF 1st orbit {} and TF length of {} HBFs",
+        LOGP(alarm, "ITS ROF#{} start {} is not compatible with TF 1st orbit {} or TF length of {} HBFs",
              irof, rofRec.getBCData().asString(), mStartIR.asString(), nHBF);
       }
       break;

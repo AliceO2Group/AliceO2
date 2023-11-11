@@ -155,7 +155,17 @@ void STFDecoder<Mapping>::run(ProcessingContext& pc)
     }
 
     mDecoder->setDecodeNextAuto(false);
+    o2::InteractionRecord lastIR{}, firstIR{0, pc.services().get<o2::framework::TimingInfo>().firstTForbit};
     while (mDecoder->decodeNextTrigger() >= 0) {
+      if ((!lastIR.isDummy() && lastIR >= mDecoder->getInteractionRecord()) || firstIR > mDecoder->getInteractionRecord()) {
+        const int MaxErrLog = 2;
+        static int errLocCount = 0;
+        if (errLocCount++ < MaxErrLog) {
+          LOGP(warn, "Impossible ROF IR {}, previous was {}, TF 1st IR was {}, discarding in decoding", mDecoder->getInteractionRecord().asString(), lastIR.asString(), firstIR.asString());
+        }
+        continue;
+      }
+      lastIR = mDecoder->getInteractionRecord();
       if (mDoDigits || mClusterer->getMaxROFDepthToSquash()) { // call before clusterization, since the latter will hide the digits
         mDecoder->fillDecodedDigits(digVec, digROFVec);        // lot of copying involved
         if (mDoCalibData) {
