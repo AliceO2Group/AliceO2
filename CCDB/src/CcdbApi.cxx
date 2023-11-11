@@ -1688,7 +1688,7 @@ void CcdbApi::vectoredLoadFileToMemory(std::vector<RequestContext>& requestConte
         saveSnapshot(requestContext);
       }
     } else {
-      LOG(error) << "Did not receive content for " << requestContext.path << "\n";
+      LOG(warning) << "Did not receive content for " << requestContext.path << "\n"; // Temporarily demoted to warning, since it floods the infologger
     }
   }
 }
