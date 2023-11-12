@@ -26,6 +26,7 @@
 #include "ReconstructionDataFormats/VtxTrackIndex.h"
 #include "ReconstructionDataFormats/VtxTrackRef.h"
 #include "CommonDataFormat/RangeReference.h"
+#include "DataFormatsTPC/ClusterNativeHelper.h"
 #include "DCAFitter/DCAFitterN.h"
 #include "DetectorsVertexing/SVertexerParams.h"
 #include "DetectorsVertexing/SVertexHypothesis.h"
@@ -131,11 +132,11 @@ class SVertexer
   }
   void setTPCVDrift(const o2::tpc::VDriftCorrFact& v);
   void setTPCCorrMaps(o2::gpu::CorrectionMapsHelper* maph);
-  void initTPCTransform();
   void setStrangenessTracker(o2::strangeness_tracking::StrangenessTracker* tracker) { mStrTracker = tracker; }
   o2::strangeness_tracking::StrangenessTracker* getStrangenessTracker() { return mStrTracker; }
 
   std::array<size_t, 3> getNFitterCalls() const;
+  void setSources(GIndex::mask_t src) { mSrc = src; }
 
  private:
   template <class TVI, class TCI, class T3I, class TR>
@@ -148,14 +149,19 @@ class SVertexer
   void updateTimeDependentParams();
   bool acceptTrack(GIndex gid, const o2::track::TrackParCov& trc) const;
   bool processTPCTrack(const o2::tpc::TrackTPC& trTPC, GIndex gid, int vtxid);
-  float correctTPCTrack(o2::track::TrackParCov& trc, const o2::tpc::TrackTPC tTPC, float tmus, float tmusErr) const;
+  float correctTPCTrack(TrackCand& trc, const o2::tpc::TrackTPC& tTPC, float tmus, float tmusErr) const;
 
   uint64_t getPairIdx(GIndex id1, GIndex id2) const
   {
     return (uint64_t(id1) << 32) | id2;
   }
+  const o2::globaltracking::RecoContainer* mRecoCont = nullptr;
+  GIndex::mask_t mSrc{};
 
-  // at the moment not used
+  const o2::tpc::ClusterNativeAccess* mTPCClusterIdxStruct = nullptr; ///< struct holding the TPC cluster indices
+  gsl::span<const o2::tpc::TrackTPC> mTPCTracksArray;                 ///< input TPC tracks span
+  gsl::span<const o2::tpc::TPCClRefElem> mTPCTrackClusIdx;            ///< input TPC track cluster indices span
+  gsl::span<const unsigned char> mTPCRefitterShMap;                   ///< externally set TPC clusters sharing map
   o2::gpu::CorrectionMapsHelper* mTPCCorrMapsHelper = nullptr;
   std::unique_ptr<o2::gpu::GPUO2InterfaceRefit> mTPCRefitter; ///< TPC refitter used for TPC tracks refit during the reconstruction
   o2::strangeness_tracking::StrangenessTracker* mStrTracker = nullptr;

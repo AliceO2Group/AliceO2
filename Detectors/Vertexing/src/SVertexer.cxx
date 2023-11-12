@@ -16,11 +16,13 @@
 #include "DetectorsVertexing/SVertexer.h"
 #include "DetectorsBase/Propagator.h"
 #include "TPCReconstruction/TPCFastTransformHelperO2.h"
+#include "DataFormatsTPC/WorkflowHelper.h"
 #include "DataFormatsTPC/VDriftCorrFact.h"
 #include "CorrectionMapsHelper.h"
 #include "Framework/ProcessingContext.h"
 #include "Framework/DataProcessorSpec.h"
 #include "ReconstructionDataFormats/StrangeTrack.h"
+#include "CommonConstants/GeomConstants.h"
 
 #ifdef WITH_OPENMP
 #include <omp.h>
@@ -38,6 +40,7 @@ using TrackTPC = o2::tpc::TrackTPC;
 //__________________________________________________________________
 void SVertexer::process(const o2::globaltracking::RecoContainer& recoData, o2::framework::ProcessingContext& pc)
 {
+  mRecoCont = &recoData;
   mNV0s = mNCascades = mN3Bodies = 0;
   updateTimeDependentParams(); // TODO RS: strictly speaking, one should do this only in case of the CCDB objects update
   mPVertices = recoData.getPrimaryVertices();
@@ -313,8 +316,6 @@ void SVertexer::setTPCVDrift(const o2::tpc::VDriftCorrFact& v)
 void SVertexer::setTPCCorrMaps(o2::gpu::CorrectionMapsHelper* maph)
 {
   mTPCCorrMapsHelper = maph;
-  // to be used with refitter as
-  // mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCCorrMapsHelper, mBz, mTPCTrackClusIdx.data(), mTPCRefitterShMap.data(), nullptr, o2::base::Propagator::Instance());
 }
 
 //__________________________________________________________________
@@ -428,6 +429,13 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
   auto trackIndex = recoData.getPrimaryVertexMatchedTracks(); // Global ID's for associated tracks
   auto vtxRefs = recoData.getPrimaryVertexMatchedTrackRefs(); // references from vertex to these track IDs
   bool isTPCloaded = recoData.isTrackSourceLoaded(GIndex::TPC);
+  if (isTPCloaded && !mSVParams->mExcludeTPCtracks) {
+    mTPCTracksArray = recoData.getTPCTracks();
+    mTPCTrackClusIdx = recoData.getTPCTracksClusterRefs();
+    mTPCClusterIdxStruct = &recoData.inputsTPCclusters->clusterIndex;
+    mTPCRefitterShMap = recoData.clusterShMapTPC;
+    mTPCRefitter = std::make_unique<o2::gpu::GPUO2InterfaceRefit>(mTPCClusterIdxStruct, mTPCCorrMapsHelper, o2::base::Propagator::Instance()->getNominalBz(), mTPCTrackClusIdx.data(), mTPCRefitterShMap.data(), nullptr, o2::base::Propagator::Instance());
+  }
 
   std::unordered_map<GIndex, std::pair<int, int>> tmap;
   std::unordered_map<GIndex, bool> rejmap;
@@ -451,7 +459,7 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
         }
         // unconstrained TPC tracks require special treatment: there is no point in checking DCA to mean vertex since it is not precise,
         // but we need to create a clone of TPC track constrained to this particular vertex time.
-        if (processTPCTrack(recoData.getTPCTrack(tvid), tvid, iv)) {
+        if (processTPCTrack(mTPCTracksArray[tvid], tvid, iv)) {
           continue;
         }
       }
@@ -489,6 +497,9 @@ void SVertexer::buildT2V(const o2::globaltracking::RecoContainer& recoData) // a
       int posneg = trc.getSign() < 0 ? 1 : 0;
       float r = std::sqrt(trc.getX() * trc.getX() + trc.getY() * trc.getY());
       mTracksPool[posneg].emplace_back(TrackCand{trc, tvid, {iv, iv}, r});
+      if (tvid.getSource() == GIndex::TPC) { // constrained TPC track?
+        correctTPCTrack(mTracksPool[posneg].back(), mTPCTracksArray[tvid], -1, -1);
+      }
       if (tvid.isAmbiguous()) { // track attached to >1 vertex, remember that it was already processed
         tmap[tvid] = {mTracksPool[posneg].size() - 1, posneg};
       }
@@ -1130,24 +1141,40 @@ bool SVertexer::processTPCTrack(const o2::tpc::TrackTPC& trTPC, GIndex gid, int 
   if (err < 0) {
     mTracksPool[posneg].pop_back(); // discard
   }
-  trLoc.minR = std::sqrt(trLoc.getX() * trLoc.getX() + trLoc.getY() * trLoc.getY());
   return true;
 }
 
 //______________________________________________
-float SVertexer::correctTPCTrack(o2::track::TrackParCov& trc, const o2::tpc::TrackTPC tTPC, float tmus, float tmusErr) const
+float SVertexer::correctTPCTrack(SVertexer::TrackCand& trc, const o2::tpc::TrackTPC& tTPC, float tmus, float tmusErr) const
 {
   // Correct the track copy trc of the TPC track for the assumed interaction time
   // return extra uncertainty in Z due to the interaction time uncertainty
   // TODO: at the moment, apply simple shift, but with Z-dependent calibration we may
   // need to do corrections on TPC cluster level and refit
-  // This is a clone of MatchTPCITS::correctTPCTrack
-  float dDrift = (tmus * mMUS2TPCBin - tTPC.getTime0()) * mTPCBin2Z;
-  float driftErr = tmusErr * mMUS2TPCBin * mTPCBin2Z;
+  // This is almosto clone of the MatchTPCITS::correctTPCTrack
+
+  float tTB, tTBErr;
+  if (tmusErr < 0) { // use track data
+    tTB = tTPC.getTime0();
+    tTBErr = 0.5 * (tTPC.getDeltaTBwd() + tTPC.getDeltaTFwd());
+  } else {
+    tTB = tmus * mMUS2TPCBin;
+    tTBErr = tmusErr * mMUS2TPCBin;
+  }
+  float dDrift = (tTB - tTPC.getTime0()) * mTPCBin2Z;
+  float driftErr = tTBErr * mTPCBin2Z;
   // eventually should be refitted, at the moment we simply shift...
   trc.setZ(tTPC.getZ() + (tTPC.hasASideClustersOnly() ? dDrift : -dDrift));
   trc.setCov(trc.getSigmaZ2() + driftErr * driftErr, o2::track::kSigZ2);
-
+  uint8_t sector, row;
+  auto cl = &tTPC.getCluster(mTPCTrackClusIdx, tTPC.getNClusters() - 1, *mTPCClusterIdxStruct, sector, row);
+  float x = 0, y = 0, z = 0;
+  mTPCCorrMapsHelper->Transform(sector, row, cl->getPad(), cl->getTime(), x, y, z, tTB);
+  if (x < o2::constants::geom::XTPCInnerRef) {
+    x = o2::constants::geom::XTPCInnerRef;
+  }
+  trc.minR = std::sqrt(x * x + y * y);
+  LOGP(debug, "set MinR = {} for row {}, x:{}, y:{}, z:{}", trc.minR, row, x, y, z);
   return driftErr;
 }
 
