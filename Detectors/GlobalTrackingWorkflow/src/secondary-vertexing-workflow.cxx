@@ -80,20 +80,23 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto disableRootOut = configcontext.options().get<bool>("disable-root-output");
   auto enableCasc = !configcontext.options().get<bool>("disable-cascade-finder");
   auto enable3body = !configcontext.options().get<bool>("disable-3body-finder");
-  auto enagleStrTr = !configcontext.options().get<bool>("disable-strangeness-tracker");
+  auto enableStrTr = !configcontext.options().get<bool>("disable-strangeness-tracker");
   auto lumiType = configcontext.options().get<int>("lumi-type");
 
   GID::mask_t src = allowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("vertexing-sources"));
   GID::mask_t dummy, srcClus = GID::includesDet(DetID::TOF, src) ? GID::getSourceMask(GID::TOF) : dummy; // eventually, TPC clusters will be needed for refit
-  if (enagleStrTr) {
+  if (enableStrTr) {
     srcClus |= GID::getSourceMask(GID::ITS);
+  }
+  if (src[GID::TPC]) {
+    srcClus |= GID::getSourceMask(GID::TPC);
   }
   if (lumiType == 1) {
     src = src | GID::getSourcesMask("CTP");
   }
   WorkflowSpec specs;
 
-  specs.emplace_back(o2::vertexing::getSecondaryVertexingSpec(src, enableCasc, enable3body, enagleStrTr, useMC, lumiType));
+  specs.emplace_back(o2::vertexing::getSecondaryVertexingSpec(src, enableCasc, enable3body, enableStrTr, useMC, lumiType));
 
   // only TOF clusters are needed if TOF is involved, no clusters MC needed
   WorkflowSpec inputspecs;
@@ -118,7 +121,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   if (!disableRootOut) {
     specs.emplace_back(o2::vertexing::getSecondaryVertexWriterSpec());
-    if (enagleStrTr) {
+    if (enableStrTr) {
       specs.emplace_back(o2::strangeness_tracking::getStrangenessTrackingWriterSpec(useMC));
     }
   }
