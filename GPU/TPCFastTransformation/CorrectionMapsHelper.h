@@ -123,8 +123,8 @@ class CorrectionMapsHelper
   void setOwner(bool v);
   void acknowledgeUpdate() { mUpdatedFlags = 0; }
 
-  void setUseCTPLumi(bool v) { mUseCTPLumi = v; }
-  bool getUseCTPLumi() const { return mUseCTPLumi; }
+  void setLumiScaleType(int v) { mLumiScaleType = v; }
+  int getLumiScaleType() const { return mLumiScaleType; }
 
   void setMeanLumiOverride(float f) { mMeanLumiOverride = f; }
   float getMeanLumiOverride() const { return mMeanLumiOverride; }
@@ -138,8 +138,8 @@ class CorrectionMapsHelper
   enum UpdateFlags { MapBit = 0x1,
                      MapRefBit = 0x2,
                      LumiBit = 0x4 };
-  bool mOwner = false;      // is content of pointers owned by the helper
-  bool mUseCTPLumi = false; // require CTP Lumi for mInstLumi
+  bool mOwner = false;    // is content of pointers owned by the helper
+  int mLumiScaleType = 0; // require CTP Lumi for mInstLumi
   int mUpdatedFlags = 0;
   float mInstLumi = 0.;                                         // instanteneous luminosity (a.u)
   float mMeanLumi = 0.;                                         // mean luminosity of the map (a.u)
@@ -150,7 +150,7 @@ class CorrectionMapsHelper
   GPUCA_NAMESPACE::gpu::TPCFastTransform* mCorrMap{nullptr};    // current transform
   GPUCA_NAMESPACE::gpu::TPCFastTransform* mCorrMapRef{nullptr}; // reference transform
 #ifndef GPUCA_ALIROOT_LIB
-  ClassDefNV(CorrectionMapsHelper, 2);
+  ClassDefNV(CorrectionMapsHelper, 3);
 #endif
 };
 

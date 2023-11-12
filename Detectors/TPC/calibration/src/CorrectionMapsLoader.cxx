@@ -46,7 +46,7 @@ void CorrectionMapsLoader::extractCCDBInputs(ProcessingContext& pc)
   int dumRep = 0;
   o2::ctp::LumiInfo lumiObj;
   static o2::ctp::LumiInfo lumiPrev;
-  if (getUseCTPLumi() && mInstLumiOverride <= 0.) {
+  if (getLumiScaleType() == 1 && mInstLumiOverride <= 0.) {
     if (pc.inputs().get<gsl::span<char>>("CTPLumi").size() == sizeof(o2::ctp::LumiInfo)) {
       lumiPrev = lumiObj = pc.inputs().get<o2::ctp::LumiInfo>("CTPLumi");
     } else {
@@ -56,13 +56,16 @@ void CorrectionMapsLoader::extractCCDBInputs(ProcessingContext& pc)
       lumiObj = lumiPrev;
     }
     setInstLumi(mInstLumiFactor * (mCTPLumiSource == 0 ? lumiObj.getLumi() : lumiObj.getLumiAlt()));
+  } else if (getLumiScaleType() == 2 && mInstLumiOverride <= 0.) {
+    float tpcScaler = pc.inputs().get<float>("tpcscaler");
+    setInstLumi(mInstLumiFactor * tpcScaler);
   }
 }
 
 //________________________________________________________
-void CorrectionMapsLoader::requestCCDBInputs(std::vector<InputSpec>& inputs, std::vector<o2::framework::ConfigParamSpec>& options, bool requestCTPLumi, int lumiScaleMode)
+void CorrectionMapsLoader::requestCCDBInputs(std::vector<InputSpec>& inputs, std::vector<o2::framework::ConfigParamSpec>& options, int lumiScaleType, int lumiScaleMode)
 {
-  addInput(inputs, {"tpcCorrMap", "TPC", "CorrMap", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalCorrMap), {}, 1)});          // time-dependent
+  addInput(inputs, {"tpcCorrMap", "TPC", "CorrMap", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalCorrMap), {}, 1)}); // time-dependent
   if (lumiScaleMode == 0) {
     addInput(inputs, {"tpcCorrMapRef", "TPC", "CorrMapRef", 0, Lifetime::Condition, ccdbParamSpec(CDBTypeMap.at(CDBType::CalCorrMapRef), {}, 0)}); // load once
   } else if (lumiScaleMode == 1) {
@@ -71,8 +74,10 @@ void CorrectionMapsLoader::requestCCDBInputs(std::vector<InputSpec>& inputs, std
     LOG(fatal) << "Correction mode unknown! Choose either 0 (default) or 1 (derivative map) for flag corrmap-lumi-mode.";
   }
 
-  if (requestCTPLumi) {
+  if (lumiScaleType == 1) {
     addInput(inputs, {"CTPLumi", "CTP", "LUMI", 0, Lifetime::Timeframe});
+  } else if (lumiScaleType == 2) {
+    addInput(inputs, {"tpcscaler", o2::header::gDataOriginTPC, "TPCSCALER", 0, Lifetime::Timeframe});
   }
   addOptions(options);
 }
@@ -131,8 +136,10 @@ void CorrectionMapsLoader::init(o2::framework::InitContext& ic)
   const auto& inputRouts = ic.services().get<const o2::framework::DeviceSpec>().inputs;
   for (const auto& route : inputRouts) {
     if (route.matcher == InputSpec{"CTPLumi", "CTP", "LUMI", 0, Lifetime::Timeframe}) {
-      setUseCTPLumi(true);
+      setLumiScaleType(1);
       break;
+    } else if (route.matcher == InputSpec{"tpcscaler", o2::header::gDataOriginTPC, "TPCSCALER", 0, Lifetime::Timeframe}) {
+      setLumiScaleType(2);
     }
   }
   mMeanLumiOverride = ic.options().get<float>("corrmap-lumi-mean");
@@ -146,8 +153,14 @@ void CorrectionMapsLoader::init(o2::framework::InitContext& ic)
   if (mInstLumiOverride != 0.) {
     setInstLumi(mInstLumiOverride);
   }
-  LOGP(info, "CTP Lumi request for TPC corr.map scaling={}, override values: lumiMean={} lumiInst={} lumiScaleMode={}, LumiInst scale={}, CTP Lumi source={}",
-       getUseCTPLumi() ? "ON" : "OFF", mMeanLumiOverride, mInstLumiOverride, mLumiScaleMode, mInstLumiFactor, mCTPLumiSource);
+  const std::array<std::string, 3> lumiS{"OFF", "CTP", "TPC scaler"};
+  int scaleType = getLumiScaleType();
+  if (scaleType >= lumiS.size()) {
+    LOGP(fatal, "Wrong lumi-scale-type provided!");
+  }
+
+  LOGP(info, "Scaling for TPC corr.map scaling={}, override values: lumiMean={} lumiInst={} lumiScaleMode={}, LumiInst scale={}, CTP Lumi source={}",
+       lumiS[scaleType], mMeanLumiOverride, mInstLumiOverride, mLumiScaleMode, mInstLumiFactor, mCTPLumiSource);
 }
 
 //________________________________________________________
@@ -155,7 +168,7 @@ void CorrectionMapsLoader::copySettings(const CorrectionMapsLoader& src)
 {
   setInstLumi(src.getInstLumi(), false);
   setMeanLumi(src.getMeanLumi(), false);
-  setUseCTPLumi(src.getUseCTPLumi());
+  setLumiScaleType(src.getLumiScaleType());
   setMeanLumiOverride(src.getMeanLumiOverride());
   setInstLumiOverride(src.getInstLumiOverride());
   setLumiScaleMode(src.getLumiScaleMode());

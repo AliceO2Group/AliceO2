@@ -266,7 +266,23 @@ if [[ $IS_TRIGGERED_DATA == 1 ]]; then
 fi
 
 GPU_CONFIG_SELF="--severity $SEVERITY_TPC"
-ASK_CTP_LUMI_GPU="--require-ctp-lumi"
+
+parse_TPC_CORR_SCALING()
+{
+ASK_CTP_LUMI_GPU=
+local restOpt=
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --lumi-type=*) ASK_CTP_LUMI_GPU=" --lumi-type ${1#*=}"; shift 1;;
+    --lumi-type) ASK_CTP_LUMI_GPU=" --lumi-type ${2}"; shift 2;;
+    *) restOpt+=" $1"; shift 1;;
+  esac
+done
+TPC_CORR_SCALING=$restOpt
+}
+
+parse_TPC_CORR_SCALING $TPC_CORR_SCALING
+
 : ${TPC_CORR_SCALING_GPU:=""}
 if [[ "$TPC_CORR_SCALING" == *"$ASK_CTP_LUMI_GPU"* ]]; then
     TPC_CORR_SCALING_GPU=${TPC_CORR_SCALING//$ASK_CTP_LUMI_GPU/}

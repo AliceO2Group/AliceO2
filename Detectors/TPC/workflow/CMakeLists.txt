@@ -45,6 +45,7 @@ o2_add_library(TPCWorkflow
                        src/TPCTimeSeriesWriterSpec.cxx
                        src/TPCTimeSeriesReaderSpec.cxx
                        src/TPCMergeTimeSeriesSpec.cxx
+                       src/TPCScalerSpec.cxx
                TARGETVARNAME targetName
                PUBLIC_LINK_LIBRARIES O2::Framework O2::DataFormatsTPC
                                      O2::DPLUtils O2::TPCReconstruction
@@ -244,6 +245,11 @@ o2_add_executable(time-series-reader-workflow
 o2_add_executable(merge-time-series-workflow
                   SOURCES src/time-series-merge-integrator.cxx
                   COMPONENT_NAME tpc
+                  PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
+
+o2_add_executable(scaler-workflow
+                  COMPONENT_NAME tpc
+                  SOURCES src/tpc-scaler.cxx
                   PUBLIC_LINK_LIBRARIES O2::TPCWorkflow)
 
 o2_add_test(workflow
