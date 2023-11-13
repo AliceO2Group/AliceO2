@@ -1117,39 +1117,6 @@ track::TrackParCov TrackerTraits::buildTrackSeed(const Cluster& cluster1, const 
                              0.f, 0.f, 0.f, 0.f, track::kC1Pt2max});
 }
 
-void TrackerTraits::traverseCellsTree(const int currentCellId, const int currentLayerId)
-{
-  CellSeed& currentCell{mTimeFrame->getCells()[currentLayerId][currentCellId]};
-  const int currentCellLevel = currentCell.getLevel();
-
-  mTimeFrame->getRoads().back().addCell(currentLayerId, currentCellId);
-
-  if (currentLayerId > 0 && currentCellLevel > 1) {
-    bool isFirstValidNeighbour = true;
-    const int startNeighbourId = currentCellId ? mTimeFrame->getCellsNeighboursLUT()[currentLayerId - 1][currentCellId - 1] : 0;
-    const int endNeighbourId = mTimeFrame->getCellsNeighboursLUT()[currentLayerId - 1][currentCellId];
-    for (int iNeighbourCell{startNeighbourId}; iNeighbourCell < endNeighbourId; ++iNeighbourCell) {
-      const int neighbourCellId = mTimeFrame->getCellsNeighbours()[currentLayerId - 1][iNeighbourCell];
-      const CellSeed& neighbourCell = mTimeFrame->getCells()[currentLayerId - 1][neighbourCellId];
-
-      if (currentCellLevel - 1 != neighbourCell.getLevel()) {
-        continue;
-      }
-
-      if (isFirstValidNeighbour) {
-        isFirstValidNeighbour = false;
-      } else {
-        mTimeFrame->getRoads().push_back(mTimeFrame->getRoads().back());
-      }
-
-      traverseCellsTree(neighbourCellId, currentLayerId - 1);
-    }
-  }
-
-  // TODO: crosscheck for short track iterations
-  // currentCell.setLevel(0);
-}
-
 void TrackerTraits::setBz(float bz)
 {
   mBz = bz;
