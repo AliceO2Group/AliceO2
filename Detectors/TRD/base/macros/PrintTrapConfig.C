@@ -82,8 +82,8 @@ using namespace o2::trd;
 // histograms used for extracting the mean and RMS of calibration parameters
 
 // global constants
-AliCDBStorage* storage = NULL;
-AliCDBManager* manager = NULL;
+AliCDBStorage* storage = nullptr;
+AliCDBManager* manager = nullptr;
 Int_t Run(0);
 void MakeRunListFromOCDB(const Char_t* directory, const Char_t* outfile, Bool_t fromAlien = kFALSE);
 AliCDBEntry* GetCDBentry(const Char_t* path, Bool_t owner = kTRUE);
@@ -209,7 +209,7 @@ void PrintTrapConfig(Int_t run, const Char_t* storageURI = "alien://folder=/alic
   manager->SetDefaultStorage(storageURI);
   manager->SetCacheFlag(kTRUE);
   storage = manager->GetDefaultStorage();
-  AliCDBEntry* entry = NULL;
+  AliCDBEntry* entry = nullptr;
   Run = run;
 
   std::string TRDCalBase = "TRD";
@@ -365,16 +365,16 @@ AliCDBEntry* GetCDBentry(const Char_t* path, Bool_t owner)
 {
   TString spath = path;
   //  ::Info("GetCDBentry", Form("QUERY RUN [%d] for \"%s\".", Run, spath.Data()));
-  AliCDBEntry* entry(NULL);
+  AliCDBEntry* entry(nullptr);
   storage->QueryCDB(Run, spath.Data());
   cout << spath.Data();
   if (!storage->GetQueryCDBList()->GetEntries()) {
     cout << "GetCDBentry" << Form("Missing \"%s\" in run %d.", spath.Data(), Run);
-    return NULL;
+    return nullptr;
   } else
     entry = manager->Get(spath.Data());
   if (!entry)
-    return NULL;
+    return nullptr;
 
   entry->SetOwner(owner);
   //  ::Info("GetCDBentry", Form("FOUND ENTRY @ [%p].", (void*)entry));
