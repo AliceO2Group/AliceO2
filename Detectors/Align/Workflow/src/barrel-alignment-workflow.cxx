@@ -55,7 +55,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"enable-tpc-tracks", VariantType::Bool, false, {"allow reading TPC tracks"}},
     {"enable-tpc-clusters", VariantType::Bool, false, {"allow reading TPC clusters (will trigger TPC tracks reading)"}},
     {"enable-cosmic", VariantType::Bool, false, {"enable cosmic tracks)"}},
-    {"require-ctp-lumi", o2::framework::VariantType::Bool, false, {"require CTP lumi for TPC correction scaling"}},
+    {"lumi-type", o2::framework::VariantType::Int, 0, {"1 = require CTP lumi for TPC correction scaling, 2 = require TPC scalers for TPC correction scaling"}},
     {"postprocessing", VariantType::Int, 0, {"postprocessing bits: 1 - extract alignment objects, 2 - check constraints, 4 - print mpParams/Constraints, 8 - relabel pede results"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -91,7 +91,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   bool loadTPCTracks = configcontext.options().get<bool>("enable-tpc-tracks");
   bool enableCosmic = configcontext.options().get<bool>("enable-cosmic");
   bool useMC = configcontext.options().get<bool>("enable-mc");
-  auto requireCTPLumi = configcontext.options().get<bool>("require-ctp-lumi");
+  auto lumiType = configcontext.options().get<int>("lumi-type");
 
   DetID::mask_t dets = allowedDets & DetID::getMask(configcontext.options().get<std::string>("detectors"));
   DetID::mask_t skipDetClusters; // optionally skip automatically loaded clusters
@@ -140,14 +140,14 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
       }
       LOG(info) << "adding TOF request";
     }
-    if (requireCTPLumi) {
+    if (lumiType == 1) {
       src = src | GID::getSourcesMask("CTP");
     }
     // write the configuration used for the workflow
     o2::conf::ConfigurableParam::writeINI("o2_barrel_alignment_configuration.ini");
   }
 
-  specs.emplace_back(o2::align::getBarrelAlignmentSpec(srcMP, src, dets, skipDetClusters, enableCosmic, postprocess, useMC));
+  specs.emplace_back(o2::align::getBarrelAlignmentSpec(srcMP, src, dets, skipDetClusters, enableCosmic, postprocess, useMC, lumiType));
   // RS FIXME: check which clusters are really needed
   if (!postprocess) {
     GID::mask_t dummy;

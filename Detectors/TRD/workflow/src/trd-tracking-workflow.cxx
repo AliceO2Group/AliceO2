@@ -58,7 +58,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"filter-trigrec", VariantType::Bool, false, {"ignore interaction records without ITS data"}},
     {"strict-matching", VariantType::Bool, false, {"High purity preliminary matching"}},
     {"disable-ft0-pileup-tagging", VariantType::Bool, false, {"Do not request FT0 for pile-up determination"}},
-    {"require-ctp-lumi", o2::framework::VariantType::Bool, false, {"require CTP lumi for TPC correction scaling"}},
+    {"lumi-type", o2::framework::VariantType::Int, 0, {"1 = require CTP lumi for TPC correction scaling, 2 = require TPC scalers for TPC correction scaling"}},
     {"policy", VariantType::String, "default", {"Pick PID policy (=default)"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -80,7 +80,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto pid = configcontext.options().get<bool>("enable-pid");
   auto strict = configcontext.options().get<bool>("strict-matching");
   auto trigRecFilterActive = configcontext.options().get<bool>("filter-trigrec");
-  auto requireCTPLumi = configcontext.options().get<bool>("require-ctp-lumi");
+  auto lumiType = configcontext.options().get<int>("lumi-type");
   auto vdexb = configcontext.options().get<bool>("enable-vdexb-calib");
   auto gain = configcontext.options().get<bool>("enable-gain-calib");
   auto pulseHeight = configcontext.options().get<bool>("enable-ph");
@@ -94,7 +94,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (!configcontext.options().get<bool>("disable-ft0-pileup-tagging")) {
     srcTRD |= GTrackID::getSourcesMask("FT0");
   }
-  if (requireCTPLumi) {
+  if (lumiType == 1) {
     srcTRD = srcTRD | GTrackID::getSourcesMask("CTP");
   }
   // Parse PID policy string
@@ -111,7 +111,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
 
   // processing devices
   o2::framework::WorkflowSpec specs;
-  specs.emplace_back(o2::trd::getTRDGlobalTrackingSpec(useMC, srcTRD, trigRecFilterActive, strict, pid, policy));
+  specs.emplace_back(o2::trd::getTRDGlobalTrackingSpec(useMC, srcTRD, trigRecFilterActive, strict, pid, policy, lumiType));
   if (vdexb || gain) {
     specs.emplace_back(o2::trd::getTRDTrackBasedCalibSpec(srcTRD, vdexb, gain));
   }
