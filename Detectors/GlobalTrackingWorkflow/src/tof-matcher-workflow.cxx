@@ -64,7 +64,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"enable-dia", o2::framework::VariantType::Bool, false, {"to require diagnostic freq and then write to calib outputs (obsolete since now default)"}},
     {"trd-extra-tolerance", o2::framework::VariantType::Float, 500.0f, {"Extra time tolerance for TRD tracks in ns"}},
     {"write-matchable", o2::framework::VariantType::Bool, false, {"write all matchable pairs in a file (o2matchable_tof.root)"}},
-    {"require-ctp-lumi", o2::framework::VariantType::Bool, false, {"require CTP lumi for TPC correction scaling"}},
+    {"lumi-type", o2::framework::VariantType::Int, 0, {"1 = require CTP lumi for TPC correction scaling, 2 = require TPC scalers for TPC correction scaling"}},
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}},
     {"combine-devices", o2::framework::VariantType::Bool, false, {"merge DPL source/writer devices"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
@@ -93,7 +93,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto diagnostic = configcontext.options().get<bool>("enable-dia");
   auto extratolerancetrd = configcontext.options().get<float>("trd-extra-tolerance");
   auto writeMatchable = configcontext.options().get<bool>("write-matchable");
-  auto requireCTPLumi = configcontext.options().get<bool>("require-ctp-lumi");
+  auto lumiType = configcontext.options().get<int>("lumi-type");
   bool writematching = 0;
   bool writecalib = 0;
   auto outputType = configcontext.options().get<std::string>("output-type");
@@ -138,7 +138,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   if (useFIT) {
     clustermask |= GID::getSourceMask(GID::FT0);
   }
-  if (requireCTPLumi) {
+  if (lumiType == 1) {
     src = src | GID::getSourcesMask("CTP");
   }
   if (useMC) {
@@ -159,7 +159,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
     }
   }
 
-  specs.emplace_back(o2::globaltracking::getTOFMatcherSpec(src, useMC, useFIT, false, strict, extratolerancetrd, writeMatchable)); // doTPCrefit not yet supported (need to load TPC clusters?)
+  specs.emplace_back(o2::globaltracking::getTOFMatcherSpec(src, useMC, useFIT, false, strict, extratolerancetrd, writeMatchable, lumiType)); // doTPCrefit not yet supported (need to load TPC clusters?)
 
   if (!disableRootOut) {
     std::vector<DataProcessorSpec> writers;

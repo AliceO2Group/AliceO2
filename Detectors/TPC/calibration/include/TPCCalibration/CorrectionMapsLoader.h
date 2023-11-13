@@ -50,7 +50,7 @@ class CorrectionMapsLoader : public o2::gpu::CorrectionMapsHelper
   void init(o2::framework::InitContext& ic);
   void copySettings(const CorrectionMapsLoader& src);
 
-  static void requestCCDBInputs(std::vector<o2::framework::InputSpec>& inputs, std::vector<o2::framework::ConfigParamSpec>& options, int lumiScaleType = 0, int lumiScaleMode = 0);
+  static void requestCCDBInputs(std::vector<o2::framework::InputSpec>& inputs, std::vector<o2::framework::ConfigParamSpec>& options, int lumiScaleType, int lumiScaleMode = 0);
   static void addOptions(std::vector<o2::framework::ConfigParamSpec>& options);
 
  protected:

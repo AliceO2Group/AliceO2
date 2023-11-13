@@ -58,7 +58,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"disable-strangeness-tracker", o2::framework::VariantType::Bool, false, {"do not run strangeness tracker"}},
 
     {"configKeyValues", VariantType::String, "", {"Semicolon separated key=value strings ..."}},
-    {"require-ctp-lumi", o2::framework::VariantType::Bool, false, {"require CTP lumi for TPC correction scaling"}},
+    {"lumi-type", o2::framework::VariantType::Int, 0, {"1 = require CTP lumi for TPC correction scaling, 2 = require TPC scalers for TPC correction scaling"}},
     {"combine-source-devices", o2::framework::VariantType::Bool, false, {"merge DPL source devices"}}};
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -81,19 +81,19 @@ WorkflowSpec defineDataProcessing(ConfigContext const& configcontext)
   auto enableCasc = !configcontext.options().get<bool>("disable-cascade-finder");
   auto enable3body = !configcontext.options().get<bool>("disable-3body-finder");
   auto enagleStrTr = !configcontext.options().get<bool>("disable-strangeness-tracker");
-  auto requireCTPLumi = configcontext.options().get<bool>("require-ctp-lumi");
+  auto lumiType = configcontext.options().get<int>("lumi-type");
 
   GID::mask_t src = allowedSources & GID::getSourcesMask(configcontext.options().get<std::string>("vertexing-sources"));
   GID::mask_t dummy, srcClus = GID::includesDet(DetID::TOF, src) ? GID::getSourceMask(GID::TOF) : dummy; // eventually, TPC clusters will be needed for refit
   if (enagleStrTr) {
     srcClus |= GID::getSourceMask(GID::ITS);
   }
-  if (requireCTPLumi) {
+  if (lumiType == 1) {
     src = src | GID::getSourcesMask("CTP");
   }
   WorkflowSpec specs;
 
-  specs.emplace_back(o2::vertexing::getSecondaryVertexingSpec(src, enableCasc, enable3body, enagleStrTr, useMC));
+  specs.emplace_back(o2::vertexing::getSecondaryVertexingSpec(src, enableCasc, enable3body, enagleStrTr, useMC, lumiType));
 
   // only TOF clusters are needed if TOF is involved, no clusters MC needed
   WorkflowSpec inputspecs;
