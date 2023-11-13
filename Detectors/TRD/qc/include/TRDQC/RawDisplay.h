@@ -31,7 +31,7 @@ namespace o2::trd
 class RawDisplay
 {
  public:
-  RawDisplay(RawDataSpan& dataspan, TVirtualPad* pad = NULL);
+  RawDisplay(RawDataSpan& dataspan, TVirtualPad* pad = nullptr);
   void drawDigits(std::string opt = "colz");
   void drawTracklets();
   void drawClusters();
@@ -60,7 +60,7 @@ class RawDisplay
 class MCMDisplay : public RawDisplay
 {
  public:
-  MCMDisplay(RawDataSpan& mcmdata, TVirtualPad* pad = NULL);
+  MCMDisplay(RawDataSpan& mcmdata, TVirtualPad* pad = nullptr);
 };
 
 } // namespace o2::trd

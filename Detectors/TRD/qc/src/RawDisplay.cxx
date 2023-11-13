@@ -79,7 +79,7 @@ MCMDisplay::MCMDisplay(RawDataSpan& mcmdata, TVirtualPad* pad)
   mFirstPad = mcmcol * constants::NCOLMCM - 1;
   mLastPad = (mcmcol + 1) * constants::NCOLMCM + 2;
 
-  if (pad == NULL) {
+  if (pad == nullptr) {
     mPad = new TCanvas(mName.c_str(), mDesc.c_str(), 800, 600);
   } else {
     mPad = pad;
