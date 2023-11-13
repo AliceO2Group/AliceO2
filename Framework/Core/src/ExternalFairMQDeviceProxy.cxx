@@ -684,7 +684,11 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       auto& deviceState = registry.get<DeviceState>();
       // We drop messages in input only when in ready.
       // FIXME: should we drop messages in input the first time we are in ready?
-      if (fair::mq::State{state} != fair::mq::State::Ready) {
+      static bool wasRunning = false;
+      if (fair::mq::State{state} == fair::mq::State::Running) {
+        wasRunning = true;
+      }
+      if (fair::mq::State{state} != fair::mq::State::Ready || !wasRunning) {
         return;
       }
       uv_update_time(deviceState.loop);
