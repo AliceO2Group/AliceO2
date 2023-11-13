@@ -697,7 +697,7 @@ DataProcessorSpec specifyExternalFairMQDeviceProxy(char const* name,
       // Continue iterating we saw the cleanup property being reset or
       // the device state changing.
       while (doDrain) {
-        doDrain = device->NewStatePending() || deviceState.cleanupCount == cleanupCount;
+        doDrain = device->NewStatePending() == false && deviceState.cleanupCount == cleanupCount;
         fair::mq::Parts parts;
         for (size_t ci = 0; ci < deviceState.inputChannelInfos.size(); ++ci) {
           auto& info = deviceState.inputChannelInfos[ci];
