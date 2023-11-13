@@ -273,23 +273,15 @@ ASK_CTP_LUMI_GPU=
 local restOpt=
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --lumi-type=*) ASK_CTP_LUMI_GPU=" --lumi-type ${1#*=}"; shift 1;;
-    --lumi-type) ASK_CTP_LUMI_GPU=" --lumi-type ${2}"; shift 2;;
+    --lumi-type=*) ASK_CTP_LUMI_GPU=" --lumi-type ${1#*=}"; [[ ${1#*=} == "2" ]] && NEED_TPC_SCALERS_WF=1; shift 1;;
+    --lumi-type) ASK_CTP_LUMI_GPU=" --lumi-type ${2}"; [[ ${2} == "2" ]] && NEED_TPC_SCALERS_WF=1; shift 2;;
     *) restOpt+=" $1"; shift 1;;
   esac
 done
-TPC_CORR_SCALING=$restOpt
+TPC_CORR_SCALING_GPU=$restOpt
 }
 
 parse_TPC_CORR_SCALING $TPC_CORR_SCALING
-
-: ${TPC_CORR_SCALING_GPU:=""}
-if [[ "$TPC_CORR_SCALING" == *"$ASK_CTP_LUMI_GPU"* ]]; then
-    TPC_CORR_SCALING_GPU=${TPC_CORR_SCALING//$ASK_CTP_LUMI_GPU/}
-else
-  ASK_CTP_LUMI_GPU=""
-  TPC_CORR_SCALING_GPU="$TPC_CORR_SCALING"
-fi
 GPU_CONFIG_SELF+=" $TPC_CORR_SCALING_GPU "
 
 if [[ $GPUTYPE != "CPU" && $(ulimit -e) -ge 25 && ${O2_GPU_WORKFLOW_NICE:-} == 1 ]]; then
@@ -445,6 +437,9 @@ fi
 # if root output is requested, record info of processed TFs DataHeader for replay of root files
 ROOT_OUTPUT_ASKED=`declare -p | cut -d' ' -f3 | cut -d'=' -f1 | grep ENABLE_ROOT_OUTPUT_`
 [[ -z "$DISABLE_ROOT_OUTPUT" ]] || [[ ! -z $ROOT_OUTPUT_ASKED ]] && add_W o2-tfidinfo-writer-workflow
+
+# if TPC correction with IDC from CCDB was requested
+has_detector TPC && [[ ${NEED_TPC_SCALERS_WF:-} == 1 ]] && add_W o2-tpc-scaler-workflow " ${TPC_SCALERS_CONF:-} "
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Raw decoder workflows - disabled in async mode
