@@ -78,24 +78,9 @@ class TrackMFT : public o2::track::TrackParCovFwd
     if (size > 63) {
       size = 63;
     }
-    // mClusterSizes &= ~(0x3f << (l * 6));
-    // mClusterSizes |= (size << (l * 6));
 
     mClusterSizes &= ~(0x3f << (l * 6));
     mClusterSizes |= (static_cast<uint64_t>(size) << (l * 6));
-
-    std::cout << "l: " << l << ", size: " << size << ", mClusterSizes (binario): ";
-    uint64_t num = mClusterSizes;
-    for (int i = 63; i >= 0; --i) {
-      std::cout << ((num >> i) & 1);
-      if (i % 6 == 0) {
-        std::cout << ' ';
-      }
-    }
-    std::cout << ", mClusterSizes (decimale): " << mClusterSizes << std::endl;
-
-    // std::cout << "l = " << l << " ; size = " << size << std::endl;
-    // std::cout << "mClusterSizes: " << static_cast<unsigned int>(mClusterSizes) << std::endl;
   }
 
   uint64_t getClusterSize(int l)

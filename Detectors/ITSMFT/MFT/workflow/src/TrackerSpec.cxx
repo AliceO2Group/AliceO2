@@ -200,12 +200,6 @@ void TrackerDPL::run(ProcessingContext& pc)
         trc.setClusterSize(ic, allClusterSizes[ic]);
         allClusIdx.push_back(externalClusterID);
       }
-      std::cout << "Writing the cluster size per track = ";
-      for (int ic = 0; ic < ncl; ic++) {
-        std::cout << allClusterSizes[ic] << " , ";
-      }
-      std::cout << std::endl;
-      std::cout << "----------------------------" << std::endl;
       allTracks.emplace_back(trc);
     }
   };
