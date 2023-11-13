@@ -648,11 +648,10 @@ std::pair<double, double> CTPRunScalers::getRate(uint32_t orbit, int classindex,
     auto next = &mScalerRecordO2[index2];
     auto prev = &mScalerRecordO2[index1];
     auto timedelta = (next->intRecord.orbit - prev->intRecord.orbit) * 88.e-6; // converts orbits into time
-    if(type < 7) {
-      auto s0 = &(prev->scalers[classindex]);                                    // type CTPScalerO2*
+    if (type < 7) {
+      auto s0 = &(prev->scalers[classindex]); // type CTPScalerO2*
       auto s1 = &(next->scalers[classindex]);
-      switch(type)
-      {
+      switch (type) {
         case 1:
           return (s1->lmBefore - s0->lmBefore) / timedelta;
         case 2:
@@ -666,13 +665,13 @@ std::pair<double, double> CTPRunScalers::getRate(uint32_t orbit, int classindex,
         case 6:
           return (s1->l1After - s0->l1After) / timedelta;
       }
-    } else if(type == 7) {
-      auto s0 = &(prev->scalersInps[classindex]);                                    // type CTPScalerO2*
+    } else if (type == 7) {
+      auto s0 = &(prev->scalersInps[classindex]); // type CTPScalerO2*
       auto s1 = &(next->scalersInps[classindex]);
       return (s1 - s0) / timedelta;
     } else {
       LOG(error) << "Wrong type:" << type;
-      return -1;  // wrong type
+      return -1; // wrong type
     }
   };
 
@@ -705,11 +704,10 @@ std::pair<double, double> CTPRunScalers::getRateGivenT(double timestamp, int cla
     auto next = &mScalerRecordO2[index2];
     auto prev = &mScalerRecordO2[index1];
     auto timedelta = (next->intRecord.orbit - prev->intRecord.orbit) * 88.e-6; // converts orbits into time
-    if(type < 7) {
-      auto s0 = &(prev->scalers[classindex]);                                    // type CTPScalerO2*
+    if (type < 7) {
+      auto s0 = &(prev->scalers[classindex]); // type CTPScalerO2*
       auto s1 = &(next->scalers[classindex]);
-      switch(type)
-      {
+      switch (type) {
         case 1:
           return (s1->lmBefore - s0->lmBefore) / timedelta;
         case 2:
@@ -723,13 +721,13 @@ std::pair<double, double> CTPRunScalers::getRateGivenT(double timestamp, int cla
         case 6:
           return (s1->l1After - s0->l1After) / timedelta;
       }
-    } else if(type == 7) {
-      auto s0 = &(prev->scalersInps[classindex]);                                    // type CTPScalerO2*
+    } else if (type == 7) {
+      auto s0 = &(prev->scalersInps[classindex]); // type CTPScalerO2*
       auto s1 = &(next->scalersInps[classindex]);
       return (s1 - s0) / timedelta;
     } else {
       LOG(error) << "Wrong type:" << type;
-      return -1;  // wrong type
+      return -1; // wrong type
     }
   };
   if (nextindex == 0 || nextindex == mScalerRecordO2.size()) {
