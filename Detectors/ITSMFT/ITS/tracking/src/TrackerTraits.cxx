@@ -62,10 +62,12 @@ void TrackerTraits::computeLayerTracklets(const int iteration)
 
   const Vertex diamondVert({mTrkParams[iteration].Diamond[0], mTrkParams[iteration].Diamond[1], mTrkParams[iteration].Diamond[2]}, {25.e-6f, 0.f, 0.f, 25.e-6f, 0.f, 36.f}, 1, 1.f);
   gsl::span<const Vertex> diamondSpan(&diamondVert, 1);
-  for (int rof0{0}; rof0 < tf->getNrof(); ++rof0) {
+  int startROF{0};
+  int endROF{tf->getNrof()};
+  for (int rof0{startROF}; rof0 < endROF; ++rof0) {
     gsl::span<const Vertex> primaryVertices = mTrkParams[iteration].UseDiamond ? diamondSpan : tf->getPrimaryVertices(rof0);
-    int minRof = (rof0 >= mTrkParams[iteration].DeltaROF) ? rof0 - mTrkParams[iteration].DeltaROF : 0;
-    int maxRof = (rof0 == tf->getNrof() - mTrkParams[iteration].DeltaROF) ? rof0 : rof0 + mTrkParams[iteration].DeltaROF;
+    int minRof = std::max(startROF, rof0 - mTrkParams[iteration].DeltaROF);
+    int maxRof = std::min(endROF - 1, rof0 + mTrkParams[iteration].DeltaROF);
 #pragma omp parallel for num_threads(mNThreads)
     for (int iLayer = 0; iLayer < mTrkParams[iteration].TrackletsPerRoad(); ++iLayer) {
       gsl::span<const Cluster> layer0 = tf->getClustersOnLayer(rof0, iLayer);
@@ -303,10 +305,6 @@ void TrackerTraits::computeLayerCells(const int iteration)
 
         if (deltaTanLambda / mTrkParams[iteration].CellDeltaTanLambdaSigma < mTrkParams[iteration].NSigmaCut) {
 
-          if (iLayer > 0 && (int)tf->getCellsLookupTable()[iLayer - 1].size() <= iTracklet) {
-            tf->getCellsLookupTable()[iLayer - 1].resize(iTracklet + 1, tf->getCells()[iLayer].size());
-          }
-
           /// Track seed preparation. Clusters are numbered progressively from the innermost going outward.
           const int clusId[3]{
             mTimeFrame->getClusters()[iLayer][currentTracklet.firstClusterIndex].clusterId,
@@ -314,7 +312,6 @@ void TrackerTraits::computeLayerCells(const int iteration)
             mTimeFrame->getClusters()[iLayer + 2][nextTracklet.secondClusterIndex].clusterId};
           const auto& cluster1_glo = mTimeFrame->getUnsortedClusters()[iLayer].at(clusId[0]);
           const auto& cluster2_glo = mTimeFrame->getUnsortedClusters()[iLayer + 1].at(clusId[1]);
-          // const auto& cluster3_glo = mTimeFrame->getUnsortedClusters()[iLayer + 2].at(clusId[2]);
           const auto& cluster3_tf = mTimeFrame->getTrackingFrameInfoOnLayer(iLayer + 2).at(clusId[2]);
           auto track{buildTrackSeed(cluster1_glo, cluster2_glo, cluster3_tf)};
 
@@ -349,6 +346,9 @@ void TrackerTraits::computeLayerCells(const int iteration)
           }
           if (!good) {
             continue;
+          }
+          if (iLayer > 0 && (int)tf->getCellsLookupTable()[iLayer - 1].size() <= iTracklet) {
+            tf->getCellsLookupTable()[iLayer - 1].resize(iTracklet + 1, tf->getCells()[iLayer].size());
           }
           tf->getCells()[iLayer].emplace_back(iLayer, clusId[0], clusId[1], clusId[2],
                                               iTracklet, iNextTracklet, track, chi2);
