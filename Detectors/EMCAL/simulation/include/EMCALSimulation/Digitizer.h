@@ -94,21 +94,28 @@ class Digitizer : public TObject
   const std::vector<o2::emcal::TriggerRecord>& getTriggerRecords() const { return mDigits.getTriggerRecords(); }
   const o2::dataformats::MCTruthContainer<o2::emcal::MCLabel>& getMCLabels() const { return mDigits.getMCLabels(); }
 
+  static constexpr int getTOFSamplingBins() { return EMC_TOF_BINS; }
+
  private:
-  static constexpr int EMC_PHASES = 4; ///< Number of phases
-  short mEventTimeOffset = 0;          ///< event time difference from trigger time (in number of bins)
-  short mPhase = 0;                    ///< event phase
-  UInt_t mROFrameMin = 0;              ///< lowest RO frame of current digits
-  UInt_t mROFrameMax = 0;              ///< highest RO frame of current digits
-  bool mSmearEnergy = true;            ///< do time and energy smearing
-  bool mSimulateTimeResponse = true;   ///< simulate time response
-  const SimParam* mSimParam = nullptr; ///< SimParam object
+  using TimeSampleContainer = std::array<double, constants::EMCAL_MAXTIMEBINS>;
+  static constexpr int EMC_PHASES = 4;                                                  ///< Number of phases
+  static constexpr int EMC_TOF_BINS = 1500;                                             ///< Number of bins in TOF sampling of the time response
+  static constexpr double EMC_TOF_MIN = 0;                                              ///< Min TOF
+  static constexpr double EMC_TOF_MAX = 1500.;                                          ///< Max TOF
+  static constexpr double EMC_TOF_BINWITH = (EMC_TOF_MAX - EMC_TOF_MIN) / EMC_TOF_BINS; ///< Number time samples simulated
+  short mEventTimeOffset = 0;                                                           ///< event time difference from trigger time (in number of bins)
+  short mPhase = 0;                                                                     ///< event phase
+  UInt_t mROFrameMin = 0;                                                               ///< lowest RO frame of current digits
+  UInt_t mROFrameMax = 0;                                                               ///< highest RO frame of current digits
+  bool mSmearEnergy = true;                                                             ///< do time and energy smearing
+  bool mSimulateTimeResponse = true;                                                    ///< simulate time response
+  const SimParam* mSimParam = nullptr;                                                  ///< SimParam object
 
   std::vector<Digit> mTempDigitVector;     ///< temporary digit storage
   o2::emcal::DigitsWriteoutBuffer mDigits; ///< used to sort digits and labels by tower
 
   TRandom3* mRandomGenerator = nullptr; ///< random number generator
-  std::array<std::array<double, constants::EMCAL_MAXTIMEBINS>, EMC_PHASES>
+  std::array<std::array<TimeSampleContainer, EMC_TOF_BINS>, EMC_PHASES>
     mAmplitudeInTimeBins; ///< template of the sampled time response function: amplitude of signal for each time bin (per phase)
 
   std::unique_ptr<o2::utils::TreeStreamRedirector> mDebugStream = nullptr;
