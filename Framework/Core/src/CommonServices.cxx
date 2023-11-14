@@ -135,6 +135,10 @@ o2::framework::ServiceSpec CommonServices::asyncQueue()
     .name = "async-queue",
     .init = simpleServiceInit<AsyncQueue, AsyncQueue>(),
     .configure = noConfiguration(),
+    .stop = [](ServiceRegistryRef services, void* service) {
+      auto& queue = services.get<AsyncQueue>();
+      AsyncQueueHelpers::reset(queue);
+    },
     .kind = ServiceKind::Serial};
 }
 
