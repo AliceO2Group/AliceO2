@@ -119,7 +119,18 @@ void DigitizerSpec::run(framework::ProcessingContext& ctx)
 
       LOG(info) << "For collision " << collID << " eventID " << part.entryID << " found " << mHits.size() << " hits ";
 
-      std::vector<o2::emcal::LabeledDigit> summedDigits = mSumDigitizer.process(mHits);
+      std::vector<o2::emcal::LabeledDigit> summedDigits;
+      if (mRunSDitizer) {
+        summedDigits = mSumDigitizer.process(mHits);
+      } else {
+        for (auto& hit : mHits) {
+          o2::emcal::MCLabel digitlabel(hit.GetTrackID(), part.entryID, part.sourceID, false, 1.);
+          if (hit.GetEnergyLoss() < __DBL_EPSILON__) {
+            digitlabel.setAmplitudeFraction(0);
+          }
+          summedDigits.emplace_back(hit.GetDetectorID(), hit.GetEnergyLoss(), hit.GetTime(), digitlabel);
+        }
+      }
 
       // call actual digitization procedure
       mDigitizer.process(summedDigits);
