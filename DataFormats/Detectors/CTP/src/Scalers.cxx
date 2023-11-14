@@ -686,6 +686,8 @@ std::pair<double, double> CTPRunScalers::getRate(uint32_t orbit, int classindex,
 }
 // returns the pair of global (levelled) interaction rate, as well as instantaneous interpolated
 // rate in Hz at a certain orbit number within the run
+// type - 7 : inputs
+// type - 1..6 : lmb,lma,l0b,l0a,l1b,l1a
 std::pair<double, double> CTPRunScalers::getRateGivenT(double timestamp, int classindex, int type) const
 {
   if (mScalerRecordO2.size() <= 1) {
