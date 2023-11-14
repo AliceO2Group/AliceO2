@@ -107,7 +107,6 @@ endif()
 if(HepMC3_FOUND)
   list(APPEND headers include/Generators/GeneratorHepMC.h)
   list(APPEND headers include/Generators/GeneratorHepMCParam.h)
-  list(APPEND headers include/Generators/AODToHepMC.h)
 endif()
 
 o2_target_root_dictionary(Generators HEADERS ${headers})
