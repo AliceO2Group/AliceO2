@@ -68,6 +68,7 @@ AddOptionRTC(PID_EDrangeMin, float, 1.88f, "", 0, "min P of electron/d BB bands 
 AddOptionRTC(PID_EDrangeMax, float, 1.98f, "", 0, "max P of electron/d BB bands crossing")
 AddOptionRTC(PID_ETrangeMin, float, 2.84f, "", 0, "min P of electron/t BB bands crossing")
 AddOptionRTC(PID_ETrangeMax, float, 2.94f, "", 0, "max P of electron/t BB bands crossing")
+AddOptionRTC(PID_sigma, float, 0.06f, "", 0, "relative sigma for PID in combination with PID_useNsigma")
 AddOptionRTC(extraClusterErrorEdgeY2, float, 0.35f, "", 0, "Additive extra cluster error for Y2 if edge flag set")
 AddOptionRTC(extraClusterErrorEdgeZ2, float, 0.15f, "", 0, "Additive extra cluster error for Z2 if edge flag set")
 AddOptionRTC(extraClusterErrorSingleY2, float, 0.2f, "", 0, "Additive extra cluster error for Y2 if edge single set")
@@ -130,6 +131,7 @@ AddOptionRTC(loopInterpolationInExtraPass, char, -1, "", 0, "Perform loop interp
 AddOptionRTC(mergerReadFromTrackerDirectly, char, 1, "", 0, "Forward data directly from tracker to merger on GPU")
 AddOptionRTC(dropSecondaryLegsInOutput, char, 1, "", 0, "Do not store secondary legs of looping track in TrackTPC")
 AddOptionRTC(enablePID, char, 1, "", 0, "Enable PID response")
+AddOptionRTC(PID_useNsigma, char, 1, "", 0, "Use nSigma instead of absolute distance in PID response")
 AddHelp("help", 'h')
 EndConfig()
 
