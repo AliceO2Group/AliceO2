@@ -70,6 +70,7 @@ class DigitizerSpec final : public o2::base::BaseDPLDigitizer, public o2::framew
  private:
   Bool_t mFinished = false;                   ///< Flag for digitization finished
   bool mIsConfigured = false;                 ///< Initialization status of the digitizer
+  bool mRunSDitizer = false;                  ///< Run SDigitization
   Digitizer mDigitizer;                       ///< Digitizer object
   o2::emcal::SDigitizer mSumDigitizer;        ///< Summed digitizer
   std::shared_ptr<CalibLoader> mCalibHandler; ///< Handler of calibration objects
