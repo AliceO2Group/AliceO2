@@ -62,7 +62,7 @@ class TrackerTraits
   virtual void findCellsNeighboursHybrid(const int iteration) { LOGP(error, "findCellsNeighboursHybrid: this method should never be called with CPU traits"); }
   virtual void findRoadsHybrid(const int iteration) { LOGP(error, "findRoadsHybrid: this method should never be called with CPU traits"); }
   virtual void findTracksHybrid(const int iteration) { LOGP(error, "findTracksHybrid: this method should never be called with CPU traits"); }
-  virtual void findTracks();
+  virtual void findTracks() { LOGP(error, "findTracks: this method is deprecated."); }
   virtual void extendTracks(const int iteration);
   virtual void findShortPrimaries();
   virtual void setBz(float bz);
