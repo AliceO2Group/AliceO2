@@ -549,10 +549,24 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
   LOGP(debug, "Starting track extrapolation for GID {}", mGIDs[iSeed].asString());
   const auto& gidTable = mGIDtables[iSeed];
   TrackData trackData;
+  std::unique_ptr<TrackDataExtended> trackDataExtended;
   std::vector<TPCClusterResiduals> clusterResiduals;
   trackData.clIdx.setFirstEntry(mClRes.size());
   const auto& trkITS = mRecoCont->getITSTrack(gidTable[GTrackID::ITS]);
   const auto& trkTPC = mRecoCont->getTPCTrack(gidTable[GTrackID::TPC]);
+  if (mDumpTrackPoints) {
+    trackDataExtended = std::make_unique<TrackDataExtended>();
+    (*trackDataExtended).gid = mGIDs[iSeed];
+    (*trackDataExtended).clIdx.setFirstEntry(mClRes.size());
+    (*trackDataExtended).trkITS = trkITS;
+    (*trackDataExtended).trkTPC = trkTPC;
+    auto nCl = trkITS.getNumberOfClusters();
+    auto clEntry = trkITS.getFirstClusterEntry();
+    for (int iCl = nCl - 1; iCl >= 0; iCl--) { // clusters are stored from outer to inner layers
+      const auto& clsITS = mITSClustersArray[mITSTrackClusIdx[clEntry + iCl]];
+      (*trackDataExtended).clsITS.push_back(clsITS);
+    }
+  }
   trackData.gid = mGIDs[iSeed];
   trackData.par = mSeeds[iSeed];
 
@@ -599,6 +613,9 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
   trackData.nClsITS = trkITS.getNumberOfClusters();
   trackData.clIdx.setEntries(nMeasurements);
   trackData.dEdxTPC = trkTPC.getdEdx().dEdxTotTPC;
+  if (mDumpTrackPoints) {
+    (*trackDataExtended).trkOuter = trkWork;
+  }
 
   TrackParams params; // for refitted track parameters and flagging rejected clusters
   if (mParams->skipOutlierFiltering || validateTrack(trackData, params, clusterResiduals)) {
@@ -619,6 +636,10 @@ void TrackInterpolation::extrapolateTrack(int iSeed)
     mTrackData.push_back(std::move(trackData));
     mGIDsSuccess.push_back(mGIDs[iSeed]);
     mTrackDataCompact.emplace_back(mClRes.size() - nClValidated, nClValidated, mGIDs[iSeed].getSource());
+    if (mDumpTrackPoints) {
+      (*trackDataExtended).clIdx.setEntries(nClValidated);
+      mTrackDataExtended.push_back(std::move(*trackDataExtended));
+    }
   }
   if (mParams->writeUnfiltered) {
     TrackData trkDataTmp = trackData;
