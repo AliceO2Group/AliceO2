@@ -53,6 +53,7 @@ void customize(std::vector<ConfigParamSpec>& workflowOptions)
     {"input-type", VariantType::String, "digits", {"digitizer, digits, zsraw, zsonthefly, clustersnative, compressed-clusters-root, compressed-clusters-ctf, trd-tracklets"}},
     {"output-type", VariantType::String, "tracks", {"clustersnative, tracks, compressed-clusters-ctf, qa, no-shared-cluster-map, send-clusters-per-sector, trd-tracks, error-qa, tpc-triggers"}},
     {"lumi-type", VariantType::Int, 0, {"1 = require CTP lumi for TPC correction scaling, 2 = require TPC scalers for TPC correction scaling"}},
+    {"corrmap-lumi-mode", VariantType::Int, 0, {"scaling mode: (default) 0 = static + scale * full; 1 = full + scale * derivative"}},
     {"disable-root-input", VariantType::Bool, true, {"disable root-files input reader"}},
     {"disable-mc", VariantType::Bool, false, {"disable sending of MC information"}},
     {"ignore-dist-stf", VariantType::Bool, false, {"do not subscribe to FLP/DISTSUBTIMEFRAME/0 message (no lost TF recovery)"}},
@@ -137,6 +138,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
 
   auto inputType = cfgc.options().get<std::string>("input-type");
   auto lumiType = cfgc.options().get<int>("lumi-type");
+  auto lumiMode = cfgc.options().get<int>("corrmap-lumi-mode");
   bool doMC = !cfgc.options().get<bool>("disable-mc");
 
   o2::conf::ConfigurableParam::updateFromFile(cfgc.options().get<std::string>("configFile"));
@@ -158,6 +160,7 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
   GPURecoWorkflowSpec::Config cfg;
   cfg.runTPCTracking = true;
   cfg.lumiScaleType = lumiType;
+  cfg.lumiScaleMode = lumiMode;
   cfg.decompressTPC = isEnabled(inputTypes, ioType::CompClustCTF);
   cfg.decompressTPCFromROOT = isEnabled(inputTypes, ioType::CompClustROOT);
   cfg.zsDecoder = isEnabled(inputTypes, ioType::ZSRaw);

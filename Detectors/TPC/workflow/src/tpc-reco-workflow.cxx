@@ -71,6 +71,7 @@ void customize(std::vector<o2::framework::ConfigParamSpec>& workflowOptions)
     {"lumi-type", o2::framework::VariantType::Int, 0, {"1 = require CTP lumi for TPC correction scaling, 2 = require TPC scalers for TPC correction scaling"}},
     {"select-ir-frames", VariantType::Bool, false, {"Subscribe and filter according to external IR Frames"}},
     {"tpc-deadMap-sources", VariantType::Int, -1, {"Sources to consider for TPC dead channel map creation; -1=all, 0=deactivated"}},
+    {"corrmap-lumi-mode", o2::framework::VariantType::Int, 0, {"scaling mode: (default) 0 = static + scale * full; 1 = full + scale * derivative"}},
   };
   o2::raw::HBFUtilsInitializer::addConfigOption(options);
   std::swap(workflowOptions, options);
@@ -182,7 +183,8 @@ WorkflowSpec defineDataProcessing(ConfigContext const& cfgc)
                                                 cfgc.options().get<bool>("select-ir-frames"),
                                                 cfgc.options().get<bool>("filtered-input"),
                                                 lumiType,
-                                                cfgc.options().get<int>("tpc-deadMap-sources"));
+                                                cfgc.options().get<int>("tpc-deadMap-sources"),
+                                                cfgc.options().get<int>("corrmap-lumi-mode"));
 
   // configure dpl timer to inject correct firstTForbit: start from the 1st orbit of TF containing 1st sampled orbit
   o2::raw::HBFUtilsInitializer hbfIni(cfgc, wf);

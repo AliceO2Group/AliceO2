@@ -85,7 +85,8 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData,           
                                     bool selIR = false,
                                     bool filteredInp = false,
                                     int lumiScaleType = 0,
-                                    int deadMapSources = -1);
+                                    int deadMapSources = -1,
+                                    int lumiScaleMode = 0);
 
 void cleanupCallback();
 

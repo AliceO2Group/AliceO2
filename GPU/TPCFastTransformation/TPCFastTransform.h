@@ -442,7 +442,7 @@ GPUdi() void TPCFastTransform::TransformInternal(int slice, int row, float& u, f
 {
   if (mApplyCorrection) {
     float dx = 0.f, du = 0.f, dv = 0.f;
-    if (scale >= 0.f) {
+    if ((scale >= 0.f) || (scaleMode == 1)) {
 #ifndef GPUCA_GPUCODE
       if (mCorrectionSlow) {
         float ly, lz;
@@ -463,14 +463,14 @@ GPUdi() void TPCFastTransform::TransformInternal(int slice, int row, float& u, f
 #endif // GPUCA_GPUCODE
       {
         mCorrection.getCorrection(slice, row, u, v, dx, du, dv);
-        if (ref && scale > 0.f) { // scaling was requested
-          if (scaleMode == 0) {
+        if (ref) {
+          if ((scale > 0.f) && (scaleMode == 0)) { // scaling was requested
             float dxRef, duRef, dvRef;
             ref->mCorrection.getCorrection(slice, row, u, v, dxRef, duRef, dvRef);
             dx = (dx - dxRef) * scale + dxRef;
             du = (du - duRef) * scale + duRef;
             dv = (dv - dvRef) * scale + dvRef;
-          } else if (scaleMode == 1) {
+          } else if ((scale != 0.f) && (scaleMode == 1)) {
             float dxRef, duRef, dvRef;
             ref->mCorrection.getCorrection(slice, row, u, v, dxRef, duRef, dvRef);
             dx = dxRef * scale + dx;
@@ -499,8 +499,21 @@ GPUdi() void TPCFastTransform::TransformInternal(int slice, int row, float& u, f
       float YZtoNominalY;
       float YZtoNominalZ;
       InverseTransformYZtoNominalYZ(slice, row, ly, lz, YZtoNominalY, YZtoNominalZ);
+
+      float dxRef, duRef, dvRef;
+      ref->mCorrection.getCorrection(slice, row, u, v, dxRef, duRef, dvRef);
+
+      float dxOrig, duOrig, dvOrig;
+      mCorrection.getCorrection(slice, row, u, v, dxOrig, duOrig, dvOrig);
+
       o2::utils::DebugStreamer::instance()->getStreamer("debug_fasttransform", "UPDATE") << o2::utils::DebugStreamer::instance()->getUniqueTreeName("tree_Transform").data()
                                                                                          // corrections in x, u, v
+                                                                                         << "dxOrig=" << dxOrig
+                                                                                         << "duOrig=" << duOrig
+                                                                                         << "dvOrig=" << dvOrig
+                                                                                         << "dxRef=" << dxRef
+                                                                                         << "duRef=" << duRef
+                                                                                         << "dvRef=" << dvRef
                                                                                          << "dx=" << dx
                                                                                          << "du=" << du
                                                                                          << "dv=" << dv
@@ -525,6 +538,7 @@ GPUdi() void TPCFastTransform::TransformInternal(int slice, int row, float& u, f
                                                                                          << "invYZtoX=" << invYZtoX
                                                                                          << "YZtoNominalY=" << YZtoNominalY
                                                                                          << "YZtoNominalZ=" << YZtoNominalZ
+                                                                                         << "scaleMode=" << scaleMode
                                                                                          << "\n";
     })
 

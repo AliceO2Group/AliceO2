@@ -98,7 +98,7 @@ const std::unordered_map<std::string, OutputType> OutputMap{
 
 framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vector<int> const& tpcSectors, unsigned long tpcSectorMask, std::vector<int> const& laneConfiguration,
                                     bool propagateMC, unsigned nLanes, std::string const& cfgInput, std::string const& cfgOutput, bool disableRootInput,
-                                    int caClusterer, int zsOnTheFly, bool askDISTSTF, bool selIR, bool filteredInp, int lumiScaleType, int deadMapSources)
+                                    int caClusterer, int zsOnTheFly, bool askDISTSTF, bool selIR, bool filteredInp, int lumiScaleType, int deadMapSources, int lumiScaleMode)
 {
   InputType inputType;
   try {
@@ -441,6 +441,7 @@ framework::WorkflowSpec getWorkflow(CompletionPolicyData* policyData, std::vecto
     o2::gpu::GPURecoWorkflowSpec::Config cfg;
     cfg.runTPCTracking = true;
     cfg.lumiScaleType = lumiScaleType;
+    cfg.lumiScaleMode = lumiScaleMode;
     cfg.decompressTPC = decompressTPC;
     cfg.decompressTPCFromROOT = decompressTPC && inputType == InputType::CompClusters;
     cfg.caClusterer = caClusterer;

@@ -87,7 +87,7 @@ void CorrectionMapsLoader::addOptions(std::vector<ConfigParamSpec>& options)
 {
   addOption(options, ConfigParamSpec{"corrmap-lumi-mean", VariantType::Float, 0.f, {"override TPC corr.map mean lumi (if > 0), disable corrections if < 0"}});
   addOption(options, ConfigParamSpec{"corrmap-lumi-inst", VariantType::Float, 0.f, {"override instantaneous CTP lumi (if > 0) for TPC corr.map scaling, disable corrections if < 0"}});
-  addOption(options, ConfigParamSpec{"corrmap-lumi-mode", VariantType::Int, 0, {"scaling mode: (default) 0 = static + scale * full; 1 = full + scale * derivative"}});
+  addOption(options, ConfigParamSpec{"corrmap-lumi-ref", VariantType::Float, 0.f, {"override TPC corr.mapRef mean lumi (if > 0)"}});
   addOption(options, ConfigParamSpec{"ctp-lumi-factor", VariantType::Float, 1.0f, {"scaling to apply to instantaneous lumi from CTP (but not corrmap-lumi-inst)"}});
   addOption(options, ConfigParamSpec{"ctp-lumi-source", VariantType::Int, 0, {"CTP lumi source: 0 = LumiInfo.getLumi(), 1 = LumiInfo.getLumiAlt()"}});
 }
@@ -124,6 +124,10 @@ bool CorrectionMapsLoader::accountCCDBInputs(const ConcreteDataMatcher& matcher,
   if (matcher == ConcreteDataMatcher("TPC", "CorrMapRef", 0)) {
     setCorrMapRef((o2::gpu::TPCFastTransform*)obj);
     mCorrMapRef->rectifyAfterReadingFromFile();
+    if (getMeanLumiRefOverride() == 0 && mCorrMapRef->getLumi() > 0.) {
+      setMeanLumiRef(mCorrMapRef->getLumi());
+    }
+    LOGP(debug, "MeanLumiRefOverride={} MeanLumiMap={} -> meanLumi = {}", getMeanLumiRefOverride(), mCorrMapRef->getLumi(), getMeanLumiRef());
     setUpdatedMapRef();
     return true;
   }
@@ -143,12 +147,15 @@ void CorrectionMapsLoader::init(o2::framework::InitContext& ic)
     }
   }
   mMeanLumiOverride = ic.options().get<float>("corrmap-lumi-mean");
+  mMeanLumiRefOverride = ic.options().get<float>("corrmap-lumi-ref");
   mInstLumiOverride = ic.options().get<float>("corrmap-lumi-inst");
-  mLumiScaleMode = ic.options().get<int>("corrmap-lumi-mode");
   mInstLumiFactor = ic.options().get<float>("ctp-lumi-factor");
   mCTPLumiSource = ic.options().get<int>("ctp-lumi-source");
   if (mMeanLumiOverride != 0.) {
     setMeanLumi(mMeanLumiOverride);
+  }
+  if (mMeanLumiRefOverride != 0.) {
+    setMeanLumiRef(mMeanLumiRefOverride);
   }
   if (mInstLumiOverride != 0.) {
     setInstLumi(mInstLumiOverride);
@@ -159,8 +166,8 @@ void CorrectionMapsLoader::init(o2::framework::InitContext& ic)
     LOGP(fatal, "Wrong lumi-scale-type provided!");
   }
 
-  LOGP(info, "Scaling for TPC corr.map scaling={}, override values: lumiMean={} lumiInst={} lumiScaleMode={}, LumiInst scale={}, CTP Lumi source={}",
-       lumiS[scaleType], mMeanLumiOverride, mInstLumiOverride, mLumiScaleMode, mInstLumiFactor, mCTPLumiSource);
+  LOGP(info, "Scaling for TPC corr.map scaling={}, override values: lumiMean={} lumiRefMean={} lumiInst={} lumiScaleMode={}, LumiInst scale={}, CTP Lumi source={}",
+       lumiS[scaleType], mMeanLumiOverride, mMeanLumiRefOverride, mInstLumiOverride, mLumiScaleMode, mInstLumiFactor, mCTPLumiSource);
 }
 
 //________________________________________________________
@@ -168,12 +175,15 @@ void CorrectionMapsLoader::copySettings(const CorrectionMapsLoader& src)
 {
   setInstLumi(src.getInstLumi(), false);
   setMeanLumi(src.getMeanLumi(), false);
+  setMeanLumiRef(src.getMeanLumiRef());
   setLumiScaleType(src.getLumiScaleType());
   setMeanLumiOverride(src.getMeanLumiOverride());
+  setMeanLumiRefOverride(src.getMeanLumiRefOverride());
   setInstLumiOverride(src.getInstLumiOverride());
   setLumiScaleMode(src.getLumiScaleMode());
   mInstLumiFactor = src.mInstLumiFactor;
   mCTPLumiSource = src.mCTPLumiSource;
+  mLumiScaleMode = src.mLumiScaleMode;
 }
 
 #endif // #ifndef GPUCA_GPUCODE_DEVICE
