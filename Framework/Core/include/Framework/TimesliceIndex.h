@@ -158,7 +158,6 @@ class TimesliceIndex
   OldestInputInfo mOldestPossibleInput = {};
   OldestOutputInfo mOldestPossibleOutput = {};
 
-
   /// What to do in case of backpressure
   BackpressureOp mBackpressurePolicy = BackpressureOp::Wait;
   /// The maximum number of lanes for this timeslice index
