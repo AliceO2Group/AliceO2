@@ -69,6 +69,7 @@ class TrackingStudySpec : public Task
 
  private:
   void updateTimeDependentParams(ProcessingContext& pc);
+  float getDCAYCut(float pt) const;
   std::shared_ptr<DataRequest> mDataRequest;
   std::shared_ptr<o2::base::GRPGeomRequest> mGGCCDBRequest;
   bool mUseMC{false}; ///< MC flag
@@ -77,6 +78,14 @@ class TrackingStudySpec : public Task
   float mITSROFrameLengthMUS = 0.;
   int mMaxNeighbours = 3;
   float mMaxVTTimeDiff = 80.; // \mus
+  float mTPCDCAYCut = 2.;
+  float mTPCDCAZCut = 2.;
+  float mMinX = 6.;
+  float mMaxEta = 0.8;
+  float mMinPt = 0.1;
+  int mMinTPCClusters = 60;
+  std::string mDCAYFormula = "0.0105 + 0.0350 / pow(x, 1.1)";
+
   GTrackID::mask_t mTracksSrc{};
   o2::dataformats::MeanVertexObject mMeanVtx{};
   o2::steer::MCKinematicsReader mcReader; // reader of MC information
@@ -90,6 +99,13 @@ void TrackingStudySpec::init(InitContext& ic)
 
   mMaxVTTimeDiff = ic.options().get<float>("max-vtx-timediff");
   mMaxNeighbours = ic.options().get<int>("max-vtx-neighbours");
+  mTPCDCAYCut = ic.options().get<float>("max-tpc-dcay");
+  mTPCDCAZCut = ic.options().get<float>("max-tpc-dcaz");
+  mMinX = ic.options().get<float>("min-x-prop");
+  mMaxEta = ic.options().get<float>("max-eta");
+  mMinPt = ic.options().get<float>("min-pt");
+  mMinTPCClusters = ic.options().get<int>("min-tpc-clusters");
+  mDCAYFormula = ic.options().get<std::string>("dcay-vs-pt");
 }
 
 void TrackingStudySpec::run(ProcessingContext& pc)
@@ -175,7 +191,8 @@ void TrackingStudySpec::process(o2::globaltracking::RecoContainer& recoData)
     int nContAdd = 0, nContAdd0 = 0, ntITS = 0;
     int nAdjusted = 0;
     for (int is = 0; is < GTrackID::NSources; is++) {
-      bool skipTracks = (!GTrackID::getSourceDetectorsMask(is)[GTrackID::ITS] || !mTracksSrc[is] || !recoData.isTrackSourceLoaded(is));
+      DetID::mask_t dm = GTrackID::getSourceDetectorsMask(is);
+      bool skipTracks = !mTracksSrc[is] || !recoData.isTrackSourceLoaded(is) || !(dm[DetID::ITS] || dm[DetID::TPC]);
       int idMin = vtref.getFirstEntryOfSource(is), idMax = idMin + vtref.getEntriesOfSource(is);
       for (int i = idMin; i < idMax; i++) {
         auto vid = trackIndex[i];
@@ -191,6 +208,35 @@ void TrackingStudySpec::process(o2::globaltracking::RecoContainer& recoData)
         float xmin = trc.getX();
         o2::dataformats::DCA dca;
         if (!prop->propagateToDCA(iv == nv - 1 ? vtxDummy : pvvec[iv], trc, prop->getNominalBz(), 2., o2::base::PropagatorF::MatCorrType::USEMatCorrLUT, &dca)) {
+          continue;
+        }
+        bool hasITS = GTrackID::getSourceDetectorsMask(is)[GTrackID::ITS];
+        bool acceptGlo = true;
+        while (1) {
+          // do we cound this track for global multiplicity?
+          if (!(acceptGlo = abs(trc.getEta()) < mMaxEta && trc.getPt() > mMinPt)) {
+            break;
+          }
+          if (!(acceptGlo = std::abs(dca.getY()) < (hasITS ? getDCAYCut(trc.getPt()) : mTPCDCAYCut) && std::abs(dca.getZ()) < mTPCDCAYCut && xmin < mMinX)) {
+            break;
+          }
+          GTrackID tpcTrID;
+          if (GTrackID::getSourceDetectorsMask(is)[GTrackID::TPC] && recoData.isTrackSourceLoaded(GTrackID::TPC) && (tpcTrID = recoData.getTPCContributorGID(vid))) {
+            auto& tpcTr = recoData.getTPCTrack(tpcTrID);
+            if (!(acceptGlo = tpcTr.getNClusters() >= mMinTPCClusters)) {
+              break;
+            }
+          }
+          if (iv != nv - 1) {
+            pveVec[iv].nSrcA[is]++;
+            if (ambig) {
+              pveVec[iv].nSrcAU[is]++;
+            }
+          }
+          break;
+        }
+
+        if (!hasITS) {
           continue;
         }
         float ttime = 0, ttimeE = 0;
@@ -242,9 +288,11 @@ void TrackingStudySpec::process(o2::globaltracking::RecoContainer& recoData)
           }
           LOGP(debug, "dt={} dz={}, tW={}, zW={} t={} tE={} {}", dt, dca.getZ(), tW, zW, ttime, ttimeE, vid.asString());
         }
-        (*mDBGOut) << "dca"
-                   << "tfID=" << TFCount << "ttime=" << ttime << "ttimeE=" << ttimeE
-                   << "gid=" << vid << "pv=" << (iv == nv - 1 ? vtxDummy : pvvec[iv]) << "trc=" << trc << "pvCont=" << pvCont << "ambig=" << ambig << "dca=" << dca << "xmin=" << xmin << "\n";
+        if (acceptGlo) {
+          (*mDBGOut) << "dca"
+                     << "tfID=" << TFCount << "ttime=" << ttime << "ttimeE=" << ttimeE
+                     << "gid=" << vid << "pv=" << (iv == nv - 1 ? vtxDummy : pvvec[iv]) << "trc=" << trc << "pvCont=" << pvCont << "ambig=" << ambig << "dca=" << dca << "xmin=" << xmin << "\n";
+        }
       }
     }
 
@@ -394,6 +442,12 @@ void TrackingStudySpec::finaliseCCDB(ConcreteDataMatcher& matcher, void* obj)
   }
 }
 
+float TrackingStudySpec::getDCAYCut(float pt) const
+{
+  static TF1 fun("dcayvspt", mDCAYFormula.c_str(), 0, 20);
+  return fun.Eval(pt);
+}
+
 DataProcessorSpec getTrackingStudySpec(GTrackID::mask_t srcTracks, GTrackID::mask_t srcClusters, bool useMC)
 {
   std::vector<OutputSpec> outputs;
@@ -420,6 +474,13 @@ DataProcessorSpec getTrackingStudySpec(GTrackID::mask_t srcTracks, GTrackID::mas
     Options{
       {"max-vtx-neighbours", VariantType::Int, 3, {"Max PV neighbours fill, no PV study if < 0"}},
       {"max-vtx-timediff", VariantType::Float, 90.f, {"Max PV time difference to consider"}},
+      {"dcay-vs-pt", VariantType::String, "0.0105 + 0.0350 / pow(x, 1.1)", {"Formula for global tracks DCAy vs pT cut"}},
+      {"min-tpc-clusters", VariantType::Int, 60, {"Cut on TPC clusters"}},
+      {"max-tpc-dcay", VariantType::Float, 2.f, {"Cut on TPC dcaY"}},
+      {"max-tpc-dcaz", VariantType::Float, 2.f, {"Cut on TPC dcaZ"}},
+      {"max-eta", VariantType::Float, 0.8f, {"Cut on track eta"}},
+      {"min-pt", VariantType::Float, 0.1f, {"Cut on track pT"}},
+      {"min-x-prop", VariantType::Float, 6.f, {"track should be propagated to this X at least"}},
     }};
 }
 
